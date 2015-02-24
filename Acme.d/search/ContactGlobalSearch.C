@@ -1605,8 +1605,6 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
                     PRECONDITION(0);
                     break;
                   }
-#else
-                  std::cerr << " *** WARNING: AEROS_NO_AD is defined\n";
 #endif
                 }
               } break;

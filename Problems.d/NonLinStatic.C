@@ -28,8 +28,10 @@ NonLinStatic::NonLinStatic(Domain *d)
   times = 0;
   reactions = 0;
 
-  if(domain->GetnContactSurfacePairs())
+  if(domain->GetnContactSurfacePairs()) {
     domain->InitializeStaticContactSearch(MortarHandler::CTC);
+    updateCS = true;
+  }
 }
 
 NonLinStatic::~NonLinStatic()
@@ -71,8 +73,22 @@ NonLinStatic::clean()
 }
 
 void
+NonLinStatic::updateContactSurfaces(GeomState& geomState)
+{
+  clean();
+  domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
+  domain->PerformStaticContactSearch(MortarHandler::CTC);
+  domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+  domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+  domain->UpdateContactSurfaceElements(&geomState);
+  preProcess(false);
+  geomState.resizeLocAndFlag(*domain->getCDSA());
+}
+
+void
 NonLinStatic::updateStates(GeomState *refState, GeomState& geomState, double lambda)
 {
+  if(domain->solInfo().piecewise_contact) updateCS = true;
   domain->updateStates(refState, geomState, allCorot, lambda);
 }
 
@@ -83,14 +99,10 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
   times->buildStiffAndForce -= getTime();
 
   if(domain->GetnContactSurfacePairs()) {
-    clean();
-    domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
-    domain->PerformStaticContactSearch(MortarHandler::CTC);
-    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-    domain->UpdateContactSurfaceElements(&geomState);
-    preProcess(false); // TODO consider case domain->solInfo().getNLInfo().updateK > 1
-    geomState.resizeLocAndFlag(*domain->getCDSA());
+    if(!domain->solInfo().piecewise_contact || updateCS) {
+      updateContactSurfaces(geomState);
+      updateCS = false;
+    }
     residual.conservativeResize(domain->getCDSA()->size());
     elementInternalForce.resize(domain->maxNumDOF());
   }
@@ -486,5 +498,5 @@ NonLinStatic::getResidualNorm(Vector &rhs, GeomState &geomState)
 bool
 NonLinStatic::getResizeFlag()
 {
-  return (domain->GetnContactSurfacePairs() > 0); // XXX only for "multipliers" constraint method
+  return (domain->GetnContactSurfacePairs() > 0);
 }

@@ -133,7 +133,7 @@ typedef int MPI_Comm;
 
 #define COMPUTE_CENTROID_AND_LOCAL_EDGE_COORDS
 
-#if defined(USE_EIGEN3) && !defined(AEROS_NO_AD)
+#if defined(USE_FFI_DERIVATIVES) && defined(USE_EIGEN3) && !defined(AEROS_NO_AD)
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <unsupported/Eigen/AutoDiff>

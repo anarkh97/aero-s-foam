@@ -16,12 +16,14 @@ typedef GenDistrVector<double> DistrVector;
 class DistrGeomState;
 template <class Scalar> class GenMultiDomainPostProcessor;
 typedef GenMultiDomainPostProcessor<double> MultiDomainPostProcessor;
+template <class Scalar> class GenFetiDPSolver;
 
 class MDNLStatic 
 {
     Domain     *domain;
     DecDomain  *decDomain;
     ParallelSolver *solver;
+    GenFetiDPSolver<double> *fetiSolver;
 
     FullSquareMatrix **kelArray;
     Corotator ***allCorot;
@@ -39,6 +41,7 @@ class MDNLStatic
     std::vector<double> *lambda; // lagrange multipliers for all the other constraints
 
     bool myDecDomain;
+    bool updateCS;
 
  public:
     // Constructor
@@ -49,6 +52,7 @@ class MDNLStatic
     DistrInfo& sysVecInfo();
     DistrInfo& elemVecInfo();
     int checkConvergence(int iter, double normDv, double normRes);
+    void updateContactSurfaces(DistrGeomState& geomState);
     void updateStates(DistrGeomState *refState, DistrGeomState& geomState, double lambda);
     int  getMaxit();
     double getScaleFactor();
@@ -103,7 +107,6 @@ class MDNLStatic
     void subGetRHS(int isub, DistrVector& rhs);
     void addConstraintForces(int isub, DistrVector &vec);
     void getConstraintMultipliers(int isub);
-    void updateConstraintTerms(DistrGeomState* geomState, double _lambda);
     void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState, double time);
     void subInitializeMultipliers(int isub, DistrGeomState& geomState);
     void subInitializeParameters(int isub);

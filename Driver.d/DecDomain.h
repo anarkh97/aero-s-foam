@@ -40,7 +40,7 @@ class GenDecDomain
   Connectivity *mpcToSub_primal;
   Connectivity *subToElem;
   Connectivity *elemToNode;
-  Connectivity *nodeToSub;
+  Connectivity *nodeToSub, *nodeToSub_copy;
   Connectivity *cpuToSub;
   Connectivity *elemToSub;
   GenSubDomain<Scalar> **subDomain;
@@ -48,7 +48,7 @@ class GenDecDomain
   DistrInfo *masterSolVecInfo_;
   DistrInfo *nodeInfo;
   DistrInfo *nodeVecInfo, *eleVecInfo, *bcVecInfo;
-  std::vector<DistrInfo*> vecInfoStore, vecInfoStore2;
+  std::vector<DistrInfo*> vecInfoStore;
   Connectivity *grToSub;
   FILE *primalFile; // file to store primal residual
 

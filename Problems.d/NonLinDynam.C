@@ -65,8 +65,10 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
   reactions(NULL),
   factor(false)
 {
-  if(domain->GetnContactSurfacePairs())
+  if(domain->GetnContactSurfacePairs()) {
      domain->InitializeStaticContactSearch(MortarHandler::CTC);
+     updateCS = true;
+  }
 }
 
 NonLinDynamic::~NonLinDynamic()
@@ -288,7 +290,6 @@ NonLinDynamic::computeTimeInfo()
   // Get total time and time step size and store them 
   totalTime = domain->solInfo().tmax;
   dt0       = domain->solInfo().getTimeStep();
-  //delta     = 0.5*dt0;
 
   // Compute maximum number of steps
   maxStep = (int) ( (totalTime+0.49*dt0)/dt0 );
@@ -306,8 +307,24 @@ NonLinDynamic::computeTimeInfo()
 }
 
 void
+NonLinDynamic::updateContactSurfaces(GeomState& geomState, GeomState *refState)
+{
+  clean();
+  domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
+  domain->PerformStaticContactSearch(MortarHandler::CTC);
+  domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+  domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+  domain->UpdateContactSurfaceElements(&geomState);
+  factor = false;
+  preProcess();
+  geomState.resizeLocAndFlag(*domain->getCDSA());
+  if(refState) refState->resizeLocAndFlag(*domain->getCDSA());
+}
+
+void
 NonLinDynamic::updateStates(GeomState *refState, GeomState& geomState, double time)
 {
+  if(domain->solInfo().piecewise_contact) updateCS = true;  
   domain->updateStates(refState, geomState, allCorot, time);
 }
 
@@ -337,19 +354,16 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     }
   }
 
-  if(domain->GetnContactSurfacePairs()) {
-    clean();
-    domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
-    domain->PerformStaticContactSearch(MortarHandler::CTC);
-    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-    domain->UpdateContactSurfaceElements(&geomState);
-    factor = false;
-    preProcess();
-    geomState.resizeLocAndFlag(*domain->getCDSA());
-    residual.conservativeResize(domain->getCDSA()->size());
-    elementInternalForce.resize(domain->maxNumDOF());
-    localTemp.resize(domain->getCDSA()->size());
+  if(t != domain->solInfo().initialTime) {
+    if(domain->GetnContactSurfacePairs()) {
+      if(!domain->solInfo().piecewise_contact || updateCS) {
+        updateContactSurfaces(geomState, refState);
+        updateCS = false;
+      }
+      residual.conservativeResize(domain->getCDSA()->size());
+      elementInternalForce.resize(domain->maxNumDOF());
+      localTemp.resize(domain->getCDSA()->size());
+    }
   }
 
   getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState, melArray, forceOnly);
@@ -385,6 +399,8 @@ int
 NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector& dv, 
                                 double time)
 {
+  if(domain->GetnContactSurfacePairs()) dv.conservativeResize(domain->getCDSA()->size());
+
 #ifdef PRINT_FORCENORMS
   ConstrainedDSA *cdsa = domain->getCDSA();
   double momenNorm = 0.0;
@@ -763,9 +779,10 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
 {
   times->correctorTime -= getTime();
   if(domain->GetnContactSurfacePairs()) {
-    velocity.conservativeResize(domain->getCDSA()->size());
-    acceleration.conservativeResize(domain->getCDSA()->size());
-    rhs.resize(domain->getCDSA()->size());
+    velocity.conservativeResize(solVecInfo());
+    acceleration.conservativeResize(solVecInfo());
+    rhs.resize(solVecInfo());
+    inc_displacement.conservativeResize(solVecInfo());
   }
 
   if(domain->solInfo().order == 1) {
@@ -1232,5 +1249,5 @@ NonLinDynamic::linesearch()
 bool
 NonLinDynamic::getResizeFlag()
 {
-  return (domain->GetnContactSurfacePairs() > 0); // XXX only for "multipliers" constraint method
+  return (domain->GetnContactSurfacePairs() > 0);
 }

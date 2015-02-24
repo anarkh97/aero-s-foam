@@ -79,14 +79,14 @@ private:
 // Provides hooks to be used in NLDynamSolver to call the snapshot collection functions
 class SnapshotNonLinDynamic::Updater : public IncrUpdater<SnapshotNonLinDynamic, GenVector<double>, GeomState> {
 public:
-  static double integrate(SnapshotNonLinDynamic *pbd, GeomState *refState, GeomState *geomState,
+  static double integrate(int iter, SnapshotNonLinDynamic *pbd, GeomState *refState, GeomState *geomState,
                           GenVector<double> *du, GenVector<double> &residual,
                           GenVector<double> &elementInternalForce, GenVector<double> &gRes, GenVector<double> &vel_n,
                           GenVector<double> &accel, double midTime, bool forceOnly = false) {
     pbd->saveMidTime(midTime);
 
     return IncrUpdater<SnapshotNonLinDynamic, GenVector<double>, GeomState>::integrate(
-        pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime, forceOnly);
+        iter, pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime, forceOnly);
   }
 
   static void midpointIntegrate(SnapshotNonLinDynamic *pbd, GenVector<double> &velN,

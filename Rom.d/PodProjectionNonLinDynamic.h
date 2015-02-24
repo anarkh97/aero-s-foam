@@ -131,14 +131,14 @@ private:
 class PodProjectionNonLinDynamic::Updater : public IncrUpdater<PodProjectionNonLinDynamic, GenVector<double>, ModalGeomState> {
 public:
 
-  static double integrate(PodProjectionNonLinDynamic *pbd, ModalGeomState *refState, ModalGeomState *geomState,
+  static double integrate(int iter, PodProjectionNonLinDynamic *pbd, ModalGeomState *refState, ModalGeomState *geomState,
                           GenVector<double> *du, GenVector<double> &residual,
                           GenVector<double> &elementInternalForce, GenVector<double> &gRes, GenVector<double> &vel_n,
                           GenVector<double> &accel, double midTime, bool forceOnly = false) {
     pbd->saveMidTime(midTime);
 
     return IncrUpdater<PodProjectionNonLinDynamic, GenVector<double>, ModalGeomState>::integrate(
-        pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime, forceOnly);
+        iter, pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime, forceOnly);
   }
   
   static void midpointIntegrate(PodProjectionNonLinDynamic *pbd, GenVector<double> &velN,

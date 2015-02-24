@@ -354,7 +354,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  
     // Update geomState then compute current tangent stiffness and residual force (including follower force contributions)
     timeStiff -= getTime();
-    StateUpdate::integrate(probDesc, refState, geomState, stateIncr,
+    StateUpdate::integrate(iter, probDesc, refState, geomState, stateIncr,
                            residual, elementInternalForce, totalRes, lambda);
     timeStiff += getTime();
 #ifdef PRINT_TIMERS

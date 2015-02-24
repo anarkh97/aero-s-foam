@@ -87,12 +87,6 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
                   Rbm **, bool _rbmFlag, bool _geometricRbms)
  : GenFetiSolver<Scalar>(_nsub, threadManager->numThr()), internalR(_nsub), internalC(_nsub), internalWI(_nsub) 
 {
-/*
- if(geoSource->isShifted())
-   filePrint(stderr, " ... FETI-DPH Solver is Selected    ...\n");
- else
-   filePrint(stderr, " ... FETI-DP Solver is Selected     ...\n");
-*/
  initialize();
 
  // Compute memory used by FETI Solver
@@ -114,7 +108,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  mpcToCpu   = _mpcToCpu;
  this->cpuToSub   = _cpuToSub;
  this->fetiInfo   = _fetiInfo;    // Feti solver information
- this->fetiCom    = _fetiCom;       // PJSA
+ this->fetiCom    = _fetiCom;
  this->glSubToLoc = _glSubToLoc;
 
   globalFlagCtc = domain->getNumCTC();
@@ -2158,7 +2152,6 @@ GenFetiDPSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
 #ifdef DISTRIBUTED
   mpcerr = this->fetiCom->globalSum(mpcerr);
 #endif
-  //cerr << "mpc error = " << mpcerr << std::endl;
 
   return (fr.sqNorm() + fc.sqNorm() + mpcerr);
 }

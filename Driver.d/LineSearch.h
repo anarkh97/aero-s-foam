@@ -29,7 +29,7 @@ public:
   void operator() (GeomType *geomState, VecType &inc, VecType &residual) {
     Updater<ProbDescr,VecType,GeomType>::updateIncr(du, inc);
     residual.linC(force, lambda);
-    Updater<ProbDescr,VecType,GeomType>::integrate(pbd, refState, geomState, du, residual, elementInternalForce,
+    Updater<ProbDescr,VecType,GeomType>::integrate(1, pbd, refState, geomState, du, residual, elementInternalForce,
                                                    gRes, lambda, true);
   }
 };
@@ -67,7 +67,7 @@ public:
   void operator() (GeomType *geomState, VecType &inc, VecType &residual) {
     Updater<ProbDescr,VecType,GeomType>::updateIncr(du, inc);
     toto = ext_force;
-    Updater<ProbDescr,VecType,GeomType>::integrate(pbd, refState, geomState, du, toto, elementInternalForce, gRes,
+    Updater<ProbDescr,VecType,GeomType>::integrate(1, pbd, refState, geomState, du, toto, elementInternalForce, gRes,
                                                    vel_n, accel, midtime, true);
     Updater<ProbDescr,VecType,GeomType>::get_inc_displacement(pbd, geomState, inc_displac, refState, zeroRot);
     Updater<ProbDescr,VecType,GeomType>::formRHScorrector(pbd, inc_displac, vel_n, accel, toto, residual, geomState,

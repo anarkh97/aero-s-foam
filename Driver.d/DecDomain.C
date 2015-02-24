@@ -52,6 +52,7 @@ GenDecDomain<Scalar>::initialize()
   elemToNode = 0;
   subToNode  = 0;
   nodeToSub  = 0;
+  nodeToSub_copy = 0;
   subToSub   = 0;
   mpcToSub_dual = 0;
   mpcToSub_primal = 0;
@@ -96,6 +97,7 @@ GenDecDomain<Scalar>::~GenDecDomain()
   if(elemToNode) { delete elemToNode; elemToNode = 0; }
   if(subToNode) { delete subToNode; subToNode = 0; }
   if(nodeToSub) { delete nodeToSub; nodeToSub = 0; }
+  if(nodeToSub_copy) { delete nodeToSub_copy; nodeToSub_copy = 0; }
   if(subToSub) { delete subToSub; subToSub = 0; }
   if(mpcToSub_dual) { delete mpcToSub_dual; mpcToSub_dual = 0; }
   if(mpcToSub_primal) { delete mpcToSub_primal; mpcToSub_primal = 0; }
@@ -130,7 +132,6 @@ GenDecDomain<Scalar>::~GenDecDomain()
   if(ba) delete ba;
   if(ba2) delete ba2;
   for(std::vector<DistrInfo*>::iterator it = vecInfoStore.begin(); it != vecInfoStore.end(); ++it) delete *it;
-  for(std::vector<DistrInfo*>::iterator it = vecInfoStore2.begin(); it != vecInfoStore2.end(); ++it) delete *it;
   geoSource->deleteMatchArrays(numSub);
 }
 
@@ -695,7 +696,8 @@ GenDecDomain<Scalar>::preProcess()
  geoSource->setNumNodalOutput();
  if(geoSource->getNumNodalOutput()) {
    for(int i=0; i<numSub; ++i)
-     geoSource->distributeOutputNodesX(subDomain[i], nodeToSub);
+     geoSource->distributeOutputNodesX(subDomain[i], (nodeToSub_copy) ? nodeToSub_copy : nodeToSub); // make sure each node always gets
+                                                                                                     // assigned to the same subdomain.
  }
 #endif
 
@@ -2589,10 +2591,8 @@ void GenDecDomain<Scalar>::distributeBCs()
 
   int numDirichlet = geoSource->getDirichletBC(dbc);
   int numNeuman    = geoSource->getNeumanBC(nbc);
-  //int numIDis      = geoSource->getIDis(iDis);
   int numIDis = domain->numInitDisp(); iDis = domain->getInitDisp();
   int numIDis6     = geoSource->getIDis6(iDis6);
-  //int numIVel      = geoSource->getIVel(iVel);
   int numIVel = domain->numInitVelocity(); iVel = domain->getInitVelocity();
 
   // Count the number of boundary conditions per subdomain
@@ -3705,7 +3705,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    case 1 : { // iterative
      switch(domain->solInfo().iterType) {
        case 1: {
-         if(myCPU == 0) std::cerr << " ... GMRES Solver is Selected       ...\n";
+         if(myCPU == 0) std::cerr << " ... GMRES Solver is Selected       ... \n";
          res.spMat = new GenSubDOp<Scalar>(numSub, dgt.spMats, assembler);
          if(domain->solInfo().precond == 1) res.prec = getDiagSolver(numSub, dgt.sd, dgt.sps);
          GmresSolver<Scalar, GenDistrVector<Scalar>, GenSubDOp<Scalar>, GenParallelSolver<Scalar>, GenParallelSolver<Scalar> > *gmresSolver
@@ -3723,13 +3723,13 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      }
    } break;
    case 2 : { // feti
-     if(myCPU == 0) std::cerr << " ... FETI-DP Solver is Selected     ...\n";
+     if(myCPU == 0) std::cerr << " ... FETI-DP Solver is Selected     ... \n";
      res.dynMat = getFetiSolver(dgt);
      delete [] dgt.dynMats;
      delete [] dgt.spMats;
    } break;
    case 3 : { // block diag
-     if(myCPU == 0) std::cerr << " ... Diagonal Solver is Selected    ...\n";
+     if(myCPU == 0) std::cerr << " ... Diagonal Solver is Selected    ... \n";
      res.dynMat = getDiagSolver(numSub, dgt.sd, dgt.dynMats);
    } break;
  }
@@ -4163,30 +4163,21 @@ GenDecDomain<Scalar>::clean()
   }
   if(elemToNode) { delete elemToNode; elemToNode = 0; }
   if(subToNode) { delete subToNode; subToNode = 0; }
-  if(nodeToSub) { delete nodeToSub; nodeToSub = 0; }
+  if(nodeToSub) {
+    if(!nodeToSub_copy) { nodeToSub_copy = nodeToSub; nodeToSub = 0; }
+    else { delete nodeToSub; nodeToSub = 0; }
+  }
   if(subToSub) { delete subToSub; subToSub = 0; }
   if(elemToSub) { delete elemToSub; elemToSub = 0; }
   if(glSubToLocal) { delete [] glSubToLocal; glSubToLocal = 0; }
-  if(vecInfoStore.empty()) {
-    if(internalInfo) { vecInfoStore.push_back(internalInfo); internalInfo = 0; }
-    if(internalInfo2) { vecInfoStore.push_back(internalInfo2); internalInfo2 = 0; }
-    if(masterSolVecInfo_) { vecInfoStore.push_back(masterSolVecInfo_); masterSolVecInfo_ = 0; }
-    if(nodeInfo) { vecInfoStore.push_back(nodeInfo); nodeInfo = 0; }
-    if(nodeVecInfo) { vecInfoStore.push_back(nodeVecInfo); nodeVecInfo = 0; }
-    if(eleVecInfo) { vecInfoStore.push_back(eleVecInfo); eleVecInfo = 0; }
-    if(bcVecInfo) { vecInfoStore.push_back(bcVecInfo); bcVecInfo = 0; }
-  }
-  else {
-    for(std::vector<DistrInfo*>::iterator it = vecInfoStore2.begin(); it != vecInfoStore2.end(); ++it) delete *it;
-    vecInfoStore2.clear();
-    if(internalInfo) { vecInfoStore2.push_back(internalInfo); internalInfo = 0; }
-    if(internalInfo2) { vecInfoStore2.push_back(internalInfo2); internalInfo2 = 0; }
-    if(masterSolVecInfo_) { vecInfoStore2.push_back(masterSolVecInfo_); masterSolVecInfo_ = 0; }
-    if(nodeInfo) { vecInfoStore2.push_back(nodeInfo); nodeInfo = 0; }
-    if(nodeVecInfo) { vecInfoStore2.push_back(nodeVecInfo); nodeVecInfo = 0; }
-    if(eleVecInfo) { vecInfoStore2.push_back(eleVecInfo); eleVecInfo = 0; }
-    if(bcVecInfo) { vecInfoStore2.push_back(bcVecInfo); bcVecInfo = 0; }
-  }
+
+  if(internalInfo) { vecInfoStore.push_back(internalInfo); internalInfo = 0; }
+  if(internalInfo2) { vecInfoStore.push_back(internalInfo2); internalInfo2 = 0; }
+  if(masterSolVecInfo_) { vecInfoStore.push_back(masterSolVecInfo_); masterSolVecInfo_ = 0; }
+  if(nodeInfo) { vecInfoStore.push_back(nodeInfo); nodeInfo = 0; }
+  if(nodeVecInfo) { vecInfoStore.push_back(nodeVecInfo); nodeVecInfo = 0; }
+  if(eleVecInfo) { vecInfoStore.push_back(eleVecInfo); eleVecInfo = 0; }
+  if(bcVecInfo) { vecInfoStore.push_back(bcVecInfo); bcVecInfo = 0; }
 }
 
 template<class Scalar>

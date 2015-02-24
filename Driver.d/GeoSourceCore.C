@@ -555,7 +555,6 @@ void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map
         if(elemSet[contactSurfElems[count]]->numInternalNodes() == 1) { // i.e. lagrange multiplier
           int in[1] = { nNode++ };
           elemSet[contactSurfElems[count]]->setInternalNodes(in);
-          //XXX geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
         }
         count1++;
       }
@@ -566,7 +565,6 @@ void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map
         if(elemSet[nEle]->numInternalNodes() == 1) {
           int in[1] = { nNode++ };
           elemSet[nEle]->setInternalNodes(in);
-          //XXX geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
         }
         contactSurfElems.push_back(nEle);
         nEle++;
@@ -581,10 +579,8 @@ void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map
     contactSurfElems.pop_back();
     count2++;
   }
-  //XXX elemSet.setEmax(nEle-count2); // because element set is packed
   //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << std::endl;
   nElem = elemSet.last();
-  //XXX numnodes = geomState->numNodes();
 
   if(optDecCopy == 0) {
     optDecCopy = optDec;

@@ -4,7 +4,10 @@
 #include <Corotational.d/utilities.h>
 #include <Math.d/matrix.h>
 #include <Driver.d/EFrameData.h>
+#include <Utils.d/SolverInfo.h>
 #include <algorithm>
+
+extern SolverInfo &solInfo;
 
 bool operator< (const LMPCTerm &a, const LMPCTerm &b)
 { return ((a.nnum < b.nnum) || ((a.nnum == b.nnum) && (a.dofnum < b.dofnum))); }
@@ -263,15 +266,11 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
   ret.zero();
   if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = 0;
-    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {
-      //if(prop->lagrangeMult) {
-      //  ret[nterms][nterms] = -1/prop->penalty;
-      //}
-    }
+    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {}
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       FullSquareMatrix H(nterms);
-      if(lambda != 0) {
+      if(lambda != 0 && !(getSource() == mpc::ContactSurfaces && solInfo.piecewise_contact)) {
         GeomState c1(c0); // XXX
         getHessian(&c1, c1, c0, H, 0);
       }
@@ -312,7 +311,7 @@ MpcElement::getStiffAndForce(GeomState* refState, GeomState& c1, CoordSet& c0, F
 {
   Ktan.zero();
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
-  if(getSource() != mpc::ContactSurfaces)
+  if(getSource() != mpc::ContactSurfaces || solInfo.piecewise_contact)
     update(refState, c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
   if(t == 0 && delt > 0 && type == 0 && prop->penalty == 0)
     rhs.r_value = this->getAccelerationConstraintRhs(refState, c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
@@ -325,12 +324,7 @@ MpcElement::getStiffAndForce(GeomState* refState, GeomState& c1, CoordSet& c0, F
 
   if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
-    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) { //
-      //if(prop->lagrangeMult) {
-      //  Ktan[nterms][nterms] = -1/prop->penalty;
-      //  f[nterms] = -lambda/prop->penalty;
-      //}
-    }
+    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {}
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       FullSquareMatrix H(nterms);
@@ -355,7 +349,7 @@ void
 MpcElement::getInternalForce(GeomState *refState, GeomState& c1, CoordSet& c0, FullSquareMatrix&, double* f, double delt, double t)
 {
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
-  if(getSource() != mpc::ContactSurfaces)
+  if(getSource() != mpc::ContactSurfaces || solInfo.piecewise_contact)
     update(refState, c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
   if(t == 0 && delt > 0 && type == 0 && prop->penalty == 0)
     rhs.r_value = this->getAccelerationConstraintRhs(refState, c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
@@ -368,12 +362,8 @@ MpcElement::getInternalForce(GeomState *refState, GeomState& c1, CoordSet& c0, F
 
   if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
-    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) { // note: if -rhs == -lambda/penalty
-                                                                                     // then the derivative is indeterminate
-      //if(prop->lagrangeMult) {
-      //  f[nterms] = -lambda/prop->penalty;
-      //}
-    }
+    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {} // note: if -rhs == -lambda/penalty
+                                                                                      // then the derivative is indeterminate
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       for(int i = 0; i < nterms; ++i) {
@@ -467,7 +457,7 @@ void
 MpcElement::getHessian(GeomState*, GeomState& c1, CoordSet& c0, FullSquareMatrix& _H, double t) 
 {
 #ifdef USE_EIGEN3
-  if(getSource() == mpc::ContactSurfaces && H.size() > 0) {
+  if((getSource() == mpc::ContactSurfaces && !solInfo.piecewise_contact) && H.size() > 0) {
     for(int i=0; i<H.rows(); ++i)
       for(int j=0; j<H.cols(); ++j)
         _H[i][j] = H(i,j);
@@ -564,13 +554,7 @@ MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int, double)
   f.zero();
   if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = 0;
-    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {
-/*
-      if(prop->lagrangeMult) {
-        f[nterms] = lambda/prop->penalty;
-      }
-*/
-    }
+    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {}
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       for(int i = 0; i < nterms; ++i) {

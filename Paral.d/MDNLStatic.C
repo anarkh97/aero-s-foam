@@ -122,6 +122,7 @@ MDNLStatic::MDNLStatic(Domain *d, DecDomain *dd)
  allCorot = 0;
  times = new StaticTimers;
  reactions = 0;
+ updateCS = false;
 }
 
 MDNLStatic::~MDNLStatic()
@@ -283,6 +284,38 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
  return converged;
 }
 
+void
+MDNLStatic::updateContactSurfaces(DistrGeomState& geomState)
+{
+  if(fetiSolver) {
+    domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    domain->CreateMortarToMPC();
+    decDomain->reProcessMPCs();
+    fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+  }
+  else {
+    clean();
+    domain->ReInitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
+    domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::renumberElementsGlobal);
+    geoSource->UpdateContactSurfaceElements(&geomState, *mu);
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->getElementSet().removeAll();
+    geoSource->getElems(domain->getElementSet());
+    domain->setNumElements(domain->getElementSet().last());
+    decDomain->clean();
+    preProcess();
+    geomState.resize(decDomain);
+    geomState.setMultipliers(*mu);
+    decDomain->exchangeInterfaceGeomState(&geomState);
+  }
+}
+
 double
 MDNLStatic::getStiffAndForce(DistrGeomState& geomState, 
                              DistrVector& residual, DistrVector& elementInternalForce,
@@ -290,51 +323,25 @@ MDNLStatic::getStiffAndForce(DistrGeomState& geomState,
 {
  times->buildStiffAndForce -= getTime();
 
- //updateConstraintTerms(&geomState, _lambda);
- GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
- if(fetiSolver) {
-   execParal(decDomain->getNumSub(), this, &MDNLStatic::getConstraintMultipliers);
-   if(domain->GetnContactSurfacePairs()) {
-     domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
-     domain->PerformStaticContactSearch(MortarHandler::CTC);
-     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-     domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-     domain->CreateMortarToMPC();
-     decDomain->reProcessMPCs();
-     fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+ // update contact surfaces
+ execParal(decDomain->getNumSub(), this, &MDNLStatic::getConstraintMultipliers);
+ if(domain->GetnContactSurfacePairs()) {
+   if(!domain->solInfo().piecewise_contact || updateCS) {
+     updateContactSurfaces(geomState);
+     updateCS = false;
    }
-   // set the gap for the linear constraints
-   decDomain->setConstraintGap(&geomState, fetiSolver, _lambda);
+   elementInternalForce.resize(elemVecInfo());
+   residual.conservativeResize(solVecInfo());
  }
- else {
-   if(domain->GetnContactSurfacePairs()) {
-     clean();
-     domain->ReInitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
-     domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
-     domain->PerformStaticContactSearch(MortarHandler::CTC);
-     domain->ExpComputeMortarLMPC(MortarHandler::CTC); 
-     paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::renumberElementsGlobal);
-     geoSource->UpdateContactSurfaceElements(&geomState, *mu);
-     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-     domain->getElementSet().removeAll();
-     geoSource->getElems(domain->getElementSet());
-     domain->setNumElements(domain->getElementSet().last());
-     decDomain->clean();
-     preProcess();
-     elementInternalForce.resize(elemVecInfo());
-     residual.conservativeResize(solVecInfo()); 
-     geomState.resize(decDomain);
-     geomState.setMultipliers(*mu);
-     decDomain->exchangeInterfaceGeomState(&geomState);
-   }
- }
+ // set the gap for the linear constraints
+ if(fetiSolver) decDomain->setConstraintGap(&geomState, fetiSolver, _lambda);
 
  execParal6R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
              residual, elementInternalForce, _lambda, refState, forceOnly);
 
  times->buildStiffAndForce += getTime();
 
- return sqrt(solver->getFNormSq(residual)); // XXXX this should include the active constraint functions' values
+ return sqrt(solver->getFNormSq(residual));
 }
 
 DistrGeomState*
@@ -410,7 +417,7 @@ MDNLStatic::preProcess()
  times->corotatorTime += getTime();
 
  // Compute the geometric rigid body modes if requested
- if(!reactions && domain->solInfo().rbmflg) {
+ if(!mu && domain->solInfo().rbmflg) {
    MultiDomainRbm<double> *rigidBodyModes = decDomain->constructRbm();
    delete rigidBodyModes;
  }
@@ -421,16 +428,13 @@ MDNLStatic::preProcess()
    reactions->zero();
  }
 
+ // Construct solver, build subdomain matrices, etc...
  times->memoryPreProcess += threadManager->memoryUsed();
-
- // NOTE: count FETI memory separately from pre-process memory in
- // timing file
-
- // Construct FETI Solver, build GtG, subdomain matrices, etc.
  times->getFetiSolverTime -= getTime();
  GenMDDynamMat<double> allOps;
  decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
  solver = allOps.sysSolver;
+ fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
  if(allOps.K) delete allOps.K;
  if(allOps.Kuc) delete allOps.Kuc;
  if(allOps.Kcc) delete allOps.Kcc;
@@ -456,6 +460,7 @@ MDNLStatic::preProcess()
    domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
    mu = new std::map<std::pair<int,int>,double>[decDomain->getNumSub()];
    lambda = new std::vector<double>[decDomain->getNumSub()];
+   updateCS = true;
  }
 }
 
@@ -586,26 +591,6 @@ MDNLStatic::printTimers()
 }
 
 void
-MDNLStatic::updateConstraintTerms(DistrGeomState* geomState, double _lambda)
-{
-  GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
-  if(fetiSolver) {
-    execParal(decDomain->getNumSub(), this, &MDNLStatic::getConstraintMultipliers);
-    if(domain->GetnContactSurfacePairs()) {
-      domain->UpdateSurfaces(MortarHandler::CTC, geomState, decDomain->getAllSubDomains());
-      domain->PerformStaticContactSearch(MortarHandler::CTC);
-      domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-      domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-      domain->CreateMortarToMPC();
-      decDomain->reProcessMPCs();
-      fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
-    }
-    // set the gap for the linear constraints
-    decDomain->setConstraintGap(geomState, fetiSolver, _lambda);
-  }
-}
-
-void
 MDNLStatic::getConstraintMultipliers(int isub)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
@@ -617,6 +602,7 @@ MDNLStatic::getConstraintMultipliers(int isub)
 void
 MDNLStatic::updateStates(DistrGeomState *refState, DistrGeomState& geomState, double lambda)
 {
+  if(domain->solInfo().piecewise_contact) updateCS = true;
   execParal3R(decDomain->getNumSub(), this, &MDNLStatic::subUpdateStates, refState, &geomState, lambda);
 }
 
@@ -631,5 +617,5 @@ MDNLStatic::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *
 bool
 MDNLStatic::getResizeFlag()
 {
-  return (domain->GetnContactSurfacePairs() > 0); // XXX only for "penalty" and "augmented" constraint methods
+  return (domain->GetnContactSurfacePairs() > 0);
 }

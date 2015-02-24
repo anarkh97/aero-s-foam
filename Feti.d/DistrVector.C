@@ -1,6 +1,8 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cmath>
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 
 #include <Threads.d/Paral.h>
 #include <Utils.d/MyComplex.h>
@@ -419,7 +421,6 @@ GenVecOp<Scalar>::linC3(int threadNum)
     d1[i] = c1*d2[i] + c2*d3[i] + c3*d4[i];
 }
 
-
 template<class Scalar>
 void
 GenVecOp<Scalar>::assign(int threadNum)
@@ -434,12 +435,12 @@ GenVecOp<Scalar>::assign(int threadNum)
 
 template<class Scalar>
 void
-GenVecOp<Scalar>::assign_special(int threadNum)
+GenVecOp<Scalar>::assign_special(int subNum)
 {
- Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
- int len1 = v1->threadLen(threadNum);
- int len2 = v2->threadLen(threadNum);
+ Scalar *d1 = v1->subData(subNum);
+ Scalar *d2 = v2->subData(subNum);
+ int len1 = v1->subLen(subNum);
+ int len2 = v2->subLen(subNum);
  int minlen = std::min(len1,len2);
  int i;
  for(i = 0; i < minlen; ++i)
@@ -743,7 +744,8 @@ GenDistrVector<Scalar>::conservativeResize(const DistrInfo &other)
   initialize();
 
   GenVecOp<Scalar> assignSpecialOp(&GenVecOp<Scalar>::assign_special, this, &copy);
-  threadManager->execParal(nT, &assignSpecialOp);
+
+  threadManager->execParal(numDom, &assignSpecialOp);
 }
 
 template<class Scalar>
@@ -874,7 +876,6 @@ double GenDistrVector<Scalar>::infNorm()
  return res;
 }
 
-
 template<class Scalar>
 Scalar
 GenDistrVector<Scalar>::operator * (GenDistrVector<Scalar> &x)
@@ -957,15 +958,12 @@ GenDistrVector<Scalar>::operator ^ (GenDistrVector<Scalar> &x)
  return res;
 }
 
-
-#include <cstdio>
-
 template<class Scalar>
 GenDistrVector<Scalar> &
 GenDistrVector<Scalar>::operator=(const GenDistrVector<Scalar> &x)
 {
- if(x.len != len) {
-  fprintf(stderr, "Length error in = %d not equal to %d\n",x.len, len);
+ if(*inf != x.info()) {
+   resize(x.info());
  }
  GenVecOp<Scalar> assignOp(&GenVecOp<Scalar>::assign, this, const_cast<GenDistrVector<Scalar> *>(&x));
  threadManager->execParal(nT, &assignOp);
@@ -982,14 +980,12 @@ GenDistrVector<Scalar>::operator=(Scalar c)
  return *this;
 }
 
-#include <cstdlib>
-
 template<class Scalar>
 void
 GenDistrVector<Scalar>::initRand()
 {
  for(int i=0; i < len; ++i)
-   v[i] = (   (double)rand() / ((double)(RAND_MAX)+(double)(1)) );
+   v[i] = ( (double)rand() / ((double)(RAND_MAX)+(double)(1)) );
 }
 
 template<class Scalar>
@@ -1109,7 +1105,7 @@ GenDistrVector<Scalar>::linAdd(Scalar c1, GenDistrVector<Scalar> &x, Scalar c2,
 
 template<class Scalar>
 GenDistrVector<Scalar> &
-GenDistrVector<Scalar>::linC( GenDistrVector<Scalar> &x, Scalar c, GenDistrVector<Scalar> &y)
+GenDistrVector<Scalar>::linC(GenDistrVector<Scalar> &x, Scalar c, GenDistrVector<Scalar> &y)
 {
  if(x.len != y.len) {
   fprintf(stderr, "Length error in linC\n");

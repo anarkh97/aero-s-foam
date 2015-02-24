@@ -2,6 +2,8 @@
 #define _MD_NL_DYNAMIC_H_
 
 #include <cstddef>
+#include <map>
+#include <vector>
 
 class Domain;
 template <class Scalar> class GenDecDomain;
@@ -28,6 +30,7 @@ typedef GenMDDynamMat<double> MDDynamMat;
 class DistrInfo;
 class DistFlExchanger;
 class LinesearchInfo;
+template <class Scalar> class GenFetiDPSolver;
 
 // Multiple Domain Nonlinear Dynamic problem descriptor
 
@@ -37,6 +40,7 @@ class MDNLDynamic
     Domain *domain;
     DecDomain  *decDomain;
     ParallelSolver *solver;
+    GenFetiDPSolver<double> *fetiSolver;
     int     totIter;             // counter of iterations
 
     MDDynamMat *allOps;
@@ -88,11 +92,18 @@ class MDNLDynamic
 
     double Kcoef_p;
 
+    std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
+    std::vector<double> *lambda; // lagrange multipliers for all the other constraints
+
+    bool updateCS;
+
  public:
 
     // Constructor
     MDNLDynamic(Domain *d);
     virtual ~MDNLDynamic();
+
+    void clean();
 
     MultiDomainPostProcessor *getPostProcessor();
     void getInitialTime(int &initTimeIndex, double &initTime);
@@ -145,7 +156,7 @@ class MDNLDynamic
 
     int getNumStages();
     int checkConvergence(int iter, double rN, DistrVector& residual, DistrVector& dv, double time);
-
+    void updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *refState);
     void updateStates(DistrGeomState *refState, DistrGeomState& geomState, double time);
 
     // getStiffAndForce forms element stiffness matrices and/or
@@ -208,7 +219,6 @@ class MDNLDynamic
     void subDynamCommToFluid(int isub, DistrVector& v, DistrGeomState* distrGeomState,
                              DistrGeomState* bkDistrGeomState, int parity, int aeroAlg);
     void subDynamCommToFluidAeroheat(int isub, DistrVector& v, DistrGeomState* distrGeomState);
-    void updateConstraintTerms(DistrGeomState* geomState, double t);
     void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState, double time);
     void subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
                             DistrVector &v_p, DistrGeomState &geomState);

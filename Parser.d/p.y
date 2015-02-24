@@ -3629,7 +3629,7 @@ Solver:
 	| COARSESOLVER SOLVERTYPE NewLine
 	{ domain->solInfo().fetiInfo.gtgSolver  = (FetiInfo::Solvertype) $2; }
         | AUXCOARSESOLVER SOLVERTYPE NewLine
-        {  domain->solInfo().fetiInfo.auxCoarseSolver = (FetiInfo::Solvertype) $2; }
+        { domain->solInfo().fetiInfo.auxCoarseSolver = (FetiInfo::Solvertype) $2; }
         | CCTSOLVER SOLVERTYPE NewLine
         { domain->solInfo().fetiInfo.cctSolver  = (FetiInfo::Solvertype) $2; }
         | LOCALSOLVER SOLVERTYPE PIVOT NewLine
@@ -4170,7 +4170,7 @@ NLInfo:
         ;
 NewtonInfo:
         REBUILD Integer NewLine
-        { 
+        {
           domain->solInfo().setNewton($2); 
           domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear; 
         }
@@ -4180,35 +4180,13 @@ NewtonInfo:
           domain->solInfo().getNLInfo().stepUpdateK = $3;
           domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
         }
-/*
-	| REBUILD Integer Integer NewLine
-	{ 
-          domain->solInfo().setNewton($2); 
-          int rebuildK    = $2; 
-          int rebuildPrec = $3;
-          if(rebuildK > 1) rebuildPrec = rebuildK;
-          domain->solInfo().fetiInfo.nTang = rebuildK;
-          domain->solInfo().fetiInfo.nPrec = rebuildPrec;
+        | REBUILD Integer Integer Integer NewLine
+        {
+          domain->solInfo().setNewton($2);
+          domain->solInfo().getNLInfo().stepUpdateK = $3;
+          domain->solInfo().piecewise_contact = bool($4);
           domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
         }
-	| REBUILD NewLine TANGENT Integer NewLine
-	{
-          domain->solInfo().setNewton($4);
-          domain->solInfo().fetiInfo.nPrec = $4;
-          domain->solInfo().fetiInfo.nTang = $4;
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
-        }
-	| REBUILD NewLine TANGENT Integer NewLine PRECONDITIONER Integer NewLine
-	{
-	  domain->solInfo().setNewton($4); 
-          int rebuildK    = $4; 
-          int rebuildPrec = $7;
-          if(rebuildK > 1) rebuildPrec = rebuildK;
-          domain->solInfo().fetiInfo.nTang = rebuildK;
-          domain->solInfo().fetiInfo.nPrec = rebuildPrec;
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
-	}
-*/
 	;
 OrthoInfo:
 	REORTHO NewLine

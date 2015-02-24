@@ -202,9 +202,7 @@ ThreadLock::unlock()
 #if defined(_OPENMP)
   omp_unset_lock(&lockV);
 #endif
-
 }
-
 
 ThreadLock::ThreadLock()
 {
@@ -375,7 +373,6 @@ OneSproc::run(void *p)
 }
 #endif
 
-
 void
 ThreadManager::execTasks(int ntasks, TaskDescr **td)
 {
@@ -397,10 +394,10 @@ void
 ThreadManager::execParal(int ntasks, TaskDescr **td)
 {
   timer = 0;
-#if defined(sgi) &&  !defined(_OPENMP)
+#if defined(sgi) && !defined(_OPENMP)
   int i;
   if(isParal == 0)
-    for(i=0; i < ntasks; ++i)
+    for(i = 0; i < ntasks; ++i)
       td[i]->run();
   else {
     for(i = 0; i < numThreads-1; ++i) {
@@ -408,23 +405,35 @@ ThreadManager::execParal(int ntasks, TaskDescr **td)
        allProc[i].numTasks = ntasks;
     }
     single = 0;
-    for(i=0; i < numThreads-1; ++i)
+    for(i = 0; i < numThreads-1; ++i)
       usvsema(allProc[i].wait);
  
     int index;
-    for(index = numThreads-1; index < ntasks; index+= numThreads)
+    for(index = numThreads-1; index < ntasks; index += numThreads)
       td[index]->run();
  
-    for(i=0; i < numThreads-1; ++i)
+    for(i = 0; i < numThreads-1; ++i)
       uspsema(allDone);
   }
 #else
- int i;
+  int i;
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static,1)
-#endif
- for(i=0; i < ntasks; ++i)
+  std::runtime_error *e = 0;
+  #pragma omp parallel for schedule(static,1) shared(e)
+  for(i = 0; i < ntasks; ++i) {
+    try {
+      td[i]->run();
+    }
+    catch(std::runtime_error &_e) {
+      #pragma omp critical
+      e = new std::runtime_error(_e);
+    }
+  }
+  if(e) throw(*e);
+#else
+  for(i=0; i < ntasks; ++i)
     td[i]->run();
+#endif
 #endif
 }
 
@@ -432,7 +441,7 @@ void
 ThreadManager::execParal(int ntasks, TaskDescr *td)
 {
   timer = 0;
-#if defined(sgi) &&  !defined(_OPENMP)
+#if defined(sgi) && !defined(_OPENMP)
   int i;
   if(isParal == 0)
     for(i = 0; i < ntasks; ++i) {
@@ -444,111 +453,143 @@ ThreadManager::execParal(int ntasks, TaskDescr *td)
       allProc[i].numTasks = ntasks;
     }
     single = 1;
-    for(i=0; i < numThreads-1; ++i)
+    for(i = 0; i < numThreads-1; ++i)
       usvsema(allProc[i].wait);
 
     int index;
-    for(index = numThreads-1; index < ntasks; index+= numThreads)
+    for(index = numThreads-1; index < ntasks; index += numThreads)
       td->runFor(index);
 
-    for(i=0; i < numThreads-1; ++i)
+    for(i = 0; i < numThreads-1; ++i)
       uspsema(allDone);
   }
 #else
- int i;
+  int i;
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static,1)
+  std::runtime_error *e = 0;
+  #pragma omp parallel for schedule(static,1) shared(e)
+  for(i = 0; i < ntasks; ++i) {
+    try {
+      td->runFor(i);
+    }
+    catch(std::runtime_error &_e) {
+      #pragma omp critical
+      e = new std::runtime_error(_e);
+    }
+  }
+  if(e) throw(*e);
+#else
+  for(i = 0; i < ntasks; ++i)
+    td->runFor(i);
 #endif
- for(i = 0; i < ntasks; ++i)
-   td->runFor(i);
 #endif
 }
-
 
 void
 ThreadManager::execTimedParal(DistTimer &thisTimer, int ntasks, TaskDescr **td)
 {
+  timer = &thisTimer;
+#if defined(sgi) && !defined(_OPENMP)
+  int i;
+  for(i = 0; i < numThreads-1; ++i) {
+    allProc[i].allTasks = td;
+    allProc[i].numTasks = ntasks;
+  }
+  single = 0;
+  for(i=0; i < numThreads-1; ++i)
+    usvsema(allProc[i].wait);
 
-    timer = &thisTimer;
-#if defined(sgi) &&  !defined(_OPENMP)
-    int i;
-    for(i = 0; i < numThreads-1; ++i) {
-      allProc[i].allTasks = td;
-      allProc[i].numTasks = ntasks;
-    }
-    single = 0;
-    for(i=0; i < numThreads-1; ++i)
-      usvsema(allProc[i].wait);
+  double initTime = getTime();
+  long initMem = threadManager->getLocalMem();
 
-    double initTime = getTime();
-    long initMem  = threadManager->getLocalMem();
+  int index;
+  for(index = numThreads-1; index < ntasks; index+= numThreads)
+    td[index]->run();
 
-    int index;
-    for(index = numThreads-1; index < ntasks; index+= numThreads)
-      td[index]->run();
+  long finalMem = threadManager->getLocalMem();
+  timer->addTo(numThreads-1, finalMem-initMem, getTime()-initTime);
 
-    long finalMem = threadManager->getLocalMem();
-    timer->addTo(numThreads-1, finalMem-initMem, getTime()-initTime);
-
-    for(i=0; i < numThreads-1; ++i)
-      uspsema(allDone);
+  for(i = 0; i < numThreads-1; ++i)
+    uspsema(allDone);
 #else
- double initTime = getTime();
- long initMem  = threadManager->getLocalMem();
- int i;
+  double initTime = getTime();
+  long initMem = threadManager->getLocalMem();
+  int i;
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static,1)
-#endif
- for(i=0; i < ntasks; ++i)
+  std::runtime_error *e = 0;
+  #pragma omp parallel for schedule(static,1) shared(e)
+  for(i = 0; i < ntasks; ++i) {
+    try {
+      td[i]->run();
+    }
+    catch(std::runtime_error &_e) {
+      #pragma omp critical
+      e = new std::runtime_error(_e);
+    }
+  }
+  if(e) throw(*e);
+#else
+  for(i = 0; i < ntasks; ++i)
     td[i]->run();
-
- long finalMem = threadManager->getLocalMem();
- timer->addTo(0, finalMem-initMem, getTime()-initTime);
+#endif
+  long finalMem = threadManager->getLocalMem();
+  timer->addTo(0, finalMem-initMem, getTime()-initTime);
 #endif
 }
 
 void
 ThreadManager::execTimedParal(DistTimer &thisTimer, int ntasks, TaskDescr *td)
 {
-    timer = &thisTimer;
+  timer = &thisTimer;
 #if defined(sgi) &&  !defined(_OPENMP)
-    int i;
-    for(i = 0; i < numThreads-1; ++i) {
-       allProc[i].allTasks = &td;
-       allProc[i].numTasks = ntasks;
-    }
-    single = 1;
-    for(i=0; i < numThreads-1; ++i)
-      usvsema(allProc[i].wait);
+  int i;
+  for(i = 0; i < numThreads-1; ++i) {
+    allProc[i].allTasks = &td;
+    allProc[i].numTasks = ntasks;
+  }
+  single = 1;
+  for(i = 0; i < numThreads-1; ++i)
+    usvsema(allProc[i].wait);
 
-    double initTime = getTime();
-    long initMem  = threadManager->getLocalMem();
+  double initTime = getTime();
+  long initMem = threadManager->getLocalMem();
 
-    int index;
-    for(index = numThreads-1; index < ntasks; index+= numThreads)
-      td->runFor(index);
+  int index;
+  for(index = numThreads-1; index < ntasks; index += numThreads)
+    td->runFor(index);
 
-    long finalMem = threadManager->getLocalMem();
-    timer->addTo(numThreads-1, finalMem-initMem, getTime()-initTime);
+  long finalMem = threadManager->getLocalMem();
+  timer->addTo(numThreads-1, finalMem-initMem, getTime()-initTime);
 
-    for(i=0; i < numThreads-1; ++i)
-      uspsema(allDone);
+  for(i = 0; i < numThreads-1; ++i)
+    uspsema(allDone);
 #else
- double initTime   = getTime();
- long initMem = threadManager->getLocalMem();
+  double initTime = getTime();
+  long initMem = threadManager->getLocalMem();
 
- int i;
+  int i;
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static,1)
+  std::runtime_error *e = 0;
+  #pragma omp parallel for schedule(static,1) shared(e)
+  for(i = 0; i < ntasks; ++i) {
+    try {
+      td->runFor(i);
+    }
+    catch(std::runtime_error &_e) {
+      #pragma omp critical
+      e = new std::runtime_error(_e);
+    }
+  }
+  if(e) throw(*e);
+#else
+  for(i = 0; i < ntasks; ++i)
+    td->runFor(i);
 #endif
- for(i = 0; i < ntasks; ++i)
-   td->runFor(i);
 
- long finalMem = threadManager->getLocalMem();
- timer->addTo(0, finalMem-initMem, getTime()-initTime);
+  long finalMem = threadManager->getLocalMem();
+  timer->addTo(0, finalMem-initMem, getTime()-initTime);
 #endif
 }
-
 
 #if defined(sgi) &&  !defined(_OPENMP)
 barrier_t *

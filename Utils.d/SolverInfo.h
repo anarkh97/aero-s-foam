@@ -438,6 +438,7 @@ struct SolverInfo {
 
    bool elementDeletion;
    std::map<int,double> deleteElements; // elements to be deleted at specific time or times (specified in input file)
+   bool piecewise_contact;
 
    int npMax;   // Max number of elements in the reduced mesh for the ScalaPack LH parse solver.
    int scpkMB;  // Scalapack row block size
@@ -746,6 +747,7 @@ struct SolverInfo {
                   printMatLab        = false;
                   printMatLabFile    = "";
                   elementDeletion    = false;
+                  piecewise_contact  = true;
                   npMax              = 0;  // 0 => reduced mesh size is not limited
                   scpkMB             = 0;  // 0 => Scalapack LH solver will use default block size
                   scpkNB             = 0;  // 0 => Scalapack LH solver will use default block size

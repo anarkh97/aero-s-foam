@@ -101,6 +101,11 @@ void
 MDNLDynamic::getIncDisplacement(DistrGeomState *geomState, DistrVector &du, DistrGeomState *refState,
                                 bool zeroRot)
 {
+  if(domain->GetnContactSurfacePairs()) {
+    du.resize(solVecInfo());
+    refState->resize(decDomain);
+    decDomain->exchangeInterfaceGeomState(refState);
+  }
   geomState->get_inc_displacement(du, *refState, zeroRot); 
 }
 
@@ -123,6 +128,12 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
                               DistrVector& residual, DistrVector& rhs, DistrGeomState *geomState, double localDelta)
 {
   times->correctorTime -= getTime();
+  if(domain->GetnContactSurfacePairs()) {
+    velocity.conservativeResize(solVecInfo());
+    acceleration.conservativeResize(solVecInfo());
+    rhs.resize(solVecInfo());
+  }
+
   if(domain->solInfo().order == 1) {
     M->mult(inc_displacement, rhs);
     rhs.linC(localDelta, residual, -1.0, rhs);
@@ -243,7 +254,7 @@ MDNLDynamic::computeTimeInfo()
 }
 
 MDNLDynamic::MDNLDynamic(Domain *d)
-{ 
+{
   domain = d;
 #ifdef DISTRIBUTED
   decDomain = new GenDistrDomain<double>(domain);
@@ -259,6 +270,7 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   melArray = 0;
   celArray = 0;
   times = 0;
+  mu = 0; lambda = 0;
   solver = 0;
   allOps =0;
   M = 0;
@@ -275,45 +287,58 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   usrDefVels = 0;
   prevFrc = 0;
   distFlExchanger = 0;
+  updateCS = false;
 }
 
 MDNLDynamic::~MDNLDynamic()
 {
+  clean();
+  if(mu) delete [] mu;
+  if(lambda) delete [] lambda;
   if(times) delete times;
-  if(solver) delete solver;
-  if(allOps) delete allOps;
-  if(M) delete M;
-  if(C) delete C;
-  if(Kuc) delete Kuc;
-  if(Muc) delete Muc;
-  if(Cuc) delete Cuc;
-  if(Mcc) delete Mcc;
-  if(Ccc) delete Ccc;
-  if(localTemp) delete localTemp;
-  if(allCorot) {
-    execParal(decDomain->getNumSub(), this, &MDNLDynamic::deleteSubCorotators);
-    delete [] allCorot;
-  }
-  if(kelArray || melArray || celArray) {
-    execParal(decDomain->getNumSub(), this, &MDNLDynamic::deleteSubElementArrays);
-    if(kelArray) delete [] kelArray;
-    if(melArray) delete [] melArray;
-    if(celArray) delete [] celArray;
-  }
-  if(usrDefDisps) {
-    for(int i=0; i<decDomain->getNumSub(); ++i) delete [] usrDefDisps[i];
-    delete [] usrDefDisps;
-  }
-  if(usrDefVels) {
-    for(int i=0; i<decDomain->getNumSub(); ++i) delete [] usrDefVels[i];
-    delete [] usrDefVels;
-  }
+
   if(aeroForce) delete aeroForce;
   if(prevFrc) delete prevFrc;
   if(distFlExchanger) delete distFlExchanger;
 
   if(decDomain) delete decDomain;
-  if(reactions) delete reactions;
+}
+
+void
+MDNLDynamic::clean()
+{
+  if(solver) { delete solver; solver = 0; }
+  if(allOps) { delete allOps; allOps = 0; }
+  if(M) { delete M; M = 0; }
+  if(C) { delete C; C = 0; }
+  if(Kuc) { delete Kuc; Kuc = 0; }
+  if(Muc) { delete Muc; Muc = 0; }
+  if(Cuc) { delete Cuc; Cuc = 0; }
+  if(Mcc) { delete Mcc; Mcc = 0; }
+  if(Ccc) { delete Ccc; Ccc = 0; }
+  if(localTemp) delete localTemp;
+  if(allCorot) {
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::deleteSubCorotators);
+    delete [] allCorot;
+    allCorot = 0;
+  }
+  if(kelArray || melArray || celArray) {
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::deleteSubElementArrays);
+    if(kelArray) { delete [] kelArray; kelArray = 0; }
+    if(melArray) { delete [] melArray; melArray = 0; }
+    if(celArray) { delete [] celArray; celArray = 0; }
+  }
+  if(usrDefDisps) {
+    for(int i=0; i<decDomain->getNumSub(); ++i) delete [] usrDefDisps[i];
+    delete [] usrDefDisps;
+    usrDefDisps = 0;
+  }
+  if(usrDefVels) {
+    for(int i=0; i<decDomain->getNumSub(); ++i) delete [] usrDefVels[i];
+    delete [] usrDefVels;
+    usrDefVels = 0;
+  }
+  if(reactions) { delete reactions; reactions = 0; }
 }
 
 void
@@ -372,6 +397,7 @@ int
 MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residual, DistrVector& dv, double time)
 {
   times->timeCheck -= getTime();
+  if(domain->GetnContactSurfacePairs()) dv.conservativeResize(solVecInfo());
 
   // Note when useTolInc is false, this function is called before normDv is calculated
   bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity() ||
@@ -443,6 +469,42 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
   return converged;
 }
 
+void
+MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *refState)
+{
+  if(fetiSolver) {
+    domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    domain->CreateMortarToMPC();
+    decDomain->reProcessMPCs();
+    fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+  }
+  else {
+    clean();
+    domain->ReInitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
+    domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::renumberElementsGlobal);
+    geoSource->UpdateContactSurfaceElements(&geomState, *mu);
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->getElementSet().removeAll();
+    geoSource->getElems(domain->getElementSet());
+    domain->setNumElements(domain->getElementSet().last());
+    decDomain->clean();
+    preProcess();
+    geomState.resize(decDomain);
+    geomState.setMultipliers(*mu);
+    decDomain->exchangeInterfaceGeomState(&geomState);
+    if(refState) {
+      refState->resize(decDomain);
+      decDomain->exchangeInterfaceGeomState(refState);
+    }
+  }
+}
+
 double
 MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
                               DistrVector& elementInternalForce, double t, DistrGeomState *refState, bool forceOnly) 
@@ -466,10 +528,23 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
     }
   }
 
+  // update the contact surfaces
+  if(t != domain->solInfo().initialTime) {
+    if(domain->GetnContactSurfacePairs()) {
+      if(!domain->solInfo().piecewise_contact || updateCS) {
+        updateContactSurfaces(geomState, refState);
+        updateCS = false;
+      }
+      elementInternalForce.resize(elemVecInfo());
+      residual.conservativeResize(solVecInfo());
+      localTemp->resize(solVecInfo());
+    }
+    // set the gap for the linear constraints
+    if(fetiSolver) decDomain->setConstraintGap(&geomState, fetiSolver, t);
+  }
+
   execParal6R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
               residual, elementInternalForce, t, refState, forceOnly);
-
-  if(t != domain->solInfo().initialTime) updateConstraintTerms(&geomState,t);
 
   times->buildStiffAndForce += getTime();
 
@@ -616,7 +691,7 @@ MDNLDynamic::preProcess()
     celArray = new FullSquareMatrix*[decDomain->getNumSub()];
 
   // Compute the geometric rigid body modes if requested
-  if(!reactions && domain->solInfo().rbmflg) {
+  if(!mu && domain->solInfo().rbmflg) {
     MultiDomainRbm<double> *rigidBodyModes = decDomain->constructRbm();
     delete rigidBodyModes;
   }
@@ -637,6 +712,7 @@ MDNLDynamic::preProcess()
   double Ccoef = 0.0;
   decDomain->buildOps(*allOps, Mcoef, Ccoef, Kcoef, (Rbm **)NULL, kelArray, true, melArray, celArray, factorWhenBuilding());
   solver = (ParallelSolver *) allOps->dynMat;
+  fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
   M = allOps->M;
   C = allOps->C;
   Kuc = allOps->Kuc;
@@ -663,7 +739,12 @@ MDNLDynamic::preProcess()
 
   localTemp = new DistrVector(decDomain->solVecInfo());
 
-  domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
+  if(mu == 0) { // first time only
+    domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
+    mu = new std::map<std::pair<int,int>,double>[decDomain->getNumSub()];
+    lambda = new std::vector<double>[decDomain->getNumSub()];
+    updateCS = true;
+  }
 
   times->memoryPreProcess += threadManager->memoryUsed();
 }
@@ -1131,29 +1212,6 @@ MDNLDynamic::subGetConstraintMultipliers(int isub, DistrGeomState& geomState)
   geomState.mu[isub].clear();
   geomState.lambda[isub].clear();
   sd->getConstraintMultipliers(geomState.mu[isub], geomState.lambda[isub]);
-}
-
-void
-MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState, double t)
-{
-  GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
-  if(fetiSolver) {
-    if(domain->GetnContactSurfacePairs()) {
-      // this function updates the linearized contact conditions (the lmpc coeffs are the gradient and the rhs is the gap)
-      domain->UpdateSurfaces(MortarHandler::CTC, geomState, decDomain->getAllSubDomains());
-      domain->PerformStaticContactSearch(MortarHandler::CTC); // note: dynamic contact search not supported by acme for face-face interactions
-      domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-      domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-      domain->CreateMortarToMPC();
-      decDomain->reProcessMPCs();
-      // Note: there is some duplication of things done in reconstructMPCs and rebuild/refactor (eg buildCCt)
-      // I think all of the reconstruction of the solver should be done in rebuild/refactor
-      // consider the case of quasi-newton where the solver is NOT rebuild at every newton iteration
-      fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
-    }
-    // set the gap for the linear constraints
-    decDomain->setConstraintGap(geomState, fetiSolver, t);
-  }
 }
 
 void 
@@ -1844,6 +1902,7 @@ MDNLDynamic::getAeroheatFlag()
 void
 MDNLDynamic::updateStates(DistrGeomState *refState, DistrGeomState& geomState, double time)
 {
+  if(domain->solInfo().piecewise_contact) updateCS = true;
   execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateStates, refState, &geomState, time);
 }
 
@@ -1864,5 +1923,5 @@ MDNLDynamic::linesearch()
 bool
 MDNLDynamic::getResizeFlag()
 {
-  return (domain->GetnContactSurfacePairs() > 0); // XXX only for "penalty" and "augmented" constraint methods
+  return (domain->GetnContactSurfacePairs() > 0);
 }

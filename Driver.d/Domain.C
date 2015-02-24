@@ -2983,7 +2983,6 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
       filePrint(stderr," -> time spent in creating the Mortar LMPCs: %e s\n",time/1000);
       filePrint(stderr," -> total time spent in building those Mortar LMPCs: %e s\n",time0/1000);
 #endif
-      //printLMPC();
       // count the total number of Mortar LMPCs generated
       nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
     } else
@@ -2995,13 +2994,6 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
 #ifdef MORTAR_TIMINGS
   filePrint(stderr," ... CPU time for building mortar surface/surface interactions: %e s\n",time00/1000);
 #endif
-  //if(numFSI){
-  //  printFSI();
-  //  long memFSI = 0;
-  //  for(int iFSI=0; iFSI<numFSI; iFSI++)
-  //    memFSI += fsi[iFSI]->mem();
-  //  filePrint(stderr," ### memnory used by fsi array %14.3f Mb \n",memFSI/(1024.*1024.));
-  //}
  }
 #ifdef HB_ACME_FFI_DEBUG
  filePrint(stderr," -> Write FFI top file: FFI.top\n");
@@ -3082,7 +3074,6 @@ Domain::CreateMortarToMPC()
     }
 
     mortarToMPC = new Connectivity(nMortarCond, pointermap, target);
-    //mortarToMPC->print();
   }
 }
 // HB: return the Mortar to LMPCs connectivity and the total number of
@@ -4064,7 +4055,7 @@ Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
       j++; 
     }
   }
-  //std::cerr << "deleted " << numLMPC-j << " mpcs, ";
+
   numLMPC = j;
   if(mortarToMPC && (s == mpc::ContactSurfaces || s == mpc::TiedSurfaces)) {
     delete mortarToMPC;

@@ -297,7 +297,7 @@ template<class Scalar, class FaceType>
 template<typename CoordSetType, typename MortarType, typename FriendFaceType>
 GenFullM<Scalar>
 TriFacetTemplate<Scalar,FaceType>::IntegrateShapeFctProduct(MortarType* MortarEl, TriFacetTemplate<Scalar,FriendFaceType>& FriendFacet,
-                                                           CoordSetType &cs, int ngp)
+                                                            CoordSetType &cs, int ngp)
 // ******************************************************************************************************
 // Integrate on the CURRENT triangular facet the product of the shape functions defined by the given
 // MortarElement and the shape functions of the element associated to the given (Friend) triangular facet
@@ -357,7 +357,7 @@ template<class Scalar, class FaceType>
 template<typename CoordSetType, typename MortarType, typename FriendFaceType>
 GenFullM<Scalar>
 TriFacetTemplate<Scalar,FaceType>::IntegrateNormalShapeFctProduct(MortarType* MortarEl, TriFacetTemplate<Scalar,FriendFaceType>& FriendFacet,
-                                                                 CoordSetType& cs, int ngp)
+                                                                  CoordSetType& cs, int ngp)
 // ******************************************************************************************************
 // Integrate on the CURRENT triangular facet the product of the shape functions defined by the given
 // MortarElement and the shape functions of the element associated to the given (Friend) triangular facet

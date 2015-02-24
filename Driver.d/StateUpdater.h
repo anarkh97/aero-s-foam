@@ -24,20 +24,20 @@ public:
     pbd->getIncDisplacement(geomState, du, refState, zeroRot);
   }
 
-  static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
+  static double integrate(int iter, ProbDescr *pbd, RefState *refState, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, double lambda=1.0, bool forceOnly=false) {
-    updateState(pbd, geomState, *du);
+    if(iter != 0) updateState(pbd, geomState, *du);
     double ret = pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda, refState, forceOnly);
     if(pbd->getResizeFlag()) du->resize(pbd->solVecInfo());
     return ret;
   }
 
-  static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
+  static double integrate(int iter, ProbDescr *pbd, RefState *refState, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, VecType& vel_n,
                   VecType &accel, double midTime, bool forceOnly=false) {
-    updateState(pbd, geomState, *du);
+    if(iter != 0) updateState(pbd, geomState, *du);
     double ret = pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime, refState, forceOnly);
     if(pbd->getResizeFlag()) du->resize(pbd->solVecInfo()); 
     return ret;
@@ -106,16 +106,10 @@ public:
   typedef VecType StateIncr;
   typedef GeomType RefState;
 
-  static double integrate(ProbDescr *pbd, RefState *rs, GeomType *geomState,
+  static double integrate(int iter, ProbDescr *pbd, RefState *rs, GeomType *geomState,
     StateIncr *du, VecType &residual, VecType &elementInternalForce,
     VecType &gRes, VecType& vel_n, VecType &accel, double midTime, bool forceOnly=false) {
-
-//************************************************
-//    pbd->derivTest(*geomState, vel_n, accel, residual);
-//    exit(0);
-//************************************************
-  
-    geomState->update(*du, pbd->getDelta());
+    if(iter !=0 )geomState->update(*du, pbd->getDelta());
     return pbd->getStiffAndForce(*geomState, residual);
   }
 
@@ -174,14 +168,14 @@ public:
     geomState->get_inc_displacement(du, *refState, zeroRot);
   }
   
-  static double integrate(ProbDescr *pbd, GeomType *sn, GeomType *snp,
+  static double integrate(int, ProbDescr *pbd, GeomType *sn, GeomType *snp,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &totalRes, double=1.0, bool=false) {
     return pbd->integrate(*sn, *snp, *du, residual, 
                           elementInternalForce, totalRes);
   }
   
-  static double integrate(ProbDescr *pbd, GeomType *sn, GeomType *snp,
+  static double integrate(int, ProbDescr *pbd, GeomType *sn, GeomType *snp,
                   StateIncr *du, VecType &residual,
                   VecType &elementInternalForce, VecType &totalRes, VecType, VecType,
                   double, bool=false) {

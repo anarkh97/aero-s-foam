@@ -192,8 +192,8 @@ void
 GeomState::resize(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
 {
   multiplier_nodes.clear();
-  if(dsa.numNodes() != numnodesFixed) {
-    X0 = &cs;
+  X0 = &cs;
+  if(true/*dsa.numNodes() != numnodesFixed*/) { // XXX
     numnodes = dsa.numNodes();
     ns.resize(numnodes);
     loc.resize(numnodes);
@@ -1163,7 +1163,7 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
-    if(flag[inode] == -1) continue; // inequality constraint lagrange multiplier dof
+    if(flag[inode] == -1 || inode >= ss.numnodes) continue; // inequality constraint lagrange multiplier dof
 
     // Update incremental translational displacements
     double d[3] = { ns[inode].x - ss[inode].x,

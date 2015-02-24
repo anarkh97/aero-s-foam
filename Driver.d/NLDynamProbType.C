@@ -228,7 +228,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     }
 
     double midtime = time + dt*(1 - alphaf);
-    
+
     if(!failed && (aeroAlg < 0 || p%q == 0)) { // for coupled aero, only get fluid load at increments of dt0
       double midtimeExt = (aeroAlg < 0) ? midtime : time + dt0*(1-alphaf);
       double deltaExt = (aeroAlg < 0) ? delta : dt0/2;
@@ -255,7 +255,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
         try {         
           // Add stateIncr to geomState and compute element tangent stiffness and internal/follower forces
-          StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
+          StateUpdate::integrate(iter, probDesc, refState, geomState, stateIncr, residual,
                                  elementInternalForce, totalRes, velocity_n,
                                  acceleration, midtime);
 
@@ -288,7 +288,6 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
             // Solve ([M] + delta^2 [K])dv = rhs (where rhs is overwritten)
             probDesc->getSolver()->reSolve(rhs);
-            dv = rhs;
             probDesc->getConstraintMultipliers(*geomState);
 
             if(probDesc->linesearch().type != 0) {
@@ -307,9 +306,12 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
           if(useTolInc) {
             converged = probDesc->checkConvergence(iter, resN, residual, rhs, midtime);
           }
+          else {
+            dv = rhs; // keep a copy of the displacement increment
+          }
         }
         catch(std::runtime_error& e) {
-          if(!failSafe || debugFlag) std::cerr << "exception: " << e.what() << std::endl;
+          if(!failSafe || debugFlag) std::cerr << "\nexception: " << e.what() << std::endl;
           converged = 0;
           break;
         }

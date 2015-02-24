@@ -858,14 +858,18 @@ MortarHandler::CreateFFIPolygon()
       MasterBlkId = Master_face_block_id[iFFI]-1 - 4; // in all the ACME blocks, the master blocks are last
     }
     if(Master_face_index_in_block[iFFI] <= 0) std::cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI 
-                                                   << ", Master_face_index_in_block[iFFI] = " << Master_face_index_in_block[iFFI] << std::endl;
+                                                        << ", Master_face_index_in_block[iFFI] = " << Master_face_index_in_block[iFFI] << std::endl;
     int master_face = (*MasterACMEBlocksMap)[MasterBlkId][Master_face_index_in_block[iFFI]-1];
     FaceElement *MasterFaceEl = (*MasterElemSet)[master_face];
 
     int FFIDataOffset = ACMEFFI_index[iFFI];
     int nVertices = (int) ACMEFFI_data[FFIDataOffset];
     double* ACME_FFI_Data = &ACMEFFI_data[FFIDataOffset];
+#ifdef USE_FFI_DERIVATIVES
     int ACME_FFI_Derivatives_Order = (InteractionType == MortarHandler::CTC) ? 1 : 0;
+#else
+    int ACME_FFI_Derivatives_Order = 0;
+#endif
 
     CtcPolygons[iFFI] = new FFIPolygon(MasterFaceEl, SlaveFaceEl, nVertices, ACME_FFI_Data, ACME_FFI_Derivatives_Order);
     
@@ -2320,6 +2324,7 @@ MortarHandler::set_search_options()
 
   // Activate ffi partials 
   if(InteractionType == MortarHandler::CTC) {
+#ifdef USE_FFI_DERIVATIVES
     data[0] = 1;
     error = search_obj->Set_Search_Option(ContactSearch::COMPUTE_PARTIALS,
                                           ContactSearch::ACTIVE,
@@ -2330,6 +2335,7 @@ MortarHandler::set_search_options()
         std::cerr << search_obj->Error_Message(i) << std::endl;
       exit(error);
     }
+#endif
   }
 #endif
 }

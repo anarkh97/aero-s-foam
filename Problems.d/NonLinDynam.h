@@ -100,6 +100,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     double resN;
     Vector *reactions;
     bool factor;
+    bool updateCS;
 
  public:
     // Constructor
@@ -163,6 +164,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int getNumStages();
     int checkConvergence(int iter, double rN, Vector& residual, Vector& dv, double time);
 
+    void updateContactSurfaces(GeomState& geomState, GeomState *refState);
     virtual void updateStates(GeomState *refState, GeomState& geomState, double time);
 
     // getStiffAndForce forms element stiffness matrices and/or

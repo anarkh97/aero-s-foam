@@ -3879,10 +3879,10 @@ GenSubDomain<Scalar>::setMpcRhs(Scalar *interfvec, double _t)
 {
   // set the rhs of inequality mpcs to the geometric gap and reset the rhs of the equality mpcs to the original rhs
   // (used in nonlinear analysis)
-  // idea: initalize to dual-active if gap is open (+ve) // XXXX
+  // idea: initalize to dual-active if gap is open (+ve) // XXX
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if(mpc[locMpcNb]->getSource() != mpc::ContactSurfaces) {
+    if(mpc[locMpcNb]->getSource() != mpc::ContactSurfaces || sinfo.piecewise_contact) {
       mpc[locMpcNb]->rhs = mpc[locMpcNb]->original_rhs - interfvec[scomm->mapT(SComm::mpc,i)];
     }
   }

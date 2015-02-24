@@ -423,6 +423,7 @@ public:
   char *getMatchFileName()  { return matchName; }
   int  numElem() { return nElem; }
   int  numMpcElem() { return nMpcElem; }
+  int  numContactSurfaceElem() { return contactSurfElems.size(); }
   int  numElemFluid() { return nElemFluid; }
   int  numNode() { return numNodes; }
   void setNumNodes(int n) { numNodes = n; }

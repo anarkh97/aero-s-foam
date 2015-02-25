@@ -244,6 +244,8 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
   Timer().Start_Timer( initialization_time );
 #endif
 
+  if(SAVE_CVARS) Initialize_CVARS(); // PJSA even though CVARS are not saved for penalty, at least they should be initialized to zero
+
   // search data
   //
   // Get and initialize scratch memory 

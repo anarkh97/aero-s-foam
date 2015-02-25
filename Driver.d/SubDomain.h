@@ -703,7 +703,7 @@ class GenSubDomain : public BaseSub
                          int mpcOffset, GenVector<Scalar> &uc);
   void getConstraintMultipliers(std::map<std::pair<int,int>,double> &mu, std::vector<double> &lambda);
   void getLocalMultipliers(std::vector<double> &lambda);
-  void setMpcRhs(Scalar *interfvec, double t);
+  void setMpcRhs(Scalar *interfvec, double t, int flag);
   void updateMpcRhs(Scalar *interfvec);
   double getMpcError();
   bool* getMpcMaster() { return mpcMaster; }

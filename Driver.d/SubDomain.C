@@ -3875,14 +3875,15 @@ GenSubDomain<Scalar>::insertMpcResidual(Scalar *subv, GenVector<Scalar> &mpcv, S
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::setMpcRhs(Scalar *interfvec, double _t)
+GenSubDomain<Scalar>::setMpcRhs(Scalar *interfvec, double _t, int flag)
 {
   // set the rhs of inequality mpcs to the geometric gap and reset the rhs of the equality mpcs to the original rhs
-  // (used in nonlinear analysis)
-  // idea: initalize to dual-active if gap is open (+ve) // XXX
+  // if flag = 0 then interfvec = C*u, used in nonlinear analyses to update LMPCs and tied surfaces
+  // if flag = 1 then interfvec = C*(u-u_n), used in nonlinear analyses to update piecewise linear contact surfaces
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if(mpc[locMpcNb]->getSource() != mpc::ContactSurfaces || sinfo.piecewise_contact) {
+    if((mpc[locMpcNb]->getSource() != mpc::ContactSurfaces && flag == 0) ||
+       (mpc[locMpcNb]->getSource() == mpc::ContactSurfaces && sinfo.piecewise_contact && flag == 1)) {
       mpc[locMpcNb]->rhs = mpc[locMpcNb]->original_rhs - interfvec[scomm->mapT(SComm::mpc,i)];
     }
   }

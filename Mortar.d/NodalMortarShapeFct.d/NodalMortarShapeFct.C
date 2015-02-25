@@ -510,10 +510,7 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int lmpcnum, int* SlaveLlToGlNodeMap
      for(int j=0; j<m; ++j)
        MortarLMPC->H(i,j) = Hfull(indices[i],indices[j]);
  }
- //std::cerr << "here is the matrix H\n" << MortarLMPC->H << std::endl;
- //std::cerr << "here are the " << n << " eigenvalues of H:\n" << MortarLMPC->H.eigenvalues().transpose() << std::endl;
 #endif
- //if(MortarLMPC) MortarLMPC->print(); else std::cerr << "MortarLMPC is NULL\n";
  return MortarLMPC;
 }
 

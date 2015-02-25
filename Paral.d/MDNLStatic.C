@@ -334,7 +334,7 @@ MDNLStatic::getStiffAndForce(DistrGeomState& geomState,
    residual.conservativeResize(solVecInfo());
  }
  // set the gap for the linear constraints
- if(fetiSolver) decDomain->setConstraintGap(&geomState, fetiSolver, _lambda);
+ if(fetiSolver) decDomain->setConstraintGap(&geomState, refState, fetiSolver, _lambda);
 
  execParal6R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
              residual, elementInternalForce, _lambda, refState, forceOnly);

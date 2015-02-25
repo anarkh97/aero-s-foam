@@ -412,6 +412,7 @@ ContactSearch::ContactErrorCode
 ContactTDEnforcement::Get_Plot_Variable( Contact_TDEnf_Plot_Vars var,
 					       Real * buffer )
 {
+  int number_of_nodes = number_host_code_nodes; // PJSA size of buffer is number_host_code_nodes (host doesn't know about extra nodes added for shell lofting)
   if( !SAVE_CVARS ){
     errors->Add_Error_Message( "CVARS weren't requested" );
     return ContactSearch::INVALID_DATA;

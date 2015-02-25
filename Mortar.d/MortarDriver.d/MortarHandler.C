@@ -2361,9 +2361,9 @@ MortarHandler::perform_search(int search_algorithm, double dt_old, double dt)
       search_obj->Set_Search_Option(ContactSearch::OLD_DYNAMIC_SEARCH, ContactSearch::ACTIVE, (double *)0);
       error = search_obj->Dynamic_Search_2_Configuration(dt_old, dt);
       break;
-    case 4: {
+    case 4:
       error = search_obj->Dynamic_Search_2_Configuration(dt_old, dt);
-    } break;
+      break;
   }  
   if(error) {
     std::cerr << "Error in ACME ContactSearch: error code = " << error << std::endl; 

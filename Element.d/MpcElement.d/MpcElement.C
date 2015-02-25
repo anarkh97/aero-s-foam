@@ -401,13 +401,15 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
     updated_coefs[nodeNumber] = v;
   }
 
+  // TODO consider contact surfaces with nodal frames
   for(int i = 0; i < nterms; ++i) {
     double u;
     NFrameData *cd = c0.dofFrame(terms[i].nnum);
     switch(terms[i].dofnum) {
       case 0 : 
         if(!cd) {
-          u = c1[terms[i].nnum].x-c0[terms[i].nnum]->x; 
+          double x0 = (getSource() == mpc::ContactSurfaces) ? (*refState)[terms[i].nnum].x : c0[terms[i].nnum]->x;
+          u = c1[terms[i].nnum].x-x0; 
           rhs.r_value -= terms[i].coef.r_value*u;
         }
         else {
@@ -420,7 +422,8 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
         break;
       case 1 : 
         if(!cd) {
-          u = c1[terms[i].nnum].y-c0[terms[i].nnum]->y;
+          double y0 = (getSource() == mpc::ContactSurfaces) ? (*refState)[terms[i].nnum].y : c0[terms[i].nnum]->y;
+          u = c1[terms[i].nnum].y-y0;
           rhs.r_value -= terms[i].coef.r_value*u;
         }
         else {
@@ -433,7 +436,8 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
         break;
       case 2 : 
         if(!cd) {
-          u = c1[terms[i].nnum].z-c0[terms[i].nnum]->z;
+          double z0 = (getSource() == mpc::ContactSurfaces) ? (*refState)[terms[i].nnum].z : c0[terms[i].nnum]->z;
+          u = c1[terms[i].nnum].z-z0;
           rhs.r_value -= terms[i].coef.r_value*u;
         }
         else {

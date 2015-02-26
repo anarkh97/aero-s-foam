@@ -26,7 +26,7 @@ class DistrGeomState {
      // Destructor
      ~DistrGeomState();
 
-     void resize(DecDomain *domain);
+     void resize(DecDomain *domain, std::map<std::pair<int,int>,double> *mu = NULL);
 
      // return the ith subdomain's GeomState
      GeomState* operator[](int i) const { return gs[i]; }

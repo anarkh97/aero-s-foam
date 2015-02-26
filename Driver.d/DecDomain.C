@@ -4133,7 +4133,8 @@ GenDecDomain<Scalar>::exchangeInterfaceGeomState(DistrGeomState *geomState)
 {
   FSCommPattern<double> *geomStatePat = new FSCommPattern<double>(communicator, cpuToSub, myCPU, FSCommPattern<Scalar>::CopyOnSend,
                                                                   FSCommPattern<Scalar>::NonSym);
-  for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(geomStatePat, 13);
+  int len = (domain->solInfo().isDynam()) ? 28 : 16;
+  for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(geomStatePat, len);
   geomStatePat->finalize();
 
   execParal2R(numSub, this, &GenDecDomain<Scalar>::dispatchInterfaceGeomState, geomStatePat, geomState);
@@ -4147,14 +4148,20 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::dispatchInterfaceGeomState(int isub, FSCommPattern<double> *geomStatePat, DistrGeomState *geomState)
 {
-  subDomain[isub]->dispatchInterfaceGeomState(geomStatePat, (*geomState)[isub]);
+  if(domain->solInfo().isDynam())
+    subDomain[isub]->dispatchInterfaceGeomStateDynam(geomStatePat, (*geomState)[isub]);
+  else
+    subDomain[isub]->dispatchInterfaceGeomState(geomStatePat, (*geomState)[isub]);
 }
 
 template<class Scalar>
 void
 GenDecDomain<Scalar>::collectInterfaceGeomState(int isub, FSCommPattern<double> *geomStatePat, DistrGeomState *geomState)
 {
-  subDomain[isub]->collectInterfaceGeomState(geomStatePat, (*geomState)[isub]);
+  if(domain->solInfo().isDynam())
+    subDomain[isub]->collectInterfaceGeomStateDynam(geomStatePat, (*geomState)[isub]);
+  else
+    subDomain[isub]->collectInterfaceGeomState(geomStatePat, (*geomState)[isub]);
 }
 
 template<class Scalar>

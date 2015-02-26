@@ -92,7 +92,7 @@ class MDNLDynamic
 
     double Kcoef_p;
 
-    std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
+    std::map<std::pair<int,int>, double> *mu, *muCopy; // lagrange multipliers for the contact surfaces
     std::vector<double> *lambda; // lagrange multipliers for all the other constraints
 
     bool updateCS;
@@ -192,6 +192,8 @@ class MDNLDynamic
 
     LinesearchInfo& linesearch();
     bool getResizeFlag();
+    void resize(DistrGeomState *refState, DistrGeomState *geomState, DistrGeomState *stepState, DistrVector *stateIncr,
+                DistrVector &v, DistrVector &a, DistrVector &vp, DistrVector &force);
 
   protected:
     Domain *getDomain() { return domain; }

@@ -6022,22 +6022,25 @@ GenSubDomain<Scalar>::dispatchInterfaceGeomState(FSCommPattern<double> *pat, Geo
     for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
       if((*scomm->sharedNodes)[iSub][iNode] < geomState->numNodesFixed()) {
         NodeState &ns = (*geomState)[(*scomm->sharedNodes)[iSub][iNode]];
-        sInfo.data[13*iNode] = 1; // status
-        sInfo.data[13*iNode+1 ] = ns.x;
-        sInfo.data[13*iNode+2 ] = ns.y;
-        sInfo.data[13*iNode+3 ] = ns.z;
-        sInfo.data[13*iNode+4 ] = ns.R[0][0];
-        sInfo.data[13*iNode+5 ] = ns.R[0][1];
-        sInfo.data[13*iNode+6 ] = ns.R[0][2];
-        sInfo.data[13*iNode+7 ] = ns.R[1][0];
-        sInfo.data[13*iNode+8 ] = ns.R[1][1];
-        sInfo.data[13*iNode+9 ] = ns.R[1][2];
-        sInfo.data[13*iNode+10] = ns.R[2][0];
-        sInfo.data[13*iNode+11] = ns.R[2][1];
-        sInfo.data[13*iNode+12] = ns.R[2][2];
+        sInfo.data[16*iNode] = 1; // status
+        sInfo.data[16*iNode+1 ] = ns.x;
+        sInfo.data[16*iNode+2 ] = ns.y;
+        sInfo.data[16*iNode+3 ] = ns.z;
+        sInfo.data[16*iNode+4 ] = ns.R[0][0];
+        sInfo.data[16*iNode+5 ] = ns.R[0][1];
+        sInfo.data[16*iNode+6 ] = ns.R[0][2];
+        sInfo.data[16*iNode+7 ] = ns.R[1][0];
+        sInfo.data[16*iNode+8 ] = ns.R[1][1];
+        sInfo.data[16*iNode+9 ] = ns.R[1][2];
+        sInfo.data[16*iNode+10] = ns.R[2][0];
+        sInfo.data[16*iNode+11] = ns.R[2][1];
+        sInfo.data[16*iNode+12] = ns.R[2][2];
+        sInfo.data[16*iNode+13] = ns.theta[0];
+        sInfo.data[16*iNode+14] = ns.theta[1];
+        sInfo.data[16*iNode+15] = ns.theta[2];
       }
       else {
-        for(int j=0; j<13; ++j) sInfo.data[13*iNode+j] = 0;
+        for(int j=0; j<16; ++j) sInfo.data[16*iNode+j] = 0;
       }
     }
   }
@@ -6050,20 +6053,109 @@ GenSubDomain<Scalar>::collectInterfaceGeomState(FSCommPattern<double> *pat, Geom
   for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
     FSSubRecInfo<double> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
     for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
-      if((*scomm->sharedNodes)[iSub][iNode] >= geomState->numNodesFixed() && rInfo.data[13*iNode] != 0) {
+      if((*scomm->sharedNodes)[iSub][iNode] >= geomState->numNodesFixed() && rInfo.data[16*iNode] != 0) {
         NodeState &ns = (*geomState)[(*scomm->sharedNodes)[iSub][iNode]];
-        ns.x       = rInfo.data[13*iNode+1 ];
-        ns.y       = rInfo.data[13*iNode+2 ];
-        ns.z       = rInfo.data[13*iNode+3 ];
-        ns.R[0][0] = rInfo.data[13*iNode+4 ];
-        ns.R[0][1] = rInfo.data[13*iNode+5 ];
-        ns.R[0][2] = rInfo.data[13*iNode+6 ];
-        ns.R[1][0] = rInfo.data[13*iNode+7 ];
-        ns.R[1][1] = rInfo.data[13*iNode+8 ];
-        ns.R[1][2] = rInfo.data[13*iNode+9 ];
-        ns.R[2][0] = rInfo.data[13*iNode+10];
-        ns.R[2][1] = rInfo.data[13*iNode+11];
-        ns.R[2][2] = rInfo.data[13*iNode+12];
+        ns.x       = rInfo.data[16*iNode+1 ];
+        ns.y       = rInfo.data[16*iNode+2 ];
+        ns.z       = rInfo.data[16*iNode+3 ];
+        ns.R[0][0] = rInfo.data[16*iNode+4 ];
+        ns.R[0][1] = rInfo.data[16*iNode+5 ];
+        ns.R[0][2] = rInfo.data[16*iNode+6 ];
+        ns.R[1][0] = rInfo.data[16*iNode+7 ];
+        ns.R[1][1] = rInfo.data[16*iNode+8 ];
+        ns.R[1][2] = rInfo.data[16*iNode+9 ];
+        ns.R[2][0] = rInfo.data[16*iNode+10];
+        ns.R[2][1] = rInfo.data[16*iNode+11];
+        ns.R[2][2] = rInfo.data[16*iNode+12];
+        ns.theta[0]= rInfo.data[16*iNode+13];
+        ns.theta[1]= rInfo.data[16*iNode+14];
+        ns.theta[2]= rInfo.data[16*iNode+15];
+      }
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::dispatchInterfaceGeomStateDynam(FSCommPattern<double> *pat, GeomState *geomState)
+{
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[iSub]);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      if((*scomm->sharedNodes)[iSub][iNode] < geomState->numNodesFixed()) {
+        NodeState &ns = (*geomState)[(*scomm->sharedNodes)[iSub][iNode]];
+        sInfo.data[28*iNode] = 1; // status
+        sInfo.data[28*iNode+1 ] = ns.x;
+        sInfo.data[28*iNode+2 ] = ns.y;
+        sInfo.data[28*iNode+3 ] = ns.z;
+        sInfo.data[28*iNode+4 ] = ns.R[0][0];
+        sInfo.data[28*iNode+5 ] = ns.R[0][1];
+        sInfo.data[28*iNode+6 ] = ns.R[0][2];
+        sInfo.data[28*iNode+7 ] = ns.R[1][0];
+        sInfo.data[28*iNode+8 ] = ns.R[1][1];
+        sInfo.data[28*iNode+9 ] = ns.R[1][2];
+        sInfo.data[28*iNode+10] = ns.R[2][0];
+        sInfo.data[28*iNode+11] = ns.R[2][1];
+        sInfo.data[28*iNode+12] = ns.R[2][2];
+        sInfo.data[28*iNode+13] = ns.theta[0];
+        sInfo.data[28*iNode+14] = ns.theta[1];
+        sInfo.data[28*iNode+15] = ns.theta[2];
+        sInfo.data[28*iNode+16] = ns.v[0];
+        sInfo.data[28*iNode+17] = ns.v[1];
+        sInfo.data[28*iNode+18] = ns.v[2];
+        sInfo.data[28*iNode+19] = ns.v[3];
+        sInfo.data[28*iNode+20] = ns.v[4];
+        sInfo.data[28*iNode+21] = ns.v[5];
+        sInfo.data[28*iNode+22] = ns.a[0];
+        sInfo.data[28*iNode+23] = ns.a[1];
+        sInfo.data[28*iNode+24] = ns.a[2];
+        sInfo.data[28*iNode+25] = ns.a[3];
+        sInfo.data[28*iNode+26] = ns.a[4];
+        sInfo.data[28*iNode+27] = ns.a[5];
+      }
+      else {
+        for(int j=0; j<28; ++j) sInfo.data[28*iNode+j] = 0;
+      }
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::collectInterfaceGeomStateDynam(FSCommPattern<double> *pat, GeomState *geomState)
+{
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      if((*scomm->sharedNodes)[iSub][iNode] >= geomState->numNodesFixed() && rInfo.data[28*iNode] != 0) {
+        NodeState &ns = (*geomState)[(*scomm->sharedNodes)[iSub][iNode]];
+        ns.x       = rInfo.data[28*iNode+1 ];
+        ns.y       = rInfo.data[28*iNode+2 ];
+        ns.z       = rInfo.data[28*iNode+3 ];
+        ns.R[0][0] = rInfo.data[28*iNode+4 ];
+        ns.R[0][1] = rInfo.data[28*iNode+5 ];
+        ns.R[0][2] = rInfo.data[28*iNode+6 ];
+        ns.R[1][0] = rInfo.data[28*iNode+7 ];
+        ns.R[1][1] = rInfo.data[28*iNode+8 ];
+        ns.R[1][2] = rInfo.data[28*iNode+9 ];
+        ns.R[2][0] = rInfo.data[28*iNode+10];
+        ns.R[2][1] = rInfo.data[28*iNode+11];
+        ns.R[2][2] = rInfo.data[28*iNode+12];
+        ns.theta[0]= rInfo.data[28*iNode+13];
+        ns.theta[1]= rInfo.data[28*iNode+14];
+        ns.theta[2]= rInfo.data[28*iNode+15];
+        ns.v[0]    = rInfo.data[28*iNode+16];
+        ns.v[1]    = rInfo.data[28*iNode+17];
+        ns.v[2]    = rInfo.data[28*iNode+18];
+        ns.v[3]    = rInfo.data[28*iNode+19];
+        ns.v[4]    = rInfo.data[28*iNode+20];
+        ns.v[5]    = rInfo.data[28*iNode+21];
+        ns.a[0]    = rInfo.data[28*iNode+22];
+        ns.a[1]    = rInfo.data[28*iNode+23];
+        ns.a[2]    = rInfo.data[28*iNode+24];
+        ns.a[3]    = rInfo.data[28*iNode+25];
+        ns.a[4]    = rInfo.data[28*iNode+26];
+        ns.a[5]    = rInfo.data[28*iNode+27];
       }
     }
   }

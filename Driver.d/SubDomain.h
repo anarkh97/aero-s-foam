@@ -567,6 +567,8 @@ class GenSubDomain : public BaseSub
   template<class Scalar1> void addNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
   void dispatchInterfaceGeomState(FSCommPattern<double> *geomStatePat, GeomState *geomState);
   void collectInterfaceGeomState(FSCommPattern<double> *geomStatePat, GeomState *geomState);
+  void dispatchInterfaceGeomStateDynam(FSCommPattern<double> *geomStatePat, GeomState *geomState);
+  void collectInterfaceGeomStateDynam(FSCommPattern<double> *geomStatePat, GeomState *geomState);
   void dispatchInterfaceNodalInertiaTensors(FSCommPattern<double> *pat);
   void collectInterfaceNodalInertiaTensors(FSCommPattern<double> *pat);
   void dispatchGeomStateData(FSCommPattern<double> *, GeomState *);

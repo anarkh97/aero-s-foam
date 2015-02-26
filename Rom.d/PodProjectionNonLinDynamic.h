@@ -91,6 +91,9 @@ public:
   virtual double getResidualNorm(const Vector &, ModalGeomState &, double);
   int checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time); // relies on function hiding
 
+  void resize(ModalGeomState *refState, ModalGeomState *geomState, ModalGeomState *stepState, Vector *stateIncr,
+              Vector &v, Vector &a, Vector &vp, Vector &force) {}
+
 protected:
   class Impl;
   GeomState *geomState_Big, *refState_Big;

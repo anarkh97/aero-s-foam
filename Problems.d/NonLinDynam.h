@@ -207,6 +207,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     LinesearchInfo& linesearch();
     bool getResizeFlag();
+    void resize(GeomState *refState, GeomState *geomState, GeomState *stepState, Vector *stateIncr,
+                Vector &v, Vector &a, Vector &vp, Vector &force) {} // XXX
 
 private:
     virtual bool factorWhenBuilding() const;

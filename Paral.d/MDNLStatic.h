@@ -52,7 +52,7 @@ class MDNLStatic
     DistrInfo& sysVecInfo();
     DistrInfo& elemVecInfo();
     int checkConvergence(int iter, double normDv, double normRes);
-    void updateContactSurfaces(DistrGeomState& geomState);
+    void updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *refState);
     void updateStates(DistrGeomState *refState, DistrGeomState& geomState, double lambda);
     int  getMaxit();
     double getScaleFactor();

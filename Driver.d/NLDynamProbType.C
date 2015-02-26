@@ -224,6 +224,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       else { // restore current state to backup state
         StateUpdate::copyTo(bkRefState, bkGeomState, bkStepState, bkStateIncr, *bkVelocity_n, *bkAcceleration, *bkV_p, *bkAeroForce,
                             refState, geomState, stepState, stateIncr, velocity_n, acceleration, v_p, aeroForce);
+        if(failSafe) probDesc->resize(refState, geomState, stepState, stateIncr, velocity_n, acceleration, v_p, aeroForce);
       }
     }
 

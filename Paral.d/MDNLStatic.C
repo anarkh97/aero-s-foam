@@ -285,7 +285,7 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
 }
 
 void
-MDNLStatic::updateContactSurfaces(DistrGeomState& geomState)
+MDNLStatic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *refState)
 {
   if(fetiSolver) {
     domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
@@ -310,9 +310,10 @@ MDNLStatic::updateContactSurfaces(DistrGeomState& geomState)
     domain->setNumElements(domain->getElementSet().last());
     decDomain->clean();
     preProcess();
-    geomState.resize(decDomain);
-    geomState.setMultipliers(*mu);
-    decDomain->exchangeInterfaceGeomState(&geomState);
+    geomState.resize(decDomain, mu);
+    if(refState) {
+      refState->resize(decDomain);
+    }
   }
 }
 
@@ -327,7 +328,7 @@ MDNLStatic::getStiffAndForce(DistrGeomState& geomState,
  execParal(decDomain->getNumSub(), this, &MDNLStatic::getConstraintMultipliers);
  if(domain->GetnContactSurfacePairs()) {
    if(!domain->solInfo().piecewise_contact || updateCS) {
-     updateContactSurfaces(geomState);
+     updateContactSurfaces(geomState, refState);
      updateCS = false;
    }
    elementInternalForce.resize(elemVecInfo());

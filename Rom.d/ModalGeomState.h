@@ -41,6 +41,7 @@ public:
   void setVelocityAndAcceleration(Vector &_vel, Vector &_acc) { vel = _vel; acc = _acc; }
   void push_forward(Vector &) {}
   void pull_back(Vector &) {}
+  void print() {}
 
   Vector *getModalq() {return &q; }
 

@@ -104,7 +104,6 @@ MDNLDynamic::getIncDisplacement(DistrGeomState *geomState, DistrVector &du, Dist
   if(domain->GetnContactSurfacePairs()) {
     du.resize(solVecInfo());
     refState->resize(decDomain);
-    decDomain->exchangeInterfaceGeomState(refState);
   }
   geomState->get_inc_displacement(du, *refState, zeroRot); 
 }
@@ -270,7 +269,7 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   melArray = 0;
   celArray = 0;
   times = 0;
-  mu = 0; lambda = 0;
+  mu = 0; muCopy = 0; lambda = 0;
   solver = 0;
   allOps =0;
   M = 0;
@@ -495,12 +494,10 @@ MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *re
     domain->setNumElements(domain->getElementSet().last());
     decDomain->clean();
     preProcess();
-    geomState.resize(decDomain);
-    geomState.setMultipliers(*mu);
-    decDomain->exchangeInterfaceGeomState(&geomState);
+    if(muCopy) for(int i=0; i<decDomain->getNumSub(); ++i) muCopy[i] = mu[i];
+    geomState.resize(decDomain, mu);
     if(refState) {
       refState->resize(decDomain);
-      decDomain->exchangeInterfaceGeomState(refState);
     }
   }
 }
@@ -742,6 +739,7 @@ MDNLDynamic::preProcess()
   if(mu == 0) { // first time only
     domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
     mu = new std::map<std::pair<int,int>,double>[decDomain->getNumSub()];
+    if(domain->solInfo().getNLInfo().failsafe) muCopy = new std::map<std::pair<int,int>,double>[decDomain->getNumSub()];
     lambda = new std::vector<double>[decDomain->getNumSub()];
     updateCS = true;
   }
@@ -1924,4 +1922,26 @@ bool
 MDNLDynamic::getResizeFlag()
 {
   return (domain->GetnContactSurfacePairs() > 0);
+}
+
+void
+MDNLDynamic::resize(DistrGeomState *refState, DistrGeomState *geomState, DistrGeomState *stepState, DistrVector *stateIncr,
+                    DistrVector &v, DistrVector &a, DistrVector &vp, DistrVector &force)
+{
+  if(domain->GetnContactSurfacePairs() > 0 && domain->solInfo().piecewise_contact) {
+    if(refState) {
+      refState->resize(decDomain);
+    }
+    if(geomState) {
+      geomState->resize(decDomain, muCopy);
+    }
+    if(stepState) {
+      geomState->resize(decDomain);
+    }
+    if(stateIncr) stateIncr->conservativeResize(solVecInfo());
+    v.conservativeResize(solVecInfo());
+    a.conservativeResize(solVecInfo());
+    vp.conservativeResize(solVecInfo());
+    force.conservativeResize(solVecInfo());
+  }
 }

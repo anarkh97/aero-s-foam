@@ -300,9 +300,11 @@ DistrGeomState::getHaveRot()
 }
 
 void
-DistrGeomState::resize(DecDomain* domain)
+DistrGeomState::resize(DecDomain* domain, std::map<std::pair<int,int>,double> *mu)
 {
   execParal1R(numSub, this, &DistrGeomState::subResize, domain);
+  if(mu) setMultipliers(*mu);
+  domain->exchangeInterfaceGeomState(this);
 }
 
 void

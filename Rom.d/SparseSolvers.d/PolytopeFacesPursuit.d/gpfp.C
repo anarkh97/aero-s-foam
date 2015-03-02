@@ -49,12 +49,12 @@
 
 Eigen::VectorXd
 gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-     long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime)
+     long int &info, double maxsze, int maxEle, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime)
 {
   using namespace Eigen;
 
   const long int m = b.rows();
-  const long int maxvec = std::min(m, (long int)(maxsze*A.cols()));
+  const long int maxvec = (maxEle > 0) ? std::min(m,(long int)maxEle) : std::min(m, (long int)(maxsze*A.cols()));
   const long int maxit = maxite*A.cols();
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
@@ -93,7 +93,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
+    if((rnorm <= abstol && maxEle != 0) || k+nld_indices.size() == maxvec) break;
     if(iter >= maxit) { info = 3; break; }
 
     g1.setZero();

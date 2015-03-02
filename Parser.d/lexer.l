@@ -176,6 +176,8 @@ TRAIL [a-zA-Z]*
  
 "POSITIVE"|"positive"		   { return POSELEM; }
 
+"REVORD"|"revord"                { return REVERSEORDER; } 
+
 "REDFOL"|"redfol"                  { return REDFOL; }
 
 "EXTFOL"|"extfol"                  { return EXTFOL; }
@@ -630,6 +632,8 @@ TRAIL [a-zA-Z]*
 "tolg"[a-zA-Z]*|"TOLG"[a-zA-Z]*    { return TOLPCG; }
 
 "subt"[a-zA-Z]*|"SUBT"[a-zA-Z]*    { return SUBTYPE; }
+
+"maxel"[a-zA-Z]*|"MAXEL"[a-zA-Z]*  { return MAXELEM; }
 
 "maxit"[a-zA-Z]*|"MAXIT"[a-zA-Z]*  { return MAXITR; }
 

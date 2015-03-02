@@ -16,25 +16,25 @@ template <typename T> int sgn(T val) {
 
 Eigen::VectorXd
 nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime);
+      long int &info, double maxsze, int maxEle, double maxite, double reltol, bool verbose, bool scaling, bool reverse, double &dtime);
 
 Eigen::VectorXd
 lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, bool positive, double &dtime)
+      long int &info, double maxsze, int maxEle, double maxite, double reltol, bool verbose, bool scaling, bool project, bool positive, double &dtime)
 {
   using namespace Eigen;
   
-  const long int m = b.rows();
-  const long int maxvec = std::min(m, (long int)(maxsze*A.cols()));
+  const long int m = b.rows();  
+  const long int maxvec = (maxEle > 0) ? std::min(m,(long int)maxEle)+1 : std::min(m, (long int)(maxsze*A.cols()))+1;
   const long int maxit = maxite*A.cols();
 
   // allocate
-  VectorXd wA(maxvec), rhs(maxvec), vk(maxvec), ylar(maxvec), t(maxvec), sign(maxvec);
+  VectorXd wA(maxvec), rhs(maxvec), vk(maxvec), ylar(maxvec), t(maxvec);
   VectorXd crlt(A.cols()), h(A.cols()), S(A.cols()), minBuffer(A.cols());
   VectorXd colK(A.rows()), mu(A.rows()), residual(A.rows()), update(A.rows());
  
   // intitialize
-  wA.setZero(); rhs.setOnes(); vk.setZero(); ylar.setZero(); t.setZero(); sign.setZero();
+  wA.setZero(); rhs.setOnes(); vk.setZero(); ylar.setZero(); t.setZero(); 
   minBuffer.setZero();
   colK.setZero(); mu.setZero(); 
 
@@ -50,31 +50,26 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   else S.setOnes();
 
   dtime = 0;
-  double  bnorm = b.norm();
+  double bnorm  = b.norm();
   double abstol = reltol*bnorm;
   rnorm = bnorm;
   double C;
 
-  //initialize starting set
+  //initialize starting set with maximaly corellated element
   {
     crlt = S.asDiagonal()*(A.transpose()*b);
     long int i;
-    if(positive){
-      C = crlt.maxCoeff(&i);
-    } else {
-      C = crlt.cwiseAbs().maxCoeff(&i);
-    }
-    sign[0] = sgn(crlt[i]);
+    C = crlt.maxCoeff(&i);
     indices.push_back(i);
     
     //intitialize cholesky factorization
-    B.col(0)     = sign[0]*S[indices[0]]*(A.col(indices[0]));
+    B.col(0)     = S[indices[0]]*(A.col(indices[0]));
     double diagK = B.col(0).squaredNorm();
     double r     = sqrt(diagK);
     R(0,0)       = r;
   }
   
-  //ensure that an element is not selected immediatly after being dropped
+  //ensure that an element is not selected immediately after being dropped
   bool     dropId  = false;
   long int blockId = 0; 
 
@@ -94,21 +89,11 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
+    if((rnorm <= abstol && maxEle != 0) || k+nld_indices.size()+1 == maxvec) break;
     if(iter >= maxit) { info = 3; break; }
 
     residual = b - mu; 
-
     crlt = S.asDiagonal()*(A.transpose()*residual); // correlations
-    {
-      int counter = 0;
-      for(std::vector<long int>::iterator it = indices.begin(); it != indices.end(); ++it, counter++) rhs[counter] = crlt[*it]; // do this to avoid roundoff
-      C = rhs.head(k+1).maxCoeff(); 
-      if(C <= 0) {
-        std::cout << "*** Negative Correlation *** " << std::endl;
-        break;
-      }
-    }
 
     long int i = 0; // dummy integer for stuff
 
@@ -116,77 +101,52 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     wA.head(k+1)  = R.topLeftCorner(k+1,k+1).triangularView<Upper>().transpose().solve(rhs.head(k+1));
     wA.head(k+1)  = R.topLeftCorner(k+1,k+1).triangularView<Upper>().solve(wA.head(k+1));
     if(!dropId && wA[k] <= 0) {
-       std::cout << " *** Roundoff Error *** " << std::endl;
+       std::cout << "wA = " << wA.head(k+1).transpose() << std::endl;
+       std::cout << "R.diag = " << R.diagonal().head(k+1).transpose() << std::endl;
+       std::cout << "C = " << std::endl;
+       for(std::vector<long int>::iterator it = indices.begin(); it != indices.end(); ++it) std::cout << crlt[*it] <<  " ";
+       std::cout << "\n *** Roundoff Error *** " << std::endl;
+       exit(-1);
        break;
     }
-    double oneNwA = sqrt(rhs.head(k+1).dot(wA.head(k+1)));
-    wA.head(k+1) *= 1.0/(oneNwA*C);
-
+    double oneNwA = 1.0/sqrt(rhs.head(k+1).dot(wA.head(k+1)));
+    wA.head(k+1) *= oneNwA;
+ 
     // compute smallest angle at which a new covariant becomes dominant
     update = B.leftCols(k+1)*wA.head(k+1);
     h      = S.asDiagonal()*(A.transpose()*update); 
     
     double gamma1, gamma_tilde;
+
+    //compute LARS angle
+    minBuffer = (C - crlt.array())/(oneNwA - h.array());
+    for(std::vector<long int>::iterator it = indices.begin();     it != indices.end();     ++it) minBuffer[*it] = std::numeric_limits<double>::max();  // max out inactive set
+    for(long int row = 0; row < minBuffer.rows(); ++row) minBuffer[row] = (minBuffer[row] <= 0) ? std::numeric_limits<double>::max() : minBuffer[row]; // max out non-positive members
+    if(dropId) minBuffer[blockId] = std::numeric_limits<double>::max();                                                                                // max out previously rejected member 
+
+    // compute smallest angle at which ylars changes sign
+    long int j;
+    t.setZero();
+    t.head(k+1) = -1.0*ylar.head(k+1).array()/(wA.head(k+1).array());
+    for(long int ele = 0; ele < k+1; ++ele) t[ele] = (t[ele] <= 0.) ? std::numeric_limits<double>::max() : t[ele];
+    gamma_tilde = (k > 0) ? t.head(k+1).minCoeff(&j) : std::numeric_limits<double>::max();
+
     while(true) { // loop to ensure linear independence
-      minBuffer = (C - crlt.array())/(1.0/oneNwA - h.array());
-      // max out inactive set
-      for(std::vector<long int>::iterator it = indices.begin();     it != indices.end();     ++it) minBuffer[*it] = std::numeric_limits<double>::max(); 
-      // max out linearly dependent members
-      for(std::vector<long int>::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it) minBuffer[*it] = std::numeric_limits<double>::max();
-      // max out non-positive members
-      for(long int row = 0; row < minBuffer.rows(); ++row) minBuffer[row] = (minBuffer[row] <= 0) ? std::numeric_limits<double>::max() : minBuffer[row];
-      // max out previously rejected member
-      if(dropId) minBuffer[blockId] = std::numeric_limits<double>::max();
-      // compute step length
-      gamma1 = minBuffer.minCoeff(&i); 
-
-      long int j;
-      if(!positive) {
-        minBuffer = (C + crlt.array())/(1.0/oneNwA + h.array());
-        for(std::vector<long int>::iterator it = indices.begin();     it != indices.end();     ++it) minBuffer[*it] = std::numeric_limits<double>::max();
-        for(std::vector<long int>::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it) minBuffer[*it] = std::numeric_limits<double>::max();
-        for(long int row = 0; row < minBuffer.rows(); ++row) minBuffer[row] = (minBuffer[row] <= 0) ? std::numeric_limits<double>::max() : minBuffer[row];
-        if(dropId) minBuffer[blockId] = std::numeric_limits<double>::max();
-        double gamma2 = minBuffer.minCoeff(&j);
-        if(gamma2 < gamma1){
-          gamma1 = gamma2;
-          i = j;
-        }
-      }
-
-      // compute smallest angle at which ylars changes sign
-      t.setZero();
-      t.head(k+1) = -1.0*ylar.head(k+1).array()/(sign.head(k+1).array()*wA.head(k+1).array());
-      for(long int ele = 0; ele < k+1; ++ele) t[ele] = (t[ele] <= 0) ? std::numeric_limits<double>::max() : t[ele];
-      gamma_tilde = (k > 0) ? t.head(k+1).minCoeff(&j) : std::numeric_limits<double>::max();
+      for(std::vector<long int>::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it) minBuffer[*it] = std::numeric_limits<double>::max();  // max out linearly dependent members
+      gamma1 = minBuffer.minCoeff(&i); // compute step length 
 
       if(gamma_tilde < gamma1){
         dropId = true;
         gamma1 = gamma_tilde;
         i = j; // drop index if gamma_tilde selected
 
-        // update solutio and estimate
-        ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(sign.head(k+1).array()*wA.head(k+1).array());
-        mu += gamma1*update;
-
         blockId = indices[i];
         break; // break from linear dependence loop
       } else {
         indices.push_back(i); // add index if gamma1 selected
              
-        // update solution and estimate
-        ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(sign.head(k+1).array()*wA.head(k+1).array());
-        mu += gamma1*update;  
-  
         B.col(k+1) = S[indices[k+1]]*(A.col(indices[k+1]));
-        if(positive)
-          sign[k+1] = 1; 
-        else {
-          double Correlation = B.col(k+1).transpose()*(b-mu);
-          sign[k+1] = sgn(Correlation);
-        }
-        B.col(k+1) *= sign[k+1];
- 
+
         //update cholesky factorization R'*R = B'*B where R is upper triangular
         double diagK   = B.col(k+1).squaredNorm();
         colK.head(k+1) = B.leftCols(k+1).transpose()*(B.col(k+1));
@@ -198,19 +158,22 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
         colR[k+1]      = r;
 
         //if diagonal element is too small, then column is near linearly dependent
-        if(r <= std::numeric_limits<double>::min()) { 
+        if(r != r /* check for nan*/ || r <= std::numeric_limits<double>::min() /* or too close to current columns*/ ) { 
           nld_indices.push_back(i); indices.pop_back(); 
-          std::cout << "*** Rejecting selected covariant ***" << std::endl;
+          std::cout << "*** Rejecting selected covariant [" << i << "] ***" << std::endl;
           continue; 
         } else {
           nld_indices.clear();
         }
+
         dropId = false;
         break; // break from linear dependence loop
       }
     }
-    // update maximum corellation
-    //C  -= gamma1/oneNwA;
+    C -= gamma1*oneNwA;
+    // update solution and estimate
+    ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(wA.head(k+1).array());
+    mu += gamma1*update;
 
     k++;
     iter++;
@@ -226,7 +189,6 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
        
       //zero out column
       R.col(k).head(k+1).setZero();
-      sign[k] = 0;
       ylar[k] = 0;
 
       //now zero out diagonal
@@ -241,12 +203,11 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
         R.col(k) = R.col(k+1);
         B.col(k) = B.col(k+1);
         ylar[k] = ylar[k+1]; 
-        sign[k] = sign[k+1];
       }
       R.col(k).head(k+1).setZero();
       R.row(k).head(k+1).setZero();
+      B.col(k).setZero();
       ylar[k] = 0;
-      sign[k] = 0; 
       k--;
       dtime += getTime();
     }
@@ -254,15 +215,11 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     rnorm = residual.norm();
   }
 
-  if(project) {
+  if(project) { // can do a non-negative least squares projection onto the non-negative lasso basis
     std::cout << "*** PROJECTING SOLUTION ON TO SELECTED BASIS ***" << std::endl;
-    if(positive){
-      ylar.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxite, reltol, verbose, scaling, dtime);
-    } else {
-      ylar.head(k) = R.topLeftCorner(k,k).triangularView<Upper>().transpose().solve(B.leftCols(k).transpose()*b);
-      ylar.head(k) = R.topLeftCorner(k,k).triangularView<Upper>().solve(ylar.head(k));
-    }
+    ylar.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxEle, maxite, reltol, verbose, scaling, false, dtime);
   }
+
 
   residual = b - B.leftCols(k)*ylar.head(k);
   std::cout << "Projected Residual = " << residual.norm() <<  std::endl;
@@ -271,7 +228,8 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   if(verbose) std::cout.flush();
 
   VectorXd x = VectorXd::Zero(A.cols());
-  for(long int j=0; j<k; ++j) x[indices[j]] = S[indices[j]]*ylar[j];
+  for(long int j=0; j<k; ++j) {
+     x[indices[j]] = S[indices[j]]*ylar[j];}
   return x;
 }
 

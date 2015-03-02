@@ -26,6 +26,9 @@ public:
   bool scalingFlag() const { return scalingFlag_; }
   void scalingFlagIs(bool scaFlg) { scalingFlag_ = scaFlg; }
 
+  bool reverseFlag() const { return reverseFlag_; }
+  void reverseFlagIs(bool revFlg) { reverseFlag_ = revFlg; }
+
   bool projectFlag() const { return projectFlag_; }
   void projectFlagIs(bool posFlg) { projectFlag_ = posFlg; }
 
@@ -40,6 +43,9 @@ public:
 
   double maxIterRatio() const { return maxIterRatio_; }
   void maxIterRatioIs(double maxIte) { maxIterRatio_ = maxIte; }
+
+  double maxNumElems() const { return maxNumElems_; }
+  void maxNumElemsIs(int maxElem) { maxNumElems_ = maxElem; }
 
   // Buffers: Internal column-major ordering, zero-based indexing
   // Matrix buffer: [equationCount by unknownCount]
@@ -90,11 +96,13 @@ private:
   double errorMagnitude_;
   bool verboseFlag_;
   bool scalingFlag_;
+  bool reverseFlag_;
   bool projectFlag_;
   bool positivity_;
   int solverType_;
   double maxSizeRatio_;
   double maxIterRatio_;
+  double maxNumElems_;
 
   // Disallow copy & assignment
   SparseNonNegativeLeastSquaresSolver(const SparseNonNegativeLeastSquaresSolver &);

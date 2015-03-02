@@ -13,7 +13,7 @@
 
 Eigen::VectorXd
 nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime);
+      long int &info, double maxsze, int maxEle, double maxite, double reltol, bool verbose, bool scaling, bool reverse, double &dtime);
 
 Eigen::VectorXd
 mp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
@@ -94,7 +94,7 @@ mp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::Vec
   }
 
   double dtime = 0;
-  ymp.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxite, reltol, verbose, scaling, dtime);  
+  ymp.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, 0, maxite, reltol, verbose, scaling, false, dtime);  
 
   if(verbose) std::cout.flush();
 

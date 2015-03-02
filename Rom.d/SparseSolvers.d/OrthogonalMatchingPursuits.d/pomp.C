@@ -191,7 +191,7 @@ pomp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
     }
     k++;
     iter++;
-    if(rnorm <= abstol && positive) {
+    if((rnorm <= abstol || k+nld_indices.size() == maxvec) && positive) {
       while(true) {
         iter++;
 #if defined(_OPENMP)

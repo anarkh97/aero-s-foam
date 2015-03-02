@@ -74,8 +74,8 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int pod
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), mode);
   filePrint(stderr," ... Writing Mesh File to %s ...\n", getMeshFilename(fileInfo).c_str());
   meshOut.precision(std::numeric_limits<double>::digits10+1);
-  std::string basisfile = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-  basisfile.append(".reduced");
+  std::string basisfile = getMeshFilename(fileInfo).c_str();
+  basisfile.append(".compressed.basis");
   if(domain->numInitDisp() || domain->numInitDisp6() || domain->numInitVelocity()) {
     std::string basisfile2(basisfile);
     if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) basisfile2.append(".normalized");
@@ -406,11 +406,13 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
   solver_.relativeToleranceIs(relativeTolerance);
   solver_.verboseFlagIs(verboseFlag);
   solver_.scalingFlagIs(domain->solInfo().useScalingSpnnls);
+  solver_.reverseFlagIs(domain->solInfo().useReverseOrder);
   solver_.projectFlagIs(domain->solInfo().projectSolution);
   solver_.positivityIs(domain->solInfo().positiveElements);
   solver_.solverTypeIs(domain->solInfo().solverTypeSpnnls);
   solver_.maxSizeRatioIs(domain->solInfo().maxSizeSpnnls);
   solver_.maxIterRatioIs(domain->solInfo().maxIterSpnnls);
+  solver_.maxNumElemsIs(domain->solInfo().maxElemSpnnls);
   try {
     solver_.solve();
   }
@@ -560,8 +562,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   ConstrainedDSA reduced_cdsa(reduced_dsa, num_bc, bc);
   podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain_->getCDSA(), &reduced_cdsa);
   {
-    std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-    filename.append(".reduced");
+    std::string filename = getMeshFilename(fileInfo).c_str();
+    filename.append(".compressed.basis");
     if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".normalized");
     filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
     VecNodeDof6Conversion converter(reduced_cdsa);

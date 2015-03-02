@@ -328,11 +328,20 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
           y[i].head(l[i]) = D[i].topLeftCorner(l[i],k).triangularView<Upper>()*a.head(k);
         }
 #ifdef USE_MPI
-        buf1.segment(displs[myrank],counts[myrank]) = BD.leftCols(k)*a.head(k);
-        MPI_Allgatherv(MPI_IN_PLACE, counts[myrank], MPI_DOUBLE, buf1.data(), counts, displs, MPI_DOUBLE, mpicomm);
-        r = b - buf1;
+        if(k < gindices.size()/2){ //if removing an early column, recompute residual
+          buf1.segment(displs[myrank],counts[myrank]) = BD.leftCols(k)*a.head(k);
+          MPI_Allgatherv(MPI_IN_PLACE, counts[myrank], MPI_DOUBLE, buf1.data(), counts, displs, MPI_DOUBLE, mpicomm);
+          r = b - buf1;
+        } else { // if removing a late column, update residual instead. 
+          buf1.segment(displs[myrank],counts[myrank]) = BD.block(0,k,counts[myrank],gindices.size()-k+1)*a.segment(k,gindices.size()-k+1);
+          MPI_Allgatherv(MPI_IN_PLACE, counts[myrank], MPI_DOUBLE, buf1.data(), counts, displs, MPI_DOUBLE, mpicomm);
+          r += buf1;
+        }
 #else
-        r = b - BD.leftCols(k)*a.head(k);
+        if(k < gindices.size()/2)
+          r = b - BD.leftCols(k)*a.head(k);
+        else 
+          r += BD.block(0,k,m,gindices.size()-k+1)*a.segment(k,gindices.size()-k+1);
 #endif
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)

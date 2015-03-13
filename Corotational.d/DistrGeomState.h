@@ -9,6 +9,7 @@ typedef GenDistrVector<double> DistrVector;
 
 #include <map>
 #include <vector>
+#include <cstddef>
 
 class DistrGeomState {
    private:

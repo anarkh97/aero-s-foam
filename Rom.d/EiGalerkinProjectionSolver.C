@@ -79,7 +79,7 @@ template <typename Scalar>
 void
 GenEiSparseGalerkinProjectionSolver<Scalar>::updateLMPCs(GenVector<Scalar> &_q)
 {
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > q(_q.data(), q.size()); 
+  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > q(_q.data(), _q.size()); 
   reducedConstraintRhs_ = reducedConstraintRhs0_ - reducedConstraintMatrix_*q;
 }
 

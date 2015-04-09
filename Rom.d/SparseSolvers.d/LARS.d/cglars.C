@@ -10,80 +10,82 @@
 #include <utility>
 #include <vector>
 
-template <typename T> int sgn(T val) {
-  return (T(0) < val) - (val < T(0));
-};
-
 Eigen::VectorXd
 nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
       long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime);
 
 Eigen::VectorXd
-lars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& rnorm,
+cglars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& rnorm,
       long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool project, bool positive, double &dtime)
 {
   using namespace Eigen;
-  
+
+  // problem dimensions
   const long int m = b.rows();  
   const long int maxvec = (maxEle > 0) ? std::min(m,(long int)maxEle)+1 : std::min(m, (long int)(maxsze*A.cols()))+1;
   const long int maxit = maxite*A.cols();
 
-  // allocate
-  VectorXd wA(maxvec), rhs(maxvec), vk(maxvec), ylar(maxvec), t(maxvec);
+  // allocate 
+  VectorXd wA(maxvec), rhs(maxvec), ylar(maxvec), t(maxvec), grad(maxvec);
   VectorXd crlt(A.cols()), h(A.cols()), S(A.cols()), minBuffer(A.cols());
-  VectorXd colK(A.rows()), residual(A.rows()), update(A.rows());
+  VectorXd residual(A.rows()), update(A.rows()), a(maxvec), DtGDinv(maxvec);
+
+  MatrixXd B(A.rows(),maxvec), D(maxvec,maxvec);
+  Matrix<double,Dynamic,Dynamic,ColMajor> BD(A.rows(),maxvec);
+
+  std::vector<long int> indices;     // inactive set
+  std::vector<long int> nld_indices; // linearly dependent set
  
   // initialize
-  wA.setZero(); rhs.setOnes(); vk.setZero(); ylar.setZero(); t.setZero(); 
+  wA.setZero(); rhs.setOnes(); ylar.setZero(); t.setZero();
   minBuffer.setZero();
-  colK.setZero();  
+
+  B.setZero(); D.setZero(); BD.setZero(); 
 
   info = 1;
 
-  MatrixXd B(A.rows(),maxvec), R(maxvec,maxvec);
-  B.setZero(); R.setZero();//B is storage for inactive columns and R is cholesky factorization of Gramm matrix
-
-  std::vector<long int> indices;
-  std::vector<long int> nld_indices;
-
-  //center covariates and target so that the mean is 0
+  // center covariates and target so that the mean is 0
   if(center){
-     std::cout << "Centering Covariates" << std::endl;
-     for(int i=0; i<A.cols(); ++i) { A.col(i).array() -= A.col(i).mean();}
-     b.array() -= b.mean();
+   std::cout << "Centering Covariates" << std::endl;
+   for(int i=0; i<A.cols(); ++i) { A.col(i).array() -= A.col(i).mean();}
+   b.array() -= b.mean();
   }
 
-  //scale covariates so that the 2norm is 1
+  // scale columns to norm 1
   if(scaling) for(int i=0; i<A.cols(); ++i) { double s = A.col(i).norm(); S[i] = (s != 0) ? 1/s : 0; }
   else S.setOnes();
 
   dtime = 0;
-  residual = b; 
+  residual = b;
   double bnorm  = b.norm();
   double abstol = reltol*bnorm;
-  double C;
+  double C;  
 
-  //initialize starting set with maximaly corellated element
+  // ensure that an element is not selected immediately after being dropped
+  bool     dropId  = false;
+  long int blockId = 0;
+
+  long int k       = 0; // current column index <-> Active set size -1
+  long int iter    = 0; // number of iterations
+  long int downIt  = 0; // number of downdates
+
+
+  // initialize starting set with maximaly corellated element
   {
     crlt = S.asDiagonal()*(A.transpose()*b);
     long int i;
     C = crlt.maxCoeff(&i);
     indices.push_back(i);
-    
-    //intitialize cholesky factorization
-    B.col(0)     = S[indices[0]]*(A.col(indices[0]));
-    double diagK = B.col(0).squaredNorm();
-    double r     = sqrt(diagK);
-    R(0,0)       = r;
-  }
-  
-  //ensure that an element is not selected immediately after being dropped
-  bool     dropId  = false;
-  long int blockId = 0; 
 
-  long int k       = 0; // current column index <-> Active set size -1
-  long int iter    = 0; // number of iterations
-  long int downIt  = 0; // number of downdates
+    // initialize CG
+    B.col(k)       = S[indices[0]]*(A.col(indices[0]));
+    Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k); 
+    grad.head(k+1) = rhs.head(k+1);
+    d.head(k+1)    = grad.head(k+1);
+    c              = B.leftCols(k+1)*d.head(k+1);
+    DtGDinv[k]     = 1/c.squaredNorm();
+  }
+
   while(true) {
 
     rnorm = residual.norm();
@@ -106,12 +108,14 @@ lars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& rno
 
     long int i = 0; // dummy integer for stuff
 
-    // solve the symetric system of equations
-    wA.head(k+1)  = R.topLeftCorner(k+1,k+1).triangularView<Upper>().transpose().solve(rhs.head(k+1));
-    wA.head(k+1)  = R.topLeftCorner(k+1,k+1).triangularView<Upper>().solve(wA.head(k+1));
+    if(!dropId){// don't update solution if we just dropped an inactive element
+      // update the solution to the sytem G^T*G*w = 1
+      Block<MatrixXd,Dynamic,1,true> d = D.col(k);
+      a[k] = grad[k]*d[k]*DtGDinv[k];  
+      wA.head(k+1) = wA.head(k+1) + a[k]*d.head(k+1);
+    }
     if(!dropId && wA[k] <= 0) {
        std::cout << "wA = " << wA.head(k+1).transpose() << std::endl;
-       std::cout << "R.diag = " << R.diagonal().head(k+1).transpose() << std::endl;
        std::cout << "C = " << std::endl;
        for(std::vector<long int>::iterator it = indices.begin(); it != indices.end(); ++it) std::cout << crlt[*it] <<  " ";
        std::cout << "\n *** Roundoff Error *** " << std::endl;
@@ -119,12 +123,12 @@ lars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& rno
        break;
     }
     double oneNwA = 1.0/sqrt(rhs.head(k+1).dot(wA.head(k+1)));
-    wA.head(k+1) *= oneNwA;
- 
+//    wA.head(k+1) *= oneNwA;
+
     // compute smallest angle at which a new covariant becomes dominant
-    update = B.leftCols(k+1)*wA.head(k+1);
-    h      = S.asDiagonal()*(A.transpose()*update); 
-    
+    update = oneNwA*B.leftCols(k+1)*wA.head(k+1);
+    h      = S.asDiagonal()*(A.transpose()*update);
+
     double gamma1, gamma_tilde;
 
     //compute LARS angle
@@ -136,7 +140,7 @@ lars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& rno
     // compute smallest angle at which ylars changes sign
     long int j;
     t.setZero();
-    t.head(k+1) = -1.0*ylar.head(k+1).array()/(wA.head(k+1).array());
+    t.head(k+1) = -1.0*ylar.head(k+1).array()/(oneNwA*wA.head(k+1).array());
     for(long int ele = 0; ele < k+1; ++ele) t[ele] = (t[ele] <= 0.) ? std::numeric_limits<double>::max() : t[ele];
     gamma_tilde = (k > 0) ? t.head(k+1).minCoeff(&j) : std::numeric_limits<double>::max(); // skip this step on first iteration
 
@@ -153,24 +157,23 @@ lars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& rno
         break; // break from linear dependence loop
       } else {
         indices.push_back(i); // add index if gamma1 selected
-             
+
         B.col(k+1) = S[indices[k+1]]*(A.col(indices[k+1]));
 
-        //update cholesky factorization R'*R = B'*B where R is upper triangular
-        double diagK   = B.col(k+1).squaredNorm();
-        colK.head(k+1) = B.leftCols(k+1).transpose()*(B.col(k+1));
-        vk.head(k+1)   = R.topLeftCorner(k+1,k+1).triangularView<Upper>().transpose().solve(colK.head(k+1));
-        double r       = sqrt(diagK - vk.head(k+1).squaredNorm());
+        // update BD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
+        grad[k+1] = 1 - B.col(k+1).transpose()*B.leftCols(k+1)*wA.head(k+1); 
 
-        Block<MatrixXd,Dynamic,1,true> colR = R.col(k+1);
-        colR.head(k+1) = vk.head(k+1);
-        colR[k+1]      = r;
+        Block<MatrixXd,Dynamic,1,true> d_next = D.col(k+1), c = BD.col(k+1); 
+        d_next.head(k+1) = D.topLeftCorner(k+1,k+1).triangularView<Upper>()*(DtGDinv.head(k+1).asDiagonal()*(BD.leftCols(k+1).transpose()*B.col(k+1)*grad[k+1]*-1));
+        d_next[k+1] = grad[k+1]; 
+        c = B.leftCols(k+2)*d_next.head(k+2);
+        DtGDinv[k+1] = 1/c.squaredNorm();
 
         //if diagonal element is too small, then column is near linearly dependent
-        if(r != r /* check for nan*/ || r <= std::numeric_limits<double>::min() /* or too close to current columns*/ ) { 
-          nld_indices.push_back(i); indices.pop_back(); 
+        if(DtGDinv[k+1] != DtGDinv[k+1] /* check for nan*/ || DtGDinv[k+1] <= std::numeric_limits<double>::min() /* or too close to current columns*/ ) {
+          nld_indices.push_back(i); indices.pop_back();
           std::cout << "*** Rejecting selected covariant [" << i << "] ***" << std::endl;
-          continue; 
+          continue;
         } else {
           nld_indices.clear();
         }
@@ -181,7 +184,7 @@ lars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& rno
     }
     C -= gamma1*oneNwA;
     // update solution and estimate
-    ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(wA.head(k+1).array());
+    ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(oneNwA*wA.head(k+1).array());
     residual -= gamma1*update;
 
     k++;
@@ -190,42 +193,45 @@ lars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& rno
       dtime -= getTime();
       downIt++;
 
-      long int leftSide = k;
       k = i;
 
       //remove selected index
       std::vector<long int>::iterator fol = indices.erase(indices.begin()+k);
-       
-      //zero out column
-      R.col(k).head(k+1).setZero();
+
+      //zero out row
       ylar[k] = 0;
+      wA.setZero();
+      wA.head(k) = D.topLeftCorner(k,k)*a.head(k);
 
       //now zero out diagonal
       for(std::vector<long int>::iterator it = fol; it != indices.end(); ++it,k++){
-        //construct Givens rotation
-        double l = R.block<2,1>(k,k+1).norm();
-        double c = R(k,k+1)/l;
-        double s = -1.0*R(k+1,k+1)/l;
-        Matrix2d G; G << c, -s, s, c;
-        //apply to block of R to zero out old diagonal element
-        R.block(k,k+1,2,leftSide-k-1) = G*R.block(k,k+1,2,leftSide-k-1);
-        R.col(k) = R.col(k+1);
         B.col(k) = B.col(k+1);
-        ylar[k] = ylar[k+1]; 
+        // set gradient
+        grad[k] = 1 - B.col(k).transpose()*B.leftCols(k)*wA.head(k);
+        // reconjugate vector
+        Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k);
+//        d.setZero();
+        d.head(k) = D.topLeftCorner(k,k).triangularView<Upper>()*(DtGDinv.head(k).asDiagonal()*(BD.leftCols(k).transpose()*B.col(k)*grad[k]*-1));
+        d[k] = grad[k];
+        c = B.leftCols(k+1)*d.head(k+1);
+        DtGDinv[k] = 1/c.squaredNorm();
+        // update step length
+        a[k] = grad[k]*d[k]*DtGDinv[k];
+        wA.head(k+1) = wA.head(k+1) + a[k]*d.head(k+1);
+        // transfer solution 
+        ylar[k] = ylar[k+1];
       }
-      R.col(k).head(k+1).setZero();
-      R.row(k).head(k+1).setZero();
       B.col(k).setZero();
       ylar[k] = 0;
       k--;
       dtime += getTime();
     }
 
-  }
+  }// END LASSO loop
 
   if(project) { // can do a non-negative least squares projection onto the non-negative lasso basis
     std::cout << "*** PROJECTING SOLUTION ON TO SELECTED BASIS ***" << std::endl;
-    maxEle = 0; 
+    maxEle = 0;
     ylar.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxEle, maxite, reltol, verbose, scaling, center, false, dtime);
   }
 
@@ -240,6 +246,7 @@ lars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& rno
   for(long int j=0; j<k; ++j) {
      x[indices[j]] = S[indices[j]]*ylar[j];}
   return x;
+
 }
 
 #endif

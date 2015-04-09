@@ -18,8 +18,8 @@
 // 2. Lawson, C. L., & Hanson, R. J. (1974). Solving least squares problems (Vol. 161). Englewood Cliffs, NJ: Prentice-hall.
 
 Eigen::VectorXd
-nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, int maxEle, double maxite, double reltol, bool verbose, bool scaling, bool reverse, double &dtime)
+nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
+      long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime)
 {
   using namespace Eigen;
 
@@ -41,6 +41,13 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
   std::vector<long int> indices;
   std::vector<long int> nld_indices;
 
+  //center covariates and target so that the mean is 0
+  if(center){
+   std::cout << "Centering Covariates" << std::endl;
+   for(int i=0; i<A.cols(); ++i) { A.col(i).array() -= A.col(i).mean();}
+   b.array() -= b.mean();
+  }
+
   if(scaling) for(int i=0; i<A.cols(); ++i) { double s = A.col(i).norm(); S[i] = (s != 0) ? 1/s : 0; }
   else S.setOnes();
 
@@ -59,7 +66,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if((rnorm <= abstol && maxEle != 0) || k+nld_indices.size() == maxvec ) break;
+    if((rnorm <= abstol && maxEle == 0) || k+nld_indices.size() == maxvec ) {maxEle = k; break;}
     if(iter >= maxit) { info = 3; break; }
 
     g = S.asDiagonal()*(A.transpose()*r); // gradient
@@ -118,7 +125,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
 
         std::vector<long int> indicesMap;
         MatrixXd GDcopy;
-        if(reverse){
+        if(reverse){//experimental: shuffle columns to try and get better performance
           int row = 0; 
           // generate random reordering
           for(std::vector<long int>::iterator it = fol; it != indices.end(); ++it, ++row){ 

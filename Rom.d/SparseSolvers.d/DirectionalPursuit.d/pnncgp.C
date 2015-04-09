@@ -37,8 +37,8 @@ bool operator== (const long_int& lhs, const long_int& rhs)
 // 2. Lawson, C. L., & Hanson, R. J. (1974). Solving least squares problems (Vol. 161). Englewood Cliffs, NJ: Prentice-hall.
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
-pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime)
+pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector
@@ -79,6 +79,10 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
     y[i].resize(maxlocvec[i]);
     g_[i].resize(maxlocvec[i]);
     S[i].resize(A[i].cols());
+    if(center) {
+      for(long int j=0; j<A[i].cols(); ++j) { A[i].col(j).array() -= A[i].col(j).mean(); }
+      b.array() -= b.mean();
+    }
     if(scaling) for(long int j=0; j<A[i].cols(); ++j) { double s = A[i].col(j).norm(); S[i][j] = (s != 0) ? 1/s : 0; }
     else S[i].setOnes();
     t[i].resize(maxlocvec[i]);

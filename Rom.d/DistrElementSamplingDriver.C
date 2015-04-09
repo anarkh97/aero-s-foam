@@ -431,8 +431,9 @@ DistrElementSamplingDriver::solve()
     ConstrainedDSA reduced_cdsa(reduced_dsa, num_bc, bc);
     podBasis.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA(), &reduced_cdsa);
     {
-      std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-      filename.append(".reduced");
+//      std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+      std::string filename = getMeshFilename(fileInfo).c_str(); 
+      filename.append(".compressed.basis");
       if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) filename.append(".normalized");
       filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
       VecNodeDof6Conversion converter(reduced_cdsa);

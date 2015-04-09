@@ -176,6 +176,8 @@ TRAIL [a-zA-Z]*
  
 "POSITIVE"|"positive"		   { return POSELEM; }
 
+"CENTER"|"center"                  {return CENTER; }
+
 "REVORD"|"revord"                { return REVERSEORDER; } 
 
 "REDFOL"|"redfol"                  { return REDFOL; }
@@ -1522,6 +1524,7 @@ TRAIL [a-zA-Z]*
 "mp"|"MP"				  { yylval.ival = 4; return SPNNLSSOLVERTYPE; }
 "omp"|"OMP"                               { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
 "splh"|"SPLH" 				  { yylval.ival = 6; return SPNNLSSOLVERTYPE; }
+"cglars"|"CGLARS"                         { yylval.ival = 7; return SPNNLSSOLVERTYPE; }
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 

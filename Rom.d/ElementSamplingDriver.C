@@ -406,6 +406,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
   solver_.relativeToleranceIs(relativeTolerance);
   solver_.verboseFlagIs(verboseFlag);
   solver_.scalingFlagIs(domain->solInfo().useScalingSpnnls);
+  solver_.centerFlagIs(domain->solInfo().useCenterSpnnls);
   solver_.reverseFlagIs(domain->solInfo().useReverseOrder);
   solver_.projectFlagIs(domain->solInfo().projectSolution);
   solver_.positivityIs(domain->solInfo().positiveElements);

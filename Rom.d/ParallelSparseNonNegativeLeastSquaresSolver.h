@@ -29,6 +29,9 @@ public:
   bool scalingFlag() const { return scalingFlag_; }
   void scalingFlagIs(bool scaFlg) { scalingFlag_ = scaFlg; }
 
+  bool centerFlag() const { return centerFlag_; }
+  void centergFlagIs(bool scaFlg) { centerFlag_ = scaFlg; }
+
   bool projectFlag() const { return projectFlag_; }
   void projectFlagIs(bool scaFlg) { projectFlag_ = scaFlg; }
 
@@ -85,6 +88,7 @@ private:
   double errorMagnitude_;
   bool verboseFlag_;
   bool scalingFlag_;
+  bool centerFlag_;
   bool projectFlag_;
   bool positivity_;
   int solverType_;

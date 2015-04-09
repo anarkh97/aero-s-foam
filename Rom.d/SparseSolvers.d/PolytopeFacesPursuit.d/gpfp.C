@@ -46,10 +46,13 @@
 // scaling  = flag to turn on/off unit normalization of columns of A
 // positive = turn positivity constraint on/off
 
+Eigen::VectorXd
+nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
+      long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime);
 
 Eigen::VectorXd
-gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-     long int &info, double maxsze, int maxEle, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime)
+gpfp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
+     long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool project, bool positive, double &dtime)
 {
   using namespace Eigen;
 
@@ -75,6 +78,12 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   std::vector<long int> nld_indices;
   std::vector<long int> nld_setKey;
 
+  if(center){
+   std::cout << "Centering Covariates" << std::endl;
+   for(int i=0; i<A.cols(); ++i) { A.col(i).array() -= A.col(i).mean();}
+   b.array() -= b.mean();
+  }
+
   if(scaling) for(int i=0; i<A.cols(); ++i) S[i] = 1/A.col(i).norm();
   else S.setOnes();
 
@@ -93,7 +102,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if((rnorm <= abstol && maxEle != 0) || k+nld_indices.size() == maxvec) break;
+    if((rnorm <= abstol && maxEle == 0) || k+nld_indices.size() == maxvec) {maxEle = k; break;}
     if(iter >= maxit) { info = 3; break; }
 
     g1.setZero();
@@ -127,7 +136,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     // make sure the index has not already been selected
     for(long int j=0; j<k; ++j) {
       if(setKey[j] == 1) {
-      h(indices[j]) = -std::numeric_limits<double>::max();
+     h(indices[j]) = -std::numeric_limits<double>::max();
       } else if(!positive){
         g2(indices[j]) = -std::numeric_limits<double>::max();
       }
@@ -190,11 +199,18 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       if(minCoeff < 0.) {
         dtime -= getTime();
         downIt++;
+
+        // compute maximum feasible step length in the direction (y-x_) and corresponding index in the active set, i
+        for(long int j=0; j<k; ++j) t[j] = (y[j] >= 0) ? std::numeric_limits<double>::max() : -x_[j]/(y[j]-x_[j]);
+        double alpha = t.head(k).minCoeff(&i);
+ 
         // remove index i from the active set
-        //std::cout << "removing index " << indices[i] << std::endl;
         std::vector<long int>::iterator fol = indices.erase(indices.begin()+i);
         setKey.erase(setKey.begin()+i);
 
+        // update x_ (note: this is used only when there are two or more consecutive downdate iterations)
+        for(int j=0; j<i; ++j) x_[j] += alpha*(y[j]-x_[j]);
+        for(int j=i; j<k-1; ++j) x_[j] = x_[j+1] + alpha*(y[j+1]-x_[j+1]); 
         x_[k-1] = 0;
 
         // Note: it is necessary to re-G-orthogonalize the basis D now, project the solution x_ onto the new basis and compute the corresponding residual r.
@@ -234,6 +250,15 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
 
     rnorm = r.norm();
   }
+
+  if(project) { // can do a non-negative least squares projection onto the non-negative lasso basis
+    std::cout << "*** PROJECTING SOLUTION ON TO SELECTED BASIS ***" << std::endl;
+    maxEle = 0;
+    y.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxEle, maxite, reltol, verbose, scaling, center, false, dtime);
+  }
+
+  r = b - B.leftCols(k)*y.head(k);
+  std::cout << "Projected Residual = " << r.norm() <<  std::endl;
 
   dtime /= 1000.0;
   if(verbose) std::cout.flush();

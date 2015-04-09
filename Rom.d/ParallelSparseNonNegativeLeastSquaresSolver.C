@@ -14,8 +14,8 @@
 #include <Eigen/Core>
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
-pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime);
+pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime);
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
@@ -42,6 +42,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::ParallelSparseNonNegativeLeastSquar
   errorMagnitude_(),
   verboseFlag_(true),
   scalingFlag_(true),
+  centerFlag_(true),
   projectFlag_(false),
   positivity_(true),
   solverType_(0),
@@ -92,7 +93,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
     case 1 : { // Non-negative Conjugate Gradient Pursuit
       filePrint(stderr, " ... Using Parallel NNCGP Solver    ...\n");
       x = pnncgp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
-                 verboseFlag_, scalingFlag_, dtime);
+                 verboseFlag_, scalingFlag_, centerFlag_, dtime);
     } break;
     case 2 : { // Polytope Faces Pursuit
       filePrint(stderr, " ... Using Parallel GPFP Solver     ...\n");

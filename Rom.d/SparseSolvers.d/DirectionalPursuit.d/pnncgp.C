@@ -203,9 +203,9 @@ pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> 
     }
 #ifdef USE_MPI
     else {
-      MPI_Scatterv(MPI_DATATYPE_NULL, counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, s.rank, mpicomm);
+      MPI_Scatterv(0, counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, s.rank, mpicomm);
       buf2.head(k) = buf3.transpose()*BD.leftCols(k);
-      MPI_Reduce(buf2.data(), MPI_DATATYPE_NULL, int(k), MPI_DOUBLE, MPI_SUM, s.rank, mpicomm);
+      MPI_Reduce(buf2.data(), 0, int(k), MPI_DOUBLE, MPI_SUM, s.rank, mpicomm);
     }
 
     MPI_Bcast(&p, 1, MPI_LONG_INT, s.rank, mpicomm);
@@ -371,9 +371,9 @@ pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> 
           }
 #ifdef USE_MPI
           else {
-            MPI_Scatterv(MPI_DATATYPE_NULL, counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, it->first, mpicomm);
+            MPI_Scatterv(0, counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, it->first, mpicomm);
             buf2.head(k-j) = buf3.transpose()*BD.block(0,j,counts[myrank],k-j);
-            MPI_Reduce(buf2.data(), MPI_DATATYPE_NULL, int(k-j), MPI_DOUBLE, MPI_SUM, it->first, mpicomm);
+            MPI_Reduce(buf2.data(), 0, int(k-j), MPI_DOUBLE, MPI_SUM, it->first, mpicomm);
           }
 #endif
 

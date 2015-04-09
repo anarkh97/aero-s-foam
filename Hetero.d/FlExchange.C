@@ -1298,7 +1298,7 @@ FlExchanger::sendNewStructure(std::set<int> &newDeletedElements)
 
         if(faceEl && (faceEl->nNodes() <= ele->numNodes())) {
           faceEl->GetNodes(fnodes, GlNodeIds);
-#if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && HAS_CXX11_ALL_OF && HAS_CXX11_LAMBDA
+#if (((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && HAS_CXX11_ALL_OF && HAS_CXX11_LAMBDA)
           if(std::all_of(fnodes, fnodes + faceEl->nNodes(),
           [&](int i) {
           return (std::find(enodes, enodes + ele->numNodes(), i) != enodes + ele->numNodes());

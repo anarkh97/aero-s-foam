@@ -27,7 +27,7 @@ public:
   InfoType inf;
   T x;
 
-  Expr(T v) : inf(x.info()),  x(v) {}
+  Expr(T v) : inf(v.info()),  x(v) {}
   Expr(T v, IType i) : inf(i), x(v) { }
 
   Scalar operator[] (int i) const { return x[i]; }

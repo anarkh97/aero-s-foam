@@ -9,7 +9,7 @@ namespace Rom {
 
 SDDynamPodPostProcessor::SDDynamPodPostProcessor(Domain *d, double *bcx, double *vcx, double *acx,
                                                  StaticTimers* times, GeomState *geomState, Corotator **corot) :
-    SDDynamPostProcessor(d, bcx, vcx, acx, times, geomState, allCorot),
+    SDDynamPostProcessor(d, bcx, vcx, acx, times, geomState, corot),
     DispSensorValues(NULL),
     AccSensorValues(NULL),
     VelSensorValues(NULL)

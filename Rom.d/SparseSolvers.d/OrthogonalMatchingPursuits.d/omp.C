@@ -154,7 +154,7 @@ omp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
       }
     }
 
-    if(rnorm <= abstol && maxEle == 0 || k+nld_indices.size() == maxvec) {maxEle = k; break;}
+    if((rnorm <= abstol && maxEle == 0) || k+nld_indices.size() == maxvec) {maxEle = k; break;}
   }
 
   dtime /= 1000.0;

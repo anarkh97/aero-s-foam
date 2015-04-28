@@ -1043,9 +1043,9 @@ MortarHandler::CreateFFIPolygon()
 }
 
 // This method to manually create the ACMEFFIData arrays without performing the ACME FFI search
-// This is intented for equivalence geometry & so by pass the ACME FFI search 
+// This is intended for equivalenced geometry & so bypass the ACME FFI search 
 // The idea of creating the ACMEFFIData arrays is to be able to reuse the method
-// MortarHandler::CreateFFIPolygon() even for equivalence geometry
+// MortarHandler::CreateFFIPolygon() even for equivalenced geometry
 void
 MortarHandler::CreateACMEFFIData()
 {
@@ -1150,6 +1150,9 @@ MortarHandler::CreateACMEFFIData()
        return;
     }
   }
+
+  PtrGlobalMasterEntity = PtrMasterEntity;
+  PtrGlobalSlaveEntity = PtrSlaveEntity;
 }
 
 // 09/09/03: Change the order in which the Mortar LMPCs are added to the

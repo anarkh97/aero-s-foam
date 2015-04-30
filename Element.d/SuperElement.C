@@ -669,7 +669,7 @@ SuperElement::computePressureForce(CoordSet &cs, Vector &elPressureForce,
 
   elPressureForce.zero();
   for(int i = 0; i < nSubElems; ++i) {
-    if(subElems[i]->getPressure()) {
+    if(subElems[i]->getPressure() || subElems[i]->isMpcElement()) {
       Vector subElementPressureForce(subElems[i]->numDofs(), sub_extf[i], false);
       subElementPressureForce.zero();
       subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg, t);

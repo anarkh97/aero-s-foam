@@ -118,7 +118,7 @@ lars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& rno
        exit(-1);
        break;
     }
-    double oneNwA = 1.0/sqrt(rhs.head(k+1).dot(wA.head(k+1)));
+    double oneNwA = 1.0/sqrt(wA.head(k+1).sum());
     wA.head(k+1) *= oneNwA;
  
     // compute smallest angle at which a new covariant becomes dominant

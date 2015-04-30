@@ -160,7 +160,7 @@ pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> 
     q.index = 0; q.sub = myrank;
     for(int i=0; i<nsub; ++i) q.index += l[i];
 #ifdef USE_MPI
-    MPI_Allreduce(MPI_IN_PLACE, &q, 1, MPI_LONG_INT, MPI_MINLOC, mpicomm);
+    MPI_Allreduce(MPI_IN_PLACE, &q, 1, MPI_LONG_INT, MPI_MINLOC, mpicomm); // find mpi process with minimum inactive set
 #endif
     //if(myrank == 0) std::cerr << "rank of process with fewest elements (" << q.index << ") is " << q.sub << std::endl;
 
@@ -168,17 +168,17 @@ pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> 
     if(q.sub != s.rank) {
       if(s.rank == myrank) { // exchange column of A with process with fewest elements
         MPI_Sendrecv_replace(const_cast<double*>(A[ik].col(jk[ik]).data()), m, MPI_DOUBLE,
-                             q.sub, 0, q.sub, 0, mpicomm, &status);
-        if(scaling) MPI_Sendrecv_replace(&S[ik][jk[ik]], 1, MPI_DOUBLE, q.sub, 1, q.sub, 1, mpicomm, &status);
-        MPI_Sendrecv_replace(&perm[ik][jk[ik]].first, 1, MPI_INT, q.sub, 2, q.sub, 2, mpicomm, &status);
-        MPI_Sendrecv_replace(&perm[ik][jk[ik]].second, 1, MPI_LONG_INT, q.sub, 3, q.sub, 3, mpicomm, &status);
+                             q.sub, 0, q.sub, 0, mpicomm, &status);                                            // send column of A
+        if(scaling) MPI_Sendrecv_replace(&S[ik][jk[ik]], 1, MPI_DOUBLE, q.sub, 1, q.sub, 1, mpicomm, &status); // send scaling factor
+        MPI_Sendrecv_replace(&perm[ik][jk[ik]].first, 1, MPI_INT, q.sub, 2, q.sub, 2, mpicomm, &status);       // send permutation 1
+        MPI_Sendrecv_replace(&perm[ik][jk[ik]].second, 1, MPI_LONG_INT, q.sub, 3, q.sub, 3, mpicomm, &status); // send permutation 2
       }
       if(q.sub == myrank) {
         MPI_Sendrecv_replace(const_cast<double*>(A[ik].col(jk[ik]).data()), m, MPI_DOUBLE, 
-                             s.rank, 0, s.rank, 0, mpicomm, &status);
-        if(scaling) MPI_Sendrecv_replace(&S[ik][jk[ik]], 1, MPI_DOUBLE, s.rank, 1, s.rank, 1, mpicomm, &status);
-        MPI_Sendrecv_replace(&perm[ik][jk[ik]].first, 1, MPI_INT, s.rank, 2, s.rank, 2, mpicomm, &status);
-        MPI_Sendrecv_replace(&perm[ik][jk[ik]].second, 1, MPI_LONG_INT, s.rank, 3, s.rank, 3, mpicomm, &status);
+                             s.rank, 0, s.rank, 0, mpicomm, &status);                                            // recieve column A 
+        if(scaling) MPI_Sendrecv_replace(&S[ik][jk[ik]], 1, MPI_DOUBLE, s.rank, 1, s.rank, 1, mpicomm, &status); // recieve scaling factor
+        MPI_Sendrecv_replace(&perm[ik][jk[ik]].first, 1, MPI_INT, s.rank, 2, s.rank, 2, mpicomm, &status);       // recieve permuation 1
+        MPI_Sendrecv_replace(&perm[ik][jk[ik]].second, 1, MPI_LONG_INT, s.rank, 3, s.rank, 3, mpicomm, &status); // recieve permutation 2
         p.index = jk[ik];
         p.sub   = ik;
       }

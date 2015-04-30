@@ -26,20 +26,19 @@ cglars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& r
   const long int maxit = maxite*A.cols();
 
   // allocate 
-  VectorXd wA(maxvec), rhs(maxvec), ylar(maxvec), t(maxvec), grad(maxvec);
+  VectorXd wA(maxvec), ylar(maxvec), t(maxvec);
   VectorXd crlt(A.cols()), h(A.cols()), S(A.cols()), minBuffer(A.cols());
-  VectorXd residual(A.rows()), update(A.rows()), a(maxvec), DtGDinv(maxvec);
+  VectorXd residual(A.rows()), update(A.rows()), a(maxvec);
 
   MatrixXd B(A.rows(),maxvec), D(maxvec,maxvec);
   Matrix<double,Dynamic,Dynamic,ColMajor> BD(A.rows(),maxvec);
-
+  double grad, DtGDinv;
   std::vector<long int> indices;     // inactive set
   std::vector<long int> nld_indices; // linearly dependent set
  
   // initialize
-  wA.setZero(); rhs.setOnes(); ylar.setZero(); t.setZero();
+  wA.setZero(); ylar.setZero(); t.setZero();
   minBuffer.setZero();
-
   B.setZero(); D.setZero(); BD.setZero(); 
 
   info = 1;
@@ -80,10 +79,12 @@ cglars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& r
     // initialize CG
     B.col(k)       = S[indices[0]]*(A.col(indices[0]));
     Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k); 
-    grad.head(k+1) = rhs.head(k+1);
-    d.head(k+1)    = grad.head(k+1);
+    grad           = 1.0;
+    d[k]           = grad;
     c              = B.leftCols(k+1)*d.head(k+1);
-    DtGDinv[k]     = 1/c.squaredNorm();
+    DtGDinv        = 1/c.squaredNorm();
+    c             *= DtGDinv;
+    a[k]           = grad*grad*DtGDinv;
   }
 
   while(true) {
@@ -104,26 +105,25 @@ cglars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& r
     if((rnorm <= abstol && maxEle == 0) || k+nld_indices.size()+1 == maxvec) {maxEle = k; break;}
     if(iter >= maxit) { info = 3; break; }
 
-    crlt = S.asDiagonal()*(A.transpose()*residual); // correlations
-
     long int i = 0; // dummy integer for stuff
 
     if(!dropId){// don't update solution if we just dropped an inactive element
       // update the solution to the sytem G^T*G*w = 1
       Block<MatrixXd,Dynamic,1,true> d = D.col(k);
-      a[k] = grad[k]*d[k]*DtGDinv[k];  
       wA.head(k+1) = wA.head(k+1) + a[k]*d.head(k+1);
     }
+
     if(!dropId && wA[k] <= 0) {
        std::cout << "wA = " << wA.head(k+1).transpose() << std::endl;
        std::cout << "C = " << std::endl;
+       std::cout << "DtGDinv = " << DtGDinv << std::endl;
+       std::cout << "a = " << a[k] << std::endl;
        for(std::vector<long int>::iterator it = indices.begin(); it != indices.end(); ++it) std::cout << crlt[*it] <<  " ";
        std::cout << "\n *** Roundoff Error *** " << std::endl;
        exit(-1);
        break;
     }
-    double oneNwA = 1.0/sqrt(rhs.head(k+1).dot(wA.head(k+1)));
-//    wA.head(k+1) *= oneNwA;
+    double oneNwA = 1.0/sqrt(wA.head(k+1).sum());
 
     // compute smallest angle at which a new covariant becomes dominant
     update = oneNwA*B.leftCols(k+1)*wA.head(k+1);
@@ -161,16 +161,18 @@ cglars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& r
         B.col(k+1) = S[indices[k+1]]*(A.col(indices[k+1]));
 
         // update BD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
-        grad[k+1] = 1 - B.col(k+1).transpose()*B.leftCols(k+1)*wA.head(k+1); 
-
+        grad = oneNwA - (B.col(k+1).transpose()*update);
+        grad = grad/oneNwA;
         Block<MatrixXd,Dynamic,1,true> d_next = D.col(k+1), c = BD.col(k+1); 
-        d_next.head(k+1) = D.topLeftCorner(k+1,k+1).triangularView<Upper>()*(DtGDinv.head(k+1).asDiagonal()*(BD.leftCols(k+1).transpose()*B.col(k+1)*grad[k+1]*-1));
-        d_next[k+1] = grad[k+1]; 
+        d_next.head(k+1) = D.topLeftCorner(k+1,k+1).triangularView<Upper>()*(BD.leftCols(k+1).transpose()*B.col(k+1)*grad*-1);
+        d_next[k+1] = grad; 
         c = B.leftCols(k+2)*d_next.head(k+2);
-        DtGDinv[k+1] = 1/c.squaredNorm();
+        DtGDinv = 1/c.squaredNorm();
+        c *= DtGDinv; 
+        a[k+1] = grad*grad*DtGDinv;
 
         //if diagonal element is too small, then column is near linearly dependent
-        if(DtGDinv[k+1] != DtGDinv[k+1] /* check for nan*/ || DtGDinv[k+1] <= std::numeric_limits<double>::min() /* or too close to current columns*/ ) {
+        if(a[k+1] != a[k+1] /* check for nan*/ || a[k+1] <= std::numeric_limits<double>::min()  /* or too close to current columns*/ ) {
           nld_indices.push_back(i); indices.pop_back();
           std::cout << "*** Rejecting selected covariant [" << i << "] ***" << std::endl;
           continue;
@@ -182,14 +184,15 @@ cglars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& r
         break; // break from linear dependence loop
       }
     }
-    C -= gamma1*oneNwA;
+    C        -= gamma1*oneNwA;
+    residual -= gamma1*update;
     // update solution and estimate
     ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(oneNwA*wA.head(k+1).array());
-    residual -= gamma1*update;
+    crlt = S.asDiagonal()*(A.transpose()*residual); // correlations
 
     k++;
     iter++;
-    if(dropId) {// if gamma_tilde is selected, remove that index and downdate Cholesky factorization
+    if(dropId) {// if gamma_tilde is selected, remove that index and downdate 
       dtime -= getTime();
       downIt++;
 
@@ -201,22 +204,22 @@ cglars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& r
       //zero out row
       ylar[k] = 0;
       wA.setZero();
-      wA.head(k) = D.topLeftCorner(k,k)*a.head(k);
+      wA.head(k) = D.topLeftCorner(k,k).triangularView<Upper>()*a.head(k);
 
-      //now zero out diagonal
+      //reconjugate vectors
       for(std::vector<long int>::iterator it = fol; it != indices.end(); ++it,k++){
         B.col(k) = B.col(k+1);
         // set gradient
-        grad[k] = 1 - B.col(k).transpose()*B.leftCols(k)*wA.head(k);
+        grad = 1 - B.col(k).transpose()*B.leftCols(k)*wA.head(k);
         // reconjugate vector
         Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k);
-//        d.setZero();
-        d.head(k) = D.topLeftCorner(k,k).triangularView<Upper>()*(DtGDinv.head(k).asDiagonal()*(BD.leftCols(k).transpose()*B.col(k)*grad[k]*-1));
-        d[k] = grad[k];
+        d.head(k) = D.topLeftCorner(k,k).triangularView<Upper>()*(BD.leftCols(k).transpose()*B.col(k)*grad*-1);
+        d[k] = grad;
         c = B.leftCols(k+1)*d.head(k+1);
-        DtGDinv[k] = 1/c.squaredNorm();
+        DtGDinv = 1/c.squaredNorm();
+        c *= DtGDinv;
         // update step length
-        a[k] = grad[k]*d[k]*DtGDinv[k];
+        a[k] = grad*grad*DtGDinv;
         wA.head(k+1) = wA.head(k+1) + a[k]*d.head(k+1);
         // transfer solution 
         ylar[k] = ylar[k+1];

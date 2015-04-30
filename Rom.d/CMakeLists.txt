@@ -60,6 +60,7 @@ ADD_LIBRARY( Rom
   SparseSolvers.d/DirectionalPursuit.d/nncgp.C
   SparseSolvers.d/DirectionalPursuit.d/pnncgp.C
   SparseSolvers.d/PolytopeFacesPursuit.d/pgpfp.C
+  SparseSolvers.d/LARS.d/pcglars.C
   SparseSolvers.d/PolytopeFacesPursuit.d/gpfp.C
   SparseSolvers.d/LARS.d/lars.C
   SparseSolvers.d/LARS.d/cglars.C

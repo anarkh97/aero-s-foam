@@ -1144,7 +1144,7 @@ AeroInfo:
 	| AERO NewLine AEROTYPE NewLine
         { domain->solInfo().setAero($3); 
           domain->solInfo().isCollocated = 0;
-          if($3 == 20) { // set default alphas for C0
+          if($3 == 20 || $3 == 22) { // set default alphas for C0
             domain->solInfo().alphas[0] = 0.5+0.375;
             domain->solInfo().alphas[1] = -0.375;
             domain->solInfo().alphasv    = 0.0;

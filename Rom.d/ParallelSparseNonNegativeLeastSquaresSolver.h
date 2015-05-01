@@ -30,7 +30,7 @@ public:
   void scalingFlagIs(bool scaFlg) { scalingFlag_ = scaFlg; }
 
   bool centerFlag() const { return centerFlag_; }
-  void centergFlagIs(bool scaFlg) { centerFlag_ = scaFlg; }
+  void centerFlagIs(bool scaFlg) { centerFlag_ = scaFlg; }
 
   bool projectFlag() const { return projectFlag_; }
   void projectFlagIs(bool scaFlg) { projectFlag_ = scaFlg; }

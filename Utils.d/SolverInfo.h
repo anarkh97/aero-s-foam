@@ -722,7 +722,7 @@ struct SolverInfo {
                   normalize          = 1;
                   subtractRefPodRom  = false;
                   useScalingSpnnls   = true;
-                  useCenterSpnnls    = true;
+                  useCenterSpnnls    = false;
                   useReverseOrder    = false;
                   projectSolution    = false;
                   positiveElements   = true;

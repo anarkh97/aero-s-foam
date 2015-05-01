@@ -174,6 +174,8 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
       a[k] = grad*grad*DtGDinv;
 #ifdef USE_MPI
       MPI_Scatterv(buf1.data(), counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, s.rank, mpicomm);
+#else
+      buf3 = buf1; 
 #endif 
       l[ik]++;
     }
@@ -351,6 +353,8 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
            buf1 = B[ik].col(l[ik])*grad*-1;
 #ifdef USE_MPI
            MPI_Scatterv(buf1.data(), counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, s.rank, mpicomm);
+#else
+	   buf3 = buf1; 
 #endif
            p.index = jk[ik];
            p.sub   = ik; 
@@ -488,7 +492,9 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
             grad = 1 - B[i].col(l[i]).transpose()*update;
             buf1 = B[i].col(l[i])*grad*-1;
 #ifdef USE_MPI
-            MPI_Scatterv(buf1.data(), counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, it->first, mpicomm);
+           MPI_Scatterv(buf1.data(), counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, it->first, mpicomm);
+#else
+           buf3 = buf1; 
 #endif
           }
 #ifdef USE_MPI
@@ -533,7 +539,10 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
           if(it->first == myrank) { // update step length
             a[k] = grad*grad*DtGDinv;
           }
+#if USE_MPI
           MPI_Bcast(&a[k], 1, MPI_DOUBLE, it->first, mpicomm); // broadcast new step length
+#endif
+
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif

@@ -46,7 +46,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::ParallelSparseNonNegativeLeastSquar
   errorMagnitude_(),
   verboseFlag_(true),
   scalingFlag_(true),
-  centerFlag_(true),
+  centerFlag_(false),
   projectFlag_(false),
   positivity_(true),
   solverType_(0),

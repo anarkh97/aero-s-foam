@@ -1226,6 +1226,7 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
   int cnt_global = contact_global_sum(node_entity_list.Size(),communicator);
   if (contact_processor_number(communicator)==0) {
     std::cout << "  # of interactions = " << cnt_global << "\n";
+    std::cout << "  have_multiple     = " << have_multiple <<"\n";
   }
 #endif
 
@@ -1262,7 +1263,8 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
 
   Real mult = 0.0;
 
-  for(int iteration=0 ; iteration<num_iterations ; ++iteration ){
+  int iteration;
+  for(iteration=0 ; iteration<num_iterations ; ++iteration ){
     mult = mult + 1.0;
 
 #ifdef CONTACT_HEARTBEAT 
@@ -1321,10 +1323,9 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
 #endif
     //
     // Assemble nodal forces
-    // SWAPADD the assembled_force and if nessecary assembled_mass
+    // SWAPADD the assembled_force and if necessary the assembled_mass
     //
     if(have_multiple){
-      //if(true){
       //cout<<"assemble mult"<<endl;
       Assemble_Nodal_Forces_and_Masses();
       ScratchVariable *vars[2];
@@ -1566,6 +1567,10 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
     }
 
   } // end of iteration loop
+
+#if CONTACT_DEBUG_PRINT_LEVEL>=2
+  if(iteration == num_iterations) std::cerr<<"iteration loop did not converge: rel. residual = " << global_inc_force_norm/initial_global_inc_force_norm << "\n";
+#endif
 
 #if !defined (CONTACT_NO_MPI) && defined (CONTACT_TIMINGS)
     Timer().Stop_Timer( iteration_time );
@@ -2357,6 +2362,10 @@ void ContactTDEnforcement::Assemble_Nodal_Forces_and_Masses()
   	  surface_stiffness_inv[j] = 1.0/surface_stiffness_inv[j];
 	}
       }
+      if(ncc == 2) { // PJSA project f_sn onto plane
+        double toto = f_sn[0]*normals[2][0]+f_sn[1]*normals[2][1]+f_sn[2]*normals[2][2];
+        for(int j=0; j<3; ++j) f_sn[j] -= normals[2][j]*toto;
+      }
       Partition_Force(ncc, normals, f_sn, surface_stiffness_inv, f_constr );
       Real m_sn  = *(NODAL_MASS.Get_Scratch(node_index));
       Partition_Mass(ncc, normals, f_sn, factors);
@@ -3097,8 +3106,6 @@ void ContactTDEnforcement::Partition_Force (int ncc,
   Real k_bar_inv = 1.0/k_bar;
   Real k_tilda_inv = 1.0/k_tilda;
 
-
-
   Real* n_0 = normals[0];
   Real* n_1 = normals[1];
   Real* n_2 = normals[2];
@@ -3240,8 +3247,8 @@ void ContactTDEnforcement::Partition_Force (int ncc,
       }
     }
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
-    if( !converged ){
-      std::cerr << "ACME did not converg in Partition_Force" << std::endl;
+    if (iter == PARTITION_ITERATIONS) {
+      std::cerr << "ACME did not converge in Partition_Force" << std::endl;
       std::cerr << "  f_dot_mags[0]     = " << f_dot_mags[0] << std::endl;
       std::cerr << "  f_dot_mags[1]     = " << f_dot_mags[1] << std::endl;
       std::cerr << "  total_force_mag^2 = " << total_force_magsqr << std::endl;
@@ -3490,8 +3497,8 @@ void ContactTDEnforcement::Partition_Force (int ncc,
       }
     }
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
-    if( !converged ){
-      std::cerr << "ACME did not converged in Partition_Force" << std::endl;
+    if (iter == PARTITION_ITERATIONS) {
+      std::cerr << "ACME did not converge in Partition_Force" << std::endl;
       std::cerr << "  f_dot_mags[0]     = " << f_dot_mags[0] << std::endl;
       std::cerr << "  f_dot_mags[1]     = " << f_dot_mags[1] << std::endl;
       std::cerr << "  f_dot_mags[2]     = " << f_dot_mags[2] << std::endl;
@@ -3551,8 +3558,6 @@ ContactTDEnforcement::Partition_Gap
   magnitudes[2] = partition_matrix[2] [0]*vdn1
                 + partition_matrix[2] [1]*vdn2
                 + partition_matrix[2] [2]*vdn3;
-
-
 }
 
 
@@ -4800,7 +4805,7 @@ void ContactTDEnforcement::Compact_Node_Entity_List() {
     if(num_constraints > 1) {
       Real dot = 0.0;
       for(int j=0; j<NDIM; ++j) {dot += constraint_normals[0][j] * constraint_normals[1][j]; }
-      if (std::fabs(dot) > COLLINEARITY_TOL) {
+      if (std::fabs(dot) > COLLINEARITY_TOL || dot < -0.5) { // PJSA added 2nd condition
         if (constraint_gaps[0] > constraint_gaps[1]) {
           keep[1] = false;
         } else {
@@ -4810,7 +4815,7 @@ void ContactTDEnforcement::Compact_Node_Entity_List() {
       if(num_constraints == 3) {
         dot = 0.0;
         for(int j=0 ; j<NDIM ; ++j ){dot += constraint_normals[2][j]*constraint_normals[1][j]; }
-        if (std::fabs(dot) > COLLINEARITY_TOL) {
+        if (std::fabs(dot) > COLLINEARITY_TOL || dot < -0.5) { // PJSA added 2nd condition
           if (constraint_gaps[2] > constraint_gaps[1]) {
             keep[1] = false;
           } else {
@@ -4819,7 +4824,7 @@ void ContactTDEnforcement::Compact_Node_Entity_List() {
         }
         dot = 0.0;
         for(int j=0 ; j<NDIM ; ++j ){dot += constraint_normals[0][j]*constraint_normals[2][j]; }
-        if (std::fabs(dot) > COLLINEARITY_TOL) {
+        if (std::fabs(dot) > COLLINEARITY_TOL || dot < -0.5) { // PJSA added 2nd condition
           if (constraint_gaps[0] > constraint_gaps[2]) {
             keep[2] = false;
           } else {

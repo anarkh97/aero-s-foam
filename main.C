@@ -115,6 +115,7 @@ bool randomShuffle=false;
 bool fsglFlag = false;
 
 int verboseFlag = 0;
+int contactPrintFlag = 0;
 int salinasFlag = 0;
 int totalNewtonIter = 0;
 int iterTotal = 0;
@@ -483,7 +484,7 @@ int main(int argc, char** argv)
         domain->solInfo().fetiInfo.primalFlag = 1;
         break;
       case 'c':
-        domain->solInfo().fetiInfo.contactPrintFlag = atoi(optarg);
+        contactPrintFlag = domain->solInfo().fetiInfo.contactPrintFlag = atoi(optarg);
         break;
       case 'q':
         quietFlag = 1;

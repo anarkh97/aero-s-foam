@@ -2452,7 +2452,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
   for(iele=0; iele<numele; ++iele) {
 
     // Don't do anything if element is a phantom
-    if (packedEset[iele]->isPhantomElement()) continue;
+    if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
 
     // Don't include beams or bars in the averaging if nodalpartial (avgnum = 2) is requested
     if ((avgnum == 2 && packedEset[iele]->getElementType() == 6) ||

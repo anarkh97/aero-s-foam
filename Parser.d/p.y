@@ -4558,6 +4558,15 @@ MatSpec:
              domain->solInfo().elementDeletion = true;
            }
          }
+        | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Integer NewLine
+         {
+           ExpMat *mat = new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11);
+           mat->yssrtid = $12;
+           geoSource->addMaterial($2-1, mat);
+           if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+             domain->solInfo().elementDeletion = true;
+           }
+         }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Integer
                           Integer Integer Integer Integer Float Float Float Integer Float NewLine
          {

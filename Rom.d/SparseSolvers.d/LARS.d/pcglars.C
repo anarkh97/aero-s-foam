@@ -72,9 +72,8 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
   int *counts = new int[numproc]; // buffer for row-wise partition sizes, static quantity
   int *displs = new int[numproc]; // buffer for starting point in memory for vectors that are distributed row-wise 
   for(int i=0; i<numproc; ++i) { counts[i] = m/numproc + ((i < m%numproc) ? 1 : 0); displs[i] = (i==0) ? 0 : displs[i-1]+counts[i-1]; }
-#ifdef USE_MPI
+
   VectorXd c(m), buf1(m), buf2(maxvec), buf3(counts[myrank]); // temporary buffers
-#endif
    
   // allocate space for working vectors and containers
   Array<VectorXd,Dynamic,1> wA(nsub), y(nsub), g(nsub), h(nsub), minbuffer(nsub), S(nsub), t(nsub);

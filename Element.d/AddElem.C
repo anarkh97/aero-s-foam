@@ -145,6 +145,9 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/Force.d/FollowerForceElement.h>
 #include <Element.d/Force.d/PseudoTangentialMomentElement.h>
 #include <Element.d/DiscreteMass.d/DiscreteMass6Dof.h>
+#include <Element.d/Force.d/HexaQ1P0.h>
+#include <Element.d/Force.d/HexaQ2P0.h>
+#include <Element.d/Force.d/HexaQ2Q1.h>
 #endif
 
 #include <Element.d/Brick32.d/Brick32.h> 
@@ -753,6 +756,18 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 179:
        ele = new (ba) PointVariPlaneDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 180:
+       ele = new (ba) HexaQ1P0(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 181:
+       ele = new (ba) HexaQ2P0(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 182:
+       ele = new (ba) HexaQ2Q1(n);
        ele->setCategory(Element::Structural);
        break;
      case 200:

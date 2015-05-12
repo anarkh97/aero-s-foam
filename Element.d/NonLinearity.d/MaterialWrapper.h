@@ -70,6 +70,8 @@ class MaterialWrapper : public NLMaterial
 
     void setSDProps(MFTTData *ysst);
     void setSRDProps(MFTTData *yssrt);
+
+    void getMaterialConstants(std::vector<double> &c);
 };
 
 template<>

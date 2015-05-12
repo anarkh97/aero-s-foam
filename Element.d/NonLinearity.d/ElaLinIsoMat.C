@@ -279,6 +279,14 @@ ElaLinIsoMat::getStrainEnergyDensity(Tensor &_enp, double *, double temp)
   }
 }
 
+void
+ElaLinIsoMat::getMaterialConstants(std::vector<double> &c)
+{
+  c.resize(2);
+  c[0] = E*nu/((1+nu)*(1-2*nu)); // Lamé's first parameter
+  c[1] = E/(2*(1+nu));           // Lamé's second parameter (shear modulus)
+}
+
 extern LinearStrain linearStrain;
 
 StrainEvaluator *

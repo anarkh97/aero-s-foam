@@ -692,3 +692,28 @@ MaterialWrapper<MooneyRivlin>::print(std::ostream &out) const
   out << "MooneyRivlin " << rho << " " << mu1 << " " << mu2 << " " << kappa;
 }
 
+template<typename Material>
+void
+MaterialWrapper<Material>::getMaterialConstants(std::vector<double> &c)
+{
+  std::cerr << "material law does not implement getMaterialConstants function\n";
+}
+
+template<>
+inline void
+MaterialWrapper<NeoHookean>::getMaterialConstants(std::vector<double> &c)
+{
+  c.resize(2);
+  c[0] = lambda;
+  c[1] = mu;
+}
+
+template<>
+inline void
+MaterialWrapper<MooneyRivlin>::getMaterialConstants(std::vector<double> &c)
+{
+  c.resize(3);
+  c[0] = mu1;
+  c[1] = mu2;
+  c[2] = kappa;
+}

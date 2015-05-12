@@ -7,8 +7,8 @@ template<typename Scalar>
 class Wedge15LagrangePolynomialShapeFunction : public VectorValuedFunction<3,15,Scalar,0,0,double>
 {
   public:
-    Wedge15LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
-    {}
+    Wedge15LagrangePolynomialShapeFunction() {}
+    Wedge15LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&) {}
 
     Eigen::Matrix<Scalar,15,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar)
     {

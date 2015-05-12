@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <vector>
 
 class StrainEvaluator;
 class Tensor;
@@ -82,6 +83,10 @@ class NLMaterial
      virtual void setTDProps(MFTTData *ymtt, MFTTData *ctett) {};
      virtual void setSDProps(MFTTData *ysst) {}
      virtual void setSRDProps(MFTTData *yssrt) {}
+
+     virtual void getMaterialConstants(std::vector<double> &c) {
+       std::cerr << "material law does not implement getMaterialConstants function\n";
+     }
 };
 
 #endif

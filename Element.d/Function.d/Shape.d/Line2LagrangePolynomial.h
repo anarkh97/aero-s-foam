@@ -7,8 +7,8 @@ template<typename Scalar>
 class Line2LagrangePolynomialShapeFunction : public VectorValuedFunction<1,2,Scalar,0,0,double>
 {
   public:
-    Line2LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
-    {}
+    Line2LagrangePolynomialShapeFunction( {}
+    Line2LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&) {}
 
     Eigen::Matrix<Scalar,2,1> operator() (const Eigen::Matrix<Scalar,1,1>& q, Scalar)
     {

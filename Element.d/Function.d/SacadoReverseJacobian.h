@@ -12,6 +12,81 @@
 
 #include <iostream>
 
+namespace Eigen { namespace internal {
+
+template<typename Scalar, int NumDeriv>
+struct scalar_product_traits<Sacado::Rad::ADvar<Sacado::Fad::SFad<Scalar, NumDeriv> >, Scalar>
+{
+  enum { Defined = 1 };
+  typedef Sacado::Rad::ADvar<Sacado::Fad::SFad<Scalar, NumDeriv> > ReturnType;
+};
+
+template<typename Scalar, int NumDeriv>
+struct scalar_product_traits<Scalar, Sacado::Rad::ADvar<Sacado::Fad::SFad<Scalar, NumDeriv> > >
+{
+  enum { Defined = 1 };
+  typedef Sacado::Rad::ADvar<Sacado::Fad::SFad<Scalar, NumDeriv> > ReturnType;
+};
+
+template<typename Scalar, int NumDeriv>
+struct scalar_product_traits<Sacado::Rad::ADvar<Eigen::AutoDiffScalar<Eigen::Matrix<Scalar,NumDeriv,1> > >, Scalar>
+{
+  enum { Defined = 1 };
+  typedef Sacado::Rad::ADvar<Eigen::AutoDiffScalar<Eigen::Matrix<Scalar,NumDeriv,1> > > ReturnType;
+};
+
+template<typename Scalar, int NumDeriv>
+struct scalar_product_traits<Scalar, Sacado::Rad::ADvar<Eigen::AutoDiffScalar<Eigen::Matrix<Scalar,NumDeriv,1> > > >
+{
+  enum { Defined = 1 };
+  typedef Sacado::Rad::ADvar<Eigen::AutoDiffScalar<Eigen::Matrix<Scalar,NumDeriv,1> > > ReturnType;
+};
+
+template<typename Scalar>
+struct scalar_product_traits<Sacado::RadVec::ADvar<Scalar>, Scalar>
+{ 
+  enum { Defined = 1 };
+  typedef Sacado::RadVec::ADvar<Scalar> ReturnType;
+};
+
+template<typename Scalar>
+struct scalar_product_traits<Scalar, Sacado::RadVec::ADvar<Scalar> >
+{ 
+  enum { Defined = 1 };
+  typedef Sacado::RadVec::ADvar<Scalar> ReturnType;
+};
+
+template<typename Scalar, int NumDeriv>
+struct scalar_product_traits<Sacado::RadVec::ADvar<Eigen::AutoDiffScalar<Eigen::Matrix<Scalar, NumDeriv, 1> > >, Scalar>
+{ 
+  enum { Defined = 1 };
+  typedef Sacado::RadVec::ADvar<Eigen::AutoDiffScalar<Eigen::Matrix<Scalar, NumDeriv, 1> > > ReturnType;
+};
+
+template<typename Scalar, int NumDeriv>
+struct scalar_product_traits<Scalar, Sacado::RadVec::ADvar<Eigen::AutoDiffScalar<Eigen::Matrix<Scalar, NumDeriv, 1> > > >
+{
+  enum { Defined = 1 };
+  typedef Sacado::RadVec::ADvar<Eigen::AutoDiffScalar<Eigen::Matrix<Scalar, NumDeriv, 1> > > ReturnType;
+};
+
+template<typename Scalar, int NumDeriv>
+struct scalar_product_traits<Eigen::AutoDiffScalar<Eigen::Matrix<Sacado::RadVec::ADvar<Scalar>, NumDeriv, 1> >, Scalar>
+{
+  enum { Defined = 1 };
+  typedef Eigen::AutoDiffScalar<Eigen::Matrix<Sacado::RadVec::ADvar<Scalar>, NumDeriv, 1> > ReturnType;
+};
+
+template<typename Scalar, int NumDeriv>
+struct scalar_product_traits<Scalar, Eigen::AutoDiffScalar<Eigen::Matrix<Sacado::RadVec::ADvar<Scalar>, NumDeriv, 1> > >
+{
+  enum { Defined = 1 };
+  typedef Eigen::AutoDiffScalar<Eigen::Matrix<Sacado::RadVec::ADvar<Scalar>, NumDeriv, 1> > ReturnType;
+};
+
+} }
+
+
 template<typename Functor> class SacadoReverseJacobian : public Functor
 {
 #ifdef USE_SACADO

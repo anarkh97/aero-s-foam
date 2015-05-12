@@ -7,8 +7,8 @@ template<typename Scalar>
 class Tet10LagrangePolynomialShapeFunction : public VectorValuedFunction<3,10,Scalar,0,0,double>
 {
   public:
-    Tet10LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
-    {}
+    Tet10LagrangePolynomialShapeFunction() {}
+    Tet10LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&) {}
 
     Eigen::Matrix<Scalar,10,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar)
     {

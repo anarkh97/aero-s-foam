@@ -8,8 +8,8 @@ template<typename Scalar>
 class Hex8LagrangePolynomialShapeFunction : public VectorValuedFunction<3,8,Scalar,0,0,double>
 {
   public:
-    Hex8LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
-    {}
+    Hex8LagrangePolynomialShapeFunction() {}
+    Hex8LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&) {}
 
     Eigen::Matrix<Scalar,8,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar)
     {

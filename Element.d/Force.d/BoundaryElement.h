@@ -41,7 +41,6 @@ class BoundaryElement : public Element, public Corotator
     Corotator* getCorotator(CoordSet&, double*, int, int);
     double getElementEnergy(GeomState&, CoordSet&) { return 0; }
 
-    //PrioInfo examine(int sub, MultiFront *mf);
     bool isSafe() { return false; }
 
     int getTopNumber() { return 101; }

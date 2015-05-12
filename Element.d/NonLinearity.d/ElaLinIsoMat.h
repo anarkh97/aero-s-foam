@@ -64,6 +64,8 @@ class ElaLinIsoMat : public NLMaterial
     void setThermalExpansionCoef(double alphas[6]);
 
     void setTDProps(MFTTData *_ymtt, MFTTData *_ctett) { ymtt = _ymtt, ctett = _ctett; }
+
+    void getMaterialConstants(std::vector<double> &c);
 };
 
 // same equation as ElaLinIsoMat but with different Green-Lagrange strain evaluator

@@ -110,6 +110,9 @@ Force.d/BoundaryElement.C
 Force.d/FollowerMomentElement.C
 Force.d/FollowerForceElement.C
 Force.d/PseudoTangentialMomentElement.C
+Force.d/HexaQ1P0.C
+Force.d/HexaQ2P0.C
+Force.d/HexaQ2Q1.C
 Function.d/ExternalForce.d/FollowerMomentForceFunction.C
 Function.d/ExternalForce.d/FollowerForceFunction.C
 Function.d/InertialForce.d/InertialType1ForceFunction.C
@@ -118,6 +121,7 @@ Function.d/InertialForce.d/Inertial6DofForceFunction.C
 Function.d/Rotation.d/IncrementalRotationVector.C
 Function.d/Shape.d/Tet4LagrangePolynomial.C
 Function.d/Shape.d/Hex8LagrangePolynomial.C
+Function.d/Shape.d/Constant.C
 Helm.d/GaussRule.C
 Helm.d/GaussRules.C
 Helm.d/genTetra10.C

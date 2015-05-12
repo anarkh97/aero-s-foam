@@ -258,7 +258,6 @@ struct SolverInfo {
    int sparse_maxsup, sparse_defblk;
 
    double goldfarb_tol;
-   bool goldfarb_check;
 
    // YC : sensitivity and optimization parameters
    bool sensitivity;
@@ -566,7 +565,6 @@ struct SolverInfo {
                   spooles_msglvl = 0;
                   spooles_renum = 0;
                   goldfarb_tol = 1.0;
-                  goldfarb_check = false;
                   explicitK = false;
                   qrfactorization = false;
                   eigenvaluename = "";

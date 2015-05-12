@@ -801,7 +801,7 @@ Domain::constructGoldfarb(DofSetArray *c_dsa, Connectivity *nodeToNode)
   if(g_dsa) delete g_dsa;
   g_dsa = new ConstrainedDSA(*dsa, *Domain::c_dsa);
   typename WrapEiSparseMat<Scalar,SolverClass>::CtorData baseArg(nodeToNodeG, dsa, g_dsa);
-  return new GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar,SolverClass>, Scalar>(baseArg, Domain::c_dsa, sinfo.goldfarb_tol, sinfo.goldfarb_check);
+  return new GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar,SolverClass>, Scalar>(baseArg, Domain::c_dsa, sinfo.goldfarb_tol);
 #else
  std::cerr << "USE_EIGEN3 is not defined\n";
 #endif

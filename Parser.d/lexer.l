@@ -526,8 +526,6 @@ TRAIL [a-zA-Z]*
 
 "goldfarb_tol"|"GOLDFARB_TOL"      { return GOLDFARBTOL; }
 
-"goldfarb_check"|"GOLDFARB_CHECK"  { return GOLDFARBCHECK; }
-
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
 
 "tolf"[a-zA-Z]*|"TOLF"[a-zA-Z]     { return TOLFETI; }

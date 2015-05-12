@@ -199,6 +199,10 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
     userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
     paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC,
                userDefineDisp, userDefineVel, userDefineAcc, false);
+    if(domain->solInfo().ROMPostProcess) {
+      execParal4R(decDomain->getNumSub(), this, &MultiDomDynPostProcessor::subUpdateGeomStateUSDD, userDefineDisp,
+                  geomState, userDefineVel, userDefineAcc);
+    }
     delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
   }
 
@@ -257,6 +261,32 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
   else
     decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
   stopTimerMemory(times->output, times->memoryOutput);
+}
+
+void
+MultiDomDynPostProcessor::subUpdateGeomStateUSDD(int isub, double *userDefineDisp, DistrGeomState *geomState,
+                                                 double *userDefineVel, double *userDefineAcc)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  ControlLawInfo *subClaw = sd->getClaw();
+  if(subClaw) {
+    if(subClaw->numUserDisp) {
+      double *subUserDefineDisp = new double[subClaw->numUserDisp];
+      double *subUserDefineVel = new double[subClaw->numUserDisp];
+      double *subUserDefineAcc = new double[subClaw->numUserDisp];
+      for(int i=0; i<subClaw->numUserDisp; ++i) {
+        int globalIndex = sd->getUserDispDataMap()[i];
+        subUserDefineDisp[i] = userDefineDisp[globalIndex];
+        subUserDefineVel[i] = userDefineVel[globalIndex];
+        subUserDefineAcc[i] = userDefineAcc[globalIndex];
+      }
+      (*geomState)[isub]->updatePrescribedDisplacement(subUserDefineDisp, subClaw, sd->getNodes(),
+                                                       subUserDefineVel, subUserDefineAcc);
+      delete [] subUserDefineDisp;
+      delete [] subUserDefineVel;
+      delete [] subUserDefineAcc;
+    }
+  }
 }
 
 MultiDomainDynam::~MultiDomainDynam() 

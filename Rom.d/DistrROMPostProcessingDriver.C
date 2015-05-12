@@ -57,7 +57,7 @@ DistrROMPostProcessingDriver::preProcess() {
   // read in distribuited POD basis
   FileNameInfo fileInfo;
   std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-  fileName.append(".normalized");  
+  if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName.append(".normalized");  
   DistrBasisInputFile podBasisFile(fileName);  //read in mass-normalized basis
   if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
   filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);

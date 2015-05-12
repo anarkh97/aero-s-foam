@@ -111,6 +111,10 @@ class MultiDomDynPostProcessor
     void setNodalTemps(DistrVector*);
     void dynamOutput(int, double, MDDynamMat &, DistrVector &, DistrVector *aeroF, SysState<DistrVector> &);
     double getKineticEnergy(DistrVector & vel, SubDOp * gMass) { return 0.0; }
+
+  private:
+    void subUpdateGeomStateUSDD(int isub, double *userDefineDisp, DistrGeomState *geomState,
+                                double *userDefineVel, double *userDefineAcc);
 };
 
 class MultiDomainDynam 

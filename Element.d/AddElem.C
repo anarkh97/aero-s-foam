@@ -758,6 +758,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) PointVariPlaneDistanceConstraintElement(n);
        ele->setCategory(Element::Structural);
        break;
+#if (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
      case 180:
        ele = new (ba) HexaQ1P0(n);
        ele->setCategory(Element::Structural);
@@ -770,6 +771,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) HexaQ2Q1(n);
        ele->setCategory(Element::Structural);
        break;
+#endif
      case 200:
        ele = new (ba) LinearTranslationalSpring(n);
        ele->setCategory(Element::Structural);

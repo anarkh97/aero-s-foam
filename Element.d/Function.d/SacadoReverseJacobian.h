@@ -5,12 +5,10 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/AutoDiff>
 #include <unsupported/Eigen/MatrixFunctions>
+#include <iostream>
 
 #ifdef USE_SACADO
 #include <Sacado.hpp>
-#endif
-
-#include <iostream>
 
 namespace Eigen { namespace internal {
 
@@ -85,7 +83,7 @@ struct scalar_product_traits<Scalar, Eigen::AutoDiffScalar<Eigen::Matrix<Sacado:
 };
 
 } }
-
+#endif
 
 template<typename Functor> class SacadoReverseJacobian : public Functor
 {

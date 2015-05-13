@@ -12,7 +12,7 @@ template <typename S>
 using HexaQ2P0ThreeFieldStrainEnergyFunction 
       = Simo::ThreeFieldStrainEnergyFunction<S, Hex20LagrangePolynomialShapeFunction,
                                              ConstantShapeFunction, ConstantShapeFunction,
-                                             RepeatedQuadratureRule<double,GaussLegendre,3,Eigen::Vector3d>>;
+                                             RepeatedQuadratureRule<double,GaussLegendre,3,Eigen::Vector3d> >;
 
 class HexaQ2P0 : public MixedFiniteElement<HexaQ2P0ThreeFieldStrainEnergyFunction>
 {

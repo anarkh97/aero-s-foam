@@ -61,7 +61,7 @@ class ThreeFieldStrainEnergyFunction
                                    const Eigen::Array<int,NumberOfIntegerConstants,1>& iconst)
     {
       for(int inode = 0; inode < NumberOfNodes; ++inode) {
-        X.row(inode) = Eigen::Map<Eigen::Matrix<double,NumberOfDimensions,1>>(const_cast<double*>(sconst.data())+NumberOfDimensions*inode);
+        X.row(inode) = Eigen::Map<Eigen::Matrix<double,NumberOfDimensions,1> >(const_cast<double*>(sconst.data())+NumberOfDimensions*inode);
       }
       c      = sconst.template segment<MaximumNumberOfMaterialConstants>(NumberOfDimensions*NumberOfNodes);
       Theta0 = sconst.template segment<NumberOfNodes2>(NumberOfDimensions*NumberOfNodes+MaximumNumberOfMaterialConstants);

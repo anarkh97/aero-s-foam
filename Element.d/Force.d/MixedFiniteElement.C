@@ -160,7 +160,7 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   // [ A   B ] [ x ] = [ f ]
   // [ B^T C ] [ y ]   [ g ]
   //  y = C^{-1} ( g - B^Tx ) --> (A - BC^{-1}B^T)x = f - C^{-1}g
-  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>> S(karray,N1,N1);
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> > S(karray,N1,N1);
   S = H.topLeftCorner(N1,N1);
   if(N2 > 0) {
     S -= H.topRightCorner(N1,N2)*H.bottomRightCorner(N2,N2).inverse()*H.bottomLeftCorner(N2,N1);
@@ -215,7 +215,7 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   // [ A   B ] [ x ] = [ -f ]
   // [ B^T C ] [ y ]   [ -g ]
   //  y = C^{-1} ( -g - B^Tx ) --> (A - BC^{-1}B^T)x = -f + BC^{-1}g
-  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>> S(Ktan.data(),N1,N1);
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> > S(Ktan.data(),N1,N1);
   S = H.topLeftCorner(N1,N1);
 
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > f(F,N1);
@@ -224,7 +224,7 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   if(N2 > 0) {
     Eigen::JacobiSVD<Eigen::MatrixXd,Eigen::NoQRPreconditioner> dec(H.bottomRightCorner(N2,N2), Eigen::ComputeThinU | Eigen::ComputeThinV);
     dec.setThreshold(10*std::numeric_limits<double>::epsilon()/dec.singularValues()[0]);
-    //Eigen::FullPivLU<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>> dec(H.bottomRightCorner(N2,N2));
+    //Eigen::FullPivLU<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dec(H.bottomRightCorner(N2,N2));
 
     CinvBt = dec.solve(H.bottomLeftCorner(N2,N1));
     Cinvg  = dec.solve(G.tail(N2));

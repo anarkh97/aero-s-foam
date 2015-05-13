@@ -7,7 +7,7 @@
 #include <Element.d/Function.d/QuadratureRule.h>
 #include <Element.d/Force.d/MixedFiniteElement.h>
 
-#if (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
+#if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 template <typename S>
 using HexaQ1P0ThreeFieldStrainEnergyFunction 
       = Simo::ThreeFieldStrainEnergyFunction<S, Hex8LagrangePolynomialShapeFunction,

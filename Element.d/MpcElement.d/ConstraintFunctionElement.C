@@ -143,7 +143,7 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>::getHessian(GeomState *ref
       Simo::Hessian<double,ConstraintFunctionTemplate> d2fdq2(sconst,iconst);
       H = d2fdq2(q, t);
     } break;
-#if (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
+#if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 #ifdef USE_SACADO
     /*case 2: {
       // evaluate the constraint hessian by forward automatic differentation of the jacobian
@@ -226,7 +226,7 @@ double
 ConstraintFunctionElement<ConstraintFunctionTemplate>::getAccelerationConstraintRhs(GeomState *refState, GeomState& c1,
                                                                                     CoordSet& c0, double t)
 {
-#if defined(USE_SACADO) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
+#if defined(USE_SACADO) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && defined(HAS_CXX11_TEMPLATE_ALIAS)
   // instantiate the constraint function object
   Eigen::Array<double, ConstraintFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
   Eigen::Array<int, ConstraintFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;

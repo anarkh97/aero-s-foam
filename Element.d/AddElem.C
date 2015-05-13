@@ -758,7 +758,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) PointVariPlaneDistanceConstraintElement(n);
        ele->setCategory(Element::Structural);
        break;
-#if (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
+#if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && defined(HAS_CXX11_TEMPLATE_ALIAS)
      case 180:
        ele = new (ba) HexaQ1P0(n);
        ele->setCategory(Element::Structural);

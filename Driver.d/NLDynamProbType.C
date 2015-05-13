@@ -2,6 +2,7 @@
 #include <iostream>
 #include <Timers.d/GetTime.h>
 extern int verboseFlag;
+extern int contactPrintFlag;
 extern int totalNewtonIter;
 extern int debugFlag;
 extern GeoSource * geoSource;
@@ -344,6 +345,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       if(feasible) break;
 
     } // end of constraint enforcement iteration loop
+    if(contactPrintFlag && err > std::numeric_limits<double>::epsilon()) filePrint(stderr,"\n ... Constraint violation: %8.2e ...\n", err);
 
     if(failed) { 
       // if a Newton solve fails to converge, decrease the time step and try again

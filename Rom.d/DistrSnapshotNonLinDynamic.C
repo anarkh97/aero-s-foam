@@ -141,6 +141,7 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const DistrGeomState
       for (IndexPairIt nodeIt = mapping.begin(); nodeIt != nodeItEnd; ++nodeIt) {
         // Indexing
         const int iLocalNode = nodeIt->local;
+        if(!refCoords[iLocalNode]) continue;
         const int iGlobalNode = nodeIt->global;
 
         // Translational dofs

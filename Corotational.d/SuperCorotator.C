@@ -366,12 +366,12 @@ SuperCorotator::updateMultipliers(GeomState& c1)
 }
 
 double
-SuperCorotator::getError()
+SuperCorotator::getError(GeomState& c1)
 {
   double err = 0;
   int i;
   for(i=0; i<nSubElems; ++i)
-    err = std::max(err,subElemCorotators[i]->getError());
+    err = std::max(err,subElemCorotators[i]->getError(c1));
   return err;
 }
 

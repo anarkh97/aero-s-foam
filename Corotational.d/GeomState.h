@@ -148,6 +148,8 @@ class GeomState {
 
      bool getHaveRot() const { return haveRot; }
      int getNumRotationDof(int inode) const;
+
+     CoordSet* getCoordSet() { return X0; }
 };
 
 inline int

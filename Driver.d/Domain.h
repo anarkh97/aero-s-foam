@@ -532,7 +532,7 @@ class Domain : public HData {
      void initializeParameters(bool flag=true);
      void updateMultipliers(GeomState &geomState, Corotator **corotators);
      void updateParameters(bool flag=true);
-     double getError(Corotator **corotators);
+     double getError(Corotator **corotators, GeomState &gs);
      void getElementDisp(int iele, GeomState& geomState, Vector& disp);
      double getKineticEnergy(double *velocity, FullSquareMatrix *mel);
      double getStrainEnergy(GeomState *geomState, Corotator **allCorot);

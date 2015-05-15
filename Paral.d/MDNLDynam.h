@@ -186,9 +186,9 @@ class MDNLDynamic
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
 
-    void initializeParameters(DistrGeomState *geomState);
+    void initializeParameters(int step, DistrGeomState *geomState);
     void updateParameters(DistrGeomState *geomState);
-    bool checkConstraintViolation(double &err);
+    bool checkConstraintViolation(double &err, DistrGeomState *geomState);
 
     LinesearchInfo& linesearch();
     bool getResizeFlag();

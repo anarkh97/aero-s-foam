@@ -16,10 +16,12 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
 ::MixedFiniteElement(int _nNodes, DofSet nodalDofs, int* _nn)
  : BoundaryElement(_nNodes, nodalDofs, _nn)
 {
-  nIV = N - NumberOfNodes*NumberOfDimensions;
+  nIV = ScalarValuedFunctionTemplate<double>::NumberOfNodes2+ScalarValuedFunctionTemplate<double>::NumberOfNodes3;
+  nLM = ScalarValuedFunctionTemplate<double>::NumberOfNodes4;
   first_time = true;
   materialType = 1;
   mat = NULL;
+  epsilon = 1e7;
 }
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
@@ -27,10 +29,12 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
 ::MixedFiniteElement(int _nNodes, DofSet *nodalDofs, int* _nn)
  : BoundaryElement(_nNodes, nodalDofs, _nn)
 {
-  nIV = N - NumberOfNodes*NumberOfDimensions;
+  nIV = ScalarValuedFunctionTemplate<double>::NumberOfNodes2+ScalarValuedFunctionTemplate<double>::NumberOfNodes3;
+  nLM = ScalarValuedFunctionTemplate<double>::NumberOfNodes4;
   first_time = true;
   materialType = 1;
   mat = NULL;
+  epsilon = 1e7;
 }
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
@@ -102,9 +106,12 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   const int nNode3 = ScalarValuedFunctionTemplate<double>::NumberOfNodes3;
   sconst.template segment<nNode3>(nDime*nNode+nMatc+nNode2).setZero();
 
-  // reference state for Lagrange multiplier
-  const int nNode4 = ScalarValuedFunctionTemplate<double>::NumberOfNodes4;
-  sconst.template segment<nNode4>(nDime*nNode+nMatc+nNode2+nNode3).setZero();
+  // Lagrange multipliers and penalty parameter
+  if(nLM > 0) {
+    double *state = (gs) ? gs->getElemState(this->getGlNum()) : 0;
+    for(int i=0; i<nLM; ++i) sconst[nDime*nNode+nMatc+nNode2+nNode3+i] = (state) ? state[nIV+i] : 0;
+    sconst[nDime*nNode+nMatc+nNode2+nNode3+nLM] = epsilon;
+  }
   
   iconst[0] = getQuadratureOrder();
   iconst[1] = (gs) ? materialType : 0;
@@ -114,9 +121,13 @@ template<template <typename S> class ScalarValuedFunctionTemplate>
 void
 MixedFiniteElement<ScalarValuedFunctionTemplate>
 ::getInputs(Eigen::Matrix<double,ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q,
-            CoordSet& c0, GeomState *curState, GeomState *refState)
+            CoordSet& c0, GeomState *curState)
 {
-  // prepare the constraint function inputs
+  // prepare the function inputs, which is the increment in the nodal values of the three fields
+  // w.r.t. the reference state.
+  // for the displacement field the reference state is the nodal coordinates (stored in c0).
+  // for the dilitation field the reference state is 1, and for the pressure field the reference state is 0.
+
   if(curState == NULL) { // in this case the function will be evaluated in the undeformed configuration
     q.setZero();
   }
@@ -138,8 +149,8 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
         } break;
       }
     }
-    double *staten = curState->getElemState(this->getGlNum());
-    for(int i=0; i<nIV; ++i) q[inputs.size()+i] = (staten) ? staten[i] : 0;
+    double *state = curState->getElemState(this->getGlNum());
+    for(int i=0; i<nIV; ++i) q[inputs.size()+i] = (state) ? state[i] : 0;
   }
 }
 
@@ -156,7 +167,7 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   getHessian(NULL, NULL, c0, H, 0);
 
   const int N1 = N-nIV;
-  int N2 = nIV;
+  const int N2 = nIV;
   // [ A   B ] [ x ] = [ f ]
   // [ B^T C ] [ y ]   [ g ]
   //  y = C^{-1} ( g - B^Tx ) --> (A - BC^{-1}B^T)x = f - C^{-1}g
@@ -191,12 +202,13 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   // prepare the function inputs
   const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
   Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, &c1, refState);
+  getInputs(q, c0, &c1);
 
   const int N1 = N-nIV;
-  int N2 = nIV;
+  const int N2 = nIV;
 
-  // update the internal variables
+  // update the internal variables (note: these should probably be states associated with internal nodes rather than
+  // element states to distinguish them with history variables used for elasto-plasticity for instance).
   if(!first_time && N2 > 0) {
     Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > y(c1.getElemState(this->getGlNum()),N2);
     y -= Cinvg+CinvBt*(q.head(N1)-q_copy.head(N1));
@@ -204,11 +216,11 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   }
   q_copy = q;
 
-  // evaluate the gradient of the function and store values terms
+  // evaluate the gradient of the function
   Eigen::Matrix<double,N,1> G;
   G = foo(q,t);
 
-  // evaluate the hessian (second partial derivatives w.r.t. the spatial variables)
+  // evaluate the hessian of the function
   Eigen::Matrix<double,N,N> H;
   getHessian(refState, &c1, c0, H, t);
 
@@ -222,9 +234,9 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   f = G.head(N1);
 
   if(N2 > 0) {
-    Eigen::JacobiSVD<Eigen::MatrixXd,Eigen::NoQRPreconditioner> dec(H.bottomRightCorner(N2,N2), Eigen::ComputeThinU | Eigen::ComputeThinV);
-    dec.setThreshold(10*std::numeric_limits<double>::epsilon()/dec.singularValues()[0]);
-    //Eigen::FullPivLU<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dec(H.bottomRightCorner(N2,N2));
+    //Eigen::JacobiSVD<Eigen::MatrixXd,Eigen::NoQRPreconditioner> dec(H.bottomRightCorner(N2,N2), Eigen::ComputeThinU | Eigen::ComputeThinV);
+    //dec.setThreshold(10*std::numeric_limits<double>::epsilon()/dec.singularValues()[0]);
+    Eigen::FullPivLU<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dec(H.bottomRightCorner(N2,N2));
 
     CinvBt = dec.solve(H.bottomLeftCorner(N2,N1));
     Cinvg  = dec.solve(G.tail(N2));
@@ -234,14 +246,6 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
 
     first_time = false;
   }
-}
-
-template<template <typename S> class ScalarValuedFunctionTemplate>
-void
-MixedFiniteElement<ScalarValuedFunctionTemplate>
-::updateStates(GeomState *refState, GeomState &c1, CoordSet &c0)
-{
-  first_time = true;
 }
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
@@ -259,10 +263,61 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   // prepare the function inputs
   const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
   Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, c1, refState);
+  getInputs(q, c0, c1);
 
   // evaluate the hessian 
   H = d2fdq2(q, t);
+}
+
+template<template <typename S> class ScalarValuedFunctionTemplate>
+void
+MixedFiniteElement<ScalarValuedFunctionTemplate>
+::initMultipliers(GeomState& c1)
+{
+  if(nLM > 0) {
+    double *state = c1.getElemState(this->getGlNum());
+    for(int i=0; i<nLM; ++i) state[nIV+i] = 0;
+  }
+}
+
+template<template <typename S> class ScalarValuedFunctionTemplate>
+double
+MixedFiniteElement<ScalarValuedFunctionTemplate>
+::getError(GeomState& c1)
+{
+  // update the internal variables
+  // it is better to do it here rather than in updateStates because for augmented Lagrangian, updateStates is
+  // only called at the end of the penalty iteration loop, while getError is called at each iteration.
+  const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
+  Eigen::Matrix<double,N,1> q;
+  getInputs(q, *c1.getCoordSet(), &c1);
+
+  const int N1 = N-nIV;
+  const int N2 = nIV;
+  if(!first_time && N2 > 0) {
+    Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > y(c1.getElemState(this->getGlNum()),N2);
+    y -= Cinvg+CinvBt*(q.head(N1)-q_copy.head(N1));
+    first_time = true;
+  }
+
+  if(nLM > 0) {
+    Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > h(c1.getElemState(this->getGlNum()),ScalarValuedFunctionTemplate<double>::NumberOfNodes2);
+    return h.template lpNorm<1>();
+  }
+  else return 0;
+}
+
+template<template <typename S> class ScalarValuedFunctionTemplate>
+void
+MixedFiniteElement<ScalarValuedFunctionTemplate>
+::updateMultipliers(GeomState& c1)
+{
+  if(nLM > 0) {
+    // XXX assuming that the same shape functions are used for Theta and lambda
+    Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > h(c1.getElemState(this->getGlNum()),ScalarValuedFunctionTemplate<double>::NumberOfNodes2);
+    Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > lambda(c1.getElemState(this->getGlNum())+nIV,nLM);
+    lambda += epsilon*h;
+  }
 }
 
 #endif

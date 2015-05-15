@@ -77,8 +77,9 @@ public:
   void dynamCommToFluid(ModalGeomState *, ModalGeomState *, Vector &, Vector &, Vector &, Vector &, int, int, int, double);
   void dynamOutput(ModalGeomState *, Vector &, Vector &, double, int, Vector &, Vector &, Vector &, ModalGeomState *) const;
   void getConstraintMultipliers(ModalGeomState &);
-  void initializeParameters(ModalGeomState *);
+  void initializeParameters(int step, ModalGeomState *);
   void updateParameters(ModalGeomState *);
+  bool checkConstraintViolation(double &err, ModalGeomState *);
 
   // Hiding NonLinDynamic::getSolve
   GenPodProjectionSolver<double> *getSolver();

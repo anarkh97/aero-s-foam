@@ -170,9 +170,11 @@ MDNLStatic::elemVecInfo()
 }
 
 void
-MDNLStatic::initializeParameters(DistrGeomState *geomState)
+MDNLStatic::initializeParameters(int step, DistrGeomState *geomState)
 {
-  execParal1R(decDomain->getNumSub(), this, &MDNLStatic::subInitializeMultipliers, *geomState);
+  if(step == 1 || domain->solInfo().reinit_lm) {
+    execParal1R(decDomain->getNumSub(), this, &MDNLStatic::subInitializeMultipliers, *geomState);
+  }
   execParal(decDomain->getNumSub(), this, &MDNLStatic::subInitializeParameters);
   domain->initializeParameters();
 }
@@ -210,11 +212,11 @@ MDNLStatic::subUpdateParameters(int isub)
 }
 
 bool
-MDNLStatic::checkConstraintViolation(double &err)
+MDNLStatic::checkConstraintViolation(double &err, DistrGeomState *gs)
 {
   err = 0;
   for(int isub=0; isub<decDomain->getNumSub(); ++isub)
-    err = std::max(err, decDomain->getSubDomain(isub)->getError(allCorot[isub]));
+    err = std::max(err, decDomain->getSubDomain(isub)->getError(allCorot[isub], *(*gs)[isub]));
 #ifdef DISTRIBUTED
   if(structCom) err = structCom->globalMax(err);
 #endif

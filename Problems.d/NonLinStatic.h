@@ -60,9 +60,9 @@ class NonLinStatic {
                             double lambda = 1, GeomState *refState = NULL, bool forceOnly = false);
 
     void updatePrescribedDisplacement(GeomState *geomState, double lambda = 1);
-    void initializeParameters(GeomState *geomState);
+    void initializeParameters(int step, GeomState *geomState);
     void updateParameters(GeomState *geomState);
-    bool checkConstraintViolation(double &err);
+    bool checkConstraintViolation(double &err, GeomState *geomState);
 
     void printTimers();
 

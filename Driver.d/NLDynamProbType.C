@@ -243,7 +243,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
     // Initialize states
     if(solInfo.soltyp != 2) StateUpdate::copyState(geomState, refState);
-    probDesc->initializeParameters(geomState);
+    probDesc->initializeParameters(int(time==0), geomState);
 
     // Constraint enforcement iteration loop
     for(int i = 0; i < solInfo.num_penalty_its; ++i) {
@@ -337,11 +337,14 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
         break;
       }
 
-      // update lagrange multipliers and/or penalty parameters 
-      probDesc->updateParameters(geomState);
-
       // check constraint violation error
-      feasible = probDesc->checkConstraintViolation(err);
+      feasible = probDesc->checkConstraintViolation(err, geomState);
+
+      // update lagrange multipliers and/or penalty parameters 
+      if((!feasible && i+1 < solInfo.num_penalty_its) || (solInfo.lm_update_flag == 1)) {
+         probDesc->updateParameters(geomState);
+      }
+
       if(feasible) break;
 
     } // end of constraint enforcement iteration loop

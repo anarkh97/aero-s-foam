@@ -910,12 +910,12 @@ Domain::updateParameters(bool flag)
 }
 
 double
-Domain::getError(Corotator **corotators)
+Domain::getError(Corotator **corotators, GeomState &gs)
 {
   // returns the largest constraint violation
   double err = 0;
   for(int iele = 0; iele < numele; ++iele) {
-    if(corotators[iele]) err = std::max(err,corotators[iele]->getError());
+    if(corotators[iele]) err = std::max(err,corotators[iele]->getError(gs));
   }
   return err;
 }

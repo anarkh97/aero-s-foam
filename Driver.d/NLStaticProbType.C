@@ -81,23 +81,25 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    probDesc->updatePrescribedDisplacement(geomState, lambda);
    double time = (deltaLambda == maxLambda) ? 0.0 : lambda;
 
-   probDesc->initializeParameters(geomState);
-
+   probDesc->initializeParameters(step,geomState); // for augmented Lagrangian (a) Lagrange multipliers are initialized at step 1 only
+                                                   // unless SolverInfo::reinit_lm is true, (b) penalty parameter is always reset at each step
    int converged;
    bool feasible;
-   double err;
+   double err, resN;
    for(int i = 0; i < solInfo.num_penalty_its; ++i) {
 
      // call newton iteration with load step lambda
      converged = newton(force, residual, totalRes,
                         elementInternalForce, probDesc, solver,
-                        refState, geomState, stateIncr, numIter, lambda, step);
-
-     // update lagrange multipliers and/or penalty parameters 
-     probDesc->updateParameters(geomState);
+                        refState, geomState, stateIncr, numIter, resN, lambda, step);
 
      // check constraint violation error
-     feasible = probDesc->checkConstraintViolation(err);
+     feasible = probDesc->checkConstraintViolation(err, geomState);
+
+     // update lagrange multipliers and/or penalty parameters
+     if((!feasible && i+1 < solInfo.num_penalty_its) || (solInfo.lm_update_flag == 1)) {
+       probDesc->updateParameters(geomState);
+     }
 
      if(converged == 1) {
        filePrint(stderr," ... Newton : Step #%d, Iter #%d converged after %d iterations\n",
@@ -111,7 +113,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
      } 
      else if(converged == 0 && solInfo.getNLInfo().stepUpdateK != std::numeric_limits<int>::max()) {
        filePrint(stderr," *** WARNING: Newton solve did not converge after %d iterations (res = %e, target = %e)\n",
-                 numIter, totalRes.norm(), probDesc->getTolerance());
+                 numIter, resN, probDesc->getTolerance());
      }
 
      filePrint(stderr, " ... Newton : End Step #%d, Iter #%d --- Max Steps = %d, Max Iters = %d\n",
@@ -120,6 +122,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
      filePrint(stderr," --------------------------------------\n");
    
      if(feasible) break;
+
    }
 
    if(solInfo.soltyp != 2) probDesc->updateStates(refState, *geomState, lambda);
@@ -205,8 +208,9 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
  int numIter = 0;
  int step    = 1;
+ double resN;
  newton(force, residual, totRes, elementInternalForce, probDesc, solver, u0,
-        u, stateIncr, numIter, lambda, step);
+        u, stateIncr, numIter, resN, lambda, step);
 
  // ... Declare Vector dU
  VecType dU(probDesc->solVecInfo());
@@ -308,7 +312,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  // ... CALL NEWTON FOR FINAL SOLUTION
  *u0 = *u;
  step++;
- newton(force, residual, totRes, elementInternalForce, probDesc, solver, u0, u, stateIncr, numIter, lambda, step);
+ newton(force, residual, totRes, elementInternalForce, probDesc, solver, u0, u, stateIncr, numIter, resN, lambda, step);
 
  probDesc->updateStates(u0, *u, lambda);
 
@@ -328,7 +332,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
          VecType& elementInternalForce, ProblemDescriptor *probDesc,
          OpSolver* solver, typename StateUpdate::RefState *refState,
          GeomType* geomState, typename StateUpdate::StateIncr *stateIncr,
-         int &numIter, double lambda, 
+         int &numIter, double &residualNorm, double lambda, 
          int step)
 {
   // Accumulate time spent in solving and geomstate update for one step
@@ -339,7 +343,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   int maxit = probDesc->getMaxit(), rebuildFlag;
   bool useTolInc = (solInfo.getNLInfo().tolInc != std::numeric_limits<double>::infinity()
                  || solInfo.getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
-  double residualNorm, normDv;
+  double normDv;
   
   // Zero the state increment
   StateUpdate::zeroInc(stateIncr);

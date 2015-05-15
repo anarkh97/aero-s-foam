@@ -341,7 +341,7 @@ MDNLDynamic::clean()
 }
 
 void
-MDNLDynamic::initializeParameters(DistrGeomState *geomState)
+MDNLDynamic::initializeParameters(int step, DistrGeomState *geomState)
 {
   execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeMultipliers, *geomState);
   execParal(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeParameters);
@@ -381,11 +381,11 @@ MDNLDynamic::subUpdateParameters(int isub)
 }
 
 bool
-MDNLDynamic::checkConstraintViolation(double &err)
+MDNLDynamic::checkConstraintViolation(double &err, DistrGeomState *gs)
 {
   err = 0;
   for(int isub=0; isub<decDomain->getNumSub(); ++isub)
-    err = std::max(err, decDomain->getSubDomain(isub)->getError(allCorot[isub]));
+    err = std::max(err, decDomain->getSubDomain(isub)->getError(allCorot[isub], *(*gs)[isub]));
 #ifdef DISTRIBUTED
   if(structCom) err = structCom->globalMax(err);
 #endif

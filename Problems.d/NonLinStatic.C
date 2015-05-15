@@ -141,9 +141,11 @@ NonLinStatic::updatePrescribedDisplacement(GeomState *geomState, double)
 }
 
 void
-NonLinStatic::initializeParameters(GeomState *geomState)
+NonLinStatic::initializeParameters(int step, GeomState *geomState)
 {
-  domain->initializeMultipliers(*geomState, allCorot);
+  if(step == 1 || domain->solInfo().reinit_lm) {
+    domain->initializeMultipliers(*geomState, allCorot);
+  }
   domain->initializeParameters();
 }
 
@@ -155,9 +157,9 @@ NonLinStatic::updateParameters(GeomState *geomState)
 }
 
 bool
-NonLinStatic::checkConstraintViolation(double &err)
+NonLinStatic::checkConstraintViolation(double &err, GeomState *gs)
 {
-  err = domain->getError(allCorot);
+  err = domain->getError(allCorot, *gs);
   return (err <= domain->solInfo().penalty_tol);
 }
 

@@ -76,9 +76,9 @@ class MDNLStatic
 
     void updatePrescribedDisplacement(DistrGeomState *geomState, double l=1.0);
 
-    void initializeParameters(DistrGeomState *geomState);
+    void initializeParameters(int step, DistrGeomState *geomState);
     void updateParameters(DistrGeomState *geomState);
-    bool checkConstraintViolation(double &err);
+    bool checkConstraintViolation(double &err, DistrGeomState *geomState);
 
     double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, 
                             DistrVector& elementInternalForce, DistrVector& gRes,

@@ -1049,15 +1049,21 @@ PodProjectionNonLinDynamic::getConstraintMultipliers(ModalGeomState &geomState)
 }
 
 void
-PodProjectionNonLinDynamic::initializeParameters(ModalGeomState *geomState)
+PodProjectionNonLinDynamic::initializeParameters(int step, ModalGeomState *geomState)
 {
-  NonLinDynamic::initializeParameters(geomState_Big);
+  NonLinDynamic::initializeParameters(step, geomState_Big);
 }
 
 void
 PodProjectionNonLinDynamic::updateParameters(ModalGeomState *geomState)
 {
   NonLinDynamic::updateParameters(geomState_Big);
+}
+
+bool
+PodProjectionNonLinDynamic::checkConstraintViolation(double &err, ModalGeomState *geomState)
+{
+  return NonLinDynamic::checkConstraintViolation(err, geomState_Big);
 }
 
 void

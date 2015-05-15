@@ -113,6 +113,7 @@ Force.d/PseudoTangentialMomentElement.C
 Force.d/HexaQ1P0.C
 Force.d/HexaQ2P0.C
 Force.d/HexaQ2Q1.C
+Force.d/IncompressibleHexaQ1P0.C
 Function.d/ExternalForce.d/FollowerMomentForceFunction.C
 Function.d/ExternalForce.d/FollowerForceFunction.C
 Function.d/InertialForce.d/InertialType1ForceFunction.C

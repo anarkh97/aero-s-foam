@@ -148,6 +148,7 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/Force.d/HexaQ1P0.h>
 #include <Element.d/Force.d/HexaQ2P0.h>
 #include <Element.d/Force.d/HexaQ2Q1.h>
+#include <Element.d/Force.d/IncompressibleHexaQ1P0.h>
 #endif
 
 #include <Element.d/Brick32.d/Brick32.h> 
@@ -769,6 +770,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 182:
        ele = new (ba) HexaQ2Q1(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 280:
+       ele = new (ba) IncompressibleHexaQ1P0(n);
        ele->setCategory(Element::Structural);
        break;
 #endif

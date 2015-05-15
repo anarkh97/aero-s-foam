@@ -4164,6 +4164,12 @@ NLInfo:
         { domain->solInfo().num_penalty_its = $3; 
           domain->solInfo().penalty_tol = $4;
           domain->solInfo().penalty_beta = $5; }
+        | NLInfo PENALTY Integer Float Float Integer Integer NewLine
+        { domain->solInfo().num_penalty_its = $3;
+          domain->solInfo().penalty_tol = $4;
+          domain->solInfo().penalty_beta = $5;
+          domain->solInfo().reinit_lm = bool($6);
+          domain->solInfo().lm_update_flag = $7; }
         | NLInfo NewtonInfo
         ;
 NewtonInfo:

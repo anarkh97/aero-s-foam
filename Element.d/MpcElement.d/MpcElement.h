@@ -80,6 +80,6 @@ class MpcElement : public Element, public Corotator, public LMPCons
 
     void initMultipliers(GeomState& c1);
     void updateMultipliers(GeomState& c1);
-    double getError();
+    double getError(GeomState& c1);
 };
 #endif

@@ -45,7 +45,7 @@ class SuperCorotator : public Corotator
   void getResidualCorrection(GeomState &gs, double *r);
   void initMultipliers(GeomState& c1);
   void updateMultipliers(GeomState& c1);
-  double getError();
+  double getError(GeomState& c1);
 
   bool useDefaultInertialStiffAndForce();
   void getInertialStiffAndForce(GeomState *refState, GeomState& c1, CoordSet& c0,

@@ -1220,7 +1220,7 @@ NonLinDynamic::factorWhenBuilding() const {
 }
 
 void
-NonLinDynamic::initializeParameters(GeomState *geomState)
+NonLinDynamic::initializeParameters(int step, GeomState *geomState)
 {
   domain->initializeMultipliers(*geomState, allCorot);
   domain->initializeParameters();
@@ -1234,9 +1234,9 @@ NonLinDynamic::updateParameters(GeomState *geomState)
 }
 
 bool
-NonLinDynamic::checkConstraintViolation(double &err)
+NonLinDynamic::checkConstraintViolation(double &err, GeomState *gs)
 {
-  err = domain->getError(allCorot);
+  err = domain->getError(allCorot, *gs);
   return (err <= domain->solInfo().penalty_tol);
 }
 

@@ -19,11 +19,13 @@ class MixedFiniteElement : public BoundaryElement
     Eigen::Matrix<double,N,1> q_copy;
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> CinvBt;
     Eigen::Matrix<double,Eigen::Dynamic,1> Cinvg;
+    double epsilon; // penalty parameter for incompressible materials
 
   protected:
     int materialType;
     NLMaterial *mat;
-    int nIV; // number of internal variables
+    int nIV; // number of internal variables (excluding lagrange multipliers for incompressible materials)
+    int nLM; // number of lagrange multiplier variables for incompressible materials
 
   public:
     MixedFiniteElement(int, DofSet, int*);
@@ -39,9 +41,12 @@ class MixedFiniteElement : public BoundaryElement
                     ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,
                     ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates>& H, double t);
 
-    int numStates() { return nIV; }
-    void initStates(double *states) { for(int i=0; i<nIV; ++i) states[i] = 0; }
-    void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0); 
+    int numStates() { return nIV+nLM; }
+    void initStates(double *states) { for(int i=0; i<nIV+nLM; ++i) states[i] = 0; }
+
+    void initMultipliers(GeomState& c1);
+    double getError(GeomState& c1);
+    void updateMultipliers(GeomState& c1);
 
     virtual int getQuadratureOrder() = 0;
 
@@ -51,7 +56,7 @@ class MixedFiniteElement : public BoundaryElement
                       Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> &iconst,
                       GeomState *gs = NULL);
     void getInputs(Eigen::Matrix<double,ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q, 
-                   CoordSet& c0, GeomState *c1 = NULL, GeomState *refState = NULL);
+                   CoordSet& c0, GeomState *c1 = NULL);
 };
 
 #ifdef _TEMPLATE_FIX_

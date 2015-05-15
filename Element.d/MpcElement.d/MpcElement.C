@@ -603,7 +603,7 @@ MpcElement::updateMultipliers(GeomState& c1)
 }
 
 double
-MpcElement::getError()
+MpcElement::getError(GeomState& c1)
 {
   return (type == 1) ? std::max(0.0,-rhs.r_value) : std::abs(-rhs.r_value);
 }

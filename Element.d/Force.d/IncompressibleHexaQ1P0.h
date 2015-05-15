@@ -1,0 +1,28 @@
+#ifndef _INCOMPRESSIBLEHEXAQ1P0_H_
+#define _INCOMPRESSIBLEHEXAQ1P0_H_
+
+#include <Element.d/Function.d/StrainEnergy.d/FourFieldStrainEnergyFunction.h>
+#include <Element.d/Function.d/Shape.d/Hex8LagrangePolynomial.h>
+#include <Element.d/Function.d/Shape.d/Constant.h>
+#include <Element.d/Function.d/QuadratureRule.h>
+#include <Element.d/Force.d/MixedFiniteElement.h>
+
+#if (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
+template <typename S>
+using HexaQ1P0FourFieldStrainEnergyFunction 
+      = Simo::FourFieldStrainEnergyFunction<S, Hex8LagrangePolynomialShapeFunction,
+                                            ConstantShapeFunction, ConstantShapeFunction, ConstantShapeFunction,
+                                            RepeatedQuadratureRule<double,GaussLegendre,3,Eigen::Vector3d>>;
+
+class IncompressibleHexaQ1P0 : public MixedFiniteElement<HexaQ1P0FourFieldStrainEnergyFunction>
+{
+  public:
+    static const DofSet NODALDOFS[8];
+    IncompressibleHexaQ1P0(int* _nn);
+
+    int getTopNumber();
+    PrioInfo examine(int sub, MultiFront *mf);
+    int getQuadratureOrder();
+};
+#endif
+#endif

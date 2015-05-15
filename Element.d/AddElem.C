@@ -147,7 +147,7 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/DiscreteMass.d/DiscreteMass6Dof.h>
 #include <Element.d/Force.d/HexaQ1P0.h>
 #include <Element.d/Force.d/HexaQ2P0.h>
-#include <Element.d/Force.d/HexaQ2Q1.h>
+#include <Element.d/Force.d/HexaQ2P1.h>
 #include <Element.d/Force.d/IncompressibleHexaQ1P0.h>
 #endif
 
@@ -769,7 +769,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele->setCategory(Element::Structural);
        break;
      case 182:
-       ele = new (ba) HexaQ2Q1(n);
+       ele = new (ba) HexaQ2P1(n);
        ele->setCategory(Element::Structural);
        break;
      case 280:

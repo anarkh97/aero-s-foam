@@ -42,6 +42,7 @@ class CompressibleMooneyRivlinStrainEnergyDensityFunction
         return c1*(pow(J,-2/3.)*I1 - 3) + c2*(pow(J,-4/3.)*I2 - 3) + c*(J-1)*(J-1);
       }
       else {
+        // note: this is the variant from which the constitutive relation in Material.d/MooneyRivlin.cpp is derived.
         return c1*(I1-3) + c2*(I2-3) + c*(J-1)*(J-1) - d*log(J);
       }
     }

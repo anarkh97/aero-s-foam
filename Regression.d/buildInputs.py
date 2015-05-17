@@ -348,14 +348,14 @@ def buildInputs(params):
 
       if(problem_type == "dsvm34"):
         OUTPUT = ["displmod"]
-        OUTPUT_EXTRAS = [" 200"]
+        OUTPUT_EXTRAS = [" 20"]
         NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["sparse","spooles","spooles pivot"]
-        NONLINEAR = ["maxitr 20\nnltol 1.0e-6\ndlambda 0.005\t 1.0"]
+        STATICS = ["sparse"]
+        NONLINEAR = ["maxitr 20\nnltol 1.0e-6\ndlambda 0.05\t 1.0\npenalty 10 1.0e-6 1"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,INCLUDE]
-        EXTRAS = ["constraints multipliers\n*","*","*","*"]
+        EXTRAS = ["CONSTRAINTS\naugmented 1e9\n*","*","*","*"]
 
       if(problem_type == "dsvm32"):
         OUTPUT = ["gtempera"]

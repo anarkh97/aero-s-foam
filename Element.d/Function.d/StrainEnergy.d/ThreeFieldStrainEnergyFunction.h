@@ -108,10 +108,10 @@ class ThreeFieldStrainEnergyFunction
           W = new SaintVenantKirchhoffStrainEnergyDensityFunction<Scalar>(c[0],c[1]);
           break;
         case 3 :
-          W = new CompressibleNeoHookeanStrainEnergyDensityFunction<Scalar>(c[0],c[1]);
+          W = new CompressibleNeoHookeanStrainEnergyDensityFunction<Scalar,true>(c[0],c[1]);
           break;
         case 4 :
-          W = new CompressibleMooneyRivlinStrainEnergyDensityFunction<Scalar>(c[0],c[1],c[2]);
+          W = new CompressibleMooneyRivlinStrainEnergyDensityFunction<Scalar,true>(c[0],c[1],c[2]);
           break;
         default : {
           std::cerr << "Error: unsupported strain energy density in ThreeFieldStrainEnergyFunction\n";

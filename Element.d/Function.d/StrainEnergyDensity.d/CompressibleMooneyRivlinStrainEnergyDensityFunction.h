@@ -8,7 +8,7 @@
 
 namespace Simo {
 
-template<typename Scalar>
+template<typename Scalar, bool Uncoupled>
 class CompressibleMooneyRivlinStrainEnergyDensityFunction
 : public StrainEnergyDensityFunction<Scalar>
 {
@@ -37,7 +37,13 @@ class CompressibleMooneyRivlinStrainEnergyDensityFunction
       Scalar I1 = C.trace();
       Scalar I2 = 0.5*(I1*I1-(C*C).trace());
       Scalar J = F.determinant();
-      return c1*(I1-3) + c2*(I2-3) + c*(J-1)*(J-1) - d*log(J);
+      if(Uncoupled) {
+        using std::pow;
+        return c1*(pow(J,-2/3.)*I1 - 3) + c2*(pow(J,-4/3.)*I2 - 3) + c*(J-1)*(J-1);
+      }
+      else {
+        return c1*(I1-3) + c2*(I2-3) + c*(J-1)*(J-1) - d*log(J);
+      }
     }
 };
 

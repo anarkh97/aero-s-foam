@@ -13,7 +13,7 @@ augmented 1e9
 NONLINEAR
 maxitr 20
 nltol 1.0e-6
-dlambda 0.005	 1.0
+dlambda 0.05	 1.0
 penalty 10 1.0e-6 1
 *
 OUTPUT

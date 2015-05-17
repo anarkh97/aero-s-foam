@@ -1,13 +1,13 @@
 #ifndef _HEXAQ2P1_H_
 #define _HEXAQ2P1_H_
 
+#if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 #include <Element.d/Function.d/StrainEnergy.d/ThreeFieldStrainEnergyFunction.h>
 #include <Element.d/Function.d/Shape.d/Hex20LagrangePolynomial.h>
 #include <Element.d/Function.d/Shape.d/Linear.h>
 #include <Element.d/Function.d/QuadratureRule.h>
 #include <Element.d/Force.d/MixedFiniteElement.h>
 
-#if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 template <typename S>
 using HexaQ2P1ThreeFieldStrainEnergyFunction 
       = Simo::ThreeFieldStrainEnergyFunction<S, Hex20LagrangePolynomialShapeFunction,

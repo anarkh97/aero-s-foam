@@ -48,6 +48,11 @@ master_node_flags(const SubDomain &subDom, BoolOutIt result) {
     }
   }
 
+  // remove nodes without any displacement/temperature dofs (e.g. internal Lagrange multiplier nodes)
+  for(int iNode = 0; iNode < nodeCount; ++iNode) {
+    if(! (*sd.getDSA())[iNode].contains(DofSet::XYZdisp | DofSet::XYZrot | DofSet::Temp) ) work[iNode] = false;
+  }
+
 #if defined(HACK_INTEL_COMPILER_ITS_CPP11) && (__GLIBC__ == 2) && (__GLIBC_MINOR__ == 12)
   // workaround issue in older version of glibc when compiling with -std=c++11
   std::vector<bool>::iterator first = work.begin(), last = work.end();

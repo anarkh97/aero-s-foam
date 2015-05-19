@@ -339,6 +339,10 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
       // check constraint violation error
       feasible = probDesc->checkConstraintViolation(err, geomState);
+      if(contactPrintFlag && (err > std::numeric_limits<double>::epsilon() || i > 0)) {
+        filePrint(stderr,"\n ... Constraint violation at iteration %d: %8.2e ...", i+1, err);
+        if(feasible || i+1 == solInfo.num_penalty_its) filePrint(stderr,"\n");
+      }
 
       // update lagrange multipliers and/or penalty parameters 
       if((!feasible && i+1 < solInfo.num_penalty_its) || (solInfo.lm_update_flag == 1)) {
@@ -348,7 +352,6 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       if(feasible) break;
 
     } // end of constraint enforcement iteration loop
-    if(contactPrintFlag && err > std::numeric_limits<double>::epsilon()) filePrint(stderr,"\n ... Constraint violation: %8.2e ...\n", err);
 
     if(failed) { 
       // if a Newton solve fails to converge, decrease the time step and try again

@@ -323,7 +323,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
         if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
             (*accel)[iSnap], 2); // just set the acceleration at the nodes of element iElem
         // Evaluate and store element contribution at training configuration
-        if(corotators_[iElem] && !domain_->solInfo().getNLInfo().linearelastic) {
+        if(corotators_[iElem] && (!domain_->solInfo().getNLInfo().linearelastic ||
+          (domain_->getElementSet()[iElem]->isConstraintElement() && domain_->solInfo().getNLInfo().linearelastic == 2))) {
           domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
         }
         else {

@@ -982,7 +982,7 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
                                              Vector &elementInternalForce, double t, ModalGeomState *refState, bool forceOnly)
 {
   Vector r(solVecInfo());
-  if(domain->solInfo().getNLInfo().linearelastic && domain->getFollowedElemList().empty() && !domain->solInfo().elemLumpPodRom) {
+  if(domain->solInfo().getNLInfo().linearelastic == 1 && domain->getFollowedElemList().empty() && !domain->solInfo().elemLumpPodRom) {
     K_reduced.mult(geomState.q, r);
     residual -= r;
   }

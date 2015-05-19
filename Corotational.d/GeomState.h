@@ -72,6 +72,7 @@ class GeomState {
      const NodeState & operator[](int i) const { return ns[i]; }
      void clearMultiplierNodes();
      void resizeLocAndFlag(DofSetArray &cdsa);
+     int getNodeFlag(int i) const { return flag[i]; }
 
      double * getElemState(int glNum) { return (numelems > 0) ? es[emap[glNum]].internalStates : 0; }
      int getNumElemStates(int glNum) { return (numelems > 0) ? es[emap[glNum]].numInternalStates : 0; }

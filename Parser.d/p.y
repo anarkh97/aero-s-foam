@@ -3278,7 +3278,7 @@ Statics:
             }
             domain->solInfo().setNewton(std::numeric_limits<int>::max());
             domain->solInfo().getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
-            domain->solInfo().getNLInfo().linearelastic = true;
+            domain->solInfo().getNLInfo().linearelastic = 1;
             domain->solInfo().getNLInfo().maxiter = 1;
           }
         }
@@ -3295,7 +3295,7 @@ Statics:
             }
             domain->solInfo().setNewton(std::numeric_limits<int>::max());
             domain->solInfo().getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
-            domain->solInfo().getNLInfo().linearelastic = true;
+            domain->solInfo().getNLInfo().linearelastic = 1;
             domain->solInfo().getNLInfo().maxiter = 1;
             domain->solInfo().getNLInfo().dlambda = $3;
             domain->solInfo().getNLInfo().maxLambda = $4;
@@ -4100,7 +4100,9 @@ NLInfo:
           else if(domain->solInfo().probType == SolverInfo::NonLinDynam)
             domain->solInfo().probType = SolverInfo::MatNonLinDynam; }
         | NLInfo LINEARELASTIC NewLine
-        { domain->solInfo().getNLInfo().linearelastic = true; }
+        { domain->solInfo().getNLInfo().linearelastic = 1; }
+        | NLInfo LINEARELASTIC Integer NewLine
+        { domain->solInfo().getNLInfo().linearelastic = $3; }
         | NLInfo MAXITR Integer NewLine
         { domain->solInfo().getNLInfo().maxiter = $3; }
         | NLInfo NLTOL Float NewLine

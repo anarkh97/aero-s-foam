@@ -233,7 +233,7 @@ BasisOrthoDriver::solve() {
                               solver.singularValueCount();
 
     // Output solution
-    if(domain->solInfo().normalize == 0) // old method for lumped: outputs identity normalized basis
+    if(domain->solInfo().normalize <= 0) // old method for lumped: outputs identity normalized basis
       filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", BasisFileId(fileInfo, type, BasisId::POD).name().c_str());
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
       output << std::make_pair(solver.singularValue(iVec), solver.matrixCol(iVec));
@@ -265,12 +265,14 @@ BasisOrthoDriver::solve() {
     }
     
     // Output the renormalized basis as separate file
-    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-    fileName.append(".normalized");
-    BasisOutputStream<6> outputNormalized(fileName, converter, false); 
-    filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
-    for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
-      outputNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
+    if(domain->solInfo().normalize >= 0) {
+      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+      fileName.append(".normalized");
+      BasisOutputStream<6> outputNormalized(fileName, converter, false); 
+      filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
+      for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
+        outputNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
+      }
     }
   
     // Compute and output orthonormal basis if using new method

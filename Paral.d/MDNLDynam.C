@@ -343,7 +343,9 @@ MDNLDynamic::clean()
 void
 MDNLDynamic::initializeParameters(int step, DistrGeomState *geomState)
 {
-  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeMultipliers, *geomState);
+  if(step == 1 || domain->solInfo().reinit_lm) {
+    execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeMultipliers, *geomState);
+  }
   execParal(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeParameters);
   domain->initializeParameters();
 }

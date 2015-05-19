@@ -59,7 +59,8 @@ struct NonlinearInfo {
    bool failsafe;
    double failsafe_tol;
 
-   bool linearelastic;
+   int linearelastic;   // 1: blanket small displacement assumption, excepting external follower forces 
+                        // 2: blanket small displacement assumption, excepting external follower forces and constraints
 
    NonlinearInfo() { setDefaults(); }
 
@@ -72,7 +73,7 @@ struct NonlinearInfo {
                      maxLambda = 1.0; lfactor    = 1.0; extMin  =   4;
                      extMax      = 6; unsymmetric = false;
                      failsafe = false; failsafe_tol = std::numeric_limits<double>::epsilon();
-                     stepUpdateK = 1; linearelastic = false; }
+                     stepUpdateK = 1; linearelastic = 0; }
 
 };
 

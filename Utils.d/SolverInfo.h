@@ -338,10 +338,10 @@ struct SolverInfo {
    bool reinit_lm; // true : the Lagrange multipliers are re-initialized to zero at the start of each load/time-step
                    // false (default) : the Lagrange multipliers are initialized to zero at the start of the first load/time-step
                    //                   subsequently, their values are retained.
-   int lm_update_flag; // 1 : the Lagrange multipliers are updated after each Newton solve in the penalty iteration loop.
-                       // 0 (default) : the Lagrange multipliers are updated after each Newton solve except for the final one (i.e. the one
-                       //               done before terminating the penalty iteration loop due to maximum number of iterations or satisfaction
-                       //               of the minimum constraint violation condition).
+   int lm_update_flag; // 1 (default) : the Lagrange multipliers are updated after each Newton solve in the penalty iteration loop.
+                       // 0 : the Lagrange multipliers are updated after each Newton solve except for the final one (i.e. the one
+                       //     done before terminating the penalty iteration loop due to maximum number of iterations or satisfaction
+                       //     of the minimum constraint violation condition).
 
    std::vector<std::string> RODConversionFiles;
    std::vector<std::string> PODerrornorm;
@@ -664,7 +664,7 @@ struct SolverInfo {
                   penalty_tol = 1e-8;
                   penalty_beta = 10;
                   reinit_lm = false;
-                  lm_update_flag = 0;
+                  lm_update_flag = 1;
                   mpcDirect = 0;
                   usePrescribedThreshold = false;
                   mpcDirectTol = 10;

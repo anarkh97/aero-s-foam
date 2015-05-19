@@ -323,7 +323,7 @@ MpcElement::getStiffAndForce(GeomState* refState, GeomState& c1, CoordSet& c0, F
   //  3. for direct elimination set prop->lagrangeMult to false and prop->penalty to 0
 
   if(prop->lagrangeMult || prop->penalty != 0) {
-    double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
+    double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // x is the lagrange multiplier (if used)
     if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {}
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
@@ -361,7 +361,7 @@ MpcElement::getInternalForce(GeomState *refState, GeomState& c1, CoordSet& c0, F
   //  3. for direct elimination set prop->lagrangeMult to false and prop->penalty to 0
 
   if(prop->lagrangeMult || prop->penalty != 0) {
-    double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
+    double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // x is the lagrange multiplier (if used)
     if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {} // note: if -rhs == -lambda/penalty
                                                                                       // then the derivative is indeterminate
     else {
@@ -605,5 +605,11 @@ MpcElement::updateMultipliers(GeomState& c1)
 double
 MpcElement::getError(GeomState& c1)
 {
-  return (type == 1) ? std::max(0.0,-rhs.r_value) : std::abs(-rhs.r_value);
+  // augmented lagrangian
+  if(prop->lagrangeMult && prop->penalty != 0) {
+    return (type == 1) ? std::max(0.0,-rhs.r_value) : std::abs(-rhs.r_value);
+  }
+  else {
+    return 0;
+  }
 }

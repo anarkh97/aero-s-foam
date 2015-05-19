@@ -1222,7 +1222,9 @@ NonLinDynamic::factorWhenBuilding() const {
 void
 NonLinDynamic::initializeParameters(int step, GeomState *geomState)
 {
-  domain->initializeMultipliers(*geomState, allCorot);
+  if(step == 1 || domain->solInfo().reinit_lm) {
+    domain->initializeMultipliers(*geomState, allCorot);
+  }
   domain->initializeParameters();
 }
 

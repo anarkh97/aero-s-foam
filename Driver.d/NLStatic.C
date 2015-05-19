@@ -95,7 +95,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
-    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
+    if(corotators[iele] && (!solInfo().getNLInfo().linearelastic || (packedEset[iele]->isConstraintElement() && solInfo().getNLInfo().linearelastic == 2))) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
       if(sinfo.newmarkBeta == 0) {
         corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());
@@ -672,7 +672,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
     }
 
     // Get updated tangent stiffness matrix and element internal force
-    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
+    if(corotators[iele] && (!solInfo().getNLInfo().linearelastic || (packedEset[iele]->isConstraintElement() && solInfo().getNLInfo().linearelastic == 2))) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), elementStiff);
       if(sinfo.newmarkBeta == 0) {
         corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());

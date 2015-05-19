@@ -61,7 +61,7 @@ void readIntoSolver(NonnegativeMatrixFactorization &solver, VecNodeDof1Conversio
 void
 PositiveDualBasisDriver::solve() {
   SingleDomainDynamic::preProcess();
-  VecNodeDof1Conversion converter(domain->getNumLMPC());
+  VecNodeDof1Conversion converter(domain->getNumCTC());
   FileNameInfo fileInfo;
   NonnegativeMatrixFactorization solver(domain->solInfo().maxSizePodRom, domain->solInfo().use_nmf);
   solver.maxIterIs(domain->solInfo().nmfMaxIter);

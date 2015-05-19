@@ -25,6 +25,7 @@ public:
 
   template <typename IdxInIt>
   DistrNodeDofBuffer(IdxInIt first, IdxInIt last);
+  DistrNodeDofBuffer(int size);
 
 private:
   void initialize();
@@ -44,6 +45,16 @@ DistrNodeDofBuffer<DOFS_PER_NODE>::DistrNodeDofBuffer(IdxInIt first, IdxInIt las
   globalNodeIndices_(first, last),
   buffer_()
 {
+  initialize();
+}
+
+template <int DOFS_PER_NODE>
+DistrNodeDofBuffer<DOFS_PER_NODE>::DistrNodeDofBuffer(int size) :
+  localNodeIndices_(),
+  globalNodeIndices_(),
+  buffer_()
+{
+  for(int i=0; i<size; ++i) globalNodeIndices_.push_back(i);
   initialize();
 }
 

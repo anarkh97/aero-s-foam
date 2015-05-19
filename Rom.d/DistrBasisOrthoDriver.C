@@ -165,7 +165,7 @@ DistrBasisOrthoDriver::solve() {
                                     nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
                                     comm_, false);
 
-    if(domain->solInfo().normalize == 0)
+    if(domain->solInfo().normalize <= 0)
       filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", BasisFileId(fileInfo, workload, BasisId::POD).name().c_str());
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));
@@ -211,14 +211,16 @@ DistrBasisOrthoDriver::solve() {
   }
 
   // Output the renormalized basis as separate file
-  std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
-  fileName.append(".normalized");
-  DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-  DistrBasisOutputFile outputNormalizedFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
-  filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
-  for (int iVec = 0; iVec < podVectorCount; ++iVec) {
-    converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);
-    outputNormalizedFile.stateAdd(outputBuffer, solver.singularValue(iVec));
+  if(domain->solInfo().normalize >= 0) {
+    std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
+    fileName.append(".normalized");
+    DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
+    DistrBasisOutputFile outputNormalizedFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
+    filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
+    for (int iVec = 0; iVec < podVectorCount; ++iVec) {
+      converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);
+      outputNormalizedFile.stateAdd(outputBuffer, solver.singularValue(iVec));
+    }
   }
 
   // Compute and output identity normalized basis if using new method

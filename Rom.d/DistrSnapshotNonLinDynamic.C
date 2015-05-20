@@ -45,7 +45,8 @@ struct DistrSnapshotNonLinDynamicDetail : private DistrSnapshotNonLinDynamic {
     DecDomain * decDomain_;
     DistrVecNodeDof6Conversion converter_;
     DistrMasterMapping masterMapping_;
-    DistrMpcMasterMapping mpcMasterMapping_;
+    DistrMpcMasterMapping *mpcMasterMapping_;
+    DistrMasterMapping *dualMasterMapping_;
 
     DistrNodeDof6Buffer snapBuffer_;
     DistrNodeDof1Buffer *dualSnapBuffer_;
@@ -75,7 +76,8 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::RawImpl(DecDomain *decDomain) :
   decDomain_(decDomain),
   converter_(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub()),
   masterMapping_(SubDomIt(decDomain->getAllSubDomains()), SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub())),
-  mpcMasterMapping_(SubDomIt(decDomain->getAllSubDomains()), SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub())),
+  mpcMasterMapping_(NULL),
+  dualMasterMapping_(NULL),
   snapBuffer_(masterMapping_.masterNodeBegin(), masterMapping_.masterNodeEnd()),
   dualSnapBuffer_(NULL),
   fileInfo_(),
@@ -103,11 +105,15 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::RawImpl(DecDomain *decDomain) :
                  (geoSource->getCheckFileInfo()->lastRestartFile != 0));}
   if(decDomain->getDomain()->solInfo().dsvPodRom){
     if(decDomain->getDomain()->solInfo().type == 2) {
-      dualSnapBuffer_ = new DistrNodeDof1Buffer(mpcMasterMapping_.masterNodeBegin(), mpcMasterMapping_.masterNodeEnd());
+      mpcMasterMapping_ = new DistrMpcMasterMapping(SubDomIt(decDomain->getAllSubDomains()), SubDomIt(decDomain->getAllSubDomains()
+                                                    + decDomain->getNumSub()));
+      dualSnapBuffer_ = new DistrNodeDof1Buffer(mpcMasterMapping_->masterNodeBegin(), mpcMasterMapping_->masterNodeEnd());
     }
     else {
-      dualSnapBuffer_ = new DistrNodeDof1Buffer(decDomain->getDomain()->getNumCTC());
-      mpcOffset_ = decDomain->getDomain()->getNodes().size()-decDomain->getDomain()->getNumCTC();
+      dualMasterMapping_ = new DistrMasterMapping(SubDomIt(decDomain->getAllSubDomains()), SubDomIt(decDomain->getAllSubDomains()
+                                                  + decDomain->getNumSub()), true);
+      mpcOffset_ = decDomain->getDomain()->numNode()-decDomain->getDomain()->getNumCTC();
+      dualSnapBuffer_ = new DistrNodeDof1Buffer(dualMasterMapping_->masterNodeBegin(), dualMasterMapping_->masterNodeEnd(), mpcOffset_);
     }
     dsvarSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::SNAPSHOTS), decDomain->getDomain()->getNumCTC(),
                  dualSnapBuffer_->globalNodeIndexBegin(), dualSnapBuffer_->globalNodeIndexEnd(), structCom, 
@@ -199,7 +205,7 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::dsvarSnapshotAdd(const DistrGeomState
   if(dsvarSnapFile_ && (dsvarSkip_ >= decDomain_->getDomain()->solInfo().skipDualStateVar)) {
     const int subDomCount = snap.getNumSub();
     if(decDomain_->getDomain()->solInfo().type == 2) { // FETI-DP with "multipliers" constraint method
-    DistrMasterMapping::SubMasterMappingIt mappingIt = mpcMasterMapping_.begin();
+    DistrMasterMapping::SubMasterMappingIt mappingIt = mpcMasterMapping_->begin();
     for (int iSub = 0; iSub < subDomCount; ++iSub) {
       const GeomState &subSnap = *snap[iSub];
       const MasterMapping &mapping = *mappingIt++;
@@ -218,10 +224,9 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::dsvarSnapshotAdd(const DistrGeomState
       }
     }}
     else { // Multi-domain MUMPS with "augmented" constraint method
-    DistrMasterMapping::SubMasterMappingIt mappingIt = masterMapping_.begin();
+    DistrMasterMapping::SubMasterMappingIt mappingIt = dualMasterMapping_->begin();
     for (int iSub = 0; iSub < subDomCount; ++iSub) {
       const GeomState &subSnap = *snap[iSub];
-      const CoordSet &refCoords = decDomain_->getSubDomain(iSub)->getNodes();
       const MasterMapping &mapping = *mappingIt++;
 
       typedef MasterMapping::IndexPairIterator IndexPairIt;

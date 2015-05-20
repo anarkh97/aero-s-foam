@@ -24,8 +24,7 @@ public:
   }
 
   template <typename IdxInIt>
-  DistrNodeDofBuffer(IdxInIt first, IdxInIt last);
-  DistrNodeDofBuffer(int size);
+  DistrNodeDofBuffer(IdxInIt first, IdxInIt last, int offset = 0);
 
 private:
   void initialize();
@@ -40,21 +39,14 @@ typedef DistrNodeDofBuffer<1> DistrNodeDof1Buffer;
 
 template <int DOFS_PER_NODE>
 template <typename IdxInIt>
-DistrNodeDofBuffer<DOFS_PER_NODE>::DistrNodeDofBuffer(IdxInIt first, IdxInIt last) :
+DistrNodeDofBuffer<DOFS_PER_NODE>::DistrNodeDofBuffer(IdxInIt first, IdxInIt last, int offset) :
   localNodeIndices_(),
   globalNodeIndices_(first, last),
   buffer_()
 {
-  initialize();
-}
-
-template <int DOFS_PER_NODE>
-DistrNodeDofBuffer<DOFS_PER_NODE>::DistrNodeDofBuffer(int size) :
-  localNodeIndices_(),
-  globalNodeIndices_(),
-  buffer_()
-{
-  for(int i=0; i<size; ++i) globalNodeIndices_.push_back(i);
+  if(offset != 0) {
+    for(std::vector<int>::iterator it = globalNodeIndices_.begin(); it != globalNodeIndices_.end(); ++it) (*it) -= offset;
+  }
   initialize();
 }
 

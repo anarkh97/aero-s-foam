@@ -28,7 +28,7 @@ public:
 
   DistrMasterMapping() {}
   template <typename SubDomFwdIt>
-  DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast);
+  DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast, bool internalNodes=false);
 
 protected:
   std::vector<MasterMapping> subMapping_;
@@ -37,7 +37,7 @@ protected:
 };
 
 template <typename SubDomFwdIt>
-DistrMasterMapping::DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast) {
+DistrMasterMapping::DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast, bool internalNodes) {
   for (SubDomFwdIt subDomIt = subDomFirst; subDomIt != subDomLast; ++subDomIt) {
     SubDomain &sd = *subDomIt;
     const int * const globalBegin = sd.getGlNodes();
@@ -46,7 +46,8 @@ DistrMasterMapping::DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subD
     localNodes_.insert(localNodes_.end(), globalBegin, globalEnd);
 
     std::vector<bool> masterNodes;
-    master_node_flags(sd, std::back_inserter(masterNodes));
+    if(internalNodes) internal_node_flags(sd, std::back_inserter(masterNodes));
+    else master_node_flags(sd, std::back_inserter(masterNodes));
     subMapping_.push_back(MasterMapping(globalBegin, globalEnd, masterNodes.begin()));
 
     std::vector<bool>::const_iterator flagIt = masterNodes.begin();

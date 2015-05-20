@@ -67,6 +67,35 @@ master_node_flags(const SubDomain &subDom, BoolOutIt result) {
 #endif
 }
 
+// Internal nodes of the subdomain (in local indexing)
+template <typename BoolOutIt>
+BoolOutIt
+internal_node_flags(const SubDomain &subDom, BoolOutIt result) {
+  SubDomain &sd = const_cast<SubDomain &>(subDom); // Fix constness
+  const int mySubId = sd.subNum();
+
+  const int nodeCount = sd.numNode();
+  std::vector<bool> work(nodeCount, false); // vector<bool> specialization acceptable here
+
+  // add nodes without any displacement/temperature dofs (e.g. internal Lagrange multiplier nodes)
+  for(int iNode = 0; iNode < nodeCount; ++iNode) {
+    if(! (*sd.getDSA())[iNode].contains(DofSet::XYZdisp | DofSet::XYZrot | DofSet::Temp) ) work[iNode] = true;
+  }
+
+#if defined(HACK_INTEL_COMPILER_ITS_CPP11) && (__GLIBC__ == 2) && (__GLIBC_MINOR__ == 12)
+  // workaround issue in older version of glibc when compiling with -std=c++11
+  std::vector<bool>::iterator first = work.begin(), last = work.end();
+  while (first!=last) {
+    bool firstval = *first;
+    *result = firstval;
+    ++result; ++first;
+  }
+  return result;
+#else
+  return std::copy(work.begin(), work.end(), result);
+#endif
+}
+
 } /* end namespace Rom */
 
 #endif /* ROM_DISTRDOMAINUTILS_H */

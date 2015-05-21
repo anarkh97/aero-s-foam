@@ -576,14 +576,16 @@ int main(int argc, char** argv)
       && (strcmp(domain->solInfo().readInModes,"") == 0)) {
      domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));
    }
-   else if (!domain->solInfo().samplingPodRom) {
-     domain->solInfo().activatePodRom = true;
-     domain->solInfo().galerkinPodRom = true;
+   else {
+     if (!domain->solInfo().samplingPodRom) {
+       domain->solInfo().activatePodRom = true;
+       domain->solInfo().galerkinPodRom = true;
 #ifdef USE_EIGEN3
-     if(domain->solInfo().subtype != 12) domain->solInfo().subtype = 13;
+       if(domain->solInfo().subtype != 12) domain->solInfo().subtype = 13;
 #else
-     domain->solInfo().subtype = 12;
+       domain->solInfo().subtype = 12;
 #endif
+     }
      if(domain->solInfo().modalCalled) {
        // for doing ROM with 2 sets of modes, #1 for the reduced order basis and #2 for modal IDISP/IVEL
        domain->readInModes(const_cast<char*>(domain->solInfo().readInModes));

@@ -140,6 +140,9 @@ static const char*header[] = {
 "",
 "",
 "",
+"",
+"",
+"",
 "#  Time       Wdis\n",
 "#  time   Element_no   Cause\n",
 ""

@@ -171,7 +171,7 @@ RigidEightNodeBrick::massMatrix(CoordSet &cs, double *mel, int cmflg)
           _FORTRAN(lgauss)(numgauss, k, &m[2], &wz);
           dOmega = Hexa8ShapeFct(Shape, DShape, m, X, Y, Z);
 #ifdef CHECK_JACOBIAN
-          checkJacobian(&dOmega, &jSign, "EightNodeBrick::massMatrix");
+          checkJacobian(&dOmega, &jSign, "RigidEightNodeBrick::massMatrix");
 #endif
           w = fabs(dOmega)*wx*wy*wz*prop->rho;
           addNtDNtoM3DSolid(M, Shape, w, nnodes, ls);
@@ -180,7 +180,7 @@ RigidEightNodeBrick::massMatrix(CoordSet &cs, double *mel, int cmflg)
     }
   }
   else { // Lumped mass matrix
-    fprintf(stderr," *** In EightNodeBrick::massMatrix: Lumped mass matrix NOT implemented. Abort.\n");
+    fprintf(stderr," *** In RigidEightNodeBrick::massMatrix: Lumped mass matrix NOT implemented. Abort.\n");
     exit(-1);
   }
 

@@ -159,7 +159,7 @@ class StructProp {
         double offset;
 	};
      union {
-        double Q;	// Specific heat coeffiecient
+        double Q;	// Specific heat coefficient
         double Mx;      // global x-component of applied moment
         double Fx;      // global x-component of applied force
         double F0;      // magnitude of an applied force

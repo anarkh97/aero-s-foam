@@ -132,7 +132,11 @@ inline double solve_quadprog2(const SolverType& chol, complex<double> c1, Vector
                               const MatrixXcd& CI, const VectorXcd& ci0,  
                               VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
                               double tol = 100.0,
+#if EIGEN_VERSION_AT_LEAST(3,2,90)
+                              const PermutationMatrix<Dynamic,Dynamic,typename SolverType::StorageIndex> *Pinv = NULL)
+#else
                               const PermutationMatrix<Dynamic,Dynamic,typename SolverType::Index> *Pinv = NULL)
+#endif
 { std::cerr << "solve_quadprog2 is not supported for complex\n"; return 0; }
 
 template<typename SolverType>
@@ -141,7 +145,11 @@ double solve_quadprog2(const SolverType& chol, double c1, VectorXd& g0,
                        const MatrixXd& CI, const VectorXd& ci0, 
                        VectorXd& x, VectorXd* lambda = NULL, VectorXd* mu = NULL,
                        double tol = 100.0,
+#if EIGEN_VERSION_AT_LEAST(3,2,90)
+                       const PermutationMatrix<Dynamic,Dynamic,typename SolverType::StorageIndex> *Pinv = NULL);
+#else
                        const PermutationMatrix<Dynamic,Dynamic,typename SolverType::Index> *Pinv = NULL);
+#endif
 
 /* solve_quadprog is used for on-demand QP solving */
 inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
@@ -182,7 +190,11 @@ inline double solve_quadprog2(const SolverType& chol, double c1, VectorXd& g0,
                               const MatrixXd& CI, const VectorXd& ci0,
                               VectorXd& x, VectorXd* lambda, VectorXd* mu,
                               double tol,
+#if EIGEN_VERSION_AT_LEAST(3,2,90)
+                              const PermutationMatrix<Dynamic,Dynamic,typename SolverType::StorageIndex> *Pinv)
+#else
                               const PermutationMatrix<Dynamic,Dynamic,typename SolverType::Index> *Pinv)
+#endif
 {
   using std::abs;
   int i, j, k, l; /* indices */

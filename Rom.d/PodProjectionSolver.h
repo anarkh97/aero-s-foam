@@ -20,6 +20,7 @@ public:
 
   // Constraint assembly
   virtual void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef) = 0;
+  virtual void addModalLMPCs(double Kcoef, int Wcols, std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end) = 0;
   virtual void updateLMPCs(GenVector<Scalar> &q) = 0;
 
   // Solution
@@ -60,6 +61,7 @@ public:
 
   // Constraint assembly
   void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef) {}
+  void addModalLMPCs(double Kcoef, int Wcols,std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end) {}
   void updateLMPCs(GenVector<Scalar> &q) {}
 
   // Solution

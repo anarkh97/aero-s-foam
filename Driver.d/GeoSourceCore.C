@@ -4759,6 +4759,10 @@ void GeoSource::pushBackUDEIMVec(double Uelem) {
   UDEIMBasisVec.push_back(Uelem);
 }
 
+void GeoSource::pushBackROMLMPCVec(double value) {
+  ROMLMPCVec.push_back(value);
+}
+
 void GeoSource::setSampleNodesAndSlots(int node, int dof){
   nodeDofSlotPairVec_.push_back(std::make_pair(node,dof));
 }

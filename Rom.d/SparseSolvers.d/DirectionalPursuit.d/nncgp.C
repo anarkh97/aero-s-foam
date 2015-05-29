@@ -67,14 +67,14 @@ nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnor
     }
 
     if((rnorm <= abstol && maxEle == 0) || k+nld_indices.size() == maxvec ) {maxEle = k; break;}
-    if(iter >= maxit) { info = 3; break; }
+    if(iter >= maxit) { maxEle = k; info = 3; break; }
 
     g = S.asDiagonal()*(A.transpose()*r); // gradient
     long int i;
     h = g; for(long int j=0; j<k; ++j) h[indices[j]] = -std::numeric_limits<double>::max(); // make sure the index has not already been selected
     for(long int j=0; j<nld_indices.size(); ++j) h[nld_indices[j]] = -std::numeric_limits<double>::max(); // also make sure near linear dependent indices are not selected
     double gi = h.maxCoeff(&i);
-    if(gi <= 0) break;
+    if(gi <= 0) {maxEle = k; break;}
     B.col(k) = S[i]*A.col(i);
     indices.push_back(i);
     // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)

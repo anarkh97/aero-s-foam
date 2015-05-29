@@ -37,7 +37,7 @@ bool operator== (const long_int& lhs, const long_int& rhs);
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime)
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, bool project, double &dtime)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector

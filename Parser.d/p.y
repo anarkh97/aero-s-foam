@@ -182,6 +182,7 @@ Component:
         | NeumanBC
         { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
         | ModalNeumanBC
+        | ModalLMPConstrain
         | LMPConstrain 
         | ComplexLMPConstrain 
 	| ElemSet
@@ -1998,6 +1999,13 @@ LMPConstrain:
         LMPC NewLine
         | LMPC NewLine MPCList
 	;
+ModalLMPConstrain:
+        LMPC NewLine MODAL Integer NewLine
+        { domain->solInfo().maxSizeDualBasis = $4;
+          domain->solInfo().modalLMPC = true; }
+        | ModalLMPConstrain Float NewLine
+        { geoSource->pushBackROMLMPCVec($2); }
+        
 MPCList:
         MPCHeader MPCLine
         { $$ = $1;
@@ -4736,6 +4744,9 @@ SnapshotProject:
 SamplingOption:
     PODROB FNAME
   { domain->solInfo().readInROBorModes = $2; }
+  | DUALBASIS FNAME Integer 
+  { domain->solInfo().readInDualROB = $2;
+    domain->solInfo().maxSizeDualBasis = $3; }
   | TRNVCT FNAME
   { domain->solInfo().statePodRomFile.push_back($2); }
   | TRNVCT FNAME FNAME

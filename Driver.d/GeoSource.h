@@ -673,7 +673,10 @@ public:
 
   std::vector<double>::const_iterator UDEIMVecBegin() const { return UDEIMBasisVec.begin();}
   std::vector<double>::const_iterator UDEIMVecEnd() const { return UDEIMBasisVec.end();}
-  
+
+  std::vector<double>::const_iterator ROMLMPCVecBegin() const { return ROMLMPCVec.begin();}
+  std::vector<double>::const_iterator ROMLMPCVecEnd() const { return ROMLMPCVec.end();}
+
   double * RedKData() { return ReducedStiffVec.data(); }
   double * UDEIMData() { return UDEIMBasisVec.data(); }
 
@@ -683,6 +686,7 @@ public:
   void setElementLumpingWeight(int iele, double value);
   void pushBackStiffVec(double Kelem);
   void pushBackUDEIMVec(double Uelem);
+  void pushBackROMLMPCVec(double value);
   void setSampleNodesAndSlots(int node, int dof);
   void setSampleElemsAndDOFs(int elem,int dof);
 
@@ -692,6 +696,7 @@ private:
   ElemDofPairVec elemDofPairVec_;
   std::vector<double> ReducedStiffVec;
   std::vector<double> UDEIMBasisVec;
+  std::vector<double> ROMLMPCVec;
 
 protected:
   void closeOutputFileImpl(int fileIndex);

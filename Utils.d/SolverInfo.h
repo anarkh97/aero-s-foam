@@ -375,6 +375,7 @@ struct SolverInfo {
    bool jacobvectPodRom;
    bool readmodeCalled;
    bool modalCalled;
+   bool modalLMPC;
    bool readShapeSen; 
    bool activatePodRom;
    bool snapshotsPodRom;
@@ -697,6 +698,7 @@ struct SolverInfo {
                   jacobvectPodRom    = false;
                   readmodeCalled     = false;
                   modalCalled        = false;
+                  modalLMPC          = false;
                   readShapeSen       = false;
                   activatePodRom     = false;
                   snapshotsPodRom    = false;

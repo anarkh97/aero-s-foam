@@ -53,26 +53,54 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::addLMPCs(int numLMPC, LMPCons **lmp
 {
   if(numLMPC > 0 && !selfadjoint_) { std::cerr << "Error: unsymmetric solver is not supported for contact ROM\n"; exit(-1); }
 
-  std::vector<Eigen::Triplet<Scalar> > tripletList;
+    std::vector<Eigen::Triplet<Scalar> > tripletList;
 
-  Eigen::SparseMatrix<Scalar> C(numLMPC, cdsa_->size());
-  Eigen::Matrix<Scalar,Eigen::Dynamic,1> g(numLMPC);
+    Eigen::SparseMatrix<Scalar> C(numLMPC, cdsa_->size());
+    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g(numLMPC);
 
-  for(int i=0; i<numLMPC; ++i) {
-    for(int j=0; j<lmpc[i]->nterms; ++j) {
-      int cdof = cdsa_->locate(lmpc[i]->terms[j].nnum, 1 << lmpc[i]->terms[j].dofnum);
-      if(cdof > -1) {
-        tripletList.push_back(Eigen::Triplet<Scalar>(i, cdof, Scalar(lmpc[i]->terms[j].coef.r_value)));
+    for(int i=0; i<numLMPC; ++i) {
+      for(int j=0; j<lmpc[i]->nterms; ++j) {
+        int cdof = cdsa_->locate(lmpc[i]->terms[j].nnum, 1 << lmpc[i]->terms[j].dofnum);
+        if(cdof > -1) {
+          tripletList.push_back(Eigen::Triplet<Scalar>(i, cdof, Scalar(lmpc[i]->terms[j].coef.r_value)));
+        }
       }
+      g[i] = lmpc[i]->rhs.r_value;
     }
-    g[i] = lmpc[i]->rhs.r_value;
+
+    C.setFromTriplets(tripletList.begin(), tripletList.end());
+
+    const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis(), &W = dualProjectionBasis_->basis();
+    reducedConstraintMatrix_ = Kcoef*W.transpose()*C*V;
+    reducedConstraintRhs0_ = reducedConstraintRhs_ = Kcoef*W.transpose()*g;
+}
+
+template <typename Scalar>
+void
+GenEiSparseGalerkinProjectionSolver<Scalar>::addModalLMPCs(double Kcoef, int Wcols, std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end)
+{
+  std::cout << " ... Using Modal LMPCs              ..." << std::endl;
+  dualBasisSize_ = Wcols;
+  int counter = 0; int column = 0; int row = 0;
+  reducedConstraintMatrix_.setZero(dualBasisSize_,basisSize_);
+  reducedConstraintRhs0_.setZero(dualBasisSize_);
+  // set reduced Constraint Matrix
+  while(counter < dualBasisSize_*basisSize_) {
+    reducedConstraintMatrix_(row,column) = *it; row++; counter++; it++;
+    if(row == dualBasisSize_) {
+      row = 0;
+      column++;
+    }
   }
-
-  C.setFromTriplets(tripletList.begin(), tripletList.end());
-
-  const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis(), &W = dualProjectionBasis_->basis();
-  reducedConstraintMatrix_ = Kcoef*W.transpose()*C*V;
-  reducedConstraintRhs0_ = reducedConstraintRhs_ = Kcoef*W.transpose()*g;
+  reducedConstraintMatrix_ *= Kcoef;
+  // set reduced Constraint RHS
+  row = 0;
+  while(it != it_end) {
+    reducedConstraintRhs0_(row) = *it; row++; it++;
+  }
+  reducedConstraintRhs0_ *= Kcoef;
+  reducedConstraintRhs_ = reducedConstraintRhs0_;
+  reducedConstraintForce_.setZero(basisSize_);
 }
 
 template <typename Scalar>

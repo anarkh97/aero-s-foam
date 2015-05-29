@@ -153,11 +153,17 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   PodProjectionSolver *solver = getSolver();
   solver->projectionBasisIs(projectionBasis_);
 
-  if(strcmp(solInfo().readInDualROB,"") != 0) {
+  if(strcmp(solInfo().readInDualROB,"") != 0 && !solInfo().modalLMPC) {
     solver->dualProjectionBasisIs(dualProjectionBasis_);
     double dt = solInfo().getTimeStep(), beta = solInfo().newmarkBeta;
     double Kcoef = dt*dt*beta;
     solver->addLMPCs(getNumLMPC(), getLMPCs(), Kcoef);
+  }
+
+  if(solInfo().modalLMPC){
+    double dt = solInfo().getTimeStep(), beta = solInfo().newmarkBeta;
+    double Kcoef = dt*dt*beta;
+    solver->addModalLMPCs(Kcoef,solInfo().maxSizeDualBasis,geoSource->ROMLMPCVecBegin(),geoSource->ROMLMPCVecEnd());
   }
 
   solver->factor(); // Delayed factorization
@@ -651,7 +657,7 @@ PodProjectionNonLinDynamic::checkConvergence(int iteration, double normRes, Vect
 double
 PodProjectionNonLinDynamic::getResidualNorm(const Vector &residual, ModalGeomState &, double) {
 #ifdef USE_EIGEN3
-  if(strcmp(domain->solInfo().readInDualROB,"") != 0) {
+  if(strcmp(domain->solInfo().readInDualROB,"") != 0 || domain->solInfo().modalLMPC) {
     const Eigen::VectorXd &fc = dynamic_cast<PodProjectionSolver*>(solver)->lastReducedConstraintForce();
     return (Eigen::Map<const Eigen::VectorXd>(residual.data(), residual.size()) - fc).norm();
   } else
@@ -897,15 +903,12 @@ PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &v
     NonLinDynamic::formRHScorrector(inc_displacement_Big, velocity_Big, acceleration_Big,
                                     residual_Big, rhs_Big, geomState_Big, localDelta);
 
-
     projectionBasis.reduce(rhs_Big, rhs);
   }
-
   if(domain->solInfo().order == 1)
     rhs += localDelta*residual;
   else
     rhs += (dt*dt*beta)*residual;
-
   return rhs.norm();
 }
 

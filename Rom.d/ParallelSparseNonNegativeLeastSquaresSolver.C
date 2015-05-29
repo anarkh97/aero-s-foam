@@ -32,7 +32,7 @@ splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime);
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, bool project, double &dtime);
 
 #endif
 
@@ -122,7 +122,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
     case 7 : { // Non-negative Conjugate Gradient Pursuit
       filePrint(stderr, " ... Using Parallel CGLASSO Solver    ...\n");
       x = pcglars(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
-                 verboseFlag_, scalingFlag_, centerFlag_, dtime);
+                 verboseFlag_, scalingFlag_, centerFlag_, projectFlag_, dtime);
     } break;
   }
   double t = (getTime() - t0)/1000.0;

@@ -489,6 +489,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   bool reduce_f = (forceFull.norm() != 0);
   if(reduce_f) reduce(podBasis_, forceFull, constForceRed);
 
+  // 3) set LMPC
+  int numLMPC = domain->getNumLMPC(); 
+
   // compute the reduced initial conditions
   Vector d0Full(SingleDomainDynamic::solVecInfo()),
          v0Full(SingleDomainDynamic::solVecInfo());
@@ -541,6 +544,55 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
     for(int i=0; i<podBasis_.vectorCount(); ++i) 
       meshOut << i+1 << " " << constForceRed[i] << std::endl;
   }
+
+  if(numLMPC > 0) {
+
+    if(strcmp(domain_->solInfo().readInDualROB,"") != 0) {
+      VecBasis dualProjectionBasis_;
+      VecNodeDof1Conversion vecNodeDof1Conversion(numLMPC);
+      // Load dual projection basis    
+      std::string fileName = BasisFileId(fileInfo, BasisId::DUALSTATE, BasisId::POD);
+      BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
+      const int dualProjectionSubspaceSize = domain_->solInfo().maxSizeDualBasis ?
+                                             std::min(domain_->solInfo().maxSizeDualBasis, dualProjectionBasisInput.size()) :
+                                             dualProjectionBasisInput.size();
+  
+      readVectors(dualProjectionBasisInput, dualProjectionBasis_, dualProjectionSubspaceSize);
+  
+      filePrint(stderr, " ... Dual Proj. Subspace Dim. = %-3d ...\n", dualProjectionBasis_.vectorCount());
+      meshOut << "*\nLMPC\nMODAL " << dualProjectionBasis_.vectorCount() << std::endl;
+
+      std::vector<Eigen::Triplet<double> > tripletList;
+      Eigen::SparseMatrix<double> C(numLMPC, domain_->getCDSA()->size());
+      Eigen::Matrix<double,Eigen::Dynamic,1> g(numLMPC);
+      LMPCons** lmpc(domain_->getLMPC()->data());
+      
+      //construct constraint matrix and right hand side
+      for(int i=0; i<numLMPC; ++i) {
+        for(int j=0; j<lmpc[i]->nterms; ++j) {
+          int cdof = domain_->getCDSA()->locate(lmpc[i]->terms[j].nnum, 1 << lmpc[i]->terms[j].dofnum);
+          if(cdof > -1) {
+            tripletList.push_back(Eigen::Triplet<double>(i, cdof, double(lmpc[i]->terms[j].coef.r_value)));
+          }
+        }
+        g[i] = lmpc[i]->rhs.r_value;
+      } 
+ 
+      C.setFromTriplets(tripletList.begin(), tripletList.end());
+      const Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = podBasis_.basis(), &W = dualProjectionBasis_.basis();
+      Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> reducedConstraintMatrix_ = W.transpose()*C*V;
+      Eigen::Matrix<double,Eigen::Dynamic,1> reducedConstraintRhs0_ = W.transpose()*g;
+      // output reduced Constraints to reduced mesh file
+      for(int col=0; col<podBasis_.vectorCount(); ++col) {
+         meshOut << reducedConstraintMatrix_.col(col) << std::endl;
+      }
+      meshOut << reducedConstraintRhs0_ << std::endl;
+
+    } else {
+      filePrint(stderr, "... No Filename given for Precomputation of reduced Constraints ...\n");
+    }
+
+  } 
 
   // output the reduced initial conditions
   if(reduce_idis) {

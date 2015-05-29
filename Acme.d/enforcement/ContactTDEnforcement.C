@@ -49,6 +49,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -70,6 +71,8 @@ using namespace std;
 #define COLLINEARITY_TOL 0.99e0
 #undef  CONVERGENCE_TOL
 #define CONVERGENCE_TOL 1.0e-10
+#undef  FAIL_TOL
+#define FAIL_TOL 0.01
 
 // Internal flags 
 // LOCAL_PRINT_FLAG = 0 turns off all internal debugging prints
@@ -1576,8 +1579,10 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
   if(iteration == num_iterations) std::cerr<<"iteration loop did not converge: rel. residual = " << global_inc_force_norm/initial_global_inc_force_norm << "\n";
 #endif
-  if(iteration == num_iterations && num_iterations > 1 && global_inc_force_norm > initial_global_inc_force_norm) {
-    if(contact_processor_number(communicator)==0) std::cerr << "error: contact enforcement failed.\n";
+  if(iteration == num_iterations && num_iterations > 1 && global_inc_force_norm > std::max(initial_global_inc_force_norm,FAIL_TOL)) {
+    if(contact_processor_number(communicator)==0)
+      std::cerr << "\rerror: contact enforcement failed (inc. force = " << global_inc_force_norm 
+                << ", target = " << std::max(convergence_tolerance*initial_global_inc_force_norm, convergence_tolerance) << ")\n";
   }
 
 #if !defined (CONTACT_NO_MPI) && defined (CONTACT_TIMINGS)

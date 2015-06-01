@@ -16,6 +16,10 @@
 #include <omp.h>
 #endif
 
+Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
+pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime);
+
 struct double_int {
   double val;
   int rank;
@@ -28,12 +32,10 @@ struct long_int {
 
 bool operator== (const long_int& lhs, const long_int& rhs);
 
-// Parallel implementation of Non-negative Conjugate Gradient Pursuit using either MPI, OpenMP or both.
-// This is a non-negative constrained variant of Conjugate Gradient Pursuit, and generates identical iterates (up to round-off error) to
-// Lawson & Hanson's NNLS (non-negative least squares) algorithm.
+// Parallel implementation of Non-negative LASSO based on Conjugate Gradient Pursuit using either MPI, OpenMP or both.
 // References:
 // 1. Blumensath, Thomas, and Michael E. Davies. "Gradient pursuits." Signal Processing, IEEE Transactions on 56.6 (2008): 2370-2382.
-// 2. Lawson, C. L., & Hanson, R. J. (1974). Solving least squares problems (Vol. 161). Englewood Cliffs, NJ: Prentice-hall.
+// 2. Efron, Bradley, Hastie, Trevor, Johnstone, Iain, and Tibshirani, Robert. "Least Angle Regression" The Annals of Statistics
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
@@ -341,84 +343,83 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
           }
           s.rank = q.sub;
         }
-#endif               
+#endif     
+          
         // add new column and update gradient vector
         if(s.rank == myrank) {
-           indices[ik].push_back(jk[ik]); 
-           B[ik].col(l[ik]) = S[ik][jk[ik]]*A[ik].col(jk[ik]);
-           grad = oneNwA - B[ik].col(l[ik]).transpose()*update;
-           grad = grad/oneNwA;
-           //scatter new vector and update conjugate direction
-           buf1 = B[ik].col(l[ik])*grad*-1;
+          indices[ik].push_back(jk[ik]);
+          B[ik].col(l[ik]) = S[ik][jk[ik]]*A[ik].col(jk[ik]);
 #ifdef USE_MPI
-           MPI_Scatterv(buf1.data(), counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, s.rank, mpicomm);
+          MPI_Scatterv(B[ik].col(l[ik]).data(), counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, s.rank, mpicomm);
 #else
-	   buf3 = buf1; 
+          buf3 = B[ik].col(l[ik]);
 #endif
-           p.index = jk[ik];
-           p.sub   = ik; 
-         } 
+          p.index = jk[ik];
+          p.sub   = ik;
+        }
 #ifdef USE_MPI
-         else {
-           MPI_Scatterv(0, counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, s.rank, mpicomm); // vector is now scattered
-         }
-
-         MPI_Bcast(&p, 1, MPI_LONG_INT, s.rank, mpicomm);
+        else {
+          MPI_Scatterv(0, counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, s.rank, mpicomm); // vector is now scattered
+        }
+        MPI_Bcast(&p, 1, MPI_LONG_INT, s.rank, mpicomm);
 #endif
-         gindices.push_back(std::pair<int,long_int>(s.rank,p)); // udpate global indices set
 
-         buf2.head(k+1) = BD.leftCols(k+1).transpose()*buf3;
+        gindices.push_back(std::pair<int,long_int>(s.rank,p)); // udpate global indices set
+        grad = buf3.dot(update.segment(displs[myrank],counts[myrank])); 
+#ifdef USE_MPI
+        MPI_Allreduce(MPI_IN_PLACE, &grad, 1, MPI_DOUBLE, MPI_SUM, mpicomm);
+#endif        
+        grad = 1.0 - grad/oneNwA;                                // all processors now have grad
+        buf3 *= grad*-1; 
+        
+        buf2.head(k+1) = BD.leftCols(k+1).transpose()*buf3;
   
 #ifdef USE_MPI
-         MPI_Allreduce(MPI_IN_PLACE, buf2.data(), maxvec, MPI_DOUBLE, MPI_SUM, mpicomm); // all processor now have buf2 to compute DtGDinv, it will be reused later
+        MPI_Allreduce(MPI_IN_PLACE, buf2.data(), maxvec, MPI_DOUBLE, MPI_SUM, mpicomm); // all processor now have buf2 to compute DtGDinv, it will be reused later
 #endif
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
-         for(int i=0; i<nsub; ++i) { // compute new conjugate direction
-           D[i].col(k+1).setZero();
-           D[i].col(k+1).head(l[i]) = D[i].topLeftCorner(l[i],k+1).triangularView<Upper>()*buf2.head(k+1);
-         }
+        for(int i=0; i<nsub; ++i) { // compute new conjugate direction
+          D[i].col(k+1).setZero();
+          D[i].col(k+1).head(l[i]) = D[i].topLeftCorner(l[i],k+1).triangularView<Upper>()*buf2.head(k+1);
+        }
 
-         if(s.rank == myrank) {
-           D[ik].col(k+1)[l[ik]] = grad; // set last element of new vector
-           l[ik]++;
-         }
+        if(s.rank == myrank) {
+          D[ik].col(k+1)[l[ik]] = grad; // set last element of new vector
+          l[ik]++;
+        }
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
-         for(int i=0; i<nsub; ++i) {
-           c_loc.col(i) = B[i].leftCols(l[i])*D[i].col(k+1).head(l[i]);
-         }
-         buf1 = c_loc.rowwise().sum();
+        for(int i=0; i<nsub; ++i) {
+          c_loc.col(i) = B[i].leftCols(l[i])*D[i].col(k+1).head(l[i]);
+        }
+        buf1 = c_loc.rowwise().sum();
 #ifdef USE_MPI
-         MPI_Allreduce(MPI_IN_PLACE, buf1.data(), m, MPI_DOUBLE, MPI_SUM, mpicomm); // all processor now have buf1 to compute DtGDinv, it will be reused later
+        MPI_Allreduce(MPI_IN_PLACE, buf1.data(), m, MPI_DOUBLE, MPI_SUM, mpicomm); // all processor now have buf1 to compute DtGDinv, it will be reused later
 #endif
-         DtGDinv = 1/buf1.squaredNorm();                                            // all processors now have DtGDinv
-         BD.col(k+1) = DtGDinv*buf1.segment(displs[myrank],counts[myrank]);         // BD is now updated on every processor
+        DtGDinv = 1/buf1.squaredNorm();                                            // all processors now have DtGDinv
+        BD.col(k+1) = DtGDinv*buf1.segment(displs[myrank],counts[myrank]);         // BD is now updated on every processor
 
-         if(s.rank == myrank) { // update step length
-           a[k+1] = grad*grad*DtGDinv; 
-         }
-#ifdef USE_MPI
-         MPI_Bcast(&a[k+1], 1, MPI_DOUBLE, s.rank, mpicomm); // broadcast new step length
-#endif
-         // check for linear dependence
-         if(a[k+1] != a[k+1] /* check for nan*/ || a[k+1] <= std::numeric_limits<double>::min()  /* or too close to current columns*/ ) {
-           nld_indices.push_back(std::pair<int,long_int>(s.rank,p));
-           gindices.pop_back();
-           if(s.rank == myrank) {
-             indices[ik].pop_back();
-             l[ik]--; 
-           }
-           continue;
-         } else nld_indices.clear();
- 
-         dropId = false;
+        a[k+1] = grad*grad*DtGDinv;                                                // all processors now have new step length
 
-         break; // break from linear dependence loop 
+        // check for linear dependence
+        if(a[k+1] != a[k+1] /* check for nan*/ || a[k+1] <= std::numeric_limits<double>::min()  /* or too close to current columns*/ ) {
+          nld_indices.push_back(std::pair<int,long_int>(s.rank,p));
+          gindices.pop_back();
+          if(s.rank == myrank) {
+            indices[ik].pop_back();
+            l[ik]--; 
+          }
+          continue;
+        } else nld_indices.clear();
+
+        dropId = false;
+
+        break; // break from linear dependence loop 
       } 
     } // end linear independence loop
     // update solution estimates
@@ -485,22 +486,30 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
           MPI_Allreduce(MPI_IN_PLACE, update.data(), m, MPI_DOUBLE, MPI_SUM, mpicomm); // all processor now have update, it will be reused later
 #endif
 
-          if(it->first == myrank){
+          // add new column and update gradient vector
+          if(it->first == myrank) {
             int i = it->second.sub;
             B[i].col(l[i]) = S[i][it->second.index]*A[i].col(it->second.index);
-            grad = 1 - B[i].col(l[i]).transpose()*update;
-            buf1 = B[i].col(l[i])*grad*-1;
 #ifdef USE_MPI
-           MPI_Scatterv(buf1.data(), counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, it->first, mpicomm);
+            MPI_Scatterv(B[i].col(l[i]).data(), counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, it->first, mpicomm);
 #else
-           buf3 = buf1; 
+            buf3 = B[i].col(l[i]);
 #endif
           }
 #ifdef USE_MPI
           else {
-              MPI_Scatterv(0, counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, it->first, mpicomm); // vector is now scattered
+             MPI_Scatterv(0, counts, displs, MPI_DOUBLE, buf3.data(), counts[myrank], MPI_DOUBLE, it->first, mpicomm); // vector is now scattered
           }
 #endif
+
+          grad = buf3.dot(update.segment(displs[myrank],counts[myrank])); 
+
+#ifdef USE_MPI
+          MPI_Allreduce(MPI_IN_PLACE, &grad, 1, MPI_DOUBLE, MPI_SUM, mpicomm);
+#endif
+          
+          grad = 1.0 - grad; // all processors now have grad 
+          buf3 *= grad*-1;    
 
           buf2.head(k) = BD.leftCols(k).transpose()*buf3;
 
@@ -535,12 +544,7 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
           DtGDinv = 1/buf1.squaredNorm(); // all processors now have DtGDinv 
           BD.col(k) = DtGDinv*buf1.segment(displs[myrank],counts[myrank]); // BD is now updated on every processor
 
-          if(it->first == myrank) { // update step length
-            a[k] = grad*grad*DtGDinv;
-          }
-#if USE_MPI
-          MPI_Bcast(&a[k], 1, MPI_DOUBLE, it->first, mpicomm); // broadcast new step length
-#endif
+          a[k] = grad*grad*DtGDinv; // all processors now have the new step length
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
@@ -566,9 +570,34 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
-  for(int i=0; i<nsub; ++i) {
+  for(int i=0; i<nsub; ++i)
     x[i] = VectorXd::Zero(A[i].cols());
-    for(long int j=0; j<l[i]; ++j) x[i][indices[i][j]] = S[i][indices[i][j]]*y[i][j];
+
+  if(project){
+
+    if(myrank == 0)
+      std::cout << "Performing Non-negative least squares projection" << std::endl;
+
+    Array<VectorXd,Dynamic,1> dummyx(nsub);
+    std::vector<Eigen::Map<Eigen::MatrixXd> > subsetA(nsub, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
+    for(int i=0; i<nsub; ++i) {// pass only the selected subset of elements to the parallel NNLS solver
+      new (&subsetA[i]) Eigen::Map<Eigen::MatrixXd>(B[i].data(),B[i].rows(),l[i]);
+    }
+    dummyx = pnncgp(subsetA, b, rnorm, n, info, maxsze, maxite, reltol, true, scaling, center, dtime);
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+    for(int i=0; i<nsub; ++i)
+      for(long int j=0; j<l[i]; ++j) x[i][indices[i][j]] = S[i][indices[i][j]]*dummyx[i][j];
+
+  } else {
+
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+    for(int i=0; i<nsub; ++i) 
+      for(long int j=0; j<l[i]; ++j) x[i][indices[i][j]] = S[i][indices[i][j]]*y[i][j];
+
   }
 
 #ifdef USE_MPI

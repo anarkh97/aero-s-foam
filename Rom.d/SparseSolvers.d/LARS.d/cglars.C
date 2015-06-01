@@ -235,7 +235,7 @@ cglars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& r
   if(project) { // can do a non-negative least squares projection onto the non-negative lasso basis
     std::cout << "*** PROJECTING SOLUTION ON TO SELECTED BASIS ***" << std::endl;
     maxEle = 0;
-    reltol = 0.;
+//    reltol = 0.;
     ylar.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxEle, maxite, reltol, verbose, scaling, center, false, dtime);
   }
 

@@ -20,6 +20,11 @@ Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
        long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime);
 
+Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
+splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime,
+       int npMax, int scpkMB, int scpkNB, int scpkMP, int scpkNP);
+
 struct double_int {
   double val;
   int rank;
@@ -407,7 +412,7 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
         a[k+1] = grad*grad*DtGDinv;                                                // all processors now have new step length
 
         // check for linear dependence
-        if(a[k+1] != a[k+1] /* check for nan*/ || a[k+1] <= std::numeric_limits<double>::min()  /* or too close to current columns*/ ) {
+        if(a[k+1] != a[k+1] /* check for nan*/ || a[k+1] <= std::numeric_limits<double>::min()  /* or too close to current columns*/ || grad <= 0.0) {
           nld_indices.push_back(std::pair<int,long_int>(s.rank,p));
           gindices.pop_back();
           if(s.rank == myrank) {
@@ -583,7 +588,8 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
     for(int i=0; i<nsub; ++i) {// pass only the selected subset of elements to the parallel NNLS solver
       new (&subsetA[i]) Eigen::Map<Eigen::MatrixXd>(B[i].data(),B[i].rows(),l[i]);
     }
-    dummyx = pnncgp(subsetA, b, rnorm, n, info, maxsze, maxite, reltol, true, scaling, center, dtime);
+//    dummyx = pnncgp(subsetA, b, rnorm, n, info, maxsze, maxite, reltol, true, scaling, center, dtime);
+    dummyx = splh(subsetA, b, rnorm, n, info, maxsze, maxit, reltol, true, scaling, false, dtime, 0, 0, 0, 0, 0);
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif

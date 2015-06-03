@@ -163,6 +163,7 @@ cglars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& r
         // update BD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
         grad = oneNwA - (B.col(k+1).transpose()*update);
         grad = grad/oneNwA;
+         
         Block<MatrixXd,Dynamic,1,true> d_next = D.col(k+1), c = BD.col(k+1); 
         d_next.head(k+1) = D.topLeftCorner(k+1,k+1).triangularView<Upper>()*(BD.leftCols(k+1).transpose()*B.col(k+1)*grad*-1);
         d_next[k+1] = grad; 
@@ -172,7 +173,7 @@ cglars(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref< Eigen::VectorXd> b, double& r
         a[k+1] = grad*grad*DtGDinv;
 
         //if diagonal element is too small, then column is near linearly dependent
-        if(a[k+1] != a[k+1] /* check for nan*/ || a[k+1] <= std::numeric_limits<double>::min()  /* or too close to current columns*/ ) {
+        if(a[k+1] != a[k+1] /* check for nan*/ || a[k+1] <= std::numeric_limits<double>::min()  /* or too close to current columns*/ || grad <= 0. /* or already in subspace */) {
           nld_indices.push_back(i); indices.pop_back();
           std::cout << "*** Rejecting selected covariant [" << i << "] ***" << std::endl;
           continue;

@@ -30,6 +30,7 @@ class SCIntMatrix : public SCBaseMatrix {
         int reorder(SCIntMatrix& order);
         void swap(int i, int j);
         int distributeVector();
+        int isEqual(SCIntMatrix& imat);
 
     private:
         int * _matrix;     // Local _mlocal X _nlocal matrix

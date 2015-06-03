@@ -21,6 +21,7 @@ Plh::solve() {
     MPI_Barrier(MPI_COMM_WORLD);
     initplh();
     _iter = 0;
+    _iter_total = 0;
     _subiter = 0;
     bool done = false;
     bool reject;
@@ -77,6 +78,7 @@ Plh::solve() {
                 _zmin = _zQR->getMin(1, _nP);
                 sub_iteration_output(iqr);
                 _subiter++;
+                _iter_total++;
                 stopTime(TIME_DOWNDATE);
             }
             _xQR->zero();
@@ -88,6 +90,7 @@ Plh::solve() {
         if (_iter % _residualIncr == 0) writeResidual();
         stopTime(TIME_ITER);
         _iter++;
+        _iter_total++;
     }
     // Write the final residual regardless of _residualIncr 
     if ((_iter-1) % _residualIncr != 0) writeResidual();
@@ -146,9 +149,7 @@ Plh::initplh() {
             std::cout << "Scaling the matrix columns." << std::endl;
         }
         _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
-        _A->norm2Colunns(*_colnorms);
-        _colnorms->elementWiseInverse();
-        _A->columnScaling(*_colnorms);
+        _A->scaleColumnsByL2Norm(*_colnorms);
         stopTime(TIME_COLUMNSCALING);
     }
 

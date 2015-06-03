@@ -30,6 +30,16 @@ SCDoubleMatrix::SCDoubleMatrix(int context, int m, int n, int mb, int nb) :
 
 SCDoubleMatrix::SCDoubleMatrix(const SCDoubleMatrix& matrix) : 
     SCBaseMatrix(matrix._context, matrix._m, matrix._n, matrix._mb, matrix._nb) {
+    //SCBaseMatrix::init();
+    SCDoubleMatrix::init();
+    for (int i=0; i<_sizelocal; i++) {
+        _matrix[i] = matrix._matrix[i];
+    }
+}
+
+
+SCDoubleMatrix::SCDoubleMatrix(const SCDoubleMatrix& matrix, int ncols) : 
+    SCBaseMatrix(matrix._context, matrix._m, ncols, matrix._mb, matrix._nb) {
     SCBaseMatrix::init();
     SCDoubleMatrix::init();
     for (int i=0; i<_sizelocal; i++) {
@@ -65,6 +75,7 @@ SCDoubleMatrix::init() {
     _matrix = new double[_sizelocal];
     _isQR = false;
     _tau = NULL;
+    _sing = NULL;
     for (int i=0; i < SCDBL_N_TIMES; i++) {
         _wallclock[i] = 0.0;
         _wallclock_total[i] = 0.0;
@@ -86,11 +97,14 @@ SCDoubleMatrix::~SCDoubleMatrix() {
     if (_tau != NULL) {
         delete _tau;
     }
+    if (_sing != NULL) {
+        delete[] _sing;
+    }
 }
 
 
 void
-SCDoubleMatrix::write(std::string filename, bool compact) {
+SCDoubleMatrix::write(std::string filename, bool compact, int m, int n) {
     char scope = 'A';
     char blank = ' ';
     double alpha;
@@ -98,8 +112,10 @@ SCDoubleMatrix::write(std::string filename, bool compact) {
     if (_mypid == 0) {
         f = fopen(filename.c_str(), "w");
     }
-    for (int i=1; i<=_m; i++) {
-        for (int j=1; j<=_n; j++) {
+    if (m == 0) m = _m;
+    if (n == 0) n = _n;
+    for (int i=1; i<=m; i++) {
+        for (int j=1; j<=n; j++) {
             _FORTRAN(pdelget)(&scope, &blank, &alpha, _matrix, &i, &j, _desc);
             if (_mypid == 0) {
                 if (compact) {
@@ -107,13 +123,13 @@ SCDoubleMatrix::write(std::string filename, bool compact) {
                 } else {
                     fprintf(f, "%24.16e ", alpha);
                 }
-                if (_m == 1 || _n == 1) {
+                if (m == 1 || n == 1) {
                     fprintf(f, "\n");
                 }
             }
         }
         if (_mypid == 0) {
-            if ( !(_m == 1 || _n == 1) ) {
+            if ( !(m == 1 || n == 1) ) {
                 fprintf(f, "\n");
             }
         }
@@ -155,7 +171,7 @@ SCDoubleMatrix::writeLocal(std::string filename) {
 // j is an element of [1,_n]; Starts at 1 for Fortran
 int
 SCDoubleMatrix::setMatrixColumn(int j, double *col) {
-    if (j > 0 && j <= _n) {
+    if (j >= 1 && j <= _n) {
         for (int i=1; i<=_m; i++) {
             _FORTRAN(pdelset)(_matrix, &i, &j, _desc, &(col[i-1]));
         }   
@@ -168,7 +184,7 @@ SCDoubleMatrix::setMatrixColumn(int j, double *col) {
 
 int
 SCDoubleMatrix::setMatrixRow(int i, double *row) {
-    if (i > 0 && i <= _m) {
+    if (i >= 1 && i <= _m) {
         for (int j=1; j<=_n; j++) {
             _FORTRAN(pdelset)(_matrix, &i, &j, _desc, &(row[j-1]));
         }   
@@ -209,9 +225,9 @@ SCDoubleMatrix::norm2Colunns(SCDoubleMatrix& colnorms) {
     int zero=0, one=1, jloc, dummy, p;
     double norm;
     for (int j=1; j<=_n; j++) {
-        _FORTRAN(pdnrm2)(&_m, &norm, _matrix, &one, &j, _desc, &one);
         p = _FORTRAN(indxg2p)(&j, &(colnorms._nb), &dummy, &zero, &(colnorms._npcol));
         if (p == _mycol) {
+            _FORTRAN(pdnrm2)(&_m, &norm, _matrix, &one, &j, _desc, &one);
             jloc = _FORTRAN(indxg2l)(&j, &(colnorms._nb), &dummy, &dummy, &(colnorms._npcol));
             colnorms._matrix[jloc-1] = norm; // jloc is a Fortran index
         }
@@ -288,22 +304,33 @@ SCDoubleMatrix::zero() {
 }
 
 
-int
-SCDoubleMatrix::zero(int ix, int jx, int n) {
+void
+SCDoubleMatrix::zero(int ix, int jx, int ni, int nj) {
     double dzero = 0.0;
-    for (int i=ix; i<=n; i++) {
-        _FORTRAN(pdelset)(_matrix, &i, &jx, _desc, &dzero);
+    for (int i=ix; i<=ix+ni-1; i++) {
+        for (int j=jx; j<=jx+nj-1; j++) {
+            _FORTRAN(pdelset)(_matrix, &i, &j, _desc, &dzero);
+        }
+    }
+}
+
+
+int
+SCDoubleMatrix::set(double value) {
+    for (int i=0; i<_sizelocal; i++) {
+        _matrix[i] = value;
     }
     return 0;
 }
 
 
-int
-SCDoubleMatrix::set(double val) {
-    for (int i=0; i<_sizelocal; i++) {
-        _matrix[i] = val;
+void
+SCDoubleMatrix::set(double value, int ix, int jx, int ni, int nj) {
+    for (int i=ix; i<=ix+ni-1; i++) {
+        for (int j=jx; j<=jx+nj-1; j++) {
+            _FORTRAN(pdelset)(_matrix, &i, &j, _desc, &value);
+        }
     }
-    return 0;
 }
 
 
@@ -390,20 +417,20 @@ SCDoubleMatrix::setElementsLocal(const SCDoubleMatrix& matrix) {
 
 // Only for vectors
 void
-SCDoubleMatrix::project() {
+SCDoubleMatrix::project(double value) {
     if (_m == 1) {
         if (_myrow == 0) {
             for (int i=0; i<_nlocal; i++) {
-                if (_matrix[i] < 0.0) {
-                    _matrix[i] = 0.0;
+                if (_matrix[i] < value) {
+                    _matrix[i] = value;
                 }
             }
         }
     } else if (_n == 1) {
         if (_mycol == 0) {
             for (int i=0; i<_mlocal; i++) {
-                if (_matrix[i] < 0.0) {
-                    _matrix[i] = 0.0;
+                if (_matrix[i] < value) {
+                    _matrix[i] = value;
                 }
             }
         }
@@ -524,8 +551,8 @@ SCDoubleMatrix::add(SCDoubleMatrix& matrix, char trans, int m, int n, double a, 
 int
 SCDoubleMatrix::add(SCDoubleMatrix& matrix, char trans, int n, double a, double b) {
     int one = 1;
-    if (_m == matrix._m && _n == matrix._n) {
-         _FORTRAN(pdgeadd)(&trans, &n, &one, &a,
+    if (_m == matrix._m && _n == matrix._n && _m == 1) {
+         _FORTRAN(pdgeadd)(&trans, &one, &n, &a,
             _matrix,        &one, &one, _desc, &b,
             matrix._matrix, &one, &one, matrix._desc);
     } else {
@@ -1151,6 +1178,31 @@ SCDoubleMatrix::getMaxTime(int i) {
 
 
 void
+SCDoubleMatrix::scaleColumnsByL2Norm(SCDoubleMatrix& colScale) {
+    // Square the elements
+    for (int j=0; j<_nlocal; j++) {
+        int n = j*_mlocal;
+        colScale._matrix[j] = 0.0;
+        for (int i=0; i<_mlocal; i++) {
+            colScale._matrix[j] += _matrix[i+n]*_matrix[i+n];
+        }
+    }
+    // Sum
+    char scope = 'C';
+    int minusone = -1, zero=0, one=1;
+    _FORTRAN(dgsum2d)(&_context, &scope, &_top, &one, &_n, colScale._matrix, &one, &minusone, &zero);
+    // Compute L2 norm and scale
+    for (int j=0; j<_nlocal; j++) {
+        int n = j*_mlocal;
+        colScale._matrix[j] = 1.0 / sqrt(colScale._matrix[j]);
+        for (int i=0; i<_mlocal; i++) {
+            _matrix[i+n] *= colScale._matrix[j];
+        }
+    }
+}
+
+
+void
 SCDoubleMatrix::elementWiseInverse() {
     for (int i=0; i<_sizelocal; i++) {
         if (_matrix[i] != 0.0) {
@@ -1169,4 +1221,164 @@ SCDoubleMatrix::columnScaling(SCDoubleMatrix& colScale) {
         }
     }
 }
+
+
+bool
+SCDoubleMatrix::isFeasible() {
+    bool feasible = true;
+    int i = 0;
+    while (feasible && i<_sizelocal) {
+        if (_matrix[i] < 0.0) {
+            feasible = false;
+        }
+        i++;
+    }
+    int minusone=-1, zero=0, one=1;
+    int ra, ca, rcflag=-1;
+    int feas=0;
+    if (!feasible) feas=1;
+    _FORTRAN(igamx2d)(&_context, &_scope, &_top, &one, &one, &feas, &one, &ra, &ca, &rcflag, &minusone, &zero);
+    SCBaseMatrix::distributeVector(&feas, 1);
+    if (feas != 0) feasible = false;
+    return feasible;
+}
+
+void
+SCDoubleMatrix::AtA(SCDoubleMatrix& A, int n) {
+    char transA = 'T';
+    char transB = 'N';
+    double alpha = 1.0, beta = 0.0;
+    double * matrixC = A.getMatrix();
+    int * descC = A.getDesc();
+    int one = 1;
+
+    _FORTRAN(pdgemm)( &transA, &transB, &n, &n, &_m,
+                      &alpha,
+                      _matrix, &one, &one, _desc,
+                      _matrix, &one, &one, _desc,
+                      &beta,
+                      matrixC, &one, &one, descC);
+}
+
+
+int
+SCDoubleMatrix::solve(SCDoubleMatrix& x, SCDoubleMatrix& b, int n) {
+    int one=1;
+    int info;
+
+    SCDoubleMatrix * z = new SCDoubleMatrix(_context, n, 1,  _mb, _nb);
+    b.copy(*z, n);
+    int * ipiv = new int[_mlocal + _mb];
+    double * rhs = z->getMatrix();
+    int * descRhs = z->getDesc();
+
+    _FORTRAN(pdgesv)(&n, &one, _matrix, &one, &one, _desc, ipiv, rhs, &one, &one, descRhs, &info);
+    x.zero();
+    z->copy(x, n);
+    delete[] ipiv;
+    delete z;
+    return info;
+}
+
+
+int
+SCDoubleMatrix::choldecomp(int n) {
+    char uplo = 'L';
+    int one = 1, info;
+    _FORTRAN(pdpotrf)(&uplo, &n, _matrix, &one, &one, _desc, &info);
+    return info;
+}
+
+
+int
+SCDoubleMatrix::cholsolve(SCDoubleMatrix& x, SCDoubleMatrix& b, int n) {
+    char uplo = 'L';
+    int one = 1, info;
+    SCDoubleMatrix * z = new SCDoubleMatrix(_context, n, 1,  _mb, _nb);
+    b.copy(*z, n);
+    double * rhs = z->getMatrix();
+    int * descRhs = z->getDesc();
+    _FORTRAN(pdpotrs)(&uplo, &n, &one, _matrix, &one, &one, _desc, rhs, &one, &one, descRhs, &info);
+    x.zero();
+    z->copy(x, n);
+    delete z;
+    return info;
+}
+
+
+int
+SCDoubleMatrix::singularValues() {
+    if (_sing == NULL) {
+        _sing = new double[std::min(_m, _n)];
+    } else {
+        return 0; // Already computed
+    }
+    char jobu = 'N';
+    char jobvt = 'N';
+    int one=1, lwork, dummy, info;
+    double u, v;
+    double swork;
+    // First get size of work
+    lwork = -1;
+    _FORTRAN(pdgesvd)(&jobu, &jobvt, &_m, &_n, _matrix, &one, &one, _desc, _sing,
+                      &u, &one, &one, &dummy,
+                      &v, &one, &one, &dummy,
+                      &swork, &lwork, &info);
+    lwork = (int) swork + 1;
+    double * work = new double[lwork];
+    _FORTRAN(pdgesvd)(&jobu, &jobvt, &_m, &_n, _matrix, &one, &one, _desc, _sing,
+                      &u, &one, &one, &dummy,
+                      &v, &one, &one, &dummy,
+                      work, &lwork, &info);
+    delete[] work;
+    return info;
+}
+
+
+double
+SCDoubleMatrix::minSingularValue() {
+    if (_sing == NULL) {
+        singularValues();
+    }
+    return _sing[std::min(_m, _n)-1];
+}
+
+
+double
+SCDoubleMatrix::maxSingularValue() {
+    if (_sing == NULL) {
+        singularValues();
+    }
+    return _sing[0];
+}
+
+
+double
+SCDoubleMatrix::conditionNumber() {
+    double condNumber;
+    double maxSing = maxSingularValue();
+    double minSing = minSingularValue();
+    if (minSing == 0.0) {
+        condNumber = POSITIVE_INF;
+    } else {
+        condNumber = maxSing/minSing;
+    }
+    return condNumber;
+}
+
+
+void
+SCDoubleMatrix::writeSingularValues(std::string filename) {
+    if (_sing == NULL) {
+        singularValues();
+    }
+    if (_mypid == 0) {
+        FILE * f = fopen(filename.c_str(), "w");
+        for (int i=0; i<std::min(_m, _n); i++) {
+            fprintf(f, "%24.16e\n", _sing[i]);
+        }
+        fclose(f);
+    }
+}
+
 #endif

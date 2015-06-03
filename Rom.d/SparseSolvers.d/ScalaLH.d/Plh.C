@@ -317,28 +317,34 @@ Plh::setMatrixColumn(int j, double *col) {
 
 
 int
+Plh::setMatrixRow(int j, double *row) {
+    return _A->setMatrixRow(j, row);
+}
+
+
+int
 Plh::setRHS(double *rhs) {
     return _b->setMatrixColumn(1, rhs);
 }
 
 
 int
-Plh::writeMatrix(std::string filename) {
-    _A->write(filename, true);
+Plh::writeMatrix(std::string filename, bool compact) {
+    _A->write(filename, compact);
     return 0;
 }
 
 
 int
-Plh::writeRhs(std::string filename) {
-    _b->write(filename, true);
+Plh::writeRhs(std::string filename, bool compact) {
+    _b->write(filename, compact);
     return 0;
 }
 
 
 int
-Plh::writeX(std::string filename) {
-    _x->write(filename);
+Plh::writeX(std::string filename, bool compact) {
+    _x->write(filename, compact);
     return 0;
 }
 
@@ -464,26 +470,21 @@ Plh::loadRhs(const Eigen::Ref<const Eigen::VectorXd> &eb){
 
 void
 Plh::sub_iteration_output(int iqr) {
-    // _rnorm2 = residual2Norm();
     if (_mypid == 0) {
-        //if (_iter%HEADER_INCR == 0) {
-        //    header();
-        //}
         printf("#%5d %8d %12.4e %8d %12.4e %8d %12.4e %12.4e %8d\n",
-            _iter, _nP, _wmax.x, _wmax.i, _zmin.x, _zmin.i, _rnorm2, _alpha, iqr);
+            _iter_total, _nP, _wmax.x, _wmax.i, _zmin.x, _zmin.i, _rnorm2, _alpha, iqr);
     }
 }
 
 
 void
 Plh::iteration_output() {
-    // _rnorm2 = residual2Norm();
     if (_mypid == 0) {
         if (_iter%HEADER_INCR == 0) {
             header();
         }
         printf("%6d %8d %12.4e %8d %12.4e %8d %12.4e\n",
-            _iter, _nP, _wmax.x, _wmax.i, _zmin.x, _zmin.i, _rnorm2);
+            _iter_total, _nP, _wmax.x, _wmax.i, _zmin.x, _zmin.i, _rnorm2);
     }
 }
 
@@ -517,7 +518,7 @@ Plh::header() {
 void
 Plh::writeSolution(bool compact) {
     _x->write("x.plh", compact);
-    writeSet("set.plh");
+    //writeSet("set.plh");
 }
 
 
@@ -542,7 +543,12 @@ Plh::printTimes(bool debug) {
         if (_mypid == 0) {
             std::cout << std::endl;
             std::cout << "Wallclock Times (seconds):"                                             << std::endl;
-            std::cout << "    gradf            : " << _wallclock_total[TIME_GRADF]                << std::endl;
+            std::cout << "    Solver            : " << _wallclock_total[TIME_MAIN_LOOP]           << std::endl;
+            std::cout << "        gradf         : " << _wallclock_total[TIME_GRADF]               << std::endl;
+            std::cout << "        QR            : " << _wallclock_total[TIME_UPDATEQR]            << std::endl;
+            std::cout << "        Down Date     : " << _wallclock_total[TIME_DOWNDATE]            << std::endl;
+            std::cout << "    Column Scaling    : " << _wallclock_total[TIME_COLUMNSCALING]       << std::endl;
+            std::cout << "    Distribute Matrix : " << _wallclock_total[TIME_LOADMATRIX]          << std::endl;
             std::cout << "    mult gradf       : " << _wallclock_total[TIME_MULT_GRADF]           << std::endl;
             std::cout << "    pdormq gradf     : " << _wallclock_total[TIME_PDORMQR_GRADF]        << std::endl;
             std::cout << "    updateQR         : " << _wallclock_total[TIME_UPDATEQR]             << std::endl;
@@ -566,12 +572,9 @@ Plh::printTimes(bool debug) {
             std::cout << "    _w Max           : " << w_max                                       << std::endl;
             std::cout << "    _zQR MinLoc      : " << z_minloc                                    << std::endl;
             std::cout << "    _zQR Min         : " << z_min                                       << std::endl;
-            std::cout << "    loadMatrix       : " << _wallclock_total[TIME_LOADMATRIX]           << std::endl;
             std::cout << "    loadRhs          : " << _wallclock_total[TIME_LOADRHS]              << std::endl;
             std::cout << "    get x Eigen      : " << _wallclock_total[TIME_GET_SOLUTION]         << std::endl;
             std::cout << "    Column Scaling   : " << _wallclock_total[TIME_COLUMNSCALING]        << std::endl;
-            std::cout << "    Down Date        : " << _wallclock_total[TIME_DOWNDATE]             << std::endl;
-            std::cout << "    Loop Total       : " << _wallclock_total[TIME_MAIN_LOOP]            << std::endl;
         }
     } else {
         if (_mypid == 0) {

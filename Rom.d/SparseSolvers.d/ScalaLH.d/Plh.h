@@ -47,7 +47,8 @@
 #define TIME_GET_SOLUTION 32
 #define TIME_DOWNDATE 33
 #define TIME_COLUMNSCALING 34
-#define N_TIMES 35
+#define TIME_COLUMNNORMS 35
+#define N_TIMES 36
 
 #define MBA_DEFAULT 16
 #define NBA_DEFAULT 16
@@ -68,13 +69,14 @@ class Plh {
         ~Plh();
 
         int setMatrixColumn(int j, double *col);
+        int setMatrixRow(int j, double *row);
         int setRHS(double *rhs);
         int solve();
         int close();
 
-        int writeMatrix(std::string filename);
-        int writeRhs(std::string filename);
-        int writeX(std::string filename);
+        int writeMatrix(std::string filename, bool compact=false);
+        int writeRhs(std::string filename, bool compact=false);
+        int writeX(std::string filename, bool compact=false);
         double getResidualNorm() {return _rnorm2;};
         double getComputeTime() {return getTime(TIME_MAIN_LOOP);}
         double getDistributeMatrixTime() {return getTime(TIME_LOADMATRIX);}
@@ -110,6 +112,7 @@ class Plh {
         void setMaxIter( double max_iter ) {_max_iter=max_iter;}
         void setColumnScaling();
         int getStatus() {return _status;}
+        int getContext() {return _context;}
 
     private:
         // A context
@@ -188,6 +191,7 @@ class Plh {
         int _nprocs;
         int _mypid;
         int _iter;
+        int _iter_total;
         int _max_iter;
         int _subiter;
         int _lwork_qr;

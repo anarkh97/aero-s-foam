@@ -286,4 +286,20 @@ SCIntMatrix::swap(int i, int j) {
         std::cout << "SCIntMatrix::swap(i,j) only handles vectors" << std::endl;
     }
 }
+ 
+
+int
+SCIntMatrix::isEqual(SCIntMatrix& imat) {
+    int * matrix = imat.getMatrix();
+    int count = 0;
+    for (int i=0; i<_sizelocal; i++) {
+        if (_matrix[i] != matrix[i]) {
+            count++;
+        }
+    }
+    int minusone=-1, zero=0, one=1;
+    _FORTRAN(igsum2d)(&_context, &_scope, &_top, &one, &one, &count, &one, &minusone, &zero);
+    SCBaseMatrix::distributeVector(&count, 1);
+    return count;
+}
 #endif

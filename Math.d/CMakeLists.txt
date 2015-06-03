@@ -55,7 +55,7 @@ FactorSparse.d/dgers.f       FactorSparse.d/inpdof.f  FactorSparse.d/zero.f
 FactorSparse.d/dpotf2_ldl.f  FactorSparse.d/inpmat.f
 FactorSparse.d/dpotrf_ldl.f  FactorSparse.d/inpnv.f
 SCMatrix.d/fpdlapiv.f        SCMatrix.d/fpslapiv.f
-SCMatrix.d/fpdlapv2.f        SCMatrix.d/fpslapv2.f
+SCMatrix.d/fpdlapv2.f        SCMatrix.d/fpslapv2.f    SCMatrix.d/ilasrt2.f
 SCMatrix.d/SCBaseMatrix.C
 SCMatrix.d/SCIntMatrix.C
 SCMatrix.d/SCDoubleMatrix.C)

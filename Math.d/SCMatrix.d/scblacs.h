@@ -19,6 +19,11 @@ extern "C" {
     void _FORTRAN(blacs_barrier)(int *context, char *scope);
     void _FORTRAN(blacs_exit)(int *);
     void _FORTRAN(igsum2d)(int *context, char *scope, char *top, int *m, int *n, int *A, int *lda, int *rdest, int *cdest);
+    void _FORTRAN(dgsum2d)(int *context, char *scope, char *top, int *m, int *n, double *A, int *lda, int *rdest, int *cdest);
+    void _FORTRAN(igamx2d)(int *context, char *scope, char *top, int *m, int *n, int *A, int *lda, int *ra, int *ca,
+                           int *rcflag, int *rdest, int *cdest);
+    void _FORTRAN(igamn2d)(int *context, char *scope, char *top, int *m, int *n, int *A, int *lda, int *ra, int *ca,
+                           int *rcflag, int *rdest, int *cdest);
     void _FORTRAN(dgebs2d)(int *context, char *scope, char *top, int *m, int *n, double *A, int *lda);
     void _FORTRAN(dgebr2d)(int *context, char *scope, char *top, int *m, int *n, double *A, int *lda, int *rsrc, int *csrc);
     void _FORTRAN(igebs2d)(int *context, char *scope, char *top, int *m, int *n, int *A, int *lda);

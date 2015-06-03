@@ -35,12 +35,13 @@ class SCDoubleMatrix : public SCBaseMatrix {
     public:
         SCDoubleMatrix(int context, int m, int n, int mb, int nb);
         SCDoubleMatrix(const SCDoubleMatrix& matrix);
+        SCDoubleMatrix(const SCDoubleMatrix& matrix, int ncols);
         SCDoubleMatrix(std::string filename, int context, int mb, int nb);
         ~SCDoubleMatrix();
 
         void setA(int i, int j, double val);
         void setColA(int j, double *val);
-        void write(std::string fname, bool compact=false);
+        void write(std::string fname, bool compact=false, int m=0, int n=0);
         int pivot(int *ip, int *desc_ip);
         int setMatrixRow(int i, double *row);
         int setMatrixColumn(int j, double *col);
@@ -51,8 +52,9 @@ class SCDoubleMatrix : public SCBaseMatrix {
                      SCDoubleMatrix &y, int iy, int jy, int incy);
         int hadamardProduct(SCDoubleMatrix &x);
         int zero();
-        int zero(int ix, int jx, int n);
+        void zero(int ix, int jx, int ni, int nj);
         int set(double val);
+        void set(double val, int ix, int jx, int ni, int nj);
         int permuteOld(char direc, SCIntMatrix &ip, int m=0, int n=0);
         int permute(char direc, char rowcol, SCIntMatrix &ip, int m=0, int n=0);
         double * getMatrix() {return _matrix;};
@@ -61,7 +63,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
         double getElement(int i, int j, int rsrc, int csrc);
         void setElement(int i, int j, double value);
         void setElementsLocal(const SCDoubleMatrix& matrix);
-        void project();
+        void project(double value=0.0);
         int loadIdentityMatrix(double value=1.0);
         int copy(SCDoubleMatrix& matrix, int n);
         int copy(SCDoubleMatrix& dest, int n, SCIntMatrix& order);
@@ -101,10 +103,21 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int norm2Colunns(SCDoubleMatrix& colnorms);
         void columnScaling(SCDoubleMatrix& colScale);
         void elementWiseInverse();
+        void scaleColumnsByL2Norm(SCDoubleMatrix& colScale);
+        bool isFeasible();
+        void AtA(SCDoubleMatrix& A, int n);
+        int solve(SCDoubleMatrix& x, SCDoubleMatrix& b, int n);
+        int choldecomp(int n);
+        int cholsolve(SCDoubleMatrix& x, SCDoubleMatrix& b, int n);
+        double minSingularValue();
+        double maxSingularValue();
+        double conditionNumber();
+        void writeSingularValues(std::string filename = std::string("svd.txt"));
 
     private:
         double * _matrix;       // Local _mlocal X _nlocal matrix
         SCDoubleMatrix * _tau;  // Needed only if this matrix holds a QR decomposition compactly.
+        double * _sing;         // Holds the singular values if computed
         bool _isQR;             // Flag to say if it is an QR decomposition
 
         double _wallclock[SCDBL_N_TIMES];
@@ -113,6 +126,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int init();
         int readMatrix(std::string filename);
         double Norm(char normDesignator);
+        int singularValues();
 };
 
 #endif // SCDOUBLEMATRIX_H_

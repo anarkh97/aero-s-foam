@@ -71,6 +71,13 @@ extern "C" {
     void _FORTRAN(pddot)(int *, double *, double *, int *, int *, int *, int *, double *, int *, int *, int *, int *);
     void _FORTRAN(pdgemm)(char *, char *, int *, int *, int *, double *, double *, int *, int *, int *, double *,
                           int *, int *, int *, double *, double *, int *, int *, int *);
+    void _FORTRAN(dlasrt2)(char *, int *, double *, int *, int *);
+    void _FORTRAN(ilasrt2)(char *, int *, int *, int *, int *);
+    void _FORTRAN(pdpotrf)(char *, int *, double *, int *, int *, int *, int *);
+    void _FORTRAN(pdpotrs)(char *, int *, int *, double *, int *, int *, int *, double *, int *, int *, int *, int *);
+    void _FORTRAN(pdgesvd)(char *, char *, int *, int *, double *, int *, int *, int *, double *, double *, int *, int *, int *,
+                           double *, int *, int *, int *, double *, int *, int *);
+    // PDGESVD(JOBU,JOBVT,M,N,A,IA,JA,DESCA,S,U,IU,JU,DESCU,VT,IVT,JVT,DESCVT,WORK,LWORK,INFO)
 }
 #endif
 

@@ -23,6 +23,7 @@
 #include <Paral.d/DomainGroupTask.h>
 #include <Solvers.d/MultiDomainRbm.h>
 #include <Driver.d/SysState.h>
+#include <Rom.d/BlockCyclicMap.h>
 #ifdef USE_MPI
 #include <Comm.d/Communicator.h>
 extern Communicator *structCom;
@@ -2476,7 +2477,23 @@ GenDecDomain<Scalar>::makeBasicDistrInfo(DistrInfo &info, int(Domain::*countFunc
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::setNonTrivialMasterFlag(DistrInfo &info) {
+GenDecDomain<Scalar>::makeBlockCyclicDistrInfo(DistrInfo &info, int globalLen, int blockSize)
+{
+  info.domLen = new int[numSub];
+  info.numDom = numSub;
+  int totLen = 0;
+  Rom::BlockCyclicMap bcMap(globalLen, blockSize, numCPU, numSub);
+  for(int iSub = 0; iSub < numSub; ++iSub) {
+    info.domLen[iSub] = bcMap.subLen(myCPU, iSub);
+    totLen += info.domLen[iSub];
+  }
+  info.len = totLen;
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::setNonTrivialMasterFlag(DistrInfo &info)
+{
   bool *internalMasterFlag = new bool[info.len];
   info.computeOffsets();
   for(int iSub = 0; iSub < numSub; ++iSub) {

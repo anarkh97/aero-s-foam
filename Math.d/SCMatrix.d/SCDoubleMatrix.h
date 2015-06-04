@@ -45,6 +45,8 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int pivot(int *ip, int *desc_ip);
         int setMatrixRow(int i, double *row);
         int setMatrixColumn(int j, double *col);
+        int getMatrixRow(int i, double *row);
+        int getMatrixColumn(int j, double *col);
         double norm2(int n=0);
         int multiply(SCDoubleMatrix &x, SCDoubleMatrix &y, char trans, int m, int n, double alpha, double beta);
         int multiply(char trans, int m, int n, double alpha, int ia, int ja,

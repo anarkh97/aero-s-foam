@@ -120,6 +120,13 @@ Plh::initWithEigen(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A) {
 }
 
 
+int
+Plh::setMatrix(SCDoubleMatrix &A)
+{
+  A.copyRedist(_m, _n, 1, 1, *_A, 1, 1, _context);
+  return 0;
+}
+
 void
 Plh::setMatrixSize(int m, int n) {
     _m = m;
@@ -705,6 +712,12 @@ Plh::getSolution() {
     return x;
 }
 
+
+void
+Plh::getSolution(double *x)
+{
+  _x->getMatrixRow(1, x);
+}
 
 void
 Plh::write(std::string filename, Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> & x) {

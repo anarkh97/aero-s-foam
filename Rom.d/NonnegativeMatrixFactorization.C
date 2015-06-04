@@ -88,6 +88,7 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
   for(int i=0; i<m; ++i)
     for(int j=0; j<n; ++j)
       A(i,j) = -X(rows[i],cols[j]); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
+  std::cerr << "norm of A = " << A.norm() << std::endl;
 
   Eigen::MatrixXd W(m,k), H(k,n);
 
@@ -159,6 +160,8 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
       for (int i=0; i<k; ++i) W.col(i).normalize();
     } break;
   }
+
+  std::cerr << "norm of W = " << W.norm() << std::endl;
   
   // copy W into matrixBuffer
   std::cout << "copy W into matrixBuffer"  << std::endl;

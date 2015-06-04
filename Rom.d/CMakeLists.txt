@@ -6,6 +6,7 @@ ADD_LIBRARY( Rom
   BasisOutputFile.C
   BasisOrthoDriver.C
   PositiveDualBasisDriver.C
+  DistrPositiveDualBasisDriver.C
   DEIMSamplingDriver.C 
   UDEIMSamplingDriver.C
   CheckNonLinDynamic.C
@@ -45,6 +46,7 @@ ADD_LIBRARY( Rom
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
   NonnegativeMatrixFactorization.C
+  DistrNonnegativeMatrixFactorization.C
   VecBasis.C
   VecBasisFile.C
   VecBasisUtils.C

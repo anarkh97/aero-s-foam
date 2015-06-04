@@ -12,6 +12,7 @@ template<int DOFS_PER_NODE>
 class DistrNodeDofBuffer {
 public:
   int localNodeCount() const { return globalNodeIndices_.size(); }
+  int dofsPerNode() const { return DOFS_PER_NODE; }
 
   typedef std::vector<int>::const_iterator NodeItConst;
   NodeItConst globalNodeIndexBegin() const { return globalNodeIndices_.begin(); }

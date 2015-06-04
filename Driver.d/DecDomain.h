@@ -132,6 +132,7 @@ class GenDecDomain
   // Non linear functions
   DistrInfo* elementVectorInfo();
   DistrInfo* pbcVectorInfo();
+  DistrInfo* mpcVectorInfo();
   void scaleDisp(GenDistrVector<Scalar> &u);
   void scaleInvDisp(GenDistrVector<Scalar> &u);
   void scaleDisp(GenDistrVector<Scalar> &u, double alpha);
@@ -195,6 +196,7 @@ class GenDecDomain
 
  public:
   void printLMPC();
+  void makeBlockCyclicDistrInfo(DistrInfo &, int globalLen, int blockSize);
 
  private:
   void initialize();

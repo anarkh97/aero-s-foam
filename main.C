@@ -1050,9 +1050,15 @@ int main(int argc, char** argv)
      case SolverInfo::PodRomOffline: {
        Rom::DriverInterface *driver;
        if (domain->solInfo().svdPodRom) {
-         // Stand-alone SVD orthogonalization
-         filePrint(stderr, " ... POD: Distributed SVD Orthogonalization ...\n");
-         driver = distrBasisOrthoDriverNew(domain);
+         if(domain->solInfo().use_nmf) {
+           filePrint(stderr, " ... Nonnegative Matrix Factorization ...\n");
+           driver = distrPositiveDualBasisDriverNew(domain);
+         }
+         else {
+           // Stand-alone SVD orthogonalization
+           filePrint(stderr, " ... POD: Distributed SVD Orthogonalization ...\n");
+           driver = distrBasisOrthoDriverNew(domain);
+         }
        } 
        else if (domain->solInfo().ROMPostProcess) {
          filePrint(stderr, " ... POD: Post Processing of Results...\n");

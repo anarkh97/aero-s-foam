@@ -107,7 +107,7 @@ private:
 
   static const int DEFAULT_BLOCK_SIZE;
   
-  // Adressable constants
+  // Addressable constants
   static const int INT_ZERO;
   static const int INT_ONE;
   static const int INT_MINUS_ONE;

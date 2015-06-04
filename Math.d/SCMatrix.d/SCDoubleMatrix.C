@@ -195,6 +195,43 @@ SCDoubleMatrix::setMatrixRow(int i, double *row) {
 }
 
 
+int
+SCDoubleMatrix::getMatrixColumn(int j, double *col) {
+    // If SCOPE = 'R', alpha is updated only in the process row containing A( IA, JA ),
+    // If SCOPE = 'C', alpha is updated only in the process column containing A( IA, JA ),
+    // If SCOPE = 'A', alpha is updated in all the processes of the grid,
+    // otherwise alpha is updated only in the process containing A( IA, JA ).
+    char scope = 'U';
+    char top = 'I';
+    if (j >= 1 && j <= _n) {
+        for (int i=1; i<=_m; i++) {
+            _FORTRAN(pdelget)(&scope, &top, &(col[i-1]), _matrix, &i, &j, _desc);
+        }
+    } else {
+        std::cerr << "Problem in SCDoubleMatrix::getMatrixColumn. j = " << j << " is not a valid column index." << std::endl;
+    }
+    return 0;
+}
+
+
+int
+SCDoubleMatrix::getMatrixRow(int i, double *row) {
+    // If SCOPE = 'R', alpha is updated only in the process row containing A( IA, JA ),
+    // If SCOPE = 'C', alpha is updated only in the process column containing A( IA, JA ),
+    // If SCOPE = 'A', alpha is updated in all the processes of the grid,
+    // otherwise alpha is updated only in the process containing A( IA, JA ).
+    char scope = 'U';
+    char top = 'I';
+    if (i >= 1 && i <= _m) {
+        for (int j=1; j<=_n; j++) {
+            _FORTRAN(pdelget)(&scope, &top, &(row[j-1]), _matrix, &i, &j, _desc);
+        }
+    } else {
+        std::cerr << "Problem in SCDoubleMatrix::getMatrixRow. i = " << i << " is not a valid row index." << std::endl;
+    }
+    return 0;
+}
+
 
 // Norm returned the process row or column 2 norm associated with the vector
 double

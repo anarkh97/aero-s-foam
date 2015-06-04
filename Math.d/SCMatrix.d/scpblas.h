@@ -34,16 +34,16 @@
 
 #ifdef __cplusplus
 extern "C" {
-    int  _FORTRAN(numroc)(int *n, int *nb, int *myrow, int *zero, int *nprow );
-    void _FORTRAN(descinit)(int *descb, int *n, int *uno, int *mb, int *nb, int *mm, int *nn, int *context, int *lld, int *info );
+    int  _FORTRAN(numroc)(const int *n, const int *nb, const int *myrow, const int *zero, const int *nprow);
+    void _FORTRAN(descinit)(int *descb, const int *n, const int *uno, const int *mb, const int *nb, const int *mm, const int *nn, const int *context, const int *lld, int *info);
     void _FORTRAN(pdelset)( double *b, int *i, int *uno, int *descb, double *alpha );
     void _FORTRAN(pdelget)( char *, char *, double *, double *, int *, int *, int *);
     void _FORTRAN(pielset)( int *b, int *i, int *uno, int *descb, int *alpha );
     void _FORTRAN(pielget)( char *, char *, int *, int *, int *, int *, int *);
     void _FORTRAN(pdgesv)(int *, int *, double *, int *, int *, int *, int *, double *, int *, int *, int *, int *);
-    int  _FORTRAN(indxl2g)(int *, int *, int *, int *, int *);
-    int  _FORTRAN(indxg2l)(int *, int *, int *, int *, int *);
-    int  _FORTRAN(indxg2p)(int *, int *, int *, int *, int *);
+    int  _FORTRAN(indxl2g)(const int *, const int *, const int *, const int *, const int *);
+    int  _FORTRAN(indxg2l)(const int *, const int *, const int *, const int *, const int *);
+    int  _FORTRAN(indxg2p)(const int *, const int *, const int *, const int *, const int *);
     void _FORTRAN(pdlaprnt)( int *, int *, double *, int *, int *, int *, int *, int *, char**, int *, double *);
     void _FORTRAN(pdlapiv)(char *, char *, char *, int *, int *, double *, int *, int *, int *, int *, int *, int *, int *, int *);
     void _FORTRAN(fpdlapiv)(char *, char *, char *, int *, int *, double *, int *, int *, int *, int *, int *, int *, int *, int *);

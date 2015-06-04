@@ -3,6 +3,7 @@
 
 #include "MasterMapping.h"
 #include "DistrDomainUtils.h"
+#include "BlockCyclicMap.h"
 
 #include <Driver.d/SubDomain.h>
 
@@ -82,6 +83,38 @@ DistrMpcMasterMapping::DistrMpcMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdI
       if (*flagIt++) {
         masterNodes_.push_back(*globalIt);
       }
+    }
+  }
+}
+
+class DistrTrivialMasterMapping : public DistrMasterMapping {
+public:
+  template <typename SubDomFwdIt>
+  DistrTrivialMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast, int globalLen,
+                            int blockSize, Communicator *com, int numLocalSub);
+private:
+  BlockCyclicMap bcMap_;
+};
+
+template <typename SubDomFwdIt>
+DistrTrivialMasterMapping::DistrTrivialMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast,
+                                                     int globalLen, int blockSize, Communicator *com,
+                                                     int numLocalSub)
+  : bcMap_(globalLen, blockSize, com->numCPUs(), numLocalSub)
+{
+  for (SubDomFwdIt subDomIt = subDomFirst; subDomIt != subDomLast; ++subDomIt) {
+    SubDomain &sd = *subDomIt;
+/*
+    const int first = (globalLen/globalNumSub)*sd.subNum() + std::min(sd.subNum(),globalLen%globalNumSub);
+    const int locLen = globalLen/globalNumSub + (sd.subNum() < globalLen%globalNumSub ? 1 : 0);
+
+    for(int i=0; i<locLen; ++i) { localNodes_.push_back(first+i); masterNodes_.push_back(first+i); }
+*/
+    const int locLen = bcMap_.subLen(com->myID(), sd.localSubNum());
+    for(int i=0; i<locLen; ++i) {
+      int glIndx = bcMap_.localToGlobal(com->myID(), sd.localSubNum(), i);
+      localNodes_.push_back(glIndx); 
+      masterNodes_.push_back(glIndx);
     }
   }
 }

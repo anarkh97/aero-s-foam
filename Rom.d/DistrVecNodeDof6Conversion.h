@@ -4,6 +4,7 @@
 #include "RestrictedVecNodeDof6Conversion.h"
 #include "VecNodeDof6Conversion.h"
 #include "DistrDomainUtils.h"
+#include "BlockCyclicMap.h"
 
 #include <Driver.d/SubDomain.h> 
 
@@ -12,98 +13,134 @@
 
 namespace Rom {
 
-class DistrVecNodeDof6Conversion {
+template<int DOFS_PER_NODE=6>
+class DistrVecNodeDofConversion {
 public:
   int subDomainCount() const { return subDomains_.size(); }
 
-  template <typename NodeDof6Type, typename VecType>
-  const NodeDof6Type &paddedNodeDof6(const VecType &origin, NodeDof6Type &target) const;
+  template <typename NodeDofType, typename VecType>
+  const NodeDofType &paddedNodeDof6(const VecType &origin, NodeDofType &target) const;
 
-  template <typename NodeDof6Type, typename VecType>
-  const VecType &vector(const NodeDof6Type &origin, VecType &target) const;
+  template <typename NodeDofType, typename VecType>
+  const VecType &vector(const NodeDofType &origin, VecType &target) const;
   
-  template <typename NodeDof6Type, typename VecType>
-  const VecType &paddedMasterVector(const NodeDof6Type &origin, VecType &target) const;
+  template <typename NodeDofType, typename VecType>
+  const VecType &paddedMasterVector(const NodeDofType &origin, VecType &target) const;
 
   template <typename SubDomPtrFwdIt>
-  DistrVecNodeDof6Conversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last);
+  DistrVecNodeDofConversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last);
+  template <typename SubDomPtrFwdIt>
+  DistrVecNodeDofConversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last, int globalLen, int blockSize,
+                            Communicator *com, int numLocalSub);
 
-  ~DistrVecNodeDof6Conversion();
+  ~DistrVecNodeDofConversion();
 
 private:
   typedef std::vector<const SubDomain *> SubDomContainer;
-  typedef std::vector<const VecNodeDof6Conversion *> ConversionContainer;
-  typedef std::vector<const RestrictedVecNodeDof6Conversion *> RestrictedConversionContainer;
+  typedef std::vector<const VecNodeDofConversion<DOFS_PER_NODE> *> ConversionContainer;
+  typedef std::vector<const RestrictedVecNodeDofConversion<DOFS_PER_NODE> *> RestrictedConversionContainer;
   SubDomContainer subDomains_;
+  BlockCyclicMap bcMap_;
+  Communicator *com_;
   ConversionContainer subConversions_;
   RestrictedConversionContainer subRestrictedConversions_;
 
   // Disallow copy and assignment
-  DistrVecNodeDof6Conversion(const DistrVecNodeDof6Conversion &);
-  DistrVecNodeDof6Conversion &operator=(const DistrVecNodeDof6Conversion &);
+  DistrVecNodeDofConversion(const DistrVecNodeDofConversion &);
+  DistrVecNodeDofConversion &operator=(const DistrVecNodeDofConversion &);
 };
 
+typedef DistrVecNodeDofConversion<6> DistrVecNodeDof6Conversion;
+typedef DistrVecNodeDofConversion<1> DistrVecNodeDof1Conversion;
+
+template <int DOFS_PER_NODE>
 template <typename SubDomPtrFwdIt>
-DistrVecNodeDof6Conversion::DistrVecNodeDof6Conversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last) :
-  subDomains_(first, last)
+DistrVecNodeDofConversion<DOFS_PER_NODE>::DistrVecNodeDofConversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last) :
+  subDomains_(first, last), com_(NULL)
 {
   for (SubDomPtrFwdIt it = first; it != last; ++it) {
     SubDomain * const s = *it;
-
-    subConversions_.push_back(new VecNodeDof6Conversion(*s->getCDSA()));
+    subConversions_.push_back(new VecNodeDofConversion<DOFS_PER_NODE>(*s->getCDSA()));
 
     std::vector<bool> masterFlags;
     master_node_flags(*s, std::back_inserter(masterFlags));
-    subRestrictedConversions_.push_back(new RestrictedVecNodeDof6Conversion(*s->getCDSA(),
-                                                                            masterFlags.begin(),
-                                                                            masterFlags.end()));
+    subRestrictedConversions_.push_back(new RestrictedVecNodeDofConversion<DOFS_PER_NODE>(*s->getCDSA(),
+                                                                                          masterFlags.begin(),
+                                                                                          masterFlags.end()));
   }
 }
 
-template <typename NodeDof6Type>
-class SubNodeDof6Adapter {
+template <int DOFS_PER_NODE>
+template <typename SubDomPtrFwdIt>
+DistrVecNodeDofConversion<DOFS_PER_NODE>::DistrVecNodeDofConversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last, int globalLen,
+                                                                    int blockSize, Communicator *com, int numLocalSub) :
+  subDomains_(first, last), bcMap_(globalLen, blockSize, com->numCPUs(), numLocalSub), com_(com)
+{ 
+  for (SubDomPtrFwdIt it = first; it != last; ++it) {
+    SubDomain * const s = *it;
+/*
+    int localLen = globalLen/globalNumSub + (s->subNum() < globalLen%globalNumSub ? 1 : 0);
+    subConversions_.push_back(new VecNodeDofConversion<DOFS_PER_NODE>(localLen));
+*/
+    int localLen = bcMap_.subLen(com_->myID(), s->localSubNum());
+    subConversions_.push_back(new VecNodeDofConversion<DOFS_PER_NODE>(localLen));
+  }
+}
+
+template <typename NodeDofType>
+class SubNodeDofAdapter {
 public:
   typedef double Scalar; 
 
-  explicit SubNodeDof6Adapter(const NodeDof6Type &nodeDof6, const SubDomain &subDom) :
-    nodeDof6_(nodeDof6), subDomain_(subDom)
+  explicit SubNodeDofAdapter(const NodeDofType &nodeDof, const SubDomain &subDom, const BlockCyclicMap &bcMap, Communicator *com) :
+    nodeDof_(nodeDof), subDomain_(subDom), bcMap_(bcMap), com_(com)
   {}
 
   const Scalar *operator[](int locIdx) const {
-    const int globIdx = const_cast<SubDomain &>(subDomain_).localToGlobal(locIdx);
-    const Scalar *result = nodeDof6_[globIdx];
+    SubDomain &s = const_cast<SubDomain &>(subDomain_);
+/*
+    const int globIdx = (globalLen_) ? (globalLen_/globalNumSub_)*s.subNum() + std::min(s.subNum(),globalLen_%globalNumSub_) + locIdx
+                                     : s.localToGlobal(locIdx);
+*/
+    const int globIdx = (com_) ? bcMap_.localToGlobal(com_->myID(), s.localSubNum(), locIdx) : s.localToGlobal(locIdx);
+    const Scalar *result = nodeDof_[globIdx];
     assert(result);
     return result;
   }
 
   Scalar *operator[](int locIdx) {
-    const SubNodeDof6Adapter &self = *this;
+    const SubNodeDofAdapter &self = *this;
     return const_cast<Scalar *>(self[locIdx]);
   }
 
 private:
-  const NodeDof6Type &nodeDof6_;
+  const NodeDofType &nodeDof_;
   const SubDomain &subDomain_;
+  const BlockCyclicMap &bcMap_;
+  Communicator *com_;
 };
 
-template <typename NodeDof6Type, typename VecType>
-const NodeDof6Type &
-DistrVecNodeDof6Conversion::paddedNodeDof6(const VecType &origin, NodeDof6Type &target) const {
+template <int DOFS_PER_NODE>
+template <typename NodeDofType, typename VecType>
+const NodeDofType &
+DistrVecNodeDofConversion<DOFS_PER_NODE>::paddedNodeDof6(const VecType &origin, NodeDofType &target) const {
   for (int iSub = 0; iSub < subDomainCount(); ++iSub) {
-    SubNodeDof6Adapter<NodeDof6Type> subNodeDof(target, *subDomains_[iSub]);
+    SubNodeDofAdapter<NodeDofType> subNodeDof(target, *subDomains_[iSub], bcMap_, com_);
     const GenStackVector<double> subVector(const_cast<VecType &>(origin).subData(iSub),
                                            const_cast<VecType &>(origin).subLen(iSub));
-    subRestrictedConversions_[iSub]->paddedNodeDof6(subVector, subNodeDof);
+    if(subRestrictedConversions_.empty()) subConversions_[iSub]->paddedNodeDof6(subVector, subNodeDof);
+    else subRestrictedConversions_[iSub]->paddedNodeDof6(subVector, subNodeDof);
   }
 
   return target;
 }
 
-template <typename NodeDof6Type, typename VecType>
+template <int DOFS_PER_NODE>
+template <typename NodeDofType, typename VecType>
 const VecType &
-DistrVecNodeDof6Conversion::vector(const NodeDof6Type &origin, VecType &target) const {
+DistrVecNodeDofConversion<DOFS_PER_NODE>::vector(const NodeDofType &origin, VecType &target) const {
   for (int iSub = 0; iSub < subDomainCount(); ++iSub) {
-    const SubNodeDof6Adapter<NodeDof6Type> subNodeDof(origin, *subDomains_[iSub]);
+    const SubNodeDofAdapter<NodeDofType> subNodeDof(origin, *subDomains_[iSub], bcMap_, com_);
     GenStackVector<double> subVector(target.subData(iSub), target.subLen(iSub));
     subConversions_[iSub]->vector(subNodeDof, subVector);
   }
@@ -111,11 +148,12 @@ DistrVecNodeDof6Conversion::vector(const NodeDof6Type &origin, VecType &target) 
   return target;
 };
 
-template <typename NodeDof6Type, typename VecType>
+template <int DOFS_PER_NODE>
+template <typename NodeDofType, typename VecType>
 const VecType &
-DistrVecNodeDof6Conversion::paddedMasterVector(const NodeDof6Type &origin, VecType &target) const {
+DistrVecNodeDofConversion<DOFS_PER_NODE>::paddedMasterVector(const NodeDofType &origin, VecType &target) const {
   for (int iSub = 0; iSub < subDomainCount(); ++iSub) {
-    const SubNodeDof6Adapter<NodeDof6Type> subNodeDof(origin, *subDomains_[iSub]);
+    const SubNodeDofAdapter<NodeDofType> subNodeDof(origin, *subDomains_[iSub], bcMap_, com_);
     GenStackVector<double> subVector(target.subData(iSub), target.subLen(iSub));
     subRestrictedConversions_[iSub]->paddedVector(subNodeDof, subVector);
   }

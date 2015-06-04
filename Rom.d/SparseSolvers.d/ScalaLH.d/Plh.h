@@ -68,6 +68,7 @@ class Plh {
         Plh(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A);
         ~Plh();
 
+        int setMatrix(SCDoubleMatrix &A);
         int setMatrixColumn(int j, double *col);
         int setMatrixRow(int j, double *row);
         int setRHS(double *rhs);
@@ -105,6 +106,7 @@ class Plh {
         void printTimes(bool debug=false);
         void setResidualFileName(std::string fname, int incr=1);
         Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> getSolution();
+        void getSolution(double *x);
         void write(std::string filename, Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> & x);
         void testCommunicators();
         void setDownDateMask();
@@ -212,7 +214,7 @@ class Plh {
         std::string intToString(int i);
 
         int updateX();
-	    int computeX();
+        int computeX();
         bool nextVector();
         bool rejectVector();
         int updateQ(int Acol, int Qcol);

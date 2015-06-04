@@ -26,7 +26,7 @@ Plh::solve() {
     bool done = false;
     bool reject;
     int iqr = -1;
-    int count;;
+    int count;
 
     startTime(TIME_MAIN_LOOP);
     while (_iter < _max_iter && _nP < _maxNP && _rnorm2 > _rtol && !done) {

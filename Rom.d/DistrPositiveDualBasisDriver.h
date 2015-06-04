@@ -3,6 +3,7 @@
 
 #include "DriverInterface.h"
 
+#if defined (USE_SCALAPACK) && defined (USE_EIGEN3)
 class Communicator;
 class DistrInfo;
 
@@ -20,6 +21,7 @@ private:
 };
 
 } /* end namespace Rom */
+#endif
 
 Rom::DriverInterface *distrPositiveDualBasisDriverNew(Domain *);
 

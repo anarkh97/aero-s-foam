@@ -1,5 +1,8 @@
 #include "DistrPositiveDualBasisDriver.h"
 
+#include <Utils.d/DistHelper.h>
+
+#if defined (USE_SCALAPACK) && defined (USE_EIGEN3)
 #include "DistrDomainUtils.h"
 #include "DistrMasterMapping.h"
 #include "DistrNodeDof6Buffer.h"
@@ -12,8 +15,6 @@
 
 #include "FileNameInfo.h"
 #include "DistrBasisFile.h"
-
-#include <Utils.d/DistHelper.h>
 
 #include <algorithm>
 #include <memory>
@@ -36,8 +37,10 @@ void readIntoSolver(DistrNonnegativeMatrixFactorization &solver, DistrNodeDof1Bu
 {
   const BasisId::Type workload = BasisId::DUALSTATE;
   FileNameInfo fileInfo;
-  for(int i = 0; i < numEntries; i++){
-    DistrBasisInputFileTemplate<1> inputFile(BasisFileId(fileInfo,workload,type,i));
+  for(int i = 0; i < numEntries; i++) {
+    std::string fileName = BasisFileId(fileInfo,workload,type,i);
+    DistrBasisInputFileTemplate<1> inputFile(fileName);
+    filePrint(stderr, " ... Reading in Snapshot file: %s ...\n", fileName.c_str());
     nodeCount = inputFile.nodeCount();
     int basisStateCount = 1+(inputFile.stateCount()-1)/skipFactor;
     {
@@ -97,51 +100,43 @@ DistrPositiveDualBasisDriver::solve() {
       snapBasisStateCount += 1+(inputFile.stateCount()-1)/skipFactor;
     }
   }
-
-  DistrInfo distrInfo;
-  decDomain->makeBlockCyclicDistrInfo(distrInfo, domain->getNumCTC(), blockSize);
-  const int localLength = distrInfo.totLen();
-  int maxBasisDimension = domain->solInfo().maxSizePodRom + (domain->solInfo().nmfDelROBDim)*(domain->solInfo().nmfNumROBDim-1);
-
-  const int globalProbSize = domain->getNumCTC();
- 
-  if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
+  else {
     filePrint(stderr, " *** ERROR: no files provided\n");
     exit(-1);
   }
 
-  DistrNonnegativeMatrixFactorization solver(comm_, globalProbSize, snapBasisStateCount, localLength, maxBasisDimension, blockSize,
-                                             domain->solInfo().nmfMaxIter, domain->solInfo().nmfTol);
+  DistrInfo distrInfo;
+  decDomain->makeBlockCyclicDistrInfo(distrInfo, domain->getNumCTC(), blockSize);
+
+  const int localLength = distrInfo.totLen();
+  const int orthoBasisDim = domain->solInfo().maxSizePodRom;
+  const int globalProbSize = domain->getNumCTC();
+ 
+  DistrNonnegativeMatrixFactorization solver(comm_, globalProbSize, snapBasisStateCount, localLength, orthoBasisDim, blockSize,
+                                             domain->solInfo().nmfMaxIter, domain->solInfo().nmfTol, domain->solInfo().use_nmf);
  
   int solverCol = 0;
   DistrNodeDof1Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
   readIntoSolver(solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::SNAPSHOTS,
                  domain->solInfo().snapfiPodRom.size(), solverCol, domain->solInfo().skipPodRom); // read in snapshots
 
-  DistrNodeDof1Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-  for (int iBasis = 0; iBasis < domain->solInfo().nmfNumROBDim; ++iBasis) {
-    int orthoBasisDim = domain->solInfo().maxSizePodRom + iBasis*domain->solInfo().nmfDelROBDim;
-    filePrint(stderr, " ... Computation of a positive basis of size %d ...\n", orthoBasisDim);
-    //solver.basisDimensionIs(orthoBasisDim);
-    if (iBasis==0)
-      solver.solve(0);
-    else
-      solver.solve(orthoBasisDim-domain->solInfo().nmfDelROBDim);
+  filePrint(stderr, " ... Computation of a positive basis of size %d ...\n", orthoBasisDim);
+  solver.solve();
 
-    std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
-    std::ostringstream ss;
-    ss << orthoBasisDim;
-    fileName.append(ss.str());
-    DistrBasisOutputFile outputFile(fileName,
-                                    nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
-                                    comm_, false, 1);
-    filePrint(stderr, " ... Writing positive basis to file %s ...\n", fileName.c_str());
-    for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
-      double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));
-      const GenStackDistVector<double> vec(distrInfo, vecBuffer);
-      converter.paddedNodeDof6(vec, outputBuffer);
-      outputFile.stateAdd(outputBuffer, 1.0);
-    }
+  std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
+  std::ostringstream ss;
+  ss << orthoBasisDim;
+  fileName.append(ss.str());
+  DistrNodeDof1Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
+  DistrBasisOutputFile outputFile(fileName,
+                                  nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
+                                  comm_, false, 1);
+  filePrint(stderr, " ... Writing positive basis to file %s ...\n", fileName.c_str());
+  for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
+    double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));
+    const GenStackDistVector<double> vec(distrInfo, vecBuffer);
+    converter.paddedNodeDof6(vec, outputBuffer);
+    outputFile.stateAdd(outputBuffer, 1.0);
   }
 }
 
@@ -152,3 +147,13 @@ extern Communicator *structCom;
 Rom::DriverInterface *distrPositiveDualBasisDriverNew(Domain *domain) {
   return new Rom::DistrPositiveDualBasisDriver(domain, structCom);
 }
+
+#else
+
+Rom::DriverInterface *distrPositiveDualBasisDriverNew(Domain *domain) {
+  filePrint(stderr, " *** ERROR: requested driver requires ScaLAPACK and Eigen libraries\n");
+  exit(-1);
+  return 0;
+}
+
+#endif

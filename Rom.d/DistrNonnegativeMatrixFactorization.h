@@ -1,6 +1,7 @@
 #ifndef ROM_DISTRNONNEGATIVEMATRIXFACTORIZATION_H
 #define ROM_DISTRNONNEGATIVEMATRIXFACTORIZATION_H
 
+#if defined(USE_SCALAPACK) && defined(USE_EIGEN3)
 class Communicator;
 class SCDoubleMatrix;
 
@@ -19,10 +20,10 @@ public:
   // Local basis buffer: [localRows by basisDimension]
   const double *basisColBuffer(int col) const;
 
-  void solve(int);
+  void solve();
 
-  DistrNonnegativeMatrixFactorization(Communicator * comm, int rowCount, int colCount, int localRows, int basisDimension, int blockSize, int maxIter, double tol);
-  ~DistrNonnegativeMatrixFactorization();
+  DistrNonnegativeMatrixFactorization(Communicator * comm, int rowCount, int colCount, int localRows, int basisDimension,
+                                      int blockSize, int maxIter, double tol, int method);
 
 private:
   void solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleMatrix &B, SCDoubleMatrix &X, int flag);
@@ -32,7 +33,7 @@ private:
   DistrNonnegativeMatrixFactorization & operator=(const DistrNonnegativeMatrixFactorization &);
 
   Communicator * communicator_;
-  int rowCount_, colCount_, localRows_, basisDimension_, blockSize_, maxIter_;
+  int rowCount_, colCount_, localRows_, basisDimension_, blockSize_, maxIter_, method_;
   double tol_;
 
   Eigen::MatrixXd matrixBuffer_;
@@ -53,5 +54,6 @@ DistrNonnegativeMatrixFactorization::basisColBuffer(int col) const {
 }
 
 } // end namespace Rom
+#endif
 
 #endif /* ROM_DISTRNONNEGATIVEMATRIXFACTORIZATION_H */

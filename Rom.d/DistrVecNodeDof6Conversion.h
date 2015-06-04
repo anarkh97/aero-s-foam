@@ -78,10 +78,6 @@ DistrVecNodeDofConversion<DOFS_PER_NODE>::DistrVecNodeDofConversion(SubDomPtrFwd
 { 
   for (SubDomPtrFwdIt it = first; it != last; ++it) {
     SubDomain * const s = *it;
-/*
-    int localLen = globalLen/globalNumSub + (s->subNum() < globalLen%globalNumSub ? 1 : 0);
-    subConversions_.push_back(new VecNodeDofConversion<DOFS_PER_NODE>(localLen));
-*/
     int localLen = bcMap_.subLen(com_->myID(), s->localSubNum());
     subConversions_.push_back(new VecNodeDofConversion<DOFS_PER_NODE>(localLen));
   }
@@ -98,10 +94,6 @@ public:
 
   const Scalar *operator[](int locIdx) const {
     SubDomain &s = const_cast<SubDomain &>(subDomain_);
-/*
-    const int globIdx = (globalLen_) ? (globalLen_/globalNumSub_)*s.subNum() + std::min(s.subNum(),globalLen_%globalNumSub_) + locIdx
-                                     : s.localToGlobal(locIdx);
-*/
     const int globIdx = (com_) ? bcMap_.localToGlobal(com_->myID(), s.localSubNum(), locIdx) : s.localToGlobal(locIdx);
     const Scalar *result = nodeDof_[globIdx];
     assert(result);

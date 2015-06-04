@@ -95,6 +95,7 @@ class Plh {
         void setQProcGrid(int mprowQR, int npcolQR) {_mprowQR=mprowQR; _npcolQR=npcolQR;}
         void setRtol(double rtol) {_rtol=rtol;}
         void setMaxNP(int maxNP) {_maxNP=maxNP;}
+        void setVerbose(int verbose) {_verbose=verbose;}
 
         void init();
         void init(const std::vector< Eigen::Map<Eigen::MatrixXd> >& eigenMatrix,
@@ -168,6 +169,7 @@ class Plh {
         double _rnorm2;
         double _alpha;
         double _rtol;
+        int _verbose;
 
         // Timings
         double _wallclock[N_TIMES];

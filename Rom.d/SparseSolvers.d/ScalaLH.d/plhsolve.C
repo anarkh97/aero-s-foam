@@ -42,7 +42,7 @@ Plh::solve() {
                 reject = updateQR(iqr);
                 while (reject && !done) {
                     done = rejectVector();
-                    if (_mypid == 0) {
+                    if (_mypid == 0 && _verbose > 0) {
                          std::cout << "Linear dependent. _wmax.i = " << _wmax.i << ", _wmax.x = " << _wmax.x;
                          std::cout << ", _iter = " << _iter << std::endl;
                     }
@@ -56,7 +56,7 @@ Plh::solve() {
                     reject = updateQtb();
                 }
                 if (reject) {
-                    if (_mypid == 0) {
+                    if (_mypid == 0 && _verbose > 0) {
                         std::cout << "Positive z. _wmax.i = " << _wmax.i << ", _iter = " << _iter << std::endl;
                     }
                 }
@@ -134,7 +134,7 @@ Plh::initplh() {
     if (_rtol > 0.0) {
         _rtol *= _rnorm2;
     }
-    if (_mypid == 0) {
+    if (_mypid == 0 && _verbose > 0) {
         std::cout << "Initial residual      = " << _rnorm2 << std::endl;
         std::cout << "Residual norm target  = " << _rtol << std::endl;
     }
@@ -145,7 +145,7 @@ Plh::initplh() {
 
     if (_col_scaling) {
         startTime(TIME_COLUMNSCALING);
-        if (_mypid == 0) {
+        if (_mypid == 0 && _verbose > 0) {
             std::cout << "Scaling the matrix columns." << std::endl;
         }
         _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);

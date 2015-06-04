@@ -37,6 +37,7 @@ Plh::initDefaults() {
     // Solver
     _rtol    = 0.0;
     _maxNP   = 0;
+    _verbose = 1;
 
     // A Context
     defaultProcGrid();
@@ -477,7 +478,7 @@ Plh::loadRhs(const Eigen::Ref<const Eigen::VectorXd> &eb){
 
 void
 Plh::sub_iteration_output(int iqr) {
-    if (_mypid == 0) {
+    if (_mypid == 0 && _verbose > 0) {
         printf("#%5d %8d %12.4e %8d %12.4e %8d %12.4e %12.4e %8d\n",
             _iter_total, _nP, _wmax.x, _wmax.i, _zmin.x, _zmin.i, _rnorm2, _alpha, iqr);
     }
@@ -486,7 +487,7 @@ Plh::sub_iteration_output(int iqr) {
 
 void
 Plh::iteration_output() {
-    if (_mypid == 0) {
+    if (_mypid == 0 && _verbose > 0) {
         if (_iter%HEADER_INCR == 0) {
             header();
         }
@@ -716,7 +717,7 @@ Plh::getSolution() {
 void
 Plh::getSolution(double *x)
 {
-  _x->getMatrixRow(1, x);
+  _x->getMatrixRow(1, x, 'A');
 }
 
 void

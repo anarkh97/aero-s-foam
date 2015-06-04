@@ -545,6 +545,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
       meshOut << i+1 << " " << constForceRed[i] << std::endl;
   }
 
+#ifdef USE_EIGEN3
   if(numLMPC > 0) {
 
     if(strcmp(domain_->solInfo().readInDualROB,"") != 0) {
@@ -593,6 +594,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
     }
 
   } 
+#endif
 
   // output the reduced initial conditions
   if(reduce_idis) {

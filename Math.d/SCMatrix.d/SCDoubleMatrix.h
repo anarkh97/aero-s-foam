@@ -45,13 +45,14 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int pivot(int *ip, int *desc_ip);
         int setMatrixRow(int i, double *row);
         int setMatrixColumn(int j, double *col);
-        int getMatrixRow(int i, double *row);
-        int getMatrixColumn(int j, double *col);
+        int getMatrixRow(int i, double *row, char scope);
+        int getMatrixColumn(int j, double *col, char scope);
         double norm2(int n=0);
         int multiply(SCDoubleMatrix &x, SCDoubleMatrix &y, char trans, int m, int n, double alpha, double beta);
         int multiply(char trans, int m, int n, double alpha, int ia, int ja,
                      SCDoubleMatrix &x, int ix, int jx, int incx, double beta,
                      SCDoubleMatrix &y, int iy, int jy, int incy);
+        int multiply(SCDoubleMatrix &B, SCDoubleMatrix &C, char transA='N', char transB='N', double alpha=1.0, double beta=0.0, int m=0, int n=0, int k=0);
         int hadamardProduct(SCDoubleMatrix &x);
         int zero();
         void zero(int ix, int jx, int ni, int nj);
@@ -87,7 +88,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
             SCDoubleMatrix & y, int iy, int jy, int incy);
         int pdlacp2(char uplo, int m, int n, int ia, int ja, SCDoubleMatrix& b, int ib, int jb);
         int initqr();
-        void initRandom(int m=0, int n=0);
+        void initRandom(int seed=1, double lo=-1.0, double hi=1.0);
         int copyRedist( int m, int n, int ia, int ja, SCDoubleMatrix& B, int ib, int jb, int ctxt);
         int initMatrix(double *A);
         void swap(int i, int j);

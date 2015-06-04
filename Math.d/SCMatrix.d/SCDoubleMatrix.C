@@ -196,12 +196,11 @@ SCDoubleMatrix::setMatrixRow(int i, double *row) {
 
 
 int
-SCDoubleMatrix::getMatrixColumn(int j, double *col) {
+SCDoubleMatrix::getMatrixColumn(int j, double *col, char scope) {
     // If SCOPE = 'R', alpha is updated only in the process row containing A( IA, JA ),
     // If SCOPE = 'C', alpha is updated only in the process column containing A( IA, JA ),
     // If SCOPE = 'A', alpha is updated in all the processes of the grid,
     // otherwise alpha is updated only in the process containing A( IA, JA ).
-    char scope = 'U';
     char top = 'I';
     if (j >= 1 && j <= _n) {
         for (int i=1; i<=_m; i++) {
@@ -215,12 +214,11 @@ SCDoubleMatrix::getMatrixColumn(int j, double *col) {
 
 
 int
-SCDoubleMatrix::getMatrixRow(int i, double *row) {
+SCDoubleMatrix::getMatrixRow(int i, double *row, char scope) {
     // If SCOPE = 'R', alpha is updated only in the process row containing A( IA, JA ),
     // If SCOPE = 'C', alpha is updated only in the process column containing A( IA, JA ),
     // If SCOPE = 'A', alpha is updated in all the processes of the grid,
     // otherwise alpha is updated only in the process containing A( IA, JA ).
-    char scope = 'U';
     char top = 'I';
     if (i >= 1 && i <= _m) {
         for (int j=1; j<=_n; j++) {
@@ -318,6 +316,44 @@ SCDoubleMatrix::multiply(char trans, int m, int n, double alpha, int ia, int ja,
             _matrix, &ia, &ja, _desc, 
             x._matrix, &ix, &jx, x._desc, &incx, &beta,
             y._matrix, &iy, &jy, y._desc, &incy);
+    return 0;
+}
+
+
+int
+SCDoubleMatrix::multiply(SCDoubleMatrix &B, SCDoubleMatrix &C, char transA, char transB, double alpha, double beta, int m, int n, int k) {
+    if (m == 0) {
+        if (transA == 'N') {
+            m = _m;
+        } else {
+            m = _n;
+        }
+    }
+    if (n == 0) {
+        if (transB == 'N') {
+            n = B.getNumberOfCols();
+        } else {
+            n = B.getNumberOfRows();
+        }
+    }
+    if (k == 0) {
+        if (transA == 'N') {
+            k = _n;
+        } else {
+            k = _m;
+        }
+    }
+    double *matrixB = B.getMatrix();
+    double *matrixC = C.getMatrix();
+    int * descB = B.getDesc();
+    int * descC = C.getDesc();
+    int one = 1;
+    _FORTRAN(pdgemm)(&transA, &transB, &m, &n, &k,
+                     &alpha,
+                     _matrix, &one, &one, _desc,
+                     matrixB, &one, &one, descB,
+                     &beta,
+                     matrixC, &one, &one, descC);
     return 0;
 }
 
@@ -913,18 +949,25 @@ SCDoubleMatrix::house(int j) {
 
 
 void
-SCDoubleMatrix::initRandom(int m, int n) {
-    for (int i=0; i<_sizelocal; i++) {
-        _matrix[i] = (rand()%1000000)/1000000.0;
-    }
-    std::cout << "In initRandom() n = " << n << ", m = " << m << std::endl;
-    if (n > m) {
-        for (int i=0; i<_sizelocal; i++) {
-            if (rand()%n > m) {
-                _matrix[i] = 0.0;
+SCDoubleMatrix::initRandom(int seed, double lo, double hi) {
+    srand(seed);
+    int zero=0;
+    double *col = new double[_m];
+    for (int j=1; j<=_n; j++) {
+        for (int i=0; i<_m; i++) col[i] = rand();
+        int jp = _FORTRAN(indxg2p)(&j, &_nb, &_mycol, &zero, &_npcol);
+        if (_mycol == jp) {
+            int jloc = _FORTRAN(indxg2l)(&j, &_nb, &zero, &zero, &_npcol)-1;
+            for (int iloc=0; iloc<_mlocal; iloc++) {
+                int iiloc = iloc+1;
+                int iglo = _FORTRAN(indxl2g)(&iiloc, &_mb, &_myrow, &zero, &_mprow)-1;
+                int k = iloc + jloc*_mlocal;
+                double alpha = col[iglo]/((double) RAND_MAX);
+                _matrix[k] = lo*(1.0-alpha) + alpha*hi;
             }
         }
     }
+    delete col;
 }
 
 

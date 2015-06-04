@@ -104,12 +104,6 @@ DistrTrivialMasterMapping::DistrTrivialMasterMapping(SubDomFwdIt subDomFirst, Su
 {
   for (SubDomFwdIt subDomIt = subDomFirst; subDomIt != subDomLast; ++subDomIt) {
     SubDomain &sd = *subDomIt;
-/*
-    const int first = (globalLen/globalNumSub)*sd.subNum() + std::min(sd.subNum(),globalLen%globalNumSub);
-    const int locLen = globalLen/globalNumSub + (sd.subNum() < globalLen%globalNumSub ? 1 : 0);
-
-    for(int i=0; i<locLen; ++i) { localNodes_.push_back(first+i); masterNodes_.push_back(first+i); }
-*/
     const int locLen = bcMap_.subLen(com->myID(), sd.localSubNum());
     for(int i=0; i<locLen; ++i) {
       int glIndx = bcMap_.localToGlobal(com->myID(), sd.localSubNum(), i);

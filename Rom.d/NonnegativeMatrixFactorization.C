@@ -79,8 +79,6 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
   std::cerr << "X has " << X.rows() << " rows of which " << rows.size() << " are non-zero\n";
 
   Eigen::Map<Eigen::MatrixXd> ROB(robBuffer_.array(), rowCount_, maxBasisDimension_);
-  // TODO: properly intiialize ROB
-  // when restart
   int m = rows.size();
   int n = cols.size();
   const int &k = basisDimension_;
@@ -88,7 +86,6 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
   for(int i=0; i<m; ++i)
     for(int j=0; j<n; ++j)
       A(i,j) = -X(rows[i],cols[j]); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
-  std::cerr << "norm of A = " << A.norm() << std::endl;
 
   Eigen::MatrixXd W(m,k), H(k,n);
 
@@ -105,12 +102,9 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
           for (int i=0; i<m; ++i)
             for (int j=0; j<basisDimensionRestart; ++j)
               W(i,j) = ROB(rows[i],j);
-          W.rightCols(k-basisDimensionRestart).setRandom();
-          W.rightCols(k-basisDimensionRestart) += Eigen::MatrixXd::Ones(m,k-basisDimensionRestart);
-
+          W.rightCols(k-basisDimensionRestart) = 0.5*(Eigen::MatrixXd::Random(m,k-basisDimensionRestart)+Eigen::MatrixXd::Ones(m,k-basisDimensionRestart));
         } else {
-          W.setRandom();
-          W += Eigen::MatrixXd::Ones(m,k);
+          W = 0.5*(Eigen::MatrixXd::Random(m,k) + Eigen::MatrixXd::Ones(m,k));
         }
 
         Eigen::MatrixXd W_copy(W);
@@ -161,10 +155,7 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
     } break;
   }
 
-  std::cerr << "norm of W = " << W.norm() << std::endl;
-  
-  // copy W into matrixBuffer
-  std::cout << "copy W into matrixBuffer"  << std::endl;
+  // copy W into buffer
   ROB.setZero();
   for(int i=0; i<m; ++i)
     for(int j=0; j<k; ++j)

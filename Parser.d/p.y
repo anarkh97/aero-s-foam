@@ -4703,6 +4703,10 @@ SvdOption:
     domain->solInfo().nmfRandInit = $4;
     domain->solInfo().nmfMaxIter = $5;
     domain->solInfo().nmfTol = $6; }
+  | USENMF Integer Float
+  { domain->solInfo().use_nmf = 1;
+    domain->solInfo().nmfMaxIter = $2;
+    domain->solInfo().nmfTol = $3; }
   | USEGREEDY
   { domain->solInfo().use_nmf = 2; }
   | ConwepConfig

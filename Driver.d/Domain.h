@@ -1061,7 +1061,6 @@ class Domain : public HData {
 
      // returns the number of nodes
      int  numNodes() { return (nodeToNode) ? nodeToNode->csize() : numnodes; }
-     virtual int numInternalNodes() { return numnodes - nodes.size(); }
      int  numNode()  { return numnodes; }
      void setNumNodes(int n)  { numnodes = n; }  // includes virtual nodes
      int  numGlobalNodes() { return numnodes; }

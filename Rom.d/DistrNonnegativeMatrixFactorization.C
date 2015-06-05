@@ -4,6 +4,7 @@
 #include <Comm.d/Communicator.h>
 #include <Rom.d/SparseSolvers.d/ScalaLH.d/Plh.h>
 #include <Utils.d/linkfc.h>
+#include <Timers.d/GetTime.h>
 
 #include <mpi.h>
 
@@ -23,6 +24,8 @@ extern "C" {
 }
 
 namespace Rom {
+
+double t1=0,t2=0,t3=0,t4=0;
 
 DistrNonnegativeMatrixFactorization
 ::DistrNonnegativeMatrixFactorization(Communicator * comm, int rowCount, int colCount, int localRows, int basisDimension,
@@ -46,10 +49,10 @@ DistrNonnegativeMatrixFactorization::solve()
 {
   // 1. Construct matrix A
   int blacsHandle = Csys2blacs_handle(*communicator_->getCommunicator());
-  int context = blacsHandle;
+  context = blacsHandle;
   char order[] = "R";
-  int rowCpus = communicator_->numCPUs();
-  int colCpus = 1;
+  rowCpus = communicator_->numCPUs();
+  colCpus = 1;
   Cblacs_gridinit(&context, order, rowCpus, colCpus);
   SCDoubleMatrix A(context, rowCount_, colCount_, blockSize_, blockSize_);
 
@@ -120,6 +123,10 @@ DistrNonnegativeMatrixFactorization::solve()
 
   Cblacs_gridexit(context);
   Cfree_blacs_system_handle(blacsHandle);
+
+  for(int i=0; i<communicator_->numCPUs(); ++i) { if(i==communicator_->myID()) {
+  std::cerr << "t1 = " << t1/1000 << ", t2 = " << t2/1000 << ", t3 = " << t3/1000 << ", t4 = " << t4/1000 << std::endl;
+  } communicator_->sync(); }
 }
 
 void
@@ -129,26 +136,38 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   // if flag = 1 then solve: min ||AX^T-B^T|| s.t. X >= 0
 
   Plh solver(A.getNumberOfRows(), A.getNumberOfCols());
+  solver.setContext(context, rowCpus, colCpus);
+  //solver.setColumnScaling();
   solver.init();
+  t1 -= getTime();
   solver.setMatrix(A);
+  t1 += getTime();
   solver.setVerbose(0);
 
-  double *rhs = new double[A.getNumberOfRows()];
-  double *sol = new double[A.getNumberOfCols()];
+  SCDoubleMatrix &b = solver.getRhsVector(); 
+  SCDoubleMatrix &x = solver.getSolutionVector();
+
   int nrhs = X.getNumberOfRows();
-
   for(int i=1; i<=nrhs; ++i) {
-    if(flag==0) B.getMatrixColumn(i,rhs,'A');
-    else        B.getMatrixRow(i,rhs,'A');
-    solver.setRHS(rhs);
-    solver.setRtol(1e-16);
-    solver.solve();
-    solver.getSolution(sol);
-    X.setMatrixRow(i,sol);
-  }
+    
+    t2 -= getTime();
+    // copy ith column/row of matrix B into vector b
+    if(flag==0) B.add(b, 'N', A.getNumberOfRows(), 1, 1.0, 0.0, 1, i, 1, 1);
+    else        B.add(b, 'T', A.getNumberOfRows(), 1, 1.0, 0.0, i, 1, 1, 1);
+    t2 += getTime();
 
-  delete [] rhs;
-  delete [] sol;
+    // solve: min ||Ax-b|| s.t. x >= 0
+    t3 -= getTime();
+    solver.setRtol(1e-16);
+    solver.setMaxIterRatio(3);
+    solver.solve();
+    t3 += getTime();
+
+    // copy x to ith row of X
+    t4 -= getTime();
+    x.add(X, 'N', 1, A.getNumberOfCols(), 1.0, 0.0, 1, 1, i, 1);
+    t4 += getTime();
+  }
 }
 
 } // end namespace Rom

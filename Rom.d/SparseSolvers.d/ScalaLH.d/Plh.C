@@ -33,6 +33,7 @@ Plh::Plh(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A) {
 void
 Plh::initDefaults() {
     _FORTRAN(blacs_pinfo)(&_mypid, &_nprocs);
+    _contextInitialized = false;
 
     // Solver
     _rtol    = 0.0;
@@ -203,6 +204,16 @@ Plh::~Plh() {
 
 
 void
+Plh::setContext(int context, int mprow, int npcol)
+{
+  _context = context;
+  _mprow = mprow;
+  _npcol = npcol;
+  _contextInitialized = true;
+}
+
+
+void
 Plh::init() {
     // std::cout << "Begin init()" << std::endl;
     _FORTRAN(blacs_pinfo)(&_mypid, &_nprocs);
@@ -211,8 +222,10 @@ Plh::init() {
     int zero = 0, one = 1;
     char order = 'R';
 
-    _FORTRAN(blacs_get)(&ic, &zero, &_context);
-    _FORTRAN(blacs_gridinit)(&_context, &order,  &_mprow, &_npcol );
+    if(!_contextInitialized) {
+      _FORTRAN(blacs_get)(&ic, &zero, &_context);
+      _FORTRAN(blacs_gridinit)(&_context, &order, &_mprow, &_npcol);
+    }
     _FORTRAN(blacs_gridinfo)(&_context, &_mprow, &_npcol, &_myrow, &_mycol);
 
     // Comm group for rows and columns

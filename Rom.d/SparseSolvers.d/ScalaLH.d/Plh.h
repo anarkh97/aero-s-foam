@@ -68,6 +68,7 @@ class Plh {
         Plh(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A);
         ~Plh();
 
+        void etContext(int context, int mprow, int npcol);
         int setMatrix(SCDoubleMatrix &A);
         int setMatrixColumn(int j, double *col);
         int setMatrixRow(int j, double *row);
@@ -96,6 +97,7 @@ class Plh {
         void setRtol(double rtol) {_rtol=rtol;}
         void setMaxNP(int maxNP) {_maxNP=maxNP;}
         void setVerbose(int verbose) {_verbose=verbose;}
+        void setContext(int context, int mprow, int npcol);
 
         void init();
         void init(const std::vector< Eigen::Map<Eigen::MatrixXd> >& eigenMatrix,
@@ -116,6 +118,8 @@ class Plh {
         void setColumnScaling();
         int getStatus() {return _status;}
         int getContext() {return _context;}
+        SCDoubleMatrix& getRhsVector() {return *_b;}
+        SCDoubleMatrix& getSolutionVector() {return *_x;}
 
     private:
         // A context
@@ -149,6 +153,7 @@ class Plh {
         MPI_Comm _row_commQR;
         MPI_Comm _col_commQR;
 
+        bool _contextInitialized;
         bool _matrixInitialized;
         bool _initializedWithEigen;
         bool _ddmask;

@@ -635,6 +635,16 @@ SCDoubleMatrix::add(SCDoubleMatrix& matrix, char trans, int n, double a, double 
 }
 
 
+int
+SCDoubleMatrix::add(SCDoubleMatrix& matrix, char trans, int m, int n, double a, double b, int ia, int ja, int ic, int jc) {
+    int one = 1;
+    _FORTRAN(pdgeadd)(&trans, &m, &n, &a,
+            _matrix,        &ia, &ja, _desc, &b,
+            matrix._matrix, &ic, &jc, matrix._desc);
+    return 0;
+}
+
+
 // Only for vectors
 double
 SCDoubleMatrix::dot(SCDoubleMatrix& matrix, int n) {
@@ -1273,10 +1283,15 @@ SCDoubleMatrix::scaleColumnsByL2Norm(SCDoubleMatrix& colScale) {
     _FORTRAN(dgsum2d)(&_context, &scope, &_top, &one, &_n, colScale._matrix, &one, &minusone, &zero);
     // Compute L2 norm and scale
     for (int j=0; j<_nlocal; j++) {
-        int n = j*_mlocal;
-        colScale._matrix[j] = 1.0 / sqrt(colScale._matrix[j]);
-        for (int i=0; i<_mlocal; i++) {
-            _matrix[i+n] *= colScale._matrix[j];
+        if(colScale._matrix[j] == 0) {
+            colScale._matrix[j] = 1;
+        }
+        else {
+            int n = j*_mlocal;
+            colScale._matrix[j] = 1.0 / sqrt(colScale._matrix[j]);
+            for (int i=0; i<_mlocal; i++) {
+                _matrix[i+n] *= colScale._matrix[j];
+            }
         }
     }
 }

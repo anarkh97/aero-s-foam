@@ -71,11 +71,12 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
   Eigen::Map<Eigen::MatrixXd> X(matrixBuffer_.array(), rowCount_, colCount_);
 
   std::vector<int> cols;
-  for(int i=0; i<colCount_; ++i) if(!(X.col(i).array() == 0).all()) cols.push_back(i);
+  const bool debug = false;
+  for(int i=0; i<colCount_; ++i) if(debug || !(X.col(i).array() == 0).all()) cols.push_back(i);
   std::cerr << "X has " << X.cols() << " columns of which " << cols.size() << " are non-zero\n";
 
   std::vector<int> rows;
-  for(int i=0; i<rowCount_; ++i) if(!(X.row(i).array() == 0).all()) rows.push_back(i);
+  for(int i=0; i<rowCount_; ++i) if(debug || !(X.row(i).array() == 0).all()) rows.push_back(i);
   std::cerr << "X has " << X.rows() << " rows of which " << rows.size() << " are non-zero\n";
 
   Eigen::Map<Eigen::MatrixXd> ROB(robBuffer_.array(), rowCount_, maxBasisDimension_);

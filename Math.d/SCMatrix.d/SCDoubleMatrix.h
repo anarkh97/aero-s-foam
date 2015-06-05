@@ -72,6 +72,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int copy(SCDoubleMatrix& dest, int n, SCIntMatrix& order);
         int add(SCDoubleMatrix& matrix, char trans, int n, double a, double b);
         int add(SCDoubleMatrix& matrix, char trans, int m, int n, double a, double b);
+        int add(SCDoubleMatrix& matrix, char trans, int m, int n, double a, double b, int ia, int ja, int ic, int jc);
         double dot(SCDoubleMatrix& matrix, int n);
         int reorder(SCIntMatrix& order, int npts=0);
         double getLocalValue(int i, int j=0) {return _matrix[i+_nlocal*j];};

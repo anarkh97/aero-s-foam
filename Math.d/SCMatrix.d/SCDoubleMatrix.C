@@ -65,7 +65,7 @@ SCDoubleMatrix::readMatrix(std::string filename) {
         setMatrixColumn(j, col);
     }
     fclose(fptr);
-    delete col;
+    delete[] col;
     return count;
 }
 
@@ -86,7 +86,7 @@ SCDoubleMatrix::init() {
 int
 SCDoubleMatrix::initqr() {
     int d = std::min(_m, _n);
-    _tau = new SCDoubleMatrix(_context,  1,   _m, _mb, _nb);
+    _tau = new SCDoubleMatrix(_context, 1, _m, _mb, _nb);
     _isQR = true;
     return 0;
 }
@@ -977,7 +977,7 @@ SCDoubleMatrix::initRandom(int seed, double lo, double hi) {
             }
         }
     }
-    delete [] col;
+    delete[] col;
 }
 
 

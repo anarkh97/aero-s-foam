@@ -169,22 +169,30 @@ Plh::init(const std::vector< Eigen::Map<Eigen::MatrixXd> >& eigenMatrix, const E
 
 
 Plh::~Plh() {
-    delete _A;
-    delete _x;
-    delete _b;
-    delete _w;
-    delete _workm;
+    if(_matrixInitialized) {
+        delete _A;
+        delete _x;
+        delete _b;
+        delete _w;
+        delete _workm;
+        delete _Atb;
+        delete _QtoA;
 
-    delete _Q;
-    delete _Qtb;
-    delete _rhs;
-    delete _zQR;
-    delete _xQR;
-    delete _wQR;
-    delete _QtoA;
+        delete _Q;
+        delete _Qtb;
+        delete _rhs;
+        delete _zQR;
+        /*XXX sometimes deleting _tau in destructor of _xQR causes seg fault
+        delete _xQR;*/
+        delete _wQR;
+        delete _bQR;
+        delete _rQR;
+        delete _workmQR;
+
+        if (_work_qr) delete[] _work_qr;
+    }
 
     if (_wmask != NULL) delete _wmask;
-    if (_work_qr) delete[] _work_qr;
 
     if (_mypid == 0) {
         if (_residualFilePtr != NULL) {

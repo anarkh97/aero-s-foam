@@ -37,7 +37,7 @@ StaticSolver< Scalar, OpSolver, VecType,
   if (allOps->C_deriv) {
     std::cerr << "\n !!! The Pade-Lanczos algorithm is not implemented yet";
     std::cerr << " for the damped case !!!\n\n";
-    assert(0 > 1);
+    exit(-1);
   }
 
   srand((unsigned int) time(0));

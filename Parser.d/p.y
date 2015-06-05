@@ -507,7 +507,7 @@ ReconsInfo:
               break;
             case SweepParams::PadeLanczos:
               n = $3;
-              if(m%n != 0) m = m/n*(n+1)-m%n; // round m up to the nearest multiple of n
+              if(m%n != 0) m = (m/n+1)*n; // round m up to the nearest multiple of n
               l = m-1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = m/n;
               break;
@@ -554,7 +554,7 @@ ReconsInfo:
             case SweepParams::PadeLanczos:
               n = $3;
               m = $5;
-              if(m%n != 0) m = m/n*(n+1)-m%n; // round m up to the nearest multiple of n
+              if(m%n != 0) m = (m/n+1)*n; // round m up to the nearest multiple of n
               l = m-1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = m/n;
               break;

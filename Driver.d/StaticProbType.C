@@ -27,6 +27,7 @@ StaticSolver< Scalar, OpSolver, VecType,
 #endif
 
  rhs = new VecType(probDesc->solVecInfo());
+ rhs->zero();
  sol = new VecType(probDesc->solVecInfo());
  sol->zero(); 
  VecType *savedSol = new VecType(probDesc->solVecInfo());
@@ -367,7 +368,7 @@ ncheck = 18;
      //----- UH ------
      if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos) {
        filePrint(stderr,"\n ... Build Subspace M-orthonormal Basis      ... \n"); 
-       /*probDesc->*/ PadeLanczos_BuildSubspace(nRHS, PadeLanczos_solprev + count * nRHS, 
+       PadeLanczos_BuildSubspace(nRHS, PadeLanczos_solprev + count * nRHS, 
                                            PadeLanczos_solprev, count * nRHS);
 
      } else  if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::KrylovGalProjection) {
@@ -422,7 +423,7 @@ ncheck = 18;
        //--- So we need to recompute the solution.
        //--- Note that wc is referred only on the first call to this routine.
        //--- It is used to get K (as K is actually storing K - wc*wc*M)
-       /*probDesc->*/ PadeLanczos_Evaluate((count+1)*nRHS, PadeLanczos_solprev, 
+       PadeLanczos_Evaluate((count+1)*nRHS, PadeLanczos_solprev, 
                                       PadeLanczos_VtKV, PadeLanczos_Vtb, wc, sol);
        if (savesol)  {
          savedsol = true;
@@ -433,17 +434,6 @@ ncheck = 18;
          savesol = true;
          postProcessor->staticOutput(*sol, *rhs, printTimers);
        }
-/* PJSA 10-09-08 MOVED THIS ABOVE PadeLanczos_Evaluate
-       //--- We destroy the arrays PadeLanczos_VtKV and PadeLanczos_VtB when V is incomplete.
-       //--- This is not optimal as we recompute several times some coefficients.
-       //--- Outputting should be done only when the basis V is complete.
-       if (count + 1 < padeN) {
-         delete[] PadeLanczos_VtKV;
-         PadeLanczos_VtKV = 0;
-         delete[] PadeLanczos_Vtb;
-         PadeLanczos_Vtb = 0;
-       } // if (count + 1 < padeN)
-*/
      } else if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::KrylovGalProjection || domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::QRGalProjection) {
        if (savesol)  {
          savedsol = true;
@@ -474,7 +464,8 @@ ncheck = 18;
      }
      count++;
 
-//     if(!(domain->solInfo().freqSweepMethod == SweepParams::PadeLanczos && count == padeN && domain->coarse_frequencies->size() > 1)) // PJSA 10-09-08 temporary fix to get sweep working
+     if(!(domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos &&
+          padeN > 1 && count == padeN && domain->coarse_frequencies->size() > 1))
        domain->coarse_frequencies->pop_front();
 
      if(count == padeN) {  // this means there are enough coarse solves to solve for pade polynomial coefs & reconstruct
@@ -539,7 +530,7 @@ xtime -= getTime();
              break;
            //--- UH --- Evaluate the Pade approximation
            case SweepParams::PadeLanczos :
-             /*probDesc->*/ PadeLanczos_Evaluate(padeN * nRHS, PadeLanczos_solprev, 
+             PadeLanczos_Evaluate(padeN * nRHS, PadeLanczos_solprev, 
                                             PadeLanczos_VtKV, PadeLanczos_Vtb, w, sol);
              break;
            //--- UH ---
@@ -585,9 +576,7 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
          savesol = true;
        }
 
-       if(domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos) { // PJSA 10-09-08 temporary fix to get sweep working
-                                                                          // not optimal, can we reuse part of the basis? 
-//         first_time = true; // so the solver isn't rebuild
+       if(domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos) {
        }
        else {
          if((padeN > 1) && (ncoarse > 0)) {

@@ -977,7 +977,7 @@ SCDoubleMatrix::initRandom(int seed, double lo, double hi) {
             }
         }
     }
-    delete col;
+    delete [] col;
 }
 
 

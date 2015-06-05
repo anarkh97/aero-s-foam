@@ -168,6 +168,7 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
     x.add(X, 'N', 1, A.getNumberOfCols(), 1.0, 0.0, 1, 1, i, 1);
     t4 += getTime();
   }
+  //solver.printTimes(true);
 }
 
 } // end namespace Rom

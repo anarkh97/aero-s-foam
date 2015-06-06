@@ -68,7 +68,6 @@ class Plh {
         Plh(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A);
         ~Plh();
 
-        void etContext(int context, int mprow, int npcol);
         int setMatrix(SCDoubleMatrix &A);
         int setMatrixColumn(int j, double *col);
         int setMatrixRow(int j, double *row);

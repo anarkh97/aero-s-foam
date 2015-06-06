@@ -120,7 +120,7 @@ Plh::initplh() {
     int lw1 = _Q->getLworkPxormqr(*_Q);
     int lw2 = _Q->getLworkPxgeqrf();
     _lwork_qr = std::max(lw1, lw2);
-    _work_qr = new double[_lwork_qr];
+    if(!_work_qr) _work_qr = new double[_lwork_qr];
 
     //_b->copy(*_Qtb, _m);
     // _bQR is for convenience
@@ -326,11 +326,8 @@ bool
 Plh::nextVector() {
     startTime(TIME_NEXT_VECTOR);
     // For convenience of finding the maximum w in Z, set all w in P to -LARGE
-    char scope = 'C';
-    char top = ' ';
     bool retval = true; // Means we are done. Default is true.
     startTime(TIME_GETMAX);
-    DoubleInt maxval;
     _wmax = _w->getMax(); // getMax() distributes to all processors
     stopTime(TIME_GETMAX);
     if (_wmax.x > 0.0 && _nZ > 0) {

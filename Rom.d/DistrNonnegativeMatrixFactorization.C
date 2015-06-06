@@ -137,6 +137,8 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
 
   Plh solver(A.getNumberOfRows(), A.getNumberOfCols());
   solver.setContext(context, rowCpus, colCpus);
+  solver.setABlockSize(blockSize_, blockSize_);
+  solver.setQBlockSize(blockSize_, blockSize_);
   //solver.setColumnScaling();
   solver.init();
   t1 -= getTime();

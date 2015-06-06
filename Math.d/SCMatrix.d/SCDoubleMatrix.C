@@ -201,7 +201,7 @@ SCDoubleMatrix::getMatrixColumn(int j, double *col, char scope) {
     // If SCOPE = 'C', alpha is updated only in the process column containing A( IA, JA ),
     // If SCOPE = 'A', alpha is updated in all the processes of the grid,
     // otherwise alpha is updated only in the process containing A( IA, JA ).
-    char top = 'I';
+    char top = ' ';
     if (j >= 1 && j <= _n) {
         for (int i=1; i<=_m; i++) {
             _FORTRAN(pdelget)(&scope, &top, &(col[i-1]), _matrix, &i, &j, _desc);
@@ -219,7 +219,7 @@ SCDoubleMatrix::getMatrixRow(int i, double *row, char scope) {
     // If SCOPE = 'C', alpha is updated only in the process column containing A( IA, JA ),
     // If SCOPE = 'A', alpha is updated in all the processes of the grid,
     // otherwise alpha is updated only in the process containing A( IA, JA ).
-    char top = 'I';
+    char top = ' ';
     if (i >= 1 && i <= _m) {
         for (int j=1; j<=_n; j++) {
             _FORTRAN(pdelget)(&scope, &top, &(row[j-1]), _matrix, &i, &j, _desc);
@@ -791,12 +791,14 @@ SCDoubleMatrix::getMax(int begglo, int endglo) {
         SCBaseMatrix::setRowColComms();
     }
     MPI_Comm comm, commd;
-    int mypc2;
+    int mypc1, mypc2;
     if (_m == 1) {
+        mypc1 = _mycol;
         mypc2 = _myrow;
         comm = _row_comm;
         commd = _col_comm;
     } else if (_n == 1) {
+        mypc1 = _myrow;
         mypc2 = _mycol;
         comm = _col_comm;
         commd = _row_comm;
@@ -805,17 +807,19 @@ SCDoubleMatrix::getMax(int begglo, int endglo) {
         MPI_Finalize();
         exit (-1);
     }
-    DoubleInt sendbuf, maxval;
+    DoubleInt maxval;
     if (mypc2 == 0) {
-        sendbuf = getMaxLoc(begglo, endglo);
+        DoubleInt sendbuf = getMaxLoc(begglo, endglo);
         MPI_Allreduce(&sendbuf, &maxval, 1, MPI_DOUBLE_INT, MPI_MAXLOC, comm);
+        assert(mypc1 == 0);
     }
-    MPI_Barrier(commd);
+    /*PJSA: I think that this barrier is redundant; if the rank 0 process in commd is
+            not involved in MPI_Allreduce then even with the barrier it's not safe.
+    MPI_Barrier(commd);*/
     MPI_Bcast(&maxval, 1, MPI_DOUBLE_INT, 0, commd);
     this->stopTime(SCDBL_TIME_GETMAX);
     return maxval;
 }
-
 
 
 DoubleInt
@@ -834,7 +838,7 @@ SCDoubleMatrix::getMinLoc(int begglo, int endglo) {
         mypc1 = _myrow;
         mypc2 = _mycol;
     } else {
-        std::cerr << "SCDoubleMatrix::getMaxLoc is for vectors only. Requires _m == 1 or _n == 1" << std::endl;
+        std::cerr << "SCDoubleMatrix::getMinLoc is for vectors only. Requires _m == 1 or _n == 1" << std::endl;
         MPI_Finalize();
         exit (-1);
     }
@@ -879,13 +883,15 @@ SCDoubleMatrix::getMin(int begglo, int endglo) {
     if (! _row_col_comm_set) {
         SCBaseMatrix::setRowColComms();
     }
-    int mypc2;
+    int mypc1, mypc2;
     MPI_Comm comm, commd;
     if (_m == 1) {
+        mypc1 = _mycol;
         mypc2 = _myrow;
         comm = _row_comm;
         commd = _col_comm;
     } else if (_n == 1) {
+        mypc1 = _myrow;
         mypc2 = _mycol;
         comm = _col_comm;
         commd = _row_comm;
@@ -894,12 +900,15 @@ SCDoubleMatrix::getMin(int begglo, int endglo) {
         MPI_Finalize();
         exit (-1);
     }
-    DoubleInt sendbuf, minval;
+    DoubleInt minval;
     if (mypc2 == 0) {
-        sendbuf = getMinLoc(begglo, endglo);
+        DoubleInt sendbuf = getMinLoc(begglo, endglo);
         MPI_Allreduce(&sendbuf, &minval, 1, MPI_DOUBLE_INT, MPI_MINLOC, comm);
+        assert(mypc1 == 0);
     }
-    MPI_Barrier(commd);
+    /*PJSA: I think that this barrier is redundant; if the rank 0 process in commd is
+            not involved in MPI_Allreduce then even with the barrier it's not safe.
+    MPI_Barrier(commd);*/
     MPI_Bcast(&minval, 1, MPI_DOUBLE_INT, 0, commd);
     this->stopTime(SCDBL_TIME_GETMIN);
     return minval;

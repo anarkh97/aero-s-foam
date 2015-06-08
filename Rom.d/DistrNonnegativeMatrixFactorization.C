@@ -31,7 +31,7 @@ double t1=0,t2=0,t3=0,t4=0,t5=0,t6=0;
 
 DistrNonnegativeMatrixFactorization
 ::DistrNonnegativeMatrixFactorization(Communicator * comm, int rowCount, int colCount, int localRows, int basisDimension,
-                                      int blockSize, int maxIter, double tol, int method) : 
+                                      int blockSize, int maxIter, double tol, int method, int nsub) : 
   communicator_(comm),
   rowCount_(rowCount),
   colCount_(colCount),
@@ -41,6 +41,7 @@ DistrNonnegativeMatrixFactorization
   maxIter_(maxIter),
   tol_(tol),
   method_(method),
+  nsub_(nsub),
   matrixBuffer_(localRows,colCount),
   basisBuffer_(localRows,basisDimension)
 {
@@ -126,10 +127,10 @@ DistrNonnegativeMatrixFactorization::solve()
   Cblacs_gridexit(context);
   Cfree_blacs_system_handle(blacsHandle);
 
-  for(int i=0; i<communicator_->numCPUs(); ++i) { if(i==communicator_->myID()) {
+/*for(int i=0; i<communicator_->numCPUs(); ++i) { if(i==communicator_->myID()) {
   std::cerr << "t1 = " << t1/1000 << ", t2 = " << t2/1000 << ", t3 = " << t3/1000 << ", t4 = " << t4/1000 
             << ", t5 = " << t5/1000 << ", t6 = " << t6/1000 << std::endl;
-  } communicator_->sync(); }
+  } communicator_->sync(); }*/
 }
 
 void
@@ -144,7 +145,7 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   }
 
   // number of sub-matrices in column-wise partition of B if flag == 0, or row-wise partition of B if flag == 1
-  const int nsub = communicator_->numCPUs(); // XXX
+  const int nsub = (nsub_ <= 0 || nsub_ > communicator_->numCPUs()) ? communicator_->numCPUs() : nsub_;
 
   // create new communicator and context if necessary
   MPI_Comm comm;
@@ -172,9 +173,9 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   solver.setQProcGrid(rowCpus, colCpus);
   solver.setABlockSize(blockSize_, blockSize_);
   solver.setQBlockSize(blockSize_, blockSize_);
-  //solver.setColumnScaling();
+  solver.setColumnScaling();
   solver.init();
-  t1 -= getTime();
+  MPI_Barrier(comm); t1 -= getTime();
   for(int k = 0; k < nsub; ++k) {
     if(k != color) A.copyRedist(A.getNumberOfRows(), A.getNumberOfCols(), 1, 1, A.getContext());
     else solver.setMatrix(A);
@@ -189,7 +190,7 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   // copy/redistribute from B to subB, if necessary
   SCDoubleMatrix *subB, *subX;
   int nrhs;
-  if(nsub == 0) {
+  if(nsub == 1) {
     nrhs = X.getNumberOfRows();
     subX = &X;
     subB = &B;
@@ -197,7 +198,7 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   else {
     nrhs = X.getNumberOfRows()/nsub + ((color < X.getNumberOfRows()%nsub) ? 1 : 0);
     subX = new SCDoubleMatrix(context, nrhs, X.getNumberOfCols(), blockSize_, blockSize_, comm);
-    t5 -= getTime();
+    MPI_Barrier(comm); t5 -= getTime();
     if(flag == 0) {
       subB = new SCDoubleMatrix(context, B.getNumberOfRows(), nrhs, blockSize_, blockSize_, comm);
       for(int k=0,ja=1,n; k<nsub; ++k, ja+=n) {
@@ -219,7 +220,7 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
 
   int iter = 0;
   for(int i=1; i<=nrhs; i++) {
-    
+
     t2 -= getTime();
     // copy ith column/row of matrix subB into vector b
     if(flag==0) subB->add(b, 'N', A.getNumberOfRows(), 1, 1.0, 0.0, 1, i, 1, 1);
@@ -246,7 +247,7 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
 
   // copy/redistribute from subX to X, if necessary
   if(nsub > 1) {
-    t6 -= getTime();
+    MPI_Barrier(comm); t6 -= getTime();
     for(int k=0,ib=1,m; k<nsub; ++k,ib+=m) {
       m = X.getNumberOfRows()/nsub + ((k < X.getNumberOfRows()%nsub) ? 1 : 0);
       if(k != color) SCDoubleMatrix::copyRedist(m, A.getNumberOfCols(), X, ib, 1, A.getContext()); // receive only

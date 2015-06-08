@@ -113,7 +113,8 @@ DistrPositiveDualBasisDriver::solve() {
   const int globalProbSize = domain->getNumCTC();
  
   DistrNonnegativeMatrixFactorization solver(comm_, globalProbSize, snapBasisStateCount, localLength, orthoBasisDim, blockSize,
-                                             domain->solInfo().nmfMaxIter, domain->solInfo().nmfTol, domain->solInfo().use_nmf);
+                                             domain->solInfo().nmfMaxIter, domain->solInfo().nmfTol, domain->solInfo().use_nmf,
+                                             domain->solInfo().nmfNumSub);
  
   int solverCol = 0;
   DistrNodeDof1Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());

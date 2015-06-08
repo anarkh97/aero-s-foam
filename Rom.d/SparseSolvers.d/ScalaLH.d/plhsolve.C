@@ -143,7 +143,7 @@ Plh::initplh() {
         _wmask->set(1.0);
     }
 
-    if (_col_scaling) {
+    if (_col_scaling && (_colnorms == NULL)) {
         startTime(TIME_COLUMNSCALING);
         if (_mypid == 0 && _verbose > 0) {
             std::cout << "Scaling the matrix columns." << std::endl;

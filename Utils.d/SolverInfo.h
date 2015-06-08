@@ -386,7 +386,8 @@ struct SolverInfo {
    int nmfNumROBDim;
    int nmfDelROBDim;
    int nmfRandInit;
-   int  nmfMaxIter;
+   int nmfMaxIter;
+   int nmfNumSub;
    double nmfTol;
    bool DEIMBasisPod;
    bool UDEIMBasisPod;
@@ -718,6 +719,7 @@ struct SolverInfo {
                   nmfDelROBDim       = 10;
                   nmfRandInit        = 1;
                   nmfMaxIter         = 100;
+                  nmfNumSub          = 0;
                   nmfTol             = 1e-6;
                   samplingPodRom     = false;
                   snapProjPodRom     = false;

@@ -4707,6 +4707,8 @@ SvdOption:
   { domain->solInfo().use_nmf = 1;
     domain->solInfo().nmfMaxIter = $2;
     domain->solInfo().nmfTol = $3; }
+  | NSUBS Integer
+  { domain->solInfo().nmfNumSub = $2; }
   | USEGREEDY
   { domain->solInfo().use_nmf = 2; }
   | ConwepConfig

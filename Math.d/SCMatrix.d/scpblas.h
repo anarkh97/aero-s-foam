@@ -36,6 +36,7 @@
 extern "C" {
     int  _FORTRAN(numroc)(const int *n, const int *nb, const int *myrow, const int *zero, const int *nprow);
     void _FORTRAN(descinit)(int *descb, const int *n, const int *uno, const int *mb, const int *nb, const int *mm, const int *nn, const int *context, const int *lld, int *info);
+    void _FORTRAN(desc_convert)(int *desc_in, int *desc_out, int *info);
     void _FORTRAN(pdelset)( double *b, int *i, int *uno, int *descb, double *alpha );
     void _FORTRAN(pdelget)( char *, char *, double *, double *, int *, int *, int *);
     void _FORTRAN(pielset)( int *b, int *i, int *uno, int *descb, int *alpha );

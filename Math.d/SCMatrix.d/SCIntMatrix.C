@@ -12,15 +12,15 @@
 #include <algorithm>
 
 
-SCIntMatrix::SCIntMatrix(int context, int m, int n, int mb, int nb, bool pvec) :
-    _pvec(pvec), SCBaseMatrix(context, m, n, mb, nb) {
+SCIntMatrix::SCIntMatrix(int context, int m, int n, int mb, int nb, MPI_Comm comm, bool pvec) :
+    _pvec(pvec), SCBaseMatrix(context, m, n, mb, nb, comm) {
 
     init();
 }
 
 
 SCIntMatrix::SCIntMatrix(const SCIntMatrix& matrix) : 
-    SCBaseMatrix(matrix._context, matrix._m, matrix._n, matrix._mb, matrix._nb) {
+    SCBaseMatrix(matrix._context, matrix._m, matrix._n, matrix._mb, matrix._nb, matrix._comm) {
     SCBaseMatrix::init();
     SCIntMatrix::init();
     for (int i=0; i<_sizelocal; i++) {

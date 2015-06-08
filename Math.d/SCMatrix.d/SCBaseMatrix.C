@@ -19,15 +19,15 @@
 
 int SCBaseMatrix::ZERO=0;
 
-SCBaseMatrix::SCBaseMatrix(std::string filename, int context, int mb, int nb) :
-    _context(context), _mb(mb), _nb(nb) {
+SCBaseMatrix::SCBaseMatrix(std::string filename, int context, int mb, int nb, MPI_Comm comm) :
+    _context(context), _mb(mb), _nb(nb), _comm(comm) {
     getMatrixSize(filename);
     init();
 }
 
 
-SCBaseMatrix::SCBaseMatrix(int context, int m, int n, int mb, int nb) :
-    _context(context), _m(m), _n(n), _mb(mb), _nb(nb) {
+SCBaseMatrix::SCBaseMatrix(int context, int m, int n, int mb, int nb, MPI_Comm comm) :
+    _context(context), _m(m), _n(n), _mb(mb), _nb(nb), _comm(comm) {
     init();
 }
 
@@ -64,7 +64,7 @@ SCBaseMatrix::init() {
     this->setScope();
     this->setSrc();
     int info;
-    _FORTRAN(descinit)(_desc, &_m, &_n,  &_mb, &_nb, &_rsrc, &_csrc, &_context, &_lld, &info );
+    _FORTRAN(descinit)(_desc, &_m, &_n, &_mb, &_nb, &_rsrc, &_csrc, &_context, &_lld, &info);
     _sizelocal = std::max(_mlocal,1)*std::max(_nlocal,1);
     _row_col_comm_set = false;
 }
@@ -319,8 +319,8 @@ SCBaseMatrix::getLocalOffset(int ig, int jg) {
 
 void
 SCBaseMatrix::setRowColComms() {
-    MPI_Comm_split(MPI_COMM_WORLD, _myrow, _mycol, &_row_comm);
-    MPI_Comm_split(MPI_COMM_WORLD, _mycol, _myrow, &_col_comm);
+    MPI_Comm_split(_comm, _myrow, _mycol, &_row_comm);
+    MPI_Comm_split(_comm, _mycol, _myrow, &_col_comm);
     _row_col_comm_set = true;
 }
 #endif

@@ -96,7 +96,7 @@ class Plh {
         void setRtol(double rtol) {_rtol=rtol;}
         void setMaxNP(int maxNP) {_maxNP=maxNP;}
         void setVerbose(int verbose) {_verbose=verbose;}
-        void setContext(int context, int mprow, int npcol);
+        void setContext(int context, int mprow, int npcol, MPI_Comm comm);
 
         void init();
         void init(const std::vector< Eigen::Map<Eigen::MatrixXd> >& eigenMatrix,
@@ -117,6 +117,7 @@ class Plh {
         void setColumnScaling();
         int getStatus() {return _status;}
         int getContext() {return _context;}
+        int getIter() {return _iter;}
         SCDoubleMatrix& getRhsVector() {return *_b;}
         SCDoubleMatrix& getSolutionVector() {return *_x;}
 
@@ -147,6 +148,7 @@ class Plh {
         SCIntMatrix * _QtoA;
 
         // Comm groups. Needed when MPI routines are more handy than BLACS routines.
+        MPI_Comm _comm;
         MPI_Comm _row_comm;
         MPI_Comm _col_comm;
         MPI_Comm _row_commQR;

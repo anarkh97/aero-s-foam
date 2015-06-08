@@ -38,8 +38,6 @@ private:
 
   Eigen::MatrixXd matrixBuffer_;
   Eigen::MatrixXd basisBuffer_;
-
-  int context, rowCpus, colCpus;
 };
 
 /* Helper functions for buffer access */

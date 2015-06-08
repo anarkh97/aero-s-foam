@@ -40,6 +40,9 @@ Plh::initDefaults() {
     _maxNP   = 0;
     _verbose = 1;
 
+    // Communicator
+    _comm = MPI_COMM_WORLD;
+
     // A Context
     defaultProcGrid();
     _mb    = MBA_DEFAULT;
@@ -95,7 +98,7 @@ Plh::initWithEigen(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A) {
 
     // Eigen cols per processor
     _eigenColsPerProc = new int[_nprocs];
-    MPI_Allgather(&ncols, 1, MPI_INT, _eigenColsPerProc, 1, MPI_INT, MPI_COMM_WORLD);
+    MPI_Allgather(&ncols, 1, MPI_INT, _eigenColsPerProc, 1, MPI_INT, _comm);
 
     // Starting point for Eigen global column indicies 
     _eigenSubdomainStart = new int[_nEigenSubDomains];
@@ -125,7 +128,7 @@ Plh::initWithEigen(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A) {
 int
 Plh::setMatrix(SCDoubleMatrix &A)
 {
-  A.copyRedist(_m, _n, 1, 1, *_A, 1, 1, _context);
+  A.copyRedist(_m, _n, 1, 1, *_A, 1, 1, A.getContext());
   return 0;
 }
 
@@ -212,11 +215,12 @@ Plh::~Plh() {
 
 
 void
-Plh::setContext(int context, int mprow, int npcol)
+Plh::setContext(int context, int mprow, int npcol, MPI_Comm comm)
 {
   _context = context;
   _mprow = mprow;
   _npcol = npcol;
+  _comm = comm;
   _contextInitialized = true;
 }
 
@@ -237,8 +241,8 @@ Plh::init() {
     _FORTRAN(blacs_gridinfo)(&_context, &_mprow, &_npcol, &_myrow, &_mycol);
 
     // Comm group for rows and columns
-    MPI_Comm_split(MPI_COMM_WORLD, _myrow, _mycol, &_row_comm); 
-    MPI_Comm_split(MPI_COMM_WORLD, _mycol, _myrow, &_col_comm); 
+    MPI_Comm_split(_comm, _myrow, _mycol, &_row_comm); 
+    MPI_Comm_split(_comm, _mycol, _myrow, &_col_comm); 
 
     // Get context for QR decomposition. 
     if (_mprow == _mprowQR && _npcol == _npcolQR) {
@@ -251,8 +255,8 @@ Plh::init() {
         _FORTRAN(blacs_get)(&ic, &zero, &_contextQR);
         _FORTRAN(blacs_gridinit)( &_contextQR, &order, &_nprocs, &one);
         _FORTRAN(blacs_gridinfo)(&_contextQR, &_mprowQR, &_npcolQR, &_myrowQR, &_mycolQR);
-        MPI_Comm_split(MPI_COMM_WORLD, _myrowQR, _mycolQR, &_row_commQR); 
-        MPI_Comm_split(MPI_COMM_WORLD, _mycolQR, _myrowQR, &_col_commQR); 
+        MPI_Comm_split(_comm, _myrowQR, _mycolQR, &_row_commQR); 
+        MPI_Comm_split(_comm, _mycolQR, _myrowQR, &_col_commQR); 
     }
 
     int dmax = std::max(_m, _n);
@@ -265,24 +269,24 @@ Plh::init() {
 
     // Initialize vectors and matrices
     // Context c_A
-    _A     = new SCDoubleMatrix(_context,   _m,   _n, _mb, _nb);
-    _x     = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
-    _b     = new SCDoubleMatrix(_context,   _m,    1, _mb, _nb);
-    _w     = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
-    _workm = new SCDoubleMatrix(_context,   _m,    1, _mb, _nb);
-    _Atb   = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
-    _QtoA  = new SCIntMatrix(   _context,    1,   _n, _mb, _nb);
+    _A     = new SCDoubleMatrix(_context,   _m,   _n, _mb, _nb, _comm);
+    _x     = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb, _comm);
+    _b     = new SCDoubleMatrix(_context,   _m,    1, _mb, _nb, _comm);
+    _w     = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb, _comm);
+    _workm = new SCDoubleMatrix(_context,   _m,    1, _mb, _nb, _comm);
+    _Atb   = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb, _comm);
+    _QtoA  = new SCIntMatrix(   _context,    1,   _n, _mb, _nb, _comm);
 
     // Context c_Q
-    _Q       = new SCDoubleMatrix(_contextQR,   _m, dmin, _mbq, _nbq);
-    _Qtb     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq);
-    _rhs     = new SCDoubleMatrix(_contextQR, dmax,    1, _mbq, _nbq);
-    _zQR     = new SCDoubleMatrix(_contextQR,    1,   _n, _mbq, _nbq);
-    _xQR     = new SCDoubleMatrix(_contextQR,    1,   _n, _mbq, _nbq);
-    _wQR     = new SCDoubleMatrix(_contextQR,    1,   _n, _mbq, _nbq);
-    _bQR     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq);
-    _rQR     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq);
-    _workmQR = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq); // Change _mb to _mbq and _nb to _nbq
+    _Q       = new SCDoubleMatrix(_contextQR,   _m, dmin, _mbq, _nbq, _comm);
+    _Qtb     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq, _comm);
+    _rhs     = new SCDoubleMatrix(_contextQR, dmax,    1, _mbq, _nbq, _comm);
+    _zQR     = new SCDoubleMatrix(_contextQR,    1,   _n, _mbq, _nbq, _comm);
+    _xQR     = new SCDoubleMatrix(_contextQR,    1,   _n, _mbq, _nbq, _comm);
+    _wQR     = new SCDoubleMatrix(_contextQR,    1,   _n, _mbq, _nbq, _comm);
+    _bQR     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq, _comm);
+    _rQR     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq, _comm);
+    _workmQR = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq, _comm); // Change _mb to _mbq and _nb to _nbq
 
     _Q->initqr();
     _work_qr = NULL;
@@ -380,7 +384,7 @@ Plh::writeX(std::string filename, bool compact) {
 
 int
 Plh::close() {
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(_comm);
     if (_context == _contextQR) {
         MPI_Comm_free(&_row_comm);
         MPI_Comm_free(&_col_comm);
@@ -481,10 +485,10 @@ Plh::getWallTime(){
 
 void
 Plh::loadMatrix(const std::vector< Eigen::Map<Eigen::MatrixXd> >& em) {
-    MPI_Barrier(MPI_COMM_WORLD); // For timings
+    MPI_Barrier(_comm); // For timings
     startTime(TIME_LOADMATRIX);
     _A->loadMatrix(em);
-    MPI_Barrier(MPI_COMM_WORLD); // For timings
+    MPI_Barrier(_comm); // For timings
     stopTime(TIME_LOADMATRIX);
 }
 
@@ -554,7 +558,7 @@ Plh::writeSolution(bool compact) {
 void
 Plh::loadMaxTimes() {
     double times_max[N_TIMES];
-    MPI_Allreduce(_wallclock_total, times_max, N_TIMES, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(_wallclock_total, times_max, N_TIMES, MPI_DOUBLE, MPI_MAX, _comm);
     for (int i=0; i<N_TIMES; i++) {
         _wallclock_total[i] = times_max[i];
     }
@@ -711,11 +715,11 @@ Plh::getSolution() {
             jg = _x->getGlobalColIndex(j); // Argument needs Fortran index. Returns Fortran index.
             pe  = getEigenProc(jg-1);      // Argument needs C index. Returns C index.
             //std::cout << "_mypid = " << _mypid << ", Sending jg = " << jg << " to processor " << pe << std::endl;
-            MPI_Isend(&(matrix[j-1]), 1, MPI_DOUBLE, pe, jg, MPI_COMM_WORLD, &sendrequest);
+            MPI_Isend(&(matrix[j-1]), 1, MPI_DOUBLE, pe, jg, _comm, &sendrequest);
         }
     }
 
-    //MPI_Barrier(MPI_COMM_WORLD);
+    //MPI_Barrier(_comm);
     // Receive and stuff into Eigen array. Blocking.
     for (int isd=0; isd<_nEigenSubDomains; isd++) {
         x[isd] = Eigen::VectorXd::Zero(_eigenSubDomainSize[isd]);
@@ -723,7 +727,7 @@ Plh::getSolution() {
             jg = j + _eigenSubdomainStart[isd] + 1; // Fortran global index
             ps = _x->getProc(1,jg); // Scalapack processor for global col jg
             //std::cout << "_mypid = " << _mypid << ", Receiving jg = " << jg << " from processor " << ps << std::endl;
-            MPI_Recv(&val, 1, MPI_DOUBLE, ps, jg, MPI_COMM_WORLD, &status);
+            MPI_Recv(&val, 1, MPI_DOUBLE, ps, jg, _comm, &status);
             x[isd][j] = val;
         }
     }
@@ -780,7 +784,7 @@ Plh::testCommunicators() {
     }   
     int st = MPI_Bcast(&buf, 1, MPI_INT, 0, _col_comm);
     std::cout << "Col Test: _mypid = " << _mypid << ", _myrow = " << _myrow << ", buf = " << buf << std::endl;
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(_comm);
 
     if (_mycol == 0) {
         buf = 1;
@@ -789,14 +793,14 @@ Plh::testCommunicators() {
     }   
     st = MPI_Bcast(&buf, 1, MPI_INT, 0, _row_comm);
     std::cout << "Row Test: _mypid = " << _mypid << ", _mycol = " << _mycol << ", buf = " << buf << std::endl;
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(_comm);
 }
 
 
 void
 Plh::setDownDateMask() {
     if (_wmask == NULL) {
-        _wmask = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
+        _wmask = new SCDoubleMatrix(_context, 1, _n, _mb, _nb, _comm);
     }
     _ddmask = true;
 }

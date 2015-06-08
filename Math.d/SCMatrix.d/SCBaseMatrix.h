@@ -15,8 +15,8 @@
 
 class SCBaseMatrix {
     public:
-        SCBaseMatrix(int context, int m, int n, int mb, int nb);
-        SCBaseMatrix(std::string filename, int context, int mb, int nb);
+        SCBaseMatrix(int context, int m, int n, int mb, int nb, MPI_Comm comm);
+        SCBaseMatrix(std::string filename, int context, int mb, int nb, MPI_Comm comm);
         ~SCBaseMatrix();
 
         int getNumberOfRows()       {return _m;}
@@ -28,6 +28,8 @@ class SCBaseMatrix {
         int getContext()            {return _context;}
         int getFirstProcessRow()    {return _rsrc;}
         int getFirstProcessCol()    {return _rsrc;}
+        int getNumberOfProcsRow()   {return _mprow;}
+        int getNumberOfProcsCol()   {return _npcol;}
         int getSizelocal()          {return _sizelocal;}
         int * getDesc()             {return _desc;}
         void printDescription();
@@ -76,6 +78,7 @@ class SCBaseMatrix {
         int distributeVector(int    *vec, int n); // Convenience routine for distributing local arrays.
         int distributeVector(double *vec, int n); // Convenience routine for distributing local arrays.
         bool _row_col_comm_set;
+        MPI_Comm _comm;
         MPI_Comm _row_comm;
         MPI_Comm _col_comm;
 

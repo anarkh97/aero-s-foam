@@ -18,7 +18,7 @@
 
 int
 Plh::solve() {
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(_comm);
     initplh();
     _iter = 0;
     _iter_total = 0;
@@ -101,7 +101,7 @@ Plh::solve() {
     } else {
         _status = 3;
     }
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(_comm);
     stopTime(TIME_MAIN_LOOP);
     return _nP;
 }
@@ -148,7 +148,7 @@ Plh::initplh() {
         if (_mypid == 0 && _verbose > 0) {
             std::cout << "Scaling the matrix columns." << std::endl;
         }
-        _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
+        _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb, _comm);
         _A->scaleColumnsByL2Norm(*_colnorms);
         stopTime(TIME_COLUMNSCALING);
     }
@@ -425,7 +425,7 @@ Plh::computeResidual() {
     if (_nP > 0) {
         startTime(TIME_PDORMQR_GRADF);
         _FORTRAN(pdormqr)(&side, &trans, &_m, &one, &_nP,
-            _Q->getMatrix(),  &one, &one, _Q->getDesc(), _Q->getTau(),
+            _Q->getMatrix(), &one, &one, _Q->getDesc(), _Q->getTau(),
             _rQR->getMatrix(), &one, &one, _rQR->getDesc(),
             _work_qr, &_lwork_qr, &info);
         stopTime(TIME_PDORMQR_GRADF);
@@ -441,9 +441,9 @@ Plh::gradf() {
     double x;
 
     mcopyQtoA(_rQR, _workm);
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(_comm);
     startTime(TIME_MULT_GRADF);
-    _A->multiply(*_workm,  *_w, 'T', _m, _n, 1.0, 0.0);
+    _A->multiply(*_workm, *_w, 'T', _m, _n, 1.0, 0.0);
     stopTime(TIME_MULT_GRADF);
     for (int i=1; i<=_nP; i++) {
         j = _QtoA->getElement(1,i);

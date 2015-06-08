@@ -15,21 +15,21 @@
 #include <ctime>
 
 
-SCDoubleMatrix::SCDoubleMatrix(std::string filename, int context, int mb, int nb) :
-    SCBaseMatrix(filename, context, mb, nb) {
+SCDoubleMatrix::SCDoubleMatrix(std::string filename, int context, int mb, int nb, MPI_Comm comm) :
+    SCBaseMatrix(filename, context, mb, nb, comm) {
     init();
     readMatrix(filename);
 }
 
 
-SCDoubleMatrix::SCDoubleMatrix(int context, int m, int n, int mb, int nb) :
-    SCBaseMatrix(context, m, n, mb, nb) {
+SCDoubleMatrix::SCDoubleMatrix(int context, int m, int n, int mb, int nb, MPI_Comm comm) :
+    SCBaseMatrix(context, m, n, mb, nb, comm) {
     init();
 }
 
 
 SCDoubleMatrix::SCDoubleMatrix(const SCDoubleMatrix& matrix) : 
-    SCBaseMatrix(matrix._context, matrix._m, matrix._n, matrix._mb, matrix._nb) {
+    SCBaseMatrix(matrix._context, matrix._m, matrix._n, matrix._mb, matrix._nb, matrix._comm) {
     //SCBaseMatrix::init();
     SCDoubleMatrix::init();
     for (int i=0; i<_sizelocal; i++) {
@@ -39,7 +39,7 @@ SCDoubleMatrix::SCDoubleMatrix(const SCDoubleMatrix& matrix) :
 
 
 SCDoubleMatrix::SCDoubleMatrix(const SCDoubleMatrix& matrix, int ncols) : 
-    SCBaseMatrix(matrix._context, matrix._m, ncols, matrix._mb, matrix._nb) {
+    SCBaseMatrix(matrix._context, matrix._m, ncols, matrix._mb, matrix._nb, matrix._comm) {
     SCBaseMatrix::init();
     SCDoubleMatrix::init();
     for (int i=0; i<_sizelocal; i++) {
@@ -86,7 +86,7 @@ SCDoubleMatrix::init() {
 int
 SCDoubleMatrix::initqr() {
     int d = std::min(_m, _n);
-    _tau = new SCDoubleMatrix(_context, 1, _m, _mb, _nb);
+    _tau = new SCDoubleMatrix(_context, 1, _m, _mb, _nb, _comm);
     _isQR = true;
     return 0;
 }
@@ -991,8 +991,33 @@ SCDoubleMatrix::initRandom(int seed, double lo, double hi) {
 
 
 int
-SCDoubleMatrix::copyRedist( int m, int n, int ia, int ja, SCDoubleMatrix& B, int ib, int jb, int ctxt) {
+SCDoubleMatrix::copyRedist(int m, int n, int ia, int ja, SCDoubleMatrix& B, int ib, int jb, int ctxt) {
+    // send and receive
     _FORTRAN(pdgemr2d)(&m, &n, _matrix, &ia, &ja, _desc, B.getMatrix(), &ib, &jb, B.getDesc(), &ctxt); 
+    return 0;
+}
+
+
+int
+SCDoubleMatrix::copyRedist(int m, int n, int ia, int ja, int ctxt) {
+    // send only
+    double *b;
+    int dummy;
+    int descb[DLEN_];
+    descb[CTXT_] = -1;
+    _FORTRAN(pdgemr2d)(&m, &n, _matrix, &ia, &ja, _desc, b, &dummy, &dummy, descb, &ctxt);
+    return 0;
+}
+
+
+int
+SCDoubleMatrix::copyRedist(int m, int n, SCDoubleMatrix& B, int ib, int jb, int ctxt) {
+    // receive only
+    double *a;
+    int dummy;
+    int desca[DLEN_];
+    desca[CTXT_] = -1;
+    _FORTRAN(pdgemr2d)(&m, &n, a, &dummy, &dummy, desca, B.getMatrix(), &ib, &jb, B.getDesc(), &ctxt);
     return 0;
 }
 
@@ -1100,7 +1125,7 @@ SCDoubleMatrix::loadMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A) {
         sizeslocal[i+1] = ncol;
     }
     // std::cout << "Number of columns = " << A[0].cols() << " on processor " << _mypid << std::endl;
-    MPI_Allgather(&ncol, 1, MPI_INT, &(sizes[1]), 1, MPI_INT, MPI_COMM_WORLD);
+    MPI_Allgather(&ncol, 1, MPI_INT, &(sizes[1]), 1, MPI_INT, _comm);
 
     sizes[0] = 0;
     for (int i=1; i<_nprocs+1; i++) {
@@ -1131,8 +1156,8 @@ SCDoubleMatrix::loadMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A) {
                             ig = _FORTRAN(indxl2g)(&i, &_mb, &k, &zero, &_mprow);
                             col[i-1] = A[isd].col(jsd)[ig-1];
                         }   
-                        MPI_Send(col, mlocal, MPI_DOUBLE, pr, k, MPI_COMM_WORLD);
-                        //MPI_Isend(col, mlocal, MPI_DOUBLE, pr, k, MPI_COMM_WORLD, &request);
+                        MPI_Send(col, mlocal, MPI_DOUBLE, pr, k, _comm);
+                        //MPI_Isend(col, mlocal, MPI_DOUBLE, pr, k, _comm, &request);
                     } else {
                         jl = _FORTRAN(indxg2l)(&jg, &_nb, &zero, &zero, &_npcol);
                         ioff = (jl-1)*_mlocal;
@@ -1148,7 +1173,7 @@ SCDoubleMatrix::loadMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A) {
                 jg = j+1;   // Global Eigen column fortran index - actual Matrix column
                 pc  = _FORTRAN(indxg2p)(&jg, &_nb, &dummy, &zero, &_npcol); // Processor col-coord of col jg
                 if  (_mycol == pc) {
-                    MPI_Recv(col, _mlocal, MPI_DOUBLE, p, _myrow, MPI_COMM_WORLD, &status);
+                    MPI_Recv(col, _mlocal, MPI_DOUBLE, p, _myrow, _comm, &status);
                     jl = _FORTRAN(indxg2l)(&jg, &_nb, &zero, &zero, &_npcol);
                     ioff = (jl-1)*_mlocal;
                     for (int i=0; i<_mlocal; i++) {
@@ -1179,7 +1204,7 @@ SCDoubleMatrix::loadTransposeMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd
         sizeslocal[i+1] = ncol;
     }
     // std::cout << "Number of columns = " << A[0].cols() << " on processor " << _mypid << std::endl;
-    MPI_Allgather(&ncol, 1, MPI_INT, &(sizes[1]), 1, MPI_INT, MPI_COMM_WORLD);
+    MPI_Allgather(&ncol, 1, MPI_INT, &(sizes[1]), 1, MPI_INT, _comm);
 
     sizes[0] = 0;
     for (int i=1; i<_nprocs+1; i++) {
@@ -1210,8 +1235,8 @@ SCDoubleMatrix::loadTransposeMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd
                             ig = _FORTRAN(indxl2g)(&j, &_nb, &k, &zero, &_npcol) - 1;
                             row[j-1] = A[isd].col(jsd)[ig];
                         }   
-                        MPI_Send(row, nlocal, MPI_DOUBLE, pr, k, MPI_COMM_WORLD);
-                        //MPI_Isend(row, nlocal, MPI_DOUBLE, pr, k, MPI_COMM_WORLD, &request);
+                        MPI_Send(row, nlocal, MPI_DOUBLE, pr, k, _comm);
+                        //MPI_Isend(row, nlocal, MPI_DOUBLE, pr, k, _comm, &request);
                     } else {
                         il = _FORTRAN(indxg2l)(&jg, &_mb, &zero, &zero, &_mprow) - 1;
                         for (int i=1; i<=_nlocal; i++) {
@@ -1226,7 +1251,7 @@ SCDoubleMatrix::loadTransposeMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd
                 jg = j+1;   // Global Eigen column fortran index - actual Matrix row index
                 pr = _FORTRAN(indxg2p)(&jg, &_mb, &dummy, &zero, &_mprow); // Processor row coord of Eigen col jg
                 if  (_myrow == pr) {
-                    MPI_Recv(row, _nlocal, MPI_DOUBLE, p, _mycol, MPI_COMM_WORLD, &status);
+                    MPI_Recv(row, _nlocal, MPI_DOUBLE, p, _mycol, _comm, &status);
                     il = _FORTRAN(indxg2l)(&jg, &_mb, &zero, &zero, &_mprow) - 1;
                     for (int i=0; i<_nlocal; i++) {
                         _matrix[il+i*_mlocal] = row[i];
@@ -1271,7 +1296,7 @@ double
 SCDoubleMatrix::getMaxTime(int i) {
     double wall_time = this->getTime(i);
     double max_time;
-    MPI_Reduce(&wall_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&wall_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, 0, _comm);
     return max_time;
 }
 
@@ -1370,7 +1395,7 @@ SCDoubleMatrix::solve(SCDoubleMatrix& x, SCDoubleMatrix& b, int n) {
     int one=1;
     int info;
 
-    SCDoubleMatrix * z = new SCDoubleMatrix(_context, n, 1,  _mb, _nb);
+    SCDoubleMatrix * z = new SCDoubleMatrix(_context, n, 1,  _mb, _nb, _comm);
     b.copy(*z, n);
     int * ipiv = new int[_mlocal + _mb];
     double * rhs = z->getMatrix();
@@ -1398,7 +1423,7 @@ int
 SCDoubleMatrix::cholsolve(SCDoubleMatrix& x, SCDoubleMatrix& b, int n) {
     char uplo = 'L';
     int one = 1, info;
-    SCDoubleMatrix * z = new SCDoubleMatrix(_context, n, 1,  _mb, _nb);
+    SCDoubleMatrix * z = new SCDoubleMatrix(_context, n, 1,  _mb, _nb, _comm);
     b.copy(*z, n);
     double * rhs = z->getMatrix();
     int * descRhs = z->getDesc();

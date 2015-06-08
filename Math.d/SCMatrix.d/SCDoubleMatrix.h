@@ -33,10 +33,10 @@ typedef struct {
 class SCDoubleMatrix : public SCBaseMatrix {
 
     public:
-        SCDoubleMatrix(int context, int m, int n, int mb, int nb);
+        SCDoubleMatrix(int context, int m, int n, int mb, int nb, MPI_Comm comm);
         SCDoubleMatrix(const SCDoubleMatrix& matrix);
         SCDoubleMatrix(const SCDoubleMatrix& matrix, int ncols);
-        SCDoubleMatrix(std::string filename, int context, int mb, int nb);
+        SCDoubleMatrix(std::string filename, int context, int mb, int nb, MPI_Comm comm);
         ~SCDoubleMatrix();
 
         void setA(int i, int j, double val);
@@ -90,7 +90,9 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int pdlacp2(char uplo, int m, int n, int ia, int ja, SCDoubleMatrix& b, int ib, int jb);
         int initqr();
         void initRandom(int seed=1, double lo=-1.0, double hi=1.0);
-        int copyRedist( int m, int n, int ia, int ja, SCDoubleMatrix& B, int ib, int jb, int ctxt);
+        int copyRedist(int m, int n, int ia, int ja, SCDoubleMatrix& B, int ib, int jb, int ctxt);
+        int copyRedist(int m, int n, int ia, int ja, int ctxt);
+        static int copyRedist(int m, int n, SCDoubleMatrix& B, int ib, int jb, int ctxt);
         int initMatrix(double *A);
         void swap(int i, int j);
         double froNorm();

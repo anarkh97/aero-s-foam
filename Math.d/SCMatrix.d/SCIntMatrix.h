@@ -11,7 +11,7 @@
 
 class SCIntMatrix : public SCBaseMatrix {
     public:
-        SCIntMatrix(int context, int m, int n, int mb, int nb, bool pvec=false);
+        SCIntMatrix(int context, int m, int n, int mb, int nb, MPI_Comm comm, bool pvec=false);
         SCIntMatrix(const SCIntMatrix& matrix);
         ~SCIntMatrix();
 

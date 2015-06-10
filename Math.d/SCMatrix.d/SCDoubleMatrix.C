@@ -1001,7 +1001,7 @@ SCDoubleMatrix::copyRedist(int m, int n, int ia, int ja, SCDoubleMatrix& B, int 
 int
 SCDoubleMatrix::copyRedist(int m, int n, int ia, int ja, int ctxt) {
     // send only
-    double *b;
+    double *b = NULL;
     int dummy;
     int descb[DLEN_];
     descb[CTXT_] = -1;
@@ -1013,7 +1013,7 @@ SCDoubleMatrix::copyRedist(int m, int n, int ia, int ja, int ctxt) {
 int
 SCDoubleMatrix::copyRedist(int m, int n, SCDoubleMatrix& B, int ib, int jb, int ctxt) {
     // receive only
-    double *a;
+    double *a = NULL;
     int dummy;
     int desca[DLEN_];
     desca[CTXT_] = -1;

@@ -588,8 +588,11 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
     for(int i=0; i<nsub; ++i) {// pass only the selected subset of elements to the parallel NNLS solver
       new (&subsetA[i]) Eigen::Map<Eigen::MatrixXd>(B[i].data(),B[i].rows(),l[i]);
     }
-//    dummyx = pnncgp(subsetA, b, rnorm, n, info, maxsze, maxite, reltol, true, scaling, center, dtime);
+#if defined(USE_MPI) && defined(USE_SCALAPACK)
     dummyx = splh(subsetA, b, rnorm, n, info, maxsze, maxit, reltol, true, scaling, false, dtime, 0, 0, 0, 0, 0);
+#else
+    dummyx = pnncgp(subsetA, b, rnorm, n, info, maxsze, maxite, reltol, true, scaling, center, dtime);
+#endif
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif

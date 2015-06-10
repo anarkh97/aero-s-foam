@@ -50,6 +50,21 @@ DistrNonnegativeMatrixFactorization
 void
 DistrNonnegativeMatrixFactorization::solve()
 {
+  int *buffer = new int[colCount_];
+  for(int i=0; i<colCount_; ++i) buffer[i] = (matrixBuffer_.col(i).array() == 0).all() ? 0 : 1;
+  communicator_->globalMax(colCount_, buffer);
+
+  std::vector<int> cols;
+  for(int i=0; i<colCount_; ++i) if(buffer[i]) cols.push_back(i);
+  int colCount = cols.size();
+  if(communicator_->myID() == 0) std::cerr << "X has " << colCount_ << " columns of which " << colCount << " are non-zero\n";
+  delete [] buffer;
+
+  std::vector<int> rows;
+  for(int i=0; i<localRows_; ++i) if(!(matrixBuffer_.row(i).array() == 0).all()) rows.push_back(i);
+  int rowCount = communicator_->globalSum((int)rows.size());
+  if(communicator_->myID() == 0) std::cerr << "X has " << rowCount_ << " rows of which " << rowCount << " are non-zero\n";
+
   // 1. Construct matrix A
   int blacsHandle = Csys2blacs_handle(*communicator_->getCommunicator());
   int context = blacsHandle;
@@ -57,25 +72,60 @@ DistrNonnegativeMatrixFactorization::solve()
   int rowCpus = communicator_->numCPUs();
   int colCpus = 1;
   Cblacs_gridinit(&context, order, rowCpus, colCpus);
-  SCDoubleMatrix A(context, rowCount_, colCount_, blockSize_, blockSize_, *communicator_->getCommunicator());
+  SCDoubleMatrix A(context, rowCount, colCount, blockSize_, blockSize_, *communicator_->getCommunicator());
 
-  // 2. Copy matrixBuffer into A
+  // 2. Copy non-zero rows and columns from matrixBuffer into A
   int myrow, mycol;
   int dummy, zero=0;
   Cblacs_gridinfo(context, &rowCpus, &colCpus, &myrow, &mycol);
-  double *row = new double[std::max(colCount_,basisDimension_)];
-  for(int j=1; j<=rowCount_; j++) {
+  double *row = new double[std::max(colCount,basisDimension_)];
+/*for(int j=1; j<=rowCount_; j++) {
     int p = _FORTRAN(indxg2p)(&j, &blockSize_, &dummy, &zero, &rowCpus);
     if(myrow == p) {
       int lj = _FORTRAN(indxg2l)(&j, &blockSize_, NULL, NULL, &rowCpus) - 1;
       for(int k=0; k<colCount_; ++k) row[k] = -matrixBuffer_(lj,k);
       A.setMatrixRow(j, row);
     }
+  }*/
+  // make a local context with just 1 cpu
+  int localBlacsHandle = Csys2blacs_handle(MPI_COMM_SELF);
+  int localContext = localBlacsHandle;
+  Cblacs_gridinit(&localContext, order, 1, 1);
+  // make a vector to store one non-zero row of A
+  SCDoubleMatrix Ai(localContext, 1, colCount, blockSize_, blockSize_, MPI_COMM_SELF);
+  int isNonZero;
+  std::map<int,int> localrows;
+  // loop over the rows, check if non-zero and if so then copy/redistribute to A
+  // also, store mapping from global non-zero row numbers to local row numbers
+  for(int j=1,i=1; j<=rowCount_; j++) {
+    int p = _FORTRAN(indxg2p)(&j, &blockSize_, &dummy, &zero, &rowCpus);
+    if(myrow == p) {
+      int lj = _FORTRAN(indxg2l)(&j, &blockSize_, NULL, NULL, &rowCpus) - 1;
+      std::vector<int>::iterator it = std::find(rows.begin(), rows.end(), lj);
+      isNonZero = (it != rows.end()) ? 1 : 0;
+      communicator_->broadcast(1, &isNonZero, p);
+      if(isNonZero) {
+        for(int k=0; k<colCount; ++k) row[k] = -matrixBuffer_(*it,cols[k]);
+        Ai.setMatrixRow(1, row);
+        Ai.copyRedist(1, colCount, 1, 1, A, i, 1, A.getContext()); // send and receive
+        localrows[i] = lj;
+        i++;
+      }
+    }
+    else {
+      communicator_->broadcast(1, &isNonZero, p);
+      if(isNonZero) {
+        SCDoubleMatrix::copyRedist(1, colCount, A, i, 1, A.getContext()); // receive only
+        i++;
+      }
+    }
   }
+  Cblacs_gridexit(localContext);
+  Cfree_blacs_system_handle(localBlacsHandle);
 
   // Construct matrices to store factors W and H
-  SCDoubleMatrix W(context, rowCount_, basisDimension_, blockSize_, blockSize_, *communicator_->getCommunicator());
-  SCDoubleMatrix Htranspose(context, colCount_, basisDimension_, blockSize_, blockSize_, *communicator_->getCommunicator());
+  SCDoubleMatrix W(context, rowCount, basisDimension_, blockSize_, blockSize_, *communicator_->getCommunicator());
+  SCDoubleMatrix Htranspose(context, colCount, basisDimension_, blockSize_, blockSize_, *communicator_->getCommunicator());
 
   // Initialize W with random positive entries between 0 and 1
   W.initRandom(1,0.,1.);
@@ -97,7 +147,7 @@ DistrNonnegativeMatrixFactorization::solve()
         // compute residual and check stopping criteria
         SCDoubleMatrix Err(A); W.multiply(Htranspose, Err, 'N', 'T', -1.0, 1.0); // Err = A-W*H;
         double res = Err.froNorm()/A.froNorm();
-        W.add(W_copy, 'N', rowCount_, basisDimension_, 1.0, -1.0); // W_copy = W-W_copy
+        W.add(W_copy, 'N', rowCount, basisDimension_, 1.0, -1.0); // W_copy = W-W_copy
         double inc = W_copy.froNorm();
         if(communicator_->myID() == 0)
           std::cout << "iteration = " << i+1 << ", rel. residual = " << res << ", solution incr. = " << inc << std::endl;
@@ -113,12 +163,20 @@ DistrNonnegativeMatrixFactorization::solve()
   }
 
   // copy W into basisBuffer_
-  for(int j=1; j<=rowCount_; j++) {
+/*for(int j=1; j<=rowCount_; j++) {
     int p = _FORTRAN(indxg2p)(&j, &blockSize_, &dummy, &zero, &rowCpus);
     if(myrow == p) {
       int lj = _FORTRAN(indxg2l)(&j, &blockSize_, NULL, NULL, &rowCpus) - 1;
       W.getMatrixRow(j, row, 'U');
       for(int k=0; k<basisDimension_; ++k) basisBuffer_(lj,k) = row[k];
+    }
+  }*/
+  basisBuffer_.setZero();
+  for(int i=1; i<=rowCount; i++) {
+    W.getMatrixRow(i, row, 'A');
+    std::map<int,int>::iterator it = localrows.find(i);
+    if(it != localrows.end()) {
+      for(int k=0; k<basisDimension_; ++k) basisBuffer_(it->second,k) = row[k];
     }
   }
 

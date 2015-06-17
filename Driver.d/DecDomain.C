@@ -3699,16 +3699,57 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  if(dgt.makeC_deriv) {
    res.C_deriv = new GenSubDOp<Scalar>*[1];
    (res.C_deriv)[0] = new GenSubDOp<Scalar>(numSub, dgt.C_deriv,0);
- } else {
-   res.C_deriv = 0;
-   delete [] dgt.C_deriv;
- }
- if(dgt.makeC_deriv) {
    res.Cuc_deriv = new GenSubDOp<Scalar>*[1];
    res.Cuc_deriv[0] = new GenSubDOp<Scalar>(numSub, dgt.Cuc_deriv,0);
+   res.num_K_deriv = dgt.num_K_deriv;
+   res.K_deriv = new GenSubDOp<Scalar>*[res.num_K_deriv+1];
+   for(int i=0;i<=res.num_K_deriv;i++)
+     res.K_deriv[i] = new GenSubDOp<Scalar>(numSub, dgt.K_deriv,i);
+   for(int i=0;i<=res.num_K_deriv;i++) for(int j=0;j<numSub;j++) {
+      GenSparseMatrix<Scalar>* p = (*(res.K_deriv[i]))[j];
+   }
+   if (dgt.Kuc_deriv) {
+      res.Kuc_deriv = new GenSubDOp<Scalar>*[res.num_K_deriv+1];
+      for(int i=0;i<=res.num_K_deriv;i++)
+       res.Kuc_deriv[i] = new GenSubDOp<Scalar>(numSub, dgt.Kuc_deriv,i);
+   } else { 
+     res.Kuc_deriv = 0;
+   }
+   res.num_K_arubber = dgt.num_K_arubber;
+   res.K_arubber_l = new GenSubDOp<Scalar>*[res.num_K_arubber];
+   res.K_arubber_m = new GenSubDOp<Scalar>*[res.num_K_arubber];
+   for(int i=0;i<res.num_K_arubber;i++) {
+     res.K_arubber_l[i] = new GenSubDOp<Scalar>(numSub, dgt.K_arubber_l,i);
+     res.K_arubber_m[i] = new GenSubDOp<Scalar>(numSub, dgt.K_arubber_m,i);
+   }
+   if (dgt.Kuc_arubber_l) {
+      res.Kuc_arubber_l = new GenSubDOp<Scalar>*[res.num_K_arubber];
+      res.Kuc_arubber_m = new GenSubDOp<Scalar>*[res.num_K_arubber];
+      for(int i=0;i<res.num_K_arubber;i++) {
+       res.Kuc_arubber_l[i] = new GenSubDOp<Scalar>(numSub, dgt.Kuc_arubber_l,i);     
+       res.Kuc_arubber_m[i] = new GenSubDOp<Scalar>(numSub, dgt.Kuc_arubber_m,i);     
+      }
+   } else { 
+     res.Kuc_arubber_l = 0;
+     res.Kuc_arubber_m = 0;
+   }
  } else {
+   res.C_deriv = 0;
+   if (dgt.C_deriv) delete [] dgt.C_deriv;
    res.Cuc_deriv = 0;
-   delete [] dgt.Cuc_deriv;
+   if (dgt.Cuc_deriv) delete [] dgt.Cuc_deriv;
+   res.K_deriv = 0;
+   if (dgt.K_deriv) delete [] dgt.K_deriv;
+   res.Kuc_deriv = 0;
+   if (dgt.Kuc_deriv) delete [] dgt.Kuc_deriv;
+   res.K_arubber_l = 0;
+   if (dgt.K_arubber_l) delete [] dgt.K_arubber_l;
+   res.Kuc_arubber_l = 0;
+   if (dgt.Kuc_arubber_l) delete [] dgt.Kuc_arubber_l;
+   res.K_arubber_m = 0;
+   if (dgt.K_arubber_m) delete [] dgt.K_arubber_m;
+   res.Kuc_arubber_m = 0;
+   if (dgt.Kuc_arubber_m) delete [] dgt.Kuc_arubber_m;
  }
 // RT end
  switch(domain->solInfo().type) {
@@ -3790,12 +3831,41 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   if(res.Kuc)  allOps.Kuc = (*res.Kuc)[iSub];
 // RT: 053013 : not finished
   if(res.C_deriv) {
+
      allOps.C_deriv = new GenSparseMatrix<Scalar>*[1];
      allOps.C_deriv[0] = (*(res.C_deriv[0]))[iSub];
   }
   if(res.Cuc_deriv) {
      allOps.Cuc_deriv = new GenSparseMatrix<Scalar>*[1];
      allOps.Cuc_deriv[0] = (*(res.Cuc_deriv[0]))[iSub];
+  }
+  if(res.K_deriv) {
+     allOps.K_deriv = new GenSparseMatrix<Scalar>*[res.num_K_deriv+1];
+     allOps.n_Kderiv = res.num_K_deriv;
+     for(int i=0;i<=res.num_K_deriv;i++)
+        allOps.K_deriv[i] = (*(res.K_deriv[i]))[iSub];
+  }
+  if(res.Kuc_deriv) {
+     allOps.Kuc_deriv = new GenSparseMatrix<Scalar>*[res.num_K_deriv+1];
+     for(int i=0;i<=res.num_K_deriv;i++)
+       allOps.Kuc_deriv[i] = (*(res.Kuc_deriv[i]))[iSub];
+  }
+  if(res.K_arubber_l) {
+     allOps.K_arubber_l = new GenSparseMatrix<Scalar>*[res.num_K_arubber];
+     allOps.K_arubber_m = new GenSparseMatrix<Scalar>*[res.num_K_arubber];
+     allOps.num_K_arubber = res.num_K_arubber;
+     for(int i=0;i<res.num_K_arubber;i++) {
+        allOps.K_arubber_l[i] = (*(res.K_arubber_l[i]))[iSub];
+        allOps.K_arubber_m[i] = (*(res.K_arubber_m[i]))[iSub];
+     }
+  }
+  if(res.Kuc_arubber_l) {
+     allOps.Kuc_arubber_l = new GenSparseMatrix<Scalar>*[res.num_K_arubber];
+     allOps.Kuc_arubber_m = new GenSparseMatrix<Scalar>*[res.num_K_arubber];
+     for(int i=0;i<res.num_K_arubber;i++) {
+       allOps.Kuc_arubber_l[i] = (*(res.Kuc_arubber_l[i]))[iSub];
+       allOps.Kuc_arubber_m[i] = (*(res.Kuc_arubber_m[i]))[iSub];
+     }
   }
 
   allOps.zero();

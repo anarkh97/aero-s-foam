@@ -115,10 +115,18 @@ struct AllOps
   GenSparseMatrix<Scalar> *Ccc;  // constrained to constrained damping matrix
   GenSparseMatrix<Scalar> **C_deriv;    // derivatives of damping matrix for higher order sommerfeld
   GenSparseMatrix<Scalar> **Cuc_deriv;    // derivatives of constrained to unconstrained damping matrix for higher order sommerfeld
+  int n_Kderiv;
+  GenSparseMatrix<Scalar> **K_deriv;    // derivatives of K for rubber or non-linear with frequency
+  GenSparseMatrix<Scalar> **Kuc_deriv;    // derivatives of Kuc for rubber or non-linear with frequency
+  int num_K_arubber;
+  GenSparseMatrix<Scalar> **K_arubber_l;    // lambda part of K for rubber materials
+  GenSparseMatrix<Scalar> **K_arubber_m;    // mu part of K for rubber materials
+  GenSparseMatrix<Scalar> **Kuc_arubber_l;    // lambda part of Kuc for rubber materials
+  GenSparseMatrix<Scalar> **Kuc_arubber_m;    // mu part of Kuc for rubber materials
 
   GenVector<Scalar> *rhs_inpc;
   // Constructor
-  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0; }
+  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; Cuc_deriv = 0; K_deriv = 0; Kuc_deriv = 0; K_arubber_l = 0; K_arubber_m = 0; Kuc_arubber_l = 0; Kuc_arubber_m = 0; rhs_inpc = 0; }
 
   void zero() {if(K) K->zeroAll();
                if(M) M->zeroAll();
@@ -132,6 +140,18 @@ struct AllOps
 // RT: 053113 : not finished
                if (C_deriv) if (C_deriv[0]) C_deriv[0]->zeroAll();
                if (Cuc_deriv) if (Cuc_deriv[0]) Cuc_deriv[0]->zeroAll();
+               if (K_deriv) for(int i=0;i<n_Kderiv;i++)
+                               if (K_deriv[i]) K_deriv[i]->zeroAll();
+               if (Kuc_deriv) for(int i=0;i<n_Kderiv;i++)
+                               if (Kuc_deriv[i]) Kuc_deriv[i]->zeroAll();
+               if (K_arubber_l) for(int i=0;i<num_K_arubber;i++)
+                               if (K_arubber_l[i]) K_arubber_l[i]->zeroAll();
+               if (K_arubber_m) for(int i=0;i<num_K_arubber;i++)
+                               if (K_arubber_m[i]) K_arubber_m[i]->zeroAll();
+               if (Kuc_arubber_l) for(int i=0;i<num_K_arubber;i++)
+                               if (Kuc_arubber_l[i]) Kuc_arubber_l[i]->zeroAll();
+               if (Kuc_arubber_m) for(int i=0;i<num_K_arubber;i++)
+                               if (Kuc_arubber_m[i]) Kuc_arubber_m[i]->zeroAll();
              }
 };
 
@@ -811,12 +831,21 @@ class Domain : public HData {
 
      template<class Scalar>
        void buildFreqSweepRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *muc,
-                                   GenSparseMatrix<Scalar> **cuc_deriv, int iRHS, double omega);
+                                   GenSparseMatrix<Scalar> **cuc_deriv, 
+                                   GenSparseMatrix<Scalar> **kuc_deriv, 
+                                   int iRHS, double omega);
+    template<class Scalar>
+       void buildDeltaK(double w0, double w, GenSparseMatrix<Scalar> *deltaK,
+                                         GenSparseMatrix<Scalar> *deltaKuc);
+
      template<class Scalar>
        void buildRHSForce(GenVector<Scalar> &force,GenVector<Scalar> &tmp,
                          GenSparseMatrix<Scalar> *kuc,
                          GenSparseMatrix<Scalar> *muc,
                          GenSparseMatrix<Scalar> **cuc_deriv,
+                         GenSparseMatrix<Scalar> **kuc_deriv,
+                         GenSparseMatrix<Scalar> **kuc_arubber_l,
+                         GenSparseMatrix<Scalar> **kuc_arubber_m,
                          double omega, double delta_omega,
                          GeomState *gs=0);
 

@@ -53,6 +53,14 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   Ccc  = new GenSparseMatrix<Scalar> *[nsub];
   C_deriv    = new GenSparseMatrix<Scalar> **[nsub];
   Cuc_deriv    = new GenSparseMatrix<Scalar> **[nsub];
+  K_deriv    = new GenSparseMatrix<Scalar> **[nsub];
+  Kuc_deriv    = new GenSparseMatrix<Scalar> **[nsub];
+  num_K_deriv = 0;
+  K_arubber_l = new GenSparseMatrix<Scalar> **[nsub];
+  K_arubber_m = new GenSparseMatrix<Scalar> **[nsub];
+  Kuc_arubber_l = new GenSparseMatrix<Scalar> **[nsub];
+  Kuc_arubber_m = new GenSparseMatrix<Scalar> **[nsub];
+  num_K_arubber = 0;
   K    = new GenSparseMatrix<Scalar> *[nsub];
   if(solInfo.precond) {
     spp = new GenSparseMatrix<Scalar> *[nsub];
@@ -78,7 +86,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   makeC = (alpha != 0.0 || beta != 0.0 || (numSommer > 0) || elemsetHasDamping);
 // RT - 053013 - to enable multiple impedance section, build C_deriv whenever C
 //  makeC_deriv = (makeC && solInfo.doFreqSweep && solInfo.getSweepParams()->nFreqSweepRHS > 1);
-  makeC_deriv = (makeC && solInfo.doFreqSweep );
+  makeC_deriv = (makeC && solInfo.doFreqSweep);
 }
 
 template<class Scalar>
@@ -107,6 +115,12 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   Ccc[isub] = 0;
   C_deriv[isub] = 0;
   Cuc_deriv[isub] = 0;
+  K_deriv[isub] = 0;
+  Kuc_deriv[isub] = 0;
+  K_arubber_l[isub] = 0;
+  Kuc_arubber_l[isub] = 0;
+  K_arubber_m[isub] = 0;
+  Kuc_arubber_m[isub] = 0;
   if(spp) spp[isub] = 0;
   if(sps) sps[isub] = 0;
 
@@ -175,6 +189,34 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
           }
           for(int n = numC_deriv; n < numRHS - 1; ++n)
             Cuc_deriv[isub][n] = 0;
+        }
+        num_K_deriv = solInfo.doFreqSweep ? solInfo.getSweepParams()->nFreqSweepRHS-1:0;
+        K_deriv[isub] = new GenSparseMatrix<Scalar> * [num_K_deriv+1];
+        for(int n = 0; n <= num_K_deriv; ++n) {
+          K_deriv[isub][n] = sd[isub]->template constructDBSparseMatrix<Scalar>();
+        }
+        if(cdsa->size() > 0 && (cdsa->size() - dsa->size()) != 0) {
+          Kuc_deriv[isub] = new GenSparseMatrix<Scalar> * [num_K_deriv+1];
+          for(int n = 0; n <= num_K_deriv; ++n) {
+            Kuc_deriv[isub][n] = sd[isub]->template constructCuCSparse<Scalar>();
+          }
+        }
+        num_K_arubber = geoSource->num_arubber;
+        K_arubber_l[isub] = new GenSparseMatrix<Scalar> * [num_K_arubber];
+        K_arubber_m[isub] = new GenSparseMatrix<Scalar> * [num_K_arubber];
+        for(int n = 0; n < num_K_arubber; ++n) {
+          K_arubber_l[isub][n] =
+              sd[isub]->template constructDBSparseMatrix<Scalar>();
+          K_arubber_m[isub][n] =
+              sd[isub]->template constructDBSparseMatrix<Scalar>();
+        }
+        if(cdsa->size() > 0 && (cdsa->size() - dsa->size()) != 0) {
+          Kuc_arubber_l[isub] = new GenSparseMatrix<Scalar> * [num_K_arubber];
+          Kuc_arubber_m[isub] = new GenSparseMatrix<Scalar> * [num_K_arubber];
+          for(int n = 0; n < num_K_arubber; ++n) {
+            Kuc_arubber_l[isub][n] = sd[isub]->template constructCuCSparse<Scalar>();
+            Kuc_arubber_m[isub][n] = sd[isub]->template constructCuCSparse<Scalar>();
+          }
         }
       }
     }
@@ -325,6 +367,15 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   allOps.Kuc = Kuc[isub];
   allOps.C_deriv = C_deriv[isub];
   allOps.Cuc_deriv = Cuc_deriv[isub];
+  allOps.K_deriv = K_deriv[isub];
+  allOps.Kuc_deriv = Kuc_deriv[isub];
+  allOps.n_Kderiv = num_K_deriv;
+  allOps.K_arubber_l = K_arubber_l[isub];
+  allOps.K_arubber_m = K_arubber_m[isub];
+  allOps.Kuc_arubber_l = Kuc_arubber_l[isub];
+  allOps.Kuc_arubber_m = Kuc_arubber_m[isub];
+  allOps.num_K_arubber = num_K_arubber;
+
   allOps.spp = (spp) ? spp[isub] : 0;
   FullSquareMatrix *subKelArray = (kelArray) ? kelArray[isub] : 0;
   FullSquareMatrix *subMelArray = (melArray) ? melArray[isub] : 0;

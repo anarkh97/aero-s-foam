@@ -17,6 +17,7 @@ public:
 
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
         FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
+        void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
         double getMass(CoordSet&);
         void   getGravityForce(CoordSet&,double *gravity,Vector &force,
                                        int gravflg, GeomState *gs=0);

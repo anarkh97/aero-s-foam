@@ -27,6 +27,7 @@ class Tetrahedral: public Element,
     FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
     void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
     double getMass(CoordSet& cs);
+    void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
     void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,

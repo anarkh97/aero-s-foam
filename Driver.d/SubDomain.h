@@ -755,6 +755,15 @@ class GenSubDomain : public BaseSub
   GenSparseMatrix<Scalar> **C_deriv;
   GenSparseMatrix<Scalar> **Cuc_deriv;
   int numC_deriv;
+  GenSparseMatrix<Scalar> **K_deriv;
+  GenSparseMatrix<Scalar> **Kuc_deriv;
+  int numK_deriv;
+  int num_K_arubber;
+  GenSparseMatrix<Scalar> **K_arubber_l;
+  GenSparseMatrix<Scalar> **K_arubber_m;
+  GenSparseMatrix<Scalar> **Kuc_arubber_l;
+  GenSparseMatrix<Scalar> **Kuc_arubber_m;
+
  private:
   // frequency sweep
   void makeFreqSweepLoad(Scalar *load, int iRHS, double omega);

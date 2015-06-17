@@ -416,6 +416,12 @@ Element::imStiffness(CoordSet& cs, double *m, int cmflg)
   return ret;
 }
 
+
+void Element::aRubberStiffnessDerivs(CoordSet& cs, complex<double> *d, int n,
+                                     double omega) {
+  fprintf(stderr, " *** WARNING: Element aRubberStiffnessDerivs not implemented for this element\n");
+}
+
 void Element::lumpMatrix(FullSquareMatrix& m)
 {
   double MM = 0.0; // total mass of element

@@ -254,7 +254,9 @@ Elemset::hasDamping()
     dampingFlag = 0;
     for(int i=0; i<last(); ++i)
 // RT: 062513 - added sdamping here - some
-      if (elem[i]->isDamped() || elem[i]->isSDamped()) {
+      if (elem[i]->isDamped() || elem[i]->isSDamped() ||
+// RT: 121214 - added acoustic rubber
+       elem[i]->getProperty()->E0!=0.0 || elem[i]->getProperty()->mu0!=0.0) {
         dampingFlag = 1;
         break;
       }

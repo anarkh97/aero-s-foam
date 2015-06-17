@@ -68,6 +68,12 @@ class GenMultiDomainStatic
     void setIWaveDir(int _i); // FETI-H
     void getFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **sol_prev, int iRHS);
     void getRHS(GenDistrVector<Scalar> &,double,double);
+    void buildDeltaK(double w0, double w) {
+        for(int i=0;i<decDomain->getNumSub();i++) {
+          decDomain->getSubDomain(i)-> template buildDeltaK<Scalar>(w0, w, (decDomain->getSubDomain(i)->K_deriv)[0], (decDomain->getSubDomain(i)->Kuc_deriv!=0)?(decDomain->getSubDomain(i)->Kuc_deriv)[0]:0);
+        }
+    }
+
     void pade(GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **sol_prev, double *h, double x);
     GenMDDynamMat<Scalar> *getAllOps() { return &allOps; }
     GenParallelSolver<Scalar> *getSolver();

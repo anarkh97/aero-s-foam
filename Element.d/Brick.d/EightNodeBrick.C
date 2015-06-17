@@ -13,6 +13,7 @@
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
 #include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Corotational.d/MatNLCorotator.h>
+#include <Element.d/Helm.d/ARubberF.h>
 
 extern "C" {
 void _FORTRAN(brkcmt)(double&, double&, double*);
@@ -500,6 +501,44 @@ EightNodeBrick::stiffness(CoordSet &cs, double *d, int flg)
   _FORTRAN(brik8v)(X, Y, Z, (double *)C, numgauss, (double *)d, status);
 
   return K;
+}
+
+void EightNodeBrick::aRubberStiffnessDerivs(CoordSet & cs, complex<double> *d,
+                                            int n, double omega) {
+  const int nnodes = 8;
+  const int ndofs = 24;
+
+  double X[8], Y[8], Z[8];
+  cs.getCoordinates(nn, nnodes, X, Y, Z);
+
+  double C[6][6];
+  for(int i=0;i<6;i++) for(int j=0;j<6;j++) C[i][j] = 0.0;
+
+  double *Km = new double[ndofs*ndofs];
+  C[0][0] = C[1][1] = C[2][2] = 2.0;
+  C[3][3] = C[4][4] = C[5][5] = 1.0;
+  const int numgauss = 2;
+  int status = 0;
+  _FORTRAN(brik8v)(X, Y, Z, (double *)C, numgauss, (double *)Km, status);
+
+  double *Kl = new double[ndofs*ndofs];
+  C[0][0] = C[1][1] = C[2][2] = 1.0;
+  C[0][1] = C[1][0] = C[0][2] = C[2][0] = C[1][2] = C[2][1] = 1.0;
+  C[3][3] = C[4][4] = C[5][5] = 0.0;
+  _FORTRAN(brik8v)(X, Y, Z, (double *)C, numgauss, (double *)Kl, status);
+
+  ARubberF ar(n,omega,
+              prop->E0,prop->dE,prop->mu0,prop->dmu,
+              prop->eta_E,prop->deta_E,prop->eta_mu,prop->deta_mu);
+
+  for(int i=0;i<ndofs*ndofs;i++)  d[i+(0)*ndofs*ndofs] = Km[i];
+  for(int i=0;i<ndofs*ndofs;i++)  d[i+(1)*ndofs*ndofs] = Kl[i];
+  for(int j=0;j<=n;j++) 
+    for(int i=0;i<ndofs*ndofs;i++) 
+        d[i+(j+2)*ndofs*ndofs] = ar.d_lambda(j)*Kl[i]+ ar.d_mu(j)*Km[i]; 
+
+ delete[] Kl;
+ delete[] Km;
 }
 
 int

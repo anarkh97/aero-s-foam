@@ -632,6 +632,9 @@ public:
   void updateParameters();
 
   double global_average_E, global_average_nu, global_average_rhof;
+  int num_arubber;
+  void getARubberLambdaMu(double omega,
+                          complex<double> *lambda, complex<double> *mu);
 
   void makeEframe(int ele, int refnode, double *d);
 

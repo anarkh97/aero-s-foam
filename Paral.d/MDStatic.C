@@ -132,6 +132,14 @@ GenMultiDomainStatic<Scalar>::rebuildSolver()
   ops.Muc = allOps.Muc;
   ops.C_deriv = allOps.C_deriv;
   ops.Cuc_deriv = allOps.Cuc_deriv;
+  ops.K_deriv = allOps.K_deriv;
+  ops.Kuc_deriv = allOps.Kuc_deriv;
+  ops.num_K_deriv = allOps.num_K_deriv;
+  ops.K_arubber_l = allOps.K_arubber_l;
+  ops.K_arubber_m = allOps.K_arubber_m;
+  ops.Kuc_arubber_l = allOps.Kuc_arubber_l;
+  ops.Kuc_arubber_m = allOps.Kuc_arubber_m;
+  ops.num_K_arubber = allOps.num_K_arubber;
 
   decDomain->rebuildOps(ops, 0.0, 0.0, 1.0);
   paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<Scalar>::setRebuildPade, true);
@@ -349,16 +357,33 @@ GenMultiDomainStatic<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs,
     if (allOps.C_deriv) {
       decDomain->getSubDomain(i)->C_deriv =
          new GenSparseMatrix<Scalar>*[iRHS+1];
-      (decDomain->getSubDomain(i)->C_deriv)[0] = ((*allOps.C_deriv)[0])[i];
+      (decDomain->getSubDomain(i)->C_deriv)[0] = (*(allOps.C_deriv[0]))[i];
       for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->C_deriv)[j] = 0;
     }
     if (allOps.Cuc_deriv) {
       decDomain->getSubDomain(i)->Cuc_deriv =
          new GenSparseMatrix<Scalar>*[iRHS+1];
-      (decDomain->getSubDomain(i)->Cuc_deriv)[0] = ((*allOps.Cuc_deriv)[0])[i];
+      (decDomain->getSubDomain(i)->Cuc_deriv)[0] = (*(allOps.Cuc_deriv[0]))[i];
       for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->Cuc_deriv)[j] = 0;
     }
+    if (allOps.K_deriv) {
+      decDomain->getSubDomain(i)->K_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      for(int j=0;j<iRHS+1;j++) if ((*(allOps.K_deriv[j]))[i]!=0) {
+          (decDomain->getSubDomain(i)->K_deriv)[j] = (*(allOps.K_deriv[j]))[i];
+      }
+    }
+    if (allOps.Kuc_deriv) {
+      decDomain->getSubDomain(i)->Kuc_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      for(int j=0;j<iRHS+1;j++) if ((*(allOps.Kuc_deriv[j]))[i]!=0) 
+        (decDomain->getSubDomain(i)->Kuc_deriv)[j] = (*(allOps.Kuc_deriv[j]))[i];
+                                else
+        (decDomain->getSubDomain(i)->Kuc_deriv)[j] = 0;
+      
+    }
   }
+
 
   Timings &timers = solver->getTimers();
   if(domain->solInfo().isCoupled && domain->solInfo().getFetiInfo().fsi_corner == 0) {
@@ -427,7 +452,8 @@ GenMultiDomainStatic<Scalar>::makeSubdomainStaticLoadGalPr(int isub, GenDistrVec
   GenStackVector<Scalar> subv(tmp.subData(isub), tmp.subLen(isub));
 
   // TODO subdomain shouldn't have Cuc_deriv pointer
-  sd->buildRHSForce(subf, subv, (*allOps.Kuc)[isub], (*allOps.Muc)[isub], sd->Cuc_deriv, o[0], o[1]);
+  sd->buildRHSForce(subf, subv, (*allOps.Kuc)[isub], (*allOps.Muc)[isub],
+                    sd->Cuc_deriv, sd->Kuc_deriv, sd->Kuc_arubber_l, sd->Kuc_arubber_m, o[0], o[1]);
 }
 
 template<class Scalar>

@@ -3,6 +3,9 @@
 
 #include <Element.d/Element.h>
 
+#include <complex>
+using std::complex;
+
 class EightNodeBrick: virtual public Element
 {
   protected:
@@ -22,6 +25,8 @@ class EightNodeBrick: virtual public Element
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
     FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
+    void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
+
     double getMass(CoordSet& cs);
     double weight(CoordSet&, double *, int);
 

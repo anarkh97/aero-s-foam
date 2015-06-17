@@ -81,6 +81,8 @@ class GenMultiDomainInpcStatic
     void setIWaveDir(int _i); // FETI-H
     void getFreqSweepRHS(DistrBlockVector<Scalar> *rhs, DistrBlockVector<Scalar> **sol_prev, int iRHS)
            {std::cerr << "getFreqSweepRHS(DistrBlockVector) not implemented" << std::endl; }	
+    void buildDeltaK(double w0, double w) 
+           {std::cerr << "buildDeltaK not implemented" << std::endl; }	
     void getRHS(DistrBlockVector<Scalar> &,double,double) {std::cerr << "GenMultiDomainInpcStatic::getRHS not implemented" << std::endl;}
     void pade(DistrBlockVector<Scalar> *sol, DistrBlockVector<Scalar> **sol_prev, double *h, double x)
            {std::cerr << "pade(DistrBlockVector) not implemented" << std::endl; }

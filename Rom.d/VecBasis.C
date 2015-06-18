@@ -44,7 +44,7 @@ template <>
 GenVector<double> &
 GenVecBasis<double, GenVector>::expand(GenVector<double> &x, GenVector<double> &_result) const {
 #ifdef USE_EIGEN3
-  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data()+startCol_, blockCols_);
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
 
   if(compressedKey_.size() > 0) {
@@ -55,7 +55,7 @@ GenVecBasis<double, GenVector>::expand(GenVector<double> &x, GenVector<double> &
       result(compressedKey_[i]) = resultBuffer(i);
   }
   else {
-    result = basis_*GenCoordinates;
+    result = basis_.block(0,startCol_,basis_.rows(),blockCols_)*GenCoordinates;
   }
 #endif
   return _result;
@@ -203,6 +203,19 @@ GenVecBasis<double, GenDistrVector>::reduce(GenDistrVector<double> &x, GenDistrV
 template <>
 GenVector<double> &
 GenVecBasis<double, GenVector>::reduce(GenVector<double> &x, GenVector<double> &_result) const {
+#ifdef USE_EIGEN3
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data()+startCol_, blockCols_);
+
+  _result.zero();
+  result = basis_.block(0,startCol_,basis_.rows(),blockCols_).transpose()*FullCoordinates;
+#endif
+  return _result;
+}
+
+template <>
+GenVector<double> &
+GenVecBasis<double, GenVector>::reduceAll(GenVector<double> &x, GenVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
@@ -472,6 +485,18 @@ GenVecBasis<double, GenVector>::expand2(GenVector<double> &x, GenVector<double> 
   }
 #endif
   return _result;
+}
+
+template <>
+GenVector<double> &
+GenVecBasis<double, GenVector>::addLocalPart(GenVector<double> &_x, GenVector<double> &_y) const {
+#ifdef USE_EIGEN3
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > x(_x.data(), _x.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > y(_y.data(), _y.size());
+
+  y.segment(startCol_,blockCols_) += x.segment(startCol_,blockCols_);
+#endif
+  return _y;
 }
 
 }

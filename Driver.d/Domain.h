@@ -405,7 +405,7 @@ class Domain : public HData {
      void setVerbose() { outFile = stderr; }
      void setSilent()  { outFile = 0;      }
      void setOutputMatchInTop(bool b) {output_match_in_top = b;};
-     void readInModes(char* modesFileName);
+     void readInModes(const char* modesFileName);
      void readInShapeDerivatives(char* shapeDerFileName);
      void setSowering(bool b) { sowering = b;}
      bool getSowering() { return sowering;}

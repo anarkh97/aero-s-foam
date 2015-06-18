@@ -574,7 +574,7 @@ int main(int argc, char** argv)
  if(domain->solInfo().readmodeCalled) {
    if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag || domain->solInfo().aeroFlag == 8 || domain->probType() == SolverInfo::Modal)
       && (strcmp(domain->solInfo().readInModes,"") == 0)) {
-     domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));
+     domain->readInModes(domain->solInfo().readInROBorModes[0].c_str());
    }
    else {
      if (!domain->solInfo().samplingPodRom) {
@@ -1053,6 +1053,10 @@ int main(int argc, char** argv)
          if(domain->solInfo().use_nmf) {
            filePrint(stderr, " ... Nonnegative Matrix Factorization ...\n");
            driver = distrPositiveDualBasisDriverNew(domain);
+         }
+         else if(domain->solInfo().clustering) {
+           filePrint(stderr, " ... Snapshot Clustering            ...\n");
+           driver = distrSnapshotClusteringDriverNew(domain);
          }
          else {
            // Stand-alone SVD orthogonalization

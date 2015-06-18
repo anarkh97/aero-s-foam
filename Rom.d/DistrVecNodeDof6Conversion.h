@@ -22,10 +22,16 @@ public:
   const NodeDofType &paddedNodeDof6(const VecType &origin, NodeDofType &target) const;
 
   template <typename NodeDofType, typename VecType>
+  const NodeDofType &unpaddedNodeDof6(const VecType &origin, NodeDofType &target) const;
+
+  template <typename NodeDofType, typename VecType>
   const VecType &vector(const NodeDofType &origin, VecType &target) const;
   
   template <typename NodeDofType, typename VecType>
   const VecType &paddedMasterVector(const NodeDofType &origin, VecType &target) const;
+
+  template <typename NodeDofType, typename VecType>
+  const VecType &unpaddedMasterVector(const NodeDofType &origin, VecType &target) const;
 
   template <typename SubDomPtrFwdIt>
   DistrVecNodeDofConversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last);
@@ -129,6 +135,20 @@ DistrVecNodeDofConversion<DOFS_PER_NODE>::paddedNodeDof6(const VecType &origin, 
 
 template <int DOFS_PER_NODE>
 template <typename NodeDofType, typename VecType>
+const NodeDofType &
+DistrVecNodeDofConversion<DOFS_PER_NODE>::unpaddedNodeDof6(const VecType &origin, NodeDofType &target) const {
+  for (int iSub = 0; iSub < subDomainCount(); ++iSub) {
+    SubNodeDofAdapter<NodeDofType> subNodeDof(target, *subDomains_[iSub], bcMap_, com_);
+    const GenStackVector<double> subVector(const_cast<VecType &>(origin).subData(iSub),
+                                           const_cast<VecType &>(origin).subLen(iSub));
+    subRestrictedConversions_[iSub]->unpaddedNodeDof6(subVector, subNodeDof);
+  }
+
+  return target;
+}
+
+template <int DOFS_PER_NODE>
+template <typename NodeDofType, typename VecType>
 const VecType &
 DistrVecNodeDofConversion<DOFS_PER_NODE>::vector(const NodeDofType &origin, VecType &target) const {
   for (int iSub = 0; iSub < subDomainCount(); ++iSub) {
@@ -148,6 +168,19 @@ DistrVecNodeDofConversion<DOFS_PER_NODE>::paddedMasterVector(const NodeDofType &
     const SubNodeDofAdapter<NodeDofType> subNodeDof(origin, *subDomains_[iSub], bcMap_, com_);
     GenStackVector<double> subVector(target.subData(iSub), target.subLen(iSub));
     subRestrictedConversions_[iSub]->paddedVector(subNodeDof, subVector);
+  }
+
+  return target;
+};
+
+template <int DOFS_PER_NODE>
+template <typename NodeDofType, typename VecType>
+const VecType &
+DistrVecNodeDofConversion<DOFS_PER_NODE>::unpaddedMasterVector(const NodeDofType &origin, VecType &target) const {
+  for (int iSub = 0; iSub < subDomainCount(); ++iSub) {
+    const SubNodeDofAdapter<NodeDofType> subNodeDof(origin, *subDomains_[iSub], bcMap_, com_);
+    GenStackVector<double> subVector(target.subData(iSub), target.subLen(iSub));
+    subRestrictedConversions_[iSub]->unpaddedVector(subNodeDof, subVector);
   }
 
   return target;

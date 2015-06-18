@@ -17,6 +17,9 @@ public:
 
   using GenEiSparseMatrix<Scalar>::neqs;
 
+  // Local bases
+  void setLocalBasis(int startCol, int blockCols);
+
   // Full-order matrix assembly
   virtual void zeroAll();
 
@@ -35,9 +38,9 @@ public:
 
   // Reduced basis parameters
   int basisSize() const { return basisSize_; };
-  const GenVecBasis<Scalar> &projectionBasis() const { return *projectionBasis_; }
-  void projectionBasisIs(const GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
-  void dualProjectionBasisIs(const GenVecBasis<Scalar> &);
+  GenVecBasis<Scalar> &projectionBasis() { return *projectionBasis_; }
+  void projectionBasisIs(GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
+  void dualProjectionBasisIs(GenVecBasis<Scalar> &);
   void EmpiricalSolver(); 
   void addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &, double = 1.0); 
 
@@ -53,15 +56,17 @@ public:
   const Eigen::Matrix<Scalar,Eigen::Dynamic,1> &lastReducedConstraintForce() const {
     return reducedConstraintForce_;
   }
+  double getResidualNorm(const GenVector<Scalar> &v);
 
 private:
   ConstrainedDSA *cdsa_;
   bool selfadjoint_;
   bool Empirical;
   int basisSize_, dualBasisSize_;
+  int startCol_, blockCols_; // local bases
   double tol_; // convergence tolerance used by QP solver for contact
   Scalar c1_; // trace of reducedConstraintMatrix_
-  const GenVecBasis<Scalar> *projectionBasis_, *dualProjectionBasis_;
+  GenVecBasis<Scalar> *projectionBasis_, *dualProjectionBasis_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> reducedMatrix_, reducedConstraintMatrix_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,1> reducedConstraintRhs_, reducedConstraintRhs0_, reducedConstraintForce_;
   Eigen::LLT<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>, Eigen::Lower> llt_;

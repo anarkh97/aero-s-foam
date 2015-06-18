@@ -1065,6 +1065,7 @@ TRAIL [a-zA-Z]*
 "dsvarvct"|"DSVARVCT"              { yylval.ival = OutputInfo::DualStateVar; return STRESSID; }
 
 "robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
+"clusterf"|"CLUSTERF"              { yylval.ival = OutputInfo::RobData;      return STRESSID; }
 
 "samplmsh"|"SAMPLMSH" 		   { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
 
@@ -1530,6 +1531,8 @@ TRAIL [a-zA-Z]*
 
 "USE_NMF"|"use_nmf"                       { return USENMF; }
 "USE_GREEDY"|"use_greedy"                 { return USEGREEDY; }
+
+"DO_CLUSTERING"|"do_clustering"           { return DOCLUSTERING; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

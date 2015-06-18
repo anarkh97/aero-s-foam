@@ -349,7 +349,7 @@ struct SolverInfo {
    std::vector<std::string> snapfiPodRom;
    std::vector<std::string> robfi;
    std::vector<double> snapshotWeights;
-   const char * readInROBorModes;
+   std::vector<std::string> readInROBorModes;
    const char * readInDualROB;
    const char * readInModes;
    const char * SVDoutput;
@@ -382,6 +382,7 @@ struct SolverInfo {
    bool checkPodRom;
    bool svdPodRom;
    int  svdBlockSize;
+   int clustering;
    int use_nmf;
    int nmfNumROBDim;
    int nmfDelROBDim;
@@ -403,6 +404,7 @@ struct SolverInfo {
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int  maxSizePodRom;
+   std::vector<int> localBasisSize;
    int  maxSizeDualBasis;
    int  maxDeimBasisSize;
    bool selectFullNode;
@@ -677,7 +679,6 @@ struct SolverInfo {
                   constraint_hess_eps = 0;
 
                   numSnap            = 1;
-                  readInROBorModes   = "";
                   readInDualROB      = "";
                   readInModes        = "";
                   readInShapeSen     = "";
@@ -714,6 +715,7 @@ struct SolverInfo {
                   DEIMPodRom         = false;
                   UDEIMPodRom        = false;
                   svdBlockSize       = 64;
+                  clustering         = 0;
                   use_nmf            = 0;
                   nmfNumROBDim       = 1;
                   nmfDelROBDim       = 10;
@@ -1037,7 +1039,7 @@ struct SolverInfo {
        // for nonlinear ROMs, keep the modal ivel and non-modal ivel separate
        // only if the basis used to define the initial conditions is the same
        // as the ROB.
-       std::string rob(readInROBorModes);
+       std::string rob(readInROBorModes[0]);
        if(useMassNormalizedBasis) rob.append(".normalized");
        std::string icb(readInModes);
        return (rob.compare(icb) == 0); 

@@ -50,7 +50,7 @@ FileNameInfo::size(BasisId::Type type, BasisId::Level level)
         ret = 1; // domain->solInfo().dsvPodRomFile;
     }
     else if(level == 1) {
-      ret = 1; // domain->solInfo().readInROBorModes;
+      ret = domain->solInfo().readInROBorModes.size();
     }
   }
   return ret;
@@ -103,7 +103,7 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
         builder << domain->solInfo().readInDualROB;
       }
       else {
-        builder << domain->solInfo().readInROBorModes;
+        builder << domain->solInfo().readInROBorModes[i];
       }
     }
     else if(id.level() == 2) {

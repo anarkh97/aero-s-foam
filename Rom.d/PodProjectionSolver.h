@@ -15,6 +15,9 @@ namespace Rom {
 template <typename Scalar>
 class GenPodProjectionSolver {
 public:
+  // Local bases
+  virtual void setLocalBasis(int startCol, int blockCols) = 0;
+
   // Reduced-order matrix assembly
   virtual void addReducedMass(double Mcoef) = 0;
 
@@ -29,9 +32,9 @@ public:
 
   // Reduced basis parameters
   virtual int basisSize() const = 0;
-  virtual const GenVecBasis<Scalar> &projectionBasis() const = 0;
-  virtual void projectionBasisIs(const GenVecBasis<Scalar> &) = 0; 
-  virtual void dualProjectionBasisIs(const GenVecBasis<Scalar> &) = 0;
+  virtual GenVecBasis<Scalar> &projectionBasis() = 0;
+  virtual void projectionBasisIs(GenVecBasis<Scalar> &) = 0; 
+  virtual void dualProjectionBasisIs(GenVecBasis<Scalar> &) = 0;
   virtual void EmpiricalSolver() = 0; 
 #ifdef USE_EIGEN3
   virtual void addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &, double = 1.0) = 0;
@@ -56,6 +59,12 @@ public:
   virtual long size();
   virtual int neqs();
 
+  // Local bases
+  void setLocalBasis(int startCol, int blockCols) {
+    std::cerr << "ERROR: GenDBSparsePodProjectionSolver::setLocalBases is not implemented\n";
+    exit(-1);
+  }
+
   // Reduced matrix assembly
   void addReducedMass(double Mcoef) { Mcoef_ = Mcoef; }
 
@@ -70,9 +79,9 @@ public:
 
   // Reduced basis parameters
   int basisSize() const { return basisSize_; }
-  const GenVecBasis<Scalar> &projectionBasis() const { return *projectionBasis_; }
-  void projectionBasisIs(const GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
-  void dualProjectionBasisIs(const GenVecBasis<Scalar> &);
+  GenVecBasis<Scalar> &projectionBasis() { return *projectionBasis_; }
+  void projectionBasisIs(GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
+  void dualProjectionBasisIs(GenVecBasis<Scalar> &);
   void EmpiricalSolver();
 #ifdef USE_EIGEN3
   void addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &, double);
@@ -93,7 +102,7 @@ protected:
 
 private:
   int basisSize_;
-  const GenVecBasis<Scalar> *projectionBasis_;
+  GenVecBasis<Scalar> *projectionBasis_;
   
   GenVecBasis<Scalar> matrixAction_;
   GenVector<Scalar> reducedSolution_;
@@ -138,7 +147,7 @@ GenDBSparsePodProjectionSolver<Scalar>::neqs() {
 
 template <typename Scalar>
 void
-GenDBSparsePodProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scalar> &reducedBasis) {
+GenDBSparsePodProjectionSolver<Scalar>::projectionBasisIs(GenVecBasis<Scalar> &reducedBasis) {
   if (reducedBasis.vectorSize() != neqs()) {
     throw std::domain_error("Vectors of the reduced basis have the wrong size");
   }
@@ -156,7 +165,7 @@ GenDBSparsePodProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scal
 
 template <typename Scalar>
 void
-GenDBSparsePodProjectionSolver<Scalar>::dualProjectionBasisIs(const GenVecBasis<Scalar> &) {
+GenDBSparsePodProjectionSolver<Scalar>::dualProjectionBasisIs(GenVecBasis<Scalar> &) {
   throw std::domain_error("Selected solver does not use dual projection basis\n");
 }
 

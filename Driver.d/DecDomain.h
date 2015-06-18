@@ -196,6 +196,7 @@ class GenDecDomain
  public:
   void printLMPC();
   void makeBlockCyclicDistrInfo(DistrInfo &, int globalLen, int blockSize);
+  void makeNonOverlappingDistrInfo(DistrInfo &info);
 
  private:
   void initialize();

@@ -2492,6 +2492,22 @@ GenDecDomain<Scalar>::makeBlockCyclicDistrInfo(DistrInfo &info, int globalLen, i
 
 template<class Scalar>
 void
+GenDecDomain<Scalar>::makeNonOverlappingDistrInfo(DistrInfo &info)
+{
+  info.domLen = new int[numSub];
+  info.numDom = numSub;
+  int totLen = 0;
+  for(int iSub = 0; iSub < numSub; ++iSub) {
+    const bool *subMasterFlag = subDomain[iSub]->getInternalMasterFlag();
+    info.domLen[iSub] = 0;
+    for(int i=0; i<subDomain[iSub]->numUncon(); ++i) if(subMasterFlag[i]) info.domLen[iSub]++;
+    totLen += info.domLen[iSub];
+  }
+  info.len = totLen;
+}
+
+template<class Scalar>
+void
 GenDecDomain<Scalar>::setNonTrivialMasterFlag(DistrInfo &info)
 {
   bool *internalMasterFlag = new bool[info.len];

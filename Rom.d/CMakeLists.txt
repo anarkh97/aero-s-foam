@@ -23,8 +23,11 @@ ADD_LIBRARY( Rom
   DistrExplicitUDEIMPodProjectionNonLinDynamic.C
   DistrROMPostProcessingDriver.C
   DistrNodeDof6Buffer.C
-  DistrVecBasis.C
+  DistrNonnegativeMatrixFactorization.C
+  DistrSnapshotClusteringDriver.C
+  DistrSnapshotClusteringSolver.C
   DistrSvdOrthogonalization.C
+  DistrVecBasis.C
   DistrVecNodeDof6Conversion.C
   ElementSamplingDriverInstance.C
   FileNameInfo.C
@@ -46,7 +49,6 @@ ADD_LIBRARY( Rom
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
   NonnegativeMatrixFactorization.C
-  DistrNonnegativeMatrixFactorization.C
   VecBasis.C
   VecBasisFile.C
   VecBasisUtils.C

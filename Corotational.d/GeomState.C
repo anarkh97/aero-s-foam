@@ -804,6 +804,57 @@ GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &
 }
 
 void
+GeomState::update(GeomState &refState, const Vector &v, int SO3param)
+{
+ // v = incremental displacement vector w.r.t reference state
+ double d[3], dtheta[3];
+
+ int i;
+ for(i=0; i<numnodes; ++i) {
+
+     // Set incremental translational displacements
+
+     d[0] = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
+     d[1] = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
+     d[2] = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+
+     // Transform from DOF_FRM to basic frame
+
+     NFrameData *cd = X0->dofFrame(i);
+     if(cd) cd->invTransformVector3(d);
+
+     // Increment total translational displacements
+
+     ns[i].x = refState[i].x + d[0];
+     ns[i].y = refState[i].y + d[1];
+     ns[i].z = refState[i].z + d[2];
+
+     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+
+       // Set incremental rotations
+
+       dtheta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
+       dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
+       dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
+
+       // Transform from DOF_FRM to basic frame
+
+       if(cd) cd->invTransformVector3(dtheta);
+
+       if(solInfo.getNLInfo().linearelastic || SO3param == 2) {
+         // Additive update of total rotation vector
+         for(int j=0; j<3; ++j) ns[i].theta[j] = refState[i].theta[j] + dtheta[j];
+         vec_to_mat( ns[i].theta, ns[i].R );
+       }
+       else {
+         std::cerr << "Error: SO3param = " << SO3param << " case not implemented in GeomState::update\n";
+         exit(-1);
+       }
+     }
+   }
+}
+
+void
 GeomState::setVelocity(const Vector &v, int SO3param)
 {
   // set unconstrained components of velocity for all nodes, leaving constrained components unchanged

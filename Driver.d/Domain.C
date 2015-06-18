@@ -1803,7 +1803,7 @@ Domain::makeNodeToNode_sommer()
 }
 
 void
-Domain::readInModes(char* modeFileName)
+Domain::readInModes(const char* modeFileName)
 {
  filePrint(stderr," ... Read in Modes from file: %s ...\n",modeFileName);
 

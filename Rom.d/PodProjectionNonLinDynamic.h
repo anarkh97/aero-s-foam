@@ -95,12 +95,17 @@ public:
   void resize(ModalGeomState *refState, ModalGeomState *geomState, ModalGeomState *stepState, Vector *stateIncr,
               Vector &v, Vector &a, Vector &vp, Vector &force) {}
 
+  // Local bases
+  int selectLocalBasis(Vector &q);
+  void setLocalBasis(ModalGeomState *refState, ModalGeomState *geomState, Vector &q_n, Vector &v, Vector &a);
+
 protected:
   class Impl;
   GeomState *geomState_Big, *refState_Big;
   SDDynamPodPostProcessor *podPostPro;
   Vector *d0_Big, *v0_Big;
   GenFullSquareMatrix<double> K_reduced;
+  int localBasisId;
 
 private:
   virtual bool factorWhenBuilding() const; // Overriden
@@ -152,6 +157,7 @@ public:
                                 GenVector<double> &dummy4, GenVector<double> &acceleration, bool zeroRot) {
     pbd->saveDelta(delta);
 
+    Vector qN = refState->q; // Local bases
     IncrUpdater<PodProjectionNonLinDynamic, GenVector<double>, ModalGeomState>::midpointIntegrate(
         pbd, velN, delta, refState, geomState,
         dummy1, dummy2, dummy3, dummy4, acceleration, zeroRot);
@@ -161,6 +167,9 @@ public:
     pbd->saveVelocitySnapshot(velN);
     pbd->saveAccelerationSnapshot(acceleration);
 */
+    // Local bases
+    pbd->setLocalBasis(refState, geomState, qN, velN, acceleration);
+
   } 
 
  static double formRHScorrector(PodProjectionNonLinDynamic *pbd, GenVector<double> &inc_displac,

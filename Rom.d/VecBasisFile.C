@@ -73,6 +73,14 @@ readVectors(BasisInputStream<DOFS_PER_NODE> &in, VecBasis &sink, int countMax) {
 
 template<int DOFS_PER_NODE>
 BasisInputStream<DOFS_PER_NODE> &
+readVectors(BasisInputStream<DOFS_PER_NODE> &in, VecBasis &sink, int countMax, int localSize, int offset) {
+  const int count = std::max(std::min(in.size() - in.currentVectorRank(), countMax), 0);
+  sink.dimensionIs(count, in.vectorSize());
+  return readVectors(in, sink.begin()+offset, sink.begin()+offset+localSize);
+}
+
+template<int DOFS_PER_NODE>
+BasisInputStream<DOFS_PER_NODE> &
 readRestrictedVectors(BasisInputStream<DOFS_PER_NODE> &in, VecBasis &sink, const NodalRestrictionMapping &mapping) {
   assert(in.vectorSize() == mapping.originInfo());
   
@@ -139,6 +147,9 @@ template
 BasisInputStream<6> & readVectors(BasisInputStream<6> &in, VecBasis &sink, int countMax);
 
 template
+BasisInputStream<6> & readVectors(BasisInputStream<6> &in, VecBasis &sink, int countMax, int localSize, int offset);
+
+template
 BasisInputStream<6> & readRestrictedVectors(BasisInputStream<6> &in, VecBasis &sink, const NodalRestrictionMapping &mapping);
 
 template
@@ -149,6 +160,9 @@ BasisInputStream<1> & operator>>(BasisInputStream<1> &in, VecBasis &sink);
 
 template
 BasisInputStream<1> & readVectors(BasisInputStream<1> &in, VecBasis &sink, int countMax);
+
+template
+BasisInputStream<1> & readVectors(BasisInputStream<1> &in, VecBasis &sink, int countMax, int localSize, int offset);
 
 template
 BasisInputStream<1> & readRestrictedVectors(BasisInputStream<1> &in, VecBasis &sink, const NodalRestrictionMapping &mapping);

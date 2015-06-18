@@ -73,7 +73,7 @@
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token CONSTANT CONWEP
-%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DUALBASIS
+%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING DUALBASIS
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
@@ -1759,21 +1759,23 @@ AxiLmpc:
 	;
 Mode:
         READMODE FNAME NewLine
-        { domain->solInfo().readInROBorModes = $2;
+        { domain->solInfo().readInROBorModes.push_back($2);
           domain->solInfo().readmodeCalled = true; }
         | READMODE FNAME Integer NewLine
-        { domain->solInfo().readInROBorModes = $2;
+        { domain->solInfo().readInROBorModes.push_back($2);
           domain->solInfo().readmodeCalled = true; 
-          domain->solInfo().maxSizePodRom = $3; }	
+          domain->solInfo().maxSizePodRom += $3;
+          domain->solInfo().localBasisSize.push_back($3); }	
         | READMODE FNAME FNAME NewLine
-        { domain->solInfo().readInROBorModes = $2;
+        { domain->solInfo().readInROBorModes.push_back($2);
           domain->solInfo().readInModes = $3;
           domain->solInfo().readmodeCalled = true; }
         | READMODE FNAME FNAME Integer NewLine
-        { domain->solInfo().readInROBorModes = $2;
+        { domain->solInfo().readInROBorModes.push_back($2);
           domain->solInfo().readInModes = $3;
           domain->solInfo().readmodeCalled = true;
-          domain->solInfo().maxSizePodRom = $4; }
+          domain->solInfo().maxSizePodRom += $4;
+          domain->solInfo().localBasisSize.push_back($4); }
         | Mode USEMASSNORMALIZEDBASIS SWITCH NewLine
         { domain->solInfo().useMassNormalizedBasis = bool($3); }
         | Mode DUALBASIS FNAME Integer NewLine
@@ -4711,6 +4713,8 @@ SvdOption:
   { domain->solInfo().nmfNumSub = $2; }
   | USEGREEDY
   { domain->solInfo().use_nmf = 2; }
+  | DOCLUSTERING Integer
+  { domain->solInfo().clustering = $2; }
   | ConwepConfig
   ;
 
@@ -4749,7 +4753,7 @@ SnapshotProject:
 
 SamplingOption:
     PODROB FNAME
-  { domain->solInfo().readInROBorModes = $2; }
+  { domain->solInfo().readInROBorModes.push_back($2); }
   | DUALBASIS FNAME Integer 
   { domain->solInfo().readInDualROB = $2;
     domain->solInfo().maxSizeDualBasis = $3; }

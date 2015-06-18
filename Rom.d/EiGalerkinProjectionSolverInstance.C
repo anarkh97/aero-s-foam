@@ -64,12 +64,12 @@ GenEiSparseGalerkinProjectionSolver<complex<double> >
 template
 void
 GenEiSparseGalerkinProjectionSolver<double>
-::projectionBasisIs(const GenVecBasis<double>&);
+::projectionBasisIs(GenVecBasis<double>&);
 
 template
 void
 GenEiSparseGalerkinProjectionSolver<complex<double> >
-::projectionBasisIs(const GenVecBasis<complex<double> >&);
+::projectionBasisIs(GenVecBasis<complex<double> >&);
 
 template
 void
@@ -110,6 +110,16 @@ template
 void
 GenEiSparseGalerkinProjectionSolver<complex<double> >
 ::solve(GenVector<complex<double> >&, GenVector<complex<double> >&);
+
+template
+double
+GenEiSparseGalerkinProjectionSolver<double>
+::getResidualNorm(const GenVector<double> &v);
+
+template 
+double
+GenEiSparseGalerkinProjectionSolver<complex<double> >
+::getResidualNorm(const GenVector<complex<double> > &v);
 
 } /* end namespace Rom */
 #endif

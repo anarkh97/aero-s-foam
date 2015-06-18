@@ -58,6 +58,12 @@ template<int DOFS_PER_NODE>
 BasisInputStream<DOFS_PER_NODE> &
 readVectors(BasisInputStream<DOFS_PER_NODE> &, VecBasis &, int countMax);
 
+// Reset basis with a partial content of the stream (inverse of writeVectors)
+// or add new vectors to existing basis
+template<int DOFS_PER_NODE>
+BasisInputStream<DOFS_PER_NODE> &
+readVectors(BasisInputStream<DOFS_PER_NODE> &, VecBasis &, int countMax, int localsize, int offset);
+
 // Reset basis with the extended content of the stream (inverse of writeRestrictedVectors)
 template<int DOFS_PER_NODE>
 BasisInputStream<DOFS_PER_NODE> &

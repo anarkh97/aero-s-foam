@@ -24,7 +24,13 @@ public:
   const NodeDofsType &paddedNodeDof6(const VecType &origin, NodeDofsType &target) const;
 
   template <typename NodeDofsType, typename VecType>
+  const NodeDofsType &unpaddedNodeDof6(const VecType &origin, NodeDofsType &target) const;
+
+  template <typename NodeDofsType, typename VecType>
   const VecType &paddedVector(const NodeDofsType &origin, VecType &target) const;
+
+  template <typename NodeDofsType, typename VecType>
+  const VecType &unpaddedVector(const NodeDofsType &origin, VecType &target) const;
 
   template <typename BoolFwdIt>
   RestrictedVecNodeDofConversion(const DofSetArray &dsa, BoolFwdIt nodeMaskBegin,
@@ -69,6 +75,23 @@ RestrictedVecNodeDofConversion<DOFS_PER_NODE>::paddedNodeDof6(const VecType &ori
 
 template <int DOFS_PER_NODE>
 template <typename NodeDofsType, typename VecType>
+const NodeDofsType &
+RestrictedVecNodeDofConversion<DOFS_PER_NODE>::unpaddedNodeDof6(const VecType &origin, NodeDofsType &target) const {
+  int pos = 0;
+  for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
+    if (nodeMask_[iNode]) {
+      for (int iDof = 0; iDof < DOFS_PER_NODE; ++iDof) {
+        const int loc = dofLocation_[iNode][iDof];
+        target[iNode][iDof] = (loc >= 0) ? origin[pos++] : 0.0;
+      }
+    }
+  }
+
+  return target;
+}
+
+template <int DOFS_PER_NODE>
+template <typename NodeDofsType, typename VecType>
 const VecType &
 RestrictedVecNodeDofConversion<DOFS_PER_NODE>::paddedVector(const NodeDofsType &origin, VecType &target) const {
   for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
@@ -84,6 +107,24 @@ RestrictedVecNodeDofConversion<DOFS_PER_NODE>::paddedVector(const NodeDofsType &
         const int loc = dofLocation_[iNode][iDof];
         if (loc >= 0) {
           target[loc] = 0.0;
+        }
+      }
+    }
+  }
+  return target;
+}
+
+template <int DOFS_PER_NODE>
+template <typename NodeDofsType, typename VecType>
+const VecType &
+RestrictedVecNodeDofConversion<DOFS_PER_NODE>::unpaddedVector(const NodeDofsType &origin, VecType &target) const {
+  int pos = 0;
+  for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
+    if (nodeMask_[iNode]) {
+      for (int iDof = 0; iDof < DOFS_PER_NODE; ++iDof) {
+        const int loc = dofLocation_[iNode][iDof];
+        if (loc >= 0) {
+          target[pos++] = origin[iNode][iDof];
         }
       }
     }

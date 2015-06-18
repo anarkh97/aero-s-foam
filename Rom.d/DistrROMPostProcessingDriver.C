@@ -54,15 +54,6 @@ DistrROMPostProcessingDriver::preProcess() {
   bufferReducedFiles();
   //initialized decDomain class for use in projection basis preprocessing
 
-  // read in distribuited POD basis
-  FileNameInfo fileInfo;
-  std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-  if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName.append(".normalized");  
-  DistrBasisInputFile podBasisFile(fileName);  //read in mass-normalized basis
-  if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
-  filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
-  normalizedBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
-
   DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
 
   typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
@@ -70,16 +61,31 @@ DistrROMPostProcessingDriver::preProcess() {
                                    SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
   DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
 
-  for (DistrVecBasis::iterator it = normalizedBasis_.begin(),
-                               it_end = normalizedBasis_.end();
-                               it != it_end; ++it) {
-    assert(podBasisFile.validCurrentState());
+  normalizedBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
 
-    podBasisFile.currentStateBuffer(buffer);
-    converter.vector(buffer, *it);
+  for(int j=0; j<domain->solInfo().readInROBorModes.size(); ++j) {
+    // read in distributed POD basis
+    FileNameInfo fileInfo;
+    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, j);
+    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName.append(".normalized");  
+    DistrBasisInputFile podBasisFile(fileName);  //read in mass-normalized basis
+    if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
 
-    podBasisFile.currentStateIndexInc();
+    for (DistrVecBasis::iterator it = normalizedBasis_.begin() + std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+j, 0),
+                                 it_end = normalizedBasis_.begin() + std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
+                                 it != it_end; ++it) {
+      assert(podBasisFile.validCurrentState());
+
+      podBasisFile.currentStateBuffer(buffer);
+      converter.vector(buffer, *it);
+
+      podBasisFile.currentStateIndexInc();
+    }
   }
+
+  filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
+  if(domain->solInfo().readInROBorModes.size() > 1)
+    filePrint(stderr, " ... Number of Local Bases = %-3d    ...\n", domain->solInfo().readInROBorModes.size());
   
   VECsize = normalizedBasis_.size();}
 

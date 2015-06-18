@@ -71,9 +71,11 @@ public:
   VecType & fullExpand(VecType &, VecType &) const;
   VecType & expand(std::vector<Scalar> &, VecType &) const;
   VecType & reduce(VecType &, VecType &) const;
+  VecType & reduceAll(VecType &, VecType &) const;
   VecType & compressedVecReduce(VecType &, VecType &) const;
   VecType & sparseVecReduce(VecType &, VecType &) const;
   VecType & expand2(VecType &, VecType &) const;
+  VecType & addLocalPart(VecType &, VecType &) const;
   
   void makeSparseBasis(const std::vector<std::vector<int> > &, DofSetArray **);
   void makeSparseBasis(const std::vector<std::vector<std::pair<int, int> > > &, DofSetArray **);
@@ -99,6 +101,9 @@ public:
   // Reshaping
   void dimensionIs(int vCount, InfoType vInfo);
 
+  // Local bases
+  void localBasisIs(int startCol, int blockCols);
+
   ~GenVecBasis();
 
 private:
@@ -110,6 +115,7 @@ private:
 
   typename Traits::InternalInfoType vectorInfo_;
   int vectorCount_;
+  int startCol_, blockCols_; // local bases
 
   Scalar *buffer_;
   VecType *vectors_;
@@ -175,7 +181,9 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
 template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
  vectorInfo_(vInfo),
- vectorCount_(vCount)
+ vectorCount_(vCount),
+ startCol_(0),
+ blockCols_(vCount)
 {
   placeVectors();
 }
@@ -183,7 +191,9 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
 template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
  vectorInfo_(other.vectorInfo_),
- vectorCount_(other.vectorCount_)
+ vectorCount_(other.vectorCount_),
+ startCol_(other.startCol_),
+ blockCols_(other.blockCols_)
 {
   placeVectors();
   copyBufferContent(other);
@@ -196,6 +206,8 @@ GenVecBasis<Scalar, GenVecType>::operator=(const GenVecBasis &other) {
     if (vectorCount_ != other.vectorCount_ || Traits::not_equals(vectorInfo_, other.vectorInfo_)) {
       cleanUp();
       vectorCount_ = other.vectorCount_;
+      startCol_ = other.startCol_;
+      blockCols_ = other.blockCols_;
       typename Traits::InternalInfoType temp(other.vectorInfo_);
       std::swap(vectorInfo_, temp);
       placeVectors();
@@ -212,6 +224,8 @@ GenVecBasis<Scalar, GenVecType>::dimensionIs(int vCount, InfoType vInfo) {
   if (vCount != vectorCount_ || Traits::not_equals(vInfo, vectorInfo_)) {
     cleanUp();
     vectorCount_ = vCount;
+    startCol_ = 0;
+    blockCols_ = vCount;
     typename Traits::InternalInfoType temp(vInfo);
     std::swap(vectorInfo_, temp);
     placeVectors();
@@ -221,6 +235,14 @@ GenVecBasis<Scalar, GenVecType>::dimensionIs(int vCount, InfoType vInfo) {
 template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::~GenVecBasis() {
   cleanUp();
+}
+
+template <typename Scalar, template <typename> class GenVecType>
+void
+GenVecBasis<Scalar, GenVecType>::localBasisIs(int startCol, int blockCols)
+{
+  startCol_ = startCol;
+  blockCols_ = blockCols;
 }
 
 typedef GenVecBasis<double> VecBasis;

@@ -7,13 +7,14 @@ namespace Rom {
 
 template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::expand(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
+GenVecBasis<double, GenDistrVector>::expand(GenDistrVector<double> &x, GenDistrVector<double> &_result,
+                                            bool useCompressedBasis) const {
 #ifdef USE_EIGEN3
   if(_result.size() > 0) {
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
 
-    if(compressedKey_.size() > 0) {
+    if(useCompressedBasis && compressedKey_.size() > 0) {
       Eigen::VectorXd resultBuffer(compressedKey_.size());
       resultBuffer = compressedBasis_*GenCoordinates;
       for(int i = 0; i < compressedKey_.size(); i++)
@@ -42,15 +43,16 @@ GenVecBasis<double, GenDistrVector>::fullExpand(GenDistrVector<double> &x, GenDi
 
 template <>
 GenVector<double> &
-GenVecBasis<double, GenVector>::expand(GenVector<double> &x, GenVector<double> &_result) const {
+GenVecBasis<double, GenVector>::expand(GenVector<double> &x, GenVector<double> &_result,
+                                       bool useCompressedBasis) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data()+startCol_, blockCols_);
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
 
-  if(compressedKey_.size() > 0) {
+  if(useCompressedBasis && compressedKey_.size() > 0) {
     result.setZero();
     Eigen::VectorXd resultBuffer(compressedKey_.size());
-    resultBuffer = compressedBasis_*GenCoordinates;
+    resultBuffer = compressedBasis_.block(0,startCol_,compressedKey_.size(),blockCols_)*GenCoordinates;
     for(int i = 0; i < compressedKey_.size(); i++)
       result(compressedKey_[i]) = resultBuffer(i);
   }

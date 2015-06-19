@@ -1032,8 +1032,8 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
       Vector vel_Big(NonLinDynamic::solVecInfo()),
              acc_Big(NonLinDynamic::solVecInfo());
 
-      projectionBasis.expand(vel, vel_Big);
-      projectionBasis.expand(acc, acc_Big);
+      projectionBasis.expand(vel, vel_Big, false); // XXX precompute Vi^T*Vj for all i != j (or Vi^T*M*Vj for M-orthogonal local bases)
+      projectionBasis.expand(acc, acc_Big, false); //     to avoid the high-dimensional scaling of the cost incurred by these operations
 
       int blockCols = domain->solInfo().localBasisSize[j];
       int startCol = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+j, 0);

@@ -43,16 +43,21 @@ LumpedPodProjectionNonLinDynamic::getStiffAndForceFromDomain(GeomState &geomStat
 void
 LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomState& geomState, double time)
 {
-  if(!domain->solInfo().getNLInfo().linearelastic && (geomState_Big->getHaveRot() || geomState_Big->getTotalNumElemStates() > 0)) {
+  if((!domain->solInfo().getNLInfo().linearelastic && (geomState_Big->getHaveRot() || geomState_Big->getTotalNumElemStates() > 0))
+     || domain->solInfo().readInROBorModes.size() > 1) {
     // updateStates is called after midpoint update (i.e. once per timestep)
     // so it is a convenient place to update and copy geomState_Big, if necessary
-    Vector q_Big(NonLinDynamic::solVecInfo()),
-           vel_Big(NonLinDynamic::solVecInfo()),
-           acc_Big(NonLinDynamic::solVecInfo());
     const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-    projectionBasis.expand(geomState.q, q_Big);
-    geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
+    if(domain->solInfo().readInROBorModes.size() == 1) {
+      // note: for local bases method, geomState_Big has already been updated in setLocalBasis
+      Vector q_Big(NonLinDynamic::solVecInfo());
+      projectionBasis.expand(geomState.q, q_Big);
+      geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
+    }
+
     if(geomState_Big->getHaveRot()) {
+      Vector vel_Big(NonLinDynamic::solVecInfo()),
+             acc_Big(NonLinDynamic::solVecInfo());
       projectionBasis.expand(geomState.vel, vel_Big);
       geomState_Big->setVelocity(vel_Big);
       projectionBasis.expand(geomState.acc, acc_Big);

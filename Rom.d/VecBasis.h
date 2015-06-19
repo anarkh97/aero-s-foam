@@ -67,7 +67,7 @@ public:
   // (must take care to NOT reallocate underlying memory)
   VecType &operator[](int i) { return vectors_[i]; }
 
-  VecType & expand(VecType &, VecType &) const;
+  VecType & expand(VecType &, VecType &, bool=true) const;
   VecType & fullExpand(VecType &, VecType &) const;
   VecType & expand(std::vector<Scalar> &, VecType &) const;
   VecType & reduce(VecType &, VecType &) const;

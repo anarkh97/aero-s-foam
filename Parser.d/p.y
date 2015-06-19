@@ -190,7 +190,8 @@ Component:
         | NodalFrameDList
         | ConstrainedSurfaceFrameDList
 	| Attributes
-	{}
+	{ int j = geoSource->getLocalIndex();
+          geoSource->setLocalIndex(j+1); }
         | Ellump
         | SampNodeSlot
  	| ReducedStiffness

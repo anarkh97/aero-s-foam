@@ -98,6 +98,7 @@ public:
   // Local bases
   int selectLocalBasis(Vector &q);
   void setLocalBasis(ModalGeomState *refState, ModalGeomState *geomState, Vector &q_n, Vector &v, Vector &a);
+  virtual void setLocalReducedMesh(int j) {}
 
 protected:
   class Impl;

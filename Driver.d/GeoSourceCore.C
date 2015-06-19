@@ -64,7 +64,8 @@ void random_shuffle( RandomIt first, RandomIt last )
 }
 
 GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16), elemSet(iniSize*16),
-   layInfo(0, iniSize), coefData(0, iniSize), layMat(0, iniSize), efd(null_eframe, iniSize), csfd(null_eframe, iniSize), cframes(0, iniSize), nfd(null_nframe, iniSize)
+   layInfo(0, iniSize), coefData(0, iniSize), layMat(0, iniSize), efd(null_eframe, iniSize), csfd(null_eframe, iniSize), cframes(0, iniSize), nfd(null_nframe, iniSize),
+   elementLumpingWeights_(1)
 {
   decJustCalled=false;
   exitAfterDec=false;
@@ -190,6 +191,8 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   mratio = 1.0; // consistent mass matrix
 
   elemSet.setMyData(true);
+
+  localIndex_ = 0;
 }
 
 //----------------------------------------------------------------------
@@ -4747,8 +4750,13 @@ bool GeoSource::noOutput(int x, int ndflag)
   return noOut;
 }
 
+void GeoSource::setLocalIndex(int j) {
+  localIndex_ = j;
+}
+
 void GeoSource::setElementLumpingWeight(int iele, double value) {
-  elementLumpingWeights_[iele] = value;
+  if(elementLumpingWeights_.size() < localIndex_+1) elementLumpingWeights_.resize(localIndex_+1);
+  elementLumpingWeights_[localIndex_][iele] = value;
 }
 
 void GeoSource::pushBackStiffVec(double Kelem) {

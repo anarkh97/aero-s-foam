@@ -69,7 +69,7 @@ DEIMPodProjectionNonLinDynamic::computeRedKDyn(double Kcoef){
    GenVector<double> columnOfKtimesV(projectionBasis.size());
    columnOfKtimesV = 0.0;
    //(K_dyn - K_stiff)*V
-   domain->getWeightedKtimesU(packedElementWeights_, projectionBasis[column], (double *) 0, columnOfKtimesV, Kcoef, kelArray);
+   domain->getWeightedKtimesU(packedElementWeights_[0], projectionBasis[column], (double *) 0, columnOfKtimesV, Kcoef, kelArray);
    deimBasis_.compressedVecReduce(columnOfKtimesV,RedKDyn[column]);
  }
 #ifdef USE_EIGEN3
@@ -108,13 +108,13 @@ DEIMPodProjectionNonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState,
                                                              FullSquareMatrix *melArray, bool forceOnly) {
   
   if(forceOnly) {
-    domain->getWeightedInternalForceOnly(packedElementWeights_,
+    domain->getWeightedInternalForceOnly(packedElementWeights_[0],
                                          geomState, elementInternalForce,
                                          allCorot, kelArray,
                                          residual, lambda, time, refState, melArray, kelArrayCopy);
   }
   else {
-    domain->getWeightedStiffAndForceOnly(packedElementWeights_,
+    domain->getWeightedStiffAndForceOnly(packedElementWeights_[0],
                                          geomState, elementInternalForce,
                                          allCorot, kelArray,
                                          residual, lambda, time, refState, melArray, kelArrayCopy);

@@ -11,7 +11,8 @@ extern GeoSource *geoSource;
 namespace Rom {
 
 LumpedPodProjectionNonLinDynamic::LumpedPodProjectionNonLinDynamic(Domain *domain) :
-  PodProjectionNonLinDynamic(domain)
+  PodProjectionNonLinDynamic(domain),
+  localReducedMeshId_(0)
 {}
 
 void
@@ -27,13 +28,13 @@ LumpedPodProjectionNonLinDynamic::getStiffAndForceFromDomain(GeomState &geomStat
                                                              Vector &residual, double lambda, double time, GeomState *refState,
                                                              FullSquareMatrix *melArray, bool forceOnly) {
   if(forceOnly) {
-    domain->getWeightedInternalForceOnly(packedElementWeights_,
+    domain->getWeightedInternalForceOnly(packedElementWeights_[localReducedMeshId_],
                                          geomState, elementInternalForce,
                                          allCorot, kelArray,
                                          residual, lambda, time, refState, melArray);
   }
   else {
-    domain->getWeightedStiffAndForceOnly(packedElementWeights_,
+    domain->getWeightedStiffAndForceOnly(packedElementWeights_[localReducedMeshId_],
                                          geomState, elementInternalForce,
                                          allCorot, kelArray,
                                          residual, lambda, time, refState, melArray);
@@ -65,7 +66,7 @@ LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGe
     }
 
     if(geomState_Big->getTotalNumElemStates() > 0)
-      domain->updateWeightedElemStatesOnly(packedElementWeights_, refState_Big, *geomState_Big, allCorot, time);
+      domain->updateWeightedElemStatesOnly(packedWeightedElems_, refState_Big, *geomState_Big, allCorot, time);
 
     *refState_Big = *geomState_Big;
   }
@@ -73,25 +74,30 @@ LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGe
 
 void
 LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
-  for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(),
-                                                   it_end = geoSource->elementLumpingWeightEnd();
-       it != it_end; ++it) {
-    const int elemId = it->first;
+  packedElementWeights_.resize(geoSource->elementLumpingWeightSize()+1);
+  for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {
+    for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(j),
+                                                     it_end = geoSource->elementLumpingWeightEnd(j);
+         it != it_end; ++it) {
+      const int elemId = it->first;
 
-    const int packedId = geoSource->glToPackElem(elemId);
-    if (packedId < 0) {
-      continue;
-    }
+      const int packedId = geoSource->glToPackElem(elemId);
+      if (packedId < 0) {
+        continue;
+      }
 
-    const double weight = it->second;
-    if (weight != 0.0) {
-      Element *ele = domain->getElementSet()[packedId]; // get weighted element data
-      std::vector<int> node_buffer(ele->numNodes());
-      packedElementWeights_.insert(packedElementWeights_.end(), std::make_pair(packedId, weight));
-      //put nodes for weighted element into dummy vector and insert into packed node vector
-      ele->nodes(node_buffer.data());
-      packedWeightedNodes_.insert(packedWeightedNodes_.end(), node_buffer.begin(), node_buffer.end());
+      const double weight = it->second;
+      if (weight != 0.0) {
+        Element *ele = domain->getElementSet()[packedId]; // get weighted element data
+        std::vector<int> node_buffer(ele->numNodes());
+        packedElementWeights_[j].insert(packedElementWeights_[j].end(), std::make_pair(packedId, weight));
+        //put nodes for weighted element into dummy vector and insert into packed node vector
+        ele->nodes(node_buffer.data());
+        packedWeightedNodes_.insert(packedWeightedNodes_.end(), node_buffer.begin(), node_buffer.end());
+        packedWeightedElems_.insert(packedId);
+      }
     }
+    filePrint(stderr, " ... # Elems. in Reduced Mesh = %-4d...\n", packedElementWeights_[j].size());
   }
 
   // XXX also need to add to packedWeightedNodes the nodes of any elements to which a follower force has been applied
@@ -102,10 +108,7 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   std::vector<int>::iterator packedNodeIt = std::unique(packedWeightedNodes_.begin(), packedWeightedNodes_.end());
   packedWeightedNodes_.resize(packedNodeIt-packedWeightedNodes_.begin());
 
-  int elemCounter = packedElementWeights_.size();
-  filePrint(stderr, " ... # Elems. in Reduced Mesh = %-4d...\n", elemCounter);
-
-  if(elemCounter < domain->numElements()) {
+  if(packedWeightedElems_.size() < domain->numElements()) {
     filePrint(stderr, " ... Compressing Basis              ...\n");
     GenVecBasis<double> &projectionBasis = const_cast<GenVecBasis<double> &>(dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis());
     projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
@@ -120,6 +123,18 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
       exit(-1);
     }
   }
+}
+
+void
+LumpedPodProjectionNonLinDynamic::setLocalReducedMesh(int j)
+{
+  for(std::map<int, double>::const_iterator it = packedElementWeights_[localReducedMeshId_].begin(),
+                                        it_end = packedElementWeights_[localReducedMeshId_].end(); it != it_end; ++it) {
+    const int iele = it->first;
+    kelArray[iele].zero();
+  }
+
+  localReducedMeshId_ = std::min(geoSource->elementLumpingWeightSize()-1, j);
 }
 
 } /* end namespace Rom */

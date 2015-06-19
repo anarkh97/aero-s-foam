@@ -662,8 +662,9 @@ public:
   typedef std::vector<std::pair<int, int> > NodeDofPairVec;
   typedef std::vector<std::pair<int, int> > ElemDofPairVec;
 
-  ElementWeightMap::const_iterator elementLumpingWeightBegin() const { return elementLumpingWeights_.begin(); }
-  ElementWeightMap::const_iterator elementLumpingWeightEnd()   const { return elementLumpingWeights_.end();   }
+  int elementLumpingWeightSize() const { return elementLumpingWeights_.size(); }
+  ElementWeightMap::const_iterator elementLumpingWeightBegin(int j=0) const { return elementLumpingWeights_[j].begin(); }
+  ElementWeightMap::const_iterator elementLumpingWeightEnd(int j=0)   const { return elementLumpingWeights_[j].end();   }
 
   NodeDofPairVec::const_iterator nodeDofSlotBegin() const { return nodeDofSlotPairVec_.begin(); }
   NodeDofPairVec::const_iterator nodeDofSlotEnd()   const { return nodeDofSlotPairVec_.end();   }
@@ -689,9 +690,12 @@ public:
   void pushBackROMLMPCVec(double value);
   void setSampleNodesAndSlots(int node, int dof);
   void setSampleElemsAndDOFs(int elem,int dof);
+  void setLocalIndex(int j);
+  int getLocalIndex() { return localIndex_; }
 
 private:
-  ElementWeightMap elementLumpingWeights_;
+  int localIndex_; // local bases
+  std::vector<ElementWeightMap> elementLumpingWeights_;
   NodeDofPairVec nodeDofSlotPairVec_;
   ElemDofPairVec elemDofPairVec_;
   std::vector<double> ReducedStiffVec;

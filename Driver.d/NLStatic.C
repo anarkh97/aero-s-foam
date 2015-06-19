@@ -882,6 +882,19 @@ Domain::updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomS
 }
 
 void
+Domain::updateWeightedElemStatesOnly(const std::set<int> &weightedElems, GeomState *refState,
+                                     GeomState &geomState, Corotator **corotators, double time)
+{
+  if(matrixTimers) matrixTimers->updateState -= getTime();
+  double delt = std::max(sinfo.newmarkAlphaF,std::numeric_limits<double>::epsilon())*sinfo.getTimeStep();
+  for(std::set<int>::const_iterator it = weightedElems.begin(), it_end = weightedElems.end(); it != it_end; ++it) {
+    const int iele = *it;
+    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes, delt);
+  }
+  if(matrixTimers) matrixTimers->updateState += getTime();
+}
+
+void
 Domain::initializeMultipliers(GeomState &geomState, Corotator **corotators)
 {
   for(int iele = 0; iele < numele; ++iele) {

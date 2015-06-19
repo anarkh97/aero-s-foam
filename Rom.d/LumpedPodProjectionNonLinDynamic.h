@@ -13,6 +13,7 @@ public:
 
   virtual void preProcess();
   virtual void updateStates(ModalGeomState *refState, ModalGeomState& geomState, double time);
+  virtual void setLocalReducedMesh(int j);
 
 private:
   virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
@@ -21,10 +22,11 @@ private:
                                           FullSquareMatrix *melArray, bool forceOnly);
 
 protected:
-  std::map<int, double> packedElementWeights_;
+  std::vector<std::map<int, double> > packedElementWeights_;
   std::vector<int> packedWeightedNodes_;
+  std::set<int> packedWeightedElems_;
   void buildPackedElementWeights();
-
+  int localReducedMeshId_;
 };
 
 } /* end namespace Rom */

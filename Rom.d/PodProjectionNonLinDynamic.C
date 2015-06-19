@@ -1039,6 +1039,7 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
       int startCol = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+j, 0);
       getSolver()->setLocalBasis(startCol, blockCols);
       projectionBasis.localBasisIs(startCol, blockCols);
+      setLocalReducedMesh(j);
       localBasisId = j;
 
       reduceDisp(vel_Big, vel);

@@ -434,6 +434,8 @@ class Domain : public HData {
      void updateStates(GeomState *refState, GeomState& geomState, Corotator **allCorot, double time);
      void updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomState *refState,
                                        GeomState &geomState, Corotator **corotators, double time);
+     void updateWeightedElemStatesOnly(const std::set<int> &weightedElems, GeomState *refState,
+                                       GeomState &geomState, Corotator **corotators, double time);
      void getElemStiffAndForce(const GeomState &geomState, double time, 
                                const GeomState *refState, const Corotator &elemCorot,
                                double *elemForce, FullSquareMatrix &elemStiff);

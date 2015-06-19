@@ -710,7 +710,7 @@ int main(int argc, char** argv)
    // activate multi-domain mode for the explicit dynamics Rom drivers which are not supported in single-domain mode
    // so it is not necessary to include "DECOMP" with "nsubs 1" in the input file
    if((domain->solInfo().activatePodRom && domain->probType() == SolverInfo::NonLinDynam && domain->solInfo().newmarkBeta == 0)
-      || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess)) {
+      || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess) || domain->solInfo().clustering > 0) {
      callDec = true;
      trivialFlag = true;
      numSubdomains = 1;

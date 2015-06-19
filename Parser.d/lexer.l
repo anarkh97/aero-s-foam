@@ -1477,6 +1477,8 @@ TRAIL [a-zA-Z]*
 "CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } /* reduced order data conversion files */
 
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
+"VELSNAPFI"|"VelSnapFi"|"velsnapfi"       { return VELSNAPFI; }
+"ACCSNAPFI"|"AccSnapFi"|"accsnapfi"       { return ACCSNAPFI; }
 
 "ROBFI"|"RobFi"|"robfi"		          { return ROBFI; }
 

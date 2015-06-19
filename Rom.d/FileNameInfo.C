@@ -21,7 +21,12 @@ FileNameInfo::size(BasisId::Type type, BasisId::Level level)
   int ret = 0;
   if(domain->solInfo().svdPodRom) {
     if(level == 0) {
-      ret = domain->solInfo().snapfiPodRom.size();
+      if(type == 4)
+        ret = domain->solInfo().accelPodRomFile.size();
+      else if(type == 5)
+        ret = domain->solInfo().velocPodRomFile.size();
+      else
+        ret = domain->solInfo().snapfiPodRom.size();
     }
     else if(level == 1) {
       ret = 1; // domain->solInfo().SVDoutput;
@@ -70,7 +75,12 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
 
   if(domain->solInfo().svdPodRom) {
     if(id.level() == 0) {
-      builder << domain->solInfo().snapfiPodRom[i].c_str() ; 
+      if(id.type() == 4)
+        builder << domain->solInfo().accelPodRomFile[i];
+      else if(id.type() == 5)
+        builder << domain->solInfo().velocPodRomFile[i];
+      else 
+        builder << domain->solInfo().snapfiPodRom[i].c_str() ; 
     }
     else if(id.level() == 1) {
       builder << domain->solInfo().SVDoutput; 

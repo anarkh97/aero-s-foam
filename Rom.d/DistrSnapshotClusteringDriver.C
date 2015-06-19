@@ -32,10 +32,9 @@ DistrSnapshotClusteringDriver::DistrSnapshotClusteringDriver(Domain *domain, Com
 //Non-member functions
 //===============
 void readIntoSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDof6Buffer &inputBuffer, int& nodeCount,
-                    DistrVecNodeDof6Conversion &converter, const DistrInfo &vectorSize,
+                    DistrVecNodeDof6Conversion &converter, const DistrInfo &vectorSize, BasisId::Type workload,
                     BasisId::Level type, int numEntries, int& solverCol, int skipFactor=1)
 {
-  const BasisId::Type workload = BasisId::STATE;
   FileNameInfo fileInfo;
   for(int i = 0; i < numEntries; i++) {
     std::string fileName = BasisFileId(fileInfo,workload,type,i);
@@ -64,6 +63,30 @@ void readIntoSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDof6Buffer &
         }
         inputFile.currentStateIndexInc();
       }
+    }
+  }
+}
+
+void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDof6Buffer &outputBuffer, int nodeCount,
+                      DistrVecNodeDof6Conversion &converter, const DistrInfo &vectorSize, BasisId::Type workload,
+                      BasisId::Level type, int numClusters, Communicator *comm)
+{
+  FileNameInfo fileInfo;
+  for(int i=0; i<numClusters; ++i) {
+    int clusterDim = solver.clusterColCount(i);
+    std::string fileName = BasisFileId(fileInfo, workload, type);
+    std::ostringstream ss;
+    ss << ".cluster" << i+1;
+    fileName.append(ss.str());
+    DistrBasisOutputFile outputFile(fileName,
+                                    nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
+                                    comm, false);
+    filePrint(stderr, " ... Writing %d clustered snapshots to file %s ...\n", clusterDim, fileName.c_str());
+    for (int iVec = 0; iVec < clusterDim; ++iVec) {
+      double * const vecBuffer = const_cast<double *>(solver.clusterColBuffer(i,iVec));
+      const GenStackDistVector<double> vec(vectorSize, vecBuffer);
+      converter.unpaddedNodeDof6(vec, outputBuffer);
+      outputFile.stateAdd(outputBuffer, 1.0);
     }
   }
 }
@@ -112,29 +135,30 @@ DistrSnapshotClusteringDriver::solve() {
  
   int solverCol = 0;
   DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-  readIntoSolver(solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::SNAPSHOTS,
+  readIntoSolver(solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::STATE, BasisId::SNAPSHOTS,
                  domain->solInfo().snapfiPodRom.size(), solverCol, domain->solInfo().skipPodRom); // read in snapshots
 
   filePrint(stderr, " ... Partitioning snapshots into %d clusters ...\n", numClusters);
   solver.solve();
 
-  for(int i=0; i<numClusters; ++i) {
-    int clusterDim = solver.clusterColCount(i);
-    std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
-    std::ostringstream ss;
-    ss << i+1;
-    fileName.append(ss.str());
-    DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-    DistrBasisOutputFile outputFile(fileName,
-                                    nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
-                                    comm_, false);
-    filePrint(stderr, " ... Writing %d clustered snapshots to file %s ...\n", clusterDim, fileName.c_str());
-    for (int iVec = 0; iVec < clusterDim; ++iVec) {
-      double * const vecBuffer = const_cast<double *>(solver.clusterColBuffer(i,iVec));
-      const GenStackDistVector<double> vec(distrInfo, vecBuffer);
-      converter.unpaddedNodeDof6(vec, outputBuffer);
-      outputFile.stateAdd(outputBuffer, 1.0);
-    }
+  DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
+  writeOutofSolver(solver, outputBuffer, nodeCount, converter, distrInfo, BasisId::STATE, BasisId::SNAPSHOTS,
+                   numClusters, comm_);
+
+  if(!domain_->solInfo().velocPodRomFile.empty()) {
+    solverCol = 0;
+    readIntoSolver(solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS,
+                   domain->solInfo().velocPodRomFile.size(), solverCol, domain->solInfo().skipPodRom); // read in velocity snapshots
+    writeOutofSolver(solver, outputBuffer, nodeCount, converter, distrInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS,
+                     numClusters, comm_);
+  }
+
+  if(!domain_->solInfo().accelPodRomFile.empty()) {
+    solverCol = 0;
+    readIntoSolver(solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS,
+                   domain->solInfo().accelPodRomFile.size(), solverCol, domain->solInfo().skipPodRom); // read in acceleration snapshots
+    writeOutofSolver(solver, outputBuffer, nodeCount, converter, distrInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS,
+                     numClusters, comm_);
   }
 }
 

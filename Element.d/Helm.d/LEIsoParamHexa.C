@@ -137,6 +137,28 @@ FullSquareMatrix LEIsoParamHexa::stiffness(CoordSet &cs, double *K, int flg ) {
  return ret;
 }
 
+void LEIsoParamHexa::aRubberStiffnessDerivs(CoordSet& cs,
+                                           complex<double> *K, int n, double omega) {
+
+ IsoParamUtils ipu(order);
+ int orderc = ipu.getorderc();
+ double *xyz=(double*)alloca(sizeof(double)*3*orderc);
+ cs.getCoordinates(nn,orderc,xyz,xyz+orderc,xyz+2*orderc);
+
+ LEARubberStiffFunction f(3*orderc,n,omega,
+                          prop->E0,prop->dE,prop->mu0,prop->dmu,
+                          prop->eta_E,prop->deta_E,prop->eta_mu,prop->deta_mu,
+                          K);
+
+ ipu.zeroOut<complex<double> > ((n+3)*9*orderc*orderc,K);
+ int gorder = 7;
+ if (order<=3) gorder = O3;
+ else if (order<=4) gorder = O4;
+ ipu.volumeInt3d(xyz, f, gorder);
+ for(int i=0;i<=(n+2);i++)
+   ipu.symmetrize(3*orderc,K+i*9*orderc*orderc);
+}
+
 void   LEIsoParamHexa::getGravityForce(CoordSet &cs,double *gravity,
                            Vector &force, int gravflag, GeomState *gs) {
  if (gravflag != 2) {

@@ -197,6 +197,7 @@ class StructProp {
         double alphaDamp; // Rayleigh mass damping coefficient
         double etaDamp; // Structural damping coefficient
         int etaDampTable; // Structural damping coefficient table id
+        double eta_mu, deta_mu, eta_E, deta_E, mu0, dmu, E0, dE ;
 
         double kappaHelm; // wave number for Helmholtz proplem
         double kappaHelmImag; // imaginary part of the wavenumber for
@@ -250,7 +251,9 @@ class StructProp {
                        lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
                        k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0;
-                       ymtt = NULL; ctett = NULL; } 
+                       ymtt = NULL; ctett = NULL;
+                       eta_mu=deta_mu=eta_E=deta_E=mu0=dmu=E0=dE = 0.0;
+ } 
 
 };
 
@@ -407,6 +410,8 @@ class Element {
         FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
         virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d);
         virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d);
+        virtual void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n,
+                                            double omega);
 
         virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
 

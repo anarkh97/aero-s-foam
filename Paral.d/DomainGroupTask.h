@@ -27,6 +27,14 @@ class GenDomainGroupTask : public TaskDescr {
 // RT
    GenSparseMatrix<Scalar> ***C_deriv;
    GenSparseMatrix<Scalar> ***Cuc_deriv;
+   int num_K_deriv;
+   GenSparseMatrix<Scalar> ***K_deriv;
+   GenSparseMatrix<Scalar> ***Kuc_deriv;
+   int num_K_arubber;
+   GenSparseMatrix<Scalar> ***K_arubber_l;
+   GenSparseMatrix<Scalar> ***K_arubber_m;
+   GenSparseMatrix<Scalar> ***Kuc_arubber_l;
+   GenSparseMatrix<Scalar> ***Kuc_arubber_m;
 // RT end
    GenSparseMatrix<Scalar> **K;
    GenSparseMatrix<Scalar> **Kuc;

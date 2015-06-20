@@ -683,6 +683,8 @@ TRAIL [a-zA-Z]*
 
 "modd"[a-zA-Z]*|"MODD"[a-zA-Z]*    { return MODDAMP; }
 
+"ARUBBERMAT"|"arubbermat"            { return ARUBBERMAT; }
+
 "time"|"TIME"                      { return TIME; }
 
 "pita"|"PITA"|"Pita"               { return PITA; }

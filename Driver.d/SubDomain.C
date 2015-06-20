@@ -4382,6 +4382,9 @@ GenSubDomain<Scalar>::initialize()
   bcx_scalar = 0;
   a = 0; b = 0; P = 0; Q = 0; rebuildPade = true;  // pade
   numC_deriv = 0; C_deriv = 0; Cuc_deriv = 0;
+  numK_deriv = 0; K_deriv = 0; Kuc_deriv = 0;
+  num_K_arubber = 0; 
+  K_arubber_l = 0; K_arubber_m = 0; Kuc_arubber_l = 0; Kuc_arubber_m = 0;
 #ifdef HB_COUPLED_PRECOND
   kSumWI = 0;
   precNodeToNode = 0;
@@ -4456,6 +4459,12 @@ GenSubDomain<Scalar>::~GenSubDomain()
   if(P) delete P; if(Q) delete Q;
   if(C_deriv) { for(int i=0; i<numC_deriv; ++i) delete C_deriv[i]; delete [] C_deriv; }
   if(Cuc_deriv) { for(int i=0; i<numC_deriv; ++i) delete Cuc_deriv[i]; delete [] Cuc_deriv; }
+  if(K_deriv) { for(int i=0; i<numK_deriv; ++i) delete K_deriv[i]; delete [] K_deriv; }
+  if(Kuc_deriv) { for(int i=0; i<numK_deriv; ++i) delete Kuc_deriv[i]; delete [] Kuc_deriv; }
+  if(K_arubber_l) { for(int i=0; i<num_K_arubber; ++i) delete K_arubber_l[i]; delete [] K_arubber_l; }
+  if(Kuc_arubber_l) { for(int i=0; i<num_K_arubber; ++i) delete Kuc_arubber_l[i]; delete [] Kuc_arubber_l; }
+  if(K_arubber_m) { for(int i=0; i<num_K_arubber; ++i) delete K_arubber_m[i]; delete [] K_arubber_m; }
+  if(Kuc_arubber_m) { for(int i=0; i<num_K_arubber; ++i) delete Kuc_arubber_m[i]; delete [] Kuc_arubber_m; }
 #ifdef HB_COUPLED_PRECOND
   if(kSumWI) { delete kSumWI; kSumWI = 0; }
   if(isMixedSub && precNodeToNode) { delete precNodeToNode; precNodeToNode = 0; }
@@ -6244,6 +6253,15 @@ GenSubDomain<Scalar>::multM(Scalar *localrhs, GenStackVector<Scalar> **u, int k)
       }
     }
   }
+  if(K_deriv) {
+    for(int j=0; j<=k-1; ++j) {
+      if(K_deriv[k-j]) {
+        double ckj = DCombination(k,j);
+        for(int i=0; i<c_dsa->size(); ++i) localvec[i] = -ckj*(*u[j+1])[i];
+        K_deriv[k-j]->multAdd(localvec, localrhs);
+      }
+    }
+  }
 
   makeFreqSweepLoad(localrhs, k, omega);  // this adds the residual effects of any prescribed displacements
                                           // and other loads that have non-zero kth derivative wrt omega
@@ -6257,7 +6275,7 @@ GenSubDomain<Scalar>::makeFreqSweepLoad(Scalar *d, int iRHS, double omega)
  GenStackVector<Scalar> force(numUncon, d);
 
  // Compute Right Hand Side Force = Fext + Fgravity + Fnh + Fpressure
- buildFreqSweepRHSForce<Scalar>(force, Muc, Cuc_deriv, iRHS, omega);
+ buildFreqSweepRHSForce<Scalar>(force, Muc, Cuc_deriv, Kuc_deriv, iRHS, omega);
 
  for(int i = 0; i < numMPC; ++i) mpc[i]->rhs = 0.0; // PJSA 10-18-04: set mpc rhs to zero for higher-order derivative solves
 }

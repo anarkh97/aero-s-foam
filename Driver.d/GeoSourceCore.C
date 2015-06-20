@@ -6,6 +6,7 @@
 #include <Driver.d/Domain.h>
 #include <Driver.d/Mpc.h>
 #include <Element.d/Helm.d/HelmElement.h>
+#include <Element.d/Helm.d/ARubberF.h>
 #include <Element.d/ElemAccess.h>
 #include <Utils.d/BinFileHandler.h>
 #include <Utils.d/Connectivity.h>
@@ -1129,6 +1130,7 @@ void GeoSource::setUpData()
     }
   }
 
+  num_arubber = 0;
   // assign default properties
   SPropContainer::iterator it = sProps.begin();
   while(it != sProps.end()) {
@@ -1146,6 +1148,7 @@ void GeoSource::setUpData()
     }
     p->constraint_hess = sinfo.constraint_hess;
     p->constraint_hess_eps = sinfo.constraint_hess_eps;
+    if(p->E0!=0.0 || p->mu0!=0.0) num_arubber++;
     it++;
   }
   if (sinfo.doFreqSweep) {
@@ -4778,6 +4781,28 @@ void GeoSource::setSampleNodesAndSlots(int node, int dof){
 void GeoSource::setSampleElemsAndDOFs(int node, int dof){
   elemDofPairVec_.push_back(std::make_pair(node,dof));
 }
+
+
+void GeoSource::getARubberLambdaMu(double omega, complex<double> *lambda,
+                                   complex<double> *mu) {
+
+  int i_arubber = 0;
+  SPropContainer::iterator it = sProps.begin();
+  while(it != sProps.end()) {
+    StructProp* p = &(it->second);
+    if(p->E0!=0.0 || p->mu0!=0.0) {
+      ARubberF ar(0,omega,
+              p->E0,p->dE,p->mu0,p->dmu,
+              p->eta_E,p->deta_E,p->eta_mu,p->deta_mu);
+
+      lambda[i_arubber] = ar.d_lambda(0);
+      mu[i_arubber] = ar.d_mu(0);
+      i_arubber++;
+    } 
+    it++;
+  }
+}
+
 
 #ifdef SOWER_SURFS 
 void GeoSource::readDistributedSurfs(int subNum)

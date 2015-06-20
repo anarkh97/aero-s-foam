@@ -65,7 +65,7 @@
 
 %expect 6
 
-%token ACTUATORS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
+%token ACTUATORS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
@@ -2629,6 +2629,20 @@ MatData:
           StructProp sp;
           sp.k1 = $3;
           sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer ARUBBERMAT Float Float Float Float Float Float Float Float Float NewLine
+        { // Acoustic rubber
+          StructProp sp;
+          sp.E0 = sp.E = $3; sp.dE = $4/(2*M_PI); sp.eta_E = $5; sp.deta_E = $6/(2*M_PI);
+          sp.mu0 = $7; sp.dmu = $8/(2*M_PI); sp.eta_mu = $9; sp.deta_mu = $10/(2*M_PI);
+          sp.rho = $11;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer ARUBBERMAT Float NewLine
+        { // Acoustic rubber
+          StructProp sp;
+          sp.E0 = sp.E = $3;
           geoSource->addMat( $1-1, sp );
         }
 	;

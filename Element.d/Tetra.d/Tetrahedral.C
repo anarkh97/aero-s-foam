@@ -15,6 +15,7 @@
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/NLTetrahedral.h>
 #include <Element.d/Utils.d/SolidElemUtils.h>
+#include <Element.d/Helm.d/ARubberF.h>
 #include <Corotational.d/MatNLCorotator.h>
 
 #define CHECK_JACOBIAN // force check nullity & constant sign of jacobian over el.
@@ -770,6 +771,69 @@ Tetrahedral::stiffness(CoordSet &cs, double *d, int flg)
   }
 
   return K;
+}
+
+
+void Tetrahedral::aRubberStiffnessDerivs(CoordSet & cs, complex<double> *d,
+                                            int n, double omega) {
+  const int nnodes = 4;
+  const int ndofs = 12;
+
+  double X[4], Y[4], Z[4];
+  cs.getCoordinates(nn, nnodes, X, Y, Z);
+
+  int ls[12] = {0,3,6,9,1,4,7,10,2,5,8,11};
+
+  double *Kl = new double[ndofs*ndofs];
+  FullSquareMatrix mKl(ndofs,Kl);
+  mKl.zero();
+
+  double Cl[6][6];
+  for(int i=0;i<6;i++) for(int j=0;j<6;j++) Cl[i][j] = 0.0;
+  Cl[0][0] = Cl[1][1] = Cl[2][2] = 1.0;
+  Cl[0][1] = Cl[1][0] = Cl[0][2] = Cl[2][0] = Cl[1][2] = Cl[2][1] = 1.0;
+  Cl[3][3] = Cl[4][4] = Cl[5][5] = 0.0;
+
+  double *Km = new double[ndofs*ndofs];
+  FullSquareMatrix mKm(ndofs,Km);
+  mKm.zero();
+  double Cm[6][6];
+  for(int i=0;i<6;i++) for(int j=0;j<6;j++) Cm[i][j] = 0.0;
+  Cm[0][0] = Cm[1][1] = Cm[2][2] = 2.0;
+  Cm[3][3] = Cm[4][4] = Cm[5][5] = 1.0;
+
+  // integration: loop over Gauss pts
+  // hard coded order 1 tetrahedral quadrature rule: {r,s,t,u(=1-r-s-t),w}
+  int ngp = 1;
+  double TetGPt1[1][5] = {{1./4.,1./4.,1./4.,1./4.,1./6.}};
+  double m[3], Shape[4], DShape[4][3], a[3][3];
+  double w, dOmega;
+  int jSign = 0;
+
+  dOmega = computeTetra4Jacobian(X, Y, Z, a);
+  for(int igp=0; igp<ngp; igp++) {
+    // get x, y, z  position & weight of the integration pt
+    m[0] = TetGPt1[igp][0]; m[1] = TetGPt1[igp][1]; m[2] = TetGPt1[igp][2]; w = TetGPt1[igp][4];
+    Tetra4ShapeFct(Shape, DShape, m, dOmega, a);
+#ifdef CHECK_JACOBIAN
+    checkJacobian(&dOmega, &jSign, getGlNum()+1, "Tetrahedral::stiffness");
+#endif
+    w *= fabs(dOmega);
+    addBtCBtoK3DSolid(mKl, DShape, Cl, w, nnodes, ls);
+    addBtCBtoK3DSolid(mKm, DShape, Cm, w, nnodes, ls);
+  }
+
+  ARubberF ar(n,omega,
+              prop->E0,prop->dE,prop->mu0,prop->dmu,
+              prop->eta_E,prop->deta_E,prop->eta_mu,prop->deta_mu);
+  for(int i=0;i<ndofs*ndofs;i++)  d[i+(0)*ndofs*ndofs] = Km[i];
+  for(int i=0;i<ndofs*ndofs;i++)  d[i+(1)*ndofs*ndofs] = Kl[i];
+  for(int j=0;j<=n;j++)
+    for(int i=0;i<ndofs*ndofs;i++)
+        d[i+(j+2)*ndofs*ndofs] = ar.d_lambda(j)*Kl[i]+ ar.d_mu(j)*Km[i];
+
+ delete[] Kl;
+ delete[] Km;
 }
 
 int

@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstddef>
+#include <numeric>
 
 extern GeoSource * geoSource;
 extern int verboseFlag;

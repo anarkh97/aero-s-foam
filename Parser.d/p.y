@@ -3135,7 +3135,8 @@ Attributes:
 	;
 Ellump:
         ELLUMP NewLine
-        { domain->solInfo().elemLumpPodRom = true; }
+        { domain->solInfo().elemLumpPodRom = true;
+          geoSource->setLocalIndex(0); }
         | Ellump Integer Float NewLine
         { geoSource->setElementLumpingWeight($2 - 1, $3); }
         | Ellump REDFOL NewLine /* deprecated */

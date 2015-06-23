@@ -142,8 +142,10 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   }
   
   filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionBasis_.vectorCount());
-  if(solInfo().readInROBorModes.size() > 1) 
+  if(solInfo().readInROBorModes.size() > 1) {
     filePrint(stderr, " ... Number of Local Bases = %-3d    ...\n", solInfo().readInROBorModes.size());
+    parent->readLocalBasesProj();
+  }
 
   if(strcmp(solInfo().readInDualROB,"") != 0) {
     VecNodeDof1Conversion vecNodeDof1Conversion(getNumLMPC());
@@ -630,7 +632,10 @@ PodProjectionNonLinDynamic::preProcess() {
 
   podPostPro = new SDDynamPodPostProcessor(domain, bcx, vcx, acx, times);
   GenVecBasis<double> &projectionBasis = const_cast<GenVecBasis<double> &>(dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis());
-  podPostPro->printPODSize(projectionBasis.numVectors());
+  if(domain->solInfo().readInROBorModes.size() == 1)
+    podPostPro->printPODSize(projectionBasis.numVectors());
+  else
+    podPostPro->printPODSize(std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0));
   podPostPro->makeSensorBasis(&projectionBasis);
 
   if(domain->solInfo().getNLInfo().linearelastic) {
@@ -856,13 +861,17 @@ PodProjectionNonLinDynamic::getExternalForce(Vector &rhs, Vector &constantForce,
                                              Vector &aeroForce, double localDelta)
 {
   int numNeumanModal = domain->nNeumannModal();
+  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+
   if(numNeumanModal) {
     BCond* nbcModal = domain->getNBCModal();
-    rhs = constantForce;
+    rhs = 0.;
+    projectionBasis.addLocalPart(constantForce, rhs);
     if(domain->getNumMFTT() > 0) {
       for(int i = 0; i < numNeumanModal; ++i) {
-        if(nbcModal[i].nnum < constantForce.size()) {
-          if(MFTTData *mftt = domain->getMFTT(nbcModal[i].loadsetid)) rhs[nbcModal[i].nnum] += mftt->getVal(t)*nbcModal[i].val;
+        int k = nbcModal[i].nnum-projectionBasis.startCol();
+        if(k >= 0 && k < projectionBasis.numVectors()) {
+          if(MFTTData *mftt = domain->getMFTT(nbcModal[i].loadsetid)) rhs[k] += mftt->getVal(t)*nbcModal[i].val;
         }
       }
     }
@@ -872,8 +881,6 @@ PodProjectionNonLinDynamic::getExternalForce(Vector &rhs, Vector &constantForce,
            constantForce_Big(NonLinDynamic::solVecInfo(), 0.0),
            aeroForce_Big(NonLinDynamic::solVecInfo());
 
-    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  
     NonLinDynamic::getExternalForce(rhs_Big, constantForce_Big, tIndex, t, geomState_Big, elementInternalForce, 
                                     aeroForce_Big, localDelta);
 
@@ -1033,23 +1040,78 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
       Vector vel_Big(NonLinDynamic::solVecInfo()),
              acc_Big(NonLinDynamic::solVecInfo());
 
-      projectionBasis.expand(vel, vel_Big, false); // XXX precompute Vi^T*Vj for all i != j (or Vi^T*M*Vj for M-orthogonal local bases)
-      projectionBasis.expand(acc, acc_Big, false); //     to avoid the high-dimensional scaling of the cost incurred by these operations
+      if(VtV.size() == 0) {
+        projectionBasis.expand(vel, vel_Big, false); // XXX precompute Vi^T*Vj for all i != j (or Vi^T*M*Vj for M-orthogonal local bases)
+        projectionBasis.expand(acc, acc_Big, false); //     to avoid the high-dimensional scaling of the cost incurred by these operations
+      }
 
       int blockCols = domain->solInfo().localBasisSize[j];
       int startCol = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+j, 0);
       getSolver()->setLocalBasis(startCol, blockCols);
       projectionBasis.localBasisIs(startCol, blockCols);
       setLocalReducedMesh(j);
-      localBasisId = j;
 
-      reduceDisp(vel_Big, vel);
-      reduceDisp(acc_Big, acc);
+      if(VtV.size() == 0) {
+        reduceDisp(vel_Big, vel);
+        reduceDisp(acc_Big, acc);
+      }
+      else {
+        projectLocalBases(localBasisId, j, vel);
+        projectLocalBases(localBasisId, j, acc);
+      }
 
       refState->setVelocityAndAcceleration(vel, acc);
       geomState->setVelocityAndAcceleration(vel, acc);
+
+      localBasisId = j;
     }
   }
+}
+
+void
+PodProjectionNonLinDynamic::readLocalBasesProj()
+{
+  if(domain->solInfo().readInLocalBasesProj.size() > 0) {
+#ifdef USE_EIGEN3
+    const int Nv = domain->solInfo().readInROBorModes.size();
+    VtV.resize(Nv,Nv);
+    for(int i=0; i<Nv; ++i) {
+      int ki = domain->solInfo().localBasisSize[i];
+      for(int j=i+1; j<Nv; ++j) {
+        int kj = domain->solInfo().localBasisSize[j];
+        std::string fileName = domain->solInfo().readInLocalBasesProj[std::make_pair(i,j)];
+        std::ifstream file(fileName);
+        //std::cerr << "here in PodProjectionNonLinDynamic::readLocalBasesProj, i = " << i << ", j = " << j 
+        //          << ", ki = " << ki << ", kj = " << kj << ", fileName = " << fileName << std::endl;
+        VtV(i,j).resize(ki,kj);
+        for(int irow = 0; irow < ki; ++irow) {
+          for(int jcol = 0; jcol < kj; ++jcol) {
+            file >> VtV(i,j)(irow,jcol);
+          }
+        }
+        file.close();
+        //std::cerr << "VtV(i,j) =\n" << VtV(i,j) << std::endl;
+      }
+    }
+#endif
+  }
+}
+
+void
+PodProjectionNonLinDynamic::projectLocalBases(int i, int j, Vector &q)
+{
+#ifdef USE_EIGEN3
+  int ki = domain->solInfo().localBasisSize[i];
+  int pi = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+i, 0);
+  Eigen::Map<Eigen::VectorXd> qi(q.data()+pi,ki);
+
+  int kj = domain->solInfo().localBasisSize[j];
+  int pj = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+j, 0);
+  Eigen::Map<Eigen::VectorXd> qj(q.data()+pj,kj);
+
+  if(j < i) qj = VtV(j,i)*qi;
+  else qj = VtV(i,j).transpose()*qi;
+#endif
 }
 
 double

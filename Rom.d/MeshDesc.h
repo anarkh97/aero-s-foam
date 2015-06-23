@@ -43,10 +43,14 @@ public:
   
   // Reduced mesh only
   const std::vector<int> &sampleNodeIds() const { return sampleNodeIds_; }
-  const std::map<int, double> &elemWeights() const { return elemWeights_; }
+  const std::map<int, double> &elemWeights(int j) const { return elemWeights_[j]; }
+  int numLocal() const { return elemWeights_.size(); } // local bases
 
   // Create element-based reduced mesh
   MeshDesc(Domain *, GeoSource *, const MeshRenumbering &, const std::map<int, double> &weights);
+
+  // Create collection of element-based reduced meshes for local bases method
+  MeshDesc(Domain *, GeoSource *, const MeshRenumbering &, const std::vector<std::map<int, double> > &weights);
   
   // Create node-based reduced mesh 
   MeshDesc(Domain *, GeoSource *, const SampledMeshRenumbering &);
@@ -72,7 +76,7 @@ private:
   std::vector<PressureBCond> elemPressures_;
 
   const std::vector<int> sampleNodeIds_;
-  std::map<int, double> elemWeights_;
+  std::vector<std::map<int, double> > elemWeights_;
 
   bool mfttFlag_;
 

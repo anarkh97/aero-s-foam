@@ -99,6 +99,8 @@ public:
   int selectLocalBasis(Vector &q);
   void setLocalBasis(ModalGeomState *refState, ModalGeomState *geomState, Vector &q_n, Vector &v, Vector &a);
   virtual void setLocalReducedMesh(int j) {}
+  void readLocalBasesProj();
+  void projectLocalBases(int i, int j, Vector &q);
 
 protected:
   class Impl;
@@ -107,6 +109,9 @@ protected:
   Vector *d0_Big, *v0_Big;
   GenFullSquareMatrix<double> K_reduced;
   int localBasisId;
+#ifdef USE_EIGEN3
+  Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,Eigen::Dynamic> VtV;
+#endif
 
 private:
   virtual bool factorWhenBuilding() const; // Overriden

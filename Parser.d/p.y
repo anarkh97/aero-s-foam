@@ -85,7 +85,7 @@
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL IMESH 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KEYLETTER KRYLOVTYPE KIRLOC
-%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOADCASE LOBPCG LOCALSOLVER LINESEARCH LUMPED
+%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOADCASE LOBPCG LOCALBASESPROJ LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXELEM MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
 %token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
@@ -193,6 +193,7 @@ Component:
 	{ int j = geoSource->getLocalIndex();
           geoSource->setLocalIndex(j+1); }
         | Ellump
+        | LocalBasesProj
         | SampNodeSlot
  	| ReducedStiffness
 	| UDeimBasis
@@ -3137,12 +3138,20 @@ Ellump:
         ELLUMP NewLine
         { domain->solInfo().elemLumpPodRom = true;
           geoSource->setLocalIndex(0); }
+        | ELLUMP Integer NewLine
+        { domain->solInfo().elemLumpPodRom = true;
+          geoSource->setLocalIndex($2-1); }
         | Ellump Integer Float NewLine
         { geoSource->setElementLumpingWeight($2 - 1, $3); }
         | Ellump REDFOL NewLine /* deprecated */
         { domain->solInfo().reduceFollower = true;}
         | Ellump EXTFOL NewLine
         { domain->solInfo().reduceFollower = true;}
+        ;
+LocalBasesProj:
+        LOCALBASESPROJ NewLine
+        | LocalBasesProj Integer Integer FNAME NewLine
+        { domain->solInfo().readInLocalBasesProj[std::make_pair($2-1,$3-1)] = std::string($4); }
         ;
 ReducedStiffness:
 	REDUCEDSTIFFNESS NewLine
@@ -4774,6 +4783,9 @@ SnapshotProject:
 SamplingOption:
     PODROB FNAME
   { domain->solInfo().readInROBorModes.push_back($2); }
+  | PODROB FNAME Integer
+  { domain->solInfo().readInROBorModes.push_back($2);
+    domain->solInfo().localBasisSize.push_back($3); }
   | DUALBASIS FNAME Integer 
   { domain->solInfo().readInDualROB = $2;
     domain->solInfo().maxSizeDualBasis = $3; }

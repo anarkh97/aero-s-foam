@@ -74,8 +74,7 @@ readVectors(BasisInputStream<DOFS_PER_NODE> &in, VecBasis &sink, int countMax) {
 template<int DOFS_PER_NODE>
 BasisInputStream<DOFS_PER_NODE> &
 readVectors(BasisInputStream<DOFS_PER_NODE> &in, VecBasis &sink, int countMax, int localSize, int offset) {
-  const int count = std::max(std::min(in.size() - in.currentVectorRank(), countMax), 0);
-  sink.dimensionIs(count, in.vectorSize());
+  sink.dimensionIs(countMax, in.vectorSize());
   return readVectors(in, sink.begin()+offset, sink.begin()+offset+localSize);
 }
 

@@ -245,7 +245,7 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vect
     }
   }
 
-  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount_);
 
   for(int i = 0; i < compressedKey_.size(); i++) 
     compressedBasis_.row(i) = basis_.row(compressedKey_[i]);
@@ -268,7 +268,7 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vect
     }
   }
 
-  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount_);
 
   for(int i = 0; i < compressedKey_.size(); i++) {
     compressedBasis_.row(i) = basis_.row(compressedKey_[i]);
@@ -289,7 +289,7 @@ GenVecBasis<double, GenVector>::makeSparseBasis(const std::vector<std::pair<int,
      compressedKey_.push_back(dof1+(it->second));
    }
 
-  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount_);
 
   for(int i = 0; i < compressedKey_.size(); i++) {
     compressedBasis_.row(i) = basis_.row(compressedKey_[i]);
@@ -322,7 +322,7 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::map<
   for(int row = 0; row != dummyKey.size(); row++)
      compressedKey_[dummyKey[row]] = row;
 
-  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount_);
 
   int row = 0;
   for(std::set<int>::const_iterator it = rowSet.begin(); it != rowSet.end(); it++) {
@@ -354,7 +354,7 @@ GenVecBasis<double, GenVector>::makeSparseBasis(const std::map<int,std::vector<i
   for(int row = 0; row != dummyKey.size(); row++)
      compressedKey_[dummyKey[row]] = row;
 
-  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount_);
 
   int row = 0;
   for(std::set<int>::const_iterator it = rowSet.begin(); it != rowSet.end(); it++) {
@@ -382,7 +382,7 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis2(const std::vector<std::vec
     }
   }
 
-  new (&compressedBasis2_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey2_.size(), vectorCount());
+  new (&compressedBasis2_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey2_.size(), vectorCount_);
 
   for(int i = 0; i < compressedKey2_.size(); i++) {
     compressedBasis2_.row(i) = basis_.row(compressedKey2_[i]);
@@ -406,7 +406,7 @@ GenVecBasis<double, GenVector>::makeSparseBasis(const std::vector<int> & nodeVec
     }
   }
 
-  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount_);
 
   for(int i = 0; i < compressedKey_.size(); i++) {
     compressedBasis_.row(i) = basis_.row(compressedKey_[i]);
@@ -436,7 +436,7 @@ GenVecBasis<double, GenVector>::makeSparseBasis(const std::vector<int> & nodeVec
     delete [] rdofs;
   }
 
-  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount_);
 
   for(int i = 0; i < compressedKey_.size(); i++) {
     compressedBasis_.row(i) = basis_.row(compressedKey_[i]);
@@ -460,7 +460,7 @@ GenVecBasis<double, GenVector>::makeSparseBasis2(const std::vector<int> & nodeVe
     }
   }
 
-  new (&compressedBasis2_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey2_.size(), vectorCount());
+  new (&compressedBasis2_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey2_.size(), vectorCount_);
 
   for(int i = 0; i < compressedKey2_.size(); i++) {
     compressedBasis2_.row(i) = basis_.row(compressedKey2_[i]);

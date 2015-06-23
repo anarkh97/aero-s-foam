@@ -25,8 +25,9 @@ typedef GenVector<double> Vector;
 
 namespace Rom {
 void outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int podVectorCount);
+void outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const std::vector<int> &localBasisSize);
 template<typename WeightsVecType, typename ElemIdsVecType>
-void outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds);
+void outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds, int j=-1);
 std::string getMeshFilename(const FileNameInfo &fileInfo);
 
 template<typename MatrixBufferType = std::vector<double>, typename SizeType = size_t>
@@ -49,13 +50,20 @@ public:
   virtual void preProcess();
   template<typename VecBasisType>
   void assembleTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
-                            const VecBasisType *veloc, const VecBasisType *accel);
+                            const VecBasisType *veloc, const VecBasisType *accel, int j=-1);
   void clean();
   SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>& solver() { return solver_; }
   int elementCount() const;
 
 protected:
+  void preProcessGlobal(AllOps<double>& allOps);
+  void preProcessLocal(AllOps<double>& allOps, int j);
   void buildDomainCdsa();
+  void postProcessLocal(Vector &solution, std::vector<int> packedToInput, int j,
+                        std::vector<int> &sampleElemIds, std::map<int, double> &weights,
+                        bool verboseFlag=true);
+  void postProcessGlobal(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights, bool verboseFlag=true);
+  void makePackedToInput(std::vector<int> &packedToInput);
   Domain *domain_;
 
   Corotator **corotators_;

@@ -47,9 +47,9 @@ public:
   Scalar *data()    const { return buffer_; }
 
   // Vector count (and compatibility aliases)
-  int vectorCount() const { return vectorCount_; }
-  int numVec()      const { return vectorCount_; }
-  int numVectors()  const { return vectorCount_; }
+  int vectorCount() const { return blockCols_; }
+  int numVec()      const { return blockCols_; }
+  int numVectors()  const { return blockCols_; }
 
   // Iteration
   typedef const VecType *const_iterator;
@@ -61,11 +61,11 @@ public:
   iterator end() { return vectors_ + vectorCount_; }
 
   // Unchecked direct individual vector read access
-  const VecType &operator[](int i) const { return vectors_[i]; }
+  const VecType &operator[](int i) const { return vectors_[startCol_+i]; }
 
   // Unchecked direct individual vector write access
   // (must take care to NOT reallocate underlying memory)
-  VecType &operator[](int i) { return vectors_[i]; }
+  VecType &operator[](int i) { return vectors_[startCol_+i]; }
 
   VecType & expand(VecType &, VecType &, bool=true) const;
   VecType & fullExpand(VecType &, VecType &) const;
@@ -103,6 +103,7 @@ public:
 
   // Local bases
   void localBasisIs(int startCol, int blockCols);
+  int startCol() const { return startCol_; }
 
   ~GenVecBasis();
 
@@ -137,7 +138,7 @@ inline
 void
 GenVecBasis<Scalar, GenVecType>::placeVectors() {
 #ifdef USE_EIGEN3
-  basis_.resize(vectorSize(), vectorCount());
+  basis_.resize(vectorSize(), vectorCount_);
   buffer_ = basis_.data();
 #else
   buffer_ = new Scalar[vectorSize() * vectorCount_];

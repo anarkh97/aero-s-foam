@@ -4,11 +4,11 @@ namespace Rom {
 
 template
 void
-outputFullWeights<Vector,std::vector<int> >(const Vector &weights, const std::vector<int> &elemIds);
+outputFullWeights<Vector,std::vector<int> >(const Vector &weights, const std::vector<int> &elemIds, int j);
 
 template
 void
-outputFullWeights<std::vector<double>,std::vector<int> >(const std::vector<double> &weights, const std::vector<int> &elemIds);
+outputFullWeights<std::vector<double>,std::vector<int> >(const std::vector<double> &weights, const std::vector<int> &elemIds, int j);
 
 template
 int
@@ -32,13 +32,13 @@ template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
 ::assembleTrainingData(const VecBasis &podBasis, const int podVectorCount, const VecBasis &displac,
-                       const VecBasis *veloc, const VecBasis *accel);
+                       const VecBasis *veloc, const VecBasis *accel, int j);
 
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
 ::assembleTrainingData(const std::vector<StackVector> &podBasis, const int podVectorCount, const std::vector<StackVector> &displac,
-                       const std::vector<StackVector> *veloc, const std::vector<StackVector> *accel);
+                       const std::vector<StackVector> *veloc, const std::vector<StackVector> *accel, int j);
 
 template
 void

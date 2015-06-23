@@ -1111,6 +1111,8 @@ PodProjectionNonLinDynamic::projectLocalBases(int i, int j, Vector &q)
 
   if(j < i) qj = VtV(j,i)*qi;
   else qj = VtV(i,j).transpose()*qi;
+
+  qi.setZero();
 #endif
 }
 

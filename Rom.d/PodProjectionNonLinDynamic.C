@@ -144,6 +144,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionBasis_.vectorCount());
   if(solInfo().readInROBorModes.size() > 1) {
     filePrint(stderr, " ... Number of Local Bases = %-3d    ...\n", solInfo().readInROBorModes.size());
+    parent->readLocalBasesCent(vecNodeDof6Conversion_);
     parent->readLocalBasesProj();
   }
 
@@ -1066,6 +1067,18 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
       localBasisId = j;
     }
   }
+}
+
+void
+PodProjectionNonLinDynamic::readLocalBasesCent(const VecNodeDof6Conversion &vecNodeDof6Conversion)
+{
+#ifdef USE_EIGEN3
+  cm.resize(NonLinDynamic::solVecInfo(), domain->solInfo().readInLocalBasesCent.size());
+  for(int i=0; i<domain->solInfo().readInLocalBasesCent.size(); ++i) {
+    BasisInputStream<6> in(domain->solInfo().readInLocalBasesCent[i], vecNodeDof6Conversion);
+    in >> cm.col(i).data();
+  }
+#endif
 }
 
 void

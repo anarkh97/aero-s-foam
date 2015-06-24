@@ -34,6 +34,7 @@ DistrSnapshotClusteringSolver
   numClusters_(numClusters),
   blockSize_(blockSize),
   matrixBuffer_(localRows,colCount),
+  centroidBuffer_(localRows,numClusters),
   clusterCols_(numClusters)
 {
 }
@@ -88,9 +89,15 @@ DistrSnapshotClusteringSolver::solve()
   for(int k=0; k<colCount_; ++k) clusterAssignment[k] = rand()%numClusters_;
 
   // make a list of the columns assigned to each cluster
+  // and compute the centroids
+  centroidBuffer_.setZero();
   for(int k=0; k<colCount_; ++k) {
     int i = clusterAssignment[k];
     clusterCols_[i].push_back(k);
+    centroidBuffer_.col(i) += matrixBuffer_.col(k);
+  }
+  for(int i=0; i<numClusters_; ++i) {
+    centroidBuffer_.col(i) /= clusterCols_[i].size();
   }
 
   Cblacs_gridexit(context);

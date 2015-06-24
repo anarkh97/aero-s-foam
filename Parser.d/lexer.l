@@ -190,7 +190,9 @@ TRAIL [a-zA-Z]*
 
 "ELLUMP"                           { return ELLUMP; }
 
-"LOCALBASESPROJ"                   { return LOCALBASESPROJ; }
+"LOCALBASESPROJ"[a-zA-Z]*          { return LOCALBASESPROJ; }
+
+"LOCALBASESCENT"[a-zA-Z]*          { return LOCALBASESCENT; }
 
 "IDENTITY"|"identity"              { return IDENTITY; }
 

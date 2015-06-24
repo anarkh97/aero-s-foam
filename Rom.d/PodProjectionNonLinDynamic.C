@@ -1016,10 +1016,26 @@ PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomStat
 int
 PodProjectionNonLinDynamic::selectLocalBasis(Vector &q)
 {
-  // TODO
-  int j = rand()%domain->solInfo().readInROBorModes.size();
-  if(verboseFlag) std::cerr << "\n ... Selecting local basis # " << j << "     ...";
-  return j;
+#ifdef USE_EIGEN3
+  if(uc.size() > 0) {
+    // reference implementation of selection algorithm
+    Vector q_Big(NonLinDynamic::solVecInfo());
+    GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    projectionBasis.fullExpand(q, q_Big);
+
+    Eigen::Map<Eigen::VectorXd> u(q_Big.data(),NonLinDynamic::solVecInfo());
+    Eigen::MatrixXd::Index j;
+    double minNorm = (uc.colwise()-u).colwise().norm().minCoeff(&j);
+    if(verboseFlag) std::cerr << " ... Selecting local basis # " << j << "     ...\n";
+    return int(j);
+  }
+  else {
+    std::cerr << " *** Error: clusters centroids are required to select local basis.\n";
+    exit(-1);
+  }
+#else
+  return 0;
+#endif
 }
 
 void
@@ -1030,12 +1046,12 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
 
     int j = selectLocalBasis(geomState->q);
 
-    Vector q_Big(NonLinDynamic::solVecInfo());
+    Vector dq_Big(NonLinDynamic::solVecInfo());
     GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis(); 
 
     Vector dq = geomState->q - q_n;
-    projectionBasis.expand(dq, q_Big);
-    geomState_Big->update(*refState_Big, q_Big, 2);
+    projectionBasis.expand(dq, dq_Big);
+    geomState_Big->update(*refState_Big, dq_Big, 2);
 
     if(j != localBasisId) {
       Vector vel_Big(NonLinDynamic::solVecInfo()),
@@ -1073,10 +1089,10 @@ void
 PodProjectionNonLinDynamic::readLocalBasesCent(const VecNodeDof6Conversion &vecNodeDof6Conversion)
 {
 #ifdef USE_EIGEN3
-  cm.resize(NonLinDynamic::solVecInfo(), domain->solInfo().readInLocalBasesCent.size());
+  uc.resize(NonLinDynamic::solVecInfo(), domain->solInfo().readInLocalBasesCent.size());
   for(int i=0; i<domain->solInfo().readInLocalBasesCent.size(); ++i) {
     BasisInputStream<6> in(domain->solInfo().readInLocalBasesCent[i], vecNodeDof6Conversion);
-    in >> cm.col(i).data();
+    in >> uc.col(i).data();
   }
 #endif
 }

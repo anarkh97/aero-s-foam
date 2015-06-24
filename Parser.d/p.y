@@ -85,7 +85,7 @@
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL IMESH 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KEYLETTER KRYLOVTYPE KIRLOC
-%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOADCASE LOBPCG LOCALBASESCENT LOCALBASESPROJ LOCALSOLVER LINESEARCH LUMPED
+%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOADCASE LOBPCG LOCALREDUCEDORDERBASES LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXELEM MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
 %token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
@@ -193,8 +193,7 @@ Component:
 	{ int j = geoSource->getLocalIndex();
           geoSource->setLocalIndex(j+1); }
         | Ellump
-        | LocalBasesProj
-        | LocalBasesCent
+        | LocalReducedOrderBases
         | SampNodeSlot
  	| ReducedStiffness
 	| UDeimBasis
@@ -3149,14 +3148,17 @@ Ellump:
         | Ellump EXTFOL NewLine
         { domain->solInfo().reduceFollower = true;}
         ;
+LocalReducedOrderBases:
+        LOCALREDUCEDORDERBASES NewLine
+        | LocalReducedOrderBases LocalBasesProj
+        | LocalReducedOrderBases LocalBasesCent
+        ;
 LocalBasesProj:
-        LOCALBASESPROJ NewLine
-        | LocalBasesProj Integer Integer FNAME NewLine
+        PROJ Integer Integer FNAME NewLine
         { domain->solInfo().readInLocalBasesProj[std::make_pair($2-1,$3-1)] = std::string($4); }
         ;
 LocalBasesCent:
-        LOCALBASESCENT NewLine
-        | LocalBasesCent FNAME NewLine
+        CENTER FNAME NewLine
         { domain->solInfo().readInLocalBasesCent.push_back(std::string($2)); }
         ;
 ReducedStiffness:

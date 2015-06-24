@@ -698,7 +698,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
 
   // pre-computation required for local bases method
   if(domain_->solInfo().readInROBorModes.size() > 1) {
-    meshOut << "*\nLOCALBASESPROJ\n";
+    meshOut << "*\nLOCROB\n";
     const int rows = podBasis_.vectorSize();
     
     for(int i=0; i<domain_->solInfo().readInROBorModes.size(); ++i) {
@@ -721,7 +721,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
            VtVij = podBasis_.basis().block(0,startColi,rows,blockColsi).transpose()*
                    podBasis_.basis().block(0,startColj,rows,blockColsj);
         }
-        meshOut << i+1 << " " << j+1 << " \"" << fileName << "\"\n";
+        meshOut << "proj " << i+1 << " " << j+1 << " \"" << fileName << "\"\n";
         matrixOut << std::setprecision(16) << VtVij << std::endl;
         matrixOut.close();
       }

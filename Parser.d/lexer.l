@@ -176,9 +176,9 @@ TRAIL [a-zA-Z]*
  
 "POSITIVE"|"positive"		   { return POSELEM; }
 
-"CENTER"|"center"                  {return CENTER; }
+"CENT"[a-zA-Z]*|"cent"[a-zA-Z]*    { return CENTER; }
 
-"REVORD"|"revord"                { return REVERSEORDER; } 
+"REVORD"|"revord"                  { return REVERSEORDER; } 
 
 "REDFOL"|"redfol"                  { return REDFOL; }
 
@@ -190,9 +190,7 @@ TRAIL [a-zA-Z]*
 
 "ELLUMP"                           { return ELLUMP; }
 
-"LOCALBASESPROJ"[a-zA-Z]*          { return LOCALBASESPROJ; }
-
-"LOCALBASESCENT"[a-zA-Z]*          { return LOCALBASESCENT; }
+"LOCROB"|"LocRob"|"locrob"         { return LOCALREDUCEDORDERBASES; }
 
 "IDENTITY"|"identity"              { return IDENTITY; }
 

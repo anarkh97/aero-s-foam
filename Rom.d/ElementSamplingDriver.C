@@ -697,10 +697,21 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
   }
 
   // pre-computation required for local bases method
-  if(domain_->solInfo().readInROBorModes.size() > 1) {
+  if(domain_->solInfo().readInROBorModes.size() > 1 && 
+     (domain->solInfo().readInLocalBasesCent.size() == domain_->solInfo().readInROBorModes.size())) {
+    // read cluster centroids
+    const int n = podBasis_.vectorSize();
+    Eigen::MatrixXd uc(n, domain->solInfo().readInLocalBasesCent.size());
+    const VecNodeDof6Conversion vecNodeDof6Conversion(*domain_->getCDSA());
+    if(domain->solInfo().readInLocalBasesCent.size() == domain_->solInfo().readInROBorModes.size()) {
+      for(int i=0; i<domain->solInfo().readInLocalBasesCent.size(); ++i) {
+        BasisInputStream<6> in(domain->solInfo().readInLocalBasesCent[i], vecNodeDof6Conversion);
+        in >> uc.col(i).data();
+      }
+    }
+ 
+    // compute and output auxiliary quantities
     meshOut << "*\nLOCROB\n";
-    const int rows = podBasis_.vectorSize();
-    
     for(int i=0; i<domain_->solInfo().readInROBorModes.size(); ++i) {
       int startColi = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+i, 0);
       int blockColsi = domain_->solInfo().localBasisSize[i];
@@ -710,19 +721,28 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
         Eigen::MatrixXd VtVij;
         std::string fileName = domain->solInfo().reducedMeshFile;
         std::ostringstream ss;
-        ss << ".projmatrix.cluster" << i+1 << "." << j+1;
+        ss << ".auxiliary.cluster" << i+1 << "." << j+1;
         fileName.append(ss.str());
+        meshOut << "auxi " << i+1 << " " << j+1 << " \"" << fileName << "\"\n";
+        filePrint(stderr," ... Writing local bases auxiliary quantities to file %s ...\n", fileName.c_str());
         std::ofstream matrixOut(fileName);
+        // matrix: Vi.transpose()*Vj (or Vi.transpose()*M*Vj)
         if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) {
-          VtVij = podBasis_.basis().block(0,startColi,rows,blockColsi).transpose()*
-                  (M->getEigenSparse().selfadjointView<Eigen::Upper>()*podBasis_.basis().block(0,startColj,rows,blockColsj)); 
+          VtVij = podBasis_.basis().block(0,startColi,n,blockColsi).transpose()*
+                  (M->getEigenSparse().selfadjointView<Eigen::Upper>()*podBasis_.basis().block(0,startColj,n,blockColsj)); 
         }
         else {
-           VtVij = podBasis_.basis().block(0,startColi,rows,blockColsi).transpose()*
-                   podBasis_.basis().block(0,startColj,rows,blockColsj);
+           VtVij = podBasis_.basis().block(0,startColi,n,blockColsi).transpose()*
+                   podBasis_.basis().block(0,startColj,n,blockColsj);
         }
-        meshOut << "proj " << i+1 << " " << j+1 << " \"" << fileName << "\"\n";
         matrixOut << std::setprecision(16) << VtVij << std::endl;
+        // scalar: ||uci|| - ||ucj||
+        double d = uc.col(i).squaredNorm() - uc.col(j).squaredNorm();
+        matrixOut << d << std::endl;
+        // vector: 2*V.transpose()*(ucj-uci)
+        Eigen::VectorXd w = 2*podBasis_.basis().transpose()*(uc.col(j)-uc.col(i));
+        matrixOut << w.transpose() << std::endl;
+
         matrixOut.close();
       }
     }

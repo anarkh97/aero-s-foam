@@ -98,11 +98,11 @@ public:
               Vector &v, Vector &a, Vector &vp, Vector &force) {}
 
   // Local bases
-  virtual int selectLocalBasis(Vector &q);
+  int selectLocalBasis(Vector &q);
   void setLocalBasis(ModalGeomState *refState, ModalGeomState *geomState, Vector &q_n, Vector &v, Vector &a);
   virtual void setLocalReducedMesh(int j) {}
   void readLocalBasesCent(const VecNodeDof6Conversion &vecNodeDof6Conversion);
-  void readLocalBasesProj();
+  void readLocalBasesAuxi();
   void projectLocalBases(int i, int j, Vector &q);
 
 protected:
@@ -114,6 +114,8 @@ protected:
   int localBasisId;
 #ifdef USE_EIGEN3
   Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,Eigen::Dynamic> VtV;
+  Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic> d;
+  Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,Eigen::Dynamic> w;
   Eigen::MatrixXd uc;
 #endif
 

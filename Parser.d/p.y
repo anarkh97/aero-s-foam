@@ -66,7 +66,7 @@
 %expect 6
 
 %token ACTUATORS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT
-%token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
+%token AUGMENT AUGMENTTYPE AUXILIARY AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
@@ -3150,12 +3150,12 @@ Ellump:
         ;
 LocalReducedOrderBases:
         LOCALREDUCEDORDERBASES NewLine
-        | LocalReducedOrderBases LocalBasesProj
+        | LocalReducedOrderBases LocalBasesAuxi
         | LocalReducedOrderBases LocalBasesCent
         ;
-LocalBasesProj:
-        PROJ Integer Integer FNAME NewLine
-        { domain->solInfo().readInLocalBasesProj[std::make_pair($2-1,$3-1)] = std::string($4); }
+LocalBasesAuxi:
+        AUXILIARY Integer Integer FNAME NewLine
+        { domain->solInfo().readInLocalBasesAuxi[std::make_pair($2-1,$3-1)] = std::string($4); }
         ;
 LocalBasesCent:
         CENTER FNAME NewLine

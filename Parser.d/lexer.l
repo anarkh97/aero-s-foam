@@ -192,6 +192,8 @@ TRAIL [a-zA-Z]*
 
 "LOCROB"|"LocRob"|"locrob"         { return LOCALREDUCEDORDERBASES; }
 
+"AUXI"[a-zA-Z]*|"auxi"[a-zA-Z]*    { return AUXILIARY; }
+
 "IDENTITY"|"identity"              { return IDENTITY; }
 
 "EFRA"[a-zA-Z]*|"efra"[a-zA-Z]*    { return EFRAMES; }

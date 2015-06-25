@@ -145,7 +145,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   if(solInfo().readInROBorModes.size() > 1) {
     filePrint(stderr, " ... Number of Local Bases = %-3d    ...\n", solInfo().readInROBorModes.size());
     parent->readLocalBasesCent(vecNodeDof6Conversion_);
-    parent->readLocalBasesProj();
+    parent->readLocalBasesAuxi();
   }
 
   if(strcmp(solInfo().readInDualROB,"") != 0) {
@@ -1017,20 +1017,32 @@ int
 PodProjectionNonLinDynamic::selectLocalBasis(Vector &q)
 {
 #ifdef USE_EIGEN3
-  if(uc.size() > 0) {
-    // reference implementation of selection algorithm
+  if(d.size() > 0 && w.size() > 0) {
+    // modelIII: fast implementation using pre-computed auxiliary quantities
+    const int Nv = domain->solInfo().readInROBorModes.size();
+    const int k  = q.size();
+    Eigen::Map<Eigen::VectorXd> qi(q.data(),k);
+    std::vector<int> s(Nv); for(int m=0; m<Nv; ++m) s[m] = m;
+    std::sort(s.begin(), s.end(), [&](int m, int p) {
+      return (p>m && (w(m,p).dot(qi) + d(m,p)) < 0) || (m>p && (w(p,m).dot(qi) + d(p,m)) > 0);
+    });
+    if(verboseFlag) std::cerr << " ... Selecting local basis # " << s[0] << "     ...\n";
+    return s[0];
+  }
+  else if(uc.size() > 0) {
+    // modelII: slow implementation of using cluster centroids.
     Vector q_Big(NonLinDynamic::solVecInfo());
     GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
     projectionBasis.fullExpand(q, q_Big);
 
     Eigen::Map<Eigen::VectorXd> u(q_Big.data(),NonLinDynamic::solVecInfo());
     Eigen::MatrixXd::Index j;
-    double minNorm = (uc.colwise()-u).colwise().norm().minCoeff(&j);
+    double minNorm = (uc.colwise()-u).colwise().norm().minCoeff(&j); 
     if(verboseFlag) std::cerr << " ... Selecting local basis # " << j << "     ...\n";
     return int(j);
   }
   else {
-    std::cerr << " *** Error: clusters centroids are required to select local basis.\n";
+    std::cerr << " *** Error: cluster centroids or auxiliary quantities required to select local basis.\n";
     exit(-1);
   }
 #else
@@ -1098,19 +1110,22 @@ PodProjectionNonLinDynamic::readLocalBasesCent(const VecNodeDof6Conversion &vecN
 }
 
 void
-PodProjectionNonLinDynamic::readLocalBasesProj()
+PodProjectionNonLinDynamic::readLocalBasesAuxi()
 {
-  if(domain->solInfo().readInLocalBasesProj.size() > 0) {
+  if(domain->solInfo().readInLocalBasesAuxi.size() > 0) {
 #ifdef USE_EIGEN3
     const int Nv = domain->solInfo().readInROBorModes.size();
+    const int k = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
     VtV.resize(Nv,Nv);
+    d.resize(Nv,Nv);
+    w.resize(Nv,Nv);
     for(int i=0; i<Nv; ++i) {
       int ki = domain->solInfo().localBasisSize[i];
       for(int j=i+1; j<Nv; ++j) {
         int kj = domain->solInfo().localBasisSize[j];
-        std::string fileName = domain->solInfo().readInLocalBasesProj[std::make_pair(i,j)];
+        std::string fileName = domain->solInfo().readInLocalBasesAuxi[std::make_pair(i,j)];
         std::ifstream file(fileName);
-        //std::cerr << "here in PodProjectionNonLinDynamic::readLocalBasesProj, i = " << i << ", j = " << j 
+        //std::cerr << "here in PodProjectionNonLinDynamic::readLocalBasesAuxi, i = " << i << ", j = " << j 
         //          << ", ki = " << ki << ", kj = " << kj << ", fileName = " << fileName << std::endl;
         VtV(i,j).resize(ki,kj);
         for(int irow = 0; irow < ki; ++irow) {
@@ -1118,8 +1133,15 @@ PodProjectionNonLinDynamic::readLocalBasesProj()
             file >> VtV(i,j)(irow,jcol);
           }
         }
-        file.close();
         //std::cerr << "VtV(i,j) =\n" << VtV(i,j) << std::endl;
+        file >> d(i,j);
+        //std::cerr << "d(i,j) = " << d(i,j) << std::endl;
+        w(i,j).resize(k);
+        for(int irow=0; irow<k; ++irow) {
+          file >> w(i,j)[irow];
+        }
+        //std::cerr << "w(i,j) = " << w(i,j).transpose() << std::endl;
+        file.close();
       }
     }
 #endif

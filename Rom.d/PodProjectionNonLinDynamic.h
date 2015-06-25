@@ -99,6 +99,7 @@ public:
 
   // Local bases
   int selectLocalBasis(Vector &q);
+  void initLocalBasis(Vector &q0);
   void setLocalBasis(ModalGeomState *refState, ModalGeomState *geomState, Vector &q_n, Vector &v, Vector &a);
   virtual void setLocalReducedMesh(int j) {}
   void readLocalBasesCent(const VecNodeDof6Conversion &vecNodeDof6Conversion);

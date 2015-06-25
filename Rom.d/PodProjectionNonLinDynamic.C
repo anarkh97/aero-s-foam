@@ -179,15 +179,6 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
     solver->addModalLMPCs(Kcoef,solInfo().maxSizeDualBasis,geoSource->ROMLMPCVecBegin(),geoSource->ROMLMPCVecEnd());
   }
 
-  // Local bases
-  if(solInfo().readInROBorModes.size() > 1) {
-    int j = 0; // TODO the initial local basis should be selected after the initial conditions have been set
-    int blockCols = solInfo().localBasisSize[j];
-    int startCol = std::accumulate(solInfo().localBasisSize.begin(),solInfo().localBasisSize.begin()+j, 0);
-    solver->setLocalBasis(startCol, blockCols);
-    projectionBasis_.localBasisIs(startCol, blockCols);
-  }
-
   solver->factor(); // Delayed factorization
 }
 
@@ -756,17 +747,23 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
     }
     const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
     projectionBasis.expand(d, *d0_Big);
+    initLocalBasis(d);
   }
 
   int numIVelModal = domain->numInitVelocityModal();
   if(numIVelModal) {
     filePrint(stderr, " ... Using Modal IVELOCITIES        ...\n");
     BCond* iVelModal = domain->getInitVelocityModal();
-    for(int i = 0; i < numIVelModal; ++i) {
-      if(iVelModal[i].nnum < v.size())
-        v[iVelModal[i].nnum] = iVelModal[i].val;
-    }
     const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    if(numIDisModal == 0) initLocalBasis(d);
+    // note: It is currently assumed that the modal ivel is defined in the local basis corresponding to the initial state.
+    //       Any modal ivel defined in other local bases will simply be ignored.
+    for(int i = 0; i < numIVelModal; ++i) {
+      if((iVelModal[i].nnum >= projectionBasis.startCol()) && 
+         (iVelModal[i].nnum < projectionBasis.startCol()+projectionBasis.numVectors())) {
+        v[iVelModal[i].nnum] = iVelModal[i].val;
+      }
+    }
     projectionBasis.expand(v, *v0_Big);
   }
 
@@ -778,6 +775,7 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
     NonLinDynamic::getInitState(*d0_Big, *v0_Big, a_Big, v_p_Big);
 
     if(d0_Big->norm() != 0) reduceDisp(*d0_Big, d);
+    initLocalBasis(d);
     // XXX the initial angular velocities are convected, by convention, so they should be transformed
     //     to the first time-derivative of the total rotation vector before reducing
     if(v0_Big->norm() != 0) reduceDisp(*v0_Big, v);
@@ -870,9 +868,9 @@ PodProjectionNonLinDynamic::getExternalForce(Vector &rhs, Vector &constantForce,
     projectionBasis.addLocalPart(constantForce, rhs);
     if(domain->getNumMFTT() > 0) {
       for(int i = 0; i < numNeumanModal; ++i) {
-        int k = nbcModal[i].nnum-projectionBasis.startCol();
-        if(k >= 0 && k < projectionBasis.numVectors()) {
-          if(MFTTData *mftt = domain->getMFTT(nbcModal[i].loadsetid)) rhs[k] += mftt->getVal(t)*nbcModal[i].val;
+        if((nbcModal[i].nnum >= projectionBasis.startCol()) &&
+           (nbcModal[i].nnum < projectionBasis.startCol()+projectionBasis.numVectors())) {
+          if(MFTTData *mftt = domain->getMFTT(nbcModal[i].loadsetid)) rhs[nbcModal[i].nnum] += mftt->getVal(t)*nbcModal[i].val;
         }
       }
     }
@@ -1016,7 +1014,7 @@ PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomStat
 int
 PodProjectionNonLinDynamic::selectLocalBasis(Vector &q)
 {
-#ifdef USE_EIGEN3
+#if defined(USE_EIGEN3) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && HAS_CXX11_LAMBDA
   if(d.size() > 0 && w.size() > 0) {
     // modelIII: fast implementation using pre-computed auxiliary quantities
     const int Nv = domain->solInfo().readInROBorModes.size();
@@ -1046,13 +1044,33 @@ PodProjectionNonLinDynamic::selectLocalBasis(Vector &q)
     exit(-1);
   }
 #else
-  return 0;
+  std::cerr << " *** Error: Local bases requires Aero-S to be built with Eigen library and C++11 support.\n"; 
+  exit(-1);
+#endif
+}
+
+void
+PodProjectionNonLinDynamic::initLocalBasis(Vector &q0)
+{
+#ifdef USE_EIGEN3
+  // Local bases
+  if(domain->solInfo().readInROBorModes.size() > 1) {
+    localBasisId = selectLocalBasis(q0);
+    std::cerr << "here in PodProjectionNonLinDynamic::initLocalBasis, localBasisId = " << localBasisId << std::endl;
+    GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    int blockCols = domain->solInfo().localBasisSize[localBasisId];
+    int startCol = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+localBasisId, 0);
+    getSolver()->setLocalBasis(startCol, blockCols);
+    projectionBasis.localBasisIs(startCol, blockCols);
+    setLocalReducedMesh(localBasisId);
+  }
 #endif
 }
 
 void
 PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomState *geomState, Vector &q_n, Vector &vel, Vector &acc)
 {
+#ifdef USE_EIGEN3
   // Local bases
   if(domain->solInfo().readInROBorModes.size() > 1) {
 
@@ -1095,6 +1113,7 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
       localBasisId = j;
     }
   }
+#endif
 }
 
 void
@@ -1125,22 +1144,17 @@ PodProjectionNonLinDynamic::readLocalBasesAuxi()
         int kj = domain->solInfo().localBasisSize[j];
         std::string fileName = domain->solInfo().readInLocalBasesAuxi[std::make_pair(i,j)];
         std::ifstream file(fileName);
-        //std::cerr << "here in PodProjectionNonLinDynamic::readLocalBasesAuxi, i = " << i << ", j = " << j 
-        //          << ", ki = " << ki << ", kj = " << kj << ", fileName = " << fileName << std::endl;
         VtV(i,j).resize(ki,kj);
         for(int irow = 0; irow < ki; ++irow) {
           for(int jcol = 0; jcol < kj; ++jcol) {
             file >> VtV(i,j)(irow,jcol);
           }
         }
-        //std::cerr << "VtV(i,j) =\n" << VtV(i,j) << std::endl;
         file >> d(i,j);
-        //std::cerr << "d(i,j) = " << d(i,j) << std::endl;
         w(i,j).resize(k);
         for(int irow=0; irow<k; ++irow) {
           file >> w(i,j)[irow];
         }
-        //std::cerr << "w(i,j) = " << w(i,j).transpose() << std::endl;
         file.close();
       }
     }

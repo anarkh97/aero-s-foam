@@ -1056,7 +1056,6 @@ PodProjectionNonLinDynamic::initLocalBasis(Vector &q0)
   // Local bases
   if(domain->solInfo().readInROBorModes.size() > 1) {
     localBasisId = selectLocalBasis(q0);
-    std::cerr << "here in PodProjectionNonLinDynamic::initLocalBasis, localBasisId = " << localBasisId << std::endl;
     GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
     int blockCols = domain->solInfo().localBasisSize[localBasisId];
     int startCol = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+localBasisId, 0);

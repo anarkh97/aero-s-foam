@@ -162,7 +162,7 @@ template <typename Scalar>
 void
 GenEiSparseGalerkinProjectionSolver<Scalar>::factor()
 {
-  const auto V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
+  LocalBasisType V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
 
   if(selfadjoint_ && !Empirical) {
     reducedMatrix_.template triangularView<Eigen::Lower>()
@@ -184,7 +184,7 @@ template <typename Scalar>
 void
 GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
 {
-  const auto V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
+  LocalBasisType V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data()+startCol_, V.cols());
 
   if(dualBasisSize_ > 0) {
@@ -205,7 +205,7 @@ template <typename Scalar>
 void
 GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &sol)
 {
-  const auto V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
+  LocalBasisType V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data()+startCol_, V.cols()), x(sol.data()+startCol_, V.cols());
   sol.zero();
 

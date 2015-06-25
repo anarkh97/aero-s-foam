@@ -413,9 +413,19 @@ SingleDomainStatic<T, VectorType, SolverType>::getFreqSweepRHS(VectorType *rhs, 
         }
       }
     }
+fprintf(stderr,"tady tady\n");
+    if(allOps.K_deriv) {
+      for(int j=0; j<=k-1; ++j) {
+        if(allOps.K_deriv[k-j]) {
+          double ckj = DCombination(k,j);
+          for(int i=0; i<vec->size(); ++i) (*vec)[i] = -ckj*(*u[j+1])[i];
+          allOps.K_deriv[k-j]->multAdd(vec->data(), rhs->data());
+        }
+      }
+    }
   }
   delete vec;
-  domain->template buildFreqSweepRHSForce<T>(*rhs, allOps.Muc, allOps.Cuc_deriv, k, omega);
+  domain->template buildFreqSweepRHSForce<T>(*rhs, allOps.Muc, allOps.Cuc_deriv,allOps.Kuc_deriv, k, omega);
   stopTimerMemory(times->formRhs, times->memoryRhs);
 }
 
@@ -424,7 +434,9 @@ void
 SingleDomainStatic<T, VectorType, SolverType>::getRHS(VectorType &rhs, double omega, double deltaomega)
 { 
   VectorType *vec = new VectorType(solVecInfo());
-  domain->template buildRHSForce<T>(rhs, *vec, kuc, allOps.Muc, allOps.Cuc_deriv,
+  domain->template buildRHSForce<T>(rhs, *vec, kuc, allOps.Muc,
+                                    allOps.Cuc_deriv, allOps.Kuc_deriv,
+                                    allOps.Kuc_arubber_l,allOps.Kuc_arubber_m,
                                     omega, deltaomega);
   delete vec;
 }

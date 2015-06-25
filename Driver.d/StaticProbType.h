@@ -78,6 +78,7 @@ class StaticSolver
      void pade(VecType *sol, VecType **u, double *h, double x);
      double galProjection(bool,int,VecType *sol, VecType **u, VecType **v,
                         Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
+                        Scalar **&VhK_arubber_lV, Scalar **&VhK_arubber_mV,
                         double w, double deltaw);
      double krylovGalProjection(int,int,VecType *sol, VecType **u, VecType **v,
                         Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
@@ -86,12 +87,14 @@ class StaticSolver
                   VecType *sol, VecType **u, VecType **v,
                   VecType **aa, VecType **bb, VecType **cc,
                   Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
-                  int ncheck, double *wcheck,
+                  Scalar **&VhK_arubber_lV, Scalar **&VhK_arubber_mV,
+                  int ncheck, double *wcheck, double wc,
                   double alpha, double tol);
      double adaptGPSolRes(int dgpFlag, int nOrtho,
                   VecType *sol, VecType **u, VecType **v,
                   VecType **aa, VecType **bb, VecType **cc,
                   Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
+                  Scalar **&VhK_arubber_lV, Scalar **&VhK_arubber_mV,
                   double w, double deltaw);
      void qrGalProjection(int,int,VecType *sol, VecType **u, VecType **v,
                         Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,

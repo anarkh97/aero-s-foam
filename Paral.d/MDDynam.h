@@ -60,10 +60,23 @@ class GenMDDynamMat {
    GenSubDOp<Scalar> *Mcc;
    GenSubDOp<Scalar> **C_deriv;
    GenSubDOp<Scalar> **Cuc_deriv;
+   int num_K_deriv;
+   GenSubDOp<Scalar> **K_deriv;
+   GenSubDOp<Scalar> **Kuc_deriv;
+   int num_K_arubber;
+   GenSubDOp<Scalar> **K_arubber_l;
+   GenSubDOp<Scalar> **Kuc_arubber_l;
+   GenSubDOp<Scalar> **K_arubber_m;
+   GenSubDOp<Scalar> **Kuc_arubber_m;
    Rbm* rigidBodyModes;
 
    GenMDDynamMat() { dynMat = 0; spMat = 0; prec = 0; spp = 0; Msolver = 0; K = 0; Kuc = 0; Kcc = 0; C = 0; Cuc = 0; Ccc = 0; M = 0; Muc = 0; Mcc = 0; 
-                     C_deriv = 0; Cuc_deriv = 0; rigidBodyModes = 0; };
+                     C_deriv = 0; Cuc_deriv = 0; 
+                     K_deriv = 0; Kuc_deriv = 0; num_K_deriv = 0;
+                     K_arubber_l = 0; K_arubber_m = 0;
+                     Kuc_arubber_l = 0; Kuc_arubber_m = 0;
+                     num_K_arubber = 0;
+                     rigidBodyModes = 0; };
 };
 
 typedef GenMDDynamMat<double> MDDynamMat;

@@ -110,6 +110,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  for(iele = 0; iele < numele; ++iele) {
    StructProp *prop = packedEset[iele]->getProperty();
    if(packedEset[iele]->isSommerElement()) continue;
+   if(prop->E0!=0.0 || prop->mu0!=0.0) continue; // rubber handled below
    bool isComplexF = (prop && prop->fp.PMLtype != 0);
    if(packedEset[iele]->isConstraintElement()) { alpha = beta = eta = 0; }
    else {
@@ -376,6 +377,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    for(iele = 0; iele < numele; ++iele) {
      StructProp *prop = packedEset[iele]->getProperty();
      if(packedEset[iele]->isSommerElement()) continue;
+     if(prop->E0!=0.0 || prop->mu0!=0.0) continue; // rubber handled below
      if(!packedEset[iele]->isComplex()) continue;
 
      if(matrixTimers) matrixTimers->formTime -= getTime();
@@ -435,6 +437,86 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(matrixTimers) matrixTimers->assemble += getTime();
    }
  }
+
+ // Acoustic rubber elements
+ int N = sinfo.doFreqSweep ? solInfo().getSweepParams()->nFreqSweepRHS - 1:0; // number of derivatives
+ complex<double> *krarray = new complex<double>[(N+3)*maxNumDOFs*maxNumDOFs];
+ for(iele = 0; iele < numele; ++iele) {
+   StructProp *prop = packedEset[iele]->getProperty();
+
+   if((prop->E0==0.0 || prop->mu0==0.0) || !isShifted) continue; 
+
+   omega2 = geoSource->shiftVal();
+   SPropContainer& sProps = geoSource->getStructProps();
+   SPropContainer::iterator it = sProps.begin();
+   bool found = false;
+   int i_arubber = 0;
+   while(it != sProps.end()) {
+     StructProp* p = &(it->second);
+      if((p->E0!=0.0 || p->mu0!=0.0)) {
+        if (prop==p) {
+          found = true;
+          break;
+        }
+        i_arubber++;
+      }
+      it++;
+   }
+   if (!found) fprintf(stderr,"Erro: rubber material not found.\n");
+
+   if(matrixTimers) matrixTimers->formTime -= getTime();
+   packedEset[iele]->aRubberStiffnessDerivs(nodes, krarray,N,sqrt(omega2));
+   mel = packedEset[iele]->massMatrix(nodes, marray,1);
+   int ndof = packedEset[iele]->numDofs();
+   if(sinfo.isCoupled) if(isStructureElement(iele)) {  // coupled scaling
+     for(int i=0;i<ndof*ndof;i++)  marray[i] *= cscale_factor2;
+     for(int i=0;i<ndof*ndof*(N+3);i++)  krarray[i] *= cscale_factor2;
+   }
+
+   if(matrixTimers) matrixTimers->formTime += getTime();
+   if(matrixTimers) matrixTimers->assemble -= getTime();
+   if(ops.M)   ops.M->add(mel,(*allDOFs)[iele]);
+   if(ops.Muc) ops.Muc->add(mel,(*allDOFs)[iele]);
+   if(ops.Mcc) ops.Mcc->add(mel,(*allDOFs)[iele]);
+   if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
+   if (sinfo.doFreqSweep) for(int i=0;i<=N;i++) {
+     FullSquareMatrixC kdel(ndof,krarray+ndof*ndof*(i+2));
+     if (ops.K_deriv) if (ops.K_deriv[i]) ops.K_deriv[i]->add(kdel,(*allDOFs)[iele]);
+     if (ops.Kuc_deriv) if (ops.Kuc_deriv[i]) ops.Kuc_deriv[i]->add(kdel,(*allDOFs)[iele]);
+   }
+
+   FullSquareMatrixC krel_m(ndof,krarray+ndof*ndof*0);
+   FullSquareMatrixC krel_l(ndof,krarray+ndof*ndof*1);
+
+
+   if (found & sinfo.doFreqSweep) { 
+     if(ops.K_arubber_m[i_arubber])
+       ops.K_arubber_m[i_arubber]->add(krel_m,(*allDOFs)[iele]);
+     if(ops.K_arubber_l[i_arubber])
+       ops.K_arubber_l[i_arubber]->add(krel_l,(*allDOFs)[iele]);
+     if(ops.Kuc_arubber_m) if(ops.Kuc_arubber_m[i_arubber])
+       ops.Kuc_arubber_m[i_arubber]->add(krel_m,(*allDOFs)[iele]);
+     if(ops.Kuc_arubber_l) if(ops.Kuc_arubber_l[i_arubber])
+       ops.Kuc_arubber_l[i_arubber]->add(krel_l,(*allDOFs)[iele]);
+   }
+
+   FullSquareMatrixC krel(ndof,krarray+ndof*ndof*2);
+   if(ops.K)   ops.K->add(krel,(*allDOFs)[iele]);
+   for(int i=0;i<ndof*ndof;i++)  krarray[i+ndof*ndof*2] -= omega2*marray[i];
+   if(ops.Kuc) ops.Kuc->add(krel,(*allDOFs)[iele]);
+   if(ops.Kcc) ops.Kcc->add(krel,(*allDOFs)[iele]);
+
+   if(mdds_flag) {
+#if defined(_OPENMP)
+     #pragma omp critical
+#endif
+     mat->add(krel,(*domain->getAllDOFs())[subCast->getGlElems()[iele]]);
+   }
+   else if(mat) mat->add(krel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(krel,(*allDOFs)[iele]);
+   if(matrixTimers) matrixTimers->assemble += getTime();
+ }
+ delete[] krarray;
 
  if(sinfo.ATDARBFlag >= 1.0) {
    getCurvatures3Daccurate(this);
@@ -1305,7 +1387,47 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, Rbm 
        for(int n=numC_deriv; n<sinfo.getSweepParams()->nFreqSweepRHS - 1; ++n)
          allOps.Cuc_deriv[n] = 0;
      }
+
    }
+ }
+ if(isDamped) {
+     if (allOps.K_deriv) for(int i=0;i<=allOps.n_Kderiv;i++) if (allOps.K_deriv[i]) delete allOps.K_deriv[i];
+     if (allOps.Kuc_deriv) for(int i=0;i<=allOps.n_Kderiv;i++) if (allOps.Kuc_deriv[i]) delete allOps.Kuc_deriv[i];
+     int numK_deriv = sinfo.doFreqSweep ? sinfo.getSweepParams()->nFreqSweepRHS-1:0;
+     allOps.n_Kderiv = numK_deriv;
+     allOps.K_deriv = new GenSparseMatrix<Scalar> * [numK_deriv+1];
+     for(int n=0; n<=numK_deriv; ++n)
+       allOps.K_deriv[n] = constructDBSparseMatrix<Scalar>();
+     if(c_dsa->size() > 0 && (c_dsa->size() - dsa->size()) != 0) {
+       allOps.Kuc_deriv = new GenSparseMatrix<Scalar> * [numK_deriv+1];
+       for(int n=0; n<=numK_deriv; ++n)
+         allOps.Kuc_deriv[n] = constructCuCSparse<Scalar>();
+     }
+
+     if (allOps.K_arubber_l) for(int i=0;i<allOps.num_K_arubber;i++) {
+        if (allOps.K_arubber_l[i]) delete allOps.K_arubber_l[i];
+        if (allOps.K_arubber_m[i]) delete allOps.K_arubber_m[i];
+     }
+     if (allOps.Kuc_arubber_l) for(int i=0;i<allOps.num_K_arubber;i++) {
+         if (allOps.Kuc_arubber_l[i]) delete allOps.Kuc_arubber_l[i];
+         if (allOps.Kuc_arubber_m[i]) delete allOps.Kuc_arubber_m[i];
+     }
+     int num_K_arubber = geoSource->num_arubber;
+     allOps.num_K_arubber= num_K_arubber;
+     allOps.K_arubber_l = new GenSparseMatrix<Scalar> * [num_K_arubber];
+     allOps.K_arubber_m = new GenSparseMatrix<Scalar> * [num_K_arubber];
+     for(int n=0; n<num_K_arubber; ++n) {
+       allOps.K_arubber_l[n] = constructDBSparseMatrix<Scalar>();
+       allOps.K_arubber_m[n] = constructDBSparseMatrix<Scalar>();
+     }
+     if(c_dsa->size() > 0 && (c_dsa->size() - dsa->size()) != 0) {
+       allOps.Kuc_arubber_l = new GenSparseMatrix<Scalar> * [num_K_arubber];
+       allOps.Kuc_arubber_m = new GenSparseMatrix<Scalar> * [num_K_arubber];
+       for(int n=0; n<num_K_arubber; ++n) {
+         allOps.Kuc_arubber_l[n] = constructCuCSparse<Scalar>();
+         allOps.Kuc_arubber_m[n] = constructCuCSparse<Scalar>();
+       }
+     }
  }
 
  // ... Build stiffness matrix K and Kuc, etc...
@@ -2062,14 +2184,15 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   for(i=0; i < numComplexNeuman; ++i) {
     int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
     if(dof < 0) continue;
-    switch(nbc[i].type) {
+/*
+    switch(cnbc[i].type) {
       case(BCond::Forces) : case(BCond::Flux) : case(BCond::Convection) : case(BCond::Hneu) : {
         double loadFactor = domain->getLoadFactor(cnbc[i].loadsetid);
         ScalarTypes::addScalar(force[dof], loadFactor*cnbc[i].reval, loadFactor*cnbc[i].imval);
       } break;
-      default :
+      default : */
         ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
-    }
+    //}
   }
 
   if (implicitFlag) {
@@ -2222,7 +2345,11 @@ template<class Scalar>
 void
 Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
                       GenSparseMatrix<Scalar> *kuc, GenSparseMatrix<Scalar> *muc, 
-                      GenSparseMatrix<Scalar> **cuc_deriv, double omega, double delta_omega, GeomState *gs)
+                      GenSparseMatrix<Scalar> **cuc_deriv,
+                      GenSparseMatrix<Scalar> **kuc_deriv,
+                      GenSparseMatrix<Scalar> **kuc_arubber_l,
+                      GenSparseMatrix<Scalar> **kuc_arubber_m,
+ double omega, double delta_omega, GeomState *gs)
 {
   if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
     checkSommerTypeBC(this);
@@ -2248,14 +2375,15 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
   for(i=0; i < numComplexNeuman; ++i) {
     int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
     if(dof < 0) continue;
+/*
     switch(nbc[i].type) {
       case(BCond::Forces) : case(BCond::Flux) : case(BCond::Convection) : case(BCond::Hneu) : {
         double loadFactor = domain->getLoadFactor(cnbc[i].loadsetid);
         ScalarTypes::addScalar(force[dof], loadFactor*cnbc[i].reval, loadFactor*cnbc[i].imval);
       } break;
-      default :
-        ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval); 
-    }
+      default :*/
+        ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
+//    }
   }
 
   // PJSA: new FETI-H stuff
@@ -2374,6 +2502,37 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     if(kuc) {
       kuc->multSubtract(Vc, force);
     }
+    complex<double> *lambda=0, *mu=0, *deltalambda=0, *deltamu=0;
+    int num_arubber = geoSource->num_arubber;
+    if (num_arubber>0)  {
+      lambda = new complex<double>[num_arubber];
+      mu = new complex<double>[num_arubber];
+      deltalambda = new complex<double>[num_arubber];
+      deltamu = new complex<double>[num_arubber];
+    }
+    geoSource->getARubberLambdaMu(omega,deltalambda,deltamu);
+    geoSource->getARubberLambdaMu(omega-delta_omega,lambda,mu);
+    for(int ir=0;ir<num_arubber;ir++) {
+     deltalambda[ir] -= lambda[ir];
+     deltamu[ir] -= mu[ir];
+    }
+
+// Acoustic rubber    
+    for(int ir=0;ir<num_arubber;ir++) {
+      tmp.zero();
+      if(kuc_arubber_l) if (kuc_arubber_l[ir]) kuc_arubber_l[ir]->multSubtract(Vc,tmp);
+      Scalar c = 0;
+      ScalarTypes::addComplex(c,deltalambda[ir]);
+      tmp *= c;
+      force += tmp;
+      tmp.zero();
+      if (kuc_arubber_m) if (kuc_arubber_m[ir]) kuc_arubber_m[ir]->multSubtract(Vc,tmp);
+      c = 0;
+      ScalarTypes::addComplex(c,deltamu[ir]);
+      tmp *= c;
+      force += tmp;
+    }
+
     if (muc) {
       tmp.zero();
       muc->multSubtract(Vc, tmp);
@@ -2394,7 +2553,9 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
 template<class Scalar>
 void
 Domain::buildFreqSweepRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *muc,
-                               GenSparseMatrix<Scalar> **cuc_deriv, int iRHS, double omega)
+                               GenSparseMatrix<Scalar> **cuc_deriv,
+                               GenSparseMatrix<Scalar> **kuc_deriv,
+ int iRHS, double omega)
 {
   if(iRHS < 1) return; // this shouldn't happen
 
@@ -2606,6 +2767,45 @@ fprintf(stderr,"Complex kappa2 not supported yet!\n");
   }
 
   if(cuc_deriv && cuc_deriv[iRHS-1]) cuc_deriv[iRHS-1]->multSubtract(Vc, force);
+  if(kuc_deriv && kuc_deriv[iRHS-1]) kuc_deriv[iRHS-1]->multSubtract(Vc, force);
+}
+
+
+template<class Scalar>
+void
+Domain::buildDeltaK(double w0, double w, GenSparseMatrix<Scalar> *deltaK,
+                                         GenSparseMatrix<Scalar> *deltaKuc) {
+ // Acoustic rubber elements
+ complex<double> *krarray = new complex<double>[3*maxNumDOFs*maxNumDOFs];
+ complex<double> *krarray2 = new complex<double>[3*maxNumDOFs*maxNumDOFs];
+ for(int iele = 0; iele < numele; ++iele) {
+   StructProp *prop = packedEset[iele]->getProperty();
+fprintf(stderr,"tadyx %e %e %e %e\n",prop->E0,prop->mu0,w0,w);
+   if((prop->E0==0.0 || prop->mu0==0.0) ) continue; 
+
+   if(matrixTimers) matrixTimers->formTime -= getTime();
+   int N = 0; // number of derivatives
+   packedEset[iele]->aRubberStiffnessDerivs(nodes, krarray,N,w0);
+   packedEset[iele]->aRubberStiffnessDerivs(nodes, krarray2,N,w);
+fprintf(stderr,"tadyx a %e %e \n",ScalarTypes::Real(krarray[0]),ScalarTypes::Real(krarray2[0]));
+   int ndof = packedEset[iele]->numDofs();
+   for(int i=0;i<ndof*ndof;i++)
+       krarray2[i+2*ndof*ndof] -= krarray[i+2*ndof*ndof];
+   if(sinfo.isCoupled) if(isStructureElement(iele)) {  // coupled scaling
+     for(int i=0;i<ndof*ndof;i++)  krarray2[i+2*ndof*ndof] *= cscale_factor2;
+   }
+
+fprintf(stderr,"tadyx ab %p %p\n",deltaK,deltaKuc);
+   FullSquareMatrixC kdel(ndof,krarray2+2*ndof*ndof);
+   deltaK->add(kdel,(*allDOFs)[iele]);
+fprintf(stderr,"tadyx abc %p %p\n",deltaK,deltaKuc);
+   if (deltaKuc) deltaKuc->add(kdel,(*allDOFs)[iele]);
+fprintf(stderr,"tadyx b %p %p\n",deltaK,deltaKuc);
+
+ }
+ delete[] krarray;
+ delete[] krarray2;
+ fprintf(stderr,"Domain::buildDeltaK exiting\n");
 }
 
 template<class Scalar>
@@ -2632,6 +2832,7 @@ template<class Scalar>
 void
 Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
 {
+fprintf(stderr,"tady assembleSommer\n");
  checkSommerTypeBC(this); // TODO check
 
  if(numSommer > 0) {

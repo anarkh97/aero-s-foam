@@ -65,7 +65,7 @@
 
 %expect 6
 
-%token ACTUATORS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
+%token ACTUATORS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
@@ -85,7 +85,7 @@
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL IMESH 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KEYLETTER KRYLOVTYPE KIRLOC
-%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOADCASE LOBPCG LOCALSOLVER LINESEARCH LUMPED
+%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOADCASE LOBPCG LOCALREDUCEDORDERBASES LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXELEM MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
 %token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
@@ -193,6 +193,7 @@ Component:
 	{ int j = geoSource->getLocalIndex();
           geoSource->setLocalIndex(j+1); }
         | Ellump
+        | LocalReducedOrderBases
         | SampNodeSlot
  	| ReducedStiffness
 	| UDeimBasis
@@ -2631,6 +2632,20 @@ MatData:
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer ARUBBERMAT Float Float Float Float Float Float Float Float Float NewLine
+        { // Acoustic rubber
+          StructProp sp;
+          sp.E0 = sp.E = $3; sp.dE = $4/(2*M_PI); sp.eta_E = $5; sp.deta_E = $6/(2*M_PI);
+          sp.mu0 = $7; sp.dmu = $8/(2*M_PI); sp.eta_mu = $9; sp.deta_mu = $10/(2*M_PI);
+          sp.rho = $11;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer ARUBBERMAT Float NewLine
+        { // Acoustic rubber
+          StructProp sp;
+          sp.E0 = sp.E = $3;
+          geoSource->addMat( $1-1, sp );
+        }
 	;
 ElemSet:
 	TOPOLOGY NewLine Element
@@ -3121,13 +3136,30 @@ Attributes:
 	;
 Ellump:
         ELLUMP NewLine
-        { domain->solInfo().elemLumpPodRom = true; }
+        { domain->solInfo().elemLumpPodRom = true;
+          geoSource->setLocalIndex(0); }
+        | ELLUMP Integer NewLine
+        { domain->solInfo().elemLumpPodRom = true;
+          geoSource->setLocalIndex($2-1); }
         | Ellump Integer Float NewLine
         { geoSource->setElementLumpingWeight($2 - 1, $3); }
         | Ellump REDFOL NewLine /* deprecated */
         { domain->solInfo().reduceFollower = true;}
         | Ellump EXTFOL NewLine
         { domain->solInfo().reduceFollower = true;}
+        ;
+LocalReducedOrderBases:
+        LOCALREDUCEDORDERBASES NewLine
+        | LocalReducedOrderBases LocalBasesProj
+        | LocalReducedOrderBases LocalBasesCent
+        ;
+LocalBasesProj:
+        PROJ Integer Integer FNAME NewLine
+        { domain->solInfo().readInLocalBasesProj[std::make_pair($2-1,$3-1)] = std::string($4); }
+        ;
+LocalBasesCent:
+        CENTER FNAME NewLine
+        { domain->solInfo().readInLocalBasesCent.push_back(std::string($2)); }
         ;
 ReducedStiffness:
 	REDUCEDSTIFFNESS NewLine
@@ -4759,6 +4791,9 @@ SnapshotProject:
 SamplingOption:
     PODROB FNAME
   { domain->solInfo().readInROBorModes.push_back($2); }
+  | PODROB FNAME Integer
+  { domain->solInfo().readInROBorModes.push_back($2);
+    domain->solInfo().localBasisSize.push_back($3); }
   | DUALBASIS FNAME Integer 
   { domain->solInfo().readInDualROB = $2;
     domain->solInfo().maxSizeDualBasis = $3; }

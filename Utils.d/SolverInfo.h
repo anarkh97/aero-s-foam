@@ -350,6 +350,8 @@ struct SolverInfo {
    std::vector<std::string> robfi;
    std::vector<double> snapshotWeights;
    std::vector<std::string> readInROBorModes;
+   std::map<std::pair<int,int>,std::string> readInLocalBasesProj;
+   std::vector<std::string> readInLocalBasesCent;
    const char * readInDualROB;
    const char * readInModes;
    const char * SVDoutput;

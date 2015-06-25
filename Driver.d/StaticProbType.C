@@ -69,6 +69,9 @@ StaticSolver< Scalar, OpSolver, VecType,
    int nRHS = domain->solInfo().getSweepParams()->nFreqSweepRHS;
    if(nRHS==0) filePrint(stderr, " *** ERROR: nRHS = 0 \n");
 
+   Scalar *VhKV = 0, *VhMV =0, *VhCV =0,
+        **VhK_arubber_lV = 0, **VhK_arubber_mV = 0;
+
 // RT 070513
    if (domain->solInfo().getSweepParams()->freqSweepMethod==SweepParams::Taylor && domain->solInfo().getSweepParams()->nFreqSweepRHS==1 && domain->solInfo().loadcases.size()>1)
    {
@@ -146,7 +149,6 @@ StaticSolver< Scalar, OpSolver, VecType,
        bb[i] = new VecType(probDesc->solVecInfo());
        cc[i] = new VecType(probDesc->solVecInfo());
      }
-     Scalar *VhKV = 0, *VhMV =0, *VhCV =0;
      int nOrtho = 0;
 //       int ncheck = 6;
      int ncheck = 18;
@@ -162,16 +164,19 @@ ncheck = 9;
      adaptGP(dgp_flag,minRHS,maxRHS,deltaRHS,nOrtho,
              sol, GP_solprev, GP_orth_solprev,
              aa,bb,cc,
-             VhKV, VhMV, VhCV, ncheck, wcheck, ((w1+w2)/2.0)/w[numP], atol);
+             VhKV, VhMV, VhCV, VhK_arubber_lV, VhK_arubber_mV,
+             ncheck, wcheck, w[numP], ((w1+w2)/2.0)/w[numP], atol);
      numP++;
 
      w[numP] = w2;
      geoSource->setOmega(w[numP]); 
      rebuildSolver(w[numP]); 
+     double oldw = w[numP];
      adaptGP(dgp_flag,minRHS,maxRHS,deltaRHS,nOrtho,
              sol, GP_solprev, GP_orth_solprev,
              aa,bb,cc,
-             VhKV, VhMV, VhCV, ncheck, wcheck, ((w1+w2)/2.0)/w[numP], atol);
+             VhKV, VhMV, VhCV, VhK_arubber_lV, VhK_arubber_mV,
+             ncheck, wcheck, oldw, ((w1+w2)/2.0)/w[numP], atol);
      numP++;
 #else
      w[numP] = (w1+w2)/2.0;
@@ -184,7 +189,8 @@ ncheck = 9;
      adaptGP(dgp_flag,minRHS,maxRHS,deltaRHS,nOrtho,
              sol, GP_solprev, GP_orth_solprev,
              aa,bb,cc,
-             VhKV, VhMV, VhCV, ncheck, wcheck, ((w1+w2)/2.0)/w[numP], atol);
+             VhKV, VhMV, VhCV, VhK_arubber_lV, VhK_arubber_mV,
+             ncheck, wcheck, w[numP], ((w1+w2)/2.0)/w[numP], atol);
      numP++;
 #endif
 
@@ -218,7 +224,9 @@ ncheck = 9;
            sres[j] = adaptGPSolRes(dgp_flag,nOrtho,sol,
                                    GP_solprev, GP_orth_solprev,
                                    aa,bb,cc,
-                                   VhKV, VhMV, VhCV, wc, 0.0);
+                                   VhKV, VhMV, VhCV,
+                                   VhK_arubber_lV, VhK_arubber_mV,
+                                   wc, wc-oldw);
            if (resmax<sres[j]) { resmax = sres[j]; wmax = wc; }
          }
          if (resmax>atol) {
@@ -233,7 +241,8 @@ ncheck = 9;
            w[numP] = newW[i];
            geoSource->setOmega(w[numP]); 
   timex -= getTime();
-           rebuildSolver(w[numP]); 
+           rebuildSolver(w[numP]);
+           oldw = w[numP]; 
   timex += getTime();
 #ifdef ADAPT2
            int ii;
@@ -263,8 +272,8 @@ ncheck = 18;
            adaptGP(dgp_flag,minRHS,maxRHS,deltaRHS,nOrtho,
                    sol, GP_solprev, GP_orth_solprev,
                    aa,bb,cc,
-                   VhKV, VhMV, VhCV,
-                   ncheck, wcheck, ((w1+w2)/2.0)/w[numP], atol);
+                   VhKV, VhMV, VhCV, VhK_arubber_lV, VhK_arubber_mV,
+                   ncheck, wcheck, oldw, ((w1+w2)/2.0)/w[numP], atol);
            numP++;
            if (numP>=maxP) break;
          }
@@ -284,11 +293,13 @@ ncheck = 18;
        if (!dgp_flag)
          res = adaptGPSolRes(0,nOrtho,sol,GP_solprev, GP_orth_solprev,
                    aa,bb,cc,
-                             VhKV, VhMV, VhCV, wc, 0.0);
+                             VhKV, VhMV, VhCV, VhK_arubber_lV, VhK_arubber_mV,
+                             wc, wc-oldw);
         else {
          res = adaptGPSolRes(1,nOrtho,sol,GP_solprev, GP_orth_solprev,
                    aa,bb,cc,
-                             VhKV, VhMV, VhCV, wc, 0.0);
+                             VhKV, VhMV, VhCV, VhK_arubber_lV, VhK_arubber_mV,
+                             wc, wc-oldw);
         }
        domain->frequencies->push_front(wc);
        if(domain->solInfo().isAcousticHelm()) {  
@@ -331,7 +342,6 @@ ncheck = 18;
      }
    } // if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos)
    //--- UH --- Data for Pade Lanczos
-   Scalar *VhKV = 0, *VhMV =0, *VhCV =0;
    VecType **GP_solprev = 0, **GP_orth_sol_prev = 0;
     
    if ( domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::GalProjection ||
@@ -536,7 +546,9 @@ xtime -= getTime();
            //--- UH ---
            case SweepParams::GalProjection:
              galProjection(gpReorthoFlag,nRHS*padeN,sol,GP_orth_sol_prev,
-                           GP_solprev, VhKV, VhMV, VhCV, w, w-wc);
+                           GP_solprev, VhKV, VhMV, VhCV,
+                           VhK_arubber_lV, VhK_arubber_mV,
+                            w, w-wc);
              gpReorthoFlag = false;
              break;
            case SweepParams::KrylovGalProjection:
@@ -615,6 +627,7 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
    if (GP_solprev) delete[] GP_solprev;
    if (VhKV) delete[] VhKV;
    if (VhMV) delete[] VhMV;
+   if (VhCV) delete[] VhCV;
    }
  }
  } // if(domain->solInfo().doFreqSweep)

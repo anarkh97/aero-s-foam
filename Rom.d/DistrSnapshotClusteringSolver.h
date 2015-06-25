@@ -18,8 +18,10 @@ public:
   // Local buffers: Internal column-major ordering, zero-based indexing
   // Local matrix buffer: [localRows by colCount]
   double *matrixColBuffer(int col);
-  // Local cluster buffer: [localRows by clusterDimension]
   const double *clusterColBuffer(int i, int col) const;
+  // Local cluster centroid buffer: [localRows by numClusters]
+  const double *clusterCentroidBuffer(int i) const;
+
   const int clusterColCount(int i) const;
 
   void solve();
@@ -36,6 +38,7 @@ private:
   int rowCount_, colCount_, localRows_, numClusters_, blockSize_;
 
   Eigen::MatrixXd matrixBuffer_;
+  Eigen::MatrixXd centroidBuffer_;
   std::vector<std::vector<int> > clusterCols_;
 };
 
@@ -56,6 +59,12 @@ inline
 const int
 DistrSnapshotClusteringSolver::clusterColCount(int i) const {
   return clusterCols_[i].size();
+}
+
+inline
+const double *
+DistrSnapshotClusteringSolver::clusterCentroidBuffer(int i) const {
+  return centroidBuffer_.data() + i*localRows_;
 }
 
 } // end namespace Rom

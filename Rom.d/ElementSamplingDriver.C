@@ -17,6 +17,7 @@
 #include <Driver.d/SysState.h>
 #include <Math.d/Vector.h>
 #include <Math.d/DBSparseMatrix.h>
+#include <Math.d/EiSparseMatrix.h>
 #include <Math.d/DiagMatrix.h>
 #include <Timers.d/StaticTimers.h>
 #include <Utils.d/Connectivity.h>
@@ -90,13 +91,42 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int pod
   meshOut << mesh;
 }
 
+void
+outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const std::vector<int> &localBasisSize) {
+  const std::ios_base::openmode mode = std::ios_base::out;
+  std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), mode);
+  filePrint(stderr," ... Writing Mesh File to %s ...\n", getMeshFilename(fileInfo).c_str());
+  meshOut.precision(std::numeric_limits<double>::digits10+1);
+  std::string basisfile = getMeshFilename(fileInfo).c_str();
+  basisfile.append(".compressed.basis");
+  if(domain->numInitDisp() || domain->numInitDisp6() || domain->numInitVelocity()) {
+    std::cerr << "Error: IDISP/IVEL is not supported yet for local bases\n";
+    exit(-1);
+  }
+  else {
+    for(int j=0; j<localBasisSize.size(); ++j) {
+      meshOut << "READMODE \"" << basisfile << j+1 << "\" " << localBasisSize[j] << "\n";
+    }
+  }
+  if(!domain->solInfo().useMassNormalizedBasis && domain->solInfo().newmarkBeta != 0)
+    meshOut << "use_mass_normalized_basis off\n";
+  meshOut << "*\n";
+  meshOut << mesh;
+}
+
+
 template<typename WeightsVecType, typename ElemIdsVecType>
 void
-outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds)
+outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds, int j)
 {
   assert(weights.size() == elemIds.size());
 
-  const std::string fileName = domain->solInfo().reducedMeshFile;
+  std::string fileName = domain->solInfo().reducedMeshFile;
+  if(j > -1) {
+    std::ostringstream ss;
+    ss << ".cluster" << j+1;
+    fileName.append(ss.str());
+  }
   const std::ios_base::openmode mode = std::ios_base::out;
   std::ofstream weightOut(fileName.c_str(), mode);
   weightOut.precision(std::numeric_limits<double>::digits10+1);
@@ -141,7 +171,7 @@ outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds)
   weightOut.close();
 }
 
-int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts)
+int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts, int j=-1)
 {
   // compute the number of snapshots that will be used for a given skipping strategy
   FileNameInfo fileInfo;
@@ -156,18 +186,20 @@ int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts)
     snapshotCounts.push_back(singleSnapshotCount);
   }
   // return the total
-  return std::accumulate(snapshotCounts.begin(), snapshotCounts.end(), 0);
+  return (j<0) ? std::accumulate(snapshotCounts.begin(), snapshotCounts.end(), 0) : snapshotCounts[j];
 }
 
 void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis &podBasis,
                              const VecNodeDof6Conversion &vecDofConversion,
                              std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config,
-                             SparseMatrix *M)
+                             SparseMatrix *M, int j = -1)
 {
+  // if j == -1 then read all of the snapshot files
+  // if j >= 0  the read only the (j+1)-th snapshot file
 #ifdef PRINT_ESTIMERS
   double t1 = getTime();
 #endif
-  const int snapshotCount = snapSize(type, snapshotCounts);
+  const int snapshotCount = snapSize(type, snapshotCounts, j);
   filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
   config.dimensionIs(snapshotCount, vectorSize);
@@ -182,7 +214,7 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
   const FileNameInfo fileInfo;
 
   int offset = 0;
-  for(int i = 0; i < FileNameInfo::size(type, BasisId::SNAPSHOTS); i++) {
+  for(int i = ((j<0)?0:j); i < ((j<0)?FileNameInfo::size(type, BasisId::SNAPSHOTS):(j+1)); i++) {
     std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
     filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
     BasisInputStream<6> in(fileName, vecDofConversion);
@@ -288,7 +320,7 @@ template<typename VecBasisType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>
 ::assembleTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
-                       const VecBasisType *veloc, const VecBasisType *accel)
+                       const VecBasisType *veloc, const VecBasisType *accel, int j)
 {
   std::vector<double>::iterator timeStampFirst = timeStamps_.begin();
   typename MatrixBufferType::iterator elemContributions = solver_.matrixBuffer();
@@ -311,7 +343,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
     std::vector<double>::iterator timeStampIt = timeStampFirst;
     int *nodes = domain_->getElementSet()[iElem]->nodes();
     int iSnap = 0;
-    for(int i = 0; i < snapshotCounts_.size(); i++) {
+    for(int i = ((j<0)?0:j); i < ((j<0)?snapshotCounts_.size():(j+1)); i++) {
       if(!domain_->solInfo().conwepConfigurations.empty()) {
         conwep = &domain_->solInfo().conwepConfigurations[i];
       }
@@ -382,22 +414,34 @@ template<typename MatrixBufferType, typename SizeType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
 
-  preProcess();
-  
-  // Training target (solver_.rhsBuffer) is the sum of elementary contributions
+  AllOps<double> allOps;
+  preProcessGlobal(allOps);
+
+  std::vector<int> sampleElemIds, packedToInput;
+  std::vector<std::map<int, double> > weights(domain_->solInfo().readInROBorModes.size());
+  makePackedToInput(packedToInput);
+
+  for(int j=0; j<domain_->solInfo().readInROBorModes.size(); ++j) {
+
+    preProcessLocal(allOps, j);
+
+    // Training target (solver_.rhsBuffer) is the sum of elementary contributions
 #ifdef PRINT_ESTIMERS
-  double t2 = getTime();
+    double t2 = getTime();
 #endif
-  for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
-  assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_);
+    for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
+    assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_, j);
 #ifdef PRINT_ESTIMERS
-  fprintf(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
+    fprintf(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
 #endif
 
-  Vector solution;
-  computeSolution(solution, domain_->solInfo().tolPodRom);
+    Vector solution;
+    computeSolution(solution, domain_->solInfo().tolPodRom);
 
-  postProcess(solution);
+    postProcessLocal(solution, packedToInput, j, sampleElemIds, weights[j]);
+  }
+
+  postProcessGlobal(sampleElemIds, weights);
 }
 
 template<typename MatrixBufferType, typename SizeType>
@@ -443,17 +487,19 @@ template<typename MatrixBufferType, typename SizeType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, bool verboseFlag) {
 
-  const FileNameInfo fileInfo;
-  std::set<int> sampleElemRanks;
-  {
-    for (int iElem = 0; iElem != elementCount(); ++iElem) {
-      if (solution[iElem] > 0.0) {
-        sampleElemRanks.insert(sampleElemRanks.end(), iElem);
-      }
-    }
-  }
+  std::vector<int> sampleElemIds, packedToInput;
+  std::vector<std::map<int, double> > weights(1);
 
-  std::vector<int> packedToInput(elementCount());
+  makePackedToInput(packedToInput);
+  postProcessLocal(solution, packedToInput, 0, sampleElemIds, weights[0], verboseFlag);
+  postProcessGlobal(sampleElemIds, weights, verboseFlag);
+}
+
+template<typename MatrixBufferType, typename SizeType>
+void
+ElementSamplingDriver<MatrixBufferType,SizeType>::makePackedToInput(std::vector<int> &packedToInput)
+{
+  packedToInput.resize(elementCount());
   Elemset &inputElemSet = *(geoSource->getElemSet());
   for (int iElem = 0, iElemEnd = inputElemSet.size(); iElem != iElemEnd; ++iElem) {
     Element *elem = inputElemSet[iElem];
@@ -465,14 +511,44 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
       }
     }
   }
+}
 
-  std::vector<int> sampleElemIds;
+template<typename MatrixBufferType, typename SizeType>
+void
+ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessLocal(Vector &solution, std::vector<int> packedToInput, int j,
+                                                                   std::vector<int> &sampleElemIds, std::map<int, double> &weights,
+                                                                   bool verboseFlag)
+{
+  std::set<int> sampleElemRanks;
+  {
+    for (int iElem = 0; iElem != elementCount(); ++iElem) {
+      if (solution[iElem] > 0.0) {
+        sampleElemRanks.insert(sampleElemRanks.end(), iElem);
+      }
+    }
+  }
+
   sampleElemIds.reserve(sampleElemRanks.size());
-  std::map<int, double> weights;
   for (std::set<int>::const_iterator it = sampleElemRanks.begin(), it_end = sampleElemRanks.end(); it != it_end; ++it) {
     const int elemRank = packedToInput[*it];
     weights.insert(std::make_pair(elemRank, solution[*it]));
-    sampleElemIds.push_back(elemRank);
+    if(domain_->solInfo().readInROBorModes.size() == 1 || std::find(sampleElemIds.begin(), sampleElemIds.end(), elemRank) == sampleElemIds.end())
+      sampleElemIds.push_back(elemRank);
+  }
+
+  outputFullWeights(solution, packedToInput, ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
+}
+
+template<typename MatrixBufferType, typename SizeType>
+void
+ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights,
+                                                                    bool verboseFlag)
+{
+  const FileNameInfo fileInfo;
+
+  if(domain_->solInfo().localBasisSize.size() > 1) {
+    int globalBasisSize = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.end(), 0);
+    podBasis_.localBasisIs(0, globalBasisSize);
   }
 
   // compute the reduced forces
@@ -502,10 +578,17 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
          v0Red(podBasis_.vectorCount());
   bool reduce_idis = (d0Full.norm() != 0),
        reduce_ivel = (v0Full.norm() != 0);
-  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
+#ifdef USE_EIGEN3
+  GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *M;
+#endif
+  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0 || domain_->solInfo().readInROBorModes.size() > 1) {
     AllOps<double> allOps;
-    if(reduce_idis || reduce_ivel) { 
+    if(reduce_idis || reduce_ivel || domain_->solInfo().readInROBorModes.size() > 1) { 
+#ifdef USE_EIGEN3
+      allOps.M = M = domain_->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
+#else
       allOps.M = domain->constructDBSparseMatrix<double>();
+#endif
       domain->makeSparseOps(allOps, 0, 0, 0);
     }
     if(reduce_idis) {
@@ -523,15 +606,18 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   }
 
   // output the reduced mesh
+  Elemset &inputElemSet = *(geoSource->getElemSet());
   std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
-  outputMeshFile(fileInfo, reducedMesh, podBasis_.vectorCount());
-  outputFullWeights(solution, packedToInput);
+  if(domain_->solInfo().localBasisSize.size() == 1)
+    outputMeshFile(fileInfo, reducedMesh, podBasis_.vectorCount());
+  else
+    outputMeshFile(fileInfo, reducedMesh, domain_->solInfo().localBasisSize);
 
   // output the reduced forces
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
-  if(domain->solInfo().reduceFollower) meshOut << "EXTFOL\n";
+  if(domain->solInfo().reduceFollower) meshOut << "*\nEXTFOL\n";
   if(domain->gravityFlag()) {
     meshOut << "*\nFORCES -1\nMODAL\n"; // note: gravity forces are put in loadset -1 so that MFTT (if present) will not be applied
     meshOut.precision(std::numeric_limits<double>::digits10+1);
@@ -610,6 +696,38 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
       meshOut << i+1 << " " << v0Red[i] << std::endl;
   }
 
+  // pre-computation required for local bases method
+  if(domain_->solInfo().readInROBorModes.size() > 1) {
+    meshOut << "*\nLOCROB\n";
+    const int rows = podBasis_.vectorSize();
+    
+    for(int i=0; i<domain_->solInfo().readInROBorModes.size(); ++i) {
+      int startColi = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+i, 0);
+      int blockColsi = domain_->solInfo().localBasisSize[i];
+      for(int j=i+1; j<domain_->solInfo().readInROBorModes.size(); ++j) {
+        int startColj = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+j, 0);
+        int blockColsj = domain_->solInfo().localBasisSize[j];
+        Eigen::MatrixXd VtVij;
+        std::string fileName = domain->solInfo().reducedMeshFile;
+        std::ostringstream ss;
+        ss << ".projmatrix.cluster" << i+1 << "." << j+1;
+        fileName.append(ss.str());
+        std::ofstream matrixOut(fileName);
+        if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) {
+          VtVij = podBasis_.basis().block(0,startColi,rows,blockColsi).transpose()*
+                  (M->getEigenSparse().selfadjointView<Eigen::Upper>()*podBasis_.basis().block(0,startColj,rows,blockColsj)); 
+        }
+        else {
+           VtVij = podBasis_.basis().block(0,startColi,rows,blockColsi).transpose()*
+                   podBasis_.basis().block(0,startColj,rows,blockColsj);
+        }
+        meshOut << "proj " << i+1 << " " << j+1 << " \"" << fileName << "\"\n";
+        matrixOut << std::setprecision(16) << VtVij << std::endl;
+        matrixOut.close();
+      }
+    }
+  }
+
 #ifdef USE_EIGEN3
   // build and output compressed basis
   DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
@@ -618,15 +736,25 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   ConstrainedDSA reduced_cdsa(reduced_dsa, num_bc, bc);
   podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain_->getCDSA(), &reduced_cdsa);
   {
-    std::string filename = getMeshFilename(fileInfo).c_str();
-    filename.append(".compressed.basis");
-    if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".normalized");
-    filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
     VecNodeDof6Conversion converter(reduced_cdsa);
-    BasisOutputStream<6> output(filename, converter, false);
+    for(int j=0; j<domain_->solInfo().readInROBorModes.size(); ++j) {
+      std::string filename = getMeshFilename(fileInfo).c_str();
+      filename.append(".compressed.basis");
+      if(domain_->solInfo().readInROBorModes.size() != 1) {
+        std::ostringstream ss;
+        ss << j+1;
+        filename.append(ss.str());
+      }
+      if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".normalized");
+      filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
+      BasisOutputStream<6> output(filename, converter, false);
 
-    for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
-      output << podBasis_.compressedBasis().col(iVec);
+      int startCol = (domain_->solInfo().readInROBorModes.size() == 1) ? 0 :
+                      std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+j, 0);
+      int blockCols = (domain_->solInfo().readInROBorModes.size() == 1) ? podBasis_.vectorCount() : domain_->solInfo().localBasisSize[j];
+      for (int iVec = startCol; iVec < startCol+blockCols; ++iVec) {
+        output << podBasis_.compressedBasis().col(iVec);
+      }
     }
   }
 #endif
@@ -635,6 +763,15 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
 template<typename MatrixBufferType, typename SizeType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess()
+{
+  AllOps<double> allOps;
+  preProcessGlobal(allOps);
+  preProcessLocal(allOps, 0);
+}
+
+template<typename MatrixBufferType, typename SizeType>
+void
+ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessGlobal(AllOps<double>& allOps)
 {
   domain_->preProcessing();
   buildDomainCdsa();
@@ -651,6 +788,22 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess()
     domain_->assembleNodalInertiaTensors(melArray_);
   }
 
+  // Assemble mass matrix if necessary
+  if(domain_->solInfo().useMassOrthogonalProjection) {
+    if(geoSource->getMRatio() != 0) {
+      allOps.M = domain_->constructDBSparseMatrix<double>();
+    }
+    else {
+      allOps.M = new DiagMatrix(domain->getCDSA());
+    }
+    domain_->makeSparseOps<double>(allOps, 0.0, 1.0, 0.0);
+  }
+}
+
+template<typename MatrixBufferType, typename SizeType>
+void
+ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double> &allOps, int j)
+{
   const FileNameInfo fileInfo;
   
   // Read order reduction data
@@ -661,34 +814,32 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess()
   // (a) if a mass-orthogonal projection is to be done, then the mass-normalized basis will be read
   // (b) if and orthogonal projection is to be done, then the identity-normalized basis will be read
   {
-    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, j);
     if(domain_->solInfo().useMassOrthogonalProjection) fileName.append(".normalized");
     BasisInputStream<6> in(fileName, vecDofConversion);
-    const int podSizeMax = domain_->solInfo().maxSizePodRom;
-    if (podSizeMax != 0) {
-      readVectors(in, podBasis_, podSizeMax);
-    } else {
-      readVectors(in, podBasis_);
-    }
-  }
-
-  // Assemble mass matrix if necessary
-  AllOps<double> allOps;
-  if(domain_->solInfo().useMassOrthogonalProjection) {
-    if(geoSource->getMRatio() != 0) {
-      allOps.M = domain_->constructDBSparseMatrix<double>();
+    if(domain_->solInfo().readInROBorModes.size() == 1) {
+      const int podSizeMax = domain_->solInfo().maxSizePodRom;
+      if(podSizeMax != 0) {
+        readVectors(in, podBasis_, podSizeMax);
+      } else {
+        readVectors(in, podBasis_);
+      }
     }
     else {
-      allOps.M = new DiagMatrix(domain->getCDSA());
+      int globalBasisSize = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.end(), 0);
+      int startCol = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+j, 0);
+      int blockCols = domain_->solInfo().localBasisSize[j];
+      readVectors(in, podBasis_, globalBasisSize, blockCols, startCol);
+      podBasis_.localBasisIs(startCol, blockCols);
     }
-    domain_->makeSparseOps<double>(allOps, 0.0, 1.0, 0.0);
   }
 
   const int podVectorCount = podBasis_.vectorCount();
 
   // Read some displacement snapshots from one or more files and project them on to the basis
   readAndProjectSnapshots(BasisId::STATE, vectorSize(), podBasis_, vecDofConversion,
-                          snapshotCounts_, timeStamps_, displac_, allOps.M);
+                          snapshotCounts_, timeStamps_, displac_, allOps.M,
+                          ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
 
   // Optionally, read some velocity snapshots and project them on to the reduced order basis
   if(!domain_->solInfo().velocPodRomFile.empty()) {
@@ -696,7 +847,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess()
     std::vector<int> velSnapshotCounts;
     veloc_ = new VecBasis;
     readAndProjectSnapshots(BasisId::VELOCITY, vectorSize(), podBasis_, vecDofConversion,
-                            velSnapshotCounts, velTimeStamps, *veloc_, allOps.M);
+                            velSnapshotCounts, velTimeStamps, *veloc_, allOps.M,
+                            ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
     if(velSnapshotCounts != snapshotCounts_) std::cerr << " *** WARNING: inconsistent velocity snapshots\n";
   }
 
@@ -706,25 +858,34 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess()
     std::vector<int> accSnapshotCounts;
     accel_ = new VecBasis;
     readAndProjectSnapshots(BasisId::ACCELERATION, vectorSize(), podBasis_, vecDofConversion,
-                            accSnapshotCounts, accTimeStamps, *accel_, allOps.M);
+                            accSnapshotCounts, accTimeStamps, *accel_, allOps.M,
+                            ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
     if(accSnapshotCounts != snapshotCounts_) std::cerr << " *** WARNING: inconsistent acceleration snapshots\n";
   }
   
   // Read in mass-normalized basis if necessary
   if((domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis)
      && !domain_->solInfo().useMassOrthogonalProjection) {
-    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,j);
     fileName.append(".normalized");
     BasisInputStream<6> in(fileName, vecDofConversion);
-    const int podSizeMax = domain_->solInfo().maxSizePodRom;
-    if(podSizeMax != 0) {
-      readVectors(in, podBasis_, podSizeMax);
-    } else {
-      readVectors(in, podBasis_);
+    if(domain_->solInfo().readInROBorModes.size() == 1) {
+      const int podSizeMax = domain_->solInfo().maxSizePodRom;
+      if(podSizeMax != 0) {
+        readVectors(in, podBasis_, podSizeMax);
+      } else {
+        readVectors(in, podBasis_);
+      }
+    }
+    else {
+      int globalBasisSize = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.end(), 0);
+      int startCol = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+j, 0);
+      int blockCols = domain_->solInfo().localBasisSize[j];
+      readVectors(in, podBasis_, globalBasisSize, blockCols, startCol);
     }
   }
 
-  const int snapshotCount = std::accumulate(snapshotCounts_.begin(), snapshotCounts_.end(), 0);
+  const int snapshotCount = (j==-1) ? std::accumulate(snapshotCounts_.begin(), snapshotCounts_.end(), 0) : snapshotCounts_[j];
   solver_.problemSizeIs(podVectorCount*snapshotCount, elementCount());
 }
 

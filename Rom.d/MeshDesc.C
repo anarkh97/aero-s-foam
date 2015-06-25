@@ -209,10 +209,22 @@ using namespace Detail;
 
 MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren, const std::map<int, double> &weights) :
   properties_(&geoSource->getStructProps()),
-  materialLaws_(&geoSource->getMaterialLaws())
+  materialLaws_(&geoSource->getMaterialLaws()),
+  elemWeights_(1)
 {
   init(domain, geoSource, ren);
-  reduce(ren.elemRenumbering(), weights, std::inserter(elemWeights_, elemWeights_.end())); 
+  reduce(ren.elemRenumbering(), weights, std::inserter(elemWeights_[0], elemWeights_[0].end())); 
+}
+
+MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren, const std::vector<std::map<int, double> > &weights) :
+  properties_(&geoSource->getStructProps()),
+  materialLaws_(&geoSource->getMaterialLaws()),
+  elemWeights_(weights.size())
+{
+  init(domain, geoSource, ren);
+  for(int j=0; j<weights.size(); ++j) {
+    reduce(ren.elemRenumbering(), weights[j], std::inserter(elemWeights_[j], elemWeights_[j].end()));
+  }
 }
                                                                                       
 MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const SampledMeshRenumbering &ren) :
@@ -290,9 +302,11 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
   if (!mesh.sampleNodeIds().empty())
     out << make_section(mesh.sampleNodeIds().begin(), mesh.sampleNodeIds().end(), SampleNodeTag());
 
-  if (!mesh.elemWeights().empty()) {
-    out.precision(std::numeric_limits<double>::digits10+1);
-    out << make_section(mesh.elemWeights().begin(), mesh.elemWeights().end(), ElementWeightTag());
+  for(int j=0; j<mesh.numLocal(); ++j) {
+    if (!mesh.elemWeights(j).empty()) {
+      out.precision(std::numeric_limits<double>::digits10+1);
+      out << make_section(mesh.elemWeights(j).begin(), mesh.elemWeights(j).end(), ElementWeightTag(), j+1);
+    }
   }
 
   return out;

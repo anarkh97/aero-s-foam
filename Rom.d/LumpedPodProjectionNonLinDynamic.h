@@ -13,6 +13,7 @@ public:
 
   virtual void preProcess();
   virtual void updateStates(ModalGeomState *refState, ModalGeomState& geomState, double time);
+  virtual int selectLocalBasis(Vector &q);
   virtual void setLocalReducedMesh(int j);
 
 private:

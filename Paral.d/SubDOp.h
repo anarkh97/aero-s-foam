@@ -27,7 +27,9 @@ class GenSubDOp {
           numSub = _numSub;
           sops = new GenSparseMatrix<Scalar> *[numSub];
           for(int j=0;j<numSub;j++) {
-            if (_sops[j]) *(sops+j) = _sops[j][i];
+            if (_sops[j])  {
+                *(sops+j) = _sops[j][i];
+            }
             else *(sops+j) = 0;
           }
           assembler =_assembler;

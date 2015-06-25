@@ -7,6 +7,7 @@
 #include <utility>
 
 extern GeoSource *geoSource;
+extern int verboseFlag;
 
 namespace Rom {
 
@@ -123,6 +124,17 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
       exit(-1);
     }
   }
+}
+
+int
+LumpedPodProjectionNonLinDynamic::selectLocalBasis(Vector &q)
+{
+  // TODO: fast selection alorithm from Section 3.3 of the following reference:
+  // Amsallem, Zahr and Farhat. "Nonlinear model order reduction based on local reduced‐order bases."
+  // International Journal for Numerical Methods in Engineering 92.10 (2012): 891-916.
+  int j = rand()%domain->solInfo().readInROBorModes.size();
+  if(verboseFlag) std::cerr << " ... Selecting local basis # " << j << "     ...\n";
+  return j;
 }
 
 void

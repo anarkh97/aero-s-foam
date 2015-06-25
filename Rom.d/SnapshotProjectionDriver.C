@@ -45,7 +45,7 @@ namespace Rom {
 // ====================
 void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis &podBasis,
                              const VecNodeDof6Conversion &vecDofConversion,
-                             std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config, SparseMatrix *M);
+                             std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config, SparseMatrix *M, int j=-1);
 
 // Member functions
 // ================

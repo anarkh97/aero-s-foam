@@ -65,19 +65,23 @@ public:
   InputIterator begin() const { return first_; }
   InputIterator end()   const { return last_;  }
 
-  InputFileSection(InputIterator first, InputIterator last, TagType tag) :
-    first_(first), last_(last), tag_(tag)
+  int j() const { return j_; }
+
+  InputFileSection(InputIterator first, InputIterator last, TagType tag, int j) :
+    first_(first), last_(last), tag_(tag), j_(j)
   {}
 
 private:
   InputIterator first_, last_;
   TagType tag_;
+  int j_;
 };
 
 template <typename InputIterator, typename TagType>
 std::ostream &
 operator<<(std::ostream &out, const InputFileSection<InputIterator, TagType> &source) {
-  out << "*\n" << source.header() << "\n";
+  if(source.j() == 0) out << "*\n" << source.header() << "\n";
+  else out << "*\n" << source.header() << " " << source.j() << "\n";
   InputIterator itEnd = source.end();
   for (InputIterator it = source.begin(); it != itEnd; ++it) {
     typedef typename InputFileSection<InputIterator, TagType>::ValueType ValueType;
@@ -145,13 +149,19 @@ struct MatLawTag {
 template <typename InputIterator>
 InputFileSection<InputIterator, EmptyTag>
 make_section(InputIterator first, InputIterator last) {
-  return InputFileSection<InputIterator, EmptyTag>(first, last, EmptyTag());
+  return InputFileSection<InputIterator, EmptyTag>(first, last, EmptyTag(), 0);
 }
 
 template <typename InputIterator, typename TagType>
 InputFileSection<InputIterator, TagType>
 make_section(InputIterator first, InputIterator last, TagType tag) {
-  return InputFileSection<InputIterator, TagType>(first, last, tag);
+  return InputFileSection<InputIterator, TagType>(first, last, tag, 0);
+}
+
+template <typename InputIterator, typename TagType>
+InputFileSection<InputIterator, TagType>
+make_section(InputIterator first, InputIterator last, TagType tag, int j) {
+  return InputFileSection<InputIterator, TagType>(first, last, tag, j);
 }
 
 } /* end namespace Rom */

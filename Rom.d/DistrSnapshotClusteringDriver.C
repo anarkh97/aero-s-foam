@@ -88,6 +88,18 @@ void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDof6Buffer
       converter.unpaddedNodeDof6(vec, outputBuffer);
       outputFile.stateAdd(outputBuffer, 1.0);
     }
+
+    if(workload == BasisId::STATE) {
+      fileName.append(".centroid");
+      DistrBasisOutputFile outputFile2(fileName,
+                                       nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
+                                       comm, false);
+      filePrint(stderr, " ... Writing snapshot cluster centroid to file %s ...\n", fileName.c_str());
+      double * const vecBuffer = const_cast<double *>(solver.clusterCentroidBuffer(i));
+      const GenStackDistVector<double> vec(vectorSize, vecBuffer);
+      converter.unpaddedNodeDof6(vec, outputBuffer);
+      outputFile2.stateAdd(outputBuffer, 1.0);
+    }
   }
 }
 

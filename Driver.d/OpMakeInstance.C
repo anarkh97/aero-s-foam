@@ -146,12 +146,23 @@ template \
 void \
 Domain::buildRHSForce<Scalar>(GenVector<Scalar>&, GenVector<Scalar>&,\
                               GenSparseMatrix<Scalar>*, GenSparseMatrix<Scalar>*, \
-                              GenSparseMatrix<Scalar>**, double, double, GeomState*);\
+                              GenSparseMatrix<Scalar>**, \
+                              GenSparseMatrix<Scalar>**, \
+                              GenSparseMatrix<Scalar>**, \
+                              GenSparseMatrix<Scalar>**, \
+                              double, double, GeomState*);\
 \
 template \
 void \
 Domain::buildFreqSweepRHSForce<Scalar>(GenVector<Scalar>&, GenSparseMatrix<Scalar>*,\
-                                       GenSparseMatrix<Scalar>**, int, double);\
+                                       GenSparseMatrix<Scalar>**, \
+                                       GenSparseMatrix<Scalar>**, \
+                                       int, double);\
+\
+template \
+void \
+Domain::buildDeltaK(double w0, double w, GenSparseMatrix<Scalar> *deltaK, \
+                                         GenSparseMatrix<Scalar> *deltaKuc); \
 \
 template \
 void \

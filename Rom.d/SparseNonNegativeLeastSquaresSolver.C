@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <cstdio>
 #include <iostream>
+#include <algorithm>
 
 extern "C" {
   // Approximately solve the sparse non-negative least-squares problem
@@ -115,6 +116,8 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       _FORTRAN(spnnls)(matrixBuffer_.data(), &equationCount_, &equationCount_, &unknownCount_, rhsBuffer_.array(),
                        solutionBuffer_.array(), &relativeTolerance_, &errorMagnitude_, dualSolutionBuffer_.array(),
                        workspace.array(), workspace2.array(), index.array(), &info, &prtflg, &scaflg, &maxSizeRatio_, &maxIterRatio_, &dtime);
+
+      nnz = unknownCount_ - std::count(solutionBuffer_.array(), solutionBuffer_.array()+unknownCount_, 0);
     } break;
 
     case 1 : { // Non-negative Conjugate Gradient Pursuit
@@ -200,10 +203,10 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
 
   }
   double t = (getTime() - t0)/1000.0;
-  fprintf(stderr, " ... Solve Time    = %13.6f s   ...\n",t);
-  fprintf(stderr, " ... DDate Time    = %13.6f s   ...\n",dtime);
-  fprintf(stderr, " ... %% DDate       = %13.6f %% ...\n",(dtime/t)*100.);
-  fprintf(stderr, " ... Elements      = %13d   ...\n",nnz);
+  fprintf(stderr, " ... Solve Time    = %12.6f s ...\n",t);
+  fprintf(stderr, " ... DDate Time    = %12.6f s ...\n",dtime);
+  fprintf(stderr, " ... %% DDate       = %12.6f %% ...\n",(dtime/t)*100.);
+  fprintf(stderr, " ... Elements      = %12d   ...\n",nnz);
   if (info == 2) {
     throw std::logic_error("Illegal problem size");
   }

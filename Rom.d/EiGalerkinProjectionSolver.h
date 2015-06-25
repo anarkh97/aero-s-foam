@@ -12,6 +12,8 @@ namespace Rom {
 
 template <typename Scalar>
 class GenEiSparseGalerkinProjectionSolver : public GenPodProjectionSolver<Scalar>, public GenEiSparseMatrix<Scalar> {
+  typedef const Eigen::Block<const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor>, 
+                             Eigen::Dynamic, Eigen::Dynamic, false> LocalBasisType;
 public:
   GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, bool = true, double tol = 1e-6);
 

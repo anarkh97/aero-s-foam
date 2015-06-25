@@ -14,6 +14,8 @@
 namespace Rom {
 
 template <typename Scalar> class GenPodProjectionSolver;
+template <int> class VecNodeDofConversion;
+typedef VecNodeDofConversion<6> VecNodeDof6Conversion;
 
 class SDDynamPodPostProcessor : public SDDynamPostProcessor
 {
@@ -96,9 +98,12 @@ public:
               Vector &v, Vector &a, Vector &vp, Vector &force) {}
 
   // Local bases
-  int selectLocalBasis(Vector &q);
+  virtual int selectLocalBasis(Vector &q);
   void setLocalBasis(ModalGeomState *refState, ModalGeomState *geomState, Vector &q_n, Vector &v, Vector &a);
   virtual void setLocalReducedMesh(int j) {}
+  void readLocalBasesCent(const VecNodeDof6Conversion &vecNodeDof6Conversion);
+  void readLocalBasesProj();
+  void projectLocalBases(int i, int j, Vector &q);
 
 protected:
   class Impl;
@@ -107,6 +112,10 @@ protected:
   Vector *d0_Big, *v0_Big;
   GenFullSquareMatrix<double> K_reduced;
   int localBasisId;
+#ifdef USE_EIGEN3
+  Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,Eigen::Dynamic> VtV;
+  Eigen::MatrixXd uc;
+#endif
 
 private:
   virtual bool factorWhenBuilding() const; // Overriden

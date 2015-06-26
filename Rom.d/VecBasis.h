@@ -70,7 +70,7 @@ public:
   VecType & expand(VecType &, VecType &, bool=true) const;
   VecType & fullExpand(VecType &, VecType &) const;
   VecType & expand(std::vector<Scalar> &, VecType &) const;
-  VecType & reduce(VecType &, VecType &) const;
+  VecType & reduce(VecType &, VecType &, bool=true) const;
   VecType & reduceAll(VecType &, VecType &) const;
   VecType & compressedVecReduce(VecType &, VecType &) const;
   VecType & sparseVecReduce(VecType &, VecType &) const;

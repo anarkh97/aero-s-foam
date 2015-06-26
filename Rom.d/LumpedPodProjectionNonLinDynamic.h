@@ -27,6 +27,7 @@ protected:
   std::set<int> packedWeightedElems_;
   void buildPackedElementWeights();
   int localReducedMeshId_;
+  std::vector<std::vector<int> > localPackedWeightedNodes_;
 };
 
 } /* end namespace Rom */

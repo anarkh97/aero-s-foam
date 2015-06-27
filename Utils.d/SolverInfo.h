@@ -385,6 +385,7 @@ struct SolverInfo {
    bool svdPodRom;
    int  svdBlockSize;
    int clustering;
+   int  solverTypeCluster; // 0: Random, 1: K-means
    int use_nmf;
    int nmfNumROBDim;
    int nmfDelROBDim;
@@ -718,6 +719,7 @@ struct SolverInfo {
                   UDEIMPodRom        = false;
                   svdBlockSize       = 64;
                   clustering         = 0;
+                  solverTypeCluster  = 1; // K-means
                   use_nmf            = 0;
                   nmfNumROBDim       = 1;
                   nmfDelROBDim       = 10;

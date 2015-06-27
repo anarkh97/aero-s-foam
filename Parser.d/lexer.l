@@ -1541,6 +1541,9 @@ TRAIL [a-zA-Z]*
 "USE_GREEDY"|"use_greedy"                 { return USEGREEDY; }
 
 "DO_CLUSTERING"|"do_clustering"           { return DOCLUSTERING; }
+"CLUSTERSOLVER"|"clustersolver"           { return CLUSTERSOLVER; }
+"CRANDOM"|"crandom"                       { yylval.ival = 0; return CLUSTERSOLVERTYPE; }
+"KMEANS"|"kmeans"                         { yylval.ival = 1; return CLUSTERSOLVERTYPE; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

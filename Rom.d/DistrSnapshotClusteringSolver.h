@@ -24,6 +24,15 @@ public:
 
   const int clusterColCount(int i) const;
 
+  int solverType() const { return solverType_; }
+  void solverTypeIs(int solTyp) { solverType_ = solTyp; }
+
+  int kmMaxIter() const { return kmMaxIter_; }
+  void kmMaxIterIs(int kmMaxIter) { kmMaxIter_ = kmMaxIter; }
+
+  int kmSeed() const { return kmSeed_; }
+  void kmSeedIs(int kmSeed) { kmSeed_ = kmSeed; }
+
   void solve();
 
   DistrSnapshotClusteringSolver(Communicator * comm, int rowCount, int colCount, int localRows, int numClusters,
@@ -36,6 +45,10 @@ private:
 
   Communicator * communicator_;
   int rowCount_, colCount_, localRows_, numClusters_, blockSize_;
+
+  int solverType_;
+  int kmMaxIter_;
+  int kmSeed_;
 
   Eigen::MatrixXd matrixBuffer_;
   Eigen::MatrixXd centroidBuffer_;

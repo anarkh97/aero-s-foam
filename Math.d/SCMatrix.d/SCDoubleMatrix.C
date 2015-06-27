@@ -1,5 +1,5 @@
-#if defined(USE_MPI) && defined(USE_EIGEN3)
-#ifdef NNLS_DEV
+#if defined(USE_MPI)
+#ifdef SCARRAYS_DEV
 #include "SCDoubleMatrix.h"
 #else
 #include "Math.d/SCMatrix.d/SCDoubleMatrix.h"
@@ -11,8 +11,10 @@
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
-#include <Eigen/Core>
 #include <ctime>
+#if defined(USE_EIGEN3)
+#include <Eigen/Core>
+#endif
 
 
 SCDoubleMatrix::SCDoubleMatrix(std::string filename, int context, int mb, int nb, MPI_Comm comm) :
@@ -28,12 +30,14 @@ SCDoubleMatrix::SCDoubleMatrix(int context, int m, int n, int mb, int nb, MPI_Co
 }
 
 
-SCDoubleMatrix::SCDoubleMatrix(const SCDoubleMatrix& matrix) : 
+SCDoubleMatrix::SCDoubleMatrix(const SCDoubleMatrix& matrix, bool copymatrix) : 
     SCBaseMatrix(matrix._context, matrix._m, matrix._n, matrix._mb, matrix._nb, matrix._comm) {
     //SCBaseMatrix::init();
     SCDoubleMatrix::init();
-    for (int i=0; i<_sizelocal; i++) {
-        _matrix[i] = matrix._matrix[i];
+    if (copymatrix) {
+        for (int i=0; i<_sizelocal; i++) {
+            _matrix[i] = matrix._matrix[i];
+        }
     }
 }
 
@@ -100,6 +104,13 @@ SCDoubleMatrix::~SCDoubleMatrix() {
     if (_sing != NULL) {
         delete[] _sing;
     }
+}
+
+
+// For gdb
+void
+SCDoubleMatrix::write(const char * fname) {
+    this->write(std::string(fname), true, _m, _n);
 }
 
 
@@ -488,7 +499,6 @@ SCDoubleMatrix::setElementsLocal(const SCDoubleMatrix& matrix) {
 }
 
 
-// Only for vectors
 void
 SCDoubleMatrix::project(double value) {
     if (_m == 1) {
@@ -507,6 +517,12 @@ SCDoubleMatrix::project(double value) {
                 }
             }
         }
+    } else {
+        for (int i=0; i<_sizelocal; i++) {
+            if (_matrix[i] < value) {
+                _matrix[i] = value;
+            }
+        }
     }
 }
 
@@ -514,7 +530,7 @@ SCDoubleMatrix::project(double value) {
 int
 SCDoubleMatrix::loadIdentityMatrix(double value) {
     // Initialize the matrix to the identity
-    int m = std::max(_m, _n);
+    int m = std::min(_m, _n);
     SCDoubleMatrix::zero();
     for (int i=1; i<=m; i++) {
         _FORTRAN(pdelset)(_matrix, &i, &i, _desc, &value);
@@ -624,10 +640,18 @@ SCDoubleMatrix::add(SCDoubleMatrix& matrix, char trans, int m, int n, double a, 
 int
 SCDoubleMatrix::add(SCDoubleMatrix& matrix, char trans, int n, double a, double b) {
     int one = 1;
-    if (_m == matrix._m && _n == matrix._n && _m == 1) {
-         _FORTRAN(pdgeadd)(&trans, &one, &n, &a,
-            _matrix,        &one, &one, _desc, &b,
-            matrix._matrix, &one, &one, matrix._desc);
+    if (_m == matrix._m && _n == matrix._n) {
+         if  (_m == 1) {
+              _FORTRAN(pdgeadd)(&trans, &one, &n, &a,
+                 _matrix,        &one, &one, _desc, &b,
+                 matrix._matrix, &one, &one, matrix._desc);
+         } else if (_n == 1) {
+              _FORTRAN(pdgeadd)(&trans, &n, &one, &a,
+                 _matrix,        &one, &one, _desc, &b,
+                 matrix._matrix, &one, &one, matrix._desc);
+         } else {
+             std::cerr << "Problem in SCDoubleMatrix::add. _m or _n != 1" << std::endl;
+         }
     } else {
         std::cerr << "Problem in SCDoubleMatrix::add" << std::endl;
     }
@@ -1113,6 +1137,7 @@ SCDoubleMatrix::scalarMultiply( double s) {
 }
 
 
+#if defined(USE_EIGEN3)
 int
 SCDoubleMatrix::loadMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A) {
     int * sizes = new int[_nprocs+1];
@@ -1190,84 +1215,6 @@ SCDoubleMatrix::loadMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A) {
 }
 
 
-/* Loads the transpose of an Eigen matrix
-int
-SCDoubleMatrix::loadTransposeMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A) {
-    int * sizes = new int[_nprocs+1];
-    int ldim = A.size() + 1;
-    int * sizeslocal = new int[ldim];
-    int ncol = 0;
-    int one = 1;
-    sizeslocal[0] = 0;
-    for (int i=0; i<A.size(); i++) {
-        ncol += A[i].cols();
-        sizeslocal[i+1] = ncol;
-    }
-    // std::cout << "Number of columns = " << A[0].cols() << " on processor " << _mypid << std::endl;
-    MPI_Allgather(&ncol, 1, MPI_INT, &(sizes[1]), 1, MPI_INT, _comm);
-
-    sizes[0] = 0;
-    for (int i=1; i<_nprocs+1; i++) {
-        sizes[i] += sizes[i-1];
-    }
-
-    double * row = new double[_n]; // can do much much better
-    int pc, pr, ig, il, jg, dummy, ioff, zero=0;
-    int nlocal, isd, jsd;
-    MPI_Status status;
-    MPI_Request request;
-    for (int p=0; p<_nprocs; p++) {
-        if (p == _mypid) {
-            isd = 0; // Local sub domain index
-            for (int j=sizes[p]; j<sizes[p+1]; j++) {
-                jg = j+1;   // Global Eigen column fortran index
-                jsd = j-sizes[p]-sizeslocal[isd]; // Local Eigen column C index
-                if (jsd >= A[isd].cols()) {
-                    isd++;
-                    jsd = j-sizes[p]-sizeslocal[isd];
-                }
-                pr = _FORTRAN(indxg2p)(&jg, &_mb, &dummy, &zero, &_mprow); // Processor row coord of Eigen col jg
-                for (int k=0; k<_npcol; k++) {
-                    pc = _FORTRAN(blacs_pnum)(&_context, &pr, &k);
-                    if (pc != p) {
-                        nlocal = _FORTRAN(numroc)(&_n, &_nb, &k, &zero, &_npcol);
-                        for (int j=1; j<=nlocal; j++) {
-                            ig = _FORTRAN(indxl2g)(&j, &_nb, &k, &zero, &_npcol) - 1;
-                            row[j-1] = A[isd].col(jsd)[ig];
-                        }   
-                        MPI_Send(row, nlocal, MPI_DOUBLE, pr, k, _comm);
-                        //MPI_Isend(row, nlocal, MPI_DOUBLE, pr, k, _comm, &request);
-                    } else {
-                        il = _FORTRAN(indxg2l)(&jg, &_mb, &zero, &zero, &_mprow) - 1;
-                        for (int i=1; i<=_nlocal; i++) {
-                            ig = _FORTRAN(indxl2g)(&i, &_nb, &_mycol, &zero, &_npcol) -1;
-                            _matrix[il+(i-1)*_mlocal] = A[isd].col(jsd)[ig];
-                        }   
-                    }
-                }
-            }
-        } else {
-            for (int j=sizes[p]; j<sizes[p+1]; j++) {
-                jg = j+1;   // Global Eigen column fortran index - actual Matrix row index
-                pr = _FORTRAN(indxg2p)(&jg, &_mb, &dummy, &zero, &_mprow); // Processor row coord of Eigen col jg
-                if  (_myrow == pr) {
-                    MPI_Recv(row, _nlocal, MPI_DOUBLE, p, _mycol, _comm, &status);
-                    il = _FORTRAN(indxg2l)(&jg, &_mb, &zero, &zero, &_mprow) - 1;
-                    for (int i=0; i<_nlocal; i++) {
-                        _matrix[il+i*_mlocal] = row[i];
-                    }   
-                }
-            }
-        }
-    }
-    delete[] row;
-    delete[] sizes;
-    delete[] sizeslocal;
-    return 0;
-}
-*/
-
-
 int
 SCDoubleMatrix::loadMatrix(Eigen::Ref<Eigen::VectorXd> &b) {
     Eigen::Map<Eigen::MatrixXd> em = Eigen::Map<Eigen::MatrixXd>(b.data(), b.rows(), 1);
@@ -1289,6 +1236,7 @@ SCDoubleMatrix::loadRhs(const Eigen::Ref<const Eigen::VectorXd> &b) {
     }
     return 0;
 }
+#endif // USE_EIGEN3
 
 
 // Max returned on processor zero
@@ -1372,10 +1320,17 @@ SCDoubleMatrix::isFeasible() {
     return feasible;
 }
 
+
 void
-SCDoubleMatrix::AtA(SCDoubleMatrix& A, int n) {
+SCDoubleMatrix::hessian(SCDoubleMatrix& A, int n, bool transpose) {
     char transA = 'T';
     char transB = 'N';
+    if (n == 0) n = _n;
+    if (transpose) {
+        transA = 'N';
+        transB = 'T';
+        if (n == 0) n = _m;
+    }
     double alpha = 1.0, beta = 0.0;
     double * matrixC = A.getMatrix();
     int * descC = A.getDesc();
@@ -1412,6 +1367,7 @@ SCDoubleMatrix::solve(SCDoubleMatrix& x, SCDoubleMatrix& b, int n) {
 
 int
 SCDoubleMatrix::choldecomp(int n) {
+    if (n == 0) n = _n;
     char uplo = 'L';
     int one = 1, info;
     _FORTRAN(pdpotrf)(&uplo, &n, _matrix, &one, &one, _desc, &info);
@@ -1420,17 +1376,14 @@ SCDoubleMatrix::choldecomp(int n) {
 
 
 int
-SCDoubleMatrix::cholsolve(SCDoubleMatrix& x, SCDoubleMatrix& b, int n) {
+SCDoubleMatrix::cholsolve(SCDoubleMatrix& b, int n) {
+    if (n == 0) n = _n;
     char uplo = 'L';
     int one = 1, info;
-    SCDoubleMatrix * z = new SCDoubleMatrix(_context, n, 1,  _mb, _nb, _comm);
-    b.copy(*z, n);
-    double * rhs = z->getMatrix();
-    int * descRhs = z->getDesc();
-    _FORTRAN(pdpotrs)(&uplo, &n, &one, _matrix, &one, &one, _desc, rhs, &one, &one, descRhs, &info);
-    x.zero();
-    z->copy(x, n);
-    delete z;
+    double * rhs  = b.getMatrix();
+    int * descRhs = b.getDesc();
+    int nrhs = b.getNumberOfCols();
+    _FORTRAN(pdpotrs)(&uplo, &n, &nrhs, _matrix, &one, &one, _desc, rhs, &one, &one, descRhs, &info);
     return info;
 }
 
@@ -1509,5 +1462,193 @@ SCDoubleMatrix::writeSingularValues(std::string filename) {
         fclose(f);
     }
 }
+
+
+bool
+SCDoubleMatrix::isSameShape(SCDoubleMatrix &A) {
+    bool same = false;
+    if (A._m == _m && A._n == _n) {
+        same = true;
+    }
+    return same;
+}
+
+
+bool
+SCDoubleMatrix::isSameShape(SCIntMatrix &A) {
+    bool same = false;
+    int m = A.getNumberOfRows();
+    int n = A.getNumberOfCols();
+    if (_m == m && _n == n) {
+        same = true;
+    }
+    return same;
+}
+
+
+void
+SCDoubleMatrix::zeroout(SCIntMatrix& set) {
+    if (!this->isSameShape(set)) {
+        std::cout << "Problem in SCDoubleMatrix::zeroout. Shapes are different." << std::endl;
+        exit(0);
+    }
+    int *zo = set.getMatrix();
+    for (int i=0; i<_sizelocal; i++) {
+        if (zo[i] != 0) {
+            _matrix[i] = 0.0;
+        }
+    }
+}
+
+
+double
+SCDoubleMatrix::getL2ColDistance(int icol, SCDoubleMatrix& B, int jcol) {
+    SCDoubleMatrix x = SCDoubleMatrix(_context, _m, 1, _mb, _nb, _comm);
+    SCDoubleMatrix y = SCDoubleMatrix(_context, _m, 1, _mb, _nb, _comm);
+    int ix = 1, incx = 1;
+    int iy = 1, jy = 1, incy = 1;
+    this->startTime(SCDBL_TIME_GETL2COLDIST_COPY);
+    _FORTRAN(pdcopy)(&_m, _matrix, &ix, &icol, _desc, &incx,
+        x.getMatrix(), &iy, &jy, x.getDesc(), &incy);
+    _FORTRAN(pdcopy)(&_m, B._matrix, &ix, &jcol, B._desc, &incx,
+        y.getMatrix(), &iy, &jy, y.getDesc(), &incy);
+    this->stopTime(SCDBL_TIME_GETL2COLDIST_COPY);
+    //MPI_Barrier(MPI_COMM_WORLD);
+    this->startTime(SCDBL_TIME_GETL2COLDIST_ADD);
+    for (int i=0; i<x._sizelocal; i++) {
+        x._matrix[i] -= y._matrix[i];
+    }
+    //int one = 1;
+    //char trans = 'N';
+    //double a = 1.0, b = -1.0;
+    //y.add(x, trans, _m, 1, a, b, 1, 1, 1, 1);
+    //x.write("x.txt");
+    //_FORTRAN(pdgeadd)(&trans, &_m, &one,   &a,
+    //        B.getMatrix(),    &one, &jcol, B._desc, &b,
+    //        x._matrix, &one,  &one,  x._desc);
+    this->stopTime(SCDBL_TIME_GETL2COLDIST_ADD);
+    return x.norm2(); // Result is distributed in norm2()
+}
+
+
+void
+SCDoubleMatrix::sumOfColumns(SCDoubleMatrix& B, int bcol, SCIntMatrix& mask, int maskValue, double fac) {
+    SCDoubleMatrix sum = SCDoubleMatrix(_context, _m, 1, _mb, _nb, _comm);
+    SCDoubleMatrix x   = SCDoubleMatrix(_context, _m, 1, _mb, _nb, _comm);
+    sum.zero();
+    int one=1;
+    int imask;
+    for (int icol=1; icol<=_n; icol++) {
+        if (mask.getNumberOfRows() == 1) {
+            imask = mask.getElement(1, icol);
+        } else {
+            imask = mask.getElement(icol, 1);
+        }
+        mask.SCBaseMatrix::distributeVector(&imask, 1);
+        //std::cout << "imask = " << imask << std::endl;
+        if (imask == maskValue) {
+            _FORTRAN(pdcopy)(&_m, _matrix, &one, &icol, _desc, &one,
+                             x._matrix, &one, &one, x._desc, &one);
+            for (int i=0; i<x._sizelocal; i++) {
+                sum._matrix[i] += x._matrix[i];
+            }
+        }
+    }
+    if (fac != 1.0) {
+        for (int i=0; i<sum._sizelocal; i++) {
+            sum._matrix[i] *= fac;
+        }
+    }
+    _FORTRAN(pdcopy)(&_m, sum._matrix, &one, &one, sum._desc, &one,
+                     B._matrix, &one, &bcol, B._desc, &one);
+}
+
+
+void
+SCDoubleMatrix::getLocalColumn(int jloc, int send_proc, int recv_proc, double *col) {
+    MPI_Status status;
+    int err, zero=0;
+    if (send_proc == recv_proc) {
+        if (send_proc == _mypid) {
+            double * send_buf = _matrix + jloc*_mlocal;
+            for (int i=0; i<_mlocal; i++) {
+                col[i] = send_buf[i];
+            }
+        }
+    } else {
+        if (_mypid == send_proc) {
+            double * send_buf = _matrix + jloc*_mlocal;
+            err = MPI_Send(send_buf, _mlocal, MPI_DOUBLE, recv_proc, _mypid, _comm);
+        } else if (_mypid == recv_proc) {
+            int count = _FORTRAN(numroc)(&_m, &_mb, &send_proc, &zero, &_mprow);
+            err = MPI_Recv(col, count, MPI_DOUBLE, send_proc, send_proc, _comm, &status);
+        }
+    }
+}
+
+
+void
+SCDoubleMatrix::getColumn(int jcol, int recv_proc, double *col) {
+    int dummy, zero=0;
+    int pc   = _FORTRAN(indxg2p)(&jcol, &_nb, &dummy, &zero,  &_npcol); // jcol global fortran index
+    int jloc = _FORTRAN(indxg2l)(&jcol, &_nb, &dummy, &dummy, &_npcol);
+    double * cloc = new double[_m/_mb+1];
+    for (int i=0; i<_mprow; i++) {
+        int send_proc = _FORTRAN(blacs_pnum)(&_context, &i, &pc);
+        getLocalColumn(jloc, send_proc, recv_proc, cloc);
+        if (_mypid == recv_proc) {
+            int mlocal = _FORTRAN(numroc)(&_m, &_mb, &i, &zero, &_mprow);
+            for (int j=0; j<mlocal; j++) {
+                int jgbl = _FORTRAN(indxl2g)(&j, &_mb, &i, &zero, &_mprow)-1; // Back to C a index
+                col[jgbl] = cloc[j];
+            }
+        }
+    }
+    delete[] cloc;
+}
+
+
+/*
+double
+SCDoubleMatrix::getL2ColDistance(int icol, SCDoubleMatrix& B, int jcol) {
+    SCDoubleMatrix x = SCDoubleMatrix(_context, _m, 1, _mb, _nb, _comm);
+    int ix = 1, incx = 1;
+    int iy = 1, jy = 1, incy = 1;
+    this->startTime(SCDBL_TIME_GETL2COLDIST_COPY);
+    _FORTRAN(pdcopy)(&_m, _matrix, &ix, &icol, _desc, &incx,
+        x.getMatrix(), &iy, &jy, x.getDesc(), &incy);
+    this->stopTime(SCDBL_TIME_GETL2COLDIST_COPY);
+    int one = 1;
+    char trans = 'N';
+    double a = 1.0, b = -1.0;
+    MPI_Barrier(MPI_COMM_WORLD);
+    this->startTime(SCDBL_TIME_GETL2COLDIST_ADD);
+    B.add(x, trans, _m, 1, a, b, 1, jcol, 1, 1);
+    //x.write("x.txt");
+    //_FORTRAN(pdgeadd)(&trans, &_m, &one,   &a,
+    //        B.getMatrix(),    &one, &jcol, B._desc, &b,
+    //        x._matrix, &one,  &one,  x._desc);
+    this->stopTime(SCDBL_TIME_GETL2COLDIST_ADD);
+    return x.norm2(); // Result is distributed in norm2()
+}
+
+
+void
+SCDoubleMatrix::sumOfColumns(SCDoubleMatrix& B, int bcol, SCIntMatrix& mask, int maskValue) {
+    int one = 1;
+    char trans = 'N';
+    double a = 1.0, b = 1.0;
+    B.zero(1, bcol, _m, 1);
+    for (int icol=1; icol<=_n; icol++) {
+        int imask = mask.getElement(1,icol);
+        mask.SCBaseMatrix::distributeVector(&imask, 1);
+        if (imask == maskValue) {
+            _FORTRAN(pdgeadd)(&trans, &_m,  &one, &a,
+                    _matrix,   &one,  &icol, _desc, &b,
+                    B._matrix, &one,  &bcol, B._desc);
+        }
+    }
+}
+*/
 
 #endif

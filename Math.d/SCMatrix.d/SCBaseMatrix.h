@@ -4,7 +4,7 @@
 #include <mpi.h>
 #include <string>
 
-#ifdef NNLS_DEV
+#ifdef SCARRAYS_DEV
 #include "scpblas.h"
 #include "scblacs.h"
 #else
@@ -48,8 +48,15 @@ class SCBaseMatrix {
         int getLocalOffset(int ig, int jg);
         int getGlobalRowIndex(int iloc) {return _FORTRAN(indxl2g)(&iloc, &_mb, &_myrow, &ZERO, &_mprow);}
         int getGlobalColIndex(int jloc) {return _FORTRAN(indxl2g)(&jloc, &_nb, &_mycol, &ZERO, &_npcol);}
+        int getLocalRowIndex(int iglo)  {return _FORTRAN(indxg2l)(&iglo, &_mb, &ZERO,   &ZERO, &_mprow);}
+        int getLocalColIndex(int jglo)  {return _FORTRAN(indxg2l)(&jglo, &_nb, &ZERO,   &ZERO, &_npcol);}
+        int getRowProc(int iglo)        {return _FORTRAN(indxg2p)(&iglo, &_mb, &ZERO,   &ZERO, &_mprow);}
+        int getColProc(int jglo)        {return _FORTRAN(indxg2p)(&jglo, &_mb, &ZERO,   &ZERO, &_npcol);}
         int getProc(int ig, int jg);
         void setRowColComms();
+        MPI_Comm getMpiComm() {return _comm;}
+        int distributeVector(int    *vec, int n); // Convenience routine for distributing local arrays.
+        int distributeVector(double *vec, int n); // Convenience routine for distributing local arrays.
 
         static int ZERO;
 
@@ -75,8 +82,6 @@ class SCBaseMatrix {
         char _scope;      // Scope of matrix. Changes depending on desired commuication pattern
         char _top;        // Communication topology.
         int _desc[DLEN_]; // Scalapack descriptor for matrix _A (_A will be defined in derived class)
-        int distributeVector(int    *vec, int n); // Convenience routine for distributing local arrays.
-        int distributeVector(double *vec, int n); // Convenience routine for distributing local arrays.
         bool _row_col_comm_set;
         MPI_Comm _comm;
         MPI_Comm _row_comm;

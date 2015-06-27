@@ -1,7 +1,7 @@
 #ifndef SCPBLAS_H_
 #define SCPBLAS_H_
 
-#ifdef NNLS_DEV
+#ifdef SCARRAYS_DEV
 #include "linkfc.h"
 #else
 #include <Utils.d/linkfc.h>

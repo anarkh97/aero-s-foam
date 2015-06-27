@@ -1,5 +1,5 @@
 #ifdef USE_MPI
-#ifdef NNLS_DEV
+#ifdef SCARRAYS_DEV
 #include "SCIntMatrix.h"
 #else
 #include "Math.d/SCMatrix.d/SCIntMatrix.h"
@@ -85,6 +85,13 @@ SCIntMatrix::writeLocal(std::string filename) {
         }
     }
     fclose(f);
+}
+
+
+// For gdb
+void
+SCIntMatrix::write(const char * fname) {
+    write(std::string(fname), _m, _n);
 }
 
 
@@ -301,5 +308,28 @@ SCIntMatrix::isEqual(SCIntMatrix& imat) {
     _FORTRAN(igsum2d)(&_context, &_scope, &_top, &one, &one, &count, &one, &minusone, &zero);
     SCBaseMatrix::distributeVector(&count, 1);
     return count;
+}
+
+
+int
+SCIntMatrix::countValue(int value) {
+    int localCount = 0;
+    for (int i=0; i<_sizelocal; i++) {
+        if (_matrix[i] == value) localCount++;
+    }
+    int count = localCount;
+    int minusone=-1, zero=0, one=1;
+    _FORTRAN(igsum2d)(&_context, &_scope, &_top, &one, &one, &count, &one, &minusone, &zero);
+    //SCBaseMatrix::distributeVector(&count, 1);
+    return count;
+}
+
+
+int
+SCIntMatrix::copy(SCIntMatrix& A) {
+    for (int i=0; i<_sizelocal; i++) {
+        A._matrix[i] = _matrix[i];
+    }
+    return 0;
 }
 #endif

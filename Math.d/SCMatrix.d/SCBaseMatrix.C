@@ -1,5 +1,5 @@
 #ifdef USE_MPI
-#ifdef NNLS_DEV
+#ifdef SCARRAYS_DEV
 #include "SCBaseMatrix.h"
 #include "scpblas.h"
 #include "scblacs.h"

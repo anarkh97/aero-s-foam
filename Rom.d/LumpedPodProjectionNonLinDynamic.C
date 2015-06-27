@@ -49,7 +49,7 @@ LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGe
      || domain->solInfo().readInROBorModes.size() > 1) {
     // updateStates is called after midpoint update (i.e. once per timestep)
     // so it is a convenient place to update and copy geomState_Big, if necessary
-    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    const GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
     if(domain->solInfo().readInROBorModes.size() == 1) {
       // note: for local bases method, geomState_Big has already been updated in setLocalBasis
       Vector q_Big(NonLinDynamic::solVecInfo());
@@ -75,7 +75,8 @@ LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGe
 
 void
 LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
-  packedElementWeights_.resize(geoSource->elementLumpingWeightSize()+1);
+  packedElementWeights_.resize(geoSource->elementLumpingWeightSize());
+  localPackedWeightedNodes_.resize(geoSource->elementLumpingWeightSize());
   for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {
     for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(j),
                                                      it_end = geoSource->elementLumpingWeightEnd(j);
@@ -95,6 +96,9 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
         //put nodes for weighted element into dummy vector and insert into packed node vector
         ele->nodes(node_buffer.data());
         packedWeightedNodes_.insert(packedWeightedNodes_.end(), node_buffer.begin(), node_buffer.end());
+        if(geoSource->elementLumpingWeightSize() > 1) {
+          localPackedWeightedNodes_[j].insert(localPackedWeightedNodes_[j].end(), node_buffer.begin(), node_buffer.end());
+        }
         packedWeightedElems_.insert(packedId);
       }
     }
@@ -109,10 +113,19 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   std::vector<int>::iterator packedNodeIt = std::unique(packedWeightedNodes_.begin(), packedWeightedNodes_.end());
   packedWeightedNodes_.resize(packedNodeIt-packedWeightedNodes_.begin());
 
-  if(packedWeightedElems_.size() < domain->numElements()) {
+  if(geoSource->elementLumpingWeightSize() == 1 && packedWeightedElems_.size() < domain->numElements()) {
     filePrint(stderr, " ... Compressing Basis              ...\n");
-    GenVecBasis<double> &projectionBasis = const_cast<GenVecBasis<double> &>(dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis());
+    GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
     projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
+  }
+  else if(geoSource->elementLumpingWeightSize() > 1) {
+    GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
+    for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {    
+      std::sort(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
+      std::vector<int>::iterator packedNodeIt = std::unique(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
+      localPackedWeightedNodes_[j].resize(packedNodeIt-localPackedWeightedNodes_[j].begin());
+      filePrint(stderr, " ... # Nodes in Reduced Mesh = %-5d...\n", localPackedWeightedNodes_[j].size());
+    }
   }
   else {
     if(!domain->solInfo().useMassNormalizedBasis) {
@@ -136,6 +149,9 @@ LumpedPodProjectionNonLinDynamic::setLocalReducedMesh(int j)
   }
 
   localReducedMeshId_ = std::min(geoSource->elementLumpingWeightSize()-1, j);
+
+  GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
+  projectionBasis.makeSparseBasis(localPackedWeightedNodes_[j], domain->getCDSA()); // these could be computed once, stored and then switched between
 }
 
 } /* end namespace Rom */

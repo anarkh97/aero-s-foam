@@ -83,7 +83,7 @@ public:
   void updateParameters(ModalGeomState *);
   bool checkConstraintViolation(double &err, ModalGeomState *);
 
-  // Hiding NonLinDynamic::getSolve
+  // Hiding NonLinDynamic::getSolver
   GenPodProjectionSolver<double> *getSolver();
   const GenPodProjectionSolver<double> *getSolver() const;
 
@@ -99,6 +99,7 @@ public:
 
   // Local bases
   int selectLocalBasis(Vector &q);
+  void initLocalBasis(Vector &q0);
   void setLocalBasis(ModalGeomState *refState, ModalGeomState *geomState, Vector &q_n, Vector &v, Vector &a);
   virtual void setLocalReducedMesh(int j) {}
   void readLocalBasesCent(const VecNodeDof6Conversion &vecNodeDof6Conversion);
@@ -107,6 +108,7 @@ public:
 
 protected:
   class Impl;
+  GenPodProjectionSolver<double> *solver_;
   GeomState *geomState_Big, *refState_Big;
   SDDynamPodPostProcessor *podPostPro;
   Vector *d0_Big, *v0_Big;

@@ -52,7 +52,7 @@ GenVecBasis<double, GenVector>::expand(GenVector<double> &x, GenVector<double> &
   if(useCompressedBasis && compressedKey_.size() > 0) {
     result.setZero();
     Eigen::VectorXd resultBuffer(compressedKey_.size());
-    resultBuffer = compressedBasis_.block(0,startCol_,compressedKey_.size(),blockCols_)*GenCoordinates;
+    resultBuffer = compressedBasis_*GenCoordinates;
     for(int i = 0; i < compressedKey_.size(); i++)
       result(compressedKey_[i]) = resultBuffer(i);
   }
@@ -182,7 +182,7 @@ GenVecBasis<double, GenDistrVector>::sparseVecReduce(GenDistrVector<double> &x, 
 
 template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::reduce(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
+GenVecBasis<double, GenDistrVector>::reduce(GenDistrVector<double> &x, GenDistrVector<double> &_result, bool) const {
 #ifdef USE_EIGEN3
   if(_result.size() > 0) {
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
@@ -204,13 +204,22 @@ GenVecBasis<double, GenDistrVector>::reduce(GenDistrVector<double> &x, GenDistrV
 
 template <>
 GenVector<double> &
-GenVecBasis<double, GenVector>::reduce(GenVector<double> &x, GenVector<double> &_result) const {
+GenVecBasis<double, GenVector>::reduce(GenVector<double> &x, GenVector<double> &_result, bool useCompressedBasis) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data()+startCol_, blockCols_);
 
   _result.zero();
-  result = basis_.block(0,startCol_,basis_.rows(),blockCols_).transpose()*FullCoordinates;
+  if(useCompressedBasis && compressedKey_.size() > 0) {
+    Eigen::VectorXd coordBuffer(compressedKey_.size());
+    for(int i = 0; i < compressedKey_.size(); i++)
+      coordBuffer(i) = FullCoordinates(compressedKey_[i]);
+
+    result = compressedBasis_.transpose()*coordBuffer;
+  }
+  else {
+    result = basis_.block(0,startCol_,basis_.rows(),blockCols_).transpose()*FullCoordinates;
+  }
 #endif
   return _result;
 }
@@ -406,10 +415,10 @@ GenVecBasis<double, GenVector>::makeSparseBasis(const std::vector<int> & nodeVec
     }
   }
 
-  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount_);
+  compressedBasis_.resize(compressedKey_.size(), blockCols_);
 
   for(int i = 0; i < compressedKey_.size(); i++) {
-    compressedBasis_.row(i) = basis_.row(compressedKey_[i]);
+    compressedBasis_.row(i) = basis_.row(compressedKey_[i]).segment(startCol_, blockCols_);
   }
 #endif
 }

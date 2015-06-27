@@ -696,6 +696,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
       meshOut << i+1 << " " << v0Red[i] << std::endl;
   }
 
+#ifdef USE_EIGEN3
   // pre-computation required for local bases method
   if(domain_->solInfo().readInROBorModes.size() > 1 && 
      (domain->solInfo().readInLocalBasesCent.size() == domain_->solInfo().readInROBorModes.size())) {
@@ -748,7 +749,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
     }
   }
 
-#ifdef USE_EIGEN3
   // build and output compressed basis
   DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
   int num_bc = reducedMesh.dirichletBConds().size();

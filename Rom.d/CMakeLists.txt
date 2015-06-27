@@ -76,4 +76,6 @@ ADD_LIBRARY( Rom
   SparseSolvers.d/ScalaLH.d/plhsolve.C
   ClusterSolvers.d/Kmeans.d/Kmeans.C
   ClusterSolvers.d/Kmeans.d/kmeanssolve.C
+  NmfSolvers.d/ScalaPQN.d/Nmf.C
+  NmfSolvers.d/ScalaPQN.d/nmfsolve.C
 )

@@ -1539,6 +1539,7 @@ TRAIL [a-zA-Z]*
 
 "USE_NMF"|"use_nmf"                       { return USENMF; }
 "USE_GREEDY"|"use_greedy"                 { return USEGREEDY; }
+"USE_PQN"|"use_pqn"                       { return USEPQN; }
 
 "DO_CLUSTERING"|"do_clustering"           { return DOCLUSTERING; }
 "CLUSTERSOLVER"|"clustersolver"           { return CLUSTERSOLVER; }

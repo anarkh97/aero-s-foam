@@ -111,7 +111,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE
-%token SNAPFI VELSNAPFI ACCSNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY
+%token SNAPFI VELSNAPFI ACCSNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN
 %token VECTORNORM REBUILDFORCE SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 %token USEMASSNORMALIZEDBASIS
 %token SENSITIVITYID NUMTHICKNESSGROUP 
@@ -4735,6 +4735,23 @@ SvdOption:
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i])); }
   | BLOCKSIZE Integer
   { domain->solInfo().svdBlockSize = $2; }
+  /*
+  | USEPQN Integer Integer Integer Integer Float Integer Float
+  { domain->solInfo().use_nmf = 3;
+    domain->solInfo().nmfNumROBDim = $2;
+    domain->solInfo().nmfDelROBDim = $3;
+    domain->solInfo().nmfRandInit = $4;
+    domain->solInfo().nmfMaxIter = $5;
+    domain->solInfo().nmfTol = $6;
+    domain->solInfo().nmfPqnNumInnerIter = $7;
+    domain->solInfo().nmfPqnAlpha = $8; }
+  */
+  | USEPQN Integer Float Integer Float
+  { domain->solInfo().use_nmf = 3;
+    domain->solInfo().nmfMaxIter = $2;
+    domain->solInfo().nmfTol = $3;
+    domain->solInfo().nmfPqnNumInnerIter = $4;
+    domain->solInfo().nmfPqnAlpha = $5; }
   | USENMF Integer Integer Integer Integer Float
   { domain->solInfo().use_nmf = 1;
     domain->solInfo().nmfNumROBDim = $2;
@@ -4752,6 +4769,8 @@ SvdOption:
   { domain->solInfo().use_nmf = 2; }
   | DOCLUSTERING Integer
   { domain->solInfo().clustering = $2; }
+  | CLUSTERSOLVER CLUSTERSOLVERTYPE
+  { domain->solInfo().solverTypeCluster = $2; }
   | ConwepConfig
   ;
 
@@ -4881,8 +4900,6 @@ SamplingOption:
     domain->solInfo().scpkNP= $3; }
   | REVERSEORDER SWITCH
   { domain->solInfo().useReverseOrder = bool($2); }
-  | CLUSTERSOLVER CLUSTERSOLVERTYPE
-  { domain->solInfo().solverTypeCluster = $2; }
   ;
 
 ConwepConfig:

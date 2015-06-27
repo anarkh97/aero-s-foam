@@ -23,7 +23,7 @@ public:
   void solve();
 
   DistrNonnegativeMatrixFactorization(Communicator * comm, int rowCount, int colCount, int localRows, int basisDimension,
-                                      int blockSize, int maxIter, double tol, int method, int nsub);
+                                      int blockSize, int maxIter, double tol, int method, int nsub, int pqnNumInnerIter, double pqnAlpha);
 
 private:
   void solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleMatrix &B, SCDoubleMatrix &X, int flag);
@@ -33,8 +33,8 @@ private:
   DistrNonnegativeMatrixFactorization & operator=(const DistrNonnegativeMatrixFactorization &);
 
   Communicator * communicator_;
-  int rowCount_, colCount_, localRows_, basisDimension_, blockSize_, maxIter_, method_, nsub_;
-  double tol_;
+  int rowCount_, colCount_, localRows_, basisDimension_, blockSize_, maxIter_, method_, nsub_, pqnNumInnerIter_;
+  double tol_, pqnAlpha_;
 
   Eigen::MatrixXd matrixBuffer_;
   Eigen::MatrixXd basisBuffer_;

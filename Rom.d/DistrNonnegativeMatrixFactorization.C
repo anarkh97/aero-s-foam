@@ -3,6 +3,7 @@
 
 #include <Comm.d/Communicator.h>
 #include <Rom.d/SparseSolvers.d/ScalaLH.d/Plh.h>
+#include <Rom.d/NmfSolvers.d/ScalaPQN.d/Nmf.h>
 #include <Utils.d/linkfc.h>
 #include <Timers.d/GetTime.h>
 
@@ -31,7 +32,7 @@ double t1=0,t2=0,t3=0,t4=0,t5=0,t6=0;
 
 DistrNonnegativeMatrixFactorization
 ::DistrNonnegativeMatrixFactorization(Communicator * comm, int rowCount, int colCount, int localRows, int basisDimension,
-                                      int blockSize, int maxIter, double tol, int method, int nsub) : 
+                                      int blockSize, int maxIter, double tol, int method, int nsub, int pqnNumInnerIter, double pqnAlpha) : 
   communicator_(comm),
   rowCount_(rowCount),
   colCount_(colCount),
@@ -43,7 +44,9 @@ DistrNonnegativeMatrixFactorization
   method_(method),
   nsub_(nsub),
   matrixBuffer_(localRows,colCount),
-  basisBuffer_(localRows,basisDimension)
+  basisBuffer_(localRows,basisDimension),
+  pqnNumInnerIter_(pqnNumInnerIter),
+  pqnAlpha_(pqnAlpha)
 {
 }
 
@@ -132,6 +135,10 @@ DistrNonnegativeMatrixFactorization::solve()
 
   switch(method_) {
     default: case 1 : {
+      if(communicator_->myID() == 0) {
+        std::cout << "Using Alternating Least Squares NMF method" << std::endl;
+        std::cout << "   method_ = " << method_ << std::endl;
+      }
       // Alternating non-negative least squares iteration loop
       for(int i=0; i<maxIter_; ++i) {
 
@@ -160,6 +167,25 @@ DistrNonnegativeMatrixFactorization::solve()
         std::cout << "ERROR: Greedy method is not implemented in DistrNonnegativeMatrixFactorization.C\n";
       exit(-1);
     } break;
+
+    case 3 : {
+      // NMF based on PQN
+      if(communicator_->myID() == 0) {
+        std::cout << "Using NMF based on Projected Quasi-Newton" << std::endl;
+      }
+      Htranspose.initRandom(2,0.,1.);
+      //Htranspose.zero();
+      //A.initRandom(2,0.,1.);
+      Nmf solver = Nmf(A, W, Htranspose);
+      solver.setMaxIter(maxIter_);
+      solver.setNumInnerIter(pqnNumInnerIter_);
+      solver.setAlpha(pqnAlpha_);
+      solver.setTol(tol_);
+      solver.summary();
+      solver.solve();
+      solver.printTimes(true);
+    } break;
+
   }
 
   // copy W into basisBuffer_

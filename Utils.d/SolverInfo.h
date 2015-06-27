@@ -393,6 +393,8 @@ struct SolverInfo {
    int nmfMaxIter;
    int nmfNumSub;
    double nmfTol;
+   int nmfPqnNumInnerIter;
+   double nmfPqnAlpha;
    bool DEIMBasisPod;
    bool UDEIMBasisPod;
    bool ReducedStiffness;
@@ -727,6 +729,8 @@ struct SolverInfo {
                   nmfMaxIter         = 100;
                   nmfNumSub          = 0;
                   nmfTol             = 1e-6;
+                  nmfPqnNumInnerIter = 2;
+                  nmfPqnAlpha        = 0.4;
                   samplingPodRom     = false;
                   snapProjPodRom     = false;
                   galerkinPodRom     = false;

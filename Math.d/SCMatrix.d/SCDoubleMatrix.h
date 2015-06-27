@@ -3,9 +3,11 @@
 
 #include <mpi.h>
 #include <vector>
+#if defined(USE_EIGEN3)
 #include <Eigen/Core>
+#endif
 
-#ifdef NNLS_DEV
+#ifdef SCARRAYS_DEV
 #include "SCBaseMatrix.h"
 #include "SCIntMatrix.h"
 #else
@@ -22,7 +24,9 @@
 #define SCDBL_TIME_GETMAX 1
 #define SCDBL_TIME_GETMINLOC 2
 #define SCDBL_TIME_GETMIN 3
-#define SCDBL_N_TIMES 4
+#define SCDBL_TIME_GETL2COLDIST_COPY 4
+#define SCDBL_TIME_GETL2COLDIST_ADD 5
+#define SCDBL_N_TIMES 6
 
 typedef struct {
     double x;
@@ -34,13 +38,14 @@ class SCDoubleMatrix : public SCBaseMatrix {
 
     public:
         SCDoubleMatrix(int context, int m, int n, int mb, int nb, MPI_Comm comm);
-        SCDoubleMatrix(const SCDoubleMatrix& matrix);
+        SCDoubleMatrix(const SCDoubleMatrix& matrix, bool copymatrix=true);
         SCDoubleMatrix(const SCDoubleMatrix& matrix, int ncols);
         SCDoubleMatrix(std::string filename, int context, int mb, int nb, MPI_Comm comm);
         ~SCDoubleMatrix();
 
         void setA(int i, int j, double val);
         void setColA(int j, double *val);
+        void write(const char * fname);
         void write(std::string fname, bool compact=false, int m=0, int n=0);
         int pivot(int *ip, int *desc_ip);
         int setMatrixRow(int i, double *row);
@@ -53,6 +58,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
                      SCDoubleMatrix &x, int ix, int jx, int incx, double beta,
                      SCDoubleMatrix &y, int iy, int jy, int incy);
         int multiply(SCDoubleMatrix &B, SCDoubleMatrix &C, char transA='N', char transB='N', double alpha=1.0, double beta=0.0, int m=0, int n=0, int k=0);
+        void getLocalColumn(int jloc, int send_proc, int recv_proc, double *col);
         int hadamardProduct(SCDoubleMatrix &x);
         int zero();
         void zero(int ix, int jx, int ni, int nj);
@@ -99,9 +105,6 @@ class SCDoubleMatrix : public SCBaseMatrix {
         double amaxElement();
         void normalize(double fac);
         void scalarMultiply( double s);
-        int loadMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A);
-        int loadMatrix(Eigen::Ref<Eigen::VectorXd> &b);
-        int loadRhs(const Eigen::Ref<const Eigen::VectorXd> &b);
         void startTime(int i) {_wallclock[i] = -SCBaseMatrix::getWallTime();}
         void stopTime(int i) {_wallclock[i] += SCBaseMatrix::getWallTime(); _wallclock_total[i] += _wallclock[i];}
         double getTime(int i) { return _wallclock_total[i]; }
@@ -111,14 +114,26 @@ class SCDoubleMatrix : public SCBaseMatrix {
         void elementWiseInverse();
         void scaleColumnsByL2Norm(SCDoubleMatrix& colScale);
         bool isFeasible();
-        void AtA(SCDoubleMatrix& A, int n);
+        void hessian(SCDoubleMatrix& A, int n=0, bool transpose=false);
         int solve(SCDoubleMatrix& x, SCDoubleMatrix& b, int n);
-        int choldecomp(int n);
-        int cholsolve(SCDoubleMatrix& x, SCDoubleMatrix& b, int n);
+        int choldecomp(int n=0);
+        int cholsolve(SCDoubleMatrix& b, int n=0);
         double minSingularValue();
         double maxSingularValue();
         double conditionNumber();
         void writeSingularValues(std::string filename = std::string("svd.txt"));
+        bool isSameShape(SCDoubleMatrix &A);
+        bool isSameShape(SCIntMatrix &A);
+        void zeroout(SCIntMatrix& set);
+        int copyLocal(SCDoubleMatrix& A);
+        double getL2ColDistance(int icol, SCDoubleMatrix& B, int jcol);
+        void sumOfColumns(SCDoubleMatrix& B, int bcol, SCIntMatrix& mask, int maskValue=0, double fac=1.0);
+        void getColumn(int jcol, int recv_proc, double *col);
+        #if defined(USE_EIGEN3)
+        int loadMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A);
+        int loadMatrix(Eigen::Ref<Eigen::VectorXd> &b);
+        int loadRhs(const Eigen::Ref<const Eigen::VectorXd> &b);
+        #endif
 
     private:
         double * _matrix;       // Local _mlocal X _nlocal matrix

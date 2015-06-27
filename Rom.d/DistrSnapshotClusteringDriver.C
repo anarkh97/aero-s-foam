@@ -151,6 +151,7 @@ DistrSnapshotClusteringDriver::solve() {
                  domain->solInfo().snapfiPodRom.size(), solverCol, domain->solInfo().skipPodRom); // read in snapshots
 
   filePrint(stderr, " ... Partitioning snapshots into %d clusters ...\n", numClusters);
+  solver.solverTypeIs(domain->solInfo().solverTypeCluster);
   solver.solve();
 
   DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());

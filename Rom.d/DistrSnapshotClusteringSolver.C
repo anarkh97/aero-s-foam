@@ -4,6 +4,7 @@
 #include <Comm.d/Communicator.h>
 #include <Math.d/SCMatrix.d/SCDoubleMatrix.h>
 #include <Utils.d/linkfc.h>
+#include <Rom.d/ClusterSolvers.d/Kmeans.d/Kmeans.h>
 
 #include <mpi.h>
 
@@ -35,7 +36,10 @@ DistrSnapshotClusteringSolver
   blockSize_(blockSize),
   matrixBuffer_(localRows,colCount),
   centroidBuffer_(localRows,numClusters),
-  clusterCols_(numClusters)
+  clusterCols_(numClusters),
+  solverType_(1),
+  kmMaxIter_(1000),
+  kmSeed_(1)
 {
 }
 
@@ -85,19 +89,47 @@ DistrSnapshotClusteringSolver::solve()
   Cfree_blacs_system_handle(localBlacsHandle);
 
   // TODO: replace this random assigment with k-means or alternative solution
-  std::vector<int> clusterAssignment(colCount_);
-  for(int k=0; k<colCount_; ++k) clusterAssignment[k] = rand()%numClusters_;
+  switch(solverType_) {
+    default :
+    case 0 : { // Random assignment 
+      fprintf(stderr, " ... Using Random Clustering ...\n");
+      std::vector<int> clusterAssignment(colCount_);
+      for(int k=0; k<colCount_; ++k) clusterAssignment[k] = rand()%numClusters_;
+      // make a list of the columns assigned to each cluster
+      // and compute the centroids
+      centroidBuffer_.setZero();
+      for(int k=0; k<colCount_; ++k) {
+        int i = clusterAssignment[k];
+        clusterCols_[i].push_back(k);
+        centroidBuffer_.col(i) += matrixBuffer_.col(k);
+      }
+      for(int i=0; i<numClusters_; ++i) {
+        centroidBuffer_.col(i) /= clusterCols_[i].size();
+      }
+    } break;
 
-  // make a list of the columns assigned to each cluster
-  // and compute the centroids
-  centroidBuffer_.setZero();
-  for(int k=0; k<colCount_; ++k) {
-    int i = clusterAssignment[k];
-    clusterCols_[i].push_back(k);
-    centroidBuffer_.col(i) += matrixBuffer_.col(k);
-  }
-  for(int i=0; i<numClusters_; ++i) {
-    centroidBuffer_.col(i) /= clusterCols_[i].size();
+    case 1: { // K-means
+      if (communicator_->myID() == 0) {
+          fprintf(stderr, " ... Using K-means Clustering ...\n");
+      }
+      Kmeans solver = Kmeans();
+      solver.setNumClusters(numClusters_);
+      solver.setMaxIter(kmMaxIter_);
+      solver.setSeed(kmSeed_);
+      int status = solver.cluster(X);
+      solver.printTimes();
+      solver.getClusterColumns(clusterCols_);
+      // Recomputing the centroids is easier/faster than mapping from SCDoubleMatrix to Eigen.
+      centroidBuffer_.setZero();
+      for(int i=0; i<numClusters_; ++i) {
+        for (int j=0; j<clusterCols_[i].size(); j++) {
+           centroidBuffer_.col(i) += matrixBuffer_.col(clusterCols_[i][j]);
+        }
+      }
+      for(int i=0; i<numClusters_; ++i) {
+        centroidBuffer_.col(i) /= clusterCols_[i].size();
+      }
+    } break;
   }
 
   Cblacs_gridexit(context);

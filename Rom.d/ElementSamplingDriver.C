@@ -726,7 +726,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
         fileName.append(ss.str());
         meshOut << "auxi " << i+1 << " " << j+1 << " \"" << fileName << "\"\n";
         filePrint(stderr," ... Writing local bases auxiliary quantities to file %s ...\n", fileName.c_str());
-        std::ofstream matrixOut(fileName);
+        std::ofstream matrixOut(fileName.c_str());
         // matrix: Vi.transpose()*Vj (or Vi.transpose()*M*Vj)
         if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) {
           VtVij = podBasis_.basis().block(0,startColi,n,blockColsi).transpose()*

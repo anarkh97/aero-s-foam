@@ -1144,7 +1144,7 @@ PodProjectionNonLinDynamic::readLocalBasesAuxi()
       for(int j=i+1; j<Nv; ++j) {
         int kj = domain->solInfo().localBasisSize[j];
         std::string fileName = domain->solInfo().readInLocalBasesAuxi[std::make_pair(i,j)];
-        std::ifstream file(fileName);
+        std::ifstream file(fileName.c_str());
         VtV(i,j).resize(ki,kj);
         for(int irow = 0; irow < ki; ++irow) {
           for(int jcol = 0; jcol < kj; ++jcol) {

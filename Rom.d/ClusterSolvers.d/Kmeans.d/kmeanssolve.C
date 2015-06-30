@@ -35,8 +35,6 @@ Kmeans::kmeanscluster(SCDoubleMatrix & snapshots) {
     while (!done && _iter < _max_iter) {
         tagSnapshot(snapshots);
         getCentroids(snapshots);
-        //std::cout << "_snapshotCentroids->isEqual(snapshotCentroidsOld) = ";
-        //std::cout << _snapshotCentroids->isEqual(snapshotCentroidsOld) << std::endl;
         if (_snapshotCentroids->isEqual(snapshotCentroidsOld) == 0) {
             done = true;
         } else {
@@ -48,7 +46,7 @@ Kmeans::kmeanscluster(SCDoubleMatrix & snapshots) {
     stopTime(TIME_KMEANS_MAIN_LOOP);
     _wallclock_total[TIME_KMEANS_TAG_SNAPSHOTS_DISTANCE_COPY] = snapshots.getTime(SCDBL_TIME_GETL2COLDIST_COPY);
     _wallclock_total[TIME_KMEANS_TAG_SNAPSHOTS_DISTANCE_ADD] = snapshots.getTime(SCDBL_TIME_GETL2COLDIST_ADD);
-    _centroids->write("centroids.txt");
+    // _centroids->write("centroids.txt");
     return 0;
 }
 

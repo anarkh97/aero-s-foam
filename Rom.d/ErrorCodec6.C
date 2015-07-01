@@ -182,12 +182,20 @@ int main (int argc, char *argv[]) {
     relative_errorry = cum_normry/(normalize_factorry);
     relative_errorrz = cum_normrz/(normalize_factorrz);
 
+    cout << "*** absolute error: x ***  = " << cum_normx << endl;
+    cout << "*** absolute error: y ***  = " << cum_normy << endl;
+    cout << "*** absolute error: z ***  = " << cum_normz << endl;
+    cout << "*** absolute error: x rotation ***  = " << cum_normrx << endl;
+    cout << "*** absolute error: y rotation ***  = " << cum_normry << endl;
+    cout << "*** absolute error: z rotation ***  = " << cum_normrz << endl;
+
     cout << "*** relative error: x ***  = " << relative_errorx*100 << "%" << endl;
     cout << "*** relative error: y ***  = " << relative_errory*100 << "%" << endl;
     cout << "*** relative error: z ***  = " << relative_errorz*100 << "%" << endl;
     cout << "*** relative error: x rotation ***  = " << relative_errorrx*100 << "%" << endl;
     cout << "*** relative error: y rotation ***  = " << relative_errorry*100 << "%" << endl;
     cout << "*** relative error: z rotation ***  = " << relative_errorrz*100 << "%" << endl;
+
   }
 }
 

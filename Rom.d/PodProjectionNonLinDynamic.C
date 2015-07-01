@@ -885,7 +885,7 @@ PodProjectionNonLinDynamic::getExternalForce(Vector &rhs, Vector &constantForce,
                                     aeroForce_Big, localDelta);
 
     if(rhs_Big.norm() != 0) {
-      projectionBasis.reduce(rhs_Big, rhs);
+      projectionBasis.reduce(rhs_Big, rhs, false);
       projectionBasis.addLocalPart(constantForce, rhs);
     }
     else {
@@ -1196,9 +1196,15 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
            residual_Big(NonLinDynamic::solVecInfo(), 0.0);
     const GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
 
-    Vector dq = geomState.q - refState->q;
-    projectionBasis.expand(dq, q_Big);
-    geomState_Big->update(*refState_Big, q_Big, 2);
+    if(domain->solInfo().readInROBorModes.size() > 1) {
+      Vector dq = geomState.q - refState->q;
+      projectionBasis.expand(dq, q_Big);
+      geomState_Big->update(*refState_Big, q_Big, 2);
+    }
+    else {
+      projectionBasis.expand(geomState.q, q_Big);
+      geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
+    }
 
     NonLinDynamic::getStiffAndForce(*geomState_Big, residual_Big, elementInternalForce, t, refState_Big, forceOnly);
 

@@ -191,7 +191,7 @@ Component:
         | ConstrainedSurfaceFrameDList
 	| Attributes
 	{ int j = geoSource->getLocalIndex();
-          geoSource->setLocalIndex(j+1); }
+          if(geoSource->elementLumpingWeightLocalSize(j)>0) geoSource->setLocalIndex(j+1); }
         | Ellump
         | LocalReducedOrderBases
         | SampNodeSlot

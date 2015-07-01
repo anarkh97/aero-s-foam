@@ -666,6 +666,7 @@ public:
   typedef std::vector<std::pair<int, int> > ElemDofPairVec;
 
   int elementLumpingWeightSize() const { return elementLumpingWeights_.size(); }
+  int elementLumpingWeightLocalSize(int j=0) { return elementLumpingWeights_[j].size(); }
   ElementWeightMap::const_iterator elementLumpingWeightBegin(int j=0) const { return elementLumpingWeights_[j].begin(); }
   ElementWeightMap::const_iterator elementLumpingWeightEnd(int j=0)   const { return elementLumpingWeights_[j].end();   }
 

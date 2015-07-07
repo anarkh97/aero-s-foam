@@ -2359,7 +2359,7 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float Float Float Float Float Float Integer NewLine
-        { // constraint function element XXX
+        { // constraint function element XXX deprecated format
           StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
@@ -2369,6 +2369,36 @@ MatData:
           sp.B = $8;
           sp.C = $9;
           sp.relop = $10;
+          sp.type = StructProp::Constraint;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT MODE Integer NewLine
+        { // constraint function element with default constraint options
+          StructProp sp;
+          sp.amplitude = 0;
+          sp.omega = 0;
+          sp.phase = 0;
+          sp.B = 0;
+          sp.C = 0;
+          sp.relop = $4;
+          sp.type = StructProp::Undefined;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData MODE Integer NewLine
+        { // constraint function element
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.amplitude = 0;
+          sp.omega = 0;
+          sp.phase = 0;
+          sp.B = 0;
+          sp.C = 0;
+          sp.relop = $5;
           sp.type = StructProp::Constraint;
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );

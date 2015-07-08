@@ -1091,6 +1091,8 @@ void GeoSource::setUpData()
 
   // add properties for mortar conditions
   bool printOne = true, printTwo = true;
+  bool checkConstraintMethod = (sinfo.probType != SolverInfo::Top && sinfo.probType != SolverInfo::Decomp &&
+                                sinfo.probType != SolverInfo::PodRomOffline && !domain->solInfo().ROMPostProcess);
   for(int i=0; i<domain->GetnMortarConds(); ++i) {
     MortarHandler* CurrentMortarCond = domain->GetMortarCond(i);
     ConstraintOptions *copt = CurrentMortarCond->GetConstraintOptions();
@@ -1113,7 +1115,7 @@ void GeoSource::setUpData()
     }
     // check constraint method for tied/contact surfaces in cases where mpc elements are not initially generated
     // i.e. nonlinear contactsurfaces with "tdenforce off", and linear/nonlinear tied/contactsurfaces with "tdenforce on".
-    if(sinfo.probType != SolverInfo::Top && sinfo.probType != SolverInfo::Decomp) {
+    if(checkConstraintMethod) {
       bool lagrangeMult = (copt) ? copt->lagrangeMult : sinfo.lagrangeMult;
       double penalty = (copt) ? copt->penalty : sinfo.penalty;
       if(printOne && !domain->tdenforceFlag() && CurrentMortarCond->GetInteractionType() == MortarHandler::CTC &&
@@ -1199,9 +1201,10 @@ void GeoSource::setUpData()
             fluid_element_count++;
           }
         }
+        else if (prop->relop != 0) numConstraintElementsIeq++;
 
         // check constraint method
-        if(ele->isMpcElement() && sinfo.probType != SolverInfo::Top && sinfo.probType != SolverInfo::Decomp) {
+        if(checkConstraintMethod && ele->isMpcElement()) {
           if(printOne && sinfo.newmarkBeta == 0 && (prop->lagrangeMult == true || prop->penalty == 0)) {
             // for explicit dynamics, the penalty constraint method with non-zero penalty parameter must be used
             // with the exception of tied/contact surfaces using "tdenforce on". In the latter case no elements
@@ -1487,7 +1490,7 @@ CoordSet& GeoSource::GetNodes() { return nodes; }
 int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
 {
   SolverInfo &sinfo = domain->solInfo();
-  bool flagCEIeq = (strcmp(sinfo.readInDualROB,"") != 0) || sinfo.use_nmf;
+  bool flagCEIeq = (strcmp(sinfo.readInDualROB,"") != 0);
 
   if(sinfo.HEV) { packedEsetFluid = new Elemset(); nElemFluid = 0; }
   if(flagCEIeq) { packedEsetConstraintElementIeq = new Elemset(); numConstraintElementsIeq = 0; }

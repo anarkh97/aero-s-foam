@@ -58,7 +58,7 @@ SolverInfo::classifySolver()
         case 12: // dbsgal
           return 0;
         case 13: // eisgal
-          return 0;
+          return 2;
         case 14: // goldfarb
 #ifdef USE_EIGEN3
           return 2;

@@ -352,8 +352,8 @@ Domain::addLMPC(LMPCons *_MPC, bool checkflag)
  // eg if LMPC (real) id numbers 1 to 10, CLMPC (complex) should be 11 to 20
  // however you can use CLMPC to add a complex term to a previously real LMPC with the same id number
  // also inequality constraint id numbers can be the same as equality constraint id numbers
- // NEW IDEA: if checkflag is set to false, then always create new LMPC, used for various internal calls but not Parser
- if(!checkflag) { lmpc[numLMPC++] = _MPC; return numLMPC-1; } // PJSA 7-19-06
+ // NOTE: if checkflag is set to false, then always create new LMPC, used for various internal calls but not Parser
+ if(!checkflag) { lmpc[numLMPC++] = _MPC; if(_MPC->type == 1) numCTC++; return numLMPC-1; }
 
  // Verify if lmpc was already defined
  int i=0;
@@ -3514,6 +3514,12 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  }
 
  return numCTC;
+}
+
+int
+Domain::getNumCTC()
+{
+  return numCTC + geoSource->getNumConstraintElementsIeq();
 }
 
 /*

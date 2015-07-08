@@ -10,6 +10,8 @@ class GeomState;
 template<template <typename S> class ConstraintFunctionTemplate>
 class ConstraintFunctionElement : public MpcElement
 {
+  private:
+    CoordSet *c0;
   protected:
 #if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && defined(HAS_CXX11_TEMPLATE_ALIAS)
     template <typename S>
@@ -22,6 +24,7 @@ class ConstraintFunctionElement : public MpcElement
     ConstraintFunctionElement(int, DofSet*, int*, int);
 
     void buildFrame(CoordSet&);
+    void setProp(StructProp *p, bool _myProp = false);
     void update(GeomState*, GeomState&, CoordSet&, double);
     void getHessian(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double);
     void computePressureForce(CoordSet&, Vector& elPressureForce,

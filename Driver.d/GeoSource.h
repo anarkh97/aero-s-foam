@@ -122,9 +122,11 @@ class GeoSource {
   int numClusElems;
   int nGlobNodes;
   int numNodes, numInternalNodes;
+  int numConstraintElementsIeq;
   CoordSet nodes;
   Elemset elemSet;
   Elemset *packedEsetFluid;
+  Elemset *packedEsetConstraintElementIeq;
   int nElem, nMpcElem;
   int nElemFluid;
   int nElemAllClusters;
@@ -429,6 +431,7 @@ public:
   void setNumNodes(int n) { numNodes = n; }
   int  totalNumNodes() { return numNodes + numInternalNodes; }
   int  internalNumNodes() { return numInternalNodes; }
+  int  getNumConstraintElementsIeq() { return numConstraintElementsIeq; }
   //int  getPhantomFlag()  { return phantomFlag; }
   //int  glToPack(int i) { return glToPck[i]; }
   int  glToPackElem(int i) const;

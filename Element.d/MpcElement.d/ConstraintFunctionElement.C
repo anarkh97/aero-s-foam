@@ -61,18 +61,26 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>
 
 template<template <typename S> class ConstraintFunctionTemplate>
 void
-ConstraintFunctionElement<ConstraintFunctionTemplate>::buildFrame(CoordSet& c0)
+ConstraintFunctionElement<ConstraintFunctionTemplate>::buildFrame(CoordSet& _c0)
 {
+  c0 = &_c0;
+}
+template<template <typename S> class ConstraintFunctionTemplate>
+void
+ConstraintFunctionElement<ConstraintFunctionTemplate>::setProp(StructProp *p, bool _myProp)
+{
+  Element::setProp(p, _myProp);
+
   // instantiate the constraint function object
   Eigen::Array<double, ConstraintFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
   Eigen::Array<int, ConstraintFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst);
+  getConstants(*c0, sconst, iconst);
   ConstraintFunctionTemplate<double> f(sconst,iconst);
 
   // prepare the constraint function inputs
   const int N = ConstraintFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
   Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, NULL, NULL);
+  getInputs(q, *c0, NULL, NULL);
   double t = 0;
 
   // evaluate the constraint function and store -ve value in LMPCons::rhs

@@ -596,6 +596,7 @@ class Element {
         virtual bool isShell() { return false; }
 
         virtual bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isFsiElement()); }
+        virtual bool isConstraintElementIeq() { return (isMpcElement() && prop->relop != 0); }
         virtual bool isPhantomElement() { return (!(prop || isConstraintElement() || isSommerElement())); }
 
         int getElementType() { return elementType; }

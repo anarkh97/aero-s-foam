@@ -130,6 +130,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numSurfaceNeuman = 0;
   numSurfacePressure = 0;
   numSurfaceConstraint = 0;
+  numConstraintElementsIeq = 0;
 
   // PITA
   // Initial seed conditions
@@ -1486,8 +1487,10 @@ CoordSet& GeoSource::GetNodes() { return nodes; }
 int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
 {
   SolverInfo &sinfo = domain->solInfo();
+  bool flagCEIeq = (strcmp(sinfo.readInDualROB,"") != 0) || sinfo.use_nmf;
 
   if(sinfo.HEV) { packedEsetFluid = new Elemset(); nElemFluid = 0; }
+  if(flagCEIeq) { packedEsetConstraintElementIeq = new Elemset(); numConstraintElementsIeq = 0; }
 
   int iEle, numele;
 
@@ -1505,17 +1508,30 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
   for(iEle = 0; iEle < numele; ++iEle) {
     Element *ele = elemSet[iEle];
     if(ele) {
-      if(!ele->isPhantomElement() && (!ele->isHEVFluidElement() || (!sinfo.HEV))) {
-        packedEset.elemadd(nElem, ele);
-        //packedEset[nElem]->setGlNum(iEle);
-        if(packFlag)
-          glToPckElems[iEle] = nElem;
-        nElem++;
-      }
-      else if(!ele->isPhantomElement() && ele->isHEVFluidElement()) {
-        packedEsetFluid->elemadd(nElemFluid, ele);
-        //(*packedEsetFluid)[nElemFluid]->setGlNum(iEle);
-        nElemFluid++;
+      if(!ele->isPhantomElement()) {
+        if((!sinfo.HEV || !ele->isHEVFluidElement()) && (!flagCEIeq || !ele->isConstraintElementIeq())) {
+          packedEset.elemadd(nElem, ele);
+          if(packFlag)
+            glToPckElems[iEle] = nElem;
+          nElem++;
+        }
+        else if(sinfo.HEV && ele->isHEVFluidElement()) {
+          packedEsetFluid->elemadd(nElemFluid, ele);
+          nElemFluid++;
+        }
+        else if(flagCEIeq && ele->isConstraintElementIeq()) {
+          if(true/*TODO ele->isLinearConstraint()*/) {
+            int n = ele->getNumMPCs();
+            LMPCons **l = ele->getMPCs();
+            for(int j = 0; j < n; ++j)
+              domain->addLMPC(l[j],false);
+            delete [] l;
+          }
+          else {
+            packedEsetConstraintElementIeq->elemadd(numConstraintElementsIeq, ele);
+            numConstraintElementsIeq++;
+          }
+        }
       }
       else
         nPhantoms++;
@@ -1527,7 +1543,6 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
     if (sinfo.ATDARBFlag != -2.0) {
       for (int i = 0; i < domain->numSommer; i++) {
         packedEset.elemadd(nElem,domain->sommer[i]);
-        //packedEset[nElem]->setGlNum(numele+i);
         if(packFlag)
           glToPckElems[numele+i] = nElem;
         nElem++;
@@ -1552,7 +1567,6 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
     if(ele) {
       if(ele->isPhantomElement()) {
         packedEset.elemadd(nElem, ele);
-        //packedEset[nElem]->setGlNum(iEle);
         if(packFlag)
           glToPckElems[iEle] = nElem;
         nElem++;

@@ -1194,7 +1194,7 @@ class Domain : public HData {
      ResizeArray<LMPCons *>* getLMPC() { return &lmpc; }
      int addNodalCTC(int n1, int n2, double nx, double ny, double nz,
                      double normalGap = 0.0, int _mode = -1, int lagrangeMult = -1, double penalty = 0.0);
-     int getNumCTC() { return numCTC; }
+     int getNumCTC();
      void addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], double gap_vector[3], int itype);
      void addDirichletLMPCs(int _numDirichlet, BCond *_dbc);
      void deleteAllLMPCs();

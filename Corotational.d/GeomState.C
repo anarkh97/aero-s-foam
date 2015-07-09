@@ -1084,6 +1084,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   double tcoef = 1/(1-alphaf);
   for(int i = 0; i < numnodes; ++i) {
     if(flag[i] == -1) continue;
+    else if(flag[i] == 0 && ns[i].x == 0) { ss.ns[i].x = 0; continue; }
     ss.ns[i].x = ns[i].x = tcoef*(ns[i].x - alphaf*ss.ns[i].x);
     ss.ns[i].y = ns[i].y = tcoef*(ns[i].y - alphaf*ss.ns[i].y);
     ss.ns[i].z = ns[i].z = tcoef*(ns[i].z - alphaf*ss.ns[i].z);

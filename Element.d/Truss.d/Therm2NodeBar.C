@@ -75,7 +75,7 @@ Therm2NodeBar::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-Therm2NodeBar::stiffness(CoordSet &cs,double *Ks, int flg)
+Therm2NodeBar::stiffness(CoordSet &cs, double *Ks, int flg)
 {
         Node &nd1 = cs.getNode( nn[0] );
         Node &nd2 = cs.getNode( nn[1] );
@@ -97,13 +97,44 @@ Therm2NodeBar::stiffness(CoordSet &cs,double *Ks, int flg)
 // A is the average cross sectional area
 
         double k = prop->k*prop->A/length;
+        double &k1 = prop->ymin; // temperature dependent heat flux at node 1: q1 = k1*T1
+        double &k2 = prop->ymax; // temperature dependent heat flux at node 2: q2 = k2*T2
 
-        ret[0][0] = k ;
-        ret[1][1] = k ;
+        ret[0][0] = k-k1;
+        ret[1][1] = k-k2;
         ret[1][0] = -k;
         ret[0][1] = -k;
                                     
         return ret;
+}
+
+void
+Therm2NodeBar::getGravityForce(CoordSet& cs, double *, Vector &force, int, GeomState *)
+{
+        // compute body source term (not gravity force)
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        double x[2], y[2], z[2];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
+
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
+
+        double &a = prop->Ixx;
+        double &b = prop->Iyy;
+        double &c = prop->Izz;
+
+        double Q1 = a*x[0] + b*y[0] + c*z[0];
+        double Q2 = a*x[1] + b*y[1] + c*z[1];
+
+        force[0] = length/6*(2*Q1 + Q2);
+        force[1] = length/6*(Q1 + 2*Q2);
 }
 
 int

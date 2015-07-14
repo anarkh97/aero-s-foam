@@ -32,6 +32,7 @@ public:
         void computeTemp(CoordSet&cs, State &state, double gp[2], double*res);
                         
 	void getFlFlux(double gp[2], double *flF, double *resF);
+        void getGravityForce(CoordSet& cs, double *, Vector &force, int, GeomState *);
 
         Corotator * getCorotator(CoordSet &, double*, int, int) { return 0; }
 };

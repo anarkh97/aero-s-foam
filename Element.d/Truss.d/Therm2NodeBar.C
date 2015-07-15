@@ -130,8 +130,8 @@ Therm2NodeBar::getGravityForce(CoordSet& cs, double *, Vector &force, int, GeomS
         double &b = prop->Iyy;
         double &c = prop->Izz;
 
-        double Q1 = a*x[0] + b*y[0] + c*z[0];
-        double Q2 = a*x[1] + b*y[1] + c*z[1];
+        double Q1 = prop->A*(a*x[0] + b*y[0] + c*z[0]);
+        double Q2 = prop->A*(a*x[1] + b*y[1] + c*z[1]);
 
         force[0] = length/6*(2*Q1 + Q2);
         force[1] = length/6*(Q1 + 2*Q2);

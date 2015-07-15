@@ -171,9 +171,9 @@ Therm3NoShell::getGravityForce(CoordSet& cs, double *, Vector &force, int, GeomS
         double &b = prop->Iyy;
         double &c = prop->Izz;
 
-        double Q1 = a*x[0] + b*y[0] + c*z[0];
-        double Q2 = a*x[1] + b*y[1] + c*z[1];
-        double Q3 = a*x[2] + b*y[2] + c*z[2];
+        double Q1 = prop->eh*(a*x[0] + b*y[0] + c*z[0]);
+        double Q2 = prop->eh*(a*x[1] + b*y[1] + c*z[1]);
+        double Q3 = prop->eh*(a*x[2] + b*y[2] + c*z[2]);
 
         force[0] = area/12*(2*Q1 + Q2 + Q3);
         force[1] = area/12*(Q1 + 2*Q2 + Q3);

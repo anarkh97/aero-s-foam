@@ -149,6 +149,37 @@ Therm3NoShell::stiffness(CoordSet &cs, double *d, int flg)
         return K;
 }
 
+void
+Therm3NoShell::getGravityForce(CoordSet& cs, double *, Vector &force, int, GeomState *)
+{
+        // compute body source term (not gravity force)
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+        Node &nd3 = cs.getNode( nn[2] );
+
+        double x[3], y[3], z[3];
+        double xl[3], yl[3], area;
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+        x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+        int localxyflag = 1;
+       _FORTRAN(localxy)(x, y, z, xl, yl, localxyflag, area);
+
+        double &a = prop->Ixx;
+        double &b = prop->Iyy;
+        double &c = prop->Izz;
+
+        double Q1 = prop->eh*(a*x[0] + b*y[0] + c*z[0]);
+        double Q2 = prop->eh*(a*x[1] + b*y[1] + c*z[1]);
+        double Q3 = prop->eh*(a*x[2] + b*y[2] + c*z[2]);
+
+        force[0] = area/12*(2*Q1 + Q2 + Q3);
+        force[1] = area/12*(Q1 + 2*Q2 + Q3);
+        force[2] = area/12*(Q1 + Q2 + 2*Q3);
+}
+
 int
 Therm3NoShell::numNodes()
 {

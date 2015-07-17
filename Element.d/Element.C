@@ -214,8 +214,8 @@ PrioInfo Element::examine(int sub, MultiFront *mf)
 void
 Element::getGravityForce(CoordSet&, double *, Vector &force, int, GeomState *)
 {
-  if(!isConstraintElement() && !isSpring())
-    fprintf(stderr," *** WARNING: Gravity force not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
+  if(!isConstraintElement() && !isSpring() && category != Element::Thermal)
+    fprintf(stderr," *** WARNING: Gravity force not implemented for element (%d), type %d\n", getGlNum()+1, elementType);
   force.zero();
 }
 

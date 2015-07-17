@@ -1114,7 +1114,7 @@ class Domain : public HData {
      Elemset& getElementSet() { return packedEset; }
 
      // returns the value of the gravity Force flag
-     int  gravityFlag() { return gravityAcceleration ? 1: 0; }
+     int  gravityFlag() { return (gravityAcceleration ? 1: 0) || (domain->solInfo().soltyp == 2); }
 
      // returns the value of the pressure force flag
      int  pressureFlag();

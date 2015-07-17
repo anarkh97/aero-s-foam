@@ -2,6 +2,7 @@
 #define _POINTVARIPLANEDISTANCECONSTRAINTFUNCTION_H_
 
 #include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/utilities.hpp>
 #include <cmath>
 
 namespace Simo {
@@ -23,10 +24,10 @@ class PointVariPlaneDistanceConstraintFunction : public ScalarValuedFunction<12,
   public:
     PointVariPlaneDistanceConstraintFunction(const Eigen::Array<double,17,1>& sconst, const Eigen::Array<int,1,1>& iconst)
     {
-      x0 = sconst.segment(0,3);
-      x1 = sconst.segment(3,3);
-      x2 = sconst.segment(6,3);
-      x3 = sconst.segment(9,3);
+      x0 = sconst.template segment<3>(0);
+      x1 = sconst.template segment<3>(3);
+      x2 = sconst.template segment<3>(6);
+      x3 = sconst.template segment<3>(9);
       A = sconst[12];
       omega = sconst[13];
       phase = sconst[14];
@@ -51,12 +52,13 @@ class PointVariPlaneDistanceConstraintFunction : public ScalarValuedFunction<12,
       // q(9) = x translation of point 4
       // q(10) = y translation of point 4
       // q(11) = z translation of point 4
-      Eigen::Matrix<Scalar,3,1> x0 = PointVariPlaneDistanceConstraintFunction::x0.template cast<Scalar>() + q.segment(0,3);
-      Eigen::Matrix<Scalar,3,1> x1 = PointVariPlaneDistanceConstraintFunction::x1.template cast<Scalar>() + q.segment(3,3);
-      Eigen::Matrix<Scalar,3,1> x2 = PointVariPlaneDistanceConstraintFunction::x1.template cast<Scalar>() + q.segment(6,3);
-      Eigen::Matrix<Scalar,3,1> x3 = PointVariPlaneDistanceConstraintFunction::x1.template cast<Scalar>() + q.segment(9,3);
+      Eigen::Matrix<Scalar,3,1> x0 = PointVariPlaneDistanceConstraintFunction::x0.template cast<Scalar>() + q.template segment<3>(0);
+      Eigen::Matrix<Scalar,3,1> x1 = PointVariPlaneDistanceConstraintFunction::x1.template cast<Scalar>() + q.template segment<3>(3);
+      Eigen::Matrix<Scalar,3,1> x2 = PointVariPlaneDistanceConstraintFunction::x2.template cast<Scalar>() + q.template segment<3>(6);
+      Eigen::Matrix<Scalar,3,1> x3 = PointVariPlaneDistanceConstraintFunction::x3.template cast<Scalar>() + q.template segment<3>(9);
 
       Scalar d = (x2-x1).cross(x3-x1).normalized().dot(x0-x1);
+
       // note: the sign of d is positive if x0 is on the same side of the plane as the normal
       //       and negative if it is on the opposite side
       using std::sin;

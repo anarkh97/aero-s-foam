@@ -601,9 +601,10 @@ MultiDomainDynam::getSteadyStateParam(int &steadyFlag, int &steadyMin,
 }
 
 void
-MultiDomainDynam::getSensitivityStateParam(double &sensitivityTol)
+MultiDomainDynam::getSensitivityStateParam(double &sensitivityTol, double &ratioSensitivityTol)
 {
   sensitivityTol = domain->solInfo().sensitivityTol;
+  ratioSensitivityTol = domain->solInfo().ratioSensitivityTol;
 }
 
 void

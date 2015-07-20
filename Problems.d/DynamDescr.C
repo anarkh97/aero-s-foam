@@ -398,9 +398,10 @@ SingleDomainDynamic::getSteadyStateParam(int &steadyFlag, int &steadyMin,
 }
 
 void
-SingleDomainDynamic::getSensitivityStateParam(double &sensitivityTol)
+SingleDomainDynamic::getSensitivityStateParam(double &sensitivityTol, double &ratioSensitivityTol)
 {
  sensitivityTol = domain->solInfo().sensitivityTol;
+ ratioSensitivityTol = domain->solInfo().ratioSensitivityTol;
 }
 
 void

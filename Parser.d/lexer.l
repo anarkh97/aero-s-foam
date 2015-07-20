@@ -657,6 +657,8 @@ TRAIL [a-zA-Z]*
 
 "tolsen"[a-zA-Z]*|"TOLSEN"[a-zA-Z]* { return TOLSEN; }
 
+"ratiotolsen"|"RATIOTOLSEN"        { return RATIOTOLSEN; }
+
 "qrfactorization"|"QRFACTORIZATION" { return QRFACTORIZATION; }
 
 "expl"[a-zA-Z]*|"EXPL"[a-zA-Z]*    { return EXPLICIT; }

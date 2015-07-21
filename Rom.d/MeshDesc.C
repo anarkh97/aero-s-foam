@@ -315,7 +315,7 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
   out << mesh.properties();
 
   if (!mesh.compositeFrames().empty())
-    out << make_section(mesh.compositeFrames().begin(), mesh.compositeFrames().end());
+    out << make_section(mesh.compositeFrames().begin(), mesh.compositeFrames().end(), CFrameTag());
   if(!mesh.coefData().empty())
     out << make_section(mesh.coefData().begin(), mesh.coefData().end());
  

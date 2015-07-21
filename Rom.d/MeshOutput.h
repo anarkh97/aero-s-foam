@@ -42,7 +42,7 @@ std::ostream &
 operator<<(std::ostream &, const EFrameData &);
 
 std::ostream &
-operator<<(std::ostream &, const std::pair<int,FrameData> &);
+operator<<(std::ostream &, const FrameData &);
 
 std::ostream &
 operator<<(std::ostream &, const std::pair<int,CoefData> &);
@@ -150,6 +150,11 @@ struct MatUsageTag {
 struct MatLawTag {
   typedef NLMaterial* SecondType;
   static const NLMaterial &valueTransformation(const NLMaterial *m) { return *m; }
+};
+
+struct CFrameTag {
+  typedef FrameData SecondType;
+  static const FrameData& valueTransformation(const FrameData &x) { return x; }
 };
 
 // Convenience functions

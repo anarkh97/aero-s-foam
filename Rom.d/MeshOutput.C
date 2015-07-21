@@ -55,11 +55,10 @@ operator<<(std::ostream &out, const EFrameData &source) {
 }
 
 std::ostream &
-operator<<(std::ostream &out, const std::pair<int,FrameData> &source) {
-  out << source.second.num + 1 << " ";
+operator<<(std::ostream &out, const FrameData &source) {
   
   for (int i = 0; i < 9; ++i) {
-    out << source.second.d[i];
+    out << source.d[i];
     if (i != 8) {
         out << " ";
     }
@@ -187,7 +186,7 @@ InputFileSectionHelper<EFrameData, EmptyTag>::header(EmptyTag) {
 
 template <>
 const std::string &
-InputFileSectionHelper<std::pair<const int,FrameData>, EmptyTag>::header(EmptyTag) {
+InputFileSectionHelper<std::pair<const int,FrameData>, CFrameTag>::header(CFrameTag) {
   static const std::string result("CFRAMES");
   return result;
 }

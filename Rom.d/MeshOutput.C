@@ -14,6 +14,9 @@ std::ostream &
 operator<<(std::ostream &out, const Attrib &source) {
   out << source.nele + 1 << " "
       << source.attr + 1;
+  if(source.cmp_attr != -1 && source.cmp_frm != -1) {
+    out << " " << source.cmp_attr + 1 << " " << source.cmp_frm + 1;
+  }
   return out;
 }
 
@@ -48,6 +51,32 @@ operator<<(std::ostream &out, const EFrameData &source) {
     }
   }
 
+  return out;
+}
+
+std::ostream &
+operator<<(std::ostream &out, const std::pair<int,FrameData> &source) {
+  out << source.second.num + 1 << " ";
+  
+  for (int i = 0; i < 9; ++i) {
+    out << source.second.d[i];
+    if (i != 8) {
+        out << " ";
+    }
+  }
+
+  return out;
+}
+
+std::ostream &
+operator<<(std::ostream &out, const std::pair<int,CoefData> &source) {
+
+  out << "COEF " << source.first + 1 << std::endl;
+  for(int i=0; i<6; ++i)
+    for(int j=0; j<6; ++j) {
+      out << i+1 << " " << j+1 << " " << source.second.c[i][j];
+      if(!(i==5 && j==5)) out << std::endl;
+    }
   return out;
 }
 
@@ -153,6 +182,20 @@ template <>
 const std::string &
 InputFileSectionHelper<EFrameData, EmptyTag>::header(EmptyTag) {
   static const std::string result("EFRAMES");
+  return result;
+}
+
+template <>
+const std::string &
+InputFileSectionHelper<std::pair<const int,FrameData>, EmptyTag>::header(EmptyTag) {
+  static const std::string result("CFRAMES");
+  return result;
+}
+
+template <>
+const std::string &
+InputFileSectionHelper<std::pair<const int,CoefData>, EmptyTag>::header(EmptyTag) {
+  static const std::string result("COMPOSITE");
   return result;
 }
 

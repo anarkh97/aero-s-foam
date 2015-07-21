@@ -4,6 +4,8 @@
 #include <Driver.d/Attrib.h>
 #include <Driver.d/EFrameData.h>
 #include <Element.d/Element.h>
+#include <Parser.d/AuxDefs.h>
+#include <Utils.d/CompositeInfo.h>
 
 class NLMaterial;
 
@@ -38,6 +40,12 @@ operator<<(std::ostream &, const BCond &);
 
 std::ostream &
 operator<<(std::ostream &, const EFrameData &);
+
+std::ostream &
+operator<<(std::ostream &, const std::pair<int,FrameData> &);
+
+std::ostream &
+operator<<(std::ostream &, const std::pair<int,CoefData> &);
 
 std::ostream &
 operator<<(std::ostream &, const NLMaterial &);

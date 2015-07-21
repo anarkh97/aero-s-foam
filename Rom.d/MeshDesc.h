@@ -5,6 +5,8 @@
 
 #include <Element.d/Element.h>
 #include <Driver.d/Attrib.h>
+#include <Parser.d/AuxDefs.h>
+#include <Utils.d/CompositeInfo.h>
 
 #include <vector>
 #include <map>
@@ -28,7 +30,9 @@ public:
   const Elemset &elements() const { return elements_; }
 
   const std::vector<EFrameData> &elemFrames() const { return elemFrames_; }
+  const std::map<int,FrameData> &compositeFrames() const { return compositeFrames_; }
   const SPropContainer &properties() const { return *properties_; } 
+  const std::map<int,CoefData> &coefData() const { return coefData_; }
   const std::vector<Attrib> &attributes() const { return attributes_; }
   const std::map<int, NLMaterial *> &materialLaws() const { return *materialLaws_; }
   const std::map<int, int> &materialLawMapping() const { return materialLawMapping_; }
@@ -64,8 +68,10 @@ private:
   Elemset elements_;
 
   std::vector<EFrameData> elemFrames_;
+  std::map<int,FrameData> compositeFrames_;
   std::vector<Attrib> attributes_;
   const SPropContainer *properties_;
+  std::map<int,CoefData> coefData_;
   std::map<int, int> materialLawMapping_;
   const std::map<int, NLMaterial *> *materialLaws_;
 

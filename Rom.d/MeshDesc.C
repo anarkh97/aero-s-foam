@@ -132,6 +132,35 @@ copy_eframes(const Elemset & elemSet, EFrameDataOutputIterator result) {
   return result;
 }
 
+void
+copy_cframes(const std::vector<Attrib> &attributes, std::map<int,FrameData> &cframes) {
+  for(std::vector<Attrib>::const_iterator it = attributes.begin(); it != attributes.end(); ++it) {
+    if(it->cmp_frm != -1) {
+      if(cframes.find(it->cmp_frm) == cframes.end()) {
+        FrameData frame;
+        frame.num = it->cmp_frm;
+        for(int i=0; i<9; ++i) frame.d[i] = geoSource->getCframes()[it->cmp_frm][i];
+        cframes[it->cmp_frm] = frame;
+      }
+    }
+  }
+}
+
+void
+copy_coef(const std::vector<Attrib> &attributes, std::map<int,CoefData> &coefdata) {
+  for(std::vector<Attrib>::const_iterator it = attributes.begin(); it != attributes.end(); ++it) {
+    if(it->cmp_attr != -1) {
+      if(coefdata.find(it->cmp_attr) == coefdata.end()) {
+        CoefData coef;
+        for(int i=0; i<7; ++i)
+          for(int j=0; j<6; ++j)
+            coef.c[i][j] = geoSource->getCoefData(it->cmp_attr)->c[i][j];
+        coefdata[it->cmp_attr] = coef;
+      }
+    }
+  }
+}
+
 // Map to sequence conversion
 
 template <typename MapIterator>
@@ -248,6 +277,10 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
   const AttribContainer &attrib = geoSource->getAttributes(); 
   reduce(ren.elemRenumbering(), make_value_iterator(attrib.begin()), make_value_iterator(attrib.end()), std::back_inserter(attributes_)); 
 
+    // Composites
+  copy_cframes(attributes_, compositeFrames_);
+  copy_coef(attributes_, coefData_);
+
   // Material laws
   const std::map<int, int> &matLawMap = geoSource->getMaterialLawMapping();
   reduce(ren.elemRenumbering(), geoSource->getMaterialLawMapping(), std::inserter(materialLawMapping_, materialLawMapping_.end()));
@@ -280,6 +313,11 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
 
   out << make_section(mesh.attributes().begin(), mesh.attributes().end());
   out << mesh.properties();
+
+  if (!mesh.compositeFrames().empty())
+    out << make_section(mesh.compositeFrames().begin(), mesh.compositeFrames().end());
+  if(!mesh.coefData().empty())
+    out << make_section(mesh.coefData().begin(), mesh.coefData().end());
  
   if(!mesh.materialLawMapping().empty())
     out << make_section(mesh.materialLawMapping().begin(), mesh.materialLawMapping().end(), MatUsageTag());

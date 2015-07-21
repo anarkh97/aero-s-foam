@@ -153,7 +153,7 @@ class SingleDomainDynamic
     void addConstForceSensitivity(Vector &gravityForceSen);
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
-    void getSensitivityStateParam(double &sensitivityTol);
+    void getSensitivityStateParam(double &sensitivityTol, double &ratioSensitivityTol);
 
     void getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, double d_n_p, double dt, double dt_old);
     void computeExtForce2(SysState<Vector> &, Vector &, Vector &, int t_index,

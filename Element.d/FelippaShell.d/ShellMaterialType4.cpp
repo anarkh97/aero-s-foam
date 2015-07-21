@@ -161,7 +161,10 @@ ShellMaterialType4<doublereal,localmaterial>
 
     sigma[0] = _sigma[0]; // xx
     sigma[1] = _sigma[4]; // yy
-    sigma[2] = _sigma[1]; // xy
+    sigma[2] = _sigma[1]; // xy 
+    sigma[0] = 1e-14; // xx
+    sigma[1] = 1e-14; // yy
+    sigma[2] = 1e-14; // xy 
 }
 
 template<typename doublereal, typename localmaterial>

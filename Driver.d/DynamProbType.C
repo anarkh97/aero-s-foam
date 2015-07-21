@@ -265,7 +265,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      v_pSen = new VecType( probDesc->solVecInfo() );
      *d_nSen = *v_nSen = *a_nSen = *v_pSen = 0.0;
      curSenState = new SysState<VecType>( *d_nSen, *v_nSen, *a_nSen, *v_pSen);
-     probDesc->getSensitivityStateParam(sensitivityTol);
+     probDesc->getSensitivityStateParam(sensitivityTol,ratioSensitivityTol);
    }
 #endif
 
@@ -395,7 +395,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        int numThicknessGroups = domain->getNumThicknessGroups();
        int numShapeVars = domain->getNumShapeVars();
        int numStructParamTypes = int(bool(numThicknessGroups))+int(bool(numShapeVars));
-       probDesc->sendNumParam(numStructParamTypes, 0, sensitivityTol);
+       probDesc->sendNumParam(numStructParamTypes, 0, ratioSensitivityTol*sensitivityTol);
        filePrint(stderr,"numStructParamTypes = %d, sensitivityTol = %e\n", numStructParamTypes, sensitivityTol); 
 //       bool isMach, isAlpha, isBeta;
 //       probDesc->getNumParam(isMach); probDesc->getNumParam(isAlpha); probDesc->getNumParam(isBeta);
@@ -408,7 +408,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
              case SensitivityInfo::StressVMWRTshape:
 
-               probDesc->sendNumParam(numShapeVars, 1, sensitivityTol);
+               probDesc->sendNumParam(numShapeVars, 1, ratioSensitivityTol*sensitivityTol);
                filePrint(stderr,"numShapeVars = %d, sensitivityTol = %e\n", numShapeVars, sensitivityTol); 
                if( numShapeVars > 0 ) {  // Shape variable sensitivity gets priority to any other opt. variables
                  allSens->dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
@@ -429,7 +429,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
              case SensitivityInfo::StressVMWRTthickness:
              
-               probDesc->sendNumParam(numThicknessGroups, 5, sensitivityTol);
+               probDesc->sendNumParam(numThicknessGroups, 5, ratioSensitivityTol*sensitivityTol);
                filePrint(stderr,"numThicknessGroups = %d, sensitivityTol = %e\n", numThicknessGroups, sensitivityTol); 
                if( numThicknessGroups > 0 ) {
                  allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
@@ -450,7 +450,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
              case SensitivityInfo::StressVMWRTmach:
 
-               probDesc->sendNumParam(1, 2, sensitivityTol);
+               probDesc->sendNumParam(1, 2, ratioSensitivityTol*sensitivityTol);
                filePrint(stderr,"Sensitivity with respect to Mach number will be computed\n");
                allSens->dispWRTmach = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
                rhsSen = new VecType( probDesc->solVecInfo() );
@@ -465,7 +465,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
              case SensitivityInfo::StressVMWRTalpha:
 
-               probDesc->sendNumParam(1, 3, sensitivityTol);
+               probDesc->sendNumParam(1, 3, ratioSensitivityTol*sensitivityTol);
                filePrint(stderr,"Sensitivity with respect to Angle of attack will be computed\n");
                allSens->dispWRTalpha = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
                rhsSen = new VecType( probDesc->solVecInfo() );
@@ -480,7 +480,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
              case SensitivityInfo::StressVMWRTbeta:
 
-               probDesc->sendNumParam(1, 4, sensitivityTol);
+               probDesc->sendNumParam(1, 4, ratioSensitivityTol*sensitivityTol);
                filePrint(stderr,"Sensitivity with respect to Yaw angle will be computed\n");
                allSens->dispWRTbeta = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
                rhsSen = new VecType( probDesc->solVecInfo() );

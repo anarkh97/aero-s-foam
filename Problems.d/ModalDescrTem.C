@@ -145,8 +145,9 @@ void ModalDescr<Scalar>::addConstForceSensitivity(Vector &constF){
 //------------------------------------------------------------------------------
 
 template <class Scalar>
-void ModalDescr<Scalar>::getSensitivityStateParam(double &tol) {
+void ModalDescr<Scalar>::getSensitivityStateParam(double &tol, double &ratioTol) {
   tol = domain->solInfo().sensitivityTol;
+  ratioTol = domain->solInfo().ratioSensitivityTol;
 }
 
 //------------------------------------------------------------------------------

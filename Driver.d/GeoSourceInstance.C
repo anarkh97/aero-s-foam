@@ -32,6 +32,16 @@ template
 void GeoSource::outputSensitivityVectors<double>(int, Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*, double);
 template
 void GeoSource::outputSensitivityVectors<complex<double> >(int, Eigen::Matrix<complex<double>, Eigen::Dynamic, Eigen::Dynamic>*, double);
+
+template
+void GeoSource::outputSensitivityDispVectors<double>(int, Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>**, double, int, int);
+template
+void GeoSource::outputSensitivityDispVectors<complex<double> >(int, Eigen::Matrix<complex<double>, Eigen::Dynamic, Eigen::Dynamic>**, double, int, int);
+
+template
+void GeoSource::outputSensitivityDispVectors<double>(int, Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*, double, int);
+template
+void GeoSource::outputSensitivityDispVectors<complex<double> >(int, Eigen::Matrix<complex<double>, Eigen::Dynamic, Eigen::Dynamic>*, double, int);
 #endif
 
 #define GEOSOURCE_INSTANTIATION_HELPER(dim) \

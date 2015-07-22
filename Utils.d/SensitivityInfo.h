@@ -7,7 +7,13 @@ struct SensitivityInfo {
 
    enum Type { WeightWRTthickness, WeightWRTshape,
                StressVMWRTthickness, StressVMWRTshape,
-               StressVMWRTmach, StressVMWRTalpha, StressVMWRTbeta };
+               StressVMWRTmach, StressVMWRTalpha, StressVMWRTbeta,
+               DisplacementWRTthickness,
+               DisplacementWRTshape,
+               DisplacementWRTmach,
+               DisplacementWRTalpha,
+               DisplacementWRTbeta,
+ };
 
    Type type;
    int surface;  // surface where shell type sensitivity is evaluated

@@ -627,6 +627,7 @@ GeoSource::outputSensitivityVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dy
 { 
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
   
   Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
   if(oinfo[fileNum].isFirst) {
@@ -641,7 +642,92 @@ GeoSource::outputSensitivityVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dy
     fileout << (*output).format(CleanFmt) << std::endl;
     fileout.close();
   }
-} 
+}
+
+template<class Scalar>
+void
+GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **output, 
+                                        double time, int numParams, int numnodes)
+{
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
+
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
+    
+  if(oinfo[fileNum].isFirst) {
+    filePrint(oinfo[fileNum].filptr, " %d %d\n", numParams, numnodes);
+    for(int iparam=0; iparam<numParams; ++iparam) {
+      filePrint(oinfo[fileNum].filptr, "%d \n", iparam+1);
+      for(int inode = 0; inode < numnodes; ++inode) {
+//        std::cerr << (*output[iparam])(inode,0) << std::endl;
+        filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                        inode+1, w, p, std::real((*output[iparam])(inode,0)), 
+                                 w, p, std::real((*output[iparam])(inode,1)), 
+                                 w, p, std::real((*output[iparam])(inode,2)), 
+                                 w, p, std::real((*output[iparam])(inode,3)), 
+                                 w, p, std::real((*output[iparam])(inode,4)), 
+                                 w, p, std::real((*output[iparam])(inode,5))); 
+      }
+    }
+    oinfo[fileNum].isFirst = false;
+    fflush(oinfo[fileNum].filptr);
+  } else {
+    filePrint(oinfo[fileNum].filptr, " %d %d\n", numParams, numnodes);
+    for(int iparam=0; iparam<numParams; ++iparam) {
+      filePrint(oinfo[fileNum].filptr, " %d \n", iparam+1);
+      for(int inode = 0; inode < numnodes; ++inode) {
+        filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                        inode+1, w, p, std::real((*output[iparam])(inode,0)), 
+                                 w, p, std::real((*output[iparam])(inode,1)), 
+                                 w, p, std::real((*output[iparam])(inode,2)), 
+                                 w, p, std::real((*output[iparam])(inode,3)), 
+                                 w, p, std::real((*output[iparam])(inode,4)), 
+                                 w, p, std::real((*output[iparam])(inode,5)));  
+      }
+    }
+    fflush(oinfo[fileNum].filptr);
+  }
+}
+
+template<class Scalar>
+void
+GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, 
+                                        double time, int numnodes)
+{
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
+
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
+    
+  if(oinfo[fileNum].isFirst) {
+    filePrint(oinfo[fileNum].filptr, "%d\n", numnodes);
+    for(int inode = 0; inode < numnodes; ++inode) {
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                      inode+1, w, p, std::real((*output)(inode,0)), 
+                               w, p, std::real((*output)(inode,1)), 
+                               w, p, std::real((*output)(inode,2)), 
+                               w, p, std::real((*output)(inode,3)), 
+                               w, p, std::real((*output)(inode,4)), 
+                               w, p, std::real((*output)(inode,5))); 
+    }
+    oinfo[fileNum].isFirst = false;
+    fflush(oinfo[fileNum].filptr);
+  } else {
+    filePrint(oinfo[fileNum].filptr, "%d\n", numnodes);
+    for(int inode = 0; inode < numnodes; ++inode) {
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                      inode+1, w, p, std::real((*output)(inode,0)), 
+                               w, p, std::real((*output)(inode,1)), 
+                               w, p, std::real((*output)(inode,2)), 
+                               w, p, std::real((*output)(inode,3)), 
+                               w, p, std::real((*output)(inode,4)), 
+                               w, p, std::real((*output)(inode,5)));  
+    }
+    fflush(oinfo[fileNum].filptr);
+  }
+}
 #endif
 //------------------------------------------------------------
 

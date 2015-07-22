@@ -1028,6 +1028,16 @@ TRAIL [a-zA-Z]*
 
 "vmstbeta"|"VMSTBETA"              { yylval.ival = OutputInfo::VMstBeta; return STRESSID; }
 
+"dispthic"|"DISPTHIC"              { yylval.ival = OutputInfo::DispThic; return STRESSID; }
+
+"dispshap"|"DISPSHAP"              { yylval.ival = OutputInfo::DispShap; return STRESSID; }
+
+"dispmach"|"DISPMACH"              { yylval.ival = OutputInfo::DispMach; return STRESSID; }
+
+"dispalph"|"DISPALPH"              { yylval.ival = OutputInfo::DispAlph; return STRESSID; }
+
+"dispbeta"|"DISPBTEA"              { yylval.ival = OutputInfo::DispBeta; return STRESSID; }
+
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
 "gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }

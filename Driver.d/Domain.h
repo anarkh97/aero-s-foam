@@ -188,6 +188,13 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;          // weight used to average stress sensitivity
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTthick; // derivative of linear static structural formulation wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTshape; // derivative of linear static structural formulation wrt shape variables
+
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **gdispWRTthick;         // derivative of global displacement wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **gdispWRTshape;         // derivative of global displacement wrt shape variables
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispWRTmach;           // derivative of global displacement wrt Mach number
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispWRTalpha;          // derivative of global displacement wrt angle of attack
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispWRTbeta;           // derivative of global displacement wrt yaw angle
+
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTshape;         // derivative of displacement wrt shape variables
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispWRTmach;           // derivative of displacement wrt Mach number
@@ -202,15 +209,22 @@ struct AllSensitivities
                        vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0; 
                        vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;     dKucdshape = 0; 
                        linearstaticWRTthick = 0;  linearstaticWRTshape = 0;  dispWRTthick = 0;          dispWRTshape = 0;
-                       stiffnessWRTshape = 0; }
+                       stiffnessWRTshape = 0;     gdispWRTthick = 0;         gdispWRTshape = 0;         gdispWRTmach = 0;
+                       gdispWRTalpha = 0;         gdispWRTbeta = 0; }
 
   void zero(int numShapeVars=0, int numThicknessGroups=0) {
     if(weightWRTthick) weightWRTthick->setZero();      
     if(weightWRTshape) weightWRTshape->setZero();
-    if(vonMisesWRTthick) vonMisesWRTthick->setZero();   vonMisesWRTthickSparse->zeroAll();
-    if(vonMisesWRTdisp) vonMisesWRTdisp->setZero();     vonMisesWRTdispSparse->zeroAll();
-    if(vonMisesWRTshape) vonMisesWRTshape->setZero();   vonMisesWRTshapeSparse->zeroAll();
-    if(stressWeight) stressWeight->setZero();           stressWeightSparse->zeroAll();
+    if(vonMisesWRTthick) {  vonMisesWRTthick->setZero();   vonMisesWRTthickSparse->zeroAll(); }
+    if(vonMisesWRTdisp)  {  vonMisesWRTdisp->setZero();    vonMisesWRTdispSparse->zeroAll();  }
+    if(vonMisesWRTshape) {  vonMisesWRTshape->setZero();   vonMisesWRTshapeSparse->zeroAll(); }
+    if(stressWeight)     {  stressWeight->setZero();       stressWeightSparse->zeroAll();     }
+    if(dispWRTmach)      {  dispWRTmach->setZero();              }
+    if(dispWRTalpha)     {  dispWRTalpha->setZero();             }
+    if(dispWRTbeta)      {  dispWRTbeta->setZero();              }
+    if(gdispWRTmach)     {  gdispWRTmach->setZero();              }
+    if(gdispWRTalpha)    {  gdispWRTalpha->setZero();             }
+    if(gdispWRTbeta)     {  gdispWRTbeta->setZero();              }
     if(stiffnessWRTthick) for(int i=0; i<numThicknessGroups; ++i) { stiffnessWRTthick[i]->setZero(); stiffnessWRTthickSparse[i]->zeroAll();  }
     if(stiffnessWRTshape) for(int i=0; i<numShapeVars; ++i) { stiffnessWRTshape[i]->setZero();       stiffnessWRTshapeSparse[i]->zeroAll();   }
     if(dKucdthick) for(int i=0; i<numThicknessGroups; ++i) { dKucdthick[i]->setZero();               dKucdthickSparse[i]->zeroAll();   }
@@ -219,6 +233,8 @@ struct AllSensitivities
     if(linearstaticWRTshape) for(int i=0; i<numShapeVars; ++i) { linearstaticWRTshape[i]->setZero(); linearstaticWRTshapeSparse[i]->zeroAll();   }
     if(dispWRTthick) for(int i=0; i<numThicknessGroups; ++i) { dispWRTthick[i]->setZero();           dispWRTthickSparse[i]->zeroAll();  }
     if(dispWRTshape) for(int i=0; i<numShapeVars; ++i) { dispWRTshape[i]->setZero();                 dispWRTshapeSparse[i]->zeroAll();  }
+    if(gdispWRTthick) for(int i=0; i<numThicknessGroups; ++i) { gdispWRTthick[i]->setZero();         gdispWRTthickSparse[i]->zeroAll();  }
+    if(gdispWRTshape) for(int i=0; i<numShapeVars; ++i) { gdispWRTshape[i]->setZero();               gdispWRTshapeSparse[i]->zeroAll();  }
   }
 #endif
 };
@@ -1017,6 +1033,11 @@ class Domain : public HData {
 
      template<class Scalar>
      int mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx = 0, Scalar (*xyz_loc)[11] = NULL);
+#ifdef USE_EIGEN3
+     template<class Scalar>
+     int mergeDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *,
+                                         Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *);
+#endif
      template<class Scalar>
      void forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11]);//DofSet::max_known_nonL_dof
 

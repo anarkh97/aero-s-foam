@@ -542,6 +542,12 @@ public:
     void outputSensitivityScalars(int, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *, double time = 0.0);
   template<class Scalar>
     void outputSensitivityVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, double time = 0.0);
+  template<class Scalar>
+    void outputSensitivityDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, 
+                                      double time = 0.0, int numParams = 0, int numnodes = 0);
+  template<class Scalar>
+    void outputSensitivityDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, 
+                                      double time = 0.0, int numnodes = 0);
 #endif
   void outputNodeScalars(int, double *, int, double time = -1.0);
   void outputNodeScalars(int, DComplex *, int, double time = -1.0);

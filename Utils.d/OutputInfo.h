@@ -44,7 +44,8 @@ struct OutputInfo {
           PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
           PlasticStrainYZ, PlasticStrainXZ, BackStressXX, BackStressYY,
           BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ, 
-          WeigThic, WeigShap, VMstThic, VMstShap, VMstMach, VMstAlpha, VMstBeta, 
+          WeigThic, WeigShap, VMstThic, VMstShap, VMstMach, VMstAlpha, VMstBeta,
+          DispThic, DispShap, DispMach, DispAlph, DispBeta, 
           DissipatedEnergy, DeletedElements, DualStateVar };
 
    enum Group  { Nodal, Attribute, NodeGroup };

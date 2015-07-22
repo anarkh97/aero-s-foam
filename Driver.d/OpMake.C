@@ -1977,7 +1977,6 @@ Domain::scaleDisp(Scalar *u, double alpha)
   }
 }
 
-
 template<class Scalar>
 int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx, Scalar (*xyz_loc)[11])
 {
@@ -3534,10 +3533,145 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
     if(oinfo[i].type == OutputInfo::VMstMach) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTmach);
     if(oinfo[i].type == OutputInfo::VMstAlpha) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTalpha);
     if(oinfo[i].type == OutputInfo::VMstBeta) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTbeta);
+    if(oinfo[i].type == OutputInfo::DispThic) {
+      int numThicknessGroup = getNumThicknessGroups();
+      allSens.gdispWRTthick = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroup];
+      for(int iparam=0; iparam<numThicknessGroup; ++iparam) { 
+        allSens.gdispWRTthick[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+        mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam]);
+      }
+      geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTthick, 0, numThicknessGroup, numnodes);
+    }
+    if(oinfo[i].type == OutputInfo::DispShap) {
+      int numShapeVars = getNumShapeVars();
+      allSens.gdispWRTshape = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+      for(int iparam=0; iparam<numShapeVars; ++iparam) { 
+        allSens.gdispWRTshape[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+        mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam]);
+      }
+      geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTshape, 0, numShapeVars, numnodes);
+    }
+    if(oinfo[i].type == OutputInfo::DispMach) {
+      allSens.gdispWRTmach = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+      mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTmach, allSens.dispWRTmach);
+      geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTmach, 0, numnodes);
+    }
+    if(oinfo[i].type == OutputInfo::DispAlph) {
+      allSens.gdispWRTalpha = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+      mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTalpha, allSens.dispWRTalpha);
+      geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTalpha, 0, numnodes);
+    }
+    if(oinfo[i].type == OutputInfo::DispBeta) {
+      allSens.gdispWRTmach = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+      mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTbeta, allSens.dispWRTbeta);
+      geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTbeta, 0, numnodes);
+    }
   }
   firstOutput = false;
 #endif
 }
+
+//-------------------------------------------------------------------------------------
+#ifdef USE_EIGEN3
+template<class Scalar>
+int Domain::mergeDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispSen, 
+                                            Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispSen)
+{
+  int inode, nodeI;
+  int realNode = -1;
+
+  for(inode = 0; inode < numnodes; ++inode) {
+
+    if(nodes[inode] == 0) continue;
+    realNode++;
+    nodeI = (outFlag) ? realNode : inode;
+
+    int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
+    int xLoc1 =   dsa->locate(inode, DofSet::Xdisp);
+
+    if (xLoc >= 0)
+      (*gdispSen)(nodeI,0) = (*dispSen)(xLoc,0);          // free
+    else
+      (*gdispSen)(nodeI,0) = 0.0;
+
+    int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
+    int yLoc1 =   dsa->locate(inode, DofSet::Ydisp);
+
+    if (yLoc >= 0)
+      (*gdispSen)(nodeI,1) = (*dispSen)(yLoc,0);
+    else
+      (*gdispSen)(nodeI,1) = 0.0;
+
+    int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
+    int zLoc1 =   dsa->locate(inode, DofSet::Zdisp);
+
+    if (zLoc >= 0)
+      (*gdispSen)(nodeI,2) = (*dispSen)(zLoc,0);
+    else
+      (*gdispSen)(nodeI,2) = 0.0;
+
+    int xRot  = c_dsa->locate(inode, DofSet::Xrot);
+    int xRot1 =   dsa->locate(inode, DofSet::Xrot);
+
+    if (xRot >= 0)
+      (*gdispSen)(nodeI,3) = (*dispSen)(xRot,0);
+    else
+      (*gdispSen)(nodeI,3) = 0.0;
+
+    int yRot  = c_dsa->locate(inode, DofSet::Yrot);
+    int yRot1 =   dsa->locate(inode, DofSet::Yrot);
+
+    if (yRot >= 0)
+      (*gdispSen)(nodeI,4) = (*dispSen)(yRot,0);
+    else
+      (*gdispSen)(nodeI,4) = 0.0;
+
+    int zRot  = c_dsa->locate(inode, DofSet::Zrot);
+    int zRot1 =   dsa->locate(inode, DofSet::Zrot);
+
+    if (zRot >= 0)
+      (*gdispSen)(nodeI,5) = (*dispSen)(zRot,0);
+    else
+      (*gdispSen)(nodeI,5) = 0.0;
+/*
+    int xTemp  = c_dsa->locate(inode, DofSet::Temp);
+    int xTemp1 =   dsa->locate(inode, DofSet::Temp);
+
+    if (xTemp >= 0)
+      xyz[nodeI][6] = u[xTemp];
+    else
+      xyz[nodeI][6] = 0.0;
+
+    int xHelm  = c_dsa->locate(inode, DofSet::Helm);
+    int xHelm1 =   dsa->locate(inode, DofSet::Helm);
+
+    if (xHelm >= 0)
+      xyz[nodeI][7] = u[xHelm];
+    else
+      xyz[nodeI][7] = 0.0;
+
+    int xPot  = c_dsa->locate(inode, DofSet::Potential);
+    int xPot1 =   dsa->locate(inode, DofSet::Potential);
+
+    if (xPot >= 0)
+      xyz[nodeI][10] = u[xPot];
+    else
+      xyz[nodeI][10] = 0.0;
+
+    // transform displacements and rotations (if present) from DOF_FRM to basic coordinates
+    // and keep a copy of the original in xyz_loc
+    if(!domain->solInfo().basicDofCoords && c_dsa->locate(inode, DofSet::LagrangeE) < 0
+      && c_dsa->locate(inode, DofSet::LagrangeI) < 0) {
+      if(xyz_loc) for(int j=0; j<11; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
+      bool hasRot = (xRot >= 0 || xRot1 >= 0 || yRot >= 0 || yRot1 >= 0 || zRot >= 0 || zRot1 >= 0);
+      transformVectorInv(&(xyz[nodeI][0]), inode, hasRot);
+    }
+*/
+  }
+
+  return ++realNode;
+}
+#endif
 
 //-------------------------------------------------------------------------------------
 // Templated Post-processing for direct solver statics, frequency response, helmholtz and eigen

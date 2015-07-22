@@ -4164,19 +4164,29 @@ void Domain::buildSensitivityInfo()
   int numOutInfo = geoSource->getNumOutInfo();
   for(int i=0; i<numOutInfo; ++i) {
     if(oinfo[i].type == OutputInfo::WeigThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;    addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;       addSensitivity(oinfo[i]);
     } else if (oinfo[i].type == OutputInfo::WeigShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;        addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;           addSensitivity(oinfo[i]);
     } else if (oinfo[i].type == OutputInfo::VMstThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;  addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;     addSensitivity(oinfo[i]);
     } else if (oinfo[i].type == OutputInfo::VMstShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;      addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;         addSensitivity(oinfo[i]);
     } else if (oinfo[i].type == OutputInfo::VMstMach) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTmach;       addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTmach;          addSensitivity(oinfo[i]);
     } else if (oinfo[i].type == OutputInfo::VMstAlpha) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTalpha;      addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTalpha;         addSensitivity(oinfo[i]);
     } else if (oinfo[i].type == OutputInfo::VMstBeta) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTbeta;       addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTbeta;          addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::DispThic) {
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTthickness; addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::DispShap) {
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTshape;     addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::DispMach) {
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTmach;      addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::DispAlph) {
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTalpha;     addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::DispBeta) {
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTbeta;      addSensitivity(oinfo[i]);
     }
     numSensitivity++;
   }

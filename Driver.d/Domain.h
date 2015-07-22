@@ -233,8 +233,8 @@ struct AllSensitivities
     if(linearstaticWRTshape) for(int i=0; i<numShapeVars; ++i) { linearstaticWRTshape[i]->setZero(); linearstaticWRTshapeSparse[i]->zeroAll();   }
     if(dispWRTthick) for(int i=0; i<numThicknessGroups; ++i) { dispWRTthick[i]->setZero();           dispWRTthickSparse[i]->zeroAll();  }
     if(dispWRTshape) for(int i=0; i<numShapeVars; ++i) { dispWRTshape[i]->setZero();                 dispWRTshapeSparse[i]->zeroAll();  }
-    if(gdispWRTthick) for(int i=0; i<numThicknessGroups; ++i) { gdispWRTthick[i]->setZero();         gdispWRTthickSparse[i]->zeroAll();  }
-    if(gdispWRTshape) for(int i=0; i<numShapeVars; ++i) { gdispWRTshape[i]->setZero();               gdispWRTshapeSparse[i]->zeroAll();  }
+    if(gdispWRTthick) for(int i=0; i<numThicknessGroups; ++i) { gdispWRTthick[i]->setZero();         }
+    if(gdispWRTshape) for(int i=0; i<numShapeVars; ++i) { gdispWRTshape[i]->setZero();               }
   }
 #endif
 };

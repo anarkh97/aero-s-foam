@@ -36,6 +36,9 @@ class GenMFTTData {
      int maxval;
      int curp; // Because calls to getVal will usually be
                // for neighboring values of t
+     static const DataType zero;
+     static const DataType one;
+
    public:
      GenMFTTData();
      GenMFTTData(int);

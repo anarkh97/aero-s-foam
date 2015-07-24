@@ -65,9 +65,7 @@ GenMFTTData<DataType>::getVal(double t)
    while(curp < np-1 && time[curp+1] < t) curp++;
 
    if ((curp < 0) || (curp == np - 1)) {
-      DataType v;
-      v = 0;
-      return v;
+      return zero;
    }
    else {
       DataType v1 = value[curp], v2 = value[curp+1];
@@ -76,9 +74,7 @@ GenMFTTData<DataType>::getVal(double t)
    }
  }
  else {
-   DataType v;
-   v = 1;
-   return v;
+   return one;
  }
 }
 
@@ -115,9 +111,7 @@ GenMFTTData<DataType>::getValAlt(double t)
    }
  }
  else {
-   DataType v;
-   v = 0;
-   return v;
+   return zero;
  }
 }
 
@@ -145,11 +139,11 @@ GenMFTTData<DataType>::getValAndSlopeAlt(double t, DataType *v, DataType *s)
 
    if(curp < 0 ) {
      *v = value[0];
-     *s = 0;
+     *s = zero;
    }
    else if (curp == np - 1) {
      *v = value[curp];
-     *s = 0;
+     *s = zero;
    }
    else {
      DataType v1 = value[curp], v2 = value[curp+1];
@@ -158,7 +152,7 @@ GenMFTTData<DataType>::getValAndSlopeAlt(double t, DataType *v, DataType *s)
      *s = (v2-v1) / (t2 - t1);
    }
  }
- else { *v = 0; *s = 0; }
+ else { *v = zero; *s = zero; }
 }
 
 template<typename DataType>
@@ -186,7 +180,7 @@ GenMFTTData<DataType>::getValAndSlopeAlt2(double t, DataType *v, DataType *s)
 
    if(curp < 0 ) {
      *v = value[0];
-     *s = 0;
+     *s = zero;
    }
    else if (curp == np - 1) {
      DataType v1 = value[curp-1], v2 = value[curp];
@@ -201,6 +195,6 @@ GenMFTTData<DataType>::getValAndSlopeAlt2(double t, DataType *v, DataType *s)
      *s = (v2-v1) / (t2 - t1);
    }
  }
- else { *v = 0; *s = 0; }
+ else { *v = zero; *s = zero; }
 }
 

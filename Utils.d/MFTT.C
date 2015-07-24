@@ -1,6 +1,12 @@
 #include <Utils.d/MFTT.h>
 #include <iostream>
 
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+template<> const Eigen::Vector4d GenMFTTData<Eigen::Vector4d>::zero = Eigen::Vector4d::Zero();
+template<> const Eigen::Vector4d GenMFTTData<Eigen::Vector4d>::one  = Eigen::Vector4d::Ones();
+#endif
+
 MFTTData::MFTTData()
 {
  maxval = 16;

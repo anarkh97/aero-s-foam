@@ -342,6 +342,8 @@ class Domain : public HData {
      int numYMTT;                          // number of YM Temp tables
      ResizeArray<MFTTData *> sdetaft;      // RT: Structural damping versus frequency table
      int numSDETAFT;                       // number of SDETAF tables
+     ResizeArray<GenMFTTData<Eigen::Vector4d> *> rubdaft;      // RT: Rubber damping versus frequency table
+     int numRUBDAFT;                       // number of RUBDAF tables
      ResizeArray<MFTTData *> ctett;        // Coefficient of thermal expansion vs. temperatur table
      int numCTETT;                         // number of CTE Temp tables
      ResizeArray<MFTTData *> ysst;         // Yield stress vs. effective plastic strain temperature table
@@ -650,6 +652,7 @@ class Domain : public HData {
      int  addYMTT(MFTTData *);
      int  addSDETAFT(MFTTData *);
      void updateSDETAF(StructProp* p, double omega);
+     int  addRUBDAFT(GenMFTTData<Eigen::Vector4d> *);
      void printYMTT();
      int  addCTETT(MFTTData *);
      std::pair<int, ResizeArray<MFTTData*>* >* getCTETT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numCTETT,&ctett); };

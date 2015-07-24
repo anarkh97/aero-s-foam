@@ -14,6 +14,9 @@
 #ifdef STRUCTOPT
 #include <Structopt.d/Driver_opt.d/Domain_opt.h>
 #endif
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
 
  int numColumns = 3;
  double amplitude = 1.0;
@@ -39,6 +42,7 @@
  MFTTData *ymtt;
  MFTTData *ctett;
  MFTTData *sdetaft;
+ GenMFTTData<Eigen::Vector4d> *rubdaft;
  ComplexBCList *cxbclist;
  ComplexBCond cxbcval;
  FrameData frame;
@@ -94,8 +98,8 @@
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
-%token RADIATION RAYDAMP RBMFILTER RBMSET READMODE READSENSITIVITY REBUILD REVERSEORDER REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROTVECOUTTYPE RESCALING
-%token SCALING SCALINGTYPE STRDAMP SDETAFT SENSORS SOLVERTYPE SHIFT
+%token RADIATION RBMFILTER RBMSET READMODE READSENSITIVITY REBUILD REVERSEORDER REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROTVECOUTTYPE RESCALING RUBDAFT
+%token SCALING SCALINGTYPE SDETAFT SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOLSEN TOPFILE TOPOLOGY TRBM THERMOE THERMOH RATIOTOLSEN 
@@ -134,7 +138,7 @@
 %type <fval>     Float DblConstant DeleteElementsList
 %type <ival>     AEROTYPE ALPROC AlProc Attributes AUGMENTTYPE AVERAGED 
 %type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE ANGULAROUTTYPE ROTVECOUTTYPE
-%type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
+%type <ival>     DAMPING ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE LoadCase
 %type <ival>     RBMSET RENUMBERID OPTCTV
 %type <rprop>    RPROP
@@ -153,6 +157,7 @@
 %type <ymtt>     YMTTList YSSTList YSSRTList
 %type <ctett>    TETTList
 %type <sdetaft>  SDETAFList
+%type <rubdaft>  RUBDAFList
 %type <dlist>    FloatList
 %type <slist>    StringList
 %type <SurfObj>  FaceSet
@@ -239,6 +244,7 @@ Component:
         | YSSTable
         | YSSRTable
         | SDETAFTable
+        | RUBDAFTable
 	| RbmTolerance
         | ToleranceInfo
         | Gravity
@@ -1337,15 +1343,22 @@ ParallelInTimeKeyWord:
         { domain->solInfo().pitaJumpMagnOutput = true; }
         ;
 DampInfo:
-	RAYDAMP Float Float NewLine
-	{ domain->solInfo().setDamping($2,$3); }
-        | RAYDAMP Float Float MOMENTTYPE NewLine
-        { domain->solInfo().setDamping($2,$3);
-          domain->solInfo().mtypeDamp = (int)$4; } 
+	DAMPING Float Float NewLine
+	{ if($1 == 1) domain->solInfo().setDamping($2,$3);
+          else return -1; // only RAYDAMP is allowed here
+        }
+        | DAMPING Float Float MOMENTTYPE NewLine
+        { if($1 == 1) {
+            domain->solInfo().setDamping($2,$3);
+            domain->solInfo().mtypeDamp = (int)$4;
+          }
+          else return -1;
+        } 
 	| MODDAMP NewLine ModalValList
 	{ if(geoSource->setModalDamping($3->n, $3->d) < 0) return -1; 
-	  domain->solInfo().modalCalled = true; }
-
+	  domain->solInfo().modalCalled = true;
+        }
+        ;
 ComplexDirichletBC:
 	HDIRICHLET NewLine ComplexBCDataList
 	{ $$ = $3; }
@@ -1998,6 +2011,18 @@ SDETAFList:
         | SDETAFList CURVE Integer NewLine Float Float NewLine
         { $$ = new MFTTData($3); $$->add($5, $6); domain->addSDETAFT($$);}
         ;
+RUBDAFTable:
+        RUBDAFT NewLine
+        | RUBDAFT NewLine RUBDAFList
+        ;
+RUBDAFList:
+        CURVE Integer NewLine Float Float Float Float Float NewLine
+        { $$ = new GenMFTTData<Eigen::Vector4d>($2); $$->add($4, Eigen::Vector4d($5,$6,$7,$8)); domain->addRUBDAFT($$); }
+        | RUBDAFList Float Float Float Float Float NewLine
+        { $$->add($2, Eigen::Vector4d($3,$4,$5,$6)); }
+        | RUBDAFList CURVE Integer NewLine Float Float Float Float Float NewLine
+        { $$ = new GenMFTTData<Eigen::Vector4d>($3); $$->add($5, Eigen::Vector4d($6,$7,$8,$9)); domain->addRUBDAFT($$); }
+        ;
 LMPConstrain:
         LMPC NewLine
         | LMPC NewLine MPCList
@@ -2119,20 +2144,27 @@ MatData:
           sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float RAYDAMP Float Float NewLine
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float DAMPING Float Float NewLine
         { StructProp sp;
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
           sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
-          sp.betaDamp = $17; sp.alphaDamp = $18;
-          geoSource->addMat( $1-1, sp );
-        }
-        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float STRDAMP Float Float NewLine
-        { StructProp sp;
-          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
-          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
-          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
-          sp.etaDamp = $17; sp.betaDamp = $18;
+          switch($16) {
+            case 1 : // RAYDAMP
+              sp.betaDamp = $17; sp.alphaDamp = $18;
+              break;
+            case 2 : // STRDAMP
+              sp.etaDamp = $17; sp.betaDamp = $18;
+              break;
+            case 3 : // RUBDAMP
+              sp.eta_E = $17;
+              if(sp.eta_E >= 0) sp.eta_mu = $18;
+              sp.E0 = $3;
+              sp.mu0 = $3/(2*(1+$4));
+              break;
+            default :
+              return -1;
+          }
           geoSource->addMat( $1-1, sp );
         }
 	| Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
@@ -2143,22 +2175,28 @@ MatData:
 	  sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float RAYDAMP Float Float NewLine
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float DAMPING Float Float NewLine
         { StructProp sp;
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
           sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
           sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
-          sp.betaDamp = $21; sp.alphaDamp = $22;
-          geoSource->addMat( $1-1, sp );
-        }
-        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float STRDAMP Float Float NewLine
-        { StructProp sp;
-          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
-          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
-          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
-          sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
-          sp.etaDamp = $21; sp.betaDamp = $22;
+          switch($20) {
+            case 1 : // RAYDAMP
+              sp.betaDamp = $21; sp.alphaDamp = $22;
+              break;
+            case 2 : // STRDAMP
+              sp.etaDamp = $21; sp.betaDamp = $22;
+              break;
+            case 3 : // RUBDAMP
+              sp.eta_E = $21; 
+              if(sp.eta_E >= 0) sp.eta_mu = $22;
+              sp.E0 = $3;
+              sp.mu0 = $3/(2*(1+$4));
+              break;
+            default :
+              return -1;
+          }
           geoSource->addMat( $1-1, sp );
         }
         | Integer Float Float Float Float Float Float Float NewLine
@@ -2178,7 +2216,8 @@ MatData:
         { StructProp sp;  // this is for spring with stiffness-proportional damping : GID Kx Ky Kz lx1 ...
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
-          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.betaDamp = $15;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13;
+          if($14 == 0) sp.betaDamp = $15; else return -1;
           geoSource->addMat( $1-1, sp );
         }
         | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float

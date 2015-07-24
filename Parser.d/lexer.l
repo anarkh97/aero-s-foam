@@ -681,11 +681,13 @@ TRAIL [a-zA-Z]*
 
 "jacobi"|"JACOBI"                  { return JACOBI; }
 
-"damp"[a-zA-Z]*|"DAMP"[a-zA-Z]*    { return DAMPING; }
+"damp"[a-zA-Z]*|"DAMP"[a-zA-Z]*    { yylval.ival = 0; return DAMPING; }
 
-"rayd"[a-zA-Z]*|"RAYD"[a-zA-Z]*    { return RAYDAMP; }
+"rayd"[a-zA-Z]*|"RAYD"[a-zA-Z]*    { yylval.ival = 1; return DAMPING; }
 
-"strd"[a-zA-Z]*|"STRD"[a-zA-Z]*    { return STRDAMP; }
+"strd"[a-zA-Z]*|"STRD"[a-zA-Z]*    { yylval.ival = 2; return DAMPING; }
+
+"rubdam"[a-zA-Z]*|"RUBDAM"[a-zA-Z]* { yylval.ival = 3; return DAMPING; }
 
 "modd"[a-zA-Z]*|"MODD"[a-zA-Z]*    { return MODDAMP; }
 
@@ -820,6 +822,8 @@ TRAIL [a-zA-Z]*
 "YMTT"|"ymtt"                      { return YMTT; }
 
 "SDETAFT"|"sdetaft"                { return SDETAFT; }
+
+"RUBDAFT"|"rubdaft"                { return RUBDAFT; }
 
 "MATLAB"|"matlab"                  { return MATLAB; }
 

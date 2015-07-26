@@ -1606,7 +1606,7 @@ Domain::computeExtAndDmpEnergies(Vector &disp, Vector &force, double time, Vecto
 void
 Domain::computeUnamplifiedExtForce(GenVector<double>& fcon, int loadsetid)
 {
-  // Compute unamplified constant force or constant part (f^con) of a time-dependent external force of the form
+  // Compute constant part (f^con) of a time-dependent external force of the form
   // f^ext(t) = lambda(t)*f^con belonging to the specified loadset, where lambda(t) is the scalar amplification
   // factor obtained from an MFTT/HFTT.
 

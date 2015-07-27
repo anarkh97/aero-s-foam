@@ -32,6 +32,8 @@ class ConstraintFunctionElement : public MpcElement
     double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
     double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&s, double);
 
+    FunctionType functionType() { return NONLINEAR; }
+
   protected:
     virtual void getConstants(CoordSet&,
                               Eigen::Array<typename ConstraintFunctionTemplate<double>::ScalarConstantType,

@@ -11,6 +11,7 @@ class PointPlaneDistanceConstraintElement : public ConstraintFunctionElement<Sim
   public:
     PointPlaneDistanceConstraintElement(int* _nn); 
     void setFrame(EFrame *);
+    FunctionType functionType() { return LINEAR; }
 
   protected:
     void getConstants(CoordSet& cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst, GeomState* = NULL);

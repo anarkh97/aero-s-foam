@@ -15,6 +15,7 @@
 #include <Driver.d/Domain.h>
 #include <Driver.d/Dynam.h>
 #include <Driver.d/SysState.h>
+#include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/DistHelper.h>
 
 #include <algorithm>
@@ -149,7 +150,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   }
 
   if(strcmp(solInfo().readInDualROB,"") != 0) {
-    VecNodeDof1Conversion vecNodeDof1Conversion(getNumLMPC());
+    VecNodeDof1Conversion vecNodeDof1Conversion(getNumLMPC()+geoSource->getNumConstraintElementsIeq());
     // Load dual projection basis    
     std::string fileName = BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::POD);
     BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
@@ -167,13 +168,31 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   solver->projectionBasisIs(projectionBasis_);
 
   if(strcmp(solInfo().readInDualROB,"") != 0 && !solInfo().modalLMPC) {
+    // TODO consider general case of both linear and nonlinear constraints
     solver->dualProjectionBasisIs(dualProjectionBasis_);
     double dt = solInfo().getTimeStep(), beta = solInfo().newmarkBeta;
     double Kcoef = dt*dt*beta;
-    solver->addLMPCs(getNumLMPC(), getLMPCs(), Kcoef);
+    if(geoSource->getNumConstraintElementsIeq()) {
+      Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
+      ResizeArray<LMPCons *> lmpc(0);
+      int numLMPC = 0;
+      for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
+        Element *ele = eset[i];
+        int n = ele->getNumMPCs();
+        LMPCons **l = ele->getMPCs();
+        for(int j = 0; j < n; ++j) {
+          lmpc[numLMPC++] = l[j];
+        }
+        delete [] l;
+      }
+      solver->addLMPCs(numLMPC, lmpc.data(), Kcoef);
+      for(int i=0; i<numLMPC; ++i) delete lmpc[i];
+    }
+    else
+      solver->addLMPCs(getNumLMPC(), getLMPCs(), Kcoef);
   }
 
-  if(solInfo().modalLMPC){
+  if(solInfo().modalLMPC) {
     double dt = solInfo().getTimeStep(), beta = solInfo().newmarkBeta;
     double Kcoef = dt*dt*beta;
     solver->addModalLMPCs(Kcoef,solInfo().maxSizeDualBasis,geoSource->ROMLMPCVecBegin(),geoSource->ROMLMPCVecEnd());
@@ -1213,7 +1232,27 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
   }
 
 #ifdef USE_EIGEN3
-  solver_->updateLMPCs(geomState.q);
+  // TODO consider general case of both linear and nonlinear constraints
+  if(geoSource->getNumConstraintElementsIeq()) {
+    Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
+    ResizeArray<LMPCons *> lmpc(0);
+    int numLMPC = 0;
+    for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
+      Element *ele = eset[i];
+      dynamic_cast<MpcElement*>(ele)->update(refState_Big, *geomState_Big, domain->getNodes(), t);
+      int n = ele->getNumMPCs();
+      LMPCons **l = ele->getMPCs();
+      for(int j = 0; j < n; ++j) {
+        lmpc[numLMPC++] = l[j];
+      }
+      delete [] l;
+    }
+    double dt = domain->solInfo().getTimeStep(), beta = domain->solInfo().newmarkBeta;
+    double Kcoef = dt*dt*beta;
+    solver_->addLMPCs(numLMPC, lmpc.data(), Kcoef);
+    for(int i=0; i<numLMPC; ++i) delete lmpc[i];
+  }
+  else solver_->updateLMPCs(geomState.q);
 #endif
 
   return residual.norm();

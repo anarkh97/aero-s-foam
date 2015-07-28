@@ -653,6 +653,7 @@ class Domain : public HData {
      int  addSDETAFT(MFTTData *);
      void updateSDETAF(StructProp* p, double omega);
      int  addRUBDAFT(GenMFTTData<Eigen::Vector4d> *);
+     void updateRUBDAFT(StructProp* p, double omega);
      void printYMTT();
      int  addCTETT(MFTTData *);
      std::pair<int, ResizeArray<MFTTData*>* >* getCTETT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numCTETT,&ctett); };

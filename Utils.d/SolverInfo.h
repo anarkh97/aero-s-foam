@@ -45,6 +45,7 @@ public:
                   pade_poles = false;
                   pade_poles_sigmaL = 0.0;
                   pade_poles_sigmaU = std::numeric_limits<double>::max();
+                  alphaD = 0.0; betaD = 0.0;
    }
    int nFreqSweepRHS;
    enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, QRGalProjection };
@@ -56,6 +57,10 @@ public:
    double pade_tol;
    bool pade_poles;
    double pade_poles_sigmaL, pade_poles_sigmaU;
+// RT: Does not belong here but added to allow different damping factors for
+// different impedance sections
+   double alphaD;
+   double betaD;
 };
 
 struct SolverInfo {

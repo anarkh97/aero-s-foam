@@ -413,7 +413,6 @@ SingleDomainStatic<T, VectorType, SolverType>::getFreqSweepRHS(VectorType *rhs, 
         }
       }
     }
-fprintf(stderr,"tady tady\n");
     if(allOps.K_deriv) {
       for(int j=0; j<=k-1; ++j) {
         if(allOps.K_deriv[k-j]) {

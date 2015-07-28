@@ -1145,13 +1145,14 @@ void GeoSource::setUpData()
     p->kappaHelm = real(ka);
     p->kappaHelmImag = imag(ka);
     domain->updateSDETAF(p,omega()+1e-9);
+    domain->updateRUBDAFT(p,omega()+1e-9);
+    if(p->E0!=0.0 || p->mu0!=0.0) num_arubber++;
     if(p->type != StructProp::Constraint) {
       p->lagrangeMult = (sinfo.mpcDirect) ? false : sinfo.lagrangeMult;
       p->initialPenalty = p->penalty = (sinfo.mpcDirect) ? 0.0 : sinfo.penalty;
     }
     p->constraint_hess = sinfo.constraint_hess;
     p->constraint_hess_eps = sinfo.constraint_hess_eps;
-    if(p->E0!=0.0 || p->mu0!=0.0) num_arubber++;
     it++;
   }
   if (sinfo.doFreqSweep) {

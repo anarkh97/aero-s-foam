@@ -198,6 +198,7 @@ class StructProp {
         double etaDamp; // Structural damping coefficient
         int etaDampTable; // Structural damping coefficient table id
         double eta_mu, deta_mu, eta_E, deta_E, mu0, dmu, E0, dE ;
+        int rubDampTable;
 
         double kappaHelm; // wave number for Helmholtz proplem
         double kappaHelmImag; // imaginary part of the wavenumber for
@@ -253,6 +254,7 @@ class StructProp {
                        k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0;
                        ymtt = NULL; ctett = NULL;
                        eta_mu=deta_mu=eta_E=deta_E=mu0=dmu=E0=dE = 0.0;
+                       rubDampTable = -1;
  } 
 
 };

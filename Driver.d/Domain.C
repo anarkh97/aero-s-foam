@@ -4175,6 +4175,36 @@ void Domain::updateSDETAF(StructProp* p, double omega) {
  }
 }
 
+
+void Domain::updateRUBDAFT(StructProp* p, double omega) {
+ if (p->eta_E<0.0 && p->rubDampTable<0) {
+ // First time
+   int tid = -int(p->eta_E);
+   int i;
+   for(i = 0; i < numRUBDAFT; ++i)
+      if (rubdaft[i]->id == tid) break;
+   if (i==numRUBDAFT) { 
+     fprintf(stderr,"Rubber damping table %d does not exist.\n",tid);
+     exit(-1);
+   }
+   p->rubDampTable = i;
+ }
+ if (p->rubDampTable>=0) {
+   double f = omega/(2.0*M_PI);
+   Eigen::Vector4d v, dv;
+   int tid = p->rubDampTable;
+   rubdaft[tid]->getValAndSlopeAlt(f, &v, &dv);
+   p->E0 = v[0]-f*dv[0];
+   p->eta_E = v[1]-f*dv[1];
+   p->mu0 = v[2]-f*dv[2];
+   p->eta_mu = v[3]-f*dv[3];
+   p->dE = dv[0]/(2*M_PI);
+   p->deta_E = dv[1]/(2*M_PI);
+   p->dmu = dv[2]/(2*M_PI);
+   p->deta_mu = dv[3]/(2*M_PI);
+ }
+}
+
 void Domain::buildSensitivityInfo()
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();

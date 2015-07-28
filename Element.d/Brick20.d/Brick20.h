@@ -3,6 +3,9 @@
 
 #include <Element.d/Element.h>
 
+#include <complex>
+using std::complex;
+
 class Brick20: public Element
 {
     int nn[20];
@@ -21,6 +24,7 @@ class Brick20: public Element
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
     FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
+    void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
     double getMass(CoordSet& cs);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);

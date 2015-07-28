@@ -49,6 +49,8 @@ StaticSolver< Scalar, OpSolver, VecType,
 
    domain->setFrequencySet(is);
    domain->solInfo().curSweepParam = is;
+   domain->solInfo().setDamping(domain->solInfo().getSweepParams()->betaD,
+                                domain->solInfo().getSweepParams()->alphaD);
    SPropContainer& sProps = geoSource->getStructProps();
    double min_w = *min_element(domain->coarse_frequencies->begin(), 
                       domain->coarse_frequencies->end() );
@@ -56,6 +58,7 @@ StaticSolver< Scalar, OpSolver, VecType,
                       domain->coarse_frequencies->end() );
    for(int iProp=0;iProp<geoSource->getNumProps();iProp++) {
      domain->updateSDETAF(&sProps[iProp],min_w+1e-12*(max_w-min_w));
+     domain->updateRUBDAFT(&sProps[iProp],min_w+1e-12*(max_w-min_w));
         // Make sure you are to the right...
    }
 
@@ -312,7 +315,7 @@ ncheck = 18;
            } 
          }
        }
-       postProcessor->staticOutput(*sol, *rhs, false);
+       postProcessor->staticOutput(*sol, *rhs,  i==numS);
        domain->frequencies->pop_front();
      }
 

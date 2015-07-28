@@ -13,6 +13,7 @@
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
 #include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Corotational.d/MatNLCorotator.h>
+#include <Element.d/Helm.d/ARubberF.h>
 
 #define CHECK_JACOBIAN // force check nullity & constant sign of jacobian over el.
 
@@ -461,6 +462,51 @@ Brick20::stiffness(CoordSet &cs, double *d, int flg)
 
   return K;
 }
+
+
+void Brick20::aRubberStiffnessDerivs(CoordSet & cs, complex<double> *d,
+                                            int n, double omega) {
+  const int nnodes = 20;
+  const int ndofs = 60;
+
+  double X[20], Y[20], Z[20];
+  cs.getCoordinates(nn, nnodes, X, Y, Z);
+
+  double Cm[6][6], Cl[6][6];
+  for(int i=0;i<6;i++) for(int j=0;j<6;j++) Cm[i][j] = 0.0;
+  for(int i=0;i<6;i++) for(int j=0;j<6;j++) Cl[i][j] = 0.0;
+  double *Km = new double[ndofs*ndofs];
+  double *Kl = new double[ndofs*ndofs];
+  FullSquareMatrix Kmr(ndofs,Km);
+  FullSquareMatrix Klr(ndofs,Kl);
+  Kmr.zero();
+  Klr.zero();
+  Cm[0][0] = Cm[1][1] = Cm[2][2] = 2.0;
+  Cm[3][3] = Cm[4][4] = Cm[5][5] = 1.0;
+  Cl[0][0] = Cl[1][1] = Cl[2][2] = 1.0;
+  Cl[0][1] = Cl[1][0] = Cl[0][2] = Cl[2][0] = Cl[1][2] = Cl[2][1] = 1.0;
+  Cl[3][3] = Cl[4][4] = Cl[5][5] = 0.0;
+
+  const int numgauss = 3;
+  int status;
+
+  _FORTRAN(brik20v)(X, Y, Z, (double *)Cm, numgauss, Km, status);
+  _FORTRAN(brik20v)(X, Y, Z, (double *)Cl, numgauss, Kl, status);
+
+  ARubberF ar(n,omega,
+              prop->E0,prop->dE,prop->mu0,prop->dmu,
+              prop->eta_E,prop->deta_E,prop->eta_mu,prop->deta_mu);
+
+  for(int i=0;i<ndofs*ndofs;i++)  d[i+(0)*ndofs*ndofs] = Km[i];
+  for(int i=0;i<ndofs*ndofs;i++)  d[i+(1)*ndofs*ndofs] = Kl[i];
+  for(int j=0;j<=n;j++)
+    for(int i=0;i<ndofs*ndofs;i++)
+        d[i+(j+2)*ndofs*ndofs] = ar.d_lambda(j)*Kl[i]+ ar.d_mu(j)*Km[i];
+
+ delete[] Kl;
+ delete[] Km;
+}
+
 
 int
 Brick20::numNodes()

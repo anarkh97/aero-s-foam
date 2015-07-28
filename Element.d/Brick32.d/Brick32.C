@@ -19,6 +19,7 @@
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
 #include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Corotational.d/MatNLCorotator.h>
+#include <Element.d/Helm.d/ARubberF.h>
 
 #define CHECK_JACOBIAN // force check nullity & constant sign of jacobian over el.
 
@@ -528,6 +529,74 @@ Brick32::stiffness(CoordSet &cs, double *d, int flg)
 
   return K;
 }
+
+
+void Brick32::aRubberStiffnessDerivs(CoordSet & cs, complex<double> *d,
+                                            int n, double omega) {
+  const int nnodes = 32;
+  const int ndofs = 96;
+
+  double X[32], Y[32], Z[32];
+  cs.getCoordinates(nn, nnodes, X, Y, Z);
+
+
+  int ls[96] = {0,3,6, 9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,60,63,66,69,72,75,78,81,84,87,90,93,
+                1,4,7,10,13,16,19,22,25,28,31,34,37,40,43,46,49,52,55,58,61,64,67,70,73,76,79,82,85,88,91,94,
+                2,5,8,11,14,17,20,23,26,29,32,35,38,41,44,47,50,53,56,59,62,65,68,71,74,77,80,83,86,89,92,95};
+
+  // integration: loop over Gauss pts
+  const int numgauss= 4;
+  double wx,wy,wz,w;
+  double m[3], Shape[32], DShape[32][3];
+  double dOmega; // det of jacobian
+  int jSign = 0;
+
+  double Cm[6][6], Cl[6][6];
+  for(int i=0;i<6;i++) for(int j=0;j<6;j++) Cm[i][j] = 0.0;
+  for(int i=0;i<6;i++) for(int j=0;j<6;j++) Cl[i][j] = 0.0;
+  double *Km = new double[ndofs*ndofs];
+  double *Kl = new double[ndofs*ndofs];
+  FullSquareMatrix Kmr(ndofs,Km);
+  FullSquareMatrix Klr(ndofs,Kl);
+  Kmr.zero();
+  Klr.zero();
+  Cm[0][0] = Cm[1][1] = Cm[2][2] = 2.0;
+  Cm[3][3] = Cm[4][4] = Cm[5][5] = 1.0;
+  Cl[0][0] = Cl[1][1] = Cl[2][2] = 1.0;
+  Cl[0][1] = Cl[1][0] = Cl[0][2] = Cl[2][0] = Cl[1][2] = Cl[2][1] = 1.0;
+  Cl[3][3] = Cl[4][4] = Cl[5][5] = 0.0;
+
+  for(int i=1; i<=numgauss; i++) {
+    _FORTRAN(lgauss)(numgauss,i,&m[0],&wx);
+    for(int j=1; j<=numgauss; j++) {
+      _FORTRAN(lgauss)(numgauss,j,&m[1],&wy);
+      for(int k=1; k<=numgauss; k++) {
+        _FORTRAN(lgauss)(numgauss,k,&m[2],&wz);
+        dOmega = Hexa32ShapeFct(Shape, DShape, m, X, Y, Z);
+#ifdef CHECK_JACOBIAN
+        checkJacobian(&dOmega, &jSign, getGlNum()+1, "Brick32::stiffness");
+#endif
+        w = fabs(dOmega)*wx*wy*wz;
+        addBtCBtoK3DSolid(Kmr, DShape, Cm, w, nnodes, ls);
+        addBtCBtoK3DSolid(Klr, DShape, Cl, w, nnodes, ls);
+      }
+    }
+  }
+
+  ARubberF ar(n,omega,
+              prop->E0,prop->dE,prop->mu0,prop->dmu,
+              prop->eta_E,prop->deta_E,prop->eta_mu,prop->deta_mu);
+
+  for(int i=0;i<ndofs*ndofs;i++)  d[i+(0)*ndofs*ndofs] = Km[i];
+  for(int i=0;i<ndofs*ndofs;i++)  d[i+(1)*ndofs*ndofs] = Kl[i];
+  for(int j=0;j<=n;j++)
+    for(int i=0;i<ndofs*ndofs;i++)
+        d[i+(j+2)*ndofs*ndofs] = ar.d_lambda(j)*Kl[i]+ ar.d_mu(j)*Km[i];
+
+ delete[] Kl;
+ delete[] Km;
+}
+
 
 int
 Brick32::numNodes()

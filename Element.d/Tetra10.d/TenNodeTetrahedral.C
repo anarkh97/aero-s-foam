@@ -14,6 +14,7 @@
 #include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Corotational.d/MatNLCorotator.h>
 #include <Driver.d/PolygonSet.h>
+#include <Element.d/Helm.d/ARubberF.h>
 
 #define CHECK_JACOBIAN // force check nullity & constant sign of jacobian over el.
 
@@ -474,6 +475,68 @@ TenNodeTetrahedral::stiffness(CoordSet &cs, double *d, int flg)
   }
 
   return K;
+}
+
+void
+TenNodeTetrahedral::aRubberStiffnessDerivs(CoordSet & cs, complex<double> *d,
+                                            int n, double omega) {
+  const int nnodes = 10;
+  const int ndofs = 30;
+
+  double X[10], Y[10], Z[10];
+  cs.getCoordinates(nn, nnodes, X, Y, Z);
+
+  int ls[30] = {0, 3, 6, 9,12,15,18,21,24,27,
+                1, 4, 7,10,13,16,19,22,25,28,
+                2, 5, 8,11,14,17,20,23,26,29};
+
+  // integration: loop over Gauss pts
+  // reuse the 15 pts integration rule (order 5) -> reuse arrays vp1 & dp
+  const int numgauss = 15;     // use 15 pts integration rule (order 5) (order 2 is exact for stiffness if linear mapping)
+  extern double dp[15][10][3]; // arrays vp1 & dp contain the values of the Tet10 shape fct & their
+  extern double vp1[15][10];   // derivatives w.r.t reference coordinate system at the 15 integration pts
+  double DShape[10][3];
+  double dOmega; // det of jacobian
+  int jSign = 0;
+
+  double Cm[6][6], Cl[6][6];
+  for(int i=0;i<6;i++) for(int j=0;j<6;j++) Cm[i][j] = 0.0;
+  for(int i=0;i<6;i++) for(int j=0;j<6;j++) Cl[i][j] = 0.0;
+  double *Km = new double[ndofs*ndofs];
+  double *Kl = new double[ndofs*ndofs];
+  FullSquareMatrix Kmr(ndofs,Km);
+  FullSquareMatrix Klr(ndofs,Kl);
+  Kmr.zero();
+  Klr.zero();
+  Cm[0][0] = Cm[1][1] = Cm[2][2] = 2.0;
+  Cm[3][3] = Cm[4][4] = Cm[5][5] = 1.0;
+  Cl[0][0] = Cl[1][1] = Cl[2][2] = 1.0;
+  Cl[0][1] = Cl[1][0] = Cl[0][2] = Cl[2][0] = Cl[1][2] = Cl[2][1] = 1.0;
+  Cl[3][3] = Cl[4][4] = Cl[5][5] = 0.0;
+
+  for(int i=0; i<numgauss; i++) {
+    dOmega = computeTet10DShapeFct(dp[i],X,Y,Z,DShape);
+#ifdef CHECK_JACOBIAN
+    checkJacobian(&dOmega, &jSign, getGlNum()+1, "TenNodeTetrahedral::stiffness");
+#endif
+    double w = fabs(dOmega)*weight3d5[i];
+    addBtCBtoK3DSolid(Kmr, DShape, Cm, w, nnodes, ls);
+    addBtCBtoK3DSolid(Klr, DShape, Cl, w, nnodes, ls);
+  }
+
+
+  ARubberF ar(n,omega,
+              prop->E0,prop->dE,prop->mu0,prop->dmu,
+              prop->eta_E,prop->deta_E,prop->eta_mu,prop->deta_mu);
+
+  for(int i=0;i<ndofs*ndofs;i++)  d[i+(0)*ndofs*ndofs] = Km[i];
+  for(int i=0;i<ndofs*ndofs;i++)  d[i+(1)*ndofs*ndofs] = Kl[i];
+  for(int j=0;j<=n;j++)
+    for(int i=0;i<ndofs*ndofs;i++)
+        d[i+(j+2)*ndofs*ndofs] = ar.d_lambda(j)*Kl[i]+ ar.d_mu(j)*Km[i];
+
+ delete[] Kl;
+ delete[] Km;
 }
 
 int

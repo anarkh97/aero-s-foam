@@ -829,6 +829,8 @@ TRAIL [a-zA-Z]*
 
 "curve"|"CURVE"                    { return CURVE; }
 
+"table"|"TABLE"                    { return TABLE; }
+
 "TETT"|"tett"                      { return TETT; }
 
 "YSST"|"ysst"                      { return YSST; }

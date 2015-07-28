@@ -102,7 +102,7 @@
 %token SCALING SCALINGTYPE SDETAFT SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
-%token TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOLSEN TOPFILE TOPOLOGY TRBM THERMOE THERMOH RATIOTOLSEN 
+%token TABLE TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOLSEN TOPFILE TOPOLOGY TRBM THERMOE THERMOH RATIOTOLSEN 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL CENTER POSELEM HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL THICKNESSGROUPLIST
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WETCORNERS YMTT YSST YSSRT
@@ -404,8 +404,6 @@ Impe:
           { domain->solInfo().curSweepParam = 0; }
         | IMPE Integer NewLine
           { domain->solInfo().curSweepParam = $2; }
-        | IMPE Integer Integer NewLine
-          { domain->solInfo().curSweepParam = $3; }
         | Impe FREQ Float NewLine
           { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); }
         | Impe FREQSWEEP1 Float Float Integer NewLine
@@ -468,9 +466,21 @@ Impe:
         }
         | Impe FreqSweep 
         | Impe ReconsInfo
-        | Impe DampInfo
+        | Impe ImpeDampInfo
         | Impe PadePivotInfo
         | Impe PadePolesInfo
+        ;
+ImpeDampInfo:
+        DAMPING Float Float NewLine
+        {
+          if($1 == 1) {
+            domain->solInfo().setDamping($2,$3);
+            domain->solInfo().getSweepParams()->alphaD = $3;
+            domain->solInfo().getSweepParams()->betaD = $2;
+            domain->solInfo().setDamping($2,$3);
+          }
+          else return -1; // only RAYDAMP is allowed here
+        }
         ;
 PadePivotInfo:
         PADEPIVOT Float NewLine
@@ -2016,11 +2026,11 @@ RUBDAFTable:
         | RUBDAFT NewLine RUBDAFList
         ;
 RUBDAFList:
-        CURVE Integer NewLine Float Float Float Float Float NewLine
+        TABLE Integer NewLine Float Float Float Float Float NewLine
         { $$ = new GenMFTTData<Eigen::Vector4d>($2); $$->add($4, Eigen::Vector4d($5,$6,$7,$8)); domain->addRUBDAFT($$); }
         | RUBDAFList Float Float Float Float Float NewLine
         { $$->add($2, Eigen::Vector4d($3,$4,$5,$6)); }
-        | RUBDAFList CURVE Integer NewLine Float Float Float Float Float NewLine
+        | RUBDAFList TABLE Integer NewLine Float Float Float Float Float NewLine
         { $$ = new GenMFTTData<Eigen::Vector4d>($3); $$->add($5, Eigen::Vector4d($6,$7,$8,$9)); domain->addRUBDAFT($$); }
         ;
 LMPConstrain:

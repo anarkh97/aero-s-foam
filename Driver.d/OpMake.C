@@ -110,7 +110,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  for(iele = 0; iele < numele; ++iele) {
    StructProp *prop = packedEset[iele]->getProperty();
    if(packedEset[iele]->isSommerElement()) continue;
-   if(prop->E0!=0.0 || prop->mu0!=0.0) continue; // rubber handled below
+   if(prop && (prop->E0!=0.0 || prop->mu0!=0.0)) continue; // rubber handled below
    bool isComplexF = (prop && prop->fp.PMLtype != 0);
    if(packedEset[iele]->isConstraintElement()) { alpha = beta = eta = 0; }
    else {
@@ -377,7 +377,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    for(iele = 0; iele < numele; ++iele) {
      StructProp *prop = packedEset[iele]->getProperty();
      if(packedEset[iele]->isSommerElement()) continue;
-     if(prop->E0!=0.0 || prop->mu0!=0.0) continue; // rubber handled below
+     if(prop && (prop->E0!=0.0 || prop->mu0!=0.0)) continue; // rubber handled below
      if(!packedEset[iele]->isComplex()) continue;
 
      if(matrixTimers) matrixTimers->formTime -= getTime();
@@ -444,7 +444,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  for(iele = 0; iele < numele; ++iele) {
    StructProp *prop = packedEset[iele]->getProperty();
 
-   if((prop->E0==0.0 || prop->mu0==0.0) || !isShifted) continue; 
+   if((prop && (prop->E0==0.0 || prop->mu0==0.0)) || !isShifted) continue; 
 
    omega2 = geoSource->shiftVal();
    SPropContainer& sProps = geoSource->getStructProps();
@@ -2779,14 +2779,12 @@ Domain::buildDeltaK(double w0, double w, GenSparseMatrix<Scalar> *deltaK,
  complex<double> *krarray2 = new complex<double>[3*maxNumDOFs*maxNumDOFs];
  for(int iele = 0; iele < numele; ++iele) {
    StructProp *prop = packedEset[iele]->getProperty();
-fprintf(stderr,"tadyx %e %e %e %e\n",prop->E0,prop->mu0,w0,w);
-   if((prop->E0==0.0 || prop->mu0==0.0) ) continue; 
+   if((prop && (prop->E0==0.0 || prop->mu0==0.0)) ) continue; 
 
    if(matrixTimers) matrixTimers->formTime -= getTime();
    int N = 0; // number of derivatives
    packedEset[iele]->aRubberStiffnessDerivs(nodes, krarray,N,w0);
    packedEset[iele]->aRubberStiffnessDerivs(nodes, krarray2,N,w);
-fprintf(stderr,"tadyx a %e %e \n",ScalarTypes::Real(krarray[0]),ScalarTypes::Real(krarray2[0]));
    int ndof = packedEset[iele]->numDofs();
    for(int i=0;i<ndof*ndof;i++)
        krarray2[i+2*ndof*ndof] -= krarray[i+2*ndof*ndof];
@@ -2794,12 +2792,9 @@ fprintf(stderr,"tadyx a %e %e \n",ScalarTypes::Real(krarray[0]),ScalarTypes::Rea
      for(int i=0;i<ndof*ndof;i++)  krarray2[i+2*ndof*ndof] *= cscale_factor2;
    }
 
-fprintf(stderr,"tadyx ab %p %p\n",deltaK,deltaKuc);
    FullSquareMatrixC kdel(ndof,krarray2+2*ndof*ndof);
    deltaK->add(kdel,(*allDOFs)[iele]);
-fprintf(stderr,"tadyx abc %p %p\n",deltaK,deltaKuc);
    if (deltaKuc) deltaKuc->add(kdel,(*allDOFs)[iele]);
-fprintf(stderr,"tadyx b %p %p\n",deltaK,deltaKuc);
 
  }
  delete[] krarray;
@@ -2831,7 +2826,6 @@ template<class Scalar>
 void
 Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
 {
-fprintf(stderr,"tady assembleSommer\n");
  checkSommerTypeBC(this); // TODO check
 
  if(numSommer > 0) {

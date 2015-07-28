@@ -432,6 +432,7 @@ public:
   int  totalNumNodes() { return numNodes + numInternalNodes; }
   int  internalNumNodes() { return numInternalNodes; }
   int  getNumConstraintElementsIeq() { return numConstraintElementsIeq; }
+  Elemset& getPackedEsetConstraintElementIeq() { return *packedEsetConstraintElementIeq; }
   //int  getPhantomFlag()  { return phantomFlag; }
   //int  glToPack(int i) { return glToPck[i]; }
   int  glToPackElem(int i) const;

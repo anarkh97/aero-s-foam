@@ -5,6 +5,7 @@
 #include <Driver.d/ControlLawInfo.h>
 #include <Driver.d/Domain.h>
 #include <Driver.d/Mpc.h>
+#include <Element.d/MpcElement.d/MpcElement.h>
 #include <Element.d/Helm.d/HelmElement.h>
 #include <Element.d/Helm.d/ARubberF.h>
 #include <Element.d/ElemAccess.h>
@@ -1524,7 +1525,8 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
           nElemFluid++;
         }
         else if(flagCEIeq && ele->isConstraintElementIeq()) {
-          if(true/*TODO ele->isLinearConstraint()*/) {
+          MpcElement *mpcele = dynamic_cast<MpcElement*>(ele);
+          if(mpcele->functionType() == MpcElement::LINEAR) {
             int n = ele->getNumMPCs();
             LMPCons **l = ele->getMPCs();
             for(int j = 0; j < n; ++j)

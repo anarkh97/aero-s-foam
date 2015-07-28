@@ -81,5 +81,8 @@ class MpcElement : public Element, public Corotator, public LMPCons
     void initMultipliers(GeomState& c1);
     void updateMultipliers(GeomState& c1);
     double getError(GeomState& c1);
+
+    enum FunctionType { LINEAR=0, QUADRATIC, NONLINEAR };
+    virtual FunctionType functionType() { return NONLINEAR; }
 };
 #endif

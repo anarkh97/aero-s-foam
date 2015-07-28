@@ -1698,7 +1698,7 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
   for(i=0; i<numDirichlet; ++i) {
     int nodeNumber = dbc[i].nnum;
     int dofNumber  = dbc[i].dofnum;
-    if(cs[nodeNumber]) {
+    if(cs[nodeNumber] && nodeNumber < ns.size()) {
       NFrameData *cd = X0->dofFrame(nodeNumber);
       if(dofNumber == 3 || dofNumber == 4 || dofNumber == 5) {
         std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
@@ -1728,7 +1728,7 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
   for(i=0; i<numDirichlet; ++i) {
 
     int nodeNumber = dbc[i].nnum;
-    if(!cs[nodeNumber]) continue;
+    if(!cs[nodeNumber] || nodeNumber >= ns.size()) continue;
 
     int dofNumber  = dbc[i].dofnum;
     double prescribedValue = dbc[i].val;

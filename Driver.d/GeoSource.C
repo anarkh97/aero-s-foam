@@ -5,6 +5,7 @@
 #include <fstream>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/DistHelper.h>
+#include <Utils.d/MyComplex.h>
 #include <Driver.d/Domain.h>
 #include <Driver.d/SubDomain.h>
 #include <Driver.d/Mpc.h>
@@ -662,12 +663,12 @@ GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen
       for(int inode = 0; inode < numnodes; ++inode) {
 //        std::cerr << (*output[iparam])(inode,0) << std::endl;
         filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                        inode+1, w, p, std::real((*output[iparam])(inode,0)), 
-                                 w, p, std::real((*output[iparam])(inode,1)), 
-                                 w, p, std::real((*output[iparam])(inode,2)), 
-                                 w, p, std::real((*output[iparam])(inode,3)), 
-                                 w, p, std::real((*output[iparam])(inode,4)), 
-                                 w, p, std::real((*output[iparam])(inode,5))); 
+                        inode+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,4)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,5))); 
       }
     }
     oinfo[fileNum].isFirst = false;
@@ -678,12 +679,12 @@ GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen
       filePrint(oinfo[fileNum].filptr, " %d \n", iparam+1);
       for(int inode = 0; inode < numnodes; ++inode) {
         filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                        inode+1, w, p, std::real((*output[iparam])(inode,0)), 
-                                 w, p, std::real((*output[iparam])(inode,1)), 
-                                 w, p, std::real((*output[iparam])(inode,2)), 
-                                 w, p, std::real((*output[iparam])(inode,3)), 
-                                 w, p, std::real((*output[iparam])(inode,4)), 
-                                 w, p, std::real((*output[iparam])(inode,5)));  
+                        inode+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,4)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,5)));  
       }
     }
     fflush(oinfo[fileNum].filptr);
@@ -705,12 +706,12 @@ GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen
     filePrint(oinfo[fileNum].filptr, "%d\n", numnodes);
     for(int inode = 0; inode < numnodes; ++inode) {
       filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                      inode+1, w, p, std::real((*output)(inode,0)), 
-                               w, p, std::real((*output)(inode,1)), 
-                               w, p, std::real((*output)(inode,2)), 
-                               w, p, std::real((*output)(inode,3)), 
-                               w, p, std::real((*output)(inode,4)), 
-                               w, p, std::real((*output)(inode,5))); 
+                      inode+1, w, p, ScalarTypes::Real((*output)(inode,0)), 
+                               w, p, ScalarTypes::Real((*output)(inode,1)), 
+                               w, p, ScalarTypes::Real((*output)(inode,2)), 
+                               w, p, ScalarTypes::Real((*output)(inode,3)), 
+                               w, p, ScalarTypes::Real((*output)(inode,4)), 
+                               w, p, ScalarTypes::Real((*output)(inode,5))); 
     }
     oinfo[fileNum].isFirst = false;
     fflush(oinfo[fileNum].filptr);
@@ -718,12 +719,12 @@ GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen
     filePrint(oinfo[fileNum].filptr, "%d\n", numnodes);
     for(int inode = 0; inode < numnodes; ++inode) {
       filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                      inode+1, w, p, std::real((*output)(inode,0)), 
-                               w, p, std::real((*output)(inode,1)), 
-                               w, p, std::real((*output)(inode,2)), 
-                               w, p, std::real((*output)(inode,3)), 
-                               w, p, std::real((*output)(inode,4)), 
-                               w, p, std::real((*output)(inode,5)));  
+                      inode+1, w, p, ScalarTypes::Real((*output)(inode,0)), 
+                               w, p, ScalarTypes::Real((*output)(inode,1)), 
+                               w, p, ScalarTypes::Real((*output)(inode,2)), 
+                               w, p, ScalarTypes::Real((*output)(inode,3)), 
+                               w, p, ScalarTypes::Real((*output)(inode,4)), 
+                               w, p, ScalarTypes::Real((*output)(inode,5)));  
     }
     fflush(oinfo[fileNum].filptr);
   }

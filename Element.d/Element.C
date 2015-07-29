@@ -491,7 +491,7 @@ double
 Element::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, GeomState *gs,
                                   double stable_tol, int stable_maxit)
 {
-  if(prop && prop->rho != 0) {
+  if(prop && (prop->rho != 0 || getMass(cs) != 0)) {
 
       using std::sqrt;
       using std::abs;

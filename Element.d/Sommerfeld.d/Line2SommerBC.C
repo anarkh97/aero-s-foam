@@ -1,6 +1,7 @@
 #include        <cstdio>
 #include        <cmath>
 #include        <Element.d/Sommerfeld.d/Line2SommerBC.h>
+#include        <Element.d/Helm.d/IsoParamUtils2d.h>
 
 
 Line2SommerBC::Line2SommerBC(int n1, int n2, int n3, Element *_el, int etype)
@@ -140,3 +141,35 @@ Line2SommerBC::getNormal(CoordSet &cs, double normal[3])
  normal[1] = ny;
  normal[2] = 0.0;
 }
+
+
+void Line2SommerBC::wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd)
+{
+ int nn[3] = { Line2SommerBC::nn[0], Line2SommerBC::nn[2], Line2SommerBC::nn[1] };
+ IsoParamUtils2d ipu(3);
+ double *xyz=(double*)alloca(sizeof(double)*9);
+ cs.getCoordinates(nn,3,xyz,xyz+3,xyz+6);
+
+ double *d = (double*)alloca(sizeof(double)*18);
+ WetInterfaceGalFunction2d f(3,d);
+ ipu.zeroOut<double> (18,d);
+ int gorder = 4;
+ ipu.lineLineInt2d(xyz, f, gorder);
+
+ int i,j=-1;
+ for(i=0;i<3;i++) {
+  if (nn[i] == nd) { j = i; break; }
+ }
+ if (j==-1) {
+   fprintf(stderr,"Error in Line2SommerBC::wetInterfaceLMPC\n");
+   return;
+ }
+
+ for(i=0;i<3;i++) {
+   LMPCTerm lmpct1(nn[i],0, -d[i*3+j] );
+   lmpc->addterm(&lmpct1);
+   LMPCTerm lmpct2(nn[i],1, -d[9+ i*3+j] );
+   lmpc->addterm(&lmpct2);
+ }
+}
+

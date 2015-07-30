@@ -1,6 +1,7 @@
 #include        <cstdio>
 #include        <cmath>
 #include        <Element.d/Sommerfeld.d/LineSommerBC.h>
+#include        <Element.d/Helm.d/IsoParamUtils2d.h>
 
 
 LineSommerBC::LineSommerBC(int n1, int n2, Element *_el, int etype)
@@ -219,3 +220,33 @@ LineSommerBC::getNormal(CoordSet &cs, double normal[3])
  normal[2] = 0.0;
 }
 
+
+void
+LineSommerBC::wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd)
+{
+ IsoParamUtils2d ipu(2);
+ double *xyz=(double*)alloca(sizeof(double)*6);
+ cs.getCoordinates(nn,2,xyz,xyz+2,xyz+4);
+
+ double *d = (double*)alloca(sizeof(double)*8);
+ WetInterfaceGalFunction2d f(2,d);
+ ipu.zeroOut<double> (8,d);
+ int gorder = 4;
+ ipu.lineLineInt2d(xyz, f, gorder);
+
+ int i,j=-1;
+ for(i=0;i<2;i++) {
+  if (nn[i] == nd) { j = i; break; }
+ }
+ if (j==-1) {
+   fprintf(stderr,"Error in LineSommerBC::wetInterfaceLMPC\n");
+   return;
+ }
+
+ for(i=0;i<2;i++) {
+   LMPCTerm lmpct1(nn[i],0, -d[i*2+j] );
+   lmpc->addterm(&lmpct1);
+   LMPCTerm lmpct2(nn[i],1, -d[4+ i*2+j] );
+   lmpc->addterm(&lmpct2);
+ }
+}

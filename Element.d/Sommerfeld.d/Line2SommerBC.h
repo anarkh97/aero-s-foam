@@ -23,6 +23,8 @@ public:
         ComplexD ffpCoef(double k) { return exp(ComplexD(0.0,M_PI/4.0))/sqrt(8.0*M_PI*k); }
 
 	void getNormal(CoordSet&, double [3]);
+
+        void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
 };
 #endif
 

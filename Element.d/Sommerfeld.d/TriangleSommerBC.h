@@ -36,6 +36,7 @@ public:
                  double (*tau1)[3], double (*tau2)[3], double k, ComplexD *d, int n);
         void sphereBT2(CoordSet& cs, double r, double k, ComplexD *d);
 
+        void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
 
 private:
         void get_basis(int, int, int, double (*)[3], double*, double*); 

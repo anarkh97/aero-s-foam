@@ -2,6 +2,7 @@
 #include        <cmath>
 #include        <Element.d/Sommerfeld.d/QuadSommerBC.h>
 #include        <Utils.d/linkfc.h>
+#include        <Element.d/Helm.d/IsoParamUtils.h>
 
 
 extern "C"      {
@@ -897,3 +898,37 @@ QuadSommerBC::HKSommerMatrix(CoordSet &cs, double *d)
   return HKSommerM;
 }
 */
+
+void QuadSommerBC::wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd)
+{
+ int nn[4] = { QuadSommerBC::nn[0], QuadSommerBC::nn[1], QuadSommerBC::nn[3], QuadSommerBC::nn[2] };
+ IsoParamUtils ipu(2);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ double *d = (double*)alloca(sizeof(double)*3*ordersq*ordersq);
+ WetInterfaceGalFunction f(ordersq,d);
+ ipu.zeroOut<double> (3*ordersq*ordersq,d);
+ int gorder = 4;
+ ipu.surfSurfInt3d(xyz, f, gorder);
+
+ int i,j=-1;
+ for(i=0;i<ordersq;i++) {
+  if (nn[i] == nd) { j = i; break; }
+ }
+ if (j==-1) {
+   fprintf(stderr,"Error in QuadSommerBC::wetInterfaceLMPC\n");
+   return;
+ }
+
+ for(i=0;i<ordersq;i++) {
+   LMPCTerm lmpct1(nn[i],0, -d[i*ordersq+j] );
+   lmpc->addterm(&lmpct1);
+   LMPCTerm lmpct2(nn[i],1, -d[ordersq*ordersq+ i*ordersq+j] );
+   lmpc->addterm(&lmpct2);
+   LMPCTerm lmpct3(nn[i],2, -d[2*ordersq*ordersq+ i*ordersq+j] );
+   lmpc->addterm(&lmpct3);
+ }
+}
+

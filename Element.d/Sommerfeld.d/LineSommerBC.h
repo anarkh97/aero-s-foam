@@ -34,5 +34,7 @@ public:
 
 	 void getNormal(CoordSet&, double [3]);
 	 double getSize(CoordSet&);
+
+         void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
 };
 #endif

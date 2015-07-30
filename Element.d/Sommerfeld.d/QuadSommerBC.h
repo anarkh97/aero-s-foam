@@ -29,6 +29,8 @@ public:
 	void getNormal(CoordSet&, double[3]);
         void markDofs(DofSetArray &);
 
+        void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
+
 private:
 	void getLocalCoordinates (CoordSet&, double xx[4], double yy[4], double zz[4]);
         void SurfaceRefinement(int nNo, double* x, double* y, double* z, double* xx, double* yy, double* zz);

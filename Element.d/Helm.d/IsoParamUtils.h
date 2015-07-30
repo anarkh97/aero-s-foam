@@ -4,7 +4,6 @@
 #include <cmath>
 #include <complex>
 #include <Element.d/Helm.d/IntegFunction.h>
-#include <Element.d/Helm.d/ARubberF.h>
 
 using std::complex;
 
@@ -855,16 +854,11 @@ public:
 #endif
 
 
-class LEARubberStiffFunction : public IntegFunctionV3d, public ARubberF {
+class LEARubberStiffFunction : public IntegFunctionV3d {
  int n;
  complex<double> *K;
 public:
- LEARubberStiffFunction(int _n, int _nd, double _omega,
-                      double _E0, double _dE, double _mu0, double _dmu,
-                      double _eta_E, double _deta_E,
-                      double _eta_mu, double _deta_mu,
-                      complex<double> *_K): 
-      ARubberF(_nd,_omega,_E0,_dE,_mu0,_dmu,_eta_E,_deta_E,_eta_mu,_deta_mu) {
+ LEARubberStiffFunction(int _n, complex<double> *_K) {
    n = _n; K = _K; 
  }
 
@@ -878,81 +872,6 @@ public:
      e[3*i+0] = dNdx[i][0];
      e[3*i+1] = dNdx[i][1];
      e[3*i+2] = dNdx[i][2];
-   }
-
-   for(int kk=0;kk<=nd;kk++) {
- 
-     complex<double> wdet2mu = wdet*2.0*d_mu(kk);
-     complex<double> wdetlambda = wdet*d_lambda(kk);
-     int k = kk+2;
-     for(int j=0;j<nn;j++) for(i=j+1;i<nn;i++) {
-       int a,b;
-       a = 0; b = 0;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
-        e[3*i+0]*e[3*j+0]+0.5*e[3*i+1]*e[3*j+1]+0.5*e[3*i+2]*e[3*j+2] ) +
-                             wdetlambda*e[3*i+0]*e[3*j+0];
-       a = 1; b = 1;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
-        e[3*i+1]*e[3*j+1]+0.5*e[3*i+0]*e[3*j+0]+0.5*e[3*i+2]*e[3*j+2] ) +
-                             wdetlambda*e[3*i+1]*e[3*j+1];
-       a = 2; b = 2;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
-        e[3*i+2]*e[3*j+2]+0.5*e[3*i+0]*e[3*j+0]+0.5*e[3*i+1]*e[3*j+1] ) +
-                             wdetlambda*e[3*i+2]*e[3*j+2];
-       a = 0; b = 1;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
-        0.5*e[3*i+1]*e[3*j+0] ) +
-                             wdetlambda*e[3*i+0]*e[3*j+1];
-       a = 1; b = 0;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
-        0.5*e[3*i+0]*e[3*j+1] ) +
-                             wdetlambda*e[3*i+1]*e[3*j+0];
-       a = 0; b = 2;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
-        0.5*e[3*i+2]*e[3*j+0] ) +
-                             wdetlambda*e[3*i+0]*e[3*j+2];
-       a = 2; b = 0;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
-        0.5*e[3*i+0]*e[3*j+2] ) +
-                             wdetlambda*e[3*i+2]*e[3*j+0];
-       a = 1; b = 2;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
-        0.5*e[3*i+2]*e[3*j+1] ) +
-                             wdetlambda*e[3*i+1]*e[3*j+2];
-       a = 2; b = 1;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
-        0.5*e[3*i+1]*e[3*j+2] ) +
-                             wdetlambda*e[3*i+2]*e[3*j+1];
-     }
-     for(int j=0;j<nn;j++) {
-       int a,b;
-       int i = j;
-       a = 0; b = 0;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
-        e[3*i+0]*e[3*j+0]+0.5*e[3*i+1]*e[3*j+1]+0.5*e[3*i+2]*e[3*j+2] ) +
-                             wdetlambda*e[3*i+0]*e[3*j+0];
-       a = 1; b = 1;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
-        e[3*i+1]*e[3*j+1]+0.5*e[3*i+0]*e[3*j+0]+0.5*e[3*i+2]*e[3*j+2] ) +
-                             wdetlambda*e[3*i+1]*e[3*j+1];
-       a = 2; b = 2;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
-        e[3*i+2]*e[3*j+2]+0.5*e[3*i+0]*e[3*j+0]+0.5*e[3*i+1]*e[3*j+1] ) +
-                             wdetlambda*e[3*i+2]*e[3*j+2];
-       a = 1; b = 0;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
-        0.5*e[3*i+0]*e[3*j+1] ) +
-                             wdetlambda*e[3*i+1]*e[3*j+0];
-       a = 2; b = 0;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
-        0.5*e[3*i+0]*e[3*j+2] ) +
-                             wdetlambda*e[3*i+2]*e[3*j+0];
-       a = 2; b = 1;
-       K[k*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
-        0.5*e[3*i+1]*e[3*j+2] ) +
-                             wdetlambda*e[3*i+2]*e[3*j+1];
-     }
-
    }
    {
      complex<double> wdet2mu = wdet*2.0;
@@ -1025,6 +944,7 @@ public:
        K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+2]*e[3*j+1];
      }
    }
+
  }
 };
 

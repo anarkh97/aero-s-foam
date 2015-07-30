@@ -123,6 +123,7 @@ class GeoSource {
   int nGlobNodes;
   int numNodes, numInternalNodes;
   int numConstraintElementsIeq;
+  bool lmpcflag; // true if all ieq constraints are linear, otherwise false.
   CoordSet nodes;
   Elemset elemSet;
   Elemset *packedEsetFluid;
@@ -433,6 +434,7 @@ public:
   int  internalNumNodes() { return numInternalNodes; }
   int  getNumConstraintElementsIeq() { return numConstraintElementsIeq; }
   Elemset& getPackedEsetConstraintElementIeq() { return *packedEsetConstraintElementIeq; }
+  bool getLmpcFlag() { return lmpcflag; }
   //int  getPhantomFlag()  { return phantomFlag; }
   //int  glToPack(int i) { return glToPck[i]; }
   int  glToPackElem(int i) const;
@@ -634,6 +636,7 @@ public:
   bool checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void transformLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
+  void addMpcElementsIeq(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
   Element* getElem(int topid) { return elemSet[topid]; }
   void UpdateContactSurfaceElements(DistrGeomState *, std::map<std::pair<int,int>,double> &);

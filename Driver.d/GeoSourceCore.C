@@ -132,6 +132,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numSurfacePressure = 0;
   numSurfaceConstraint = 0;
   numConstraintElementsIeq = 0;
+  lmpcflag = true;
 
   // PITA
   // Initial seed conditions
@@ -528,6 +529,23 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     lmpc.deleteArray();
     lmpc.restartArray();
     domain->setNumLMPC(0);
+  }
+}
+
+void GeoSource::addMpcElementsIeq(int numLMPC, ResizeArray<LMPCons *> &lmpc)
+{
+  if(numLMPC) {
+    for(int i = 0; i < numLMPC; ++i) {
+      if(lmpc[i]->type == 1) {
+        packedEsetConstraintElementIeq->mpcelemadd(numConstraintElementsIeq, lmpc[i], (domain->solInfo().isNonLin() || domain->solInfo().gepsFlg == 1));
+        StructProp *p = new StructProp;
+        p->lagrangeMult = lmpc[i]->lagrangeMult;
+        p->initialPenalty = p->penalty = lmpc[i]->penalty;
+        p->type = StructProp::Constraint;
+        (*packedEsetConstraintElementIeq)[numConstraintElementsIeq]->setProp(p,true);
+        numConstraintElementsIeq++;
+      }
+    }
   }
 }
 
@@ -1495,7 +1513,7 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
   bool flagCEIeq = (strcmp(sinfo.readInDualROB,"") != 0);
 
   if(sinfo.HEV) { packedEsetFluid = new Elemset(); nElemFluid = 0; }
-  if(flagCEIeq) { packedEsetConstraintElementIeq = new Elemset(); numConstraintElementsIeq = 0; }
+  if(flagCEIeq) { packedEsetConstraintElementIeq = new Elemset(); numConstraintElementsIeq = 0; lmpcflag = true; }
 
   int iEle, numele;
 
@@ -1526,22 +1544,19 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
         }
         else if(flagCEIeq && ele->isConstraintElementIeq()) {
           MpcElement *mpcele = dynamic_cast<MpcElement*>(ele);
-          if(mpcele->functionType() == MpcElement::LINEAR) {
-            int n = ele->getNumMPCs();
-            LMPCons **l = ele->getMPCs();
-            for(int j = 0; j < n; ++j)
-              domain->addLMPC(l[j],false);
-            delete [] l;
-          }
-          else {
-            packedEsetConstraintElementIeq->elemadd(numConstraintElementsIeq, ele);
-            numConstraintElementsIeq++;
-          }
+          if(mpcele->functionType() != MpcElement::LINEAR) lmpcflag = false;
+          packedEsetConstraintElementIeq->elemadd(numConstraintElementsIeq, ele);
+          numConstraintElementsIeq++;
         }
       }
       else
         nPhantoms++;
     }
+  }
+
+  if(flagCEIeq) {
+    // convert inequality LMPCs to mpc elements
+    addMpcElementsIeq(domain->getNumLMPC(), *domain->getLMPC());
   }
 
   // add sommer elements

@@ -150,7 +150,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   }
 
   if(strcmp(solInfo().readInDualROB,"") != 0) {
-    VecNodeDof1Conversion vecNodeDof1Conversion(getNumLMPC()+geoSource->getNumConstraintElementsIeq());
+    VecNodeDof1Conversion vecNodeDof1Conversion(geoSource->getNumConstraintElementsIeq());
     // Load dual projection basis    
     std::string fileName = BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::POD);
     BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
@@ -167,29 +167,24 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   PodProjectionSolver *solver = getSolver();
   solver->projectionBasisIs(projectionBasis_);
 
-  if(strcmp(solInfo().readInDualROB,"") != 0 && !solInfo().modalLMPC) {
-    // TODO consider general case of both linear and nonlinear constraints
+  if(geoSource->getNumConstraintElementsIeq() > 0 && !solInfo().modalLMPC) {
     solver->dualProjectionBasisIs(dualProjectionBasis_);
     double dt = solInfo().getTimeStep(), beta = solInfo().newmarkBeta;
     double Kcoef = dt*dt*beta;
-    if(geoSource->getNumConstraintElementsIeq()) {
-      Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
-      ResizeArray<LMPCons *> lmpc(0);
-      int numLMPC = 0;
-      for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
-        Element *ele = eset[i];
-        int n = ele->getNumMPCs();
-        LMPCons **l = ele->getMPCs();
-        for(int j = 0; j < n; ++j) {
-          lmpc[numLMPC++] = l[j];
-        }
-        delete [] l;
+    Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
+    ResizeArray<LMPCons *> lmpc(0);
+    int numLMPC = 0;
+    for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
+      Element *ele = eset[i];
+      int n = ele->getNumMPCs();
+      LMPCons **l = ele->getMPCs();
+      for(int j = 0; j < n; ++j) {
+        lmpc[numLMPC++] = l[j];
       }
-      solver->addLMPCs(numLMPC, lmpc.data(), Kcoef);
-      for(int i=0; i<numLMPC; ++i) delete lmpc[i];
+      delete [] l;
     }
-    else
-      solver->addLMPCs(getNumLMPC(), getLMPCs(), Kcoef);
+    solver->addLMPCs(numLMPC, lmpc.data(), Kcoef);
+    for(int i=0; i<numLMPC; ++i) delete lmpc[i];
   }
 
   if(solInfo().modalLMPC) {
@@ -1232,27 +1227,30 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
   }
 
 #ifdef USE_EIGEN3
-  // TODO consider general case of both linear and nonlinear constraints
-  if(geoSource->getNumConstraintElementsIeq()) {
-    Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
-    ResizeArray<LMPCons *> lmpc(0);
-    int numLMPC = 0;
-    for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
-      Element *ele = eset[i];
-      dynamic_cast<MpcElement*>(ele)->update(refState_Big, *geomState_Big, domain->getNodes(), t);
-      int n = ele->getNumMPCs();
-      LMPCons **l = ele->getMPCs();
-      for(int j = 0; j < n; ++j) {
-        lmpc[numLMPC++] = l[j];
-      }
-      delete [] l;
+  if(geoSource->getNumConstraintElementsIeq() || domain->solInfo().modalLMPC) {
+    if(geoSource->getLmpcFlag() || domain->solInfo().modalLMPC) { // linear
+      solver_->updateLMPCs(geomState.q);
     }
-    double dt = domain->solInfo().getTimeStep(), beta = domain->solInfo().newmarkBeta;
-    double Kcoef = dt*dt*beta;
-    solver_->addLMPCs(numLMPC, lmpc.data(), Kcoef);
-    for(int i=0; i<numLMPC; ++i) delete lmpc[i];
+    else { // nonlinear, or mixed
+      Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
+      ResizeArray<LMPCons *> lmpc(0);
+      int numLMPC = 0;
+      for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
+        Element *ele = eset[i];
+        static_cast<MpcElement*>(ele)->update(refState_Big, *geomState_Big, domain->getNodes(), t);
+        int n = ele->getNumMPCs();
+        LMPCons **l = ele->getMPCs();
+        for(int j = 0; j < n; ++j) {
+          lmpc[numLMPC++] = l[j];
+        }
+        delete [] l;
+      }
+      double dt = domain->solInfo().getTimeStep(), beta = domain->solInfo().newmarkBeta;
+      double Kcoef = dt*dt*beta;
+      solver_->addLMPCs(numLMPC, lmpc.data(), Kcoef);
+      for(int i=0; i<numLMPC; ++i) delete lmpc[i];
+    }
   }
-  else solver_->updateLMPCs(geomState.q);
 #endif
 
   return residual.norm();

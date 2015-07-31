@@ -1133,7 +1133,7 @@ TRAIL [a-zA-Z]*
 
 "grdtempz"|"GRDTEMPZ"              { yylval.ival = OutputInfo::GrdTempZ;     return STRESSID; }
 
-"sdisplac"|"SDISPLAC"              { yylval.ival = OutputInfo::SloshDisplacement;     return STRESSID; }
+"slshdisp"|"SLSHDISP"              { yylval.ival = OutputInfo::SloshDisplacement;     return STRESSID; }
 
 "slshdspx"|"SLSHDSPX"              { yylval.ival = OutputInfo::SloshDispX;     return STRESSID; }
 

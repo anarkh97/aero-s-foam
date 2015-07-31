@@ -1,19 +1,17 @@
-#ifndef _POINTVARIPLANEDISTANCECONSTRAINTFUNCTION_H_
-#define _POINTVARIPLANEDISTANCECONSTRAINTFUNCTION_H_
+#ifndef _POINTVARIPLANESEGMENTDISTANCECONSTRAINTFUNCTION_H_
+#define _POINTVARIPLANESEGMENTDISTANCECONSTRAINTFUNCTION_H_
 
 #include <Element.d/Function.d/Function.h>
-#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
 #include <cmath>
 
 namespace Simo {
 
 template<typename Scalar>
-class PointVariPlaneDistanceConstraintFunction : public ScalarValuedFunction<12,Scalar,17,1,double>
+class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunction<12,Scalar,17,1,double>
 {
-    // constrains the distance (d) between a point and a variable plane (defined by three points x1, x2 and x3) according to
-    // d - (A*sin(omega*t+phi) + (B-C*t)*d0) = 0, <= 0 or >= 0
-    // see: http://mathworld.wolfram.com/Point-PlaneDistance.html
+    // constrains the distance (d) between a point and a variable plane segment (defined by three points x1, x2 and x3) according to
+    // "3D Distance from a Point to a Triangle" Mark W. Jones, Technical Report February 1995
 
     Eigen::Matrix<double,3,1> x0;
     Eigen::Matrix<double,3,1> x1;
@@ -23,7 +21,7 @@ class PointVariPlaneDistanceConstraintFunction : public ScalarValuedFunction<12,
     bool negate;
 
   public:
-    PointVariPlaneDistanceConstraintFunction(const Eigen::Array<double,17,1>& sconst, const Eigen::Array<int,1,1>& iconst)
+    PointVariPlaneSegmentDistanceConstraintFunction(const Eigen::Array<double,17,1>& sconst, const Eigen::Array<int,1,1>& iconst)
     {
       x0 = sconst.template segment<3>(0);
       x1 = sconst.template segment<3>(3);
@@ -53,10 +51,10 @@ class PointVariPlaneDistanceConstraintFunction : public ScalarValuedFunction<12,
       // q(9) = x translation of point 4
       // q(10) = y translation of point 4
       // q(11) = z translation of point 4
-      Eigen::Matrix<Scalar,3,1> x0 = PointVariPlaneDistanceConstraintFunction::x0.template cast<Scalar>() + q.template segment<3>(0);
-      Eigen::Matrix<Scalar,3,1> x1 = PointVariPlaneDistanceConstraintFunction::x1.template cast<Scalar>() + q.template segment<3>(3);
-      Eigen::Matrix<Scalar,3,1> x2 = PointVariPlaneDistanceConstraintFunction::x2.template cast<Scalar>() + q.template segment<3>(6);
-      Eigen::Matrix<Scalar,3,1> x3 = PointVariPlaneDistanceConstraintFunction::x3.template cast<Scalar>() + q.template segment<3>(9);
+      Eigen::Matrix<Scalar,3,1> x0 = PointVariPlaneSegmentDistanceConstraintFunction::x0.template cast<Scalar>() + q.template segment<3>(0);
+      Eigen::Matrix<Scalar,3,1> x1 = PointVariPlaneSegmentDistanceConstraintFunction::x1.template cast<Scalar>() + q.template segment<3>(3);
+      Eigen::Matrix<Scalar,3,1> x2 = PointVariPlaneSegmentDistanceConstraintFunction::x2.template cast<Scalar>() + q.template segment<3>(6);
+      Eigen::Matrix<Scalar,3,1> x3 = PointVariPlaneSegmentDistanceConstraintFunction::x3.template cast<Scalar>() + q.template segment<3>(9);
 
       Scalar d = (x2-x1).cross(x3-x1).normalized().dot(x0-x1);
 
@@ -69,16 +67,6 @@ class PointVariPlaneDistanceConstraintFunction : public ScalarValuedFunction<12,
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
-
-template<>
-Eigen::Matrix<double,1,12>
-Jacobian<double,PointVariPlaneDistanceConstraintFunction>
-::operator() (const Eigen::Matrix<double,12,1>& q, double t);
-
-template<>
-Eigen::Matrix<double,12,12>
-Hessian<double,PointVariPlaneDistanceConstraintFunction>
-::operator() (const Eigen::Matrix<double,12,1>& q, double t);
 
 } // namespace Simo
 

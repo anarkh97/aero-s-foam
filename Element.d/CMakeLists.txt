@@ -224,6 +224,7 @@ MpcElement.d/PointPlaneDistanceConstraintElement.C
 MpcElement.d/PointVariPointDistanceConstraintElement.C
 MpcElement.d/PointVariLineDistanceConstraintElement.C
 MpcElement.d/PointVariPlaneDistanceConstraintElement.C
+MpcElement.d/PointVariPlaneSegmentDistanceConstraintElement.C
 Function.d/Constraint.d/DistanceConstraintFunction.C
 Function.d/Constraint.d/DotType1ConstraintFunction.C
 Function.d/Constraint.d/DotType2ConstraintFunction.C
@@ -232,6 +233,7 @@ Function.d/Constraint.d/AngleType1ConstraintFunction.C
 Function.d/Constraint.d/PointPointDistanceConstraintFunction.C
 Function.d/Constraint.d/PointLineDistanceConstraintFunction.C
 Function.d/Constraint.d/PointPlaneDistanceConstraintFunction.C
+Function.d/Constraint.d/PointVariPlaneDistanceConstraintFunction.C
 Function.d/Constraint.d/PointVariPointDistanceConstraintFunction.C
 Function.d/Constraint.d/exp-map.C
 NonLinearity.d/2DMat.C

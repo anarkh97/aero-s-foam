@@ -1204,7 +1204,7 @@ void GeoSource::setUpData()
     else {
       SPropContainer::iterator it = sProps.find(attrib_i.attr);
       if(it == sProps.end()) {
-        filePrint(stderr, " *** ERROR: The material for element %d does not exist\n", attrib_i.nele+1);
+        filePrint(stderr, " *** WARNING: The material for element %d does not exist\n", attrib_i.nele+1);
       }
       else {
         StructProp *prop = &(it->second);

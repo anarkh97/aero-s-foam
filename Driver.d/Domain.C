@@ -3457,12 +3457,6 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  // using the nodal coordinates
  int mode = (_mode > -1) ? _mode : domain->solInfo().contact_mode;  // 0 -> normal tied + tangents free, 1 -> normal contact + tangents free
                                                                     // 2 -> normal+tangents tied, 3 -> normal contact + tied tangents
-/*CoordSet &cs = geoSource->GetNodes();
- double normal[3] = { cs[n2]->x - cs[n1]->x, cs[n2]->y - cs[n1]->y, cs[n2]->z - cs[n1]->z };
- double gap = std::sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]*normal[2]);
- normalize(normal);
- std::cerr << n1+1 << " " << n2+1 << "  " << std::setprecision(12) << -normal[0] << " " << -normal[1] << " " << -normal[2] << " GAP " << std::setprecision(2) << -gap << std::endl;
-*/
  int lmpcnum = 0;
 
  // normal constraint
@@ -3493,7 +3487,6 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  if(mode == 1 || mode == 3) _CTC->setType(mpc::Inequality);
  _CTC->setSource(mpc::NodalContact);
  addLMPC(_CTC,false);
- if(_CTC->type == 1) numCTC++; // inequality constraint
 
  // PJSA 7-12-2007 tangential constraints ... note this may lead to redundant constraints (singularity in CCt)
  // for 2D you need to set spacedim 2 in the input file, also it is currently assumed that 2D model is defined in XY plane
@@ -3538,32 +3531,6 @@ Domain::getNumCTC()
 {
   return numCTC + geoSource->getNumConstraintElementsIeq();
 }
-
-/*
-void
-Domain::addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], double gap_vector[3], int itype)
-{
-  // type = 0: generate lmpcs for tied nodes with gap vector using global cartesian coordinate frame
-  //           note: addNodalCTC can be used to tie nodes in normal and two tangential directions, however only the normal gap is specified therefore tangential gaps are always zero
-  // type = 1: generate lmpcs for normal contact
-  if(itype == 0) { // tie
-    for(int i=0; i<solInfo().fetiInfo.spaceDimension; ++i) {
-      LMPCons *_MPC = new LMPCons(lmpcnum+i, gap_vector[i]);
-      LMPCTerm *term1 = new LMPCTerm(n1, i, 1.0);
-      _MPC->addterm(term1);
-      LMPCTerm *term2 = new LMPCTerm(n2, i, -1.0);
-      _MPC->addterm(term2);
-      addLMPC(_MPC,true);
-    }
-  }
-  else if(itype == 1) { // normal contact
-    double norm = sqrt(face_normal[0]*face_normal[0]+face_normal[1]*face_normal[1]+face_normal[2]*face_normal[2]);
-    if(norm == 0.0) std::cerr << " *** ERROR in Domain::addNodeToNodeLMPCs, face_normal has length 0.0." << std::endl;
-    double gap = (face_normal[0]*gap_vector[0] + face_normal[1]*gap_vector[1] + face_normal[2]*gap_vector[2])/norm;
-    addNodalCTC(n1, n2, face_normal[0], face_normal[1], face_normal[2], gap, true, 1, true, lmpcnum);
-  }
-}
-*/
 
 void
 Domain::addDirichletLMPCs(int _numDirichlet, BCond *_dbc)

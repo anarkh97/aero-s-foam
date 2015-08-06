@@ -13,10 +13,10 @@ NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _ax
 void
 NonlinearTorsionalSpring::setProp(StructProp *p, bool _myProp)
 {
-  prop = (_myProp) ? p : new StructProp(*p); 
-  myProp = true;
+  StructProp *prop = (_myProp) ? p : new StructProp(*p); 
   prop->penalty = prop->k1;
   prop->lagrangeMult = false;
+  AngleType1ConstraintElement::setProp(prop, true);
 }
 
 void 

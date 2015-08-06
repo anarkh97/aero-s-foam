@@ -65,6 +65,7 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>::buildFrame(CoordSet& _c0)
 {
   c0 = &_c0;
 }
+
 template<template <typename S> class ConstraintFunctionTemplate>
 void
 ConstraintFunctionElement<ConstraintFunctionTemplate>::setProp(StructProp *p, bool _myProp)

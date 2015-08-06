@@ -8,10 +8,10 @@ NonlinearTranslationalSpring::NonlinearTranslationalSpring(int* _nn, int _axis)
 void
 NonlinearTranslationalSpring::setProp(StructProp *p, bool _myProp)
 {
-  prop = (_myProp) ? p : new StructProp(*p);
-  myProp = true;
+  StructProp *prop = (_myProp) ? p : new StructProp(*p);
   prop->penalty = prop->k1;
   prop->lagrangeMult = false;
+  DotType2ConstraintElement::setProp(prop, true);
 }
 
 void 

@@ -9,9 +9,9 @@ LinearTranslationalSpring::LinearTranslationalSpring(int* nn)
 void
 LinearTranslationalSpring::setProp(StructProp *p, bool _myProp)
 {
-  prop = (_myProp) ? p : new StructProp(*p);
-  myProp = true;
+  StructProp *prop = (_myProp) ? p : new StructProp(*p);
   prop->penalty = prop->k1;
   prop->lagrangeMult = false;
+  ConstantDistanceConstraint::setProp(prop, true);
 }
 #endif

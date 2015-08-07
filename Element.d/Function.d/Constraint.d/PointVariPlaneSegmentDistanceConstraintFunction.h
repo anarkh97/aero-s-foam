@@ -18,6 +18,7 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
     Eigen::Matrix<double,3,1> z2;
     Eigen::Matrix<double,3,1> z3;
     double A, omega, phase, B, C, dist;
+    double thickness;
     bool negate;
 
   private:
@@ -36,9 +37,12 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
       Scalar p2 = n2.dot(nplane);
       Scalar p3 = n3.dot(nplane);
 
+      // this formulation assumes that the plane segment is an acute triangle
+      
       if( p1 <= Scalar(0.) && p2 <= Scalar(0.) && p3 <= Scalar(0.) ) { // if all angles are less than or equal to 90 degrees, then point projects to plane segment
-     
-         d0 = (x2-x1).cross(x3-x1).normalized().dot(x0-x1);
+	 // this is the only case for which contact can occure     
+
+         d0 = (x2-x1).cross(x3-x1).normalized().dot(x0-x1) - thickness;
   
       } else if (p1 > Scalar(0.) && p2 > Scalar(0.) && p3 <= Scalar(0.)) { // if two angles are greater than 90, point is closest to that vertex
  
@@ -137,6 +141,17 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
       B = sconst[15];
       C = sconst[16];
       negate = bool(iconst[0]);
+
+      double dummy = (z1-z3).norm();
+      thickness = (z1-z2).norm();
+      if (dummy > thickness)
+          thickness = dummy;
+    
+      dummy = (z2-z3).norm();
+      if(dummy > thickness)
+        thickness = dummy;
+
+      thickness *= 0.01;
 
       Scalar(dist) = distanceToSegment(z0.template cast<Scalar>(),z1.template cast<Scalar>(),z2.template cast<Scalar>(),z3.template cast<Scalar>());
     }

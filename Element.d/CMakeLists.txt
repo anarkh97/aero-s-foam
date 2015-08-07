@@ -225,6 +225,8 @@ MpcElement.d/PointVariPointDistanceConstraintElement.C
 MpcElement.d/PointVariLineDistanceConstraintElement.C
 MpcElement.d/PointVariPlaneDistanceConstraintElement.C
 MpcElement.d/PointVariPlaneSegmentDistanceConstraintElement.C
+#for comparison with new method
+MpcElement.d/PointVariPlaneSegmentDistanceConstraintElement2.C 
 Function.d/Constraint.d/DistanceConstraintFunction.C
 Function.d/Constraint.d/DotType1ConstraintFunction.C
 Function.d/Constraint.d/DotType2ConstraintFunction.C

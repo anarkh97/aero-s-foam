@@ -333,7 +333,7 @@ class Domain : public HData {
      compStruct renumbFluid;    // renumbered nodes per fluid component
      compStruct renumb_nompc;
      std::map<std::pair<int,int>,double> loadfactor;
-     std::map<std::pair<int,int>,int> loadfactor_mftt;
+     std::map<std::pair<int,int>,int> loadfactor_mftt;     
      std::map<std::pair<int,int>,int> loadfactor_hftt;
      std::map<int,MFTTData*> mftval; // Mechanics Force Time Table
      std::map<int,MFTTData*> hftval; // Heat Fluxes Time Table
@@ -638,6 +638,7 @@ class Domain : public HData {
      int  setIAcc(int, BCond *);
      void setLoadFactor(int, int, double);
      void setLoadFactorMFTT(int, int, int);
+     std::map<std::pair<int,int>,int>& getLoadFactorMFTT() { return loadfactor_mftt; };
      void setLoadFactorHFTT(int, int, int);
      void checkCases();
      double getLoadFactor(int) const;

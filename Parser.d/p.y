@@ -1813,7 +1813,7 @@ IDisp:
         { domain->solInfo().zeroInitialDisp = 1; }
 	| IDIS NewLine BCDataList
 	{ for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Idisplacements;
-          if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
+          if(geoSource->setIDis($3->n,$3->d) < 0)  return -1; }
 	| IDisp MODAL NewLine ModalValList
 	{ for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Idisplacements;
           if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1; 
@@ -1941,9 +1941,9 @@ BCDataList:
 	| BCDataList BC_Data
 	{ $$ = $1; $$->add($2); }
         | Integer THRU Integer Integer Float NewLine
-        { $$ = new BCList; for(int i=$1; i<=$3; ++i) { BCond bc; bc.setData(i-1, $4-1, $5); $$->add(bc); } }
+        { $$ = new BCList; for(int i=$1; i<=$3; ++i) { BCond bc; bc.setData(i-1, $4-1, $5); $$->add(bc); }} 
         | BCDataList Integer THRU Integer Integer Float NewLine
-        { $$ = $1; for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6); $$->add(bc); } }
+        { $$ = $1; for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6); $$->add(bc); }} 
         | Integer THRU Integer STEP Integer Integer Float NewLine
         { $$ = new BCList; for(int i=$1; i<=$3; i+=$5) { BCond bc; bc.setData(i-1, $6-1, $7); $$->add(bc); } }
         | BCDataList Integer THRU Integer STEP Integer Integer Float NewLine

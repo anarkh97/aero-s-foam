@@ -856,7 +856,7 @@ PodProjectionNonLinDynamic::getConstForce(Vector &constantForce)
       if(nbcModal[i].nnum < constantForce.size()) {
         if(!domain->getMFTT(nbcModal[i].loadsetid)) {
           double loadFactor = (nbcModal[i].loadsetid == -1) ? 1.0 : domain->getLoadFactor(nbcModal[i].loadsetid); // -1 is gravity
-          constantForce[nbcModal[i].nnum] = loadFactor*nbcModal[i].val;
+          constantForce[nbcModal[i].nnum] += loadFactor*nbcModal[i].val;
         }
       }
     }

@@ -19,6 +19,7 @@
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/EiSparseMatrix.h>
 #include <Math.d/DiagMatrix.h>
+#include <Math.d/VectorSet.h>
 #include <Timers.d/StaticTimers.h>
 #include <Utils.d/Connectivity.h>
 #include <Element.d/Element.h>
@@ -560,10 +561,31 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
     reduce(podBasis_, forceFull, gravForceRed);
   }
   // 2) constant force or constant part of time-dependent forces (default loadset only) TODO add support for multiple loadsets
-  domain->computeUnamplifiedExtForce(forceFull, 0);
-  Vector constForceRed(podBasis_.vectorCount());
-  bool reduce_f = (forceFull.norm() != 0);
-  if(reduce_f) reduce(podBasis_, forceFull, constForceRed);
+  std::map<std::pair<int,int>,int>& loadfactor_MFTT =  domain->getLoadFactorMFTT();
+  int nLoadSets = std::max((size_t)1,loadfactor_MFTT.size());
+  std::vector<int> reduce_f;
+  GenVectorSet<double> constForceRed(nLoadSets, podBasis_.vectorCount());
+  if(loadfactor_MFTT.size() > 0) {
+    for(std::map<std::pair<int,int>,int>::iterator it=loadfactor_MFTT.begin(); it!=loadfactor_MFTT.end(); it++) {
+      domain_->solInfo().loadcases.clear();
+      domain_->solInfo().loadcases.push_back(it->first.first);
+      int j = it->first.second; // loadset_id
+      if(std::find(reduce_f.begin(),reduce_f.end(),j) != reduce_f.end()) continue;
+      domain->computeUnamplifiedExtForce(forceFull, j);
+      if(forceFull.norm() != 0) {
+        std::cerr << " ... Computing reduced forces for loadset " << j << " ...\n";
+        reduce(podBasis_, forceFull, constForceRed[reduce_f.size()]);
+        reduce_f.push_back(j);
+      }
+    }
+  }
+  else {
+    domain->computeUnamplifiedExtForce(forceFull, 0);
+    if(forceFull.norm() != 0) {
+      reduce(podBasis_, forceFull, constForceRed[0]);
+      reduce_f.push_back(0);
+    }
+  }
 
   // 3) set LMPC
   int numLMPC = domain->getNumLMPC(); 
@@ -624,11 +646,14 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
     for(int i=0; i<podBasis_.vectorCount(); ++i)
       meshOut << i+1 << " " << gravForceRed[i] << std::endl;
   }
-  if(reduce_f) {
-    meshOut << "*\nFORCES\nMODAL\n";
+
+  for(std::vector<int>::iterator it = reduce_f.begin(); it != reduce_f.end(); ++it) {
+    if(*it == 0) meshOut << "*\nFORCES\nMODAL\n";
+    else meshOut << "*\nFORCES " << *it << "\nMODAL\n";
     meshOut.precision(std::numeric_limits<double>::digits10+1);
-    for(int i=0; i<podBasis_.vectorCount(); ++i) 
-      meshOut << i+1 << " " << constForceRed[i] << std::endl;
+    int i = std::distance(reduce_f.begin(), it);
+    for (int l=0; l<podBasis_.vectorCount(); ++l) 
+      meshOut << l+1 << " " << constForceRed[i][l] << std::endl;
   }
 
 #ifdef USE_EIGEN3

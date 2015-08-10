@@ -566,7 +566,7 @@ void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
       if(nbcModal[i].nnum < v.size()) {
         if(!domain->getMFTT(nbcModal[i].loadsetid)) {
           double loadFactor = (nbcModal[i].loadsetid == -1) ? 1.0 : domain->getLoadFactor(nbcModal[i].loadsetid); // -1 is gravity
-          v[nbcModal[i].nnum] = loadFactor*nbcModal[i].val;
+          v[nbcModal[i].nnum] += loadFactor*nbcModal[i].val;
         }
       }
     }

@@ -359,6 +359,7 @@ class Element {
         Category category;
         double _weight, _trueWeight;
         int elementType;
+        bool includeStressNodes;
   protected:
 	StructProp *prop;	// structural properties for this element
         bool myProp;
@@ -366,7 +367,7 @@ class Element {
         std::vector<double> factors;
 	void lumpMatrix(FullSquareMatrix&);
   public:
-        Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; category = Undefined; };
+        Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; category = Undefined; includeStressNodes = false; };
         virtual ~Element() { if(myProp && prop) delete prop; }
         StructProp * getProperty() { return prop; }
 
@@ -600,6 +601,8 @@ class Element {
         virtual bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isFsiElement()); }
         virtual bool isConstraintElementIeq() { return (isMpcElement() && prop->relop != 0); }
         virtual bool isPhantomElement() { return (!(prop || isConstraintElement() || isSommerElement())); }
+        bool doesIncludeStressNodes() { return includeStressNodes; }
+        void setIncludeStressNodes(bool isIn) { includeStressNodes = isIn; }
 
         int getElementType() { return elementType; }
         void setElementType(int _type) { elementType = _type; }

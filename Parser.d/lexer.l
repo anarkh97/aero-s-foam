@@ -737,6 +737,8 @@ TRAIL [a-zA-Z]*
 
 "THGRLI"|"thgrli"                  { return THICKNESSGROUPLIST; }
 
+"STNOLI"|"stnoli"                  { return STRESSNODELIST; }
+
 "addedmass"                        { return ADDEDMASS; }
 
 "SLOS"[a-zA-Z]*|"slos"[a-zA-Z]*    { return SLOSH; }
@@ -1001,6 +1003,12 @@ TRAIL [a-zA-Z]*
 "C0"|"c0"                          { yylval.ival = 22; return AEROTYPE; }
 
 "EMBE"[a-zA-Z]*|"embe"[a-zA-z]*    { return AEROEMBED; }
+
+"method"|"METHOD"                  { return SENSITIVITYMETHOD; }
+
+"Direct"                           { yylval.ival = SolverInfo::Direct;  return SENSITIVITYID; }
+
+"Adjoint"                          { yylval.ival = SolverInfo::Adjoint; return SENSITIVITYID; }
 
 "displacx"|"DISPLACX"              { yylval.ival = OutputInfo::DispX;  return STRESSID; }
 

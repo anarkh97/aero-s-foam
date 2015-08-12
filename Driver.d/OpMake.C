@@ -1086,7 +1086,7 @@ Domain::buildPostSensitivities(GenSolver<Scalar> *sysSolver,
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
-      makePostSensitivities(sysSolver, K, spm, allSens, sol, bcx, isDynam);
+      makePostSensitivities(sysSolver, spm, allSens, sol, bcx, K, isDynam);
       break;
   }
 }

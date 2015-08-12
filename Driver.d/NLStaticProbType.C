@@ -18,11 +18,11 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 }
 
 template < class OpSolver, 
-           class VecType, 
-	   class PostProcessor, 
+           class VecType,  
+           class PostProcessor, 
            class ProblemDescriptor, 
            class GeomType,
-	   class StateUpdate >
+           class StateUpdate >
 void
 NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >::solve()
 {

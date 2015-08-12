@@ -3143,11 +3143,50 @@ Domain::subtractGravityForceSensitivityWRTShapeVariable(int sindex, AllSensitivi
 }
 
 void
+Domain::computeStressVMDualSensitivity(int sindex,
+                                     GenSolver<double> *sysSolver,
+                                     GenSparseMatrix<double> *spm,
+                                     AllSensitivities<double> &allSens,
+                                     GenSparseMatrix<double> *K)
+{
+#ifdef USE_EIGEN3
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     allSens.lambdaStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>*[numStressNodes];
+     for(int inode = 0; inode < numStressNodes; ++inode) {
+       allSens.lambdaStressVM[inode] = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numUncon());
+//       Vector rhs((allSens.vonMisesWRTdisp->row(stressNodes[inode])).data(), numUncon()), lambdaStress(numUncon(),0.0);
+       Vector rhs(numUncon(),0.0), lambdaStress(numUncon(),0.0);
+       for(int i=0; i<numUncon(); ++i) rhs[i] = (*allSens.vonMisesWRTdisp)(stressNodes[inode],i);
+#ifdef SENSITIVITY_DEBUG
+       if(verboseFlag) {
+         std::cerr << "print rhs\n";
+         for(int i=0; i<numUncon(); ++i) std::cerr << rhs[i] << "  ";
+         std::cerr << std::endl;
+       }
+#endif
+       sysSolver->solve(rhs,lambdaStress);
+       Vector res(numUncon(),0.0), resBlk(numUncon(),0.0);
+       K->mult(lambdaStress,res);
+       res.linAdd(-1.0,rhs);
+       *allSens.lambdaStressVM[inode] = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> >(lambdaStress.data(),numUncon(),1);
+#ifdef SENSITIVITY_DEBUG
+       if(verboseFlag) {
+         std::cerr << "norm of absolute residual is " << res.norm() << std::endl;
+         std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
+       }
+       if(verboseFlag) std::cerr << "printing allSens.lambdaStressVM[" << inode << "]\n" << *allSens.lambdaStressVM[inode] << std::endl;
+#endif
+     }
+#endif
+}
+
+void
 Domain::computeDisplacementWRTthicknessSensitivity(int sindex,
                                                    GenSolver<double> *sysSolver,
-                                                   GenSparseMatrix<double> *K,
                                                    GenSparseMatrix<double> *spm,
-                                                   AllSensitivities<double> &allSens)
+                                                   AllSensitivities<double> &allSens,
+                                                   GenSparseMatrix<double> *K)
 {
 #ifdef USE_EIGEN3
      std::map<int, Group> &group = geoSource->group;
@@ -3183,9 +3222,9 @@ Domain::computeDisplacementWRTthicknessSensitivity(int sindex,
 void
 Domain::computeDisplacementWRTShapeVariableSensitivity(int sindex,
                                                        GenSolver<double> *sysSolver,
-                                                       GenSparseMatrix<double> *K,
                                                        GenSparseMatrix<double> *spm,
-                                                       AllSensitivities<double> &allSens)
+                                                       AllSensitivities<double> &allSens,
+                                                       GenSparseMatrix<double> *K)
 {
 #ifdef USE_EIGEN3
      allSens.dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
@@ -3247,8 +3286,7 @@ Domain::computeStressVMWRTyawAngleSensitivity(AllSensitivities<double> &allSens)
 }
                                       
 void 
-Domain::computeStressVMWRTthicknessSensitivity(int sindex,
-                                               GenSolver<double> *sysSolver,
+Domain::computeStressVMWRTthicknessDirectSensitivity(int sindex,
                                                AllSensitivities<double> &allSens,
                                                GenVector<double> &sol,
                                                double *bcx, 
@@ -3306,6 +3344,81 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
           (*allSens.vonMisesWRTthick)(inode, iparam) /= (*allSens.stressWeight)(inode, 0);
       }
       if(!isDynam) allSens.vonMisesWRTthick->col(iparam) += *allSens.vonMisesWRTdisp * (*allSens.dispWRTthick[iparam]);
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) {
+        Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+        std::cerr << "print vonMisesWRTthick\n" << (allSens.vonMisesWRTthick->col(iparam)).format(HeavyFmt) << std::endl;
+      }
+#endif
+     }
+#endif
+}
+
+void 
+Domain::computeStressVMWRTthicknessAdjointSensitivity(int sindex,
+                                                      AllSensitivities<double> &allSens,
+                                                      GenVector<double> &sol,
+                                                      double *bcx, 
+                                                      bool isDynam)
+{
+#ifdef USE_EIGEN3
+     // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     allSens.vonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numStressNodes, numThicknessGroups);
+     allSens.stressWeight     = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numStressNodes, 1);
+     allSens.vonMisesWRTthick->setZero();     allSens.stressWeight->setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+      int groupIndex = thicknessGroups[iparam];
+      for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {  
+       for(int eindex = 0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
+         int iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
+         if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+         if (!packedEset[iele]->doesIncludeStressNodes()) continue;
+         int NodesPerElement = elemToNode->num(iele);
+         GenVector<double> dStressdThick(NodesPerElement);
+         GenVector<double> weight(NodesPerElement,0.0);
+         int surface = senInfo[sindex].surface;
+         elDisp->zero();       
+         // Determine element displacement vector
+         for (int k=0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = sol[cn];
+           else
+             (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+         }
+         transformVectorInv(*elDisp, iele);         
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface); 
+         if(avgnum != 0) {
+           // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+           for(int k = 0; k < NodesPerElement; ++k) {
+             int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+             int inode;
+             if(checkIsInStressNodes(node,inode)) {
+               (*allSens.vonMisesWRTthick)(inode, iparam) += dStressdThick[k]; 
+               (*allSens.stressWeight)(inode, 0) += weight[k]; 
+             }
+           }
+         }
+       } 
+      }
+     }
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+      // average vonMisesWRTthick vector
+      for(int inode = 0; inode < numStressNodes; ++inode)  {
+        if((*allSens.stressWeight)(inode, 0) == 0.0)
+          (*allSens.vonMisesWRTthick)(inode, iparam) = 0.0;
+        else
+          (*allSens.vonMisesWRTthick)(inode, iparam) /= (*allSens.stressWeight)(inode, 0);
+      }
+      for(int inode = 0; inode < numStressNodes; ++inode)  {
+        double a = allSens.lambdaStressVM[inode]->adjoint()*(allSens.linearstaticWRTthick[iparam]->col(0));
+        (*allSens.vonMisesWRTthick)(inode, iparam) -= a;
+      }
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) {
         Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
@@ -3384,11 +3497,11 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
 }
 
 void 
-Domain::computeStressVMWRTShapeVariableSensitivity(int sindex,
-                                                   AllSensitivities<double> &allSens, 
-                                                   GenVector<double> &sol,
-                                                   double *bcx,
-                                                   bool isDynam)
+Domain::computeStressVMWRTShapeVariableDirectSensitivity(int sindex,
+                                                         AllSensitivities<double> &allSens, 
+                                                         GenVector<double> &sol,
+                                                         double *bcx,
+                                                         bool isDynam)
 {
 #ifdef USE_EIGEN3
      allSens.vonMisesWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), numShapeVars);
@@ -3457,33 +3570,129 @@ Domain::computeStressVMWRTShapeVariableSensitivity(int sindex,
 #endif
 }
 
+void 
+Domain::computeStressVMWRTShapeVariableAdjointSensitivity(int sindex,
+                                                         AllSensitivities<double> &allSens, 
+                                                         GenVector<double> &sol,
+                                                         double *bcx,
+                                                         bool isDynam)
+{
+#ifdef USE_EIGEN3
+     allSens.vonMisesWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numStressNodes, numShapeVars);
+     allSens.stressWeight    = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numStressNodes, 1);
+     allSens.vonMisesWRTshape->setZero();     allSens.stressWeight->setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       if (!packedEset[iele]->doesIncludeStressNodes()) continue;
+       int NodesPerElement = elemToNode->num(iele);
+       int DofsPerElement = packedEset[iele]->numDofs();
+       GenFullM<double> dStressdCoord(3*NodesPerElement,NodesPerElement,double(0.0));
+       GenVector<double> weight(NodesPerElement,0.0);
+       int surface = senInfo[sindex].surface;
+       elDisp->zero();       
+       // Determine element displacement vector
+       for (int k=0; k < allDOFs->num(iele); ++k) {
+         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+         if (cn >= 0)
+           (*elDisp)[k] = sol[cn];
+         else
+           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+       }
+       transformVectorInv(*elDisp, iele); 
+       packedEset[iele]->getVonMisesNodalCoordinateSensitivity(dStressdCoord, weight, nodes, *elDisp, 6, surface, 0);
+//       transformElementSensitivityInv(&dStressdCoord,iele); //TODO: watch out index of dStressdCoord when implementing
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         int *unconstrNum = c_dsa->getUnconstrNum();
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+           int inode;
+           if(checkIsInStressNodes(node1,inode)) {
+             (*allSens.stressWeight)(inode,0) += weight[k];
+             for(int j = 0; j < NodesPerElement; ++j) {
+               int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][j]]-1 : (*elemToNode)[iele][j];
+//               int jnode = shapeSenData.nodes[node2];
+               for(int xyz = 0; xyz < 3; ++xyz) {
+                 for(int ishap = 0; ishap < numShapeVars; ++ishap) {
+                   (*allSens.vonMisesWRTshape)(inode, ishap) += dStressdCoord[3*j+xyz][k]*shapeSenData.sensitivities[ishap][node2][xyz]; 
+                 }
+               }
+             }
+           }
+         }
+       }
+     } 
+  
+     for(int jSen = 0; jSen < numShapeVars; ++jSen) { 
+       for(int inode = 0; inode < numStressNodes; ++inode)  {
+         if((*allSens.stressWeight)(inode, 0) == 0.0)
+           (*allSens.vonMisesWRTshape)(inode,jSen) = 0;
+         else
+           (*allSens.vonMisesWRTshape)(inode,jSen) /= (*allSens.stressWeight)(inode,0);
+       }
+       for(int inode = 0; inode < numStressNodes; ++inode)  {
+         double a = allSens.lambdaStressVM[inode]->adjoint()*(allSens.linearstaticWRTshape[jSen]->col(0));
+         (*allSens.vonMisesWRTshape)(inode,jSen) -= a;
+       }
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) {
+        Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+        std::cerr << "print vonMisesWRTshape\n" << (allSens.vonMisesWRTshape->col(jSen)).format(HeavyFmt) << std::endl;
+      }
+#endif
+     }
+#endif
+}
+
 void
 Domain::makePostSensitivities(GenSolver<double> *sysSolver, 
-                              GenSparseMatrix<double> *K,
                               GenSparseMatrix<double> *spm,
                               AllSensitivities<double> &allSens, 
                               GenVector<double> &sol, double *bcx,
+                              GenSparseMatrix<double> *K,
                               bool isDynam)
 {
 #ifdef USE_EIGEN3
+ if(solInfo().sensitivityMethod == SolverInfo::Adjoint) setIncludeStressNodes(); //TODO: need to include this function in other sensitivity routine
+
  for(int sindex=0; sindex < numSensitivity; ++sindex) {
   switch(senInfo[sindex].type) {
    case SensitivityInfo::StressVMWRTthickness: 
    {
-     if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
-     if(!allSens.stiffnessWRTthick) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
-     if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
-     if(!isDynam) if(!allSens.dispWRTthick) computeDisplacementWRTthicknessSensitivity(sindex, sysSolver, K, spm, allSens);
-     computeStressVMWRTthicknessSensitivity(sindex,sysSolver,allSens,sol,bcx,isDynam);
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+       if(!allSens.stiffnessWRTthick) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
+       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
+       if(!isDynam) if(!allSens.dispWRTthick) computeDisplacementWRTthicknessSensitivity(sindex, sysSolver, spm, allSens, K);
+       computeStressVMWRTthicknessDirectSensitivity(sindex,allSens,sol,bcx,isDynam);
+     }
+     else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+       if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+       if(!allSens.stiffnessWRTthick) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
+       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
+       if(!allSens.lambdaStressVM) computeStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       computeStressVMWRTthicknessAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
+     }
      break;
    }
    case SensitivityInfo::StressVMWRTshape:
    {
-     if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
-     if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens); 
-     if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
-     if(!isDynam) if(!allSens.dispWRTshape) computeDisplacementWRTShapeVariableSensitivity(sindex, sysSolver, K, spm, allSens);
-     computeStressVMWRTShapeVariableSensitivity(sindex,allSens,sol,bcx,isDynam);
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+       if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens); 
+       if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
+       if(!isDynam) if(!allSens.dispWRTshape) computeDisplacementWRTShapeVariableSensitivity(sindex, sysSolver, spm, allSens, K);
+       computeStressVMWRTShapeVariableDirectSensitivity(sindex,allSens,sol,bcx,isDynam);
+     }
+     else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+       if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+       if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
+       if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
+       if(!allSens.lambdaStressVM) computeStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       computeStressVMWRTShapeVariableAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
+     }
      break;
    }
    case SensitivityInfo::StressVMWRTmach:
@@ -3516,8 +3725,8 @@ Domain::makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *bcx)
 
 void
 Domain::makePostSensitivities(GenSolver<DComplex> *sysSolver, 
-                              GenSparseMatrix<DComplex> *K,
                               GenSparseMatrix<DComplex> *spm,
                               AllSensitivities<DComplex> &allSens, 
                               GenVector<DComplex> &sol, DComplex *bcx,
+                              GenSparseMatrix<DComplex> *K,
                               bool isDynam) {}

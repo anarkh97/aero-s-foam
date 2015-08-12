@@ -739,6 +739,10 @@ TRAIL [a-zA-Z]*
 
 "STNOLI"|"stnoli"                  { return STRESSNODELIST; }
 
+"DINOLI"|"dinoli"                  { return DISPNODELIST; }
+
+"DIDOLI"|"didoli"                  { return DISPDOFLIST; }
+
 "addedmass"                        { return ADDEDMASS; }
 
 "SLOS"[a-zA-Z]*|"slos"[a-zA-Z]*    { return SLOSH; }

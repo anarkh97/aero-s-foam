@@ -78,6 +78,8 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
  numThicknessGroups = thicknessGroups.size();
  numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+ numDispDofs = dispDofs.size();
 
 }
 
@@ -108,6 +110,8 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
  numThicknessGroups = thicknessGroups.size();
  numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+ numDispDofs = dispDofs.size();
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
@@ -123,6 +127,8 @@ Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(ini
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
  numThicknessGroups = thicknessGroups.size();
  numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+ numDispDofs = dispDofs.size();
 }
 
 void

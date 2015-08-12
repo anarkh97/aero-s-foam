@@ -549,6 +549,9 @@ public:
     void outputSensitivityDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, 
                                       double time = 0.0, int numParams = 0, int numnodes = 0);
   template<class Scalar>
+    void outputSensitivityAdjointDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, 
+                                             double time, int numParams, int numnodes, int numdofs, std::vector<int>);
+  template<class Scalar>
     void outputSensitivityDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, 
                                       double time = 0.0, int numnodes = 0);
 #endif

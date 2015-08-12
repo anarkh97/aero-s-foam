@@ -693,6 +693,119 @@ GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen
 
 template<class Scalar>
 void
+GeoSource::outputSensitivityAdjointDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **output, 
+                                               double time, int numParams, int numnodes, int numdofs, std::vector<int> dispNodes)
+{
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
+
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
+    
+  if(oinfo[fileNum].isFirst) {
+    filePrint(oinfo[fileNum].filptr, " %d %d %d\n", numParams, numnodes, numdofs);
+    for(int iparam=0; iparam<numParams; ++iparam) {
+      filePrint(oinfo[fileNum].filptr, "%d \n", iparam+1);
+      for(int inode = 0; inode < numnodes; ++inode) {
+        switch(numdofs) {
+          case 1:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0))); 
+            break; 
+          case 2:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1))); 
+            break; 
+          case 3:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2))); 
+            break; 
+          case 4:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3))); 
+            break; 
+          case 5:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,4))); 
+            break; 
+          case 6:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,4)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,5))); 
+            break; 
+        }
+      }
+    }
+    oinfo[fileNum].isFirst = false;
+    fflush(oinfo[fileNum].filptr);
+  } else {
+    filePrint(oinfo[fileNum].filptr, " %d %d %d\n", numParams, numnodes, numdofs);
+    for(int iparam=0; iparam<numParams; ++iparam) {
+      filePrint(oinfo[fileNum].filptr, " %d \n", iparam+1);
+      for(int inode = 0; inode < numnodes; ++inode) {
+        switch(numdofs) {
+          case 1:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0))); 
+            break; 
+          case 2:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1))); 
+            break; 
+          case 3:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2))); 
+            break; 
+          case 4:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3))); 
+            break; 
+          case 5:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,4))); 
+            break; 
+          case 6:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,4)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,5))); 
+            break; 
+        }
+      }
+    }
+    fflush(oinfo[fileNum].filptr);
+  }
+}
+
+template<class Scalar>
+void
 GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, 
                                         double time, int numnodes)
 {

@@ -3531,19 +3531,35 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
       int numThicknessGroup = getNumThicknessGroups();
       allSens.gdispWRTthick = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroup];
       for(int iparam=0; iparam<numThicknessGroup; ++iparam) { 
-        allSens.gdispWRTthick[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
-        mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam]);
+        if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+          allSens.gdispWRTthick[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+          mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam]);
+        } else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+          allSens.gdispWRTthick[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numDispNodes, numDispDofs);
+          mergeAdjointDistributedDispSensitivity<Scalar>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam]);
+        }
       }
-      geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTthick, 0, numThicknessGroup, numnodes);
+      if(solInfo().sensitivityMethod == SolverInfo::Direct) geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTthick, 0, numThicknessGroup, numnodes);
+      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTthick, 0, numThicknessGroup, numDispNodes, numDispDofs, dispNodes);
+      }
     }
     if(oinfo[i].type == OutputInfo::DispShap) {
       int numShapeVars = getNumShapeVars();
       allSens.gdispWRTshape = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
-      for(int iparam=0; iparam<numShapeVars; ++iparam) { 
-        allSens.gdispWRTshape[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
-        mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam]);
+      for(int iparam=0; iparam<numShapeVars; ++iparam) {
+        if(solInfo().sensitivityMethod == SolverInfo::Direct) { 
+          allSens.gdispWRTshape[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+          mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam]);
+        } else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+          allSens.gdispWRTshape[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numDispNodes, numDispDofs);
+          mergeAdjointDistributedDispSensitivity<Scalar>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam]);
+        }
       }
-      geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTshape, 0, numShapeVars, numnodes);
+      if(solInfo().sensitivityMethod == SolverInfo::Direct) geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTshape, 0, numShapeVars, numnodes);
+      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTshape, 0, numShapeVars, numDispNodes, numDispDofs, dispNodes);
+      }
     }
     if(oinfo[i].type == OutputInfo::DispMach) {
       allSens.gdispWRTmach = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
@@ -3568,7 +3584,7 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
 //-------------------------------------------------------------------------------------
 #ifdef USE_EIGEN3
 template<class Scalar>
-int Domain::mergeDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispSen, 
+void Domain::mergeDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispSen, 
                                             Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispSen)
 {
   int inode, nodeI;
@@ -3663,7 +3679,30 @@ int Domain::mergeDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynamic
 */
   }
 
-  return ++realNode;
+}
+#endif
+
+//-------------------------------------------------------------------------------------
+#ifdef USE_EIGEN3
+template<class Scalar>
+void Domain::mergeAdjointDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispSen, 
+                                                    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispSen)
+{
+  int inode;
+  int realNode = -1;
+
+  for(inode = 0; inode < numDispNodes; ++inode) {
+    int node = dispNodes[inode], loc;
+    for(int idof=0; idof<numDispDofs; ++idof) {
+      int dof = dispDofs[idof];
+      loc = returnLocalDofNum(node, dof);
+      if (loc >= 0)
+        (*gdispSen)(inode,idof) = (*dispSen)(inode*numDispDofs+idof,0); 
+      else
+        (*gdispSen)(inode,0) = 0.0;
+    }
+  }
+
 }
 #endif
 

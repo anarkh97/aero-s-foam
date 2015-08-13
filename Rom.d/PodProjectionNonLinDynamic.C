@@ -789,8 +789,6 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
   
     NonLinDynamic::getInitState(*d0_Big, *v0_Big, a_Big, v_p_Big);
 
-    fprintf(stderr," The norm of the initial displacement is %f\n",d0_Big->norm());
-
     if(d0_Big->norm() != 0) reduceDisp(*d0_Big, d);
     initLocalBasis(d);
     // XXX the initial angular velocities are convected, by convention, so they should be transformed

@@ -77,6 +77,10 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
 
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
  numThicknessGroups = thicknessGroups.size();
+ numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+ numDispDofs = dispDofs.size();
+
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
@@ -104,6 +108,10 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
  if(verboseFlag == 0) setSilent();
  else setVerbose();
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ numThicknessGroups = thicknessGroups.size();
+ numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+ numDispDofs = dispDofs.size();
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
@@ -117,6 +125,10 @@ Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(ini
 
  matrixTimers = new MatrixTimers;
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ numThicknessGroups = thicknessGroups.size();
+ numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+ numDispDofs = dispDofs.size();
 }
 
 void
@@ -4140,6 +4152,32 @@ void Domain::updateSDETAF(StructProp* p, double omega) {
    p->etaDamp = eta-f*detadf;
    p->betaDamp = detadf/(2.0*M_PI); 
  }
+}
+
+void
+Domain::setIncludeStressNodes()
+{
+  for(int iele=0; iele<numele; iele++) {
+    int NodesPerElement = elemToNode->num(iele);
+    for(int k=0; k<NodesPerElement; ++k) {
+      int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+      int inode(0);
+      bool isIn = checkIsInStressNodes(node,inode); 
+      if(isIn) { 
+        packedEset[iele]->setIncludeStressNodes(isIn);
+        break;
+      }
+    }
+  }
+}
+
+bool Domain::checkIsInStressNodes(int node, int &iNode)
+{
+  for(int inode=0; inode<stressNodes.size(); ++inode) {
+    if(stressNodes[inode] == node) { iNode = inode; return true; }
+  }
+  
+  return false;
 }
 
 

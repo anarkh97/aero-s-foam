@@ -78,7 +78,9 @@ struct SolverInfo {
           Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
           None }; // note to developers: if you add a new entry in ths enum then
                   // you should also modify problemTypeMessage in Driver.d/Static.C
+   enum SensitivityMethod { Direct, Adjoint }; 
 
+   SensitivityMethod sensitivityMethod;
    int probType;
    int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...
 
@@ -384,7 +386,7 @@ struct SolverInfo {
    bool readmodeCalled;
    bool modalCalled;
    bool modalLMPC;
-   bool readShapeSen; 
+   bool readShapeSen;
    bool activatePodRom;
    bool snapshotsPodRom;
    bool checkPodRom;
@@ -486,6 +488,7 @@ struct SolverInfo {
                   modal = false;
                   lastIt = false;
                   mppFactor = 1.0;
+                  sensitivityMethod = SolverInfo::Direct;
  
                   // Parameters for sensitivity
                   sensitivity = false;

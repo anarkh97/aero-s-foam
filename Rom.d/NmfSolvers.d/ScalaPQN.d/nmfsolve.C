@@ -62,6 +62,8 @@ Nmf::solve() {
     }
     finalOutput();
     stopTime(TIME_NMF_PQN_MAIN_LOOP);
+
+    return 0;
 }
 
 

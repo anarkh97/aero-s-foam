@@ -238,8 +238,8 @@ struct AllSensitivities
     if(gdispWRTmach)     {  gdispWRTmach->setZero();              }
     if(gdispWRTalpha)    {  gdispWRTalpha->setZero();             }
     if(gdispWRTbeta)     {  gdispWRTbeta->setZero();              }
-    if(stiffnessWRTthick) for(int i=0; i<numThicknessGroups; ++i) {  stiffnessWRTthickSparse[i]->zeroAll();  }
-    if(stiffnessWRTshape) for(int i=0; i<numShapeVars; ++i) {  stiffnessWRTshapeSparse[i]->zeroAll();   }
+    if(stiffnessWRTthickSparse) for(int i=0; i<numThicknessGroups; ++i) {  stiffnessWRTthickSparse[i]->zeroAll();  }
+    if(stiffnessWRTshapeSparse) for(int i=0; i<numShapeVars; ++i) {  stiffnessWRTshapeSparse[i]->zeroAll();   }
     if(dKucdthick) for(int i=0; i<numThicknessGroups; ++i) { dKucdthick[i]->setZero();               dKucdthickSparse[i]->zeroAll();   }
     if(dKucdshape) for(int i=0; i<numShapeVars; ++i) { dKucdshape[i]->setZero();                     dKucdshapeSparse[i]->zeroAll();  }
     if(linearstaticWRTthick) for(int i=0; i<numThicknessGroups; ++i) { linearstaticWRTthick[i]->setZero();  linearstaticWRTthickSparse[i]->zeroAll();  }

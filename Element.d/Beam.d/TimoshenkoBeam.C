@@ -1095,7 +1095,8 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
 
     Simo::Jacobian<double,TimoshenkoBeamStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
-    dStressdx = dSdx(q, 0);
+    if(elDisp.norm() == 0) dStressdx.setZero();
+    else dStressdx = dSdx(q, 0);
     dStdx.copy(dStressdx.data());
 #ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << " ... dStressdx(AD) = \n" << dStressdx << std::endl;

@@ -169,7 +169,6 @@ struct AllSensitivities
   GenSparseMatrix<Scalar> **stiffnessWRTshapeSparse;    // derivatives of stiffness wrt shape variables 
   GenSparseMatrix<Scalar> **dKucdthickSparse;           // derivatives of constrained stiffness wrt thickness 
   GenSparseMatrix<Scalar> **dKucdshapeSparse;           // derivatives of constrained stiffness wrt shape variables 
-  GenSparseMatrix<Scalar> *stressWeightSparse;          // weight used to average stress sensitivity
   GenSparseMatrix<Scalar> **linearstaticWRTthickSparse; // derivative of linear static structural formulation wrt thickness
   GenSparseMatrix<Scalar> **linearstaticWRTshapeSparse; // derivative of linear static structural formulation wrt shape variables
   GenSparseMatrix<Scalar> **dispWRTthickSparse;         // derivative of displacement wrt thickness
@@ -181,13 +180,15 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTmach;       // derivatives of von Mises stress wrt Mach number
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTalpha;      // derivatives of von Mises stress wrt angle of attack
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTbeta;       // derivatives of von Mises stress wrt yaw angle
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTthick;    // derivatives of stiffness wrt thickness 
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTshape;    // derivatives of stiffness wrt shape variables 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dKucdthick;           // derivatives of constrained stiffness wrt thickness 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dKucdshape;           // derivatives of constrained stiffness wrt shape variables 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;          // weight used to average stress sensitivity
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTthick; // derivative of linear static structural formulation wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTshape; // derivative of linear static structural formulation wrt shape variables
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *aggregatedVonMisesWRTthick;         // derivative of KS function of von Mises stresses wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *aggregatedVonMisesWRTshape;         // derivative of KS function of von Mises stresses wrt shape variable
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *aggregatedVonMisesWRTdisp;          // derivative of KS function of von Mises stresses wrt displacement 
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *lambdaAggregatedStressVM;           // dual sensitivity of KS function of von Mises stresses 
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> **lambdaStressVM;                    // dual sensitivity of von Mises stress at a specified node
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> **lambdaDisp;                        // dual sensitivity of displacement at a specified node
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **gdispWRTthick;         // derivative of global displacement wrt thickness
@@ -205,13 +206,15 @@ struct AllSensitivities
   // Constructor
   AllSensitivities() { weight = 0;                weightWRTshape = 0;        weightWRTthick = 0;        
                        vonMisesWRTthickSparse = 0;      dKucdthickSparse = 0;            vonMisesWRTshapeSparse = 0; 
-                       vonMisesWRTdispSparse = 0;       stressWeightSparse = 0;          stiffnessWRTthickSparse = 0;     dKucdshapeSparse = 0; 
+                       vonMisesWRTdispSparse = 0;       stiffnessWRTthickSparse = 0;     dKucdshapeSparse = 0;    lambdaAggregatedStressVM = 0; 
                        linearstaticWRTthickSparse = 0;  linearstaticWRTshapeSparse = 0;  dispWRTthickSparse = 0;          dispWRTshapeSparse = 0;
                        stiffnessWRTshapeSparse = 0;     dispWRTmach = 0;    dispWRTalpha = 0;    dispWRTbeta = 0;        lambdaDisp = 0; 
-                       lambdaStressVM = 0;    vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0;      vonMisesWRTalpha = 0;  vonMisesWRTbeta = 0; 
-                       vonMisesWRTdisp = 0;   stressWeight = 0;          stiffnessWRTthick = 0;     dKucdshape = 0; 
+                       lambdaStressVM = 0;    vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0;      vonMisesWRTalpha = 0;
+                       vonMisesWRTbeta = 0; 
+                       aggregatedVonMisesWRTthick = 0;  aggregatedVonMisesWRTshape = 0;  aggregatedVonMisesWRTdisp = 0; 
+                       vonMisesWRTdisp = 0;   stressWeight = 0;          dKucdshape = 0; 
                        linearstaticWRTthick = 0;  linearstaticWRTshape = 0;  dispWRTthick = 0;          dispWRTshape = 0;
-                       stiffnessWRTshape = 0;     gdispWRTthick = 0;         gdispWRTshape = 0;         gdispWRTmach = 0;
+                       gdispWRTthick = 0;         gdispWRTshape = 0;         gdispWRTmach = 0;
                        gdispWRTalpha = 0;         gdispWRTbeta = 0; }
 
   void zero(int numShapeVars=0, int numThicknessGroups=0) {
@@ -221,18 +224,22 @@ struct AllSensitivities
     if(vonMisesWRTdisp)  {  vonMisesWRTdisp->setZero();    vonMisesWRTdispSparse->zeroAll();  }
     if(vonMisesWRTshape) {  vonMisesWRTshape->setZero();   vonMisesWRTshapeSparse->zeroAll(); }
     if(vonMisesWRTalpha) vonMisesWRTalpha->setZero();   
-    if(vonMisesWRTalpha) vonMisesWRTalpha->setZero();  
+    if(vonMisesWRTalpha) vonMisesWRTalpha->setZero(); 
+    if(aggregatedVonMisesWRTthick) aggregatedVonMisesWRTthick->setZero(); 
+    if(aggregatedVonMisesWRTshape) aggregatedVonMisesWRTshape->setZero(); 
+    if(aggregatedVonMisesWRTdisp) aggregatedVonMisesWRTdisp->setZero(); 
+    if(lambdaAggregatedStressVM) lambdaAggregatedStressVM->setZero(); 
     if(lambdaStressVM) lambdaStressVM->setZero(); 
     if(lambdaDisp)     lambdaDisp->setZero(); 
-    if(stressWeight)     {  stressWeight->setZero();       stressWeightSparse->zeroAll();     }
+    if(stressWeight)     {  stressWeight->setZero();  }
     if(dispWRTmach)      {  dispWRTmach->setZero();              }
     if(dispWRTalpha)     {  dispWRTalpha->setZero();             }
     if(dispWRTbeta)      {  dispWRTbeta->setZero();              }
     if(gdispWRTmach)     {  gdispWRTmach->setZero();              }
     if(gdispWRTalpha)    {  gdispWRTalpha->setZero();             }
     if(gdispWRTbeta)     {  gdispWRTbeta->setZero();              }
-    if(stiffnessWRTthick) for(int i=0; i<numThicknessGroups; ++i) { stiffnessWRTthick[i]->setZero(); stiffnessWRTthickSparse[i]->zeroAll();  }
-    if(stiffnessWRTshape) for(int i=0; i<numShapeVars; ++i) { stiffnessWRTshape[i]->setZero();       stiffnessWRTshapeSparse[i]->zeroAll();   }
+    if(stiffnessWRTthick) for(int i=0; i<numThicknessGroups; ++i) {  stiffnessWRTthickSparse[i]->zeroAll();  }
+    if(stiffnessWRTshape) for(int i=0; i<numShapeVars; ++i) {  stiffnessWRTshapeSparse[i]->zeroAll();   }
     if(dKucdthick) for(int i=0; i<numThicknessGroups; ++i) { dKucdthick[i]->setZero();               dKucdthickSparse[i]->zeroAll();   }
     if(dKucdshape) for(int i=0; i<numShapeVars; ++i) { dKucdshape[i]->setZero();                     dKucdshapeSparse[i]->zeroAll();  }
     if(linearstaticWRTthick) for(int i=0; i<numThicknessGroups; ++i) { linearstaticWRTthick[i]->setZero();  linearstaticWRTthickSparse[i]->zeroAll();  }
@@ -406,6 +413,9 @@ class Domain : public HData {
     int numStressNodes;      // number of requested nodes for von mises stress sensitivity
     int numDispNodes;        // number of requested nodes for displacement sensitivity
     int numDispDofs;         // number of requested dofs at each requested node for displacement sensitivity
+
+    double* aggregatedStress;
+    double* aggregatedStressDenom;
 
     void writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* nodeNumber, int topFlag);
 
@@ -728,6 +738,13 @@ class Domain : public HData {
                                          GenSparseMatrix<double> *,
                                          AllSensitivities<double> &,
                                          GenSparseMatrix<double> *K=0);
+     void computeNormalizedVonMisesStress(Vector&, double*, int, Vector&);
+     void scaleToTrueVonMisesStress(Vector&);
+     void computeAggregatedStressDenom(Vector &stress);
+     void computeAggregatedStressVMDualSensitivity(int, GenSolver<double> *, 
+                                                   GenSparseMatrix<double> *,
+                                                   AllSensitivities<double> &,
+                                                   GenSparseMatrix<double> *K=0);
      void computeDisplacementDualSensitivity(int, GenSolver<double> *, 
                                              GenSparseMatrix<double> *,
                                              AllSensitivities<double> &,
@@ -739,11 +756,19 @@ class Domain : public HData {
      void computeStressVMWRTthicknessDirectSensitivity(int, AllSensitivities<double> &allSens,
                                                        GenVector<double> &sol, double *bcx,
                                                        bool isDynam = false);
+     void computeAggregatedStressVMWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
+                                                               GenVector<double> &sol, double *bcx,
+                                                               bool isDynam = false);
+     void computeAggregatedStressVMWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
+                                                           GenVector<double> &sol, double *bcx,
+                                                           bool isDynam = false);
      void computeStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens,
                                                         GenVector<double> &sol, double *bcx,
                                                         bool isDynam = false);
      void computeStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
                                                     GenVector<double> &sol, double *bcx);
+     void computeAggregatedStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
+                                                              GenVector<double> &sol, double *bcx);
      void computeStressVMWRTShapeVariableDirectSensitivity(int, AllSensitivities<double> &allSens,
                                                            GenVector<double> &sol, double *bcx,
                                                            bool isDynam = false);

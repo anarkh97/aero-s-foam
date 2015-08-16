@@ -3432,6 +3432,9 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
     case OutputInfo::StressVM:
       getStressStrain(d_n,bcx,i,VON, time);
       break;
+    case OutputInfo::AggrStVM:
+      getStressStrain(d_n,bcx,i,AGGREGATEDVON, time);
+      break;
     case OutputInfo::Damage:
       getStressStrain(d_n,bcx,i,DAMAGE, time);
       break;
@@ -3516,12 +3519,10 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
   int numOutInfo = geoSource->getNumOutInfo();
   if(firstOutput) geoSource->openOutputFiles();
   for(int i = 0; i < numOutInfo; ++i)  {
-    if(oinfo[i].type == OutputInfo::WeigThic) {
-      geoSource->outputSensitivityScalars(i, allSens.weightWRTthick, allSens.weight);
-    }
-    if(oinfo[i].type == OutputInfo::WeigShap) {
-      geoSource->outputSensitivityScalars(i, allSens.weightWRTshape, allSens.weight);
-    }
+    if(oinfo[i].type == OutputInfo::WeigThic) geoSource->outputSensitivityScalars(i, allSens.weightWRTthick, allSens.weight);
+    if(oinfo[i].type == OutputInfo::WeigShap) geoSource->outputSensitivityScalars(i, allSens.weightWRTshape, allSens.weight);
+    if(oinfo[i].type == OutputInfo::AGstShap) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTshape, *aggregatedStress);
+    if(oinfo[i].type == OutputInfo::AGstThic) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTthick, *aggregatedStress);
     if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTthick);
     if(oinfo[i].type == OutputInfo::VMstShap) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTshape);
     if(oinfo[i].type == OutputInfo::VMstMach) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTmach);
@@ -3761,7 +3762,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
       else
         success = processDispTypeOutputs(oinfo[i], xyz_loc, numNodesOut, i, time, freq);
       if (success) continue;
-      success = processOutput(oinfo[i].type, sol, bcx, i, time, freq);
+      success = processOutput(oinfo[i].type, sol, bcx, i, time, freq, 0);
       if (success) continue;
       success = 1;
       switch(oinfo[i].type)  {

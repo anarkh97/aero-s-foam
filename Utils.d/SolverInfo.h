@@ -387,6 +387,8 @@ struct SolverInfo {
    bool modalCalled;
    bool modalLMPC;
    bool readShapeSen;
+   double ksParameter;
+   double ksMax;
    bool activatePodRom;
    bool snapshotsPodRom;
    bool checkPodRom;
@@ -741,6 +743,8 @@ struct SolverInfo {
                   nmfTol             = 1e-6;
                   nmfPqnNumInnerIter = 2;
                   nmfPqnAlpha        = 0.4;
+                  ksParameter        = 50;
+                  ksMax              = 1.0e5;
                   samplingPodRom     = false;
                   snapProjPodRom     = false;
                   galerkinPodRom     = false;
@@ -760,7 +764,7 @@ struct SolverInfo {
                   projectSolution    = false;
                   positiveElements   = true;
                   maxSizeSpnnls      = 1.0;
-		  maxElemSpnnls      = 0;
+                  maxElemSpnnls      = 0;
                   maxIterSpnnls      = 3.0;
                   solverTypeSpnnls   = 0;
                   reduceFollower     = false;

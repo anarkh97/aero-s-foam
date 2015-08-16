@@ -5,9 +5,8 @@
 
 struct SensitivityInfo {
 
-   enum Method { Direct, Adjoint };
-
    enum Type { WeightWRTthickness, WeightWRTshape,
+               AggregatedStressVMWRTthickness, AggregatedStressVMWRTshape,
                StressVMWRTthickness, StressVMWRTshape,
                StressVMWRTmach, StressVMWRTalpha, StressVMWRTbeta,
                DisplacementWRTthickness,
@@ -17,13 +16,8 @@ struct SensitivityInfo {
                DisplacementWRTbeta,
  };
 
-   Method method;
    Type type;
    int surface;  // surface where shell type sensitivity is evaluated
-
-   SensitivityInfo() {
-     method = SensitivityInfo::Direct;
-   }
 
 };
 

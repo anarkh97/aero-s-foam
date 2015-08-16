@@ -17,7 +17,8 @@ struct OutputInfo {
           StressXY,     StressYZ,    StressXZ,    StrainXX,    StrainYY,
           StrainZZ,     StrainXY,    StrainYZ,    StrainXZ,    HeatFlXX,
           HeatFlXY,     HeatFlXZ,    GrdTempX,    GrdTempY,    GrdTempZ,
-          StressVM,     StressPR1,   StressPR2,   StressPR3,   StrainPR1,
+          StressVM,     AggrStVM,
+          StressPR1,   StressPR2,   StressPR3,   StrainPR1,
           StrainPR2,    StrainPR3,   InXForce,    InYForce,    InZForce,
           AXMoment,     AYMoment,    AZMoment,    Energies,    AeroForce,
           EigenPair,    StrainVM,    Helmholtz,   Disp6DOF,    EigenPair6, 
@@ -45,7 +46,8 @@ struct OutputInfo {
           PlasticStrainYZ, PlasticStrainXZ, BackStressXX, BackStressYY,
           BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ, 
           WeigThic, WeigShap, VMstThic, VMstShap, VMstMach, VMstAlpha, VMstBeta,
-          DispThic, DispShap, DispMach, DispAlph, DispBeta, 
+          DispThic, DispShap, DispMach, DispAlph, DispBeta,
+          AGstShap, AGstThic, 
           DissipatedEnergy, DeletedElements, DualStateVar };
 
    enum Group  { Nodal, Attribute, NodeGroup };

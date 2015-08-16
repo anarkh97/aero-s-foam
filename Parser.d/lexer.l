@@ -669,6 +669,10 @@ TRAIL [a-zA-Z]*
 
 "ratiotolsen"|"RATIOTOLSEN"        { return RATIOTOLSEN; }
 
+"ksparam"|"KSPARAM"                { return KSPARAM; }
+
+"ksmax"|"KSMAX"                    { return KSMAX; }
+
 "qrfactorization"|"QRFACTORIZATION" { return QRFACTORIZATION; }
 
 "expl"[a-zA-Z]*|"EXPL"[a-zA-Z]*    { return EXPLICIT; }
@@ -1036,6 +1040,10 @@ TRAIL [a-zA-Z]*
 
 "weigshap"|"WEIGSHAP"              { yylval.ival = OutputInfo::WeigShap; return STRESSID; }
 
+"agstthic"|"AGSTTHIC"              { yylval.ival = OutputInfo::AGstThic; return STRESSID; }
+
+"agstshap"|"AGSTSHAP"              { yylval.ival = OutputInfo::AGstShap; return STRESSID; }
+
 "vmstthic"|"VMSTTHIC"              { yylval.ival = OutputInfo::VMstThic; return STRESSID; }
 
 "vmstshap"|"VMSTSHAP"              { yylval.ival = OutputInfo::VMstShap; return STRESSID; }
@@ -1154,6 +1162,8 @@ TRAIL [a-zA-Z]*
 "slshdspz"|"SLSHDSPZ"              { yylval.ival = OutputInfo::SloshDispZ;     return STRESSID; }
 
 "stressvm"|"STRESSVM"              { yylval.ival = OutputInfo::StressVM;     return STRESSID; }
+
+"aggrstvm"|"AGGRSTVM"              { yylval.ival = OutputInfo::AggrStVM;     return STRESSID; }
 
 "stressp1"|"STRESSP1"              { yylval.ival = OutputInfo::StressPR1;    return STRESSID; }
 

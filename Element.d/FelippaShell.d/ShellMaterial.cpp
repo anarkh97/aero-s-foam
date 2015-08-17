@@ -6,6 +6,24 @@
 #include <stdexcept>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 
+#include <unsupported/Eigen/AutoDiff>
+namespace Eigen {
+
+template<typename DerType>
+inline const AutoDiffScalar<Matrix<typename internal::traits<DerType>::Scalar,Dynamic,1> >
+atan(const AutoDiffScalar<DerType>& a)
+{
+  using std::atan;
+  typedef typename internal::traits<DerType>::Scalar Scalar;
+  typedef AutoDiffScalar<Matrix<Scalar,Dynamic,1> > PlainADS;
+  PlainADS ret;
+  ret.value() = atan(a.value());
+  ret.derivatives() = a.derivatives()/(Scalar(1)+a.value()*a.value());
+  return ret;
+}
+
+}
+
 template<typename doublereal>
 Eigen::Matrix<doublereal,3,3>
 ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, doublereal thetaf)

@@ -104,94 +104,94 @@ class StructProp {
         double cx;      // x-component of discrete mass offset
         };
     union {
-	double	E;      // Elastic modulus
-	double d0;      // Initial stiffness of nonlin element
+        double	E;      // Elastic modulus
+        double d0;      // Initial stiffness of nonlin element
         double ky;
         double cy;      // y-component of discrete mass offset
-	};
+        };
     union {
-	double	nu; 	// Poisson's ratio
-	double a;	// shear-t contribution ratio
+        double	nu; 	// Poisson's ratio
+        double a;	// shear-t contribution ratio
         double kz;
         double lambda;  // damage control
         double omega;
         double cz;      // z-component of discrete mass offset
-	};
-     union {
-	double  rho; 	// Mass density per unit volume
         };
      union {
-	double  eh;	// Element thickness
-	double  C1;	// Non-uniform torsion constant
-	double b;       // shear-s contribution ratio
-	double xo;      // Plastic parameter
+        double  rho; 	// Mass density per unit volume
+        };
+     union {
+        double  eh;	// Element thickness
+        double  C1;	// Non-uniform torsion constant
+        double b;       // shear-s contribution ratio
+        double xo;      // Plastic parameter
         double phase;
         double c1;      // 1st parameter of an elementary prescribed motion function
-	};
+        };
      union {
-	double  Ixx;	// Cross-sectional moment of inertia about local x-axis
+        double  Ixx;	// Cross-sectional moment of inertia about local x-axis
         double  ss;     // speed of sound
         double  c2;     // 2nd parameter of an elementary prescribed motion function
         };
      union {
-	double  Iyy;	// Cross-sectional moment of inertia about local y-axis
+        double  Iyy;	// Cross-sectional moment of inertia about local y-axis
         double  c3;     // 3rd parameter of an elementary prescribed motion function
         };
      union {
-	double  Izz;	// Cross-sectional moment of inertia about local z-axis
+        double  Izz;	// Cross-sectional moment of inertia about local z-axis
         double  c4;     // 4th parameter of an elementary prescribed motion function
         };
      union {
-	double c; 	// Thermal convection coefficient
-	double alphaY;  // Shear deflection constant associated to Iyy
-	double sigmax;
-	double sigE;    // Elastic limit
-	double ft;      // Tensile strength
+        double c;       // Thermal convection coefficient
+        double alphaY;  // Shear deflection constant associated to Iyy
+        double sigmax;
+        double sigE;    // Elastic limit
+        double ft;      // Tensile strength
         double eps;     // Radiation: Emissivity of the body (for a black body, eps=1)
         double amplitude;
-	};
+        };
      union {
-	double k;       // Heat conduction coefficient
-	double alphaZ;  // Shear deflection constant associated to Izz
-	double v2;      // Fracture Energy
-	double fc;      // Compressive strength
+        double k;       // Heat conduction coefficient
+        double alphaZ;  // Shear deflection constant associated to Izz
+        double v2;      // Fracture Energy
+        double fc;      // Compressive strength
         double Ep;      // Hardening modulus
         double offset;
-	};
+        };
      union {
-        double Q;	// Specific heat coefficient
+        double Q;       // Specific heat coefficient
         double Mx;      // global x-component of applied moment
         double Fx;      // global x-component of applied force
         double F0;      // magnitude of an applied force
         };
      union {
-	double W;	// Thermal expansion coefficient
+        double W;       // Thermal expansion coefficient
         double My;      // global y-component of applied moment
         double Fy;      // global y-component of applied force
         };
      union {
-        double P;	// Perimeter/circumference of thermal truss/beams
+        double P;       // Perimeter/circumference of thermal truss/beams
         double Mz;      // global z-component of applied moment
         double Fz;      // global z-component of applied force
         };
      union {
-        double Ta;	// Ambient temperature
+        double Ta;      // Ambient temperature
         double Tr;      // Temperature of the enclosure receiving the radiation
         };
         double sigma;   // Stefan's constant (5.6704e-8 in SI)
       union {
-	double ymin;    // minimum height (< 0) for cross section of beam (local y-direction)
+        double ymin;    // minimum height (< 0) for cross section of beam (local y-direction)
         double Ixy;     // product of inertia
         };
       union {
-	double ymax;    // maximum height (> 0) for cross section of beam (local y-direction)
+        double ymax;    // maximum height (> 0) for cross section of beam (local y-direction)
         double Iyz;     // product of inertia
         };
       union {
-	double zmin;    // minimum height (< 0) for cross section of beam (local z-direction)
+        double zmin;    // minimum height (< 0) for cross section of beam (local z-direction)
         double Ixz;     // product of inertia
         };
-	double zmax;	// maximum height (> 0) for cross section of beam (local z-direction)
+        double zmax;    // maximum height (> 0) for cross section of beam (local z-direction)
 
         double betaDamp; // Rayleigh stiffness damping coefficient
         double alphaDamp; // Rayleigh mass damping coefficient
@@ -361,11 +361,11 @@ class Element {
         int elementType;
         bool includeStressNodes;
   protected:
-	StructProp *prop;	// structural properties for this element
+        StructProp *prop;	// structural properties for this element
         bool myProp;
         int glNum, subNum, stateOffset;
         std::vector<double> factors;
-	void lumpMatrix(FullSquareMatrix&);
+        void lumpMatrix(FullSquareMatrix&);
   public:
         Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; category = Undefined; includeStressNodes = false; };
         virtual ~Element() { if(myProp && prop) delete prop; }

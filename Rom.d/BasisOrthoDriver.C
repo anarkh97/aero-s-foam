@@ -219,7 +219,6 @@ BasisOrthoDriver::solve() {
 
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
-    filePrint(stderr, " ... Computation of a basis of size %d ...\n", sizeSnap+sizeROB);
     int colCounter = 0;
     readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver, skipTime); // read in snapshots
     readIntoSolver(solver, converter, BasisId::ROB, domain->solInfo().robfi.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver); // read in ROB
@@ -234,7 +233,7 @@ BasisOrthoDriver::solve() {
 
     // Output solution
     if(domain->solInfo().normalize <= 0) // old method for lumped: outputs identity normalized basis
-      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", BasisFileId(fileInfo, type, BasisId::POD).name().c_str());
+      filePrint(stderr, " ... Writing orthonormal basis of size %d to file %s ...\n", orthoBasisDim, BasisFileId(fileInfo, type, BasisId::POD).name().c_str());
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
       output << std::make_pair(solver.singularValue(iVec), solver.matrixCol(iVec));
     }
@@ -269,7 +268,7 @@ BasisOrthoDriver::solve() {
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
       fileName.append(".normalized");
       BasisOutputStream<6> outputNormalized(fileName, converter, false); 
-      filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
+      filePrint(stderr, " ... Writing mass-normalized basis of size %d to file %s ...\n", orthoBasisDim, fileName.c_str());
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
         outputNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
       }

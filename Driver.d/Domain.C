@@ -76,6 +76,10 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
  else setVerbose();
 
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ aggregatedStress = new double;
+ aggregatedStressDenom = new double;
+ *aggregatedStress = 0; 
+ *aggregatedStressDenom = 0;
  numThicknessGroups = thicknessGroups.size();
  numStressNodes = stressNodes.size();
  numDispNodes = dispNodes.size();
@@ -108,6 +112,10 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
  if(verboseFlag == 0) setSilent();
  else setVerbose();
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ aggregatedStress = new double;
+ aggregatedStressDenom = new double;
+ *aggregatedStress = 0; 
+ *aggregatedStressDenom = 0;
  numThicknessGroups = thicknessGroups.size();
  numStressNodes = stressNodes.size();
  numDispNodes = dispNodes.size();
@@ -125,6 +133,10 @@ Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(ini
 
  matrixTimers = new MatrixTimers;
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ aggregatedStress = new double;
+ aggregatedStressDenom = new double;
+ *aggregatedStress = 0; 
+ *aggregatedStressDenom = 0;
  numThicknessGroups = thicknessGroups.size();
  numStressNodes = stressNodes.size();
  numDispNodes = dispNodes.size();
@@ -3264,6 +3276,7 @@ Domain::~Domain()
    packedEset.deleteElem(contactSurfElems[i]);
  if(g_dsa) delete g_dsa;
  if(senInfo) delete [] senInfo;
+ if(aggregatedStress) delete aggregatedStress;
 }
 
 #include <Element.d/Helm.d/HelmElement.h>
@@ -4219,6 +4232,10 @@ void Domain::buildSensitivityInfo()
       senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;       addSensitivity(oinfo[i]);
     } else if (oinfo[i].type == OutputInfo::WeigShap) {
       senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;           addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::AGstThic) {
+      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTthickness;     addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::AGstShap) {
+      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTshape;         addSensitivity(oinfo[i]);
     } else if (oinfo[i].type == OutputInfo::VMstThic) {
       senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;     addSensitivity(oinfo[i]);
     } else if (oinfo[i].type == OutputInfo::VMstShap) {

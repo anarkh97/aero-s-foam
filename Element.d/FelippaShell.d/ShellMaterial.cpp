@@ -6,6 +6,24 @@
 #include <stdexcept>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 
+#include <unsupported/Eigen/AutoDiff>
+namespace Eigen {
+
+template<typename DerType>
+inline const AutoDiffScalar<Matrix<typename internal::traits<DerType>::Scalar,Dynamic,1> >
+atan(const AutoDiffScalar<DerType>& a)
+{
+  using std::atan;
+  typedef typename internal::traits<DerType>::Scalar Scalar;
+  typedef AutoDiffScalar<Matrix<Scalar,Dynamic,1> > PlainADS;
+  PlainADS ret;
+  ret.value() = atan(a.value());
+  ret.derivatives() = a.derivatives()/(Scalar(1)+a.value()*a.value());
+  return ret;
+}
+
+}
+
 template<typename doublereal>
 Eigen::Matrix<doublereal,3,3>
 ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, doublereal thetaf)
@@ -16,7 +34,7 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
   Eigen::Matrix<doublereal,3,1> r; r << 1, 1, 2;
 
   // Builtin functions 
-//  using std::atan;
+  using std::atan;
   using std::cos;
   using std::sin;
 
@@ -90,10 +108,7 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
                 thetad = pi;
             }
         } else {
-//            doublereal dummy = proj2 / proj1;
-//            thetad = (0.5*std::complex<doublereal>(0.0,1.0)).real();
-//            thetad = atan(proj2 / proj1);
-            thetad = 0.0;
+            thetad = atan(proj2 / proj1);
         }
     }
 

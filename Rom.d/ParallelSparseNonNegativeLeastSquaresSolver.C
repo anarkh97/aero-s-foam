@@ -119,7 +119,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
       exit(-1);
 #endif
     } break;
-    case 7 : { // Non-negative Conjugate Gradient Pursuit
+    case 7 : {
       filePrint(stderr, " ... Using Parallel CGLASSO Solver    ...\n");
       x = pcglars(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
                  verboseFlag_, scalingFlag_, centerFlag_, projectFlag_, dtime);

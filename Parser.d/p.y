@@ -68,7 +68,7 @@
 
 %expect 6
 
-%token ACTUATORS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT
+%token ACTUATORS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT 
 %token AUGMENT AUGMENTTYPE AUXILIARY AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
@@ -89,7 +89,8 @@
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KEYLETTER KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOADCASE LOBPCG LOCALREDUCEDORDERBASES LOCALSOLVER LINESEARCH LUMPED
-%token MASS MATERIALS MATLAB MAXITR MAXELEM MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
+%token KSPARAM KSMAX 
+%token MASS MASSAUGMENTATION MATERIALS MATLAB MAXITR MAXELEM MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
 %token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
@@ -205,6 +206,7 @@ Component:
 	| Pressure
 	| Lumped
         {}
+        | MassAugmentation
         | Preload
         {}
 	| Renumbering
@@ -3149,12 +3151,12 @@ Attributes:
           domain->solInfo().elemLumpPodRom = true;
           domain->solInfo().reduceFollower = true; }
         /* define attribute and hyper reduction coefficient for non-composite element */
-	| Attributes Integer Integer NewLine
-	{ geoSource->setAttrib($2-1,$3-1); }
+        | Attributes Integer Integer NewLine
+        { geoSource->setAttrib($2-1,$3-1); }
         | Attributes Integer Integer HRC Float NewLine
         { geoSource->setAttrib($2-1,$3-1); 
-	  geoSource->setElementLumpingWeight($2-1,$5);
-	  domain->solInfo().elemLumpPodRom = true; }
+          geoSource->setElementLumpingWeight($2-1,$5);
+          domain->solInfo().elemLumpPodRom = true; }
         | Attributes Integer Integer HRC REDFOL Float NewLine /* deprecated syntax */
         { geoSource->setAttrib($2-1,$3-1);
           geoSource->setElementLumpingWeight($2-1,$6);
@@ -3166,12 +3168,12 @@ Attributes:
           domain->solInfo().elemLumpPodRom = true;
           domain->solInfo().reduceFollower = true; }
         /* define attribute and hyper reduction coefficient for composite element with CFRAME */
-	| Attributes Integer Integer Integer Integer NewLine
-	{ geoSource->setAttrib($2-1,$3-1,$4-1,$5-1); }
+        | Attributes Integer Integer Integer Integer NewLine
+        { geoSource->setAttrib($2-1,$3-1,$4-1,$5-1); }
         | Attributes Integer Integer Integer Integer HRC Float NewLine
         { geoSource->setAttrib($2-1,$3-1,$4-1,$5-1);
-	  geoSource->setElementLumpingWeight($2-1,$7); 
-	  domain->solInfo().elemLumpPodRom = true; }
+          geoSource->setElementLumpingWeight($2-1,$7); 
+          domain->solInfo().elemLumpPodRom = true; }
         | Attributes Integer Integer Integer Integer HRC Float EXTFOL NewLine
         { geoSource->setAttrib($2-1,$3-1,$4-1,$5-1);
           geoSource->setElementLumpingWeight($2-1,$7);   
@@ -3190,27 +3192,27 @@ Attributes:
           domain->solInfo().elemLumpPodRom = true;
           domain->solInfo().reduceFollower = true; }
         /* define attributes for a range of elements */
-	| Attributes Integer Integer IDENTITY NewLine
+        | Attributes Integer Integer IDENTITY NewLine
         { int i;
           for(i=$2; i<$3+1; ++i)
             geoSource->setAttrib(i-1,i-1);
         }
-	| Attributes Integer Integer Integer NewLine
-	{ int i;
-	  for(i=$2; i<$3+1; ++i)
- 	    geoSource->setAttrib(i-1,$4-1);
-	}
-	| Attributes Integer Integer Integer Integer Integer NewLine
-	{ int i;
-	  for(i=$2; i<$3+1; ++i)
-	    geoSource->setAttrib(i-1, $4-1, $5-1, $6-1);
-	}
+        | Attributes Integer Integer Integer NewLine
+        { int i;
+          for(i=$2; i<$3+1; ++i)
+            geoSource->setAttrib(i-1,$4-1);
+        }
+        | Attributes Integer Integer Integer Integer Integer NewLine
+        { int i;
+          for(i=$2; i<$3+1; ++i)
+            geoSource->setAttrib(i-1, $4-1, $5-1, $6-1);
+        }
         | Attributes Integer Integer Integer Integer THETA Float NewLine
         { int i;
           for(i=$2; i<$3+1; ++i)
             geoSource->setAttrib(i-1, $4-1, $5-1, -1, $7);
         }
-	;
+        ;
 Ellump:
         ELLUMP NewLine
         { domain->solInfo().elemLumpPodRom = true;
@@ -3342,6 +3344,10 @@ Lumped:
           domain->solInfo().inertiaLumping = $3;
         }*/
 	;
+MassAugmentation:
+        MASSAUGMENTATION SWITCH NewLine
+        { domain->solInfo().useMassAugmentation = $2; }
+        ;
 Preload:
         PRELOAD NewLine
         { }
@@ -3374,6 +3380,10 @@ Sensitivity:
         { domain->solInfo().sensitivityTol = $3; }
         | Sensitivity RATIOTOLSEN Float NewLine
         { domain->solInfo().ratioSensitivityTol = $3; }    
+        | Sensitivity KSPARAM Float NewLine
+        { domain->solInfo().ksParameter = $3; } 
+        | Sensitivity KSMAX Float NewLine
+        { domain->solInfo().ksMax = $3; } 
         | Sensitivity THICKNESSGROUPLIST ThicknessGroup NewLine
         { } 
         | Sensitivity STRESSNODELIST StressNode NewLine
@@ -3381,7 +3391,7 @@ Sensitivity:
         | Sensitivity DISPNODELIST DispNode NewLine
         { } 
         | Sensitivity DISPDOFLIST DispDof NewLine
-        { } 
+        { }
   ;
 DispDof:
         Integer 

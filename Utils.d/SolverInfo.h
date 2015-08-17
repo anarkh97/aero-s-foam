@@ -387,6 +387,8 @@ struct SolverInfo {
    bool modalCalled;
    bool modalLMPC;
    bool readShapeSen;
+   double ksParameter;
+   double ksMax;
    bool activatePodRom;
    bool snapshotsPodRom;
    bool checkPodRom;
@@ -473,6 +475,8 @@ struct SolverInfo {
    int scpkNB;  // Scalapack column block size
    int scpkMP;  // Scalapack row processor grid size
    int scpkNP;  // Scalapack column processor grid size
+
+   bool useMassAugmentation; // adjust lumped mass matrix for shell element type 15 to increase stability time-step
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -741,6 +745,8 @@ struct SolverInfo {
                   nmfTol             = 1e-6;
                   nmfPqnNumInnerIter = 2;
                   nmfPqnAlpha        = 0.4;
+                  ksParameter        = 50;
+                  ksMax              = 1.0e5;
                   samplingPodRom     = false;
                   snapProjPodRom     = false;
                   galerkinPodRom     = false;
@@ -760,7 +766,7 @@ struct SolverInfo {
                   projectSolution    = false;
                   positiveElements   = true;
                   maxSizeSpnnls      = 1.0;
-		  maxElemSpnnls      = 0;
+                  maxElemSpnnls      = 0;
                   maxIterSpnnls      = 3.0;
                   solverTypeSpnnls   = 0;
                   reduceFollower     = false;
@@ -792,6 +798,7 @@ struct SolverInfo {
                   scpkNB             = 0;  // 0 => Scalapack LH solver will use default block size
                   scpkMP             = 0;  // 0 => Scalapack LH solver will use default processor grid 
                   scpkNP             = 0;  // 0 => Scalapack LH solver will use default processor grid
+                  useMassAugmentation = true;
                 }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }

@@ -33,6 +33,10 @@ SDDynamPodPostProcessor::SDDynamPodPostProcessor(Domain *d, double *bcx, double 
           }
         } else {
           oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          if(!oinfo[iOut].filptr) {
+            fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n", oinfo[iOut].filename);
+            exit(-1);
+          }
           filePrint(oinfo[iOut].filptr, "0\n"); 
         }
         break;
@@ -41,6 +45,10 @@ SDDynamPodPostProcessor::SDDynamPodPostProcessor(Domain *d, double *bcx, double 
           DispSensor = true;
         } else {
           oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          if(!oinfo[iOut].filptr) {
+            fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n", oinfo[iOut].filename);
+            exit(-1);
+          }
           filePrint(oinfo[iOut].filptr, "1\n");
         }
         break;
@@ -53,6 +61,10 @@ SDDynamPodPostProcessor::SDDynamPodPostProcessor(Domain *d, double *bcx, double 
           }
         } else {
           oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          if(!oinfo[iOut].filptr) {
+            fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n", oinfo[iOut].filename);
+            exit(-1);
+          }
           filePrint(oinfo[iOut].filptr, "2\n");
         }
         break; 

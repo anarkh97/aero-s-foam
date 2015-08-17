@@ -23,6 +23,7 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
+#include <Utils.d/SolverInfo.h>
 
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 #include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
@@ -31,6 +32,7 @@
 typedef ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle> Impl;
 
 extern int verboseFlag;
+extern SolverInfo &solInfo;
 
 FelippaShell::FelippaShell(int* nodenums)
 {
@@ -246,7 +248,7 @@ FelippaShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
   double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
   double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
   double rhoh = gpmat->GetAreaDensity();
-  int mflg = 1;
+  int mflg = (solInfo.useMassAugmentation) ? 1 : 0;
 
   Impl::andesmm(glNum+1, x, y, z, mel, rhoh, mflg);
 

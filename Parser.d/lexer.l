@@ -972,6 +972,8 @@ TRAIL [a-zA-Z]*
 
 "lump"[a-zA-Z]*|"LUMP"[a-zA-Z]*    { return LUMPED; }
 
+"maug"[a-zA-Z]*|"MAUG"[a-zA-Z]*    { return MASSAUGMENTATION; }
+
 "diri"[a-zA-Z]*|"DIRI"[a-zA-Z]*    { yylval.ival = FetiInfo::dirichlet; return FETIPREC; }
 
 "idprec"[a-zA-Z]*|"IDPREC"[a-zA-Z]*  { yylval.ival = FetiInfo::identity; return FETIPREC; }

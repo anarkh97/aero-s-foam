@@ -53,7 +53,13 @@ MultiDomDynPodPostProcessor::MultiDomDynPodPostProcessor(DecDomain *d, StaticTim
             VelSensor = true;
           }
         } else {
-          if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          if(!structCom || structCom->myID() == 0) {
+            oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+            if(!oinfo[iOut].filptr) {
+              fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n", oinfo[iOut].filename);
+              exit(-1);
+            }
+          }
           filePrint(oinfo[iOut].filptr, "0\n"); 
         }
         break;
@@ -61,7 +67,13 @@ MultiDomDynPodPostProcessor::MultiDomDynPodPostProcessor(DecDomain *d, StaticTim
         if(oinfo[iOut].nodeNumber != -1) {
           DispSensor = true;
         } else {
-          if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          if(!structCom || structCom->myID() == 0) {
+            oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+            if(!oinfo[iOut].filptr) {
+              fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n", oinfo[iOut].filename);
+              exit(-1);
+            }
+          }
           filePrint(oinfo[iOut].filptr, "1\n");
         }
         break;
@@ -73,7 +85,13 @@ MultiDomDynPodPostProcessor::MultiDomDynPodPostProcessor(DecDomain *d, StaticTim
             DispSensor = true;
           }
         } else {
-          if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          if(!structCom || structCom->myID() == 0) {
+            oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+            if(!oinfo[iOut].filptr) {
+              fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n", oinfo[iOut].filename);
+              exit(-1);
+            }
+          }
           filePrint(oinfo[iOut].filptr, "2\n");
         }
         break; 

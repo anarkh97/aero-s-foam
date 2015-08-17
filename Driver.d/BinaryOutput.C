@@ -89,6 +89,10 @@ void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
     } else { // ASCII output
       std::ofstream outfile;
       outfile.open(oinfo[fileId].filename, std::ofstream::out | std::ofstream::trunc);
+      if(!outfile.is_open()) {
+        fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n", oinfo[fileId].filename);
+        exit(-1);
+      }
       char headDescrip[200];
       const int headerLength = getHeaderDescriptionAndLength(headDescrip, fileId);
       headDescrip[headerLength] = '\0'; // Ensure we have a valid C-style string

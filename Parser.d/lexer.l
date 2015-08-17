@@ -1352,7 +1352,7 @@ TRAIL [a-zA-Z]*
 
 "damagesc"|"DAMAGESC"              { yylval.ival = OutputInfo::Damage; return STRESSID; }
 
-"eqplstrn"|"EQPLSTRN"|"effpstrn"|"EFFPSTRN"          { yylval.ival = OutputInfo::EquivalentPlasticStrain; return STRESSID; }
+"effpstrn"|"EFFPSTRN"              { yylval.ival = OutputInfo::EquivalentPlasticStrain; return STRESSID; }
 
 "plstrnxx"|"PLSTRNXX"              { yylval.ival = OutputInfo::PlasticStrainXX; return STRESSID; }
 

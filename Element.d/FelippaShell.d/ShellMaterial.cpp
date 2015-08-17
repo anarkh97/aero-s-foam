@@ -16,7 +16,7 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
   Eigen::Matrix<doublereal,3,1> r; r << 1, 1, 2;
 
   // Builtin functions 
-//  using std::atan;
+  using std::atan;
   using std::cos;
   using std::sin;
 
@@ -90,10 +90,7 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
                 thetad = pi;
             }
         } else {
-//            doublereal dummy = proj2 / proj1;
-//            thetad = (0.5*std::complex<doublereal>(0.0,1.0)).real();
-//            thetad = atan(proj2 / proj1);
-            thetad = 0.0;
+            thetad = atan(proj2 / proj1);
         }
     }
 

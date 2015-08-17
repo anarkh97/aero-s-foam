@@ -1051,7 +1051,7 @@ int main(int argc, char** argv)
        Rom::DriverInterface *driver;
        if (domain->solInfo().svdPodRom) {
          if(domain->solInfo().use_nmf) {
-           filePrint(stderr, " ... Nonnegative Matrix Factorization ...\n");
+           filePrint(stderr, " ... Nonneg. Matrix Factorization   ...\n");
            driver = distrPositiveDualBasisDriverNew(domain);
          }
          else if(domain->solInfo().clustering) {
@@ -1060,20 +1060,17 @@ int main(int argc, char** argv)
          }
          else {
            // Stand-alone SVD orthogonalization
-           filePrint(stderr, " ... POD: Distributed SVD Orthogonalization ...\n");
+           filePrint(stderr, " ... Singular Value Decomposition   ...\n");
            driver = distrBasisOrthoDriverNew(domain);
          }
        } 
        else if (domain->solInfo().ROMPostProcess) {
-         filePrint(stderr, " ... POD: Post Processing of Results...\n");
+         filePrint(stderr, " ... Post-processing ROM Results    ...\n");
          driver = distrROMPostProcessingDriverNew(domain);
        }
        else if (domain->solInfo().samplingPodRom) {
          // Element-based hyper-reduction
-         if(domain->solInfo().reduceFollower)
-           filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh with external lumping ...\n");
-         else
-           filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh ...\n");
+         filePrint(stderr, " ... Element Sampling and Weighting ...\n");
          driver = distrElementSamplingDriverNew(domain);
        }
        else {
@@ -1371,36 +1368,28 @@ int main(int argc, char** argv)
          std::auto_ptr<Rom::DriverInterface> driver;
          if (domain->solInfo().svdPodRom) {
            if(domain->solInfo().use_nmf) {
-             filePrint(stderr, " ... Nonnegative Matrix Factorization ...\n");
+             filePrint(stderr, " ... Nonneg. Matrix Factorization   ...\n");
              driver.reset(positiveDualBasisDriverNew(domain));
            }
            else {
-             filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
+             filePrint(stderr, " ... Singular Value Decomposition   ...\n");
              driver.reset(basisOrthoDriverNew(domain));
            }
          }
          else if (domain->solInfo().samplingPodRom) {
-           // Element-based hyper-reduction
-           if(domain->solInfo().reduceFollower)
-             filePrint(stderr, " ... POD: Element-based Reduced Mesh with external lumping ...\n");
-           else 
-             filePrint(stderr, " ... POD: Element-based Reduced Mesh ...\n");
+           filePrint(stderr, " ... Element Sampling and Weighting ...\n");
            driver.reset(elementSamplingDriverNew(domain));
          }
          else if (domain->solInfo().snapProjPodRom) {
            filePrint(stderr, " ... POD: Post-processing of Projected Snapshots ...\n");
            driver.reset(snapshotProjectionDriverNew(domain));
          }
-         else if (domain->solInfo().snapProjPodRom) {
-           filePrint(stderr, " ... POD: Post-processing of Projected Snapshots ...\n");
-           driver.reset(snapshotProjectionDriverNew(domain));
-         }
          else if (domain->solInfo().DEIMBasisPod) {
-           filePrint(stderr, " ... POD: DEIM Basis Construction ...\n");
+           filePrint(stderr, " ... POD: DEIM Basis Construction   ...\n");
            driver.reset(deimSamplingDriverNew(domain));
          }
          else if (domain->solInfo().UDEIMBasisPod) {
-           filePrint(stderr, " ... POD: DEIM Basis Construction ...\n");
+           filePrint(stderr, " ... POD: UDEIM Basis Construction  ...\n");
            driver.reset(udeimSamplingDriverNew(domain));
          }
          else {

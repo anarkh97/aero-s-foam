@@ -133,7 +133,11 @@ DistrBasisOrthoDriver::solve() {
 
   double mratio = geoSource->getMRatio();
   if(mratio != 0 && domain->solInfo().normalize == 1) {
-    filePrint(stderr, " *** ERROR: \"mnorma 1\" is only supported using LUMPED in DistrBasisOrthoDriver\n");
+    filePrint(stderr, " *** ERROR: \"mnorma 1\" is only available for LUMPED mass matrices when a decomposition is used.\n");
+    exit(-1);
+  }
+  if(domain->solInfo().normalize == 0 && !(domain->solInfo().type == 0 && domain->solInfo().subtype == 9)) {
+    filePrint(stderr, " *** ERROR: \"mnorma 0\" requires the MUMPS solver to be selected under STATICS when a decomposition is used.\n");
     exit(-1);
   }
   // Assembling mass matrix

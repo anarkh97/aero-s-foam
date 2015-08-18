@@ -266,7 +266,7 @@ void
 ShellMaterialType1<doublereal>::GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                                              doublereal *eframe, int gp, doublereal temp, doublereal dt)
 {
-  sigma[0] = sigma[1] = sigma[2] = 0;
+  sigma[0] = sigma[1] = sigma[2] = 0.0;
   if(quietFlag == 0 && Wlocal_stress) {
     fprintf(stderr," *** WARNING: Local stress output is not available for shell elements\n"
                    "              type 15/1515 with COEF-type composite constitutive law.\n"

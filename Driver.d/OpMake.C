@@ -444,7 +444,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  for(iele = 0; iele < numele; ++iele) {
    StructProp *prop = packedEset[iele]->getProperty();
 
-   if((prop && (prop->E0==0.0 || prop->mu0==0.0)) || !isShifted) continue; 
+   if(!prop || (prop && (prop->E0==0.0 || prop->mu0==0.0)) || !isShifted) continue; 
 
    omega2 = geoSource->shiftVal();
    SPropContainer& sProps = geoSource->getStructProps();
@@ -462,7 +462,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
       }
       it++;
    }
-   if (!found) fprintf(stderr,"Erro: rubber material not found.\n");
+   if (!found) fprintf(stderr,"Error: rubber material not found.\n");
 
    if(matrixTimers) matrixTimers->formTime -= getTime();
    packedEset[iele]->aRubberStiffnessDerivs(nodes, krarray,N,sqrt(omega2));
@@ -2779,7 +2779,7 @@ Domain::buildDeltaK(double w0, double w, GenSparseMatrix<Scalar> *deltaK,
  complex<double> *krarray2 = new complex<double>[3*maxNumDOFs*maxNumDOFs];
  for(int iele = 0; iele < numele; ++iele) {
    StructProp *prop = packedEset[iele]->getProperty();
-   if((prop && (prop->E0==0.0 || prop->mu0==0.0)) ) continue; 
+   if(!prop || (prop && (prop->E0==0.0 || prop->mu0==0.0)) ) continue; 
 
    if(matrixTimers) matrixTimers->formTime -= getTime();
    int N = 0; // number of derivatives

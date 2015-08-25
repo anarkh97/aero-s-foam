@@ -167,11 +167,11 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
 
-    Dbm = invT * coef.bottomLeftCorner(3,3) * invT.transpose();
+    Dbm = -invT * coef.bottomLeftCorner(3,3) * invT.transpose();
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
 
-    Dmb = invT * coef.topRightCorner(3,3) * invT.transpose();
+    Dmb = -invT * coef.topRightCorner(3,3) * invT.transpose();
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
 //
@@ -215,11 +215,11 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(double
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
 
-    Dbm = invT * coef.bottomLeftCorner(3,3) * invT.transpose();
+    Dbm = -invT * coef.bottomLeftCorner(3,3) * invT.transpose();
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
 
-    Dmb = invT * coef.topRightCorner(3,3) * invT.transpose();
+    Dmb = -invT * coef.topRightCorner(3,3) * invT.transpose();
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
 

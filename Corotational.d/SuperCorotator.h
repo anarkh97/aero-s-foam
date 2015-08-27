@@ -56,6 +56,7 @@ class SuperCorotator : public Corotator
                                             double dt, double t);
   void getInternalForceNodalCoordinateSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs, Vector *&dFintdx,
                                                   double dt, double t);
+  void extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld);
 };
 
 #endif

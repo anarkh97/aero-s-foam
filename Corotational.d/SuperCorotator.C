@@ -450,3 +450,21 @@ SuperCorotator::getInternalForceNodalCoordinateSensitivity(GeomState *refState, 
     delete [] subf;
   }
 }
+
+void
+SuperCorotator::extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld)
+{
+  int i, j, k;
+  int N = superElem->numDofs();
+  for(i=0; i<N; ++i) dvld[i] = 0;
+
+ for(i=0; i<nSubElems; ++i) {
+    int n = superElem->getSubElemNumDofs(i);
+    double *subd = new double[n*n];
+    subElemCorotators[i]->extractDeformationsDisplacementSensitivity(geomState, cs, subd);
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    for(j=0; j<n; ++j)
+      for(k=0; k<n; ++k) dvld[subElemDofs[j]*N+subElemDofs[k]] += subd[j*n+k];
+    delete [] subd;
+  }
+}

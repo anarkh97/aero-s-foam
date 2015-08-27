@@ -59,6 +59,7 @@ class Shell3Corotator : public Corotator {
 
    void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
                             int &nlflag);
+   void extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld);
 
    void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
                                double *vlr);

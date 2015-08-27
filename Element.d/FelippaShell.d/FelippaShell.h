@@ -95,9 +95,9 @@ public:
         double getMassThicknessSensitivity(CoordSet& cs);
         void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet&, double *gravityAcceleration);
         void getGravityForceThicknessSensitivity(CoordSet&, double *gravity, Vector&, int gravflg,
-                                                    GeomState *gs = 0);
+                                                 GeomState *gs = 0);
         void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
-                                                          GenFullM<double> &dGfdx, int gravflg, GeomState *gs = 0);
+                                                       GenFullM<double> &dGfdx, int gravflg, GeomState *gs = 0);
         void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg = 1);
         void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
         void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs,
@@ -109,6 +109,8 @@ public:
         void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
                                                 Vector &elDisp, int strInd, int surface,
                                                 double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+        void getInternalForceThicknessSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs, Vector &dFintdThick,
+                                                  double dt, double t);
 };
 #endif
 #endif

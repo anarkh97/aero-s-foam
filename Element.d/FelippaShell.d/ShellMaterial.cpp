@@ -187,7 +187,9 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
 
 template
 Eigen::Matrix<double,3,3>
-ShellMaterial<double>::andesinvt(double *_eframe, double *_aframe, double thetaf);
+ShellMaterial<double>
+::andesinvt(double *, double *, double);
+
 #endif
 
 #endif

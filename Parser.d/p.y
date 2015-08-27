@@ -722,7 +722,7 @@ Cframes:
 	;
 CoefInfo:
 	COEF Integer NewLine CoefList
-	{ geoSource->addCoefInfo($2-1,$4); }
+	{ $4.coefFlag = false; geoSource->addCoefInfo($2-1,$4); }
         | COEF Integer Float Float Float Float Float Float NewLine CoefList
         { $10.c[6][0] = $3;
           $10.c[6][1] = $4;
@@ -730,7 +730,19 @@ CoefInfo:
           $10.c[6][3] = $6;
           $10.c[6][4] = $7;
           $10.c[6][5] = $8;
+          $10.coefFlag = false;
           geoSource->addCoefInfo($2-1,$10); }
+        | COEF Integer SWITCH NewLine CoefList
+        { $5.coefFlag = $3; geoSource->addCoefInfo($2-1,$5); }
+        | COEF Integer Float Float Float Float Float Float SWITCH NewLine CoefList
+        { $11.c[6][0] = $3;
+          $11.c[6][1] = $4;
+          $11.c[6][2] = $5;
+          $11.c[6][3] = $6;
+          $11.c[6][4] = $7;
+          $11.c[6][5] = $8;
+          $11.coefFlag = $9;
+          geoSource->addCoefInfo($2-1,$11); }
 	;
 CoefList:
 	Integer Integer Float NewLine

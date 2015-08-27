@@ -1056,6 +1056,14 @@ Shell3Corotator::extractDeformations( GeomState &geomState, CoordSet &cs,
 //---------------------------------------------------------------------------
 
 void
+Shell3Corotator::extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld)
+{
+  std::cerr << " *** WARNING: Shell3Corotator::extractDeformationsDisplacementSensitivity is not implemented\n";
+}
+
+//---------------------------------------------------------------------------
+
+void
 Shell3Corotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
                  double *vlr)
 {

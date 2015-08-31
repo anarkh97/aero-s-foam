@@ -389,7 +389,7 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int ns, int *sing)
 }
 
 
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd)
+ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd, int ncbc, ComplexBCond *cbcd)
 {
   int i, inode;
   numnodes = dsa.numnodes;
@@ -407,6 +407,12 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd)
   {
     int flag = (1 << bcd[i].dofnum);
     if(bcd[i].nnum < numnodes) dofs[bcd[i].nnum].unmark(flag);
+  }
+
+  for(i = 0; i < ncbc; ++i)
+  {
+    int flag = (1 << cbcd[i].dofnum);
+    if(cbcd[i].nnum < numnodes) dofs[cbcd[i].nnum].unmark(flag);
   }
 
   for(inode = 0; inode < numnodes; ++inode)

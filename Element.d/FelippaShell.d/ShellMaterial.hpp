@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <Eigen/Core>
 
+extern int quietFlag;
+
 template<typename doublereal>
 class ShellMaterial
 {
@@ -20,11 +22,13 @@ class ShellMaterial
                                                                           // D is the tangent constitutive matrix { Dm, Dmb; Dbm, Db }
                                                                           // temp is the temperature
     virtual void GetConstitutiveResponseSensitivityWRTthickness(doublereal *Upsilon, doublereal *Sigma, doublereal *dDdthick,
-                                                                doublereal *eframe, int gp, doublereal temp = 0) { 
-      std::cerr << "GetConstitutiveResponseSensitivityWRTthickness is not defined\n"; }
+                                                                doublereal *eframe, int gp, doublereal temp = 0) {
+      if(quietFlag == 0) std::cerr << "GetConstitutiveResponseSensitivityWRTthickness is not defined\n"; 
+    }
     virtual void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
                                                            doublereal *eframe, int gp) {
-      std::cerr << "GetConstitutiveResponseSensitivityWRTdisp is not defined\n"; }
+      if(quietFlag == 0) std::cerr << "GetConstitutiveResponseSensitivityWRTdisp is not defined\n"; 
+    }
     virtual doublereal* GetCoefOfConstitutiveLaw() { return NULL; }
     virtual doublereal GetShellThickness() = 0;
     virtual doublereal GetAreaDensity() = 0; // mass per unit area
@@ -33,7 +37,7 @@ class ShellMaterial
                                               doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0) = 0;
     virtual void GetLocalConstitutiveResponseSensitivityWRTthick(doublereal *_Upsilon, doublereal *_dsigmadh, doublereal dzdh,
                                                                  doublereal *, int) {
-      std::cerr << "GetLocalConstitutiveResponseSensitivityWRTthick is not defined\n"; }
+      if(quietFlag == 0) std::cerr << "GetLocalConstitutiveResponseSensitivityWRTthick is not defined\n"; }
     virtual void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
                                                                 doublereal *eframe, int gp) = 0;
     virtual int GetNumStates() { return 0; }

@@ -765,7 +765,7 @@ void
 Domain::make_constrainedDSA()
 {
  if(c_dsa) delete c_dsa;
- c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc);
+ c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc, numComplexDirichlet, cdbc);
  if (solInfo().HEV)  {
    c_dsaFluid = new ConstrainedDSA(*dsaFluid, numDirichletFluid, dbcFluid);
  }

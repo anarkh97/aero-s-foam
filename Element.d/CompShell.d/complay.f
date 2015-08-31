@@ -161,7 +161,7 @@ C
 C
       if (   E1.le.zero ) go to 300
       if (   E2.le.zero ) go to 300
-      if ( nu12.le.zero ) go to 300
+C     if ( nu12.le.zero ) go to 300
       if (  G12.le.zero ) go to 300
       if (  mu1.lt.zero ) go to 300
       if (  mu2.lt.zero ) go to 300

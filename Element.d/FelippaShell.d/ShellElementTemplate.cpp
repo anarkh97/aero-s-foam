@@ -2478,6 +2478,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     case 1: { // automatic differentiation
       Simo::Jacobian<double,ShellElementStressWRTNodalCoordinateSensitivity> dfdx(dconst,iconst);
       J = dfdx(q, 0);
+      for(int i=0; i<3; ++i)
+        for(int j=0; j<9; ++j)
+          if(isnan(J(i,j))) J(i,j) = 0;
     } break;
     case 2 : { // finite difference approximation 
       Simo::SpatialView<double,ShellElementStressWRTNodalCoordinateSensitivity> sv(dconst,iconst,0.);

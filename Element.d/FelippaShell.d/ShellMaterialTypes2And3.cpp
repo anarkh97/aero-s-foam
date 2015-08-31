@@ -267,10 +267,10 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
         zsup = z0;
 
         for (i = 0; i < nlayer; ++i) {
-            if (i < ilayer) {
+            if (i > ilayer) {
                 zinf += mtlayer(7, i);
             }
-            if (i <= ilayer) {
+            if (i >= ilayer) {
                 zsup += mtlayer(7, i);
             }
         }
@@ -441,10 +441,10 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(d
         zsup = z0;
 
         for (i = 0; i < nlayer; ++i) {
-            if (i < ilayer) {
+            if (i > ilayer) {
                 zinf += mtlayer(7, i);
             }
-            if (i <= ilayer) {
+            if (i >= ilayer) {
                 zsup += mtlayer(7, i);
             }
         }
@@ -539,16 +539,16 @@ ShellMaterialTypes2And3<doublereal>
       zsup = -0.5 * GetShellThickness();
 
       for (i = 0; i < nlayer; ++i) {
-        if (i < ilayer) {
+        if (i > ilayer) {
           zinf += mtlayer(7, i);
         }
-        if (i <= ilayer) {
+        if (i >= ilayer) {
           zsup += mtlayer(7, i);
         }
       }
 
-      zinf = (ilayer == 0) ? -std::numeric_limits<double>::infinity() : zinf;
-      zsup = (ilayer == nlayer-1) ? std::numeric_limits<double>::infinity() : zsup;
+      zinf = (ilayer == nlayer-1) ? -std::numeric_limits<double>::infinity() : zinf;
+      zsup = (ilayer == 0) ? std::numeric_limits<double>::infinity() : zsup;
 
 // .....CHECK IF THIS IS THE LAYER CONTAINING z
       // TODO this doesn't deal with the case when z is exactly on the boundary between 2 layers

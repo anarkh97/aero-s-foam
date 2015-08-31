@@ -81,7 +81,10 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                           int avgnum)
 
 {
-  if(type == 1) weight = 0.0;
+  int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
+                // In this case the higher-order contribution in B matrix is neglected, and a 
+                // smearing method is used for composites.
+  if(type == 1 && sflg) weight = 0.0;
   else weight = 1.0;
 
   int strainFlg, offset;
@@ -132,8 +135,6 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
   double* disp = elDisp.data();
 
-  int sflg = 1;
-
   Impl::andesvms(glNum+1, maxstr, prop->nu, x, y, z, disp,
                  (double*)elStress, type, nmat, strainFlg,
                  surface, sflg, ndTemps);
@@ -148,7 +149,11 @@ FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                            Vector &elDisp, int strInd, int surface,
                            double *ndTemps)
 {
-  weight = 1.0;
+  int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
+                // In this case the higher-order contribution in B matrix is neglected, and a 
+                // smearing method is used for composites.
+  if(type == 1 && sflg) weight = 0.0;
+  else weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -165,8 +170,6 @@ FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
   double elStress[3][7];
 
   double* disp = elDisp.data();
-
-  int sflg = 1;
 
   Impl::andesvms(glNum+1, maxstr, prop->nu, x, y, z, disp,
                  (double*)elStress, type, nmat, strInd,

@@ -167,11 +167,11 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
 
-    Dbm = invT * coef.bottomLeftCorner(3,3) * invT.transpose();
+    Dbm = -invT * coef.bottomLeftCorner(3,3) * invT.transpose();
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
 
-    Dmb = invT * coef.topRightCorner(3,3) * invT.transpose();
+    Dmb = -invT * coef.topRightCorner(3,3) * invT.transpose();
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
 //
@@ -215,11 +215,11 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(double
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
 
-    Dbm = invT * coef.bottomLeftCorner(3,3) * invT.transpose();
+    Dbm = -invT * coef.bottomLeftCorner(3,3) * invT.transpose();
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
 
-    Dmb = invT * coef.topRightCorner(3,3) * invT.transpose();
+    Dmb = -invT * coef.topRightCorner(3,3) * invT.transpose();
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
 
@@ -266,7 +266,7 @@ void
 ShellMaterialType1<doublereal>::GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                                              doublereal *eframe, int gp, doublereal temp, doublereal dt)
 {
-  sigma[0] = sigma[1] = sigma[2] = 0;
+  sigma[0] = sigma[1] = sigma[2] = 0.0;
   if(quietFlag == 0 && Wlocal_stress) {
     fprintf(stderr," *** WARNING: Local stress output is not available for shell elements\n"
                    "              type 15/1515 with COEF-type composite constitutive law.\n"

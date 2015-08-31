@@ -838,11 +838,9 @@ BeamElementTemplate<doublereal>
     doublereal stress_1dxz = stress(0,1) - stress(2,1);
 
     stress(6,0) =  sqrt(0.5*(stress_0dxy*stress_0dxy + stress_0dyz*stress_0dyz + stress_0dxz*stress_0dxz) +
-                          3*(stress(3,0)*stress(3,0) + stress(4,0)*stress(4,0) + stress(5,0)*stress(5,0)))+
-                                                                                                   1.0e-10;
+                          3*(stress(3,0)*stress(3,0) + stress(4,0)*stress(4,0) + stress(5,0)*stress(5,0)));
     stress(6,1) =  sqrt(0.5*(stress_1dxy*stress_1dxy + stress_1dyz*stress_1dyz + stress_1dxz*stress_1dxz) +
-                          3*(stress(3,1)*stress(3,1) + stress(4,1)*stress(4,1) + stress(5,1)*stress(5,1)))+
-                                                                                                   1.0e-10;
+                          3*(stress(3,1)*stress(3,1) + stress(4,1)*stress(4,1) + stress(5,1)*stress(5,1)));
 }
 
 template<typename doublereal>
@@ -1345,9 +1343,9 @@ BeamElementTemplate<doublereal>
     doublereal stress_1dxz = stress(0,1) - stress(2,1);
 
     stress(6,0) = sqrt( 0.5*(stress_0dxy*stress_0dxy + stress_0dyz*stress_0dyz + stress_0dxz*stress_0dxz) +
-                          3*(stress(3,0)*stress(3,0) + stress(4,0)*stress(4,0) + stress(5,0)*stress(5,0)) ) + 1e-10;
+                          3*(stress(3,0)*stress(3,0) + stress(4,0)*stress(4,0) + stress(5,0)*stress(5,0)) ) + 1.0e-10;
     stress(6,1) = sqrt( 0.5*(stress_1dxy*stress_1dxy + stress_1dyz*stress_1dyz + stress_1dxz*stress_1dxz) +
-                          3*(stress(3,1)*stress(3,1) + stress(4,1)*stress(4,1) + stress(5,1)*stress(5,1)) ) + 1e-10;
+                          3*(stress(3,1)*stress(3,1) + stress(4,1)*stress(4,1) + stress(5,1)*stress(5,1)) ) + 1.0e-10;
     
     Eigen::Matrix<doublereal,2, 12> dvmsdStress;
     dvmsdStress.setZero();

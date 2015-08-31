@@ -53,6 +53,8 @@ FileNameInfo::size(BasisId::Type type, BasisId::Level level)
         ret = 1; // domain->solInfo().isvPodRomFile;
       if(type == 7)
         ret = 1; // domain->solInfo().dsvPodRomFile;
+      if(type == 8)
+        ret = 1;
     }
     else if(level == 1) {
       ret = domain->solInfo().readInROBorModes.size();
@@ -107,17 +109,24 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
         builder << domain->solInfo().isvPodRomFile;
       if(id.type() == 7)
         builder << domain->solInfo().dsvPodRomFile;
-    }
-    else if(id.level() == 1) {
+      if(id.type() == 8)
+        builder << domain->solInfo().constraintSnapshotFile;
+    } else if(id.level() == 1) {
       if(id.type() == 7) {
         builder << domain->solInfo().readInDualROB;
+      } else if(id.type() == 8) {
+        builder << domain->solInfo().constraintPodRomFile;
       }
       else {
         builder << domain->solInfo().readInROBorModes[i];
       }
     }
     else if(id.level() == 2) {
-      builder << domain->solInfo().SVDoutput;
+      if(id.type() == 7) {
+        builder << domain->solInfo().readInDualROB << ".deim";
+      } else {
+        builder << domain->solInfo().SVDoutput;
+      }
     }
   }
 

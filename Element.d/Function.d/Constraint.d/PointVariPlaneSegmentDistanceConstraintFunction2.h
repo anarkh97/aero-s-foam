@@ -33,13 +33,13 @@ class PointVariPlaneSegmentDistanceConstraintFunction2 : public ScalarValuedFunc
       Scalar d0_32 = n.cross(x3-x2).normalized().dot(x0-x2);
 
       if(d0_21 > Scalar(0.0) && d0_13 < Scalar(0.0) && d0_32 < Scalar(0.0)) { // closest to node 3
-        d0 = sqrt((x0-x3).dot(x0-x3));
+        d0 = sqrt((x0-x3).dot(x0-x3)) - thickness;
       }
       else if(d0_13 > Scalar(0.0) && d0_21 < Scalar(0.0) && d0_32 < Scalar(0.0)) { // closest to node 2
-        d0 = sqrt((x0-x2).dot(x0-x2));
+        d0 = sqrt((x0-x2).dot(x0-x2)) - thickness;
       }
       else if(d0_32 > Scalar(0.0) && d0_21 < Scalar(0.0) && d0_13 < Scalar(0.0)) { // closest to node 1
-        d0 = sqrt((x0-x1).dot(x0-x1));
+        d0 = sqrt((x0-x1).dot(x0-x1)) - thickness;
       }
       else { // closest to edge or face
         if(d0_21 > Scalar(0.0))

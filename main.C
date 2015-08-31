@@ -1385,8 +1385,14 @@ int main(int argc, char** argv)
            driver.reset(snapshotProjectionDriverNew(domain));
          }
          else if (domain->solInfo().DEIMBasisPod) {
-           filePrint(stderr, " ... POD: DEIM Basis Construction   ...\n");
-           driver.reset(deimSamplingDriverNew(domain));
+           filePrint(stderr, " ... POD: DEIM Basis Construction ");
+           if (domain->solInfo().ConstraintBasisPod) {
+             filePrint(stderr,"for Nonlinear Constraints ...\n");
+             driver.reset(deimConstraintSamplingDriverNew(domain));
+           } else {
+             filePrint(stderr,"for Nonlinear Forces ...\n");
+             driver.reset(deimSamplingDriverNew(domain));
+           }
          }
          else if (domain->solInfo().UDEIMBasisPod) {
            filePrint(stderr, " ... POD: UDEIM Basis Construction  ...\n");

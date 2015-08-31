@@ -586,7 +586,8 @@ DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displa
       SingleDomainDynamic::getInternalForce( dummy, FNLint, *timeStampIt, jSnap);
       domain->getKtimesU(dummy, bcx, FLint, 1.0, kelArrayCopy);
    
-      //set vector in force snapshot container
+      //set vector in force snapshot container 
+      //remove linear component from force snapshots
       forceBasis[iSnap] = (FNLint-FLint); 
       TotalSum     += FNLint.norm();
       NonlinearSum += forceBasis[iSnap].norm();

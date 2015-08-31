@@ -1474,7 +1474,12 @@ void GeoSource::setUpData()
         domain->solInfo().skipForce = oinfo[iOut].interval;
         domain->solInfo().forcePodRomFile = oinfo[iOut].filename;
         oinfo[iOut].PodRomfile = true;
-        break;
+        break; 
+      case OutputInfo::Constraintvector :
+        if(verboseFlag) filePrint(stderr," ... Saving constraint snapshots to %s ...\n", oinfo[iOut].filename);
+        domain->solInfo().ConstraintBasisPod = true;
+        domain->solInfo().constraintSnapshotFile = oinfo[iOut].filename;
+      break;
       default :
         break;
     }
@@ -1510,7 +1515,7 @@ CoordSet& GeoSource::GetNodes() { return nodes; }
 int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
 {
   SolverInfo &sinfo = domain->solInfo();
-  bool flagCEIeq = (strcmp(sinfo.readInDualROB,"") != 0);
+  bool flagCEIeq = (strcmp(sinfo.readInDualROB,"") != 0 || sinfo.ConstraintBasisPod);
 
   if(sinfo.HEV) { packedEsetFluid = new Elemset(); nElemFluid = 0; }
   if(flagCEIeq) { packedEsetConstraintElementIeq = new Elemset(); numConstraintElementsIeq = 0; lmpcflag = true; }

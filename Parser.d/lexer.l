@@ -1101,6 +1101,8 @@ TRAIL [a-zA-Z]*
 "frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; } /* deprecated */
 "frcngvct"|"FRCNGVCT"              { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
 
+"constvct"|"CONSTVCT"		   { yylval.ival = OutputInfo::Constraintvector;  return STRESSID; }
+
 "residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; } /* deprecated */
 "fdiffvct"|"FDIFFVCT"              { yylval.ival = OutputInfo::Residual;     return STRESSID; }
 
@@ -1498,6 +1500,8 @@ TRAIL [a-zA-Z]*
 
 "CONFOR"|"ConFor"|"confor"                { return REBUILDFORCE; }
 
+"REBCON"|"RebCon"|"rebcon" 		  { return REBUILDCONSTRAINT; }
+
 "SNSLOT"|"SnSlot"|"snslot"                { return SAMPNODESLOT; }
 
 "REDSTIFF"|"RedStiff"|"redstiff"	  { return REDUCEDSTIFFNESS; }
@@ -1506,7 +1510,11 @@ TRAIL [a-zA-Z]*
 
 "FPODRB"|"FPODRb"|"fpodrb"                { return FORCEROB; }
 
+"CPODRB"|"CPODrb"|"cpodrb" 	          { return CONSTRAINTROB; }
+
 "svdfrc"|"SvdFrc"|"svdfrc"		  { return SVDFORCESNAP; }
+
+"svdcon"|"SvdCon"|"svdcon" 		  { return SVDCONSTRAINTSNAP; }
 
 "DEIM"|"Deim"|"deim"                      { return DEIMINDICES; }
  

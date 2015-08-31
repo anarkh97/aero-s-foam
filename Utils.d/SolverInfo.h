@@ -372,6 +372,8 @@ struct SolverInfo {
    const char * isvPodRomFile;
    const char * dsvPodRomFile;
    const char * forcePodRomFile;
+   const char * constraintPodRomFile;
+   const char * constraintSnapshotFile;
    const char * residualPodRomFile;
    const char * jacobianPodRomFile;
    bool ROMPostProcess;
@@ -407,9 +409,12 @@ struct SolverInfo {
    double nmfPqnAlpha;
    bool DEIMBasisPod;
    bool UDEIMBasisPod;
+   bool ConstraintBasisPod;
    bool ReducedStiffness;
    bool computeForceSnap;
+   bool computeConstraintSnap;
    bool orthogForceSnap;
+   bool orthogConstraintSnap;
    bool computeDEIMIndices;
    bool DEIMPodRom;
    bool UDEIMPodRom;
@@ -425,6 +430,7 @@ struct SolverInfo {
    bool selectFullNode;
    bool selectFullElem;
    int  forcePodSize;
+   int  constraintPodSize;
    int  normalize;
    bool subtractRefPodRom;
    bool useScalingSpnnls;
@@ -706,6 +712,8 @@ struct SolverInfo {
                   isvPodRomFile      = "";
                   dsvPodRomFile      = "";
                   forcePodRomFile    = "";
+                  constraintPodRomFile  = "";
+ 		  constraintSnapshotFile = "";
                   residualPodRomFile = "";
                   jacobianPodRomFile = "";
                   ROMPostProcess     = false;
@@ -727,9 +735,12 @@ struct SolverInfo {
                   svdPodRom          = false;
                   DEIMBasisPod       = false;
                   UDEIMBasisPod      = false;
+                  ConstraintBasisPod = false;
                   ReducedStiffness   = false;
                   computeForceSnap   = false;
+                  computeConstraintSnap = false;
                   orthogForceSnap    = false;
+                  orthogConstraintSnap = false;
                   computeDEIMIndices = false;
                   DEIMPodRom         = false;
                   UDEIMPodRom        = false;
@@ -758,6 +769,7 @@ struct SolverInfo {
                   selectFullNode     = false;
                   selectFullElem     = false;
                   forcePodSize       = 0;
+                  constraintPodSize  = 0;
                   normalize          = 1;
                   subtractRefPodRom  = false;
                   useScalingSpnnls   = true;

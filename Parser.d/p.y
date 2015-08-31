@@ -76,7 +76,7 @@
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token CONSTANT CONWEP
-%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING DUALBASIS KMEANS CRANDOM
+%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING DUALBASIS DUALRB KMEANS CRANDOM
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
@@ -116,7 +116,7 @@
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE
 %token SNAPFI VELSNAPFI ACCSNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN
-%token VECTORNORM REBUILDFORCE SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
+%token VECTORNORM REBUILDFORCE REBUILDCONSTRAINT SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB CONSTRAINTROB DEIMINDICES UDEIMINDICES SVDFORCESNAP SVDCONSTRAINTSNAP
 %token USEMASSNORMALIZEDBASIS
 %token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST DISPDOFLIST 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
@@ -4997,14 +4997,30 @@ SamplingOption:
   { domain->solInfo().forcePodRomFile = $2; 
     domain->solInfo().forcePodSize = $3; 
     domain->solInfo().maxDeimBasisSize = $4; }
+  | CONSTRAINTROB FNAME
+  { domain->solInfo().constraintPodRomFile = $2; 
+    domain->solInfo().ConstraintBasisPod = true;}
+  | CONSTRAINTROB FNAME Integer
+  { domain->solInfo().constraintPodRomFile = $2;
+    domain->solInfo().constraintPodSize = $3; 
+    domain->solInfo().ConstraintBasisPod = true; }
+  | CONSTRAINTROB FNAME Integer Integer
+  { domain->solInfo().constraintPodRomFile = $2;
+    domain->solInfo().constraintPodSize = $3;
+    domain->solInfo().maxDeimBasisSize = $4; 
+    domain->solInfo().ConstraintBasisPod = true; }
   | PSEUDOGNAT SWITCH
   { domain->solInfo().selectFullNode = bool($2); }
   | PSEUDOGNATELEM SWITCH
   { domain->solInfo().selectFullElem = bool($2); }
   | REBUILDFORCE SWITCH 
   { domain->solInfo().computeForceSnap = bool($2); }
+  | REBUILDCONSTRAINT SWITCH
+  { domain->solInfo().computeConstraintSnap = bool($2); }
   | SVDFORCESNAP SWITCH
   { domain->solInfo().orthogForceSnap = bool($2); }
+  | SVDCONSTRAINTSNAP SWITCH
+  { domain->solInfo().orthogConstraintSnap = bool($2); }
   | NPMAX Integer
   { domain->solInfo().npMax = $2; }
   | BSSPLH Integer Integer
@@ -5015,6 +5031,17 @@ SamplingOption:
     domain->solInfo().scpkNP= $3; }
   | REVERSEORDER SWITCH
   { domain->solInfo().useReverseOrder = bool($2); }
+  | USENMF Integer Integer Integer Integer Float
+  { domain->solInfo().use_nmf = 1;
+    domain->solInfo().nmfNumROBDim = $2;
+    domain->solInfo().nmfDelROBDim = $3;
+    domain->solInfo().nmfRandInit = $4;
+    domain->solInfo().nmfMaxIter = $5;
+    domain->solInfo().nmfTol = $6; }
+  | USENMF Integer Float
+  { domain->solInfo().use_nmf = 1;
+    domain->solInfo().nmfMaxIter = $2;
+    domain->solInfo().nmfTol = $3; }
   ;
 
 ConwepConfig:

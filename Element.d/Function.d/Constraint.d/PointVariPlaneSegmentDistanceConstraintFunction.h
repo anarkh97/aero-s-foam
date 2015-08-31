@@ -46,15 +46,15 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
   
       } else if (p1 > Scalar(0.) && p2 > Scalar(0.) && p3 <= Scalar(0.)) { // if two angles are greater than 90, point is closest to that vertex
  
-         d0 = (x0-x2).norm();
+         d0 = (x0-x2).norm() - thickness;
 
       } else if (p1 <= Scalar(0.) && p2 > Scalar(0.) && p3 > Scalar(0.)) { 
 
-        d0 = (x0-x3).norm();
+        d0 = (x0-x3).norm() - thickness;
 
       } else if (p1 > Scalar(0.) && p2 <= Scalar(0.) && p3 > Scalar(0.)) {
   
-        d0 = (x0-x1).norm();
+        d0 = (x0-x1).norm() - thickness;
 
       } else if (p1 > Scalar(0.) && p2 <= Scalar(0.) && p3 <= Scalar(0.)) { // if one angle is greater than 90 degrees, then point is closest to that line segment or its end points
  
@@ -62,18 +62,18 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
           
           d0 = (x0-x1).dot(x2-x1);
           if(d0 <= Scalar(0.)){
-            d0 = (x0-x1).norm();
+            d0 = (x0-x1).norm() - thickness;
           } else {
-            d0 = sqrt((x0-x1).squaredNorm()-d0*d0);
+            d0 = sqrt((x0-x1).squaredNorm()-d0*d0) - thickness;
           }
 
         } else { // close to point opposite p3
 
           d0 = (x0-x2).dot(x1-x2);
           if(d0 <= Scalar(0.)){
-            d0 = (x0-x2).norm();
+            d0 = (x0-x2).norm()  - thickness;
           } else {
-            d0 = sqrt((x0-x2).squaredNorm()-d0*d0);
+            d0 = sqrt((x0-x2).squaredNorm()-d0*d0) - thickness;
           }
 
         }
@@ -84,18 +84,18 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
 
           d0 = (x0-x3).dot(x2-x3);
           if(d0 <= Scalar(0.)){
-            d0 = (x0-x3).norm();
+            d0 = (x0-x3).norm() - thickness;
           } else {
-            d0 = sqrt((x0-x3).squaredNorm()-d0*d0);
+            d0 = sqrt((x0-x3).squaredNorm()-d0*d0) - thickness;
           }
 
         } else { // close to point opposite p3
 
           d0 = (x0-x2).dot(x3-x2);
           if(d0 <= Scalar(0.)){
-            d0 = (x0-x2).norm();
+            d0 = (x0-x2).norm() - thickness;
           } else {
-            d0 = sqrt((x0-x2).squaredNorm()-d0*d0);
+            d0 = sqrt((x0-x2).squaredNorm()-d0*d0) - thickness;
           }
 
         }
@@ -106,18 +106,18 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
 
           d0 = (x0-x1).dot(x3-x1);
           if(d0 <= Scalar(0.)){
-            d0 = (x0-x1).norm();
+            d0 = (x0-x1).norm() - thickness;
           } else {
-            d0 = sqrt((x0-x1).squaredNorm()-d0*d0);
+            d0 = sqrt((x0-x1).squaredNorm()-d0*d0) - thickness;
           }
 
         } else { // close to point opposite p1
 
           d0 = (x0-x3).dot(x1-x3);
           if(d0 <= Scalar(0.)){
-            d0 = (x0-x3).norm();
+            d0 = (x0-x3).norm() - thickness;
           } else {
-            d0 = sqrt((x0-x3).squaredNorm()-d0*d0);
+            d0 = sqrt((x0-x3).squaredNorm()-d0*d0) - thickness;
           }
 
         }

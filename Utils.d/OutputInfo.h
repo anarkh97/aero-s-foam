@@ -39,7 +39,7 @@ struct OutputInfo {
           TDEnforcement, Damage, EquivalentPlasticStrain, 
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
           HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
-          RobData, SampleMesh, Accelvector, Forcevector,
+          RobData, SampleMesh, Accelvector, Forcevector, Constraintvector,
           RotationMatrix, ExternalXForce, ExternalYForce, ExternalZForce,
           ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar, Quaternion,
           PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,

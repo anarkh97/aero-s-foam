@@ -20,7 +20,7 @@ SCIntMatrix::SCIntMatrix(int context, int m, int n, int mb, int nb, MPI_Comm com
 
 
 SCIntMatrix::SCIntMatrix(const SCIntMatrix& matrix) : 
-    SCBaseMatrix(matrix._context, matrix._m, matrix._n, matrix._mb, matrix._nb, matrix._comm) {
+    _pvec(matrix._pvec), SCBaseMatrix(matrix._context, matrix._m, matrix._n, matrix._mb, matrix._nb, matrix._comm) {
     SCBaseMatrix::init();
     SCIntMatrix::init();
     for (int i=0; i<_sizelocal; i++) {

@@ -681,52 +681,20 @@ void
 TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                     double *ndTemps, int avgnum, double ylayer, double zlayer)
 { 
-#ifdef USE_EIGEN3
-   using std::sqrt;
+  using std::sqrt;
 
-   weight = 1;
-   // scalar parameters
-   Eigen::Array<double,11,1> dconst;
-
-   Node &nd1 = cs.getNode(nn[0]);
-   Node &nd2 = cs.getNode(nn[1]);
-
-   dconst[0] = prop->E;  // E
-   dconst[1] = prop->A;  // A
-   dconst[2] = prop->W;  // W
-   dconst[3] = prop->Ta; // Ta
-   dconst[4] = preload;
-   dconst[5] = elDisp[0];
-   dconst[6] = elDisp[1];
-   dconst[7] = elDisp[2];
-   dconst[8] = elDisp[3];
-   dconst[9] = elDisp[4];
-   dconst[10] = elDisp[5];
-
-   if(strInd != 6) {
-     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
-     exit(-1);
-   }
-   if(dStdx.numRow() != 6 || dStdx.numCol() != 2) {
-     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
-     exit(-1);
-   }
-   weight = 1.0;
-
-
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) {
-    std::cerr << "print displacement =\n";
-    for(int i=0; i<18; ++i) std::cerr << elDisp[i] << "  ";
-    std::cerr << std::endl;
+  if(strInd != 6) {
+    std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
+    exit(-1);
   }
-#endif
+  if(dStdx.numRow() != 6 || dStdx.numCol() != 2) {
+    std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+    exit(-1);
+  }
+  weight = 1.0;
 
-  // integer parameters
-  Eigen::Array<int,0,1> iconst;
-  // inputs
-  Eigen::Matrix<double,6,1> q;
-  q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z;
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
 
   double dx = nd2.x - nd1.x;
   double dy = nd2.y - nd1.y;
@@ -801,7 +769,6 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
     default:
       std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
   }
-#endif
 }
 
 void

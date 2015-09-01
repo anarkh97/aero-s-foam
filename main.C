@@ -580,11 +580,13 @@ int main(int argc, char** argv)
      if (!domain->solInfo().samplingPodRom) {
        domain->solInfo().activatePodRom = true;
        domain->solInfo().galerkinPodRom = true;
+       if(!domain->solInfo().ROMPostProcess) {
 #ifdef USE_EIGEN3
-       if(domain->solInfo().subtype != 12) domain->solInfo().subtype = 13;
+         if(domain->solInfo().subtype != 12) domain->solInfo().subtype = 13;
 #else
-       domain->solInfo().subtype = 12;
+         domain->solInfo().subtype = 12;
 #endif
+       }
      }
      if(domain->solInfo().modalCalled) {
        // for doing ROM with 2 sets of modes, #1 for the reduced order basis and #2 for modal IDISP/IVEL
@@ -710,7 +712,7 @@ int main(int argc, char** argv)
    // activate multi-domain mode for the explicit dynamics Rom drivers which are not supported in single-domain mode
    // so it is not necessary to include "DECOMP" with "nsubs 1" in the input file
    if((domain->solInfo().activatePodRom && domain->probType() == SolverInfo::NonLinDynam && domain->solInfo().newmarkBeta == 0)
-      || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess) || domain->solInfo().clustering > 0) {
+      || domain->solInfo().clustering > 0) {
      callDec = true;
      trivialFlag = true;
      numSubdomains = 1;
@@ -822,8 +824,7 @@ int main(int argc, char** argv)
     || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
     || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)
     || (domain->solInfo().svdPodRom && domain_decomp)
-    || (domain->solInfo().samplingPodRom && domain_decomp)
-    || domain->solInfo().ROMPostProcess) {
+    || (domain->solInfo().samplingPodRom && domain_decomp)) {
 
    if(parallel_proc) {
 #ifdef USE_MPI
@@ -1375,6 +1376,10 @@ int main(int argc, char** argv)
              filePrint(stderr, " ... Singular Value Decomposition   ...\n");
              driver.reset(basisOrthoDriverNew(domain));
            }
+         }
+         else if (domain->solInfo().ROMPostProcess) {
+           filePrint(stderr, " ... Post-processing ROM Results    ...\n");
+           driver.reset(ROMPostProcessingDriverNew(domain));
          }
          else if (domain->solInfo().samplingPodRom) {
            filePrint(stderr, " ... Element Sampling and Weighting ...\n");

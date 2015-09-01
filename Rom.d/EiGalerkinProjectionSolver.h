@@ -37,6 +37,7 @@ public:
   virtual void factor();
   virtual void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &sol);
   virtual void reSolve(GenVector<Scalar> &rhs);
+  void fullSolutionIs(bool fullSolution) { fullSolution_ = fullSolution; }
 
   // Reduced basis parameters
   int basisSize() const { return basisSize_; };
@@ -64,6 +65,7 @@ private:
   ConstrainedDSA *cdsa_;
   bool selfadjoint_;
   bool Empirical;
+  bool fullSolution_;
   int basisSize_, dualBasisSize_;
   int startCol_, blockCols_; // local bases
   double tol_; // convergence tolerance used by QP solver for contact

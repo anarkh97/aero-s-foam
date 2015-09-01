@@ -25,6 +25,7 @@ class ControlLawInfo;
 template <typename T> class GenFSFullMatrix;
 typedef GenFSFullMatrix<double> FSFullMatrix;
 class LinesearchInfo;
+template <typename Scalar> struct AllSensitivities;
 
 class NLDynamPostProcessor
 {
@@ -89,6 +90,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     ControlInterface *userSupFunc;
     ControlLawInfo *claw;
+    AllSensitivities<double> *allSens;
 
     void extractControlData(Vector& d_n, Vector& v_n, Vector& a_n,
                             double* ctrdis, double* ctrvel, double* ctracc);
@@ -209,6 +211,9 @@ class NonLinDynamic : public NLDynamPostProcessor {
     bool getResizeFlag();
     void resize(GeomState *refState, GeomState *geomState, GeomState *stepState, Vector *stateIncr,
                 Vector &v, Vector &a, Vector &vp, Vector &force) {} // XXX
+
+    void preProcessSA();
+    void postProcessSA(Vector &sol);
 
 private:
     virtual bool factorWhenBuilding() const;

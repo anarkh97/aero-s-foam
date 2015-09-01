@@ -3056,7 +3056,7 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
 void 
 Domain::computeLinearStaticWRTthicknessSensitivity(int sindex, 
                                                    AllSensitivities<double> &allSens,
-                                                   GenVector<double> &sol   )
+                                                   GenVector<double> &sol)
 {
 #ifdef USE_EIGEN3
      allSens.linearstaticWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
@@ -3607,7 +3607,7 @@ Domain::computeAggregatedStressVMWRTthicknessSensitivity(int sindex,
      Vector stress(numNodes(),0.0);
      computeNormalizedVonMisesStress(sol, bcx, surface, stress);
      allSens.aggregatedVonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numThicknessGroups);
-     stressvmWRTthick.setZero();     stressWeight.setZero();
+     stressvmWRTthick.setZero(); stressWeight.setZero(); allSens.aggregatedVonMisesWRTthick->setZero();
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
      int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {

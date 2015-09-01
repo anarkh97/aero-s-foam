@@ -1107,8 +1107,10 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
   }
 
   int numOutInfo = geoSource->getNumOutInfo();
+  OutputInfo *oinfo = geoSource->getOutputInfo();
   for(int iInfo = 0; iInfo < numOutInfo; ++iInfo)
   {
+    if(oinfo[iInfo].sentype > 0) continue;
     postProcessingImpl(iInfo, geomState, force, aeroForce, time, step, velocity, vcx,
                        allCorot, acceleration, acx, refState, reactions, M, C);
   }

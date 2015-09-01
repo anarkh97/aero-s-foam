@@ -4257,7 +4257,6 @@ void Domain::buildSensitivityInfo()
     } else if (oinfo[i].type == OutputInfo::DispBeta) {
       senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTbeta;      addSensitivity(oinfo[i]);
     }
-    numSensitivity++;
   }
 }
 
@@ -4267,4 +4266,5 @@ void Domain::addSensitivity(OutputInfo &oinfo) {
   if(oinfo.type != OutputInfo::WeigThic && oinfo.type != OutputInfo::WeigShap) {
     runSAwAnalysis = true;
   }
+  numSensitivity++;
 }

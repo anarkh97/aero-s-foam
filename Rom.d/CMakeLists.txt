@@ -46,6 +46,7 @@ ADD_LIBRARY( Rom
   SnapshotProjectionDriver.C
   RenumberingUtils.C
   RestrictedVecNodeDof6Conversion.C
+  ROMPostProcessingDriver.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
   NonnegativeMatrixFactorization.C

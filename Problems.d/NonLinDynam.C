@@ -69,6 +69,8 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
      domain->InitializeStaticContactSearch(MortarHandler::CTC);
      updateCS = true;
   }
+  if(domain->solInfo().sensitivity) allSens = new AllSensitivities<double>;
+  else allSens = 0;
 }
 
 NonLinDynamic::~NonLinDynamic()
@@ -80,6 +82,7 @@ NonLinDynamic::~NonLinDynamic()
   if(clawDofs) delete [] clawDofs;
   delete times;
   if(reactions) delete reactions;
+  if(allSens) delete allSens;
 }
 
 void
@@ -814,6 +817,18 @@ NonLinDynamic::processLastOutput()  {
   domain->solInfo().lastIt = true;
   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++)
     oinfo[iOut].interval = 1;
+}
+
+void
+NonLinDynamic::preProcessSA()
+{
+  domain->buildPreSensitivities<double>(*allSens, bcx);
+}
+
+void
+NonLinDynamic::postProcessSA(Vector &sol)
+{
+  domain->buildPostSensitivities<double>(solver, spm, K, *allSens, sol, bcx, true);
 }
 
 void

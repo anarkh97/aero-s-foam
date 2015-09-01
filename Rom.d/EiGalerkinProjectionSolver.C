@@ -23,7 +23,8 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::GenEiSparseGalerkinProjectionSolver
   selfadjoint_(selfadjoint),
   tol_(tol),
   startCol_(0),
-  blockCols_(0)
+  blockCols_(0),
+  fullSolution_(false)
 {
 }
 
@@ -218,8 +219,14 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVe
     reducedConstraintForce_.setZero();
     reducedConstraintForce_.segment(startCol_,blockCols_) = reducedConstraintMatrix_.block(0,startCol_,dualBasisSize_,blockCols_).transpose()*Mu;
   }
-  else if(selfadjoint_ && !Empirical) x = llt_.solve(b);
-  else x = lu_.solve(b);
+  else if(selfadjoint_ && !Empirical) {
+    if(fullSolution_) { x = V*llt_.solve(V.transpose()*b); } else
+    x = llt_.solve(b);
+  }
+  else {
+    if(fullSolution_) { x = V*lu_.solve(V.transpose()*b); } else
+    x = lu_.solve(b);
+  }
 }
 
 template <typename Scalar>

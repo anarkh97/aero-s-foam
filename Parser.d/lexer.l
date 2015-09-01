@@ -88,6 +88,8 @@ TRAIL [a-zA-Z]*
 
 "DUALBASIS"|"dualbasis"            { return DUALBASIS; }
 
+"ADJOINTBASIS"|"adjointbasis"      { return ADJOINTBASIS; }
+
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
 
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }

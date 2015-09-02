@@ -619,6 +619,8 @@ TRAIL [a-zA-Z]*
 
 "QSTA"[a-zA-Z]*|"qsta"[a-zA-Z]*    { return QSTATIC; }
 
+"QUASISTATIC"|"quasistatic"        { return QUASISTATIC; }
+
 "modal"|"MODAL"                    { return MODAL; }
 
 "precn"o[a-zA-Z]*|"PRECN"O[a-zA-Z]* { return PRECNO; }

@@ -23,6 +23,7 @@
 #include <fstream>
 #include <iostream>
 #include <cassert>
+#include <numeric>
 
 class Rbm;
  

@@ -636,7 +636,8 @@ MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta
      getNewmarkParameters(beta, gamma, alphaf, alpham);
      Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
      Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
-     Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+     if(domain->solInfo().quasistatic) Mcoef = 0;
+     else Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
    }
    GenMDDynamMat<double> ops;
    ops.sysSolver = solver;

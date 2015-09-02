@@ -563,7 +563,8 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      getNewmarkParameters(beta, gamma, alphaf, alpham);
      Kcoef = (domain->solInfo().order == 1) ? dt*gamma : dt*dt*beta;
      Ccoef = (domain->solInfo().order == 1) ? 0 : dt*gamma;
-     Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+     if(domain->solInfo().quasistatic) Mcoef = 0;
+     else Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
    }
 
    if(domain->solInfo().mpcDirect != 0) {

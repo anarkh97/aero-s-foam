@@ -162,7 +162,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   probDesc->getExternalForce(external_force, constantForce, -1, time, geomState, elementInternalForce, aeroForce, delta);
 
   // Solve for initial acceleration: a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
-  if(solInfo.iacc_switch && geoSource->getCheckFileInfo()->lastRestartFile == 0) {
+  if(solInfo.iacc_switch && geoSource->getCheckFileInfo()->lastRestartFile == 0 && !solInfo.quasistatic) {
     if(solInfo.order == 1) {
       if(verboseFlag) filePrint(stderr," ... Computing initial first time derivative of temperature ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, velocity_n);

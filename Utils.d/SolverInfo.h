@@ -479,6 +479,7 @@ struct SolverInfo {
    int scpkNP;  // Scalapack column processor grid size
 
    bool useMassAugmentation; // adjust lumped mass matrix for shell element type 15 to increase stability time-step
+   bool quasistatic;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -803,6 +804,7 @@ struct SolverInfo {
                   scpkMP             = 0;  // 0 => Scalapack LH solver will use default processor grid 
                   scpkNP             = 0;  // 0 => Scalapack LH solver will use default processor grid
                   useMassAugmentation = true;
+                  quasistatic        = false;
                 }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }

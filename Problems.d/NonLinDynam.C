@@ -384,7 +384,7 @@ NonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementI
                                           FullSquareMatrix *melArray, bool forceOnly) {
   if(forceOnly) {
     domain->getInternalForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
-                             (Vector*) NULL, melArray, celArray);
+                             (Vector*) NULL, (domain->solInfo().quasistatic ? (FullSquareMatrix*) NULL : melArray), celArray);
   }
   else {
     domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
@@ -796,11 +796,14 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
   else {
     double beta, gamma, alphaf, alpham, dt = 2*localDelta;
     getNewmarkParameters(beta, gamma, alphaf, alpham);
-    // rhs = dt*dt*beta*residual - ((1-alpham)/(1-alphaf)*M+dt*gamma*C)*inc_displacement
-    //       + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
-    //       + (dt*dt*((1-alpham)/2-beta)*M - dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2*C)*acceleration
-    localTemp.linC(-(1-alpham)/(1-alphaf), inc_displacement, dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
-    M->mult(localTemp, rhs);
+    if(domain->solInfo().quasistatic) rhs = 0.;
+    else {
+      // rhs = dt*dt*beta*residual - ((1-alpham)/(1-alphaf)*M+dt*gamma*C)*inc_displacement
+      //       + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
+      //       + (dt*dt*((1-alpham)/2-beta)*M - dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2*C)*acceleration
+      localTemp.linC(-(1-alpham)/(1-alphaf), inc_displacement, dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
+      M->mult(localTemp, rhs);
+    }
     if(C) {
       localTemp.linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
       C->multAdd(localTemp.data(), rhs.data());

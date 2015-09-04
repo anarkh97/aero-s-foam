@@ -1098,6 +1098,7 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
 {
   if(time == sinfo.initialTime) {
     geoSource->openOutputFiles();
+    firstOutput = false;
   }
 
   if(sinfo.nRestart > 0 && velocity != 0) {

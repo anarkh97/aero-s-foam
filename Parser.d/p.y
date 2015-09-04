@@ -1821,8 +1821,8 @@ Mode:
         { domain->solInfo().readInDualROB = $3;
           domain->solInfo().maxSizeDualBasis = $4; }
         | Mode ADJOINTBASIS FNAME Integer NewLine
-        { domain->solInfo().readInAdjointROB = $3;
-          domain->solInfo().maxSizeAdjointBasis = $4; }
+        { domain->solInfo().readInAdjointROB.push_back($3);
+          domain->solInfo().maxSizeAdjointBasis.push_back($4); }
 	;
 IDisp:
         IDIS NewLine

@@ -208,7 +208,8 @@ void
 GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &sol)
 {
   LocalBasisType V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data()+startCol_, V.cols()), x(sol.data()+startCol_, V.cols());
+  const int dim = (fullSolution_) ? rhs.size() : V.cols();
+  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data()+startCol_, dim), x(sol.data()+startCol_, dim);
   sol.zero();
 
   if(dualBasisSize_ > 0) {

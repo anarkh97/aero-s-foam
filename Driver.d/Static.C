@@ -21,6 +21,7 @@
 #include <Math.d/EiSparseMatrix.h>
 #endif
 #include <Math.d/CuCSparse.h>
+#include <Rom.d/PodProjectionSolver.h>
 
 #include <list>
 
@@ -3829,7 +3830,7 @@ Domain::computeAggregatedStressVMWRTdisplacementSensitivity(int sindex,
      Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> vonMisesWRTdisp(numNodes(), numUncon());
      Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numNodes(), 1);
      allSens.aggregatedVonMisesWRTdisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numUncon());
-     vonMisesWRTdisp.setZero();       stressWeight.setZero();
+     vonMisesWRTdisp.setZero(); stressWeight.setZero(); allSens.aggregatedVonMisesWRTdisp->setZero();
      Vector stress(numNodes(),0.0);
      computeNormalizedVonMisesStress(sol, bcx, surface, stress);
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
@@ -4160,7 +4161,19 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
        if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
        if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
-       if(!allSens.lambdaDisp) computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       if(!allSens.lambdaDisp) {
+          if(!domain->solInfo().readInAdjointROB.empty()) {
+            Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
+            if(podSolver) {
+              int adjointBasisId = 0; // XXX map["dispWRTthick"];
+              int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
+              int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+              podSolver->setLocalBasis(startCol, blockCols);
+              podSolver->factor();
+            }
+          }
+          computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       }
        computeDisplacementWRTthicknessAdjointSensitivity(sindex,spm, allSens, K);
      }
      break;

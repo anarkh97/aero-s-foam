@@ -361,7 +361,7 @@ struct SolverInfo {
    std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
    std::vector<std::string> readInLocalBasesCent;
    const char * readInDualROB;
-   const char * readInAdjointROB;
+   std::vector<std::string> readInAdjointROB;
    const char * readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
@@ -419,10 +419,10 @@ struct SolverInfo {
    bool galerkinPodRom;
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
-   int  maxSizePodRom;
+   int maxSizePodRom;
    std::vector<int> localBasisSize;
    int  maxSizeDualBasis;
-   int  maxSizeAdjointBasis;
+   std::vector<int> maxSizeAdjointBasis;
    int  maxDeimBasisSize;
    bool selectFullNode;
    bool selectFullElem;
@@ -702,7 +702,6 @@ struct SolverInfo {
 
                   numSnap            = 1;
                   readInDualROB      = "";
-                  readInAdjointROB   = "";
                   readInModes        = "";
                   readInShapeSen     = "";
                   SVDoutput          = "pod.rob";
@@ -758,7 +757,6 @@ struct SolverInfo {
                   onlineSvdPodRom    = false;
                   maxSizePodRom      = 0;
                   maxSizeDualBasis   = 0;
-                  maxSizeAdjointBasis= 0;
                   maxDeimBasisSize   = 0;
                   selectFullNode     = false;
                   selectFullElem     = false;

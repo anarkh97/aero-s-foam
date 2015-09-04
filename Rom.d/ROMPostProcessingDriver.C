@@ -83,18 +83,29 @@ ROMPostProcessingDriver::preProcess()
     filePrint(stderr, " ... Number of Local Bases = %-3d    ...\n", domain->solInfo().readInROBorModes.size());
 
   if(domain->solInfo().sensitivity) {
-    if(strcmp(domain->solInfo().readInAdjointROB,"") != 0) {
-      adjointBasis_.dimensionIs(domain->solInfo().maxSizeAdjointBasis, solVecInfo());
-      std::string fileName(domain->solInfo().readInAdjointROB);
-      if(verboseFlag) filePrint(stderr, " ... Reading adjoint basis from file %s ...\n", fileName.c_str());
-      BasisInputStream<6> adjointBasisInput(fileName, converter);
+ 
+    if(!domain->solInfo().readInAdjointROB.empty()) {
+      int adjointSubspaceMaxSize = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.end(), 0); 
+      adjointBasis_.dimensionIs(adjointSubspaceMaxSize, solVecInfo());
 
-      const int adjointSubspaceSize = domain->solInfo().maxSizeAdjointBasis ? 
-                                      std::min(domain->solInfo().maxSizeAdjointBasis, adjointBasisInput.size()) :
-                                               adjointBasisInput.size();
+      for(int j=0; j<domain->solInfo().readInAdjointROB.size(); ++j) {
+        std::string &fileName = domain->solInfo().readInAdjointROB[j];
+        if(verboseFlag) filePrint(stderr, " ... Reading adjoint basis from file %s ...\n", fileName.c_str());
+        BasisInputStream<6> adjointBasisInput(fileName, converter);
 
-      readVectors(adjointBasisInput, adjointBasis_, adjointSubspaceSize);
-      filePrint(stderr, " ... Adjt. Subspace Dimension = %-3d ...\n", adjointSubspaceSize);
+        const int &adjointSubspaceSize = domain->solInfo().maxSizeAdjointBasis[j];
+        if(adjointSubspaceSize > adjointBasisInput.size()) {
+          std::cerr << "ERROR: selected size of adjoint basis is larger than the available number of basis vectors in file " << fileName << std::endl;
+          exit(-1);
+        }
+
+        //readVectors(adjointBasisInput, adjointBasis_, adjointSubspaceSize);
+        readVectors(adjointBasisInput, adjointBasis_,
+                    std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.end(), 0),
+                    adjointSubspaceSize,
+                    std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+j, 0));
+        filePrint(stderr, " ... Adjoint Subspace #%d Dim. = %-3d ...\n", j+1, adjointSubspaceSize);
+      }
 
       PodProjectionSolver *ppsolver = dynamic_cast<PodProjectionSolver*>(solver);
       if(ppsolver) {

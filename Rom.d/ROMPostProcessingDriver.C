@@ -83,22 +83,24 @@ ROMPostProcessingDriver::preProcess()
     filePrint(stderr, " ... Number of Local Bases = %-3d    ...\n", domain->solInfo().readInROBorModes.size());
 
   if(domain->solInfo().sensitivity) {
-    adjointBasis_.dimensionIs(domain->solInfo().maxSizeAdjointBasis, solVecInfo());
-    std::string fileName(domain->solInfo().readInAdjointROB);
-    if(verboseFlag) filePrint(stderr, " ... Reading adjoint basis from file %s ...\n", fileName.c_str());
-    BasisInputStream<6> adjointBasisInput(fileName, converter);
+    if(strcmp(domain->solInfo().readInAdjointROB,"") != 0) {
+      adjointBasis_.dimensionIs(domain->solInfo().maxSizeAdjointBasis, solVecInfo());
+      std::string fileName(domain->solInfo().readInAdjointROB);
+      if(verboseFlag) filePrint(stderr, " ... Reading adjoint basis from file %s ...\n", fileName.c_str());
+      BasisInputStream<6> adjointBasisInput(fileName, converter);
 
-    const int adjointSubspaceSize = domain->solInfo().maxSizeAdjointBasis ? 
-                                    std::min(domain->solInfo().maxSizeAdjointBasis, adjointBasisInput.size()) :
-                                             adjointBasisInput.size();
+      const int adjointSubspaceSize = domain->solInfo().maxSizeAdjointBasis ? 
+                                      std::min(domain->solInfo().maxSizeAdjointBasis, adjointBasisInput.size()) :
+                                               adjointBasisInput.size();
 
-    readVectors(adjointBasisInput, adjointBasis_, adjointSubspaceSize);
-    filePrint(stderr, " ... Adjt. Subspace Dimension = %-3d ...\n", adjointSubspaceSize);
+      readVectors(adjointBasisInput, adjointBasis_, adjointSubspaceSize);
+      filePrint(stderr, " ... Adjt. Subspace Dimension = %-3d ...\n", adjointSubspaceSize);
 
-    PodProjectionSolver *ppsolver = dynamic_cast<PodProjectionSolver*>(solver);
-    if(ppsolver) {
-      ppsolver->projectionBasisIs(adjointBasis_);
-      ppsolver->fullSolutionIs(true);
+      PodProjectionSolver *ppsolver = dynamic_cast<PodProjectionSolver*>(solver);
+      if(ppsolver) {
+        ppsolver->projectionBasisIs(adjointBasis_);
+        ppsolver->fullSolutionIs(true);
+      }
     }
 
     preProcessSA();

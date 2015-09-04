@@ -580,7 +580,7 @@ int main(int argc, char** argv)
      if (!domain->solInfo().samplingPodRom) {
        domain->solInfo().activatePodRom = true;
        domain->solInfo().galerkinPodRom = true;
-       if(!domain->solInfo().ROMPostProcess) {
+       if(!domain->solInfo().ROMPostProcess || (strcmp(domain->solInfo().readInAdjointROB,"") != 0)) {
 #ifdef USE_EIGEN3
          if(domain->solInfo().subtype != 12) domain->solInfo().subtype = 13;
 #else

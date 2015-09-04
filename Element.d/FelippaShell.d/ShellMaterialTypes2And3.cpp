@@ -478,7 +478,7 @@ ShellMaterialTypes2And3<doublereal>
 ::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
                                                  doublereal *eframe, int gp)
 {
-     for(int i=0; i<18; ++i) { GetLocalConstitutiveResponse(dUpsilondu, dsigmadu, z, eframe, gp, Ta); dUpsilondu += 3; dsigmadu += 3; }
+     for(int i=0; i<18; ++i) { GetLocalConstitutiveResponse(dUpsilondu, dsigmadu, z, eframe, gp, Ta); dUpsilondu += 6; dsigmadu += 3; }
 }
 
 template<typename doublereal>

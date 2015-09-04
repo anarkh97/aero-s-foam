@@ -24,6 +24,7 @@
 #include <Rom.d/PodProjectionSolver.h>
 
 #include <list>
+#include <numeric>
 
 extern int verboseFlag;
 

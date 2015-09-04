@@ -1820,8 +1820,9 @@ Mode:
         | Mode DUALBASIS FNAME Integer NewLine
         { domain->solInfo().readInDualROB = $3;
           domain->solInfo().maxSizeDualBasis = $4; }
-        | Mode ADJOINTBASIS FNAME Integer NewLine
-        { domain->solInfo().readInAdjointROB.push_back($3);
+        | Mode ADJOINTBASIS FNAME Integer STRESSID NewLine
+        { domain->solInfo().adjointMap[(OutputInfo::Type)$5] = domain->solInfo().readInAdjointROB.size();
+          domain->solInfo().readInAdjointROB.push_back($3);
           domain->solInfo().maxSizeAdjointBasis.push_back($4); }
 	;
 IDisp:

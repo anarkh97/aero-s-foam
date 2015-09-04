@@ -4162,17 +4162,22 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
        if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
        if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
        if(!allSens.lambdaDisp) {
-          if(!domain->solInfo().readInAdjointROB.empty()) {
-            Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
-            if(podSolver) {
-              int adjointBasisId = 0; // XXX map["dispWRTthick"];
-              int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
-              int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
-              podSolver->setLocalBasis(startCol, blockCols);
-              podSolver->factor();
-            }
-          }
-          computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
+         if(!domain->solInfo().readInAdjointROB.empty()) {
+           Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
+           if(podSolver) {
+             std::map<OutputInfo::Type,int>::iterator it = domain->solInfo().adjointMap.find(OutputInfo::DispThic);
+             if(it != domain->solInfo().adjointMap.end()) {
+               int adjointBasisId = it->second;
+               int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
+               int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+               //std::cerr << "dispthic: adjointBasisId = " << adjointBasisId << ", blockCols = " << blockCols << ", startCol = " << startCol << std::endl;
+               podSolver->setLocalBasis(startCol, blockCols);
+               podSolver->factor();
+             }
+             else { std::cerr << "ERROR: adjoint basis is not defined for dispthic quantity of interest\n"; }
+           }
+         }
+         computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
        }
        computeDisplacementWRTthicknessAdjointSensitivity(sindex,spm, allSens, K);
      }
@@ -4206,7 +4211,24 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
        if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
        if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
        if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
-       if(!allSens.lambdaStressVM) computeStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       if(!allSens.lambdaStressVM) {
+         if(!domain->solInfo().readInAdjointROB.empty()) {
+           Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
+           if(podSolver) {
+             std::map<OutputInfo::Type,int>::iterator it = domain->solInfo().adjointMap.find(OutputInfo::VMstThic);
+             if(it != domain->solInfo().adjointMap.end()) {
+               int adjointBasisId = it->second;
+               int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
+               int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+               //std::cerr << "vmstthic: adjointBasisId = " << adjointBasisId << ", blockCols = " << blockCols << ", startCol = " << startCol << std::endl;
+               podSolver->setLocalBasis(startCol, blockCols);
+               podSolver->factor();
+             }
+             else { std::cerr << "ERROR: adjoint basis is not defined for vmstthic quantity of interest\n"; }
+           }
+         }
+         computeStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       }
        computeStressVMWRTthicknessAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
      }
      break;
@@ -4237,7 +4259,24 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      if(!allSens.aggregatedVonMisesWRTdisp) computeAggregatedStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
      if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
      if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
-     if(!allSens.lambdaAggregatedStressVM) computeAggregatedStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+     if(!allSens.lambdaAggregatedStressVM) {
+       if(!domain->solInfo().readInAdjointROB.empty()) {
+         Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
+         if(podSolver) {
+           std::map<OutputInfo::Type,int>::iterator it = domain->solInfo().adjointMap.find(OutputInfo::AGstThic);
+           if(it != domain->solInfo().adjointMap.end()) {
+             int adjointBasisId = it->second;
+             int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
+             int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+             //std::cerr << "agstthic: adjointBasisId = " << adjointBasisId << ", blockCols = " << blockCols << ", startCol = " << startCol << std::endl;
+             podSolver->setLocalBasis(startCol, blockCols);
+             podSolver->factor();
+           }
+           else { std::cerr << "ERROR: adjoint basis is not defined for agstthic quantity of interest\n"; }
+         }
+       }
+       computeAggregatedStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+     }
      computeAggregatedStressVMWRTthicknessSensitivity(sindex,allSens,sol,bcx,isDynam);
      break;
    }

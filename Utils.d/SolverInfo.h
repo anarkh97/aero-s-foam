@@ -5,6 +5,7 @@
 #include <Utils.d/SensitivityInfo.h>
 #include <Feti.d/FetiInfo.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/OutputInfo.h>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -361,6 +362,7 @@ struct SolverInfo {
    std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
    std::vector<std::string> readInLocalBasesCent;
    const char * readInDualROB;
+   std::map<OutputInfo::Type,int> adjointMap;
    std::vector<std::string> readInAdjointROB;
    const char * readInModes;
    const char * SVDoutput;

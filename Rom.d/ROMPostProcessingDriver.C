@@ -111,6 +111,7 @@ ROMPostProcessingDriver::preProcess()
       if(ppsolver) {
         ppsolver->projectionBasisIs(adjointBasis_);
         ppsolver->fullSolutionIs(true);
+        ppsolver->setLocalBasis(0,0);
       }
     }
 

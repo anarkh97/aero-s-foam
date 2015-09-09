@@ -248,6 +248,8 @@ ROMPostProcessingDriver::solve()
 
   GeomState *geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
                                        domain->getNodalTemperatures());
+  Vector fext(solVecInfo()), constantForce(solVecInfo());
+  getConstForce(constantForce);
 
   int counter = 0; //TODO: make this portion more general so it doesn't depend on the assumption
                    //that all files have matching timestamps
@@ -285,23 +287,27 @@ ROMPostProcessingDriver::solve()
       geomState->transform(*fullAccBuffer, 4, true); // transform angular acceleration from the 2nd time derivative
                                                      // of the (unscaled) total rotation vector to convected
       domain->updateStates(geomState,*geomState,allCorot,*it);
-      dynamOutput(geomState, *fullVelBuffer, *fullVel2Buffer, *it, counter, *fullDummyBuffer, *fullDummyBuffer, *fullAccBuffer, geomState);
+      getExternalForce(fext, constantForce, counter, *it, geomState, *fullDummyBuffer, *fullDummyBuffer,
+                       domain->solInfo().getTimeStep()/2);
+      dynamOutput(geomState, *fullVelBuffer, *fullVel2Buffer, *it, counter, fext, *fullDummyBuffer, *fullAccBuffer, geomState);
 
       filePrint(stderr,"\r ... ROM Conversion Loop: t = %9.3e, %3d%% complete ...",
                 *it, int(*it/(TimeStamps[0].back())*100));
 
       counter += 1;
     } //end of loop over time stamps
+    filePrint(stderr,"\n");
   }
-
 #ifdef USE_EIGEN3
   if(domain->solInfo().sensitivity) { // XXX should be inside loop ?
     Vector elementInternalForce(domain->maxNumDOF(), 0.0);
     Vector residual(domain->numUncon(), 0.0);
+    residual = fext;
     domain->getStiffAndForce(*geomState, elementInternalForce, allCorot, kelArray, residual,
                              1.0, TimeStamps[0].back(), geomState, (Vector*) NULL, ((melArray) ? melArray : NULL));
-    std::cerr << "TimeStams[0].back() = " << TimeStamps[0].back() << std::endl;
     reBuild(*geomState, counter, domain->solInfo().getTimeStep(), TimeStamps[0].back());
+    allSens->residual = new Eigen::Matrix<double,Eigen::Dynamic,1>(residual.size());
+    *(allSens->residual) = Eigen::Map<Eigen::VectorXd>(residual.data(),residual.size());    
     postProcessSA(*fullDispBuffer);
     domain->sensitivityPostProcessing(*allSens);
   }

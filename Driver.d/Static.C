@@ -3290,7 +3290,7 @@ Domain::computeAggregatedStressVMDualSensitivity(int sindex,
 #endif
        sysSolver->solve(rhs,lambdaAggregatedStress);
        *allSens.lambdaAggregatedStressVM = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> >(lambdaAggregatedStress.data(),numUncon(),1);
-/*#ifdef SENSITIVITY_DEBUG
+#ifdef SENSITIVITY_DEBUG
        if(K) {
          Vector res(numUncon(),0.0);
          K->mult(lambdaAggregatedStress,res);
@@ -3300,9 +3300,8 @@ Domain::computeAggregatedStressVMDualSensitivity(int sindex,
            std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
          }
        }
-*///       if(verboseFlag) 
-std::cerr << "printing allSens.lambdaAggregatedStressVM\n" << *allSens.lambdaAggregatedStressVM << std::endl;
-//#endif
+      if(verboseFlag) std::cerr << "printing allSens.lambdaAggregatedStressVM\n" << *allSens.lambdaAggregatedStressVM << std::endl;
+#endif
 #endif
 }
 
@@ -3366,7 +3365,7 @@ Domain::computeDisplacementDualSensitivity(int sindex,
              std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
            }
          }
-         if(verboseFlag)    std::cerr << "printing allSens.lambdaDisp[" << inode*numDispDofs+idof << "]\n" << *allSens.lambdaDisp[inode*numDispDofs+idof] << std::endl;
+         if(verboseFlag)     std::cerr << "printing allSens.lambdaDisp[" << inode*numDispDofs+idof << "]\n" << allSens.lambdaDisp[inode*numDispDofs+idof]->transpose() << std::endl;
 #endif
        }
      }
@@ -4171,7 +4170,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
                int adjointBasisId = it->second;
                int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
                int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
-               //std::cerr << "dispthic: adjointBasisId = " << adjointBasisId << ", blockCols = " << blockCols << ", startCol = " << startCol << std::endl;
                podSolver->setLocalBasis(startCol, blockCols);
                podSolver->factor();
              }
@@ -4181,6 +4179,10 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
          computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
        }
        computeDisplacementWRTthicknessAdjointSensitivity(sindex,spm, allSens, K);
+       if (allSens.residual !=0) {
+         for (int i=0; i<numDispNodes*numDispDofs; ++i)
+           std::cerr << "dwr = lambdaDisp.dot(r) = " << allSens.lambdaDisp[i]->dot(*(allSens.residual)) << std::endl;
+       }
      }
      break;
    }
@@ -4194,8 +4196,28 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
        if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
        if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
-       if(!allSens.lambdaDisp) computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       if(!allSens.lambdaDisp) {
+         if(!domain->solInfo().readInAdjointROB.empty()) {
+           Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
+           if(podSolver) {
+             std::map<OutputInfo::Type,int>::iterator it = domain->solInfo().adjointMap.find(OutputInfo::DispThic);
+             if(it != domain->solInfo().adjointMap.end()) {
+               int adjointBasisId = it->second;
+               int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
+               int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+               podSolver->setLocalBasis(startCol, blockCols);
+               podSolver->factor();
+             }
+             else { std::cerr << "ERROR: adjoint basis is not defined for dispthic quantity of interest\n"; }
+           }
+         }
+         computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       } 
        computeDisplacementWRTShapeVariableAdjointSensitivity(sindex,spm, allSens, K);
+       if (allSens.residual !=0) {
+         for (int i=0; i<numDispNodes*numDispDofs; ++i)
+           std::cerr << "dwr = lambdaDisp.dot(r) = " << allSens.lambdaDisp[i]->dot(*(allSens.residual)) << std::endl;
+       }
      }
      break;
    }
@@ -4221,7 +4243,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
                int adjointBasisId = it->second;
                int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
                int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
-               //std::cerr << "vmstthic: adjointBasisId = " << adjointBasisId << ", blockCols = " << blockCols << ", startCol = " << startCol << std::endl;
                podSolver->setLocalBasis(startCol, blockCols);
                podSolver->factor();
              }
@@ -4231,6 +4252,10 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
          computeStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
        }
        computeStressVMWRTthicknessAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
+       if (allSens.residual !=0) {
+         for (int i=0; i<numStressNodes; i++)
+           std::cerr << "dwr = lambdaStressVM.dot(r) = " << allSens.lambdaStressVM[i]->dot(*(allSens.residual)) << std::endl;
+       }
      }
      break;
    }
@@ -4247,8 +4272,28 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
        if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
        if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
        if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
-       if(!allSens.lambdaStressVM) computeStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       if(!allSens.lambdaStressVM) {
+         if(!domain->solInfo().readInAdjointROB.empty()) {
+           Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
+           if(podSolver) {
+             std::map<OutputInfo::Type,int>::iterator it = domain->solInfo().adjointMap.find(OutputInfo::VMstThic);
+             if(it != domain->solInfo().adjointMap.end()) {
+               int adjointBasisId = it->second;
+               int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
+               int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+               podSolver->setLocalBasis(startCol, blockCols);
+               podSolver->factor();
+             }
+             else { std::cerr << "ERROR: adjoint basis is not defined for vmstthic quantity of interest\n"; }
+           }
+         }
+         computeStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       }
        computeStressVMWRTShapeVariableAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
+       if (allSens.residual !=0) {
+         for (int i=0; i<numStressNodes; i++)
+           std::cerr << "dwr = lambdaStressVM.dot(r) = " << allSens.lambdaStressVM[i]->dot(*(allSens.residual)) << std::endl;
+       }  
      }
      break;
    }
@@ -4269,7 +4314,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
              int adjointBasisId = it->second;
              int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
              int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
-             //std::cerr << "agstthic: adjointBasisId = " << adjointBasisId << ", blockCols = " << blockCols << ", startCol = " << startCol << std::endl;
              podSolver->setLocalBasis(startCol, blockCols);
              podSolver->factor();
            }
@@ -4279,6 +4323,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
        computeAggregatedStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
      }
      computeAggregatedStressVMWRTthicknessSensitivity(sindex,allSens,sol,bcx,isDynam);
+     if (allSens.residual !=0)
+       std::cerr << "dwr = lambdaAggregatedStressVM.dot(r) = " << allSens.lambdaAggregatedStressVM->dot(*(allSens.residual)) << std::endl;
      break;
    }
    case SensitivityInfo::AggregatedStressVMWRTshape:
@@ -4289,9 +4335,27 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      if(!allSens.aggregatedVonMisesWRTdisp) computeAggregatedStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
      if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
      if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
-     if(!allSens.lambdaAggregatedStressVM) computeAggregatedStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+     if(!allSens.lambdaAggregatedStressVM) {
+       if(!domain->solInfo().readInAdjointROB.empty()) {
+         Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
+         if(podSolver) {
+           std::map<OutputInfo::Type,int>::iterator it = domain->solInfo().adjointMap.find(OutputInfo::AGstThic);
+           if(it != domain->solInfo().adjointMap.end()) {
+             int adjointBasisId = it->second;
+             int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
+             int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+             podSolver->setLocalBasis(startCol, blockCols);
+             podSolver->factor();
+           }
+           else { std::cerr << "ERROR: adjoint basis is not defined for agstthic quantity of interest\n"; }
+         }
+       }
+       computeAggregatedStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+     }
      computeAggregatedStressVMWRTShapeVariableSensitivity(sindex,allSens,sol,bcx,isDynam);
-     break;
+     if (allSens.residual !=0)
+       std::cerr << "dwr = lambdaAggregatedStressVM.dot(r) = " << allSens.lambdaAggregatedStressVM->dot(*(allSens.residual)) << std::endl; 
+    break;
    }
    case SensitivityInfo::StressVMWRTmach:
    {

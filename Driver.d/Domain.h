@@ -160,6 +160,7 @@ struct AllSensitivities
 {
 #ifdef USE_EIGEN3
   double weight;           // total weight of the structure
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *residual; // residual of the forward problem
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                     // derivatives of weight wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTshape;                     // derivatives of weight wrt shape variables
   GenSparseMatrix<Scalar> *vonMisesWRTthickSparse;                                    // derivatives of von Mises stress wrt thickness
@@ -204,7 +205,7 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispWRTbeta;           // derivative of displacement wrt yaw angle
   
   // Constructor
-  AllSensitivities() { weight = 0;                weightWRTshape = 0;        weightWRTthick = 0;        
+  AllSensitivities() { residual = 0; weight = 0;                weightWRTshape = 0;        weightWRTthick = 0;        
                        vonMisesWRTthickSparse = 0;      dKucdthickSparse = 0;            vonMisesWRTshapeSparse = 0; 
                        vonMisesWRTdispSparse = 0;       stiffnessWRTthickSparse = 0;     dKucdshapeSparse = 0;    lambdaAggregatedStressVM = 0; 
                        linearstaticWRTthickSparse = 0;  linearstaticWRTshapeSparse = 0;  dispWRTthickSparse = 0;          dispWRTshapeSparse = 0;

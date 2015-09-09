@@ -118,6 +118,7 @@ void
 RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                          GeomState *geomState, int cflg, double time)
 {
+  if(!pbc) { elPressureForce = 0.; return; }
   int opttrc = 0; // 0 : pressure
                   // 1 : traction
   int optele = 3, ndime = 3;

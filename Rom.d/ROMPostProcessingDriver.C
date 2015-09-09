@@ -299,7 +299,8 @@ ROMPostProcessingDriver::solve()
     Vector elementInternalForce(domain->maxNumDOF(), 0.0);
     Vector residual(domain->numUncon(), 0.0);
     domain->getStiffAndForce(*geomState, elementInternalForce, allCorot, kelArray, residual,
-                             1.0, 0.0, geomState, (Vector*) NULL, ((melArray) ? melArray : NULL));
+                             1.0, TimeStamps[0].back(), geomState, (Vector*) NULL, ((melArray) ? melArray : NULL));
+    std::cerr << "TimeStams[0].back() = " << TimeStamps[0].back() << std::endl;
     reBuild(*geomState, counter, domain->solInfo().getTimeStep(), TimeStamps[0].back());
     postProcessSA(*fullDispBuffer);
     domain->sensitivityPostProcessing(*allSens);

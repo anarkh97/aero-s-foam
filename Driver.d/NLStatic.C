@@ -1567,6 +1567,9 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     case OutputInfo::StressVM:
       getStressStrain(*geomState, allCorot,  iInfo, VON, time, refState);
       break;
+    case OutputInfo::AggrStVM:
+      getStressStrain(*geomState, allCorot,  iInfo, AGGREGATEDVON, time, refState);
+      break;
     case OutputInfo::StrainVM:
       getStressStrain(*geomState, allCorot,  iInfo, STRAINVON, time, refState);
       break;
@@ -2041,6 +2044,12 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   if(elDisp == 0)
     elDisp = new Vector(maxNumDOFs,0.0);
 
+  Vector *sol = 0;
+  if(sinfo.getNLInfo().linearelastic) {
+    sol = new Vector(c_dsa->size());
+    geomState.get_tot_displacement(*sol);
+  }
+
   int iele;
   if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
     int NodesPerElement, maxNodesPerElement=0;
@@ -2073,7 +2082,18 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
 
     int NodesPerElement = packedEset[iele]->numNodes();
 
-    // extract deformations from current Geometry State of structure
+// extract deformations from current Geometry State of structure
+    if(sinfo.getNLInfo().linearelastic) {
+      // DETERMINE ELEMENT DISPLACEMENT VECTOR
+      for (k = 0; k < allDOFs->num(iele); ++k) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+        if (cn >= 0)
+          (*elDisp)[k] = (*sol)[cn];
+        else
+          (*elDisp)[k] = 0; // XXX bcx[(*allDOFs)[iele][k]];
+      } 
+      flag = 1;
+    } else
     allCorot[iele]->extractDeformations(geomState, nodes,
                                         elDisp->data(), flag);
 
@@ -2090,8 +2110,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     }
 
     // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-    if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))
-       && (flag == 1 || flag == 2)) { // transform non-invariant stresses/strains from basic frame to DOF_FRM
+    if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12)) && (stressIndex != 31) && (flag == 1 || flag == 2)) { // transform non-invariant stresses/strains from basic frame to DOF_FRM
 
       // First, calculate stress/strain tensor for each node of the element
       p_elstress->zero();
@@ -2121,10 +2140,11 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
       }
     }
     else {
+      int index = (stressIndex == 31) ? 6 : stressIndex;
       if (flag == 1) {
         // USE LINEAR STRESS ROUTINE
         packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
-                                      *elDisp, stressIndex, surface,
+                                      *elDisp, index, surface,
                                       elemNodeTemps.data(), ylayer,
                                       zlayer, avgnum);
 
@@ -2133,7 +2153,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
         // USE NON-LINEAR STRESS ROUTINE
         // note: in this case the element nodal temperatures are extracted from geomState inside the function
         allCorot[iele]->getNLVonMises(*elstress, *elweight, geomState,
-                                      refState, nodes, stressIndex, surface,
+                                      refState, nodes, index, surface,
                                       ylayer, zlayer, avgnum);
 
       } else {
@@ -2143,10 +2163,12 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
 
     // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
     if(avgnum == 0 || avgnum == -1) {
-      int numPoints = (avgnum == -1) ? allCorot[iele]->getNumGaussPoints() : NodesPerElement;
-      for(k=0; k<numPoints; ++k)
-        fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*elstress)[k]);
-      fprintf(oinfo[fileNumber].filptr,"\n");
+      if(stressIndex != 31) {
+        int numPoints = (avgnum == -1) ? allCorot[iele]->getNumGaussPoints() : NodesPerElement;
+        for(k=0; k<numPoints; ++k)
+          fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*elstress)[k]);
+        fprintf(oinfo[fileNumber].filptr,"\n");
+      }
     }
     // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
     else {
@@ -2173,10 +2195,24 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
         if(k < numnodes && (*weight)[k] != 0)
           data[l] = (*stress)[k]/=(*weight)[k];
       }
-      geoSource->outputNodeScalars(fileNumber, data, numNodesOut, time);
+      if(stressIndex != 31) 
+        geoSource->outputNodeScalars(fileNumber, data, numNodesOut, time);
+      else {
+        double stressmax(0);
+        for(k = 0; k < numNodes; ++k) {
+          if((*stress)[k]>stressmax) stressmax = (*stress)[k];
+        }
+        *aggregatedStress = 0.0;
+        for(k = 0; k < numNodes; ++k) *aggregatedStress += exp(sinfo.ksParameter*((*stress)[k]-stressmax));
+        *aggregatedStress = log(*aggregatedStress);
+        *aggregatedStress /= sinfo.ksParameter;
+        *aggregatedStress += stressmax;
+        geoSource->outputEnergy(fileNumber, 0, *aggregatedStress);
+      }
       delete [] data;
     }
     else {
+      
       if((*weight)[oinfo[fileNumber].nodeNumber] == 0.0)
         fprintf(oinfo[fileNumber].filptr," %*.*E % *.*E\n",w,p,time,w,p,0.0);
       else
@@ -2186,6 +2222,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   fflush(oinfo[fileNumber].filptr);
 
   delete [] nodeNumbers;
+  if(sol) delete sol;
 }
 
 void

@@ -561,10 +561,16 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      if(verboseFlag) filePrint(stderr, " ... Rebuilding Tangent Stiffness for Step %d Iteration %d ...\n", step, iteration);
      double beta, gamma, alphaf, alpham, dt = 2*localDelta;
      getNewmarkParameters(beta, gamma, alphaf, alpham);
-     Kcoef = (domain->solInfo().order == 1) ? dt*gamma : dt*dt*beta;
-     Ccoef = (domain->solInfo().order == 1) ? 0 : dt*gamma;
-     if(domain->solInfo().quasistatic) Mcoef = 0;
-     else Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+     if(domain->solInfo().quasistatic) {
+       Mcoef = 0;
+       Kcoef = 1;
+       Ccoef = 0;
+     }
+     else {
+       Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+       Kcoef = (domain->solInfo().order == 1) ? dt*gamma : dt*dt*beta;
+       Ccoef = (domain->solInfo().order == 1) ? 0 : dt*gamma;
+     }
    }
 
    if(domain->solInfo().mpcDirect != 0) {

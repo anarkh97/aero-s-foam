@@ -3261,8 +3261,8 @@ Domain::computeStressVMDualSensitivity(int sindex,
            std::cerr << "norm of absolute residual is " << res.norm() << std::endl;
            std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
          }
-       }
-       if(verboseFlag) std::cerr << "printing allSens.lambdaStressVM[" << inode << "]\n" << *allSens.lambdaStressVM[inode] << std::endl;
+       }`
+       if(verboseFlag)  std::cerr << "printing allSens.lambdaStressVM[" << inode << "]\n" << *allSens.lambdaStressVM[inode] << std::endl;
 #endif
      }
 #endif
@@ -3290,7 +3290,7 @@ Domain::computeAggregatedStressVMDualSensitivity(int sindex,
 #endif
        sysSolver->solve(rhs,lambdaAggregatedStress);
        *allSens.lambdaAggregatedStressVM = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> >(lambdaAggregatedStress.data(),numUncon(),1);
-#ifdef SENSITIVITY_DEBUG
+/*#ifdef SENSITIVITY_DEBUG
        if(K) {
          Vector res(numUncon(),0.0);
          K->mult(lambdaAggregatedStress,res);
@@ -3300,8 +3300,9 @@ Domain::computeAggregatedStressVMDualSensitivity(int sindex,
            std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
          }
        }
-       if(verboseFlag) std::cerr << "printing allSens.lambdaAggregatedStressVM\n" << *allSens.lambdaAggregatedStressVM << std::endl;
-#endif
+*///       if(verboseFlag) 
+std::cerr << "printing allSens.lambdaAggregatedStressVM\n" << *allSens.lambdaAggregatedStressVM << std::endl;
+//#endif
 #endif
 }
 
@@ -3365,7 +3366,7 @@ Domain::computeDisplacementDualSensitivity(int sindex,
              std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
            }
          }
-         if(verboseFlag) std::cerr << "printing allSens.lambdaDisp[" << inode*numDispDofs+idof << "]\n" << *allSens.lambdaDisp[inode*numDispDofs+idof] << std::endl;
+         if(verboseFlag)    std::cerr << "printing allSens.lambdaDisp[" << inode*numDispDofs+idof << "]\n" << *allSens.lambdaDisp[inode*numDispDofs+idof] << std::endl;
 #endif
        }
      }
@@ -3882,7 +3883,6 @@ Domain::computeAggregatedStressVMWRTdisplacementSensitivity(int sindex,
      }
 
      if(!(*aggregatedStressDenom)) computeAggregatedStressDenom(stress);
-
      for(int dof = 0; dof < numUncon(); ++dof) {
        for(int inode = 0; inode < numNodes(); ++inode)  {
 //         (*allSens.aggregatedVonMisesWRTdisp)(dof) += vonMisesWRTdisp(inode,dof)*exp(sinfo.ksParameter*(stress[inode]-sinfo.ksMax)); 

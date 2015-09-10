@@ -258,8 +258,7 @@ SuperElement::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   for(int i = 0; i < nSubElems; ++i) {
     Vector subVonMisesThicknessSensitivity(subElems[i]->numNodes(),0.0); 
     Vector subWeight(subElems[i]->numNodes(),0.0);
-    Vector *subElDisp = 0;
-    subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
+    Vector *subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
     subElems[i]->getVonMisesThicknessSensitivity(subVonMisesThicknessSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
                                                  0, subAvgnum, ylayer, zlayer); 
     weight.add(subWeight, subElemNodes[i]);

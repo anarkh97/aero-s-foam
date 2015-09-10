@@ -773,7 +773,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....GET THE TANGENT CONSTITUTIVE MATRIX [D = {Dm,Dmb;Dbm,Db}] 
 //      AND THE GENERALIZED STRESSES [Sigma = {N,M}]
 
-        if(i == 0 || ctyp == 4 || (ndtemps && tflg != 0)) {
+        if(i == 0 || ctyp == 4 || (ndtemps && tflg != 0) || _fint) {
           if(ndtemps && tflg != 0) 
             temp = zeta[i][0]*ndtemps[0] + zeta[i][1]*ndtemps[1] + zeta[i][2]*ndtemps[2];
           doublereal *_D = (_estiff) ? D.data() : NULL;
@@ -1004,7 +1004,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....GET THE TANGENT CONSTITUTIVE SENSITIVITY MATRIX [D = {Dm,Dmb;Dbm,Db}] 
 
-        if(i == 0 || ctyp == 4 || (ndtemps && tflg != 0)) {
+        if(i == 0 || ctyp == 4 || (ndtemps && tflg != 0) || _dfintdh) {
           if(ndtemps && tflg != 0)
             temp = zeta[i][0]*ndtemps[0] + zeta[i][1]*ndtemps[1] + zeta[i][2]*ndtemps[2];
           doublereal *_D = (_destiffdh) ? D.data() : NULL;
@@ -1266,7 +1266,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH
 
-                if(i == 0)
+                if(i == 0 || sflg != 0)
                     nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i, temp);
 
                 if (surface == 1) {
@@ -1592,7 +1592,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH, AND THEIR SENSITIVITIES
 
-            if(i == 0) {
+            if(i == 0 || sflg != 0) {
                 nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i, temp);
                 nmat->GetConstitutiveResponseSensitivityWRTdisp(dUpsilondu.data(), dSigmadu.data(), NULL, eframe.data(), i);
             }
@@ -1794,7 +1794,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH, AND THEIR SENSITIVITIES
 
-            if(i == 0) {
+            if(i == 0 || sflg != 0) {
                 nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i, temp);
                 nmat->GetConstitutiveResponseSensitivityWRTthic(Upsilon.data(), dSigmadh.data(), NULL, eframe.data(), i, temp);
             }

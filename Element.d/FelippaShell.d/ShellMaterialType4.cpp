@@ -349,7 +349,7 @@ ShellMaterialType4<doublereal,localmaterial>
 ::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D, doublereal *eframe, int gp)
 {
   fprintf(stderr," *** ERROR: Stiffness w.r.t. displacement sensitivity output is \n"
-                 "            not available for shell element types 15 and 1515   \n"
+                 "            not implemented for shell element types 15 and 1515 \n"
                  "            with an elasto-plastic constitutive law.            \n");
   exit(-1);
 }
@@ -360,8 +360,8 @@ ShellMaterialType4<doublereal,localmaterial>
 ::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z, doublereal *eframe, int gp)
 {
   fprintf(stderr," *** ERROR: Local stress w.r.t. displacement sensitivity output \n"
-                 "            is not available for shell element types 15 and 1515\n"
-                 "            with an elasto-plastic constitutive law.            \n");
+                 "            is not implemented for shell element types 15 and   \n"
+                 "            1515 with an elasto-plastic constitutive law.       \n");
   exit(-1);
 }
 
@@ -371,7 +371,7 @@ ShellMaterialType4<doublereal,localmaterial>
 ::GetConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dSigmadh, doublereal *dDdh, doublereal *, int, doublereal temp)
 {
   fprintf(stderr," *** ERROR: Stiffness w.r.t. thickness sensitivity output is not\n"
-                 "            available for shell element types 15 and 1515 with  \n"
+                 "            implemented for shell element types 15 and 1515 with\n"
                  "            an elasto-plastic constitutive law.                 \n");
   exit(-1);
 }
@@ -382,8 +382,8 @@ ShellMaterialType4<doublereal,localmaterial>
 ::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dsigmadh, doublereal dzdh, doublereal *, int)
 {
   fprintf(stderr," *** ERROR: Local stress w.r.t. displacement sensitivity output \n"
-                 "            is not available for shell element types 15 and 1515\n"
-                 "            with an elasto-plastic constitutive law.            \n");
+                 "            is not implemented for shell element types 15 and   \n"
+                 "            1515 with an elasto-plastic constitutive law.       \n");
   exit(-1);
 }
 

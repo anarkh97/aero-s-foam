@@ -72,10 +72,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF LENGTH 2-1 IS DIFFERENT FROM ZERO 
 
     if (side21length == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andescrd ***\n"
-          "*** Side Between Nodes 1 and 2 Has 0-Length       ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** Side between nodes 1 and 2 Has zero length    ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
 // .....COMPUTE THE LENGTH OF SIDE 3-2 
@@ -85,10 +85,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF LENGTH 3-2 IS DIFFERENT FROM ZERO 
 
     if (side32length == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andescrd ***\n"
-          "*** Side Between Nodes 2 and 3 Has 0-Length       ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** Side between nodes 2 and 3 Has zero length    ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
 // .....COMPUTE THE DISTANCE OF THE OPPOSING NODE 3 TO SIDE 2-1 
@@ -100,10 +100,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     signedarea = side32length * side32length - projection * projection;
 
     if (signedarea <= 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andescrd ***\n"
-          "*** The Area is Negative or Zero                  ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** The area is negative or zero                  ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
     area = side21length * .5 * sqrt(signedarea);
@@ -403,10 +403,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK FOR ZERO-SIDE LENGTH
 
     if (rlr == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesmm ***\n"
-          "*** The Side 1-2 has Zero Length                 ***\n"
-          "*** Check Coordinates and FE Topology            ***\n");
+          "*** Side between nodes 1 and 2 has zero length   ***\n"
+          "*** Check coordinates and FE topology            ***\n");
     }
 
 // .....COMPUTE THE DISTANCE OF THE OPPOSING NODE (3) TO THAT SIDE (1-2)
@@ -421,10 +421,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF THE TRIANGLE'S AREA IS POSITIVE
 
     if (twicearea2 <= 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesmm ***\n"
-          "*** The Area is Negative or Zero                 ***\n"
-          "*** Check Coordinates and FE Topology            ***\n");
+          "*** The area is negative or zero                 ***\n"
+          "*** Check coordinates and FE topology            ***\n");
     }
 
 // .....COMPUTE THE AREA OF THE TRIANGLE
@@ -534,10 +534,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK FOR ZERO-SIDE LENGTH
 
     if (rlr == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesms ***\n"
-          "*** The Side 1-2 has Zero Length                 ***\n"
-          "*** Check Coordinates and FE Topology            ***\n");
+          "*** Side between nodes 1 and 2 has zero length   ***\n"
+          "*** Check coordinates and FE topology            ***\n");
     }
 
 // .....COMPUTE THE DISTANCE OF THE OPPOSING NODE (3) TO THAT SIDE (1-2)
@@ -552,10 +552,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF THE TRIANGLE'S AREA IS POSITIVE
 
     if (twicearea2 <= 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesms ***\n"
-          "*** The Area is Negative or Zero                 ***\n"
-          "*** Check Coordinates and FE Topology            ***\n");
+          "*** The area is negative or zero                 ***\n"
+          "*** Check coordinates and FE topology            ***\n");
     }
 
 // .....COMPUTE THE AREA OF THE TRIANGLE
@@ -2263,10 +2263,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF LENGTH 2-1 IS DIFFERENT FROM ZERO 
 
     if (side21length == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesare ***\n"
-          "*** Side Between Nodes 1 and 2 Has 0-Length       ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** Side between nodes 1 and 2 Has zero length    ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
 // .....COMPUTE THE LENGTH OF SIDE 3-2 
@@ -2276,10 +2276,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF LENGTH 3-2 IS DIFFERENT FROM ZERO 
 
     if (side32length == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesare ***\n"
-          "*** Side Between Nodes 2 and 3 Has 0-Length       ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** Side between nodes 2 and 3 Has zero length    ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
 // .....COMPUTE THE DISTANCE OF THE OPPOSING NODE 3 TO SIDE 2-1 
@@ -2291,10 +2291,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     signedarea = side32length * side32length - projection * projection;
 
     if (signedarea <= 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesare ***\n"
-          "*** The Area is Negative or Zero                  ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** The area is negative or zero                  ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
     area = side21length * .5 * sqrt(signedarea);

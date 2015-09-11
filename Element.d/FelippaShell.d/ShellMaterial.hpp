@@ -98,7 +98,7 @@ class ShellMaterialType1 : public ShellMaterial<doublereal>
     doublereal h;       // shell thickness
     doublereal Ta;      // ambient temperature
     Eigen::Map<Eigen::Matrix<doublereal,6,1> > Alpha; // coefficients of thermal expansion
-    static bool Wlocal_stress;
+    static bool Wlocal_stress, Wlocal_stress_disp, Wlocal_stress_thic;
   public:
     ShellMaterialType1(doublereal *_coef, doublereal *_aframe, doublereal _rhoh, doublereal _h = 0.,
                        doublereal _Ta = 0.)
@@ -227,6 +227,7 @@ class ShellMaterialType5 : public ShellMaterial<doublereal>
     doublereal h;       // shell thickness
     doublereal Ta;      // ambient temperature
     Eigen::Map<Eigen::Matrix<doublereal,6,1> > Alpha; // coefficients of thermal expansion
+    static bool Wlocal_stress, Wlocal_stress_disp, Wlocal_stress_thic;
   public:
     ShellMaterialType5(doublereal *_coef, doublereal *_aframe, doublereal _rhoh, doublereal _h,
                        doublereal _Ta = 0.)

@@ -3091,7 +3091,7 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
          *allSens.linearstaticWRTthick[iparam] += (*allSens.dKucdthick[iparam]) * Vc;
        }
      }
-     subtractGravityForceSensitivityWRTthickness(sindex,allSens); //TODO-> must consider other external forces
+     if(domain->gravityFlag()) subtractGravityForceSensitivityWRTthickness(sindex,allSens); //TODO-> must consider other external forces
 #endif
 }
 
@@ -3134,7 +3134,7 @@ Domain::computeLinearStaticWRTShapeVariableSensitivity(int sindex,
          *allSens.linearstaticWRTshape[ishape] += (*allSens.dKucdshape[ishape]) * Vc;
        }
      }
-     subtractGravityForceSensitivityWRTShapeVariable(sindex,allSens); //TODO-> must consider other external forces
+     if(domain->gravityFlag()) subtractGravityForceSensitivityWRTShapeVariable(sindex,allSens); //TODO-> must consider other external forces
 #endif
 }
 

@@ -1512,6 +1512,8 @@ TRAIL [a-zA-Z]*
 
 "CPODRB"|"CPODrb"|"cpodrb" 	          { return CONSTRAINTROB; }
 
+"FLTROW"|"FltRow"|"fltrow"		  { return FILTERROWS; }
+
 "svdfrc"|"SvdFrc"|"svdfrc"		  { return SVDFORCESNAP; }
 
 "svdcon"|"SvdCon"|"svdcon" 		  { return SVDCONSTRAINTSNAP; }

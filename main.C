@@ -1377,8 +1377,13 @@ int main(int argc, char** argv)
            }
          }
          else if (domain->solInfo().samplingPodRom) {
-           filePrint(stderr, " ... Element Sampling and Weighting ...\n");
-           driver.reset(elementSamplingDriverNew(domain));
+           if(domain->solInfo().computeConstraintSnap){
+             filePrint(stderr, " ... Constraint Sampling and Weighting ...\n");
+             driver.reset(constraintSamplingDriverNew(domain));
+           } else {
+             filePrint(stderr, " ... Element Sampling and Weighting ...\n");
+             driver.reset(elementSamplingDriverNew(domain));
+           }
          }
          else if (domain->solInfo().snapProjPodRom) {
            filePrint(stderr, " ... POD: Post-processing of Projected Snapshots ...\n");

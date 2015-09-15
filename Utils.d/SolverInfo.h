@@ -413,6 +413,7 @@ struct SolverInfo {
    bool ReducedStiffness;
    bool computeForceSnap;
    bool computeConstraintSnap;
+   bool filterSnapshotRows;
    bool orthogForceSnap;
    bool orthogConstraintSnap;
    bool computeDEIMIndices;
@@ -739,6 +740,7 @@ struct SolverInfo {
                   ReducedStiffness   = false;
                   computeForceSnap   = false;
                   computeConstraintSnap = false;
+                  filterSnapshotRows = false;
                   orthogForceSnap    = false;
                   orthogConstraintSnap = false;
                   computeDEIMIndices = false;

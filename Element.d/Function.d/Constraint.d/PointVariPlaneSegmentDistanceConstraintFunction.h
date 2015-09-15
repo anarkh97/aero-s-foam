@@ -44,19 +44,23 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
 
          d0 = (x2-x1).cross(x3-x1).normalized().dot(x0-x1) - thickness;
   
-      } else if (p1 > Scalar(0.) && p2 > Scalar(0.) && p3 <= Scalar(0.)) { // if two angles are greater than 90, point is closest to that vertex
+      } else {
+        d0 = std::min((x0-x2).norm() - thickness,std::min((x0-x3).norm() - thickness,(x0-x1).norm() - thickness)); 
+      } 
+
+        /*else if (p1 > Scalar(0.) && p2 > Scalar(0.) && p3 <= Scalar(0.)) { // if two angles are greater than 90, point is closest to that vertex
  
          d0 = (x0-x2).norm() - thickness;
 
-      } else if (p1 <= Scalar(0.) && p2 > Scalar(0.) && p3 > Scalar(0.)) { 
+      } else if (p1 <= Scalar(0.) && p2 >= Scalar(0.) && p3 >= Scalar(0.)) { 
 
         d0 = (x0-x3).norm() - thickness;
 
-      } else if (p1 > Scalar(0.) && p2 <= Scalar(0.) && p3 > Scalar(0.)) {
+      } else if (p1 >= Scalar(0.) && p2 <= Scalar(0.) && p3 >= Scalar(0.)) {
   
         d0 = (x0-x1).norm() - thickness;
 
-      } else if (p1 > Scalar(0.) && p2 <= Scalar(0.) && p3 <= Scalar(0.)) { // if one angle is greater than 90 degrees, then point is closest to that line segment or its end points
+      } else if (p1 >= Scalar(0.) && p2 <= Scalar(0.) && p3 <= Scalar(0.)) { // if one angle is greater than 90 degrees, then point is closest to that line segment or its end points
  
         if(p2 <= p3) { // closer to point opposite p2
           
@@ -122,7 +126,11 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
 
         }
 
-      }
+      } else {
+        
+        d0 = (x0-x3).norm() - thickness;
+
+      }*/
 
       return d0;
 

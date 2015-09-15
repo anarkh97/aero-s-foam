@@ -10,6 +10,7 @@ ADD_LIBRARY( Rom
   DEIMSamplingDriver.C 
   UDEIMSamplingDriver.C
   DEIMConstraintSamplingDriver.C
+  ConstraintSamplingDriver.C
   CheckNonLinDynamic.C
   CholeskyUtils.C
   DistrBasisFile.C

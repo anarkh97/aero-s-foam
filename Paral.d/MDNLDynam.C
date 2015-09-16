@@ -1951,3 +1951,9 @@ MDNLDynamic::resize(DistrGeomState *refState, DistrGeomState *geomState, DistrGe
     force.conservativeResize(solVecInfo());
   }
 }
+
+SensitivityInfo*
+MDNLDynamic::getSensitivityInfo() { return domain->senInfo; }
+
+int
+MDNLDynamic::getNumSensitivities() { return domain->getNumSensitivities(); }

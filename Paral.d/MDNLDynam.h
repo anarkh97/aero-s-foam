@@ -31,6 +31,8 @@ class DistrInfo;
 class DistFlExchanger;
 class LinesearchInfo;
 template <class Scalar> class GenFetiDPSolver;
+template <typename Scalar> struct AllSensitivities;
+struct SensitivityInfo;
 
 // Multiple Domain Nonlinear Dynamic problem descriptor
 
@@ -96,6 +98,7 @@ class MDNLDynamic
     std::vector<double> *lambda; // lagrange multipliers for all the other constraints
 
     bool updateCS;
+    AllSensitivities<double> *allSens;
 
  public:
 
@@ -194,6 +197,12 @@ class MDNLDynamic
     bool getResizeFlag();
     void resize(DistrGeomState *refState, DistrGeomState *geomState, DistrGeomState *stepState, DistrVector *stateIncr,
                 DistrVector &v, DistrVector &a, DistrVector &vp, DistrVector &force);
+
+    void preProcessSA() {}
+    void postProcessSA(DistrGeomState*, DistrGeomState*) {}
+    AllSensitivities<double> *getAllSensitivities() { return allSens; }
+    SensitivityInfo *getSensitivityInfo();
+    int getNumSensitivities();
 
   protected:
     Domain *getDomain() { return domain; }

@@ -1171,6 +1171,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         data[nodeI][2] = (nodes[iNode] && iNode<geomState->numNodes()) ? (*geomState)[iNode].z-nodes[iNode]->z : 0;
         if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
       }
+
       geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
       delete [] data;
     }
@@ -1850,6 +1851,11 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
      case OutputInfo::RobData:
         break;
      case OutputInfo::SampleMesh:
+        break;
+     case OutputInfo::DispThic:
+     case OutputInfo::WeigThic:
+     case OutputInfo::VMstThic:
+     case OutputInfo::AGstThic:
         break;
 
     default:

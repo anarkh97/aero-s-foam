@@ -97,4 +97,5 @@ FelippaShellX2::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
   for(j=0; j<24; ++j) res[j] = 0.0;
   for(j=0; j<18; ++j) res[subElemDofs[i][j]] = subres[j];
 }
+
 #endif

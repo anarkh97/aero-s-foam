@@ -118,7 +118,7 @@
 %token SNAPFI VELSNAPFI ACCSNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN
 %token VECTORNORM REBUILDFORCE SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 %token USEMASSNORMALIZEDBASIS
-%token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST DISPDOFLIST 
+%token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST RELAXATIONSEN 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 %token NPMAX BSSPLH PGSPLH
 
@@ -3396,6 +3396,8 @@ Sensitivity:
           domain->solInfo().readInShapeSen = $3; }  
         | Sensitivity TOLSEN Float NewLine
         { domain->solInfo().sensitivityTol = $3; }
+        | Sensitivity RELAXATIONSEN Float NewLine
+        { domain->solInfo().qsMaxvelSen = $3; }
         | Sensitivity RATIOTOLSEN Float NewLine
         { domain->solInfo().ratioSensitivityTol = $3; }    
         | Sensitivity KSPARAM Float NewLine
@@ -3406,22 +3408,34 @@ Sensitivity:
         { } 
         | Sensitivity STRESSNODELIST StressNode NewLine
         { } 
-        | Sensitivity DISPNODELIST DispNode NewLine
+        | Sensitivity DISPNODELIST NewLine DispNode
         { } 
-        | Sensitivity DISPDOFLIST DispDof NewLine
-        { }
-  ;
-DispDof:
-        Integer 
-        { domain->setDispDofs($1); }
-        | DispDof Integer 
-        { domain->setDispDofs($2); }
   ;
 DispNode:
-        Integer 
-        { domain->setDispNodes($1); }
-        | DispNode Integer 
-        { domain->setDispNodes($2); }
+        Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1); }
+        | DispNode Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1); }
+        | Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1); }
+        | DispNode Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1); }
+        | Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1); }
+        | DispNode Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1); }
+        | Integer Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1, $5-1); }
+        | DispNode Integer Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1, $6-1); }
+        | Integer Integer Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1, $5-1, $6-1); }
+        | DispNode Integer Integer Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1, $6-1, $7-1); }
+        | Integer Integer Integer Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1, $5-1, $6-1, $7-1); }
+        | DispNode Integer Integer Integer Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1, $6-1, $7-1, $8-1); }
   ;
 StressNode:
         Integer 

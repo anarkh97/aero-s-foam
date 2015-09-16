@@ -105,8 +105,9 @@ ConnectedTri::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
  resF[3] = (xyz[1]-xyzRef[1])*flF[2] -  (xyz[2]-xyzRef[2])*flF[1];
  resF[4] = (xyz[2]-xyzRef[2])*flF[0] -  (xyz[0]-xyzRef[0])*flF[2];
  resF[5] = (xyz[0]-xyzRef[0])*flF[1] -  (xyz[1]-xyzRef[1])*flF[0];
-}void
-		
+}
+
+void
 ConnectedTri::computeDisp(CoordSet&cs, State &state, const InterpPoint &ip,
                             double *res, GeomState *gs)
 {

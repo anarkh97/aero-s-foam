@@ -671,6 +671,8 @@ TRAIL [a-zA-Z]*
 
 "tolsen"[a-zA-Z]*|"TOLSEN"[a-zA-Z]* { return TOLSEN; }
 
+"relaxationsen"|"RELAXATIONSEN"    { return RELAXATIONSEN; }
+
 "ratiotolsen"|"RATIOTOLSEN"        { return RATIOTOLSEN; }
 
 "ksparam"|"KSPARAM"                { return KSPARAM; }
@@ -748,8 +750,6 @@ TRAIL [a-zA-Z]*
 "STNOLI"|"stnoli"                  { return STRESSNODELIST; }
 
 "DINOLI"|"dinoli"                  { return DISPNODELIST; }
-
-"DIDOLI"|"didoli"                  { return DISPDOFLIST; }
 
 "addedmass"                        { return ADDEDMASS; }
 

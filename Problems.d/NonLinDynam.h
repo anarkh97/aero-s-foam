@@ -25,7 +25,9 @@ class ControlLawInfo;
 template <typename T> class GenFSFullMatrix;
 typedef GenFSFullMatrix<double> FSFullMatrix;
 class LinesearchInfo;
-template <typename Scalar> struct AllSensitivities;
+class ModalGeomState;
+struct SensitivityInfo;
+template<class Scalar> struct AllSensitivities;
 
 class NLDynamPostProcessor
 {
@@ -174,6 +176,10 @@ class NonLinDynamic : public NLDynamPostProcessor {
     double getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce,
                             double midtime=-1, GeomState *refState = NULL, bool forceOnly = false);
 
+    AllSensitivities<double> *getAllSensitivities() { return allSens; }
+    SensitivityInfo *getSensitivityInfo();
+    int getNumSensitivities();
+
   private:
     // Overridable implementation of getStiffAndForce
     virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
@@ -215,6 +221,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void preProcessSA();
     void postProcessSA(Vector &sol);
 
+    void postProcessSA(GeomState *, GeomState *);
+    virtual void postProcessSA(ModalGeomState *, ModalGeomState *) {}
 private:
     virtual bool factorWhenBuilding() const;
     void clean();

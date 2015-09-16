@@ -836,12 +836,6 @@ NonLinDynamic::preProcessSA()
 }
 
 void
-NonLinDynamic::postProcessSA(Vector &sol)
-{
-  domain->buildPostSensitivities<double>(solver, spm, K, *allSens, sol, bcx, true);
-}
-
-void
 NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
 {
  // Allocate space for the Static Timers
@@ -1278,3 +1272,15 @@ NonLinDynamic::getResizeFlag()
 {
   return (domain->GetnContactSurfacePairs() > 0);
 }
+
+void
+NonLinDynamic::postProcessSA(GeomState *refState, GeomState *geomState)
+{
+  domain->buildPostSensitivities<double>(solver, NULL, NULL, *allSens, NULL, NULL, true, refState, geomState, allCorot); 
+}
+
+SensitivityInfo*
+NonLinDynamic::getSensitivityInfo() { return domain->senInfo; }
+
+int
+NonLinDynamic::getNumSensitivities() { return domain->getNumSensitivities(); }

@@ -84,6 +84,7 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
                 // In this case the higher-order contribution in B matrix is neglected.
   weight = 1.0;
+  if(strInd == -1) return;
 
   int strainFlg, offset;
   switch(strInd) {

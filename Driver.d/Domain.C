@@ -75,16 +75,7 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
  if(verboseFlag == 0) setSilent();
  else setVerbose();
 
- senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
- aggregatedStress = new double;
- aggregatedStressDenom = new double;
- *aggregatedStress = 0; 
- *aggregatedStressDenom = 0;
- numThicknessGroups = thicknessGroups.size();
- numStressNodes = stressNodes.size();
- numDispNodes = dispNodes.size();
- numDispDofs = dispDofs.size();
-
+ initializeNumbers();
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
@@ -111,15 +102,7 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 
  if(verboseFlag == 0) setSilent();
  else setVerbose();
- senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
- aggregatedStress = new double;
- aggregatedStressDenom = new double;
- *aggregatedStress = 0; 
- *aggregatedStressDenom = 0;
- numThicknessGroups = thicknessGroups.size();
- numStressNodes = stressNodes.size();
- numDispNodes = dispNodes.size();
- numDispDofs = dispDofs.size();
+ initializeNumbers();
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
@@ -132,15 +115,7 @@ Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(ini
  else setVerbose();
 
  matrixTimers = new MatrixTimers;
- senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
- aggregatedStress = new double;
- aggregatedStressDenom = new double;
- *aggregatedStress = 0; 
- *aggregatedStressDenom = 0;
- numThicknessGroups = thicknessGroups.size();
- numStressNodes = stressNodes.size();
- numDispNodes = dispNodes.size();
- numDispDofs = dispDofs.size();
+ initializeNumbers();
 }
 
 void
@@ -199,6 +174,28 @@ Domain::makeAllDOFsFluid()
    int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
    maxNumNodesFluid = std::max(maxNumNodesFluid, numNodesPerElement);
  }
+}
+
+void
+Domain::makeThicknessGroupElementFlag()
+{
+  std::map<int, Group> &group = geoSource->group;
+  std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+  thgreleFlag = new bool[numele];
+  thpaIndex = new int[numele];
+
+  int iele;
+  for(iele=0; iele< numele; iele++) { thgreleFlag[iele] = false; thpaIndex[iele] = -1; }
+  for(int iparam = 0; iparam < thicknessGroups.size(); ++iparam) { 
+    int groupIndex = thicknessGroups[iparam];
+    for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) { 
+      for(int eindex = 0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
+        iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
+        thgreleFlag[iele] = true; 
+        thpaIndex[iele] = iparam;
+      }
+    }
+  }
 }
 
 // This routine creates the array of boundary condition
@@ -3164,7 +3161,18 @@ Domain::pressureFlag() { return geoSource->pressureFlag(); }
 // function that returns composite layer info
 LayInfo *Domain::getLayerInfo(int num) { return geoSource->getLayerInfo(num); }
 
-
+void
+Domain::initializeNumbers()
+{
+ numThicknessGroups = 0; numShapeVars = 0;  thgreleFlag = 0;  thpaIndex = 0;
+ senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ aggregatedStress = new double;
+ aggregatedStressDenom = new double;
+ *aggregatedStress = 0; 
+ *aggregatedStressDenom = 0;
+ numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+}
 
 void
 Domain::initialize()
@@ -3201,9 +3209,10 @@ Domain::initialize()
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;
  g_dsa = 0;
- numSensitivity = 0; senInfo = 0;
- runSAwAnalysis = false;   
- numThicknessGroups = 0; numShapeVars = 0;
+ numSensitivity = 0; senInfo = 0;  numSensitivityQuantityTypes = 0;
+ runSAwAnalysis = false;   numTotalDispDofs = 0;  
+ aggregatedFlag = false;
+ aggregatedFileNumber = 0; 
 }
 
 Domain::~Domain()
@@ -3277,6 +3286,8 @@ Domain::~Domain()
  if(g_dsa) delete g_dsa;
  if(senInfo) delete [] senInfo;
  if(aggregatedStress) delete aggregatedStress;
+ if(thgreleFlag) delete [] thgreleFlag;
+ if(thpaIndex) delete [] thpaIndex;
 }
 
 #include <Element.d/Helm.d/HelmElement.h>
@@ -4226,38 +4237,44 @@ void Domain::updateRUBDAFT(StructProp* p, double omega) {
 void Domain::buildSensitivityInfo()
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
+  bool weight(false), aggregatedStressVMSensitivity(false), vonMisesStress(false), displacement(false), noAggregatedStressVM(true); 
   int numOutInfo = geoSource->getNumOutInfo();
   for(int i=0; i<numOutInfo; ++i) {
     if(oinfo[i].type == OutputInfo::WeigThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;       addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;       addSensitivity(oinfo[i]);  weight = true;
     } else if (oinfo[i].type == OutputInfo::WeigShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;           addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;           addSensitivity(oinfo[i]);  weight = true;
     } else if (oinfo[i].type == OutputInfo::AGstThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTthickness;     addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTthickness;     addSensitivity(oinfo[i]);  aggregatedStressVMSensitivity = true;   aggregatedFileNumber = i;
     } else if (oinfo[i].type == OutputInfo::AGstShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTshape;         addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTshape;         addSensitivity(oinfo[i]);  aggregatedStressVMSensitivity = true;   aggregatedFileNumber = i;
     } else if (oinfo[i].type == OutputInfo::VMstThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;     addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;     addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;         addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;         addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstMach) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTmach;          addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTmach;          addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstAlpha) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTalpha;         addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTalpha;         addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstBeta) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTbeta;          addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTbeta;          addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::DispThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTthickness; addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTthickness; addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTshape;     addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTshape;     addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispMach) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTmach;      addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTmach;      addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispAlph) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTalpha;     addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTalpha;     addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispBeta) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTbeta;      addSensitivity(oinfo[i]);
-    }
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTbeta;      addSensitivity(oinfo[i]);  displacement = true;
+    } else if (oinfo[i].type == OutputInfo::AggrStVM) noAggregatedStressVM = false;
   }
+  if(aggregatedStressVMSensitivity) numSensitivityQuantityTypes++;
+  if(vonMisesStress) numSensitivityQuantityTypes++;
+  if(displacement) numSensitivityQuantityTypes++;
+  if(aggregatedStressVMSensitivity && noAggregatedStressVM) aggregatedFlag = true;
+
 }
 
 void Domain::addSensitivity(OutputInfo &oinfo) {

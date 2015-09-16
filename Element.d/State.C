@@ -6,14 +6,14 @@
 extern Domain *domain;
 
 void
-State::getDV(int node, double xyz[3], double v[3])
+State::getDV(int node, double xyz[3], double v[3], bool noPrescribed)
 {
  int loc, loc1;
 
  if((loc = dsa->locate(node,DofSet::Xdisp)) >= 0) { // free
    xyz[0] = disp[loc];
      v[0] = veloc[loc];
- } else if((loc1 = DSA->locate(node,DofSet::Xdisp)) >= 0) { // prescribed
+ } else if((loc1 = DSA->locate(node,DofSet::Xdisp)) >= 0 && !noPrescribed) { // prescribed
    xyz[0] = bcx[loc1];
      v[0] = vcx[loc1];
  } else { // not defined
@@ -24,7 +24,7 @@ State::getDV(int node, double xyz[3], double v[3])
  if((loc = dsa->locate(node,DofSet::Ydisp)) >= 0) { // free
    xyz[1] = disp[loc];
      v[1] = veloc[loc];
- } else if((loc1 = DSA->locate(node,DofSet::Ydisp)) >= 0) { // prescribed
+ } else if((loc1 = DSA->locate(node,DofSet::Ydisp)) >= 0 && !noPrescribed) { // prescribed
    xyz[1] = bcx[loc1];
      v[1] = vcx[loc1];
  } else { // not defined
@@ -35,7 +35,7 @@ State::getDV(int node, double xyz[3], double v[3])
  if((loc = dsa->locate(node,DofSet::Zdisp)) >= 0) { // free
    xyz[2] = disp[loc];
      v[2] = veloc[loc];
- } else if((loc1 = DSA->locate(node,DofSet::Zdisp)) >= 0) { // prescribed
+ } else if((loc1 = DSA->locate(node,DofSet::Zdisp)) >= 0 && !noPrescribed) { // prescribed
    xyz[2] = bcx[loc1];
      v[2] = vcx[loc1];
  } else { // not defined

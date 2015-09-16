@@ -44,6 +44,7 @@ struct Group;
 struct AttributeToElement;
 class DistrGeomState;
 class ControlLawInfo;
+struct DispNode;
 
 enum {SXX=0,SYY=1,SZZ=2,SXY= 3,SYZ= 4,SXZ= 5,VON=6,
       EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12,STRAINVON=13,
@@ -549,8 +550,8 @@ public:
     void outputSensitivityDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, 
                                       double time = 0.0, int numParams = 0, int numnodes = 0);
   template<class Scalar>
-    void outputSensitivityAdjointDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, 
-                                             double time, int numParams, int numnodes, int numdofs, std::vector<int>);
+    void outputSensitivityAdjointDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, Scalar *, 
+                                             double time, int numParams, std::vector<DispNode>);
   template<class Scalar>
     void outputSensitivityDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, 
                                       double time = 0.0, int numnodes = 0);

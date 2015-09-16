@@ -3468,7 +3468,7 @@ void GeoSource::openOutputFilesForPita(int sliceRank)
 //--------------------------------------------------------------------
 void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
 {
-  int iInfo;
+  int iInfo;  
 
   if(numOuts == 0) { // open all output files and write their corresponding TOPDOM/DEC header
     for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {

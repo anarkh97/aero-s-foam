@@ -39,9 +39,9 @@ template
 void GeoSource::outputSensitivityDispVectors<complex<double> >(int, Eigen::Matrix<complex<double>, Eigen::Dynamic, Eigen::Dynamic>**, double, int, int);
 
 template
-void GeoSource::outputSensitivityAdjointDispVectors<double>(int, Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>**, double, int, int, int, std::vector<int>);
+void GeoSource::outputSensitivityAdjointDispVectors<double>(int, Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>**, double *, double, int, std::vector<DispNode>);
 template
-void GeoSource::outputSensitivityAdjointDispVectors<complex<double> >(int, Eigen::Matrix<complex<double>, Eigen::Dynamic, Eigen::Dynamic>**, double, int, int, int, std::vector<int>);
+void GeoSource::outputSensitivityAdjointDispVectors<complex<double> >(int, Eigen::Matrix<complex<double>, Eigen::Dynamic, Eigen::Dynamic>**, complex<double> *, double, int, std::vector<DispNode>);
 
 template
 void GeoSource::outputSensitivityDispVectors<double>(int, Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*, double, int);

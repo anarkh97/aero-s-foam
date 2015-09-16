@@ -47,6 +47,17 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // Set up nonlinear dynamics problem descriptor 
   probDesc->preProcess();
 
+#ifdef USE_EIGEN3
+  if(domain->solInfo().sensitivity) {
+//    probDesc->preProcessSA();
+    if(!domain->runSAwAnalysis) {
+      AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
+      domain->sensitivityPostProcessing(*allSens);
+      return;
+    }
+  }
+#endif
+
   // Compute time integration values: dt, totalTime, maxStep
   probDesc->computeTimeInfo();
   probDesc->getNewmarkParameters(beta, gamma, alphaf, alpham);
@@ -401,6 +412,69 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   if(aeroAlg < 0)
     filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", time, dt); 
+
+#ifdef USE_EIGEN3
+  SensitivityInfo *senInfo = probDesc->getSensitivityInfo();
+  int numShapeVars = domain->getNumShapeVars();
+  int numThicknessGroups = domain->getNumThicknessGroups();
+  int numStructQuantTypes = domain->getNumSensitivityQuantityTypes();
+  if(domain->solInfo().sensitivity) {
+    probDesc->postProcessSA(refState, geomState);
+    AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
+    for(int isen = 0; isen < probDesc->getNumSensitivities(); ++isen) {
+      switch (senInfo[isen].type) {
+
+        case SensitivityInfo::DisplacementWRTshape:
+ 
+          filePrint(stderr, " ... numShapeVars = %d              ...\n", numShapeVars);
+          if( numShapeVars > 0) {
+            if(domain->solInfo().sensitivityMethod == SolverInfo::Direct) {
+              if(!allSens->dispWRTshape) { 
+                allSens->dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+                VecType *rhsSen;
+                for(int ishap=0; ishap< numShapeVars; ++ishap) {
+                  allSens->dispWRTshape[ishap] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                  rhsSen = new VecType( probDesc->solVecInfo() );
+                  rhsSen->copy(allSens->linearstaticWRTshape[ishap]->data());
+                  (*rhsSen) *= -1;
+                  probDesc->getSolver()->reSolve(*rhsSen);
+                  *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(rhsSen->data(),domain->numUncon(),1);
+                  delete rhsSen;
+                }
+              }
+            }
+          }     
+          break;
+
+        case SensitivityInfo::DisplacementWRTthickness:
+
+          filePrint(stderr," ... numThicknessGroups = %d         ...\n", numThicknessGroups);
+          if( numThicknessGroups > 0 ) {  
+            if(domain->solInfo().sensitivityMethod == SolverInfo::Direct) {
+              if(!allSens->dispWRTthick) { 
+                allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+                VecType *rhsSen;
+                for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
+                  allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                  rhsSen = new VecType( probDesc->solVecInfo() );
+                  rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
+                  (*rhsSen) *= -1; 
+                  probDesc->getSolver()->reSolve(*rhsSen);
+                  *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(rhsSen->data(),domain->numUncon(),1);
+                  delete rhsSen;
+                }
+              }
+            }
+          }
+          break;
+
+        default:
+          break; 
+      }
+    }
+    domain->sensitivityPostProcessing(*allSens); 
+  }
+#endif
 
 #ifdef PRINT_TIMERS
   filePrint(stderr, " ... Total Loop Time = %.2e s   ...\n", s2/1000.0);

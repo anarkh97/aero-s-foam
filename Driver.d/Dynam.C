@@ -319,7 +319,7 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
   int iscollocated;
   double tFluid = flExchanger->getFluidLoad(tmpF, tIndex, t,
                                             alphaf, iscollocated, geomState);
-  if(verboseFlag) filePrint(stderr, " ... [E] Received fluid load        ...\n");
+  if(verboseFlag) filePrint(stderr, " ... [E] Received fluid load norm is %e ...\n", tmpF.norm());
 
   if(sinfo.aeroFlag == 20) {
     if(prevFrc.lastTIndex >= 0)
@@ -365,46 +365,6 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
                              sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
   }
 
-  getTimers().receiveFluidTime += getTime();
-}
-
-void
-Domain::buildAeroelasticForceSensitivity(Vector& aero_fSen, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState)
-{
-  // ... COMPUTE AEROELASTIC FORCE 
-  getTimers().receiveFluidTime -= getTime();
-
-  // ... Temporary variable for inter(extra)polated force
-  double *tmpFmem = new double[numUncon()];
-  StackVector tmpF(tmpFmem, numUncon());
-  tmpF.zero();
-
-  int iscollocated;
-  double tFluid = flExchanger->getFluidLoadSensitivity(tmpF, tIndex, t,
-                                                       alphaf, iscollocated, geomState);
-
-  if(sinfo.aeroFlag == 20) {
-    if(prevFrc.lastTIndex >= 0)
-      aero_fSen.linC(0.5,tmpF,0.5,prevFrc.lastFluidLoad);
-    else
-      aero_fSen = tmpF;
-  }
-  else {
-    if(iscollocated == 0) {
-      if(prevFrc.lastTIndex >= 0) {
-        tmpF *= (1/gamma);
-        tmpF.linAdd(((gamma-1.0)/gamma), prevFrc.lastFluidLoad);
-      }
-    }
-
-    double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
-    aero_fSen.linC(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
-  }
-  prevFrc.lastFluidLoad = tmpF;
-  prevFrc.lastFluidTime = tFluid;
-  prevFrc.lastTIndex = tIndex;
-
-  delete [] tmpFmem;
   getTimers().receiveFluidTime += getTime();
 }
 

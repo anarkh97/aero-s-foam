@@ -488,7 +488,7 @@ SuperElement::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
     subElems[i]->getVonMises(subElementStress, subElementWeight, cs, *subElementDisp, strInd,
                              surface, subNodeTemp, ylayer, zlayer, subAvgnum);
 
-    stress.add(subElementStress, subElemNodes[i]);
+    if(strInd != -1) stress.add(subElementStress, subElemNodes[i]);
     weight.add(subElementWeight, subElemNodes[i]);
 
     if(subNodeTemp) delete [] subNodeTemp;

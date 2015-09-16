@@ -750,7 +750,7 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
  if(domain->solInfo().sensitivity) { 
    probDesc->postProcessSA(*sol);
    AllSensitivities<Scalar> *allSens = probDesc->getAllSensitivities();
-   domain->sensitivityPostProcessing(*allSens);
+   domain->sensitivityPostProcessing(*allSens,sol);
  }
 #endif
 

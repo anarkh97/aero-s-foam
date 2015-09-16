@@ -756,7 +756,7 @@ SingleDomainDynamic::getAeroelasticForceSensitivity(int tIndex, double t,
                                                     Vector *aero_f, double gamma, double alphaf)
 {
   // get aeroelastic force sensitivity from fluid code
-  domain->buildAeroelasticForceSensitivity(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
+  domain->buildAeroelasticForce(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
 }
 
 void
@@ -777,7 +777,7 @@ SingleDomainDynamic::preProcessSA()
 void
 SingleDomainDynamic::postProcessSA(DynamMat *dMat, Vector &sol)
 {
-  domain->buildPostSensitivities<double>(dMat->dynMat, dMat->K, dMat->K, *allSens, sol, bcx, true);
+  domain->buildPostSensitivities<double>(dMat->dynMat, dMat->K, dMat->K, *allSens, &sol, bcx, true);
 }
 
 void
@@ -1398,7 +1398,7 @@ SingleDomainDynamic::sendNumParam(int numParam, int actvar, double steadyTol)
 }
 
 void 
-SingleDomainDynamic::getNumParam(bool &numParam)
+SingleDomainDynamic::getNumParam(int &numParam)
 {
   flExchanger->getNumParam(numParam);
 }

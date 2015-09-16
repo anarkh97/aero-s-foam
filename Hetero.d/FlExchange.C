@@ -223,89 +223,6 @@ FlExchanger::getFluidLoad(Vector &force, int tIndex, double time,
   return (time + alphaf * dt);
 }
 
-double
-FlExchanger::getFluidLoadSensitivity(Vector &forceSen, int tIndex, double time,
-                                     double alphaf, int &iscollocated, GeomState *geomState)
-{
-  aforce[0] = aforce[1] = aforce[2] = 0.0;
-  FaceElemSet *feset;
-
-  if(useFaceElem) {
-    feset = &(surface->GetFaceElemSet());
-  }
-
-  Element     *thisElement;
-  FaceElement *thisFaceElem;
-
-#ifdef DETERMINISTIC_FLEXCHANGER
-  // Message-passing programming models are by default nondeterministic: the arrival order of messages
-  // sent from two processes, A and B, to a third process, C, is not defined. It is the programmer's
-  // responsibility to ensure that a computation is deterministic when this is required. 
-  std::vector<double> *buffers = new std::vector<double>[nbrReceivingFromMe];
-  std::map<int,int> cpupos;
-  for(int i = 0; i < nbrReceivingFromMe; i++) {
-    int tag = FLTOSTSEN + ((rcvParity > 0) ? 1 : 0);
-    RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
-    cpupos[rInfo.cpu] = i;
-    buffers[i].insert(buffers[i].begin(), buffer, buffer + nbSendTo[consOrigin[rInfo.cpu]]*3);
-  }
-
-  for(std::map<int,int>::iterator it = cpupos.begin(); it != cpupos.end(); ++it) {
-    double *buffer = buffers[it->second].data();
-    int fromNd = it->first;
-    int origin = consOrigin[fromNd];
-#else
-  for(int i = 0; i < nbrReceivingFromMe; i++) {
-    int tag = FLTOSTSEN + ((rcvParity > 0) ? 1 : 0);
-    RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
-    int fromNd = rInfo.cpu;
-    int origin = consOrigin[fromNd];
-#endif
-
-    for(int j = 0; j < nbSendTo[origin]; ++j) {
-      int nDof;
-
-      if(!useFaceElem) {
-        thisElement = eset[sndTable[origin][j].elemNum];
-        thisElement->getFlLoad(cs, sndTable[origin][j], buffer + 3 * j, localF, geomState);
-        nDof = thisElement->numDofs();
-        transformVector(localF, thisElement);
-      }
-      else {
-        thisFaceElem = (*feset)[sndTable[origin][j].elemNum];
-        thisFaceElem->getFlLoad(sndTable[origin][j], buffer + 3 * j, localF);
-        nDof = thisFaceElem->numDofs();
-        transformVector(localF, thisFaceElem);
-      }
-
-      int *dof = sndTable[origin][j].dofs;
-
-      for(int iDof = 0; iDof < nDof; ++iDof)
-        if(dof[iDof] >= 0) {
-          forceSen[dof[iDof]] += localF[iDof];
-        }
-
-      aforce[0] += buffer[3 * j];
-      aforce[1] += buffer[3 * j + 1];
-      aforce[2] += buffer[3 * j + 2];
-    }
-  }
-
-  flipRcvParity();
-
-  if(oinfo) {
-    if(tIndex % oinfo->interval == 0 && oinfo->filptr != NULL) {
-      fprintf(oinfo->filptr, "%e   ", time);
-      fprintf(oinfo->filptr, "%e %e %e\n", aforce[0], aforce[1], aforce[2]);
-      fflush(oinfo->filptr);
-    }
-  }
-
-  // ML & KP For 'corrected' aeroelastic forceSen
-  iscollocated = (isCollocated) ? 1 : 0;
-  return (time + alphaf * dt);
-}
-
 void
 FlExchanger::sendDisplacements(State &state, int tag, GeomState *geomState)
 {
@@ -329,8 +246,7 @@ FlExchanger::sendDisplacements(State &state, int tag, GeomState *geomState)
   }
 
   State newState(state, *tmpDisp);
-  if(verboseFlag)
-    fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", tmpDisp->norm(), state.getVeloc().norm());
+  if(verboseFlag) fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", tmpDisp->norm(), state.getVeloc().norm());
 
   FaceElemSet *feset;
   int         *fnId;
@@ -392,8 +308,7 @@ FlExchanger::sendDisplacements(State &state, int tag, GeomState *geomState)
   }
 
   fluidCom->waitForAllReq();
-  //if (verboseFlag)
-  //  fprintf(stderr, "Sending %e and %e to %d CPUs\n", xxx, yyy, nbrReceivingFromMe);
+  if (verboseFlag) fprintf(stderr, "Sending %e and %e to %d CPUs\n", xxx, yyy, nbrReceivingFromMe);
   flipSndParity();
 }
 
@@ -1102,7 +1017,7 @@ FlExchanger::sendNumParam(int numParam, int actvar, double steadyTol)
 }
 
 void
-FlExchanger::getNumParam(bool &numParam)
+FlExchanger::getNumParam(int &numParam)
 {
   int tag;
   int thisNode = structCom->myID();
@@ -1112,7 +1027,7 @@ FlExchanger::getNumParam(bool &numParam)
   if(thisNode == 0) {
     tag =  FLNUMPAST;
     RecInfo rInfo = fluidCom->recFrom(tag, buffer, msglen);
-    numParam = (bool) buffer[0];
+    numParam = (int) buffer[0];
   }
 }
 

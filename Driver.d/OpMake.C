@@ -40,6 +40,9 @@
 #include <Rom.d/EiGalerkinProjectionSolver.h>
 #include <Control.d/ControlInterface.h>
 #include <Driver.d/SubDomain.h>
+#include <Rom.d/VecNodeDof6Conversion.h>
+#include <Rom.d/FileNameInfo.h>
+#include <Rom.d/BasisFileStream.h>
 
 extern Sfem* sfem;
 extern int verboseFlag;
@@ -1080,13 +1083,14 @@ template<class Scalar>
 void
 Domain::buildPostSensitivities(GenSolver<Scalar> *sysSolver, 
                                GenSparseMatrix<Scalar> *K, GenSparseMatrix<Scalar> *spm,
-                               AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx, bool isDynam)
+                               AllSensitivities<Scalar> &allSens, GenVector<Scalar> *sol, Scalar *bcx, bool isDynam,
+                               GeomState *refState, GeomState *geomState, Corotator **allCorot)
 {
   switch(sinfo.type) {
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
-      makePostSensitivities(sysSolver, spm, allSens, sol, bcx, K, isDynam);
+      makePostSensitivities(sysSolver, spm, allSens, sol, bcx, K, isDynam, refState, geomState, allCorot);
       break;
   }
 }
@@ -3512,8 +3516,15 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 }
 
 //-------------------------------------------------------------------------------------
-template <class Scalar>
-void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
+template <>
+void Domain::sensitivityPostProcessing(AllSensitivities<DComplex> &allSens, GenVector<DComplex> *sol) {
+
+  filePrint(stderr, " ... WARNING : Domain::sensitivityPostProcessing is not implemented\n");
+}
+
+//-------------------------------------------------------------------------------------
+template <>
+void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVector<double> *sol) {
 #ifdef USE_EIGEN3
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int numOutInfo = geoSource->getNumOutInfo();
@@ -3528,53 +3539,76 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
     if(oinfo[i].type == OutputInfo::VMstMach) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTmach);
     if(oinfo[i].type == OutputInfo::VMstAlpha) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTalpha);
     if(oinfo[i].type == OutputInfo::VMstBeta) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTbeta);
+    if(oinfo[i].type == OutputInfo::Statevector) {
+      using namespace Rom;
+      VecNodeDofConversion<6> vecNodeDof6Conversion(*getCDSA());
+      if(allSens.lambdaDisp) {
+        std::string fileName = std::string(oinfo[i].filename) + ".DispAdjoint";
+        BasisOutputStream<6> adjointSnapFile(BasisFileId(fileName, BasisId::STATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion, (geoSource->getCheckFileInfo()->lastRestartFile != 0));
+        for(int idof=0; idof<numTotalDispDofs; ++idof) 
+          adjointSnapFile << *allSens.lambdaDisp[idof];
+      }
+      if(allSens.lambdaStressVM) {
+        std::string fileName = std::string(oinfo[i].filename) + ".StressVMAdjoint";
+        BasisOutputStream<6> adjointSnapFile(BasisFileId(fileName, BasisId::STATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion, (geoSource->getCheckFileInfo()->lastRestartFile != 0));
+        for(int inode=0; inode<numStressNodes; ++inode)
+          adjointSnapFile << *allSens.lambdaStressVM[inode];
+      }
+      if(allSens.lambdaAggregatedStressVM) {
+        std::string fileName = std::string(oinfo[i].filename) + ".AggregatedStressVMAdjoint";
+        BasisOutputStream<6> adjointSnapFile(BasisFileId(fileName, BasisId::STATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion, (geoSource->getCheckFileInfo()->lastRestartFile != 0));
+        adjointSnapFile << *allSens.lambdaAggregatedStressVM;
+      }
+    }
     if(oinfo[i].type == OutputInfo::DispThic) {
       int numThicknessGroup = getNumThicknessGroups();
-      allSens.gdispWRTthick = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroup];
-      for(int iparam=0; iparam<numThicknessGroup; ++iparam) { 
-        if(solInfo().sensitivityMethod == SolverInfo::Direct) {
-          allSens.gdispWRTthick[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
-          mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam]);
-        } else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
-          allSens.gdispWRTthick[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numDispNodes, numDispDofs);
-          mergeAdjointDistributedDispSensitivity<Scalar>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam]);
+      allSens.gdispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroup];
+      if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+        for(int iparam=0; iparam<numThicknessGroup; ++iparam) {
+          allSens.gdispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+          mergeDistributedDispSensitivity<double>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam]);
+        } 
+        geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTthick, 0, numThicknessGroup, numnodes);
+      } else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+        double *disp = new double[numTotalDispDofs];
+        for(int iparam=0; iparam<numThicknessGroup; ++iparam) {
+          allSens.gdispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numTotalDispDofs, 1);
+          mergeAdjointDistributedDispSensitivity<double>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam], disp, sol);
         }
-      }
-      if(solInfo().sensitivityMethod == SolverInfo::Direct) geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTthick, 0, numThicknessGroup, numnodes);
-      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
-        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTthick, 0, numThicknessGroup, numDispNodes, numDispDofs, dispNodes);
+        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTthick, disp, 0, numThicknessGroup, dispNodes);
       }
     }
     if(oinfo[i].type == OutputInfo::DispShap) {
       int numShapeVars = getNumShapeVars();
-      allSens.gdispWRTshape = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
-      for(int iparam=0; iparam<numShapeVars; ++iparam) {
-        if(solInfo().sensitivityMethod == SolverInfo::Direct) { 
-          allSens.gdispWRTshape[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
-          mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam]);
-        } else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
-          allSens.gdispWRTshape[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numDispNodes, numDispDofs);
-          mergeAdjointDistributedDispSensitivity<Scalar>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam]);
+      allSens.gdispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+      if(solInfo().sensitivityMethod == SolverInfo::Direct) {  
+        for(int iparam=0; iparam<numShapeVars; ++iparam) {
+          allSens.gdispWRTshape[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+          mergeDistributedDispSensitivity<double>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam]);
+        } 
+        geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTshape, 0, numShapeVars, numnodes);
+      } else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+        double *disp = new double[numTotalDispDofs];
+        for(int iparam=0; iparam<numShapeVars; ++iparam) {
+          allSens.gdispWRTshape[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numTotalDispDofs, 1);
+          mergeAdjointDistributedDispSensitivity<double>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam], disp, sol);
         }
-      }
-      if(solInfo().sensitivityMethod == SolverInfo::Direct) geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTshape, 0, numShapeVars, numnodes);
-      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
-        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTshape, 0, numShapeVars, numDispNodes, numDispDofs, dispNodes);
+        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTshape, disp, 0, numShapeVars, dispNodes);
       }
     }
     if(oinfo[i].type == OutputInfo::DispMach) {
-      allSens.gdispWRTmach = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
-      mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTmach, allSens.dispWRTmach);
+      allSens.gdispWRTmach = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+      mergeDistributedDispSensitivity<double>(allSens.gdispWRTmach, allSens.dispWRTmach);
       geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTmach, 0, numnodes);
     }
     if(oinfo[i].type == OutputInfo::DispAlph) {
-      allSens.gdispWRTalpha = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
-      mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTalpha, allSens.dispWRTalpha);
+      allSens.gdispWRTalpha = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+      mergeDistributedDispSensitivity<double>(allSens.gdispWRTalpha, allSens.dispWRTalpha);
       geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTalpha, 0, numnodes);
     }
     if(oinfo[i].type == OutputInfo::DispBeta) {
-      allSens.gdispWRTmach = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
-      mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTbeta, allSens.dispWRTbeta);
+      allSens.gdispWRTmach = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+      mergeDistributedDispSensitivity<double>(allSens.gdispWRTbeta, allSens.dispWRTbeta);
       geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTbeta, 0, numnodes);
     }
   }
@@ -3687,20 +3721,28 @@ void Domain::mergeDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynami
 #ifdef USE_EIGEN3
 template<class Scalar>
 void Domain::mergeAdjointDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispSen, 
-                                                    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispSen)
+                                                    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispSen,
+                                                    Scalar *disp, GenVector<Scalar> *sol)
 {
   int inode;
   int realNode = -1;
 
+  int dispDofIndex = 0;
   for(inode = 0; inode < numDispNodes; ++inode) {
-    int node = dispNodes[inode], loc;
+    int node = dispNodes[inode].nodeID, loc;
+    int numDispDofs = dispNodes[inode].numdofs;
     for(int idof=0; idof<numDispDofs; ++idof) {
-      int dof = dispDofs[idof];
+      int dof = dispNodes[inode].dofs[idof];
       loc = returnLocalDofNum(node, dof);
-      if (loc >= 0)
-        (*gdispSen)(inode,idof) = (*dispSen)(inode*numDispDofs+idof,0); 
-      else
-        (*gdispSen)(inode,0) = 0.0;
+      if (loc >= 0) {
+        (*gdispSen)(dispDofIndex,0) = (*dispSen)(dispDofIndex,0);
+        if(sol) disp[dispDofIndex] = (*sol)[loc];
+        else disp[dispDofIndex] = 0.0;
+      } else {
+        (*gdispSen)(dispDofIndex,0) = 0.0;
+        disp[dispDofIndex] = 0.0;
+      }
+      dispDofIndex++;
     }
   }
 
@@ -3847,6 +3889,8 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           geoSource->outputNodeScalars(i, rxyz, numNodesOut, time);
           delete [] rxyz;
           } break;
+        case OutputInfo::Statevector: 
+          break;
         default:
           success = 0;
           break;

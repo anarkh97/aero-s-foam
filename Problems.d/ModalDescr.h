@@ -98,7 +98,7 @@ public:
   int aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
   int sendDisplacements(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
   void sendNumParam(int numParam, int actvar, double steadyTol){ flExchanger->sendNumParam(numParam, actvar, steadyTol); }
-  void getNumParam(bool &numParam){ flExchanger->getNumParam(numParam); }
+  void getNumParam(int &numParam){ flExchanger->getNumParam(numParam); }
   void sendRelativeResidual(double relres){ flExchanger->sendRelativeResidual(relres); }
   int cmdCom(int cmdFlag){ return flExchanger->cmdCom(cmdFlag); }
  

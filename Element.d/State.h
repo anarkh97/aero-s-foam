@@ -74,7 +74,7 @@ class State {
    Vector &getPrevVeloc() { return prevVeloc; }
 
    // get translational displacements and velocities
-   void getDV(int node, double[3], double[3]);
+   void getDV(int node, double[3], double[3], bool noPrescribed = false);
 
    // get translational and rotational displacements and velocities
    void getDVRot(int node, double[6], double[6]);

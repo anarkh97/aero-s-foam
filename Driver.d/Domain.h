@@ -70,6 +70,7 @@ template <class Scalar> class GenMumpsSolver;
 typedef GenMumpsSolver<double> MumpsSolver;
 class GeomState;
 class DistrGeomState;
+template <class Scalar> class DistrBlockVector;
 class IntFullM;
 class ControlLawInfo;
 class StaticTimers;
@@ -189,6 +190,7 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *aggregatedVonMisesWRTthick;         // derivative of KS function of von Mises stresses wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *aggregatedVonMisesWRTshape;         // derivative of KS function of von Mises stresses wrt shape variable
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *aggregatedVonMisesWRTdisp;          // derivative of KS function of von Mises stresses wrt displacement 
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *lambdaFluidQuantity;                // dual sensitivity of fluid quantities (e.g., lift, drag...) 
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *lambdaAggregatedStressVM;           // dual sensitivity of KS function of von Mises stresses 
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> **lambdaStressVM;                    // dual sensitivity of von Mises stress at a specified node
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> **lambdaDisp;                        // dual sensitivity of displacement at a specified node
@@ -211,7 +213,7 @@ struct AllSensitivities
                        linearstaticWRTthickSparse = 0;  linearstaticWRTshapeSparse = 0;  dispWRTthickSparse = 0;          dispWRTshapeSparse = 0;
                        stiffnessWRTshapeSparse = 0;     dispWRTmach = 0;    dispWRTalpha = 0;    dispWRTbeta = 0;        lambdaDisp = 0; 
                        lambdaStressVM = 0;    vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0;      vonMisesWRTalpha = 0;
-                       vonMisesWRTbeta = 0; 
+                       vonMisesWRTbeta = 0;   lambdaFluidQuantity = 0; 
                        aggregatedVonMisesWRTthick = 0;  aggregatedVonMisesWRTshape = 0;  aggregatedVonMisesWRTdisp = 0; 
                        vonMisesWRTdisp = 0;   stressWeight = 0;          dKucdshape = 0; 
                        linearstaticWRTthick = 0;  linearstaticWRTshape = 0;  dispWRTthick = 0;          dispWRTshape = 0;
@@ -229,6 +231,7 @@ struct AllSensitivities
     if(aggregatedVonMisesWRTthick) aggregatedVonMisesWRTthick->setZero(); 
     if(aggregatedVonMisesWRTshape) aggregatedVonMisesWRTshape->setZero(); 
     if(aggregatedVonMisesWRTdisp) aggregatedVonMisesWRTdisp->setZero(); 
+    if(lambdaFluidQuantity) lambdaFluidQuantity->setZero(); 
     if(lambdaAggregatedStressVM) lambdaAggregatedStressVM->setZero(); 
     if(lambdaStressVM) lambdaStressVM->setZero(); 
     if(lambdaDisp)     lambdaDisp->setZero(); 
@@ -279,6 +282,12 @@ struct AdjacencyLists {
   std::set<int> crot;
 };
 
+struct DispNode {
+  int nodeID;
+  int dofs[6];
+  int numdofs;
+};
+
 /** Class representing a structure and containing all auxiliary data-structures
  *
  */
@@ -295,8 +304,7 @@ class Domain : public HData {
      int numSensitivity;  // the total number of sensitivity types    
      std::vector<int> thicknessGroups;
      std::vector<int> stressNodes;
-     std::vector<int> dispNodes;
-     std::vector<int> dispDofs;
+     std::vector<DispNode> dispNodes;
  
      // BC related data members
      int numDirichlet;		// number of dirichlet bc
@@ -411,12 +419,15 @@ class Domain : public HData {
 
     int numThicknessGroups;  // number of thickness groups
     int numShapeVars;        // number of shape variables
+    int numSensitivityQuantityTypes; // number of sensitivity quantities
     int numStressNodes;      // number of requested nodes for von mises stress sensitivity
     int numDispNodes;        // number of requested nodes for displacement sensitivity
-    int numDispDofs;         // number of requested dofs at each requested node for displacement sensitivity
+    int numTotalDispDofs;         // number of requested dofs at each requested node for displacement sensitivity
 
     double* aggregatedStress;
     double* aggregatedStressDenom;
+    bool aggregatedFlag;
+    int aggregatedFileNumber;
 
     void writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* nodeNumber, int topFlag);
 
@@ -431,6 +442,8 @@ class Domain : public HData {
     Connectivity **nodeToFaceElem;
 
     FSCommunicator *com;
+    bool *thgreleFlag;
+    int *thpaIndex;
 
   public:
     bool runSAwAnalysis; // if true, analysis will be run first then compute sensitivity
@@ -477,8 +490,14 @@ class Domain : public HData {
      void setNumShapeVars(int _numS) { numShapeVars = _numS; }
      void setThicknessGroup(int d) { thicknessGroups.push_back(d-1); numThicknessGroups++; }
      void setStressNodes(int d) { stressNodes.push_back(d-1); numStressNodes++; }
-     void setDispNodes(int d) { dispNodes.push_back(d-1); numDispNodes++; }
-     void setDispDofs(int d) { dispDofs.push_back(d-1); numDispDofs++; }
+     void setDispNode(int n, int d1) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.numdofs = 1;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 1; }
+     void setDispNode(int n, int d1, int d2) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2; dn.numdofs = 2;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 2;}
+     void setDispNode(int n, int d1, int d2, int d3) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2; dn.dofs[2] = d3; dn.numdofs = 3;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 3; }
+     void setDispNode(int n, int d1, int d2, int d3, int d4) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2; dn.dofs[2] = d3; dn.dofs[3] = d4; dn.numdofs = 4;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 4; }
+     void setDispNode(int n, int d1, int d2, int d3, int d4, int d5) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2; dn.dofs[2] = d3; dn.dofs[3] = d4; dn.dofs[4] = d5; dn.numdofs = 5;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 5; }
+     void setDispNode(int n, int d1, int d2, int d3, int d4, int d5, int d6) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2; dn.dofs[2] = d3; dn.dofs[3] = d4; dn.dofs[4] = d5; dn.dofs[5] = d6; dn.numdofs = 6;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 6; }
+     std::vector<int> *getStressNodes() { return &stressNodes; }
+     std::vector<DispNode> *getDispNodes() { return &dispNodes; }
      std::vector<int> &getThicknessGroups() { return thicknessGroups; }
 
      void setIncludeStressNodes();
@@ -652,7 +671,11 @@ class Domain : public HData {
      void makeFsiToNode();
      Connectivity *getFsiToNode() { return fsiToNode; }
      int getNumShapeVars() { return numShapeVars; }
+     int getNumSensitivityQuantityTypes() { return numSensitivityQuantityTypes; } 
+     int getNumStressNodes() { return numStressNodes; }
      int getNumThicknessGroups() { return numThicknessGroups; }
+     int getNumDispNodes() { return numDispNodes; }
+     int getTotalNumDispDofs() { return numTotalDispDofs; }
      int getNumFSI() { return numFSI; }
      void setNumFSI(int n) { numFSI = n; }
      ResizeArray<LMPCons *> &getFSI() { return fsi; }
@@ -751,38 +774,40 @@ class Domain : public HData {
                                              AllSensitivities<double> &,
                                              GenSparseMatrix<double> *K=0);
      void computeLinearStaticWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
-                                                     GenVector<double> &sol);
+                                                     GenVector<double> *sol,
+                                                     GeomState *refState, GeomState *geomState, Corotator **allCorot);
      void computeLinearStaticWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
-                                                         GenVector<double> &sol);
+                                                         GenVector<double> *sol);
      void computeStressVMWRTthicknessDirectSensitivity(int, AllSensitivities<double> &allSens,
-                                                       GenVector<double> &sol, double *bcx,
+                                                       GenVector<double> *sol, double *bcx,
                                                        bool isDynam = false);
      void computeAggregatedStressVMWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
-                                                               GenVector<double> &sol, double *bcx,
+                                                               GenVector<double> *sol, double *bcx,
                                                                bool isDynam = false);
      void computeAggregatedStressVMWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
-                                                           GenVector<double> &sol, double *bcx,
+                                                           GenVector<double> *sol, double *bcx,
                                                            bool isDynam = false);
      void computeStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens,
-                                                        GenVector<double> &sol, double *bcx,
+                                                        GenVector<double> *sol, double *bcx,
                                                         bool isDynam = false);
      void computeStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
-                                                    GenVector<double> &sol, double *bcx);
+                                                    GenVector<double> *sol, double *bcx);
      void computeAggregatedStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
-                                                              GenVector<double> &sol, double *bcx);
+                                                              GenVector<double> *sol, double *bcx);
      void computeStressVMWRTShapeVariableDirectSensitivity(int, AllSensitivities<double> &allSens,
-                                                           GenVector<double> &sol, double *bcx,
+                                                           GenVector<double> *sol, double *bcx,
                                                            bool isDynam = false);
      void computeStressVMWRTShapeVariableAdjointSensitivity(int, AllSensitivities<double> &allSens,
-                                                            GenVector<double> &sol, double *bcx,
+                                                            GenVector<double> *sol, double *bcx,
                                                             bool isDynam = false);
      void computeStressVMWRTMachNumberSensitivity(AllSensitivities<double> &allSens);
      void computeStressVMWRTangleOfAttackSensitivity(AllSensitivities<double> &allSens);
      void computeStressVMWRTyawAngleSensitivity(AllSensitivities<double> &allSens);
      void makePostSensitivities(GenSolver<double> *, GenSparseMatrix<double> *, AllSensitivities<double> &allSens, 
-                                GenVector<double> &sol, double *, GenSparseMatrix<double> *K=0, bool isDynam = false);
+                                GenVector<double> *sol, double *, GenSparseMatrix<double> *K=0, bool isDynam = false, GeomState *rs=NULL, GeomState *gs=NULL, Corotator **allCorot = NULL);
      void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, AllSensitivities<DComplex> &allSens, 
-                                GenVector<DComplex> &sol, DComplex *, GenSparseMatrix<DComplex> *K=0, bool isDynam = false);
+                                GenVector<DComplex> *sol, DComplex *, GenSparseMatrix<DComplex> *K=0, bool isDynam = false, GeomState *rs=NULL, GeomState *gs=NULL, Corotator **allCorot = NULL);
+     void makeThicknessGroupElementFlag();
 
 /** ... General build functions to replace the specialized build
   * ... functions and allow us to reuse the code in each problem
@@ -794,7 +819,8 @@ class Domain : public HData {
      template<class Scalar>
        void buildPostSensitivities(GenSolver<Scalar> *sysSolver, 
                                    GenSparseMatrix<Scalar> *, GenSparseMatrix<Scalar> *,
-                                   AllSensitivities<Scalar> &ops, GenVector<Scalar> &sol, Scalar *, bool isDynam = false);
+                                   AllSensitivities<Scalar> &ops, GenVector<Scalar> *sol, Scalar *, bool isDynam = false,
+                                   GeomState *refState = NULL, GeomState *geomState = NULL, Corotator **allCorot = NULL);
 
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
@@ -959,7 +985,13 @@ class Domain : public HData {
 
      // sensitivity post-processing function
      template<class Scalar>
-     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens);
+     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenVector<Scalar> *sol = 0);
+
+     template<class Scalar>
+     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenDistrVector<Scalar> *sol) {}
+
+     template<class Scalar>
+     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, DistrBlockVector<Scalar> *sol) {}
 
      // Nonlinear post processing function
      void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,
@@ -1024,7 +1056,6 @@ class Domain : public HData {
      void aeroheatSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
      void thermohSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
      void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
-     void buildAeroelasticForceSensitivity(Vector &fSen, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
      void buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t);
      void thermoeComm();
      void dynamOutput(int, double, double*, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double*, double* = 0);
@@ -1111,7 +1142,8 @@ class Domain : public HData {
                                          Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *);
      template<class Scalar>
      void mergeAdjointDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *,
-                                                Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *);
+                                                Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *,
+                                                Scalar *, GenVector<Scalar>*);
 #endif
      template<class Scalar>
      void forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11]);//DofSet::max_known_nonL_dof
@@ -1364,6 +1396,7 @@ class Domain : public HData {
 #endif
   protected:
      void initialize();
+     void initializeNumbers();
 
      // FETI-DPH acoustics
      template<class Scalar>

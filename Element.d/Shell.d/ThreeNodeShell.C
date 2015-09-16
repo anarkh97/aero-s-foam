@@ -75,6 +75,7 @@ ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
                             double *ndTemps, double ylayer, double zlayer, int avgnum)
 {
 	weight = 1.0;
+  if(strInd == -1) return;
 
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);

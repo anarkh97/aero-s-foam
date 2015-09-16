@@ -57,7 +57,7 @@ template \
 void \
 Domain::buildPostSensitivities<Scalar>(GenSolver<Scalar>*, GenSparseMatrix<Scalar>*,\
                                        GenSparseMatrix<Scalar>*, AllSensitivities<Scalar>&,\
-                                       GenVector<Scalar>&, Scalar*, bool);\
+                                       GenVector<Scalar>*, Scalar*, bool, GeomState*, GeomState*, Corotator **);\
 \
 template \
 void \
@@ -199,7 +199,7 @@ Domain::processOutput<Scalar>(OutputInfo::Type&, GenVector<Scalar>&, Scalar*, in
 \
 template \
 void \
-Domain::sensitivityPostProcessing<Scalar>(AllSensitivities<Scalar>&);\
+Domain::sensitivityPostProcessing<Scalar>(AllSensitivities<Scalar>&, GenVector<Scalar>*);\
 \
 template \
 void \

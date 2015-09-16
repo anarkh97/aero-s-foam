@@ -185,6 +185,7 @@ struct SolverInfo {
    double epsilon1;
    double epsilon2;
    double qsMaxvel;     // final relaxation parameter in quasi-static alg.
+   double qsMaxvelSen;  // final relaxation parameter in quasi-static sensitivity alg.
    double delta;        // translation factor from time index to real time for quasistatics
    int nRestart;        // how many time steps per restart
    int steadyFlag;      // quasi-transient steady state simulation
@@ -537,6 +538,7 @@ struct SolverInfo {
                   sensitivityTol = 1.0e-5; 
                   ratioSensitivityTol = 1.0; 
                   qsMaxvel = 1.0;
+                  qsMaxvelSen = 1.0;
                   qsBeta = 1.0;
                   delta = 0.0;
                   no_secondary = false;

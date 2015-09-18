@@ -1084,13 +1084,13 @@ void
 Domain::buildPostSensitivities(GenSolver<Scalar> *sysSolver, 
                                GenSparseMatrix<Scalar> *K, GenSparseMatrix<Scalar> *spm,
                                AllSensitivities<Scalar> &allSens, GenVector<Scalar> *sol, Scalar *bcx, bool isDynam,
-                               GeomState *refState, GeomState *geomState, Corotator **allCorot)
+                               GeomState *refState, GeomState *geomState, Corotator **allCorot, bool isNonLin)
 {
   switch(sinfo.type) {
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
-      makePostSensitivities(sysSolver, spm, allSens, sol, bcx, K, isDynam, refState, geomState, allCorot);
+      makePostSensitivities(sysSolver, spm, allSens, sol, bcx, K, isDynam, refState, geomState, allCorot, isNonLin);
       break;
   }
 }

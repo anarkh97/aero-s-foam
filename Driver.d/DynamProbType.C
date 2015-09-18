@@ -446,8 +446,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                    
                    int numDispNodes = domain->getNumDispNodes();
                    int numTotalDispDofs = domain->getTotalNumDispDofs();
-                   probDesc->sendNumParam(numTotalDispDofs, 8, ratioSensitivityTol*sensitivityTol); // actvar = 8, structure displacement
-                   if(!allSens->lambdaDisp) computeLambdaDisp(numTotalDispDofs, numDispNodes);
+                   if(!allSens->lambdaDisp) {
+                     probDesc->sendNumParam(numTotalDispDofs, 8, ratioSensitivityTol*sensitivityTol); // actvar = 8, structure displacement
+                     computeLambdaDisp(numTotalDispDofs, numDispNodes);
+                   }
                    allSens->dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
                    std::vector<DispNode> *dispNodes = domain->getDispNodes();
                    for(int ishap=0; ishap < numShapeVars; ++ishap) {
@@ -491,8 +493,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                    
                    int numDispNodes = domain->getNumDispNodes();
                    int numTotalDispDofs = domain->getTotalNumDispDofs();
-                   probDesc->sendNumParam(numTotalDispDofs, 8, ratioSensitivityTol*sensitivityTol); // actvar = 8, structure displacement
-                   if(!allSens->lambdaDisp) computeLambdaDisp(numTotalDispDofs, numDispNodes);
+                   if(!allSens->lambdaDisp) {
+                     probDesc->sendNumParam(numTotalDispDofs, 8, ratioSensitivityTol*sensitivityTol); // actvar = 8, structure displacement
+                     computeLambdaDisp(numTotalDispDofs, numDispNodes);
+                   }
                    allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
                    std::vector<DispNode> *dispNodes = domain->getDispNodes();
                    for(int iparam=0; iparam < numThicknessGroups; ++iparam) {
@@ -649,7 +653,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                break;
            }
          }
-         probDesc->sendNumParam(numStructParamTypes, 0, ratioSensitivityTol*sensitivityTol);
+         probDesc->sendNumParam(numThicknessGroups+numShapeVars, 0, ratioSensitivityTol*sensitivityTol);
+         filePrint(stderr, " ... numThicknessGroups = %d, numShapeVars = %d\n", numThicknessGroups, numShapeVars);
          for(int isen = 0; isen < numFluidQuantTypes; ++isen) { // fluid sensitivities
            computeLambdaFluidQuantity();   
            for(int ishap=0; ishap < numShapeVars; ++ishap) { //TODO: Now shape variable gets priority
@@ -706,7 +711,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   rhsSen = new VecType( probDesc->solVecInfo());
   rhsSen->zero();
   aeroForceSen->zero();
-  (*aeroForceSen)[0] = 1.0;
+  (*aeroForceSen)[0] = 1.0e6;
   *lambda_nSen = 0.0;
   aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
   *allSens->lambdaFluidQuantity = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(lambda_nSen->data(),domain->numUncon(),1);

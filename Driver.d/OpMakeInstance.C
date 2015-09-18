@@ -57,7 +57,7 @@ template \
 void \
 Domain::buildPostSensitivities<Scalar>(GenSolver<Scalar>*, GenSparseMatrix<Scalar>*,\
                                        GenSparseMatrix<Scalar>*, AllSensitivities<Scalar>&,\
-                                       GenVector<Scalar>*, Scalar*, bool, GeomState*, GeomState*, Corotator **);\
+                                       GenVector<Scalar>*, Scalar*, bool, GeomState*, GeomState*, Corotator **, bool);\
 \
 template \
 void \

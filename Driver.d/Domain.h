@@ -775,7 +775,7 @@ class Domain : public HData {
                                              GenSparseMatrix<double> *K=0);
      void computeLinearStaticWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
                                                      GenVector<double> *sol,
-                                                     GeomState *refState, GeomState *geomState, Corotator **allCorot);
+                                                     GeomState *refState, GeomState *geomState, Corotator **allCorot, bool);
      void computeLinearStaticWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
                                                          GenVector<double> *sol);
      void computeStressVMWRTthicknessDirectSensitivity(int, AllSensitivities<double> &allSens,
@@ -804,9 +804,11 @@ class Domain : public HData {
      void computeStressVMWRTangleOfAttackSensitivity(AllSensitivities<double> &allSens);
      void computeStressVMWRTyawAngleSensitivity(AllSensitivities<double> &allSens);
      void makePostSensitivities(GenSolver<double> *, GenSparseMatrix<double> *, AllSensitivities<double> &allSens, 
-                                GenVector<double> *sol, double *, GenSparseMatrix<double> *K=0, bool isDynam = false, GeomState *rs=NULL, GeomState *gs=NULL, Corotator **allCorot = NULL);
+                                GenVector<double> *sol, double *, GenSparseMatrix<double> *K=0, bool isDynam = false, 
+                                GeomState *rs=NULL, GeomState *gs=NULL, Corotator **allCorot = NULL, bool isNonLin = false);
      void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, AllSensitivities<DComplex> &allSens, 
-                                GenVector<DComplex> *sol, DComplex *, GenSparseMatrix<DComplex> *K=0, bool isDynam = false, GeomState *rs=NULL, GeomState *gs=NULL, Corotator **allCorot = NULL);
+                                GenVector<DComplex> *sol, DComplex *, GenSparseMatrix<DComplex> *K=0, bool isDynam = false, 
+                                GeomState *rs=NULL, GeomState *gs=NULL, Corotator **allCorot = NULL, bool isNonLin = false);
      void makeThicknessGroupElementFlag();
 
 /** ... General build functions to replace the specialized build
@@ -820,7 +822,7 @@ class Domain : public HData {
        void buildPostSensitivities(GenSolver<Scalar> *sysSolver, 
                                    GenSparseMatrix<Scalar> *, GenSparseMatrix<Scalar> *,
                                    AllSensitivities<Scalar> &ops, GenVector<Scalar> *sol, Scalar *, bool isDynam = false,
-                                   GeomState *refState = NULL, GeomState *geomState = NULL, Corotator **allCorot = NULL);
+                                   GeomState *refState = NULL, GeomState *geomState = NULL, Corotator **allCorot = NULL, bool isNonLin = false);
 
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,

@@ -3532,10 +3532,10 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
   for(int i = 0; i < numOutInfo; ++i)  {
     if(oinfo[i].type == OutputInfo::WeigThic) geoSource->outputSensitivityScalars(i, allSens.weightWRTthick, allSens.weight);
     if(oinfo[i].type == OutputInfo::WeigShap) geoSource->outputSensitivityScalars(i, allSens.weightWRTshape, allSens.weight);
-    if(oinfo[i].type == OutputInfo::AGstShap) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTshape, *aggregatedStress);
-    if(oinfo[i].type == OutputInfo::AGstThic) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTthick, *aggregatedStress);
-    if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTthick);
-    if(oinfo[i].type == OutputInfo::VMstShap) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTshape);
+    if(oinfo[i].type == OutputInfo::AGstShap) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTshape, *aggregatedStress, allSens.dwrAggregatedStressVM);
+    if(oinfo[i].type == OutputInfo::AGstThic) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTthick, *aggregatedStress, allSens.dwrAggregatedStressVM);
+    if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTthick, 0.0, allSens.dwrStressVM);
+    if(oinfo[i].type == OutputInfo::VMstShap) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTshape, 0.0, allSens.dwrStressVM);
     if(oinfo[i].type == OutputInfo::VMstMach) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTmach);
     if(oinfo[i].type == OutputInfo::VMstAlpha) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTalpha);
     if(oinfo[i].type == OutputInfo::VMstBeta) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTbeta);
@@ -3575,7 +3575,7 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
           allSens.gdispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numTotalDispDofs, 1);
           mergeAdjointDistributedDispSensitivity<double>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam], disp, sol);
         }
-        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTthick, disp, 0, numThicknessGroup, dispNodes);
+        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTthick, disp, 0, numThicknessGroup, dispNodes, allSens.dwrDisp);
       }
     }
     if(oinfo[i].type == OutputInfo::DispShap) {
@@ -3593,7 +3593,7 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
           allSens.gdispWRTshape[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numTotalDispDofs, 1);
           mergeAdjointDistributedDispSensitivity<double>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam], disp, sol);
         }
-        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTshape, disp, 0, numShapeVars, dispNodes);
+        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTshape, disp, 0, numShapeVars, dispNodes, allSens.dwrDisp);
       }
     }
     if(oinfo[i].type == OutputInfo::DispMach) {

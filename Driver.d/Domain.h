@@ -161,6 +161,9 @@ struct AllSensitivities
 {
 #ifdef USE_EIGEN3
   double weight;           // total weight of the structure
+  Eigen::Matrix<double, Eigen::Dynamic, 1> *dwrAggregatedStressVM;
+  Eigen::Matrix<double, Eigen::Dynamic, 1> *dwrStressVM;
+  Eigen::Matrix<double, Eigen::Dynamic, 1> *dwrDisp; 
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *residual; // residual of the forward problem
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                     // derivatives of weight wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTshape;                     // derivatives of weight wrt shape variables
@@ -209,10 +212,10 @@ struct AllSensitivities
   // Constructor
   AllSensitivities() { residual = 0; weight = 0;                weightWRTshape = 0;        weightWRTthick = 0;        
                        vonMisesWRTthickSparse = 0;      dKucdthickSparse = 0;            vonMisesWRTshapeSparse = 0; 
-                       vonMisesWRTdispSparse = 0;       stiffnessWRTthickSparse = 0;     dKucdshapeSparse = 0;    lambdaAggregatedStressVM = 0; 
+                       vonMisesWRTdispSparse = 0;       stiffnessWRTthickSparse = 0;     dKucdshapeSparse = 0;    lambdaAggregatedStressVM = 0; dwrAggregatedStressVM = 0; 
                        linearstaticWRTthickSparse = 0;  linearstaticWRTshapeSparse = 0;  dispWRTthickSparse = 0;          dispWRTshapeSparse = 0;
-                       stiffnessWRTshapeSparse = 0;     dispWRTmach = 0;    dispWRTalpha = 0;    dispWRTbeta = 0;        lambdaDisp = 0; 
-                       lambdaStressVM = 0;    vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0;      vonMisesWRTalpha = 0;
+                       stiffnessWRTshapeSparse = 0;     dispWRTmach = 0;    dispWRTalpha = 0;    dispWRTbeta = 0;        lambdaDisp = 0;   dwrDisp = 0;
+                       lambdaStressVM = 0;    dwrStressVM = 0; vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0;      vonMisesWRTalpha = 0;
                        vonMisesWRTbeta = 0;   lambdaFluidQuantity = 0; 
                        aggregatedVonMisesWRTthick = 0;  aggregatedVonMisesWRTshape = 0;  aggregatedVonMisesWRTdisp = 0; 
                        vonMisesWRTdisp = 0;   stressWeight = 0;          dKucdshape = 0; 
@@ -232,9 +235,12 @@ struct AllSensitivities
     if(aggregatedVonMisesWRTshape) aggregatedVonMisesWRTshape->setZero(); 
     if(aggregatedVonMisesWRTdisp) aggregatedVonMisesWRTdisp->setZero(); 
     if(lambdaFluidQuantity) lambdaFluidQuantity->setZero(); 
-    if(lambdaAggregatedStressVM) lambdaAggregatedStressVM->setZero(); 
     if(lambdaStressVM) lambdaStressVM->setZero(); 
-    if(lambdaDisp)     lambdaDisp->setZero(); 
+    if(lambdaDisp)     lambdaDisp->setZero();
+    if(residual) residual->setZero();
+    if(dwrStressVM) dwrStressVM->setZero();
+    if(dwrDisp) dwrDisp->setZero(); 
+    if(dwrAggregatedStressVM) dwrAggregatedStressVM->setZero();
     if(stressWeight)     {  stressWeight->setZero();  }
     if(dispWRTmach)      {  dispWRTmach->setZero();              }
     if(dispWRTalpha)     {  dispWRTalpha->setZero();             }

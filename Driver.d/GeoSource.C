@@ -596,7 +596,7 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 #ifdef USE_EIGEN3
 template<class Scalar>
 void 
-GeoSource::outputSensitivityScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *output, double time)
+GeoSource::outputSensitivityScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *output, double time, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -618,13 +618,15 @@ GeoSource::outputSensitivityScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dy
     std::ofstream fileout(oinfo[fileNum].filename, std::ios::app);
     fileout << "\t" << std::setprecision(p) << time << "\n";
     fileout << (*output).format(CleanFmt) << std::endl;
+    if (dwr != 0)
+      fileout << (*dwr).format(CleanFmt) << std::endl;
     fileout.close();
   }
 }
 
 template<class Scalar>
 void
-GeoSource::outputSensitivityVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, double time)
+GeoSource::outputSensitivityVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, double time, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
 { 
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -641,6 +643,8 @@ GeoSource::outputSensitivityVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dy
     std::ofstream fileout(oinfo[fileNum].filename, std::ios::app);
     fileout << "\t" << time << "\n";
     fileout << (*output).format(CleanFmt) << std::endl;
+    if (dwr != 0)
+      fileout << (*dwr).format(CleanFmt) << std::endl;
     fileout.close();
   }
 }
@@ -694,12 +698,11 @@ GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen
 template<class Scalar>
 void
 GeoSource::outputSensitivityAdjointDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **output, Scalar *disp, 
-                                               double time, int numParams, std::vector<DispNode> dispNodes)
+                                               double time, int numParams, std::vector<DispNode> dispNodes, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
   if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
-
   Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
    
   int numnodes = dispNodes.size();
@@ -790,6 +793,49 @@ GeoSource::outputSensitivityAdjointDispVectors(int fileNum, Eigen::Matrix<Scalar
                         w, p, ScalarTypes::Real((*output[iparam])(dispDofIndex+4,0)), 
                         w, p, ScalarTypes::Real((*output[iparam])(dispDofIndex+5,0))); 
           break; 
+      }
+    }
+    if (dwr != 0) {
+      switch(numdofs) {
+        case 1:
+          filePrint(oinfo[fileNum].filptr, " %*.*E\n",
+                        w, p, (*dwr)[dispDofIndex]);
+          break;
+        case 2:
+          filePrint(oinfo[fileNum].filptr, " %*.*E %*.*E\n",
+                        w, p, (*dwr)[dispDofIndex],
+                        w, p, (*dwr)[dispDofIndex+1]);
+          break;
+        case 3:
+          filePrint(oinfo[fileNum].filptr, " %*.*E %*.*E %*.*E\n",
+                        w, p, (*dwr)[dispDofIndex],
+                        w, p, (*dwr)[dispDofIndex+1],
+                        w, p, (*dwr)[dispDofIndex+2]);
+          break;
+        case 4:
+          filePrint(oinfo[fileNum].filptr, " %*.*E %*.*E %*.*E %*.*E\n",
+                        w, p, (*dwr)[dispDofIndex],
+                        w, p, (*dwr)[dispDofIndex+1],
+                        w, p, (*dwr)[dispDofIndex+2],
+                        w, p, (*dwr)[dispDofIndex+3]);
+          break;
+        case 5:
+          filePrint(oinfo[fileNum].filptr, " %*.*E %*.*E %*.*E %*.*E %*.*E\n",
+                        w, p, (*dwr)[dispDofIndex],
+                        w, p, (*dwr)[dispDofIndex+1],
+                        w, p, (*dwr)[dispDofIndex+2],
+                        w, p, (*dwr)[dispDofIndex+3],
+                        w, p, (*dwr)[dispDofIndex+4]);
+          break;
+        case 6:
+          filePrint(oinfo[fileNum].filptr, " %*.*E %*.*E %*.*E %*.*E %*.*E %*.*E\n",
+                        w, p, (*dwr)[dispDofIndex],
+                        w, p, (*dwr)[dispDofIndex+1],
+                        w, p, (*dwr)[dispDofIndex+2],
+                        w, p, (*dwr)[dispDofIndex+3],
+                        w, p, (*dwr)[dispDofIndex+4],
+                        w, p, (*dwr)[dispDofIndex+5]);
+          break;
       }
     }
     dispDofIndex += numdofs;

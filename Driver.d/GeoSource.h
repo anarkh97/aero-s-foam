@@ -543,15 +543,15 @@ public:
     void outputNodeVectors4(int, double (*)[bound], int, double time = -1.0);
 #ifdef USE_EIGEN3
   template<class Scalar>
-    void outputSensitivityScalars(int, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *, double time = 0.0);
+    void outputSensitivityScalars(int, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *, double time = 0.0, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr = 0);
   template<class Scalar>
-    void outputSensitivityVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, double time = 0.0);
+    void outputSensitivityVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, double time = 0.0, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr = 0);
   template<class Scalar>
     void outputSensitivityDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, 
                                       double time = 0.0, int numParams = 0, int numnodes = 0);
   template<class Scalar>
     void outputSensitivityAdjointDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, Scalar *, 
-                                             double time, int numParams, std::vector<DispNode>);
+                                             double time, int numParams, std::vector<DispNode>,  Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr = 0);
   template<class Scalar>
     void outputSensitivityDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, 
                                       double time = 0.0, int numnodes = 0);

@@ -612,13 +612,15 @@ GeoSource::outputSensitivityScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dy
 #endif
     fileout << "\t" << std::setprecision(p) << time << std::endl;
     fileout << (*output).format(CleanFmt) << std::endl;
+    if (dwr != 0) 
+      fileout << (*dwr).format(CleanFmt) << std::endl;
     fileout.close();
     oinfo[fileNum].isFirst = false;
   } else {
     std::ofstream fileout(oinfo[fileNum].filename, std::ios::app);
     fileout << "\t" << std::setprecision(p) << time << "\n";
     fileout << (*output).format(CleanFmt) << std::endl;
-    if (dwr != 0)
+    if (dwr != 0) 
       fileout << (*dwr).format(CleanFmt) << std::endl;
     fileout.close();
   }
@@ -637,6 +639,8 @@ GeoSource::outputSensitivityVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dy
     std::ofstream fileout(oinfo[fileNum].filename, std::ios::out);
     fileout << "\t" << time << "\n";
     fileout << (*output).format(CleanFmt) << std::endl;
+    if (dwr != 0)
+      fileout << (*dwr).format(CleanFmt) << std::endl;
     fileout.close();
     oinfo[fileNum].isFirst = false;
   } else {

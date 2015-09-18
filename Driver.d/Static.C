@@ -3053,7 +3053,8 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
                                                    GenVector<double> *sol,
                                                    GeomState *refState,
                                                    GeomState *geomState,
-                                                   Corotator **allCorot)
+                                                   Corotator **allCorot,
+                                                   bool isNonLin)
 {
 #ifdef USE_EIGEN3
      allSens.linearstaticWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
@@ -3064,7 +3065,7 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
        allSens.linearstaticWRTthick[g]->setZero();   
      }
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
-       if(!solInfo().isNonLin()) {
+       if(!isNonLin) {
          Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol->data(),numUncon(),1);
          if(allSens.stiffnessWRTthickSparse) {
            Eigen::MappedSparseMatrix<double, Eigen::ColMajor, int> M = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTthickSparse[iparam])->getEigenSparse();
@@ -4129,7 +4130,8 @@ Domain::makePostSensitivities(GenSolver<DComplex> *sysSolver,
                               bool isDynam,
                               GeomState *refState,
                               GeomState *geomState,
-                              Corotator **allCorot) {}
+                              Corotator **allCorot,
+                              bool isNonLin) {}
 
 void
 Domain::makePostSensitivities(GenSolver<double> *sysSolver, 
@@ -4140,7 +4142,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
                               bool isDynam,
                               GeomState *refState,
                               GeomState *geomState,
-                              Corotator **allCorot)
+                              Corotator **allCorot,
+                              bool isNonLin)
 {
 #ifdef USE_EIGEN3
  makeThicknessGroupElementFlag();
@@ -4152,13 +4155,13 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
    {
      if(solInfo().sensitivityMethod == SolverInfo::Direct) {
        if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
-       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol,refState, geomState, allCorot);
+       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol,refState, geomState, allCorot,isNonLin);
        if(!isDynam) if(!allSens.dispWRTthick) computeDisplacementWRTthicknessDirectSensitivity(sindex, sysSolver, spm, allSens, K);
      }
      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
        if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
-       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol, refState, geomState, allCorot);
-       if(!isDynam || !domain->solInfo().readInAdjointROB.empty()) { 
+       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol, refState, geomState, allCorot,isNonLin);
+       if(!isDynam) { 
          if(!allSens.lambdaDisp) { 
            if(!domain->solInfo().readInAdjointROB.empty()) {
              Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
@@ -4198,7 +4201,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
        if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
        if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
-       if(!isDynam || !domain->solInfo().readInAdjointROB.empty()) {
+       if(!isDynam) {
          if(!allSens.lambdaDisp) {
            if(!domain->solInfo().readInAdjointROB.empty()) {
              Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
@@ -4233,15 +4236,15 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      if(solInfo().sensitivityMethod == SolverInfo::Direct) {
        if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
        if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
-       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol, refState, geomState, allCorot);
+       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol, refState, geomState, allCorot,isNonLin);
        if(!isDynam) if(!allSens.dispWRTthick) computeDisplacementWRTthicknessDirectSensitivity(sindex, sysSolver, spm, allSens, K);
        computeStressVMWRTthicknessDirectSensitivity(sindex,allSens,sol,bcx,isDynam);
      }
      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
        if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
        if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
-       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol, refState, geomState, allCorot);
-       if(!isDynam || !domain->solInfo().readInAdjointROB.empty()) {
+       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol, refState, geomState, allCorot,isNonLin);
+       if(!isDynam) {
          if(!allSens.lambdaStressVM) {
            if(!domain->solInfo().readInAdjointROB.empty()) {
              Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
@@ -4284,7 +4287,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
        if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
        if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
        if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
-       if(!isDynam || !domain->solInfo().readInAdjointROB.empty()) {  
+       if(!isDynam) {  
          if(!allSens.lambdaStressVM) {
            if(!domain->solInfo().readInAdjointROB.empty()) {
              Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
@@ -4322,8 +4325,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      if(aggregatedFlag) { getStressStrain(*sol, bcx, aggregatedFileNumber, AGGREGATEDVON, 0.0); aggregatedFlag = false; }
      if(!allSens.aggregatedVonMisesWRTdisp) computeAggregatedStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
      if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
-     if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol, refState, geomState, allCorot);
-     if(!isDynam || !domain->solInfo().readInAdjointROB.empty()) {
+     if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol, refState, geomState, allCorot,isNonLin);
+     if(!isDynam) {
        if(!allSens.lambdaAggregatedStressVM) {
          if(!domain->solInfo().readInAdjointROB.empty()) {
            Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);
@@ -4359,7 +4362,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      if(!allSens.aggregatedVonMisesWRTdisp) computeAggregatedStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
      if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
      if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
-     if(!isDynam || !domain->solInfo().readInAdjointROB.empty()) {
+     if(!isDynam) {
        if(!allSens.lambdaAggregatedStressVM) {
          if(!domain->solInfo().readInAdjointROB.empty()) {
            Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(sysSolver);

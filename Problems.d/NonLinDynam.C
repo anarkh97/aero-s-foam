@@ -1274,9 +1274,15 @@ NonLinDynamic::getResizeFlag()
 }
 
 void
+NonLinDynamic::postProcessSA(Vector &sol)
+{
+  domain->buildPostSensitivities<double>(solver, spm, K, *allSens, &sol, bcx, false);
+}
+
+void
 NonLinDynamic::postProcessSA(GeomState *refState, GeomState *geomState)
 {
-  domain->buildPostSensitivities<double>(solver, NULL, NULL, *allSens, NULL, NULL, true, refState, geomState, allCorot); 
+  domain->buildPostSensitivities<double>(solver, NULL, NULL, *allSens, NULL, NULL, true, refState, geomState, allCorot, true); 
 }
 
 SensitivityInfo*

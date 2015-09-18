@@ -4177,7 +4177,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
            computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
          }
          computeDisplacementWRTthicknessAdjointSensitivity(sindex,spm, allSens, K);
-         if (false &&  allSens.residual !=0 && allSens.dwrDisp==0) {
+         if (allSens.residual !=0 && allSens.dwrDisp==0) {
            allSens.dwrDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numTotalDispDofs);
            for (int i=0; i<numTotalDispDofs; ++i) { 
              (*allSens.dwrDisp)[i] = allSens.lambdaDisp[i]->dot(*(allSens.residual));
@@ -4217,7 +4217,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
            computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
          }
          computeDisplacementWRTShapeVariableAdjointSensitivity(sindex,spm, allSens, K);
-         if (false &&  allSens.residual !=0 && allSens.dwrDisp==0) {
+         if (allSens.residual !=0 && allSens.dwrDisp==0) {
            allSens.dwrDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numTotalDispDofs);
            for (int i=0; i<numTotalDispDofs; ++i) {
              (*allSens.dwrDisp)[i] = allSens.lambdaDisp[i]->dot(*(allSens.residual));
@@ -4261,7 +4261,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
          }
        }
        computeStressVMWRTthicknessAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
-       if (false &&  allSens.residual !=0 && allSens.dwrStressVM==0) {
+       if (allSens.residual !=0 && allSens.dwrStressVM==0) {
          allSens.dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
          for (int i=0; i<numStressNodes; i++) {
            (*allSens.dwrStressVM)[i] = allSens.lambdaStressVM[i]->dot(*(allSens.residual));
@@ -4304,7 +4304,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
          }
        }
        computeStressVMWRTShapeVariableAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
-       if (false &&  allSens.residual !=0 && allSens.dwrStressVM==0) {
+       if (allSens.residual !=0 && allSens.dwrStressVM==0) {
          allSens.dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
          for (int i=0; i<numStressNodes; i++) {
             (*allSens.dwrStressVM)[i] = allSens.lambdaStressVM[i]->dot(*(allSens.residual));
@@ -4343,7 +4343,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
        }
      }
      computeAggregatedStressVMWRTthicknessSensitivity(sindex,allSens,sol,bcx,isDynam);
-     if (false &&  allSens.residual !=0 && allSens.dwrAggregatedStressVM == 0) {
+     if (allSens.residual !=0 && allSens.dwrAggregatedStressVM == 0) {
        allSens.dwrAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(1);
        (*allSens.dwrAggregatedStressVM)[0] = allSens.lambdaAggregatedStressVM->dot(*(allSens.residual));
        std::cerr << "allSens.dwrAggregatedStressVM = " << (*allSens.dwrAggregatedStressVM)[0] << std::endl;
@@ -4379,7 +4379,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
        }
      }
      computeAggregatedStressVMWRTShapeVariableSensitivity(sindex,allSens,sol,bcx,isDynam);
-     if (false && allSens.residual !=0 && allSens.dwrAggregatedStressVM == 0) {
+     if (allSens.residual !=0 && allSens.dwrAggregatedStressVM == 0) {
        allSens.dwrAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(1);
        (*allSens.dwrAggregatedStressVM)[0] = allSens.lambdaAggregatedStressVM->dot(*(allSens.residual));
        std::cerr << "allSens.dwrAggregatedStressVM = " << (*allSens.dwrAggregatedStressVM)[0] << std::endl; 

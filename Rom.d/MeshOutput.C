@@ -70,7 +70,12 @@ operator<<(std::ostream &out, const FrameData &source) {
 std::ostream &
 operator<<(std::ostream &out, const std::pair<int,CoefData> &source) {
 
-  out << "COEF " << source.first + 1 << std::endl;
+  out << "COEF " << source.first + 1;
+  for(int j=0; j<6; ++j)
+    out << " " << source.second.c[6][j];
+  if (source.second.coefFlag)
+    out << " On";    
+  out << std::endl;
   for(int i=0; i<6; ++i)
     for(int j=0; j<6; ++j) {
       out << i+1 << " " << j+1 << " " << source.second.c[i][j];

@@ -5,7 +5,12 @@
 #include <cmath>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 
-extern int quietFlag;
+template<typename doublereal>
+bool ShellMaterialType5<doublereal>::Wlocal_stress = true;
+template<typename doublereal>
+bool ShellMaterialType5<doublereal>::Wlocal_stress_disp = true;
+template<typename doublereal>
+bool ShellMaterialType5<doublereal>::Wlocal_stress_thic = true;
 
 template<typename doublereal>
 void
@@ -187,7 +192,7 @@ void
 ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
                                                                           doublereal *eframe, int gp)
 {
-  GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta);
+  for(int i=0; i<18; ++i) { GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta); dUpsilondu += 6; dSigmadu += 6; }
 }
 
 template<typename doublereal>
@@ -246,11 +251,11 @@ ShellMaterialType5<doublereal>::GetLocalConstitutiveResponse(doublereal *Upsilon
                                                              doublereal *eframe, int gp, doublereal temp, doublereal dt)
 {
   sigma[0] = sigma[1] = sigma[2] = 0;
-  if(quietFlag == 0) {
+  if(Wlocal_stress) {
     fprintf(stderr," *** WARNING: Local stress output is not available for shell      \n"
                    "              element types 15 and 1515 with a COEF-type composite\n"
-                   "              constitutive law.                                   \n"
-                   "              Use command-line option -q to suppress this warning.\n");
+                   "              constitutive law.                                   \n");
+    Wlocal_stress = false;
   }
 }
 
@@ -259,12 +264,12 @@ void
 ShellMaterialType5<doublereal>::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
                                                                                doublereal *eframe, int gp)
 {
-  for(int i=0; i<3*18; ++i) dsigmadu[i] = 0.0;
-  if(quietFlag == 0) {
+  for(int i=0; i<3*18; ++i) dsigmadu[i] = 0;
+  if(Wlocal_stress_disp) {
     fprintf(stderr," *** WARNING: Local stress w.r.t. displacement sensitivity output \n"
                    "              is not available for shell element types 15 and 1515\n"
-                   "              with a COEF-type composite constitutive law.        \n"
-                   "              Use command-line option -q to suppress this warning.\n");
+                   "              with a COEF-type composite constitutive law.        \n");
+    Wlocal_stress_disp = false;
   }
 }
 
@@ -273,12 +278,12 @@ void
 ShellMaterialType5<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dsigmadh,
                                                                                doublereal dzdh, doublereal *, int)
 {
-  for(int i=0; i<3; ++i) dsigmadh[i] = 0.0;
-  if(quietFlag == 0) {
-    fprintf(stderr," *** WARNING: Local stress w.r.t. thickness sensitivity output is \n"
-                   "              not available for shell element types 15 and 1515   \n"
-                   "              with a COEF-type composite constitutive law.        \n"
-                   "              Use command-line option -q to suppress this warning.\n");
+  dsigmadh[0] = dsigmadh[1] = dsigmadh[2] = 0;
+  if(Wlocal_stress_thic) {
+    fprintf(stderr," *** WARNING: Local stress w.r.t. displacement sensitivity output \n"
+                   "              is not available for shell element types 15 and 1515\n"
+                   "              15/1515 with a COEF-type composite constitutive law.\n");
+    Wlocal_stress_thic = false;
   }
 }
 

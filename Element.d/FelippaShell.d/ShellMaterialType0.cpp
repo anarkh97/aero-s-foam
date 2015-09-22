@@ -190,7 +190,7 @@ void
 ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
                                                                           doublereal *eframe, int gp)
 {
-    GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta);
+    for(int i=0; i<18; ++i) { GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta); dUpsilondu += 6; dSigmadu += 6; }
 }
 
 template<typename doublereal>
@@ -292,7 +292,7 @@ void
 ShellMaterialType0<doublereal>::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu,
                                                                                doublereal z, doublereal *eframe, int gp)
 {
-    GetLocalConstitutiveResponse(dUpsilondu, dsigmadu, z, eframe, gp, Ta);
+    for(int i=0; i<18; ++i) { GetLocalConstitutiveResponse(dUpsilondu, dsigmadu, z, eframe, gp, Ta); dUpsilondu += 6; dsigmadu += 3; }
 }
 
 template<typename doublereal>

@@ -210,11 +210,11 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
         dets += s12 * 2. * s13 * s23;
 
         if (dets == 0) {
-            throw std::runtime_error(
-                "*** FATAL ERROR in Routine COMPCST    ***\n"
-                "*** The Compliance Matrix is Singular ***\n"
-                "*** ... Check Material Properties ... ***\n"
-                "*** STOP ALL TREATMENTS RIGHT HERE    ***\n");
+            throw std::runtime_error("\n"
+                "*** FATAL ERROR in ShellMaterialTypes2And3::GetConstitutiveResponse ***\n"
+                "*** The compliance matrix is singular                               ***\n"
+                "*** Check Material Properties                                       ***\n"
+                "*** STOP ALL TREATMENTS RIGHT HERE                                  ***\n");
             break;
         }
 
@@ -322,7 +322,21 @@ void
 ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
                                                                                doublereal *eframe, int gp)
 {
-    GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta);
+    for(int i=0; i<18; ++i) { GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta); dUpsilondu += 6; dSigmadu += 6; }
+}
+
+template<typename doublereal>
+void
+ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponseSensitivityWRTthic(doublereal *, doublereal *_dSigmadh, doublereal *_dDdh,
+                                                                               doublereal *, int, doublereal)
+{
+    Eigen::Map<Eigen::Matrix<doublereal,6,1> > dSigmadh(_dSigmadh);
+    dSigmadh.setZero();
+
+    if(_dDdh) {
+        Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(_dDdh);
+        D.setZero();
+    }
 }
 
 template<typename doublereal>
@@ -416,11 +430,11 @@ ShellMaterialTypes2And3<doublereal>
       dets += s12 * 2. * s13 * s23;
 
       if (dets == 0) {
-        throw std::runtime_error(
-          "*** FATAL ERROR in Routine COMPCST    ***\n"
-          "*** The Compliance Matrix is Singular ***\n"
-          "*** ... Check Material Properties ... ***\n"
-          "*** STOP ALL TREATMENTS RIGHT HERE    ***\n");
+        throw std::runtime_error("\n"
+          "*** FATAL ERROR in ShellMaterialTypes2And3::GetLocalConstitutiveResponse ***\n"
+          "*** The compliance matrix is singular                                    ***\n"
+          "*** Check Material Properties                                            ***\n"
+          "*** STOP ALL TREATMENTS RIGHT HERE                                       ***\n");
         break;
       }
 
@@ -478,36 +492,15 @@ ShellMaterialTypes2And3<doublereal>
 ::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
                                                  doublereal *eframe, int gp)
 {
-    GetLocalConstitutiveResponse(dUpsilondu, dsigmadu, z, eframe, gp, Ta);
+    for(int i=0; i<18; ++i) { GetLocalConstitutiveResponse(dUpsilondu, dsigmadu, z, eframe, gp, Ta); dUpsilondu += 6; dsigmadu += 3; }
 }
 
 template<typename doublereal>
 void
-ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dSigmadh, doublereal *dDdh,
-                                                                               doublereal *, int, doublereal temp)
+ShellMaterialTypes2And3<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal*, doublereal *dsigmadh,
+                                                                                    doublereal, doublereal *, int)
 {
-  for(int i=0; i<6; ++i) dSigmadh = 0;
-  if(dDdh) for(int i=0; i<36; ++i) dDdh[i] = 0;
-  if(quietFlag == 0) {
-    fprintf(stderr," *** WARNING: Stiffness w.r.t. thickness sensitivity output is not\n"
-                   "              available for shell element types 15 and 1515 with  \n"
-                   "              a laminate composite constitutive law.              \n"
-                   "              Use command-line option -q to suppress this warning.\n");
-  }
-}
-
-template<typename doublereal>
-void
-ShellMaterialTypes2And3<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dsigmadh,
-                                                                                    doublereal dzdh, doublereal *, int)
-{
-  for(int i=0; i<3; ++i) dsigmadh[i] = 0.0;
-  if(quietFlag == 0) {
-    fprintf(stderr," *** WARNING: Local stress w.r.t. displacement sensitivity output \n"
-                   "              is not available for shell element types 15 and 1515\n"
-                   "              with a laminate composite constitutive law.         \n"
-                   "              Use command-line option -q to suppress this warning.\n");
-  }
+    for(int i=0; i<3; ++i) dsigmadh = 0;
 }
 
 template

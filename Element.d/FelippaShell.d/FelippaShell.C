@@ -82,10 +82,8 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
 {
   int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
-                // In this case the higher-order contribution in B matrix is neglected, and a 
-                // smearing method is used for composites.
-  if(type == 1 && sflg) weight = 0.0;
-  else weight = 1.0;
+                // In this case the higher-order contribution in B matrix is neglected.
+  weight = 1.0;
 
   int strainFlg, offset;
   switch(strInd) {
@@ -150,10 +148,8 @@ FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                            double *ndTemps)
 {
   int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
-                // In this case the higher-order contribution in B matrix is neglected, and a 
-                // smearing method is used for composites.
-  if(type == 1 && sflg) weight = 0.0;
-  else weight = 1.0;
+                // In this case the higher-order contribution in B matrix is neglected.
+  weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -299,10 +295,10 @@ FelippaShell::setCompositeData(int _type, int nlays, double *lData,
 
     default :
       nmat = gpmat = 0;
-      throw std::runtime_error(
+      throw std::runtime_error("\n"
           "*** FATAL ERROR in FelippaShell::setCompositeData ***\n"
-          "*** Wrong Type of Constitutive Law                ***\n"
-          "*** Types Allowed are:                            ***\n"
+          "*** Wrong type of constitutive law                ***\n"
+          "*** Types allowed are:                            ***\n"
           "*** 1 = given constitutive law                    ***\n"
           "*** 2 = given layers properties                   ***\n"
           "***     (no coupling bending/membrane)            ***\n"
@@ -393,10 +389,10 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
 
     default :
       nmat = gpmat = 0;
-      throw std::runtime_error(
+      throw std::runtime_error("\n"
           "*** FATAL ERROR in FelippaShell::setCompositeData2 ***\n"
-          "*** Wrong Type of Constitutive Law                 ***\n"
-          "*** Types Allowed are:                             ***\n"
+          "*** Wrong Type of constitutive law                 ***\n"
+          "*** Types allowed are:                             ***\n"
           "*** 1 = given constitutive law                     ***\n"
           "*** 2 = given layers properties                    ***\n"
           "***     (no coupling bending/membrane)             ***\n"
@@ -1184,6 +1180,13 @@ double
 FelippaShell::getMassThicknessSensitivity(CoordSet &cs)
 { 
   if(prop == NULL) return 0.0;
+  if(type == 1 || type == 2 || type == 3) {
+     throw std::runtime_error("\n"
+          "*** FATAL ERROR in FelippaShell::getMassThicknessSensitivity ***\n"
+          "*** Selected composite constitutive law is not               ***\n"
+          "*** suitable for thickness sensitivity analysis              ***\n"
+          "*** STOP ALL TREATMENTS RIGHT HERE                           ***\n");
+  }
 
   double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
   double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
@@ -1233,6 +1236,13 @@ FelippaShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityA
     dGfdthick.zero();
     return;
   }
+  if(type == 1 || type == 2 || type == 3) {
+     throw std::runtime_error("\n"
+          "*** FATAL ERROR in FelippaShell::getGravityForceThicknessSensitivity ***\n"
+          "*** Selected composite constitutive law is not                       ***\n"
+          "*** suitable for thickness sensitivity analysis                      ***\n"
+          "*** STOP ALL TREATMENTS RIGHT HERE                                   ***\n");
+  }
 
   double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
   double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
@@ -1276,6 +1286,13 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
   if(prop == NULL) {
     dStiffdThick.zero();
     return;
+  }
+  if(type == 1 || type == 2 || type == 3) {
+     throw std::runtime_error("\n"
+          "*** FATAL ERROR in FelippaShell::getStiffnessThicknessSensitivity ***\n"
+          "*** Selected composite constitutive law is not                    ***\n"
+          "*** suitable for thickness sensitivity analysis                   ***\n"
+          "*** STOP ALL TREATMENTS RIGHT HERE                                ***\n");
   }
 
   Node &nd1 = cs.getNode(nn[0]);
@@ -1327,8 +1344,15 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
                                               Vector &elDisp, int, int surface, double *ndTemps,
                                               int avgnum, double, double)
 {
-  if(type == 1) weight = 0.0;
-  else weight = 1.0;
+  if(type == 1 || type == 2 || type == 3) {
+     throw std::runtime_error("\n"
+          "*** FATAL ERROR in FelippaShell::getVonMisesThicknessSensitivity ***\n"
+          "*** Selected composite constitutive law is not                   ***\n"
+          "*** suitable for thickness sensitivity analysis                  ***\n"
+          "*** STOP ALL TREATMENTS RIGHT HERE                               ***\n");
+  }
+
+  weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1352,8 +1376,7 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
                                                     Vector &elDisp, int strInd, int surface, double *ndTemps,
                                                     int avgnum, double, double)
 {
-  if(type == 1) weight = 0.0;
-  else weight = 1.0;
+  weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1379,8 +1402,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
                                                  Vector &elDisp, int strInd, int surface, double *ndTemps,
                                                  int avgnum, double, double)
 {
-  if(type == 1) weight = 0.0;
-  else weight = 1.0;
+  weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1408,6 +1430,13 @@ FelippaShell::getInternalForceThicknessSensitivity(GeomState *refState, GeomStat
   if(prop == NULL) {
     for(int i=0; i<18; ++i) dFintdThick[i] = 0;
     return;
+  }
+  if(type == 1 || type == 2 || type == 3) {
+     throw std::runtime_error("\n"
+          "*** FATAL ERROR in FelippaShell::getInternalForceThicknessSensitivity ***\n"
+          "*** Selected composite constitutive law is not                        ***\n"
+          "*** suitable for thickness sensitivity analysis                       ***\n"
+          "*** STOP ALL TREATMENTS RIGHT HERE                                    ***\n");
   }
 
   // Get Nodes original coordinates (C0 configuration)

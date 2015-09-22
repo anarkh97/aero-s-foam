@@ -72,10 +72,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF LENGTH 2-1 IS DIFFERENT FROM ZERO 
 
     if (side21length == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andescrd ***\n"
-          "*** Side Between Nodes 1 and 2 Has 0-Length       ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** Side between nodes 1 and 2 Has zero length    ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
 // .....COMPUTE THE LENGTH OF SIDE 3-2 
@@ -85,10 +85,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF LENGTH 3-2 IS DIFFERENT FROM ZERO 
 
     if (side32length == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andescrd ***\n"
-          "*** Side Between Nodes 2 and 3 Has 0-Length       ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** Side between nodes 2 and 3 Has zero length    ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
 // .....COMPUTE THE DISTANCE OF THE OPPOSING NODE 3 TO SIDE 2-1 
@@ -100,10 +100,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     signedarea = side32length * side32length - projection * projection;
 
     if (signedarea <= 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andescrd ***\n"
-          "*** The Area is Negative or Zero                  ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** The area is negative or zero                  ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
     area = side21length * .5 * sqrt(signedarea);
@@ -403,10 +403,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK FOR ZERO-SIDE LENGTH
 
     if (rlr == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesmm ***\n"
-          "*** The Side 1-2 has Zero Length                 ***\n"
-          "*** Check Coordinates and FE Topology            ***\n");
+          "*** Side between nodes 1 and 2 has zero length   ***\n"
+          "*** Check coordinates and FE topology            ***\n");
     }
 
 // .....COMPUTE THE DISTANCE OF THE OPPOSING NODE (3) TO THAT SIDE (1-2)
@@ -421,10 +421,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF THE TRIANGLE'S AREA IS POSITIVE
 
     if (twicearea2 <= 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesmm ***\n"
-          "*** The Area is Negative or Zero                 ***\n"
-          "*** Check Coordinates and FE Topology            ***\n");
+          "*** The area is negative or zero                 ***\n"
+          "*** Check coordinates and FE topology            ***\n");
     }
 
 // .....COMPUTE THE AREA OF THE TRIANGLE
@@ -534,10 +534,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK FOR ZERO-SIDE LENGTH
 
     if (rlr == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesms ***\n"
-          "*** The Side 1-2 has Zero Length                 ***\n"
-          "*** Check Coordinates and FE Topology            ***\n");
+          "*** Side between nodes 1 and 2 has zero length   ***\n"
+          "*** Check coordinates and FE topology            ***\n");
     }
 
 // .....COMPUTE THE DISTANCE OF THE OPPOSING NODE (3) TO THAT SIDE (1-2)
@@ -552,10 +552,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF THE TRIANGLE'S AREA IS POSITIVE
 
     if (twicearea2 <= 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesms ***\n"
-          "*** The Area is Negative or Zero                 ***\n"
-          "*** Check Coordinates and FE Topology            ***\n");
+          "*** The area is negative or zero                 ***\n"
+          "*** Check coordinates and FE topology            ***\n");
     }
 
 // .....COMPUTE THE AREA OF THE TRIANGLE
@@ -773,7 +773,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....GET THE TANGENT CONSTITUTIVE MATRIX [D = {Dm,Dmb;Dbm,Db}] 
 //      AND THE GENERALIZED STRESSES [Sigma = {N,M}]
 
-        if(i == 0 || ctyp == 4 || (ndtemps && tflg != 0)) {
+        if(i == 0 || ctyp == 4 || (ndtemps && tflg != 0) || _fint) {
           if(ndtemps && tflg != 0) 
             temp = zeta[i][0]*ndtemps[0] + zeta[i][1]*ndtemps[1] + zeta[i][2]*ndtemps[2];
           doublereal *_D = (_estiff) ? D.data() : NULL;
@@ -1004,7 +1004,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....GET THE TANGENT CONSTITUTIVE SENSITIVITY MATRIX [D = {Dm,Dmb;Dbm,Db}] 
 
-        if(i == 0 || ctyp == 4 || (ndtemps && tflg != 0)) {
+        if(i == 0 || ctyp == 4 || (ndtemps && tflg != 0) || _dfintdh) {
           if(ndtemps && tflg != 0)
             temp = zeta[i][0]*ndtemps[0] + zeta[i][1]*ndtemps[1] + zeta[i][2]*ndtemps[2];
           doublereal *_D = (_destiffdh) ? D.data() : NULL;
@@ -1266,7 +1266,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH
 
-                if(i == 0)
+                if(i == 0 || sflg != 0)
                     nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i, temp);
 
                 if (surface == 1) {
@@ -1592,7 +1592,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH, AND THEIR SENSITIVITIES
 
-            if(i == 0) {
+            if(i == 0 || sflg != 0) {
                 nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i, temp);
                 nmat->GetConstitutiveResponseSensitivityWRTdisp(dUpsilondu.data(), dSigmadu.data(), NULL, eframe.data(), i);
             }
@@ -1794,7 +1794,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH, AND THEIR SENSITIVITIES
 
-            if(i == 0) {
+            if(i == 0 || sflg != 0) {
                 nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i, temp);
                 nmat->GetConstitutiveResponseSensitivityWRTthic(Upsilon.data(), dSigmadh.data(), NULL, eframe.data(), i, temp);
             }
@@ -2263,10 +2263,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF LENGTH 2-1 IS DIFFERENT FROM ZERO 
 
     if (side21length == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesare ***\n"
-          "*** Side Between Nodes 1 and 2 Has 0-Length       ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** Side between nodes 1 and 2 Has zero length    ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
 // .....COMPUTE THE LENGTH OF SIDE 3-2 
@@ -2276,10 +2276,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CHECK IF LENGTH 3-2 IS DIFFERENT FROM ZERO 
 
     if (side32length == 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesare ***\n"
-          "*** Side Between Nodes 2 and 3 Has 0-Length       ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** Side between nodes 2 and 3 Has zero length    ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
 // .....COMPUTE THE DISTANCE OF THE OPPOSING NODE 3 TO SIDE 2-1 
@@ -2291,10 +2291,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     signedarea = side32length * side32length - projection * projection;
 
     if (signedarea <= 0) {
-        throw std::runtime_error(
+        throw std::runtime_error("\n"
           "*** FATAL ERROR in ShellElementTemplate::andesare ***\n"
-          "*** The Area is Negative or Zero                  ***\n"
-          "*** Check Coordinates and FE Topology             ***\n");
+          "*** The area is negative or zero                  ***\n"
+          "*** Check coordinates and FE topology             ***\n");
     }
 
     area = side21length * .5 * sqrt(signedarea);

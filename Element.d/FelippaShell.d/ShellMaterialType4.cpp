@@ -348,14 +348,10 @@ void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D, doublereal *eframe, int gp)
 {
-  for(int i=0; i<6*18; ++i) dSigmadu = 0;
-  if(D) for(int i=0; i<36; ++i) D[i] = 0;
-  if(quietFlag == 0) {
-    fprintf(stderr," *** WARNING: Stiffness w.r.t. displacement sensitivity output is \n"
-                   "              not available for shell element types 15 and 1515   \n"
-                   "              with an elasto-plastic constitutive law.            \n"
-                   "              Use command-line option -q to suppress this warning.\n");
-  }
+  fprintf(stderr," *** ERROR: Stiffness w.r.t. displacement sensitivity output is \n"
+                 "            not implemented for shell element types 15 and 1515 \n"
+                 "            with an elasto-plastic constitutive law.            \n");
+  exit(-1);
 }
 
 template<typename doublereal, typename localmaterial>
@@ -363,13 +359,10 @@ void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z, doublereal *eframe, int gp)
 {
-  for(int i=0; i<3*18; ++i) dsigmadu[i] = 0.0;
-  if(quietFlag == 0) {
-    fprintf(stderr," *** WARNING: Local stress w.r.t. displacement sensitivity output \n"
-                   "              is not available for shell element types 15 and 1515\n"
-                   "              with an elasto-plastic constitutive law.            \n"
-                   "              Use command-line option -q to suppress this warning.\n");
-  }
+  fprintf(stderr," *** ERROR: Local stress w.r.t. displacement sensitivity output \n"
+                 "            is not implemented for shell element types 15 and   \n"
+                 "            1515 with an elasto-plastic constitutive law.       \n");
+  exit(-1);
 }
 
 template<typename doublereal, typename localmaterial>
@@ -377,14 +370,10 @@ void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dSigmadh, doublereal *dDdh, doublereal *, int, doublereal temp)
 {
-  for(int i=0; i<6; ++i) dSigmadh = 0;
-  if(dDdh) for(int i=0; i<36; ++i) dDdh[i] = 0;
-  if(quietFlag == 0) {
-    fprintf(stderr," *** WARNING: Stiffness w.r.t. thickness sensitivity output is not\n"
-                   "              available for shell element types 15 and 1515 with  \n"
-                   "              an elasto-plastic constitutive law.                 \n"
-                   "              Use command-line option -q to suppress this warning.\n");
-  }
+  fprintf(stderr," *** ERROR: Stiffness w.r.t. thickness sensitivity output is not\n"
+                 "            implemented for shell element types 15 and 1515 with\n"
+                 "            an elasto-plastic constitutive law.                 \n");
+  exit(-1);
 }
 
 template<typename doublereal, typename localmaterial>
@@ -392,13 +381,10 @@ void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dsigmadh, doublereal dzdh, doublereal *, int)
 {
-  for(int i=0; i<3; ++i) dsigmadh[i] = 0.0;
-  if(quietFlag == 0) {
-    fprintf(stderr," *** WARNING: Local stress w.r.t. displacement sensitivity output \n"
-                   "              is not available for shell element types 15 and 1515\n"
-                   "              with an elasto-plastic constitutive law.            \n"
-                   "              Use command-line option -q to suppress this warning.\n");
-  }
+  fprintf(stderr," *** ERROR: Local stress w.r.t. displacement sensitivity output \n"
+                 "            is not implemented for shell element types 15 and   \n"
+                 "            1515 with an elasto-plastic constitutive law.       \n");
+  exit(-1);
 }
 
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>

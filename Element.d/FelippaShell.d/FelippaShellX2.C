@@ -3,7 +3,7 @@
 #include <Element.d/FelippaShell.d/FelippaShellX2.h>
 #include <Hetero.d/FlExchange.h>
 
-// Four node composite shell comprising two three node composite shells, 6 dof per node
+// Four node shell comprising two three node shells, 6 dof per node
 
 FelippaShellX2::FelippaShellX2(int *nodenums)
 {

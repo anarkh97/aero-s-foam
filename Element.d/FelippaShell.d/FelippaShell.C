@@ -293,6 +293,10 @@ FelippaShell::setCompositeData(int _type, int nlays, double *lData,
       nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, true, frame, prop->Ta, prop->rho);
       break;
 
+    case 5 :
+      nmat = gpmat = new ShellMaterialType5<double>(coefs, frame, prop->rho, prop->eh, prop->Ta);
+      break;
+
     default :
       nmat = gpmat = 0;
       throw std::runtime_error(
@@ -304,6 +308,7 @@ FelippaShell::setCompositeData(int _type, int nlays, double *lData,
           "***     (no coupling bending/membrane)            ***\n"
           "*** 3 = given layers properties                   ***\n"
           "***     (with coupling bending/membrane)          ***\n"
+          "*** 5 = given orthotropic constitutive law        ***\n"
           "*** STOP ALL TREATMENTS RIGHT HERE                ***\n");
 
   }
@@ -382,6 +387,10 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
       nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, true, cFrame, prop->Ta, prop->rho);
       break;
 
+    case 5 :
+      nmat = gpmat = new ShellMaterialType5<double>(coefs, cFrame, prop->rho, prop->eh, prop->Ta);
+      break;
+
     default :
       nmat = gpmat = 0;
       throw std::runtime_error(
@@ -393,6 +402,7 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
           "***     (no coupling bending/membrane)             ***\n"
           "*** 3 = given layers properties                    ***\n"
           "***     (with coupling bending/membrane)           ***\n"
+          "*** 5 = given orthotropic constitutive law         ***\n"
           "*** STOP ALL TREATMENTS RIGHT HERE                 ***\n");
 
   }
@@ -489,7 +499,7 @@ FelippaShell::getCorotator(CoordSet& cs, double* kel, int _fitAlg, int)
   Shell3Corotator::n2 = nn[1];
   Shell3Corotator::n3 = nn[2];
 
-  if(type <= 3) {
+  if(type != 4) {
 
     // for linear material precompute stiffness matrix
     FullSquareMatrix myStiff = stiffness(cs, kel, 0);
@@ -560,7 +570,7 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
 
   // Form unprojected internal forces and initialize stiffness matrix
 
-  if(type <= 3) {
+  if(type != 4) {
     for(i=0; i<18; ++i) {
       locF[i] = 0.0;
       for(j=0; j<18; ++j) elK[i][j] = origK[i][j];
@@ -713,7 +723,7 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
 
   // Form unprojected internal forces and initialize stiffness matrix
 
-  if(type <= 3) {
+  if(type != 4) {
 
     // compute locF (local Force) as origK*vld
 
@@ -838,7 +848,7 @@ FelippaShell::initStates(double *staten)
 double
 FelippaShell::getDissipatedEnergy(GeomState &, CoordSet &cs)
 {
-  if(type <= 3) {
+  if(type != 4) {
 
     return 0.0;
   }
@@ -1278,8 +1288,9 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-  Impl::andesstfWRTthick(glNum+1, dStiffdThick.data(), prop->nu,
-                         x, y, z, type, gpmat, flg);
+  double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
+  Impl::andesstfWRTthic(glNum+1, dStiffdThick.data(), (double*)NULL, prop->nu,
+                        x, y, z, disp, type, gpmat, flg);
 }
 
 void 
@@ -1388,7 +1399,87 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   Impl::andesvmsWRTdisp(glNum+1, prop->nu, x, y, z, elDisp.data(),
                         dStdDisp.getData(), type, nmat, surface,
                         sflg, ndTemps);  
+}
 
+void
+FelippaShell::getInternalForceThicknessSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs, Vector &dFintdThick,
+                                                   double dt, double t)
+{
+  if(prop == NULL) {
+    for(int i=0; i<18; ++i) dFintdThick[i] = 0;
+    return;
+  }
+
+  // Get Nodes original coordinates (C0 configuration)
+  Node &node1 = cs.getNode( n1 );
+  Node &node2 = cs.getNode( n2 );
+  Node &node3 = cs.getNode( n3 );
+
+  // Get Nodes current coordinates (C0n configuration)
+  NodeState &ns1 = geomState[ n1 ];
+  NodeState &ns2 = geomState[ n2 ];
+  NodeState &ns3 = geomState[ n3 ];
+
+  double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18], locF[18];
+
+  // C0    = initial configuration
+  // C0n   = nth configuration
+  // xl0   = C0 local coordinates
+  // xln   = C0n local coordinates
+  // t0n   = transformation matrix between C0n and C0
+  // vld   = local deformation vector
+  // locF  = local unprojected internal force
+  // origK = original stiffness matrix
+
+  // f = T' P' H' K v
+
+  // Extract deformational displacement from C0 to C0n configurations
+
+  extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld);
+
+  // Form unprojected internal forces and initialize stiffness matrix
+
+  double x[3], y[3], z[3];
+
+  x[0] = node1.x; y[0] = node1.y; z[0] = node1.z;
+  x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
+  x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
+
+  Impl::andesstfWRTthic(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0);
+
+  // Compute gradients of the nodal deformational pseudorotations
+  // Correct element stiffness and internal force
+
+  double rotvar[3][3][3];
+
+  int inode,i;
+  for(inode=0; inode<3; ++inode)
+    pseudorot_var( vld+inode*6+3, rotvar[inode] );
+
+  double fe[18];
+
+  for(inode=0; inode<3; ++inode)
+    for(i=0; i<3; ++i) {
+      fe[6*inode+i]   = locF[6*inode+i];
+      fe[6*inode+i+3] = rotvar[inode][0][i]*locF[6*inode+3] +
+                        rotvar[inode][1][i]*locF[6*inode+4] +
+                        rotvar[inode][2][i]*locF[6*inode+5];
+    }
+
+  // Compute nonlinear projector matrix relative to deformed element
+  // and correct stiffness and force
+
+  double pmat[18][18], gmat[3][18];
+
+  gradDefDisp(xl0, xln, pmat, gmat);
+
+  // Form: {f} = [P']{fe}
+
+  _FORTRAN(dgemv)('N',18,18,1.0,(double *)pmat,18,fe,1,0.0,dFintdThick.data(),1);
+
+  // Transform internal force vector from local to global coordinates
+
+  tran_force(dFintdThick.data(), t0n, 3);
 }
 
 #endif

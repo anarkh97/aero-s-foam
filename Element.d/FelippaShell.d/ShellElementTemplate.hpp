@@ -46,10 +46,10 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
              int tflg = 1, doublereal *ndtemps = 0, doublereal dt = 0.);
 
     static void 
-    andesstfWRTthick(int elm, doublereal *destiffdthick, doublereal nu,
-                     doublereal *x, doublereal *y, doublereal *z,
-                     int ctyp, ShellMaterial<doublereal> *gpmat, int flag,
-                     int tflg = 1, doublereal *ndtemps = 0);
+    andesstfWRTthic(int elm, doublereal *destiffdh, doublereal *dfintdh, doublereal nu,
+                    doublereal *x, doublereal *y, doublereal *z, doublereal *u,
+                    int ctyp, ShellMaterial<doublereal> *gpmat, int flag,
+                    int tflg = 1, doublereal *ndtemps = 0);
 
     static void
     andesstfWRTcoord(int elm, doublereal *destiffdx[9], doublereal E,
@@ -67,13 +67,13 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
 
     static void
     andesvmsWRTdisp(int elm, doublereal nu, doublereal *x, doublereal *y,
-                    doublereal *z, doublereal *u, doublereal *vmsWRTdisp,
+                    doublereal *z, doublereal *u, doublereal *dvmsdu,
                     int ctyp, ShellMaterial<doublereal> *nmat, int surface,
                     int sflg, doublereal *ndtemps = 0);
 
     static void
     andesvmsWRTthic(int elm, doublereal nu, doublereal *x, doublereal *y,
-                    doublereal *z, doublereal *u, doublereal *vmsWRTthic,
+                    doublereal *z, doublereal *u, doublereal *dvmsdh,
                     int ctyp, ShellMaterial<doublereal> *nmat, int surface,
                     int sflg, doublereal *ndtemps = 0);
 
@@ -81,7 +81,7 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
     andesvmsWRTcoord(int elm, doublereal E, doublereal nu, doublereal rho,
                      doublereal eh, doublereal Ta, doublereal W, doublereal *cFrame,
                      doublereal *x, doublereal *y, doublereal *z, doublereal *u,
-                     doublereal *vmsWRTcoord, int ctyp, doublereal *coefs,
+                     doublereal *dvmsdx, int ctyp, doublereal *coefs,
                      int surface, int sflg, doublereal *ndtemps = 0);
 
     static void

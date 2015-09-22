@@ -44,10 +44,10 @@ ShellElementTemplate<double,Membrane,Bending> \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
-::andesstfWRTthick(int elm, double *destiffdthick, double nu, \
-                   double *x, double *y, double *z, int ctyp, \
-                   ShellMaterial<double> *gpmat, int flag, int tflg, \
-                   double *ndtemps); \
+::andesstfWRTthic(int elm, double *destiffdh, double *dfinitdh, double nu, \
+                  double *x, double *y, double *z, double *u, int ctyp, \
+                  ShellMaterial<double> *gpmat, int flag, int tflg, \
+                  double *ndtemps); \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
@@ -65,14 +65,14 @@ template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
 ::andesvmsWRTdisp(int elm, double nu, double *x, double *y, double *z, \
-                  double *v, double *vmsWRTdisp, int ctyp, \
+                  double *v, double *dvmsdu, int ctyp, \
                   ShellMaterial<double> *nmat, int surface, int sflg, \
                   double *ndtemps); \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
 ::andesvmsWRTthic(int elm, double nu, double *x, double *y, double *z, \
-                  double *v, double *vmsWRTthic, int ctyp, \
+                  double *v, double *dvmsdh, int ctyp, \
                   ShellMaterial<double> *nmat, int surface, int sflg, \
                   double *ndtemps); \
 template \
@@ -80,7 +80,7 @@ void \
 ShellElementTemplate<double,Membrane,Bending> \
 ::andesvmsWRTcoord(int elm, double E, double nu, double rho, double eh, \
                    double Ta, double W, double *cFrame, double *x, \
-                   double *y, double *z, double *v, double *vmsWRTcoord, \
+                   double *y, double *z, double *v, double *dvmsdx, \
                    int ctyp, double *coefs, int surface, int sflg, \
                    double *ndtemps); \
 template \

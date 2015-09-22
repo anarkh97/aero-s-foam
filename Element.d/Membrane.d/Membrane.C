@@ -479,8 +479,9 @@ Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStif
   ShellMaterial<double> *mat = new ShellMaterialType0<double>(prop->E, prop->eh, prop->nu,
                                                               prop->rho, prop->Ta, prop->W); 
 
-  Impl::andesstfWRTthick(glNum+1, dStiffdThick.data(), prop->nu,
-                         x, y, z, 0, mat, flg);
+  double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
+  Impl::andesstfWRTthic(glNum+1, dStiffdThick.data(), (double*)NULL, prop->nu,
+                        x, y, z, disp, 0, mat, flg);
   delete mat;
 }
 

@@ -23,7 +23,7 @@ void _FORTRAN(compms)(double*, double*, double*, double*,
                       const int&, const int&, int*, double*,    
                       double*, const int&, const int&, const int&, 
                       const int&, double*, double*, const int&, 
-                      double&, double&, double&, const int&);
+                      double&, double&, const int&);
 
 void _FORTRAN(compvms)(const int&, const int&, const int&, const int&,
                        const int&, double&, double&, double*,
@@ -294,13 +294,12 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   int grvflg = 1, masflg = 0;
 
   double totmas = 0;
-  double sumrho = 0;
   double area = 0;
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
                    1, type, 1, cfrm, gravityAcceleration, grvfor, grvflg,
-                   totmas, sumrho, area, masflg);
+                   totmas, area, masflg);
 
   // scale gravity force by number of nodes
   grvfor[0] /= 3.0;
@@ -431,13 +430,12 @@ Compo3NodeShell::getMass(CoordSet &cs)
   int grvflg = 0, masflg = 1;
 
   double totmas = 0.0;
-  double sumrho = 0.0;
   double area = 0.0;
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
                    1, type, 1, cfrm, gravityAcceleration, grvfor, grvflg,
-                   totmas, sumrho, area, masflg);
+                   totmas, area, masflg);
 
   return totmas;
 }
@@ -464,13 +462,12 @@ Compo3NodeShell::getMassThicknessSensitivity(CoordSet &cs)
   int grvflg = 0, masflg = 1;
 
   double totmas = 0.0;
-  double sumrho = 0.0;
   double area = 0.0;
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
                    1, type, 1, cfrm, gravityAcceleration, grvfor, grvflg,
-                   totmas, sumrho, area, masflg);
+                   totmas, area, masflg);
 
   return totmas/prop->eh;
 }
@@ -501,7 +498,6 @@ Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
   int cfrm = (cFrame) ? 1 : 0;
   int grvflg = 0, masflg = 0;
   double totmas = 0;
-  double sumrho = 0;
   double area = 0;
 
   // check if the density is negative or zero
@@ -514,7 +510,7 @@ Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)mel,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
                    1, type, 1, cfrm, gravityAcceleration, grvfor, grvflg,
-                   totmas, sumrho, area, masflg);
+                   totmas, area, masflg);
 
   FullSquareMatrix ret(18,mel);
 
@@ -589,7 +585,7 @@ Compo3NodeShell::setCompositeData2(int _type, int nlays, double *lData,
  theta *= PI/180.; // convert to radians
  double c = cos(theta), s = sin(theta);
 
- // use Rodrigues' Rotation Formula to rotation x and y about z by an angle theta
+ // use Rodrigues' Rotation Formula to rotate x and y about z by an angle theta
  double R[3][3];
  normalize(x); normalize(y); normalize(z); double wx = z[0], wy = z[1], wz = z[2];
  R[0][0] = c + wx*wx*(1-c);

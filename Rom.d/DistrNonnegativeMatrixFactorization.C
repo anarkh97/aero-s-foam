@@ -7,6 +7,9 @@
 #include <Utils.d/linkfc.h>
 #include <Timers.d/GetTime.h>
 
+#include <iostream>
+#include <map>
+
 #include <mpi.h>
 
 extern "C" {

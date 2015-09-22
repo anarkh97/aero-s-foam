@@ -995,7 +995,7 @@ void GeoSource::transformCoords()
 #endif
 }
 
-void GeoSource::setUpData()
+void GeoSource::setUpData(int topFlag)
 {
   using std::map;
   using std::list;
@@ -1204,7 +1204,8 @@ void GeoSource::setUpData()
     else {
       SPropContainer::iterator it = sProps.find(attrib_i.attr);
       if(it == sProps.end()) {
-        filePrint(stderr, " *** WARNING: The material for element %d does not exist\n", attrib_i.nele+1);
+        if(topFlag != 2 && topFlag != 7) 
+          filePrint(stderr, " *** WARNING: The material for element %d does not exist\n", attrib_i.nele+1);
       }
       else {
         StructProp *prop = &(it->second);

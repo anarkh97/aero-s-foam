@@ -148,8 +148,6 @@ class BaseSub : virtual public Domain
   IntFullM* getC(int &crnDofSize, FSCommPattern<int> *sPat);
   void showExchangeData();
   void countCornerDofs(int *cWeight);
-  void setUpData();
-  void setUpData(CoordSet &, Domain *, int);
   void applyAuxData();
   void distributeBCs(int *);
   void setControlData(ControlLawInfo *_claw, int *, int *, int *, int *);

@@ -703,7 +703,7 @@ int main(int argc, char** argv)
    geoSource->addFsiElements(domain->getNumFSI(), domain->getFSI());
 
  if(!geoSource->binaryInput) {
-   domain->setUpData();
+   domain->setUpData(topFlag);
  }
 
  if(!(geoSource->getCheckFileInfo()->decPtr || callDec || decInit || geoSource->binaryInput)) {

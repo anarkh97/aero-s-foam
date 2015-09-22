@@ -1117,14 +1117,6 @@ int BaseSub::renumberBC(int *map)
   return 0;
 }
 
-
-void 
-BaseSub::setUpData()  
-{
-  geoSource->getNodes(nodes);
-  geoSource->getElems(packedEset, numele, glElems); 
-}
-
 void BaseSub::applyAuxData()  
 {
   // get attributes

@@ -696,7 +696,7 @@ class Domain : public HData {
      ShapeSensitivityData getShapeSensitivityData() { return shapeSenData; }
      int getNumSensitivities() { return numSensitivity; }
 
-     virtual void setUpData();
+     void setUpData(int topFlag);
      SolverInfo  &solInfo() { return sinfo; }
      MatrixTimers &getTimers() { return *matrixTimers; }
      void setGravity(double ax, double ay, double az);

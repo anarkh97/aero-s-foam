@@ -97,6 +97,22 @@ class Corotator {
                                           FullSquareMatrix &elK, double *f, double dt, double t,
                                           double beta, double gamma, double alphaf, double alpham) {}
 
+    // NONLINEAR OPTIMIZATION
+    virtual void getInternalForceThicknessSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs, Vector &dFintdThick,
+                                                      double dt, double t);
+    virtual void getInternalForceNodalCoordinateSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs, Vector *&dFintdx, 
+                                                            double dt, double t);
+    virtual void extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld);
+    virtual void getNLVonMisesNodalCoordinateSensitivity(Vector& stress, Vector& weight, GeomState &curState,
+                                                         GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
+                                                         double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
+    virtual void getNLVonMisesThicknessSensitivity(Vector& stress, Vector& weight, GeomState &curState,
+                                                   GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
+                                                   double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
+    virtual void getNLVonMisesDisplacementSensitivity(Vector& stress, Vector& weight, GeomState &curState,
+                                                      GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
+                                                      double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
+
     virtual ~Corotator() {/*TODO*/}
 };
 

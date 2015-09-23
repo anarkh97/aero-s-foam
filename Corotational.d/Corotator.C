@@ -78,3 +78,38 @@ Corotator::extractRigidBodyMotion(GeomState&, CoordSet&, double*)
   std::cerr << " *** WARNING: Corotator::extractRigidBodyMotion(GeomState&, CoordSet&, double*) is not implemented\n";
 }
 
+void
+Corotator::getInternalForceThicknessSensitivity(GeomState*, GeomState&, CoordSet&, Vector&, double, double)
+{
+  std::cerr << " *** WARNING: Corotator::getInternalForceThicknessSensitivity() is not implemented\n";
+}
+
+void
+Corotator::getInternalForceNodalCoordinateSensitivity(GeomState*, GeomState&, CoordSet&, Vector*&, double, double)
+{
+  std::cerr << " *** WARNING: Corotator::getInternalForceNodalCoordinateSensitivity() is not implemented\n";
+}
+
+void
+Corotator::extractDeformationsDisplacementSensitivity(GeomState&, CoordSet&, double*)
+{
+  std::cerr << " *** WARNING: Corotator::extractDeformationsDisplacementSensitivity() is not implemented\n";
+}
+
+void
+Corotator::getNLVonMisesNodalCoordinateSensitivity(Vector&, Vector&, GeomState&, GeomState*, CoordSet&, int, int, double, double, int, int)
+{
+  std::cerr << " *** WARNING: Corotator::getNLVonMisesNodalCoordinateSensitivity() is not implemented\n";
+}
+
+void
+Corotator::getNLVonMisesThicknessSensitivity(Vector&, Vector&, GeomState&, GeomState*, CoordSet&, int, int, double, double, int, int)
+{
+  std::cerr << " *** WARNING: Corotator::getNLVonMisesThicknessSensitivity() is not implemented\n";
+}
+
+void
+Corotator::getNLVonMisesDisplacementSensitivity(Vector&, Vector&, GeomState&, GeomState*, CoordSet&, int, int, double, double, int, int)
+{
+  std::cerr << " *** WARNING: Corotator::getNLVonMisesDisplacementSensitivity() is not implemented\n";
+}

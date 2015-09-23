@@ -409,3 +409,62 @@ SuperCorotator::getInertialStiffAndForce(GeomState *refState, GeomState &curStat
   }
 }
 
+void
+SuperCorotator::getInternalForceThicknessSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs,
+                                                     Vector &dFintdThick, double dt, double t)
+{
+  int i, j;
+  for(i=0; i<dFintdThick.size(); ++i) dFintdThick[i] = 0.0;
+
+  for(i=0; i<nSubElems; ++i) {
+    int ndofs = superElem->getSubElemNumDofs(i);
+    Vector subf(ndofs);
+    for(j=0; j<ndofs; ++j) subf[j] = 0.0;
+    subElemCorotators[i]->getInternalForceThicknessSensitivity(refState, geomState, cs, subf, dt, t);
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    for(j=0; j<ndofs; ++j) dFintdThick[subElemDofs[j]] += subf[j];
+  }
+}
+
+void
+SuperCorotator::getInternalForceNodalCoordinateSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs,
+                                                           Vector *&dFintdx, double dt, double t)
+{
+  int i, j, k;
+  for(i=0; i<superElem->numNodes()*3; ++i)
+    for(j=0; j<dFintdx[i].size(); ++i) dFintdx[i][j] = 0.0;
+
+  for(i=0; i<nSubElems; ++i) {
+    int nnodes = superElem->getSubElemNumNodes(i);
+    int ndofs = superElem->getSubElemNumDofs(i);
+    Vector *subf = new Vector[nnodes*3];
+    for(j=0; j<nnodes*3; ++j) {
+      subf[i].resize(ndofs);
+      for(k=0; k<ndofs; ++k) subf[j][k] = 0.0;
+    }
+    subElemCorotators[i]->getInternalForceNodalCoordinateSensitivity(refState, geomState, cs, subf, dt, t);
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    int *subElemNodes = superElem->getSubElemNodes(i);
+    for(j=0; j<nnodes*3; ++j)
+      for(k=0; k<ndofs; ++k) dFintdx[3*subElemNodes[j/3]+j%3][subElemDofs[k]] += subf[j][k];
+    delete [] subf;
+  }
+}
+
+void
+SuperCorotator::extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld)
+{
+  int i, j, k;
+  int N = superElem->numDofs();
+  for(i=0; i<N; ++i) dvld[i] = 0;
+
+ for(i=0; i<nSubElems; ++i) {
+    int n = superElem->getSubElemNumDofs(i);
+    double *subd = new double[n*n];
+    subElemCorotators[i]->extractDeformationsDisplacementSensitivity(geomState, cs, subd);
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    for(j=0; j<n; ++j)
+      for(k=0; k<n; ++k) dvld[subElemDofs[j]*N+subElemDofs[k]] += subd[j*n+k];
+    delete [] subd;
+  }
+}

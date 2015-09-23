@@ -2,7 +2,7 @@
 #define _MORTAR_DEFINES_H_
 
 #ifdef USE_EIGEN3
-#  include <Eigen/Core>
+#  include <Eigen/Dense>
 #  include <Eigen/Sparse>
 #  include <unsupported/Eigen/AutoDiff>
 #endif

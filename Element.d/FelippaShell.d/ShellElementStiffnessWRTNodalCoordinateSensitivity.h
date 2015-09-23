@@ -33,7 +33,7 @@ class ShellElementStiffnessWRTNodalCoordinateSensitivity : public MatrixValuedFu
       h = sconst[3];
       type = iconst[0];
       tflg = iconst[1];
-      if(type == 1) {
+      if(type == 1 || type == 5) {
         cframe = sconst.segment<9>(4).cast<Scalar>();
         coefs = sconst.segment<42>(13).cast<Scalar>(); 
       }
@@ -58,6 +58,9 @@ class ShellElementStiffnessWRTNodalCoordinateSensitivity : public MatrixValuedFu
           break;
         case 1 :
           gpmat = new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta);
+          break;
+        case 5 :
+          gpmat = new ShellMaterialType5<Scalar>(coefs.data(), cframe.data(), rho, h, Ta);
           break;
         default :
           std::cerr << " *** ERROR: ShellElementStiffnessWRTNodalCoordinateSensitivity is not defined for this case.\n";

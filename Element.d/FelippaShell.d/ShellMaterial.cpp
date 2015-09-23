@@ -5,24 +5,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
-
-#include <unsupported/Eigen/AutoDiff>
-namespace Eigen {
-
-template<typename DerType>
-inline const AutoDiffScalar<Matrix<typename internal::traits<DerType>::Scalar,Dynamic,1> >
-atan(const AutoDiffScalar<DerType>& a)
-{
-  using std::atan;
-  typedef typename internal::traits<DerType>::Scalar Scalar;
-  typedef AutoDiffScalar<Matrix<Scalar,Dynamic,1> > PlainADS;
-  PlainADS ret;
-  ret.value() = atan(a.value());
-  ret.derivatives() = a.derivatives()/(Scalar(1)+a.value()*a.value());
-  return ret;
-}
-
-}
+#include <Element.d/Function.d/AutoDiffScalarPlugin.h>
 
 template<typename doublereal>
 Eigen::Matrix<doublereal,3,3>
@@ -160,24 +143,24 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
 
 // .....ERROR-MESSAGE IF THE REFERENCE ORIENTATION IS BUGGY 
       case 700:
-        throw std::runtime_error(
-          "*** FATAL ERROR in Routine ANDESINVT ***"
-          "*** The Reference Orientation Vector ***"
-          "*** is Parallel to the Two Inplane   ***"
-          "*** and Orthogonal Local Frames!     ***"
-          "*** STOP ALL TREATMENTS RIGHT HERE   ***");
+        throw std::runtime_error("\n"
+          "*** FATAL ERROR in ShellMaterial::andesinvt ***"
+          "*** The reference orientation vector        ***"
+          "*** is parallel to the two in-plane         ***"
+          "*** and orthogonal local frames!            ***"
+          "*** STOP ALL TREATMENTS RIGHT HERE          ***");
         break;
 
 // .....ERROR-MESSAGE IF THE ORIENTATION ANGLE IS OUT-OF-BOUNDS 
       case 800:
-        throw std::runtime_error(
-          "*** FATAL ERROR in Routine ANDESINVT  ***"
-          "*** The Angle From the Local [x]      ***"
-          "*** Axis of the Triangular Coordinate ***"
-          "*** System to the Reference Direction ***"
-          "*** is Out-of-Bounds: it Must be      ***"
-          "*** Within the Range 0-2pi Radians    ***"
-          "*** STOP ALL TREATMENTS RIGHT HERE    ***");
+        throw std::runtime_error("\n"
+          "*** FATAL ERROR in ShellMaterial::andesinvt ***"
+          "*** The angle from the local [x]            ***"
+          "*** axis of the triangular coordinate       ***"
+          "*** system to the reference direction       ***"
+          "*** is out-of-bounds: it must be            ***"
+          "*** within the range 0-2pi radians          ***"
+          "*** STOP ALL TREATMENTS RIGHT HERE          ***");
         break;
     }
   }
@@ -187,7 +170,9 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
 
 template
 Eigen::Matrix<double,3,3>
-ShellMaterial<double>::andesinvt(double *_eframe, double *_aframe, double thetaf);
+ShellMaterial<double>
+::andesinvt(double *, double *, double);
+
 #endif
 
 #endif

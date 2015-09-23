@@ -397,8 +397,7 @@ public:
 
   void transformCoords();
   void checkInputs();
-  void setUpData();
-  void setUpData(CoordSet &, Domain *, int);
+  void setUpData(int topFlag);
 
   Elemset* getPackedEsetFluid() { return packedEsetFluid; }
 

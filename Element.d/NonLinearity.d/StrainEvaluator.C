@@ -302,7 +302,7 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor
   else {
     // new implementation. this should be significantly faster...
     Eigen::Matrix<double,3,3> F = GradU + Eigen::Matrix<double,3,3>::Identity();
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,3,3> > dec(F.transpose()*F);
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,3,3> > dec((F.transpose()*F).eval());
 
     // logarithmic (Hencky) strain, Lagrangean description
     Eigen::Matrix<double,3,1> lnl = dec.eigenvalues().array().log();
@@ -442,7 +442,7 @@ LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const
   else {
     // new implementation. this should be significantly faster...
     Eigen::Matrix<double,3,3> F = GradU + Eigen::Matrix<double,3,3>::Identity();
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,3,3> > dec(F.transpose()*F);
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,3,3> > dec((F.transpose()*F).eval());
 
     // logarithmic (Hencky) strain, Lagrangean description
     Eigen::Matrix<double,3,1> lnl = dec.eigenvalues().array().log();
@@ -516,7 +516,7 @@ LogarithmicStrain::getE(Tensor &_e, Tensor &_gradU)
   Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
   //Eigen::JacobiSVD<Eigen::Matrix3d,Eigen::NoQRPreconditioner> dec(F, Eigen::ComputeFullV);
   //Eigen::Matrix3d E = dec.matrixV() * dec.singularValues().array().log().matrix().asDiagonal() * dec.matrixV().adjoint();
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec(F.transpose()*F);
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec((F.transpose()*F).eval());
   Eigen::Matrix3d E = 0.5*(dec.eigenvectors() * dec.eigenvalues().array().log().matrix().asDiagonal() * dec.eigenvectors().adjoint());
 
   e = E;

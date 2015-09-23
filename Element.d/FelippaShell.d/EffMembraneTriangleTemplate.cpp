@@ -113,11 +113,11 @@ EffMembraneTriangle<doublereal>::Bd(doublereal x[3], doublereal y[3], doublereal
 // .....CHECK IF THE SCALING FACTOR [beta] IS POSITIVE 
 
     if (beta < zero) {
-        throw std::runtime_error(
-          "*** FATAL ERROR in routine AndesBase::Bdm  ***\n"
-          "*** The Scaling Factor [beta] is Negative  ***\n"
-          "*** Check the Calling Sequence:            ***\n"
-          "*** Factor [beta] Must be Positive or Zero ***\n");
+        throw std::runtime_error("\n"
+          "*** FATAL ERROR in EffMembraneTriangle::Bd ***\n"
+          "*** The scaling factor [beta] is negative  ***\n"
+          "*** Check the calling sequence:            ***\n"
+          "*** Factor [beta] must be positive or zero ***\n");
     }
 
 // .....GET THE DISTANCES BETWEEN NODAL POINT X- AND Y- COORDINATES 

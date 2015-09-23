@@ -9,7 +9,7 @@
 template<typename doublereal>
 void
 ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                                                        doublereal *, int, doublereal temp, doublereal dt)
+                                                        doublereal *, int, doublereal temp, doublereal)
 {
   // Initialized data 
   doublereal zero = 0.;
@@ -26,15 +26,15 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 // ==================================================================== 
 //                                                                      
-//     Perform =   Assembles the 6 by 6 Constitutive Matrix According   
-//     ---------   to the Type of Constitutive Law Requested.           
+//     Perform =   Assembles the 6 by 6 constitutive matrix and
+//     ---------   computes the generalized stress resultants           
 //                                                                      
 //                                                                      
 //     Input/Output =                                                   
 //     --------------                                                   
-//     E       <input>  Young modulus                                   
-//     thick   <input>  thickness (assumed constant over the element)   
-//     nu      <input>  Poisson's ratio                                 
+//     Upsilon <input>  generalized strains                                
+//     temp    <input>  temperature
+//     Sigma   <output> generalized stress resultants
 //     D       <output> 6 by 6 constitutive matrix                      
 //                                                                      
 //                                                                      
@@ -93,15 +93,15 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 //                                                                      
 //     with:                                                            
 //                                                                      
-//              [E]*[thick]^3                                           
+//              [E]*[h]^3                                           
 //     [d_11] = -------------                                           
 //              12*(1-[nu]^2)                                           
 //                                                                      
-//              [nu]*[E]*[thick]^3                                      
+//              [nu]*[E]*[h]^3                                      
 //     [d_12] = ------------------                                      
 //                12*(1-[nu]^2)                                         
 //                                                                      
-//              [E]*[thick]^3                                           
+//              [E]*[h]^3                                           
 //     [d_33] = -------------                                           
 //               24*(1+[nu])                                            
 //                                                                      
@@ -114,15 +114,15 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 //                                                                      
 //     with:                                                            
 //                                                                      
-//              [E]*[thick]                                             
+//              [E]*[h]                                             
 //     [d_44] = -----------                                             
 //              (1-[nu]^2)                                              
 //                                                                      
-//              [nu]*[E]*[thick]                                        
+//              [nu]*[E]*[h]                                        
 //     [d_45] = ----------------                                        
 //                 (1-[nu]^2)                                           
 //                                                                      
-//              [E]*[thick]                                             
+//              [E]*[h]                                             
 //     [d_66] = ------------                                            
 //               2*(1+[nu])                                             
 //                                                                      
@@ -148,27 +148,27 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING
 
-    Db(0, 0) = E * (thick * thick * thick) / ((one - nu * nu) * 12.);
-    Db(0, 1) = nu * E * (thick * thick * thick) / ((one - nu * nu) * 12.);
+    Db(0, 0) = E * (h * h * h) / ((one - nu * nu) * 12.);
+    Db(0, 1) = nu * E * (h * h * h) / ((one - nu * nu) * 12.);
     Db(0, 2) = zero;
-    Db(1, 0) = nu * E * (thick * thick * thick) / ((one - nu * nu) * 12.);
-    Db(1, 1) = E * (thick * thick * thick) / ((one - nu * nu) * 12.);
+    Db(1, 0) = nu * E * (h * h * h) / ((one - nu * nu) * 12.);
+    Db(1, 1) = E * (h * h * h) / ((one - nu * nu) * 12.);
     Db(1, 2) = zero;
     Db(2, 0) = zero;
     Db(2, 1) = zero;
-    Db(2, 2) = E * (thick * thick * thick) / ((one + nu) * 24.);
+    Db(2, 2) = E * (h * h * h) / ((one + nu) * 24.);
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
 
-    Dm(0, 0) = E * thick / (one - nu * nu);
-    Dm(0, 1) = nu * E * thick / (one - nu * nu);
+    Dm(0, 0) = E * h / (one - nu * nu);
+    Dm(0, 1) = nu * E * h / (one - nu * nu);
     Dm(0, 2) = zero;
-    Dm(1, 0) = nu * E * thick / (one - nu * nu);
-    Dm(1, 1) = E * thick / (one - nu * nu);
+    Dm(1, 0) = nu * E * h / (one - nu * nu);
+    Dm(1, 1) = E * h / (one - nu * nu);
     Dm(1, 2) = zero;
     Dm(2, 0) = zero;
     Dm(2, 1) = zero;
-    Dm(2, 2) = E * thick / ((one + nu) * 2.);
+    Dm(2, 2) = E * h / ((one + nu) * 2.);
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
 
@@ -187,123 +187,42 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 template<typename doublereal>
 void
-ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dSigmadu, doublereal *_D,
-                                                                          doublereal *, int)
+ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
+                                                                          doublereal *eframe, int gp)
 {
-  // Initialized data 
-  doublereal zero = 0.;
-  doublereal one = 1.;
-
-  // Local variables 
-  doublereal *data = (_D == NULL) ? new doublereal[36] : _D;
-  Eigen::Map<Eigen::Matrix<doublereal,6,18> > dUpsilondu(_dUpsilondu), dSigmadu(_dSigmadu);
-  Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(data); 
-  Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> > >
-    Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
-    Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
-
-// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING
-
-    Db(0, 0) = E * (thick * thick * thick) / ((one - nu * nu) * 12.);
-    Db(0, 1) = nu * E * (thick * thick * thick) / ((one - nu * nu) * 12.);
-    Db(0, 2) = zero;
-    Db(1, 0) = nu * E * (thick * thick * thick) / ((one - nu * nu) * 12.);
-    Db(1, 1) = E * (thick * thick * thick) / ((one - nu * nu) * 12.);
-    Db(1, 2) = zero;
-    Db(2, 0) = zero;
-    Db(2, 1) = zero;
-    Db(2, 2) = E * (thick * thick * thick) / ((one + nu) * 24.);
-
-// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
-
-    Dm(0, 0) = E * thick / (one - nu * nu);
-    Dm(0, 1) = nu * E * thick / (one - nu * nu);
-    Dm(0, 2) = zero;
-    Dm(1, 0) = nu * E * thick / (one - nu * nu);
-    Dm(1, 1) = E * thick / (one - nu * nu);
-    Dm(1, 2) = zero;
-    Dm(2, 0) = zero;
-    Dm(2, 1) = zero;
-    Dm(2, 2) = E * thick / ((one + nu) * 2.);
-
-// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
-
-    Dbm = Eigen::Matrix<doublereal,3,3>::Zero();
-
-// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
-
-    Dmb = Eigen::Matrix<doublereal,3,3>::Zero();
-
-// .....COMPUTE THE SENSITIVITY OF THE GENERALIZED "STRESSES"
-// .....WITH RESPECT TO DISPLACEMENT
-
-    dSigmadu = D*dUpsilondu;
-
-    if(_D == NULL) delete [] data;
+    for(int i=0; i<18; ++i) { GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta); dUpsilondu += 6; dSigmadu += 6; }
 }
 
 template<typename doublereal>
 void
-ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthickness(doublereal *_Upsilon, doublereal *_dSigmadthick, doublereal *_dDdthick,
-                                                                               doublereal *, int, doublereal temp)
+ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthic(doublereal *_Upsilon, doublereal *_dSigmadh, doublereal *_dDdh,
+                                                                          doublereal *, int, doublereal temp)
 {
   // Initialized data 
   doublereal zero = 0.;
   doublereal one = 1.;
 
   // Local variables 
-  doublereal *data = (_dDdthick == NULL) ? new doublereal[36] : _dDdthick;
-  Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon), dSigmadthick(_dSigmadthick);
+  doublereal *data = (_dDdh == NULL) ? new doublereal[36] : _dDdh;
+  Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon), dSigmadh(_dSigmadh);
   Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(data); 
   Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> > >
     Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
     Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
   Eigen::Matrix<doublereal,6,1> Alpha; Alpha << w, w, 0, 0, 0, 0;
 
-// ==================================================================== 
-//                                                                      
-//     Perform =   Computes the 6 by 6 Sensitivity of Constitutive Matrix WRT thickness   
-//     ---------   according to the Type of Constitutive Law Requested.           
-//                                                                      
-//                                                                      
-//     Input/Output =                                                   
-//     --------------                                                   
-//     E       <input>  Young modulus                                   
-//     thick   <input>  thickness (assumed constant over the element)   
-//     nu      <input>  Poisson's ratio                                 
-//     D       <output> 6 by 6 sensitivity of constitutive matrix WRT thickness
-//     Sigma   <output> 6 by 1 sensitivity of stress WRT thickness                                                                 
-//                                                                      
-//     Computations =                                                   
-//     --------------                                                   
-//                                                          [ [D_m]   [D_mb] ]                       
-//     [Sensitivity of Constitutive_Matrix WRT thickness] = [                ]                       
-//            6 by 6                                        [ [D_bm]  [D_b]  ]                       
-//                                                                      
-//     where "b" and "m" stand for bending and membrane, respectively:  
-//
-//     Caution =   It is assumed that the element has a constant        
-//     ---------   thickness so that no numerical interpolation is      
-//                 required.                                            
-//                                                                      
-// ==================================================================== 
-// Author  = Youngsoo Choi 
-// Date    = January 17th, 2014                                             
-// Version = 1.0                                                        
-// ==================================================================== 
-
 // .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR PURE BENDING
 // .....WITH RESPECT TO THICKNESS
 
-    Db(0, 0) = E * (thick * thick) / ((one - nu * nu) * 4.);
-    Db(0, 1) = nu * E * (thick * thick) / ((one - nu * nu) * 4.);
+    Db(0, 0) = E * (h * h) / ((one - nu * nu) * 4.);
+    Db(0, 1) = nu * E * (h * h) / ((one - nu * nu) * 4.);
     Db(0, 2) = zero;
-    Db(1, 0) = nu * E * (thick * thick) / ((one - nu * nu) * 4.);
-    Db(1, 1) = E * (thick * thick) / ((one - nu * nu) * 4.);
+    Db(1, 0) = nu * E * (h * h) / ((one - nu * nu) * 4.);
+    Db(1, 1) = E * (h * h) / ((one - nu * nu) * 4.);
     Db(1, 2) = zero;
     Db(2, 0) = zero;
     Db(2, 1) = zero;
-    Db(2, 2) = E * (thick * thick) / ((one + nu) * 8.);
+    Db(2, 2) = E * (h * h) / ((one + nu) * 8.);
 
 // .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
 // .....WITH RESPECT TO THICKNESS
@@ -331,15 +250,15 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthickness(d
 // .....COMPUTE THE SENSITIVITY OF THE GENERALIZED "STRESSES"
 // .....WITH RESPECT TO THICKNESS
 
-    dSigmadthick = D*(Upsilon - (temp-Ta)*Alpha);
+    dSigmadh = D*(Upsilon - (temp-Ta)*Alpha);
 
-    if(_dDdthick == NULL) delete [] data;
+    if(_dDdh == NULL) delete [] data;
 }
 
 template<typename doublereal>
 void
 ShellMaterialType0<doublereal>::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
-                                                             doublereal *, int, doublereal temp, doublereal dt)
+                                                             doublereal *, int, doublereal temp, doublereal)
 {
     // Local variables
     Eigen::Matrix<doublereal,3,1> epsilon;
@@ -370,8 +289,16 @@ ShellMaterialType0<doublereal>::GetLocalConstitutiveResponse(doublereal *_Upsilo
 
 template<typename doublereal>
 void
-ShellMaterialType0<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthick(doublereal *_Upsilon, doublereal *_dsigmadh,
-                                                                                doublereal dzdh, doublereal *, int)
+ShellMaterialType0<doublereal>::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu,
+                                                                               doublereal z, doublereal *eframe, int gp)
+{
+    for(int i=0; i<18; ++i) { GetLocalConstitutiveResponse(dUpsilondu, dsigmadu, z, eframe, gp, Ta); dUpsilondu += 6; dsigmadu += 3; }
+}
+
+template<typename doublereal>
+void
+ShellMaterialType0<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal *_Upsilon, doublereal *_dsigmadh,
+                                                                               doublereal dzdh, doublereal *, int)
 {
     // Local variables
     Eigen::Matrix<doublereal,3,1> depsilondh;
@@ -401,70 +328,35 @@ ShellMaterialType0<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthick(
     dsigmadh = C*depsilondh;
 }
 
-
-template<typename doublereal>
+template
 void
-ShellMaterialType0<doublereal>::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dsigmadu,
-                                                                               doublereal z, doublereal *, int)
-{
-    // Local variables
-    Eigen::Matrix<doublereal,3,18> depsilondu;
-    Eigen::Matrix<doublereal,3,3> C;
-    Eigen::Map<Eigen::Matrix<doublereal,6,18> > dUpsilondu(_dUpsilondu);
-    Eigen::Map<Eigen::Matrix<doublereal,3,18> > dsigmadu(_dsigmadu);
-
-    // Some convenient definitions 
-    Eigen::Matrix<doublereal,3,18> e, chi;
-    e << dUpsilondu.template block<3,18>(0,0);
-    chi << dUpsilondu.template block<3,18>(3,0);
-
-// .....COMPUTE THE SENSITIVITY OF THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
-// .....WITH RESPECT TO DISPLACEMENT
-
-    depsilondu = e + z * chi;
-
-// .....GET THE PLANE STRESS ELASTICITY STIFFNESS MATRIX
-
-    doublereal v = E/(1-nu*nu);
-    C << v,    v*nu, 0,
-         v*nu, v,    0,
-         0,    0.,   v*(1-nu)/2;
-
-// .....COMPUTE THE SENSITIVITY OF THE LOCAL STRESSES [sigma] = {sigmaxx,sigmayy,sigmaxy} ON THE SPECIFIED SURFACE
-// .....WITH RESPECT TO DISPLACEMENT
-
-    dsigmadu = C*depsilondu;
-}
+ShellMaterialType0<double>
+::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double);
 
 template
 void
 ShellMaterialType0<double>
-::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int, double, double);
+::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double);
 
 template
 void
 ShellMaterialType0<double>
-::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int, double, double);
+::GetConstitutiveResponseSensitivityWRTthic(double *, double *, double *, double *, int, double);
 
 template
 void
 ShellMaterialType0<double>
-::GetConstitutiveResponseSensitivityWRTdisp(double *_dUpsilondu, double *_dSigmadu, double *_D, double *, int);
+::GetConstitutiveResponseSensitivityWRTdisp(double *, double *, double *, double *, int);
 
 template
 void
 ShellMaterialType0<double>
-::GetConstitutiveResponseSensitivityWRTthickness(double *_Upsilon, double *_Sigma, double *_dDdthick, double *, int, double);
+::GetLocalConstitutiveResponseSensitivityWRTthic(double *, double *, double, double *, int);
 
 template
 void
 ShellMaterialType0<double>
-::GetLocalConstitutiveResponseSensitivityWRTthick(double *_Upsilon, double *_dsigmadh, double dzdh, double *, int);
-
-template
-void
-ShellMaterialType0<double>
-::GetLocalConstitutiveResponseSensitivityWRTdisp(double *_dUpsilondu, double *_dsigmadu, double z, double *, int);
+::GetLocalConstitutiveResponseSensitivityWRTdisp(double *, double *, double, double *, int);
 
 #endif
 #endif

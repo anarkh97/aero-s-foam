@@ -10,6 +10,8 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
 #include <Utils.d/linkfc.h>
+#include <Element.d/Function.d/Corotator.d/Shell3CorotatorDefDispFunction.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 
 // Define FORTRAN routines as external functions
 
@@ -1051,6 +1053,39 @@ Shell3Corotator::extractDeformations( GeomState &geomState, CoordSet &cs,
 
  tran_force( vld, t0n, 3 );
 
+}
+
+//---------------------------------------------------------------------------
+
+void
+Shell3Corotator::extractDeformationsDisplacementSensitivity(GeomState &gs, CoordSet &cs, double *data)
+{
+  Eigen::Array<double,36,1> sconst;
+  Eigen::Array<int,1,1> iconst;
+
+  sconst << cs[n1]->x, cs[n1]->y, cs[n1]->z,
+            cs[n2]->x, cs[n2]->y, cs[n2]->z,
+            cs[n3]->x, cs[n3]->y, cs[n3]->z,
+            gs[n1].R[0][0], gs[n1].R[0][1], gs[n1].R[0][2],
+            gs[n1].R[1][0], gs[n1].R[1][1], gs[n1].R[1][2],
+            gs[n1].R[2][0], gs[n1].R[2][1], gs[n1].R[2][2],
+            gs[n2].R[0][0], gs[n2].R[0][1], gs[n2].R[0][2],
+            gs[n2].R[1][0], gs[n2].R[1][1], gs[n2].R[1][2],
+            gs[n2].R[2][0], gs[n2].R[2][1], gs[n2].R[2][2],
+            gs[n3].R[0][0], gs[n3].R[0][1], gs[n3].R[0][2],
+            gs[n3].R[1][0], gs[n3].R[1][1], gs[n3].R[1][2],
+            gs[n3].R[2][0], gs[n3].R[2][1], gs[n3].R[2][2];
+  iconst << fitAlg;
+
+  Simo::Jacobian<double,Simo::Shell3CorotatorDefDispFunction> dfdu(sconst,iconst);
+
+  Eigen::Matrix<double,18,1> q;
+  q << gs[n1].x - cs[n1]->x, gs[n1].y - cs[n1]->y, gs[n1].z - cs[n1]->z, 0, 0, 0,
+       gs[n2].x - cs[n2]->x, gs[n2].y - cs[n2]->y, gs[n2].z - cs[n2]->z, 0, 0, 0,
+       gs[n3].x - cs[n3]->x, gs[n3].y - cs[n3]->y, gs[n3].z - cs[n3]->z, 0, 0, 0;
+
+  Eigen::Map<Eigen::Matrix<double,18,18> > J(data);
+  J = dfdu(q,0);
 }
 
 //---------------------------------------------------------------------------

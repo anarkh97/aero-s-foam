@@ -995,7 +995,7 @@ void GeoSource::transformCoords()
 #endif
 }
 
-void GeoSource::setUpData()
+void GeoSource::setUpData(int topFlag)
 {
   using std::map;
   using std::list;
@@ -1204,7 +1204,8 @@ void GeoSource::setUpData()
     else {
       SPropContainer::iterator it = sProps.find(attrib_i.attr);
       if(it == sProps.end()) {
-        filePrint(stderr, " *** WARNING: The material for element %d does not exist\n", attrib_i.nele+1);
+        if(topFlag != 2 && topFlag != 7) 
+          filePrint(stderr, " *** WARNING: The material for element %d does not exist\n", attrib_i.nele+1);
       }
       else {
         StructProp *prop = &(it->second);
@@ -1246,12 +1247,13 @@ void GeoSource::setUpData()
 
     if(attrib_i.cmp_attr >= 0) {
       if(coefData[attrib_i.cmp_attr] != 0) {
+        int type = (coefData[attrib_i.cmp_attr]->coefFlag) ? 5 : 1;
         if(attrib_i.cmp_frm > -1) { // cframe
-          ele->setCompositeData(1, 0, 0, coefData[attrib_i.cmp_attr]->values(),
+          ele->setCompositeData(type, 0, 0, coefData[attrib_i.cmp_attr]->values(),
                                 cframes[attrib_i.cmp_frm]);
         }
         else { // ctheta
-          ele->setCompositeData2(1, 0, 0, coefData[attrib_i.cmp_attr]->values(),
+          ele->setCompositeData2(type, 0, 0, coefData[attrib_i.cmp_attr]->values(),
                                  nodes, attrib_i.cmp_theta);
         }
       }

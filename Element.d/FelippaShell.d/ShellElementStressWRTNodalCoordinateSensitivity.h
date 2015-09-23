@@ -35,7 +35,7 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
       surface = iconst[0];
       type = iconst[1];
       sflg = iconst[2];
-      if(type == 1) {
+      if(type == 1 || type == 5) {
         cframe = sconst.segment<9>(22).cast<Scalar>();
         coefs = sconst.segment<42>(31).cast<Scalar>(); 
       }
@@ -56,6 +56,9 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
           break;
         case 1 : 
           nmat = new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta);
+          break;
+        case 5 :
+          nmat = new ShellMaterialType5<Scalar>(coefs.data(), cframe.data(), rho, h, Ta);
           break;
         default :
           std::cerr << " *** ERROR: ShellElementStressWRTNodalCoordinateSensitivity is not defined for this case.\n";

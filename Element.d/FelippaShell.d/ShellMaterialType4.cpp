@@ -44,21 +44,15 @@ ShellMaterialType4<doublereal,localmaterial>
 //       (NUMERICAL INTEGRATION THROUGH THE THICKNESS)    
 //     -------------------------------------------------- 
 
-    // hardcoded 5 point Gauss-Legendre rule
+    // 5 point Gauss-Legendre rule
     doublereal nodes[5] = { -0.906179845938664, -0.538469310105683, 0.000000000000000, 0.538469310105683, 0.906179845938664 };
     doublereal weights[5] = { 0.236926885056189, 0.478628670499366, 0.568888888888889, 0.478628670499366, 0.236926885056189 };
-/*
-    // hardcoded 7 point Gauss-Legendre rule
-    doublereal nodes[7] = {-0.9491079123427585245261897,-0.7415311855993944398638648,-0.4058451513773971669066064,
-                            0.0000000000000000000000000,0.4058451513773971669066064,0.7415311855993944398638648,0.9491079123427585245261897};
-    doublereal weights[7] = {0.1294849661688696932706114,0.2797053914892766679014678,0.3818300505051189449503698,
-                             0.4179591836734693877551020,0.3818300505051189449503698,0.2797053914892766679014678,0.1294849661688696932706114};
-*/
+
     for (ilayer = 0; ilayer < nlayer; ++ilayer) {
 
 // .....[z] COORDINATE AT THE THRU-THICKNESS GAUSS POINT AND STRAINS
 
-        z = nodes[ilayer]*thick/2;
+        z = nodes[ilayer]*h/2;
 
         epsilon = e + z*chi;
 
@@ -83,42 +77,28 @@ ShellMaterialType4<doublereal,localmaterial>
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING 
 
-            Db += weights[ilayer] * thick/2 * z * z * C;
+            Db += weights[ilayer] * h/2 * z * z * C;
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
 
-            Dm += weights[ilayer]  * thick/2 * C;
+            Dm += weights[ilayer]  * h/2 * C;
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
-            Dbm += weights[ilayer]  * thick/2 * z * C.transpose();
+            Dbm += weights[ilayer]  * h/2 * z * C.transpose();
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
-            Dmb += weights[ilayer] * thick/2 * z * C;
+            Dmb += weights[ilayer] * h/2 * z * C;
 
         }
 
 // .....ASSEMBLE THE GENERALIZED "STRESSES"
 
-        N += weights[ilayer] * thick/2 * sigma;
-        M += weights[ilayer] * thick/2 * z * sigma;
+        N += weights[ilayer] * h/2 * sigma;
+        M += weights[ilayer] * h/2 * z * sigma;
 
     }
 
     if(_D) delete __C;
-}
-
-template<typename doublereal, typename localmaterial>
-void
-ShellMaterialType4<doublereal,localmaterial>
-::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
-                                                 doublereal *eframe, int gp)
-{
-  for(int i=0; i<3*18; ++i) dsigmadu[i] = 0.0;
-  if(quietFlag == 0) {
-    fprintf(stderr," *** WARNING: Local stress displacement sensitivity output is not available for shell elements\n"
-                   "              type 15/1515 with MaterialType4 constitutive law.\n"
-                   "              Use command-line option -q to suppress this warning.\n");
-  }
 }
 
 template<typename doublereal, typename localmaterial>
@@ -192,8 +172,6 @@ void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetState(doublereal *state)
 {
-  //std::vector<doublereal> PlasticStrain(3);
-  //std::vector<doublereal> BackStress(3);
   int l = 0;
   for(int i = 0; i < maxgus; ++i) {
     for(int j = 0; j < nlayer; ++j) {
@@ -239,12 +217,12 @@ ShellMaterialType4<doublereal,localmaterial>
 // .....[z] COORDINATE AT THE THRU-THICKNESS GAUSS POINT (OR SURFACE) AND STRAINS
 
         if(nlayer == 5) {
-          z = nodes[ilayer]*thick/2;
+          z = nodes[ilayer]*h/2;
         }
         else {
-           if(ilayer == 0) z = -thick/2; // lower surface
+           if(ilayer == 0) z = -h/2;     // lower surface
            else if(ilayer == 1) z = 0;   // median surface
-           else z = thick/2;             // upper surface
+           else z = h/2;                 // upper surface
         }
 
         epsilon = e + z*chi;
@@ -341,19 +319,13 @@ ShellMaterialType4<doublereal,localmaterial>
 //       (NUMERICAL INTEGRATION THROUGH THE THICKNESS)    
 //     -------------------------------------------------- 
 
-    // hardcoded 5 point Gauss-Legendre rule
+    // 5 point Gauss-Legendre rule
     doublereal nodes[5] = { -0.906179845938664, -0.538469310105683, 0.000000000000000, 0.538469310105683, 0.906179845938664 };
     doublereal weights[5] = { 0.236926885056189, 0.478628670499366, 0.568888888888889, 0.478628670499366, 0.236926885056189 };
-/*
-    // hardcoded 7 point Gauss-Legendre rule
-    doublereal nodes[7] = {-0.9491079123427585245261897,-0.7415311855993944398638648,-0.4058451513773971669066064,
-                            0.0000000000000000000000000,0.4058451513773971669066064,0.7415311855993944398638648,0.9491079123427585245261897};
-    doublereal weights[7] = {0.1294849661688696932706114,0.2797053914892766679014678,0.3818300505051189449503698,
-                             0.4179591836734693877551020,0.3818300505051189449503698,0.2797053914892766679014678,0.1294849661688696932706114};
-*/
+
     for (ilayer = 0; ilayer < nlayer; ++ilayer) {
 
-      D += weights[ilayer]*thick/2*mat[nlayer*point+ilayer]->GetDissipatedEnergy();
+      D += weights[ilayer]*h/2*mat[nlayer*point+ilayer]->GetDissipatedEnergy();
 
     }
 
@@ -371,22 +343,60 @@ ShellMaterialType4<doublereal,localmaterial>
   return true;
 }
 
+template<typename doublereal, typename localmaterial>
+void
+ShellMaterialType4<doublereal,localmaterial>
+::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D, doublereal *eframe, int gp)
+{
+  fprintf(stderr," *** ERROR: Stiffness w.r.t. displacement sensitivity output is \n"
+                 "            not implemented for shell element types 15 and 1515 \n"
+                 "            with an elasto-plastic constitutive law.            \n");
+  exit(-1);
+}
+
+template<typename doublereal, typename localmaterial>
+void
+ShellMaterialType4<doublereal,localmaterial>
+::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z, doublereal *eframe, int gp)
+{
+  fprintf(stderr," *** ERROR: Local stress w.r.t. displacement sensitivity output \n"
+                 "            is not implemented for shell element types 15 and   \n"
+                 "            1515 with an elasto-plastic constitutive law.       \n");
+  exit(-1);
+}
+
+template<typename doublereal, typename localmaterial>
+void
+ShellMaterialType4<doublereal,localmaterial>
+::GetConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dSigmadh, doublereal *dDdh, doublereal *, int, doublereal temp)
+{
+  fprintf(stderr," *** ERROR: Stiffness w.r.t. thickness sensitivity output is not\n"
+                 "            implemented for shell element types 15 and 1515 with\n"
+                 "            an elasto-plastic constitutive law.                 \n");
+  exit(-1);
+}
+
+template<typename doublereal, typename localmaterial>
+void
+ShellMaterialType4<doublereal,localmaterial>
+::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dsigmadh, doublereal dzdh, doublereal *, int)
+{
+  fprintf(stderr," *** ERROR: Local stress w.r.t. displacement sensitivity output \n"
+                 "            is not implemented for shell element types 15 and   \n"
+                 "            1515 with an elasto-plastic constitutive law.       \n");
+  exit(-1);
+}
+
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int gp, double temp, double dt);
+::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double);
 
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int nd, double temp, double dt);
-
-template
-void
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalConstitutiveResponseSensitivityWRTdisp(double *dUpsilondu, double *dsigmadu, double z,
-                                                 double *eframe, int gp);
+::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double);
 
 template
 void
@@ -401,35 +411,55 @@ ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::UpdateState(double *Upsilon, double *state, int gp, double dt);
+::UpdateState(double *, double *, int, double);
 
 template
 std::vector<double>
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalPlasticStrain(int nd, double z);
+::GetLocalPlasticStrain(int, double);
 
 template
 std::vector<double>
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalBackStress(int nd, double z);
+::GetLocalBackStress(int, double);
 
 template
 double
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalEquivalentPlasticStrain(int nd, double z);
+::GetLocalEquivalentPlasticStrain(int, double);
 
 template
 double
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalDamage(int nd, double z);
+::GetLocalDamage(int, double);
 
 template
 double
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetDissipatedEnergy(int gp);
+::GetDissipatedEnergy(int);
 
 template
 bool
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 ::CheckFailure();
+
+template
+void
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetConstitutiveResponseSensitivityWRTthic(double *, double *, double *, double *, int, double);
+
+template
+void
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetConstitutiveResponseSensitivityWRTdisp(double *, double *, double *, double *, int);
+
+template
+void
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetLocalConstitutiveResponseSensitivityWRTthic(double *, double *, double, double *, int);
+
+template
+void
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetLocalConstitutiveResponseSensitivityWRTdisp(double *, double *, double, double *, int);
 #endif

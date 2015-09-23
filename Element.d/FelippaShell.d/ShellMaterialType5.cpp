@@ -1,20 +1,20 @@
-#ifndef _SHELLMATERIALTYPE1_CPP_
-#define _SHELLMATERIALTYPE1_CPP_
+#ifndef _SHELLMATERIALTYPE5_CPP_
+#define _SHELLMATERIALTYPE5_CPP_
 
 #ifdef USE_EIGEN3
 #include <cmath>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 
 template<typename doublereal>
-bool ShellMaterialType1<doublereal>::Wlocal_stress = true;
+bool ShellMaterialType5<doublereal>::Wlocal_stress = true;
 template<typename doublereal>
-bool ShellMaterialType1<doublereal>::Wlocal_stress_disp = true;
+bool ShellMaterialType5<doublereal>::Wlocal_stress_disp = true;
 template<typename doublereal>
-bool ShellMaterialType1<doublereal>::Wlocal_stress_thic = true;
+bool ShellMaterialType5<doublereal>::Wlocal_stress_thic = true;
 
 template<typename doublereal>
 void
-ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
+ShellMaterialType5<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
                                                         doublereal *eframe, int, doublereal temp, doublereal)
 {
   // Initialized data 
@@ -32,7 +32,7 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 // ==================================================================== 
 //                                                                      
 //     Perform =   Assembles the 6 by 6 constitutive matrix and
-//     ---------   computes the generalized stress resultants          
+//     ---------   computes the generalized stress resultants
 //                                                                      
 //                                                                      
 //     Input/Output =                                                   
@@ -85,7 +85,7 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 //     In the following, the assembly of each one of the four matrices  
 //     is briefly summarized.                                           
 //                                                                      
-//     2.  Constitutive Law of type-1:                                  
+//     2.  Constitutive Law of type-5:                                  
 //     - - - - - - - - - - - - - - - -                                  
 //     The coefficients [d_ij] for i=1 to 6 and j=1 to 6 are given in   
 //     the output. They are stored in a vector of length 36 according   
@@ -158,93 +158,99 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 // .....AND [sxy] IN THE TRIANGULAR COORDINATE SYSTEM {x;y}: 
 // .....[D] = [invT] * [D'] * [invT]^t 
 
-    invT = this->andesinvt(eframe, aframe, zero);
+  doublereal  I = h*h*h/12;
+  doublereal  h2 = h*h;
+
+  invT = this->andesinvt(eframe, aframe, zero);
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING 
 
-    Db = invT * coef.bottomRightCorner(3,3) * invT.transpose();
+  Db = invT * (coef.bottomRightCorner(3,3)*I) * invT.transpose();
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE
 
-    Dm = invT * coef.topLeftCorner(3,3) * invT.transpose();
+  Dm = invT * (coef.topLeftCorner(3,3)*h) * invT.transpose();
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
 
-    Dbm = -invT * coef.bottomLeftCorner(3,3) * invT.transpose();
+  Dbm = -invT * (coef.bottomLeftCorner(3,3)*h2) * invT.transpose();
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
 
-    Dmb = -invT * coef.topRightCorner(3,3) * invT.transpose();
+  Dmb = -invT * (coef.topRightCorner(3,3)*h2) * invT.transpose();
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
 //
-    Sigma = D*(Upsilon - (temp-Ta)*Alpha);
+  Sigma = D*(Upsilon - (temp-Ta)*Alpha);
 
 
-    if(_D == NULL) delete [] data;
+  if(_D == NULL) delete [] data;
 }
 
 template<typename doublereal>
 void
-ShellMaterialType1<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
+ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
                                                                           doublereal *eframe, int gp)
 {
-    for(int i=0; i<18; ++i) { GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta); dUpsilondu += 6; dSigmadu += 6; }
+  for(int i=0; i<18; ++i) { GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta); dUpsilondu += 6; dSigmadu += 6; }
 }
 
 template<typename doublereal>
 void
-ShellMaterialType1<doublereal>::GetConstitutiveResponseSensitivityWRTthic(doublereal *, doublereal *_dSigmadh, doublereal *_dDdh,
-                                                                          doublereal *, int, doublereal)
+ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTthic(doublereal *_Upsilon, doublereal *_dSigmadh, doublereal *_dDdh,
+                                                                          doublereal *eframe, int gp, doublereal temp)
 {
-    Eigen::Map<Eigen::Matrix<doublereal,6,1> > dSigmadh(_dSigmadh);
-    dSigmadh.setZero();
+  // Initialized data
+  doublereal zero = 0.;
 
-    if(_dDdh) {
-      Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(_dDdh);
-      D.setZero();
-    }
-}
+  // Local variables 
+  doublereal *data = (_dDdh == NULL) ? new doublereal[36] : _dDdh;
+  Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon), dSigmadh(_dSigmadh);
+  Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(data);
+  Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> > >
+    Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
+    Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
+  Eigen::Matrix<doublereal,3,3> invT;
 
-template<typename doublereal>
-doublereal
-ShellMaterialType1<doublereal>::GetShellThickness()
-{
-// .....INITIALIZE THE THICKNESS FOR A TYPE-1 CONSTITUTIVE LAW 
-// .....TAKE THE DEFAULT THICKNESS ASSUMED CONSTANT 
-// .....IF ZERO, ESTIMATE THE CONSTANT THICKNESS USING THE 
-// .....FIRST COEFFICIENTS OF EXTENTIONAL AND BENDING STIFFNESSES 
+  doublereal dI  = h*h/4;
+  doublereal dh2 = 2*h;
 
-  using std::sqrt;
+  invT = this->andesinvt(eframe, aframe, zero);
 
-  if (h == 0.) {
-    if (coef(0,0) == 0) {
-        throw std::runtime_error("\n"
-          "*** FATAL ERROR in ShellMaterialType1::getShellThickness ***\n"
-          "*** The first coefficient of extentional stiffness is    ***\n"
-          "*** equal to zero. Cannot estimate the thickness.        ***\n");
-    }
-    doublereal appxh2 = 3 * coef(3,3) / coef(0,0);
-    if (appxh2 <= 0) {
-        throw std::runtime_error("\n"
-          "*** FATAL ERROR in ShellMaterialType1::getShellThickness ***\n"
-          "*** The ratio Between the first coefficient of bending   ***\n"
-          "*** stiffness and the first coefficient of extensional   ***\n"
-          "*** is negative or zero. Cannot take the square root and ***\n"
-          "*** estimate the shell thickness.                        ***\n");
-    }
-    h = sqrt(appxh2);
-  }
+// .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR PURE BENDING 
+// .....WITH RESPECT TO THICKNESS
 
-  return h;
+  Db = invT * (coef.bottomRightCorner(3,3)*dI) * invT.transpose();
+
+// .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE
+// .....WITH RESPECT TO THICKNESS
+
+  Dm = invT * coef.topLeftCorner(3,3) * invT.transpose();
+
+// .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
+// .....WITH RESPECT TO THICKNESS
+
+  Dbm = -invT * (coef.bottomLeftCorner(3,3)*dh2) * invT.transpose();
+
+// .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
+// .....WITH RESPECT TO THICKNESS
+
+  Dmb = -invT * (coef.topRightCorner(3,3)*dh2) * invT.transpose();
+
+// .....COMPUTE THE SENSITIVITY OF THE GENERALIZED "STRESSES"
+// .....WITH RESPECT TO THICKNESS
+
+  dSigmadh = D*(Upsilon - (temp-Ta)*Alpha);
+
+  if(_dDdh == NULL) delete [] data;
 }
 
 template<typename doublereal>
 void
-ShellMaterialType1<doublereal>::GetLocalConstitutiveResponse(doublereal *, doublereal *sigma, doublereal,
-                                                             doublereal *, int, doublereal, doublereal)
+ShellMaterialType5<doublereal>::GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
+                                                             doublereal *eframe, int gp, doublereal temp, doublereal dt)
 {
-  sigma[0] = sigma[1] = sigma[2] = 0.0;
+  sigma[0] = sigma[1] = sigma[2] = 0;
   if(Wlocal_stress) {
     fprintf(stderr," *** WARNING: Local stress output is not available for shell      \n"
                    "              element types 15 and 1515 with a COEF-type composite\n"
@@ -255,8 +261,8 @@ ShellMaterialType1<doublereal>::GetLocalConstitutiveResponse(doublereal *, doubl
 
 template<typename doublereal>
 void
-ShellMaterialType1<doublereal>::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *, doublereal *dsigmadu, doublereal,
-                                                                               doublereal *, int)
+ShellMaterialType5<doublereal>::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
+                                                                               doublereal *eframe, int gp)
 {
   for(int i=0; i<3*18; ++i) dsigmadu[i] = 0;
   if(Wlocal_stress_disp) {
@@ -269,8 +275,8 @@ ShellMaterialType1<doublereal>::GetLocalConstitutiveResponseSensitivityWRTdisp(d
 
 template<typename doublereal>
 void
-ShellMaterialType1<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal *, doublereal *dsigmadh,
-                                                                               doublereal, doublereal *, int)
+ShellMaterialType5<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dsigmadh,
+                                                                               doublereal dzdh, doublereal *, int)
 {
   dsigmadh[0] = dsigmadh[1] = dsigmadh[2] = 0;
   if(Wlocal_stress_thic) {
@@ -283,42 +289,37 @@ ShellMaterialType1<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthic(d
 
 template
 double* 
-ShellMaterialType1<double>
+ShellMaterialType5<double>
 ::GetCoefOfConstitutiveLaw();
 
 template
 void
-ShellMaterialType1<double>
+ShellMaterialType5<double>
 ::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double);
 
 template
-double 
-ShellMaterialType1<double>
-::GetShellThickness();
-
-template
 void
-ShellMaterialType1<double>
+ShellMaterialType5<double>
 ::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double);
 
 template
 void
-ShellMaterialType1<double>
+ShellMaterialType5<double>
 ::GetConstitutiveResponseSensitivityWRTthic(double *, double *, double *, double *, int, double);
 
 template
 void
-ShellMaterialType1<double>
+ShellMaterialType5<double>
 ::GetConstitutiveResponseSensitivityWRTdisp(double *, double *, double *, double *, int);
 
 template
 void
-ShellMaterialType1<double>
+ShellMaterialType5<double>
 ::GetLocalConstitutiveResponseSensitivityWRTthic(double *, double *, double, double *, int);
 
 template
 void
-ShellMaterialType1<double>
+ShellMaterialType5<double>
 ::GetLocalConstitutiveResponseSensitivityWRTdisp(double *, double *, double, double *, int);
 #endif
 

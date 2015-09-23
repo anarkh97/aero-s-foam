@@ -6,7 +6,7 @@ C=====================================================================C
      $                   emass   , medof   , nttly , ncmpfr , elm     ,
      $                   idlay   , mtlay   , cmpfr , iatt   , ctyp    ,
      $                   catt    , cfrm    , gamma , grvfor , grvflg  ,
-     $                   totmas  , sumrho  , area  , masflg           )
+     $                   totmas  , area  , masflg                     )
 C=====================================================================C
 C                                                                     C
 C     Performs =   This subroutine will form the elemental mass       C
@@ -225,7 +225,7 @@ C
 C
       real*8     rho , emass(medof,medof) , mtlay(12,nttly)
       real*8     h(3) , cmpfr(9,ncmpfr) , x(3) , y(3) , z(3)
-      real*8     totmas , sumrho , area , gamma(*) , grvfor(*)
+      real*8     totmas , area , gamma(*) , grvfor(*)
 
       logical    grvflg , masflg
 C
@@ -382,10 +382,6 @@ C
       mass2 = rho*area*thick*Iy/1260.00D+00
       mass3 = rho*area*thick*Iz/1260.00D+00
 C
-C.....SUM OF DENSITY EQUALS AVERAGE DENSITY
-C
-      sumrho = rho
-C
 C.....END OF TREATMENT FOR A TYPE-0 CONSTITUTIVE LAW
 C
       endif
@@ -410,10 +406,6 @@ C.....INITIALIZE THE ELEMENT'S CONSTANT THICKNESS
 C
       thick = h(1)
 C
-C.....SUM OF DENSITY EQUALS AVERAGE DENSITY
-C
-      sumrho = rho/thick
-C
 C.....END OF TREATMENT FOR A TYPE-1 CONSTITUTIVE LAW
 C
       endif
@@ -432,16 +424,6 @@ C
       do 3001 ilayer=1,nlayer
          rhoh = rhoh + rholayer(ilayer)*hlayer(ilayer)
  3001 continue
-
-C
-C.....ACCUMULATE THE DENSITY PER LAYER
-C.....NOT INCLUDING NON-STRUCTURAL MASS
-C
-      sumrho = zero
-C
-      do 3002 ilayer=1,nlayer
-         sumrho = sumrho + rholayer(ilayer)
- 3002 continue
 
 C
 C.....FORM THE MASS COEFFICIENTS PER DEGREE OF FREEDOM

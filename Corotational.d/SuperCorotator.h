@@ -51,6 +51,12 @@ class SuperCorotator : public Corotator
   void getInertialStiffAndForce(GeomState *refState, GeomState& c1, CoordSet& c0,
                                 FullSquareMatrix &elK, double *f, double dt, double t,
                                 double beta, double gamma, double alphaf, double alpham);
+
+  void getInternalForceThicknessSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs, Vector &dFintdThick,
+                                            double dt, double t);
+  void getInternalForceNodalCoordinateSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs, Vector *&dFintdx,
+                                                  double dt, double t);
+  void extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld);
 };
 
 #endif

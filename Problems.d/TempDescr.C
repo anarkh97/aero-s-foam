@@ -16,6 +16,8 @@
 #include <Element.d/State.h>
 #include <Solvers.d/Rbm.h>
 #include <Timers.d/StaticTimers.h>
+#include <Control.d/ControlInterface.h>
+#include <Driver.d/ControlLawInfo.h>
 
 typedef FSFullMatrix FullMatrix;
 
@@ -178,15 +180,22 @@ SingleDomainTemp::tempInitState(TempState<Vector> &inState)
 void
 SingleDomainTemp::computeExtForce(Vector &ext_f, double t, int tIndex, Vector &prev_f)
 {
+  if(claw && userSupFunc) {
+    if(claw->numUserForce) { // USDF
+      double *userDefineFlux = new double[claw->numUserForce];
+      userSupFunc->usd_forc(t, userDefineFlux);
+      domain->updateUsdfInNbc(userDefineFlux);
+      delete [] userDefineFlux;
+    }
+  }
 
- domain->computeExtForce(ext_f, t, tIndex, kuc, prev_f);
+  domain->computeExtForce(ext_f, t, tIndex, kuc, prev_f);
 
- // apply projector ONLY for Dynamics, hzemFilterFlag is set to zero
- // in the beginning for quasistatic
+  // apply projector ONLY for Dynamics, hzemFilterFlag is set to zero
+  // in the beginning for quasistatic
 
-   int useFilter = domain->solInfo().hzemFilterFlag;
-   if (useFilter) temptrProject(ext_f);
-
+  int useFilter = domain->solInfo().hzemFilterFlag;
+  if (useFilter) temptrProject(ext_f);
 }
 
 void
@@ -209,6 +218,10 @@ SingleDomainTemp::preProcess()
  delete[]bc;
 
  domain->makeAllDOFs();
+
+  // Check for user supplied routines
+  claw = geoSource->getControlLaw();
+  userSupFunc = domain->getUserSuppliedFunction();
 
  if((domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) || domain->solInfo().isNonLin()) {
    StaticTimers times;

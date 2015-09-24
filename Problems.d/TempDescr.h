@@ -15,7 +15,8 @@ template <class Scalar> class GenFullSquareMatrix;
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
 template <class Scalar> class GenFSFullMatrix;
 typedef GenFSFullMatrix<double> FSFullMatrix;
-
+class ControlInterface;
+class ControlLawInfo;
 
 class SDTempDynamPostProcessor {
     Domain *domain;
@@ -47,8 +48,11 @@ class SingleDomainTemp {
     Corotator **allCorot;
     GeomState *geomState;
 
+    ControlInterface *userSupFunc;
+    ControlLawInfo *claw;
+
  public:
-    SingleDomainTemp(Domain *d) { domain = d; kelArray = 0; allCorot = 0; geomState = 0; }
+    SingleDomainTemp(Domain *d) { domain = d; kelArray = 0; allCorot = 0; geomState = 0; claw = 0; userSupFunc = 0; }
 
     DynamMat buildOps(double, double, double);
 

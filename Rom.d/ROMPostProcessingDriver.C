@@ -289,7 +289,7 @@ ROMPostProcessingDriver::solve()
       domain->updateStates(geomState,*geomState,allCorot,*it);
       getExternalForce(fext, constantForce, counter, *it, geomState, *fullDummyBuffer, *fullDummyBuffer,
                        domain->solInfo().getTimeStep()/2);
-      dynamOutput(geomState, *fullVelBuffer, *fullVel2Buffer, *it, counter, fext, *fullDummyBuffer, *fullAccBuffer, geomState);
+      dynamOutput(geomState, *fullVelBuffer, *fullVel2Buffer, *it, counter-1, fext, *fullDummyBuffer, *fullAccBuffer, geomState);
 
       filePrint(stderr,"\r ... ROM Conversion Loop: t = %9.3e, %3d%% complete ...",
                 *it, int(*it/(TimeStamps[0].back())*100));

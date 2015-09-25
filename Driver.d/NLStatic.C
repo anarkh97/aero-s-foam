@@ -1634,6 +1634,15 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     case OutputInfo::PlasticStrainXZ:
       getStressStrain(*geomState, allCorot,  iInfo, PLASTICEXZ, time, refState);
       break;
+    case OutputInfo::YModulus:
+      getElementAttr(iInfo, YOUNG, time);
+      break;
+    case OutputInfo::MDensity:
+      getElementAttr(iInfo, MDENS, time);
+      break;
+    case OutputInfo::Thicknes:
+      getElementAttr(iInfo, THICK, time);
+      break;
     case OutputInfo::InXForce:
       getElementForces(*geomState, allCorot, iInfo, INX, time);
       break;

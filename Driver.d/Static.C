@@ -1425,7 +1425,6 @@ Domain::updateSfemStress(double* str, int fileNumber)
 void 
 Domain::computeNormalizedVonMisesStress(Vector &sol, double *bcx, int surface, Vector &stress)
 {
-
   Vector weight(numNodes(),0.0);
   stress.zero();    weight.zero();
 
@@ -1437,7 +1436,8 @@ Domain::computeNormalizedVonMisesStress(Vector &sol, double *bcx, int surface, V
   int *nodeNumbers = new int[maxNumNodes];
 
   for(int iele = 0; iele < numele; ++iele) {
-
+     // Don't do anything if element is a phantom or constraint
+     if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
     packedEset[iele]->nodes(nodeNumbers);
     int NodesPerElement = elemToNode->num(iele);
     Vector elDisp(maxNumDOFs,0.0), elweight(NodesPerElement, 0.0), elstress(NodesPerElement,0.0), elemNodeTemps(maxNumNodes);

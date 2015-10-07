@@ -61,7 +61,7 @@ public:
                          int strInd,int surface=0, double *ndTemps=0,
                          double ylayer=0.0, double zlayer=0.0, int avgnum=1);
 #ifdef USE_EIGEN3
-        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp,
+        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *, CoordSet &cs, Vector &elDisp,
                                                 int strInd, int surface, double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp,

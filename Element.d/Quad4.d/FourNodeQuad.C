@@ -680,7 +680,7 @@ FourNodeQuad::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 void
-FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
 #ifdef USE_EIGEN3
@@ -802,4 +802,5 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   std::cerr << " ... ERROR! FourNodeQuad::getVonMisesDisplacementSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }

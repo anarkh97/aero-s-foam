@@ -130,7 +130,7 @@ ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
 }
 
 void
-ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
 #ifdef USE_EIGEN3
@@ -185,6 +185,7 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
   std::cerr << " ... Error! ShearPanel::getVonMisesDisplacementSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }
 
 void

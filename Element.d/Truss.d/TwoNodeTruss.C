@@ -773,7 +773,7 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 }
 
 void
-TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                  double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   using std::sqrt;
@@ -871,6 +871,7 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
     default:
       std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
   }
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }
 
 void

@@ -952,7 +952,7 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
 #ifdef USE_EIGEN3
 void
-TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                    double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
@@ -1022,6 +1022,8 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 #endif
   } 
   dStdDisp.copy(dStressdDisp.data());
+
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }
 
 void

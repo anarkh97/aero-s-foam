@@ -12,6 +12,7 @@ class SuperCorotator : public Corotator
   FullM *origK;
   double **sub_vld;
   double **sub_vlr;
+  double **sub_dvld;
 
  public:
   SuperCorotator(SuperElement *_superElem); 
@@ -20,6 +21,7 @@ class SuperCorotator : public Corotator
   void setSubCorotator(int i, Corotator *subCorotator)
      { subElemCorotators[i] = subCorotator; }
   double* getPreviouslyExtractedSubDeformations(int i) { return (sub_vld) ? sub_vld[i] : 0; }
+  double* getPreviouslyExtractedSubDeformationsSensitivities(int i) { return (sub_dvld) ? sub_dvld[i] : 0; }
   double* getPreviouslyExtractedSubRigidBodyMotion(int i) { return (sub_vlr) ? sub_vlr[i] : 0; }
 
   void getStiffAndForce(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt, double t);

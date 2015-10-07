@@ -1097,6 +1097,20 @@ Domain::buildPostSensitivities(GenSolver<Scalar> *sysSolver,
 
 template<class Scalar>
 void
+Domain::buildNLPostSensitivities(GenSolver<Scalar> *sysSolver, AllSensitivities<Scalar> &allSens, 
+                                 GeomState *refState, GeomState *geomState, Corotator **allCorot, bool isDynam)
+{
+  switch(sinfo.type) {
+    default:
+      fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
+    case 0:
+      makeNLPostSensitivities(sysSolver, allSens, refState, geomState, allCorot, isDynam);
+      break;
+  }
+}
+
+template<class Scalar>
+void
 Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,
                  Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
                  FullSquareMatrix *celArray, bool factorize)

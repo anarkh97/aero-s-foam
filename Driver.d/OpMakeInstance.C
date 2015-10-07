@@ -61,6 +61,11 @@ Domain::buildPostSensitivities<Scalar>(GenSolver<Scalar>*, GenSparseMatrix<Scala
 \
 template \
 void \
+Domain::buildNLPostSensitivities<Scalar>(GenSolver<Scalar>*, AllSensitivities<Scalar>&,\
+                                         GeomState*, GeomState*, Corotator **, bool);\
+\
+template \
+void \
 Domain::buildOps<Scalar>(AllOps<Scalar>&, double, double, double,\
                          Rbm*, FullSquareMatrix*, FullSquareMatrix*,\
                          FullSquareMatrix*, bool);\

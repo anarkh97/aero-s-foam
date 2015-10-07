@@ -1,5 +1,6 @@
 #ifndef _GEOM_STATE_H_
 #define _GEOM_STATE_H_
+//#define _USE_TOTAL_ROTATION_VECTOR_
 
 #include <map>
 #include <vector>

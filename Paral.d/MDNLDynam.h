@@ -199,7 +199,7 @@ class MDNLDynamic
                 DistrVector &v, DistrVector &a, DistrVector &vp, DistrVector &force);
 
     void preProcessSA() {}
-    void postProcessSA(DistrGeomState*, DistrGeomState*) {}
+    void postProcessNLSA(DistrGeomState*, DistrGeomState*) {}
     AllSensitivities<double> *getAllSensitivities() { return allSens; }
     SensitivityInfo *getSensitivityInfo();
     int getNumSensitivities();

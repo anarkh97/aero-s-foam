@@ -1399,8 +1399,8 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 }
 
 void 
-FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
-                                                 Vector &elDisp, int strInd, int surface, double *ndTemps,
+FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                                 CoordSet &cs, Vector &elDisp, int strInd, int surface, double *ndTemps,
                                                  int avgnum, double, double)
 {
   weight = 1.0;
@@ -1421,7 +1421,9 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
 
   Impl::andesvmsWRTdisp(glNum+1, prop->nu, x, y, z, elDisp.data(),
                         dStdDisp.getData(), type, nmat, surface,
-                        sflg, ndTemps);  
+                        sflg, ndTemps); 
+  if(dDispDisp) dStdDisp ^= (*dDispDisp); 
+ 
 }
 
 void

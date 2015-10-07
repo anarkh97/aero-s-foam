@@ -570,7 +570,7 @@ Element::getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector
 }
 
 void
-Element::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet&,
+Element::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *, CoordSet&,
                                             Vector&, int, int, double *, int, double, double)
 {
   dStdDisp.zero();
@@ -579,7 +579,7 @@ Element::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &
 }
 
 void
-Element::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight,
+Element::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, GenFullM<DComplex> *,
                                             CoordSet&, ComplexVector&, int, int, double *,
                                             int, double, double)
 {

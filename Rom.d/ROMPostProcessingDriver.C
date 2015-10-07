@@ -309,7 +309,7 @@ ROMPostProcessingDriver::solve()
     allSens->residual = new Eigen::Matrix<double,Eigen::Dynamic,1>(residual.size());
     *(allSens->residual) = Eigen::Map<Eigen::VectorXd>(residual.data(),residual.size());    
     postProcessSA(*fullDispBuffer);
-//    postProcessSA(geomState, geomState);
+//    postProcessNLSA(geomState, geomState);
     domain->sensitivityPostProcessing(*allSens, fullDispBuffer);
   }
 #endif

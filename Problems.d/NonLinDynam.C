@@ -1280,9 +1280,9 @@ NonLinDynamic::postProcessSA(Vector &sol)
 }
 
 void
-NonLinDynamic::postProcessSA(GeomState *refState, GeomState *geomState)
+NonLinDynamic::postProcessNLSA(GeomState *refState, GeomState *geomState)
 {
-  domain->buildPostSensitivities<double>(solver, NULL, NULL, *allSens, NULL, NULL, true, refState, geomState, allCorot, true); 
+  domain->buildNLPostSensitivities<double>(solver, *allSens, refState, geomState, allCorot, true); 
 }
 
 SensitivityInfo*

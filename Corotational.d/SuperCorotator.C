@@ -9,6 +9,7 @@ SuperCorotator::SuperCorotator(SuperElement *_superElem)
   subElemCorotators = new Corotator * [nSubElems];
   origK = 0;
   sub_vld = 0;
+  sub_dvld = 0;
   sub_vlr = 0;
 }
 
@@ -18,6 +19,12 @@ SuperCorotator::~SuperCorotator()
     if(!dynamic_cast<Element*>(subElemCorotators[i])) delete subElemCorotators[i];
   delete [] subElemCorotators; 
   if(origK) delete origK;
+  if(sub_dvld) {
+    int i;
+    for(i=0; i<nSubElems; ++i)
+      if(sub_dvld[i]) delete [] sub_dvld[i];
+    delete [] sub_dvld;
+  }
   if(sub_vld) {
     int i;
     for(i=0; i<nSubElems; ++i)
@@ -455,16 +462,21 @@ void
 SuperCorotator::extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld)
 {
   int i, j, k;
+  if(!sub_dvld) { 
+    sub_dvld = new double * [nSubElems];
+    for(i=0; i<nSubElems; ++i) sub_dvld[i] = 0;
+  }
   int N = superElem->numDofs();
-  for(i=0; i<N; ++i) dvld[i] = 0;
+  for(i=0; i<N*N; ++i) dvld[i] = 0;  // this shouldn't be used, should always use sub_dvld for non-linear
+                                     // because the same dof can have 2 different dvld displacement sensitivities in different sub elements
 
  for(i=0; i<nSubElems; ++i) {
     int n = superElem->getSubElemNumDofs(i);
-    double *subd = new double[n*n];
-    subElemCorotators[i]->extractDeformationsDisplacementSensitivity(geomState, cs, subd);
+    if(!sub_dvld[i]) sub_dvld[i] = new double[n*n];
+    for(j=0; j<n*n; ++j) sub_dvld[i][j] = 0.0;
+    subElemCorotators[i]->extractDeformationsDisplacementSensitivity(geomState, cs, sub_dvld[i]);
     int *subElemDofs = superElem->getSubElemDofs(i);
     for(j=0; j<n; ++j)
-      for(k=0; k<n; ++k) dvld[subElemDofs[j]*N+subElemDofs[k]] += subd[j*n+k];
-    delete [] subd;
+      for(k=0; k<n; ++k) dvld[subElemDofs[j]*N+subElemDofs[k]] += sub_dvld[i][j*n+k];
   }
 }

@@ -749,57 +749,63 @@ class Domain : public HData {
      void subtractGravityForceSensitivityWRTthickness(int, AllSensitivities<double> &allSens);
      void subtractGravityForceSensitivityWRTShapeVariable(int, AllSensitivities<double> &allSens);
      void computeDisplacementWRTShapeVariableDirectSensitivity(int, GenSolver<double> *, 
-                                                               GenSparseMatrix<double> *, 
                                                                AllSensitivities<double> &,
+                                                               GenSparseMatrix<double> *spm=0, 
                                                                GenSparseMatrix<double> *K=0);
      void computeDisplacementWRTShapeVariableAdjointSensitivity(int, 
-                                                                GenSparseMatrix<double> *, 
                                                                 AllSensitivities<double> &,
-                                                                GenSparseMatrix<double> *K=0);
+                                                                GenSparseMatrix<double> *spm=0); 
      void computeDisplacementWRTthicknessDirectSensitivity(int, GenSolver<double> *, 
-                                                           GenSparseMatrix<double> *,
                                                            AllSensitivities<double> &,
+                                                           GenSparseMatrix<double> *spm=0,
                                                            GenSparseMatrix<double> *K=0);
      void computeDisplacementWRTthicknessAdjointSensitivity(int, 
-                                                            GenSparseMatrix<double> *,
                                                             AllSensitivities<double> &,
-                                                            GenSparseMatrix<double> *K=0);
+                                                            GenSparseMatrix<double> *spm=0);
      void computeStressVMDualSensitivity(int, GenSolver<double> *, 
-                                         GenSparseMatrix<double> *,
                                          AllSensitivities<double> &,
+                                         GenSparseMatrix<double> *spm=0,
                                          GenSparseMatrix<double> *K=0);
      void computeNormalizedVonMisesStress(Vector&, double*, int, Vector&);
+     void computeNormalizedNLVonMisesStress(GeomState &, GeomState *, Corotator **, int, Vector &);
      void scaleToTrueVonMisesStress(Vector&);
      void computeAggregatedStressDenom(Vector &stress);
      void computeAggregatedStressVMDualSensitivity(int, GenSolver<double> *, 
-                                                   GenSparseMatrix<double> *,
                                                    AllSensitivities<double> &,
+                                                   GenSparseMatrix<double> *spm=0,
                                                    GenSparseMatrix<double> *K=0);
      void computeDisplacementDualSensitivity(int, GenSolver<double> *, 
-                                             GenSparseMatrix<double> *,
                                              AllSensitivities<double> &,
+                                             GenSparseMatrix<double> *spm=0,
                                              GenSparseMatrix<double> *K=0);
-     void computeLinearStaticWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
-                                                     GenVector<double> *sol,
-                                                     GeomState *refState, GeomState *geomState, Corotator **allCorot, bool);
-     void computeLinearStaticWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
-                                                         GenVector<double> *sol);
-     void computeStressVMWRTthicknessDirectSensitivity(int, AllSensitivities<double> &allSens,
-                                                       GenVector<double> *sol, double *bcx,
-                                                       bool isDynam = false);
+     void computeNLStaticWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
+                                                 GeomState *refState, GeomState *geomState, Corotator **allCorot);
+     void computeLinearStaticWRTthicknessSensitivity(int, AllSensitivities<double> &allSens, GenVector<double> *sol,
+                                                     GeomState *refState, GeomState *geomState, Corotator **allCorot);
+     void computeLinearStaticWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens, GenVector<double> *sol);
+     void computeStressVMWRTthicknessDirectSensitivity(int, AllSensitivities<double> &allSens, GenVector<double> *sol, double *bcx,
+                                                       GeomState *refState, GeomState *geomState, Corotator **allCorot, bool isDynam = false);
+     void computeNLStressVMWRTthicknessDirectSensitivity(int, AllSensitivities<double> &allSens, GeomState *geomState, Corotator **allCorot, bool isDynam = false);
+     void computeNLStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens, GeomState *geomState, Corotator **allCorot, bool isDynam = false);
      void computeAggregatedStressVMWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
                                                                GenVector<double> *sol, double *bcx,
                                                                bool isDynam = false);
      void computeAggregatedStressVMWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
                                                            GenVector<double> *sol, double *bcx,
                                                            bool isDynam = false);
+     void computeAggregatedNLStressVMWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
+                                                             GeomState *geomState, GeomState *refState, Corotator **allCorot, bool isDynam = false); 
      void computeStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens,
                                                         GenVector<double> *sol, double *bcx,
                                                         bool isDynam = false);
      void computeStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
                                                     GenVector<double> *sol, double *bcx);
+     void computeNLStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
+                                                      GeomState *geomState, Corotator **allCorot);
      void computeAggregatedStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
                                                               GenVector<double> *sol, double *bcx);
+     void computeAggregatedNLStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
+                                                                GeomState *geomState, GeomState *refState, Corotator **allCorot);
      void computeStressVMWRTShapeVariableDirectSensitivity(int, AllSensitivities<double> &allSens,
                                                            GenVector<double> *sol, double *bcx,
                                                            bool isDynam = false);
@@ -815,6 +821,10 @@ class Domain : public HData {
      void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, AllSensitivities<DComplex> &allSens, 
                                 GenVector<DComplex> *sol, DComplex *, GenSparseMatrix<DComplex> *K=0, bool isDynam = false, 
                                 GeomState *rs=NULL, GeomState *gs=NULL, Corotator **allCorot = NULL, bool isNonLin = false);
+     void makeNLPostSensitivities(GenSolver<double> *, AllSensitivities<double> &allSens, 
+                                  GeomState *rs, GeomState *gs, Corotator **allCorot, bool isDynam = false);
+     void makeNLPostSensitivities(GenSolver<DComplex> *, AllSensitivities<DComplex> &allSens, 
+                                  GeomState *rs, GeomState *gs, Corotator **allCorot, bool isDynam = false);
      void makeThicknessGroupElementFlag();
 
 /** ... General build functions to replace the specialized build
@@ -825,10 +835,13 @@ class Domain : public HData {
        void buildPreSensitivities(AllSensitivities<Scalar> &ops, Scalar *);
 
      template<class Scalar>
-       void buildPostSensitivities(GenSolver<Scalar> *sysSolver, 
-                                   GenSparseMatrix<Scalar> *, GenSparseMatrix<Scalar> *,
+       void buildPostSensitivities(GenSolver<Scalar> *sysSolver, GenSparseMatrix<Scalar> *, GenSparseMatrix<Scalar> *,
                                    AllSensitivities<Scalar> &ops, GenVector<Scalar> *sol, Scalar *, bool isDynam = false,
                                    GeomState *refState = NULL, GeomState *geomState = NULL, Corotator **allCorot = NULL, bool isNonLin = false);
+
+     template<class Scalar>
+       void buildNLPostSensitivities(GenSolver<Scalar> *sysSolver, AllSensitivities<Scalar> &ops, 
+                                     GeomState *refState, GeomState *geomState, Corotator **allCorot, bool isDynam=false);
 
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,

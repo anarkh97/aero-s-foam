@@ -42,7 +42,7 @@ class Tetrahedral: public Element,
                                                int surface, double* ndTemps=0,
                                                int avgnum=1, double ylayer=0, double zlayer=0);
 
-    void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+    void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                             double *ndTemps, int avgnum, double ylayer, double zlayer);
 
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,

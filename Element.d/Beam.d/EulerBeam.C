@@ -1157,7 +1157,7 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
 #ifdef USE_EIGEN3
 void
-EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                               double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
@@ -1226,5 +1226,7 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
     if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
 #endif
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
+
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }
 #endif

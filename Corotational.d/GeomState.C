@@ -513,6 +513,9 @@ ElemState::operator=(const ElemState &elem)
 void
 GeomState::update(const Vector &v, int SO3param)
 {
+#ifdef _USE_TOTAL_ROTATION_VECTOR_
+ SO3param = 2;
+#endif
  // v = incremental displacement vector
  double d[3], dtheta[3];
 

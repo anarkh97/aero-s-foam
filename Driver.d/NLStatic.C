@@ -121,10 +121,14 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
                          (corotators[iele]), kel[iele], lambda, time, compute_tangents, conwep);
 
+#ifdef _USE_TOTAL_ROTATION_VECTOR_
+    transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
+#else
     if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
       // Transform element stiffness and force to solve for the increment in the total rotation vector
       transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
     }
+#endif
 
     // Transform internal force vector to nodal frame
     transformVector(elementForce, iele); 
@@ -146,7 +150,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
   }
 
   // XXX consider adding the element fictitious forces inside the loop
-  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic)
+  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic && !solInfo().quasistatic)
     getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, compute_tangents, corotators, cel);
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
@@ -181,7 +185,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
     getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
                          (corotators[iele]), elementStiff, lambda, time, compute_tangents, conwep);
 
-    if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot())
+    if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot()) 
       transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, compute_tangents);
 
     if(compute_tangents) kel[iele] += elementStiff;
@@ -721,7 +725,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
     getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, NULL, compute_tangents);
   }
 
-  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic) {
+  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic && !solInfo().quasistatic) {
     getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time,
                                    refState, NULL, mel, compute_tangents);
   }
@@ -2111,6 +2115,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     } else
     allCorot[iele]->extractDeformations(geomState, nodes,
                                         elDisp->data(), flag);
+    int DofsPerElement = packedEset[iele]->numDofs();
 
     // get element's nodal temperatures
     if(flag == 1) {
@@ -3084,3 +3089,658 @@ Domain::getDissipatedEnergy(GeomState *geomState, Corotator **allCorot)
   }
   return D;
 }
+
+void 
+Domain::computeNLStaticWRTthicknessSensitivity(int sindex, 
+                                               AllSensitivities<double> &allSens,
+                                               GeomState *refState,
+                                               GeomState *geomState,
+                                               Corotator **allCorot)
+{
+#ifdef USE_EIGEN3
+     allSens.linearstaticWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     for(int g=0; g<numThicknessGroups; ++g) {
+       allSens.linearstaticWRTthick[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),1);
+       allSens.linearstaticWRTthick[g]->setZero();   
+     }
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+       int groupIndex = thicknessGroups[iparam];
+       for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {
+         for(int eindex =0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
+           int iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
+           if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+           int DofsPerElement = packedEset[iele]->numDofs();
+           GenVector<double> dFintdThick(DofsPerElement,0.0);
+           (*allCorot[iele]).getInternalForceThicknessSensitivity(refState, *geomState, nodes, dFintdThick, 0, 0);
+#ifdef _USE_TOTAL_ROTATION_VECTOR_
+           FullSquareMatrix kel(DofsPerElement); 
+           transformElemStiffAndForce(*geomState, dFintdThick.data(), kel, iele, false);
+#endif
+           int *dofs = (*allDOFs)[iele];
+           int *unconstrNum = c_dsa->getUnconstrNum();
+           int *constrndNum = c_dsa->getConstrndNum();
+           for(int k = 0; k < DofsPerElement; ++k) {
+             int dofk = unconstrNum[dofs[k]];
+             if(dofs[k] < 0 || dofk < 0) continue;  // Skip undefined/constrained dofs
+             (*allSens.linearstaticWRTthick[iparam])(dofk,0) += dFintdThick[k];
+           }
+         }
+       }
+     }
+     if(domain->gravityFlag()) subtractGravityForceSensitivityWRTthickness(sindex,allSens); //TODO-> must consider other external forces that depend on thickness
+#endif
+}
+
+
+void 
+Domain::computeNLStressVMWRTthicknessDirectSensitivity(int sindex, AllSensitivities<double> &allSens,
+                                                       GeomState *geomState, Corotator **allCorot, bool isDynam)
+{
+#ifdef USE_EIGEN3
+     // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
+     allSens.vonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), numThicknessGroups);
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numNodes(), 1);
+     allSens.vonMisesWRTthick->setZero();     stressWeight.setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     Vector *sol = 0;
+     if(sinfo.getNLInfo().linearelastic) {
+       sol = new Vector(c_dsa->size());
+       geomState->get_tot_displacement(*sol);
+     }
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     
+     for(int iele = 0; iele< numele; ++iele) {
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int NodesPerElement = elemToNode->num(iele);
+       GenVector<double> dStressdThick(NodesPerElement);
+       GenVector<double> weight(NodesPerElement,0.0);
+       int surface = senInfo[sindex].surface;
+       elDisp->zero();
+       int flag;
+       if(sinfo.getNLInfo().linearelastic) {
+         // DETERMINE ELEMENT DISPLACEMENT VECTOR
+         for (int k = 0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = (*sol)[cn];
+           else
+             (*elDisp)[k] = 0; // XXX bcx[(*allDOFs)[iele][k]];
+         } 
+         flag = 1;
+       } else {
+         allCorot[iele]->extractDeformations(*geomState, nodes, elDisp->data(), flag);       
+         if(flag != 1) { filePrint(stderr, " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");  exit(-1);  }
+       }
+//       transformVectorInv(*elDisp, iele);
+       // Determine element displacement vector
+       if(thgreleFlag[iele]) { 
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface); 
+       } else {
+         dStressdThick.zero();
+         Vector elstress(NodesPerElement,0.0);
+         packedEset[iele]->getVonMises(elstress, weight, nodes, *elDisp, -1, surface, NULL, 0, 0, 0);
+       }
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+           int iparam = thpaIndex[iele];
+           if(iparam >= 0) (*allSens.vonMisesWRTthick)(node, iparam) += dStressdThick[k];
+           stressWeight(node, 0) += weight[k];
+         }
+       }
+     } 
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+      // average vonMisesWRTthick vector
+      for(int inode = 0; inode < numNodes(); ++inode)  {
+        if(stressWeight(inode, 0) == 0.0)
+          (*allSens.vonMisesWRTthick)(inode, iparam) = 0.0;
+        else
+          (*allSens.vonMisesWRTthick)(inode, iparam) /= stressWeight(inode, 0);
+      }
+      if(!isDynam) allSens.vonMisesWRTthick->col(iparam) += *allSens.vonMisesWRTdisp * (*allSens.dispWRTthick[iparam]);
+     }
+#endif
+}
+
+void 
+Domain::computeAggregatedNLStressVMWRTthicknessSensitivity(int sindex,
+                                                           AllSensitivities<double> &allSens,
+                                                           GeomState *geomState,
+                                                           GeomState *refState, 
+                                                           Corotator **allCorot,
+                                                           bool isDynam)
+{
+#ifdef USE_EIGEN3
+     // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
+     int surface = senInfo[sindex].surface;
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressvmWRTthick(numNodes(), numThicknessGroups);
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numNodes(),1);
+     Vector stress(numNodes(),0.0);
+     computeNormalizedNLVonMisesStress(*geomState, refState, allCorot, surface, stress);
+     allSens.aggregatedVonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numThicknessGroups);
+     stressvmWRTthick.setZero(); stressWeight.setZero(); allSens.aggregatedVonMisesWRTthick->setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     Vector *sol = 0;
+     if(sinfo.getNLInfo().linearelastic) {
+       sol = new Vector(c_dsa->size());
+       geomState->get_tot_displacement(*sol);
+     }
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iele = 0; iele < numele; ++iele) {
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int NodesPerElement = elemToNode->num(iele);
+       GenVector<double> dStressdThick(NodesPerElement);
+       GenVector<double> elweight(NodesPerElement,0.0);
+       elDisp->zero();
+       int flag;
+       if(sinfo.getNLInfo().linearelastic) {
+         // DETERMINE ELEMENT DISPLACEMENT VECTOR
+         for (int k = 0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = (*sol)[cn];
+           else
+             (*elDisp)[k] = 0; // XXX bcx[(*allDOFs)[iele][k]];
+         } 
+         flag = 1;
+       } else {
+         allCorot[iele]->extractDeformations(*geomState, nodes, elDisp->data(), flag);
+         if(flag != 1) { filePrint(stderr, " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");  exit(-1);  }
+       }
+//       transformVectorInv(*elDisp, iele);         
+       if(thgreleFlag[iele]) { 
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, elweight, nodes, *elDisp, 6, surface); 
+       } else {
+         dStressdThick.zero();
+         Vector elstress(NodesPerElement,0.0);
+         packedEset[iele]->getVonMises(elstress, elweight, nodes, *elDisp, -1, surface, NULL, 0, 0, 0);
+       }
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+           int iparam = thpaIndex[iele];
+           if(iparam >= 0) stressvmWRTthick(node, iparam) += dStressdThick[k]; 
+           stressWeight(node,0) += elweight[k]; 
+         }
+       }
+     } 
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+       for(int inode = 0; inode < numNodes(); ++inode)  {
+         if(stressWeight(inode,0) == 0.0)
+           stressvmWRTthick(inode, iparam) = 0.0;
+         else
+           stressvmWRTthick(inode, iparam) /= stressWeight(inode,0);
+       }
+     }
+
+     if(!(*aggregatedStressDenom)) computeAggregatedStressDenom(stress);
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+       for(int inode = 0; inode < numNodes(); ++inode)  {
+         (*allSens.aggregatedVonMisesWRTthick)(iparam) += stressvmWRTthick(inode,iparam)*exp(sinfo.ksParameter*(stress[inode]));
+       }
+       (*allSens.aggregatedVonMisesWRTthick)(iparam) /= *aggregatedStressDenom;
+     }
+     if(!isDynam) {
+       for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+         (*allSens.aggregatedVonMisesWRTthick)(iparam) -= allSens.lambdaAggregatedStressVM->adjoint()*(allSens.linearstaticWRTthick[iparam]->col(0));
+       }
+     }
+#endif
+}
+
+void 
+Domain::computeNLStressVMWRTthicknessAdjointSensitivity(int sindex,
+                                                        AllSensitivities<double> &allSens,
+                                                        GeomState *geomState, Corotator **allCorot,
+                                                        bool isDynam)
+{
+#ifdef USE_EIGEN3
+     // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
+     allSens.vonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numStressNodes, numThicknessGroups);
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numStressNodes, 1);
+     allSens.vonMisesWRTthick->setZero();     stressWeight.setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     Vector *sol = 0;
+     if(sinfo.getNLInfo().linearelastic) {
+       sol = new Vector(c_dsa->size());
+       geomState->get_tot_displacement(*sol);
+     }
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iele=0; iele<numele; ++iele) {
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       if (!packedEset[iele]->doesIncludeStressNodes()) continue;
+       int NodesPerElement = elemToNode->num(iele);
+       GenVector<double> dStressdThick(NodesPerElement);
+       GenVector<double> weight(NodesPerElement,0.0);
+       int surface = senInfo[sindex].surface;
+       elDisp->zero();       
+       int flag;
+       if(sinfo.getNLInfo().linearelastic) {
+         // DETERMINE ELEMENT DISPLACEMENT VECTOR
+         for (int k = 0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = (*sol)[cn];
+           else
+             (*elDisp)[k] = 0; // XXX bcx[(*allDOFs)[iele][k]];
+         } 
+         flag = 1;
+       } else {
+         allCorot[iele]->extractDeformations(*geomState, nodes, elDisp->data(), flag);
+         if(flag != 1) { filePrint(stderr, " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");  exit(-1);  }
+       }
+//       transformVectorInv(*elDisp, iele);    
+       if(thgreleFlag[iele]) {     
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface);  
+       } else {
+         dStressdThick.zero();
+         Vector elstress(NodesPerElement,0.0);
+         packedEset[iele]->getVonMises(elstress, weight, nodes, *elDisp, -1, surface, NULL, 0, 0, 0);
+       }
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+           int inode;
+           if(checkIsInStressNodes(node,inode)) {
+             int iparam = thpaIndex[iele];
+             if(iparam >= 0) (*allSens.vonMisesWRTthick)(inode, iparam) += dStressdThick[k]; 
+             stressWeight(inode, 0) += weight[k]; 
+           }
+         }
+       }
+     } 
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+      // average vonMisesWRTthick vector
+      for(int inode = 0; inode < numStressNodes; ++inode)  {
+        if(stressWeight(inode, 0) == 0.0)
+          (*allSens.vonMisesWRTthick)(inode, iparam) = 0.0;
+        else
+          (*allSens.vonMisesWRTthick)(inode, iparam) /= stressWeight(inode, 0);
+      }
+      if(!isDynam) {
+        for(int inode = 0; inode < numStressNodes; ++inode)  {
+          double a = allSens.lambdaStressVM[inode]->adjoint()*(allSens.linearstaticWRTthick[iparam]->col(0));
+          (*allSens.vonMisesWRTthick)(inode, iparam) -= a;
+        }
+      }
+     }
+#endif
+}
+
+void 
+Domain::computeNLStressVMWRTdisplacementSensitivity(int sindex,
+                                                    AllSensitivities<double> &allSens, 
+                                                    GeomState *geomState,
+                                                    Corotator **allCorot)
+{
+#ifdef USE_EIGEN3
+     allSens.vonMisesWRTdisp = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), numUncon());
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numNodes(), 1);
+     allSens.vonMisesWRTdisp->setZero();     stressWeight.setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     Vector *sol = 0;
+     if(sinfo.getNLInfo().linearelastic) {
+       sol = new Vector(c_dsa->size());
+       geomState->get_tot_displacement(*sol);
+     }
+     for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int DofsPerElement = packedEset[iele]->numDofs();
+       int NodesPerElement = elemToNode->num(iele);
+       Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> DeformDispSen(DofsPerElement, DofsPerElement); 
+       GenFullM<double> dStressdDisp(DofsPerElement,NodesPerElement,double(0.0));
+       GenVector<double> weight(NodesPerElement,0.0);
+       int surface = senInfo[sindex].surface;
+       elDisp->zero();
+       int flag;
+       if(sinfo.getNLInfo().linearelastic) {
+         // DETERMINE ELEMENT DISPLACEMENT VECTOR
+         for (int k = 0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = (*sol)[cn];
+           else
+             (*elDisp)[k] = 0; // XXX bcx[(*allDOFs)[iele][k]];
+         } 
+         flag = 1;
+         packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, 0, nodes, *elDisp, 6, surface, 0);
+       } else {
+         allCorot[iele]->extractDeformations(*geomState, nodes, elDisp->data(), flag);
+         if(flag !=1 ) { filePrint(stderr, " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");  exit(-1);  } 
+         allCorot[iele]->extractDeformationsDisplacementSensitivity(*geomState, nodes, DeformDispSen.data());
+         GenFullM<double> dDispDisp(DeformDispSen.data(),DofsPerElement,DofsPerElement);
+         packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, &dDispDisp, nodes, *elDisp, 6, surface, 0);
+       }
+//       transformElementSensitivityInv(&dStressdDisp,iele); //TODO: watch out index of dStressdDisp when implementing
+
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         int *unconstrNum = c_dsa->getUnconstrNum();
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+           int *dofs = (*allDOFs)[iele];
+           stressWeight(node,0) += weight[k];
+           for(int j = 0; j < DofsPerElement; ++j) {
+             int dofj = unconstrNum[dofs[j]];
+             if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
+             if(isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
+             (*allSens.vonMisesWRTdisp)(node, dofj) += dStressdDisp[j][k];
+           }
+         }
+       }
+     }   
+  
+     for(int inode = 0; inode < numNodes(); ++inode)  {
+       if(stressWeight(inode, 0) == 0.0)
+         for(int dof = 0; dof < numUncon(); ++dof) 
+           (*allSens.vonMisesWRTdisp)(inode,dof) = 0;
+       else
+         for(int dof = 0; dof < numUncon(); ++dof) 
+           (*allSens.vonMisesWRTdisp)(inode,dof) /= stressWeight(inode,0);
+     }
+#endif
+     if(!sol) delete sol;
+}
+
+void 
+Domain::computeNormalizedNLVonMisesStress(GeomState &geomState, GeomState *refState, Corotator **allCorot, int surface, Vector &stress)
+{
+
+  Vector weight(numNodes(),0.0);
+  stress.zero();    weight.zero();
+
+  int k;
+
+  Vector elDisp(maxNumDOFs,0.0);
+  Vector *sol = 0;
+
+  if(sinfo.getNLInfo().linearelastic) {
+    sol = new Vector(c_dsa->size());
+    geomState.get_tot_displacement(*sol);
+  }
+
+  int iele;
+  int NodesPerElement, maxNodesPerElement=0;
+  for(iele=0; iele<numele; ++iele) {
+    NodesPerElement = elemToNode->num(iele);
+    maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
+  }
+  Vector elstress(maxNodesPerElement, 0.0);
+  Vector elweight(maxNodesPerElement, 0.0);
+
+  int *nodeNumbers = new int[maxNumNodes];
+  Vector elemNodeTemps(maxNumNodes);
+  // Either get the nodal temperatures from the input file or
+  // from the thermal model
+  double *nodalTemperatures = 0;
+  if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
+  if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
+
+  int flag;
+  for(iele = 0; iele < numElements(); ++iele) {
+    if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
+    elDisp.zero();
+    elstress.zero();
+    elweight.zero();
+
+    int NodesPerElement = packedEset[iele]->numNodes();
+
+// extract deformations from current Geometry State of structure
+    if(sinfo.getNLInfo().linearelastic) {
+      // DETERMINE ELEMENT DISPLACEMENT VECTOR
+      for (k = 0; k < allDOFs->num(iele); ++k) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+        if (cn >= 0)
+          elDisp[k] = (*sol)[cn];
+        else
+          elDisp[k] = 0; // XXX bcx[(*allDOFs)[iele][k]];
+      } 
+      flag = 1;
+    } else
+    allCorot[iele]->extractDeformations(geomState, nodes, elDisp.data(), flag);
+
+    // get element's nodal temperatures
+    if(flag == 1) {
+      elemNodeTemps.zero();
+      if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
+      for(int iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
+    }
+
+    if (flag == 1) {
+      // USE LINEAR STRESS ROUTINE
+      packedEset[iele]->getVonMises(elstress, elweight, nodes,
+                                    elDisp, 6, surface,
+                                    elemNodeTemps.data(), 0, 0, 1);
+    }
+    else if (flag == 2) {
+      // USE NON-LINEAR STRESS ROUTINE
+      // note: in this case the element nodal temperatures are extracted from geomState inside the function
+      allCorot[iele]->getNLVonMises(elstress, elweight, geomState,
+                                    refState, nodes, 6, surface, 0, 0, 1);
+    } else {
+      // NO STRESS RECOVERY
+    }
+
+    // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+    for(k=0; k<NodesPerElement; ++k) {
+      stress[(*elemToNode)[iele][k]] += elstress[k];
+      weight[(*elemToNode)[iele][k]] += elweight[k];
+    }
+  }
+
+// ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
+// ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
+
+  delete [] nodeNumbers;
+  if(sol) delete sol;
+
+  for(int k = 0; k < numNodes(); ++k)  {
+    if(weight[k] == 0.0)
+      stress[k] = 0.0;
+    else
+      stress[k] /= (*aggregatedStress)*weight[k];
+  }
+
+}
+
+void 
+Domain::computeAggregatedNLStressVMWRTdisplacementSensitivity(int sindex,
+                                                              AllSensitivities<double> &allSens, 
+                                                              GeomState *geomState,
+                                                              GeomState *refState,
+                                                              Corotator **allCorot)
+{
+#ifdef USE_EIGEN3
+     int surface = senInfo[sindex].surface;
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> vonMisesWRTdisp(numNodes(), numUncon());
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numNodes(), 1);
+     allSens.aggregatedVonMisesWRTdisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numUncon());
+     vonMisesWRTdisp.setZero(); stressWeight.setZero(); allSens.aggregatedVonMisesWRTdisp->setZero();
+     Vector stress(numNodes(),0.0);
+     computeNormalizedNLVonMisesStress(*geomState, refState, allCorot, surface, stress);
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     Vector *sol = 0;
+     if(sinfo.getNLInfo().linearelastic) {
+       sol = new Vector(c_dsa->size());
+       geomState->get_tot_displacement(*sol);
+     }
+     for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int NodesPerElement = elemToNode->num(iele);
+       int DofsPerElement = packedEset[iele]->numDofs();
+       Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> DeformDispSen(DofsPerElement, DofsPerElement);
+       GenFullM<double> dStressdDisp(DofsPerElement,NodesPerElement,double(0.0));
+       GenVector<double> elweight(NodesPerElement,0.0);
+       elDisp->zero();       
+       int flag;
+       if(sinfo.getNLInfo().linearelastic) {
+         // DETERMINE ELEMENT DISPLACEMENT VECTOR
+         for (int k = 0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = (*sol)[cn];
+           else
+             (*elDisp)[k] = 0; // XXX bcx[(*allDOFs)[iele][k]];
+         } 
+         flag = 1;
+         packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, elweight, 0, nodes, *elDisp, 6, surface, 0);
+       } else {
+         allCorot[iele]->extractDeformations(*geomState, nodes, elDisp->data(), flag);
+         if(flag != 1) { filePrint(stderr, " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");  exit(-1);  }
+         allCorot[iele]->extractDeformationsDisplacementSensitivity(*geomState, nodes, DeformDispSen.data());
+         GenFullM<double> dDispDisp(DeformDispSen.data(),DofsPerElement,DofsPerElement);
+         packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, elweight, &dDispDisp, nodes, *elDisp, 6, surface, 0);
+       }
+
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         int *unconstrNum = c_dsa->getUnconstrNum();
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+           int *dofs = (*allDOFs)[iele];
+           stressWeight(node,0) += elweight[k];
+           for(int j = 0; j < DofsPerElement; ++j) {
+             int dofj = unconstrNum[dofs[j]];
+             if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
+             if(isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
+             vonMisesWRTdisp(node, dofj) += dStressdDisp[j][k]; 
+           }
+         }
+       }
+     }   
+ 
+     for(int inode = 0; inode < numNodes(); ++inode)  {
+       if(stressWeight(inode, 0) == 0.0)
+         for(int dof = 0; dof < numUncon(); ++dof) 
+           vonMisesWRTdisp(inode,dof) = 0;
+       else
+         for(int dof = 0; dof < numUncon(); ++dof) 
+           vonMisesWRTdisp(inode,dof) /= stressWeight(inode,0);
+     }
+
+
+     if(!(*aggregatedStressDenom)) computeAggregatedStressDenom(stress);
+     for(int dof = 0; dof < numUncon(); ++dof) {
+       for(int inode = 0; inode < numNodes(); ++inode)  {
+         (*allSens.aggregatedVonMisesWRTdisp)(dof) += vonMisesWRTdisp(inode,dof)*exp(sinfo.ksParameter*(stress[inode]));
+       }
+       (*allSens.aggregatedVonMisesWRTdisp)(dof) /= *aggregatedStressDenom;
+     }
+
+#endif
+}
+
+
+
+void
+Domain::makeNLPostSensitivities(GenSolver<DComplex> *sysSolver, 
+                                AllSensitivities<DComplex> &allSens, 
+                                GeomState *refState,
+                                GeomState *geomState,
+                                Corotator **allCorot,
+                                bool isDynam) {}
+
+void
+Domain::makeNLPostSensitivities(GenSolver<double> *sysSolver, 
+                                AllSensitivities<double> &allSens, 
+                                GeomState *refState,
+                                GeomState *geomState,
+                                Corotator **allCorot,
+                                bool isDynam)
+{
+#ifdef USE_EIGEN3
+ makeThicknessGroupElementFlag();
+ if(solInfo().sensitivityMethod == SolverInfo::Adjoint) setIncludeStressNodes(); //TODO: need to include this function in other sensitivity routine
+
+ for(int sindex=0; sindex < numSensitivity; ++sindex) {
+  switch(senInfo[sindex].type) {
+   case SensitivityInfo::DisplacementWRTthickness: 
+   {
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       if(!allSens.linearstaticWRTthick) computeNLStaticWRTthicknessSensitivity(sindex,allSens,refState, geomState, allCorot);
+       if(!isDynam) if(!allSens.dispWRTthick) computeDisplacementWRTthicknessDirectSensitivity(sindex, sysSolver, allSens);
+     }
+     else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+       if(!allSens.linearstaticWRTthick) computeNLStaticWRTthicknessSensitivity(sindex,allSens, refState, geomState, allCorot);
+       if(!isDynam) { 
+         if(!allSens.lambdaDisp) { 
+           computeDisplacementDualSensitivity(sindex, sysSolver, allSens);
+         }
+         computeDisplacementWRTthicknessAdjointSensitivity(sindex, allSens);
+         if (allSens.residual !=0 && allSens.dwrDisp==0) {
+           allSens.dwrDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numTotalDispDofs);
+           for (int i=0; i<numTotalDispDofs; ++i) {
+             (*allSens.dwrDisp)[i] = allSens.lambdaDisp[i]->dot(*(allSens.residual));
+             std::cerr << "allSens.dwrDisp[" << i << "] = " << (*allSens.dwrDisp)[i] << std::endl;
+           }
+         }
+       }
+     }
+     break;
+   }
+   case SensitivityInfo::StressVMWRTthickness: 
+   {
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       if(!allSens.vonMisesWRTdisp) computeNLStressVMWRTdisplacementSensitivity(sindex,allSens,geomState,allCorot);
+       if(!allSens.linearstaticWRTthick) computeNLStaticWRTthicknessSensitivity(sindex, allSens, refState, geomState, allCorot);
+       if(!isDynam) if(!allSens.dispWRTthick) computeDisplacementWRTthicknessDirectSensitivity(sindex, sysSolver, allSens);
+       computeNLStressVMWRTthicknessDirectSensitivity(sindex,allSens,geomState,allCorot,isDynam);
+     }
+     else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+       if(!allSens.vonMisesWRTdisp) computeNLStressVMWRTdisplacementSensitivity(sindex,allSens,geomState,allCorot);
+       if(!allSens.linearstaticWRTthick) computeNLStaticWRTthicknessSensitivity(sindex, allSens, refState, geomState, allCorot);
+       if(!isDynam) {
+         if(!allSens.lambdaStressVM) {
+           computeStressVMDualSensitivity(sindex, sysSolver, allSens);
+         }
+       }
+       computeNLStressVMWRTthicknessAdjointSensitivity(sindex,allSens,geomState,allCorot,isDynam);
+       if (allSens.residual !=0 && allSens.dwrStressVM==0) {
+         allSens.dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
+         for (int i=0; i<numStressNodes; i++) {
+           (*allSens.dwrStressVM)[i] = allSens.lambdaStressVM[i]->dot(*(allSens.residual));
+            std::cerr << "allSens.dwrStressVM[" << i << "] = " << (*allSens.dwrStressVM)[i] << std::endl;
+         }
+       }
+     }
+     break;
+   } 
+
+   case SensitivityInfo::AggregatedStressVMWRTthickness: 
+   {
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       filePrint(stderr, " ... WARNING : Only the adjoint method is available for KS function sensitivities. Switing to the adjoint method.\n");
+     }
+     if(aggregatedFlag) { getStressStrain(*geomState, allCorot,  aggregatedFileNumber, AGGREGATEDVON, 0.0, refState); aggregatedFlag = false; }
+     if(!allSens.aggregatedVonMisesWRTdisp) computeAggregatedNLStressVMWRTdisplacementSensitivity(sindex,allSens,geomState,refState,allCorot);
+     if(!allSens.linearstaticWRTthick) computeNLStaticWRTthicknessSensitivity(sindex, allSens, refState, geomState, allCorot);
+     computeAggregatedNLStressVMWRTthicknessSensitivity(sindex,allSens,geomState,refState,allCorot,isDynam);
+     if (allSens.residual !=0 && allSens.dwrAggregatedStressVM == 0) {
+       allSens.dwrAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(1);
+       (*allSens.dwrAggregatedStressVM)[0] = allSens.lambdaAggregatedStressVM->dot(*(allSens.residual));
+       std::cerr << "allSens.dwrAggregatedStressVM = " << (*allSens.dwrAggregatedStressVM)[0] << std::endl;
+     }
+   } 
+   default:
+     break;
+  }
+ }
+#endif
+}
+

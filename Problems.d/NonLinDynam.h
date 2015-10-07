@@ -221,8 +221,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void preProcessSA();
     void postProcessSA(Vector &sol);
 
-    void postProcessSA(GeomState *, GeomState *);
-    virtual void postProcessSA(ModalGeomState *, ModalGeomState *) {}
+    void postProcessNLSA(GeomState *, GeomState *);
+    virtual void postProcessNLSA(ModalGeomState *, ModalGeomState *) {}
 private:
     virtual bool factorWhenBuilding() const;
     void clean();

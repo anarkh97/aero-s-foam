@@ -258,12 +258,18 @@ SuperElement::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   for(int i = 0; i < nSubElems; ++i) {
     Vector subVonMisesThicknessSensitivity(subElems[i]->numNodes(),0.0); 
     Vector subWeight(subElems[i]->numNodes(),0.0);
-    Vector *subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
+    Vector *subElDisp = 0;
+    if(superCorotator) {
+      double *subd = superCorotator->getPreviouslyExtractedSubDeformations(i);
+      // if available, use the element displacement from the corotator instead of elDisp (for non-linear)
+      if(subd) subElDisp = new StackVector(subd, subElems[i]->numDofs());
+    }
+    if(!subElDisp) subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
     subElems[i]->getVonMisesThicknessSensitivity(subVonMisesThicknessSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
                                                  0, subAvgnum, ylayer, zlayer); 
     weight.add(subWeight, subElemNodes[i]);
     dStdThick.add(subVonMisesThicknessSensitivity, subElemNodes[i]);
-    delete subElDisp;
+    if(!subElDisp) delete subElDisp;
   }
 
   // Average sensitivity value at each node by the number of sub-elements attached to the node
@@ -279,7 +285,8 @@ SuperElement::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
 }
 
 void
-SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                                 CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                  double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   dStdDisp.zero();
@@ -289,8 +296,18 @@ SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
     GenFullM<double> subVonMisesDisplacementSensitivity(subElems[i]->numDofs(),subElems[i]->numNodes(),0.0);        
     Vector subWeight(subElems[i]->numNodes(),0.0);
     Vector *subElDisp = 0;
-    subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
-    subElems[i]->getVonMisesDisplacementSensitivity(subVonMisesDisplacementSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
+    GenFullM<double> *subElDvld = 0;
+    if(superCorotator) {
+      double *subd = superCorotator->getPreviouslyExtractedSubDeformations(i);
+      double *subdvld = superCorotator->getPreviouslyExtractedSubDeformationsSensitivities(i);
+      // if available, use the element displacement from the corotator instead of elDisp (for non-linear)
+      int n = subElems[i]->numDofs();
+      if(subd) subElDisp = new StackVector(subd, n);
+      if(subdvld) subElDvld = new GenFullM<double>(subdvld, n, n);
+    }
+    if(!subElDisp) subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
+    if(!subElDvld && dDispDisp) subElDvld = new GenFullM<double>(*dDispDisp, subElems[i]->numDofs(), subElemDofs[i], subElems[i]->numDofs(), subElemDofs[i]); 
+    subElems[i]->getVonMisesDisplacementSensitivity(subVonMisesDisplacementSensitivity, subWeight, subElDvld, cs, *subElDisp, strInd, surface, 
                                                     0, subAvgnum, ylayer, zlayer);
     weight.add(subWeight, subElemNodes[i]);
     for(int j = 0; j < subElems[i]->numDofs(); ++j) {
@@ -299,7 +316,8 @@ SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       }
     }
 
-    delete subElDisp;
+    if(!subElDisp) delete subElDisp;
+    if(!subElDvld) delete subElDvld;
   }
 
   // Average sensitivity values at each node by the number of sub-elements attached to the node
@@ -338,7 +356,12 @@ SuperElement::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
     GenFullM<double> subVonMisesCoordinateSensitivity(3*subElems[i]->numNodes(),subElems[i]->numNodes(),0.0);        
     Vector subWeight(subElems[i]->numNodes(),0.0);
     Vector *subElDisp = 0;
-    subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
+    if(superCorotator) {
+      double *subd = superCorotator->getPreviouslyExtractedSubDeformations(i);
+      // if available, use the element displacement from the corotator instead of elDisp (for non-linear)
+      if(subd) subElDisp = new StackVector(subd, subElems[i]->numDofs());
+    }
+    if(!subElDisp) subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
     subElems[i]->getVonMisesNodalCoordinateSensitivity(subVonMisesCoordinateSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
                                                        0, subAvgnum, ylayer, zlayer);
     weight.add(subWeight, subElemNodes[i]);

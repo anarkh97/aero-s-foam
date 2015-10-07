@@ -1063,6 +1063,20 @@ Shell3Corotator::extractDeformationsDisplacementSensitivity(GeomState &gs, Coord
   Eigen::Array<double,36,1> sconst;
   Eigen::Array<int,1,1> iconst;
 
+#ifdef _USE_TOTAL_ROTATION_VECTOR_
+  sconst << cs[n1]->x, cs[n1]->y, cs[n1]->z,
+            cs[n2]->x, cs[n2]->y, cs[n2]->z,
+            cs[n3]->x, cs[n3]->y, cs[n3]->z,
+            1,0,0,
+            0,1,0,
+            0,0,1,
+            1,0,0,
+            0,1,0,
+            0,0,1,
+            1,0,0,
+            0,1,0,
+            0,0,1;          
+#else            
   sconst << cs[n1]->x, cs[n1]->y, cs[n1]->z,
             cs[n2]->x, cs[n2]->y, cs[n2]->z,
             cs[n3]->x, cs[n3]->y, cs[n3]->z,
@@ -1074,15 +1088,27 @@ Shell3Corotator::extractDeformationsDisplacementSensitivity(GeomState &gs, Coord
             gs[n2].R[2][0], gs[n2].R[2][1], gs[n2].R[2][2],
             gs[n3].R[0][0], gs[n3].R[0][1], gs[n3].R[0][2],
             gs[n3].R[1][0], gs[n3].R[1][1], gs[n3].R[1][2],
-            gs[n3].R[2][0], gs[n3].R[2][1], gs[n3].R[2][2];
+            gs[n3].R[2][0], gs[n3].R[2][1], gs[n3].R[2][2];  
+#endif
   iconst << fitAlg;
 
   Simo::Jacobian<double,Simo::Shell3CorotatorDefDispFunction> dfdu(sconst,iconst);
 
   Eigen::Matrix<double,18,1> q;
+#ifdef _USE_TOTAL_ROTATION_VECTOR_
+  Eigen::Vector3d v1,v2,v3;  // total rotation vectors
+  mat_to_vec(gs[n1].R,v1.data());
+  mat_to_vec(gs[n2].R,v2.data());
+  mat_to_vec(gs[n3].R,v3.data());
+
+  q << gs[n1].x - cs[n1]->x, gs[n1].y - cs[n1]->y, gs[n1].z - cs[n1]->z, v1[0], v1[1], v1[2],
+       gs[n2].x - cs[n2]->x, gs[n2].y - cs[n2]->y, gs[n2].z - cs[n2]->z, v2[0], v2[1], v2[2],
+       gs[n3].x - cs[n3]->x, gs[n3].y - cs[n3]->y, gs[n3].z - cs[n3]->z, v3[0], v3[1], v3[2];
+#else
   q << gs[n1].x - cs[n1]->x, gs[n1].y - cs[n1]->y, gs[n1].z - cs[n1]->z, 0, 0, 0,
        gs[n2].x - cs[n2]->x, gs[n2].y - cs[n2]->y, gs[n2].z - cs[n2]->z, 0, 0, 0,
-       gs[n3].x - cs[n3]->x, gs[n3].y - cs[n3]->y, gs[n3].z - cs[n3]->z, 0, 0, 0;
+       gs[n3].x - cs[n3]->x, gs[n3].y - cs[n3]->y, gs[n3].z - cs[n3]->z, 0, 0, 0;  
+#endif
 
   Eigen::Map<Eigen::Matrix<double,18,18> > J(data);
   J = dfdu(q,0);

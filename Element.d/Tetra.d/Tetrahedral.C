@@ -148,7 +148,7 @@ Tetrahedral::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 }
 
 void
-Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                 double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
    if(strInd != 6) {
@@ -204,6 +204,8 @@ Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vect
       for(int j=0; j<4; ++j) 
         for(int k=0; k<6; ++k)
           dStdDisp[i][j] += dvmsdStress[j][k]*elStressSen[j][i][k];
+
+    if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }
 
 void

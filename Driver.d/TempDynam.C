@@ -407,8 +407,10 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
       case(BCond::Convection) : {
         double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
         f[dof] += loadFactor*nbc[i].val;
-      }
-      default : f[dof] += nbc[i].val; 
+      } break;
+      default : {
+        f[dof] += nbc[i].val; 
+      } break;
     }
   }
 

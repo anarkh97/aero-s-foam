@@ -2958,7 +2958,13 @@ ContactSurfaces:
 ContactSurfacesInfo:
         // $2 = pair id, $3 = master surface, $4 = slave surface, $5 = mortar type, $6 = normal search tolerace, $7 = tangential search tolerance
         // $8 = number of iterations (TD enforcement), $9 = convergence tolerance (TD enforcement), $10 = friction coefficient
-        Integer Integer Integer
+        TRIVIAL
+        { domain->solInfo().trivial_detection = true;
+          $$ = new MortarHandler(0, 0);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetMortarType(MortarHandler::STD);
+          $$->SetCtcMode(domain->solInfo().contactsurface_mode); }
+        | Integer Integer Integer
         {
           $$ = new MortarHandler($2, $3);
           $$->SetInteractionType(MortarHandler::CTC);

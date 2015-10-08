@@ -3,6 +3,7 @@
 #include <cstdlib>
 
 #include <Driver.d/Domain.h>
+#include <Element.d/MpcElement.d/MpcElement.h>
 #include <Problems.d/NonLinDynam.h>
 #include <Problems.d/DynamDescr.h>
 #include <Solvers.d/Solver.h>
@@ -310,10 +311,34 @@ void
 NonLinDynamic::updateContactSurfaces(GeomState& geomState, GeomState *refState)
 {
   clean();
+  std::cout << "line number " << __LINE__ << " of " << __FILE__ << std::endl;
   domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
-  domain->PerformStaticContactSearch(MortarHandler::CTC);
+
+  if(!domain->solInfo().trivial_detection) 
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+
   domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-  domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+
+  if(domain->solInfo().trivial_detection) {
+    double threshold = -1.0;
+    Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
+     for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
+       Element *ele = eset[i];
+       static_cast<MpcElement*>(ele)->update(refState, geomState, domain->getNodes(), 0.0);
+       int n = ele->getNumMPCs();
+       LMPCons **l = ele->getMPCs();
+       for(int j = 0; j < n; ++j) {
+//         if(l[j]->rhs < threshold) {
+           l[j]->type = mpc::ContactSurfaces;
+           domain->addLMPC(l[j]);
+ //        }
+       }
+       delete [] l;
+     }
+  } else {
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+  }
+
   domain->UpdateContactSurfaceElements(&geomState);
   factor = false;
   preProcess();

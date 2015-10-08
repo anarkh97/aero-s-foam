@@ -30,7 +30,6 @@ class NLDynamSolver {
      }
 
      void solve();
-     void computeLambdaNLStressVM(int); 
 };
 
 #ifdef _TEMPLATE_FIX_

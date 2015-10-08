@@ -186,7 +186,9 @@ void
 GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
 {
   LocalBasisType V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data()+startCol_, V.cols());
+  const int offset = fullSolution_ ? 0 : startCol_;
+  const int dim = (fullSolution_) ? rhs.size() : V.cols();
+  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data()+offset, dim);
 
   if(dualBasisSize_ > 0) {
     Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.block(0,startCol_,dualBasisSize_,blockCols_).transpose();
@@ -196,11 +198,18 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
     reducedConstraintForce_.setZero();
     reducedConstraintForce_.segment(startCol_,blockCols_) = reducedConstraintMatrix_.block(0,startCol_,dualBasisSize_,blockCols_).transpose()*Mu;
   }
-  else if(selfadjoint_ && !Empirical) llt_.solveInPlace(x);
-  else x = (lu_.solve(x)).eval();
-
-  for(int i=0; i<startCol_; ++i) rhs[i] = 0;
-  for(int i=startCol_+blockCols_; i<rhs.size(); ++i) rhs[i] = 0;
+  else if(selfadjoint_ && !Empirical) {
+    if(fullSolution_) { x = V*llt_.solve(V.transpose()*x); } else 
+    llt_.solveInPlace(x);
+  }
+  else {
+    if(fullSolution_) { x = V*lu_.solve(V.transpose()*x); } else 
+    x = (lu_.solve(x)).eval();
+  }
+  if (!fullSolution_) {
+    for(int i=0; i<startCol_; ++i) rhs[i] = 0;
+    for(int i=startCol_+blockCols_; i<rhs.size(); ++i) rhs[i] = 0;
+  }
 }
 
 template <typename Scalar>

@@ -2,6 +2,7 @@
 #define _NON_LIN_DYNAM_H_
 
 #include <Math.d/Vector.h>
+#include <Utils.d/OutputInfo.h>
 
 class Domain;
 class Rbm;
@@ -25,7 +26,6 @@ class ControlLawInfo;
 template <typename T> class GenFSFullMatrix;
 typedef GenFSFullMatrix<double> FSFullMatrix;
 class LinesearchInfo;
-class ModalGeomState;
 struct SensitivityInfo;
 template<class Scalar> struct AllSensitivities;
 
@@ -222,10 +222,14 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void postProcessSA(Vector &sol);
 
     void postProcessNLSA(GeomState *, GeomState *);
-    virtual void postProcessNLSA(ModalGeomState *, ModalGeomState *) {}
+    void sensitivityAnalysis(GeomState *, GeomState *);
 private:
     virtual bool factorWhenBuilding() const;
     void clean();
+    void computeLambdaNLStressVM(int); 
+    void computeLambdaAggregatedStress();
+    void computeLambdaDisp(int , int);
+    void setUpPODSolver(OutputInfo::Type);
 };
 
 inline const NLDynamPostProcessor &

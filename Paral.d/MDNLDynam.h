@@ -198,6 +198,7 @@ class MDNLDynamic
     void resize(DistrGeomState *refState, DistrGeomState *geomState, DistrGeomState *stepState, DistrVector *stateIncr,
                 DistrVector &v, DistrVector &a, DistrVector &vp, DistrVector &force);
 
+    void sensitivityAnalysis(DistrGeomState*, DistrGeomState*) {}
     void preProcessSA() {}
     void postProcessNLSA(DistrGeomState*, DistrGeomState*) {}
     AllSensitivities<double> *getAllSensitivities() { return allSens; }

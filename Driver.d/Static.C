@@ -1423,7 +1423,7 @@ Domain::updateSfemStress(double* str, int fileNumber)
 }
 
 void 
-Domain::computeNormalizedVonMisesStress(Vector &sol, double *bcx, int surface, Vector &stress)
+Domain::computeNormalizedVonMisesStress(Vector &sol, double *bcx, int surface, Vector &stress, bool normalized)
 {
   Vector weight(numNodes(),0.0);
   stress.zero();    weight.zero();
@@ -1476,9 +1476,10 @@ Domain::computeNormalizedVonMisesStress(Vector &sol, double *bcx, int surface, V
   for(int k = 0; k < numNodes(); ++k)  {
     if(weight[k] == 0.0)
       stress[k] = 0.0;
-    else
-      stress[k] /= (*aggregatedStress)*weight[k];
-//    filePrint(stderr, "stress[%d] = %e\n", k, stress[k]);
+    else {
+      if(normalized) stress[k] /= (*aggregatedStress)*weight[k];
+      else stress[k] /= weight[k];
+    }
   }
 
 }

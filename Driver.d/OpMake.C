@@ -3531,14 +3531,14 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 
 //-------------------------------------------------------------------------------------
 template <>
-void Domain::sensitivityPostProcessing(AllSensitivities<DComplex> &allSens, GenVector<DComplex> *sol) {
+void Domain::sensitivityPostProcessing(AllSensitivities<DComplex> &allSens, GenVector<DComplex> *sol, DComplex *bcx, GeomState *geomState, GeomState *refState, Corotator **allCorot) {
 
   filePrint(stderr, " ... WARNING : Domain::sensitivityPostProcessing is not implemented\n");
 }
 
 //-------------------------------------------------------------------------------------
 template <>
-void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVector<double> *sol) {
+void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVector<double> *sol, double *bcx, GeomState *geomState, GeomState *refState, Corotator **allCorot) {
 #ifdef USE_EIGEN3
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int numOutInfo = geoSource->getNumOutInfo();
@@ -3548,7 +3548,22 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
     if(oinfo[i].type == OutputInfo::WeigShap) geoSource->outputSensitivityScalars(i, allSens.weightWRTshape, allSens.weight);
     if(oinfo[i].type == OutputInfo::AGstShap) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTshape, *aggregatedStress, allSens.dwrAggregatedStressVM);
     if(oinfo[i].type == OutputInfo::AGstThic) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTthick, *aggregatedStress, allSens.dwrAggregatedStressVM);
-    if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTthick, 0.0, allSens.dwrStressVM);
+    if(oinfo[i].type == OutputInfo::VMstThic) { 
+      if(solInfo().sensitivityMethod == SolverInfo::Direct) 
+        geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTthick, 0.0, allSens.dwrStressVM);
+      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+        Vector stress(numNodes(),0.0);
+        if(sinfo.isNonLin()) {
+          computeNormalizedNLVonMisesStress(*geomState,refState,allCorot,oinfo[i].surface,stress,false);
+          stress.print();
+        } else {
+          computeNormalizedVonMisesStress(*sol,bcx,oinfo[i].surface,stress,false);
+          stress.print();
+        }
+        int numThicknessGroup = getNumThicknessGroups();
+        geoSource->outputSensitivityAdjointStressVectors(i, allSens.vonMisesWRTthick, stress.data(), 0, numThicknessGroup, stressNodes, allSens.dwrStressVM);
+      }
+    }
     if(oinfo[i].type == OutputInfo::VMstShap) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTshape, 0.0, allSens.dwrStressVM);
     if(oinfo[i].type == OutputInfo::VMstMach) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTmach);
     if(oinfo[i].type == OutputInfo::VMstAlpha) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTalpha);

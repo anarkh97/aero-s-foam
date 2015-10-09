@@ -204,7 +204,7 @@ Domain::processOutput<Scalar>(OutputInfo::Type&, GenVector<Scalar>&, Scalar*, in
 \
 template \
 void \
-Domain::sensitivityPostProcessing<Scalar>(AllSensitivities<Scalar>&, GenVector<Scalar>*);\
+Domain::sensitivityPostProcessing<Scalar>(AllSensitivities<Scalar>&, GenVector<Scalar>*, Scalar*, GeomState*, GeomState*, Corotator**);\
 \
 template \
 void \

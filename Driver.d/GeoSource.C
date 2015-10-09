@@ -701,6 +701,48 @@ GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen
 
 template<class Scalar>
 void
+GeoSource::outputSensitivityAdjointStressVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, Scalar *stress, 
+                                                 double time, int numParams, std::vector<int> stressNodes, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
+{
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
+   
+  int numnodes = stressNodes.size();
+  filePrint(oinfo[fileNum].filptr, " %d, %d (numNodes, numParams)\n", numnodes, numParams);
+  for(int inode=0; inode<numnodes; ++inode) {
+    int numdofs = 1;
+    filePrint(oinfo[fileNum].filptr, " %d\n", stressNodes[inode]+1);
+    switch(numdofs) {
+      case 1:
+        filePrint(oinfo[fileNum].filptr, " %*.*E\n",
+                      w, p, ScalarTypes::Real(stress[stressNodes[inode]]));
+        break;
+    }
+    for(int iparam=0; iparam<numParams; ++iparam) {
+      switch(numdofs) {
+        case 1:
+          filePrint(oinfo[fileNum].filptr, " %*.*E\n",
+                        w, p, ScalarTypes::Real((*output)(inode,iparam))); 
+          break; 
+      }
+    }
+    if (dwr != 0) {
+      switch(numdofs) {
+        case 1:
+          filePrint(oinfo[fileNum].filptr, " %*.*E\n",
+                        w, p, (*dwr)[inode]);
+          break;
+      }
+    }
+  }
+  oinfo[fileNum].isFirst = false;
+  fflush(oinfo[fileNum].filptr);
+}
+
+template<class Scalar>
+void
 GeoSource::outputSensitivityAdjointDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **output, Scalar *disp, 
                                                double time, int numParams, std::vector<DispNode> dispNodes, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
 {

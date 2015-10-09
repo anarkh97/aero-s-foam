@@ -222,6 +222,7 @@ private:
     void preProcess();
     void preProcessSA();
     void postProcessSA(MDDynamMat *, DistrVector &sol);
+    void sensitivityPostProcessing(DistrVector *sol);
     void processLastOutput();
     void printTimers(MDDynamMat *, double);
 

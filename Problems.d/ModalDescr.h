@@ -35,6 +35,7 @@ public:
   void preProcess();
   void preProcessSA();
   void postProcessSA(ModalOps *,Vector &sol);
+  void sensitivityPostProcessing(Vector *sol);
   void processLastOutput();
 
   ModalDescr* getPostProcessor() { return this; }

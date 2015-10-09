@@ -767,7 +767,7 @@ class Domain : public HData {
                                          GenSparseMatrix<double> *spm=0,
                                          GenSparseMatrix<double> *K=0);
      void computeNormalizedVonMisesStress(Vector&, double*, int, Vector&);
-     void computeNormalizedNLVonMisesStress(GeomState &, GeomState *, Corotator **, int, Vector &);
+     void computeNormalizedNLVonMisesStress(GeomState &, GeomState *, Corotator **, int, Vector &, Vector &);
      void scaleToTrueVonMisesStress(Vector&);
      void computeAggregatedStressDenom(Vector &stress);
      void computeAggregatedStressVMDualSensitivity(int, GenSolver<double> *, 
@@ -794,7 +794,7 @@ class Domain : public HData {
                                                            GenVector<double> *sol, double *bcx,
                                                            bool isDynam = false);
      void computeAggregatedNLStressVMWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
-                                                             GeomState *geomState, GeomState *refState, Corotator **allCorot, bool isDynam = false); 
+                                                             GeomState *geomState, GeomState *refState, Corotator **allCorot, Vector &, Vector &, bool isDynam = false); 
      void computeStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens,
                                                         GenVector<double> *sol, double *bcx,
                                                         bool isDynam = false);
@@ -805,7 +805,7 @@ class Domain : public HData {
      void computeAggregatedStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
                                                               GenVector<double> *sol, double *bcx);
      void computeAggregatedNLStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
-                                                                GeomState *geomState, GeomState *refState, Corotator **allCorot);
+                                                                GeomState *geomState, GeomState *refState, Corotator **allCorot, Vector &, Vector &);
      void computeStressVMWRTShapeVariableDirectSensitivity(int, AllSensitivities<double> &allSens,
                                                            GenVector<double> *sol, double *bcx,
                                                            bool isDynam = false);

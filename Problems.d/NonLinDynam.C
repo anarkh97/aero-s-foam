@@ -1303,7 +1303,6 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
   int numStructQuantTypes = domain->getNumSensitivityQuantityTypes();
   if(domain->solInfo().sensitivity) {
     postProcessNLSA(refState, geomState);
-    std::cerr << "here\n";
     AllSensitivities<double> *allSens = getAllSensitivities();
     for(int isen = 0; isen < getNumSensitivities(); ++isen) {
       switch (senInfo[isen].type) {

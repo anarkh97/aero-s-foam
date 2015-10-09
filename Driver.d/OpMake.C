@@ -3553,12 +3553,11 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
         geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTthick, 0.0, allSens.dwrStressVM);
       else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
         Vector stress(numNodes(),0.0);
+        Vector stressWeight(numNodes(),0.0);
         if(sinfo.isNonLin()) {
-          computeNormalizedNLVonMisesStress(*geomState,refState,allCorot,oinfo[i].surface,stress,false);
-          stress.print();
+          computeNormalizedNLVonMisesStress(*geomState,refState,allCorot,oinfo[i].surface,stress,stressWeight,false);
         } else {
           computeNormalizedVonMisesStress(*sol,bcx,oinfo[i].surface,stress,false);
-          stress.print();
         }
         int numThicknessGroup = getNumThicknessGroups();
         geoSource->outputSensitivityAdjointStressVectors(i, allSens.vonMisesWRTthick, stress.data(), 0, numThicknessGroup, stressNodes, allSens.dwrStressVM);

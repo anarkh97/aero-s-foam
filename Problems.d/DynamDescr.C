@@ -781,6 +781,12 @@ SingleDomainDynamic::postProcessSA(DynamMat *dMat, Vector &sol)
 }
 
 void
+SingleDomainDynamic::sensitivityPostProcessing(Vector *sol)
+{
+  domain->sensitivityPostProcessing(*allSens, sol, bcx);
+}
+
+void
 SingleDomainDynamic::preProcess()
 {
   // Allocate space for Timers

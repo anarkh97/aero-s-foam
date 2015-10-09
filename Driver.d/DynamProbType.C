@@ -668,7 +668,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
              probDesc->sendRelativeResidual(fluidQuantity);
            }
          } 
-         domain->sensitivityPostProcessing(*allSens, d_n);
+         probDesc->sensitivityPostProcessing(d_n);
        } 
 #endif
        break;

@@ -1439,7 +1439,7 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
     }
     Vector *fullDispBuffer = new Vector(solVecInfo());
     geomState->get_tot_displacement(*fullDispBuffer);
-    domain->sensitivityPostProcessing(*allSens, fullDispBuffer); 
+    domain->sensitivityPostProcessing(*allSens, fullDispBuffer, bcx, geomState, refState, allCorot); 
     delete fullDispBuffer;
   }
 #endif

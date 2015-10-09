@@ -162,6 +162,7 @@ class SingleDomainDynamic
     void preProcess();
     void preProcessSA();
     void postProcessSA(DynamMat *dMat, Vector &sol);
+    void sensitivityPostProcessing(Vector *sol);
     void processLastOutput();
     DynamMat * buildOps(double coeM, double coeC, double coeK);
     GenSolver<double> *getSolver();

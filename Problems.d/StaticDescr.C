@@ -193,6 +193,7 @@ void
 SingleDomainStatic<T, VectorType, SolverType>::postProcessSA(GenVector<T> &sol)
 {
  domain->buildPostSensitivities<T>(allOps.sysSolver, allOps.K, allOps.spm, allSens, &sol, bcx);
+ domain->sensitivityPostProcessing(allSens, &sol, bcx);
 }
 
 template<class T, class VectorType, class SolverType>

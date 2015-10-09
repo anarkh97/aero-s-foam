@@ -3459,7 +3459,7 @@ Domain::computeNLStressVMWRTdisplacementSensitivity(int sindex,
 }
 
 void 
-Domain::computeNormalizedNLVonMisesStress(GeomState &geomState, GeomState *refState, Corotator **allCorot, int surface, Vector &stress,  Vector &weight)
+Domain::computeNormalizedNLVonMisesStress(GeomState &geomState, GeomState *refState, Corotator **allCorot, int surface, Vector &stress,  Vector &weight, bool normalized)
 {
 
   //Vector weight(numNodes(),0.0);
@@ -3558,8 +3558,10 @@ Domain::computeNormalizedNLVonMisesStress(GeomState &geomState, GeomState *refSt
   for(int k = 0; k < numNodes(); ++k)  {
     if(weight[k] == 0.0)
       stress[k] = 0.0;
-    else
-      stress[k] /= (*aggregatedStress)*weight[k];
+    else {
+      if(normalized) stress[k] /= (*aggregatedStress)*weight[k];
+      else stress[k] /= weight[k];
+    }
   }
 
 }

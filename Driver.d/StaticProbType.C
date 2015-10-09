@@ -749,8 +749,8 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
 #ifdef USE_EIGEN3
  if(domain->solInfo().sensitivity) { 
    probDesc->postProcessSA(*sol);
-   AllSensitivities<Scalar> *allSens = probDesc->getAllSensitivities();
-   domain->sensitivityPostProcessing(*allSens,sol);
+//   AllSensitivities<Scalar> *allSens = probDesc->getAllSensitivities();
+//   domain->sensitivityPostProcessing(*allSens,sol);
  }
 #endif
 

@@ -766,8 +766,8 @@ class Domain : public HData {
                                          AllSensitivities<double> &,
                                          GenSparseMatrix<double> *spm=0,
                                          GenSparseMatrix<double> *K=0);
-     void computeNormalizedVonMisesStress(Vector&, double*, int, Vector&);
-     void computeNormalizedNLVonMisesStress(GeomState &, GeomState *, Corotator **, int, Vector &, Vector &);
+     void computeNormalizedVonMisesStress(Vector&, double*, int, Vector&, bool normalized=true);
+     void computeNormalizedNLVonMisesStress(GeomState &, GeomState *, Corotator **, int, Vector &, Vector &, bool normalized=true);
      void scaleToTrueVonMisesStress(Vector&);
      void computeAggregatedStressDenom(Vector &stress);
      void computeAggregatedStressVMDualSensitivity(int, GenSolver<double> *, 
@@ -1006,13 +1006,13 @@ class Domain : public HData {
 
      // sensitivity post-processing function
      template<class Scalar>
-     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenVector<Scalar> *sol = 0);
+     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenVector<Scalar> *sol = 0, Scalar *bcx=0, GeomState *gs=0, GeomState *rs=0, Corotator **ac=0);
 
      template<class Scalar>
-     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenDistrVector<Scalar> *sol) {}
+     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenDistrVector<Scalar> *sol, Scalar *bcx=0, GeomState *gs=0, GeomState *rs=0, Corotator **ac=0) {}
 
      template<class Scalar>
-     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, DistrBlockVector<Scalar> *sol) {}
+     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, DistrBlockVector<Scalar> *sol, Scalar *bcx=0, GeomState *gs=0, GeomState *rs=0, Corotator **ac=0) {}
 
      // Nonlinear post processing function
      void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,

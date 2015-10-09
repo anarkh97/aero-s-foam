@@ -1926,6 +1926,13 @@ MultiDomainDynam::postProcessSA(MDDynamMat*, DistrVector&)
   exit(-1);
 }
 
+void
+MultiDomainDynam::sensitivityPostProcessing(DistrVector*)
+{
+  filePrint(stderr," ... MultiDomainDynam::sensitivityPostProcessing is not implemented\n");
+  exit(-1);
+}
+
 #include <Paral.d/MDNLQStatic.h>
 #include <Driver.d/NLStaticProbType.h>
 void

@@ -794,7 +794,7 @@ class Domain : public HData {
                                                            GenVector<double> *sol, double *bcx,
                                                            bool isDynam = false);
      void computeAggregatedNLStressVMWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
-                                                             GeomState *geomState, GeomState *refState, Corotator **allCorot, Vector &, Vector &, bool isDynam = false); 
+                                                             GeomState *geomState, GeomState *refState, Corotator **allCorot, Vector &, Vector &, Vector &, bool isDynam = false); 
      void computeStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens,
                                                         GenVector<double> *sol, double *bcx,
                                                         bool isDynam = false);
@@ -805,7 +805,7 @@ class Domain : public HData {
      void computeAggregatedStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
                                                               GenVector<double> *sol, double *bcx);
      void computeAggregatedNLStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
-                                                                GeomState *geomState, GeomState *refState, Corotator **allCorot, Vector &, Vector &);
+                                                                GeomState *geomState, GeomState *refState, Corotator **allCorot, Vector &, Vector &, Vector &);
      void computeStressVMWRTShapeVariableDirectSensitivity(int, AllSensitivities<double> &allSens,
                                                            GenVector<double> *sol, double *bcx,
                                                            bool isDynam = false);

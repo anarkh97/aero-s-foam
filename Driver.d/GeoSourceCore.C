@@ -956,11 +956,17 @@ void GeoSource::transformCoords()
   // see: http://en.wikipedia.org/wiki/List_of_canonical_coordinate_transformations#3-Dimensional
   using std::cos;
   using std::sin;
+  SolverInfo &sinfo = domain->solInfo();
   int lastNode = numNodes = nodes.size();
   for(int i=0; i<lastNode; ++i) {
     if(nodes[i] == NULL) continue;
     int cp = nodes[i]->cp;
-    if(cp == 0) continue;
+    if(cp == 0) {
+      nodes[i]->x *= sinfo.xScaleFactor;
+      nodes[i]->y *= sinfo.yScaleFactor;
+      nodes[i]->z *= sinfo.zScaleFactor;
+      continue;
+    }
 
     Eigen::Vector3d v;
     switch(nfd[cp].type) {
@@ -988,9 +994,9 @@ void GeoSource::transformCoords()
 
     v = (T.transpose()*v).eval();
 
-    nodes[i]->x =v[0] + nfd[cp].origin[0];
-    nodes[i]->y =v[1] + nfd[cp].origin[1];
-    nodes[i]->z =v[2] + nfd[cp].origin[2];
+    nodes[i]->x = sinfo.xScaleFactor*(v[0] + nfd[cp].origin[0]);
+    nodes[i]->y = sinfo.yScaleFactor*(v[1] + nfd[cp].origin[1]);
+    nodes[i]->z = sinfo.zScaleFactor*(v[2] + nfd[cp].origin[2]);
   }
 #endif
 }

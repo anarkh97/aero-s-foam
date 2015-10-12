@@ -18,6 +18,8 @@
 
 #include "PtrPtrIterAdapter.h"
 
+#include <Element.d/MpcElement.d/MpcElement.h>
+
 #include <algorithm>
 #include <memory>
 #include <fstream>
@@ -213,6 +215,7 @@ void
 DistrROMPostProcessingDriver::solve() {
 
    preProcess();
+   std::ofstream cvout("constraint_violation");
 
    int counter = 0; //TODO: make this portion more general so it doesn't depend on the assumption
                     //that all files have matching timestamps
@@ -260,6 +263,18 @@ DistrROMPostProcessingDriver::solve() {
      execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
      if(!dummyDynOps) dummyDynOps = new MDDynamMat;
      mddPostPro->dynamOutput(counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);
+
+     if(geoSource->getNumConstraintElementsIeq() && decDomain->getGlobalNumSub() == 1) { // output the constraint violation
+       double err = 0;
+       Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
+       for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
+         MpcElement *ele = static_cast<MpcElement*>(eset[i]);
+         if(counter==0) ele->renum(decDomain->getSubDomain(0)->getGlobalToLocalNode());
+         ele->update((*geomState)[0], *((*geomState)[0]), decDomain->getSubDomain(0)->getNodes(), *it);
+         err = std::max(err,ele->getError(*((*geomState)[0])));
+       }
+       cvout << *it << " " << err << std::endl;
+     }
 
      filePrint(stderr,"\r ... ROM Conversion Loop: t = %9.3e, %3d%% complete ...",
                 *it, int(*it/(TimeStamps[0].back())*100));

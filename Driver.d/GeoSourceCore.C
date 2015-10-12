@@ -539,8 +539,8 @@ void GeoSource::addMpcElementsIeq(int numLMPC, ResizeArray<LMPCons *> &lmpc)
       if(lmpc[i]->type == 1) {
         packedEsetConstraintElementIeq->mpcelemadd(numConstraintElementsIeq, lmpc[i], (domain->solInfo().isNonLin() || domain->solInfo().gepsFlg == 1));
         StructProp *p = new StructProp;
-        p->lagrangeMult = lmpc[i]->lagrangeMult;
-        p->initialPenalty = p->penalty = lmpc[i]->penalty;
+        p->lagrangeMult = (lmpc[i]->lagrangeMult == -1) ? domain->solInfo().lagrangeMult : lmpc[i]->lagrangeMult;
+        p->initialPenalty = p->penalty = (lmpc[i]->lagrangeMult == -1) ? domain->solInfo().penalty : lmpc[i]->penalty;
         p->type = StructProp::Constraint;
         (*packedEsetConstraintElementIeq)[numConstraintElementsIeq]->setProp(p,true);
         numConstraintElementsIeq++;

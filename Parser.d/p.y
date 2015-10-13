@@ -3040,6 +3040,12 @@ AcmeControls:
 NodeSet:
 	NODETOKEN NewLine Node
 	{ geoSource->addNode($3.num, $3.xyz, $3.cp, $3.cd); }
+        | NODETOKEN Float Float Float NewLine Node
+        { domain->solInfo().scalePosCoords = true;
+          domain->solInfo().xScaleFactor = $2;
+          domain->solInfo().yScaleFactor = $3;
+          domain->solInfo().zScaleFactor = $4;
+          geoSource->addNode($6.num, $6.xyz, $6.cp, $6.cd); }
 	| NodeSet Node
 	{ geoSource->addNode($2.num, $2.xyz, $2.cp, $2.cd); }
 	;

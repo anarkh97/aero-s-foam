@@ -630,7 +630,7 @@ int main(int argc, char** argv)
    filePrint(stderr,"         compiler (for instance, icpc or g++ version 4.2)\n");
  }
 
- if(!domain->solInfo().basicPosCoords) {
+ if(!domain->solInfo().basicPosCoords || domain->solInfo().scalePosCoords) {
 #ifndef USE_EIGEN3
    filePrint(stderr," *** ERROR: use of Nodal Frames for node coordinates is not supported by this AERO-S build.\n");
    filePrint(stderr," -> tip: you need to configure AERO-S with \"cmake -DEIGEN3_INCLUDE_DIR:PATH=xxx .\"\n");

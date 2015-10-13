@@ -177,6 +177,7 @@ class BaseSub : virtual public Domain
   void makeGlobalToLocalNodeMap();
   void makeGlobalToLocalElemMap();
   int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }
+  GlobalToLocalMap &getGlobalToLocalNode() { return glToLocalNode; }
   int localToGlobal(int i)    { return glNums[i]; }
   int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }
   int localToGlobalElem(int i) { return glElems[i]; }

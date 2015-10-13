@@ -198,6 +198,7 @@ MatNLCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &curStat
     case 0 : case 1 : case 2 : case 3 : case 4 : case 5 : { // SXX=0,SYY=1,SZZ=2,SXY=3,SYZ=4,SXZ=5
       double (*result)[9] = new double[numPoints][9];
       double *statenp_tmp = new double[ele->numStates()];
+      for(int i=0; i<ele->numStates(); ++i) statenp_tmp[i] = statenp[i];
       Vector elemNodeTemps(ele->numNodes());
       double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0; // XXX
       curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);
@@ -211,6 +212,7 @@ MatNLCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &curStat
     case 6 : { // VON
       double *result = new double[numPoints];
       double *statenp_tmp = new double[ele->numStates()];
+      for(int i=0; i<ele->numStates(); ++i) statenp_tmp[i] = statenp[i];
       Vector elemNodeTemps(ele->numNodes());
       double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0;
       curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);

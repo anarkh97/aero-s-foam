@@ -458,6 +458,7 @@ struct SolverInfo {
    bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
    bool scalePosCoords;
    double xScaleFactor, yScaleFactor, zScaleFactor;
+   std::vector<double> xScaleFactors, yScaleFactors, zScaleFactors;
    int inertiaLumping; // 1: diagonal lumping (default), 2: block-diagonal 6x6 lumping
                        // note #1: this flag is automatically set to 2 when a product of inertia is defined using DIMASS
                        //          or when a discrete mass element (type 131) is defined.

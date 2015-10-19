@@ -1535,6 +1535,8 @@ TRAIL [a-zA-Z]*
 
 "CONCFG"|"ConCfg"|"concfg"                { return CONWEPCFG; }
 
+"POSCFG"|"PosCfg"|"poscfg"                { return SCALEPOSCOORDS; }
+
 "NORMFI"|"NormFi"|"normfi"		  { return VECTORNORM; }
 
 "PODROB"|"PodRob"|"podrob"		  { return PODROB; }

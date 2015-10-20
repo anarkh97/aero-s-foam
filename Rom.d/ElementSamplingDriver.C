@@ -323,6 +323,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
 ::assembleTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
                        const VecBasisType *veloc, const VecBasisType *accel, int j)
 {
+  const FileNameInfo fileInfo;
   std::vector<double>::iterator timeStampFirst = timeStamps_.begin();
   typename MatrixBufferType::iterator elemContributions = solver_.matrixBuffer();
   double *trainingTarget = solver_.rhsBuffer();
@@ -339,6 +340,12 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
   }
   domain_->makeElementAdjacencyLists();
 
+  int kParam, kSnap, jParam = -1;
+  const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
+  const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
+  const bool poscfg = (domain->solInfo().xScaleFactors.size() > 0);
+  std::ifstream sources;
+
   for (int iElem = 0; iElem != elementCount(); ++iElem) {
     filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
     std::vector<double>::iterator timeStampIt = timeStampFirst;
@@ -348,7 +355,33 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
       if(!domain_->solInfo().conwepConfigurations.empty()) {
         conwep = &domain_->solInfo().conwepConfigurations[i];
       }
+      if(poscfg) { // XXX
+        std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS, i);
+        sources.open(fileName+".sources");
+        for(int k = 0; k < skipOffSet; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+      }
+
       for (int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap) {
+        if(poscfg) { // XXX
+          sources >> kParam >> kSnap;
+          for(int k = 0; k < skipFactor; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+          if(kParam != jParam) {
+            if(jParam == -1) {
+              domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactor;
+              domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactor;
+              domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactor;
+            }
+            else {
+              domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactors[jParam-1];
+              domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactors[jParam-1];
+              domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactors[jParam-1];
+            }
+            //std::cerr << "scaling position coordinates by " << domain->solInfo().xScaleFactor << " " << domain->solInfo().yScaleFactor
+            //          << " " << domain->solInfo().zScaleFactor << std::endl;
+            geoSource->transformCoords();
+            jParam = kParam;
+          }
+        }
         geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
             nodes, displac[iSnap]); // just set the state at the nodes of element iElem
         if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
@@ -404,11 +437,19 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
         for (int j = 0; j < numStates; ++j) states[j] = 0;
         domain_->getElementSet()[iElem]->initStates(states);
       }
+      if(poscfg) sources.close();
     }
 
     delete [] nodes;
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
+
+  if(poscfg) {
+    domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactor/domain->solInfo().xScaleFactors[kParam-1];
+    domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactor/domain->solInfo().yScaleFactors[kParam-1];
+    domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactor/domain->solInfo().zScaleFactors[kParam-1];
+    geoSource->transformCoords();
+  }
 }
 
 template<typename MatrixBufferType, typename SizeType>

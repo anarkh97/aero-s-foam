@@ -357,7 +357,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
       }
       if(poscfg) { // XXX
         std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS, i);
-        sources.open(fileName+".sources");
+        fileName.append(".sources");
+        sources.open(fileName.c_str());
         for(int k = 0; k < skipOffSet; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
       }
 

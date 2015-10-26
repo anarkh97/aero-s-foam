@@ -2025,19 +2025,23 @@ Domain::getElementAttr(int fileNumber,int iAttr,double time) {
 
      int NodesPerElement = elemToNode->num(iele);
 
-     switch (iAttr) {
-     case YOUNG:
-       eleattr=packedEset[iele]->getProperty()->E;
-       break;
-     case MDENS:
-       eleattr=packedEset[iele]->getProperty()->rho;
-       break;
-     case THICK:
-       eleattr=packedEset[iele]->getProperty()->eh;
-       break;
-     default:
-       assert(0);
+     if (packedEset[iele]->getProperty()!=0) {
+       switch (iAttr) {
+       case YOUNG:
+         eleattr=packedEset[iele]->getProperty()->E;
+         break;
+       case MDENS:
+         eleattr=packedEset[iele]->getProperty()->rho;
+         break;
+       case THICK:
+         eleattr=packedEset[iele]->getProperty()->eh;
+         break;
+       default:
+         assert(0);
+       }
      }
+     else
+       eleattr = 0.0;
 
      for(k=0; k<NodesPerElement; ++k) {
        nodattr[(*elemToNode)[iele][k]]  += eleattr;

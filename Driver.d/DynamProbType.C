@@ -416,9 +416,13 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          probDesc->getNumParam(numFluidQuantTypes);
        }
        
-       if(domain->solInfo().sensitivity) { 
+       if(domain->solInfo().sensitivity) {
+         double wall0 = -getTime(); 
          probDesc->postProcessSA(dynOps,*d_n);
+         wall0 += getTime();
+         std::cerr << " ****** wall clock time for sensitivity pre-computation is " << wall0/1000.0 << std::endl;
          AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
+         double walls = -getTime();
          for(int isen = 0; isen < probDesc->getNumSensitivities(); ++isen) {  // structure sensitivities
            switch (senInfo[isen].type) {
 
@@ -668,6 +672,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
              probDesc->sendRelativeResidual(fluidQuantity);
            }
          } 
+         walls += getTime();
+         std::cerr << " ****** wall clock time for sensitivity solve computation is " << walls/1000.0 << std::endl;
          probDesc->sensitivityPostProcessing(d_n);
        } 
 #endif

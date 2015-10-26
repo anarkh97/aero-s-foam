@@ -93,7 +93,8 @@ void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDof6Buffer
     }
 
     if(workload == BasisId::STATE) {
-      std::ofstream sources(fileName+".sources");
+      std::string fileName2 = fileName+".sources";
+      std::ofstream sources(fileName2.c_str());
       for (int iVec = 0; iVec < clusterDim; ++iVec) {
         int j = solver.clusterCol(i,iVec);
         int k;

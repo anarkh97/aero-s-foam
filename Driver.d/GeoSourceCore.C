@@ -1488,6 +1488,10 @@ void GeoSource::setUpData(int topFlag)
         domain->solInfo().ConstraintBasisPod = true;
         domain->solInfo().constraintSnapshotFile = oinfo[iOut].filename;
       break;
+      case OutputInfo::Constraintviolation :
+        if(verboseFlag) filePrint(stderr," ... Saving constraint violations to %s ...\n", oinfo[iOut].filename);
+        domain->solInfo().constraintViolationFile = oinfo[iOut].filename;
+      break;
       default :
         break;
     }

@@ -375,6 +375,7 @@ struct SolverInfo {
    const char * forcePodRomFile;
    const char * constraintPodRomFile;
    const char * constraintSnapshotFile;
+   const char * constraintViolationFile;
    const char * residualPodRomFile;
    const char * jacobianPodRomFile;
    bool ROMPostProcess;
@@ -720,6 +721,7 @@ struct SolverInfo {
                   forcePodRomFile    = "";
                   constraintPodRomFile  = "";
  		  constraintSnapshotFile = "";
+                  constraintViolationFile = "";
                   residualPodRomFile = "";
                   jacobianPodRomFile = "";
                   ROMPostProcess     = false;

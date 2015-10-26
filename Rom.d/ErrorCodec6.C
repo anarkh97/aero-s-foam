@@ -80,6 +80,7 @@ int main (int argc, char *argv[]) {
     
     // begin Froebenius norm computation
     // first: loop over all timesteps
+    int tcounter = 1;
     while(true) {
 
       if(getTime1) {
@@ -96,7 +97,8 @@ int main (int argc, char *argv[]) {
         }
       }
 
-      printf("\r time stamp 1 = %f \n",time1);
+      printf("\r time stamp %d = %f \n",tcounter,time1);
+      tcounter++;
 
       // second: loop over nodes
       for(int counter = 0; counter < num_nodes; counter++) {

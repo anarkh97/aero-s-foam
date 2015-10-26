@@ -478,6 +478,15 @@ set_target_properties(errorcodec6
 
 target_link_libraries(errorcodec6 Rom Util)
 
+add_executable(impulseerrorcodec6 Rom.d/ImpulseErrorCodec6.C)
+set_target_properties(impulseerrorcodec6
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME imperr6
+                      DEBUG_OUTPUT_NAME imperr6.debug)
+
+target_link_libraries(impulseerrorcodec6 Rom Util)
+
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 
       "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."

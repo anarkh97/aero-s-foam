@@ -215,7 +215,7 @@ void
 DistrROMPostProcessingDriver::solve() {
 
    preProcess();
-   std::ofstream cvout("constraint_violation");
+   std::ofstream cvout(domain->solInfo().constraintViolationFile);
 
    int counter = 0; //TODO: make this portion more general so it doesn't depend on the assumption
                     //that all files have matching timestamps

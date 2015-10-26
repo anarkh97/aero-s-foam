@@ -1103,6 +1103,8 @@ TRAIL [a-zA-Z]*
 
 "constvct"|"CONSTVCT"		   { yylval.ival = OutputInfo::Constraintvector;  return STRESSID; }
 
+"cviolate"|"CVIOLATE"              { yylval.ival = OutputInfo::Constraintviolation;  return STRESSID; }
+
 "residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; } /* deprecated */
 "fdiffvct"|"FDIFFVCT"              { yylval.ival = OutputInfo::Residual;     return STRESSID; }
 
@@ -1546,6 +1548,8 @@ TRAIL [a-zA-Z]*
 "CONCFG"|"ConCfg"|"concfg"                { return CONWEPCFG; }
 
 "POSCFG"|"PosCfg"|"poscfg"                { return SCALEPOSCOORDS; }
+
+"MESHSCALE"|"MeshScale"|"meshscale"       { return MESHSCALEFACTOR; }
 
 "NORMFI"|"NormFi"|"normfi"		  { return VECTORNORM; }
 

@@ -115,7 +115,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE
-%token SNAPFI VELSNAPFI ACCSNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN FILTERROWS
+%token SNAPFI VELSNAPFI ACCSNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN FILTERROWS
 %token VECTORNORM REBUILDFORCE REBUILDCONSTRAINT SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB CONSTRAINTROB DEIMINDICES UDEIMINDICES SVDFORCESNAP SVDCONSTRAINTSNAP
 %token USEMASSNORMALIZEDBASIS
 %token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST DISPDOFLIST 
@@ -355,6 +355,7 @@ Component:
         | DeimIndices
         | UDeimIndices
 	| Sampling
+        | MeshScaleFactor
         | SnapshotProject
         | ConversionToken
         ;
@@ -4936,6 +4937,7 @@ Sampling:
     domain->solInfo().samplingPodRom = true; }
   | Sampling SamplingOption NewLine
   | Sampling ConwepConfig
+  | Sampling ScalePosCoords
   ;
 
 SnapshotProject:
@@ -5075,6 +5077,21 @@ ConwepConfig:
    | ConwepConfig ConwepData NewLine
    { domain->solInfo().conwepConfigurations.push_back($2); }
   ;
+
+MeshScaleFactor:
+     MESHSCALEFACTOR Float Float Float NewLine
+   { domain->solInfo().scalePosCoords = true;
+     domain->solInfo().xScaleFactor = $2;
+     domain->solInfo().yScaleFactor = $3;
+     domain->solInfo().zScaleFactor = $4;}
+   ;
+
+ScalePosCoords:
+   SCALEPOSCOORDS NewLine
+   | ScalePosCoords Float Float Float NewLine
+   { domain->solInfo().xScaleFactors.push_back($2);
+     domain->solInfo().yScaleFactors.push_back($3);
+     domain->solInfo().zScaleFactors.push_back($4); }
    
 ConversionToken:
     CONVERSIONTOKEN NewLine

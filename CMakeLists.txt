@@ -469,6 +469,15 @@ set_target_properties(errorcodec
 
 target_link_libraries(errorcodec Rom Util)
 
+add_executable(impulseerrorcodec Rom.d/ImpulseErrorCodec.C)
+set_target_properties(impulseerrorcodec
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME imperr
+                      DEBUG_OUTPUT_NAME relerr.debug)
+
+target_link_libraries(impulseerrorcodec Rom Util)
+
 add_executable(errorcodec6 Rom.d/ErrorCodec6.C)
 set_target_properties(errorcodec6
                       PROPERTIES

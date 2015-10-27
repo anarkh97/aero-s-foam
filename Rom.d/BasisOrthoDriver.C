@@ -284,6 +284,19 @@ BasisOrthoDriver::solve() {
         outputIdentityNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
       }
     }
+
+    // Compute and output the truncation error
+    {
+      std::vector<double> toto(orthoBasisDim+1);
+      toto[orthoBasisDim] = 0;
+      for (int iVec = orthoBasisDim-1; iVec >= 0; --iVec) {
+        toto[iVec] = toto[iVec+1]+solver.singularValue(iVec);
+      }
+      std::ofstream out("truncation_error.txt");
+      for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
+        out << iVec+1 << " " << solver.singularValue(iVec) << " " << toto[iVec]/toto[0] << std::endl;
+      }
+    }
   }
 }
 

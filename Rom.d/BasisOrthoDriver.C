@@ -294,7 +294,7 @@ BasisOrthoDriver::solve() {
       }
       std::ofstream out("truncation_error.txt");
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
-        out << iVec+1 << " " << solver.singularValue(iVec) << " " << toto[iVec]/toto[0] << std::endl;
+        out << iVec+1 << " " << solver.singularValue(iVec) << " " << (toto[iVec+1]/toto[0])*100 << std::endl;
       }
     }
   }

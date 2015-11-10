@@ -1311,7 +1311,7 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
           double sumdisp = 0;
           double normdisp = 0;
 
-          int ersize = d_n.size();
+          int ersize = d_n.size()-geoSource->internalNumNodes(); // don't include Lagrange multipliers
 
           double *sumalfa = new double[ersize];
           double *error   = new double[ersize];

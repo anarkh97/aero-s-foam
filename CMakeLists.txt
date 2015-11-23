@@ -215,6 +215,13 @@ IF(UNIX)
         MESSAGE("-- A library with SACADO API found. ")
         add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
         include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
+        if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+          if (GCC_VERSION VERSION_GREATER 5.0 OR GCC_VERSION VERSION_EQUAL 5.0)
+            MESSAGE("Note: Sacado source code may need to be changed if Aero-S does not build "
+                    "(1) Sacado_trad.hpp line 657 (2) Sacado_tradvec.hpp line 468. "
+                    "In each case the argument to the IndepADvar assignment operator should be const.")
+          endif (GCC_VERSION VERSION_GREATER 5.0 OR GCC_VERSION VERSION_EQUAL 5.0)
+        endif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
       ENDIF(SACADO_INCLUDE_PATH)
     ENDIF(NOT WITH_SACADO EQUAL 0)
 

@@ -93,8 +93,8 @@ DistrPositiveDualBasisDriver::solve() {
   int stateCount = 0;
   int nodeCount = 0;
   int snapBasisStateCount = 0;
-  if(!domain->solInfo().snapfiPodRom.empty()) {
-    for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
+  if(!domain->solInfo().dsvPodRomFile.empty()) {
+    for(int i = 0; i < domain->solInfo().dsvPodRomFile.size(); i++) {
       std::string fileName = BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS, i);
       DistrBasisInputFileTemplate<1> inputFile(fileName);
       snapBasisStateCount += 1+(inputFile.stateCount()-1)/skipFactor;
@@ -109,25 +109,31 @@ DistrPositiveDualBasisDriver::solve() {
   decDomain->makeBlockCyclicDistrInfo(distrInfo, domain->getNumCTC(), blockSize);
 
   const int localLength = distrInfo.totLen();
-  const int orthoBasisDim = domain->solInfo().maxSizePodRom;
+  int orthoBasisDim = domain->solInfo().maxSizePodRom;
   const int globalProbSize = domain->getNumCTC();
  
   DistrNonnegativeMatrixFactorization solver(comm_, globalProbSize, snapBasisStateCount, localLength, orthoBasisDim, blockSize,
                                              domain->solInfo().nmfMaxIter, domain->solInfo().nmfTol, domain->solInfo().use_nmf,
                                              domain->solInfo().nmfNumSub, domain->solInfo().nmfPqnNumInnerIter, domain->solInfo().nmfPqnAlpha);
  
+  if(domain->solInfo().romEnergy > 1e-16)
+    solver.setEnergy(domain->solInfo().romEnergy);
+
   int solverCol = 0;
   DistrNodeDof1Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
   readIntoSolver(solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::SNAPSHOTS,
-                 domain->solInfo().snapfiPodRom.size(), solverCol, domain->solInfo().skipPodRom); // read in snapshots
+                 domain->solInfo().dsvPodRomFile.size(), solverCol, domain->solInfo().skipPodRom); // read in snapshots
 
   filePrint(stderr, " ... Computation of a positive basis of size %d ...\n", orthoBasisDim);
   solver.solve();
 
+  if(domain->solInfo().romEnergy > 1e-16)
+    orthoBasisDim = solver.basisSize();
+
   std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
   std::ostringstream ss;
   ss << orthoBasisDim;
-  fileName.append(ss.str());
+  //fileName.append(ss.str());
   DistrNodeDof1Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
   DistrBasisOutputFile outputFile(fileName,
                                   nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),

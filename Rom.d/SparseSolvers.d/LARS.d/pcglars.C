@@ -23,7 +23,7 @@ pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
        long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime,
-       int npMax, int scpkMB, int scpkNB, int scpkMP, int scpkNP);
+       int npMax, int scpkMB, int scpkNB, int scpkMP, int scpkNP, int option);
 
 struct double_int {
   double val;
@@ -589,7 +589,7 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
       new (&subsetA[i]) Eigen::Map<Eigen::MatrixXd>(B[i].data(),B[i].rows(),l[i]);
     }
 #if defined(USE_MPI) && defined(USE_SCALAPACK)
-    dummyx = splh(subsetA, b, rnorm, n, info, maxsze, maxit, reltol, true, scaling, false, dtime, 0, 0, 0, 0, 0);
+    dummyx = splh(subsetA, b, rnorm, n, info, maxsze, maxit, reltol, true, scaling, false, dtime, 0, 0, 0, 0, 0, 0);
 #else
     dummyx = pnncgp(subsetA, b, rnorm, n, info, maxsze, maxite, reltol, true, scaling, center, dtime);
 #endif

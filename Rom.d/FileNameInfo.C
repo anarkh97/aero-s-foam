@@ -52,7 +52,7 @@ FileNameInfo::size(BasisId::Type type, BasisId::Level level)
       if(type == 6)
         ret = 1; // domain->solInfo().isvPodRomFile;
       if(type == 7)
-        ret = 1; // domain->solInfo().dsvPodRomFile;
+        ret = domain->solInfo().dsvPodRomFile.size();
       if(type == 8)
         ret = 1;
     }
@@ -81,6 +81,8 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
         builder << domain->solInfo().accelPodRomFile[i];
       else if(id.type() == 5)
         builder << domain->solInfo().velocPodRomFile[i];
+      else if(id.type() == 7)
+        builder << domain->solInfo().dsvPodRomFile[i];
       else 
         builder << domain->solInfo().snapfiPodRom[i].c_str() ; 
     }
@@ -108,12 +110,12 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
       if(id.type() == 6)
         builder << domain->solInfo().isvPodRomFile;
       if(id.type() == 7)
-        builder << domain->solInfo().dsvPodRomFile;
+        builder << domain->solInfo().dsvPodRomFile[i];
       if(id.type() == 8)
         builder << domain->solInfo().constraintSnapshotFile;
     } else if(id.level() == 1) {
       if(id.type() == 7) {
-        builder << domain->solInfo().readInDualROB;
+        builder << domain->solInfo().readInDualROB[i];
       } else if(id.type() == 8) {
         builder << domain->solInfo().constraintPodRomFile;
       }
@@ -123,7 +125,7 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
     }
     else if(id.level() == 2) {
       if(id.type() == 7) {
-        builder << domain->solInfo().readInDualROB << ".deim";
+        builder << domain->solInfo().readInDualROB[i].c_str() << ".deim";
       } else {
         builder << domain->solInfo().SVDoutput;
       }

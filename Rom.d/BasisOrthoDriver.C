@@ -227,9 +227,30 @@ BasisOrthoDriver::solve() {
 
     BasisOutputStream<6> output(BasisFileId(fileInfo, type, BasisId::POD), converter, false); 
 
-    const int orthoBasisDim = domain->solInfo().maxSizePodRom ?
+    int orthoBasisDim = domain->solInfo().maxSizePodRom ?
                               std::min(domain->solInfo().maxSizePodRom, solver.singularValueCount()) :
                               solver.singularValueCount();
+
+    // Compute and output the truncation error
+    {
+      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+      fileName += ".truncation_error.txt";
+      std::vector<double> toto(orthoBasisDim+1);
+      toto[orthoBasisDim] = 0;
+      for (int iVec = orthoBasisDim-1; iVec >= 0; --iVec) {
+        toto[iVec] = toto[iVec+1]+solver.singularValue(iVec); // running sum
+      }
+      std::ofstream out(fileName.c_str());
+      bool reset = true;
+      for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
+        double energy = toto[iVec]/toto[0];
+        if(energy < domain->solInfo().romEnergy && reset){
+          orthoBasisDim = iVec+1;
+          reset = false;
+        }
+        out << iVec+1 << " " << solver.singularValue(iVec) << " " << energy << std::endl;
+      }
+    }
 
     // Output solution
     if(domain->solInfo().normalize <= 0) // old method for lumped: outputs identity normalized basis
@@ -262,7 +283,7 @@ BasisOrthoDriver::solve() {
       }
       normalizedBasis = basis;
     }
-    
+  
     // Output the renormalized basis as separate file
     if(domain->solInfo().normalize >= 0) {
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
@@ -285,18 +306,6 @@ BasisOrthoDriver::solve() {
       }
     }
 
-    // Compute and output the truncation error
-    {
-      std::vector<double> toto(orthoBasisDim+1);
-      toto[orthoBasisDim] = 0;
-      for (int iVec = orthoBasisDim-1; iVec >= 0; --iVec) {
-        toto[iVec] = toto[iVec+1]+solver.singularValue(iVec);
-      }
-      std::ofstream out("truncation_error.txt");
-      for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
-        out << iVec+1 << " " << solver.singularValue(iVec) << " " << (toto[iVec+1]/toto[0])*100 << std::endl;
-      }
-    }
   }
 }
 

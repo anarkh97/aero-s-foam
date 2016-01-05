@@ -90,6 +90,8 @@ TRAIL [a-zA-Z]*
 
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
 
+"ONLINE_MASS_NORMALIZE_BASIS"|"online_mass_normalize_basis" { return ONLINEMASSNORMALIZEBASIS;}
+
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
 
 "FACE"|"face"                       { return FACE; }
@@ -1539,6 +1541,7 @@ TRAIL [a-zA-Z]*
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 "VELSNAPFI"|"VelSnapFi"|"velsnapfi"       { return VELSNAPFI; }
 "ACCSNAPFI"|"AccSnapFi"|"accsnapfi"       { return ACCSNAPFI; }
+"DSVSNAPFI"|"DsvSnapFi"|"dsvsnapfi"       { return DSVSNAPFI; }
 
 "ROBFI"|"RobFi"|"robfi"		          { return ROBFI; }
 
@@ -1561,6 +1564,8 @@ TRAIL [a-zA-Z]*
 "OFFSET"|"OffSet"|"offset"		  { return OFFSET; }
 
 "DIMENS"|"Dimens"|"dimens"		  { return PODSIZEMAX; }
+
+"ROMENR"|"RomEnr"|"romenr"                { return ROMENERGY; }
 
 "ORTHOG"|"Orthog"|"orthog"		  { return ORTHOG; }
 
@@ -1590,6 +1595,7 @@ TRAIL [a-zA-Z]*
 "omp"|"OMP"                               { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
 "splh"|"SPLH" 				  { yylval.ival = 6; return SPNNLSSOLVERTYPE; }
 "cglars"|"CGLARS"                         { yylval.ival = 7; return SPNNLSSOLVERTYPE; }
+"sppfp"|"SPPFP"				  { yylval.ival = 8; return SPNNLSSOLVERTYPE; }
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 
@@ -1600,6 +1606,7 @@ TRAIL [a-zA-Z]*
 "USE_PQN"|"use_pqn"                       { return USEPQN; }
 
 "DO_CLUSTERING"|"do_clustering"           { return DOCLUSTERING; }
+"ANGLE"|"angle" 			  { return ANGLE; }
 "CLUSTERSOLVER"|"clustersolver"           { return CLUSTERSOLVER; }
 "CRANDOM"|"crandom"                       { yylval.ival = 0; return CLUSTERSOLVERTYPE; }
 "KMEANS"|"kmeans"                         { yylval.ival = 1; return CLUSTERSOLVERTYPE; }

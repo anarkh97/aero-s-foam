@@ -21,6 +21,7 @@ public:
 
   // Local bases
   void setLocalBasis(int startCol, int blockCols);
+  void setLocalDualBasis(int startCol, int blockCols);
 
   // Full-order matrix assembly
   virtual void zeroAll();
@@ -41,6 +42,7 @@ public:
   // Reduced basis parameters
   int basisSize() const { return basisSize_; };
   GenVecBasis<Scalar> &projectionBasis() { return *projectionBasis_; }
+  GenVecBasis<Scalar> &dualProjectionBasis() { return *dualProjectionBasis_; }
   void projectionBasisIs(GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
   void dualProjectionBasisIs(GenVecBasis<Scalar> &);
   void EmpiricalSolver(); 
@@ -64,8 +66,9 @@ private:
   ConstrainedDSA *cdsa_;
   bool selfadjoint_;
   bool Empirical;
-  int basisSize_, dualBasisSize_;
-  int startCol_, blockCols_; // local bases
+  int basisSize_, dualBasisSize_; // global basis quantities
+  int startCol_, blockCols_; // local bases quantities
+  int startDualCol_, dualBlockCols_;
   double tol_; // convergence tolerance used by QP solver for contact
   Scalar c1_; // trace of reducedConstraintMatrix_
   GenVecBasis<Scalar> *projectionBasis_, *dualProjectionBasis_;

@@ -695,7 +695,7 @@ int main(int argc, char** argv)
    geoSource->transformLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  }
 
- if(domain->solInfo().type != 2 && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && (strcmp(domain->solInfo().readInDualROB,"") == 0)
+ if(domain->solInfo().type != 2 && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && domain->solInfo().readInDualROB.empty()
     && !domain->solInfo().samplingPodRom)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
@@ -1051,16 +1051,16 @@ int main(int argc, char** argv)
        Rom::DriverInterface *driver;
        if (domain->solInfo().svdPodRom) {
          if(domain->solInfo().use_nmf) {
-           filePrint(stderr, " ... Nonneg. Matrix Factorization   ...\n");
+           filePrint(stderr, " ... Distributed Nonneg. Matrix Factorization   ...\n");
            driver = distrPositiveDualBasisDriverNew(domain);
          }
          else if(domain->solInfo().clustering) {
-           filePrint(stderr, " ... Snapshot Clustering            ...\n");
+           filePrint(stderr, " ... Distributed Snapshot Clustering            ...\n");
            driver = distrSnapshotClusteringDriverNew(domain);
          }
          else {
            // Stand-alone SVD orthogonalization
-           filePrint(stderr, " ... Singular Value Decomposition   ...\n");
+           filePrint(stderr, " ... Distributed Singular Value Decomposition   ...\n");
            driver = distrBasisOrthoDriverNew(domain);
          }
        } 

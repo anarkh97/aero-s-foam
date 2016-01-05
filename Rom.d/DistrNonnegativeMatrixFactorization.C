@@ -7,8 +7,13 @@
 #include <Utils.d/linkfc.h>
 #include <Timers.d/GetTime.h>
 
+#include "DistrNodeDof6Buffer.h"
+#include "DistrVecNodeDof6Conversion.h"
+#include "DistrSvdOrthogonalization.h"
+
 #include <iostream>
 #include <map>
+#include <algorithm>
 
 #include <mpi.h>
 
@@ -49,27 +54,101 @@ DistrNonnegativeMatrixFactorization
   matrixBuffer_(localRows,colCount),
   basisBuffer_(localRows,basisDimension),
   pqnNumInnerIter_(pqnNumInnerIter),
-  pqnAlpha_(pqnAlpha)
+  pqnAlpha_(pqnAlpha),
+  energy_(0.0)
 {
+}
+
+int 
+DistrNonnegativeMatrixFactorization
+::energySVD(double energy, std::vector<int> rows, std::vector<int> cols)
+{
+  // initialize distributed svd
+  DistrSvdOrthogonalization solver(communicator_, communicator_->numCPUs(), 1);
+  const int blockSize = domain->solInfo().svdBlockSize; // default: 64
+  {
+   solver.blockSizeIs(blockSize);
+  }
+
+  // allocate space
+  const int localLength = rows.size(); 
+  {
+    const int maxLocalLength = communicator_->globalMax(localLength);
+    const int globalProbSize = ((maxLocalLength/blockSize+1)*solver.rowCpus()+1)*blockSize+1;
+    solver.problemSizeIs(globalProbSize, cols.size());
+  }
+
+  // read in non-zero rows
+  int colCounter = 0;
+  for(std::vector<int>::iterator colit = cols.begin(); colit != cols.end(); colit++) {
+    double *vecBuffer = solver.matrixColBuffer(colCounter); colCounter++; 
+    int rowCounter = 0;
+    for(std::vector<int>::iterator rowit = rows.begin(); rowit != rows.end(); rowit++) {
+      vecBuffer[rowCounter] = matrixBuffer_(*rowit,*colit); rowCounter++;
+    }
+  }
+
+  solver.solve();
+
+  int rowCount = communicator_->globalSum((int)rows.size());  
+  int numSV = std::min(rowCount,(int)cols.size());
+  std::vector<double> toto(numSV+1);
+  toto[numSV] = 0;
+
+  // use singular values to determine basis size
+  for (int iVec = numSV-1; iVec >= 0; --iVec) {
+    toto[iVec] = toto[iVec+1]+solver.singularValue(iVec); // running sum
+  }
+
+  bool reset = true;
+  for (int iVec = 0; iVec < numSV; ++iVec) {
+    double en = toto[iVec]/toto[0];
+    if(en < energy && reset){
+      numSV = iVec+1;
+      reset = false;
+    }
+    if(communicator_->myID() == 0) 
+      std::cout << iVec+1 << " " << solver.singularValue(iVec) << " " << en << std::endl;
+  }
+
+  return numSV;
+ 
 }
 
 void
 DistrNonnegativeMatrixFactorization::solve()
 {
+  // data is partitioned row-wise
+  // determine which cols which are non-zero
   int *buffer = new int[colCount_];
   for(int i=0; i<colCount_; ++i) buffer[i] = (matrixBuffer_.col(i).array() == 0).all() ? 0 : 1;
   communicator_->globalMax(colCount_, buffer);
 
+  // count the number of non-zero cols
   std::vector<int> cols;
   for(int i=0; i<colCount_; ++i) if(buffer[i]) cols.push_back(i);
   int colCount = cols.size();
+  
+  // print to screen
   if(communicator_->myID() == 0) std::cerr << "X has " << colCount_ << " columns of which " << colCount << " are non-zero\n";
   delete [] buffer;
 
+  // determine which rows are non-zero
   std::vector<int> rows;
   for(int i=0; i<localRows_; ++i) if(!(matrixBuffer_.row(i).array() == 0).all()) rows.push_back(i);
+  
+  // perform a global sum to determine total number of non-zero rows
   int rowCount = communicator_->globalSum((int)rows.size());
   if(communicator_->myID() == 0) std::cerr << "X has " << rowCount_ << " rows of which " << rowCount << " are non-zero\n";
+
+  if(energy_ > 0.0){
+    if(communicator_->myID() == 0 ) std::cout << "Computing Singular Value cutoff" << std::endl;
+
+    basisDimension_ = energySVD(energy_,rows,cols);
+    basisBuffer_.resize(localRows_,basisDimension_);
+    std::cout << "Basis Dimension is " << basisDimension_ << std::endl;
+
+  }
 
   // 1. Construct matrix A
   int blacsHandle = Csys2blacs_handle(*communicator_->getCommunicator());

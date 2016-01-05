@@ -1470,7 +1470,7 @@ void GeoSource::setUpData(int topFlag)
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().dsvPodRom = true;
         domain->solInfo().skipDualStateVar = oinfo[iOut].interval;
-        domain->solInfo().dsvPodRomFile = oinfo[iOut].filename;
+        domain->solInfo().dsvPodRomFile.push_back(oinfo[iOut].filename);
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Forcevector :
@@ -1527,7 +1527,7 @@ CoordSet& GeoSource::GetNodes() { return nodes; }
 int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
 {
   SolverInfo &sinfo = domain->solInfo();
-  bool flagCEIeq = (strcmp(sinfo.readInDualROB,"") != 0 || sinfo.ConstraintBasisPod);
+  bool flagCEIeq = (!sinfo.readInDualROB.empty() || sinfo.ConstraintBasisPod);
 
   if(sinfo.HEV) { packedEsetFluid = new Elemset(); nElemFluid = 0; }
   if(flagCEIeq) { packedEsetConstraintElementIeq = new Elemset(); numConstraintElementsIeq = 0; lmpcflag = true; }

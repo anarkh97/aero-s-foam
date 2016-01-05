@@ -76,7 +76,7 @@
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token CONSTANT CONWEP
-%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING DUALBASIS DUALRB KMEANS CRANDOM
+%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING ANGLE DUALBASIS DUALRB KMEANS CRANDOM
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
@@ -115,9 +115,9 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE
-%token SNAPFI VELSNAPFI ACCSNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN FILTERROWS
+%token SNAPFI VELSNAPFI ACCSNAPFI DSVSNAPFI PODROB ROMENERGY TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN FILTERROWS
 %token VECTORNORM REBUILDFORCE REBUILDCONSTRAINT SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB CONSTRAINTROB DEIMINDICES UDEIMINDICES SVDFORCESNAP SVDCONSTRAINTSNAP
-%token USEMASSNORMALIZEDBASIS
+%token USEMASSNORMALIZEDBASIS ONLINEMASSNORMALIZEBASIS
 %token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST DISPDOFLIST 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 %token NPMAX BSSPLH PGSPLH
@@ -1816,9 +1816,11 @@ Mode:
           domain->solInfo().localBasisSize.push_back($4); }
         | Mode USEMASSNORMALIZEDBASIS SWITCH NewLine
         { domain->solInfo().useMassNormalizedBasis = bool($3); }
+        | Mode ONLINEMASSNORMALIZEBASIS SWITCH NewLine
+        { domain->solInfo().performMassNormalization = bool($3); } 
         | Mode DUALBASIS FNAME Integer NewLine
-        { domain->solInfo().readInDualROB = $3;
-          domain->solInfo().maxSizeDualBasis = $4; }
+        { domain->solInfo().readInDualROB.push_back($3);
+          domain->solInfo().localDualBasisSize.push_back($4); }
 	;
 IDisp:
         IDIS NewLine
@@ -2050,10 +2052,14 @@ RUBDAFList:
 LMPConstrain:
         LMPC NewLine
         | LMPC NewLine MPCList
+        | LMPC Float Float Float NewLine
+        { domain->solInfo().xLMPCFactor = $2;
+          domain->solInfo().yLMPCFactor = $3;
+          domain->solInfo().zLMPCFactor = $4; }
 	;
 ModalLMPConstrain:
         LMPC NewLine MODAL Integer NewLine
-        { domain->solInfo().maxSizeDualBasis = $4;
+        { domain->solInfo().localDualBasisSize.push_back($4);
           domain->solInfo().modalLMPC = true; }
         | ModalLMPConstrain Float NewLine
         { geoSource->pushBackROMLMPCVec($2); }
@@ -2103,6 +2109,13 @@ MPCLine:
           $$->nnum = $1-1;
           $$->dofnum = $2-1;
           $$->coef.r_value = $3;
+          if($2 == 1){
+            $$->coef.r_value /= domain->solInfo().xLMPCFactor;
+          } else if ($2 == 2) {
+            $$->coef.r_value /= domain->solInfo().yLMPCFactor;
+          } else if ($2 == 3) {
+            $$->coef.r_value /= domain->solInfo().zLMPCFactor;
+          }
         }
 	;
 ComplexLMPConstrain:
@@ -4856,6 +4869,8 @@ SvdOption:
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().velocPodRomFile.push_back(std::string($2.v[i])); }
   | ACCSNAPFI StringList
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().accelPodRomFile.push_back(std::string($2.v[i])); }
+  | DSVSNAPFI StringList
+  { for(int i=0; i<$2.nval; ++i) domain->solInfo().dsvPodRomFile.push_back(std::string($2.v[i])); }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
   | NORMALIZETOKEN Integer
@@ -4875,6 +4890,8 @@ SvdOption:
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i])); }
   | BLOCKSIZE Integer
   { domain->solInfo().svdBlockSize = $2; }
+  | ROMENERGY Float
+  { domain->solInfo().romEnergy = $2; }
   /*
   | USEPQN Integer Integer Integer Integer Float Integer Float
   { domain->solInfo().use_nmf = 3;
@@ -4909,6 +4926,9 @@ SvdOption:
   { domain->solInfo().use_nmf = 2; }
   | DOCLUSTERING Integer
   { domain->solInfo().clustering = $2; }
+  | DOCLUSTERING Integer ANGLE
+  { domain->solInfo().clustering = $2; 
+    domain->solInfo().clusterSubspaceAngle = true; }
   | CLUSTERSOLVER CLUSTERSOLVERTYPE
   { domain->solInfo().solverTypeCluster = $2; }
   | ConwepConfig
@@ -4955,8 +4975,8 @@ SamplingOption:
   { domain->solInfo().readInROBorModes.push_back($2);
     domain->solInfo().localBasisSize.push_back($3); }
   | DUALBASIS FNAME Integer 
-  { domain->solInfo().readInDualROB = $2;
-    domain->solInfo().maxSizeDualBasis = $3; }
+  { domain->solInfo().readInDualROB.push_back($2);
+    domain->solInfo().localDualBasisSize.push_back($3); }
   | TRNVCT FNAME
   { domain->solInfo().statePodRomFile.push_back($2); }
   | TRNVCT FNAME FNAME

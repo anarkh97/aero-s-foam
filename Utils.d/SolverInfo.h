@@ -359,9 +359,9 @@ struct SolverInfo {
    std::vector<std::string> robfi;
    std::vector<double> snapshotWeights;
    std::vector<std::string> readInROBorModes;
+   std::vector<std::string> readInDualROB; 
    std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
    std::vector<std::string> readInLocalBasesCent;
-   const char * readInDualROB;
    const char * readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
@@ -370,8 +370,9 @@ struct SolverInfo {
    std::vector<std::string> statePodRomFile;
    std::vector<std::string> velocPodRomFile;
    std::vector<std::string> accelPodRomFile;
+   std::vector<std::string> dsvPodRomFile;
    const char * isvPodRomFile;
-   const char * dsvPodRomFile;
+//   const char * dsvPodRomFile;
    const char * forcePodRomFile;
    const char * constraintPodRomFile;
    const char * constraintSnapshotFile;
@@ -398,6 +399,7 @@ struct SolverInfo {
    bool checkPodRom;
    bool svdPodRom;
    int  svdBlockSize;
+   bool clusterSubspaceAngle;
    int clustering;
    int  solverTypeCluster; // 0: Random, 1: K-means
    int use_nmf;
@@ -427,7 +429,9 @@ struct SolverInfo {
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int  maxSizePodRom;
+   double romEnergy;
    std::vector<int> localBasisSize;
+   std::vector<int> localDualBasisSize;
    int  maxSizeDualBasis;
    int  maxDeimBasisSize;
    bool selectFullNode;
@@ -461,12 +465,14 @@ struct SolverInfo {
    double tolPodRom;
    bool useMassNormalizedBasis;
    bool useMassOrthogonalProjection;
+   bool performMassNormalization;
    bool ConwepOnOff;
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
    bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
    bool scalePosCoords;
    double xScaleFactor, yScaleFactor, zScaleFactor;
+   double xLMPCFactor, yLMPCFactor, zLMPCFactor;
    std::vector<double> xScaleFactors, yScaleFactors, zScaleFactors;
    int inertiaLumping; // 1: diagonal lumping (default), 2: block-diagonal 6x6 lumping
                        // note #1: this flag is automatically set to 2 when a product of inertia is defined using DIMASS
@@ -711,13 +717,12 @@ struct SolverInfo {
                   constraint_hess_eps = 0;
 
                   numSnap            = 1;
-                  readInDualROB      = "";
                   readInModes        = "";
                   readInShapeSen     = "";
                   SVDoutput          = "pod.rob";
                   reducedMeshFile    = "";
                   isvPodRomFile      = "";
-                  dsvPodRomFile      = "";
+                  //dsvPodRomFile      = "";
                   forcePodRomFile    = "";
                   constraintPodRomFile  = "";
  		  constraintSnapshotFile = "";
@@ -754,6 +759,7 @@ struct SolverInfo {
                   DEIMPodRom         = false;
                   UDEIMPodRom        = false;
                   svdBlockSize       = 64;
+		  clusterSubspaceAngle = false;
                   clustering         = 0;
                   solverTypeCluster  = 1; // K-means
                   use_nmf            = 0;
@@ -773,6 +779,7 @@ struct SolverInfo {
                   elemLumpPodRom     = false;
                   onlineSvdPodRom    = false;
                   maxSizePodRom      = 0;
+                  romEnergy          = 0.0;
                   maxSizeDualBasis   = 0;
                   maxDeimBasisSize   = 0;
                   selectFullNode     = false;
@@ -806,6 +813,7 @@ struct SolverInfo {
                   tolPodRom          = 1.0e-6;
                   useMassNormalizedBasis = true;
                   useMassOrthogonalProjection = false;
+                  performMassNormalization = false;
                   ConwepOnOff        = false;
                   basicDofCoords     = true;
                   basicPosCoords     = true;
@@ -813,6 +821,9 @@ struct SolverInfo {
                   xScaleFactor       = 1.0;
                   yScaleFactor       = 1.0;
                   zScaleFactor       = 1.0;
+		  xLMPCFactor        = 1.0;
+                  yLMPCFactor        = 1.0;
+                  zLMPCFactor        = 1.0;
                   inertiaLumping     = 0;
                   printMatLab        = false;
                   printMatLabFile    = "";

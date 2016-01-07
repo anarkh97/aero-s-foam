@@ -21,6 +21,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::GenEiSparseGalerkinProjectionSolver
   dualProjectionBasis_(NULL),
   Empirical(false),
   selfadjoint_(selfadjoint),
+  contact_(false),
   tol_(tol),
   startCol_(0),
   blockCols_(0),
@@ -203,7 +204,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
   LocalBasisType V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data()+startCol_, V.cols());
 
-  if(dualBlockCols_ > 0) {
+  if(dualBlockCols_ > 0 && contact_) {
     Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.block(startDualCol_,startCol_,dualBlockCols_,blockCols_).transpose();
     Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -x, ce0(0,1), _x(V.cols()), Lambda(0,1), Mu(dualBlockCols_);
     solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_.segment(startDualCol_,dualBlockCols_), _x, &Lambda, &Mu, tol_);
@@ -226,7 +227,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVe
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data()+startCol_, V.cols()), x(sol.data()+startCol_, V.cols());
   sol.zero();
 
-  if(dualBlockCols_ > 0) {
+  if(dualBlockCols_ > 0 && contact_) {
     Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.block(startDualCol_,startCol_,dualBlockCols_,blockCols_).transpose();
     Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -b, ce0(0,1), _x(V.cols()), Lambda(0,1), Mu(dualBlockCols_);
     solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_.segment(startDualCol_,dualBlockCols_), _x, &Lambda, &Mu, tol_);

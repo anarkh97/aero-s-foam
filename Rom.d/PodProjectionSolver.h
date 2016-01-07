@@ -23,6 +23,7 @@ public:
   virtual void addReducedMass(double Mcoef) = 0;
 
   // Constraint assembly
+  virtual void activateContact() = 0;
   virtual void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef) = 0;
   virtual void addModalLMPCs(double Kcoef, int Wcols, std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end) = 0;
   virtual void updateLMPCs(GenVector<Scalar> &q) = 0;
@@ -76,6 +77,7 @@ public:
   void addReducedMass(double Mcoef) { Mcoef_ = Mcoef; }
 
   // Constraint assembly
+  void activateContact() {}
   void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef) {}
   void addModalLMPCs(double Kcoef, int Wcols,std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end) {}
   void updateLMPCs(GenVector<Scalar> &q) {}

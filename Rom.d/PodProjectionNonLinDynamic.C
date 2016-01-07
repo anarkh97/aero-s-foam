@@ -1299,6 +1299,7 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
 
 #ifdef USE_EIGEN3
   if(geoSource->getNumConstraintElementsIeq() || domain->solInfo().modalLMPC) {
+    solver_->activateContact();
     if(geoSource->getLmpcFlag() || domain->solInfo().modalLMPC) { // linear
       solver_->updateLMPCs(geomState.q);
     }

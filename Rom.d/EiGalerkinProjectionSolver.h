@@ -30,6 +30,7 @@ public:
   void addReducedMass(double Mcoef);
 
   // Constraint assembly
+  void activateContact() { contact_ = true; }
   void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef);
   void addModalLMPCs(double Kcoef, int Wcols,std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end);
   void updateLMPCs(GenVector<Scalar> &q);
@@ -66,6 +67,7 @@ private:
   ConstrainedDSA *cdsa_;
   bool selfadjoint_;
   bool Empirical;
+  bool contact_;
   int basisSize_, dualBasisSize_; // global basis quantities
   int startCol_, blockCols_; // local bases quantities
   int startDualCol_, dualBlockCols_;

@@ -372,6 +372,8 @@ MatNLCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &curStat
 void
 MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt)
 {
+  if(ele->numStates() == 0) return;
+
   int *nn = new int[ele->numNodes()];
   ele->nodes(nn);
   Node *nodes = new Node[ele->numNodes()];

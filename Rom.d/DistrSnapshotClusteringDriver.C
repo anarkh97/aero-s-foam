@@ -133,7 +133,7 @@ DistrSnapshotClusteringDriver::computeMinimumAngle(DistrSnapshotClusteringSolver
     for(int j = i+1; j < clusters){
     }
   }*/
-
+  return 0;
 }
 
 void

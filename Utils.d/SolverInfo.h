@@ -252,6 +252,7 @@ struct SolverInfo {
 
    int massFlag;
    int filterFlags;
+   int filterQ; // 0 = Q=M for quasistatics, 1 = Q=I for quasistatics
 
    int zeroInitialDisp; // flag to set initial disp to zero
 
@@ -498,6 +499,7 @@ struct SolverInfo {
 
    // Constructor
    SolverInfo() { filterFlags = 0;
+                  filterQ = 0;
                   type = 0;     
                   soltyp = -1;
                   subtype = 0; // By default we use direct Skyline

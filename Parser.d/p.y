@@ -1288,6 +1288,9 @@ RbmFilterInfo:
 	{ domain->solInfo().useRbmFilter($2); }
 	| RBMFILTER NewLine
 	{ domain->solInfo().useRbmFilter(1); }
+        | RBMFILTER Integer Integer NewLine
+        { domain->solInfo().useRbmFilter($2);
+          domain->solInfo().filterQ = $3; }
         | RBMFILTER NewLine RbmList NewLine
 	;
 RbmList:

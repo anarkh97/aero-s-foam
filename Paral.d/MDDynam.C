@@ -363,33 +363,50 @@ MultiDomainDynam::projector_prep(MultiDomainRbm<double> *rbms, GenSubDOp<double>
   if(numR == 0) return;
 
   filePrint(stderr," ... Building the RBM Projector     ...\n");
-
   filePrint(stderr," ... Number of RBMs = %-4d          ...\n",numR);
 
   R = new GenDistrVectorSet<double>(numR, decDomain->solVecInfo());
   rbms->getRBMs(*R);
 
-  GenDistrVectorSet<double> MR(numR, decDomain->solVecInfo());
-  for(int i=0; i<numR; ++i) {
-    M->mult((*R)[i], MR[i]);
-  }
-
-  FSFullMatrix RtMR(numR,numR);
-  for(int i=0; i<numR; ++i)
-    for(int j=i; j<numR; ++j)
-      RtMR[i][j] = RtMR[j][i] = (*R)[i]*MR[j];
-
-  FSFullMatrix RtMRinverse(numR, numR);
-  RtMRinverse = RtMR.invert();
-
   double *y = (double *) dbg_alloca(numR*sizeof(double));
   double *x = (double *) dbg_alloca(numR*sizeof(double));
-
+    
   X = new GenDistrVectorSet<double>(numR, decDomain->solVecInfo());
-  for(int i=0; i<MR.size()/numR; ++i) {
-    for(int j=0; j<numR; ++j) y[j] = MR[j].data()[i];      
-    RtMRinverse.mult(y, x);
-    for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
+
+  if(domain->solInfo().filterQ == 0 || domain->solInfo().timeIntegration != SolverInfo::Qstatic) {
+    GenDistrVectorSet<double> MR(numR, decDomain->solVecInfo());
+    for(int i=0; i<numR; ++i) {
+      M->mult((*R)[i], MR[i]);
+    }
+
+    FSFullMatrix RtMR(numR,numR);
+    for(int i=0; i<numR; ++i)
+      for(int j=i; j<numR; ++j)
+        RtMR[i][j] = RtMR[j][i] = (*R)[i]*MR[j];
+
+    FSFullMatrix RtMRinverse(numR, numR);
+    RtMRinverse = RtMR.invert();
+
+    for(int i=0; i<MR.size()/numR; ++i) {
+      for(int j=0; j<numR; ++j) y[j] = MR[j].data()[i];      
+      RtMRinverse.mult(y, x);
+      for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
+    }
+  }
+  else {
+    FSFullMatrix RtR(numR,numR);
+    for(int i=0; i<numR; ++i)
+      for(int j=i; j<numR; ++j)
+        RtR[i][j] = RtR[j][i] = (*R)[i]*(*R)[j];
+
+    FSFullMatrix RtRinverse(numR, numR);
+    RtRinverse = RtR.invert();
+
+    for(int i=0; i<R->size()/numR; ++i) {
+      for(int j=0; j<numR; ++j) y[j] = (*R)[j].data()[i];
+      RtRinverse.mult(y, x);
+      for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
+    }
   }
 }
 

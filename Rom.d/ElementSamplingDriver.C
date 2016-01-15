@@ -172,19 +172,24 @@ outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds, 
   weightOut.close();
 }
 
-int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts, int j=-1)
+int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts, int j=-1, int podBasisSize = 0)
 {
   // compute the number of snapshots that will be used for a given skipping strategy
   FileNameInfo fileInfo;
   snapshotCounts.clear();
-  const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
+  int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
   const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
   for(int i = 0; i < FileNameInfo::size(type, BasisId::SNAPSHOTS); i++) {
     std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
     DistrBasisInputFile in(fileName);
-    const double N = in.stateCount() - skipOffSet;
-    const int singleSnapshotCount = (N > 0) ? 1+(N-1)/skipFactor : 0;
-    snapshotCounts.push_back(singleSnapshotCount);
+    if(domain->solInfo().randomVecSampling){ // if random sampling, do this
+      const int singleSnapshotCount = std::max(domain->solInfo().skipOffSet, podBasisSize);
+      snapshotCounts.push_back(singleSnapshotCount);
+    } else { // otherwise compute this stuff
+      const double N = in.stateCount() - skipOffSet;
+      const int singleSnapshotCount = (N > 0) ? 1+(N-1)/skipFactor : 0;
+      snapshotCounts.push_back(singleSnapshotCount);
+    }
   }
   // return the total
   return (j<0) ? std::accumulate(snapshotCounts.begin(), snapshotCounts.end(), 0) : snapshotCounts[j];
@@ -200,19 +205,42 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
 #ifdef PRINT_ESTIMERS
   double t1 = getTime();
 #endif
-  const int snapshotCount = snapSize(type, snapshotCounts, j);
+  const int snapshotCount = snapSize(type, snapshotCounts, j, podBasis.vectorCount());
   filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
   config.dimensionIs(snapshotCount, vectorSize);
   timeStamps.clear();
   timeStamps.reserve(snapshotCount);
 
+  
   const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
   const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
   const int podVectorCount = podBasis.vectorCount();
   Vector snapshot(vectorSize), Msnapshot(vectorSize);
   Vector podComponents(podVectorCount);
   const FileNameInfo fileInfo;
+
+  // this ain't pretty
+  // allocate vector with length equal to total number of vectors 
+  int numberOfVectorsInFile;
+  std::vector<int> randRead;
+  {
+    std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, 0);
+    BasisInputStream<6> in(fileName, vecDofConversion);
+    numberOfVectorsInFile = in.size();
+    randRead.resize(in.size());
+  }
+  std::fill(randRead.begin(),randRead.end(),0);
+  // if reading in N randomly selected vectors, call this portion and shuffle 
+  if(domain->solInfo().randomVecSampling){
+   // start at the offset, then fill in
+   int numberOfVectors = std::max(domain->solInfo().skipPodRom,podVectorCount);// need at least as many vectors as the size of the subspace because reasons
+   for(int setRead = 0+skipOffSet; setRead < numberOfVectors; setRead++)
+    randRead[setRead] = 1;
+
+   std::srand(podVectorCount); // use same seed for each file to get consistent vectors
+   std::random_shuffle(randRead.begin()+skipOffSet, randRead.end());
+  }
 
   int offset = 0;
   for(int i = ((j<0)?0:j); i < ((j<0)?FileNameInfo::size(type, BasisId::SNAPSHOTS):(j+1)); i++) {
@@ -222,10 +250,15 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
 
     double s0 = -getTime(), s1 = -51, s2 = 0;
     int count = 0;
-    int skipCounter = skipFactor - skipOffSet;
+    int skipCounter = 0;
+    if(!domain->solInfo().randomVecSampling) // don't use skipCounter if using randomly selected vectors
+      skipCounter = skipFactor - skipOffSet;
     std::pair<double, double *> data;
+   
+    long int yolo = 0; 
     while(count < snapshotCounts[i]) {
-      if(skipCounter == skipFactor) {
+      // if doing random sampling, ignore when skipCounter equals skipFactor, only read when randRead is 1
+      if((skipCounter == skipFactor) || (domain->solInfo().randomVecSampling && randRead[yolo+skipOffSet])) {
         data.second = snapshot.data();
         in >> data;
         assert(in);
@@ -237,9 +270,10 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
           expand(podBasis, reduce(podBasis, snapshot, podComponents), config[offset+count]);
         }
         timeStamps.push_back(data.first);
-        skipCounter = 1;
+        if(!domain->solInfo().randomVecSampling)
+          skipCounter = 1;
         ++count;
-        if((s2-s1 > 50)) { // only print to the screen every 50 milliseconds, otherwise it's too slow...
+        if((s2-s1 > 50)) { // only print to the screen every 50 milliseconds, otherwise it's too slow... (Noyse)
           s1 = s2;
           filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done ...", data.first, (count*100)/snapshotCounts[i]);
         }
@@ -247,8 +281,10 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
       }
       else {
         in.file().currentStateIndexInc();
-        ++skipCounter;
+        if(!domain->solInfo().randomVecSampling)
+          ++skipCounter;
       }
+      ++yolo;
     }
 
     filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done... \n", data.first, 100);
@@ -593,9 +629,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
 
   if(domain_->solInfo().localBasisSize.size() > 1) {
     int globalBasisSize = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.end(), 0);
-    if(globalBasisSize == 0) {
-      
-    }
     podBasis_.localBasisIs(0, globalBasisSize);
   }
 

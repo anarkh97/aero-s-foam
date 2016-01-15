@@ -190,7 +190,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
     parent->readLocalBasesAuxi();
   }
 
-  if(!solInfo().readInDualROB.empty()) { // this loop reads in dual vectors and stores them in a single data structure
+  if(!solInfo().readInDualROB.empty()) { // this loop reads in dual vectors and stores them in a single data structure if not using modal LMPCs
     VecNodeDof1Conversion vecNodeDof1Conversion(geoSource->getNumConstraintElementsIeq());
     for(int j = 0 ; j < solInfo().readInDualROB.size(); j++) {
       // Load dual projection basis    
@@ -1176,11 +1176,13 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
       setLocalReducedMesh(j);
 
       if(domain->solInfo().localDualBasisSize.size() > 1) { // if multiple dual bases are given, execute this block
-        GenVecBasis<double> &dualProjectionBasis = solver_->dualProjectionBasis();
         blockCols = domain->solInfo().localDualBasisSize[j];
         startCol = std::accumulate(domain->solInfo().localDualBasisSize.begin(), domain->solInfo().localDualBasisSize.begin()+j, 0); 
         getSolver()->setLocalDualBasis(startCol, blockCols);
-        dualProjectionBasis.localBasisIs(startCol, blockCols);
+        if(!domain->solInfo().modalLMPC){// we don't have W if using modal LMPCs
+          GenVecBasis<double> &dualProjectionBasis = solver_->dualProjectionBasis();
+          dualProjectionBasis.localBasisIs(startCol, blockCols);
+        }
       }
 
       if(VtV.size() == 0) {

@@ -451,6 +451,7 @@ struct SolverInfo {
    int maxElemSpnnls;
    double maxIterSpnnls;
    bool reduceFollower;
+   bool randomVecSampling;
    int  skipPodRom;
    int  skipOffSet;
    int  skipState;
@@ -800,6 +801,7 @@ struct SolverInfo {
                   maxIterSpnnls      = 3.0;
                   solverTypeSpnnls   = 0;
                   reduceFollower     = false;
+                  randomVecSampling  = false;
                   skipPodRom         = 1;
                   skipOffSet         = 0;
                   skipState          = 1;

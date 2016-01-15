@@ -1578,6 +1578,7 @@ TRAIL [a-zA-Z]*
 
 "NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
 "SAMFRQ"|"SamFrq"|"samfrq"                { return SKIP; }
+"RANSMP"|"RanSmp"|"ransmp"    	          { return RANDOMSAMPLE; }
 
 "SOLVER"|"Solver"|"solver"                { return SOLVER; }
 

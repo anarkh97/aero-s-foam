@@ -246,6 +246,7 @@ struct SolverInfo {
                         //   of the six rigid body modes: 0 = do not filter, 1 = do filter
    bool grbm_use_lmpc;  // true (default) = lmpcs treated algebraically in GRBM method
                         // false = lmpcs are assumed to not introduce any mechanisms (i.e. like beams)
+   std::vector<double> grbm_ref; // coordinates of reference point for rotational modes; if empty then 1st node is used.
 
    double condNumTolerance; // Condition number tolerance
    int condNumMaxit;

@@ -1276,6 +1276,27 @@ ToleranceInfo:
         | GRBM NewLine Float Float Integer NewLine
         { domain->solInfo().setGrbm($3,$4);
           domain->solInfo().grbm_use_lmpc = bool($5); }
+        | GRBM Float Float Float NewLine Float Float NewLine
+        { domain->solInfo().setGrbm($6,$7);
+          std::vector<double> &grbm_ref = domain->solInfo().grbm_ref;
+          grbm_ref.reserve(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
+        }
+        | GRBM Float Float Float NewLine Float NewLine
+        { domain->solInfo().setGrbm($6);
+          std::vector<double> &grbm_ref = domain->solInfo().grbm_ref;
+          grbm_ref.resize(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
+        }
+        | GRBM Float Float Float NewLine 
+        { domain->solInfo().setGrbm();
+          std::vector<double> &grbm_ref = domain->solInfo().grbm_ref;
+          grbm_ref.resize(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
+        }
+        | GRBM Float Float Float NewLine Float Float Integer NewLine
+        { domain->solInfo().setGrbm($6,$7);
+          domain->solInfo().grbm_use_lmpc = bool($8);
+          std::vector<double> &grbm_ref = domain->solInfo().grbm_ref;
+          grbm_ref.resize(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
+        }
 	;
 ModeFilterInfo:
         MODEFILTER Integer NewLine

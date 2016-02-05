@@ -3981,7 +3981,7 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   if(numNeuman && (domain->getNumMFTT() || domain->getNumHFTT() || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
       if(sinfo.isNonLin() && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf 
-         || nbc[i].type == BCond::Actuators) && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
+         || nbc[i].type == BCond::Actuators) && !((nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3) || nbc[i].dofnum == 6)) continue;
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
       switch(nbc[i].type) {

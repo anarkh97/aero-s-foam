@@ -234,10 +234,13 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   f = G.head(N1);
 
   if(N2 > 0) {
+#if EIGEN_VERSION_AT_LEAST(3,2,8)
     Eigen::JacobiSVD<Eigen::MatrixXd,Eigen::NoQRPreconditioner> dec(H.bottomRightCorner(N2,N2), Eigen::ComputeThinU | Eigen::ComputeThinV);
     dec.setThreshold(10*std::numeric_limits<double>::epsilon()/dec.singularValues()[0]);
-    /* XXX FullPivLU doesn't work since Eigen 3.2.8
-    Eigen::FullPivLU<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dec(H.bottomRightCorner(N2,N2));*/
+#else
+    // XXX FullPivLU doesn't work since Eigen 3.2.8
+    Eigen::FullPivLU<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dec(H.bottomRightCorner(N2,N2));
+#endif
 
     CinvBt = dec.solve(H.bottomLeftCorner(N2,N1));
     Cinvg  = dec.solve(G.tail(N2));

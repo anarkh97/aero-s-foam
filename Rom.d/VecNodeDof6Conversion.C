@@ -13,7 +13,7 @@ VecNodeDofConversion<DOFS_PER_NODE>::VecNodeDofConversion(const DofSetArray &dsa
 {
   for (int iNode = 0, iNodeEnd = dofSetNodeCount(); iNode < iNodeEnd; ++iNode) {
     for (int iDof = 0; iDof != DOF_ID_COUNT; ++iDof) {
-      const int loc = const_cast<DofSetArray &>(dsa).locate(iNode, DOF_ID[iDof]);
+      const int loc = const_cast<DofSetArray &>(dsa).locate(iNode, DOF_ID(iDof));
       dofLocation_[iNode][iDof] = loc;
     }
   }

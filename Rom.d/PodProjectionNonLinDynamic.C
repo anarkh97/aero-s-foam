@@ -17,6 +17,7 @@
 #include <Driver.d/SysState.h>
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/DistHelper.h>
+#include <Corotational.d/TemperatureState.h>
 
 #include <algorithm>
 #include <stdexcept>
@@ -168,7 +169,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
       if(j==0) filePrint(stderr, " ... Using Mass-normalized Basis    ...\n");
       fileName.append(".normalized");
     }
-    filePrint(stderr,"... Reading %s ...\n",fileName.c_str());
+    filePrint(stderr," ... Reading %s ...\n",fileName.c_str());
     BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
 
 
@@ -1034,8 +1035,11 @@ PodProjectionNonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, V
 ModalGeomState*
 PodProjectionNonLinDynamic::createGeomState()
 {
-  geomState_Big = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
-                                domain->getNodalTemperatures());
+  if(domain->solInfo().soltyp == 2)
+    geomState_Big = new TemperatureState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes());
+  else
+    geomState_Big = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
+                                  domain->getNodalTemperatures());
 
   return new ModalGeomState(solVecInfo());
 }
@@ -1043,7 +1047,10 @@ PodProjectionNonLinDynamic::createGeomState()
 ModalGeomState*
 PodProjectionNonLinDynamic::copyGeomState(ModalGeomState *geomState)
 {
-  refState_Big = new GeomState(*geomState_Big);
+  if(domain->solInfo().soltyp == 2)
+    refState_Big = new TemperatureState(* (TemperatureState *) geomState_Big);
+  else
+    refState_Big = new GeomState(*geomState_Big);
   return new ModalGeomState(*geomState);
 }
 

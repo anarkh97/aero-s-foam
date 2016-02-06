@@ -2364,10 +2364,11 @@ TemperatureState::TemperatureState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet
   int i;
   for(i=0; i<numnodes; ++i) {
 
-    loc[i].resize(1);
+    loc[i].resize(6);
 
     // Store location of each degree of freedom
     loc[i][0] = cdsa.locate( i, DofSet::Temp );
+    for(int j=1; j<6; ++j) loc[i][j] = -1;
 
     // Get Node i from the Coordinate (Node) set
     Node *node_i = cs[i];
@@ -2416,8 +2417,9 @@ TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState(*(g2.
   // Copy dof locations
   int i;
   for(i = 0; i < numnodes; ++i) {
-    loc[i].resize(1);
+    loc[i].resize(6);
     loc[i][0] = g2.loc[i][0];
+    for(int j=1; j<6; ++j) loc[i][j] = -1;
   }
 
   // Copy node states
@@ -2578,3 +2580,15 @@ void
 TemperatureState::setAcceleration(const Vector &, int)
 {
 }
+
+void
+TemperatureState::get_tot_displacement(Vector &totVec, bool)
+{
+  // Loop over all of the nodes
+  for(int i = 0; i < numnodes; ++i) {
+
+    if(loc[i][0] >= 0) totVec[loc[i][0]] = ns[i].x;
+
+  }
+}
+

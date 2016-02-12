@@ -3951,7 +3951,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is present this is term is not constant (see computeExtForce)
   // note #2  for nonlinear this term is not constant (see getStiffAndForce/getInternalForce) 
-  if(numDirichlet && !(claw && claw->numUserDisp) && !sinfo.isNonLin() && kuc) {
+  if(numDirichlet && !(claw && claw->numUserDisp) && (!sinfo.isNonLin() || (sinfo.galerkinPodRom && sinfo.getNLInfo().linearelastic)) && kuc) {
     GenVector<Scalar> Vc(numDirichlet, 0.0);
     // construct the non-homogeneous dirichlet bc vector
     for(int i = 0; i < numDirichlet; ++i) {
@@ -4028,7 +4028,7 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
     }
 
     // compute the non-homogeneous force due to Kuc
-    if(!sinfo.isNonLin() && kuc) kuc->multSubtract(Vc, f);
+    if((!sinfo.isNonLin() || (sinfo.galerkinPodRom && sinfo.getNLInfo().linearelastic)) && kuc) kuc->multSubtract(Vc, f);
 
     if(sinfo.isDynam() && userSupFunc && claw && claw->numUserDisp > 0) {
 

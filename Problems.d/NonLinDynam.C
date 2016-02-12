@@ -280,7 +280,7 @@ NonLinDynamic::addUserForce(Vector& f, double *userDefinedForce)
 void
 NonLinDynamic::getConstForce(Vector& constantForce)
 {
-  domain->computeConstantForce(constantForce);
+  domain->computeConstantForce(constantForce, Kuc);
 }
 
 void

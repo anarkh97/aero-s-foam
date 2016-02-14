@@ -2,6 +2,7 @@
 #define ROM_DISTRSNAPSHOTCLUSTERINGDRIVER_H
 
 #include "DriverInterface.h"
+#include "DistrSnapshotClusteringSolver.h"
 
 #if defined (USE_SCALAPACK) && defined (USE_EIGEN3)
 class Communicator;
@@ -18,6 +19,8 @@ public:
 private:
   Domain *domain_;
   Communicator *comm_;
+
+  double computeMinimumAngle(DistrSnapshotClusteringSolver &, int k);
 };
 
 } /* end namespace Rom */

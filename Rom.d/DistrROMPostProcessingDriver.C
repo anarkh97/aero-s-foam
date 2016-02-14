@@ -18,6 +18,8 @@
 
 #include "PtrPtrIterAdapter.h"
 
+#include <Element.d/MpcElement.d/MpcElement.h>
+
 #include <algorithm>
 #include <memory>
 #include <fstream>
@@ -70,6 +72,18 @@ DistrROMPostProcessingDriver::preProcess() {
     if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName.append(".normalized");  
     DistrBasisInputFile podBasisFile(fileName);  //read in mass-normalized basis
     if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
+
+    int globalBasisSize = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
+    if(globalBasisSize <= 0) {
+         int sillyCounter = 0;
+         for(std::vector<int>::iterator it = domain->solInfo().localBasisSize.begin(); it != domain->solInfo().localBasisSize.end(); it++){
+           std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
+           if(domain->solInfo().useMassOrthogonalProjection) dummyName.append(".normalized");
+            DistrBasisInputFile dummyFile(dummyName);
+           *it = dummyFile.stateCount();
+           globalBasisSize += *it;
+         }
+      }
 
     for (DistrVecBasis::iterator it = normalizedBasis_.begin() + std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+j, 0),
                                  it_end = normalizedBasis_.begin() + std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
@@ -213,6 +227,7 @@ void
 DistrROMPostProcessingDriver::solve() {
 
    preProcess();
+   std::ofstream cvout(domain->solInfo().constraintViolationFile);
 
    int counter = 0; //TODO: make this portion more general so it doesn't depend on the assumption
                     //that all files have matching timestamps
@@ -260,6 +275,18 @@ DistrROMPostProcessingDriver::solve() {
      execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
      if(!dummyDynOps) dummyDynOps = new MDDynamMat;
      mddPostPro->dynamOutput(counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);
+
+     if(geoSource->getNumConstraintElementsIeq() && decDomain->getGlobalNumSub() == 1) { // output the constraint violation
+       double err = 0;
+       Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
+       for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
+         MpcElement *ele = static_cast<MpcElement*>(eset[i]);
+         if(counter==0) ele->renum(decDomain->getSubDomain(0)->getGlobalToLocalNode());
+         ele->update((*geomState)[0], *((*geomState)[0]), decDomain->getSubDomain(0)->getNodes(), *it);
+         err = std::max(err,ele->getError(*((*geomState)[0])));
+       }
+       cvout << *it << " " << err << std::endl;
+     }
 
      filePrint(stderr,"\r ... ROM Conversion Loop: t = %9.3e, %3d%% complete ...",
                 *it, int(*it/(TimeStamps[0].back())*100));

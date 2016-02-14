@@ -172,19 +172,24 @@ outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds, 
   weightOut.close();
 }
 
-int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts, int j=-1)
+int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts, int j=-1, int podBasisSize = 0)
 {
   // compute the number of snapshots that will be used for a given skipping strategy
   FileNameInfo fileInfo;
   snapshotCounts.clear();
-  const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
+  int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
   const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
   for(int i = 0; i < FileNameInfo::size(type, BasisId::SNAPSHOTS); i++) {
     std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
     DistrBasisInputFile in(fileName);
-    const double N = in.stateCount() - skipOffSet;
-    const int singleSnapshotCount = (N > 0) ? 1+(N-1)/skipFactor : 0;
-    snapshotCounts.push_back(singleSnapshotCount);
+    if(domain->solInfo().randomVecSampling){ // if random sampling, do this
+      const int singleSnapshotCount = std::max(domain->solInfo().skipOffSet, podBasisSize);
+      snapshotCounts.push_back(singleSnapshotCount);
+    } else { // otherwise compute this stuff
+      const double N = in.stateCount() - skipOffSet;
+      const int singleSnapshotCount = (N > 0) ? 1+(N-1)/skipFactor : 0;
+      snapshotCounts.push_back(singleSnapshotCount);
+    }
   }
   // return the total
   return (j<0) ? std::accumulate(snapshotCounts.begin(), snapshotCounts.end(), 0) : snapshotCounts[j];
@@ -200,19 +205,42 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
 #ifdef PRINT_ESTIMERS
   double t1 = getTime();
 #endif
-  const int snapshotCount = snapSize(type, snapshotCounts, j);
+  const int snapshotCount = snapSize(type, snapshotCounts, j, podBasis.vectorCount());
   filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
   config.dimensionIs(snapshotCount, vectorSize);
   timeStamps.clear();
   timeStamps.reserve(snapshotCount);
 
+  
   const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
   const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
   const int podVectorCount = podBasis.vectorCount();
   Vector snapshot(vectorSize), Msnapshot(vectorSize);
   Vector podComponents(podVectorCount);
   const FileNameInfo fileInfo;
+
+  // this ain't pretty
+  // allocate vector with length equal to total number of vectors 
+  int numberOfVectorsInFile;
+  std::vector<int> randRead;
+  {
+    std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, 0);
+    BasisInputStream<6> in(fileName, vecDofConversion);
+    numberOfVectorsInFile = in.size();
+    randRead.resize(in.size());
+  }
+  std::fill(randRead.begin(),randRead.end(),0);
+  // if reading in N randomly selected vectors, call this portion and shuffle 
+  if(domain->solInfo().randomVecSampling){
+   // start at the offset, then fill in
+   int numberOfVectors = std::max(domain->solInfo().skipPodRom,podVectorCount);// need at least as many vectors as the size of the subspace because reasons
+   for(int setRead = 0+skipOffSet; setRead < numberOfVectors; setRead++)
+    randRead[setRead] = 1;
+
+   std::srand(podVectorCount); // use same seed for each file to get consistent vectors
+   std::random_shuffle(randRead.begin()+skipOffSet, randRead.end());
+  }
 
   int offset = 0;
   for(int i = ((j<0)?0:j); i < ((j<0)?FileNameInfo::size(type, BasisId::SNAPSHOTS):(j+1)); i++) {
@@ -222,10 +250,15 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
 
     double s0 = -getTime(), s1 = -51, s2 = 0;
     int count = 0;
-    int skipCounter = skipFactor - skipOffSet;
+    int skipCounter = 0;
+    if(!domain->solInfo().randomVecSampling) // don't use skipCounter if using randomly selected vectors
+      skipCounter = skipFactor - skipOffSet;
     std::pair<double, double *> data;
+   
+    long int yolo = 0; 
     while(count < snapshotCounts[i]) {
-      if(skipCounter == skipFactor) {
+      // if doing random sampling, ignore when skipCounter equals skipFactor, only read when randRead is 1
+      if((skipCounter == skipFactor) || (domain->solInfo().randomVecSampling && randRead[yolo+skipOffSet])) {
         data.second = snapshot.data();
         in >> data;
         assert(in);
@@ -237,9 +270,10 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
           expand(podBasis, reduce(podBasis, snapshot, podComponents), config[offset+count]);
         }
         timeStamps.push_back(data.first);
-        skipCounter = 1;
+        if(!domain->solInfo().randomVecSampling)
+          skipCounter = 1;
         ++count;
-        if((s2-s1 > 50)) { // only print to the screen every 50 milliseconds, otherwise it's too slow...
+        if((s2-s1 > 50)) { // only print to the screen every 50 milliseconds, otherwise it's too slow... (Noyse)
           s1 = s2;
           filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done ...", data.first, (count*100)/snapshotCounts[i]);
         }
@@ -247,8 +281,10 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
       }
       else {
         in.file().currentStateIndexInc();
-        ++skipCounter;
+        if(!domain->solInfo().randomVecSampling)
+          ++skipCounter;
       }
+      ++yolo;
     }
 
     filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done... \n", data.first, 100);
@@ -323,6 +359,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
 ::assembleTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
                        const VecBasisType *veloc, const VecBasisType *accel, int j)
 {
+  const FileNameInfo fileInfo;
   std::vector<double>::iterator timeStampFirst = timeStamps_.begin();
   typename MatrixBufferType::iterator elemContributions = solver_.matrixBuffer();
   double *trainingTarget = solver_.rhsBuffer();
@@ -339,16 +376,49 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
   }
   domain_->makeElementAdjacencyLists();
 
-  for (int iElem = 0; iElem != elementCount(); ++iElem) {
+  int kParam, kSnap, jParam = -1;
+  const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
+  const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
+  const bool poscfg = (domain->solInfo().xScaleFactors.size() > 0);
+  std::ifstream sources;
+
+  for (int iElem = 0; iElem != elementCount(); ++iElem) { // outer loop over element set
     filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
     std::vector<double>::iterator timeStampIt = timeStampFirst;
     int *nodes = domain_->getElementSet()[iElem]->nodes();
     int iSnap = 0;
-    for(int i = ((j<0)?0:j); i < ((j<0)?snapshotCounts_.size():(j+1)); i++) {
+    for(int i = ((j<0)?0:j); i < ((j<0)?snapshotCounts_.size():(j+1)); i++) { // loop over type of snapshot
       if(!domain_->solInfo().conwepConfigurations.empty()) {
         conwep = &domain_->solInfo().conwepConfigurations[i];
       }
-      for (int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap) {
+      if(poscfg) { // XXX
+        std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS, i);
+        fileName.append(".sources");
+        sources.open(fileName.c_str());
+        for(int k = 0; k < skipOffSet; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+      }
+
+      for (int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap) { // inner loop over snapshot list
+        if(poscfg) { // XXX
+          sources >> kParam >> kSnap;
+          for(int k = 0; k < skipFactor; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+          if(kParam != jParam) {
+            if(jParam == -1) {
+              domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactor;
+              domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactor;
+              domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactor;
+            }
+            else {
+              domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactors[jParam-1];
+              domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactors[jParam-1];
+              domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactors[jParam-1];
+            }
+//            std::cerr << "scaling position coordinates by " << domain->solInfo().xScaleFactor << " " << domain->solInfo().yScaleFactor
+//                      << " " << domain->solInfo().zScaleFactor << std::endl;
+            geoSource->transformCoords();
+            jParam = kParam;
+          }
+        }
         geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
             nodes, displac[iSnap]); // just set the state at the nodes of element iElem
         if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
@@ -404,11 +474,21 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
         for (int j = 0; j < numStates; ++j) states[j] = 0;
         domain_->getElementSet()[iElem]->initStates(states);
       }
+      if(poscfg) sources.close();
     }
 
     delete [] nodes;
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
+
+
+  if(poscfg) {
+    domain->solInfo().xScaleFactor /= domain->solInfo().xScaleFactors[kParam-1];
+    domain->solInfo().yScaleFactor /= domain->solInfo().yScaleFactors[kParam-1];
+    domain->solInfo().zScaleFactor /= domain->solInfo().zScaleFactors[kParam-1];
+    geoSource->transformCoords();
+  }
+
 }
 
 template<typename MatrixBufferType, typename SizeType>
@@ -659,20 +739,39 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
 #ifdef USE_EIGEN3
   if(numLMPC > 0) {
 
-    if(strcmp(domain_->solInfo().readInDualROB,"") != 0) {
-      VecBasis dualProjectionBasis_;
+    if(!domain_->solInfo().readInDualROB.empty()) {
+ 
+      // get dual basis sizes
+      std::vector<int> locDualBasisVec;
       VecNodeDof1Conversion vecNodeDof1Conversion(numLMPC);
-      // Load dual projection basis    
-      std::string fileName = BasisFileId(fileInfo, BasisId::DUALSTATE, BasisId::POD);
-      BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
-      const int dualProjectionSubspaceSize = domain_->solInfo().maxSizeDualBasis ?
-                                             std::min(domain_->solInfo().maxSizeDualBasis, dualProjectionBasisInput.size()) :
-                                             dualProjectionBasisInput.size();
-  
-      readVectors(dualProjectionBasisInput, dualProjectionBasis_, dualProjectionSubspaceSize);
-  
-      filePrint(stderr, " ... Dual Proj. Subspace Dim. = %-3d ...\n", dualProjectionBasis_.vectorCount());
-      meshOut << "*\nLMPC\nMODAL " << dualProjectionBasis_.vectorCount() << std::endl;
+      for(int j = 0; j < domain->solInfo().readInDualROB.size(); ++j){
+        std::string fileName = BasisFileId(fileInfo, BasisId::DUALSTATE, BasisId::POD,j);
+        BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
+
+        locDualBasisVec.push_back(dualProjectionBasisInput.size());
+
+        filePrint(stderr, " ... Dual Basis %d size %d ...\n", j, locDualBasisVec[j]);
+      }
+
+      meshOut << "*";
+      VecBasis dualProjectionBasis_;
+      // Load local dual projection basis   
+      for(int j = 0 ; j < domain->solInfo().readInDualROB.size(); j++) { 
+        std::string fileName = BasisFileId(fileInfo, BasisId::DUALSTATE, BasisId::POD,j);
+        BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
+        const int dualProjectionSubspaceSize = locDualBasisVec[j] ?
+                                               std::min(locDualBasisVec[j], dualProjectionBasisInput.size()) :
+                                               dualProjectionBasisInput.size();
+ 
+        meshOut << "\nLMPC\nMODAL " << dualProjectionSubspaceSize;
+
+        readVectors(dualProjectionBasisInput, dualProjectionBasis_,
+                  std::accumulate(locDualBasisVec.begin(), locDualBasisVec.end(), 0),
+                  dualProjectionSubspaceSize,
+                  std::accumulate(locDualBasisVec.begin(), locDualBasisVec.begin()+j, 0));
+      } 
+
+      meshOut << std::endl;
 
       std::vector<Eigen::Triplet<double> > tripletList;
       Eigen::SparseMatrix<double> C(numLMPC, domain_->getCDSA()->size());
@@ -863,15 +962,25 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
     if(domain_->solInfo().useMassOrthogonalProjection) fileName.append(".normalized");
     BasisInputStream<6> in(fileName, vecDofConversion);
     if(domain_->solInfo().readInROBorModes.size() == 1) {
+      fprintf(stdout,"... Reading basis from %s ...\n",fileName.c_str());
       const int podSizeMax = domain_->solInfo().maxSizePodRom;
       if(podSizeMax != 0) {
         readVectors(in, podBasis_, podSizeMax);
       } else {
         readVectors(in, podBasis_);
       }
-    }
-    else {
+    } else {
       int globalBasisSize = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.end(), 0);
+      if(globalBasisSize <= 0) {
+         int sillyCounter = 0;
+         for(std::vector<int>::iterator it = domain_->solInfo().localBasisSize.begin(); it != domain_->solInfo().localBasisSize.end(); it++){
+           std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
+           if(domain_->solInfo().useMassOrthogonalProjection) dummyName.append(".normalized");
+           BasisInputStream<6> dummyIn(dummyName, vecDofConversion);
+           *it = dummyIn.size();
+           globalBasisSize += *it;
+         }
+      }
       int startCol = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+j, 0);
       int blockCols = domain_->solInfo().localBasisSize[j];
       readVectors(in, podBasis_, globalBasisSize, blockCols, startCol);
@@ -913,6 +1022,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
      && !domain_->solInfo().useMassOrthogonalProjection) {
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,j);
     fileName.append(".normalized");
+    fprintf(stdout,"... reading basis from %s ...\n",fileName.c_str());
     BasisInputStream<6> in(fileName, vecDofConversion);
     if(domain_->solInfo().readInROBorModes.size() == 1) {
       const int podSizeMax = domain_->solInfo().maxSizePodRom;

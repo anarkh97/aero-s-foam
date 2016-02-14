@@ -3,6 +3,7 @@
 
 #include <Element.d/Function.d/Function.h>
 #include <Element.d/Function.d/utilities.hpp>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <cmath>
 
 namespace Simo {
@@ -68,6 +69,16 @@ class PointVariPlaneDistanceConstraintFunction : public ScalarValuedFunction<12,
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
+
+  template<>
+  Eigen::Matrix<double,1,12>
+  Jacobian<double,PointVariPlaneDistanceConstraintFunction>
+  ::operator() (const Eigen::Matrix<double,12,1>& q, double t);
+
+  template<>
+  Eigen::Matrix<double,12,12>
+  Hessian<double,PointVariPlaneDistanceConstraintFunction>
+  ::operator() (const Eigen::Matrix<double,12,1>& q, double t);
 
 } // namespace Simo
 

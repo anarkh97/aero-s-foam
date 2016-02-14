@@ -6,6 +6,7 @@ class Communicator;
 class SCDoubleMatrix;
 
 #include <Eigen/Core>
+#include <vector> 
 
 namespace Rom {
 
@@ -13,12 +14,16 @@ class DistrNonnegativeMatrixFactorization {
 public:
   // Local data distribution
   int localRows() const { return localRows_; }
+  int basisSize() const { return basisDimension_; }
 
   // Local buffers: Internal column-major ordering, zero-based indexing
   // Local matrix buffer: [localRows by colCount]
   double *matrixColBuffer(int col);
   // Local basis buffer: [localRows by basisDimension]
   const double *basisColBuffer(int col) const;
+
+  void setEnergy(double energy) {energy_ = energy;}
+  int energySVD(double energy, std::vector<int> rows, std::vector<int> cols); // svd dual snapshots to find singular value cutoff
 
   void solve();
 
@@ -34,7 +39,7 @@ private:
 
   Communicator * communicator_;
   int rowCount_, colCount_, localRows_, basisDimension_, blockSize_, maxIter_, method_, nsub_, pqnNumInnerIter_;
-  double tol_, pqnAlpha_;
+  double tol_, pqnAlpha_, energy_;
 
   Eigen::MatrixXd matrixBuffer_;
   Eigen::MatrixXd basisBuffer_;

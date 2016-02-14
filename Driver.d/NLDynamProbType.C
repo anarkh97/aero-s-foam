@@ -146,7 +146,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   GeomType *stepState = probDesc->copyGeomState(geomState);
   stateIncr = StateUpdate::initInc(geomState, &residual);
-  refState = (solInfo.soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
+  refState = StateUpdate::initRef(geomState);
 
   if(aeroAlg == 5 || failSafe) {
     bkRefState = StateUpdate::initRef(geomState);
@@ -210,12 +210,12 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   int p = step, q = 1;
 
   double t0 = time;
-  double tmax = maxStep*dt0 + 10*std::numeric_limits<double>::epsilon();
+  double tmax = maxStep*dt0;
 
   // Time stepping loop
   if(aeroAlg < 0) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
-  for( ; time+dt0/q <= tmax || failed; s2 = s0+getTime()) {
+  for( ; step+1 <= maxStep || failed; s2 = s0+getTime()) {
 
     dt = dt0/q;
     solInfo.setTimeStep(dt);
@@ -253,7 +253,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     bool feasible;
 
     // Initialize states
-    if(solInfo.soltyp != 2) StateUpdate::copyState(geomState, refState);
+    StateUpdate::copyState(geomState, refState);
     probDesc->initializeParameters(int(time==0), geomState);
 
     // Constraint enforcement iteration loop
@@ -378,10 +378,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                                    stepState, geomState, stateIncr, residual,
                                    elementInternalForce, totalRes, acceleration,
                                    solInfo.zeroRot);
-    if(solInfo.soltyp != 2) {
-      probDesc->updateStates(refState, *geomState, time+dt); // update internal states to _{n+1}
-      StateUpdate::copyState(geomState, refState);
-    }
+    probDesc->updateStates(refState, *geomState, time+dt); // update internal states to _{n+1}
+    StateUpdate::copyState(geomState, refState);
 
     p++;
     numConverged++;
@@ -407,6 +405,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       }
 
       step = p/q;
+      time = step*dt0;
     }
   } // end of time stepping loop
 

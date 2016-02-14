@@ -22,7 +22,7 @@
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
        long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime,
-       int npMax, int scpkMB, int scpkNB, int scpkMP, int scpkNP) {
+       int npMax, int scpkMB, int scpkNB, int scpkMP, int scpkNP, int option) {
   // Setup
   int mypid, nprocs;
   MPI_Comm_rank(MPI_COMM_WORLD, &mypid);

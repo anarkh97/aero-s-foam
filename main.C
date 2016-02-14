@@ -632,7 +632,7 @@ int main(int argc, char** argv)
    filePrint(stderr,"         compiler (for instance, icpc or g++ version 4.2)\n");
  }
 
- if(!domain->solInfo().basicPosCoords) {
+ if(!domain->solInfo().basicPosCoords || domain->solInfo().scalePosCoords) {
 #ifndef USE_EIGEN3
    filePrint(stderr," *** ERROR: use of Nodal Frames for node coordinates is not supported by this AERO-S build.\n");
    filePrint(stderr," -> tip: you need to configure AERO-S with \"cmake -DEIGEN3_INCLUDE_DIR:PATH=xxx .\"\n");
@@ -697,7 +697,7 @@ int main(int argc, char** argv)
    geoSource->transformLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  }
 
- if(domain->solInfo().type != 2 && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && (strcmp(domain->solInfo().readInDualROB,"") == 0)
+ if(domain->solInfo().type != 2 && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && domain->solInfo().readInDualROB.empty()
     && !domain->solInfo().samplingPodRom)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
@@ -705,7 +705,7 @@ int main(int argc, char** argv)
    geoSource->addFsiElements(domain->getNumFSI(), domain->getFSI());
 
  if(!geoSource->binaryInput) {
-   domain->setUpData();
+   domain->setUpData(topFlag);
  }
 
  if(!(geoSource->getCheckFileInfo()->decPtr || callDec || decInit || geoSource->binaryInput)) {
@@ -1052,16 +1052,16 @@ int main(int argc, char** argv)
        Rom::DriverInterface *driver;
        if (domain->solInfo().svdPodRom) {
          if(domain->solInfo().use_nmf) {
-           filePrint(stderr, " ... Nonneg. Matrix Factorization   ...\n");
+           filePrint(stderr, " ... Distributed Nonneg. Matrix Factorization   ...\n");
            driver = distrPositiveDualBasisDriverNew(domain);
          }
          else if(domain->solInfo().clustering) {
-           filePrint(stderr, " ... Snapshot Clustering            ...\n");
+           filePrint(stderr, " ... Distributed Snapshot Clustering            ...\n");
            driver = distrSnapshotClusteringDriverNew(domain);
          }
          else {
            // Stand-alone SVD orthogonalization
-           filePrint(stderr, " ... Singular Value Decomposition   ...\n");
+           filePrint(stderr, " ... Distributed Singular Value Decomposition   ...\n");
            driver = distrBasisOrthoDriverNew(domain);
          }
        } 
@@ -1382,16 +1382,27 @@ int main(int argc, char** argv)
            driver.reset(ROMPostProcessingDriverNew(domain));
          }
          else if (domain->solInfo().samplingPodRom) {
-           filePrint(stderr, " ... Element Sampling and Weighting ...\n");
-           driver.reset(elementSamplingDriverNew(domain));
+           if(domain->solInfo().computeConstraintSnap){
+             filePrint(stderr, " ... Constraint Sampling and Weighting ...\n");
+             driver.reset(constraintSamplingDriverNew(domain));
+           } else {
+             filePrint(stderr, " ... Element Sampling and Weighting ...\n");
+             driver.reset(elementSamplingDriverNew(domain));
+           }
          }
          else if (domain->solInfo().snapProjPodRom) {
            filePrint(stderr, " ... POD: Post-processing of Projected Snapshots ...\n");
            driver.reset(snapshotProjectionDriverNew(domain));
          }
          else if (domain->solInfo().DEIMBasisPod) {
-           filePrint(stderr, " ... POD: DEIM Basis Construction   ...\n");
-           driver.reset(deimSamplingDriverNew(domain));
+           filePrint(stderr, " ... POD: DEIM Basis Construction ");
+           if (domain->solInfo().ConstraintBasisPod) {
+             filePrint(stderr,"for Nonlinear Constraints ...\n");
+             driver.reset(deimConstraintSamplingDriverNew(domain));
+           } else {
+             filePrint(stderr,"for Nonlinear Forces ...\n");
+             driver.reset(deimSamplingDriverNew(domain));
+           }
          }
          else if (domain->solInfo().UDEIMBasisPod) {
            filePrint(stderr, " ... POD: UDEIM Basis Construction  ...\n");

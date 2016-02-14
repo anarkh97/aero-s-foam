@@ -35,6 +35,7 @@ class TemperatureState : public GeomState
                                double beta, double gamma, double alphaf, double alpham,
                                bool);
      void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool);
+     void get_tot_displacement(Vector &totVec, bool);
 
      void setVelocity(const Vector &, int = 0);
      void setAcceleration(const Vector &, int = 0);

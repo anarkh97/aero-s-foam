@@ -18,8 +18,8 @@ pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> 
        long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime);
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
-pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime);
+pgpfp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, bool positive, double &dtime);
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pomp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
@@ -28,7 +28,7 @@ pomp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
        long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime,
-       int npMax, int scpkMB, int scpkNB, int scpkMP, int scpkNP);
+       int npMax, int scpkMB, int scpkNB, int scpkMP, int scpkNP, int option);
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
@@ -102,7 +102,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
     case 2 : { // Polytope Faces Pursuit
       filePrint(stderr, " ... Using Parallel GPFP Solver     ...\n");
       x = pgpfp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
-                verboseFlag_, scalingFlag_, positivity_, dtime);
+                 verboseFlag_, scalingFlag_, centerFlag_, positivity_, dtime);
     } break;
     case 5 : { // Orthogonal Matching Pursuit with Non-Negative L2 minimization
       filePrint(stderr, " ... Using Parallel OMP Solver      ...\n");
@@ -113,7 +113,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
 #if defined(USE_SCALAPACK)
       filePrint(stderr, " ... Using Scalapack LH Solver      ...\n");
       x = splh(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
-               verboseFlag_, scalingFlag_, projectFlag_, dtime, npMax_, scpkMB_, scpkNB_, scpkMP_, scpkNP_);
+               verboseFlag_, scalingFlag_, projectFlag_, dtime, npMax_, scpkMB_, scpkNB_, scpkMP_, scpkNP_, 0);
 #else
       filePrint(stderr, " *** ERROR: ScaLAPACK library is required for SPLH solver.\n");
       exit(-1);
@@ -123,6 +123,16 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
       filePrint(stderr, " ... Using Parallel CGLASSO Solver    ...\n");
       x = pcglars(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
                  verboseFlag_, scalingFlag_, centerFlag_, projectFlag_, dtime);
+    } break;
+    case 8 : { // Scalapack Polytope Face Pursuit solver
+#if defined(USE_SCALAPACK)
+      filePrint(stderr, " ... Using Scalapack PFP Solver      ...\n");
+      x = splh(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
+               verboseFlag_, scalingFlag_, projectFlag_, dtime, npMax_, scpkMB_, scpkNB_, scpkMP_, scpkNP_, 1);
+#else
+      filePrint(stderr, " *** ERROR: ScaLAPACK library is required for SPLH solver.\n");
+      exit(-1);
+#endif
     } break;
   }
   double t = (getTime() - t0)/1000.0;

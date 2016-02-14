@@ -17,11 +17,13 @@ class GenPodProjectionSolver {
 public:
   // Local bases
   virtual void setLocalBasis(int startCol, int blockCols) = 0;
+  virtual void setLocalDualBasis(int startDualCol, int blockDualCols) = 0;
 
   // Reduced-order matrix assembly
   virtual void addReducedMass(double Mcoef) = 0;
 
   // Constraint assembly
+  virtual void activateContact() = 0;
   virtual void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef) = 0;
   virtual void addModalLMPCs(double Kcoef, int Wcols, std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end) = 0;
   virtual void updateLMPCs(GenVector<Scalar> &q) = 0;
@@ -34,6 +36,7 @@ public:
   // Reduced basis parameters
   virtual int basisSize() const = 0;
   virtual GenVecBasis<Scalar> &projectionBasis() = 0;
+  virtual GenVecBasis<Scalar> &dualProjectionBasis() = 0;
   virtual void projectionBasisIs(GenVecBasis<Scalar> &) = 0; 
   virtual void dualProjectionBasisIs(GenVecBasis<Scalar> &) = 0;
   virtual void EmpiricalSolver() = 0; 
@@ -66,10 +69,16 @@ public:
     exit(-1);
   }
 
+  void setLocalDualBasis(int startDualCol, int blockDualCols) {
+    std::cerr << "ERROR: GenDBSparsePodProjectionSolver::setLocalDualBases is not implemented\n";
+    exit(-1);
+  }
+
   // Reduced matrix assembly
   void addReducedMass(double Mcoef) { Mcoef_ = Mcoef; }
 
   // Constraint assembly
+  void activateContact() {}
   void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef) {}
   void addModalLMPCs(double Kcoef, int Wcols,std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end) {}
   void updateLMPCs(GenVector<Scalar> &q) {}
@@ -85,6 +94,7 @@ public:
   // Reduced basis parameters
   int basisSize() const { return basisSize_; }
   GenVecBasis<Scalar> &projectionBasis() { return *projectionBasis_; }
+  GenVecBasis<Scalar> &dualProjectionBasis() { std::cerr << "ERROR: GenDBSparsePodProjectionSolver::dualProjectionBasis() is not implemented\n"; exit(-1); }
   void projectionBasisIs(GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
   void dualProjectionBasisIs(GenVecBasis<Scalar> &);
   void EmpiricalSolver();

@@ -9,7 +9,7 @@
 
 extern "C" {
   void _FORTRAN(elemaslbt)(int&, double*, double*, double*, double*);
-  void _FORTRAN(elefbc3dbrkshl2)(int&, int&, double*, double*, double*, double*);
+  void _FORTRAN(elefbc3dbrkshl2)(int&, double*, double*, double*, double*);
 }
 
 
@@ -142,7 +142,7 @@ RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
   double trac[3] = { -pressure, 0, 0 };
   double *efbc = (double*) dbg_alloca(sizeof(double)*nnodes*ndime); // translations only
 
-  _FORTRAN(elefbc3dbrkshl2)(opttrc, optele, ecord, edisp, trac, efbc);
+  _FORTRAN(elefbc3dbrkshl2)(opttrc, ecord, edisp, trac, efbc);
 
   for(int i = 0; i < nnodes; ++i)
     for(int j = 0; j < ndime; ++j)

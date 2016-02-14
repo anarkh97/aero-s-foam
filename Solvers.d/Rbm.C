@@ -414,9 +414,18 @@ Rbm::computeRbms(CoordSet& cs)
      Node &nd = cs.getNode(inode);
 
      if(setzero) { // make sure that node0 exists before trying to access its coordinates
-       x0 = xyzRot[n][0] = nd.x;
-       y0 = xyzRot[n][1] = nd.y;
-       z0 = xyzRot[n][2] = nd.z;
+       if(domain->solInfo().grbm_ref.empty() || nComponents > 1) {
+         x0 = xyzRot[n][0] = nd.x;
+         y0 = xyzRot[n][1] = nd.y;
+         z0 = xyzRot[n][2] = nd.z;
+         fprintf(stderr," ... Using first node of component as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]);
+       }
+       else {
+         x0 = xyzRot[n][0] = domain->solInfo().grbm_ref[0];
+         y0 = xyzRot[n][1] = domain->solInfo().grbm_ref[1];
+         z0 = xyzRot[n][2] = domain->solInfo().grbm_ref[2];
+         fprintf(stderr," ... Using specified X,Y,Z coordinates as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]);
+       }
        setzero = false;
      }
 
@@ -742,9 +751,17 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
  xyzRot[0][2] = z0/count;
  //fprintf(stderr," ... Use global cg as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]); 
 #else // use first node as reference pt for the rotations
- Node &nd = cs.getNode(comp->order[comp->xcomp[0]]);
- xyzRot[0][0] = nd.x; xyzRot[0][1] = nd.y; xyzRot[0][2] = nd.z;
- //fprintf(stderr," ... Use first node of first component as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]); 
+ if(domain->solInfo().grbm_ref.empty()) {
+   Node &nd = cs.getNode(comp->order[comp->xcomp[0]]);
+   xyzRot[0][0] = nd.x; xyzRot[0][1] = nd.y; xyzRot[0][2] = nd.z;
+   fprintf(stderr," ... Using first node of first component as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]);
+ }
+ else {
+   xyzRot[0][0] = domain->solInfo().grbm_ref[0];
+   xyzRot[0][1] = domain->solInfo().grbm_ref[1];
+   xyzRot[0][2] = domain->solInfo().grbm_ref[2];
+   fprintf(stderr," ... Using specified X,Y,Z coordinates as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]);
+ }
 #endif
 
  for(n=0; n<comp->numComp; ++n) {

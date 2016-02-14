@@ -40,7 +40,7 @@ SDDynamPodPostProcessor::SDDynamPodPostProcessor(Domain *d, double *bcx, double 
           filePrint(oinfo[iOut].filptr, "0\n"); 
         }
         break;
-      case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
+      case OutputInfo::Disp6DOF : case OutputInfo::Displacement : case OutputInfo::Temperature :
         if(oinfo[iOut].nodeNumber != -1) {
           DispSensor = true;
         } else {
@@ -52,7 +52,7 @@ SDDynamPodPostProcessor::SDDynamPodPostProcessor(Domain *d, double *bcx, double 
           filePrint(oinfo[iOut].filptr, "1\n");
         }
         break;
-      case OutputInfo::Velocity6 : case OutputInfo::Velocity :
+      case OutputInfo::Velocity6 : case OutputInfo::Velocity : TemperatureFirstTimeDerivative :
         if(oinfo[iOut].nodeNumber != -1) {
           VelSensor = true;
           if(oinfo[iOut].type == OutputInfo::Velocity6 && (oinfo[iOut].angularouttype != OutputInfo::total || oinfo[iOut].rescaling)) {
@@ -176,6 +176,9 @@ SDDynamPodPostProcessor::printSensorValues(GenVector<double> &SensorData, Output
   if(OINFO->type == OutputInfo::Disp6DOF || OINFO->type == OutputInfo::Velocity6 || OINFO->type == OutputInfo::Accel6) {
     ndofs = domain->getCDSA()->number(locNode, DofSet::XYZdisp | DofSet::XYZrot, dofs);
   }
+  else if(OINFO->type == OutputInfo::Temperature || OINFO->type == OutputInfo::TemperatureFirstTimeDerivative) {
+    ndofs = domain->getCDSA()->number(locNode, DofSet::Temp, dofs);
+  }
   else {
     ndofs = domain->getCDSA()->number(locNode, DofSet::XYZdisp, dofs);
   }
@@ -260,7 +263,7 @@ SDDynamPodPostProcessor::dynamOutput(int tIndex, double t, DynamMat &dynOps, Vec
              }
            }
            break;
-         case OutputInfo::Disp6DOF : case OutputInfo::Displacement : 
+         case OutputInfo::Disp6DOF : case OutputInfo::Displacement : case OutputInfo::Temperature :
            {
              if(oinfo[iOut].nodeNumber == -1) {
                filePrint(oinfo[iOut].filptr, "   %.*e\n", p, t); // print timestamp
@@ -278,7 +281,7 @@ SDDynamPodPostProcessor::dynamOutput(int tIndex, double t, DynamMat &dynOps, Vec
              }
            }
            break;
-         case OutputInfo::Velocity6 : case OutputInfo::Velocity :
+         case OutputInfo::Velocity6 : case OutputInfo::Velocity : case OutputInfo::TemperatureFirstTimeDerivative :
            {
              if(oinfo[iOut].nodeNumber == -1) {
                filePrint(oinfo[iOut].filptr, "   %.*e\n", p, t); // print timestamp

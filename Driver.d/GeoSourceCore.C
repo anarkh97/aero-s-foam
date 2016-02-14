@@ -539,8 +539,8 @@ void GeoSource::addMpcElementsIeq(int numLMPC, ResizeArray<LMPCons *> &lmpc)
       if(lmpc[i]->type == 1) {
         packedEsetConstraintElementIeq->mpcelemadd(numConstraintElementsIeq, lmpc[i], (domain->solInfo().isNonLin() || domain->solInfo().gepsFlg == 1));
         StructProp *p = new StructProp;
-        p->lagrangeMult = lmpc[i]->lagrangeMult;
-        p->initialPenalty = p->penalty = lmpc[i]->penalty;
+        p->lagrangeMult = (lmpc[i]->lagrangeMult == -1) ? domain->solInfo().lagrangeMult : lmpc[i]->lagrangeMult;
+        p->initialPenalty = p->penalty = (lmpc[i]->lagrangeMult == -1) ? domain->solInfo().penalty : lmpc[i]->penalty;
         p->type = StructProp::Constraint;
         (*packedEsetConstraintElementIeq)[numConstraintElementsIeq]->setProp(p,true);
         numConstraintElementsIeq++;
@@ -956,11 +956,17 @@ void GeoSource::transformCoords()
   // see: http://en.wikipedia.org/wiki/List_of_canonical_coordinate_transformations#3-Dimensional
   using std::cos;
   using std::sin;
+  SolverInfo &sinfo = domain->solInfo();
   int lastNode = numNodes = nodes.size();
   for(int i=0; i<lastNode; ++i) {
     if(nodes[i] == NULL) continue;
     int cp = nodes[i]->cp;
-    if(cp == 0) continue;
+    if(cp == 0) {
+      nodes[i]->x *= sinfo.xScaleFactor;
+      nodes[i]->y *= sinfo.yScaleFactor;
+      nodes[i]->z *= sinfo.zScaleFactor;
+      continue;
+    }
 
     Eigen::Vector3d v;
     switch(nfd[cp].type) {
@@ -988,14 +994,14 @@ void GeoSource::transformCoords()
 
     v = (T.transpose()*v).eval();
 
-    nodes[i]->x =v[0] + nfd[cp].origin[0];
-    nodes[i]->y =v[1] + nfd[cp].origin[1];
-    nodes[i]->z =v[2] + nfd[cp].origin[2];
+    nodes[i]->x = sinfo.xScaleFactor*(v[0] + nfd[cp].origin[0]);
+    nodes[i]->y = sinfo.yScaleFactor*(v[1] + nfd[cp].origin[1]);
+    nodes[i]->z = sinfo.zScaleFactor*(v[2] + nfd[cp].origin[2]);
   }
 #endif
 }
 
-void GeoSource::setUpData()
+void GeoSource::setUpData(int topFlag)
 {
   using std::map;
   using std::list;
@@ -1204,7 +1210,8 @@ void GeoSource::setUpData()
     else {
       SPropContainer::iterator it = sProps.find(attrib_i.attr);
       if(it == sProps.end()) {
-        filePrint(stderr, " *** WARNING: The material for element %d does not exist\n", attrib_i.nele+1);
+        if(topFlag != 2 && topFlag != 7) 
+          filePrint(stderr, " *** WARNING: The material for element %d does not exist\n", attrib_i.nele+1);
       }
       else {
         StructProp *prop = &(it->second);
@@ -1463,7 +1470,7 @@ void GeoSource::setUpData()
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().dsvPodRom = true;
         domain->solInfo().skipDualStateVar = oinfo[iOut].interval;
-        domain->solInfo().dsvPodRomFile = oinfo[iOut].filename;
+        domain->solInfo().dsvPodRomFile.push_back(oinfo[iOut].filename);
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Forcevector :
@@ -1475,7 +1482,16 @@ void GeoSource::setUpData()
         domain->solInfo().skipForce = oinfo[iOut].interval;
         domain->solInfo().forcePodRomFile = oinfo[iOut].filename;
         oinfo[iOut].PodRomfile = true;
-        break;
+        break; 
+      case OutputInfo::Constraintvector :
+        if(verboseFlag) filePrint(stderr," ... Saving constraint snapshots to %s ...\n", oinfo[iOut].filename);
+        domain->solInfo().ConstraintBasisPod = true;
+        domain->solInfo().constraintSnapshotFile = oinfo[iOut].filename;
+      break;
+      case OutputInfo::Constraintviolation :
+        if(verboseFlag) filePrint(stderr," ... Saving constraint violations to %s ...\n", oinfo[iOut].filename);
+        domain->solInfo().constraintViolationFile = oinfo[iOut].filename;
+      break;
       default :
         break;
     }
@@ -1511,7 +1527,7 @@ CoordSet& GeoSource::GetNodes() { return nodes; }
 int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
 {
   SolverInfo &sinfo = domain->solInfo();
-  bool flagCEIeq = (strcmp(sinfo.readInDualROB,"") != 0);
+  bool flagCEIeq = (!sinfo.readInDualROB.empty() || sinfo.ConstraintBasisPod);
 
   if(sinfo.HEV) { packedEsetFluid = new Elemset(); nElemFluid = 0; }
   if(flagCEIeq) { packedEsetConstraintElementIeq = new Elemset(); numConstraintElementsIeq = 0; lmpcflag = true; }

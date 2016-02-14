@@ -39,6 +39,8 @@ void readIntoSolver(NonnegativeMatrixFactorization &solver, VecNodeDof1Conversio
       if(skip == skipTime) {
         double *buffer = solver.matrixCol(colCounter);
         input >> buffer;
+        for(int asdf = 0; asdf < input.vectorSize(); asdf++)
+//          std::cout << "buffer[" << asdf << "] = " << buffer[asdf] << std::endl;
         assert(input);
         colCounter++;
         skip = 1;
@@ -74,7 +76,7 @@ PositiveDualBasisDriver::solve() {
   int vectorSize = 0; // size of vectors
   int sizeSnap = 0; // number of state snapshots
   int skipTime = domain->solInfo().skipPodRom;
-  if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
+  if(domain->solInfo().dsvPodRomFile.empty() && domain->solInfo().robfi.empty()) {
     std::cerr << "*** ERROR: no files provided\n";
     exit(-1);
   }
@@ -82,7 +84,7 @@ PositiveDualBasisDriver::solve() {
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
     // Loop over snapshots
-    for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
+    for(int i = 0; i < domain->solInfo().dsvPodRomFile.size(); i++) {
       std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
       BasisInputStream<1> input(fileName, converter);
       vectorSize = input.vectorSize();
@@ -96,7 +98,7 @@ PositiveDualBasisDriver::solve() {
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
     int colCounter = 0;
-    readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), vectorSize, type, colCounter, skipTime); // read in snapshots
+    readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().dsvPodRomFile.size(), vectorSize, type, colCounter, skipTime); // read in snapshots
 
     for (int iBasis=0; iBasis < domain->solInfo().nmfNumROBDim; ++iBasis) {
       int orthoBasisDim = domain->solInfo().maxSizePodRom + iBasis*domain->solInfo().nmfDelROBDim;

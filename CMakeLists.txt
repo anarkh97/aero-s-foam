@@ -181,11 +181,11 @@ IF(UNIX)
        set(CMAKE_MODULE_PATH "${EIGEN3_INCLUDE_DIR}/cmake" ${CMAKE_MODULE_PATH})
        IF(NOT WITH_EIGEN3_EXTRA EQUAL 0)
          find_package(Cholmod)
-         if (CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+         if (CHOLMOD_INCLUDE_DIR AND CHOLMOD_LIBRARIES)
            include_directories(${CHOLMOD_INCLUDES})
            add_definitions(-DEIGEN_CHOLMOD_SUPPORT)
            SET(EXTRALIBRARIES ${CHOLMOD_LIBRARIES} ${EXTRALIBRARIES})
-         endif(CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+         endif(CHOLMOD_INCLUDE_DIR AND CHOLMOD_LIBRARIES)
          find_package(Umfpack)
          if (UMFPACK_INCLUDES AND UMFPACK_LIBRARIES)
            include_directories(${UMFPACK_INCLUDES})
@@ -215,6 +215,13 @@ IF(UNIX)
         MESSAGE("-- A library with SACADO API found. ")
         add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
         include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
+        if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+          if (GCC_VERSION VERSION_GREATER 5.0 OR GCC_VERSION VERSION_EQUAL 5.0)
+            MESSAGE("Note: Sacado source code may need to be changed if Aero-S does not build "
+                    "(1) Sacado_trad.hpp line 657 (2) Sacado_tradvec.hpp line 468. "
+                    "In each case the argument to the IndepADvar assignment operator should be const.")
+          endif (GCC_VERSION VERSION_GREATER 5.0 OR GCC_VERSION VERSION_EQUAL 5.0)
+        endif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
       ENDIF(SACADO_INCLUDE_PATH)
     ENDIF(NOT WITH_SACADO EQUAL 0)
 
@@ -469,6 +476,15 @@ set_target_properties(errorcodec
 
 target_link_libraries(errorcodec Rom Util)
 
+add_executable(impulseerrorcodec Rom.d/ImpulseErrorCodec.C)
+set_target_properties(impulseerrorcodec
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME imperr
+                      DEBUG_OUTPUT_NAME relerr.debug)
+
+target_link_libraries(impulseerrorcodec Rom Util)
+
 add_executable(errorcodec6 Rom.d/ErrorCodec6.C)
 set_target_properties(errorcodec6
                       PROPERTIES
@@ -477,6 +493,15 @@ set_target_properties(errorcodec6
                       DEBUG_OUTPUT_NAME relerr6.debug)
 
 target_link_libraries(errorcodec6 Rom Util)
+
+add_executable(impulseerrorcodec6 Rom.d/ImpulseErrorCodec6.C)
+set_target_properties(impulseerrorcodec6
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME imperr6
+                      DEBUG_OUTPUT_NAME imperr6.debug)
+
+target_link_libraries(impulseerrorcodec6 Rom Util)
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 

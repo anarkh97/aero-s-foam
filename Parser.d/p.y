@@ -76,7 +76,7 @@
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token CONSTANT CONWEP
-%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING DUALBASIS KMEANS CRANDOM
+%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING ANGLE DUALBASIS DUALRB KMEANS CRANDOM
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
@@ -111,13 +111,13 @@
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
 %token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
-%token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
+%token NSUBS EXITAFTERDEC SKIP RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE
-%token SNAPFI VELSNAPFI ACCSNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN
-%token VECTORNORM REBUILDFORCE SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
-%token USEMASSNORMALIZEDBASIS
+%token SNAPFI VELSNAPFI ACCSNAPFI DSVSNAPFI PODROB ROMENERGY TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN FILTERROWS
+%token VECTORNORM REBUILDFORCE REBUILDCONSTRAINT SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB CONSTRAINTROB DEIMINDICES UDEIMINDICES SVDFORCESNAP SVDCONSTRAINTSNAP
+%token USEMASSNORMALIZEDBASIS ONLINEMASSNORMALIZEBASIS
 %token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST RELAXATIONSEN 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 %token NPMAX BSSPLH PGSPLH
@@ -355,6 +355,7 @@ Component:
         | DeimIndices
         | UDeimIndices
 	| Sampling
+        | MeshScaleFactor
         | SnapshotProject
         | ConversionToken
         ;
@@ -1277,6 +1278,27 @@ ToleranceInfo:
         | GRBM NewLine Float Float Integer NewLine
         { domain->solInfo().setGrbm($3,$4);
           domain->solInfo().grbm_use_lmpc = bool($5); }
+        | GRBM Float Float Float NewLine Float Float NewLine
+        { domain->solInfo().setGrbm($6,$7);
+          std::vector<double> &grbm_ref = domain->solInfo().grbm_ref;
+          grbm_ref.reserve(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
+        }
+        | GRBM Float Float Float NewLine Float NewLine
+        { domain->solInfo().setGrbm($6);
+          std::vector<double> &grbm_ref = domain->solInfo().grbm_ref;
+          grbm_ref.resize(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
+        }
+        | GRBM Float Float Float NewLine 
+        { domain->solInfo().setGrbm();
+          std::vector<double> &grbm_ref = domain->solInfo().grbm_ref;
+          grbm_ref.resize(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
+        }
+        | GRBM Float Float Float NewLine Float Float Integer NewLine
+        { domain->solInfo().setGrbm($6,$7);
+          domain->solInfo().grbm_use_lmpc = bool($8);
+          std::vector<double> &grbm_ref = domain->solInfo().grbm_ref;
+          grbm_ref.resize(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
+        }
 	;
 ModeFilterInfo:
         MODEFILTER Integer NewLine
@@ -1289,6 +1311,9 @@ RbmFilterInfo:
 	{ domain->solInfo().useRbmFilter($2); }
 	| RBMFILTER NewLine
 	{ domain->solInfo().useRbmFilter(1); }
+        | RBMFILTER Integer Integer NewLine
+        { domain->solInfo().useRbmFilter($2);
+          domain->solInfo().filterQ = $3; }
         | RBMFILTER NewLine RbmList NewLine
 	;
 RbmList:
@@ -1817,9 +1842,11 @@ Mode:
           domain->solInfo().localBasisSize.push_back($4); }
         | Mode USEMASSNORMALIZEDBASIS SWITCH NewLine
         { domain->solInfo().useMassNormalizedBasis = bool($3); }
+        | Mode ONLINEMASSNORMALIZEBASIS SWITCH NewLine
+        { domain->solInfo().performMassNormalization = bool($3); } 
         | Mode DUALBASIS FNAME Integer NewLine
-        { domain->solInfo().readInDualROB = $3;
-          domain->solInfo().maxSizeDualBasis = $4; }
+        { domain->solInfo().readInDualROB.push_back($3);
+          domain->solInfo().localDualBasisSize.push_back($4); }
         | Mode ADJOINTBASIS FNAME Integer STRESSID NewLine
         { domain->solInfo().adjointMap[(OutputInfo::Type)$5] = domain->solInfo().readInAdjointROB.size();
           domain->solInfo().readInAdjointROB.push_back($3);
@@ -1832,7 +1859,7 @@ IDisp:
         { domain->solInfo().zeroInitialDisp = 1; }
 	| IDIS NewLine BCDataList
 	{ for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Idisplacements;
-          if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
+          if(geoSource->setIDis($3->n,$3->d) < 0)  return -1; }
 	| IDisp MODAL NewLine ModalValList
 	{ for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Idisplacements;
           if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1; 
@@ -1960,9 +1987,9 @@ BCDataList:
 	| BCDataList BC_Data
 	{ $$ = $1; $$->add($2); }
         | Integer THRU Integer Integer Float NewLine
-        { $$ = new BCList; for(int i=$1; i<=$3; ++i) { BCond bc; bc.setData(i-1, $4-1, $5); $$->add(bc); } }
+        { $$ = new BCList; for(int i=$1; i<=$3; ++i) { BCond bc; bc.setData(i-1, $4-1, $5); $$->add(bc); }} 
         | BCDataList Integer THRU Integer Integer Float NewLine
-        { $$ = $1; for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6); $$->add(bc); } }
+        { $$ = $1; for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6); $$->add(bc); }} 
         | Integer THRU Integer STEP Integer Integer Float NewLine
         { $$ = new BCList; for(int i=$1; i<=$3; i+=$5) { BCond bc; bc.setData(i-1, $6-1, $7); $$->add(bc); } }
         | BCDataList Integer THRU Integer STEP Integer Integer Float NewLine
@@ -2055,10 +2082,14 @@ RUBDAFList:
 LMPConstrain:
         LMPC NewLine
         | LMPC NewLine MPCList
+        | LMPC Float Float Float NewLine
+        { domain->solInfo().xLMPCFactor = $2;
+          domain->solInfo().yLMPCFactor = $3;
+          domain->solInfo().zLMPCFactor = $4; }
 	;
 ModalLMPConstrain:
         LMPC NewLine MODAL Integer NewLine
-        { domain->solInfo().maxSizeDualBasis = $4;
+        { domain->solInfo().localDualBasisSize.push_back($4);
           domain->solInfo().modalLMPC = true; }
         | ModalLMPConstrain Float NewLine
         { geoSource->pushBackROMLMPCVec($2); }
@@ -2108,6 +2139,13 @@ MPCLine:
           $$->nnum = $1-1;
           $$->dofnum = $2-1;
           $$->coef.r_value = $3;
+          if($2 == 1){
+            $$->coef.r_value /= domain->solInfo().xLMPCFactor;
+          } else if ($2 == 2) {
+            $$->coef.r_value /= domain->solInfo().yLMPCFactor;
+          } else if ($2 == 3) {
+            $$->coef.r_value /= domain->solInfo().zLMPCFactor;
+          }
         }
 	;
 ComplexLMPConstrain:
@@ -2964,7 +3002,13 @@ ContactSurfaces:
 ContactSurfacesInfo:
         // $2 = pair id, $3 = master surface, $4 = slave surface, $5 = mortar type, $6 = normal search tolerace, $7 = tangential search tolerance
         // $8 = number of iterations (TD enforcement), $9 = convergence tolerance (TD enforcement), $10 = friction coefficient
-        Integer Integer Integer
+        TRIVIAL
+        { domain->solInfo().trivial_detection = true;
+          $$ = new MortarHandler(0, 0);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetMortarType(MortarHandler::STD);
+          $$->SetCtcMode(domain->solInfo().contactsurface_mode); }
+        | Integer Integer Integer
         {
           $$ = new MortarHandler($2, $3);
           $$->SetInteractionType(MortarHandler::CTC);
@@ -3040,6 +3084,12 @@ AcmeControls:
 NodeSet:
 	NODETOKEN NewLine Node
 	{ geoSource->addNode($3.num, $3.xyz, $3.cp, $3.cd); }
+        | NODETOKEN Float Float Float NewLine Node
+        { domain->solInfo().scalePosCoords = true;
+          domain->solInfo().xScaleFactor = $2;
+          domain->solInfo().yScaleFactor = $3;
+          domain->solInfo().zScaleFactor = $4;
+          geoSource->addNode($6.num, $6.xyz, $6.cp, $6.cd); }
 	| NodeSet Node
 	{ geoSource->addNode($2.num, $2.xyz, $2.cp, $2.cd); }
 	;
@@ -4863,6 +4913,8 @@ SvdOption:
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().velocPodRomFile.push_back(std::string($2.v[i])); }
   | ACCSNAPFI StringList
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().accelPodRomFile.push_back(std::string($2.v[i])); }
+  | DSVSNAPFI StringList
+  { for(int i=0; i<$2.nval; ++i) domain->solInfo().dsvPodRomFile.push_back(std::string($2.v[i])); }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
   | NORMALIZETOKEN Integer
@@ -4882,6 +4934,8 @@ SvdOption:
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i])); }
   | BLOCKSIZE Integer
   { domain->solInfo().svdBlockSize = $2; }
+  | ROMENERGY Float
+  { domain->solInfo().romEnergy = $2; }
   /*
   | USEPQN Integer Integer Integer Integer Float Integer Float
   { domain->solInfo().use_nmf = 3;
@@ -4916,6 +4970,9 @@ SvdOption:
   { domain->solInfo().use_nmf = 2; }
   | DOCLUSTERING Integer
   { domain->solInfo().clustering = $2; }
+  | DOCLUSTERING Integer ANGLE
+  { domain->solInfo().clustering = $2; 
+    domain->solInfo().clusterSubspaceAngle = true; }
   | CLUSTERSOLVER CLUSTERSOLVERTYPE
   { domain->solInfo().solverTypeCluster = $2; }
   | ConwepConfig
@@ -4944,6 +5001,7 @@ Sampling:
     domain->solInfo().samplingPodRom = true; }
   | Sampling SamplingOption NewLine
   | Sampling ConwepConfig
+  | Sampling ScalePosCoords
   ;
 
 SnapshotProject:
@@ -4961,8 +5019,8 @@ SamplingOption:
   { domain->solInfo().readInROBorModes.push_back($2);
     domain->solInfo().localBasisSize.push_back($3); }
   | DUALBASIS FNAME Integer 
-  { domain->solInfo().readInDualROB = $2;
-    domain->solInfo().maxSizeDualBasis = $3; }
+  { domain->solInfo().readInDualROB.push_back($2);
+    domain->solInfo().localDualBasisSize.push_back($3); }
   | TRNVCT FNAME
   { domain->solInfo().statePodRomFile.push_back($2); }
   | TRNVCT FNAME FNAME
@@ -4976,6 +5034,9 @@ SamplingOption:
   { domain->solInfo().tolPodRom = $2; }
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; }
+  | RANDOMSAMPLE Integer
+  { domain->solInfo().skipPodRom = $2; 
+    domain->solInfo().randomVecSampling = true; }
   | OFFSET Integer
   { domain->solInfo().skipOffSet = $2; }
   | PODSIZEMAX Integer
@@ -5029,14 +5090,32 @@ SamplingOption:
   { domain->solInfo().forcePodRomFile = $2; 
     domain->solInfo().forcePodSize = $3; 
     domain->solInfo().maxDeimBasisSize = $4; }
+  | CONSTRAINTROB FNAME
+  { domain->solInfo().constraintPodRomFile = $2; 
+    domain->solInfo().ConstraintBasisPod = true;}
+  | CONSTRAINTROB FNAME Integer
+  { domain->solInfo().constraintPodRomFile = $2;
+    domain->solInfo().constraintPodSize = $3; 
+    domain->solInfo().ConstraintBasisPod = true; }
+  | CONSTRAINTROB FNAME Integer Integer
+  { domain->solInfo().constraintPodRomFile = $2;
+    domain->solInfo().constraintPodSize = $3;
+    domain->solInfo().maxDeimBasisSize = $4; 
+    domain->solInfo().ConstraintBasisPod = true; }
+  | FILTERROWS SWITCH
+  { domain->solInfo().filterSnapshotRows = bool($2); }
   | PSEUDOGNAT SWITCH
   { domain->solInfo().selectFullNode = bool($2); }
   | PSEUDOGNATELEM SWITCH
   { domain->solInfo().selectFullElem = bool($2); }
   | REBUILDFORCE SWITCH 
   { domain->solInfo().computeForceSnap = bool($2); }
+  | REBUILDCONSTRAINT SWITCH
+  { domain->solInfo().computeConstraintSnap = bool($2); }
   | SVDFORCESNAP SWITCH
   { domain->solInfo().orthogForceSnap = bool($2); }
+  | SVDCONSTRAINTSNAP SWITCH
+  { domain->solInfo().orthogConstraintSnap = bool($2); }
   | NPMAX Integer
   { domain->solInfo().npMax = $2; }
   | BSSPLH Integer Integer
@@ -5047,6 +5126,17 @@ SamplingOption:
     domain->solInfo().scpkNP= $3; }
   | REVERSEORDER SWITCH
   { domain->solInfo().useReverseOrder = bool($2); }
+  | USENMF Integer Integer Integer Integer Float
+  { domain->solInfo().use_nmf = 1;
+    domain->solInfo().nmfNumROBDim = $2;
+    domain->solInfo().nmfDelROBDim = $3;
+    domain->solInfo().nmfRandInit = $4;
+    domain->solInfo().nmfMaxIter = $5;
+    domain->solInfo().nmfTol = $6; }
+  | USENMF Integer Float
+  { domain->solInfo().use_nmf = 1;
+    domain->solInfo().nmfMaxIter = $2;
+    domain->solInfo().nmfTol = $3; }
   ;
 
 ConwepConfig:
@@ -5054,6 +5144,21 @@ ConwepConfig:
    | ConwepConfig ConwepData NewLine
    { domain->solInfo().conwepConfigurations.push_back($2); }
   ;
+
+MeshScaleFactor:
+     MESHSCALEFACTOR Float Float Float NewLine
+   { domain->solInfo().scalePosCoords = true;
+     domain->solInfo().xScaleFactor = $2;
+     domain->solInfo().yScaleFactor = $3;
+     domain->solInfo().zScaleFactor = $4;}
+   ;
+
+ScalePosCoords:
+   SCALEPOSCOORDS NewLine
+   | ScalePosCoords Float Float Float NewLine
+   { domain->solInfo().xScaleFactors.push_back($2);
+     domain->solInfo().yScaleFactors.push_back($3);
+     domain->solInfo().zScaleFactors.push_back($4); }
    
 ConversionToken:
     CONVERSIONTOKEN NewLine

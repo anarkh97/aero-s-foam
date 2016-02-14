@@ -12,8 +12,9 @@ NodalRestrictionMapping::extractOriginalInfo(const DofSetArray &dsa) {
 
 void
 NodalRestrictionMapping::addSampleNode(int iNode, const DofSetArray &dsa) {
-  for (const NodeDof::DofType *itDof = DOF_ID, *itDofEnd = DOF_ID + DOF_ID_COUNT; itDof != itDofEnd; ++itDof) {
-    const int originLoc = const_cast<DofSetArray &>(dsa).locate(iNode, *itDof);
+  for (int iDof = 0; iDof < DOF_ID_COUNT; ++iDof) {
+    const NodeDof::DofType dofId = DOF_ID(iDof);
+    const int originLoc = const_cast<DofSetArray &>(dsa).locate(iNode, dofId);
     if (originLoc >= 0) {
       originIndex_.push_back(originLoc);
     }

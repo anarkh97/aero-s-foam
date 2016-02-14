@@ -129,6 +129,8 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/MpcElement.d/PointVariPointDistanceConstraintElement.h>
 #include <Element.d/MpcElement.d/PointVariLineDistanceConstraintElement.h>
 #include <Element.d/MpcElement.d/PointVariPlaneDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/PointVariPlaneSegmentDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/PointVariPlaneSegmentDistanceConstraintElement2.h>
 #include <Element.d/MpcElement.d/LineVariLineDistanceConstraintElement.h>
 #include <Element.d/MpcElement.d/SegVariSegDistanceConstraintElement.h>
 #include <Element.d/Joint.d/LinearTranslationalSpring.h>
@@ -823,6 +825,14 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 234:
        ele = new (ba) PrismaticActuator(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 279:
+       ele = new (ba) PointVariPlaneSegmentDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 379:
+       ele = new (ba) PointVariPlaneSegmentDistanceConstraintElement(n);
        ele->setCategory(Element::Structural);
        break;
 #endif

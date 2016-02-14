@@ -244,6 +244,7 @@ template<class Scalar>
 void
 GenSkyMatrix<Scalar>::zeroAll()
 {
+  if(numUncon == 0) return;
   int i;
   for(i = 0; i < dlp[numUncon-1]; ++i)
     skyA[i] = 0.0;

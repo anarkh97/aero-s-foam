@@ -230,30 +230,40 @@ SingleDomainDynamic::projector_prep(SparseMatrix *M)
  if (!numR) return;
 
  filePrint(stderr," ... Building the RBM/HZEM Projector...\n");
-
  filePrint(stderr," ... Number of RBM/HZEM(s) = %-4d   ...\n",numR);
 
- int ndof = M->dim();
- StackFSFullMatrix Rt(numR, ndof, Rmem); 
+ int ndof = solVecInfo();
+ StackFSFullMatrix Rt(numR, ndof, Rmem);
+ X = new FullMatrix(ndof,numR);
 
- double *MRmem = new double[numR*ndof];
- StackFSFullMatrix MR(numR, ndof, MRmem);
+ if(domain->solInfo().filterQ == 0 || domain->solInfo().timeIntegration != SolverInfo::Qstatic) {
+   double *MRmem = new double[numR*ndof];
+   StackFSFullMatrix MRt(numR, ndof, MRmem);
 
- int n;
- for(n=0; n<numR; ++n)
-   M->mult(Rmem+n*ndof, MRmem+n*ndof);
+   for(int n=0; n<numR; ++n)
+     M->mult(Rmem+n*ndof, MRmem+n*ndof);
 
- FullMatrix MRt = MR.transpose();
+   FullMatrix MR = MRt.transpose();
 
- FullMatrix RtMR(numR,numR);
- Rt.mult(MRt,RtMR); 
+   FullMatrix RtMR(numR,numR);
+   Rt.mult(MR,RtMR); 
 
- FullMatrix RtMRinverse = RtMR.invert();
+   FullMatrix RtMRinverse = RtMR.invert();
 
- X = new FullMatrix(ndof,numR); 
- MRt.mult(RtMRinverse,(*X));
+   MR.mult(RtMRinverse,(*X));
 
- delete [] MRmem;
+   delete [] MRmem;
+ }
+ else {
+   FullMatrix R = Rt.transpose();
+
+   FullMatrix RtR(numR,numR);
+   Rt.mult(R,RtR);
+
+   FullMatrix RtRinverse = RtR.invert();
+
+   R.mult(RtRinverse,(*X));
+ }
 }
 
 void
@@ -1317,7 +1327,7 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
           double sumdisp = 0;
           double normdisp = 0;
 
-          int ersize = d_n.size();
+          int ersize = d_n.size()-geoSource->internalNumNodes(); // don't include Lagrange multipliers
 
           double *sumalfa = new double[ersize];
           double *error   = new double[ersize];

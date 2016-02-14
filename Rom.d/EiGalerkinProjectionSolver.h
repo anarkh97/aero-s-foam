@@ -21,6 +21,7 @@ public:
 
   // Local bases
   void setLocalBasis(int startCol, int blockCols);
+  void setLocalDualBasis(int startCol, int blockCols);
 
   // Full-order matrix assembly
   virtual void zeroAll();
@@ -29,6 +30,7 @@ public:
   void addReducedMass(double Mcoef);
 
   // Constraint assembly
+  void activateContact() { contact_ = true; }
   void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef);
   void addModalLMPCs(double Kcoef, int Wcols,std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end);
   void updateLMPCs(GenVector<Scalar> &q);
@@ -42,6 +44,7 @@ public:
   // Reduced basis parameters
   int basisSize() const { return basisSize_; };
   GenVecBasis<Scalar> &projectionBasis() { return *projectionBasis_; }
+  GenVecBasis<Scalar> &dualProjectionBasis() { return *dualProjectionBasis_; }
   void projectionBasisIs(GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
   void dualProjectionBasisIs(GenVecBasis<Scalar> &);
   void EmpiricalSolver(); 
@@ -66,8 +69,10 @@ private:
   bool selfadjoint_;
   bool Empirical;
   bool fullSolution_;
-  int basisSize_, dualBasisSize_;
-  int startCol_, blockCols_; // local bases
+  bool contact_;
+  int basisSize_, dualBasisSize_; // global basis quantities
+  int startCol_, blockCols_; // local bases quantities
+  int startDualCol_, dualBlockCols_;
   double tol_; // convergence tolerance used by QP solver for contact
   Scalar c1_; // trace of reducedConstraintMatrix_
   GenVecBasis<Scalar> *projectionBasis_, *dualProjectionBasis_;

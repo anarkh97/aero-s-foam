@@ -17,6 +17,7 @@
 #include <Driver.d/SysState.h>
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/DistHelper.h>
+#include <Corotational.d/TemperatureState.h>
 
 #include <algorithm>
 #include <stdexcept>
@@ -122,26 +123,67 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   vecNodeDof6Conversion_(getCDSA()),
   fileInfo_()
 {
-  for(int j=0; j<solInfo().readInROBorModes.size(); ++j) 
-  {
+
+  // this loop checks how many vectors are in each file for memory allocation
+  // if pod size is given as 0, then use all vectors in basis file
+  std::vector<int> locBasisVec; 
+  for(int j=0; j<solInfo().readInROBorModes.size(); ++j){
+
+     std::string fileName = BasisFileId(fileInfo_, BasisId::STATE, BasisId::POD, j);
+     if(solInfo().useMassNormalizedBasis) {
+       fileName.append(".normalized");
+     }
+     BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
+     if(solInfo().localBasisSize[j] <=0)
+       locBasisVec.push_back(projectionBasisInput.size());
+     else
+       locBasisVec.push_back(solInfo().localBasisSize[j]);
+  
+     const_cast<int&>(solInfo().localBasisSize[j]) = locBasisVec[j];
+     filePrint(stderr, " ... Local Basis %d size %d  ...\n", j, locBasisVec[j]);
+  }
+
+  // this loop checks how many dual vectors are in each file for memory allocation
+  std::vector<int> locDualBasisVec;
+  if(!solInfo().readInDualROB.empty()){
+    VecNodeDof1Conversion vecNodeDof1Conversion(geoSource->getNumConstraintElementsIeq());
+    for(int j = 0; j < solInfo().readInDualROB.size(); ++j){
+      std::string fileName = BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::POD,j);
+      BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
+
+      if(solInfo().localDualBasisSize[j] <= 0)
+        locDualBasisVec.push_back(dualProjectionBasisInput.size());
+      else
+        locDualBasisVec.push_back(solInfo().localDualBasisSize[j]);
+
+      const_cast<int&>(solInfo().localDualBasisSize[j]) = locDualBasisVec[j];
+      filePrint(stderr, " ... Local Dual Basis %d size %d ...\n", j, locDualBasisVec[j]);
+    }
+  }
+
+  // this loop reads in vectors and stores them in a single data structure
+  for(int j=0; j<solInfo().readInROBorModes.size(); ++j) {
     // Load projection basis
     std::string fileName = BasisFileId(fileInfo_, BasisId::STATE, BasisId::POD, j);
     if(solInfo().useMassNormalizedBasis) {
       if(j==0) filePrint(stderr, " ... Using Mass-normalized Basis    ...\n");
       fileName.append(".normalized");
     }
+    filePrint(stderr," ... Reading %s ...\n",fileName.c_str());
     BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
 
-    const int projectionSubspaceSize = solInfo().localBasisSize[j] ?
-                                       std::min(solInfo().localBasisSize[j], projectionBasisInput.size()) :
+
+    const int projectionSubspaceSize = locBasisVec[j] ?
+                                       std::min(locBasisVec[j], projectionBasisInput.size()) :
                                        projectionBasisInput.size();
   
     readVectors(projectionBasisInput, projectionBasis_, 
-                std::accumulate(solInfo().localBasisSize.begin(), solInfo().localBasisSize.end(), 0),
+                std::accumulate(locBasisVec.begin(), locBasisVec.end(), 0),
                 projectionSubspaceSize,
-                std::accumulate(solInfo().localBasisSize.begin(), solInfo().localBasisSize.begin()+j, 0));
+                std::accumulate(locBasisVec.begin(), locBasisVec.begin()+j, 0));
   }
-  
+ 
+ 
   filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionBasis_.vectorCount());
   if(solInfo().readInROBorModes.size() > 1) {
     filePrint(stderr, " ... Number of Local Bases = %-3d    ...\n", solInfo().readInROBorModes.size());
@@ -149,18 +191,24 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
     parent->readLocalBasesAuxi();
   }
 
-  if(strcmp(solInfo().readInDualROB,"") != 0) {
+  if(!solInfo().readInDualROB.empty()) { // this loop reads in dual vectors and stores them in a single data structure if not using modal LMPCs
     VecNodeDof1Conversion vecNodeDof1Conversion(geoSource->getNumConstraintElementsIeq());
-    // Load dual projection basis    
-    std::string fileName = BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::POD);
-    BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
-    const int dualProjectionSubspaceSize = solInfo().maxSizeDualBasis ?
-                                           std::min(solInfo().maxSizeDualBasis, dualProjectionBasisInput.size()) :
-                                           dualProjectionBasisInput.size();
+    for(int j = 0 ; j < solInfo().readInDualROB.size(); j++) {
+      // Load dual projection basis    
+      std::string fileName = BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::POD,j);
+      filePrint(stderr,"... Reading %s ...\n",fileName.c_str());
+      BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
+      const int dualProjectionSubspaceSize = locDualBasisVec[j] ?
+                                             std::min(locDualBasisVec[j], dualProjectionBasisInput.size()) :
+                                             dualProjectionBasisInput.size();
+  
+      readVectors(dualProjectionBasisInput, dualProjectionBasis_,
+                  std::accumulate(locDualBasisVec.begin(), locDualBasisVec.end(), 0),
+                  dualProjectionSubspaceSize,
+                  std::accumulate(locDualBasisVec.begin(), locDualBasisVec.begin()+j, 0));
 
-    readVectors(dualProjectionBasisInput, dualProjectionBasis_, dualProjectionSubspaceSize);
-
-    filePrint(stderr, " ... Dual Proj. Subspace Dim. = %-3d ...\n", dualProjectionBasis_.vectorCount());
+    }
+    filePrint(stderr, " ... Total Dual Proj. Subspace Dim. = %-3d ...\n", dualProjectionBasis_.vectorCount());
   }
 
   // Setup solver
@@ -188,9 +236,13 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   }
 
   if(solInfo().modalLMPC) {
+    for(int b = 0; b < solInfo().localDualBasisSize.size(); b++)
+      std::cout << " ... Dual Basis " << b << " is size " << solInfo().localDualBasisSize[b] << " ... " << std::endl;
     double dt = solInfo().getTimeStep(), beta = solInfo().newmarkBeta;
     double Kcoef = dt*dt*beta;
-    solver->addModalLMPCs(Kcoef,solInfo().maxSizeDualBasis,geoSource->ROMLMPCVecBegin(),geoSource->ROMLMPCVecEnd());
+    int numCols = std::accumulate(solInfo().localDualBasisSize.begin(),solInfo().localDualBasisSize.end(),0);
+    std::cout << " ... Total Dual Basis Size is " << numCols << std::endl;
+    solver->addModalLMPCs(Kcoef,numCols,geoSource->ROMLMPCVecBegin(),geoSource->ROMLMPCVecEnd());
   }
 
   solver->factor(); // Delayed factorization
@@ -689,7 +741,7 @@ PodProjectionNonLinDynamic::checkConvergence(int iteration, double normRes, Vect
 double
 PodProjectionNonLinDynamic::getResidualNorm(const Vector &residual, ModalGeomState &, double) {
 #ifdef USE_EIGEN3
-  if(strcmp(domain->solInfo().readInDualROB,"") != 0 || domain->solInfo().modalLMPC) {
+  if(!domain->solInfo().readInDualROB.empty() || domain->solInfo().modalLMPC) {
     const Eigen::VectorXd &fc = solver_->lastReducedConstraintForce();
     return (Eigen::Map<const Eigen::VectorXd>(residual.data(), residual.size()) - fc).norm();
   } else
@@ -985,8 +1037,11 @@ PodProjectionNonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, V
 ModalGeomState*
 PodProjectionNonLinDynamic::createGeomState()
 {
-  geomState_Big = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
-                                domain->getNodalTemperatures());
+  if(domain->solInfo().soltyp == 2)
+    geomState_Big = new TemperatureState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes());
+  else
+    geomState_Big = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
+                                  domain->getNodalTemperatures());
 
   return new ModalGeomState(solVecInfo());
 }
@@ -994,7 +1049,10 @@ PodProjectionNonLinDynamic::createGeomState()
 ModalGeomState*
 PodProjectionNonLinDynamic::copyGeomState(ModalGeomState *geomState)
 {
-  refState_Big = new GeomState(*geomState_Big);
+  if(domain->solInfo().soltyp == 2)
+    refState_Big = new TemperatureState(* (TemperatureState *) geomState_Big);
+  else
+    refState_Big = new GeomState(*geomState_Big);
   return new ModalGeomState(*geomState);
 }
 
@@ -1030,7 +1088,7 @@ PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomStat
 
 int
 PodProjectionNonLinDynamic::selectLocalBasis(Vector &q)
-{
+{// this function determines which basis to use
 #if defined(USE_EIGEN3) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && HAS_CXX11_LAMBDA
   if(d.size() > 0 && w.size() > 0) {
     // modelIII: fast implementation using pre-computed auxiliary quantities
@@ -1043,8 +1101,7 @@ PodProjectionNonLinDynamic::selectLocalBasis(Vector &q)
     });
     if(verboseFlag) std::cerr << " ... Selecting local basis # " << s[0] << "     ...\n";
     return s[0];
-  }
-  else if(uc.size() > 0) {
+  } else if(uc.size() > 0) {
     // modelII: slow implementation of using cluster centroids.
     Vector q_Big(NonLinDynamic::solVecInfo());
     GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
@@ -1072,13 +1129,26 @@ PodProjectionNonLinDynamic::initLocalBasis(Vector &q0)
 #ifdef USE_EIGEN3
   // Local bases
   if(domain->solInfo().readInROBorModes.size() > 1) {
+    int oldLBI = localBasisId;
     localBasisId = selectLocalBasis(q0);
+    if(oldLBI != localBasisId) 
+      std::cout << " selecting Basis " << localBasisId << std::endl;
     GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
     int blockCols = domain->solInfo().localBasisSize[localBasisId];
     int startCol = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+localBasisId, 0);
     getSolver()->setLocalBasis(startCol, blockCols);
     projectionBasis.localBasisIs(startCol, blockCols);
     setLocalReducedMesh(localBasisId);
+    // if multiple dual basis are given, select corresponding dual basis, obviously local dual basis can only be done with local primal basis
+    if(domain->solInfo().localDualBasisSize.size() > 1) {
+      blockCols = domain->solInfo().localDualBasisSize[localBasisId];
+      startCol = std::accumulate(domain->solInfo().localDualBasisSize.begin(), domain->solInfo().localDualBasisSize.begin()+localBasisId, 0);
+      getSolver()->setLocalDualBasis(startCol,blockCols);
+      if(!domain->solInfo().modalLMPC){ //if using modal LMPCs, skip this since W is never explicitly read in
+        GenVecBasis<double> &dualProjectionBasis = solver_->dualProjectionBasis();
+        dualProjectionBasis.localBasisIs(startCol, blockCols);
+      }
+    }
   }
 #endif
 }
@@ -1087,7 +1157,7 @@ void
 PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomState *geomState, Vector &q_n, Vector &vel, Vector &acc)
 {
 #ifdef USE_EIGEN3
-  // Local bases
+  // Local bases: this block set new local basis and orthogonaly projects onto new basis
   if(domain->solInfo().readInROBorModes.size() > 1) {
 
     int j = selectLocalBasis(geomState->q);
@@ -1097,9 +1167,9 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
 
     Vector dq = geomState->q - q_n;
     projectionBasis.expand(dq, dq_Big, false); // XXX not using compressed basis
-    geomState_Big->update(*refState_Big, dq_Big, 2);
+    geomState_Big->update(*refState_Big, dq_Big, 2); 
 
-    if(j != localBasisId) {
+    if(j != localBasisId) { // if a new local basis has been selected, update the things
       Vector vel_Big(NonLinDynamic::solVecInfo()),
              acc_Big(NonLinDynamic::solVecInfo());
 
@@ -1114,11 +1184,20 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
       projectionBasis.localBasisIs(startCol, blockCols);
       setLocalReducedMesh(j);
 
+      if(domain->solInfo().localDualBasisSize.size() > 1) { // if multiple dual bases are given, execute this block
+        blockCols = domain->solInfo().localDualBasisSize[j];
+        startCol = std::accumulate(domain->solInfo().localDualBasisSize.begin(), domain->solInfo().localDualBasisSize.begin()+j, 0); 
+        getSolver()->setLocalDualBasis(startCol, blockCols);
+        if(!domain->solInfo().modalLMPC){// we don't have W if using modal LMPCs
+          GenVecBasis<double> &dualProjectionBasis = solver_->dualProjectionBasis();
+          dualProjectionBasis.localBasisIs(startCol, blockCols);
+        }
+      }
+
       if(VtV.size() == 0) {
         reduceDisp(vel_Big, vel);
         reduceDisp(acc_Big, acc);
-      }
-      else {
+      } else {
         // using precomputed Vi^T*Vj (or Vi^T*M*Vj for M-orthogonal local bases)
         projectLocalBases(localBasisId, j, vel);
         projectLocalBases(localBasisId, j, acc);
@@ -1136,6 +1215,7 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
 void
 PodProjectionNonLinDynamic::readLocalBasesCent(const VecNodeDof6Conversion &vecNodeDof6Conversion)
 {
+// this block reads in the centriods of the local bases
 #ifdef USE_EIGEN3
   uc.resize(NonLinDynamic::solVecInfo(), domain->solInfo().readInLocalBasesCent.size());
   for(int i=0; i<domain->solInfo().readInLocalBasesCent.size(); ++i) {
@@ -1147,12 +1227,12 @@ PodProjectionNonLinDynamic::readLocalBasesCent(const VecNodeDof6Conversion &vecN
 
 void
 PodProjectionNonLinDynamic::readLocalBasesAuxi()
-{
+{ // this block is only executed when the precomputed auxilary matrices are given in the input file
   if(domain->solInfo().readInLocalBasesAuxi.size() > 0) {
 #ifdef USE_EIGEN3
     const int Nv = domain->solInfo().readInROBorModes.size();
     const int k = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
-    VtV.resize(Nv,Nv);
+    VtV.resize(Nv,Nv); //grammian
     d.resize(Nv,Nv);
     w.resize(Nv,Nv);
     for(int i=0; i<Nv; ++i) {
@@ -1230,6 +1310,7 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
 
 #ifdef USE_EIGEN3
   if(geoSource->getNumConstraintElementsIeq() || domain->solInfo().modalLMPC) {
+    solver_->activateContact();
     if(geoSource->getLmpcFlag() || domain->solInfo().modalLMPC) { // linear
       solver_->updateLMPCs(geomState.q);
     }

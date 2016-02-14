@@ -78,7 +78,7 @@ class GenGaussIntgElement : public MatNLElement
                           double *force);
     FullSquareMatrix  stiffness(CoordSet& cs, double *k, int flg=1);
     FullSquareMatrix massMatrix(CoordSet& cs, double *m, int flg=1);
-    void updateStates(Node *node, double *state, double *un, double *unp, double *temps);
+    void updateStates(Node *node, double *state, double *un, double *unp, double *temps, double dt=0);
     void integrate(Node *nodes, double *dispn, double *staten,
                    double *dispnp, double *statenp,
                    FullSquareMatrix &kTan, double *force, double dt, double *temps);
@@ -345,7 +345,7 @@ GenGaussIntgElement<TensorType>::getStiffAndForce(Node *nodes, double *disp,
 
 template <class TensorType>
 void
-GenGaussIntgElement<TensorType>::updateStates(Node *nodes, double *state, double *un, double *unp, double *temps) {}
+GenGaussIntgElement<TensorType>::updateStates(Node *nodes, double *state, double *un, double *unp, double *temps, double dt) {}
 /*
 void
 GaussIntgElement::updateStates(Node *nodes, double *state, double *un,double *unp)

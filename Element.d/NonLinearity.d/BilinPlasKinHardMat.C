@@ -21,7 +21,9 @@ ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp *p)
   theta = 0;
   Tref = p->Ta;
   alpha = p->W;
+  epsF = std::numeric_limits<double>::infinity();
   ysst = NULL;
+  yssrt = NULL;
 }
 
 template<int e>
@@ -93,7 +95,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
   Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(*_stress);
 
   // check for failure
-  if(statenp[12] >= epsF) {
+  if(statenp != 0 && statenp[12] >= epsF) {
     stress.setZero();
     tm.setZero();
     return;
@@ -243,7 +245,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
   Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(*_stress);
 
   // check for failure
-  if(statenp[12] >= epsF) {
+  if(statenp != 0 && statenp[12] >= epsF) {
     stress.setZero();
     return;
   }

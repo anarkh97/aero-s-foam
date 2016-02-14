@@ -14,7 +14,7 @@ VecNodeDof6Map::VecNodeDof6Map(const DofSetArray &dsa) :
 {
   for (int iNode = 0, iNodeEnd = nodeCount(); iNode != iNodeEnd; ++iNode) {
     for (int iDof = 0; iDof < DOF_ID_COUNT; ++iDof) {
-      const NodeDof::DofType dofId = DOF_ID[iDof];
+      const NodeDof::DofType dofId = DOF_ID(iDof);
       const int loc = const_cast<DofSetArray &>(dsa).locate(iNode, dofId);
 
       dofLocation_[iNode][iDof] = loc;

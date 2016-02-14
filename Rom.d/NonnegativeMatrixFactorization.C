@@ -83,9 +83,13 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
   int n = cols.size();
   const int &k = basisDimension_;
   Eigen::MatrixXd A(m,n);
-  for(int i=0; i<m; ++i)
-    for(int j=0; j<n; ++j)
+  for(int i=0; i<m; ++i){
+    for(int j=0; j<n; ++j){
       A(i,j) = -X(rows[i],cols[j]); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
+    }
+  }
+
+  
 
   Eigen::MatrixXd W(m,k), H(k,n);
 

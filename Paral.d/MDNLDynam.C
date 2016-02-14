@@ -1,5 +1,5 @@
 #include <cstdio>
-
+#include <Element.d/MpcElement.d/MpcElement.h>
 #include <Threads.d/Paral.h>
 #include <Driver.d/Domain.h>
 #include <Paral.d/MDNLDynam.h>
@@ -487,10 +487,14 @@ MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *re
   }
   else {
     clean();
+    std::cout << "line number " << __LINE__ << " of " << __FILE__ << std::endl;
     domain->ReInitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
     domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
-    domain->PerformStaticContactSearch(MortarHandler::CTC);
-    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    if(domain->solInfo().trivial_detection) {
+    } else {
+      domain->PerformStaticContactSearch(MortarHandler::CTC);
+      domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    }
     paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::renumberElementsGlobal);
     geoSource->UpdateContactSurfaceElements(&geomState, *mu);
     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
@@ -504,6 +508,7 @@ MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *re
     if(refState) {
       refState->resize(decDomain);
     }
+
   }
 }
 

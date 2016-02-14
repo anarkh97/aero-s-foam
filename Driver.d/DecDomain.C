@@ -1198,6 +1198,8 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::InternalStateVar:
         case OutputInfo::DualStateVar:
         case OutputInfo::Forcevector:
+        case OutputInfo::Constraintvector:
+        case OutputInfo::Constraintviolation:
         case OutputInfo::Residual:
         case OutputInfo::Jacobian:
         case OutputInfo::RobData:
@@ -2330,6 +2332,8 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
      case OutputInfo::InternalStateVar:
      case OutputInfo::DualStateVar:
      case OutputInfo::Forcevector:
+     case OutputInfo::Constraintvector:
+     case OutputInfo::Constraintviolation:
      case OutputInfo::Residual:
      case OutputInfo::Jacobian:
      case OutputInfo::RobData:

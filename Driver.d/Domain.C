@@ -62,7 +62,7 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
    if(d.nodes[nnums[i]] != NULL)
      nodes.nodeadd(i, *d.nodes[nnums[i]]);
 
- if(d.gravityFlag() ) {
+ if(d.gravityAcceleration) {
    gravityAcceleration = new double [3];
    gravityAcceleration[0] = d.gravityAcceleration[0];
    gravityAcceleration[1] = d.gravityAcceleration[1];
@@ -90,7 +90,7 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 
  numnodes = _nodes->size();
 
- if(d.gravityFlag() ) {
+ if(d.gravityAcceleration) {
    gravityAcceleration = new double [3];
    gravityAcceleration[0] = d.gravityAcceleration[0];
    gravityAcceleration[1] = d.gravityAcceleration[1];
@@ -1273,11 +1273,11 @@ Domain::setGravitySloshing(double gg)
 }
 
 void
-Domain::setUpData()
+Domain::setUpData(int topFlag)
 {
   startTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
 
-  geoSource->setUpData();
+  geoSource->setUpData(topFlag);
 
   if(!haveNodes) { numnodes = geoSource->getNodes(nodes); haveNodes = true; }
   else numnodes = geoSource->totalNumNodes();

@@ -92,6 +92,8 @@ TRAIL [a-zA-Z]*
 
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
 
+"ONLINE_MASS_NORMALIZE_BASIS"|"online_mass_normalize_basis" { return ONLINEMASSNORMALIZEBASIS;}
+
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
 
 "FACE"|"face"                       { return FACE; }
@@ -1105,6 +1107,10 @@ TRAIL [a-zA-Z]*
 "frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; } /* deprecated */
 "frcngvct"|"FRCNGVCT"              { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
 
+"constvct"|"CONSTVCT"		   { yylval.ival = OutputInfo::Constraintvector;  return STRESSID; }
+
+"cviolate"|"CVIOLATE"              { yylval.ival = OutputInfo::Constraintviolation;  return STRESSID; }
+
 "residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; } /* deprecated */
 "fdiffvct"|"FDIFFVCT"              { yylval.ival = OutputInfo::Residual;     return STRESSID; }
 
@@ -1502,6 +1508,8 @@ TRAIL [a-zA-Z]*
 
 "CONFOR"|"ConFor"|"confor"                { return REBUILDFORCE; }
 
+"REBCON"|"RebCon"|"rebcon" 		  { return REBUILDCONSTRAINT; }
+
 "SNSLOT"|"SnSlot"|"snslot"                { return SAMPNODESLOT; }
 
 "REDSTIFF"|"RedStiff"|"redstiff"	  { return REDUCEDSTIFFNESS; }
@@ -1510,7 +1518,13 @@ TRAIL [a-zA-Z]*
 
 "FPODRB"|"FPODRb"|"fpodrb"                { return FORCEROB; }
 
+"CPODRB"|"CPODrb"|"cpodrb" 	          { return CONSTRAINTROB; }
+
+"FLTROW"|"FltRow"|"fltrow"		  { return FILTERROWS; }
+
 "svdfrc"|"SvdFrc"|"svdfrc"		  { return SVDFORCESNAP; }
+
+"svdcon"|"SvdCon"|"svdcon" 		  { return SVDCONSTRAINTSNAP; }
 
 "DEIM"|"Deim"|"deim"                      { return DEIMINDICES; }
  
@@ -1531,6 +1545,7 @@ TRAIL [a-zA-Z]*
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 "VELSNAPFI"|"VelSnapFi"|"velsnapfi"       { return VELSNAPFI; }
 "ACCSNAPFI"|"AccSnapFi"|"accsnapfi"       { return ACCSNAPFI; }
+"DSVSNAPFI"|"DsvSnapFi"|"dsvsnapfi"       { return DSVSNAPFI; }
 
 "ROBFI"|"RobFi"|"robfi"		          { return ROBFI; }
 
@@ -1538,6 +1553,10 @@ TRAIL [a-zA-Z]*
 "SSCALI"|"SScali"|"sscali"                { return SNAPWEIGHT; }
 
 "CONCFG"|"ConCfg"|"concfg"                { return CONWEPCFG; }
+
+"POSCFG"|"PosCfg"|"poscfg"                { return SCALEPOSCOORDS; }
+
+"MESHSCALE"|"MeshScale"|"meshscale"       { return MESHSCALEFACTOR; }
 
 "NORMFI"|"NormFi"|"normfi"		  { return VECTORNORM; }
 
@@ -1550,6 +1569,8 @@ TRAIL [a-zA-Z]*
 
 "DIMENS"|"Dimens"|"dimens"		  { return PODSIZEMAX; }
 
+"ROMENR"|"RomEnr"|"romenr"                { return ROMENERGY; }
+
 "ORTHOG"|"Orthog"|"orthog"		  { return ORTHOG; }
 
 "RMSHC"|"Rmshc"|"rmshc" 		  { return SAMPLING; }
@@ -1561,6 +1582,7 @@ TRAIL [a-zA-Z]*
 
 "NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
 "SAMFRQ"|"SamFrq"|"samfrq"                { return SKIP; }
+"RANSMP"|"RanSmp"|"ransmp"    	          { return RANDOMSAMPLE; }
 
 "SOLVER"|"Solver"|"solver"                { return SOLVER; }
 
@@ -1578,6 +1600,7 @@ TRAIL [a-zA-Z]*
 "omp"|"OMP"                               { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
 "splh"|"SPLH" 				  { yylval.ival = 6; return SPNNLSSOLVERTYPE; }
 "cglars"|"CGLARS"                         { yylval.ival = 7; return SPNNLSSOLVERTYPE; }
+"sppfp"|"SPPFP"				  { yylval.ival = 8; return SPNNLSSOLVERTYPE; }
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 
@@ -1588,6 +1611,7 @@ TRAIL [a-zA-Z]*
 "USE_PQN"|"use_pqn"                       { return USEPQN; }
 
 "DO_CLUSTERING"|"do_clustering"           { return DOCLUSTERING; }
+"ANGLE"|"angle" 			  { return ANGLE; }
 "CLUSTERSOLVER"|"clustersolver"           { return CLUSTERSOLVER; }
 "CRANDOM"|"crandom"                       { yylval.ival = 0; return CLUSTERSOLVERTYPE; }
 "KMEANS"|"kmeans"                         { yylval.ival = 1; return CLUSTERSOLVERTYPE; }

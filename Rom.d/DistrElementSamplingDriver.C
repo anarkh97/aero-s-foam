@@ -32,7 +32,7 @@ namespace Rom {
 
 // Forward declarations
 // ====================
-int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts, int j=-1);
+int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts, int j=-1, int podBasisSize = 0);
 
 // Non-member functions
 // ====================

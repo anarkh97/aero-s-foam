@@ -21,21 +21,32 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::GenEiSparseGalerkinProjectionSolver
   dualProjectionBasis_(NULL),
   Empirical(false),
   selfadjoint_(selfadjoint),
+  contact_(false),
   tol_(tol),
   startCol_(0),
   blockCols_(0),
-  fullSolution_(false)
+  fullSolution_(false),
+  startDualCol_(0),
+  dualBlockCols_(0)
 {
 }
 
 template <typename Scalar>
 void
-GenEiSparseGalerkinProjectionSolver<Scalar>::setLocalBasis(int startCol, int blockCols)
+GenEiSparseGalerkinProjectionSolver<Scalar>::setLocalBasis(int startCol, int blockCols) 
 {
   startCol_ = startCol;
   blockCols_ = blockCols;
   reducedMatrix_.resize(blockCols_,blockCols_);
   reducedMatrix_.setZero();
+}
+
+template <typename Scalar>
+void
+GenEiSparseGalerkinProjectionSolver<Scalar>::setLocalDualBasis(int startDualCol, int dualBlockCols)
+{
+  startDualCol_ = startDualCol;  // set which columns are to be used in the reduced constraint matrix
+  dualBlockCols_ = dualBlockCols;
 }
 
 template <typename Scalar>
@@ -83,9 +94,11 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::addLMPCs(int numLMPC, LMPCons **lmp
 
   C.setFromTriplets(tripletList.begin(), tripletList.end());
 
-  const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis(), &W = dualProjectionBasis_->basis();
-  reducedConstraintMatrix_ = Kcoef*W.transpose()*C*V;
-  reducedConstraintRhs0_ = reducedConstraintRhs_ = Kcoef*W.transpose()*g;
+  // this is only called once, so set W and V to all columns, if using local basis for either W or V, then select the correct block diagonal element
+  const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
+  const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &W = dualProjectionBasis_->basis();
+  reducedConstraintMatrix_ = Kcoef*W.transpose()*C*V; 
+  reducedConstraintRhs0_ = reducedConstraintRhs_ = Kcoef*W.transpose()*g; 
 }
 
 template <typename Scalar>
@@ -93,10 +106,10 @@ void
 GenEiSparseGalerkinProjectionSolver<Scalar>::addModalLMPCs(double Kcoef, int Wcols, std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end)
 {
   std::cout << " ... Using Modal LMPCs              ..." << std::endl;
-  dualBasisSize_ = Wcols;
+  dualBasisSize_  = dualBlockCols_ = Wcols;
   int counter = 0; int column = 0; int row = 0;
-  reducedConstraintMatrix_.setZero(dualBasisSize_,basisSize_);
-  reducedConstraintRhs0_.setZero(dualBasisSize_);
+  reducedConstraintMatrix_.setZero(dualBasisSize_,basisSize_); //allocate enough space for all local bases
+  reducedConstraintRhs0_.setZero(dualBasisSize_);         
   // set reduced Constraint Matrix
   while(counter < dualBasisSize_*basisSize_) {
     reducedConstraintMatrix_(row,column) = *it; row++; counter++; it++;
@@ -149,6 +162,10 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::dualProjectionBasisIs(GenVecBasis<S
   dualBasisSize_ = dualReducedBasis.vectorCount();
   reducedConstraintMatrix_.setZero(dualBasisSize_, basisSize_);
   reducedConstraintForce_.setZero(basisSize_);
+
+  // local basis: dual solver uses all columns unless setLocalDualBasis is called
+  startDualCol_ = 0; 
+  dualBlockCols_ = dualBasisSize_;
 }
 
 template <typename Scalar>
@@ -168,7 +185,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::factor()
   if(selfadjoint_ && !Empirical) {
     reducedMatrix_.template triangularView<Eigen::Lower>()
     += V.transpose()*(this->M.template selfadjointView<Eigen::Upper>()*V);
-    if(dualBasisSize_ > 0) c1_ = reducedMatrix_.trace();
+    if(dualBlockCols_ > 0) c1_ = reducedMatrix_.trace();
     llt_.compute(reducedMatrix_);
   }
   else {
@@ -190,13 +207,13 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
   const int dim = (fullSolution_) ? rhs.size() : V.cols();
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data()+offset, dim);
 
-  if(dualBasisSize_ > 0) {
-    Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.block(0,startCol_,dualBasisSize_,blockCols_).transpose();
-    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -x, ce0(0,1), _x(V.cols()), Lambda(0,1), Mu(dualBasisSize_);
-    solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, tol_);
+  if(dualBlockCols_ > 0 && contact_) {
+    Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.block(startDualCol_,startCol_,dualBlockCols_,blockCols_).transpose();
+    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -x, ce0(0,1), _x(V.cols()), Lambda(0,1), Mu(dualBlockCols_);
+    solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_.segment(startDualCol_,dualBlockCols_), _x, &Lambda, &Mu, tol_);
     x = _x;
     reducedConstraintForce_.setZero();
-    reducedConstraintForce_.segment(startCol_,blockCols_) = reducedConstraintMatrix_.block(0,startCol_,dualBasisSize_,blockCols_).transpose()*Mu;
+    reducedConstraintForce_.segment(startCol_,blockCols_) = reducedConstraintMatrix_.block(startDualCol_,startCol_,dualBlockCols_,blockCols_).transpose()*Mu;
   }
   else if(selfadjoint_ && !Empirical) {
     if(fullSolution_) { x = V*llt_.solve(V.transpose()*x); } else 
@@ -222,13 +239,13 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVe
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data()+offset, dim), x(sol.data()+offset, dim);
   sol.zero();
 
-  if(dualBasisSize_ > 0) {
-    Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.block(0,startCol_,dualBasisSize_,blockCols_).transpose();
-    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -b, ce0(0,1), _x(V.cols()), Lambda(0,1), Mu(dualBasisSize_);
-    solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, tol_);
+  if(dualBlockCols_ > 0 && contact_) {
+    Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.block(startDualCol_,startCol_,dualBlockCols_,blockCols_).transpose();
+    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -b, ce0(0,1), _x(V.cols()), Lambda(0,1), Mu(dualBlockCols_);
+    solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_.segment(startDualCol_,dualBlockCols_), _x, &Lambda, &Mu, tol_);
     x = _x;
     reducedConstraintForce_.setZero();
-    reducedConstraintForce_.segment(startCol_,blockCols_) = reducedConstraintMatrix_.block(0,startCol_,dualBasisSize_,blockCols_).transpose()*Mu;
+    reducedConstraintForce_.segment(startCol_,blockCols_) = reducedConstraintMatrix_.block(startDualCol_,startCol_,dualBlockCols_,blockCols_).transpose()*Mu;
   }
   else if(selfadjoint_ && !Empirical) {
     if(fullSolution_) { x = V*llt_.solve(V.transpose()*b); } else

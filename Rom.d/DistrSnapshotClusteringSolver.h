@@ -22,6 +22,7 @@ public:
   // Local cluster centroid buffer: [localRows by numClusters]
   const double *clusterCentroidBuffer(int i) const;
 
+  const int clusterCol(int i, int col) const;
   const int clusterColCount(int i) const;
 
   int solverType() const { return solverType_; }
@@ -66,6 +67,12 @@ inline
 const double *
 DistrSnapshotClusteringSolver::clusterColBuffer(int i, int col) const {
   return matrixBuffer_.data() + clusterCols_[i][col]*localRows_;
+}
+
+inline
+const int
+DistrSnapshotClusteringSolver::clusterCol(int i, int col) const {
+  return clusterCols_[i][col];
 }
 
 inline

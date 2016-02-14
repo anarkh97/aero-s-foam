@@ -248,12 +248,14 @@ struct SolverInfo {
                         //   of the six rigid body modes: 0 = do not filter, 1 = do filter
    bool grbm_use_lmpc;  // true (default) = lmpcs treated algebraically in GRBM method
                         // false = lmpcs are assumed to not introduce any mechanisms (i.e. like beams)
+   std::vector<double> grbm_ref; // coordinates of reference point for rotational modes; if empty then 1st node is used.
 
    double condNumTolerance; // Condition number tolerance
    int condNumMaxit;
 
    int massFlag;
    int filterFlags;
+   int filterQ; // 0 = Q=M for quasistatics, 1 = Q=I for quasistatics
 
    int zeroInitialDisp; // flag to set initial disp to zero
 
@@ -308,6 +310,7 @@ struct SolverInfo {
    bool dbccheck;
    int contact_mode;
    int contactsurface_mode;
+   bool trivial_detection;
 
    bool noninpc;
    bool inpc;
@@ -360,9 +363,9 @@ struct SolverInfo {
    std::vector<std::string> robfi;
    std::vector<double> snapshotWeights;
    std::vector<std::string> readInROBorModes;
+   std::vector<std::string> readInDualROB; 
    std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
    std::vector<std::string> readInLocalBasesCent;
-   const char * readInDualROB;
    std::map<OutputInfo::Type,int> adjointMap;
    std::vector<std::string> readInAdjointROB;
    const char * readInModes;
@@ -373,9 +376,13 @@ struct SolverInfo {
    std::vector<std::string> statePodRomFile;
    std::vector<std::string> velocPodRomFile;
    std::vector<std::string> accelPodRomFile;
+   std::vector<std::string> dsvPodRomFile;
    const char * isvPodRomFile;
-   const char * dsvPodRomFile;
+//   const char * dsvPodRomFile;
    const char * forcePodRomFile;
+   const char * constraintPodRomFile;
+   const char * constraintSnapshotFile;
+   const char * constraintViolationFile;
    const char * residualPodRomFile;
    const char * jacobianPodRomFile;
    bool ROMPostProcess;
@@ -398,6 +405,7 @@ struct SolverInfo {
    bool checkPodRom;
    bool svdPodRom;
    int  svdBlockSize;
+   bool clusterSubspaceAngle;
    int clustering;
    int  solverTypeCluster; // 0: Random, 1: K-means
    int use_nmf;
@@ -411,9 +419,13 @@ struct SolverInfo {
    double nmfPqnAlpha;
    bool DEIMBasisPod;
    bool UDEIMBasisPod;
+   bool ConstraintBasisPod;
    bool ReducedStiffness;
    bool computeForceSnap;
+   bool computeConstraintSnap;
+   bool filterSnapshotRows;
    bool orthogForceSnap;
+   bool orthogConstraintSnap;
    bool computeDEIMIndices;
    bool DEIMPodRom;
    bool UDEIMPodRom;
@@ -423,13 +435,16 @@ struct SolverInfo {
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int maxSizePodRom;
+   double romEnergy;
    std::vector<int> localBasisSize;
+   std::vector<int> localDualBasisSize;
    int  maxSizeDualBasis;
    std::vector<int> maxSizeAdjointBasis;
    int  maxDeimBasisSize;
    bool selectFullNode;
    bool selectFullElem;
    int  forcePodSize;
+   int  constraintPodSize;
    int  normalize;
    bool subtractRefPodRom;
    bool useScalingSpnnls;
@@ -442,6 +457,7 @@ struct SolverInfo {
    int maxElemSpnnls;
    double maxIterSpnnls;
    bool reduceFollower;
+   bool randomVecSampling;
    int  skipPodRom;
    int  skipOffSet;
    int  skipState;
@@ -457,10 +473,15 @@ struct SolverInfo {
    double tolPodRom;
    bool useMassNormalizedBasis;
    bool useMassOrthogonalProjection;
+   bool performMassNormalization;
    bool ConwepOnOff;
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
    bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
+   bool scalePosCoords;
+   double xScaleFactor, yScaleFactor, zScaleFactor;
+   double xLMPCFactor, yLMPCFactor, zLMPCFactor;
+   std::vector<double> xScaleFactors, yScaleFactors, zScaleFactors;
    int inertiaLumping; // 1: diagonal lumping (default), 2: block-diagonal 6x6 lumping
                        // note #1: this flag is automatically set to 2 when a product of inertia is defined using DIMASS
                        //          or when a discrete mass element (type 131) is defined.
@@ -486,6 +507,7 @@ struct SolverInfo {
 
    // Constructor
    SolverInfo() { filterFlags = 0;
+                  filterQ = 0;
                   type = 0;     
                   soltyp = -1;
                   subtype = 0; // By default we use direct Skyline
@@ -638,6 +660,7 @@ struct SolverInfo {
                   dbccheck = true;
                   contact_mode = 1;
                   contactsurface_mode = 1;
+                  trivial_detection = false;
 
                   nEig = 0;
                   eigenSolverSubType = 0;
@@ -705,14 +728,16 @@ struct SolverInfo {
                   constraint_hess_eps = 0;
 
                   numSnap            = 1;
-                  readInDualROB      = "";
                   readInModes        = "";
                   readInShapeSen     = "";
                   SVDoutput          = "pod.rob";
                   reducedMeshFile    = "";
                   isvPodRomFile      = "";
-                  dsvPodRomFile      = "";
+                  //dsvPodRomFile      = "";
                   forcePodRomFile    = "";
+                  constraintPodRomFile  = "";
+ 		  constraintSnapshotFile = "";
+                  constraintViolationFile = "";
                   residualPodRomFile = "";
                   jacobianPodRomFile = "";
                   ROMPostProcess     = false;
@@ -734,13 +759,18 @@ struct SolverInfo {
                   svdPodRom          = false;
                   DEIMBasisPod       = false;
                   UDEIMBasisPod      = false;
+                  ConstraintBasisPod = false;
                   ReducedStiffness   = false;
                   computeForceSnap   = false;
+                  computeConstraintSnap = false;
+                  filterSnapshotRows = false;
                   orthogForceSnap    = false;
+                  orthogConstraintSnap = false;
                   computeDEIMIndices = false;
                   DEIMPodRom         = false;
                   UDEIMPodRom        = false;
                   svdBlockSize       = 64;
+		  clusterSubspaceAngle = false;
                   clustering         = 0;
                   solverTypeCluster  = 1; // K-means
                   use_nmf            = 0;
@@ -760,11 +790,13 @@ struct SolverInfo {
                   elemLumpPodRom     = false;
                   onlineSvdPodRom    = false;
                   maxSizePodRom      = 0;
+                  romEnergy          = 0.0;
                   maxSizeDualBasis   = 0;
                   maxDeimBasisSize   = 0;
                   selectFullNode     = false;
                   selectFullElem     = false;
                   forcePodSize       = 0;
+                  constraintPodSize  = 0;
                   normalize          = 1;
                   subtractRefPodRom  = false;
                   useScalingSpnnls   = true;
@@ -777,6 +809,7 @@ struct SolverInfo {
                   maxIterSpnnls      = 3.0;
                   solverTypeSpnnls   = 0;
                   reduceFollower     = false;
+                  randomVecSampling  = false;
                   skipPodRom         = 1;
                   skipOffSet         = 0;
                   skipState          = 1;
@@ -792,9 +825,17 @@ struct SolverInfo {
                   tolPodRom          = 1.0e-6;
                   useMassNormalizedBasis = true;
                   useMassOrthogonalProjection = false;
+                  performMassNormalization = false;
                   ConwepOnOff        = false;
                   basicDofCoords     = true;
                   basicPosCoords     = true;
+                  scalePosCoords     = false;
+                  xScaleFactor       = 1.0;
+                  yScaleFactor       = 1.0;
+                  zScaleFactor       = 1.0;
+		  xLMPCFactor        = 1.0;
+                  yLMPCFactor        = 1.0;
+                  zLMPCFactor        = 1.0;
                   inertiaLumping     = 0;
                   printMatLab        = false;
                   printMatLabFile    = "";

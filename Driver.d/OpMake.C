@@ -3563,7 +3563,21 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
         geoSource->outputSensitivityAdjointStressVectors(i, allSens.vonMisesWRTthick, stress.data(), 0, numThicknessGroup, stressNodes, allSens.dwrStressVM);
       }
     }
-    if(oinfo[i].type == OutputInfo::VMstShap) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTshape, 0.0, allSens.dwrStressVM);
+    if(oinfo[i].type == OutputInfo::VMstShap) {
+      if(solInfo().sensitivityMethod == SolverInfo::Direct)
+        geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTshape, 0.0, allSens.dwrStressVM);
+      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+        Vector stress(numNodes(),0.0);
+        Vector stressWeight(numNodes(),0.0);
+        if(sinfo.isNonLin()) {
+          computeNormalizedNLVonMisesStress(*geomState,refState,allCorot,oinfo[i].surface,stress,stressWeight,false);
+        } else {
+          computeNormalizedVonMisesStress(*sol,bcx,oinfo[i].surface,stress,false);
+        }
+        int numShapeVars = getNumShapeVars();
+        geoSource->outputSensitivityAdjointStressVectors(i, allSens.vonMisesWRTshape, stress.data(), 0, numShapeVars, stressNodes, allSens.dwrStressVM);
+      }
+    }
     if(oinfo[i].type == OutputInfo::VMstMach) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTmach);
     if(oinfo[i].type == OutputInfo::VMstAlpha) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTalpha);
     if(oinfo[i].type == OutputInfo::VMstBeta) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTbeta);

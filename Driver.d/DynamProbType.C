@@ -414,6 +414,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        } else { // Adjoint method
          probDesc->sendNumParam(numStructQuantTypes, 0, ratioSensitivityTol*sensitivityTol);
          probDesc->getNumParam(numFluidQuantTypes);
+         filePrint(stderr, " ... In structure,  numFluidQuantTypes is %d\n", numFluidQuantTypes);
        }
        
        if(domain->solInfo().sensitivity) {
@@ -661,14 +662,20 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          filePrint(stderr, " ... numThicknessGroups = %d, numShapeVars = %d\n", numThicknessGroups, numShapeVars);
          for(int isen = 0; isen < numFluidQuantTypes; ++isen) { // fluid sensitivities
            computeLambdaFluidQuantity();   
+           if(!allSens->linearstaticWRTshape && numShapeVars > 0) {
+             filePrint(stderr, " *** Error! please comment out readsensitivity in your input file.\n"); exit(-1); 
+           }          
            for(int ishap=0; ishap < numShapeVars; ++ishap) { //TODO: Now shape variable gets priority
              double fluidQuantity(0); 
-             fluidQuantity -= allSens->lambdaFluidQuantity->adjoint()*(allSens->linearstaticWRTshape[ishap]->col(0));
+             fluidQuantity -= (allSens->lambdaFluidQuantity->adjoint())*(allSens->linearstaticWRTshape[ishap]->col(0));
              probDesc->sendRelativeResidual(fluidQuantity);
+           }
+           if(!allSens->linearstaticWRTthick && numThicknessGroups > 0) {
+             filePrint(stderr, " *** Error! please comment out thgrli in your input file.\n");  exit(-1);
            }
            for(int iparam=0; iparam < numThicknessGroups; ++iparam) { 
              double fluidQuantity(0); 
-             fluidQuantity -= allSens->lambdaFluidQuantity->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
+             fluidQuantity -= (allSens->lambdaFluidQuantity->adjoint())*(allSens->linearstaticWRTthick[iparam]->col(0));
              probDesc->sendRelativeResidual(fluidQuantity);
            }
          } 
@@ -714,10 +721,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 {
   AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
   if(!allSens->lambdaFluidQuantity) allSens->lambdaFluidQuantity = new Eigen::Matrix<double, Eigen::Dynamic, 1>(domain->numUncon());
-  rhsSen = new VecType( probDesc->solVecInfo());
+  rhsSen = new VecType( probDesc->solVecInfo() );
   rhsSen->zero();
   aeroForceSen->zero();
-  (*aeroForceSen)[0] = 1.0e6;
+  (*aeroForceSen)[0] = 1.0e2;
   *lambda_nSen = 0.0;
   aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
   *allSens->lambdaFluidQuantity = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(lambda_nSen->data(),domain->numUncon(),1);

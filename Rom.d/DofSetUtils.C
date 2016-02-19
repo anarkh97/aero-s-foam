@@ -9,6 +9,7 @@ namespace Rom {
 
 NodeDof::DofType DOF_ID(int iDof) {
   switch(iDof) {
+    default :
     case 0 :
       return (solInfo.soltyp == 2) ? DofSet::Temp : DofSet::Xdisp;
     case 1 :

@@ -1279,7 +1279,7 @@ ToleranceInfo:
         | GRBM Float Float Float NewLine Float Float NewLine
         { domain->solInfo().setGrbm($6,$7);
           std::vector<double> &grbm_ref = domain->solInfo().grbm_ref;
-          grbm_ref.reserve(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
+          grbm_ref.resize(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
         }
         | GRBM Float Float Float NewLine Float NewLine
         { domain->solInfo().setGrbm($6);

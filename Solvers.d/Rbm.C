@@ -414,7 +414,7 @@ Rbm::computeRbms(CoordSet& cs)
      Node &nd = cs.getNode(inode);
 
      if(setzero) { // make sure that node0 exists before trying to access its coordinates
-       if(domain->solInfo().grbm_ref.empty() || nComponents > 1) {
+       if(domain->solInfo().grbm_ref.empty() /*|| nComponents > 1*/) {
          x0 = xyzRot[n][0] = nd.x;
          y0 = xyzRot[n][1] = nd.y;
          z0 = xyzRot[n][2] = nd.z;

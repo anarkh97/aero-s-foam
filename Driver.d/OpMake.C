@@ -3909,13 +3909,13 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
     if(dof < 0) continue;
     switch(nbc[i].type) {
       case(BCond::Forces) : {
-        if(!domain->getMFTT(nbc[i].loadsetid)) {
+        if(!sinfo.isDynam() || !domain->getMFTT(nbc[i].loadsetid)) {
           double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
           cnst_f[dof] += loadFactor*nbc[i].val;
         }
       } break;
       case(BCond::Flux) : {
-        if(!domain->getHFTT(nbc[i].loadsetid)) {
+        if(!sinfo.isDynam() || !domain->getHFTT(nbc[i].loadsetid)) {
           double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
           cnst_f[dof] += loadFactor*nbc[i].val;
         }

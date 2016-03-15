@@ -1312,24 +1312,24 @@ RbmFilterInfo:
         | RBMFILTER Integer Integer NewLine
         { domain->solInfo().useRbmFilter($2);
           domain->solInfo().filterQ = $3; }
-        | RBMFILTER NewLine RbmList NewLine
+        | RbmFilterInfo RbmList NewLine
 	;
 RbmList:
     Integer
-    { if($1 < 1 || $1 > 6){
-        fprintf(stderr, " *** ERROR: RBMF specifier must be in the range 1-6, found: %d\n", $1);
+    { if($1 < 1) {
+        fprintf(stderr, " *** ERROR: mode %d specified under RBMFILTER is invalid.\n", $1);
         yyerror(NULL);
         exit(-1);
       }
-      domain->solInfo().rbmFilters[$1-1] = 1;
+      domain->solInfo().rbmFilters.insert($1-1);
     }
     | RbmList Integer
-    { if($2 < 1 || $2 > 6){
-        fprintf(stderr, " *** ERROR: RBMF specifier must be in the range 1-6, found: %d\n", $2);
+    { if($2 < 1) {
+        fprintf(stderr, " *** ERROR: mode %d specified under RBMFILTER is invalid.\n", $2);
         yyerror(NULL);
         exit(-1);
       }
-      domain->solInfo().rbmFilters[$2-1] = 1;
+      domain->solInfo().rbmFilters.insert($2-1);
     }
     ;
 HzemFilterInfo:

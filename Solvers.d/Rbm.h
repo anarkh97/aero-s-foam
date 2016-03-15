@@ -9,6 +9,7 @@
 #include <Corotational.d/GeomState.h>
 #include <Feti.d/DistrVectorSet.h>
 #include <iostream>
+#include <set>
 
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
@@ -93,6 +94,7 @@ public:
   void setGrbm(Vector *_grbm) { grbm = _grbm; }
   void print();
   template<class Scalar> void getRBMs(Scalar *, bool transpose = false); 
+  void getRBMs(double *, std::set<int> &rbmFilters);
   void getRBMs(double *, int nc, int *dofs, int _numG=-1, int offset=0);
   void getRBMs(DComplex *, int nc, int *dofs, int _numG=-1, int offset=0);
   void getScaledRBMs(double *, int nc, int *dofs, double *scaling, int _numG=-1, int offset=0);

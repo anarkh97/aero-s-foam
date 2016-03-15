@@ -230,7 +230,7 @@ SingleDomainDynamic::projector_prep(SparseMatrix *M)
  if (!numR) return;
 
  filePrint(stderr," ... Building the RBM/HZEM Projector...\n");
- filePrint(stderr," ... Number of RBM/HZEM(s) = %-4d   ...\n",numR);
+ filePrint(stderr," ... Number of Filtered Modes = %-4d...\n",numR);
 
  int ndof = solVecInfo();
  StackFSFullMatrix Rt(numR, ndof, Rmem);
@@ -943,11 +943,24 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  if(useRbmFilter || useHzemFilter) {
    numR = rigidBodyModes->numRBM();
    if(numR > 0) {
+     if(domain->solInfo().timeIntegration != SolverInfo::Qstatic && !domain->solInfo().rbmFilters.empty()) {
+       int count = 0;
+       for(std::set<int>::iterator it = domain->solInfo().rbmFilters.begin(); it != domain->solInfo().rbmFilters.end(); ++it) {
+         if(*it < numR) count++;
+         else filePrint(stderr," *** WARNING: mode %d specified under RBMFILTER does not exist.\n", *it+1);
+       }
+       numR = count;
+     }
      // KHP: store this pointer to the RBMs to use in the actual
      //      projection step within the time loop.
      int ndof = allOps.M->dim();
      Rmem = new double[numR*ndof];
-     rigidBodyModes->getRBMs(Rmem);
+     if(domain->solInfo().timeIntegration == SolverInfo::Qstatic || domain->solInfo().rbmFilters.empty()) {
+       rigidBodyModes->getRBMs(Rmem);
+     }
+     else {
+       rigidBodyModes->getRBMs(Rmem, domain->solInfo().rbmFilters);
+     }
    }
  }
 
@@ -957,9 +970,9 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
    domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray, melArray);
 
  if(useRbmFilter)
-   filePrint(stderr," ... RBM filter Level %d Requested   ...\n", useRbmFilter);
+   filePrint(stderr," ... RBM Filter Level %d Requested   ...\n", useRbmFilter);
  else if(useHzemFilter)
-   filePrint(stderr," ... HZEM filter Requested          ...\n");
+   filePrint(stderr," ... HZEM Filter Requested          ...\n");
 
  if(useRbmFilter || useHzemFilter)
    projector_prep(allOps.M);

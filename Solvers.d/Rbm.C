@@ -1500,3 +1500,16 @@ Rbm::getRBMs(DComplex *rigidBodyModes, bool transpose)
   }
 }
 
+void
+Rbm::getRBMs(double *rigidBodyModes, std::set<int> &rbmFilters)
+{
+  int i = 0;
+  for(std::set<int>::iterator it = rbmFilters.begin(); it != rbmFilters.end(); ++it) {
+    int iMode = *it;
+    if(iMode < ngrbm) {
+      for(int iDof = 0; iDof < numUncon; ++iDof)
+        rigidBodyModes[iDof+i*numUncon] = grbm[iMode][iDof];
+      i++;
+    }
+  }
+}

@@ -242,8 +242,7 @@ struct SolverInfo {
    double trbm2;        // algebraic rbm tolerance used for sparse/skyline when GRBM is activated
    double tolsvd;       // singular value decomposition tolerance
    int rbmflg;          // 0 = algebraic rbm, 1 = geometric rbm
-   int rbmFilters[6];   // rbm filtering for nonlinear modal problems for each
-                        //   of the six rigid body modes: 0 = do not filter, 1 = do filter
+   std::set<int> rbmFilters; // selective rbm filtering for linear dynamics problems
    bool grbm_use_lmpc;  // true (default) = lmpcs treated algebraically in GRBM method
                         // false = lmpcs are assumed to not introduce any mechanisms (i.e. like beams)
    std::vector<double> grbm_ref; // coordinates of reference point for rotational modes; if empty then 1st node is used.
@@ -602,7 +601,6 @@ struct SolverInfo {
                   epsilon1 = 0.01;
                   epsilon2 = 1e-10;
                   rbmflg = 0;
-                  rbmFilters[0] = rbmFilters[1] = rbmFilters[2] = rbmFilters[3] = rbmFilters[4] = rbmFilters[5] = 0;
                   grbm_use_lmpc = true;
                   buckling = 0;
 

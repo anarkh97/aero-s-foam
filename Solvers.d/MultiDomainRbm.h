@@ -1,6 +1,8 @@
 #ifndef _MULTI_DOMAIN_RBM_H_
 #define _MULTI_DOMAIN_RBM_H_
 
+#include <set>
+
 template <class Scalar> class GenDecDomain;
 template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;
@@ -20,6 +22,7 @@ class MultiDomainRbm
     MultiDomainRbm(GenDecDomain<Scalar> *decDomain, double tolgrb);
     int numRBM();
     void getRBMs(GenDistrVectorSet<Scalar>& rigidBodyModes);
+    void getRBMs(GenDistrVectorSet<Scalar>& rigidBodyModes, std::set<int> &rbmFilters);
 
   private:
     void computeRbms();

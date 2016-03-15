@@ -362,11 +362,25 @@ MultiDomainDynam::projector_prep(MultiDomainRbm<double> *rbms, GenSubDOp<double>
 
   if(numR == 0) return;
 
+  if(domain->solInfo().timeIntegration != SolverInfo::Qstatic && !domain->solInfo().rbmFilters.empty()) {
+    int count = 0;
+    for(std::set<int>::iterator it = domain->solInfo().rbmFilters.begin(); it != domain->solInfo().rbmFilters.end(); ++it) {
+      if(*it < numR) count++;
+      else filePrint(stderr," *** WARNING: mode %d specified under RBMFILTER does not exist.\n", *it+1);
+    }
+    numR = count;
+  }
+
   filePrint(stderr," ... Building the RBM Projector     ...\n");
-  filePrint(stderr," ... Number of RBMs = %-4d          ...\n",numR);
+  filePrint(stderr," ... Number of Filtered Modes = %-4d...\n",numR);
 
   R = new GenDistrVectorSet<double>(numR, decDomain->solVecInfo());
-  rbms->getRBMs(*R);
+  if(domain->solInfo().timeIntegration == SolverInfo::Qstatic || domain->solInfo().rbmFilters.empty()) {
+    rbms->getRBMs(*R);
+  }
+  else {
+    rbms->getRBMs(*R, domain->solInfo().rbmFilters);
+  }
 
   double *y = (double *) dbg_alloca(numR*sizeof(double));
   double *x = (double *) dbg_alloca(numR*sizeof(double));

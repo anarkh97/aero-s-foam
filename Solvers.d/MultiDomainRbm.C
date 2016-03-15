@@ -405,6 +405,20 @@ MultiDomainRbm<Scalar>::getRBMs(GenDistrVectorSet<Scalar>& rigidBodyModes)
 
 template<class Scalar>
 void
+MultiDomainRbm<Scalar>::getRBMs(GenDistrVectorSet<Scalar>& rigidBodyModes, std::set<int> &rbmFilters)
+{
+  int i = 0, nsub = decDomain->getNumSub();
+  for(std::set<int>::iterator it = rbmFilters.begin(); it != rbmFilters.end(); ++it) {
+    int iMode = *it;
+    if(iMode < numRBM()) {
+      execParal2R(nsub, this, &MultiDomainRbm<Scalar>::getGlobalRBM, iMode, rigidBodyModes[i]);
+      i++;
+    }
+  }
+}
+
+template<class Scalar>
+void
 MultiDomainRbm<Scalar>::getGlobalRBM(int iSub, int &iRBM, GenDistrVector<Scalar> &R)
 {
   GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);

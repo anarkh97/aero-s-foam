@@ -4901,6 +4901,9 @@ SvdOption:
   { domain->solInfo().normalize = $2; }
   | NORMALIZETOKEN SWITCH
   { domain->solInfo().normalize = $2; }
+  | REFSUBTRACT FNAME
+  { domain->solInfo().subtractRefPodRom = true;
+    domain->solInfo().readInLocalBasesCent.push_back(std::string($2)); }
   | SNAPWEIGHT FloatList /* deprecated */
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().snapshotWeights.push_back($2.v[i]); }
   | SNAPWEIGHT SWITCH FloatList
@@ -4955,6 +4958,9 @@ SvdOption:
     domain->solInfo().clusterSubspaceAngle = true; }
   | CLUSTERSOLVER CLUSTERSOLVERTYPE
   { domain->solInfo().solverTypeCluster = $2; }
+  | CLUSTERSOLVER CLUSTERSOLVERTYPE Float
+  { domain->solInfo().solverTypeCluster = $2;
+    domain->solInfo().tolPodRom = $3;}
   | ConwepConfig
   ;
 

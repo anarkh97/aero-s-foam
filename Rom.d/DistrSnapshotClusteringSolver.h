@@ -25,6 +25,7 @@ public:
   const int clusterCol(int i, int col) const;
   const int clusterColCount(int i) const;
 
+  int getNumClusters() {return numClusters_;}
   int solverType() const { return solverType_; }
   void solverTypeIs(int solTyp) { solverType_ = solTyp; }
 
@@ -33,6 +34,9 @@ public:
 
   int kmSeed() const { return kmSeed_; }
   void kmSeedIs(int kmSeed) { kmSeed_ = kmSeed; }
+  void setNNLSTolerance(double _tol) { nnlsTol = _tol; }
+  
+  void recomputeCentroids();
 
   void solve();
 
@@ -50,6 +54,7 @@ private:
   int solverType_;
   int kmMaxIter_;
   int kmSeed_;
+  double nnlsTol;
 
   Eigen::MatrixXd matrixBuffer_;
   Eigen::MatrixXd centroidBuffer_;

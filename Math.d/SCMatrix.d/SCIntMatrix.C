@@ -123,7 +123,6 @@ SCIntMatrix::write(std::string filename, int m, int n) {
     }
 }
 
-
 // j is an element of [1,_n]; Starts at 1 for Fortran
 int
 SCIntMatrix::setMatrixColumn(int j, int *col) {

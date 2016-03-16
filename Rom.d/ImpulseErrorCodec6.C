@@ -98,7 +98,7 @@ int main (int argc, char *argv[]) {
         }
       }
 
-      printf("\r time stamp %d = %f \n",tcounter,time1);
+      printf("\r time stamp %d = %f",tcounter,time1);
       tcounter++;
       double dt = time1 - told;
       // second: loop over nodes
@@ -150,7 +150,7 @@ int main (int argc, char *argv[]) {
             truth_file >> a1; truth_file >> b1; truth_file >> c1;
             truth_file >> d1; truth_file >> e1; truth_file >> f1;
             if(counter == 0) {
-              std::cout << "skipping time step " << time1 << " in truthfile" << std::endl;
+              std::cout << "\nskipping time step " << time1 << " in truthfile" << std::endl;
               getTime1 = true;
               getTime2 = false;
             }
@@ -161,7 +161,7 @@ int main (int argc, char *argv[]) {
             comp_file >> a2; comp_file >> b2; comp_file >> c2;
             comp_file >> d2; comp_file >> e2; comp_file >> f2;
             if(counter == 0) {
-              std::cout << "skipping time step " << time2 << " in comparisonfile" << std::endl;
+              std::cout << "\nskipping time step " << time2 << " in comparisonfile" << std::endl;
               getTime1 = false;
               getTime2 = true;
             }

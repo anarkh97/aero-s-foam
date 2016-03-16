@@ -40,7 +40,7 @@ Plh::solve() {
             reject = true;  // Force through the loop once.
             while (reject && !done) {
                 reject = updateQR(iqr);
-                while (reject && !done) {
+                while (reject && !done) { // loop to reject linearly dependent columns
                     done = rejectVector();
                     if (_mypid == 0 && _verbose > 0) {
                          std::cout << "Linear dependent. _wmax.i = " << _wmax.i << ", _wmax.x = " << _wmax.x;
@@ -65,7 +65,7 @@ Plh::solve() {
             if (done) break;
             solveR();
             _zmin = _zQR->getMin(1, _nP);
-            while (_zmin.x <= 0.0) {
+            while (_zmin.x <= 0.0) { // loop to reject elements that violate constraints
                 // Downdate
                 startTime(TIME_DOWNDATE);
                 if(_ddmask) _wmask->setElement(1,_zmin.i,0.0); // Don't allow this vector back until mask is reset.
@@ -85,6 +85,7 @@ Plh::solve() {
             _zQR->copy(*_xQR, _nP);
             copyxQR2x();
         }
+        if(_PFP) updateVertex(); // this could be done way better that solving Q*R^-T*1 each time
         computeResidual();
         iteration_output();
         if (_iter % _residualIncr == 0) writeResidual();
@@ -149,8 +150,12 @@ Plh::initplh() {
             std::cout << "Scaling the matrix columns." << std::endl;
         }
         _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb, _comm);
-        _A->scaleColumnsByL2Norm(*_colnorms);
+        _A->scaleColumnsByL2Norm(*_colnorms);           
         stopTime(TIME_COLUMNSCALING);
+    }
+
+    if(_PFP) { // initialize working arrays for Polytope Faces Pursuit
+      _vertex->zero();
     }
 
     stopTime(TIME_INIT_NNLS);
@@ -250,14 +255,57 @@ Plh::updateQR(int iqr) {
     return reject;
 }
 
+void
+Plh::updateVertex() {
+
+    // first do forward triangular solve: y = R^-T*1
+    {
+      startTime(TIME_SOLVER);
+      char uplo  = 'U';
+      char trans = 'T';
+      char diag  = 'N';
+      int zero=0, one=1, nrhs = 1, info;
+      _oneVecQR->set(1.0); // reinitialize vector to all ones
+      _trslvQR->zero();
+      startTime(TIME_PDTRSV);
+      // overwrite first _nP rows of _neVecQR
+      _FORTRAN(pdtrsv)(&uplo, &trans, &diag, &_nP, _Q->getMatrix(), &one, &one, _Q->getDesc(),
+                       _oneVecQR->getMatrix(), &one, &one, _oneVecQR->getDesc(), &one); 
+      _oneVecQR->add(*_trslvQR,trans,_nP,1,1.0,0.0);
+      stopTime(TIME_PDTRSV);
+      stopTime(TIME_SOLVER);
+    }
+     
+    // then multiply by Q: vertex = Q*y
+
+    {
+      char side  = 'L';
+      char trans = 'N';
+      int j      = 1; 
+      int one    = 1;
+      int k      = _nP;
+      int m      = _m;
+      int info;
+      // overwrite first _m rows of _trslvQR
+      _FORTRAN(pdormqr)(&side, &trans, &m, &one, &k,
+              _Q->getMatrix(),  &j, &j, _Q->getDesc(), _Q->getTau(),
+              _trslvQR->getMatrix(), &j, &one, _trslvQR->getDesc(),
+              _work_qr, &_lwork_qr, &info);   
+      // transfer the result (first _m rows of _trslvQR) into vertex container
+      mcopyQtoA(_trslvQR, _trslv);
+      _trslv->add(*_vertex,trans,_m,1,1.0,0.0); // now add it over
+    }
+
+    return;
+}
 
 bool
 Plh::updateQtb(int iqr) {
     startTime(TIME_UPDATEQTB);
     bool reject = false;
-    char side = 'L';
-    char trans = 'T';
-    char top = ' ';
+    char side   = 'L';
+    char trans  = 'T';
+    char top    = ' ';
     int zero=0, one=1;
     int j, k, m, info;
     int dummy;
@@ -312,7 +360,7 @@ Plh::solveR() {
     int d = std::min(_m, _n);
     int zero=0, one=1, nrhs = 1, info;
     _zQR->zero();
-    _Qtb->copy(*_zQR, _nP);
+    _Qtb->copy(*_zQR, _nP); // copy Q^T*b into working array that will be over-written with solution
     startTime(TIME_PDTRSV);
     _FORTRAN(pdtrsv)(&uplo, &trans, &diag, &_nP, _Q->getMatrix(), &one, &one, _Q->getDesc(),
         _zQR->getMatrix(), &one, &one, _zQR->getDesc(), &one);
@@ -440,16 +488,22 @@ Plh::gradf() {
     int j, k;
     double x;
 
-    mcopyQtoA(_rQR, _workm);
+    mcopyQtoA(_rQR, _workm);                                 // dump contents of _rQR to _workm
     MPI_Barrier(_comm);
     startTime(TIME_MULT_GRADF);
-    _A->multiply(*_workm, *_w, 'T', _m, _n, 1.0, 0.0);
+    _A->multiply(*_workm, *_w, 'T', _m, _n, 1.0, 0.0);       // this permorfs A^T*residual
+    if(_PFP) {                                               // extra step for Polytope faces pursuit
+      _Atv->set(1.0);                                        // compute 1 - A^T*_vertex
+      _A->multiply(*_vertex, *_Atv, 'T', _m, _n, -1.0, 1.0);
+      _w->invHadamardProduct(*_Atv);                         // compute A^T*residual/(1 - A^T*_vertex) | A^T&residual > 0
+    }
     stopTime(TIME_MULT_GRADF);
-    for (int i=1; i<=_nP; i++) {
+    for (int i=1; i<=_nP; i++) {                             // zero out the elements already in the active set
         j = _QtoA->getElement(1,i);
         _w->setElement(1,j,0.0);
     }
-    if (_ddmask) _w->hadamardProduct(*_wmask);
+    if (_ddmask) _w->hadamardProduct(*_wmask);               // if downdating, mask stuff
+    if (_constraint > -1) _w->setElement(1,_constraint,0.0); // enforce an element not to be selected
 
     stopTime(TIME_GRADF);
     return 0;

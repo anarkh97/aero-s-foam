@@ -115,6 +115,8 @@ class Plh {
         void setMaxIterRatio( double maxite ) {_max_iter=maxite*_n;}
         void setMaxIter( double max_iter ) {_max_iter=max_iter;}
         void setColumnScaling();
+        void setPolytopeFacesPursuit();
+        void setConstraint(int zeroedCol) {_constraint = zeroedCol; }
         int getStatus() {return _status;}
         int getContext() {return _context;}
         int getIter() {return _iter;}
@@ -143,6 +145,13 @@ class Plh {
         SCDoubleMatrix * _rQR;
         SCDoubleMatrix * _workmQR;
 
+        // data structures for Polytope Face Pursuit
+        SCDoubleMatrix * _vertex;
+        SCDoubleMatrix * _oneVecQR; 
+        SCDoubleMatrix * _trslvQR; 
+        SCDoubleMatrix * _trslv;
+        SCDoubleMatrix * _Atv; 
+
         double * _work_qr;
 
         SCIntMatrix * _QtoA;
@@ -159,6 +168,7 @@ class Plh {
         bool _initializedWithEigen;
         bool _ddmask;
         bool _col_scaling;
+        bool _PFP; 
         int _residualIncr;
         std::string _iterstring;
         std::string _residualFileName;
@@ -209,6 +219,7 @@ class Plh {
         int _nZ;
         int _ialpha;
         int _maxNP;
+        int _constraint;
 
         void initDefaults();
         void initWithSize();
@@ -233,6 +244,7 @@ class Plh {
         int updateQROld(int iqr);
         bool updateQR(int iqr);
         bool updateQtb(int iqr=0);
+        void updateVertex();
         void solveR();
         int moveFromPToZSwap();
         int moveFromPToZShift();

@@ -27,10 +27,11 @@ class SCBaseMatrix {
         int getColBlockingFactor()  {return _nb;}
         int getContext()            {return _context;}
         int getFirstProcessRow()    {return _rsrc;}
-        int getFirstProcessCol()    {return _rsrc;}
+        int getFirstProcessCol()    {return _csrc;} // this was set to rsrc????
         int getNumberOfProcsRow()   {return _mprow;}
         int getNumberOfProcsCol()   {return _npcol;}
         int getSizelocal()          {return _sizelocal;}
+        int getLeadingLocalDim()    {return _lld;}
         int * getDesc()             {return _desc;}
         void printDescription();
         void printSummary();

@@ -264,7 +264,7 @@ SCDoubleMatrix::norm2(int n) {
 
 
 int
-SCDoubleMatrix::norm2Colunns(SCDoubleMatrix& colnorms) {
+SCDoubleMatrix::norm2Columns(SCDoubleMatrix& colnorms) {
     if (colnorms._n != _n) {
         return 1;
     }
@@ -281,6 +281,28 @@ SCDoubleMatrix::norm2Colunns(SCDoubleMatrix& colnorms) {
     return 0;
 }
 
+int 
+SCDoubleMatrix::normalizeColumns(char normType) {
+    
+    int zero=0, one=1, jloc, dummy, p;
+    double norm;
+    for (int j=1; j<=_n; j++) {
+      if(normType == '2') { // 2-norm
+               _FORTRAN(pdnrm2)(&_m, &norm, _matrix, &one, &j, _desc, &one);
+      } else if (normType == '1' || normType == 'O' || normType == 'o') { // 1 norm
+        double work[_nlocal];
+        norm = _FORTRAN(pdlange)(&normType, &_m, &one, _matrix, &one, &j, _desc, work);
+      } else if (normType == 'I' || normType == 'i') { // infinity norm
+        double work[_mlocal];
+        norm = _FORTRAN(pdlange)(&normType, &_m, &one, _matrix, &one, &j, _desc, work);
+      } 
+//      std::cout << "norm of column " << j << " = " << norm << std::endl;
+      if(norm > 1e-16) norm = 1.0/norm; // don't divide by 0
+     _FORTRAN(pdscal)(&_m, &norm, _matrix, &one, &j, _desc, &one); // multiply column by norm
+    }
+    return 0;   
+
+}
 
 // Note, only for vectors. Not matrices!
 int
@@ -374,8 +396,26 @@ SCDoubleMatrix::hadamardProduct(SCDoubleMatrix &x) {
     if (_sizelocal != x._sizelocal) {
         return 1;
     }
+    // this is basically only useful for Polytope Faces Pursuit
     for (int i=0; i<_sizelocal; i++) {
-        _matrix[i] *= x._matrix[i];
+        if(_matrix[i] >= 0.0)
+          _matrix[i] *= x._matrix[i];
+        else
+          _matrix[i] = 0.0;
+    }
+    return 0;
+}
+
+int
+SCDoubleMatrix::invHadamardProduct(SCDoubleMatrix &x) {
+    if (_sizelocal != x._sizelocal) {
+        return 1;
+    }
+    for (int i=0; i<_sizelocal; i++) {
+        if(_matrix[i] < 0.0)
+          _matrix[i] = -1e16;
+        else
+          _matrix[i] /= x._matrix[i];
     }
     return 0;
 }
@@ -1276,6 +1316,7 @@ SCDoubleMatrix::scaleColumnsByL2Norm(SCDoubleMatrix& colScale) {
             }
         }
     }
+
 }
 
 

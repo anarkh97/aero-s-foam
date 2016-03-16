@@ -1611,6 +1611,7 @@ TRAIL [a-zA-Z]*
 "CLUSTERSOLVER"|"clustersolver"           { return CLUSTERSOLVER; }
 "CRANDOM"|"crandom"                       { yylval.ival = 0; return CLUSTERSOLVERTYPE; }
 "KMEANS"|"kmeans"                         { yylval.ival = 1; return CLUSTERSOLVERTYPE; }
+"SSC"|"ssc" 	           	          { yylval.ival = 2; return CLUSTERSOLVERTYPE; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

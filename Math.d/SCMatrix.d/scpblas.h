@@ -62,7 +62,7 @@ extern "C" {
     int  _FORTRAN(pdgemr2d)(int *, int *, double *, int *, int *, int *, double *, int *, int *, int *, int *);
     double _FORTRAN(pdlange)(char *, int *, int *, double *, int *, int *, int *, double *);
     void _FORTRAN(pdlaqge)(int *, int *, double *, int *, int *, int *, double *, double *, double *, double *, double *, char *);
-
+    void _FORTRAN(pdscal)(int *, double *, double *, int *, int *, int *, int *);
     void _FORTRAN(pdnrm2)(int *, double *, double *, int *, int *, int *, int *);
     void _FORTRAN(pdtrsv)(char *, char *, char *, int *, double *, int *, int *, int *, double *, int *, int *, int *, int *);
     void _FORTRAN(pdgemv)(char *, int *, int *, double *, double *, int *, int *, int *, double *, int *, int *, int *,

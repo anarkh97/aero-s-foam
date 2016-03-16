@@ -1168,6 +1168,7 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
     geomState_Big->update(*refState_Big, dq_Big, 2); 
 
     if(j != localBasisId) { // if a new local basis has been selected, update the things
+      std::cout << "selecting local basis " << j << std::endl;
       Vector vel_Big(NonLinDynamic::solVecInfo()),
              acc_Big(NonLinDynamic::solVecInfo());
 

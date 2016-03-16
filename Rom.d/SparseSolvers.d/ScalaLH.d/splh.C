@@ -40,6 +40,10 @@ splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
     }
     solver.setColumnScaling();
   }
+
+  if(option) // check if running Polytope Faces Pursuit
+    solver.setPolytopeFacesPursuit();
+
   if (npMax > 0) {
     if (mypid == 0) {
       std::cout << "Reduced mesh size limited to " << npMax << std::endl;    

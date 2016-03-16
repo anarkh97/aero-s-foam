@@ -45,7 +45,7 @@ void readAndProjectSnapshots(BasisId::Type type, const DistrInfo &vectorSize, Di
 #ifdef PRINT_ESTIMERS
   double t1 = getTime();
 #endif
-  const int snapshotCount = snapSize(type, snapshotCounts);
+  const int snapshotCount = snapSize(type, snapshotCounts, -1, podBasis.vectorCount());
   filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
   config = new DistrVecBasis(snapshotCount, vectorSize);
@@ -59,29 +59,56 @@ void readAndProjectSnapshots(BasisId::Type type, const DistrInfo &vectorSize, Di
   Vector podComponents(podVectorCount);
   FileNameInfo fileInfo;
 
+  //this ain't pretty
+  //allocate vector with length equal to total number of vectors
+  std::vector<int> randRead;
+  {
+    std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, 0);
+    DistrBasisInputFile in(fileName);
+    int numberOfVectorsInFile = in.stateCount();
+    randRead.resize(numberOfVectorsInFile);
+  }
+  std::fill(randRead.begin(),randRead.end(),0);
+  // if reading in N randomly selected vectors, call this portion and shuffle 
+  if(domain->solInfo().randomVecSampling){
+   // start at the offset, then fill in
+   int numberOfVectors = std::max(domain->solInfo().skipPodRom,podVectorCount);// need at least as many vectors as the size of the subspace because reasons
+   for(int setRead = 0+skipOffSet; setRead < numberOfVectors; setRead++)
+    randRead[setRead] = 1;
+
+   std::srand(podVectorCount); // use same seed for each file to get consistent random shuffles
+   std::random_shuffle(randRead.begin()+skipOffSet, randRead.end());
+  }
+
+
   int offset = 0;
   for(int i = 0; i < FileNameInfo::size(type, BasisId::SNAPSHOTS); i++) {
     std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
     filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
     DistrBasisInputFile in(fileName);
 
+    long int yolo = 0;
     int count = 0;
-    int skipCounter = skipFactor - skipOffSet;
+    int skipCounter = 0;
+    if(!domain->solInfo().randomVecSampling)
+      skipCounter = skipFactor - skipOffSet;
+
     while(count < snapshotCounts[i]) {
-      if(skipCounter == skipFactor) {
+      if((skipCounter == skipFactor) || (domain->solInfo().randomVecSampling && randRead[yolo+skipOffSet])) {
         assert(in.validCurrentState());
         in.currentStateBuffer(buffer);
         converter.vector(buffer, snapshot);
         expand(podBasis, reduce(podBasis, snapshot, podComponents), (*config)[offset+count]); // do projection
         timeStamps.push_back(in.currentStateHeaderValue());
-        skipCounter = 1;
+        if(!domain->solInfo().randomVecSampling) skipCounter = 1;
         ++count;
         filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done ...", in.currentStateHeaderValue(), (count*100)/snapshotCounts[i]);
       }
-      else {
+      else if(!domain->solInfo().randomVecSampling){
         ++skipCounter;
       }
       in.currentStateIndexInc();
+      yolo++;
     }
     filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done... \n", in.currentStateHeaderValue(), 100);
 

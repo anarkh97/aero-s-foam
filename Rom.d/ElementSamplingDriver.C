@@ -222,13 +222,12 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
 
   // this ain't pretty
   // allocate vector with length equal to total number of vectors 
-  int numberOfVectorsInFile;
   std::vector<int> randRead;
   {
     std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, 0);
     BasisInputStream<6> in(fileName, vecDofConversion);
-    numberOfVectorsInFile = in.size();
-    randRead.resize(in.size());
+    int numberOfVectorsInFile = in.size();
+    randRead.resize(numberOfVectorsInFile);
   }
   std::fill(randRead.begin(),randRead.end(),0);
   // if reading in N randomly selected vectors, call this portion and shuffle 

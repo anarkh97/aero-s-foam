@@ -85,7 +85,7 @@ Plh::solve() {
             _zQR->copy(*_xQR, _nP);
             copyxQR2x();
         }
-        if(_PFP) updateVertex(); // this could be done way better that solving Q*R^-T*1 each time
+//        if(_PFP) updateVertex(); // this could be done way better that solving Q*R^-T*1 each time
         computeResidual();
         iteration_output();
         if (_iter % _residualIncr == 0) writeResidual();
@@ -256,7 +256,7 @@ Plh::updateQR(int iqr) {
 }
 
 void
-Plh::updateVertex() {
+Plh::updateVertex() { // this seems more numerically accurate than the fast update, but it is much slower
 
     // first do forward triangular solve: y = R^-T*1
     {
@@ -462,6 +462,11 @@ Plh::copyxQR2x() {
 
 void
 Plh::computeResidual() {
+    if(_PFP){
+      double lambda = 1.0/_wmax.x;
+      mcopyQtoA(_rQR, _workm); // copy to same context
+      _workm->add(*_vertex, 'N', _m, 1, lambda, 1.0); // vertex^(k+1/2) = vertex^(k-1) + lambda^(k)*resdidual^(k-1);
+    }
     _Qtb->copy(*_rQR, _m);
     for (int i=1; i<=_nP; i++) {
         _rQR->setElement(i,1,0.0);
@@ -477,6 +482,11 @@ Plh::computeResidual() {
             _rQR->getMatrix(), &one, &one, _rQR->getDesc(),
             _work_qr, &_lwork_qr, &info);
         stopTime(TIME_PDORMQR_GRADF);
+    }
+    if(_PFP){
+      double lambda = -1.0/_wmax.x;
+      mcopyQtoA(_rQR, _workm);
+      _workm->add(*_vertex, 'N', _m, 1, lambda, 1.0); // vertex^(k+1/2) = -lambda^(k)*resdidual^(k-1);
     }
     _rnorm2 = _rQR->norm2();
 }

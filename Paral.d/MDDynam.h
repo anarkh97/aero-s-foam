@@ -1,6 +1,7 @@
 #ifndef _MD_DYNAM_DESCR_H_
 #define _MD_DYNAM_DESCR_H_
 
+#include <Paral.d/MultiDomainBase.h>
 #include <Driver.d/Domain.h>
 
 template <class Scalar> class GenVector;
@@ -130,7 +131,7 @@ class MultiDomDynPostProcessor
                                 double *userDefineVel, double *userDefineAcc);
 };
 
-class MultiDomainDynam 
+class MultiDomainDynam : public MultiDomainBase
 {
 protected:
     DecDomain *decDomain;
@@ -174,9 +175,6 @@ private:
 
     // reaction forces
     DistrVector *reactions;
-
-    // rbm projector
-    GenDistrVectorSet<double> *R, *X;
 
   public:
     MultiDomainDynam(Domain *d);
@@ -225,8 +223,6 @@ private:
     void processLastOutput();
     void printTimers(MDDynamMat *, double);
 
-    void trProject(DistrVector &);
-    void project(DistrVector &);
     void getRayleighCoef(double& alpha);
 
     SubDOp* getpK(MDDynamMat* dynOps);
@@ -275,7 +271,6 @@ private:
     void solveAndUpdate(DistrVector &force, DistrVector &dinc, DistrVector &d, double relaxFac, double time);
    
   private:
-    void projector_prep(MultiDomainRbm<double> *R, GenSubDOp<double> *M);
     void subGetInternalForce(int isub, DistrVector &res, double &t, int &tIndex);
     void subGetKtimesU(int isub, DistrVector &d, DistrVector &f);
     void makeSubCorotators(int isub);

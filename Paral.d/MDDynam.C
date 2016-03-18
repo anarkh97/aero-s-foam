@@ -319,8 +319,6 @@ MultiDomainDynam::~MultiDomainDynam()
   }
   delete decDomain;
   if(reactions) delete reactions;
-  if(R) delete R;
-  if(X) delete X;
   if(prevFrc) delete prevFrc;
   if(prevFrcBackup) delete prevFrcBackup;
   if(aeroForce) delete aeroForce;
@@ -355,76 +353,8 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
   return dynMat;
 }
 
-void
-MultiDomainDynam::projector_prep(MultiDomainRbm<double> *rbms, GenSubDOp<double> *M)
-{
-  int numR = rbms->numRBM();
-
-  if(numR == 0) return;
-
-  if(domain->solInfo().timeIntegration != SolverInfo::Qstatic && !domain->solInfo().rbmFilters.empty()) {
-    int count = 0;
-    for(std::set<int>::iterator it = domain->solInfo().rbmFilters.begin(); it != domain->solInfo().rbmFilters.end(); ++it) {
-      if(*it < numR) count++;
-      else filePrint(stderr," *** WARNING: mode %d specified under RBMFILTER does not exist.\n", *it+1);
-    }
-    numR = count;
-  }
-
-  filePrint(stderr," ... Building the RBM Projector     ...\n");
-  filePrint(stderr," ... Number of Filtered Modes = %-4d...\n",numR);
-
-  R = new GenDistrVectorSet<double>(numR, decDomain->solVecInfo());
-  if(domain->solInfo().timeIntegration == SolverInfo::Qstatic || domain->solInfo().rbmFilters.empty()) {
-    rbms->getRBMs(*R);
-  }
-  else {
-    rbms->getRBMs(*R, domain->solInfo().rbmFilters);
-  }
-
-  double *y = (double *) dbg_alloca(numR*sizeof(double));
-  double *x = (double *) dbg_alloca(numR*sizeof(double));
-    
-  X = new GenDistrVectorSet<double>(numR, decDomain->solVecInfo());
-
-  if(domain->solInfo().filterQ == 0 || domain->solInfo().timeIntegration != SolverInfo::Qstatic) {
-    GenDistrVectorSet<double> MR(numR, decDomain->solVecInfo());
-    for(int i=0; i<numR; ++i) {
-      M->mult((*R)[i], MR[i]);
-    }
-
-    FSFullMatrix RtMR(numR,numR);
-    for(int i=0; i<numR; ++i)
-      for(int j=i; j<numR; ++j)
-        RtMR[i][j] = RtMR[j][i] = (*R)[i]*MR[j];
-
-    FSFullMatrix RtMRinverse(numR, numR);
-    RtMRinverse = RtMR.invert();
-
-    for(int i=0; i<MR.size()/numR; ++i) {
-      for(int j=0; j<numR; ++j) y[j] = MR[j].data()[i];      
-      RtMRinverse.mult(y, x);
-      for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
-    }
-  }
-  else {
-    FSFullMatrix RtR(numR,numR);
-    for(int i=0; i<numR; ++i)
-      for(int j=i; j<numR; ++j)
-        RtR[i][j] = RtR[j][i] = (*R)[i]*(*R)[j];
-
-    FSFullMatrix RtRinverse(numR, numR);
-    RtRinverse = RtR.invert();
-
-    for(int i=0; i<R->size()/numR; ++i) {
-      for(int j=0; j<numR; ++j) y[j] = (*R)[j].data()[i];
-      RtRinverse.mult(y, x);
-      for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
-    }
-  }
-}
-
 MultiDomainDynam::MultiDomainDynam(Domain *d)
+ : MultiDomainBase(d->solInfo())
 {
   domain = d;
 
@@ -444,8 +374,6 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
   refState = 0;
   dynMat = 0;
   reactions = 0;
-  R = 0;
-  X = 0;
   prevFrc = 0;
   prevFrcBackup = 0;
   aeroForce = 0;
@@ -611,7 +539,9 @@ MultiDomainDynam::getTimeIntegration()
 int
 MultiDomainDynam::getFilterFlag()
 {
-  return (domain->solInfo().isNonLin()) ? 0 : std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
+  int filterFlag = domain->solInfo().filterFlags;
+  // note: only level 1 rbm filter is used for nonlinear
+  return (domain->solInfo().isNonLin()) ? std::min(filterFlag,1) : filterFlag;
 }
 
 int*
@@ -913,9 +843,8 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     *prevFrc = *aeroForce;
   }
 
-  // apply projector here for linear analyses only
-  if((sinfo.filterFlags || sinfo.hzemFilterFlag) && !sinfo.isNonLin())
-    trProject(f);
+  // apply rbmfilter projection
+  if(sinfo.filterFlags) trProject(f);
 
   if(tIndex == 1)
     sinfo.initExtForceNorm = f.norm();
@@ -946,6 +875,13 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
                      &state.getDisp(), &state.getVeloc(), &state.getAccel(),
                      &state.getPrevVeloc());
   threadManager->execParal(decDomain->getNumSub(), &mdop);
+
+  if(sinfo.filterFlags) {
+    project(state.getDisp());
+    project(state.getVeloc());
+    project(state.getAccel());
+    project(state.getPrevVeloc());
+  }
  
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
@@ -1071,40 +1007,6 @@ MultiDomainDynam::printTimers(MDDynamMat *dynOps, double timeLoop)
        break;
    }
 */
-}
-
-void
-MultiDomainDynam::trProject(DistrVector &f)
-{
- int numR = (R) ? R->numVec() : 0;
- if(numR == 0) return;
-
- double *y = (double *) dbg_alloca(numR*sizeof(double));
-
- // y = Rt*f
- for(int i=0; i<numR; ++i)
-   y[i] = (*R)[i]*f;
-
- // f = f - X*y
- for(int i=0; i<f.size(); ++i)
-   for(int j=0; j<numR; ++j) f.data()[i] -= (*X)[j].data()[i]*y[j];
-}
-
-void
-MultiDomainDynam::project(DistrVector &v)
-{
- int numR = (R) ? R->numVec() : 0;
- if(numR == 0) return;
-
- double *y = (double *) dbg_alloca(numR*sizeof(double));
-
- // y = Xt*v
- for(int i=0; i<numR; ++i)
-   y[i] = (*X)[i]*v;
-
- // v = v - R*y
- for(int i=0; i<v.size(); ++i)
-   for(int j=0; j<numR; ++j) v.data()[i] -= (*R)[j].data()[i]*y[j];
 }
 
 void

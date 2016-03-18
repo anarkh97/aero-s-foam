@@ -500,7 +500,7 @@ struct SolverInfo {
 
    // Constructor
    SolverInfo() { filterFlags = 0;
-                  filterQ = 0;
+                  filterQ = 1;
                   type = 0;     
                   soltyp = -1;
                   subtype = 0; // By default we use direct Skyline

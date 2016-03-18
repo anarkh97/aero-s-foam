@@ -1,6 +1,8 @@
 #ifndef _MD_NL_DYNAMIC_H_
 #define _MD_NL_DYNAMIC_H_
 
+#include <Paral.d/MultiDomainBase.h>
+
 #include <cstddef>
 #include <map>
 #include <vector>
@@ -34,7 +36,7 @@ template <class Scalar> class GenFetiDPSolver;
 
 // Multiple Domain Nonlinear Dynamic problem descriptor
 
-class MDNLDynamic 
+class MDNLDynamic : public MultiDomainBase
 {
   protected:
     Domain *domain;

@@ -168,6 +168,7 @@ SDDynamPostProcessor::fillBcxVcx(double time)
 typedef FSFullMatrix FullMatrix;
 
 SingleDomainDynamic::SingleDomainDynamic(Domain *d)
+ : SingleDomainBase(d->solInfo())
 { 
   domain = d;
   if(domain->solInfo().sensitivity) allSens = new AllSensitivities<double>; 
@@ -190,10 +191,6 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
   flExchanger = domain->getFileExchanger();
   reactions = 0;
   firstSts = true;
-
-  numR = 0;
-  Rmem = 0;
-  X = 0;
 }
 
 SingleDomainDynamic::~SingleDomainDynamic()
@@ -220,104 +217,14 @@ SingleDomainDynamic::~SingleDomainDynamic()
     delete [] allCorot;
     allCorot = 0;
   }
-  if(Rmem) delete [] Rmem;
-  if(X) delete X;
-}
-
-void
-SingleDomainDynamic::projector_prep(SparseMatrix *M)
-{
- if (!numR) return;
-
- filePrint(stderr," ... Building the RBM/HZEM Projector...\n");
- filePrint(stderr," ... Number of Filtered Modes = %-4d...\n",numR);
-
- int ndof = solVecInfo();
- StackFSFullMatrix Rt(numR, ndof, Rmem);
- X = new FullMatrix(ndof,numR);
-
- if(domain->solInfo().filterQ == 0 || domain->solInfo().timeIntegration != SolverInfo::Qstatic) {
-   double *MRmem = new double[numR*ndof];
-   StackFSFullMatrix MRt(numR, ndof, MRmem);
-
-   for(int n=0; n<numR; ++n)
-     M->mult(Rmem+n*ndof, MRmem+n*ndof);
-
-   FullMatrix MR = MRt.transpose();
-
-   FullMatrix RtMR(numR,numR);
-   Rt.mult(MR,RtMR); 
-
-   FullMatrix RtMRinverse = RtMR.invert();
-
-   MR.mult(RtMRinverse,(*X));
-
-   delete [] MRmem;
- }
- else {
-   FullMatrix R = Rt.transpose();
-
-   FullMatrix RtR(numR,numR);
-   Rt.mult(R,RtR);
-
-   FullMatrix RtRinverse = RtR.invert();
-
-   R.mult(RtRinverse,(*X));
- }
-}
-
-void
-SingleDomainDynamic::trProject(Vector &f)
-{
- if (!numR) return;
-
- int ndof = f.size();
-
- double *yMem = (double *) dbg_alloca(numR*sizeof(double));
- double *zMem = (double *) dbg_alloca(ndof*sizeof(double));
- StackVector y(numR,yMem);
- StackVector z(ndof,zMem);
-
- StackFSFullMatrix Rt(numR, ndof, Rmem);
-
- // y = Rt*f
- Rt.mult(f,y);
-
- // z = X*y
- (*X).mult(y,z);
-
- // f = f - z;
- f.linC(1.0, f, -1.0, z);
-}
-
-void
-SingleDomainDynamic::project(Vector &v)
-{
- if (!numR) return;
-
- int ndof = v.size();
-
- double *yMem = (double *) dbg_alloca(numR*sizeof(double));
- double *zMem = (double *) dbg_alloca(ndof*sizeof(double));
- StackVector y(numR,yMem);
- StackVector z(ndof,zMem);
-
- StackFSFullMatrix Rt(numR, ndof, Rmem);
-
- // y = Xt*v
- (*X).trMult(v,y);
- 
- // z = R*y
- Rt.trMult(y,z);
-
- // v = v - z;
- v.linAdd(-1.0, z);
 }
 
 int
 SingleDomainDynamic::getFilterFlag()
 {
- return (domain->solInfo().isNonLin()) ? 0 : std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
+ int filterFlag = std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
+ // note: only level 1 rbm filter is used for nonlinear
+ return (domain->solInfo().isNonLin()) ? std::min(filterFlag,1) : filterFlag;
 }
 
 int
@@ -470,6 +377,14 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
   // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART
   domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
                         inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart for linear 
+
+  // apply rbmfilter projection
+  if(sinfo.filterFlags || sinfo.hzemFilterFlag) {
+    project(inState.getDisp());
+    project(inState.getVeloc());
+    project(inState.getAccel());
+    project(inState.getPrevVeloc());
+  }
 
   if(geoSource->getCheckFileInfo()->lastRestartFile) { 
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
@@ -750,8 +665,8 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   if(sinfo.aeroheatFlag >= 0 && tIndex >= 0) 
     domain->buildAeroheatFlux(ext_f, prevFrc->lastFluidLoad, tIndex, t);
 
-  // apply projector here for linear analyses only
-  if((sinfo.filterFlags || sinfo.hzemFilterFlag) && !sinfo.isNonLin())
+  // apply rbmfilter projection
+  if(sinfo.filterFlags || sinfo.hzemFilterFlag)
     trProject(ext_f); 
 
   if(tIndex == 1)
@@ -939,30 +854,6 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  else if(useHzem || useHzemFilter)
    rigidBodyModes = domain->constructHzem();
 
- if(useRbmFilter || useHzemFilter) {
-   numR = rigidBodyModes->numRBM();
-   if(numR > 0) {
-     if(domain->solInfo().timeIntegration != SolverInfo::Qstatic && !domain->solInfo().rbmFilters.empty()) {
-       int count = 0;
-       for(std::set<int>::iterator it = domain->solInfo().rbmFilters.begin(); it != domain->solInfo().rbmFilters.end(); ++it) {
-         if(*it < numR) count++;
-         else filePrint(stderr," *** WARNING: mode %d specified under RBMFILTER does not exist.\n", *it+1);
-       }
-       numR = count;
-     }
-     // KHP: store this pointer to the RBMs to use in the actual
-     //      projection step within the time loop.
-     int ndof = allOps.M->dim();
-     Rmem = new double[numR*ndof];
-     if(domain->solInfo().timeIntegration == SolverInfo::Qstatic || domain->solInfo().rbmFilters.empty()) {
-       rigidBodyModes->getRBMs(Rmem);
-     }
-     else {
-       rigidBodyModes->getRBMs(Rmem, domain->solInfo().rbmFilters);
-     }
-   }
- }
-
  if((getTimeIntegration() == 1) && (useGrbm || useHzem) && !domain->solInfo().isNonLin()) // only use rigidBodyModes for linear quasistatics
    domain->buildOps(allOps, coeK, coeM, coeC, rigidBodyModes, kelArray, melArray);
  else
@@ -974,7 +865,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
    filePrint(stderr," ... HZEM Filter Requested          ...\n");
 
  if(useRbmFilter || useHzemFilter)
-   projector_prep(allOps.M);
+   projector_prep(rigidBodyModes, allOps.M);
  
  // Modal decomposition preprocessing
  int decompFlag = domain->solInfo().modeDecompFlag;

@@ -34,6 +34,7 @@ typedef FSFullMatrix FullMatrix;
 extern int verboseFlag;
 
 NonLinDynamic::NonLinDynamic(Domain *d) :
+  SingleDomainBase(d->solInfo()),
   domain(d),
   bcx(0),
   vcx(0),
@@ -163,6 +164,14 @@ NonLinDynamic::getInitState(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p)
 {
   // initialize state with IDISP/IDISP6/IVEL or RESTART
   domain->initDispVeloc(d_n, v_n, a_n, v_p);
+
+  // apply rbmfilter projection
+  if(sinfo.filterFlags || sinfo.hzemFilterFlag) {
+    project(d_n);
+    project(v_n);
+    project(a_n);
+    project(v_p);
+  }
 
   updateUserSuppliedFunction(d_n, v_n, a_n, v_p, domain->solInfo().initialTime);
 
@@ -311,7 +320,6 @@ void
 NonLinDynamic::updateContactSurfaces(GeomState& geomState, GeomState *refState)
 {
   clean();
-  std::cout << "line number " << __LINE__ << " of " << __FILE__ << std::endl;
   domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
 
   if(!domain->solInfo().trivial_detection) 
@@ -716,7 +724,11 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0)
     domain->buildAeroheatFlux(rhs, prevFrc->lastFluidLoad, tIndex, t);
 
- times->formRhs += getTime();
+  // apply rbmfilter projection
+  if(sinfo.filterFlags || sinfo.hzemFilterFlag)
+    trProject(rhs);
+
+  times->formRhs += getTime();
 }
 
 void
@@ -906,12 +918,10 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  int useGrbm = domain->solInfo().rbmflg;
  int useHzem = domain->solInfo().hzemFlag;
 
- if (useGrbm)
+ if (useGrbm || sinfo.filterFlags)
    rigidBodyModes = domain->constructRbm();
- else if(useHzem)
+ else if(useHzem || sinfo.hzemFilterFlag)
    rigidBodyModes = domain->constructHzem();
-
- if(rigidBodyModes) delete rigidBodyModes;
 
  // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
  if(!kelArray) {
@@ -934,6 +944,11 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  Mcc    = allOps.Mcc;
  Cuc    = allOps.Cuc;
  Ccc    = allOps.Ccc;
+
+ if(sinfo.filterFlags || sinfo.hzemFilterFlag)
+   projector_prep(rigidBodyModes, M);
+
+ if(rigidBodyModes) delete rigidBodyModes;
 
  if(!allCorot) {
    // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS

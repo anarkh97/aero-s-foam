@@ -3,6 +3,7 @@
 
 #include <map>
 #include <Driver.d/Domain.h>
+#include <Problems.d/SingleDomainBase.h>
 
 template <class Scalar> class GenDynamMat;
 typedef GenDynamMat<double> DynamMat;
@@ -71,7 +72,7 @@ class SDDynamPostProcessor {
 
 // Single Domain Dynamic Problem Description
 
-class SingleDomainDynamic 
+class SingleDomainDynamic : public SingleDomainBase
 {
   protected:
     Domain *domain;
@@ -94,10 +95,6 @@ class SingleDomainDynamic
     double t0; // initial time
     PrevFrc *prevFrc;
     PrevFrc *prevFrcBackup;
-
-    FSFullMatrix  *X;    // pre-calculated projector
-    double *Rmem;        // global rigid body modes (numdof X 6)
-    int numR;            // number of rigid body modes
 
     double *alfa;
     int maxmode;      // number of eigenvectors for modal decomposition analysis
@@ -124,10 +121,6 @@ class SingleDomainDynamic
     double* boundaryValue() { return bcx; }
     double* boundaryVeloc() { return vcx; }
     double* boundaryAccel() { return acx; }
-
-    void trProject(Vector &f);
-    void project(Vector &v);
-    void projector_prep(SparseMatrix *M);
 
     int solVecInfo();
     int masterSolVecInfo();

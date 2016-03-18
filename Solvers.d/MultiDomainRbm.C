@@ -462,3 +462,10 @@ MultiDomainRbm<Scalar>::singularValueDecomposition(FullM &A, FullM &U, int ncol,
     if(fabs(w[i]) > tolerance) rank += 1;
   }
 }
+
+template<class Scalar>
+DistrInfo &
+MultiDomainRbm<Scalar>::solVecInfo()
+{
+  return decDomain->solVecInfo();
+}

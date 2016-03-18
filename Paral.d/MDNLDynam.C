@@ -49,6 +49,13 @@ MDNLDynamic::getInitState(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n, 
                      &d_n, &v_n, &a_n, &v_p);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
 
+  if(sinfo.filterFlags) {
+    project(d_n);
+    project(v_n);
+    project(a_n);
+    project(v_p);
+  }
+
   if(claw && userSupFunc && claw->numSensor) {
     double *ctrdisp = new double[claw->numSensor];
     double *ctrvel  = new double[claw->numSensor];
@@ -253,6 +260,7 @@ MDNLDynamic::computeTimeInfo()
 }
 
 MDNLDynamic::MDNLDynamic(Domain *d)
+ : MultiDomainBase(d->solInfo())
 {
   domain = d;
 #ifdef DISTRIBUTED
@@ -695,9 +703,9 @@ MDNLDynamic::preProcess()
     celArray = new FullSquareMatrix*[decDomain->getNumSub()];
 
   // Compute the geometric rigid body modes if requested
-  if(!mu && domain->solInfo().rbmflg) {
-    MultiDomainRbm<double> *rigidBodyModes = decDomain->constructRbm();
-    delete rigidBodyModes;
+  MultiDomainRbm<double> *rigidBodyModes = 0;
+  if(!mu && (domain->solInfo().rbmflg || domain->solInfo().filterFlags)) {
+    rigidBodyModes = decDomain->constructRbm();
   }
 
   // Allocate vector to store reaction forces
@@ -728,6 +736,9 @@ MDNLDynamic::preProcess()
   times->getFetiSolverTime += getTime();
 
   times->memoryPreProcess -= threadManager->memoryUsed();
+
+ if(sinfo.filterFlags) projector_prep(rigidBodyModes, M);
+ if(rigidBodyModes) delete rigidBodyModes;
 
   // Look if there is a user supplied routine for control
   claw = geoSource->getControlLaw();
@@ -925,6 +936,9 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
 
     *prevFrc = *aeroForce;
   }
+
+  // apply rbmfilter projection
+  if(sinfo.filterFlags) trProject(f);
 
   times->formRhs += getTime();
 }

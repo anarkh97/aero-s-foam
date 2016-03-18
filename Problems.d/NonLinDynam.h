@@ -1,6 +1,7 @@
 #ifndef _NON_LIN_DYNAM_H_
 #define _NON_LIN_DYNAM_H_
 
+#include <Problems.d/SingleDomainBase.h>
 #include <Math.d/Vector.h>
 
 class Domain;
@@ -39,7 +40,7 @@ public:
 };
 
 // Virtual methods to allow derived class PitaNonLinDynamic in Pita.d/PitaNonLinDynam.d
-class NonLinDynamic : public NLDynamPostProcessor {
+class NonLinDynamic : public NLDynamPostProcessor, public SingleDomainBase {
 
   protected:
     Domain *domain;

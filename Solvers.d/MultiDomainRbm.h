@@ -10,6 +10,7 @@ template <class Scalar> class GenDistrVectorSet;
 template <class Scalar> class GenSubDomain;
 class Connectivity;
 template <class Scalar> class GenSparseMatrix;
+struct DistrInfo;
 
 template<class Scalar>
 class MultiDomainRbm
@@ -23,6 +24,7 @@ class MultiDomainRbm
     int numRBM();
     void getRBMs(GenDistrVectorSet<Scalar>& rigidBodyModes);
     void getRBMs(GenDistrVectorSet<Scalar>& rigidBodyModes, std::set<int> &rbmFilters);
+    DistrInfo &solVecInfo();
 
   private:
     void computeRbms();

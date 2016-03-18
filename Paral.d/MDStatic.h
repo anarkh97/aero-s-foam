@@ -1,5 +1,7 @@
 #ifndef _MD_STATIC_DESCR_H_
 #define _MD_STATIC_DESCR_H_
+
+#include <Paral.d/MultiDomainBase.h>
 #include <Driver.d/DecDomain.h>
 
 template <class Scalar> class GenParallelSolver;
@@ -34,7 +36,7 @@ class GenMultiDomainPostProcessor
 };
 
 template<class Scalar>
-class GenMultiDomainStatic 
+class GenMultiDomainStatic : public MultiDomainBase
 {
  protected:
     Domain *domain;
@@ -42,9 +44,8 @@ class GenMultiDomainStatic
     GenParallelSolver<Scalar> *solver;
     StaticTimers *times;
     GenMDDynamMat<Scalar> allOps;
-    GenDistrVectorSet<Scalar> *R, *X;
+
  public:
-    GenMultiDomainStatic() : decDomain(0), solver(0), times(0), R(0), X(0) {}
     explicit GenMultiDomainStatic(Domain *d);
     ~GenMultiDomainStatic();
 
@@ -79,12 +80,8 @@ class GenMultiDomainStatic
     GenParallelSolver<Scalar> *getSolver();
     GenMultiDomainPostProcessor<Scalar> *getPostProcessor();
     StaticTimers *getStaticTimers() { return times; }
-    void trProject(GenDistrVector<Scalar> &);
-    void project(GenDistrVector<Scalar> &);
     AllSensitivities<Scalar> *getAllSensitivities();
  private:
-    void eigmode_projector_prep();
-    void projector_prep(MultiDomainRbm<Scalar> *rbms);
     void subGetRHS(int isub, GenDistrVector<Scalar>& rhs);
     void makeSubdomainStaticLoadGalPr(int iSub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &tmp, double *o);
     void subPade(int iSub, GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x);

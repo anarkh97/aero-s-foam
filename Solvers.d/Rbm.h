@@ -87,6 +87,7 @@ public:
   int numComponents()    { return nComponents;         }
   int firstDof(int num)  { return firstDofOfComp[num]; }
   int numDof(int num)    { return numDofPerComp[num];  }
+  int numDof()           { return numUncon;            }
   void getxyzRot(int num, double* ans) {
     ans[0] = xyzRot[num][0]; ans[1] = xyzRot[num][1]; ans[2] = xyzRot[num][2];
   }

@@ -252,7 +252,7 @@ struct SolverInfo {
 
    int massFlag;
    int filterFlags;
-   int filterQ; // 0 = Q=M for quasistatics, 1 = Q=I for quasistatics
+   int filterQ; // 0 = Q=M for statics/quasistatics, 1 = Q=I for statics/quasistatics
 
    int zeroInitialDisp; // flag to set initial disp to zero
 

@@ -312,7 +312,6 @@ SingleDomainDynamic::project(Vector &v)
 
  // v = v - z;
  v.linAdd(-1.0, z);
- (*X).trMult(v,y);
 }
 
 int

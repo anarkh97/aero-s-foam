@@ -609,6 +609,8 @@ TRAIL [a-zA-Z]*
 
 "rbmf"[a-zA-Z]*|"RBMF"[a-zA-Z]*    { return RBMFILTER; }
 
+"lisr"[a-zA-Z]*|"LISR"[a-zA-Z]*    { return LISRBM; }
+
 "RESTART"|"restart"                { return RESTART; }
 
 "CONVECTI"[a-zA-Z]*|"convecti"[a-zA-Z]* { return CONVECTION; }

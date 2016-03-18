@@ -69,7 +69,7 @@ GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
 
  // rbm or eigen mode projector 
  if(domain->solInfo().filterFlags || domain->solInfo().modeFilterFlag)
-   project(rhs);
+   trProject(rhs);
 
  if(domain->solInfo().type == 1) allOps.spMat->getAssembler()->assemble(rhs); // XXXX
 
@@ -491,22 +491,45 @@ GenMultiDomainStatic<Scalar>::projector_prep(MultiDomainRbm<Scalar> *rbms)
   R = new GenDistrVectorSet<Scalar>(numR, decDomain->solVecInfo());
   rbms->getRBMs(*R);
 
-  GenFSFullMatrix<Scalar> RtR(numR,numR);
-  for(int i=0; i<numR; ++i)
-    for(int j=i; j<numR; ++j)
-      RtR[i][j] = RtR[j][i] = (*R)[i]*(*R)[j];
-
-  GenFSFullMatrix<Scalar> RtRinverse(numR, numR);
-  RtRinverse = RtR.invert();
-
   Scalar *y = (Scalar *) dbg_alloca(numR*sizeof(Scalar));
   Scalar *x = (Scalar *) dbg_alloca(numR*sizeof(Scalar));
 
   X = new GenDistrVectorSet<Scalar>(numR, decDomain->solVecInfo());
-  for(int i=0; i<R->size()/numR; ++i) {
-    for(int j=0; j<numR; ++j) y[j] = (*R)[j].data()[i];
-    RtRinverse.mult(y, x);
-    for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
+
+  if(domain->solInfo().filterQ == 0) {
+    GenDistrVectorSet<Scalar> MR(numR, decDomain->solVecInfo());
+    for(int i=0; i<numR; ++i) {
+      allOps.M->mult((*R)[i], MR[i]);
+    }
+
+    GenFSFullMatrix<Scalar> RtMR(numR,numR);
+    for(int i=0; i<numR; ++i)
+      for(int j=i; j<numR; ++j)
+        RtMR[i][j] = RtMR[j][i] = (*R)[i]*MR[j];
+
+    GenFSFullMatrix<Scalar> RtMRinverse(numR, numR);
+    RtMRinverse = RtMR.invert();
+
+    for(int i=0; i<MR.size()/numR; ++i) {
+      for(int j=0; j<numR; ++j) y[j] = MR[j].data()[i];
+      RtMRinverse.mult(y, x);
+      for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
+    }
+  }
+  else {
+    GenFSFullMatrix<Scalar> RtR(numR,numR);
+    for(int i=0; i<numR; ++i)
+      for(int j=i; j<numR; ++j)
+        RtR[i][j] = RtR[j][i] = (*R)[i]*(*R)[j];
+
+    GenFSFullMatrix<Scalar> RtRinverse(numR, numR);
+    RtRinverse = RtR.invert();
+
+    for(int i=0; i<R->size()/numR; ++i) {
+      for(int j=0; j<numR; ++j) y[j] = (*R)[j].data()[i];
+      RtRinverse.mult(y, x);
+      for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
+    }
   }
 }
 
@@ -566,7 +589,7 @@ GenMultiDomainStatic<Scalar>::eigmode_projector_prep()
 
 template<class Scalar>
 void
-GenMultiDomainStatic<Scalar>::project(GenDistrVector<Scalar> &b)
+GenMultiDomainStatic<Scalar>::trProject(GenDistrVector<Scalar> &b)
 {
   int numR = (R) ? R->numVec() : 0;
   if(numR == 0) return;
@@ -580,6 +603,24 @@ GenMultiDomainStatic<Scalar>::project(GenDistrVector<Scalar> &b)
   // b = b - X*y
   for(int i=0; i<b.size(); ++i)
     for(int j=0; j<numR; ++j) b.data()[i] -= (*X)[j].data()[i]*y[j];
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::project(GenDistrVector<Scalar> &v)
+{
+ int numR = (R) ? R->numVec() : 0;
+ if(numR == 0) return;
+
+ Scalar *y = (Scalar *) dbg_alloca(numR*sizeof(Scalar));
+
+ // y = Xt*v
+ for(int i=0; i<numR; ++i)
+   y[i] = (*X)[i]*v;
+
+ // v = v - R*y
+ for(int i=0; i<v.size(); ++i)
+   for(int j=0; j<numR; ++j) v.data()[i] -= (*R)[j].data()[i]*y[j];
 }
 
 template<class Scalar>

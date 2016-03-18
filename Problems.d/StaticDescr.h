@@ -101,7 +101,8 @@ class SingleDomainStatic
     SolverType *getSolver();
     AllOps<T> *getAllOps() { return &allOps; }
     T *getbc() { return bcx; }
-    void project(VectorType &f);
+    void trProject(VectorType &f);
+    void project(VectorType &v);
     void projector_prep(Rbm *rbms);
     void eigmode_projector_prep();
     SingleDomainPostProcessor<T,VectorType,SolverType> *getPostProcessor();

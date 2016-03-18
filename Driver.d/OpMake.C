@@ -1390,6 +1390,11 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, Rbm 
 
    }
  }
+ // for rbmfilter: need M
+ else if(sinfo.filterQ == 0 && (sinfo.filterFlags || sinfo.hzemFilterFlag || sinfo.slzemFilterFlag)) {
+   allOps.M = constructDBSparseMatrix<Scalar>();
+ }
+
  if(isDamped) {
      if (allOps.K_deriv) for(int i=0;i<=allOps.n_Kderiv;i++) if (allOps.K_deriv[i]) delete allOps.K_deriv[i];
      if (allOps.Kuc_deriv) for(int i=0;i<=allOps.n_Kderiv;i++) if (allOps.Kuc_deriv[i]) delete allOps.Kuc_deriv[i];

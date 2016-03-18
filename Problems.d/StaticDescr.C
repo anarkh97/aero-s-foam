@@ -24,6 +24,16 @@ typedef FSFullMatrix FullMatrix;
 template <class Scalar> class GenVector;
 typedef GenVector<DComplex> ComplexVector;
 
+inline void applyMult(SparseMatrix *M, double *x, double *y)
+{
+ M->mult(x,y);
+}
+
+inline void applyMult(ComplexSparseMatrix *M, double *x, double *y)
+{
+ fprintf(stderr, "Programming error: Project was called on complex vector\n");
+}
+
 template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::projector_prep(Rbm *rbms)
@@ -62,22 +72,43 @@ SingleDomainStatic<T, VectorType, SolverType>::projector_prep(Rbm *rbms)
  }
 
  StackFSFullMatrix Rt(numR, ndof, Rmem);
-
- FullMatrix R = Rt.transpose();
-
- FullMatrix RtR(numR,numR);
- Rt.mult(R,RtR);
-
- FullMatrix RtRinverse = RtR.invert();
-
  X = new FullMatrix(ndof,numR);
- R.mult(RtRinverse,(*X));
+
+ if(domain->solInfo().filterQ == 0) {
+   double *MRmem = new double[numR*ndof];
+   StackFSFullMatrix MRt(numR, ndof, MRmem);
+
+   for(int n=0; n<numR; ++n)
+     applyMult(allOps.M, Rmem+n*ndof, MRmem+n*ndof);
+
+   FullMatrix MR = MRt.transpose();
+
+   FullMatrix RtMR(numR,numR);
+   Rt.mult(MR,RtMR);
+
+   FullMatrix RtMRinverse = RtMR.invert();
+
+   MR.mult(RtMRinverse,(*X));
+
+   delete [] MRmem;
+ }
+ else {
+   FullMatrix R = Rt.transpose();
+
+   FullMatrix RtR(numR,numR);
+   Rt.mult(R,RtR);
+
+   FullMatrix RtRinverse = RtR.invert();
+
+   R.mult(RtRinverse,(*X));
+ }
 }
 
 inline void applyMult(FSFullMatrix &M, GenVector<double> &x, GenVector<double> &y)
 {
  M.mult(x,y);
 }
+
 inline void applyMult(FSFullMatrix &M, ComplexVector &x, ComplexVector &y)
 {
  fprintf(stderr, "Programming error: Project was called on complex vector\n");
@@ -85,7 +116,7 @@ inline void applyMult(FSFullMatrix &M, ComplexVector &x, ComplexVector &y)
 
 template<class T, class VectorType, class SolverType>
 void
-SingleDomainStatic<T, VectorType, SolverType>::project(VectorType &f)
+SingleDomainStatic<T, VectorType, SolverType>::trProject(VectorType &f)
 {
  if (!numR) return;
 
@@ -108,11 +139,44 @@ SingleDomainStatic<T, VectorType, SolverType>::project(VectorType &f)
 
  // f = f - z;
  f.linC(1.0, f, -1.0, z);
-
- // check R^T*f = 0
- //y.zero(); applyMult(Rt,f,y); cerr << "5. y = "; print_debug(y);
 }
 
+inline void applyTrMult(FSFullMatrix &M, GenVector<double> &x, GenVector<double> &y)
+{
+ M.trMult(x,y);
+}
+
+inline void applyTrMult(FSFullMatrix &M, ComplexVector &x, ComplexVector &y)
+{
+ fprintf(stderr, "Programming error: Project was called on complex vector\n");
+}
+
+template<class T, class VectorType, class SolverType>
+void
+SingleDomainStatic<T, VectorType, SolverType>::project(VectorType &v)
+{
+ if (!numR) return;
+
+ int ndof = v.size();
+
+ typedef typename VectorType::DataType Scalar;
+ Scalar *yMem = (Scalar *) dbg_alloca(numR*sizeof(Scalar));
+ Scalar *zMem = (Scalar *) dbg_alloca(ndof*sizeof(Scalar));
+
+ GenStackVector<Scalar> y(numR,yMem);
+ GenStackVector<Scalar> z(ndof,zMem);
+
+ StackFSFullMatrix Rt(numR, ndof, Rmem);
+
+ // y = Xt*v
+ y.zero(); applyTrMult(*X,v,y);
+
+ // z = R*y
+ z.zero(); applyTrMult(Rt,y,z);
+
+ // v = v - z;
+ v.linAdd(-1.0, z);
+}
 
 template<class T, class VectorType, class SolverType>
 int
@@ -158,7 +222,7 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHS(VectorType &rhs)
  // rigid body mode projector (or eigen mode projector)
  bool useProjector = (domain->solInfo().filterFlags || domain->solInfo().modeFilterFlag);
  if(useProjector) 
-   project(rhs);
+   trProject(rhs);
 
  stopTimerMemory(times->formRhs, times->memoryRhs);
 }
@@ -176,7 +240,7 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHSinpc(VectorType &rhs)
 
  int useProjector=domain->solInfo().filterFlags;
  if(useProjector)
-   project(rhs);
+   trProject(rhs);
 
  stopTimerMemory(times->formRhs, times->memoryRhs);
 }
@@ -246,36 +310,22 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
 
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
 
- if(!rigidBodyModes) {
-   int useProjector = domain->solInfo().filterFlags;
-   int useHzemFilter = domain->solInfo().hzemFilterFlag;
-   int useSlzemFilter = domain->solInfo().slzemFilterFlag;
+ int useProjector = domain->solInfo().filterFlags;
+ int useHzemFilter = domain->solInfo().hzemFilterFlag;
+ int useSlzemFilter = domain->solInfo().slzemFilterFlag;
 
+ if(!rigidBodyModes) {
    // ... Construct geometric rigid body modes if necessary
    if(useProjector || domain->solInfo().rbmflg) {
      rigidBodyModes = domain->constructRbm();
-     if(useProjector) {
-       std::cout << " ... RBM Filter Requested           ..." << std::endl;
-       projector_prep(rigidBodyModes);
-     }
    }
-
    // ... Construct "thermal rigid body mode" if necessary
    else if(useHzemFilter || domain->solInfo().hzemFlag) {
      rigidBodyModes = domain->constructHzem();
-     if(useHzemFilter) {
-       std::cout << " ... HZEM Filter Requested          ..." << std::endl;
-       projector_prep(rigidBodyModes);
-     }
    }
-
    // ... Construct "sloshing rigid body mode" if necessary
    else if(useSlzemFilter || domain->solInfo().slzemFlag) {
      rigidBodyModes = domain->constructSlzem();
-     if(useSlzemFilter) {
-       std::cout << " ... SLZEM Filter Requested         ..." << std::endl;
-       projector_prep(rigidBodyModes);
-     }
    }
  }
 
@@ -288,6 +338,18 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
  solver = allOps.sysSolver;
  kuc = allOps.Kuc;
  kcc = allOps.Kcc;
+
+ if(!Rmem) {
+   if(useProjector)
+     std::cout << " ... RBM Filter Requested           ..." << std::endl;
+   else if(useHzemFilter)
+     std::cout << " ... HZEM Filter Requested          ..." << std::endl;
+   else if(useSlzemFilter)
+     std::cout << " ... SLZEM Filter Requested         ..." << std::endl;
+
+   if(useProjector || useHzemFilter || useSlzemFilter)
+     projector_prep(rigidBodyModes);
+ }
 }
 
 template<class T, class VectorType, class SolverType>

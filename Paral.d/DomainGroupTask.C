@@ -231,6 +231,9 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
          Cuc[isub] = sd[isub]->template constructCuCSparse<Scalar>();
     }
   }
+  else if(solInfo.filterQ == 0 && (solInfo.filterFlags || solInfo.hzemFilterFlag || solInfo.slzemFilterFlag)) {
+    M[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
+  }
 
   // builds the datastructures for Kii, Kib, Kbb
   if(solInfo.type == 2 && make_feti) { // FETI

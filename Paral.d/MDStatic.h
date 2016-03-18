@@ -79,6 +79,7 @@ class GenMultiDomainStatic
     GenParallelSolver<Scalar> *getSolver();
     GenMultiDomainPostProcessor<Scalar> *getPostProcessor();
     StaticTimers *getStaticTimers() { return times; }
+    void trProject(GenDistrVector<Scalar> &);
     void project(GenDistrVector<Scalar> &);
     AllSensitivities<Scalar> *getAllSensitivities();
  private:

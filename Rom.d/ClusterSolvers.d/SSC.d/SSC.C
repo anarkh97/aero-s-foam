@@ -37,6 +37,7 @@ SparseSubspaceClustering::setDefaults() {
     _seed = 1;
     _numClusters = 10;
     _max_iter = SPARSESUBSPACECLUSTERING_MAX_ITER_DEFAULT;
+    sparseTol = 0.01;
 }
 
 

@@ -73,7 +73,7 @@ class SparseSubspaceClustering {
         double _wallclock[N_TIMES_SPARSESUBSPACECLUSTERING];
         double _wallclock_total[N_TIMES_SPARSESUBSPACECLUSTERING];
 
-        double sparseTol = 0.01;
+        double sparseTol;
 
         int _max_iter;
 

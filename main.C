@@ -1370,8 +1370,7 @@ int main(int argc, char** argv)
            if(domain->solInfo().use_nmf) {
              filePrint(stderr, " ... Nonneg. Matrix Factorization   ...\n");
              driver.reset(positiveDualBasisDriverNew(domain));
-           }
-           else {
+           } else {
              filePrint(stderr, " ... Singular Value Decomposition   ...\n");
              driver.reset(basisOrthoDriverNew(domain));
            }

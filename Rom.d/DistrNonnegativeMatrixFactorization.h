@@ -30,9 +30,9 @@ public:
   DistrNonnegativeMatrixFactorization(Communicator * comm, int rowCount, int colCount, int localRows, int basisDimension,
                                       int blockSize, int maxIter, double tol, int method, int nsub, int pqnNumInnerIter, double pqnAlpha);
 
-private:
-  void solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleMatrix &B, SCDoubleMatrix &X, int flag);
+  void solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleMatrix &B, SCDoubleMatrix &X, int flag, int SSCflag = 0);
 
+private:
   // Disallow copy & assignment
   DistrNonnegativeMatrixFactorization(const DistrNonnegativeMatrixFactorization &);
   DistrNonnegativeMatrixFactorization & operator=(const DistrNonnegativeMatrixFactorization &);

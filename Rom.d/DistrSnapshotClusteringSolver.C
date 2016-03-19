@@ -5,6 +5,7 @@
 #include <Math.d/SCMatrix.d/SCDoubleMatrix.h>
 #include <Utils.d/linkfc.h>
 #include <Rom.d/ClusterSolvers.d/Kmeans.d/Kmeans.h>
+#include <Rom.d/ClusterSolvers.d/SSC.d/SSC.h>
 
 #include <mpi.h>
 
@@ -130,10 +131,55 @@ DistrSnapshotClusteringSolver::solve()
         centroidBuffer_.col(i) /= clusterCols_[i].size();
       }
     } break;
+
+    case 2: { // sparse subspace clustering
+
+      if (communicator_->myID() == 0) {
+          fprintf(stderr, " ... Using Sparse Subspace Clustering ...\n");
+      }
+      SparseSubspaceClustering solver = SparseSubspaceClustering();
+      solver.setNumClusters(numClusters_);
+      solver.setMaxIter(kmMaxIter_);
+      solver.setCommunicator(communicator_);
+      solver.setSparseTolerance(nnlsTol);
+      int status = solver.cluster(X);
+      solver.printTimes();
+      int numClust = solver.getNumClusters();
+      numClusters_ = numClust;
+      // resize containers 
+      clusterCols_.resize(numClust);
+      centroidBuffer_.resize(localRows_,numClust);
+      solver.getClusterColumns(clusterCols_);
+      // Recomputing the centroids is easier/faster than mapping from SCDoubleMatrix to Eigen.
+      centroidBuffer_.setZero();
+      for(int i=0; i<numClusters_; ++i) {
+        for (int j=0; j<clusterCols_[i].size(); j++) {
+           centroidBuffer_.col(i) += matrixBuffer_.col(clusterCols_[i][j]);
+        }
+      }
+      for(int i=0; i<numClusters_; ++i) {
+        centroidBuffer_.col(i) /= clusterCols_[i].size();
+      }
+    } break;
   }
 
   Cblacs_gridexit(context);
   Cfree_blacs_system_handle(blacsHandle);
+}
+
+void
+DistrSnapshotClusteringSolver::recomputeCentroids(){
+
+  centroidBuffer_.setZero();
+  for(int i=0; i<numClusters_; ++i) {
+    for (int j=0; j<clusterCols_[i].size(); j++) {
+       centroidBuffer_.col(i) += matrixBuffer_.col(clusterCols_[i][j]);
+    }
+  }
+  for(int i=0; i<numClusters_; ++i) {
+    centroidBuffer_.col(i) /= clusterCols_[i].size();
+  }
+
 }
 
 } // end namespace Rom

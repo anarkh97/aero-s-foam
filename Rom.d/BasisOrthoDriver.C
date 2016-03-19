@@ -43,7 +43,8 @@ class RefSubtraction : public VectorTransform<VecType> {
 public:
   virtual void operator()(VecType &v) const;
 
-  explicit RefSubtraction(const Domain *);
+//  explicit RefSubtraction(const Domain *);
+  explicit RefSubtraction(const Vector &);
 private:
   Vector ref_;
 };
@@ -57,12 +58,19 @@ RefSubtraction<VecType>::operator()(VecType &v) const {
 }
 
 template <typename VecType>
+RefSubtraction<VecType>::RefSubtraction(const Vector &ref) :
+  ref_(ref)
+{}
+
+/*
+template <typename VecType>
 RefSubtraction<VecType>::RefSubtraction(const Domain *domain) :
   ref_(const_cast<Domain *>(domain)->numUncon())
 {
   Vector dummy(const_cast<Domain *>(domain)->numUncon());
   const_cast<Domain *>(domain)->initDispVeloc(ref_, dummy, dummy, dummy);
 }
+*/
 
 } // end anonymous namespace
 
@@ -155,9 +163,19 @@ BasisOrthoDriver::solve() {
   else { workload.push_back(BasisId::STATE);
 	if(verboseFlag) fprintf(stderr," ... For default SVD, workload size = %zd ...\n", workload.size());}
 
+
+
+  // if we want to use affine subspaces (instead of linear subspaces) we need to subtract off an offset
+  Vector *centroid; 
+  if(domain->solInfo().subtractRefPodRom) { // read in centroid for snapshots
+    std::cout << " ... Reading Basis Offset           ... " << std::endl;
+    BasisInputStream<6> centIn(domain->solInfo().readInLocalBasesCent[0], converter);
+    centroid = new Vector(centIn.vectorSize());
+    centIn >> centroid->data();
+  }
   typedef VectorTransform<double *> VecTrans;
   std::auto_ptr<VecTrans> transform(domain->solInfo().subtractRefPodRom ?
-                                    static_cast<VecTrans *>(new RefSubtraction<double *>(domain)) :
+                                    static_cast<VecTrans *>(new RefSubtraction<double *>(*centroid)) :
                                     static_cast<VecTrans *>(new NoOp<double *>));
 
   double mratio = geoSource->getMRatio();
@@ -189,8 +207,8 @@ BasisOrthoDriver::solve() {
     }
   }
   int vectorSize = 0; // size of vectors
-  int sizeSnap = 0; // number of state snapshots
-  int sizeROB = 0;
+  int sizeSnap   = 0; // number of state snapshots
+  int sizeROB    = 0;
   int skipTime = domain->solInfo().skipPodRom;
   if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
     std::cerr << "*** ERROR: no files provided\n";
@@ -258,11 +276,16 @@ BasisOrthoDriver::solve() {
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
       output << std::make_pair(solver.singularValue(iVec), solver.matrixCol(iVec));
     }
+    if(domain->solInfo().subtractRefPodRom){ // add offset to data
+      output << std::make_pair(1.0, centroid->data());
+      orthoBasisDim++; 
+    }
 
     // Read back in output file to renormalize basis
     VecBasis basis;
     BasisInputStream<6> in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), converter);
     readVectors(in, basis);
+    if(domain->solInfo().subtractRefPodRom) MGSVectors(basis.data(), basis.numVec(), basis.size()); // orthonormalize offset with respect to basis
 
     VecBasis normalizedBasis;
     if(domain->solInfo().normalize == 0) {
@@ -307,6 +330,7 @@ BasisOrthoDriver::solve() {
     }
 
   }
+  if(domain->solInfo().subtractRefPodRom) delete centroid;
 }
 
 void

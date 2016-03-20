@@ -1,4 +1,4 @@
-#if defined(USE_MPI)
+#if defined(USE_MPI) && defined(USE_SCALAPACK)
 #include <mpi.h>
 #include <iostream>
 #include <sstream>

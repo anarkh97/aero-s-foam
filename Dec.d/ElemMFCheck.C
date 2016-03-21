@@ -125,6 +125,7 @@
 #include <Element.d/Joint.d/CylindricalJointSpringCombo.h>
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 #include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
+#include <Element.d/Joint.d/RevoluteJointSpringComboWithFreeplay.h>
 #endif
 
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
@@ -1477,6 +1478,12 @@ PrismaticJointSpringCombo::examine(int sub, MultiFront *mf)
 
 PrioInfo
 PinInSlotJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+RevoluteJointSpringComboWithFreeplay::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }

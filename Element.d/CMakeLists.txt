@@ -202,6 +202,7 @@ Joint.d/RevoluteJointSpringCombo.C
 Joint.d/CylindricalJointSpringCombo.C
 Joint.d/PrismaticJointSpringCombo.C
 Joint.d/PinInSlotJointSpringCombo.C
+Joint.d/RevoluteJointSpringComboWithFreeplay.C
 Membrane.d/mass8.f
 Membrane.d/Membrane.C
 Membrane.d/sands19.f

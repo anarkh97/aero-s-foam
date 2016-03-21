@@ -944,6 +944,8 @@ TRAIL [a-zA-Z]*
 
 "SPRINGMAT"|"springmat"            { return SPRINGMAT; }
 
+"FREEPLAY"|"freeplay"|"FreePlay"   { return FREEPLAY; }
+
 "SINE"[a-zA-Z]*|"sine"[a-zA-Z]*|"Sine"[a-zA-Z]*  { yylval.ival = 0; return ELEMENTARYFUNCTIONTYPE; }
 "RAMP"[a-zA-Z]*|"ramp"[a-zA-Z]*|"Ramp"[a-zA-Z]*  { yylval.ival = 1; return ELEMENTARYFUNCTIONTYPE; }
 "TRIA"[a-zA-Z]*|"tria"[a-zA-Z]*|"Tria"[a-zA-Z]*  { yylval.ival = 2; return ELEMENTARYFUNCTIONTYPE; }

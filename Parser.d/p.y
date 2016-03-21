@@ -79,7 +79,7 @@
 %token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING ANGLE DUALBASIS DUALRB KMEANS CRANDOM
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
-%token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
+%token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID FREEPLAY
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSGL FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
@@ -2696,6 +2696,15 @@ MatData:
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT SPRINGMAT Float FREEPLAY Float NewLine
+        { // RevoluteJointSpringComboWithFreeplay with default constraint options
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.k1 = $4;
+          sp.freeplay_limit = $6;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float NewLine
         { // RevoluteJointSpringCombo
           StructProp sp;
@@ -2705,6 +2714,19 @@ MatData:
           sp.constraint_hess_eps = $3.constraint_hess_eps;
           sp.type = StructProp::Constraint;
           sp.k1 = $5;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float FREEPLAY Float NewLine
+        { // RevoluteJointSpringComboWithFreeplay
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.k1 = $5;
+          sp.freeplay_limit = $7;
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }

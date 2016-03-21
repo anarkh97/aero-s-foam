@@ -143,6 +143,7 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/Joint.d/CylindricalJointSpringCombo.h>
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 #include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
+#include <Element.d/Joint.d/RevoluteJointSpringComboWithFreeplay.h>
 #include <Element.d/Force.d/FollowerMomentElement.h>
 #include <Element.d/Force.d/FollowerForceElement.h>
 #include <Element.d/Force.d/PseudoTangentialMomentElement.h>
@@ -829,6 +830,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 279:
        ele = new (ba) PointVariPlaneSegmentDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 323:
+       ele = new (ba) RevoluteJointSpringComboWithFreeplay(n);
        ele->setCategory(Element::Structural);
        break;
      case 379:

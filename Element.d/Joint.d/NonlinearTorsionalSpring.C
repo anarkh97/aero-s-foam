@@ -1,8 +1,8 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
 
-NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _axis2)
- : AngleType1ConstraintElement(_nn, _axis1, _axis2, M_PI/2)
+NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _axis2, int _type, int _ieqtype)
+ : AngleType1ConstraintElement(_nn, _axis1, _axis2, M_PI/2, _type, _ieqtype)
 {
   m_axis1 = _axis1;
   m_axis2 = _axis2;
@@ -16,6 +16,9 @@ NonlinearTorsionalSpring::setProp(StructProp *p, bool _myProp)
   StructProp *prop = (_myProp) ? p : new StructProp(*p); 
   prop->penalty = prop->k1;
   prop->lagrangeMult = false;
+  if(type == 1) {
+    offset += (ieqtype == 1) ? p->freeplay_limit : -p->freeplay_limit;
+  }
   AngleType1ConstraintElement::setProp(prop, true);
 }
 
@@ -23,8 +26,10 @@ void
 NonlinearTorsionalSpring::update(GeomState *refState, GeomState& gState, CoordSet& cs, double t)
 {
   // internal states
-  updateStates((GeomState *) NULL, gState, cs);
-  axis1 = (quadrant == 0 || quadrant == 2) ? m_axis1 : m_axis2, axis2 = m_axis2;
+  if(numStates() > 0) {
+    updateStates((GeomState *) NULL, gState, cs);
+    axis1 = (quadrant == 0 || quadrant == 2) ? m_axis1 : m_axis2, axis2 = m_axis2;
+  }
 
   AngleType1ConstraintElement::update(refState, gState, cs, t);
 }
@@ -32,20 +37,23 @@ NonlinearTorsionalSpring::update(GeomState *refState, GeomState& gState, CoordSe
 int
 NonlinearTorsionalSpring::numStates()
 {
-  return 3;
+  // TODO: consider reparametrization for inequalities
+  return (type == 0) ? 3 : 0;
 }
 
 void
 NonlinearTorsionalSpring::initStates(double *statenp)
 {
-  statenp[0] = M_PI/2; // offset
-  statenp[1] = 0.0;    // offset2
-  statenp[2] = 0;      // quadrant
+  if(numStates() == 0) return;
+  statenp[0] = offset;
+  statenp[1] = offset2;
+  statenp[2] = quadrant;
 }
 
 void 
 NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet &, double dt)
 {
+  if(numStates() == 0) return;
   // TODO: consider if it is better to update the state from the reference state (i.e. the last converged solution)
   //       rather than the current newton iteration, as we do for plasticity
   double *statenp = gState.getElemState(getGlNum()) + stateOffset;

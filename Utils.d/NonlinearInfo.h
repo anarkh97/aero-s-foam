@@ -59,8 +59,9 @@ struct NonlinearInfo {
    bool failsafe;
    double failsafe_tol;
 
-   int linearelastic;   // 1: blanket small displacement assumption, excepting external follower forces 
-                        // 2: blanket small displacement assumption, excepting external follower forces and constraints
+   int linearelastic;   // 1: blanket small displacement assumption, excepting external follower forces.
+                        //    joints with freeplay and other inequality constraints with penalty enforcment
+                        //    also get special treatment in this case
 
    NonlinearInfo() { setDefaults(); }
 

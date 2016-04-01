@@ -84,5 +84,7 @@ class MpcElement : public Element, public Corotator, public LMPCons
 
     enum FunctionType { LINEAR=0, QUADRATIC, NONLINEAR };
     virtual FunctionType functionType() { return NONLINEAR; }
+
+    bool isFreeplayElement() { return type == 1 && prop->penalty != 0; }
 };
 #endif

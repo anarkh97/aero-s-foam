@@ -803,6 +803,15 @@ SuperElement::isConstraintElement()
   return false;
 }
 
+bool
+SuperElement::isFreeplayElement()
+{
+  // return true if one of the sub elements is a freeplay element
+  for(int i = 0; i < nSubElems; ++i)
+    if(subElems[i]->isFreeplayElement()) return true;
+  return false;
+}
+
 int
 SuperElement::getMassType()
 {

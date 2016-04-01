@@ -1,16 +1,21 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Joint.d/NonlinearTranslationalSpring.h>
 
-NonlinearTranslationalSpring::NonlinearTranslationalSpring(int* _nn, int _axis)
+NonlinearTranslationalSpring::NonlinearTranslationalSpring(int* _nn, int _axis, int _propIndex)
  : DotType2ConstraintElement(_nn, _axis)
-{}
+{
+  propIndex = _propIndex;
+}
 
 void
 NonlinearTranslationalSpring::setProp(StructProp *p, bool _myProp)
 {
   StructProp *prop = (_myProp) ? p : new StructProp(*p);
-  prop->penalty = prop->k1;
+
+  const double k[3] = { p->k1, p->k2, p->k3 };
+  prop->penalty = k[propIndex];
   prop->lagrangeMult = false;
+
   DotType2ConstraintElement::setProp(prop, true);
 }
 

@@ -64,6 +64,7 @@
  OutputInfo oinfo;
  ConstraintOptions copt;
  BlastLoading::BlastData blastData;
+ FreeplayProps freeplayProps;
 }
 
 %expect 6
@@ -168,6 +169,7 @@
 %type <oinfo>    OutInfo
 %type <copt>     ConstraintOptionsData
 %type <blastData> ConwepData
+%type <freeplayProps> FreeplayProps
 %%
 FinalizedData:
 	All END
@@ -2696,12 +2698,12 @@ MatData:
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer CONSTRMAT SPRINGMAT Float FREEPLAY Float NewLine
+        | Integer CONSTRMAT SPRINGMAT Float FREEPLAY FreeplayProps NewLine
         { // RevoluteJointSpringComboWithFreeplay with default constraint options
           StructProp sp;
           sp.type = StructProp::Undefined;
           sp.k1 = $4;
-          sp.freeplay_limit = $6;
+          sp.freeplay[0] = $6;
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
@@ -2717,7 +2719,7 @@ MatData:
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float FREEPLAY Float NewLine
+        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float FREEPLAY FreeplayProps NewLine
         { // RevoluteJointSpringComboWithFreeplay
           StructProp sp;
           sp.lagrangeMult = $3.lagrangeMult;
@@ -2726,7 +2728,7 @@ MatData:
           sp.constraint_hess_eps = $3.constraint_hess_eps;
           sp.type = StructProp::Constraint;
           sp.k1 = $5;
-          sp.freeplay_limit = $7;
+          sp.freeplay[0] = $7;
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
@@ -2736,6 +2738,17 @@ MatData:
           sp.type = StructProp::Undefined;
           sp.k1 = $4;
           sp.k2 = $5;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT SPRINGMAT Float Float FREEPLAY FreeplayProps FreeplayProps NewLine
+        { // UniversalJointSpringComboWithFreeplay with default constraint options
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.k1 = $4;
+          sp.k2 = $5;
+          sp.freeplay[0] = $7;
+          sp.freeplay[1] = $8;
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
@@ -2752,6 +2765,21 @@ MatData:
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float Float FREEPLAY FreeplayProps FreeplayProps NewLine
+        { // UniversalJointSpringComboWithFreeplay
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.k1 = $5;
+          sp.k2 = $6;
+          sp.freeplay[0] = $8;
+          sp.freeplay[1] = $9;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT SPRINGMAT Float Float Float NewLine
         { // SphericalJointSpringCombo with default constraint options
           StructProp sp;
@@ -2759,6 +2787,19 @@ MatData:
           sp.k1 = $4;
           sp.k2 = $5;
           sp.k3 = $6;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT SPRINGMAT Float Float Float FREEPLAY FreeplayProps FreeplayProps FreeplayProps NewLine
+        { // SphericalJointSpringComboWithFreeplay with default constraint options
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.k1 = $4;
+          sp.k2 = $5;
+          sp.k3 = $6;
+          sp.freeplay[0] = $8;
+          sp.freeplay[1] = $9;
+          sp.freeplay[2] = $10;
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
@@ -2773,6 +2814,23 @@ MatData:
           sp.k1 = $5;
           sp.k2 = $6;
           sp.k3 = $7;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float Float Float FREEPLAY FreeplayProps FreeplayProps FreeplayProps NewLine
+        { // SphericalJointSpringComboWithFreeplay
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.k1 = $5;
+          sp.k2 = $6;
+          sp.k3 = $7;
+          sp.freeplay[0] = $9;
+          sp.freeplay[1] = $10;
+          sp.freeplay[2] = $11;
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
@@ -2798,6 +2856,23 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
 	;
+FreeplayProps:
+      /*Float NewLine
+        { // 1-parameter freeplay model
+          $$.ll = -$1;
+          $$.ul =  $1;
+          $$.lz = 1.0;
+          $$.dz = 0.0;
+          $$.uz = 1.0;
+        }*/
+        Float Float Float Float Float
+        { // 5-parameter freeplay model
+          $$.ll = $1;
+          $$.ul = $2;
+          $$.lz = $3;
+          $$.dz = $4;
+          $$.uz = $5;
+        }
 ElemSet:
 	TOPOLOGY NewLine Element
 	| ElemSet Element

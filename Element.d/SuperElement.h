@@ -118,6 +118,7 @@ class SuperElement : public Element
     bool isMpcElement();
     //bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false);
     bool isConstraintElement();
+    bool isFreeplayElement();
 
     int getMassType();
     int getNumMPCs();

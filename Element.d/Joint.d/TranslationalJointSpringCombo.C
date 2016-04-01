@@ -12,20 +12,10 @@ TranslationalJointSpringCombo::TranslationalJointSpringCombo(int* _nn)
   nSubElems = 4;
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
-  subElems[0] = new TranslationalJoint(nnloc);
-  subElems[1] = new NonlinearTranslationalSpring(nnloc, 0);
-  subElems[2] = new NonlinearTranslationalSpring(nnloc, 1);
-  subElems[3] = new NonlinearTranslationalSpring(nnloc, 2);
-}
-
-void
-TranslationalJointSpringCombo::setProp(StructProp *p, bool myProp)
-{
-  SuperElement::setProp(p, myProp);
-
-  subElems[1]->getProperty()->penalty = p->k1;
-  subElems[2]->getProperty()->penalty = p->k2;
-  subElems[3]->getProperty()->penalty = p->k3;
+  subElems[0] = new TranslationalJoint(nnloc);          // ↓ propIndex
+  subElems[1] = new NonlinearTranslationalSpring(nnloc, 0, 0);
+  subElems[2] = new NonlinearTranslationalSpring(nnloc, 1, 1);
+  subElems[3] = new NonlinearTranslationalSpring(nnloc, 2, 2);
 }
 
 int 

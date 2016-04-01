@@ -1,11 +1,12 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
 
-NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _axis2, int _type, int _ieqtype)
+NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _axis2, int _propIndex, int _type, int _ieqtype)
  : AngleType1ConstraintElement(_nn, _axis1, _axis2, M_PI/2, _type, _ieqtype)
 {
   m_axis1 = _axis1;
   m_axis2 = _axis2;
+  propIndex = _propIndex;
   offset2 = 0;
   quadrant = 0;
 }
@@ -14,11 +15,22 @@ void
 NonlinearTorsionalSpring::setProp(StructProp *p, bool _myProp)
 {
   StructProp *prop = (_myProp) ? p : new StructProp(*p); 
-  prop->penalty = prop->k1;
-  prop->lagrangeMult = false;
-  if(type == 1) {
-    offset += (ieqtype == 1) ? p->freeplay_limit : -p->freeplay_limit;
+
+  const double k[3] = { p->k1, p->k2, p->k3 };
+  const int &i = propIndex;
+  if(type == 1 && ieqtype == 1) {
+    offset += p->freeplay[i].ul;
+    prop->penalty = (p->freeplay[i].uz-p->freeplay[i].dz)*k[i];
   }
+  else if(type == 1 && ieqtype == 2) {
+    offset += p->freeplay[i].ll;
+    prop->penalty = (p->freeplay[i].lz-p->freeplay[i].dz)*k[i];
+  }
+  else if(type == 0) {
+    prop->penalty = p->freeplay[i].dz*k[i];
+  }
+  prop->lagrangeMult = false;
+
   AngleType1ConstraintElement::setProp(prop, true);
 }
 

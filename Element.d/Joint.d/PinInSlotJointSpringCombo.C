@@ -13,18 +13,9 @@ PinInSlotJointSpringCombo::PinInSlotJointSpringCombo(int* _nn)
   nSubElems = 3;
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
-  subElems[0] = new PinInSlotJoint(nnloc);
-  subElems[1] = new NonlinearTranslationalSpring(nnloc, 0);
-  subElems[2] = new NonlinearTorsionalSpring(nnloc, 2, 0);
-}
-
-void
-PinInSlotJointSpringCombo::setProp(StructProp *p, bool myProp)
-{
-  SuperElement::setProp(p, myProp);
-
-  subElems[1]->getProperty()->penalty = p->k1;
-  subElems[2]->getProperty()->penalty = p->k2;
+  subElems[0] = new PinInSlotJoint(nnloc);              // ↓ propIndex
+  subElems[1] = new NonlinearTranslationalSpring(nnloc, 0, 0);
+  subElems[2] = new NonlinearTorsionalSpring(nnloc, 2, 0,  1);
 }
 
 int 

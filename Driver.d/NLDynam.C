@@ -83,7 +83,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
-    if(corotators[iele] && (!solInfo().getNLInfo().linearelastic || (packedEset[iele]->isConstraintElement() && solInfo().getNLInfo().linearelastic == 2))) {
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
       if(sinfo.newmarkBeta == 0) handleElementDeletion(iele, geomState, pseudoTime, *corotators[iele], elementForce.data());
     }
@@ -92,6 +92,11 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
       Vector disp(packedEset[iele]->numDofs());
       getElementDisp(iele, geomState, disp);
       kel[iele].multiply(disp, elementForce, 1.0);
+      if(solInfo().getNLInfo().linearelastic && packedEset[iele]->isFreeplayElement()) {
+        Vector f(packedEset[iele]->numDofs());
+        getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], f.data(), kel[iele]);
+        for(int idof = 0; idof < f.size(); ++idof) elementForce[idof] += f[idof];
+      }
     }
 
     // Add configuration-dependent external forces and their element stiffness contributions
@@ -155,7 +160,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
     }
   
     // Get updated tangent stiffness matrix and element internal force
-    if(corotators[iele] && (!solInfo().getNLInfo().linearelastic || (packedEset[iele]->isConstraintElement() && solInfo().getNLInfo().linearelastic == 2))) {
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), elementStiff);
     }
     else {
@@ -163,6 +168,11 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
       getElementDisp(iele, geomState, disp);
       kel[iele].copy(packedEset[iele]->stiffness(nodes, kel[iele].data())); // XXX
       kel[iele].multiply(disp, elementForce, 1.0);
+      if(solInfo().getNLInfo().linearelastic && packedEset[iele]->isFreeplayElement()) {
+        Vector f(packedEset[iele]->numDofs());
+        getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], f.data(), kel[iele]);
+        for(int idof = 0; idof < f.size(); ++idof) elementForce[idof] += f[idof];
+      }
     }
 
     // Add configuration-dependent external forces and their element stiffness contributions

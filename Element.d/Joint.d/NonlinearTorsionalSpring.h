@@ -13,11 +13,12 @@
 class NonlinearTorsionalSpring : public AngleType1ConstraintElement
 {
     int m_axis1, m_axis2;
+    int propIndex; // 0: use StructProp::k1, 1: use StructProp::k2, 2: use StructProp::k3
     double offset2;
     int quadrant;
 
   public:
-    NonlinearTorsionalSpring(int*, int, int, int=0, int=1);
+    NonlinearTorsionalSpring(int*, int, int, int=0, int=0, int=1);
     void setProp(StructProp *p, bool _myProp = false);
     void update(GeomState *refState, GeomState& gState, CoordSet& cs, double t);
 

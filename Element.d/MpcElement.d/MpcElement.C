@@ -264,6 +264,7 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
   // see comments in getStiffAndForce (nonlinear version)
   FullSquareMatrix ret(numDofs(), karray);
   ret.zero();
+  if(solInfo.getNLInfo().linearelastic && isFreeplayElement()) return ret;
   if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = 0;
     if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {}
@@ -311,8 +312,11 @@ MpcElement::getStiffAndForce(GeomState* refState, GeomState& c1, CoordSet& c0, F
 {
   Ktan.zero();
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
-  if(getSource() != mpc::ContactSurfaces || solInfo.piecewise_contact)
+  if(solInfo.getNLInfo().linearelastic && !isFreeplayElement()) return;
+  if(getSource() != mpc::ContactSurfaces || solInfo.piecewise_contact) {
+    if(solInfo.getNLInfo().linearelastic) MpcElement::update(refState, c1, c0, t); else
     update(refState, c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
+  }
   if(t == 0 && delt > 0 && type == 0 && prop->penalty == 0)
     rhs.r_value = this->getAccelerationConstraintRhs(refState, c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
 
@@ -349,8 +353,11 @@ void
 MpcElement::getInternalForce(GeomState *refState, GeomState& c1, CoordSet& c0, FullSquareMatrix&, double* f, double delt, double t)
 {
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
-  if(getSource() != mpc::ContactSurfaces || solInfo.piecewise_contact)
+  if(solInfo.getNLInfo().linearelastic && !isFreeplayElement()) return;
+  if(getSource() != mpc::ContactSurfaces || solInfo.piecewise_contact) {
+    if(solInfo.getNLInfo().linearelastic) MpcElement::update(refState, c1, c0, t); else
     update(refState, c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
+  }
   if(t == 0 && delt > 0 && type == 0 && prop->penalty == 0)
     rhs.r_value = this->getAccelerationConstraintRhs(refState, c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
 
@@ -449,9 +456,15 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
         }
         break;
       case 3 : case 4 : case 5 : {
-        u = theta[terms[i].nnum][terms[i].dofnum-3];
-        rhs.r_value -= rotation_coefs[terms[i].nnum][terms[i].dofnum-3]*u;
-        terms[i].coef.r_value = updated_coefs[terms[i].nnum][terms[i].dofnum-3];
+        if(rotation_coefs.empty()) {
+          u = c1[terms[i].nnum].theta[terms[i].dofnum-3];
+          rhs.r_value -= terms[i].coef.r_value*u;
+        }
+        else {
+          u = theta[terms[i].nnum][terms[i].dofnum-3];
+          rhs.r_value -= rotation_coefs[terms[i].nnum][terms[i].dofnum-3]*u;
+          terms[i].coef.r_value = updated_coefs[terms[i].nnum][terms[i].dofnum-3];
+        }
       } break;
     }
   }

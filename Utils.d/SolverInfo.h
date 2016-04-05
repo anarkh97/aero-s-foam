@@ -489,6 +489,9 @@ struct SolverInfo {
    bool elementDeletion;
    std::map<int,double> deleteElements; // elements to be deleted at specific time or times (specified in input file)
    bool piecewise_contact;
+   bool piecewise;
+   bool freeplay;
+   double piecewise_dlambda, piecewise_maxLambda;
 
    int npMax;   // Max number of elements in the reduced mesh for the ScalaPack LH parse solver.
    int scpkMB;  // Scalapack row block size
@@ -838,6 +841,10 @@ struct SolverInfo {
                   scpkMP             = 0;  // 0 => Scalapack LH solver will use default processor grid 
                   scpkNP             = 0;  // 0 => Scalapack LH solver will use default processor grid
                   useMassAugmentation = true;
+                  piecewise = false;
+                  freeplay = false;
+                  piecewise_dlambda = 1.0;
+                  piecewise_maxLambda = 1.0;
                 }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }
@@ -1093,6 +1100,10 @@ struct SolverInfo {
              || (probType == PodRomOffline));
    }
 
+   bool isNonLinExtF() {
+     return (isNonLin() && NLInfo.linearelastic != 2);
+   }
+
    bool isStatic() {
      return ((probType == Static) || (probType == NonLinStatic)
              || (probType == MatNonLinStatic) || (probType == ArcLength));
@@ -1115,6 +1126,7 @@ struct SolverInfo {
    }
 
    int classifySolver();
+   void activatePiecewise();
 };
 
 #endif

@@ -206,6 +206,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
                              double lambda, double time, bool compute_tangents,
                              BlastLoading::BlastData *conwep)
 {
+  if(solInfo().getNLInfo().linearelastic == 2) return;
   Vector elementForceBuf(_f,bufSize,false);
 
   // 1. Treatment of element pressure

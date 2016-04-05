@@ -2254,10 +2254,10 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   if(gravityFlag()) addGravityForce<Scalar>(force);
 
   // ... ADD THERMAL FORCES
-  if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
+  if(thermalFlag() && !sinfo.isNonLinExtF()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
+  if(!sinfo.isNonLinExtF()) addPressureForce<Scalar>(force);
 
   // ... ADD LMPC RHS
   if(!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) addMpcRhs<Scalar>(force);
@@ -2456,10 +2456,10 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
   if(gravityFlag()) addGravityForce<Scalar>(force);
 
   // ... ADD THERMAL FORCES
-  if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
+  if(thermalFlag() && !sinfo.isNonLinExtF()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
+  if(!sinfo.isNonLinExtF()) addPressureForce<Scalar>(force);
 
   GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
 
@@ -3909,7 +3909,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // note #2 when HFTT is present the FLUX contribution is not constant
   // note #3 see getStiffAndForce/getInternalForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
   for(int i = 0; i < numNeuman; ++i) {
-    if(sinfo.isNonLin() && nbc[i].type == BCond::Forces && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
+    if(sinfo.isNonLinExtF() != 2 && nbc[i].type == BCond::Forces && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {
@@ -3943,7 +3943,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM PRESSURE
   // note #1: even when MFTTs/CONWEP are present this term may now be constant
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce/getInternalForce)
-  if(!sinfo.isNonLin()) addPressureForce(cnst_f, 0);
+  if(!sinfo.isNonLinExtF()) addPressureForce(cnst_f, 0);
 
   // ... ADD RHS FROM LMPCs for linear statics
   if((!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) && !sinfo.isDynam()) addMpcRhs(cnst_f);
@@ -3951,7 +3951,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM TEMPERATURES
   // note #1: for THERMOE problems TEMPERATURES are ignored 
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce/getInternalForce)
-  if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLin()) addThermalForce(cnst_f);
+  if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLinExtF()) addThermalForce(cnst_f);
 
   // ... COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is present this is term is not constant (see computeExtForce)
@@ -3985,7 +3985,7 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // note #3 see Domain::getStiffAndForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
   if(numNeuman && (domain->getNumMFTT() || domain->getNumHFTT() || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
-      if(sinfo.isNonLin() && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf 
+      if(sinfo.isNonLinExtF() && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf 
          || nbc[i].type == BCond::Actuators) && !((nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3) || nbc[i].dofnum == 6)) continue;
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
@@ -4009,14 +4009,14 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT/CONWEP are present this term may not be constant
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce/getInternalForce)
-  if((domain->getNumMFTT() > 0 || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(f, 1, t);
+  if((domain->getNumMFTT() > 0 || sinfo.ConwepOnOff) && !sinfo.isNonLinExtF()) addPressureForce(f, 1, t);
 
   // ... ADD RHS FROM LMPCs for linear dynamics
   if((!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) && sinfo.isDynam()) addMpcRhs(f, t);
 
   // COMPUTE FORCE FROM THERMOE
   // note #1: for NONLINEAR problems this term is follower (see getStiffAndForce/getInternalForce)
-  if(sinfo.thermoeFlag >= 0 && !sinfo.isNonLin()) addThermalForce(f);
+  if(sinfo.thermoeFlag >= 0 && !sinfo.isNonLinExtF()) addThermalForce(f);
 
   // COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is not present this term is constant (see computeConstantForce)

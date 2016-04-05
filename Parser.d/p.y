@@ -174,6 +174,7 @@
 FinalizedData:
 	All END
 	 { 
+          if(domain->solInfo().piecewise || domain->solInfo().freeplay) domain->solInfo().activatePiecewise();
           return 0;
          }
 	;
@@ -3584,39 +3585,13 @@ Statics:
         | Statics CASES CasesList NewLine
         | Statics PIECEWISE NewLine
         { // activate piecewise constant configuration dependent external forces for a linear dynamic analysis
-          if(!domain->solInfo().isNonLin()) { 
-            if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
-              domain->solInfo().probType = SolverInfo::NonLinStatic;
-            else if(domain->solInfo().probType == SolverInfo::Dynamic)
-              domain->solInfo().probType = SolverInfo::NonLinDynam;
-            else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
-              domain->solInfo().order = 1;
-              domain->solInfo().probType = SolverInfo::NonLinDynam;
-            }
-            domain->solInfo().setNewton(std::numeric_limits<int>::max());
-            domain->solInfo().getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
-            domain->solInfo().getNLInfo().linearelastic = 1;
-            domain->solInfo().getNLInfo().maxiter = 1;
-          }
+          domain->solInfo().piecewise = true;
         }
         | Statics PIECEWISE Float Float NewLine
         { // activate piecewise constant configuration dependent external forces for a linear static analysis
-          if(!domain->solInfo().isNonLin()) {  
-            if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
-              domain->solInfo().probType = SolverInfo::NonLinStatic;
-            else if(domain->solInfo().probType == SolverInfo::Dynamic)
-              domain->solInfo().probType = SolverInfo::NonLinDynam;
-            else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
-              domain->solInfo().order = 1;
-              domain->solInfo().probType = SolverInfo::NonLinDynam;
-            }
-            domain->solInfo().setNewton(std::numeric_limits<int>::max());
-            domain->solInfo().getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
-            domain->solInfo().getNLInfo().linearelastic = 1;
-            domain->solInfo().getNLInfo().maxiter = 1;
-            domain->solInfo().getNLInfo().dlambda = $3;
-            domain->solInfo().getNLInfo().maxLambda = $4;
-          }
+          domain->solInfo().piecewise = true;
+          domain->solInfo().piecewise_dlambda = $3;
+          domain->solInfo().piecewise_maxLambda = $4;
         }
         ;
 CasesList:

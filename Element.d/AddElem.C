@@ -835,6 +835,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 323:
        ele = new (ba) RevoluteJointSpringComboWithFreeplay(n);
        ele->setCategory(Element::Structural);
+       domain->solInfo().freeplay = true;
        break;
      case 379:
        ele = new (ba) PointVariPlaneSegmentDistanceConstraintElement(n);

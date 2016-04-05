@@ -2260,7 +2260,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
 
   // ... ADD LMPC RHS
-  if(!sinfo.isNonLin()) addMpcRhs<Scalar>(force);
+  if(!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) addMpcRhs<Scalar>(force);
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {
@@ -3946,7 +3946,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   if(!sinfo.isNonLin()) addPressureForce(cnst_f, 0);
 
   // ... ADD RHS FROM LMPCs for linear statics
-  if(!sinfo.isNonLin() && !sinfo.isDynam()) addMpcRhs(cnst_f);
+  if((!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) && !sinfo.isDynam()) addMpcRhs(cnst_f);
 
   // ... COMPUTE FORCE FROM TEMPERATURES
   // note #1: for THERMOE problems TEMPERATURES are ignored 
@@ -4012,7 +4012,7 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   if((domain->getNumMFTT() > 0 || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(f, 1, t);
 
   // ... ADD RHS FROM LMPCs for linear dynamics
-  if(!sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f, t);
+  if((!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) && sinfo.isDynam()) addMpcRhs(f, t);
 
   // COMPUTE FORCE FROM THERMOE
   // note #1: for NONLINEAR problems this term is follower (see getStiffAndForce/getInternalForce)

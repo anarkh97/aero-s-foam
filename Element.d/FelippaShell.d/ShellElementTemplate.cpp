@@ -2537,7 +2537,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
       J = dfdx(q, 0);
       for(int i=0; i<3; ++i)
         for(int j=0; j<9; ++j)
-          if(isnan(J(i,j))) J(i,j) = 0;
+          if(std::isnan(J(i,j))) J(i,j) = 0;
     } break;
 #endif
     case 2 : { // finite difference approximation 

@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cmath>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Driver.d/Domain.h>
@@ -3794,7 +3795,7 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
            for(int j = 0; j < DofsPerElement; ++j) {
              int dofj = unconstrNum[dofs[j]];
              if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
-             if(isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
+             if(std::isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
              (*allSens.vonMisesWRTdisp)(node, dofj) += dStressdDisp[j][k]; 
            }
          }
@@ -3863,7 +3864,7 @@ Domain::computeAggregatedStressVMWRTdisplacementSensitivity(int sindex,
            for(int j = 0; j < DofsPerElement; ++j) {
              int dofj = unconstrNum[dofs[j]];
              if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
-             if(isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
+             if(std::isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
              vonMisesWRTdisp(node, dofj) += dStressdDisp[j][k]; 
            }
          }

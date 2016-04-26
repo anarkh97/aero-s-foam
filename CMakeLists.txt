@@ -503,13 +503,22 @@ set_target_properties(impulseerrorcodec6
 
 target_link_libraries(impulseerrorcodec6 Rom Util)
 
+add_executable(errorcodec1 Rom.d/ErrorCodec1.C)
+set_target_properties(errorcodec1
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME relerr1
+                      DEBUG_OUTPUT_NAME relerr1.debug)
+
+target_link_libraries(errorcodec1 Rom Util)
+
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 
       "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-SET(AllTargets robcodec errorcodec)
+SET(AllTargets robcodec errorcodec errorcodec6 errorcodec1)
 IF(CREATE_DSO)
   SET(AllTargets ${AllTargets} femlib)
 ELSE(CREATE_DSO)

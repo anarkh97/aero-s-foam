@@ -3909,7 +3909,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // note #2 when HFTT is present the FLUX contribution is not constant
   // note #3 see getStiffAndForce/getInternalForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
   for(int i = 0; i < numNeuman; ++i) {
-    if(sinfo.isNonLinExtF() != 2 && nbc[i].type == BCond::Forces && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
+    if(sinfo.isNonLinExtF() && nbc[i].type == BCond::Forces && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {

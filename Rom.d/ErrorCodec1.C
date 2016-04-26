@@ -28,12 +28,14 @@ int main (int argc, char *argv[]) {
 
   string header_buffer;
   int num_nodes, length2;
-  double time1, time2, tFinal;
-  double a1, a2;
+  double time1=-1, time2=-1, time2b=-1, tFinal;
+  double *a1=0, *a2=0, *b2=0;
   double sumx, sumx2;
   double cum_normx, normalize_factorx;
   double relative_errorx;
   double maxabs = 0, maxrel = 0;
+  int maxabs_node = -1, maxrel_node = -1;
+  double maxabs_time = -1, maxrel_time = -1;
   bool getTime1 = true, getTime2 = true;
   // check to see of both files were successfully opened
   if(truth_file.is_open() && comp_file.is_open()) {
@@ -62,28 +64,34 @@ int main (int argc, char *argv[]) {
 
     // initialize variables
     sumx = 0; sumx2 = 0;
+    a1 = new double[num_nodes];
+    a2 = new double[length2];
+    b2 = new double[length2];
     
     // begin Froebenius norm computation
     // first: loop over all timesteps
     int tcounter = 1;
     while(true) {
 
-      if(getTime1) {
+      if(getTime1 = (time1 <= time2)) {
        truth_file >> time1;
        if(truth_file.eof() || time1 > tFinal) {
+         std::cerr << "break #1 time1 = " << time1 << ", tFinal = " << tFinal << std::endl;
          break;
        }
+       std::cerr << " time stamp " << tcounter << " = " << time1 << std::endl;
+       tcounter++;
      }
 
-      if(getTime2) {
+      if(getTime2 = (time1 > time2)) {
+        time2b = time2;
         comp_file >> time2;
         if(comp_file.eof() || time2 > tFinal) {
+          std::cerr << "break #2 time2 = " << time2 << ", tFinal = " << tFinal << std::endl;
           break;
         }
       }
 
-      printf("\r time stamp %d = %f",tcounter,time1);
-      tcounter++;
       // second: loop over nodes
       for(int counter = 0; counter < num_nodes; counter++) {
 
@@ -91,34 +99,52 @@ int main (int argc, char *argv[]) {
         if(time1 == time2) {
 
           // third: read in all dofs
-          truth_file >> a1;
-          comp_file >> a2;
-          getTime1 = true;
-          getTime2 = true;
+          if(getTime1) truth_file >> a1[counter];
+          if(getTime2) {
+            b2[counter] = a2[counter];
+            comp_file >> a2[counter];
+          }
 	  
-          sumx += pow((a1-a2),2);      
-          sumx2 += pow(a1,2);
+          sumx += pow((a1[counter]-a2[counter]),2);
+          sumx2 += pow(a1[counter],2);
 
-          maxabs = max(maxabs,fabs(a1-a2));
-          if(a1 != 0) maxrel = max(maxrel,fabs(a1-a2)/fabs(a1));
+          maxabs = max(maxabs,fabs(a1[counter]-a2[counter]));
+          if(maxabs == fabs(a1[counter]-a2[counter])) { maxabs_node = counter+1; maxabs_time = time1; }
+          if(a1[counter] != 0) {
+            maxrel = max(maxrel,fabs(a1[counter]-a2[counter])/fabs(a1[counter]));
+            if(maxrel == fabs(a1[counter]-a2[counter])/fabs(a1[counter])) { maxrel_node = counter+1; maxrel_time = time1; }
+          }
+
+          time2b = time2;
         }
         else {
 
           if(time1 < time2) {
-            truth_file >> a1;
-            if(counter == 0) {
-              std::cout << "\nskipping time step " << time1 << " in truthfile" << std::endl;
-              getTime1 = true;
-              getTime2 = false;
+            if(getTime1) truth_file >> a1[counter];
+            if(getTime2) {
+              b2[counter] = a2[counter];
+              comp_file >> b2[counter];
+            }
+
+            // interpolate: b2----c2----a2
+            double c2 = b2[counter] + (time1-time2b)/(time2-time2b)*(a2[counter]-b2[counter]);
+
+            sumx += pow((a1[counter]-c2),2);       
+            sumx2 += pow(a1[counter],2);
+
+            maxabs = max(maxabs,fabs(a1[counter]-c2));
+            if(maxabs == fabs(a1[counter]-c2)) { maxabs_node = counter+1; maxabs_time = time1; }
+            if(a1[counter] != 0) { 
+              maxrel = max(maxrel,fabs(a1[counter]-c2)/fabs(a1[counter]));
+              if(maxrel == fabs(a1[counter]-c2)/fabs(a1[counter])) { maxrel_node = counter+1; maxrel_time = time1; }
             }
           }
 
           if(time1 > time2) {
-            comp_file >> a2;
-            if(counter == 0) {
-              std::cout << "\nskipping time step " << time2 << " in comparisonfile" << std::endl;
-              getTime1 = false;
-              getTime2 = true;
+            if(getTime1) truth_file >> a1[counter];
+            if(getTime2) {
+              b2[counter] = a2[counter];
+              comp_file >> b2[counter];
             }
           }
         }
@@ -136,12 +162,17 @@ int main (int argc, char *argv[]) {
 
     relative_errorx = cum_normx/(normalize_factorx);
 
+    cout << endl;
     cout << "*** absolute L2 error = " << cum_normx << endl;
     cout << "*** relative L2 error = " << relative_errorx*100 << "%" << endl;
-    cout << "*** absolute L1 error = " << maxabs << endl;
-    cout << "*** relative L1 error = " << maxrel*100 << "%" << endl;
+    cout << "*** absolute L1 error = " << maxabs << " at node = " << maxabs_node << ", time = " << maxabs_time << endl;
+    cout << "*** relative L1 error = " << maxrel*100 << "%" << " at node = " << maxrel_node << ", time = " << maxrel_time << endl;
 
   }
+
+  if(a1) delete [] a1;
+  if(a2) delete [] a2;
+  if(b2) delete [] b2;
 }
 
 void print_syntax() {

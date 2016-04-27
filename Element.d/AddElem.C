@@ -144,6 +144,7 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 #include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
 #include <Element.d/Joint.d/RevoluteJointSpringComboWithFreeplay.h>
+#include <Element.d/Joint.d/PrismaticJointSpringComboWithFreeplay.h>
 #include <Element.d/Force.d/FollowerMomentElement.h>
 #include <Element.d/Force.d/FollowerForceElement.h>
 #include <Element.d/Force.d/PseudoTangentialMomentElement.h>
@@ -792,6 +793,21 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) NonlinearTorsionalSpring(n, 2, 1);
        ele->setCategory(Element::Structural);
        break;
+     case 203:
+       ele = new (ba) LinearTranslationalSpring(n, 1);
+       ele->setCategory(Element::Structural);
+       domain->solInfo().freeplay = true;
+       break;
+     case 204:
+       ele = new (ba) NonlinearTranslationalSpring(n, 0, 0, 1);
+       ele->setCategory(Element::Structural);
+       domain->solInfo().freeplay = true;
+       break;
+     case 205:
+       ele = new (ba) NonlinearTorsionalSpring(n, 2, 1, 0, 1);
+       ele->setCategory(Element::Structural);
+       domain->solInfo().freeplay = true;
+       break;
      case 220:
        ele = new (ba) SphericalJointSpringCombo(n);
        ele->setCategory(Element::Structural);
@@ -834,6 +850,11 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 323:
        ele = new (ba) RevoluteJointSpringComboWithFreeplay(n);
+       ele->setCategory(Element::Structural);
+       domain->solInfo().freeplay = true;
+       break;
+     case 325:
+       ele = new (ba) PrismaticJointSpringComboWithFreeplay(n);
        ele->setCategory(Element::Structural);
        domain->solInfo().freeplay = true;
        break;

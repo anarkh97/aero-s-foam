@@ -2836,10 +2836,20 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
         | Integer SPRINGMAT Float NewLine
-        { // TorsionalSpringType1 or TranslationalSpring
+        { // TorsionalSpring or TranslationalSpring (types 200,201,202)
           StructProp sp;
           sp.k1 = $3;
           sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer SPRINGMAT Float FREEPLAY Float NewLine
+        { // 1-sided TorsionalSpring or TranslationalSpring with freeplay (types 203,204,205)
+          StructProp sp;
+          sp.k1 = $3;
+          sp.rho = 0;
+          sp.freeplay[0].ul = $5;
+          sp.freeplay[0].dz = 0.0;
+          sp.freeplay[0].uz = 1.0;
           geoSource->addMat( $1-1, sp );
         }
         | Integer ARUBBERMAT Float Float Float Float Float Float Float Float Float NewLine

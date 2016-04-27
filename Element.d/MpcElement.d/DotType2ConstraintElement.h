@@ -10,9 +10,10 @@ class DotType2ConstraintElement : public ConstraintFunctionElement<Simo::DotType
     double (*C0)[3]; // initial frame (axes stored row-wise)
     int axis;
     double d0;
+    int ieqtype; // 1: c(x) <= 0, 2: c(x) >= 0 (equivalently -c(x) <= 0) ... only applies for inequality constraints (i.e. type = 1)
 
   public:
-    DotType2ConstraintElement(int*, int);
+    DotType2ConstraintElement(int*, int, int = 0, int = 1);
     ~DotType2ConstraintElement();
     void setFrame(EFrame *);
     void buildFrame(CoordSet&);
@@ -22,7 +23,7 @@ class DotType2ConstraintElement : public ConstraintFunctionElement<Simo::DotType
     double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
   protected:
-    void getConstants(CoordSet& cs, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs = NULL);
+    void getConstants(CoordSet& cs, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,1,1>&, GeomState *gs = NULL);
 };
 
 #endif

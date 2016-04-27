@@ -16,7 +16,7 @@ class NonlinearTranslationalSpring : public DotType2ConstraintElement
     int propIndex; // 0: use StructProp::k1, 1: use StructProp::k2, 2: use StructProp::k3
 
   public:
-    NonlinearTranslationalSpring(int*, int, int=0);
+    NonlinearTranslationalSpring(int*, int, int=0, int=0, int=1);
     void setProp(StructProp *p, bool _myProp = false);
     void buildFrame(CoordSet&);
     void update(GeomState *refState, GeomState& gState, CoordSet& cs, double);

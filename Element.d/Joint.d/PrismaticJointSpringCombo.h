@@ -1,5 +1,5 @@
-#ifndef _PRISMATICJOINTSPRING_H_
-#define _PRISMATICJOINTSPRING_H_
+#ifndef _PRISMATICJOINTSPRINGCOMBO_H_
+#define _PRISMATICJOINTSPRINGCOMBO_H_
 
 #include <Element.d/SuperElement.h>
 

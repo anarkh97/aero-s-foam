@@ -2840,6 +2840,9 @@ MatData:
           StructProp sp;
           sp.k1 = $3;
           sp.rho = 0;
+          sp.freeplay[0].ul = 0.0;
+          sp.freeplay[0].dz = 0.0;
+          sp.freeplay[0].uz = 1.0
           geoSource->addMat( $1-1, sp );
         }
         | Integer SPRINGMAT Float FREEPLAY Float NewLine

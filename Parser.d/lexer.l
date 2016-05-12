@@ -1424,6 +1424,8 @@ TRAIL [a-zA-Z]*
 
 "moon"[a-zA-Z]*|"MOON"[a-zA-Z]*|"Moon"[a-zA-Z]*         { return MOONEYRIVLIN; }
 
+"ogde"[a-zA-Z]*|"OGDE"[a-zA-Z]*|"Ogde"[a-zA-Z]*         { return OGDEN; }
+
 "isotropiclinearelasticj2plastic"|"ISOTROPICLINEARELASTICJ2PLASTIC"|"IsotropicLinearElasticJ2Plastic" { return ISOTROPICLINEARELASTICJ2PLASTIC; }
 
 "isotropiclinearelasticj2plasticplanestress"|"ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS"|"IsotropicLinearElasticJ2PlasticPlaneStress" { return ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS; }

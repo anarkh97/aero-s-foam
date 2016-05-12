@@ -7,6 +7,7 @@
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
+#include <Element.d/NonLinearity.d/OgdenMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <unsupported/Eigen/NumericalDiff>
@@ -56,6 +57,9 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   }
   else if(MaterialWrapper<MooneyRivlin> *mat = dynamic_cast<MaterialWrapper<MooneyRivlin>*>(_mat)) {
     materialType = 4;
+  }
+  else if(OgdenMat *mat = dynamic_cast<OgdenMat*>(_mat)) {
+    materialType = 5;
   }
   else {
     std::cerr << " *** ERROR: Unsupported MATLAW for mixed finite element.\n";

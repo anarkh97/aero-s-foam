@@ -39,6 +39,13 @@ Tensor::dblContractWith(const Tensor_d0s4_Ss12s34 &, Tensor *) const
 }
 
 void
+Tensor::dblContractWith(const Tensor_d0s4_Ss12s34_diag &, Tensor *) const
+{
+  fprintf(stderr," It seems that the operands don't fit the operator ||...   \n");
+  exit(-1);
+}
+
+void
 Tensor::dblContractWith(const Tensor_d0s4 &, Tensor *) const
 {
   fprintf(stderr," It seems that the operands don't fit the operator ||...   \n");
@@ -1671,3 +1678,200 @@ Tensor_d1s2_Ss23::addSymPart(const Tensor_d1s2_full &t)
          v[m][i*(5-i)/2+j] += (1./2)*(t[m][3*i+j] + t[m][3*j+i]);
 #endif
 }
+
+void
+Tensor_d0s2_Ss12_diag::dblContractWith(const Tensor_d0s4_Ss12s34_diag &tens, Tensor *result) const
+{
+  Tensor_d0s2_Ss12_diag &t = static_cast<Tensor_d0s2_Ss12_diag &>(*result);
+  t[0] = tens[0][0]*v[0] + tens[0][1]*v[1] + tens[0][2]*v[2];
+  t[1] = tens[1][0]*v[0] + tens[1][1]*v[1] + tens[1][2]*v[2];
+  t[2] = tens[2][0]*v[0] + tens[2][1]*v[1] + tens[2][2]*v[2];
+}
+
+void
+Tensor_d0s2_Ss12_diag::dblContractInto(const Tensor &b, Tensor *result) const
+{
+  const Tensor_d1s2_Ss23_diag &tens = static_cast<const Tensor_d1s2_Ss23_diag &>(b);
+  Tensor_d1s0 &t = static_cast<Tensor_d1s0 &>(*result);
+  int size = tens.getSize();
+  for (int i = 0; i < size; i++)
+    t[i] = v[0]*tens[i][0] + v[1]*tens[i][1] + v[2]*tens[i][2];
+}
+
+void
+Tensor_d0s2_Ss12_diag::buildTensorOf(double *state)
+{
+  for(int i = 0; i < 3; ++i)
+    v[i] = state[i];
+}
+
+Tensor_d0s2_Ss12_diag
+Tensor_d0s2_Ss12_diag::operator + (const Tensor_d0s2_Ss12_diag &tens) const
+{
+  Tensor_d0s2_Ss12_diag t;
+  for (int i = 0; i < 3; i++)
+    t.v[i] = v[i] + tens[i];
+  return t;
+}
+
+Tensor_d0s2_Ss12_diag
+Tensor_d0s2_Ss12_diag::operator - (const Tensor_d0s2_Ss12_diag &tens) const
+{
+  Tensor_d0s2_Ss12_diag t;
+  for (int i = 0; i < 3; i++)
+    t.v[i] = v[i] - tens[i];
+  return t;
+}
+
+Tensor_d0s2_Ss12_diag &
+Tensor_d0s2_Ss12_diag::operator = (const Tensor_d0s2_Ss12_diag &t)
+{ 
+  for(int i = 0; i < 3; ++i)
+    v[i] = t.v[i];
+  return *this;
+}
+
+Tensor_d0s2_Ss12_diag
+operator * (double scal, const Tensor_d0s2_Ss12_diag &tens)
+{
+  Tensor_d0s2_Ss12_diag t;
+  for (int i = 0; i < 3; i++)
+    t[i] = tens[i] * scal;
+  return t;
+};
+
+void 
+Tensor_d0s2_Ss12_diag::getDeviation(Tensor_d0s2_Ss12_diag &t)
+{
+  double tracethird = (1./3)*(v[0]+v[1]+v[2]);
+  t[0] = v[0] - tracethird;
+  t[1] = v[1] - tracethird;
+  t[2] = v[2] - tracethird;
+}
+
+double 
+Tensor_d0s2_Ss12_diag::innerProduct()
+{
+  // return value: tr(A*A)
+  return v[0]*v[0]+v[1]*v[1]+v[2]*v[2];
+}
+
+double
+Tensor_d0s2_Ss12_diag::secondInvariant()
+{
+  // return value: the second invariant defined as 0.5*((trA)^2 - tr(A*A))
+  return v[0]*v[1]+v[1]*v[2]+v[0]*v[2];
+}
+
+double 
+Tensor_d0s2_Ss12_diag::getTrace()
+{
+  return v[0]+v[1]+v[2];
+}
+
+Tensor_d1s2_Ss23_diag 
+Tensor_d1s2_Ss23_diag::operator + (const Tensor_d1s2_Ss23_diag &tens) const
+{
+  Tensor_d1s2_Ss23_diag t(size);
+  for (int k = 0; k < size; k++) {
+    t.v[k][0] = v[k][0] + tens[k][0];
+    t.v[k][1] = v[k][1] + tens[k][1];
+    t.v[k][2] = v[k][2] + tens[k][2];
+  }
+  return t;
+}
+
+Tensor_d1s2_Ss23_diag &
+Tensor_d1s2_Ss23_diag::operator = (const Tensor_d1s2_Ss23_diag &t)
+{
+  if(size != t.size) {
+    if(v) delete[] v;
+    size = t.size;
+    v = new Tensor_d0s2_Ss12_diag[size];
+  }
+  for (int i = 0; i < size; ++i)
+    v[i] = t.v[i];
+  return *this;
+}
+
+Tensor_d1s2_Ss23_diag::Tensor_d1s2_Ss23_diag(int _size)
+{
+  size = _size;
+  v = new Tensor_d0s2_Ss12_diag[size];
+}
+
+Tensor_d1s2_Ss23_diag::Tensor_d1s2_Ss23_diag(const Tensor_d1s2_Ss23_diag &t)
+{
+  size = t.getSize();
+  v = new Tensor_d0s2_Ss12_diag[size];
+  for (int i = 0; i < size; ++i)
+    v[i] = t.v[i];
+}
+
+void
+Tensor_d1s2_Ss23_diag::dblContractWith(const Tensor_d0s4_Ss12s34_diag &tens, Tensor *result) const
+{
+  Tensor_d1s2_Ss23_diag &t = static_cast<Tensor_d1s2_Ss23_diag &>(*result);
+  for (int m = 0; m < size; m++) {
+    t[m][0] = tens[0][0]*v[m][0] + tens[0][1]*v[m][1] + tens[0][2]*v[m][2];
+    t[m][1] = tens[1][0]*v[m][0] + tens[1][1]*v[m][1] + tens[1][2]*v[m][2];
+    t[m][2] = tens[2][0]*v[m][0] + tens[2][1]*v[m][1] + tens[2][2]*v[m][2];
+  }
+}
+
+void
+Tensor_d1s2_Ss23_diag::dblContractInto(const Tensor &b, Tensor *result) const
+{
+  const Tensor_d1s2_Ss23_diag &tens = static_cast<const Tensor_d1s2_Ss23_diag &>(b);
+  Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
+  for (int m = 0; m < size; m++)
+    for (int n = m; n < size; n++) {
+      t[m+size*n] = t[n+size*m] = v[m][0]*tens[n][0] + v[m][1]*tens[n][1] + v[m][2]*tens[n][2];
+    }
+}
+
+void
+Tensor_d0s4_Ss12s34_diag::dblContractInto(const Tensor &b, Tensor *result) const
+{
+  b.dblContractWith(*this, result);
+}
+
+Tensor_d2s2_Sd12s34_dense_diag::Tensor_d2s2_Sd12s34_dense_diag(int _size)
+{
+  size = _size;
+  v = new Tensor_d0s2_Ss12_diag[size*(size+1)/2];
+}
+
+Tensor_d2s2_Sd12s34_dense_diag::Tensor_d2s2_Sd12s34_dense_diag(const Tensor_d2s2_Sd12s34_dense_diag &t)
+{
+  int len = size*(size+1)/2;
+  size = t.size;
+  v = new Tensor_d0s2_Ss12_diag[len];
+  for (int i = 0; i < len; ++i)
+    v[i] = t.v[i];
+}
+
+Tensor_d2s2_Sd12s34_dense_diag &
+Tensor_d2s2_Sd12s34_dense_diag::operator = (const Tensor_d2s2_Sd12s34_dense_diag &t)
+{
+  int len = size*(size+1)/2;
+  if(size != t.size) {
+    if(v) delete[] v;
+    size = t.size;
+    v = new Tensor_d0s2_Ss12_diag[len];
+  }
+  for (int i = 0; i < len; ++i)
+    v[i] = t.v[i];
+  return *this;
+}
+
+void
+Tensor_d2s2_Sd12s34_dense_diag::dblContractInto(const Tensor &b, Tensor *result) const
+{
+  const Tensor_d0s2_Ss12_diag &tens = static_cast<const Tensor_d0s2_Ss12_diag &>(b);
+  Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
+  for (int i = 0, k = 0; i < size; i++)
+    for (int j = i; j < size; j++, k++)
+      t[j*size+i] = t[i*size+j] = tens[0]*v[k][0] + tens[1]*v[k][1] + tens[2]*v[k][2];
+}
+

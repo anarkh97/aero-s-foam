@@ -429,7 +429,6 @@ LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const
 
   Eigen::Matrix3d E;
   Eigen::Matrix3d dEdqk;
-  Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> d2Edqkdq(numdofs);
 
   if(GradU.isZero()) {
     //note: the eigenvalue decomposition is apparently not differentiable in this case.
@@ -464,32 +463,27 @@ LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const
     Eigen::Array<double,3,1> linv = dec.eigenvalues().array().inverse();
 
     // allocate memory for intermediate derivatives
-    Eigen::Array<Eigen::Array<double,3,1>,Eigen::Dynamic,1> dldq(numdofs);
-    Eigen::Array<Eigen::Matrix<double,3,1>,Eigen::Dynamic,1> dlnldq(numdofs);
-    Eigen::Array<Eigen::Matrix<double,3,3>,Eigen::Dynamic,1> dCdq(numdofs), dydq(numdofs);
-    Eigen::Matrix<double,3,3> tmp1;
-    Eigen::Array<Eigen::Matrix<double,3,3>,Eigen::Dynamic,1> tmp2(numdofs);
+    Eigen::Array<double,3,1> dldqk, dlnldqk;
+    Eigen::Matrix3d dCdqk, dCdqky, dydqk;
 
     for(int k=0; k<numdofs; ++k) {
 
       // first derivative of C=F^T*F wrt q_k
-      dCdq(k) = F.transpose()*dGradUdq[k] + (F.transpose()*dGradUdq[k]).transpose();
+      dCdqk = F.transpose()*dGradUdq[k] + (F.transpose()*dGradUdq[k]).transpose();
 
-      Eigen::Matrix<double,3,3> dCdqky = dCdq[k]*dec.eigenvectors();
+      dCdqky = dCdqk*dec.eigenvectors();
 
       // first derivative of lambda with respect to q_k
-      dldq[k] = (dec.eigenvectors().adjoint()*dCdqky).diagonal();
+      dldqk = (dec.eigenvectors().adjoint()*dCdqky).diagonal();
 
       // first derivatve of y with respect to q_k
-      for(int i=0; i<3; ++i) dydq[k].col(i) = -mpinverse[i]*dCdqky.col(i);
+      for(int i=0; i<3; ++i) dydqk.col(i) = -mpinverse[i]*dCdqky.col(i);
 
       // first derivative of E with respect to q_k
-      dlnldq[k] = linv*dldq[k];
-      tmp1 = dydq[k]*lnl.asDiagonal();
-      tmp2[k] = dlnldq[k].asDiagonal()*dec.eigenvectors().adjoint();
-      dEdqk.triangularView<Eigen::Upper>() = 0.5*(dydq[k]*ylnl.adjoint()
-                    + dec.eigenvectors()*dlnldq[k].asDiagonal()*dec.eigenvectors().adjoint()
-                      + ylnl*dydq[k].adjoint());
+      dlnldqk = linv*dldqk;
+      dEdqk.triangularView<Eigen::Upper>() = 0.5*(dydqk*ylnl.adjoint()
+                    + dec.eigenvectors()*dlnldqk.matrix().asDiagonal()*dec.eigenvectors().adjoint()
+                      + ylnl*dydqk.adjoint());
 
       B[k] = dEdqk;
     }
@@ -527,39 +521,38 @@ LogarithmicStrain::getE(Tensor &_e, Tensor &_gradU)
 #endif
 }
 
-// NOTE: this strain measure should use a more efficient tensor to take advantage of the diagonal structure
 Tensor *
 PrincipalStretches::getTMInstance()
 {
-  Tensor_d0s4_Ss12s34 *s = new Tensor_d0s4_Ss12s34;
+  Tensor_d0s4_Ss12s34_diag *s = new Tensor_d0s4_Ss12s34_diag;
   return s;
 }
 
 Tensor *
 PrincipalStretches::getStressInstance()
 {
-  Tensor_d0s2_Ss12 *s = new Tensor_d0s2_Ss12;
+  Tensor_d0s2_Ss12_diag *s = new Tensor_d0s2_Ss12_diag;
   return s;
 }
 
 Tensor *
 PrincipalStretches::getStrainInstance()
 {
-  Tensor_d0s2_Ss12 *s = new Tensor_d0s2_Ss12;
+  Tensor_d0s2_Ss12_diag *s = new Tensor_d0s2_Ss12_diag;
   return s;
 }
 
 Tensor *
 PrincipalStretches::getBInstance(int numdofs)
 {
-  Tensor_d1s2_Ss23 *B = new Tensor_d1s2_Ss23(numdofs);
+  Tensor_d1s2_Ss23_diag *B = new Tensor_d1s2_Ss23_diag(numdofs);
   return B;
 }
 
 Tensor *
 PrincipalStretches::getDBInstance(int numdofs)
 {
-  Tensor_d2s2_Sd12s34_dense *DB = new Tensor_d2s2_Sd12s34_dense(numdofs);
+  Tensor_d2s2_Sd12s34_dense_diag *DB = new Tensor_d2s2_Sd12s34_dense_diag(numdofs);
   return DB;
 }
 
@@ -575,9 +568,9 @@ PrincipalStretches::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tenso
 #ifdef USE_EIGEN3
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
-  Tensor_d2s2_Sd12s34_dense & DB = static_cast<Tensor_d2s2_Sd12s34_dense &>(_DB);
-  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(__B);
-  Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
+  Tensor_d2s2_Sd12s34_dense_diag & DB = static_cast<Tensor_d2s2_Sd12s34_dense_diag &>(_DB);
+  Tensor_d1s2_Ss23_diag & B = static_cast<Tensor_d1s2_Ss23_diag &>(__B);
+  Tensor_d0s2_Ss12_diag & e = static_cast<Tensor_d0s2_Ss12_diag &>(_e);
 
   int numdofs = dgradUdqk.getSize();
 
@@ -587,84 +580,76 @@ PrincipalStretches::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tenso
   Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> dGradUdq(numdofs);
   dgradUdqk.assignTo(dGradUdq);
 
-  Eigen::Matrix3d E;
-  Eigen::Matrix3d dEdqk;
-  Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> d2Edqkdq(numdofs);
-
-  Eigen::Matrix<double,3,3> F = GradU + Eigen::Matrix<double,3,3>::Identity();
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,3,3> > dec((F.transpose()*F).eval());
+  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec((F.transpose()*F).eval());
 
   // principal stretches
-  Eigen::Matrix<double,3,1> sqrtl = dec.eigenvalues().array().sqrt();
-  E = sqrtl.asDiagonal();
+  Eigen::Array<double,3,1> sqrtl = dec.eigenvalues().array().sqrt();
+  e = sqrtl;
 
   // Moore-Penrose pseudo inverses of C - lambda_i*I
   double tol = std::numeric_limits<double>::epsilon();
   Eigen::Array<Eigen::Matrix<double,3,3>,3,1> mpinverse;
   for(int i=0; i<3; ++i) {
-    Eigen::Matrix<double,3,1> singularValues = dec.eigenvalues() - Eigen::Matrix<double,3,1>::Constant(dec.eigenvalues()[i]);
-    Eigen::Matrix<double,3,1> invertedSingularVals;
+    Eigen::Vector3d singularValues = dec.eigenvalues() - Eigen::Matrix<double,3,1>::Constant(dec.eigenvalues()[i]);
+    Eigen::Vector3d invertedSingularVals;
     for(int j=0; j<3; ++j) invertedSingularVals[j] = (fabs(singularValues[j]) < tol) ? 0 : 1/singularValues[j];
     mpinverse[i] = dec.eigenvectors() * invertedSingularVals.asDiagonal() * dec.eigenvectors().adjoint();
   }
 
   // some more precomputation...
-  Eigen::Array<double,3,1> dsqrtldl = 0.5*sqrtl.array().inverse();
+  Eigen::Array<double,3,1> dsqrtldl = 0.5*sqrtl.inverse();
   Eigen::Array<double,3,1> d2sqrtldl2 = -0.5*dsqrtldl*dec.eigenvalues().array().inverse();
 
   // allocate memory for intermediate derivatives
   Eigen::Array<Eigen::Array<double,3,1>,Eigen::Dynamic,1> dldq(numdofs), d2ldqkdq(numdofs);
-  Eigen::Array<Eigen::Matrix<double,3,1>,Eigen::Dynamic,1> dsqrtldq(numdofs);
-  Eigen::Array<Eigen::Matrix<double,3,3>,Eigen::Dynamic,1> dCdq(numdofs), d2Cdqkdq(numdofs), dydq(numdofs);
+  Eigen::Array<double,3,1> dsqrtldqk, d2sqrtldqkdqj;
+  Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> dCdq(numdofs), d2Cdqkdq(numdofs), dydq(numdofs);
+  Eigen::Matrix3d dCdqky, tmp;
 
   for(int k=0; k<numdofs; ++k) {
 
     // first derivative of C=F^T*F wrt q_k
-    dCdq(k) = F.transpose()*dGradUdq[k] + (F.transpose()*dGradUdq[k]).transpose();
+    dCdq[k] = F.transpose()*dGradUdq[k] + (F.transpose()*dGradUdq[k]).transpose();
 
     // second derivatives of C wrt q_k,q_j
     for(int j=0; j<=k; ++j) {
       if((j-k)%3 == 0) {
-        Eigen::Matrix<double,3,3> tmp = dGradUdq[j].transpose()*dGradUdq[k];
+        tmp = dGradUdq[j].transpose()*dGradUdq[k];
         d2Cdqkdq[j] = tmp + tmp.transpose();
       }
     }
 
-    Eigen::Matrix<double,3,3> dCdqky = dCdq[k]*dec.eigenvectors();
+    dCdqky = dCdq[k]*dec.eigenvectors();
 
-    // first derivative of lambda with respect to q_k
+    // first derivative of eigenvalues of C with respect to q_k
     dldq[k] = (dec.eigenvectors().adjoint()*dCdqky).diagonal();
 
-    // first derivatve of y with respect to q_k
+    // first derivative of eigenvectors of C with respect to q_k
     for(int i=0; i<3; ++i) dydq[k].col(i) = -mpinverse[i]*dCdqky.col(i);
 
     for(int j=0; j<=k; ++j) {
-      Eigen::Matrix<double,3,3> dCdqjdydqk = dCdq[j]*dydq[k];
+      Eigen::Matrix3d dCdqjdydqk = dCdq[j]*dydq[k];
       if((j-k)%3 == 0) {
-        Eigen::Matrix<double,3,3> d2Cdqkdqjy = d2Cdqkdq[j]*dec.eigenvectors();
+        Eigen::Matrix3d d2Cdqkdqjy = d2Cdqkdq[j]*dec.eigenvectors();
 
-        // second derivatives of lambda with respect to q_k, q_j for non-zero d2Cdqkdq[j]
-        d2ldqkdq(j) = (dec.eigenvectors().adjoint()*(d2Cdqkdqjy + 2*dCdqjdydqk)).diagonal();
+        // second derivatives of eigenvalues of C with respect to q_k, q_j for non-zero d2Cdqkdq[j]
+        d2ldqkdq[j] = (dec.eigenvectors().adjoint()*(d2Cdqkdqjy + 2*dCdqjdydqk)).diagonal();
       }
       else {
-        // second derivatives of lambda with respect to q_k, q_j for zero d2Cdqkdq[j]
-        d2ldqkdq(j) = (dec.eigenvectors().adjoint()*(2*dCdqjdydqk)).diagonal();
+        // second derivatives of eigenvalues of C with respect to q_k, q_j for zero d2Cdqkdq[j]
+        d2ldqkdq[j] = (dec.eigenvectors().adjoint()*(2*dCdqjdydqk)).diagonal();
       }
     }
-    // first derivative of E with respect to q_k
-    dsqrtldq[k] = dsqrtldl*dldq[k].array();
-    dEdqk = dsqrtldq[k].asDiagonal();
+    // first derivative of principal stretches with respect to q_k
+    dsqrtldqk = dsqrtldl*dldq[k];
+    B[k] = dsqrtldqk;
     for(int j=0; j<=k; ++j) {
-      // second derivative of E with respect to q_k,j
-      Eigen::Matrix<double,3,1> d2sqrtldqkdqj = dsqrtldl*d2ldqkdq(j).array() + d2sqrtldl2*dldq[j]*dldq[k];
-      d2Edqkdq[j] = d2sqrtldqkdqj.asDiagonal();
+      // second derivative of principal stretches with respect to q_k,j
+      d2sqrtldqkdqj = dsqrtldl*d2ldqkdq[j] + d2sqrtldl2*dldq[j]*dldq[k];
+      DB[j*(2*numdofs-j-1)/2+k] = d2sqrtldqkdqj;
     }
-
-    B[k] = dEdqk;
-    for(int j=0; j<=k; ++j) DB[j*(2*numdofs-j-1)/2+k] = d2Edqkdq[j];
   }
-
-  e = E;
 
 #else
   std::cerr << " *** ERROR: PrincipalStretches requires AERO-S configured with Eigen library. Exiting..." << std::endl;
@@ -683,8 +668,8 @@ PrincipalStretches::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, cons
 #ifdef USE_EIGEN3
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
-  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(__B);
-  Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
+  Tensor_d1s2_Ss23_diag & B = static_cast<Tensor_d1s2_Ss23_diag &>(__B);
+  Tensor_d0s2_Ss12_diag & e = static_cast<Tensor_d0s2_Ss12_diag &>(_e);
 
   int numdofs = dgradUdqk.getSize();
 
@@ -694,42 +679,32 @@ PrincipalStretches::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, cons
   Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> dGradUdq(numdofs);
   dgradUdqk.assignTo(dGradUdq);
 
-  Eigen::Matrix3d E;
-  Eigen::Matrix3d dEdqk;
-  Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> d2Edqkdq(numdofs);
-
-  Eigen::Matrix<double,3,3> F = GradU + Eigen::Matrix<double,3,3>::Identity();
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,3,3> > dec((F.transpose()*F).eval());
+  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec((F.transpose()*F).eval());
 
   // principal stretches
-  Eigen::Matrix<double,3,1> sqrtl = dec.eigenvalues().array().sqrt();
-  E = sqrtl.asDiagonal();
+  Eigen::Array<double,3,1> sqrtl = dec.eigenvalues().array().sqrt();
+  e = sqrtl;
 
   // some more precomputation...
-  Eigen::Array<double,3,1> dsqrtldl = 0.5*sqrtl.array().inverse();
+  Eigen::Array<double,3,1> dsqrtldl = 0.5*sqrtl.inverse();
 
   // allocate memory for intermediate derivatives
-  Eigen::Array<Eigen::Array<double,3,1>,Eigen::Dynamic,1> dldq(numdofs);
-  Eigen::Array<Eigen::Matrix<double,3,1>,Eigen::Dynamic,1> dsqrtldq(numdofs);
-  Eigen::Array<Eigen::Matrix<double,3,3>,Eigen::Dynamic,1> dCdq(numdofs);
+  Eigen::Array<double,3,1> dldqk, dsqrtldqk;
+  Eigen::Matrix3d dCdqk;
 
   for(int k=0; k<numdofs; ++k) {
 
     // first derivative of C=F^T*F wrt q_k
-    dCdq(k) = F.transpose()*dGradUdq[k] + (F.transpose()*dGradUdq[k]).transpose();
+    dCdqk = F.transpose()*dGradUdq[k] + (F.transpose()*dGradUdq[k]).transpose();
 
-    Eigen::Matrix<double,3,3> dCdqky = dCdq[k]*dec.eigenvectors();
+    // first derivative of eigenvalues of C with respect to q_k
+    dldqk = (dec.eigenvectors().adjoint()*dCdqk*dec.eigenvectors()).diagonal();
 
-    // first derivative of lambda with respect to q_k
-    dldq[k] = (dec.eigenvectors().adjoint()*dCdqky).diagonal();
-
-    // first derivative of E with respect to q_k
-    dsqrtldq[k] = dsqrtldl*dldq[k].array();
-    dEdqk = dsqrtldq[k].asDiagonal();
-    B[k] = dEdqk;
+    // first derivative of principal stretches with respect to q_k
+    dsqrtldqk = dsqrtldl*dldqk;
+    B[k] = dsqrtldqk;
   }
-
-  e = E;
 
 #else
   std::cerr << " *** ERROR: PrincipalStretches requires AERO-S configured with Eigen library. Exiting..." << std::endl;
@@ -742,7 +717,7 @@ PrincipalStretches::getE(Tensor &_e, Tensor &_gradU)
 {
 #ifdef USE_EIGEN3
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
-  Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
+  Tensor_d0s2_Ss12_diag & e = static_cast<Tensor_d0s2_Ss12_diag &>(_e);
 
   // in this case e = principal stretches, i.e. sqrts of the eigenvalues of (F^T*F)
   Eigen::Matrix3d GradU;
@@ -750,9 +725,8 @@ PrincipalStretches::getE(Tensor &_e, Tensor &_gradU)
 
   Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec((F.transpose()*F).eval());
-  Eigen::Matrix3d E = dec.eigenvalues().array().sqrt().matrix().asDiagonal();
-
-  e = E;
+  Eigen::Array3d sqrtl = dec.eigenvalues().array().sqrt();
+  e = sqrtl;
 
 #else
   std::cerr << " *** ERROR: PrincipalStretches requires AERO-S configured with Eigen library. Exiting..." << std::endl;

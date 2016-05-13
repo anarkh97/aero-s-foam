@@ -8,8 +8,11 @@ class OgdenMat : public NLMaterial
 {
   protected:
     // isotropic material properties
-    double rho, mu[3], alpha[3], c, d;
-    int N, vol;
+    double rho; // density
+    double mu[3], alpha[3]; // material properties characterizing distortional response
+    int N; // number of terms in the Ogden series
+    double c, d; // material properties characterizing volumetric response
+    int vol; // identifies the particular form of the volumetric stored energy function
 
   public:
     OgdenMat(double _rho, double _mu1, double _alpha1, double _c, double _d, int _vol=1);

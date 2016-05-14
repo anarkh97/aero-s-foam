@@ -8,6 +8,7 @@
 #include <Element.d/NonLinearity.d/2DMat.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
+#include <Element.d/NonLinearity.d/PronyViscoElastic.h>
 #include <Element.d/NonLinearity.d/OgdenMat.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 #include <Element.d/Sommerfeld.d/LineSommerBC.h>

@@ -110,7 +110,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN OGDEN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC ISOTROPICVISCOLINEARELASTIC NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN LOGSTRAINPLASTIC SVKPLSTRESS
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -2840,9 +2840,6 @@ MatData:
           StructProp sp;
           sp.k1 = $3;
           sp.rho = 0;
-          sp.freeplay[0].ul = 0.0;
-          sp.freeplay[0].dz = 0.0;
-          sp.freeplay[0].uz = 1.0;
           geoSource->addMat( $1-1, sp );
         }
         | Integer SPRINGMAT Float FREEPLAY Float NewLine
@@ -4752,11 +4749,23 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElastic>(params));
           }
+        | MatSpec Integer ISOTROPICVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[10] = { $4, $5, $6 , $7, $8, $9, $10, $11, $12, $13};
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<IsotropicLinearElastic>(params));
+          }
         | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
           {
             double params[4] = { $4, $5, $6, -1 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<NeoHookean>(params));
+          }
+        | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[11] = { $4, $5, $6, -1 , $7, $8, $9, $10, $11, $12, $13};
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<NeoHookean>(params));
           }
         | MatSpec Integer NEOHOOKEAN Float Float Float Float NewLine
           {
@@ -4764,11 +4773,23 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new MaterialWrapper<NeoHookean>(params));
           }
+        | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[11] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14};
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<NeoHookean>(params));
+          }
         | MatSpec Integer MOONEYRIVLIN Float Float Float Float NewLine
           {
             double params[5] = { $4, $5, $6, $7, -1 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<MooneyRivlin>(params));
+          }
+        | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[12] = { $4, $5, $6, $7, -1, $8, $9, $10, $11, $12, $13, $14};
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<MooneyRivlin>(params));
           }
         | MatSpec Integer MOONEYRIVLIN Float Float Float Float Float NewLine
           {
@@ -4776,7 +4797,13 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new MaterialWrapper<MooneyRivlin>(params));
           }
-        | MatSpec Integer OGDEN Float Float Float Float Float NewLine
+        | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[12] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15};
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<MooneyRivlin>(params));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float NewLine 
           {
            geoSource->addMaterial($2-1,
              new OgdenMat($4, $5, $6, $7, $8));

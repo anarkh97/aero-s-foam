@@ -1416,15 +1416,21 @@ TRAIL [a-zA-Z]*
 
 "isotropiclinearelastic"|"ISOTROPICLINEARELASTIC"|"IsotropicLinearElastic"  { return ISOTROPICLINEARELASTIC; }
 
+"isotropicviscolinearelastic"|"ISOTROPICVISCOLINEARELASTIC"|"IsotropicViscoLinearElastic"  { return ISOTROPICVISCOLINEARELASTIC; }
+
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
 
 "henc"[a-zA-Z]*|"HENC"[a-zA-Z]*|"Henc"[a-zA-Z]*         { return HENCKY; }
 
 "neoh"[a-zA-Z]*|"NEOH"[a-zA-Z]*|"NeoH"[a-zA-Z]*         { return NEOHOOKEAN; }
 
+"visconeoh"[a-zA-Z]*|"VISCONEOH"[a-zA-Z]*|"ViscoNeoH"[a-zA-Z]*         { return VISCONEOHOOKEAN; }
+
 "moon"[a-zA-Z]*|"MOON"[a-zA-Z]*|"Moon"[a-zA-Z]*         { return MOONEYRIVLIN; }
 
 "ogde"[a-zA-Z]*|"OGDE"[a-zA-Z]*|"Ogde"[a-zA-Z]*         { return OGDEN; }
+
+"viscomoon"[a-zA-Z]*|"VISCOMOON"[a-zA-Z]*|"ViscoMoon"[a-zA-Z]*         { return VISCOMOONEYRIVLIN; }
 
 "isotropiclinearelasticj2plastic"|"ISOTROPICLINEARELASTICJ2PLASTIC"|"IsotropicLinearElasticJ2Plastic" { return ISOTROPICLINEARELASTICJ2PLASTIC; }
 

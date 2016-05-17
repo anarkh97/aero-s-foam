@@ -33,6 +33,12 @@ ElaLinIsoMat2D::getStress(Tensor *_stress, Tensor &_strain, double* state, doubl
   (*stress) = tm||strain;
 }
 
+void
+ElaLinIsoMat2D::transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S)
+{
+  // do nothing: transformation is only applied for finite-strain materials
+}
+
 void 
 ElaLinIsoMat2D::getTangentMaterial(Tensor *_tm, Tensor &, double*, double temp)
 {

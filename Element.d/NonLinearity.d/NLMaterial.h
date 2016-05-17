@@ -7,6 +7,7 @@
 
 class StrainEvaluator;
 class Tensor;
+class Tensor_d0s2_Ss12;
 template <typename Tensor> class GenStrainEvaluator;
 template <int n> class TwoDTensorTypes;
 class MFTTData;
@@ -24,7 +25,9 @@ class NLMaterial
 
      virtual void getElasticity(Tensor *tm) = 0;
 
-     virtual void getStress(Tensor *stress, Tensor &strain, double *state, double temp) = 0;
+     virtual void getStress(Tensor *stress, Tensor &strain, double *state, double temp) = 0; // returns conjugate stress
+
+     virtual void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S) = 0; // returns PK2 stress for finite-strain materials
 
      virtual void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double *state, double temp) = 0;
 

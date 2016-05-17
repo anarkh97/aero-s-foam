@@ -6,6 +6,10 @@
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <Utils.d/NodeSpaceArray.h>
 
+#ifdef USE_EIGEN3
+#include <Eigen/Dense>
+#endif
+
 #define UNCOUPLED_FORM
 
 OgdenMat::OgdenMat(double _rho, double _mu1, double _alpha1,
@@ -65,9 +69,6 @@ OgdenMat::clone() const
 void
 OgdenMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
 {
-  // TODO: this function is used for post-processing and should return the PK2 stress
-  //       currently whatever stress measure is conjugate to the principal stretches
-  //       is what is being returned.
   using std::pow;
   Tensor_d0s2_Ss12_diag &lambda = static_cast<Tensor_d0s2_Ss12_diag &>(_strain);
   Tensor_d0s2_Ss12_diag *stress = static_cast<Tensor_d0s2_Ss12_diag *>(_stress);
@@ -102,6 +103,38 @@ OgdenMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
     (*stress)[1] += mu[i]*pow(lambda[1],alpha[i]-1);
     (*stress)[2] += mu[i]*pow(lambda[2],alpha[i]-1);
   }
+#endif
+}
+
+void
+OgdenMat::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
+{
+#ifdef USE_EIGEN3
+  using std::pow;
+  Tensor_d0s2_Ss12_diag &stress = static_cast<Tensor_d0s2_Ss12_diag &>(_stress);
+  Tensor_d0s2 &gradU = static_cast<Tensor_d0s2 &>(_gradU);
+  Eigen::Matrix3d GradU; gradU.assignTo(GradU);
+  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
+  Eigen::Matrix3d C = F.transpose()*F;
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec(C);
+  Eigen::Array<double,3,1> lambda = dec.eigenvalues().array().sqrt();
+  double J = lambda[0]*lambda[1]*lambda[2];
+  double dUdJ;
+  switch(vol) {
+    case 0: dUdJ = c/2*(2*J-1/J);    break;
+    case 1: dUdJ = c*(2*J-2) - d/J;  break;
+    case 2: dUdJ = (c*log(J) - d)/J; break;
+  }
+  Eigen::Array<Eigen::Matrix3d,3,1> M;
+  Eigen::Array<double,3,1> beta;
+  for(int i=0; i<3; ++i) {
+    M[i] = 1/dec.eigenvalues()[i]*dec.eigenvectors().col(i)*dec.eigenvectors().col(i).transpose();
+    beta[i] = (stress[i]*lambda[i]-J*dUdJ);
+  }
+  S = J*dUdJ*C.inverse() + beta[0]*M[0]+beta[1]*M[1]+beta[2]*M[2];
+#else
+  std::cerr << "ERROR: OgdenMat::transformStress is not implemented\n";
+  S.setZero();
 #endif
 }
 

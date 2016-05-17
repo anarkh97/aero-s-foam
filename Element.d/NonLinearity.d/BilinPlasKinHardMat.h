@@ -37,6 +37,8 @@ class ElasPlasKinHardMat : public NLMaterial
 
     void getStress(Tensor *stress, Tensor &strain, double *, double temp);
 
+    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
+
     void getTangentMaterial(Tensor *tm, Tensor &strain, double *, double temp);
 
     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double *, double temp);

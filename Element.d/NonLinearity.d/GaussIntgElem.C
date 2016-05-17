@@ -696,6 +696,8 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
   Tensor &enp = *strainEvaluator->getStrainInstance();
   Tensor &s = *strainEvaluator->getStressInstance();
 
+  Tensor_d0s2_Ss12 S; // second Piola-Kirchhoff stress tensor
+
   int nstatepgp = material->getNumStates();
 
   if(nstatepgp == 0 && avgnum != -1) { // evaluate the stress at the nodes
@@ -710,7 +712,8 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
       strainEvaluator->getE(enp, gradUnp);
 
       material->getStress(&s, enp, statenp, (temps ? temps[i] : 0));
-      copyTens(&s, result[i]);
+      material->transformStress(s, gradUnp, S);
+      copyTens(&S, result[i]);
     }
   }
   else { // evaluate at the gauss points and (if avgnum != -1) extrapolate to the nodes
@@ -739,8 +742,10 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
       material->integrate(&s, &Dnp, en, enp,
                           staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
 
-      if(avgnum == -1) copyTens(&s, result[i]);
-      else copyTens(&s, gpstress[i]);
+      material->transformStress(s, gradUnp, S);
+
+      if(avgnum == -1) copyTens(&S, result[i]);
+      else copyTens(&S, gpstress[i]);
     }
 
     if(avgnum != -1) {
@@ -758,7 +763,6 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
     }
 
     delete [] gpstress;
-    //delete &gradUn;
     delete &en;
     delete &Dnp;
   }
@@ -804,6 +808,8 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
   Tensor &enp = *strainEvaluator->getStrainInstance();
   Tensor &s = *strainEvaluator->getStressInstance();
 
+  Tensor_d0s2_Ss12 S; // second Piola-Kirchhoff stress tensor
+
   int nstatepgp = material->getNumStates();
 
   if(nstatepgp == 0 && avgnum != -1) { // evaluate the stress at the nodes
@@ -818,9 +824,10 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
       strainEvaluator->getE(enp, gradUnp);
 
       material->getStress(&s, enp, statenp, (temps ? temps[i] : 0));
+      material->transformStress(s, gradUnp, S);
 #ifdef USE_EIGEN3
       Eigen::Matrix3d M;
-      copyTens(&s,M);
+      copyTens(&S,M);
       // compute the deviatoric stress/strain tensor and it's second invariant
       Eigen::Matrix3d dev = M - (M.trace()/3)*Eigen::Matrix3d::Identity();
       double J2 = 0.5*(dev*dev).trace();
@@ -854,9 +861,10 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
 
       material->integrate(&s, &Dnp, en, enp,
                           staten + nstatepgp*i, statenp + nstatepgp*i, 0);
+      material->transformStress(s, gradUnp, S);
 #ifdef USE_EIGEN3
       Eigen::Matrix3d M;
-      copyTens(&s,M);
+      copyTens(&S,M);
       // compute the deviatoric stress/strain tensor and it's second invariant
       Eigen::Matrix3d dev = M - (M.trace()/3)*Eigen::Matrix3d::Identity();
       double J2 = 0.5*(dev*dev).trace();

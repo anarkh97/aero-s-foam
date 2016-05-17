@@ -48,68 +48,6 @@ MaterialWrapper<Material>::getStress(Tensor *_stress, Tensor &_strain, double*, 
 
 template<>
 inline void
-MaterialWrapper<NeoHookean>::getStress(Tensor *_stress, Tensor &_strain, double* state, double temp)
-{
-  // Note: this function is called for post-processing.
-  // In this case we prefer to output the PK2 stress to be consistent with other
-  // materials, and also because the second invariant of the deviatoric PK1 stress
-  // can be negative.
-  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
-  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
-
-  std::vector<double> lstrain; // deformation gradient
-  std::vector<double> lstress; // first P-K stress tensor
-
-  lstrain.resize(9);
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      lstrain[3*i+j] = strain[3*i+j];
-
-  mat->GetConstitutiveResponse(&lstrain, &lstress, NULL);
-
-#ifdef USE_EIGEN3
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&lstrain[0]), P(&lstress[0]), s(&(*stress)[0]);
-  s = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
-#else
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      (*stress)[3*i+j] = lstress[3*i+j];
-#endif
-}
-
-template<>
-inline void
-MaterialWrapper<MooneyRivlin>::getStress(Tensor *_stress, Tensor &_strain, double* state, double temp)
-{
-  // Note: this function is called for post-processing.
-  // In this case we prefer to output the PK2 stress to be consistent with other
-  // materials, and also because the second invariant of the deviatoric PK1 stress
-  // can be negative.
-  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
-  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
-
-  std::vector<double> lstrain; // deformation gradient
-  std::vector<double> lstress; // first P-K stress tensor
-
-  lstrain.resize(9);
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      lstrain[3*i+j] = strain[3*i+j];
-
-  mat->GetConstitutiveResponse(&lstrain, &lstress, NULL);
-
-#ifdef USE_EIGEN3
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&lstrain[0]), P(&lstress[0]), s(&(*stress)[0]);
-  s = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
-#else
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      (*stress)[3*i+j] = lstress[3*i+j];
-#endif
-}
-
-template<>
-inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getStress(Tensor *_stress, Tensor &_strain, double* state, double temp)
 {
   // clone material for thread-safety reasons
@@ -151,6 +89,47 @@ inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStress(Tensor *_stress, Tensor &_strain, double* state, double temp)
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStress is not implemented\n";
+}
+
+template<typename Material>
+void
+MaterialWrapper<Material>::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
+{
+  // do nothing: transformation is only applied for finite-strain materials
+}
+
+template<>
+inline void
+MaterialWrapper<NeoHookean>::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
+{
+  Tensor_d0s2 &stress = static_cast<Tensor_d0s2 &>(_stress);
+  Tensor_d0s2 &gradU  = static_cast<Tensor_d0s2 &>(_gradU);
+
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > GradU(&gradU[0]), P(&stress[0]);
+  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
+  S = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
+#else
+  std::cerr << "ERROR: MaterialWrapper<Material>::transformStress is not implemented\n";
+  S.setZero();
+#endif
+}
+
+template<>
+inline void
+MaterialWrapper<MooneyRivlin>::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
+{
+  Tensor_d0s2 &stress = static_cast<Tensor_d0s2 &>(_stress);
+  Tensor_d0s2 &gradU  = static_cast<Tensor_d0s2 &>(_gradU);
+
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > GradU(&gradU[0]), P(&stress[0]);
+  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
+  S = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
+#else
+  std::cerr << "ERROR: MaterialWrapper<Material>::transformStress is not implemented\n";
+  S.setZero();
+#endif
 }
 
 template<typename Material>

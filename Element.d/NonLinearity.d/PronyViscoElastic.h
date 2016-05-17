@@ -46,7 +46,6 @@ PronyViscoElastic<IsotropicLinearElastic>::PronyViscoElastic(double *params) : M
  tau2 = params[7];
  g3   = params[8];
  tau3 = params[9];
- std::cout << " ginf = " << ginf << " g1 = " << g1 << " tau1 = " << tau1 << " g2 = " << g2 << " tau2 = " << tau2 << " g3 = " << g3 << " tau3 = " << tau3 << std::endl;
 }
 
 template<>

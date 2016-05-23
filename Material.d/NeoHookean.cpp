@@ -97,7 +97,7 @@ bool NeoHookean::GetConstitutiveResponse(const std::vector<double> * strain,
 		 0., 1., 0.,
 		 0., 0., 1.};
   double C[9],Cinv[9],S[9],M[81];
-  double Finv[9],detF;
+  //double Finv[9],detF;
   int J;
   int ndf=3;
   int ndm=3;
@@ -110,7 +110,7 @@ bool NeoHookean::GetConstitutiveResponse(const std::vector<double> * strain,
 
   /* compute PK2 stresses and derivatives wrt C*/
   detC = matlib_inverse(C,Cinv);
-  detF = matlib_inverse(F,Finv);
+  //detF = matlib_inverse(F,Finv);
 
   if (detC < 1.e-10) {
     std::cerr << "NeoHookean::GetConstitutiveResponse:  close to negative jacobian\n";

@@ -159,7 +159,7 @@ MultiDomDynPostProcessor::setNodalTemps(DistrVector* _nodalTemps)
 
 void
 MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, DistrVector &distForce, 
-                                      DistrVector *distAeroF, SysState<DistrVector>& distState)
+                                      DistrVector *distAeroF, SysState<DistrVector>& distState, DistrVector *distResF)
 {
   if(!times) times = new StaticTimers;
   startTimerMemory(times->output, times->memoryOutput);
@@ -257,7 +257,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
   }
 
   if(sinfo.isNonLin())
-    decDomain->postProcessing(geomState, distForce, allCorot, t, &distState, distAeroF, geomState, reactions, &dynOps);
+    decDomain->postProcessing(geomState, distForce, allCorot, t, &distState, distAeroF, geomState, reactions, &dynOps, distResF);
   else
     decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
   stopTimerMemory(times->output, times->memoryOutput);

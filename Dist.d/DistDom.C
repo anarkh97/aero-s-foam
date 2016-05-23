@@ -693,8 +693,9 @@ this->communicator->sync();
 }
 
 template<class Scalar>
+template<int dim>
 void
-GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, 11> &disps, DistSVec<Scalar, 11> &masterDisps, 
+GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, dim> &disps, DistSVec<Scalar, dim> &masterDisps, 
                                   double time, int x, int fileNumber, int ndof, int startdof)
 {
   // this function outputs the primal variables: displacement, temperature, pressure
@@ -714,7 +715,7 @@ GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, 11> &disps, DistSVec<Scalar, 
         int *outIndex = this->subDomain[iSub]->getOutIndex();
         for(int iNode = 0; iNode < nOutNodes; iNode++) {
           if(outIndex[iNode] == fileNumber) {
-            Scalar (*nodeDisp)[11] = (Scalar (*)[11]) disps.subData(iSub);
+            Scalar (*nodeDisp)[dim] = (Scalar (*)[dim]) disps.subData(iSub);
             int *outNodes = this->subDomain[iSub]->getOutputNodes();
             switch(ndof) {
               case 6:
@@ -1346,7 +1347,7 @@ template<class Scalar>
 void
 GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<Scalar> &extF, Corotator ***allCorot, double time,
                                        SysState<GenDistrVector<Scalar> > *distState, GenDistrVector<Scalar> *aeroF, DistrGeomState *refState,
-                                       GenDistrVector<Scalar> *reactions, GenMDDynamMat<Scalar> *dynOps)
+                                       GenDistrVector<Scalar> *reactions, GenMDDynamMat<Scalar> *dynOps, GenDistrVector<Scalar> *resF)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
@@ -1447,6 +1448,19 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector
       this->subDomain[iSub]->mergeDistributedReactions(mergedReactions, assembledReactions.subData(iSub));
     }
     reacts.reduce(masterReacts, masterFlag, numFlags);
+  }
+  // initialize and merge residual
+  DistSVec<Scalar, 6> resf(*this->nodeInfo);
+  DistSVec<Scalar, 6> masterResF(masterInfo);
+  if(resF) {
+    GenDistrVector<Scalar> assembledResF(*resF);
+    this->getSolVecAssembler()->assemble(assembledResF);
+    resf = 0; 
+    for(iSub = 0; iSub < this->numSub; ++iSub) { 
+      Scalar (*mergedResF)[6] = (Scalar (*)[6]) resf.subData(iSub);
+      this->subDomain[iSub]->mergeDistributedForces(mergedResF, assembledResF.subData(iSub));
+    }
+    resf.reduce(masterResF, masterFlag, numFlags);
   }
 // RT - serialize the OUTPUT, PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT
@@ -1553,6 +1567,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Acceleration:
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 3, 0);
         break;
+      case OutputInfo::RomResidual:
+        if(resF) getPrimal(resf, masterResF, time, x, iOut, 3, 0);
+        break;
       case OutputInfo::Disp6DOF:
         if(oinfo[iOut].rotvecouttype != OutputInfo::Euler || !oinfo[iOut].rescaling) {
           filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
@@ -1573,6 +1590,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
           break;
         }
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::RomResidual6:
+        if(resF) getPrimal(resf, masterResF, time, x, iOut, 6, 0);
         break;
       case OutputInfo::Temperature:
         getPrimal(disps, masterDisps, time, x, iOut, 1, 0);

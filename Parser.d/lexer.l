@@ -1205,6 +1205,8 @@ TRAIL [a-zA-Z]*
 
 "raerofor"|"RAEROFOR"              { yylval.ival = OutputInfo::AeroForce;    return STRESSID; }
 
+"romresid"|"ROMRESID"              { yylval.ival = OutputInfo::RomResidual;  return STRESSID; }
+
 "geigenpa"|"GEIGENPA"              { yylval.ival = OutputInfo::EigenPair;    return STRESSID; }
 
 "strainvm"|"STRAINVM"              { yylval.ival = OutputInfo::StrainVM;     return STRESSID; }

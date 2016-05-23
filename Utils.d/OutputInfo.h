@@ -39,7 +39,7 @@ struct OutputInfo {
           TDEnforcement, Damage, EquivalentPlasticStrain, 
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
           HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
-          RobData, SampleMesh, Accelvector, Forcevector, Constraintvector, Constraintviolation,
+          RobData, SampleMesh, Accelvector, Forcevector,
           RotationMatrix, ExternalXForce, ExternalYForce, ExternalZForce,
           ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar, Quaternion,
           PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
@@ -48,7 +48,8 @@ struct OutputInfo {
           WeigThic, WeigShap, VMstThic, VMstShap, VMstMach, VMstAlpha, VMstBeta,
           DispThic, DispShap, DispMach, DispAlph, DispBeta,
           AGstShap, AGstThic, 
-          DissipatedEnergy, DeletedElements, DualStateVar };
+          DissipatedEnergy, DeletedElements, DualStateVar,
+          Constraintvector, Constraintviolation, RomResidual, RomResidual6 };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
@@ -124,6 +125,7 @@ struct OutputInfo {
      else if(numColumns == 6 && (type == Velocity)) type = Velocity6;
      else if(numColumns == 6 && (type == Acceleration)) type = Accel6;
      else if(numColumns == 6 && (type == Reactions)) type = Reactions6;
+     else if(numColumns == 6 && (type == RomResidual)) type = RomResidual6;
 
      if (averageFlg == 1 || averageFlg == 3)
        dataType = 1;

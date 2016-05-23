@@ -35,6 +35,7 @@ MultiDomainDynam(domain_),
 normalizedBasis_(),
 curState(NULL), fullDispBuffer(NULL), fullVelBuffer(NULL), fullAccBuffer(NULL),
 fullVel2Buffer(NULL), fullDummyBuffer(NULL),
+fullConstForceBuffer(NULL), fullExtForceBuffer(NULL), fullInertForceBuffer(NULL), fullResBuffer(NULL),
 dummyDynOps(NULL)
 {}
 
@@ -46,6 +47,10 @@ DistrROMPostProcessingDriver::~DistrROMPostProcessingDriver()
  if(fullAccBuffer) delete fullAccBuffer;
  if(fullVel2Buffer) delete fullVel2Buffer;
  if(fullDummyBuffer) delete fullDummyBuffer;
+ if(fullConstForceBuffer) delete fullConstForceBuffer;
+ if(fullExtForceBuffer) delete fullExtForceBuffer;
+ if(fullInertForceBuffer) delete fullInertForceBuffer;
+ if(fullResBuffer) delete fullResBuffer;
  if(dummyDynOps) delete dummyDynOps;
 }
 
@@ -229,6 +234,22 @@ DistrROMPostProcessingDriver::solve() {
    preProcess();
    std::ofstream cvout(domain->solInfo().constraintViolationFile);
 
+   bool computeResidual = false; 
+   double residualNorm = 0;
+   OutputInfo *oinfo = geoSource->getOutputInfo();
+   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++) {
+     if(oinfo[iOut].type == OutputInfo::RomResidual || oinfo[iOut].type == OutputInfo::RomResidual6) {
+       computeResidual = true;
+       filePrint(stderr, " ... Computing ROM Residual         ...\n");
+       domain->solInfo().newmarkBeta = 0;
+       fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+       fullExtForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+       fullInertForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+       fullResBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+       getConstForce(*fullConstForceBuffer);
+       break;
+     }
+   }
    int counter = 0; //TODO: make this portion more general so it doesn't depend on the assumption
                     //that all files have matching timestamps
    if(TimeStamps.size() > 0)
@@ -273,8 +294,24 @@ DistrROMPostProcessingDriver::solve() {
      geomState->transform(*fullAccBuffer, 4, true); // transform angular acceleration from the 2nd time derivative
                                                     // of the (unscaled) total rotation vector to convected
      execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
+     if(computeResidual) {
+       domain->solInfo().galerkinPodRom = false;
+       if(!dummyDynOps) dummyDynOps = buildOps(1,0,0);
+       // compute external forces
+       computeExtForce2(*curState, *fullExtForceBuffer, *fullConstForceBuffer, counter, *it);
+       // compute inertial forces
+       dummyDynOps->M->mult(*fullAccBuffer, *fullInertForceBuffer);
+       geomState->push_forward(*fullInertForceBuffer);
+       // compute internal forces and other configuration-dependent forces
+       getInternalForce(*fullDispBuffer, *fullResBuffer, *it, counter);
+       // add all forces and compute norm
+       *fullResBuffer -= *fullExtForceBuffer;
+       *fullResBuffer += *fullInertForceBuffer;
+       residualNorm += fullResBuffer->sqNorm();
+       domain->solInfo().galerkinPodRom = true;
+     } else
      if(!dummyDynOps) dummyDynOps = new MDDynamMat;
-     mddPostPro->dynamOutput(counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);
+     mddPostPro->dynamOutput(counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState, fullResBuffer);
 
      if(geoSource->getNumConstraintElementsIeq() && decDomain->getGlobalNumSub() == 1) { // output the constraint violation
        double err = 0;
@@ -294,6 +331,8 @@ DistrROMPostProcessingDriver::solve() {
      counter += 1;
    }  //end of loop over time stamps
 
+   if(computeResidual)
+     filePrint(stderr, "\n ... ROM Residual Norm = %10.4e ...\n", sqrt(residualNorm));
 }
 
 void

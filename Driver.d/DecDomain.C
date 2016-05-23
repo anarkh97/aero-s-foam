@@ -1998,7 +1998,7 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<Scalar> &extF, Corotator ***allCorot, double x,
                                      SysState<GenDistrVector<Scalar> > *distState, GenDistrVector<Scalar> *aeroF, DistrGeomState *refState,
-                                     GenDistrVector<Scalar> *reactions, GenMDDynamMat<Scalar> *dynOps)
+                                     GenDistrVector<Scalar> *reactions, GenMDDynamMat<Scalar> *dynOps, GenDistrVector<Scalar> *resF)
 {
   // NOTE: for dynamic runs, x represents the time
   //       for static runs, x represents the load parameter, lambda
@@ -3673,6 +3673,12 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
        }
      } break;
 #endif
+     case 13 : {
+       for(int i = 0; i < numSub; ++i) {
+         dgt.dynMats[i] = 0;
+         dgt.spMats[i] = 0;
+       }
+     } break;
      default :
        filePrint(stderr, " *** ERROR: subtype %d not supported here in GenDecDomain::buildOps\n", domain->solInfo().subtype);
        exit(-1);
@@ -3774,9 +3780,11 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 // RT end
  switch(domain->solInfo().type) {
    case 0 : { // direct
-     dgt.dynMats[0]->unify(communicator);
-     res.dynMat = dynamic_cast<GenParallelSolver<Scalar>* >(dgt.dynMats[0]);
-     if(factor) res.dynMat->refactor();
+     if(dgt.dynMats[0]) {
+       dgt.dynMats[0]->unify(communicator);
+       res.dynMat = dynamic_cast<GenParallelSolver<Scalar>* >(dgt.dynMats[0]);
+       if(factor) res.dynMat->refactor();
+     }
      delete [] dgt.dynMats;
      delete [] dgt.spMats;
    } break;

@@ -143,7 +143,7 @@ int main (int argc, char *argv[]) {
     relative_errory = cum_normy/(normalize_factory);
     relative_errorz = cum_normz/(normalize_factorz);
 
-    cout << "*** absolute error: x ***  = " << cum_normx << endl;
+    cout << "\n*** absolute error: x ***  = " << cum_normx << endl;
     cout << "*** absolute error: y ***  = " << cum_normy << endl;
     cout << "*** absolute error: z ***  = " << cum_normz << endl;
 

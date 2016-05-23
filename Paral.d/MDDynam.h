@@ -123,7 +123,7 @@ class MultiDomDynPostProcessor
     void setPostProcessor(DistFlExchanger *);
     void setUserDefs(double **, double **);
     void setNodalTemps(DistrVector*);
-    void dynamOutput(int, double, MDDynamMat &, DistrVector &, DistrVector *aeroF, SysState<DistrVector> &);
+    void dynamOutput(int, double, MDDynamMat &, DistrVector &, DistrVector *aeroF, SysState<DistrVector> &, DistrVector *resF = 0);
     double getKineticEnergy(DistrVector & vel, SubDOp * gMass) { return 0.0; }
 
   private:

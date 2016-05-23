@@ -908,6 +908,8 @@ Output:
         { numColumns = 3; domain->outFlag = $2; geoSource->setOutLimit($3); }
         | OUTPUT6 KEYLETTER Integer NewLine
         { numColumns = 6; domain->outFlag = $2; geoSource->setOutLimit($3); }
+        | OUTPUT FNAME NewLine
+        { numColumns = 3; geoSource->getCheckFileInfo()->outputExt = $2; }
         | Output OutInfo NewLine
         { $2.finalize(numColumns); geoSource->addOutput($2); }
         ;

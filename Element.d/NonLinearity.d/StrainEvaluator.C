@@ -204,9 +204,10 @@ GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, con
   *temp2 = tgradU | dgradUdqk;
 
   //B = dgradUdqk.symPart() + temp2.symPart();
-  B.setZero();
+  /*B.setZero();
   B.addSymPart(dgradUdqk);
-  B.addSymPart(*temp2);
+  B.addSymPart(*temp2);*/
+  B.assignSymPart(dgradUdqk, *temp2);
 }
 
 void 

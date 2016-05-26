@@ -1,15 +1,17 @@
 #ifndef _PRONYVISCOELASTIC_H_
 #define _PRONYVISCOELASTIC_H_
 
-#include <Element.d/NonLinearity.d/MaterialWrapper.h>
+#include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
+#include <Element.d/NonLinearity.d/NeoHookeanMat.h>
+#include <Element.d/NonLinearity.d/MooneyRivlinMat.h>
 
 class Tensor;
 
 template<typename Material>
-class PronyViscoElastic : public MaterialWrapper<Material>
+class PronyViscoElastic : public Material
 {
   public:
-    PronyViscoElastic(double* params) : MaterialWrapper<Material>(params){};
+    PronyViscoElastic(double* params);
 
     int getNumStates();
 
@@ -28,16 +30,14 @@ class PronyViscoElastic : public MaterialWrapper<Material>
     double g1, tau1;
     double g2, tau2;
     double g3, tau3;
-    
 };
-
 
 
 // set Prony amplitudes and times scales for Linear-elastic, Mooney Rivlin, and NeoHookean
 
 template<>
 inline
-PronyViscoElastic<IsotropicLinearElastic>::PronyViscoElastic(double *params) : MaterialWrapper<IsotropicLinearElastic>(params)
+PronyViscoElastic<ElaLinIsoMat>::PronyViscoElastic(double *params) : ElaLinIsoMat(params[0], params[1], params[2], 0, 0)
 {
  ginf = params[3];
  g1   = params[4];
@@ -50,28 +50,28 @@ PronyViscoElastic<IsotropicLinearElastic>::PronyViscoElastic(double *params) : M
 
 template<>
 inline
-PronyViscoElastic<NeoHookean>::PronyViscoElastic(double *params) : MaterialWrapper<NeoHookean>(params) 
+PronyViscoElastic<NeoHookeanMat>::PronyViscoElastic(double *params) : NeoHookeanMat(params[0], params[1], params[2]) 
 {
- ginf = params[4];
- g1   = params[5];
- tau1 = params[6]; 
- g2   = params[7]; 
- tau2 = params[8];
- g3   = params[9];
- tau3 = params[10];
+ ginf = params[3];
+ g1   = params[4];
+ tau1 = params[5];
+ g2   = params[6];
+ tau2 = params[7];
+ g3   = params[8];
+ tau3 = params[9];
 }
 
 template<>
 inline
-PronyViscoElastic<MooneyRivlin>::PronyViscoElastic(double *params) : MaterialWrapper<MooneyRivlin>(params)
+PronyViscoElastic<MooneyRivlinMat>::PronyViscoElastic(double *params) : MooneyRivlinMat(params[0], params[1], params[2], params[3])
 {
- ginf = params[5];
- g1   = params[6];
- tau1 = params[7];
- g2   = params[8];
- tau2 = params[9];
- g3   = params[10];
- tau3 = params[11];
+ ginf = params[4];
+ g1   = params[5];
+ tau1 = params[6];
+ g2   = params[7];
+ tau2 = params[8];
+ g3   = params[9];
+ tau3 = params[10];
 }
 
 #ifdef _TEMPLATE_FIX_

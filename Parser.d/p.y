@@ -4753,57 +4753,32 @@ MatSpec:
           }
         | MatSpec Integer ISOTROPICVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float NewLine
           {
-            double params[10] = { $4, $5, $6 , $7, $8, $9, $10, $11, $12, $13};
+            double params[10] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13};
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<IsotropicLinearElastic>(params));
+              new PronyViscoElastic<ElaLinIsoMat>(params));
           }
         | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
           {
             double params[4] = { $4, $5, $6, -1 };
             geoSource->addMaterial($2-1,
-              new MaterialWrapper<NeoHookean>(params));
+              new NeoHookeanMat($4, $5, $6));
           }
         | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float NewLine
           {
-            double params[11] = { $4, $5, $6, -1 , $7, $8, $9, $10, $11, $12, $13};
+            double params[10] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13};
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<NeoHookean>(params));
-          }
-        | MatSpec Integer NEOHOOKEAN Float Float Float Float NewLine
-          {
-            double params[4] = { $4, $5, $6, $7 };
-            geoSource->addMaterial($2-1,
-              new MaterialWrapper<NeoHookean>(params));
-          }
-        | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float Float NewLine
-          {
-            double params[11] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14};
-            geoSource->addMaterial($2-1,
-              new PronyViscoElastic<NeoHookean>(params));
+              new PronyViscoElastic<NeoHookeanMat>(params));
           }
         | MatSpec Integer MOONEYRIVLIN Float Float Float Float NewLine
           {
-            double params[5] = { $4, $5, $6, $7, -1 };
             geoSource->addMaterial($2-1,
-              new MaterialWrapper<MooneyRivlin>(params));
+              new MooneyRivlinMat($4, $5, $6, $7));
           }
         | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float NewLine
           {
-            double params[12] = { $4, $5, $6, $7, -1, $8, $9, $10, $11, $12, $13, $14};
+            double params[11] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14};
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<MooneyRivlin>(params));
-          }
-        | MatSpec Integer MOONEYRIVLIN Float Float Float Float Float NewLine
-          {
-            double params[5] = { $4, $5, $6, $7, $8 };
-            geoSource->addMaterial($2-1,
-              new MaterialWrapper<MooneyRivlin>(params));
-          }
-        | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float Float NewLine
-          {
-            double params[12] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15};
-            geoSource->addMaterial($2-1,
-              new PronyViscoElastic<MooneyRivlin>(params));
+              new PronyViscoElastic<MooneyRivlinMat>(params));
           }
         | MatSpec Integer OGDEN Float Float Float Float Float NewLine 
           {

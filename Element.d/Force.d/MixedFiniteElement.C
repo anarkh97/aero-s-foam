@@ -7,8 +7,9 @@
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
+#include <Element.d/NonLinearity.d/NeoHookeanMat.h>
+#include <Element.d/NonLinearity.d/MooneyRivlinMat.h>
 #include <Element.d/NonLinearity.d/OgdenMat.h>
-#include <Element.d/NonLinearity.d/MaterialWrapper.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <unsupported/Eigen/NumericalDiff>
 
@@ -52,10 +53,10 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
   else if(ElaLinIsoMat *mat = dynamic_cast<ElaLinIsoMat*>(_mat)) {
     materialType = 0;
   }
-  else if(MaterialWrapper<NeoHookean> *mat = dynamic_cast<MaterialWrapper<NeoHookean>*>(_mat)) {
+  else if(NeoHookeanMat *mat = dynamic_cast<NeoHookeanMat*>(_mat)) {
     materialType = 3;
   }
-  else if(MaterialWrapper<MooneyRivlin> *mat = dynamic_cast<MaterialWrapper<MooneyRivlin>*>(_mat)) {
+  else if(MooneyRivlinMat *mat = dynamic_cast<MooneyRivlinMat*>(_mat)) {
     materialType = 4;
   }
   else if(OgdenMat *mat = dynamic_cast<OgdenMat*>(_mat)) {

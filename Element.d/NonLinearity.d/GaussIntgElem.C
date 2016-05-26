@@ -342,17 +342,27 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   kTan.zero();
 
   //fprintf(stderr,"Je suis dans integrate\n");
+
+  Tensor &nodescoordinates = *shapeF->getNodesCoordinatesInstance();
+  shapeF->getNodesCoordinates(nodes, &nodescoordinates);
+
+  Tensor &displacements = *shapeF->getDisplacementsInstance();
+  StackVector dispVecnp(dispnp, ndofs);
+  shapeF->getDisplacements(dispVecnp, &displacements);
+
+  Tensor &localderivatives = *shapeF->getLocalDerivativesInstance();
   
   for(i = 0; i < ngp; i++) {
 
     double point[3], weight, jacn, jacnp, tempnp;
     //StackVector dispVecn(dispn, ndofs);
-    StackVector dispVecnp(dispnp, ndofs); 
+    //StackVector dispVecnp(dispnp, ndofs); 
  
     getGaussPointAndWeight(i, point, weight);
 
     //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
-    shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
+    //shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
+    shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, &nodescoordinates, point, &displacements, &localderivatives);
 
     //strainEvaluator->getE(en, gradUn);
     strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp, temp4);
@@ -406,6 +416,9 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   delete &s;
   delete &Dnp;
   if(temp4) delete temp4;
+  delete &nodescoordinates;
+  delete &displacements;
+  delete &localderivatives;
 }
 
 void 
@@ -444,17 +457,27 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   int nstatepgp = material->getNumStates();
   
   //fprintf(stderr,"Je suis dans integrate\n");
+
+  Tensor &nodescoordinates = *shapeF->getNodesCoordinatesInstance();
+  shapeF->getNodesCoordinates(nodes, &nodescoordinates);
+
+  Tensor &displacements = *shapeF->getDisplacementsInstance();
+  StackVector dispVecnp(dispnp, ndofs);
+  shapeF->getDisplacements(dispVecnp, &displacements);
+
+  Tensor &localderivatives = *shapeF->getLocalDerivativesInstance();
   
   for(i = 0; i < ngp; i++) {
 
     double point[3], weight, jacn, jacnp, tempnp;
     //StackVector dispVecn(dispn, ndofs);
-    StackVector dispVecnp(dispnp, ndofs); 
+    //StackVector dispVecnp(dispnp, ndofs); 
  
     getGaussPointAndWeight(i, point, weight);
 
     //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
-    shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
+    //shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
+    shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, &nodescoordinates, point, &displacements, &localderivatives);
 
     //strainEvaluator->getE(en, gradUn);
     strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp, temp2);
@@ -481,6 +504,9 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   delete &enp;
   delete &s;
   if(temp2) delete temp2;
+  delete &nodescoordinates;
+  delete &displacements;
+  delete &localderivatives;
 }
 
 void

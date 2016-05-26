@@ -98,40 +98,6 @@ MaterialWrapper<Material>::transformStress(Tensor &_stress, Tensor &_gradU, Tens
   // do nothing: transformation is only applied for finite-strain materials
 }
 
-template<>
-inline void
-MaterialWrapper<NeoHookean>::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
-{
-  Tensor_d0s2 &stress = static_cast<Tensor_d0s2 &>(_stress);
-  Tensor_d0s2 &gradU  = static_cast<Tensor_d0s2 &>(_gradU);
-
-#ifdef USE_EIGEN3
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > GradU(&gradU[0]), P(&stress[0]);
-  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
-  S = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
-#else
-  std::cerr << "ERROR: MaterialWrapper<Material>::transformStress is not implemented\n";
-  S.setZero();
-#endif
-}
-
-template<>
-inline void
-MaterialWrapper<MooneyRivlin>::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
-{
-  Tensor_d0s2 &stress = static_cast<Tensor_d0s2 &>(_stress);
-  Tensor_d0s2 &gradU  = static_cast<Tensor_d0s2 &>(_gradU);
-
-#ifdef USE_EIGEN3
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > GradU(&gradU[0]), P(&stress[0]);
-  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
-  S = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
-#else
-  std::cerr << "ERROR: MaterialWrapper<Material>::transformStress is not implemented\n";
-  S.setZero();
-#endif
-}
-
 template<typename Material>
 void 
 MaterialWrapper<Material>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double*, double temp)
@@ -581,36 +547,6 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::setSRDProps
   }
 }
 
-#ifdef USE_EIGEN3
-template<>
-inline double
-MaterialWrapper<NeoHookean>::getStrainEnergyDensity(Tensor &_enp, double *, double temp)
-{
-  Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&enp[0]);
-
-  using std::log;
-  double lnJ = log(F.determinant());
-  return mu/2*((F*F.transpose()).trace() - 3) - mu*lnJ + lambda/2*lnJ*lnJ;
-}
-
-template<>
-inline double
-MaterialWrapper<MooneyRivlin>::getStrainEnergyDensity(Tensor &_enp, double *, double temp)
-{
-  Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&enp[0]);
-
-  using std::log;
-  Eigen::Matrix<double,3,3> C = F.transpose()*F;
-  double I1 = C.trace();
-  double I2 = 0.5*(I1*I1-(C*C).trace());
-  double J = F.determinant();
-  double d = 2*(mu1+2*mu2);
-  return mu1*(I1-3) + mu2*(I2-3) + kappa*(J-1)*(J-1) - d*log(J);
-}
-#endif
-
 template<>
 inline void
 MaterialWrapper<IsotropicLinearElastic>::print(std::ostream &out) const
@@ -619,16 +555,6 @@ MaterialWrapper<IsotropicLinearElastic>::print(std::ostream &out) const
   double E = mu*(3*lambda+2*mu)/(lambda+mu);
   double nu = lambda/(2*(lambda+mu));
   out << "IsotropicLinearElastic " << rho << " " << E << " " << nu;
-}
-
-template<>
-inline void 
-MaterialWrapper<NeoHookean>::print(std::ostream &out) const
-{
-  double rho = mat->GetDensityInReference();
-  double E = mu*(3*lambda+2*mu)/(lambda+mu);
-  double nu = lambda/(2*(lambda+mu));
-  out << "NeoHookean " << rho << " " << E << " " << nu;
 }
 
 template<>
@@ -663,14 +589,6 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::print(std::
       << " " << Tol << " " << epsF << " " << yssrtid;
 }
 
-template<>
-inline void 
-MaterialWrapper<MooneyRivlin>::print(std::ostream &out) const
-{
-  double rho = mat->GetDensityInReference();
-  out << "MooneyRivlin " << rho << " " << mu1 << " " << mu2 << " " << kappa;
-}
-
 template<typename Material>
 void
 MaterialWrapper<Material>::getMaterialConstants(std::vector<double> &c)
@@ -678,21 +596,3 @@ MaterialWrapper<Material>::getMaterialConstants(std::vector<double> &c)
   std::cerr << "material law does not implement getMaterialConstants function\n";
 }
 
-template<>
-inline void
-MaterialWrapper<NeoHookean>::getMaterialConstants(std::vector<double> &c)
-{
-  c.resize(2);
-  c[0] = lambda;
-  c[1] = mu;
-}
-
-template<>
-inline void
-MaterialWrapper<MooneyRivlin>::getMaterialConstants(std::vector<double> &c)
-{
-  c.resize(3);
-  c[0] = mu1;
-  c[1] = mu2;
-  c[2] = kappa;
-}

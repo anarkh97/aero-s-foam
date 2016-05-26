@@ -134,6 +134,7 @@ class Tensor_d0s2 : public Tensor
     double operator() (int i, int j) const { return v[3*i+j]; }
     void getDeterminant(double &det);
     void getInverse(Tensor_d0s2 &t);
+    double getInverseAndDeterminant(Tensor_d0s2 &t);
     void getTranspose(Tensor_d0s2 &t) const;
     void convertToSym(Tensor_d0s2_Ss12 &t);
     friend Tensor_d0s2 operator * (double d, const Tensor_d0s2 &t);
@@ -910,6 +911,7 @@ class Tensor_d1s2_Ss23 : public Tensor
     void setZero() { for(int i=0; i<size; ++i) v[i].setZero(); }
     void addSymPart(const Tensor_d1s2_sparse &);
     void addSymPart(const Tensor_d1s2_full &);
+    void assignSymPart(const Tensor_d1s2_sparse &, const Tensor_d1s2_full &);
 };
 
 inline double 

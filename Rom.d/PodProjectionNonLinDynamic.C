@@ -134,7 +134,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
        fileName.append(".normalized");
      }
      BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
-     if(solInfo().localBasisSize[j] <=0)
+     if(solInfo().localBasisSize[j] <=0 || solInfo().localBasisSize[j] > projectionBasisInput.size())
        locBasisVec.push_back(projectionBasisInput.size());
      else
        locBasisVec.push_back(solInfo().localBasisSize[j]);

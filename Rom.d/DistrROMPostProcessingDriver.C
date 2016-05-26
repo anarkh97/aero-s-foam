@@ -79,7 +79,7 @@ DistrROMPostProcessingDriver::preProcess() {
     if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
 
     int globalBasisSize = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
-    if(globalBasisSize <= 0) {
+    if(globalBasisSize <= 0 || globalBasisSize == std::numeric_limits<int>::max()) {
          int sillyCounter = 0;
          for(std::vector<int>::iterator it = domain->solInfo().localBasisSize.begin(); it != domain->solInfo().localBasisSize.end(); it++){
            std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
@@ -157,7 +157,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
                     reducedCoordFile>>dummyVar;
                     reducedAccBuffer.push_back(dummyVar);
                   }
-                  filePrint(stderr,"\r Timestamp = %f", time);
+                  filePrint(stderr,"\r Timestamp = %e", time);
                 } else {
                   for(int j = 0; j < podsize; j++) 
                     reducedCoordFile>>dummyVar;
@@ -178,7 +178,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
                     reducedCoordFile>>dummyVar;
                     reducedDispBuffer.push_back(dummyVar);
                   }
-                  filePrint(stderr,"\r Timestamp = %f", time);
+                  filePrint(stderr,"\r Timestamp = %e", time);
                 } else {
                   for(int j = 0; j < podsize; j++) 
                     reducedCoordFile>>dummyVar;
@@ -199,7 +199,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
                     reducedCoordFile>>dummyVar;
                     reducedVelBuffer.push_back(dummyVar);
                   }
-                  filePrint(stderr,"\r Timestamp = %f", time);
+                  filePrint(stderr,"\r Timestamp = %e", time);
                 } else {
                   for(int j = 0; j < podsize; j++)
                     reducedCoordFile>>dummyVar;
@@ -241,7 +241,6 @@ DistrROMPostProcessingDriver::solve() {
      if(oinfo[iOut].type == OutputInfo::RomResidual || oinfo[iOut].type == OutputInfo::RomResidual6) {
        computeResidual = true;
        filePrint(stderr, " ... Computing ROM Residual         ...\n");
-       domain->solInfo().newmarkBeta = 0;
        fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
        fullExtForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
        fullInertForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
@@ -295,8 +294,11 @@ DistrROMPostProcessingDriver::solve() {
                                                     // of the (unscaled) total rotation vector to convected
      execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
      if(computeResidual) {
+       if(!dummyDynOps) {
+         dummyDynOps = buildOps(1,0,0);
+         domain->solInfo().newmarkBeta = 0; // XXX to make configuration-dependent inertial forces computed consistently
+       }
        domain->solInfo().galerkinPodRom = false;
-       if(!dummyDynOps) dummyDynOps = buildOps(1,0,0);
        // compute external forces
        computeExtForce2(*curState, *fullExtForceBuffer, *fullConstForceBuffer, counter, *it);
        // compute inertial forces

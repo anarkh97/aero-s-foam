@@ -95,7 +95,17 @@ template<typename Material>
 void
 MaterialWrapper<Material>::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
 {
-  // do nothing: transformation is only applied for finite-strain materials
+  Tensor_d0s2 &stress = static_cast<Tensor_d0s2 &>(_stress);
+  Tensor_d0s2 &gradU  = static_cast<Tensor_d0s2 &>(_gradU);
+
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > GradU(&gradU[0]), P(&stress[0]);
+  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
+  S = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
+#else
+  std::cerr << "ERROR: MaterialWrapper<Material>::transformStress is not implemented\n";
+  S.setZero();
+#endif
 }
 
 template<typename Material>

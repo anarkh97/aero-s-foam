@@ -403,11 +403,13 @@ template<int e>
 void
 ElasPlasKinHardMat<e>::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
 {
+  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
   switch(e) {
-    case 0: case 1: break; // do nothing
+    case 0: case 1: {
+      S = stress;
+    } break;
     case 2: {
 #ifdef USE_EIGEN3
-      Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
       Tensor_d0s2 &gradU = static_cast<Tensor_d0s2 &>(_gradU);
       Eigen::Matrix3d GradU; gradU.assignTo(GradU);
       Eigen::Matrix3d T; stress.assignTo(T); // rotated Kirchhoff stress, T = R^{t}*tau*R --> P = R*T*R^{t}*F^{-t}

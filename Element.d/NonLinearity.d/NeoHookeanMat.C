@@ -76,7 +76,9 @@ NeoHookeanMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
 void
 NeoHookeanMat::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
 {
-  // do nothing here
+  // do nothing: stress is already PK2 in this case
+  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
+  S = stress;
 }
 
 void 

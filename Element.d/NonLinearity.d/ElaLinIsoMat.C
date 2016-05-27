@@ -98,9 +98,11 @@ ElaLinIsoMat::getStress(Tensor *_stress, Tensor &_strain, double* state, double 
 }
 
 void
-ElaLinIsoMat::transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S)
+ElaLinIsoMat::transformStress(Tensor &_stress, Tensor &, Tensor_d0s2_Ss12 &S)
 {
   // do nothing: transformation is only applied for finite-strain materials
+  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
+  S = stress;
 }
 
 void 
@@ -272,9 +274,11 @@ ElaLinIsoMat::getStrainEvaluator()
 extern GreenLagrangeStrain greenLagrangeStrain;
 
 void 
-StVenantKirchhoffMat::transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S)
+StVenantKirchhoffMat::transformStress(Tensor &_stress, Tensor &, Tensor_d0s2_Ss12 &S)
 {
   // do nothing: stress is already PK2 in this case
+  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
+  S = stress;
 }
 
 StrainEvaluator *

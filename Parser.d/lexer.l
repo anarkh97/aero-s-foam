@@ -1422,6 +1422,8 @@ TRAIL [a-zA-Z]*
 
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
 
+"tule"[a-zA-Z]*|"TULE"[a-zA-Z]*|"Tule"[a-zA-Z]*         { return TULERBUTCHER; }
+
 "henc"[a-zA-Z]*|"HENC"[a-zA-Z]*|"Henc"[a-zA-Z]*         { return HENCKY; }
 
 "neoh"[a-zA-Z]*|"NEOH"[a-zA-Z]*|"NeoH"[a-zA-Z]*         { return NEOHOOKEAN; }

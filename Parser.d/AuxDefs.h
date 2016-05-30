@@ -12,6 +12,7 @@
 #include <Element.d/NonLinearity.d/OgdenMat.h>
 #include <Element.d/NonLinearity.d/NeoHookeanMat.h>
 #include <Element.d/NonLinearity.d/MooneyRivlinMat.h>
+#include <Element.d/NonLinearity.d/BrittleFractureTB.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 #include <Element.d/Sommerfeld.d/LineSommerBC.h>
 #include <Element.d/Sommerfeld.d/TriangleSommerBC.h>

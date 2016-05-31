@@ -4695,6 +4695,24 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new ElaLinIsoMat($4, 0, 0, 0, 0));
          }
+        | MatSpec Integer LINEARELASTIC Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<ElaLinIsoMat>($4, $5, $6, $7, $8, $10, $11, $12));
+             domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer LINEARELASTIC Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<ElaLinIsoMat>($4, $5, $6, 0, 0, $8, $9, $10));
+             domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer LINEARELASTIC Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<ElaLinIsoMat>($4, 0, 0, 0, 0, $6, $7, $8));
+             domain->solInfo().elementDeletion = true;
+         }
         | MatSpec Integer STVENANTKIRCHHOFF Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -4722,6 +4740,12 @@ MatSpec:
              new BrittleFractureTB<StVenantKirchhoffMat>($4, $5, $6, 0, 0, $8, $9, $10));
              domain->solInfo().elementDeletion = true;
          }
+        | MatSpec Integer STVENANTKIRCHHOFF Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<StVenantKirchhoffMat>($4, 0, 0, 0, 0, $6, $7, $8));
+             domain->solInfo().elementDeletion = true;
+         }
         | MatSpec Integer HENCKY Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -4736,6 +4760,24 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new HenckyMat($4, 0, 0, 0, 0));
+         }
+        | MatSpec Integer HENCKY Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<HenckyMat>($4, $5, $6, $7, $8, $10, $11, $12));
+             domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer HENCKY Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<HenckyMat>($4, $5, $6, 0, 0, $8, $9, $10));
+             domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer HENCKY Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<HenckyMat>($4, 0, 0, 0, 0, $6, $7, $8));
+             domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {

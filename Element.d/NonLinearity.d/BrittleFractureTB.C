@@ -127,3 +127,11 @@ BrittleFractureTB<BaseMaterial>::getDamage(double *statenp)
   const int i = BaseMaterial::getNumStates();
   return (statenp[i] >= Kf + tol) ? 1.0 : 0.0;
 }
+
+template<typename BaseMaterial>
+void
+BrittleFractureTB<BaseMaterial>::print(std::ostream &out) const
+{
+  BaseMaterial::print(out);
+  out << " " << maxprs << " " << exponent << " " << Kf;
+}

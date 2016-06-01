@@ -78,6 +78,19 @@ class PrincipalStretches : public StrainEvaluator
     void getE(Tensor &e, Tensor &gradU);
 };
 
+class LogarithmicPrincipalStretches : public StrainEvaluator
+{
+  public:
+    Tensor *getTMInstance();
+    Tensor *getStressInstance();
+    Tensor *getStrainInstance();
+    Tensor *getBInstance(int numdofs);
+    Tensor *getDBInstance(int numdofs);
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
+    void getE(Tensor &e, Tensor &gradU);
+};
+
 class DeformationGradient : public StrainEvaluator
 {
   // To be used when the appropriate strain measure is the

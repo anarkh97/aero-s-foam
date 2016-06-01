@@ -10,6 +10,7 @@
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
 #include <Element.d/NonLinearity.d/PronyViscoElastic.h>
 #include <Element.d/NonLinearity.d/OgdenMat.h>
+#include <Element.d/NonLinearity.d/SimoMat.h>
 #include <Element.d/NonLinearity.d/NeoHookeanMat.h>
 #include <Element.d/NonLinearity.d/MooneyRivlinMat.h>
 #include <Element.d/NonLinearity.d/BrittleFractureTB.h>

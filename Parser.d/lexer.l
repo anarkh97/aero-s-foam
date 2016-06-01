@@ -1434,6 +1434,8 @@ TRAIL [a-zA-Z]*
 
 "ogde"[a-zA-Z]*|"OGDE"[a-zA-Z]*|"Ogde"[a-zA-Z]*         { return OGDEN; }
 
+"simo"[a-zA-Z]*|"SIMO"[a-zA-Z]*|"Simo"[a-zA-Z]*         { return SIMO; }
+
 "viscomoon"[a-zA-Z]*|"VISCOMOON"[a-zA-Z]*|"ViscoMoon"[a-zA-Z]*         { return VISCOMOONEYRIVLIN; }
 
 "isotropiclinearelasticj2plastic"|"ISOTROPICLINEARELASTICJ2PLASTIC"|"IsotropicLinearElasticJ2Plastic" { return ISOTROPICLINEARELASTICJ2PLASTIC; }

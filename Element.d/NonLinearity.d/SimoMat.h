@@ -1,20 +1,22 @@
-#ifndef _OGDENMAT_H_
-#define _OGDENMAT_H_
+#ifndef _SIMOMAT_H_
+#define _SIMOMAT_H_
+
+// Isotropic elastic material charactarized by an uncoupled free energy function, quadratic in principle logarithmic stretches
+// Reference: Simo, J. C. "Algorithms for static and dynamic multiplicative plasticity that preserve the classical return mapping
+//            schemes of the infinitesimal theory." Computer Methods in Applied Mechanics and Engineering 99.1 (1992): 61-112.
+//            (section 5)
 
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 
-class OgdenMat : public NLMaterial
+class SimoMat : public NLMaterial
 {
   protected:
     // isotropic material properties
     double rho; // density
-    double mu[9], alpha[9]; // material properties characterizing distortional response
-    int m, n; // number of terms in the Ogden series
-    double K[9]; // material properties characterizing volumetric response
+    double E, nu; // Young's modulus and Poisson's ratio
 
   public:
-    template<int _m, int _n>
-    OgdenMat(double _rho, double (&_mu)[_m], double (&_alpha)[_m], double (&_K)[_n]);
+    SimoMat(double _rho, double _E, double _nu);
 
     int getNumStates() { return 0; }
 

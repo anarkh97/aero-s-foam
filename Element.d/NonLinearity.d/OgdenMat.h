@@ -9,15 +9,13 @@ class OgdenMat : public NLMaterial
   protected:
     // isotropic material properties
     double rho; // density
-    double mu[3], alpha[3]; // material properties characterizing distortional response
-    int N; // number of terms in the Ogden series
-    double c, d; // material properties characterizing volumetric response
-    int vol; // identifies the particular form of the volumetric stored energy function
+    double mu[9], alpha[9]; // material properties characterizing distortional response
+    int N, M; // number of terms in the Ogden series
+    double K[9]; // material properties characterizing volumetric response
 
   public:
-    OgdenMat(double _rho, double _mu1, double _alpha1, double _c, double _d, int _vol=1);
-    OgdenMat(double _rho, double _mu1, double _mu2, double _alpha1, double _alpha2, double _c, double _d, int _vol=1);
-    OgdenMat(double _rho, double _mu1, double _mu2, double _mu3, double _alpha1, double _alpha2, double _alpha3, double _c, double _d, int _vol=1);
+    template<int _N, int _M>
+    OgdenMat(double _rho, double (&_mu)[_N], double (&_alpha)[_N], double (&_K)[_M]);
 
     int getNumStates() { return 0; }
 
@@ -47,20 +45,7 @@ class OgdenMat : public NLMaterial
 
     double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
 
-    void print(std::ostream &out) const {
-      switch(N) {
-        case 1:
-          out << "Ogden " << rho << " " << mu[0] << " " << alpha[0] << " " << c << " " << d;
-          break;
-        case 2:
-          out << "Ogden " << rho << " " << mu[0] << " " << mu[1] << " " << alpha[0] << " " << alpha[1] << " " << c << " " << d;
-          break;
-        case 3:
-          out << "Ogden " << rho << " " << mu[0] << " " << mu[1] << " " << mu[2] << " " << alpha[0] << " " << alpha[1] << " " << alpha[2] << " " 
-              << c << " " << d;
-          break;
-      }
-    }
+    void print(std::ostream &out) const;
 
     NLMaterial * clone() const;
 

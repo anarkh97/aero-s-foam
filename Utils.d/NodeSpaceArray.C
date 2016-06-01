@@ -59,6 +59,13 @@ Tensor::splContractWith(const Tensor_d0s2 &, Tensor *) const
   exit(-1);
 }
 
+void
+Tensor::setZero()
+{
+  fprintf(stderr," Tensor::setZero() is not implemented ...\n");
+  exit(-1);
+}
+
 Tensor_d0s2
 Tensor_d0s2::operator + (const Tensor_d0s2 &tens) const
 {

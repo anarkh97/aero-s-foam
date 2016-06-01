@@ -577,6 +577,7 @@ PrincipalStretches::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tenso
 
   Eigen::Matrix3d GradU;
   gradU.assignTo(GradU);
+  if(GradU.isZero()) GradU = std::numeric_limits<double>::epsilon()*Eigen::Matrix3d::Random(); // XXX
 
   Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> dGradUdq(numdofs);
   dgradUdqk.assignTo(dGradUdq);

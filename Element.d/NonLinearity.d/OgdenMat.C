@@ -10,54 +10,14 @@
 #include <Eigen/Dense>
 #endif
 
-#define UNCOUPLED_FORM
-
-OgdenMat::OgdenMat(double _rho, double _mu1, double _alpha1,
-                   double _c, double _d, int _vol)
+template<int _N, int _M>
+OgdenMat::OgdenMat(double _rho, double (&_mu)[_N], double (&_alpha)[_N], double (&_K)[_M])
 {
   rho = _rho;
-  N = 1;
-  mu[0] = _mu1;
-  mu[1] = 0;
-  mu[2] = 0;
-  alpha[0] = _alpha1;
-  alpha[1] = 0;
-  alpha[2] = 0;
-  c = _c;
-  d = _d;
-  vol = _vol;
-}
-
-OgdenMat::OgdenMat(double _rho, double _mu1, double _mu2, double _alpha1, double _alpha2,
-                   double _c, double _d, int _vol)
-{
-  rho = _rho;
-  N = 2;
-  mu[0] = _mu1;
-  mu[1] = _mu2;
-  mu[2] = 0;
-  alpha[0] = _alpha1;
-  alpha[1] = _alpha2;
-  alpha[2] = 0;
-  c = _c;
-  d = _d;
-  vol = _vol;
-}
-
-OgdenMat::OgdenMat(double _rho, double _mu1, double _mu2, double _mu3, double _alpha1, double _alpha2, double _alpha3,
-                   double _c, double _d, int _vol)
-{
-  rho = _rho;
-  N = 3;
-  mu[0] = _mu1;
-  mu[1] = _mu2;
-  mu[2] = _mu3;
-  alpha[0] = _alpha1;
-  alpha[1] = _alpha2;
-  alpha[2] = _alpha3;
-  c = _c;
-  d = _d;
-  vol = _vol;
+  N = std::min(_N,9);
+  for(int i=0; i<N; ++i) { mu[i] = _mu[i]; alpha[i] = _alpha[i]; }
+  M = std::min(_M,9);
+  for(int i=0; i<M; ++i) K[i] = _K[i];
 }
 
 NLMaterial *
@@ -74,16 +34,12 @@ OgdenMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
   Tensor_d0s2_Ss12_diag *stress = static_cast<Tensor_d0s2_Ss12_diag *>(_stress);
 
   double J = lambda[0]*lambda[1]*lambda[2];
-  double dUdJ;
-  switch(vol) {
-    case 0: dUdJ = c/2*(2*J-1/J);    break;
-    case 1: dUdJ = c*(2*J-2) - d/J;  break;
-    case 2: dUdJ = (c*log(J) - d)/J; break;
-  }
+  double dUdJ = 0;
+  for(int i=0; i<M; ++i) dUdJ += K[i]*(i+1)*pow(J-1,2*i+1);
   (*stress)[0] = lambda[1]*lambda[2]*dUdJ;
   (*stress)[1] = lambda[0]*lambda[2]*dUdJ;
   (*stress)[2] = lambda[0]*lambda[1]*dUdJ;
-#ifdef UNCOUPLED_FORM
+
   double p = pow(J,-1/3.);
   double l[3] = { p*lambda[0], p*lambda[1], p*lambda[2] };
   double beta0=0, beta1=0, beta2=0;
@@ -97,13 +53,6 @@ OgdenMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
   (*stress)[0] += beta0/lambda[0];
   (*stress)[1] += beta1/lambda[1];
   (*stress)[2] += beta2/lambda[2];
-#else
-  for(int i=0; i<N; ++i) {
-    (*stress)[0] += mu[i]*pow(lambda[0],alpha[i]-1);
-    (*stress)[1] += mu[i]*pow(lambda[1],alpha[i]-1);
-    (*stress)[2] += mu[i]*pow(lambda[2],alpha[i]-1);
-  }
-#endif
 }
 
 void
@@ -119,12 +68,8 @@ OgdenMat::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec(C);
   Eigen::Array<double,3,1> lambda = dec.eigenvalues().array().sqrt();
   double J = lambda[0]*lambda[1]*lambda[2];
-  double dUdJ;
-  switch(vol) {
-    case 0: dUdJ = c/2*(2*J-1/J);    break;
-    case 1: dUdJ = c*(2*J-2) - d/J;  break;
-    case 2: dUdJ = (c*log(J) - d)/J; break;
-  }
+  double dUdJ = 0;
+  for(int i=0; i<M; ++i) dUdJ += K[i]*(i+1)*pow(J-1,2*i+1);
   Eigen::Array<Eigen::Matrix3d,3,1> M;
   Eigen::Array<double,3,1> beta;
   for(int i=0; i<3; ++i) {
@@ -164,12 +109,12 @@ OgdenMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
          lambda11 = lambda[1]*lambda[1],
          lambda12 = lambda[1]*lambda[2],
          lambda22 = lambda[2]*lambda[2]; 
+
   double J = lambda01*lambda[2];
-  double dUdJ, d2UdJ2; 
-  switch(vol) {
-    case 0: dUdJ = c/2*(2*J-1/J);    d2UdJ2 = c/2*(2+1/(J*J));          break;
-    case 1: dUdJ = c*(2*J-2) - d/J;  d2UdJ2 = c*2 + d/(J*J);            break;
-    case 2: dUdJ = (c*log(J) - d)/J; d2UdJ2 = (c + d - c*log(J))/(J*J); break;
+  double dUdJ = 0, d2UdJ2 = 0; 
+  for(int i=0; i<M; ++i) {
+    dUdJ += K[i]*(i+1)*pow(J-1,2*i+1);
+    d2UdJ2 += K[i]*(i+1)*(2*i+1)*pow(J-1,2*i);
   }
   (*stress)[0] = lambda12*dUdJ;
   (*stress)[1] = lambda02*dUdJ;
@@ -180,7 +125,7 @@ OgdenMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
   (*tm)[0][1] = lambda12*lambda02*d2UdJ2 + lambda[2]*dUdJ;
   (*tm)[0][2] = lambda12*lambda01*d2UdJ2 + lambda[1]*dUdJ;
   (*tm)[1][2] = lambda02*lambda01*d2UdJ2 + lambda[0]*dUdJ;
-#ifdef UNCOUPLED_FORM
+
   double p = pow(J,-1/3.);
   double l[3] = { p*lambda[0], p*lambda[1], p*lambda[2] };
   double beta0=0, beta1=0, beta2=0;
@@ -207,16 +152,7 @@ OgdenMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
   (*tm)[0][1] += gamma01/lambda01;
   (*tm)[0][2] += gamma02/lambda02;
   (*tm)[1][2] += gamma12/lambda12;
-#else
-  for(int i=0; i<N; ++i) { 
-    (*stress)[0] += mu[i]*pow(lambda[0],alpha[i]-1);
-    (*stress)[1] += mu[i]*pow(lambda[1],alpha[i]-1);
-    (*stress)[2] += mu[i]*pow(lambda[2],alpha[i]-1);
-    (*tm)[0][0] += mu[i]*(alpha[i]-1)*pow(lambda[0],alpha[i]-2);
-    (*tm)[1][1] += mu[i]*(alpha[i]-1)*pow(lambda[1],alpha[i]-2);
-    (*tm)[2][2] += mu[i]*(alpha[i]-1)*pow(lambda[2],alpha[i]-2);
-  }
-#endif
+
   (*tm)[1][0] = (*tm)[0][1];
   (*tm)[2][0] = (*tm)[0][2];
   (*tm)[2][1] = (*tm)[1][2];
@@ -231,16 +167,12 @@ OgdenMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
   Tensor_d0s2_Ss12_diag *stress = static_cast<Tensor_d0s2_Ss12_diag *>(_stress);
 
   double J = lambda[0]*lambda[1]*lambda[2];
-  double dUdJ;
-  switch(vol) {
-    case 0: dUdJ = c/2*(2*J-1/J);    break;
-    case 1: dUdJ = c*(2*J-2) - d/J;  break;
-    case 2: dUdJ = (c*log(J) - d)/J; break;
-  }
+  double dUdJ = 0;
+  for(int i=0; i<M; ++i) dUdJ += K[i]*(i+1)*pow(J-1,2*i+1);
   (*stress)[0] = lambda[1]*lambda[2]*dUdJ;
   (*stress)[1] = lambda[0]*lambda[2]*dUdJ;
   (*stress)[2] = lambda[0]*lambda[1]*dUdJ;
-#ifdef UNCOUPLED_FORM
+
   double p = pow(J,-1/3.);
   double l[3] = { p*lambda[0], p*lambda[1], p*lambda[2] };
   double beta0=0, beta1=0, beta2=0;
@@ -254,13 +186,6 @@ OgdenMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
   (*stress)[0] += beta0/lambda[0];
   (*stress)[1] += beta1/lambda[1];
   (*stress)[2] += beta2/lambda[2];
-#else
-  for(int i=0; i<N; ++i) {
-    (*stress)[0] += mu[i]*pow(lambda[0],alpha[i]-1);
-    (*stress)[1] += mu[i]*pow(lambda[1],alpha[i]-1);
-    (*stress)[2] += mu[i]*pow(lambda[2],alpha[i]-1);
-  }
-#endif
 }
 
 double
@@ -271,33 +196,31 @@ OgdenMat::getStrainEnergyDensity(Tensor &_strain, double *, double)
   Tensor_d0s2_Ss12_diag &lambda = static_cast<Tensor_d0s2_Ss12_diag &>(_strain);
 
   double J = lambda[0]*lambda[1]*lambda[2];
-  double U;
-  switch(vol) {
-    case 0: U = c/2*((J*J-1)-log(J));         break;
-    case 1: U = c*(J-1)*(J-1) - d*log(J);     break;
-    case 2: U = c/2*log(J)*log(J) - d*log(J); break;
-  }
+  double U = 0;
+  for(int i=0; i<M; ++i) U += K[i]/2*pow(J-1,2*i+2);
+
   double W = 0;
-#ifdef UNCOUPLED_FORM
   double p = pow(J,-1/3.);
   double lambdatilde[3] = { p*lambda[0], p*lambda[1], p*lambda[2] };
   for(int i=0; i<N; ++i) W += mu[i]/alpha[i]*(pow(lambdatilde[0],alpha[i])+pow(lambdatilde[1],alpha[i])+pow(lambdatilde[2],alpha[i])-3);
-#else
-  for(int i=0; i<N; ++i) W += mu[i]/alpha[i]*(pow(lambda[0],alpha[i])+pow(lambda[1],alpha[i])+pow(lambda[2],alpha[i])-3);
-#endif
+
   return W+U;
+}
+
+void
+OgdenMat::print(std::ostream &out) const
+{
+  out << "Ogden " << rho;
+  for(int i=0; i<N; ++i) out << " " << mu[i];
+  for(int i=0; i<N; ++i) out << " " << alpha[i];
+  for(int i=0; i<M; ++i) out << " " << K[i];
 }
 
 void
 OgdenMat::getMaterialConstants(std::vector<double> &c)
 {
-  c.resize(6);
-  c[0] = mu[0];
-  c[1] = mu[1];
-  c[2] = mu[2];
-  c[3] = alpha[0];
-  c[4] = alpha[1];
-  c[5] = alpha[2];
+  c.resize(2*N);
+  for(int i=0; i<N; ++i) { c[i] = mu[i]; c[N+i] = alpha[i]; }
 }
 
 extern PrincipalStretches principalStretches;
@@ -308,3 +231,21 @@ OgdenMat::getStrainEvaluator()
   return &principalStretches;
 }
 
+template OgdenMat::OgdenMat(double, double (&)[1], double (&)[1], double (&)[1]);
+template OgdenMat::OgdenMat(double, double (&)[2], double (&)[2], double (&)[1]);
+template OgdenMat::OgdenMat(double, double (&)[3], double (&)[3], double (&)[1]);
+template OgdenMat::OgdenMat(double, double (&)[4], double (&)[4], double (&)[1]);
+template OgdenMat::OgdenMat(double, double (&)[5], double (&)[5], double (&)[1]);
+template OgdenMat::OgdenMat(double, double (&)[6], double (&)[6], double (&)[1]);
+template OgdenMat::OgdenMat(double, double (&)[7], double (&)[7], double (&)[1]);
+template OgdenMat::OgdenMat(double, double (&)[8], double (&)[8], double (&)[1]);
+template OgdenMat::OgdenMat(double, double (&)[9], double (&)[9], double (&)[1]);
+
+template OgdenMat::OgdenMat(double, double (&)[2], double (&)[2], double (&)[2]);
+template OgdenMat::OgdenMat(double, double (&)[3], double (&)[3], double (&)[2]);
+template OgdenMat::OgdenMat(double, double (&)[4], double (&)[4], double (&)[2]);
+template OgdenMat::OgdenMat(double, double (&)[5], double (&)[5], double (&)[2]);
+template OgdenMat::OgdenMat(double, double (&)[6], double (&)[6], double (&)[2]);
+template OgdenMat::OgdenMat(double, double (&)[7], double (&)[7], double (&)[2]);
+template OgdenMat::OgdenMat(double, double (&)[8], double (&)[8], double (&)[2]);
+template OgdenMat::OgdenMat(double, double (&)[9], double (&)[9], double (&)[2]);

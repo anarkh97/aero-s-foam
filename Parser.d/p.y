@@ -4834,20 +4834,124 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new PronyViscoElastic<MooneyRivlinMat>(params));
           }
-        | MatSpec Integer OGDEN Float Float Float Float Float NewLine 
+        | MatSpec Integer OGDEN Float Float Float Float NewLine 
           {
-           geoSource->addMaterial($2-1,
-             new OgdenMat($4, $5, $6, $7, $8));
+            double mu[1] = { $5 };
+            double alpha[1] = { $6 };
+            double K[1] = { $7 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float NewLine
+          {
+            double mu[2] = { $5, $6 };
+            double alpha[2] = { $7, $8 };
+            double K[1] = { $9 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
           }
         | MatSpec Integer OGDEN Float Float Float Float Float Float Float NewLine
           {
-           geoSource->addMaterial($2-1,
-             new OgdenMat($4, $5, $6, $7, $8, $9, $10));
+            double mu[2] = { $5, $6 }; 
+            double alpha[2] = { $7, $8 };
+            double K[2] = { $9, $10 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[3] = { $5, $6, $7 };
+            double alpha[3] = { $8, $9, $10 };
+            double K[1] = { $11 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
           }
         | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float NewLine
           {
-           geoSource->addMaterial($2-1,
-             new OgdenMat($4, $5, $6, $7, $8, $9, $10, $11, $12));
+            double mu[3] = { $5, $6, $7 };
+            double alpha[3] = { $8, $9, $10 };
+            double K[2] = { $11, $12 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[4] = { $5, $6, $7, $8 };
+            double alpha[4] = { $9, $10, $11, $12 };
+            double K[1] = { $13 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[4] = { $5, $6, $7, $8 };
+            double alpha[4] = { $9, $10, $11, $12 };
+            double K[2] = { $13, $14 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[5] = { $5, $6, $7, $8, $9 };
+            double alpha[5] = { $10, $11, $12, $13, $14 };
+            double K[1] = { $15 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[5] = { $5, $6, $7, $8, $9 };
+            double alpha[5] = { $10, $11, $12, $13, $14 };
+            double K[2] = { $15, $16 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[6] = { $5, $6, $7, $8, $9, $10 };
+            double alpha[6] = { $11, $12, $13, $14, $15, $16 };
+            double K[1] = { $17 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[6] = { $5, $6, $7, $8, $9, $10 };
+            double alpha[6] = { $11, $12, $13, $14, $15, $16 };
+            double K[2] = { $17, $18 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[7] = { $5, $6, $7, $8, $9, $10, $11 };
+            double alpha[7] = { $12, $13, $14, $15, $16, $17, $18 };
+            double K[1] = { $19 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[7] = { $5, $6, $7, $8, $9, $10, $11 };
+            double alpha[7] = { $12, $13, $14, $15, $16, $17, $18 };
+            double K[2] = { $19, $20 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[8] = { $5, $6, $7, $8, $9, $10, $11, $12 };
+            double alpha[8] = { $13, $14, $15, $16, $17, $18, $19, $20 };
+            double K[1] = { $21 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[8] = { $5, $6, $7, $8, $9, $10, $11, $12 };
+            double alpha[8] = { $13, $14, $15, $16, $17, $18, $19, $20 };
+            double K[2] = { $21, $22 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[9] = { $5, $6, $7, $8, $9, $10, $11, $12, $13 };
+            double alpha[9] = { $14, $15, $16, $17, $18, $19, $20, $21, $22 };
+            double K[1] = { $23 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[9] = { $5, $6, $7, $8, $9, $10, $11, $12, $13 };
+            double alpha[9] = { $14, $15, $16, $17, $18, $19, $20, $21, $22 };
+            double K[2] = { $23, $24 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float NewLine
           {

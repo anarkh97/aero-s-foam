@@ -29,6 +29,7 @@ class Tensor
     virtual void dblContractWith(const Tensor_d0s4_Ss12s34_diag &, Tensor *) const;   
     virtual void dblContractWith(const Tensor_d0s4 &, Tensor *) const;
     virtual void splContractWith(const Tensor_d0s2 &, Tensor *) const;
+    virtual void setZero();
 };
 
 class Contraction
@@ -108,6 +109,7 @@ class Tensor_d0s1 : public Tensor
     double operator[] (int i) const { return v[i]; }
     double &operator() (int i) { return v[i]; }
     double operator() (int i) const { return v[i]; }
+    void setZero() { v[0] = v[1] = v[2] = 0; }
 };
 
 class Tensor_d0s2 : public Tensor
@@ -146,6 +148,7 @@ class Tensor_d0s2 : public Tensor
     Tensor_d0s2 &operator=(const Eigen::Matrix3d &);
     void assignTo(Eigen::Matrix3d &m) const;
 #endif
+    void setZero() { for(int i = 0; i < 9; ++i) v[i] = 0; }
 };
  
 Tensor_d0s2 operator * (double, const Tensor_d0s2 &);
@@ -194,6 +197,7 @@ class Tensor_d0s4 : public Tensor
     Tensor_d0s4 operator + (Tensor_d0s4 &);
     Tensor_d0s4 operator + (const Tensor_d0s4 &) const;
     void print() const;
+    void setZero() { for(int i=0; i<81; ++i) v[i] = 0; }
 };
 
 class Tensor_d1s0 : public Tensor
@@ -217,6 +221,7 @@ class Tensor_d1s0 : public Tensor
     friend Tensor_d1s0 operator * (double d, const Tensor_d1s0 &t);
     void print() const { for(int i = 0; i < size; ++i) std::cerr << v[i] << " ";
                    std::cerr << std::endl; }
+    void setZero() { for(int i = 0; i < size; ++i) v[i] = 0; }
 };
 
 Tensor_d1s0 operator *(double d, const Tensor_d1s0 &t);
@@ -244,6 +249,7 @@ class Tensor_d1s1 : public Tensor
     double &operator() (int i, int j);
     Tensor_d1s1 &operator = (const Tensor_d1s1 &);
     int getSize() const { return size; }
+    void setZero() { for(int i = 0; i < size; ++i) v[i].setZero(); }
 };
 
 inline double
@@ -304,6 +310,7 @@ class Tensor_d1s2_full : public Tensor_d1s2
     friend Tensor_d1s2_full operator * (double d, const Tensor_d1s2_full &t);
     void dblContractWith(const Tensor_d0s4 &, Tensor *) const;
     void splContractWith(const Tensor_d0s2 &, Tensor *) const;
+    void setZero() { for(int i = 0; i < size; ++i) v[i].setZero(); }
 };
 
 inline void
@@ -375,6 +382,7 @@ class Tensor_d1s2_sparse : public Tensor_d1s2
 #ifdef USE_EIGEN3
     void assignTo(Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> &) const;
 #endif
+    void setZero() { for(int i = 0; i < size/3; ++i) v[i].setZero(); }
 };
 
 inline void
@@ -471,6 +479,7 @@ class Tensor_d2s2 : public Tensor
                      for(int k = 0; k < 3; ++k) for(int l = 0; l < 3; ++l)
                        std::cerr << (*this)(i,j,k,l) << " ";
                    std::cerr << std::endl; }
+    void setZero() { for(int i = 0; i < size*size; ++i) v[i].setZero(); }
 };
 
 inline double 
@@ -514,6 +523,7 @@ class Tensor_d2s0 : public Tensor
     void print() const { for(int i = 0; i < size*size; ++i) std::cerr << v[i] << " ";
                      std::cerr << std::endl; }
     friend Tensor_d2s0 operator * (double d, const Tensor_d2s0 &t);
+    void setZero() { if(v) for(int i = 0; i < size*size; ++i) v[i] = 0; }
 };
 
 inline double 
@@ -776,6 +786,7 @@ class Tensor_d2s2_Sd12s34_sparse : public Tensor_d2s2_Sd12s34
     int getSize() { return size; }
     int getSize() const { return size; }
     void print() const;
+    void setZero() { for(int i = 0; i < size*(size+3)/6; ++i) v[i].setZero(); }
 };
 
 inline void
@@ -863,6 +874,7 @@ class Tensor_d2s2_Sd12s34_null : public Tensor_d2s2_Sd12s34
     void dblContractInto(const Tensor &, Tensor *) const;
     int getSize() { return size; }
     int getSize() const { return size; }
+    void setZero() { for(int i = 0; i < size*(size+1)/2; ++i) v[i].setZero(); }
 };
 
 /*

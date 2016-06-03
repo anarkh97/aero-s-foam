@@ -4956,7 +4956,7 @@ MatSpec:
         | MatSpec Integer SIMO Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new SimoMat($4, $5, $6));
+             new SimoElasticMat($4, $5, $6));
          }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float NewLine
           {

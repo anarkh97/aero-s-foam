@@ -67,6 +67,7 @@ class Brick20: public Element
 
     void setMaterial(NLMaterial *);
     int numStates();
+    void initStates(double *st);
     Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);
 };
 

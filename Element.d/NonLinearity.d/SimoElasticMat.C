@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <Element.d/Element.h>
-#include <Element.d/NonLinearity.d/SimoMat.h>
+#include <Element.d/NonLinearity.d/SimoElasticMat.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <Utils.d/NodeSpaceArray.h>
 
@@ -10,7 +10,7 @@
 #include <Eigen/Dense>
 #endif
 
-SimoMat::SimoMat(double _rho, double _E, double _nu)
+SimoElasticMat::SimoElasticMat(double _rho, double _E, double _nu)
 {
   rho = _rho;
   E = _E;
@@ -18,13 +18,13 @@ SimoMat::SimoMat(double _rho, double _E, double _nu)
 }
 
 NLMaterial *
-SimoMat::clone() const
+SimoElasticMat::clone() const
 {
-  return new SimoMat(*this);
+  return new SimoElasticMat(*this);
 }
 
 void
-SimoMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
+SimoElasticMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
 {
   Tensor_d0s2_Ss12_diag &eps = static_cast<Tensor_d0s2_Ss12_diag &>(_strain);
   Tensor_d0s2_Ss12_diag &beta = static_cast<Tensor_d0s2_Ss12_diag &>(*_stress);
@@ -37,48 +37,21 @@ SimoMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
   beta[2] = M*eps[2] + lambda*(eps[0]+eps[1]);
 }
 
-void
-SimoMat::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
+void 
+SimoElasticMat::getTangentMaterial(Tensor *_tm, Tensor &_strain, double*, double)
 {
-#ifdef USE_EIGEN3
-  using std::pow;
-  using std::exp;
-  Tensor_d0s2_Ss12_diag &beta = static_cast<Tensor_d0s2_Ss12_diag &>(_stress);
-  Tensor_d0s2 &gradU = static_cast<Tensor_d0s2 &>(_gradU);
-  Eigen::Matrix3d GradU; gradU.assignTo(GradU);
-  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
-  Eigen::Matrix3d C = F.transpose()*F;
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec(C);
-  Eigen::Array<double,3,1> eps = dec.eigenvalues().array().sqrt().log();
-  double J = exp(eps[0]+eps[1]+eps[2]);
-  double K = E/(3*(1-2*nu)); // bulk modulus
-  double dUdJ = K*log(J)/J;
-  Eigen::Array<Eigen::Matrix3d,3,1> M;
-  for(int i=0; i<3; ++i) {
-    M[i] = 1/dec.eigenvalues()[i]*dec.eigenvectors().col(i)*dec.eigenvectors().col(i).transpose();
-  }
-  S = J*dUdJ*C.inverse() + (beta[0]-J*dUdJ)*M[0]+(beta[1]-J*dUdJ)*M[1]+(beta[2]-J*dUdJ)*M[2];
-#else
-  std::cerr << "ERROR: SimoMat::transformStress is not implemented\n";
-  S.setZero();
-#endif
+  std::cerr << "SimoElasticMat::getTangentMaterial is not implemented\n"; exit(-1);
 }
 
 void 
-SimoMat::getTangentMaterial(Tensor *_tm, Tensor &_strain, double*, double)
+SimoElasticMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &_strain, double*, double)
 {
-  std::cerr << "SimoMat::getTangentMaterial is not implemented\n"; exit(-1);
+  std::cerr << "SimoElasticMat::getStressAndTangentMaterial is not implemented\n"; exit(-1);
 }
 
 void 
-SimoMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &_strain, double*, double)
-{
-  std::cerr << "SimoMat::getStressAndTangentMaterial is not implemented\n"; exit(-1);
-}
-
-void 
-SimoMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
-                   double *, double *, double, double)
+SimoElasticMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
+                          double *, double *, double, double)
 {
   Tensor_d0s2_Ss12_diag &eps = static_cast<Tensor_d0s2_Ss12_diag &>(_strain);
   Tensor_d0s2_Ss12_diag &beta = static_cast<Tensor_d0s2_Ss12_diag &>(*_stress);
@@ -96,8 +69,8 @@ SimoMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
 }
 
 void
-SimoMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
-                   double *, double *, double, double)
+SimoElasticMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
+                          double *, double *, double, double)
 {
   Tensor_d0s2_Ss12_diag &eps = static_cast<Tensor_d0s2_Ss12_diag &>(_strain);
   Tensor_d0s2_Ss12_diag &beta = static_cast<Tensor_d0s2_Ss12_diag &>(*_stress);
@@ -111,7 +84,7 @@ SimoMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
 }
 
 double
-SimoMat::getStrainEnergyDensity(Tensor &_strain, double *, double)
+SimoElasticMat::getStrainEnergyDensity(Tensor &_strain, double *, double)
 {
   Tensor_d0s2_Ss12_diag &eps = static_cast<Tensor_d0s2_Ss12_diag &>(_strain);
 
@@ -123,13 +96,13 @@ SimoMat::getStrainEnergyDensity(Tensor &_strain, double *, double)
 }
 
 void
-SimoMat::print(std::ostream &out) const
+SimoElasticMat::print(std::ostream &out) const
 {
   out << "SimoElastic " << rho << " " << E << " " << nu;
 }
 
 void
-SimoMat::getMaterialConstants(std::vector<double> &c)
+SimoElasticMat::getMaterialConstants(std::vector<double> &c)
 {
   c.resize(2);
   c[0] = E;
@@ -139,7 +112,7 @@ SimoMat::getMaterialConstants(std::vector<double> &c)
 extern LogarithmicPrincipalStretches logarithmicPrincipalStretches;
 
 StrainEvaluator *
-SimoMat::getStrainEvaluator()
+SimoElasticMat::getStrainEvaluator()
 {
   return &logarithmicPrincipalStretches;
 }

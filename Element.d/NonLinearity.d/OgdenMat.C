@@ -50,33 +50,6 @@ OgdenMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
   }
 }
 
-void
-OgdenMat::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
-{
-#ifdef USE_EIGEN3
-  using std::pow;
-  using std::exp;
-  Tensor_d0s2_Ss12_diag &beta = static_cast<Tensor_d0s2_Ss12_diag &>(_stress);
-  Tensor_d0s2 &gradU = static_cast<Tensor_d0s2 &>(_gradU);
-  Eigen::Matrix3d GradU; gradU.assignTo(GradU);
-  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
-  Eigen::Matrix3d C = F.transpose()*F;
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec(C);
-  Eigen::Array<double,3,1> eps = dec.eigenvalues().array().sqrt().log();
-  double J = exp(eps[0]+eps[1]+eps[2]);
-  double dUdJ = 0;
-  for(int i=0; i<n; ++i) dUdJ += K[i]*(i+1)*pow(J-1,2*i+1);
-  Eigen::Array<Eigen::Matrix3d,3,1> M;
-  for(int i=0; i<3; ++i) {
-    M[i] = 1/dec.eigenvalues()[i]*dec.eigenvectors().col(i)*dec.eigenvectors().col(i).transpose();
-  }
-  S = J*dUdJ*C.inverse() + (beta[0]-J*dUdJ)*M[0]+(beta[1]-J*dUdJ)*M[1]+(beta[2]-J*dUdJ)*M[2];
-#else
-  std::cerr << "ERROR: OgdenMat::transformStress is not implemented\n";
-  S.setZero();
-#endif
-}
-
 void 
 OgdenMat::getTangentMaterial(Tensor *_tm, Tensor &_strain, double*, double)
 {

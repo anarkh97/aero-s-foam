@@ -9,6 +9,8 @@
 #include <Eigen/Dense>
 #endif
 
+//#define EN_USED_IN_INTEGRATE
+
 FullSquareMatrix  
 GaussIntgElement::stiffness(CoordSet& cs, double *k, int)
 {
@@ -312,7 +314,9 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   NLMaterial *material = getMaterial();
 
   // Obtain the storage for gradU ( 3x3 )
-  //Tensor &gradUn = *shapeF->getGradUInstance();
+#ifdef EN_USED_IN_INTEGRATE
+  Tensor &gradUn = *shapeF->getGradUInstance();
+#endif
   Tensor &gradUnp = *shapeF->getGradUInstance();
   // Obtain the storage for dgradUdqk ( ndof x3x3 )
   Tensor &dgradUdqknp = *shapeF->getDgradUDqkInstance();
@@ -350,21 +354,26 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   StackVector dispVecnp(dispnp, ndofs);
   shapeF->getDisplacements(dispVecnp, &displacements);
 
+#ifdef EN_USED_IN_INTEGRATE
+  StackVector dispVecn(dispn, ndofs);
+#endif
+
   Tensor &localderivatives = *shapeF->getLocalDerivativesInstance();
   
   for(i = 0; i < ngp; i++) {
 
     double point[3], weight, jacn, jacnp, tempnp;
-    //StackVector dispVecn(dispn, ndofs);
-    //StackVector dispVecnp(dispnp, ndofs); 
  
     getGaussPointAndWeight(i, point, weight);
 
-    //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
-    //shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
+#ifdef EN_USED_IN_INTEGRATE
+    shapeF->getGradU(&gradUn, nodes, point, dispVecn);
+#endif
     shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, &nodescoordinates, point, &displacements, &localderivatives);
 
-    //strainEvaluator->getE(en, gradUn);
+#ifdef EN_USED_IN_INTEGRATE
+    strainEvaluator->getE(en, gradUn);
+#endif
     strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp, temp4);
 
     // compute temperature at integration point
@@ -406,7 +415,9 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
     force[j] = - nodeforce[j];}
 
   delete &temp1;
-  //delete &gradUn;
+#ifdef EN_USED_IN_INTEGRATE
+  delete &gradUn;
+#endif
   delete &gradUnp;
   delete &dgradUdqknp;
   delete &Bnp;
@@ -436,7 +447,9 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   NLMaterial *material = getMaterial();
 
   // Obtain the storage for gradU ( 3x3 )
-  //Tensor &gradUn = *shapeF->getGradUInstance();
+#ifdef EN_USED_IN_INTEGRATE
+  Tensor &gradUn = *shapeF->getGradUInstance();
+#endif
   Tensor &gradUnp = *shapeF->getGradUInstance();
   // Obtain the storage for dgradUdqk ( ndof x3x3 )
   Tensor &dgradUdqknp = *shapeF->getDgradUDqkInstance();
@@ -465,21 +478,26 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   StackVector dispVecnp(dispnp, ndofs);
   shapeF->getDisplacements(dispVecnp, &displacements);
 
+#ifdef EN_USED_IN_INTEGRATE
+  StackVector dispVecn(dispn, ndofs);
+#endif
+
   Tensor &localderivatives = *shapeF->getLocalDerivativesInstance();
   
   for(i = 0; i < ngp; i++) {
 
     double point[3], weight, jacn, jacnp, tempnp;
-    //StackVector dispVecn(dispn, ndofs);
-    //StackVector dispVecnp(dispnp, ndofs); 
  
     getGaussPointAndWeight(i, point, weight);
 
-    //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
-    //shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
+#ifdef EN_USED_IN_INTEGRATE
+    shapeF->getGradU(&gradUn, nodes, point, dispVecn);
+#endif
     shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, &nodescoordinates, point, &displacements, &localderivatives);
 
-    //strainEvaluator->getE(en, gradUn);
+#ifdef EN_USED_IN_INTEGRATE
+    strainEvaluator->getE(en, gradUn);
+#endif
     strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp, temp2);
 
     // compute temperature at integration point
@@ -496,7 +514,9 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   for(j = 0; j < ndofs; ++j) {
     force[j] = - nodeforce[j];}
 
-  //delete &gradUn;
+#ifdef EN_USED_IN_INTEGRATE
+  delete &gradUn;
+#endif
   delete &gradUnp;
   delete &dgradUdqknp;
   delete &Bnp;
@@ -738,7 +758,7 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
       strainEvaluator->getE(enp, gradUnp);
 
       material->getStress(&s, enp, statenp, (temps ? temps[i] : 0));
-      material->transformStress(s, gradUnp, S);
+      strainEvaluator->transformStress(s, gradUnp, S);
       copyTens(&S, result[i]);
     }
   }
@@ -768,7 +788,7 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
       material->integrate(&s, &Dnp, en, enp,
                           staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
 
-      material->transformStress(s, gradUnp, S);
+      strainEvaluator->transformStress(s, gradUnp, S);
 
       if(avgnum == -1) copyTens(&S, result[i]);
       else copyTens(&S, gpstress[i]);
@@ -850,7 +870,7 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
       strainEvaluator->getE(enp, gradUnp);
 
       material->getStress(&s, enp, statenp, (temps ? temps[i] : 0));
-      material->transformStress(s, gradUnp, S);
+      strainEvaluator->transformStress(s, gradUnp, S);
 #ifdef USE_EIGEN3
       Eigen::Matrix3d M;
       copyTens(&S,M);
@@ -887,7 +907,7 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
 
       material->integrate(&s, &Dnp, en, enp,
                           staten + nstatepgp*i, statenp + nstatepgp*i, 0);
-      material->transformStress(s, gradUnp, S);
+      strainEvaluator->transformStress(s, gradUnp, S);
 #ifdef USE_EIGEN3
       Eigen::Matrix3d M;
       copyTens(&S,M);

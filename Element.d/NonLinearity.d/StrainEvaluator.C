@@ -61,7 +61,6 @@ LinearStrain::getEBandDB(Tensor &_e, Tensor & bB, Tensor &DB,
   enonsym = (1/2.)*(gradU + tgradU);
   enonsym.convertToSym(e);
 
-  //B = dgradUdqk.symPart();
   B.setZero();
   B.addSymPart(dgradUdqk);
 }
@@ -82,7 +81,6 @@ LinearStrain::getEandB(Tensor &_e, Tensor & __B,
   enonsym = (1/2.)*(gradU + tgradU);
   enonsym.convertToSym(e);
 
-  //B = dgradUdqk.symPart();
   B.setZero();
   B.addSymPart(dgradUdqk);
 }
@@ -99,6 +97,14 @@ LinearStrain::getE(Tensor &_e, Tensor &_gradU)
   Tensor_d0s2 enonsym;
   enonsym = (1/2.)*(gradU + tgradU);
   enonsym.convertToSym(e);
+}
+
+void
+LinearStrain::transformStress(Tensor &_stress, Tensor &gradU, Tensor_d0s2_Ss12 &S)
+{
+  // do nothing: transformation is only applied for finite-strain materials
+  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
+  S = stress;
 }
 
 Tensor *
@@ -164,16 +170,10 @@ GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tens
   enonsym = (1/2.)*(tgradU + (gradU + temp1));
   enonsym.convertToSym(e);
 
-  //int size = B.getSize();
-  //Tensor_d1s2_full temp2(size);
-  //temp2 = tgradU | dgradUdqk;
   Tensor_d1s2_full * temp2 = static_cast<Tensor_d1s2_full*>(_temp2);
   *temp2 = tgradU | dgradUdqk;
 
-  //B = dgradUdqk.symPart() + temp2.symPart();
-  B.setZero();
-  B.addSymPart(dgradUdqk);
-  B.addSymPart(*temp2);
+  B.assignSymPart(dgradUdqk, *temp2);
 
   dgradUdqk.getSymSquare(DB);
 }
@@ -198,21 +198,14 @@ GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, con
   enonsym = (1/2.)*(tgradU + (gradU + temp1));
   enonsym.convertToSym(e);
 
-  //int size = B.getSize();
-  //Tensor_d1s2_full temp2(size);
-  //temp2 = tgradU | dgradUdqk;
   Tensor_d1s2_full * temp2 = static_cast<Tensor_d1s2_full*>(_temp2);
   *temp2 = tgradU | dgradUdqk;
 
-  //B = dgradUdqk.symPart() + temp2.symPart();
-  /*B.setZero();
-  B.addSymPart(dgradUdqk);
-  B.addSymPart(*temp2);*/
   B.assignSymPart(dgradUdqk, *temp2);
 }
 
 void 
-GreenLagrangeStrain::getE(Tensor &_e,Tensor &_gradU)
+GreenLagrangeStrain::getE(Tensor &_e, Tensor &_gradU)
 {
   Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
   Tensor_d0s2 & gradU = static_cast<Tensor_d0s2 &>(_gradU);
@@ -227,6 +220,14 @@ GreenLagrangeStrain::getE(Tensor &_e,Tensor &_gradU)
   Tensor_d0s2 enonsym;
   enonsym = (1/2.)*(tgradU + (gradU + temp));
   enonsym.convertToSym(e);
+}
+
+void
+GreenLagrangeStrain::transformStress(Tensor &_stress, Tensor &, Tensor_d0s2_Ss12 &S)
+{
+  // do nothing: stress is already PK2 in this case
+  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
+  S = stress;
 }
 
 Tensor *
@@ -523,6 +524,25 @@ LogarithmicStrain::getE(Tensor &_e, Tensor &_gradU)
 #endif
 }
 
+void
+LogarithmicStrain::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
+{
+#ifdef USE_EIGEN3
+  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
+  Tensor_d0s2 &gradU = static_cast<Tensor_d0s2 &>(_gradU);
+  Eigen::Matrix3d GradU; gradU.assignTo(GradU);
+  Eigen::Matrix3d T; stress.assignTo(T); // rotated Kirchhoff stress, T = R^{t}*tau*R --> P = R*T*R^{t}*F^{-t}
+  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity(); // deformation gradient
+  Eigen::JacobiSVD<Eigen::Matrix3d,Eigen::NoQRPreconditioner> svd(F, Eigen::ComputeFullV);
+  Eigen::Matrix3d R = svd.matrixU()*svd.matrixV().adjoint(); // right stretch tensor
+  Eigen::Matrix3d P = R*T*R.transpose()*F.transpose().inverse(); // first Piola-Kirchhoff stress tensor
+  S = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
+#else
+  std::cerr << " *** ERROR: LogarithmicStrain requires AERO-S configured with Eigen library. Exiting..." << std::endl;
+  exit(-1);
+#endif
+}
+
 Tensor *
 PrincipalStretches::getTMInstance()
 {
@@ -720,6 +740,25 @@ PrincipalStretches::getE(Tensor &_e, Tensor &_gradU)
   Eigen::Array3d sqrtl = dec.eigenvalues().array().sqrt();
   e = sqrtl;
 
+#else
+  std::cerr << " *** ERROR: PrincipalStretches requires AERO-S configured with Eigen library. Exiting..." << std::endl;
+  exit(-1);
+#endif
+}
+
+void
+PrincipalStretches::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
+{
+#ifdef USE_EIGEN3
+  Tensor_d0s2_Ss12_diag &stress = static_cast<Tensor_d0s2_Ss12_diag &>(_stress);
+  Tensor_d0s2 &gradU = static_cast<Tensor_d0s2 &>(_gradU);
+  Eigen::Matrix3d GradU; gradU.assignTo(GradU);
+  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec((F.transpose()*F).eval());
+  Eigen::Array3d sqrtl = dec.eigenvalues().array().sqrt();
+  S = stress[0]/sqrtl[0]*dec.eigenvectors().col(0)*dec.eigenvectors().col(0).transpose()
+    + stress[1]/sqrtl[1]*dec.eigenvectors().col(1)*dec.eigenvectors().col(1).transpose()
+    + stress[2]/sqrtl[2]*dec.eigenvectors().col(2)*dec.eigenvectors().col(2).transpose();
 #else
   std::cerr << " *** ERROR: PrincipalStretches requires AERO-S configured with Eigen library. Exiting..." << std::endl;
   exit(-1);
@@ -932,6 +971,24 @@ LogarithmicPrincipalStretches::getE(Tensor &_e, Tensor &_gradU)
 #endif
 }
 
+void
+LogarithmicPrincipalStretches::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
+{
+#ifdef USE_EIGEN3
+  Tensor_d0s2_Ss12_diag &beta = static_cast<Tensor_d0s2_Ss12_diag &>(_stress);
+  Tensor_d0s2 &gradU = static_cast<Tensor_d0s2 &>(_gradU);
+  Eigen::Matrix3d GradU; gradU.assignTo(GradU);
+  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec((F.transpose()*F).eval());
+  S = beta[0]/dec.eigenvalues()[0]*dec.eigenvectors().col(0)*dec.eigenvectors().col(0).transpose()
+    + beta[1]/dec.eigenvalues()[1]*dec.eigenvectors().col(1)*dec.eigenvectors().col(1).transpose()
+    + beta[2]/dec.eigenvalues()[2]*dec.eigenvectors().col(2)*dec.eigenvectors().col(2).transpose();
+#else
+  std::cerr << " *** ERROR: LogarithmicPrincipalStretches requires AERO-S configured with Eigen library. Exiting..." << std::endl;
+  exit(-1);
+#endif
+}
+
 Tensor *
 DeformationGradient::getTMInstance()
 {
@@ -1011,5 +1068,21 @@ DeformationGradient::getE(Tensor &_e,Tensor &_gradU)
   Tensor_d0s2 identity;
   identity[0] = identity[4] = identity[8] = 1;
   e = gradU + identity;
+}
+
+void
+DeformationGradient::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
+{
+  Tensor_d0s2 &stress = static_cast<Tensor_d0s2 &>(_stress);
+  Tensor_d0s2 &gradU  = static_cast<Tensor_d0s2 &>(_gradU);
+
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > GradU(&gradU[0]), P(&stress[0]);
+  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
+  S = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
+#else
+  std::cerr << "ERROR: DeformationGradient::transformStress is not implemented\n";
+  S.setZero();
+#endif
 }
 

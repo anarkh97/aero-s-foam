@@ -742,8 +742,20 @@ Pentahedral::setMaterial(NLMaterial *_mat)
 int
 Pentahedral::numStates()
 {
-  int numGaussPoints = 6;
+  int numGaussPoints = NLPentahedral6::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
+
+void
+Pentahedral::initStates(double *st)
+{
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLPentahedral6::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
 }
 
 Corotator *

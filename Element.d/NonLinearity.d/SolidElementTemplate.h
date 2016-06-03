@@ -39,6 +39,7 @@ class SolidElementTemplate : public GaussIntgElement
     void getNodeRefCoords(double (*nodeRefCoords)[3]);
 
   public:
+    enum { numGaussPoints = NumIntgPts };
     SolidElementTemplate(int *nd);
     int numNodes();
     int numDofs();

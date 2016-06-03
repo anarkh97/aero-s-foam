@@ -5,10 +5,11 @@
 // Reference: Simo, J. C. "Algorithms for static and dynamic multiplicative plasticity that preserve the classical return mapping
 //            schemes of the infinitesimal theory." Computer Methods in Applied Mechanics and Engineering 99.1 (1992): 61-112.
 //            (section 5)
+// I think this is equivalent to HenckyMat in the isotropic case
 
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 
-class SimoMat : public NLMaterial
+class SimoElasticMat : public NLMaterial
 {
   protected:
     // isotropic material properties
@@ -16,13 +17,11 @@ class SimoMat : public NLMaterial
     double E, nu; // Young's modulus and Poisson's ratio
 
   public:
-    SimoMat(double _rho, double _E, double _nu);
+    SimoElasticMat(double _rho, double _E, double _nu);
 
     int getNumStates() { return 0; }
 
     void getStress(Tensor *stress, Tensor &strain, double*, double temp);
-
-    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
 
     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 

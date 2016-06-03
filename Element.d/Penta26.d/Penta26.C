@@ -569,8 +569,20 @@ Penta26::setMaterial(NLMaterial *_mat)
 int
 Penta26::numStates()
 {
-  int numGaussPoints = 18;
+  int numGaussPoints = NLPentahedral26::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates() : 0;
+}
+
+void
+Penta26::initStates(double *st)
+{
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLPentahedral26::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
 }
 
 Corotator *

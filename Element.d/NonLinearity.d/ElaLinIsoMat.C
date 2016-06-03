@@ -97,14 +97,6 @@ ElaLinIsoMat::getStress(Tensor *_stress, Tensor &_strain, double* state, double 
   (*stress) = tm||strain;
 }
 
-void
-ElaLinIsoMat::transformStress(Tensor &_stress, Tensor &, Tensor_d0s2_Ss12 &S)
-{
-  // do nothing: transformation is only applied for finite-strain materials
-  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
-  S = stress;
-}
-
 void 
 ElaLinIsoMat::getTangentMaterial(Tensor *_tm, Tensor &, double*, double temp)
 {
@@ -273,14 +265,6 @@ ElaLinIsoMat::getStrainEvaluator()
 
 extern GreenLagrangeStrain greenLagrangeStrain;
 
-void 
-StVenantKirchhoffMat::transformStress(Tensor &_stress, Tensor &, Tensor_d0s2_Ss12 &S)
-{
-  // do nothing: stress is already PK2 in this case
-  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
-  S = stress;
-}
-
 StrainEvaluator *
 StVenantKirchhoffMat::getStrainEvaluator()
 {
@@ -294,25 +278,6 @@ StVenantKirchhoffMat::clone() const
 }
 
 extern LogarithmicStrain logarithmicStrain;
-
-void
-HenckyMat::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
-{
-#ifdef USE_EIGEN3
-  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
-  Tensor_d0s2 &gradU = static_cast<Tensor_d0s2 &>(_gradU);
-  Eigen::Matrix3d GradU; gradU.assignTo(GradU);
-  Eigen::Matrix3d T; stress.assignTo(T); // rotated Kirchhoff stress, T = R^{t}*tau*R --> P = R*T*R^{t}*F^{-t}
-  Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity(); // deformation gradient
-  Eigen::JacobiSVD<Eigen::Matrix3d,Eigen::NoQRPreconditioner> svd(F, Eigen::ComputeFullV);
-  Eigen::Matrix3d R = svd.matrixU()*svd.matrixV().adjoint(); // right stretch tensor
-  Eigen::Matrix3d P = R*T*R.transpose()*F.transpose().inverse(); // first Piola-Kirchhoff stress tensor
-  S = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
-#else
-  std::cerr << "ERROR: HenckyMat::transformStress is not implemented\n";
-  S.setZero();
-#endif
-}
 
 StrainEvaluator *
 HenckyMat::getStrainEvaluator()

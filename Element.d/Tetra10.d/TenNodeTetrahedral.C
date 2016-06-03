@@ -804,8 +804,20 @@ TenNodeTetrahedral::setMaterial(NLMaterial *_mat)
 int
 TenNodeTetrahedral::numStates()
 {
-  int numGaussPoints = 15;
+  int numGaussPoints = NLTetrahedral10::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
+
+void
+TenNodeTetrahedral::initStates(double *st)
+{
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLTetrahedral10::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
 }
 
 Corotator *

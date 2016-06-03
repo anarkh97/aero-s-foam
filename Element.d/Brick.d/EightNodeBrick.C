@@ -776,8 +776,20 @@ EightNodeBrick::setMaterial(NLMaterial *_mat)
 int
 EightNodeBrick::numStates()
 {
-  int numGaussPoints = 8;
+  int numGaussPoints = NLHexahedral8::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
+
+void
+EightNodeBrick::initStates(double *st)
+{
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLHexahedral8::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
 }
 
 Corotator *

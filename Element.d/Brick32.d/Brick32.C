@@ -677,8 +677,20 @@ Brick32::setMaterial(NLMaterial *_mat)
 int
 Brick32::numStates()
 {
-  int numGaussPoints = 64;
+  int numGaussPoints = NLHexahedral32::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates() : 0;
+}
+
+void
+Brick32::initStates(double *st)
+{
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLHexahedral32::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
 }
 
 Corotator *

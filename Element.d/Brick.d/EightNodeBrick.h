@@ -70,6 +70,7 @@ class EightNodeBrick: virtual public Element
 
     void setMaterial(NLMaterial *);
     int numStates();
+    void initStates(double *);
     Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);
 };
 

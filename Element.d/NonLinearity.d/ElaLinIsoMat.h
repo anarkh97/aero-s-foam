@@ -31,8 +31,6 @@ class ElaLinIsoMat : public NLMaterial
 
     void getStress(Tensor *stress, Tensor &strain, double*, double temp);
 
-    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
-
     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
     void getElasticity(Tensor *tm) {};
@@ -79,7 +77,6 @@ class StVenantKirchhoffMat : public ElaLinIsoMat
     StVenantKirchhoffMat(double rho, double E, double nu, double Tref, double alpha) : ElaLinIsoMat(rho, E, nu, Tref, alpha) {}
     StVenantKirchhoffMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
 
-    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
     StrainEvaluator * getStrainEvaluator();
     void print(std::ostream &out) const {
       out << "StVenantKirchhoff " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
@@ -94,7 +91,6 @@ class HenckyMat : public ElaLinIsoMat
     HenckyMat(double rho, double E, double nu, double Tref, double alpha) : ElaLinIsoMat(rho, E, nu, Tref, alpha) {}
     HenckyMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
 
-    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
     StrainEvaluator * getStrainEvaluator();
     void print(std::ostream &out) const {
       out << "HenckyElastic " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];

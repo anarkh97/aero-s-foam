@@ -400,33 +400,6 @@ ElasPlasKinHardMat<e>::getStrainEvaluator()
 } 
 
 template<int e>
-void
-ElasPlasKinHardMat<e>::transformStress(Tensor &_stress, Tensor &_gradU, Tensor_d0s2_Ss12 &S)
-{
-  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(_stress);
-  switch(e) {
-    case 0: case 1: {
-      S = stress;
-    } break;
-    case 2: {
-#ifdef USE_EIGEN3
-      Tensor_d0s2 &gradU = static_cast<Tensor_d0s2 &>(_gradU);
-      Eigen::Matrix3d GradU; gradU.assignTo(GradU);
-      Eigen::Matrix3d T; stress.assignTo(T); // rotated Kirchhoff stress, T = R^{t}*tau*R --> P = R*T*R^{t}*F^{-t}
-      Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity(); // deformation gradient
-      Eigen::JacobiSVD<Eigen::Matrix3d,Eigen::NoQRPreconditioner> svd(F, Eigen::ComputeFullV);
-      Eigen::Matrix3d R = svd.matrixU()*svd.matrixV().adjoint(); // right stretch tensor
-      Eigen::Matrix3d P = R*T*R.transpose()*F.transpose().inverse(); // first Piola-Kirchhoff stress tensor
-      S = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
-#else
-      std::cerr << "ERROR: ElasPlasKinHardMat<2>::transformStress is not implemented\n";
-      S.setZero();
-#endif
-    } break;
-  }
-}
-
-template<int e>
 bool
 ElasPlasKinHardMat<e>::getBackStress(double *statenp, Tensor *_backstress)
 {

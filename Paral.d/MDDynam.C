@@ -1129,6 +1129,12 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
 }
 
 void
+MultiDomainDynam::getFollowerForce(DistrVector &f, double t, int tIndex)
+{
+  execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetFollowerForce, f, t, tIndex);
+}
+
+void
 MultiDomainDynam::pull_back(DistrVector& f)
 {
   if(domain->solInfo().isNonLin() && !domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic) {
@@ -1237,6 +1243,15 @@ MultiDomainDynam::subGetKtimesU(int isub, DistrVector &d, DistrVector &f)
   StackVector subf(f.subData(isub), f.subLen(isub));
   StackVector subd(d.subData(isub), d.subLen(isub));
   sd->getKtimesU(subd, (double *) 0, subf, 1.0, (kelArray) ? kelArray[isub] : (FullSquareMatrix *) 0);
+}
+
+void
+MultiDomainDynam::subGetFollowerForce(int isub, DistrVector &f, double &t, int &tIndex)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  StackVector subf(f.subData(isub), f.subLen(isub));
+  Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
+  sd->getFollowerForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], subf, 1.0, t, (Vector*)NULL, false);
 }
 
 void

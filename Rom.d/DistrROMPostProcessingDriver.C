@@ -234,8 +234,8 @@ DistrROMPostProcessingDriver::solve() {
    preProcess();
    std::ofstream cvout(domain->solInfo().constraintViolationFile);
 
-   bool computeResidual = false; 
-   double residualNorm = 0;
+   bool computeResidual = false, computeExtForce = false; 
+   double residualNorm = 0, extForceNorm = 0;
    OutputInfo *oinfo = geoSource->getOutputInfo();
    for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++) {
      if(oinfo[iOut].type == OutputInfo::RomResidual || oinfo[iOut].type == OutputInfo::RomResidual6) {
@@ -246,6 +246,18 @@ DistrROMPostProcessingDriver::solve() {
        fullInertForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
        fullResBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
        getConstForce(*fullConstForceBuffer);
+       break;
+     }
+   }
+   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++) {
+     if(oinfo[iOut].type == OutputInfo::RomExtForce || oinfo[iOut].type == OutputInfo::RomExtForce6) {
+       computeExtForce = true;
+       filePrint(stderr, " ... Computing ROM External Force   ...\n");
+       if(!computeResidual) {
+         fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+         fullExtForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+         getConstForce(*fullConstForceBuffer);
+       }
        break;
      }
    }
@@ -293,27 +305,35 @@ DistrROMPostProcessingDriver::solve() {
      geomState->transform(*fullAccBuffer, 4, true); // transform angular acceleration from the 2nd time derivative
                                                     // of the (unscaled) total rotation vector to convected
      execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
-     if(computeResidual) {
+     if(computeResidual || computeExtForce) {
        if(!dummyDynOps) {
          dummyDynOps = buildOps(1,0,0);
          domain->solInfo().newmarkBeta = 0; // XXX to make configuration-dependent inertial forces computed consistently
        }
        domain->solInfo().galerkinPodRom = false;
-       // compute external forces
+       // compute non-follower external forces
        computeExtForce2(*curState, *fullExtForceBuffer, *fullConstForceBuffer, counter, *it);
-       // compute inertial forces
-       dummyDynOps->M->mult(*fullAccBuffer, *fullInertForceBuffer);
-       geomState->push_forward(*fullInertForceBuffer);
-       // compute internal forces and other configuration-dependent forces
-       getInternalForce(*fullDispBuffer, *fullResBuffer, *it, counter);
-       // add all forces and compute norm
-       *fullResBuffer -= *fullExtForceBuffer;
-       *fullResBuffer += *fullInertForceBuffer;
-       residualNorm += fullResBuffer->sqNorm();
+       if(computeResidual) {
+         // compute inertial forces
+         dummyDynOps->M->mult(*fullAccBuffer, *fullInertForceBuffer);
+         geomState->push_forward(*fullInertForceBuffer);
+         // compute internal forces and other configuration-dependent forces including external follower forces
+         getInternalForce(*fullDispBuffer, *fullResBuffer, *it, counter);
+         // add all forces and compute norm
+         *fullResBuffer -= *fullExtForceBuffer;
+         *fullResBuffer += *fullInertForceBuffer;
+         residualNorm += fullResBuffer->sqNorm();
+       }
+       if(computeExtForce) {
+         // compute external follower forces and add to fullExtForceBuffer
+         getFollowerForce(*fullExtForceBuffer, *it, counter);
+         extForceNorm += fullExtForceBuffer->sqNorm();
+       }
        domain->solInfo().galerkinPodRom = true;
      } else
      if(!dummyDynOps) dummyDynOps = new MDDynamMat;
-     mddPostPro->dynamOutput(counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState, fullResBuffer);
+     mddPostPro->dynamOutput(counter, *it, *dummyDynOps, ((fullExtForceBuffer) ? *fullExtForceBuffer : *fullDummyBuffer),
+                             fullDummyBuffer, *curState, fullResBuffer);
 
      if(geoSource->getNumConstraintElementsIeq() && decDomain->getGlobalNumSub() == 1) { // output the constraint violation
        double err = 0;
@@ -335,6 +355,8 @@ DistrROMPostProcessingDriver::solve() {
 
    if(computeResidual)
      filePrint(stderr, "\n ... ROM Residual Norm = %10.4e ...\n", sqrt(residualNorm));
+   if(computeExtForce)
+     filePrint(stderr, " ... Ext. Force Norm   = %10.4e ...\n", sqrt(extForceNorm));
 }
 
 void

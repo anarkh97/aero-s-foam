@@ -49,7 +49,8 @@ struct OutputInfo {
           DispThic, DispShap, DispMach, DispAlph, DispBeta,
           AGstShap, AGstThic, 
           DissipatedEnergy, DeletedElements, DualStateVar,
-          Constraintvector, Constraintviolation, RomResidual, RomResidual6 };
+          Constraintvector, Constraintviolation, RomResidual, RomResidual6,
+          RomExtForce, RomExtForce6 };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
@@ -126,6 +127,7 @@ struct OutputInfo {
      else if(numColumns == 6 && (type == Acceleration)) type = Accel6;
      else if(numColumns == 6 && (type == Reactions)) type = Reactions6;
      else if(numColumns == 6 && (type == RomResidual)) type = RomResidual6;
+     else if(numColumns == 6 && (type == RomExtForce)) type = RomExtForce6;
 
      if (averageFlg == 1 || averageFlg == 3)
        dataType = 1;

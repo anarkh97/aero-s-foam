@@ -453,7 +453,7 @@ Domain::makeElementAdjacencyLists()
 {
   elemAdj.resize(numele); 
   bool makeFollowedElemList = ( ((!domain->solInfo().reduceFollower || domain->solInfo().getNLInfo().linearelastic)
-                                 && domain->solInfo().galerkinPodRom) || geoSource->energiesOutput() );
+                                 && domain->solInfo().galerkinPodRom) || geoSource->energiesOutput() || geoSource->romExtForceOutput() );
 
   // 1. pressure applied to elements
   if(domain->pressureFlag()) {

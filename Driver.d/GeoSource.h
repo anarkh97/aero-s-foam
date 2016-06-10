@@ -509,6 +509,7 @@ public:
   OutputInfo *getOutputInfo()  { return oinfo+0; }
   bool elemOutput();
   bool energiesOutput();
+  bool romExtForceOutput();
   bool noOutput(int x, int ndflag = 0);
 
   int *getSubToCPU()  { return subToCPU; }

@@ -1462,6 +1462,19 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector
     }
     resf.reduce(masterResF, masterFlag, numFlags);
   }
+  // initialize and merge external force
+  DistSVec<Scalar, 6> extf(*this->nodeInfo);
+  DistSVec<Scalar, 6> masterExtF(masterInfo);
+  if(geoSource->romExtForceOutput()) {
+    GenDistrVector<Scalar> assembledExtF(extF);
+    this->getSolVecAssembler()->assemble(assembledExtF);
+    extf = 0;
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      Scalar (*mergedExtF)[6] = (Scalar (*)[6]) extf.subData(iSub);
+      this->subDomain[iSub]->mergeDistributedForces(mergedExtF, assembledExtF.subData(iSub));
+    }
+    extf.reduce(masterExtF, masterFlag, numFlags);
+  }
 // RT - serialize the OUTPUT, PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT
 for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
@@ -1570,6 +1583,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::RomResidual:
         if(resF) getPrimal(resf, masterResF, time, x, iOut, 3, 0);
         break;
+      case OutputInfo::RomExtForce:
+        getPrimal(extf, masterExtF, time, x, iOut, 3, 0);
+        break;
       case OutputInfo::Disp6DOF:
         if(oinfo[iOut].rotvecouttype != OutputInfo::Euler || !oinfo[iOut].rescaling) {
           filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
@@ -1593,6 +1609,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         break;
       case OutputInfo::RomResidual6:
         if(resF) getPrimal(resf, masterResF, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::RomExtForce6:
+        getPrimal(extf, masterExtF, time, x, iOut, 6, 0);
         break;
       case OutputInfo::Temperature:
         getPrimal(disps, masterDisps, time, x, iOut, 1, 0);

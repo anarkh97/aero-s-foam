@@ -4791,6 +4791,15 @@ bool GeoSource::energiesOutput()
   return false;
 }
 
+bool GeoSource::romExtForceOutput()
+{
+  for(int iInfo = 0; iInfo < geoSource->getNumOutInfo(); iInfo++) {
+    if(oinfo[iInfo].type == OutputInfo::RomExtForce || oinfo[iInfo].type == OutputInfo::RomExtForce6)
+      return true;
+  }
+  return false;
+}
+
 bool GeoSource::noOutput(int x, int ndflag)
 {
   bool noOut = true;

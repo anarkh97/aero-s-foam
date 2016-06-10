@@ -1207,6 +1207,8 @@ TRAIL [a-zA-Z]*
 
 "romresid"|"ROMRESID"              { yylval.ival = OutputInfo::RomResidual;  return STRESSID; }
 
+"romextfo"|"ROMEXTFO"              { yylval.ival = OutputInfo::RomExtForce;  return STRESSID; }
+
 "geigenpa"|"GEIGENPA"              { yylval.ival = OutputInfo::EigenPair;    return STRESSID; }
 
 "strainvm"|"STRAINVM"              { yylval.ival = OutputInfo::StrainVM;     return STRESSID; }

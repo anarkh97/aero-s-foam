@@ -1410,6 +1410,7 @@ TRAIL [a-zA-Z]*
 
 "logs"[a-zA-Z]*|"LOGS"[a-zA-Z]*|"LogS"[a-zA-Z]*         { return LOGSTRAINPLASTIC; }
 
+
 "linearplanestress"|"LINEARPLANESTRESS"|"LinearPlaneStress" { return LINPLSTRESS; }
 
 "hyperelasticplanestress"|"HYPERELASTICPLANESTRESS"|"HyperElasticPlaneStress" { return SVKPLSTRESS; }
@@ -1434,7 +1435,9 @@ TRAIL [a-zA-Z]*
 
 "ogde"[a-zA-Z]*|"OGDE"[a-zA-Z]*|"Ogde"[a-zA-Z]*         { return OGDEN; }
 
-"simo"[a-zA-Z]*|"SIMO"[a-zA-Z]*|"Simo"[a-zA-Z]*         { return SIMO; }
+"simoe"[a-zA-Z]*|"SIMOE"[a-zA-Z]*|"SimoE"[a-zA-Z]*      { return SIMOELASTIC; }
+
+"simop"[a-zA-Z]*|"SIMOP"[a-zA-Z]*|"SimoP"[a-zA-Z]*      { return SIMOPLASTIC; }
 
 "viscomoon"[a-zA-Z]*|"VISCOMOON"[a-zA-Z]*|"ViscoMoon"[a-zA-Z]*         { return VISCOMOONEYRIVLIN; }
 

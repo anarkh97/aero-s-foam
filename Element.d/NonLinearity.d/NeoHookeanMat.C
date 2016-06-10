@@ -87,7 +87,7 @@ NeoHookeanMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor 
 
 void 
 NeoHookeanMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
-                         double *, double *, double, double)
+                         double *, double *, double, Tensor *, double)
 {
   Tensor_d0s2_Ss12 &strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
 
@@ -165,7 +165,7 @@ NeoHookeanMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain
 
 void
 NeoHookeanMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
-                         double *, double *, double, double)
+                         double *, double *, double, Tensor *, double)
 {
   Tensor_d0s2_Ss12 &strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
 

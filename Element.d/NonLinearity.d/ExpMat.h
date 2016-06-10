@@ -67,11 +67,11 @@ class ExpMat : public NLMaterial
       { std::cerr << "ExpMat::getStressAndTangentMaterial is not implemented\n"; }
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double, double=0)
+                   double *staten, double *statenp, double, Tensor *cache, double=0)
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double, double=0)
+                   double *staten, double *statenp, double, Tensor *cache, double=0)
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
     void initStates(double *) {}

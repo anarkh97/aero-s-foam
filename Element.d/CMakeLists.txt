@@ -246,6 +246,7 @@ NonLinearity.d/ShapeFunction.C
 NonLinearity.d/ElaLinIsoMat.C
 NonLinearity.d/OgdenMat.C
 NonLinearity.d/SimoElasticMat.C
+NonLinearity.d/SimoPlasticMat.C
 NonLinearity.d/NeoHookeanMat.C
 NonLinearity.d/MooneyRivlinMat.C
 NonLinearity.d/BilinPlasKinHardMatInstance.C

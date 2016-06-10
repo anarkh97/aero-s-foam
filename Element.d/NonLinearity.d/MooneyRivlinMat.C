@@ -54,7 +54,7 @@ MooneyRivlinMat::getStress(Tensor *_stress, Tensor &_strain, double*, double)
   double detC = sym_matlib_inverse(C,Cinv);
 
   if(detC < std::numeric_limits<double>::epsilon()) {
-    std::cerr << "MooneyRivlinMat::integrate: close to negative jacobian\n";
+    std::cerr << "MooneyRivlinMat::getStress: close to negative jacobian\n";
     return;
   }
 
@@ -88,7 +88,7 @@ MooneyRivlinMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tenso
 
 void 
 MooneyRivlinMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
-                           double *, double *, double, double)
+                           double *, double *, double, Tensor *, double)
 {
   Tensor_d0s2_Ss12 &strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
 
@@ -167,7 +167,7 @@ MooneyRivlinMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_stra
 
 void
 MooneyRivlinMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
-                           double *, double *, double, double)
+                           double *, double *, double, Tensor *, double)
 {
   Tensor_d0s2_Ss12 &strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
 

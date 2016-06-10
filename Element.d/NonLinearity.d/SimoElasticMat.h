@@ -1,11 +1,11 @@
-#ifndef _SIMOMAT_H_
-#define _SIMOMAT_H_
+#ifndef _SIMOELASTICMAT_H_
+#define _SIMOELASTICMAT_H_
 
 // Isotropic elastic material charactarized by an uncoupled free energy function, quadratic in principle logarithmic stretches
 // Reference: Simo, J. C. "Algorithms for static and dynamic multiplicative plasticity that preserve the classical return mapping
 //            schemes of the infinitesimal theory." Computer Methods in Applied Mechanics and Engineering 99.1 (1992): 61-112.
 //            (section 5)
-// I think this is equivalent to HenckyMat in the isotropic case
+// This material is equivalent to HenckyMat in the isotropic case
 
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 
@@ -32,10 +32,12 @@ class SimoElasticMat : public NLMaterial
     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, double dt=0);
+                   double *staten, double *statenp, double temp,
+                   Tensor *cache, double dt=0);
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, double dt=0);
+                   double *staten, double *statenp, double temp,
+                   Tensor *cache, double dt=0);
 
     void initStates(double *) {};
 

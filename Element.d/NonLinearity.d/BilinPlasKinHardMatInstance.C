@@ -20,10 +20,12 @@ template \
 void ElasPlasKinHardMat<e>::updateStates(Tensor&, Tensor&, double*, double);\
 \
 template \
-void ElasPlasKinHardMat<e>::integrate(Tensor*, Tensor*, Tensor&, Tensor&, double*, double*, double, double);\
+void ElasPlasKinHardMat<e>::integrate(Tensor*, Tensor*, Tensor&, Tensor&, double*, double*, double,\
+                                      Tensor*, double);\
 \
 template \
-void ElasPlasKinHardMat<e>::integrate(Tensor*, Tensor&, Tensor&, double*, double*, double, double);\
+void ElasPlasKinHardMat<e>::integrate(Tensor*, Tensor&, Tensor&, double*, double*, double,\
+                                      Tensor*, double);\
 \
 template \
 void ElasPlasKinHardMat<e>::initStates(double*);\

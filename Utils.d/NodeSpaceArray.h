@@ -147,6 +147,12 @@ class Tensor_d0s2 : public Tensor
 #ifdef USE_EIGEN3
     Tensor_d0s2 &operator=(const Eigen::Matrix3d &);
     void assignTo(Eigen::Matrix3d &m) const;
+    Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > matrix() {
+      return Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> >(v);
+    }
+    Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > matrix() const {
+      return Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> >(v);
+    }
 #endif
     void setZero() { for(int i = 0; i < 9; ++i) v[i] = 0; }
 };

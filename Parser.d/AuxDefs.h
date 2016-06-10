@@ -11,6 +11,7 @@
 #include <Element.d/NonLinearity.d/PronyViscoElastic.h>
 #include <Element.d/NonLinearity.d/OgdenMat.h>
 #include <Element.d/NonLinearity.d/SimoElasticMat.h>
+#include <Element.d/NonLinearity.d/SimoPlasticMat.h>
 #include <Element.d/NonLinearity.d/NeoHookeanMat.h>
 #include <Element.d/NonLinearity.d/MooneyRivlinMat.h>
 #include <Element.d/NonLinearity.d/BrittleFractureTB.h>

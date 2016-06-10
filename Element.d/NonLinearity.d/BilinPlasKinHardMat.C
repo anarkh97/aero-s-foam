@@ -85,7 +85,7 @@ ElasPlasKinHardMat<e>::updateStates(Tensor &en, Tensor &enp, double *state, doub
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp,
-                                 double *staten, double *statenp, double temp, double dt)
+                                 double *staten, double *statenp, double temp, Tensor *, double dt)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -236,7 +236,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
-                                 double *staten, double *statenp, double temp, double dt)
+                                 double *staten, double *statenp, double temp, Tensor *, double dt)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///

@@ -156,7 +156,7 @@ GenGaussIntgElement<TensorTypes>::stiffness(CoordSet& cs, double *k, int)
 
     strainEvaluator->getEBandDB(e, B, DB, gradU, dgradUdqk);
 
-    material->integrate(&s, &D, e, e, 0, 0, 0);
+    material->integrate(&s, &D, e, e, 0, 0, 0, 0);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j];
 
@@ -238,7 +238,7 @@ GenGaussIntgElement<TensorType>::getStiffAndForce(Node *nodes, double *disp,
     shapeF->getGlobalGrads(gradU, dgradUdqk,  &jac, nodes, point, dispVec);
     strainEvaluator->getEBandDB(e, B, DB, gradU, dgradUdqk);
 
-    material->integrate(&s, &D,  e, e,0, 0, 0);
+    material->integrate(&s, &D,  e, e, 0, 0, 0, 0);
 
     temp0 = s || B;
     temp0 = (weight*jac)*temp0;
@@ -272,7 +272,7 @@ GenGaussIntgElement<TensorType>::getStiffAndForce(Node *nodes, double *disp,
   typename TensorType::GradUTensor gradUright;
   typename TensorType::GradUDerivTensor dgradUdqkleft;
   typename TensorType::GradUDerivTensor dgradUdqkright;
-  
+
   double *kt = new double[ndofs*ndofs];
   FullSquareMatrix kTant(ndofs, kt);
   
@@ -309,14 +309,14 @@ GenGaussIntgElement<TensorType>::getStiffAndForce(Node *nodes, double *disp,
 
       shapeF->getGlobalGrads(gradUleft, dgradUdqkleft,  &jac, nodes, point, dispVecTestLeft);
       strainEvaluator->getEBandDB(eleft, Bleft, DBleft, gradUleft, dgradUdqkleft);
-      material->integrate(&sleft, &D,  eleft, eleft,0, 0, 0);
+      material->integrate(&sleft, &D, eleft, eleft, 0, 0, 0, 0);
       temp0 = sleft || Bleft;
       temp0 = (weight*jac)*temp0;
       nodeforceLeft = nodeforceLeft + temp0;
 
       shapeF->getGlobalGrads(gradUright, dgradUdqkright,  &jac, nodes, point, dispVecTestRight);
       strainEvaluator->getEBandDB(eright, Bright, DBright, gradUright, dgradUdqkright);
-      material->integrate(&sright, &D,  eright, eright,0, 0, 0);
+      material->integrate(&sright, &D,  eright, eright, 0, 0, 0, 0);
       temp0 = sright || Bright;
       temp0 = (weight*jac)*temp0;
       nodeforceRight = nodeforceRight + temp0;
@@ -425,14 +425,14 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
   int i,j;
   int ngp = getNumGaussPoints();
   int nstatepgp = material->getNumStates();
-  
+
   kTan.zero();
   nodeforce = 0;
 
   for(i = 0; i < ngp; i++) {
 
     double point[3], weight, jacn, jacnp, tempnp;
-    StackVector dispVecn(dispn,ndofs);
+    //StackVector dispVecn(dispn,ndofs);
     StackVector dispVecnp(dispnp,ndofs); 
 
     getGaussPointAndWeight(i, point, weight);
@@ -443,10 +443,10 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     strainEvaluator->getE(en, gradUn);
     strainEvaluator->getE(enp, gradUnp);*/
 
-    shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
+    //shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
     shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
 
-    strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
+    //strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
     strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
 
     //material->updateStates(en, enp, state + nstatepgp*i);
@@ -457,7 +457,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
     material->integrate(&s, &Dnp, en, enp,
-                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
@@ -525,7 +525,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
   for(i = 0; i < ngp; i++) {
 
     double point[3], weight, jacn, jacnp, tempnp;
-    StackVector dispVecn(dispn,ndofs);
+    //StackVector dispVecn(dispn,ndofs);
     StackVector dispVecnp(dispnp,ndofs); 
 
     getGaussPointAndWeight(i, point, weight);
@@ -536,10 +536,10 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     strainEvaluator->getE(en, gradUn);
     strainEvaluator->getE(enp, gradUnp);*/
 
-    shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
+    //shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
     shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
 
-    strainEvaluator->getEandB(en, Bn, gradUn, dgradUdqkn);
+    //strainEvaluator->getEandB(en, Bn, gradUn, dgradUdqkn);
     strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp);
 
     //material->updateStates(en, enp, state + nstatepgp*i);
@@ -550,7 +550,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
     material->integrate(&s, en, enp,
-                        staten + nstatepgp*i,statenp + nstatepgp*i, tempnp);
+                        staten + nstatepgp*i,statenp + nstatepgp*i, tempnp, 0);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
@@ -625,7 +625,7 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
   int i,j;
   int ngp = getNumGaussPoints();
   int nstatepgp = material->getNumStates();
-  
+
   // evaluate at the gauss points and extrapolate to the nodes
   double (*gpstress)[9] = new double[getNumGaussPoints()][9];
   double t = material->getThickness();
@@ -633,7 +633,7 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
   for(i = 0; i < ngp; i++) {
 
     double point[3], weight, jacn, jacnp, tempnp;
-    StackVector dispVecn(dispn,ndofs);
+    //StackVector dispVecn(dispn,ndofs);
     StackVector dispVecnp(dispnp,ndofs); 
 
     getGaussPointAndWeight(i, point, weight);
@@ -644,10 +644,10 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
     strainEvaluator->getE(en, gradUn);
     strainEvaluator->getE(enp, gradUnp);*/
 
-    shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
+    //shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
     shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
 
-    strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
+    //strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
     strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
 
     //material->updateStates(en, enp, state + nstatepgp*i);
@@ -658,7 +658,7 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
     material->integrate(&s, &Dnp, en, enp,
-                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)

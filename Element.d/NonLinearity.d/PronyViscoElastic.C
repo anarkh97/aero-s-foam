@@ -35,7 +35,7 @@ PronyViscoElastic<Material>::getStress(Tensor *_stress, Tensor &_strain, double*
 template<typename Material>
 void 
 PronyViscoElastic<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &en, Tensor &enp,
-                                       double *staten, double *statenp, double temp, double dt)
+                                       double *staten, double *statenp, double temp, Tensor *cache, double dt)
 {
   // _stress - constainer for 2nd P-K stress tensor that is updated by calling integrate
   // _tm     - elasticity tensor (derivative of 2nd P-K stress tensor) 
@@ -46,7 +46,7 @@ PronyViscoElastic<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &en,
   // dt      - current time step size
 
   // compute hyperelastic response
-  Material::integrate(_stress, _tm, en, enp, staten, statenp, temp, dt);
+  Material::integrate(_stress, _tm, en, enp, staten, statenp, temp, cache, dt);
 
   // add viscoelastic contribution to long-term hyperelastic response (both stress and tm)
   // using the the time step dt and history variables at t_n (statenp),
@@ -77,10 +77,10 @@ PronyViscoElastic<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &en,
 template<typename Material>
 void
 PronyViscoElastic<Material>::integrate(Tensor *_stress, Tensor &en, Tensor &enp,
-                                       double *staten, double *statenp, double temp, double dt)
+                                       double *staten, double *statenp, double temp, Tensor *cache, double dt)
 {
   // compute hyperelastic response
-  Material::integrate(_stress, en, enp, staten, statenp, temp, dt);
+  Material::integrate(_stress, en, enp, staten, statenp, temp, cache, dt);
 
   Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress); // second P-K stress tensor
 

@@ -12,11 +12,13 @@ class StrainEvaluator
     virtual Tensor *getStrainInstance() = 0;
     virtual Tensor *getBInstance(int numdofs) = 0;
     virtual Tensor *getDBInstance(int numdofs) = 0;
-    virtual Tensor *getTempInstance(int numdofs) { return NULL; }
-    virtual void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp) = 0;
-    virtual void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp) = 0;
-    virtual void getE(Tensor &e, Tensor &gradU) = 0;
-    virtual void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S) = 0; // returns PK2 stress for finite-strain materials
+    virtual Tensor *getCacheInstance() = 0;
+    virtual void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk,
+                            Tensor *cache, double *state=0) = 0;
+    virtual void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk,
+                          Tensor *cache, double *state=0) = 0;
+    virtual void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0) = 0;
+    virtual void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S) = 0; // returns PK2 stress for finite-strain materials
 };
 
 class LinearStrain : public StrainEvaluator
@@ -29,10 +31,13 @@ class LinearStrain : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getE(Tensor &e, Tensor &gradU);
-    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
+    Tensor *getCacheInstance();
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk,
+                    Tensor *cache, double *state=0);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk,
+                  Tensor *cache, double *state=0);
+    void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0);
+    void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
 };
 
 class GreenLagrangeStrain : public StrainEvaluator
@@ -48,11 +53,13 @@ class GreenLagrangeStrain : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    Tensor *getTempInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getE(Tensor &e, Tensor &gradU);
-    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
+    Tensor *getCacheInstance();
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk,
+                    Tensor *cache, double *state=0);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk,
+                  Tensor *cache, double *state=0);
+    void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0);
+    void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
 };
 
 class LogarithmicStrain : public StrainEvaluator
@@ -67,10 +74,13 @@ class LogarithmicStrain : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getE(Tensor &e, Tensor &gradU);
-    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
+    Tensor *getCacheInstance();
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk,
+                    Tensor *cache, double *state=0);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk,
+                  Tensor *cache, double *state=0);
+    void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0);
+    void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
 };
 
 class PrincipalStretches : public StrainEvaluator
@@ -82,10 +92,13 @@ class PrincipalStretches : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getE(Tensor &e, Tensor &gradU);
-    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
+    Tensor *getCacheInstance();
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk,
+                    Tensor *cache, double *state=0);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk,
+                  Tensor *cache, double *state=0);
+    void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0);
+    void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
 };
 
 class LogarithmicPrincipalStretches : public StrainEvaluator
@@ -99,10 +112,34 @@ class LogarithmicPrincipalStretches : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getE(Tensor &e, Tensor &gradU);
-    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
+    Tensor *getCacheInstance();
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk,
+                    Tensor *cache, double *state=0);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk,
+                  Tensor *cache, double *state=0);
+    void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0);
+    void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
+};
+
+class ElasticLogarithmicPrincipalStretches : public StrainEvaluator
+{
+  // To be used when the appropriate strain measure is the elastic logarithmic principal stretches
+  // Constitutive models based on this strain measure should return 
+  // the principal Kirchoff stresses beta
+  public:
+    Tensor *getTMInstance();
+    Tensor *getStressInstance();
+    Tensor *getStrainInstance();
+    Tensor *getBInstance(int numdofs);
+    Tensor *getDBInstance(int numdofs);
+    Tensor *getCacheInstance(int numdofs);
+    Tensor *getCacheInstance();
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk,
+                    Tensor *cache, double *state=0);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk,
+                  Tensor *cache, double *state=0);
+    void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0);
+    void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
 };
 
 class DeformationGradient : public StrainEvaluator
@@ -118,10 +155,13 @@ class DeformationGradient : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
-    void getE(Tensor &e, Tensor &gradU);
-    void transformStress(Tensor &stress, Tensor &gradU, Tensor_d0s2_Ss12 &S);
+    Tensor *getCacheInstance();
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk,
+                    Tensor *cache, double *state=0);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk,
+                  Tensor *cache, double *state=0);
+    void getE(Tensor &e, Tensor &gradU, Tensor *cache, double *state=0);
+    void transformStress(Tensor &stress, Tensor *cache, Tensor_d0s2_Ss12 &S);
 };
 
 

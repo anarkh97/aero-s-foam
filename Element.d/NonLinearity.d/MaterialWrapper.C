@@ -250,7 +250,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStressAn
 template<typename Material>
 void 
 MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                     double *, double *statenp, double, double)
+                                     double *, double *statenp, double, Tensor *, double)
 {
   Tensor_d0s4 *tm = static_cast<Tensor_d0s4 *>(_tm);
   Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
@@ -281,7 +281,7 @@ MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Ten
 template<typename Material>
 void
 MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                                     double *, double *statenp, double, double)
+                                     double *, double *statenp, double, Tensor *, double)
 {
   Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
   Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
@@ -304,7 +304,8 @@ MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
 template<>
 inline void 
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                                                    double *staten, double *statenp, double, double dt)
+                                                                    double *staten, double *statenp, double,
+                                                                    Tensor *, double dt)
 {
   // clone material for thread-safety reasons
   IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
@@ -361,7 +362,8 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
 template<>
 inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                                                               double *staten, double *statenp, double, double)
+                                                                               double *staten, double *statenp, double,
+                                                                               Tensor *, double)
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
 }
@@ -369,7 +371,8 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(T
 template<>
 inline void 
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                                                                    double *staten, double *statenp, double, double dt)
+                                                                    double *staten, double *statenp, double,
+                                                                    Tensor *, double dt)
 {
   // clone material for thread-safety reasons
   IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
@@ -418,7 +421,8 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
 template<>
 inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                                                                               double *staten, double *statenp, double, double)
+                                                                               double *staten, double *statenp, double,
+                                                                               Tensor *, double)
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
 }

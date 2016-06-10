@@ -64,7 +64,7 @@ OgdenMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &_str
 
 void 
 OgdenMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
-                    double *, double *, double, double)
+                    double *, double *, double, Tensor *, double)
 {
   using std::pow;
   using std::exp;
@@ -104,7 +104,7 @@ OgdenMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
 
 void
 OgdenMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
-                    double *, double *, double, double)
+                    double *, double *, double, Tensor *, double)
 {
   using std::pow;
   using std::exp;

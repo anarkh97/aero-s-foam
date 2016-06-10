@@ -1180,6 +1180,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     }
       break;
     case OutputInfo::Temperature:  {
+      if(sinfo.order == 1) {
       double *data = new double[nPrintNodes];
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
@@ -1188,6 +1189,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
+      } else fprintf(stderr," *** WARNING: Output case %d not implemented for non-linear direct solver \n", iInfo);
     } 
       break;
     case OutputInfo::Disp6DOF:  {
@@ -1277,6 +1279,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     }
       break;
     case OutputInfo::TemperatureFirstTimeDerivative:  {
+      if(sinfo.order == 1) {
       double *data = new double[nPrintNodes];
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
@@ -1285,6 +1288,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
+      } else fprintf(stderr," *** WARNING: Output case %d not implemented for non-linear direct solver \n", iInfo);
     }
       break;
     case OutputInfo::Velocity6: {

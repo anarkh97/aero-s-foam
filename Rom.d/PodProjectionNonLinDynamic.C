@@ -140,7 +140,8 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
        locBasisVec.push_back(solInfo().localBasisSize[j]);
   
      const_cast<int&>(solInfo().localBasisSize[j]) = locBasisVec[j];
-     filePrint(stderr, " ... Local Basis %d size %d  ...\n", j, locBasisVec[j]);
+     if(solInfo().readInROBorModes.size() > 1)
+       filePrint(stderr, " ... Local Basis %d size %-3d         ...\n", j, locBasisVec[j]);
   }
 
   // this loop checks how many dual vectors are in each file for memory allocation
@@ -157,7 +158,8 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
         locDualBasisVec.push_back(solInfo().localDualBasisSize[j]);
 
       const_cast<int&>(solInfo().localDualBasisSize[j]) = locDualBasisVec[j];
-      filePrint(stderr, " ... Local Dual Basis %d size %d ...\n", j, locDualBasisVec[j]);
+      if(solInfo().readInDualROB.size() > 1)
+        filePrint(stderr, " ... Local Dual Basis %d size %-3d    ...\n", j, locDualBasisVec[j]);
     }
   }
 

@@ -1181,7 +1181,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
   // Compute the initial acceleration a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
   // note: for restarted nonlinear, the initial acceleration is read from the restart file
-  if(!(geoSource->getCheckFileInfo()->lastRestartFile && domain->solInfo().isNonLin())) {
+  if(solInfo.iacc_switch && !(geoSource->getCheckFileInfo()->lastRestartFile && domain->solInfo().isNonLin())) {
     if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
     domain->getTimers().formRhs -= getTime();
     if(dynOps.C) {

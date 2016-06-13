@@ -403,7 +403,7 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_fel, Ful
   // element iele with rotation dofs. Currently implemented for lumped mass matrix only
   // (or more specifically, mass matrices with decoupled rotational and translational diagonal blocks),
   // and elements with either 3 or 6 dofs per node.
-  double &beta = sinfo.newmarkBeta,
+  double &beta = domain->solInfo().newmarkBeta,
          &gamma = sinfo.newmarkGamma,
          &alphaf = sinfo.newmarkAlphaF,
          &alpham = sinfo.newmarkAlphaM,
@@ -589,7 +589,7 @@ void
 Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, GeomState *refState, Eigen::Matrix3d &J,
                                Eigen::Vector3d &f, Eigen::Matrix3d &K, bool compute_tangents)
 {
-  double &beta = sinfo.newmarkBeta,
+  double &beta = domain->solInfo().newmarkBeta,
          &gamma = sinfo.newmarkGamma,
          &alphaf = sinfo.newmarkAlphaF,
          &alpham = sinfo.newmarkAlphaM,

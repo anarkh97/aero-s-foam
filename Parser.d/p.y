@@ -111,6 +111,7 @@
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
 %token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC ISOTROPICVISCOLINEARELASTIC NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS
+%token PLANESTRESSLINEARELASTIC PLANESTRESSSTVENANTKIRCHHOFF PLANESTRESSNEOHOOKEAN
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -4798,6 +4799,31 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new StVenantKirchhoffMat2D($4, $5, $6, $7, $8, $9));
+         }
+        | MatSpec Integer PLANESTRESSLINEARELASTIC Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<ElaLinIsoMat>($4, $5, $6, $7, 0, 0));
+         }
+        | MatSpec Integer PLANESTRESSLINEARELASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<ElaLinIsoMat>($4, $5, $6, $7, $8, $9));
+         }
+        | MatSpec Integer PLANESTRESSSTVENANTKIRCHHOFF Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<StVenantKirchhoffMat>($4, $5, $6, $7, 0, 0));
+         }
+        | MatSpec Integer PLANESTRESSSTVENANTKIRCHHOFF Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<StVenantKirchhoffMat>($4, $5, $6, $7, $8, $9));
+         }
+        | MatSpec Integer PLANESTRESSNEOHOOKEAN Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<NeoHookeanMat>($4, $5, $6, $7));
          }
         | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine
           {

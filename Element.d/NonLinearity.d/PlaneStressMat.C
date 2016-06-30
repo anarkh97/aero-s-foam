@@ -8,14 +8,38 @@
 #endif
 
 template<typename BaseMaterial>
-PlaneStressMat<BaseMaterial>::PlaneStressMat(double rho, double E, double nu, double _t)
-: BaseMaterial(rho, E, nu), t(_t)
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double _t)
+: BaseMaterial(p1, p2, p3), t(_t)
 {
 }
 
 template<typename BaseMaterial>
-PlaneStressMat<BaseMaterial>::PlaneStressMat(double rho, double E, double nu, double _t, double Tref, double alpha)
-: BaseMaterial(rho, E, nu, Tref, alpha), t(_t)
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double _t)
+: BaseMaterial(p1, p2, p3, p4), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6, p7), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6, p7, p8), t(_t)
 {
 }
 

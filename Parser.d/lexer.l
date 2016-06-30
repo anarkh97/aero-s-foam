@@ -1423,11 +1423,17 @@ TRAIL [a-zA-Z]*
 
 "isotropicviscolinearelastic"|"ISOTROPICVISCOLINEARELASTIC"|"IsotropicViscoLinearElastic"  { return ISOTROPICVISCOLINEARELASTIC; }
 
-"PlaneStressLinear"|"PlaneStressLinearElastic"          { return PLANESTRESSLINEARELASTIC; }
+"PlaneStressLinear"[a-zA-Z]*                            { return PLANESTRESSLINEAR; }
 
-"PlaneStressStVenantKirchhoff"                          { return PLANESTRESSSTVENANTKIRCHHOFF; }
+"PlaneStressStVenantKirchhoff"[a-zA-Z]*                 { return PLANESTRESSSTVENANTKIRCHHOFF; }
 
-"PlaneStressNeoHookean"                                 { return PLANESTRESSNEOHOOKEAN; }
+"PlaneStressNeoHookean"[a-zA-Z]*                        { return PLANESTRESSNEOHOOKEAN; }
+
+"PlaneStressMooneyRivlin"[a-zA-Z]*                      { return PLANESTRESSMOONEYRIVLIN; }
+
+"PlaneStressBilinearPlastic"[a-zA-Z]*                   { return PLANESTRESSBILINEARPLASTIC; }
+
+"PlaneStressFiniteStrainPlastic"[a-zA-Z]*               { return PLANESTRESSFINITESTRAINPLASTIC; }
 
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
 

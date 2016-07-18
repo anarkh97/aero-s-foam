@@ -110,7 +110,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC ISOTROPICVISCOLINEARELASTIC NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC VISCOLINEARELASTIC NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS
 %token PLANESTRESSLINEAR PLANESTRESSSTVENANTKIRCHHOFF PLANESTRESSNEOHOOKEAN PLANESTRESSMOONEYRIVLIN PLANESTRESSBILINEARPLASTIC PLANESTRESSFINITESTRAINPLASTIC
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
@@ -4803,7 +4803,7 @@ MatSpec:
         | MatSpec Integer PLANESTRESSLINEAR Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new PlaneStressMat<ElaLinIsoMat>($4, $5, $6, $7, 0, 0));
+             new PlaneStressMat<ElaLinIsoMat>($4, $5, $6, 0, 0, $7));
          }
         | MatSpec Integer PLANESTRESSLINEAR Float Float Float Float Float Float NewLine
          {
@@ -4813,7 +4813,7 @@ MatSpec:
         | MatSpec Integer PLANESTRESSSTVENANTKIRCHHOFF Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new PlaneStressMat<StVenantKirchhoffMat>($4, $5, $6, $7, 0, 0));
+             new PlaneStressMat<StVenantKirchhoffMat>($4, $5, $6, 0, 0, $7));
          }
         | MatSpec Integer PLANESTRESSSTVENANTKIRCHHOFF Float Float Float Float Float Float NewLine
          {
@@ -4830,15 +4830,15 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new PlaneStressMat<MooneyRivlinMat>($4, $5, $6, $7, $8));
          }
-        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float NewLine
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9) );
+             new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10) );
          }
-        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float NewLine
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9) );
+             new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10) );
          }
         | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine
           {
@@ -4846,7 +4846,7 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElastic>(params));
           }
-        | MatSpec Integer ISOTROPICVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float NewLine
           {
             double params[10] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13};
             geoSource->addMaterial($2-1,

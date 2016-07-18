@@ -30,7 +30,7 @@ int main (int argc, char *argv[]) {
   int num_nodes, length2;
   double time1=-1, time2=-1, time2b=-1, tFinal;
   double *a1=0, *a2=0, *b2=0;
-  double sumx, sumx2;
+  double sumx, sumx2, sumy, sumy2;
   double cum_normx, normalize_factorx;
   double relative_errorx;
   double maxabs = 0, maxrel = 0;
@@ -64,6 +64,7 @@ int main (int argc, char *argv[]) {
 
     // initialize variables
     sumx = 0; sumx2 = 0;
+    sumy = 0; sumy2 = 0;
     a1 = new double[num_nodes];
     a2 = new double[length2];
     b2 = new double[length2];
@@ -107,6 +108,8 @@ int main (int argc, char *argv[]) {
 	  
           sumx += pow((a1[counter]-a2[counter]),2);
           sumx2 += pow(a1[counter],2);
+          sumy += fabs(a1[counter]-a2[counter]);
+          sumy2 += fabs(a1[counter]);
 
           maxabs = max(maxabs,fabs(a1[counter]-a2[counter]));
           if(maxabs == fabs(a1[counter]-a2[counter])) { maxabs_node = counter+1; maxabs_time = time1; }
@@ -131,6 +134,8 @@ int main (int argc, char *argv[]) {
 
             sumx += pow((a1[counter]-c2),2);       
             sumx2 += pow(a1[counter],2);
+            sumy += fabs(a1[counter]-c2);
+            sumy2 += fabs(a1[counter]);
 
             maxabs = max(maxabs,fabs(a1[counter]-c2));
             if(maxabs == fabs(a1[counter]-c2)) { maxabs_node = counter+1; maxabs_time = time1; }
@@ -163,10 +168,12 @@ int main (int argc, char *argv[]) {
     relative_errorx = cum_normx/(normalize_factorx);
 
     cout << endl;
-    cout << "*** absolute L2 error = " << cum_normx << endl;
-    cout << "*** relative L2 error = " << relative_errorx*100 << "%" << endl;
-    cout << "*** absolute L1 error = " << maxabs << " at node = " << maxabs_node << ", time = " << maxabs_time << endl;
-    cout << "*** relative L1 error = " << maxrel*100 << "%" << " at node = " << maxrel_node << ", time = " << maxrel_time << endl;
+    cout << "*** absolute L2 error   = " << cum_normx << endl;
+    cout << "*** relative L2 error   = " << relative_errorx*100 << "%" << endl;
+    cout << "*** absolute L1 error   = " << sumy << endl;
+    cout << "*** relative L1 error   = " << (sumy/sumy2)*100 << "%" << endl;
+    cout << "*** absolute Linf error = " << maxabs << " at node = " << maxabs_node << ", time = " << maxabs_time << endl;
+    cout << "*** relative Linf error = " << maxrel*100 << "%" << " at node = " << maxrel_node << ", time = " << maxrel_time << endl;
 
   }
 

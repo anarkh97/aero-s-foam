@@ -236,15 +236,16 @@ DistrROMPostProcessingDriver::solve() {
 
    bool computeResidual = false, computeExtForce = false; 
    double residualNorm = 0, extForceNorm = 0;
+   GenAssembler<double> * assembler = decDomain->getSolVecAssembler();
    OutputInfo *oinfo = geoSource->getOutputInfo();
    for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++) {
      if(oinfo[iOut].type == OutputInfo::RomResidual || oinfo[iOut].type == OutputInfo::RomResidual6) {
        computeResidual = true;
        filePrint(stderr, " ... Computing ROM Residual         ...\n");
        fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
-       fullExtForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+       fullExtForceBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
        fullInertForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
-       fullResBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+       fullResBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
        getConstForce(*fullConstForceBuffer);
        break;
      }
@@ -255,7 +256,7 @@ DistrROMPostProcessingDriver::solve() {
        filePrint(stderr, " ... Computing ROM External Force   ...\n");
        if(!computeResidual) {
          fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
-         fullExtForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+         fullExtForceBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
          getConstForce(*fullConstForceBuffer);
        }
        break;
@@ -322,11 +323,13 @@ DistrROMPostProcessingDriver::solve() {
          // add all forces and compute norm
          *fullResBuffer -= *fullExtForceBuffer;
          *fullResBuffer += *fullInertForceBuffer;
+         assembler->assemble(*fullResBuffer);
          residualNorm += fullResBuffer->sqNorm();
        }
        if(computeExtForce) {
          // compute external follower forces and add to fullExtForceBuffer
          getFollowerForce(*fullExtForceBuffer, *it, counter);
+         assembler->assemble(*fullExtForceBuffer);
          extForceNorm += fullExtForceBuffer->sqNorm();
        }
        domain->solInfo().galerkinPodRom = true;

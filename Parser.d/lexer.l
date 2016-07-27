@@ -1423,6 +1423,8 @@ TRAIL [a-zA-Z]*
 
 "viscolinearelastic"|"VISCOLINEARELASTIC"|"ViscoLinearElastic"  { return VISCOLINEARELASTIC; }
 
+"viscostve"[a-zA-Z]*|"VISCOSTVE"[a-zA-Z]*|"ViscoStVe"[a-zA-Z]*  { return VISCOSTVENANTKIRCHHOFF; }
+
 "PlaneStressLinear"[a-zA-Z]*                            { return PLANESTRESSLINEAR; }
 
 "PlaneStressStVenantKirchhoff"[a-zA-Z]*                 { return PLANESTRESSSTVENANTKIRCHHOFF; }
@@ -1436,6 +1438,8 @@ TRAIL [a-zA-Z]*
 "PlaneStressFiniteStrainPlastic"[a-zA-Z]*               { return PLANESTRESSFINITESTRAINPLASTIC; }
 
 "PlaneStressViscoLinearElastic"[a-zA-Z]*                { return PLANESTRESSVISCOLINEARELASTIC; }
+
+"PlaneStressViscoStVenantKirchhoff"[a-zA-Z]*            { return PLANESTRESSVISCOSTVENANTKIRCHHOFF; }
 
 "PlaneStressViscoNeoHookean"[a-zA-Z]*                   { return PLANESTRESSVISCONEOHOOKEAN; }
 

@@ -11,13 +11,21 @@ class PlaneStressMat : public BaseMaterial
      double t;
 
    public:
-     PlaneStressMat(double p1, double p2, double p3, double _t);
-     PlaneStressMat(double p1, double p2, double p3, double p4, double _t);
-     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double _t);
-     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double _t);
-     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double _t);
-     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double _t);
-     PlaneStressMat(double *p, double _t);
+     PlaneStressMat(double p1, double t);
+     PlaneStressMat(double p1, double p2, double t);
+     PlaneStressMat(double p1, double p2, double p3, double t);
+     PlaneStressMat(double p1, double p2, double p3, double p4, double t);
+     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double t);
+     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double t);
+     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double t);
+     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double t);
+     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double p9, double t);
+     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double p9, double p10,
+                    double t);
+     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double p9, double p10, 
+                    double p11, double t);
+     PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double p9, double p10, 
+                    double p11, double p12, double t);
 
      int getNumStates();
 

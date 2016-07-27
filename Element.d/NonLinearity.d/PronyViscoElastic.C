@@ -2,6 +2,46 @@
 #include <cmath>
 
 template<typename Material>
+PronyViscoElastic<Material>::PronyViscoElastic(double p1,
+                      double _ginf, double _g1, double _tau1, double _g2, double _tau2, double _g3, double _tau3)
+ : Material(p1), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
+
+template<typename Material>
+PronyViscoElastic<Material>::PronyViscoElastic(double p1, double p2,
+                      double _ginf, double _g1, double _tau1, double _g2, double _tau2, double _g3, double _tau3)
+ : Material(p1,p2), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
+
+template<typename Material>
+PronyViscoElastic<Material>::PronyViscoElastic(double p1, double p2, double p3,
+                      double _ginf, double _g1, double _tau1, double _g2, double _tau2, double _g3, double _tau3)
+ : Material(p1,p2,p3), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
+
+template<typename Material>
+PronyViscoElastic<Material>::PronyViscoElastic(double p1, double p2, double p3, double p4, 
+                      double _ginf, double _g1, double _tau1, double _g2, double _tau2, double _g3, double _tau3)
+ : Material(p1,p2,p3,p4), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
+
+template<typename Material>
+PronyViscoElastic<Material>::PronyViscoElastic(double p1, double p2, double p3, double p4, double p5, 
+                      double _ginf, double _g1, double _tau1, double _g2, double _tau2, double _g3, double _tau3)
+ : Material(p1,p2,p3,p4,p5), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
+
+template<typename Material>
+PronyViscoElastic<Material>::PronyViscoElastic(double p1, double p2, double p3, double p4, double p5, double p6,
+                      double _ginf, double _g1, double _tau1, double _g2, double _tau2, double _g3, double _tau3)
+ : Material(p1,p2,p3,p4,p5,p6), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
+
+template<typename Material>
+PronyViscoElastic<Material>::PronyViscoElastic(double p1, double p2, double p3, double p4, double p5, double p6, double p7,
+                      double _ginf, double _g1, double _tau1, double _g2, double _tau2, double _g3, double _tau3)
+ : Material(p1,p2,p3,p4,p5,p6,p7), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
+
+template<typename Material>
+PronyViscoElastic<Material>::PronyViscoElastic(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
+                      double _ginf, double _g1, double _tau1, double _g2, double _tau2, double _g3, double _tau3)
+ : Material(p1,p2,p3,p4,p5,p6,p7,p8), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
+
+template<typename Material>
 int
 PronyViscoElastic<Material>::getNumStates()
 {

@@ -12,12 +12,42 @@ class BrittleFractureTB : public BaseMaterial
 
   public:
     BrittleFractureTB(StructProp *p) : BaseMaterial(p) {}
-    BrittleFractureTB(double rho, double E, double nu, double Tref, double alpha, 
+    BrittleFractureTB(double p1, 
                       double _maxprs, double _exponent, double _Kf)
-     : BaseMaterial(rho, E, nu, Tref, alpha), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
-    BrittleFractureTB(double rho, double C[6][6], double Tref, double alphas[6], 
+     : BaseMaterial(p1), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2,
                       double _maxprs, double _exponent, double _Kf)
-     : BaseMaterial(rho, C, Tref, alphas), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+     : BaseMaterial(p1,p2), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2, double p3,
+                      double _maxprs, double _exponent, double _Kf)
+     : BaseMaterial(p1,p2,p3), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2, double p3, double p4,
+                      double _maxprs, double _exponent, double _Kf)
+     : BaseMaterial(p1,p2,p3,p4), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2, double p3, double p4, double p5,
+                      double _maxprs, double _exponent, double _Kf)
+     : BaseMaterial(p1,p2,p3,p4,p5), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2, double p3, double p4, double p5, double p6,
+                      double _maxprs, double _exponent, double _Kf)
+     : BaseMaterial(p1,p2,p3,p4,p5,p6), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2, double p3, double p4, double p5, double p6, double p7,
+                      double _maxprs, double _exponent, double _Kf)
+     : BaseMaterial(p1,p2,p3,p4,p5,p6,p7), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
+                      double _maxprs, double _exponent, double _Kf)
+     : BaseMaterial(p1,p2,p3,p4,p5,p6,p7,p8), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double p9,
+                      double _maxprs, double _exponent, double _Kf)
+     : BaseMaterial(p1,p2,p3,p4,p5,p6,p7,p8,p9), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double p9,
+                      double p10, double _maxprs, double _exponent, double _Kf)
+     : BaseMaterial(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double p9,
+                      double p10, double p11, double _maxprs, double _exponent, double _Kf)
+     : BaseMaterial(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
+    BrittleFractureTB(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double p9,
+                      double p10, double p11, double p12, double _maxprs, double _exponent, double _Kf)
+     : BaseMaterial(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
 
     int getNumStates();
 

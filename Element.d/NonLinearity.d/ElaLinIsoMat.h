@@ -23,6 +23,8 @@ class ElaLinIsoMat : public NLMaterial
 
   public:
     ElaLinIsoMat(StructProp *p);
+    ElaLinIsoMat(double _rho);
+    ElaLinIsoMat(double _rho, double _E, double _nu);
     ElaLinIsoMat(double _rho, double _E, double _nu, double _Tref, double _alpha);
     ElaLinIsoMat(double _rho, double C[6][6], double _Tref, double _alphas[6]);
     ~ElaLinIsoMat();
@@ -76,6 +78,8 @@ class StVenantKirchhoffMat : public ElaLinIsoMat
 {
   public:
     StVenantKirchhoffMat(StructProp *p) : ElaLinIsoMat(p) {}
+    StVenantKirchhoffMat(double rho) : ElaLinIsoMat(rho) {}
+    StVenantKirchhoffMat(double rho, double E, double nu) : ElaLinIsoMat(rho, E, nu) {}
     StVenantKirchhoffMat(double rho, double E, double nu, double Tref, double alpha) : ElaLinIsoMat(rho, E, nu, Tref, alpha) {}
     StVenantKirchhoffMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
 
@@ -90,6 +94,8 @@ class HenckyMat : public ElaLinIsoMat
 {
   public:
     HenckyMat(StructProp *p) : ElaLinIsoMat(p) {}
+    HenckyMat(double rho) : ElaLinIsoMat(rho) {}
+    HenckyMat(double rho, double E, double nu) : ElaLinIsoMat(rho, E, nu) {}
     HenckyMat(double rho, double E, double nu, double Tref, double alpha) : ElaLinIsoMat(rho, E, nu, Tref, alpha) {}
     HenckyMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
 

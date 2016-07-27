@@ -110,8 +110,8 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC VISCOLINEARELASTIC NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS
-%token PLANESTRESSLINEAR PLANESTRESSSTVENANTKIRCHHOFF PLANESTRESSNEOHOOKEAN PLANESTRESSMOONEYRIVLIN PLANESTRESSBILINEARPLASTIC PLANESTRESSFINITESTRAINPLASTIC PLANESTRESSVISCOLINEARELASTIC PLANESTRESSVISCONEOHOOKEAN PLANESTRESSVISCOMOONEYRIVLIN
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC VISCOLINEARELASTIC VISCOSTVENANTKIRCHHOFF NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS
+%token PLANESTRESSLINEAR PLANESTRESSSTVENANTKIRCHHOFF PLANESTRESSNEOHOOKEAN PLANESTRESSMOONEYRIVLIN PLANESTRESSBILINEARPLASTIC PLANESTRESSFINITESTRAINPLASTIC PLANESTRESSVISCOLINEARELASTIC PLANESTRESSVISCOSTVENANTKIRCHHOFF PLANESTRESSVISCONEOHOOKEAN PLANESTRESSVISCOMOONEYRIVLIN
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -4689,30 +4689,30 @@ MatSpec:
 	| MatSpec Integer LINEARELASTIC Float Float Float NewLine
 	 { 
            geoSource->addMaterial($2-1, 
-             new ElaLinIsoMat($4, $5, $6, 0, 0));
+             new ElaLinIsoMat($4, $5, $6));
 	 }
         | MatSpec Integer LINEARELASTIC Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ElaLinIsoMat($4, 0, 0, 0, 0));
+             new ElaLinIsoMat($4));
          }
         | MatSpec Integer LINEARELASTIC Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new BrittleFractureTB<ElaLinIsoMat>($4, $5, $6, $7, $8, $10, $11, $12));
-             domain->solInfo().elementDeletion = true;
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer LINEARELASTIC Float Float Float TULERBUTCHER Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new BrittleFractureTB<ElaLinIsoMat>($4, $5, $6, 0, 0, $8, $9, $10));
-             domain->solInfo().elementDeletion = true;
+             new BrittleFractureTB<ElaLinIsoMat>($4, $5, $6, $8, $9, $10));
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer LINEARELASTIC Float TULERBUTCHER Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new BrittleFractureTB<ElaLinIsoMat>($4, 0, 0, 0, 0, $6, $7, $8));
-             domain->solInfo().elementDeletion = true;
+             new BrittleFractureTB<ElaLinIsoMat>($4, $6, $7, $8));
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer STVENANTKIRCHHOFF Float Float Float Float Float NewLine
          {
@@ -4722,30 +4722,30 @@ MatSpec:
         | MatSpec Integer STVENANTKIRCHHOFF Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new StVenantKirchhoffMat($4, $5, $6, 0, 0));
+             new StVenantKirchhoffMat($4, $5, $6));
          }
         | MatSpec Integer STVENANTKIRCHHOFF Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new StVenantKirchhoffMat($4, 0, 0, 0, 0));
+             new StVenantKirchhoffMat($4));
          }
         | MatSpec Integer STVENANTKIRCHHOFF Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new BrittleFractureTB<StVenantKirchhoffMat>($4, $5, $6, $7, $8, $10, $11, $12));
-             domain->solInfo().elementDeletion = true;
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer STVENANTKIRCHHOFF Float Float Float TULERBUTCHER Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new BrittleFractureTB<StVenantKirchhoffMat>($4, $5, $6, 0, 0, $8, $9, $10));
-             domain->solInfo().elementDeletion = true;
+             new BrittleFractureTB<StVenantKirchhoffMat>($4, $5, $6, $8, $9, $10));
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer STVENANTKIRCHHOFF Float TULERBUTCHER Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new BrittleFractureTB<StVenantKirchhoffMat>($4, 0, 0, 0, 0, $6, $7, $8));
-             domain->solInfo().elementDeletion = true;
+             new BrittleFractureTB<StVenantKirchhoffMat>($4, $6, $7, $8));
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer HENCKY Float Float Float Float Float NewLine
          {
@@ -4755,30 +4755,30 @@ MatSpec:
         | MatSpec Integer HENCKY Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new HenckyMat($4, $5, $6, 0, 0));
+             new HenckyMat($4, $5, $6));
          }
         | MatSpec Integer HENCKY Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new HenckyMat($4, 0, 0, 0, 0));
+             new HenckyMat($4));
          }
         | MatSpec Integer HENCKY Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new BrittleFractureTB<HenckyMat>($4, $5, $6, $7, $8, $10, $11, $12));
-             domain->solInfo().elementDeletion = true;
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer HENCKY Float Float Float TULERBUTCHER Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new BrittleFractureTB<HenckyMat>($4, $5, $6, 0, 0, $8, $9, $10));
-             domain->solInfo().elementDeletion = true;
+             new BrittleFractureTB<HenckyMat>($4, $5, $6, $8, $9, $10));
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer HENCKY Float TULERBUTCHER Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new BrittleFractureTB<HenckyMat>($4, 0, 0, 0, 0, $6, $7, $8));
-             domain->solInfo().elementDeletion = true;
+             new BrittleFractureTB<HenckyMat>($4, $6, $7, $8));
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {
@@ -4803,7 +4803,7 @@ MatSpec:
         | MatSpec Integer PLANESTRESSLINEAR Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new PlaneStressMat<ElaLinIsoMat>($4, $5, $6, 0, 0, $7));
+             new PlaneStressMat<ElaLinIsoMat>($4, $5, $6, $7));
          }
         | MatSpec Integer PLANESTRESSLINEAR Float Float Float Float Float Float NewLine
          {
@@ -4813,7 +4813,7 @@ MatSpec:
         | MatSpec Integer PLANESTRESSSTVENANTKIRCHHOFF Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new PlaneStressMat<StVenantKirchhoffMat>($4, $5, $6, 0, 0, $7));
+             new PlaneStressMat<StVenantKirchhoffMat>($4, $5, $6, $7));
          }
         | MatSpec Integer PLANESTRESSSTVENANTKIRCHHOFF Float Float Float Float Float Float NewLine
          {
@@ -4830,15 +4830,55 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new PlaneStressMat<MooneyRivlinMat>($4, $5, $6, $7, $8));
          }
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9) );
+         }
         | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10) );
          }
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+         }
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13) );
+           }
+         }
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9) );
+         }
         | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10) );
+         }
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+         }
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13) );
+           }
          }
         | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine
           {
@@ -4848,50 +4888,121 @@ MatSpec:
           }
         | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float NewLine
           {
-            double params[10] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13};
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<ElaLinIsoMat>(params));
+              new PronyViscoElastic<ElaLinIsoMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13));
+          }
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<ElaLinIsoMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15));
+          }
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $17));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $17, $18, $19));
+            domain->solInfo().elementDeletion = true;
           }
         | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float NewLine
           {
-            double params[10] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13};
             geoSource->addMaterial($2-1,
-              new PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >(params, $14));
+              new PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14));
+          }
+        | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16));
+          }
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<StVenantKirchhoffMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13));
+          }
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<StVenantKirchhoffMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15));
+          }
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $17));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $17, $18, $19));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer PLANESTRESSVISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14));
+          }
+        | MatSpec Integer PLANESTRESSVISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16));
           }
         | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
           {
-            double params[4] = { $4, $5, $6, -1 };
             geoSource->addMaterial($2-1,
               new NeoHookeanMat($4, $5, $6));
           }
+        | MatSpec Integer NEOHOOKEAN Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<NeoHookeanMat>($4, $5, $6, $8, $9, $10));
+            domain->solInfo().elementDeletion = true;
+          }
         | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float NewLine
           {
-            double params[10] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13};
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<NeoHookeanMat>(params));
+              new PronyViscoElastic<NeoHookeanMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13));
+          }
+        | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<NeoHookeanMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $17));
+            domain->solInfo().elementDeletion = true;
           }
         | MatSpec Integer PLANESTRESSVISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float Float NewLine
           {
-            double params[10] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13};
             geoSource->addMaterial($2-1,
-              new PlaneStressMat<PronyViscoElastic<NeoHookeanMat> >(params, $14));
+              new PlaneStressMat<PronyViscoElastic<NeoHookeanMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14));
           }
         | MatSpec Integer MOONEYRIVLIN Float Float Float Float NewLine
           {
             geoSource->addMaterial($2-1,
               new MooneyRivlinMat($4, $5, $6, $7));
           }
+        | MatSpec Integer MOONEYRIVLIN Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<MooneyRivlinMat>($4, $5, $6, $7, $9, $10, $11));
+            domain->solInfo().elementDeletion = true;
+          }
         | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float NewLine
           {
-            double params[11] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14};
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<MooneyRivlinMat>(params));
+              new PronyViscoElastic<MooneyRivlinMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14));
+          }
+        | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<MooneyRivlinMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $16, $17, $18));
+            domain->solInfo().elementDeletion = true;
           }
         | MatSpec Integer PLANESTRESSVISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float Float NewLine
           {
-            double params[11] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14};
             geoSource->addMaterial($2-1,
-              new PlaneStressMat<PronyViscoElastic<MooneyRivlinMat> >(params, $15));
+              new PlaneStressMat<PronyViscoElastic<MooneyRivlinMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15));
           }
         | MatSpec Integer OGDEN Float Float Float Float NewLine 
           {

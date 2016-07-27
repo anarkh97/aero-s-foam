@@ -44,6 +44,12 @@ PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, do
 }
 
 template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double *p, double _t)
+: BaseMaterial(p), t(_t)
+{
+}
+
+template<typename BaseMaterial>
 int
 PlaneStressMat<BaseMaterial>::getNumStates()
 {
@@ -211,6 +217,14 @@ PlaneStressMat<ElasPlasKinHardMat<0> >::getGenStrainEvaluator()
   return &linStrain2D;
 }
 
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >::getGenStrainEvaluator()
+{
+  return &linStrain2D;
+}
+
 extern GLStrain2D<9> glStrain2D;
 
 template<>
@@ -240,7 +254,23 @@ PlaneStressMat<NeoHookeanMat>::getGenStrainEvaluator()
 template<>
 inline
 GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<PronyViscoElastic<NeoHookeanMat> >::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
 PlaneStressMat<MooneyRivlinMat>::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<PronyViscoElastic<MooneyRivlinMat> >::getGenStrainEvaluator()
 {
   return &glStrain2D;
 }

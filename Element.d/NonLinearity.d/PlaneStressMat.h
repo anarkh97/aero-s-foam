@@ -17,6 +17,7 @@ class PlaneStressMat : public BaseMaterial
      PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double _t);
      PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double _t);
      PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double _t);
+     PlaneStressMat(double *p, double _t);
 
      int getNumStates();
 

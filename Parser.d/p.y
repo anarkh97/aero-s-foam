@@ -111,7 +111,7 @@
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
 %token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC VISCOLINEARELASTIC NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS
-%token PLANESTRESSLINEAR PLANESTRESSSTVENANTKIRCHHOFF PLANESTRESSNEOHOOKEAN PLANESTRESSMOONEYRIVLIN PLANESTRESSBILINEARPLASTIC PLANESTRESSFINITESTRAINPLASTIC
+%token PLANESTRESSLINEAR PLANESTRESSSTVENANTKIRCHHOFF PLANESTRESSNEOHOOKEAN PLANESTRESSMOONEYRIVLIN PLANESTRESSBILINEARPLASTIC PLANESTRESSFINITESTRAINPLASTIC PLANESTRESSVISCOLINEARELASTIC PLANESTRESSVISCONEOHOOKEAN PLANESTRESSVISCOMOONEYRIVLIN
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -4852,6 +4852,12 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new PronyViscoElastic<ElaLinIsoMat>(params));
           }
+        | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[10] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13};
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >(params, $14));
+          }
         | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
           {
             double params[4] = { $4, $5, $6, -1 };
@@ -4864,6 +4870,12 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new PronyViscoElastic<NeoHookeanMat>(params));
           }
+        | MatSpec Integer PLANESTRESSVISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[10] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13};
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<NeoHookeanMat> >(params, $14));
+          }
         | MatSpec Integer MOONEYRIVLIN Float Float Float Float NewLine
           {
             geoSource->addMaterial($2-1,
@@ -4874,6 +4886,12 @@ MatSpec:
             double params[11] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14};
             geoSource->addMaterial($2-1,
               new PronyViscoElastic<MooneyRivlinMat>(params));
+          }
+        | MatSpec Integer PLANESTRESSVISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[11] = { $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14};
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<MooneyRivlinMat> >(params, $15));
           }
         | MatSpec Integer OGDEN Float Float Float Float NewLine 
           {

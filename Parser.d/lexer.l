@@ -1435,6 +1435,12 @@ TRAIL [a-zA-Z]*
 
 "PlaneStressFiniteStrainPlastic"[a-zA-Z]*               { return PLANESTRESSFINITESTRAINPLASTIC; }
 
+"PlaneStressViscoLinearElastic"[a-zA-Z]*                { return PLANESTRESSVISCOLINEARELASTIC; }
+
+"PlaneStressViscoNeoHookean"[a-zA-Z]*                   { return PLANESTRESSVISCONEOHOOKEAN; }
+
+"PlaneStressViscoMooneyRivlin"[a-zA-Z]*                 { return PLANESTRESSVISCOMOONEYRIVLIN; }
+
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
 
 "tule"[a-zA-Z]*|"TULE"[a-zA-Z]*|"Tule"[a-zA-Z]*         { return TULERBUTCHER; }

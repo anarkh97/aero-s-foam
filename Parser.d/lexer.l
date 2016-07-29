@@ -1573,6 +1573,8 @@ TRAIL [a-zA-Z]*
  
 "CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } /* reduced order data conversion files */
 
+"ROMRES"|"RomRes"|"romres"                { return ROMRES; }
+
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 "VELSNAPFI"|"VelSnapFi"|"velsnapfi"       { return VELSNAPFI; }
 "ACCSNAPFI"|"AccSnapFi"|"accsnapfi"       { return ACCSNAPFI; }

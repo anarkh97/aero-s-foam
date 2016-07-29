@@ -623,7 +623,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
     if(compute_tangents) K.setZero();
   }
   else { // compute the tangent stiffness and/or force correction due to rotary inertia for implicit generalized-alpha
-    if(domain->solInfo().samplingPodRom) {
+    if(domain->solInfo().samplingPodRom || domain->solInfo().ROMPostProcess) {
       // V and A are the convected angular velocity and acceleration at current snapshot after projection
       tangential_transf<double>(Psi, T);
       Eigen::Matrix3d Tinv = T.inverse();

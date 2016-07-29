@@ -464,6 +464,7 @@ struct SolverInfo {
    int  skipJacobian;
    int  orthogPodRom;
    int  numRODFile;
+   int  romresidType;
    double tolPodRom;
    bool useMassNormalizedBasis;
    bool useMassOrthogonalProjection;
@@ -816,6 +817,7 @@ struct SolverInfo {
                   skipJacobian       = 1;
                   orthogPodRom       = 1;
                   numRODFile         = 0;
+                  romresidType       = 0;
                   tolPodRom          = 1.0e-6;
                   useMassNormalizedBasis = true;
                   useMassOrthogonalProjection = false;

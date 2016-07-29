@@ -37,7 +37,7 @@ class DistrGeomState {
      void update(DistrVector &v, int SO3param = 0);
      void explicitUpdate(GenDecDomain<double> *decDomain, DistrVector &v);
      void setVelocity(DistrVector &, int SO3param = 0);
-     void setAcceleration(DistrVector &);
+     void setAcceleration(DistrVector &, int SO3param = 0);
      void setVelocityAndAcceleration(DistrVector &, DistrVector &);
      void setNodalTemperatures(DistrVector &);
 
@@ -77,7 +77,7 @@ class DistrGeomState {
      void subUpdate(int isub, DistrVector &v, int SO3param);
      void subExplicitUpdate(int iSub,DistrVector &v, GenDecDomain<double> *decDomain);
      void subSetVelocity(int isub, DistrVector &v, int SO3param);
-     void subSetAcceleration(int isub, DistrVector &a);
+     void subSetAcceleration(int isub, DistrVector &a, int SO3param);
      void subSetVelocityAndAcceleration(int isub, DistrVector &v, DistrVector &a);
      void subSetNodalTemperatures(int isub, DistrVector &temps);
      void makeSubGeomStates(int isub, DecDomain *domain);

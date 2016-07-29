@@ -301,40 +301,44 @@ DistrROMPostProcessingDriver::solve() {
      }
 
      geomState->explicitUpdate(decDomain, *fullDispBuffer);
-     geomState->transform(*fullVelBuffer, 0, true); // transform angular velocity from the 1st time derivative
-                                                    // of the (unscaled) total rotation vector to convected
-     geomState->transform(*fullAccBuffer, 4, true); // transform angular acceleration from the 2nd time derivative
-                                                    // of the (unscaled) total rotation vector to convected
+     geomState->setVelocity(*fullVelBuffer, 2);
+     geomState->setAcceleration(*fullAccBuffer, 2);
      execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
+
      if(computeResidual || computeExtForce) {
        if(!dummyDynOps) {
          dummyDynOps = buildOps(1,0,0);
-         domain->solInfo().newmarkBeta = 0; // XXX to make configuration-dependent inertial forces computed consistently
        }
-       domain->solInfo().galerkinPodRom = false;
        // compute non-follower external forces
        computeExtForce2(*curState, *fullExtForceBuffer, *fullConstForceBuffer, counter, *it);
        if(computeResidual) {
-         // compute inertial forces
+         // compute linear inertial forces M*a
          dummyDynOps->M->mult(*fullAccBuffer, *fullInertForceBuffer);
-         geomState->push_forward(*fullInertForceBuffer);
          // compute internal forces and other configuration-dependent forces including external follower forces
+         // and nonlinear inertial force correction
          getInternalForce(*fullDispBuffer, *fullResBuffer, *it, counter);
          // add all forces and compute norm
          *fullResBuffer -= *fullExtForceBuffer;
          *fullResBuffer += *fullInertForceBuffer;
+         if(domain->solInfo().romresidType == 0) geomState->transform(*fullResBuffer, 2, true); // multiply by T^{-1}
          assembler->assemble(*fullResBuffer);
          residualNorm += fullResBuffer->sqNorm();
        }
        if(computeExtForce) {
          // compute external follower forces and add to fullExtForceBuffer
          getFollowerForce(*fullExtForceBuffer, *it, counter);
+         if(domain->solInfo().romresidType == 0) geomState->transform(*fullExtForceBuffer, 2, true); // multiply by T^{-1}
          assembler->assemble(*fullExtForceBuffer);
          extForceNorm += fullExtForceBuffer->sqNorm();
        }
-       domain->solInfo().galerkinPodRom = true;
      } else
      if(!dummyDynOps) dummyDynOps = new MDDynamMat;
+
+     geomState->transform(*fullVelBuffer, 0, true); // transform angular velocity from the 1st time derivative
+                                                    // of the (unscaled) total rotation vector to convected
+     geomState->transform(*fullAccBuffer, 4, true); // transform angular acceleration from the 2nd time derivative
+                                                    // of the (unscaled) total rotation vector to convected
+
      mddPostPro->dynamOutput(counter, *it, *dummyDynOps, ((fullExtForceBuffer) ? *fullExtForceBuffer : *fullDummyBuffer),
                              fullDummyBuffer, *curState, fullResBuffer);
 

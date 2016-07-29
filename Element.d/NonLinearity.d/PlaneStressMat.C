@@ -8,6 +8,18 @@
 #endif
 
 template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double _t)
+: BaseMaterial(p1), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double _t)
+: BaseMaterial(p1, p2), t(_t)
+{
+}
+
+template<typename BaseMaterial>
 PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double _t)
 : BaseMaterial(p1, p2, p3), t(_t)
 {
@@ -38,8 +50,37 @@ PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, do
 }
 
 template<typename BaseMaterial>
-PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double _t)
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
+                                             double _t)
 : BaseMaterial(p1, p2, p3, p4, p5, p6, p7, p8), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
+                                             double p9, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6, p7, p8, p9), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
+                                             double p9, double p10, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, 
+                                             double p9, double p10, double p11, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, 
+                                             double p9, double p10, double p11, double p12, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12), t(_t)
 {
 }
 
@@ -211,12 +252,28 @@ PlaneStressMat<ElasPlasKinHardMat<0> >::getGenStrainEvaluator()
   return &linStrain2D;
 }
 
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >::getGenStrainEvaluator()
+{
+  return &linStrain2D;
+}
+
 extern GLStrain2D<9> glStrain2D;
 
 template<>
 inline
 GenStrainEvaluator<TwoDTensorTypes<9> > *
 PlaneStressMat<StVenantKirchhoffMat>::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<PronyViscoElastic<StVenantKirchhoffMat> >::getGenStrainEvaluator()
 {
   return &glStrain2D;
 }
@@ -240,7 +297,23 @@ PlaneStressMat<NeoHookeanMat>::getGenStrainEvaluator()
 template<>
 inline
 GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<PronyViscoElastic<NeoHookeanMat> >::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
 PlaneStressMat<MooneyRivlinMat>::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<PronyViscoElastic<MooneyRivlinMat> >::getGenStrainEvaluator()
 {
   return &glStrain2D;
 }

@@ -23,6 +23,32 @@ ElaLinIsoMat::ElaLinIsoMat(StructProp *p)
   ctett = p->ctett;
 }
 
+ElaLinIsoMat::ElaLinIsoMat(double _rho)
+{
+  rho = _rho;
+  nu = 0;
+  E = 0;
+  Tref = 0;
+  alphas[0] = alphas[3] = alphas[5] = alpha = 0;
+  alphas[1] = alphas[2] = alphas[4] = 0;
+  m_tm = 0;
+  ymtt = NULL;
+  ctett = NULL;
+}
+
+ElaLinIsoMat::ElaLinIsoMat(double _rho, double _E, double _nu)
+{
+  rho = _rho;
+  nu = _nu;
+  E = _E;
+  Tref = 0;
+  alphas[0] = alphas[3] = alphas[5] = alpha = 0;
+  alphas[1] = alphas[2] = alphas[4] = 0;
+  m_tm = 0;
+  ymtt = NULL;
+  ctett = NULL;
+}
+
 ElaLinIsoMat::ElaLinIsoMat(double _rho, double _E, double _nu, double _Tref, double _alpha)
 {
   rho = _rho;

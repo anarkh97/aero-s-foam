@@ -11,7 +11,22 @@ template<typename Material>
 class PronyViscoElastic : public Material
 {
   public:
-    PronyViscoElastic(double* params);
+    PronyViscoElastic(double p1,
+                      double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
+    PronyViscoElastic(double p1, double p2,
+                      double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
+    PronyViscoElastic(double p1, double p2, double p3,
+                      double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
+    PronyViscoElastic(double p1, double p2, double p3, double p4,
+                      double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
+    PronyViscoElastic(double p1, double p2, double p3, double p4, double p5,
+                      double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
+    PronyViscoElastic(double p1, double p2, double p3, double p4, double p5, double p6,
+                      double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
+    PronyViscoElastic(double p1, double p2, double p3, double p4, double p5, double p6, double p7,
+                      double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
+    PronyViscoElastic(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
+                      double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
 
     int getNumStates();
 
@@ -31,48 +46,6 @@ class PronyViscoElastic : public Material
     double g2, tau2;
     double g3, tau3;
 };
-
-
-// set Prony amplitudes and times scales for Linear-elastic, Mooney Rivlin, and NeoHookean
-
-template<>
-inline
-PronyViscoElastic<ElaLinIsoMat>::PronyViscoElastic(double *params) : ElaLinIsoMat(params[0], params[1], params[2], 0, 0)
-{
- ginf = params[3];
- g1   = params[4];
- tau1 = params[5];
- g2   = params[6];
- tau2 = params[7];
- g3   = params[8];
- tau3 = params[9];
-}
-
-template<>
-inline
-PronyViscoElastic<NeoHookeanMat>::PronyViscoElastic(double *params) : NeoHookeanMat(params[0], params[1], params[2]) 
-{
- ginf = params[3];
- g1   = params[4];
- tau1 = params[5];
- g2   = params[6];
- tau2 = params[7];
- g3   = params[8];
- tau3 = params[9];
-}
-
-template<>
-inline
-PronyViscoElastic<MooneyRivlinMat>::PronyViscoElastic(double *params) : MooneyRivlinMat(params[0], params[1], params[2], params[3])
-{
- ginf = params[4];
- g1   = params[5];
- tau1 = params[6];
- g2   = params[7];
- tau2 = params[8];
- g3   = params[9];
- tau3 = params[10];
-}
 
 #ifdef _TEMPLATE_FIX_
   #include <Element.d/NonLinearity.d/PronyViscoElastic.C>

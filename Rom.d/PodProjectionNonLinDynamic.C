@@ -171,7 +171,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
       if(j==0) filePrint(stderr, " ... Using Mass-normalized Basis    ...\n");
       fileName.append(".normalized");
     }
-    filePrint(stderr," ... Reading %s ...\n",fileName.c_str());
+    filePrint(stderr," ... Reading %.22s ...\n",fileName.c_str());
     BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
 
 
@@ -982,6 +982,14 @@ PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &v
       rhs = -1.0*inc_displacement;
     else
       rhs = -(1-alpham)/(1-alphaf)*inc_displacement + dt*(1-alpham)*velocity + dt*dt*((1-alpham)/2-beta)*acceleration;
+  }
+  else if(!domain->solInfo().useMassNormalizedBasis && domain->solInfo().modalDIMASS && C == 0) {
+    if(domain->solInfo().order == 1)
+      rhs = -1.0*inc_displacement;
+    else
+      rhs = -(1-alpham)/(1-alphaf)*inc_displacement + dt*(1-alpham)*velocity + dt*dt*((1-alpham)/2-beta)*acceleration;
+    Eigen::Map<Eigen::VectorXd> rhsMap(rhs.data(),rhs.size());
+    rhsMap = VtMV*rhsMap;
   }
   else {
     // this can be improved by pre-computing V^T*M*V and V^T*C*V

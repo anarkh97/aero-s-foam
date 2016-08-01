@@ -682,16 +682,17 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
 #ifdef USE_EIGEN3
   GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *M;
 #endif
-  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0 || domain_->solInfo().readInROBorModes.size() > 1) {
-    AllOps<double> allOps;
-    if(reduce_idis || reduce_ivel || domain_->solInfo().readInROBorModes.size() > 1) { 
+  AllOps<double> allOps;
+  if(((domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0)
+       && (reduce_idis || reduce_ivel || domain_->solInfo().readInROBorModes.size() > 1)) || !domain->solInfo().useMassNormalizedBasis) {
 #ifdef USE_EIGEN3
-      allOps.M = M = domain_->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
+    allOps.M = M = domain_->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
 #else
-      allOps.M = domain->constructDBSparseMatrix<double>();
+    allOps.M = domain->constructDBSparseMatrix<double>();
 #endif
-      domain->makeSparseOps(allOps, 0, 0, 0);
-    }
+    domain->makeSparseOps(allOps, 0, 0, 0);
+  }
+  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
     if(reduce_idis) {
       allOps.M->mult(d0Full, tmp);
       reduce(podBasis_, tmp, d0Red);
@@ -870,6 +871,18 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
         matrixOut.close();
       }
     }
+  }
+
+  // build and output reduced mass matrix if mass-normalized basis is not used
+  if(!domain_->solInfo().useMassNormalizedBasis) {
+    std::string fileName = domain->solInfo().reducedMeshFile;
+    fileName.append(".reducedmass");
+    meshOut << "*\nDIMASS\nMODAL\n" << fileName << std::endl;
+    std::ofstream matrixOut(fileName.c_str());
+    filePrint(stderr," ... Writing reduced mass matrix to file %s ...\n", fileName.c_str());
+    matrixOut << std::setprecision(16) 
+              << podBasis_.basis().transpose()*(M->getEigenSparse().selfadjointView<Eigen::Upper>()*podBasis_.basis()) << std::endl;
+    matrixOut.close();
   }
 
   // build and output compressed basis

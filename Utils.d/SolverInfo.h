@@ -392,6 +392,8 @@ struct SolverInfo {
    bool readmodeCalled;
    bool modalCalled;
    bool modalLMPC;
+   bool modalDIMASS;
+   const char * reducedMassFile;
    bool readShapeSen;
    double ksParameter;
    double ksMax;
@@ -747,6 +749,8 @@ struct SolverInfo {
                   readmodeCalled     = false;
                   modalCalled        = false;
                   modalLMPC          = false;
+                  modalDIMASS        = false;
+                  reducedMassFile    = "";
                   readShapeSen       = false;
                   activatePodRom     = false;
                   snapshotsPodRom    = false;

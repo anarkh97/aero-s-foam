@@ -10,6 +10,8 @@
 #include <cstddef>
 #include <stdexcept>
 
+#include <Eigen/Core>
+
 namespace Rom {
 
 template <typename Scalar>

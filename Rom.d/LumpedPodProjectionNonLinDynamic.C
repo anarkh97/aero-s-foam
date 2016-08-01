@@ -4,6 +4,7 @@
 #include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
 
+#include <fstream>
 #include <utility>
 
 extern GeoSource *geoSource;
@@ -114,9 +115,11 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   packedWeightedNodes_.resize(packedNodeIt-packedWeightedNodes_.begin());
 
   if(geoSource->elementLumpingWeightSize() == 1 && packedWeightedElems_.size() < domain->numElements()) {
-    filePrint(stderr, " ... Compressing Basis              ...\n");
-    GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
-    projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
+    if(domain->solInfo().useMassNormalizedBasis) {
+      filePrint(stderr, " ... Compressing Basis              ...\n");
+      GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
+      projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
+    }
   }
   else if(geoSource->elementLumpingWeightSize() > 1) {
     GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
@@ -129,10 +132,22 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   }
   else {
     if(!domain->solInfo().useMassNormalizedBasis) {
-      // XXX to support this case we would need to precompute offline and the load online the reduced mass matrix,
-      //     or we could hyper reduce the entire inertial force vector rather than just the nonlinear part
-      filePrint(stderr, " *** WARNING: \"use_mass_normalized_basis off\" is not supported for\n"
-                        "     for model III when \"samplmsh.elementmesh.inc\" file is used.\n");
+      if(domain->solInfo().modalDIMASS) {
+        filePrint(stderr, " ... Reading Reduced Mass Matrix    ...\n");
+        std::ifstream matrixin(domain->solInfo().reducedMassFile);
+        int n = solver_->projectionBasis().vectorCount();
+        VtMV.resize(n,n);
+        for(int i=0; i<n; ++i)
+          for(int j=0; j<n; ++j)
+            matrixin >>VtMV(i,j);
+        matrixin.close();
+      }
+      else {
+        filePrint(stderr, " *** WARNING: \"use_mass_normalized_basis off\" is not supported for\n"
+                          "     for model III when \"samplmsh.elementmesh.inc\" file is used   \n"
+                          "     unless a modal DIMASS file is specified containing the reduced \n"
+                          "     mass matrix.\n");
+      }
     }
   }
 }

@@ -611,9 +611,13 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      AllOps<double> ops;
      if(Kuc) { Kuc->zeroAll(); ops.Kuc = Kuc; }
      if(spp) { spp->zeroAll(); ops.spp = spp; }
-     if(domain->solInfo().galerkinPodRom && domain->solInfo().useMassNormalizedBasis) {
+     if(domain->solInfo().galerkinPodRom && (domain->solInfo().useMassNormalizedBasis || domain->solInfo().modalDIMASS)) {
        domain->makeSparseOps<double>(ops, Kcoef, 0.0, Ccoef, spm, kelArray, melArray, celArray);
-       dynamic_cast<Rom::PodProjectionSolver*>(solver)->addReducedMass(Mcoef);
+       if(domain->solInfo().useMassNormalizedBasis)
+         dynamic_cast<Rom::PodProjectionSolver*>(solver)->addReducedMass(Mcoef);
+       else {
+         dynamic_cast<Rom::PodProjectionSolver*>(solver)->addToReducedMatrix(VtMV, Mcoef);
+       }
      }
      else {
        domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);

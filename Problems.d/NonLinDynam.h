@@ -3,6 +3,9 @@
 
 #include <Problems.d/SingleDomainBase.h>
 #include <Math.d/Vector.h>
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
 
 class Domain;
 class Rbm;
@@ -102,6 +105,9 @@ class NonLinDynamic : public NLDynamPostProcessor, public SingleDomainBase {
     Vector *reactions;
     bool factor;
     bool updateCS;
+#ifdef USE_EIGEN3
+    Eigen::MatrixXd VtMV;
+#endif
 
  public:
     // Constructor

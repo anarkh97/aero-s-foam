@@ -839,7 +839,10 @@ DiscrMasses:
 	  { domain->addDMass($2-1,$3-1,$4); }
         | DiscrMasses Integer Integer Integer Float NewLine
           { domain->addDMass($2-1,$3-1,$5,$4-1); }
-	;
+        | DiscrMasses MODAL NewLine FNAME NewLine
+        { domain->solInfo().modalDIMASS = true;
+          domain->solInfo().reducedMassFile = $4;; }
+        ;
 Gravity:
 	GRAVITY NewLine
 	| Gravity Float Float Float NewLine

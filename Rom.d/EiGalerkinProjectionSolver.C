@@ -67,7 +67,7 @@ template <typename Scalar>
 void
 GenEiSparseGalerkinProjectionSolver<Scalar>::addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &ContributionMat, double Coef)
 {
-  reducedMatrix_ += Coef*ContributionMat;
+  reducedMatrix_ += Coef*ContributionMat.block(startCol_,startCol_,blockCols_,blockCols_);
 }
 
 template <typename Scalar>

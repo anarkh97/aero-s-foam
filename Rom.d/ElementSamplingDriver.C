@@ -877,7 +877,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
   if(!domain_->solInfo().useMassNormalizedBasis) {
     std::string fileName = domain->solInfo().reducedMeshFile;
     fileName.append(".reducedmass");
-    meshOut << "*\nDIMASS\nMODAL\n" << fileName << std::endl;
+    meshOut << "*\nDIMASS\nMODAL\n\"" << fileName << "\"\n";
     std::ofstream matrixOut(fileName.c_str());
     filePrint(stderr," ... Writing reduced mass matrix to file %s ...\n", fileName.c_str());
     matrixOut << std::setprecision(16) 
@@ -974,7 +974,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
     if(domain_->solInfo().useMassOrthogonalProjection) fileName.append(".normalized");
     BasisInputStream<6> in(fileName, vecDofConversion);
     if(domain_->solInfo().readInROBorModes.size() == 1) {
-      fprintf(stdout,"... Reading basis from %s ...\n",fileName.c_str());
+      filePrint(stdout," ... Reading basis from %.11s ...\n", fileName.c_str());
       const int podSizeMax = domain_->solInfo().maxSizePodRom;
       if(podSizeMax != 0) {
         readVectors(in, podBasis_, podSizeMax);

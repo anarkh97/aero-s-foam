@@ -211,7 +211,7 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
   config.dimensionIs(snapshotCount, vectorSize);
   timeStamps.clear();
   timeStamps.reserve(snapshotCount);
-
+  filePrint(stderr, " ... Memory Allocated ...\n");
   
   const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
   const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0

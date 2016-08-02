@@ -4889,69 +4889,117 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElastic>(params));
           }
-        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<ElaLinIsoMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13));
+              new PronyViscoElastic<ElaLinIsoMat>($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12));
           }
-        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<ElaLinIsoMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15));
+              new PronyViscoElastic<ElaLinIsoMat>($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14));
           }
-        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
           {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 
             geoSource->addMaterial($2-1,
-              new BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $17));
+              new BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12, $14, $15, $16));
             domain->solInfo().elementDeletion = true;
           }
-        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
           {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $17, $18, $19));
+              new BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14, $16, $17, $18));
             domain->solInfo().elementDeletion = true;
           }
-        | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14));
+              new PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $13));
           }
-        | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $15;
+            double gtwo   = $13;
+            double gone   = $11;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16));
+              new PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, $9, ginf, $10, $11, $12, $13, $14, $15));
           }
-        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<StVenantKirchhoffMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13));
+              new PronyViscoElastic<StVenantKirchhoffMat>($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12));
           }
-        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<StVenantKirchhoffMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15));
+              new PronyViscoElastic<StVenantKirchhoffMat>($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14));
           }
-        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
           {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $17));
+              new BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12, $14, $15, $16));
             domain->solInfo().elementDeletion = true;
           }
-        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
           {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $17, $18, $19));
+              new BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14, $16, $17, $18));
             domain->solInfo().elementDeletion = true;
           }
-        | MatSpec Integer PLANESTRESSVISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer PLANESTRESSVISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new PlaneStressMat<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14));
+              new PlaneStressMat<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $13));
           }
-        | MatSpec Integer PLANESTRESSVISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer PLANESTRESSVISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $15;
+            double gtwo   = $13;
+            double gone   = $11;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new PlaneStressMat<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16));
+              new PlaneStressMat<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $9, ginf, $10, $11, $12, $13, $14, $15));
           }
         | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
           {
@@ -4964,21 +5012,33 @@ MatSpec:
               new BrittleFractureTB<NeoHookeanMat>($4, $5, $6, $8, $9, $10));
             domain->solInfo().elementDeletion = true;
           }
-        | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<NeoHookeanMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13));
+              new PronyViscoElastic<NeoHookeanMat>($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12));
           }
-        | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+        | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
           {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new BrittleFractureTB<PronyViscoElastic<NeoHookeanMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $15, $16, $17));
+              new BrittleFractureTB<PronyViscoElastic<NeoHookeanMat> >($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12, $14, $15, $16));
             domain->solInfo().elementDeletion = true;
           }
-        | MatSpec Integer PLANESTRESSVISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer PLANESTRESSVISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new PlaneStressMat<PronyViscoElastic<NeoHookeanMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14));
+              new PlaneStressMat<PronyViscoElastic<NeoHookeanMat> >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $13));
           }
         | MatSpec Integer MOONEYRIVLIN Float Float Float Float NewLine
           {
@@ -4991,21 +5051,33 @@ MatSpec:
               new BrittleFractureTB<MooneyRivlinMat>($4, $5, $6, $7, $9, $10, $11));
             domain->solInfo().elementDeletion = true;
           }
-        | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new PronyViscoElastic<MooneyRivlinMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14));
+              new PronyViscoElastic<MooneyRivlinMat>($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $13));
           }
-        | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+        | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
           {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new BrittleFractureTB<PronyViscoElastic<MooneyRivlinMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $16, $17, $18));
+              new BrittleFractureTB<PronyViscoElastic<MooneyRivlinMat> >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $13, $15, $16, $17));
             domain->solInfo().elementDeletion = true;
           }
-        | MatSpec Integer PLANESTRESSVISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer PLANESTRESSVISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float NewLine
           {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to
             geoSource->addMaterial($2-1,
-              new PlaneStressMat<PronyViscoElastic<MooneyRivlinMat> >($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15));
+              new PlaneStressMat<PronyViscoElastic<MooneyRivlinMat> >($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14));
           }
         | MatSpec Integer OGDEN Float Float Float Float NewLine 
           {

@@ -1636,14 +1636,20 @@ TRAIL [a-zA-Z]*
 "PGSPLH"|"pgSplh"|"pgsplh"                { return PGSPLH; }
 
 "lh"|"LH"                                 { yylval.ival = 0; return SPNNLSSOLVERTYPE; }
-"nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; }
-"gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; }
-"lars"|"LARS"				  { yylval.ival = 3; return SPNNLSSOLVERTYPE; }
+"nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CGNNLS"|"cgnnls"                         { yylval.ival = 1; return SPNNLSSOLVERTYPE; }  
+"gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CGPFP"|"cgpfp"                           { yylval.ival = 2; return SPNNLSSOLVERTYPE; } 
+"lars"|"LARS"				  { yylval.ival = 3; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CHLASSO"|"chlasso"                       { yylval.ival = 3; return SPNNLSSOLVERTYPE; }
 "mp"|"MP"				  { yylval.ival = 4; return SPNNLSSOLVERTYPE; }
 "omp"|"OMP"                               { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
-"splh"|"SPLH" 				  { yylval.ival = 6; return SPNNLSSOLVERTYPE; }
-"cglars"|"CGLARS"                         { yylval.ival = 7; return SPNNLSSOLVERTYPE; }
-"sppfp"|"SPPFP"				  { yylval.ival = 8; return SPNNLSSOLVERTYPE; }
+"splh"|"SPLH" 				  { yylval.ival = 6; return SPNNLSSOLVERTYPE; } /* deprecated */
+"QRNNLS"|"qrnnls"                         { yylval.ival = 6; return SPNNLSSOLVERTYPE; } 
+"cglars"|"CGLARS"                         { yylval.ival = 7; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CGLASSO"|"cglasso"                       { yylval.ival = 7; return SPNNLSSOLVERTYPE; }
+"sppfp"|"SPPFP"				  { yylval.ival = 8; return SPNNLSSOLVERTYPE; } /* deprecated */
+"QRPFP"|"qrpfp"                           { yylval.ival = 8; return SPNNLSSOLVERTYPE; } 
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 

@@ -81,6 +81,38 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                           int avgnum)
 
 {
+  getVonMisesImpl(stress, weight, cs, elDisp, strInd, surface, ndTemps, ylayer, zlayer);
+}
+
+void
+FelippaShell::getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
+                            GeomState *refState, CoordSet& c0, int strIndex, int surface,
+                            double ylayer, double zlayer, int avgnum, int measure)
+{
+  Vector elDisp(numDofs(), 0.);
+  int flag;
+  Shell3Corotator::extractDeformations(curState, c0, elDisp.data(), flag);
+
+  double *staten = refState->getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
+  double *statenp = curState.getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
+
+  getVonMisesImpl(stress, weight, c0, elDisp, strIndex, surface, (double*)0, ylayer, zlayer, staten, statenp);
+}
+
+void
+FelippaShell::extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
+                                  int &nlflag)
+{
+  if(type == 4) nlflag = 2;
+  else Shell3Corotator::extractDeformations(geomState, cs, vld, nlflag);
+}
+
+void
+FelippaShell::getVonMisesImpl(Vector &stress, Vector &weight, CoordSet &cs,
+                              Vector &elDisp, int strInd, int surface,
+                              double *ndTemps, double ylayer, double zlayer,
+                              double *staten, double *statenp)
+{
   int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
                 // In this case the higher-order contribution in B matrix is neglected.
   weight = 1.0;
@@ -135,7 +167,7 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
   Impl::andesvms(glNum+1, maxstr, prop->nu, x, y, z, disp,
                  (double*)elStress, type, nmat, strainFlg,
-                 surface, sflg, ndTemps);
+                 surface, sflg, ndTemps, staten, statenp);
 
   stress[0] = elStress[0][strInd-offset];
   stress[1] = elStress[1][strInd-offset];
@@ -146,6 +178,29 @@ void
 FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                            Vector &elDisp, int strInd, int surface,
                            double *ndTemps)
+{
+  getAllStressImpl(stress, weight, cs, elDisp, strInd, surface, ndTemps);
+}
+
+void
+FelippaShell::getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
+                             GeomState *refState, CoordSet &c0, int strInd, int surface,
+                             int measure)
+{
+  Vector elDisp(numDofs(), 0.);
+  int flag;
+  Shell3Corotator::extractDeformations(curState, c0, elDisp.data(), flag);
+
+  double *staten = refState->getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
+  double *statenp = curState.getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
+
+  getAllStressImpl(stress, weight, c0, elDisp, strInd, surface, (double*)0, staten, statenp);
+}
+
+void
+FelippaShell::getAllStressImpl(FullM &stress, Vector &weight, CoordSet &cs,
+                               Vector &elDisp, int strInd, int surface,
+                               double *ndTemps, double *staten, double *statenp)
 {
   int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
                 // In this case the higher-order contribution in B matrix is neglected.
@@ -169,7 +224,7 @@ FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
 
   Impl::andesvms(glNum+1, maxstr, prop->nu, x, y, z, disp,
                  (double*)elStress, type, nmat, strInd,
-                 surface, sflg, ndTemps);
+                 surface, sflg, ndTemps, staten, statenp);
 
   // Store all Stress or all Strain as defined by strInd
   int i,j;
@@ -446,7 +501,12 @@ FelippaShell::setMaterial(NLMaterial *_mat)
                                                                                                prop->Ta, prop->W);
     }
     else {
-      throw std::runtime_error("Unsupported material type\n");
+      // XXX check if _mat is PlaneStressMat and strain evaluator is LinearStrain2D.
+      //throw std::runtime_error("Unsupported material type\n");
+      type = 4;
+      if(gpmat) delete gpmat;
+      gpmat = new ShellMaterialType6<double,NLMaterial>(prop->eh, prop->nu, prop->rho, _mat, 5, 3, prop->Ta, prop->W);
+      nmat = new ShellMaterialType6<double,NLMaterial>(prop->eh, prop->nu, prop->rho, _mat, 3, 3, prop->Ta, prop->W);
     }
   }
 }
@@ -583,7 +643,11 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
     x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
     x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-    Impl::andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, gpmat, 0, 1, (double*)NULL, dt);
+    double *staten = refState->getElemState(getGlNum()) + subNum*numStates();
+    double *statenp = geomState.getElemState(getGlNum()) + subNum*numStates();
+
+    Impl::andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, gpmat, 0, 1, (double*)NULL, dt,
+                   staten, statenp);
 
     if(numStates() > 0) {
       double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
@@ -734,7 +798,11 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
     x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
     x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-    Impl::andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0, 1, (double*)NULL, dt);
+    double *staten = refState->getElemState(getGlNum()) + subNum*numStates();
+    double *statenp = geomState.getElemState(getGlNum()) + subNum*numStates();
+
+    Impl::andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0, 1, (double*)NULL, dt,
+                   staten, statenp);
 
     if(numStates() > 0) {
       double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
@@ -819,8 +887,10 @@ FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &
     double *statenp = geomState.getElemState(getGlNum()) + subNum*numStates();
 
     int sflg = 1;
+    int tflg = 1;
+    double *ndTemps = NULL; // XXX
 
-    Impl::andesups(glNum+1, statenp, x, y, z, vld, gpmat, nmat, sflg, dt);
+    Impl::andesups(glNum+1, staten, statenp, x, y, z, vld, gpmat, nmat, sflg, tflg, ndTemps, dt);
 
     if(!refState) delete [] staten;
   }

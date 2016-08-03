@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <vector>
 #include <Eigen/Core>
+#include <Math.d/TTensor.h>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 #include <iostream>
 
@@ -10,22 +11,21 @@ extern int quietFlag;
 
 template<typename doublereal, typename localmaterial>
 void
-ShellMaterialType4<doublereal,localmaterial>
+ShellMaterialType6<doublereal,localmaterial>
 ::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                          doublereal *, int point, doublereal temp, doublereal dt,
-                          doublereal *, doublereal *)
+                          doublereal*, int point, doublereal temp, doublereal dt,
+                          doublereal *staten, doublereal *statenp)
 {
   // Local variables 
   int ilayer;
   doublereal z;
   Eigen::Matrix<doublereal,3,3> C;
-  Eigen::Matrix<doublereal,3,1> sigma, epsilon;
   Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon), Sigma(_Sigma);
   Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(_D);
-  std::vector<doublereal> F(9);
-  std::vector<doublereal> _sigma(9);
-  std::vector<doublereal> *__C = (_D) ? new std::vector<doublereal>(9) : NULL;
-  bool UpdateFlag = (_D) ? false : true; // by convention
+
+  SymTensor<double,2> en, enp, stress;
+  Eigen::Map<Eigen::Matrix<doublereal,3,1> > sigma(&stress[0]), epsilon(&enp[0]);
+  SymTensor<SymTensor<double,2>,2> *tm = (_D) ? new SymTensor<SymTensor<double,2>,2>() : NULL;
 
   Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> >,3,3>
     Dm = D.template topLeftCorner<3,3>(),     Dmb = D.template topRightCorner<3,3>(),
@@ -39,7 +39,6 @@ ShellMaterialType4<doublereal,localmaterial>
 
     if(_D) D.setZero();
     Sigma.setZero();
-    F[2] = F[5] = F[6] = F[7] = 0;
 
 //     -------------------------------------------------- 
 //       (NUMERICAL INTEGRATION THROUGH THE THICKNESS)    
@@ -51,30 +50,27 @@ ShellMaterialType4<doublereal,localmaterial>
 
     for (ilayer = 0; ilayer < nlayer; ++ilayer) {
 
-// .....[z] COORDINATE AT THE THRU-THICKNESS GAUSS POINT AND STRAINS
+// .....[z] COORDINATE AT THE THRU-THICKNESS GAUSS POINT
 
         z = nodes[ilayer]*h/2;
 
+// .....COMPUTE THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
+
         epsilon = e + z*chi;
+        epsilon[2] /= 2; // epsilonxy = gammaxy/2
 
 // .....CALCULATE THE LOCAL STRESSES AND CONSISTENT TANGENT ELASTOPLASTIC MODULUS 
 
-        F[0] = 1.0 + epsilon[0]; // xx
-        F[1] = 0.5 * epsilon[2]; // xy
-        F[3] = 0.5 * epsilon[2]; // yx
-        F[4] = 1.0 + epsilon[1]; // yy
-        F[8] = 1.0 - nu/(1-nu)*(epsilon[0]+epsilon[1]); // zz
-
-        if(! mat[nlayer*point+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &_sigma, __C, UpdateFlag, dt) )
-          throw std::runtime_error("ShellMaterialType4::GetConstitutiveResponse failed\n");
-
-        sigma << _sigma[0], _sigma[4], _sigma[1];
+        double *stateni = (staten) ? staten+(nlayer*point+ilayer)*mat->getNumStates() : 0;
+        double *statenpi = (statenp) ? statenp+(nlayer*point+ilayer)*mat->getNumStates() : 0;
 
         if(_D) {
 
-            C << (*__C)[0], (*__C)[1], (*__C)[2],
-                 (*__C)[3], (*__C)[4], (*__C)[5],
-                 (*__C)[6], (*__C)[7], (*__C)[8];
+            mat->integrate(&stress, tm, en, enp, stateni, statenpi, temp, NULL, dt);
+
+            C << (*tm)[0][0], (*tm)[0][1], (*tm)[0][2],
+                 (*tm)[1][0], (*tm)[1][1], (*tm)[1][2],
+                 (*tm)[2][0], (*tm)[2][1], (*tm)[2][2];
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING 
 
@@ -85,10 +81,16 @@ ShellMaterialType4<doublereal,localmaterial>
             Dm += weights[ilayer]  * h/2 * C;
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
+
             Dbm += weights[ilayer]  * h/2 * z * C.transpose();
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
             Dmb += weights[ilayer] * h/2 * z * C;
+
+        }
+        else {
+
+          mat->integrate(&stress, en, enp, stateni, statenpi, temp, NULL, dt);
 
         }
 
@@ -99,23 +101,25 @@ ShellMaterialType4<doublereal,localmaterial>
 
     }
 
-    if(_D) delete __C;
+    if(_D) delete tm;
 }
 
 template<typename doublereal, typename localmaterial>
 void
-ShellMaterialType4<doublereal,localmaterial>
+ShellMaterialType6<doublereal,localmaterial>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *sigma, doublereal z,
                                doublereal*, int nd, doublereal temp, doublereal dt,
-                               doublereal*, doublereal *)
+                               doublereal *staten, doublereal *statenp)
 {
     // Local variables 
     int ilayer;
     doublereal epszz;
-    Eigen::Matrix<doublereal,3,1> epsilon;
     Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon);
     Eigen::VectorBlock< Eigen::Map<Eigen::Matrix<doublereal,6,1> > >
       e = Upsilon.head(3), chi = Upsilon.tail(3);
+
+    SymTensor<double,2> en, enp, stress;
+    Eigen::Map<Eigen::Matrix<doublereal,3,1> > epsilon(&enp[0]);
 
     if(z < 0) ilayer = 0;       // lower surface
     else if(z == 0) ilayer = 1; // median surface
@@ -124,92 +128,34 @@ ShellMaterialType4<doublereal,localmaterial>
 // .....COMPUTE THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
 
     epsilon = e + z * chi;
+    epsilon[2] /= 2; // epsilonxy = gammaxy/2
 
 // .....CALCULATE THE LOCAL STRESSES [sigma] = {sigmaxx,sigmayy,sigmaxy} ON THE SPECIFIED SURFACE
 
-    std::vector<doublereal> F(9);
-    std::vector<doublereal> _sigma(9);
-    F[0] = 1.0 + epsilon[0]; // xx
-    F[1] = 0.5 * epsilon[2]; // xy
-    F[2] = 0.0;              // xz
-    F[3] = 0.5 * epsilon[2]; // yx
-    F[4] = 1.0 + epsilon[1]; // yy
-    F[5] = 0.0;              // yz
-    F[6] = 0.0;              // zx
-    F[7] = 0.0;              // zy
-    F[8] = 1.0 - nu/(1-nu)*(epsilon[0]+epsilon[1]); // zz
+    double *stateni = (staten) ? staten+(nlayer*nd+ilayer)*mat->getNumStates() : 0;
+    double *statenpi = (statenp) ? statenp+(nlayer*nd+ilayer)*mat->getNumStates() : 0;
 
-    mat[nlayer*nd+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &_sigma, NULL, true, dt);
+    mat->integrate(&stress, en, enp, stateni, statenpi, temp, NULL, dt);
 
-    sigma[0] = _sigma[0]; // xx
-    sigma[1] = _sigma[4]; // yy
-    sigma[2] = _sigma[1]; // xy
+    sigma[0] = stress[0]; // xx
+    sigma[1] = stress[1]; // yy
+    sigma[2] = stress[2]; // xy
 }
 
 template<typename doublereal, typename localmaterial>
 void
-ShellMaterialType4<doublereal,localmaterial>
-::SetState(doublereal *state)
+ShellMaterialType6<doublereal,localmaterial>
+::UpdateState(doublereal *_Upsilon, doublereal *staten, doublereal *statenp, int point, doublereal temp, doublereal dt)
 {
-  std::vector<doublereal> PlasticStrain;
-  std::vector<doublereal> BackStress;
-  int l = 0;
-  for(int i = 0; i < maxgus; ++i) {
-    for(int j = 0; j < nlayer; ++j) {
-      // set the internal variables
-      // these should be the converged values at the beginning of the time step  
-      PlasticStrain.clear();
-      for (int k = 0; k < 3; ++k) PlasticStrain.push_back(state[l++]);
-      mat[nlayer*i+j]->SetMaterialPlasticStrain(PlasticStrain);
-      BackStress.clear();
-      for (int k = 0; k < 3; ++k) BackStress.push_back(state[l++]);
-      mat[nlayer*i+j]->SetMaterialBackStress(BackStress);
-      mat[nlayer*i+j]->SetMaterialEquivalentPlasticStrain(state[l++]);
-    }
-  }
-}
+    // Local variables 
+    int ilayer;
+    doublereal z;
+    SymTensor<double,2> en, enp, stress;
+    Eigen::Map<Eigen::Matrix<doublereal,3,1> > epsilon(&enp[0]);
+    Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon);
 
-template<typename doublereal, typename localmaterial>
-void
-ShellMaterialType4<doublereal,localmaterial>
-::GetState(doublereal *state)
-{
-  int l = 0;
-  for(int i = 0; i < maxgus; ++i) {
-    for(int j = 0; j < nlayer; ++j) {
-      // get the internal variables
-      const std::vector<doublereal> &PlasticStrain = mat[nlayer*i+j]->GetMaterialPlasticStrain();
-      state[l++] = PlasticStrain[0];
-      state[l++] = PlasticStrain[1];
-      state[l++] = PlasticStrain[2];
-      const std::vector<doublereal> &BackStress = mat[nlayer*i+j]->GetMaterialBackStress();
-      state[l++] = BackStress[0];
-      state[l++] = BackStress[1];
-      state[l++] = BackStress[2];
-      state[l++] = mat[nlayer*i+j]->GetMaterialEquivalentPlasticStrain();
-    }
-  }
-}
-
-template<typename doublereal, typename localmaterial>
-void
-ShellMaterialType4<doublereal,localmaterial>
-::UpdateState(doublereal *_Upsilon, doublereal *, doublereal *state, int point, doublereal temp, doublereal dt)
-{
-  // Local variables 
-  int ilayer;
-  doublereal z;
-  Eigen::Matrix<doublereal,3,1> epsilon;
-  Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon);
-  std::vector<doublereal> F(9);
-  std::vector<doublereal> sigma(9);
-  std::vector<doublereal> PlasticStrain;
-  std::vector<doublereal> BackStress;
-
-  Eigen::VectorBlock<Eigen::Map<Eigen::Matrix<doublereal,6,1> >,3>
-    e = Upsilon.template head<3>(), chi = Upsilon.template tail<3>();
-
-    F[2] = F[5] = F[6] = F[7] = 0;
+    Eigen::VectorBlock<Eigen::Map<Eigen::Matrix<doublereal,6,1> >,3>
+      e = Upsilon.template head<3>(), chi = Upsilon.template tail<3>();
 
     // hardcoded 5 point Gauss-Legendre rule;
     doublereal nodes[5] = { -0.906179845938664, -0.538469310105683, 0.000000000000000, 0.538469310105683, 0.906179845938664 };
@@ -227,32 +173,24 @@ ShellMaterialType4<doublereal,localmaterial>
            else z = h/2;                 // upper surface
         }
 
-        epsilon = e + z*chi;
+// .....COMPUTE THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
 
-// .....CALCULATE THE LOCAL STRESSES AND UPDATE THE LOCAL STATE (INTERNAL VARIABLES)
+        epsilon = e + z * chi;
+        epsilon[2] /= 2; // epsilonxy = gammaxy/2
 
-        F[0] = 1.0 + epsilon[0]; // xx
-        F[1] = 0.5 * epsilon[2]; // xy
-        F[3] = 0.5 * epsilon[2]; // yx
-        F[4] = 1.0 + epsilon[1]; // yy
-        F[8] = 1.0 - nu/(1-nu)*(epsilon[0]+epsilon[1]); // zz
+// .....CALCULATE THE LOCAL STRESSES [sigma] = {sigmaxx,sigmayy,sigmaxy} AND UPDATE THE LOCAL STATE (INTERNAL VARIABLES)
 
-        mat[nlayer*point+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &sigma, NULL, true, dt);
+        double *stateni = (staten) ? staten+ilayer*mat->getNumStates() : 0;
+        double *statenpi = (statenp) ? statenp+ilayer*mat->getNumStates() : 0;
 
-// .....MAKE A COPY OF THE LOCAL STATE (INTERNAL VARAIBLES)
-
-        PlasticStrain = mat[nlayer*point+ilayer]->GetMaterialPlasticStrain();
-        for (int j = 0; j < 3; ++j) state[7*ilayer+j] = PlasticStrain[j];
-        BackStress = mat[nlayer*point+ilayer]->GetMaterialBackStress();
-        for (int j = 0; j < 3; ++j) state[7*ilayer+3+j] = BackStress[j];
-        state[7*ilayer+6] = mat[nlayer*point+ilayer]->GetMaterialEquivalentPlasticStrain();
+        mat->integrate(&stress, en, enp, stateni, statenpi, temp, NULL, dt);
     }
 }
 
 template<typename doublereal, typename localmaterial>
 std::vector<doublereal>
-ShellMaterialType4<doublereal,localmaterial>
-::GetLocalPlasticStrain(int nd, doublereal z, doublereal *)
+ShellMaterialType6<doublereal,localmaterial>
+::GetLocalPlasticStrain(int nd, doublereal z, doublereal *statenp)
 {
   // return a copy of the 3-vector of plastic strain
   // at node nd, and layer determined by z, as follows:
@@ -261,13 +199,23 @@ ShellMaterialType4<doublereal,localmaterial>
   else if(z == 0) ilayer = 1; // median surface
   else ilayer = 2;            // upper surface
 
-  return mat[nlayer*nd+ilayer]->GetMaterialPlasticStrain();
+  double *statenpi = (statenp) ? statenp+(nlayer*nd+ilayer)*mat->getNumStates() : 0;
+  Tensor_d0s2_Ss12 plasticstrain;
+
+  if(mat->getPlasticStrain(statenpi, &plasticstrain)) {
+    std::vector<doublereal> ret(3);
+    ret[0] = plasticstrain[0]; // xx
+    ret[1] = plasticstrain[3]; // yy
+    ret[2] = plasticstrain[1]; // xy
+    return ret;
+  }
+  else return std::vector<doublereal>();
 }
 
 template<typename doublereal, typename localmaterial>
 std::vector<doublereal>
-ShellMaterialType4<doublereal,localmaterial>
-::GetLocalBackStress(int nd, doublereal z, doublereal *)
+ShellMaterialType6<doublereal,localmaterial>
+::GetLocalBackStress(int nd, doublereal z, doublereal *statenp)
 {
   // return a copy of the 3-vector of back-stress
   // at node nd, and layer determined by z, as follows:
@@ -276,13 +224,24 @@ ShellMaterialType4<doublereal,localmaterial>
   else if(z == 0) ilayer = 1; // median surface
   else ilayer = 2;            // upper surface
 
-  return mat[nlayer*nd+ilayer]->GetMaterialBackStress();
+  double *statenpi = (statenp) ? statenp+(nlayer*nd+ilayer)*mat->getNumStates() : 0;
+  Tensor_d0s2_Ss12 backstress;
+  
+  if(mat->getBackStress(statenpi, &backstress)) {
+    std::vector<doublereal> ret(3);
+    ret[0] = backstress[0]; // xx
+    ret[1] = backstress[3]; // yy
+    ret[2] = backstress[1]; // xy
+    return ret;
+  }
+  else return std::vector<doublereal>();
+
 }
 
 template<typename doublereal, typename localmaterial>
 doublereal
-ShellMaterialType4<doublereal,localmaterial>
-::GetLocalEquivalentPlasticStrain(int nd, doublereal z, doublereal *)
+ShellMaterialType6<doublereal,localmaterial>
+::GetLocalEquivalentPlasticStrain(int nd, doublereal z, doublereal *statenp)
 {
   // return the equivalent plastic strain
   // at node nd, and layer determined by z, as follows:
@@ -291,13 +250,15 @@ ShellMaterialType4<doublereal,localmaterial>
   else if(z == 0) ilayer = 1; // median surface
   else ilayer = 2;            // upper surface
 
-  return mat[nlayer*nd+ilayer]->GetMaterialEquivalentPlasticStrain();
+  double *statenpi = (statenp) ? statenp+(nlayer*nd+ilayer)*mat->getNumStates() : 0;
+
+  return mat->getEquivPlasticStrain(statenpi);
 }
 
 template<typename doublereal, typename localmaterial>
 doublereal
-ShellMaterialType4<doublereal,localmaterial>
-::GetLocalDamage(int nd, doublereal z, doublereal *)
+ShellMaterialType6<doublereal,localmaterial>
+::GetLocalDamage(int nd, doublereal z, doublereal *statenp)
 {
   // return the scalar damage
   // at node nd, and layer determined by z, as follows:
@@ -306,13 +267,15 @@ ShellMaterialType4<doublereal,localmaterial>
   else if(z == 0) ilayer = 1; // median surface
   else ilayer = 2;            // upper surface
 
-  return (mat[nlayer*nd+ilayer]->GetMaterialEquivalentPlasticStrain() >= mat[nlayer*nd+ilayer]->GetEquivalentPlasticStrainAtFailure()) ? 1 : 0;
+  double *statenpi = (statenp) ? statenp+(nlayer*nd+ilayer)*mat->getNumStates() : 0;
+
+  return mat->getDamage(statenpi);
 }
 
 template<typename doublereal, typename localmaterial>
 doublereal
-ShellMaterialType4<doublereal,localmaterial>
-::GetDissipatedEnergy(int point, doublereal *)
+ShellMaterialType6<doublereal,localmaterial>
+::GetDissipatedEnergy(int point, doublereal *statenp)
 { 
     doublereal D = 0;
     int ilayer;
@@ -327,7 +290,9 @@ ShellMaterialType4<doublereal,localmaterial>
 
     for (ilayer = 0; ilayer < nlayer; ++ilayer) {
 
-      D += weights[ilayer]*h/2*mat[nlayer*point+ilayer]->GetDissipatedEnergy();
+      double *statenpi = (statenp) ? statenp+(nlayer*point+ilayer)*mat->getNumStates() : 0;
+
+      D += weights[ilayer]*h/2*mat->getDissipatedEnergy(statenpi);
 
     }
 
@@ -336,132 +301,129 @@ ShellMaterialType4<doublereal,localmaterial>
 
 template<typename doublereal, typename localmaterial>
 bool
-ShellMaterialType4<doublereal,localmaterial>
-::CheckFailure(doublereal *)
+ShellMaterialType6<doublereal,localmaterial>
+::CheckFailure(doublereal *statenp)
 {
+/* XXX
   for(int i = 0; i < nlayer*maxgus; ++i) {
     if(mat[i]->GetMaterialEquivalentPlasticStrain() < mat[i]->GetEquivalentPlasticStrainAtFailure()) return false;
   }
   return true;
+*/
+  return false;
 }
 
 template<typename doublereal, typename localmaterial>
 void
-ShellMaterialType4<doublereal,localmaterial>
+ShellMaterialType6<doublereal,localmaterial>
 ::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D, doublereal *eframe, int gp)
 {
   fprintf(stderr," *** ERROR: Stiffness w.r.t. displacement sensitivity output is \n"
                  "            not implemented for shell element types 15 and 1515 \n"
-                 "            with an elasto-plastic constitutive law.            \n");
+                 "            with a numerically enforced and integrated plane-   \n"
+                 "            stress constitutive law.\n");
   exit(-1);
 }
 
 template<typename doublereal, typename localmaterial>
 void
-ShellMaterialType4<doublereal,localmaterial>
+ShellMaterialType6<doublereal,localmaterial>
 ::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z, doublereal *eframe, int gp)
 {
   fprintf(stderr," *** ERROR: Local stress w.r.t. displacement sensitivity output \n"
                  "            is not implemented for shell element types 15 and   \n"
-                 "            1515 with an elasto-plastic constitutive law.       \n");
+                 "            1515 with a numerically enforced and integrated     \n"
+                 "            plane-stress constitutive law.                      \n");
   exit(-1);
 }
 
 template<typename doublereal, typename localmaterial>
 void
-ShellMaterialType4<doublereal,localmaterial>
+ShellMaterialType6<doublereal,localmaterial>
 ::GetConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dSigmadh, doublereal *dDdh, doublereal *, int, doublereal temp)
 {
   fprintf(stderr," *** ERROR: Stiffness w.r.t. thickness sensitivity output is not\n"
                  "            implemented for shell element types 15 and 1515 with\n"
-                 "            an elasto-plastic constitutive law.                 \n");
+                 "            a numerically enforced and integrated plane-stress  \n"
+                 "            constitutive law.                                   \n");
   exit(-1);
 }
 
 template<typename doublereal, typename localmaterial>
 void
-ShellMaterialType4<doublereal,localmaterial>
+ShellMaterialType6<doublereal,localmaterial>
 ::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal *Upsilon, doublereal *dsigmadh, doublereal dzdh, doublereal *, int)
 {
   fprintf(stderr," *** ERROR: Local stress w.r.t. displacement sensitivity output \n"
                  "            is not implemented for shell element types 15 and   \n"
-                 "            1515 with an elasto-plastic constitutive law.       \n");
+                 "            1515 with a numerically enforced and integrated     \n"
+                 "            plane-stress constitutive law.                      \n");
   exit(-1);
 }
 
-#include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
+#include <Element.d/NonLinearity.d/NLMaterial.h>
 template
 void
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double, double *, double *);
 
 template
 void
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double, double *, double *);
 
 template
 void
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::SetState(double *);
-
-template
-void
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetState(double *);
-
-template
-void
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::UpdateState(double *, double *, double *, int, double, double);
 
 template
 std::vector<double>
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetLocalPlasticStrain(int, double, double *);
 
 template
 std::vector<double>
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetLocalBackStress(int, double, double *);
 
 template
 double
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetLocalEquivalentPlasticStrain(int, double, double *);
 
 template
 double
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetLocalDamage(int, double, double *);
 
 template
 double
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetDissipatedEnergy(int, double *);
 
 template
 bool
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::CheckFailure(double *);
 
 template
 void
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetConstitutiveResponseSensitivityWRTthic(double *, double *, double *, double *, int, double);
 
 template
 void
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetConstitutiveResponseSensitivityWRTdisp(double *, double *, double *, double *, int);
 
 template
 void
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetLocalConstitutiveResponseSensitivityWRTthic(double *, double *, double, double *, int);
 
 template
 void
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+ShellMaterialType6<double,NLMaterial>
 ::GetLocalConstitutiveResponseSensitivityWRTdisp(double *, double *, double, double *, int);
 #endif

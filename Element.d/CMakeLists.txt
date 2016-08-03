@@ -103,6 +103,7 @@ FelippaShell.d/ShellMaterialType1.cpp
 FelippaShell.d/ShellMaterialTypes2And3.cpp
 FelippaShell.d/ShellMaterialType4.cpp
 FelippaShell.d/ShellMaterialType5.cpp
+FelippaShell.d/ShellMaterialType6.cpp
 FluidQuad.d/BarSloshFS.C    FluidTetra.d/HEVibTetra.C
 FluidQuad.d/HEVibQuadGal.C  FluidTetra.d/SloshTetra.C
 FluidQuad.d/SloshQuadGal.C  FluidTriangle3.d/SloshTriangleFS.C

@@ -80,6 +80,14 @@ public:
         bool checkElementDeletion(GeomState &);
         void initStates(double *);
         double getDissipatedEnergy(GeomState &, CoordSet &);
+        void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
+                                 int &nlflag);
+        void getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
+                           GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
+                           double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
+        void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
+                            GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
+                            int measure = -1);
 
         // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
@@ -111,6 +119,14 @@ public:
                                                 double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
         void getInternalForceThicknessSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs, Vector &dFintdThick,
                                                   double dt, double t);
+  private:
+        void getVonMisesImpl(Vector &stress, Vector &weight, CoordSet &cs,
+                             Vector &elDisp, int strInd, int surface,
+                             double *ndTemps, double ylayer, double zlayer,
+                             double *staten = 0, double *statenp = 0);
+        void getAllStressImpl(FullM &stress, Vector &weight, CoordSet &cs,
+                              Vector &elDisp, int strInd, int surface,
+                              double *ndTemps, double *staten = 0, double *statenp = 0);
 };
 #endif
 #endif

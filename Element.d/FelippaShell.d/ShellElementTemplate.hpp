@@ -43,7 +43,8 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
     andesstf(int elm, doublereal *estiff, doublereal *fint, doublereal nu,
              doublereal *x, doublereal *y, doublereal *z, doublereal *u,
              int ctyp, ShellMaterial<doublereal> *gpmat, int flag,
-             int tflg = 1, doublereal *ndtemps = 0, doublereal dt = 0.);
+             int tflg = 1, doublereal *ndtemps = 0, doublereal dt = 0.,
+             doublereal *staten = 0, doublereal *statenp = 0);
 
     static void 
     andesstfWRTthic(int elm, doublereal *destiffdh, doublereal *dfintdh, doublereal nu,
@@ -63,7 +64,8 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
     andesvms(int elm, int maxstr, doublereal nu, doublereal *x, doublereal *y,
              doublereal *z, doublereal *u, doublereal *stress, int ctyp,
              ShellMaterial<doublereal> *nmat, int strainflg, int surface,
-             int sflg, doublereal *ndtemps = 0);
+             int sflg, doublereal *ndtemps = 0, doublereal *staten = 0,
+             doublereal *statenp = 0);
 
     static void
     andesvmsWRTdisp(int elm, doublereal nu, doublereal *x, doublereal *y,
@@ -85,9 +87,10 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
                      int surface, int sflg, doublereal *ndtemps = 0);
 
     static void
-    andesups(int elm, doublereal *state, doublereal *X, doublereal *Y,
+    andesups(int elm, doublereal *staten, doublereal *statenp, doublereal *X, doublereal *Y,
              doublereal *Z, doublereal *v, ShellMaterial<doublereal> *gpmat,
-             ShellMaterial<doublereal> *nmat, int sflg, doublereal dt = 0);
+             ShellMaterial<doublereal> *nmat, int sflg, int tflg, doublereal *ndtemps,
+             doublereal dt = 0);
 
     static void
     andesden(int elm, doublereal *X, doublereal *Y, doublereal *Z,

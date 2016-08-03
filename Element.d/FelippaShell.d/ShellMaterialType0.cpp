@@ -9,7 +9,8 @@
 template<typename doublereal>
 void
 ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                                                        doublereal *, int, doublereal temp, doublereal)
+                                                        doublereal *, int, doublereal temp, doublereal,
+                                                        doublereal *, doublereal *)
 {
   // Initialized data 
   doublereal zero = 0.;
@@ -258,7 +259,8 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthic(double
 template<typename doublereal>
 void
 ShellMaterialType0<doublereal>::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
-                                                             doublereal *, int, doublereal temp, doublereal)
+                                                             doublereal *, int, doublereal temp, doublereal,
+                                                             doublereal *, doublereal *)
 {
     // Local variables
     Eigen::Matrix<doublereal,3,1> epsilon;
@@ -331,12 +333,12 @@ ShellMaterialType0<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthic(d
 template
 void
 ShellMaterialType0<double>
-::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double);
+::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double, double *, double *);
 
 template
 void
 ShellMaterialType0<double>
-::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double);
+::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double, double *, double *);
 
 template
 void

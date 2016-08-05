@@ -1180,7 +1180,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     }
       break;
     case OutputInfo::Temperature:  {
-      if(sinfo.order == 1) {
+      if(sinfo.order == 1 || sinfo.soltyp == 2) {
       double *data = new double[nPrintNodes];
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
@@ -1279,7 +1279,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     }
       break;
     case OutputInfo::TemperatureFirstTimeDerivative:  {
-      if(sinfo.order == 1) {
+      if(sinfo.order == 1 || sinfo.soltyp == 2) {
       double *data = new double[nPrintNodes];
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;

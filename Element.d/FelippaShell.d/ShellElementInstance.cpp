@@ -62,7 +62,7 @@ ShellElementTemplate<double,Membrane,Bending> \
 ::andesvms(int elm, int maxstr, double nu, double *x, double *y, double *z, \
            double *v, double *stress, int ctyp, ShellMaterial<double> *nmat, \
            int strainflg, int surface, int sflg, double *ndtemps, \
-           double *staten, double *statenp); \
+           int flag, double *staten, double *statenp); \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \

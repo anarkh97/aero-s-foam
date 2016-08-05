@@ -64,8 +64,8 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
     andesvms(int elm, int maxstr, doublereal nu, doublereal *x, doublereal *y,
              doublereal *z, doublereal *u, doublereal *stress, int ctyp,
              ShellMaterial<doublereal> *nmat, int strainflg, int surface,
-             int sflg, doublereal *ndtemps = 0, doublereal *staten = 0,
-             doublereal *statenp = 0);
+             int sflg, doublereal *ndtemps = 0, int flag = 1,
+             doublereal *staten = 0, doublereal *statenp = 0);
 
     static void
     andesvmsWRTdisp(int elm, doublereal nu, doublereal *x, doublereal *y,

@@ -123,10 +123,11 @@ public:
         void getVonMisesImpl(Vector &stress, Vector &weight, CoordSet &cs,
                              Vector &elDisp, int strInd, int surface,
                              double *ndTemps, double ylayer, double zlayer,
-                             double *staten = 0, double *statenp = 0);
+                             int flag, double *staten = 0, double *statenp = 0);
         void getAllStressImpl(FullM &stress, Vector &weight, CoordSet &cs,
                               Vector &elDisp, int strInd, int surface,
-                              double *ndTemps, double *staten = 0, double *statenp = 0);
+                              double *ndTemps, int flag, double *staten = 0,
+                              double *statenp = 0);
 };
 #endif
 #endif

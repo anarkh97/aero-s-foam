@@ -1078,7 +1078,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
            doublereal *_v, doublereal *_stress,
            int ctyp, ShellMaterial<doublereal> *nmat, 
            int strainflg, int surface, int sflg,
-           doublereal *ndtemps, doublereal *staten,
+           doublereal *ndtemps, int flag, doublereal *staten,
            doublereal *statenp)
 {
   // Initialized data 
@@ -1175,20 +1175,29 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     FRAME SYSTEM (LOCAL TO THE SHELL ELEMENT)   
 //     ------------------------------------------- 
 
-    for(i = 0; i < 18; i += 3)
-        vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
-
-//     ----------------------------------------------------- 
-//     STEP 5                                                
-//     COMPUTE THE ELEMENTAL EXTENSION AND CURVATURE VECTORS 
-//     ----------------------------------------------------- 
-
+// .....CONSTRUCT THE PERMUTATION MATRIX
     Eigen::Matrix<int,18,1> indices;
     indices << 0, 1, 6, 7, 12, 13, 5, 11, 17, // M indices
                2, 3, 4, 8, 9, 10, 14, 15, 16; // B indices
     Eigen::PermutationMatrix<18,18,int> P(indices);
 
-    vd = P.transpose()*vd;
+    if(flag == 1) {
+
+        for(i = 0; i < 18; i += 3)
+            vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
+
+        vd = P.transpose()*vd;
+    }
+    else {
+        // v is already local
+        vd = P.transpose()*v;
+
+    }
+
+//     ----------------------------------------------------- 
+//     STEP 5                                                
+//     COMPUTE THE ELEMENTAL EXTENSION AND CURVATURE VECTORS 
+//     ----------------------------------------------------- 
 
 // .....COMPUTE THE Z- COORDINATE OF THE SELECTED SURFACE
 

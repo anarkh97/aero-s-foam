@@ -81,7 +81,7 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                           int avgnum)
 
 {
-  getVonMisesImpl(stress, weight, cs, elDisp, strInd, surface, ndTemps, ylayer, zlayer);
+  getVonMisesImpl(stress, weight, cs, elDisp, strInd, surface, ndTemps, ylayer, zlayer, 1);
 }
 
 void
@@ -90,13 +90,26 @@ FelippaShell::getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
                             double ylayer, double zlayer, int avgnum, int measure)
 {
   Vector elDisp(numDofs(), 0.);
-  int flag;
-  Shell3Corotator::extractDeformations(curState, c0, elDisp.data(), flag);
+
+  // Get Nodes original coordinates (C0 configuration)
+  Node &node1 = c0.getNode( n1 );
+  Node &node2 = c0.getNode( n2 );
+  Node &node3 = c0.getNode( n3 );
+
+  // Get Nodes current coordinates (C0n configuration)
+  NodeState &ns1 = curState[ n1 ];
+  NodeState &ns2 = curState[ n2 ];
+  NodeState &ns3 = curState[ n3 ];
+
+  double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3];
+
+  // Extract deformational displacement from C0 to C0n configurations 
+  extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, elDisp.data());
 
   double *staten = refState->getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
   double *statenp = curState.getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
 
-  getVonMisesImpl(stress, weight, c0, elDisp, strIndex, surface, (double*)0, ylayer, zlayer, staten, statenp);
+  getVonMisesImpl(stress, weight, c0, elDisp, strIndex, surface, (double*)0, ylayer, zlayer, 0, staten, statenp);
 }
 
 void
@@ -111,7 +124,7 @@ void
 FelippaShell::getVonMisesImpl(Vector &stress, Vector &weight, CoordSet &cs,
                               Vector &elDisp, int strInd, int surface,
                               double *ndTemps, double ylayer, double zlayer,
-                              double *staten, double *statenp)
+                              int flag, double *staten, double *statenp)
 {
   int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
                 // In this case the higher-order contribution in B matrix is neglected.
@@ -167,7 +180,7 @@ FelippaShell::getVonMisesImpl(Vector &stress, Vector &weight, CoordSet &cs,
 
   Impl::andesvms(glNum+1, maxstr, prop->nu, x, y, z, disp,
                  (double*)elStress, type, nmat, strainFlg,
-                 surface, sflg, ndTemps, staten, statenp);
+                 surface, sflg, ndTemps, flag, staten, statenp);
 
   stress[0] = elStress[0][strInd-offset];
   stress[1] = elStress[1][strInd-offset];
@@ -179,7 +192,7 @@ FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                            Vector &elDisp, int strInd, int surface,
                            double *ndTemps)
 {
-  getAllStressImpl(stress, weight, cs, elDisp, strInd, surface, ndTemps);
+  getAllStressImpl(stress, weight, cs, elDisp, strInd, surface, ndTemps, 1);
 }
 
 void
@@ -188,19 +201,32 @@ FelippaShell::getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
                              int measure)
 {
   Vector elDisp(numDofs(), 0.);
-  int flag;
-  Shell3Corotator::extractDeformations(curState, c0, elDisp.data(), flag);
+
+  // Get Nodes original coordinates (C0 configuration)
+  Node &node1 = c0.getNode( n1 );
+  Node &node2 = c0.getNode( n2 );
+  Node &node3 = c0.getNode( n3 );
+
+  // Get Nodes current coordinates (C0n configuration)
+  NodeState &ns1 = curState[ n1 ];
+  NodeState &ns2 = curState[ n2 ];
+  NodeState &ns3 = curState[ n3 ];
+
+  double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3];
+
+  // Extract deformational displacement from C0 to C0n configurations 
+  extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, elDisp.data());
 
   double *staten = refState->getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
   double *statenp = curState.getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
 
-  getAllStressImpl(stress, weight, c0, elDisp, strInd, surface, (double*)0, staten, statenp);
+  getAllStressImpl(stress, weight, c0, elDisp, strInd, surface, (double*)0, 0, staten, statenp);
 }
 
 void
 FelippaShell::getAllStressImpl(FullM &stress, Vector &weight, CoordSet &cs,
                                Vector &elDisp, int strInd, int surface,
-                               double *ndTemps, double *staten, double *statenp)
+                               double *ndTemps, int flag, double *staten, double *statenp)
 {
   int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
                 // In this case the higher-order contribution in B matrix is neglected.
@@ -224,7 +250,7 @@ FelippaShell::getAllStressImpl(FullM &stress, Vector &weight, CoordSet &cs,
 
   Impl::andesvms(glNum+1, maxstr, prop->nu, x, y, z, disp,
                  (double*)elStress, type, nmat, strInd,
-                 surface, sflg, ndTemps, staten, statenp);
+                 surface, sflg, ndTemps, flag, staten, statenp);
 
   // Store all Stress or all Strain as defined by strInd
   int i,j;
@@ -864,7 +890,7 @@ FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &
     double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18];
 
     // Extract deformational displacement from C0 to C0n configurations
-    extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
+    extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld);
 
     double *staten;
     if(refState) {

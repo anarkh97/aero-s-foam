@@ -85,6 +85,35 @@ PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, do
 }
 
 template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
+                                             double p9, double p10, double p11, double p12, double p13, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
+                                             double p9, double p10, double p11, double p12, double p13, double p14, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
+                                             double p9, double p10, double p11, double p12, double p13, double p14, double p15, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15), t(_t)
+{
+}
+
+template<typename BaseMaterial>
+PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
+                                             double p9, double p10, double p11, double p12, double p13, double p14, double p15,
+                                             double p16, double _t)
+: BaseMaterial(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16), t(_t)
+{
+}
+
+template<typename BaseMaterial>
 int
 PlaneStressMat<BaseMaterial>::getNumStates()
 {
@@ -247,6 +276,14 @@ PlaneStressMat<ElaLinIsoMat>::getGenStrainEvaluator()
 template<>
 inline
 GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<BrittleFractureTB<ElaLinIsoMat> >::getGenStrainEvaluator()
+{
+  return &linStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
 PlaneStressMat<ElasPlasKinHardMat<0> >::getGenStrainEvaluator()
 {
   return &linStrain2D;
@@ -257,6 +294,14 @@ inline
 GenStrainEvaluator<TwoDTensorTypes<9> > *
 PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >::getGenStrainEvaluator()
 {
+  return &linStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> > >::getGenStrainEvaluator()
+{ 
   return &linStrain2D;
 }
 
@@ -273,8 +318,24 @@ PlaneStressMat<StVenantKirchhoffMat>::getGenStrainEvaluator()
 template<>
 inline
 GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<BrittleFractureTB<StVenantKirchhoffMat> >::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
 PlaneStressMat<PronyViscoElastic<StVenantKirchhoffMat> >::getGenStrainEvaluator()
 {
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> > >::getGenStrainEvaluator()
+{ 
   return &glStrain2D;
 }
 
@@ -297,7 +358,23 @@ PlaneStressMat<NeoHookeanMat>::getGenStrainEvaluator()
 template<>
 inline
 GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<BrittleFractureTB<NeoHookeanMat> >::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
 PlaneStressMat<PronyViscoElastic<NeoHookeanMat> >::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<BrittleFractureTB<PronyViscoElastic<NeoHookeanMat> > >::getGenStrainEvaluator()
 {
   return &glStrain2D;
 }
@@ -313,7 +390,23 @@ PlaneStressMat<MooneyRivlinMat>::getGenStrainEvaluator()
 template<>
 inline
 GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<BrittleFractureTB<MooneyRivlinMat> >::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
 PlaneStressMat<PronyViscoElastic<MooneyRivlinMat> >::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+
+template<>
+inline
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+PlaneStressMat<BrittleFractureTB<PronyViscoElastic<MooneyRivlinMat> > >::getGenStrainEvaluator()
 {
   return &glStrain2D;
 }

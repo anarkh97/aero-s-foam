@@ -16,24 +16,24 @@ ShellMaterialType6<doublereal,localmaterial>
                           doublereal*, int point, doublereal temp, doublereal dt,
                           doublereal *staten, doublereal *statenp)
 {
-  // Local variables 
-  int ilayer;
-  doublereal z;
-  Eigen::Matrix<doublereal,3,3> C;
-  Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon), Sigma(_Sigma);
-  Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(_D);
+    // Local variables 
+    int ilayer;
+    doublereal z;
+    Eigen::Matrix<doublereal,3,3> Ch;
+    Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon), Sigma(_Sigma);
+    Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(_D);
 
-  SymTensor<double,2> en, enp, stress;
-  Eigen::Map<Eigen::Matrix<doublereal,3,1> > sigma(&stress[0]), epsilon(&enp[0]);
-  SymTensor<SymTensor<double,2>,2> *tm = (_D) ? new SymTensor<SymTensor<double,2>,2>() : NULL;
+    SymTensor<double,2> en, enp, stress;
+    Eigen::Map<Eigen::Matrix<doublereal,3,1> > sigmah(&stress[0]), epsilon(&enp[0]);
+    SymTensor<SymTensor<double,2>,2> *tm = (_D) ? new SymTensor<SymTensor<double,2>,2>() : NULL;
 
-  Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> >,3,3>
-    Dm = D.template topLeftCorner<3,3>(),     Dmb = D.template topRightCorner<3,3>(),
-    Dbm = D.template bottomLeftCorner<3,3>(), Db = D.template bottomRightCorner<3,3>();
-  Eigen::VectorBlock<Eigen::Map<Eigen::Matrix<doublereal,6,1> >,3>
-    e = Upsilon.template head<3>(), chi = Upsilon.template tail<3>();
-  Eigen::VectorBlock<Eigen::Map<Eigen::Matrix<doublereal,6,1> >,3>
-    N = Sigma.template head<3>(), M = Sigma.template tail<3>();
+    Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> >,3,3>
+      Dm = D.template topLeftCorner<3,3>(),     Dmb = D.template topRightCorner<3,3>(),
+      Dbm = D.template bottomLeftCorner<3,3>(), Db = D.template bottomRightCorner<3,3>();
+    Eigen::VectorBlock<Eigen::Map<Eigen::Matrix<doublereal,6,1> >,3>
+      e = Upsilon.template head<3>(), chi = Upsilon.template tail<3>();
+    Eigen::VectorBlock<Eigen::Map<Eigen::Matrix<doublereal,6,1> >,3>
+      N = Sigma.template head<3>(), M = Sigma.template tail<3>();
 
 // .....CLEAR THE CONSTITUTIVE MATRIX AND GENERALIZED STRESS VECTOR 
 
@@ -68,24 +68,25 @@ ShellMaterialType6<doublereal,localmaterial>
 
             mat->integrate(&stress, tm, en, enp, stateni, statenpi, temp, NULL, dt);
 
-            C << (*tm)[0][0], (*tm)[0][1], (*tm)[0][2],
-                 (*tm)[1][0], (*tm)[1][1], (*tm)[1][2],
-                 (*tm)[2][0], (*tm)[2][1], (*tm)[2][2];
+            Ch << (*tm)[0][0], (*tm)[0][1], (*tm)[0][2],
+                  (*tm)[1][0], (*tm)[1][1], (*tm)[1][2],
+                  (*tm)[2][0], (*tm)[2][1], (*tm)[2][2];
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING 
 
-            Db += weights[ilayer] * h/2 * z * z * C;
+            Db += weights[ilayer] * 1./2 * z * z * Ch;
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
 
-            Dm += weights[ilayer]  * h/2 * C;
+            Dm += weights[ilayer] * 1./2 * Ch;
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
 
-            Dbm += weights[ilayer]  * h/2 * z * C.transpose();
+            Dbm += weights[ilayer] * 1./2 * z * Ch.transpose();
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
-            Dmb += weights[ilayer] * h/2 * z * C;
+
+            Dmb += weights[ilayer] * 1./2 * z * Ch;
 
         }
         else {
@@ -96,8 +97,8 @@ ShellMaterialType6<doublereal,localmaterial>
 
 // .....ASSEMBLE THE GENERALIZED "STRESSES"
 
-        N += weights[ilayer] * h/2 * sigma;
-        M += weights[ilayer] * h/2 * z * sigma;
+        N += weights[ilayer] * 1./2 * sigmah;
+        M += weights[ilayer] * 1./2 * z * sigmah;
 
     }
 
@@ -137,9 +138,9 @@ ShellMaterialType6<doublereal,localmaterial>
 
     mat->integrate(&stress, en, enp, stateni, statenpi, temp, NULL, dt);
 
-    sigma[0] = stress[0]; // xx
-    sigma[1] = stress[1]; // yy
-    sigma[2] = stress[2]; // xy
+    sigma[0] = stress[0]/h; // xx
+    sigma[1] = stress[1]/h; // yy
+    sigma[2] = stress[2]/h; // xy
 }
 
 template<typename doublereal, typename localmaterial>
@@ -235,7 +236,6 @@ ShellMaterialType6<doublereal,localmaterial>
     return ret;
   }
   else return std::vector<doublereal>();
-
 }
 
 template<typename doublereal, typename localmaterial>
@@ -304,13 +304,11 @@ bool
 ShellMaterialType6<doublereal,localmaterial>
 ::CheckFailure(doublereal *statenp)
 {
-/* XXX
   for(int i = 0; i < nlayer*maxgus; ++i) {
-    if(mat[i]->GetMaterialEquivalentPlasticStrain() < mat[i]->GetEquivalentPlasticStrainAtFailure()) return false;
+    if(mat->getDamage(statenp) < 1) return false;
+    statenp += mat->getNumStates();
   }
   return true;
-*/
-  return false;
 }
 
 template<typename doublereal, typename localmaterial>

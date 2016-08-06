@@ -98,6 +98,7 @@ class GenGaussIntgElement : public MatNLElement
     void getVonMisesStress(Node *nodes, double *dispn, double *staten,
                            double *dispnp, double *statenp, double *result,
                            int avgnum, double *temps);
+    bool checkFailure(double *state);
 };
 
 template <class TensorTypes>
@@ -807,6 +808,17 @@ GenGaussIntgElement<TensorType>::getVonMisesStress(Node *nodes, double *dispn, d
   }
 
   delete [] gpstress;
+}
+
+template <class TensorType>
+bool
+GenGaussIntgElement<TensorType>::checkFailure(double *statenp)
+{
+  NLMaterial *material = getMaterial();
+  for(int i = 0; i < getNumGaussPoints(); i++) {
+    if(material->getDamage(statenp + i*material->getNumStates()) < 1) return false;
+  }
+  return true;
 }
 
 #endif

@@ -4886,12 +4886,23 @@ MatSpec:
          }
         | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float Float Float Float NewLine
          {
-           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
-             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13) );
+           if($13 > 0 && $13 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13, $12) );
              domain->solInfo().elementDeletion = true;
            }
            else {
-             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13) );
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+           }
+         }
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($13 > 0 && $13 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13, $14, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11,
+                                    std::numeric_limits<double>::infinity(), $14, $12) );
            }
          }
         | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float NewLine
@@ -4911,12 +4922,23 @@ MatSpec:
          }
         | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float Float NewLine
          {
-           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
-             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, $13) );
+           if($13 > 0 && $13 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13, $12) );
              domain->solInfo().elementDeletion = true;
            }
            else {
-             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13) );
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+           }
+         }
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($13 > 0 && $13 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13, $14, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11,
+                                    std::numeric_limits<double>::infinity(), $14, $12) );
            }
          }
         | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine

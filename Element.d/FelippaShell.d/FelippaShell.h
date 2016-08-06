@@ -10,6 +10,7 @@ template <typename doublereal> class ShellMaterial;
 class FelippaShell : public Element, 
                      public Shell3Corotator
 {
+        static int sflg, tflg; // see comments in ShellElementTemplate.hpp
         int      nn[3];
         int      type;
         double  *cFrame;

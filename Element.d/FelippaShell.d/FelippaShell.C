@@ -34,6 +34,9 @@ typedef ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle> Im
 extern int verboseFlag;
 extern SolverInfo &solInfo;
 
+int FelippaShell::sflg = 1;
+int FelippaShell::tflg = 1;
+
 FelippaShell::FelippaShell(int* nodenums)
 {
   nn[0] = nodenums[0];
@@ -126,8 +129,6 @@ FelippaShell::getVonMisesImpl(Vector &stress, Vector &weight, CoordSet &cs,
                               double *ndTemps, double ylayer, double zlayer,
                               int flag, double *staten, double *statenp)
 {
-  int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
-                // In this case the higher-order contribution in B matrix is neglected.
   weight = 1.0;
 
   int strainFlg, offset;
@@ -228,8 +229,6 @@ FelippaShell::getAllStressImpl(FullM &stress, Vector &weight, CoordSet &cs,
                                Vector &elDisp, int strInd, int surface,
                                double *ndTemps, int flag, double *staten, double *statenp)
 {
-  int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
-                // In this case the higher-order contribution in B matrix is neglected.
   weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
@@ -332,7 +331,7 @@ FelippaShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
   Impl::andesmm(glNum+1, x, y, z, mel, rhoh, mflg);
 
-  FullSquareMatrix ret(18,mel);
+  FullSquareMatrix ret(18, mel);
 
   return ret;
 }
@@ -566,7 +565,7 @@ FelippaShell::stiffness(CoordSet &cs, double *d, int flg)
   double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
   double *fint = NULL;
 
-  Impl::andesstf(glNum+1, d, fint, prop->nu, x, y, z, disp, type, gpmat, flg);
+  Impl::andesstf(glNum+1, d, fint, prop->nu, x, y, z, disp, type, gpmat, flg, tflg);
 
   FullSquareMatrix ret(18,d);
 
@@ -672,8 +671,13 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
     double *staten = refState->getElemState(getGlNum()) + subNum*numStates();
     double *statenp = geomState.getElemState(getGlNum()) + subNum*numStates();
 
-    Impl::andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, gpmat, 0, 1, (double*)NULL, dt,
-                   staten, statenp);
+    // get the nodal temperatures
+    Vector ndTemps(3);
+    int nodeNum[3] = { n1, n2, n3 };
+    geomState.get_temperature(3, nodeNum, ndTemps, prop->Ta);
+
+    Impl::andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, gpmat, 0,
+                   tflg, ndTemps.data(), dt, staten, statenp);
 
     if(numStates() > 0) {
       double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
@@ -827,8 +831,13 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
     double *staten = refState->getElemState(getGlNum()) + subNum*numStates();
     double *statenp = geomState.getElemState(getGlNum()) + subNum*numStates();
 
-    Impl::andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0, 1, (double*)NULL, dt,
-                   staten, statenp);
+    // get the nodal temperatures
+    Vector ndTemps(3);
+    int nodeNum[3] = { n1, n2, n3 };
+    geomState.get_temperature(3, nodeNum, ndTemps, prop->Ta);
+
+    Impl::andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0,
+                   tflg, ndTemps.data(), dt, staten, statenp);
 
     if(numStates() > 0) {
       double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
@@ -912,11 +921,13 @@ FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &
 
     double *statenp = geomState.getElemState(getGlNum()) + subNum*numStates();
 
-    int sflg = 1;
-    int tflg = 1;
-    double *ndTemps = NULL; // XXX
+    // get the nodal temperatures
+    Vector ndTemps(3);
+    int nodeNum[3] = { n1, n2, n3 };
+    geomState.get_temperature(3, nodeNum, ndTemps, prop->Ta);
 
-    Impl::andesups(glNum+1, staten, statenp, x, y, z, vld, gpmat, nmat, sflg, tflg, ndTemps, dt);
+    Impl::andesups(glNum+1, staten, statenp, x, y, z, vld, gpmat, nmat, sflg,
+                   tflg, ndTemps.data(), dt);
 
     if(!refState) delete [] staten;
   }
@@ -1245,10 +1256,11 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 }
 
 void
-FelippaShell::getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce, int glflag, GeomState *)
+FelippaShell::getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce, int glflag, GeomState *geomState)
 {
   // force is returned in global coordinates if glflag = 0
-  if(prop == NULL) {
+  // for nonlinear analyses with nonlinear material law, the thermal load for this element is now computed in getStiffAndForce
+  if(prop == NULL || (geomState && type == 4)) {
     elThermalForce.zero();
     return;
   }
@@ -1266,7 +1278,6 @@ FelippaShell::getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalFo
   double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
 
   int flg = (glflag == 0) ? 1 : 0;
-  int tflg = 1;
   Impl::andesstf(glNum+1, (double *)NULL, elThermalForce.data(), prop->nu,
                  x, y, z, disp, type, gpmat, flg, tflg, ndTemps.data());
   elThermalForce *= -1;
@@ -1403,7 +1414,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
 
   double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
   Impl::andesstfWRTthic(glNum+1, dStiffdThick.data(), (double*)NULL, prop->nu,
-                        x, y, z, disp, type, gpmat, flg);
+                        x, y, z, disp, type, gpmat, flg, tflg);
 }
 
 void 
@@ -1432,7 +1443,7 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
   Impl::andesstfWRTcoord(glNum+1, data, prop->E, prop->nu,
                          prop->rho, prop->eh, prop->Ta, prop->W,
                          cFrame, x, y, z, type,
-                         gpmat->GetCoefOfConstitutiveLaw(), flg);
+                         gpmat->GetCoefOfConstitutiveLaw(), flg, tflg);
 }
 
 void 
@@ -1460,8 +1471,6 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-  int sflg = 1;
-
   Impl::andesvmsWRTthic(glNum+1, prop->nu, x, y, z, elDisp.data(),
                         dStdThick.getData(), type, nmat, surface,
                         sflg, ndTemps);
@@ -1483,8 +1492,6 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
-
-  int sflg = 1;
 
   Impl::andesvmsWRTcoord(glNum+1, prop->E, prop->nu, prop->rho,
                          prop->eh, prop->Ta, prop->W, cFrame,
@@ -1511,8 +1518,6 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
   double* disp = elDisp.data();
-
-  int sflg = 1;
 
   Impl::andesvmsWRTdisp(glNum+1, prop->nu, x, y, z, elDisp.data(),
                         dStdDisp.getData(), type, nmat, surface,
@@ -1570,7 +1575,7 @@ FelippaShell::getInternalForceThicknessSensitivity(GeomState *refState, GeomStat
   x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
   x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-  Impl::andesstfWRTthic(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0);
+  Impl::andesstfWRTthic(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0, tflg);
 
   // Compute gradients of the nodal deformational pseudorotations
   // Correct element stiffness and internal force

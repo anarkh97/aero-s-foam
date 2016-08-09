@@ -2498,6 +2498,15 @@ void GeoSource::getTextDecomp(bool sowering)
     cx[isub+1] = cEle;
     }*/
 
+  if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {
+    optDec = new Decomposition();
+    optDec->nsub = numSub;
+    optDec->pele = new int[numSub+1];
+    optDec->eln  = new int[curEle];
+    for(int i=0; i<=numSub; i++) optDec->pele[i] = cx[i];
+    for(int i=0; i<curEle; i++) optDec->eln[i] = connect[i];
+  }
+
   subToElem = new Connectivity(numSub,cx,connect);
 
   subToElem->renumberTargets(glToPckElems);

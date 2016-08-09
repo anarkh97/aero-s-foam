@@ -1213,19 +1213,27 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 {
   // Update incremental translational displacements and rotations
   int inode;
+  NFrameData *cd;
   for(inode=0; inode<numnodes; ++inode) {
 
     if(flag[inode] == -1) continue; // inequality constraint lagrange multiplier dof
 
-    // Update incremental translational displacements
-    double d[3] = { ns[inode].x - ss[inode].x,
-                    ns[inode].y - ss[inode].y,
-                    ns[inode].z - ss[inode].z };
-    NFrameData *cd = X0->dofFrame(inode);
-    if(cd) cd->transformVector3(d);
-    if(loc[inode][0] >= 0) incVec[loc[inode][0]] = d[0];
-    if(loc[inode][1] >= 0) incVec[loc[inode][1]] = d[1];
-    if(loc[inode][2] >= 0) incVec[loc[inode][2]] = d[2];
+    else if(flag[inode] == 0 && inode >= ss.numNodes()) {
+      if(loc[inode][0] >= 0) incVec[loc[inode][0]] = ns[inode].x;
+      cd = 0;
+    }
+
+    else {
+      // Update incremental translational displacements
+      double d[3] = { ns[inode].x - ss[inode].x,
+                      ns[inode].y - ss[inode].y,
+                      ns[inode].z - ss[inode].z };
+      cd = X0->dofFrame(inode);
+      if(cd) cd->transformVector3(d);
+      if(loc[inode][0] >= 0) incVec[loc[inode][0]] = d[0];
+      if(loc[inode][1] >= 0) incVec[loc[inode][1]] = d[1];
+      if(loc[inode][2] >= 0) incVec[loc[inode][2]] = d[2];
+    }
     
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
       if(zeroRot) {

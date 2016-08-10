@@ -505,22 +505,33 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
 
     preProcessLocal(allOps, j);
 
-    // Training target (solver_.rhsBuffer) is the sum of elementary contributions
-#ifdef PRINT_ESTIMERS
-    double t2 = getTime();
-#endif
-    for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
-    assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_, j);
-#ifdef PRINT_ESTIMERS
-    fprintf(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
-#endif
-
     Vector solution;
-    computeSolution(solution, domain_->solInfo().tolPodRom);
 
+    if (geoSource->elementLumpingWeightSize() == 0 || geoSource->elementLumpingWeightLocalSize(0) == 0) {
+        // Training target (solver_.rhsBuffer) is the sum of elementary contributions
+      #ifdef PRINT_ESTIMERS
+          double t2 = getTime();
+      #endif
+          for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
+          assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_, j);
+      #ifdef PRINT_ESTIMERS
+          fprintf(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
+      #endif
+
+          computeSolution(solution, domain_->solInfo().tolPodRom);
+    }
+    else {
+        solution.initialize(elementCount());
+        for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {
+          for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(j),
+                                                          it_end = geoSource->elementLumpingWeightEnd(j);
+                it != it_end; ++it) {
+                solution[it->first] = it->second;
+          }
+       }
+    } 
     postProcessLocal(solution, packedToInput, j, sampleElemIds, weights[j]);
   }
-
   postProcessGlobal(sampleElemIds, weights);
 }
 
@@ -1002,10 +1013,13 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
 
   const int podVectorCount = podBasis_.vectorCount();
 
-  // Read some displacement snapshots from one or more files and project them on to the basis
-  readAndProjectSnapshots(BasisId::STATE, vectorSize(), podBasis_, vecDofConversion,
-                          snapshotCounts_, timeStamps_, displac_, allOps.M,
-                          ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
+  // Optionally, read some displacement snapshots from one or more files and project them on to the basis
+  if (!domain_->solInfo().statePodRomFile.empty())
+    readAndProjectSnapshots(BasisId::STATE, vectorSize(), podBasis_, vecDofConversion,
+                              snapshotCounts_, timeStamps_, displac_, allOps.M,
+                              ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
+  else
+    snapshotCounts_.push_back(0);
 
   // Optionally, read some velocity snapshots and project them on to the reduced order basis
   if(!domain_->solInfo().velocPodRomFile.empty()) {

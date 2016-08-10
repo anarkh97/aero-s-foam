@@ -52,6 +52,8 @@ class SimoPlasticMat : public NLMaterial
 
     StrainEvaluator * getStrainEvaluator();
 
+    double getDensity() { return rho; }
+
     double getEquivPlasticStrain(double *statenp);
 
     bool getBackStress(double *statenp, Tensor *backstress);

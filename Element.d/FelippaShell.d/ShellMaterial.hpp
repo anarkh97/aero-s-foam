@@ -182,12 +182,9 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
     localmaterial **mat;
     int nlayer;     // number of material points through the thickness of the shell
     int maxgus;     // number of material points over the area of the shell, per layer
-    doublereal Ta;  // ambient temperature
-    doublereal w;   // coefficient of thermal expansion
   public:
-    ShellMaterialType4(doublereal _h, doublereal _nu, doublereal _rho, localmaterial *_mat, int _nlayer, int _maxgus,
-                       doublereal _Ta = 0., doublereal _w = 0.)
-      : h(_h), nu(_nu), rho(_rho), nlayer(_nlayer), maxgus(_maxgus), Ta(_Ta), w(_w) {
+    ShellMaterialType4(doublereal _h, doublereal _nu, doublereal _rho, localmaterial *_mat, int _nlayer, int _maxgus)
+      : h(_h), nu(_nu), rho(_rho), nlayer(_nlayer), maxgus(_maxgus) {
       mat = new localmaterial * [_nlayer*_maxgus];
       for (int i = 0; i < _nlayer*_maxgus; ++i) mat[i] = _mat->Clone();
     }
@@ -204,8 +201,8 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
                                       doublereal *staten = 0, doublereal *statenp = 0);
     doublereal GetShellThickness() { return h; }
     doublereal GetAreaDensity() { return rho*h; }
-    doublereal GetAmbientTemperature() { return Ta; }
-    int GetNumStates() { return nlayer*maxgus*7; } // TODO 7 should be provided by the localmaterial
+    doublereal GetAmbientTemperature() { return 0.; }
+    int GetNumStates() { return nlayer*maxgus*7; }
     int GetNumLocalStates() { return 7; }
     void SetState(doublereal *state);
     void GetState(doublereal *state);
@@ -273,17 +270,13 @@ template<typename doublereal, typename localmaterial>
 class ShellMaterialType6 : public ShellMaterial<doublereal>
 {
     doublereal h;   // shell thickness
-    doublereal nu;  // Poisson's ratio
     doublereal rho; // density
     localmaterial *mat;
     int nlayer;     // number of material points through the thickness of the shell
     int maxgus;     // number of material points over the area of the shell, per layer
-    doublereal Ta;  // ambient temperature
-    doublereal w;   // coefficient of thermal expansion
   public:
-    ShellMaterialType6(doublereal _h, doublereal _nu, doublereal _rho, localmaterial *_mat, int _nlayer, int _maxgus,
-                       doublereal _Ta = 0., doublereal _w = 0.)
-      : h(_h), nu(_nu), rho(_rho), mat(_mat), nlayer(_nlayer), maxgus(_maxgus), Ta(_Ta), w(_w) {}
+    ShellMaterialType6(localmaterial *_mat, int _nlayer, int _maxgus)
+      : h(_mat->getThickness()), rho(_mat->getDensity()), mat(_mat), nlayer(_nlayer), maxgus(_maxgus) {}
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                  doublereal *eframe, int gp, doublereal temp, doublereal dt = 0,
@@ -293,7 +286,7 @@ class ShellMaterialType6 : public ShellMaterial<doublereal>
                                       doublereal *staten = 0, doublereal *statenp = 0);
     doublereal GetShellThickness() { return h; }
     doublereal GetAreaDensity() { return rho*h; }
-    doublereal GetAmbientTemperature() { return Ta; }
+    doublereal GetAmbientTemperature() { return mat->getReferenceTemperature(); }
     int GetNumStates() { return nlayer*maxgus*mat->getNumStates(); }
     int GetNumLocalStates() { return mat->getNumStates(); }
     void UpdateState(doublereal *Upsilon, doublereal *staten, doublereal *statenp, int gp, doublereal temp, doublereal dt = 0);

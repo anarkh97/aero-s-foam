@@ -64,6 +64,8 @@ class NLMaterial
 
      virtual double getThickness() { return 0; }
 
+     virtual double getReferenceTemperature() { return 0; }
+
      virtual double getPosdefifyTol() { return -1; }
 
      virtual void print(std::ostream &out) const {

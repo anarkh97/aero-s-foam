@@ -59,6 +59,8 @@ class ElasPlasKinHardMat : public NLMaterial
 
     double getDensity() { return rho; }
 
+    double getReferenceTemperature() { return Tref; }
+
     StrainEvaluator * getStrainEvaluator();
 
     double getEquivPlasticStrain(double *statenp) { return statenp[12]; }

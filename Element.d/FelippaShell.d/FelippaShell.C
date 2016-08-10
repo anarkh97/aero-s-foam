@@ -13,6 +13,7 @@
 #include <Element.d/FelippaShell.d/FelippaShell.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
+#include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Element.d/State.h>
 #include <Hetero.d/InterpPoint.h>
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
@@ -491,7 +492,7 @@ FelippaShell::setMaterial(NLMaterial *_mat)
 {
   if(!prop) return; // phantom element
   ExpMat *expmat = dynamic_cast<ExpMat *>(_mat);
-  if(expmat && expmat->optctv == 5) { // old (deprecated) parser
+  if(expmat && expmat->optctv == 5) { // deprecated
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
     double sigmaY = expmat->ematpro[3], K = expmat->ematpro[4], H = expmat->ematpro[5];
@@ -508,30 +509,27 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     }
     type = 4;
     if(gpmat) delete gpmat;
-    gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 5, 3,
-                                                                                              prop->Ta, prop->W);
-    nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 3, 3,
-                                                                                             prop->Ta, prop->W);
+    gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 5, 3);
+    nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 3, 3);
     delete mat;
   }
-  else { // new parser
+  else {
     MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial> *mat 
       = dynamic_cast<MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial> *>(_mat);
     if(mat) {
       type = 4;
       if(gpmat) delete gpmat;
-      gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 5, 3,
-                                                                                                prop->Ta, prop->W);
-      nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 3, 3,
-                                                                                               prop->Ta, prop->W);
+      gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 5, 3);
+      nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 3, 3);
     }
     else {
-      // XXX check if _mat is PlaneStressMat and strain evaluator is LinearStrain2D.
-      //throw std::runtime_error("Unsupported material type\n");
-      type = 4;
-      if(gpmat) delete gpmat;
-      gpmat = new ShellMaterialType6<double,NLMaterial>(prop->eh, prop->nu, prop->rho, _mat, 5, 3, prop->Ta, prop->W);
-      nmat = new ShellMaterialType6<double,NLMaterial>(prop->eh, prop->nu, prop->rho, _mat, 3, 3, prop->Ta, prop->W);
+      if(_mat->getGenStrainEvaluator() && !_mat->getGenStrainEvaluator()->isNonLinear()) {
+        type = 4;
+        if(gpmat) delete gpmat;
+        gpmat = new ShellMaterialType6<double,NLMaterial>(_mat, 5, 3);
+        nmat = new ShellMaterialType6<double,NLMaterial>(_mat, 3, 3);
+      }
+      else fprintf(stderr, " *** WARNING: Trying to use Material on unsupported element!\n");
     }
   }
 }

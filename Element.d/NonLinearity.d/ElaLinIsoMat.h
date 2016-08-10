@@ -53,6 +53,8 @@ class ElaLinIsoMat : public NLMaterial
 
     double getDensity() { return rho; }
 
+    double getReferenceTemperature() { return Tref; }
+
     StrainEvaluator * getStrainEvaluator();
 
     double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);

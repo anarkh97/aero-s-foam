@@ -38,7 +38,11 @@ class ElaLinIsoMat2D : public NLMaterial
 
      GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();
 
+     double getDensity() { return rho; }
+
      double getThickness() { return t; }
+
+     double getReferenceTemperature() { return Tref; }
 };
 
 // same equation as ElaLinIsoMat2D but with different Green-Lagrange strain evaluator

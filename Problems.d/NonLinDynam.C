@@ -349,7 +349,7 @@ NonLinDynamic::updateContactSurfaces(GeomState& geomState, GeomState *refState)
 
   domain->UpdateContactSurfaceElements(&geomState);
   factor = false;
-  preProcess();
+  NonLinDynamic::preProcess();
   geomState.resizeLocAndFlag(*domain->getCDSA());
   if(refState) refState->resizeLocAndFlag(*domain->getCDSA());
 }

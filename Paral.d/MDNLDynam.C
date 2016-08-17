@@ -882,6 +882,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
   SolverInfo& sinfo = domain->solInfo();
   if(sinfo.aeroFlag >= 0 && tIndex >= 0) {
 
+    domain->getTimers().receiveFluidTime -= getTime();
     aeroForce->zero();
     int iscollocated;
     double tFluid = distFlExchanger->getFluidLoad(*aeroForce, tIndex, t,
@@ -912,6 +913,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
     *prevFrc = *aeroForce;
     prevTime = tFluid;
     prevIndex = tIndex;
+    domain->getTimers().receiveFluidTime += getTime();
   }
 
   // AEROH
@@ -1240,6 +1242,7 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
 {  
   if(domain->solInfo().aeroFlag >= 0 && !domain->solInfo().lastIt) {
 
+    domain->getTimers().sendFluidTime -= getTime();
     // update the geomState according to the USDD prescribed displacements
     if(claw && userSupFunc) {
       if(claw->numUserDisp > 0) {
@@ -1273,6 +1276,7 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
 
     distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
     if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");
+    domain->getTimers().sendFluidTime += getTime();
   }
 
   if(domain->solInfo().aeroheatFlag >= 0) {

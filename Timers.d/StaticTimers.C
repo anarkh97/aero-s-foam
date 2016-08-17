@@ -110,7 +110,8 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
  int numcon   = domain->nDirichlet() + domain->nCDirichlet();
  int numUncon = domain->numUncon();
 
- filePrint(f,"\n***********************************************************\n");
+ filePrint(f,"\n***********************************************************"
+           "********************\n");
  if(geoSource->isShifted()) {
    if(domain->solInfo().doFreqSweep)
      filePrint(f," ... Frequency Sweep Problem Information ... \n");
@@ -119,7 +120,8 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
  }
  else
    filePrint(f," ... %s Problem Information ... \n",problemType[sInfo.probType]);
- filePrint(f,"***********************************************************\n\n");
+ filePrint(f,"***********************************************************"
+           "********************\n\n");
  filePrint(f,"1. Number of Nodes                         = %14d\n\n",numnod);
  filePrint(f,"2. Number of Elements                      = %14d\n\n",numele);
  filePrint(f,"3. Number of Degrees of Freedom            = %14d\n",numdof);
@@ -137,9 +139,11 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
    filePrint(f,"8. Number of RHS solves                    = %14d\n\n", domain->solInfo().getSweepParams()->nFreqSweepRHS);
  }
 
- filePrint(f,"***********************************************************\n");
+ filePrint(f,"***********************************************************"
+           "********************\n");
  filePrint(f," ... Solver Information ... \n");
- filePrint(f,"***********************************************************\n\n");
+ filePrint(f,"***********************************************************"
+           "********************\n\n");
 
  if(mesNum > 10) { 
    filePrint(f,"%s         Tolerance                         = %14.2e\n         Maximum Number of Iterations      = %14d\n\n",
@@ -147,14 +151,16 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
  } else
    filePrint(f,"%s\n",message[mesNum]);
 
- filePrint(f,"***********************************************************\n");
+ filePrint(f,"***********************************************************"
+           "********************\n");
  filePrint(f," ... Timing Statistics for %d Thread%c ...\n",threadManager->numThr(),(threadManager->numThr()==1)?' ':'s');
- filePrint(f,"***********************************************************\n\n");
+ filePrint(f,"***********************************************************"
+           "********************\n\n");
 
  double totalRead = times.readTime + times.readDecomp;
  long totMemRead = times.memoryParse + times.memorySetUp;
 
- filePrint(f,"1. Total Read Input Files              time: %14.5f s %12.3f Mb\n",
+ filePrint(f,"1. Total Read Input Files              time: %14.5f s %14.3f Mb\n",
            totalRead/1000.0, totMemRead*byteToMb);
  filePrint(f,"         Read Mesh                     time: %14.5f s\n\n",
            times.readTime/1000.0);
@@ -162,20 +168,20 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
  double totalPreProcess = preProcess + times.setUpDataTime;
  long totMemPreProcess = memoryPreProcess + times.memorySetUp;
 
- filePrint(f,"2. Total Preprocessing                 time: %14.5f s %12.3f Mb\n", 
+ filePrint(f,"2. Total Preprocessing                 time: %14.5f s %14.3f Mb\n", 
            totalPreProcess/1000.0, totMemPreProcess*byteToMb);
- filePrint(f,"         Process Input Data            time: %14.5f s \n",  
+ filePrint(f,"         Process Input Data            time: %14.5f s\n",  
            times.setUpDataTime/1000.0);
- filePrint(f,"         Connectivity                  time: %14.5f s \n",
+ filePrint(f,"         Connectivity                  time: %14.5f s\n",
            times.makeConnectivity/1000.0);
- filePrint(f,"         Renumbering                   time: %14.5f s \n",
+ filePrint(f,"         Renumbering                   time: %14.5f s\n",
            times.renumbering/1000.0);
  if(!(sInfo.type == 2 && sInfo.inpc)) {
- filePrint(f,"         Create DOFs                   time: %14.5f s \n",
+ filePrint(f,"         Create DOFs                   time: %14.5f s\n",
            times.createDofs/1000.0);
- filePrint(f,"         Make Constrained DOFs         time: %14.5f s \n",
+ filePrint(f,"         Make Constrained DOFs         time: %14.5f s\n",
            makeDOFs/1000.0);
- filePrint(f,"         Make Boundary Conditions      time: %14.5f s \n\n",  
+ filePrint(f,"         Make Boundary Conditions      time: %14.5f s\n\n",  
            makeBCs/1000.0);}
 
  double totalMatrix = (sInfo.type == 2 && sInfo.inpc) ? sfemBuildOps 
@@ -183,10 +189,10 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
  long totMemMatrix  = (sInfo.type == 2 && sInfo.inpc) ? memorySfemBuildOps
                                                       : times.memoryForm;
 
- filePrint(f,"3. Total Matrix Processing             time: %14.5f s %12.3f Mb\n",
+ filePrint(f,"3. Total Matrix Processing             time: %14.5f s %14.3f Mb\n",
            totalMatrix/1000.0, totMemMatrix*byteToMb);
  if(!(sInfo.type == 2 && sInfo.inpc)) {
- filePrint(f,"         Construct Sparse Matrices     time: %14.5f s \n",
+ filePrint(f,"         Construct Sparse Matrices     time: %14.5f s\n",
              times.constructTime/1000.0);
  filePrint(f,"         Form Element Matrices         time: %14.5f s\n",
            (times.formTime+kelArrayTime+corotatorTime)/1000.0);
@@ -196,7 +202,7 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
  double totalRhs = formRhs - times.receiveFluidTime + times.formRhs;
  long totMemRhs = memoryRhs;
 
- filePrint(f,"4. Total RHS Processing                time: %14.5f s %12.3f Mb\n\n",
+ filePrint(f,"4. Total RHS Processing                time: %14.5f s %14.3f Mb\n\n",
            totalRhs/1000.0, totMemRhs*byteToMb);
 
  double totalSolver = times.factor + solveTime + times.updateState + timeFreqSweep + tdenforceTime;
@@ -205,30 +211,30 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
  if (mesNum == 2)
    filePrint(f,"5. Total Solver                        time: %14.5f s       N/A\n", totalSolver/1000.0);
  else
-   filePrint(f,"5. Total Solver                        time: %14.5f s %12.3f Mb\n", totalSolver/1000.0, totMemSolver*byteToMb);
+   filePrint(f,"5. Total Solver                        time: %14.5f s %14.3f Mb\n", totalSolver/1000.0, totMemSolver*byteToMb);
 
  if(sInfo.type == 2 && sInfo.inpc) {
-   filePrint(f,"         Preconditioning               time: %14.5f s \n",
+   filePrint(f,"         Preconditioning               time: %14.5f s\n",
              precond/1000.0);
  }
  else {
-   filePrint(f,"         Factor Matrix                 time: %14.5f s \n",
+   filePrint(f,"         Factor Matrix                 time: %14.5f s\n",
              (times.factor)/1000.0);
 
-   filePrint(f,"         Solve (Forward/Backward)      time: %14.5f s \n",
+   filePrint(f,"         Solve (Forward/Backward)      time: %14.5f s\n",
              solveTime/1000.0); 
  }
  
  if(domain->solInfo().isDynam() || domain->solInfo().isNonLin())
-   filePrint(f,"         Update States                 time: %14.5f s \n",
+   filePrint(f,"         Update States                 time: %14.5f s\n",
              times.updateState/1000.0);
 
  if(domain->solInfo().doFreqSweep)
-   filePrint(f,"         Freq Sweep Series Expansion   time: %14.5f s \n",
+   filePrint(f,"         Freq Sweep Series Expansion   time: %14.5f s\n",
              timeFreqSweep/1000.0);
 
  if(domain->tdenforceFlag()) // ACME search and forces for explicit dynamics
-   filePrint(f,"         TD Enforcement                time: %14.5f s \n", 
+   filePrint(f,"         TD Enforcement                time: %14.5f s\n", 
              tdenforceTime/1000.0);
 
  double totalOutput = output - times.sendFluidTime;
@@ -253,16 +259,19 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
 
  if(domain->solInfo().aeroFlag >= 0) {
    double totalAndFCom = total + totalFluidComm;
-   filePrint(f,"\nTOTAL SIMULATION 1 (1+2+3+4+5+6)       time: %14.5f s %12.3f Mb\n",total/1000.0,totalMemoryUsed*byteToMb);
-   filePrint(f,"\nTOTAL SIMULATION 2 (1+2+3+4+5+6+7)     time: %14.5f s \n",totalAndFCom/1000.0);
+   filePrint(f,"\nTOTAL SIMULATION 1 (1+2+3+4+5+6)       time: %14.5f s %14.3f Mb\n",total/1000.0,totalMemoryUsed*byteToMb);
+   filePrint(f,"\nTOTAL SIMULATION 2 (1+2+3+4+5+6+7)     time: %14.5f s\n",totalAndFCom/1000.0);
  }
  else {
-   filePrint(f,"\nTOTAL SIMULATION (1+2+3+4+5+6)         time: %14.5f s %12.3f Mb\n",total/1000.0,totalMemoryUsed*byteToMb);
+   filePrint(f,"\nTOTAL SIMULATION (1+2+3+4+5+6)         time: %14.5f s %14.3f Mb\n",total/1000.0,totalMemoryUsed*byteToMb);
  }
-   
- filePrint(f,"\n***********************************************************\n");
+
+ filePrint(f,"\n***********************************************************"
+           "********************\n");
+/*
  filePrint(f," ... Solution Information ...\n");
- filePrint(f,"***********************************************************\n\n");
+ filePrint(f,"***********************************************************"
+           "********************\n\n");
 
  long totMemUsed = memoryUsed();
 
@@ -294,7 +303,8 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
            finalNorm);
  }
 
- filePrint(f,"***********************************************************\n\n");
+ filePrint(f,"***********************************************************"
+           "********************\n\n");
 
  if(numSystems > 1) {
    filePrint(f,"\nIter\tDv\t        Relative Dv\tResidual\tRelative Res\n");
@@ -309,7 +319,7 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
    filePrint(f,"------------------------------------------------"
              "--------------------\n");
  }
-
+*/
 
  // Print information for distributed
  if(f && mesNum == 13) {
@@ -607,44 +617,46 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
  filePrint(f,"6. Renumbering                             = %14s\n\n",
            renumMessage[sInfo.renum]);
 
- if(sInfo.newmarkBeta != 0.0) { // don't need feti solver for explicit dynamics
-   filePrint(f,"***********************************************************"
-             "********************\n");
-   filePrint(f," ... Solver Information ... \n");
-   filePrint(f,"***********************************************************"
-             "********************\n\n");
+ filePrint(f,"***********************************************************"
+           "********************\n");
+ filePrint(f," ... Solver Information ... \n");
+ filePrint(f,"***********************************************************"
+           "********************\n\n");
 
-   if(domain->solInfo().type == 0) { // MUMPS
-     filePrint(f,"1. Mumps Sparse\n");
-   }
-   else { // FETI
-     if(sInfo.getFetiInfo().version == FetiInfo::feti1)
-       filePrint(f,"%s",solverMessage[0]);
-     else 
-       filePrint(f,"%s",solverMessage[sInfo.getFetiInfo().feti2version+1]);
-  
-     filePrint(f,"         %s", precMessage[sInfo.getFetiInfo().precno]);
-     filePrint(f,"         %s", scalingMessage[sInfo.getFetiInfo().scaling]);
-     filePrint(f,"         %s", projectMessage[sInfo.getFetiInfo().nonLocalQ]);
-     filePrint(f,"         %s", subSolverMessage[sInfo.getFetiInfo().solvertype]);
-     filePrint(f,"         %s", precSolverMessage[sInfo.getFetiInfo().solvertype]);
-     filePrint(f,"         %s%s", gtgType[sInfo.getFetiInfo().nonLocalQ],
-                                  gtgSolverMessage[sInfo.getFetiInfo().gtgSolver]);
-
-     if(sInfo.rbmflg == 0)
-       filePrint(f,"         %s %29e\n", rbmMessage[sInfo.rbmflg], sInfo.trbm);
-     else
-       filePrint(f,"         %s%17e %e\n", rbmMessage[sInfo.rbmflg],
-                                           sInfo.tolsvd,sInfo.trbm);
-  
-     filePrint(f,"         Maximum Number of Iterations      = %14d\n",
-               sInfo.getFetiInfo().maxiter());
-     filePrint(f,"         Maximum Size of Reortho. Vectors  = %14d\n",
-               sInfo.getFetiInfo().maxorth());
-     filePrint(f,"         Tolerance for Convergence         = %14.3e\n",
-               sInfo.getFetiInfo().tolerance());
-   }
+ if(domain->solInfo().type == 0) { // MUMPS
+   filePrint(f,"1. Mumps Sparse\n");
  }
+ else if(domain->solInfo().type == 3) {
+   filePrint(f,"1. Diagonal\n");
+ }
+ else { // FETI
+   if(sInfo.getFetiInfo().version == FetiInfo::feti1)
+     filePrint(f,"%s",solverMessage[0]);
+   else 
+     filePrint(f,"%s",solverMessage[sInfo.getFetiInfo().feti2version+1]);
+  
+   filePrint(f,"         %s", precMessage[sInfo.getFetiInfo().precno]);
+   filePrint(f,"         %s", scalingMessage[sInfo.getFetiInfo().scaling]);
+   filePrint(f,"         %s", projectMessage[sInfo.getFetiInfo().nonLocalQ]);
+   filePrint(f,"         %s", subSolverMessage[sInfo.getFetiInfo().solvertype]);
+   filePrint(f,"         %s", precSolverMessage[sInfo.getFetiInfo().solvertype]);
+   filePrint(f,"         %s%s", gtgType[sInfo.getFetiInfo().nonLocalQ],
+                                gtgSolverMessage[sInfo.getFetiInfo().gtgSolver]);
+
+   if(sInfo.rbmflg == 0)
+     filePrint(f,"         %s %29e\n", rbmMessage[sInfo.rbmflg], sInfo.trbm);
+   else
+     filePrint(f,"         %s%17e %e\n", rbmMessage[sInfo.rbmflg],
+                                         sInfo.tolsvd,sInfo.trbm);
+  
+   filePrint(f,"         Maximum Number of Iterations      = %14d\n",
+             sInfo.getFetiInfo().maxiter());
+   filePrint(f,"         Maximum Size of Reortho. Vectors  = %14d\n",
+             sInfo.getFetiInfo().maxorth());
+   filePrint(f,"         Tolerance for Convergence         = %14.3e\n",
+             sInfo.getFetiInfo().tolerance());
+ }
+
  filePrint(f,"\n***********************************************************"
            "********************\n");
  filePrint(f," ... Timing Statistics for %d Threads and %d Subdomains ...\n",
@@ -663,10 +675,11 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
 
  filePrint(f,"\n2. Total Preprocessing                 time: %14.5f s %14.3f Mb\n",
            totPreProMax/1000.0, totMemPreProcess*byteToMb);
- filePrint(f,  "         Process Input Data            time: %14.5f s %14.3f Mb\n",
-           matrixTimer.setUpDataTime/1000.0, memorySetUp*byteToMb);
- filePrint(f,  "         Make Subdomains               time: %14.5f s %14.3f Mb\n",
-           matrixTimer.makeSubDomains/1000.0, memorySubdomain*byteToMb);
+ filePrint(f,  "         Process Input Data            time: %14.5f s\n",
+           matrixTimer.setUpDataTime/1000.0);
+ filePrint(f,  "         Make Subdomains               time: %14.5f s\n",
+           matrixTimer.makeSubDomains/1000.0);
+/*
  filePrint(f,  "            Element to Node Connectivity   : %31.3f Mb\n", 
            memoryElemToNode*byteToMb);
  filePrint(f,  "            Sub. to Node Connectivity      : %31.3f Mb\n", 
@@ -679,8 +692,16 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
  if(matrixTimer.memoryCPUMAP != 0)
    filePrint(f,  "            CPU MAP Connectivity           : %31.3f Mb\n", 
              memoryCPUMAP*byteToMb);
-
+*/
+ filePrint(f,  "         Distribute BCs                time: %14.5f s\n", 
+           matrixTimer.distributeBCs/1000.0);
+ filePrint(f,  "         Make Connectivities           time: %14.5f s\n", 
+           matrixTimer.makeConnectivity/1000.0);
+ filePrint(f,  "         Make Interface                time: %14.5f s\n", 
+           matrixTimer.makeInterface/1000.0);
  if(timeGeom != 0.0) {
+   filePrint(f,  "         Make Internal Information     time: %14.5f s\n",
+             matrixTimer.makeInternalInfo/1000.0);
    filePrint(f,  "         Make Geometric Node States    time: %14.5f s\n",
              timeGeom/1000.0);
    filePrint(f,  "         Make Element Corotators       time: %14.5f s\n",
@@ -688,24 +709,16 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
    filePrint(f,  "         Make Stiffness & Mass Arrays  time: %14.5f s\n\n",
              kelArrayTime/1000.0);
  }
+ else {
+   filePrint(f,  "         Make Internal Information     time: %14.5f s\n\n",
+             matrixTimer.makeInternalInfo/1000.0);
+ }
 
- filePrint(f,  "         Distribute BCs                time: %14.5f s %14.3f Mb\n", 
-           matrixTimer.distributeBCs/1000.0,
-           memoryDistBC*byteToMb);
- filePrint(f,  "         Make Connectivities           time: %14.5f s %14.3f Mb\n", 
-           matrixTimer.makeConnectivity/1000.0,
-           memoryConnect*byteToMb);
- filePrint(f,  "         Make Interface                time: %14.5f s %14.3f Mb\n", 
-           matrixTimer.makeInterface/1000.0,
-           memoryInterface*byteToMb);
- filePrint(f,  "         Make Internal Information     time: %14.5f s %14.3f Mb\n\n",
-           matrixTimer.makeInternalInfo/1000.0, memoryInternal*byteToMb);
-
- filePrint(f,"3. Total Subdomain Matrices Processing time: %14.5f s %14.3f Mb\n\n",
+ filePrint(f,"3. Total Matrix Processing             time: %14.5f s %14.3f Mb\n\n",
            subTotal[2]/1000.0,totMemSubMatrices*byteToMb);
 
- filePrint(f,"4. Total Subdomain RHS Processing      time: %14.5f s %14.3f Mb\n\n",
-           subTotal[3]/1000.0, buildRhsMax.memory*byteToMb);
+ filePrint(f,"4. Total RHS Processing                time: %14.5f s %14.3f Mb\n\n",
+           (subTotal[3]-matrixTimer.receiveFluidTime)/1000.0, buildRhsMax.memory*byteToMb);
  }
 
  // NOTE: parallel factor time is counted within coarse1Max and
@@ -798,11 +811,21 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
              orthoMax.time/1000.0, totMemReortho*byteToMb);
  }
  if(domain->tdenforceFlag()) // ACME search and forces for explicit dynamics
-   filePrint(f,"         TD Enforcement                time: %14.5f s \n\n",
+   filePrint(f,"         TD Enforcement                time: %14.5f s\n\n",
              tdenforceTime/1000.0);
 
  filePrint(f,"6. Write Output Files                  time: %14.5f s %14.3f Mb\n",
-           subTotal[5]/1000.0, memoryOutput*byteToMb);
+           (subTotal[5]-matrixTimer.sendFluidTime)/1000.0, memoryOutput*byteToMb);
+
+ double totalFluidComm = matrixTimer.receiveFluidTime+matrixTimer.sendFluidTime;
+ if(domain->solInfo().aeroFlag >= 0) {
+   filePrint(f,"\n7. Fluid Communication                 time: %14.5f s\n",
+             totalFluidComm/1000.0);
+   filePrint(f,"   Receive From Fluid                  time: %14.5f s\n",
+             matrixTimer.receiveFluidTime/1000.0);
+   filePrint(f,"   Send To Fluid                       time: %14.5f s\n\n",
+             matrixTimer.sendFluidTime/1000.0);
+ }
 
  // Compute the total time spent on this simulation
 
@@ -815,7 +838,13 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
                                 totMemSubMatrices + memoryOutput +       
                                 totMemPreProcess + totalMemRead;
 
- filePrint(f,"\nTOTAL SIMULATION (1+2+3+4+5+6)         time: %14.5f s %14.3f Mb\n",total/1000.0, totalMemSimulation*byteToMb);
+ if(domain->solInfo().aeroFlag >= 0) {
+   filePrint(f,"\nTOTAL SIMULATION 1 (1+2+3+4+5+6)       time: %14.5f s %14.3f Mb\n",(total-totalFluidComm)/1000.0,totalMemSimulation*byteToMb);
+   filePrint(f,"\nTOTAL SIMULATION 2 (1+2+3+4+5+6+7)     time: %14.5f s\n",total/1000.0);
+ }
+ else {
+   filePrint(f,"\nTOTAL SIMULATION (1+2+3+4+5+6)         time: %14.5f s %14.3f Mb\n",total/1000.0, totalMemSimulation*byteToMb);
+ }
 
  // Output FETI solver information
  if(sInfo.type == 2) {
@@ -1021,14 +1050,14 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
  double tot3AvgTime = constructAvg.time + assembleAvg.time;
  double tot3MaxTime = constructMax.time + assembleMax.time; 
 
- filePrint(f,"\n3. Total Subdomain Matrices Processing: %12.4f %12.4f %12.4f"
+ filePrint(f,"\n3. Total Matrix Processing            : %12.4f %12.4f %12.4f"
            "\n",tot3MinTime/1000.0,tot3AvgTime/1000.0,tot3MaxTime/1000.0);
  
  double tot4MinTime = buildRhsMin.time;
  double tot4AvgTime = buildRhsAvg.time;
  double tot4MaxTime = buildRhsMax.time;
 
- filePrint(f,"\n4. Total Subdomain RHS Processing     : %12.4f %12.4f %12.4f"
+ filePrint(f,"\n4. Total RHS Processing               : %12.4f %12.4f %12.4f"
            "\n\n",tot4MinTime/1000.0,tot4AvgTime/1000.0,tot4MaxTime/1000.0);
 
  // timers for 2nd level coarse problem
@@ -1213,14 +1242,14 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
            preProcessMemoryMin*byteToMb,preProcessMemoryAvg*byteToMb,
            preProcessMemoryMax*byteToMb);
 	 
- filePrint(f,"\n3. Total Subdomain Matrices Processing: %12.4f %12.4f %12.4f"
+ filePrint(f,"\n3. Total Matrix Processing            : %12.4f %12.4f %12.4f"
            "\n", tot3Min*byteToMb,tot3Avg*byteToMb,tot3Max*byteToMb);
  
  long tot4Min = buildRhsMin.memory;
  long tot4Avg = buildRhsAvg.memory;
  long tot4Max = buildRhsMax.memory;
 
- filePrint(f,"\n4. Total Subdomain RHS Processing     : %12.4f %12.4f %12.4f"
+ filePrint(f,"\n4. Total RHS Processing               : %12.4f %12.4f %12.4f"
            "\n\n",tot4Min*byteToMb,tot4Avg*byteToMb,tot4Max*byteToMb);
 /*
  long memCoarseMin = memGtGMin;
@@ -1270,7 +1299,7 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
    filePrint(f,"               Local Solve            : %12.4f %12.4f %12.4f\n",
              sAndJMin.memory*byteToMb,sAndJAvg.memory*byteToMb,
              sAndJMax.memory*byteToMb);
-   filePrint(f,"               Reorthogonalize        : %12.4f %12.4f %12.4f\n",
+   filePrint(f,"               Reorthogonalize        : %12.4f %12.4f %12.4f\n\n",
              orthoMemoryMin*byteToMb, orthoMemoryAvg*byteToMb,
              orthoMemoryMax*byteToMb);
  }
@@ -1279,7 +1308,7 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
  long tot6Avg = memOutTot/numCPUs;
  long tot6Max = memOutMax;
 
- filePrint(f,"\n6. Write Output Files                 : %12.4f %12.4f %12.4f\n",
+ filePrint(f,"6. Write Output Files                 : %12.4f %12.4f %12.4f\n",
            tot6Min*byteToMb,tot6Avg*byteToMb,tot6Max*byteToMb);
 
  long totSimMin = readMemoryMin + tot3Min + preProcessMemoryMin + tot4Min + tot5Min + tot6Min;

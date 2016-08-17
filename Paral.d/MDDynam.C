@@ -209,6 +209,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
   // Send displacements to fluid code (except explicit C0)
   SolverInfo& sinfo = domain->solInfo();
   if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && !(sinfo.newmarkBeta == 0 && sinfo.aeroFlag == 20)) {
+    domain->getTimers().sendFluidTime -= getTime();
     // Send u + IDISP6 to fluid code.
     // IDISP6 is used to compute pre-stress effects.
     DistrVector d_n_aero(distState.getDisp());
@@ -230,6 +231,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
 
     distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
     if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");
+    domain->getTimers().sendFluidTime += getTime();
   }
 
   if(sinfo.aeroheatFlag >= 0 && tIndex != 0) {
@@ -768,6 +770,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   if(sinfo.aeroFlag >= 0 && tIndex >= 0 &&
      !(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20 && !sinfo.dyna3d_compat && tIndex == sinfo.initialTimeIndex)) {
 
+    domain->getTimers().receiveFluidTime -= getTime();
     aeroForce->zero();
     int iscollocated;
     double tFluid = distFlExchanger->getFluidLoad(*aeroForce, tIndex, t,
@@ -819,6 +822,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
         distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
                                    sinfo.isCollocated, sinfo.alphas);
     }
+    domain->getTimers().receiveFluidTime += getTime();
   }
 
   // add aerothermal fluxes from fluid dynamics code

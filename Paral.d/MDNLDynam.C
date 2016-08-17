@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdio>
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Threads.d/Paral.h>
@@ -1191,6 +1192,12 @@ DistrInfo&
 MDNLDynamic::sysVecInfo()
 { 
   return decDomain->sysVecInfo();
+}
+
+double
+MDNLDynamic::getTolerance()
+{
+ return std::max(tolerance*firstRes, domain->solInfo().getNLInfo().absTolRes);
 }
 
 double

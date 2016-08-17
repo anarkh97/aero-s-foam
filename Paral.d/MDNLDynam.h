@@ -119,7 +119,7 @@ class MDNLDynamic : public MultiDomainBase
     DistrInfo& elemVecInfo();
     DistrInfo& sysVecInfo();
 
-    double getTolerance() { return (tolerance*firstRes); }
+    double getTolerance();
 
     void computeTimeInfo();
 

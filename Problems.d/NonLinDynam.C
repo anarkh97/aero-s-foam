@@ -27,6 +27,7 @@
 #include <Hetero.d/FlExchange.h>
 #include <Utils.d/DistHelper.h>
 
+#include <algorithm>
 #include <cstddef>
 
 typedef FSFullMatrix FullMatrix;
@@ -649,6 +650,12 @@ int
 NonLinDynamic::elemVecInfo()
 {
  return domain->maxNumDOF();
+}
+
+double
+NonLinDynamic::getTolerance()
+{
+ return std::max(tolerance*firstRes, domain->solInfo().getNLInfo().absTolRes);
 }
 
 int

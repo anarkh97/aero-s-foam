@@ -129,7 +129,7 @@ class NonLinDynamic : public NLDynamPostProcessor, public SingleDomainBase {
     int  sysVecInfo();
     int  elemVecInfo();
 
-    double getTolerance() { return (tolerance*firstRes); }
+    double getTolerance();
 
     void   computeTimeInfo();
 

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdio>
 
 #include <Threads.d/Paral.h>
@@ -345,6 +346,12 @@ MDNLStatic::getStiffAndForce(DistrGeomState& geomState,
  times->buildStiffAndForce += getTime();
 
  return sqrt(solver->getFNormSq(residual));
+}
+
+double
+MDNLStatic::getTolerance()
+{
+ return std::max(tolerance*firstRes, domain->solInfo().getNLInfo().absTolRes);
 }
 
 DistrGeomState*

@@ -129,8 +129,7 @@ BrittleFractureTB<BaseMaterial>::getDamage(double *statenp)
 
 template<typename BaseMaterial>
 void
-BrittleFractureTB<BaseMaterial>::print(std::ostream &out) const
+BrittleFractureTB<BaseMaterial>::print2(std::ostream &out) const
 {
-  BaseMaterial::print(out);
-  out << " " << maxprs << " " << exponent << " " << Kf;
+  out << " TulerButcher " << maxprs << " " << exponent << " " << Kf;
 }

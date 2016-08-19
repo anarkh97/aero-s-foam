@@ -40,6 +40,8 @@ class PronyViscoElastic : public Material
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
 
+    void print(std::ostream &out) const;
+
   private:
     double ginf; 
     double g1, tau1;

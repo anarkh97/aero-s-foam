@@ -77,6 +77,8 @@ class ElasPlasKinHardMat : public NLMaterial
 
     void print(std::ostream &out) const;
 
+    void print2(std::ostream &out) const;
+
     void setSDProps(MFTTData *_ysst) { if(sigE < 0 && _ysst && _ysst->getID() == -int(sigE)) ysst = _ysst; }
 
     void setSRDProps(MFTTData *_yssrt) { if(yssrtid > 0 && _yssrt && _yssrt->getID() == yssrtid) yssrt = _yssrt; }

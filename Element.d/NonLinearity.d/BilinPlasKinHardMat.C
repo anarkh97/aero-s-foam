@@ -462,22 +462,28 @@ template<>
 inline void
 ElasPlasKinHardMat<0>::print(std::ostream &out) const
 {
-  out << "BilinearPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha
-      << " " << epsF << " " << tol << " " << yssrtid;
+  out << "BilinearPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha;
 }
 
 template<>
 inline void 
 ElasPlasKinHardMat<1>::print(std::ostream &out) const 
 {
-  out << "FiniteStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha
-      << " " << epsF << " " << tol << " " << yssrtid;
+  out << "FiniteStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha;
 }
 
 template<>
 inline void 
 ElasPlasKinHardMat<2>::print(std::ostream &out) const 
 {
-  out << "LogStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha
-      << " " << epsF << " " << tol << " " << yssrtid;
+  out << "LogStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha;
+}
+
+template<int e>
+void
+ElasPlasKinHardMat<e>::print2(std::ostream &out) const
+{
+  if(epsF != std::numeric_limits<double>::infinity() || tol != 1e-6 || yssrtid != 0) {
+    out << " " << epsF << " " << tol << " " << yssrtid;
+  }
 }

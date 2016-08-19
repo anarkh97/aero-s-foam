@@ -75,7 +75,7 @@ class BrittleFractureTB : public BaseMaterial
 
     double getDamage(double *statenp);
 
-    void print(std::ostream &out) const;
+    void print2(std::ostream &out) const;
 };
 
 #ifdef _TEMPLATE_FIX_

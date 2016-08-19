@@ -1421,7 +1421,7 @@ TRAIL [a-zA-Z]*
 
 "isotropiclinearelastic"|"ISOTROPICLINEARELASTIC"|"IsotropicLinearElastic"  { return ISOTROPICLINEARELASTIC; }
 
-"viscolinearelastic"|"VISCOLINEARELASTIC"|"ViscoLinearElastic"  { return VISCOLINEARELASTIC; }
+"viscolinearelastic"|"VISCOLINEARELASTIC"|"ViscoLinearElastic"|"ViscoLinear"  { return VISCOLINEARELASTIC; }
 
 "viscostve"[a-zA-Z]*|"VISCOSTVE"[a-zA-Z]*|"ViscoStVe"[a-zA-Z]*  { return VISCOSTVENANTKIRCHHOFF; }
 

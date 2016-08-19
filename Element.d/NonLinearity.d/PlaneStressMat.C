@@ -260,7 +260,9 @@ template<typename BaseMaterial>
 void
 PlaneStressMat<BaseMaterial>::print(std::ostream &out) const
 {
-  std::cerr << "PlaneStressMat<BaseMaterial>::print is not implemented\n";
+  out << "PlaneStress";
+  BaseMaterial::print(out);
+  out << " " << t;
 }
 
 extern LinearStrain2D<9> linStrain2D;

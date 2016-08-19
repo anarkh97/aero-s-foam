@@ -89,6 +89,7 @@ std::ostream &
 operator<<(std::ostream &out, const NLMaterial &source) {
   out.setf(std::ios_base::scientific, std::ios_base::floatfield);
   source.print(out);
+  source.print2(out);
   return out;
 }
 

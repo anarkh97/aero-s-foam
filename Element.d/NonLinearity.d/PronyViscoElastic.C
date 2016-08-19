@@ -140,3 +140,12 @@ PronyViscoElastic<Material>::integrate(Tensor *_stress, Tensor &en, Tensor &enp,
   }
 }
 
+template<typename Material>
+void
+PronyViscoElastic<Material>::print(std::ostream &out) const
+{
+  out << "Visco";
+  Material::print(out);
+  out << " " << g1 << " " << tau1 << " " << g2 << " " << tau2 << " " << g3 << " " << tau3;
+}
+

@@ -71,6 +71,26 @@ reduce(const std::map<int, int> &indices, BCondInputIterator first, BCondInputIt
   return result;
 }
 
+template <typename BCondInputIterator, typename BCondOutputIterator>
+BCondOutputIterator
+reduce(const std::map<int, int> &indices, BCondInputIterator first, BCondInputIterator last, BCondOutputIterator result, bool temp) {
+  typedef typename std::iterator_traits<BCondInputIterator>::value_type ValueType;
+  int ValueType::* const slot = MeshSectionTraits<ValueType>::renumbered_slot;
+
+  for (BCondInputIterator source = first; source != last; ++source) {
+    const ValueType &value = *source;
+    if((!temp && value.dofnum == 6) || (temp && value.dofnum != 6)) continue;
+    const std::map<int, int>::const_iterator it = indices.find(value.*slot);
+    if (it != indices.end()) {
+      ValueType newValue(value);
+      newValue.*slot = it->second;
+      *result++ = newValue;
+    }
+  }
+
+  return result;
+}
+
 template <typename V, typename PairOutputIterator>
 PairOutputIterator
 reduce(const std::map<int, int> &indices, const std::map<int, V> &input, PairOutputIterator result) {
@@ -286,7 +306,7 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
   reduce(ren.elemRenumbering(), geoSource->getMaterialLawMapping(), std::inserter(materialLawMapping_, materialLawMapping_.end()));
 
   // Boundary conditions
-  reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(dirichletBConds_));
+  reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(dirichletBConds_), false);
 /* Now both constant and time-dependent forces are outputted in reduced coordinates, see ElementSamplingDriver::postProcess
    TODO configuration-dependent nodal forces and moments still should be outputted here, though
   reduce(ren.nodeRenumbering(), domain->getNBC(), domain->getNBC() + domain->nNeumann(), std::back_inserter(neumannBConds_));
@@ -301,6 +321,8 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
   reduce(ren.nodeRenumbering(), domain->getInitDisp6(), domain->getInitDisp6() + domain->numInitDisp6(), std::back_inserter(initDisp_));
   reduce(ren.nodeRenumbering(), domain->getInitVelocity(), domain->getInitVelocity() + domain->numInitVelocity(), std::back_inserter(initVel_));
 */
+  // Nodal temperatures
+  reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(temperatures_), true);
 }
 
 std::ostream &
@@ -328,7 +350,7 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
     out << make_section(mesh.dirichletBConds().begin(), mesh.dirichletBConds().end(), BCond::Displacements);
   if(!mesh.neumannBConds().empty()) 
     out << make_section(mesh.neumannBConds().begin(), mesh.neumannBConds().end(), BCond::Forces);
- 
+
   if(!mesh.initDisp().empty())
     out << make_section(mesh.initDisp().begin(), mesh.initDisp().end(), BCond::Idisplacements);
   if(!mesh.initVel().empty())
@@ -336,6 +358,9 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
 
   if(!mesh.elemPressures().empty())
     out << make_section(mesh.elemPressures().begin(), mesh.elemPressures().end(), ElementPressureTag());
+
+  if(!mesh.temperatures().empty())
+    out << make_section(mesh.temperatures().begin(), mesh.temperatures().end(), BCond::Temperatures);
 
   if (!mesh.sampleNodeIds().empty())
     out << make_section(mesh.sampleNodeIds().begin(), mesh.sampleNodeIds().end(), SampleNodeTag());

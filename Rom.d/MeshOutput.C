@@ -22,9 +22,15 @@ operator<<(std::ostream &out, const Attrib &source) {
 
 std::ostream &
 operator<<(std::ostream &out, const BCond &source) {
-  out << source.nnum   + 1 << " "
-      << source.dofnum + 1 << " "
-      << source.val;
+  if(source.dofnum == 6) { // temperature
+    out << source.nnum   + 1 << " "
+        << source.val;
+  }
+  else {
+    out << source.nnum   + 1 << " "
+        << source.dofnum + 1 << " "
+        << source.val;
+  }
   return out;
 }
 
@@ -208,7 +214,7 @@ InputFileSectionHelper<Attrib, EmptyTag>::header(EmptyTag) {
 template <>
 const std::string &
 InputFileSectionHelper<BCond, BCond::BCType>::header(BCond::BCType tag) {
-  static const std::string result[] = { "FORCES", "DISPLACEMENTS", "IDISPLACEMENTS", "IVELOCITIES" };
+  static const std::string result[] = { "FORCES", "DISPLACEMENTS", "IDISPLACEMENTS", "IVELOCITIES", "TEMPERATURES" };
   switch (tag) {
     case BCond::Forces:
       return result[0];
@@ -218,6 +224,8 @@ InputFileSectionHelper<BCond, BCond::BCType>::header(BCond::BCType tag) {
       return result[2];
     case BCond::Ivelocities:
       return result[3];
+    case BCond::Temperatures:
+      return result[4];
     default:
       throw std::logic_error("Unknown section tag");
   }

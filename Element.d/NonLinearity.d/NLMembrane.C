@@ -1,6 +1,7 @@
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
+#include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Math.d/matrix.h>
 #include <Math.d/TTensor.h>
 #include <Corotational.d/utilities.h>
@@ -323,7 +324,7 @@ TriMembraneShapeFunct::interpolateScalar(double *q, double xi[3])
 static TriMembraneShapeFunct shpFct;
 
 NLMembrane::NLMembrane(int *nd)
- : material(NULL)
+ : material(NULL), cFrame(NULL), cCoefs(NULL)
 {
   for(int i = 0; i < 3; ++i)
     n[i] = nd[i];
@@ -332,7 +333,7 @@ NLMembrane::NLMembrane(int *nd)
 
 NLMembrane::~NLMembrane()
 {
-  if(material && useDefaultMaterial) delete material;
+  if(material && (useDefaultMaterial || cCoefs)) delete material;
 }
 
 int
@@ -437,7 +438,24 @@ NLMembrane::setProp(StructProp *p, bool _myProp)
   Element::setProp(p, _myProp);
   if(!material && prop) {
     material = new ElaLinIsoMat2D(prop);
+    material->setTDProps(prop->ymtt, prop->ctett);
     useDefaultMaterial = true;
+  }
+}
+
+void
+NLMembrane::setCompositeData(int, int, double *, double *coefs, double *frame)
+{
+  cCoefs = coefs;
+  cFrame = frame;
+  if(material) { // anisotropic material
+    double C[6][6], alpha[6];
+    // transform local constitutive matrix to global frame
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);
+    material->setTangentMaterial(C);
+    // transform local coefficients of thermal expansion to global frame
+    rotateVector(cCoefs+36, cFrame, alpha);
+    material->setThermalExpansionCoef(alpha);
   }
 }
 
@@ -446,7 +464,21 @@ NLMembrane::setMaterial(NLMaterial *m)
 {
   if(material) delete material;
   useDefaultMaterial = false;
-  material = m;
+  if(cCoefs) { // anisotropic material
+    material = m->clone();
+    if(material) {
+      double C[6][6], alpha[6];
+      // transform local constitutive matrix to global frame
+      rotateConstitutiveMatrix(cCoefs, cFrame, C);
+      material->setTangentMaterial(C);
+      // transform local coefficients of thermal expansion to global frame
+      rotateVector(cCoefs+36, cFrame, alpha);
+      material->setThermalExpansionCoef(alpha);
+    }
+  }
+  else {
+    material = m;
+  }
 }
 
 void

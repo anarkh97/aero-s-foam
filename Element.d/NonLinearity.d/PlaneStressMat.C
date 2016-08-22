@@ -114,6 +114,13 @@ PlaneStressMat<BaseMaterial>::PlaneStressMat(double p1, double p2, double p3, do
 }
 
 template<typename BaseMaterial>
+NLMaterial *
+PlaneStressMat<BaseMaterial>::clone() const
+{
+  return new PlaneStressMat<BaseMaterial>(*this);
+}
+
+template<typename BaseMaterial>
 int
 PlaneStressMat<BaseMaterial>::getNumStates()
 {

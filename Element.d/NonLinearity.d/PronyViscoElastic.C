@@ -42,6 +42,13 @@ PronyViscoElastic<Material>::PronyViscoElastic(double p1, double p2, double p3, 
  : Material(p1,p2,p3,p4,p5,p6,p7,p8), ginf(_ginf), g1(_g1), tau1(_tau1), g2(_g2), tau2(_tau2), g3(_g3), tau3(_tau3) {}
 
 template<typename Material>
+NLMaterial *
+PronyViscoElastic<Material>::clone() const
+{
+  return new PronyViscoElastic<Material>(*this);
+}
+
+template<typename Material>
 int
 PronyViscoElastic<Material>::getNumStates()
 {

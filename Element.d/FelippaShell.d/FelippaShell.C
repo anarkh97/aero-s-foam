@@ -14,6 +14,7 @@
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
 #include <Element.d/NonLinearity.d/NLMembrane.h>
+#include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Element.d/State.h>
 #include <Hetero.d/InterpPoint.h>
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
@@ -525,11 +526,36 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     else {
       if(_mat->getGenStrainEvaluator() && !_mat->getGenStrainEvaluator()->isNonLinear()) {
         type = 4;
-        if(gpmat) delete gpmat;
-        gpmat = new ShellMaterialType6<double,NLMaterial>(_mat, 5, 3);
-        nmat = new ShellMaterialType6<double,NLMaterial>(_mat, 3, 3);
+        double *cCoefs = (gpmat && gpmat->GetCoefOfConstitutiveLaw()) ? gpmat->GetCoefOfConstitutiveLaw() : 0;
+        if(cCoefs) {
+          NLMaterial *mat = _mat->clone();
+          if(mat) {
+            double C[6][6], alpha[6];
+            // transform local constitutive matrix to global frame
+            rotateConstitutiveMatrix(cCoefs, cFrame, C);
+            mat->setTangentMaterial(C);
+            // transform local coefficients of thermal expansion to global frame
+            rotateVector(cCoefs+36, cFrame, alpha);
+            mat->setThermalExpansionCoef(alpha);
+          }
+          else {
+            fprintf(stderr, " *** ERROR: Unsupported material law specified for element %d.\n", getGlNum()+1);
+            exit(-1);
+          }
+          if(gpmat) delete gpmat;
+          gpmat = new ShellMaterialType6<double,NLMaterial>(mat, 5, 3);
+          nmat = new ShellMaterialType6<double,NLMaterial>(mat, 3, 3);
+        }
+        else {
+          if(gpmat) delete gpmat;
+          gpmat = new ShellMaterialType6<double,NLMaterial>(_mat, 5, 3);
+          nmat = new ShellMaterialType6<double,NLMaterial>(_mat, 3, 3);
+        }
       }
-      else fprintf(stderr, " *** WARNING: Trying to use Material on unsupported element!\n");
+      else {
+        fprintf(stderr, " *** ERROR: Unsupported material law specified for element %d.\n", getGlNum()+1);
+        exit(-1);
+      }
     }
   }
 }

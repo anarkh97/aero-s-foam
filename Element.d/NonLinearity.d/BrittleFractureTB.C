@@ -3,6 +3,13 @@
 #include <cmath>
 
 template<typename BaseMaterial>
+NLMaterial *
+BrittleFractureTB<BaseMaterial>::clone() const
+{
+  return new BrittleFractureTB<BaseMaterial>(*this);
+}
+
+template<typename BaseMaterial>
 int
 BrittleFractureTB<BaseMaterial>::getNumStates()
 {

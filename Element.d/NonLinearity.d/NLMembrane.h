@@ -75,6 +75,8 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
 {
     int n[3];
     NLMaterial *material;
+    double *cCoefs;
+    double *cFrame;
     bool useDefaultMaterial;
     PressureBCond *pbc;
 
@@ -99,6 +101,7 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     int* nodes(int * = 0);
     void updateStates(Node *nodes, double *states, double *un, double *unp) {}
     void setProp(StructProp *p, bool _myProp = false);
+    void setCompositeData(int, int, double *, double *coefs, double *frame);
     void setMaterial(NLMaterial *);
     void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
     PressureBCond* getPressure() { return pbc; }

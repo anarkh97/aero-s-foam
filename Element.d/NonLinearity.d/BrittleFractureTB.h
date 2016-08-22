@@ -76,6 +76,8 @@ class BrittleFractureTB : public BaseMaterial
     double getDamage(double *statenp);
 
     void print2(std::ostream &out) const;
+
+    NLMaterial * clone() const;
 };
 
 #ifdef _TEMPLATE_FIX_

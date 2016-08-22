@@ -51,6 +51,8 @@ class PlaneStressMat : public BaseMaterial
 
      void print(std::ostream &out) const;
 
+     NLMaterial * clone() const;
+
      GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();
 
      double getThickness() { return t; }

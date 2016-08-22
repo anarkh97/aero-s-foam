@@ -42,6 +42,8 @@ class PronyViscoElastic : public Material
 
     void print(std::ostream &out) const;
 
+    NLMaterial * clone() const;
+
   private:
     double ginf; 
     double g1, tau1;

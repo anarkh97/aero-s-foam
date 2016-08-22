@@ -49,8 +49,9 @@ public:
 
   virtual void preProcess();
   template<typename VecBasisType>
-  void assembleTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
-                            const VecBasisType *veloc, const VecBasisType *accel, int j=-1);
+  void assembleTrainingData(VecBasisType &podBasis, int podVectorCount, VecBasisType &displac,
+                            VecBasisType *veloc, VecBasisType *accel, int j=-1);
+
   void clean();
   SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>& solver() { return solver_; }
   int elementCount() const;

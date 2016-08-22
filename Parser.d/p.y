@@ -5683,7 +5683,7 @@ SamplingOption:
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; }
   | RANDOMSAMPLE Integer
-  { domain->solInfo().skipPodRom = $2; 
+  { domain->solInfo().randomSampleSize = $2; 
     domain->solInfo().randomVecSampling = true; }
   | OFFSET Integer
   { domain->solInfo().skipOffSet = $2; }
@@ -5801,12 +5801,21 @@ MeshScaleFactor:
      domain->solInfo().zScaleFactor = $4;}
    ;
 
+
 ScalePosCoords:
    SCALEPOSCOORDS NewLine
+   { domain->solInfo().activatePOSCFG = true; } 
    | ScalePosCoords Float Float Float NewLine
    { domain->solInfo().xScaleFactors.push_back($2);
      domain->solInfo().yScaleFactors.push_back($3);
      domain->solInfo().zScaleFactors.push_back($4); }
+   | ScalePosCoords FNAME NewLine
+   { domain->solInfo().MassOrthogonalBasisFiles.push_back($2); }
+/*   | SCALEPOSCOORDS StringList 
+   { domain->solInfo().NodeTrainingFiles.push_back(std::string($2.v[0]));
+     for(int i=1; i<$2.nval; ++i) domain->solInfo().MassOrthogonalBasisFiles.push_back(std::string($2.v[i])); 
+     domain->solInfo().activatePOSCFG = true; }*/
+   ;
    
 ConversionToken:
     CONVERSIONTOKEN NewLine

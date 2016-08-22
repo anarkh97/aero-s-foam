@@ -396,6 +396,7 @@ public:
   int  setUsdfLocation(int, BCond *);
 
   void transformCoords();
+  void setNewCoords(std::string nodeFile);
   void checkInputs();
   void setUpData(int topFlag);
 

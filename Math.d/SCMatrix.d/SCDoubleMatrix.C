@@ -282,9 +282,9 @@ SCDoubleMatrix::norm2Columns(SCDoubleMatrix& colnorms) {
 }
 
 int 
-SCDoubleMatrix::normalizeColumns(char normType) {
+SCDoubleMatrix::normalizeColumns(char normType, char squareRoot) {
     
-    int zero=0, one=1, jloc, dummy, p;
+    int one=1;
     double norm;
     for (int j=1; j<=_n; j++) {
       if(normType == '2') { // 2-norm
@@ -297,10 +297,83 @@ SCDoubleMatrix::normalizeColumns(char normType) {
         norm = _FORTRAN(pdlange)(&normType, &_m, &one, _matrix, &one, &j, _desc, work);
       } 
 //      std::cout << "norm of column " << j << " = " << norm << std::endl;
-      if(norm > 1e-16) norm = 1.0/norm; // don't divide by 0
+//
+      if(norm > 1e-16){ 
+        if(squareRoot == 'N')
+          norm = 1.0/norm; // don't divide by 0
+        else if(squareRoot == 'Y')
+          norm = 1.0/sqrt(norm);
+        else
+          norm = 1.0/norm;
+      }
      _FORTRAN(pdscal)(&_m, &norm, _matrix, &one, &j, _desc, &one); // multiply column by norm
     }
     return 0;   
+
+}
+
+int
+SCDoubleMatrix::normalizeRows(char normType, char squareRoot) {
+
+    int one=1;
+    double norm;
+    for (int j=1; j<=_m; j++) {
+      if(normType == '2') { // 2-norm
+               _FORTRAN(pdnrm2)(&_n, &norm, _matrix, &j, &one, _desc, &_m);
+      } else if (normType == '1' || normType == 'O' || normType == 'o') { // 1 norm
+        double work[_nlocal];
+        norm = _FORTRAN(pdlange)(&normType, &one, &_n, _matrix, &j, &one, _desc, work);
+      } else if (normType == 'I' || normType == 'i') { // infinity norm
+        double work[_mlocal];
+        norm = _FORTRAN(pdlange)(&normType, &one, &_n, _matrix, &j, &one, _desc, work);
+      }
+      if(norm > 1e-16){
+        if(squareRoot == 'N')
+          norm = 1.0/norm; // don't divide by 0
+        else if(squareRoot == 'Y')
+          norm = 1.0/sqrt(norm);
+        else
+          norm = 1.0/norm;
+      }
+     _FORTRAN(pdscal)(&_n, &norm, _matrix, &j, &one, _desc, &_m); // multiply row by norm
+    }
+    return 0;
+
+}
+
+int
+SCDoubleMatrix::computeLaplacian(char normType, char squareRoot) {
+    // Warning: this will only work properly for square matrices
+    int    one = 1;
+    double norm, alpha;
+    std::vector<double> alphaVec; 
+    for (int j=1; j<=_n; j++) {
+      if(normType == '2') { // 2-norm
+               _FORTRAN(pdnrm2)(&_m, &norm, _matrix, &one, &j, _desc, &one);
+      } else if (normType == '1' || normType == 'O' || normType == 'o') { // 1 norm
+        double work[_nlocal];
+        norm = _FORTRAN(pdlange)(&normType, &_m, &one, _matrix, &one, &j, _desc, work);
+      } else if (normType == 'I' || normType == 'i') { // infinity norm
+        double work[_mlocal];
+        norm = _FORTRAN(pdlange)(&normType, &_m, &one, _matrix, &one, &j, _desc, work);
+      }
+      if(norm > 1e-16){
+        if(squareRoot == 'N')
+          alpha = 1.0/norm;
+        else if(squareRoot == 'Y')
+          alpha = 1.0/sqrt(norm);
+        else
+          alpha = 1.0/norm;
+      }
+      alphaVec.push_back(alpha);
+     _FORTRAN(pdscal)(&_m, &alpha, _matrix, &one, &j, _desc, &one); // multiply column by norm
+    }
+
+    for (int j=1; j<=_m; j++) {
+      _FORTRAN(pdscal)(&_n, &alphaVec[j-1], _matrix,   &j, &one, _desc,  &_m); // multiply row by scaling factor after computing its "norm"
+    }
+
+    return 0;
 
 }
 

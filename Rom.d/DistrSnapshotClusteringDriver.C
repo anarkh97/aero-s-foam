@@ -81,16 +81,20 @@ void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<
                       BasisId::Level type, int numClusters, std::vector<int> &basisStateOffset, Communicator *comm)
 {
   FileNameInfo fileInfo;
+  // loop over each cluster 
   for(int i=0; i<numClusters; ++i) {
+    // get number of snapshots in that cluster
     int clusterDim = solver.clusterColCount(i);
     std::string fileName = BasisFileId(fileInfo, workload, type);
     std::ostringstream ss;
     ss << ".cluster" << i+1 << ".of." << numClusters;
     fileName.append(ss.str());
+    // open output file for clustered snapshots named same as input file with new file extension
     DistrBasisOutputFile outputFile(fileName,
                                     nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
                                     comm, false, DOFS_PER_NODE);
     filePrint(stderr, " ... Writing %d clustered snapshots to file %s ...\n", clusterDim, fileName.c_str());
+    // loop over each snapshot in current cluster
     for (int iVec = 0; iVec < clusterDim; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.clusterColBuffer(i,iVec));
       const GenStackDistVector<double> vec(vectorSize, vecBuffer);
@@ -101,6 +105,7 @@ void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<
       outputFile.stateAdd(outputBuffer, 1.0);
     }
 
+    // this is writes a file used for hyper reduction that tells AEROS which parameter each snapshot is associated with
     if(workload == BasisId::STATE || (domain->solInfo().solverTypeCluster == 2 && workload == BasisId::VELOCITY)) {
       std::string fileName2 = fileName+".sources";
       std::ofstream sources(fileName2.c_str());
@@ -111,6 +116,7 @@ void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<
         sources << k << " " << j+1-basisStateOffset[k-1] << std::endl;
       }
 
+      // open output file for centroids of clusters
       fileName.append(".centroid");
       DistrBasisOutputFile outputFile2(fileName,
                                        nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),

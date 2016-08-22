@@ -958,16 +958,17 @@ void GeoSource::transformCoords()
   using std::sin;
   SolverInfo &sinfo = domain->solInfo();
   int lastNode = numNodes = nodes.size();
-  for(int i=0; i<lastNode; ++i) {
-    if(nodes[i] == NULL) continue;
-    int cp = nodes[i]->cp;
-    if(cp == 0) {
+  for(int i=0; i<lastNode; ++i) {  // loop over all nodes
+    if(nodes[i] == NULL) continue; // if node pointer is empty, skip
+    int cp = nodes[i]->cp;         // get coordinate frame type
+    if(cp == 0) {                  // if eulerian scale and continue
       nodes[i]->x *= sinfo.xScaleFactor;
       nodes[i]->y *= sinfo.yScaleFactor;
       nodes[i]->z *= sinfo.zScaleFactor;
       continue;
     }
 
+    // otherwise apply appropriate transformation 
     Eigen::Vector3d v;
     switch(nfd[cp].type) {
       default:
@@ -999,6 +1000,31 @@ void GeoSource::transformCoords()
     nodes[i]->z = sinfo.zScaleFactor*(v[2] + nfd[cp].origin[2]);
   }
 #endif
+}
+
+void GeoSource::setNewCoords(std::string nodeFile){
+  // this function is for setting new xyz locations for a mesh 
+  // during an HROM training with training vectors from multiple
+  // simulations in which the mesh deformation is a parameter
+
+  // open file stream to file containing nodes numbers and locations
+  std::ifstream newNodes; 
+  newNodes.open(nodeFile.c_str());
+  int lastNode = numNodes = nodes.size();
+  
+  // now loop over nodes
+  for(int i=0; i<lastNode; ++i) {
+     if(nodes[i] == NULL) continue; // if node pointer is empty , skip
+     int nnum;
+     double x,y,z;
+     newNodes >> nnum; newNodes >> x; newNodes >> y; newNodes >> z;
+     nnum--;
+     assert(nnum == i);
+     nodes[i]->x = x; 
+     nodes[i]->y = y; 
+     nodes[i]->z = z;  
+  } 
+
 }
 
 void GeoSource::setUpData(int topFlag)

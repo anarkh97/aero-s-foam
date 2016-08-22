@@ -456,6 +456,7 @@ struct SolverInfo {
    bool randomVecSampling;
    int  skipPodRom;
    int  skipOffSet;
+   int  randomSampleSize;
    int  skipState;
    int  skipVeloc;
    int  skipAccel;
@@ -478,7 +479,10 @@ struct SolverInfo {
    bool scalePosCoords;
    double xScaleFactor, yScaleFactor, zScaleFactor;
    double xLMPCFactor, yLMPCFactor, zLMPCFactor;
+   bool activatePOSCFG; 
    std::vector<double> xScaleFactors, yScaleFactors, zScaleFactors;
+   std::vector<std::string> MassOrthogonalBasisFiles; 
+   std::vector<std::string> NodeTrainingFiles; 
    int inertiaLumping; // 1: diagonal lumping (default), 2: block-diagonal 6x6 lumping
                        // note #1: this flag is automatically set to 2 when a product of inertia is defined using DIMASS
                        //          or when a discrete mass element (type 131) is defined.
@@ -811,6 +815,7 @@ struct SolverInfo {
                   randomVecSampling  = false;
                   skipPodRom         = 1;
                   skipOffSet         = 0;
+                  randomSampleSize   = 0;
                   skipState          = 1;
                   skipVeloc          = 1;
                   skipAccel          = 1;
@@ -829,6 +834,7 @@ struct SolverInfo {
                   ConwepOnOff        = false;
                   basicDofCoords     = true;
                   basicPosCoords     = true;
+                  activatePOSCFG     = false;
                   scalePosCoords     = false;
                   xScaleFactor       = 1.0;
                   yScaleFactor       = 1.0;

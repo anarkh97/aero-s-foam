@@ -28,14 +28,6 @@ extern "C" {
                          const int *ia, const int *ja, const int desca[9], double *w, double *z, 
                          const int *iz, const int *jz, const int descz[9], double *work, 
                          const int *lwork, int *info);
-
-   // this function computes selected eigenvalues and eigenvectors
-   void _FORTRAN(pdsyevr)(const char *jobz, const char *range, const char *uplo, const int *n, const double *a,
-                          const int *ia, const int *ja, const int desca[9], const double *vl, const double *vu,
-                          const int *il, const int *iu, const int *m, const int *nz, double *w, double *z, 
-                          const int *iz, const int *jz, const int descz[9], double *work, const int *lwork, 
-                          int *iwork, const int *liwork, int *info);
-
 }
 
 
@@ -58,25 +50,34 @@ SparseSubspaceClustering::sparsesubspacecluster(SCDoubleMatrix & snapshots) {
       if(_mypid == 0) std::cout << "Making copy of Data" << std::endl; 
       SCDoubleMatrix CopyMat(snapshots,true);
       if(_mypid == 0) std::cout << "Done, entering solver" << std::endl;
-      solver.solveNNLS_MRHS(snapshots, CopyMat, ConnectivityGraph, 0, 1); // call NNLS for multiple righ hand sides to get connectivity
+      solver.solveNNLS_MRHS(snapshots, CopyMat, ConnectivityGraph, 0, 1); // call NNLS for multiple right hand sides to get connectivity
     }
 
     if (_mypid == 0) {
       std::cout << "Symmetrizing Snapshot Connectivity" << std::endl;
     }
 
+    // write connectivity graph for visualization
+    ConnectivityGraph.write("graphfile.txt");
+
+    // symmetrize connectivity graph
     {
-      if(_mypid == 0) std::cout << "Normalizing Columns of Connectivity Graph" << std::endl;
-      ConnectivityGraph.normalizeColumns('I');
       if(_mypid == 0) std::cout << "Making copy of graph" << std::endl;
       SCDoubleMatrix CopyMat(ConnectivityGraph,true); 
       if(_mypid == 0) std::cout << "Done. Symmetrizing" << std::endl;
       CopyMat.add(ConnectivityGraph,'T',ConnectivityGraph.getNumberOfRows(), ConnectivityGraph.getNumberOfCols(), 1.0, 1.0); // Symmetrize graph
     }
-  
-    const char *file1 = "graphfile.txt";
-    ConnectivityGraph.write(file1);
 
+    ConnectivityGraph.write("symmetrizedGraphfile.txt");
+
+    // compute Laplacian matrix L = D^(-1/2)*A*D^(-1/2) -> required for eigevectors to cluster on surface of hypersphere
+    if (_mypid == 0) {
+      std::cout << "Forming Laplacian Matrix" << std::endl;
+    }
+    ConnectivityGraph.computeLaplacian('1','Y');
+    ConnectivityGraph.write("Laplacian.txt");
+
+    // Now compute eigenvectors of Laplacian matrix
     if (_mypid == 0) {
       std::cout << "Spectral clustering of Laplacian Matrix" << std::endl;
     }
@@ -117,7 +118,8 @@ SparseSubspaceClustering::sparsesubspacecluster(SCDoubleMatrix & snapshots) {
     stopTime(TIME_SPARSESUBSPACECLUSTERING_MAIN_LOOP);
     _wallclock_total[TIME_SPARSESUBSPACECLUSTERING_TAG_SNAPSHOTS_DISTANCE_COPY] = snapshots.getTime(SCDBL_TIME_GETL2COLDIST_COPY);
     _wallclock_total[TIME_SPARSESUBSPACECLUSTERING_TAG_SNAPSHOTS_DISTANCE_ADD] = snapshots.getTime(SCDBL_TIME_GETL2COLDIST_ADD);
-
+    // write partitioning vector for visualization
+    _snapshotCentroids->write("snapshotCentroids.txt");
     return 0;
 }
 
@@ -147,13 +149,12 @@ SparseSubspaceClustering::computeEigenvectors(SCDoubleMatrix & graph) {
     const char *compute_vectors = "V"; // V tells scala to compute eigenvalues and eigenvectors
     const char *compute_values  = "N"; // N tells scala to compute eigenvalues only
     const char *use_lowerupper  = "L"; // L tells scala to use lower part, U for upper
-    const char *what_range      = "I"; // I tells scala to find the IL-th through IU-th eigenvalues
 
-    double * W = new double[graph.getNumberOfRows()]; // container for eigenvalues
+    //double * W = new double[graph.getNumberOfRows()]; // container for eigenvalues
+    std::vector<double> W(graph.getNumberOfRows(),0.0);
 
     int info;
     double workspaceQuery;
-    int iworkspaceQuery; // these are used to store how much working space is needed
     const int MINUS_ONE = -1;
     const int N         = graph.getNumberOfRows();     // size of matrix whose eigenvalues we compute
     const int IA        = 1; // global row index for beggining of submatrix, use 1 for whole matrix
@@ -161,9 +162,9 @@ SparseSubspaceClustering::computeEigenvectors(SCDoubleMatrix & graph) {
 
     SCDoubleMatrix EVContainer(graph); EVContainer.zero();
 
-    // the first call only computes the amout of workspace needed. 
+    // the first call only computes the amount of workspace needed. 
     _FORTRAN(pdsyev)(compute_vectors, use_lowerupper, &N, graph.getMatrix(), &IA, &JA, 
-                     graph.getDesc(), W, EVContainer.getMatrix(), &IA, &JA, EVContainer.getDesc(), 
+                     graph.getDesc(), &W[0], EVContainer.getMatrix(), &IA, &JA, EVContainer.getDesc(), 
                      &workspaceQuery, &MINUS_ONE, &info);
 
     assert(info == 0);
@@ -172,11 +173,11 @@ SparseSubspaceClustering::computeEigenvectors(SCDoubleMatrix & graph) {
       if (_mypid == 0) {
         std::cout << "Computing Eigenvalue range" << std::endl;
       }
-      // the second call actually computes the eigenvalues
+      // the second call actually computes the eigenvalues, upper(lower) part of input matrix is destroyed on exit (see scalapack documentation)
       const int lwork = static_cast<int>(workspaceQuery);
       double * workspace = new double[lwork];
       _FORTRAN(pdsyev)(compute_vectors, use_lowerupper, &N, graph.getMatrix(), &IA, &JA, 
-                       graph.getDesc(), W, EVContainer.getMatrix(), &IA, &JA, EVContainer.getDesc(), 
+                       graph.getDesc(), &W[0], EVContainer.getMatrix(), &IA, &JA, EVContainer.getDesc(), 
                        workspace, &lwork, &info);
       assert(info == 0);
   
@@ -198,47 +199,10 @@ SparseSubspaceClustering::computeEigenvectors(SCDoubleMatrix & graph) {
         }
       }
     }
+
+    // print eigenvalues to screen
     if(_mypid == 0)
-    for(int asdf = 0; asdf < _numClusters+5; asdf++) std::cout << "myid = " << _mypid << " eig " << asdf << " is " << W[N-1-asdf] << std::endl;
-/*
-    const int M  = _numClusters; // number of eigenvalues to be computed
-    const int IL = N - M + 1;    // index of small eigenvalue to be computed
-    const int IU = N;            // index of largest eigenvalue to be computed
-  
-    // allocate space for eigenvectors
-//    SCDoubleMatrix EVContainer(_context, N, N, _mb, _nb, _comm); // number of snapshots x number of clusters
-    SCDoubleMatrix EVContainer(graph); EVContainer.zero();
-    const int IZ = 1; 
-    const int JZ = 1;
-
-    // now compute the desired eigenvalues and eigenvectors, first query the workspace size
-    _FORTRAN(pdsyevr)(compute_vectors, what_range, use_lowerupper, &N, graph.getMatrix(),
-                      &IA, &JA, graph.getDesc(), NULL, NULL, &IL, &IU, &M, &M, 
-                      W, EVContainer.getMatrix(), &IZ, &JZ, EVContainer.getDesc(), 
-                      &workspaceQuery, &MINUS_ONE, &iworkspaceQuery, &MINUS_ONE, &info);
-    assert(info == 0);
-
-    // then compute the desired eigenvectors
-    {
-      if (_mypid == 0) {
-        std::cout << "Computing associated eigenvectors" << std::endl;
-        std::cout << "workspaceQuery = " << workspaceQuery << " iworkspaceQuery = " << iworkspaceQuery << std::endl;
-      }
-      const int lwork    = static_cast<int>(workspaceQuery);
-      const int liwork   = static_cast<int>(iworkspaceQuery); 
-      double * workspace = new double[lwork];
-      int * iworkspace   = new int[liwork];
-      
-      _FORTRAN(pdsyevr)(compute_vectors, what_range, use_lowerupper, &N, graph.getMatrix(),
-                        &IA, &JA, graph.getDesc(), NULL, NULL, &IL, &IU, &M, &M,
-                        W, EVContainer.getMatrix(), &IZ, &JZ, EVContainer.getDesc(),                  
-                        workspace, &lwork, iworkspace, &liwork, &info);
-      assert(info == 0);
-
-      delete[] workspace;
-      delete[] iworkspace;
-
-    }*/
+      for(int asdf = 0; asdf < _numClusters+5; asdf++) std::cout << " eigenvalue " << asdf << " is " << W[N-1-asdf] << std::endl;
 
     // store eigenvectors in transposed format
     _eigVectors = new SCDoubleMatrix(_context, _numClusters, graph.getNumberOfRows(), _mb, _nb, _comm); // number of clusters x number of snapshots
@@ -247,8 +211,9 @@ SparseSubspaceClustering::computeEigenvectors(SCDoubleMatrix & graph) {
     EVContainer.add(*_eigVectors, 'T', _numClusters, EVContainer.getNumberOfRows(), 1.0, 1.0,1,N-_numClusters+1,1,1);
     _eigVectors->normalizeColumns(); // eigenvector rows need to be normalized   
 
-    delete[] W; 
-
+    // write normalized eigenvectors to visualize on hyper-sphere
+    _eigVectors->write("normalizedEigenVectors.txt");
+ 
 }
 
 void

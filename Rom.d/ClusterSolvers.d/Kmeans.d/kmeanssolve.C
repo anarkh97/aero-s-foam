@@ -46,7 +46,8 @@ Kmeans::kmeanscluster(SCDoubleMatrix & snapshots) {
     stopTime(TIME_KMEANS_MAIN_LOOP);
     _wallclock_total[TIME_KMEANS_TAG_SNAPSHOTS_DISTANCE_COPY] = snapshots.getTime(SCDBL_TIME_GETL2COLDIST_COPY);
     _wallclock_total[TIME_KMEANS_TAG_SNAPSHOTS_DISTANCE_ADD] = snapshots.getTime(SCDBL_TIME_GETL2COLDIST_ADD);
-    // _centroids->write("centroids.txt");
+     _centroids->write("centroids.txt");
+    _snapshotCentroids->write("snapshotCentroids.txt");
     return 0;
 }
 
@@ -81,7 +82,8 @@ Kmeans::getCentroids(SCDoubleMatrix & snapshots) {
     //std::cout << "Entering getCentroids" << std::endl;
     startTime(TIME_KMEANS_GET_CENTROIDS);
     int nss;
-    for (int ic=1; ic<=_numClusters; ic++) { // Fortran Index
+    
+for (int ic=1; ic<=_numClusters; ic++) { // Fortran Index
         nss = _snapshotCentroids->countValue(ic);
         double fac = 1.0/((float) nss);
         startTime(TIME_KMEANS_GET_CENTROIDS_SUM);

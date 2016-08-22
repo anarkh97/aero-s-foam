@@ -493,6 +493,7 @@ MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *re
   }
   else {
     clean();
+    //std::cout << "line number " << __LINE__ << " of " << __FILE__ << std::endl;
     domain->ReInitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
     domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
     if(domain->solInfo().trivial_detection) {

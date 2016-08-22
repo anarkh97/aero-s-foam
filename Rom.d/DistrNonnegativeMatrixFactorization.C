@@ -424,9 +424,7 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
     t4 += getTime();
   }
 
-  if(SSCflag && communicator_->myID() == 0) {
-    fprintf(stderr,"100 percent done\n");
-  }
+  if(SSCflag && communicator_->myID() == 0) fprintf(stderr,"\n");
 
   if(verboseFlag && communicator_->myID() == 0) {
     std::cerr << "Total number of iterations = " << iter << std::endl;

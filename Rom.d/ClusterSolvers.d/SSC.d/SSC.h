@@ -107,7 +107,8 @@ class SparseSubspaceClustering {
         void header();
         int  sparsesubspaceclusterInit(SCDoubleMatrix & snapshots);
         void tagSnapshot(SCDoubleMatrix & snapshots);
-        void getCentroids(SCDoubleMatrix & snapshots, SCDoubleMatrix & centroidContainer);
+        void getCentroids(SCDoubleMatrix & snapshots, SCDoubleMatrix & _centroidContainer);
+        void estimateClusterDimensionality(SCDoubleMatrix &graph);
 };
 
 #endif // SPARSESUBSPACECLUSTERING_H_

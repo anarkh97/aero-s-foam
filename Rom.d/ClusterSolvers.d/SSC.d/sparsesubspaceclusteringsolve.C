@@ -46,9 +46,10 @@ SparseSubspaceClustering::sparsesubspacecluster(SCDoubleMatrix & snapshots) {
       std::cout << "Building Connectivity Graph" << std::endl;
     }
 
+    startTime(TIME_SPARSESUBSPACECLUSTERING_MAIN_LOOP);
     {
       if(_mypid == 0) std::cout << "Making copy of Data" << std::endl; 
-      SCDoubleMatrix CopyMat(snapshots,true);
+      SCDoubleMatrix CopyMat(snapshots,true); // copy for targets 
       if(_mypid == 0) std::cout << "Done, entering solver" << std::endl;
       solver.solveNNLS_MRHS(snapshots, CopyMat, ConnectivityGraph, 0, 1); // call NNLS for multiple right hand sides to get connectivity
     }
@@ -61,12 +62,10 @@ SparseSubspaceClustering::sparsesubspacecluster(SCDoubleMatrix & snapshots) {
     ConnectivityGraph.write("graphfile.txt");
 
     // symmetrize connectivity graph
-    {
-      if(_mypid == 0) std::cout << "Making copy of graph" << std::endl;
-      SCDoubleMatrix CopyMat(ConnectivityGraph,true); 
-      if(_mypid == 0) std::cout << "Done. Symmetrizing" << std::endl;
-      CopyMat.add(ConnectivityGraph,'T',ConnectivityGraph.getNumberOfRows(), ConnectivityGraph.getNumberOfCols(), 1.0, 1.0); // Symmetrize graph
-    }
+    if(_mypid == 0) std::cout << "Making copy of graph" << std::endl;
+    SCDoubleMatrix CopyGraph(ConnectivityGraph,true); 
+    if(_mypid == 0) std::cout << "Done. Symmetrizing" << std::endl;
+    CopyGraph.add(ConnectivityGraph,'T',ConnectivityGraph.getNumberOfRows(), ConnectivityGraph.getNumberOfCols(), 1.0, 1.0); // Symmetrize graph
 
     ConnectivityGraph.write("symmetrizedGraphfile.txt");
 
@@ -83,7 +82,6 @@ SparseSubspaceClustering::sparsesubspacecluster(SCDoubleMatrix & snapshots) {
     }
     computeEigenvectors(ConnectivityGraph);
 
-    startTime(TIME_SPARSESUBSPACECLUSTERING_MAIN_LOOP);
     int status = sparsesubspaceclusterInit(*_eigVectors);// initialize clusters for eigenvector rows computed in last function call
     if (status != 0) {
         if (_mypid == 0) {
@@ -114,6 +112,7 @@ SparseSubspaceClustering::sparsesubspacecluster(SCDoubleMatrix & snapshots) {
 
     // take clustering and compute centroids of high dimensional vectors
     getCentroids(snapshots, *_centroids);
+    estimateClusterDimensionality(CopyGraph);
 
     stopTime(TIME_SPARSESUBSPACECLUSTERING_MAIN_LOOP);
     _wallclock_total[TIME_SPARSESUBSPACECLUSTERING_TAG_SNAPSHOTS_DISTANCE_COPY] = snapshots.getTime(SCDBL_TIME_GETL2COLDIST_COPY);
@@ -231,6 +230,32 @@ SparseSubspaceClustering::getCentroids(SCDoubleMatrix & snapshots, SCDoubleMatri
     stopTime(TIME_SPARSESUBSPACECLUSTERING_GET_CENTROIDS);
 }
 
+void
+SparseSubspaceClustering::estimateClusterDimensionality(SCDoubleMatrix &graph){
+
+    for (int ic=1; ic<=_numClusters; ic++) { // loop over clusters
+      int nnzmax = 0; 
+      for (int row=1; row<=graph.getNumberOfCols(); row++){ // loop over rows
+        int rowmask = _snapshotCentroids->getElement(row,1);
+        _snapshotCentroids->SCBaseMatrix::distributeVector(&rowmask,1);
+        int nnzrow = 0; 
+        if(rowmask == ic){ // check which cluster this row is in
+          for(int col=1; col<=graph.getNumberOfRows(); col++){
+            int colmask = _snapshotCentroids->getElement(col,1);
+            _snapshotCentroids->SCBaseMatrix::distributeVector(&colmask,1);
+            if(colmask == ic) { // check which cluster this column is in
+              double elem = graph.getElement(row,col); 
+              graph.SCBaseMatrix::distributeVector(&elem,1);
+              if(elem > 1e-16) nnzrow++; 
+            }
+          }
+        }
+        if(nnzrow>nnzmax) nnzmax = nnzrow; 
+      }
+      if(_mypid == 0) std::cout << "Maximum connectivity for cluster " << ic << " is " << nnzmax << std::endl;
+    } 
+
+}
 
 int
 SparseSubspaceClustering::sparsesubspaceclusterInit(SCDoubleMatrix & snapshots) {

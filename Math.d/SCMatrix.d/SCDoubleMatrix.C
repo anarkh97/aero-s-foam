@@ -341,6 +341,23 @@ SCDoubleMatrix::normalizeRows(char normType, char squareRoot) {
 
 }
 
+int 
+SCDoubleMatrix::computeZeroNormCol(std::vector<int> &container) {
+
+  for (int col=0; col<_nlocal; col++) {
+    int Ccol = col*_mlocal;
+    int nnzlocal = 0;
+    for (int row=0; row<_mlocal; row++) {
+      if( _matrix[Ccol+row]>1e-16)
+       nnzlocal++; 
+    }
+    int nnzglobal = 0;
+    MPI_Allreduce(&nnzlocal, &nnzglobal, 1, MPI_INT, MPI_SUM, _comm);
+    container.push_back(nnzglobal);
+  }
+
+}
+
 int
 SCDoubleMatrix::computeLaplacian(char normType, char squareRoot) {
     // Warning: this will only work properly for square matrices

@@ -561,19 +561,18 @@ ElementSamplingDriver<std::vector<double>,size_t>
       for (int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap) { // inner loop over snapshot list
         if(poscfg) { // if there is a transformation supplied, apply to mesh for current snapshot
           sources >> kParam >> kSnap; 
-          for(int k = 0; k < skipFactor; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+          for(int k = 0; k < skipFactor; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // account for snapshot skipping 
           if(kParam != jParam) { // check to see if new transformation is required, if not continue
             std::cout << "Rescaling Nodal Coordinates" << std::endl;
             if(sclfactor) { // if doing linear stretching of coordinates, do this block
               if(jParam == -1) {
-                 domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactor;
-                 domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactor;
-                 domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactor;
-              }
-              else {
-                 domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactors[jParam-1];
-                 domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactors[jParam-1];
-                 domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactors[jParam-1];
+                domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactor;
+                domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactor;
+                domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactor;
+              }else{
+                domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactors[jParam-1];
+                domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactors[jParam-1];
+                domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactors[jParam-1];
               }
               geoSource->transformCoords();
             } else if (ndfile) { // if using arbitrarily deformed mesh, do this block
@@ -657,10 +656,14 @@ ElementSamplingDriver<std::vector<double>,size_t>
 
   // finally, undo scaling to orginial mesh for post processing
   if(poscfg) {
-    domain->solInfo().xScaleFactor /= domain->solInfo().xScaleFactors[kParam-1];
-    domain->solInfo().yScaleFactor /= domain->solInfo().yScaleFactors[kParam-1];
-    domain->solInfo().zScaleFactor /= domain->solInfo().zScaleFactors[kParam-1];
-    geoSource->transformCoords();
+    if(sclfactor) { // if doing linear stretching of coordinates, do this block
+      domain->solInfo().xScaleFactor /= domain->solInfo().xScaleFactors[kParam-1];
+      domain->solInfo().yScaleFactor /= domain->solInfo().yScaleFactors[kParam-1];
+      domain->solInfo().zScaleFactor /= domain->solInfo().zScaleFactors[kParam-1];
+      geoSource->transformCoords();
+    } else if (ndfile) {
+      geoSource->setNewCoords(domain->solInfo().NodeTrainingFiles[domain->solInfo().NodeTrainingFiles.size()-1]); // set nodes to original position, nodefile at end of list
+    }
   }
 }
 

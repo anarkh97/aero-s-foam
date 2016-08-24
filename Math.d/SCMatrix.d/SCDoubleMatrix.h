@@ -114,6 +114,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int normalizeColumns(char normType = '2', char squareRoot = 'N');
         int normalizeRows(char normType = '2', char squareRoot = 'N');
         int computeLaplacian(char normType = '2', char squareRoot = 'N');
+        int computeZeroNormCol(std::vector<int> &container);
         void columnScaling(SCDoubleMatrix& colScale);
         void elementWiseInverse();
         void scaleColumnsByL2Norm(SCDoubleMatrix& colScale);

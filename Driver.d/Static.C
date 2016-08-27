@@ -1511,6 +1511,10 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     // upper  surface = 1
     // median surface = 2
     // lower  surface = 3
+  int str_therm_option = oinfo[fileNumber].str_therm_option;
+    // thermomechanical = 0
+    // thermal = 1
+    // mechanical = 2
   OutputInfo::FrameType oframe = oinfo[fileNumber].oframe;
 
   int k;
@@ -1571,17 +1575,19 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       elweight->zero();
 
       // DETERMINE ELEMENT DISPLACEMENT VECTOR
-      for (k = 0; k < allDOFs->num(iele); ++k) {
-        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-        if (cn >= 0)
-          (*elDisp)[k] = sol[cn];
-        else
-          (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+      if(str_therm_option != 1) {
+        for (k = 0; k < allDOFs->num(iele); ++k) {
+          int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+          if (cn >= 0)
+            (*elDisp)[k] = sol[cn];
+          else
+            (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+        }
       }
 
       int iNode;
       for (iNode = 0; iNode < NodesPerElement; ++iNode) {
-        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp || str_therm_option == 2)
           elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
         else
           elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
@@ -1948,6 +1954,12 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
   // median surface = 2
   // lower  surface = 3
 
+  int str_therm_option = oinfo[fileNumber].str_therm_option;
+
+  // thermomechanical = 0
+  // thermal = 1
+  // mechanical = 2
+
   int j,k;
   // ... OUTPUT FILE field width
   int w = oinfo[fileNumber].width;
@@ -1996,17 +2008,19 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 
 // ... DETERMINE ELEMENT DISPLACEMENT VECTOR
 
-    for(k=0; k<allDOFs->num(iele); ++k) {
-      int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-      if(cn >= 0)
-        (*elDisp)[k] = sol[cn];
-      else
-        (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+    if(str_therm_option != 1) {
+      for(k=0; k<allDOFs->num(iele); ++k) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+        if(cn >= 0)
+          (*elDisp)[k] = sol[cn];
+        else
+          (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+      }
     }
 
     int iNode;
     for(iNode=0; iNode<NodesPerElement; ++iNode) {
-      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp || str_therm_option == 2)
         elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
       else
         elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];

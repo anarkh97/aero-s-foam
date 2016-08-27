@@ -351,6 +351,8 @@ class Domain : public HData {
      std::map<std::pair<int,int>,double> loadfactor;
      std::map<std::pair<int,int>,int> loadfactor_mftt;     
      std::map<std::pair<int,int>,int> loadfactor_hftt;
+     std::map<int,bool> loadfactor_temp;
+     std::map<int,bool> loadfactor_grav;
      std::map<int,MFTTData*> mftval; // Mechanics Force Time Table
      std::map<int,MFTTData*> hftval; // Heat Fluxes Time Table
      int numHFTT;                    // number of HFTTs
@@ -667,6 +669,8 @@ class Domain : public HData {
      void setLoadFactorMFTT(int, int, int);
      std::map<std::pair<int,int>,int>& getLoadFactorMFTT() { return loadfactor_mftt; };
      void setLoadFactorHFTT(int, int, int);
+     void setLoadFactorTemp(int, bool);
+     void setLoadFactorGrav(int, bool);
      void checkCases();
      double getLoadFactor(int) const;
      int  setMFTT(MFTTData *, int);
@@ -1209,7 +1213,7 @@ class Domain : public HData {
      Elemset& getElementSet() { return packedEset; }
 
      // returns the value of the gravity Force flag
-     int  gravityFlag() { return (gravityAcceleration ? 1: 0) || (domain->solInfo().soltyp == 2); }
+     int  gravityFlag();
 
      // returns the value of the pressure force flag
      int  pressureFlag();
@@ -1217,7 +1221,7 @@ class Domain : public HData {
      // returns the value of the contact force flag
      int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0 && sinfo.tdenforceFlag); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
 
-     int  thermalFlag() { return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0; }
+     int  thermalFlag();
 
      int  radiationFlag() { return sinfo.radiationFlag; }
 

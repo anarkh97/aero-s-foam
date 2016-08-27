@@ -932,6 +932,18 @@ Domain::setLoadFactorHFTT(int loadcase_id, int loadset_id, int table_id)
 }
 
 void
+Domain::setLoadFactorTemp(int loadcase_id, bool load_factor)
+{
+ loadfactor_temp[loadcase_id] = load_factor;
+}
+
+void
+Domain::setLoadFactorGrav(int loadcase_id, bool load_factor)
+{
+ loadfactor_grav[loadcase_id] = load_factor;
+}
+
+void
 Domain::checkCases()
 {
   for(std::list<int>::const_iterator it1 = sinfo.loadcases.begin(); it1 != sinfo.loadcases.end(); ++it1) {
@@ -978,6 +990,34 @@ Domain::getLoadFactor(int loadset_id) const
   else {
     // 3. In this case, loadset_id is not included in the loadcase.
     return 0.0;
+  }
+}
+
+int
+Domain::gravityFlag()
+{
+  int loadcase_id = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  std::map<int,bool>::const_iterator it = loadfactor_grav.find(loadcase_id);
+  if(it != loadfactor_grav.end() && it->second == false) {
+    // in this case, gravity has been explicitly deactivated for the current loadcase
+    return 0;
+  }
+  else {
+    return (gravityAcceleration ? 1: 0) || (domain->solInfo().soltyp == 2);
+  }
+}
+
+int
+Domain::thermalFlag()
+{
+  int loadcase_id = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  std::map<int,bool>::const_iterator it = loadfactor_temp.find(loadcase_id);
+  if(it != loadfactor_temp.end() && it->second == false) {
+    // in this case, thermal loads have been explicitly deactivated for the current loadcase
+    return 0;
+  }
+  else {
+    return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0;
   }
 }
 

@@ -1086,6 +1086,12 @@ TRAIL [a-zA-Z]*
 
 "lower"[a-zA-Z]*|"LOWER"[a-zA-Z]*  { yylval.ival = 3; return SURFACE; }
 
+"thermomechanical"[a-zA-Z]*|"THERMOMECHANICAL"[a-zA-Z]*  { yylval.ival = 0; return STR_THERM_OPTION; }
+
+"thermal"[a-zA-Z]*|"THERMAL"[a-zA-Z]*  { yylval.ival = 1; return STR_THERM_OPTION; }
+
+"mechanical"[a-zA-Z]*|"MECHANICAL"[a-zA-Z]* { yylval.ival = 2; return STR_THERM_OPTION; }
+
 "gdisplac"|"GDISPLAC"              { yylval.ival = OutputInfo::Displacement; return STRESSID; }
 
 "romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }

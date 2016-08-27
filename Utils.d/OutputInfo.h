@@ -60,6 +60,7 @@ struct OutputInfo {
    BinFileHandler *binfilptr;
    int   averageFlg;
    int   surface;
+   int   str_therm_option;
    int   width;
    int   precision;
    int   nodeNumber;	// To output just one node's information to a file.
@@ -100,6 +101,7 @@ struct OutputInfo {
      filename = 0;
      averageFlg = 1;
      surface = 2;
+     str_therm_option = 0;
      nodeNumber = -1;
      groupNumber = -1;
      ylayer = 0.0;

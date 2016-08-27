@@ -1180,16 +1180,30 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     }
       break;
     case OutputInfo::Temperature:  {
-      if(sinfo.order == 1 || sinfo.soltyp == 2) {
-      double *data = new double[nPrintNodes];
-      for (i = 0, realNode = -1; i < nNodes; ++i) {
-        int iNode = first_node+i;
-        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x : 0;
+      if(sinfo.order == 1 || sinfo.soltyp == 2) { // thermal analysis
+        double *data = new double[nPrintNodes];
+        for (i = 0, realNode = -1; i < nNodes; ++i) {
+          int iNode = first_node+i;
+          if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+          data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x : 0;
+        }
+        geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+        delete [] data;
       }
-      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
-      delete [] data;
-      } else fprintf(stderr," *** WARNING: Output case %d not implemented for non-linear direct solver \n", iInfo);
+      else { // structural analysis with thermal load
+        double *nodalTemperatures = 0;
+        // Either get the nodal temperatures from the input file or from the thermal model
+        if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
+        else if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
+        double *data = new double[nPrintNodes];
+        for (i = 0, realNode = -1; i < nNodes; ++i) {
+          int iNode = first_node+i;
+          if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+          data[nodeI] = (nodalTemperatures) ? nodalTemperatures[iNode] : 0;
+        }
+        geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+        delete [] data;
+      }
     } 
       break;
     case OutputInfo::Disp6DOF:  {

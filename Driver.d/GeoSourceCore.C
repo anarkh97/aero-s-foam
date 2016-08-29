@@ -1523,7 +1523,7 @@ void GeoSource::setUpData(int topFlag)
     }
 
     if (oinfo[iOut].groupNumber > 0)  {
-      if (nodeGroup.find(oinfo[iOut].groupNumber) == nodeGroup.end())
+      if (topFlag < 0 && nodeGroup.find(oinfo[iOut].groupNumber) == nodeGroup.end())
         filePrint(stderr, " *** WARNING: Requested group output id not found: %d\n", oinfo[iOut].groupNumber);
     }
   }

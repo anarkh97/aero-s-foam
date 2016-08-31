@@ -509,6 +509,7 @@ ElementSamplingDriver<std::vector<double>,size_t>
 ::assembleTrainingData<VecBasis>(VecBasis &podBasisInput, int podVectorCount, VecBasis &displac,
                        VecBasis *veloc,VecBasis *accel, int j)
 {
+#if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11))
   const FileNameInfo fileInfo;
   std::vector<double>::iterator timeStampFirst = timeStamps_.begin();
    std::vector<double>::iterator elemContributions = solver_.matrixBuffer();
@@ -665,6 +666,10 @@ ElementSamplingDriver<std::vector<double>,size_t>
       geoSource->setNewCoords(domain->solInfo().NodeTrainingFiles[domain->solInfo().NodeTrainingFiles.size()-1]); // set nodes to original position, nodefile at end of list
     }
   }
+#else
+  std::cerr << " *** ERROR: C++11 support required in ElementSamplingDriver::assembleTrainingData().\n";
+  exit(-1); 
+#endif
 }
 
 template<typename MatrixBufferType, typename SizeType>

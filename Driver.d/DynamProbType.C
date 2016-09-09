@@ -327,7 +327,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
            dynOps = probDesc->buildOps(1.0, 0.0, 0.0);
 
          probDesc->getConstForce( *constForce );
-
+ 
          // Check stability time step
          if(domain->solInfo().stable && (aeroAlg < 0 || domain->solInfo().dyna3d_compat)) probDesc->computeStabilityTimeStep(dt, *dynOps);
 
@@ -338,7 +338,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
          if(probDesc->getThermohFlag() >= 0) probDesc->thermohPreProcess(*d_n, *v_n, *v_p);
          
-
          // Time Integration Loop 
          explicitNewmarkLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax);
        } 

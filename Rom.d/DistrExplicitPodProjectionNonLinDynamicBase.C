@@ -400,47 +400,78 @@ DistrExplicitPodProjectionNonLinDynamicBase::getPostProcessor() {
 DistrExplicitPodProjectionNonLinDynamicBase::DistrExplicitPodProjectionNonLinDynamicBase(Domain *_domain) :
   MultiDomainDynam(_domain),
   domain(_domain),
-  stableCount(0)
+  stableCount(0),
+  localBasisId(-1)
 {}
 
 void
 DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
-  {MultiDomainDynam::preProcess();
-  //preProcessing for reduced order basis/////////////////////////////////////////////////
-  FileNameInfo fileInfo; 
-  std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-  fileName.append(".normalized");
+  { 
+    MultiDomainDynam::preProcess();
+    //preProcessing for local/global reduced order basis
+    //check how many vectors are in each file for memory allocation
+    //if pod size is given as 0, then use all vectors in basis file
+    for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob) {
+      FileNameInfo fileInfo;
+      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
+      fileName.append(".normalized");
+      DistrBasisInputFile BasisFile(fileName);
+      int locSize = domain->solInfo().maxSizePodRom ?
+                    std::min(domain->solInfo().maxSizePodRom, BasisFile.stateCount()) :
+                    BasisFile.stateCount();
+      locBasisVec.push_back(locSize);
+      if(verboseFlag && domain->solInfo().readInROBorModes.size()>1) filePrint(stderr, " ... Local Basis %d size %-3d ...\n",rob,locBasisVec[rob]);
+    }
 
-  DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
-  if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
-  const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
-                                     std::min(domain->solInfo().maxSizePodRom, BasisFile.stateCount()) :
-                                     BasisFile.stateCount();
+    //initialize helper objects for reading in distributed basis vectors
+    const int projectionSubspaceSize = std::accumulate(locBasisVec.begin(),locBasisVec.end(),0);
+    filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
+    normalizedBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
 
-  filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
-  normalizedBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo()); 
+    DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
 
-  DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
-  
-  typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
-  DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
+    typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
+    DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
                                    SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
-  DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
+    DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
 
-  for (DistrVecBasis::iterator it = normalizedBasis_.begin(),
-                               it_end = normalizedBasis_.end();
-                               it != it_end; ++it) {
-    assert(BasisFile.validCurrentState());
+    // this loop reads in vectors and stores them in a single Distributed Basis structure
+    DistrVecBasis::iterator it = normalizedBasis_.begin(); 
+    for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob){
+      FileNameInfo fileInfo; 
+      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
+      fileName.append(".normalized");
+      DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
+      if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
 
-    BasisFile.currentStateBuffer(buffer);
-    converter.vector(buffer, *it);
-    
-    BasisFile.currentStateIndexInc();
-  }}
+      for (int currentVec = 0; currentVec<locBasisVec[rob]; ++currentVec) {
+        assert(BasisFile.validCurrentState());
 
-  ///////////////////////////////////////////////////////////////////////////////////////
+        BasisFile.currentStateBuffer(buffer);
+        converter.vector(buffer, *it);
+        it++;
+      
+        BasisFile.currentStateIndexInc();
+      }
+    }
 
-  //preProcessing for solution vecotor information///////////////////////////////////////
+    // if performing local basis analysis, read in centroids for basis switching
+    if(domain->solInfo().readInROBorModes.size() > 1) {
+      centroids.dimensionIs(locBasisVec.size(), decDomain->masterSolVecInfo()); 
+      DistrVecBasis::iterator it = centroids.begin();
+      for(int rob=0; rob<locBasisVec.size(); ++rob) { 
+        std::string fileName = domain->solInfo().readInLocalBasesCent[rob].c_str();
+        DistrBasisInputFile CentroidFile(fileName);
+        if(verboseFlag) filePrint(stderr, " ... Reading centroid from file %s ...\n", fileName.c_str());
+        assert(CentroidFile.validCurrentState());
+        CentroidFile.currentStateBuffer(buffer);
+        converter.vector(buffer, *it);
+        it++;
+      }
+    }
+  }
+
+  //preProcessing for solution vector information
   {
    reducedInfo.domLen = new int[MultiDomainDynam::solVecInfo().numDom]; 
    reducedInfo.numDom = MultiDomainDynam::solVecInfo().numDom;
@@ -453,9 +484,8 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
    reducedInfo.len = totLen;
    reducedInfo.setMasterFlag();
   }
-  ///////////////////////////////////////////////////////////////////////////////////////
   
-  //preProcessing for dummy working variables///////////////////////////////////////////////////
+  //preProcessing for dummy working variables
   {fExt      = new DistrVector(MultiDomainDynam::solVecInfo());
   fInt       = new DistrVector(MultiDomainDynam::solVecInfo());
   cnst_fBig  = new DistrVector(MultiDomainDynam::solVecInfo());
@@ -467,7 +497,6 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   tempVec    = new DistrVector(MultiDomainDynam::solVecInfo());
   dummyState = new SysState<DistrVector>(*d_n, *v_n, *a_n, *v_p);
   times      = new StaticTimers;}
-  ///////////////////////////////////////////////////////////////////////////////////////
 
   decDomain->assembleNodalInertiaTensors(melArray);
   if(domain->solInfo().stable && !domain->solInfo().elemLumpPodRom)
@@ -541,7 +570,64 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector>&
     if(a_n->norm() != 0) reduceDisp(*a_n, ar_n);
     if(v_p->norm() != 0) reduceDisp(*v_p, vr_p);
   }
+  initLocalBasis(dr_n);
 }
+
+//start local basis functions
+void
+DistrExplicitPodProjectionNonLinDynamicBase::initLocalBasis(DistrVector &q){
+
+  if(domain->solInfo().readInROBorModes.size()>1) { // only execute this if doing local ROM
+    localBasisId  = selectLocalBasis(q);
+    if(verboseFlag) filePrint(stderr," ... Initial Local Basis # %d    ...\n",localBasisId);
+    int blockCols = locBasisVec[localBasisId];
+    int startCol  = std::accumulate(locBasisVec.begin(),locBasisVec.begin()+localBasisId,0);
+    normalizedBasis_.localBasisIs(startCol,blockCols);
+  }
+
+}
+
+int
+DistrExplicitPodProjectionNonLinDynamicBase::selectLocalBasis(DistrVector &q){
+
+  int cc = std::numeric_limits<int>::max(); 
+  if(centroids.numVec() > 0) { // modelII: slow implementation using cluster centroids
+    double minDist = std::numeric_limits<double>::max(); 
+    for(int c=0; c<locBasisVec.size(); ++c){
+      DistrVector centroidVec = centroids[c]; 
+      centroidVec            -= *d_n;
+      double distNorm = centroidVec.norm();
+      if(distNorm < minDist) { // check proximity to centroid, update if closer
+        minDist = distNorm;
+        cc      = c; 
+      }
+    }
+  }
+
+  return cc; 
+}
+
+void
+DistrExplicitPodProjectionNonLinDynamicBase::setLocalBasis(DistrVector &q, DistrVector &qd){
+
+  if(domain->solInfo().readInROBorModes.size() > 1) {
+    int j = selectLocalBasis(q);
+    if(j != localBasisId) { // if a new local basis has been selected, update the things
+      if(verboseFlag) filePrint(stderr," ... Selecting New Local Basis # %d     ...\n",j);
+      int blockCols = locBasisVec[j]; 
+      int startCol  = std::accumulate(locBasisVec.begin(),locBasisVec.begin()+j,0);
+
+      normalizedBasis_.expand(qd, *v_n); // make sure velocities are projected
+
+      // reduced coordinates have already been projected into embedding space with previous basis
+      // now project tham back on to the new subspace with updated basis
+      normalizedBasis_.localBasisIs(startCol,blockCols);
+      normalizedBasis_.reduce(*d_n,q); // d_n has already been updated, regardless of rotational degrees of freedom
+      normalizedBasis_.reduce(*v_n,qd);
+    }
+  }
+}
+//end local basis functions
 
 void
 DistrExplicitPodProjectionNonLinDynamicBase::reduceDisp(DistrVector &d, DistrVector &dr) const
@@ -556,13 +642,13 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVec
   //update geomState for Fint, but no need to update displacment vector from geometry 
 
   DistrVector temp1(solVecInfo());
-  temp1 = dt_n_h*v_n_h;
+  temp1 = dt_n_h*v_n_h; // temp1 is size of reduced coordinates
 
   normalizedBasis_.expand( temp1, *d_n); 
 
   geomState->update(*d_n, 2);
 
-  d_n1 += temp1;  //we save the increment vectors for postprocessing
+  normalizedBasis_.addLocalPart(temp1,d_n1);  //we save the increment vectors for postprocessing, add only local part
 
   if(haveRot) { // currently we only need to project the velocity up when there are rotation dofs
                 // int the future, there may be other cases in which this is also necessary, e.g. viscoelastic materials
@@ -571,6 +657,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVec
     normalizedBasis_.expand(v_n_h, *v_n);
     geomState->setVelocity(*v_n, 2);
   }
+  setLocalBasis(d_n1,v_n_h); // this will update the local basis if multiple bases are supplied  
 }
 
 void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
@@ -592,7 +679,7 @@ void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
   }
   else { // XXX currently, if modal forces are defined then any non-modal forces are ignored
     MultiDomainDynam::getConstForce(*cnst_fBig);
-    normalizedBasis_.reduce(*cnst_fBig,v);
+    normalizedBasis_.reduceAll(*cnst_fBig,v); // project using all local Bases
     cnst_fBig->zero();
   }
 }

@@ -1605,6 +1605,8 @@ TRAIL [a-zA-Z]*
 
 "POSCFG"|"PosCfg"|"poscfg"                { return SCALEPOSCOORDS; }
 
+"NDSCFG"|"NdsCfg"|"ndscdf"		  { return NODEPOSCOORDS; }
+
 "MESHSCALE"|"MeshScale"|"meshscale"       { return MESHSCALEFACTOR; }
 
 "NORMFI"|"NormFi"|"normfi"		  { return VECTORNORM; }

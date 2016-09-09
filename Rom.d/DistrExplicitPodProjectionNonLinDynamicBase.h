@@ -65,10 +65,16 @@ public:
   MultiDomDynPodPostProcessor *getPostProcessor();
   MDDynamMat * buildOps(double, double, double); // Reduced-order matrix solver
 
+  //local basis functions
+  void initLocalBasis(DistrVector &q);
+  int  selectLocalBasis(DistrVector &q);
+  void setLocalBasis(DistrVector &q, DistrVector &qd);
+
 protected:
   Domain        *domain;
   DistrInfo      reducedInfo;
   DistrVecBasis  normalizedBasis_;
+  DistrVecBasis  centroids;
   //dummy Variables to fascillitate computation on Reduced Coordinates
   StaticTimers * times;
   DistrVector  * fExt;
@@ -92,6 +98,9 @@ private:
   DistrExplicitPodProjectionNonLinDynamicBase(const DistrExplicitPodProjectionNonLinDynamicBase &);
   DistrExplicitPodProjectionNonLinDynamicBase &operator=(const DistrExplicitPodProjectionNonLinDynamicBase &);
   void subInitStiff(int isub);
+
+  int localBasisId; 
+  std::vector<int> locBasisVec;
 };
 
 } // end namespace Rom

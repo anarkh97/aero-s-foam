@@ -101,9 +101,9 @@ transposeMult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDist
 
   result.dimensionIs(basis.vectorCount(), basis.vectorInfo());
   
-  for (VecIt it = const_cast<BasisType &>(basis).begin(),
+  for (VecIt     it = const_cast<BasisType &>(basis).begin(),
              it_end = const_cast<BasisType &>(basis).end(),
-             jt = result.begin();
+                 jt = result.begin();
        it != it_end;
        ++it, ++jt) {
     const_cast<GenSubDOp<Scalar> &>(matrix).transposeMult(*it, *jt);

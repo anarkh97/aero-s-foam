@@ -492,9 +492,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
 
 
   if(poscfg) {
-    domain->solInfo().xScaleFactor /= domain->solInfo().xScaleFactors[kParam-1];
-    domain->solInfo().yScaleFactor /= domain->solInfo().yScaleFactors[kParam-1];
-    domain->solInfo().zScaleFactor /= domain->solInfo().zScaleFactors[kParam-1];
+    domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactor/domain->solInfo().xScaleFactors[kParam-1];
+    domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactor/domain->solInfo().yScaleFactors[kParam-1];
+    domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactor/domain->solInfo().zScaleFactors[kParam-1];
     geoSource->transformCoords();
   }
 
@@ -658,9 +658,9 @@ ElementSamplingDriver<std::vector<double>,size_t>
   // finally, undo scaling to orginial mesh for post processing
   if(poscfg) {
     if(sclfactor) { // if doing linear stretching of coordinates, do this block
-      domain->solInfo().xScaleFactor /= domain->solInfo().xScaleFactors[kParam-1];
-      domain->solInfo().yScaleFactor /= domain->solInfo().yScaleFactors[kParam-1];
-      domain->solInfo().zScaleFactor /= domain->solInfo().zScaleFactors[kParam-1];
+      domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactor/domain->solInfo().xScaleFactors[kParam-1];
+      domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactor/domain->solInfo().yScaleFactors[kParam-1];
+      domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactor/domain->solInfo().zScaleFactors[kParam-1];
       geoSource->transformCoords();
     } else if (ndfile) {
       geoSource->setNewCoords(domain->solInfo().NodeTrainingFiles[domain->solInfo().NodeTrainingFiles.size()-1]); // set nodes to original position, nodefile at end of list

@@ -452,11 +452,13 @@ MultiDomainDynam::preProcess()
     execParal(decDomain->getNumSub(), this, &MultiDomainDynam::makeSubCorotators);
     times->corotatorTime += getTime();
 
+    times->kelArrayTime -= getTime();
     kelArray = new FullSquareMatrix*[decDomain->getNumSub()];
     if(domain->solInfo().isNonLin() && (domain->solInfo().newmarkBeta == 0 || domain->solInfo().samplingPodRom
        || domain->solInfo().svdPodRom || domain->solInfo().ROMPostProcess))
       melArray = new FullSquareMatrix*[decDomain->getNumSub()];
     execParal(decDomain->getNumSub(), this, &MultiDomainDynam::makeSubElementArrays);
+    times->kelArrayTime += getTime();
   }
 
   // Initialization for contact
@@ -970,6 +972,12 @@ MultiDomainDynam::printTimers(MDDynamMat *dynOps, double timeLoop)
 {
   times->numSubdomain = decDomain->getNumSub();
   //filePrint(stderr," ... Print Timers                   ... \n");
+
+  for(int i=0; i<decDomain->getNumSub(); ++i) {
+    domain->getTimers().formTime += decDomain->getSubDomain(i)->getTimers().formTime;
+    domain->getTimers().assemble += decDomain->getSubDomain(i)->getTimers().assemble;
+    domain->getTimers().formRhs += decDomain->getSubDomain(i)->getTimers().formRhs;
+  }
 
   if(domain->solInfo().type == 2 && domain->solInfo().fetiInfo.version == 3) {
     times->printFetiDPtimers(domain->getTimers(),
@@ -1489,6 +1497,7 @@ MultiDomainDynam::getAeroAlg()
 void
 MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, DistrVector& a_n, DistrVector& v_p)
 {
+  domain->getTimers().sendFluidTime -= getTime();
   SysState<DistrVector> state(d_n, v_n, a_n, v_p);
 
   if(claw && userSupFunc) {
@@ -1534,6 +1543,7 @@ MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, Dist
   }
 
   distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
+  domain->getTimers().sendFluidTime += getTime();
   if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");
 }
 

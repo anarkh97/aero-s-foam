@@ -127,7 +127,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
                         + kelArrayTime + timeGeom - times.readDecomp;
  double totalPreProcess = localPreProcess;
 
- double totalMatricesProcess = timers.assemble+timers.constructMatrices;
+ double totalMatricesProcess = timers.assemble + timers.constructMatrices;
  double coarseTime   = timers.coarse1 + timers.coarse2;
  double localSolutionTime = (sInfo.type == 0) ? solveTime : timers.solve + timers.factor + coarseTime 
                                                             + timers.pfactor + timers.pfactor2 
@@ -322,17 +322,21 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
          times.makeInternalInfo/1000.0);
  fprintf(f,  "         Make Geometric Node States    time: %14.5f s\n",
          timeGeom/1000.0);
- fprintf(f,  "         Make Element Corotators       time: %14.5f s\n",
-         corotatorTime/1000.0);
- fprintf(f,  "         Make Stiffness & Mass Arrays  time: %14.5f s\n\n",
-         kelArrayTime/1000.0);
 
 
- fprintf(f,"3. Total Matrix Processing             time: %14.5f s %14.3f Mb\n\n",
-         (timers.assemble+timers.constructMatrices)/1000.0,
+ fprintf(f,"\n3. Total Matrix Processing             time: %14.5f s %14.3f Mb\n",
+         (timers.constructMatrices+times.constructTime+times.assemble+kelArrayTime+corotatorTime+times.formTime)/1000.0,
          totMemSubMatrices*byteToMb);
 
- fprintf(f,"4. Total RHS Processing                time: %14.5f s %14.3f Mb\n\n",
+ fprintf(f,"         Construct Sparse Matrices     time: %14.5f s\n",
+         (timers.constructMatrices+times.constructTime)/1000.0);
+ fprintf(f,"         Form Element Matrices         time: %14.5f s\n",
+         (times.formTime+kelArrayTime+corotatorTime)/1000.0);
+ fprintf(f,"         Assemble Element Matrices     time: %14.5f s\n",
+         timers.assemble/1000.0);
+
+
+ fprintf(f,"\n4. Total RHS Processing                time: %14.5f s %14.3f Mb\n",
          (formRhsMax-times.receiveFluidTime)/1000.0, timers.memoryLoad *byteToMb);
  }  // end if
    
@@ -396,7 +400,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
 #endif
 
  if (f != 0) {
- fprintf(f,"5. Total Solver                        time: %14.5f s %14.3f Mb\n\n",
+ fprintf(f,"\n5. Total Solver                        time: %14.5f s %14.3f Mb\n",
          solutionTimeMax/1000.0, totalSolverMemory*byteToMb);
  if(sInfo.type == 2) {
    fprintf(f,"         Factor Subdomain Matrices     time: %14.5f s %14.3f Mb\n\n",
@@ -429,11 +433,23 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
            timers.nlPreCond/1000.0);
    fprintf(f,"               Local Solve             time: %14.5f s %14.3f Mb\n",
            timers.sAndJ/1000.0, timers.memorySAndJ*byteToMb);
-   fprintf(f,"               Reorthogonalize         time: %14.5f s %14.3f Mb\n\n",
+   fprintf(f,"               Reorthogonalize         time: %14.5f s %14.3f Mb\n",
            timers.reOrtho/1000.0, timers.memoryOSet*byteToMb);
  }
+ else {
+   fprintf(f,"         Factor Matrix                 time: %14.5f s\n",
+           (times.factor)/1000.0);
+
+   fprintf(f,"         Solve (Forward/Backward)      time: %14.5f s\n",
+           solveTime/1000.0);
+ }
+
+ if(domain->solInfo().isDynam() || domain->solInfo().isNonLin())
+   fprintf(f,"         Update States                 time: %14.5f s\n",
+           times.updateState/1000.0);
+
  
- fprintf(f,"6. Write Output Files                  time: %14.5f s %14.3f Mb\n",
+ fprintf(f,"\n6. Write Output Files                  time: %14.5f s %14.3f Mb\n",
          (outputTimeMax-times.sendFluidTime)/1000.0, memoryOutput*byteToMb);
 
 /*
@@ -462,7 +478,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
 
  // Compute the total time spent on this simulation
  double total = totalRead + totalPreProcess + solutionTimeMax + formRhsMax + output + 
-                timers.assemble+timers.constructMatrices + totalReBuild;
+                timers.assemble + timers.constructMatrices + totalReBuild;
 
  long totalMemSimulation = totalSolverMemory + timers.memoryLoad
                               + totMemSubMatrices + memoryOutput

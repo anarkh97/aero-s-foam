@@ -3648,7 +3648,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
                                 domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
-                                communicator, melArray, celArray, domain->getElementSet().hasDamping());
+                                communicator, melArray, celArray, domain->getElementSet().hasDamping(), mt);
 
  if(domain->solInfo().type == 0) {
    switch(domain->solInfo().subtype) {

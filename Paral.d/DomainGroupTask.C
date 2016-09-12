@@ -39,7 +39,9 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
                                                double _cc, double _ck, Rbm **_rbms, FullSquareMatrix **_kelArray,
                                                double _alpha, double _beta, int _numSommer, int _solvertype,
                                                FSCommunicator *_com, FullSquareMatrix **_melArray,
-                                               FullSquareMatrix **_celArray, bool elemsetHasDamping)
+                                               FullSquareMatrix **_celArray, bool elemsetHasDamping,
+                                               MatrixTimers &_mt)
+ : mt(_mt)
 {
   nsub = _nsub;
   sd = _sd;
@@ -102,6 +104,7 @@ template<class Scalar>
 void
 GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti) 
 {
+  mt.constructTime -= getTime();
   DofSetArray     *dsa = sd[isub]->getDSA();
   ConstrainedDSA *cdsa = sd[isub]->getCDSA();
 
@@ -378,6 +381,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   allOps.Kuc_arubber_l = Kuc_arubber_l[isub];
   allOps.Kuc_arubber_m = Kuc_arubber_m[isub];
   allOps.num_K_arubber = num_K_arubber;
+  mt.constructTime += getTime();
 
   allOps.spp = (spp) ? spp[isub] : 0;
   FullSquareMatrix *subKelArray = (kelArray) ? kelArray[isub] : 0;

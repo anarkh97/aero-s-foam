@@ -75,6 +75,7 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
  if(verboseFlag == 0) setSilent();
  else setVerbose();
 
+ matrixTimers = new MatrixTimers;
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
  aggregatedStress = new double;
  aggregatedStressDenom = new double;
@@ -111,6 +112,8 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 
  if(verboseFlag == 0) setSilent();
  else setVerbose();
+
+ matrixTimers = new MatrixTimers;
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
  aggregatedStress = new double;
  aggregatedStressDenom = new double;

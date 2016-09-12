@@ -1301,7 +1301,9 @@ SingleDomainDynamic::aeroSend(double time, Vector& d, Vector& v, Vector& a, Vect
       delete [] userDefineAcc;
     }
   }
+  startTimerMemory(times->output, times->memoryOutput);
   domain->aeroSend(d, v, a, v_p, bcx, vcx);
+  stopTimerMemory(times->output, times->memoryOutput);
 }
 
 void 

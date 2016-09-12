@@ -193,7 +193,7 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
            totalMatrix/1000.0, totMemMatrix*byteToMb);
  if(!(sInfo.type == 2 && sInfo.inpc)) {
  filePrint(f,"         Construct Sparse Matrices     time: %14.5f s\n",
-             times.constructTime/1000.0);
+           times.constructTime/1000.0);
  filePrint(f,"         Form Element Matrices         time: %14.5f s\n",
            (times.formTime+kelArrayTime+corotatorTime)/1000.0);
  filePrint(f,"         Assemble Element Matrices     time: %14.5f s\n\n",
@@ -217,7 +217,7 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
    filePrint(f,"         Preconditioning               time: %14.5f s\n",
              precond/1000.0);
  }
- else {
+ else if(sInfo.newmarkBeta != 0.0) { // not relevant for explicit dynamics
    filePrint(f,"         Factor Matrix                 time: %14.5f s\n",
              (times.factor)/1000.0);
 
@@ -573,11 +573,12 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
                           + corotatorTime + kelArrayTime + timeGeom
 			  - matrixTimer.readDecomp;
 
- subTotal[2] = (assembleTot.time+constructTot.time);
+ subTotal[2] = assembleTot.time + constructTot.time
+             + matrixTimer.constructTime + matrixTimer.assemble + kelArrayTime + corotatorTime + matrixTimer.formTime;
 
- subTotal[3] = buildRhsTot.time;
+ subTotal[3] = buildRhsTot.time + matrixTimer.formRhs;
 
- subTotal[4] = solutionTime - subTotal[2];
+ subTotal[4] = solutionTime - (assembleTot.time + constructTot.time);
 
  subTotal[5] = output;
 
@@ -699,26 +700,24 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
            matrixTimer.makeConnectivity/1000.0);
  filePrint(f,  "         Make Interface                time: %14.5f s\n", 
            matrixTimer.makeInterface/1000.0);
+ filePrint(f,  "         Make Internal Information     time: %14.5f s\n",
+           matrixTimer.makeInternalInfo/1000.0);
  if(timeGeom != 0.0) {
-   filePrint(f,  "         Make Internal Information     time: %14.5f s\n",
-             matrixTimer.makeInternalInfo/1000.0);
    filePrint(f,  "         Make Geometric Node States    time: %14.5f s\n",
              timeGeom/1000.0);
-   filePrint(f,  "         Make Element Corotators       time: %14.5f s\n",
-             corotatorTime/1000.0);
-   filePrint(f,  "         Make Stiffness & Mass Arrays  time: %14.5f s\n\n",
-             kelArrayTime/1000.0);
- }
- else {
-   filePrint(f,  "         Make Internal Information     time: %14.5f s\n\n",
-             matrixTimer.makeInternalInfo/1000.0);
  }
 
- filePrint(f,"3. Total Matrix Processing             time: %14.5f s %14.3f Mb\n\n",
+ filePrint(f,"\n3. Total Matrix Processing             time: %14.5f s %14.3f Mb\n",
            subTotal[2]/1000.0,totMemSubMatrices*byteToMb);
+ filePrint(f,"         Construct Sparse Matrices     time: %14.5f s\n",
+           matrixTimer.constructTime/1000.0);
+ filePrint(f,"         Form Element Matrices         time: %14.5f s\n",
+           (matrixTimer.formTime+kelArrayTime+corotatorTime)/1000.0);
+ filePrint(f,"         Assemble Element Matrices     time: %14.5f s\n\n",
+           matrixTimer.assemble/1000.0);
 
  filePrint(f,"4. Total RHS Processing                time: %14.5f s %14.3f Mb\n\n",
-           (subTotal[3]-matrixTimer.receiveFluidTime)/1000.0, buildRhsMax.memory*byteToMb);
+           subTotal[3]/1000.0, buildRhsMax.memory*byteToMb);
  }
 
  // NOTE: parallel factor time is counted within coarse1Max and
@@ -776,22 +775,22 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
 
  if(f != 0) {
 
- filePrint(f,"5. Total Solver                        time: %14.5f s %14.3f Mb\n\n",
+ filePrint(f,"5. Total Solver                        time: %14.5f s %14.3f Mb\n",
            subTotal[4]/1000.0, totalSolverMemory*byteToMb);
  if(sInfo.newmarkBeta != 0.0 && domain->solInfo().type != 0) { // none of this is relevant for explicit dynamics or MUMPS
-   filePrint(f,"         Factor Subdomain Matrices     time: %14.5f s %14.3f Mb\n\n",
+   filePrint(f,"         Factor Subdomain Matrices     time: %14.5f s %14.3f Mb\n",
              factorTimeMax/1000.0, totalMemFactor*byteToMb);
    filePrint(f,"         Total Building  Coarse Pbs.   time: %14.5f s %14.3f Mb\n",
              coarseTime/1000.0, totMemCoarse*byteToMb );
    filePrint(f,"               1st Level Coarse Pb.    time: %14.5f s %14.3f Mb\n",
              coarse1Max/1000.0, timers.memoryGtG*byteToMb);
-   filePrint(f,"               2nd Level Coarse Pb.    time: %14.5f s %14.3f Mb\n\n",
+   filePrint(f,"               2nd Level Coarse Pb.    time: %14.5f s %14.3f Mb\n",
              timers.coarse2/1000.0, timers.memoryPCtFPC*byteToMb);
    filePrint(f,"         Total Paral. Fac. Coarse Pbs. time: %14.5f s %14.3f Mb\n",
              (parfac1Max+timers.pfactor2)/1000.0, 0.0);
    filePrint(f,"               1st Level Factor        time: %14.5f s %14.3f Mb\n",
              parfac1Max/1000.0, 0.0);
-   filePrint(f,"               2nd Level Factor        time: %14.5f s %14.3f Mb\n\n",
+   filePrint(f,"               2nd Level Factor        time: %14.5f s %14.3f Mb\n",
              timers.pfactor2/1000.0, 0.0);
    filePrint(f,"         Total Solve loop              time: %14.5f s %14.3f Mb\n",
              timers.solve/1000.0, totalMemorySolve*byteToMb);
@@ -807,14 +806,17 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
              precondMax/1000.0, 8*memoryPrecond*byteToMb);
    filePrint(f,"               Local Solve             time: %14.5f s %14.3f Mb\n",
              sAndJMaximum/1000.0, sAndJTot.memory*byteToMb);
-   filePrint(f,"               Reorthogonalize         time: %14.5f s %14.3f Mb\n\n",
+   filePrint(f,"               Reorthogonalize         time: %14.5f s %14.3f Mb\n",
              orthoMax.time/1000.0, totMemReortho*byteToMb);
  }
+ if(domain->solInfo().isDynam() || domain->solInfo().isNonLin())
+   filePrint(f,"         Update States                 time: %14.5f s\n",
+             matrixTimer.updateState/1000.0);
  if(domain->tdenforceFlag()) // ACME search and forces for explicit dynamics
-   filePrint(f,"         TD Enforcement                time: %14.5f s\n\n",
+   filePrint(f,"         TD Enforcement                time: %14.5f s\n",
              tdenforceTime/1000.0);
 
- filePrint(f,"6. Write Output Files                  time: %14.5f s %14.3f Mb\n",
+ filePrint(f,"\n6. Write Output Files                  time: %14.5f s %14.3f Mb\n",
            (subTotal[5]-matrixTimer.sendFluidTime)/1000.0, memoryOutput*byteToMb);
 
  double totalFluidComm = matrixTimer.receiveFluidTime+matrixTimer.sendFluidTime;
@@ -839,8 +841,8 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
                                 totMemPreProcess + totalMemRead;
 
  if(domain->solInfo().aeroFlag >= 0) {
-   filePrint(f,"\nTOTAL SIMULATION 1 (1+2+3+4+5+6)       time: %14.5f s %14.3f Mb\n",(total-totalFluidComm)/1000.0,totalMemSimulation*byteToMb);
-   filePrint(f,"\nTOTAL SIMULATION 2 (1+2+3+4+5+6+7)     time: %14.5f s\n",total/1000.0);
+   filePrint(f,"\nTOTAL SIMULATION 1 (1+2+3+4+5+6)       time: %14.5f s %14.3f Mb\n",total/1000.0,totalMemSimulation*byteToMb);
+   filePrint(f,"\nTOTAL SIMULATION 2 (1+2+3+4+5+6+7)     time: %14.5f s\n",(total+totalFluidComm)/1000.0);
  }
  else {
    filePrint(f,"\nTOTAL SIMULATION (1+2+3+4+5+6)         time: %14.5f s %14.3f Mb\n",total/1000.0, totalMemSimulation*byteToMb);

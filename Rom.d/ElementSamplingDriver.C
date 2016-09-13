@@ -542,6 +542,17 @@ ElementSamplingDriver<std::vector<double>,size_t>
   const bool swtchbasis = (domain->solInfo().MassOrthogonalBasisFiles.size() > 0);
   std::ifstream sources;
 
+  double origScalex = 0.;
+  double origScaley = 0.; 
+  double origScalez = 0.;
+  if(poscfg) {
+    if(sclfactor) {
+      origScalex = domain->solInfo().xScaleFactor;
+      origScaley = domain->solInfo().yScaleFactor;
+      origScalez = domain->solInfo().zScaleFactor;
+    }
+  }
+
   for (int iElem = 0; iElem != elementCount(); ++iElem) { // outer loop over element set
     filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
     std::vector<double>::iterator timeStampIt = timeStampFirst;
@@ -564,7 +575,6 @@ ElementSamplingDriver<std::vector<double>,size_t>
           sources >> kParam >> kSnap; 
           for(int k = 0; k < skipFactor; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // account for snapshot skipping 
           if(kParam != jParam) { // check to see if new transformation is required, if not continue
-            std::cout << "Rescaling Nodal Coordinates" << std::endl;
             if(sclfactor) { // if doing linear stretching of coordinates, do this block
               if(jParam == -1) {
                 domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactor;
@@ -658,9 +668,9 @@ ElementSamplingDriver<std::vector<double>,size_t>
   // finally, undo scaling to orginial mesh for post processing
   if(poscfg) {
     if(sclfactor) { // if doing linear stretching of coordinates, do this block
-      domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactor/domain->solInfo().xScaleFactors[kParam-1];
-      domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactor/domain->solInfo().yScaleFactors[kParam-1];
-      domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactor/domain->solInfo().zScaleFactors[kParam-1];
+      domain->solInfo().xScaleFactor = origScalex/domain->solInfo().xScaleFactors[kParam-1];
+      domain->solInfo().yScaleFactor = origScaley/domain->solInfo().yScaleFactors[kParam-1];
+      domain->solInfo().zScaleFactor = origScalez/domain->solInfo().zScaleFactors[kParam-1];
       geoSource->transformCoords();
     } else if (ndfile) {
       geoSource->setNewCoords(domain->solInfo().NodeTrainingFiles[domain->solInfo().NodeTrainingFiles.size()-1]); // set nodes to original position, nodefile at end of list

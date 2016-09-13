@@ -416,8 +416,8 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
       fileName.append(".normalized");
       DistrBasisInputFile BasisFile(fileName);
-      int locSize = domain->solInfo().maxSizePodRom ?
-                    std::min(domain->solInfo().maxSizePodRom, BasisFile.stateCount()) :
+      int locSize = domain->solInfo().localBasisSize[rob] ?
+                    std::min(domain->solInfo().localBasisSize[rob], BasisFile.stateCount()) :
                     BasisFile.stateCount();
       locBasisVec.push_back(locSize);
       if(verboseFlag && domain->solInfo().readInROBorModes.size()>1) filePrint(stderr, " ... Local Basis %d size %-3d ...\n",rob,locBasisVec[rob]);
@@ -456,7 +456,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
     }
 
     // if performing local basis analysis, read in centroids for basis switching
-    if(domain->solInfo().readInROBorModes.size() > 1) {
+    if(domain->solInfo().readInLocalBasesCent.size() >= 1) {
       centroids.dimensionIs(locBasisVec.size(), decDomain->masterSolVecInfo()); 
       DistrVecBasis::iterator it = centroids.begin();
       for(int rob=0; rob<locBasisVec.size(); ++rob) { 
@@ -544,11 +544,13 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector>&
     }
     normalizedBasis_.expand( dr_n, *d_n);
     geomState->update(*d_n);
+    initLocalBasis(dr_n);
   }
 
   int numIVelModal = domain->numInitVelocityModal();
   if(numIVelModal) {
     filePrint(stderr, " ... Using Modal IVELOCITIES        ...\n");
+    if(!numIDisModal) initLocalBasis(dr_n);
     BCond* iVelModal = domain->getInitVelocityModal();
     for(int i = 0; i < numIVelModal; ++i) {
       if(iVelModal[i].nnum < vr_n.size())
@@ -566,19 +568,19 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector>&
     MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
 
     if(d_n->norm() != 0) reduceDisp(*d_n, dr_n);
+    initLocalBasis(dr_n);
     if(v_n->norm() != 0) reduceDisp(*v_n, vr_n);
     if(a_n->norm() != 0) reduceDisp(*a_n, ar_n);
     if(v_p->norm() != 0) reduceDisp(*v_p, vr_p);
   }
-  initLocalBasis(dr_n);
 }
 
 //start local basis functions
 void
 DistrExplicitPodProjectionNonLinDynamicBase::initLocalBasis(DistrVector &q){
 
-  if(domain->solInfo().readInROBorModes.size()>1) { // only execute this if doing local ROM
-    localBasisId  = selectLocalBasis(q);
+  if(domain->solInfo().readInLocalBasesCent.size() >= 1) { // only execute this if doing local ROM
+    localBasisId  = selectLocalBasis(q); 
     if(verboseFlag) filePrint(stderr," ... Initial Local Basis # %d    ...\n",localBasisId);
     int blockCols = locBasisVec[localBasisId];
     int startCol  = std::accumulate(locBasisVec.begin(),locBasisVec.begin()+localBasisId,0);
@@ -595,7 +597,9 @@ DistrExplicitPodProjectionNonLinDynamicBase::selectLocalBasis(DistrVector &q){
     double minDist = std::numeric_limits<double>::max(); 
     for(int c=0; c<locBasisVec.size(); ++c){
       DistrVector centroidVec = centroids[c]; 
-      centroidVec            -= *d_n;
+      DistrVector q_Big(MultiDomainDynam::solVecInfo());
+      normalizedBasis_.expand(q,q_Big);
+      centroidVec -= q_Big;
       double distNorm = centroidVec.norm();
       if(distNorm < minDist) { // check proximity to centroid, update if closer
         minDist = distNorm;
@@ -603,27 +607,35 @@ DistrExplicitPodProjectionNonLinDynamicBase::selectLocalBasis(DistrVector &q){
       }
     }
   }
-
   return cc; 
 }
 
 void
 DistrExplicitPodProjectionNonLinDynamicBase::setLocalBasis(DistrVector &q, DistrVector &qd){
 
-  if(domain->solInfo().readInROBorModes.size() > 1) {
+  if(domain->solInfo().readInLocalBasesCent.size() >= 1) {
     int j = selectLocalBasis(q);
     if(j != localBasisId) { // if a new local basis has been selected, update the things
+      localBasisId = j;
       if(verboseFlag) filePrint(stderr," ... Selecting New Local Basis # %d     ...\n",j);
       int blockCols = locBasisVec[j]; 
       int startCol  = std::accumulate(locBasisVec.begin(),locBasisVec.begin()+j,0);
 
-      normalizedBasis_.expand(qd, *v_n); // make sure velocities are projected
+      DistrVector q_Big(MultiDomainDynam::solVecInfo());
+      DistrVector qd_Big(MultiDomainDynam::solVecInfo());
+
+      normalizedBasis_.expand(q,  q_Big);
+      normalizedBasis_.expand(qd, qd_Big); // make sure velocities are projected
+
+      //zero out generalized coordinates
+      q.zero();
+      qd.zero();
 
       // reduced coordinates have already been projected into embedding space with previous basis
       // now project tham back on to the new subspace with updated basis
       normalizedBasis_.localBasisIs(startCol,blockCols);
-      normalizedBasis_.reduce(*d_n,q); // d_n has already been updated, regardless of rotational degrees of freedom
-      normalizedBasis_.reduce(*v_n,qd);
+      reduceDisp(q_Big,  q); // d_n has already been updated, regardless of rotational degrees of freedom
+      reduceDisp(qd_Big, qd);
     }
   }
 }
@@ -692,6 +704,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInternalForce(DistrVector &d, Di
   MultiDomainDynam::getInternalForce(*d_n, *fInt, t, tIndex);
   //compute residual here to prevent having to project into reduced basis twice
   *tempVec = *fInt - *fExt;
+  f.zero();
   normalizedBasis_.reduce(*tempVec, f); 
 }
 
@@ -704,7 +717,8 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
   int numNeumanModal = domain->nNeumannModal();
   if(numNeumanModal) {
     BCond* nbcModal = domain->getNBCModal();
-    f = cnst_f;
+    f.zero();
+    normalizedBasis_.addLocalPart(cnst_f,f);
     if(domain->getNumMFTT() > 0) {
       for(int i = 0; i < numNeumanModal; ++i) {
         if(nbcModal[i].nnum < cnst_f.size()) {
@@ -714,7 +728,8 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
     }
   }
   else { // currently, if modal forces are defined then any non-modal forces are ignored
-    f = cnst_f;
+    f.zero();
+    normalizedBasis_.addLocalPart(cnst_f,f);
     MultiDomainDynam::computeExtForce2( *dummyState, *fExt, *cnst_fBig, tIndex, t, aero_fBig, gamma, alphaf);
   }
 }

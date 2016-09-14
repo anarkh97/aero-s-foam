@@ -42,6 +42,7 @@ DistrSnapshotClusteringSolver
   kmMaxIter_(1000),
   kmSeed_(1)
 {
+  clusterColTimeStamps.resize(colCount); 
 }
 
 void

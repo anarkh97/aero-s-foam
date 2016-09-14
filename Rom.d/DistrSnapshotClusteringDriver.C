@@ -52,10 +52,12 @@ void readIntoSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<DO
       int skipCounter = skipFactor;
       while (count < basisStateCount) {
         assert(inputFile.validCurrentState());
+        double curTimeStamp = inputFile.currentStateHeaderValue();
         inputFile.currentStateBuffer(inputBuffer);
         if (skipCounter >= skipFactor) {
           double *vecBuffer = solver.matrixColBuffer(solverCol);
           GenStackDistVector<double> vec(vectorSize, vecBuffer);
+          solver.addTimeStamp(solverCol,curTimeStamp);
 
           if(DOFS_PER_NODE == 1) {
             converter.vector(inputBuffer, vec);
@@ -97,12 +99,13 @@ void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<
     // loop over each snapshot in current cluster
     for (int iVec = 0; iVec < clusterDim; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.clusterColBuffer(i,iVec));
+      double timeStampBuffer = solver.getClusterColTimeStamps(i,iVec);
       const GenStackDistVector<double> vec(vectorSize, vecBuffer);
       if(DOFS_PER_NODE == 1)
         converter.paddedNodeDof6(vec, outputBuffer);
       else
         converter.unpaddedNodeDof6(vec, outputBuffer);
-      outputFile.stateAdd(outputBuffer, 1.0);
+      outputFile.stateAdd(outputBuffer, timeStampBuffer);
     }
 
     // this is writes a file used for hyper reduction that tells AEROS which parameter each snapshot is associated with

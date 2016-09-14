@@ -19,6 +19,7 @@ public:
   // Local matrix buffer: [localRows by colCount]
   double *matrixColBuffer(int col);
   const double *clusterColBuffer(int i, int col) const;
+  const double getClusterColTimeStamps(int i, int col) const; 
   // Local cluster centroid buffer: [localRows by numClusters]
   const double *clusterCentroidBuffer(int i) const;
 
@@ -35,6 +36,7 @@ public:
   int kmSeed() const { return kmSeed_; }
   void kmSeedIs(int kmSeed) { kmSeed_ = kmSeed; }
   void setNNLSTolerance(double _tol) { nnlsTol = _tol; }
+  void addTimeStamp(int col, double timeStamp) { clusterColTimeStamps[col] = timeStamp; }
   
   void recomputeCentroids();
 
@@ -59,6 +61,7 @@ private:
   Eigen::MatrixXd matrixBuffer_;
   Eigen::MatrixXd centroidBuffer_;
   std::vector<std::vector<int> > clusterCols_;
+  std::vector<double> clusterColTimeStamps; 
 };
 
 /* Helper functions for buffer access */
@@ -72,6 +75,12 @@ inline
 const double *
 DistrSnapshotClusteringSolver::clusterColBuffer(int i, int col) const {
   return matrixBuffer_.data() + clusterCols_[i][col]*localRows_;
+}
+
+inline
+const double
+DistrSnapshotClusteringSolver::getClusterColTimeStamps(int i, int col) const {
+  return clusterColTimeStamps[clusterCols_[i][col]];
 }
 
 inline

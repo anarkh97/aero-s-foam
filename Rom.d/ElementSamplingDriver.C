@@ -694,7 +694,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
   makePackedToInput(packedToInput);
 
   for(int j=0; j<domain_->solInfo().readInROBorModes.size(); ++j) {
-
+   
     preProcessLocal(allOps, j);
 
     Vector solution;
@@ -1167,7 +1167,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
   
   // Read order reduction data
   const VecNodeDof6Conversion vecDofConversion(*domain_->getCDSA());
-  assert(vectorSize() == vecDofConversion.vectorSize());
+  assert(vectorSize() == vecDofConversion.vectorSize()); 
 
   // Read in basis to be used for the projection:
   // (a) if a mass-orthogonal projection is to be done, then the mass-normalized basis will be read

@@ -10,7 +10,9 @@
 #include <cstddef>
 #include <stdexcept>
 
+#ifdef USE_EIGEN3
 #include <Eigen/Core>
+#endif
 
 namespace Rom {
 

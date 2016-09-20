@@ -42,7 +42,9 @@
  MFTTData *ymtt;
  MFTTData *ctett;
  MFTTData *sdetaft;
+#ifdef USE_EIGEN3
  GenMFTTData<Eigen::Vector4d> *rubdaft;
+#endif
  ComplexBCList *cxbclist;
  ComplexBCond cxbcval;
  FrameData frame;
@@ -2084,11 +2086,29 @@ RUBDAFTable:
         ;
 RUBDAFList:
         TABLE Integer NewLine Float Float Float Float Float NewLine
-        { $$ = new GenMFTTData<Eigen::Vector4d>($2); $$->add($4, Eigen::Vector4d($5,$6,$7,$8)); domain->addRUBDAFT($$); }
+        { 
+#ifdef USE_EIGEN3
+          $$ = new GenMFTTData<Eigen::Vector4d>($2); $$->add($4, Eigen::Vector4d($5,$6,$7,$8)); domain->addRUBDAFT($$);
+#else
+          std::cerr << " *** ERROR: RUBDAFT command requires AERO-S configured with Eigen library. Exiting...\n"; exit(-1);
+#endif
+        }
         | RUBDAFList Float Float Float Float Float NewLine
-        { $$->add($2, Eigen::Vector4d($3,$4,$5,$6)); }
+        {
+#ifdef USE_EIGEN3
+          $$->add($2, Eigen::Vector4d($3,$4,$5,$6));
+#else
+          std::cerr << " *** ERROR: RUBDAFT command requires AERO-S configured with Eigen library. Exiting...\n"; exit(-1);
+#endif
+        }
         | RUBDAFList TABLE Integer NewLine Float Float Float Float Float NewLine
-        { $$ = new GenMFTTData<Eigen::Vector4d>($3); $$->add($5, Eigen::Vector4d($6,$7,$8,$9)); domain->addRUBDAFT($$); }
+        {
+#ifdef USE_EIGEN3
+          $$ = new GenMFTTData<Eigen::Vector4d>($3); $$->add($5, Eigen::Vector4d($6,$7,$8,$9)); domain->addRUBDAFT($$);
+#else
+          std::cerr << " *** ERROR: RUBDAFT command requires AERO-S configured with Eigen library. Exiting...\n"; exit(-1);
+#endif
+        }
         ;
 LMPConstrain:
         LMPC NewLine

@@ -47,8 +47,11 @@ ModeData modeData;
 //----------------------------------------------------------------------------------
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
-  : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0), rubdaft(0), ysst(0), yssrt(0),
-    SurfEntities(0), MortarConds(0)
+  : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
+#ifdef USE_EIGEN3
+    rubdaft(0),
+#endif
+    ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -89,7 +92,11 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
-  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0), rubdaft(0), ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
+  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
+#ifdef USE_EIGEN3
+    rubdaft(0),
+#endif
+    ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -126,7 +133,11 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
-   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), sdetaft(0,iniSize), rubdaft(0,iniSize), ysst(0,iniSize), yssrt(0,iniSize),
+   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), sdetaft(0,iniSize),
+#ifdef USE_EIGEN3
+   rubdaft(0,iniSize),
+#endif
+   ysst(0,iniSize), yssrt(0,iniSize),
    SurfEntities(0,iniSize), MortarConds(0,iniSize)
 {
  initialize();
@@ -1158,6 +1169,7 @@ Domain::addSDETAFT(MFTTData *_sdetaft)
  return 0;
 }
 
+#ifdef USE_EIGEN3
 int
 Domain::addRUBDAFT(GenMFTTData<Eigen::Vector4d> *_rubdaft)
 {
@@ -1174,6 +1186,7 @@ Domain::addRUBDAFT(GenMFTTData<Eigen::Vector4d> *_rubdaft)
 
  return 0;
 }
+#endif
 
 void Domain::printYMTT()
 {
@@ -4238,6 +4251,7 @@ bool Domain::checkIsInStressNodes(int node, int &iNode)
 
 
 void Domain::updateRUBDAFT(StructProp* p, double omega) {
+#ifdef USE_EIGEN3
  if (p->eta_E<0.0 && p->rubDampTable<0) {
  // First time
    int tid = -int(p->eta_E);
@@ -4264,6 +4278,7 @@ void Domain::updateRUBDAFT(StructProp* p, double omega) {
    p->dmu = dv[2]/(2*M_PI);
    p->deta_mu = dv[3]/(2*M_PI);
  }
+#endif
 }
 
 void Domain::buildSensitivityInfo()

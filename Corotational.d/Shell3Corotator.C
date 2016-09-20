@@ -10,8 +10,10 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
 #include <Utils.d/linkfc.h>
+#ifdef USE_EIGEN3
 #include <Element.d/Function.d/Corotator.d/Shell3CorotatorDefDispFunction.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
+#endif
 
 // Define FORTRAN routines as external functions
 
@@ -1060,6 +1062,7 @@ Shell3Corotator::extractDeformations( GeomState &geomState, CoordSet &cs,
 void
 Shell3Corotator::extractDeformationsDisplacementSensitivity(GeomState &gs, CoordSet &cs, double *data)
 {
+#ifdef USE_EIGEN3
   Eigen::Array<double,36,1> sconst;
   Eigen::Array<int,1,1> iconst;
 
@@ -1086,6 +1089,7 @@ Shell3Corotator::extractDeformationsDisplacementSensitivity(GeomState &gs, Coord
 
   Eigen::Map<Eigen::Matrix<double,18,18> > J(data);
   J = dfdu(q,0);
+#endif
 }
 
 //---------------------------------------------------------------------------

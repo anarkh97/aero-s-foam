@@ -1,5 +1,6 @@
 #include "ConstraintSamplingDriver.h"
 
+#ifdef USE_EIGEN3
 #include "ElementSamplingDriver.h"
 
 #include "SvdOrthogonalization.h"
@@ -27,9 +28,7 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/DistHelper.h>
 
-#ifdef USE_EIGEN3
 #include <Eigen/Dense>
-#endif
 #include <cmath>
 #include <utility>
 #include <algorithm>
@@ -478,7 +477,13 @@ ConstraintSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int 
 }
 
 } /* end namespace Rom */
+#endif
 
 Rom::DriverInterface *constraintSamplingDriverNew(Domain *domain) {
+#ifdef USE_EIGEN3
   return new Rom::ConstraintSamplingDriver(domain);
+#else
+  std::cerr << " *** ERROR: ConstraintSamplingDriver requires AERO-S configured with the Eigen library. Exiting...\n";
+  exit(-1);
+#endif
 }

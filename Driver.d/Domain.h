@@ -360,7 +360,9 @@ class Domain : public HData {
      int numYMTT;                          // number of YM Temp tables
      ResizeArray<MFTTData *> sdetaft;      // RT: Structural damping versus frequency table
      int numSDETAFT;                       // number of SDETAF tables
+#ifdef USE_EIGEN3
      ResizeArray<GenMFTTData<Eigen::Vector4d> *> rubdaft;      // RT: Rubber damping versus frequency table
+#endif
      int numRUBDAFT;                       // number of RUBDAF tables
      ResizeArray<MFTTData *> ctett;        // Coefficient of thermal expansion vs. temperatur table
      int numCTETT;                         // number of CTE Temp tables
@@ -684,7 +686,9 @@ class Domain : public HData {
      int  addYMTT(MFTTData *);
      int  addSDETAFT(MFTTData *);
      void updateSDETAF(StructProp* p, double omega);
+#ifdef USE_EIGEN3
      int  addRUBDAFT(GenMFTTData<Eigen::Vector4d> *);
+#endif
      void updateRUBDAFT(StructProp* p, double omega);
      void printYMTT();
      int  addCTETT(MFTTData *);

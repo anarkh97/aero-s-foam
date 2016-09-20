@@ -132,6 +132,7 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   }
   else {
     if(!domain->solInfo().useMassNormalizedBasis) {
+#ifdef USE_EIGEN3
       if(domain->solInfo().modalDIMASS) {
         filePrint(stderr, " ... Reading Reduced Mass Matrix    ...\n");
         std::ifstream matrixin(domain->solInfo().reducedMassFile);
@@ -142,12 +143,12 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
             matrixin >>VtMV(i,j);
         matrixin.close();
       }
-      else {
+      else
+#endif
         filePrint(stderr, " *** WARNING: \"use_mass_normalized_basis off\" is not supported for\n"
                           "     for model III when \"samplmsh.elementmesh.inc\" file is used   \n"
                           "     unless a modal DIMASS file is specified containing the reduced \n"
                           "     mass matrix.\n");
-      }
     }
   }
 }

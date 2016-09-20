@@ -617,7 +617,9 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
        if(domain->solInfo().useMassNormalizedBasis)
          dynamic_cast<Rom::PodProjectionSolver*>(solver)->addReducedMass(Mcoef);
        else {
+#ifdef USE_EIGEN3
          dynamic_cast<Rom::PodProjectionSolver*>(solver)->addToReducedMatrix(VtMV, Mcoef);
+#endif
        }
      }
      else {

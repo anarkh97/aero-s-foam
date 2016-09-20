@@ -546,13 +546,18 @@ Penta15::setMaterial(NLMaterial *_mat)
 int
 Penta15::numStates()
 {
+#ifdef USE_EIGEN3
   int numGaussPoints = NLPentahedral15::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates() : 0;
+#else
+  return 0;
+#endif
 }
 
 void
 Penta15::initStates(double *st)
 {
+#ifdef USE_EIGEN3
   if(mat) {
     int ninterns = mat->getNumStates();
     int numGaussPoints = NLPentahedral15::numGaussPoints;
@@ -560,6 +565,7 @@ Penta15::initStates(double *st)
     for(int i = 0; i < numGaussPoints; ++i)
       mat->initStates(st+i*ninterns);
   }
+#endif
 }
 
 Corotator *

@@ -10,6 +10,7 @@
 
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
+#include <unsupported/Eigen/MatrixFunctions>
 #endif
 
 SimoPlasticMat::SimoPlasticMat(double _rho, double _E, double _nu,
@@ -67,13 +68,12 @@ SimoPlasticMat::updateStates(Tensor &en, Tensor &enp, double *state, double temp
   std::cerr << "WARNING: SimoPlasticMat::updateStates is not implemented\n";
 }
 
-#include <unsupported/Eigen/MatrixFunctions>
-
 void
 SimoPlasticMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp,
                           double *staten, double *statenp, double temp,
                           Tensor *_cache, double dt)
 {
+#ifdef USE_EIGEN3
   Eigen::Map<Eigen::Array3d> epsetrialnp(&static_cast<Tensor_d0s2_Ss12_diag &>(_enp)[0]);
   Eigen::Map<Eigen::Array3d> betanp(&static_cast<Tensor_d0s2_Ss12_diag &>(*_stress)[0]);
   Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > a(&static_cast<Tensor_d0s4_Ss12s34_diag &>(*_tm)[0][0]);
@@ -182,6 +182,7 @@ SimoPlasticMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_e
       + 2*mu*thetanp*(Eigen::Matrix3d::Identity()-1/3.*Eigen::Matrix3d::Ones())
       - 2*mu*thetaprimenp*normalnp.matrix()*normalnp.matrix().transpose();
   }
+#endif
 }
 
 void
@@ -189,6 +190,7 @@ SimoPlasticMat::integrate(Tensor *_stress, Tensor &, Tensor  &_enp,
                           double *staten, double *statenp, double temp,
                           Tensor *_cache, double dt)
 {
+#ifdef USE_EIGEN3
   Eigen::Map<Eigen::Array3d> epsetrialnp(&static_cast<Tensor_d0s2_Ss12_diag &>(_enp)[0]);
   Eigen::Map<Eigen::Array3d> betanp(&static_cast<Tensor_d0s2_Ss12_diag &>(*_stress)[0]);
   Tensor_d1s2_full & cache = static_cast<Tensor_d1s2_full &>(*_cache);
@@ -286,6 +288,7 @@ SimoPlasticMat::integrate(Tensor *_stress, Tensor &, Tensor  &_enp,
     // compute principal Kirchhoff stress
     betanp = bulk*3*(epsetrialnp - epsebartrialnp) + betabartrialnp - (2*mu*plastmult*normalnp);
   }
+#endif
 }
 
 void 

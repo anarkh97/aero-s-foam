@@ -983,6 +983,7 @@ PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &v
     else
       rhs = -(1-alpham)/(1-alphaf)*inc_displacement + dt*(1-alpham)*velocity + dt*dt*((1-alpham)/2-beta)*acceleration;
   }
+#ifdef USE_EIGEN3
   else if(!domain->solInfo().useMassNormalizedBasis && domain->solInfo().modalDIMASS && C == 0) {
     if(domain->solInfo().order == 1)
       rhs = -1.0*inc_displacement;
@@ -991,6 +992,7 @@ PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &v
     Eigen::Map<Eigen::VectorXd> rhsMap(rhs.data(),rhs.size());
     rhsMap = VtMV*rhsMap;
   }
+#endif
   else {
     // this can be improved by pre-computing V^T*M*V and V^T*C*V
     Vector inc_displacement_Big(NonLinDynamic::solVecInfo()),

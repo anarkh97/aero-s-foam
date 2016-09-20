@@ -356,6 +356,7 @@ SCDoubleMatrix::computeZeroNormCol(std::vector<int> &container) {
     MPI_Allreduce(&nnzlocal, &nnzglobal, 1, MPI_INT, MPI_SUM, _comm);
     container.push_back(nnzglobal);
   }
+  return 0;
 
 }
 

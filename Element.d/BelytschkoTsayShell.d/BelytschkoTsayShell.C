@@ -74,7 +74,7 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
     optprj = 0;    // drilling projection off
   }
   else {
-    optcor[1] = 1; // shear correction on
+    optcor[1] = 0; // shear correction on
     optprj = 1;    // drilling projection on
   }
   nndof  = 6; // number of dofs per node

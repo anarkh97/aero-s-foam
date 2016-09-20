@@ -1623,6 +1623,15 @@ TempConvection:
         | TempConvection Integer Float Float Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
           bc.val = $3*$4*$5; bc.type = BCond::Convection; bc.loadsetid = $$->loadsetid; $$->add(bc); }
+        | TempConvection SURF Integer Float Float Float NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $3-1;
+          surf_bc[0].dofnum = 6;
+          surf_bc[0].val = $4*$5*$6;
+          surf_bc[0].type = BCond::Convection;
+          surf_bc[0].loadsetid = $$->loadsetid;
+          geoSource->addSurfaceNeuman(1,surf_bc);
+          if(geoSource->getNumSurfaceNeuman() > 1) delete [] surf_bc; }
 	;
 TempRadiation:
         RADIATION NewLine

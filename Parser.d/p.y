@@ -3326,6 +3326,8 @@ BoffsetList:
 Attributes:
 	ATTRIBUTES NewLine 
         { $$ = 0; }
+        | ATTRIBUTES Integer NewLine
+        { geoSource->setLocalIndex($2-1); }
         /* define hyper reduction coefficient for element with no attribute */
         | Attributes Integer HRC Float NewLine
         { geoSource->setElementLumpingWeight($2-1,$4);

@@ -144,9 +144,11 @@ outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds, 
       elemAttrib[it->second.nele] = it;
   }
 
-  weightOut << "ATTRIBUTES\n";
+  weightOut << "ATTRIBUTES";
+  if(j >= 1) weightOut << " " << j;
+  weightOut << "\n";
   for (int i = 0, iEnd = weights.size(); i != iEnd; ++i) {
-    if(elemAttrib[elemIds[i]] != attrib.end()) {
+    if(elemAttrib[elemIds[i]] != attrib.end() && j >= 1) {
       // element has an attribute
       Attrib &a = elemAttrib[elemIds[i]]->second;
       weightOut << elemIds[i]+1 << " " << a.attr+1 << " ";
@@ -714,13 +716,11 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
     }
     else {
         solution.initialize(elementCount());
-        for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {
-          for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(j),
+        for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(j),
                                                           it_end = geoSource->elementLumpingWeightEnd(j);
                 it != it_end; ++it) {
                 solution[it->first] = it->second;
-          }
-       }
+        }
     } 
     postProcessLocal(solution, packedToInput, j, sampleElemIds, weights[j]);
   }

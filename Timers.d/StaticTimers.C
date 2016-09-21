@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 #include <ctime>
+#include <algorithm>
 
 #include <Timers.d/Timing.h>
 #include <Timers.d/StaticTimers.h>
@@ -92,6 +93,7 @@ void
 StaticTimers::printStaticTimers(double solveTime, long memUsed, 
                                 Domain *domain, double timeLoop)
 {
+ std::cerr << "here in StaticTimers::printStaticTimers #1\n";
 #ifndef SALINAS
  MatrixTimers &times  = domain->getTimers();
  SolverInfo &sInfo    = domain->solInfo();
@@ -237,7 +239,7 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
    filePrint(f,"         TD Enforcement                time: %14.5f s\n", 
              tdenforceTime/1000.0);
 
- double totalOutput = output - times.sendFluidTime;
+ double totalOutput = std::max(output - times.sendFluidTime, 0.);
  long totMemOutput = memoryOutput;
 
  filePrint(f,"\n6. Write Output Files                  time: %14.5f s %12.3f Mb\n",
@@ -436,6 +438,7 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
                       SolverInfo& sInfo, Timings& timers, ControlInfo& cinfo,
                       Domain* domain)
 {
+ std::cerr << "here in StaticTimers::printStaticTimers #2\n";
  double solutionTime = timers.solve + getFetiSolverTime;
 
  double coarse1Max  = timers.coarse1;
@@ -817,7 +820,7 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
              tdenforceTime/1000.0);
 
  filePrint(f,"\n6. Write Output Files                  time: %14.5f s %14.3f Mb\n",
-           (subTotal[5]-matrixTimer.sendFluidTime)/1000.0, memoryOutput*byteToMb);
+           std::max(subTotal[5]-matrixTimer.sendFluidTime,0.)/1000.0, memoryOutput*byteToMb);
 
  double totalFluidComm = matrixTimer.receiveFluidTime+matrixTimer.sendFluidTime;
  if(domain->solInfo().aeroFlag >= 0) {

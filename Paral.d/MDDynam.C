@@ -1497,6 +1497,8 @@ MultiDomainDynam::getAeroAlg()
 void
 MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, DistrVector& a_n, DistrVector& v_p)
 {
+  startTimerMemory(times->output, times->memoryOutput);
+
   domain->getTimers().sendFluidTime -= getTime();
   SysState<DistrVector> state(d_n, v_n, a_n, v_p);
 
@@ -1545,6 +1547,8 @@ MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, Dist
   distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
   domain->getTimers().sendFluidTime += getTime();
   if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");
+
+  stopTimerMemory(times->output, times->memoryOutput);
 }
 
 void

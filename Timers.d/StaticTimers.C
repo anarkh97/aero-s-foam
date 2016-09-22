@@ -93,7 +93,6 @@ void
 StaticTimers::printStaticTimers(double solveTime, long memUsed, 
                                 Domain *domain, double timeLoop)
 {
- std::cerr << "here in StaticTimers::printStaticTimers #1\n";
 #ifndef SALINAS
  MatrixTimers &times  = domain->getTimers();
  SolverInfo &sInfo    = domain->solInfo();
@@ -438,7 +437,6 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
                       SolverInfo& sInfo, Timings& timers, ControlInfo& cinfo,
                       Domain* domain)
 {
- std::cerr << "here in StaticTimers::printStaticTimers #2\n";
  double solutionTime = timers.solve + getFetiSolverTime;
 
  double coarse1Max  = timers.coarse1;

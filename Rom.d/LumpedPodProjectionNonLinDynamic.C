@@ -76,9 +76,9 @@ LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGe
 
 void
 LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
-  packedElementWeights_.resize(geoSource->elementLumpingWeightSize());
-  localPackedWeightedNodes_.resize(geoSource->elementLumpingWeightSize());
-  for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {
+  packedElementWeights_.resize(geoSource->elementLumpingWeightSize());    // resize packedElementWeights_ to number of local meshes provided
+  localPackedWeightedNodes_.resize(geoSource->elementLumpingWeightSize());// resize localPackedWeightedNodes_ to number of local meshes provided
+  for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {           // loop over each reduced Mesh
     for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(j),
                                                      it_end = geoSource->elementLumpingWeightEnd(j);
          it != it_end; ++it) {
@@ -115,7 +115,7 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   packedWeightedNodes_.resize(packedNodeIt-packedWeightedNodes_.begin());
 
   if(geoSource->elementLumpingWeightSize() == 1 && packedWeightedElems_.size() < domain->numElements()) {
-    if(domain->solInfo().useMassNormalizedBasis) {
+    if(domain->solInfo().useMassNormalizedBasis) { // don't compress if using Local mesh
       filePrint(stderr, " ... Compressing Basis              ...\n");
       GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
       projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
@@ -156,14 +156,17 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
 void
 LumpedPodProjectionNonLinDynamic::setLocalReducedMesh(int j)
 {
+  // zero out current element stiffness matrices
   for(std::map<int, double>::const_iterator it = packedElementWeights_[localReducedMeshId_].begin(),
                                         it_end = packedElementWeights_[localReducedMeshId_].end(); it != it_end; ++it) {
     const int iele = it->first;
     kelArray[iele].zero();
   }
 
+  // set new ID number
   localReducedMeshId_ = std::min(geoSource->elementLumpingWeightSize()-1, j);
 
+  // make new sparse basis
   GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
   projectionBasis.makeSparseBasis(localPackedWeightedNodes_[j], domain->getCDSA()); // these could be computed once, stored and then switched between
 }

@@ -13,6 +13,7 @@ GenVecBasis<double, GenDistrVector>::expand(GenDistrVector<double> &x, GenDistrV
   if(_result.size() > 0) {
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data()+startCol_, blockCols_);
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+    result.setZero();
 
     if(useCompressedBasis && compressedKey_.size() > 0) {
       Eigen::VectorXd resultBuffer(compressedKey_.size());
@@ -82,10 +83,11 @@ GenVecBasis<double, GenDistrVector>::expand2(GenDistrVector<double> &x, GenDistr
   if(_result.size() > 0) {
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data()+startCol_, blockCols_);
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+    result.setZero();
 
     if(compressedKey2_.size() > 0) {
       Eigen::VectorXd resultBuffer(compressedKey2_.size());
-      resultBuffer = compressedBasis2_*GenCoordinates;
+      resultBuffer = compressedBasis2_.block(0,startCol_,compressedBasis2_.rows(),blockCols_)*GenCoordinates;
       for(int i = 0; i < compressedKey2_.size(); i++)
         result(compressedKey2_[i]) = resultBuffer(i);
     }
@@ -117,7 +119,8 @@ GenVecBasis<double, GenDistrVector>::compressedVecReduce(GenDistrVector<double> 
 #ifdef USE_EIGEN3
   if(_result.size() > 0) {
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
-    Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+    Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data()+startCol_, blockCols_);
+    result.setZero();
 
     Eigen::VectorXd coordBuffer(compressedKey_.size());
     for(int i = 0; i < compressedKey_.size(); i++)
@@ -142,7 +145,8 @@ GenVector<double> &
 GenVecBasis<double, GenVector>::compressedVecReduce(GenVector<double> &x, GenVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
-  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data()+startCol_, blockCols_);
+  result.setZero();
 
   Eigen::VectorXd coordBuffer(compressedKey_.size());
   for(int i = 0; i < compressedKey_.size(); i++)
@@ -159,20 +163,21 @@ GenVecBasis<double, GenDistrVector>::sparseVecReduce(GenDistrVector<double> &x, 
 #ifdef USE_EIGEN3
   if(_result.size() > 0) {
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
-    Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+    Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data()+startCol_, blockCols_);
     Eigen::SparseVector<double> sparsef(FullCoordinates.rows());
+    result.setZero();
 
     for(int i = 0; i < FullCoordinates.rows(); i++)
       if(FullCoordinates(i) != 0)
         sparsef.insert(i) = FullCoordinates(i);
 
-    result = basis_.transpose()*sparsef;
+    result = basis_.block(0,startCol_,basis_.rows(),blockCols_).transpose()*sparsef;
     //each process gets a copy of reduced coordinates
     if(structCom)
       structCom->globalSum(result.size(), result.data());
   }
   else if(structCom) {
-    Eigen::Matrix<double,Eigen::Dynamic, 1> result(basis_.cols());
+    Eigen::Matrix<double,Eigen::Dynamic, 1> result(blockCols_);
     result.setZero();
     structCom->globalSum(result.size(), result.data());
   }
@@ -187,6 +192,7 @@ GenVecBasis<double, GenDistrVector>::reduce(GenDistrVector<double> &x, GenDistrV
   if(_result.size() > 0) { 
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data()+startCol_, blockCols_);
+    result.setZero();
     result = basis_.block(0,startCol_,basis_.rows(),blockCols_).transpose()*FullCoordinates;
 
     //each process gets a copy of reduced coordinates
@@ -194,7 +200,7 @@ GenVecBasis<double, GenDistrVector>::reduce(GenDistrVector<double> &x, GenDistrV
       structCom->globalSum(result.size(), result.data());
   }
   else if(structCom) {
-    Eigen::Matrix<double,Eigen::Dynamic, 1> result(basis_.cols());
+    Eigen::Matrix<double,Eigen::Dynamic, 1> result(blockCols_);
     result.setZero();
     structCom->globalSum(result.size(), result.data());
   }
@@ -231,7 +237,7 @@ GenVecBasis<double, GenVector>::reduce(GenVector<double> &x, GenVector<double> &
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data()+startCol_, blockCols_);
 
-  _result.zero();
+  result.setZero();
   if(useCompressedBasis && compressedKey_.size() > 0) {
     Eigen::VectorXd coordBuffer(compressedKey_.size());
     for(int i = 0; i < compressedKey_.size(); i++)
@@ -276,10 +282,11 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vect
     }
   }
 
-  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount_);
+  compressedBasis_.resize(compressedKey_.size(), blockCols_);
 
-  for(int i = 0; i < compressedKey_.size(); i++) 
-    compressedBasis_.row(i) = basis_.row(compressedKey_[i]);
+  for(int i = 0; i < compressedKey_.size(); i++) {
+    compressedBasis_.row(i) = basis_.row(compressedKey_[i]).segment(startCol_, blockCols_);
+  }
 #endif
 }
 

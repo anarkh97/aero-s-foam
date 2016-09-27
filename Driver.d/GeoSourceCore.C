@@ -2934,7 +2934,6 @@ int GeoSource::setIVel(int _numIVel, BCond *_iVel)
 int GeoSource::setIVelModal(int _numIVelModal, BCond *_iVelModal)
 {
   if (iVelModal) {
-
     // Allocate memory for correct number of iVelModal
     BCond *nd = new BCond[numIVelModal+_numIVelModal];
 

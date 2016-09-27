@@ -101,8 +101,14 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const std::ve
   std::string basisfile = getMeshFilename(fileInfo).c_str();
   basisfile.append(".compressed.basis");
   if(domain->numInitDisp() || domain->numInitDisp6() || domain->numInitVelocity()) {
-    std::cerr << "Error: IDISP/IVEL is not supported yet for local bases\n";
-    exit(-1);
+    //std::cerr << "Error: IDISP/IVEL is not supported yet for local bases\n";
+    //exit(-1);
+    for(int j=0; j<localBasisSize.size(); ++j) {
+      meshOut << "READMODE \"" << basisfile << j+1 << "\" \"" << basisfile << j+1;
+      if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0)
+        meshOut << ".normalized";
+      meshOut << "\" " << localBasisSize[j] << std::endl;
+    }
   }
   else {
     for(int j=0; j<localBasisSize.size(); ++j) {
@@ -145,10 +151,10 @@ outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds, 
   }
 
   weightOut << "ATTRIBUTES";
-  if(j >= 1) weightOut << " " << j;
+  if(j >= 0) weightOut << " " << j+1;
   weightOut << "\n";
   for (int i = 0, iEnd = weights.size(); i != iEnd; ++i) {
-    if(elemAttrib[elemIds[i]] != attrib.end() && j >= 1) {
+    if(elemAttrib[elemIds[i]] != attrib.end() && j < 0) {
       // element has an attribute
       Attrib &a = elemAttrib[elemIds[i]]->second;
       weightOut << elemIds[i]+1 << " " << a.attr+1 << " ";
@@ -1240,7 +1246,10 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
      && !domain_->solInfo().useMassOrthogonalProjection) {
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,j);
     fileName.append(".normalized");
-    fprintf(stdout,"... reading basis from %s ...\n",fileName.c_str());
+    if(domain_->solInfo().readInROBorModes.size() == 1)
+      fprintf(stdout," ... reading %d basis vectors from %s ...\n",domain_->solInfo().maxSizePodRom,fileName.c_str());
+    else
+      fprintf(stdout," ... reading %d bases vectors from %s ...\n",domain_->solInfo().localBasisSize[j],fileName.c_str());
     BasisInputStream<6> in(fileName, vecDofConversion);
     if(domain_->solInfo().readInROBorModes.size() == 1) {
       const int podSizeMax = domain_->solInfo().maxSizePodRom;

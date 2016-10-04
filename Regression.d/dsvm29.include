@@ -689,7 +689,7 @@ ATTRIBUTES
 *
 MATERIAL
 5 0 3e7 0 0 0.0 0 0 0.0 0 0 0.0 0 0 0 0 0 0 0
-6 constrmat 1 0
+6 conmat multipliers
 *
 DISP 
 1 1 0

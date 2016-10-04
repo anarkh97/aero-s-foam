@@ -245,11 +245,11 @@ def buildInputs(params):
         OUTPUT2 = ["stressxx","stressxy","stressyy"]
         OUTPUT_EXTRAS = [" 1"," 1 elemental"," 1 elemental"," 1 elemental"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["mumps","sparse","spooles","FETI DP"]
+        STATICS = ["mumps","sparse","spooles"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","NONLINEAR\nrebuild 1\nnltol 1e-6\nmaxit 10","include \"../fetidp.include\""]
+        EXTRAS = ["*","NONLINEAR\nrebuild 1\nnltol 1e-6\nmaxit 10","*"]
 
       if(problem_type == "vmmech063"):
         OUTPUT = ["displacx"]

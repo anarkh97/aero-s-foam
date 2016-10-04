@@ -641,7 +641,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::selectLocalBasis(DistrVector &q){
       }
     }
   } else if(d.size() > 0 && w.size() > 0 ) { // modelIII: fast implementation using pre-computed auxiliary quantities
-#ifdef USE_EIGEN3
+#if defined(USE_EIGEN3) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11))
     const int Nv = domain->solInfo().readInROBorModes.size(); // get number of local bases
     const int k  = q.size();                                  // get total number of vectors
     Eigen::Map<Eigen::VectorXd> qi(q.data(),k);               // get working array

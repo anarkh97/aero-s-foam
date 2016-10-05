@@ -2626,7 +2626,7 @@ BaseSub::makeEdgeQ(FSCommPattern<double> *qPat)
 */
 
 void 
-BaseSub::GramSchmidt(double *Q, bool *isUsed, int numDofPerNode, int nQPerNeighb)
+BaseSub::GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation)
 {
   double rtol = solInfo().getFetiInfo().orthotol;
   double atol = solInfo().getFetiInfo().orthotol2;
@@ -2637,10 +2637,11 @@ BaseSub::GramSchmidt(double *Q, bool *isUsed, int numDofPerNode, int nQPerNeighb
   int numNeighb = sharedNodes.csize();
   int numInterfNodes = sharedNodes.numConnect();
 
-  DofSet desired;
-  if(numDofPerNode == 1) desired = DofSet::Helm;
-  else if(numDofPerNode == 3) desired = DofSet::XYZdisp;
-  else if(numDofPerNode == 6) desired = DofSet::XYZdisp | DofSet::XYZrot;
+  int numDofPerNode;
+  if((desired.contains(DofSet::Helm)) || (desired.contains(DofSet::Temp)))
+    numDofPerNode = 1;
+  else if((desired.contains(DofSet::XYZdisp)))
+    numDofPerNode = (desired.contains(DofSet::XYZrot))?6:3;
   else {
     std::cerr << " *** WARNING: numDofPerNode = 0 in BaseSub::GramSchmidt(...) sub " << subNumber << std::endl;
     return;
@@ -2673,8 +2674,12 @@ BaseSub::GramSchmidt(double *Q, bool *isUsed, int numDofPerNode, int nQPerNeighb
             for(m = 0; m < numDofPerNode; ++m)
               if((dxyz[m] >= 0) && (count[dxyz[m]] < 2))
                 vjt[numDofPerNode*l+m] = vj[numDofPerNode*l+m];
-              else
+              else {
+                // Edge modification for primal augmentation 082213 JAT
+		if(isPrimalAugmentation)
+		  vj[numDofPerNode*l+m] = 0.0;
                 vjt[numDofPerNode*l+m] = 0.0;
+	      }
           }
 
           double initNorm = vjt.norm();

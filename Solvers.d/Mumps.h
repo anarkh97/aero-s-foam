@@ -87,6 +87,8 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    void reSolve(int nRHS, GenVector<Scalar> *rhs);
    void getNullSpace(Scalar *rbm);
 
+   void mult(const Scalar *rhs, Scalar *result);
+
    int dim() { return neq; }
    int neqs() { return neq; }
    long size();

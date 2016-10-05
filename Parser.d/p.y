@@ -3949,6 +3949,10 @@ Solver:
           if(domain->solInfo().fetiInfo.augment == FetiInfo::none)
             domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
           /*geoSource->initShift();*/  }
+        | AUGMENT MPCTYPEID NewLine
+        { if ($2 == 2)
+	    domain->solInfo().fetiInfo.augmentimpl = FetiInfo::Primal;
+        }
 	| ORTHOTOL Float NewLine
 	{ domain->solInfo().fetiInfo.orthotol = $2; }
         | ORTHOTOL Float Float NewLine

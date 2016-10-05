@@ -366,6 +366,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
  int i, iSub;
  int glNumSub = this->subToSub->csize();
+ if(verboseFlag) filePrint(stderr," ... Number of Subdomains    %5d  ...\n", glNumSub);
 
  // STEP 1. count number of corner nodes and make subToCorner connectivity
  Connectivity *subToCorner = 0;
@@ -745,7 +746,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #else
    for(int i = 0; i < nGroups; ++i) groupProc[i] = this->myCPU;
 #endif
- 
+
    // now do svd on globalZstar for each group to get globalQ for each group
    ngrbm = 0;  // total of all groups
    FullM  **Qtranspose;
@@ -912,6 +913,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
    // assemble the coarse problem: Kcc^* -> Kcc - Krc^T Krr^-1 Krc
    if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
+   if(verboseFlag && this->fetiInfo->augmentimpl == FetiInfo::Primal)
+     filePrint(stderr, " ... Primal Augmentation            ...\n");
    t5 -= getTime();
    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc); // create the local Kcc^*
    t5 += getTime();

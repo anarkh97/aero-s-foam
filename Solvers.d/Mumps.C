@@ -320,6 +320,7 @@ GenMumpsSolver<Scalar>::factor()
   }
 
   nrbm = mumpsId.id.INFOG(28); // number of zero pivots detected
+
   if(this->print_nullity && host && nrbm > 0)
     std::cerr << " ... Matrix is singular: size = " << neq << ", rank = " << neq-nrbm << ", nullity = " << nrbm << " ...\n";
 
@@ -559,3 +560,23 @@ GenMumpsSolver<Scalar>::~GenMumpsSolver()
   if(mpicomm) mpicomm->sync();
 }
 
+
+template<class Scalar>
+void
+GenMumpsSolver<Scalar>::mult(const Scalar *rhs, Scalar *result)
+{
+  // Multiplication with copy of matrix  JAT 042314
+  int i, j, k;
+
+  if(numUncon == 0) return;
+
+  for(i = 0; i < numUncon; i++)
+    result[i] = 0.0;
+
+  for(k = 0; k < nNonZero; k++) {
+    i = rowu[k] - 1; j = colu[k] - 1;
+    result[i] += unonz[k]*rhs[j];
+    if (i != j)
+      result[j] += unonz[k]*rhs[i];
+  }
+}

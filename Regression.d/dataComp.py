@@ -150,15 +150,15 @@ def dComp(params):
   genBase = re.compile("\-g")
 
   for s in params:
-    if(pattern.match(s)): #if(re.search(pattern,s)):
+    if(pattern.match(s)):
        loc = i
-    if(sendMail.match(s)): #if(re.search(sendMail,s)):
+    if(sendMail.match(s)):
        sloc = i
-    if(runLocal.match(s)): #if(re.search(runLocal,s)):
+    if(runLocal.match(s)):
        rloc = i
-    if(newPlots.match(s)): #re.search(newPlots,s)):
+    if(newPlots.match(s)):
        nloc = i
-    if(genBase.match(s)): #re.search(genBase,s)):
+    if(genBase.match(s)):
        gloc = i
     i=i+1
 
@@ -251,11 +251,8 @@ def dComp(params):
         command = "./run."+names+" >reg.out 2>&1"
         os.system(command)
       os.chdir('../')
-##PJSA get list of files from baseline rather than indir, because one or more files could be missing from indir due to regression
-      os.chdir('baseline') 
       for infile in glob.glob( os.path.join(indir, '*.dat') ):
         files.append(infile)
-      os.chdir('..')
   else: 
     del params[0]
     indirs = params
@@ -280,12 +277,9 @@ def dComp(params):
         os.system("rm -f *.dat test.* host.*")
         command = "./run."+indir+" >reg.out 2>&1"
         os.system(command)
-      os.chdir('../') 
-##PJSA get list of files from baseline rather than indir, because one or more files could be missing from indir due to regression
-##    os.chdir('baseline')
+      os.chdir('../')
       for infile in glob.glob( os.path.join(indirp, '*.dat') ):
         files.append(infile)
-##    os.chdir('..')
 
   result = 0
   if(genbase != 1): 
@@ -398,7 +392,7 @@ def dComp(params):
     hostname = hostname.rstrip('\n')
     msg['Subject'] = 'Regression Test results from %s' % hostname
     msg['From'] = 'mpotts@'+hostname
-    msg['To'] = "dcvelobrew@gmail.com"
+    msg['To'] = "pavery@stanford.edu"
     msg['Date'] = formatdate(localtime=True)
     f = 'Discrepancies.pdf'
     if(os.path.exists("Discrepancies.pdf")):
@@ -411,7 +405,7 @@ def dComp(params):
     else: 
       msg.attach( MIMEText('There were no discrepancies in the last regression test'))
     smtp = smtplib.SMTP("localhost")
-    send_to = "dcvelobrew@gmail.com"
+    send_to = "pavery@stanford.edu"
     send_from = "mpotts@ahpcrcfe.stanford.edu"
     smtp.sendmail(send_from, send_to, msg.as_string())
     smtp.close()

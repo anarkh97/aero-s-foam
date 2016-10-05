@@ -701,7 +701,6 @@ else(TEST_DURATION_SHORT)
   ADD_TEST(testRtest37 ${EXEC_DIR}/dataComp.py -l dsvm37)
 #  ADD_TEST(testRtest38 ${EXEC_DIR}/dataComp.py -l dsvm38)
   ADD_TEST(testRtest39 ${EXEC_DIR}/dataComp.py -l dsvm39)
-  # use the -s flag to send results via email
   ADD_TEST(testRtest40 ${EXEC_DIR}/dataComp.py -l dsvm40)
   ADD_TEST(testvme1 ${EXEC_DIR}/dataComp.py -l vme1 )
 #  ADD_TEST(testvme2 ${EXEC_DIR}/dataComp.py -l vme2 )
@@ -712,7 +711,8 @@ else(TEST_DURATION_SHORT)
   ADD_TEST(testvmmech003 ${EXEC_DIR}/dataComp.py -l vmmech003 )
   ADD_TEST(testvmmech063 ${EXEC_DIR}/dataComp.py -l vmmech063 )
   ADD_TEST(testPreStress ${EXEC_DIR}/dataComp.py -l PreStressedMembrane )
-  ADD_TEST(testPressure ${EXEC_DIR}/dataComp.py -l -s PlateUnderPressure )
+  # use the -s flag to send results via email
+  ADD_TEST(testPressure ${EXEC_DIR}/dataComp.py -l PlateUnderPressure )
 #  ADD_TEST(sendResults ${EXEC_DIR}/sendResults.py )
 endif(TEST_DURATION_SHORT)
 

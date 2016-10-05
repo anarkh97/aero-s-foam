@@ -110,6 +110,8 @@ def buildInputs(params):
 
       os.chdir(problem_type)
       dirname = os.getcwd()
+      command = "rm -f *"
+      os.system(command)
       runfilename = "run."+problem_type 
       qsubfilename = "scp."+problem_type 
       RUNFILE = open(runfilename,"w")
@@ -199,7 +201,7 @@ def buildInputs(params):
 
       if(problem_type == "vme4"):
         OUTPUT = ["displacx"]
-	OUTPUT2 = ["displacx"]
+        OUTPUT2 = ["displacx"]
         OUTPUT_EXTRAS = [" 1 2"," 1 3"]
         DYNAMICS = ["mech\t0.0\t0.5\ntime 0.0 1.0e-3 2.0"]
         NAMELIST = ["DYNAMICS\n","OUTPUT\n","INCLUDE "]
@@ -722,12 +724,20 @@ def buildInputs(params):
             FILE.write(NAMELIST[j])
             FILE.write(OPTIONSLIST[j][i  % len(OPTIONSLIST[j])])
             if(NAMELIST[j].find("OUTPUT") != -1 ):
+              # create an empty output file so we can then use its existence to activate the comparison even if the
+              # code crashes before creating the file
+              command = "touch " + OUTPUT_FILENAME
+              os.system(command)
               FILE.write(" %s" % OUTPUT_FILENAME)
               FILE.write(" %s" % OUTPUT_EXTRAS[0])
               if(OUTPUT2 != ""):
                 for jj in range(len(OUTPUT2)):
                   FILE.write("\n")
                   OUTPUT_FILENAME = idname + "_" + "%d.dat" % ( jj + 2)
+                  # create an empty output file so we can then use its existence to activate the comparison
+                  # code crashes before creating the file
+                  command = "touch " + OUTPUT_FILENAME
+                  os.system(command)
                   FILE.write("%s %s" % (OUTPUT2[jj],OUTPUT_FILENAME))
                   FILE.write(" %s" % OUTPUT_EXTRAS[jj+1])
             FILE.write("\n")

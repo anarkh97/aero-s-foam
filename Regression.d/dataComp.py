@@ -150,15 +150,15 @@ def dComp(params):
   genBase = re.compile("\-g")
 
   for s in params:
-    if(re.search(pattern,s)):
+    if(pattern.match(s)): #if(re.search(pattern,s)):
        loc = i
-    if(re.search(sendMail,s)):
+    if(sendMail.match(s)): #if(re.search(sendMail,s)):
        sloc = i
-    if(re.search(runLocal,s)):
+    if(runLocal.match(s)): #if(re.search(runLocal,s)):
        rloc = i
-    if(re.search(newPlots,s)):
+    if(newPlots.match(s)): #re.search(newPlots,s)):
        nloc = i
-    if(re.search(genBase,s)):
+    if(genBase.match(s)): #re.search(genBase,s)):
        gloc = i
     i=i+1
 
@@ -282,10 +282,10 @@ def dComp(params):
         os.system(command)
       os.chdir('../') 
 ##PJSA get list of files from baseline rather than indir, because one or more files could be missing from indir due to regression
-      os.chdir('baseline')
+##    os.chdir('baseline')
       for infile in glob.glob( os.path.join(indirp, '*.dat') ):
         files.append(infile)
-      os.chdir('..')
+##    os.chdir('..')
 
   result = 0
   if(genbase != 1): 
@@ -308,8 +308,9 @@ def dComp(params):
           SUMMARY_FILE.write(outstring)
         else:
           compstring = []
-          result = directComp(basefile,file,SUMMARY_FILE,compstring)
-          if(result == 1):
+          dcResult = directComp(basefile,file,SUMMARY_FILE,compstring)
+          if(dcResult == 1):
+            result = 1
             print bcolors.FAIL + " \tDiscrepancy " + bcolors.ENDC, file
             outstring = "\tDiscrepancy " + file + "\n"
             SUMMARY_FILE.write(outstring)

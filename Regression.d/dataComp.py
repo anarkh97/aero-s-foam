@@ -291,6 +291,7 @@ def dComp(params):
   if(genbase != 1): 
     for file in files:
       basefile = "baseline/"+file
+      file = mycwd+"/Regression.d/"+file
       p = subprocess.Popen("md5sum " + file, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
       p.wait()
       Total += 1

@@ -69,6 +69,8 @@ public:
   void initLocalBasis(DistrVector &q);
   int  selectLocalBasis(DistrVector &q);
   void setLocalBasis(DistrVector &q, DistrVector &qd);
+  void projectLocalBases(int i, int j, DistrVector &q);
+  virtual void setLocalReducedMesh(int j) {}
 
 protected:
   Domain        *domain;
@@ -91,6 +93,12 @@ protected:
   int stableCount;
   GenParallelSolver<double> * fullMassSolver;
   void reduceDisp(DistrVector &d, DistrVector &dr) const;
+
+#ifdef USE_EIGEN3
+  Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,Eigen::Dynamic> VtV;
+  Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic> d;
+  Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,Eigen::Dynamic> w;
+#endif
 
 private:
   MultiDomDynPodPostProcessor *mddPostPro;

@@ -76,7 +76,9 @@ StaticSolver< Scalar, OpSolver, VecType,
         **VhK_arubber_lV = 0, **VhK_arubber_mV = 0;
 
 // RT 070513
-   if (domain->solInfo().getSweepParams()->freqSweepMethod==SweepParams::Taylor && domain->solInfo().getSweepParams()->nFreqSweepRHS==1 && domain->solInfo().loadcases.size()>1)
+   if (domain->solInfo().getSweepParams()->freqSweepMethod==SweepParams::Taylor &&
+       domain->solInfo().getSweepParams()->nFreqSweepRHS==1 &&
+       (domain->solInfo().loadcases.size()>1 || domain->numWaveDirections>0 ) )
    {
      bool first_time = true;
      while(domain->coarse_frequencies->size() > 0) {
@@ -87,21 +89,36 @@ StaticSolver< Scalar, OpSolver, VecType,
        if(!first_time || is>0) rebuildSolver(wc); 
        else first_time = false;
 
-       std::list<int> loadcases_backup;
-       loadcases_backup = domain->solInfo().loadcases;
-       if(domain->solInfo().loadcases.size() > 0) {
-         while(domain->solInfo().loadcases.size() > 0) {
+       if (domain->solInfo().loadcases.size()>1) {
+         std::list<int> loadcases_backup;
+         loadcases_backup = domain->solInfo().loadcases;
+         if(domain->solInfo().loadcases.size() > 0) {
+           while(domain->solInfo().loadcases.size() > 0) {
+             probDesc->getRHS(*rhs);
+             allOps->sysSolver->solve(*rhs,*sol);
+             if(domain->solInfo().isCoupled) scaleDisp(*sol);
+             bool printTimers =
+              (domain->solInfo().loadcases.size() > 1 ||
+               domain->coarse_frequencies->size() > 1 ||
+                is < domain->set_of_frequencies.size()-1 ) ? false : true;
+             postProcessor->staticOutput(*sol, *rhs, printTimers);
+             domain->solInfo().loadcases.pop_front();
+           }
+         }
+         domain->solInfo().loadcases = loadcases_backup;
+       } 
+       else if (domain->numWaveDirections>0) {
+         for(int iDir=0;iDir<domain->numWaveDirections;iDir++) {
+           probDesc->setIWaveDir(iDir);
            probDesc->getRHS(*rhs);
            allOps->sysSolver->solve(*rhs,*sol);
-           if(domain->solInfo().isCoupled) scaleDisp(*sol);
-           bool printTimers =
-            (domain->solInfo().loadcases.size() > 1 || domain->coarse_frequencies->size() > 1 || is < domain->set_of_frequencies.size()-1 ) ? false : true;
-           postProcessor->staticOutput(*sol, *rhs, printTimers);
-//           postProcessor->staticOutput(*sol, *rhs, false);
-           domain->solInfo().loadcases.pop_front();
+           if(domain->solInfo().isCoupled) scaleDisp(*sol); 
+           bool printTimers = 
+             ( domain->coarse_frequencies->size() > 1 ||
+               iDir  <domain->numWaveDirections-1 )  ? false : true;
+           postProcessor->staticOutput(*sol, *rhs,printTimers);
          }
        }
-       domain->solInfo().loadcases = loadcases_backup;
        domain->coarse_frequencies->pop_front();
      }
    } else  
@@ -733,6 +750,16 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
      postProcessor->staticOutput(*sol, *rhs, printTimers);
      domain->solInfo().loadcases.pop_front();
    }
+ }
+ else if (domain->numWaveDirections>0) {
+     for(int iDir=0;iDir<domain->numWaveDirections;iDir++) {
+     probDesc->setIWaveDir(iDir);
+     probDesc->getRHS(*rhs);
+     allOps->sysSolver->solve(*rhs,*sol);
+     if(domain->solInfo().isCoupled) scaleDisp(*sol); // PJSA 9-22-06
+     bool printTimers = (iDir  <domain->numWaveDirections-1) ? false : true;
+     postProcessor->staticOutput(*sol, *rhs,printTimers);
+     }
  }
  else {
    probDesc->getRHS(*rhs);

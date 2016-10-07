@@ -363,7 +363,7 @@ struct SolverInfo {
    std::vector<std::string> readInDualROB; 
    std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
    std::vector<std::string> readInLocalBasesCent;
-   const char * readInModes;
+   std::vector<std::string> readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
    const char * readInShapeSen;
@@ -729,7 +729,6 @@ struct SolverInfo {
                   constraint_hess_eps = 0;
 
                   numSnap            = 1;
-                  readInModes        = "";
                   readInShapeSen     = "";
                   SVDoutput          = "pod.rob";
                   reducedMeshFile    = "";
@@ -1126,10 +1125,15 @@ struct SolverInfo {
        // for nonlinear ROMs, keep the modal ivel and non-modal ivel separate
        // only if the basis used to define the initial conditions is the same
        // as the ROB.
-       std::string rob(readInROBorModes[0]);
-       if(useMassNormalizedBasis) rob.append(".normalized");
-       std::string icb(readInModes);
-       return (rob.compare(icb) == 0); 
+       for(int i = 0; i<readInROBorModes.size(); ++i){
+         std::string rob(readInROBorModes[i]);
+         if(useMassNormalizedBasis) rob.append(".normalized");
+         std::string icb(readInModes[i]);
+         if(!(rob.compare(icb) == 0))// if files are different, compute modal IC's for all
+          return false;
+          
+       }
+       return true;// otherwise keep supplied modal ivel 
      }
      else {
        // for linear ROMs, keep the modal ivel and non-modal ivel separate

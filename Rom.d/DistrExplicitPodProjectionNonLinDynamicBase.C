@@ -455,7 +455,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
       }
     }
 
-    // if performing local basis analysis, read in centroids for basis switching
+    // if performing local basis analysis and centroids are provided, read in centroids for basis switching
     if(domain->solInfo().readInLocalBasesCent.size() >= 1) {
       centroids.dimensionIs(locBasisVec.size(), decDomain->masterSolVecInfo()); 
       DistrVecBasis::iterator it = centroids.begin();
@@ -468,6 +468,37 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
         converter.vector(buffer, *it);
         it++;
       }
+    }
+    // if auxillary bases are provided, read in data structures for fast switching 
+    // every process owns a copy of VtV, w, and d
+    if(domain->solInfo().readInLocalBasesAuxi.size() > 0) {
+#ifdef USE_EIGEN3
+      const int Nv = domain->solInfo().readInROBorModes.size();
+      const int k = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
+      VtV.resize(Nv,Nv); //grammian
+      d.resize(Nv,Nv);
+      w.resize(Nv,Nv);
+      for(int i=0; i<Nv; ++i) {
+        int ki = domain->solInfo().localBasisSize[i];
+        for(int j=i+1; j<Nv; ++j) {
+          int kj = domain->solInfo().localBasisSize[j];
+          std::string fileName = domain->solInfo().readInLocalBasesAuxi[std::make_pair(i,j)];
+          std::ifstream file(fileName.c_str());
+          VtV(i,j).resize(ki,kj);
+          for(int irow = 0; irow < ki; ++irow) {
+            for(int jcol = 0; jcol < kj; ++jcol) {
+              file >> VtV(i,j)(irow,jcol);
+            }
+          }
+          file >> d(i,j);
+          w(i,j).resize(k);
+          for(int irow=0; irow<k; ++irow) {
+            file >> w(i,j)[irow];
+          }
+          file.close();
+        }
+      }
+#endif    
     }
   }
 
@@ -552,7 +583,9 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector>&
     filePrint(stderr, " ... Using Modal IVELOCITIES        ...\n");
     if(!numIDisModal) initLocalBasis(dr_n);
     BCond* iVelModal = domain->getInitVelocityModal();
-    for(int i = 0; i < numIVelModal; ++i) {
+    int numLocalIVelModal = normalizedBasis_.numVec();   // returns blockCols_
+    int startIVelModal    = normalizedBasis_.startCol(); // returns startCol_
+    for(int i = startIVelModal; i < startIVelModal+numLocalIVelModal; ++i) {
       if(iVelModal[i].nnum < vr_n.size())
         vr_n[iVelModal[i].nnum] = iVelModal[i].val;
     }
@@ -578,15 +611,19 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector>&
 //start local basis functions
 void
 DistrExplicitPodProjectionNonLinDynamicBase::initLocalBasis(DistrVector &q){
-
-  if(domain->solInfo().readInLocalBasesCent.size() >= 1) { // only execute this if doing local ROM
+#if defined(USE_EIGEN3) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11))
+  if(domain->solInfo().readInLocalBasesCent.size() >= 1 || VtV.size() > 0) { // only execute this if doing local ROM
     localBasisId  = selectLocalBasis(q); 
-    if(verboseFlag) filePrint(stderr," ... Initial Local Basis # %d    ...\n",localBasisId);
+    if(verboseFlag) filePrint(stderr," ... Initial Local Basis # %d        ...\n",localBasisId);
     int blockCols = locBasisVec[localBasisId];
     int startCol  = std::accumulate(locBasisVec.begin(),locBasisVec.begin()+localBasisId,0);
     normalizedBasis_.localBasisIs(startCol,blockCols);
+    setLocalReducedMesh(localBasisId);
   }
-
+#else
+  filePrint(stderr,"*** Error: Local auxiliary bases requres Aero-S to be built with eigen library and c++11 support.\n");
+  exit(-1);
+#endif
 }
 
 int
@@ -607,38 +644,82 @@ DistrExplicitPodProjectionNonLinDynamicBase::selectLocalBasis(DistrVector &q){
       }
     }
   }
+#if defined(USE_EIGEN3) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11))
+  else if(d.size() > 0 && w.size() > 0 ) { // modelIII: fast implementation using pre-computed auxiliary quantities
+    const int Nv = domain->solInfo().readInROBorModes.size(); // get number of local bases
+    const int k  = q.size();                                  // get total number of vectors
+    Eigen::Map<Eigen::VectorXd> qi(q.data(),k);               // get working array
+    std::vector<int> s(Nv); for(int m=0; m<Nv; ++m) s[m] = m; // fill array with 1 through number of bases 
+    std::sort(s.begin(), s.end(), [&](int m, int p) {
+      return (p>m && (w(m,p).dot(qi) + d(m,p)) < 0) || (m>p && (w(p,m).dot(qi) + d(p,m)) > 0);
+    });
+    return s[0];
+  }
+#endif
+  else {
+    filePrint(stderr,"*** Error: cluster centroids or auxiliary quantities required to select local basis.\n");
+    exit(-1);
+  }
   return cc; 
 }
 
 void
 DistrExplicitPodProjectionNonLinDynamicBase::setLocalBasis(DistrVector &q, DistrVector &qd){
-
-  if(domain->solInfo().readInLocalBasesCent.size() >= 1) {
+#if defined(USE_EIGEN3) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11))
+  if(domain->solInfo().readInLocalBasesCent.size() >= 1 || VtV.size() > 0) {
     int j = selectLocalBasis(q);
     if(j != localBasisId) { // if a new local basis has been selected, update the things
-      localBasisId = j;
-      if(verboseFlag) filePrint(stderr," ... Selecting New Local Basis # %d     ...\n",j);
+      if(verboseFlag) filePrint(stderr," ... Selecting Local Basis # %d     ...\n",j);
       int blockCols = locBasisVec[j]; 
       int startCol  = std::accumulate(locBasisVec.begin(),locBasisVec.begin()+j,0);
 
       DistrVector q_Big(MultiDomainDynam::solVecInfo());
       DistrVector qd_Big(MultiDomainDynam::solVecInfo());
 
-      normalizedBasis_.expand(q,  q_Big);
-      normalizedBasis_.expand(qd, qd_Big); // make sure velocities are projected
+      if(VtV.size() == 0){
+        normalizedBasis_.expand(q,  q_Big);
+        normalizedBasis_.expand(qd, qd_Big); // make sure velocities are projected
 
-      //zero out generalized coordinates
-      q.zero();
-      qd.zero();
+        //zero out generalized coordinates
+        q.zero();
+        qd.zero();
 
-      // reduced coordinates have already been projected into embedding space with previous basis
-      // now project tham back on to the new subspace with updated basis
-      normalizedBasis_.localBasisIs(startCol,blockCols);
-      reduceDisp(q_Big,  q); // d_n has already been updated, regardless of rotational degrees of freedom
-      reduceDisp(qd_Big, qd);
+        // reduced coordinates have already been projected into embedding space with previous basis
+        // now project tham back on to the new subspace with updated basis
+        normalizedBasis_.localBasisIs(startCol,blockCols);
+        reduceDisp(q_Big,  q); // d_n has already been updated, regardless of rotational degrees of freedom
+        reduceDisp(qd_Big, qd);
+      } else {
+        normalizedBasis_.localBasisIs(startCol,blockCols);
+        projectLocalBases(localBasisId,j,q);
+        projectLocalBases(localBasisId,j,qd);
+      }
+      setLocalReducedMesh(j);
+      localBasisId = j;
     }
   }
+#endif
 }
+
+void
+DistrExplicitPodProjectionNonLinDynamicBase::projectLocalBases(int i, int j, DistrVector &q)
+{
+#ifdef USE_EIGEN3
+  int ki = locBasisVec[i];
+  int pi = std::accumulate(locBasisVec.begin(), locBasisVec.begin()+i, 0);
+  Eigen::Map<Eigen::VectorXd> qi(q.data()+pi,ki);
+
+  int kj = locBasisVec[j];
+  int pj = std::accumulate(locBasisVec.begin(), locBasisVec.begin()+j, 0);
+  Eigen::Map<Eigen::VectorXd> qj(q.data()+pj,kj);
+
+  if(j < i) qj = VtV(j,i)*qi;
+  else qj = VtV(i,j).transpose()*qi;
+
+  qi.setZero();
+#endif
+}
+
 //end local basis functions
 
 void

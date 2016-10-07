@@ -1109,7 +1109,7 @@ PodProjectionNonLinDynamic::selectLocalBasis(Vector &q)
     std::sort(s.begin(), s.end(), [&](int m, int p) {
       return (p>m && (w(m,p).dot(qi) + d(m,p)) < 0) || (m>p && (w(p,m).dot(qi) + d(p,m)) > 0);
     });
-    if(verboseFlag) std::cerr << " ... Selecting local basis # " << s[0] << "     ...\n";
+    if(verboseFlag) std::cerr << " ... Selecting Local Basis # " << s[0] << "     ...\n";
     return s[0];
   } else if(uc.size() > 0) {
     // modelII: slow implementation of using cluster centroids.
@@ -1120,7 +1120,7 @@ PodProjectionNonLinDynamic::selectLocalBasis(Vector &q)
     Eigen::Map<Eigen::VectorXd> u(q_Big.data(),NonLinDynamic::solVecInfo());
     Eigen::MatrixXd::Index j;
     double minNorm = (uc.colwise()-u).colwise().norm().minCoeff(&j); 
-    if(verboseFlag) std::cerr << " ... Selecting local basis # " << j << "     ...\n";
+    if(verboseFlag) std::cerr << " ... Selecting Local Basis # " << j << "     ...\n";
     return int(j);
   }
   else {

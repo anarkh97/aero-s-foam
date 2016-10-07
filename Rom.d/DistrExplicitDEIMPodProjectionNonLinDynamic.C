@@ -85,12 +85,12 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly(int
   Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
   
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
-    sd->getWeightedStiffAndForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
+    sd->getWeightedStiffAndForceOnly(packedElementWeights_[localReducedMeshId_][iSub], *(*geomState)[iSub], eIF,
                                      allCorot[iSub], kelArray[iSub], residual,
                                      1.0, t, (*geomState)[iSub], melArray[iSub]); // residual -= internal force);
   }
   else {
-      sd->getWeightedInternalForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
+      sd->getWeightedInternalForceOnly(packedElementWeights_[localReducedMeshId_][iSub], *(*geomState)[iSub], eIF,
                                     allCorot[iSub], kelArray[iSub], residual,
                                     1.0, t, (*geomState)[iSub], melArray[iSub],kelArrayCopy[iSub]); // residual -= internal force);
   }

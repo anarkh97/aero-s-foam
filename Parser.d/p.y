@@ -1858,11 +1858,11 @@ Mode:
           domain->solInfo().localBasisSize.push_back($3); }	
         | READMODE FNAME FNAME NewLine
         { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readInModes = $3;
+          domain->solInfo().readInModes.push_back($3);
           domain->solInfo().readmodeCalled = true; }
         | READMODE FNAME FNAME Integer NewLine
         { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readInModes = $3;
+          domain->solInfo().readInModes.push_back($3);
           domain->solInfo().readmodeCalled = true;
           domain->solInfo().maxSizePodRom += $4;
           domain->solInfo().localBasisSize.push_back($4); }
@@ -5858,10 +5858,9 @@ ScalePosCoords:
    ;
 
 NodePosCoords:
-   NODEPOSCOORDS NewLine
-   { domain->solInfo().activatePOSCFG = true; }
-   | NodePosCoords FNAME NewLine
-   { domain->solInfo().NodeTrainingFiles.push_back($2); }
+   NODEPOSCOORDS StringList
+   { domain->solInfo().NodeTrainingFiles.push_back(std::string($2.v[0]));
+     for(int i=1; i<$2.nval; ++i) domain->solInfo().MassOrthogonalBasisFiles.push_back(std::string($2.v[i])); }
    ;
    
 ConversionToken:

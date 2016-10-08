@@ -1,5 +1,8 @@
 #include <cstdio>
-#include <Math.d/Skyline.d/SkyMatrix.h>
+#include <Math.d/Skyline.d/SkyMatrix.C>
+#include <Utils.d/SolverInfo.h>
+
+extern SolverInfo &solInfo;
 
 template<>
 void
@@ -9,12 +12,11 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
    //         neqs(), size(), size() / neqs());
 
    int i,j;
-   //double *w = (double *) dbg_alloca(7*numUncon*sizeof(double));
    double *w = new double[7*numUncon];
 
    double *dummyZEM = w + numUncon;
-   double *w1 = dummyZEM +numUncon;
-   double *w2 = w1 +      numUncon;
+   double *w1 = dummyZEM + numUncon;
+   double *w2 = w1 + numUncon;
 
    double *rhs = 0;
 
@@ -36,9 +38,9 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
 
    // ... ALLOCATE MEMORY FOR S1 AND S2
    // int sizeS = (numUncon - kstop)*(numUncon - kstop);
-
-   double *s1 =  (double *) dbg_alloca(400*sizeof(double));
-   double *s2 =  (double *) dbg_alloca(400*sizeof(double));
+   int defblk = solInfo.solvercntl->sparse_defblk;
+   double *s1 = (double *) dbg_alloca((defblk+4)*(defblk+4)*sizeof(double));
+   double *s2 = (double *) dbg_alloca((defblk+4)*(defblk+4)*sizeof(double));
 
    // ... LOOP OVER COMPONENTS
    int n;
@@ -51,19 +53,13 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
      int locNgrbm = rigid->numRBM(n);
 
      // Get number of dof per component
-     int numDofPerComp  = rigid->numDof(n);
+     int numDofPerComp = (numComp > 1) ? rigid->numDof(n) : numUncon;
 
      // Get first dof of the component
      int firstDofOfComp = rigid->firstDof(n);
 
-     int kstop = 4*((numDofPerComp - 10)/4);
+     int kstop = 4*((numDofPerComp - defblk)/4);
      if(kstop < 0) kstop = 0;
-/*
-     if(kstop < 4) {
-       kstop = 4;
-       print(stderr);
-     }
-*/
 
      int k;
      if(firstDofOfComp != 0)
@@ -75,27 +71,21 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
       pivot+firstDofOfComp,TOLERANCE,numDofPerComp,flag,nops,nzem,
       dummyZEM,kstop,NULL,NULL,locNgrbm,seqid+firstDofOfComp);
 
-
-     //if(nzem != 0) fprintf(stderr,"Found %d mechanisms\n",nzem);
-     
      nTotZem += nzem;
      nZemPerComp[n] = nzem;
-
    }
-   
 
    Vector *allrbms;
    if(nTotZem > 0) {
      allrbms = new Vector[nTotZem+ngrbm];
      Vector v(numUncon,0.0);
-     int i; 
+     int i;
      for(i=0; i<ngrbm; ++i)
         allrbms[i] = rbm->getGrbm(i);
 
      for(i=0; i<nzem; ++i)
        allrbms[i+ngrbm] = v;
    }
-
 
    nTotZem = 0;
    for(n=0; n<numComp; ++n) {
@@ -106,12 +96,12 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
      int locNgrbm = rigid->numRBM(n);
 
      // Get number of dof per component
-     int numDofPerComp  = rigid->numDof(n);
+     int numDofPerComp = (numComp > 1) ? rigid->numDof(n) : numUncon;
 
      // Get first dof of the component
      int firstDofOfComp = rigid->firstDof(n);
 
-     int kstop = 4*((numDofPerComp - 10)/4);
+     int kstop = 4*((numDofPerComp - defblk)/4);
      if(kstop < 0) kstop = 0;
 
      // ... UPDATE nzem
@@ -141,10 +131,12 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
 // ... NOW COPY MECHANISM MODES TO GEOMETRIC RIGID BODY MODES IF NECESSARY
    nzem = nTotZem + ngrbm;
    if(print_nullity && nzem > 0)
-     cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-nzem << ", nullity = " << nzem << " ...\n";
+     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-nzem << ", nullity = " << nzem
+               << " (" << ngrbm << " grbm/hzem + " << nzem-ngrbm << " other) ...\n";
 
    if(nTotZem > 0) {
      rbm = new Rbm(allrbms,nzem,numUncon);
+     myRbm = 1;
    }
    delete [] w;
 }
@@ -197,7 +189,7 @@ void
 GenSkyMatrix<double>::addImaginary(FullSquareMatrix &ks, int *dofs)
 {
   fprintf(stderr, "GenSkyMatrix<double>::addImaginary(...) is not implemented \n");
-}  
+}
 
 template<>
 void
@@ -207,14 +199,14 @@ GenSkyMatrix<DComplex>::add(FullSquareMatrixC &kel, int *dofs)
  int i, j, ri, rj;
  int kndof = kel.dim();                	// Element stiffness dimension
 
- for( i = 0; i < kndof; ++i ) {           // Loop over rows. 
-    if( (ri = rowColNum[dofs[i]]) == -1 ) continue; // Skip constrained dofs 
+ for( i = 0; i < kndof; ++i ) {           // Loop over rows.
+    if( (ri = rowColNum[dofs[i]]) == -1 ) continue; // Skip constrained dofs
     for( j = 0; j < kndof; ++j ) {          // Loop over columns.
        if( dofs[i] > dofs[j] ) continue;    // Work with upper symmetric half.
        if( (rj = rowColNum[dofs[j]]) == -1 ) continue; // Skip constrained dofs
        skyA[dlp[rj] - rj + ri - 1] += kel[i][j];
     }
- } 
+ }
 }
 
 template<>
@@ -222,16 +214,16 @@ void
 GenSkyMatrix<double>::add(FullSquareMatrixC &kel, int *dofs)
 {
   fprintf(stderr, "GenSkyMatrix<double>::add(FullSquareMatrixC &kel, int *dofs) is not implemented \n");
-} 
+}
 
-template<> 
+template<>
 void
 GenSkyMatrix<double>::print(FILE *f)
 {
  int i;
  fprintf(f,"K(%d,%d) = %e;\n",1,1,skyA[0]);
- for(i=1; i<numUncon; ++i) { 
-   int numEntries = dlp[i] - dlp[i-1]; 
+ for(i=1; i<numUncon; ++i) {
+   int numEntries = dlp[i] - dlp[i-1];
    int j;
    for(j=0; j<numEntries; ++j)
      fprintf(f,"K(%d,%d) = %e;\n",i-j+1,i+1,skyA[dlp[i]-1-j]);
@@ -255,7 +247,7 @@ GenSkyMatrix<DComplex>::print(FILE *fid)
      fprintf(fid, "K(%d,%d) = %e ",iCol+1, iRow+2,real(skyA[iDof]));
      if (imag(skyA[iDof]) < 0.0)
         fprintf(fid," %e*i\n", imag(skyA[iDof]));
-     else 
+     else
         fprintf(fid,"+ %e*i\n", imag(skyA[iDof]));
    }
  }
@@ -301,24 +293,24 @@ GenSkyMatrix<double>::printMatlab(int subNum)
 {
   int i;
   char checkfile1[80];
- 
+
   // File names
-  sprintf  (checkfile1, "K%d.FEM", subNum+1);
- 
+  sprintf(checkfile1, "K%d.FEM", subNum+1);
+
   // Open files
   FILE *fileReal;
   fileReal=fopen(checkfile1,"w");
- 
+
   // DLP for the real part
   fprintf(fileReal,"%d \n", numUncon);
   for(i = 0; i < numUncon; i++)
     fprintf(fileReal," %d \n", dlp[i]);
- 
+
   // Real part of the skyline
   fprintf (fileReal,"%d \n", dlp[numUncon-1]);
   for(i = 0; i < dlp[numUncon-1]; ++i)
     fprintf(fileReal, " %1.16e \n", skyA[i]);
- 
+
   fclose(fileReal);
 }
 
@@ -365,4 +357,141 @@ GenSkyMatrix<DComplex>::printMatlab(char *fileName)
   fprintf(stderr, "GenSkyMatrix<DComplex>::printMatlab(char *fileName) is not implemented \n");
 }
 
+#define SKYMATRIX_INSTANTIATION_HELPER(Scalar) \
+template \
+GenSkyMatrix<Scalar>::~GenSkyMatrix(); \
+template \
+void \
+GenSkyMatrix<Scalar>::clean_up(); \
+template \
+void \
+GenSkyMatrix<Scalar>::zeroAll(); \
+template \
+void \
+GenSkyMatrix<Scalar>::allMult(Scalar); \
+template \
+GenSkyMatrix<Scalar>::GenSkyMatrix(Connectivity*, DofSetArray*, double, Rbm*); \
+template \
+GenSkyMatrix<Scalar>::GenSkyMatrix(Connectivity*, EqNumberer*, double, int*); \
+template \
+GenSkyMatrix<Scalar>::GenSkyMatrix(Connectivity*, EqNumberer*, double, int); \
+template \
+GenSkyMatrix<Scalar>::GenSkyMatrix(Connectivity*, EqNumberer*, double, int*, int); \
+template \
+GenSkyMatrix<Scalar>::GenSkyMatrix(GenFullM<Scalar>*, double); \
+template \
+GenSkyMatrix<Scalar>::GenSkyMatrix(Connectivity*, EqNumberer*, ConstrainedDSA*, double); \
+template \
+GenSkyMatrix<Scalar>::GenSkyMatrix(int, double); \
+template \
+void \
+GenSkyMatrix<Scalar>::addPoint(Scalar, int, int); \
+template \
+void \
+GenSkyMatrix<Scalar>::printMemory(); \
+template \
+void \
+GenSkyMatrix<Scalar>::printConstructTime(); \
+template \
+void \
+GenSkyMatrix<Scalar>::mult(const GenVector<Scalar>&, GenVector<Scalar>&); \
+template \
+void \
+GenSkyMatrix<Scalar>::mult(const Scalar*, Scalar*); \
+template \
+void \
+GenSkyMatrix<Scalar>::factor(); \
+template \
+void \
+GenSkyMatrix<Scalar>::Factor(); \
+template \
+void \
+GenSkyMatrix<Scalar>::parallelFactor(); \
+template \
+void \
+GenSkyMatrix<Scalar>::solve(GenVector<Scalar>&, GenVector<Scalar>&); \
+template \
+void \
+GenSkyMatrix<Scalar>::solve(Scalar*, Scalar*); \
+template \
+void \
+GenSkyMatrix<Scalar>::reSolve(GenVector<Scalar>&); \
+template \
+void \
+GenSkyMatrix<Scalar>::forward(GenVector<Scalar>&); \
+template \
+void \
+GenSkyMatrix<Scalar>::backward(GenVector<Scalar>&); \
+template \
+void \
+GenSkyMatrix<Scalar>::reSolve(Scalar*); \
+template \
+void \
+GenSkyMatrix<Scalar>::reSolve(int, Scalar**); \
+template \
+void \
+GenSkyMatrix<Scalar>::reSolve(int, GenVector<Scalar>*); \
+template \
+void \
+GenSkyMatrix<Scalar>::reSolve(int, Scalar*); \
+template \
+void \
+GenSkyMatrix<Scalar>::reSolve(GenFullM<Scalar>*); \
+template \
+void \
+GenSkyMatrix<Scalar>::getNullSpace(Scalar*); \
+template \
+GenVector<Scalar> * \
+GenSkyMatrix<Scalar>::getNullSpace(); \
+template \
+void \
+GenSkyMatrix<Scalar>::getRBMs(double*); \
+template \
+void \
+GenSkyMatrix<Scalar>::getRBMs(Vector*); \
+template \
+void \
+GenSkyMatrix<Scalar>::getRBMs(VectorSet&); \
+template \
+Scalar & \
+GenSkyMatrix<Scalar>::diag(int); \
+template \
+void \
+GenSkyMatrix<Scalar>::add(FullSquareMatrix&, int*); \
+template \
+void \
+GenSkyMatrix<Scalar>::addone(Scalar, int, int); \
+template \
+void \
+GenSkyMatrix<Scalar>::add(GenAssembledFullM<Scalar>&, int*); \
+template \
+void \
+GenSkyMatrix<Scalar>::add(GenFullM<Scalar>&, int, int); \
+template \
+void \
+GenSkyMatrix<Scalar>::add(Scalar*); \
+template \
+Scalar \
+GenSkyMatrix<Scalar>::getone(int, int); \
+template \
+void \
+GenSkyMatrix<Scalar>::addDiscreteMass(int, Scalar); \
+template \
+void \
+GenSkyMatrix<Scalar>::unify(FSCommunicator*); \
+template \
+void \
+GenSkyMatrix<Scalar>::addBoeing(int, const int*, const int*, const double*, int*, Scalar); \
+template \
+void \
+GenSkyMatrix<Scalar>::symmetricScaling(); \
+template \
+void \
+GenSkyMatrix<Scalar>::applyScaling(Scalar*); \
+template \
+double \
+GenSkyMatrix<Scalar>::rmsBandwidth(); \
+
+SKYMATRIX_INSTANTIATION_HELPER(double);
+SKYMATRIX_INSTANTIATION_HELPER(complex<double>);
 

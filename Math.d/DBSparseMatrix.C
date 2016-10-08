@@ -1,6 +1,6 @@
-#include <iostream>
+#include <complex>
 #include <cstdlib>
-#include <cstdio>
+#include <Math.d/DBSparseMatrix.h>
 #include <Utils.d/linkfc.h>
 #include <Math.d/Vector.h>
 #include <Driver.d/Communicator.h>
@@ -8,9 +8,9 @@
 extern "C"      {
 void    _FORTRAN(micspsmvp)(int&, double*, int*, int*, const double*, double*);
 void    _FORTRAN(sptmv)(double*, int*, int*, int&, double*, double*);
-void    _FORTRAN(cspsmvp)(int&, complex<double> *, int*, int*, const complex<double> *, 
+void    _FORTRAN(cspsmvp)(int&, complex<double> *, int*, int*, const complex<double> *,
                           complex<double> *);
-void    _FORTRAN(cdspsmvp)(int&, double*, int*, int*, const DComplex*, DComplex*);
+void    _FORTRAN(cdspsmvp)(int&, double*, int*, int*, const complex<double>*, complex<double>*);
 }
 
 inline void Tcspsmvp(int& a, double* b, int* c, int* d, const double* e, double* f)
@@ -18,7 +18,7 @@ inline void Tcspsmvp(int& a, double* b, int* c, int* d, const double* e, double*
 _FORTRAN(micspsmvp)(a,b,c,d,e,f);
 }
 
-inline void Tcspsmvp(int& a, complex<double> * b, int* c, int* d, const complex<double> * e, 
+inline void Tcspsmvp(int& a, complex<double> * b, int* c, int* d, const complex<double> * e,
                      complex<double> * f)
 {
 _FORTRAN(cspsmvp)(a,b,c,d,e,f);
@@ -26,13 +26,13 @@ _FORTRAN(cspsmvp)(a,b,c,d,e,f);
 
 
 template<class Scalar>
-GenDBSparseMatrix<Scalar>::~GenDBSparseMatrix() 
+GenDBSparseMatrix<Scalar>::~GenDBSparseMatrix()
 {
   if(unonz) { delete [] unonz; unonz=0; }
   if(scale) { delete [] scale; scale=0; }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::clean_up()
 {
@@ -43,7 +43,7 @@ GenDBSparseMatrix<Scalar>::clean_up()
  if(scale) { delete [] scale; scale=0; }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::zeroAll()
 {
@@ -52,14 +52,13 @@ GenDBSparseMatrix<Scalar>::zeroAll()
     ScalarTypes::initScalar(unonz[i], 0.0, 0.0);
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::print()
 {
   for (int dof = 0; dof < numUncon; ++dof)
     for (int i = xunonz[dof]; i<xunonz[dof+1]; ++i)
       std::cerr << " " << rowu[i-1] - 1 << " " << dof << " " << unonz[i-1] << "\n";
-      //fprintf(stderr," %d %d %e\n",rowu[i-1]-1, dof, unonz[i-1]);
 }
 
 template<class Scalar>
@@ -78,15 +77,15 @@ GenDBSparseMatrix<Scalar>::print(char *fileName)
    fclose(file);
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::print1(int dof, FILE *fid)
 {
  FILE *file = (fid) ? fid : stderr;
- 
+
  int i;
  for(i=xunonz[dof]; i<xunonz[dof+1]; ++i)
-   fprintf(file," %d %d %24.16e\n",rowu[i-1]-1, dof, unonz[i-1]);
+   fprintf(file," %d %d %24.16e\n", rowu[i-1]-1, dof, ScalarTypes::Real(unonz[i-1]));
 }
 
 template<class Scalar>
@@ -110,19 +109,19 @@ GenDBSparseMatrix<Scalar>::add(int idof, int jdof, Scalar s)
  if((idof < 0) || (jdof < 0)) return;
  int dofsi = (jdof > idof) ? idof : jdof;
  int dofsj = (jdof > idof) ? jdof : idof;
- 
+
  if(unconstrNum[dofsi] == -1 || unconstrNum[dofsj] == -1) return;
  int mstart = xunonz[unconstrNum[dofsj]];
  int mstop  = xunonz[unconstrNum[dofsj]+1];
  for(int m=mstart; m<mstop; ++m) {
-   if(rowu[m-1] == (unconstrNum[dofsi] + 1) ) {
+   if(rowu[m-1] == (unconstrNum[dofsi] + 1)) {
      unonz[m-1] += s;
      break;
    }
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
 {
@@ -147,8 +146,7 @@ GenDBSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
  }
 }
 
-
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::add(GenFullM<Scalar> &knd, int fRow, int fCol)
 {
@@ -159,7 +157,7 @@ GenDBSparseMatrix<Scalar>::add(GenFullM<Scalar> &knd, int fRow, int fCol)
 
  for(i = 0; i < nrow; ++i) {
     int rowi = fRow + i;
-    for(j = 0; j < nCol; ++j) { 
+    for(j = 0; j < nCol; ++j) {
        int colj = fCol + j;
 //     if( rowi > colj ) continue; // Work with upper symmetric half.
        int mstart = xunonz[colj] - 1;
@@ -174,15 +172,14 @@ GenDBSparseMatrix<Scalar>::add(GenFullM<Scalar> &knd, int fRow, int fCol)
  }
 }
 
-
-template<class Scalar> 
+template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj, 
+GenDBSparseMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
                                      const double *nz, int *map, Scalar multiplier)
 {
  int i, j;
  for(i = 0; i < nl; ++i) {
-   if(map[i] >= neq) { 
+   if(map[i] >= neq) {
       fprintf(stderr, "Out of bounds, %d %d\n",map[i],numUncon);
       return ;
    }
@@ -213,15 +210,14 @@ GenDBSparseMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
        }
      }
      if(m==mstop) {
-       cerr << "Warning: m = mstop in DBSparseMatrix::addBoeing(), i = " << i << ", map[i] = " << map[i] << endl;
+       std::cerr << "Warning: m = mstop in DBSparseMatrix::addBoeing(), i = " << i << ", map[i] = " << map[i] << std::endl;
        //exit(-1);
      }
    }
  }
 }
 
-
-template<class Scalar> 
+template<class Scalar>
 GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *dsa, int *rCN)
 : SparseData(dsa,cn,rCN)
 {
@@ -235,12 +231,12 @@ GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *dsa,
   scale=0;
 }
 
-template<class Scalar> 
+template<class Scalar>
 GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *_dsa, ConstrainedDSA *c_dsa) :
   SparseData(_dsa,c_dsa,cn)
 {
   // ... Allocate memory for matrix value vector unonz
-  unonz = new Scalar[xunonz[numUncon]];     
+  unonz = new Scalar[xunonz[numUncon]];
   // ... INITIALIZE THE VECTOR CONTAINING THE SPARSE MATRIX TO ZERO
   zeroAll();
 
@@ -248,7 +244,7 @@ GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *_dsa
   scale=0;
 }
 
-template<class Scalar> 
+template<class Scalar>
 GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, EqNumberer *eqNums)
  : SparseData(cn, eqNums,1.0E-6,0)
 {
@@ -262,14 +258,14 @@ GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, EqNumberer *eqNum
   scale=0;
 }
 
-template<class Scalar> 
+template<class Scalar>
 double
 GenDBSparseMatrix<Scalar>::getMemoryUsed()
 {
  return 8.0*xunonz[numUncon]/(1024.0*1024.0);
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
 {
@@ -279,7 +275,7 @@ GenDBSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result) 
+GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result)
 {
   Tcspsmvp(numUncon, unonz, xunonz, rowu, rhs.data(), result);
 }
@@ -310,16 +306,16 @@ GenDBSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
 }
 
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
 {
- Tcspsmvp(numUncon, unonz, xunonz, rowu, rhs.data(), result.data() );
+ Tcspsmvp(numUncon, unonz, xunonz, rowu, rhs.data(), result.data());
 }
 
-template<class Scalar> 
+template<class Scalar>
 Scalar
-GenDBSparseMatrix<Scalar>::diag( int dof ) const
+GenDBSparseMatrix<Scalar>::diag(int dof) const
 {
   int m, mstart, mstop;
 
@@ -338,9 +334,9 @@ GenDBSparseMatrix<Scalar>::diag( int dof ) const
   throw "GenDBSparseMatrix<Scalar>::diag - 1 - this should never be reached";
 }
 
-template<class Scalar> 
+template<class Scalar>
 Scalar &
-GenDBSparseMatrix<Scalar>::diag( int dof )
+GenDBSparseMatrix<Scalar>::diag(int dof)
 {
   int m, mstart, mstop;
 
@@ -356,7 +352,7 @@ GenDBSparseMatrix<Scalar>::diag( int dof )
   throw "GenDBSparseMatrix<Scalar>::diag - 2 - this should never be reached";
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::makeIdentity()
 {
@@ -366,15 +362,14 @@ GenDBSparseMatrix<Scalar>::makeIdentity()
    mstop  = xunonz[dof+1]-1;
 
    for(m=mstart; m<mstop; ++m) {
-     if(rowu[m]-1 == dof) 
+     if(rowu[m]-1 == dof)
        unonz[m] = 1.0;
      else unonz[m] = 0.0;
    }
  }
 }
 
-
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::invertDiag()
 {
@@ -403,15 +398,14 @@ GenDBSparseMatrix<Scalar>::addDiscreteMass(int dof, Scalar dmass)
   unonz[diagLocator] += dmass;
 }
 
-template<class Scalar> 
+template<class Scalar>
 long
 GenDBSparseMatrix<Scalar>::size()
 {
  return (numUncon) ? xunonz[numUncon] : 0;
 }
 
-
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::multDiag(const Scalar *x, Scalar *b)
 {
@@ -422,8 +416,7 @@ GenDBSparseMatrix<Scalar>::multDiag(const Scalar *x, Scalar *b)
   }
 }
 
-
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::multDiag(int numRHS, const Scalar **x, Scalar **b)
 {
@@ -459,8 +452,7 @@ GenDBSparseMatrix<Scalar>::multDiag(int numRHS, const Scalar **x, Scalar **b)
 #include <Comm.d/Communicator.h>
 #endif
 
-
-template<class Scalar> 
+template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::unify(FSCommunicator *communicator)
 {

@@ -1,23 +1,10 @@
 #ifndef _QUAD8PRESSUREBC_H_
 #define _QUAD8PRESSUREBC_H_
-#if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 
-#include <Element.d/Function.d/ExternalForce.d/SurfacePressureForceFunction.h>
-#include <Element.d/Function.d/Shape.d/Quad8LagrangePolynomial.h>
-#include <Element.d/Function.d/QuadratureRule.h>
 #include <Element.d/Sommerfeld.d/PressureElement.h>
+#include <Element.d/Function.d/QuadratureRule.h>
+#include <Mortar.d/FaceElement.d/FaceQuad8.d/FaceQuad8.h>
 
-template <typename S>
-using Quad8LagrangePolynomialSurfacePressureForceFunction = SurfacePressureForceFunction<S, Quad8LagrangePolynomialShapeFunction, GaussLegendre2d>;
+typedef PressureElement<FaceQuad8,GaussLegendre2d,2,3> Quad8PressureBC;
 
-class Quad8PressureBC : public PressureElement<Quad8LagrangePolynomialSurfacePressureForceFunction>
-{
-  public:
-    Quad8PressureBC(int* _nn, PressureBCond* _pbc); 
-
-  protected:
-    void getConstants(CoordSet& cs, Eigen::Array<double,33,1>&, Eigen::Array<int,2,1>&);
-};
-
-#endif
 #endif

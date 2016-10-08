@@ -13,6 +13,9 @@ HelmLagQuadGal::HelmLagQuadGal(int o, int* nodenums) {
  order = int(sqrt(double(o)));
  nn = new int[order*order];
  for(i=0;i<order*order;i++) nn[i] = nodenums[i];
+
+ setWeight(order);
+ setTrueWeight(order);
 }
 
 

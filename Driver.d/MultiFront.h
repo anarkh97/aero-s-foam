@@ -2,12 +2,7 @@
 #define _MULTI_FRONT_H_
 
 #define NOTMPL
-#ifndef OLD_STL
 #include <map>
-using namespace std;
-#else
-#include <map.h>
-#endif
 
 #include <cstdio>
 
@@ -64,6 +59,7 @@ class OrderList {
 };
 
 class MultiFront {
+
         Elemset *elems;
 	CoordSet *nds;
         double (*elemCG)[3];
@@ -108,14 +104,19 @@ class MultiFront {
 
         ARInfo * arInfo;
 
+//        std::multimap<int,int> fsAffinity;
+        int fsGluedCounter;
+        Elemset* fsGlued_eset;
+        int fsGlFlag;
+
         double add(ARInfo &, int node);
         double remove(ARInfo &, int node);
         void rebuildInfo(Decomposition *dec);
         void remapAll(int *subRemap);
         int getEventTag() { return tag++; }
-        void addNodesToSub(int, int, int *);
+        void addNodesToSub(int,int, int, int *);
         void addElemToSub(int, int);
-        void updateElement(int, int);
+        void updateElement(int,int, int);
         void initDec(int);
 	void addBoundNode(int);
 	void removeBoundNode(int);
@@ -134,7 +135,8 @@ class MultiFront {
 
 	int numSubForNode(int node);
   public:
-        MultiFront(Elemset *eSet, CoordSet *nds = 0, bool have_fsi = false);
+        MultiFront(Elemset *eSet, CoordSet *nds = 0, bool have_fsi = false, bool _fsGlFlag = false);
+        ~MultiFront();
         Decomposition * decompose(int nsub, bool have_fsi = false);
         // Weight of a node in a subdomain
         int weight(int sub, int node);

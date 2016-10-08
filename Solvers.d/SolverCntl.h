@@ -8,6 +8,7 @@ public:
    SolverCntl() { type = 0;
                   subtype = 1; // By default we use direct sparse solver
                   trbm = 1.0E-16;   // default zero pivot tolerance
+                  trbm2 = 1.0E-16;  // default zero pivot tolerance
                   sparse_renum = 0;
                   sparse_maxsup = 100;
                   sparse_defblk = 30;
@@ -39,6 +40,7 @@ public:
    int type;     // 0 = direct, 1 = iterative, 2 = FETI, 3 = Block Diag
    int subtype;  // subtype ... 9 is mumps  10 is diag
    double trbm;         // algebraic rbm tolerance
+   double trbm2;        // algebraic rbm tolerance used for sparse/skyline when GRBM is activated
    int sparse_renum;  // renumbering scheme for BLKSparseMatrix: 0 = esmond MMD (default), 1 = metis ND
    int sparse_maxsup, sparse_defblk;
    bool pivot;  // true if pivoting is to be used in spooles/mumps solvers

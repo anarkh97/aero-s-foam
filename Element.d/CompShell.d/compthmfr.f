@@ -1,5 +1,5 @@
 	subroutine compthmfr(x,y,z,t,a1,a2,e1,e2,nu,h,phi,ta,numlay,
-     &                       cmpfr,f, cfrm,globalflag)
+     &                       cmpfr,f,cfrm,globalflag)
 c
 c----------------------------------------------------------------------*
 c
@@ -344,7 +344,7 @@ C
            end do
         end do
 C
-c       Calcualte stress tensor in fiber coordinates
+c       Calculate stress tensor in fiber coordinates
 c
         cb = (e2(i)*(h(i)/2))/(e1(i)-
      *        e2(i)*nu(i)*nu(i))
@@ -460,7 +460,7 @@ c
 c
 C
   800 continue
-      write(*,*) "*** FATAL ERROR in Routine COMPCST    ***"
+      write(*,*) "*** FATAL ERROR in Routine COMPTHMFR  ***"
       write(*,*) "*** The Angle From the Local [x]      ***"
       write(*,*) "*** Axis of the Triangular Coordinate ***"
       write(*,*) "*** System to the Reference Direction ***"

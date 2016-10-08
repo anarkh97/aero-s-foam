@@ -15,6 +15,7 @@ class Compo3NodeShell : public Element {
         double  *cCoefs;
         double  *cFrame;
         PressureBCond *pbc;
+        static bool Wzero_density, Wthermal_force;
 
 public:
 	Compo3NodeShell(int*);
@@ -43,15 +44,16 @@ public:
         double * setCompositeData2(int _type, int nlays, double *lData,
                                    double *coefs, CoordSet &cs, double theta);
 
-	void markDofs(DofSetArray &);
+        void markDofs(DofSetArray &);
         int* dofs(DofSetArray &, int *p=0);
         int  numDofs();
-	int  getTopNumber();
+        int  getTopNumber();
 
         int  numNodes();
         int* nodes(int * = 0);
-	Corotator *getCorotator(CoordSet &, double *,int,int);
-	double getMass(CoordSet &);
+        Corotator *getCorotator(CoordSet &, double *,int,int);
+        double getMass(CoordSet &);
+        double getMassThicknessSensitivity(CoordSet &);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
                          double*, GeomState *gs=0);
@@ -62,44 +64,23 @@ public:
         PressureBCond* getPressure() { return pbc; }
         void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs = 0, int cflg = 0, double t = 0);
-        void getThermalForce(CoordSet& , Vector& ,Vector &, int glflag, 
+        void getThermalForce(CoordSet&, Vector&, Vector&, int glflag, 
 	                     GeomState *gs=0);
 
         virtual int getCompositeLayer() { return numLayers;  }
 
-	virtual double * getMidPoint(CoordSet &);
+        virtual double * getMidPoint(CoordSet &);
         virtual double * getCompositeData(int nl) { return layData+(nl*9); }
         virtual double * getCompositeFrame()      { return cFrame;  }
 
-#ifdef STRUCTOPT
-
-protected:   
-	double  *layGrad;
-	
-public:	
-        int chkOptInf(CoordSet&);
-
-        double getGradMass(CoordSet& cs, CoordSet& dcs);
-	
-	void setCompositeGrad( double *gradval ) {layGrad=gradval;}
-
-        void getGradVonMises(Vector &dstress, Vector &weight, 
-	                     CoordSet &cs, CoordSet &dcs, 
-			     Vector &elDisp, Vector &elGrad,
-			     int strInd, int surface);
-
-        void gradMassMatrix(CoordSet &cs,CoordSet &dcs,FullSquareMatrix &dmel);
-
-        void gradstiffness(CoordSet& cs, CoordSet& gradcs, 
-                           FullSquareMatrix & gradkarray, int flg=1);
-#endif
-	
-      // Routines for the decomposer
+        // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
+        int nDecFaces() { return 1; }
+        int getDecFace(int iFace, int *fn) { for(int i=0; i<3; i++) fn[i] = nn[i]; return 3; }
+
+        int getFace(int iFace, int *fn) { return getDecFace(iFace,fn); }
 
 	bool hasRot() { return true; }
-	//double weight() { return 3; }
-        //double trueWeight() { return 3; }
 
         int getMassType() { return 0; } // lumped only
 

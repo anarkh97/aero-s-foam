@@ -1,7 +1,11 @@
 #ifndef _NON_LIN_DYNAM_H_
 #define _NON_LIN_DYNAM_H_
 
+#include <Problems.d/SingleDomainBase.h>
 #include <Math.d/Vector.h>
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
 
 class Domain;
 class Rbm;
@@ -24,6 +28,7 @@ template <typename T> struct AllOps;
 class ControlLawInfo;
 template <typename T> class GenFSFullMatrix;
 typedef GenFSFullMatrix<double> FSFullMatrix;
+class LinesearchInfo;
 
 class NLDynamPostProcessor
 {
@@ -32,13 +37,13 @@ public:
   virtual void dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState, 
                                 Vector& velocity, Vector& bkVelocity,
                                 Vector& vp, Vector& bkVp, int step, int parity,
-                                int aeroAlg) = 0;
+                                int aeroAlg, double time) = 0;
   virtual void dynamOutput(GeomState *, GenVector<double> &, GenVector<double> &, double, int, GenVector<double> &, GenVector<double> &,
                            GenVector<double> &, GeomState *) const = 0;
 };
 
 // Virtual methods to allow derived class PitaNonLinDynamic in Pita.d/PitaNonLinDynam.d
-class NonLinDynamic : public NLDynamPostProcessor {
+class NonLinDynamic : public NLDynamPostProcessor, public SingleDomainBase {
 
   protected:
     Domain *domain;
@@ -55,6 +60,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     int *clawDofs;      // array containing cdsa dof numbers for usdd nodes
 
+    SparseMatrix *K;    // Stiffness matrix
     SparseMatrix *M;    // Mass matrix
     SparseMatrix *C;    // Damping matrix
     SparseMatrix *Kuc;
@@ -95,13 +101,13 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void addCtrl(Vector& externalForce, double *controlForce);
     void addUserForce(Vector & externalForce, double *userForce);
 
-    FSFullMatrix *X;    // pre-calculated projector
-    double *Rmem;        // global rigid body modes (numdof X 6)
-    int numR;            // number of rigid body modes
-
     double resN;
     Vector *reactions;
     bool factor;
+    bool updateCS;
+#ifdef USE_EIGEN3
+    Eigen::MatrixXd VtMV;
+#endif
 
  public:
     // Constructor
@@ -123,10 +129,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int  sysVecInfo();
     int  elemVecInfo();
 
-    double getTolerance() { return (tolerance*firstRes); }
-
-    void trProject(Vector &f);
-    void projector_prep(Rbm *R, SparseMatrix *M);
+    double getTolerance();
 
     void   computeTimeInfo();
 
@@ -168,19 +171,20 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int getNumStages();
     int checkConvergence(int iter, double rN, Vector& residual, Vector& dv, double time);
 
-    virtual void updateStates(GeomState *refState, GeomState& geomState);
+    void updateContactSurfaces(GeomState& geomState, GeomState *refState);
+    virtual void updateStates(GeomState *refState, GeomState& geomState, double time);
 
-    // getStiffAndForce forms element stiffness matrices and
+    // getStiffAndForce forms element stiffness matrices and/or
     // returns the residual force = external - internal forces
-    double getStiffAndForce(GeomState& geomState, Vector& residual, 
-                            Vector& elementInternalForce, double midtime=-1, GeomState *refState = NULL);
+    double getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce,
+                            double midtime=-1, GeomState *refState = NULL, bool forceOnly = false);
 
   private:
     // Overridable implementation of getStiffAndForce
     virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                             Corotator **allCorot, FullSquareMatrix *kelArray,
                                             Vector &residual, double lambda, double time, GeomState *refState,
-                                            FullSquareMatrix *melArray);
+                                            FullSquareMatrix *melArray, bool forceOnly);
 
   public:
     // reBuild assembles new dynamic stiffness matrix
@@ -190,7 +194,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
                           Vector& velocity, Vector& bkVelocity,
                           Vector& vp, Vector& bkVp, int step, int parity,
-                          int aeroAlg);
+                          int aeroAlg, double time);
     void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
                      double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration,
                      GeomState *refState) const;
@@ -204,9 +208,14 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
 
-    void initializeParameters(GeomState *geomState);
+    void initializeParameters(int step, GeomState *geomState);
     void updateParameters(GeomState *geomState);
-    bool checkConstraintViolation(double &err);
+    bool checkConstraintViolation(double &err, GeomState *geomState);
+
+    LinesearchInfo& linesearch();
+    bool getResizeFlag();
+    void resize(GeomState *refState, GeomState *geomState, GeomState *stepState, Vector *stateIncr,
+                Vector &v, Vector &a, Vector &vp, Vector &force) {} // XXX
 
 private:
     virtual bool factorWhenBuilding() const;

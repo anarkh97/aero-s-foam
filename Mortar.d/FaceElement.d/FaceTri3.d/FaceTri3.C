@@ -15,7 +15,6 @@
    3+------+1 -> r
 
  ----------------------------------------------------------------*/
-
 // Std C/C++ lib
 #include <cstdio>
 #include <cstdlib>
@@ -43,16 +42,13 @@
 //                                  STATIC MEMBERS
 // -----------------------------------------------------------------------------------------------------
 // coords of the nodes in the ref./parametric domain
-double FaceTri3::RefCoords[3][2] = {{ 1.0 , 0.0 },
-                                    { 0.0 , 1.0 },
-                                    { 0.0 , 0.0 }};
-double* 
+double FaceTri3::RefCoords[3][2] = {{ 1.0, 0.0 },
+                                    { 0.0, 1.0 },
+                                    { 0.0, 0.0 }};
+
+double*
 FaceTri3::ViewRefCoords() { return(FaceTri3::RefCoords[0]); }
 
-/*
-double*
-FaceTri3::ViewRefCoord(int i) { return(&(RefCoords[i][0])); }
-*/
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS 
 // -----------------------------------------------------------------------------------------------------
@@ -64,12 +60,19 @@ FaceTri3::FaceTri3(int* nodenums)
   Nodes[2] = nodenums[2];
 }
 
+FaceElement *
+FaceTri3::clone()
+{
+  return new FaceTri3(Nodes);
+}
+
+
 // -----------------------------------------------------------------------------------------------------
-//                                       SETUP & UPDATE METHODS 
+//                                       SETUP & UPDATE METHODS
 // -----------------------------------------------------------------------------------------------------
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------
-void 
+void
 FaceTri3::Renumber(std::map<int,int>& OldToNewNodeIds)
 {
   Nodes[0] = OldToNewNodeIds[Nodes[0]];
@@ -91,37 +94,35 @@ FaceTri3::GetNode(int i) { return Nodes[i]; }
 void
 FaceTri3::GetNodes(int *p, int* renumTable)
 {
-   if(renumTable) {
-     p[0] = renumTable[Nodes[0]];
-     p[1] = renumTable[Nodes[1]];
-     p[2] = renumTable[Nodes[2]];
-   } else {
-     p[0] = Nodes[0];
-     p[1] = Nodes[1];
-     p[2] = Nodes[2];
-   }
+  if(renumTable) {
+    p[0] = renumTable[Nodes[0]];
+    p[1] = renumTable[Nodes[1]];
+    p[2] = renumTable[Nodes[2]];
+  } else {
+    p[0] = Nodes[0];
+    p[1] = Nodes[1];
+    p[2] = Nodes[2];
+  }
 }
 
 void
 FaceTri3::GetNodes(int *p, std::map<int,int>& renumTable)
 {
-   p[0] = renumTable[Nodes[0]];
-   p[1] = renumTable[Nodes[1]];
-   p[2] = renumTable[Nodes[2]];
+  p[0] = renumTable[Nodes[0]];
+  p[1] = renumTable[Nodes[1]];
+  p[2] = renumTable[Nodes[2]];
 }
 
 int 
 FaceTri3::GetNodeIndex(int gNode)
 {
-   int i;
-   bool found = false; 
-   for(i=0; i<3; i++)
-     if(gNode==Nodes[i]){ found = true; break; }
-   if(!found){  
-     filePrint(stderr," *** WARNING: FaceTri3::GetNodeIndex(): node (%6d) does not belong to this element\n",gNode); 
-     printNodes();
-   }
-   return(i); 
+  int i;
+  bool found = false; 
+  for(i=0; i<3; i++)
+    if(gNode==Nodes[i]) { found = true; break; }
+  if(!found)
+    filePrint(stderr," *** WARNING: FaceTri3::GetNodeIndex(): node (%6d) does not belong to this element\n", gNode);
+  return i; 
 }
 
 int
@@ -159,192 +160,229 @@ FaceTri3::GetACMEFFIFaceElemType() { return GetACMEFaceElemType(); }
 // -----------------------------------------------------------------------------------------------------
 //                                      MAPPING & SHAPE FUNCTION METHODS 
 // -----------------------------------------------------------------------------------------------------
-
+// IMPLEMENTATION OF PURE VIRTUAL METHODS
+// --------------------------------------
 void
 FaceTri3::LocalToGlobalCoord(double *M, double *m, CoordSet &cs)
 {
-  return LocalToGlobalCoordTemp(M, m, cs);
+  LocalToGlobalCoord<double,CoordSet>(M, m, cs);
 }
 
-#if (MAX_MORTAR_DERIVATIVES > 0)
 void
-FaceTri3::LocalToGlobalCoord(ActiveDouble *M, ActiveDouble *m, MadCoordSet &cs)
-{
-  return LocalToGlobalCoordTemp(M, m, cs);
-}
-#endif
-
-void 
 FaceTri3::GetShapeFctVal(double *Shape, double *m)
 {
-   GetShapeFct(Shape, m);
+  GetShapeFctVal<double>(Shape, m);
 }
-
-#if (MAX_MORTAR_DERIVATIVES > 0)
-void
-FaceTri3::GetShapeFctVal(ActiveDouble *Shape, ActiveDouble *m)
-{
-   GetShapeFct(Shape, m);
-}
-#endif
 
 double
 FaceTri3::GetJacobian(double *m, CoordSet &cs)
 {
-   return(GetJacobian<double,CoordSet>(cs));
+  return GetJacobian<double,CoordSet>(m, cs);
 }
 
 double
-FaceTri3::GetIsoParamMappingNormalAndJacobian(double *Normal, double *m, CoordSet &cs)
+FaceTri3::GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordSet& cs)
 {
-   GetIsoParamMappingNormalJacobianProduct(Normal, m, cs);
-
-   double NormN = sqrt(Normal[0]*Normal[0]+Normal[1]*Normal[1]+Normal[2]*Normal[2]);
-   
-   if(NormN!=0.0){
-     Normal[0] /= NormN; Normal[1] /= NormN; Normal[2] /= NormN;
-   }
-   return(NormN); // !! A CONTROLER !! 
+  return GetIsoParamMappingNormalAndJacobian<double,CoordSet>(Normal, m, cs);
 }
 
 void
-FaceTri3::GetIsoParamMappingNormalJacobianProduct(double *JNormal, double *m, CoordSet &cs)
+FaceTri3::GetIsoParamMappingNormalJacobianProduct(double* JNormal, double* m, CoordSet& cs)
 {
-   GetIsoParamMappingNormalJacobianProductTemp(JNormal, m, cs);
+  GetIsoParamMappingNormalJacobianProduct<double,CoordSet>(JNormal, m, cs);
 }
 
-#if (MAX_MORTAR_DERIVATIVES > 0)
+// ---------------------------------
+// IMPLEMENTATION OF VIRTUAL METHODS
+// ---------------------------------
 void
-FaceTri3::GetIsoParamMappingNormalJacobianProduct(ActiveDouble *JNormal, ActiveDouble *m, MadCoordSet &cs)
+FaceTri3::GetdShapeFct(double* dShapex, double* dShapey, double* m)
 {
-   GetIsoParamMappingNormalJacobianProductTemp(JNormal, m, cs);
+  GetdShapeFct<double>(dShapex, dShapey, m);
 }
-#endif
+
+void
+FaceTri3::Getd2ShapeFct(double *d2Shapex, double *d2Shapey, double *d2Shapexy, double *m)
+{
+  Getd2ShapeFct<double>(d2Shapex, d2Shapey, d2Shapexy, m);
+}
+
+void
+FaceTri3::Getd3ShapeFct(double *d3Shapex, double *d3Shapey, double *d2Shapex2y, double *d2Shapexy2, double *m)
+{
+  Getd3ShapeFct<double>(d3Shapex, d3Shapey, d2Shapex2y, d2Shapexy2, m);
+}
+
+void
+FaceTri3::ComputedMdxAnddMdy(double* dMdx, double* dMdy, double* m, CoordSet& cs)
+{
+  ComputedMdxAnddMdy<double,CoordSet>(dMdx, dMdy, m, cs);
+}
+
+void
+FaceTri3::Computed2Mdx2d2Mdy2Andd2Mdxdy(double *d2Mdx2, double *d2Mdy2, double *d2Mdxdy, double *m, CoordSet &cs)
+{
+  Computed2Mdx2d2Mdy2Andd2Mdxdy<double,CoordSet>(d2Mdx2, d2Mdy2, d2Mdxdy, m, cs);
+}
+
+void
+FaceTri3::Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(double *d3Mdx3, double *d3Mdy3, double *d3Mdx2dy, double *d3Mdxdy2, double *m, CoordSet &cs)
+{
+  Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2<double,CoordSet>(d3Mdx3, d3Mdy3, d3Mdx2dy, d3Mdxdy2, m, cs);
+}
 
 void
 FaceTri3::GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs)
 {
-  // This function computes dJNormal which is the Jacobian (matrix) of J times the unit normal 
-  // It is used to compute the gradient of the gap function
+  GetdJNormal<double,CoordSet>(dJNormal, m, cs);
+}
 
-  // Compute shape functions' derivatives w.r.t. the local coordinates
-  double dShapex[3], dShapey[3];
-  GetdShapeFct(dShapex, dShapey, m);
+void
+FaceTri3::Getd2JNormal(double d2JNormal[][3], double* m, CoordSet& cs)
+{
+  Getd2JNormal<double,CoordSet>(d2JNormal, m, cs);
+}
 
-  // Compute dM/dx & dM/dy
-  double dMdx[3], dMdy[3];
-  ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
+void
+FaceTri3::ComputedJNormaldxAnddJNormaldy(double *dJNormaldx, double *dJNormaldy, double *m, CoordSet &cs)
+{
+  ComputedJNormaldxAnddJNormaldy<double,CoordSet>(dJNormaldx, dJNormaldy, m, cs);
+}
 
-  // Compute dJNormal
-  for(int i = 0; i < 3; ++ i) {
-    dJNormal[3*i  ][0] = 0;
-    dJNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
-    dJNormal[3*i  ][2] = dShapex[i]*dMdy[1] - dMdx[1]*dShapey[i];
-    dJNormal[3*i+1][0] = dShapex[i]*dMdy[2] - dMdx[2]*dShapey[i];
-    dJNormal[3*i+1][1] = 0;
-    dJNormal[3*i+1][2] = dMdx[0]*dShapey[i] - dShapex[i]*dMdy[0];
-    dJNormal[3*i+2][0] = dMdx[1]*dShapey[i] - dShapex[i]*dMdy[1];
-    dJNormal[3*i+2][1] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
-    dJNormal[3*i+2][2] = 0;
-  }
-/*
+void
+FaceTri3::Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(double *d2JNormaldx2, double *d2JNormaldy2, double *d2JNormaldxdy, double *m, CoordSet &cs)
+{
+  Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy<double,CoordSet>(d2JNormaldx2, d2JNormaldy2, d2JNormaldxdy, m, cs);
+}
 
-//  std::cerr << "dNormal[][0] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][0] << " "; std::cerr << std::endl;
-//  std::cerr << "dNormal[][1] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][1] << " "; std::cerr << std::endl;
-//  std::cerr << "dNormal[][2] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][2] << " "; std::cerr << std::endl;
+void
+FaceTri3::ComputeddJNormaldxAndddJNormaldy(double ddJNormaldx[][3], double ddJNormaldy[][3], double* m, CoordSet& cs)
+{
+  ComputeddJNormaldxAndddJNormaldy<double,CoordSet>(ddJNormaldx, ddJNormaldy, m, cs);
+}
 
-  Node &nd1 = cs.getNode(Nodes[0]);
-  Node &nd2 = cs.getNode(Nodes[1]);
-  Node &nd3 = cs.getNode(Nodes[2]);
+void
+FaceTri3::GetUnitNormal(double UnitNormal[3], double* m, CoordSet& cs)
+{
+  GetUnitNormal<double,CoordSet>(UnitNormal, m, cs); 
+}
 
-  double x1,y1,z1,x2,y2,z2,x3,y3,z3;
-  x1 = nd1.x; y1 = nd1.y; z1 = nd1.z;
-  x2 = nd2.x; y2 = nd2.y; z2 = nd2.z;
-  x3 = nd3.x; y3 = nd3.y; z3 = nd3.z;
+void
+FaceTri3::GetdUnitNormal(double dUnitNormal[][3], double* m, CoordSet& cs)
+{
+  GetdUnitNormal<double,CoordSet>(dUnitNormal, m, cs);
+}
 
-//  This is an alternative expression for dJNormal
-//  double dN0[9][3] = {
-//    {       0, z3 - z2, y2 - y3},
-//    { z2 - z3,       0, x3 - x2},
-//    { y3 - y2, x2 - x3,       0},
-//    {       0, z1 - z3, y3 - y1},
-//    { z3 - z1,       0, x1 - x3},
-//    { y1 - y3, x3 - x1,       0},
-//    {       0, z2 - z1, y1 - y2},
-//    { z1 - z2,       0, x2 - x1},
-//    { y2 - y1, x1 - x2,       0} };
+void
+FaceTri3::Getd2UnitNormal(double d2UnitNormal[][3], double* m, CoordSet& cs)
+{
+  Getd2UnitNormal<double,CoordSet>(d2UnitNormal, m, cs);
+}
 
-//  std::cerr << "dN0[][0] =     "; for(int i=0; i<9; ++i) std::cerr << dN0[i][0] << " "; std::cerr << std::endl;
-//  std::cerr << "dN0[][1] =     "; for(int i=0; i<9; ++i) std::cerr << dN0[i][1] << " "; std::cerr << std::endl;
-//  std::cerr << "dN0[][2] =     "; for(int i=0; i<9; ++i) std::cerr << dN0[i][2] << " "; std::cerr << std::endl;
+void
+FaceTri3::GlobalToLocalCoord(double *m, double *M, CoordSet &cs)
+{
+  GlobalToLocalCoord<double,CoordSet>(m, M, cs);
+}
 
-  for(int i=0;i<9;++i)
-    for(int j=0;j<3;++j)
-      dJNormal[i][j] = dN0[i][j];
-*/
+void
+FaceTri3::ComputedmdXdmdYAnddmdZ(double *dmdX, double *dmdY, double *dmdZ, double *M, CoordSet &cs)
+{
+  ComputedmdXdmdYAnddmdZ<double,CoordSet>(dmdX, dmdY, dmdZ, M, cs);
+}
+
+void
+FaceTri3::Computed2mdX2d2mdY2Etc(double *d2mdX2, double *d2mdY2, double *d2mdZ2, double *d2mdXdY, double *d2mdYdZ, double *d2mdXdZ, double *M, CoordSet &cs)
+{
+  Computed2mdX2d2mdY2Etc<double,CoordSet>(d2mdX2, d2mdY2, d2mdZ2, d2mdXdY, d2mdYdZ, d2mdXdZ, M, cs);
+}
+
+void
+FaceTri3::GetdLocalCoords(double dLocalCoords[][2], double *M, CoordSet &cs)
+{
+  GetdLocalCoords<double,CoordSet>(dLocalCoords, M, cs);
+}
+
+void
+FaceTri3::Getd2LocalCoords(double d2LocalCoords[][2], double *M, CoordSet &cs)
+{
+  Getd2LocalCoords<double,CoordSet>(d2LocalCoords, M, cs);
+}
+
+void
+FaceTri3::GetddLocalCoordsdXddLocalCoordsdYAndddLocalCoordsdZ(double ddmdX[][2], double ddmdY[][2], double ddmdZ[][2], double *M, CoordSet &cs)
+{
+  GetddLocalCoordsdXddLocalCoordsdYAndddLocalCoordsdZ<double,CoordSet>(ddmdX, ddmdY, ddmdZ, M, cs);
 }
 
 // -----------------------------------------------------------------------------------------------------
 //                                            MISCELLEANEOUS METHODS 
 // -----------------------------------------------------------------------------------------------------
 /*double
-FaceTri3::ComputeArea(CoordSet &cs,const int ngp=0)
+FaceTri3::ComputeArea(CoordSet &cs, const int ngp=0)
 {
-  return 0.5*GetJacobian(cs);
-} 
-*/
+  return 0.5*GetJacobian((double*)NULL, cs);
+} */
 
 // -----------------------------------------------------------------------------------------------------
 //                                            MASS MATRIX METHODS
 // -----------------------------------------------------------------------------------------------------
+// IMPLEMENTATION OF PURE VIRTUAL METHODS
+// --------------------------------------
 FullM
 FaceTri3::ScalarMass(CoordSet &cs, double rho, int ngp)
 {
-   FullM Mass;
-   Mass.zero();
-   double Area = 0.5*GetJacobian<double,CoordSet>(cs);
-   Area *= rho/24;
-   Mass[0][0] = 2.*Area; Mass[0][1] =    Area; Mass[0][1] =    Area;
-   Mass[1][0] =    Area; Mass[1][1] = 2.*Area; Mass[1][1] =    Area;
-   Mass[2][0] =    Area; Mass[2][1] =    Area; Mass[2][2] = 2.*Area;
+  FullM Mass(3);
+  Mass.zero();
+  double Area = 0.5*GetJacobian<double,CoordSet>((double*)NULL, cs);
+  Area *= rho/24;
+  Mass[0][0] = 2.*Area; Mass[0][1] =    Area; Mass[0][1] =    Area;
+  Mass[1][0] =    Area; Mass[1][1] = 2.*Area; Mass[1][1] =    Area;
+  Mass[2][0] =    Area; Mass[2][1] =    Area; Mass[2][2] = 2.*Area;
 
-   return(Mass);
+  return(Mass);
 }
 
 void 
 FaceTri3::IntegrateShapeFcts(double* ShapeIntg, CoordSet& cs, double rho, int ngp)
 {
-   double Area = 0.5*GetJacobian<double,CoordSet>(cs);
-   Area *= rho/6;
-   ShapeIntg[0] = Area;
-   ShapeIntg[1] = Area;
-   ShapeIntg[2] = Area;
+  double Area = 0.5*GetJacobian<double,CoordSet>((double*)NULL, cs);
+  Area *= rho/6;
+  ShapeIntg[0] = Area;
+  ShapeIntg[1] = Area;
+  ShapeIntg[2] = Area;
 }
 
 // -----------------------------------------------------------------------------------------------------
 //                                            PRINT METHODS 
 // -----------------------------------------------------------------------------------------------------
+// LOCAL METHODS
+// -------------
 void
 FaceTri3::printNodes()
 {
   filePrint(stderr,"   # Tri3  face el., nodes = %6d %6d %6d\n",Nodes[0],Nodes[1],Nodes[2]);
 }
 
+// --------------------------------------
+// IMPLEMENTATION OF PURE VIRTUAL METHODS
+// --------------------------------------
 void
 FaceTri3::print()
 {
   printNodes();
 }
+
 // -----------------------------------------------------------------------------------------------------
 //                                            FS COMMUNICATION (KW) 
 // -----------------------------------------------------------------------------------------------------
 int* FaceTri3::dofs(DofSetArray &dsa, int *p, int *fnId) 
 {
   if(p == 0) p = new int[9];
-    dsa.number(fnId[Nodes[0]], DofSet::XYZdisp, p);
-    dsa.number(fnId[Nodes[1]], DofSet::XYZdisp, p+3);
-    dsa.number(fnId[Nodes[2]], DofSet::XYZdisp, p+6);
-    return p;
+  dsa.number(fnId[Nodes[0]], DofSet::XYZdisp, p);
+  dsa.number(fnId[Nodes[1]], DofSet::XYZdisp, p+3);
+  dsa.number(fnId[Nodes[2]], DofSet::XYZdisp, p+6);
+  return p;
 }
 
 void FaceTri3::computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, 

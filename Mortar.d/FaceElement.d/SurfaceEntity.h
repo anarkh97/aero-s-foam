@@ -15,6 +15,7 @@
 
 // FEM headers
 #include <Mortar.d/FaceElement.d/FaceElemSet.h>
+#include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Element.d/Element.h>
 
 #ifdef SOWER_SURFS
@@ -23,7 +24,6 @@
 
 #define HB_NODALNORMAL
 
-class FaceElement;
 class CoordSet;
 class Connectivity;
 class DistrGeomState;
@@ -60,12 +60,14 @@ class SurfaceEntity {
         bool ReverseNormals;
         bool IsShellFace;
         double ShellThickness;
+        bool PreserveOrdering;
 
   public:
 	// Constructors & destructor
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~
 	SurfaceEntity();
 	SurfaceEntity(int);
+        SurfaceEntity(const SurfaceEntity&);
 
         ~SurfaceEntity();
 	
@@ -80,7 +82,7 @@ class SurfaceEntity {
         void MakeVertexMaps();
         void MakeNodeMaps();
         void MakeNodeSet(CoordSet&);
-        void MakeNodeSet(map<int,Node>& NodeCoordMap);
+        void MakeNodeSet(std::map<int,Node>& NodeCoordMap);
         void ExtractNodeSet(CoordSet&);
         void MakeLlVertexToLlNodeMap();
 
@@ -89,7 +91,6 @@ class SurfaceEntity {
         void SetUpNodeData();
         void UpdateNodeData(GeomState *);
         void UpdateNodeData(DistrGeomState *geomState, SubDomain **sd);
-
         void Renumber(std::map<int,int>& OldToNewNodeIds);
         void Renumber();
 
@@ -99,16 +100,20 @@ class SurfaceEntity {
 #ifdef HB_NODALNORMAL
         double* ComputeNodalNormals(CoordSet& cs); // STILL EXPERIMENTAL ...
 #endif
+        void Reset(CoordSet* cs=0);
+
 	// Set methods
 	// ~~~~~~~~~~~
 	void SetId(int);
 	void AddFaceElement(int, int, int, int*);
 	void AddFaceElement(FaceElement*);
+        void RemoveFaceElement(int num);
         void SetNodeCoordMap(std::map<int,Node> *_map) { NodeCoordMap = _map; };
         void SetPtrNodeSet(CoordSet* ndSet);
         void SetReverseNormals(bool);
         void SetIsShellFace(bool);
         void SetShellThickness(double);
+        void SetPreserveOrdering(bool);
 
 	// Get/Accessor methods
 	// ~~~~~~~~~~~~~~~~~~~~
@@ -158,5 +163,5 @@ class SurfaceEntity {
         void WriteSower(BinFileHandler& file);
 #endif
 };
-#endif
 
+#endif

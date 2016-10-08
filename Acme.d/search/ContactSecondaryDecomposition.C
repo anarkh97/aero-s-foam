@@ -611,7 +611,7 @@ ContactSearch::Create_Search_Topology( VariableHandle POSITION )
       ContactTopologyEntity<Real>* entity;
       ContactBlockEntityList* block_face_list = secondary_topology->Face_Block(i)->FaceList();
       block_face_list->IteratorStart();
-      while( entity=block_face_list->IteratorForward() ){
+      while( (entity=block_face_list->IteratorForward()) ){
 	ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
 	ContactTopologyEntity<Real>::connection_data *node_info = face->NodeInfo();
 	POSTCONDITION( node_info );
@@ -636,7 +636,7 @@ ContactSearch::Create_Search_Topology( VariableHandle POSITION )
       ContactBlockEntityList* block_element_list = 
 	secondary_topology->Element_Block(i)->ElemList();
       block_element_list->IteratorStart();
-      while( entity=block_element_list->IteratorForward() ){
+      while( (entity=block_element_list->IteratorForward()) ){
 	ContactElement* element = static_cast<ContactElement*>(entity);
 	ContactTopologyEntity<Real>::connection_data *node_info = element->NodeInfo();
 	POSTCONDITION( node_info );
@@ -894,7 +894,7 @@ ContactSearch::Create_Search_Topology( VariableHandle POSITION )
 	      if (printlimit < 5) {
 		ContactNodeFaceInteraction* cnfi = 
 		  dynamic_cast<ContactNodeFaceInteraction*>(cnei);
-		cout 
+		std::cout 
 		  <<"In ContactSearch::Create_Search_Topology(), step "
 		  <<step_number<<"\n"
 		  <<"  can't reconnect interaction " << j 
@@ -1088,9 +1088,9 @@ ContactSearch::ContactErrorCode ContactSearch::Define_Primary_Interactions()
       reinterpret_cast<ContactElement**>(secondary_elem_list->EntityList());
 
     ContactNodeNodeInteraction*       cnni;
-    ContactFaceFaceInteraction*       cffi;
+    ContactFaceFaceInteraction<Real>* cffi;
     ContactElementElementInteraction* ceei;
-    ContactInteractionEntity* interaction;
+    ContactInteractionEntity<Real>* interaction;
 
     // copy over any node/node, node/face and node/surface interactions from 
     // the secondary to primary topology that are on the same processor
@@ -1117,10 +1117,10 @@ ContactSearch::ContactErrorCode ContactSearch::Define_Primary_Interactions()
         POSTCONDITION(primary_node);
         if (secondary_node->Number_Interactions()>0) {
           primary_node->Copy_Interactions(secondary_node, STATE_0);
-          ContactInteractionDLL* nn_interactions = primary_node->Get_NodeNode_Interactions();
+          ContactInteractionDLL<Real>* nn_interactions = primary_node->Get_NodeNode_Interactions();
           if(nn_interactions != NULL) {
             nn_interactions->IteratorStart();
-            while (interaction=nn_interactions->IteratorForward()){
+            while ((interaction=nn_interactions->IteratorForward())){
               cnni = static_cast<ContactNodeNodeInteraction*>(interaction);
               cnni->Connect_MasterNode( *primary_node_list );
             }
@@ -1155,11 +1155,11 @@ ContactSearch::ContactErrorCode ContactSearch::Define_Primary_Interactions()
 	  PrimaryFaces[secondary_face->OwnerProcArrayIndex()];
         POSTCONDITION(primary_face);
         primary_face->Copy_Interactions(secondary_face);
-        ContactInteractionDLL* interactions = primary_face->Get_FaceFace_Interactions();
+        ContactInteractionDLL<Real>* interactions = primary_face->Get_FaceFace_Interactions();
         if(interactions == NULL) continue;
         interactions->IteratorStart();
-        while (interaction=interactions->IteratorForward()){
-          cffi = static_cast<ContactFaceFaceInteraction*>(interaction);
+        while ((interaction=interactions->IteratorForward())){
+          cffi = static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
           cffi->Connect_MasterFace( *primary_face_list );
         }
       } else {
@@ -1178,9 +1178,9 @@ ContactSearch::ContactErrorCode ContactSearch::Define_Primary_Interactions()
 	  PrimaryElements[secondary_element->OwnerProcArrayIndex()];
         POSTCONDITION(primary_element);
         primary_element->Copy_Interactions(secondary_element);
-        ContactInteractionDLL* interactions = primary_element->Get_ElementElement_Interactions();
+        ContactInteractionDLL<Real>* interactions = primary_element->Get_ElementElement_Interactions();
         interactions->IteratorStart();
-        while (interaction=interactions->IteratorForward()){
+        while ((interaction=interactions->IteratorForward())){
           ceei = static_cast<ContactElementElementInteraction*>(interaction);
           ceei->Connect_MasterElement( *primary_elem_list );
         }

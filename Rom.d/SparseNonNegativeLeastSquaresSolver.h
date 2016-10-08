@@ -2,9 +2,6 @@
 #define ROM_SPARSENONNEGATIVELEASTSQUARESSOLVER_H
 
 #include "SimpleBuffer.h"
-#ifdef USE_STXXL
-#include <stxxl/vector>
-#endif
 
 namespace Rom {
 
@@ -16,14 +13,42 @@ public:
   // Problem size
   long equationCount() const { return equationCount_; }
   long unknownCount() const { return unknownCount_; }
-  
+
   void problemSizeIs(long eqnCount, long unkCount);
 
+  // Options
   double relativeTolerance() const { return relativeTolerance_; }
   void relativeToleranceIs(double relTol) { relativeTolerance_ = relTol; }
 
   bool verboseFlag() const { return verboseFlag_; }
   void verboseFlagIs(bool verFlg) { verboseFlag_ = verFlg; }
+
+  bool scalingFlag() const { return scalingFlag_; }
+  void scalingFlagIs(bool scaFlg) { scalingFlag_ = scaFlg; }
+
+  bool centerFlag() const { return centerFlag_; }
+  void centerFlagIs(bool cenFlg) { centerFlag_ = cenFlg; }
+
+  bool reverseFlag() const { return reverseFlag_; }
+  void reverseFlagIs(bool revFlg) { reverseFlag_ = revFlg; }
+
+  bool projectFlag() const { return projectFlag_; }
+  void projectFlagIs(bool posFlg) { projectFlag_ = posFlg; }
+
+  bool positivityFlag() const { return positivity_; }
+  void positivityIs(bool posFlg) { positivity_ = posFlg; }
+
+  int solverType() const { return solverType_; }
+  void solverTypeIs(int solTyp) { solverType_ = solTyp; }
+
+  double maxSizeRatio() const { return maxSizeRatio_; }
+  void maxSizeRatioIs(double maxSze) { maxSizeRatio_ = maxSze; }
+
+  double maxIterRatio() const { return maxIterRatio_; }
+  void maxIterRatioIs(double maxIte) { maxIterRatio_ = maxIte; }
+
+  int maxNumElems() const { return maxNumElems_; }
+  void maxNumElemsIs(int maxElem) { maxNumElems_ = maxElem; }
 
   // Buffers: Internal column-major ordering, zero-based indexing
   // Matrix buffer: [equationCount by unknownCount]
@@ -61,9 +86,8 @@ public:
 
 private:
 
-  long equationCount_;
-  long unknownCount_;
-  long matrixLeadDim_;
+  long int equationCount_;
+  long int unknownCount_;
 
   double relativeTolerance_;
   MatrixBufferType matrixBuffer_;
@@ -74,6 +98,15 @@ private:
 
   double errorMagnitude_;
   bool verboseFlag_;
+  bool scalingFlag_;
+  bool centerFlag_;
+  bool reverseFlag_;
+  bool projectFlag_;
+  bool positivity_;
+  int solverType_;
+  double maxSizeRatio_;
+  double maxIterRatio_;
+  int maxNumElems_;
 
   // Disallow copy & assignment
   SparseNonNegativeLeastSquaresSolver(const SparseNonNegativeLeastSquaresSolver &);
@@ -90,7 +123,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixBuffer() c
 template<typename MatrixBufferType, typename SizeType>
 typename MatrixBufferType::const_iterator
 SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixColBuffer(int col) const {
-  return matrixBuffer() + (col * matrixLeadDim_);
+  return matrixBuffer() + (col * equationCount_);
 }
 
 template<typename MatrixBufferType, typename SizeType>
@@ -108,7 +141,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixBuffer() {
 template<typename MatrixBufferType, typename SizeType>
 typename MatrixBufferType::iterator
 SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixColBuffer(int col) {
-  return matrixBuffer() + (col * matrixLeadDim_);
+  return matrixBuffer() + (col * equationCount_);
 }
 
 template<typename MatrixBufferType, typename SizeType>

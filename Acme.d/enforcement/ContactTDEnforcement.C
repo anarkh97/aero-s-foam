@@ -49,6 +49,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -70,11 +71,19 @@ using namespace std;
 #define COLLINEARITY_TOL 0.99e0
 #undef  CONVERGENCE_TOL
 #define CONVERGENCE_TOL 1.0e-10
+#undef  FAIL_TOL
+#define FAIL_TOL 0.01
 
 // Internal flags 
 // LOCAL_PRINT_FLAG = 0 turns off all internal debugging prints
 #undef  LOCAL_PRINT_FLAG 
 #define LOCAL_PRINT_FLAG 0
+
+#define PJSA_FIX
+#ifdef USE_EIGEN3
+#include <Eigen/Dense>
+#endif
+extern int contactPrintFlag;
 
 #ifdef CONTACT_DEBUG_NODE
 #include "ContactParOStream.h"
@@ -412,6 +421,7 @@ ContactSearch::ContactErrorCode
 ContactTDEnforcement::Get_Plot_Variable( Contact_TDEnf_Plot_Vars var,
 					       Real * buffer )
 {
+  int number_of_nodes = number_host_code_nodes; // PJSA size of buffer is number_host_code_nodes (host doesn't know about extra nodes added for shell lofting)
   if( !SAVE_CVARS ){
     errors->Add_Error_Message( "CVARS weren't requested" );
     return ContactSearch::INVALID_DATA;
@@ -1225,6 +1235,7 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
   int cnt_global = contact_global_sum(node_entity_list.Size(),communicator);
   if (contact_processor_number(communicator)==0) {
     std::cout << "  # of interactions = " << cnt_global << "\n";
+    std::cout << "  have_multiple     = " << have_multiple <<"\n";
   }
 #endif
 
@@ -1261,14 +1272,14 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
 
   Real mult = 0.0;
 
-  for(int iteration=0 ; iteration<num_iterations ; ++iteration ){
+  int iteration;
+  for(iteration=0 ; iteration<num_iterations ; ++iteration ){
     mult = mult + 1.0;
 
-#ifdef CONTACT_HEARTBEAT 
-    if (contact_processor_number(communicator)==0) {
+    if (contactPrintFlag && contact_processor_number(communicator)==0) {
       std::cout << "  Iteration "<<iteration<<"\n";
     }
-#endif
+
     //
     // Zero the scratch memory
     //
@@ -1320,10 +1331,9 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
 #endif
     //
     // Assemble nodal forces
-    // SWAPADD the assembled_force and if nessecary assembled_mass
+    // SWAPADD the assembled_force and if necessary the assembled_mass
     //
     if(have_multiple){
-      //if(true){
       //cout<<"assemble mult"<<endl;
       Assemble_Nodal_Forces_and_Masses();
       ScratchVariable *vars[2];
@@ -1539,17 +1549,17 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
       global_inc_force_norm = std::sqrt(contact_global_sum(inc_force_norm, communicator));
       if (iteration == 0) {
         initial_global_inc_force_norm = global_inc_force_norm;
-#ifdef CONTACT_HEARTBEAT 
-        if (contact_processor_number(communicator)==0) {
+
+        if (contactPrintFlag && contact_processor_number(communicator)==0) {
           std::cout << "    alt convergence tol = "<<convergence_tolerance*initial_global_inc_force_norm<<"\n";
         }
-#endif
+
       }
-#ifdef CONTACT_HEARTBEAT 
-      if (contact_processor_number(communicator)==0) {
+
+      if (contactPrintFlag && contact_processor_number(communicator)==0) {
         std::cout << "    convergence norm    = "<<global_inc_force_norm<<"\n";
       }
-#endif
+
       if( global_inc_force_norm
          < convergence_tolerance*initial_global_inc_force_norm
        || global_inc_force_norm < convergence_tolerance ) {
@@ -1565,6 +1575,19 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
     }
 
   } // end of iteration loop
+
+#if CONTACT_DEBUG_PRINT_LEVEL>=2
+  if(iteration == num_iterations) std::cerr<<"iteration loop did not converge: rel. residual = " << global_inc_force_norm/initial_global_inc_force_norm << "\n";
+#endif
+  if(iteration == num_iterations && num_iterations > 1 && global_inc_force_norm > std::max(initial_global_inc_force_norm,FAIL_TOL)) {
+    if(contact_processor_number(communicator)==0)
+      std::cerr << "\rerror: contact enforcement failed (inc. force = " << global_inc_force_norm 
+                << ", target = " << std::max(convergence_tolerance*initial_global_inc_force_norm, convergence_tolerance) << ")\n";
+    if(global_inc_force_norm > initial_global_inc_force_norm) {
+      // Set final updated position to the current predicted positiion
+      NEW_POSITION.Duplicate_Scratch(PREDICTED_POS);
+    }
+  }
 
 #if !defined (CONTACT_NO_MPI) && defined (CONTACT_TIMINGS)
     Timer().Stop_Timer( iteration_time );
@@ -2356,6 +2379,12 @@ void ContactTDEnforcement::Assemble_Nodal_Forces_and_Masses()
   	  surface_stiffness_inv[j] = 1.0/surface_stiffness_inv[j];
 	}
       }
+#ifdef PJSA_FIX
+      if(ncc == 2) { // project f_sn onto plane
+        double toto = f_sn[0]*normals[2][0]+f_sn[1]*normals[2][1]+f_sn[2]*normals[2][2];
+        for(int j=0; j<3; ++j) f_sn[j] -= normals[2][j]*toto;
+      }
+#endif
       Partition_Force(ncc, normals, f_sn, surface_stiffness_inv, f_constr );
       Real m_sn  = *(NODAL_MASS.Get_Scratch(node_index));
       Partition_Mass(ncc, normals, f_sn, factors);
@@ -2916,6 +2945,18 @@ void ContactTDEnforcement::Get_Normals_and_Gaps_at_Node(const Node_Constraint_Gr
 //  Should make a generic 3x3 Ax = b matrix solver
 //
 void ContactTDEnforcement::Unify(Real** normals, Real* magnitudes, Real* vector){ // Solve  g . n_i = g_i for g
+#if defined(USE_EIGEN3) && defined(PJSA_FIX)
+  Real* n_1 = normals[0];
+  Real* n_2 = normals[1];
+  Real* n_3 = normals[2];
+  Eigen::Matrix<Real,3,3> A;
+  A << n_1[0], n_1[1], n_1[2],
+       n_2[0], n_2[1], n_2[2],
+       n_3[0], n_3[1], n_3[2];
+  Eigen::Map<Eigen::Matrix<Real,3,1> > b(magnitudes);
+  Eigen::Map<Eigen::Matrix<Real,3,1> > x(vector);
+  x = A.colPivHouseholderQr().solve(b);
+#else
   Real* n_1 = normals[0];
   Real* n_2 = normals[1];
   Real* n_3 = normals[2]; 
@@ -2942,6 +2983,7 @@ void ContactTDEnforcement::Unify(Real** normals, Real* magnitudes, Real* vector)
   vector[2] = unify_matrix[2] [0]*magnitudes [0] 
             + unify_matrix[2] [1]*magnitudes [1]
             + unify_matrix[2] [2]*magnitudes [2] ;
+#endif
 }
 
 //
@@ -2969,10 +3011,20 @@ void ContactTDEnforcement::Partition_Mass(int ncc, Real** normals, Real* f_sn, R
     Real f_n0 = f_sn[0]*n0[0] + f_sn[1]*n0[1] + f_sn[2]*n0[2] ; 
     Real f_n1 = f_sn[0]*n1[0] + f_sn[1]*n1[1] + f_sn[2]*n1[2] ; 
     Real a0,a1; // The distribution "factors" for the mass
+#ifdef PJSA_FIX
+    // Shouldn't the factors a0 and a1 always add up to 1?
+    a0 = (     f_n0 - dot*f_n1 );
+    a1 = (-dot*f_n0 +     f_n1 );
+    if(a0 != 0 && a1 != 0) {
+      Real inv_factors = 1/sqrt(a0*a0+a1*a1);
+      a0 *= inv_factors;
+      a1 *= inv_factors;
+#else
     if( denom > 0.0  &&  f_sn_mag > 0.0 ){
       Real inv_factors = (1.0/denom) * (1.0/f_sn_mag);
       a0 = (     f_n0 - dot*f_n1 ) * inv_factors;
       a1 = (-dot*f_n0 +     f_n1 ) * inv_factors;
+#endif
       a0 *= a0;
       a1 *= a1;
     } else {
@@ -3027,8 +3079,14 @@ void ContactTDEnforcement::Partition_Mass(int ncc, Real** normals, Real* f_sn, R
       a0 = A_inv[0][0]*f_n0 + A_inv[0][1]*f_n1 + A_inv[0][2]*f_n2; 
       a1 = A_inv[1][0]*f_n0 + A_inv[1][1]*f_n1 + A_inv[1][2]*f_n2; 
       a2 = A_inv[2][0]*f_n0 + A_inv[2][1]*f_n1 + A_inv[2][2]*f_n2; 
+#ifdef PJSA_FIX
+      if( a0 != 0 && a1 !=0 && a2 != 0 ){
+        // Shouldn't the factors a0 and a1 always add up to 1?
+        Real f_sn_mag_inv = 1.0/sqrt(a0*a0+a1*a1+a2*a2);
+#else
       if( f_sn_mag > 0.0 ){
         Real f_sn_mag_inv = 1.0/f_sn_mag;
+#endif
 	a0 *= f_sn_mag_inv;
 	a1 *= f_sn_mag_inv;
 	a2 *= f_sn_mag_inv;
@@ -3059,6 +3117,45 @@ void ContactTDEnforcement::Partition_Force (int ncc,
                                             Real f_constr[3][3] )
 { 
 
+#if defined(USE_EIGEN3) && defined(PJSA_FIX)
+  Real* n_1 = normals[0];
+  Real* n_2 = normals[1];
+  Real* n_3 = normals[2];
+  Eigen::Matrix<Real,3,3> N;
+  N << n_1[0], n_2[0], n_3[0],
+       n_1[1], n_2[1], n_3[1],
+       n_1[2], n_2[2], n_3[2];
+  Eigen::Map<Eigen::Matrix<Real,3,1> > F(total_force);
+  Eigen::Map<Eigen::Matrix<Real,3,1> > f_constr0(f_constr[0]), f_constr1(f_constr[1]), f_constr2(f_constr[2]);
+
+  if(ncc == 2) {
+    Eigen::Matrix<Real,3,3> J = N.transpose()*(N.col(0)*N.col(0).transpose()-N.col(1)*N.col(1).transpose());
+    Eigen::Matrix<Real,3,1> f_dot_mags = N.transpose()*(F - F.dot(N.col(0))*N.col(0));
+
+    f_constr2.setZero();
+    f_constr1 = (-J.colPivHouseholderQr().solve(f_dot_mags)).dot(N.col(1))*N.col(1);
+    f_constr0 = (F-f_constr1).dot(N.col(0))*N.col(0);
+  }
+  else if(ncc == 3) {
+
+    // first, partition total_force into f_constr2 and f_constr01
+    Eigen::Matrix<Real,3,3> P01 = N.leftCols(2)*(N.leftCols(2).transpose()*N.leftCols(2)).colPivHouseholderQr().solve(N.leftCols(2).transpose());
+    Eigen::Matrix<Real,3,3> J = N.transpose()*(P01-N.col(2)*N.col(2).transpose());
+    Eigen::Matrix<Real,3,1> f_dot_mags = N.transpose()*(Eigen::Matrix3d::Identity()-P01)*F;
+
+    f_constr2 = (-J.colPivHouseholderQr().solve(f_dot_mags)).dot(N.col(2))*N.col(2);
+    Eigen::Matrix<Real,3,1> f_constr01 = P01*(F-f_constr2);
+
+    {
+      // second, partition f_constr01 into f_constr0 and f_constr1
+      Eigen::Matrix<Real,3,3> J = N.transpose()*(N.col(0)*N.col(0).transpose()-N.col(1)*N.col(1).transpose());
+      Eigen::Matrix<Real,3,1> f_dot_mags = N.transpose()*(f_constr01 - f_constr01.dot(N.col(0))*N.col(0));
+
+      f_constr1 = (-J.colPivHouseholderQr().solve(f_dot_mags)).dot(N.col(1))*N.col(1);
+      f_constr0 = (f_constr01-f_constr1).dot(N.col(0))*N.col(0);
+    }
+  }
+#else
 #ifdef CONTACT_DEBUG_NODE
   ContactParOStream& postream = ParOStream();
   bool PRINT_THIS_NODE = 0;
@@ -3095,8 +3192,6 @@ void ContactTDEnforcement::Partition_Force (int ncc,
   }
   Real k_bar_inv = 1.0/k_bar;
   Real k_tilda_inv = 1.0/k_tilda;
-
-
 
   Real* n_0 = normals[0];
   Real* n_1 = normals[1];
@@ -3239,8 +3334,8 @@ void ContactTDEnforcement::Partition_Force (int ncc,
       }
     }
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
-    if( !converged ){
-      std::cerr << "ACME did not converg in Partition_Force" << std::endl;
+    if (iter == PARTITION_ITERATIONS) {
+      std::cerr << "ACME did not converge in Partition_Force" << std::endl;
       std::cerr << "  f_dot_mags[0]     = " << f_dot_mags[0] << std::endl;
       std::cerr << "  f_dot_mags[1]     = " << f_dot_mags[1] << std::endl;
       std::cerr << "  total_force_mag^2 = " << total_force_magsqr << std::endl;
@@ -3489,8 +3584,8 @@ void ContactTDEnforcement::Partition_Force (int ncc,
       }
     }
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
-    if( !converged ){
-      std::cerr << "ACME did not converged in Partition_Force" << std::endl;
+    if (iter == PARTITION_ITERATIONS) {
+      std::cerr << "ACME did not converge in Partition_Force" << std::endl;
       std::cerr << "  f_dot_mags[0]     = " << f_dot_mags[0] << std::endl;
       std::cerr << "  f_dot_mags[1]     = " << f_dot_mags[1] << std::endl;
       std::cerr << "  f_dot_mags[2]     = " << f_dot_mags[2] << std::endl;
@@ -3498,6 +3593,7 @@ void ContactTDEnforcement::Partition_Force (int ncc,
     }
 #endif
   }
+#endif
 }
 
 
@@ -3506,6 +3602,18 @@ ContactTDEnforcement::Partition_Gap
 ( Real** normals, Real* magnitudes, Real* vector)
 { // Solve  [n_i]T {g_i} = {g}  for g_i by least squares
   // leastsquares_matrix = [n_i][n_i]T (formed directly)
+#if defined(USE_EIGEN3) && defined(PJSA_FIX)
+  Real* n_1 = normals[0];
+  Real* n_2 = normals[1];
+  Real* n_3 = normals[2];
+  Eigen::Matrix<Real,3,3> A;
+  A << n_1[0], n_1[1], n_1[2],
+       n_2[0], n_2[1], n_2[2],
+       n_3[0], n_3[1], n_3[2];
+  Eigen::Map<Eigen::Matrix<Real,3,1> > x(magnitudes);
+  Eigen::Map<Eigen::Matrix<Real,3,1> > b(vector);
+  x = A.transpose().colPivHouseholderQr().solve(b);
+#else
   Real leastsquares_matrix [3] [3] ;
   Real partition_matrix  [3] [3] ;
   Real* n_1 = normals[0];
@@ -3550,8 +3658,7 @@ ContactTDEnforcement::Partition_Gap
   magnitudes[2] = partition_matrix[2] [0]*vdn1
                 + partition_matrix[2] [1]*vdn2
                 + partition_matrix[2] [2]*vdn3;
-
-
+#endif
 }
 
 

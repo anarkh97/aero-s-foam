@@ -142,6 +142,7 @@ public:
         virtual void invert (FullSquareMatrix A, FullSquareMatrix B);
 
         int getAdjElementIndex() { return iEle; }
+        void setAdjElementIndex(int _iEle) { iEle = _iEle; }
 };
 
 #endif

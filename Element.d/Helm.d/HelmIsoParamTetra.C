@@ -30,6 +30,9 @@ HelmIsoParamTetra::HelmIsoParamTetra(int o, int* nodenums) {
  nn = new int[orderc];
  int i;
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
+
+ setWeight(order-1);
+ setTrueWeight(order-1);
 }
 
 
@@ -246,4 +249,16 @@ HelmIsoParamTetra::numNodes() {
   else
     return(4);   // to ignore effect of mid-size nodes in dec
 }
+
+int HelmIsoParamTetra::getDecFace(int iFace, int *fn) {
+  IsoParamUtilsTetra ipu(order);
+  int ordersq = ipu.getordersq();
+  ipu.faceindeces(iFace+1, fn);
+  for(int i=0;i<ordersq;i++) {
+    int tmp = fn[i];
+    fn[i] = nn[tmp];
+  }
+  return ordersq;
+}
+
 

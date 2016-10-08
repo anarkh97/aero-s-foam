@@ -125,7 +125,7 @@ ReducedLinearDriverImpl::preprocess() {
   HalfSliceCount numSlices(static_cast<int>(ceil((finalTime_.value() - initialTime_.value()) / (halfSliceRatio_.value() * fineTimeStep_.value()))));
   FullSliceCount fullTimeSlices((numSlices.value() / 2) + (numSlices.value() % 2));
   numSlices = HalfSliceCount(fullTimeSlices.value() * 2);
-  finalTime_ = fineTimeStep_ * Seconds(numSlices.value() * halfSliceRatio_.value()); // To have a whole number of full time-slices 
+  finalTime_ = fineTimeStep_.operator*(Seconds(numSlices.value() * halfSliceRatio_.value())); // To have a whole number of full time-slices 
   
   /* Main options */
   noForce_ = solverInfo()->pitaNoForce;

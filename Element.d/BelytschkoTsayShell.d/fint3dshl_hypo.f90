@@ -1,8 +1,8 @@
 ! ==================================
 ! internal force: bt shell / hypo-elastic
 ! ==================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1.  subroutine        updstrsbt              (delt,ematpro,gqpoin,gqweigt,locbvec,ecurn,evelo,
 !                                               effpstrn,hardvar,sigvoitloc,strnvoitloc, effstrs)
 ! 2.  subroutine        updstrn2bt             (delt,ematpro,zeta,ecurnloc,eveloloc, effpstrn,hardvar,ipstrn,ipstrs, effstrs)
@@ -293,21 +293,21 @@ subroutine gqfintbt(optcor,delt,ematpro,gqpoin,gqweigt,area,sigvoitloc, &
       ! --------------------------------------------------------------------------------------
       ! the original BLT element with warping and shear corrections
       ! -----------------------------------------------------------
-     efintloc(iloc+1,1)= efintloc(iloc+1,1) + area*( bmat1pt(1,inode)*fx + bmat1pt(2,inode)*fxy &
-                         + bcmat1pt(1,inode)*mx + bcmat1pt(2,inode)*mxy )  ! f_xi
+      efintloc(iloc+1,1)= efintloc(iloc+1,1) + area*( bmat1pt(1,inode)*fx + bmat1pt(2,inode)*fxy &
+                          + bcmat1pt(1,inode)*mx + bcmat1pt(2,inode)*mxy )  ! f_xi
 
-     efintloc(iloc+2,1)= efintloc(iloc+2,1) + area*( bmat1pt(2,inode)*fy + bmat1pt(1,inode)*fxy &
-                         + bcmat1pt(2,inode)*my + bcmat1pt(1,inode)*mxy )  ! f_yi
+      efintloc(iloc+2,1)= efintloc(iloc+2,1) + area*( bmat1pt(2,inode)*fy + bmat1pt(1,inode)*fxy &
+                          + bcmat1pt(2,inode)*my + bcmat1pt(1,inode)*mxy )  ! f_yi
 
-     efintloc(iloc+3,1)= efintloc(iloc+3,1) + area*rk*( bsmat1pt(1,1,inode)*fxz + bsmat1pt(2,1,inode)*fyz ) ! f_zi
+      efintloc(iloc+3,1)= efintloc(iloc+3,1) + area*rk*( bsmat1pt(1,1,inode)*fxz + bsmat1pt(2,1,inode)*fyz ) ! f_zi
 
-     efintloc(iloc+4,1)= efintloc(iloc+4,1) + area*( rk*bsmat1pt(1,2,inode)*fxz + rk*bsmat1pt(2,2,inode)*fyz &
-                         - bmat1pt(2,inode)*my - bmat1pt(1,inode)*mxy)  ! m_xi
+      efintloc(iloc+4,1)= efintloc(iloc+4,1) + area*( rk*bsmat1pt(1,2,inode)*fxz + rk*bsmat1pt(2,2,inode)*fyz &
+                          - bmat1pt(2,inode)*my - bmat1pt(1,inode)*mxy)  ! m_xi
 
-     efintloc(iloc+5,1)= efintloc(iloc+5,1) + area*( rk*bsmat1pt(1,3,inode)*fxz + rk*bsmat1pt(2,3,inode)*fyz &
-                         + bmat1pt(1,inode)*mx + bmat1pt(2,inode)*mxy)  ! m_yi
+      efintloc(iloc+5,1)= efintloc(iloc+5,1) + area*( rk*bsmat1pt(1,3,inode)*fxz + rk*bsmat1pt(2,3,inode)*fyz &
+                          + bmat1pt(1,inode)*mx + bmat1pt(2,inode)*mxy)  ! m_yi
 
-     efintloc(iloc+6,1)= efintloc(iloc+6,1) + 0.0d0  ! m_zi
+      efintloc(iloc+6,1)= efintloc(iloc+6,1) + 0.0d0  ! m_zi
  
     else if(optcor(1) > 0) then
       ! --------------------------------------------------------------------------------------

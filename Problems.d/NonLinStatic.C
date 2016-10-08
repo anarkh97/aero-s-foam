@@ -1,4 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
+#include <algorithm>
 #include <cstdio>
 #include <Utils.d/Memory.h>
 
@@ -7,10 +8,13 @@
 #include <Corotational.d/Corotator.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/TemperatureState.h>
+#include <Corotational.d/utilities.h>
 #include <Solvers.d/Solver.h>
 #include <Timers.d/StaticTimers.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/SparseMatrix.h>
 #include <Timers.d/GetTime.h>
+#include <Problems.d/StaticDescr.h>
 
 extern int verboseFlag;
 
@@ -25,8 +29,10 @@ NonLinStatic::NonLinStatic(Domain *d)
   times = 0;
   reactions = 0;
 
-  if(domain->GetnContactSurfacePairs())
-     domain->InitializeStaticContactSearch(MortarHandler::CTC);
+  if(domain->GetnContactSurfacePairs()) {
+    domain->InitializeStaticContactSearch(MortarHandler::CTC);
+    updateCS = true;
+  }
 }
 
 NonLinStatic::~NonLinStatic()
@@ -68,33 +74,49 @@ NonLinStatic::clean()
 }
 
 void
-NonLinStatic::updateStates(GeomState *refState, GeomState& geomState)
+NonLinStatic::updateContactSurfaces(GeomState& geomState)
 {
-  domain->updateStates(refState, geomState, allCorot);
+  clean();
+  domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
+  domain->PerformStaticContactSearch(MortarHandler::CTC);
+  domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+  domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+  domain->UpdateContactSurfaceElements(&geomState);
+  preProcess(false);
+  geomState.resizeLocAndFlag(*domain->getCDSA());
+}
+
+void
+NonLinStatic::updateStates(GeomState *refState, GeomState& geomState, double lambda)
+{
+  if(domain->solInfo().piecewise_contact) updateCS = true;
+  domain->updateStates(refState, geomState, allCorot, lambda);
 }
 
 double
 NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce, 
-                               Vector &, double lambda, GeomState *refState)
+                               Vector &, double lambda, GeomState *refState, bool forceOnly)
 {
   times->buildStiffAndForce -= getTime();
 
   if(domain->GetnContactSurfacePairs()) {
-    clean();
-    domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
-    domain->PerformStaticContactSearch(MortarHandler::CTC);
-    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-    domain->UpdateContactSurfaceElements(&geomState);
-    preProcess(false); // TODO consider case domain->solInfo().getNLInfo().updateK > 1
-    geomState.resizeLocAndFlag(*domain->getCDSA());
-    residual.resize(domain->getCDSA()->size());
+    if(!domain->solInfo().piecewise_contact || updateCS) {
+      updateContactSurfaces(geomState);
+      updateCS = false;
+    }
+    residual.conservativeResize(domain->getCDSA()->size());
     elementInternalForce.resize(domain->maxNumDOF());
   }
 
   reactions->zero();
-  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
-                           kelArray, residual, lambda, 0, refState, reactions);
+  if(forceOnly) {
+    domain->getInternalForce(geomState, elementInternalForce, allCorot,
+                             kelArray, residual, lambda, 0, refState, reactions);
+  }
+  else {
+    domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
+                             kelArray, residual, lambda, 0, refState, reactions);
+  }
 
   times->buildStiffAndForce += getTime();
 
@@ -120,21 +142,25 @@ NonLinStatic::updatePrescribedDisplacement(GeomState *geomState, double)
 }
 
 void
-NonLinStatic::initializeParameters(GeomState *geomState)
+NonLinStatic::initializeParameters(int step, GeomState *geomState)
 {
-  domain->initializeParameters(*geomState, allCorot);
+  if(step == 1 || domain->solInfo().reinit_lm) {
+    domain->initializeMultipliers(*geomState, allCorot);
+  }
+  domain->initializeParameters();
 }
 
 void
 NonLinStatic::updateParameters(GeomState *geomState)
 {
-  domain->updateParameters(*geomState, allCorot);
+  domain->updateMultipliers(*geomState, allCorot);
+  domain->updateParameters();
 }
 
 bool
-NonLinStatic::checkConstraintViolation(double &err)
+NonLinStatic::checkConstraintViolation(double &err, GeomState *gs)
 {
-  err = domain->getError(allCorot);
+  err = domain->getError(allCorot, *gs);
   return (err <= domain->solInfo().penalty_tol);
 }
 
@@ -145,35 +171,48 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
 
  times->timeCheck -= getTime();
 
+ // Note when useTolInc is false, this function is called before normDv is calculated
+ bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity() ||
+                   domain->solInfo().getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
+
  if(iter == 0) {
-   firstDv  = normDv;
+   if(useTolInc) firstDv  = normDv;
+   else { normDv = 0; firstDv = 1; }
    firstRes = normRes;
+ }
+ else if(iter == 1 && !useTolInc) {
+  firstDv  = normDv;
  }
 
  double relativeDv  = normDv/firstDv;
  double relativeRes = normRes/firstRes;
 
- if(verboseFlag)
-  {
-    filePrint(stderr,"----------------------------------------------------\n");
-    filePrint(stderr,"Newton Iter    #%d\tcurrent dv   = % e\n \t\t\t"
-                   "first dv     = % e\n \t\t\trelative dv  = % e\n",
-                    iter+1, normDv, firstDv, relativeDv);
-    filePrint(stderr,"                \tcurrent Res  = % e\n \t\t\t"
-                   "first Res    = % e\n \t\t\trelative Res = % e\n",
-                    normRes, firstRes, relativeRes);
-
-    filePrint(stderr,"----------------------------------------------------\n");
-  }
+ if(verboseFlag) {
+   filePrint(stderr," ----------------------------------------------------\n");
+   if(useTolInc || iter >= 1) {
+     filePrint(stderr, " Newton Iter    #%d\tcurrent dv   = % e\n \t\t\t"
+                       "first dv     = % e\n \t\t\trelative dv  = % e\n",
+                       iter+1, normDv, firstDv, relativeDv);
+     filePrint(stderr, "                \tcurrent Res  = % e\n \t\t\t"
+                       "first Res    = % e\n \t\t\trelative Res = % e\n",
+                       normRes, firstRes, relativeRes);
+   }
+   else {
+     filePrint(stderr, " Newton Iter    #%d\tcurrent Res  = % e\n \t\t\t"
+                       "first Res    = % e\n \t\t\trelative Res = % e\n",
+                       iter+1, normRes, firstRes, relativeRes);
+   }
+   filePrint(stderr," ----------------------------------------------------\n");
+ }
 
  int converged = 0;
 
- // Check relative convergence criteria
+ // Check convergence criteria
  if(iter > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv)
     || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc)))
    converged = 1;
 
- // Check Divergence
+ // Check divergence
  else if(iter > 0 && normRes > 10000*firstRes)
    converged = -1;
 
@@ -186,7 +225,6 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
  times->timeCheck += getTime();
 
  return converged;
-
 }
 
 GeomState*
@@ -196,9 +234,10 @@ NonLinStatic::createGeomState()
 
  GeomState *geomState;
  if(domain->solInfo().soltyp == 2) 
-   geomState = (GeomState *) new TemperatureState( *domain->getDSA(),*domain->getCDSA(),domain->getNodes());
+   geomState = (GeomState *) new TemperatureState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes());
  else
-   geomState = new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet()); 
+   geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
+                             domain->getNodalTemperatures()); 
 
  times->timeGeom += getTime();
 
@@ -213,7 +252,6 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
  int rebuildFlag = 0;
 
  if(iteration % domain->solInfo().getNLInfo().updateK == 0 && (step-1) % domain->solInfo().getNLInfo().stepUpdateK == 0) {
-   if(verboseFlag) filePrint(stderr, " ... Rebuilding Tangent Stiffness for Step %d Iteration %d ...\n", step, iteration);
    if(domain->solInfo().mpcDirect != 0) {
      if(solver) delete solver;
      if(prec) delete prec;
@@ -227,8 +265,10 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
        ops.spp = spp;
      }
      domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray, (FullSquareMatrix *) NULL);
+     domain->getTimers().factor -= getTime();
      solver->factor();
      if(prec) prec->factor();
+     domain->getTimers().factor += getTime();
   }
   rebuildFlag = 1;
  }
@@ -268,7 +308,7 @@ NonLinStatic::getMaxLambda()
  return domain->solInfo().getNLInfo().maxLambda;
 }
 
-bool
+LinesearchInfo&
 NonLinStatic::linesearch()
 {
  return domain->solInfo().getNLInfo().linesearch;
@@ -325,11 +365,13 @@ NonLinStatic::preProcess(bool factor)
  long buildMem = -memoryUsed();
  times->timeBuild -= getTime();
 
- Rbm *rigidBodyModes = 0;
- if(domain->solInfo().rbmflg) rigidBodyModes = domain->constructRbm(); // new policy is to construct rbms if GRBM is requested in input file
-                                                                       // but only use them when it is appropriate to do so. In nonlinear statics it is not
-                                                                       // since the nullity of the tangent stiffness matrix may be less than the nullity
-                                                                       // of the number of rigid body modes
+ if(domain->solInfo().rbmflg) {
+   Rbm *rigidBodyModes = domain->constructRbm(); // new policy is to construct rbms if GRBM is requested in input file
+                                                 // but only use them when it is appropriate to do so. In nonlinear statics it is not
+                                                 // since the nullity of the tangent stiffness matrix may be less than the nullity
+                                                 // of the number of rigid body modes
+   delete rigidBodyModes;
+ }
  
  domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray,
                           (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factor);
@@ -377,14 +419,27 @@ NonLinStatic::getPostProcessor()
 void
 NonLinStatic::printTimers()
 {
- times->timeTimers -= getTime();
+  times->timeTimers -= getTime();
 
- long memoryUsed = solver->size();
- double solveTime  = solver->getSolutionTime();
+  long memoryUsed = solver->size();
+  double solveTime  = solver->getSolutionTime();
 
- times->printStaticTimers(solveTime, memoryUsed, domain);
+  times->printStaticTimers(solveTime, memoryUsed, domain);
 
- times->timeTimers += getTime();
+  times->timeTimers += getTime();
+
+  if(domain->solInfo().massFlag) {
+    double mass = domain->computeStructureMass();
+    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," ... Structure mass = %e  ...\n",mass);
+    filePrint(stderr," --------------------------------------\n");
+  }
+}
+
+double
+NonLinStatic::getTolerance()
+{
+  return std::max(tolerance*firstRes, domain->solInfo().getNLInfo().absTolRes);
 }
 
 void
@@ -395,8 +450,7 @@ NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
   Vector dummyForce(domain->numUncon(), 0.0);
   int step = (int)std::floor(lambda/domain->solInfo().getNLInfo().dlambda+0.5);
   domain->postProcessing(geomState, force, dummyForce, lambda, step, 0, 0, allCorot,
-                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState,
-                         reactions);
+                         (double *) 0, (double *) 0, refState, reactions);
   times->output += getTime();
 }
 
@@ -448,4 +502,10 @@ NonLinStatic::getResidualNorm(Vector &rhs, GeomState &geomState)
   Vector res(rhs);
   domain->applyResidualCorrection(geomState, allCorot, res, 1.0);
   return solver->getResidualNorm(res);
+}
+
+bool
+NonLinStatic::getResizeFlag()
+{
+  return (domain->GetnContactSurfacePairs() > 0);
 }

@@ -1,9 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <cmath>
-#include <Math.d/mathUtility.h>
-
+#include <iomanip>
 #include <algorithm>
 
 template<class Scalar>
@@ -104,10 +102,11 @@ template<class Scalar>
 void
 GenVector<Scalar>::reset(int newlen, Scalar initialvalue)
 {
- if(d) { delete [] d; }
+ if(myMemory && d) { delete [] d; }
 
  len = newlen;
  d = new Scalar[len];
+ myMemory = true;
  for(int i=0; i<len; ++i)
    d[i] = initialvalue;
 }
@@ -115,6 +114,17 @@ GenVector<Scalar>::reset(int newlen, Scalar initialvalue)
 template<class Scalar>
 void
 GenVector<Scalar>::resize(int newlen)
+{
+ if(len == newlen) return;
+ if(myMemory && d) { delete [] d; }
+ len = newlen;
+ d = new Scalar[len];
+ myMemory = true;
+}
+
+template<class Scalar>
+void
+GenVector<Scalar>::conservativeResize(int newlen)
 {
  if(len == newlen) return;
  Scalar *newd = new Scalar[newlen];
@@ -136,21 +146,19 @@ GenVector<Scalar>::putIn(Scalar *array, int position, int num)
   if (num>len) fprintf(stderr,"Incompatible length in GenVector<Scalar> putIn\n");
   for (int i=0; i<num; i++)
     array[position+i]=d[i];
-                                                                                                                                                   
 }
+
 template<class Scalar>
 void
 GenVector<Scalar>::getFrom(Scalar *array, int position, int numdata)
 {
   if ( numdata > len )
     fprintf(stderr,"Incompatible length of GenVector<Scalar>s in GenVector<Scalar> getFrom\n");
-                                                                                                                                                   
+
   for (int i=0; i<numdata; i++)
     d[i]=array[position+i];
-                                                                                                                                                   
 }
-                                                                                                                                                   
-                                                                                                                                                   
+
 template<class Scalar>
 void
 GenVector<Scalar>::getDataFrom(Scalar *array, int num)
@@ -159,7 +167,7 @@ GenVector<Scalar>::getDataFrom(Scalar *array, int num)
   for (int i=0; i<num; i++)
     d[i]=array[i];
 }
-                                                                                                                                                   
+
 template<class Scalar>
 void
 GenVector<Scalar>::addDataFrom(double *array, int num)
@@ -168,7 +176,7 @@ GenVector<Scalar>::addDataFrom(double *array, int num)
   for (int i=0; i<num; i++)
     d[i]+=array[i];
 }
-                                                                                                                                                   
+
 template<class Scalar>
 GenVector<Scalar>
 GenVector<Scalar>::operator+(const GenVector<Scalar> &v2)
@@ -213,6 +221,17 @@ GenVector<Scalar>::operator*=(const Scalar c)
  int i;
  for(i=0; i< len; ++i)
     d[i] *= c;
+}
+
+template<class Scalar>
+void
+GenVector<Scalar>::operator/=(const Scalar c)
+{
+ if(c == 1.0) return;
+
+ int i;
+ for(i=0; i< len; ++i)
+    d[i] /= c;
 }
 
 template<class Scalar>
@@ -516,20 +535,9 @@ template<class Scalar>
 void
 GenVector<Scalar>::print(const char *msg, const char* msg2)
 {
- if(msg) cerr << msg << " ";
- for(int i=0; i<len; ++i) cerr << d[i] << " ";
- cerr << endl;
-/*
- if(*msg) fprintf(stderr,"%s\n",msg);
- if(d) {
-   int i;
-   for(i=0; i<len; ++i)
-      fprintf(stderr,"%s(%d) = % e,\n",msg2,i+1,d[i]);
-      //cerr<<msg2<<"("<<i+1<<") = "<<d[i]<<endl;
- }
- else
-   fprintf(stderr,"--- This GenVector<Scalar> is Null ---\n");
-*/
+ if(msg) std::cerr << msg << " ";
+ for(int i=0; i<len; ++i) std::cerr << std::setprecision(10) << d[i] << " ";
+ std::cerr << std::endl;
 }
 
 template<class Scalar>

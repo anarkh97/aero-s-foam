@@ -8,10 +8,10 @@
  *****************************************************************************/
 
 #include <cstdio>
+#include <algorithm>
+#include <iostream>
 #include <Utils.d/linkfc.h>
-// #include <Math.d/FullMatrix.h>
 #include <Math.d/Vector.h>
-#include <Math.d/mathUtility.h>
 
 extern "C" {
 
@@ -178,6 +178,13 @@ GenFSFullMatrix<Scalar>::~GenFSFullMatrix()
     delete [] v;
     v=0;
   }
+}
+
+template<class Scalar>
+void
+GenFSFullMatrix<Scalar>::copy(Scalar* array)
+{
+  for(int i=0; i<nrow*ncolumn; ++i) v[i] = array[i];
 }
 
 template<class Scalar> 
@@ -409,13 +416,12 @@ template<class Scalar>
 void
 GenFSFullMatrix<Scalar>::print(const char *msg, const char *msg2)
 {
- if(*msg) cerr << msg << "\n";
+ if(*msg) std::cerr << msg << "\n";
  int i,j;
  for(i = 0 ; i < nrow ; ++i) {
    for(j=0; j < ncolumn ; ++j)
-     cerr << msg2 << "(" << i+1 << "," << j+1 << ")" << (*this)[i][j] << endl;
-     // fprintf(stderr,"%s(%d,%d) = % e;",msg2,i+1,j+1,(*this)[i][j]) ;
-   cerr << "\n";
+     std::cerr << msg2 << "(" << i+1 << "," << j+1 << ")" << (*this)[i][j] << std::endl;
+   std::cerr << "\n";
  }
 }
 
@@ -423,7 +429,6 @@ template<class Scalar>
 double
 GenFSFullMatrix<Scalar>::max()
 {
-// Jing Li's problem, check with Michel
  double max = ScalarTypes::norm( (*this)[0][0] );
  int i,j;
  for(i = 0; i<nrow; ++i)
@@ -640,19 +645,19 @@ GenFSFullMatrix<Scalar>::symLuFactor(int *perm, double tol, Scalar *origDiag, in
    //if(perm[i] != i) {
    if(maxIndex != i) {
      //fprintf(stderr, "Permuting\n");
-     mymySwap(perm[i], perm[maxIndex]);
+     std::swap(perm[i], perm[maxIndex]);
      for(k = 0; k < i; ++k)
-       mySwap((*this)[i][k], (*this)[maxIndex][k]);
-     mySwap( (*this)[i][i], (*this)[maxIndex][maxIndex]);
+       std::swap((*this)[i][k], (*this)[maxIndex][k]);
+     std::swap( (*this)[i][i], (*this)[maxIndex][maxIndex]);
      for(k = i+1; k < maxIndex; ++k) 
-       mySwap((*this) [k][i], (*this)[maxIndex][k]);
+       std::swap((*this) [k][i], (*this)[maxIndex][k]);
      for(k = maxIndex+1; k < nrow; ++k)
-       mySwap((*this)[k][i], (*this)[k][maxIndex]);
+       std::swap((*this)[k][i], (*this)[k][maxIndex]);
 
    }
 #endif
    // Detect singularity
-   if( ScalarTypes::norm((*this)[i][i]) <= (abs(tol)*ScalarTypes::norm(origDiag[perm[i]])) ) {
+   if( ScalarTypes::norm((*this)[i][i]) <= (std::abs(tol)*ScalarTypes::norm(origDiag[perm[i]])) ) {
      nzem++;
      if(sing != 0) sing[i] = 1;  // PJSA
 // For Debugging

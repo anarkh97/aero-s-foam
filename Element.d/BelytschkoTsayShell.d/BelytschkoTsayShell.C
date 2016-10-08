@@ -10,7 +10,12 @@
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterial.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Math.d/Vector.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/SolverInfo.h>
+#include <iostream>
+#include <limits>
 
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
@@ -20,6 +25,8 @@ using namespace Eigen;
 using std::vector;
 #endif
 
+extern SolverInfo &solInfo;
+extern int verboseFlag;
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
   void _FORTRAN(getgq1d)(int&, double*, double*);
@@ -44,6 +51,7 @@ extern "C" {
                               double*, double*, double&, double*);
   void _FORTRAN(gqfhgcbt)(double*, double&, double*, double*);
   void _FORTRAN(elefbc3dbrkshl2opt)(double&, double*, double&, double*);
+  void _FORTRAN(elefbc3dbrkshl2)(int&, double*, double*, double*, double*);
 }
 
 double BelytschkoTsayShell::t1 = 0;
@@ -56,18 +64,17 @@ double BelytschkoTsayShell::t7 = 0;
 
 BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
 {
-  // TODO most of these should come from StructProp via MATERIAL
   optdmg = 0; // no damage
   opthgc = 1; // perturbation type hourglass control
   opttrc = -1; // no pressure or traction
   optdmp = 0; // no damping
   optcor[0] = 1; // warping correction on
-  if(nodenums[2] == nodenums[3]) { // FIXME
+  if(nodenums[2] == nodenums[3]) { // i.e. degenerate quad
     optcor[1] = 0; // shear correction off
     optprj = 0;    // drilling projection off
   }
   else {
-    optcor[1] = 1; // shear correction on
+    optcor[1] = 0; // shear correction on
     optprj = 1;    // drilling projection on
   }
   nndof  = 6; // number of dofs per node
@@ -110,7 +117,6 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   // ---------------------------------------------------------------
   // allocate and initialize history variables
   // ---------------------
-  // TODO depends on optctv, see inihistvar3d
   evar1 = new double[5*mgqpt[0]];
   evar2 = new double[5*mgqpt[0]];
   evoit1 = new double[6*mgqpt[0]];
@@ -121,6 +127,8 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
 
   expmat = 0;
   myMat = false;
+  pbc = 0;
+  mat = 0;
 }
 
 BelytschkoTsayShell::~BelytschkoTsayShell()
@@ -133,6 +141,10 @@ BelytschkoTsayShell::~BelytschkoTsayShell()
   delete [] evoit2;
   delete [] evoit3;
   if(expmat && myMat) delete expmat;
+  if(mat) {
+    for(int i=0; i<mgaus[2]; ++i) delete mat[i];
+    delete [] mat;
+  }
 }
 
 void
@@ -141,8 +153,8 @@ BelytschkoTsayShell::setProp(StructProp *p, bool _myProp)
   Element::setProp(p,_myProp);
   // create default material
   if(prop) {
-    expmat = new ExpMat(1, prop->E, prop->nu, prop->rho, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0.1, 0.833, prop->eh);
+    expmat = new ExpMat(1, prop->E, prop->nu, prop->rho);
+    expmat->ematpro[19] = prop->eh;
     myMat = true;
   }
 }
@@ -150,42 +162,83 @@ BelytschkoTsayShell::setProp(StructProp *p, bool _myProp)
 void
 BelytschkoTsayShell::setMaterial(NLMaterial *m)
 {
-  if(expmat && myMat) delete expmat;
-  expmat = dynamic_cast<ExpMat *>(m);
-  myMat = false;
+  if(!prop) return; // phantom element
+  if(ExpMat *expmat2 = dynamic_cast<ExpMat *>(m)) *expmat = *expmat2;
+  else return;
+
   if(expmat->optctv != 1) {
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
-    mat = new ElastoPlasticPlaneStressMaterial * [mgaus[2]];
-    for(int i=0; i<mgaus[2]; ++i) {
+    mat = new ElastoPlasticPlaneStressMaterial * [expmat->ngqpt2];
+    for(int i=0; i<expmat->ngqpt2; ++i) {
       switch(expmat->optctv) {
-      case 5 :
-        mat[i] = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5], 
-                                                                        expmat->ematpro[6]);
-        break;
+      case 5 : {
+        double epsF = (expmat->ematpro[7] <= 0) ? std::numeric_limits<double>::infinity() : expmat->ematpro[7];
+        IsotropicLinearElasticJ2PlasticPlaneStressMaterial *mi
+               = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5], 
+                                                                        expmat->ematpro[6], epsF);
+        if(expmat->ysst) {
+          for(int j=0; j<expmat->ysst->getNumPoints(); ++j)
+            mi->SetExperimentalCurveData(expmat->ysst->getT(j), expmat->ysst->getV(j));
+        }
+        if(expmat->yssrt) {
+          for(int j=0; j<expmat->yssrt->getNumPoints(); ++j)
+            mi->SetExperimentalCurveData2(expmat->yssrt->getT(j), expmat->yssrt->getV(j));
+        }
+        mat[i] = mi;
+      } break;
       case 6 :
         mat[i] = new KorkolisKyriakidesPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5],
-                                                           expmat->ematpro[6], expmat->ematpro[7]);
+                                                           expmat->ematpro[6], expmat->ematpro[6]);
         break;
       case 7 :
-        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(lambda, mu, expmat->ematpro[6], expmat->ematpro[7]);
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(lambda, mu, expmat->ematpro[6], expmat->ematpro[6]);
         break;
       case 8 :
-        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(lambda, mu, expmat->ematpro[6], expmat->ematpro[7]);
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(lambda, mu, expmat->ematpro[6], expmat->ematpro[6]);
         break;
       }
     }
   }
-  if(expmat->ematpro[17] == 0) expmat->ematpro[17] = 0.1;
-  if(expmat->ematpro[18] == 0) expmat->ematpro[18] = 0.833;
-  if(expmat->ematpro[19] == 0) expmat->ematpro[19] = (prop) ? prop->eh : 0;
+
+  // set element properties
+  optcor[0] = expmat->optcor0;
+  if(nn[2] != nn[3]) {
+    optcor[1] = (optcor[0] == 0) ? 0 : expmat->optcor1;
+    optprj = expmat->optprj;
+  }
+  opthgc = expmat->opthgc;
+  prmhgc[0] = expmat->prmhgc[0];
+  prmhgc[1] = expmat->prmhgc[1];
+  prmhgc[2] = expmat->prmhgc[2];
+  ngqpt[2] = expmat->ngqpt2;
+  expmat->ematpro[19] = prop->eh;
+
+  if(ngqpt[2] != 3) { // reset gq size, rule and history variables
+    int optmhd = 0, optele = 3;
+    _FORTRAN(getgqsize)(optmhd, optele, ngqpt, mgaus, mgqpt);
+
+    delete [] gqpoin3; delete [] gqweigt3;
+    gqpoin3 = new double[mgaus[2]];
+    gqweigt3 = new double[mgaus[2]];
+    _FORTRAN(getgq1d)(mgaus[2], gqpoin3, gqweigt3);
+
+    delete [] evar1; delete [] evar2; delete [] evoit1; delete [] evoit2; delete [] evoit3;
+    evar1 = new double[5*mgqpt[0]];
+    evar2 = new double[5*mgqpt[0]];
+    evoit1 = new double[6*mgqpt[0]];
+    evoit2 = new double[6*mgqpt[0]];
+    evoit3 = new double[6*mgqpt[0]];
+    for(int i = 0; i < 5*mgqpt[0]; ++i) evar1[i] = evar2[i] = 0;
+    for(int i = 0; i < 6*mgqpt[0]; ++i) evoit1[i] = evoit2[i] = evoit3[i] = 0;
+  }
 }
 
 void
 BelytschkoTsayShell::setPressure(PressureBCond *_pbc)
 {
   pbc = _pbc;
-  opttrc = 0;
+  if(pbc) opttrc = 0;
 }
 
 PressureBCond*
@@ -195,7 +248,8 @@ BelytschkoTsayShell::getPressure()
   // computePressureForce should be called. Since the pressure for this element
   // is computed along with the internal force inside elefintbt1, it is
   // not necessary to call that function, so we return a null pointer here
-  return NULL;
+  // unless the element is a phantom
+  return (prop) ? NULL : pbc;
 }
 
 Element *
@@ -264,7 +318,7 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         if(expmat->optctv == 1)
           stress[i] = evar1[5*j+1];
         else
-          stress[i] = 0;
+          stress[i] = (mat[j]->GetMaterialEquivalentPlasticStrain() >= mat[j]->GetEquivalentPlasticStrainAtFailure()) ? 1 : 0;
       } break;
       case 18 : { // effective plastic strain for elasto plastic materials
         if(expmat->optctv != 1)
@@ -298,17 +352,9 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
     }
   }
 #else
-  cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::getVonMises\n";
+  std::cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::getVonMises\n";
   exit(-1);
 #endif
-}
-
-void
-BelytschkoTsayShell::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
-                                  Vector& elDisp, int strInd, int surface,
-                                  double *ndTemps)
-{
-  cerr << "BelytschkoTsayShell::getAllStress not implemented\n";
 }
 
 double
@@ -345,6 +391,39 @@ BelytschkoTsayShell::getMass(CoordSet& cs)
   return mass;
 }
 
+double
+BelytschkoTsayShell::getMassThicknessSensitivity(CoordSet& cs)
+{
+  if (prop == NULL) return 0.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+  Node &nd4 = cs.getNode(nn[3]);
+
+  Vector r1(3), r2(3), r3(3), r4(3);
+
+  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = 0.0;
+  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = 0.0;
+  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = 0.0;
+  r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = 0.0;
+
+  Vector v1(3), v2(3), v3(3), v4(3), v5(3);
+
+  v1 = r2 - r1;
+  v2 = r3 - r1;
+  v3 = r4 - r1;
+
+  v4 = v1.cross(v2);
+  v5 = v2.cross(v3);
+
+  double area = 0.5*(v4.magnitude() + v5.magnitude());
+  double rho = expmat->ematpro[2];
+  double massWRTthic = area*rho;
+
+  return massWRTthic;
+}
+
 void
 BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                                      Vector& gravityForce, int gravflg, GeomState *geomState)
@@ -360,6 +439,24 @@ BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
     gravityForce[nndof*i+0] = fx;
     gravityForce[nndof*i+1] = fy;
     gravityForce[nndof*i+2] = fz;
+  }
+}
+
+void
+BelytschkoTsayShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                         Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+  gravityForceSensitivity.zero();
+
+  double massPerNodePerThick = 0.25*getMass(cs)/prop->eh;
+  double fx = massPerNodePerThick*gravityAcceleration[0];
+  double fy = massPerNodePerThick*gravityAcceleration[1];
+  double fz = massPerNodePerThick*gravityAcceleration[2];
+
+  for(int i = 0; i < nnode; ++i) {
+    gravityForceSensitivity[nndof*i+0] = fx;
+    gravityForceSensitivity[nndof*i+1] = fy;
+    gravityForceSensitivity[nndof*i+2] = fz;
   }
 }
 
@@ -397,9 +494,15 @@ BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 FullSquareMatrix
 BelytschkoTsayShell::stiffness(CoordSet &cs, double *d, int flg)
 {
-  //if(prop) cerr << "BelytschkoTsayShell::stiffness not implemented. This element only works for explicit dynamics\n";
   FullSquareMatrix ret(nnode*nndof, d);
   ret.zero();
+
+  if(prop && solInfo.newmarkBeta != 0) {
+    std::cerr << " *** ERROR: Stiffness matrix is not available for Belytschko-Tsay shell (type 16).\n"
+              << "            Use of this element is only supported for nonlinear explicit dynamics.\n";
+    exit(-1);
+  }
+
   return ret;
 }
 
@@ -451,6 +554,19 @@ BelytschkoTsayShell::getCorotator(CoordSet &, double *, int, int)
 
 void
 BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSquareMatrix& k, double* efint, double delt, double time)
+{
+  if(solInfo.newmarkBeta == 0) {
+    getInternalForce(geomState, cs, k, efint, delt, time);
+  }
+  else if(prop) {
+    std::cerr << " *** ERROR: Stiffness matrix is not available for Belytschko-Tsay shell (type 16).\n"
+              << "            Use of this element is only supported for nonlinear explicit dynamics.\n";
+    exit(-1);
+  }
+}
+
+void
+BelytschkoTsayShell::getInternalForce(GeomState& geomState, CoordSet& cs, FullSquareMatrix& k, double* efint, double delt, double time)
 {
   //=======================================================================
   //  compute internal force vector including hourglass control, pressure
@@ -525,6 +641,19 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
   }
 }
 
+bool BelytschkoTsayShell::checkElementDeletion(GeomState &)
+{
+  bool deleteElem = false;
+  if(prop && expmat->optctv != 1) {
+    deleteElem = true;
+    for(int igaus = 0; igaus < mgaus[2]; ++igaus) {
+      if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) { deleteElem = false; break; }
+    }
+  }
+
+  return deleteElem;
+}
+
 void
 BelytschkoTsayShell::extractDeformations(GeomState &geomState, CoordSet &cs,
                                          double *vld, int &nlflag)
@@ -583,32 +712,40 @@ BelytschkoTsayShell::getTopNumber()
 
 void
 BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                          GeomState *geomState, int cflg, double)
+                                          GeomState *geomState, int cflg, double time)
 {
-/* now the pressure force is added in the same routine as the internal force
-  int opttrc = 0; // 0 : pressure
-                  // 1 : traction
-  double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
-  double* edisp = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
-  int iloc;
-  for(int i = 0; i < nnode; ++i) {
-    iloc = i*ndime;
-    ecord[iloc+0] = cs[nn[i]]->x;
-    ecord[iloc+1] = cs[nn[i]]->y;
-    ecord[iloc+2] = cs[nn[i]]->z;
-    edisp[iloc+0] = (geomState) ? (*geomState)[nn[i]].x - cs[nn[i]]->x : 0;
-    edisp[iloc+1] = (geomState) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
-    edisp[iloc+2] = (geomState) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
+  // if the element is not a phantom, the pressure force is added in the same routine as the internal force
+  if(!prop) {
+    int opttrc = 0; // 0 : pressure
+                    // 1 : traction
+    double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
+    double* edisp = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
+    int iloc;
+    for(int i = 0; i < nnode; ++i) {
+      iloc = i*ndime;
+      ecord[iloc+0] = cs[nn[i]]->x;
+      ecord[iloc+1] = cs[nn[i]]->y;
+      ecord[iloc+2] = cs[nn[i]]->z;
+      edisp[iloc+0] = (geomState) ? (*geomState)[nn[i]].x - cs[nn[i]]->x : 0;
+      edisp[iloc+1] = (geomState) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
+      edisp[iloc+2] = (geomState) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
+    }
+
+    double pressure = (pbc) ? pbc->val : 0;
+    // Check if Conwep is being used. If so, add the pressure from the blast loading function.
+    if (pbc && pbc->conwep && pbc->conwepswitch) {
+      pressure += BlastLoading::ComputeShellPressureLoad(ecord, time, *(pbc->conwep));
+    }
+
+    double trac[3] = { -pressure, 0, 0 };
+    double *efbc = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
+
+    _FORTRAN(elefbc3dbrkshl2)(opttrc, ecord, edisp, trac, efbc);
+
+    for(int i = 0; i < nnode; ++i)
+      for(int j = 0; j < ndime; ++j)
+        elPressureForce[6*i+j] = efbc[3*i+j];
   }
-  double trac[3] = { -pressure, 0, 0 };
-  double *efbc = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
-
-  _FORTRAN(elefbc3dbrkshl2)(opttrc, optele, ecord, edisp, trac, efbc);
-
-  for(int i = 0; i < nnode; ++i)
-    for(int j = 0; j < ndime; ++j)
-      elPressureForce[6*i+j] = efbc[3*i+j];
-*/
 }
 
 void
@@ -616,7 +753,7 @@ BelytschkoTsayShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
                                      Vector &elThermalForce, int glflag, 
                                      GeomState *geomState)
 {
-  cerr << "BelytschkoTsayShell::getThermalForce not implemented\n";
+  std::cerr << "BelytschkoTsayShell::getThermalForce not implemented\n";
   elThermalForce.zero();
 }
 
@@ -654,7 +791,7 @@ BelytschkoTsayShell::writeHistory(int fn)
   if(writeSize != 6*mgqpt[0]*sizeof(double))
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
 
-  if(expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8) {
+  if(expmat && (expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8)) {
     std::vector<double> PlasticStrain(3);
     std::vector<double> BackStress(3);
     double *state = new double[7*mgaus[2]];
@@ -668,6 +805,7 @@ BelytschkoTsayShell::writeHistory(int fn)
     writeSize = write(fn, state, 7*mgaus[2]*sizeof(double));
     if(writeSize != 7*mgaus[2]*sizeof(double))
       fprintf(stderr," *** ERROR: Inconsistent restart file 5.6\n");
+    delete [] state;
   }
 }
 
@@ -699,7 +837,7 @@ BelytschkoTsayShell::readHistory(int fn)
   if(readSize != 6*mgqpt[0]*sizeof(double))
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
 
-  if(expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8) {
+  if(expmat && (expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8)) {
     std::vector<double> PlasticStrain;
     std::vector<double> BackStress;
     double *state = new double[7*mgaus[2]];
@@ -715,6 +853,7 @@ BelytschkoTsayShell::readHistory(int fn)
       mat[i]->SetMaterialBackStress(BackStress);
       mat[i]->SetMaterialEquivalentPlasticStrain(state[l++]);
     }
+    delete [] state;
   }
 }
 
@@ -815,7 +954,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
   // check current element configuration
   // -----------------------------------
   if(area <= 0) {
-     cerr << " *** ERROR: in BelytschkoTsayShell::Elefintbt1 current element has negative or zero area: " << area << endl;
+     std::cerr << " *** ERROR: in BelytschkoTsayShell::Elefintbt1 current element has negative or zero area: " << area << std::endl;
      exit(-1);
   }
 
@@ -876,8 +1015,8 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
       F[6] = 0.5*evoit3[6*igaus+4]; // zx
       F[7] = 0.5*evoit3[6*igaus+3]; // zy
       F[8] = 1+evoit3[6*igaus+2]; // zz
-      if(!mat[igaus]->ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress)) {
-        cerr << " *** ERROR: ComputeElastoPlasticConstitutiveResponse failed\n";
+      if(!mat[igaus]->ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress, 0, true, delt)) {
+        std::cerr << " *** ERROR: ComputeElastoPlasticConstitutiveResponse failed\n";
         exit(-1);
       }
       // copy CauchyStress into sigvoitloc, i.e. evoit2[6*igaus+0]
@@ -899,7 +1038,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
 
   // update hourglass control stresses
   // ---------------------------------
-  if(opthgc >= 0) {
+  if(opthgc > 0) {
     _FORTRAN(updhgcstrsbt)(prmhgc, delt, expmat->ematpro, eveloloc.data(), area, bmat1pt,
                            gamma, zgamma, evoit1);
           // input : prmhgc,delt,ematpro,eveloloc,area,bmat1pt,gamma,zgamma
@@ -908,7 +1047,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
 
   // add the hourglass control forces
   // --------------------------------------
-  if(opthgc >= 0) {
+  if(opthgc > 0) {
     _FORTRAN(gqfhgcbt)(gamma, zgamma, evoit1, efintloc.data());
           // input : gamma,zgamma,hgcvoitloc
           // inoutput : efintloc
@@ -941,7 +1080,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
   // -------------------------------------
   efint = locbvec*efintloc;
 #else
-  cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::Elefintbt1\n";
+  std::cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::Elefintbt1\n";
   exit(-1);
 #endif
 }
@@ -1002,7 +1141,7 @@ BelytschkoTsayShell::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMat
     return std::numeric_limits<double>::infinity();
   }
 #else
-  cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::computeStabilityTimeStep\n";
+  std::cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::computeStabilityTimeStep\n";
   exit(-1);
 #endif
 }

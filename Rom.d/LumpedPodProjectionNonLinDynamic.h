@@ -12,18 +12,22 @@ public:
   explicit LumpedPodProjectionNonLinDynamic(Domain *);
 
   virtual void preProcess();
+  virtual void updateStates(ModalGeomState *refState, ModalGeomState& geomState, double time);
+  virtual void setLocalReducedMesh(int j);
 
 private:
-  // Overriden
   virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                           Corotator **allCorot, FullSquareMatrix *kelArray,
                                           Vector &residual, double lambda, double time, GeomState *refState,
-                                          FullSquareMatrix *melArray);
+                                          FullSquareMatrix *melArray, bool forceOnly);
 
-  void updateStates(ModalGeomState *refState, ModalGeomState& geomState);
-  
-  std::map<int, double> packedElementWeights_;
+protected:
+  std::vector<std::map<int, double> > packedElementWeights_;
+  std::vector<int> packedWeightedNodes_;
+  std::set<int> packedWeightedElems_;
   void buildPackedElementWeights();
+  int localReducedMeshId_;
+  std::vector<std::vector<int> > localPackedWeightedNodes_;
 };
 
 } /* end namespace Rom */

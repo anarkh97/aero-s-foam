@@ -8,12 +8,12 @@
 
 namespace Rom {
 
-class DistrExplicitPodPostProcessor : public MultiDomDynPostProcessor {
+class MultiDomDynPodPostProcessor : public MultiDomDynPostProcessor {
 
 public:
  
-  DistrExplicitPodPostProcessor(DecDomain *, StaticTimers* , DistrGeomState *, Corotator ***);
-  ~DistrExplicitPodPostProcessor();
+  MultiDomDynPodPostProcessor(DecDomain *, StaticTimers*, DistrGeomState *, Corotator ***);
+  ~MultiDomDynPodPostProcessor();
 
   void dynamOutput(int, double, MDDynamMat &, DistrVector &, DistrVector *aeroF, SysState<DistrVector> &);
   void printPODSize(int);
@@ -22,14 +22,12 @@ public:
 private:
 
   OutputInfo *oinfo;
-  DistrGeomState *geomState;
-  DecDomain *decDomain;
-  StaticTimers *times;
+  int numOutInfo;
   int podSize;
-  FILE *fn;
 
   void subBuildSensorNodeVector(int);
-  void subPrintSensorValues(int,GenDistrVector<double> &, OutputInfo *,double *);
+  void subPrintSensorValues(int, GenDistrVector<double> &, OutputInfo *, double *, int);
+  double subGetPrescribedSensorValue(int, int, int, int);
 
   DistrVecBasis *SensorBasis;
   GenDistrVector<double> *DispSensorValues;
@@ -43,8 +41,6 @@ private:
   bool VelSensor;
 
   std::vector<std::vector<int> > nodeVector;
-
-  int numOutInfo;    
 };
 
 class DistrExplicitPodProjectionNonLinDynamicBase : public MultiDomainDynam {
@@ -66,13 +62,21 @@ public:
   void getConstForce(DistrVector& v);
   void getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex);
   void printFullNorm(DistrVector &);
-  DistrExplicitPodPostProcessor *getPostProcessor();
+  MultiDomDynPodPostProcessor *getPostProcessor();
   MDDynamMat * buildOps(double, double, double); // Reduced-order matrix solver
+
+  //local basis functions
+  void initLocalBasis(DistrVector &q);
+  int  selectLocalBasis(DistrVector &q);
+  void setLocalBasis(DistrVector &q, DistrVector &qd);
+  void projectLocalBases(int i, int j, DistrVector &q);
+  virtual void setLocalReducedMesh(int j) {}
 
 protected:
   Domain        *domain;
   DistrInfo      reducedInfo;
   DistrVecBasis  normalizedBasis_;
+  DistrVecBasis  centroids;
   //dummy Variables to fascillitate computation on Reduced Coordinates
   StaticTimers * times;
   DistrVector  * fExt;
@@ -86,14 +90,25 @@ protected:
   DistrVector  * tempVec;
   SysState<DistrVector> *dummyState;
   bool haveRot;
+  int stableCount;
   GenParallelSolver<double> * fullMassSolver;
+  void reduceDisp(DistrVector &d, DistrVector &dr) const;
+
+#ifdef USE_EIGEN3
+  Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,Eigen::Dynamic> VtV;
+  Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic> d;
+  Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,Eigen::Dynamic> w;
+#endif
 
 private:
-  DistrExplicitPodPostProcessor *mddPostPro;
+  MultiDomDynPodPostProcessor *mddPostPro;
   // Disallow copy and assignment
   DistrExplicitPodProjectionNonLinDynamicBase(const DistrExplicitPodProjectionNonLinDynamicBase &);
   DistrExplicitPodProjectionNonLinDynamicBase &operator=(const DistrExplicitPodProjectionNonLinDynamicBase &);
+  void subInitStiff(int isub);
 
+  int localBasisId; 
+  std::vector<int> locBasisVec;
 };
 
 } // end namespace Rom

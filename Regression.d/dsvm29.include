@@ -511,7 +511,7 @@ TOPOLOGY
 173 125 307 308
 174 125 308 309
 *
-ATTRBUTES 
+ATTRIBUTES 
 1 5
 2 5
 3 5
@@ -689,7 +689,7 @@ ATTRBUTES
 *
 MATERIAL
 5 0 3e7 0 0 0.0 0 0 0.0 0 0 0.0 0 0 0 0 0 0 0
-6 constrmat 1 0
+6 conmat multipliers
 *
 DISP 
 1 1 0

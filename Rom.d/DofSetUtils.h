@@ -20,7 +20,7 @@ struct NodeDof {
 };
  
 const size_t DOF_ID_COUNT = 6;
-extern const NodeDof::DofType DOF_ID[DOF_ID_COUNT];
+extern NodeDof::DofType DOF_ID(int iDof);
 
 } // end namespace Rom
 

@@ -1,81 +1,65 @@
-// ---------------------------------------------------------------------
-// HB - 05-22-05
-// ---------------------------------------------------------------------
-// 26 nodes wedge element
-// Serendipity finite element basis
-// Iso-parametric formulation
-// ---------------------------------------------------------------------
 #ifndef _PENTA26_H_
 #define _PENTA26_H_
 
 #include <Element.d/Element.h>
-class NLMaterial;
 
-class Penta26: public Element {
+class Penta26: public Element
+{
+    int nn[26];
+    double *cCoefs;
+    double *cFrame;
+    NLMaterial *mat;
 
-	int nn[26];
-        double *C; 
+  public:
+    Penta26(int*);
+    ~Penta26();
 
-        Corotator* penta26Corotator; 
+    Element *clone();
 
-        double  *cCoefs;  
-        double  *cFrame; 
-        NLMaterial *mat;
-public:
-	Penta26(int*);
+    void renum(int *);
+    void renum(EleRenumMap&);
 
-        Element *clone();
+    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
+    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
+    double getMass(CoordSet& cs);
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+    void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
+    void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs=0);
 
-	FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
-	double           getMass(CoordSet& cs);
+    void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                     int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
-	void		 getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
-	                                 GeomState *gs);
+    void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                      int surface=0, double *ndTemps=0);
 
-        void             getVonMises(Vector &stress, Vector &weight, 
-                                     CoordSet &cs, Vector &elDisp, 
-                                     int strInd, int surface=0,
-                                     double *ndTemps=0,
-				     double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+    void markDofs(DofSetArray &);
+    int* dofs(DofSetArray &, int *p=0);
+    int numDofs();
 
-        void             getAllStress(FullM &stress, Vector &weight,
-                                  CoordSet &cs, Vector &elDisp,
-                                  int strInd, int surface=0,
-                                  double *ndTemps=0);
+    int numNodes();
+    int* nodes(int * = 0);
 
+    int getTopNumber();
+    int numTopNodes();
 
-	void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+    PrioInfo examine(int sub, MultiFront *);
+    int nDecFaces() { return 5; }
+    int getDecFace(int iFace, int *fn);
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-	int getTopNumber();
-        int numTopNodes();
-        Corotator *getCorotator(CoordSet &cs, double *kel, int , int );
+    int getFace(int iFace, int *fn);
 
-       void getThermalForce(CoordSet &cs, Vector &ndTemps,
-                            Vector &elementThermalForce, int glflag, 
-			    GeomState *geomState);
+    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
+      { cCoefs = coefs; cFrame = frame; }
 
-       PrioInfo examine(int sub, MultiFront *); // dec
-       //double weight() { return 3; } // should be 12 for brick20
-       //double trueWeight() { return 3; } // should be 12 for brick20
+    double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
+      { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
+               "              for Penta26 el.\n"); return (double *) 0;
+      }
 
-        void setCompositeData(int _type, int nlays, double *lData,
-                              double *coefs, double *frame) 
-          { cCoefs = coefs; cFrame = frame; } 
-
-        double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
-        { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
-                 "              for Penta26 el.\n"); return (double *) 0;
-        }
-
-        void setMaterial(NLMaterial *);
-        int numStates();
+    void setMaterial(NLMaterial *);
+    int numStates();
+    void initStates(double *st);
+    Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);
 };
+
 #endif

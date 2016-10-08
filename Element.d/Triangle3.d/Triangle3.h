@@ -2,8 +2,11 @@
 #define _TRIANGLE3_H_
 
 #include <Element.d/Element.h>
+#include <Element.d/Triangle3.d/Triangle3ElementTemplate.hpp>
 
-class Triangle3: public Element {
+class Triangle3: public Element,
+                 public Triangle3ElementTemplate<double>
+{
 
 	int nn[3];
 public:
@@ -17,15 +20,21 @@ public:
         FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg = 1);
         FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
         double           getMass(CoordSet&);
+        double getMassThicknessSensitivity(CoordSet&);
 
         void             getGravityForce(CoordSet&,double *gravity, Vector& f, int gravflg,
-	                                 GeomState *gs);
+	                                       GeomState *gs);
+        void getGravityForceThicknessSensitivity(CoordSet&,double *gravity, Vector& f, int gravflg,
+                                                 GeomState *gs);
 
         virtual void     getVonMises (Vector &stress, Vector &weight, 
                                       CoordSet &cs, Vector &elDisp, 
                                       int strInd, int surface=0,
                                       double *ndTemps=0,
-				      double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+                                      double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+
+        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                double *ndTemps, int avgnum, double ylayer, double zlayer);
 
         virtual void     getAllStress(FullM &stress, Vector &weight, 
                                       CoordSet &cs, Vector &elDisp, 
@@ -44,9 +53,6 @@ public:
 	// Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
 
-	//bool hasRot() { return true; }
-	//double weight() { return 3; }
-        //double trueWeight() { return 3; }
 };
 #endif
 

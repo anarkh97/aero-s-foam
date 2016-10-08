@@ -7,7 +7,9 @@
 #include <Driver.d/SubDomain.h>
 #include <Driver.d/CornerMaker.h>
 #include <Utils.d/GlobalToLocalMap.h>
+#include <Element.d/Helm.d/HelmElement.h>
 #include <algorithm>
+#include <iostream>
 
 extern int verboseFlag;
 extern int isFeti3;
@@ -20,8 +22,9 @@ extern "C" {
   void _FORTRAN(dgemv)(const char &, const int &,const int &,
                 const double &, double *, const int &,
                 double *, const int &, const double &, double *, const int &);
-
 }
+
+using std::list;
 
 BaseSub::BaseSub() 
  : Domain()
@@ -143,7 +146,7 @@ BaseSub::makeCDSA()
     bcx = new double[numdofs];
     make_bc(bc, bcx);
 
-    if(solInfo().isDynam()) { // PJSA: initialize prescribed velocities
+    if(solInfo().isDynam() || solInfo().timeIntegration == 1) { // PJSA: initialize prescribed velocities
       vcx = new double[numdofs];
       acx = new double[numdofs];
       for(int i=0; i<numdofs; ++i) acx[i] = vcx[i] = 0.0;
@@ -403,9 +406,9 @@ BaseSub::makeBMaps(DofSetArray *dof_set_array)
       else {
 	dualToBoundary[iDof] = invBoundMap[ccToC[allBoundDofs[iDof]]];  
 	if(dualToBoundary[iDof] < 0) {
-          cerr << "Error in makeBMaps " << endl;
-          cerr << "Tried to map " << allBoundDofs[iDof] 
-               << " which in cdsa is " << ccToC[allBoundDofs[iDof]] << endl;
+          std::cerr << "Error in makeBMaps " << std::endl;
+          std::cerr << "Tried to map " << allBoundDofs[iDof] 
+               << " which in cdsa is " << ccToC[allBoundDofs[iDof]] << std::endl;
           exit(-1);
         }
       }
@@ -1047,9 +1050,9 @@ BaseSub::setWetInterface(int nWI, int *wiNum)
   }
 
   if ((numWInodes > 0) && solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner != 0))
-    cout << " ERROR: no wetINterface nodes should exist. " << endl; 
+    std::cout << " ERROR: no wetINterface nodes should exist. " << std::endl; 
 
-  sort(myWetInterfaceNodes, myWetInterfaceNodes+numWInodes);
+  std::sort(myWetInterfaceNodes, myWetInterfaceNodes+numWInodes);
   //small optimization of the memory 
   int* llToGlobalWImap = new int[DOFBASE*numWInodes]; //HB: 7*numWInodes is an upper bound
   wDofToNode = new int[DOFBASE*numWInodes]; //HB: 7*numWInodes is an upper bound
@@ -1114,19 +1117,11 @@ int BaseSub::renumberBC(int *map)
   return 0;
 }
 
-
-void 
-BaseSub::setUpData()  
-{
-  geoSource->getNodes(nodes);
-  geoSource->getElems(packedEset, numele, glElems); 
-}
-
 void BaseSub::applyAuxData()  
 {
   // get attributes
   //int nAttr = geoSource->getNumAttributes();
-  map<int, Attrib> &attributes = geoSource->getAttributes();
+  std::map<int, Attrib> &attributes = geoSource->getAttributes();
 
   // get struct props
   SPropContainer &sProps = geoSource->getStructProps();
@@ -1211,8 +1206,15 @@ void BaseSub::applyAuxData()
     int locElemNum =  cl2LocElemMap[ efd[iFrame].elnum ];
 
     // check if eframe is in this subdomain
-    if (locElemNum >= 0) 
+    if (locElemNum >= 0) {
       packedEset[locElemNum]->setFrame(&(efd[iFrame].frame));
+      for(int k=0; k<3; ++k) {
+        std::cerr << "\nprint eframe^^";
+        for(int l=0; l<3; ++l)
+          std::cerr << " " << efd[iFrame].frame[k][l];
+      }
+      std::cerr << std::endl;  
+    }
   }
 
   // create cluster to local node map for node renumbering
@@ -1463,7 +1465,7 @@ void BaseSub::setNumGroupRBM(int *ngrbmGr)
 
 void BaseSub::getNumGroupRBM(int *ngrbmGr)
 {
-  //cerr << "in getNumGroupRBM " << subNumber << " " << group << " " << numGroupRBM << endl;
+  //cerr << "in getNumGroupRBM " << subNumber << " " << group << " " << numGroupRBM << std::endl;
   ngrbmGr[group] = numGroupRBM;
 }
 
@@ -1897,6 +1899,10 @@ BaseSub::~BaseSub()
   if(locToGlUserDispMap) { delete [] locToGlUserDispMap; locToGlUserDispMap = 0; }
   if(locToGlUserForceMap) { delete [] locToGlUserForceMap; locToGlUserForceMap = 0; }
 //  if(glToLocalElem) delete [] glToLocalElem;
+#ifdef DISTRIBUTED
+  if(outputNodes) delete [] outputNodes;
+  if(outIndex) delete [] outIndex;
+#endif
 }
 
 void
@@ -2355,7 +2361,7 @@ BaseSub::makeEdgeQ(FSCommPattern<double> *qPat)
   double pi = 3.141592653589793;
   int spaceDim = solInfo().solvercntl->fetiInfo.spaceDimension; // whether problem is 1D, 2D or 3D
   if((spaceDim < 1) || (spaceDim > 3)) {
-    cerr << " *** ERROR: spacedim = " << spacedim << endl;
+    std::cerr << " *** ERROR: spacedim = " << spacedim << std::endl;
     exit(-1);
   }
 
@@ -2427,7 +2433,7 @@ BaseSub::makeEdgeQ(FSCommPattern<double> *qPat)
       getDirections(numDirec, wDir_x, wDir_y, wDir_z); 
     }
     else {
-      cerr << " *** ERROR: spacedim " << spacedim << " is not implemented \n";
+      std::cerr << " *** ERROR: spacedim " << spacedim << " is not implemented \n";
       exit(-1);
     }
   }
@@ -2620,7 +2626,7 @@ BaseSub::makeEdgeQ(FSCommPattern<double> *qPat)
 */
 
 void 
-BaseSub::GramSchmidt(double *Q, bool *isUsed, int numDofPerNode, int nQPerNeighb)
+BaseSub::GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation)
 {
   double rtol = solInfo().getFetiInfo().orthotol;
   double atol = solInfo().getFetiInfo().orthotol2;
@@ -2631,12 +2637,13 @@ BaseSub::GramSchmidt(double *Q, bool *isUsed, int numDofPerNode, int nQPerNeighb
   int numNeighb = sharedNodes.csize();
   int numInterfNodes = sharedNodes.numConnect();
 
-  DofSet desired;
-  if(numDofPerNode == 1) desired = DofSet::Helm;
-  else if(numDofPerNode == 3) desired = DofSet::XYZdisp;
-  else if(numDofPerNode == 6) desired = DofSet::XYZdisp | DofSet::XYZrot;
+  int numDofPerNode;
+  if((desired.contains(DofSet::Helm)) || (desired.contains(DofSet::Temp)))
+    numDofPerNode = 1;
+  else if((desired.contains(DofSet::XYZdisp)))
+    numDofPerNode = (desired.contains(DofSet::XYZrot))?6:3;
   else {
-    cerr << " *** WARNING: numDofPerNode = 0 in BaseSub::GramSchmidt(...) sub " << subNumber << endl;
+    std::cerr << " *** WARNING: numDofPerNode = 0 in BaseSub::GramSchmidt(...) sub " << subNumber << std::endl;
     return;
   }
 
@@ -2667,8 +2674,12 @@ BaseSub::GramSchmidt(double *Q, bool *isUsed, int numDofPerNode, int nQPerNeighb
             for(m = 0; m < numDofPerNode; ++m)
               if((dxyz[m] >= 0) && (count[dxyz[m]] < 2))
                 vjt[numDofPerNode*l+m] = vj[numDofPerNode*l+m];
-              else
+              else {
+                // Edge modification for primal augmentation 082213 JAT
+		if(isPrimalAugmentation)
+		  vj[numDofPerNode*l+m] = 0.0;
                 vjt[numDofPerNode*l+m] = 0.0;
+	      }
           }
 
           double initNorm = vjt.norm();

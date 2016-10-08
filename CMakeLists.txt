@@ -15,6 +15,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 #SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
 #SET(CMAKE_EXE_LINKER_FLAGS -static)
 
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-literal-suffix")
+endif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+
 if (${CMAKE_VERSION} VERSION_GREATER 2.8.3 OR ${CMAKE_VERSION} VERSION_EQUAL 2.8.3)
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" AND NOT WITH_CXX11 EQUAL 0)
     execute_process(
@@ -23,7 +27,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" AND NOT WITH_CXX11 EQUAL 0)
         set(CHECK_CXX_FEATURES true)
         set(CMAKE_CXX11_FLAGS "-std=c++11 -Wno-deprecated-declarations")
     endif ()
-elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel")
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel" AND NOT WITH_CXX11 EQUAL 0)
     execute_process(
         COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE ICC_VERSION)
     if (ICC_VERSION VERSION_GREATER 12.1 OR ICC_VERSION VERSION_EQUAL 12.1)
@@ -88,7 +92,7 @@ IF(UNIX)
 
 # zoltan
     IF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
-      FIND_PATH(ZOLTAN_INCLUDE_PATH zoltan.h
+      FIND_PATH(ZOLTAN_INCLUDE_PATH Zoltan_config.h
                 PATHS /usr/include /usr/local/include)
       FIND_PATH(ZOLTAN_SRC_PATH zz/zz_const.h
                 PATHS /usr/include /usr/local/include)
@@ -144,15 +148,14 @@ IF(UNIX)
       ENDIF(ARPACK_arpack_LIBRARY AND ARPACK_parpack_LIBRARY)
     ENDIF(NOT MPI_FOUND)
    ELSE(NOT WITH_ARPACK EQUAL 0)
-    SET(ARPACK_arpack_LIBRARY "ARPACK_arpack_LIBRARY-NOTFOUND")
-    SET(ARPACK_parpack_LIBRARY "ARPACK_parpack_LIBRARY-NOTFOUND")
+    SET(ARPACK_arpack_LIBRARY "ARPACK_arpack_LIBRARY-NOTFOUND" CACHE FILEPATH "Path to a library." FORCE)
+    SET(ARPACK_parpack_LIBRARY "ARPACK_parpack_LIBRARY-NOTFOUND" CACHE FILEPATH "Path to a library." FORCE)
    ENDIF(NOT WITH_ARPACK EQUAL 0)
 
 # spooles
    IF(NOT WITH_SPOOLES EQUAL 0)
     FIND_PATH(SPOOLES_INCLUDE_PATH FrontMtx.h
               PATHS /usr/include /usr/local/include /usr/include/spooles)
-    #SET(CMAKE_FIND_LIBRARY_PREFIXES "lib" "")
     FIND_LIBRARY(SPOOLES_spooles_LIBRARY NAMES spooles
                  PATHS /usr/lib /usr/local/lib)
     FIND_LIBRARY(SPOOLES_spoolesMT_LIBRARY NAMES spoolesMT
@@ -170,23 +173,25 @@ IF(UNIX)
       endif(SPOOLES_spoolesMT_LIBRARY)
       SET(INC_DIR ${INC_DIR} ${SPOOLES_INCLUDE_PATH})
     ENDIF(SPOOLES_FOUND)
+   ELSE(NOT WITH_SPOOLES EQUAL 0)
+    SET(SPOOLES_spooles_LIBRARY "SPOOLES_spooles_LIBRARY-NOTFOUND" CACHE FILEPATH "Path to a library." FORCE)
    ENDIF(NOT WITH_SPOOLES EQUAL 0)
 
 # eigen
    IF(NOT WITH_EIGEN3 EQUAL 0)
      find_package(Eigen3 3.1)
      IF(EIGEN3_FOUND)
-       MESSAGE("-- A library with EIGEN3 API found.")
        include_directories(${EIGEN3_INCLUDE_DIR})
-       add_definitions(-DUSE_EIGEN3 -DUSE_EIGEN3_AUTODIFF -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>)
+       add_definitions(-DUSE_EIGEN3 -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>
+                       -DEIGEN_DONT_PARALLELIZE)
        set(CMAKE_MODULE_PATH "${EIGEN3_INCLUDE_DIR}/cmake" ${CMAKE_MODULE_PATH})
        IF(NOT WITH_EIGEN3_EXTRA EQUAL 0)
          find_package(Cholmod)
-         if (CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+         if (CHOLMOD_INCLUDE_DIR AND CHOLMOD_LIBRARIES)
            include_directories(${CHOLMOD_INCLUDES})
            add_definitions(-DEIGEN_CHOLMOD_SUPPORT)
            SET(EXTRALIBRARIES ${CHOLMOD_LIBRARIES} ${EXTRALIBRARIES})
-         endif(CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+         endif(CHOLMOD_INCLUDE_DIR AND CHOLMOD_LIBRARIES)
          find_package(Umfpack)
          if (UMFPACK_INCLUDES AND UMFPACK_LIBRARIES)
            include_directories(${UMFPACK_INCLUDES})
@@ -209,13 +214,21 @@ IF(UNIX)
      ENDIF(EIGEN3_FOUND)
    ENDIF(NOT WITH_EIGEN3 EQUAL 0)
 
-#sacado
+# sacado
     IF(NOT WITH_SACADO EQUAL 0)
       FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp )
       IF(SACADO_INCLUDE_PATH)
+        set(SACADO_FOUND TRUE)
         MESSAGE("-- A library with SACADO API found. ")
         add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
         include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
+        if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+          if (GCC_VERSION VERSION_GREATER 5.0 OR GCC_VERSION VERSION_EQUAL 5.0)
+            MESSAGE("Note: Sacado source code may need to be changed if Aero-S does not build "
+                    "(1) Sacado_trad.hpp line 657 (2) Sacado_tradvec.hpp line 468. "
+                    "In each case the argument to the IndepADvar assignment operator should be const.")
+          endif (GCC_VERSION VERSION_GREATER 5.0 OR GCC_VERSION VERSION_EQUAL 5.0)
+        endif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
       ENDIF(SACADO_INCLUDE_PATH)
     ENDIF(NOT WITH_SACADO EQUAL 0)
 
@@ -229,6 +242,38 @@ IF(UNIX)
         SET(EXTRALIBRARIES ${METIS_LIBRARY} ${EXTRALIBRARIES})
       ENDIF(METIS_LIBRARY)
     ENDIF(NOT WITH_METIS EQUAL 0)
+
+# scalapack
+    IF(MPI_FOUND AND NOT WITH_SCALAPACK EQUAL 0)
+      # blacs is required for scalapack
+      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0 
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_LIBRARY(BLACS_Cinit_LIBRARY NAMES blacsCinit blacsCinit-openmpi blacsCinit_MPI-LINUX-0 blacsC
+                   PATHS /usr/lib /usr/local/lib)
+      if(BLACS_blacs_LIBRARY AND BLACS_Cinit_LIBRARY)
+        MESSAGE("-- A library with BLACS API found.")
+        SET(BLACS_LIBRARIES ${BLACS_blacs_LIBRARY} ${BLACS_Cinit_LIBRARY} ${BLACS_blacs_LIBRARY})
+        SET(BLACS_FOUND TRUE)
+      endif(BLACS_blacs_LIBRARY AND BLACS_Cinit_LIBRARY)
+
+      FIND_LIBRARY(SCALAPACK_LIBRARY NAMES scalapack scalapack-openmpi
+                   PATHS /usr/lib /usr/local/lib)
+      if(SCALAPACK_LIBRARY)
+        MESSAGE("-- A library with SCALAPACK API found.")
+        SET(SCALAPACK_FOUND TRUE)
+      endif(SCALAPACK_LIBRARY)
+      if(BLACS_FOUND AND SCALAPACK_FOUND)
+        add_definitions(-DUSE_SCALAPACK)
+        SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${SCALAPACK_LIBRARY} ${BLACS_LIBRARIES})
+#        IF(NOT WITH_MKL EQUAL 0)
+#            MESSAGE("-- Using MKL.")
+#            add_definitions(-DUSE_MKL)
+#            include_directories($ENV{MKLPATH}/../../include)
+#        ELSE(NOT WITH_MKL EQUAL 0)
+#            include_directories("/home/avery/Codes/Scalapack/trunk/PBLAS/SRC")
+#        ENDIF(NOT WITH_MKL EQUAL 0)
+      endif(BLACS_FOUND AND SCALAPACK_FOUND)
+    ENDIF(MPI_FOUND AND NOT WITH_SCALAPACK EQUAL 0)
 
 # scotch
     IF(NOT WITH_SCOTCH EQUAL 0)
@@ -246,6 +291,7 @@ IF(UNIX)
     FIND_PATH(MUMPS_INCLUDE_PATH dmumps_c.h
               PATHS /usr/include usr/local/include)
     if (NOT MPI_FOUND)
+      UNSET(MUMPS_common_LIBRARY CACHE)
       MARK_AS_ADVANCED(CLEAR MUMPS_dmumps_seq_LIBRARY MUMPS_zmumps_seq_LIBRARY
                        MUMPS_common_seq_LIBRARY MUMPS_pord_seq_LIBRARY
                        MUMPS_mpiseq_LIBRARY)
@@ -272,6 +318,7 @@ IF(UNIX)
         SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MUMPS_LIBRARIES})
       endif(MUMPS_FOUND)
     else(NOT MPI_FOUND)
+      UNSET(MUMPS_common_seq_LIBRARY CACHE)
       MARK_AS_ADVANCED(FORCE MUMPS_dmumps_seq_LIBRARY MUMPS_zmumps_seq_LIBRARY
                        MUMPS_common_seq_LIBRARY MUMPS_pord_seq_LIBRARY
                        MUMPS_mpiseq_LIBRARY)
@@ -290,54 +337,25 @@ IF(UNIX)
         MESSAGE("-- A library with MUMPS API found.")
         SET(MUMPS_FOUND TRUE)
       endif(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_LIBRARY AND MUMPS_zmumps_LIBRARY AND MUMPS_common_LIBRARY AND MUMPS_pord_LIBRARY)
-      # blacs is required for parallel mumps
-      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0 
-                   PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(BLACS_Cinit_LIBRARY NAMES blacsCinit blacsCinit-openmpi blacsCinit_MPI-LINUX-0 blacsC
-                   PATHS /usr/lib /usr/local/lib)
-      if(BLACS_blacs_LIBRARY AND BLACS_Cinit_LIBRARY)
-        MESSAGE("-- A library with BLACS API found.")
-        SET(BLACS_LIBRARIES ${BLACS_blacs_LIBRARY} ${BLACS_Cinit_LIBRARY} ${BLACS_blacs_LIBRARY})  
-        SET(BLACS_FOUND TRUE)
-      endif(BLACS_blacs_LIBRARY AND BLACS_Cinit_LIBRARY)
-      # scalapack is required for parallel mumps
-      FIND_LIBRARY(SCALAPACK_LIBRARY NAMES scalapack scalapack-openmpi
-                   PATHS /usr/lib /usr/local/lib)
-      if(SCALAPACK_LIBRARY)
-        MESSAGE("-- A library with SCALAPACK API found.")
-        SET(SCALAPACK_FOUND TRUE)
-      endif(SCALAPACK_LIBRARY)
 
-      if(SCALAPACK_FOUND)
-        add_definitions(-DUSE_SCALAPACK)
-        if(MUMPS_FOUND)
-          add_definitions(-DUSE_MUMPS)
-          SET(INC_DIR ${INC_DIR} ${MUMPS_INCLUDE_PATH})
-          SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MUMPS_LIBRARIES})
-        endif(MUMPS_FOUND)
-        SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${SCALAPACK_LIBRARY})
-        if(BLACS_FOUND)
-          SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${BLACS_LIBRARIES})
-        endif(BLACS_FOUND)
-      endif(SCALAPACK_FOUND)
+      if(BLACS_FOUND AND SCALAPACK_FOUND AND MUMPS_FOUND)
+        add_definitions(-DUSE_MUMPS)
+        SET(INC_DIR ${INC_DIR} ${MUMPS_INCLUDE_PATH})
+        SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MUMPS_LIBRARIES} ${SCALAPACK_LIBRARY} ${BLACS_LIBRARIES})
+      endif(BLACS_FOUND AND SCALAPACK_FOUND AND MUMPS_FOUND)
+
     endif(NOT MPI_FOUND)
+   ELSE(NOT WITH_MUMPS EQUAL 0)
+    if (NOT MPI_FOUND)
+      UNSET(MUMPS_common_LIBRARY CACHE)
+      SET(MUMPS_common_seq_LIBRARY "MUMPS_common_seq_LIBRARY-NOTFOUND" CACHE FILEPATH "Path to a library." FORCE)
+    else (NOT MPI_FOUND)
+      UNSET(MUMPS_common_seq_LIBRARY CACHE)
+      SET(MUMPS_common_LIBRARY "MUMPS_common_LIBRARY-NOTFOUND" CACHE FILEPATH "Path to a library." FORCE)
+    endif (NOT MPI_FOUND)
    ENDIF(NOT WITH_MUMPS EQUAL 0)
 
-#stxxl
-    IF(NOT WITH_STXXL EQUAL 0)
-      FIND_LIBRARY(STXXL_LIBRARY NAMES stxxl
-                   PATHS /usr/lib /usr/local/lib)
-      FIND_PATH(STXXL_INCLUDE_PATH stxxl.h
-                PATHS /usr/include usr/local/include)
-      if(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
-        MESSAGE("-- A library with STXXL API found.")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include stxxl/bits/defines.h")
-        add_definitions(-DUSE_STXXL -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE)
-        SET(INC_DIR ${INC_DIR} ${STXXL_INCLUDE_PATH})
-        SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${STXXL_LIBRARY})
-      ENDIF(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
-    ENDIF(NOT WITH_STXXL EQUAL 0)
-
+   IF(NOT WITH_BOOST EQUAL 0)
     FIND_PACKAGE(Boost 1.35)
     if(Boost_FOUND)
       add_definitions(-DUSE_BOOST)
@@ -346,6 +364,7 @@ IF(UNIX)
       unset(Boost_INCLUDE_DIR CACHE)
       unset(Boost_LIBRARY_DIRS CACHE)
     endif(Boost_FOUND)
+   ENDIF(NOT WITH_BOOST EQUAL 0)
 
   ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL Linux OR ${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
 ENDIF(UNIX)
@@ -356,7 +375,6 @@ ENDIF(APPLE)
 
 if(MPI_FOUND)
    add_definitions(-DUSE_MPI -DDISTRIBUTED -DMPICH_IGNORE_CXX_SEEK)
-#   add_definitions(-DUSE_MPI -DDISTRIBUTED -DAEROELASTIC -DMPICH_IGNORE_CXX_SEEK)
    SET(EXTRALIBDYN ${EXTRALIBRARIES})
    SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MPI_LIBRARIES})
    SET(INC_DIR ${INC_DIR} ${MPI_INCLUDE_PATH})
@@ -377,7 +395,15 @@ ELSE (MERCURIAL_EXECUTABLE)
                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 ENDIF (MERCURIAL_EXECUTABLE)
 
-add_definitions(-D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DMORTAR_LOCALNUMBERING -DSOWER_SURFS  -DMAP_MIN_MEMORY)
+add_definitions(-D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DSOWER_SURFS -DMAP_MIN_MEMORY)
+
+IF(SENSITIVITY_DEBUG EQUAL 1)
+   add_definitions(-DSENSITIVITY_DEBUG)
+endif(SENSITIVITY_DEBUG EQUAL 1)
+
+IF(AEROS_NO_AD EQUAL 1)
+   add_definitions(-DAEROS_NO_AD)
+endif(AEROS_NO_AD EQUAL 1)
 
 INCLUDE_DIRECTORIES( ${INC_DIR} )
 
@@ -406,8 +432,8 @@ add_subdirectory(Rom.d)
 add_subdirectory(Regression.d)
 
 SET(ALLLIBS Parser
-     Driver Elem Feti HelmAxi solver Corotational Mortar Math
-     Dec Threads linpa Sfem paral Problems solver Corotational Driver Hetero Timers Comm Material Rom Util getopt)
+     Driver Elem Feti HelmAxi solver Corotational Mortar Rom Math
+     Dec Threads linpa Sfem paral Problems solver Corotational Driver Hetero Timers Comm Material Util getopt)
 
 IF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
   add_subdirectory(Acme.d)
@@ -433,8 +459,8 @@ IF(CREATE_DSO)
    ADD_LIBRARY(femlib main.C HgIdentity.C)
    # ADD_LIBRARY(femlib EXCLUDE_FROM_ALL main.C HgIdentity.C)
    target_link_libraries(femlib Parser
-       Driver Elem Feti HelmAxi solver Corotational Mortar Math 
-       Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Rom Util getopt Parser
+       Driver Elem Feti HelmAxi solver Corotational Mortar Rom Math
+       Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Util getopt Parser
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
    SET_TARGET_PROPERTIES(femlib
                          PROPERTIES 
@@ -478,13 +504,49 @@ set_target_properties(errorcodec
 
 target_link_libraries(errorcodec Rom Util)
 
+add_executable(impulseerrorcodec Rom.d/ImpulseErrorCodec.C)
+set_target_properties(impulseerrorcodec
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME imperr
+                      DEBUG_OUTPUT_NAME relerr.debug)
+
+target_link_libraries(impulseerrorcodec Rom Util)
+
+add_executable(errorcodec6 Rom.d/ErrorCodec6.C)
+set_target_properties(errorcodec6
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME relerr6
+                      DEBUG_OUTPUT_NAME relerr6.debug)
+
+target_link_libraries(errorcodec6 Rom Util)
+
+add_executable(impulseerrorcodec6 Rom.d/ImpulseErrorCodec6.C)
+set_target_properties(impulseerrorcodec6
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME imperr6
+                      DEBUG_OUTPUT_NAME imperr6.debug)
+
+target_link_libraries(impulseerrorcodec6 Rom Util)
+
+add_executable(errorcodec1 Rom.d/ErrorCodec1.C)
+set_target_properties(errorcodec1
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME relerr1
+                      DEBUG_OUTPUT_NAME relerr1.debug)
+
+target_link_libraries(errorcodec1 Rom Util)
+
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 
       "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-SET(AllTargets robcodec errorcodec)
+SET(AllTargets robcodec errorcodec errorcodec6 errorcodec1)
 IF(CREATE_DSO)
   SET(AllTargets ${AllTargets} femlib)
 ELSE(CREATE_DSO)
@@ -502,19 +564,21 @@ MESSAGE("=================================================")
 MESSAGE("           Summary of build options")
 MESSAGE("-------------------------------------------------")
 IF(MPI_FOUND)
+  MESSAGE("MPI                       YES")
   MESSAGE("Distributed FETI:         YES")
   MESSAGE("Aeroelastic:              YES")
-  IF(MUMPS_FOUND AND SCALAPACK_FOUND)
+  IF(MUMPS_FOUND AND SCALAPACK_FOUND AND BLACS_FOUND)
     MESSAGE("Mumps:                    YES")
-  ELSE(MUMPS_FOUND AND SCALAPACK_FOUND)
+  ELSE(MUMPS_FOUND AND SCALAPACK_FOUND AND BLACS_FOUND)
     MESSAGE("Mumps:                    NO ")
-  ENDIF(MUMPS_FOUND AND SCALAPACK_FOUND)
-  IF(SCALAPACK_FOUND)
+  ENDIF(MUMPS_FOUND AND SCALAPACK_FOUND AND BLACS_FOUND)
+  IF(SCALAPACK_FOUND AND BLACS_FOUND)
     MESSAGE("Scalapack:                YES")
-  ELSE(SCALAPACK_FOUND)
+  ELSE(SCALAPACK_FOUND AND BLACS_FOUND)
     MESSAGE("Scalapack:                NO ")
-  ENDIF(SCALAPACK_FOUND)
+  ENDIF(SCALAPACK_FOUND AND BLACS_FOUND)
 ELSE(MPI_FOUND)
+  MESSAGE("MPI                       NO ")
   MESSAGE("Distributed FETI:         NO ")
   MESSAGE("Aeroelastic:              NO ")
   IF(MUMPS_FOUND)
@@ -544,6 +608,11 @@ IF(METIS_LIBRARY)
 ELSE(METIS_LIBRARY)
   MESSAGE("Metis:                    NO ")
 ENDIF(METIS_LIBRARY)
+IF(EIGEN3_FOUND)
+  MESSAGE("Eigen template library:   YES")
+ELSE(EIGEN3_FOUND)
+  MESSAGE("Eigen template library:   NO ")
+ENDIF(EIGEN3_FOUND)
 if(OpenMP_FLAG_DETECTED)
   MESSAGE("OpenMP:                   YES")
 else(OpenMP_FLAG_DETECTED)
@@ -593,6 +662,9 @@ if(TEST_DURATION_SHORT)
   ADD_TEST(testRtest27a ${EXEC_DIR}/dataComp.py -l dsvm27a)
   ADD_TEST(testRtest27b ${EXEC_DIR}/dataComp.py -l dsvm27b)
   ADD_TEST(testRtest30 ${EXEC_DIR}/dataComp.py -l dsvm30)
+  if(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS AND SACADO_FOUND)
+    ADD_TEST(testRtest34 ${EXEC_DIR}/dataComp.py -l dsvm34)
+  endif(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS AND SACADO_FOUND)
   ADD_TEST(testRtest35b ${EXEC_DIR}/dataComp.py -l dsvm35b)
   ADD_TEST(testRtest40 ${EXEC_DIR}/dataComp.py -l dsvm40)
   ADD_TEST(testvme1 ${EXEC_DIR}/dataComp.py -l vme1 )
@@ -632,13 +704,14 @@ else(TEST_DURATION_SHORT)
   ADD_TEST(testRtest30 ${EXEC_DIR}/dataComp.py -l dsvm30)
   ADD_TEST(testRtest31 ${EXEC_DIR}/dataComp.py -l dsvm31)
   ADD_TEST(testRtest32 ${EXEC_DIR}/dataComp.py -l dsvm32)
-#  ADD_TEST(testRtest34 ${EXEC_DIR}/dataComp.py -l dsvm34)
+  if(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS AND SACADO_FOUND)
+    ADD_TEST(testRtest34 ${EXEC_DIR}/dataComp.py -l dsvm34)
+  endif(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS AND SACADO_FOUND)
   ADD_TEST(testRtest35a ${EXEC_DIR}/dataComp.py -l dsvm35a)
   ADD_TEST(testRtest35b ${EXEC_DIR}/dataComp.py -l dsvm35b)
   ADD_TEST(testRtest37 ${EXEC_DIR}/dataComp.py -l dsvm37)
 #  ADD_TEST(testRtest38 ${EXEC_DIR}/dataComp.py -l dsvm38)
   ADD_TEST(testRtest39 ${EXEC_DIR}/dataComp.py -l dsvm39)
-  # use the -s flag to send results via email
   ADD_TEST(testRtest40 ${EXEC_DIR}/dataComp.py -l dsvm40)
   ADD_TEST(testvme1 ${EXEC_DIR}/dataComp.py -l vme1 )
 #  ADD_TEST(testvme2 ${EXEC_DIR}/dataComp.py -l vme2 )
@@ -649,7 +722,8 @@ else(TEST_DURATION_SHORT)
   ADD_TEST(testvmmech003 ${EXEC_DIR}/dataComp.py -l vmmech003 )
   ADD_TEST(testvmmech063 ${EXEC_DIR}/dataComp.py -l vmmech063 )
   ADD_TEST(testPreStress ${EXEC_DIR}/dataComp.py -l PreStressedMembrane )
-  ADD_TEST(testPressure ${EXEC_DIR}/dataComp.py -l -s PlateUnderPressure )
+  # use the -s flag to send results via email
+  ADD_TEST(testPressure ${EXEC_DIR}/dataComp.py -l PlateUnderPressure )
 #  ADD_TEST(sendResults ${EXEC_DIR}/sendResults.py )
 endif(TEST_DURATION_SHORT)
 

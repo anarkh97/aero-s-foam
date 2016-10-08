@@ -101,7 +101,7 @@
             LENGTH = IEND - IBEGIN + 1
             BOUND  = LENGTH*LENGTH
             RWSIZE = MAX(RWSIZE,NCOLS*(LENGTH+NCOLS))
-            IF  ( BOUND .GT. TMPSIZ )  THEN
+            IF  ( LENGTH .GT. 0 .AND. BOUND .GT. TMPSIZ )  THEN
                 CURSUP = SNODE(LINDX(IBEGIN))
                 CLEN   = XLINDX(CURSUP+1) - XLINDX(CURSUP)
                 WIDTH  = 0

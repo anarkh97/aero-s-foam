@@ -41,7 +41,8 @@ template<typename DataType>
 void ContactNodeNodeInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactNodeFaceInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactNodeSurfaceInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc);
-void ContactFaceFaceInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc);
+template<typename DataType>
+  void ContactFaceFaceInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactFaceCoverageInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactElementElementInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactDLLTopologyNode_SizeAllocator(ContactFixedSizeAllocator& alloc);

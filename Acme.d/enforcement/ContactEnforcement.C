@@ -952,11 +952,11 @@ ContactEnforcement::Set_Up( bool Update_Enf_Model_State )
     if(topology->Number_FaceFace_Interactions()){
       for (int i=0; i<num_faces; ++i) {
         ContactFace<Real>* face = Faces[i];
-        ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+        ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
         if(interactions != NULL) {
           interactions->IteratorStart();
-          while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
-            ContactFaceFaceInteraction* cffi = static_cast<ContactFaceFaceInteraction*> (interaction);
+          while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
+            ContactFaceFaceInteraction<Real>* cffi = static_cast<ContactFaceFaceInteraction<Real>*> (interaction);
             ContactFace<Real>* master_face = cffi->MasterFace();
             if (master_face->Owner()!=my_proc) master_face->temp_tag |= 2;
             for (int k=0; k<master_face->Nodes_Per_Face(); ++k) {
@@ -969,9 +969,9 @@ ContactEnforcement::Set_Up( bool Update_Enf_Model_State )
     if(topology->Number_ElementElement_Interactions()){
       for (int i=0; i<num_elems; ++i) {
         ContactElement* element = Elems[i];
-        ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
+        ContactInteractionDLL<Real>* interactions = element->Get_ElementElement_Interactions();
         interactions->IteratorStart();
-        while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
+        while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
           ContactElementElementInteraction* ceei = static_cast<ContactElementElementInteraction*>(interaction);
           ContactElement* master_elem = ceei->MasterElement();
           if (master_elem->Owner()!=my_proc) master_elem->temp_tag |= 2;
@@ -1042,16 +1042,16 @@ ContactEnforcement::Set_Up( bool Update_Enf_Model_State )
 #ifdef CONTACT_TD_FACE_FACE_ENF
     // Build a compact list of the face-face interactions
     number_face_face_interactions = topology->Number_FaceFace_Interactions();
-    face_face_interaction_list = new ContactFaceFaceInteraction* [number_face_face_interactions];
+    face_face_interaction_list = new ContactFaceFaceInteraction<Real>* [number_face_face_interactions];
     if(number_face_face_interactions){
       int ffi_index = 0;
       for (int i=0; i<num_faces; ++i) {
         ContactFace<Real>* face = Faces[i];
-        ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+        ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
         if(interactions != NULL) {
           interactions->IteratorStart();
-          while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
-            face_face_interaction_list[ffi_index] = static_cast<ContactFaceFaceInteraction*> (interaction);
+          while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
+            face_face_interaction_list[ffi_index] = static_cast<ContactFaceFaceInteraction<Real>*> (interaction);
             interaction->ProcIndex(ffi_index);
             ++ffi_index;
           }
@@ -1067,10 +1067,10 @@ ContactEnforcement::Set_Up( bool Update_Enf_Model_State )
       int eei_index = 0;
       for (int i=0; i<num_elems; ++i) {
         ContactElement* element = Elems[i];
-        ContactInteractionDLL* interactions = 
+        ContactInteractionDLL<Real>* interactions = 
           element->Get_ElementElement_Interactions();
         interactions->IteratorStart();
-        while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
+        while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
           ContactElementElementInteraction* ceei = static_cast<ContactElementElementInteraction*>(interaction);
           element_element_interaction_list[eei_index] = ceei;
           ceei->ProcIndex(eei_index);
@@ -1406,18 +1406,18 @@ ContactEnforcement::Set_Up( bool Update_Enf_Model_State )
 #ifdef CONTACT_TD_FACE_FACE_ENF
     // Build a compact list of the face-face interactions
     number_face_face_interactions = topology->Number_FaceFace_Interactions();
-    face_face_interaction_list = new ContactFaceFaceInteraction* [number_face_face_interactions];
+    face_face_interaction_list = new ContactFaceFaceInteraction<Real>* [number_face_face_interactions];
 
 
     if(number_face_face_interactions){
       int ffi_index = 0;
       for (int i=0; i<num_faces; ++i) {
         ContactFace<Real>* face = Faces[i];
-        ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+        ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
         if(interactions != NULL) {
           interactions->IteratorStart();
-          while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
-            face_face_interaction_list[ffi_index] = static_cast<ContactFaceFaceInteraction*> (interaction);
+          while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
+            face_face_interaction_list[ffi_index] = static_cast<ContactFaceFaceInteraction<Real>*> (interaction);
             interaction->ProcIndex(ffi_index);
             if( face_face_interaction_list[ffi_index]->MasterFaceEntityData()->owner == my_proc ){
               ++number_faces_on_proc;
@@ -1440,10 +1440,10 @@ ContactEnforcement::Set_Up( bool Update_Enf_Model_State )
       int eei_index = 0;
       for (int i=0; i<num_elems; ++i) {
         ContactElement* element = Elems[i];
-        ContactInteractionDLL* interactions = 
+        ContactInteractionDLL<Real>* interactions = 
           element->Get_ElementElement_Interactions();
         interactions->IteratorStart();
-        while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
+        while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
           ContactElementElementInteraction* ceei = static_cast<ContactElementElementInteraction*>(interaction);
           element_element_interaction_list[eei_index] = ceei;
           ceei->ProcIndex(eei_index);

@@ -29,7 +29,6 @@ StdMortarTri3::StdMortarTri3(double _area, FaceElement* FaceElem)
   SetPtrMasterFace(FaceElem);
 }
 
-
 // -----------------------------------------------------------------------------------------------------
 //                                            GET METHODS
 // -----------------------------------------------------------------------------------------------------
@@ -44,26 +43,46 @@ StdMortarTri3::nMortarShapeFct() { return 3; }
 // -----------------------------------------------------------------------------------------------------
 // LOCAL METHODS
 // -------------
+#if !defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300
+template<>
 void
-StdMortarTri3::GetShapeFct(double* Shape, double* m)
-{ 
-   GetStdMortarShapeFct(Shape, m); 
+StdMortarTri3::GetShapeFctVal(double* Shape, double* m)
+{
+  GetPtrMasterFace()->GetShapeFctVal(Shape, m);
 }
+
+template<>
+void
+StdMortarTri3::GetdShapeFct(double* dShapex, double* dShapey, double* m)
+{
+  GetPtrMasterFace()->GetdShapeFct(dShapex, dShapey, m);
+}
+
+template<>
+void
+StdMortarTri3::Getd2ShapeFct(double* d2Shapex, double* d2Shapey, double* d2Shapexy, double* m)
+{
+  GetPtrMasterFace()->Getd2ShapeFct(d2Shapex, d2Shapey, d2Shapexy, m);
+}
+#endif
 
 // ---------------------------------
 // IMPLEMENTATION OF VIRTUAL METHODS
 // ---------------------------------
 void
 StdMortarTri3::GetShapeFctVal(double* Shape, double* m)
-{ 
-   GetStdMortarShapeFct(Shape, m); 
-}
-
-#if (MAX_MORTAR_DERIVATIVES > 0)
-void
-StdMortarTri3::GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m)
 {
-   GetStdMortarShapeFct(Shape, m);
+  GetShapeFctVal<double>(Shape, m); 
 }
-#endif
 
+void
+StdMortarTri3::GetdShapeFct(double* dShapex, double* dShapey, double* m)
+{
+  GetdShapeFct<double>(dShapex, dShapey, m);
+}
+
+void
+StdMortarTri3::Getd2ShapeFct(double* d2Shapex, double* d2Shapey, double* d2Shapexy, double* m)
+{
+  Getd2ShapeFct<double>(d2Shapex, d2Shapey, d2Shapexy, m);
+}

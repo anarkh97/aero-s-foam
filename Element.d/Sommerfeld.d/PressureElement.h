@@ -6,7 +6,7 @@
 class DofSet;
 class GeomState;
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 class PressureElement : public SommerElement
 {
   protected:
@@ -19,11 +19,7 @@ class PressureElement : public SommerElement
     void addTerms(DofSet);
 
   public:
-    PressureElement(int, DofSet, int*, PressureBCond*);
-/*
-    PressureElement(int, DofSet*, int*, PressureBCond*);
-    PressureElement(int, DofSet*, DofSet*, int*, PressureBCond*);
-*/
+    PressureElement(int*, PressureBCond*);
     ~PressureElement();
 
     void renum(int*);
@@ -45,16 +41,6 @@ class PressureElement : public SommerElement
     void neumVector(CoordSet&, Vector&, int pflag = 0, GeomState* = 0, double t = 0);
     void neumVectorJacobian(CoordSet&, FullSquareMatrix&, int pflag = 0, GeomState* = 0, double t = 0);
     FullSquareMatrix sommerMatrix(CoordSet&, double *);
-
-  protected:
-    virtual void getConstants(CoordSet&, 
-                              Eigen::Array<typename VectorValuedFunctionTemplate<double>::ScalarConstantType,
-                                           VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> &sconst,
-                              Eigen::Array<int,
-                                           VectorValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> &iconst) = 0;
-
-   virtual void getInputs(Eigen::Matrix<double,VectorValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q, 
-                          CoordSet& c0, GeomState *c1);
 };
 
 #ifdef _TEMPLATE_FIX_

@@ -2,13 +2,14 @@
 #define _HEX8LAGRANGEPOLYNOMIALSHAPEFUNCTION_H_
 
 #include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 
 template<typename Scalar>
 class Hex8LagrangePolynomialShapeFunction : public VectorValuedFunction<3,8,Scalar,0,0,double>
 {
   public:
-    Hex8LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
-    {}
+    Hex8LagrangePolynomialShapeFunction() {}
+    Hex8LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&) {}
 
     Eigen::Matrix<Scalar,8,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar)
     {
@@ -32,5 +33,14 @@ class Hex8LagrangePolynomialShapeFunction : public VectorValuedFunction<3,8,Scal
       return N;
     }
 };
+
+namespace Simo {
+
+template<>
+Eigen::Matrix<double,8,3>
+Jacobian<double,Hex8LagrangePolynomialShapeFunction>
+::operator() (const Eigen::Matrix<double,3,1>& q, double);
+
+}
 
 #endif

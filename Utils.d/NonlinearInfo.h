@@ -8,6 +8,30 @@
 // with Newton-Raphson iteration or Arclength method
 //
 
+struct LinesearchInfo {
+   int  type;
+   double minstep;
+   double maxstep;
+   bool verbose;
+   int maxit;
+   double c1; // constant used to define sufficient decrease condition
+   double c2; // constant used to define curvature condition
+   double tau; // constant used for backtracking linesearch
+
+   LinesearchInfo() { setDefaults(); }
+
+   void setDefaults() {
+     type       = 0; // no linesearch
+     maxit      = 10;
+     minstep    = std::numeric_limits<double>::epsilon();
+     maxstep    = std::numeric_limits<double>::infinity();
+     verbose    = false;
+     c1         = 1e-4;
+     c2         = 0.1;
+     tau        = 0.8;
+   }
+};
+
 struct NonlinearInfo {
 
    int updateK;         // number of Newton iterations between K updates in time/load step
@@ -31,11 +55,14 @@ struct NonlinearInfo {
    int    extMax;       // maximum iteration limit scaling in arclength
 
    bool unsymmetric;
-   bool linesearch;
+   LinesearchInfo linesearch;
    bool failsafe;
    double failsafe_tol;
 
-   bool linearelastic;
+   int linearelastic;   // 1: blanket small displacement assumption, excepting external follower forces.
+                        // 2: blanket small displacement assumption, including external follower forces.
+                        //    joints with freeplay and other inequality constraints with penalty enforcment
+                        //    also get special treatment in both case 1 and case 2.
 
    NonlinearInfo() { setDefaults(); }
 
@@ -46,9 +73,9 @@ struct NonlinearInfo {
                      tolRes = 1.0E-6; tolInc     = std::numeric_limits<double>::infinity();
                      absTolRes = 0.0; absTolInc  = std::numeric_limits<double>::infinity();
                      maxLambda = 1.0; lfactor    = 1.0; extMin  =   4;
-                     extMax      = 6; unsymmetric = false; linesearch = false;
+                     extMax      = 6; unsymmetric = false;
                      failsafe = false; failsafe_tol = std::numeric_limits<double>::epsilon();
-                     stepUpdateK = 1; linearelastic = false; }
+                     stepUpdateK = 1; linearelastic = 0; }
 
 };
 

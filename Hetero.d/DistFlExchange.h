@@ -7,7 +7,6 @@
 
 #include <map>
 #include <algorithm>
-using namespace std;
 
 class CoordSet;
 class State;
@@ -24,7 +23,7 @@ typedef GenSubDomain<double> SubDomain;
 
 #define FL_NEGOT 10000
 
-typedef map<int, InterpPoint> MatchMap;
+typedef std::map<int, InterpPoint> MatchMap;
 
 class DofSetArray;
 
@@ -32,13 +31,14 @@ class DistFlExchanger {
   double *buffer, *buff;
   int bufferLen, buffLen;
 
-  int nbrReceivingFromMe;   // number of fluid mpi's w/matches in this mpi
+  int nSender;             // dimension of sndTable
+  int nbrReceivingFromMe;  // number of fluid mpi's w/matches in this mpi
   int *idSendTo;  	   // list of fluid mpi's to sendTo
   int *nbSendTo;	   // num of match data per fluid neighbor
-  //int *consOrigin; // reverse table of idSendTo
+  int *consOrigin;         // reverse table of idSendTo
   InterpPoint **sndTable;  // match data by local subdomain in mpi
 
-  CoordSet **cs;             // nodes in this mpi process
+  CoordSet **cs;           // nodes in this mpi process
   Elemset **eset;
   DofSetArray **cdsa;
   DofSetArray **dsa;
@@ -48,6 +48,7 @@ class DistFlExchanger {
   double aflux;
   int rcvParity, sndParity;
   OutputInfo *oinfo;
+  int algnum;
   int isCollocated;
   double alpha[2];
   double alph[2];
@@ -67,13 +68,17 @@ class DistFlExchanger {
   SubDomain **sd;
   int **fnId2;
 
+  bool wCracking;
+  bool sentInitialCracking;
+  Connectivity *faceElemToNode, *nodeToFaceElem;
+
 public:
 
   DistFlExchanger(CoordSet **, Elemset **, DofSetArray **, 
                   DofSetArray **, OutputInfo *oinfo = 0);
   DistFlExchanger(CoordSet **, Elemset **, SurfaceEntity *, CoordSet *,
                   Connectivity *, Connectivity *, SubDomain **,
-                  DofSetArray **, DofSetArray **, OutputInfo *oinfo = 0);
+                  DofSetArray **, DofSetArray **, OutputInfo *oinfo, bool wCracking);
   ~DistFlExchanger();
 
   MatchMap* getMatchData();
@@ -89,6 +94,8 @@ public:
   void getStrucTemp(double*);
 
   void sendParam(int, double, double, int, int, double a[2]);
+  void sendSubcyclingInfo(int sub);
+
   void sendTempParam(int algnum, double step, double totaltime,
                      int rstinc, double alphat[2]);
 
@@ -103,9 +110,16 @@ public:
   void flipRcvParity() { if(rcvParity >= 0) rcvParity = 1-rcvParity; }
   void flipSndParity() { if(sndParity >= 0) sndParity = 1-sndParity; }
 
+  void sendNoStructure();
+  void sendNewStructure();
+
   int cmdCom(int);
 
   void sendEmbeddedWetSurface();
+
+private:
+  void transformVector(double *localF, Element *ele, int locSub);
+  void transformVector(double *localF, FaceElement *ele, int locSub);
 };
 
 #define FLTOSTMT 1000

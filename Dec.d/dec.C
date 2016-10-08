@@ -2,16 +2,19 @@
 #include <cstdio>
 
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
 #include <Timers.d/GetTime.h>
 #include "dec.h"
 
 #include <Utils.d/Memory.h>
+#include <Utils.d/DistHelper.h>
 
 extern bool estFlag;
 extern bool weightOutFlag;
 extern bool trivialFlag;
 extern bool useFull;
 extern int verboseFlag;
+extern int fsglFlag;
 
 namespace Dec
 {
@@ -44,7 +47,8 @@ int dec(int numProcessors,               // aka -p <number of processors>
 */
  long decomposeMemory = -memoryUsed();
 
- geoSource->simpleDecomposition(numSubdomains, estFlag, weightOutFlag, trivialFlag);
+ geoSource->simpleDecomposition(numSubdomains, estFlag, weightOutFlag, trivialFlag,
+                                fsglFlag);
 
  decomposeMemory += memoryUsed();
 

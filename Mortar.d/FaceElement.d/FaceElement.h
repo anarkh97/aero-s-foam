@@ -13,7 +13,7 @@
 #include <Element.d/Element.h>
 #include <Utils.d/resize_array.h>
 #include <Math.d/matrix.h>
-#include <Mortar.d/MortarAutoDiff.h>
+#include <Mortar.d/MortarDefines.h>
 
 class DofSetArray;
 struct InterpPoint;
@@ -42,7 +42,7 @@ class FaceElement {
 	FaceElement():Area(0.0) { }
         
         // for future
-        //virtual FaceElement* clone(); 
+        virtual FaceElement* clone()=0;
 
         // Setup & Update methods
         // ~~~~~~~~~~~~~~~~~~~~~~
@@ -106,22 +106,52 @@ class FaceElement {
         virtual double GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordSet &cs)=0;
         virtual void GetIsoParamMappingNormalJacobianProduct(double* JNormal, double* m, CoordSet &cs)=0;
         virtual void LocalToGlobalCoord(double* M, double* m, CoordSet &cs)=0;
-#if (MAX_MORTAR_DERIVATIVES > 0)
-        virtual void GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m)
-          { std::cerr << "FaceElement::GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m) is not implemented\n"; }
-        virtual void GetIsoParamMappingNormalJacobianProduct(ActiveDouble* JNormal, ActiveDouble* m, MadCoordSet &cs)
-          { std::cerr << "FaceElement::GetIsoParamMappingNormalJacobianProduct(ActiveDouble* JNormal, ActiveDouble* m,"
-                      << " MadCoordSet &cs) is not implemented\n"; }
-        virtual void LocalToGlobalCoord(ActiveDouble* M, ActiveDouble* m, MadCoordSet &cs)
-          { std::cerr << "FaceElement::LocalToGlobalCoord(ActiveDouble* M, ActiveDouble* m, MadCoordSet &cs) is not implemented\n"; }
-#endif
 
         virtual FullM ScalarMass(CoordSet& , double rho, int ngp)=0;
         virtual void IntegrateShapeFcts(double*, CoordSet&, double rho, int ngp)=0;
 
         virtual double* ViewRefCoords();
+
+        virtual void GetdShapeFct(double* dShapex, double* dShapey, double* m)
+          { fprintf(stderr,"function GetdShapeFct(double*, double*, double*) undefined for this type of element!\n"); }
+        virtual void Getd2ShapeFct(double *d2Shapex, double *d2Shapey, double *d2Shapexy, double *m)
+          { fprintf(stderr,"function Getd2ShapeFct(double*, double*, double*, double*) undefined for this type of element!\n"); }
+        virtual void Getd3ShapeFct(double *d3Shapex, double *d3Shapey, double *d2Shapex2y, double *d2Shapexy2, double *m)
+          { fprintf(stderr,"function Getd3ShapeFct(double*, double*, double*, double*, double*) undefined for this type of element!\n"); }
+        virtual void ComputedMdxAnddMdy(double* dMdx, double* dMdy, double* m, CoordSet& cs)
+          { fprintf(stderr,"function ComputedMdxAnddMdy(double*, double*, double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void Computed2Mdx2d2Mdy2Andd2Mdxdy(double *d2Mdx2, double *d2Mdy2, double *d2Mdxdy, double *m, CoordSet &cs)
+          { fprintf(stderr,"function Computed2Mdx2d2Mdy2Andd2Mdxdy(double*, double*, double*, double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(double *d3Mdx3, double *d3Mdy3, double *d3Mdx2dy, double *d3Mdxdy2, double *m, CoordSet &cs)
+          { fprintf(stderr,"function Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(double*, double*, double*, double*, double*, CoordSet&) undefined for this type of element!\n"); }
         virtual void GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs)
-          { std::cerr << "FaceElement::GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs) is not implemented\n"; }
+          { fprintf(stderr,"function GetdJNormal(double [][3], double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void Getd2JNormal(double d2JNormal[][3], double* m, CoordSet& cs)
+          { fprintf(stderr,"function Getd2JNormal(double [][3], double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void ComputedJNormaldxAnddJNormaldy(double *dJNormaldx, double *dJNormaldy, double *m, CoordSet &cs)
+          { fprintf(stderr,"function ComputedJNormaldxAnddJNormaldy(double*, double*, double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(double *d2JNormaldx2, double *d2JNormaldy2, double *d2JNormaldxdy, double *m, CoordSet &cs)
+          { fprintf(stderr,"function Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(double*, double*, double*, double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void ComputeddJNormaldxAndddJNormaldy(double ddJNormaldx[][3], double ddJNormaldy[][3], double* m, CoordSet& cs)
+          { fprintf(stderr,"function ComputeddJNormaldxAndddJNormaldy(double[][3], double[][3], double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void GetUnitNormal(double UnitNormal[3], double* m, CoordSet& cs)
+          { fprintf(stderr,"function  GetUnitNormal(double[3], double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void GetdUnitNormal(double dUnitNormal[][3], double* m, CoordSet& cs) 
+          { fprintf(stderr,"function GetdUnitNormal(double[][3], double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void Getd2UnitNormal(double d2UnitNormal[][3], double* m, CoordSet& cs)
+          { fprintf(stderr,"function Getd2UnitNormal(double[][3], double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void GlobalToLocalCoord(double *m, double *M, CoordSet &cs)
+          { fprintf(stderr,"function GlobalToLocalCoord(double*, double*, CoordSet) undefined for this type of element!\n"); }
+        virtual void ComputedmdXdmdYAnddmdZ(double *dmdX, double *dmdY, double *dmdZ, double *M, CoordSet &cs)
+          { fprintf(stderr,"function ComputedmdXdmdYAnddmdZ(double*, double*, double*, double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void Computed2mdX2d2mdY2Etc(double *d2mdX2, double *d2mdY2, double *d2mdZ2, double *d2mdXdY, double *d2mdYdZ, double *d2mdXdZ, double *M, CoordSet &cs)
+          { fprintf(stderr,"function Computed2mdX2d2mdY2Etc(double*, double*, double*, double*, double*, double*, double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void GetdLocalCoords(double dLocalCoords[][2], double *M, CoordSet &cs)
+          { fprintf(stderr,"function GetdLocalCoords(double[][2], double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void Getd2LocalCoords(double d2LocalCoords[][2], double *M, CoordSet &cs)
+          { fprintf(stderr,"function Getd2LocalCoords(double[][2], double*, CoordSet&) undefined for this type of element!\n"); }
+        virtual void GetddLocalCoordsdXddLocalCoordsdYAndddLocalCoordsdZ(double ddmdX[][2], double ddmdY[][2], double ddmdZ[][2], double *M, CoordSet &cs)
+          { fprintf(stderr,"function GetddLocalCoordsdXddLocalCoordsdYAndddLocalCoordsdZ(double [][2], double [][2], double [][2], double*, CoordSet&) undefined for this type of element!\n"); }
 
 	// Print, display ... methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~

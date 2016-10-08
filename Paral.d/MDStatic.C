@@ -1,7 +1,6 @@
 #include <Utils.d/dbg_alloca.h>
 #include <Threads.d/Paral.h>
 #include <Threads.d/PHelper.h>
-#include <Math.d/mathUtility.h>
 #include <Driver.d/Domain.h>
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
@@ -19,6 +18,7 @@
 
 template<class Scalar>
 GenMultiDomainStatic<Scalar>::GenMultiDomainStatic(Domain *d)
+ : MultiDomainBase(d->solInfo())
 {
  domain = d;
 #ifdef DISTRIBUTED
@@ -28,9 +28,14 @@ GenMultiDomainStatic<Scalar>::GenMultiDomainStatic(Domain *d)
 #endif
 
  times  = new StaticTimers;
+}
 
- // debug: check static timers are initialized
- //MatrixTimers &mt = domain->getTimers();
+template<class Scalar>
+GenMultiDomainStatic<Scalar>::~GenMultiDomainStatic()
+{
+ delete decDomain;
+ delete times;
+ // solver deleted in StaticSolver
 }
 
 template<class Scalar>
@@ -44,10 +49,9 @@ template<class Scalar>
 DistrInfo &
 GenMultiDomainStatic<Scalar>::solVecInfo(int i) 
 {
- cerr << "Warning : GenMultiDomainStatic<Scalar>::solVecInfo(int i) should not be called" << endl;
+ std::cerr << "Warning : GenMultiDomainStatic<Scalar>::solVecInfo(int i) should not be called" << std::endl;
  return decDomain->solVecInfo();
 }
-
 
 template<class Scalar>
 void
@@ -61,9 +65,9 @@ GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
  times->formRhs -= getTime();
  execParal1R(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::subGetRHS, rhs);
 
- // eigen mode projector 
- if(domain->solInfo().modeFilterFlag)
-   project(rhs);
+ // rbm or eigen mode projector 
+ if(domain->solInfo().filterFlags || domain->solInfo().modeFilterFlag)
+   trProject(rhs);
 
  if(domain->solInfo().solvercntl->type == 1) allOps.spMat->getAssembler()->assemble(rhs); // XXXX
 
@@ -96,10 +100,20 @@ GenMultiDomainStatic<Scalar>::preProcess()
 
  times->getFetiSolverTime += getTime();
 
+ int useRbmFilter = domain->solInfo().filterFlags;
+ if(useRbmFilter || domain->solInfo().rbmflg) {
+   MultiDomainRbm<Scalar> *rigidBodyModes = decDomain->constructRbm();
+   if(useRbmFilter) {
+     filePrint(stderr," ... RBM Filter Requested           ...\n");
+     projector_prep(rigidBodyModes, allOps.M);
+   }
+   delete rigidBodyModes;
+ }
+
  int useModeFilter = domain->solInfo().modeFilterFlag;
  if(useModeFilter) {
-   filePrint(stderr, " ... MODEfilter requested          ...\n");
-   eigmode_projector_prep();
+   filePrint(stderr, " ... MODE Filter Requested          ...\n");
+   eigmode_projector_prep(decDomain->solVecInfo());
  }
 }
 
@@ -107,21 +121,27 @@ template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::rebuildSolver()
 {
-  times->getFetiSolverTime -= getTime(); // PJSA 3-30-06
+  times->getFetiSolverTime -= getTime();
   GenMDDynamMat<Scalar> ops;
   ops.sysSolver = allOps.sysSolver;
   ops.K = allOps.K;
   ops.Kuc = allOps.Kuc;
   ops.M = allOps.M;
   ops.Muc = allOps.Muc;
-// RT: 053013
   ops.C_deriv = allOps.C_deriv;
   ops.Cuc_deriv = allOps.Cuc_deriv;
-//
+  ops.K_deriv = allOps.K_deriv;
+  ops.Kuc_deriv = allOps.Kuc_deriv;
+  ops.num_K_deriv = allOps.num_K_deriv;
+  ops.K_arubber_l = allOps.K_arubber_l;
+  ops.K_arubber_m = allOps.K_arubber_m;
+  ops.Kuc_arubber_l = allOps.Kuc_arubber_l;
+  ops.Kuc_arubber_m = allOps.Kuc_arubber_m;
+  ops.num_K_arubber = allOps.num_K_arubber;
 
   decDomain->rebuildOps(ops, 0.0, 0.0, 1.0);
   paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<Scalar>::setRebuildPade, true);
-  times->getFetiSolverTime += getTime(); // PJSA 3-30-06
+  times->getFetiSolverTime += getTime();
 }
 
 template<class Scalar>
@@ -232,7 +252,7 @@ GenMultiDomainPostProcessor<Scalar>::staticOutput(GenDistrVector<Scalar> &sol, G
  times->memoryK       = totMemK;
 
  if(printTimers) {
-   filePrint(stderr," ... Print Timers                   ... \n");
+   //filePrint(stderr," ... Print Timers                   ... \n");
    switch(domain->solInfo().solvercntl->fetiInfo.version) {
      default:
      case FetiInfo::feti1:
@@ -258,6 +278,44 @@ GenMultiDomainPostProcessor<Scalar>::staticOutput(GenDistrVector<Scalar> &sol, G
  }
 
  filePrint(stderr," --------------------------------------\n");
+}
+
+template<class Scalar>
+void
+GenMultiDomainPostProcessor<Scalar>::getStressStrain(GenDistrVector<Scalar> &, int fileNumber,
+                                                     int stressIndex, double time, int pflag)
+{
+  std::cerr << "GenMultiDomainPostProcessor::getStressStrain not implemented" << std::endl;
+}
+
+template<class Scalar>
+void
+GenMultiDomainPostProcessor<Scalar>::setsizeSfemStress(int fileNumber)
+{
+  std::cerr << "GenMultiDomainPostProcessor::setsizeSfemStress(int fileNumber) not implemented" << std::endl;
+}
+
+template<class Scalar>
+int
+GenMultiDomainPostProcessor<Scalar>::getsizeSfemStress()
+{
+  std::cerr << "GenMultiDomainPostProcessor::getsizeSfemStress() not implemented" << std::endl;
+  return 0;
+}
+
+template<class Scalar>
+Scalar*
+GenMultiDomainPostProcessor<Scalar>::getSfemStress(int fileNumber)
+{
+  std::cerr << "GenMultiDomainPostProcessor::getSfemStress() not implemented" << std::endl;
+  return 0;
+}
+
+template<class Scalar>
+void
+GenMultiDomainPostProcessor<Scalar>::updateSfemStress(Scalar* str, int fileNumber)
+{
+  std::cerr << "GenMultiDomainPostProcessor::updateSfemStress() not implemented" << std::endl;
 }
 
 template<class Scalar>
@@ -297,16 +355,33 @@ GenMultiDomainStatic<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs,
     if (allOps.C_deriv) {
       decDomain->getSubDomain(i)->C_deriv =
          new GenSparseMatrix<Scalar>*[iRHS+1];
-      (decDomain->getSubDomain(i)->C_deriv)[0] = ((*allOps.C_deriv)[0])[i];
+      (decDomain->getSubDomain(i)->C_deriv)[0] = (*(allOps.C_deriv[0]))[i];
       for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->C_deriv)[j] = 0;
     }
     if (allOps.Cuc_deriv) {
       decDomain->getSubDomain(i)->Cuc_deriv =
          new GenSparseMatrix<Scalar>*[iRHS+1];
-      (decDomain->getSubDomain(i)->Cuc_deriv)[0] = ((*allOps.Cuc_deriv)[0])[i];
+      (decDomain->getSubDomain(i)->Cuc_deriv)[0] = (*(allOps.Cuc_deriv[0]))[i];
       for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->Cuc_deriv)[j] = 0;
     }
+    if (allOps.K_deriv) {
+      decDomain->getSubDomain(i)->K_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      for(int j=0;j<iRHS+1;j++) if ((*(allOps.K_deriv[j]))[i]!=0) {
+          (decDomain->getSubDomain(i)->K_deriv)[j] = (*(allOps.K_deriv[j]))[i];
+      }
+    }
+    if (allOps.Kuc_deriv) {
+      decDomain->getSubDomain(i)->Kuc_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      for(int j=0;j<iRHS+1;j++) if ((*(allOps.Kuc_deriv[j]))[i]!=0) 
+        (decDomain->getSubDomain(i)->Kuc_deriv)[j] = (*(allOps.Kuc_deriv[j]))[i];
+                                else
+        (decDomain->getSubDomain(i)->Kuc_deriv)[j] = 0;
+      
+    }
   }
+
 
   Timings &timers = solver->getTimers();
   if(domain->solInfo().isCoupled && domain->solInfo().getFetiInfo().fsi_corner == 0) {
@@ -375,7 +450,8 @@ GenMultiDomainStatic<Scalar>::makeSubdomainStaticLoadGalPr(int isub, GenDistrVec
   GenStackVector<Scalar> subv(tmp.subData(isub), tmp.subLen(isub));
 
   // TODO subdomain shouldn't have Cuc_deriv pointer
-  sd->buildRHSForce(subf, subv, (*allOps.Kuc)[isub], (*allOps.Muc)[isub], sd->Cuc_deriv, o[0], o[1]);
+  sd->buildRHSForce(subf, subv, (*allOps.Kuc)[isub], (*allOps.Muc)[isub],
+                    sd->Cuc_deriv, sd->Kuc_deriv, sd->Kuc_arubber_l, sd->Kuc_arubber_m, o[0], o[1]);
 }
 
 template<class Scalar>
@@ -401,64 +477,43 @@ GenMultiDomainStatic<Scalar>::subPade(int iSub, GenDistrVector<Scalar> *sol, Gen
 
 template<class Scalar>
 void
-GenMultiDomainStatic<Scalar>::eigmode_projector_prep()
+GenMultiDomainStatic<Scalar>::getRHSinpc(GenDistrVector<Scalar> &)
 {
-  //if(Rmem) return; // already done it or requested some other filter
-
-  // Read computed eigenvectors from file EIGENMODES
-  // ======================================
-#ifdef DISTRIBUTED
-  char *filename = new char[40];
-  sprintf(filename,"EIGENMODES%d",structCom->myID());
-  BinFileHandler modefile(filename, "r");
-#else
-  BinFileHandler modefile("EIGENMODES", "r");
-#endif
-  if(modefile.get_fileid() <= 0) { fprintf(stderr, " *** Error: Failed to open EIGENMODES file ***\n"); exit(-1); }
-
-  modefile.read(&numR, 1);
-  filePrint(stderr," ... Reading %d modes from EIGENMODES file ...\n", numR);
-
-  int eigsize;
-  modefile.read(&eigsize, 1);
-  if(eigsize != solVecInfo().totLen()) { fprintf(stderr, " *** Error: Bad data in EIGENMODES file %d %d ***\n", eigsize, solVecInfo().totLen()); exit(-1); }
-
-  Rmem = new GenDistrVector<Scalar> * [numR];
-  double *data = new double[eigsize];
-  for(int i = 0; i < numR; ++i) {
-    Rmem[i] = new GenDistrVector<Scalar>(solVecInfo());
-    modefile.read(data, eigsize);
-    for(int j=0; j<eigsize; ++j) Rmem[i]->data()[j] = data[j];
-  }
-  delete [] data;
-
-  // Build (U_c^T*U_c)^{-1} for projector
-  // ======================================
-  GenFSFullMatrix<Scalar> RtR(numR, numR);
-  for(int i=0; i<numR; ++i) {
-    Scalar rii = (*(Rmem[i]))*(*(Rmem[i]));
-    RtR[i][i] = rii;
-    for(int j=0; j<i; ++j) {
-      Scalar rij = (*(Rmem[i]))*(*(Rmem[j]));
-      RtR[i][j] = rij;
-      RtR[j][i] = rij;
-    }
-  }
-  RtRinverse = new GenFSFullMatrix<Scalar>(numR, numR);
-  (*RtRinverse) = RtR.invert();
+  std::cerr << "GenMultiDomainStatic::getRHSinpc not implemented" << std::endl;
 }
 
 template<class Scalar>
 void
-GenMultiDomainStatic<Scalar>::project(GenDistrVector<Scalar> &b)
+GenMultiDomainStatic<Scalar>::preProcessSA()
 {
-  Scalar *Rtb = new Scalar[numR];
-  for(int i=0; i<numR; ++i) Rtb[i] = (*Rmem[i]) * b;
-  Scalar *x = new Scalar[numR];
-  RtRinverse->mult(Rtb, x);
-  for(int i=0; i<b.size(); ++i) 
-    for(int j=0; j<numR; ++j) b.data()[i] -= Rmem[j]->data()[i]*x[j];
-
-  ///*check:*/ for(int i=0; i<numR; ++i) cerr << (*Rmem[i]) * b << " "; cerr << endl;
+  std::cerr<< "GenMultiDomainStatic::PreProcessSA not implemented" << std::endl;
 }
 
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::postProcessSA(GenDistrVector<Scalar> &)
+{
+  std::cerr<< "GenMultiDomainStatic::PostProcessSA not implemented" << std::endl;
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::assignRandMat()
+{
+  std::cerr << "GenMultiDomainStatic::assignRandMat() not implemented" << std::endl;
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::retrieveElemset()
+{
+  std::cerr << "GenMultiDomainStatic::retrieveElemset() not implemented" << std::endl;
+}
+
+template<class Scalar>
+AllSensitivities<Scalar> *
+GenMultiDomainStatic<Scalar>::getAllSensitivities()
+{
+  std::cerr << "GenMultiDomainStatic::getAllSensitivities() not implemented" << std::endl;
+  return 0;
+}

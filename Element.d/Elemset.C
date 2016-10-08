@@ -1,4 +1,5 @@
 #include <Element.d/Element.h>
+#include <Element.d/MpcElement.d/MpcElement.h>
 #include <iostream>
 #include <set>
 #include <queue>
@@ -6,7 +7,10 @@
 
 void Elemset::deleteElem(int i)
 {
-  elem[i]->~Element();
+  if(elem[i]->getElementType() == 1001 && static_cast<MpcElement*>(elem[i])->getSource() == mpc::ContactSurfaces)
+    delete elem[i]; // note: contact surface mpc elements do not use placement new (see Elemset::mpcelemadd)
+  else
+    elem[i]->~Element();
   elem[i] = 0;
 }
 
@@ -18,7 +22,7 @@ void Elemset::deleteElems()
 
   if (myData) { 
     for (int i = 0; i < size(); ++i) {
-      if (elem[i]) elem[i]->~Element();
+      if (elem[i]) deleteElem(i);
     }
   }
   
@@ -37,6 +41,11 @@ int Elemset::last() const
  return last+1;
 }
 
+void Elemset::removeAll()
+{
+  int l = last();
+  for(int i=0; i<l; ++i) remove(i);
+}
 
 void Elemset::list()
 {
@@ -108,7 +117,7 @@ Elemset::elemadd(int num, Element *el)
     if(elem) delete [] elem;
     elem = np;
    }
-  if(elem[num]) cerr << " *** WARNING: found repeated ELEMENT# " << num+1 << endl; 
+  if(elem[num]) std::cerr << " *** WARNING: found repeated ELEMENT# " << num+1 << std::endl; 
   elem[num] = el;
 }
 
@@ -245,7 +254,9 @@ Elemset::hasDamping()
     dampingFlag = 0;
     for(int i=0; i<last(); ++i)
 // RT: 062513 - added sdamping here - some
-      if (elem[i]->isDamped() || elem[i]->isSDamped()) {
+      if (elem[i]->isDamped() || elem[i]->isSDamped() ||
+// RT: 121214 - added acoustic rubber
+       (elem[i]->getProperty() && (elem[i]->getProperty()->E0!=0.0 || elem[i]->getProperty()->mu0!=0.0))) {
         dampingFlag = 1;
         break;
       }

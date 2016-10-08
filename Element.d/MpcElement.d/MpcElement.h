@@ -45,9 +45,11 @@ class MpcElement : public Element, public Corotator, public LMPCons
     int* dofs(DofSetArray&, int* = 0);
     void markDofs(DofSetArray&);
 
+    bool hasRot();
+
     FullSquareMatrix stiffness(CoordSet&, double*, int = 1);
 
-    void getGravityForce(CoordSet&, double*, Vector& f, int, GeomState* = 0) { f.zero(); }
+    void getGravityForce(CoordSet&, double*, Vector& f, int, GeomState* = 0);
 
     bool isMpcElement() { return true; }
 
@@ -56,7 +58,7 @@ class MpcElement : public Element, public Corotator, public LMPCons
     void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void getInternalForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void getResidualCorrection(GeomState& c1, double* r);
-    double getElementEnergy(GeomState&, CoordSet&) { return 0; }
+    double getElementEnergy(GeomState&, CoordSet&);
 
     virtual void update(GeomState*, GeomState&, CoordSet&, double);
     virtual void getHessian(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double);
@@ -73,11 +75,16 @@ class MpcElement : public Element, public Corotator, public LMPCons
     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
                              int &nlflag) { nlflag = 2; }
 
-    void getNLVonMises(Vector&, Vector& weight,
-                       GeomState &, CoordSet &, int);
+    void getNLVonMises(Vector&, Vector&, GeomState&, CoordSet&, int);
+    void getNLAllStress(FullM&, Vector&, GeomState&, CoordSet&, int);
 
     void initMultipliers(GeomState& c1);
     void updateMultipliers(GeomState& c1);
-    double getError();
+    double getError(GeomState& c1);
+
+    enum FunctionType { LINEAR=0, QUADRATIC, NONLINEAR };
+    virtual FunctionType functionType() { return NONLINEAR; }
+
+    bool isFreeplayElement() { return type == 1 && prop->penalty != 0; }
 };
 #endif

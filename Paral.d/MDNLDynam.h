@@ -1,7 +1,11 @@
 #ifndef _MD_NL_DYNAMIC_H_
 #define _MD_NL_DYNAMIC_H_
 
+#include <Paral.d/MultiDomainBase.h>
+
 #include <cstddef>
+#include <map>
+#include <vector>
 
 class Domain;
 template <class Scalar> class GenDecDomain;
@@ -27,15 +31,18 @@ template <class Scalar> class GenMDDynamMat;
 typedef GenMDDynamMat<double> MDDynamMat;
 class DistrInfo;
 class DistFlExchanger;
+class LinesearchInfo;
+template <class Scalar> class GenFetiDPSolver;
 
 // Multiple Domain Nonlinear Dynamic problem descriptor
 
-class MDNLDynamic 
+class MDNLDynamic : public MultiDomainBase
 {
   protected:
     Domain *domain;
     DecDomain  *decDomain;
     ParallelSolver *solver;
+    GenFetiDPSolver<double> *fetiSolver;
     int     totIter;             // counter of iterations
 
     MDDynamMat *allOps;
@@ -87,11 +94,18 @@ class MDNLDynamic
 
     double Kcoef_p;
 
+    std::map<std::pair<int,int>, double> *mu, *muCopy; // lagrange multipliers for the contact surfaces
+    std::vector<double> *lambda; // lagrange multipliers for all the other constraints
+
+    bool updateCS;
+
  public:
 
     // Constructor
     MDNLDynamic(Domain *d);
     virtual ~MDNLDynamic();
+
+    void clean();
 
     MultiDomainPostProcessor *getPostProcessor();
     void getInitialTime(int &initTimeIndex, double &initTime);
@@ -105,7 +119,7 @@ class MDNLDynamic
     DistrInfo& elemVecInfo();
     DistrInfo& sysVecInfo();
 
-    double getTolerance() { return (tolerance*firstRes); }
+    double getTolerance();
 
     void computeTimeInfo();
 
@@ -144,13 +158,13 @@ class MDNLDynamic
 
     int getNumStages();
     int checkConvergence(int iter, double rN, DistrVector& residual, DistrVector& dv, double time);
+    void updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *refState);
+    void updateStates(DistrGeomState *refState, DistrGeomState& geomState, double time);
 
-    void updateStates(DistrGeomState *refState, DistrGeomState& geomState);
-
-    // getStiffAndForce forms element stiffness matrices and
+    // getStiffAndForce forms element stiffness matrices and/or
     // returns the residual force = external - internal forces
-    double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
-                            DistrVector& elementInternalForce, double midtime=-1, DistrGeomState *refState = NULL);
+    double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, DistrVector& elementInternalForce,
+                            double midtime=-1, DistrGeomState *refState = NULL, bool forceOnly = false);
 
     // reBuild assembles new dynamic stiffness matrix
     void reBuild(DistrGeomState& geomState, int iter, double localDelta, double t);
@@ -162,7 +176,7 @@ class MDNLDynamic
     void dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomState,
                           DistrVector& velocity, DistrVector& bkVelocity,
                           DistrVector& vp, DistrVector& bkVp, int step, int parity,
-                          int aeroAlg);
+                          int aeroAlg, double time);
 
     void getConstraintMultipliers(DistrGeomState &geomState);
     double getResidualNorm(DistrVector &vec, DistrGeomState &, double);
@@ -174,9 +188,14 @@ class MDNLDynamic
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
 
-    void initializeParameters(DistrGeomState *geomState);
+    void initializeParameters(int step, DistrGeomState *geomState);
     void updateParameters(DistrGeomState *geomState);
-    bool checkConstraintViolation(double &err);
+    bool checkConstraintViolation(double &err, DistrGeomState *geomState);
+
+    LinesearchInfo& linesearch();
+    bool getResizeFlag();
+    void resize(DistrGeomState *refState, DistrGeomState *geomState, DistrGeomState *stepState, DistrVector *stateIncr,
+                DistrVector &v, DistrVector &a, DistrVector &vp, DistrVector &force);
 
   protected:
     Domain *getDomain() { return domain; }
@@ -187,8 +206,8 @@ class MDNLDynamic
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
     void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double tf, double tm);
-    void subGetStiffAndForce(int isub, DistrGeomState &geomState,
-                             DistrVector &res, DistrVector &elemIntForce, double t, DistrGeomState *refState);
+    void subGetStiffAndForce(int isub, DistrGeomState &geomState, DistrVector &res,
+                             DistrVector &elemIntForce, double t, DistrGeomState *refState, bool forceOnly);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
     void addConstraintForces(int isub, DistrVector& rhs, DistrGeomState &geomState);
     void subGetConstraintMultipliers(int isub, DistrGeomState &geomState);
@@ -197,15 +216,14 @@ class MDNLDynamic
     void makeSubClawDofs(int isub);
     void subKucTransposeMultSubtractClaw(int iSub, DistrVector& residual, double *userDefineDisp);
     void subExtractControlDisp(int isub, DistrGeomState &geomState, double *ctrdsp);
-    int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &);
+    int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &, DistrGeomState *geomState = 0);
     void thermoePreProcess();
     void thermohPreProcess(DistrVector &);
     void aeroheatPreProcess(DistrVector &, DistrVector &, DistrVector &);
     void subDynamCommToFluid(int isub, DistrVector& v, DistrGeomState* distrGeomState,
                              DistrGeomState* bkDistrGeomState, int parity, int aeroAlg);
     void subDynamCommToFluidAeroheat(int isub, DistrVector& v, DistrGeomState* distrGeomState);
-    void updateConstraintTerms(DistrGeomState* geomState, double t);
-    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
+    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState, double time);
     void subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
                             DistrVector &v_p, DistrGeomState &geomState);
     void subWriteRestartFile(int i, double &t, int &index, DistrVector &vel_n, DistrVector &acc_n, DistrGeomState &geomState);
@@ -216,8 +234,10 @@ class MDNLDynamic
     void deleteSubCorotators(int isub);
     void deleteSubElementArrays(int isub);
 
-    void subInitializeParameters(int isub, DistrGeomState& geomState);
-    void subUpdateParameters(int isub, DistrGeomState& geomState);
+    void subInitializeMultipliers(int isub, DistrGeomState& geomState);
+    void subInitializeParameters(int isub);
+    void subUpdateMultipliers(int isub, DistrGeomState& geomState);
+    void subUpdateParameters(int isub);
 };
 
 #endif

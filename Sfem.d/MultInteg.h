@@ -1,27 +1,11 @@
 #ifndef _MULTINTEG_H
 #define _MULTINTEG_H
 
-#include <iostream>
-#include <cmath>
-#include <fstream>
-#include <cstdio>
-#include <cstdlib>
-#include <alloca.h>
-#include <vector>
-#include <Math.d/Vector.h>
-#include <Utils.d/MyComplex.h>
 #include <Sfem.d/Sfem.h>
-//#include <Sfem.d/SfemNonInpc.h>
-#include <Driver.d/Domain.h>
-#include <Math.d/matrix.h>
-#include <Driver.d/GeoSource.h>
-#include <Utils.d/Connectivity.h>
 
-using namespace std;
+class OutputInfo;
 
-extern Domain *domain;
 extern Sfem *sfem;
-extern GeoSource *geoSource;
 
 template <class Scalar, 
           class VecType, 
@@ -55,12 +39,13 @@ class MultInteg : public Sfem {
   int getd() {return d;}
   int getq() {return q;}
   void assignxw();
-  void gensplit(int imd,int ttlp,int* grp,int cnt,int jtmp,int d1,double wt_smol);
-  void indist(int* orgf,int d1f,int* trgf,int i_cur,int i_level,double wt_smol);
-  void genten(int cnt,double* tenxx,double* tenww,int* ivecc,double wt_extn);
+  void gensplit(int imd, int ttlp, int* grp, int cnt, int jtmp, int d1, double wt_smol);
+  void indist(int* orgf, int d1f, int* trgf, int i_cur, int i_level, double wt_smol);
+  void genten(int cnt, double* tenxx, double* tenww, int* ivecc, double wt_extn);
   Scalar* getres() {return res;}
   int nchooser(int n, int r);
-  void computeStressStat(int qmd, VecType* sol, int fileNumber, int stressIndex, PostProcessor *postProcessor, ProblemDescriptor* probDesc, int ndflag);
+  void computeStressStat(int qmd, VecType* sol, int fileNumber, int stressIndex, PostProcessor *postProcessor,
+                         ProblemDescriptor* probDesc, int ndflag);
   void integsmol(int qmd); // Integration using Smolyak cubature
   void simulcomp(int nsample_integ);  // Integration by simulation
   void kroneckercomp(int quadorder); // Integration using Kronecker (i.e. full) tensor product rule

@@ -1,14 +1,19 @@
+#include <Paral.d/DomainGroupTask.h>
 #include <iostream>
 #include <Driver.d/SysState.h>
 #include <Paral.d/MDDynam.h>
 #include <Threads.d/Paral.h>
+#include <Driver.d/Domain.h>
 #include <Driver.d/Dynam.h>
+#include <Driver.d/DecDomain.h>
+#include <Driver.d/SubDomain.h>
 #include <Paral.d/MDOp.h>
 #include <Timers.d/StaticTimers.h>
 #include <Math.d/Vector.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
+#include <Math.d/DiagMatrix.h>
 #include <Math.d/EiSparseMatrix.h>
 #include <Timers.d/GetTime.h>
 #include <Control.d/ControlInterface.h>
@@ -21,11 +26,17 @@
 
 class IntFullM;
 
+extern SolverInfo &solInfo;
+extern GeoSource *geoSource;
+
 template<class Scalar>
 GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> **_sd, double _cm, 
                                                double _cc, double _ck, Rbm **_rbms, FullSquareMatrix **_kelArray,
                                                double _alpha, double _beta, int _numSommer, int _solvertype,
-                                               FSCommunicator *_com, FullSquareMatrix **_melArray, FullSquareMatrix **_celArray)
+                                               FSCommunicator *_com, FullSquareMatrix **_melArray,
+                                               FullSquareMatrix **_celArray, bool elemsetHasDamping,
+                                               MatrixTimers &_mt)
+ : mt(_mt)
 {
   nsub = _nsub;
   sd = _sd;
@@ -39,6 +50,14 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   Ccc  = new GenSparseMatrix<Scalar> *[nsub];
   C_deriv    = new GenSparseMatrix<Scalar> **[nsub];
   Cuc_deriv    = new GenSparseMatrix<Scalar> **[nsub];
+  K_deriv    = new GenSparseMatrix<Scalar> **[nsub];
+  Kuc_deriv    = new GenSparseMatrix<Scalar> **[nsub];
+  num_K_deriv = 0;
+  K_arubber_l = new GenSparseMatrix<Scalar> **[nsub];
+  K_arubber_m = new GenSparseMatrix<Scalar> **[nsub];
+  Kuc_arubber_l = new GenSparseMatrix<Scalar> **[nsub];
+  Kuc_arubber_m = new GenSparseMatrix<Scalar> **[nsub];
+  num_K_arubber = 0;
   K    = new GenSparseMatrix<Scalar> *[nsub];
   if(domain->solInfo().solvercntl->precond) {
     spp = new GenSparseMatrix<Scalar> *[nsub];
@@ -61,10 +80,10 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   beta    = _beta;
   solvertype = _solvertype;
   com = _com;
-  makeC = (alpha != 0.0 || beta != 0.0 || (numSommer > 0) || domain->getElementSet().hasDamping());
+  makeC = (alpha != 0.0 || beta != 0.0 || (numSommer > 0) || elemsetHasDamping);
 // RT - 053013 - to enable multiple impedance section, build C_deriv whenever C
-//  makeC_deriv = (makeC && domain->solInfo().doFreqSweep && domain->solInfo().getSweepParams()->nFreqSweepRHS > 1);
-  makeC_deriv = (makeC && domain->solInfo().doFreqSweep );
+//  makeC_deriv = (makeC && solInfo.doFreqSweep && solInfo.getSweepParams()->nFreqSweepRHS > 1);
+  makeC_deriv = (makeC && solInfo.doFreqSweep);
 }
 
 template<class Scalar>
@@ -80,6 +99,7 @@ template<class Scalar>
 void
 GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti) 
 {
+  mt.constructTime -= getTime();
   DofSetArray     *dsa = sd[isub]->getDSA();
   ConstrainedDSA *cdsa = sd[isub]->getCDSA();
 
@@ -93,21 +113,27 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   Ccc[isub] = 0;
   C_deriv[isub] = 0;
   Cuc_deriv[isub] = 0;
+  K_deriv[isub] = 0;
+  Kuc_deriv[isub] = 0;
+  K_arubber_l[isub] = 0;
+  Kuc_arubber_l[isub] = 0;
+  K_arubber_m[isub] = 0;
+  Kuc_arubber_m[isub] = 0;
   if(spp) spp[isub] = 0;
   if(sps) sps[isub] = 0;
 
   if((cdsa->size() - dsa->size()) != 0)
     Kuc[isub] = sd[isub]->template constructCuCSparse<Scalar>();
 
-  if(domain->solInfo().isDynam() || domain->solInfo().doFreqSweep || domain->solInfo().probType == SolverInfo::Modal || domain->solInfo().probType == SolverInfo::PodRomOffline) {
+  if(solInfo.isDynam() || solInfo.doFreqSweep || solInfo.probType == SolverInfo::Modal || solInfo.probType == SolverInfo::PodRomOffline) {
 
     // XML Need to introduce Mcc
-    if(domain->solInfo().isCoupled)
+    if(solInfo.isCoupled)
       K[isub] = sd[isub]->template constructNBSparseMatrix<Scalar>(); // unsymmetric
     else
       K[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
 
-    if(domain->solInfo().newmarkBeta == 0.0) { // explict dynamics
+    if(solInfo.newmarkBeta == 0.0) { // explict dynamics
       if(solvertype != 10) {
         int numN = sd[isub]->numNodes();
         // import a diagonal connectivity for the mass matrix
@@ -122,7 +148,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
       }
     }
     else {
-      if(domain->solInfo().isCoupled)
+      if(solInfo.isCoupled)
         M[isub] = sd[isub]->template constructNBSparseMatrix<Scalar>();
       else
         M[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
@@ -143,7 +169,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
 
       if(makeC_deriv) {
         int numC_deriv, numRHS;
-        numRHS = domain->solInfo().getSweepParams()->nFreqSweepRHS;
+        numRHS = solInfo.getSweepParams()->nFreqSweepRHS;
         if((numSommer > 0) && ((sd[isub]->sommerfeldType == 2) || (sd[isub]->sommerfeldType == 4)))
           numC_deriv = numRHS - 1;
         else
@@ -162,9 +188,37 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
           for(int n = numC_deriv; n < numRHS - 1; ++n)
             Cuc_deriv[isub][n] = 0;
         }
+        num_K_deriv = solInfo.doFreqSweep ? solInfo.getSweepParams()->nFreqSweepRHS-1:0;
+        K_deriv[isub] = new GenSparseMatrix<Scalar> * [num_K_deriv+1];
+        for(int n = 0; n <= num_K_deriv; ++n) {
+          K_deriv[isub][n] = sd[isub]->template constructDBSparseMatrix<Scalar>();
+        }
+        if(cdsa->size() > 0 && (cdsa->size() - dsa->size()) != 0) {
+          Kuc_deriv[isub] = new GenSparseMatrix<Scalar> * [num_K_deriv+1];
+          for(int n = 0; n <= num_K_deriv; ++n) {
+            Kuc_deriv[isub][n] = sd[isub]->template constructCuCSparse<Scalar>();
+          }
+        }
+        num_K_arubber = geoSource->num_arubber;
+        K_arubber_l[isub] = new GenSparseMatrix<Scalar> * [num_K_arubber];
+        K_arubber_m[isub] = new GenSparseMatrix<Scalar> * [num_K_arubber];
+        for(int n = 0; n < num_K_arubber; ++n) {
+          K_arubber_l[isub][n] =
+              sd[isub]->template constructDBSparseMatrix<Scalar>();
+          K_arubber_m[isub][n] =
+              sd[isub]->template constructDBSparseMatrix<Scalar>();
+        }
+        if(cdsa->size() > 0 && (cdsa->size() - dsa->size()) != 0) {
+          Kuc_arubber_l[isub] = new GenSparseMatrix<Scalar> * [num_K_arubber];
+          Kuc_arubber_m[isub] = new GenSparseMatrix<Scalar> * [num_K_arubber];
+          for(int n = 0; n < num_K_arubber; ++n) {
+            Kuc_arubber_l[isub][n] = sd[isub]->template constructCuCSparse<Scalar>();
+            Kuc_arubber_m[isub][n] = sd[isub]->template constructCuCSparse<Scalar>();
+          }
+        }
       }
     }
-    else if(domain->solInfo().ATDARBFlag != -2.0) { // for acoustic damping
+    else if(solInfo.ATDARBFlag != -2.0) { // for acoustic damping
       if(solvertype != 10) {
        // build the modified damping matrix for implicit and explicit
        C[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>(cdsa, sd[isub]->getNodeToNode_sommer());
@@ -174,6 +228,9 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
        if((cdsa->size() - dsa->size()) != 0)
          Cuc[isub] = sd[isub]->template constructCuCSparse<Scalar>();
     }
+  }
+  else if(solInfo.filterQ == 0 && (solInfo.filterFlags || solInfo.hzemFilterFlag || solInfo.slzemFilterFlag)) {
+    M[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
   }
 
   // builds the datastructures for Kii, Kib, Kbb
@@ -195,7 +252,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
                                                                              local_cntl, spMats[isub], (Rbm*) NULL, spp[isub], sps[isub]);
       }
       else if(local_cntl.type == 2) { // local solver is feti
-        cerr << "using FETI-DP solver for local problem\n";
+        std::cerr << "using FETI-DP solver for local problem\n";
         BCond *corner_dbc = new BCond[3*sd[isub]->numCorners()];
         for(int i = 0; i < sd[isub]->numCorners(); ++i)
           for(int j = 0; j < 3; ++j)
@@ -253,7 +310,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
 
   AllOps<Scalar> allOps;
 
-  if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted)
+  if(geoSource->isShifted() && solInfo.getFetiInfo().prectype == FetiInfo::nonshifted)
     allOps.K = new GenMultiSparse<Scalar>(K[isub], sd[isub]->KiiSparse, sd[isub]->Kbb, sd[isub]->Kib);
   else
     allOps.K = K[isub];
@@ -266,6 +323,16 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   allOps.Kuc = Kuc[isub];
   allOps.C_deriv = C_deriv[isub];
   allOps.Cuc_deriv = Cuc_deriv[isub];
+  allOps.K_deriv = K_deriv[isub];
+  allOps.Kuc_deriv = Kuc_deriv[isub];
+  allOps.n_Kderiv = num_K_deriv;
+  allOps.K_arubber_l = K_arubber_l[isub];
+  allOps.K_arubber_m = K_arubber_m[isub];
+  allOps.Kuc_arubber_l = Kuc_arubber_l[isub];
+  allOps.Kuc_arubber_m = Kuc_arubber_m[isub];
+  allOps.num_K_arubber = num_K_arubber;
+  mt.constructTime += getTime();
+
   allOps.spp = (spp) ? spp[isub] : 0;
   FullSquareMatrix *subKelArray = (kelArray) ? kelArray[isub] : 0;
   FullSquareMatrix *subMelArray = (melArray) ? melArray[isub] : 0;

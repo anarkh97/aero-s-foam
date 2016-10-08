@@ -78,9 +78,9 @@ class RepeatedQuadratureRule : public CubatureRule<T, dim, VecType>,
 };
 
 // for convenience
-typedef RepeatedQuadratureRule<double, GaussLegendre, 3, Eigen::Matrix<double,3,1> > GaussLegendre3d;
-typedef RepeatedQuadratureRule<double, GaussLegendre, 2, Eigen::Matrix<double,2,1> > GaussLegendre2d;
-typedef RepeatedQuadratureRule<double, GaussLegendre, 1, Eigen::Matrix<double,1,1> > GaussLegendre1d;
+typedef RepeatedQuadratureRule<double, GaussLegendre, 3> GaussLegendre3d;
+typedef RepeatedQuadratureRule<double, GaussLegendre, 2> GaussLegendre2d;
+typedef RepeatedQuadratureRule<double, GaussLegendre, 1> GaussLegendre1d;
 
 template<typename T, typename VecType = T[2]>
 class TriangleQuadratureRule : public CubatureRule<T, 2, VecType>

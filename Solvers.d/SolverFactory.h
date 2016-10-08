@@ -5,6 +5,7 @@
 #include <Solvers.d/SolverCntl.h>
 #include <map>
 #include <memory>
+#include <string>
 
 class EqNumberer;
 class DofSetArray;
@@ -20,15 +21,15 @@ class GenSolverFactory
 
   // used for feti coarse solvers: sequential or parallel direct solver only
   virtual GenSolver<Scalar>* createSolver(Connectivity *con, EqNumberer *eqnum, SolverCntl&, GenSparseMatrix<Scalar> *&sparse, int ngrbm = 0,
-                                          FSCommunicator *com = 0, string name = "") const;
+                                          FSCommunicator *com = 0, std::string name = "") const;
   virtual GenSolver<Scalar>* createDistSolver(Connectivity *con, EqNumberer *eqnum, SolverCntl&, GenSparseMatrix<Scalar> *&sparse, 
-                                              FSCommunicator *com = 0, string name = "") const;
+                                              FSCommunicator *com = 0, std::string name = "") const;
   // used for global solvers and feti local solvers: direct or iterative solver
   virtual GenSolver<Scalar>* createSolver(Connectivity *con, DofSetArray *dsa, ConstrainedDSA *cdsa, SolverCntl&, GenSparseMatrix<Scalar> *&sparse, Rbm *rbm,
-                                          GenSparseMatrix<Scalar> *&spp, GenSolver<Scalar> *&prec, FSCommunicator *com = 0, string name = "") const;
+                                          GenSparseMatrix<Scalar> *&spp, GenSolver<Scalar> *&prec, FSCommunicator *com = 0, std::string name = "") const;
   // used for feti Kii solver: sequential direct solver only
   virtual GenSolver<Scalar>* createSolver(Connectivity *con, DofSetArray *dsa, int *map, SolverCntl&, GenSparseMatrix<Scalar> *&sparse, 
-                                          string name = "") const;
+                                          std::string name = "") const;
 
   static GenSolverFactory* getFactory();
 

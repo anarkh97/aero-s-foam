@@ -26,25 +26,22 @@
 #include "ContactFace.h"
 #include "ContactSearch.h"
  
+template<typename DataType>
 struct ContactFaceFaceVertex {
-  Real slave_x;
-  Real slave_y;
-  Real master_x;
-  Real master_y;
+  DataType slave_x;
+  DataType slave_y;
+  DataType master_x;
+  DataType master_y;
   int  slave_edge_id;
   int  master_edge_flag;
-#if (MAX_FFI_DERIVATIVES > 0)
-  Real slave_x_derivatives[MAX_FFI_DERIVATIVES];
-  Real slave_y_derivatives[MAX_FFI_DERIVATIVES];
-  Real master_x_derivatives[MAX_FFI_DERIVATIVES];
-  Real master_y_derivatives[MAX_FFI_DERIVATIVES];
-#ifdef COMPUTE_FFI_SECOND_DERIVATIVES
-  Real slave_x_second_derivatives[MAX_FFI_SECOND_DERIVATIVES];
-  Real slave_y_second_derivatives[MAX_FFI_SECOND_DERIVATIVES];
-  Real master_x_second_derivatives[MAX_FFI_SECOND_DERIVATIVES];
-  Real master_y_second_derivatives[MAX_FFI_SECOND_DERIVATIVES];
-#endif
-#endif
+  DataType *slave_x_derivatives;
+  DataType *slave_y_derivatives;
+  DataType *master_x_derivatives;
+  DataType *master_y_derivatives;
+  DataType *slave_x_second_derivatives;
+  DataType *slave_y_second_derivatives;
+  DataType *master_x_second_derivatives;
+  DataType *master_y_second_derivatives;
 };
 
 class CString;
@@ -53,7 +50,8 @@ class ContactTopologyEntityHash;
 class ContactHostGlobalID;
 class ContactFixedSizeAllocator;
 
-class ContactFaceFaceInteraction : public ContactInteractionEntity {
+template <typename DataType>
+class ContactFaceFaceInteraction : public ContactInteractionEntity<DataType> {
   
  public:
   
@@ -73,23 +71,14 @@ class ContactFaceFaceInteraction : public ContactInteractionEntity {
 		     NUMBER_VECTOR_VARS };
 
   ContactFaceFaceInteraction();
-  ContactFaceFaceInteraction( ContactFace<Real>*, ContactFace<Real>*, 
-			      int, int*, int*, Real*, Real* );
+  ContactFaceFaceInteraction( ContactFace<DataType>*, ContactFace<DataType>*, 
+			      int, int*, int*, DataType*, DataType*, DataType (*)[42] = NULL,
+                              DataType (*)[42] = NULL, DataType (*)[42] = NULL, DataType (*)[42] = NULL );
   ContactFaceFaceInteraction( ContactFaceFaceInteraction& );
   static ContactFaceFaceInteraction* new_ContactFaceFaceInteraction(
-            ContactFixedSizeAllocator&, ContactFace<Real>*, ContactFace<Real>*, 
-	    int, int*, int*, Real*, Real* );
-#if (MAX_FFI_DERIVATIVES > 0)
-  ContactFaceFaceInteraction( ContactFace<ActiveScalar>*, ContactFace<ActiveScalar>*,
-                              int, int*, int*, ActiveScalar*, ActiveScalar* );
-  static ContactFaceFaceInteraction* new_ContactFaceFaceInteraction(
-            ContactFixedSizeAllocator&, ContactFace<ActiveScalar>*, ContactFace<ActiveScalar>*,
-            int, int*, int*, ActiveScalar*, ActiveScalar* );
-//  {
-//    std::cerr << "ContactFaceFaceInteraction::new_ContactFaceFaceInteraction is not implemented for type ActiveScalar\n";
-//    return NULL;
-//  };
-#endif
+            ContactFixedSizeAllocator&, ContactFace<DataType>*, ContactFace<DataType>*, 
+	    int, int*, int*, DataType*, DataType*, DataType (*)[42] = NULL, DataType (*)[42] = NULL,
+            DataType (*)[42] = NULL, DataType (*)[42] = NULL );
   static ContactFaceFaceInteraction* new_ContactFaceFaceInteraction(
 	     ContactFixedSizeAllocator& );
   static ContactFaceFaceInteraction* new_ContactFaceFaceInteraction(
@@ -116,33 +105,38 @@ class ContactFaceFaceInteraction : public ContactInteractionEntity {
                           gid);};
 #endif
 
-  inline ContactFace<Real>* SlaveFace() {return slave_face;};
-  inline entity_data* SlaveFaceEntityData()  {return &slave_face_entity_data;};
-  inline ContactFace<Real>* MasterFace() {return master_face;};
-  inline entity_data* MasterFaceEntityData() {return &master_face_entity_data;};
-  inline void Set_SlaveFace(ContactFace<Real>* cf) {slave_face=cf;};
-  inline void Set_MasterFace(ContactFace<Real>* cf) {master_face=cf;};
+  inline ContactFace<DataType>* SlaveFace() {return slave_face;};
+  inline typename ContactInteractionEntity<DataType>::entity_data* SlaveFaceEntityData()  {return &slave_face_entity_data;};
+  inline ContactFace<DataType>* MasterFace() {return master_face;};
+  inline typename ContactInteractionEntity<DataType>::entity_data* MasterFaceEntityData() {return &master_face_entity_data;};
+  inline void Set_SlaveFace(ContactFace<DataType>* cf) {slave_face=cf;};
+  inline void Set_MasterFace(ContactFace<DataType>* cf) {master_face=cf;};
   int Set_SlaveFaceEntityData();
   int Set_MasterFaceEntityData();
   inline int NumEdges() {return num_edges;};
-  inline void NumEdges(int n) {num_edges=n;vertices=new ContactFaceFaceVertex[n+1];};
-  inline ContactFaceFaceVertex* Get_Vertices() { return vertices; };
-  inline ContactFaceFaceVertex* Get_Vertex(int n) { return &vertices[n]; };
+  inline void NumEdges(int n) {num_edges=n;vertices=new ContactFaceFaceVertex<DataType>[n+1];};
+  inline int NumDerivatives() {return num_derivatives;};
+  inline int NumSecondDerivatives() {return num_second_derivatives;};
+  inline ContactFaceFaceVertex<DataType>* Get_Vertices() { return vertices; };
+  inline ContactFaceFaceVertex<DataType>* Get_Vertex(int n) { return &vertices[n]; };
+#if (MAX_FFI_DERIVATIVES > 0)
+  void Set_Derivatives(ContactFaceFaceInteraction<ActiveScalar> *active_cffi);
+#endif
 
-  inline Real& Scalar_Var( VariableHandle vh ) {return DataArray[vh];};
-  inline Real* Vector_Var( VariableHandle vh ) 
+  inline DataType& Scalar_Var( VariableHandle vh ) {return DataArray[vh];};
+  inline DataType* Vector_Var( VariableHandle vh ) 
     { return (DataArray+NUMBER_SCALAR_VARS+3*vh); };
 
   inline int DataArray_Length() {return NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS;};
-  inline void Initialize_Memory() {std::memset(DataArray_Buffer(), 0, DataArray_Length()*sizeof(Real));};
+  inline void Initialize_Memory() {std::memset(this->DataArray_Buffer(), 0, DataArray_Length()*sizeof(DataType));};
   void Connect_SlaveFace ( ContactTopologyEntityList& );
   void Connect_MasterFace( ContactTopologyEntityList& );
   void Connect_SlaveFace ( ContactTopologyEntityHash& );
   void Connect_MasterFace( ContactTopologyEntityHash& );
   void Connect_SlaveFace ( ContactTopology* );
   void Connect_MasterFace( ContactTopology* );
-  void Connect_SlaveFace ( ContactFace<Real>* );
-  void Connect_MasterFace( ContactFace<Real>* );
+  void Connect_SlaveFace ( ContactFace<DataType>* );
+  void Connect_MasterFace( ContactFace<DataType>* );
 
   // Parallel packing/unpacking functions
   int  Size();
@@ -152,8 +146,8 @@ class ContactFaceFaceInteraction : public ContactInteractionEntity {
 
   // Restart Pack/Unpack functions
   int  Restart_Size();
-  void Restart_Pack( Real* buffer );
-  void Restart_Unpack( Real* buffer );
+  void Restart_Pack( DataType* buffer );
+  void Restart_Unpack( DataType* buffer );
 
   int Data_Size();
   
@@ -161,13 +155,15 @@ class ContactFaceFaceInteraction : public ContactInteractionEntity {
 
  private:
   
-  Real DataArray[NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS+1];
-  ContactFace<Real>* slave_face;
-  entity_data slave_face_entity_data;
-  ContactFace<Real>* master_face;
-  entity_data master_face_entity_data;
+  DataType DataArray[NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS+1];
+  ContactFace<DataType>* slave_face;
+  typename ContactInteractionEntity<DataType>::entity_data slave_face_entity_data;
+  ContactFace<DataType>* master_face;
+  typename ContactInteractionEntity<DataType>::entity_data master_face_entity_data;
   int num_edges;
-  ContactFaceFaceVertex* vertices;
+  int num_derivatives;
+  int num_second_derivatives;
+  ContactFaceFaceVertex<DataType>* vertices;
 #ifndef CONTACT_NO_MPI
   ContactZoltanLID zoltan_lid;
   ContactZoltanGID zoltan_gid;

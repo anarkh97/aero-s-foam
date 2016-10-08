@@ -54,13 +54,13 @@ class VectorValuedFunction {
 
 // Matrix-valued spatio-temporal function, takes (q,t) as input where q is a vector (spatial) and t is a scalar (temporal)
 template<int _NumberOfGeneralizedCoordinates,
-         int NumberOfValuesPerColumn,
-         int NumberOfValuesPerRow,
+         int _NumberOfValuesPerColumn,
+         int _NumberOfValuesPerRow,
          typename _Scalar,
          int _NumberOfScalarConstants = 0,
          int _NumberOfIntegerConstants = 0,
          typename _ScalarConstantType = double>
-class MatrixValuedFunctionOfAVector {
+class MatrixValuedFunction {
 
   public:
     typedef _Scalar Scalar;
@@ -68,7 +68,9 @@ class MatrixValuedFunctionOfAVector {
     enum { InputNumberOfRows              = _NumberOfGeneralizedCoordinates,
            InputNumberOfColumns           = 1,
            NumberOfGeneralizedCoordinates = _NumberOfGeneralizedCoordinates,
-           NumberOfValues                 = NumberOfValuesPerColumn*NumberOfValuesPerRow,
+           NumberOfValues                 = _NumberOfValuesPerColumn*_NumberOfValuesPerRow,
+           NumberOfValuesPerColumn        = _NumberOfValuesPerColumn,
+           NumberOfValuesPerRow           = _NumberOfValuesPerRow,
            NumberOfScalarConstants        = _NumberOfScalarConstants,
            NumberOfIntegerConstants       = _NumberOfIntegerConstants
     };

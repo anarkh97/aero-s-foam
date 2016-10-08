@@ -65,9 +65,9 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
                                 ContactEnforcement* enforcement )
 {
   int i,j,k,ierr,index;
-  ContactFaceFaceInteraction* cffi;
+  ContactFaceFaceInteraction<Real>* cffi;
   ContactFaceCoverageInteraction* cfci;
-  ContactInteractionEntity* interaction;
+  ContactInteractionEntity<Real>* interaction;
   ContactNode<Real>** Nodes = 
     reinterpret_cast<ContactNode<Real>**>(primary_node_list->EntityList());
   ContactEdge<Real>** Edges = 
@@ -123,11 +123,11 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
   for (i=0; i<number_of_primary_faces; ++i) {
     num_ffi_l += Faces[i]->Number_FaceFace_Interactions();
     max_ffi_l  = std::max(max_ffi_l,Faces[i]->Number_FaceFace_Interactions());
-    ContactInteractionDLL* interactions = Faces[i]->Get_FaceFace_Interactions();
+    ContactInteractionDLL<Real>* interactions = Faces[i]->Get_FaceFace_Interactions();
     if(interactions == NULL) continue;
     interactions->IteratorStart();
     while (interaction=interactions->IteratorForward()){
-      cffi = static_cast<ContactFaceFaceInteraction*>(interaction);
+      cffi = static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
       max_ffi_verts_l = std::max(max_ffi_verts_l,cffi->NumEdges()+1);
       num_ffi_elems += cffi->NumEdges();
       num_ffi_nodes += cffi->NumEdges()+1;
@@ -150,7 +150,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
   for (i=0; i<number_of_primary_faces; ++i) {
     num_fci_l += Faces[i]->Number_FaceCoverage_Interactions();
     max_fci_l  = std::max(max_fci_l,Faces[i]->Number_FaceCoverage_Interactions());
-    ContactInteractionDLL* interactions = Faces[i]->Get_FaceCoverage_Interactions();
+    ContactInteractionDLL<Real>* interactions = Faces[i]->Get_FaceCoverage_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
       while (interaction=interactions->IteratorForward()){
@@ -843,12 +843,12 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
       ContactFace<Real>** BlockFaces = 
         reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
       for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
-        ContactInteractionDLL* interactions = BlockFaces[j]->Get_FaceFace_Interactions();
+        ContactInteractionDLL<Real>* interactions = BlockFaces[j]->Get_FaceFace_Interactions();
         if(interactions == NULL) continue;
         interactions->IteratorStart();
         while (interaction=interactions->IteratorForward()){
-          cffi = static_cast<ContactFaceFaceInteraction*>(interaction);
-          ContactFaceFaceVertex* vertices = cffi->Get_Vertices();
+          cffi = static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
+          ContactFaceFaceVertex<Real>* vertices = cffi->Get_Vertices();
           ContactFace<Real>* slave_face = cffi->SlaveFace();
           for (k=0; k<cffi->NumEdges()+1; ++k) {
             Real local_coords[3];
@@ -872,7 +872,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
       ContactFace<Real>** BlockFaces = 
         reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
       for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
-        ContactInteractionDLL* interactions = BlockFaces[j]->Get_FaceCoverage_Interactions();
+        ContactInteractionDLL<Real>* interactions = BlockFaces[j]->Get_FaceCoverage_Interactions();
         if(interactions != NULL) {
           interactions->IteratorStart();
           while (interaction=interactions->IteratorForward()){
@@ -1202,12 +1202,12 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
         ContactFace<Real>** BlockFaces = 
           reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
         for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
-          ContactInteractionDLL* interactions = 
+          ContactInteractionDLL<Real>* interactions = 
             BlockFaces[j]->Get_FaceFace_Interactions();
           if(interactions == NULL) continue;
           interactions->IteratorStart();
           while (interaction=interactions->IteratorForward()){
-            cffi = static_cast<ContactFaceFaceInteraction*>(interaction);
+            cffi = static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
             int k1, k2;
             int k3  = cffi->NumEdges();
             int num = cffi->NumEdges();
@@ -1245,7 +1245,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
         ContactFace<Real>** BlockFaces = 
           reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
         for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
-          ContactInteractionDLL* interactions = BlockFaces[j]->Get_FaceCoverage_Interactions();
+          ContactInteractionDLL<Real>* interactions = BlockFaces[j]->Get_FaceCoverage_Interactions();
 	  if(interactions != NULL) {
             interactions->IteratorStart();
             while (interaction=interactions->IteratorForward()){

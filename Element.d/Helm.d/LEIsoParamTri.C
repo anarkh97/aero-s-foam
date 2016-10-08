@@ -27,6 +27,9 @@ LEIsoParamTri::LEIsoParamTri(int o, int* nodenums) {
  nn = new int[ordersq];
  int i;
  for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
+
+ setWeight(order-1);
+ setTrueWeight(order-1);
 }
 
 
@@ -86,9 +89,35 @@ void LEIsoParamTri::markDofs(DofSetArray &dsa) {
 }
 
 
-double LEIsoParamTri::getMass(CoordSet&) {
- fprintf(stderr,"LEIsoParamTri::getMass not implemented.\n");
- return 0.0;
+double LEIsoParamTri::getMass(CoordSet &cs) {
+ IsoParamUtils2dTri ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ double area(0);
+ AreaFunction2d f(&area);
+ int gorder = 7*7;
+ if (order<=3) gorder = 13;
+ ipu.areaInt2d(xyz, f, gorder);
+
+ return area*prop->eh*prop->rho; 
+}
+
+
+double LEIsoParamTri::getMassThicknessSensitivity(CoordSet &cs) {
+ IsoParamUtils2dTri ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ double area(0);
+ AreaFunction2d f(&area);
+ int gorder = 7*7;
+ if (order<=3) gorder = 13;
+ ipu.areaInt2d(xyz, f, gorder);
+
+ return area*prop->rho; 
 }
 
 
@@ -99,10 +128,10 @@ FullSquareMatrix LEIsoParamTri::massMatrix(CoordSet &cs, double *K, int fl) {
  double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
  cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
 
- LEMassFunction2d f(2*ordersq,prop->rho,K);
+ LEMassFunction2d f(2*ordersq,prop->rho*prop->eh,K);
  ipu.zeroOut<double> (ordersq*ordersq,K);
  int gorder = 7*7;
- if (order<=3) gorder = 4*4;
+ if (order<=3) gorder = 13;
  ipu.areaInt2d(xyz, f, gorder);
  ipu.symmetrize(2*ordersq,K);
 
@@ -120,7 +149,7 @@ FullSquareMatrix LEIsoParamTri::stiffness(CoordSet &cs, double *K, int flg ) {
  LEStiffFunction2d f(2*ordersq,prop->E, prop->nu,K);
  ipu.zeroOut<double> (4*ordersq*ordersq,K);
  int gorder = 7*7;
- if (order<=3) gorder = 4*4;
+ if (order<=3) gorder = 13;
  ipu.areaInt2d(xyz, f, gorder);
  ipu.symmetrize(2*ordersq,K);
 

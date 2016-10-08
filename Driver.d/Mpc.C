@@ -1,6 +1,4 @@
 #include <Driver.d/Mpc.h>
-#include <iostream>
-using namespace std;
 
 // real constructor
 LMPCTerm::LMPCTerm(int _nnum, int _dofnum, double _coef)
@@ -30,7 +28,6 @@ LMPCTerm::LMPCTerm(const LMPCTerm &t)
   else coef.r_value = t.coef.r_value;
 }
 
-// JLchange 
 LMPCTerm::LMPCTerm(LMPCTerm &t, double weight)
 { 
   isComplex = t.isComplex;
@@ -147,16 +144,16 @@ void
 LMPCons::print()
 {
   if(!isComplex) {
-    cerr << "lmpcnum = " << lmpcnum << ", rhs = " << rhs.r_value << ", nterms = " << nterms << endl;
+    std::cerr << "lmpcnum = " << lmpcnum << ", rhs = " << rhs.r_value << ", nterms = " << nterms << std::endl;
     for(int i=0; i<nterms; ++i)
-      cerr << "  term " << i+1 << ": node " << terms[i].nnum+1 << "  dof "
-           << terms[i].dofnum << "  coef " << terms[i].coef.r_value << endl;
+      std::cerr << "  term " << i+1 << ": node " << terms[i].nnum+1 << "  dof "
+                << terms[i].dofnum << "  coef " << terms[i].coef.r_value << std::endl;
   }
   else {
-    cerr << "lmpcnum = " << lmpcnum << ", rhs = " << rhs.c_value << ", nterms = " << nterms << endl;
+    std::cerr << "lmpcnum = " << lmpcnum << ", rhs = " << rhs.c_value << ", nterms = " << nterms << std::endl;
     for(int i=0; i<nterms; ++i)
-      cerr << "  term " << i+1 << ": node " << terms[i].nnum+1 << "  dof "
-           << terms[i].dofnum << "  coef " << terms[i].coef.c_value << endl;
+      std::cerr << "  term " << i+1 << ": node " << terms[i].nnum+1 << "  dof "
+                << terms[i].dofnum << "  coef " << terms[i].coef.c_value << std::endl;
   }
 }
 
@@ -205,7 +202,7 @@ void
 LMPCons::normalize()
 {
   if(isComplex) {
-    cerr << " *** WARNING: LMPCons::normalize() not implemented for complex coefficients \n";
+    std::cerr << " *** WARNING: LMPCons::normalize() not implemented for complex coefficients \n";
     return;
   }
   double cnorm = 0.0;

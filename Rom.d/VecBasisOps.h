@@ -39,6 +39,28 @@ mult(const GenSparseMatrix<Scalar> &matrix, const GenVecBasis<Scalar, GenVector>
   return result;
 }
 
+// Returns the matrix^T-basis product
+// (basis and result must refer to different objects)
+template <typename Scalar>
+const GenVecBasis<Scalar, GenVector> &
+transposeMult(const GenSparseMatrix<Scalar> &matrix, const GenVecBasis<Scalar, GenVector> &basis, GenVecBasis<Scalar, GenVector> &result) {
+  assert(&basis != &result);
+
+  typedef GenVecBasis<Scalar, GenVector> BasisType;
+  typedef typename BasisType::iterator VecIt;
+
+  result.dimensionIs(basis.vectorCount(), basis.vectorInfo());
+
+  for (VecIt it = const_cast<BasisType &>(basis).begin(),
+             it_end = const_cast<BasisType &>(basis).end(),
+             jt = result.begin();
+       it != it_end;
+       ++it, ++jt) {
+    const_cast<GenSparseMatrix<Scalar> &>(matrix).transposeMult(*it, *jt);
+  }
+
+  return result;
+}
 
 // Returns the renormalized basis Phi with respect to the metric M (assumed symmetric positive semidefinite)
 // (Phi, M) -> Phi * R^{-T} where (Phi^T * M * Phi) = R * R^T
@@ -78,43 +100,51 @@ renormalized_basis(const GenSparseMatrix<Scalar> &metric, const GenVecBasis<Scal
   return result;
 }
 
-//Modified Gram-Schmidt Algorithm
-//Works Parallel and Distributed. 
+// Calculates the reduced stiffness matrix  K_red = Phi^T * K * Phi with Phi as the mass-normalized basis
+template <typename Scalar>
+void calculateReducedStiffness(const GenSparseMatrix<Scalar> &K, const GenVecBasis<Scalar, GenVector> &basis, GenFullSquareMatrix<Scalar> &K_reduced) {
+  // K^T * Phi
+  VecBasis product; // used as a buffer for intermediate steps
+  transposeMult(K, basis, product);
+  // calculate transpose of product multiplied with basis  (K^T * Phi)^T * Phi = Phi^T * K * Phi
+  const int vecCount = product.vectorCount();
+
+  GenFullSquareMatrix<Scalar> normalMatrix(vecCount);
+  for(int i = 0; i < vecCount; i++){
+    for(int j = 0 ; j < vecCount; j++){
+      normalMatrix[i][j] = product[i] * basis[j];
+    }
+  }
+  K_reduced.copy(normalMatrix);
+}
+
+// Modified Gram-Schmidt Algorithm
 template <typename Scalar>
 void
 MGSVectors(Scalar *d, int numVec, int lengthVec, bool RowMajor = false) {
 #ifdef USE_EIGEN3
- filePrint(stderr," ... Gram-Schmidt Algorithm: orthogonalizing vectors ...\n");
- //filePrint(stderr," number of vectors = %d\n", numVec);
- //initialize eigen matrix class with pointer to vectors
- Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > matrix(NULL,0,0);
- if (RowMajor)
-   new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor> >(d,lengthVec,numVec);
- else
-   new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::ColMajor> >(d,lengthVec,numVec);
+  filePrint(stderr," ... Gram-Schmidt Algorithm: orthogonalizing vectors ...\n");
+  // initialize eigen matrix class with pointer to vectors
+  Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > matrix(NULL,0,0);
+  if (RowMajor)
+    new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor> >(d,lengthVec,numVec);
+  else
+    new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::ColMajor> >(d,lengthVec,numVec);
 
- //loop over all vectors
- for(int i = 0; i != numVec; ++i) {  
-  filePrint(stderr,"\r %5.2f%% complete", double(i)/double(numVec)*100.); 
-  //initialize vector class with pointer to currect vector
-  Eigen::Matrix<Scalar,Eigen::Dynamic,1> v(lengthVec); 
-  v = matrix.col(i);
+  // loop over all vectors
+  for(int i = 0; i != numVec; ++i) {  
+    filePrint(stderr,"\r %5.2f%% complete", double(i)/double(numVec)*100.); 
 
-  //initialize a buffer vector for manipulation
-  Eigen::Matrix<Scalar,Eigen::Dynamic,1> q(lengthVec);
+    // normalize the current vector
+    matrix.col(i).normalize();
 
-  //compute ||v||_2 of current vector
-  Scalar normCol = v.norm();//need to call all gather 
-
-  q = v/normCol;
-  matrix.col(i) = q;
-  //loop over all other vectors and subtract off projection 
-  for(int j = i+1; j != numVec; ++j) { 
-    Scalar vecProj = q.dot(matrix.col(j)); //need to call all gather
-    matrix.col(j) += -1*vecProj*q;
+    // loop over all other vectors and subtract off projection 
+    for(int j = i+1; j != numVec; ++j) { 
+      Scalar vecProj = matrix.col(i).dot(matrix.col(j));
+      matrix.col(j) -= vecProj*matrix.col(i);
+    }
   }
- }
- filePrint(stderr,"\r %5.2f%% complete\n", 100.);
+  filePrint(stderr,"\r %5.2f%% complete\n", 100.);
 #else
   filePrint(stderr, " *** ERROR: MGSVectors requires Eigen 3 library\n");
   exit(-1);
@@ -125,13 +155,13 @@ template <typename Scalar>
 void
 PrintData(Scalar *d, int numVec, int lengthVec, bool RowMajor = false) {
 #ifdef USE_EIGEN3
-Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > matrix(NULL,0,0);
- if (RowMajor)
-   new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor> >(d,lengthVec,numVec);
- else
-   new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::ColMajor> >(d,lengthVec,numVec);
+  Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > matrix(NULL,0,0);
+  if (RowMajor)
+    new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor> >(d,lengthVec,numVec);
+  else
+    new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::ColMajor> >(d,lengthVec,numVec);
 
- std::cout << matrix.transpose()*matrix << std::endl;
+  std::cout << matrix.transpose()*matrix << std::endl;
 #endif
 }
 

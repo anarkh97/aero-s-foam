@@ -6,7 +6,7 @@ C=====================================================================C
      $                   emass   , medof   , nttly , ncmpfr , elm     ,
      $                   idlay   , mtlay   , cmpfr , iatt   , ctyp    ,
      $                   catt    , cfrm    , gamma , grvfor , grvflg  ,
-     $                   totmas  , masflg                             )
+     $                   totmas  , area  , masflg                     )
 C=====================================================================C
 C                                                                     C
 C     Performs =   This subroutine will form the elemental mass       C
@@ -143,13 +143,17 @@ C                                                                     C
 C     3. Constitutive Law of Type-2                                   C
 C     - - - - - - - - - - - - - - -                                   C
 C                                                                     C
+C     The density parameter must be initialized in the input file as  C
+C     the non-structural mass density per unit surface of the         C
+C     composite element.                                              C
 C     The mass coefficients are computed by adding together the       C
-C     contributions of each layer of the composite shell:             C
+C     contributions of each layer of the composite shell, and         C
+C     also the non-structural mass.                                   C
 C                                                                     C
-C     [mt] = sum{ [rho_k] * [h_k] } * [A]        /    3.0             C
-C     [m1] = sum{ [rho_k] * [h_k] } * [A] * [Ix] / 1260.0             C
-C     [m2] = sum{ [rho_k] * [h_k] } * [A] * [Iy] / 1260.0             C
-C     [m3] = sum{ [rho_k] * [h_k] } * [A] * [Iz] / 1260.0             C
+C     [mt] = ( nsm + sum{ [rho_k] * [h_k] } ) * [A]        /    3.0   C
+C     [m1] = ( nsm + sum{ [rho_k] * [h_k] } ) * [A] * [Ix] / 1260.0   C
+C     [m2] = ( nsm + sum{ [rho_k] * [h_k] } ) * [A] * [Iy] / 1260.0   C
+C     [m3] = ( nsm + sum{ [rho_k] * [h_k] } ) * [A] * [Iz] / 1260.0   C
 C                                                                     C
 C     where:                                                          C
 C                                                                     C
@@ -157,6 +161,9 @@ C     [rho_k]               density of the layer number [k]           C
 C     [h_k]                 thickness of the layer number [k]         C
 C     [A]                   area of the shell                         C
 C     [Ix], [Iy] and [Iz]   pseudo-moments of inertia of the shell    C
+C                                                                     C
+C     where the non-structural mass density per unit surface [nsm] is C
+C     stored in the same variable as before (type-0), that is, [rho]. C
 C                                                                     C
 C     Quantities [A], [Ix], [Iy] and [Iz] are obtained via            C
 C     numerical integration. Densities (per unit volume) [rho_k] and  C
@@ -218,7 +225,7 @@ C
 C
       real*8     rho , emass(medof,medof) , mtlay(12,nttly)
       real*8     h(3) , cmpfr(9,ncmpfr) , x(3) , y(3) , z(3)
-      real*8     totmas , gamma(*) , grvfor(*)
+      real*8     totmas , area , gamma(*) , grvfor(*)
 
       logical    grvflg , masflg
 C
@@ -235,7 +242,7 @@ C
       real*8     x13 , y13 , z13 , hlayer(maxlayer)
       real*8     x32 , y32 , z32 , rholayer(maxlayer)
       real*8     x21 , y21 , z21 , rhoh
-      real*8     dist(3) , rlr , rlb , bpr , area , twicearea2
+      real*8     dist(3) , rlr , rlb , bpr , twicearea2
       real*8     Ix , Iy , Iz
 C
 C     ----
@@ -395,6 +402,10 @@ C
       mass2 = rho*area*Iy/1260.00D+00
       mass3 = rho*area*Iz/1260.00D+00
 C
+C.....INITIALIZE THE ELEMENT'S CONSTANT THICKNESS
+C
+      thick = h(1)
+C
 C.....END OF TREATMENT FOR A TYPE-1 CONSTITUTIVE LAW
 C
       endif
@@ -406,12 +417,14 @@ C
       if ( (ctyp.eq.2).or.(ctyp.eq.3) ) then
 C
 C.....ACCUMULATE THE PRODUCT DENSITY BY THICKNESS PER LAYER
+C.....ALSO ACCOUNTING FOR NON-STRUCTURAL MASS
 C
-      rhoh = zero
+      rhoh = rho
 C
       do 3001 ilayer=1,nlayer
          rhoh = rhoh + rholayer(ilayer)*hlayer(ilayer)
  3001 continue
+
 C
 C.....FORM THE MASS COEFFICIENTS PER DEGREE OF FREEDOM
 C

@@ -24,12 +24,16 @@
 #include <Element.d/Sommerfeld.d/Quad9PressureBC.h>
 #include <Element.d/Sommerfeld.d/Quad12PressureBC.h>
 #include <Element.d/Sommerfeld.d/Triangle10PressureBC.h>
-
+#include <Utils.d/DistHelper.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
+#include <Math.d/DBSparseMatrix.h>
 
 double HData::coupledScaling = 1.0, HData::cscale_factor = 1.0, HData::cscale_factor2 = 1.0;
 
 extern int verboseFlag;
+
+using std::complex;
 
 HData::HData() : sommer(0), scatter(0), neum(0), wet(0), sBoundNodes(0)
 {
@@ -82,6 +86,7 @@ HData::HData() : sommer(0), scatter(0), neum(0), wet(0), sBoundNodes(0)
   fluidCelerity = 1.0;
 
   sommerChecked = false;
+  subScaToSca = 0;
 }
 
 int
@@ -166,7 +171,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
     
     // Set the Complex Dirichlet boundary condtions
    double kappa = 0.0;
-   if (numComplexDirichlet>0 & implicitFlag )
+   if (numComplexDirichlet>0 && implicitFlag )
      kappa = geoSource->kappa();
    for(i=0; i<numComplexDirichlet; ++i) {
      int dof  = dom->dsa->locate(cdbc[i].nnum, 1 << cdbc[i].dofnum);
@@ -2041,7 +2046,6 @@ HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int *n, P
        ele = new QuadPressureBC(n, pbc);
        addNeum(ele);
        break;
-#if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
      case 17:
        ele = new Triangle6PressureBC(n, pbc);
        addNeum(ele);
@@ -2062,13 +2066,6 @@ HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int *n, P
        ele = new Triangle10PressureBC(n, pbc);
        addNeum(ele);
        break;
-#else
-     case 17: case 18: case 19: case 20: case 21:
-       std::cerr << " *** ERROR: Selected PressureBC element requires Eigen 3 library and C++11 " << std::endl
-                 << "     compiler support for template alias (e.g. icpc 12.1 or g++ 4.7). Exiting...\n";
-       exit(-1);
-       break;
-#endif
      default:
        return;
    }
@@ -2287,6 +2284,7 @@ HData::wError(Domain *dom, double *l2err, double *h1err, double *l2, double *h1,
 void 
 HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_nodeToElem) 
 {
+ if(sommerChecked) return;
  int totEle = dom->numElements();
  int *eleTouch = new int[totEle];
  int *eleCount = new int[totEle];
@@ -2477,7 +2475,7 @@ void
 HData::addFrequency(double _w)
 {
   // for multiple frequency sweep analysis, add single freq to list
-  if(frequencies == 0) frequencies = new list<double>();
+  if(frequencies == 0) frequencies = new std::list<double>();
   frequencies->push_back(_w);
   numFrequencies = frequencies->size() + coarse_frequencies->size();
 }
@@ -2496,8 +2494,8 @@ HData::addCoarseFrequency(double _w)
 void
 HData::initFreqSweep(double w0)
 {
-  if(frequencies == 0) frequencies = new list<double>();
-  if(coarse_frequencies == 0) coarse_frequencies = new list<double>();
+  if(frequencies == 0) frequencies = new std::list<double>();
+  if(coarse_frequencies == 0) coarse_frequencies = new std::list<double>();
   domain->solInfo().doFreqSweep = true;
 }
 
@@ -2509,4 +2507,5 @@ HData::~HData()
   if(somNodeToElem) delete somNodeToElem;
   if(somNodeToNode) delete somNodeToNode;
   if(Kss) delete Kss;
+  if(subScaToSca) delete [] subScaToSca;
 }

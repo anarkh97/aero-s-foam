@@ -63,7 +63,6 @@ DistrInfo::computeOffsets()
     threadLen[iThread] = (iThread < nRemain ? 1 : 0) + npt; // PJSA: for DistVec class in Math.d
   }
   threadOffset[0] = 0;
-  
 }
 
 void
@@ -82,4 +81,19 @@ DistrInfo::masterLen() const
   GenDistrVector<int> toto(*this);
   toto = 1;
   return toto.sqNorm();
+}
+
+bool
+DistrInfo::operator==(const DistrInfo& other) const
+{
+  if((len != other.len) || (numLocSub != other.numLocSub)) return false;
+  for(int i=0; i<numLocSub; ++i)
+    if(subLen[i] != other.subLen[i]) return false;
+  return true;
+}
+
+bool
+DistrInfo::operator!=(const DistrInfo& other) const
+{
+  return !(*this == other);
 }

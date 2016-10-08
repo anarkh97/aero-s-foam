@@ -18,21 +18,27 @@
 // along with ACME.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#ifndef ContactInteractionEntity_C_
+#define ContactInteractionEntity_C_
+
 #include "ContactInteractionEntity.h"
 #include "ContactParOStream.h"
 #include "contact_assert.h"
 #include <cstddef>
 #include <cstring>
 
-ContactInteractionEntity::ContactInteractionEntity(Real *data_array_, ContactType base_type_)
+template<typename DataType>
+ContactInteractionEntity<DataType>::ContactInteractionEntity(DataType *data_array_, ContactType base_type_)
   : data_array(data_array_), base_type(base_type_), index(-1), proc_index(-1)
 {}
 
-ContactInteractionEntity::~ContactInteractionEntity()
+template<typename DataType>
+ContactInteractionEntity<DataType>::~ContactInteractionEntity()
 {}
 
+template<typename DataType>
 void 
-ContactInteractionEntity::Display(ContactParOStream& postream)
+ContactInteractionEntity<DataType>::Display(ContactParOStream& postream)
 {
   postream<<"ContactEntity: \n";
   postream<<"               entity type:       ";
@@ -65,3 +71,5 @@ ContactInteractionEntity::Display(ContactParOStream& postream)
   postream<<"               index:             "<<index<<"\n";
   postream<<"               proc_index:        "<<proc_index<<"\n";
 }
+
+#endif  // ifdef ContactInteractionEntity_C_

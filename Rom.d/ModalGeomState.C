@@ -20,10 +20,6 @@ ModalGeomState::ModalGeomState(const ModalGeomState& mgs) : q(mgs.q),
 
 //------------------------------------------------------------------------------
 
-
-
-//------------------------------------------------------------------------------
-
 void ModalGeomState::update(const Vector &dsp, int){
 /*PRE: q is approximation to the solution at t^{n+1-alphaf}
        dsp is the difference between the next approx and the current one

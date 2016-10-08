@@ -1,9 +1,11 @@
 #ifndef ROM_MESHOUTPUT_H
 #define ROM_MESHOUTPUT_H
 
-#include <Driver.d/StructProp.h>
+#include <Driver.d/Attrib.h>
 #include <Driver.d/EFrameData.h>
 #include <Element.d/Element.h>
+#include <Parser.d/AuxDefs.h>
+#include <Utils.d/CompositeInfo.h>
 
 class NLMaterial;
 
@@ -13,6 +15,7 @@ class NLMaterial;
 #include <sstream>
 #include <utility>
 #include <stdexcept>
+#include <limits>
 
 namespace Rom {
 
@@ -37,6 +40,12 @@ operator<<(std::ostream &, const BCond &);
 
 std::ostream &
 operator<<(std::ostream &, const EFrameData &);
+
+std::ostream &
+operator<<(std::ostream &, const FrameData &);
+
+std::ostream &
+operator<<(std::ostream &, const std::pair<int,CoefData> &);
 
 std::ostream &
 operator<<(std::ostream &, const NLMaterial &);
@@ -64,19 +73,23 @@ public:
   InputIterator begin() const { return first_; }
   InputIterator end()   const { return last_;  }
 
-  InputFileSection(InputIterator first, InputIterator last, TagType tag) :
-    first_(first), last_(last), tag_(tag)
+  int j() const { return j_; }
+
+  InputFileSection(InputIterator first, InputIterator last, TagType tag, int j) :
+    first_(first), last_(last), tag_(tag), j_(j)
   {}
 
 private:
   InputIterator first_, last_;
   TagType tag_;
+  int j_;
 };
 
 template <typename InputIterator, typename TagType>
 std::ostream &
 operator<<(std::ostream &out, const InputFileSection<InputIterator, TagType> &source) {
-  out << "*\n" << source.header() << "\n";
+  if(source.j() == 0) out << "*\n" << source.header() << "\n";
+  else out << "*\n" << source.header() << " " << source.j() << "\n";
   InputIterator itEnd = source.end();
   for (InputIterator it = source.begin(); it != itEnd; ++it) {
     typedef typename InputFileSection<InputIterator, TagType>::ValueType ValueType;
@@ -84,7 +97,7 @@ operator<<(std::ostream &out, const InputFileSection<InputIterator, TagType> &so
       out << InputFileSectionHelper<ValueType, TagType>::transformation(*it) << "\n";
     }
     catch(std::exception& e) {
-      std::cerr << "caught exception: " << e.what() << endl;
+      std::cerr << "caught exception: " << e.what() << std::endl;
     }
   }
 
@@ -114,6 +127,7 @@ template <typename TagType>
 std::string
 InputFileSectionHelper<std::pair<const int, typename TagType::SecondType>, TagType>::transformation(const ValueType &p) {
   std::ostringstream result;
+  result.precision(std::numeric_limits<double>::digits10+1);
   result << p.first + 1 << " " << TagType::valueTransformation(p.second);
   return result.str();
 }
@@ -138,18 +152,29 @@ struct MatLawTag {
   static const NLMaterial &valueTransformation(const NLMaterial *m) { return *m; }
 };
 
+struct CFrameTag {
+  typedef FrameData SecondType;
+  static const FrameData& valueTransformation(const FrameData &x) { return x; }
+};
+
 // Convenience functions
 
 template <typename InputIterator>
 InputFileSection<InputIterator, EmptyTag>
 make_section(InputIterator first, InputIterator last) {
-  return InputFileSection<InputIterator, EmptyTag>(first, last, EmptyTag());
+  return InputFileSection<InputIterator, EmptyTag>(first, last, EmptyTag(), 0);
 }
 
 template <typename InputIterator, typename TagType>
 InputFileSection<InputIterator, TagType>
 make_section(InputIterator first, InputIterator last, TagType tag) {
-  return InputFileSection<InputIterator, TagType>(first, last, tag);
+  return InputFileSection<InputIterator, TagType>(first, last, tag, 0);
+}
+
+template <typename InputIterator, typename TagType>
+InputFileSection<InputIterator, TagType>
+make_section(InputIterator first, InputIterator last, TagType tag, int j) {
+  return InputFileSection<InputIterator, TagType>(first, last, tag, j);
 }
 
 } /* end namespace Rom */

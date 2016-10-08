@@ -72,7 +72,7 @@ public:
   Scalar singularValue(int rank) const;
   const Scalar *singularValueBuffer() const;
 
-  // Ctor and dtor
+  // Cosntructor and destructor
   DistrSvdOrthogonalization(Communicator *comm, int rowCpus, int colCpus);
   ~DistrSvdOrthogonalization();
 
@@ -107,7 +107,7 @@ private:
 
   static const int DEFAULT_BLOCK_SIZE;
   
-  // Adressable constants
+  // Addressable constants
   static const int INT_ZERO;
   static const int INT_ONE;
   static const int INT_MINUS_ONE;

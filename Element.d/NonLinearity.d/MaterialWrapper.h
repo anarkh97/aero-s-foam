@@ -5,7 +5,6 @@
 #include <Material.d/Material.h>
 #include <Material.d/IsotropicLinearElasticJ2PlasticMaterial.h>
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
-#include <Material.d/MooneyRivlin.h>
 
 class Tensor;
 
@@ -15,6 +14,9 @@ class MaterialWrapper : public NLMaterial
 {
   protected:
     Material *mat;
+    double lambda;
+    double mu;
+    int yssrtid;
     double posdefifyTol;
 
   public:
@@ -24,21 +26,21 @@ class MaterialWrapper : public NLMaterial
 
     int getNumStates();
 
-    void getStress(Tensor *stress, Tensor &strain, double*);
+    void getStress(Tensor *stress, Tensor &strain, double*, double temp);
 
-    void getTangentMaterial(Tensor *tm, Tensor &strain, double*);
+    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
     void getElasticity(Tensor *tm) {}
 
-    void updateStates(Tensor en, Tensor enp, double *state) {}
+    void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {}
 
-    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*);
+    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double);
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double);
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
 
     void initStates(double *);
 
@@ -48,9 +50,18 @@ class MaterialWrapper : public NLMaterial
 
     double getEquivPlasticStrain(double *statenp);
 
+    double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
+
     double getPosdefifyTol() { return posdefifyTol; }
 
     Material* getMaterial() { return mat; }
+
+    void print(std::ostream &out) const;
+
+    void setSDProps(MFTTData *ysst);
+    void setSRDProps(MFTTData *yssrt);
+
+    void getMaterialConstants(std::vector<double> &c);
 };
 
 template<>
@@ -60,23 +71,10 @@ MaterialWrapper<IsotropicLinearElastic>::MaterialWrapper(double *params)
   double rho    = params[0];
   double E      = params[1];
   double nu     = params[2];
-  double lambda = E*nu/((1.+nu)*(1.-2.*nu));
-  double mu     = E/(2.*(1.+nu));
+  lambda = E*nu/((1.+nu)*(1.-2.*nu));
+  mu     = E/(2.*(1.+nu));
   mat = new IsotropicLinearElastic(lambda,mu,rho);
   posdefifyTol = -1;
-}
-
-template<>
-inline
-MaterialWrapper<NeoHookean>::MaterialWrapper(double *params) 
-{
-  double rho    = params[0];
-  double E      = params[1]; 
-  double nu     = params[2];
-  double lambda = E*nu/((1.+nu)*(1.-2.*nu));
-  double mu     = E/(2.*(1.+nu));
-  mat = new NeoHookean(lambda,mu,rho);
-  posdefifyTol = params[3];
 }
 
 template<>
@@ -89,9 +87,12 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::MaterialWrapper(double
   double sigmaY = params[3];
   double K      = params[4];
   double H      = params[5];
-  double lambda = E*nu/((1.+nu)*(1.-2.*nu));
-  double mu     = E/(2.*(1.+nu));
-  mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H);
+  double Tol    = params[6];
+  double epsF   = (params[7] <= 0) ? std::numeric_limits<double>::infinity() : params[7];
+  yssrtid   = int(params[8]);
+  lambda = E*nu/((1.+nu)*(1.-2.*nu));
+  mu     = E/(2.*(1.+nu));
+  mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H,Tol,epsF);
   posdefifyTol = -1;
 }
 
@@ -106,23 +107,12 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::MaterialWra
   double K      = params[4];
   double H      = params[5];
   double Tol    = params[6];
-  
-  double lambda = E*nu/((1.+nu)*(1.-2.*nu));
-  double mu     = E/(2.*(1.+nu));
-  mat = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda,mu,sigmaY,K,H,Tol);
-  posdefifyTol = params[7];
-}
-
-template<>
-inline
-MaterialWrapper<MooneyRivlin>::MaterialWrapper(double *params)
-{
-  double rho    = params[0];
-  double mu1    = params[1];
-  double mu2    = params[2];
-  double kappa  = params[3];
-  mat = new MooneyRivlin(mu1, mu2, kappa, rho);
-  posdefifyTol  = params[4];
+  double epsF   = (params[7] <= 0) ? std::numeric_limits<double>::infinity() : params[7];
+  yssrtid   = int(params[8]);
+  lambda = E*nu/((1.+nu)*(1.-2.*nu));
+  mu     = E/(2.*(1.+nu));
+  mat = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda,mu,sigmaY,K,H,Tol,epsF);
+  posdefifyTol = -1;
 }
 
 #ifdef _TEMPLATE_FIX_

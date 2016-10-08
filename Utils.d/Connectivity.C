@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 #include <algorithm>
+#include <set>
 using std::stable_sort;
 
 #include <Utils.d/Connectivity.h>
@@ -52,6 +53,74 @@ Connectivity::Connectivity(Elemset *els)
  // Fill it in
  for(i=0; i < size; ++i) {
    if((*els)[i]) (*els)[i]->nodes(target+pointer[i]);
+ }
+}
+
+Connectivity::Connectivity(Elemset *els, Connectivity *nodeToElem)
+{
+ removeable = 1;
+ int i;
+ weight = (float *) 0;
+
+ size = els->last();
+
+ // locate any nodes that are not connected to rigid or flexible elements
+ std::set<int> mpcnodes;
+ for(i=0; i < size; ++i) {
+   Element *ele = (*els)[i];
+   if(ele->isMpcElement() && !ele->isRigidElement()) {
+     int *nodes = (*els)[i]->nodes();
+     for(int j=0; j<ele->numNodes()-ele->numInternalNodes(); ++j) {
+       bool connected = false;
+       for(int k=0; k<nodeToElem->num(nodes[j]); ++k) {
+         Element *kele = (*els)[(*nodeToElem)[nodes[j]][k]];
+         if(kele->isRigidElement() || !kele->isMpcElement()) {
+           connected = true;
+           break;
+         }
+       }
+       if(!connected) mpcnodes.insert(nodes[j]);
+     }
+     delete [] nodes;
+   }
+ }
+
+ size += mpcnodes.size();
+
+ // Find out the number of targets we will have
+ pointer = new int[size+1] ;
+ int pp = 0;
+ for(i = 0; i < size-mpcnodes.size(); ++i) {
+   pointer[i] = pp;
+   Element *ele = (*els)[i];
+   if(ele)  {
+     if(ele->isRigidElement() || !ele->isMpcElement()) {
+       pp += ele->numNodes();
+     }
+   }
+ }
+ for(i=size-mpcnodes.size(); i < size; ++i) {
+   pointer[i] = pp;
+   pp++;
+ }
+
+ pointer[size] = pp;
+ numtarget = pp;
+
+ // Create the target array
+ target = new int[pp];
+
+ // Fill it in
+ for(i = 0; i < size-mpcnodes.size(); ++i) {
+   Element *ele = (*els)[i];
+   if(ele) {
+     if(ele->isRigidElement() || !ele->isMpcElement()) {
+       ele->nodes(target+pointer[i]);
+     }
+   }
+ }
+ for(std::set<int>::iterator it = mpcnodes.begin(); it != mpcnodes.end(); it++) {
+   target[pointer[i++]] = *it;
  }
 }
 
@@ -165,13 +234,13 @@ Connectivity::Connectivity(int _size, int count)
  weight = 0;
 }
 
-Connectivity::Connectivity(FaceElemSet* els)
+Connectivity::Connectivity(FaceElemSet* els, int _size)
 {
  removeable = 1;
  int i;
  weight = (float *)0;
 
- size = els->last();
+ size = (_size == 0) ? els->last() : _size;
 
  // Find out the number of targets we will have
  pointer = new int[size+1] ;
@@ -184,7 +253,6 @@ Connectivity::Connectivity(FaceElemSet* els)
  numtarget = pp;
 
  // Create the target array
- //cerr <<" In Connectivity(FaceElemSet*), pp ="<< pp <<endl;
  target = new int[pp];
 
  // Fill it in
@@ -206,6 +274,28 @@ Connectivity::Connectivity(FaceElemSet* els)
   file.read(pointer, size+1);
   file.read(target, numtarget);
 }*/
+
+Connectivity::Connectivity(const Connectivity &other)
+ : removeable(true), size(other.size), numtarget(other.numtarget)
+{
+  if(other.pointer) {
+    pointer = new int[size];
+    for(int i=0; i<size; ++i) pointer[i] = other.pointer[i];
+  }
+  else pointer = NULL;
+
+  if(other.target) {
+    target = new int[numtarget];
+    for(int i=0; i<numtarget; ++i) target[i] = other.target[i];
+  }
+  else pointer = NULL;
+
+  if(other.weight) {
+    weight = new float[size];
+    for(int i=0; i<size; ++i) weight[i] = other.weight[i];
+  }
+  else weight = NULL;
+}
 
 Connectivity::~Connectivity()
 {
@@ -1132,7 +1222,7 @@ void Connectivity::renumberTargets(int *map)  {
 
 //----------------------------------------------------------------------
  
-void Connectivity::renumberTargets(map<int, int> &map)  {
+void Connectivity::renumberTargets(std::map<int, int> &map)  {
  
   for (int i = 0; i < numtarget; i++)  {
     if (map.find(target[i]) == map.end())

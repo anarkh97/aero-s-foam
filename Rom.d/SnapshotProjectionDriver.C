@@ -15,6 +15,8 @@
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/Domain.h>
 #include <Math.d/Vector.h>
+#include <Math.d/DBSparseMatrix.h>
+#include <Math.d/DiagMatrix.h>
 #include <Timers.d/StaticTimers.h>
 #include <Utils.d/Connectivity.h>
 #include <Element.d/Element.h>
@@ -43,7 +45,7 @@ namespace Rom {
 // ====================
 void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis &podBasis,
                              const VecNodeDof6Conversion &vecDofConversion,
-                             std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config);
+                             std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config, SparseMatrix *M, int j=-1);
 
 // Member functions
 // ================
@@ -119,9 +121,13 @@ SnapshotProjectionDriver::preProcess() {
   const VecNodeDof6Conversion vecDofConversion(*domain->getCDSA());
   assert(vectorSize() == vecDofConversion.vectorSize());
 
-  // Read in identity-normalized basis
+  // Read in basis to be used for the projection:
+  // (a) if a mass-orthogonal projection is to be done, then the mass-normalized basis will be read
+  // (b) if and orthogonal projection is to be done, then the identity-normalized basis will be read
   {
-    BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
+    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    if(domain->solInfo().useMassOrthogonalProjection) fileName.append(".normalized");
+    BasisInputStream<6> in(fileName, vecDofConversion);
     const int podSizeMax = domain->solInfo().maxSizePodRom;
     if (podSizeMax != 0) {
       readVectors(in, podBasis_, podSizeMax);
@@ -130,12 +136,24 @@ SnapshotProjectionDriver::preProcess() {
     }
   }
 
+  // Assemble mass matrix if necessary
+  AllOps<double> allOps;
+  if(domain->solInfo().useMassOrthogonalProjection) {
+    if(geoSource->getMRatio() != 0) {
+      allOps.M = domain->constructDBSparseMatrix<double>();
+    }
+    else {
+      allOps.M = new DiagMatrix(domain->getCDSA());
+    }
+    domain->makeSparseOps<double>(allOps, 0.0, 1.0, 0.0);
+  }
+
   const int podVectorCount = podBasis_.vectorCount();
 
   // Read some displacement snapshots from one or more files and project them on to the basis
   std::vector<int> snapshotCounts;
   readAndProjectSnapshots(BasisId::STATE, vectorSize(), podBasis_, vecDofConversion,
-                          snapshotCounts, timeStamps_, displac_);
+                          snapshotCounts, timeStamps_, displac_, allOps.M);
 
   const int snapshotCount = std::accumulate(snapshotCounts.begin(), snapshotCounts.end(), 0);
 
@@ -145,7 +163,7 @@ SnapshotProjectionDriver::preProcess() {
     std::vector<int> velSnapshotCounts;
     veloc_ = new VecBasis;
     readAndProjectSnapshots(BasisId::VELOCITY, vectorSize(), podBasis_, vecDofConversion,
-                            velSnapshotCounts, velTimeStamps, *veloc_);
+                            velSnapshotCounts, velTimeStamps, *veloc_, allOps.M);
     if(velSnapshotCounts != snapshotCounts) std::cerr << " *** WARNING: inconsistent velocity snapshots\n";
   }
 
@@ -155,7 +173,7 @@ SnapshotProjectionDriver::preProcess() {
     std::vector<int> accSnapshotCounts;
     accel_ = new VecBasis;
     readAndProjectSnapshots(BasisId::ACCELERATION, vectorSize(), podBasis_, vecDofConversion,
-                            accSnapshotCounts, accTimeStamps, *accel_);
+                            accSnapshotCounts, accTimeStamps, *accel_, allOps.M);
     if(accSnapshotCounts != snapshotCounts) std::cerr << " *** WARNING: inconsistent acceleration snapshots\n";
   }
 }
@@ -248,7 +266,7 @@ SnapshotProjectionDriver::compProjError() {
 
     accelError = paccelBuf - accelBuf;
 
-    if(!domain->solInfo().PODerrornorm.size() < 3) {
+    if(domain->solInfo().PODerrornorm.size() < 3) {
      std::cerr << "...No acceleration file specified, exiting..." << std::endl;
      exit(-1);
     }

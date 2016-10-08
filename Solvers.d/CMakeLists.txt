@@ -6,7 +6,8 @@ MappedAssembledSolver.C
 SolverCore.C
 SpoolesCore.C
 GoldfarbIdnani.C
-SolverFactoryCore.C)
+SolverFactoryCore.C
+MultiDomainSolverInstance.C)
 
 #SET(INC_DIR ..)
 

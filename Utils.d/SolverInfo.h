@@ -2,6 +2,7 @@
 #define _SOLVER_INFO_
 
 #include <Utils.d/NonlinearInfo.h>
+#include <Utils.d/SensitivityInfo.h>
 #include <Solvers.d/SolverCntl.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
 #include <cstdio>
@@ -11,6 +12,9 @@
 #include <algorithm>
 #include <list>
 #include <vector>
+#include <limits>
+#include <fstream>
+#include <set>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -20,7 +24,7 @@
 
 extern SolverCntl default_cntl;
 
-using namespace std;
+const double defaultTemp = -10000000.0;
 
 struct AdaptiveSweepParams {
 public:
@@ -42,7 +46,8 @@ public:
                   pade_tol = 1.0e-16;
                   pade_poles = false;
                   pade_poles_sigmaL = 0.0;
-                  pade_poles_sigmaU = numeric_limits<double>::max();
+                  pade_poles_sigmaU = std::numeric_limits<double>::max();
+                  alphaD = 0.0; betaD = 0.0;
    }
    int nFreqSweepRHS;
    enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, QRGalProjection };
@@ -54,6 +59,10 @@ public:
    double pade_tol;
    bool pade_poles;
    double pade_poles_sigmaL, pade_poles_sigmaU;
+// RT: Does not belong here but added to allow different damping factors for
+// different impedance sections
+   double alphaD;
+   double betaD;
 };
 
 struct SolverInfo {
@@ -71,7 +80,9 @@ struct SolverInfo {
           Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
           None }; // note to developers: if you add a new entry in ths enum then
                   // you should also modify problemTypeMessage in Driver.d/Static.C
+   enum SensitivityMethod { Direct, Adjoint }; 
 
+   SensitivityMethod sensitivityMethod;
    int probType;
    int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...
 
@@ -81,6 +92,7 @@ struct SolverInfo {
    float ATDROBalpha;
    float ATDROBbeta;
    int aeroFlag;
+   bool dyna3d_compat;
    int aeroheatFlag;
    int thermoeFlag;
    int thermohFlag;
@@ -89,18 +101,22 @@ struct SolverInfo {
    double alphas[2];
    double alphat[2];
 
+   // Added by Alex Main.  A predictor on the velocity of the structure
+   double alphasv;
+
    int structoptFlag;
    int thermalLoadFlag; // whether there is a thermal load applied
+   int radiationFlag; // whether there are radiation lhs/rhs terms for linear analysis
    int hzemFlag; // Zero energy mode (for thermal Problems),
                  // Equivalent to grbm for structures
    int hzemFilterFlag;
-   int slzemFlag;// Flag for zero energy mode, ADDED FOR SLOSHING PROBLEMS, EC, 20070723
-   int slzemFilterFlag; // Flag for zero energy mode filter, ADDED FOR SLOSHING PROBLEMS, EC, 20070723
+   int slzemFlag; // Flag for zero energy mode
+   int slzemFilterFlag; // Flag for zero energy mode filter
 
    double mppFactor;  // modal amplification factor for mpp command
 
    // Solver parameters
-   static map<int,SolverCntl> solvercntls;
+   static std::map<int,SolverCntl> solvercntls;
    SolverCntl* solvercntl;
    int renum;    // renumbering scheme for skyline: 0 = none (default), 1 = sloan, 2 = RCM
    bool lastIt;
@@ -109,7 +125,7 @@ struct SolverInfo {
    enum { Newmark, Qstatic };
 
    // Parameters for PITA
-   bool activatePita; 	       // Enables PITA (both linear and nonlinear problems)
+   bool activatePita;                // Enables PITA (both linear and nonlinear problems)
    bool mdPita;                // Enables time-space parallelism (linear problem only)
    bool pitaNoForce;           // Enables NoForce optimization (linear problem only)
    int pitaTimeGridRatio;      // Coarse/fine time-grid ratio (always required)  
@@ -136,6 +152,8 @@ struct SolverInfo {
    double initialTime;  // initial time (either 0.0 or from restart)
    double initExtForceNorm;  // initial Force Norm (for restarting qstatics)
    double tmax;         // maximum time
+   double t_AeroF;
+   bool stop_AeroF, stop_AeroS;
 /* these are now private, use getTimeStep and setTimeStep functions to access
    double dt;           // time step value
    double dtemp;        // thermal time step value
@@ -143,6 +161,7 @@ struct SolverInfo {
    double alphaDamp;    // Rayleigh Mass damping coefficient 
    double betaDamp;     // Rayleigh Stiffness damping coefficient
    double etaDamp;      // Structural stiffness damping coefficient
+   int mtypeDamp;       // type of damping moments (0 = axial, 2 = follower)
    double alphaTemp;
    double newmarkBeta;  // Newmark algorithm parameter (beta)
    double newmarkGamma; // Newmark algorithm parameter (gamma)
@@ -167,6 +186,8 @@ struct SolverInfo {
    int steadyMin;       // minimum number of steps in steady state simulation
    int steadyMax;       // maximum number of steps in steady state simulation
    double steadyTol;    // steady state criteria
+   double sensitivityTol;    // Sensitivity analysis tolerance
+   double ratioSensitivityTol;    // Sensitivity analysis tolerance
    double qsBeta;       // relaxation parameter for computing alphaR in case of
                         // thermal quasistatic
    bool no_secondary;
@@ -182,10 +203,17 @@ struct SolverInfo {
    double tolJac;       // jacobi iteration tolerance
    bool   explicitK;    // determines whether or not to explicitly form K during eigprob
    int maxitEig;       
-    
-   // Sloshing problem flag, ADDED FOR SLOSHING PROBLEM, EC, 20070723
+   bool qrfactorization; // determines if qr factorization of eigen modes to be conducted or not   
+                         // if true, qmatrix and rmatrix in OUTPUT has to be specified.
+                         // this is mainly used for interpolation of ROM.
+   const char* xmatrixname;
+   const char* qmatrixname;
+   const char* rmatrixname;
+   const char* eigenvaluename;
+
+   // Sloshing problem flag
    int sloshing;
-   // Hydroelastic vibration problem flag, ADDED FOR HEV PROBLEM, EC, 20070820
+   // Hydroelastic vibration problem flag
    int HEV;
  
    const char *which;   /* for ARPACK: specifies "which" of the eigenvalues to compute, where:
@@ -206,21 +234,28 @@ struct SolverInfo {
 
 
    // Rigid Body Mode parameters
+   double trbm2;        // algebraic rbm tolerance used for sparse/skyline when GRBM is activated
    double tolsvd;       // singular value decomposition tolerance
    int rbmflg;          // 0 = algebraic rbm, 1 = geometric rbm
-   int rbmFilters[6];   // rbm filtering for nonlinear modal problems for each
-                        //   of the six rigid body modes: 0 = do not filter, 1 = do filter
+   std::set<int> rbmFilters; // selective rbm filtering for linear dynamics problems
+   bool grbm_use_lmpc;  // true (default) = lmpcs treated algebraically in GRBM method
+                        // false = lmpcs are assumed to not introduce any mechanisms (i.e. like beams)
+   std::vector<double> grbm_ref; // coordinates of reference point for rotational modes; if empty then 1st node is used.
 
    double condNumTolerance; // Condition number tolerance
    int condNumMaxit;
 
    int massFlag;
    int filterFlags;
+   int filterQ; // 0 = Q=M for statics/quasistatics, 1 = Q=I for statics/quasistatics
 
    int zeroInitialDisp; // flag to set initial disp to zero
 
+   // YC : sensitivity and optimization parameters
+   bool sensitivity;
+
    int curSweepParam;
-   map<int,SweepParams> sweepParams;
+   std::map<int,SweepParams> sweepParams;
    SweepParams* getSweepParams() { return &(sweepParams[curSweepParam]); }
    bool doFreqSweep,doEigSweep;
 
@@ -237,6 +272,8 @@ struct SolverInfo {
    bool dmpc;
    bool dbccheck;
    int contact_mode;
+   int contactsurface_mode;
+   bool trivial_detection;
 
    bool noninpc;
    bool inpc;
@@ -256,6 +293,7 @@ struct SolverInfo {
    bool ffi_debug;
    double mortar_scaling;
    int mortar_integration_rule;
+   bool tdenforceFlag;
 
    bool lagrangeMult;
    double penalty;
@@ -265,9 +303,18 @@ struct SolverInfo {
    double coefFilterTol, rhsZeroTol, inconsistentTol;
    int constraint_hess;
    double constraint_hess_eps;
+
+   // options used for the augmented Lagrangian constraint enforcement method
    int num_penalty_its;
    double penalty_tol;
    double penalty_beta;
+   bool reinit_lm; // true : the Lagrange multipliers are re-initialized to zero at the start of each load/time-step
+                   // false (default) : the Lagrange multipliers are initialized to zero at the start of the first load/time-step
+                   //                   subsequently, their values are retained.
+   int lm_update_flag; // 1 (default) : the Lagrange multipliers are updated after each Newton solve in the penalty iteration loop.
+                       // 0 : the Lagrange multipliers are updated after each Newton solve except for the final one (i.e. the one
+                       //     done before terminating the penalty iteration loop due to maximum number of iterations or satisfaction
+                       //     of the minimum constraint violation condition).
 
    std::vector<std::string> RODConversionFiles;
    std::vector<std::string> PODerrornorm;
@@ -275,16 +322,25 @@ struct SolverInfo {
    std::vector<std::string> snapfiPodRom;
    std::vector<std::string> robfi;
    std::vector<double> snapshotWeights;
-   const char * readInROBorModes;
-   const char * readInModes;
+   std::vector<std::string> readInROBorModes;
+   std::vector<std::string> readInDualROB; 
+   std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
+   std::vector<std::string> readInLocalBasesCent;
+   std::vector<std::string> readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
+   const char * readInShapeSen;
    std::vector<BlastLoading::BlastData> conwepConfigurations;
    std::vector<std::string> statePodRomFile;
    std::vector<std::string> velocPodRomFile;
    std::vector<std::string> accelPodRomFile;
+   std::vector<std::string> dsvPodRomFile;
    const char * isvPodRomFile;
+//   const char * dsvPodRomFile;
    const char * forcePodRomFile;
+   const char * constraintPodRomFile;
+   const char * constraintSnapshotFile;
+   const char * constraintViolationFile;
    const char * residualPodRomFile;
    const char * jacobianPodRomFile;
    bool ROMPostProcess;
@@ -292,58 +348,147 @@ struct SolverInfo {
    bool velocvectPodRom;
    bool accelvectPodRom;
    bool isvPodRom;
+   bool dsvPodRom;
    bool forcevectPodRom;
    bool residvectPodRom;
    bool jacobvectPodRom;
    bool readmodeCalled;
    bool modalCalled;
+   bool modalLMPC;
+   bool modalDIMASS;
+   const char * reducedMassFile;
+   bool readShapeSen;
+   double ksParameter;
+   double ksMax;
    bool activatePodRom;
    bool snapshotsPodRom;
    bool checkPodRom;
    bool svdPodRom;
    int  svdBlockSize;
+   bool clusterSubspaceAngle;
+   int clustering;
+   int  solverTypeCluster; // 0: Random, 1: K-means 2: Sparse Supspace Clustering
+   int use_nmf;
+   int nmfNumROBDim;
+   int nmfDelROBDim;
+   int nmfRandInit;
+   int nmfMaxIter;
+   int nmfNumSub;
+   double nmfTol;
+   int nmfPqnNumInnerIter;
+   double nmfPqnAlpha;
+   bool DEIMBasisPod;
+   bool UDEIMBasisPod;
+   bool ConstraintBasisPod;
+   bool ReducedStiffness;
+   bool computeForceSnap;
+   bool computeConstraintSnap;
+   bool filterSnapshotRows;
+   bool orthogForceSnap;
+   bool orthogConstraintSnap;
+   bool computeDEIMIndices;
+   bool DEIMPodRom;
+   bool UDEIMPodRom;
    bool samplingPodRom;
    bool snapProjPodRom;
    bool galerkinPodRom;
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int  maxSizePodRom;
+   double romEnergy;
+   std::vector<int> localBasisSize;
+   std::vector<int> localDualBasisSize;
+   int  maxSizeDualBasis;
+   int  maxDeimBasisSize;
+   bool selectFullNode;
+   bool selectFullElem;
+   int  forcePodSize;
+   int  constraintPodSize;
    int  normalize;
-   bool substractRefPodRom;
-   bool localTol;
+   bool subtractRefPodRom;
+   bool useScalingSpnnls;
+   bool useCenterSpnnls;
+   bool useReverseOrder;
+   bool projectSolution;
+   bool positiveElements;
+   int  solverTypeSpnnls; // 0: Lawson & Hanson, 1: Conjugate Gradient Pursuit
+   double maxSizeSpnnls;
+   int maxElemSpnnls;
+   double maxIterSpnnls;
    bool reduceFollower;
+   bool randomVecSampling;
    int  skipPodRom;
    int  skipOffSet;
+   int  randomSampleSize;
    int  skipState;
    int  skipVeloc;
    int  skipAccel;
    int  skipInternalStateVar;
+   int  skipDualStateVar;
    int  skipForce;
    int  skipResidual;
    int  skipJacobian;
    int  orthogPodRom;
    int  numRODFile;
+   int  romresidType;
    double tolPodRom;
-   bool oocPodRom; // if this is true and aero-s is compiled with stxxl, then out-of-core spnnls solver will be used
-                   // by the single domain element lumping driver
+   bool useMassNormalizedBasis;
+   bool useMassOrthogonalProjection;
+   bool performMassNormalization;
    bool ConwepOnOff;
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
    bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
-   int inertiaLumping; // 0: no lumping, 1: diagonal lumping, 2: block-diagonal 3x3 lumping
+   bool scalePosCoords;
+   double xScaleFactor, yScaleFactor, zScaleFactor;
+   double xLMPCFactor, yLMPCFactor, zLMPCFactor;
+   bool activatePOSCFG; 
+   std::vector<double> xScaleFactors, yScaleFactors, zScaleFactors;
+   std::vector<std::string> MassOrthogonalBasisFiles; 
+   std::vector<std::string> NodeTrainingFiles; 
+   int inertiaLumping; // 1: diagonal lumping (default), 2: block-diagonal 6x6 lumping
+                       // note #1: this flag is automatically set to 2 when a product of inertia is defined using DIMASS
+                       //          or when a discrete mass element (type 131) is defined.
+                       // note #2: for diagonal lumping, consistent mass matrices are diagonally lumped and
+                       //          off-diagonal entries of lumped mass matrices which are block-diagonal are dropped.
+                       // note #3: for block-diagonal lumping, consistent mass matrices are still diagonally lumped
+                       //          but lumped mass matrices which are block-diagonal remain so.
+   bool printMatLab;
+   const char * printMatLabFile;
+
+   bool elementDeletion;
+   std::map<int,double> deleteElements; // elements to be deleted at specific time or times (specified in input file)
+   bool piecewise_contact;
+   bool piecewise;
+   bool freeplay;
+   double piecewise_dlambda, piecewise_maxLambda;
+
+   int npMax;   // Max number of elements in the reduced mesh for the ScalaPack LH parse solver.
+   int scpkMB;  // Scalapack row block size
+   int scpkNB;  // Scalapack column block size
+   int scpkMP;  // Scalapack row processor grid size
+   int scpkNP;  // Scalapack column processor grid size
+
+   bool useMassAugmentation; // adjust lumped mass matrix for shell element type 15 to increase stability time-step
 
    // Constructor
    SolverInfo() { filterFlags = 0;
+                  filterQ = 1;
                   soltyp = -1;
                   renum = 0;
                   probType = SolverInfo::None;
                   alphaDamp = 0.0;
                   betaDamp = 0.0;
                   etaDamp = 0.0;
+                  mtypeDamp = 2;
                   modal = false;
                   lastIt = false;
                   mppFactor = 1.0;
-		 
+                  sensitivityMethod = SolverInfo::Direct;
+ 
+                  // Parameters for sensitivity
+                  sensitivity = false;
+                 
                   // Parameters for PITA 
                   activatePita = false;
                   mdPita = false;
@@ -366,6 +511,9 @@ struct SolverInfo {
                   modifiedWaveEquationCoef = 12.0;
 
                   tmax = 0.0; 
+                  t_AeroF = 0.0;
+                  stop_AeroF = false;
+                  stop_AeroS = false;
                   dt = 0.0;
                   dtemp = 0.0;
 
@@ -373,13 +521,15 @@ struct SolverInfo {
                   steadyMin = 1;
                   steadyMax = 10;
                   steadyTol = 1.0e-3; 
+                  sensitivityTol = 1.0e-5; 
+                  ratioSensitivityTol = 1.0; 
                   qsMaxvel = 1.0;
                   qsBeta = 1.0;
                   delta = 0.0;
                   no_secondary = false;
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
-				  
+                                  
                   ATDARBFlag = -2.0;
                   ATDDNBVal = 0.0;
                   ATDROBVal = 0.0;
@@ -387,10 +537,12 @@ struct SolverInfo {
                   ATDROBbeta = 0.0;
 
                   aeroFlag = -1;
+                  dyna3d_compat = false;
                   aeroheatFlag = -1;
                   thermoeFlag = -1;
                   thermohFlag = -1;
                   thermalLoadFlag = 0;
+                  radiationFlag = 0;
                   modeDecompFlag = 0;
                   hzemFlag = 0;
                   hzemFilterFlag = 0;
@@ -417,16 +569,20 @@ struct SolverInfo {
                   epsilon1 = 0.01;
                   epsilon2 = 1e-10;
                   rbmflg = 0;
-                  rbmFilters[0] = rbmFilters[1] = rbmFilters[2] = rbmFilters[3] = rbmFilters[4] = rbmFilters[5] = 0;
+                  grbm_use_lmpc = true;
                   buckling = 0;
 
                   solvercntl = &default_cntl;
 
                   explicitK = false;
+                  qrfactorization = false;
+                  eigenvaluename = "";
+                  xmatrixname = "";
+                  qmatrixname = "";
+                  rmatrixname = "";
 
                   doFreqSweep = false;
                   doEigSweep = false;
-
                   modeFilterFlag = 0;
                   test_ulrich = false;
                   addedMass = 1;
@@ -438,6 +594,8 @@ struct SolverInfo {
                   dmpc = false;
                   dbccheck = true;
                   contact_mode = 1;
+                  contactsurface_mode = 1;
+                  trivial_detection = false;
 
                   nEig = 0;
                   eigenSolverSubType = 0;
@@ -470,12 +628,15 @@ struct SolverInfo {
                   ffi_debug = false;
                   mortar_scaling = 1.0;
                   mortar_integration_rule = 6;
+                  tdenforceFlag = true;
 
                   lagrangeMult = true;
                   penalty = 0;
                   num_penalty_its = 1;
                   penalty_tol = 1e-8;
                   penalty_beta = 10;
+                  reinit_lm = false;
+                  lm_update_flag = 1;
                   mpcDirect = 0;
                   usePrescribedThreshold = false;
                   mpcDirectTol = 10;
@@ -486,57 +647,132 @@ struct SolverInfo {
                   constraint_hess_eps = 0;
 
                   numSnap            = 1;
-		  readInROBorModes   = "";
-                  readInModes        = "";
-		  SVDoutput          = "pod.rob";
-		  reducedMeshFile    = "";
+                  readInShapeSen     = "";
+                  SVDoutput          = "pod.rob";
+                  reducedMeshFile    = "";
                   isvPodRomFile      = "";
-		  forcePodRomFile    = "";
-		  residualPodRomFile = "";
-		  jacobianPodRomFile = "";
-		  ROMPostProcess     = false;
-		  statevectPodRom    = false;
+                  //dsvPodRomFile      = "";
+                  forcePodRomFile    = "";
+                  constraintPodRomFile  = "";
+ 		  constraintSnapshotFile = "";
+                  constraintViolationFile = "";
+                  residualPodRomFile = "";
+                  jacobianPodRomFile = "";
+                  ROMPostProcess     = false;
+                  statevectPodRom    = false;
                   velocvectPodRom    = false;
-		  accelvectPodRom    = false;
+                  accelvectPodRom    = false;
                   isvPodRom          = false;
-		  forcevectPodRom    = false;
-		  residvectPodRom    = false;
-		  jacobvectPodRom    = false;
-		  readmodeCalled     = false;
-		  modalCalled        = false;
+                  dsvPodRom          = false;
+                  forcevectPodRom    = false;
+                  residvectPodRom    = false;
+                  jacobvectPodRom    = false;
+                  readmodeCalled     = false;
+                  modalCalled        = false;
+                  modalLMPC          = false;
+                  modalDIMASS        = false;
+                  reducedMassFile    = "";
+                  readShapeSen       = false;
                   activatePodRom     = false;
                   snapshotsPodRom    = false;
                   checkPodRom        = false;
                   svdPodRom          = false;
+                  DEIMBasisPod       = false;
+                  UDEIMBasisPod      = false;
+                  ConstraintBasisPod = false;
+                  ReducedStiffness   = false;
+                  computeForceSnap   = false;
+                  computeConstraintSnap = false;
+                  filterSnapshotRows = false;
+                  orthogForceSnap    = false;
+                  orthogConstraintSnap = false;
+                  computeDEIMIndices = false;
+                  DEIMPodRom         = false;
+                  UDEIMPodRom        = false;
                   svdBlockSize       = 64;
+		  clusterSubspaceAngle = false;
+                  clustering         = 0;
+                  solverTypeCluster  = 1; // K-means
+                  use_nmf            = 0;
+                  nmfNumROBDim       = 1;
+                  nmfDelROBDim       = 10;
+                  nmfRandInit        = 1;
+                  nmfMaxIter         = 100;
+                  nmfNumSub          = 0;
+                  nmfTol             = 1e-6;
+                  nmfPqnNumInnerIter = 2;
+                  nmfPqnAlpha        = 0.4;
+                  ksParameter        = 50;
+                  ksMax              = 1.0e5;
                   samplingPodRom     = false;
                   snapProjPodRom     = false;
                   galerkinPodRom     = false;
                   elemLumpPodRom     = false;
                   onlineSvdPodRom    = false;
                   maxSizePodRom      = 0;
-		  normalize          = 1;
-                  substractRefPodRom = false;
-                  localTol	     = false;
+                  romEnergy          = 0.0;
+                  maxSizeDualBasis   = 0;
+                  maxDeimBasisSize   = 0;
+                  selectFullNode     = false;
+                  selectFullElem     = false;
+                  forcePodSize       = 0;
+                  constraintPodSize  = 0;
+                  normalize          = 1;
+                  subtractRefPodRom  = false;
+                  useScalingSpnnls   = true;
+                  useCenterSpnnls    = false;
+                  useReverseOrder    = false;
+                  projectSolution    = false;
+                  positiveElements   = true;
+                  maxSizeSpnnls      = 1.0;
+                  maxElemSpnnls      = 0;
+                  maxIterSpnnls      = 3.0;
+                  solverTypeSpnnls   = 0;
                   reduceFollower     = false;
+                  randomVecSampling  = false;
                   skipPodRom         = 1;
                   skipOffSet         = 0;
-		  skipState          = 1;
+                  randomSampleSize   = 0;
+                  skipState          = 1;
                   skipVeloc          = 1;
-		  skipAccel          = 1;
+                  skipAccel          = 1;
                   skipInternalStateVar = 1;
-		  skipForce          = 1;
-		  skipResidual       = 1;
-		  skipJacobian       = 1;
-		  orthogPodRom       = 1;
+                  skipDualStateVar   = 1;
+                  skipForce          = 1;
+                  skipResidual       = 1;
+                  skipJacobian       = 1;
+                  orthogPodRom       = 1;
                   numRODFile         = 0;
+                  romresidType       = 0;
                   tolPodRom          = 1.0e-6;
-                  oocPodRom          = true;
+                  useMassNormalizedBasis = true;
+                  useMassOrthogonalProjection = false;
+                  performMassNormalization = false;
                   ConwepOnOff        = false;
                   basicDofCoords     = true;
                   basicPosCoords     = true;
+                  activatePOSCFG     = false;
+                  scalePosCoords     = false;
+                  xScaleFactor       = 1.0;
+                  yScaleFactor       = 1.0;
+                  zScaleFactor       = 1.0;
+		  xLMPCFactor        = 1.0;
+                  yLMPCFactor        = 1.0;
+                  zLMPCFactor        = 1.0;
                   inertiaLumping     = 0;
-                 }
+                  elementDeletion    = false;
+                  piecewise_contact  = true;
+                  npMax              = 0;  // 0 => reduced mesh size is not limited
+                  scpkMB             = 0;  // 0 => Scalapack LH solver will use default block size
+                  scpkNB             = 0;  // 0 => Scalapack LH solver will use default block size
+                  scpkMP             = 0;  // 0 => Scalapack LH solver will use default processor grid 
+                  scpkNP             = 0;  // 0 => Scalapack LH solver will use default processor grid
+                  useMassAugmentation = true;
+                  piecewise = false;
+                  freeplay = false;
+                  piecewise_dlambda = 1.0;
+                  piecewise_maxLambda = 1.0;
+                }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }
    // Whether we are doing direct elimination for MPCs
@@ -546,7 +782,10 @@ struct SolverInfo {
    void useRbmFilter(int rbmfil) { filterFlags = rbmfil; }
 
    // Set Aeroelastic Algorithm
-   void setAero(int alg) { aeroFlag = alg; }
+   void setAero(int alg)
+    { if(alg == 22) { aeroFlag = 20; dyna3d_compat = true; }
+      else aeroFlag = alg;
+    }
 
    void setAeroHeat(int alg, double alt0 =0, double alt1 =0)
     { aeroheatFlag = alg;
@@ -647,7 +886,7 @@ struct SolverInfo {
          probType = NonLinDynam;
          break;
        case(ArcLength) :
-         cerr << "ARCLENGTH + DYNAMICS not supported\n"; 
+         std::cerr << "ARCLENGTH + DYNAMICS not supported\n"; 
          exit(-1);
          break;
        case(MatNonLinDynam) :
@@ -655,7 +894,7 @@ struct SolverInfo {
          probType = MatNonLinDynam;
          break;
        default :
-         if(probType != None && probType != Static && probType != Dynamic) cerr << "WARNING: switching problem type from " << probType << " to Dynamic\n";
+         if(probType != None && probType != Static && probType != Dynamic) std::cerr << "WARNING: switching problem type from " << probType << " to Dynamic\n";
          probType = Dynamic;
          break;
      }
@@ -693,9 +932,6 @@ struct SolverInfo {
      order = 1;
      newmarkGamma = alphaTemp = epsiln;
      if(newmarkGamma == 0) newmarkBeta = 0; // this is used to flag explicit scheme
-     //if(alphaTemp < 0.5){
-     //   fprintf(stderr," ... WARNING: UNSTABLE EXPLICIT SCHEME ...\n");
-     // }
    }
 
    // set parameters for quasistatic problem
@@ -722,7 +958,7 @@ struct SolverInfo {
      }
    }
 
-   double getTimeStep() 
+   double getTimeStep() const
    {
      if(thermoeFlag > -1 || thermohFlag > -1) return std::min(dt, dtemp);
      else return (order == 1) ? dtemp : dt;
@@ -744,12 +980,12 @@ struct SolverInfo {
    }
 
    void setTrbm(double _tolzpv)
-    { solvercntl->trbm = _tolzpv; rbmflg = 0; solvercntl->mumps_cntl[3] = solvercntl->trbm; }
+    { solvercntl->trbm = _tolzpv; solvercntl->mumps_cntl[3] = solvercntl->trbm; }
 
    void setGrbm(double _tolsvd, double _tolzpv)
-    { solvercntl->trbm = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; solvercntl->mumps_cntl[3] = solvercntl->trbm; }
+    { solvercntl->trbm2 = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; }
    void setGrbm(double _tolzpv)
-    { solvercntl->trbm = _tolzpv; rbmflg = 1; solvercntl->mumps_cntl[3] = solvercntl->trbm; }
+    { solvercntl->trbm2 = _tolzpv; rbmflg = 1; }
    void setGrbm() 
     { rbmflg = 1; }
 
@@ -767,8 +1003,8 @@ struct SolverInfo {
    }
 
    bool isDynam() {
-     return ((probType == Dynamic) || (probType == NonLinDynam)
-             || (probType == TempDynamic) || (probType == MatNonLinDynam) || (probType == PodRomOffline));
+     return ((timeIntegration != Qstatic) && ((probType == Dynamic) || (probType == NonLinDynam)
+             || (probType == TempDynamic) || (probType == MatNonLinDynam) || (probType == PodRomOffline)));
    }
 
    bool isNonLin() {
@@ -777,10 +1013,38 @@ struct SolverInfo {
              || (probType == PodRomOffline));
    }
 
+   bool isNonLinExtF() {
+     return (isNonLin() && NLInfo.linearelastic != 2);
+   }
+
    bool isStatic() {
      return ((probType == Static) || (probType == NonLinStatic)
              || (probType == MatNonLinStatic) || (probType == ArcLength));
    }
+
+   bool keepModalInitialConditions() {
+     if(galerkinPodRom) {
+       // for nonlinear ROMs, keep the modal ivel and non-modal ivel separate
+       // only if the basis used to define the initial conditions is the same
+       // as the ROB.
+       for(int i = 0; i<readInROBorModes.size(); ++i){
+         std::string rob(readInROBorModes[i]);
+         if(useMassNormalizedBasis) rob.append(".normalized");
+         std::string icb(readInModes[i]);
+         if(!(rob.compare(icb) == 0))// if files are different, compute modal IC's for all
+          return false;
+          
+       }
+       return true;// otherwise keep supplied modal ivel 
+     }
+     else {
+       // for linear ROMs, keep the modal ivel and non-modal ivel separate
+       return modal;
+     }
+   }
+
+   int classifySolver();
+   void activatePiecewise();
 };
 
 #endif

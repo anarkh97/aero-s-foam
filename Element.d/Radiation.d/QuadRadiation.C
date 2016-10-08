@@ -5,6 +5,7 @@
 #include <Utils.d/dofset.h>
 #include <Element.d/Radiation.d/QuadRadiation.h>
 #include <Corotational.d/QuadThermalCorotator.h>
+#include <Corotational.d/GeomState.h>
 
 // Four node quadrilateral
 
@@ -14,6 +15,10 @@ QuadRadiation::QuadRadiation(int* nodenums)
         nn[1] = nodenums[1];
         nn[2] = nodenums[2];
         nn[3] = nodenums[3];
+}
+
+QuadRadiation::~QuadRadiation()
+{
 }
 
 Element *
@@ -61,26 +66,26 @@ QuadRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
 
 // ... Compute Radiative matrix
 
-          FullSquareMatrix ret(4,Kcv);
+        FullSquareMatrix ret(4,Kcv);
 
-          ret[0][0] = 0;
-          ret[1][1] = 0;
-          ret[2][2] = 0;
-          ret[3][3] = 0;
-          ret[0][1] = 0;
-          ret[0][2] = 0;
-          ret[0][3] = 0;
-          ret[1][0] = 0;
-          ret[1][2] = 0;
-          ret[1][3] = 0;
-          ret[2][0] = 0;
-          ret[2][1] = 0;
-          ret[2][2] = 0;
-          ret[2][3] = 0;
-          ret[3][0] = 0;
-          ret[3][1] = 0;
-          ret[3][2] = 0;
-          ret[3][3] = 0;
+        ret[0][0] = 0;
+        ret[1][1] = 0;
+        ret[2][2] = 0;
+        ret[3][3] = 0;
+        ret[0][1] = 0;
+        ret[0][2] = 0;
+        ret[0][3] = 0;
+        ret[1][0] = 0;
+        ret[1][2] = 0;
+        ret[1][3] = 0;
+        ret[2][0] = 0;
+        ret[2][1] = 0;
+        ret[2][2] = 0;
+        ret[2][3] = 0;
+        ret[3][0] = 0;
+        ret[3][1] = 0;
+        ret[3][2] = 0;
+        ret[3][3] = 0;
 
         return ret;
 }
@@ -141,5 +146,17 @@ int
 QuadRadiation::getTopNumber()
 {
   return 148;
+}
+
+void 
+QuadRadiation::computeTemp(CoordSet&, State &, double[2], double*)
+{
+  fprintf(stderr," *** WARNING: QuadRadiation::computeTemp is not implemented\n");
+}
+
+void 
+QuadRadiation::getFlFlux(double[2], double *, double *)
+{
+  fprintf(stderr," *** WARNING: QuadRadiation::getFlFlux is not implemented\n");
 }
 

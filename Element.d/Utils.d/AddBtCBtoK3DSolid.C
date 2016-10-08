@@ -220,3 +220,97 @@ addNtNtoM3DHelm(FullSquareMatrix &M, double* Shape, double alpha, int nnodes, in
   }
 }
 
+
+void
+addDBtCDBtodKdx3DSolid(FullSquareMatrix *&dKdx, double (*DShape)[3], double DDShape[4][3][12], double C[6][6], double alpha, int nnodes, int* ls)
+{
+
+  for(int k=0; k<12; ++k) {
+    for(int j=0; j<nnodes; j++) {
+      int jx = ls[j];
+      int jy = ls[j+nnodes];
+      int jz = ls[j+2*nnodes];
+      double c1x = (C[0][0]*DDShape[j][0][k] + C[0][3]*DDShape[j][1][k] + C[0][5]*DDShape[j][2][k])*alpha;
+      double c1y = (C[0][3]*DDShape[j][0][k] + C[0][1]*DDShape[j][1][k] + C[0][4]*DDShape[j][2][k])*alpha;
+      double c1z = (C[0][5]*DDShape[j][0][k] + C[0][4]*DDShape[j][1][k] + C[0][2]*DDShape[j][2][k])*alpha;
+      double c2x = (C[1][0]*DDShape[j][0][k] + C[1][3]*DDShape[j][1][k] + C[1][5]*DDShape[j][2][k])*alpha;
+      double c2y = (C[1][3]*DDShape[j][0][k] + C[1][1]*DDShape[j][1][k] + C[1][4]*DDShape[j][2][k])*alpha;
+      double c2z = (C[1][5]*DDShape[j][0][k] + C[1][4]*DDShape[j][1][k] + C[1][2]*DDShape[j][2][k])*alpha;
+      double c3x = (C[2][0]*DDShape[j][0][k] + C[2][3]*DDShape[j][1][k] + C[2][5]*DDShape[j][2][k])*alpha;
+      double c3y = (C[2][3]*DDShape[j][0][k] + C[2][1]*DDShape[j][1][k] + C[2][4]*DDShape[j][2][k])*alpha;
+      double c3z = (C[2][5]*DDShape[j][0][k] + C[2][4]*DDShape[j][1][k] + C[2][2]*DDShape[j][2][k])*alpha;
+      double c4x = (C[3][0]*DDShape[j][0][k] + C[3][3]*DDShape[j][1][k] + C[3][5]*DDShape[j][2][k])*alpha;
+      double c4y = (C[3][3]*DDShape[j][0][k] + C[3][1]*DDShape[j][1][k] + C[3][4]*DDShape[j][2][k])*alpha;
+      double c4z = (C[3][5]*DDShape[j][0][k] + C[3][4]*DDShape[j][1][k] + C[3][2]*DDShape[j][2][k])*alpha;
+      double c5x = (C[4][0]*DDShape[j][0][k] + C[4][3]*DDShape[j][1][k] + C[4][5]*DDShape[j][2][k])*alpha;
+      double c5y = (C[4][3]*DDShape[j][0][k] + C[4][1]*DDShape[j][1][k] + C[4][4]*DDShape[j][2][k])*alpha;
+      double c5z = (C[4][5]*DDShape[j][0][k] + C[4][4]*DDShape[j][1][k] + C[4][2]*DDShape[j][2][k])*alpha;
+      double c6x = (C[5][0]*DDShape[j][0][k] + C[5][3]*DDShape[j][1][k] + C[5][5]*DDShape[j][2][k])*alpha;
+      double c6y = (C[5][3]*DDShape[j][0][k] + C[5][1]*DDShape[j][1][k] + C[5][4]*DDShape[j][2][k])*alpha;
+      double c6z = (C[5][5]*DDShape[j][0][k] + C[5][4]*DDShape[j][1][k] + C[5][2]*DDShape[j][2][k])*alpha;
+      for(int i=j; i<nnodes; i++) {
+        int ix = ls[i];
+        int iy = ls[i+nnodes];
+        int iz = ls[i+2*nnodes];		    
+        dKdx[k][ix][jx] += DShape[i][0]*c1x + DShape[i][1]*c4x + DShape[i][2]*c6x;
+        dKdx[k][iy][jy] += DShape[i][0]*c4y + DShape[i][1]*c2y + DShape[i][2]*c5y;
+        dKdx[k][iz][jz] += DShape[i][0]*c6z + DShape[i][1]*c5z + DShape[i][2]*c3z;
+        dKdx[k][ix][jy] += DShape[i][0]*c1y + DShape[i][1]*c4y + DShape[i][2]*c6y;
+        dKdx[k][iy][jx] += DShape[i][0]*c4x + DShape[i][1]*c2x + DShape[i][2]*c5x;
+        dKdx[k][ix][jz] += DShape[i][0]*c1z + DShape[i][1]*c4z + DShape[i][2]*c6z;
+        dKdx[k][iz][jx] += DShape[i][0]*c6x + DShape[i][1]*c5x + DShape[i][2]*c3x;
+        dKdx[k][iy][jz] += DShape[i][0]*c4z + DShape[i][1]*c2z + DShape[i][2]*c5z;
+        dKdx[k][iz][jy] += DShape[i][0]*c6y + DShape[i][1]*c5y + DShape[i][2]*c3y;
+      }
+    }
+  }
+ 
+  for(int j=0; j<nnodes; j++) {
+    int jx = ls[j];
+    int jy = ls[j+nnodes];
+    int jz = ls[j+2*nnodes];
+    double c1x = (C[0][0]*DShape[j][0] + C[0][3]*DShape[j][1] + C[0][5]*DShape[j][2])*alpha;
+    double c1y = (C[0][3]*DShape[j][0] + C[0][1]*DShape[j][1] + C[0][4]*DShape[j][2])*alpha;
+    double c1z = (C[0][5]*DShape[j][0] + C[0][4]*DShape[j][1] + C[0][2]*DShape[j][2])*alpha;
+    double c2x = (C[1][0]*DShape[j][0] + C[1][3]*DShape[j][1] + C[1][5]*DShape[j][2])*alpha;
+    double c2y = (C[1][3]*DShape[j][0] + C[1][1]*DShape[j][1] + C[1][4]*DShape[j][2])*alpha;
+    double c2z = (C[1][5]*DShape[j][0] + C[1][4]*DShape[j][1] + C[1][2]*DShape[j][2])*alpha;
+    double c3x = (C[2][0]*DShape[j][0] + C[2][3]*DShape[j][1] + C[2][5]*DShape[j][2])*alpha;
+    double c3y = (C[2][3]*DShape[j][0] + C[2][1]*DShape[j][1] + C[2][4]*DShape[j][2])*alpha;
+    double c3z = (C[2][5]*DShape[j][0] + C[2][4]*DShape[j][1] + C[2][2]*DShape[j][2])*alpha;
+    double c4x = (C[3][0]*DShape[j][0] + C[3][3]*DShape[j][1] + C[3][5]*DShape[j][2])*alpha;
+    double c4y = (C[3][3]*DShape[j][0] + C[3][1]*DShape[j][1] + C[3][4]*DShape[j][2])*alpha;
+    double c4z = (C[3][5]*DShape[j][0] + C[3][4]*DShape[j][1] + C[3][2]*DShape[j][2])*alpha;
+    double c5x = (C[4][0]*DShape[j][0] + C[4][3]*DShape[j][1] + C[4][5]*DShape[j][2])*alpha;
+    double c5y = (C[4][3]*DShape[j][0] + C[4][1]*DShape[j][1] + C[4][4]*DShape[j][2])*alpha;
+    double c5z = (C[4][5]*DShape[j][0] + C[4][4]*DShape[j][1] + C[4][2]*DShape[j][2])*alpha;
+    double c6x = (C[5][0]*DShape[j][0] + C[5][3]*DShape[j][1] + C[5][5]*DShape[j][2])*alpha;
+    double c6y = (C[5][3]*DShape[j][0] + C[5][1]*DShape[j][1] + C[5][4]*DShape[j][2])*alpha;
+    double c6z = (C[5][5]*DShape[j][0] + C[5][4]*DShape[j][1] + C[5][2]*DShape[j][2])*alpha;
+    for(int i=j; i<nnodes; i++) {
+      int ix = ls[i];
+      int iy = ls[i+nnodes];
+      int iz = ls[i+2*nnodes];		    
+      for(int k=0; k<12; ++k) {
+        dKdx[k][ix][jx] += DDShape[i][0][k]*c1x + DDShape[i][1][k]*c4x + DDShape[i][2][k]*c6x;
+        dKdx[k][jx][ix]  = dKdx[k][ix][jx];
+        dKdx[k][iy][jy] += DDShape[i][0][k]*c4y + DDShape[i][1][k]*c2y + DDShape[i][2][k]*c5y;
+        dKdx[k][jy][iy]  = dKdx[k][iy][jy];
+        dKdx[k][iz][jz] += DDShape[i][0][k]*c6z + DDShape[i][1][k]*c5z + DDShape[i][2][k]*c3z;
+        dKdx[k][jz][iz]  = dKdx[k][iz][jz];
+        dKdx[k][ix][jy] += DDShape[i][0][k]*c1y + DDShape[i][1][k]*c4y + DDShape[i][2][k]*c6y;
+        dKdx[k][iy][jx] += DDShape[i][0][k]*c4x + DDShape[i][1][k]*c2x + DDShape[i][2][k]*c5x;
+        dKdx[k][jy][ix]  = dKdx[k][ix][jy];
+        dKdx[k][jx][iy]  = dKdx[k][iy][jx];
+        dKdx[k][ix][jz] += DDShape[i][0][k]*c1z + DDShape[i][1][k]*c4z + DDShape[i][2][k]*c6z;
+        dKdx[k][iz][jx] += DDShape[i][0][k]*c6x + DDShape[i][1][k]*c5x + DDShape[i][2][k]*c3x;
+        dKdx[k][jz][ix]  = dKdx[k][ix][jz];
+        dKdx[k][jx][iz]  = dKdx[k][iz][jx];
+        dKdx[k][iy][jz] += DDShape[i][0][k]*c4z + DDShape[i][1][k]*c2z + DDShape[i][2][k]*c5z;
+        dKdx[k][iz][jy] += DDShape[i][0][k]*c6y + DDShape[i][1][k]*c5y + DDShape[i][2][k]*c3y;
+        dKdx[k][jz][iy]  = dKdx[k][iy][jz];
+        dKdx[k][jy][iz]  = dKdx[k][iz][jy];
+      }
+    }
+  } 
+}  

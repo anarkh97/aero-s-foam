@@ -1,5 +1,6 @@
 #include <Element.d/MatrixElement.d/MatrixElement.h>
 #include <Utils.d/dofset.h>
+#include <Math.d/matrix.h>
 
 MatrixElement::MatrixElement(int _nnodes, int *_nn)
       : nnodes(_nnodes), nn(_nn), ndofs(0), alldofs(0), k_real(0), k_complex(0)

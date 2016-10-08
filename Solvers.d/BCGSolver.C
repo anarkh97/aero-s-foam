@@ -10,6 +10,7 @@ template<class Scalar, class AnyVector, class AnyOperator, class AnyPrecondition
 void
 GenBCGSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector &rhs, AnyVector &sol)
 {
+  solveTime -= getTime();
   double resid;
   Scalar rho_1, rho_2, alpha, beta;
   AnyVector z(rhs), ztilde(rhs), p(rhs), ptilde(rhs), q(rhs), qtilde(rhs);
@@ -23,15 +24,18 @@ GenBCGSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector
     normb = 1.0;
   
   if ((resid = r.norm() / normb) <= tolerance) {
+    solveTime += getTime();
     return;
   }
 
   for (int i = 1; i <= maxiter; i++) {
-    fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\tRelative residual = %1.7e\n",i,r.sqNorm(),resid);
+    if(verbose && printNumber > 0 && ((i-1)%printNumber == 0))
+      fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\tRelative residual = %1.7e\n",i-1,r.sqNorm(),resid);
     if(P) P->apply(r, z); else z=r; // z = M^{1}*r
     if(P) P->apply(rtilde, ztilde); else ztilde = rtilde; // ztilde = M^{-T}*rtilde (ASSUMING here that preconditioner is symmetric)
     rho_1 = z*rtilde;
     if (rho_1 == 0.0) { 
+      solveTime += getTime();
       return;
     }
     if (i == 1) {
@@ -51,11 +55,12 @@ GenBCGSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector
 
     rho_2 = rho_1;
     if ((resid = r.norm() / normb) < tolerance) {
+      solveTime += getTime();
       return;
     }
   }
 
+  solveTime += getTime();
   return;
 }
-
 

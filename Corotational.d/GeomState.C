@@ -1,16 +1,25 @@
-#include <Driver.d/Domain.h>
+#include <Driver.d/EFrameData.h>
+#include <Driver.d/Mpc.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
 #include <Element.d/Function.d/utilities.hpp>
 #include <Utils.d/dofset.h>
 #include <Element.d/Element.h>
-#include <Driver.d/GeoSource.h>
+#include <Driver.d/ControlLawInfo.h>
+#include <Utils.d/SolverInfo.h>
+#include <Math.d/Vector.h>
+#ifdef USE_EIGEN3
+#include <Element.d/Function.d/Rotation.d/LeftCompositionRule.h>
+#include <Element.d/Function.d/Rotation.d/RightCompositionRule.h>
+#endif
 
 //#define COMPUTE_GLOBAL_ROTATION
-extern Domain *domain;
+//#define NEW_PULL_BACK
 
-GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
- : X0(cs)
+extern SolverInfo &solInfo;
+
+GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems, double *ndTemps)
+ : X0(&cs)
 /****************************************************************
  *
  *  Purpose: determine geometric state of nodal coordinates
@@ -25,11 +34,10 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
  *  Coded by: Michel Lesoinne and Teymour Manzouri
  ***************************************************************/
 {
-  numnodes = dsa.numNodes();		// Number of nodes
+  numnodes = dsa.numNodes();
   ns.resize(numnodes);
   loc.resize(numnodes);
   flag.resize(numnodes);
-  numReal = 0;
   haveRot = false;
 
   for(int i = 0; i < numnodes; ++i) {
@@ -65,9 +73,8 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
       ns[i].R[2][1] = 0.0;
       ns[i].R[2][2] = 1.0;
 
-      if(dsa[i].list() != 0)  {
+      if(dsa[i].list() != 0) {
         flag[i] = 1;
-        numReal++;
       }
       else 
         flag[i] = 0;
@@ -116,7 +123,7 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
     for(int i = 0; i < last; ++i) {
       if((*elems)[i]->numStates()) numelems++;
     }
-    es = new ElemState[numelems];
+    es.resize(numelems);
     numelems = 0;
     for(int i = 0; i < last; ++i) {
       int numStates = (*elems)[i]->numStates();
@@ -131,20 +138,20 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
       }
     }
   }
-  else {
-    es = 0;
-  }
+
+  numnodesFixed = numnodes;
+  setNodalTemperatures(ndTemps);
 }
 
 CoordSet emptyCoord;
 
-GeomState::GeomState() : ns(0), numnodes(0), loc(0), X0(emptyCoord), numReal(0), flag(0), es(NULL), numelems(0), haveRot(false)
+GeomState::GeomState() : ns(0), numnodes(0), numnodesFixed(0), loc(0), X0(&emptyCoord), flag(0), numelems(0), haveRot(false)
 {
 }
 
-GeomState::GeomState(CoordSet &cs) : X0(cs), numReal(0), es(NULL), numelems(0), haveRot(false)
+GeomState::GeomState(CoordSet &cs) : X0(&cs), numelems(0), haveRot(false)
 {
-  numnodes = cs.size();                 // Number of nodes
+  numnodes = numnodesFixed = cs.size(); // Number of nodes
   ns.resize(numnodes);
 
   for(int i = 0; i < numnodes; ++i) {
@@ -179,7 +186,107 @@ GeomState::GeomState(CoordSet &cs) : X0(cs), numReal(0), es(NULL), numelems(0), 
 
 GeomState::~GeomState()
 {
-  if(es) delete[] es;
+}
+
+void
+GeomState::resize(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
+{
+  multiplier_nodes.clear();
+  X0 = &cs;
+  if(true/*dsa.numNodes() != numnodesFixed*/) { // XXX
+    numnodes = dsa.numNodes();
+    ns.resize(numnodes);
+    loc.resize(numnodes);
+    flag.resize(numnodes);
+
+    for(int i = numnodesFixed; i < numnodes; ++i) {
+
+      loc[i].resize(6);
+      // Store location of each degree of freedom
+      loc[i][0] = cdsa.locate( i, DofSet::Xdisp );
+      loc[i][1] = cdsa.locate( i, DofSet::Ydisp );
+      loc[i][2] = cdsa.locate( i, DofSet::Zdisp );
+      loc[i][3] = cdsa.locate( i, DofSet::Xrot  );
+      loc[i][4] = cdsa.locate( i, DofSet::Yrot  );
+      loc[i][5] = cdsa.locate( i, DofSet::Zrot  );
+      if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5]) haveRot = true;
+ 
+      // Get Node i from the Coordinate (Node) set
+      Node *node_i = cs[i];
+
+      if (node_i)  {
+
+        // Set the ith node's coordinates
+        ns[i].x = node_i->x;
+        ns[i].y = node_i->y;
+        ns[i].z = node_i->z;
+ 
+        // Set ith node's rotation tensor equal to identity
+        ns[i].R[0][0] = 1.0;
+        ns[i].R[0][1] = 0.0;
+        ns[i].R[0][2] = 0.0;
+        ns[i].R[1][0] = 0.0;
+        ns[i].R[1][1] = 1.0;
+        ns[i].R[1][2] = 0.0;
+        ns[i].R[2][0] = 0.0;
+        ns[i].R[2][1] = 0.0;
+        ns[i].R[2][2] = 1.0;
+
+        if(dsa[i].list() != 0)  {
+          flag[i] = 1;
+        }
+        else 
+          flag[i] = 0;
+
+      }
+      else  {
+        // Set ith node's coordinates equal to zero
+        ns[i].x = 0.0;
+        ns[i].y = 0.0;
+        ns[i].z = 0.0;
+
+        // Set ith node's rotation tensor equal to identity
+        ns[i].R[0][0] = 1.0;
+        ns[i].R[0][1] = 0.0;
+        ns[i].R[0][2] = 0.0;
+        ns[i].R[1][0] = 0.0;
+        ns[i].R[1][1] = 1.0;
+        ns[i].R[1][2] = 0.0;
+        ns[i].R[2][0] = 0.0;
+        ns[i].R[2][1] = 0.0;
+        ns[i].R[2][2] = 1.0;
+
+        int dof;
+        if((dof = cdsa.locate( i, DofSet::LagrangeE )) > -1) {
+          loc[i][0] = dof;
+          flag[i] = 0;
+        }
+        else if((dof = cdsa.locate( i, DofSet::LagrangeI )) > -1) {
+          loc[i][0] = dof;
+          flag[i] = -1;
+        }
+        else 
+          flag[i] = 0;
+      }
+    
+    }
+
+    int last = elems->last();
+    for(int i = 0; i < last; ++i) {
+      if((*elems)[i] && (*elems)[i]->isMpcElement() && (*elems)[i]->numInternalNodes() == 1) {
+        LMPCons *lmpc = dynamic_cast<LMPCons*>((*elems)[i]);
+        if(lmpc && lmpc->getSource() == mpc::ContactSurfaces) {
+          int numNodes = (*elems)[i]->numNodes();
+          int *nodes = (*elems)[i]->nodes();
+          multiplier_nodes[lmpc->id] = nodes[numNodes-1];
+          delete [] nodes;
+        }
+      }
+    }
+  }
+
+  // XXX don't need to resize element states because added elements are constraint
+  //     elements which don't have any internal variables.
 }
 
 void
@@ -246,7 +353,7 @@ GeomState::operator=(const GeomState &g2)
     flag.resize(g2.numNodes());
   }
 
-  numReal = g2.numReal;
+  haveRot = g2.haveRot;
 
   // Copy dof locations
   for(int i = 0; i < numnodes; ++i) {
@@ -268,8 +375,8 @@ GeomState::operator=(const GeomState &g2)
 
   // now deal with element states
   numelems = g2.numelems;
-  if(es) delete [] es;
-  es = new ElemState[numelems];
+  es.clear();
+  es.resize(numelems);
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
   emap = g2.emap;
@@ -280,6 +387,8 @@ GeomState::operator=(const GeomState &g2)
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
+
+  numnodesFixed = g2.numnodesFixed;
 
   return *this;
 }
@@ -316,7 +425,6 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
   // flag for node to element connectivity
   flag.resize(numnodes);    
 
-  numReal = g2.numReal;
   haveRot = g2.haveRot;
 
   // Copy dof locations
@@ -338,48 +446,54 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
 
   // now deal with element states
   numelems = g2.numelems;
-  es = new ElemState[numelems];
+  es.clear();
+  es.resize(numelems);
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
  
-  // Initialize Global Rotation Matrix & CG position // HB
+  // Initialize Global Rotation Matrix & CG position
   refCG[0] = g2.refCG[0];
   refCG[1] = g2.refCG[1];
   refCG[2] = g2.refCG[2];
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
+
+  numnodesFixed = g2.numnodesFixed;
 }
 
 void
 NodeState::operator=(const NodeState &node)
 {
- // Set x, y, and z coordinate values
- this->x = node.x;
- this->y = node.y;
- this->z = node.z;
+  // Assign x, y, and z coordinate values
+  x = node.x;
+  y = node.y;
+  z = node.z;
 
- // Set rotation tensor
- this->R[0][0] = node.R[0][0];
- this->R[0][1] = node.R[0][1];
- this->R[0][2] = node.R[0][2];
- this->R[1][0] = node.R[1][0];
- this->R[1][1] = node.R[1][1];
- this->R[1][2] = node.R[1][2];
- this->R[2][0] = node.R[2][0];
- this->R[2][1] = node.R[2][1];
- this->R[2][2] = node.R[2][2];
+  // Assign rotation tensor
+  R[0][0] = node.R[0][0];
+  R[0][1] = node.R[0][1];
+  R[0][2] = node.R[0][2];
+  R[1][0] = node.R[1][0];
+  R[1][1] = node.R[1][1];
+  R[1][2] = node.R[1][2];
+  R[2][0] = node.R[2][0];
+  R[2][1] = node.R[2][1];
+  R[2][2] = node.R[2][2];
 
- // Set rotation vector
- this->theta[0] = node.theta[0];
- this->theta[1] = node.theta[1];
- this->theta[2] = node.theta[2];
+  // Assign rotation vector
+  theta[0] = node.theta[0];
+  theta[1] = node.theta[1];
+  theta[2] = node.theta[2];
 
- // Copy the velocity and acceleration vectors
- for(int i = 0; i < 6; ++i) {
-   this->v[i] = node.v[i];
-   this->a[i] = node.a[i];
- }
+  // Assign velocity and acceleration vectors
+  for(int i = 0; i < 6; ++i) {
+    v[i] = node.v[i];
+    a[i] = node.a[i];
+  }
+
+  // Assign temperature
+  temp = node.temp;
 }
 
 void
@@ -400,8 +514,7 @@ void
 GeomState::update(const Vector &v, int SO3param)
 {
  // v = incremental displacement vector
-
- double dtheta[3];
+ double d[3], dtheta[3];
 
  int i;
  for(i=0; i<numnodes; ++i) {
@@ -414,17 +527,80 @@ GeomState::update(const Vector &v, int SO3param)
 
      // Set incremental translational displacements
 
-     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
-     double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
-     double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+     d[0] = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
+     d[1] = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
+     d[2] = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+
+     // Transform from DOF_FRM to basic frame
+
+     NFrameData *cd = X0->dofFrame(i);
+     if(cd) cd->invTransformVector3(d);
 
      // Increment total translational displacements
 
-     ns[i].x += dx;
-     ns[i].y += dy;
-     ns[i].z += dz;
+     ns[i].x += d[0];
+     ns[i].y += d[1];
+     ns[i].z += d[2];
 
-     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+     if(getNumRotationDof(i) == 2 && SO3param < 2 && !solInfo.getNLInfo().linearelastic) {
+#ifdef USE_EIGEN3
+       switch(SO3param) {
+         case 0: {
+           Eigen::Array3d Psi; Psi << ns[i].theta[0], ns[i].theta[1], ns[i].theta[2];
+           if(cd) cd->transformVector3(Psi.data());
+           Simo::LeftCompositionRule<double> f(Psi,Eigen::Array<int,0,1>::Zero());
+           Simo::Jacobian<double,Simo::LeftCompositionRule> dfdq(Psi,Eigen::Array<int,0,1>::Zero());
+ 
+           // solve for constrained (j^th) component of the incremental (left) rotation vector such that
+           // the constraint is not violated by the update
+           int j;
+           Eigen::Vector3d q;
+           if(loc[i][3] < 0) { j = 0; q[0] = 0; } else q[0] = v[loc[i][3]];
+           if(loc[i][4] < 0) { j = 1; q[1] = 0; } else q[1] = v[loc[i][4]];
+           if(loc[i][5] < 0) { j = 2; q[2] = 0; } else q[2] = v[loc[i][5]];
+
+           for(int k=0; k<10; ++k) {
+             //std::cerr << "k = " << k << ", residual = " << f(q,0.)[j]-ns[i].theta[j] << std::endl;
+             q[j] -= (f(q,0.)[j]-Psi[j])/dfdq(q,0.)(j,j);
+           }
+
+           dtheta[0] = q[0];
+           dtheta[1] = q[1];
+           dtheta[2] = q[2];
+           if(cd) cd->invTransformVector3(dtheta);
+           inc_rottensor( dtheta, ns[i].R );
+           inc_rotvector( ns[i].theta, ns[i].R );
+         } break;
+         case 1: {
+           Eigen::Array3d Psi; Psi << ns[i].theta[0], ns[i].theta[1], ns[i].theta[2];
+           if(cd) cd->transformVector3(Psi.data());
+           Simo::RightCompositionRule<double> f(Psi,Eigen::Array<int,0,1>::Zero());
+           Simo::Jacobian<double,Simo::RightCompositionRule> dfdq(Psi,Eigen::Array<int,0,1>::Zero());
+
+           // solve for constrained (j^th) component of the incremental (right) rotation vector such that
+           // the constraint is not violated by the update
+           int j;
+           Eigen::Vector3d q;
+           if(loc[i][3] < 0) { j = 0; q[0] = 0; } else q[0] = v[loc[i][3]];
+           if(loc[i][4] < 0) { j = 1; q[1] = 0; } else q[1] = v[loc[i][4]];
+           if(loc[i][5] < 0) { j = 2; q[2] = 0; } else q[2] = v[loc[i][5]];
+
+           for(int k=0; k<10; ++k) {
+             //std::cerr << "k = " << k << ", residual = " << f(q,0.)[j]-ns[i].theta[j] << std::endl;
+             q[j] -= (f(q,0.)[j]-Psi[j])/dfdq(q,0.)(j,j);
+           }
+
+           dtheta[0] = q[0];
+           dtheta[1] = q[1];
+           dtheta[2] = q[2];
+           if(cd) cd->invTransformVector3(dtheta);
+           inc_rottensor( ns[i].R, dtheta );
+           inc_rotvector( ns[i].theta, ns[i].R );
+         } break;
+       } 
+#endif
+     }
+     else if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
 
        // Set incremental rotations
 
@@ -432,7 +608,12 @@ GeomState::update(const Vector &v, int SO3param)
        dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
        dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
 
-       if(domain->solInfo().getNLInfo().linearelastic) {
+       // Transform from DOF_FRM to basic frame
+
+       if(cd) cd->invTransformVector3(dtheta);
+
+       if(solInfo.getNLInfo().linearelastic || SO3param == 2) {
+         // Additive update of total rotation vector
          for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
          vec_to_mat( ns[i].theta, ns[i].R );
        }
@@ -445,10 +626,6 @@ GeomState::update(const Vector &v, int SO3param)
            case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
              inc_rottensor( ns[i].R, dtheta );
              inc_rotvector( ns[i].theta, ns[i].R );
-             break;
-           case 2: // additive update of total rotation vector
-             for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
-             vec_to_mat( ns[i].theta, ns[i].R );
              break;
          }
        }
@@ -464,10 +641,10 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
 {
  // v = incremental displacement vector
 
- double dtheta[3];
+ double d[3], dtheta[3];
 
  int i;
-  for( std::vector<int>::const_iterator it = weightedNodes.begin(); it != weightedNodes.end(); ++it) {
+  for(std::vector<int>::const_iterator it = weightedNodes.begin(); it != weightedNodes.end(); ++it) {
      i = *it;
 
      if(flag[i] == -1) {
@@ -478,15 +655,20 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
 
      // Set incremental translational displacements
 
-     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
-     double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
-     double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+     d[0] = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
+     d[1] = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
+     d[2] = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+
+     // Transform from DOF_FRM to basic frame
+
+     NFrameData *cd = X0->dofFrame(i);
+     if(cd) cd->invTransformVector3(d);
 
      // Increment total translational displacements
 
-     ns[i].x += dx;
-     ns[i].y += dy;
-     ns[i].z += dz;
+     ns[i].x += d[0];
+     ns[i].y += d[1];
+     ns[i].z += d[2];
 
      if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
 
@@ -496,7 +678,12 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
        dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
        dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
 
-       if(domain->solInfo().getNLInfo().linearelastic) {
+       // Transform from DOF_FRM to basic frame
+
+       if(cd) cd->invTransformVector3(dtheta);
+
+       if(solInfo.getNLInfo().linearelastic || SO3param == 2) {
+         // Additive update of total rotation vector
          for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
          vec_to_mat( ns[i].theta, ns[i].R );
        }
@@ -510,10 +697,6 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
              inc_rottensor( ns[i].R, dtheta );
              inc_rotvector( ns[i].theta, ns[i].R );
              break;
-           case 2: // additive update of total rotation vector
-             for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
-             vec_to_mat( ns[i].theta, ns[i].R );
-             break;
          }
        }
      }
@@ -526,31 +709,44 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
 void
 GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
 {
- // v = total displacement vector
+ // v = total displacement vector (unconstrained dofs only)
 
  for(int i = 0; i < numnodes; ++i) {
    if(cs[i]) {
 
-     // Set translational displacements
+     // Set position vector components for non-prescribed dofs
+     NFrameData *cd = X0->dofFrame(i);
+     if(cd) {
+       double d[3] = { ns[i].x - cs[i]->x,
+                       ns[i].y - cs[i]->y,
+                       ns[i].z - cs[i]->z };
+       cd->transformVector3(d);
+       if(loc[i][0] >= 0) d[0] = v[loc[i][0]];
+       if(loc[i][1] >= 0) d[1] = v[loc[i][1]];
+       if(loc[i][2] >= 0) d[2] = v[loc[i][2]];
+       cd->invTransformVector3(d);
+       ns[i].x = cs[i]->x + d[0];
+       ns[i].y = cs[i]->y + d[1];
+       ns[i].z = cs[i]->z + d[2];
+     }
+     else {
+       if(loc[i][0] >= 0) ns[i].x = cs[i]->x + v[loc[i][0]];
+       if(loc[i][1] >= 0) ns[i].y = cs[i]->y + v[loc[i][1]];
+       if(loc[i][2] >= 0) ns[i].z = cs[i]->z + v[loc[i][2]];
+     }
 
-     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
-     double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
-     double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
 
-     // Set rotations
+       // Set rotation vector components for non-prescribed dofs
+       if(cd) cd->transformVector3(ns[i].theta);
+       if(loc[i][3] >= 0) ns[i].theta[0] = v[loc[i][3]];
+       if(loc[i][4] >= 0) ns[i].theta[1] = v[loc[i][4]];
+       if(loc[i][5] >= 0) ns[i].theta[2] = v[loc[i][5]];
+       if(cd) cd->invTransformVector3(ns[i].theta);
 
-     ns[i].theta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
-     ns[i].theta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
-     ns[i].theta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
-
-     // Update position
-
-     ns[i].x = cs[i]->x + dx;
-     ns[i].y = cs[i]->y + dy;
-     ns[i].z = cs[i]->z + dz;
-
-     // Update rotation tensor 
-     form_rottensor( ns[i].theta, ns[i].R );
+       // Set rotation tensor 
+       form_rottensor( ns[i].theta, ns[i].R );
+     }
    }
  }
 #ifdef COMPUTE_GLOBAL_ROTATION
@@ -567,26 +763,39 @@ GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &
    int i = nodes[j];
    if(cs[i]) {
 
-     // Set translational displacements
+     NFrameData *cd = X0->dofFrame(i);
+     if(cd) {
+       double d[3] = { ns[i].x - cs[i]->x,
+                       ns[i].y - cs[i]->y,
+                       ns[i].z - cs[i]->z };
+       cd->transformVector3(d);
+       if(loc[i][0] >= 0) d[0] = v[loc[i][0]];
+       if(loc[i][1] >= 0) d[1] = v[loc[i][1]];
+       if(loc[i][2] >= 0) d[2] = v[loc[i][2]];
+       cd->invTransformVector3(d);
+       ns[i].x = cs[i]->x + d[0];
+       ns[i].y = cs[i]->y + d[1];
+       ns[i].z = cs[i]->z + d[2];
+     }
+     else {
+       // Set position vector components for non-prescribed dofs
+       if(loc[i][0] >= 0) ns[i].x = cs[i]->x + v[loc[i][0]];
+       if(loc[i][1] >= 0) ns[i].y = cs[i]->y + v[loc[i][1]];
+       if(loc[i][2] >= 0) ns[i].z = cs[i]->z + v[loc[i][2]];
+     }
 
-     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
-     double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
-     double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
 
-     // Set rotations
-
-     ns[i].theta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
-     ns[i].theta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
-     ns[i].theta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
-
-     // Update position
-
-     ns[i].x = cs[i]->x + dx;
-     ns[i].y = cs[i]->y + dy;
-     ns[i].z = cs[i]->z + dz;
-
-     // Update rotation tensor 
-     form_rottensor( ns[i].theta, ns[i].R );
+       // Set rotation vector components for non-prescribed dofs
+       if(cd) cd->transformVector3(ns[i].theta);
+       if(loc[i][3] >= 0) ns[i].theta[0] = v[loc[i][3]];
+       if(loc[i][4] >= 0) ns[i].theta[1] = v[loc[i][4]];
+       if(loc[i][5] >= 0) ns[i].theta[2] = v[loc[i][5]];
+       if(cd) cd->invTransformVector3(ns[i].theta);
+ 
+       // Set rotation tensor 
+       form_rottensor( ns[i].theta, ns[i].R );
+     }
    }
  }
 #ifdef COMPUTE_GLOBAL_ROTATION
@@ -595,15 +804,72 @@ GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &
 }
 
 void
+GeomState::update(GeomState &refState, const Vector &v, int SO3param)
+{
+ // v = incremental displacement vector w.r.t reference state
+ double d[3], dtheta[3];
+
+ int i;
+ for(i=0; i<numnodes; ++i) {
+
+     // Set incremental translational displacements
+
+     d[0] = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
+     d[1] = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
+     d[2] = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+
+     // Transform from DOF_FRM to basic frame
+
+     NFrameData *cd = X0->dofFrame(i);
+     if(cd) cd->invTransformVector3(d);
+
+     // Increment total translational displacements
+
+     ns[i].x = refState[i].x + d[0];
+     ns[i].y = refState[i].y + d[1];
+     ns[i].z = refState[i].z + d[2];
+
+     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+
+       // Set incremental rotations
+
+       dtheta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
+       dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
+       dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
+
+       // Transform from DOF_FRM to basic frame
+
+       if(cd) cd->invTransformVector3(dtheta);
+
+       if(solInfo.getNLInfo().linearelastic || SO3param == 2) {
+         // Additive update of total rotation vector
+         for(int j=0; j<3; ++j) ns[i].theta[j] = refState[i].theta[j] + dtheta[j];
+         vec_to_mat( ns[i].theta, ns[i].R );
+       }
+       else {
+         std::cerr << "Error: SO3param = " << SO3param << " case not implemented in GeomState::update\n";
+         exit(-1);
+       }
+     }
+   }
+}
+
+void
 GeomState::setVelocity(const Vector &v, int SO3param)
 {
+  // set unconstrained components of velocity for all nodes, leaving constrained components unchanged
+
   for(int i = 0; i < numnodes; ++i) {
+    NFrameData *cd = X0->dofFrame(i);
+    if(cd) cd->transformVector6(ns[i].v);
     for(int j = 0; j < 6; ++j)
       if(loc[i][j] > -1) {
         ns[i].v[j] = v[loc[i][j]];
       }
+    if(cd) cd->invTransformVector6(ns[i].v);
 #ifdef USE_EIGEN3
-    if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)) {
+    if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)
+       && !solInfo.getNLInfo().linearelastic) {
       // conversion to convected angular velocity
       Eigen::Vector3d PsiI, PsiIdot, Omega;
       Eigen::Matrix3d R, T;
@@ -620,13 +886,18 @@ GeomState::setVelocity(const Vector &v, int SO3param)
 void
 GeomState::setVelocity(int numNodes, int *nodes, const Vector &v, int SO3param)
 {
+  // set unconstrained components of velocity for specified nodes, leaving constrained components unchanged
+
   int i;
   for(int k = 0; k < numNodes; ++k) {
     i = nodes[k];
+    NFrameData *cd = X0->dofFrame(i);
+    if(cd) cd->transformVector6(ns[i].v);
     for(int j = 0; j < 6; ++j)
       if(loc[i][j] > -1) {
         ns[i].v[j] = v[loc[i][j]];
       }
+    if(cd) cd->invTransformVector6(ns[i].v);
 #ifdef USE_EIGEN3
     if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)) {
       // transform from time derivative to total rotation vector to convected angular velocity
@@ -645,13 +916,19 @@ GeomState::setVelocity(int numNodes, int *nodes, const Vector &v, int SO3param)
 void
 GeomState::setAcceleration(const Vector &a, int SO3param)
 {
+  // set unconstrained components of acceleration for all nodes, leaving constrained components unchanged
+
   for(int i = 0; i < numnodes; ++i) {
+    NFrameData *cd = X0->dofFrame(i);
+    if(cd) cd->transformVector6(ns[i].a);
     for(int j = 0; j < 6; ++j)
       if(loc[i][j] > -1) {
         ns[i].a[j] = a[loc[i][j]];
       }
+    if(cd) cd->invTransformVector6(ns[i].a);
 #ifdef USE_EIGEN3
-    if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)) {
+    if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)
+       && !solInfo.getNLInfo().linearelastic) {
       // conversion from second time derivative of total rotation vector to convected angular acceleration
       Eigen::Vector3d PsiI, PsiIdot, PsiIddot, Omega, Alpha;
       Eigen::Matrix3d R, T, Tdot;
@@ -671,13 +948,18 @@ GeomState::setAcceleration(const Vector &a, int SO3param)
 void
 GeomState::setAcceleration(int numNodes, int *nodes, const Vector &a, int SO3param)
 {
+  // set unconstrained components of acceleration for specified nodes, leaving constrained components unchanged
+
   int i;
   for(int k = 0; k < numNodes; ++k) {
     i = nodes[k];
+    NFrameData *cd = X0->dofFrame(i);
+    if(cd) cd->transformVector6(ns[i].a);
     for(int j = 0; j < 6; ++j)
       if(loc[i][j] > -1) {
         ns[i].a[j] = a[loc[i][j]];
       }
+    if(cd) cd->invTransformVector6(ns[i].a);
 #ifdef USE_EIGEN3
     if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)) {
       // conversion from second time derivative of total rotation vector to convected angular acceleration
@@ -699,12 +981,28 @@ GeomState::setAcceleration(int numNodes, int *nodes, const Vector &a, int SO3par
 void
 GeomState::setVelocityAndAcceleration(const Vector &v, const Vector &a)
 {
-  for(int i = 0; i < numnodes; ++i)
+  // set unconstrained components of velocity and acceleration for all nodes, leaving constrained components unchanged
+  // XXX This is not correct for angular velocity/acceleration with one and only one component of the rotation vector constrained,
+  // because this constraint implies that the constrained component of the first and second time-derivatives of the rotation vector
+  // are zero, not their convected counterparts.
+  // Since T^{-1}*Omega = PsiIdot, for example if I know Omega_y and Omega_z and PsiIdot_x then I can compute Omega_x.
+
+  for(int i = 0; i < numnodes; ++i) {
+    NFrameData *cd = X0->dofFrame(i);
+    if(cd) {
+      cd->transformVector6(ns[i].v);
+      cd->transformVector6(ns[i].a);
+    }
     for(int j = 0; j < 6; ++j)
       if(loc[i][j] > -1) {
         ns[i].v[j] = v[loc[i][j]];
         ns[i].a[j] = a[loc[i][j]];
       }
+    if(cd) {
+      cd->invTransformVector6(ns[i].v);
+      cd->invTransformVector6(ns[i].a);
+    }
+  }
 }
 
 void
@@ -719,43 +1017,50 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   avcoef = 1/(dt*gamma);
   aacoef = -(1-gamma)/gamma;
 
-  // Update translational velocity and accelerations
+  double d[3];
+
   int numnodes = std::min(GeomState::numnodes,ss.numnodes);
   for(int i = 0; i < numnodes; ++i) {
     if(flag[i] == -1) continue;
+
+    double d[3] = { ns[i].x - ss[i].x, ns[i].y - ss[i].y, ns[i].z - ss[i].z };
+
+    NFrameData *cd = X0->dofFrame(i);
+    if(cd) cd->transformVector3(d);
 
     // Update translational velocities and accelerations
     if(loc[i][0] >= 0) {
       double v_n = vel_n[loc[i][0]];
       double a_n = acc_n[loc[i][0]];
-      vel_n[loc[i][0]] = vdcoef*(ns[i].x - ss[i].x) + vvcoef*v_n + vacoef*a_n;
+      vel_n[loc[i][0]] = vdcoef*d[0] + vvcoef*v_n + vacoef*a_n;
       acc_n[loc[i][0]] = avcoef*(vel_n[loc[i][0]] - v_n) + aacoef*a_n;
     }
 
     if(loc[i][1] >= 0) {
       double v_n = vel_n[loc[i][1]];
       double a_n = acc_n[loc[i][1]];
-      vel_n[loc[i][1]] = vdcoef*(ns[i].y - ss[i].y) + vvcoef*v_n + vacoef*a_n;
+      vel_n[loc[i][1]] = vdcoef*d[1] + vvcoef*v_n + vacoef*a_n;
       acc_n[loc[i][1]] = avcoef*(vel_n[loc[i][1]] - v_n) + aacoef*a_n;
     }
 
     if(loc[i][2] >= 0) {
       double v_n = vel_n[loc[i][2]];
       double a_n = acc_n[loc[i][2]];
-      vel_n[loc[i][2]] = vdcoef*(ns[i].z - ss[i].z) + vvcoef*v_n + vacoef*a_n;
+      vel_n[loc[i][2]] = vdcoef*d[2] + vvcoef*v_n + vacoef*a_n;
       acc_n[loc[i][2]] = avcoef*(vel_n[loc[i][2]] - v_n) + aacoef*a_n;
     }
 
     // Update angular velocities and accelerations
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
       double dtheta[3], dR[3][3];
-      if(domain->solInfo().getNLInfo().linearelastic) {
-        for(int j=0; j<3; ++j) dtheta[j] = ss[i].theta[j] = ns[i].theta[j];
+      if(solInfo.getNLInfo().linearelastic) {
+        for(int j=0; j<3; ++j) dtheta[j] = ns[i].theta[j] - ss[i].theta[j];
       }
       else {
         mat_mult_mat(ss[i].R, ns[i].R, dR, 1); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
         mat_to_vec(dR, dtheta);
       }
+      if(cd) cd->transformVector3(dtheta);
       for(int j = 0; j < 3; ++j) {
         if(loc[i][3+j] >= 0) {
           double v_n = vel_n[loc[i][3+j]];
@@ -766,7 +1071,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
       }
     }
   }
-  setVelocityAndAcceleration(vel_n,acc_n);
+  setVelocityAndAcceleration(vel_n, acc_n);
   for(int i = 0; i < numnodes; ++i) {
     if(flag[i] == -1) continue;
     for(int j=0; j<6; ++j) {
@@ -779,6 +1084,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   double tcoef = 1/(1-alphaf);
   for(int i = 0; i < numnodes; ++i) {
     if(flag[i] == -1) continue;
+    else if(flag[i] == 0 && ns[i].x == 0) { ss.ns[i].x = 0; continue; }
     ss.ns[i].x = ns[i].x = tcoef*(ns[i].x - alphaf*ss.ns[i].x);
     ss.ns[i].y = ns[i].y = tcoef*(ns[i].y - alphaf*ss.ns[i].y);
     ss.ns[i].z = ns[i].z = tcoef*(ns[i].z - alphaf*ss.ns[i].z);
@@ -789,7 +1095,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   double result[3][3], result2[3][3], rotVec[3];
   for(int i = 0; i < numnodes; ++i) {
     if(flag[i] == -1 || (loc[i][3] < 0 && loc[i][4] < 0 && loc[i][5] < 0)) continue;
-    if(domain->solInfo().getNLInfo().linearelastic) {
+    if(solInfo.getNLInfo().linearelastic) {
       for(int j = 0; j < 3; ++j) 
         ss.ns[i].theta[j] = ns[i].theta[j] = tcoef*(ns[i].theta[j] - alphaf*ss.ns[i].theta[j]);
       vec_to_mat(ns[i].theta, ns[i].R);
@@ -907,14 +1213,27 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 {
   // Update incremental translational displacements and rotations
   int inode;
+  NFrameData *cd;
   for(inode=0; inode<numnodes; ++inode) {
 
     if(flag[inode] == -1) continue; // inequality constraint lagrange multiplier dof
-    
-    // Update incremental translational displacements
-    if(loc[inode][0] >= 0) incVec[loc[inode][0]] = ns[inode].x - ss.ns[inode].x;
-    if(loc[inode][1] >= 0) incVec[loc[inode][1]] = ns[inode].y - ss.ns[inode].y;
-    if(loc[inode][2] >= 0) incVec[loc[inode][2]] = ns[inode].z - ss.ns[inode].z;
+
+    else if(flag[inode] == 0 && inode >= ss.numNodes()) {
+      if(loc[inode][0] >= 0) incVec[loc[inode][0]] = ns[inode].x;
+      cd = 0;
+    }
+
+    else {
+      // Update incremental translational displacements
+      double d[3] = { ns[inode].x - ss[inode].x,
+                      ns[inode].y - ss[inode].y,
+                      ns[inode].z - ss[inode].z };
+      cd = X0->dofFrame(inode);
+      if(cd) cd->transformVector3(d);
+      if(loc[inode][0] >= 0) incVec[loc[inode][0]] = d[0];
+      if(loc[inode][1] >= 0) incVec[loc[inode][1]] = d[1];
+      if(loc[inode][2] >= 0) incVec[loc[inode][2]] = d[2];
+    }
     
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
       if(zeroRot) {
@@ -924,9 +1243,16 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
         if(loc[inode][5] >= 0) incVec[loc[inode][5]] = 0.0;
       }
       else {
-        double dR[3][3], vec[3];
-        mat_mult_mat( ss[inode].R, ns[inode].R, dR, 1 ); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
-        mat_to_vec( dR, vec );
+        double vec[3];
+        if(solInfo.getNLInfo().linearelastic) {
+          for(int j=0; j<3; ++j) vec[j] = ns[inode].theta[j] - ss[inode].theta[j];
+        }
+        else {
+          double dR[3][3];
+          mat_mult_mat( ss[inode].R, ns[inode].R, dR, 1 ); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
+          mat_to_vec( dR, vec );
+        }
+        if(cd) cd->transformVector3(vec);
         if( loc[inode][3] >= 0 ) incVec[loc[inode][3]] = vec[0];
         if( loc[inode][4] >= 0 ) incVec[loc[inode][4]] = vec[1];
         if( loc[inode][5] >= 0 ) incVec[loc[inode][5]] = vec[2];
@@ -937,8 +1263,11 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 }
 
 void
-GeomState::push_forward(Vector &f)
+GeomState::push_forward(Vector &v)
 {
+#ifdef NEW_PULL_BACK
+  // Transform convected quatities (translational only) to spatial frame: v = R*v
+  // This new version is required for correct treatment of discrete masses with offsets.
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
@@ -946,22 +1275,63 @@ GeomState::push_forward(Vector &f)
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
       double vec[3], result[3];
-      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
-      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
-      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
+      vec[0] = ( loc[inode][0] >= 0 ) ? v[loc[inode][0]] : 0;
+      vec[1] = ( loc[inode][1] >= 0 ) ? v[loc[inode][1]] : 0;
+      vec[2] = ( loc[inode][2] >= 0 ) ? v[loc[inode][2]] : 0;
+
+      NFrameData *cd = X0->dofFrame(inode);
+      if(cd) cd->invTransformVector3(vec);
 
       mat_mult_vec( ns[inode].R, vec, result, 0 ); // result = R*vec
 
-      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
-      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
-      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
+      if(cd) cd->transformVector3(result);
+
+      if( loc[inode][0] >= 0 ) v[loc[inode][0]] = result[0];
+      if( loc[inode][1] >= 0 ) v[loc[inode][1]] = result[1];
+      if( loc[inode][2] >= 0 ) v[loc[inode][2]] = result[2];
     }
   }
+#endif
 }
 
 void
-GeomState::pull_back(Vector &f)
+GeomState::pull_back(Vector &v)
 {
+#ifdef NEW_PULL_BACK
+  // Transform spatial quatities (both translational and rotational) to convected frame: v = R^T*v
+  // This new version is required for correct treatment of discrete masses with offsets.
+  int inode;
+  for(inode=0; inode<numnodes; ++inode) {
+
+    if(flag[inode] == -1) continue;
+
+    if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
+      double vec[6], result[6];
+      vec[0] = ( loc[inode][0] >= 0 ) ? v[loc[inode][0]] : 0;
+      vec[1] = ( loc[inode][1] >= 0 ) ? v[loc[inode][1]] : 0;
+      vec[2] = ( loc[inode][2] >= 0 ) ? v[loc[inode][2]] : 0;
+      vec[3] = ( loc[inode][3] >= 0 ) ? v[loc[inode][3]] : 0;
+      vec[4] = ( loc[inode][4] >= 0 ) ? v[loc[inode][4]] : 0;
+      vec[5] = ( loc[inode][5] >= 0 ) ? v[loc[inode][5]] : 0;
+
+      NFrameData *cd = X0->dofFrame(inode);
+      if(cd) cd->invTransformVector6(vec);
+
+      mat_mult_vec( ns[inode].R, vec, result, 1 ); // result = R^T*vec
+      mat_mult_vec( ns[inode].R, vec+3, result+3, 1 );
+
+      if(cd) cd->transformVector6(result);
+
+      if( loc[inode][0] >= 0 ) v[loc[inode][0]] = result[0];
+      if( loc[inode][1] >= 0 ) v[loc[inode][1]] = result[1];
+      if( loc[inode][2] >= 0 ) v[loc[inode][2]] = result[2];
+      if( loc[inode][3] >= 0 ) v[loc[inode][3]] = result[3];
+      if( loc[inode][4] >= 0 ) v[loc[inode][4]] = result[4];
+      if( loc[inode][5] >= 0 ) v[loc[inode][5]] = result[5];
+    }
+  }
+#else
+  // Transform spatial quatities (rotational only) to convected frame: v = R^T*v
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
@@ -969,29 +1339,36 @@ GeomState::pull_back(Vector &f)
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
       double vec[3], result[3];
-      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
-      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
-      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
+      vec[0] = ( loc[inode][3] >= 0 ) ? v[loc[inode][3]] : 0;
+      vec[1] = ( loc[inode][4] >= 0 ) ? v[loc[inode][4]] : 0;
+      vec[2] = ( loc[inode][5] >= 0 ) ? v[loc[inode][5]] : 0;
+
+      NFrameData *cd = X0->dofFrame(inode);
+      if(cd) cd->invTransformVector3(vec);
 
       mat_mult_vec( ns[inode].R, vec, result, 1 ); // result = R^T*vec
 
-      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
-      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
-      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
+      if(cd) cd->transformVector6(result);
+
+      if( loc[inode][3] >= 0 ) v[loc[inode][3]] = result[0];
+      if( loc[inode][4] >= 0 ) v[loc[inode][4]] = result[1];
+      if( loc[inode][5] >= 0 ) v[loc[inode][5]] = result[2];
     }
   }
+#endif
 }
 
 void
 GeomState::transform(Vector &f, int type, bool unscaled) const
 {
+  // XXX this function has not been upgraded to support nodal frames yet
 #ifdef USE_EIGEN3
   for(int inode = 0; inode < numnodes; ++inode) {
 
     if(flag[inode] == -1) continue;
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
-      Eigen::Vector3d vec, Psi, result;
+      Eigen::Vector3d vec, result;
       vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
       vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
       vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
@@ -1006,7 +1383,7 @@ GeomState::transform(Vector &f, int type, bool unscaled) const
         PsiI << ns[inode].theta[0], ns[inode].theta[1], ns[inode].theta[2];
       }
       else {
-        mat_to_vec(R, PsiI);
+        mat_to_vec<double>(R, PsiI);
       }
       Eigen::Matrix3d T;
       tangential_transf(PsiI, T);
@@ -1071,8 +1448,9 @@ GeomState::transform(Vector &f, int type, bool unscaled) const
 }
 
 void
-GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type) const
+GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type, bool unscaled) const
 {
+  // XXX this function has not been upgraded to support nodal frames yet
 #ifdef USE_EIGEN3
   int inode;
   for( std::vector<int>::const_iterator it = weightedNodes.begin(); it != weightedNodes.end(); ++it) {
@@ -1081,17 +1459,25 @@ GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type)
     if(flag[inode] == -1) continue;
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
-      Eigen::Vector3d vec, Psi, result;
+      Eigen::Vector3d vec, result;
       vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
       vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
       vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
 
-      Eigen::Matrix3d R, T;
+      Eigen::Matrix3d R;
       R << ns[inode].R[0][0], ns[inode].R[0][1], ns[inode].R[0][2],
            ns[inode].R[1][0], ns[inode].R[1][1], ns[inode].R[1][2],
            ns[inode].R[2][0], ns[inode].R[2][1], ns[inode].R[2][2];
-      mat_to_vec(R, Psi);
-      tangential_transf(Psi, T);
+
+      Eigen::Vector3d PsiI;
+      if(unscaled) {
+        PsiI << ns[inode].theta[0], ns[inode].theta[1], ns[inode].theta[2];
+      }
+      else {
+        mat_to_vec<double>(R, PsiI);
+      }
+      Eigen::Matrix3d T;
+      tangential_transf(PsiI, T);
 
       switch(type) {
         case 0 :
@@ -1119,25 +1505,25 @@ GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type)
 void
 GeomState::get_tot_displacement(Vector &totVec, bool rescaled)
 {
-  //cerr << "here in GeomState::get_tot_displacement\n";
   double x0, y0, z0, vec[3];
 
   // Loop over all of the nodes
   for(int i = 0; i < numnodes; ++i) {
 
     // Insert total translational displacements of node i into totVec
-    if(loc[i][0] >= 0) {
-      x0 = (X0[i]) ? X0[i]->x : 0;
-      totVec[loc[i][0]] = ns[i].x - x0;
-    }
-    if(loc[i][1] >= 0) {
-      y0 = (X0[i]) ? X0[i]->y : 0;
-      totVec[loc[i][1]] = ns[i].y - y0;
-    }
-    if(loc[i][2] >= 0) {
-      z0 = (X0[i]) ? X0[i]->z : 0;
-      totVec[loc[i][2]] = ns[i].z - z0;
-    }
+    x0 = ((*X0)[i]) ? (*X0)[i]->x : 0;
+    vec[0] = ns[i].x - x0;
+    y0 = ((*X0)[i]) ? (*X0)[i]->y : 0;
+    vec[1] = ns[i].y - y0;
+    z0 = ((*X0)[i]) ? (*X0)[i]->z : 0;
+    vec[2] = ns[i].z - z0;
+
+    NFrameData *cd = X0->dofFrame(i);
+    if(cd) cd->transformVector3(vec);
+
+    if(loc[i][0] >= 0) totVec[loc[i][0]] = vec[0];
+    if(loc[i][1] >= 0) totVec[loc[i][1]] = vec[1];
+    if(loc[i][2] >= 0) totVec[loc[i][2]] = vec[2];
 
     // Insert total rotational displacements of node i into totVec
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
@@ -1147,6 +1533,8 @@ GeomState::get_tot_displacement(Vector &totVec, bool rescaled)
         for(int j=0; j<3; ++j) vec[j] = ns[i].theta[j];
       }
 
+      if(cd) cd->transformVector3(vec);
+
       if(loc[i][3] >= 0) totVec[loc[i][3]] = vec[0];
       if(loc[i][4] >= 0) totVec[loc[i][4]] = vec[1];
       if(loc[i][5] >= 0) totVec[loc[i][5]] = vec[2];
@@ -1155,10 +1543,18 @@ GeomState::get_tot_displacement(Vector &totVec, bool rescaled)
 }
 
 void
+GeomState::get_temperature(int numNodes, int* nodes, Vector &ndTemps, double Ta)
+{
+  for(int i=0; i<numNodes; ++i) {
+    ndTemps[i] = (ns[nodes[i]].temp == defaultTemp) ? Ta : ns[nodes[i]].temp;
+  }
+}
+
+void
 GeomState::zeroRotDofs(Vector& vec)
 {
   for(int inode = 0; inode < numnodes; ++inode) {
-  // Set rotational displacements equal to zero.
+    // Set rotational displacements equal to zero.
     if(loc[inode][3] >= 0) vec[loc[inode][3]] = 0.0;
     if(loc[inode][4] >= 0) vec[loc[inode][4]] = 0.0;
     if(loc[inode][5] >= 0) vec[loc[inode][5]] = 0.0;
@@ -1174,14 +1570,16 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
   // data structure to store rotation vectors of nodes with rotational prescribed dofs
   std::map<int,std::vector<double> > dth;
 
-  // initialize the rotation dofs from the current state
+  // initialize the nodal rotation vectors from the current state
   int i;
   for(i=0; i<numDirichlet; ++i) {
     int nodeNumber = dbc[i].nnum;
     std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
     if(it == dth.end()) {
       std::vector<double> v(3);
-      mat_to_vec(ns[nodeNumber].R, &v[0]);
+      v[0] = ns[nodeNumber].theta[0];
+      v[1] = ns[nodeNumber].theta[1];
+      v[2] = ns[nodeNumber].theta[2];
       dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
     }
   }
@@ -1201,59 +1599,136 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
     // if prescribed value is zero, we do nothing.
     if( prescribedValue == 0.0 ) continue;
 
-    switch(dofNumber) {
-        case 0:
-                ns[nodeNumber].x += prescribedValue;
-                break;
-        case 1:
-                ns[nodeNumber].y += prescribedValue;
-                break;
-        case 2:
-                ns[nodeNumber].z += prescribedValue;
-                break;
-        case 3:
-                dth[nodeNumber][0] += prescribedValue;
-                break;
-        case 4:
-                dth[nodeNumber][1] += prescribedValue;
-                break;
-        case 5:
-                dth[nodeNumber][2] += prescribedValue;
-                break;
-        default:
-                break;
-    }
+    NFrameData *cd = X0->dofFrame(nodeNumber);
 
+    switch(dofNumber) {
+      case 0:
+        if(!cd) {
+          ns[nodeNumber].x += prescribedValue;
+        }
+        else {
+          double d[3] = { prescribedValue, 0, 0 };
+          cd->invTransformVector3(d);
+          ns[nodeNumber].x += d[0];
+          ns[nodeNumber].y += d[1];
+          ns[nodeNumber].z += d[2];
+        }
+        break;
+      case 1:
+        if(!cd) {
+          ns[nodeNumber].y += prescribedValue;
+        }
+        else {
+          double d[3] = { 0, prescribedValue, 0 }; 
+          cd->invTransformVector3(d);
+          ns[nodeNumber].x += d[0];
+          ns[nodeNumber].y += d[1];
+          ns[nodeNumber].z += d[2];
+        }
+        break;
+      case 2:
+        if(!cd) {
+          ns[nodeNumber].z += prescribedValue;
+        }
+        else {
+          double d[3] = { 0, 0, prescribedValue };   
+          cd->invTransformVector3(d);
+          ns[nodeNumber].x += d[0];
+          ns[nodeNumber].y += d[1];
+          ns[nodeNumber].z += d[2];
+        }
+        break;
+      case 3:
+        if(!cd) {
+          dth[nodeNumber][0] += prescribedValue;
+        }
+        else {
+          double d[3] = { prescribedValue, 0, 0 };
+          cd->invTransformVector3(d);
+          dth[nodeNumber][0] += d[0];
+          dth[nodeNumber][1] += d[1];
+          dth[nodeNumber][2] += d[2];
+        }
+        break;
+      case 4:
+        if(!cd) {
+          dth[nodeNumber][1] += prescribedValue;
+        }
+        else {
+          double d[3] = { 0, prescribedValue, 0 };
+          cd->invTransformVector3(d);
+          dth[nodeNumber][0] += d[0];
+          dth[nodeNumber][1] += d[1];
+          dth[nodeNumber][2] += d[2];
+        }
+        break;
+      case 5:
+        if(!cd) {
+          dth[nodeNumber][2] += prescribedValue;
+        }
+        else {
+          double d[3] = { 0, 0, prescribedValue };
+          cd->invTransformVector3(d);
+          dth[nodeNumber][0] += d[0];
+          dth[nodeNumber][1] += d[1];
+          dth[nodeNumber][2] += d[2];
+        }
+        break;
+      default:
+        break;
+    }
   }
 
   // Take care of rotational degrees of freedom for
   // the prescribed displacements
   for(std::map<int,std::vector<double> >::iterator it = dth.begin(); it != dth.end(); ++it) {
-    form_rottensor( &(it->second[0]), ns[it->first].R );
+    const int &nodeNumber = it->first;
+    std::vector<double> &v = it->second;
+    form_rottensor( &v[0], ns[nodeNumber].R );
+    ns[nodeNumber].theta[0] = v[0];
+    ns[nodeNumber].theta[1] = v[1];
+    ns[nodeNumber].theta[2] = v[2];
   }
 }
 
-// update prescribed displacements for nonlinear dynamics
+// total update of prescribed displacements for nonlinear dynamics
 // i.e. displacement boundary and initial conditions prescribed with
 // DISP and IDISP
 void
 GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
                                         CoordSet &cs)
 {
-  // data structure to store rotation vectors of nodes with rotational prescribed dofs
-  std::map<int,std::vector<double> > dth;
+  // data structure to store rotation and translation vectors of nodes with prescribed dofs
+  std::map<int,std::vector<double> > dth, d;
 
-  // initialize the rotation dofs from the current state
+  // initialize the nodal rotation and translation vectors from the current state
   int i;
   for(i=0; i<numDirichlet; ++i) {
     int nodeNumber = dbc[i].nnum;
     int dofNumber  = dbc[i].dofnum;
-    if(cs[nodeNumber] && (dofNumber == 3 || dofNumber == 4 || dofNumber == 5)) {
-      std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
-      if(it == dth.end()) {
-        std::vector<double> v(3);
-        mat_to_vec(ns[nodeNumber].R, &v[0]);
-        dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+    if(cs[nodeNumber] && nodeNumber < ns.size()) {
+      NFrameData *cd = X0->dofFrame(nodeNumber);
+      if(dofNumber == 3 || dofNumber == 4 || dofNumber == 5) {
+        std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
+        if(it == dth.end()) {
+          std::vector<double> v(3);
+          v[0] = ns[nodeNumber].theta[0];
+          v[1] = ns[nodeNumber].theta[1];
+          v[2] = ns[nodeNumber].theta[2];
+          if(cd) cd->transformVector3(&v[0]);
+          dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+        }
+      }
+      else if(cd) {
+        std::map<int,std::vector<double> >::iterator it = d.find(nodeNumber);
+        if(it == d.end()) {
+          std::vector<double> v(3);
+          v[0] = ns[nodeNumber].x - cs[nodeNumber]->x;
+          v[1] = ns[nodeNumber].y - cs[nodeNumber]->y;
+          v[2] = ns[nodeNumber].z - cs[nodeNumber]->z;
+          cd->transformVector3(&v[0]);
+          d.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+        }
       }
     }
   }
@@ -1261,45 +1736,74 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
   for(i=0; i<numDirichlet; ++i) {
 
     int nodeNumber = dbc[i].nnum;
-    if(!cs[nodeNumber]) continue;
+    if(!cs[nodeNumber] || nodeNumber >= ns.size()) continue;
 
     int dofNumber  = dbc[i].dofnum;
-
     double prescribedValue = dbc[i].val;
+    NFrameData *cd = X0->dofFrame(nodeNumber);
 
     switch(dofNumber) {
-        case 0:
-                ns[nodeNumber].x = cs[nodeNumber]->x + prescribedValue;
-                break;
-        case 1:
-                ns[nodeNumber].y = cs[nodeNumber]->y + prescribedValue;
-                break;
-        case 2:
-                ns[nodeNumber].z = cs[nodeNumber]->z + prescribedValue;
-                break;
-        case 3:
-                dth[nodeNumber][0] = prescribedValue;
-                break;
-        case 4:
-                dth[nodeNumber][1] = prescribedValue;
-                break;
-        case 5:
-                dth[nodeNumber][2] = prescribedValue;
-                break;
-        default:
-                break;
+      case 0:
+        if(!cd) {
+          ns[nodeNumber].x = cs[nodeNumber]->x + prescribedValue;
+        }
+        else {
+          d[nodeNumber][0] = prescribedValue;
+        }
+        break;
+      case 1:
+        if(!cd) {
+          ns[nodeNumber].y = cs[nodeNumber]->y + prescribedValue;
+        }
+        else {
+          d[nodeNumber][1] = prescribedValue;
+        }
+        break;
+      case 2:
+        if(!cd) {
+          ns[nodeNumber].z = cs[nodeNumber]->z + prescribedValue;
+        }
+        else {
+          d[nodeNumber][2] = prescribedValue;
+        }
+        break;
+      case 3:
+        dth[nodeNumber][0] = prescribedValue;
+        break;
+      case 4:
+        dth[nodeNumber][1] = prescribedValue;
+        break;
+      case 5:
+        dth[nodeNumber][2] = prescribedValue;
+        break;
+      default:
+        break;
     }
 
   }
 
-  // Take care of rotational degrees of freedom for
-  // the prescribed displacements
   for(std::map<int,std::vector<double> >::iterator it = dth.begin(); it != dth.end(); ++it) {
-    form_rottensor( &(it->second[0]), ns[it->first].R );
+    const int &nodeNumber = it->first;
+    std::vector<double> &v = it->second;
+    NFrameData *cd = X0->dofFrame(nodeNumber);
+    if(cd) cd->invTransformVector3(&v[0]);
+    form_rottensor( &v[0], ns[nodeNumber].R );
+    ns[nodeNumber].theta[0] = v[0];
+    ns[nodeNumber].theta[1] = v[1];
+    ns[nodeNumber].theta[2] = v[2];
+  }
+  for(std::map<int,std::vector<double> >::iterator it = d.begin(); it != d.end(); ++it) {
+    const int &nodeNumber = it->first;
+    std::vector<double> &v = it->second;
+    NFrameData *cd = X0->dofFrame(nodeNumber);
+    cd->invTransformVector3(&v[0]);
+    ns[nodeNumber].x = cs[nodeNumber]->x + v[0];
+    ns[nodeNumber].y = cs[nodeNumber]->y + v[1];
+    ns[nodeNumber].z = cs[nodeNumber]->z + v[2];
   }
 }
 
-// update prescribed displacements and time derivatives for nonlinear dynamics
+// total update of prescribed displacements and time derivatives for nonlinear dynamics
 // i.e. non-zero displacement boundary conditions prescribed with
 // USDD which are time dependent user defined displacements
 void
@@ -1308,18 +1812,44 @@ GeomState::updatePrescribedDisplacement(double *u, ControlLawInfo *claw,
 {
   if(claw->numUserDisp == 0) return;
 
-  // data structure to store rotation vectors of nodes with rotational prescribed dofs
-  std::map<int,std::vector<double> > dth;
+  // data structures to store rotation and translation vectors of nodes with prescribed dofs
+  std::map<int,std::vector<double> > dth, d;
 
-  // initialize the rotation dofs from the current state
+  // initialize the nodal rotation and translation vectors from the current state
   int i;
   for(i=0; i<claw->numUserDisp; ++i) {
     int nodeNumber = claw->userDisp[i].nnum;
-    std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
-    if(it == dth.end()) {
-      std::vector<double> v(3);
-      mat_to_vec(ns[nodeNumber].R, &v[0]);
-      dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+    int dofNumber = claw->userDisp[i].dofnum;
+    if(cs[nodeNumber]) {
+      NFrameData *cd = X0->dofFrame(nodeNumber);
+      if(dofNumber == 3 || dofNumber == 4 || dofNumber == 5) {
+        std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
+        if(it == dth.end()) {
+          std::vector<double> v(3);
+          v[0] = ns[nodeNumber].theta[0];
+          v[1] = ns[nodeNumber].theta[1];
+          v[2] = ns[nodeNumber].theta[2];
+          if(cd) {
+            cd->transformVector3(&v[0]);
+            cd->transformVector3(&(ns[nodeNumber].v[3]));
+            cd->transformVector3(&(ns[nodeNumber].a[3]));
+          }
+          dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+        }
+      }
+      else if(cd) {
+        std::map<int,std::vector<double> >::iterator it = d.find(nodeNumber);
+        if(it == d.end()) {
+          std::vector<double> v(3);
+          v[0] = ns[nodeNumber].x - cs[nodeNumber]->x;
+          v[1] = ns[nodeNumber].y - cs[nodeNumber]->y;
+          v[2] = ns[nodeNumber].z - cs[nodeNumber]->z;
+          cd->transformVector3(&v[0]);
+          cd->transformVector3(&(ns[nodeNumber].v[0]));
+          cd->transformVector3(&(ns[nodeNumber].a[0]));
+          d.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+        }
+      }
     }
   }
 
@@ -1327,70 +1857,91 @@ GeomState::updatePrescribedDisplacement(double *u, ControlLawInfo *claw,
   
     int nodeNumber = claw->userDisp[i].nnum;
     int dofNumber  = claw->userDisp[i].dofnum;
-    if (nodeNumber < 0 || nodeNumber >= numnodes)  {
+    if(nodeNumber < 0 || nodeNumber >= numnodes) {
       fprintf(stderr, "Bad cntrl law for node number %d(%d) dof(%d)\n", nodeNumber+1,numnodes, claw->userDisp[i].dofnum);
+      continue;
     }
+
+    NFrameData *cd = X0->dofFrame(nodeNumber);
     
     switch(dofNumber) {
-    	case 0: 
-		ns[nodeNumber].x = cs[nodeNumber]->x + u[i];
-                ns[nodeNumber].v[0] = vel[i];
-                ns[nodeNumber].a[0] = acc[i];
-		break;
-	case 1:
-		ns[nodeNumber].y = cs[nodeNumber]->y + u[i];
-                ns[nodeNumber].v[1] = vel[i];
-                ns[nodeNumber].a[1] = acc[i];
-		break;
-	case 2:
-		ns[nodeNumber].z = cs[nodeNumber]->z + u[i];
-                ns[nodeNumber].v[2] = vel[i];
-                ns[nodeNumber].a[2] = acc[i];
-		break;
-	case 3:
-                dth[nodeNumber][0] = u[i];
-                ns[nodeNumber].v[3] = vel[i];
-                ns[nodeNumber].a[3] = acc[i];
-		break;
-	case 4:
-                dth[nodeNumber][1] = u[i];
-                ns[nodeNumber].v[4] = vel[i];
-                ns[nodeNumber].a[4] = acc[i];
-		break;
-	case 5:
-                dth[nodeNumber][2] = u[i];
-                ns[nodeNumber].v[5] = vel[i];
-                ns[nodeNumber].a[5] = acc[i];
-		break;
-	default:
-		break;
+      case 0: 
+        if(!cd) {
+          ns[nodeNumber].x = cs[nodeNumber]->x + u[i];
+        }
+        else {
+          d[nodeNumber][0] = u[i];
+        }
+        ns[nodeNumber].v[0] = vel[i];
+        ns[nodeNumber].a[0] = acc[i];
+        break;
+      case 1:
+        if(!cd) {
+          ns[nodeNumber].y = cs[nodeNumber]->y + u[i];
+        }
+        else {
+          d[nodeNumber][1] = u[i];
+        }
+        ns[nodeNumber].v[1] = vel[i];
+        ns[nodeNumber].a[1] = acc[i];
+        break;
+      case 2:
+        if(!cd) {
+          ns[nodeNumber].z = cs[nodeNumber]->z + u[i];
+        }
+        else {
+          d[nodeNumber][2] = u[i];
+        }
+        ns[nodeNumber].v[2] = vel[i];
+        ns[nodeNumber].a[2] = acc[i];
+        break;
+      case 3:
+        dth[nodeNumber][0] = u[i];
+        ns[nodeNumber].v[3] = vel[i];
+        ns[nodeNumber].a[3] = acc[i];
+        break;
+      case 4:
+        dth[nodeNumber][1] = u[i];
+        ns[nodeNumber].v[4] = vel[i];
+        ns[nodeNumber].a[4] = acc[i];
+        break;
+      case 5:
+        dth[nodeNumber][2] = u[i];
+        ns[nodeNumber].v[5] = vel[i];
+        ns[nodeNumber].a[5] = acc[i];
+        break;
+      default:
+        break;
     }
 
   }
 
-  // Take care of rotational degrees of freedom for
-  // the prescribed displacements
   for(std::map<int,std::vector<double> >::iterator it = dth.begin(); it != dth.end(); ++it) {
-    form_rottensor( &(it->second[0]), ns[it->first].R );
+    const int &nodeNumber = it->first;
+    std::vector<double> &v = it->second;
+    NFrameData *cd = X0->dofFrame(nodeNumber);
+    if(cd) {
+      cd->invTransformVector3(&v[0]);
+      cd->invTransformVector3(&(ns[nodeNumber].v[3]));
+      cd->invTransformVector3(&(ns[nodeNumber].a[3]));
+    }
+    form_rottensor( &v[0], ns[nodeNumber].R );
+    ns[nodeNumber].theta[0] = v[0];
+    ns[nodeNumber].theta[1] = v[1];
+    ns[nodeNumber].theta[2] = v[2];
+  }
+  for(std::map<int,std::vector<double> >::iterator it = d.begin(); it != d.end(); ++it) {
+    const int &nodeNumber = it->first;
+    std::vector<double> &v = it->second;
+    NFrameData *cd = X0->dofFrame(nodeNumber);
+    cd->invTransformVector3(&v[0]);
+    cd->invTransformVector3(&(ns[nodeNumber].v[0]));
+    cd->invTransformVector3(&(ns[nodeNumber].a[0]));
+    ns[nodeNumber].x = cs[nodeNumber]->x + v[0];
+    ns[nodeNumber].y = cs[nodeNumber]->y + v[1];
+    ns[nodeNumber].z = cs[nodeNumber]->z + v[2];
   }
 }
-
-/*
-void
-GeomState::extractR(CoordSet &cs, Vector &rigid)
-{
- Node &node1 = cs.getNode(n1);
-
- int i;
- for(i=0; i<numnodes; ++i) {
-   Node &nd = cs.getNode(i);
-   rigid[loc[i][0]] = ns[i].x - nd.x;
-   rigid[loc[i][0]] = ns[i].y - nd.y;
-   rigid[loc[i][0]] = ns[i].z - nd.z;
- }
-   
-}
-*/
 
 void
 GeomState::getPositions(double *positions)
@@ -1459,6 +2010,15 @@ GeomState::setRotations(double *rotations)
 }
 
 void
+GeomState::setNodalTemperatures(double *ndTemps)
+{
+ int i;
+ for(i=0; i<numnodes; ++i) {
+   ns[i].temp = (ndTemps) ? ndTemps[i] : defaultTemp;
+ }
+}
+
+void
 GeomState::setElemStates(double *elemStates)
 {
  int i,j,k;
@@ -1479,7 +2039,7 @@ GeomState::getTotalNumElemStates() const
 }
 
 void
-GeomState::addMultiplierNode(std::pair<int,int> &lmpc_id, double value)
+GeomState::addMultiplierNode(const std::pair<int,int> &lmpc_id, double value)
 {
   NodeState n;
   n.x = value;
@@ -1488,13 +2048,33 @@ GeomState::addMultiplierNode(std::pair<int,int> &lmpc_id, double value)
 }
 
 double
-GeomState::getMultiplier(std::pair<int,int> &lmpc_id)
+GeomState::getMultiplier(const std::pair<int,int> &lmpc_id)
 {
-  std::map<std::pair<int,int>,int>::iterator it;
-  if((it = multiplier_nodes.find(lmpc_id)) != multiplier_nodes.end())
-    return ns[it->second].x;
-  else
-    return 0;
+  std::map<std::pair<int,int>,int>::iterator it = multiplier_nodes.find(lmpc_id);
+  return (it != multiplier_nodes.end()) ? ns[it->second].x : 0;
+}
+
+void
+GeomState::getMultipliers(std::map<std::pair<int,int>,double> &mu)
+{
+  for(std::map<std::pair<int,int>,double>::iterator it = mu.begin(); it != mu.end(); it++) {
+    it->second = getMultiplier(it->first);
+  }
+}
+
+void
+GeomState::setMultiplier(const std::pair<int,int> &lmpc_id, double mu)
+{
+  std::map<std::pair<int,int>,int>::iterator it = multiplier_nodes.find(lmpc_id);
+  if(it != multiplier_nodes.end()) ns[it->second].x = mu;
+}
+
+void
+GeomState::setMultipliers(std::map<std::pair<int,int>,double> &mu)
+{
+  for(std::map<std::pair<int,int>,double>::iterator it = mu.begin(); it != mu.end(); it++) {
+    setMultiplier(it->first, it->second);
+  }
 }
 
 void GeomState::computeGlobalRotation() 
@@ -1654,9 +2234,9 @@ void GeomState::computeRotGradAndJac(double cg[3], double grad[3], double jac[3]
     if (flag[i] <= 0) continue;
 
     double rd[3];
-    rd[0] = X0[i]->x - refCG[0]; 
-    rd[1] = X0[i]->y - refCG[1]; 
-    rd[2] = X0[i]->z - refCG[2]; 
+    rd[0] = (*X0)[i]->x - refCG[0]; 
+    rd[1] = (*X0)[i]->y - refCG[1]; 
+    rd[2] = (*X0)[i]->z - refCG[2]; 
     rotate(gRot, rd);
 
     // compute freq. used values
@@ -1710,12 +2290,13 @@ void GeomState::computeCG(double cg[3])
   cg[1] = 0.0;
   cg[2] = 0.0;
 
-  int i;
+  int i, numReal = 0;
   for ( i = 0; i < numnodes; ++i)  {
     if (flag[i] == 1)  {
       cg[0] += ns[i].x;
       cg[1] += ns[i].y;
       cg[2] += ns[i].z;
+      numReal++;
     }
   }
 
@@ -1787,15 +2368,15 @@ TemperatureState::TemperatureState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet
   ns.resize(numnodes);
   loc.resize(numnodes);
   flag.resize(numnodes);
-  numReal = 0;
 
   int i;
   for(i=0; i<numnodes; ++i) {
 
-    loc[i].resize(1);
+    loc[i].resize(6);
 
     // Store location of each degree of freedom
     loc[i][0] = cdsa.locate( i, DofSet::Temp );
+    for(int j=1; j<6; ++j) loc[i][j] = -1;
 
     // Get Node i from the Coordinate (Node) set
     Node *node_i = cs[i];
@@ -1805,7 +2386,6 @@ TemperatureState::TemperatureState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet
       ns[i].x = 0;
       if(dsa[i].list() != 0)  {
         flag[i] = 1;
-        numReal++;
       }
       else
         flag[i] = 0;
@@ -1828,14 +2408,9 @@ TemperatureState::TemperatureState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet
 
   }
 
-  // Initialize Global Rotation Matrix to Identity
-  //double zeroRot[3] = {0.0, 0.0, 0.0};
-  //computeRotMat(zeroRot, gRot);
-  //computeCG(refCG);
-
 }
 
-TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState((CoordSet &) g2.X0)
+TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState(*(g2.X0))
 {
   // Copy number of nodes
   numnodes = g2.numnodes;
@@ -1847,13 +2422,12 @@ TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState((Coor
   // flag for node to element connectivity
   flag.resize(numnodes);
 
-  numReal = g2.numReal;
-
   // Copy dof locations
   int i;
   for(i = 0; i < numnodes; ++i) {
-    loc[i].resize(1);
+    loc[i].resize(6);
     loc[i][0] = g2.loc[i][0];
+    for(int j=1; j<6; ++j) loc[i][j] = -1;
   }
 
   // Copy node states
@@ -1865,35 +2439,42 @@ TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState((Coor
 
 
 void
-TemperatureState::update(const Vector &v)
+TemperatureState::update(const Vector &v, int)
 {
- // v = incremental displacement vector
+  // v = incremental displacement vector
 
- int i;
- for(i=0; i<numnodes; ++i) {
+  int i;
+  for(i=0; i<numnodes; ++i) {
 
-     // Set incremental translational displacements
-     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
+    // Set incremental translational displacements
+    double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
 
-     // Increment total translational displacements
-     ns[i].x += dx;
+    // Increment total translational displacements
+    ns[i].x += dx;
 
-   }
+  }
+}
+
+void
+TemperatureState::explicitUpdate(CoordSet &cs, const Vector &v)
+{
+  // v = total displacement vector (unconstrained dofs only)
+
+  int i;
+  for(i=0; i<numnodes; ++i) {
+
+    // Set total displacements (unconstrained dofs only)
+    if (loc[i][0] >= 0) ns[i].x = v[loc[i][0]];
+
+  }
 }
 
 void
 TemperatureState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
-                                        double delta)
+                                               double delta)
 {
-  // allocate space to store rotational prescribed dofs
-  double (*dth)[3] = new double[numnodes][3];
-
-  // initialize to zero, rotational prescribed dofs
   int i;
-  for(i=0; i<numnodes; ++i)
-    dth[i][0] = dth[i][1] = dth[i][2] = 0.0;
-
-  for(i=0; i<numDirichlet; ++i) {
+  for(int i=0; i<numDirichlet; ++i) {
 
     int nodeNumber = dbc[i].nnum;
     int dofNumber  = dbc[i].dofnum;
@@ -1918,11 +2499,38 @@ TemperatureState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
     }
 
   }
-  delete [] dth;
+}
+
+// update prescribed displacements for nonlinear dynamics
+// i.e. displacement boundary and initial conditions prescribed with
+// TEMP and ITEMP
+void
+TemperatureState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
+                                               CoordSet &cs)
+{
+  int i;
+  for(i=0; i<numDirichlet; ++i) {
+
+    int nodeNumber = dbc[i].nnum;
+    if(!cs[nodeNumber]) continue;
+
+    int dofNumber  = dbc[i].dofnum;
+
+    double prescribedValue = dbc[i].val;
+
+    switch(dofNumber) {
+        case 6:
+                ns[nodeNumber].x = prescribedValue;
+                break;
+        default:
+                break;
+    }
+
+  }
 }
 
 void
-TemperatureState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
+TemperatureState::get_inc_displacement(Vector &incVec, GeomState &ss, bool)
 {
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
@@ -1933,9 +2541,9 @@ TemperatureState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroR
 
 void
 TemperatureState::midpoint_step_update(Vector &vel_n, Vector &accel_n, double delta, GeomState &ss,
-                                       double beta, double gamma, double alphaf, double alpham)
+                                       double beta, double gamma, double alphaf, double alpham, bool)
 {
- // XXXX THIS HASN'T BEEN UPDATED FOR GENERALIZED ALPHA YET
+ // XXX THIS HASN'T BEEN UPDATED FOR GENERALIZED ALPHA YET
  // Update incremental temperatures at end of step:
  double coef = 2.0/delta;
 
@@ -1956,5 +2564,39 @@ TemperatureState::midpoint_step_update(Vector &vel_n, Vector &accel_n, double de
    ns[inode].x    = 2.0*ns[inode].x - ss[inode].x;
    ss[inode].x = ns[inode].x;
  }
+}
+
+void
+TemperatureState::setVelocityAndAcceleration(const Vector &v, const Vector &)
+{
+  for(int i = 0; i < numnodes; ++i)
+    if(loc[i][0] > -1) {
+      ns[i].v[0] = v[loc[i][0]];
+    }
+}
+
+void
+TemperatureState::setVelocity(const Vector &v, int)
+{
+  for(int i = 0; i < numnodes; ++i)
+    if(loc[i][0] > -1) {
+      ns[i].v[0] = v[loc[i][0]];
+    }
+}
+
+void
+TemperatureState::setAcceleration(const Vector &, int)
+{
+}
+
+void
+TemperatureState::get_tot_displacement(Vector &totVec, bool)
+{
+  // Loop over all of the nodes
+  for(int i = 0; i < numnodes; ++i) {
+
+    if(loc[i][0] >= 0) totVec[loc[i][0]] = ns[i].x;
+
+  }
 }
 

@@ -8,49 +8,52 @@
 #include <Corotational.d/utilities.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
+#include <Math.d/matrix.h>
 #include <Corotational.d/Shell3Corotator.h>
 
-extern "C"      {
-void _FORTRAN(trimem)(int&, double* ,double* ,double* ,double& , double& ,
-                      double* ,double* );
-void _FORTRAN(sands19)(double*,double*,double*,double&,double&,double*,double*,
-        double*, const int&, const int&, const int&, const int&, const int&);
+extern int verboseFlag;
+extern "C" {
+void _FORTRAN(trimem)(int&, double*, double*, double*, double&, double&,
+                      double*, double*);
+void _FORTRAN(sands19)(double*, double*, double*, double&, double&, double*, double*,
+                       double*, const int&, const int&, const int&, const int&, const int&);
 }
 
 Membrane::Membrane(int* nodeNumbers)
 {
-	nn[0] = nodeNumbers[0];
-	nn[1] = nodeNumbers[1];
-	nn[2] = nodeNumbers[2];
+        nn[0] = nodeNumbers[0];
+        nn[1] = nodeNumbers[1];
+        nn[2] = nodeNumbers[2];
 }
 
 Element *
 Membrane::clone()
 {
-	return new Membrane(*this);
+        return new Membrane(*this);
 }
 
 void
-Membrane::renum(int *renumberingTable)
+Membrane::renum(int *table)
 {
-	nn[0] = renumberingTable[nn[0]];
-	nn[1] = renumberingTable[nn[1]];
-	nn[2] = renumberingTable[nn[2]];
+        nn[0] = table[nn[0]];
+        nn[1] = table[nn[1]];
+        nn[2] = table[nn[2]];
 }
 
 void
-Membrane::renum(EleRenumMap& renumberingTable)
+Membrane::renum(EleRenumMap& table)
 {
-	nn[0] = renumberingTable[nn[0]];
-	nn[1] = renumberingTable[nn[1]];
-	nn[2] = renumberingTable[nn[2]];
+        nn[0] = table[nn[0]];
+        nn[1] = table[nn[1]];
+        nn[2] = table[nn[2]];
 }
 
 void
-Membrane::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, Vector& elDisp, 
-                      int strInd,int,double*,double ylayer, double zlayer, int avgnum)
+Membrane::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
+                      Vector& elDisp, int strInd, int surface,
+                      double *ndTemps, double ylayer, double zlayer, int avgnum)
 {
-	weight = 1.0;
+        weight = 1.0;
 
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
@@ -62,6 +65,7 @@ Membrane::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, Vector& elDisp
         x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
         x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
+        // Thickness
         h[0] = h[1] = h[2] = prop->eh;
 
         double elStress[3][7];
@@ -69,32 +73,33 @@ Membrane::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, Vector& elDisp
         int  msize = 1;
         int maxstr = 7;
         int maxgus = 3;
-        int    elm = 1; 
+        int    elm = 1;
 
-	// SET STRAIN FLAG IF USER WANTS STRAIN OUTPUT 
-	int strainFlg;
-	if(strInd > 6) strainFlg = 1; 
+        // SET STRAIN FLAG IF USER WANTS STRAIN OUTPUT 
+        int strainFlg;
+        if(strInd > 6) strainFlg = 1; 
 
        _FORTRAN(sands19)(x,y,z,prop->E,prop->nu,h,elDisp.data(),(double*)elStress,
                          msize,maxstr,maxgus,elm,strainFlg);
 
-	if(strInd < 7) {
+        if(strInd < 7) {
           stress[0] = elStress[0][strInd];
           stress[1] = elStress[1][strInd];
           stress[2] = elStress[2][strInd];
-	}
-	else {
+        }
+        else {
           stress[0] = elStress[0][strInd-7];
           stress[1] = elStress[1][strInd-7];
           stress[2] = elStress[2][strInd-7];
-	}
-
+        }
 }
 
 void
-Membrane::getAllStress(FullM& stress,Vector& weight,CoordSet &cs, Vector& elDisp, int strInd,int,double*)
+Membrane::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
+                       Vector& elDisp, int strInd, int surface,
+                       double *ndTemps)
 {
-	weight = 1.0;
+        weight = 1.0;
 
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
@@ -106,6 +111,7 @@ Membrane::getAllStress(FullM& stress,Vector& weight,CoordSet &cs, Vector& elDisp
         x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
         x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
+        // Thickness
         h[0] = h[1] = h[2] = prop->eh;
 
         double elStress[3][7];
@@ -113,7 +119,7 @@ Membrane::getAllStress(FullM& stress,Vector& weight,CoordSet &cs, Vector& elDisp
         int  msize = 1;
         int maxstr = 7;
         int maxgus = 3;
-        int    elm = 1; 
+        int    elm = 1;
 
        _FORTRAN(sands19)(x,y,z,prop->E,prop->nu,h,elDisp.data(),(double*)elStress,
                          msize,maxstr,maxgus,elm,strInd);
@@ -154,7 +160,7 @@ Membrane::getMass(CoordSet& cs)
         Node &nd2 = cs.getNode(nn[1]);
         Node &nd3 = cs.getNode(nn[2]);
 
-	double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
+        double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
 
         r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
         r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
@@ -168,11 +174,9 @@ Membrane::getMass(CoordSet& cs)
         v2[1] = r2[1] - r1[1];
         v2[2] = r2[2] - r1[2];
 
-        v3[0] =  v1[1]*v2[2] - v2[1]*v1[2];
-        v3[1] = -v1[0]*v2[2] + v2[0]*v1[2];
-        v3[2] =  v1[0]*v2[1] - v2[0]*v1[1];
+        crossprod(v1, v2, v3);
 
-	double area = 0.5*sqrt(v3[0]*v3[0] + v3[1]*v3[1] + v3[2]*v3[2]);
+        double area = 0.5*sqrt(v3[0]*v3[0] + v3[1]*v3[1] + v3[2]*v3[2]);
         double mass = area*prop->rho*prop->eh;
 
         return mass;
@@ -247,12 +251,21 @@ Membrane::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         gravityForce[0] =  fx;
         gravityForce[1] =  fy;
         gravityForce[2] =  fz;
-        gravityForce[3] =  fx;
-        gravityForce[4] =  fy;
-        gravityForce[5] =  fz;
+        gravityForce[3] =  0.0;
+        gravityForce[4] =  0.0;
+        gravityForce[5] =  0.0;
         gravityForce[6] =  fx;
         gravityForce[7] =  fy;
         gravityForce[8] =  fz;
+        gravityForce[9] =  0.0;
+        gravityForce[10] =  0.0;
+        gravityForce[11] =  0.0;
+        gravityForce[12] =  fx;
+        gravityForce[13] =  fy;
+        gravityForce[14] =  fz;
+        gravityForce[15] =  0.0;
+        gravityForce[16] =  0.0;
+        gravityForce[17] =  0.0;
 }
 
 FullSquareMatrix
@@ -285,10 +298,12 @@ Membrane::massMatrix(CoordSet &cs,double *mel,int cmflg)
 
         double rmas = getMass(cs)/3.0; 
 
-        FullSquareMatrix ret(9,mel);
+        FullSquareMatrix ret(18,mel);
 
         ret.zero();
 
+        std::cerr << " *** WARNING: Membrane::massMatrix is not implemented\n";
+/* XXX the following is not correct, mass matrix should be 18x18 and in global frame
         ret[0][0] = rmas;
         ret[1][1] = rmas;
         ret[2][2] = (rl[0]*rl[0]+rl[2]*rl[2])/420.0*rmas;
@@ -298,36 +313,34 @@ Membrane::massMatrix(CoordSet &cs,double *mel,int cmflg)
         ret[6][6] = rmas;
         ret[7][7] = rmas;
         ret[8][8] = (rl[2]*rl[2]+rl[1]*rl[1])/420.0*rmas;
-
+*/
         return ret;
 }
 
 FullSquareMatrix
 Membrane::stiffness(CoordSet &cs, double *d, int flg)
 {
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
 
-	double x[3], y[3], z[3], h[3];
+        double x[3], y[3], z[3], h[3];
 
         // Set the coordinates
-	x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-	x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-	x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+        x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
         // Set the thickness
-	h[0] = h[1] = h[2] = prop->eh;
+        h[0] = h[1] = h[2] = prop->eh;
 
         if(h[0] <= 0.0)
-          fprintf(stderr,"ERROR: Zero shell thickness (ThreeNodeShell.C) %d %d %d\n",
+          fprintf(stderr,"ERROR: Zero shell thickness (Membrane.C) %d %d %d\n",
                 nn[0], nn[1], nn[2]);
 
         _FORTRAN(trimem)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
 
         FullSquareMatrix ret(18,d);
-
-        //cerr << "here in Membrane::stiffness\n"; ret.print();
 
         return ret;
 }
@@ -335,45 +348,47 @@ Membrane::stiffness(CoordSet &cs, double *d, int flg)
 int
 Membrane::numNodes()
 {
- 	return 3;
+         return 3;
 }
 
 int*
 Membrane::nodes(int *p)
 {
- 	if(p == 0) p = new int[3];
- 	p[0] = nn[0];
- 	p[1] = nn[1];
- 	p[2] = nn[2];
-	return p;
+         if(p == 0) p = new int[3];
+         p[0] = nn[0];
+         p[1] = nn[1];
+         p[2] = nn[2];
+        return p;
 }
 
 int
 Membrane::numDofs()
 {
- 	return 18;
+         return 18;
 }
 
 int*
 Membrane::dofs(DofSetArray &dsa, int *p)
 {
- 	if(p == 0) p = new int[18];
+        if(p == 0) p = new int[18];
+
         dsa.number(nn[0], DofSet::XYZdisp | DofSet::XYZrot, p  );
         dsa.number(nn[1], DofSet::XYZdisp | DofSet::XYZrot, p+6);
         dsa.number(nn[2], DofSet::XYZdisp | DofSet::XYZrot, p+12);
-	return p;
+
+        return p;
 }
 
 void
 Membrane::markDofs(DofSetArray &dsa)
 {
-        dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot );
+        dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot);
 }
 
 int
 Membrane::getTopNumber()
 {
-  return 119;//4;
+  return 108;
 }
 
 Corotator *
@@ -384,3 +399,199 @@ Membrane::getCorotator(CoordSet &cs, double *kel, int fitAlg, int)
  return new Shell3Corotator(nn[0], nn[1], nn[2], myStiff, fitAlg);
 }
 
+#ifdef USE_EIGEN3
+#include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
+#include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
+#include <Element.d/FelippaShell.d/NoBendingTriangle.hpp>
+
+typedef ShellElementTemplate<double,EffMembraneTriangle,NoBendingTriangle> Impl;
+
+double
+Membrane::getMassThicknessSensitivity(CoordSet& cs)
+{
+  if(prop == NULL) return 0.0;
+  else return getMass(cs)/prop->eh;
+}
+
+void
+Membrane::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int)
+{
+  if(prop == NULL || gravityAcceleration == NULL) {
+    dwdx.zeroAll();
+    return;
+  }
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+
+  double rhoh = prop->rho*prop->eh;
+
+  Impl::andesmsWRTcoord(glNum+1, x, y, z, dwdx.data(), rhoh);
+
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+
+  dwdx *= gravAccNorm;
+}
+
+void
+Membrane::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration, int,
+                                              Vector& dGfdthick, int gravflg, GeomState *geomState)
+{
+  if(prop == NULL) {
+    dGfdthick.zero();
+    return;
+  }
+
+  getGravityForce(cs, gravityAcceleration, dGfdthick, gravflg, geomState);
+
+  dGfdthick /= prop->eh;
+}
+
+void
+Membrane::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration, int,
+                                                    GenFullM<double> &dGfdx, int gravflg, GeomState*)
+{
+  std::cerr << " *** WARNING: Membrane::getGravityForceNodalCoordinateSensitivity is not implemented\n";
+  dGfdx.zero();
+}
+
+void
+Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int)
+{
+  if(prop == NULL) {
+    dStiffdThick.zero();
+    return;
+  }
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  ShellMaterial<double> *mat = new ShellMaterialType0<double>(prop->E, prop->eh, prop->nu,
+                                                              prop->rho, prop->Ta, prop->W); 
+
+  double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
+  Impl::andesstfWRTthic(glNum+1, dStiffdThick.data(), (double*)NULL, prop->nu,
+                        x, y, z, disp, 0, mat, flg);
+  delete mat;
+}
+
+void
+Membrane::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int)
+{
+  if(prop == NULL) {
+    for(int i=0; i<9; ++i) dStiffdx[i].zero();
+    return;
+  }
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  double *data[9];
+  for(int i=0; i<9; ++i) data[i] = dStiffdx[i].data();
+
+  int flg = 1;
+
+  Impl::andesstfWRTcoord(glNum+1, data, prop->E, prop->nu,
+                         prop->rho, prop->eh, prop->Ta, prop->W,
+                         (double*)NULL, x, y, z, 0, (double*)NULL,
+                         flg);
+}
+
+void
+Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs,
+                                          Vector &elDisp, int, int surface, int, double *ndTemps,
+                                          int avgnum, double, double)
+{
+  weight = 1.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  ShellMaterial<double> *mat = new ShellMaterialType0<double>(prop->E, prop->eh, prop->nu, 
+                                                              prop->rho, prop->Ta, prop->W);
+  int sflg = 0;
+
+  Impl::andesvmsWRTthic(glNum+1, prop->nu, x, y, z, elDisp.data(),
+                        dStdThick.getData(), 0, mat, surface, sflg,
+                        ndTemps);
+  delete mat;
+}
+
+void
+Membrane::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs,
+                                                Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                int avgnum, double, double)
+{
+  weight = 1.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  int sflg = 0;
+
+  Impl::andesvmsWRTcoord(glNum+1, prop->E, prop->nu, prop->rho,
+                         prop->eh, prop->Ta, prop->W, (double*)NULL,
+                         x, y, z, elDisp.data(), dStdx.getData(),
+                         0, (double*)NULL, surface, sflg, ndTemps);
+}
+
+void
+Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
+                                             Vector &elDisp, int, int surface, int, double *ndTemps,
+                                             int avgnum, double, double)
+{
+  weight = 1.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  double* disp = elDisp.data();
+
+  ShellMaterial<double> *mat = new ShellMaterialType0<double>(prop->E, prop->eh, prop->nu, 
+                                                              prop->rho, prop->Ta, prop->W);
+  int sflg = 0;
+
+  Impl::andesvmsWRTdisp(glNum+1, prop->nu, x, y, z, elDisp.data(),
+                        dStdDisp.getData(), 0, mat, surface, sflg,
+                        ndTemps);
+  delete mat;
+}
+#endif

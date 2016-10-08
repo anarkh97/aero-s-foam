@@ -17,6 +17,9 @@ HelmSpectralIsoParamHexa::HelmSpectralIsoParamHexa(int o, int* nodenums) {
  int orderc = order*order*order;
  nn = new int[orderc];
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
+
+ setWeight(order);
+ setTrueWeight(order);
 }
 
 

@@ -1,11 +1,12 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
 
-NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _axis2)
- : AngleType1ConstraintElement(_nn, _axis1, _axis2, M_PI/2)
+NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _axis2, int _propIndex, int _type, int _ieqtype)
+ : AngleType1ConstraintElement(_nn, _axis1, _axis2, M_PI/2, _type, _ieqtype)
 {
   m_axis1 = _axis1;
   m_axis2 = _axis2;
+  propIndex = _propIndex;
   offset2 = 0;
   quadrant = 0;
 }
@@ -13,18 +14,34 @@ NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _ax
 void
 NonlinearTorsionalSpring::setProp(StructProp *p, bool _myProp)
 {
-  prop = (_myProp) ? p : new StructProp(*p); 
-  myProp = true;
-  prop->penalty = prop->k1;
+  StructProp *prop = (_myProp) ? p : new StructProp(*p); 
+
+  const double k[3] = { p->k1, p->k2, p->k3 };
+  const int &i = propIndex;
+  if(type == 1 && ieqtype == 1) {
+    offset += p->freeplay[i].ul;
+    prop->penalty = (p->freeplay[i].uz-p->freeplay[i].dz)*k[i];
+  }
+  else if(type == 1 && ieqtype == 2) {
+    offset += p->freeplay[i].ll;
+    prop->penalty = (p->freeplay[i].lz-p->freeplay[i].dz)*k[i];
+  }
+  else if(type == 0) {
+    prop->penalty = p->freeplay[i].dz*k[i];
+  }
   prop->lagrangeMult = false;
+
+  AngleType1ConstraintElement::setProp(prop, true);
 }
 
 void 
 NonlinearTorsionalSpring::update(GeomState *refState, GeomState& gState, CoordSet& cs, double t)
 {
   // internal states
-  updateStates((GeomState *) NULL, gState, cs);
-  axis1 = (quadrant == 0 || quadrant == 2) ? m_axis1 : m_axis2, axis2 = m_axis2;
+  if(numStates() > 0) {
+    updateStates((GeomState *) NULL, gState, cs);
+    axis1 = (quadrant == 0 || quadrant == 2) ? m_axis1 : m_axis2, axis2 = m_axis2;
+  }
 
   AngleType1ConstraintElement::update(refState, gState, cs, t);
 }
@@ -32,20 +49,23 @@ NonlinearTorsionalSpring::update(GeomState *refState, GeomState& gState, CoordSe
 int
 NonlinearTorsionalSpring::numStates()
 {
-  return 3;
+  // TODO: consider reparametrization for inequalities
+  return (type == 0) ? 3 : 0;
 }
 
 void
 NonlinearTorsionalSpring::initStates(double *statenp)
 {
-  statenp[0] = M_PI/2; // offset
-  statenp[1] = 0.0;    // offset2
-  statenp[2] = 0;      // quadrant
+  if(numStates() == 0) return;
+  statenp[0] = offset;
+  statenp[1] = offset2;
+  statenp[2] = quadrant;
 }
 
 void 
-NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet &)
+NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet &, double dt)
 {
+  if(numStates() == 0) return;
   // TODO: consider if it is better to update the state from the reference state (i.e. the last converged solution)
   //       rather than the current newton iteration, as we do for plasticity
   double *statenp = gState.getElemState(getGlNum()) + stateOffset;
@@ -83,7 +103,6 @@ NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet 
         //std::cerr << "going from quadrant 2 to quadrant 1\n";
         quadrant = 1; offset2 -= M_PI/2;
       }
-      else std::cerr << "whoops-a-daisy\n";
 
       if(cth > 0) offset = M_PI/2 - offset2;
       else        offset = M_PI/2 + offset2;
@@ -106,7 +125,6 @@ NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet 
         //std::cerr << "going from quadrant 3 to quadrant 2\n";
         quadrant = 2; offset2 -= M_PI/2;
       }
-      else std::cerr << "whoops-a-daisy\n";
 
       if(cth > 0) offset = M_PI/2 + offset2;
       else        offset = M_PI/2 - offset2;

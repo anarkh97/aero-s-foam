@@ -7,6 +7,7 @@
 #include <Feti.d/DistrVector.h>
 #include <Paral.d/SubDOp.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/DistHelper.h>
 
 #include <cassert>
 
@@ -93,7 +94,6 @@ mult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDistrVector> 
 template <typename Scalar>
 const GenVecBasis<Scalar, GenDistrVector> &
 transposeMult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDistrVector> &basis, GenVecBasis<Scalar, GenDistrVector> &result) {
-//transposeMult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullMatrix<Scalar> &result) {
   assert(&basis != &result);
 
   typedef GenVecBasis<Scalar, GenDistrVector> BasisType;
@@ -101,9 +101,9 @@ transposeMult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDist
 
   result.dimensionIs(basis.vectorCount(), basis.vectorInfo());
   
-  for (VecIt it = const_cast<BasisType &>(basis).begin(),
+  for (VecIt     it = const_cast<BasisType &>(basis).begin(),
              it_end = const_cast<BasisType &>(basis).end(),
-             jt = result.begin();
+                 jt = result.begin();
        it != it_end;
        ++it, ++jt) {
     const_cast<GenSubDOp<Scalar> &>(matrix).transposeMult(*it, *jt);
@@ -151,12 +151,11 @@ renormalized_basis(const GenSubDOp<Scalar> &metric, const GenVecBasis<Scalar, Ge
 
 // Calculates the reduced stiffness matrix  K_red = Phi^T * K * Phi with Phi as the mass-normalized basis
 template <typename Scalar>
-void calculateReducedStiffness(const GenSubDOp<Scalar> &K, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullSquareMatrix<Scalar> &K_reduced){
-  filePrint(stderr," ... Calculating reduced stiffness matrix ...\n");
-  //K^T * Phi
-  DistrVecBasis product;  //used as a buffer for intermediate steps
+void calculateReducedStiffness(const GenSubDOp<Scalar> &K, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullSquareMatrix<Scalar> &K_reduced) {
+  // K^T * Phi
+  DistrVecBasis product; // used as a buffer for intermediate steps
   transposeMult(K, basis, product);
-  //calculate transpose of product multiplied with basis  (K^T * Phi)^T * Phi = Phi^T * K * Phi
+  // calculate transpose of product multiplied with basis  (K^T * Phi)^T * Phi = Phi^T * K * Phi
   const int vecCount = product.vectorCount();
 
   GenFullSquareMatrix<Scalar> normalMatrix(vecCount);
@@ -175,7 +174,7 @@ MGSVectors(const GenVecBasis<Scalar, GenDistrVector> &basis) {
 
   int numVectors = basis.numVec();
 
-   for (int i = 0; i < numVectors; i++) {
+  for (int i = 0; i < numVectors; i++) {
     filePrint(stderr,"\r %5.2f%% complete", double(i)/double(numVectors)*100.);
 
     GenDistrVector<Scalar> v(basis.vectorInfo(),basis[i].data(),false);

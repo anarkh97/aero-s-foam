@@ -2,87 +2,23 @@
 #include <cstdlib>
 #include <Utils.d/dbg_alloca.h>
 #include <cmath>
+#include <fstream>
+#include <algorithm>
 
 #include <Utils.d/dofset.h>
 #include <Driver.d/Domain.h>
 #include <Utils.d/Connectivity.h>
 #include <Element.d/Element.h>
-#include <Driver.d/Dynam.h>
-#include <Utils.d/linkfc.h>
 #include <Math.d/VectorSet.h>
-#include <Math.d/mathUtility.h>
 #include <Utils.d/resize_array.h>
 #include <Utils.d/BinFileHandler.h>
 
 #include <Driver.d/GeoSource.h>
 
-extern "C"      {
-void _FORTRAN(cfjacobi)(double *,double *,double *, double *,int&,double&,int &);
-}
-
-void
-EigenMat::ortho(Vector *v1, Vector *vr, int nsub, int nrbm)
-{
-  int i,j;
-  for(j=0; j<nsub; ++j) {
-    for(i=0; i<nrbm; ++i) {
-      double s = v1[i]*vr[j+nrbm];
-      vr[j+nrbm] -= s*vr[i]; // Vector -= operation
-    }
-  }
-}
-
-void
-EigenMat::ortho(VectorSet& v1, VectorSet& vr, int nsub, int nrbm)
-{
-  int i,j;
-  for(j=0; j<nsub; ++j) {
-    for(i=0; i<nrbm; ++i) {
-      double s = v1[i]*vr[j+nrbm];
-
-      vr[j+nrbm] -= s*vr[i]; // Vector -= operation
-    }
-  }
-}
-
-void
-EigenMat::getJacobi(double *kappa, double * mu, FullSquareMatrix &xx,
-                    double *eigVal,int nsmax,int subSpaceSize, double tolJac)
-{
-  int i,j;
-
-  _FORTRAN(cfjacobi)(kappa,mu,xx[0],eigVal,nsmax,tolJac,subSpaceSize);
-
-  // sort eigenvalues.
-  int is = 1;
-  while(is != 0) {
-    is = 0;
-    for(i=1; i<subSpaceSize; ++i) {
-      if(eigVal[i] < eigVal[i-1] ) {
-        is = 1;
-        double tr = eigVal[i-1];
-        eigVal[i-1] = eigVal[i];
-        eigVal[i] = tr;
-
-        for(j=0; j<subSpaceSize; ++j) {
-          tr         = xx[i][j];
-
-          xx[i][j]   = xx[i-1][j];
-
-          xx[i-1][j] = tr;
-        }
-      }
-    }
-  }
- fprintf(stderr,"%f\n",eigVal[0]);
-}
-
-
 void
 Domain::getSloshDisp(Vector &sloshPotSol, double *bcx, int fileNumber, int hgIndex, double time)
 {
   // Postprocessing: Computes the NODAL displacements for sloshing problem
-  // ADDED FOR SLOSHING PROBLEM, EC, 20070723
   if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -106,7 +42,7 @@ Domain::getSloshDisp(Vector &sloshPotSol, double *bcx, int fileNumber, int hgInd
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elFluidDispSlosh = new Vector(maxNodesPerElement, 0.0);
   }
@@ -156,7 +92,6 @@ void
 Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double time)
 {
   // Postprocessing: Computes the NODAL displacements for sloshing problem
-  // ADDED FOR SLOSHING PROBLEM, EC, 20081101
   if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -181,7 +116,7 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elFluidDispSloshAll = new Vector(maxNodesPerElement*3, 0.0);
   }
@@ -223,7 +158,7 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
 }
 
 void
-Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, int convEig) //modified FOR SLOSHING PROBLEM, EC, 20070723
+Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, int convEig)
 {
   const double pi = 3.141592653589793;
   
@@ -286,9 +221,61 @@ Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, i
          fprintf(stderr," %d\t%e\t%e\n",imode+1,eigenValues[imode], sqrt(eigenValues[imode])/(2.0*pi)*sqrt(gravitySloshing));
        else
          fprintf(stderr," %d\t%e\t%e\n",imode+1,eigenValues[imode], sqrt(eigenValues[imode])/(2.0*pi));
+#ifdef SENSITIVITY_DEBUG
+       if(eigenValues[imode] < 0) {
+         const char* output = "negeigenvalue";
+         std::ofstream out(output, std::ios::out);
+         if(!out) {
+           std::cerr << "Error: cannot open file" << output << std::endl;
+           exit(-1);
+         }
+         out << 1 << std::endl;
+         out.close();
+         exit(-1);
+       }
+#endif
      }
      fprintf(stderr," --------------------------------------\n");
    }
 
  }
 }
+
+#ifdef USE_EIGEN3
+void
+Domain::eigenQROutput(Eigen::MatrixXd& Xmatrix, Eigen::MatrixXd& Qmatrix, Eigen::MatrixXd& Rmatrix)
+{
+  const char* Xoutput = domain->solInfo().xmatrixname;
+  const char* Qoutput = domain->solInfo().qmatrixname;
+  const char* Routput = domain->solInfo().rmatrixname;
+  std::ofstream xout(Xoutput, std::ios::out);
+  std::ofstream qout(Qoutput, std::ios::out);
+  std::ofstream rout(Routput, std::ios::out);
+
+  if(!xout) {
+    std::cerr << "Error: cannot open file " << Xoutput << std::endl;
+    exit(-1);
+  }
+  if(!qout) {
+    std::cerr << "Error: cannot open file " << Qoutput << std::endl;
+    exit(-1);
+  }
+  if(!rout) {
+    std::cerr << "Error: cannot open file " << Routput << std::endl;
+    exit(-1);
+  }
+
+  // write X, Q and R matrix
+  Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+  xout << Xmatrix.rows() << std::endl << Xmatrix.cols() << std::endl;
+  xout << Xmatrix.transpose().format(HeavyFmt) << std::endl;
+  qout << Qmatrix.rows() << std::endl << Qmatrix.cols() << std::endl;
+  qout << Qmatrix.transpose().format(HeavyFmt) << std::endl;
+  rout << Rmatrix.rows() << std::endl << Rmatrix.cols() << std::endl;
+  rout << Rmatrix.format(HeavyFmt) << std::endl;
+
+  xout.close();
+  qout.close();
+  rout.close();
+}
+#endif

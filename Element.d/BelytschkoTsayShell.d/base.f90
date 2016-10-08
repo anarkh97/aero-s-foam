@@ -1,8 +1,8 @@
 ! =======================================
 ! basic useful functions
 ! =======================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 2.  subroutine             matprd          (nar,nac,itrna,nbr,nbc,itrnb,ncr,ncc,mata,matb,matc)
 ! 3.  real(8) function       area            (nvrtx,vrtx)
 ! 4.  logical function       chkcross        (ndime,line1,line2)

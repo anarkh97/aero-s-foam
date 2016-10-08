@@ -51,7 +51,7 @@ class DynamStateSet
   private:
     // Data Fields
     int vectorSize_;
-    vector<State> stateSet_; 
+    std::vector<State> stateSet_; 
 
     // Memory management
     void init_(int vectorSize, int maxNumStates);

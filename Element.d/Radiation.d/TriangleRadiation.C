@@ -5,6 +5,7 @@
 #include <Utils.d/dofset.h>
 #include <Element.d/Radiation.d/TriangleRadiation.h>
 #include <Corotational.d/TriangleThermalCorotator.h>
+#include <Corotational.d/GeomState.h>
 
 extern "C"      {
 void   _FORTRAN(trianarea)(double*, double*, double*, double&);
@@ -15,6 +16,10 @@ TriangleRadiation::TriangleRadiation(int* nodenums)
         nn[0] = nodenums[0];
         nn[1] = nodenums[1];
         nn[2] = nodenums[2];
+}
+
+TriangleRadiation::~TriangleRadiation()
+{
 }
 
 Element *
@@ -60,17 +65,17 @@ TriangleRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
 
 // ... Compute Radiative matrix
 
-          FullSquareMatrix ret(3,Kcv);
+        FullSquareMatrix ret(3,Kcv);
 
-          ret[0][0] = 0;
-          ret[1][1] = 0;
-          ret[2][2] = 0;
-          ret[0][1] = 0;
-          ret[0][2] = 0;
-          ret[1][0] = 0;
-          ret[1][2] = 0;
-          ret[2][0] = 0;
-          ret[2][1] = 0;
+        ret[0][0] = 0;
+        ret[1][1] = 0;
+        ret[2][2] = 0;
+        ret[0][1] = 0;
+        ret[0][2] = 0;
+        ret[1][0] = 0;
+        ret[1][2] = 0;
+        ret[2][0] = 0;
+        ret[2][1] = 0;
 
         return ret;
 }
@@ -144,5 +149,17 @@ int
 TriangleRadiation::getTopNumber()
 {
   return 149;
+}
+
+void 
+TriangleRadiation::computeTemp(CoordSet&, State &, double[2], double*)
+{
+  fprintf(stderr," *** WARNING: TriangleRadiation::computeTemp is not implemented\n");
+}
+
+void 
+TriangleRadiation::getFlFlux(double[2], double *, double *)
+{
+  fprintf(stderr," *** WARNING: TriangleRadiation::getFlFlux is not implemented\n");
 }
 

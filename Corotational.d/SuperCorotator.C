@@ -1,4 +1,6 @@
 #include <Corotational.d/SuperCorotator.h>
+#include <Math.d/matrix.h>
+#include <Utils.d/dbg_alloca.h>
 
 SuperCorotator::SuperCorotator(SuperElement *_superElem)
 {
@@ -85,12 +87,9 @@ SuperCorotator::getDExternalForceDu(GeomState &geomState, CoordSet &cs,
     FullSquareMatrix subK(ndofs);
     subK.zero();
     int *subElemDofs = superElem->getSubElemDofs(i);
-    //double *subf = new double[ndofs];
-    //for(j=0; j<ndofs; ++j) subf[j] = f[subElemDofs[j]];
     double *subf = superElem->getPreviouslyComputedSubExternalForce(i); 
     subElemCorotators[i]->getDExternalForceDu(geomState, cs, subK, subf);
     elK.add(subK, subElemDofs);
-    //delete [] subf;
   }
 }
 
@@ -99,18 +98,15 @@ SuperCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
                                  FullSquareMatrix &elK, double *f, double dt, double t)
 {
   int i, j;                            
-  elK.zero();
   for(i=0; i<elK.dim(); ++i) f[i] = 0.0;
+  double *subf = (double *) dbg_alloca(sizeof(double)*elK.dim());
 
   for(i=0; i<nSubElems; ++i) {
     int ndofs = superElem->getSubElemNumDofs(i);
-    FullSquareMatrix subK(ndofs);
-    double *subf = new double[ndofs];
     for(j=0; j<ndofs; ++j) subf[j] = 0.0;
-    subElemCorotators[i]->getInternalForce(geomState, cs, subK, subf, dt, t);
+    subElemCorotators[i]->getInternalForce(geomState, cs, elK, subf, dt, t);
     int *subElemDofs = superElem->getSubElemDofs(i);
     for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
-    delete [] subf;
   }
 }
 
@@ -119,18 +115,15 @@ SuperCorotator::getInternalForce(GeomState *refState, GeomState &geomState, Coor
                                  FullSquareMatrix &elK, double *f, double dt, double t)
 {
   int i, j;
-  elK.zero();
   for(i=0; i<elK.dim(); ++i) f[i] = 0.0;
+  double *subf = (double *) dbg_alloca(sizeof(double)*elK.dim());
 
   for(i=0; i<nSubElems; ++i) {
     int ndofs = superElem->getSubElemNumDofs(i);
-    FullSquareMatrix subK(ndofs);
-    double *subf = new double[ndofs];
     for(j=0; j<ndofs; ++j) subf[j] = 0.0;
-    subElemCorotators[i]->getInternalForce(refState, geomState, cs, subK, subf, dt, t);
+    subElemCorotators[i]->getInternalForce(refState, geomState, cs, elK, subf, dt, t);
     int *subElemDofs = superElem->getSubElemDofs(i);
     for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
-    delete [] subf;
   }
 }
 
@@ -144,16 +137,13 @@ SuperCorotator::getExternalForce(GeomState &geomState, CoordSet &cs,
   for(i=0; i<superElem->numDofs(); ++i) fg[i] = 0.0;
 
   for(i=0; i<nSubElems; ++i) {
-    int ndofs = superElem->getSubElemNumDofs(i);
-    int *subElemDofs = superElem->getSubElemDofs(i);
-    //double *subf = new double[ndofs];
-    //for(j=0; j<ndofs; ++j) subf[j] = f[subElemDofs[j]];
     double *subf = superElem->getPreviouslyComputedSubExternalForce(i);
     if(subf) {
+      int ndofs = superElem->getSubElemNumDofs(i);
+      int *subElemDofs = superElem->getSubElemDofs(i);
       subElemCorotators[i]->getExternalForce(geomState, cs, subf);
       for(j=0; j<ndofs; ++j) fg[subElemDofs[j]] += subf[j];
     }
-    //delete [] subf;
   }
 
   for(i=0; i<superElem->numDofs(); ++i) f[i] = fg[i];
@@ -222,8 +212,9 @@ SuperCorotator::extractDeformations(GeomState &geomState, CoordSet &cs, double *
 }
 
 void 
-SuperCorotator::getNLVonMises(Vector &stress, Vector &weight, GeomState &geomState,
-                              CoordSet &cs, int strInd)
+SuperCorotator::getNLVonMises(Vector &stress, Vector &weight, GeomState &geomState, GeomState *refState,
+                              CoordSet &cs, int strInd, int surface, double ylayer, double zlayer,
+                              int avgnum, int measure)
 {
   int i;
   stress.zero();
@@ -235,16 +226,29 @@ SuperCorotator::getNLVonMises(Vector &stress, Vector &weight, GeomState &geomSta
     subStress.zero();
     Vector subWeight(nnodes);
     subWeight.zero();
-    subElemCorotators[i]->getNLVonMises(subStress, subWeight, geomState, cs, strInd);
+    int subAvgnum = (avgnum == 0) ? 1 : avgnum;
+    subElemCorotators[i]->getNLVonMises(subStress, subWeight, geomState, refState, cs, strInd, surface,
+                                        ylayer, zlayer, avgnum, measure);
     int *subElemNodes = superElem->getSubElemNodes(i);
     stress.add(subStress, subElemNodes);
     weight.add(subWeight, subElemNodes);
   }
+
+  // Average stress/strain value at each node by the number of sub-elements attached to the node
+  for(i = 0; i < superElem->numNodes(); ++i) {
+    if(weight[i] == 0) {
+      stress[i] = 0;
+    }
+    else {
+      stress[i] /= weight[i];
+      weight[i] = 1;
+    }
+  }
 }
 
 void 
-SuperCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState, 
-                               CoordSet &cs, int strInd) 
+SuperCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState, GeomState *refState,
+                               CoordSet &cs, int strInd, int surface, int measure) 
 {
   int i;
   stress.zero();
@@ -256,10 +260,22 @@ SuperCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
     subStress.zero();
     Vector subWeight(nnodes);
     subWeight.zero();
-    subElemCorotators[i]->getNLAllStress(subStress, subWeight, geomState, cs, strInd);
+    subElemCorotators[i]->getNLAllStress(subStress, subWeight, geomState, refState, cs, strInd, surface,
+                                         measure);
     int *subElemNodes = superElem->getSubElemNodes(i);
     stress.addrows(subStress, subElemNodes);
     weight.add(subWeight, subElemNodes);
+  }
+
+  // Average stress/strain values at each node by the number of sub-elements attached to the node
+  for(i = 0; i < superElem->numNodes(); ++i) {
+    if(weight[i] == 0) {
+      for(int j = 0; j < stress.numCol(); ++j) stress[i][j] = 0;
+    }
+    else {
+      for(int j = 0; j < stress.numCol(); ++j) stress[i][j] /= weight[i];
+      weight[i] = 1;
+    }
   }
 }
 
@@ -270,6 +286,16 @@ SuperCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
   double ret = 0.0;
   for(i=0; i<nSubElems; ++i)
     ret += subElemCorotators[i]->getElementEnergy(geomState, cs);
+  return ret;
+}
+
+double
+SuperCorotator::getDissipatedEnergy(GeomState &geomState, CoordSet &cs)
+{
+  int i;
+  double ret = 0.0;
+  for(i=0; i<nSubElems; ++i)
+    ret += subElemCorotators[i]->getDissipatedEnergy(geomState, cs);
   return ret;
 }
 
@@ -292,11 +318,20 @@ SuperCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, doubl
 }
 
 void
-SuperCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet &C0)
+SuperCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt)
 {
   int i;
   for(i=0; i<nSubElems; ++i)
-    subElemCorotators[i]->updateStates(refState, curState, C0);
+    subElemCorotators[i]->updateStates(refState, curState, C0, dt);
+}
+
+bool
+SuperCorotator::checkElementDeletion(GeomState &curState)
+{
+  int i;
+  for(i=0; i<nSubElems; ++i)
+    if(!subElemCorotators[i]->checkElementDeletion(curState)) return false;
+  return true;
 }
 
 void
@@ -331,11 +366,105 @@ SuperCorotator::updateMultipliers(GeomState& c1)
 }
 
 double
-SuperCorotator::getError()
+SuperCorotator::getError(GeomState& c1)
 {
   double err = 0;
   int i;
   for(i=0; i<nSubElems; ++i)
-    err = std::max(err,subElemCorotators[i]->getError());
+    err = std::max(err,subElemCorotators[i]->getError(c1));
   return err;
+}
+
+bool
+SuperCorotator::useDefaultInertialStiffAndForce()
+{
+  int i;
+  for(i=0; i<nSubElems; ++i) {
+    if(!subElemCorotators[i]->useDefaultInertialStiffAndForce()) return false;
+  }
+  return true;
+}
+
+void
+SuperCorotator::getInertialStiffAndForce(GeomState *refState, GeomState &curState, CoordSet &c0,
+                                         FullSquareMatrix &elK, double *f, double dt, double t,
+                                         double beta, double gamma, double alphaf, double alpham)
+{
+  int i, j;
+  elK.zero();
+  for(i=0; i<elK.dim(); ++i) f[i] = 0.0;
+
+  for(i=0; i<nSubElems; ++i) {
+    int ndofs = superElem->getSubElemNumDofs(i);
+    FullSquareMatrix subK(ndofs);
+    subK.zero();
+    double *subf = new double[ndofs];
+    for(j=0; j<ndofs; ++j) subf[j] = 0.0;
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    subElemCorotators[i]->getInertialStiffAndForce(refState, curState, c0, subK, subf, dt, t, 
+                                                   beta, gamma, alphaf, alpham);
+    elK.add(subK, subElemDofs);
+    for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
+    delete [] subf;
+  }
+}
+
+void
+SuperCorotator::getInternalForceThicknessSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs,
+                                                     Vector &dFintdThick, double dt, double t)
+{
+  int i, j;
+  for(i=0; i<dFintdThick.size(); ++i) dFintdThick[i] = 0.0;
+
+  for(i=0; i<nSubElems; ++i) {
+    int ndofs = superElem->getSubElemNumDofs(i);
+    Vector subf(ndofs);
+    for(j=0; j<ndofs; ++j) subf[j] = 0.0;
+    subElemCorotators[i]->getInternalForceThicknessSensitivity(refState, geomState, cs, subf, dt, t);
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    for(j=0; j<ndofs; ++j) dFintdThick[subElemDofs[j]] += subf[j];
+  }
+}
+
+void
+SuperCorotator::getInternalForceNodalCoordinateSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs,
+                                                           Vector *&dFintdx, double dt, double t)
+{
+  int i, j, k;
+  for(i=0; i<superElem->numNodes()*3; ++i)
+    for(j=0; j<dFintdx[i].size(); ++i) dFintdx[i][j] = 0.0;
+
+  for(i=0; i<nSubElems; ++i) {
+    int nnodes = superElem->getSubElemNumNodes(i);
+    int ndofs = superElem->getSubElemNumDofs(i);
+    Vector *subf = new Vector[nnodes*3];
+    for(j=0; j<nnodes*3; ++j) {
+      subf[i].resize(ndofs);
+      for(k=0; k<ndofs; ++k) subf[j][k] = 0.0;
+    }
+    subElemCorotators[i]->getInternalForceNodalCoordinateSensitivity(refState, geomState, cs, subf, dt, t);
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    int *subElemNodes = superElem->getSubElemNodes(i);
+    for(j=0; j<nnodes*3; ++j)
+      for(k=0; k<ndofs; ++k) dFintdx[3*subElemNodes[j/3]+j%3][subElemDofs[k]] += subf[j][k];
+    delete [] subf;
+  }
+}
+
+void
+SuperCorotator::extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld)
+{
+  int i, j, k;
+  int N = superElem->numDofs();
+  for(i=0; i<N; ++i) dvld[i] = 0;
+
+ for(i=0; i<nSubElems; ++i) {
+    int n = superElem->getSubElemNumDofs(i);
+    double *subd = new double[n*n];
+    subElemCorotators[i]->extractDeformationsDisplacementSensitivity(geomState, cs, subd);
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    for(j=0; j<n; ++j)
+      for(k=0; k<n; ++k) dvld[subElemDofs[j]*N+subElemDofs[k]] += subd[j*n+k];
+    delete [] subd;
+  }
 }

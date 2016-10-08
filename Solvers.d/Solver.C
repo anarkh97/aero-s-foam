@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <Utils.d/dbg_alloca.h>
-
 #include <Math.d/Vector.h>
 
 template<class Scalar> 
@@ -25,7 +24,6 @@ GenSolver<Scalar>::reSolve(int nRHS, Scalar *rhs)
   reSolve(nRHS,rhsP);
 }
 
-
 template<class Scalar> 
 void
 GenSolver<Scalar>::reSolve(int nRHS, GenVector<Scalar> *RHS)
@@ -34,15 +32,6 @@ GenSolver<Scalar>::reSolve(int nRHS, GenVector<Scalar> *RHS)
  for (i = 0; i < nRHS; ++i)
    reSolve(RHS[i]);
 }
-
-/*
-template<class Scalar> 
-void
-GenSolver<Scalar>::reSolve(GenVector<Scalar> &v)
-{
- reSolve(v.data());
-}
-*/
 
 template<>
 void
@@ -59,7 +48,6 @@ GenSolver<double>::reSolve(Vector &v);
 template<>
 void
 GenSolver<DComplex>::reSolve(Vector &v);
-
 
 template<class Scalar> 
 void
@@ -138,7 +126,6 @@ GenSolver<Scalar>::dim()
  fprintf(stderr,"Selected Solver does not support dim() function\n");
  return 0;
 }
-
 
 template<class Scalar> 
 int

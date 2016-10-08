@@ -37,7 +37,7 @@ PropagatorReactor::Manager::outputFileSetIs(const DynamPropagator * op, PostProc
     if (fs != PostProcessor::FileSetId()) {
       // Start observing propagator with associated FileSet
       PropagatorReactor::Ptr reactor = new PropagatorReactor(op, this, fs);
-      propagatorReactor_.insert(it, make_pair(op, reactor));
+      propagatorReactor_.insert(it, std::make_pair(op, reactor));
     }
   }
 }

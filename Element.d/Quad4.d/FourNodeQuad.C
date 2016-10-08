@@ -1,12 +1,16 @@
-#include	<Element.d/Quad4.d/FourNodeQuad.h>
+#include 	<Element.d/Quad4.d/FourNodeQuad.h>
+#include 	<Element.d/Quad4.d/FourNodeQuadStressWRTDisplacementSensitivity.h>
+#include 	<Element.d/Function.d/SpaceDerivatives.h>
 #include        <Math.d/Vector.h>
-#include	<Math.d/FullSquareMatrix.h>
-#include        <Utils.d/dofset.h>
-#include        <Element.d/State.h>
-#include        <Utils.d/linkfc.h>
-#include        <Utils.d/pstress.h>
-#include        <Hetero.d/InterpPoint.h>
+#include 	<Math.d/FullSquareMatrix.h>
+#include 	<Math.d/matrix.h>
+#include 	<Utils.d/dofset.h>
+#include 	<Element.d/State.h>
+#include 	<Utils.d/linkfc.h>
+#include 	<Utils.d/pstress.h>
+#include 	<Hetero.d/InterpPoint.h>
 
+extern int verboseFlag;
 extern "C"      {
 void    _FORTRAN(getcmt)(double&, double&, double&, double* );
 void    _FORTRAN(quad4m)(double*, double*, double*, double*, const int&,
@@ -69,7 +73,7 @@ FourNodeQuad::renum(EleRenumMap& table)
 void
 FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, 
                           Vector& elDisp, int strInd,int,double *ndTemps,
-			  double ylayer, double zlayer, int avgnum)
+                          double ylayer, double zlayer, int avgnum)
 {
          
         // NOTE: SIGMAZZ, SIGMAYZ, SIGMAXZ, STRAINZZ, STRAINYZ & STRAINXZ
@@ -78,7 +82,7 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         if(strInd == 2 || strInd == 4  || strInd == 5  ||
            strInd == 11 || strInd == 12   ) {
 
-	   weight = 0.0; stress = 0.0;
+           weight = 0.0; stress = 0.0;
 
            return;
         }
@@ -86,9 +90,9 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         // ELSE CALCULATE SIGMAXX, SIGMAYY, SIGMAXY, STRAINXX, STRAINYY, 
         // STRAINXY AND VONMISES STRESS
 
- 	weight = 1.0;
+        weight = 1.0;
 
-	Node &nd1 = cs.getNode(nn[0]);
+        Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
         Node &nd3 = cs.getNode(nn[2]);
         Node &nd4 = cs.getNode(nn[3]);
@@ -100,7 +104,7 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         x[2] = nd3.x; y[2] = nd3.y;
         x[3] = nd4.x; y[3] = nd4.y;
 
-	_FORTRAN(getcmt)(prop->A, prop->E, prop->nu, c);
+       _FORTRAN(getcmt)(prop->A, prop->E, prop->nu, c);
 
        int maxgus = 4;
        int maxstr = 7;
@@ -127,7 +131,7 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
 
       _FORTRAN(sands2)(ESCM,x,y,c,elDisp.data(),(double*)elStress,
                        (double*)elStrain, maxgus,maxstr,elm,numel,
-                       vmflg,strainFlg,tc,Tref,ndTemps);
+                       vmflg,strainFlg,tc,Tref,ndTemps); 
 
 // if strInd <= 6, you are retrieving a stress value:
 // if strInd >  6, you are retrieving a strain value:
@@ -276,6 +280,67 @@ FourNodeQuad::getMass(CoordSet& cs)
         return mass;
 }
 
+double
+FourNodeQuad::getMassSensitivityWRTthickness(CoordSet& cs)
+{
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
+        Node &nd4 = cs.getNode(nn[3]);
+
+        Vector r1(3), r2(3), r3(3), r4(3);
+
+        r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = 0.0;
+        r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = 0.0;
+        r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = 0.0;
+        r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = 0.0;
+
+        Vector v1(3), v2(3), v3(3), v4(3), v5(3);
+
+        v1 = r2 - r1;
+        v2 = r3 - r1;
+        v3 = r4 - r1;
+
+        v4 = v1.cross(v2);
+        v5 = v2.cross(v3);
+
+        double area = 0.5*(v4.magnitude() + v5.magnitude());
+        double massWRTthic = area*prop->rho;
+
+        return massWRTthic;
+}
+
+double
+FourNodeQuad::weight(CoordSet& cs, double *gravityAcceleration)
+{
+  if (prop == NULL) {
+    return 0.0;
+  }
+
+  double _mass = getMass(cs);
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
+}
+
+double
+FourNodeQuad::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
+{
+  if (prop == NULL) {
+    return 0.0;
+  }
+ 
+  if (senMethod == 0) {
+    double _weight = weight(cs, gravityAcceleration);
+    double thick = prop->eh;
+    return _weight/thick;
+  } else {
+    fprintf(stderr," ... Error: FourNodeQuad::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
+    exit(-1);
+  }
+}
+
 void
 FourNodeQuad::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
                               Vector& gravityForce, int gravflg, GeomState *geomState)
@@ -341,6 +406,75 @@ FourNodeQuad::getGravityForce(CoordSet& cs,double *gravityAcceleration,
     for(i=0; i<4; ++i) {
       gravityForce[2*i+0] = lforce[i]*h*rho*gravityAcceleration[0];
       gravityForce[2*i+1] = lforce[i]*h*rho*gravityAcceleration[1];
+    }
+  }
+}
+
+void
+FourNodeQuad::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                     Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+
+  // Lumped
+  if (gravflg != 2) {
+    double massPerNodePerThickness = 0.25*getMass(cs)/prop->eh;
+
+    double fx = massPerNodePerThickness*gravityAcceleration[0];
+    double fy = massPerNodePerThickness*gravityAcceleration[1];
+
+    gravityForceSensitivity[0] = fx;
+    gravityForceSensitivity[1] = fy;
+    gravityForceSensitivity[2] = fx;
+    gravityForceSensitivity[3] = fy;
+    gravityForceSensitivity[4] = fx;
+    gravityForceSensitivity[5] = fy;
+    gravityForceSensitivity[6] = fx;
+    gravityForceSensitivity[7] = fy;
+  }
+  // Consistent
+  else {
+
+    int i;
+    int numgauss = 2;
+    Node &nd1 = cs.getNode(nn[0]);
+    Node &nd2 = cs.getNode(nn[1]);
+    Node &nd3 = cs.getNode(nn[2]);
+    Node &nd4 = cs.getNode(nn[3]);
+
+    double x[4], y[4];
+    x[0] = nd1.x; y[0] = nd1.y;
+    x[1] = nd2.x; y[1] = nd2.y;
+    x[2] = nd3.x; y[2] = nd3.y;
+    x[3] = nd4.x; y[3] = nd4.y;
+    double rho = prop->rho;
+    double h = prop->eh;
+
+    double lforce[4];
+    for (i = 0; i < 4; ++i)
+      lforce[i] = 0.0;
+
+    int fortran = 1;  // fortran routines start from index 1
+    int pt1, pt2;
+    for (pt1 = 0 + fortran; pt1 < numgauss + fortran; pt1++)  {
+      for (pt2 = 0 + fortran; pt2 < numgauss + fortran; pt2++)  {
+        // get gauss point
+        double xi, eta, wt;
+        _FORTRAN(qgauss)(numgauss, pt1, numgauss, pt2, xi, eta, wt);
+
+        //compute shape functions
+        double shapeFunc[4], shapeGradX[4], shapeGradY[4];
+        double detJ;  //det of jacobian
+
+        _FORTRAN(q4shpe)(xi, eta, x, y,
+                         shapeFunc, shapeGradX, shapeGradY, detJ);
+
+        for (i = 0; i < 4; ++i)
+          lforce[i] += wt*shapeFunc[i]*detJ;
+      }
+    }
+    for(i=0; i<4; ++i) {
+      gravityForceSensitivity[2*i+0] = lforce[i]*rho*gravityAcceleration[0];
+      gravityForceSensitivity[2*i+1] = lforce[i]*rho*gravityAcceleration[1];
     }
   }
 }
@@ -455,7 +589,7 @@ FourNodeQuad::markDofs(DofSetArray &dsa)
 int
 FourNodeQuad::getTopNumber()
 {
-  return 102;//2;
+  return 102;
 }
 
 
@@ -544,3 +678,127 @@ FourNodeQuad::getThermalForce(CoordSet &cs, Vector &ndTemps,
 //         elementThermalForce.print("FourNodeQuad");
 }
 
+void
+FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                 int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+#ifdef USE_EIGEN3
+  if(strInd != 6) {
+    std::cerr << " ... Error: strInd must be 6 in FourNodeQuad::getVonMisesDisplacementSensitivity\n";
+    exit(-1);
+  }
+  if(dStdDisp.numRow() != 4 || dStdDisp.numCol() !=8) {
+    std::cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+    exit(-1);
+  }
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,17,1> dconst;
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+  Node &nd4 = cs.getNode(nn[3]);
+
+  double x[4], y[4];
+
+  x[0] = nd1.x; y[0] = nd1.y; 
+  x[1] = nd2.x; y[1] = nd2.y; 
+  x[2] = nd3.x; y[2] = nd3.y; 
+  x[3] = nd4.x; y[3] = nd4.y; 
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; dconst[3] = nd4.x; // x coordinates
+  dconst[4] = nd1.y; dconst[5] = nd2.y; dconst[6] = nd3.y; dconst[7] = nd4.y; // y coordinates
+  dconst[8] = prop->E;
+  dconst[9] = prop->A;
+  dconst[10] = prop->nu;
+  dconst[11] = prop->W;
+  dconst[12] = prop->Ta;
+  if(ndTemps) {
+    dconst[13] = ndTemps[0];
+    dconst[14] = ndTemps[1];
+    dconst[15] = ndTemps[2];
+    dconst[16] = ndTemps[3];
+  } else {
+    dconst[13] = 0;
+    dconst[14] = 0;
+    dconst[15] = 0;
+    dconst[16] = 0;
+  }
+
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = avgnum;
+  // inputs
+  Eigen::Matrix<double,8,1> q = Eigen::Map<Eigen::Matrix<double,8,1> >(elDisp.data()).segment(0,8); // displacements
+
+  //Jacobian evaluation
+  Eigen::Matrix<double,4,8> dStressdDisp;
+  Eigen::Matrix<double,7,3> stress;
+#ifdef SENSITIVITY_DEBUG
+  if(verboseFlag) std::cerr << " ... senMethod is " << senMethod << std::endl;
+#endif
+
+  if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
+    if(senMethod == 1) { // via automatic differentiation
+#ifndef AEROS_NO_AD 
+      Simo::Jacobian<double,FourNodeQuadStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
+      dStressdDisp = dSdu(q, 0);
+      dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+#endif
+#else
+    std::cerr << " ... Error: AEROS_NO_AD is defined in FourNodeQuad::getVonMisesDisplacementSensitivity\n";   exit(-1);
+#endif
+    }
+ 
+    if(senMethod == 0) { // analytic
+      dStressdDisp.setZero();
+      char escm[7] = "extrap";
+      int numel = 1;
+      int elm = 1;
+      int maxgus = 4;
+      int maxstr = 7;
+      bool vmflg = true;
+      bool strainFlg = false;
+      double c[9];
+      getcmt(prop->A, prop->E, prop->nu, c);
+      double tc = prop->E*prop->W/(1.0-prop->nu);
+      
+      Eigen::Matrix<double,4,1> ndtemps = Eigen::Map<Eigen::Matrix<double,17,1> >(dconst.data()).segment(13,4); // extract eframe
+      vms2WRTdisp(escm, x, y, c, q.data(), 
+                  dStressdDisp.data(), 0, 
+                  maxgus, maxstr, elm, numel, vmflg, 
+                  strainFlg, tc, prop->Ta, ndtemps.data());
+      dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+#endif
+    }
+
+    if(senMethod == 2) { // via finite difference
+      FourNodeQuadStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
+      double h = 1.0e-6;
+      for(int j=0; j<8; ++j) {
+        Eigen::Matrix<double,8,1> q_plus(q);
+        Eigen::Matrix<double,8,1> q_minus(q);
+        q_plus[j] += h;  q_minus[j] -= h;
+        Eigen::Matrix<double,4,1> S_plus = foo(q_plus,0);   
+        Eigen::Matrix<double,4,1> S_minus = foo(q_minus,0);
+        Eigen::Matrix<double,4,1> dS = (S_plus-S_minus)/(2*h);
+        dStressdDisp(0,j) = dS[0];
+        dStressdDisp(1,j) = dS[1];
+        dStressdDisp(2,j) = dS[2];
+        dStressdDisp(3,j) = dS[3];
+      }
+      dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) std::cerr << " ... dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+#endif 
+    }
+  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
+#else
+  std::cerr << " ... ERROR! FourNodeQuad::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  exit(-1);
+#endif
+}

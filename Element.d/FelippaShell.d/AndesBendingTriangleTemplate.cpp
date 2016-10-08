@@ -1,4 +1,7 @@
 #ifdef USE_EIGEN3
+#ifndef _ANDESBENDINGTRIANGLETEMPLATE_CPP_
+#define _ANDESBENDINGTRIANGLETEMPLATE_CPP_
+
 #include <Element.d/FelippaShell.d/AndesBendingTriangle.hpp>
 #include <cmath>
 #include <stdexcept>
@@ -28,12 +31,11 @@ AndesBendingTriangle<doublereal>::L(doublereal x[3], doublereal y[3], doublereal
 // .....CHECK IF [CLR] AND [CQR] SATISFY THE CONSTRAINT [CLR]+[CQR]=1 
 
     if (clr + cqr != 1) {
-        throw std::runtime_error(
-          "*** FATAL ERROR in routine ANDESLB      ***\n"
-          "*** The Factors [clr] and [cqr] Violate ***\n"
-          "*** the Constraint [clr]+[cqr]=1:       ***\n"
-          "*** Check the Calling Sequence          ***\n"
-          "*** EXECUTION TERNINATED RIGHT HERE     ***\n");
+        throw std::runtime_error("\n"
+          "*** FATAL ERROR in AndesBendingTriangle::L ***\n"
+          "*** The factors [clr] and [cqr] violate    ***\n"
+          "*** the constraint [clr]+[cqr]=1:          ***\n"
+          "*** Check the calling sequence             ***\n");
     }
 
 // .....GET THE COORDINATES OF THE CENTROID OF THE TRIANGLE 
@@ -201,11 +203,11 @@ AndesBendingTriangle<doublereal>::Bd(doublereal x[3], doublereal y[3], doublerea
 // .....CHECK IF THE SCALING FACTOR [beta] IS POSITIVE 
 
     if (beta < 0) {
-        throw std::runtime_error(
-          "*** FATAL ERROR in routine AndesBase::Bdb  ***\n"
-          "*** The Scaling Factor [beta] is Negative  ***\n"
-          "*** Check the Calling Sequence:            ***\n"
-          "*** Factor [beta] Must be Positive or Zero ***\n");
+        throw std::runtime_error("\n"
+          "*** FATAL ERROR in AndesBendingTriangle::Bd ***\n"
+          "*** The scaling factor [beta] is negative   ***\n"
+          "*** Check the calling sequence:             ***\n"
+          "*** Factor [beta] must be positive or zero  ***\n");
     }
 
 // .....GET THE COORDINATES OF THE CENTROID OF THE TRIANGLE 
@@ -399,4 +401,5 @@ AndesBendingTriangle<doublereal>::Bd(doublereal x[3], doublereal y[3], doublerea
 
     return sqrt(beta)*T*A*Q;
 }
+#endif
 #endif

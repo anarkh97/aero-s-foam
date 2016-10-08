@@ -34,6 +34,9 @@ public:
         int*             nodes(int * = 0);
 	int getTopNumber();
 	PrioInfo examine(int sub, MultiFront *);
+        int nDecFaces() { return 4;}
+        int getDecFace(int iFace, int *fn);
+
 private:
 
 	void            addFaces(PolygonSet *pset);

@@ -55,15 +55,6 @@ RotnSprlink::stiffness(CoordSet&, double* d, int flg)
                    prop->c, prop->k, prop->eh, prop->P,
                    prop->Ta, prop->Q, prop->W, prop->Ixx);
 
-#ifdef DEBUG_SPRING
-  cout << "local dofs: " << localDofs[0] << " "
-                         << localDofs[1] << " "
-                         << localDofs[2] << " "
-                         << localDofs[3] << " "
-                         << localDofs[4] << " "
-                         << localDofs[5] << endl;
-#endif
-
   FullSquareMatrix kel(6, d);
 
   return kel;

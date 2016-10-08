@@ -1,33 +1,36 @@
-// --------------------------------------------------------------	
+// --------------------------------------------------------------
 // HB - 05/29/03
-// --------------------------------------------------------------	
+// --------------------------------------------------------------
 #ifndef _TRIFACET_H_ 
 #define _TRIFACET_H_
 
-class FaceElement;
-class MortarElement;
+#include <Mortar.d/MortarDefines.h>
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
 
 template <class Scalar> class GenFullM;
-typedef GenFullM<double> FullM;
 template <class Scalar> class GenVector;
-typedef GenVector<double> Vector;
 
-template <class Scalar>
-class TriFacet {
+template <class Scalar, class FaceType>
+class TriFacetTemplate {
   private:
-	//double Area;                     // (approximate) area 
         Scalar LocalCoordOnFaceEl[3][2]; // coord. of the vertices in the ref. face el.
-        FaceElement* FaceEl;             // ptr to the associated face el. 
+#ifdef USE_EIGEN3
+        Eigen::Array<Eigen::Matrix<Scalar,Eigen::Dynamic,1,Eigen::ColMajor,Eigen::Dynamic>,3,2> PartialLocalCoordOnFaceEl;
+        Eigen::Array<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor,Eigen::Dynamic,Eigen::Dynamic>,3,2> SecondPartialLocalCoordOnFaceEl;
+#endif
+        FaceType* FaceEl;                // ptr to the associated face el. 
 
   public:
         // Constructors
         // ~~~~~~~~~~~~
-        TriFacet();
-        TriFacet(FaceElement*, const Scalar* m1, const Scalar* m2, const Scalar* m3);
+        TriFacetTemplate();
+        TriFacetTemplate(FaceType*, const Scalar* m1, const Scalar* m2, const Scalar* m3);
 
         // Destructor
         // ~~~~~~~~~~
-        ~TriFacet();
+        ~TriFacetTemplate();
 
         // Initialize & clear/clean methods
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -36,17 +39,23 @@ class TriFacet {
         // Get methods  
         // ~~~~~~~~~~~~
         int nVertices() { return 3; }
-
         int nNodes() { return nVertices(); }
-
-        //double GetArea() { return Area; };
-
-        FaceElement* GetPtrFaceEl() { return FaceEl; }
-
+        FaceType* GetPtrFaceEl() { return FaceEl; }
+        Scalar GetLocalCoordOnFaceElem(int i, int j) { return LocalCoordOnFaceEl[i][j]; }
+#ifdef USE_EIGEN3
+        Eigen::Matrix<Scalar,Eigen::Dynamic,1,Eigen::ColMajor,Eigen::Dynamic>&
+          GetPartialLocalCoordOnFaceEl(int i, int j) { return PartialLocalCoordOnFaceEl(i,j); }
+        Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor,Eigen::Dynamic,Eigen::Dynamic>&
+          GetSecondPartialLocalCoordOnFaceEl(int i, int j) { return SecondPartialLocalCoordOnFaceEl(i,j); }
+#endif
         // Set methods
         // ~~~~~~~~~~~ 
-        void SetTriFacet(FaceElement*, const Scalar* m1, const Scalar* m2, const Scalar* m3);
-        //void SetArea(double);
+        void SetTriFacet(FaceType*, const Scalar* m1, const Scalar* m2, const Scalar* m3);
+        void SetTriFacet(FaceType*, const Scalar* m1, const Scalar* m2, const Scalar* m3, 
+                         const Scalar* dm1, const Scalar* dm2, const Scalar* dm3, int nbDer);
+        void SetTriFacet(FaceType*, const Scalar* m1, const Scalar* m2, const Scalar* m3,
+                         const Scalar* dm1, const Scalar* dm2, const Scalar* dm3,
+                         const Scalar* d2m1, const Scalar* d2m2, const Scalar* d2m3, int nbDer);
 
         // Print, display methods
         // ~~~~~~~~~~~~~~~~~~~~~~
@@ -57,31 +66,38 @@ class TriFacet {
         Scalar MappingJacobian();
         Scalar MappingJacobian(const Scalar* m) { return MappingJacobian(); }
         void LocalToLocalCoordOnFaceEl(const double* m, Scalar* mOnFaceEl);
-        template<typename CoordSetT>
-        Scalar GetJacobianOnFaceEl(const Scalar* m, CoordSetT& cs);
-        template<typename CoordSetT>
-        Scalar GetIsoParamMappingNormalAndJacobianOnFaceEl(Scalar* Normal, const Scalar* m, CoordSetT& cs);
+        template<typename CoordSetType>
+          Scalar GetJacobianOnFaceEl(const Scalar* m, CoordSetType& cs);
+        template<typename CoordSetType>
+          Scalar GetIsoParamMappingNormalAndJacobianOnFaceEl(Scalar* Normal, const Scalar* m, CoordSetType& cs);
 
         // Integration methods
         // ~~~~~~~~~~~~~~~~~~~ 
-        FullM IntegrateShapeFctProduct(MortarElement*, TriFacet&, CoordSet&, int ngp=6);
-        FullM IntegrateNormalShapeFctProduct(MortarElement*, TriFacet&, CoordSet&, int ngp=6);
-        FullM IntegrateGradNormalShapeFctProduct(MortarElement*, TriFacet&, CoordSet&, CoordSet&,
-                                                 TriFacet&, CoordSet&, int ngp=6);
-
-        // Compute normal "geometrical" gap
-/* old version
-        template<typename CoordSetT>
-        GenVector<Scalar> IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& FriendTriFacet,
-                                                        CoordSetT& cs, CoordSetT& cs1, int ngp=6, double offset=0.); */
-        template<typename CoordSetT>
-        GenVector<Scalar> IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& FriendFacetB, TriFacet& FriendFacetC,
-                                                        CoordSetT& cs, CoordSetT& csB, CoordSetT& csC, int ngp=6,
-                                                        double offset=0.);
+        template<typename CoordSetType, typename MortarType, typename FriendFaceType>
+          GenFullM<Scalar> IntegrateShapeFctProduct(MortarType*, TriFacetTemplate<Scalar,FriendFaceType>&, CoordSetType&, int ngp=6);
+        template<typename CoordSetType, typename MortarType, typename FriendFaceType>
+          GenFullM<Scalar> IntegrateNormalShapeFctProduct(MortarType*, TriFacetTemplate<Scalar,FriendFaceType>&, CoordSetType&, int ngp=6);
+        template<typename CoordSetType, typename MortarType, typename FriendFaceType>
+          GenVector<Scalar> IntegrateNormalGeoGap(MortarType*, TriFacetTemplate<Scalar,FriendFaceType>&, CoordSetType&, CoordSetType&,
+                                                  int ngp=6, double offset=0.);
+        template<typename CoordSetType, typename MortarType, typename FriendFaceType>
+          GenFullM<Scalar> IntegrateGradNormalGeoGap(MortarType*, TriFacetTemplate<Scalar,FriendFaceType>&, CoordSetType&, CoordSetType&,
+                                                     int ngp=6, double offset=0.);
+        template<typename CoordSetType, typename MortarType, typename FriendFaceType>
+          GenFullM<Scalar> IntegrateHessNormalGeoGap(MortarType*, TriFacetTemplate<Scalar,FriendFaceType>&, CoordSetType&, CoordSetType&,
+                                                     double*, int ngp=6, double offset=0.);
+        template<typename CoordSetType, typename MortarType, typename FriendFaceType>
+          GenFullM<Scalar> IntegrateLocalGradNormalGeoGap(MortarType*, TriFacetTemplate<Scalar,FriendFaceType>&, CoordSetType&, CoordSetType&,
+                                                          int ngp=6, double offset=0.);
+        template<typename CoordSetType, typename MortarType, typename FriendFaceType>
+          GenFullM<Scalar> IntegrateLocalHessNormalGeoGap(MortarType*, TriFacetTemplate<Scalar,FriendFaceType>&, CoordSetType&, CoordSetType&,
+                                                          double*, int ngp=6, double offset=0.);
+        template<typename CoordSetType, typename MortarType, typename FriendFaceType>
+          GenFullM<Scalar> IntegrateLocalGradGradNormalGeoGap(MortarType* MortarEl, TriFacetTemplate<Scalar,FriendFaceType>& FriendFacet,
+                                                              CoordSetType& cs, CoordSetType& cs2, double *mu, int ngp=6, double offset=0.);
 };
 
-#ifdef _TEMPLATE_FIX_
-  #include <Mortar.d/FFIPolygon.d/TriFacet.C>
-#endif
+class FaceElement;
+typedef TriFacetTemplate<double, FaceElement> TriFacet;
 
 #endif

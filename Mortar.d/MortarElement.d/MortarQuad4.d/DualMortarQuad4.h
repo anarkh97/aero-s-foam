@@ -4,9 +4,8 @@
 #ifndef _DUALMORTARQUAD4_H_
 #define _DUALMORTARQUAD4_H_
 
-//#include <Math.d/matrix.h>
-//#include <Element.d/Element.h>
 #include <Mortar.d/MortarElement.d/MortarElement.h>
+#include <Mortar.d/FaceElement.d/FaceQuad4.d/FaceQuad4.h>
 
 class CoordSet;
 template <class Scalar> class GenFullM;
@@ -15,7 +14,7 @@ class FaceElement;
 
 class DualMortarQuad4: public MortarElement {
   private:
-	FullM* Alpha; // coeffs for computing dual shape fcts 
+        FullM* Alpha; // coeffs for computing dual shape fcts 
                       // from the std ones: Phidual[i] = Sum{alpha[i,j].PhiStd[j]} 
   public:
         // Constructors
@@ -24,10 +23,10 @@ class DualMortarQuad4: public MortarElement {
         DualMortarQuad4(FaceElement*);
         DualMortarQuad4(FaceElement*, CoordSet&);
         
-	DualMortarQuad4(double, FaceElement*);  
+        DualMortarQuad4(double, FaceElement*);  
         DualMortarQuad4(double, FaceElement*, CoordSet&);  
         
-	// Destructor 
+        // Destructor 
         // ~~~~~~~~~~
         virtual ~DualMortarQuad4();
 
@@ -35,21 +34,36 @@ class DualMortarQuad4: public MortarElement {
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         void Initialize();
  
-	// Get methods
-	// ~~~~~~~~~~~
-	// -> implementation of virtual methods
-	int nNodes();
-	int nMortarShapeFct();
+        // Get methods
+        // ~~~~~~~~~~~
+        // -> implementation of virtual methods
+        int nNodes();
+        int nMortarShapeFct();
+        bool GetDualFlag() { return true; }
 
-	// Shape fct methods
-	// ~~~~~~~~~~~~~~~~~
-	// -> local methods
+        // Shape fct methods
+        // ~~~~~~~~~~~~~~~~~
+        // -> local methods
         void ComputeDualCoeffs(CoordSet&);
-	void GetDualMortarShapeFct(double* Shape, double* m);
-	void GetShapeFct(double* Shape, double* m);
+        template<typename Scalar>
+          void GetShapeFctVal(Scalar* Shape, Scalar* m);
 
-	// -> implementation of virtual methods
-	void GetShapeFctVal(double* Shape, double* m);
+        // -> implementation of virtual methods
+        void GetShapeFctVal(double* Shape, double* m);
 };
+
+// !!! ASSUME THAT DUAL MORTAR COEFFS Alpha HAVE ALREADY BEEN COMPUTED !!!
+template<typename Scalar>
+void
+DualMortarQuad4::GetShapeFctVal(Scalar* Shape, Scalar* m)
+{
+  Scalar StdShape[4];
+  static_cast<FaceQuad4*>(GetPtrMasterFace())->GetShapeFctVal(StdShape, m);
+  for(int i=0; i<4; ++i) {
+    Shape[i] = 0;
+    for(int j=0; j<4; j++)
+      Shape[i] += (*Alpha)[i][j]*StdShape[j]; 
+  }
+}
 
 #endif

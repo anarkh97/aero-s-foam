@@ -1,17 +1,8 @@
 #ifndef _VECTOR_SET_H_
 #define _VECTOR_SET_H_
 
-#ifdef OLD_STL
-#include <memory.h>
-#else
 #include <memory>
-using std::allocator;
-#ifdef USE_IOSTREAM
 #include <iostream>
-using std::cerr;
-using std::endl;
-#endif
-#endif
 
 //------------------------------------------------------------------------------
 
@@ -21,7 +12,7 @@ class VecSet {
   int numVec;
   const typename VecType::InfoType &len;
 
-  allocator<VecType> alloc;
+  std::allocator<VecType> alloc;
   VecType *vecSet;
 
 public:
@@ -37,16 +28,14 @@ public:
 
   void resize(int);
 
-#ifdef USE_IOSTREAM
-  void print(char *msg = "") {
-    if (msg) cerr << msg << endl;
+  void print(const char *msg = "") {
+    if (msg) std::cerr << msg << std::endl;
 
     for (int i=0; i<numVec; ++i) {
-      cerr << "vector " << i << ":";
+      std::cerr << "vector " << i << ":";
       vecSet[i].print();
     }
   }
-#endif
 
 };
 
@@ -113,11 +102,7 @@ VecSet<VecType>::~VecSet()
 
     for (int i = 0; i < numVec; ++i) vecSet[i].~VecType();
 
-#ifdef OLD_STL
-    alloc.deallocate(vecSet);
-#else
     alloc.deallocate(vecSet, numVec);
-#endif
 
     vecSet = 0;
 

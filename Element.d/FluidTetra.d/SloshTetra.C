@@ -41,6 +41,14 @@ SloshTetra::renum(EleRenumMap& table)
 double
 SloshTetra::getMass(CoordSet& cs)
 {
+  if(prop->rho == 0) {
+    // PJSA 12/2/2014: note this can happen if no attribute is provided in the input file for this element.
+    // In this case a dummy StructProp is assigned (see GeoSource::setUpData)
+    std::cerr << " *** WARNING: Zero density in SloshTetra element (type 311). The contribution of this element to\n"
+              << "     the total mass of the system will be neglected.\n";
+    return 0;
+  }
+
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
   Node &nd3 = cs.getNode(nn[2]);
@@ -70,29 +78,9 @@ SloshTetra::getMass(CoordSet& cs)
 FullSquareMatrix
 SloshTetra::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {
-
-  // Element mass
   FullSquareMatrix ma(4,mel);
 
-/*  computeMetrics(cs);
-
-  // This is the CONSISTENT mass
-  double tetraMass[4][4];
-  buildTetraMass(tetraMass);
-
-  double capacitance = prop->rho*prop->Q;
-
-  int i,j;
-  for (i=0;i<4;i++)
-    for (j=0;j<4;j++){
-      ma[i][j] = capacitance*tetraMass[i][j];
-      }
-*/
-
   ma.zero();
-
-  //ma.print();
-  //cout<<endl;
 
   return ma;
 }
@@ -111,17 +99,11 @@ SloshTetra::stiffness(CoordSet &cs, double *d, int flg)
         double TetraStiff[4][4];
 	buildTetraStiff(TetraStiff);
 
-        // Here get conductivity coefficient
-        // double k = prop->k; 
-
 	int i,j;
         for (i=0;i<4;i++)
           for (j=0;j<4;j++) {
             sm[i][j] = TetraStiff[i][j];
           }
-
-        //sm.print();
-        //cout<<endl;
 
         return sm;
 }
@@ -312,7 +294,6 @@ SloshTetra::buildTetraStiff(double TetraStiff[4][4])
 	// This is the stiffness matrix for the tetrahedra
 
         double v = volume();
-        //cout << "Volume = " << v << endl;
 	for (i=0;i<4;i++)
 	  for (j=0;j<4;j++) {
 	    dot = 0.0;

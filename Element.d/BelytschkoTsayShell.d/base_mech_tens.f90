@@ -1,8 +1,8 @@
 ! ======================================
 ! mechanical tensors
 ! ======================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1.  real(8) function       krodelt         (i,j)
 ! 2.  real(8) function       sprdts          (opt,nndex,atens,btens)
 ! 3.  subroutine             sprdtt          (opt,nndex,atens,btens, ctens)

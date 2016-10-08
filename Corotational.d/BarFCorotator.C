@@ -1,22 +1,24 @@
 #include <cmath>
+#include <iostream>
 
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Element.d/Element.h>
 #include <Corotational.d/BarFCorotator.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
 
 BarFCorotator::BarFCorotator(int _n1, int _n2, double _e,
-				   double _lambda,
-				   double _a0, 
-				int _op, double _h, double _d,
-				double _Uc, double _Uf,
-				int _np, int _Nf, double _dlambda, int _Seed,
-                           double _preload, CoordSet& cs)
+                             double _lambda,
+                             double _a0, 
+                             int _op, double _h, double _d,
+                             double _Uc, double _Uf,
+                             int _np, int _Nf, double _dlambda, int _Seed,
+                             double _preload, CoordSet& cs)
 {
- n1 = _n1;	// Node 1
- n2 = _n2;	// Node 2
- op = _op;  // Material Option
+ n1 = _n1; // Node 1
+ n2 = _n2; // Node 2
+ op = _op; // Material Option
  Ucrit = _Uc; // Stretch where Damage Initiates
  Uf = _Uf; // Failure Stretch for the Yarn
  // Assign Material Values
@@ -51,11 +53,11 @@ BarFCorotator::BarFCorotator(int _n1, int _n2, double _e,
  else
  {
    // Assign directly
-   em = _e;	// Elastic modulus
+   em = _e; // Elastic modulus
    lambda = _lambda; // Damage growth parameter
  }
 
- a0 = _a0;	// Original Cross-sectional area
+ a0 = _a0; // Original Cross-sectional area
  preload = _preload;  // Preload in Truss
 
  // Get original coordinates of bar's nodes
@@ -75,12 +77,12 @@ BarFCorotator::BarFCorotator(int _n1, int _n2, double _e,
  if (_Seed == -1)
  {
    // Display Material Values
-   cerr << "Young's Modulus = " << em << "; Lambda = " << lambda << endl;
+   std::cerr << "Young's Modulus = " << em << "; Lambda = " << lambda << std::endl;
  }
 }
 
-void BarFCorotator::AssignMicroScaleProp(double ef, 
-double h, double d, int np, int Nf, double lambda_g)
+void BarFCorotator::AssignMicroScaleProp(double ef, double h, double d, int np,
+                                         int Nf, double lambda_g)
 /*******************************************************************
  *
  * Purpose :
@@ -134,7 +136,7 @@ double h, double d, int np, int Nf, double lambda_g)
       // Determine the stretch in the jth fibril
       U = sqrt(pow(h+delta,2) + pow(*(pd+j),2))/sqrt(pow(h,2) + pow(*(pd+j),2));
       if (U > Ucrit)
-	*(pEps+j) = 0.0; // Fibril has failed
+        *(pEps+j) = 0.0; // Fibril has failed
       IE_dam += (ef/Nf)*pow(h,3)/pow(pow(h,2) + pow(*(pd+i),2),1.5)* *(pEps+j);
     }
     *(pDamage+i) = IE_dam/ef;
@@ -201,9 +203,6 @@ BarFCorotator::MicroCalcLambda(int np, double *pDamage, double *pU_vec, double l
     if (fabs(dr) < tol)
       break;
   }
-  //cerr << "Lambda = " << lambda << endl;
-  //cerr << "k = " << k << endl;
-  //cerr << "dr = " << dr << endl;
 }
 
 double
@@ -234,7 +233,7 @@ BarFCorotator::RndNorm(double mean, double stdev)
 
 void
 BarFCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
-                               FullSquareMatrix &elK, double *f, double dt, double)
+                                FullSquareMatrix &elK, double *f, double dt, double)
 /*******************************************************************
  *
  * Purpose :
@@ -322,23 +321,20 @@ BarFCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  // Compute damage
  double alpha;
  if (e < 0.03) 
-	alpha = 1.0;
+   alpha = 1.0;
  else
-	alpha = (exp(-lambda*(ld/l0 - Ucrit)) - exp(-lambda*(Uf - Ucrit)))/(1.0 - exp(-lambda*(Uf - Ucrit)));
+   alpha = (exp(-lambda*(ld/l0 - Ucrit)) - exp(-lambda*(Uf - Ucrit)))/(1.0 - exp(-lambda*(Uf - Ucrit)));
  //alpha = exp(-lambda*(e - .03));
  // Set upper limit on damage
  if (alpha < damage)
-	damage = alpha;
+    damage = alpha;
  if (damage < 0.0)
-	damage = 0.0;
- //cerr << "U = " << (ld/l0) << endl;
- //cerr << "damage = " << damage << endl;
+    damage = 0.0;
  // Compute current PK2-stress
  double sigma = damage*em*e;
  // Enforce zero stress on compression
  if (e < 0.0)
-	sigma = 0.0;
- //cerr << "stress = " << sigma << endl;
+    sigma = 0.0;
  // Compute current axial force: p
  double p = (ld/l0)*sigma*a0;
 
@@ -356,7 +352,108 @@ BarFCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
  elK.zero();  // this element is only used for nonlinear explicit
  //damage += 1.0;
- //cerr << "damage = " << damage << endl;
+}
+
+//----------------------------------------------------------------------
+
+void
+BarFCorotator::getExternalForce(GeomState &geomState, CoordSet &cs, double *f)
+{
+ // Declare local variables 
+ int    i, j;
+ double xn[2][3], t[3];
+ 
+ // Get current Node State
+ NodeState &ns1 = geomState[n1];
+ NodeState &ns2 = geomState[n2];
+ 
+ // Set coordinates of Cn configuration 
+ xn[0][0] = ns1.x; // xn coordinate of node 1
+ xn[0][1] = ns1.y; // yn coordinate of node 1
+ xn[0][2] = ns1.z; // zn coordinate of node 1
+ xn[1][0] = ns2.x; // xn coordinate of node 2
+ xn[1][1] = ns2.y; // yn coordinate of node 2
+ xn[1][2] = ns2.z; // zn coordinate of node 2
+
+ // Compute deformed length: ld
+ double dx = xn[1][0] - xn[0][0];
+ double dy = xn[1][1] - xn[0][1];
+ double dz = xn[1][2] - xn[0][2];
+ double ld = sqrt(dx*dx + dy*dy + dz*dz);
+
+ // Form transformation tensor: t (1st vector only)
+ // for current state 
+ t[0] = dx/ld;
+ t[1] = dy/ld;
+ t[2] = dz/ld;
+ 
+ // build force
+ f[3] = t[0]*f[0];
+ f[4] = t[1]*f[0];
+ f[5] = t[2]*f[0];
+
+ f[0] = -f[3];
+ f[1] = -f[4];
+ f[2] = -f[5];
+}
+
+//----------------------------------------------------------------------
+
+void 
+BarFCorotator::getDExternalForceDu(GeomState &geomState, CoordSet &cs, 
+                                   FullSquareMatrix &elK, double *locF)
+{
+ // Declare local variables 
+ int    i, j;
+ double xn[2][3], t[3];
+ 
+ // Get current Node State
+ NodeState &ns1 = geomState[n1];
+ NodeState &ns2 = geomState[n2];
+    
+ // Set coordinates of Cn configuration 
+ xn[0][0] = ns1.x; // xn coordinate of node 1
+ xn[0][1] = ns1.y; // yn coordinate of node 1
+ xn[0][2] = ns1.z; // zn coordinate of node 1
+ xn[1][0] = ns2.x; // xn coordinate of node 2
+ xn[1][1] = ns2.y; // yn coordinate of node 2
+ xn[1][2] = ns2.z; // zn coordinate of node 2
+
+ // Compute deformed length: ld
+ double dx = xn[1][0] - xn[0][0];
+ double dy = xn[1][1] - xn[0][1];
+ double dz = xn[1][2] - xn[0][2];
+ double ld = sqrt(dx*dx + dy*dy + dz*dz);
+
+ // Form transformation tensor: t (1st vector only)
+ // for current state 
+ t[0] = dx/ld;
+ t[1] = dy/ld;
+ t[2] = dz/ld;
+
+ double p = -locF[0];
+ double dummyK[3][3];
+  
+ dummyK[0][0] = p*(t[1]*t[1] + t[2]*t[2])/ld;
+ dummyK[0][1] = -p*t[0]*t[1]/ld;
+ dummyK[0][2] = -p*t[0]*t[2]/ld;
+ dummyK[1][0] = -p*t[1]*t[0]/ld;
+ dummyK[1][1] = p*(t[0]*t[0] + t[2]*t[2])/ld;
+ dummyK[1][2] = -p*t[1]*t[2]/ld;
+ dummyK[2][0] = -p*t[2]*t[0]/ld;
+ dummyK[2][1] = -p*t[2]*t[1]/ld;
+ dummyK[2][2] = p*(t[0]*t[0] + t[1]*t[1])/ld;
+ 
+ // Fill element stiffness matrix
+ for(i=0; i<3; i++) {
+   for(j=0; j<3; j++) {
+      elK[  i][  j] += dummyK[i][j];
+      elK[  i][3+j] -= dummyK[i][j];
+      elK[3+i][  j] -= dummyK[i][j];
+      elK[3+i][3+j] += dummyK[i][j];
+   }
+ } 
+
 }
 
 void
@@ -377,75 +474,24 @@ BarFCorotator::formInternalForce(double t[3], double p, double *f)
  *****************************************************************/
 {
   // Compute internal force in local system and store in f
-     f[0] =   p;
-     f[1] = 0.0;
-     f[2] = 0.0;
+  f[0] =   p;
+  f[1] = 0.0;
+  f[2] = 0.0;
 
   // Transform to global coordinate by Fg = T'*Fl and store in f
-     // Shortened form, since f[1] = f[2] = 0.0
-     f[3] = t[0]*f[0];
-     f[4] = t[1]*f[0];
-     f[5] = t[2]*f[0];
+  // Shortened form, since f[1] = f[2] = 0.0
+  f[3] = t[0]*f[0];
+  f[4] = t[1]*f[0];
+  f[5] = t[2]*f[0];
 
-     f[0] = -f[3];
-     f[1] = -f[4];
-     f[2] = -f[5];
+  f[0] = -f[3];
+  f[1] = -f[4];
+  f[2] = -f[5];
 }
 
 void
-BarFCorotator::formTangentStiffness(double t[3], double p, 
-                                   double ld, double kt[6][6])
-/*******************************************************************
- * 
- * Purpose :
- *  Compute tangential stiffness for Co-rotated bar element
- *  in current configuration.
- *
- * Input :
- *  t        : transformation matrix (1st vector only)
- *  p        : axial force in local coordinates
- *  l0       : original length
- *  ld       : deformed length
- *
- * Output :
- *  kt       : tangent stiffness matrix in current configuration
- *
- *****************************************************************/
-{
-     int i, j;
-     double c1;
-
-  // Zero stiffness matrix
-     for(i=0; i<6; ++i )
-       for(j=0; j<6; ++j )
-         kt[i][j] = 0.0;
-
-  // Compute stiffness matrix in local coordinate system 
-     c1 = (a0*em)/l0;
-
-  // Transform to global system by: Kt = T'*Kl*T 
-     for(i=0; i < 3; ++i)
-       for(j=0; j < 3; ++j){ 
-        kt[i][j]  = c1*t[i]*t[j];
-        kt[i][j] -= (p/ld)*t[i]*t[j]; //HB
-       }
-     kt[0][0] += p/ld; 
-     kt[1][1] += p/ld; 
-     kt[2][2] += p/ld; 
-     
-  // Fill element stiffness matrix
-     for(i=0; i<3; i++) {
-       for(j=0; j<3; j++) {
-          kt[  i][3+j] = -kt[i][j];
-          kt[3+i][  j] =  kt[i][3+j];
-          kt[3+i][3+j] =  kt[i][j];
-       }
-     }
-}
-
-void
-BarFCorotator::formGeometricStiffness( GeomState &geomState, CoordSet &,
-                               FullSquareMatrix &kg, double *f)
+BarFCorotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
+                                      FullSquareMatrix &kg, double *f)
 {
 /*******************************************************************
  *
@@ -472,8 +518,8 @@ BarFCorotator::formGeometricStiffness( GeomState &geomState, CoordSet &,
  *****************************************************************/
  // Declare local variables
  int    i, j;
- double xn[2][3];
-
+ double xn[2][3],t[3];
+ 
  // Get current Node State
  NodeState &ns1 = geomState[n1];
  NodeState &ns2 = geomState[n2];
@@ -492,6 +538,12 @@ BarFCorotator::formGeometricStiffness( GeomState &geomState, CoordSet &,
  double dz = xn[1][2] - xn[0][2];
  double ld = sqrt(dx*dx + dy*dy + dz*dz);
 
+ // Form transformation tensor: t (1st vector only)
+ // for current state 
+ t[0] = dx/ld;
+ t[1] = dy/ld;
+ t[2] = dz/ld;
+
  // Compute current GL-strain
  double e = (ld - l0)/l0;
 
@@ -509,9 +561,16 @@ BarFCorotator::formGeometricStiffness( GeomState &geomState, CoordSet &,
    for(j=0; j<6; ++j )
      kg[i][j] = 0.0;
 
- kg[0][0] += p/ld;
- kg[1][1] += p/ld;
- kg[2][2] += p/ld;
+ kg[0][0] += p*(t[1]*t[1] + t[2]*t[2])/ld;
+ kg[0][1] += -p*t[0]*t[1]/ld;
+ kg[0][2] += -p*t[0]*t[2]/ld;
+ kg[1][0] += -p*t[1]*t[0]/ld;
+ kg[1][1] += p*(t[0]*t[0] + t[2]*t[2])/ld;
+ kg[1][2] += -p*t[1]*t[2]/ld;
+ kg[2][0] += -p*t[2]*t[0]/ld;
+ kg[2][1] += -p*t[2]*t[1]/ld;
+ kg[2][2] += p*(t[0]*t[0] + t[1]*t[1])/ld;
+
 
  // Fill element stiffness matrix
  for(i=0; i<3; i++) {
@@ -584,28 +643,10 @@ BarFCorotator::extractDeformations(GeomState &geomState, CoordSet &cs,
 
 void
 BarFCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
-                                     double *vlr)
+                                      double *vlr)
 {
 }
 
-void
-BarFCorotator::getNLVonMises(Vector &stress, Vector &weight,
-                            GeomState &geomState, CoordSet &cs,
-                            int strInd)
-{
- stress.zero();
- weight.zero();
-}
-
-void
-BarFCorotator::getNLAllStress(FullM &stress, Vector &weight,
-                             GeomState &geomState, CoordSet &cs,
-                             int strInd)
-{
- stress.zero();
- weight.zero();
-}
- 
 double
 BarFCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 {
@@ -638,26 +679,25 @@ BarFCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
  //double e = (ld - l0)/l0;
  double e = 0.5*((ld/l0)*(ld/l0) - 1);
 
-
  // Compute damage
  double alpha;
  if (e < 0.03)
-	alpha = 1.0;
+    alpha = 1.0;
  else
-	alpha = (exp(-lambda*(ld/l0 - Ucrit)) - exp(-lambda*(Uf - Ucrit)))/(1.0 - exp(-lambda*(Uf - Ucrit)));
+    alpha = (exp(-lambda*(ld/l0 - Ucrit)) - exp(-lambda*(Uf - Ucrit)))/(1.0 - exp(-lambda*(Uf - Ucrit)));
  // Set upper limit on damage
  if (alpha < damage)
-	damage = alpha;
+    damage = alpha;
  if (damage < 0.0)
-	damage = 0.0;
+    damage = 0.0;
 
  // Compute current PK2-stress
  double sigma = damage*em*e;
  // Enforce zero stress on compression
  if (e < 0.0)
-	sigma = 0.0;
+    sigma = 0.0;
 
-  // Add Preload????
+ // Add Preload????
  sigma += preload/a0;
 
  // Compute Energy as 1/2 Integral[e*sigma*dV]

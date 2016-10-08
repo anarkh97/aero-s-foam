@@ -53,12 +53,14 @@ class GenFullM {
    // destructor
    ~GenFullM();  
 
+   void copy(Scalar *array);
    void setNewSize(int nr, int nc, Scalar d=0.0);
    void setNewSize(int nr, Scalar d=0.0);
 
    // OPERATORS
    void  operator =  (const GenFullM<Scalar> &);
    void  operator =  (const Scalar c);
+   void  operator *=  (const Scalar c);
    GenFullM<Scalar>  operator *(GenFullM<Scalar>&);   // product A*B
    GenVector<Scalar> operator *(GenVector<Scalar>&); // product A*x
    GenFullM<Scalar>  operator ^(GenFullM<Scalar>&);   // product A^T*B

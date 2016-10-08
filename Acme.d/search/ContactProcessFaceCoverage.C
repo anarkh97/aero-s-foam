@@ -87,14 +87,14 @@ ContactSearch::Process_Face_Coverage()
     reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
   for (int i=0; i<number_of_faces; ++i) {
     ContactFace<Real>* face = Faces[i];
-    ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+    ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
-      while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
+      while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
 	int j, k;
 	Real tol = 1.0e-6;
-	ContactFaceFaceInteraction* cffi = 
-	  static_cast<ContactFaceFaceInteraction*> (interaction);
+	ContactFaceFaceInteraction<Real>* cffi = 
+	  static_cast<ContactFaceFaceInteraction<Real>*> (interaction);
 	//ContactFace<Real>* face = cffi->SlaveFace();
 	POSTCONDITION(face==cffi->SlaveFace());
 #if CONTACT_DEBUG_PRINT_LEVEL>=8
@@ -116,8 +116,8 @@ ContactSearch::Process_Face_Coverage()
 	// Determine the total number of polygons and vertices
 	int nverts = face->Nodes_Per_Face();
 	interactions->IteratorStart();
-	while (interaction=interactions->IteratorForward()){
-	  cffi = static_cast<ContactFaceFaceInteraction*> (interaction);
+	while ((interaction=interactions->IteratorForward())){
+	  cffi = static_cast<ContactFaceFaceInteraction<Real>*> (interaction);
 	  nverts += cffi->NumEdges();
 	}
 	// add one to the number of face/face polys for the slave face
@@ -171,9 +171,9 @@ ContactSearch::Process_Face_Coverage()
 	// Add the nodes from the interactions
 	k = 0;
 	interactions->IteratorStart();
-	while (interaction=interactions->IteratorForward()){
-	  cffi = static_cast<ContactFaceFaceInteraction*> (interaction);
-	  ContactFaceFaceVertex* vertices = cffi->Get_Vertices();
+	while ((interaction=interactions->IteratorForward())){
+	  cffi = static_cast<ContactFaceFaceInteraction<Real>*> (interaction);
+	  ContactFaceFaceVertex<Real>* vertices = cffi->Get_Vertices();
 	  plist[pindex] = ContactPoly::new_ContactPoly(allocators[ALLOC_ContactPoly],
 						       pindex, cffi->NumEdges());
 	  for (j=0; j<cffi->NumEdges(); j++, vindex++) {

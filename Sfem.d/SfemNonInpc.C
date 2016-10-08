@@ -1,18 +1,4 @@
-#include <Utils.d/linkfc.h>
-#include <cmath>
-#include <cstdlib>
-#include <cstdio>
-#include <iostream>
-#include <Driver.d/GeoSource.h>
-#include <Utils.d/MyComplex.h>
-#include <Math.d/Vector.h>
 #include <Sfem.d/cijk.h>
-
-using std::map;
-#include <list>
-using namespace std;
-
-extern GeoSource *geoSource;
 
 template <class Scalar, class VecType >
 void SfemNonInpc<Scalar, VecType>::update_Psi_u(VecType* u, VecType* psi_u) 

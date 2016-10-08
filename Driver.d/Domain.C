@@ -1,8 +1,7 @@
 #include <iostream>
-using std::ifstream;
 #include <sstream>
-using std::istringstream;
 #include <ctime>
+#include <algorithm>
 #include <Utils.d/dbg_alloca.h>
 
 #include <map>
@@ -21,20 +20,21 @@ using std::list;
 #include <Mortar.d/FaceElement.d/FaceElemSet.h>
 
 #include <Utils.d/dofset.h>
+#include <Utils.d/DistHelper.h>
 #include <Driver.d/Domain.h>
 #include <Element.d/Element.h>
 #include <Utils.d/ModeData.h>
-#include <Math.d/mathUtility.h>
 #include <Driver.d/GeoSource.h>
 #include <Feti.d/DistrVector.h>
 #include <Corotational.d/DistrGeomState.h>
+#include <Hetero.d/FlExchange.h>
 
 #include <Element.d/Rigid.d/RigidBeam.h>
 #include <Element.d/Rigid.d/RigidThreeNodeShell.h>
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 
-#include<Sfem.d/Sfem.h>
+#include <Sfem.d/Sfem.h>
 
 extern int verboseFlag;
 extern Sfem *sfem;
@@ -48,7 +48,10 @@ ModeData modeData;
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
   : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
-    SurfEntities(0), MortarConds(0)
+#ifdef USE_EIGEN3
+    rubdaft(0),
+#endif
+    ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -62,7 +65,7 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
    if(d.nodes[nnums[i]] != NULL)
      nodes.nodeadd(i, *d.nodes[nnums[i]]);
 
- if(d.gravityFlag() ) {
+ if(d.gravityAcceleration) {
    gravityAcceleration = new double [3];
    gravityAcceleration[0] = d.gravityAcceleration[0];
    gravityAcceleration[1] = d.gravityAcceleration[1];
@@ -74,10 +77,26 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
 
  if(verboseFlag == 0) setSilent();
  else setVerbose();
+
+ matrixTimers = new MatrixTimers;
+ senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ aggregatedStress = new double;
+ aggregatedStressDenom = new double;
+ *aggregatedStress = 0; 
+ *aggregatedStressDenom = 0;
+ numThicknessGroups = thicknessGroups.size();
+ numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+ numDispDofs = dispDofs.size();
+
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
-  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0), SurfEntities(0), MortarConds(0)
+  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
+#ifdef USE_EIGEN3
+    rubdaft(0),
+#endif
+    ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -88,7 +107,7 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 
  numnodes = _nodes->size();
 
- if(d.gravityFlag() ) {
+ if(d.gravityAcceleration) {
    gravityAcceleration = new double [3];
    gravityAcceleration[0] = d.gravityAcceleration[0];
    gravityAcceleration[1] = d.gravityAcceleration[1];
@@ -100,10 +119,26 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 
  if(verboseFlag == 0) setSilent();
  else setVerbose();
+
+ matrixTimers = new MatrixTimers;
+ senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ aggregatedStress = new double;
+ aggregatedStressDenom = new double;
+ *aggregatedStress = 0; 
+ *aggregatedStressDenom = 0;
+ numThicknessGroups = thicknessGroups.size();
+ numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+ numDispDofs = dispDofs.size();
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
-   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), sdetaft(0,iniSize), SurfEntities(0,iniSize), MortarConds(0,iniSize)
+   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), sdetaft(0,iniSize),
+#ifdef USE_EIGEN3
+   rubdaft(0,iniSize),
+#endif
+   ysst(0,iniSize), yssrt(0,iniSize),
+   SurfEntities(0,iniSize), MortarConds(0,iniSize)
 {
  initialize();
 
@@ -111,14 +146,20 @@ Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(ini
  else setVerbose();
 
  matrixTimers = new MatrixTimers;
+ senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ aggregatedStress = new double;
+ aggregatedStressDenom = new double;
+ *aggregatedStress = 0; 
+ *aggregatedStressDenom = 0;
+ numThicknessGroups = thicknessGroups.size();
+ numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+ numDispDofs = dispDofs.size();
 }
 
 void
 Domain::makeAllDOFs() // build the dof connectivity
 {
- // Test if allDOFs has been made already
- //if(allDOFs) return;
-
  int numele = packedEset.last(); // PJSA 5-2-05: include phantoms here
 
  int iele;
@@ -140,12 +181,11 @@ Domain::makeAllDOFs() // build the dof connectivity
  // compute maximum number of nodes per element
  for(iele=0; iele < numele; ++iele) {
    int numNodesPerElement = packedEset[iele]->numNodes();
-   maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+   maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
  }
 }
 
 // build the dof connectivity for fluid
-// ADDED FOR HEV PROBLEM, EC, 20070820
 void
 Domain::makeAllDOFsFluid()
 {
@@ -171,7 +211,7 @@ Domain::makeAllDOFsFluid()
  // compute maximum number of nodes per element
  for(iele=0; iele < numele; ++iele) {
    int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
-   maxNumNodesFluid = myMax(maxNumNodesFluid, numNodesPerElement);
+   maxNumNodesFluid = std::max(maxNumNodesFluid, numNodesPerElement);
  }
 }
 
@@ -335,6 +375,8 @@ Domain::addDMass(int n, int d, double mass, int jdof)
  firstDiMass->diMass = mass;
  firstDiMass->jdof   = jdof;
 
+ if(jdof >= 0 && d != jdof) sinfo.inertiaLumping = 2;
+
  nDimass++;
 
  return 0;
@@ -348,8 +390,8 @@ Domain::addLMPC(LMPCons *_MPC, bool checkflag)
  // eg if LMPC (real) id numbers 1 to 10, CLMPC (complex) should be 11 to 20
  // however you can use CLMPC to add a complex term to a previously real LMPC with the same id number
  // also inequality constraint id numbers can be the same as equality constraint id numbers
- // NEW IDEA: if checkflag is set to false, then always create new LMPC, used for various internal calls but not Parser
- if(!checkflag) { lmpc[numLMPC++] = _MPC; return numLMPC-1; } // PJSA 7-19-06
+ // NOTE: if checkflag is set to false, then always create new LMPC, used for various internal calls but not Parser
+ if(!checkflag) { lmpc[numLMPC++] = _MPC; if(_MPC->type == 1) numCTC++; return numLMPC-1; }
 
  // Verify if lmpc was already defined
  int i=0;
@@ -435,7 +477,7 @@ void Domain::normalizeLMPC()
  // PJSA 5-24-06
  for(int i=0; i<numLMPC; i++) {
    if(lmpc[i]->isComplex) {
-     cerr << " *** WARNING: normalizeLMPC not implemented for complex coefficients \n";
+     std::cerr << " *** WARNING: normalizeLMPC not implemented for complex coefficients \n";
    }
    else {
      double cnorm = 0.0;
@@ -474,7 +516,7 @@ void Domain::setPrimalLMPCs(int& numDual, int &numPrimal)
    }
  }
 */
- //cerr << "numDual = " << numDual << ", numPrimal = " << numPrimal << endl;
+ //std::cerr << "numDual = " << numDual << ", numPrimal = " << numPrimal << std::endl;
  // note other strategies may be implemented here
 }
 
@@ -601,7 +643,6 @@ void Domain::getInterestingDofs(DofSet &ret, int glNode)
 
 double ** Domain::getCMatrix()
 //returns the coupling matrix for hydroelastic vibration problems
-//ADDED FOR HEV PROBLEM, EC, 20070820
 {
   if(C_condensed) return C_condensed;
   int np = c_dsaFluid->size();
@@ -905,6 +946,18 @@ Domain::setLoadFactorHFTT(int loadcase_id, int loadset_id, int table_id)
 }
 
 void
+Domain::setLoadFactorTemp(int loadcase_id, bool load_factor)
+{
+ loadfactor_temp[loadcase_id] = load_factor;
+}
+
+void
+Domain::setLoadFactorGrav(int loadcase_id, bool load_factor)
+{
+ loadfactor_grav[loadcase_id] = load_factor;
+}
+
+void
 Domain::checkCases()
 {
   for(std::list<int>::const_iterator it1 = sinfo.loadcases.begin(); it1 != sinfo.loadcases.end(); ++it1) {
@@ -951,6 +1004,34 @@ Domain::getLoadFactor(int loadset_id) const
   else {
     // 3. In this case, loadset_id is not included in the loadcase.
     return 0.0;
+  }
+}
+
+int
+Domain::gravityFlag()
+{
+  int loadcase_id = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  std::map<int,bool>::const_iterator it = loadfactor_grav.find(loadcase_id);
+  if(it != loadfactor_grav.end() && it->second == false) {
+    // in this case, gravity has been explicitly deactivated for the current loadcase
+    return 0;
+  }
+  else {
+    return (gravityAcceleration ? 1: 0) || (domain->solInfo().soltyp == 2);
+  }
+}
+
+int
+Domain::thermalFlag()
+{
+  int loadcase_id = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  std::map<int,bool>::const_iterator it = loadfactor_temp.find(loadcase_id);
+  if(it != loadfactor_temp.end() && it->second == false) {
+    // in this case, thermal loads have been explicitly deactivated for the current loadcase
+    return 0;
+  }
+  else {
+    return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0;
   }
 }
 
@@ -1071,7 +1152,6 @@ Domain::addYMTT(MFTTData *_ymtt)
  return 0;
 }
 
-
 int
 Domain::addSDETAFT(MFTTData *_sdetaft)
 {
@@ -1089,7 +1169,24 @@ Domain::addSDETAFT(MFTTData *_sdetaft)
  return 0;
 }
 
+#ifdef USE_EIGEN3
+int
+Domain::addRUBDAFT(GenMFTTData<Eigen::Vector4d> *_rubdaft)
+{
+ //--- Verify if sdetat was already defined
+ int i = 0;
+ while(i < numRUBDAFT && rubdaft[i]->getID() != _rubdaft->getID()) i++;
 
+ // if RUBDAFT not previously defined create new
+ if(i == numRUBDAFT) rubdaft[numRUBDAFT++] = _rubdaft;
+
+ // if RUBDAFT already defined print warning message
+ else
+   filePrint(stderr," *** WARNING: RUBDAFT %d has already been defined \n", _rubdaft->getID());
+
+ return 0;
+}
+#endif
 
 void Domain::printYMTT()
 {
@@ -1134,6 +1231,40 @@ void Domain::printCTETT()
       filePrint(stderr,"         %f     %f\n",
               ctett[i]->getT(j), ctett[i]->getV(j));
   }
+}
+
+int
+Domain::addYSST(MFTTData *_ysst)
+{
+ //--- Verify if ysst was already defined
+ int i = 0;
+ while(i < numYSST && ysst[i]->getID() != _ysst->getID()) i++;
+
+ // if YSST not previously defined create new
+ if(i == numYSST) ysst[numYSST++] = _ysst;
+
+ // if YSST already defined print warning message
+ else
+   filePrint(stderr," *** WARNING: YSST %d has already been defined \n", _ysst->getID());
+
+ return 0;
+}
+
+int
+Domain::addYSSRT(MFTTData *_yssrt)
+{
+ //--- Verify if yssrt was already defined
+ int i = 0;
+ while(i < numYSSRT && yssrt[i]->getID() != _yssrt->getID()) i++;
+
+ // if YSSRT not previously defined create new
+ if(i == numYSSRT) yssrt[numYSSRT++] = _yssrt;
+
+ // if YSSRT already defined print warning message
+ else
+   filePrint(stderr," *** WARNING: YSSRT %d has already been defined \n", _yssrt->getID());
+
+ return 0;
 }
 
 int
@@ -1201,20 +1332,22 @@ Domain::setGravitySloshing(double gg)
 }
 
 void
-Domain::setUpData()
+Domain::setUpData(int topFlag)
 {
   startTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
 
-  Elemset eset_tmp;
-  if(sinfo.solvercntl->type == 0) {
-    if(numLMPC) geoSource->getNonMpcElems(eset_tmp);
-  }
+  geoSource->setUpData(topFlag);
 
-  geoSource->setUpData();
+  if(!haveNodes) { numnodes = geoSource->getNodes(nodes); haveNodes = true; }
+  else numnodes = geoSource->totalNumNodes();
+  numele = geoSource->getElems(packedEset);
+  numele = packedEset.last();
 
   if(sinfo.solvercntl->type == 0) {
-    if(numLMPC) {
-      Connectivity *elemToNode_tmp = new Connectivity(&eset_tmp);
+    if(numLMPC && domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc) {
+      if(elemToNode == 0) elemToNode = new Connectivity(&packedEset);
+      if(nodeToElem == 0) nodeToElem = elemToNode->reverse();
+      Connectivity *elemToNode_tmp = new Connectivity(&packedEset, nodeToElem);
       Connectivity *nodeToElem_tmp = elemToNode_tmp->reverse();
       Connectivity *nodeToNode_tmp = nodeToElem_tmp->transcon(elemToNode_tmp);
       renumb_nompc = nodeToNode_tmp->renumByComponent(0);
@@ -1228,12 +1361,6 @@ Domain::setUpData()
       delete elemToNode_tmp; delete nodeToElem_tmp; delete nodeToNode_tmp;
     }
   }
-
-
-  if(!haveNodes) { numnodes = geoSource->getNodes(nodes); haveNodes = true; }
-  else numnodes = geoSource->totalNumNodes();
-  numele = geoSource->getElems(packedEset);
-  numele = packedEset.last();
 
   // set boundary conditions
   int numBC;
@@ -1264,11 +1391,11 @@ Domain::setUpData()
   numBC = geoSource->getIDis(bc);
   setIDis(numBC, bc);
   numBC = geoSource->getIDisModal(bc);
-  if(solInfo().modal) { // for modal dynamics, keep the modal idisp and non-modal idisp separate
-    setIDisModal(numBC, bc);
-  }
-  else { // for non-modal dynamics convert the modal idisp into non-modal idisp
-    if(numBC) {
+  if(numBC) {
+    if(solInfo().keepModalInitialConditions()) { // for modal dynamics, keep the modal idisp and non-modal idisp separate
+      setIDisModal(numBC, bc);
+    }
+    else { // for non-modal dynamics convert the modal idisp into non-modal idisp
       filePrint(stderr, " ... Compute initial displacement from given modal basis ...\n");
       int numIDisModal = modeData.numNodes*6;
       BCond *iDis_new = new BCond[numIDis+numIDisModal];
@@ -1288,11 +1415,11 @@ Domain::setUpData()
   numBC = geoSource->getIVel(bc);
   setIVel(numBC, bc);
   numBC = geoSource->getIVelModal(bc);
-  if(solInfo().modal) { // for modal dynamics, keep the modal ivel and non-modal ivel separate
-    setIVelModal(numBC, bc);
-  }
-  else {
-    if(numBC) {
+  if(numBC) {
+    if(solInfo().keepModalInitialConditions()) { // for modal dynamics, keep the modal ivel and non-modal ivel separate
+      setIVelModal(numBC, bc);
+    }
+    else {
       filePrint(stderr, " ... Compute initial velocity from given modal basis ...\n");
       int numIVelModal = modeData.numNodes*6;
       BCond *iVel_new = new BCond[numIVel+numIVelModal];
@@ -1323,7 +1450,6 @@ Domain::setUpData()
 */
 
   stopTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
-
 }
 
 #ifndef OUTPUTMESSAGE
@@ -1493,8 +1619,35 @@ Domain::prepDirectMPC()
         int n = ele->getNumMPCs();
         if(n > 0) {
           LMPCons **l = ele->getMPCs();
-          for(int j = 0; j < n; ++j)
+          for(int j = 0; j < n; ++j) {
+            // first check to see if nodal frames are used
+            bool use_nframes = false;
+            if(l[j]->getSource() != mpc::Lmpc && l[j]->getSource() != mpc::NodalContact && l[j]->getSource() != mpc::TiedSurfaces) {
+              for(int k=0; k<l[j]->nterms; ++k) {
+                if(nodes.dofFrame(l[j]->terms[k].nnum)) { use_nframes = true; break; }
+              }
+            }
+            if(use_nframes) {
+              std::vector<LMPCTerm> terms_copy(l[j]->terms);
+              l[j]->terms.clear();
+              l[j]->nterms = 0;
+              for(std::vector<LMPCTerm>::iterator it = terms_copy.begin(); it != terms_copy.end(); ++it) {
+                if(NFrameData *cd = nodes.dofFrame(it->nnum)) {
+                  double c[3] = { 0, 0, 0 };
+                  c[it->dofnum%3] = it->coef.r_value;
+                  cd->transformVector3(c);
+                  for(int m=0; m<3; ++m) {
+                    if(std::abs(c[m]) > std::numeric_limits<double>::epsilon()) {
+                      LMPCTerm t(it->nnum, 3*(it->dofnum/3)+m, c[m]);
+                      l[j]->addterm(&t);
+                    }
+                  }
+                }
+                else l[j]->addterm(&(*it));
+              }
+            }
             lmpc[numLMPC++] = l[j];
+          }
           delete [] l;
         }
       }
@@ -1522,7 +1675,7 @@ Domain::prepDirectMPC()
       }
     }
   }
-  //cerr << "extracted " << numLMPC << " lmpcs from the element set\n";
+  //std::cerr << "extracted " << numLMPC << " lmpcs from the element set\n";
 
   geoSource->makeDirectMPCs(numLMPC, lmpc);
   // MPC Connectivity treatment in direct way.
@@ -1580,7 +1733,6 @@ Domain::getRenumbering()
  if(nodeToNode) delete nodeToNode;
  nodeToNode = nodeToElem->transcon(elemToNode);
 
- //ADDED FOR HEV PROBLEM, EC, 20070820
  if(solInfo().HEV == 1 && solInfo().addedMass == 1) {
    int numWetNodes = 0;
    int *wetIFNodes = getAllWetInterfaceNodes(numWetNodes);
@@ -1590,7 +1742,7 @@ Domain::getRenumbering()
    delete nodeToNodeTemp;
  }
 
- // get number of nodes
+ // get number of nodes (actually, this is the maximum node number when there are gaps in the node numbering)
  numnodes = nodeToNode->csize();
 
  if(solInfo().solvercntl->type == 0 || solInfo().solvercntl->type == 1) makeNodeToNode_sommer(); // single domain solvers
@@ -1609,9 +1761,63 @@ Domain::getRenumbering()
  for(i=0; i<numnodes; ++i)
    order[i] = -1;
 
+ // note: order maps from new index to original index and renumb.renum maps from original index to new index
+ int nodecount = 0;
  for(i=0; i<numnodes; ++i)
-   if(renumb.renum[i] >= 0)
+   if(renumb.renum[i] >= 0) {
      order[renumb.renum[i]] = i;
+     nodecount++;
+   }
+
+ if(domain->solInfo().rbmflg == 1 && renumb.numComp > 1 && sinfo.solvercntl->type == 0 && sinfo.solvercntl->subtype == 1) {
+   filePrint(stderr, "\x1B[31m *** WARNING: GRBM with sparse solver is not \n"
+                          "     supported for multi-component models.  \x1B[0m\n");
+ }
+
+ if(renumb_nompc.order && renumb_nompc.numComp > 1 && sinfo.solvercntl->type == 0 && (sinfo.solvercntl->subtype == 0 || sinfo.solvercntl->subtype == 1)) {
+   // altering the ordering for skyline or sparse with LMPCs due to requirements of GRBM
+   DofSetArray *dsa = new DofSetArray(numnodes, packedEset, renumb.renum);
+   ConstrainedDSA *c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc);
+   int p = nodecount-1;
+   int min_defblk = 0;
+   for(int n=renumb_nompc.numComp-1; n>=0; --n) {
+     int count = 0;
+     bool check = true;
+     for(int i=renumb_nompc.xcomp[n+1]-1; i>=renumb_nompc.xcomp[n]; --i) {
+       int inode = renumb_nompc.order[i];
+       int q = renumb.renum[inode];
+       int jnode = order[p];
+       // swap positions of inode and jnode
+       renumb.renum[inode] = p;
+       renumb.renum[jnode] = q;
+       order[p] = inode;
+       order[q] = jnode;
+       p--;
+       count += c_dsa->weight(inode);
+#ifdef USE_EIGEN3
+       if(dsa->weight(inode) == 6) check = false;
+       if(count > sinfo.solvercntl->sparse_defblk) {
+         if(!check) break;
+         else {
+           // check for co-linearity XXX this could/should be done even for case with no LMPCs
+           Eigen::Matrix<double,3,Eigen::Dynamic> M(3,renumb_nompc.xcomp[n+1]-i);
+           for(int j=renumb_nompc.xcomp[n+1]-1; j>=i; --j) {
+             int jnode = renumb_nompc.order[j];
+             M.col(renumb_nompc.xcomp[n+1]-1-j) << nodes[jnode]->x, nodes[jnode]->y, nodes[jnode]->z;
+           }
+           int rank = M.colPivHouseholderQr().rank();
+           if(rank > 1) break;
+         }
+       }
+#else
+       if(count > sinfo.sparse_defblk) break;
+#endif
+     }
+     min_defblk += count;
+   }
+   delete c_dsa; delete dsa;
+   sinfo.solvercntl->sparse_defblk = std::max(sinfo.solvercntl->sparse_defblk, min_defblk);
+ }
 
  //if(sinfo.renum > 0 && verboseFlag && renumb.numComp > 1)
  //  filePrint(stdout," ... Number of components =%2d	...\n",renumb.numComp);
@@ -1694,7 +1900,7 @@ Domain::makeNodeToNode_sommer()
 }
 
 void
-Domain::readInModes(char* modeFileName)
+Domain::readInModes(const char* modeFileName)
 {
  filePrint(stderr," ... Read in Modes from file: %s ...\n",modeFileName);
 
@@ -1788,6 +1994,77 @@ Domain::readInModes(char* modeFileName)
 }
 
 void
+Domain::readInShapeDerivatives(char* shapeDerFileName)
+{
+ filePrint(stderr," ... Read in Shape Derivatives      ...\n"
+                  " ... file: %-24s ...\n",shapeDerFileName);
+
+ // Open file containing mode shapes and frequencies.
+ FILE *f;
+ if((f=fopen(shapeDerFileName,"r"))==(FILE *) 0 ){
+   filePrint(stderr," *** ERROR: Cannot open %s, exiting...",shapeDerFileName);
+   exit(0);
+ }
+ fflush(f);
+
+ char str[80];
+ // Read in number of shape variables and number of nodes
+ int count = fscanf(f,"%s%s%s%s%s%s",str,str,str,str,str,str);
+ count = fscanf(f, "%d\n", &shapeSenData.numNodes);
+ shapeSenData.numVars = 0;
+
+ typedef double (*T3)[3];
+ shapeSenData.index = new int[100];
+ shapeSenData.sensitivities = new T3[100];
+ shapeSenData.nodes         = new int[shapeSenData.numNodes*2]; //NOTE: assumes that global node number does not exceed twice of number of nodes
+
+ // Read shape sensitivities
+ int iSen(0), iNode, numsubstring;
+ char input[500], *substring;
+ double tmpinput[7];
+
+ //int jj;
+// for(iSen=0; iSen<shapeSenData.numVars; ++iSen) {
+ while ( !feof(f) ) {
+   shapeSenData.sensitivities[iSen] = new double[shapeSenData.numNodes][3];
+
+   count = fscanf(f,"%d\n",&shapeSenData.index[iSen]);
+   if(count < 0) break;
+   shapeSenData.numVars++;
+   
+   //int nodeNum;
+   for(iNode=0; iNode<shapeSenData.numNodes; ++iNode) {
+
+     char *c = fgets(input, 500, f);
+     substring = strtok(input, " ");
+     numsubstring = 0;
+     do {
+       tmpinput[numsubstring] = strtod(substring, NULL);
+       if (strncmp(substring, "\n", 1) == 0)
+         break;
+       substring = strtok(NULL, " ");
+       ++numsubstring;
+
+     } while (substring != NULL);
+
+     if(numsubstring != 3) {
+       filePrint(stderr, " *** ERROR: Check input for shape sensitivity data (numstrings = %d) in file %s ... must be 3 ... exiting\n", numsubstring, shapeDerFileName);
+       exit(-1);
+     } 
+ 
+//     int cnode = (int) tmpinput[0] - 1;
+//     if(cnode != iNode) filePrint(stderr, " *** ERROR: cnode differs from iNode, cnode = %d, iNode = %d\n", cnode, iNode);
+     shapeSenData.nodes[iNode] = iNode;
+     shapeSenData.sensitivities[iSen][iNode][0] = tmpinput[0];
+     shapeSenData.sensitivities[iSen][iNode][1] = tmpinput[1];
+     shapeSenData.sensitivities[iSen][iNode][2] = tmpinput[2];
+   }
+   iSen++;
+ }
+ setNumShapeVars(shapeSenData.numVars);
+}
+
+void
 Domain::getElementAttr(int fileNumber,int iAttr,double time) {
 
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -1874,7 +2151,7 @@ Domain::getCompositeData(int iInfo,double time) {
       int maxLayer=0;
       for(iele=0; iele<numele; ++iele) {
         MidPoint[iele] = packedEset[iele]->getMidPoint(nodes);
-        maxLayer = myMax(maxLayer,packedEset[iele]->getCompositeLayer());
+        maxLayer = std::max(maxLayer,packedEset[iele]->getCompositeLayer());
       }
 
       CPoint = new double**[maxLayer];
@@ -1906,7 +2183,7 @@ Domain::getCompositeData(int iInfo,double time) {
          dy = MidPoint[iele][1]-MidPoint[jele][1];
          dz = MidPoint[iele][2]-MidPoint[jele][2];
 	 dd = sqrt(dx*dx+dy*dy+dz*dz);
-	 minDist = myMin(minDist,dd);
+	 minDist = std::min(minDist,dd);
       }
     }
 
@@ -1927,8 +2204,8 @@ Domain::getCompositeData(int iInfo,double time) {
        double E2  = layData[1];
        double Phi = layData[8];
 
-       double length1 = crossScale * E1 / myMax(E1,E2) / 2.0;
-       double length2 = crossScale * E2 / myMax(E1,E2) / 2.0;
+       double length1 = crossScale * E1 / std::max(E1,E2) / 2.0;
+       double length2 = crossScale * E2 / std::max(E1,E2) / 2.0;
 
        // .... Adjust Phi
 
@@ -2037,8 +2314,8 @@ Domain::getCompositeData(int iInfo,double time) {
        double E2  = layData[1];
        double Phi = layData[8];
 
-       double length1 = crossScale * E1 / myMax(E1,E2) / 2.0;
-       double length2 = crossScale * E2 / myMax(E1,E2) / 2.0;
+       double length1 = crossScale * E1 / std::max(E1,E2) / 2.0;
+       double length2 = crossScale * E2 / std::max(E1,E2) / 2.0;
 
        // .... Adjust Phi
 
@@ -2075,7 +2352,6 @@ Domain::getCompositeData(int iInfo,double time) {
        int n1 = iele*4; int n2 = n1+1; int n3 = n1+2; int n4 = n1+3;
 
        double x,y,z;
-
 
        x = MidPoint[iele][0] + cFrame[0]*cP1[0] +  cFrame[3]*cP1[1] + cFrame[6]*cP1[2] - CPoint[lay][n1][0];
        y = MidPoint[iele][1] + cFrame[1]*cP1[0] +  cFrame[4]*cP1[1] + cFrame[7]*cP1[2] - CPoint[lay][n1][1];
@@ -2142,7 +2418,7 @@ Connectivity *
 Domain::getNodeToNode() {
  if(nodeToNode) return nodeToNode;
  if(elemToNode == 0)
-   elemToNode = new Connectivity(&packedEset) ;
+   elemToNode = new Connectivity(&packedEset);
  if(nodeToElem == 0)
    nodeToElem = elemToNode->reverse();
  nodeToNode = nodeToElem->transcon(elemToNode);
@@ -2152,8 +2428,6 @@ Domain::getNodeToNode() {
 
 ConstrainedDSA *
 Domain::makeCDSA(int nbc, BCond *bcs) {
-  //MODIFIED FOR HEV PROBLEM, EC, 20070820
-  //if (c_dsa) return c_dsa;
 
   if(!c_dsa) c_dsa = new ConstrainedDSA(*dsa, nbc, bcs);
   if(solInfo().HEV) {
@@ -2220,8 +2494,7 @@ void Domain::getNormal2D(int node1, int node2, double &nx, double &ny) {
 void Domain::computeTDProps()
 {
   if((numYMTT > 0) || (numCTETT > 0)) {
-    // PJDS: used to calculate temperature dependent material properties
-    //double defaultTemp = -10000000.0;
+    // used to calculate temperature dependent material properties
 
     // compute maximum number of nodes per element
     // note this is also done in Domain::makeAllDOFs()
@@ -2229,7 +2502,7 @@ void Domain::computeTDProps()
     int iele;
     for(iele=0; iele < numele; ++iele) {
       int numNodesPerElement = packedEset[iele]->numNodes();
-      maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+      maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
     }
 
     int i;
@@ -2253,11 +2526,18 @@ void Domain::computeTDProps()
     elemNodeTemps.zero();
     double *nodalTemperatures = getNodalTemperatures();
     for(iele = 0; iele < numele; ++iele) {
-      // note: packedEset[iele]->numNodes() > 2 is temp fix to avoid springs
-      // this means that until fixed, beams can't have temp-dependent material props
-      if((packedEset[iele]->numNodes() > 2) && !packedEset[iele]->isPhantomElement()) {
-        if((packedEset[iele]->getProperty()->E < 0) ||
-           (packedEset[iele]->getProperty()->W < 0)) { // iele has temp-dependent E or W
+      if((packedEset[iele]->numNodes() > 1) && !packedEset[iele]->isSpring() && !packedEset[iele]->isPhantomElement()) {
+
+        if(packedEset[iele]->getProperty()->E < 0) {
+          int id = (int) -packedEset[iele]->getProperty()->E;
+          packedEset[iele]->getProperty()->ymtt = ymtt[ymttmap[id]];
+        }
+        if(packedEset[iele]->getProperty()->W < 0) {
+          int id = (int) -packedEset[iele]->getProperty()->W;
+          packedEset[iele]->getProperty()->ctett = ctett[ctettmap[id]];
+        }
+
+        if((packedEset[iele]->getProperty()->ymtt) || (packedEset[iele]->getProperty()->ctett)) { // iele has temp-dependent E or W
           int NodesPerElement = packedEset[iele]->numNodes();
           packedEset[iele]->nodes(nodeNumbers);
 
@@ -2265,33 +2545,31 @@ void Domain::computeTDProps()
           double avTemp = 0.0;
           int iNode;
           for(iNode = 0; iNode < NodesPerElement; ++iNode) {
-            if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+            if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
               elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
             else
               elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
             avTemp += elemNodeTemps[iNode];
           }
           avTemp /= NodesPerElement;
-          // if(avTemp > 0) cerr << "element = " << iele << ", avTemp = " << avTemp << endl;
 
           StructProp *newProp = new StructProp(*packedEset[iele]->getProperty());
           // compute E using interp table
-          if(packedEset[iele]->getProperty()->E < 0) {
-            int id = (int) -packedEset[iele]->getProperty()->E;
-            newProp->E = ymtt[ymttmap[id]]->getValAlt(avTemp);
+          if(packedEset[iele]->getProperty()->ymtt) {
+            newProp->E = packedEset[iele]->getProperty()->ymtt->getValAlt(avTemp);
           }
 
           // compute coeff of thermal expansion using interp table
-          if(packedEset[iele]->getProperty()->W < 0) {
-            int id  = (int) -packedEset[iele]->getProperty()->W;
-            newProp->W = ctett[ctettmap[id]]->getValAlt(avTemp);
+          if(packedEset[iele]->getProperty()->ctett) {
+            newProp->W = packedEset[iele]->getProperty()->ctett->getValAlt(avTemp);
           }
           packedEset[iele]->setProp(newProp);
         }
       }
     }
+    delete [] ymttmap;
+    delete [] ctettmap;
     delete [] nodeNumbers;
-    //delete [] nodalTemperatures;
   }
 }
 
@@ -2426,9 +2704,9 @@ Domain::SetMortarPairing()
   std::map<int, SurfaceEntity*> SurfIdToPtrSurfMap;
   for(int iSurf=0; iSurf<nSurfEntity; iSurf++){
     SurfIdToPtrSurfMap[SurfEntities[iSurf]->ID()] = SurfEntities[iSurf];
-    //SurfIdToPtrSurfMap.insert(map<int, SurfaceEntity*>::value_type(SurfId, SurfEntities[iSurf]));
   }
 
+  maxContactSurfElems = 0;
   for(int iMortar=0; iMortar<nMortarCond; iMortar++){
     MortarConds[iMortar]->SetPtrSurfaceEntity(SurfIdToPtrSurfMap[MortarConds[iMortar]->GetMasterEntityId()],
                                               SurfIdToPtrSurfMap[MortarConds[iMortar]->GetSlaveEntityId()]);
@@ -2441,6 +2719,9 @@ Domain::SetMortarPairing()
               MortarConds[iMortar]->GetPtrMasterEntity()->ID(),
               MortarConds[iMortar]->GetPtrSlaveEntity()->ID());
 #endif
+
+    if(MortarConds[iMortar]->GetInteractionType() == MortarHandler::CTC && !tdenforceFlag())
+      maxContactSurfElems += MortarConds[iMortar]->GetPtrSlaveEntity()->GetnNodes();
   }
   }
 }
@@ -2448,10 +2729,6 @@ Domain::SetMortarPairing()
 // HB: to setup internal data & renumber surfaces
 void Domain::SetUpSurfaces(CoordSet* cs)
 {
-#if defined(MORTAR_LOCALNUMBERING) && defined(MORTAR_DEBUG)
-  // if we want to work with local numbering of the surface entities (Salinas)
-  if(nSurfEntity) filePrint(stderr," ... Use local numbering (and local nodeset) in the surface entities\n");
-#endif
   for(int iSurf=0; iSurf<nSurfEntity; iSurf++){
 
     // For acme shells it is necessary to include both sides of the element in the face block
@@ -2463,7 +2740,7 @@ void Domain::SetUpSurfaces(CoordSet* cs)
       for(int i = 0; i < nFaceElems; ++i) {
         int etype = SurfEntities[iSurf]->GetFaceElemSet()[i]->GetFaceElemType();
         if(etype != 1 && etype != 3) {
-          cerr << " *** ERROR: Surface element type " << etype << " not supported with SHELL_THICKNESS option\n";
+          std::cerr << " *** ERROR: Surface element type " << etype << " not supported with SHELL_THICKNESS option\n";
           exit(-1);
         }
         int nNodes = SurfEntities[iSurf]->GetFaceElemSet()[i]->nNodes();
@@ -2481,9 +2758,7 @@ void Domain::SetUpSurfaces(CoordSet* cs)
     //if(cs) SurfEntities[iSurf]->PrintFaceNormal(cs);
 #endif
     SurfEntities[iSurf]->SetUpData(cs);
-#ifdef MORTAR_LOCALNUMBERING
     SurfEntities[iSurf]->Renumber();
-#endif
 #ifdef MORTAR_DEBUG
   #ifdef HB_NODALNORMAL
     SurfEntities[iSurf]->ComputeNodalNormals(SurfEntities[iSurf]->GetNodeSet());
@@ -2501,7 +2776,7 @@ void Domain::SetUpSurfaces(CoordSet* cs)
   }
 }
 
-// PJSA 5-30-08 *********************************************************************************************************
+// **********************************************************************************************************************
 // These functions use ACME's dynamic 2-configuation search algorithm and contact enforcement model for explicit dynamics
 void Domain::InitializeDynamicContactSearch(int numSub, SubDomain **sd)
 {
@@ -2510,7 +2785,10 @@ void Domain::InitializeDynamicContactSearch(int numSub, SubDomain **sd)
     CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
     CurrentMortarCond->build_search(true, numSub, sd);
     CurrentMortarCond->build_td_enforcement();
-    CurrentMortarCond->set_search_data(1); // interaction_type = 1 (NodeFace) 
+    if(CurrentMortarCond->GetInteractionType() == MortarHandler::TIED)
+      CurrentMortarCond->set_search_data(2);
+    else
+      CurrentMortarCond->set_search_data(1);
     CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
     CurrentMortarCond->set_search_options();
     if(numSub == 0 && !sd) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
@@ -2524,6 +2802,59 @@ void Domain::RemoveGap(Vector &g)
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     CurrentMortarCond->remove_gap(g);
   }
+}
+
+void Domain::UpdateSurfaceTopology(int numSub, SubDomain **sd)
+{
+  if(newDeletedElements.empty()) return;
+
+  if(!nodeToFaceElem) {
+    nodeToFaceElem = new Connectivity * [nSurfEntity];
+    for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
+      Connectivity faceElemToNode(SurfEntities[iSurf]->GetPtrFaceElemSet());
+      nodeToFaceElem[iSurf] = faceElemToNode.reverse();
+    }
+  }
+
+  int fnodes[12];
+  for(std::set<int>::iterator it = newDeletedElements.begin(); it != newDeletedElements.end(); ++it) {
+    Element *ele = packedEset[geoSource->glToPackElem(*it)];
+    int *enodes = ele->nodes();
+    for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
+      std::map<int,int> *GlToLlNodeMap = SurfEntities[iSurf]->GetPtrGlToLlNodeMap();
+      for(int iNode=0; iNode < ele->numNodes(); ++iNode) {
+        std::map<int,int>::iterator it2 = GlToLlNodeMap->find(enodes[iNode]);
+        if(it2 == GlToLlNodeMap->end()) continue;
+        int *GlNodeIds = SurfEntities[iSurf]->GetPtrGlNodeIds();
+        for(int j=0; j<nodeToFaceElem[iSurf]->num(it2->second); j++) { // loop over the face elements connected to the iNode-th node
+          int k = (*nodeToFaceElem[iSurf])[it2->second][j];
+          FaceElement *faceEl = SurfEntities[iSurf]->GetFaceElemSet()[k];
+          if(faceEl && (faceEl->nNodes() <= ele->numNodes())) {
+            faceEl->GetNodes(fnodes, GlNodeIds);
+#if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && HAS_CXX11_ALL_OF && HAS_CXX11_LAMBDA
+            if(std::all_of(fnodes, fnodes+faceEl->nNodes(),
+                           [&](int i){return (std::find(enodes,enodes+ele->numNodes(),i)!=enodes+ele->numNodes());})) {
+              //std::cerr << "removing face element " << k+1 << " from surface " << SurfEntities[iSurf]->GetId() << std::endl;
+              SurfEntities[iSurf]->RemoveFaceElement(k);
+              break;
+            }
+#else
+            std::cerr << " *** ERROR: C++11 support required in Domain::UpdateSurfaceTopology().\n"; exit(-1); 
+#endif
+          }
+        }
+      }
+    }
+    delete [] enodes;
+  }
+
+  for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
+    SurfEntities[iSurf]->Reset(&(geoSource->GetNodes()));
+    delete nodeToFaceElem[iSurf];
+  }
+  delete [] nodeToFaceElem; nodeToFaceElem = 0;
+
+  domain->InitializeDynamicContactSearch(numSub, sd);
 }
 
 void Domain::UpdateSurfaces(GeomState *geomState, int config_type) // config_type = 1 for current, 2 for predicted
@@ -2631,6 +2962,16 @@ void Domain::InitializeStaticContactSearch(MortarHandler::Interaction_Type t, in
   }
 }
 
+void Domain::ReInitializeStaticContactSearch(MortarHandler::Interaction_Type t, int numSub, SubDomain **sd)
+{
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      if(sd && numSub != 0) CurrentMortarCond->make_share(numSub, sd);
+    }
+  }
+}
+
 void Domain::UpdateSurfaces(MortarHandler::Interaction_Type t, GeomState *geomState)
 {
   for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
@@ -2674,20 +3015,14 @@ void Domain::ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs, 
   for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == t) {
-#if (MAX_MORTAR_DERIVATIVES > 0)
-      if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC && !tdenforceFlag()
-         && sinfo.probType != SolverInfo::Decomp)
-        CurrentMortarCond->CreateFFIPolygon<ActiveDouble>();
-      else
-#endif
-      CurrentMortarCond->CreateFFIPolygon<double>();
+      CurrentMortarCond->CreateFFIPolygon();
       CurrentMortarCond->AddMortarLMPCs(&lmpc, numLMPC, numCTC, nDofs, dofs);
       nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
       num_interactions += CurrentMortarCond->GetnFFI();
       CurrentMortarCond->DeleteFFIData();
     }
   }
-  if(verboseFlag) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs);
+  if(verboseFlag && nMortarCond > 0) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs);
 #ifdef HB_ACME_FFI_DEBUG
   if(sinfo.ffi_debug && num_interactions > 0) {
     char fname[16];
@@ -2729,13 +3064,7 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
     filePrint(stderr," -> time spent in the ACME search: %e s\n",time/1000);
     time = -getTime();
 #endif
-#if (MAX_MORTAR_DERIVATIVES > 0)
-    if(CurrentMortarCond->GetInteractionType()==MortarHandler::CTC && !tdenforceFlag()
-       && sinfo.probType != SolverInfo::Decomp)
-      CurrentMortarCond->CreateFFIPolygon<ActiveDouble>();
-    else
-#endif
-    CurrentMortarCond->CreateFFIPolygon<double>();
+    CurrentMortarCond->CreateFFIPolygon();
 #ifdef MORTAR_TIMINGS
     time += getTime();
     filePrint(stderr," -> time spent in building the Mortar B matrices: %e s\n",time/1000);
@@ -2751,27 +3080,17 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
       filePrint(stderr," -> time spent in creating the Mortar LMPCs: %e s\n",time/1000);
       filePrint(stderr," -> total time spent in building those Mortar LMPCs: %e s\n",time0/1000);
 #endif
-      //printLMPC();
       // count the total number of Mortar LMPCs generated
       nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
     } else
       CurrentMortarCond->AddWetFSI(&fsi, numFSI);
-
-// CONTACT DEBUG    CurrentMortarCond->DeleteFFIData();
   }
 
   time00 += getTime();
-  if(verboseFlag) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs+numFSI);
+  if(verboseFlag && nMortarCond > 0) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs+numFSI);
 #ifdef MORTAR_TIMINGS
   filePrint(stderr," ... CPU time for building mortar surface/surface interactions: %e s\n",time00/1000);
 #endif
-  //if(numFSI){
-  //  printFSI();
-  //  long memFSI = 0;
-  //  for(int iFSI=0; iFSI<numFSI; iFSI++)
-  //    memFSI += fsi[iFSI]->mem();
-  //  filePrint(stderr," ### memnory used by fsi array %14.3f Mb \n",memFSI/(1024.*1024.));
-  //}
  }
 #ifdef HB_ACME_FFI_DEBUG
  filePrint(stderr," -> Write FFI top file: FFI.top\n");
@@ -2852,7 +3171,6 @@ Domain::CreateMortarToMPC()
     }
 
     mortarToMPC = new Connectivity(nMortarCond, pointermap, target);
-    //mortarToMPC->print();
   }
 }
 // HB: return the Mortar to LMPCs connectivity and the total number of
@@ -2911,45 +3229,48 @@ Domain::initialize()
  numIDis = 0; numIDisModal = 0; numIVel = 0; numIVelModal = 0; numDirichlet = 0; numNeuman = 0; numSommer = 0;
  numComplexDirichlet = 0; numComplexNeuman = 0; numNeumanModal = 0;
  firstDiMass = 0; numIDis6 = 0; gravityAcceleration = 0;
- allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0;
- numLMPC = 0; numYMTT = 0; numCTETT = 0; numSDETAFT = 0; MidPoint = 0; temprcvd = 0;
+ allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0; com = 0;
+ numLMPC = 0; numYMTT = 0; numCTETT = 0; numSDETAFT = 0; numRUBDAFT = 0; numYSST = 0; numYSSRT = 0; MidPoint = 0; temprcvd = 0;
  heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; nbcModal = 0;
  iDis = 0; iDisModal = 0; iVel = 0; iVelModal = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
  nodeToNode = 0; dsa = 0; c_dsa = 0; cdbc = 0; cnbc = 0;
  dsaFluid = 0; c_dsaFluid = 0; allDOFsFluid = 0; dbcFluid = 0;
  elemToNodeFluid = 0; nodeToElemFluid = 0; nodeToNodeFluid = 0;
  nSurfEntity = 0; nMortarCond = 0; nMortarLMPCs= 0; mortarToMPC = 0;
- solver = 0; csolver = 0; //mftval = 0; hftval = 0;
+ solver = 0; csolver = 0;
  flExchanger = 0; outFile = 0; elDisp = 0; p_stress = 0; p_elstress = 0; stressAllElems = 0;
  previousExtForce = 0; previousAeroForce = 0; previousDisp = 0; previousCq = 0;
  temprcvd = 0; optinputfile = 0;
  nSurfEntity = 0; nMortarLMPCs = 0; mortarToMPC = 0; matrixTimers = 0;
  allDOFs = 0; haveNodes = false; nWetInterface = 0; wetInterfaces = 0;
  numFSI = 0; firstOutput = true; nodeToNode_sommer = 0; sowering = false; nDimass = 0;
- fluidDispSlosh = 0; elPotSlosh =0; elFluidDispSlosh =0; //ADDED FOR SLOSHING PROBLEM, EC, 20070723
- elFluidDispSloshAll =0; //ADDED FOR SLOSHING PROBLEM, EC, 20081101
- nodeToFsi = 0; //HB
- numCTC=0;
- output_match_in_top = false;//TG
+ maxNumDOFs = 0; maxNumDOFsFluid = 0;
+ fluidDispSlosh = 0; elPotSlosh = 0; elFluidDispSlosh = 0;
+ elFluidDispSloshAll = 0;
+ nodeToFsi = 0;
+ numCTC = 0;
+ output_match_in_top = false;
  C_condensed = 0;
- nContactSurfacePairs = 0;
+ nContactSurfacePairs = 0; maxContactSurfElems = 0;
+ nodeToFaceElem = 0;
  outFlag = 0;
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;
- p = 0;
  g_dsa = 0;
+ numSensitivity = 0; senInfo = 0;
+ runSAwAnalysis = false;   
+ numThicknessGroups = 0; numShapeVars = 0;
 }
 
 Domain::~Domain()
 {
- // delete &nodes;
- if(nodeToNode)   { delete nodeToNode;   nodeToNode=0;   }
- if(nodeToNodeFluid)   { delete nodeToNodeFluid;   nodeToNodeFluid=0;   } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(renumb.order) { delete [] renumb.order; renumb.order=0; }
- if(renumb.renum) { delete [] renumb.renum; renumb.renum=0; }
- if(renumb.xcomp) { delete [] renumb.xcomp; renumb.xcomp=0; }
- if(renumbFluid.order) { delete [] renumbFluid.order; renumbFluid.order=0; } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(renumbFluid.renum) { delete [] renumbFluid.renum; renumbFluid.renum=0; } //ADDED FOR HEV PROBLEM, EC, 20070820
+ if(nodeToNode) { delete nodeToNode; nodeToNode = 0; }
+ if(nodeToNodeFluid) { delete nodeToNodeFluid; nodeToNodeFluid = 0; }
+ if(renumb.order) { delete [] renumb.order; renumb.order = 0; }
+ if(renumb.renum) { delete [] renumb.renum; renumb.renum = 0; }
+ if(renumb.xcomp) { delete [] renumb.xcomp; renumb.xcomp = 0; }
+ if(renumbFluid.order) { delete [] renumbFluid.order; renumbFluid.order = 0; }
+ if(renumbFluid.renum) { delete [] renumbFluid.renum; renumbFluid.renum = 0; }
  if(gravityAcceleration) { delete [] gravityAcceleration; gravityAcceleration = 0; }
  if(matrixTimers) { delete matrixTimers; matrixTimers = 0; }
  if(allDOFs) { delete allDOFs; allDOFs = 0; }
@@ -2957,16 +3278,15 @@ Domain::~Domain()
  if(c_dsa) { delete c_dsa; c_dsa = 0; }
  if(elemToNode) { delete elemToNode; elemToNode = 0; }
  if(nodeToElem) { delete nodeToElem; nodeToElem = 0; }
- if(allDOFsFluid) { delete allDOFsFluid; allDOFsFluid = 0; } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(dsaFluid) { delete dsaFluid; dsaFluid = 0; } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(c_dsaFluid) { delete c_dsaFluid; c_dsaFluid = 0; } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(elemToNodeFluid) { delete elemToNodeFluid; elemToNodeFluid = 0; } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(nodeToElemFluid) { delete nodeToElemFluid; nodeToElemFluid = 0; } //ADDED FOR HEV PROBLEM, EC, 20070820
+ if(allDOFsFluid) { delete allDOFsFluid; allDOFsFluid = 0; }
+ if(dsaFluid) { delete dsaFluid; dsaFluid = 0; }
+ if(c_dsaFluid) { delete c_dsaFluid; c_dsaFluid = 0; }
+ if(elemToNodeFluid) { delete elemToNodeFluid; elemToNodeFluid = 0; }
+ if(nodeToElemFluid) { delete nodeToElemFluid; nodeToElemFluid = 0; }
  if(mortarToMPC) { delete mortarToMPC; mortarToMPC = 0; }
  if(dbc) { delete [] dbc; dbc = 0; }
  if(nbc) { delete [] nbc; nbc = 0; }
  if(nbcModal) { delete [] nbcModal; nbcModal = 0; }
- //if(cvbc) { delete [] cvbc; cvbc = 0; }
  if(iDis) { delete [] iDis; iDis = 0; }
  if(iDisModal) { delete [] iDisModal; iDisModal = 0; }
  if(iVel) { delete [] iVel; iVel = 0; }
@@ -2978,17 +3298,16 @@ Domain::~Domain()
  if(weight) { delete weight; weight = 0; }
  if(elDisp) { delete elDisp; elDisp = 0; }
  if(elTemp) { delete elTemp; elTemp = 0; }
- if(fluidDispSlosh) { delete fluidDispSlosh; fluidDispSlosh = 0; } //ADDED FOR SLOSHING PROBLEM, EC, 20070723
- if(elPotSlosh) { delete elPotSlosh; elPotSlosh = 0; }  //ADDED FOR SLOSHING PROBLEM, EC, 20070723
- if(elFluidDispSlosh) { delete elFluidDispSlosh; elFluidDispSlosh = 0; } //ADDED FOR SLOSHING PROBLEM, EC, 20070723
+ if(fluidDispSlosh) { delete fluidDispSlosh; fluidDispSlosh = 0; }
+ if(elPotSlosh) { delete elPotSlosh; elPotSlosh = 0; }
+ if(elFluidDispSlosh) { delete elFluidDispSlosh; elFluidDispSlosh = 0; }
  if(elstress) { delete elstress; elstress = 0; }
  if(elweight) { delete elweight; elweight = 0; }
  if(p_stress) { delete p_stress; p_stress = 0; }
  if(p_elstress) { delete p_elstress; p_elstress = 0; }
  if(stressAllElems) { delete stressAllElems; stressAllElems = 0; }
  if(claw) { delete claw; claw = 0; }
- //if(mftval) { delete mftval; mftval = 0; }
- //if(hftval) { delete hftval; hftval = 0; }
+ if(com) { delete com; com = 0; }
  if(firstDiMass) { delete firstDiMass; firstDiMass = 0; }
  if(previousExtForce) { delete previousExtForce; previousExtForce = 0; }
  if(previousAeroForce) { delete previousAeroForce; previousAeroForce = 0; }
@@ -2999,20 +3318,21 @@ Domain::~Domain()
  delete &nodes;
  if(wetInterfaces) { delete wetInterfaces; wetInterfaces = 0; }
  if(nodeToNode_sommer) { delete nodeToNode_sommer; nodeToNode_sommer = 0; }
- if(nodeToFsi) { delete nodeToFsi; nodeToFsi = 0; } //HB
- //HB: try to avoid memory leaks but trouble with ~BlockAlloc() ...
+ if(nodeToFsi) { delete nodeToFsi; nodeToFsi = 0; }
  for(int i=0; i<SurfEntities.max_size(); i++)
    if(SurfEntities[i]) { SurfEntities[i]->~SurfaceEntity(); SurfEntities[i] = 0; }
- for(int i=0; i<nMortarCond; ++i) // HB
+ for(int i=0; i<nMortarCond; ++i)
    if(MortarConds[i]) delete MortarConds[i];
- for(int i=0; i<numLMPC; ++i) // HB
+ for(int i=0; i<numLMPC; ++i)
    if(lmpc[i]) delete lmpc[i];
  if(nodeTable) delete [] nodeTable;
+ if(flExchanger) delete flExchanger;
  if(MpcDSA) delete MpcDSA; if(nodeToNodeDirect) delete nodeToNodeDirect;
- if(p) delete p;
  for(int i=0; i<contactSurfElems.size(); ++i)
    packedEset.deleteElem(contactSurfElems[i]);
  if(g_dsa) delete g_dsa;
+ if(senInfo) delete [] senInfo;
+ if(aggregatedStress) delete aggregatedStress;
 }
 
 #include <Element.d/Helm.d/HelmElement.h>
@@ -3119,7 +3439,7 @@ Domain::getAllWetInterfaceNodes(int &count)
     return allWetInterfaceNodes;
   }
   else {
-    //cerr << " *** WARNING: No Wet Interfaces have been defined \n";
+    //std::cerr << " *** WARNING: No Wet Interfaces have been defined \n";
     return 0;
   }
 }
@@ -3194,8 +3514,8 @@ Domain::computeCoupledScaleFactors()
   cscale_factor = omega2*coupledScaling; // RADEK
 
   cscale_factor2 = cscale_factor*coupledScaling;
-  //cerr << "coupledScaling = " << coupledScaling << ", cscale_factor = " << cscale_factor
-  //     << ", cscale_factor2 = " << cscale_factor2 << endl;
+  //std::cerr << "coupledScaling = " << coupledScaling << ", cscale_factor = " << cscale_factor
+  //     << ", cscale_factor2 = " << cscale_factor2 << std::endl;
 }
 
 void
@@ -3218,12 +3538,6 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  // using the nodal coordinates
  int mode = (_mode > -1) ? _mode : domain->solInfo().contact_mode;  // 0 -> normal tied + tangents free, 1 -> normal contact + tangents free
                                                                     // 2 -> normal+tangents tied, 3 -> normal contact + tied tangents
-/*CoordSet &cs = geoSource->GetNodes();
- double normal[3] = { cs[n2]->x - cs[n1]->x, cs[n2]->y - cs[n1]->y, cs[n2]->z - cs[n1]->z };
- double gap = std::sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]*normal[2]);
- normalize(normal);
- cerr << n1+1 << " " << n2+1 << "  " << std::setprecision(12) << -normal[0] << " " << -normal[1] << " " << -normal[2] << " GAP " << std::setprecision(2) << -gap << endl;
-*/
  int lmpcnum = 0;
 
  // normal constraint
@@ -3254,7 +3568,6 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  if(mode == 1 || mode == 3) _CTC->setType(mpc::Inequality);
  _CTC->setSource(mpc::NodalContact);
  addLMPC(_CTC,false);
- if(_CTC->type == 1) numCTC++; // inequality constraint
 
  // PJSA 7-12-2007 tangential constraints ... note this may lead to redundant constraints (singularity in CCt)
  // for 2D you need to set spacedim 2 in the input file, also it is currently assumed that 2D model is defined in XY plane
@@ -3294,31 +3607,11 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  return numCTC;
 }
 
-/*
-void
-Domain::addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], double gap_vector[3], int itype)
+int
+Domain::getNumCTC()
 {
-  // type = 0: generate lmpcs for tied nodes with gap vector using global cartesian coordinate frame
-  //           note: addNodalCTC can be used to tie nodes in normal and two tangential directions, however only the normal gap is specified therefore tangential gaps are always zero
-  // type = 1: generate lmpcs for normal contact
-  if(itype == 0) { // tie
-    for(int i=0; i<solInfo().solvercntl->fetiInfo.spaceDimension; ++i) {
-      LMPCons *_MPC = new LMPCons(lmpcnum+i, gap_vector[i]);
-      LMPCTerm *term1 = new LMPCTerm(n1, i, 1.0);
-      _MPC->addterm(term1);
-      LMPCTerm *term2 = new LMPCTerm(n2, i, -1.0);
-      _MPC->addterm(term2);
-      addLMPC(_MPC,true);
-    }
-  }
-  else if(itype == 1) { // normal contact
-    double norm = sqrt(face_normal[0]*face_normal[0]+face_normal[1]*face_normal[1]+face_normal[2]*face_normal[2]);
-    if(norm == 0.0) cerr << " *** ERROR in Domain::addNodeToNodeLMPCs, face_normal has length 0.0." << endl;
-    double gap = (face_normal[0]*gap_vector[0] + face_normal[1]*gap_vector[1] + face_normal[2]*gap_vector[2])/norm;
-    addNodalCTC(n1, n2, face_normal[0], face_normal[1], face_normal[2], gap, true, 1, true, lmpcnum);
-  }
+  return numCTC + geoSource->getNumConstraintElementsIeq();
 }
-*/
 
 void
 Domain::addDirichletLMPCs(int _numDirichlet, BCond *_dbc)
@@ -3347,7 +3640,6 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
     }
   }
 }
-
 
 void Domain::computeMatchingWetInterfaceLMPC() {
 
@@ -3409,7 +3701,7 @@ int Domain::glToPackElem(int e)
 }
 
 void
-Domain::ProcessSurfaceBCs()
+Domain::ProcessSurfaceBCs(int topFlag)
 {
   BCond *surface_dbc;
   int numSurfaceDirichletBC = geoSource->getSurfaceDirichletBC(surface_dbc);
@@ -3470,6 +3762,8 @@ Domain::ProcessSurfaceBCs()
     }
   }
 
+  if(topFlag >= 0) return;
+
   PressureBCond *surface_pres;
   int numSurfacePressure = geoSource->getSurfacePressure(surface_pres);
   int nEle = geoSource->getElemSet()->last();
@@ -3480,7 +3774,8 @@ Domain::ProcessSurfaceBCs()
       int SurfId = SurfEntities[j]->ID();
       if(SurfId-1 == surface_pres[i].surfid) {
         FaceElemSet &faceElemSet = SurfEntities[j]->GetFaceElemSet();
-        for(int iele = 0; iele < faceElemSet.last(); ++iele) {
+        int last = (SurfEntities[j]->GetIsShellFace() && tdenforceFlag()) ? faceElemSet.last()/2 : faceElemSet.last();
+        for(int iele = 0; iele < last; ++iele) {
           int nVertices = faceElemSet[iele]->nVertices();
           if(nVertices == 3 || nVertices == 4 || nVertices == 6 || nVertices == 8 || nVertices == 9
              || nVertices == 12 || nVertices == 10) {
@@ -3497,11 +3792,13 @@ Domain::ProcessSurfaceBCs()
                case 12: type = 20; break;
                case 10: type = 21; break;
              }
-             addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes, &surface_pres[i]);
+             PressureBCond *pbc = new PressureBCond(surface_pres[i]);
+             pbc->elnum = -1;
+             addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes, pbc);
              delete [] nodes;
           }
           else {
-            cerr << " *** ERROR: can't set pressure for surface " << SurfId << " element " << iele << " nVertices = " << nVertices << endl;
+            std::cerr << " *** ERROR: can't set pressure for surface " << SurfId << " element " << iele << " nVertices = " << nVertices << std::endl;
             continue;
           }
         }
@@ -3519,6 +3816,12 @@ Domain::ProcessSurfaceBCs()
       if(int(surface_cfe[i].val) == efd.elnum) {
         ef = &efd.frame;
         for(int k=0; k<3; ++k) for(int l=0; l<3; ++l) frame_data[3*k+l] = efd.frame[k][l];
+        for(int k=0; k<3; ++k) {
+          std::cerr << "\nprint eframe==";
+          for(int l=0; l<3; ++l)
+            std::cerr << " " << efd.frame[k][l];
+        }
+        std::cerr << std::endl;  
         break;
       }
     }
@@ -3552,6 +3855,8 @@ Domain::ProcessSurfaceBCs()
               nEle++;
             }
           } break;
+          default :
+            break;
         }
       }
     }
@@ -3594,7 +3899,7 @@ void Domain::setNewProperties(int s)
                newProp->kz = it->second.randomProperties[0].mean;
               break;
             default:
-               cerr << "case " << it->second.randomProperties[0].rprop << " not handled\n";
+               std::cerr << "case " << it->second.randomProperties[0].rprop << " not handled\n";
               break;
           }
 
@@ -3636,7 +3941,7 @@ void Domain::setNewProperties(int s)
                else newProp->kz = geoSource->group[s-1].randomProperties[0].std_dev/sqrt(2.0);
               break;
             default:
-               cerr << "case " << geoSource->group[s-1].randomProperties[0].rprop << " not handled\n";
+               std::cerr << "case " << geoSource->group[s-1].randomProperties[0].rprop << " not handled\n";
               break;
           }
           elems_copy[jele]->setProp(newProp,true);
@@ -3684,7 +3989,7 @@ void Domain::assignRandMat()  // Equivalent to the non-intrusive version, but us
               newProp->kz = it->second.randomProperties[0].mean;
              break;
            default:
-              cerr << "case " << it->second.randomProperties[0].rprop << " not handled\n";
+              std::cerr << "case " << it->second.randomProperties[0].rprop << " not handled\n";
              break;
          }
          packedEset[jele]->setProp(newProp,true);
@@ -3723,7 +4028,7 @@ void Domain::assignRandMat()  // Equivalent to the non-intrusive version, but us
                else newProp->kz = newProp->kz + geoSource->group[s-1].randomProperties[0].std_dev*(pow(xitemp[s-1],2)-1)/sqrt(2.0);
               break;
             default:
-               cerr << "case " << geoSource->group[s-1].randomProperties[0].rprop << " not handled\n";
+               std::cerr << "case " << geoSource->group[s-1].randomProperties[0].rprop << " not handled\n";
               break;
           }
           packedEset[jele]->setProp(newProp,true);
@@ -3821,7 +4126,7 @@ Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
       j++; 
     }
   }
-  //cerr << "deleted " << numLMPC-j << " mpcs, ";
+
   numLMPC = j;
   if(mortarToMPC && (s == mpc::ContactSurfaces || s == mpc::TiedSurfaces)) {
     delete mortarToMPC;
@@ -3832,51 +4137,49 @@ Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
 void
 Domain::UpdateContactSurfaceElements(GeomState *geomState)
 {
-  // copy the lagrange multipliers from geomState
-  std::vector<double> mu;
-  if(sinfo.lagrangeMult) {
-    for(int i = 0; i < numLMPC; ++i) {
-      if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
-        mu.push_back(geomState->getMultiplier(lmpc[i]->id));
-      }
-    }
-    geomState->clearMultiplierNodes();
-  }
+  SPropContainer &sProps = geoSource->getStructProps();
+  std::map<int,int> &mortar_attrib = geoSource->getMortarAttributes();
 
-  if(!p) {
-    p = new StructProp(); 
-    p->lagrangeMult = sinfo.lagrangeMult;
-    p->initialPenalty = p->penalty = sinfo.penalty;
-    p->type = StructProp::Constraint;
-    p->constraint_hess = sinfo.constraint_hess;
-    p->constraint_hess_eps = sinfo.constraint_hess_eps;
+  // copy the Lagrange multipliers from geomState
+  std::map<std::pair<int,int>,double> mu;
+  for(int i = 0; i < numLMPC; ++i) {
+    if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
+      if(sProps[mortar_attrib[lmpc[i]->id.first]].lagrangeMult)
+        mu.insert(std::pair<std::pair<int,int>,double>(lmpc[i]->id, 0.0));
+    }
   }
+  geomState->getMultipliers(mu);
+  geomState->clearMultiplierNodes();
+
   int count = 0;
   int nEle = packedEset.last();
   int count1 = 0;
   int nNode = geomState->numNodes();
+  std::map<std::pair<int,int>,double>::iterator it1 = mu.begin(); 
   for(int i = 0; i < numLMPC; ++i) {
     if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
       if(count < contactSurfElems.size()) { // replace
-        //cerr << "replacing element " << contactSurfElems[count] << " with lmpc " << i << endl;
+        //std::cerr << "replacing element " << contactSurfElems[count] << " with lmpc " << i << std::endl;
         packedEset.deleteElem(contactSurfElems[count]);
         packedEset.mpcelemadd(contactSurfElems[count], lmpc[i]); // replace 
-        packedEset[contactSurfElems[count]]->setProp(p);
-        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) { // i.e. lagrange multiplier
+        packedEset[contactSurfElems[count]]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
+        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) { // i.e. Lagrange multiplier
           int in[1] = { nNode++ };
           packedEset[contactSurfElems[count]]->setInternalNodes(in);
-          geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
+          geomState->addMultiplierNode(it1->first, it1->second);
+          it1++;
         }
         count1++;
       }
       else { // new
-        //cerr << "adding lmpc " << i << " to elemset at index " << nEle << endl;
+        //std::cerr << "adding lmpc " << i << " to elemset at index " << nEle << std::endl;
         packedEset.mpcelemadd(nEle, lmpc[i]); // new
-        packedEset[nEle]->setProp(p);
+        packedEset[nEle]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
         if(packedEset[nEle]->numInternalNodes() == 1) {
           int in[1] = { nNode++ };
           packedEset[nEle]->setInternalNodes(in);
-          geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
+          geomState->addMultiplierNode(it1->first, it1->second);
+          it1++;
         }
         contactSurfElems.push_back(nEle);
         nEle++;
@@ -3886,17 +4189,16 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   }
   int count2 = 0;
   while(count < contactSurfElems.size()) {
-    //cerr << "deleting elemset " << contactSurfElems.back() << endl;
+    //std::cerr << "deleting elemset " << contactSurfElems.back() << std::endl;
     packedEset.deleteElem(contactSurfElems.back());
     contactSurfElems.pop_back();
     count2++;
   }
   packedEset.setEmax(nEle-count2); // because element set is packed
-  //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
+  //std::cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << std::endl;
   numele = packedEset.last(); 
   numnodes = geomState->numNodes();
 }
-
 
 void Domain::updateSDETAF(StructProp* p, double omega) {
  if (p->etaDamp<0.0 && p->betaDamp==0.0) {
@@ -3921,3 +4223,106 @@ void Domain::updateSDETAF(StructProp* p, double omega) {
  }
 }
 
+void
+Domain::setIncludeStressNodes()
+{
+  for(int iele=0; iele<numele; iele++) {
+    int NodesPerElement = elemToNode->num(iele);
+    for(int k=0; k<NodesPerElement; ++k) {
+      int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+      int inode(0);
+      bool isIn = checkIsInStressNodes(node,inode); 
+      if(isIn) { 
+        packedEset[iele]->setIncludeStressNodes(isIn);
+        break;
+      }
+    }
+  }
+}
+
+bool Domain::checkIsInStressNodes(int node, int &iNode)
+{
+  for(int inode=0; inode<stressNodes.size(); ++inode) {
+    if(stressNodes[inode] == node) { iNode = inode; return true; }
+  }
+  
+  return false;
+}
+
+
+void Domain::updateRUBDAFT(StructProp* p, double omega) {
+#ifdef USE_EIGEN3
+ if (p->eta_E<0.0 && p->rubDampTable<0) {
+ // First time
+   int tid = -int(p->eta_E);
+   int i;
+   for(i = 0; i < numRUBDAFT; ++i)
+      if (rubdaft[i]->id == tid) break;
+   if (i==numRUBDAFT) { 
+     fprintf(stderr,"Rubber damping table %d does not exist.\n",tid);
+     exit(-1);
+   }
+   p->rubDampTable = i;
+ }
+ if (p->rubDampTable>=0) {
+   double f = omega/(2.0*M_PI);
+   Eigen::Vector4d v, dv;
+   int tid = p->rubDampTable;
+   rubdaft[tid]->getValAndSlopeAlt(f, &v, &dv);
+   p->E0 = v[0]-f*dv[0];
+   p->eta_E = v[1]-f*dv[1];
+   p->mu0 = v[2]-f*dv[2];
+   p->eta_mu = v[3]-f*dv[3];
+   p->dE = dv[0]/(2*M_PI);
+   p->deta_E = dv[1]/(2*M_PI);
+   p->dmu = dv[2]/(2*M_PI);
+   p->deta_mu = dv[3]/(2*M_PI);
+ }
+#endif
+}
+
+void Domain::buildSensitivityInfo()
+{
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+  int numOutInfo = geoSource->getNumOutInfo();
+  for(int i=0; i<numOutInfo; ++i) {
+    if(oinfo[i].type == OutputInfo::WeigThic) {
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;       addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::WeigShap) {
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;           addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::AGstThic) {
+      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTthickness;     addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::AGstShap) {
+      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTshape;         addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::VMstThic) {
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;     addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::VMstShap) {
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;         addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::VMstMach) {
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTmach;          addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::VMstAlpha) {
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTalpha;         addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::VMstBeta) {
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTbeta;          addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::DispThic) {
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTthickness; addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::DispShap) {
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTshape;     addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::DispMach) {
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTmach;      addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::DispAlph) {
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTalpha;     addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::DispBeta) {
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTbeta;      addSensitivity(oinfo[i]);
+    }
+    numSensitivity++;
+  }
+}
+
+void Domain::addSensitivity(OutputInfo &oinfo) {
+  oinfo.sentype = 1;
+  senInfo[numSensitivity].surface = oinfo.surface;
+  if(oinfo.type != OutputInfo::WeigThic && oinfo.type != OutputInfo::WeigShap) {
+    runSAwAnalysis = true;
+  }
+}

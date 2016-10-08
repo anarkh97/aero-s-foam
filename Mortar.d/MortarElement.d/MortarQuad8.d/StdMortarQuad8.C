@@ -29,38 +29,60 @@ StdMortarQuad8::StdMortarQuad8(double area_, FaceElement* FaceElem)
   SetPtrMasterFace(FaceElem);
 }
 
-
 // -----------------------------------------------------------------------------------------------------
 //                                            GET METHODS
 // -----------------------------------------------------------------------------------------------------
 int
-StdMortarQuad8::nNodes() { return(8); }
+StdMortarQuad8::nNodes() { return 8; }
 
 int
-StdMortarQuad8::nMortarShapeFct() { return(8); }
+StdMortarQuad8::nMortarShapeFct() { return 8; }
 
 // -----------------------------------------------------------------------------------------------------
 //                                      MAPPING & SHAPE FUNCTION METHODS
 // -----------------------------------------------------------------------------------------------------
 // LOCAL METHODS
 // -------------
+#if !defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300
+template<>
 void
-StdMortarQuad8::GetStdMortarShapeFct(double* Shape, double* m)
+StdMortarQuad8::GetShapeFctVal(double* Shape, double* m)
 {
-   GetPtrMasterFace()->GetShapeFctVal(Shape, m);
+  GetPtrMasterFace()->GetShapeFctVal(Shape, m);
 }
 
+template<>
 void
-StdMortarQuad8::GetShapeFct(double* Shape, double* m)
-{ 
-   GetStdMortarShapeFct(Shape, m); 
+StdMortarQuad8::GetdShapeFct(double* dShapex, double* dShapey, double* m)
+{
+  GetPtrMasterFace()->GetdShapeFct(dShapex, dShapey, m);
 }
+
+template<>
+void
+StdMortarQuad8::Getd2ShapeFct(double* d2Shapex, double* d2Shapey, double* d2Shapexy, double* m)
+{
+  GetPtrMasterFace()->Getd2ShapeFct(d2Shapex, d2Shapey, d2Shapexy, m);
+}
+#endif
 
 // ---------------------------------
 // IMPLEMENTATION OF VIRTUAL METHODS
 // ---------------------------------
 void
 StdMortarQuad8::GetShapeFctVal(double* Shape, double* m)
-{ 
-   GetStdMortarShapeFct(Shape, m); 
+{
+  GetShapeFctVal<double>(Shape, m);
+}
+
+void
+StdMortarQuad8::GetdShapeFct(double* dShapex, double* dShapey, double* m)
+{
+  GetdShapeFct<double>(dShapex, dShapey, m);
+}
+
+void
+StdMortarQuad8::Getd2ShapeFct(double* d2Shapex, double* d2Shapey, double* d2Shapexy, double* m)
+{
+  Getd2ShapeFct<double>(d2Shapex, d2Shapey, d2Shapexy, m);
 }

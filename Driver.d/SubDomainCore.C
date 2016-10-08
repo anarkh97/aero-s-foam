@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <algorithm>
 #include <Driver.d/SubDomain.h>
 #include <Driver.d/CornerMaker.h>
 
@@ -24,9 +25,9 @@ getJacobi(double *kappa, double * mu, FullSquareMatrix &xx,
     for(i=1; i<subSpaceSize; ++i) {
       if(eigVal[i] < eigVal[i-1] ) {
         is = 1;
-        mySwap( eigVal[i-1], eigVal[i] );
+        std::swap( eigVal[i-1], eigVal[i] );
         for(j=0; j<subSpaceSize; ++j) {
-          mySwap( xx[i][j], xx[i-1][j] );
+          std::swap( xx[i][j], xx[i-1][j] );
         }
       }
     }

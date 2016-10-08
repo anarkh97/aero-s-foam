@@ -97,7 +97,7 @@ void execParal3R(int n, TA *, void (TB::*f)(int, TC&, TD&, TE*), TC&, TD&, TE*);
 template <class TA, class TB, class TC, class TD, class TE> 
 void execParal3R(int n, TA *, void (TB::*f)(int, TC&, TD&, TE&), TC&, TD&, TE&);
 
-// 1 obj, 1 reference  & 1 pointer arguments execute in parallel
+// 1 obj, 1 reference & 1 pointer arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE>
 void execParal3R(int n, TA *, void (TB::*f)(int, TC, TD&, TE*), TC, TD&, TE*);
 
@@ -109,17 +109,21 @@ void execParal3R(int n, TA *, void (TB::*f)(int, TC&, TD&, TE), TC&, TD&, TE);
 template <class TA, class TB, class TC, class TD, class TE>
 void execParal3R(int n, TA *, void (TB::*f)(int, TC&, TD, TE), TC&, TD, TE);
 
-// 1 reference, 1 obj  & 1 pointer arguments execute in parallel
+// 1 reference, 1 obj & 1 pointer arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE>
 void execParal3R(int n, TA *, void (TB::*f)(int, TC&, TD, TE*), TC&, TD, TE*);
 
-// 1 reference, 1 pointer  & 1 obj arguments execute in parallel
+// 1 reference, 1 pointer & 1 obj arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE>
 void execParal3R(int n, TA *, void (TB::*f)(int, TC&, TD*, TE), TC&, TD*, TE);
 
-// 1 reference, 1 object  & 1 reference arguments execute in parallel
+// 1 reference, 1 object & 1 reference arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE>
 void execParal3R(int n, TA *, void (TB::*f)(int, TC&, TD, TE&), TC&, TD, TE&);
+
+// 2 pointer & 1 object arguments execute in parallel
+template <class TA, class TB, class TC, class TD, class TE>
+void execParal3R(int n, TA *, void (TB::*f)(int, TC*, TD*, TE), TC*, TD*, TE);
 
 // 1 reference & 2 pointer arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE>
@@ -128,6 +132,10 @@ void execParal3R(int n, TA *, void (TB::*f)(int, TC&, TD*, TE*), TC&, TD*, TE*);
 // 2 pointer and one object arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE>
 void execParal3R(int n, TA *, void (TB::*f)(int, TC*, TD, TE*), TC*, TD, TE*);
+
+// 3 pointer objects arguments execute in parallel
+template <class TA, class TB, class TC, class TD, class TE>
+void execParal3R(int n, TA *, void (TB::*f)(int, TC*, TD*, TE*), TC*, TD*, TE*);
 
 // 2 pointer and one object arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE>
@@ -250,6 +258,10 @@ void execParal6R(int n, TA *, void (TA::*f)(int, TB&, TC&, TD, TE, TG&, TH&), TB
 template <class TA, class TB, class TC, class TD, class TE, class TG, class TH>
 void execParal6R(int n, TA *, void (TA::*f)(int, TB&, TC, TD, TE, TG**, TH**), TB&, TC, TD, TE, TG**, TH**);
 
+// 3 reference, 2 object and 1 pointer arguments execute in parallel
+template <class TA, class TB, class TC, class TD, class TE, class TG, class TH>
+void execParal6R(int n, TA *, void (TA::*f)(int, TB&, TC&, TD&, TE, TG*, TH), TB&, TC&, TD&, TE, TG*, TH);
+
 // seven reference arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI>
 void execParal7R(int n, TA *, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG&, TH&, TI&), TB&, TC&, TD&, TE&, TG&, TH&, TI&);
@@ -262,9 +274,17 @@ void execParal7R(int n, TA *, void (TA::*f)(int, TB&, TC, TD, TE, TG**, TH**, TI
 template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI>
 void execParal7R(int n, TA *, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG&, TH, TI), TB&, TC&, TD&, TE&, TG&, TH, TI);
 
+// various reference, object and pointer arguments execute in parallel
+template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI>
+void execParal7R(int n, TA *, void (TA::*f)(int, TB&, TC&, TD, TE*, TG*, TH*, TI*), TB&, TC&, TD, TE*, TG*, TH*, TI*);
+
 // five reference and three object arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI, class TJ>
 void execParal8R(int n, TA *, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG&, TH, TI, TJ), TB&, TC&, TD&, TE&, TG&, TH, TI, TJ);
+
+// various reference, pointer and object arguments execute in parallel
+template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI, class TJ>
+void execParal8R(int n, TA *, void (TA::*f)(int, TB*, TC&, TD*, TE, TG*, TH*, TI*, TJ*), TB*, TC&, TD*, TE, TG*, TH*, TI*, TJ*);
 
 // four reference and five object arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI, class TJ, class TK>

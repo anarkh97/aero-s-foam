@@ -2,6 +2,7 @@
 #define ROM_DISTRELEMENTSAMPLINGDRIVER_H
 
 #include "DriverInterface.h"
+#include "ParallelSparseNonNegativeLeastSquaresSolver.h"
 #include <memory>
 #include "BasisId.h"
 
@@ -13,13 +14,17 @@ namespace Rom {
 class DistrElementSamplingDriver : public MultiDomainDynam, public DriverInterface {
 public:
   virtual void solve();
+  void computeSolution(Vector *solutions, double relativeTolerance, bool verboseFlag = true);
   
   DistrElementSamplingDriver(Domain *, Communicator *);
   const DistrInfo& vectorSize() const;
 
 private:
   Communicator *comm_;
+  ParallelSparseNonNegativeLeastSquaresSolver *solver_;
+
   void buildDomainCdsa();
+  void subMakeMass(int isub, SparseMatrix **subM);
 };
 
 } /* end namespace Rom */

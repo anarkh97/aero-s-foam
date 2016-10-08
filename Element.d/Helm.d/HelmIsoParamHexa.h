@@ -34,13 +34,7 @@ public:
 	void addFaces(PolygonSet *pset);
 
         PrioInfo examine(int sub, MultiFront *mf);
-
-	double weight() {
-	  return order;
-	}
-	
-	double trueWeight() {
-	  return weight();
-	}
+        int nDecFaces() { return 6;}
+        int getDecFace(int iFace, int *fn);
 };
 #endif

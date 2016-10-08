@@ -1,6 +1,17 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
 #include <Element.d/Rigid.d/RigidBeam.h>
+#include <Corotational.d/GeomState.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Math.d/Vector.h>
+#include <Utils.d/dbg_alloca.h>
+#include <Utils.d/linkfc.h>
+
+extern "C" {
+  void _FORTRAN(elemaslbt)(int&, double*, double*, double*, double*);
+  void _FORTRAN(elefbc3dbrkshl2)(int&, double*, double*, double*, double*);
+}
+
 
 RigidFourNodeShell::RigidFourNodeShell(int *_nn)
  : SuperElement(true)
@@ -15,15 +26,6 @@ RigidFourNodeShell::RigidFourNodeShell(int *_nn)
     subElems[i] = new RigidBeam(indices);
   }
   pbc = 0;
-}
-
-#include <Utils.d/dbg_alloca.h>
-#include <Corotational.d/GeomState.h>
-#include <Element.d/NonLinearity.d/ExpMat.h>
-
-extern "C" {
-  void _FORTRAN(elemaslbt)(int&, double*, double*, double*, double*);
-  void _FORTRAN(elefbc3dbrkshl2)(int&, int&, double*, double*, double*, double*);
 }
 
 double
@@ -116,6 +118,7 @@ void
 RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                          GeomState *geomState, int cflg, double time)
 {
+  if(!pbc) { elPressureForce = 0.; return; }
   int opttrc = 0; // 0 : pressure
                   // 1 : traction
   int optele = 3, ndime = 3;
@@ -139,7 +142,7 @@ RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
   double trac[3] = { -pressure, 0, 0 };
   double *efbc = (double*) dbg_alloca(sizeof(double)*nnodes*ndime); // translations only
 
-  _FORTRAN(elefbc3dbrkshl2)(opttrc, optele, ecord, edisp, trac, efbc);
+  _FORTRAN(elefbc3dbrkshl2)(opttrc, ecord, edisp, trac, efbc);
 
   for(int i = 0; i < nnodes; ++i)
     for(int j = 0; j < ndime; ++j)

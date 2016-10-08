@@ -7,7 +7,7 @@
 * AND PICKS THE MAXIMUN AS OUTPUT
 * 
 *-------------------------------------------------------------------*
-*  CALLED BY : MDERIV.F   
+*  CALLED BY : Membrane.C 
 *
 *  SUBROUTINES CALLED:
 *                      ROTATION
@@ -20,7 +20,7 @@ C.... DECLARE ALL GLOBAL VARIABLES
 C
 C.... INTEGER CONSTANTS
 C 
-        integer msize,maxstr,maxgus,elm,strainFlg 
+        integer msize,maxstr,maxgus,elm,strainFlg
 C
 C.... REAL CONSTANTS
 C
@@ -41,6 +41,7 @@ C
         double precision cb,x21,y21,z21,x32,y32,z32,x13,y13,z13
         double precision rx,ry,rz,bx,by,bz,rlr,rlb,bpr,area,ylr,zlr
         double precision ycg,xcg,zcg,xlcg,ylcg,zlcg,t
+        double precision trM(6,6)
         double precision rmem(18,3)
         double precision rmx,rmy,rmxy,rnx,rny,rnxy,ebar
         double precision rmmx,rmmy,rmmxy,rnnx,rnny,rnnxy,sbf
@@ -215,7 +216,7 @@ C
          str(4) = 0.5*rnxy
          str(5) = -(nu/(1.0-nu))*(rnx + rny)
          str(6) = 0.0
-         call transform(xp,yp,zp,xg,yg,zg,str)
+         call transform(xp,yp,zp,xg,yg,zg,str,trM)
          stress(elm,1,1) = str(1)
          stress(elm,1,2) = str(1)
          stress(elm,1,3) = str(1)
@@ -260,7 +261,7 @@ C
 C
 C ...  COMPUTE VON MISES STRESS RESULTANT
 C
-       call vonmis(rmmx,rmmy,rmmxy,rnnx,rnny,rnnxy,t,sbf)
+       call vonmis(rmmx,rmmy,rmmxy,rnnx,rnny,rnnxy,t,sbf,1)
 C
 C ... COMPUTE SIGMAXX SIGMAYY AND SIGMAXY
 C
@@ -271,7 +272,7 @@ C
       str(5) = 0.0
       str(6) = 0.0
 
-      call transform(xp,yp,zp,xg,yg,zg,str)
+      call transform(xp,yp,zp,xg,yg,zg,str,trM)
 
       stress(elm,1,1) = str(1)
       stress(elm,1,2) = str(1)
@@ -297,7 +298,7 @@ C
       stress(elm,6,2) = str(6)
       stress(elm,6,3) = str(6)
 
-      stress(elm,7,1) = sbf 
+      stress(elm,7,1) = sbf
       stress(elm,7,2) = sbf
       stress(elm,7,3) = sbf
 

@@ -210,7 +210,7 @@ class ComplexBCond;
 
 class ConstrainedDSA : public DofSetArray {
   public:
-    ConstrainedDSA(DofSetArray &, int, BCond *);
+    ConstrainedDSA(DofSetArray &, int, BCond *, int = 0, ComplexBCond * = 0);
     ConstrainedDSA(DofSetArray &, DofSetArray &, int, BCond *, int);
     ConstrainedDSA(DofSetArray &, int, BCond *, int *bc);
     ConstrainedDSA(DofSetArray &, int, ComplexBCond *, int *bc);

@@ -27,7 +27,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     double prmdmp[10]; // damping control parameters
     int ngqpt[3]; // ngqpt[0] = gq rule for regular element
                   // ngqpt[1] = gq rule for enriched element
-                  // ngqpt[3] = gq rule for through thickness
+                  // ngqpt[2] = gq rule for through thickness
     int ngqpt4; // gq rule for bc or cohesive force integration
     int nndof;
     int ndime;
@@ -63,15 +63,16 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     FullSquareMatrix stiffness(CoordSet&, double* d, int flg = 1);
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
     double getMass(CoordSet& cs);
+    double getMassThicknessSensitivity(CoordSet& cs);
+    
     void getGravityForce(CoordSet&, double* gravity, Vector&, int gravflg,
                          GeomState *gs);
+    void getGravityForceThicknessSensitivity(CoordSet&, double* gravity, Vector&, int gravflg,
+                                             GeomState *gs);
     void getVonMises(Vector& stress, Vector& weight, CoordSet& cs, 
                      Vector& elDisp,  int strInd, int surface = 0,
                      double *ndTemps = 0, double ylayer = 0.0,
                      double zlayer = 0.0, int avgnum = 0);
-    void getAllStress(FullM& stress, Vector& weight, CoordSet& cs,
-                      Vector& elDisp, int strInd, int surface = 0,
-                      double* ndTemps = 0);
 
     void markDofs(DofSetArray&);
     int* dofs(DofSetArray&, int* p = 0);
@@ -81,6 +82,8 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     int* nodes(int* = 0);
     Corotator *getCorotator(CoordSet&, double*, int , int);
     void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
+    void getInternalForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
+    bool checkElementDeletion(GeomState &);
     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld, int &nlflag);
 
     void computeDisp(CoordSet&, State&, const InterpPoint&, double*,
@@ -93,7 +96,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
                               GeomState* gs = 0, int cflg = 0, double t = 0);
               
     void getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce, 
-                     int glfag, GeomState* gs = 0);
+                         int glfag, GeomState* gs = 0);
                                         
     bool isShell() { return true; }
 

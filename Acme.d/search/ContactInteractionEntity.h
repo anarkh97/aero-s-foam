@@ -26,6 +26,7 @@
 #include "ContactParOStream.h"
 #include "contact_assert.h"
 
+template<typename DataType>
 class ContactInteractionEntity {
 
  public:
@@ -51,7 +52,7 @@ class ContactInteractionEntity {
 
   // Constructors/Destructors
   virtual ~ContactInteractionEntity();
-  ContactInteractionEntity(Real *data_array_, ContactType base_type_);
+  ContactInteractionEntity(DataType *data_array_, ContactType base_type_);
 
   // Access Functions
   inline void Index(int i)          {index=i;};
@@ -65,14 +66,14 @@ class ContactInteractionEntity {
   
   // Access Functions
   inline ContactType Base_Type()              {return base_type;};
-  inline Real* DataArray_Buffer()             {return data_array;};
-  inline Real* Variable( VariableHandle & vh) {return DataArray_Buffer()+vh;};
+  inline DataType* DataArray_Buffer()             {return data_array;};
+  inline DataType* Variable( VariableHandle & vh) {return DataArray_Buffer()+vh;};
   
   virtual void Display(ContactParOStream&);
-  inline void SetEntityData( entity_data*, ContactTopologyEntity<Real>*);
+  inline void SetEntityData( entity_data*, ContactTopologyEntity<DataType>*);
 
  protected:
-  Real *data_array;
+  DataType *data_array;
   ContactType base_type;
 
   int index;
@@ -93,8 +94,8 @@ class ContactInteractionEntity {
   
   inline int  PackEntityData(entity_data*, int*);
   inline int  UnPackEntityData(entity_data*, int*);
-  inline int  PackEntityData(entity_data*, Real*);
-  inline int  UnPackEntityData(entity_data*, Real*);
+  inline int  PackEntityData(entity_data*, DataType*);
+  inline int  UnPackEntityData(entity_data*, DataType*);
 
  private:
   // not defined; all ContactEntities are not copyable or assignable
@@ -107,24 +108,28 @@ class ContactInteractionEntity {
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Size/Pack/Unpack functions that are to be used for DLB
 //--------------------------------------------------------------------
-inline int ContactInteractionEntity::Size()
+template<typename DataType>
+inline int ContactInteractionEntity<DataType>::Size()
 {
   return( NUMBER_PACKED_VARS*sizeof(int) );
 }
 
-inline void ContactInteractionEntity::Pack( char* buffer )
+template<typename DataType>
+inline void ContactInteractionEntity<DataType>::Pack( char* buffer )
 {
   int* i_buffer = reinterpret_cast<int*> (buffer);
   i_buffer[BASE_TYPE] = Base_Type();
 }
 
-inline void ContactInteractionEntity::Unpack( char* buffer )
+template<typename DataType>
+void ContactInteractionEntity<DataType>::Unpack( char* buffer )
 {
   REMEMBER( int* i_buffer = reinterpret_cast<int*> (buffer)) ;
   PRECONDITION( i_buffer[BASE_TYPE] == Base_Type() );
 }
 
-inline void ContactInteractionEntity::Copy( ContactInteractionEntity* src )
+template<typename DataType>
+inline void ContactInteractionEntity<DataType>::Copy( ContactInteractionEntity* src )
 {
 }
 
@@ -132,19 +137,22 @@ inline void ContactInteractionEntity::Copy( ContactInteractionEntity* src )
 // Size/Pack/Unpack/Copy functions that are to be used for 
 // transferring entities from the primary to secondary decomposition
 //--------------------------------------------------------------------
-inline int ContactInteractionEntity::Size_ForSecondary()
+template<typename DataType>
+inline int ContactInteractionEntity<DataType>::Size_ForSecondary()
 {
   return( sizeof(int) );
 }
 
-inline void ContactInteractionEntity::Pack_ForSecondary( char* buffer )
+template<typename DataType>
+inline void ContactInteractionEntity<DataType>::Pack_ForSecondary(char* buffer)
 {
   int* i_buffer = reinterpret_cast<int*> (buffer);
   i_buffer[BASE_TYPE] = Base_Type();
 }
 
-inline int ContactInteractionEntity::PackEntityData(entity_data* data, 
-                                                    int* buffer)
+template<typename DataType>
+inline int ContactInteractionEntity<DataType>::PackEntityData(entity_data* data, 
+                                                       int* buffer)
 {
   int* buf = buffer;
   *buf++   = data->type;
@@ -158,10 +166,11 @@ inline int ContactInteractionEntity::PackEntityData(entity_data* data,
   return 7;
 }
 
-inline int ContactInteractionEntity::PackEntityData(entity_data* data, 
-                                                    Real* buffer)
+template<typename DataType>
+inline int ContactInteractionEntity<DataType>::PackEntityData(entity_data* data, 
+                                                       DataType* buffer)
 {
-  Real* buf = buffer;
+  DataType* buf = buffer;
   *buf++    = data->type;
   *buf++    = data->owner;
   *buf++    = data->block_id;
@@ -173,8 +182,9 @@ inline int ContactInteractionEntity::PackEntityData(entity_data* data,
   return 7;
 }
 
-inline int ContactInteractionEntity::UnPackEntityData(entity_data* data, 
-                                                      int* buffer)
+template<typename DataType>
+inline int ContactInteractionEntity<DataType>::UnPackEntityData(entity_data* data, 
+                                                         int* buffer)
 {
   int* buf                        = buffer;
   data->type                      = *buf++;
@@ -188,10 +198,11 @@ inline int ContactInteractionEntity::UnPackEntityData(entity_data* data,
   return 7;
 }
 
-inline int ContactInteractionEntity::UnPackEntityData(entity_data* data, 
-                                                      Real* buffer)
+template<typename DataType>
+inline int ContactInteractionEntity<DataType>::UnPackEntityData(entity_data* data, 
+                                                         DataType* buffer)
 {
-  Real* buf                       = buffer;
+  DataType* buf                       = buffer;
   data->type                      = (int)*buf++;
   data->owner                     = (int)*buf++;
   data->block_id                  = (int)*buf++;
@@ -203,8 +214,9 @@ inline int ContactInteractionEntity::UnPackEntityData(entity_data* data,
   return 7;
 }
 
-inline void ContactInteractionEntity::SetEntityData( entity_data* data, 
-                                                     ContactTopologyEntity<Real>* entity)
+template<typename DataType>
+inline void ContactInteractionEntity<DataType>::SetEntityData(entity_data* data, 
+                                                       ContactTopologyEntity<DataType>* entity)
 {
   data->type                      = entity->Base_Type(); 
   data->owner                     = entity->Owner(); 

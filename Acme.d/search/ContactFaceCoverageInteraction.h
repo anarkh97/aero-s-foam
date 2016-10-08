@@ -37,7 +37,7 @@ struct ContactFaceCoverageVertex {
   struct ContactFaceCoverageVertex* next;
 };
 
-class ContactFaceCoverageInteraction : public ContactInteractionEntity {
+class ContactFaceCoverageInteraction : public ContactInteractionEntity<Real> {
   
  public:
   

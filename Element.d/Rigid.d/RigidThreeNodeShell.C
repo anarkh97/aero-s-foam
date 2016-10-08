@@ -4,6 +4,9 @@
 #include <Element.d/State.h>
 #include <Corotational.d/utilities.h>
 #include <Hetero.d/InterpPoint.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Math.d/Vector.h>
+#include <Utils.d/dbg_alloca.h>
 
 extern "C"      {
 void _FORTRAN(mass8)(double* ,double* ,double* ,double* , double& ,
@@ -256,6 +259,7 @@ void
 RigidThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                           GeomState *geomState, int cflg, double time)
 {
+     if(!pbc) { elPressureForce = 0.; return; }
      double pressure = pbc->val;
      // Check if Conwep is being used. If so, add the pressure from the blast loading function.
      if (pbc->conwep && pbc->conwepswitch) {

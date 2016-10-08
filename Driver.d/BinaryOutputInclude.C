@@ -1,7 +1,10 @@
+#ifndef _BINARYOUTPUTINCLUDE_C_
+#define _BINARYOUTPUTINCLUDE_C_
+#include <Driver.d/GeoSource.h>
 #include <algorithm>
 
 // ---------------------------------------------------------------------
-// PJSA: new binary output routines for double and DComplex
+// binary output routines for double and DComplex
 // ---------------------------------------------------------------------
 
 template<class Scalar, int dim>
@@ -25,3 +28,4 @@ void GeoSource::writeNodeVectorToFile(SVec<Scalar, dim> &sVec, int glSub,
   delete[] data;
 }
 
+#endif

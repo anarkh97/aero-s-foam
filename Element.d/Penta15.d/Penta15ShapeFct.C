@@ -34,21 +34,20 @@ computePenta15DShapeFct(double dShape[15][3], double X[15], double Y[15], double
     zd2 += dShape[i][1]*Z[i] + dShape[i+1][1]*Z[i+1] + dShape[i+2][1]*Z[i+2];
     zd3 += dShape[i][2]*Z[i] + dShape[i+1][2]*Z[i+1] + dShape[i+2][2]*Z[i+2];
   }
-  //fprintf(stderr," %e  %e  %e \n %e  %e  %e \n %e  %e  %e \n",xd1,xd2,xd3,yd1,yd2,yd3,zd1,zd2,zd3);
+
   double a11 = yd2*zd3 - yd3*zd2 ; double a12 = yd3*zd1 - yd1*zd3 ; double a13 = yd1*zd2 - yd2*zd1 ;
   double a21 = xd3*zd2 - xd2*zd3 ; double a22 = xd1*zd3 - zd1*xd3 ; double a23 = xd2*zd1 - xd1*zd2 ;
   double a31 = xd2*yd3 - xd3*yd2 ; double a32 = yd1*xd3 - xd1*yd3 ; double a33 = xd1*yd2 - yd1*xd2 ;
 
   /* -------> DETERMINANT OF THE JACOBIAN MATRIX <--- */
   double J = xd1*a11 + yd1*a21 + zd1*a31 ;
-  if ( J == 0.0 ) {
+  if(J == 0.0) {
     fprintf(stderr," *** WARNING: NULL JACOBIAN IN computePenta15DShapeFct.C ROUTINE.\n");
   }
-  if ( J < 0.0 ) {
+  if(J < 0.0) {
     fprintf(stderr," *** WARNING: NEGATIVE JACOBIAN IN computePenta15DShapeFct.C ROUTINE.\n");
-    //J *= -1.; // BAD !!! BUT WORKS !!!
   }
-  double cdet = 1.0 / J ;
+  double cdet = 1.0/J;
 
   /* -------> DERIVATIVE OF THE SHAPE FCTS IN THE "REAL" ELEMENT <--- */
   if(DShape){

@@ -27,17 +27,14 @@ public:
         int              numNodes();
         int*             nodes(int * = 0);
 	int              getTopNumber();
-        bool hasRot() {return true;} // DEC
 	PrioInfo examine(int sub, MultiFront *);
 
         void computeTemp(CoordSet&cs, State &state, double gp[2], double*res);
                         
 	void getFlFlux(double gp[2], double *flF, double *resF);
+        void getGravityForce(CoordSet& cs, double *, Vector &force, int, GeomState *);
 
-        //bool isShell() { return true; }
-
-        void getThermalForce(CoordSet &, Vector &, Vector &force, int, GeomState *geomState=0) { force.zero(); }
-
+        Corotator * getCorotator(CoordSet &, double*, int, int) { return 0; }
 };
 #endif
 

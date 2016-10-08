@@ -12,21 +12,24 @@
 namespace Rom {
 
 // Output
-BasisOutputStream &
-operator<<(BasisOutputStream &out, const VecBasis &source) {
+template<int DOFS_PER_NODE>
+BasisOutputStream<DOFS_PER_NODE> &
+operator<<(BasisOutputStream<DOFS_PER_NODE> &out, const VecBasis &source) {
   assert(out.vectorSize() == source.vectorSize());
   return writeVectors(out, source.begin(), source.end());
 }
 
-BasisOutputStream &
-writeVectors(BasisOutputStream &out, const VecBasis &source, int countMax) {
+template<int DOFS_PER_NODE>
+BasisOutputStream<DOFS_PER_NODE> &
+writeVectors(BasisOutputStream<DOFS_PER_NODE> &out, const VecBasis &source, int countMax) {
   assert(out.vectorSize() == source.vectorSize());
   VecBasis::const_iterator last = std::min(source.end(), source.begin() + countMax);
   return writeVectors(out, source.begin(), last);
 }
 
-BasisOutputStream &
-writeExtendedVectors(BasisOutputStream &out, const VecBasis &source, const NodalRestrictionMapping &mapping) {
+template<int DOFS_PER_NODE>
+BasisOutputStream<DOFS_PER_NODE> &
+writeExtendedVectors(BasisOutputStream<DOFS_PER_NODE> &out, const VecBasis &source, const NodalRestrictionMapping &mapping) {
   assert(out.vectorSize() == mapping.originInfo());
   assert(source.vectorSize() == mapping.restrictedInfo());
   
@@ -38,8 +41,9 @@ writeExtendedVectors(BasisOutputStream &out, const VecBasis &source, const Nodal
   return out;
 }
 
-BasisOutputStream &
-writeRestrictedVectors(BasisOutputStream &out, const VecBasis &source, const NodalRestrictionMapping &mapping) {
+template<int DOFS_PER_NODE>
+BasisOutputStream<DOFS_PER_NODE> &
+writeRestrictedVectors(BasisOutputStream<DOFS_PER_NODE> &out, const VecBasis &source, const NodalRestrictionMapping &mapping) {
   assert(out.vectorSize() == mapping.restrictedInfo());
   assert(source.vectorSize() == mapping.originInfo());
   
@@ -52,21 +56,31 @@ writeRestrictedVectors(BasisOutputStream &out, const VecBasis &source, const Nod
 }
 
 // Input
-BasisInputStream &
-operator>>(BasisInputStream &in, VecBasis &sink) {
+template<int DOFS_PER_NODE>
+BasisInputStream<DOFS_PER_NODE> &
+operator>>(BasisInputStream<DOFS_PER_NODE> &in, VecBasis &sink) {
   sink.dimensionIs(in.size() - in.currentVectorRank(), in.vectorSize());
   return readVectors(in, sink.begin(), sink.end());
 }
 
-BasisInputStream &
-readVectors(BasisInputStream &in, VecBasis &sink, int countMax) {
+template<int DOFS_PER_NODE>
+BasisInputStream<DOFS_PER_NODE> &
+readVectors(BasisInputStream<DOFS_PER_NODE> &in, VecBasis &sink, int countMax) {
   const int count = std::max(std::min(in.size() - in.currentVectorRank(), countMax), 0);
   sink.dimensionIs(count, in.vectorSize());
   return readVectors(in, sink.begin(), sink.end());
 }
 
-BasisInputStream &
-readRestrictedVectors(BasisInputStream &in, VecBasis &sink, const NodalRestrictionMapping &mapping) {
+template<int DOFS_PER_NODE>
+BasisInputStream<DOFS_PER_NODE> &
+readVectors(BasisInputStream<DOFS_PER_NODE> &in, VecBasis &sink, int countMax, int localSize, int offset) {
+  sink.dimensionIs(countMax, in.vectorSize());
+  return readVectors(in, sink.begin()+offset, sink.begin()+offset+localSize);
+}
+
+template<int DOFS_PER_NODE>
+BasisInputStream<DOFS_PER_NODE> &
+readRestrictedVectors(BasisInputStream<DOFS_PER_NODE> &in, VecBasis &sink, const NodalRestrictionMapping &mapping) {
   assert(in.vectorSize() == mapping.originInfo());
   
   sink.dimensionIs(in.size() - in.currentVectorRank(), mapping.restrictedInfo());
@@ -78,8 +92,9 @@ readRestrictedVectors(BasisInputStream &in, VecBasis &sink, const NodalRestricti
   return in;
 }
 
-BasisInputStream &
-readExtendedVectors(BasisInputStream &in, VecBasis &sink, const NodalRestrictionMapping &mapping) {
+template<int DOFS_PER_NODE>
+BasisInputStream<DOFS_PER_NODE> &
+readExtendedVectors(BasisInputStream<DOFS_PER_NODE> &in, VecBasis &sink, const NodalRestrictionMapping &mapping) {
   assert(in.vectorSize() == mapping.restrictedInfo());
   
   sink.dimensionIs(in.size() - in.currentVectorRank(), mapping.originInfo());
@@ -90,5 +105,68 @@ readExtendedVectors(BasisInputStream &in, VecBasis &sink, const NodalRestriction
   }
   return in;
 }
+
+template
+BasisOutputStream<6> &
+operator<<(BasisOutputStream<6> &out, const VecBasis &source);
+
+template
+BasisOutputStream<6> &
+writeVectors(BasisOutputStream<6> &out, const VecBasis &source, int countMax);
+
+template
+BasisOutputStream<6> &
+writeExtendedVectors(BasisOutputStream<6> &out, const VecBasis &source, const NodalRestrictionMapping &mapping);
+
+template
+BasisOutputStream<6> &
+writeRestrictedVectors(BasisOutputStream<6> &out, const VecBasis &source, const NodalRestrictionMapping &mapping);
+
+template
+BasisOutputStream<1> &
+operator<<(BasisOutputStream<1> &out, const VecBasis &source);
+
+template
+BasisOutputStream<1> &
+writeVectors(BasisOutputStream<1> &out, const VecBasis &source, int countMax);
+
+template
+BasisOutputStream<1> &
+writeExtendedVectors(BasisOutputStream<1> &out, const VecBasis &source, const NodalRestrictionMapping &mapping);
+
+template
+BasisOutputStream<1> &
+writeRestrictedVectors(BasisOutputStream<1> &out, const VecBasis &source, const NodalRestrictionMapping &mapping);
+
+
+template
+BasisInputStream<6> & operator>>(BasisInputStream<6> &in, VecBasis &sink);
+
+template
+BasisInputStream<6> & readVectors(BasisInputStream<6> &in, VecBasis &sink, int countMax);
+
+template
+BasisInputStream<6> & readVectors(BasisInputStream<6> &in, VecBasis &sink, int countMax, int localSize, int offset);
+
+template
+BasisInputStream<6> & readRestrictedVectors(BasisInputStream<6> &in, VecBasis &sink, const NodalRestrictionMapping &mapping);
+
+template
+BasisInputStream<6> & readExtendedVectors(BasisInputStream<6> &in, VecBasis &sink, const NodalRestrictionMapping &mapping);
+
+template
+BasisInputStream<1> & operator>>(BasisInputStream<1> &in, VecBasis &sink);
+
+template
+BasisInputStream<1> & readVectors(BasisInputStream<1> &in, VecBasis &sink, int countMax);
+
+template
+BasisInputStream<1> & readVectors(BasisInputStream<1> &in, VecBasis &sink, int countMax, int localSize, int offset);
+
+template
+BasisInputStream<1> & readRestrictedVectors(BasisInputStream<1> &in, VecBasis &sink, const NodalRestrictionMapping &mapping);
+
+template
+BasisInputStream<1> & readExtendedVectors(BasisInputStream<1> &in, VecBasis &sink, const NodalRestrictionMapping &mapping);
 
 } /* end namespace Rom */

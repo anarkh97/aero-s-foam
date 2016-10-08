@@ -34,6 +34,7 @@ protected:
     virtual void stateSnapshotAdd(const DistrGeomState &) = 0;
     virtual void velocSnapshotAdd(const DistrVector &) = 0;
     virtual void accelSnapshotAdd(const DistrVector &) = 0;
+    virtual void dsvarSnapshotAdd(const DistrGeomState &) = 0;
     virtual void postProcess() = 0;
     
     virtual ~Impl() {}
@@ -50,8 +51,8 @@ protected:
 private:
   // Snapshot collection 
   void saveMidTime(double t) { impl_->lastMidTimeIs(t); }
-  void saveDelta(double dt) { impl_->lastDeltaIs(dt); }
-  void saveStateSnapshot(const DistrGeomState &state) { impl_->stateSnapshotAdd(state); }
+  void saveDelta(double delta) { impl_->lastDeltaIs(delta); }
+  void saveStateSnapshot(const DistrGeomState &state) { impl_->stateSnapshotAdd(state); impl_->dsvarSnapshotAdd(state); }
   void saveVelocSnapshot(DistrGeomState &state, const DistrVector &veloc);
   void saveAccelSnapshot(DistrGeomState &state, const DistrVector &accel);
  
@@ -63,14 +64,14 @@ private:
 // Provides hooks to be used in NLDynamSolver to call the snapshot collection functions
 class DistrSnapshotNonLinDynamic::Updater : public IncrUpdater<DistrSnapshotNonLinDynamic, GenDistrVector<double>, DistrGeomState> {
 public:
-  static double integrate(DistrSnapshotNonLinDynamic *pbd, DistrGeomState *refState, DistrGeomState *geomState,
+  static double integrate(int iter, DistrSnapshotNonLinDynamic *pbd, DistrGeomState *refState, DistrGeomState *geomState,
                           GenDistrVector<double> *du, GenDistrVector<double> &residual,
                           GenDistrVector<double> &elementInternalForce, GenDistrVector<double> &gRes, GenDistrVector<double> &vel_n,
-                          GenDistrVector<double> &accel, double midTime) {
+                          GenDistrVector<double> &accel, double midTime, bool forceOnly=false) {
     pbd->saveMidTime(midTime);
 
     return IncrUpdater<DistrSnapshotNonLinDynamic, GenDistrVector<double>, DistrGeomState>::integrate(
-        pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime);
+        iter, pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime, forceOnly);
   }
 
   static void midpointIntegrate(DistrSnapshotNonLinDynamic *pbd, GenDistrVector<double> &velN,

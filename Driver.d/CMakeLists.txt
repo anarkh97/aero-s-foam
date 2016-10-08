@@ -7,4 +7,7 @@ Eigen.C MPIComm.C SubDomainFactory.C
 PolygonSet.C Sower.C CornerMaker.C
 jacobi.f pade.f zpade.f
 BinaryOutput.C
-DomainPita.C ) 
+DomainPita.C
+GeoSourceInstance.C OpMakeInstance.C
+ControlLawInfo.C BinaryOutputInstance.C
+EFrameDataInstance.C)

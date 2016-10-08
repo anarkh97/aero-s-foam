@@ -4,8 +4,8 @@
 #ifndef _STDMORTARQUAD4_H_
 #define _STDMORTARQUAD4_H_
 
-//#include <Element.d/Element.h>
 #include <Mortar.d/MortarElement.d/MortarElement.h>
+#include <Mortar.d/FaceElement.d/FaceQuad4.d/FaceQuad4.h>
 
 class FaceElement;
 
@@ -18,33 +18,48 @@ class StdMortarQuad4: public MortarElement {
         StdMortarQuad4(FaceElement*);
         StdMortarQuad4(double, FaceElement*);  
 
-        virtual ~StdMortarQuad4() { }
- 
-	// Get methods
-	// ~~~~~~~~~~~
-	// -> implementation of virtual methods
-	int nNodes();
-	int nMortarShapeFct();
+        // Get methods
+        // ~~~~~~~~~~~
+        // -> implementation of virtual methods
+        int nNodes();
+        int nMortarShapeFct();
+        bool GetDualFlag() { return false; }
 
-	// Shape fct methods
-	// ~~~~~~~~~~~~~~~~~
-	// -> local methods
+        // Shape fct methods
+        // ~~~~~~~~~~~~~~~~~
+        // -> local methods
         template<typename Scalar>
-	  void GetStdMortarShapeFct(Scalar* Shape, Scalar* m);
-	void GetShapeFct(double* Shape, double* m);
+          void GetShapeFctVal(Scalar* Shape, Scalar* m);
+        template<typename Scalar>
+          void GetdShapeFct(Scalar* dShapex, Scalar* dShapey, Scalar* m);
+        template<typename Scalar>
+          void Getd2ShapeFct(Scalar* d2Shapex, Scalar* d2Shapey, Scalar* d2Shapexy, Scalar* m);
 
-	// -> implementation of virtual methods
-	void GetShapeFctVal(double* Shape, double* m);
-#if (MAX_MORTAR_DERIVATIVES > 0)
-        void GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m);
-#endif
+        // -> implementation of virtual methods
+        void GetShapeFctVal(double* Shape, double* m);
+        void GetdShapeFct(double* dShapex, double* dShapey, double* m);
+        void Getd2ShapeFct(double* d2Shapex, double* d2Shapey, double* d2Shapexy, double* m);
 };
 
 template<typename Scalar>
 void
-StdMortarQuad4::GetStdMortarShapeFct(Scalar* Shape, Scalar* m)
+StdMortarQuad4::GetShapeFctVal(Scalar* Shape, Scalar* m)
 {
-   GetPtrMasterFace()->GetShapeFctVal(Shape, m);
+  static_cast<FaceQuad4*>(GetPtrMasterFace())->GetShapeFctVal(Shape, m);
+}
+
+template<typename Scalar>
+void
+StdMortarQuad4::GetdShapeFct(Scalar* dShapex, Scalar* dShapey, Scalar* m)
+{
+  static_cast<FaceQuad4*>(GetPtrMasterFace())->GetdShapeFct(dShapex, dShapey, m);
+}
+
+template<typename Scalar>
+void
+StdMortarQuad4::Getd2ShapeFct(Scalar* d2Shapex, Scalar* d2Shapey, Scalar* d2Shapexy, Scalar* m)
+{
+  static_cast<FaceQuad4*>(GetPtrMasterFace())->Getd2ShapeFct(d2Shapex, d2Shapey, d2Shapexy, m);
 }
 
 #endif

@@ -2,6 +2,8 @@
 #include <Corotational.d/SuperCorotator.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Driver.d/Mpc.h>
+#include <Math.d/matrix.h>
+#include <iostream>
 
 SuperElement::SuperElement(bool _localFlag)
  : eset(0), dsa(0), superCorotator(0), nInternalNodes(0), css(0),
@@ -16,10 +18,12 @@ SuperElement::~SuperElement()
   if(eset) delete eset;
   if(dsa) delete dsa;
   if(css) delete css;
+
   if(subElems) {
     for(int i = 0; i < nSubElems; ++i) delete subElems[i];
     delete [] subElems;
   }
+
   if(subElemDofs) {
     for(int i = 0; i < nSubElems; ++i) delete [] subElemDofs[i];
     delete [] subElemDofs;
@@ -173,6 +177,32 @@ SuperElement::stiffness(CoordSet &cs, double *karray, int flg)
   return ret;
 }
 
+void
+SuperElement::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
+{
+  for(int i=0; i<3*numNodes(); ++i) dStiffdx[i].zero();
+  for(int i = 0; i < nSubElems; ++i) {
+    FullSquareMatrix *subdStiffdx = new FullSquareMatrix[3*subElems[i]->numNodes()];
+    for(int j=0; j<3*subElems[i]->numNodes(); ++j) { subdStiffdx[j].setSize(subElems[i]->numDofs());  subdStiffdx[j].zero(); }
+    subElems[i]->getStiffnessNodalCoordinateSensitivity(subdStiffdx, cs);
+    for(int j=0; j<subElems[i]->numNodes(); ++j) 
+      for(int xyz=0; xyz<3; ++xyz) 
+        dStiffdx[3*subElemNodes[i][j]+xyz].add(subdStiffdx[3*j+xyz], subElemDofs[i]); 
+    delete [] subdStiffdx; 
+  }
+}
+
+void 
+SuperElement::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg)
+{
+  dStiffdThick.zero();
+  for(int i = 0; i < nSubElems; ++i) {
+    FullSquareMatrix subdStiffdThick(subElems[i]->numDofs());
+    subElems[i]->getStiffnessThicknessSensitivity(cs, subdStiffdThick, flg); 
+    dStiffdThick.add(subdStiffdThick, subElemDofs[i]);
+  }
+}
+
 FullSquareMatrix 
 SuperElement::massMatrix(CoordSet &cs, double *marray, int cmflg)
 {
@@ -194,6 +224,145 @@ SuperElement::getMass(CoordSet &cs)
   return ret;
 }
 
+double 
+SuperElement::getMassThicknessSensitivity(CoordSet &cs)
+{
+  double ret = 0.0;
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->getMassThicknessSensitivity(cs);
+  return ret;
+}
+
+double
+SuperElement::weight(CoordSet& cs, double *gravityAcceleration)
+{
+  double ret = 0.0;
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weight(cs,gravityAcceleration);
+  return ret;
+}
+
+double 
+SuperElement::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration)
+{
+  double ret = 0.0;
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->getWeightThicknessSensitivity(cs,gravityAcceleration);
+  return ret;
+}
+
+void
+SuperElement::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                              double *, int avgnum, double ylayer, double zlayer)
+{
+  dStdThick.zero();
+  weight.zero();
+  int subAvgnum = (avgnum == 0) ? 1 : avgnum;
+  for(int i = 0; i < nSubElems; ++i) {
+    Vector subVonMisesThicknessSensitivity(subElems[i]->numNodes(),0.0); 
+    Vector subWeight(subElems[i]->numNodes(),0.0);
+    Vector *subElDisp = 0;
+    subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
+    subElems[i]->getVonMisesThicknessSensitivity(subVonMisesThicknessSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
+                                                 0, subAvgnum, ylayer, zlayer); 
+    weight.add(subWeight, subElemNodes[i]);
+    dStdThick.add(subVonMisesThicknessSensitivity, subElemNodes[i]);
+    delete subElDisp;
+  }
+
+  // Average sensitivity value at each node by the number of sub-elements attached to the node
+  for(int i = 0; i < numNodes(); ++i) {
+    if(weight[i] == 0) {
+      dStdThick[i] = 0;
+    }
+    else {
+      dStdThick[i] /= weight[i];
+      weight[i] = 1;
+    }
+  }
+}
+
+void
+SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                 double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+  dStdDisp.zero();
+  weight.zero();
+  int subAvgnum = (avgnum == 0) ? 1 : avgnum;
+  for(int i = 0; i < nSubElems; ++i) {
+    GenFullM<double> subVonMisesDisplacementSensitivity(subElems[i]->numDofs(),subElems[i]->numNodes(),0.0);        
+    Vector subWeight(subElems[i]->numNodes(),0.0);
+    Vector *subElDisp = 0;
+    subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
+    subElems[i]->getVonMisesDisplacementSensitivity(subVonMisesDisplacementSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
+                                                    0, subAvgnum, ylayer, zlayer);
+    weight.add(subWeight, subElemNodes[i]);
+    for(int j = 0; j < subElems[i]->numDofs(); ++j) {
+      for(int k = 0; k < subElems[i]->numNodes(); ++k) {
+        dStdDisp[subElemDofs[i][j]][subElemNodes[i][k]] += subVonMisesDisplacementSensitivity[j][k];
+      }
+    }
+
+    delete subElDisp;
+  }
+
+  // Average sensitivity values at each node by the number of sub-elements attached to the node
+  for(int i = 0; i < numNodes(); ++i) {
+    if(weight[i] == 0) {
+      for(int j = 0; j < dStdDisp.numRow(); ++j) dStdDisp[j][i] = 0;
+    }
+    else {
+      for(int j = 0; j < dStdDisp.numRow(); ++j) dStdDisp[j][i] /= weight[i];
+      weight[i] = 1;
+    }
+  }
+}
+
+void 
+SuperElement::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
+{
+  dwdx.zero();
+  for(int i = 0; i < nSubElems; ++i) {
+    Vector subDwDx(3*subElems[i]->numNodes(),0.0);
+    subElems[i]->getWeightNodalCoordinateSensitivity(subDwDx, cs, gravityAcceleration);
+    for(int j=0; j<subElems[i]->numNodes(); ++j)
+      for(int xyz = 0; xyz<3; ++xyz)
+        dwdx[3*subElemNodes[i][j]+xyz] += subDwDx[3*j+xyz];
+  }
+}
+
+void 
+SuperElement::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                    double *, int avgnum, double ylayer, double zlayer)
+{
+  dStdx.zero();
+  weight.zero();
+  int subAvgnum = (avgnum == 0) ? 1 : avgnum;
+  for(int i = 0; i < nSubElems; ++i) {
+    GenFullM<double> subVonMisesCoordinateSensitivity(3*subElems[i]->numNodes(),subElems[i]->numNodes(),0.0);        
+    Vector subWeight(subElems[i]->numNodes(),0.0);
+    Vector *subElDisp = 0;
+    subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
+    subElems[i]->getVonMisesNodalCoordinateSensitivity(subVonMisesCoordinateSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
+                                                       0, subAvgnum, ylayer, zlayer);
+    weight.add(subWeight, subElemNodes[i]);
+    for(int j = 0; j < subElems[i]->numNodes(); ++j) 
+      for(int k = 0; k < subElems[i]->numNodes(); ++k) 
+        for(int xyz = 0; xyz < 3; ++xyz) 
+          dStdx[3*subElemNodes[i][j]+xyz][subElemNodes[i][k]] += subVonMisesCoordinateSensitivity[3*j+xyz][k];
+    
+    delete subElDisp;
+  }
+
+  // Average sensitivity values at each node by the number of sub-elements attached to the node
+  for(int i = 0; i < numNodes(); ++i) {
+    if(weight[i] == 0) {
+      for(int j = 0; j < dStdx.numRow(); ++j) dStdx[j][i] = 0;
+    }
+    else {
+      for(int j = 0; j < dStdx.numRow(); ++j) dStdx[j][i] /= weight[i];
+      weight[i] = 1;
+    }
+  }
+}
+
 void
 SuperElement::getGravityForce(CoordSet &cs, double *gravityAcceleration, Vector &gravityForce,
                               int gravflg, GeomState *geomState)
@@ -203,6 +372,36 @@ SuperElement::getGravityForce(CoordSet &cs, double *gravityAcceleration, Vector 
     Vector subGravityForce(subElems[i]->numDofs());
     subElems[i]->getGravityForce(cs, gravityAcceleration, subGravityForce, gravflg, geomState);
     gravityForce.add(subGravityForce, subElemDofs[i]);
+  }
+}
+
+void
+SuperElement::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                        GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+{
+  dGfdx.zero();
+  for(int i = 0; i < nSubElems; ++i) {
+    GenFullM<double> subGravityForceSen(3*subElems[i]->numNodes(),subElems[i]->numDofs(),0.0);
+    subElems[i]->getGravityForceNodalCoordinateSensitivity(cs, gravityAcceleration, subGravityForceSen, gravflg, geomState);
+    for(int j = 0; j < subElems[i]->numDofs(); ++j) {
+      for(int k = 0; k < subElems[i]->numNodes(); ++k) {
+        for(int xyz = 0; xyz < 3; ++xyz) {
+          dGfdx[3*subElemNodes[i][k]+xyz][subElemDofs[i][j]] += subGravityForceSen[3*k+xyz][j];
+        }
+      }
+    }
+  }
+}
+
+void
+SuperElement::getGravityForceThicknessSensitivity(CoordSet &cs, double *gravityAcceleration,
+                                                  Vector &gravityForceSen, int gravflg, GeomState *geomState)
+{
+  gravityForceSen.zero();
+  for(int i = 0; i < nSubElems; ++i) {
+    Vector subGravityForceSen(subElems[i]->numDofs());
+    subElems[i]->getGravityForceThicknessSensitivity(cs, gravityAcceleration, subGravityForceSen, gravflg, geomState);
+    gravityForceSen.add(subGravityForceSen, subElemDofs[i]);
   }
 }
 
@@ -267,14 +466,16 @@ SuperElement::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 {
   stress.zero();
   weight.zero();
+  int subAvgnum = (avgnum == 0) ? 1 : avgnum;
   for(int i = 0; i < nSubElems; ++i) {
+    if(subElems[i]->isPhantomElement()) continue;
     Vector subElementStress(subElems[i]->numNodes());
     Vector subElementWeight(subElems[i]->numNodes());
 
     Vector *subElementDisp = 0;
     if(superCorotator) {
       double *subd = superCorotator->getPreviouslyExtractedSubDeformations(i);
-      // if available, use the element displacemented from the corotator instead of elDisp (for non-linear)
+      // if available, use the element displacement from the corotator instead of elDisp (for non-linear)
       if(subd) subElementDisp = new StackVector(subd, subElems[i]->numDofs());
     }
     if(!subElementDisp) subElementDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
@@ -286,13 +487,24 @@ SuperElement::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
     }
 
     subElems[i]->getVonMises(subElementStress, subElementWeight, cs, *subElementDisp, strInd,
-                             surface, subNodeTemp, ylayer, zlayer, avgnum);
+                             surface, subNodeTemp, ylayer, zlayer, subAvgnum);
 
     stress.add(subElementStress, subElemNodes[i]);
     weight.add(subElementWeight, subElemNodes[i]);
 
     if(subNodeTemp) delete [] subNodeTemp;
     delete subElementDisp;
+  }
+
+  // Average stress/strain value at each node by the number of sub-elements attached to the node
+  for(int i = 0; i < numNodes(); ++i) {
+    if(weight[i] == 0) {
+      stress[i] = 0;
+    }
+    else {
+      stress[i] /= weight[i];
+      weight[i] = 1;
+    }
   }
 }
 
@@ -303,13 +515,14 @@ SuperElement::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
   stress.zero();
   weight.zero();
   for(int i = 0; i < nSubElems; ++i) {
+    if(subElems[i]->isPhantomElement()) continue;
     FullM subElementStress(subElems[i]->numNodes(), 9);
     Vector subElementWeight(subElems[i]->numNodes());
 
     Vector *subElementDisp = 0;
     if(superCorotator) {
       double *subd = superCorotator->getPreviouslyExtractedSubDeformations(i);
-      // if available, use the element displacemented from the corotator instead of elDisp (for non-linear)
+      // if available, use the element displacement from the corotator instead of elDisp (for non-linear)
       if(subd) subElementDisp = new StackVector(subd, subElems[i]->numDofs());
     }
     if(!subElementDisp) subElementDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
@@ -328,6 +541,17 @@ SuperElement::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
  
     if(subNodeTemp) delete [] subNodeTemp;
     delete subElementDisp;
+  }
+
+  // Average stress/strain values at each node by the number of sub-elements attached to the node
+  for(int i = 0; i < numNodes(); ++i) {
+    if(weight[i] == 0) {
+      for(int j = 0; j < stress.numCol(); ++j) stress[i][j] = 0;
+    }
+    else {
+      for(int j = 0; j < stress.numCol(); ++j) stress[i][j] /= weight[i];
+      weight[i] = 1;
+    }
   }
 }
 
@@ -358,20 +582,20 @@ SuperElement::trussHeatFluxes(double &trussflux, CoordSet &cs, Vector &elTemp, i
 void 
 SuperElement::computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs)
 {
-  cerr << " *** WARNING: SuperElement::computeDisp(...) is not implemented \n";
+  std::cerr << " *** WARNING: SuperElement::computeDisp(...) is not implemented \n";
 }
 
 void
 SuperElement::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
                         double *resF, GeomState *gs)
 {
-  cerr << " *** WARNING: SuperElement::getFlLoad(...) is not implemented \n";
+  std::cerr << " *** WARNING: SuperElement::getFlLoad(...) is not implemented \n";
 }
 
 void
 SuperElement::computeTemp(CoordSet &cs, State &state, double gp[2], double *tres)
 {
-  cerr << " *** WARNING: SuperElement::computeTemp(...) is not implemented \n";
+  std::cerr << " *** WARNING: SuperElement::computeTemp(...) is not implemented \n";
   // need to determine from gauss point values (gp) the appropriate sub element i
   // for which to call subElems[i]->computeTemp(cs, state, subElem_gp, tres)
 }
@@ -379,7 +603,7 @@ SuperElement::computeTemp(CoordSet &cs, State &state, double gp[2], double *tres
 void
 SuperElement::getFlFlux(double gp[2], double *flF, double *tresF)
 {
-  cerr << " *** WARNING: SuperElement::getFlFlux(...) is not implemented \n";
+  std::cerr << " *** WARNING: SuperElement::getFlFlux(...) is not implemented \n";
 }
 
 void
@@ -445,10 +669,12 @@ SuperElement::computePressureForce(CoordSet &cs, Vector &elPressureForce,
 
   elPressureForce.zero();
   for(int i = 0; i < nSubElems; ++i) {
-    Vector subElementPressureForce(subElems[i]->numDofs(), sub_extf[i], false);
-    subElementPressureForce.zero();
-    subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg, t);
-    elPressureForce.add(subElementPressureForce, subElemDofs[i]);
+    if(subElems[i]->getPressure() || subElems[i]->isMpcElement()) {
+      Vector subElementPressureForce(subElems[i]->numDofs(), sub_extf[i], false);
+      subElementPressureForce.zero();
+      subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg, t);
+      elPressureForce.add(subElementPressureForce, subElemDofs[i]);
+    }
   }
 /*
   // experimental: adjust for four node shell
@@ -517,7 +743,7 @@ SuperElement::dim()
 void 
 SuperElement::addFaces(PolygonSet *pset)
 {
-  cerr << " *** WARNING: SuperElement::addFaces(...) is not implemented \n";
+  std::cerr << " *** WARNING: SuperElement::addFaces(...) is not implemented \n";
 }
 
 bool 
@@ -574,6 +800,15 @@ SuperElement::isConstraintElement()
   // return true if one of the sub elements is a rigid mpc element
   for(int i = 0; i < nSubElems; ++i)
     if(subElems[i]->isConstraintElement()) return true;
+  return false;
+}
+
+bool
+SuperElement::isFreeplayElement()
+{
+  // return true if one of the sub elements is a freeplay element
+  for(int i = 0; i < nSubElems; ++i)
+    if(subElems[i]->isFreeplayElement()) return true;
   return false;
 }
 

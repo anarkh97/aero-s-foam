@@ -5,7 +5,6 @@
 #include <iostream>
 #include <Paral.d/Assembler.h>
 
-using namespace std;
 template <class Scalar> class GenDistrVector;
 typedef GenDistrVector<double> DistrVector;
 template <class Scalar> class GenSparseMatrix;
@@ -16,7 +15,7 @@ template<class Scalar>
 class GenSubDOp {
        int numSub;                      // Number of subdomains
        GenSparseMatrix<Scalar> **sops;  // List of subdomain matrices
-       GenAssembler<Scalar> *assembler;            // Assembler object. 
+       GenAssembler<Scalar> *assembler; // Assembler object. 
                                         // If NULL, no assembly is performed
     public:
        GenSubDOp(int _numSub, GenSparseMatrix<Scalar> **_sops, GenAssembler<Scalar> *_assembler = 0) {
@@ -28,7 +27,9 @@ class GenSubDOp {
           numSub = _numSub;
           sops = new GenSparseMatrix<Scalar> *[numSub];
           for(int j=0;j<numSub;j++) {
-            if (_sops[j]) *(sops+j) = _sops[j][i];
+            if (_sops[j])  {
+                *(sops+j) = _sops[j][i];
+            }
             else *(sops+j) = 0;
           }
           assembler =_assembler;

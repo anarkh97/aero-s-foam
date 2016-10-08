@@ -2,15 +2,19 @@
 #define _SUB_DOMAIN_H_
 
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
+#include <Driver.d/ControlLawInfo.h>
 #include <Feti.d/DistrVector.h>
 #include <Corotational.d/Corotator.h>
 #include <Math.d/DistVector.h>
 #include <Utils.d/MyComplex.h>
 #include <Math.d/FsiSparse.h>
 #include <Driver.d/SComm.h>
+#include <Solvers.d/Rbm.h>
 #include <Utils.d/GlobalToLocalMap.h>
 #include <Utils.d/MathUtils.h>
-
+#include <vector>
+#include <list>
 
 extern GeoSource *geoSource;
 
@@ -132,8 +136,9 @@ class BaseSub : virtual public Domain
   DofSet **boundaryDOFs;	
   int nCDofs;
   int *neighbNumGRBMs;
-  int *edgeDofSize;       // number of edge dof per neighbor
-  int *edgeDofSizeTmp;  // XXXX
+  DofSet *edgeDofs;      // JAT 112113
+  int *edgeDofSize;      // number of edge dof per neighbor
+  int *edgeDofSizeTmp;   // XXXX
   double k_f, k_p, k_s, k_s2;  // wave numbers for FETI-DPH for this subdomain
   double *neighbK_p, *neighbK_s, *neighbK_s2, *neighbK_f;  // neighbors' wave numbers
   double Ymod, Prat, Dens, Thih, Sspe;  // Young's modulus, Poisson ration, density, thickness, speed of sound
@@ -144,8 +149,6 @@ class BaseSub : virtual public Domain
   IntFullM* getC(int &crnDofSize, FSCommPattern<int> *sPat);
   void showExchangeData();
   void countCornerDofs(int *cWeight);
-  void setUpData();
-  void setUpData(CoordSet &, Domain *, int);
   void applyAuxData();
   void distributeBCs(int *);
   void setControlData(ControlLawInfo *_claw, int *, int *, int *, int *);
@@ -159,8 +162,8 @@ class BaseSub : virtual public Domain
   void setGlNodes(int *globalNodeNums) { glNums = globalNodeNums; }
   int *getGlNodes()           { return glNums; }
   int *getGlElems()           { return glElems; }
-//  int glToPackElem(int e)     { if (!glElems) setUpData(); return glElems[geoSource->glToPackElem(e)]; } // YYY
-  int glToPackElem(int e)     { return (geoSource->glToPackElem(e) > globalEMax) ? -1 : glToLocalElem[geoSource->glToPackElem(e)]; } // YYY
+  int *getGlMPCs()            { return localToGlobalMPC; }
+  int glToPackElem(int e)     { return (geoSource->glToPackElem(e) > globalEMax) ? -1 : glToLocalElem[geoSource->glToPackElem(e)]; }
   int *getSensorDataMap()     { return locToGlSensorMap; }
   int *getActuatorDataMap()   { return locToGlActuatorMap; }
   int *getUserDispDataMap()   { return locToGlUserDispMap; }
@@ -172,12 +175,12 @@ class BaseSub : virtual public Domain
   int numNodes()              { return numnodes; }
   int findProfileSize();
   int renumberBC(int *);
-  void makeGlobalToLocalNodeMap();  // PJSA
-  void makeGlobalToLocalElemMap();  // YYY
-  GlobalToLocalMap& getGlobalToLocalNodeMap() { return glToLocalNode; }
-  int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }  // PJSA
+  void makeGlobalToLocalNodeMap();
+  void makeGlobalToLocalElemMap();
+  int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }
+  GlobalToLocalMap &getGlobalToLocalNode() { return glToLocalNode; }
   int localToGlobal(int i)    { return glNums[i]; }
-  int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }  // PJSA
+  int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }
   int localToGlobalElem(int i) { return glElems[i]; }
   int getGlobalNMax()         { return globalNMax; }
   int* makeBMaps(DofSetArray *dofsetarray=0);
@@ -187,8 +190,6 @@ class BaseSub : virtual public Domain
   int localLen()              { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
   ConstrainedDSA * getCCDSA()  { return (cc_dsa) ? cc_dsa : c_dsa; }
   int localRLen()             { return cc_dsa->size(); }
-  //long getMemoryK()      { return memK; }
-  //long getMemoryPrec()   { return memPrec; }
   void sendNumNeighbGrbm(FSCommPattern<int> *pat);
   void recvNumNeighbGrbm(FSCommPattern<int> *pat);
   void deleteLocalRBMs() { if(rigidBodyModes) delete rigidBodyModesG; rigidBodyModesG = 0; }
@@ -225,7 +226,7 @@ class BaseSub : virtual public Domain
   int group;
  protected:
   int numGroupRBM, groupRBMoffset;
-  int *neighbGroup; // PJSA 4-27-06
+  int *neighbGroup;
   int *neighbNumGroupGrbm;
   int *neighbGroupGrbmOffset;
   int numGlobalRBMs;
@@ -333,30 +334,30 @@ class BaseSub : virtual public Domain
   void getOneDirection(double d, int i, int j, int k, int &nnum, int numWaves, double *wDir_x, double *wDir_y, double *wDir_z);
   void getOneDirection(double x, double y, double z, int &nnum, int numWaves, double *wDir_x, double *wDir_y, double *wDir_z);
   void getDirections13(int numDirec, double *wDir_x, double *wDir_y, double *wDir_z);
-  void GramSchmidt(double *Q, bool *isUsed, int numdofperNode, int nQPerNeighb);
+  void GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation);
   void averageMatProps();
   void sendMatProps(FSCommPattern<double> *matPat);
   void collectMatProps(FSCommPattern<double> *matPat);
 
-  void setDirichletBC(list<BCond *> *_list);
-  void setNeumanBC(list<BCond *> *_list);
-  void setInitialDisplacement(list<BCond *> *_list);
-  void setInitialDisplacement6(list<BCond *> *_list);
-  void setInitialVelocity(list<BCond *> *_list);
-  void setSensor(list<BCond *> *_list);
-  void setActuator(list<BCond *> *_list);
-  void setUsdd(list<BCond *> *_list);
-  void setUsdf(list<BCond *> *_list);
+  void setDirichletBC(std::list<BCond *> *_list);
+  void setNeumanBC(std::list<BCond *> *_list);
+  void setInitialDisplacement(std::list<BCond *> *_list);
+  void setInitialDisplacement6(std::list<BCond *> *_list);
+  void setInitialVelocity(std::list<BCond *> *_list);
+  void setSensor(std::list<BCond *> *_list);
+  void setActuator(std::list<BCond *> *_list);
+  void setUsdd(std::list<BCond *> *_list);
+  void setUsdf(std::list<BCond *> *_list);
   void setClaw(char* _fileName, char* _routineName) {
     claw = new ControlLawInfo; 
     claw->fileName = _fileName;
     claw->routineName = _routineName;
   }
-  void setComplexDirichletBC(list<ComplexBCond *> *_list);
-  void setComplexNeumanBC(list<ComplexBCond *> *_list);
-  void setDnb(list<SommerElement *> *_list);
-  void setScat(list<SommerElement *> *_list);
-  void setArb(list<SommerElement *> *_list);
+  void setComplexDirichletBC(std::list<ComplexBCond *> *_list);
+  void setComplexNeumanBC(std::list<ComplexBCond *> *_list);
+  void setDnb(std::list<SommerElement *> *_list);
+  void setScat(std::list<SommerElement *> *_list);
+  void setArb(std::list<SommerElement *> *_list);
 //  void updateKappa() { kappa = domain->getWaveNumber(); }
 //  void updateKappaAndScalings() { kappa = domain->getWaveNumber();
 //                       coupledScaling = domain->coupledScaling;
@@ -427,7 +428,7 @@ class GenSubDomain : public BaseSub
   Scalar *deltaFmpc;
   int *cornerWeight;
   void applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *deltaU = 0, Scalar *localw = 0);
-  void applyScalingAndB(/*Scalar *u,*/ Scalar *res, Scalar *Pu, Scalar *localw = 0);
+  void applyScalingAndB(Scalar *res, Scalar *Pu, Scalar *localw = 0);
   void initialize();
 
  protected:
@@ -436,7 +437,6 @@ class GenSubDomain : public BaseSub
   GenSkyMatrix<Scalar> * makeSkyK(Connectivity &nton, Scalar trbm);
 
  public:
-  //GenCuCSparse<Scalar>      *Kuc;    // constrained to unconstrained part of K
   GenSparseSet<Scalar>      *Src;
   GenSparseSet<Scalar>      *Qrc;
   GenSolver<Scalar>         *Krr;
@@ -457,6 +457,8 @@ class GenSubDomain : public BaseSub
   Scalar 		    *fcstar;
   Scalar                    *QtKpBt;
   Scalar                    *locKpQ;
+
+  Scalar                    **Ave, **Eve; // 070213 JAT
 
   int *glBoundMap;
   int *glInternalMap;
@@ -502,8 +504,6 @@ class GenSubDomain : public BaseSub
   double *getVcx()  { return vcx; }
   double *getAcx()  { return acx; }
   void setUserDefBC(double *, double *, double *, bool nlflag);
-  //void setKuc(GenCuCSparse<Scalar> *_Kuc) { Kuc = _Kuc; }
-  //GenCuCSparse<Scalar> *getKuc() { return Kuc; }
   void reBuildKbb(FullSquareMatrix *kel);
   void addDMass(int glNum, int dof, double m);
   // computes localvec = K-1 (localvec -B interfvec)
@@ -554,12 +554,12 @@ class GenSubDomain : public BaseSub
   void mergeStress(Scalar *stress, Scalar *weight,
                    Scalar *globStress, Scalar *globWeight, int glNumNodes);
   void mergeElemStress(Scalar *loc, Scalar *glob, Connectivity *);
-  void mergeDisp(Scalar (*xyz)[11], GeomState* locGS);
+  void mergeDisp(Scalar (*xyz)[11], GeomState* locGS, Scalar (*xyz_loc)[11] = NULL);
   void mergeAllDisp(Scalar (*xyz)[11], Scalar *d, Scalar (*xyz_loc)[11] = NULL);
   void mergeAllVeloc(Scalar (*xyz)[11], Scalar *v, Scalar (*xyz_loc)[11] = NULL);
   void mergeAllAccel(Scalar (*xyz)[11], Scalar *a, Scalar (*xyz_loc)[11] = NULL);
   void forceContinuity(Scalar *locdisp, Scalar (*xyz)[11]);
-  void mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u);
+  void mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u, Scalar (*xyz_loc)[11] = NULL);
   void mergeForces(Scalar (*mergedF)[6], Scalar *subF);
   void mergeReactions(Scalar (*mergedF)[11], Scalar *subF);
   void mergeDistributedForces(Scalar (*mergedF)[6], Scalar *subF);
@@ -568,6 +568,14 @@ class GenSubDomain : public BaseSub
   void sendExpDOFList(FSCommPattern<int> *pat);
   template<class Scalar1> void dispatchNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
   template<class Scalar1> void addNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
+  void dispatchInterfaceGeomState(FSCommPattern<double> *geomStatePat, GeomState *geomState);
+  void collectInterfaceGeomState(FSCommPattern<double> *geomStatePat, GeomState *geomState);
+  void dispatchInterfaceGeomStateDynam(FSCommPattern<double> *geomStatePat, GeomState *geomState);
+  void collectInterfaceGeomStateDynam(FSCommPattern<double> *geomStatePat, GeomState *geomState);
+  void dispatchInterfaceNodalInertiaTensors(FSCommPattern<double> *pat);
+  void collectInterfaceNodalInertiaTensors(FSCommPattern<double> *pat);
+  void dispatchGeomStateData(FSCommPattern<double> *, GeomState *);
+  void collectGeomStateData(FSCommPattern<double> *, GeomState *);
   void computeElementForce(int, Scalar *u, int Findex, Scalar *force);
   void computeStressStrain(int, Scalar *u, int Findex,
                            Scalar *stress, Scalar *weight = 0);
@@ -619,7 +627,7 @@ class GenSubDomain : public BaseSub
   void multKcc();
   void reMultKcc();
   void multKrc(Scalar *fr, Scalar *uc);
-  void multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *bf);
+  void multfc(Scalar *fr, Scalar *bf);
   void multFcB(Scalar *bf);
   Scalar *getfc() { return fcstar; }
   void getFr(Scalar *f, Scalar *fr);
@@ -627,7 +635,8 @@ class GenSubDomain : public BaseSub
   void getFw(Scalar *f, Scalar *fw);
   void mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda = 0);
   int numRBM() { return nGrbm; }
-  void makeEdgeVectorsPlus(bool isFluidSub = false);
+  void makeEdgeVectorsPlus(bool isFluidSub = false, bool isThermalSub = false,
+                           bool isUndefinedSub = false);
   void makeAverageEdgeVectors();
   void weightEdgeGs();
   void constructKcc();
@@ -655,7 +664,7 @@ class GenSubDomain : public BaseSub
 
   void projectActiveIneq(Scalar *v);
   void split(Scalar *v, Scalar *v_f, Scalar *v_c);
-  void bmpcQualify(vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
+  void bmpcQualify(std::vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
   void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);
   void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, SimpleNumberer *mpcEqNums);
   void computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNums); //HB: only compute the subdomain contribution to global CCt
@@ -702,9 +711,11 @@ class GenSubDomain : public BaseSub
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
   void getConstraintMultipliers(std::map<std::pair<int,int>,double> &mu, std::vector<double> &lambda);
-  void setMpcRhs(Scalar *interfvec, double t);
+  void getLocalMultipliers(std::vector<double> &lambda);
+  void setMpcRhs(Scalar *interfvec, double t, int flag);
   void updateMpcRhs(Scalar *interfvec);
   double getMpcError();
+  bool* getMpcMaster() { return mpcMaster; }
 
  protected:
   double *mpcForces;
@@ -733,6 +744,7 @@ class GenSubDomain : public BaseSub
   void constructKww();
   void constructKcw();
   void setWICommSize(FSCommPattern<Scalar> *wiPat);
+  void setCSCommSize(FSCommPattern<Scalar> *csPat);
   void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, 
                           FSCommPattern<Scalar> *wiPat);
   void fetiBaseOpCoupled2(Scalar *uc, Scalar *localvec, Scalar *interfvec, 
@@ -750,6 +762,15 @@ class GenSubDomain : public BaseSub
   GenSparseMatrix<Scalar> **C_deriv;
   GenSparseMatrix<Scalar> **Cuc_deriv;
   int numC_deriv;
+  GenSparseMatrix<Scalar> **K_deriv;
+  GenSparseMatrix<Scalar> **Kuc_deriv;
+  int numK_deriv;
+  int num_K_arubber;
+  GenSparseMatrix<Scalar> **K_arubber_l;
+  GenSparseMatrix<Scalar> **K_arubber_m;
+  GenSparseMatrix<Scalar> **Kuc_arubber_l;
+  GenSparseMatrix<Scalar> **Kuc_arubber_m;
+
  private:
   // frequency sweep
   void makeFreqSweepLoad(Scalar *load, int iRHS, double omega);

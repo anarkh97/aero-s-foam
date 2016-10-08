@@ -1,8 +1,8 @@
 ! ==================================
 ! hourglass control force: bt shell
 ! ==================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 2.  subroutine         updhgcstrsbt         (prmhgc,delt,ematpro,locbvec,ecurn,evelo, hgcvoitloc)
 ! 3.  subroutine         gethgcstrsdotbt      (prmhgc,ematpro,ecurnloc,eveloloc, hgcbstrsdot,hgcmstrsdot)
 ! 4.  subroutine         gethgcstrndotbt      (ecurnloc,eveloloc, hgcbstrndot,hgcmstrndot)

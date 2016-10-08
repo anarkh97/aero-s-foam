@@ -12,6 +12,7 @@
 #include <Hetero.d/InterpPoint.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Utils.d/dofset.h>
@@ -23,15 +24,16 @@
 // sands8   - three node shell stress routine
 // trithmfr - three node shell thermal load routine 
 
+extern int verboseFlag;
 extern "C"      {
-void _FORTRAN(tria3d)(int&, double* ,double* ,double* ,double& , double& ,
-                      double* ,double*);
-void _FORTRAN(mass8)(double* ,double* ,double* ,double* , double& ,
-                     double* ,const int&, double* ,double*,const int&,
-                     double&,const int&);
-void _FORTRAN(sands8)(double*,double*,double*,double&,double&,double*,
-                      double*,double*, const int&, const int&, const int&, 
-                      const int&, const int&,const int&, double&);
+void _FORTRAN(tria3d)(int&, double*, double*, double*, double&, double&,
+                      double*, double*);
+void _FORTRAN(mass8)(double*, double*, double*, double*, double&,
+                     double*, const int&, double*, double*, const int&,
+                     double&, const int&);
+void _FORTRAN(sands8)(double*, double*, double*, double&, double&, double*,
+                      double*, double*, const int&, const int&, const int&, 
+                      const int&, const int&, const int&, double&);
 void _FORTRAN(trithmfr)(double*, double*, double*, const double&, const double&, const double&,
                         const double&, const double&, const double&, double*, const int&);
 }
@@ -71,7 +73,7 @@ void
 ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 		       	    Vector& elDisp, int strInd, int surface,
                             double *ndTemps, double ylayer, double zlayer, int avgnum)
-{ 
+{
 	weight = 1.0;
 
         Node &nd1 = cs.getNode(nn[0]);
@@ -87,7 +89,7 @@ ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         // Thickness
         h[0] = h[1] = h[2] = prop->eh;
 	
-	//determine average nodal temperature difference relative to ambient
+	// determine average nodal temperature difference relative to ambient
         double thermalStrain = 0.0;
         if(ndTemps) {
 	  double dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - prop->Ta;
@@ -103,11 +105,11 @@ ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
 	// SET STRAIN FLAG IF USER WANTS STRAIN OUTPUT
 	int strainFlg = 0;
-	if( strInd > 6) strainFlg = 1;
+	if(strInd > 6) strainFlg = 1;
 
        _FORTRAN(sands8)(x,y,z,prop->E,prop->nu,h,elDisp.data(),
-                      (double*)elStress,
-                      strainFlg, maxsze,maxstr,maxgus,elm,surface,thermalStrain);
+                        (double*)elStress,
+                        strainFlg,maxsze,maxstr,maxgus,elm,surface,thermalStrain);
 
         if(strInd < 7) {
           stress[0] = elStress[0][strInd];
@@ -121,8 +123,8 @@ ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 }
 
 void
-ThreeNodeShell::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
-                             Vector& elDisp, int strInd,int surface,
+ThreeNodeShell::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
+                             Vector& elDisp, int strInd, int surface,
                              double *ndTemps)
 {
         weight = 1.0;
@@ -140,9 +142,9 @@ ThreeNodeShell::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
         // Thickness
         h[0] = h[1] = h[2] = prop->eh;
 	
-	//determine average nodal temperature difference relative to ambient
+	// determine average nodal temperature difference relative to ambient
 	double dt = 0.0;
-	if(ndTemps) // PJSA
+	if(ndTemps)
           dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - prop->Ta;
         double thermalStrain = (prop->W)*dt;
 
@@ -154,8 +156,8 @@ ThreeNodeShell::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
         double elStress[3][7];
 
        _FORTRAN(sands8)(x,y,z,prop->E,prop->nu,h,elDisp.data(),
-                      (double*)elStress,
-                      strInd, maxsze,maxstr,maxgus,elm,surface,thermalStrain);
+                        (double*)elStress,
+                        strInd,maxsze,maxstr,maxgus,elm,surface,thermalStrain);
 
 // Store all Stress or all Strain as defined by strInd
         int i,j;
@@ -218,7 +220,7 @@ ThreeNodeShell::getMass(CoordSet& cs)
 
 void
 ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
-                                Vector& gravityForce, int gravflg, GeomState *geomState)
+                                Vector& gravityForce, int gravflg, GeomState*)
 {
         double mass = getMass(cs);
         double massPerNode = mass/3.0;
@@ -376,28 +378,25 @@ ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
         // Check for phantom element, which has no stiffness
         if (prop == NULL) {
            FullSquareMatrix ret(18,d);
-	   ret.zero();
+           ret.zero();
            return ret;
         }
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
 
-	double x[3], y[3], z[3], h[3];
+        double x[3], y[3], z[3], h[3];
 
-	x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-	x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-	x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+        x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-	h[0] = h[1] = h[2] = prop->eh;
+        h[0] = h[1] = h[2] = prop->eh;
 
         // Check for a zero thickness
-	if(h[0] <= 0.0) {
-          fprintf(stderr," *** ERROR: Zero shell thickness "
-                         "(ThreeNodeShell.C) %d %d %d\n",
-                         nn[0]+1, nn[1]+1, nn[2]+1);
-          fprintf(stderr," ... exiting fem program ...\n");
+        if(h[0] <= 0.0) {
+          fprintf(stderr," *** ERROR: Shell element # %d has zero or negative thickness. Exiting...\n", getGlNum()+1);
           exit(-1);
         }
 
@@ -435,9 +434,9 @@ ThreeNodeShell::dofs(DofSetArray &dsa, int *p)
 {
  	if(p == 0) p = new int[18];
 
-        dsa.number(nn[0],DofSet::XYZdisp | DofSet::XYZrot, p  );
-        dsa.number(nn[1],DofSet::XYZdisp | DofSet::XYZrot, p+6);
-        dsa.number(nn[2],DofSet::XYZdisp | DofSet::XYZrot, p+12);
+        dsa.number(nn[0], DofSet::XYZdisp | DofSet::XYZrot, p  );
+        dsa.number(nn[1], DofSet::XYZdisp | DofSet::XYZrot, p+6);
+        dsa.number(nn[2], DofSet::XYZdisp | DofSet::XYZrot, p+12);
 
 	return p;
 }
@@ -445,7 +444,7 @@ ThreeNodeShell::dofs(DofSetArray &dsa, int *p)
 void
 ThreeNodeShell::markDofs(DofSetArray &dsa)
 {
-        dsa.mark(nn, 3,  DofSet::XYZdisp | DofSet::XYZrot);
+        dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot);
 }
 
 Corotator *
@@ -791,7 +790,7 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 
 }
 
-/*/ dec
+/* dec
 int
 ThreeNodeShell::facelist(PolygonSet &pgs, int *flist)
 {
@@ -803,56 +802,41 @@ ThreeNodeShell::facelist(PolygonSet &pgs, int *flist)
  return 3 ;
 }
 
-
-
 // end dec */
-
 
 //------------------------------------------------------------------------
 
 void
 ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
-				Vector &elThermalForce,int glflag, 
-				GeomState *geomState)
+				Vector &elThermalForce, int glflag, 
+				GeomState *)
 {
-   int i;
-   
+   if(prop == NULL) {
+     elThermalForce.zero();
+     return;
+   }
+
    double Tref = prop->Ta;
    
    double x[3], y[3], z[3];
    
-   //get nodal temperatures and relate to reference temperature
-   double meant = 0.0 ; //determine the average nodal temperature
-   for (i=0;i<3;i++)
-      meant += ndTemps[i]/3;
-      meant -= Tref;
+   // get nodal temperatures and relate to reference temperature
+   double meant = 0.0; // determine the average nodal temperature
+   for(int i=0; i<3; i++)
+     meant += ndTemps[i]/3;
 
-     if (geomState) {
+   meant -= Tref;
 
-       // Get Nodes current coordinates
-       NodeState &ns1 = (*geomState)[nn[0]];
-       NodeState &ns2 = (*geomState)[nn[1]];
-       NodeState &ns3 = (*geomState)[nn[2]];   
-       
-       x[0] = ns1.x; y[0] = ns1.y; z[0] = ns1.z;
-       x[1] = ns2.x; y[1] = ns2.y; z[1] = ns2.z;
-       x[2] = ns3.x; y[2] = ns3.y; z[2] = ns3.z;
-       
-     } else {
-             
-       // Compute Node's coordinates
-       Node &nd1 = cs.getNode(nn[0]);
-       Node &nd2 = cs.getNode(nn[1]);
-       Node &nd3 = cs.getNode(nn[2]);
+   // Compute Node's coordinates
+   Node &nd1 = cs.getNode(nn[0]);
+   Node &nd2 = cs.getNode(nn[1]);
+   Node &nd3 = cs.getNode(nn[2]);
       
-       x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-       x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-       x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;      
-    
-     }
-  
+   x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;      
    
-      double alpha = 1.5;
+   double alpha = 1.5;
      
    //Call FORTRAN routine to determine elemental thermal force vector from
    //membrane effects -- returned in global coordinates if glflag = 0
@@ -861,3 +845,211 @@ ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
                       glflag);
 }
 
+#ifdef USE_EIGEN3
+#include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
+#include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
+#include <Element.d/FelippaShell.d/AndesBendingTriangle.hpp>
+
+typedef ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle> Impl;
+
+double
+ThreeNodeShell::getMassThicknessSensitivity(CoordSet& cs)
+{
+  if(prop == NULL) return 0.0;
+  else return getMass(cs)/prop->eh;
+}
+
+void
+ThreeNodeShell::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
+{
+  if(prop == NULL || gravityAcceleration == NULL) {
+    dwdx.zeroAll();
+    return;
+  }
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+
+  double rhoh = prop->rho*prop->eh;
+
+  Impl::andesmsWRTcoord(glNum+1, x, y, z, dwdx.data(), rhoh);
+
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+
+  dwdx *= gravAccNorm;
+
+}
+
+void
+ThreeNodeShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                       Vector& dGfdthick, int gravflg, GeomState *geomState)
+{
+  if(prop == NULL) {
+    dGfdthick.zero();
+    return;
+  }
+
+  getGravityForce(cs, gravityAcceleration, dGfdthick, gravflg, geomState);
+
+  dGfdthick /= prop->eh;
+}
+
+void
+ThreeNodeShell::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                          GenFullM<double> &dGfdx, int gravflg, GeomState*)
+{
+  if(prop == NULL) {
+    dGfdx.zero();
+    return;
+  }
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+
+  double rhoh = prop->rho*prop->eh;
+
+  Impl::andesgfWRTcoord(glNum+1, x, y, z, dGfdx.data(),
+                        gravityAcceleration, gravflg, rhoh);
+}
+
+void
+ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg)
+{
+  if(prop == NULL) {
+    dStiffdThick.zero();
+    return;
+  }
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  ShellMaterial<double> *mat = new ShellMaterialType0<double>(prop->E, prop->eh, prop->nu,
+                                                              prop->rho, prop->Ta, prop->W); 
+
+  double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
+  Impl::andesstfWRTthic(glNum+1, dStiffdThick.data(), (double*)NULL, prop->nu,
+                        x, y, z, disp, 0, mat, flg);
+  delete mat;
+}
+
+void
+ThreeNodeShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
+{
+  if(prop == NULL) {
+    for(int i=0; i<9; ++i) dStiffdx[i].zero();
+    return;
+  }
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  double *data[9];
+  for(int i=0; i<9; ++i) data[i] = dStiffdx[i].data();
+
+  int flg = 1;
+
+  Impl::andesstfWRTcoord(glNum+1, data, prop->E, prop->nu,
+                         prop->rho, prop->eh, prop->Ta, prop->W,
+                         (double*)NULL, x, y, z, 0, (double*)NULL,
+                         flg);
+}
+
+void
+ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs,
+                                                Vector &elDisp, int, int surface, double *ndTemps,
+                                                int avgnum, double, double)
+{
+  weight = 1.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  ShellMaterial<double> *mat = new ShellMaterialType0<double>(prop->E, prop->eh, prop->nu, 
+                                                              prop->rho, prop->Ta, prop->W);
+  int sflg = 0;
+
+  Impl::andesvmsWRTthic(glNum+1, prop->nu, x, y, z, elDisp.data(),
+                        dStdThick.getData(), 0, mat, surface, sflg,
+                        ndTemps);
+  delete mat;
+}
+
+void
+ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs,
+                                                      Vector &elDisp, int, int surface, double *ndTemps,
+                                                      int avgnum, double, double)
+{
+  weight = 1.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  int sflg = 0;
+
+  Impl::andesvmsWRTcoord(glNum+1, prop->E, prop->nu, prop->rho,
+                         prop->eh, prop->Ta, prop->W, (double*)NULL,
+                         x, y, z, elDisp.data(), dStdx.getData(),
+                         0, (double*)NULL, surface, sflg, ndTemps);
+}
+
+void
+ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
+                                                   Vector &elDisp, int, int surface, double *ndTemps,
+                                                   int avgnum, double, double)
+{
+  weight = 1.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  double* disp = elDisp.data();
+
+  ShellMaterial<double> *mat = new ShellMaterialType0<double>(prop->E, prop->eh, prop->nu, 
+                                                              prop->rho, prop->Ta, prop->W);
+  int sflg = 0;
+
+  Impl::andesvmsWRTdisp(glNum+1, prop->nu, x, y, z, elDisp.data(),
+                        dStdDisp.getData(), 0, mat, surface, sflg,
+                        ndTemps);
+  delete mat;
+}
+#endif

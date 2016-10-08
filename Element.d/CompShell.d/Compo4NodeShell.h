@@ -19,7 +19,10 @@ class Compo4NodeShell : public SuperElement
 
     // Routines for the decomposer
     PrioInfo examine(int sub, MultiFront *);
+    int nDecFaces() { return 1; }
+    int getDecFace(int iFace, int *fn) { for(int i=0; i<4; i++) fn[i] = nn[i]; return 4; }
 
+    int getFace(int iFace, int *fn) { return getDecFace(iFace,fn); }
 };
 
 #endif

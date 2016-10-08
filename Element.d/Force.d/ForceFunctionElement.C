@@ -5,6 +5,7 @@
 #include <Element.d/Function.d/Function.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
+#include <Math.d/matrix.h>
 
 template<template <typename S> class VectorValuedFunctionTemplate>
 ForceFunctionElement<VectorValuedFunctionTemplate>
@@ -175,7 +176,7 @@ ForceFunctionElement<VectorValuedFunctionTemplate>::getStiffAndForce(GeomState *
 
   // prepare the function inputs
   const int N = VectorValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
-  Eigen::Matrix<double,N,1> q; // = Eigen::Matrix<double,N,1>::Zero();
+  Eigen::Matrix<double,N,1> q;
   getInputs(q, c0, &c1, refState);
 
   // evaluate the function and store values terms

@@ -1,7 +1,10 @@
 #include <Driver.d/TempProbType.h>
 #include <Driver.d/Domain.h>
-#include <Math.d/mathUtility.h>
+#include <Driver.d/GeoSource.h>
 #include <Math.d/TVectorSet.h>
+#include <Utils.d/DistHelper.h>
+
+extern int verboseFlag;
 
 template<
      class DynOps,             // Data Structure for K, M and dynMat
@@ -84,7 +87,18 @@ TempSolver<
 { 
   double gamma;
   probDesc->getTempNeum(gamma);
-  filePrint(stderr, " ... Newmark Time Integration Scheme: gamma = %4.2f ...\n", gamma);
+  if(gamma == 0)
+    filePrint(stderr, " ... Explicit Forward Euler Method  ...\n"
+                      " ... i.e. α = 0                     ...\n");
+  else if(gamma == 0.5)
+    filePrint(stderr, " ... Implicit Midpoint Rule         ...\n"
+                      " ... i.e. α = ½                     ...\n");
+  else if(gamma == 1.0)
+    filePrint(stderr, " ... Implicit Backward Euler Method ...\n"
+                      " ... i.e. α = 1                     ...\n");
+  else
+    filePrint(stderr, " ... Imp. Generalized Midpoint Rule ...\n"
+                      " ... with α = %5.3f                 ...\n", gamma);
 
   VecType &d_n = curState.getDisp();
   VecType &v_n = curState.getVeloc();
@@ -128,15 +142,19 @@ TempSolver<
   postProcessor->tempdynamOutput(n, dynOps, ext_f, curState);
 
   // ... BEGIN MAIN TIME-LOOP
-  double totalTime = -getTime();
+  double s0 = -getTime(), s1 = -51, s2 = 0;
   char ch[4] = { '|', '/', '-', '\\' };
 
   bool coupled = (probDesc->getAeroheatFlag() >= 0 || probDesc->getThermohFlag() >= 0);
+  if(!coupled) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
-  for( ; t < tmax-0.01*dt; t += dt) {
+  for( ; t < tmax-0.01*dt; t += dt, s2 = s0+getTime()) {
 
-    if(!coupled)
-      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+    if(!coupled && (s2-s1 > 50)) {
+      s1 = s2;
+      filePrint(stderr, "\r ⌊\x1B[33m %c t = %9.3e Δt = %8.2e %3d%% \x1B[0m⌋",
+                ch[int(s1/250.)%4], t+dt, dt, int((t+dt)/(tmax-0.01*dt)*100));
+    }
 
     // Mode decomposition of displacement
     if(probDesc->getModeDecompFlag()) probDesc->modeDecomp(t, n, d_n);
@@ -146,7 +164,7 @@ TempSolver<
 
     if(gamma != 0.0) { // IMPLICIT
       // Solve for temperature: d^{n+1/2} = (M + gamma*dt*K)^{-1}(gamma*dt*f^{n+1/2} + M*(d^n+dt/2*(1-2*gamma)*v^n))
-      if(gamma != 0.5) { // PJSA 8/7/2008
+      if(gamma != 0.5) {
         tmp.linC(d_n, dt/2.0*(1.0-2.0*gamma), v_n);
         dynOps.M->mult(tmp, rhs);
       }
@@ -167,7 +185,8 @@ TempSolver<
       // Solve for first time derivative of temperature: v^{n+1/2} = (M + gamma*dt*K)^{-1}(f^{n+1/2} - K*(d^n + dt/2*(1-2*gamma)*v^n))
       //                                                           = M^{-1}(f^{n+1/2} - K*(d^n+dt/2*v^n)) if gamma == 0
       tmp.linC(-1.0, d_n, -dt/2.0, v_n);
-      dynOps.K->mult(tmp, rhs);
+      if(domain->solInfo().isNonLin()) probDesc->getInternalForce(tmp, rhs);
+      else dynOps.K->mult(tmp, rhs);
       rhs += ext_f;
       dynOps.dynMat->reSolve(rhs);
 
@@ -192,11 +211,10 @@ TempSolver<
 
   }
   if(!coupled)
-    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
+    filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", t, dt);
 
-  totalTime += getTime();
 #ifdef PRINT_TIMERS
-  if(verboseFlag) filePrint(stderr," ... Total Loop Time = %.2e s   ...\n",totalTime/1000.0);
+  if(verboseFlag) filePrint(stderr, " ... Total Loop Time = %.2e s   ...\n", s2/1000.0);
 #endif
 }
 
@@ -271,7 +289,7 @@ TempSolver< DynOps, VecType, PostProcessor, ProblemDescriptor >
     probDesc->getInternalForce(d_n,rhs);
 
     // ... check for convergence
-    double relres = (rhs-ext_f).norm() / forceRef;
+    double relres = norm(rhs-ext_f) / forceRef;
     if(relres <= steadyTol) iSteady = 1;
 
     fprintf(stderr," ... Pseudo-Step = %d  Rel. Res. = %10.4e\n", tIndex, relres);

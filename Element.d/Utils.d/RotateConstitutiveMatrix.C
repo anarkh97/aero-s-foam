@@ -1,6 +1,11 @@
-#include<cstdio>
-#include<cstdlib>
-#include<cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
 
 //#define SYMMETRIZE 
 //#define FILTER_SMALLTERMS 
@@ -53,9 +58,7 @@ rotateConstitutiveMatrix(double *_Cin, double *T33, double Cout[6][6])
                       {TSN[1][0],TSN[1][1],TSN[1][2],TSS[1][0],TSS[1][1],TSS[1][2]},  
                       {TSN[2][0],TSN[2][1],TSN[2][2],TSS[2][0],TSS[2][1],TSS[2][2]}};
 
-  //printMat(&T66[0][0],6,6,"T66 = ");
-
-  // PJSA: Chat = Rhat C Rhat
+  // Chat = Rhat C Rhat
 #ifdef LOOP_UNROLL
   for(int i=0; i<6; i++) { Cin[i][3] *= sqrt2; Cin[i][4] *= sqrt2; Cin[i][5] *= sqrt2; }
   for(int j=0; j<6; j++) { Cin[3][j] *= sqrt2; Cin[4][j] *= sqrt2; Cin[5][j] *= sqrt2; }
@@ -88,7 +91,7 @@ rotateConstitutiveMatrix(double *_Cin, double *T33, double Cout[6][6])
     } 
 #endif
 
-  // PJSA: Chat = Rhat C Rhat
+  // Chat = Rhat C Rhat
   double isqrt2 = 1./sqrt2;
 #ifdef LOOP_UNROLL
   for(int i=0; i<6; i++) { Cout[i][3] *= isqrt2; Cout[i][4] *= isqrt2; Cout[i][5] *= isqrt2; }
@@ -98,7 +101,7 @@ rotateConstitutiveMatrix(double *_Cin, double *T33, double Cout[6][6])
   for(int i=3; i<6; i++) for(int j=0; j<6; j++) Cout[i][j] *= isqrt2;
 #endif
 
-#ifdef SYMMETRIZE //enforce symmetry
+#ifdef SYMMETRIZE // enforce symmetry
   for(int i=0; i<6; i++)
     for(int j=i+1; j<6; j++){
       Cout[i][j] = 0.5*(Cout[i][j]+Cout[j][i]);
@@ -114,7 +117,19 @@ rotateConstitutiveMatrix(double *_Cin, double *T33, double Cout[6][6])
          Cout[i][j] = Cout[j][i] = 0.0;
       }
 #endif
-  //printMat(&Cout[0][0],6,6,"Cout = ");
+}
+
+void rotateVector(double *_w, double *cFrame, double *_alpha)
+{
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(cFrame);
+  Eigen::Map<Eigen::Matrix<double,6,1> > alpha(_alpha);
+  Eigen::Map<Eigen::Matrix<double,6,1> > w(_w);
+  alpha.head<3>() = T.transpose()*w.head<3>();
+  alpha.tail<3>() = T.transpose()*w.tail<3>();
+#else
+  std::cerr << " *** WARNING: USE_EIGEN3 is not defined in Element.d/Utils.d/RotateConstitutiveMatrix.C\n";
+#endif
 }
 
 /*
@@ -144,4 +159,4 @@ int main()
  
   return(1);
 }
-*/  
+*/

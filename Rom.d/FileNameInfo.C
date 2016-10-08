@@ -1,10 +1,12 @@
 #include "FileNameInfo.h"
 
 #include <Driver.d/GeoSource.h>
+#include <Driver.d/Domain.h>
 
 #include <sstream>
 
 extern GeoSource *geoSource;
+extern Domain *domain;
 
 namespace Rom {
 
@@ -19,7 +21,12 @@ FileNameInfo::size(BasisId::Type type, BasisId::Level level)
   int ret = 0;
   if(domain->solInfo().svdPodRom) {
     if(level == 0) {
-      ret = domain->solInfo().snapfiPodRom.size();
+      if(type == 4)
+        ret = domain->solInfo().accelPodRomFile.size();
+      else if(type == 5)
+        ret = domain->solInfo().velocPodRomFile.size();
+      else
+        ret = domain->solInfo().snapfiPodRom.size();
     }
     else if(level == 1) {
       ret = 1; // domain->solInfo().SVDoutput;
@@ -44,9 +51,13 @@ FileNameInfo::size(BasisId::Type type, BasisId::Level level)
         ret = domain->solInfo().velocPodRomFile.size();
       if(type == 6)
         ret = 1; // domain->solInfo().isvPodRomFile;
+      if(type == 7)
+        ret = domain->solInfo().dsvPodRomFile.size();
+      if(type == 8)
+        ret = 1;
     }
     else if(level == 1) {
-      ret = 1; // domain->solInfo().readInROBorModes;
+      ret = domain->solInfo().readInROBorModes.size();
     }
   }
   return ret;
@@ -66,7 +77,14 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
 
   if(domain->solInfo().svdPodRom) {
     if(id.level() == 0) {
-      builder << domain->solInfo().snapfiPodRom[i].c_str() ; 
+      if(id.type() == 4)
+        builder << domain->solInfo().accelPodRomFile[i];
+      else if(id.type() == 5)
+        builder << domain->solInfo().velocPodRomFile[i];
+      else if(id.type() == 7)
+        builder << domain->solInfo().dsvPodRomFile[i];
+      else 
+        builder << domain->solInfo().snapfiPodRom[i].c_str() ; 
     }
     else if(id.level() == 1) {
       builder << domain->solInfo().SVDoutput; 
@@ -91,9 +109,26 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
         builder << domain->solInfo().velocPodRomFile[i];
       if(id.type() == 6)
         builder << domain->solInfo().isvPodRomFile;
+      if(id.type() == 7)
+        builder << domain->solInfo().dsvPodRomFile[i];
+      if(id.type() == 8)
+        builder << domain->solInfo().constraintSnapshotFile;
+    } else if(id.level() == 1) {
+      if(id.type() == 7) {
+        builder << domain->solInfo().readInDualROB[i];
+      } else if(id.type() == 8) {
+        builder << domain->solInfo().constraintPodRomFile;
+      }
+      else {
+        builder << domain->solInfo().readInROBorModes[i];
+      }
     }
-    else if(id.level() == 1) {
-      builder << domain->solInfo().readInROBorModes;
+    else if(id.level() == 2) {
+      if(id.type() == 7) {
+        builder << domain->solInfo().readInDualROB[i].c_str() << ".deim";
+      } else {
+        builder << domain->solInfo().SVDoutput;
+      }
     }
   }
 

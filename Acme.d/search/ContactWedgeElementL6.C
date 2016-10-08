@@ -29,6 +29,7 @@
 #include "ContactQuadFaceL4.h"
 #include "ContactWedgeElementL6.h"
 #include "ContactFixedSizeAllocator.h"
+#include "contact_tolerances.h"
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
@@ -219,7 +220,541 @@ void ContactWedgeElemL6<DataType>::UpdateTopology(ContactFace<DataType>* face,
 }
 
 template<typename DataType>
-bool ContactWedgeElemL6<DataType>::Is_Local_Coordinates_Inside_Element( DataType* local_coords )
+void ContactWedgeElemL6<DataType>::Compute_Partial_Face_Normal( int i, VariableHandle CURRENT_POSITION,
+                                                                VariableHandle FACE_NORMAL,
+                                                                DataType (*face_dface_normal)[3], Real tol,
+                                                                DataType (*elem_dface_normal)[3], DataType *dd )
+{
+  switch(i) {
+    case 0 : {
+      // compute the derivatives of face's face normal w.r.t face's nodal coordinates
+      DataType dface_normal[12][3];
+      this->Face(i)->Compute_Partial_Face_Normal(CURRENT_POSITION, dface_normal);
+
+      // compute the derivatives of face's nodal coordinates w.r.t. the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      DataType dp[9][12] = { { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
+                             { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 },
+                             { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                             { 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
+      for(int k=0; k<9; ++k) {
+        for(int j=0; j<3; ++j) {
+          dp[k][  j] -= tol*face_dface_normal[k][j];
+          dp[k][3+j] -= tol*face_dface_normal[k][j];
+          dp[k][6+j] += tol*face_dface_normal[k][j];
+          dp[k][9+j] += tol*face_dface_normal[k][j];
+        }
+      }
+
+      // compute the derivatives of face's face normal w.r.t the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        for(int k=0; k<3; ++k) {
+          elem_dface_normal[j][k] = 0;
+          for(int l=0; l<12; ++l)
+            elem_dface_normal[j][k] += dp[j][l]*dface_normal[l][k];
+        }
+      }
+
+      // compute the derivatives of the dot product of face's face normal and the position vector of face's
+      // first node w.r.t the nodal coordinates of the master contact face from which this wedge element was
+      // extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        dd[j] = -(elem_dface_normal[j][0]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[0] + this->Face(i)->Variable(FACE_NORMAL)[0]*dp[j][0]
+                 +elem_dface_normal[j][1]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[1] + this->Face(i)->Variable(FACE_NORMAL)[1]*dp[j][1]
+                 +elem_dface_normal[j][2]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[2] + this->Face(i)->Variable(FACE_NORMAL)[2]*dp[j][2]);
+      }
+    } break;
+    case 1 : {
+      // compute the derivatives of face's face normal w.r.t face's nodal coordinates
+      DataType dface_normal[12][3];
+      this->Face(i)->Compute_Partial_Face_Normal(CURRENT_POSITION, dface_normal);
+
+      // compute the derivatives of face's nodal coordinates w.r.t. the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      DataType dp[9][12] = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
+                             { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 },
+                             { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                             { 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0 } };
+      for(int k=0; k<9; ++k) {
+        for(int j=0; j<3; ++j) {
+          dp[k][  j] -= tol*face_dface_normal[k][j];
+          dp[k][3+j] -= tol*face_dface_normal[k][j];
+          dp[k][6+j] += tol*face_dface_normal[k][j];
+          dp[k][9+j] += tol*face_dface_normal[k][j];
+        }
+      }
+
+      // compute the derivatives of face's face normal w.r.t the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        for(int k=0; k<3; ++k) {
+          elem_dface_normal[j][k] = 0;
+          for(int l=0; l<12; ++l)
+            elem_dface_normal[j][k] += dp[j][l]*dface_normal[l][k];
+        }
+      }
+
+      // compute the derivatives of the dot product of face's face normal and the position vector of face's
+      // first node w.r.t the nodal coordinates of the master contact face from which this wedge element was
+      // extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        dd[j] = -(elem_dface_normal[j][0]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[0] + this->Face(i)->Variable(FACE_NORMAL)[0]*dp[j][0]
+                 +elem_dface_normal[j][1]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[1] + this->Face(i)->Variable(FACE_NORMAL)[1]*dp[j][1]
+                 +elem_dface_normal[j][2]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[2] + this->Face(i)->Variable(FACE_NORMAL)[2]*dp[j][2]);
+      }
+    } break;
+    case 2 : {
+      // compute the derivatives of face's face normal w.r.t face's nodal coordinates
+      DataType dface_normal[12][3];
+      this->Face(i)->Compute_Partial_Face_Normal(CURRENT_POSITION, dface_normal);
+
+      // compute the derivatives of face's nodal coordinates w.r.t. the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      DataType dp[9][12] = { { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 } };
+      for(int k=0; k<9; ++k) {
+        for(int j=0; j<3; ++j) {
+          dp[k][  j] -= tol*face_dface_normal[k][j];
+          dp[k][3+j] += tol*face_dface_normal[k][j];
+          dp[k][6+j] += tol*face_dface_normal[k][j];
+          dp[k][9+j] -= tol*face_dface_normal[k][j];
+        }
+      }
+
+      // compute the derivatives of face's face normal w.r.t the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        for(int k=0; k<3; ++k) {
+          elem_dface_normal[j][k] = 0;
+          for(int l=0; l<12; ++l)
+            elem_dface_normal[j][k] += dp[j][l]*dface_normal[l][k];
+        }
+      }
+
+      // compute the derivatives of the dot product of face's face normal and the position vector of face's
+      // first node w.r.t the nodal coordinates of the master contact face from which this wedge element was
+      // extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        dd[j] = -(elem_dface_normal[j][0]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[0] + this->Face(i)->Variable(FACE_NORMAL)[0]*dp[j][0]
+                 +elem_dface_normal[j][1]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[1] + this->Face(i)->Variable(FACE_NORMAL)[1]*dp[j][1]
+                 +elem_dface_normal[j][2]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[2] + this->Face(i)->Variable(FACE_NORMAL)[2]*dp[j][2]);
+      }
+    } break;
+    case 3 : {
+      // compute the derivatives of face's face normal w.r.t the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        elem_dface_normal[j][0] = -face_dface_normal[j][0];
+        elem_dface_normal[j][1] = -face_dface_normal[j][1];
+        elem_dface_normal[j][2] = -face_dface_normal[j][2];
+      }
+
+      // compute the derivatives of face's first node's coordinates w.r.t. the nodal coordinates of the master
+      // contact face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      DataType dp[9][3] = { { 1, 0, 0 },
+                            { 0, 1, 0 },
+                            { 0, 0, 1 },
+                            { 0, 0, 0 },
+                            { 0, 0, 0 },
+                            { 0, 0, 0 },
+                            { 0, 0, 0 },
+                            { 0, 0, 0 },
+                            { 0, 0, 0 } };
+      for(int k=0; k<9; ++k) {
+        for(int j=0; j<3; ++j) {
+          dp[k][j] -= tol*face_dface_normal[k][j];
+        }
+      }
+
+      // compute the derivatives of the dot product of face's face normal and the position vector of face's
+      // first node w.r.t the nodal coordinates of the master contact face from which this wedge element was
+      // extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        dd[j] = -(elem_dface_normal[j][0]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[0] + this->Face(i)->Variable(FACE_NORMAL)[0]*dp[j][0]
+                 +elem_dface_normal[j][1]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[1] + this->Face(i)->Variable(FACE_NORMAL)[1]*dp[j][1]
+                 +elem_dface_normal[j][2]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[2] + this->Face(i)->Variable(FACE_NORMAL)[2]*dp[j][2]);
+      }
+
+    } break;
+    case 4 : {
+      // compute the derivatives of face's face normal w.r.t the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        elem_dface_normal[j][0] = face_dface_normal[j][0];
+        elem_dface_normal[j][1] = face_dface_normal[j][1];
+        elem_dface_normal[j][2] = face_dface_normal[j][2];
+      }
+
+      // compute the derivatives of face's first node's coordinates w.r.t. the nodal coordinates of the master
+      // contact face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      DataType dp[9][3] = { { 1, 0, 0 },
+                            { 0, 1, 0 },
+                            { 0, 0, 1 },
+                            { 0, 0, 0 },
+                            { 0, 0, 0 },
+                            { 0, 0, 0 },
+                            { 0, 0, 0 },
+                            { 0, 0, 0 },
+                            { 0, 0, 0 } };
+      for(int k=0; k<9; ++k) {
+        for(int j=0; j<3; ++j) {
+          dp[k][j] += tol*face_dface_normal[k][j];
+        }
+      }
+
+      // compute the derivatives of the dot product of face's face normal and the position vector of face's
+      // first node w.r.t the nodal coordinates of the master contact face from which this wedge element was
+      // extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        dd[j] = -(elem_dface_normal[j][0]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[0] + this->Face(i)->Variable(FACE_NORMAL)[0]*dp[j][0]
+                 +elem_dface_normal[j][1]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[1] + this->Face(i)->Variable(FACE_NORMAL)[1]*dp[j][1]
+                 +elem_dface_normal[j][2]*this->Face(i)->Node(0)->Variable(CURRENT_POSITION)[2] + this->Face(i)->Variable(FACE_NORMAL)[2]*dp[j][2]);
+      }
+
+    } break;
+  }
+}
+
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Compute_Second_Partial_Face_Normal( int i, VariableHandle CURRENT_POSITION,
+                                                                       VariableHandle FACE_NORMAL,
+                                                                       DataType (*face_dface_normal)[3],
+                                                                       DataType (*face_d2face_normal)[3], Real tol,
+                                                                       DataType (*elem_d2face_normal)[3], DataType *d2d )
+{
+  DataType *node0_position = this->Face(i)->Node(0)->Variable(CURRENT_POSITION);
+  DataType *face_normal = this->Face(i)->Variable(FACE_NORMAL);
+  switch(i) {
+    case 0 : {
+      // compute the 1st & 2nd derivatives of face's face normal w.r.t face's nodal coordinates
+      DataType dface_normal[12][3];
+      this->Face(i)->Compute_Partial_Face_Normal(CURRENT_POSITION, dface_normal);
+      DataType d2face_normal[12*12][3];
+      this->Face(i)->Compute_Second_Partial_Face_Normal(CURRENT_POSITION, d2face_normal);
+
+      // compute the 1st & 2nd derivatives of face's nodal coordinates w.r.t. the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      // Note: the 2nd derivatives are equal to ±tol*face_d2face_normal
+      // XXX the following could be further optimized by taking avantage of the special structure of dp
+      DataType dp[9][12] = { { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
+                             { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 },
+                             { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                             { 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
+      for(int j=0; j<9; ++j) {
+        for(int k=0; k<3; ++k) {
+          DataType t = tol*face_dface_normal[j][k]; 
+          dp[j][  k] -= t;
+          dp[j][3+k] -= t;
+          dp[j][6+k] += t;
+          dp[j][9+k] += t;
+        }
+      }
+
+      // compute the derivatives of face's face normal w.r.t the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      DataType elem_dface_normal[9][3];
+      for(int j=0; j<9; ++j) {
+        for(int k=0; k<3; ++k) {
+          elem_dface_normal[j][k] = 0;
+          for(int l=0; l<12; ++l)
+            elem_dface_normal[j][k] += dp[j][l]*dface_normal[l][k];
+        }
+      }
+
+      for(int j=0; j<9; ++j)
+        for(int k=j; k<9; ++k) {
+          elem_d2face_normal[9*j+k][0] = 0;
+          elem_d2face_normal[9*j+k][1] = 0;
+          elem_d2face_normal[9*j+k][2] = 0;
+          for(int l=0; l<3; ++l) {
+            DataType t = tol*face_d2face_normal[9*j+k][l];
+            elem_d2face_normal[9*j+k][0] += t*(-dface_normal[l][0] - dface_normal[3+l][0] + dface_normal[6+l][0] + dface_normal[9+l][0]);
+            elem_d2face_normal[9*j+k][1] += t*(-dface_normal[l][1] - dface_normal[3+l][1] + dface_normal[6+l][1] + dface_normal[9+l][1]); 
+            elem_d2face_normal[9*j+k][2] += t*(-dface_normal[l][2] - dface_normal[3+l][2] + dface_normal[6+l][2] + dface_normal[9+l][2]);
+          }
+        }
+  
+      for(int j=0; j<9; ++j)
+        for(int m=0; m<12; ++m) {
+          DataType t[3] = { 0, 0, 0 };
+          for(int l=0; l<12; ++l) {
+            t[0] += dp[j][l]*d2face_normal[12*l+m][0];
+            t[1] += dp[j][l]*d2face_normal[12*l+m][1];
+            t[2] += dp[j][l]*d2face_normal[12*l+m][2];
+          }
+          for(int k=j; k<9; ++k) {
+            elem_d2face_normal[9*j+k][0] += t[0]*dp[k][m];
+            elem_d2face_normal[9*j+k][1] += t[1]*dp[k][m];
+            elem_d2face_normal[9*j+k][2] += t[2]*dp[k][m];
+          }
+        }
+
+      // compute the second derivatives of the dot product of face's face normal and the position vector of face's
+      // first node w.r.t the nodal coordinates of the master contact face from which this wedge element was
+      // extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        for(int k=j; k<9; ++k) {
+          d2d[9*j+k] = -(elem_d2face_normal[9*j+k][0]*node0_position[0] + elem_dface_normal[j][0]*dp[k][0] +
+                         elem_dface_normal[k][0]*dp[j][0] - tol*face_normal[0]*face_d2face_normal[9*j+k][0] +
+                         elem_d2face_normal[9*j+k][1]*node0_position[1] + elem_dface_normal[j][1]*dp[k][1] +
+                         elem_dface_normal[k][1]*dp[j][1] - tol*face_normal[1]*face_d2face_normal[9*j+k][1] +
+                         elem_d2face_normal[9*j+k][2]*node0_position[2] + elem_dface_normal[j][2]*dp[k][2] +
+                         elem_dface_normal[k][2]*dp[j][2] - tol*face_normal[2]*face_d2face_normal[9*j+k][2]);
+        }
+      }
+
+    } break;
+    case 1 : {
+      // compute the derivatives of face's face normal w.r.t face's nodal coordinates
+      DataType dface_normal[12][3];
+      this->Face(i)->Compute_Partial_Face_Normal(CURRENT_POSITION, dface_normal);
+      DataType d2face_normal[12*12][3];
+      this->Face(i)->Compute_Second_Partial_Face_Normal(CURRENT_POSITION, d2face_normal);
+
+      // compute the derivatives of face's nodal coordinates w.r.t. the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      // Note: the 2nd derivatives are equal to ±tol*face_d2face_normal
+      DataType dp[9][12] = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
+                             { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 },
+                             { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                             { 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0 } };
+      for(int j=0; j<9; ++j) {
+        for(int k=0; k<3; ++k) {
+          DataType t = tol*face_dface_normal[j][k];
+          dp[j][  k] -= t;
+          dp[j][3+k] -= t;
+          dp[j][6+k] += t;
+          dp[j][9+k] += t;
+        }
+      }
+
+      // compute the derivatives of face's face normal w.r.t the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      DataType elem_dface_normal[9][3];
+      for(int j=0; j<9; ++j) {
+        for(int k=0; k<3; ++k) {
+          elem_dface_normal[j][k] = 0;
+          for(int l=0; l<12; ++l)
+            elem_dface_normal[j][k] += dp[j][l]*dface_normal[l][k];
+        }
+      }
+
+      for(int j=0; j<9; ++j)
+        for(int k=j; k<9; ++k) {
+          elem_d2face_normal[9*j+k][0] = 0;
+          elem_d2face_normal[9*j+k][1] = 0;
+          elem_d2face_normal[9*j+k][2] = 0;
+          for(int l=0; l<3; ++l) {
+            DataType t = tol*face_d2face_normal[9*j+k][l];
+            elem_d2face_normal[9*j+k][0] += t*(-dface_normal[l][0] - dface_normal[3+l][0] + dface_normal[6+l][0] + dface_normal[9+l][0]);
+            elem_d2face_normal[9*j+k][1] += t*(-dface_normal[l][1] - dface_normal[3+l][1] + dface_normal[6+l][1] + dface_normal[9+l][1]);
+            elem_d2face_normal[9*j+k][2] += t*(-dface_normal[l][2] - dface_normal[3+l][2] + dface_normal[6+l][2] + dface_normal[9+l][2]);
+          }
+        }
+
+      for(int j=0; j<9; ++j)
+        for(int m=0; m<12; ++m) {
+          DataType t[3] = { 0, 0, 0 };
+          for(int l=0; l<12; ++l) {
+            t[0] += dp[j][l]*d2face_normal[12*l+m][0];
+            t[1] += dp[j][l]*d2face_normal[12*l+m][1];
+            t[2] += dp[j][l]*d2face_normal[12*l+m][2];
+          }
+          for(int k=j; k<9; ++k) {
+            elem_d2face_normal[9*j+k][0] += t[0]*dp[k][m];
+            elem_d2face_normal[9*j+k][1] += t[1]*dp[k][m];
+            elem_d2face_normal[9*j+k][2] += t[2]*dp[k][m];
+          }
+        }
+
+      // compute the second derivatives of the dot product of face's face normal and the position vector of face's
+      // first node w.r.t the nodal coordinates of the master contact face from which this wedge element was
+      // extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        for(int k=j; k<9; ++k) {
+          d2d[9*j+k] = -(elem_d2face_normal[9*j+k][0]*node0_position[0] + elem_dface_normal[j][0]*dp[k][0] +
+                         elem_dface_normal[k][0]*dp[j][0] - tol*face_normal[0]*face_d2face_normal[9*j+k][0] +
+                         elem_d2face_normal[9*j+k][1]*node0_position[1] + elem_dface_normal[j][1]*dp[k][1] +
+                         elem_dface_normal[k][1]*dp[j][1] - tol*face_normal[1]*face_d2face_normal[9*j+k][1] +
+                         elem_d2face_normal[9*j+k][2]*node0_position[2] + elem_dface_normal[j][2]*dp[k][2] +
+                         elem_dface_normal[k][2]*dp[j][2] - tol*face_normal[2]*face_d2face_normal[9*j+k][2]);
+        }
+      }
+
+    } break;
+    case 2 : {
+      // compute the derivatives of face's face normal w.r.t face's nodal coordinates
+      DataType dface_normal[12][3];
+      this->Face(i)->Compute_Partial_Face_Normal(CURRENT_POSITION, dface_normal);
+      DataType d2face_normal[12*12][3];
+      this->Face(i)->Compute_Second_Partial_Face_Normal(CURRENT_POSITION, d2face_normal);
+
+      // compute the derivatives of face's nodal coordinates w.r.t. the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      // Note: the 2nd derivatives are equal to ±tol*face_d2face_normal
+      DataType dp[9][12] = { { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0 },
+                             { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 } };
+      for(int j=0; j<9; ++j) {
+        for(int k=0; k<3; ++k) {
+          DataType t = tol*face_dface_normal[j][k];
+          dp[j][  k] -= t;
+          dp[j][3+k] += t;
+          dp[j][6+k] += t;
+          dp[j][9+k] -= t;
+        }
+      }
+
+      // compute the derivatives of face's face normal w.r.t the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      DataType elem_dface_normal[9][3];
+      for(int j=0; j<9; ++j) {
+        for(int k=0; k<3; ++k) {
+          elem_dface_normal[j][k] = 0;
+          for(int l=0; l<12; ++l)
+            elem_dface_normal[j][k] += dp[j][l]*dface_normal[l][k];
+        }
+      }
+
+      for(int j=0; j<9; ++j)
+        for(int k=j; k<9; ++k) {
+          elem_d2face_normal[9*j+k][0] = 0;
+          elem_d2face_normal[9*j+k][1] = 0;
+          elem_d2face_normal[9*j+k][2] = 0;
+          for(int l=0; l<3; ++l) {
+            DataType t = tol*face_d2face_normal[9*j+k][l];
+            elem_d2face_normal[9*j+k][0] += t*(-dface_normal[l][0] + dface_normal[3+l][0] + dface_normal[6+l][0] - dface_normal[9+l][0]);
+            elem_d2face_normal[9*j+k][1] += t*(-dface_normal[l][1] + dface_normal[3+l][1] + dface_normal[6+l][1] - dface_normal[9+l][1]);
+            elem_d2face_normal[9*j+k][2] += t*(-dface_normal[l][2] + dface_normal[3+l][2] + dface_normal[6+l][2] - dface_normal[9+l][2]);
+          }
+        }
+
+      for(int j=0; j<9; ++j)
+        for(int m=0; m<12; ++m) {
+          DataType t[3] = { 0, 0, 0 };
+          for(int l=0; l<12; ++l) {
+            t[0] += dp[j][l]*d2face_normal[12*l+m][0];
+            t[1] += dp[j][l]*d2face_normal[12*l+m][1];
+            t[2] += dp[j][l]*d2face_normal[12*l+m][2];
+          }
+          for(int k=j; k<9; ++k) {
+            elem_d2face_normal[9*j+k][0] += t[0]*dp[k][m];
+            elem_d2face_normal[9*j+k][1] += t[1]*dp[k][m];
+            elem_d2face_normal[9*j+k][2] += t[2]*dp[k][m];
+          }
+        }
+
+      // compute the second derivatives of the dot product of face's face normal and the position vector of face's
+      // first node w.r.t the nodal coordinates of the master contact face from which this wedge element was
+      // extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<9; ++j) {
+        for(int k=j; k<9; ++k) {
+          d2d[9*j+k] = -(elem_d2face_normal[9*j+k][0]*node0_position[0] + elem_dface_normal[j][0]*dp[k][0] +
+                         elem_dface_normal[k][0]*dp[j][0] - tol*face_normal[0]*face_d2face_normal[9*j+k][0] +
+                         elem_d2face_normal[9*j+k][1]*node0_position[1] + elem_dface_normal[j][1]*dp[k][1] +
+                         elem_dface_normal[k][1]*dp[j][1] - tol*face_normal[1]*face_d2face_normal[9*j+k][1] +
+                         elem_d2face_normal[9*j+k][2]*node0_position[2] + elem_dface_normal[j][2]*dp[k][2] +
+                         elem_dface_normal[k][2]*dp[j][2] - tol*face_normal[2]*face_d2face_normal[9*j+k][2]);
+        }
+      }
+
+    } break;
+    case 3 : {
+      // compute the derivatives of face's face normal w.r.t the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<81; ++j) {
+        elem_d2face_normal[j][0] = -face_d2face_normal[j][0];
+        elem_d2face_normal[j][1] = -face_d2face_normal[j][1];
+        elem_d2face_normal[j][2] = -face_d2face_normal[j][2];
+      }
+
+      // compute the second derivatives of the dot product of face's face normal and the position vector of face's
+      // first node w.r.t the nodal coordinates of the master contact face from which this wedge element was
+      // extruded in UpdateTopology, assuming use_node_normals was false
+      DataType dp[9][3];
+      for(int k=0; k<9; ++k) {
+        for(int j=0; j<3; ++j) dp[k][j] = -tol*face_dface_normal[k][j];
+      }
+      dp[0][0] += 1; dp[1][1] += 1; dp[2][2] += 1;
+
+      DataType toto[3] = { node0_position[0]+tol*face_normal[0], node0_position[1]+tol*face_normal[1], node0_position[2]+tol*face_normal[2] };
+      for(int j=0; j<9; ++j) {
+        for(int k=j; k<9; ++k) {
+          d2d[9*j+k] = face_d2face_normal[9*j+k][0]*toto[0] + face_dface_normal[j][0]*dp[k][0] + face_dface_normal[k][0]*dp[j][0] +
+                       face_d2face_normal[9*j+k][1]*toto[1] + face_dface_normal[j][1]*dp[k][1] + face_dface_normal[k][1]*dp[j][1] +
+                       face_d2face_normal[9*j+k][2]*toto[2] + face_dface_normal[j][2]*dp[k][2] + face_dface_normal[k][2]*dp[j][2];
+        }
+      }
+
+    } break;
+    case 4 : {
+      // compute the derivatives of face's face normal w.r.t the nodal coordinates of the master contact
+      // face from which this wedge element was extruded in UpdateTopology, assuming use_node_normals was false
+      for(int j=0; j<81; ++j) {
+        elem_d2face_normal[j][0] = face_d2face_normal[j][0];
+        elem_d2face_normal[j][1] = face_d2face_normal[j][1];
+        elem_d2face_normal[j][2] = face_d2face_normal[j][2];
+      }
+
+      // compute the second derivatives of the dot product of face's face normal and the position vector of face's
+      // first node w.r.t the nodal coordinates of the master contact face from which this wedge element was
+      // extruded in UpdateTopology, assuming use_node_normals was false
+      DataType dp[9][3];
+      for(int k=0; k<9; ++k) {
+        for(int j=0; j<3; ++j) dp[k][j] = tol*face_dface_normal[k][j];
+      }
+      dp[0][0] += 1; dp[1][1] += 1; dp[2][2] += 1;
+
+      DataType toto[3] = { node0_position[0]+tol*face_normal[0], node0_position[1]+tol*face_normal[1], node0_position[2]+tol*face_normal[2] };
+      for(int j=0; j<9; ++j) {
+        for(int k=j; k<9; ++k) {
+          d2d[9*j+k] = -(face_d2face_normal[9*j+k][0]*toto[0] + face_dface_normal[j][0]*dp[k][0] + face_dface_normal[k][0]*dp[j][0] +
+                         face_d2face_normal[9*j+k][1]*toto[1] + face_dface_normal[j][1]*dp[k][1] + face_dface_normal[k][1]*dp[j][1] +
+                         face_d2face_normal[9*j+k][2]*toto[2] + face_dface_normal[j][2]*dp[k][2] + face_dface_normal[k][2]*dp[j][2]);
+        }
+      }
+
+    } break;
+  }
+}
+
+template<typename DataType>
+bool
+ContactWedgeElemL6<DataType>::Is_Local_Coordinates_Inside_Element( DataType* local_coords )
 {
   if( local_coords[0] >=  0.0 && local_coords[0] <= 1.0 &&
       local_coords[1] >=  0.0 && local_coords[1] <= 1.0 &&
@@ -230,7 +765,8 @@ bool ContactWedgeElemL6<DataType>::Is_Local_Coordinates_Inside_Element( DataType
 }
 
 template<typename DataType>
-bool ContactWedgeElemL6<DataType>::Is_Local_Coordinates_Near_Element( DataType* local_coords, DataType tolerance )
+bool
+ContactWedgeElemL6<DataType>::Is_Local_Coordinates_Near_Element( DataType* local_coords, DataType tolerance )
 {
   DataType low_coord  = -(1.+tolerance);
   DataType high_coord = 1.+tolerance;
@@ -301,7 +837,7 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coordinates( DataType Config_Pa
 }
 
 template<typename DataType>
-void ContactWedgeElemL6<DataType>::Compute_Local_Coordinates( VariableHandle POSITION,
+bool ContactWedgeElemL6<DataType>::Compute_Local_Coordinates( VariableHandle POSITION,
 						    DataType* global_coords,
 						    DataType* local_coords )
 {
@@ -313,7 +849,7 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coordinates( VariableHandle POS
       node_positions[i][j] = node_position[j];
     }
   }
-  Compute_Local_Coords(node_positions, global_coords, local_coords);
+  return Compute_Local_Coords(node_positions, global_coords, local_coords);
 }
 
 /*************************************************************************/
@@ -365,10 +901,10 @@ void ContactWedgeElemL6<DataType>::Compute_Shape_Derivatives( DataType* local_co
   shape_derivs[2][5] =  0.50*local_coords[2];
 }
 
-template<typename DataType>
-void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions[6][3], 
-					       DataType* global_coords,
-					       DataType* local_coords )
+template<>
+inline bool ContactWedgeElemL6<Real>::Compute_Local_Coords( Real node_positions[6][3], 
+					       Real* global_coords,
+					       Real* local_coords )
 {
   using std::sqrt;
   using std::abs;
@@ -379,13 +915,13 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
   //
   int  i, j;
   int  nnodes=6;
-  DataType spatial_tolerance = 1.0e-10;
+ if(spatial_tolerance_pre > 0) {
   for (i=0; i<nnodes; ++i) {
-    DataType dx = node_positions[i][0]-global_coords[0];
-    DataType dy = node_positions[i][1]-global_coords[1];
-    DataType dz = node_positions[i][2]-global_coords[2];
-    DataType d  = sqrt(dx*dx+dy*dy+dz*dz);
-    if (d<spatial_tolerance) break;
+    Real dx = node_positions[i][0]-global_coords[0];
+    Real dy = node_positions[i][1]-global_coords[1];
+    Real dz = node_positions[i][2]-global_coords[2];
+    Real dd = sqrt(dx*dx+dy*dy+dz*dz);
+    if (dd == 0 || sqrt(dd) < spatial_tolerance_pre) break;
   }
   switch (i) {
   case 0:
@@ -425,25 +961,26 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
     local_coords[3] =  1.0;
     break;
   }
-  if (i<nnodes) return;
+  if (i<nnodes) return true;
+ }
   //
   // else use newton's method to iterate
   //
   int  iterations=0;
   int  max_iterations=200;
   bool converged = false;
-  DataType tolerance = 1.0e-12;
-  DataType u, u0=0.0, u1, du;
-  DataType v, v0=0.0, v1, dv;
-  DataType w, w0=0.0, w1, dw;
-  DataType f[3], J[3][3], invJ[3][3];
-  DataType shape_derivatives[3][6], coords[4];
+  Real u, u0=0.0, u1, du;
+  Real v, v0=0.0, v1, dv;
+  Real w, w0=0.0, w1, dw;
+  Real f[3], J[3][3], invJ[3][3];
+  Real shape_derivatives[3][6], coords[4];
+  Real residualNorm2, initialResidualNorm2;
   while (!converged && iterations<max_iterations) {
     coords[0] = u0;
     coords[1] = v0;
     coords[2] = 1.0-u0-v0;
     coords[3] = w0;
-    Compute_Global_Coords(node_positions , coords, f );
+    Compute_Global_Coords( node_positions, coords, f );
     // BUILD JACOBIAN AND INVERT
     Compute_Shape_Derivatives( coords, shape_derivatives );
     for (i=0; i<3; ++i) {
@@ -457,7 +994,7 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
       }
     }
     
-    DataType detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
+    Real detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
                        J[0][1]*(J[1][0]*J[2][2]-J[2][0]*J[1][2])+
                        J[0][2]*(J[1][0]*J[2][1]-J[2][0]*J[1][1]));
 
@@ -476,50 +1013,62 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
     u  = f[0]-global_coords[0];
     v  = f[1]-global_coords[1];
     w  = f[2]-global_coords[2];
-    u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
-    v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
-    w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
-    du = abs(u1-u0);
-    dv = abs(v1-v0);
-    dw = abs(w1-w0);
-    u0 = u1;
-    v0 = v1;
-    w0 = w1;
-    if (du<tolerance && dv<tolerance && dw<tolerance) converged = true;
-    ++iterations;
+    residualNorm2 = u*u + v*v + w*w;
+    if(iterations == 0) initialResidualNorm2 = residualNorm2;
+    if(residualNorm2 < newton_tolerance*initialResidualNorm2 || residualNorm2 < abs_newton_tolerance) converged = true;
+    else {
+      u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
+      v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
+      w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
+      du = abs(u1-u0);
+      dv = abs(v1-v0);
+      dw = abs(w1-w0);
+      u0 = u1;
+      v0 = v1;
+      w0 = w1;
+      //if (du<newton_tolerance && dv<newton_tolerance && dw<newton_tolerance) converged = true;
+      ++iterations;
+    }
   }
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
   if (!converged) {
-    std::cerr << "ContactWedgeElemL6<DataType>::Compute_Local_Coordinates() did not converge" 
-	 << std::endl;
+    std::cerr << "ContactWedgeElemL6::Compute_Local_Coordinates() did not converge\n"
+              << std::endl;
   }
 #endif
   POSTCONDITION(converged);
-  if (u0<1.0+spatial_tolerance) {
-    u0 = min(u0, 1.0);
-  }
-  if (u0>-spatial_tolerance) {
-    u0 = max(u0, 0.0);
-  }
-  if (v0<1.0+spatial_tolerance) {
-    v0 = min(v0, 1.0);
-  }
-  if (v0>-spatial_tolerance) {
-    v0 = max(v0, 0.0);
-  }
-  if (abs(w0)<1.0+spatial_tolerance) {
-    w0 = min(w0, 1.0);
-    w0 = max(w0,-1.0);
+  /*if(!converged) {
+    std::cerr << "ContactWedgeElemL6<Real>::Compute_Local_Coords did not converge: initialResidualNorm2 = "
+              << initialResidualNorm2 << ", residualNorm2 = " << residualNorm2 << std::endl;
+  }*/
+  if(spatial_tolerance_post > 0) {
+    // If it's close to any of the edges, snap to it
+    if (u0<1.0+spatial_tolerance_post) {
+      u0 = min(u0, 1.0);
+    }
+    if (u0>-spatial_tolerance_post) {
+      u0 = max(u0, 0.0);
+    }
+    if (v0<1.0+spatial_tolerance_post) {
+      v0 = min(v0, 1.0);
+    }
+    if (v0>-spatial_tolerance_post) {
+      v0 = max(v0, 0.0);
+    }
+    if (abs(w0)<1.0+spatial_tolerance_post) {
+      w0 = min(w0, 1.0);
+      w0 = max(w0,-1.0);
+    }
   }
   local_coords[0] = u0;
   local_coords[1] = v0;
   local_coords[2] = 1.0-u0-v0;
   local_coords[3] = w0;
+  return converged;
 }
 
-#if (MAX_FFI_DERIVATIVES > 0)
-template<>
-void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_positions[6][3], 
+template<typename ActiveScalar>
+bool ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_positions[6][3], 
 					       ActiveScalar* active_global_coords,
 					       ActiveScalar* active_local_coords )
 {
@@ -540,13 +1089,13 @@ void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active
   //
   // 1st check for coincidence with one of the face nodes
   //
-  double spatial_tolerance = 1.0e-10;
+ if(spatial_tolerance_pre > 0) {
   for (i=0; i<nnodes; ++i) {
     double dx = node_positions[i][0]-global_coords[0];
     double dy = node_positions[i][1]-global_coords[1];
     double dz = node_positions[i][2]-global_coords[2];
-    double d  = sqrt(dx*dx+dy*dy+dz*dz);
-    if (d<spatial_tolerance) break;
+    double dd  = dx*dx+dy*dy+dz*dz;
+    if (dd == 0 || sqrt(dd) < spatial_tolerance_pre) break;
   }
   switch (i) {
   case 0:
@@ -586,143 +1135,68 @@ void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active
     local_coords[3] =  1.0;
     break;
   }
-  if (i>=nnodes) {
-    //
-    // else use newton's method to iterate
-    //
-    int  iterations=0;
-    int  max_iterations=200;
-    bool converged = false;
-    double tolerance = 1.0e-12;
-    double u, u0=0.0, u1, du;
-    double v, v0=0.0, v1, dv;
-    double w, w0=0.0, w1, dw;
-    double f[3], J[3][3], invJ[3][3];
-    double shape_derivatives[3][6], shape_functions[6];
-    while (!converged && iterations<max_iterations) {
-      local_coords[0] = u0;
-      local_coords[1] = v0;
-      local_coords[2] = 1.0-u0-v0;
-      local_coords[3] = w0;
-      // BUILD JACOBIAN AND INVERT
-      shape_derivatives[0][0] =  0.50*(1.0-local_coords[3]);
-      shape_derivatives[0][1] =  0.0;
-      shape_derivatives[0][2] = -0.50*(1.0-local_coords[3]);
-      shape_derivatives[0][3] =  0.50*(1.0+local_coords[3]);
-      shape_derivatives[0][4] =  0.0;
-      shape_derivatives[0][5] = -0.50*(1.0+local_coords[3]);
-
-      shape_derivatives[1][0] =  0.0;
-      shape_derivatives[1][1] =  0.50*(1.0-local_coords[3]);
-      shape_derivatives[1][2] = -0.50*(1.0-local_coords[3]);
-      shape_derivatives[1][3] =  0.0;
-      shape_derivatives[1][4] =  0.50*(1.0+local_coords[3]);
-      shape_derivatives[1][5] = -0.50*(1.0+local_coords[3]);
-
-      shape_derivatives[2][0] = -0.50*local_coords[0];
-      shape_derivatives[2][1] = -0.50*local_coords[1];
-      shape_derivatives[2][2] = -0.50*local_coords[2];
-      shape_derivatives[2][3] =  0.50*local_coords[0];
-      shape_derivatives[2][4] =  0.50*local_coords[1];
-      shape_derivatives[2][5] =  0.50*local_coords[2];
-
-      for (i=0; i<3; ++i) {
-        J[0][i] = 0.0;
-        J[1][i] = 0.0;
-        J[2][i] = 0.0;
-        for (j=0; j<6; ++j) {
-          J[0][i] += shape_derivatives[i][j]*node_positions[j][0];
-          J[1][i] += shape_derivatives[i][j]*node_positions[j][1];
-          J[2][i] += shape_derivatives[i][j]*node_positions[j][2];
-        }
-      }
-    
-      double detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
-                           J[0][1]*(J[1][0]*J[2][2]-J[2][0]*J[1][2])+
-                           J[0][2]*(J[1][0]*J[2][1]-J[2][0]*J[1][1]));
-
-      invJ[0][0] =  (J[1][1]*J[2][2]-J[1][2]*J[2][1])*detJ;
-      invJ[0][1] = -(J[0][1]*J[2][2]-J[2][1]*J[0][2])*detJ;
-      invJ[0][2] =  (J[1][2]*J[0][1]-J[0][2]*J[1][1])*detJ;
-      invJ[1][0] = -(J[1][0]*J[2][2]-J[2][0]*J[1][2])*detJ;
-      invJ[1][1] =  (J[0][0]*J[2][2]-J[0][2]*J[2][0])*detJ;
-      invJ[1][2] = -(J[0][0]*J[1][2]-J[1][0]*J[0][2])*detJ;
-      invJ[2][0] =  (J[1][0]*J[2][1]-J[2][0]*J[1][1])*detJ;
-      invJ[2][1] = -(J[0][0]*J[2][1]-J[2][0]*J[0][1])*detJ;
-      invJ[2][2] =  (J[0][0]*J[1][1]-J[0][1]*J[1][0])*detJ;
-
-      // APPLY NEWTON ALGORITHM
-      shape_functions[0] = 0.50*local_coords[0]*(1.0-local_coords[3]);
-      shape_functions[1] = 0.50*local_coords[1]*(1.0-local_coords[3]);
-      shape_functions[2] = 0.50*local_coords[2]*(1.0-local_coords[3]);
-      shape_functions[3] = 0.50*local_coords[0]*(1.0+local_coords[3]);
-      shape_functions[4] = 0.50*local_coords[1]*(1.0+local_coords[3]);
-      shape_functions[5] = 0.50*local_coords[2]*(1.0+local_coords[3]);
-      f[0] = 0.0;
-      f[1] = 0.0;
-      f[2] = 0.0;
-      for( int i=0 ; i<nnodes ; ++i ){
-        for (int j=0; j<3; ++j) {
-          f[j] += shape_functions[i]*node_positions[i][j];
-        }
-      }
-      u  = f[0]-global_coords[0];
-      v  = f[1]-global_coords[1];
-      w  = f[2]-global_coords[2];
-      u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
-      v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
-      w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
-      du = abs(u1-u0);
-      dv = abs(v1-v0);
-      dw = abs(w1-w0);
-      u0 = u1;
-      v0 = v1;
-      w0 = w1;
-      if (du<tolerance && dv<tolerance && dw<tolerance) converged = true;
-      ++iterations;
-    }
-    if(!converged) { // in this case assume we are just testing to see if the point is inside the element and 
-                     // the derivatives are not actually required
-      active_local_coords[0] = u0;
-      active_local_coords[1] = v0;
-      active_local_coords[2] = 1.0-u0-v0;
-      active_local_coords[3] = w0;
-      return;
-    }
+  if (i<nnodes) {
+    active_local_coords[0] = local_coords[0];
+    active_local_coords[1] = local_coords[1];
+    active_local_coords[2] = local_coords[2];
+    active_local_coords[3] = local_coords[3];
+    return true;
   }
+ }
   //
-  // repeat newton's method to get the derivatives
+  // else use newton's method to iterate
   //
   int  iterations=0;
   int  max_iterations=200;
   bool converged = false;
-  ActiveScalar tolerance = 1.0e-12;
-  ActiveScalar u, u0=local_coords[0], u1, du;
-  ActiveScalar v, v0=local_coords[1], v1, dv;
-  ActiveScalar w, w0=local_coords[3], w1, dw;
-  ActiveScalar f[3], J[3][3], invJ[3][3];
-  ActiveScalar shape_derivatives[3][6];
+  double u, u0=0.0, u1, du;
+  double v, v0=0.0, v1, dv;
+  double w, w0=0.0, w1, dw;
+  double f[3], J[3][3], invJ[3][3];
+  double shape_derivatives[3][6], shape_functions[6];
+  double residualNorm2, initialResidualNorm2;
+  double u0_copy=0.0, v0_copy=0.0, w0_copy=0.0;
   while (!converged && iterations<max_iterations) {
-    active_local_coords[0] = u0;
-    active_local_coords[1] = v0;
-    active_local_coords[2] = 1.0-u0-v0;
-    active_local_coords[3] = w0;
+    local_coords[0] = u0;
+    local_coords[1] = v0;
+    local_coords[2] = 1.0-u0-v0;
+    local_coords[3] = w0;
     // BUILD JACOBIAN AND INVERT
-    Compute_Shape_Derivatives( active_local_coords, shape_derivatives );
+    shape_derivatives[0][0] =  0.50*(1.0-local_coords[3]);
+    shape_derivatives[0][1] =  0.0;
+    shape_derivatives[0][2] = -0.50*(1.0-local_coords[3]);
+    shape_derivatives[0][3] =  0.50*(1.0+local_coords[3]);
+    shape_derivatives[0][4] =  0.0;
+    shape_derivatives[0][5] = -0.50*(1.0+local_coords[3]);
+
+    shape_derivatives[1][0] =  0.0;
+    shape_derivatives[1][1] =  0.50*(1.0-local_coords[3]);
+    shape_derivatives[1][2] = -0.50*(1.0-local_coords[3]);
+    shape_derivatives[1][3] =  0.0;
+    shape_derivatives[1][4] =  0.50*(1.0+local_coords[3]);
+    shape_derivatives[1][5] = -0.50*(1.0+local_coords[3]);
+
+    shape_derivatives[2][0] = -0.50*local_coords[0];
+    shape_derivatives[2][1] = -0.50*local_coords[1];
+    shape_derivatives[2][2] = -0.50*local_coords[2];
+    shape_derivatives[2][3] =  0.50*local_coords[0];
+    shape_derivatives[2][4] =  0.50*local_coords[1];
+    shape_derivatives[2][5] =  0.50*local_coords[2];
+
     for (i=0; i<3; ++i) {
       J[0][i] = 0.0;
       J[1][i] = 0.0;
       J[2][i] = 0.0;
       for (j=0; j<6; ++j) {
-        J[0][i] += shape_derivatives[i][j]*active_node_positions[j][0];
-        J[1][i] += shape_derivatives[i][j]*active_node_positions[j][1];
-        J[2][i] += shape_derivatives[i][j]*active_node_positions[j][2];
+        J[0][i] += shape_derivatives[i][j]*node_positions[j][0];
+        J[1][i] += shape_derivatives[i][j]*node_positions[j][1];
+        J[2][i] += shape_derivatives[i][j]*node_positions[j][2];
       }
     }
-    
-    ActiveScalar detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
-                               J[0][1]*(J[1][0]*J[2][2]-J[2][0]*J[1][2])+
-                               J[0][2]*(J[1][0]*J[2][1]-J[2][0]*J[1][1]));
+  
+    double detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
+                         J[0][1]*(J[1][0]*J[2][2]-J[2][0]*J[1][2])+
+                         J[0][2]*(J[1][0]*J[2][1]-J[2][0]*J[1][1]));
 
     invJ[0][0] =  (J[1][1]*J[2][2]-J[1][2]*J[2][1])*detJ;
     invJ[0][1] = -(J[0][1]*J[2][2]-J[2][1]*J[0][2])*detJ;
@@ -735,35 +1209,132 @@ void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active
     invJ[2][2] =  (J[0][0]*J[1][1]-J[0][1]*J[1][0])*detJ;
 
     // APPLY NEWTON ALGORITHM
-    Compute_Global_Coords( active_node_positions, active_local_coords, f );
-    u  = f[0]-active_global_coords[0];
-    v  = f[1]-active_global_coords[1];
-    w  = f[2]-active_global_coords[2];
-    u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
-    v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
-    w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
-    du = abs(u1-u0);
-    dv = abs(v1-v0);
-    dw = abs(w1-w0);
-    u0 = u1;
-    v0 = v1;
-    w0 = w1;
-    if (du<tolerance && dv<tolerance && dw<tolerance) converged = true;
-    ++iterations;
+    shape_functions[0] = 0.50*local_coords[0]*(1.0-local_coords[3]);
+    shape_functions[1] = 0.50*local_coords[1]*(1.0-local_coords[3]);
+    shape_functions[2] = 0.50*local_coords[2]*(1.0-local_coords[3]);
+    shape_functions[3] = 0.50*local_coords[0]*(1.0+local_coords[3]);
+    shape_functions[4] = 0.50*local_coords[1]*(1.0+local_coords[3]);
+    shape_functions[5] = 0.50*local_coords[2]*(1.0+local_coords[3]);
+    f[0] = 0.0;
+    f[1] = 0.0;
+    f[2] = 0.0;
+    for( int i=0 ; i<nnodes ; ++i ){
+      for (int j=0; j<3; ++j) {
+        f[j] += shape_functions[i]*node_positions[i][j];
+      }
+    }
+    u  = f[0]-global_coords[0];
+    v  = f[1]-global_coords[1];
+    w  = f[2]-global_coords[2];
+    residualNorm2 = u*u + v*v + w*w;
+    if(iterations == 0) initialResidualNorm2 = residualNorm2;
+    if(residualNorm2 < newton_tolerance*initialResidualNorm2 || residualNorm2 < abs_newton_tolerance) converged = true;
+    else {
+      u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
+      v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
+      w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
+      du = abs(u1-u0);
+      dv = abs(v1-v0);
+      dw = abs(w1-w0);
+      u0_copy=u0; v0_copy=v0; w0_copy=w0;
+      u0 = u1;
+      v0 = v1;
+      w0 = w1;
+      //if (du<newton_tolerance && dv<newton_tolerance && dw<newton_tolerance) converged = true;
+      ++iterations;
+    }
   }
-#if CONTACT_DEBUG_PRINT_LEVEL>=1
-  if (!converged) {
-    std::cerr << "ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coordinates() did not converge" 
-	 << std::endl;
+  /*if(!converged) {
+    std::cerr << " *** WARNING: ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords did not converge: initialResidualNorm2 = "
+              << initialResidualNorm2 << ", residualNorm2 = " << residualNorm2 << std::endl;
+  }*/
+  {
+    //
+    // repeat last newton iteration to get the derivatives
+    //
+    int  iterations=0;
+    int  max_iterations=1;
+    bool converged = false;
+    ActiveScalar u, u0=local_coords[0], u1, du;
+    ActiveScalar v, v0=local_coords[1], v1, dv;
+    ActiveScalar w, w0=local_coords[3], w1, dw;
+    ActiveScalar f[3], J[3][3], invJ[3][3];
+    ActiveScalar shape_derivatives[3][6];
+    while (!converged && iterations<max_iterations) {
+      active_local_coords[0] = u0;
+      active_local_coords[1] = v0;
+      active_local_coords[2] = 1.0-u0-v0;
+      active_local_coords[3] = w0;
+      // BUILD JACOBIAN AND INVERT
+      Compute_Shape_Derivatives( active_local_coords, shape_derivatives );
+      for (i=0; i<3; ++i) {
+        J[0][i] = 0.0;
+        J[1][i] = 0.0;
+        J[2][i] = 0.0;
+        for (j=0; j<6; ++j) {
+          J[0][i] += shape_derivatives[i][j]*active_node_positions[j][0];
+          J[1][i] += shape_derivatives[i][j]*active_node_positions[j][1];
+          J[2][i] += shape_derivatives[i][j]*active_node_positions[j][2];
+        }
+      }
+    
+      ActiveScalar detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
+                                 J[0][1]*(J[1][0]*J[2][2]-J[2][0]*J[1][2])+
+                                 J[0][2]*(J[1][0]*J[2][1]-J[2][0]*J[1][1]));
+
+      invJ[0][0] =  (J[1][1]*J[2][2]-J[1][2]*J[2][1])*detJ;
+      invJ[0][1] = -(J[0][1]*J[2][2]-J[2][1]*J[0][2])*detJ;
+      invJ[0][2] =  (J[1][2]*J[0][1]-J[0][2]*J[1][1])*detJ;
+      invJ[1][0] = -(J[1][0]*J[2][2]-J[2][0]*J[1][2])*detJ;
+      invJ[1][1] =  (J[0][0]*J[2][2]-J[0][2]*J[2][0])*detJ;
+      invJ[1][2] = -(J[0][0]*J[1][2]-J[1][0]*J[0][2])*detJ;
+      invJ[2][0] =  (J[1][0]*J[2][1]-J[2][0]*J[1][1])*detJ;
+      invJ[2][1] = -(J[0][0]*J[2][1]-J[2][0]*J[0][1])*detJ;
+      invJ[2][2] =  (J[0][0]*J[1][1]-J[0][1]*J[1][0])*detJ;
+
+      // APPLY NEWTON ALGORITHM
+      Compute_Global_Coords( active_node_positions, active_local_coords, f );
+      u  = f[0]-active_global_coords[0];
+      v  = f[1]-active_global_coords[1];
+      w  = f[2]-active_global_coords[2];
+      u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
+      v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
+      w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
+      du = abs(u1-u0);
+      dv = abs(v1-v0);
+      dw = abs(w1-w0);
+      u0 = u1;
+      v0 = v1;
+      w0 = w1;
+      //if (du<newton_tolerance && dv<newton_tolerance && dw<newton_tolerance) converged = true;
+      ++iterations;
+    }
+    if(spatial_tolerance_post > 0) {
+      // If it's close to any of the edges, snap to it
+      if (u0<1.0+spatial_tolerance_post) {
+        u0 = min(u0, 1.0);
+      }
+      if (u0>-spatial_tolerance_post) {
+        u0 = max(u0, 0.0);
+      }
+      if (v0<1.0+spatial_tolerance_post) {
+        v0 = min(v0, 1.0);
+      }
+      if (v0>-spatial_tolerance_post) {
+        v0 = max(v0, 0.0);
+      }
+      if (abs(w0)<1.0+spatial_tolerance_post) {
+        w0 = min(w0, 1.0);
+        w0 = max(w0,-1.0);
+      }
+    }
+    active_local_coords[0] = u0;
+    active_local_coords[1] = v0;
+    active_local_coords[2] = 1.0-u0-v0;
+    active_local_coords[3] = w0;
   }
-#endif
-  POSTCONDITION(converged);
-  active_local_coords[0] = u0;
-  active_local_coords[1] = v0;
-  active_local_coords[2] = 1.0-u0-v0;
-  active_local_coords[3] = w0;
+  return converged;
 }
-#endif
 
 template<typename DataType>
 void ContactWedgeElemL6<DataType>::Compute_Global_Coords( DataType node_positions[6][3],

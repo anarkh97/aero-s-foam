@@ -19,7 +19,7 @@
 
 
 #ifndef ContactTiedKinematics_h_
-#define ContactTiedKinetmaics_h_
+#define ContactTiedKinematics_h_
 
 #include "ContactSearch.h"
 #include "ContactEnforcement.h"

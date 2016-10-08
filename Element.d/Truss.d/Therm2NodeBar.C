@@ -75,7 +75,7 @@ Therm2NodeBar::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-Therm2NodeBar::stiffness(CoordSet &cs,double *Ks, int flg)
+Therm2NodeBar::stiffness(CoordSet &cs, double *Ks, int flg)
 {
         Node &nd1 = cs.getNode( nn[0] );
         Node &nd2 = cs.getNode( nn[1] );
@@ -97,13 +97,44 @@ Therm2NodeBar::stiffness(CoordSet &cs,double *Ks, int flg)
 // A is the average cross sectional area
 
         double k = prop->k*prop->A/length;
+        double &k1 = prop->ymin; // temperature dependent heat flux at node 1: q1 = k1*T1
+        double &k2 = prop->ymax; // temperature dependent heat flux at node 2: q2 = k2*T2
 
-        ret[0][0] = k ;
-        ret[1][1] = k ;
+        ret[0][0] = k-k1;
+        ret[1][1] = k-k2;
         ret[1][0] = -k;
         ret[0][1] = -k;
                                     
         return ret;
+}
+
+void
+Therm2NodeBar::getGravityForce(CoordSet& cs, double *, Vector &force, int, GeomState *)
+{
+        // compute body source term (not gravity force)
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        double x[2], y[2], z[2];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
+
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
+
+        double &a = prop->Ixx;
+        double &b = prop->Iyy;
+        double &c = prop->Izz;
+
+        double Q1 = prop->A*(a*x[0] + b*y[0] + c*z[0]);
+        double Q2 = prop->A*(a*x[1] + b*y[1] + c*z[1]);
+
+        force[0] = length/6*(2*Q1 + Q2);
+        force[1] = length/6*(Q1 + 2*Q2);
 }
 
 int
@@ -156,18 +187,12 @@ Therm2NodeBar::computeTemp(CoordSet&cs,
 {
   double Temp[2][2];
   
- state.getTemp(nn[0], Temp[0], Temp[0]+1);
- state.getTemp(nn[1], Temp[1], Temp[1]+1);
+  state.getTemp(nn[0], Temp[0], Temp[0]+1);
+  state.getTemp(nn[1], Temp[1], Temp[1]+1);
 
-/* fprintf(stderr, "TEMP iS : %14.5e\n", Temp[0][0]);
- fprintf(stderr, "TEMP iS : %14.5e\n", Temp[1][0]); */
-
- int j;
- for(j=0; j<2; ++j)
+  int j;
+  for(j=0; j<2; ++j)
     tres[j] = (1-gp[0])*Temp[0][j] + gp[0]*Temp[1][j] ; 
-
-//     fprintf(stderr, "TEMP1 : %14.5e\n",tres[0]);
-//     fprintf(stderr, "DTEMP1: %14.5e\n",tres[1]);
 }
 
 void
@@ -175,7 +200,6 @@ Therm2NodeBar::getFlFlux(double gp[2], double *flF, double *tresF)
 {
 // Projects a fluid flux contained in flF[0] to all 2 nodes
 // Returns tresF
-// fprintf(stderr, "Gauss Point %f\n ", gp[0]);
 
    tresF[0] = (1-gp[0])*flF[0] ;
    tresF[1] = gp[0]    *flF[0] ;

@@ -5,11 +5,16 @@
 #include <Corotational.d/BarThermalCorotator.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
+#include <Corotational.d/GeomState.h>
 
 BarRadiation::BarRadiation(int* nodenums)
 {
         nn[0] = nodenums[0];
         nn[1] = nodenums[1];
+}
+
+BarRadiation::~BarRadiation()
+{
 }
 
 Element *
@@ -53,22 +58,6 @@ BarRadiation::massMatrix(CoordSet &cs, double *mel, int cmflg)
 FullSquareMatrix
 BarRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
 {
-// This is the additional matrix when radiation is present.
-// It is added into the conductance matrix.
-
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
-
-        double x[2], y[2], z[2];
-
-        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-
-	//double dx = x[1] - x[0];
-	//double dy = y[1] - y[0];
-	//double dz = z[1] - z[0];
-
-	//double length = sqrt( dx*dx + dy*dy + dz*dz );
 
 //... Construct radiative matrix ...
 
@@ -81,7 +70,6 @@ BarRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
         
         return ret;
 }
-
 
 Corotator *
 BarRadiation::getCorotator(CoordSet &cs, double* kel, int, int)
@@ -131,4 +119,16 @@ int
 BarRadiation::getTopNumber()
 {
   return 147;
+}
+
+void
+BarRadiation::computeTemp(CoordSet&, State &, double[2], double*)
+{
+  fprintf(stderr," *** WARNING: BarRadiation::computeTemp is not implemented\n");
+}
+
+void
+BarRadiation::getFlFlux(double[2], double *, double *)
+{
+  fprintf(stderr," *** WARNING: BarRadiation::getFlFlux is not implemented\n");
 }

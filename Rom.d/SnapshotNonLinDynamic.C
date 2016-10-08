@@ -8,7 +8,7 @@
 #include "BasisFileStream.h"
 
 #include <Driver.d/Domain.h>
-
+#include <Driver.d/GeoSource.h>
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
 #include <Element.d/Function.d/utilities.hpp>
@@ -28,7 +28,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   class sttSnapImpl : public Impl {
   public:
      void lastMidTimeIs(double t);
-     void lastDeltaIs(double dt);
+     void lastDeltaIs(double delta);
      void stateSnapshotAdd(const GeomState &);
      void internalStateSnapshotAdd(const GeomState &);
      void velocSnapshotAdd(const Vector &);
@@ -71,7 +71,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   
     // Overriden functions
      void lastMidTimeIs(double t);
-     void lastDeltaIs(double dt);
+     void lastDeltaIs(double delta);
      void stateSnapshotAdd(const GeomState &state);
      void internalStateSnapshotAdd(const GeomState &state);
      void velocSnapshotAdd(const Vector &);
@@ -86,7 +86,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     SnapshotNonLinDynamic *parent_;
     VecNodeDof6Conversion vecNodeDof6Conversion_;
     FileNameInfo fileInfo_;
-    BasisOutputStream velocitySnapFile_;
+    BasisOutputStream<6> velocitySnapFile_;
   };
   
   // Implementation with acceleration snapshots
@@ -96,7 +96,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   
     // Overriden functions
      void lastMidTimeIs(double t);
-     void lastDeltaIs(double dt);
+     void lastDeltaIs(double delta);
      void stateSnapshotAdd(const GeomState &state);
      void internalStateSnapshotAdd(const GeomState &state);
      void velocSnapshotAdd(const Vector &);
@@ -111,7 +111,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     SnapshotNonLinDynamic *parent_;
     VecNodeDof6Conversion vecNodeDof6Conversion_;
     FileNameInfo fileInfo_;
-    BasisOutputStream accelerationSnapFile_;
+    BasisOutputStream<6> accelerationSnapFile_;
   };
   
   // Implementation with residual snapshots
@@ -121,7 +121,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   
     // Overriden functions
      void lastMidTimeIs(double t);
-     void lastDeltaIs(double dt);
+     void lastDeltaIs(double delta);
      void stateSnapshotAdd(const GeomState &state);
      void internalStateSnapshotAdd(const GeomState &state);
      void velocSnapshotAdd(const Vector &);
@@ -136,7 +136,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     SnapshotNonLinDynamic *parent_;
     VecNodeDof6Conversion vecNodeDof6Conversion_;
     FileNameInfo fileInfo_;
-    BasisOutputStream residualSnapFile_;
+    BasisOutputStream<6> residualSnapFile_;
   };
   
   //Implementation with jacobian snapshots
@@ -146,7 +146,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   
     // Overriden functions
      void lastMidTimeIs(double t);
-     void lastDeltaIs(double dt);
+     void lastDeltaIs(double delta);
      void stateSnapshotAdd(const GeomState &state);
      void internalStateSnapshotAdd(const GeomState &state);
      void velocSnapshotAdd(const Vector &);
@@ -161,7 +161,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     SnapshotNonLinDynamic *parent_;
     VecNodeDof6Conversion vecNodeDof6Conversion_;
     FileNameInfo fileInfo_;
-    BasisOutputStream jacobianSnapFile_;
+    BasisOutputStream<6> jacobianSnapFile_;
   };
   
   //Implementation with internal state snapshots
@@ -171,7 +171,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   
     // Overriden functions
      void lastMidTimeIs(double t);
-     void lastDeltaIs(double dt);
+     void lastDeltaIs(double delta);
      void stateSnapshotAdd(const GeomState &state);
      void internalStateSnapshotAdd(const GeomState &state);
      void velocSnapshotAdd(const Vector &);
@@ -186,7 +186,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     SnapshotNonLinDynamic *parent_;
     //VecNodeDof6Conversion vecNodeDof6Conversion_;
     //FileNameInfo fileInfo_;
-    //BasisOutputStream internalStateSnapFile_;
+    //BasisOutputStream<6> internalStateSnapFile_;
     int internalStateSnapFile_; 
   };
 
@@ -308,13 +308,17 @@ SnapshotNonLinDynamicDetail::sttSnapImpl::fillSnapBuffer(const VecType &snap)
 void
 SnapshotNonLinDynamicDetail::sttSnapImpl::lastMidTimeIs(double t)
 {
+  // t = t_n + dt*(1 - alphaf)
   timeStamp_ = t;
 }
 
 void
-SnapshotNonLinDynamicDetail::sttSnapImpl::lastDeltaIs(double dt)
+SnapshotNonLinDynamicDetail::sttSnapImpl::lastDeltaIs(double delta)
 {
-  timeStamp_ += dt;
+  // delta = dt/2
+  // timeStamp_ = t_{n+1} = t_n + dt = t_n + dt*(1 - alphaf) + dt*alphaf 
+  //            = timeStamp_ + 2*delta*alphaf
+  timeStamp_ += 2*delta*domain_->solInfo().newmarkAlphaF;
 }
 
 void
@@ -324,7 +328,7 @@ SnapshotNonLinDynamicDetail::velSnapImpl::lastMidTimeIs(double t)
 }
 
 void
-SnapshotNonLinDynamicDetail::velSnapImpl::lastDeltaIs(double dt)
+SnapshotNonLinDynamicDetail::velSnapImpl::lastDeltaIs(double delta)
 {
   //empty
 }
@@ -336,7 +340,7 @@ SnapshotNonLinDynamicDetail::accSnapImpl::lastMidTimeIs(double t)
 }
 
 void
-SnapshotNonLinDynamicDetail::accSnapImpl::lastDeltaIs(double dt)
+SnapshotNonLinDynamicDetail::accSnapImpl::lastDeltaIs(double delta)
 {
   //empty
 }
@@ -348,7 +352,7 @@ SnapshotNonLinDynamicDetail::resSnapImpl::lastMidTimeIs(double t)
 }
 
 void
-SnapshotNonLinDynamicDetail::resSnapImpl::lastDeltaIs(double dt)
+SnapshotNonLinDynamicDetail::resSnapImpl::lastDeltaIs(double delta)
 {
   //empty
 }
@@ -360,7 +364,7 @@ SnapshotNonLinDynamicDetail::jacSnapImpl::lastMidTimeIs(double t)
 }
 
 void
-SnapshotNonLinDynamicDetail::jacSnapImpl::lastDeltaIs(double dt)
+SnapshotNonLinDynamicDetail::jacSnapImpl::lastDeltaIs(double delta)
 {
   //empty
 }
@@ -372,7 +376,7 @@ SnapshotNonLinDynamicDetail::isvSnapImpl::lastMidTimeIs(double t)
 }
 
 void
-SnapshotNonLinDynamicDetail::isvSnapImpl::lastDeltaIs(double dt)
+SnapshotNonLinDynamicDetail::isvSnapImpl::lastDeltaIs(double delta)
 {
   //empty
 }
@@ -674,10 +678,10 @@ SnapshotNonLinDynamic::saveMidTime(double t)
 }
 
 void
-SnapshotNonLinDynamic::saveDelta(double dt)
+SnapshotNonLinDynamic::saveDelta(double delta)
 {
   if(domain->solInfo().statevectPodRom)
-    stateImpl_->lastDeltaIs(dt);
+    stateImpl_->lastDeltaIs(delta);
 }
 
 void

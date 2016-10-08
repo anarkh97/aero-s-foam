@@ -13,29 +13,35 @@
 
 namespace Rom {
 
-class RestrictedVecNodeDof6Conversion {
+template<int DOFS_PER_NODE=6>
+class RestrictedVecNodeDofConversion {
 public:
   int dofSetNodeCount() const { return dofSetNodeCount_; }
   int nodeCount() const { return nodeCount_; }
   int vectorSize() const { return vectorSize_; }
 
-  template <typename NodeDofs6Type, typename VecType>
-  const NodeDofs6Type &paddedNodeDof6(const VecType &origin, NodeDofs6Type &target) const;
+  template <typename NodeDofsType, typename VecType>
+  const NodeDofsType &paddedNodeDof6(const VecType &origin, NodeDofsType &target) const;
 
-  template <typename NodeDofs6Type, typename VecType>
-  const VecType &paddedVector(const NodeDofs6Type &origin, VecType &target) const;
+  template <typename NodeDofsType, typename VecType>
+  const NodeDofsType &unpaddedNodeDof6(const VecType &origin, NodeDofsType &target) const;
+
+  template <typename NodeDofsType, typename VecType>
+  const VecType &paddedVector(const NodeDofsType &origin, VecType &target) const;
+
+  template <typename NodeDofsType, typename VecType>
+  const VecType &unpaddedVector(const NodeDofsType &origin, VecType &target) const;
 
   template <typename BoolFwdIt>
-  RestrictedVecNodeDof6Conversion(const DofSetArray &dsa, BoolFwdIt nodeMaskBegin,
-                                                          BoolFwdIt nodeMaskEnd);
-
+  RestrictedVecNodeDofConversion(const DofSetArray &dsa, BoolFwdIt nodeMaskBegin,
+                                                         BoolFwdIt nodeMaskEnd);
 private:
   int dofSetNodeCount_;
   int vectorSize_;
 
   std::vector<NodeDof> locationId_;
   
-  typedef SimpleBuffer<int[6]> DofLocation;
+  typedef SimpleBuffer<int[DOFS_PER_NODE]> DofLocation;
   DofLocation dofLocation_;
 
   std::vector<bool> nodeMask_;
@@ -44,16 +50,20 @@ private:
   void initialize(const DofSetArray &dsa);
 
   // Disallow copy and assignment
-  RestrictedVecNodeDof6Conversion(const RestrictedVecNodeDof6Conversion &);
-  RestrictedVecNodeDof6Conversion &operator=(const RestrictedVecNodeDof6Conversion &);
+  RestrictedVecNodeDofConversion(const RestrictedVecNodeDofConversion &);
+  RestrictedVecNodeDofConversion &operator=(const RestrictedVecNodeDofConversion &);
 };
 
-template <typename NodeDofs6Type, typename VecType>
-const NodeDofs6Type &
-RestrictedVecNodeDof6Conversion::paddedNodeDof6(const VecType &origin, NodeDofs6Type &target) const {
+typedef RestrictedVecNodeDofConversion<6> RestrictedVecNodeDof6Conversion;
+typedef RestrictedVecNodeDofConversion<1> RestrictedVecNodeDof1Conversion;
+
+template <int DOFS_PER_NODE>
+template <typename NodeDofsType, typename VecType>
+const NodeDofsType &
+RestrictedVecNodeDofConversion<DOFS_PER_NODE>::paddedNodeDof6(const VecType &origin, NodeDofsType &target) const {
   for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
     if (nodeMask_[iNode]) {
-      for (int iDof = 0; iDof < 6; ++iDof) {
+      for (int iDof = 0; iDof < DOFS_PER_NODE; ++iDof) {
         const int loc = dofLocation_[iNode][iDof];
         target[iNode][iDof] = (loc >= 0) ? origin[loc] : 0.0;
       }
@@ -63,19 +73,37 @@ RestrictedVecNodeDof6Conversion::paddedNodeDof6(const VecType &origin, NodeDofs6
   return target;
 }
 
-template <typename NodeDofs6Type, typename VecType>
-const VecType &
-RestrictedVecNodeDof6Conversion::paddedVector(const NodeDofs6Type &origin, VecType &target) const {
+template <int DOFS_PER_NODE>
+template <typename NodeDofsType, typename VecType>
+const NodeDofsType &
+RestrictedVecNodeDofConversion<DOFS_PER_NODE>::unpaddedNodeDof6(const VecType &origin, NodeDofsType &target) const {
+  int pos = 0;
   for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
     if (nodeMask_[iNode]) {
-      for (int iDof = 0; iDof < 6; ++iDof) {
+      for (int iDof = 0; iDof < DOFS_PER_NODE; ++iDof) {
+        const int loc = dofLocation_[iNode][iDof];
+        target[iNode][iDof] = (loc >= 0) ? origin[pos++] : 0.0;
+      }
+    }
+  }
+
+  return target;
+}
+
+template <int DOFS_PER_NODE>
+template <typename NodeDofsType, typename VecType>
+const VecType &
+RestrictedVecNodeDofConversion<DOFS_PER_NODE>::paddedVector(const NodeDofsType &origin, VecType &target) const {
+  for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
+    if (nodeMask_[iNode]) {
+      for (int iDof = 0; iDof < DOFS_PER_NODE; ++iDof) {
         const int loc = dofLocation_[iNode][iDof];
         if (loc >= 0) {
           target[loc] = origin[iNode][iDof];
         }
       }
     } else {
-      for (int iDof = 0; iDof < 6; ++iDof) {
+      for (int iDof = 0; iDof < DOFS_PER_NODE; ++iDof) {
         const int loc = dofLocation_[iNode][iDof];
         if (loc >= 0) {
           target[loc] = 0.0;
@@ -86,10 +114,29 @@ RestrictedVecNodeDof6Conversion::paddedVector(const NodeDofs6Type &origin, VecTy
   return target;
 }
 
+template <int DOFS_PER_NODE>
+template <typename NodeDofsType, typename VecType>
+const VecType &
+RestrictedVecNodeDofConversion<DOFS_PER_NODE>::unpaddedVector(const NodeDofsType &origin, VecType &target) const {
+  int pos = 0;
+  for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
+    if (nodeMask_[iNode]) {
+      for (int iDof = 0; iDof < DOFS_PER_NODE; ++iDof) {
+        const int loc = dofLocation_[iNode][iDof];
+        if (loc >= 0) {
+          target[pos++] = origin[iNode][iDof];
+        }
+      }
+    }
+  }
+  return target;
+}
+
+template <int DOFS_PER_NODE>
 template <typename BoolFwdIt>
-RestrictedVecNodeDof6Conversion::RestrictedVecNodeDof6Conversion(const DofSetArray &dsa,
-                                                                 BoolFwdIt nodeMaskBegin,
-                                                                 BoolFwdIt nodeMaskEnd) :
+RestrictedVecNodeDofConversion<DOFS_PER_NODE>::RestrictedVecNodeDofConversion(const DofSetArray &dsa,
+                                                                              BoolFwdIt nodeMaskBegin,
+                                                                              BoolFwdIt nodeMaskEnd) :
   dofSetNodeCount_(const_cast<DofSetArray &>(dsa).numNodes()),
   vectorSize_(const_cast<DofSetArray &>(dsa).size()),
   locationId_(vectorSize()),

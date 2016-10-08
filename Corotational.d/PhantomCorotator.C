@@ -32,27 +32,6 @@ PhantomCorotator::extractDeformations(GeomState&, CoordSet&, DComplex*, int &nlf
   nlflag = 1;
 }
 
-void
-PhantomCorotator::getNLVonMises(Vector &stress, Vector &weight, GeomState&, CoordSet&, int)
-{
-  stress.zero();
-  weight.zero();
-}
-
-void
-PhantomCorotator::getNLVonMises(ComplexVector &stress, Vector &weight, GeomState&, CoordSet&, int)
-{
-  stress.zero();
-  weight.zero();
-}
-
-void
-PhantomCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState&, CoordSet&, int)
-{
-  stress.zero();
-  weight.zero();
-}
-
 double
 PhantomCorotator::getElementEnergy(GeomState&, CoordSet&)
 {

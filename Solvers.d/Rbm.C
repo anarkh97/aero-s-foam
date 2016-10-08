@@ -1,15 +1,20 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
 #include <Solvers.d/Rbm.h>
 #include <Utils.d/linkfc.h>
 #include <Math.d/matrix.h>
 #include <Math.d/Vector.h>
 #include <Math.d/VectorSet.h>
-#include <Math.d/mathUtility.h>
 #include <Math.d/IntFullM.h>
+
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
 
 extern "C"      {
    void _FORTRAN(dsvdc)(double *, int &, int &, int&, double *,
@@ -109,7 +114,6 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa)
     allRbm[0][j] = 1.;
   }
 
-  //ADDED FOR SLOSHING PROBLEM, EC, 20070723
   if (domain->solInfo().sloshing)  {
     Vector v1(numUncon,0.0);
     grbm = new Vector[ngrbm];
@@ -164,8 +168,7 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
    }
    numBC[n]    = totalbc; 
    compSize[n] = totaldofs; 
-   // allRbm[n]   = new Vector[compSize[n]];
-   allRbm[n] = new Vector[6]; // PJSA 4-26-05
+   allRbm[n] = new Vector[6];
    xyzRot[n]   = new double[3];
    numDofPerComp[n] = totaldofs-totalbc;
    firstDofOfComp[n] = (n > 0) ? firstDofOfComp[n-1]+numDofPerComp[n-1] : 0;
@@ -180,10 +183,9 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
  Amat = new FullM(6,6,0.0);
 
  computeRbms(cs);
- //filePrint(stderr, " ... Number of Geometric RBMs = %3d ...\n", numRBM());
 }
 
-// PJSA: 4-26-05: Direct Sky/Sparse or Eigen solver with LMPCs
+// Direct Sky/Sparse or Eigen solver with LMPCs
 Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
          double _tolgrb, compStruct &_comp, int numMPC, 
          ResizeArray<LMPCons *> &mpc, IntFullM *_fm)
@@ -198,7 +200,6 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
  tolgrb = _tolgrb;
 
  // ... DECLARATIONS
- //int i, n, inode;
  numUncon = c_dsa->size();
  if(numUncon == 0) {
    ngrbm=0;
@@ -237,7 +238,6 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
  Amat = new FullM(6*comp->numComp,6*comp->numComp,0.0);
 
  computeRbms(cs, numMPC, mpc);
- //filePrint(stderr, " ... Number of Geometric RBMs = %3d ...\n", numRBM());
 }
 
 // new constructor to be called by SubDomain::makeZstarAndR()
@@ -254,7 +254,6 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
  tolgrb = _tolgrb;
 
  computeRbms(cs, centroid, cornerNodes, numCRN, numCRNdof, cornerDofs, numMPC, mpc); 
- //filePrint(stderr, " ... Number of Geometric RBMs = %3d ...\n", numRBM());
 }
 
 void
@@ -268,7 +267,7 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
   int rows[6] = {-1, -1, -1, -1, -1, -1};
   int dofs[6] = {DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp, DofSet::Xrot, DofSet::Yrot, DofSet::Zrot};
   for(i=0; i<dsa->numNodes(); ++i)
-    for(j=0; j<6; ++j)  // PJSA 2-21-04 (allows for rotational springs with no active translational dofs)
+    for(j=0; j<6; ++j)  // allows for rotational springs with no active translational dofs
       if(rows[j] == -1)
         if(dsa->locate(i, dofs[j]) > -1) rows[j] = j;
   // add required rotations
@@ -282,7 +281,7 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
   for(j=0; j<6; ++j)
     if(rows[j] > -1) c_rows[ncol++] = rows[j];
   int nrow = dsa->size() - c_dsa->size();  // number of constrained dofs
-  if(ncol == 0) cerr << " *** WARNING: found no active dimensions in Rbm::computeRbms(...) \n";
+  if(ncol == 0) std::cerr << " *** WARNING: found no active dimensions in Rbm::computeRbms(...) \n";
   
   // intialize R and Z
   R.setNewSize(c_dsa->size(), ncol, 0.0);
@@ -291,12 +290,12 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
 
   // build R matrix containing geometric rbms (includes constrained but not inactive dofs)
   // and Z = E^t * R
-  for(i=0; i<cs.size(); ++i) { // XXXX
+  for(i=0; i<cs.size(); ++i) {
     Node &nd = cs.getNode(i);
     double x = (nd.x - centroid[0]); 
     double y = (nd.y - centroid[1]); 
     double z = (nd.z - centroid[2]); 
-    double rbm[6][6] = { // for small rotation
+    double rbm[6][6] = {
            { 1.0, 0.0, 0.0, 0.0,   z,  -y },
            { 0.0, 1.0, 0.0,  -z, 0.0,   x },
            { 0.0, 0.0, 1.0,   y,  -x, 0.0 },
@@ -304,18 +303,22 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
            { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0 },
            { 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 },
     }; 
-/* rbm for large rotation
-    double theta = PI/2.0;
-    double c = cos(theta), s = sin(theta);
-    double rbm[6][6] = {
-           { 1.0, 0.0, 0.0, 0.0,       s*z+c*x-x, c*x-s*y-x },
-           { 0.0, 1.0, 0.0, c*y-s*z-y, 0.0,       s*x+c*y-y },
-           { 0.0, 0.0, 1.0, s*y+c*z-z, c*z-s*x-z, 0.0       },
-           { 0.0, 0.0, 0.0, theta,     0.0,       0.0       },
-           { 0.0, 0.0, 0.0, 0.0,       theta,     0.0       },
-           { 0.0, 0.0, 0.0, 0.0,       0.0,       theta     },
-    };
-*/
+    if(nd.cd != 0) {
+#ifdef USE_EIGEN3
+       Eigen::Map<Eigen::Matrix<double,6,6,Eigen::RowMajor> > Ri(&rbm[0][0]);
+
+       // transform Ri from basic to DOF_FRM coordinates
+       NFrameData *nfd = geoSource->getNFrames();
+       Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(&nfd[nd.cd].frame[0][0]);;
+
+       Ri.topLeftCorner<3,3>() = T;
+       Ri.topRightCorner<3,3>() = (T*Ri.topRightCorner<3,3>()).eval();
+       Ri.bottomRightCorner<3,3>() = T;
+#else
+       std::cerr << "USE_EIGEN3 is not defined here in Rbm::computeRbms\n";
+#endif
+    }
+
     for(j=0; j<6; ++j) {
       int c_dof = c_dsa->locate(i,dofs[j]);
       if(c_dof > -1) 
@@ -327,13 +330,12 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
         for(k=0; k<ncol; ++k) 
           if(cn > -1) {
             Z[cn][k] = rbm[j][c_rows[k]];
-            if(abs(Z[cn][k]) > cgmax) cgmax = abs(Z[cn][k]);
+            if(std::abs(Z[cn][k]) > cgmax) cgmax = std::abs(Z[cn][k]);
           }
       }
     }
   }
 
-  // PJSA: 11-13-02
   // now add MPC constraints to Zmpc
   if(numMPC > 0) {
     Zmpc = new FullM(numMPC, ncol);
@@ -364,7 +366,7 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
 
   if(nrow == 0) { // no dirichlet boundary conditions
     Zstar = new FullM(0, ncol);  
-    ngrbm = ncol; // PJSA
+    ngrbm = ncol;
   }
   else { // do a SVD on Z to form Zstar:
     int rank = 0;
@@ -387,18 +389,18 @@ Rbm::computeRbms(CoordSet& cs)
   R = *Rmat;
   U.zero();
 
+// ... COUNT THE TOTAL NUMBER OF DIRICHLET BCs
+
+  int n, totNumBC = 0;
+  for(n=0; n<nComponents; ++n) totNumBC += numBC[n];
+
 // ... BEGIN COMPONENT LOOP:
 
- int n;
  for(n=0; n<nComponents; ++n) {
 
    R.zero();
    ncol     = nRbmPerComp[n];
    int nrow = numBC[n];
-   //Node &nd = cs.getNode(comp->order[comp->xcomp[n]]);
-   //x0 = xyzRot[n][0] = nd.x;
-   //y0 = xyzRot[n][1] = nd.y;
-   //z0 = xyzRot[n][2] = nd.z;
    bool setzero = true;
 
 // ... CALCULATE R MATRIX CONTAINING GEOMETRIC RBM
@@ -411,10 +413,19 @@ Rbm::computeRbms(CoordSet& cs)
 
      Node &nd = cs.getNode(inode);
 
-     if(setzero) { // PJSA 5-8-2007 make sure that node0 exists before trying to access its coordinates
-       x0 = xyzRot[n][0] = nd.x;
-       y0 = xyzRot[n][1] = nd.y;
-       z0 = xyzRot[n][2] = nd.z;
+     if(setzero) { // make sure that node0 exists before trying to access its coordinates
+       if(domain->solInfo().grbm_ref.empty() /*|| nComponents > 1*/) {
+         x0 = xyzRot[n][0] = nd.x;
+         y0 = xyzRot[n][1] = nd.y;
+         z0 = xyzRot[n][2] = nd.z;
+         fprintf(stderr," ... Using first node of component as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]);
+       }
+       else {
+         x0 = xyzRot[n][0] = domain->solInfo().grbm_ref[0];
+         y0 = xyzRot[n][1] = domain->solInfo().grbm_ref[1];
+         z0 = xyzRot[n][2] = domain->solInfo().grbm_ref[2];
+         fprintf(stderr," ... Using specified X,Y,Z coordinates as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]);
+       }
        setzero = false;
      }
 
@@ -429,54 +440,91 @@ Rbm::computeRbms(CoordSet& cs)
      yrot = dsa->locate( inode, DofSet::Yrot  );
      zrot = dsa->locate( inode, DofSet::Zrot  );
 
-     if(xloc >= 0) {
+     if(nd.cd == 0) {
+
+       if(xloc >= 0) {
          R[xloc][0] = 1.0;
          R[xloc][1] = 0.0;
          R[xloc][2] = 0.0;
          R[xloc][3] = 0.0;
          R[xloc][4] =   z;
          R[xloc][5] =  -y;
-     }
-     if(yloc >= 0) {
+       }
+       if(yloc >= 0) {
          R[yloc][0] = 0.0;
          R[yloc][1] = 1.0;
          R[yloc][2] = 0.0;
          R[yloc][3] =  -z;
          R[yloc][4] = 0.0;
          R[yloc][5] =   x;
-     }
-     if(zloc >= 0) {
+       }
+       if(zloc >= 0) {
          R[zloc][0] = 0.0;
          R[zloc][1] = 0.0;
          R[zloc][2] = 1.0;
          R[zloc][3] =   y;
          R[zloc][4] =  -x;
          R[zloc][5] = 0.0;
-     }
-     if(xrot >= 0) {
+       }
+       if(xrot >= 0) {
          R[xrot][0] = 0.0;
          R[xrot][1] = 0.0;
          R[xrot][2] = 0.0;
          R[xrot][3] = 1.0;
          R[xrot][4] = 0.0;
          R[xrot][5] = 0.0;
-     }
-     if(yrot >= 0) {
+       }
+       if(yrot >= 0) {
          R[yrot][0] = 0.0;
          R[yrot][1] = 0.0;
          R[yrot][2] = 0.0;
          R[yrot][3] = 0.0;
          R[yrot][4] = 1.0;
          R[yrot][5] = 0.0;
-      }
-      if(zrot >= 0) {
+       }
+       if(zrot >= 0) {
          R[zrot][0] = 0.0;
          R[zrot][1] = 0.0;
          R[zrot][2] = 0.0;
          R[zrot][3] = 0.0;
          R[zrot][4] = 0.0;
          R[zrot][5] = 1.0;
-      }
+       }
+     }
+     else {
+#ifdef USE_EIGEN3
+       Eigen::Matrix<double,6,6> Ri;
+       Ri << 1, 0, 0,  0,  z, -y,
+             0, 1, 0, -z,  0,  x,
+             0, 0, 1,  y, -x,  0,
+             0, 0, 0,  1,  0,  0,
+             0, 0, 0,  0,  1,  0,
+             0, 0, 0,  0,  0,  1;
+
+       // transform Ri from basic to DOF_FRM coordinates
+       NFrameData *nfd = geoSource->getNFrames();
+       Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(&nfd[nd.cd].frame[0][0]);;
+
+       Ri.topLeftCorner<3,3>() = T;
+       Ri.topRightCorner<3,3>() = (T*Ri.topRightCorner<3,3>()).eval();
+       Ri.bottomRightCorner<3,3>() = T;
+
+       if(xloc >= 0)
+         for(int j=0; j<6; ++j) R[xloc][j] = Ri(0,j);
+       if(yloc >= 0)
+         for(int j=0; j<6; ++j) R[yloc][j] = Ri(1,j);
+       if(zloc >= 0)
+         for(int j=0; j<6; ++j) R[zloc][j] = Ri(2,j);
+       if(xrot >= 0)
+         for(int j=0; j<6; ++j) R[xrot][j] = Ri(3,j);
+       if(yrot >= 0)
+         for(int j=0; j<6; ++j) R[yrot][j] = Ri(4,j);
+       if(zrot >= 0)
+         for(int j=0; j<6; ++j) R[zrot][j] = Ri(5,j);
+#else
+       std::cerr << "USE_EIGEN3 is not defined here in Rbm::computeRbms\n";
+#endif
+     }
    }
 
 //  eliminate redundent rbms for 1D and 2D cases
@@ -508,10 +556,21 @@ Rbm::computeRbms(CoordSet& cs)
     singularValueDecomposition(A, U, dimA, dimA, max_value, ngrbm, rank);
 
     if(rank == dimA && numBC[n] == 0) {
-      for(i=0; i<ncol; ++i)
-        for(j=0; j<numUncon; ++j)
-          allRbm[n][i][j] = R[j][i];
-        nRbmPerComp[n] = ncol;
+      if(totNumBC == 0) {
+        for(i=0; i<ncol; ++i)
+          for(j=0; j<numUncon; ++j)
+            allRbm[n][i][j] = R[j][i];
+      }
+      else {
+        for(i=0; i<numdofs; ++i) {
+          int cn = c_dsa->getRCN(i);
+          if(cn >= 0) {
+            for(j=0; j<ncol; ++j)
+              allRbm[n][j][cn] = R[i][j];
+          }
+        }
+      }
+      nRbmPerComp[n] = ncol;
       continue;
     }
 
@@ -527,9 +586,20 @@ Rbm::computeRbms(CoordSet& cs)
 // ... FOR A FREE-FREE PROBLEM, RETURN GEOMETRIC RIGID BODY MODES.
 
     if(numBC[n] == 0) {
-      for(i=0; i<rank; ++i)
-        for(j=0; j<numUncon; ++j)
-          allRbm[n][i][j] = Rstar[j][i];
+      if(totNumBC == 0) {
+        for(i=0; i<rank; ++i)
+          for(j=0; j<numUncon; ++j)
+            allRbm[n][i][j] = Rstar[j][i];
+      }
+      else {
+        for(i=0; i<numdofs; ++i) {
+          int cn = c_dsa->getRCN(i);
+          if(cn >= 0) {
+            for(j=0; j<rank; ++j)
+              allRbm[n][j][cn] = Rstar[i][j];
+          }
+        }
+      }
       nRbmPerComp[n] = rank;
       continue;
     }
@@ -571,7 +641,7 @@ Rbm::computeRbms(CoordSet& cs)
             int k;
             for(k=0; k<ncol; ++k) {
               Z[cn-offset][k] = Rstar[position[j]][k];
-              if(abs(Z[cn-offset][k]) > cgmax) cgmax = abs(Z[cn-offset][k]);
+              if(std::abs(Z[cn-offset][k]) > cgmax) cgmax = std::abs(Z[cn-offset][k]);
             }
           }
         }
@@ -593,13 +663,12 @@ Rbm::computeRbms(CoordSet& cs)
 // ... MATRIX-MATRIX MULTIPLY [GRBM] = [R][V]:
 
    FullM result = Rstar%Vstar;   // result is Rstar
-   //cerr << "result = \n"; result.print();
 
 // ... CONFORM RIGID BODY MODES WITH RESPECT TO K MATRIX
 
     for(i=0; i<numdofs; ++i) {
       int cn = c_dsa->getRCN(i);
-      if(cn >= 0 ) {
+      if(cn >= 0) {
         for(j=0; j<ngrbm; ++j)
           allRbm[n][j][cn] = result[i][j];
       }
@@ -640,7 +709,7 @@ Rbm::computeRbms(CoordSet& cs)
  if(debug) {
    fprintf(stderr, "%d components rigid body modes were found.\n",nComponents);
    print();
-  }
+ }
 
  for(i = 0; i < addModes; ++i)
    grbm[ngrbm+i][(*cornerModes)[2][i]] = 1.0;
@@ -680,18 +749,23 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
  xyzRot[0][0] = x0/count;
  xyzRot[0][1] = y0/count;
  xyzRot[0][2] = z0/count;
- fprintf(stderr," ... Use global cg as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]); 
+ //fprintf(stderr," ... Use global cg as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]); 
 #else // use first node as reference pt for the rotations
- Node &nd = cs.getNode(comp->order[comp->xcomp[0]]);
- xyzRot[0][0] = nd.x; xyzRot[0][1] = nd.y; xyzRot[0][2] = nd.z;
- fprintf(stderr," ... Use first node of first component as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]); 
+ if(domain->solInfo().grbm_ref.empty()) {
+   Node &nd = cs.getNode(comp->order[comp->xcomp[0]]);
+   xyzRot[0][0] = nd.x; xyzRot[0][1] = nd.y; xyzRot[0][2] = nd.z;
+   fprintf(stderr," ... Using first node of first component as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]);
+ }
+ else {
+   xyzRot[0][0] = domain->solInfo().grbm_ref[0];
+   xyzRot[0][1] = domain->solInfo().grbm_ref[1];
+   xyzRot[0][2] = domain->solInfo().grbm_ref[2];
+   fprintf(stderr," ... Using specified X,Y,Z coordinates as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]);
+ }
 #endif
 
  for(n=0; n<comp->numComp; ++n) {
-   Node &nd = cs.getNode(comp->order[comp->xcomp[n]]);
-   x0 = nd.x;
-   y0 = nd.y;
-   z0 = nd.z;
+
    // ... CALCULATE R MATRIX CONTAINING GEOMETRIC RBM
    for(i = comp->xcomp[n]; i<comp->xcomp[n+1]; ++i) {
      inode = comp->order[i];
@@ -711,59 +785,106 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
      yrot = dsa->locate(inode, DofSet::Yrot);
      zrot = dsa->locate(inode, DofSet::Zrot);
 
-     if(xloc >= 0) {
+     if(nd.cd == 0) {
+
+       if(xloc >= 0) {
          R[xloc][6*n+0] = 1.0;
          R[xloc][6*n+1] = 0.0;
          R[xloc][6*n+2] = 0.0;
          R[xloc][6*n+3] = 0.0;
          R[xloc][6*n+4] =   z;
          R[xloc][6*n+5] =  -y;
-     }
-     if(yloc >= 0) {
+       }
+       if(yloc >= 0) {
          R[yloc][6*n+0] = 0.0;
          R[yloc][6*n+1] = 1.0;
          R[yloc][6*n+2] = 0.0;
          R[yloc][6*n+3] =  -z;
          R[yloc][6*n+4] = 0.0;
          R[yloc][6*n+5] =   x;
-     }
-     if(zloc >= 0) {
+       }
+       if(zloc >= 0) {
          R[zloc][6*n+0] = 0.0;
          R[zloc][6*n+1] = 0.0;
          R[zloc][6*n+2] = 1.0;
          R[zloc][6*n+3] =   y;
          R[zloc][6*n+4] =  -x;
          R[zloc][6*n+5] = 0.0;
-     }
-     if(xrot >= 0) {
+       }
+       if(xrot >= 0) {
          R[xrot][6*n+0] = 0.0;
          R[xrot][6*n+1] = 0.0;
          R[xrot][6*n+2] = 0.0;
          R[xrot][6*n+3] = 1.0;
          R[xrot][6*n+4] = 0.0;
          R[xrot][6*n+5] = 0.0;
-     }
-     if(yrot >= 0) {
+       }
+       if(yrot >= 0) {
          R[yrot][6*n+0] = 0.0;
          R[yrot][6*n+1] = 0.0;
          R[yrot][6*n+2] = 0.0;
          R[yrot][6*n+3] = 0.0;
          R[yrot][6*n+4] = 1.0;
          R[yrot][6*n+5] = 0.0;
-     }
-     if(zrot >= 0) {
+       }
+       if(zrot >= 0) {
          R[zrot][6*n+0] = 0.0;
          R[zrot][6*n+1] = 0.0;
          R[zrot][6*n+2] = 0.0;
          R[zrot][6*n+3] = 0.0;
          R[zrot][6*n+4] = 0.0;
          R[zrot][6*n+5] = 1.0;
+       }
+     }
+     else {
+#ifdef USE_EIGEN3
+       Eigen::Matrix<double,6,6> Ri;
+       Ri << 1, 0, 0,  0,  z, -y,
+             0, 1, 0, -z,  0,  x,
+             0, 0, 1,  y, -x,  0,
+             0, 0, 0,  1,  0,  0,
+             0, 0, 0,  0,  1,  0,
+             0, 0, 0,  0,  0,  1;
+
+       // transform Ri from basic to DOF_FRM coordinates
+       NFrameData *nfd = geoSource->getNFrames();
+       Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(&nfd[nd.cd].frame[0][0]);
+
+       Ri.topLeftCorner<3,3>() = T;
+       Ri.topRightCorner<3,3>() = (T*Ri.topRightCorner<3,3>()).eval();
+       Ri.bottomRightCorner<3,3>() = T;
+
+       if(xloc >= 0) 
+         for(int j=0; j<6; ++j) R[xloc][6*n+j] = Ri(0,j);
+       if(yloc >= 0) 
+         for(int j=0; j<6; ++j) R[yloc][6*n+j] = Ri(1,j);
+       if(zloc >= 0) 
+         for(int j=0; j<6; ++j) R[zloc][6*n+j] = Ri(2,j);
+       if(xrot >= 0) 
+         for(int j=0; j<6; ++j) R[xrot][6*n+j] = Ri(3,j);
+       if(yrot >= 0) 
+         for(int j=0; j<6; ++j) R[yrot][6*n+j] = Ri(4,j);
+       if(zrot >= 0) 
+         for(int j=0; j<6; ++j) R[zrot][6*n+j] = Ri(5,j);
+#else
+       std::cerr << "USE_EIGEN3 is not defined here in Rbm::computeRbms\n";
+#endif
      }
    }
  }
 
  //  eliminate redundent rbms for 1D and 2D cases
+#ifdef USE_EIGEN3
+ typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMajorMatrixXd;
+ Eigen::Map<RowMajorMatrixXd> R_(R.data(),R.numRow(),R.numCol()), A_(Amat->data(),R.numCol(),R.numCol());
+ A_.setZero();
+ for(n=0; n<comp->numComp; ++n) {
+   Eigen::Block<Eigen::Map<RowMajorMatrixXd> > Rn = R_.block(0,6*n,R_.rows(),6);
+   A_.block(6*n,6*n,6,6) = Rn.transpose()*Rn;
+ }
+#else
  R.transposeMult(R, *Amat);
+#endif
  FullM &A = *Amat;
  int dimA = A.dim();
  double *diagA = (double *) dbg_alloca(sizeof(double)*dimA);
@@ -779,7 +900,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
    for(j = 0; j < dimA; ++j)
      A[i][j] *= diagA[i]*diagA[j];
   
- double max_value = A.maxAbs();  // max() finds maximum value of matrix A
+ double max_value = A.maxAbs();
  if(debug) A.print("--- A = Rt*R matrix ---");
 
  // ... PERFORM SVD ON R^t*R 
@@ -831,7 +952,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
            if(cn >= 0) {
              for(k=0; k<ncol; ++k) { 
                Z[cn][k] = Rstar[position[j]][k];
-               if(abs(Z[cn][k]) > cgmax) cgmax = abs(Z[cn][k]);
+               if(std::abs(Z[cn][k]) > cgmax) cgmax = std::abs(Z[cn][k]);
              }
            }
          }
@@ -848,7 +969,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
          if(dof >= 0) {
            for(k=0; k<ncol; ++k) {
              Z[numBC[0]+i][k] += Rstar[dof][k]*mpc[i]->terms[j].coef.r_value;
-             if(abs(Z[numBC[0]+i][k]) > cgmax) cgmax = abs(Z[numBC[0]+i][k]);
+             if(std::abs(Z[numBC[0]+i][k]) > cgmax) cgmax = std::abs(Z[numBC[0]+i][k]);
            }
          }
        }
@@ -861,10 +982,10 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
    singularValueDecomposition(Z, U, ncol, nrow, cgmax, ngrbm, rank);
 
    // ... CONSTRUCT NECESSARY VECTORS FOR Vstar:
-   FullM Vstar(U,ngrbm,rank,ncol,0);  // i think Vstar = Q transpose
+   FullM Vstar(U,ngrbm,rank,ncol,0);
 
    // ... MATRIX-MATRIX MULTIPLY [GRBM] = [R][V]:
-   FullM result = Rstar%Vstar;   // result is Rstar
+   FullM result = Rstar%Vstar;
 
    // ... CONFORM RIGID BODY MODES WITH RESPECT TO K MATRIX
    for(i=0; i<numdofs; ++i) {
@@ -948,8 +1069,8 @@ Rbm::singularValueDecomposition(FullM &A, FullM &Umat, int ncol, int nrow,
 {
    int i;
    int info = 0;
-   int mindim = myMin(nrow,ncol);
-   int maxdim = myMax(nrow,ncol);
+   int mindim = std::min(nrow,ncol);
+   int maxdim = std::max(nrow,ncol);
    double *w    = (double*) dbg_alloca(sizeof(double)* maxdim);
    double *e    = (double*) dbg_alloca(sizeof(double)* maxdim);
    double *work = (double*) dbg_alloca(sizeof(double)* maxdim);
@@ -980,7 +1101,7 @@ Rbm::singularValueDecomposition(FullM &A, FullM &Umat, int ncol, int nrow,
    rank = 0;
    double tolerance = max_value*tolgrb;
    for(i=0; i<mindim; ++i) 
-     if(abs(w[i]) > tolerance) rank++;
+     if(std::abs(w[i]) > tolerance) rank++;
 
    ngrbm = ncol - rank;
 }
@@ -1203,7 +1324,7 @@ Rbm::reBuildGeometricRbms(GeomState *gs)
             int k;
             for(k=0; k<ncol; ++k) {
               Z[cn-offset][k] = Rstar[position[j]][k];
-              if(abs(Z[cn-offset][k]) > cgmax) cgmax = abs(Z[cn-offset][k]);
+              if(std::abs(Z[cn-offset][k]) > cgmax) cgmax = std::abs(Z[cn-offset][k]);
             }
           }
         }
@@ -1291,7 +1412,6 @@ Rbm::getRBMs(DComplex *rigidBodyModes, int ndof, int *dof, int numGRBM, int offs
 void
 Rbm::getScaledRBMs(double *rigidBodyModes, int ndof, int *dof, double *scaling, int numGRBM, int offset)
 {
- // PJSA 4/1/03
  int i,iDof;
  if(numGRBM < 0) numGRBM = ngrbm;
  for(i=0; i<numGRBM; ++i)
@@ -1380,3 +1500,16 @@ Rbm::getRBMs(DComplex *rigidBodyModes, bool transpose)
   }
 }
 
+void
+Rbm::getRBMs(double *rigidBodyModes, std::set<int> &rbmFilters)
+{
+  int i = 0;
+  for(std::set<int>::iterator it = rbmFilters.begin(); it != rbmFilters.end(); ++it) {
+    int iMode = *it;
+    if(iMode < ngrbm) {
+      for(int iDof = 0; iDof < numUncon; ++iDof)
+        rigidBodyModes[iDof+i*numUncon] = grbm[iMode][iDof];
+      i++;
+    }
+  }
+}

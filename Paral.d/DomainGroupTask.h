@@ -1,8 +1,16 @@
 #ifndef DOMAIN_GROUP_TASK_H_
 #define DOMAIN_GROUP_TASK_H_
 
-#include <Math.d/SparseMatrix.h>
 #include <Threads.d/Paral.h>
+
+template <class Scalar> class GenSubDomain;
+template <class Scalar> class GenSolver;
+template <class Scalar> class GenSparseMatrix;
+template <class Scalar> class GenFullSquareMatrix;
+typedef GenFullSquareMatrix<double> FullSquareMatrix;
+class Rbm;
+class FSCommunicator;
+class MatrixTimers;
 
 template<class Scalar>
 class GenDomainGroupTask : public TaskDescr {
@@ -20,6 +28,14 @@ class GenDomainGroupTask : public TaskDescr {
 // RT
    GenSparseMatrix<Scalar> ***C_deriv;
    GenSparseMatrix<Scalar> ***Cuc_deriv;
+   int num_K_deriv;
+   GenSparseMatrix<Scalar> ***K_deriv;
+   GenSparseMatrix<Scalar> ***Kuc_deriv;
+   int num_K_arubber;
+   GenSparseMatrix<Scalar> ***K_arubber_l;
+   GenSparseMatrix<Scalar> ***K_arubber_m;
+   GenSparseMatrix<Scalar> ***Kuc_arubber_l;
+   GenSparseMatrix<Scalar> ***Kuc_arubber_m;
 // RT end
    GenSparseMatrix<Scalar> **K;
    GenSparseMatrix<Scalar> **Kuc;
@@ -33,18 +49,17 @@ class GenDomainGroupTask : public TaskDescr {
    int solvertype;
    FSCommunicator *com;
    bool makeC, makeC_deriv;
+   MatrixTimers &mt;
 
    GenDomainGroupTask(int nsub, GenSubDomain<Scalar> **_sd, double, double, double,
                       Rbm **_rbms, FullSquareMatrix **_kelArray, double, double, 
-                      int, int solvertype, FSCommunicator *, FullSquareMatrix **_melArray, FullSquareMatrix **_celArray);
+                      int, int solvertype, FSCommunicator *, FullSquareMatrix **_melArray,
+                      FullSquareMatrix **_celArray, bool elemsetHasDamping,
+                      MatrixTimers &_mt);
    virtual ~GenDomainGroupTask();
    void runFor(int isub, bool make_feti);
 };
 
 typedef GenDomainGroupTask<double> DomainGroupTask;
-
-#ifdef _TEMPLATE_FIX_
-#include <Paral.d/DomainGroupTask.C>
-#endif
 
 #endif

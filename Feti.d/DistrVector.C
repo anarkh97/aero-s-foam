@@ -1,6 +1,8 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cmath>
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 
 #include <Threads.d/Paral.h>
 #include <Utils.d/MyComplex.h>
@@ -71,6 +73,7 @@ class GenVecOp : public TaskDescr
      void assign_plus(int);
      void assign_minus(int);
      void assign_divide(int);
+     void assign_special(int);
      void swap(int);
      void runFor(int);
      void negate(int);
@@ -391,7 +394,6 @@ GenVecOp<Scalar>::linC1(int threadNum)
     d1[i] = c*d2[i];
 }
 
-
 template<class Scalar>
 void
 GenVecOp<Scalar>::linC2(int threadNum)
@@ -419,7 +421,6 @@ GenVecOp<Scalar>::linC3(int threadNum)
     d1[i] = c1*d2[i] + c2*d3[i] + c3*d4[i];
 }
 
-
 template<class Scalar>
 void
 GenVecOp<Scalar>::assign(int threadNum)
@@ -430,6 +431,22 @@ GenVecOp<Scalar>::assign(int threadNum)
  int i;
  for(i = 0; i < len; ++i)
     d1[i] = d2[i];
+}
+
+template<class Scalar>
+void
+GenVecOp<Scalar>::assign_special(int subNum)
+{
+ Scalar *d1 = v1->subData(subNum);
+ Scalar *d2 = v2->subData(subNum);
+ int len1 = v1->subLen(subNum);
+ int len2 = v2->subLen(subNum);
+ int minlen = std::min(len1,len2);
+ int i;
+ for(i = 0; i < minlen; ++i)
+    d1[i] = d2[i];
+ for(i = minlen; i < len1; ++i)
+    d1[i] = 0;
 }
 
 template<class Scalar>
@@ -631,25 +648,25 @@ void
 GenDistrVector<Scalar>::initialize()
 {
  // Set the overall length
- len = inf.len;
+ len = inf->len;
 
  // Set number of Domains
- numDom = inf.numDom;
+ numDom = inf->numDom;
 
  // Allocate memory for the values
  if(!v) v = new Scalar[len];
 
  // Array of Scalar pointers to hold sub vector values
- subV = new Scalar *[inf.numDom];
+ subV = new Scalar *[inf->numDom];
 
  // Array to hold sub vector lengths
- subVLen = new int[inf.numDom];
- subVOffset = new int[inf.numDom];
+ subVLen = new int[inf->numDom];
+ subVOffset = new int[inf->numDom];
 
- if(subV && inf.numDom>0) subV[0] = v;
+ if(subV && inf->numDom>0) subV[0] = v;
  Scalar *v2 = v;
- nT = std::min(threadManager->numThr(),inf.numDom); // PJSA: currently the number of threads being larger than
-                                                    // the number of subdomains doesn't work
+ nT = std::min(threadManager->numThr(),inf->numDom); // PJSA: currently the number of threads being larger than
+                                                     // the number of subdomains doesn't work
  int iThread, md;
 
  thV   = new Scalar *[nT];
@@ -658,25 +675,25 @@ GenDistrVector<Scalar>::initialize()
 
  // Distrinfo::computeOffsets should be explicitly called before this
  // constructor for interface vectors
- if(inf.subOffset) infoFlag = true; else infoFlag = false;
+ if(inf->subOffset) infoFlag = true; else infoFlag = false;
  if(infoFlag) masterFlag = new bool[len];
- else masterFlag = inf.masterFlag;
+ else masterFlag = inf->masterFlag;
 
  int tLen;
  for(iThread = 0; iThread < nT; ++iThread) {
    tLen = 0;
    thV[iThread] = v2;
    thOffset[iThread] = v2-v;
-   for(md = iThread; md < inf.numDom; md += nT) {
+   for(md = iThread; md < inf->numDom; md += nT) {
      subV[md] = v2;
      subVOffset[md] = v2-v;
      if(infoFlag) { // re-arrange masterFlag
-       for(int i=0; i<inf.domLen[md]; ++i)
-         masterFlag[i+subVOffset[md]] = inf.masterFlag[i+inf.subOffset[md]];
+       for(int i=0; i<inf->domLen[md]; ++i)
+         masterFlag[i+subVOffset[md]] = inf->masterFlag[i+inf->subOffset[md]];
      }
-     subVLen[md] = inf.domLen[md];
-     v2 += inf.domLen[md];
-     tLen += inf.domLen[md];
+     subVLen[md] = inf->domLen[md];
+     v2 += inf->domLen[md];
+     tLen += inf->domLen[md];
    }
    thLen[iThread] = tLen;
  }
@@ -685,9 +702,9 @@ GenDistrVector<Scalar>::initialize()
 
 template<class Scalar>
 GenDistrVector<Scalar>::GenDistrVector(const DistrInfo &i) 
- : inf(i)
+ : inf(&i)
 {
- v=0;
+ v = 0;
  myMemory = true;
  initialize();
 }
@@ -696,10 +713,39 @@ template<class Scalar>
 GenDistrVector<Scalar>::GenDistrVector(const GenDistrVector<Scalar> &x) 
  : inf(x.inf)
 {
- v=0;
- myMemory = 1; 
+ v = 0;
+ myMemory = true; 
  initialize();
  for(int i=0; i<len; ++i) v[i] = x.data()[i];
+}
+
+template<class Scalar>
+void
+GenDistrVector<Scalar>::resize(const DistrInfo &other)
+{
+  if(*inf == other) { inf = &other; return; }
+  clean_up();
+  inf = &other;
+  v = 0;
+  myMemory = true;
+  initialize();
+}
+
+template<class Scalar>
+void
+GenDistrVector<Scalar>::conservativeResize(const DistrInfo &other)
+{
+  if(*inf == other) { inf = &other; return; }
+  GenDistrVector<Scalar> copy(*this);
+  clean_up();
+  inf = &other;
+  v = 0;
+  myMemory = true;
+  initialize();
+
+  GenVecOp<Scalar> assignSpecialOp(&GenVecOp<Scalar>::assign_special, this, &copy);
+
+  threadManager->execParal(numDom, &assignSpecialOp);
 }
 
 template<class Scalar>
@@ -712,8 +758,8 @@ template<class Scalar>
 void
 GenDistrVector<Scalar>::clean_up()
 {
- if(v && myMemory) {
-   delete [] v;
+ if(v) {
+   if(myMemory) delete [] v;
    v=0;
  }
 
@@ -757,7 +803,7 @@ GenDistrVector<Scalar>::clean_up()
 
 template<class Scalar>
 GenDistrVector<Scalar>::GenDistrVector(const DistrInfo &i, Scalar *_v, bool _myMemory)
- : inf(i)
+ : inf(&i)
 {
  myMemory = _myMemory;
  v = _v;
@@ -829,7 +875,6 @@ double GenDistrVector<Scalar>::infNorm()
 #endif
  return res;
 }
-
 
 template<class Scalar>
 Scalar
@@ -913,15 +958,12 @@ GenDistrVector<Scalar>::operator ^ (GenDistrVector<Scalar> &x)
  return res;
 }
 
-
-#include <cstdio>
-
 template<class Scalar>
 GenDistrVector<Scalar> &
 GenDistrVector<Scalar>::operator=(const GenDistrVector<Scalar> &x)
 {
- if(x.len != len) {
-  fprintf(stderr, "Length error in = %d not equal to %d\n",x.len, len);
+ if(*inf != x.info()) {
+   resize(x.info());
  }
  GenVecOp<Scalar> assignOp(&GenVecOp<Scalar>::assign, this, const_cast<GenDistrVector<Scalar> *>(&x));
  threadManager->execParal(nT, &assignOp);
@@ -938,14 +980,12 @@ GenDistrVector<Scalar>::operator=(Scalar c)
  return *this;
 }
 
-#include <cstdlib>
-
 template<class Scalar>
 void
 GenDistrVector<Scalar>::initRand()
 {
  for(int i=0; i < len; ++i)
-   v[i] = (   (double)rand() / ((double)(RAND_MAX)+(double)(1)) );
+   v[i] = ( (double)rand() / ((double)(RAND_MAX)+(double)(1)) );
 }
 
 template<class Scalar>
@@ -1065,7 +1105,7 @@ GenDistrVector<Scalar>::linAdd(Scalar c1, GenDistrVector<Scalar> &x, Scalar c2,
 
 template<class Scalar>
 GenDistrVector<Scalar> &
-GenDistrVector<Scalar>::linC( GenDistrVector<Scalar> &x, Scalar c, GenDistrVector<Scalar> &y)
+GenDistrVector<Scalar>::linC(GenDistrVector<Scalar> &x, Scalar c, GenDistrVector<Scalar> &y)
 {
  if(x.len != y.len) {
   fprintf(stderr, "Length error in linC\n");
@@ -1079,6 +1119,9 @@ template<class Scalar>
 GenDistrVector<Scalar> &
 GenDistrVector<Scalar>::linC(GenDistrVector<Scalar> &v, Scalar c)
 {
+ if(*inf != v.info()) {
+   resize(v.info());
+ }
  GenVecOp<Scalar> linC1(&GenVecOp<Scalar>::linC1, this, &v, c);
  threadManager->execParal(nT, &linC1);
  return *this;
@@ -1183,8 +1226,8 @@ void
 GenDistrVector<Scalar>::print()
 {
  int i;
- for(i=0; i < len; ++i) cerr << "v[" << i << "] = " << v[i] << endl;
- cerr << endl;
+ for(i=0; i < len; ++i) std::cerr << "v[" << i << "] = " << v[i] << std::endl;
+ std::cerr << std::endl;
 }
 
 template<class Scalar>
@@ -1193,8 +1236,8 @@ GenDistrVector<Scalar>::printNonZeroTerms()
 {
  int i;
  for(i=0; i < len; ++i) 
-   if(fabs(v[i]) > 0.00000001) cerr << "v[" << i << "] = " << v[i] << endl;
-  cerr << endl;
+   if(fabs(v[i]) > 0.00000001) std::cerr << "v[" << i << "] = " << v[i] << std::endl;
+  std::cerr << std::endl;
 }
 
 
@@ -1202,15 +1245,15 @@ template<class Scalar>
 void
 GenDistrVector<Scalar>::printAll()
 {
- cerr << "Length of GenDistrVector<Scalar> = " << len << endl;
- cerr << "Number of Domains = " << numDom << endl;
+ std::cerr << "Length of GenDistrVector<Scalar> = " << len << std::endl;
+ std::cerr << "Number of Domains = " << numDom << std::endl;
  int i,j;
  for(i=0; i<numDom; ++i) {
-   cerr << "--- Sub Vector Length = " << subVLen[i] << endl;
+   std::cerr << "--- Sub Vector Length = " << subVLen[i] << std::endl;
    for(j=0; j<subVLen[i]; ++j)
-     cerr << "v(" << j+1 << ") = " << subV[i][j] << endl;
+     std::cerr << "v(" << j+1 << ") = " << subV[i][j] << std::endl;
  }
- cerr << endl;
+ std::cerr << std::endl;
 }
 
 template <class Scalar>
@@ -1220,7 +1263,6 @@ GenDistrVector<Scalar>::operator=(const Expr<T,Scalar> &x) {
  ExprVecAssign<T, Scalar> assign(*this,x);
  threadManager->execParal(nT, &assign);
  return *this;
-
 }
 
 template <class Scalar>
@@ -1230,7 +1272,6 @@ GenDistrVector<Scalar>::operator+=(const Expr<T,Scalar> &x) {
  ExprVecIncr<T, Scalar> assign(*this,x);
  threadManager->execParal(nT, &assign);
  return *this;
-
 }
 
 template <class Scalar>
@@ -1240,7 +1281,6 @@ GenDistrVector<Scalar>::operator-=(const Expr<T,Scalar> &x) {
  ExprVecDecr<T, Scalar> assign(*this,x);
  threadManager->execParal(nT, &assign);
  return *this;
-
 }
 
 template<class Scalar>

@@ -7,8 +7,8 @@ template<typename Scalar>
 class Quad4LagrangePolynomialShapeFunction : public VectorValuedFunction<2,4,Scalar,0,0,double>
 {
   public:
-    Quad4LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
-    {}
+    Quad4LagrangePolynomialShapeFunction() {}
+    Quad4LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&) {}
 
     Eigen::Matrix<Scalar,4,1> operator() (const Eigen::Matrix<Scalar,2,1>& q, Scalar)
     {
@@ -23,15 +23,15 @@ class Quad4LagrangePolynomialShapeFunction : public VectorValuedFunction<2,4,Sca
       //        η           shape functions
       //        ↑           ---------------
       //    3-------2       N₀ = 1/4(1-ξ)(1-η)
-      //    ¦       ¦       N₁ = 1/4(1-ξ)(1+η)
+      //    ¦       ¦       N₁ = 1/4(1+ξ)(1-η)
       //    ¦       ¦ → ξ   N₂ = 1/4(1+ξ)(1+η)
-      //    ¦       ¦       N₃ = 1/4(1+ξ)(1-η)
+      //    ¦       ¦       N₃ = 1/4(1-ξ)(1+η)
       //    0-------1
 
       N[0] = 1/4.*(1-xi)*(1-eta);
-      N[1] = 1/4.*(1-xi)*(1+eta);
+      N[1] = 1/4.*(1+xi)*(1-eta);
       N[2] = 1/4.*(1+xi)*(1+eta);
-      N[3] = 1/4.*(1+xi)*(1-eta);
+      N[3] = 1/4.*(1-xi)*(1+eta);
 
       return N;
     }

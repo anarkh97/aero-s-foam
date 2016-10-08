@@ -16,7 +16,7 @@ class MyControl : public ControlInterface {
 	      Vector *ext_f=0);
 	      
     void usd_disp(double time, double *userDefineDisplacement, 
-                  double *userDefineVelocity);
+                  double *userDefineVelocity, double *userDefineAcceleration);
 
     void usd_forc(double time, double *userDefineForce);
 
@@ -40,7 +40,8 @@ MyControl::ctrl(double *displacement, double *velocity, double *acceleration,
 }
 
 void
-MyControl::usd_disp(double time, double *userDefineDisp, double *userDefineVel)
+MyControl::usd_disp(double time, double *userDefineDisp, double *userDefineVel,
+                    double *userDefineAcc)
 {
   // implement this function for USDF controls, i.e. prescribed displacements which are a function of time
 }

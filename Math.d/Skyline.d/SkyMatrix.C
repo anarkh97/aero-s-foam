@@ -2,8 +2,10 @@
 #define _SKYMATRIX_C_
 
 #include <cstdio>
-#include <Utils.d/dbg_alloca.h>
+#include <iostream>
 
+#include <Math.d/Skyline.d/SkyMatrix.h>
+#include <Utils.d/dbg_alloca.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/DistHelper.h>
 #include <Utils.d/Connectivity.h>
@@ -197,7 +199,7 @@ inline void Tfor1(double *a, int *b, double *c1, int *d, int &e, int nzem = 0)
 }
 inline void Tfor1(DComplex *a, int *b, DComplex *c1, int *d, int &e, int nzem = 0)
 {
-  cerr << "WARNING ...";
+  std::cerr << "WARNING ...";
 }
 
 inline void Tback1(double *a, int *b, double *c1, int *d, int &e, int nzem = 0)
@@ -207,7 +209,7 @@ inline void Tback1(double *a, int *b, double *c1, int *d, int &e, int nzem = 0)
 }
 inline void Tback1(DComplex *a, int *b, DComplex *c1, int *d, int &e, int nzem = 0)
 {
-  cerr << "WARNING ...";
+  std::cerr << "WARNING ...";
 }
 
 template<class Scalar>
@@ -234,7 +236,7 @@ GenSkyMatrix<Scalar>::clean_up()
    delete [] dlp;
    dlp=0;
  }
- if(rbm) { rbm->clean_up(); }
+ if(rbm && myRbm) { rbm->clean_up(); }
  if(scale) { delete [] scale; scale=0; }
 }
 
@@ -242,6 +244,7 @@ template<class Scalar>
 void
 GenSkyMatrix<Scalar>::zeroAll()
 {
+  if(numUncon == 0) return;
   int i;
   for(i = 0; i < dlp[numUncon-1]; ++i)
     skyA[i] = 0.0;
@@ -498,11 +501,11 @@ GenSkyMatrix<Scalar>::factor()
  // fprintf(stderr, "Stats %d %f\n",numUncon,float(dlp[numUncon-1])/numUncon);
 
   if(isTRBM) {
-    //cerr << " ... Using TRBM method to factor Skyline Matrix ...\n";
+    //std::cerr << " ... Using TRBM method to factor Skyline Matrix ...\n";
     Factor();    // tolerance method
   }
   else {
-    //cerr << " ... Using GRBM method to factor Skyline Matrix ...\n";
+    //std::cerr << " ... Using GRBM method to factor Skyline Matrix ...\n";
     Factor(rbm); // geometric method
   }
 }
@@ -529,7 +532,7 @@ GenSkyMatrix<Scalar>::Factor()
            flag, nops, numrbm, dummyZEM);
 
    if(numrbm > 0 && this->print_nullity)
-     cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
+     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
 
    // set number of zero energy modes
    nzem = numrbm;
@@ -611,7 +614,7 @@ GenSkyMatrix<Scalar>::parallelFactor()
    }
 #endif
   if(numrbm > 0 && this->print_nullity)
-     cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
+     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
 
   // set number of zero energy modes
   GenVector<Scalar> *zem = getNullSpace();
@@ -620,15 +623,6 @@ GenSkyMatrix<Scalar>::parallelFactor()
   rbm = new Rbm(zem, nzem, numUncon, myRbm);
   delete [] w;
 }
-
-
-template<>
-void
-GenSkyMatrix<double>::Factor(Rbm *rigid);
-
-template<>
-void
-GenSkyMatrix<DComplex>::Factor(Rbm *rigid);
 
 template<class Scalar>
 void
@@ -986,14 +980,6 @@ GenSkyMatrix<Scalar>::getRBMs(VectorSet& rigidBodyModes)
   rbm->getRBMs(rigidBodyModes);
 }
 
-template<>
-double
-GenSkyMatrix<double>::diag(int dof) const;
-
-template<>
-DComplex
-GenSkyMatrix<DComplex>::diag(int dof) const;
-
 template<class Scalar>
 Scalar &
 GenSkyMatrix<Scalar>::diag(int dof)
@@ -1062,25 +1048,9 @@ GenSkyMatrix<Scalar>::addData(int nData, int* dofi, int* dofj, Scalar* d)
     // HB & PJSA: to be checked for CCt
     //if((ri = dofi) == -1 ) return;  // Skip constrained dofs
     //if((rj = dofj) == -1 ) return;  // Skip constrained dofs
-    if(!skip)                                                                                                                      skyA[dlp[rj] - rj + ri - 1] += d[i];
+    if(!skip) skyA[dlp[rj] - rj + ri - 1] += d[i];
   }
 }*/
-template<>
-void
-GenSkyMatrix<DComplex>::addImaginary(FullSquareMatrix &ks, int *dofs);
-
-template<>
-void
-GenSkyMatrix<double>::addImaginary(FullSquareMatrix &ks, int *dofs);
-
-template<>
-void
-GenSkyMatrix<DComplex>::add(FullSquareMatrixC &kel, int *dofs);
-
-template<>
-void
-GenSkyMatrix<double>::add(FullSquareMatrixC &kel, int *dofs);
-
 
 template<class Scalar>
 void
@@ -1203,7 +1173,7 @@ GenSkyMatrix<Scalar>::symmetricScaling()
   scale = new Scalar[numUncon];
   int i;
   for(i=0; i<numUncon; ++i) {
-    if(diag(i) == 0.0) cerr << " *** WARNING: in GenSkyMatrix<Scalar>::symmetricScaling(), diag(i) = 0.0\n";
+    if(diag(i) == 0.0) std::cerr << " *** WARNING: in GenSkyMatrix<Scalar>::symmetricScaling(), diag(i) = 0.0\n";
     scale[i] = Scalar(1.0) / ScalarTypes::sqrt(diag(i));
   }
 
@@ -1244,22 +1214,5 @@ GenSkyMatrix<Scalar>::rmsBandwidth()
   rmsBandwith = sqrt(rmsBandwith/numUncon);
   return rmsBandwith;
 }
-
-template<>
-void
-GenSkyMatrix<double>::printMatlab(int subNum);
-
-template<>
-void
-GenSkyMatrix<DComplex>::printMatlab(int subNum);
-
-template<>
-void
-GenSkyMatrix<double>::printMatlab(char *fileName);
-
-template<>
-void
-GenSkyMatrix<DComplex>::printMatlab(char *fileName);
-
 
 #endif

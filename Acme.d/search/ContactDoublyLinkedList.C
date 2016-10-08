@@ -54,33 +54,3 @@ void ContactTopologyDLL::Display(ContactParOStream& postream)
   }
 }
 
-ContactInteractionDLL::ContactInteractionDLL() {
-  current = data.begin();
-}
-
-ContactInteractionDLL::~ContactInteractionDLL()
-{
-  Clear();
-}
-
-void ContactInteractionDLL::Append( ContactInteractionEntity* entity )
-{
-  data.push_back(entity);
-}
-
-void ContactInteractionDLL::Clear()
-{
-  data.clear();
-  current = data.begin();
-}
-
-void ContactInteractionDLL::Display(ContactParOStream& postream)
-{
-  int cur_size = data.size();
-  for(int i = 0; i < cur_size; ++i) {
-    data[i]->Display(postream);
-  }
-}
-
-
-    

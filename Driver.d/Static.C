@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cmath>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Driver.d/Domain.h>
@@ -8,17 +9,22 @@
 #include <Element.d/Element.h>
 #include <HelmAxi.d/AxiHElem.h>
 #include <Solvers.d/Rbm.h>
+#include <Solvers.d/Solver.h>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/Memory.h>
 #include <Utils.d/pstress.h>
 #include <Timers.d/GetTime.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
-
 #include <Driver.d/GeoSource.h>
+#include <Utils.d/DistHelper.h>
+#ifdef USE_EIGEN3
+#include <Math.d/EiSparseMatrix.h>
+#endif
+#include <Math.d/CuCSparse.h>
+
 #include <list>
 
-// const double defaultTemp = -10000000;
 extern int verboseFlag;
 
 void
@@ -77,9 +83,8 @@ Domain::initNodalTemperatures()
       temprcvd[i] = defaultTemp;
 
     for(i = 0; i < numDirichlet; ++i)
-      if((1 << dbc[i].dofnum) == DofSet::Temp) {
+      if((1 << dbc[i].dofnum) == DofSet::Temp && dbc[i].nnum < numnodes) {
         temprcvd[dbc[i].nnum] = dbc[i].val;
-        //fprintf(stderr," Temp %f\n", temprcvd[dbc[i].nnum]);
       }
   }
 }
@@ -107,23 +112,33 @@ Domain::openFile(char *fileName, const char *extension)
 void
 Domain::printStatistics(bool domain_decomp)
 {
-   filePrint(stderr,"\n ---------- PROBLEM PARAMETERS --------");
-   filePrint(stderr,"\n ... # Nodes              = %7d ...",numnodes-geoSource->internalNumNodes());
-   filePrint(stderr,"\n ... # Elements           = %7d ...",numele);
-   if(!domain_decomp) {
-     filePrint(stderr,"\n ... # Unconstrained dofs = %7d ...",numUncon());
-   }
-   filePrint(stderr,"\n ... # Constrained dofs   = %7d ...",
-           numDirichlet+numComplexDirichlet);
-   if(!domain_decomp) {
-     filePrint(stderr,"\n ... Total # dofs         = %7d ...",numdof());
-   }
-   filePrint(stderr,"\n ... # Loaded dofs        = %7d ...",
-           numNeuman+numComplexNeuman);
-   if(gravityFlag())
-     filePrint(stderr,"\n ... Gravity Load is Applied        ...");
-   filePrint(stderr,"\n ... # Output Files       = %7d ...",geoSource->getNumOutInfo());
-   filePrint(stderr,"\n --------------------------------------\n");
+  // Note 1: # Nodes does include nodes which are not attached to any element, but does not
+  //         include the so-called "internal nodes" (e.g. Lagrange multiplier nodes).
+  // Note 2: # Elements does not include "LMPC elements".
+  // Note 3: # Unconstrained dofs does not include dofs of nodes which are not attached to any
+  //         elements or LMPC elements.
+  // Note 4: # Constrained dofs and Total # dofs do include constraints on dofs of nodes which
+  //         (a) are not defined in the input file, and (b) are defined in the input file but
+  //         not attached to any elements or LMPC elements.
+  if(!nodeTable) {
+    exactNumNodes = 0;
+    for(int i=0; i<nodes.size(); ++i) {
+      if(nodes[i] != 0) exactNumNodes++;
+    }
+  }
+  if(!domain_decomp) setNumDofs(numUncon()+numDirichlet+numComplexDirichlet);
+
+  filePrint(stderr, "\n --------- PROBLEM PARAMETERS ---------");
+  filePrint(stderr, "\n ... # Nodes              = %7d ...", exactNumNodes);
+  filePrint(stderr, "\n ... # Elements           = %7d ...", numele-geoSource->numMpcElem()-contactSurfElems.size()-geoSource->numContactSurfaceElem());
+  filePrint(stderr, "\n ... # Unconstrained dofs = %7d ...", numDofs()-numDirichlet-numComplexDirichlet);
+  filePrint(stderr, "\n ... # Constrained dofs   = %7d ...", numDirichlet+numComplexDirichlet);
+  filePrint(stderr, "\n ... Total # dofs         = %7d ...", numDofs());
+  //filePrint(stderr, "\n ... # Loaded dofs        = %7d ...", numNeuman+numComplexNeuman);
+  if(gravityFlag())
+    filePrint(stderr, "\n ... Gravity Load is Applied        ...");
+  filePrint(stderr, "\n ... # Output Files       = %7d ...", geoSource->getNumOutInfo());
+  filePrint(stderr, "\n --------------------------------------\n");
 }
 
 double
@@ -151,7 +166,7 @@ Domain::computeStructureMass(bool printFlag)
   int iele, i;
   for(iele=0; iele < numele; ++iele) {
     int numNodesPerElement = packedEset[iele]->numNodes();
-    maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+    maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
   }
 
   // allocate one array to store node numbers
@@ -196,7 +211,7 @@ Domain::computeStructureMass(bool printFlag)
   if(geoSource->numElemFluid() > 0) {
     for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
       int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
-      maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+      maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
     }
 
     nodeNumbers = new int[maxNumNodes];
@@ -482,7 +497,7 @@ Domain::computeFluidMass()
   int iele, i;
   for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
     int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
-    maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+    maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
   }
 
   // allocate one array to store node numbers
@@ -629,52 +644,42 @@ Domain::constructHzem(bool printFlag)
 {
   Rbm *rbm = new Rbm(dsa, c_dsa);
   if(printFlag)
-    cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... HZEM algorithm detected " << rbm->numRBM() << " zero energy modes ...\n";
   return rbm;
 }
 
-// Function to construct zero energy modes, ADDED FOR SLOSHING PROBLEM, EC, 20070723
+// Function to construct zero energy modes
 Rbm *
 Domain::constructSlzem(bool printFlag)
 {
   Rbm *rbm = new Rbm(dsa, c_dsa);
   if(printFlag)
-    cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... SZEM algorithm detected " << rbm->numRBM() << " zero energy modes ...\n";
   return rbm;
 }
 
 Rbm *
 Domain::constructRbm(bool printFlag)
 {
+  if(printFlag) filePrint(stderr," ... Using Geometric RBM Method     ...\n");
   Rbm *rbm = 0;
-  if(numLMPC) {
+  if(numLMPC && sinfo.grbm_use_lmpc) {
     if(renumb_nompc.numComp == 0)
-      rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb,  numLMPC, lmpc);
+      rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb, numLMPC, lmpc);
     else
-      rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb_nompc,  numLMPC, lmpc);
+      rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb_nompc, numLMPC, lmpc);
+    // delete the LMPCs
+    for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
+    lmpc.deleteArray();
+    lmpc.restartArray();
+    numLMPC = 0;
   }
   else 
     rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb);
   if(printFlag)
-    cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body modes ...\n";
   return rbm;
 }
-
-/*
-// Function to construct rigid body modes
-Rbm *
-Domain::constructRbm(IntFullM *fm)
-{
- return new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb, fm);
-}
-*/
-
-/*
-Static, Dynamic, Modal, NonLinStatic, NonLinDynam,
-ArcLength, ConditionNumber, TempDynamic, Top,
-AxiHelm, MatNonLinStatic, MatNonLinDynam,
-Helmholtz, HelmholtzFreqSweep, HelmholtzDirSweep, HelmholtzMF, HelmholtzSO
-*/
 
 const char* problemTypeMessage[] = {
 " ... Linear Static Analysis         ... \n",
@@ -701,60 +706,29 @@ const char* problemTypeMessage[] = {
 ""
 };
 
+const char* sensitivityTypeMessage[] = {
+" ... Sensitivity Analysis without Static Analysis ...\n",
+" ... Sensitivity Analysis with Static Analysis ...\n"
+};
+
 const char* solverTypeMessage[] = {
 " ... Skyline Solver is Selected     ... \n",
 " ... Sparse Solver is Selected      ... \n",
-" ... BlockSky Solver is Selected    ...\n",
-#ifdef USE_EIGEN3
+" ... BlockSky Solver is Selected    ... \n",
 " ... SimplicalLLT Solver is Selected... \n",
 " ... SimplicalLDLT Solver is Selec'd... \n",
-#ifdef EIGEN_CHOLMOD_SUPPORT
 " ... Cholmod Solver is Selected     ... \n",
-#else
-" ... Sparse Solver is Selected      ... \n",
-#endif
-#ifdef EIGEN_UMFPACK_SUPPORT
 " ... UmfPack Solver is Selected     ... \n",
-#else
-" ... Sparse Solver is Selected      ... \n",
-#endif
-#ifdef EIGEN_SUPERLU_SUPPORT
 " ... SuperLU Solver is Selected     ... \n",
-#else
-" ... Sparse Solver is Selected      ... \n",
-#endif
-#else
-" ... Sparse Solver is Selected      ... \n",
-" ... Sparse Solver is Selected      ... \n",
-" ... Sparse Solver is Selected      ... \n",
-" ... Sparse Solver is Selected      ... \n",
-" ... Sparse Solver is Selected      ... \n",
-#endif
-#ifdef USE_SPOOLES
 " ... Spooles Solver is Selected     ... \n",
-#else
-" ... Sparse Solver is Selected      ... \n",
-#endif
-#ifdef USE_MUMPS
 " ... Mumps Solver is Selected       ... \n",
-#else
-" ... Sparse Solver is Selected      ... \n",
-#endif
 "",
 " ... POD-GN Solver is Selected      ... \n",
 " ... POD-Galerkin Solver is Selected... \n",
 " ... POD-Galerkin Solver is Selected... \n",
-" ... Goldfarb-Idnani Solver is Sel'd... \n",
-#ifdef EIGEN_SPARSELU_SUPPORT
+" ... Goldfarb Solver is Selected    ... \n",
 " ... SparseLU Solver is Selected    ... \n",
-#else
-" ... Sparse Solver is Selected      ... \n",
-#endif
-#ifdef EIGEN_SPQR_SUPPORT
 " ... SuiteSparseQR Solver is Selec'd... \n",
-#else
-" ... Sparse Solver is Selected      ... \n",
-#endif
 " ... SparseQR Solver is Selected    ... \n"
 };
 
@@ -771,30 +745,8 @@ Domain::preProcessing()
  }
  matrixTimers->makeConnectivity += getTime();
 
- // ... RENUMBER IF NECESSARY AND ASKED FOR
+ // ... RENUMBER IF NECESSARY AND/OR ASKED FOR
  matrixTimers->renumbering -= getTime();
-
-/*
- // Check if we are renumbering or not
- if(sinfo.renum || sinfo.solvercntl->sparse_renum)
-   filePrint(stderr," ... Renumbering as Specified       ...\n");
- else {
-   if(sinfo.subtype != 1 && sinfo.subtype != 8 && sinfo.subtype != 9) // sparse and spooles are always renumbered internally
-     filePrint(stderr," *** WARNING: Renumbering Turned Off ***\n");
- }
-
- // Check if we are using a Solver that does not require renumbering
- if(sinfo.renum && (sinfo.subtype == 3 || sinfo.subtype == 4)) {
-   filePrint(stderr," *** WARNING: Renumbering is NOT necessary \n");
-   filePrint(stderr,"     for the selected solver; continuing \n");
-   filePrint(stderr,"     with renumbering OFF! ***\n");
-
-   // Turn off renumbering (GRBM needs renumbering due to components!)
-   sinfo.renum = 1;
- }
-*/
-
- // Perform renumbering if necessary
  Renumber rnum = getRenumbering();
  Renumber* rnumFluid = 0;
  if(sinfo.HEV) rnumFluid = getRenumberingFluid();
@@ -808,51 +760,13 @@ Domain::preProcessing()
    dsaFluid = new DofSetArray(numnodesFluid, *(geoSource->getPackedEsetFluid()), rnumFluid->renumb);
  }
  matrixTimers->createDofs += getTime();
-
-// TEMP CODE TO OUTPUT ACTIVE DOFS IN PROFILE
-// dsa = dof set array
-
-/*
-  ofstream dof_file;
-  dof_file.open("profile.dat");
-  if(dof_file.fail()) {
-    cout << "ERROR: opening profile.dat" << endl;
-  }
-  dof_file << setw(6) << numnodes << endl;
-
-  int inode,d;
-  int flag[6];
-  for(inode = 0; inode < numnodes; ++inode) {
-    flag[0] = dsa->locate(inode, DofSet::Xdisp);
-    flag[1] = dsa->locate(inode, DofSet::Ydisp);
-    flag[2] = dsa->locate(inode, DofSet::Zdisp);
-    flag[3] = dsa->locate(inode, DofSet::Xrot);
-    flag[4] = dsa->locate(inode, DofSet::Yrot);
-    flag[5] = dsa->locate(inode, DofSet::Zrot);
-
-    for(d=0;d<6; ++d) {
-      if(flag[d] > 0) // active
-        flag[d] = 1;
-      else // inactive
-        flag[d] = 0;
-    }
-    dof_file << setw(6) << (inode+1);
-    for(d=0;d<6; ++d) {
-      dof_file << " " << setw(1) << flag[d];
-    }
-    dof_file << endl;
-  }
-  dof_file.close();
-  exit(1);
-*/
 }
 
 void
 Domain::make_constrainedDSA()
 {
  if(c_dsa) delete c_dsa;
- c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc);
- //ADDED FOR HEV PROBLEM, EC, 20070820
+ c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc, numComplexDirichlet, cdbc);
  if (solInfo().HEV)  {
    c_dsaFluid = new ConstrainedDSA(*dsaFluid, numDirichletFluid, dbcFluid);
  }
@@ -874,15 +788,6 @@ Domain::make_constrainedDSA(int *bc)
  // bc = integer array marking dofs that are
  //      constrained or have forces applied
 
- //ADDED FOR HEV PROBLEM, EC, 20070820
- if (solInfo().HEV)  {
-   //int numdofFluid = dsaFluid->size();
-   //int numdof = dsa->size();
-   //for (int i=0; i<num
-   //c_dsaFluid = new ConstrainedDSA(*dsaFluid, dbcFluid, numDirichletFluid, cdbc, 0, bc);
-                              //numComplexDirichlet, bc);
-   fprintf(stderr," *** c_dsaFluid NOT built in this version of constructor! ***\n");
- }
  if(c_dsa) delete c_dsa;
  c_dsa = new ConstrainedDSA(*dsa, dbc, numDirichlet, cdbc,
                             numComplexDirichlet, bc);
@@ -922,14 +827,16 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
  int inode, iele;
  int nEls = packedEset.last();
 
- list<int> phantoms;
- list<int> constraints;
+ std::list<int> phantoms;
+ std::list<int> constraints;
+ std::list<int> dimasses;
 
  for(iele=0; iele<nEls; ++iele) {
    if(!packedEset[iele]->isPhantomElement() && !packedEset[iele]->isConstraintElement()) {
      int numNodesPerElement = packedEset[iele]->numTopNodes();
-     if(numNodesPerElement <= 1) continue;
      int eletype = packedEset[iele]->getTopNumber();
+     if(eletype == 506) { dimasses.push_back(iele); continue; }
+     if(numNodesPerElement <= 1) continue;
      int eid = (topFlag == 1 || topFlag == 7) ? iele+1 : packedEset[iele]->getGlNum()+1; // only renumber for -T and -M
      fprintf(cinfo->checkfileptr,"%6d  %4d ",eid,eletype);
      packedEset[iele]->nodes(nodeNumber);
@@ -939,46 +846,53 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
 	 fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[inode]]);
      fprintf(cinfo->checkfileptr,"\n");
    }
-   else
-     {
-       if(packedEset[iele]->isPhantomElement())
-	 phantoms.push_back(iele); //TG create a list of phantom elements, shouldn't be too big
-       else
-	 constraints.push_back(iele);
-     }
+   else {
+     if(packedEset[iele]->isPhantomElement())
+       phantoms.push_back(iele); //TG create a list of phantom elements
+     else
+       constraints.push_back(iele);
+   }
  }
-
- //std::cerr << " ... " << phantoms.size() << " phantoms " << constraints.size() << " constraints elements. " << endl;
 
  //TG output dimasses in a separate element set if there are any
  // as of now (7/5/06) a dimass will be represented by a bar element in xpost between the node the
  // dimass is attached to and itself.
- if(nDimass > 0)
-   {
-     fprintf(stderr, " ... Putting %d Dimasses as bars in a separate ElemSet\n", nDimass);
-     DMassData* curMass = firstDiMass;
-     fprintf(cinfo->checkfileptr,"Elements %s_dimass using %s\n",
-	     cinfo->elemSetName, cinfo->nodeSetName);
-     int iele = 0;
-     int eletype = 506; //101; // BAR element //TG now 506 to detect dimasses in Xpost
-     while(curMass != NULL)
-       {
-	 int node = curMass->node;
-	 if(node < numnodes && nodes[node] != 0)
-	   {
-	     fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
+ if(nDimass > 0 || dimasses.size() > 0) {
+   fprintf(stderr, " ... Putting %d Dimasses as bars in a separate ElemSet\n", nDimass+int(dimasses.size()));
+   fprintf(cinfo->checkfileptr,"Elements %s_dimass using %s\n",
+           cinfo->elemSetName, cinfo->nodeSetName);
+   int iele = 0;
+   int eletype = 506; // TG now 506 to detect dimasses in Xpost
+   DMassData* curMass = firstDiMass;
+   while(curMass != NULL) {
+     int node = curMass->node;
+     if(node < numnodes && nodes[node] != 0) {
+       fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
 
-	     fprintf(cinfo->checkfileptr,"%6d %6d\n",nodeTable[node], nodeTable[node]);
-	     curMass = curMass->next;
-	     iele ++;
-	   }
-	 else
-	   {
-	     cout << " Warning : virtual dimass" << endl;
-             curMass = curMass->next;
-	   }
-       }
+       fprintf(cinfo->checkfileptr,"%6d %6d\n",nodeTable[node], nodeTable[node]);
+       curMass = curMass->next;
+       iele++;
+     }
+     else {
+       std::cout << " Warning : virtual dimass" << std::endl;
+       curMass = curMass->next;
+     }
    }
+   int m_dimasses = dimasses.size();
+   for(int i=0; i<m_dimasses; ++i) {
+     int jele = dimasses.front();
+     dimasses.pop_front();
+
+     // same as main element writing in loop above for non dimass elements
+     int eletype = packedEset[jele]->getTopNumber();
+     fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
+     packedEset[jele]->nodes(nodeNumber);
+     for(inode=0; inode<2; ++inode)
+       fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[0]]);
+     fprintf(cinfo->checkfileptr,"\n");
+     iele++;
+   }
+ }
 
  // output phantom elements in a separate elementset if there are any
  if (phantoms.size() > 0) {
@@ -989,20 +903,19 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
        iele = phantoms.front();
        phantoms.pop_front();
 
-       //** same as main element writing in loop above for non phantom elements
+       // same as main element writing in loop above for non phantom elements
        int numNodesPerElement = packedEset[iele]->numTopNodes();
        if(numNodesPerElement <= 1) continue;
        int eletype = packedEset[iele]->getTopNumber();
        fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
        packedEset[iele]->nodes(nodeNumber);
        for(inode=0; inode<numNodesPerElement; ++inode)
-	 // Avoid to print nodes that are internally created
+	 // Avoid printing nodes that are internally created
 	 if(nodeNumber[inode] < numnodes && nodes[nodeNumber[inode]] != 0)
 	   fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[inode]]);
        fprintf(cinfo->checkfileptr,"\n");
-       //**
      }
-   }
+ }
 
  // output constraint elements in a separate elementset if there are any
  if (constraints.size() > 0) {
@@ -1013,18 +926,17 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
        iele = constraints.front();
        constraints.pop_front();
 
-       //** same as main element writing in loop above for non constraints elements
+       // same as main element writing in loop above for non constraints elements
        int numNodesPerElement = packedEset[iele]->numTopNodes();
        if(numNodesPerElement <= 1) continue;
        int eletype = packedEset[iele]->getTopNumber();
        fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
        packedEset[iele]->nodes(nodeNumber);
        for(inode=0; inode<numNodesPerElement; ++inode)
-	 // Avoid to print nodes that are internally created
+	 // Avoid printing nodes that are internally created
 	 if(nodeNumber[inode] < numnodes && nodes[nodeNumber[inode]] != 0)
 	   fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[inode]]);
        fprintf(cinfo->checkfileptr,"\n");
-       //**
      }
    }
 
@@ -1036,13 +948,12 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
            SurfEntities[iSurf]->GetId(), cinfo->nodeSetName);
    FaceElemSet &faceElemSet = SurfEntities[iSurf]->GetFaceElemSet();
    for(iele=0; iele<faceElemSet.last(); ++iele) {
-     if(SurfEntities[iSurf]->GetIsShellFace() && iele%2==1) continue;
      int nVertices = faceElemSet[iele]->nVertices();
      int eletype;
      if(nVertices == 3) eletype = 104;
      else if(nVertices == 4) eletype = 2;
-     else { cerr << "don't know xpost eletype for surface " << SurfEntities[iSurf]->GetId() << " element " << iele << " nVertices = " << nVertices << endl; continue; }
-     int eleID = (SurfEntities[iSurf]->GetIsShellFace()) ? iele/2+1 : iele+1;
+     else { std::cerr << "don't know xpost eletype for surface " << SurfEntities[iSurf]->GetId() << " element " << iele << " nVertices = " << nVertices << std::endl; continue; }
+     int eleID = iele+1;
      fprintf(cinfo->checkfileptr,"%6d  %4d ",eleID,eletype);
      for(inode=0; inode<nVertices; ++inode) {
        int nodeNumber = faceElemSet[iele]->GetVertex(inode);
@@ -1062,12 +973,12 @@ void
 Domain::makeNodeTable(int topFlag)
 {
  long m4 = - memoryUsed();
- nodeTable = new int[numnodes];
+ nodeTable = new int[nodes.size()];
  m4 += memoryUsed();
  //fprintf(stderr," ... Node Table %14.3f Mb\n",m4/(1024.0*1024.0));
 
  int inode;
- for(inode=0; inode<numnodes; ++inode)
+ for(inode=0; inode<nodes.size(); ++inode)
    nodeTable[inode] = -1;
 
  // if topFlag = 0, output a topdomdec file with all nodes
@@ -1085,7 +996,7 @@ Domain::makeNodeTable(int topFlag)
  // and without gaps (nodes renumbered sequentially)
 
  exactNumNodes = 0;
- for(inode=0; inode<numnodes; ++inode) {
+ for(inode=0; inode<nodes.size(); ++inode) {
    if(nodes[inode] == 0) continue;
    exactNumNodes += 1;
    nodeTable[inode] = ((topFlag == 1) || (topFlag == 7)) ? exactNumNodes : inode+1;
@@ -1095,7 +1006,6 @@ Domain::makeNodeTable(int topFlag)
 void
 Domain::makeTopFile(int topFlag)
 {
- //MODIFIED FOR HEV PROBLEM, EC, 20070820
  if (solInfo().HEV)  {
    solInfo().HEV = 0;
    packedEset.deleteElems();
@@ -1162,7 +1072,7 @@ Domain::makeTopFile(int topFlag)
  // ... WRITE NODE COORDINATES
  fprintf(cinfo->checkfileptr,"Nodes %s\n",cinfo->nodeSetName);
  int exactNumNodes = 0;
- for(inode=0; inode<numnodes; ++inode) {
+ for(inode=0; inode<nodes.size(); ++inode) {
    if(nodes[inode] == 0) continue;
    Node &nd = nodes.getNode(inode);
    exactNumNodes += 1;
@@ -1181,7 +1091,7 @@ Domain::makeTopFile(int topFlag)
  int nEls = packedEset.last(); //HB: to avoid calling packedEset.last() at each loop
  for(iele=0; iele<nEls; ++iele) {
    int numNodesPerElement = packedEset[iele]->numNodes();
-   maxNumNodes = myMax(numNodesPerElement, maxNumNodes);
+   maxNumNodes = std::max(numNodesPerElement, maxNumNodes);
  }
  // allocate integer array to store node numbers
  int *nodeNumber = new int[maxNumNodes];
@@ -1316,10 +1226,10 @@ Domain::makeTopFile(int topFlag)
    }
 
    int n;
-   map<int, Attrib> &attrib = geoSource->getAttributes();
+   std::map<int, Attrib> &attrib = geoSource->getAttributes();
    int na = geoSource->getNumAttributes(); // this is actually the number of elements !!
    SPropContainer &sProps = geoSource->getStructProps();
-   for(map<int, StructProp>::iterator it = sProps.begin(); it != sProps.end(); ++it) {
+   for(std::map<int, StructProp>::iterator it = sProps.begin(); it != sProps.end(); ++it) {
        n = it->first;
        bool first = true; // PJSA to deal with case of empty EleSet
        for(i=0; i<na; ++i) {
@@ -1480,12 +1390,12 @@ Domain::setsizeSfemStress(int fileNumber)
    Connectivity *elemToNode = new Connectivity(domain->getEset());
    int numele = geoSource->getNumAttributes();  // number of elements; another option domain->numElements();
    for(int iele=0; iele<numele; ++iele)   {
-//     cerr << "number of nodes in this element  = " << elemToNode->num(iele) << endl;
+//     std::cerr << "number of nodes in this element  = " << elemToNode->num(iele) << std::endl;
      sizeSfemStress = sizeSfemStress + elemToNode->num(iele); // add number of nodes for each element
    }
   }
   else {
-   cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << endl;
+   std::cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << std::endl;
    sizeSfemStress = 0;
   }
 }
@@ -1497,9 +1407,8 @@ Domain::getSfemStress(int fileNumber, double* dummystress)
   int avgnum = oinfo[fileNumber].averageFlg;
   if(avgnum == 1)  return stress->data();
   else if(avgnum == 0) return stressAllElems->data();
-  else {cerr << "avgnum = " << avgnum << " not implemented in Domain::getSfemStress()" << endl; return 0;}
+  else {std::cerr << "avgnum = " << avgnum << " not implemented in Domain::getSfemStress()" << std::endl; return 0;}
 }
-
 
 void
 Domain::updateSfemStress(double* str, int fileNumber)
@@ -1507,8 +1416,74 @@ Domain::updateSfemStress(double* str, int fileNumber)
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int avgnum = oinfo[fileNumber].averageFlg;
   if(avgnum == 1)  for (int i=0;i<stress->size();++i) (*stress)[i] = str[i];
-  else if(avgnum == 0) for (int i=0;i<stressAllElems->size();++i) (*stressAllElems) = str[i]; // YYY DG
-  else {cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << endl;}
+  else if(avgnum == 0) for (int i=0;i<stressAllElems->size();++i) (*stressAllElems) = str[i];
+  else {std::cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << std::endl;}
+}
+
+void 
+Domain::computeNormalizedVonMisesStress(Vector &sol, double *bcx, int surface, Vector &stress)
+{
+
+  Vector weight(numNodes(),0.0);
+  stress.zero();    weight.zero();
+
+  double *nodalTemperatures = 0;
+  // Either get the nodal temperatures from the input file or
+  // from the thermal model
+  if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
+  if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
+  int *nodeNumbers = new int[maxNumNodes];
+
+  for(int iele = 0; iele < numele; ++iele) {
+
+    packedEset[iele]->nodes(nodeNumbers);
+    int NodesPerElement = elemToNode->num(iele);
+    Vector elDisp(maxNumDOFs,0.0), elweight(NodesPerElement, 0.0), elstress(NodesPerElement,0.0), elemNodeTemps(maxNumNodes);
+    elemNodeTemps.zero();    elDisp.zero();    elstress.zero();    elweight.zero();
+
+    // DETERMINE ELEMENT DISPLACEMENT VECTOR
+    for (int k = 0; k < allDOFs->num(iele); ++k) {
+      int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+      if (cn >= 0)
+        elDisp[k] = sol[cn];
+      else
+        elDisp[k] = bcx[(*allDOFs)[iele][k]];
+    }
+
+    for (int iNode = 0; iNode < NodesPerElement; ++iNode) {
+      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp) {
+        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+      } else
+        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+    }
+
+    // transform displacements from DOF_FRM to basic coordinates
+    transformVectorInv(elDisp, iele);
+    packedEset[iele]->getVonMises(elstress, elweight, nodes, elDisp, 6, surface, elemNodeTemps.data());
+
+    // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+    for(int k = 0; k < NodesPerElement; ++k) {
+      int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+      stress[node] += elstress[k];
+      weight[node] += elweight[k];
+    }
+  }
+
+  for(int k = 0; k < numNodes(); ++k)  {
+    if(weight[k] == 0.0)
+      stress[k] = 0.0;
+    else
+      stress[k] /= (*aggregatedStress)*weight[k];
+  }
+
+}
+
+void
+Domain::scaleToTrueVonMisesStress(Vector &stress)
+{
+  for(int k = 0; k < numNodes(); ++k) {
+    stress[k] *= (*aggregatedStress);
+  }
 }
 
 void
@@ -1536,6 +1511,10 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     // upper  surface = 1
     // median surface = 2
     // lower  surface = 3
+  int str_therm_option = oinfo[fileNumber].str_therm_option;
+    // thermomechanical = 0
+    // thermal = 1
+    // mechanical = 2
   OutputInfo::FrameType oframe = oinfo[fileNumber].oframe;
 
   int k;
@@ -1545,7 +1524,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
   // Either get the nodal temperatures from the input file or
   // from the thermal model
   if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
-  if(sinfo.thermoeFlag >=0) nodalTemperatures = temprcvd;
+  if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
 
   if(printFlag != 2) {
     // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
@@ -1553,15 +1532,14 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       if(stress == 0) stress = new Vector(numNodes,0.0);
       if(weight == 0) weight = new Vector(numNodes,0.0);
     }
-    else if(stressAllElems == 0) stressAllElems = new Vector(sizeSfemStress,0.0);
+    else if(printFlag == 1 && stressAllElems == 0) stressAllElems = new Vector(sizeSfemStress,0.0);
     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
 
-
-    if((elstress == 0)||(elweight == 0)||(p_elstress == 0 && oframe == OutputInfo::Local)) {
+    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
-        maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+        maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
       }
       if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -1569,11 +1547,11 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     }
 
     if(avgnum != 0) {
-    // zero the vectors
+      // zero the vectors
       stress->zero();
       weight->zero();
     }
-    else if (printFlag == 1) stressAllElems->zero();
+    else if(printFlag == 1) stressAllElems->zero();
   }
 
   int count = 0;
@@ -1597,32 +1575,33 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       elweight->zero();
 
       // DETERMINE ELEMENT DISPLACEMENT VECTOR
-      for (k=0; k < allDOFs->num(iele); ++k) {
-        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-        if (cn >= 0)
-          (*elDisp)[k] = sol[cn];
-        else
-          (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+      if(str_therm_option != 1) {
+        for (k = 0; k < allDOFs->num(iele); ++k) {
+          int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+          if (cn >= 0)
+            (*elDisp)[k] = sol[cn];
+          else
+            (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+        }
       }
 
       int iNode;
-      if (sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0))
-        for (iNode = 0; iNode < NodesPerElement; ++iNode) {
-          if (nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-        }
+      for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp || str_therm_option == 2)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
 
       // transform displacements from DOF_FRM to basic coordinates
       transformVectorInv(*elDisp, iele);
 
       // transform non-invariant stresses/strains from basic frame to DOF_FRM
-      if(oframe == OutputInfo::Local && ((stressIndex >=0 && stressIndex <=5) || (stressIndex >= 7 && stressIndex <= 12))) {
+      if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12)) && stressIndex != 31) {
 
-        // FIRST, CALCULATE STRESS/STRAIN TENSOR FOR EACH NODE OF THE ELEMENT
+        // first, calculate stress/strain tensor for each node of the element
         p_elstress->zero();
-        int strInd = (stressIndex >=0 && stressIndex <=5) ? 0 : 1;
+        int strInd = (stressIndex >= 0 && stressIndex <= 5) ? 0 : 1;
         packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
                                        *elDisp, strInd, surface,
                                        elemNodeTemps.data());
@@ -1640,10 +1619,10 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
 
       }
       else {
-
+        int index = (stressIndex == 31) ? 6 : stressIndex;
         // CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
         packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
-                                      *elDisp, stressIndex, surface,
+                                      *elDisp, index, surface,
                                       elemNodeTemps.data(), ylayer, zlayer, avgnum);
       }
 
@@ -1662,25 +1641,25 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     if(avgnum == 0) {
       int offset[2];
       offset[0] = 0;
-      //offset[1] = NodesPerElement;
       offset[1] = packedEset[iele]->numTopNodes(); //HB 06-25-05: avoid the internal nodes for MpcElement
 
-      if(printFlag == 0) {
-        if(iele == 0)
-          geoSource->outputElemStress(fileNumber, (double *) 0, 0, offset, time); // print time
-        geoSource->outputElemStress(fileNumber, elstress->data(), 1, offset); // print stresses
-      }
-      if(printFlag == 1) {
-        for(k = 0; k < NodesPerElement; ++k) {
-          stressAllElems[count] = (*elstress)[k];
-          count++;
+      if(stressIndex != 31) {
+        if(printFlag == 0) {
+          if(iele == 0)
+            geoSource->outputElemStress(fileNumber, (double *) 0, 0, offset, time); // print time
+          geoSource->outputElemStress(fileNumber, elstress->data(), 1, offset); // print stresses
         }
-      }
-      if(printFlag == 2) {
-        if(iele == 0)
-          geoSource->outputElemStress(fileNumber, (double *) 0, 0, offset, time); // print time
-//        geoSource->outputElemStress(fileNumber, stressAllElems[count], 1, offset); // print stresses YYY DG
-        count=count+NodesPerElement;
+        if(printFlag == 1) {
+          for(k = 0; k < NodesPerElement; ++k) {
+            stressAllElems[count] = (*elstress)[k];
+            count++;
+          }
+        }
+        if(printFlag == 2) {
+          if(iele == 0)
+            geoSource->outputElemStress(fileNumber, (double *) 0, 0, offset, time); // print time
+          count=count+NodesPerElement;
+        }
       }
     }
 
@@ -1701,14 +1680,30 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
      }
     }
 
-    if(printFlag != 1) {
-     if(oinfo[fileNumber].nodeNumber == -1)
-       geoSource->outputNodeScalars(fileNumber, stress->data(), numNodes, time);
-     else
-       geoSource->outputNodeScalars(fileNumber, stress->data()+oinfo[fileNumber].nodeNumber, 1, time);
+    if(stressIndex != 31) {
+      if(printFlag != 1) {
+        if(oinfo[fileNumber].nodeNumber == -1)
+          geoSource->outputNodeScalars(fileNumber, stress->data(), numNodes, time);
+      else
+        geoSource->outputNodeScalars(fileNumber, stress->data()+oinfo[fileNumber].nodeNumber, 1, time);
+      }
     }
 
   }
+
+  if(stressIndex == 31) {
+    double stressmax(0);
+    for(k = 0; k < numNodes; ++k) {
+      if((*stress)[k]>stressmax) stressmax = (*stress)[k];
+    }
+    *aggregatedStress = 0.0;
+    for(k = 0; k < numNodes; ++k) *aggregatedStress += exp(sinfo.ksParameter*((*stress)[k]-stressmax));
+    *aggregatedStress = log(*aggregatedStress);
+    *aggregatedStress /= sinfo.ksParameter;
+    *aggregatedStress += stressmax;
+    geoSource->outputEnergy(fileNumber, 0, *aggregatedStress);
+  }
+
   delete [] nodeNumbers;
 }
 
@@ -1746,7 +1741,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
   // Either get the nodal temperatures from the input file or
   // from the thermal model
   if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
-  if(sinfo.thermoeFlag >=0) nodalTemperatures = temprcvd;
+  if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
 
   ComplexVector *stress = 0;
   ComplexVector *stressAllElems = 0;
@@ -1760,15 +1755,15 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       if(stress == 0) stress = new ComplexVector(numNodes,0.0);
       if(weight == 0) weight = new Vector(numNodes,0.0);
     }
-    else if(stressAllElems == 0) stressAllElems = new ComplexVector(sizeSfemStress,0.0);
+    else if(printFlag == 1 && stressAllElems == 0) stressAllElems = new ComplexVector(sizeSfemStress,0.0);
     if(elDisp == 0) elDisp = new ComplexVector(maxNumDOFs,0.0);
 
 
-    if((elstress == 0)||(elweight == 0)||(p_elstress == 0 && oframe == OutputInfo::Local)) {
+    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
-        maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+        maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
       }
       if(elstress == 0) elstress = new ComplexVector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -1813,23 +1808,22 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       }
 
       int iNode;
-      if (sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0))
-        for (iNode = 0; iNode < NodesPerElement; ++iNode) {
-          if (nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-        }
+      for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
 
       // transform displacements from DOF_FRM to basic coordinates
       transformVectorInv(*elDisp, iele);
 
       // transform non-invariant stresses/strains from basic frame to DOF_FRM
-      if(oframe == OutputInfo::Local && ((stressIndex >=0 && stressIndex <=5) || (stressIndex >= 7 && stressIndex <= 12))) {
+      if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))) {
 
-        // FIRST, CALCULATE STRESS/STRAIN TENSOR FOR EACH NODE OF THE ELEMENT
+        // first, calculate stress/strain tensor for each node of the element
         p_elstress->zero();
-        int strInd = (stressIndex >=0 && stressIndex <=5) ? 0 : 1;
+        int strInd = (stressIndex >= 0 && stressIndex <= 5) ? 0 : 1;
         packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
                                        *elDisp, strInd, surface,
                                        elemNodeTemps.data());
@@ -1869,7 +1863,6 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
     if(avgnum == 0) {
       int offset[2];
       offset[0] = 0;
-      //offset[1] = NodesPerElement;
       offset[1] = packedEset[iele]->numTopNodes(); //HB 06-25-05: avoid the internal nodes for MpcElement
 
       if(printFlag == 0) {
@@ -1961,7 +1954,17 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
   // median surface = 2
   // lower  surface = 3
 
+  int str_therm_option = oinfo[fileNumber].str_therm_option;
+
+  // thermomechanical = 0
+  // thermal = 1
+  // mechanical = 2
+
   int j,k;
+  // ... OUTPUT FILE field width
+  int w = oinfo[fileNumber].width;
+  // ... OUTPUT FILE precision
+  int p = oinfo[fileNumber].precision;
   // ... OUTPUT NODE NUMBER
   int n = oinfo[fileNumber].nodeNumber;
 
@@ -1978,7 +1981,7 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     if(p_elstress == 0) p_elstress = new FullM(maxNodesPerElement,9);
     if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -1987,6 +1990,11 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
   // zero the vectors
   p_stress->zero();
   weight->zero();
+
+  // ... WRITE CURRENT TIME VALUE
+  if(avgnum == 0) {
+    fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
+  }
 
   for(iele=0; iele<numele; ++iele) {
 
@@ -2000,22 +2008,23 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 
 // ... DETERMINE ELEMENT DISPLACEMENT VECTOR
 
-    for(k=0; k<allDOFs->num(iele); ++k) {
-      int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-      if(cn >= 0)
-        (*elDisp)[k] = sol[cn];
-      else
-        (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+    if(str_therm_option != 1) {
+      for(k=0; k<allDOFs->num(iele); ++k) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+        if(cn >= 0)
+          (*elDisp)[k] = sol[cn];
+        else
+          (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+      }
     }
 
     int iNode;
-    if(sinfo.thermalLoadFlag)
-      for(iNode=0; iNode<NodesPerElement; ++iNode) {
-        if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-        else
-          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-      }
+    for(iNode=0; iNode<NodesPerElement; ++iNode) {
+      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp || str_therm_option == 2)
+        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+      else
+        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+    }
 
     // transform displacements from DOF_FRM to basic coordinates
     transformVectorInv(*elDisp, iele);
@@ -2039,8 +2048,9 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
 //     THIS WRITES THE CHOSEN PRINCIPAL STRESS FOR EACH ELEMENT
     if(avgnum == 0) {
-      geoSource->outputNodeScalars(fileNumber, (*p_elstress)[0]+(5+strDir), 1);
-
+      for(k=0; k<NodesPerElement; ++k)
+         fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*p_elstress)[k][5+strDir]);
+       fprintf(oinfo[fileNumber].filptr,"\n");
     }
   }
 
@@ -2134,7 +2144,7 @@ Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elstress = new Vector(maxNodesPerElement, 0.0);
   }
@@ -2159,10 +2169,10 @@ Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
 
     // ... CALCULATE INTERNAL FORCE VALUE FOR EACH ELEMENT
     // ... taking into account the new temperature in case of thermal coupling
-    if((sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0)) && packedEset[iele]->getProperty()) {
+    if(packedEset[iele]->getProperty()) {
       int iNode;
       for(iNode=0; iNode<NodesPerElement; ++iNode) {
-        if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
           elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
         else
           elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
@@ -2206,193 +2216,11 @@ Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
 
   }
 
-   // ... PRINT THE ELEMENT FORCES TO A FILE
-   geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
+  // ... PRINT THE ELEMENT FORCES TO A FILE
+  geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
 
-   delete [] nodeNumbers;
+  delete [] nodeNumbers;
 }
-
-#ifdef STRUCTOPT
-double
-Domain::getNodalStressStrain(Vector &sol, double *bcx,
-                             int node, int stressIndex, int surface)
-{
-  // ... Number of Connected Elements
-  int nconele = nodeToElem->num(node);
-
-  // Watch out for this, as the maximum number of nodes may increase!
-  int maxNodesPerElement = 20;
-
-  Vector elstress(maxNodesPerElement,0.0);
-  Vector elweight(maxNodesPerElement,0.0);
-
-  Vector elDisp(maxNumDOFs,0.0);
-
-  double stress=0.0;
-  double weight=0.0;
-
-  int icon;
-  for(icon=0; icon<nconele; ++icon) {
-
-     int k;
-     int iele = (*nodeToElem)[node][icon];
-     int NodesPerElement = elemToNode->num(iele);
-
-     // ... DETERMINE ELEMENT DISPLACEMENT VECTOR
-
-     for(k=0; k<allDOFs->num(iele); ++k) {
-        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-        if(cn >= 0)
-          elDisp[k] = sol[cn];
-        else
-          elDisp[k] = bcx[(*allDOFs)[iele][k]];
-     }
-
-     // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-
-     packedEset[iele]->getVonMises(elstress, elweight, nodes,
-                                   elDisp, stressIndex, surface);
-
-     // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-
-     for(k=0; k<NodesPerElement; ++k) {
-        int actnod = (*elemToNode)[iele][k];
-        if (actnod == node) {
-           stress += elstress[k]*elweight[k];
-           weight += elweight[k];
-        }
-     }
-  }
-
-  return (stress/weight);
-}
-
-void
-Domain::getElasticStiff(FullSquareMatrix *kelArray)
-{
- int iele;
- for(iele=0; iele < numele; ++iele) {
-    kelArray[iele] = packedEset[iele]->stiffness(nodes,kelArray[iele].data());
-  }
-}
-
-void
-Domain::getElasticForces(Vector &dsp, double *bcx, Vector &ext_f, double eta,
-                         FullSquareMatrix *kelArray)
-{
-
-  int size    = sizeof(double)*maxNumDOFs*maxNumDOFs;
-  double *kel = (double *) dbg_alloca(size);
-
-  int iele;
-  for(iele=0; iele<numele; ++iele) {
-
-     //int NodesPerElement = elemToNode->num(iele);
-     int numEleDOFs      = allDOFs->num(iele);
-
-     Vector elDisp   (numEleDOFs,0.0);
-     Vector elForce  (numEleDOFs,0.0);
-
-     FullSquareMatrix karray(numEleDOFs,kel);
-
-     int k;
-     for(k=0; k<numEleDOFs; ++k) {
-        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-        if(cn >= 0) {
-          elDisp[k] = dsp[cn]; }
-        else {
-          elDisp[k] = bcx[(*allDOFs)[iele][k]]; }
-     }
-
-     if (kelArray) {
-       karray=kelArray[iele];
-     }
-     else {
-       karray=packedEset[iele]->stiffness(nodes,karray.data());
-     }
-
-     int i,j;
-     for (i=0;i<numEleDOFs;i++) {
-       for (j=0;j<numEleDOFs;j++) {
-         elForce[i] += karray[i][j]*elDisp[j] ;
-       }
-     }
-
-     for(k=0; k<numEleDOFs; ++k) {
-        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-        if(cn >= 0) {
-          ext_f[cn] += eta * elForce[k]; }
-     }
-  }
-}
-
-double
-Domain::getStrainEnergy(Vector &sol, double *bcx, SparseMatrix * gStiff,
-                        FullSquareMatrix *kelArray)
-{
-  double energy=0.0;
-
-  // Evaluation of Strain Energy if global Stiffness Matrix is given
-
-  if (gStiff) {
-
-    Vector tmpVec(c_dsa->size());
-
-    gStiff->mult(sol,tmpVec);
-
-    energy = 0.5 * (sol * tmpVec);
-
-    return energy;
-  }
-
-  // Evaluation of Strain Energy if local Stiffness Matices are given
-  // or has to be determined
-
-  int size    = sizeof(double)*maxNumDOFs*maxNumDOFs;
-  double *kel = (double *) dbg_alloca(size);
-
-  Vector elDisp (maxNumDOFs,0.0);
-  Vector elKelD (maxNumDOFs,0.0);
-
-  int iele;
-  for(iele=0; iele<numele; ++iele) {
-
-     //int NodesPerElement = elemToNode->num(iele);
-     int numEleDOFs      = allDOFs->num(iele);
-
-     elDisp.zero();
-     elKelD.zero();
-
-     FullSquareMatrix karray(numEleDOFs,kel);
-
-     int k;
-     for(k=0; k<numEleDOFs; ++k) {
-        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-        if(cn >= 0)
-          elDisp[k] = sol[cn];
-        else
-          elDisp[k] = bcx[(*allDOFs)[iele][k]];
-     }
-
-     if (kelArray) {
-       karray=kelArray[iele];
-     }
-     else {
-       karray=packedEset[iele]->stiffness(nodes,karray.data());
-     }
-
-     int i,j;
-     for (i=0;i<numEleDOFs;i++) {
-       for (j=0;j<numEleDOFs;j++) {
-         elKelD[i]+=karray[i][j]*elDisp[j];
-       }
-     }
-
-     energy += 0.5*(elKelD*elDisp);
-  }
-  return energy;
-}
-#endif
 
 void
 Domain::getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
@@ -2404,40 +2232,103 @@ Domain::getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
   for(int iele=0; iele<numele; ++iele) {
 
      int numEleDOFs = allDOFs->num(iele);
+     Vector elForce(numEleDOFs,0.0);     
 
-     Vector elDisp(numEleDOFs,0.0);
+     getElemKtimesU(iele,numEleDOFs,dsp,elForce.data(),kelArray,karray); 
+
+     for(int k=0; k<numEleDOFs; ++k) {
+       int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+       if(cn >= 0) {
+         ext_f[cn] += eta * elForce[k]; }
+     }
+  }
+}
+
+void
+Domain::getWeightedKtimesU(const std::map<int, double> &weights,
+                          Vector &dsp, double *bcx, Vector &ext_f, double eta,
+                          FullSquareMatrix *kelArray)
+{
+  int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
+  double *karray = (double *) dbg_alloca(size);
+
+  for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+     const int iele = it->first;
+     const double lumpingWeight = it->second;
+ 
+     int numEleDOFs = allDOFs->num(iele);
      Vector elForce(numEleDOFs,0.0);
 
-     FullSquareMatrix kel(numEleDOFs,karray);
+     getElemKtimesU(iele,numEleDOFs,dsp,elForce.data(),kelArray,karray);
+
+     elForce *= lumpingWeight;
 
      for(int k=0; k<numEleDOFs; ++k) {
-        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-        if(cn >= 0) {
-          elDisp[k] = dsp[cn];
-        }
-        else {
-          elDisp[k] = 0.0;
-        }
+       int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+       if(cn >= 0) {
+         ext_f[cn] += eta * elForce[k]; }
      }
+  }
+}
 
-     if(kelArray) {
-       kel.copy(kelArray[iele]); // PJSA 4-1-08
-     }
-     else {
-       kel=packedEset[iele]->stiffness(nodes,karray);
-     }
+void 
+Domain::getUnassembledKtimesU(const std::map<int, std::vector<int> > &weights,
+                              Vector &dsp, double *bcx, Vector &ext_f, double eta,
+                              FullSquareMatrix *kelArray)
+{
+  int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
+  double *karray = (double *) dbg_alloca(size);
 
-     for(int i=0;i<numEleDOFs;i++) {
-       for(int j=0;j<numEleDOFs;j++) {
-         elForce[i] += kel[i][j]*elDisp[j] ;
+  int uDofCounter = 0;
+
+  for(std::map<int, std::vector<int> >::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+     const int iele = it->first;
+     const std::vector<int> DOFvector(it->second);
+
+     int numEleDOFs = allDOFs->num(iele);
+     Vector elForce(numEleDOFs,0.0);
+
+     getElemKtimesU(iele,numEleDOFs,dsp,elForce.data(),kelArray,karray);
+
+     for(std::vector<int>::const_iterator DOFit = DOFvector.begin(); DOFit != DOFvector.end(); DOFit++) {
+       int cn = c_dsa->getRCN((*allDOFs)[iele][*DOFit]);
+       if(cn >= 0) {
+         ext_f[uDofCounter] += eta * elForce[*DOFit]; 
+         uDofCounter += 1;
        }
      }
+  }
+}
 
-     for(int k=0; k<numEleDOFs; ++k) {
-        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-        if(cn >= 0) {
-          ext_f[cn] += eta * elForce[k]; }
+void
+Domain::getElemKtimesU(int iele, int numEleDOFs, Vector &dsp, double *elForce,
+                       FullSquareMatrix *kelArray, double *karray)
+{
+  Vector elDisp(numEleDOFs,0.0);
+
+  FullSquareMatrix kel(numEleDOFs,karray);
+
+  for(int k=0; k<numEleDOFs; ++k) {
+     int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+     if(cn >= 0) {
+       elDisp[k] = dsp[cn];
      }
+     else {
+       elDisp[k] = 0.0;
+     }
+  }
+
+  if(kelArray) {
+    kel.copy(kelArray[iele]);
+  }
+  else {
+    kel=packedEset[iele]->stiffness(nodes,karray);
+  }
+
+  for(int i=0;i<numEleDOFs;i++) {
+    for(int j=0;j<numEleDOFs;j++) {
+      elForce[i] += kel[i][j]*elDisp[j] ;
+    }
   }
 }
 
@@ -2560,10 +2451,11 @@ Domain::transformMatrix(FullSquareMatrix &kel, int iele)
   // transform element matrix from basic to DOF_FRM coordinates 
   if(domain->solInfo().basicDofCoords) return;
 
-  LMPCons *lmpcons;
-  if((lmpcons = dynamic_cast<LMPCons*>(packedEset[iele])) &&
-     (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
-      lmpcons->getSource() == mpc::TiedSurfaces || lmpcons->getSource() == mpc::ContactSurfaces)) return;
+  if(packedEset[iele]->isMpcElement()) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) return;
+  }
 
   // TODO: check for thermal/acoustic 
   // TODO: consider how to deal with elements that don't have either 3 translation dof on every node,
@@ -2620,10 +2512,83 @@ Domain::transformMatrix(FullSquareMatrix &kel, int iele)
 }
 
 void
+Domain::transformMatrixInv(FullSquareMatrix &kel, int iele)
+{
+  // transform element matrix from DOF_FRM to basic coordinates 
+  if(domain->solInfo().basicDofCoords) return;
+
+  if(packedEset[iele]->isMpcElement()) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]); 
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) return;
+  }
+
+  // TODO: check for thermal/acoustic 
+  // TODO: consider how to deal with elements that don't have either 3 translation dof on every node,
+  //       or 3 translation + 3 rotation dofs on every node. E.g. torsional spring, ParallelAxesConstraint,
+  //       and StraightLinePointFollowerConstraint
+  //use: DofSetArray elem_dsa(packedEset[iele]);
+  //     int dofs[6]; for(int i=0; i<packedEset[iele]->numNodes(); ++i) elem_dsa->number(i, DofSet::XYZdisp|DofSet::XYZrot, dofs); etc...
+#ifdef USE_EIGEN3 
+  NFrameData *nfd = geoSource->getNFrames();
+
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >
+    K(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
+
+  int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
+  int *nn = packedEset[iele]->nodes();
+
+  for(int k = 0; k < numNodes; ++k) {
+    int cd = nodes[nn[k]]->cd;
+    if(cd == 0) continue;
+    
+    Eigen::Matrix3d T;
+    T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+         nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+         nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+    if(packedEset[iele]->hasRot()) {
+
+      Eigen::Matrix<double,6,6> TT;
+      TT << T, Eigen::Matrix3d::Zero(),
+            Eigen::Matrix3d::Zero(), T;
+
+      for(int l=0; l<numNodes; ++l) {
+        K.block<6,6>(6*k,6*l) = (TT.transpose()*K.block<6,6>(6*k,6*l)).eval();
+        K.block<6,6>(6*l,6*k) = (K.block<6,6>(6*l,6*k)*TT).eval();
+      }
+      for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+        K.block<6,1>(6*k,6*numNodes+l) = (TT.transpose()*K.block<6,1>(6*k,6*numNodes+l)).eval();
+        K.block<1,6>(6*numNodes+l,6*k) = (K.block<1,6>(6*numNodes+l,6*k)*TT).eval();
+      }
+    }
+    else {
+      for(int l=0; l<numNodes; ++l) {
+        K.block<3,3>(3*k,3*l) = (T.transpose()*K.block<3,3>(3*k,3*l)).eval();
+        K.block<3,3>(3*l,3*k) = (K.block<3,3>(3*l,3*k)*T).eval();
+      }
+      for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+        K.block<3,1>(3*k,3*numNodes+l) = (T.transpose()*K.block<3,1>(3*k,3*numNodes+l)).eval();
+        K.block<1,3>(3*numNodes+l,3*k) = (K.block<1,3>(3*numNodes+l,3*k)*T).eval();
+      }
+    }
+  }
+  delete [] nn;
+#endif
+}
+
+void
 Domain::transformVector(Vector &vec, int iele)
 {
   // transform element vector from basic to DOF_FRM coordinates
   if(domain->solInfo().basicDofCoords) return;
+
+  if(packedEset[iele]->isMpcElement()) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]); 
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) return;
+  }
+
   int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
   int *nn = packedEset[iele]->nodes();
   if(packedEset[iele]->hasRot()) {
@@ -2667,12 +2632,36 @@ Domain::transformVector(ComplexVector &vec, int iele)
   delete [] nn;
 }
 
+void
+Domain::transformElementSensitivityInv(GenFullM<double> *dStressdDisp, int iele)
+{
+  // transform element vector from DOF_FRM to basic coordinates
+  if(domain->solInfo().basicDofCoords) return;
+  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+  int *nn = packedEset[iele]->nodes();
+  if(packedEset[iele]->hasRot()) {
+    for(int k=0; k<numNodes; ++k)
+      transformElementSensitivityInv(dStressdDisp->data()+6*k*dStressdDisp->numCol(), nn[k], numNodes, true);
+  }
+  else {
+    for(int k=0; k<numNodes; ++k)
+      transformElementSensitivityInv(dStressdDisp->data()+3*k*dStressdDisp->numCol(), nn[k], numNodes, false);
+  }
+  delete [] nn;
+}
 
 void
 Domain::transformVectorInv(Vector &vec, int iele)
 {
   // transform element vector from DOF_FRM to basic coordinates
   if(domain->solInfo().basicDofCoords) return;
+
+  if(packedEset[iele]->isMpcElement()) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]); 
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) return;
+  }
+
   int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
   int *nn = packedEset[iele]->nodes();
   if(packedEset[iele]->hasRot()) {
@@ -2708,86 +2697,46 @@ void
 Domain::transformVector(double *data, int inode, bool hasRot)
 {
   // transform node vector from basic to DOF_FRM coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-#ifdef USE_EIGEN3
-  NFrameData *nfd = geoSource->getNFrames();
-
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  if(hasRot) {
-    Eigen::Map<Eigen::Matrix<double,6,1> > v(data);
-    v.head<3>() = (T*v.head<3>()).eval();
-    v.tail<3>() = (T*v.tail<3>()).eval();
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(hasRot) cd->transformVector6(data);
+    else cd->transformVector3(data);
   }
-  else {
-    Eigen::Map<Eigen::Vector3d> v(data);
-    v = (T*v).eval();
-  }
-#endif
 }
 
 void
 Domain::transformVector(complex<double> *data, int inode, bool hasRot)
 {
   // transform node vector from basic to DOF_FRM coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-
-  NFrameData *nfd = geoSource->getNFrames();
-#ifdef USE_EIGEN3
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  if(hasRot) {
-    Eigen::Map<Eigen::Matrix<complex<double>,6,1> > v(data);
-    v.head<3>() = (T*v.head<3>()).eval();
-    v.tail<3>() = (T*v.tail<3>()).eval();
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(hasRot) cd->transformVector6(data);
+    else cd->transformVector3(data);
   }
-  else {
-    Eigen::Map<Eigen::Vector3cd> v(data);
-    v = (T*v).eval();
-  }
-#endif
 }
 
 void
 Domain::transformVectorInv(double *data, int inode, bool hasRot)
 {
   // transform node vector from DOF_FRM to basic coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-
-  NFrameData *nfd = geoSource->getNFrames();
-#ifdef USE_EIGEN3
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  if(hasRot) {
-    Eigen::Map<Eigen::Matrix<double,6,1> > v(data);
-    v.head<3>() = (T.transpose()*v.head<3>()).eval();
-    v.tail<3>() = (T.transpose()*v.tail<3>()).eval();
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(hasRot) cd->invTransformVector6(data);
+    else cd->invTransformVector3(data);
   }
-  else {
-    Eigen::Map<Eigen::Vector3d> v(data);
-    v = (T.transpose()*v).eval();
-  }
-#endif
 }
 
 void
 Domain::transformVectorInv(complex<double> *data, int inode, bool hasRot)
 {
+  // transform node vector from DOF_FRM to basic coordinates
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(hasRot) cd->invTransformVector6(data);
+    else cd->invTransformVector3(data);
+  }
+}
+
+void 
+Domain::transformElementSensitivityInv(double *data, int inode, int numNodes, bool hasRot)
+{
+  // dStressdDisp->data()+6*k*dStressdDisp->numCol(), nn[k], true);
   // transform node vector from DOF_FRM to basic coordinates
   if(inode >= numnodes || nodes[inode] == NULL) return;
   int cd = nodes[inode]->cd;
@@ -2801,13 +2750,23 @@ Domain::transformVectorInv(complex<double> *data, int inode, bool hasRot)
        nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
 
   if(hasRot) {
-    Eigen::Map<Eigen::Matrix<complex<double>,6,1> > v(data);
-    v.head<3>() = (T.transpose()*v.head<3>()).eval();
-    v.tail<3>() = (T.transpose()*v.tail<3>()).eval();
+    for(int row = 0; row < numNodes ; ++row) {
+      Eigen::Matrix<double,6,1> v;
+      v << data[row], data[row+numNodes], data[row+2*numNodes], data[row+3*numNodes], data[row+4*numNodes], data[row+5*numNodes];
+      v.head<3>() = (T*v.head<3>()).eval();
+      v.tail<3>() = (T*v.tail<3>()).eval();
+      data[row] = v[0];            data[row+numNodes] = v[1];
+      data[row+2*numNodes] = v[2]; data[row+3*numNodes] = v[3];
+      data[row+4*numNodes] = v[4]; data[row+5*numNodes] = v[5];
+    }
   }
   else {
-    Eigen::Map<Eigen::Vector3cd> v(data);
-    v = (T.transpose()*v).eval();
+    for(int row = 0; row < numNodes ; ++row) {
+      Eigen::Matrix<double,3,1> v;
+      v << data[row], data[row+numNodes], data[row+2*numNodes]; 
+      v = (T*v).eval();
+      data[row] = v[0];      data[row+numNodes] = v[1];     data[row+2*numNodes] = v[2];
+    }
   }
 #endif
 }
@@ -2837,60 +2796,1486 @@ Domain::transformStressStrain(FullMC &mat, int iele)
 }
 
 void
-Domain::transformMatrix(double *data, int inode)
+Domain::transformMatrix(double *data, int inode, bool sym)
 {
-  // transform node symmetric 3x3 matrix from basic to DOF_FRM coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
+  // transform node 3x3 matrix from basic to DOF_FRM coordinates
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(sym) cd->transformSymMatrix3(data);
+    else cd->transformMatrix3(data);
+  }
+}
+
+void
+Domain::transformMatrix(complex<double> *data, int inode, bool sym)
+{
+  // transform node 3x3 matrix from basic to DOF_FRM coordinates
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(sym) cd->transformSymMatrix3(data);
+    else cd->transformMatrix3(data);
+  }
+}
+
+void
+Domain::transformMatrixInv(double *data, int inode, bool sym)
+{
+  // transform node 3x3 matrix from DOF_FRM to basic coordinates
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(sym) cd->invTransformSymMatrix3(data);
+    else cd->invTransformMatrix3(data);
+  }
+}
+
+void
+Domain::transformMatrixInv(complex<double> *data, int inode, bool sym)
+{
+  // transform node 3x3 matrix from DOF_FRM to basic coordinates
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(sym) cd->invTransformSymMatrix3(data);
+    else cd->invTransformMatrix3(data);
+  }
+}
+
+void
+Domain::computeWeightWRTShapeVariableSensitivity(int sindex, AllSensitivities<double> &allSens)
+{
 #ifdef USE_EIGEN3
-  NFrameData *nfd = geoSource->getNFrames();
+     // ... COMPUTE TOTAL STRUCTURAL WEIGHT AND DERIVATIVE WRT SHAPE VARIABLES
+     double weight(0);
+     allSens.weightWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numShapeVars);
+     allSens.weightWRTshape->setZero();
+     std::map<int, Attrib> &attributes = geoSource->getAttributes();
+     for(int iele = 0; iele < numele; ++iele) {
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int nnodes = packedEset[iele]->numNodes();
+       Vector weightDerivative(3*nnodes);
+       StructProp *prop = packedEset[iele]->getProperty();
+       if(prop == 0) continue; // phantom element
 
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+       weight += packedEset[iele]->weight(nodes, gravityAcceleration);
+       packedEset[iele]->getWeightNodalCoordinateSensitivity(weightDerivative, nodes, gravityAcceleration);
+       for(int ishap=0; ishap<numShapeVars; ++ishap) {
+         for(int i=0; i<nnodes; ++i) {
+//           int node2 = nodeTable[(*elemToNode)[iele][i]]-1;
+           int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][i]]-1 : (*elemToNode)[iele][i];
+           int inode = shapeSenData.nodes[node2];
+           for(int xyz=0; xyz<3; ++xyz) {
+             (*allSens.weightWRTshape)[ishap] += weightDerivative[3*i+xyz] * shapeSenData.sensitivities[ishap][node2][xyz];
+           }
+         }
+       }
+     }
 
-  Eigen::Matrix3d M; // note: data = { sxx, syy, szz, sxy, syz, sxz }
-  M << data[0], data[3], data[5],
-       data[3], data[1], data[4],
-       data[5], data[4], data[2];
-  M = (T*M*T.transpose()).eval();
-  data[0] = M(0,0);
-  data[1] = M(1,1);
-  data[2] = M(2,2);
-  data[3] = M(0,1);
-  data[4] = M(1,2);
-  data[5] = M(0,2);
+#ifdef SENSITIVITY_DEBUG
+     if(verboseFlag) {
+//       double mass = computeStructureMass();
+//       filePrint(stderr," *** MASS : %e\n", mass);
+       filePrint(stderr," *** WEIGHT : %e\n", weight);
+       filePrint(stderr,"printing weight derivative wrt shape variables\n");
+       std::cout << *allSens.weightWRTshape << std::endl;
+     }
+#endif
+     allSens.weight = weight;
 #endif
 }
 
 void
-Domain::transformMatrix(complex<double> *data, int inode)
+Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double> &allSens)
 {
-  // transform node symmetric 3x3 matrix from basic to DOF_FRM coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
 #ifdef USE_EIGEN3
-  NFrameData *nfd = geoSource->getNFrames();
+     // ... COMPUTE TOTAL STRUCTURAL WEIGHT AND DERIVATIVE WRT THICKNESS
+     int iele;
+     double weight(0);
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
 
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+     allSens.weightWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numThicknessGroups);
+     allSens.weightWRTthick->setZero();
+     std::map<int, Attrib> &attributes = geoSource->getAttributes();
 
-  Eigen::Matrix3cd M; // note: data = { sxx, syy, szz, sxy, syz, sxz }
-  M << data[0], data[3], data[5],
-       data[3], data[1], data[4],
-       data[5], data[4], data[2];
-  M = (T*M*T.transpose()).eval();
-  data[0] = M(0,0);
-  data[1] = M(1,1);
-  data[2] = M(2,2);
-  data[3] = M(0,1);
-  data[4] = M(1,2);
-  data[5] = M(0,2);
+     for(iele = 0; iele < numele; ++iele) {
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       StructProp *prop = packedEset[iele]->getProperty();
+       if(prop == 0) continue; // phantom element
+
+       weight += packedEset[iele]->weight(nodes, gravityAcceleration);
+     }
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+       int groupIndex = thicknessGroups[iparam];
+       for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {
+         for(int eindex =0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
+           iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
+           (*allSens.weightWRTthick)[iparam] += packedEset[iele]->getWeightThicknessSensitivity(nodes, gravityAcceleration);
+         }
+       }
+     }
+#ifdef SENSITIVITY_DEBUG
+     if(verboseFlag) {
+//       double mass = computeStructureMass();
+//       filePrint(stderr," *** MASS : %e\n", mass);
+       filePrint(stderr," *** WEIGHT : %e\n", weight);
+       filePrint(stderr,"printing weight derivative wrt thickness\n");
+       std::cout << *allSens.weightWRTthick << std::endl;
+     }
+#endif
+     allSens.weight = weight;
 #endif
 }
 
+void 
+Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<double> &allSens)
+{
+#ifdef USE_EIGEN3
+     // ... COMPUTE SENSITIVITY OF STIFFNESS MATRIX WRT THICKNESS
+     allSens.stiffnessWRTthickSparse = new GenSparseMatrix<double>*[numThicknessGroups];
+     allSens.dKucdthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+//     allSens.dKucdthickSparse = new GenSparseMatrix<double>*[numThicknessGroups];
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     for(int g=0; g<numThicknessGroups; ++g) {
+       allSens.stiffnessWRTthickSparse[g] = constructEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(c_dsa, nodeToNode, false); 
+       allSens.dKucdthick[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numDirichlet); 
+       allSens.dKucdthick[g]->setZero();
+//       allSens.dKucdthickSparse[g] = constructCuCSparse<double>(); 
+     } 
+
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+       GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *stifWRTthic = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTthickSparse[iparam]);
+       int groupIndex = thicknessGroups[iparam];
+       for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {
+         for(int eindex =0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
+           int iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
+           if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+           int DofsPerElement = packedEset[iele]->numDofs();
+           FullSquareMatrix dStiffnessdThick(DofsPerElement);
+           packedEset[iele]->getStiffnessThicknessSensitivity(nodes, dStiffnessdThick,1);
+           int *dofs = (*allDOFs)[iele];
+           stifWRTthic->add(dStiffnessdThick, dofs);
+           int *unconstrNum = c_dsa->getUnconstrNum();
+           int *constrndNum = c_dsa->getConstrndNum();
+           for(int k = 0; k < DofsPerElement; ++k) {
+             int dofk = unconstrNum[dofs[k]];
+             if(dofs[k] < 0 || dofk < 0) continue;  // Skip undefined/constrained dofs
+             for(int j = 0; j < DofsPerElement; ++j) {
+               int dofj = constrndNum[dofs[j]];
+               if(dofj == -1) continue;
+               (*allSens.dKucdthick[iparam])(dofk, dofj) += dStiffnessdThick[k][j];
+             }
+           }
+         }
+       }
+     }
+#ifdef SENSITIVITY_DEBUG
+     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+     if(verboseFlag) {
+       std::cerr << "print stiffnessWRTthickSparse wrt first thickness variable\n";
+       (*allSens.stiffnessWRTthickSparse[0]).print();
+     }
+     if(verboseFlag) std::cerr << "print dKucdthick\n" << (*allSens.dKucdthick[0]).format(HeavyFmt) << std::endl;
+#endif
+#endif
+}
+
+
+void 
+Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities<double> &allSens)
+{
+#ifdef USE_EIGEN3
+     // ... COMPUTE SENSITIVITY OF STIFFNESS MATRIX WRT NODAL COORDINATES
+//     allSens.stiffnessWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+     allSens.stiffnessWRTshapeSparse = new GenSparseMatrix<double>*[numShapeVars];
+     allSens.dKucdshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+     allSens.dKucdshapeSparse = new GenSparseMatrix<double>*[numShapeVars]; 
+     for(int g=0; g<numShapeVars; ++g) {
+//       allSens.stiffnessWRTshape[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numUncon()); 
+//       allSens.stiffnessWRTshape[g]->setZero();
+       allSens.stiffnessWRTshapeSparse[g] = constructEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(c_dsa, nodeToNode, false);
+       allSens.dKucdshape[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numDirichlet); 
+       allSens.dKucdshape[g]->setZero();
+       allSens.dKucdshapeSparse[g] = constructCuCSparse<double>(); 
+     } 
+
+     for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int DofsPerElement = packedEset[iele]->numDofs();
+       int nnodes = packedEset[iele]->numNodes();
+       FullSquareMatrix *dStiffnessdCoord = new FullSquareMatrix[3*nnodes];
+       for(int i=0; i<3*nnodes; ++i) { dStiffnessdCoord[i].setSize(DofsPerElement); dStiffnessdCoord[i].zero(); }
+       packedEset[iele]->getStiffnessNodalCoordinateSensitivity(dStiffnessdCoord, nodes);
+//       dStiffnessdCoord = packedEset[iele]->stiffness(nodes, dStiffnessdCoord.data());
+       // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+       int *dofs = (*allDOFs)[iele];
+       int *unconstrNum = c_dsa->getUnconstrNum();
+       int *constrndNum = c_dsa->getConstrndNum();
+       for(int isen = 0; isen < numShapeVars; ++isen) { 
+         GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *stifWRTsha = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTshapeSparse[isen]);
+         for(int i = 0; i < nnodes; ++i) {
+           int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][i]]-1 : (*elemToNode)[iele][i];
+           for(int k = 0; k < DofsPerElement; ++k) {
+             int dofk = unconstrNum[dofs[k]];
+             if(dofs[k] < 0 || dofk < 0) continue;  // Skip undefined/constrained dofs
+             for(int j = 0; j < DofsPerElement; ++j) {
+               int dofj = unconstrNum[dofs[j]];
+               if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
+               for(int xyz = 0; xyz < 3; ++xyz) { 
+                 stifWRTsha->add(dofk,dofj,dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][node2][xyz]);
+               }
+             }
+             for(int j = 0; j < DofsPerElement; ++j) {
+               int dofj = constrndNum[dofs[j]];
+               if(dofj == -1) continue;
+               for(int xyz = 0; xyz < 3; ++xyz)
+                 (*allSens.dKucdshape[isen])(dofk, dofj) += dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][node2][xyz];
+             }
+           }
+         }
+       }
+       delete [] dStiffnessdCoord;
+     }
+#ifdef SENSITIVITY_DEBUG
+     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+     if(verboseFlag) {
+       std::cerr << "print stiffnessWRTshape wrt first shape variable\n";
+       (*allSens.stiffnessWRTshapeSparse[0]).print();
+     }
+     if(verboseFlag) std::cerr << "print dKucdshape wrt first shape variable\n" << (*allSens.dKucdshape[0]) << std::endl;
+#endif
+#endif
+}
+
+
+void
+Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
+{
+#ifdef USE_EIGEN3
+ for(int sindex=0; sindex < numSensitivity; ++sindex) {
+  switch(senInfo[sindex].type) {
+   case SensitivityInfo::WeightWRTthickness:
+   {
+     computeWeightWRTthicknessSensitivity(sindex, allSens); 
+     break;
+   }
+   case SensitivityInfo::WeightWRTshape:
+   {
+     computeWeightWRTShapeVariableSensitivity(sindex, allSens);
+     break;
+   }
+   default:
+     break;
+  }
+ }
+#endif
+}
+
+void 
+Domain::computeLinearStaticWRTthicknessSensitivity(int sindex, 
+                                                   AllSensitivities<double> &allSens,
+                                                   GenVector<double> &sol   )
+{
+#ifdef USE_EIGEN3
+     allSens.linearstaticWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     for(int g=0; g<numThicknessGroups; ++g) {
+       allSens.linearstaticWRTthick[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),1);
+       allSens.linearstaticWRTthick[g]->setZero();   // this line and next line are for DEBUG purpose
+//       allSens.linearstaticWRTthick[g]->setIdentity();
+     }
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
+       if(allSens.stiffnessWRTthickSparse) {
+//         *allSens.linearstaticWRTthick[iparam] = (*allSens.stiffnessWRTthick[iparam]) * disp;
+         Eigen::MappedSparseMatrix<double, Eigen::ColMajor, int> M = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTthickSparse[iparam])->getEigenSparse();
+         *allSens.linearstaticWRTthick[iparam] = M * disp;
+       } else {
+         std::cerr << "ERROR! stiffnessWRTthickSparse is not defined yet\n";
+         exit(-1);
+       }
+       if(numDirichlet) {
+         Eigen::Matrix<double, Eigen::Dynamic, 1> Vc(numDirichlet);
+         Vc.setZero();
+         for(int i = 0; i < numDirichlet; ++i) {
+           int dof = dsa->locate(dbc[i].nnum, (1 << dbc[i].dofnum));
+           if(dof < 0) continue;
+           int dof2 = c_dsa->invRCN(dof);
+           if(dof2 >= 0) Vc[dof2] = dbc[i].val;
+         }
+         *allSens.linearstaticWRTthick[iparam] += (*allSens.dKucdthick[iparam]) * Vc;
+       }
+     }
+     subtractGravityForceSensitivityWRTthickness(sindex,allSens); //TODO-> must consider other external forces
+#endif
+}
+
+void
+Domain::computeLinearStaticWRTShapeVariableSensitivity(int sindex,
+                                                       AllSensitivities<double> &allSens,
+                                                       GenVector<double> &sol)
+{
+#ifdef USE_EIGEN3
+     allSens.linearstaticWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+     if(numShapeVars != shapeSenData.numVars) {
+       std::cerr << " *** ERROR: number of shape variables is not equal to the one in Shape Derivative file\n";
+       exit(-1);
+     }
+     for(int s=0; s<numShapeVars; ++s) {
+       allSens.linearstaticWRTshape[s] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),1);
+       allSens.linearstaticWRTshape[s]->setZero();   // this line and next line are for DEBUG purpose
+     }
+// COMMENTED THE BLOCK BELOW FOR DEBUG PURPOSE
+     for(int ishape = 0; ishape < numShapeVars; ++ishape) {
+       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
+//       Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+//       if(verboseFlag) std::cerr << "print disp\n" << disp.format(HeavyFmt) << std::endl;
+       if(allSens.stiffnessWRTshapeSparse) {
+         Eigen::MappedSparseMatrix<double, Eigen::ColMajor, int> M = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTshapeSparse[ishape])->getEigenSparse();
+         *allSens.linearstaticWRTshape[ishape] = M * disp;
+       } else {
+         std::cerr << "ERROR! stiffnessWRTshape is not defined yet\n";
+         exit(-1);
+       }
+       if(numDirichlet) {
+         Eigen::Matrix<double, Eigen::Dynamic, 1> Vc(numDirichlet);
+         Vc.setZero();
+         for(int i = 0; i < numDirichlet; ++i) {
+           int dof = dsa->locate(dbc[i].nnum, (1 << dbc[i].dofnum));
+           if(dof < 0) continue;
+           int dof2 = c_dsa->invRCN(dof);
+           if(dof2 >= 0) Vc[dof2] = dbc[i].val;
+         }
+         *allSens.linearstaticWRTshape[ishape] += (*allSens.dKucdshape[ishape]) * Vc;
+       }
+     }
+     subtractGravityForceSensitivityWRTShapeVariable(sindex,allSens); //TODO-> must consider other external forces
+#endif
+}
+
+void 
+Domain::subtractGravityForceSensitivityWRTthickness(int sindex, AllSensitivities<double> &allSens)
+{
+#ifdef USE_EIGEN3
+     Vector elementGravityForceSen(maxNumDOFs);
+     int gravflg;
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+      int groupIndex = thicknessGroups[iparam];
+      for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {  
+       for(int eindex = 0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
+         int iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
+         if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+         if(packedEset[iele]->getProperty() == 0) continue; // phantom element
+         if(geoSource->consistentQFlag() && !(sinfo.isDynam() && packedEset[iele]->getMassType() == 0))
+           gravflg = 2;
+         else gravflg = geoSource->fixedEndM;
+         elementGravityForceSen.zero();
+         packedEset[iele]->getGravityForceThicknessSensitivity(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
+ 
+         // transform vector from basic to DOF_FRM coordinates
+         transformVector(elementGravityForceSen, iele);
+  
+         for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
+           if(cn >= 0) {
+             (*allSens.linearstaticWRTthick[iparam])(cn,0) -= elementGravityForceSen[idof];
+           } 
+         }      
+       }
+      }
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) std::cerr << "printing linearstaticWRTthick[" << iparam << "]\n" << *allSens.linearstaticWRTthick[iparam] << std::endl;
+#endif
+     }
+#endif
+}
+
+void 
+Domain::subtractGravityForceSensitivityWRTShapeVariable(int sindex, AllSensitivities<double> &allSens)
+{
+#ifdef USE_EIGEN3
+     int gravflg;
+     if(numShapeVars != shapeSenData.numVars) {
+       std::cerr << " *** ERROR: number of shape variables is not equal to the one in Shape Derivative file\n"; 
+       exit(-1);
+     }
+
+//     for(int ishap=0; ishap<numShapeVars; ++ishap) allSens.linearstaticWRTshape[ishap]->setZero();
+
+     for(int iele = 0; iele < numele; ++iele) {
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int DofsPerElement = packedEset[iele]->numDofs();
+       int NodesPerElement = elemToNode->num(iele);
+       GenFullM<double> elementGravityForceSen(3*NodesPerElement,DofsPerElement,double(0.0));
+       if(packedEset[iele]->getProperty() == 0) continue; // phantom element
+       if(geoSource->consistentQFlag() && !(sinfo.isDynam() && packedEset[iele]->getMassType() == 0))
+         gravflg = 2;
+       else gravflg = geoSource->fixedEndM;
+       elementGravityForceSen.zero();
+       packedEset[iele]->getGravityForceNodalCoordinateSensitivity(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
+
+       // transform vector from basic to DOF_FRM coordinates
+//       transformVector(elementGravityForceSen, iele); //TODO->commented out for now, but if nodes does not use basic coordinate frame, then shouldn't comment this out
+//       std::cerr << "norm of elementGravityForceSen is " << elementGravityForceSen.norm() << std::endl;
+ 
+       for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+         int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
+         if(cn >= 0) {
+           for(int k = 0; k < NodesPerElement; ++k) {
+             int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+//             int node1 = nodeTable[(*elemToNode)[iele][k]]-1;
+             int inode = shapeSenData.nodes[node1];
+             for(int xyz = 0; xyz < 3; ++xyz) {
+               for(int ishap = 0; ishap < numShapeVars; ++ishap) {
+                 (*allSens.linearstaticWRTshape[ishap])(cn,0) -= elementGravityForceSen[3*k+xyz][idof]*shapeSenData.sensitivities[ishap][node1][xyz];
+               }
+             }
+           } 
+         } 
+       }      
+     }
+#ifdef SENSITIVITY_DEBUG
+     if(verboseFlag) for(int ishap=0; ishap<numShapeVars; ++ishap) std::cerr << "printing linearstaticWRTshape[" << ishap << "]\n" << *allSens.linearstaticWRTshape[ishap] << std::endl;
+#endif
+#endif
+}
+
+void
+Domain::computeStressVMDualSensitivity(int sindex,
+                                     GenSolver<double> *sysSolver,
+                                     GenSparseMatrix<double> *spm,
+                                     AllSensitivities<double> &allSens,
+                                     GenSparseMatrix<double> *K)
+{
+#ifdef USE_EIGEN3
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     allSens.lambdaStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>*[numStressNodes];
+     for(int inode = 0; inode < numStressNodes; ++inode) {
+       allSens.lambdaStressVM[inode] = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numUncon());
+//       Vector rhs((allSens.vonMisesWRTdisp->row(stressNodes[inode])).data(), numUncon()), lambdaStress(numUncon(),0.0);
+       Vector rhs(numUncon(),0.0), lambdaStress(numUncon(),0.0);
+       for(int i=0; i<numUncon(); ++i) rhs[i] = (*allSens.vonMisesWRTdisp)(stressNodes[inode],i);
+#ifdef SENSITIVITY_DEBUG
+       if(verboseFlag) {
+         std::cerr << "print rhs\n";
+         for(int i=0; i<numUncon(); ++i) std::cerr << rhs[i] << "  ";
+         std::cerr << std::endl;
+       }
+#endif
+       sysSolver->solve(rhs,lambdaStress);
+       *allSens.lambdaStressVM[inode] = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> >(lambdaStress.data(),numUncon(),1);
+#ifdef SENSITIVITY_DEBUG
+       if(K) {
+         Vector res(numUncon(),0.0);
+         K->mult(lambdaStress,res);
+         res.linAdd(-1.0,rhs);
+         if(verboseFlag) {
+           std::cerr << "norm of absolute residual is " << res.norm() << std::endl;
+           std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
+         }
+       }
+       if(verboseFlag) std::cerr << "printing allSens.lambdaStressVM[" << inode << "]\n" << *allSens.lambdaStressVM[inode] << std::endl;
+#endif
+     }
+#endif
+}
+
+void
+Domain::computeAggregatedStressVMDualSensitivity(int sindex,
+                                                GenSolver<double> *sysSolver,
+                                                GenSparseMatrix<double> *spm,
+                                                AllSensitivities<double> &allSens,
+                                                GenSparseMatrix<double> *K)
+{
+#ifdef USE_EIGEN3
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     allSens.lambdaAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numUncon());
+       Vector rhs(numUncon(),0.0), lambdaAggregatedStress(numUncon(),0.0);
+       for(int i=0; i<numUncon(); ++i) rhs[i] = (*allSens.aggregatedVonMisesWRTdisp)(i);
+#ifdef SENSITIVITY_DEBUG
+       if(verboseFlag) {
+         std::cerr << "print rhs\n";
+         for(int i=0; i<numUncon(); ++i) std::cerr << rhs[i] << "  ";
+         std::cerr << std::endl;
+       }
+#endif
+       sysSolver->solve(rhs,lambdaAggregatedStress);
+       *allSens.lambdaAggregatedStressVM = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> >(lambdaAggregatedStress.data(),numUncon(),1);
+#ifdef SENSITIVITY_DEBUG
+       if(K) {
+         Vector res(numUncon(),0.0);
+         K->mult(lambdaAggregatedStress,res);
+         res.linAdd(-1.0,rhs);
+         if(verboseFlag) {
+           std::cerr << "norm of absolute residual is " << res.norm() << std::endl;
+           std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
+         }
+       }
+       if(verboseFlag) std::cerr << "printing allSens.lambdaAggregatedStressVM\n" << *allSens.lambdaAggregatedStressVM << std::endl;
+#endif
+#endif
+}
+
+int 
+Domain::returnLocalDofNum(int node, int dof)
+{
+  switch(dof) {
+    case 0:
+      return c_dsa->locate( node, DofSet::Xdisp);
+    case 1:
+      return c_dsa->locate( node, DofSet::Ydisp);
+    case 2:
+      return c_dsa->locate( node, DofSet::Zdisp);
+    case 3:
+      return c_dsa->locate( node, DofSet::Xrot);
+    case 4:
+      return c_dsa->locate( node, DofSet::Yrot);
+    case 5:
+      return c_dsa->locate( node, DofSet::Zrot);
+  }
+  return 0; 
+}
+
+void
+Domain::computeDisplacementDualSensitivity(int sindex,
+                                           GenSolver<double> *sysSolver,
+                                           GenSparseMatrix<double> *spm,
+                                           AllSensitivities<double> &allSens,
+                                           GenSparseMatrix<double> *K)
+{
+#ifdef USE_EIGEN3
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     allSens.lambdaDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>*[numDispNodes*numDispDofs];
+     for(int inode=0; inode<numDispNodes; ++inode) {
+       int node = dispNodes[inode], loc;
+       for(int idof=0; idof<numDispDofs; ++idof) {
+         allSens.lambdaDisp[inode*numDispDofs+idof] = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numUncon());
+         allSens.lambdaDisp[inode*numDispDofs+idof]->setZero();
+         Vector rhs(numUncon(),0.0), lambdadisp(numUncon(),0.0);
+         int dof = dispDofs[idof];
+         loc = returnLocalDofNum(node, dof);
+         if (loc >= 0) rhs[loc] = 1.0;
+         else continue;
+#ifdef SENSITIVITY_DEBUG
+         if(verboseFlag) {
+           std::cerr << "print rhs\n";
+           for(int i=0; i<numUncon(); ++i) std::cerr << rhs[i] << "  ";
+           std::cerr << std::endl;
+         }
+#endif
+         sysSolver->solve(rhs,lambdadisp);
+         *allSens.lambdaDisp[inode*numDispDofs+idof] = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> >(lambdadisp.data(),numUncon(),1);
+#ifdef SENSITIVITY_DEBUG
+         if(K) {
+           Vector res(numUncon(),0.0);
+           K->mult(lambdadisp,res);
+           res.linAdd(-1.0,rhs);
+           if(verboseFlag) {
+             std::cerr << "norm of absolute residual is " << res.norm() << std::endl;
+             std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
+           }
+         }
+         if(verboseFlag) std::cerr << "printing allSens.lambdaDisp[" << inode*numDispDofs+idof << "]\n" << *allSens.lambdaDisp[inode*numDispDofs+idof] << std::endl;
+#endif
+       }
+     }
+#endif
+}
+
+void
+Domain::computeDisplacementWRTthicknessAdjointSensitivity(int sindex,
+                                                          GenSparseMatrix<double> *spm,
+                                                          AllSensitivities<double> &allSens,
+                                                          GenSparseMatrix<double> *K)
+{
+#ifdef USE_EIGEN3
+     allSens.dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+       allSens.dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numDispNodes*numDispDofs,1);
+       allSens.dispWRTthick[iparam]->setZero();
+       for(int inode=0; inode<numDispNodes; ++inode) {
+         for(int idof=0; idof<numDispDofs; ++idof) {
+           (*allSens.dispWRTthick[iparam])(inode*numDispDofs+idof,0) -= allSens.lambdaDisp[inode*numDispDofs+idof]->adjoint()*(allSens.linearstaticWRTthick[iparam]->col(0));
+         }
+       }
+#ifdef SENSITIVITY_DEBUG
+       if(verboseFlag) std::cerr << "printing dispWRTthick[" << iparam << "]\n" << *allSens.dispWRTthick[iparam] << std::endl;
+#endif
+     }
+#endif
+}
+
+void
+Domain::computeDisplacementWRTShapeVariableAdjointSensitivity(int sindex,
+                                                              GenSparseMatrix<double> *spm,
+                                                              AllSensitivities<double> &allSens,
+                                                              GenSparseMatrix<double> *K)
+{
+#ifdef USE_EIGEN3
+     allSens.dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+     for(int iparam = 0; iparam < numShapeVars; ++iparam) {
+       allSens.dispWRTshape[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numDispNodes*numDispDofs,1);
+       allSens.dispWRTshape[iparam]->setZero();
+       for(int inode=0; inode<numDispNodes; ++inode) {
+         for(int idof=0; idof<numDispDofs; ++idof) {
+           double a = allSens.lambdaDisp[inode*numDispDofs+idof]->adjoint()*(allSens.linearstaticWRTshape[iparam]->col(0));
+           (*allSens.dispWRTshape[iparam])(inode*numDispDofs+idof,0) -= a;
+         }
+       }
+#ifdef SENSITIVITY_DEBUG
+       if(verboseFlag) std::cerr << "printing dispWRTshape[" << iparam << "]\n" << *allSens.dispWRTshape[iparam] << std::endl;
+#endif
+     }
+#endif
+}
+
+void
+Domain::computeDisplacementWRTthicknessDirectSensitivity(int sindex,
+                                                         GenSolver<double> *sysSolver,
+                                                         GenSparseMatrix<double> *spm,
+                                                         AllSensitivities<double> &allSens,
+                                                         GenSparseMatrix<double> *K)
+{
+#ifdef USE_EIGEN3
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     allSens.dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+       allSens.dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),1);
+       Vector rhs(allSens.linearstaticWRTthick[iparam]->data(), numUncon()), sol(numUncon(),0.0);
+       rhs *= -1;
+#ifdef SENSITIVITY_DEBUG
+       if(verboseFlag) {
+         std::cerr << "print rhs\n";
+         for(int i=0; i<numUncon(); ++i) std::cerr << rhs[i] << "  ";
+         std::cerr << std::endl;
+       }
+#endif
+       sysSolver->solve(rhs,sol);
+       *allSens.dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> >(sol.data(),numUncon(),1);
+#ifdef SENSITIVITY_DEBUG
+       Vector res(numUncon(),0.0);
+       K->mult(sol,res);
+       res.linAdd(-1.0,rhs);
+       if(verboseFlag) {
+         std::cerr << "norm of absolute residual is " << res.norm() << std::endl;
+         std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
+       }
+       if(verboseFlag) std::cerr << "printing dispWRTthick[iparam]\n" << *allSens.dispWRTthick[iparam] << std::endl;
+#endif
+     }
+#endif
+}
+
+void
+Domain::computeDisplacementWRTShapeVariableDirectSensitivity(int sindex,
+                                                             GenSolver<double> *sysSolver,
+                                                             GenSparseMatrix<double> *spm,
+                                                             AllSensitivities<double> &allSens,
+                                                             GenSparseMatrix<double> *K)
+{
+#ifdef USE_EIGEN3
+     allSens.dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+     for(int ishap = 0; ishap < numShapeVars; ++ishap) {
+       allSens.dispWRTshape[ishap] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),1);
+       Vector rhs(allSens.linearstaticWRTshape[ishap]->data(), numUncon()), sol(numUncon(),0.0);
+       rhs *= -1;
+#ifdef SENSITIVITY_DEBUG
+       if(verboseFlag) {
+         std::cerr << "print rhs\n";
+         for(int i=0; i<numUncon(); ++i) std::cerr << rhs[i] << "  ";
+         std::cerr << std::endl;
+       }
+#endif
+       sysSolver->solve(rhs,sol);
+       *allSens.dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> >(sol.data(),numUncon(),1);
+#ifdef SENSITIVITY_DEBUG
+       Vector res(numUncon(),0.0);
+       K->mult(sol,res);
+       res.linAdd(-1.0,rhs);
+       if(verboseFlag) {
+         std::cerr << "norm of absolute residual is " << res.norm() << std::endl;
+         std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
+       }
+       if(verboseFlag) std::cerr << "printing dispWRTshape[" << ishap << "]\n" << *allSens.dispWRTshape[ishap] << std::endl;
+#endif
+     }
+#endif
+}
+                                      
+void 
+Domain::computeStressVMWRTMachNumberSensitivity(AllSensitivities<double> &allSens)
+{
+#ifdef USE_EIGEN3
+   // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO Mach Number
+   allSens.vonMisesWRTmach = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), 1);
+   allSens.vonMisesWRTmach->setZero();
+#endif
+}
+
+void 
+Domain::computeStressVMWRTangleOfAttackSensitivity(AllSensitivities<double> &allSens)
+{
+#ifdef USE_EIGEN3
+   // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO Mach Number
+   allSens.vonMisesWRTalpha = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), 1);
+   allSens.vonMisesWRTalpha->setZero();
+#endif
+}
+
+void 
+Domain::computeStressVMWRTyawAngleSensitivity(AllSensitivities<double> &allSens)
+{
+#ifdef USE_EIGEN3
+   // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO Mach Number
+   allSens.vonMisesWRTbeta = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), 1);
+   allSens.vonMisesWRTbeta->setZero();
+#endif
+}
+                                      
+void 
+Domain::computeStressVMWRTthicknessDirectSensitivity(int sindex,
+                                               AllSensitivities<double> &allSens,
+                                               GenVector<double> &sol,
+                                               double *bcx, 
+                                               bool isDynam)
+{
+#ifdef USE_EIGEN3
+     // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     allSens.vonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), numThicknessGroups);
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numNodes(), 1);
+     allSens.vonMisesWRTthick->setZero();     stressWeight.setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+      int groupIndex = thicknessGroups[iparam];
+      for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {  
+       for(int eindex = 0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
+         int iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
+         if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+         int NodesPerElement = elemToNode->num(iele);
+         GenVector<double> dStressdThick(NodesPerElement);
+         GenVector<double> weight(NodesPerElement,0.0);
+         int surface = senInfo[sindex].surface;
+         elDisp->zero();       
+         // Determine element displacement vector
+         for (int k=0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = sol[cn];
+           else
+             (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+         }
+         transformVectorInv(*elDisp, iele);         
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface); 
+         if(avgnum != 0) {
+           // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+           for(int k = 0; k < NodesPerElement; ++k) {
+             int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+//             int node = nodeTable[(*elemToNode)[iele][k]]-1;
+             (*allSens.vonMisesWRTthick)(node, iparam) += dStressdThick[k];
+             stressWeight(node, 0) += weight[k];
+           }
+         }
+       } 
+      }
+     }
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+      // average vonMisesWRTthick vector
+      for(int inode = 0; inode < numNodes(); ++inode)  {
+        if(stressWeight(inode, 0) == 0.0)
+          (*allSens.vonMisesWRTthick)(inode, iparam) = 0.0;
+        else
+          (*allSens.vonMisesWRTthick)(inode, iparam) /= stressWeight(inode, 0);
+      }
+      if(!isDynam) allSens.vonMisesWRTthick->col(iparam) += *allSens.vonMisesWRTdisp * (*allSens.dispWRTthick[iparam]);
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) {
+        Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+        std::cerr << "print vonMisesWRTthick\n" << (allSens.vonMisesWRTthick->col(iparam)).format(HeavyFmt) << std::endl;
+      }
+#endif
+     }
+#endif
+}
+
+void 
+Domain::computeAggregatedStressVMWRTthicknessSensitivity(int sindex,
+                                                         AllSensitivities<double> &allSens,
+                                                         GenVector<double> &sol,
+                                                         double *bcx, 
+                                                         bool isDynam)
+{
+#ifdef USE_EIGEN3
+     // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
+     int surface = senInfo[sindex].surface;
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressvmWRTthick(numNodes(), numThicknessGroups);
+     Eigen::Matrix<double, Eigen::Dynamic, 1> stressWeight(numNodes());
+     Vector stress(numNodes(),0.0);
+     computeNormalizedVonMisesStress(sol, bcx, surface, stress);
+     allSens.aggregatedVonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numThicknessGroups);
+     stressvmWRTthick.setZero();     stressWeight.setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+      int groupIndex = thicknessGroups[iparam];
+      for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {  
+       for(int eindex = 0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
+         int iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
+         if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+         int NodesPerElement = elemToNode->num(iele);
+         GenVector<double> dStressdThick(NodesPerElement);
+         GenVector<double> elweight(NodesPerElement,0.0);
+         elDisp->zero();       
+         // Determine element displacement vector
+         for (int k=0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = sol[cn];
+           else
+             (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+         }
+         transformVectorInv(*elDisp, iele);         
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, elweight, nodes, *elDisp, 6, surface); 
+         if(avgnum != 0) {
+           // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+           for(int k = 0; k < NodesPerElement; ++k) {
+             int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+             stressvmWRTthick(node, iparam) += dStressdThick[k]; 
+             stressWeight(node) += elweight[k]; 
+           }
+         }
+       } 
+      }
+     }
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+       for(int inode = 0; inode < numNodes(); ++inode)  {
+         if(stressWeight(inode) == 0.0)
+           stressvmWRTthick(inode, iparam) = 0.0;
+         else
+           stressvmWRTthick(inode, iparam) /= stressWeight(inode);
+       }
+     }
+
+     if(!(*aggregatedStressDenom)) computeAggregatedStressDenom(stress);
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+       for(int inode = 0; inode < numNodes(); ++inode)  {
+//         (*allSens.aggregatedVonMisesWRTthick)(iparam) += stressvmWRTthick(inode,iparam)*exp(sinfo.ksParameter*(stress[inode]-sinfo.ksMax)); 
+         (*allSens.aggregatedVonMisesWRTthick)(iparam) += stressvmWRTthick(inode,iparam)*exp(sinfo.ksParameter*(stress[inode]-1.0)); 
+       }
+       (*allSens.aggregatedVonMisesWRTthick)(iparam) /= *aggregatedStressDenom;
+     }
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) 
+       (*allSens.aggregatedVonMisesWRTthick)(iparam) -= allSens.lambdaAggregatedStressVM->adjoint()*(allSens.linearstaticWRTthick[iparam]->col(0));
+#endif
+}
+
+void
+Domain::computeAggregatedStressDenom(Vector &stress)
+{
+  *aggregatedStressDenom = 0.0;
+//  for(int k = 0; k < numNodes(); ++k) *aggregatedStressDenom += exp(sinfo.ksParameter*(stress[k]-sinfo.ksMax));
+  for(int k = 0; k < numNodes(); ++k) *aggregatedStressDenom += exp(sinfo.ksParameter*(stress[k]-1.0));
+} 
+
+void 
+Domain::computeStressVMWRTthicknessAdjointSensitivity(int sindex,
+                                                      AllSensitivities<double> &allSens,
+                                                      GenVector<double> &sol,
+                                                      double *bcx, 
+                                                      bool isDynam)
+{
+#ifdef USE_EIGEN3
+     // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+     allSens.vonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numStressNodes, numThicknessGroups);
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numStressNodes, 1);
+     allSens.vonMisesWRTthick->setZero();     stressWeight.setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+      int groupIndex = thicknessGroups[iparam];
+      for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {  
+       for(int eindex = 0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
+         int iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
+         if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+         if (!packedEset[iele]->doesIncludeStressNodes()) continue;
+         int NodesPerElement = elemToNode->num(iele);
+         GenVector<double> dStressdThick(NodesPerElement);
+         GenVector<double> weight(NodesPerElement,0.0);
+         int surface = senInfo[sindex].surface;
+         elDisp->zero();       
+         // Determine element displacement vector
+         for (int k=0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = sol[cn];
+           else
+             (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+         }
+         transformVectorInv(*elDisp, iele);         
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface); 
+         if(avgnum != 0) {
+           // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+           for(int k = 0; k < NodesPerElement; ++k) {
+             int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+             int inode;
+             if(checkIsInStressNodes(node,inode)) {
+               (*allSens.vonMisesWRTthick)(inode, iparam) += dStressdThick[k]; 
+               stressWeight(inode, 0) += weight[k]; 
+             }
+           }
+         }
+       } 
+      }
+     }
+
+     for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
+      // average vonMisesWRTthick vector
+      for(int inode = 0; inode < numStressNodes; ++inode)  {
+        if(stressWeight(inode, 0) == 0.0)
+          (*allSens.vonMisesWRTthick)(inode, iparam) = 0.0;
+        else
+          (*allSens.vonMisesWRTthick)(inode, iparam) /= stressWeight(inode, 0);
+      }
+      for(int inode = 0; inode < numStressNodes; ++inode)  {
+        double a = allSens.lambdaStressVM[inode]->adjoint()*(allSens.linearstaticWRTthick[iparam]->col(0));
+        (*allSens.vonMisesWRTthick)(inode, iparam) -= a;
+      }
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) {
+        Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+        std::cerr << "print vonMisesWRTthick\n" << (allSens.vonMisesWRTthick->col(iparam)).format(HeavyFmt) << std::endl;
+      }
+#endif
+     }
+#endif
+}
+
+void 
+Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
+                                                  AllSensitivities<double> &allSens, 
+                                                  GenVector<double> &sol,
+                                                  double *bcx)
+{
+#ifdef USE_EIGEN3
+#ifdef SENSITIVITY_DEBUG
+     if(verboseFlag) sol.print("print displacement\n");
+#endif
+     allSens.vonMisesWRTdisp = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), numUncon());
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numNodes(), 1);
+     allSens.vonMisesWRTdisp->setZero();     stressWeight.setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int NodesPerElement = elemToNode->num(iele);
+       int DofsPerElement = packedEset[iele]->numDofs();
+       GenFullM<double> dStressdDisp(DofsPerElement,NodesPerElement,double(0.0));
+       GenVector<double> weight(NodesPerElement,0.0);
+       int surface = senInfo[sindex].surface;
+       elDisp->zero();       
+       // Determine element displacement vector
+       for (int k=0; k < allDOFs->num(iele); ++k) {
+         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+         if (cn >= 0)
+           (*elDisp)[k] = sol[cn];
+         else
+           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+       }
+       transformVectorInv(*elDisp, iele);       
+       packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, nodes, *elDisp, 6, surface, 0);
+//       transformElementSensitivityInv(&dStressdDisp,iele); //TODO: watch out index of dStressdDisp when implementing
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         int *unconstrNum = c_dsa->getUnconstrNum();
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+//           int node = nodeTable[(*elemToNode)[iele][k]]-1;
+           int *dofs = (*allDOFs)[iele];
+           stressWeight(node,0) += weight[k];
+           for(int j = 0; j < DofsPerElement; ++j) {
+             int dofj = unconstrNum[dofs[j]];
+             if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
+             if(std::isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
+             (*allSens.vonMisesWRTdisp)(node, dofj) += dStressdDisp[j][k]; 
+           }
+         }
+       }
+     }   
+  
+     for(int inode = 0; inode < numNodes(); ++inode)  {
+       if(stressWeight(inode, 0) == 0.0)
+         for(int dof = 0; dof < numUncon(); ++dof) 
+           (*allSens.vonMisesWRTdisp)(inode,dof) = 0;
+       else
+         for(int dof = 0; dof < numUncon(); ++dof) 
+           (*allSens.vonMisesWRTdisp)(inode,dof) /= stressWeight(inode,0);
+     }
+#ifdef SENSITIVITY_DEBUG
+     if(verboseFlag) std::cerr << "print vonMisesWRTdisp\n" << (*allSens.vonMisesWRTdisp) << std::endl;
+#endif
+#endif
+}
+
+void 
+Domain::computeAggregatedStressVMWRTdisplacementSensitivity(int sindex,
+                                                            AllSensitivities<double> &allSens, 
+                                                            GenVector<double> &sol,
+                                                            double *bcx)
+{
+#ifdef USE_EIGEN3
+#ifdef SENSITIVITY_DEBUG
+     if(verboseFlag) sol.print("print displacement\n");
+#endif
+     int surface = senInfo[sindex].surface;
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> vonMisesWRTdisp(numNodes(), numUncon());
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numNodes(), 1);
+     allSens.aggregatedVonMisesWRTdisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numUncon());
+     vonMisesWRTdisp.setZero();       stressWeight.setZero();
+     Vector stress(numNodes(),0.0);
+     computeNormalizedVonMisesStress(sol, bcx, surface, stress);
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int NodesPerElement = elemToNode->num(iele);
+       int DofsPerElement = packedEset[iele]->numDofs();
+       GenFullM<double> dStressdDisp(DofsPerElement,NodesPerElement,double(0.0));
+       GenVector<double> elweight(NodesPerElement,0.0);
+       elDisp->zero();       
+       // Determine element displacement vector
+       for (int k=0; k < allDOFs->num(iele); ++k) {
+         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+         if (cn >= 0)
+           (*elDisp)[k] = sol[cn];
+         else
+           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+       }
+       transformVectorInv(*elDisp, iele);       
+       packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, elweight, nodes, *elDisp, 6, surface, 0);
+//       transformElementSensitivityInv(&dStressdDisp,iele); //TODO: watch out index of dStressdDisp when implementing
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         int *unconstrNum = c_dsa->getUnconstrNum();
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+//           int node = nodeTable[(*elemToNode)[iele][k]]-1;
+           int *dofs = (*allDOFs)[iele];
+           stressWeight(node,0) += elweight[k];
+           for(int j = 0; j < DofsPerElement; ++j) {
+             int dofj = unconstrNum[dofs[j]];
+             if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
+             if(std::isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
+             vonMisesWRTdisp(node, dofj) += dStressdDisp[j][k]; 
+           }
+         }
+       }
+     }   
+ 
+     for(int inode = 0; inode < numNodes(); ++inode)  {
+       if(stressWeight(inode, 0) == 0.0)
+         for(int dof = 0; dof < numUncon(); ++dof) 
+           vonMisesWRTdisp(inode,dof) = 0;
+       else
+         for(int dof = 0; dof < numUncon(); ++dof) 
+           vonMisesWRTdisp(inode,dof) /= stressWeight(inode,0);
+     }
+
+     if(!(*aggregatedStressDenom)) computeAggregatedStressDenom(stress);
+
+     for(int dof = 0; dof < numUncon(); ++dof) {
+       for(int inode = 0; inode < numNodes(); ++inode)  {
+//         (*allSens.aggregatedVonMisesWRTdisp)(dof) += vonMisesWRTdisp(inode,dof)*exp(sinfo.ksParameter*(stress[inode]-sinfo.ksMax)); 
+         (*allSens.aggregatedVonMisesWRTdisp)(dof) += vonMisesWRTdisp(inode,dof)*exp(sinfo.ksParameter*(stress[inode]-1.0)); 
+       }
+       (*allSens.aggregatedVonMisesWRTdisp)(dof) /= *aggregatedStressDenom;
+     }
+#ifdef SENSITIVITY_DEBUG
+     if(verboseFlag) std::cerr << "print (*allSens.aggregatedVonMisesWRTdisp)\n" << (*allSens.aggregatedVonMisesWRTdisp) << std::endl;
+#endif
+
+#endif
+}
+
+void 
+Domain::computeStressVMWRTShapeVariableDirectSensitivity(int sindex,
+                                                         AllSensitivities<double> &allSens, 
+                                                         GenVector<double> &sol,
+                                                         double *bcx,
+                                                         bool isDynam)
+{
+#ifdef USE_EIGEN3
+     allSens.vonMisesWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), numShapeVars);
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numNodes(), 1);
+     allSens.vonMisesWRTshape->setZero();     stressWeight.setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int NodesPerElement = elemToNode->num(iele);
+       int DofsPerElement = packedEset[iele]->numDofs();
+       GenFullM<double> dStressdCoord(3*NodesPerElement,NodesPerElement,double(0.0));
+       GenVector<double> weight(NodesPerElement,0.0);
+       int surface = senInfo[sindex].surface;
+       elDisp->zero();       
+       // Determine element displacement vector
+       for (int k=0; k < allDOFs->num(iele); ++k) {
+         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+         if (cn >= 0)
+           (*elDisp)[k] = sol[cn];
+         else
+           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+       }
+       transformVectorInv(*elDisp, iele); 
+       packedEset[iele]->getVonMisesNodalCoordinateSensitivity(dStressdCoord, weight, nodes, *elDisp, 6, surface, 0);
+//       transformElementSensitivityInv(&dStressdCoord,iele); //TODO: watch out index of dStressdCoord when implementing
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         int *unconstrNum = c_dsa->getUnconstrNum();
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+//           int node1 = nodeTable[(*elemToNode)[iele][k]]-1;
+           stressWeight(node1,0) += weight[k];
+           for(int j = 0; j < NodesPerElement; ++j) {
+             int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][j]]-1 : (*elemToNode)[iele][j];
+//             int node2 = nodeTable[(*elemToNode)[iele][j]]-1;
+             int inode = shapeSenData.nodes[node2];
+             for(int xyz = 0; xyz < 3; ++xyz) {
+               for(int iShap = 0; iShap < numShapeVars; ++iShap) {
+                 (*allSens.vonMisesWRTshape)(node1, iShap) += dStressdCoord[3*j+xyz][k]*shapeSenData.sensitivities[iShap][node2][xyz]; 
+               }
+             }
+           }
+         }
+       }
+     } 
+  
+     for(int jSen = 0; jSen < numShapeVars; ++jSen) { 
+       for(int inode = 0; inode < numNodes(); ++inode)  {
+         if(stressWeight(inode, 0) == 0.0)
+           (*allSens.vonMisesWRTshape)(inode,jSen) = 0;
+         else
+           (*allSens.vonMisesWRTshape)(inode,jSen) /= stressWeight(inode,0);
+       }
+       if(!isDynam) {
+         allSens.vonMisesWRTshape->col(jSen) += *allSens.vonMisesWRTdisp * (*allSens.dispWRTshape[jSen]);
+       }
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) {
+        Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+        std::cerr << "print vonMisesWRTshape\n" << (allSens.vonMisesWRTshape->col(jSen)).format(HeavyFmt) << std::endl;
+      }
+#endif
+     }
+#endif
+}
+
+void 
+Domain::computeAggregatedStressVMWRTShapeVariableSensitivity(int sindex,
+                                                             AllSensitivities<double> &allSens, 
+                                                             GenVector<double> &sol,
+                                                             double *bcx,
+                                                             bool isDynam)
+{
+#ifdef USE_EIGEN3
+     int surface = senInfo[sindex].surface;
+     allSens.aggregatedVonMisesWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numShapeVars);
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> vonMisesWRTshape(numNodes(), numShapeVars);
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numNodes(), 1);
+     vonMisesWRTshape.setZero();     stressWeight.setZero();   allSens.aggregatedVonMisesWRTshape->setZero();
+     Vector stress(numNodes(),0.0);
+     computeNormalizedVonMisesStress(sol, bcx, surface, stress);
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       int NodesPerElement = elemToNode->num(iele);
+       int DofsPerElement = packedEset[iele]->numDofs();
+       GenFullM<double> dStressdCoord(3*NodesPerElement,NodesPerElement,double(0.0));
+       GenVector<double> weight(NodesPerElement,0.0);
+       elDisp->zero();       
+       // Determine element displacement vector
+       for (int k=0; k < allDOFs->num(iele); ++k) {
+         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+         if (cn >= 0)
+           (*elDisp)[k] = sol[cn];
+         else
+           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+       }
+       transformVectorInv(*elDisp, iele); 
+       packedEset[iele]->getVonMisesNodalCoordinateSensitivity(dStressdCoord, weight, nodes, *elDisp, 6, surface, 0);
+//       transformElementSensitivityInv(&dStressdCoord,iele); //TODO: watch out index of dStressdCoord when implementing
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         int *unconstrNum = c_dsa->getUnconstrNum();
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+//           int node1 = nodeTable[(*elemToNode)[iele][k]]-1;
+           stressWeight(node1,0) += weight[k];
+           for(int j = 0; j < NodesPerElement; ++j) {
+             int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][j]]-1 : (*elemToNode)[iele][j];
+//             int node2 = nodeTable[(*elemToNode)[iele][j]]-1;
+             int inode = shapeSenData.nodes[node2];
+             for(int xyz = 0; xyz < 3; ++xyz) {
+               for(int iShap = 0; iShap < numShapeVars; ++iShap) {
+                 vonMisesWRTshape(node1, iShap) += dStressdCoord[3*j+xyz][k]*shapeSenData.sensitivities[iShap][node2][xyz]; 
+               }
+             }
+           }
+         }
+       }
+     } 
+  
+     for(int jSen = 0; jSen < numShapeVars; ++jSen) { 
+       for(int inode = 0; inode < numNodes(); ++inode) {
+         if(stressWeight(inode, 0) == 0.0)
+           vonMisesWRTshape(inode,jSen) = 0;
+         else
+           vonMisesWRTshape(inode,jSen) /= stressWeight(inode,0);
+       }
+     }
+      
+     if(!(*aggregatedStressDenom)) computeAggregatedStressDenom(stress);
+
+     for(int jSen = 0; jSen < numShapeVars; ++jSen) { 
+       for(int inode = 0; inode < numNodes(); ++inode)  {
+//         double a = vonMisesWRTshape(inode,jSen) * exp(sinfo.ksParameter*(stress[inode]-sinfo.ksMax));
+         double a = vonMisesWRTshape(inode,jSen) * exp(sinfo.ksParameter*(stress[inode]-1.0));
+         (*allSens.aggregatedVonMisesWRTshape)(jSen) += a;
+       }
+       (*allSens.aggregatedVonMisesWRTshape)(jSen) /= *aggregatedStressDenom;
+     }
+
+     for(int jSen = 0; jSen < numShapeVars; ++jSen) 
+       (*allSens.aggregatedVonMisesWRTshape)(jSen) -= allSens.lambdaAggregatedStressVM->adjoint()*(allSens.linearstaticWRTshape[jSen]->col(0));
+
+#endif
+}
+
+void 
+Domain::computeStressVMWRTShapeVariableAdjointSensitivity(int sindex,
+                                                         AllSensitivities<double> &allSens, 
+                                                         GenVector<double> &sol,
+                                                         double *bcx,
+                                                         bool isDynam)
+{
+#ifdef USE_EIGEN3
+     allSens.vonMisesWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numStressNodes, numShapeVars);
+     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> stressWeight(numStressNodes, 1);
+     allSens.vonMisesWRTshape->setZero();     stressWeight.setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+     for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+       if (!packedEset[iele]->doesIncludeStressNodes()) continue;
+       int NodesPerElement = elemToNode->num(iele);
+       int DofsPerElement = packedEset[iele]->numDofs();
+       GenFullM<double> dStressdCoord(3*NodesPerElement,NodesPerElement,double(0.0));
+       GenVector<double> weight(NodesPerElement,0.0);
+       int surface = senInfo[sindex].surface;
+       elDisp->zero();       
+       // Determine element displacement vector
+       for (int k=0; k < allDOFs->num(iele); ++k) {
+         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+         if (cn >= 0)
+           (*elDisp)[k] = sol[cn];
+         else
+           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+       }
+       transformVectorInv(*elDisp, iele); 
+       packedEset[iele]->getVonMisesNodalCoordinateSensitivity(dStressdCoord, weight, nodes, *elDisp, 6, surface, 0);
+//       transformElementSensitivityInv(&dStressdCoord,iele); //TODO: watch out index of dStressdCoord when implementing
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         int *unconstrNum = c_dsa->getUnconstrNum();
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+           int inode;
+           if(checkIsInStressNodes(node1,inode)) {
+             stressWeight(inode,0) += weight[k];
+             for(int j = 0; j < NodesPerElement; ++j) {
+               int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][j]]-1 : (*elemToNode)[iele][j];
+//               int jnode = shapeSenData.nodes[node2];
+               for(int xyz = 0; xyz < 3; ++xyz) {
+                 for(int ishap = 0; ishap < numShapeVars; ++ishap) {
+                   (*allSens.vonMisesWRTshape)(inode, ishap) += dStressdCoord[3*j+xyz][k]*shapeSenData.sensitivities[ishap][node2][xyz]; 
+                 }
+               }
+             }
+           }
+         }
+       }
+     } 
+  
+     for(int jSen = 0; jSen < numShapeVars; ++jSen) { 
+       for(int inode = 0; inode < numStressNodes; ++inode)  {
+         if(stressWeight(inode, 0) == 0.0)
+           (*allSens.vonMisesWRTshape)(inode,jSen) = 0;
+         else
+           (*allSens.vonMisesWRTshape)(inode,jSen) /= stressWeight(inode,0);
+       }
+       for(int inode = 0; inode < numStressNodes; ++inode)  {
+         double a = allSens.lambdaStressVM[inode]->adjoint()*(allSens.linearstaticWRTshape[jSen]->col(0));
+         (*allSens.vonMisesWRTshape)(inode,jSen) -= a;
+       }
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) {
+        Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+        std::cerr << "print vonMisesWRTshape\n" << (allSens.vonMisesWRTshape->col(jSen)).format(HeavyFmt) << std::endl;
+      }
+#endif
+     }
+#endif
+}
+
+void
+Domain::makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *bcx) {}
+
+void
+Domain::makePostSensitivities(GenSolver<DComplex> *sysSolver, 
+                              GenSparseMatrix<DComplex> *spm,
+                              AllSensitivities<DComplex> &allSens, 
+                              GenVector<DComplex> &sol, DComplex *bcx,
+                              GenSparseMatrix<DComplex> *K,
+                              bool isDynam) {}
+
+void
+Domain::makePostSensitivities(GenSolver<double> *sysSolver, 
+                              GenSparseMatrix<double> *spm,
+                              AllSensitivities<double> &allSens, 
+                              GenVector<double> &sol, double *bcx,
+                              GenSparseMatrix<double> *K,
+                              bool isDynam)
+{
+#ifdef USE_EIGEN3
+ if(solInfo().sensitivityMethod == SolverInfo::Adjoint) setIncludeStressNodes(); //TODO: need to include this function in other sensitivity routine
+
+ for(int sindex=0; sindex < numSensitivity; ++sindex) {
+  switch(senInfo[sindex].type) {
+   case SensitivityInfo::DisplacementWRTthickness: 
+   {
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
+       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
+       if(!isDynam) if(!allSens.dispWRTthick) computeDisplacementWRTthicknessDirectSensitivity(sindex, sysSolver, spm, allSens, K);
+     }
+     else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+       if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
+       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
+       if(!allSens.lambdaDisp) computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       computeDisplacementWRTthicknessAdjointSensitivity(sindex,spm, allSens, K);
+     }
+     break;
+   }
+   case SensitivityInfo::DisplacementWRTshape: 
+   {
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
+       if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
+       if(!isDynam) if(!allSens.dispWRTshape) computeDisplacementWRTShapeVariableDirectSensitivity(sindex, sysSolver, spm, allSens, K);
+     }
+     else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+       if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
+       if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
+       if(!allSens.lambdaDisp) computeDisplacementDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       computeDisplacementWRTShapeVariableAdjointSensitivity(sindex,spm, allSens, K);
+     }
+     break;
+   }
+   case SensitivityInfo::StressVMWRTthickness: 
+   {
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+       if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
+       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
+       if(!isDynam) if(!allSens.dispWRTthick) computeDisplacementWRTthicknessDirectSensitivity(sindex, sysSolver, spm, allSens, K);
+       computeStressVMWRTthicknessDirectSensitivity(sindex,allSens,sol,bcx,isDynam);
+     }
+     else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+       if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+       if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
+       if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
+       if(!allSens.lambdaStressVM) computeStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       computeStressVMWRTthicknessAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
+     }
+     break;
+   }
+   case SensitivityInfo::StressVMWRTshape:
+   {
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+       if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens); 
+       if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
+       if(!isDynam) if(!allSens.dispWRTshape) computeDisplacementWRTShapeVariableDirectSensitivity(sindex, sysSolver, spm, allSens, K);
+       computeStressVMWRTShapeVariableDirectSensitivity(sindex,allSens,sol,bcx,isDynam);
+     }
+     else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+       if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+       if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
+       if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
+       if(!allSens.lambdaStressVM) computeStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+       computeStressVMWRTShapeVariableAdjointSensitivity(sindex,allSens,sol,bcx,isDynam);
+     }
+     break;
+   }
+   case SensitivityInfo::AggregatedStressVMWRTthickness: 
+   {
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       filePrint(stderr, " ... WARNING : Only the adjoint method is available for KS function sensitivities. Switing to the adjoint method.\n");
+     }
+     if(!allSens.aggregatedVonMisesWRTdisp) computeAggregatedStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+     if(!allSens.stiffnessWRTthickSparse) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
+     if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
+     if(!allSens.lambdaAggregatedStressVM) computeAggregatedStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+     computeAggregatedStressVMWRTthicknessSensitivity(sindex,allSens,sol,bcx,isDynam);
+     break;
+   }
+   case SensitivityInfo::AggregatedStressVMWRTshape:
+   {
+     if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+       filePrint(stderr, " ... WARNING : Only the adjoint method is available for KS function sensitivities. Switing to the adjoint method.\n");
+     }
+     if(!allSens.aggregatedVonMisesWRTdisp) computeAggregatedStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+     if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens);
+     if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
+     if(!allSens.lambdaAggregatedStressVM) computeAggregatedStressVMDualSensitivity(sindex, sysSolver, spm, allSens, K);
+     computeAggregatedStressVMWRTShapeVariableSensitivity(sindex,allSens,sol,bcx,isDynam);
+     break;
+   }
+   case SensitivityInfo::StressVMWRTmach:
+   {
+     if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+     computeStressVMWRTMachNumberSensitivity(allSens);
+     break;
+   }
+   case SensitivityInfo::StressVMWRTalpha:
+   {
+     if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+     computeStressVMWRTangleOfAttackSensitivity(allSens);
+     break;
+   }
+   case SensitivityInfo::StressVMWRTbeta:
+   {
+     if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+     computeStressVMWRTyawAngleSensitivity(allSens);
+     break;
+   }
+   default:
+     break;
+  }
+ }
+#endif
+}

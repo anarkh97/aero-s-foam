@@ -1,7 +1,6 @@
 Scalar STRESSP2 under NLStatic for nodeset
 189
    0.0000E+00
-   0.0000E+00
   0.0000E+00
   0.0000E+00
   0.0000E+00
@@ -191,7 +190,6 @@ Scalar STRESSP2 under NLStatic for nodeset
   0.0000E+00
   0.0000E+00
   0.0000E+00
-   1.0000E-01
    1.0000E-01
  -5.6863E+01
  -5.3208E+01
@@ -383,7 +381,6 @@ Scalar STRESSP2 under NLStatic for nodeset
   5.9611E-07
   5.9612E-07
    2.0000E-01
-   2.0000E-01
  -1.2100E+02
  -1.1315E+02
  -1.2100E+02
@@ -573,7 +570,6 @@ Scalar STRESSP2 under NLStatic for nodeset
   5.9821E-06
   5.9822E-06
   5.9821E-06
-   3.0000E-01
    3.0000E-01
  -1.9837E+02
  -1.8495E+02

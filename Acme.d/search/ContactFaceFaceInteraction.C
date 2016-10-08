@@ -18,6 +18,9 @@
 // along with ACME.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#ifndef ContactFaceFaceInteraction_C_
+#define ContactFaceFaceInteraction_C_
+
 #include "allocators.h"
 #include "ContactFaceFaceInteraction.h"
 #include "CString.h"
@@ -30,23 +33,31 @@
 #include <cstring>
 #include <new>
 
-ContactFaceFaceInteraction::ContactFaceFaceInteraction( )
-   : ContactInteractionEntity(DataArray, CT_FFI)
+template <typename DataType>
+ContactFaceFaceInteraction<DataType>::ContactFaceFaceInteraction( )
+   : ContactInteractionEntity<DataType>(DataArray, CT_FFI)
 {
   slave_face  = NULL;
   master_face = NULL;
   num_edges   = 0;
+  num_derivatives = 0;
+  num_second_derivatives = 0;
   vertices    = NULL;
-}                                                                               
+}
 
-ContactFaceFaceInteraction::ContactFaceFaceInteraction( ContactFace<Real>* Sface,
-							ContactFace<Real>* Mface,
+template <typename DataType>
+ContactFaceFaceInteraction<DataType>::ContactFaceFaceInteraction( ContactFace<DataType>* Sface,
+							ContactFace<DataType>* Mface,
 							int Nedges, 
                                                         int* FaceEdge,
                                                         int* EdgeMaster,
-                                                        Real* Sarea, 
-                                                        Real* Marea )
-: ContactInteractionEntity(DataArray, CT_FFI)
+                                                        DataType* Sarea, 
+                                                        DataType* Marea,
+                                                        DataType (*Sarea_derivatives)[42],
+                                                        DataType (*Marea_derivatives)[42],
+                                                        DataType (*Sarea_second_derivatives)[42],
+                                                        DataType (*Marea_second_derivatives)[42] )
+: ContactInteractionEntity<DataType>(DataArray, CT_FFI)
 {
   PRECONDITION( Sface && Mface );
   num_edges   = Nedges;
@@ -54,9 +65,13 @@ ContactFaceFaceInteraction::ContactFaceFaceInteraction( ContactFace<Real>* Sface
   master_face = Mface;
   Set_SlaveFaceEntityData();
   Set_MasterFaceEntityData();
+  num_derivatives = (Sarea_derivatives && Marea_derivatives) ?
+                    3*(slave_face->Nodes_Per_Face() + master_face->Nodes_Per_Face()) : 0;
+  num_second_derivatives = (Sarea_second_derivatives && Marea_second_derivatives) ?
+                           num_derivatives*num_derivatives : 0;
   if (num_edges>0) {
-    int i;
-    vertices = new ContactFaceFaceVertex[num_edges+1];
+    int i, j;
+    vertices = new ContactFaceFaceVertex<DataType>[num_edges+1];
     for (i=0; i<num_edges; ++i) {
       vertices[i].slave_x          = Sarea[2*i];
       vertices[i].slave_y          = Sarea[2*i+1];
@@ -64,6 +79,30 @@ ContactFaceFaceInteraction::ContactFaceFaceInteraction( ContactFace<Real>* Sface
       vertices[i].master_y         = Marea[2*i+1];
       vertices[i].slave_edge_id    = FaceEdge[i];
       vertices[i].master_edge_flag = EdgeMaster[i];
+      if(num_derivatives > 0) {
+        vertices[i].slave_x_derivatives = new DataType[num_derivatives];
+        vertices[i].slave_y_derivatives = new DataType[num_derivatives];
+        vertices[i].master_x_derivatives = new DataType[num_derivatives];
+        vertices[i].master_y_derivatives = new DataType[num_derivatives];
+        for(j = 0; j<num_derivatives; ++j) {
+          vertices[i].slave_x_derivatives[j] = Sarea_derivatives[j][2*i];
+          vertices[i].slave_y_derivatives[j] = Sarea_derivatives[j][2*i+1];
+          vertices[i].master_x_derivatives[j] = Marea_derivatives[j][2*i];
+          vertices[i].master_y_derivatives[j] = Marea_derivatives[j][2*i+1];
+        }
+      }
+      if(num_second_derivatives > 0) {
+        vertices[i].slave_x_second_derivatives = new DataType[num_second_derivatives];
+        vertices[i].slave_y_second_derivatives = new DataType[num_second_derivatives];
+        vertices[i].master_x_second_derivatives = new DataType[num_second_derivatives];
+        vertices[i].master_y_second_derivatives = new DataType[num_second_derivatives];
+        for(j = 0; j<num_second_derivatives; ++j) {
+          vertices[i].slave_x_second_derivatives[j] = Sarea_second_derivatives[j][2*i];
+          vertices[i].slave_y_second_derivatives[j] = Sarea_second_derivatives[j][2*i+1];
+          vertices[i].master_x_second_derivatives[j] = Marea_second_derivatives[j][2*i];
+          vertices[i].master_y_second_derivatives[j] = Marea_second_derivatives[j][2*i+1];
+        }
+      }
     }
     i = num_edges;
     vertices[i].slave_x          = Sarea[2*i];
@@ -75,9 +114,10 @@ ContactFaceFaceInteraction::ContactFaceFaceInteraction( ContactFace<Real>* Sface
   }
 }
 
-ContactFaceFaceInteraction::ContactFaceFaceInteraction( 
+template <typename DataType>
+ContactFaceFaceInteraction<DataType>::ContactFaceFaceInteraction( 
                                        ContactFaceFaceInteraction& ffi )
-: ContactInteractionEntity(DataArray, CT_FFI)
+: ContactInteractionEntity<DataType>(DataArray, CT_FFI)
 {
   slave_face              = ffi.slave_face;
   master_face             = ffi.master_face;
@@ -85,125 +125,44 @@ ContactFaceFaceInteraction::ContactFaceFaceInteraction(
   master_face_entity_data = ffi.master_face_entity_data;
   num_edges               = ffi.num_edges;
   if (num_edges>0) {
-    vertices = new ContactFaceFaceVertex[num_edges+1];
+    vertices = new ContactFaceFaceVertex<DataType>[num_edges+1];
     for (int i=0; i<num_edges+1; ++i) {
       vertices[i] = ffi.vertices[i];
     }
   }
 }
 
-ContactFaceFaceInteraction* 
-ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
+template <typename DataType>
+ContactFaceFaceInteraction<DataType>* 
+ContactFaceFaceInteraction<DataType>::new_ContactFaceFaceInteraction(
 				     ContactFixedSizeAllocator& alloc,
-				     ContactFace<Real>* Sface,
-				     ContactFace<Real>* Mface,
+				     ContactFace<DataType>* Sface,
+				     ContactFace<DataType>* Mface,
 				     int Nedges, 
                                      int* FaceEdge,
                                      int* EdgeMaster,
-                                     Real* Sarea, Real* Marea )
+                                     DataType* Sarea, DataType* Marea,
+                                     DataType (*Sarea_derivatives)[42], DataType (*Marea_derivatives)[42],
+                                     DataType (*Sarea_second_derivatives)[42], DataType (*Marea_second_derivatives)[42] )
 {
   return new (alloc.New_Frag())
     ContactFaceFaceInteraction( Sface, Mface, Nedges, 
-                                FaceEdge, EdgeMaster, Sarea, Marea );
+                                FaceEdge, EdgeMaster, Sarea, Marea, Sarea_derivatives, Marea_derivatives,
+                                Sarea_second_derivatives, Marea_second_derivatives );
 }
 
-#if (MAX_FFI_DERIVATIVES > 0)
-ContactFaceFaceInteraction::ContactFaceFaceInteraction( ContactFace<ActiveScalar>*,
-                                                        ContactFace<ActiveScalar>*,
-                                                        int Nedges,
-                                                        int* FaceEdge,
-                                                        int* EdgeMaster,
-                                                        ActiveScalar* Sarea,
-                                                        ActiveScalar* Marea )
-: ContactInteractionEntity(DataArray, CT_FFI)
-{
-  num_edges   = Nedges;
-  slave_face  = NULL;
-  master_face = NULL;
-  if (num_edges>0) {
-    int i,j;
-    vertices = new ContactFaceFaceVertex[num_edges+1];
-    for (i=0; i<num_edges; ++i) {
-      vertices[i].slave_x          = GetActiveScalarValue(Sarea[2*i]);
-      vertices[i].slave_y          = GetActiveScalarValue(Sarea[2*i+1]);
-      vertices[i].master_x         = GetActiveScalarValue(Marea[2*i]);
-      vertices[i].master_y         = GetActiveScalarValue(Marea[2*i+1]);
-      vertices[i].slave_edge_id    = FaceEdge[i];
-      vertices[i].master_edge_flag = EdgeMaster[i];
-      for (j=0; j<MAX_FFI_DERIVATIVES; ++j) {
-        vertices[i].slave_x_derivatives[j]  = GetActiveScalarDerivative(Sarea[2*i],j);
-        vertices[i].slave_y_derivatives[j]  = GetActiveScalarDerivative(Sarea[2*i+1],j);
-        vertices[i].master_x_derivatives[j] = GetActiveScalarDerivative(Marea[2*i],j);
-        vertices[i].master_y_derivatives[j] = GetActiveScalarDerivative(Marea[2*i+1],j);
-      }
-#ifdef COMPUTE_FFI_SECOND_DERIVATIVES
-      int k,l;
-      // note: only storing lower triangular part due to symmetry 
-      for (j=0,l=0; j<MAX_FFI_DERIVATIVES; ++j) {
-        for (k=0; k<=j; ++k,++l) {
-          vertices[i].slave_x_second_derivatives[l]  = GetActiveScalarSecondDerivative(Sarea[2*i],j,k);
-          vertices[i].slave_y_second_derivatives[l]  = GetActiveScalarSecondDerivative(Sarea[2*i+1],j,k);
-          vertices[i].master_x_second_derivatives[l] = GetActiveScalarSecondDerivative(Marea[2*i],j,k);
-          vertices[i].master_y_second_derivatives[l] = GetActiveScalarSecondDerivative(Marea[2*i+1],j,k);
-        }
-      }
-#endif
-    }
-    i = num_edges;
-    vertices[i].slave_x          = GetActiveScalarValue(Sarea[2*i]);
-    vertices[i].slave_y          = GetActiveScalarValue(Sarea[2*i+1]);
-    vertices[i].master_x         = GetActiveScalarValue(Marea[2*i]);
-    vertices[i].master_y         = GetActiveScalarValue(Marea[2*i+1]);
-    vertices[i].slave_edge_id    = 0;
-    vertices[i].master_edge_flag = 0;
-    for (j=0; j<MAX_FFI_DERIVATIVES; ++j) {
-      vertices[i].slave_x_derivatives[j]  = GetActiveScalarDerivative(Sarea[2*i],j);
-      vertices[i].slave_y_derivatives[j]  = GetActiveScalarDerivative(Sarea[2*i+1],j);
-      vertices[i].master_x_derivatives[j] = GetActiveScalarDerivative(Marea[2*i],j);
-      vertices[i].master_y_derivatives[j] = GetActiveScalarDerivative(Marea[2*i+1],j);
-    }
-#ifdef COMPUTE_FFI_SECOND_DERIVATIVES
-    int k,l;
-    // note: only storing lower triangular part due to symmetry
-    for (j=0,l=0; j<MAX_FFI_DERIVATIVES; ++j) {
-      for (k=0; k<=j; ++k,++l) {
-        vertices[i].slave_x_second_derivatives[l]  = GetActiveScalarSecondDerivative(Sarea[2*i],j,k);
-        vertices[i].slave_y_second_derivatives[l]  = GetActiveScalarSecondDerivative(Sarea[2*i+1],j,k);
-        vertices[i].master_x_second_derivatives[l] = GetActiveScalarSecondDerivative(Marea[2*i],j,k);
-        vertices[i].master_y_second_derivatives[l] = GetActiveScalarSecondDerivative(Marea[2*i+1],j,k);
-      }
-    }
-#endif
-  }
-}
-
-ContactFaceFaceInteraction*
-ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
-                                     ContactFixedSizeAllocator& alloc,
-                                     ContactFace<ActiveScalar>* Sface,
-                                     ContactFace<ActiveScalar>* Mface,
-                                     int Nedges,
-                                     int* FaceEdge,
-                                     int* EdgeMaster,
-                                     ActiveScalar* Sarea, ActiveScalar* Marea )
-{
-  return new (alloc.New_Frag())
-    ContactFaceFaceInteraction( Sface, Mface, Nedges,
-                                FaceEdge, EdgeMaster, Sarea, Marea );
-}
-#endif
-
-ContactFaceFaceInteraction* 
-ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
+template <typename DataType>
+ContactFaceFaceInteraction<DataType>* 
+ContactFaceFaceInteraction<DataType>::new_ContactFaceFaceInteraction(
 				     ContactFixedSizeAllocator& alloc )
 {
   return new (alloc.New_Frag())
     ContactFaceFaceInteraction( );
 }
 
-
-ContactFaceFaceInteraction* 
-ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
+template <typename DataType>
+ContactFaceFaceInteraction<DataType>* 
+ContactFaceFaceInteraction<DataType>::new_ContactFaceFaceInteraction(
 				     ContactFixedSizeAllocator& alloc,
 				     ContactFaceFaceInteraction& cffi )
 {
@@ -211,150 +170,180 @@ ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
     ContactFaceFaceInteraction( cffi );
 }
 
-
+template <typename DataType>
 void ContactFaceFaceInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc)
 {
-  alloc.Resize( sizeof(ContactFaceFaceInteraction),
+  alloc.Resize( sizeof(ContactFaceFaceInteraction<DataType>),
                 100,  // block size
-                0);  // initial block size
+                0,    // initial block size
+                sizeof(DataType)); 
   alloc.Set_Name( "ContactQFaceFaceInteraction allocator" );
 }
 
-
-ContactFaceFaceInteraction::~ContactFaceFaceInteraction()
+template <typename DataType>
+ContactFaceFaceInteraction<DataType>::~ContactFaceFaceInteraction()
 {
+  if (num_derivatives > 0) {
+    for (int i=0; i<num_edges; ++i) {
+      delete [] vertices[i].slave_x_derivatives;
+      delete [] vertices[i].slave_y_derivatives;
+      delete [] vertices[i].master_x_derivatives;
+      delete [] vertices[i].master_y_derivatives;
+    }
+  }
+  if (num_second_derivatives > 0) {
+    for (int i=0; i<num_edges; ++i) {
+      delete [] vertices[i].slave_x_second_derivatives;
+      delete [] vertices[i].slave_y_second_derivatives;
+      delete [] vertices[i].master_x_second_derivatives;
+      delete [] vertices[i].master_y_second_derivatives;
+    }
+  }
   if (vertices) delete [] vertices;
 }
 
-int ContactFaceFaceInteraction::Size()
+template <typename DataType>
+int ContactFaceFaceInteraction<DataType>::Size()
 {
-  return(ContactInteractionEntity::Size() + 
-         2*sizeof(entity_data)+
+  return(ContactInteractionEntity<DataType>::Size() + 
+         2*sizeof(typename ContactInteractionEntity<DataType>::entity_data)+
          1*sizeof(int) + 
-         DataArray_Length()*sizeof(Real) +
-         (num_edges+1)*sizeof(ContactFaceFaceVertex));
+         DataArray_Length()*sizeof(DataType) +
+         (num_edges+1)*sizeof(ContactFaceFaceVertex<DataType>));
 }
 
-void ContactFaceFaceInteraction::Pack( char* buffer )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Pack( char* buffer )
 {
   int cnt=0;
-  ContactInteractionEntity::Pack( buffer );
-  int* i_buf = reinterpret_cast<int*>(buffer + ContactInteractionEntity::Size());
-  cnt += PackEntityData(&slave_face_entity_data, &i_buf[cnt]);
-  cnt += PackEntityData(&master_face_entity_data, &i_buf[cnt]);
+  ContactInteractionEntity<DataType>::Pack( buffer );
+  int* i_buf = reinterpret_cast<int*>(buffer + ContactInteractionEntity<DataType>::Size());
+  cnt += this->PackEntityData(&slave_face_entity_data, &i_buf[cnt]);
+  cnt += this->PackEntityData(&master_face_entity_data, &i_buf[cnt]);
   i_buf[cnt++] = num_edges;
   
-  char* buf = buffer+ContactInteractionEntity::Size()+cnt*sizeof(int);
-  std::memcpy( buf, DataArray, DataArray_Length()*sizeof(Real));
+  char* buf = buffer+ContactInteractionEntity<DataType>::Size()+cnt*sizeof(int);
+  std::memcpy( buf, DataArray, DataArray_Length()*sizeof(DataType));
 
-  buf += DataArray_Length()*sizeof(Real);
-  std::memcpy( buf, vertices,(num_edges+1)*sizeof(ContactFaceFaceVertex));
+  buf += DataArray_Length()*sizeof(DataType);
+  std::memcpy( buf, vertices,(num_edges+1)*sizeof(ContactFaceFaceVertex<DataType>));
 }
 
-void ContactFaceFaceInteraction::Unpack( char* buffer )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Unpack( char* buffer )
 {
   int cnt=0;
-  ContactInteractionEntity::Unpack( buffer );
-  int* i_buf = reinterpret_cast<int*>(buffer + ContactInteractionEntity::Size());
-  cnt += UnPackEntityData(&slave_face_entity_data, &i_buf[cnt]);
-  cnt += UnPackEntityData(&master_face_entity_data, &i_buf[cnt]);
+  ContactInteractionEntity<DataType>::Unpack( buffer );
+  int* i_buf = reinterpret_cast<int*>(buffer + ContactInteractionEntity<DataType>::Size());
+  cnt += this->UnPackEntityData(&slave_face_entity_data, &i_buf[cnt]);
+  cnt += this->UnPackEntityData(&master_face_entity_data, &i_buf[cnt]);
   num_edges = i_buf[cnt++];
   
-  char* buf = buffer+ContactInteractionEntity::Size()+cnt*sizeof(int);
-  std::memcpy( DataArray, buf, DataArray_Length()*sizeof(Real));
+  char* buf = buffer+ContactInteractionEntity<DataType>::Size()+cnt*sizeof(int);
+  std::memcpy( DataArray, buf, DataArray_Length()*sizeof(DataType));
 
-  buf += DataArray_Length()*sizeof(Real);
-  vertices  = new ContactFaceFaceVertex[num_edges+1];
-  std::memcpy( vertices,buf,(num_edges+1)*sizeof(ContactFaceFaceVertex));
+  buf += DataArray_Length()*sizeof(DataType);
+  vertices  = new ContactFaceFaceVertex<DataType>[num_edges+1];
+  std::memcpy( vertices,buf,(num_edges+1)*sizeof(ContactFaceFaceVertex<DataType>));
 }
 
-void ContactFaceFaceInteraction::Copy( ContactFaceFaceInteraction* src )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Copy( ContactFaceFaceInteraction* src )
 {
-  ContactInteractionEntity::Copy( src );
+  ContactInteractionEntity<DataType>::Copy( src );
   slave_face_entity_data  = src->slave_face_entity_data;
   master_face_entity_data = src->master_face_entity_data;
   num_edges               = src->num_edges;
-  std::memcpy( DataArray,   src->DataArray, DataArray_Length()*sizeof(Real));
-  vertices                = new ContactFaceFaceVertex[num_edges+1];
-  std::memcpy( vertices,    src->vertices,(num_edges+1)*sizeof(ContactFaceFaceVertex));
+  std::memcpy( DataArray,   src->DataArray, DataArray_Length()*sizeof(DataType));
+  vertices                = new ContactFaceFaceVertex<DataType>[num_edges+1];
+  std::memcpy( vertices,    src->vertices,(num_edges+1)*sizeof(ContactFaceFaceVertex<DataType>));
 }
 
-void ContactFaceFaceInteraction::Connect_SlaveFace( ContactTopologyEntityList& hash_table )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Connect_SlaveFace( ContactTopologyEntityList& hash_table )
 {   
-  slave_face = static_cast<ContactFace<Real> *>(hash_table.Find( &slave_face_entity_data ));
+  slave_face = static_cast<ContactFace<DataType> *>(hash_table.Find( &slave_face_entity_data ));
   POSTCONDITION( slave_face );
 }
 
-void ContactFaceFaceInteraction::Connect_MasterFace( ContactTopologyEntityList& hash_table )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Connect_MasterFace( ContactTopologyEntityList& hash_table )
 {
-  master_face = static_cast<ContactFace<Real> *>(hash_table.Find( &master_face_entity_data ));
+  master_face = static_cast<ContactFace<DataType> *>(hash_table.Find( &master_face_entity_data ));
   //Can't have this condition always be satisfied in parallel
   //POSTCONDITION( master_face );
 }
 
-void ContactFaceFaceInteraction::Connect_SlaveFace( ContactTopologyEntityHash& hash_table )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Connect_SlaveFace( ContactTopologyEntityHash& hash_table )
 {   
-  slave_face = static_cast<ContactFace<Real> *>(hash_table.find( &slave_face_entity_data ));
+  slave_face = static_cast<ContactFace<DataType> *>(hash_table.find( &slave_face_entity_data ));
   POSTCONDITION( slave_face );
 }
 
-void ContactFaceFaceInteraction::Connect_MasterFace( ContactTopologyEntityHash& hash_table )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Connect_MasterFace( ContactTopologyEntityHash& hash_table )
 {
-  master_face = static_cast<ContactFace<Real> *>(hash_table.find( &master_face_entity_data ));
+  master_face = static_cast<ContactFace<DataType> *>(hash_table.find( &master_face_entity_data ));
   //Can't have this condition always be satisfied in parallel
   //POSTCONDITION( master_face );
 }
 
-void ContactFaceFaceInteraction::Connect_SlaveFace( ContactTopology* topology )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Connect_SlaveFace( ContactTopology* topology )
 {   
   int block = slave_face_entity_data.block_id;
-  slave_face = static_cast<ContactFace<Real> *>
+  slave_face = static_cast<ContactFace<DataType> *>
     (topology->Face_Block(block)->FaceList()->Find( &slave_face_entity_data ));
   POSTCONDITION( slave_face );
 }
-void ContactFaceFaceInteraction::Connect_MasterFace( ContactTopology* topology )
+
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Connect_MasterFace( ContactTopology* topology )
 {
   int block = master_face_entity_data.block_id;
-  master_face = static_cast<ContactFace<Real> *>
+  master_face = static_cast<ContactFace<DataType> *>
     (topology->Face_Block(block)->FaceList()->Find( &master_face_entity_data ));
   //Can't have this condition always be satisfied in parallel
   //POSTCONDITION( slave_face );
 }
 
-void ContactFaceFaceInteraction::Connect_SlaveFace( ContactFace<Real>* Face )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Connect_SlaveFace( ContactFace<DataType>* Face )
 {   
   slave_face = Face;
   POSTCONDITION( slave_face );
 }
-void ContactFaceFaceInteraction::Connect_MasterFace( ContactFace<Real>* Face )
+
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Connect_MasterFace( ContactFace<DataType>* Face )
 {
   master_face = Face;
   //Can't have this condition always be satisfied in parallel
   //POSTCONDITION( master_face );
 }
 
-int ContactFaceFaceInteraction::Data_Size()
+template <typename DataType>
+int ContactFaceFaceInteraction<DataType>::Data_Size()
 {
-#if (MAX_FFI_DERIVATIVES > 0) 
-  return 2+num_edges+num_edges+4*num_edges+num_edges+4*MAX_FFI_DERIVATIVES*num_edges+4*MAX_FFI_SECOND_DERIVATIVES*num_edges;
-#else
-  return 2+num_edges+num_edges+4*num_edges+num_edges;
-#endif
+  return 1+num_edges+num_edges+4*num_edges*(1+num_derivatives+num_second_derivatives);
 }
 
-int ContactFaceFaceInteraction::Restart_Size()
+template <typename DataType>
+int ContactFaceFaceInteraction<DataType>::Restart_Size()
 {
-  return 2*sizeof(entity_data)/sizeof(int)+1+6*(num_edges+1);
+  return 2*sizeof(typename ContactInteractionEntity<DataType>::entity_data)/sizeof(int)+1+6*(num_edges+1);
 }
 
-void ContactFaceFaceInteraction::Restart_Pack( Real* buffer )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Restart_Pack( DataType* buffer )
 {
   int i;
   int cnt=0;
-  Real* buf_loc = buffer;
+  DataType* buf_loc = buffer;
 
-  cnt += PackEntityData(&slave_face_entity_data, &buf_loc[cnt]);
-  cnt += PackEntityData(&master_face_entity_data, &buf_loc[cnt]);
+  cnt += this->PackEntityData(&slave_face_entity_data, &buf_loc[cnt]);
+  cnt += this->PackEntityData(&master_face_entity_data, &buf_loc[cnt]);
 
   // Pack the data
   buf_loc[cnt++] = num_edges;
@@ -368,18 +357,19 @@ void ContactFaceFaceInteraction::Restart_Pack( Real* buffer )
   }
 }
 
-void ContactFaceFaceInteraction::Restart_Unpack( Real* buffer )
+template <typename DataType>
+void ContactFaceFaceInteraction<DataType>::Restart_Unpack( DataType* buffer )
 {
   int i;
   int cnt=0;
-  Real* buf_loc = buffer;
+  DataType* buf_loc = buffer;
 
-  cnt += UnPackEntityData(&slave_face_entity_data, &buf_loc[cnt]);
-  cnt += UnPackEntityData(&master_face_entity_data, &buf_loc[cnt]);
+  cnt += this->UnPackEntityData(&slave_face_entity_data, &buf_loc[cnt]);
+  cnt += this->UnPackEntityData(&master_face_entity_data, &buf_loc[cnt]);
   
   // Unpack the Data Array
   num_edges = (int) *buf_loc++;
-  vertices = new ContactFaceFaceVertex[num_edges+1];
+  vertices = new ContactFaceFaceVertex<DataType>[num_edges+1];
   for (i=0; i<num_edges+1; ++i) {
     vertices[i].slave_x          = buf_loc[cnt++];
     vertices[i].slave_y          = buf_loc[cnt++];
@@ -390,23 +380,59 @@ void ContactFaceFaceInteraction::Restart_Unpack( Real* buffer )
   }
 }
 
-int ContactFaceFaceInteraction::Set_SlaveFaceEntityData() 
+template <typename DataType>
+int ContactFaceFaceInteraction<DataType>::Set_SlaveFaceEntityData() 
 {
   if (slave_face) {
-    SetEntityData(&slave_face_entity_data, slave_face);
+    this->SetEntityData(&slave_face_entity_data, slave_face);
     return 1;
-  }else{      
+  }else{
     return 0;
   }
 }
 
-int ContactFaceFaceInteraction::Set_MasterFaceEntityData() 
+template <typename DataType>
+int ContactFaceFaceInteraction<DataType>::Set_MasterFaceEntityData() 
 {
   if (master_face) {
-    SetEntityData(&master_face_entity_data, master_face);
+    this->SetEntityData(&master_face_entity_data, master_face);
     return 1;
-  }else{      
+  }else{
     return 0;
   }
 }
 
+#if (MAX_FFI_DERIVATIVES > 0)
+template <>
+void
+ContactFaceFaceInteraction<Real>::Set_Derivatives( ContactFaceFaceInteraction<ActiveScalar> *active_cffi)
+{
+  num_derivatives = (active_cffi) ?
+                    3*(slave_face->Nodes_Per_Face() + master_face->Nodes_Per_Face()) : 0;
+  if (num_edges>0) {
+    int i, j, k, l;
+    for (i=0; i<num_edges; ++i) {
+      if(num_derivatives > 0) {
+        vertices[i].slave_x_derivatives = new Real[num_derivatives];
+        vertices[i].slave_y_derivatives = new Real[num_derivatives];
+        vertices[i].master_x_derivatives = new Real[num_derivatives];
+        vertices[i].master_y_derivatives = new Real[num_derivatives];
+        for(j = 0; j<3*slave_face->Nodes_Per_Face(); ++j) {
+          vertices[i].slave_x_derivatives[j] = GetActiveScalarDerivative(active_cffi->Get_Vertex(i)->slave_x, j);
+          vertices[i].slave_y_derivatives[j] = GetActiveScalarDerivative(active_cffi->Get_Vertex(i)->slave_y, j);
+          vertices[i].master_x_derivatives[j] = GetActiveScalarDerivative(active_cffi->Get_Vertex(i)->master_x, j);
+          vertices[i].master_y_derivatives[j] = GetActiveScalarDerivative(active_cffi->Get_Vertex(i)->master_y, j);
+        }
+        for(j = 0, k = 3*slave_face->Nodes_Per_Face(), l=MAX_FFI_DERIVATIVES/2; j<3*master_face->Nodes_Per_Face(); ++j, ++k, ++l) {
+          vertices[i].slave_x_derivatives[k] = GetActiveScalarDerivative(active_cffi->Get_Vertex(i)->slave_x, l);
+          vertices[i].slave_y_derivatives[k] = GetActiveScalarDerivative(active_cffi->Get_Vertex(i)->slave_y, l);
+          vertices[i].master_x_derivatives[k] = GetActiveScalarDerivative(active_cffi->Get_Vertex(i)->master_x, l);
+          vertices[i].master_y_derivatives[k] = GetActiveScalarDerivative(active_cffi->Get_Vertex(i)->master_y, l);
+        }
+      }
+    }
+  }
+}
+#endif
+
+#endif // ContactFaceFaceInteraction_C_

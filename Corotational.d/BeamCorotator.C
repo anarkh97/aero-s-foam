@@ -1,4 +1,5 @@
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Element.d/Element.h>
 #include <Corotational.d/BeamCorotator.h>
 #include <Corotational.d/GeomState.h>
@@ -857,7 +858,7 @@ BeamCorotator::localCoord(double zvec0[3], double zvecl[2][3],
 
 void
 BeamCorotator::extractDeformations(GeomState &geomState, CoordSet &cs, 
-               double *vld, int &nlflag)
+                                   double *vld, int &nlflag)
 {
  // Set Flag to Use Linear Routines for Stress
  nlflag = 1;
@@ -876,9 +877,7 @@ BeamCorotator::extractDeformations(GeomState &geomState, CoordSet &cs,
  extractDefDisp(node1,node2,ns1,ns2,zVecL,xl0,xln,t0,t0n,vld);
 
  // transform element displacement vector from local to global coordinates
-
  tran_force( vld, t0, 2 );
-
 }
 
 //
@@ -888,9 +887,8 @@ BeamCorotator::extractDeformations(GeomState &geomState, CoordSet &cs,
 
 void
 BeamCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
-               double *vlr)
+                                      double *vlr)
 {
-
  double vld[12];
  int nlflag=1;
  extractDeformations(geomState, cs, vld, nlflag);
@@ -912,30 +910,7 @@ BeamCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
  vlr[9]  = 0.0;
  vlr[10] = 0.0;
  vlr[11] = 0.0;
-
- //fprintf(stderr,"Node 1: %e %e %e\n",vlr[0],vlr[1],vlr[2]);
- //fprintf(stderr,"Node 2: %e %e %e\n",vlr[6],vlr[7],vlr[8]);
-
 }
-
-void
-BeamCorotator::getNLVonMises(Vector& stress,Vector& weight,
-                             GeomState &geomState, CoordSet &cs,
-                             int strInd)
-{
- stress.zero();
- weight.zero();
-}
-
-void
-BeamCorotator::getNLAllStress(FullM& stress,Vector& weight,
-                              GeomState &geomState, CoordSet &cs,
-                              int strInd)
-{
- stress.zero();
- weight.zero();
-}
-
 
 double
 BeamCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)

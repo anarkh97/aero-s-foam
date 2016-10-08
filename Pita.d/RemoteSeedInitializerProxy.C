@@ -18,7 +18,7 @@ RemoteSeedInitializerProxy::initialSeed(SliceRank rank) const {
 
   communicator_->recFrom(rank.value(), sBuffer_.array(), 2 * vectorSize());
   DynamState newSeed = DynamState(vectorSize(), sBuffer_.array());
-  state_.insert(it, make_pair(rank, newSeed));
+  state_.insert(it, std::make_pair(rank, newSeed));
 
   return newSeed;
 }

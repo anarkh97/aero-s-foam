@@ -28,7 +28,7 @@ void DynamStateSet<Scalar>::merge(const DynamStateSet<Scalar> &dss)
   }
 
   stateSet_.reserve(stateSet_.size() + dss.stateSet_.size());
-  typename vector<State>::iterator it;
+  typename std::vector<State>::iterator it;
   for (it = dss.stateSet_.begin(); it != dss.stateSet_.end(); ++it)
   {
     stateSet_.push_back(*it);

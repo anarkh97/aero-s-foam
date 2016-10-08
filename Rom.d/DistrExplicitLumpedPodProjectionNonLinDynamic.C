@@ -17,7 +17,8 @@ extern GeoSource *geoSource;
 namespace Rom {
 
 DistrExplicitLumpedPodProjectionNonLinDynamic::DistrExplicitLumpedPodProjectionNonLinDynamic(Domain *domain) :
-  DistrExplicitPodProjectionNonLinDynamicBase(domain), K(NULL)
+  DistrExplicitPodProjectionNonLinDynamicBase(domain), K(NULL),
+  localReducedMeshId_(0)
 {}
 
 void
@@ -35,16 +36,32 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::preProcess() {
 void
 DistrExplicitLumpedPodProjectionNonLinDynamic::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n1) {
 
+  setLocalBasis(d_n1,v_n_h); // this also sets the reduced Mesh and resets sparse basis if needed
   DistrVector temp1(solVecInfo());
   temp1 = dt_n_h*v_n_h;
-  normalizedBasis_.projectUp( temp1, *d_n);
+  d_n->zero();
+  normalizedBasis_.expand( temp1, *d_n);
   execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subUpdateWeightedNodesOnly,*d_n);
-  d_n1 += temp1;
+  normalizedBasis_.addLocalPart(temp1,d_n1);
 
   if(haveRot) {
-    normalizedBasis_.projectUp(v_n_h, *v_n);
+    v_n->zero();
+    normalizedBasis_.expand(v_n_h, *v_n);
     execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subSetVelocityWeightedNodesOnly,*v_n);
   }
+}
+
+void
+DistrExplicitLumpedPodProjectionNonLinDynamic::setLocalReducedMesh(int j) {
+
+  // set new ID number
+  localReducedMeshId_ = j; 
+
+  // make new sparse basis
+/*  DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
+  for(int i=0; i<decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
+  normalizedBasis_.makeSparseBasis(localPackedWeightedNodes_[localReducedMeshId_], all_cdsa);
+  delete [] all_cdsa;*/
 }
 
 void
@@ -62,35 +79,36 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, 
     trProject(*fInt);
   }
 
-  *a_n = *fInt - *fExt;
-
-  if(haveRot) {
-    execParal2R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,3);
-    fullMassSolver->reSolve(*a_n);
-    execParal2R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,2);
-    DistrVector toto(*a_n);
-    dynMat->M->mult(toto, *a_n);
-  }
-
-  normalizedBasis_.projectDown(*a_n,f);
+  *tempVec = *fInt - *fExt;
+  f.zero();
+  normalizedBasis_.sparseVecReduce(*tempVec, f);
   //  the residual is computed in this step to avoid projecting into the reduced coordinates twice
-
 }
 
 void
 DistrExplicitLumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
-  packedElementWeights_.resize(decDomain->getNumSub());
-  packedWeightedNodes_.resize(decDomain->getNumSub());  
-  execParal(decDomain->getNumSub(),
-            this, &DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights);
+  packedElementWeights_.resize(geoSource->elementLumpingWeightSize());
+  localPackedWeightedNodes_.resize(geoSource->elementLumpingWeightSize());
+  packedWeightedNodes_.resize(decDomain->getNumSub());
+  int elemCounter;
+  for(int j=0; j<geoSource->elementLumpingWeightSize(); ++j){ // loop over each reduced mesh and load data structures
+    packedElementWeights_[j].resize(decDomain->getNumSub());
+    localPackedWeightedNodes_[j].resize(decDomain->getNumSub());
+    localReducedMeshId_ = j;
+    execParal(decDomain->getNumSub(),
+              this, &DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights);
 
-  int elemCounter = 0;
-  for(int i=0; i<decDomain->getNumSub(); ++i) elemCounter += packedElementWeights_[i].size();
-  if(structCom) elemCounter = structCom->globalSum(elemCounter);
+    elemCounter = 0;
+    for(int i=0; i<decDomain->getNumSub(); ++i) elemCounter += packedElementWeights_[j][i].size();
+    if(structCom) elemCounter = structCom->globalSum(elemCounter);
 
-  filePrint(stderr, " ... Number of Elements in Reduced Mesh = %d ...\n", elemCounter);
+    if(geoSource->elementLumpingWeightSize() == 1)
+      filePrint(stderr, " ... # Elems. in Reduced Mesh = %-4d...\n", elemCounter);
+    else
+      filePrint(stderr, " ... # Elems. in Reduced Mesh %d = %-4d...\n", j,elemCounter);
+  }
 
-  if(elemCounter < domain->numElements()) {
+  if(elemCounter < domain->numElements() && geoSource->elementLumpingWeightSize() == 1) {
     filePrint(stderr, " ... Compressing Basis              ...\n");
     DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
     for(int i=0; i<decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
@@ -117,7 +135,7 @@ void
 DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly(int iSub, DistrVector &v, int type) {
   StackVector vec(v.subData(iSub), v.subLen(iSub));
   GeomState *gs = (*geomState).getSubGeomState(iSub);
-  gs->transform(vec, packedWeightedNodes_[iSub], type);
+  gs->transform(vec, packedWeightedNodes_[iSub], type, true);
 }
 
 void
@@ -127,12 +145,12 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly(i
   Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
 
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
-    sd->getWeightedStiffAndForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
+    sd->getWeightedStiffAndForceOnly(packedElementWeights_[localReducedMeshId_][iSub], *(*geomState)[iSub], eIF,
                                      allCorot[iSub], kelArray[iSub], residual,
                                      1.0, t, (*geomState)[iSub], melArray[iSub]); // residual -= internal force);
   }
   else {
-    sd->getWeightedInternalForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
+    sd->getWeightedInternalForceOnly(packedElementWeights_[localReducedMeshId_][iSub], *(*geomState)[iSub], eIF,
                                      allCorot[iSub], kelArray[iSub], residual,
                                      1.0, t, (*geomState)[iSub], melArray[iSub]); // residual -= internal force);
   }
@@ -146,7 +164,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subInitWeightedStiffOnly(int iSub
   Vector residual(sd->numUncon(), 0.0);
   Vector eIF(sd->maxNumDOF());
 
-  sd->getWeightedStiffAndForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
+  sd->getWeightedStiffAndForceOnly(packedElementWeights_[localReducedMeshId_][iSub], *(*geomState)[iSub], eIF,
                                    allCorot[iSub], kelArray[iSub], residual,
                                    1.0, 0.0, (*geomState)[iSub], melArray[iSub]);
 }
@@ -155,12 +173,12 @@ void
 DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int iSub) {
   //need to sort out issue with subdomains for packed node vector
   SubDomain *sd = decDomain->getSubDomain(iSub);
-  std::map<int, double> &subElementWeights = packedElementWeights_[iSub];
-
-  std::vector<int> &subWeightedNodes = packedWeightedNodes_[iSub];
+  std::map<int, double> &subElementWeights = packedElementWeights_[localReducedMeshId_][iSub];
+  std::vector<int> &subWeightedNodes       = packedWeightedNodes_[iSub];
+  std::vector<int> &subLocalWeightedNodes  = localPackedWeightedNodes_[localReducedMeshId_][iSub];
   
-  for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(),
-                                                   it_end = geoSource->elementLumpingWeightEnd();
+  for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(localReducedMeshId_),
+                                                   it_end = geoSource->elementLumpingWeightEnd(localReducedMeshId_);
                                                    it != it_end; ++it) {
     const int elemId = it->first;
 
@@ -177,6 +195,8 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
       //put nodes for weighted element into dummy vector and insert into packed node vector
       ele->nodes(node_buffer.data());
       subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
+      if(geoSource->elementLumpingWeightSize() > 1)
+        subLocalWeightedNodes.insert(subLocalWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
     }
   }
 
@@ -188,6 +208,8 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
       std::vector<int> node_buffer(ele->numNodes());
       ele->nodes(node_buffer.data());
       subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
+      if(geoSource->elementLumpingWeightSize() > 1)
+        subLocalWeightedNodes.insert(subLocalWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
     }
   }
 /* XXX consider whether to also add the nodes with non-follower external forces
@@ -199,6 +221,11 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
   std::sort(subWeightedNodes.begin(), subWeightedNodes.end());
   std::vector<int>::iterator packedNodeIt = std::unique(subWeightedNodes.begin(),subWeightedNodes.end());
   subWeightedNodes.resize(packedNodeIt-subWeightedNodes.begin());
+  if(geoSource->elementLumpingWeightSize() > 1) {
+    std::sort(subLocalWeightedNodes.begin(), subLocalWeightedNodes.end());
+    std::vector<int>::iterator packedNodeIt = std::unique(subLocalWeightedNodes.begin(),subLocalWeightedNodes.end());
+    subLocalWeightedNodes.resize(packedNodeIt-subLocalWeightedNodes.begin());
+  }
 }
 
 MDDynamMat *

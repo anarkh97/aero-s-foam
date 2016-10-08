@@ -50,7 +50,7 @@ public:
     DistTimer orthogonalize;
     DistTimer projection;
     DistTimer kMem;
-    DistTimer applyFetiPrecond; // YYY DG
+    DistTimer applyFetiPrecond;
 
     int numIter;
     int numEdges;
@@ -105,7 +105,7 @@ public:
     long globalMemoryMin(long mem);
     long globalMemoryMax(long mem);
     long globalMemorySum(long mem);
-    double globalMemorySum(double mem);//CBM
+    double globalMemorySum(double mem);
 
 };
 

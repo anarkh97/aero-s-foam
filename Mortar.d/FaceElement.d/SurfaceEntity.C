@@ -2,7 +2,6 @@
 // HB - 06/30/03 
 // ------------------------------------------------------------
 // Std C/C++ lib
-
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -41,6 +40,77 @@ SurfaceEntity::SurfaceEntity(int _Id):ElemSet()
    Id = _Id;
 }
 
+SurfaceEntity::SurfaceEntity(const SurfaceEntity &other)
+ : Id(other.Id),
+   ElemSet(other.ElemSet.size()), 
+   nNodes(other.nNodes),
+   nVertices(other.nVertices),
+   LocalNumbering(other.LocalNumbering),
+   nTri3(other.nTri3),
+   nTri6(other.nTri6),
+   nQuad4(other.nQuad4),
+   nQuad8(other.nQuad8),
+   ReverseNormals(other.ReverseNormals),
+   IsShellFace(other.IsShellFace),
+   ShellThickness(other.ShellThickness),
+   PreserveOrdering(other.PreserveOrdering)
+{
+  for(int i=0; i<other.ElemSet.size(); ++i) {
+    if(FaceElement *faceEl = other.ElemSet[i]) ElemSet.elemadd(i, faceEl->clone());
+    else ElemSet.elemadd(i, (FaceElement*)0);
+  }
+
+  NodeCoordMap = (other.NodeCoordMap) ? new std::map<int,Node>(*other.NodeCoordMap) : 0;
+
+  if(other.gNodeIds) {
+    gNodeIds = new int[nNodes];
+    for(int i=0; i<nNodes; ++i) gNodeIds[i] = other.gNodeIds[i];
+  }
+  else gNodeIds = 0;
+
+  LlToGlNodeMap = (other.LlToGlNodeMap) ? gNodeIds : 0;
+  GlToLlNodeMap = (other.GlToLlNodeMap) ? new std::map<int,int>(*other.GlToLlNodeMap) : 0;
+
+  if(other.NodeSet) {
+    int size = other.NodeSet->size();
+    NodeSet = new CoordSet(size);
+    for(int i=0; i<size; ++i) {
+      if(Node *node = (*other.NodeSet)[i]) NodeSet->nodeadd(i, *node);
+    }
+  }
+  else NodeSet = 0;
+
+  if(other.gVertexIds) {
+    gVertexIds = new int[nVertices];
+    for(int i=0; i<nVertices; ++i) gVertexIds[i] = other.gVertexIds[i];
+  }
+  else gVertexIds = 0;
+
+  LlToGlVertexMap = (other.LlToGlVertexMap) ? gVertexIds : 0;
+
+  GlToLlVertexMap = (other.GlToLlVertexMap) ? new std::map<int,int>(*other.GlToLlVertexMap) : 0;
+
+  if(other.LlVertexToLlNodeMap) {
+    LlVertexToLlNodeMap = new int[nVertices];
+    for(int i=0; i<nVertices; ++i) LlVertexToLlNodeMap[i] = other.LlVertexToLlNodeMap[i];
+  }
+  else LlVertexToLlNodeMap = 0;
+
+  ACMEBlocksMap = (other.ACMEBlocksMap) ? new Connectivity(*other.ACMEBlocksMap) : 0;
+
+#ifdef HB_NODALNORMAL
+  if(other.NdNormals) {
+    NdNormals = new double[nNodes][3];
+    for(int i=0; i<nNodes; ++i) {
+      NdNormals[i][0] = other.NdNormals[i][0];
+      NdNormals[i][1] = other.NdNormals[i][1];
+      NdNormals[i][2] = other.NdNormals[i][2];
+    }
+  }
+  else NdNormals = 0;
+#endif
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                           DESTRUCTORS 
 // -----------------------------------------------------------------------------------------------------
@@ -54,9 +124,7 @@ SurfaceEntity::~SurfaceEntity()
   if(GlToLlVertexMap) { delete GlToLlVertexMap; GlToLlVertexMap = 0; }
   if(GlToLlNodeMap  ) { delete GlToLlNodeMap;   GlToLlNodeMap   = 0; }
   if(LlVertexToLlNodeMap) { delete [] LlVertexToLlNodeMap; LlVertexToLlNodeMap = 0; } 
-#ifdef MORTAR_LOCALNUMBERING
   if(NodeSet) { delete NodeSet; NodeSet = 0; }
-#endif
   if(ACMEBlocksMap) { delete ACMEBlocksMap; ACMEBlocksMap = 0; }
   nTri3 = nTri6 = nQuad4 = nQuad8 = 0;
   //ElemSet.~FaceElemSet();
@@ -69,7 +137,7 @@ void
 SurfaceEntity::Initialize()
 {
   Id = -1;
- 
+  NodeCoordMap = 0; 
   LocalNumbering = false;
  
   nNodes         = 0;
@@ -94,10 +162,11 @@ SurfaceEntity::Initialize()
   ReverseNormals = false;
   IsShellFace = false;
   ShellThickness = 0.0;
+  PreserveOrdering = false;
 }
 
 // -----------------------------------------------------------------------------------------------------
-//                                          SETUP & UPDATE  METHODS
+//                                          SETUP & UPDATE METHODS
 // -----------------------------------------------------------------------------------------------------
 void
 SurfaceEntity::SetUpData(CoordSet* cs)
@@ -106,11 +175,7 @@ SurfaceEntity::SetUpData(CoordSet* cs)
   SetUpVertexData();
   MakeLlVertexToLlNodeMap();
   MakeACMEBlocksMap();
-#ifdef MORTAR_LOCALNUMBERING
   if(cs) ExtractNodeSet(*cs);
-#else
-  NodeSet = cs;
-#endif
 }
 
 void
@@ -135,14 +200,6 @@ SurfaceEntity::UpdateNodeData(GeomState *geomState)
     NodeSet->getNode(inode).y = (*geomState)[ gNodeIds[inode] ].y;
     NodeSet->getNode(inode).z = (*geomState)[ gNodeIds[inode] ].z;
   }
-/*
-  cerr << "in SurfaceEntity::UpdateNodeData \n";
-  for(int inode=0; inode<nNodes; inode++) {
-    filePrint(stderr,"  global Id %6d --- local Id %6d: %e %e %e\n",
-              gNodeIds[inode]+1,inode+1,NodeSet->getNode(inode).x,
-              NodeSet->getNode(inode).y,NodeSet->getNode(inode).z);
-  }
-*/
 }
 
 void
@@ -168,23 +225,36 @@ SurfaceEntity::MakeGlVertexIds()
   if(gVertexIds) { delete [] gVertexIds; gVertexIds = 0; }
 
   // Get all the Vertices
-  int nElems = GetnFaceElems();
+  int maxElem = ElemSet.size();
   int nVerts = 0;
-  for(int iel=0; iel<nElems; iel++)
-    nVerts += ElemSet[iel]->nVertices();
+  for(int iel=0; iel<maxElem; iel++)
+    if(ElemSet[iel]) nVerts += ElemSet[iel]->nVertices();
 
   int* Vertices = new int[nVerts]; nVerts = 0;
-  for(int iel=0; iel<nElems; iel++) {
-    ElemSet[iel]->GetVertices(&Vertices[nVerts]);
-    nVerts += ElemSet[iel]->nVertices();
+  for(int iel=0; iel<maxElem; iel++) {
+    if(ElemSet[iel]) {
+      ElemSet[iel]->GetVertices(&Vertices[nVerts]);
+      nVerts += ElemSet[iel]->nVertices();
+    }
   }
+
   // Eliminate duplicate vertices
-  std::sort(Vertices,Vertices+nVerts);
-  nVertices = int(std::unique(Vertices,Vertices+nVerts)-Vertices);
+  if(PreserveOrdering) {
+    std::set<int> s;
+    int nVertices=0;
+    for(int i=0; i<nVerts; ++i)
+      if(s.find(Vertices[i]) == s.end()) {
+        s.insert(Vertices[i]);
+        Vertices[nVertices++] = Vertices[i];
+      }
+  }
+  else {
+    std::sort(Vertices,Vertices+nVerts);
+    nVertices = int(std::unique(Vertices,Vertices+nVerts)-Vertices);
+  }
 
   // Copy into the gVertexIds array
-  gVertexIds= new int[nVertices];
-  //for(int i=0; i<nVertices; i++) gVertexIds[i] = Vertices[i];
+  gVertexIds = new int[nVertices];
   std::copy(Vertices,Vertices+nVertices,gVertexIds);
 
   if(Vertices) delete [] Vertices;
@@ -196,34 +266,37 @@ SurfaceEntity::MakeGlNodeIds()
   if(gNodeIds) { delete [] gNodeIds; gNodeIds = 0; }
 
   // Get all the Nodes
-  //int nElems = GetnFaceElems();
+  int maxElem = ElemSet.size();
   int nNds = 0;
-  for(int iel=0; iel<ElemSet.size(); iel++) { // PJSA 3-5-2007 fix for nonsequential numbering
+  for(int iel=0; iel<maxElem; iel++) {
     if(ElemSet[iel]) nNds += ElemSet[iel]->nNodes();
   }
-  //for(int iel=0; iel<nElems; iel++) {
-  //  nNds += ElemSet[iel]->nNodes();
-  //}
 
   int* Nds = new int[nNds]; nNds = 0;
-  for(int iel=0; iel<ElemSet.size(); iel++) { // PJSA 3-5-2007 fix for nonsequential numbering
+  for(int iel=0; iel<maxElem; iel++) {
     if(ElemSet[iel]) {
       ElemSet[iel]->GetNodes(&Nds[nNds]);
       nNds += ElemSet[iel]->nNodes();
     }
   }
-  //for(int iel=0; iel<nElems; iel++) {
-  //  ElemSet[iel]->GetNodes(&Nds[nNds]);
-  //  nNds += ElemSet[iel]->nNodes();
-  //}
 
   // Eliminate duplicate nodes
-  std::sort(Nds,Nds+nNds);
-  nNodes = int(std::unique(Nds,Nds+nNds)-Nds);
+  if(PreserveOrdering) {
+    std::set<int> s;
+    nNodes = 0;
+    for(int i=0; i<nNds; ++i)
+      if(s.find(Nds[i]) == s.end()) {
+        s.insert(Nds[i]);
+        Nds[nNodes++] = Nds[i];
+      }
+  }
+  else {
+    std::sort(Nds,Nds+nNds);
+    nNodes = int(std::unique(Nds,Nds+nNds)-Nds);
+  }
 
- // Copy into the gNodeIds array
-  gNodeIds= new int[nNodes];
-  //for(int i=0; i<nNodes; i++) gNodeIds[i] = Nds[i];
+  // Copy into the gNodeIds array
+  gNodeIds = new int[nNodes];
   std::copy(Nds,Nds+nNodes,gNodeIds);
 
   if(Nds) delete [] Nds;
@@ -250,7 +323,7 @@ SurfaceEntity::MakeVertexMaps()
   LlToGlVertexMap = gVertexIds;
   
   if(GlToLlVertexMap) { delete GlToLlVertexMap; GlToLlVertexMap= 0; }
-  GlToLlVertexMap = new map<int,int>(); 
+  GlToLlVertexMap = new std::map<int,int>(); 
   for(int ivertex=0; ivertex<nVertices; ivertex++) 
     (*GlToLlVertexMap)[gVertexIds[ivertex]] = ivertex;
 }
@@ -282,7 +355,7 @@ SurfaceEntity::MakeNodeSet(CoordSet& cs)
 }
 
 void
-SurfaceEntity::MakeNodeSet(map<int,Node>& NodeCoordMap)
+SurfaceEntity::MakeNodeSet(std::map<int,Node>& NodeCoordMap)
 {
   if(!gNodeIds) MakeGlNodeIds();
   if(NodeSet) { delete NodeSet; NodeSet = 0; }
@@ -294,8 +367,8 @@ SurfaceEntity::MakeNodeSet(map<int,Node>& NodeCoordMap)
       Node &node = (*Imap).second;
       NodeSet->nodeadd(inode, node);
     } else {
-      std::cerr << " ### PB in SurfaceEntity::MakeNodeSet(map<int,Node>&) ###" << endl;
-      std::cerr << " ### NODE " <<gNodeIds[inode]<<" NOT FOUND IN INPUT NodeCoordMap ###" << endl;
+      std::cerr << " ### PB in SurfaceEntity::MakeNodeSet(map<int,Node>&) ###" << std::endl;
+      std::cerr << " ### NODE " <<gNodeIds[inode]<<" NOT FOUND IN INPUT NodeCoordMap ###" << std::endl;
     }
   }
 }
@@ -329,10 +402,10 @@ SurfaceEntity::MakeACMEBlocksMap()
   //         & store their position (index) in the ElemSet array
   nTri3 = nTri6 = nQuad4 = nQuad8 = 0;
   int nElems = GetnFaceElems();
-  vector<int> IndexTri3;  IndexTri3.reserve(512); // to avoid too many
-  vector<int> IndexTri6;  IndexTri6.reserve(512); // automatic memory
-  vector<int> IndexQuad4; IndexQuad4.reserve(512);// re-allocation
-  vector<int> IndexQuad8; IndexQuad8.reserve(512);
+  std::vector<int> IndexTri3;  IndexTri3.reserve(512); // to avoid too many
+  std::vector<int> IndexTri6;  IndexTri6.reserve(512); // automatic memory
+  std::vector<int> IndexQuad4; IndexQuad4.reserve(512);// re-allocation
+  std::vector<int> IndexQuad8; IndexQuad8.reserve(512);
   for(int iel=0; iel<nElems; iel++){
    int etype = ElemSet[iel]->GetFaceElemType();
    switch(etype)
@@ -357,7 +430,7 @@ SurfaceEntity::MakeACMEBlocksMap()
        nTri6++;
        break;
      default:
-       cerr << "Face element Type " << etype << " is NOT supported/implemented." << endl;
+       std::cerr << "Face element Type " << etype << " is NOT supported/implemented." << std::endl;
        exit(-1);
        return;
    }
@@ -418,7 +491,7 @@ SurfaceEntity::GetnFaceElems(int etype)
        return nTri6;
        break;
      default:
-       cerr << "Face element Type " << etype << " is NOT supported/implemented." << endl;
+       std::cerr << "Face element Type " << etype << " is NOT supported/implemented." << std::endl;
        exit(-1);
        return;
    }
@@ -462,6 +535,19 @@ SurfaceEntity::FillACMEFaceBlocks(int* face_connectivity, std::map<int,int>& Old
   return(offset);
 }
 
+void
+SurfaceEntity::Reset(CoordSet* cs)
+{
+  // this function should be called after elements are removed from ElemSet, e.g. due to element deletion
+  ElemSet.repack();
+  int *GlNodeIds = GetPtrGlNodeIds();
+  std::map<int,int> LlToGlNodeMap;
+  for(int i=0; i<GetnNodes(); ++i) LlToGlNodeMap[i] = GlNodeIds[i];
+  Renumber(LlToGlNodeMap);
+  SetUpData(cs);
+  Renumber();
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                            SET METHODS
 // -----------------------------------------------------------------------------------------------------
@@ -478,18 +564,24 @@ void
 SurfaceEntity::SetShellThickness(double _ShellThickness) { ShellThickness = _ShellThickness; }
 
 void
+SurfaceEntity::SetPreserveOrdering(bool _PreserveOrdering) { PreserveOrdering = _PreserveOrdering; }
+
+void
 SurfaceEntity::AddFaceElement(int num, int etype, int nnodes, int* nodes)
 {
-  ElemSet.elemadd(ElemSet.last(), etype, nnodes, nodes); // PJSA 3-5-2007
-  //ElemSet.elemadd(num, etype, nnodes, nodes);
+  ElemSet.elemadd(ElemSet.last(), etype, nnodes, nodes);
 }
 
 void
 SurfaceEntity::AddFaceElement(FaceElement* FaceElem)
 {
   ElemSet.elemadd(ElemSet.last(), FaceElem);
-  //filePrint(stderr," *** ERROR: No implementation of SurfaceEntity::AddFaceElement(FaceElement*) . Abort.\n");
-  //exit(-1);
+}
+
+void
+SurfaceEntity::RemoveFaceElement(int num)
+{
+  ElemSet.remove(num);
 }
 
 void 
@@ -558,22 +650,13 @@ SurfaceEntity::GetGlVertexId(int ivertex) { return(gVertexIds[ivertex]); }
 Node&
 SurfaceEntity::GetVertex(int ivertex)
 {
-  //return NodeSet->getNode(LlVertexToLlNodeMap[ivertex]);
-#ifdef MORTAR_LOCALNUMBERING
   return(NodeSet->getNode(GetLlVertexInLlNode(ivertex)));
-#else
-  return(NodeSet->getNode(gVertexIds[ivertex]));
-#endif
 }
 
 int
 SurfaceEntity::GetLlVertexInLlNode(int ivertex)
 {
-#ifdef MORTAR_LOCALNUMBERING
   return(LlVertexToLlNodeMap[ivertex]);
-#else
-  return(gVertexIds[ivertex]);
-#endif
 }
 
 int*
@@ -637,8 +720,6 @@ SurfaceEntity::PrintFaceElemSet()
 void 
 SurfaceEntity::Print()
 {
-   //fprintf(stderr," * surface ID: %d\n", Id);
-   //fprintf(stderr," * surface face elem. set: \n");
    filePrint(stderr," ------------------------------- \n");
    filePrint(stderr," * surface ID: %d\n", Id);
    filePrint(stderr," ------------------------------- \n");
@@ -717,7 +798,7 @@ SurfaceEntity::PrintFaceNormal(CoordSet& cs)
         m[0] = m[1] = 1./3.;
         break;
       default:
-        cerr << "Face element Type " << ElemSet[iel]->GetFaceElemType() << " is NOT supported/implemented." << endl;
+        std::cerr << "Face element Type " << ElemSet[iel]->GetFaceElemType() << " is NOT supported/implemented." << std::endl;
         exit(-1);
         return;
     }
@@ -749,7 +830,7 @@ SurfaceEntity::WriteSower(BinFileHandler& file)
 #endif
 
 // Comute nodal normal using the "Medial-Quadric" approach 
-// See "Parallel Features Preserving Mesh Smoothing" 
+// See "Parallel Feature-Preserving Mesh Smoothing" 
 // by X. Jiao & P. J. Alexander in Computational Science & Engineering 2005
 // The current implemented below uses a (local) area-based weighting 
 // EXPERIMENTAL ...
@@ -791,9 +872,6 @@ SurfaceEntity::ComputeNodalNormals(CoordSet& cs)
     double (*refCoords)[2] = reinterpret_cast<double (*)[2]>(ElemSet[iel]->ViewRefCoords());
     for(int i=0, nElNds=ElemSet[iel]->nNodes(); i<nElNds; i++) {
       int nd = ElemSet[iel]->GetNode(i);
-#ifndef MORTAR_LOCALNUMBERING
-      nd = GlToLlNodeMap[nd];
-#endif
       NdCard[nd]++;
       double jac = ElemSet[iel]->GetIsoParamMappingNormalAndJacobian(Nrml, refCoords[i], cs);
       //printf("surface %d, el %6d, node %2d, jac = %e, normal = %e %e %e\n",Id,iel+1,i+1,jac,Nrml[0],Nrml[1],Nrml[2]);

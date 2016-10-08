@@ -244,6 +244,8 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
   Timer().Start_Timer( initialization_time );
 #endif
 
+  if(SAVE_CVARS) Initialize_CVARS(); // PJSA even though CVARS are not saved for penalty, at least they should be initialized to zero
+
   // search data
   //
   // Get and initialize scratch memory 
@@ -842,6 +844,8 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
     vars[0] = &INC_FORCE;
     swapadd_node_scratch_vars( 1, vars);
 
+    if( topology->Have_Shells() ) Assemble_Shell_Forces(); // PJSA
+
 #if !defined (CONTACT_NO_MPI) && defined (CONTACT_TIMINGS)
     Timer().Stop_Timer( penalty_time );
     Timer().Start_Timer( update_config_time );
@@ -931,6 +935,8 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
 
   scratch_arrays[0] = &TOTAL_FORCE;
   Copy_Node_Vector_Scratch_to_Host_Arrays( 1, &Force, scratch_arrays );
+
+  if( topology->Have_Shells() ) Store_Shell_Final_Lofted_Positions(); // PJSA
 
 #if LOCAL_PRINT_FLAG > 3 
   postream << "\n FORCES___total_iterations = " << iteration << "\n";

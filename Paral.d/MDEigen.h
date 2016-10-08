@@ -66,6 +66,7 @@ class GenMultiDomainEigen
     int solVecSize();
     DistrInfo &solVecInfo();
     void preProcess();
+    bool getFilter() { return domain->solInfo().readmodeCalled; }
 
     GenMultiDomainEigenPostProcessor<Scalar> *getPostProcessor(); 
 
@@ -79,6 +80,7 @@ class GenMultiDomainEigen
                          double& tolEig, double& tolJac, bool &explicitK);
     void getMemoryK(int iSub, long *memory);
     void getMemoryPrec(int iSub, long *memory);
+    void convertModeDataToVecSet(DistrVectorSet& vModeData) { filePrint(stderr," ... GenMultiDomainEigen::convertModeDataToVecSet has not been implemented.\n"); }
 };
 
 typedef GenMultiDomainEigen<double> MultiDomainEigen;

@@ -6,6 +6,7 @@
 #include <Element.d/Function.d/TimeDerivatives.h>
 #include <iostream>
 #include <Element.d/Function.d/SacadoReverseJacobian.h>
+#include <Math.d/FullSquareMatrix.h>
 #include <unsupported/Eigen/NumericalDiff>
 
 template<template <typename S> class ConstraintFunctionTemplate>
@@ -60,18 +61,27 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>
 
 template<template <typename S> class ConstraintFunctionTemplate>
 void
-ConstraintFunctionElement<ConstraintFunctionTemplate>::buildFrame(CoordSet& c0)
+ConstraintFunctionElement<ConstraintFunctionTemplate>::buildFrame(CoordSet& _c0)
 {
+  c0 = &_c0;
+}
+
+template<template <typename S> class ConstraintFunctionTemplate>
+void
+ConstraintFunctionElement<ConstraintFunctionTemplate>::setProp(StructProp *p, bool _myProp)
+{
+  Element::setProp(p, _myProp);
+
   // instantiate the constraint function object
   Eigen::Array<double, ConstraintFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
   Eigen::Array<int, ConstraintFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst);
+  getConstants(*c0, sconst, iconst);
   ConstraintFunctionTemplate<double> f(sconst,iconst);
 
   // prepare the constraint function inputs
   const int N = ConstraintFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
   Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, NULL, NULL);
+  getInputs(q, *c0, NULL, NULL);
   double t = 0;
 
   // evaluate the constraint function and store -ve value in LMPCons::rhs
@@ -142,7 +152,7 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>::getHessian(GeomState *ref
       Simo::Hessian<double,ConstraintFunctionTemplate> d2fdq2(sconst,iconst);
       H = d2fdq2(q, t);
     } break;
-#if (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
+#if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 #ifdef USE_SACADO
     /*case 2: {
       // evaluate the constraint hessian by forward automatic differentation of the jacobian
@@ -225,7 +235,7 @@ double
 ConstraintFunctionElement<ConstraintFunctionTemplate>::getAccelerationConstraintRhs(GeomState *refState, GeomState& c1,
                                                                                     CoordSet& c0, double t)
 {
-#if defined(USE_SACADO) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
+#if defined(USE_SACADO) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)) && defined(HAS_CXX11_TEMPLATE_ALIAS)
   // instantiate the constraint function object
   Eigen::Array<double, ConstraintFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
   Eigen::Array<int, ConstraintFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;

@@ -4,6 +4,7 @@
 #include <Dec.d/Decomp.d/Decomp.h>
 #include <Threads.d/PHelper.h>
 #include <cstdio>
+#include <iostream>
 
 void
 DecOpti::minInterface(int sub)
@@ -179,7 +180,7 @@ Decomposition *
 improveDec(Elemset *es, Connectivity *eton, Connectivity *ntoe, 
            Connectivity *etoe, Decomposition *dec)
 {
-  std::cout << " *** WARNING Improving the decomposition in this way is no longer guaranteed (facelist has not been ported to FEM)" << endl;
+  std::cout << " *** WARNING Improving the decomposition in this way is no longer guaranteed (facelist has not been ported to FEM)" << std::endl;
   DecOpti dopt(eton,ntoe,etoe,dec);
   Decomposition *newDec = dopt.minInterface();
   newDec = dopt.faceComponents(es);

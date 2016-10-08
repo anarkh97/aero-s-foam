@@ -1,8 +1,8 @@
 ! ==================================
 ! interpret reading input data 
 ! ==================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 4.  subroutine          getgqsize                 (optmhd,optele,ngqpt, mgaus,mgqpt)
 !
 ! =========================================================================================================

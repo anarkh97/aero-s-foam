@@ -1,5 +1,6 @@
 #include <typeinfo>
 #include <cstdio>
+#include <algorithm>
 #ifdef SUN10
 #include <typeinfo.h>
 #endif 
@@ -947,19 +948,63 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
 
  //Scalar inorm = 0.0; for(int i=0; i<interfLen(); ++i) inorm += interfvec[i]*interfvec[i];
  //Scalar lnorm = 0.0; for(int i=0; i<localRLen(); ++i) lnorm += localvec[i]*localvec[i];
- //cerr << "sub = " << subNumber << ", before: inorm = " << inorm << ", lnorm = " << lnorm;
- //if(subNumber == 7) { cerr << "interfvec = "; for(int i=0; i<interfLen(); ++i) cerr << interfvec[i] << " "; cerr << endl; }
+ //std::cerr << "sub = " << subNumber << ", before: inorm = " << inorm << ", lnorm = " << lnorm;
+ //if(subNumber == 7) { std::cerr << "interfvec = "; for(int i=0; i<interfLen(); ++i) std::cerr << interfvec[i] << " "; std::cerr << std::endl; }
+
+ // Primal augmentation 072513 JAT 
+ if(Ave) {
+   int i, k, nAve, nCor;
+   int numEquations = Krr->neqs();
+   nCor = Krc?Krc->numCol():0;
+   nAve = Src->numCol() - nCor;
+#ifdef NOTBLAS
+   Scalar s;
+   for(i=0; i<nAve; ++i) {
+     s = 0.0;
+     for(k=0; k<numEquations; ++k)
+       s += Eve[i][k]*localvec[k];
+     for(k=0; k<numEquations; ++k)
+       localvec[k] -= s*Ave[i][k];
+   }
+#else
+   Scalar v[nAve];
+   Tgemv('T', numEquations, nAve, 1.0, Eve[0], numEquations, localvec, 1, 0.0, v, 1);
+   Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, localvec, 1);
+#endif
+ }
 
  // localvec = Krr^-1 * localvec
  if(s) s->reSolve(localvec);
+
+ // Extra orthogonaliztion for stability  072216 JAT
+ if(Ave) {
+   int i, k, nAve, nCor;
+   int numEquations = Krr->neqs();
+   nCor = Krc?Krc->numCol():0;
+   nAve = Src->numCol() - nCor;
+#ifdef NOTBLAS
+   Scalar s;
+   for(i=0; i<nAve; ++i) {
+     s = 0.0;
+     for(k=0; k<numEquations; ++k)
+       s += Ave[i][k]*localvec[k];
+     for(k=0; k<numEquations; ++k)
+       localvec[k] -= s*Ave[i][k];
+   }
+#else
+   Scalar v[nAve];
+   Tgemv('T', numEquations, nAve, 1.0, Ave[0], numEquations, localvec, 1, 0.0, v, 1);
+   Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, localvec, 1);
+#endif
+ }
 
  // interfvec = Br * localvec
  multBr(localvec, interfvec, uc);
 
  //inorm = 0.0; for(int i=0; i<interfLen(); ++i) inorm += interfvec[i]*interfvec[i];
  //lnorm = 0.0; for(int i=0; i<localRLen(); ++i) lnorm += localvec[i]*localvec[i];
- //cerr << ", after: inorm = " << inorm << ", lnorm = " << lnorm << endl;
- //if(subNumber == 7) { cerr << "interfvec = "; for(int i=0; i<interfLen(); ++i) cerr << interfvec[i] << " "; cerr << endl; }
+ //std::cerr << ", after: inorm = " << inorm << ", lnorm = " << lnorm << std::endl;
+ //if(subNumber == 7) { std::cerr << "interfvec = "; for(int i=0; i<interfLen(); ++i) std::cerr << interfvec[i] << " "; std::cerr << std::endl; }
 }
 
 template<class Scalar>
@@ -1146,7 +1191,6 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat)
 {
-  if(numMPC) cerr << "ERROR: GenSubDomain<Scalar>::assembleInterfInvert(...) not implemented for MPCs \n";
   for(int i = 0; i < numUncon(); ++i) subvec[i] = 1.0/subvec[i];
   for(int i = 0; i < scomm->numNeighb; ++i) {
     FSSubRecInfo<Scalar> rInfo = pat->recData(scomm->subNums[i], subNumber);
@@ -2034,6 +2078,10 @@ GenSubDomain<Scalar>::renumberElementsGlobal()
 {
  for(int i=0; i < numele; ++i)
    packedEset[i]->renum(glNums);
+
+ for(int i=0; i < numNeum; ++i) {
+   neum[i]->renum(glNums);
+ }
 }
 
 template<class Scalar>
@@ -2043,7 +2091,7 @@ GenSubDomain<Scalar>::renumberSharedNodes()
   int *allC = scomm->sharedNodes->tgt();
   for(int i = 0; i < scomm->sharedNodes->numConnect(); ++i) {
     int gi = allC[i];
-    //if(globalToLocal(gi) < 0) cerr << "error in GenSubDomain::renumberSharedNodes() \n";
+    //if(globalToLocal(gi) < 0) std::cerr << "error in GenSubDomain::renumberSharedNodes() \n";
     allC[i] = globalToLocal(gi);
   }
 }
@@ -2168,13 +2216,11 @@ GenSubDomain<Scalar>::computeElementForce(int fileNumber, Scalar *u, int forceIn
     }
 
     if(packedEset[iele]->getProperty()) {
-      if(domain->solInfo().thermalLoadFlag || (domain->solInfo().thermoeFlag >= 0)) {
-        for(int iNode=0; iNode<NodesPerElement; ++iNode) {
-          if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-        }
+      for(int iNode=0; iNode<NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
       }
     }
 
@@ -2275,24 +2321,22 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
 
       int iNode;
       if(packedEset[iele]->getProperty()) {
-        if(domain->solInfo().thermalLoadFlag || (domain->solInfo().thermoeFlag >= 0)) {
-          for(iNode=0; iNode<NodesPerElement; ++iNode) {
-            if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-              elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-            else
-              elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-          }
+        for(iNode=0; iNode<NodesPerElement; ++iNode) {
+          if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+          else
+            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
         }
 
         // transform displacements from DOF_FRM to basic coordinates
         transformVectorInv(*elDisp, iele);
 
         // transform non-invariant stresses/strains from basic frame to DOF_FRM
-        if(oframe == OutputInfo::Local && ((stressIndex >=0 && stressIndex <=5) || (stressIndex >= 7 && stressIndex <= 12))) {
+        if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))) {
 
           // FIRST, CALCULATE STRESS/STRAIN TENSOR FOR EACH NODE OF THE ELEMENT
           p_elstress->zero();
-          int strInd = (stressIndex >=0 && stressIndex <=5) ? 0 : 1;
+          int strInd = (stressIndex >= 0 && stressIndex <= 5) ? 0 : 1;
           packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
                                          *elDisp, strInd, surface,
                                          elemNodeTemps.data());
@@ -2310,10 +2354,9 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
 
         }
         else {
-
           packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
                                         *elDisp, stressIndex, surface,
-                                        elemNodeTemps.data(),ylayer,zlayer,avgnum);
+                                        elemNodeTemps.data(), ylayer, zlayer, avgnum);
         }
       }
     }
@@ -2354,18 +2397,9 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
                                           int fileNumber, int stressIndex, Scalar *glStress, Scalar *glWeight,
                                           GeomState *refState)
 {
-
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
   if(elemToNode==0) elemToNode = new Connectivity(&packedEset);
-
-  int k;
-  int surface = oinfo[fileNumber].surface;
-  int iele;
-  int *nodeNumbers = new int[maxNumNodes];
-  GenVector<Scalar> *elstress = new GenVector<Scalar>(maxNumNodes);
-  GenVector<double> *elweight = new GenVector<double>(maxNumNodes);
-  GenVector<Scalar> *elDisp = new GenVector<Scalar>(maxNumDOFs);
 
   // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
   int avgnum = oinfo[fileNumber].averageFlg;
@@ -2373,17 +2407,29 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
   // ylayer and zlayer are needed when calculating the axial stress/strain in a beam element
   double ylayer = oinfo[fileNumber].ylayer;
   double zlayer = oinfo[fileNumber].zlayer;
+  OutputInfo::FrameType oframe = oinfo[fileNumber].oframe;
 
+  int *nodeNumbers = new int[maxNumNodes];
   Vector elemNodeTemps(maxNumNodes);
   elemNodeTemps.zero();
   double *nodalTemperatures = getNodalTemperatures();
+
+  int k;
+  int surface = oinfo[fileNumber].surface;
+
+  int iele;
+  GenVector<Scalar> *elstress = new GenVector<Scalar>(maxNumNodes);
+  GenVector<double> *elweight = new GenVector<double>(maxNumNodes);
+  GenVector<Scalar> *elDisp = new GenVector<Scalar>(maxNumDOFs);
+  GenFullM<Scalar> *p_elstress = 0;
+  if(oframe == OutputInfo::Local) p_elstress = new GenFullM<Scalar>(maxNumNodes,9);
 
   int flag;
 
   for(iele=0; iele<numele; ++iele) {
 
     // Don't do anything if element is a phantom
-    if (packedEset[iele]->isPhantomElement()) continue;
+    if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
 
     // Don't include beams or bars in the averaging if nodalpartial (avgnum = 2) is requested
     if ((avgnum == 2 && packedEset[iele]->getElementType() == 6) ||
@@ -2400,33 +2446,64 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
     packedEset[iele]->nodes(nodeNumbers);
 
     int iNode;
-    if(packedEset[iele]->getProperty()) {
-      if(domain->solInfo().thermalLoadFlag || (domain->solInfo().thermoeFlag >= 0)) {
-        for(iNode=0; iNode<NodesPerElement; ++iNode) {
-          if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-        }
+    if(flag == 1 && packedEset[iele]->getProperty()) {
+      for(iNode=0; iNode<NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
       }
     }
 
-    if(flag == 1) {
-      // USE LINEAR STRESS ROUTINE
-      packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
-                                    *elDisp, stressIndex, surface,
-                                     elemNodeTemps.data(), ylayer, zlayer, avgnum);
-    }
-    else if(flag == 2) {
-      // USE NON-LINEAR STRESS ROUTINE
-      allCorot[iele]->getNLVonMises(*elstress, *elweight, *gs, refState,
-                                    nodes, stressIndex, surface,
-                                    elemNodeTemps.data(), ylayer, zlayer, avgnum);
+    if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))
+       && (flag == 1 || flag == 2)) { // transform non-invariant stresses/strains from basic frame to DOF_FRM
+
+      // First, calculate stress/strain tensor for each node of the element
+      p_elstress->zero();
+      int strInd = (stressIndex >= 0 && stressIndex <= 5) ? 0 : 1;
+      if (flag == 1) {
+        // USE LINEAR STRESS ROUTINE
+        packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
+                                       *elDisp, strInd, surface,
+                                       elemNodeTemps.data());
+      }
+      else {
+        // USE NON-LINEAR STRESS ROUTINE
+        // note: in this case the element nodal temperatures are extracted from geomState inside the function
+        allCorot[iele]->getNLAllStress(*p_elstress, *elweight, *gs,
+                                       refState, nodes, strInd, surface);
+      }
+
+      // Second, transform stress/strain tensor to nodal frame coordinates
+      transformStressStrain(*p_elstress, iele);
+
+      // Third, extract the requested stress/strain value from the stress/strain tensor
+      for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(strInd == 0)
+          (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex];
+        else
+          (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex-7];
+      }
     }
     else {
-      // NO STRESS RECOVERY
+      if(flag == 1) {
+        // USE LINEAR STRESS ROUTINE
+        packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
+                                      *elDisp, stressIndex, surface,
+                                      elemNodeTemps.data(), ylayer, zlayer, avgnum);
+      }
+      else if(flag == 2) {
+        // USE NON-LINEAR STRESS ROUTINE
+        // note: in this case the element nodal temperatures are extracted from geomState inside the function
+        allCorot[iele]->getNLVonMises(*elstress, *elweight, *gs, refState,
+                                      nodes, stressIndex, surface, ylayer, zlayer, avgnum);
+      }
+      else {
+        // NO STRESS RECOVERY
+        elstress->zero();
+        elweight->zero();
+      }
     }
-
 
     if(glWeight)  {
       for(k = 0; k < NodesPerElement; ++k) {
@@ -2448,6 +2525,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
   delete elweight;
   delete elDisp;
   delete [] nodeNumbers;
+  if(p_elstress) delete p_elstress;
 }
 
 template<class Scalar>
@@ -2477,16 +2555,17 @@ GenSubDomain<Scalar>::reBuildKbb(FullSquareMatrix *kel)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u)//DOfSet::max_known_nonL_dof
+GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u, Scalar (*xyz_loc)[11]) //DOfSet::max_known_nonL_dof
 {
  // Loop over all nodes, Subtract the initial configuration from the
  // Current configuration to get the displacement
+ bool IsTemperatureState = (dynamic_cast<TemperatureState*>(u) != NULL);
  int i, nodeI;
  for(i = 0; i < numnodes; ++i) {
-   if(!nodes[i]) continue;
+   if(!nodes[i] || i >= u->numNodes()) continue;
    nodeI = (domain->outFlag) ? domain->nodeTable[glNums[i]]-1 : glNums[i];
 
-   if(dynamic_cast<TemperatureState*>(u)) { xyz[nodeI][0] = (*u)[i].x; continue; }
+   if(IsTemperatureState) { xyz[nodeI][0] = (*u)[i].x; continue; }
    xyz[nodeI][0] = ((*u)[i].x - nodes[i]->x);
    xyz[nodeI][1] = ((*u)[i].y - nodes[i]->y);
    xyz[nodeI][2] = ((*u)[i].z - nodes[i]->z);
@@ -2495,19 +2574,25 @@ GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u)//DOfSet::max_kn
    xyz[nodeI][3] = rot[0];
    xyz[nodeI][4] = rot[1];
    xyz[nodeI][5] = rot[2];
+
+   if(xyz_loc) {
+     for(int j=0; j<6; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
+     transformVector(xyz_loc[nodeI], i, true);
+   }
  }
 }
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u)//DofSet::max_known_nonL_dof
+GenSubDomain<Scalar>::mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u, Scalar (*xyz_loc)[11]) //DofSet::max_known_nonL_dof
 {
  // Loop over all nodes, Subtract the initial configuration from the
  // Current configuration to get the displacement
+ bool IsTemperatureState = (dynamic_cast<TemperatureState*>(u) != NULL);
  int i;
  for(i = 0; i < numnodes; ++i) {
    if(!nodes[i]) continue;
-   if(dynamic_cast<TemperatureState*>(u)) { xyz[i][0] = (*u)[i].x; continue; }
+   if(IsTemperatureState) { xyz[i][0] = (*u)[i].x; continue; }
    xyz[i][0] = ((*u)[i].x - nodes[i]->x);
    xyz[i][1] = ((*u)[i].y - nodes[i]->y);
    xyz[i][2] = ((*u)[i].z - nodes[i]->z);
@@ -2516,6 +2601,11 @@ GenSubDomain<Scalar>::mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u)//D
    xyz[i][3] = rot[0];
    xyz[i][4] = rot[1];
    xyz[i][5] = rot[2];
+
+   if(xyz_loc) {
+     for(int j=0; j<6; ++j) xyz_loc[i][j] = xyz[i][j];
+     transformVector(xyz_loc[i], i, true);
+   }
  }
 }
 
@@ -2647,9 +2737,9 @@ GenSubDomain<Scalar>::assembleMpcIntoKcc()
         int column = cornerMap[d];
         int row    = mpcOffset + iMPC;
         if(row > Kcc->dim())
-          cout << " *** ERROR: Dimension Error Row = " << row    << " > " << Kcc->dim() << endl;
+          std::cout << " *** ERROR: Dimension Error Row = " << row    << " > " << Kcc->dim() << std::endl;
         if(column > Kcc->dim())
-          cout << " *** ERROR: Dimension Error Col = " << column << " > " << Kcc->dim() << endl;
+          std::cout << " *** ERROR: Dimension Error Col = " << column << " > " << Kcc->dim() << std::endl;
         // i.e. an mpc touches a corner node that also has DBCs
         if(column >= 0) {
           (*Kcc)[row][column] += mpc_primal[iMPC]->terms[i].coef;
@@ -2708,6 +2798,139 @@ GenSubDomain<Scalar>::multKcc()
      KrrKrc[iRHS][iDof] = 0.0;
  }
  if(Src) Src->multIdentity(KrrKrc);
+
+ // 070213 JAT
+ if(Src && (solInfo().getFetiInfo().augmentimpl == FetiInfo::Primal)) {
+   int nAve, nCor;
+   nCor = Krc?Krc->numCol():0;
+   nAve = Src->numCol() - nCor;
+   if (nAve) {
+     int i, j, k, nz;
+     Scalar *pAve = new Scalar [nAve*numEquations];
+     Scalar *pEve = new Scalar [nAve*numEquations];
+     Scalar *pKve = new Scalar [nAve*numEquations];
+     Scalar *pv = new Scalar [nAve];
+     GenFullM<Scalar> AKA(nAve);
+     Scalar s, *pAKA;
+     Scalar **Kve = new Scalar *[nAve];
+     Ave = new Scalar *[nAve];
+     Eve = new Scalar *[nAve];
+     for(i=0; i<nAve; ++i) {
+       Ave[i] = pAve + i*numEquations;
+       Eve[i] = pEve + i*numEquations;
+       Kve[i] = pKve + i*numEquations;
+     }
+     for(i=0; i<nAve; ++i) {
+       s = 0.0;
+       for(j=0; j<numEquations; ++j) {
+	 Ave[i][j] = KrrKrc[nCor+i][j];
+	 s += Ave[i][j]*Ave[i][j];
+       }
+       s = 1.0/sqrt(s);
+       for(j=0; j<numEquations; ++j)
+         Ave[i][j] *= s;
+     }
+     for(i=0; i<nAve; ++i)
+       for(j=0; j<numEquations; ++j)
+         Eve[i][j] = Ave[i][j];
+     Krr->reSolve(nAve, Eve);
+     pAKA = AKA.data();
+#ifdef NOTBLAS
+     for(i=0; i<nAve; ++i)
+       for(j=0; j<nAve; ++j) {
+         s = 0.0;
+         for(k=0; k<numEquations; ++k)
+	   s += Eve[i][k]*Ave[j][k];
+	 pAKA[i+nAve*j] = s;
+       }
+#else
+     Tgemm('T', 'N', nAve, nAve, numEquations, 1.0, Eve[0], numEquations,
+           Ave[0], numEquations, 0.0, pAKA, nAve);
+#endif
+     AKA.factor();
+     for(j=0; j<numEquations; ++j) {
+       for(i=0; i<nAve; ++i)
+	 pv[i] = Eve[i][j];
+       AKA.reSolve(pv);
+       for(i=0; i<nAve; ++i)
+	 Eve[i][j] = pv[i];
+     }
+
+     for(i=0; i<nAve; ++i)
+       for(j=0; j<nCor; ++j) {
+         s = 0.0;
+         for(k=0; k<numEquations; ++k)
+	   s += KrrKrc[j][k]*Ave[i][k];
+	 (*Kcc)[nCor+i][j] = s;
+         (*Kcc)[j][nCor+i] = s;
+       }
+     for(i=0; i<nAve; ++i) {
+       KrrSparse->mult(Ave[i],Kve[i]);
+       for(j=0; j<nAve; ++j) {
+         s = 0.0;
+         for(k=0; k<numEquations; ++k)
+	   s += Kve[i][k]*Ave[j][k];
+	 (*Kcc)[nCor+i][nCor+j] = s;
+       }
+     }
+
+     nz = 0;
+     for(i=0; i<nAve; ++i)
+       for(k=0; k<numEquations; ++k)
+	 if(std::abs(Kve[i][k])>0.0) nz++;
+
+     int *KACount = new int[nAve];
+     int *KAList = new int[nz];
+     Scalar *KACoefs = new Scalar[nz];
+     nz = 0;
+     for(i=0; i<nAve; ++i) {
+       KACount[i] = 0;
+       for(k=0; k<numEquations; ++k)
+	 if(std::abs(Kve[i][k])>0.0) {
+	   KACount[i]++;
+	   KAList[nz] = k;
+	   KACoefs[nz] = Kve[i][k];
+	   nz++;
+	 }
+     }
+
+     Grc = new GenCuCSparse<Scalar>(nAve, numEquations, KACount, KAList, KACoefs);
+
+     if (Src->num() == 2)
+       Src->setSparseMatrix(1,Grc);
+     else if (Src->num() == 1 && nCor == 0)
+       Src->setSparseMatrix(0,Grc);
+     else {
+       fprintf(stderr, "unsupported number of blocks in Src\n");
+       exit(1);
+     }
+
+     delete [] KACount;
+
+     for(i=0; i<nRHS; ++i)
+       for(j=0; j<numEquations; ++j)
+	 KrrKrc[i][j] = 0.0;
+
+     Src->multIdentity(KrrKrc);
+
+#ifdef NOTBLAS
+     for(i=0; i<nAve; ++i)
+       for(j=0; j<nRHS; j++) {
+	 s = 0.0;
+	 for(k=0; k<numEquations; ++k)
+	   s += Eve[i][k]*KrrKrc[j][k];
+	 for(k=0; k<numEquations; ++k)
+	   KrrKrc[j][k] -= s*Ave[i][k];
+       }
+#else
+     Scalar v[nAve];
+     for(j=0; j<nRHS; j++) {
+       Tgemv('T', numEquations, nAve, 1.0, Eve[0], numEquations, KrrKrc[j], 1, 0.0, v, 1);
+       Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, KrrKrc[j], 1);
+     }
+#endif
+   }
+ }
 
  // KrrKrc <- Krr^-1 Krc
  if(Krr) Krr->reSolve(nRHS, KrrKrc); // this can be expensive when nRHS is large eg for coupled 
@@ -2787,6 +3010,11 @@ GenSubDomain<Scalar>::reMultKcc()
  // which extracts the correct rhs vectors for the forward/backwards
 
  int nRHS = Src->numCol();
+
+ if(Ave) { // JAT
+   fprintf(stderr,"reMultKcc not implemented for primal augmentation\n");
+   exit(1);
+ }
 
  int numEquations = Krr->neqs();
  if(BKrrKrc) {
@@ -2914,7 +3142,51 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda)
 
  if(numWIdof) Krw->multAddNew(localw, force);  // coupled_dph: force += Krw * uw
 
+ // Primal augmentation 072513 JAT 
+ if(Ave) {
+   int i, k, nAve, nCor;
+   int numEquations = Krr->neqs();
+   nCor = Krc?Krc->numCol():0;
+   nAve = Src->numCol() - nCor;
+#ifdef NOTBLAS
+   Scalar s;
+   for(i=0; i<nAve; ++i) {
+     s = 0.0;
+     for(k=0; k<numEquations; ++k)
+       s += Eve[i][k]*force[k];
+     for(k=0; k<numEquations; ++k)
+       force[k] -= s*Ave[i][k];
+   }
+#else
+   Scalar v[nAve];
+   Tgemv('T', numEquations, nAve, 1.0, Eve[0], numEquations, force, 1, 0.0, v, 1);
+   Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, force, 1);
+#endif
+ }
+
  if(Krr) Krr->reSolve(force);
+
+ // Extra orthogonaliztion for stability  072216 JAT
+ if(Ave) {
+   int i, k, nAve, nCor;
+   int numEquations = Krr->neqs();
+   nCor = Krc?Krc->numCol():0;
+   nAve = Src->numCol() - nCor;
+#ifdef NOTBLAS
+   Scalar s;
+   for(i=0; i<nAve; ++i) {
+     s = 0.0;
+     for(k=0; k<numEquations; ++k)
+       s += Ave[i][k]*force[k];
+     for(k=0; k<numEquations; ++k)
+       force[k] -= s*Ave[i][k];
+   }
+#else
+   Scalar v[nAve];
+   Tgemv('T', numEquations, nAve, 1.0, Ave[0], numEquations, force, 1, 0.0, v, 1);
+   Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, force, 1);
+#endif
+ }
 
  // re-initialization required for mpc/contact
  if(fcstar) delete [] fcstar;  fcstar = new Scalar[Src->numCol()];
@@ -3003,6 +3275,32 @@ GenSubDomain<Scalar>::getFc(Scalar *f, Scalar *Fc)
     for(j = 0; j < nd; ++j) Fc[iOff+j] = f[dNum[j]];
     iOff += nd;
   }
+
+  if(Ave) { // Average corners 072513 JAT 
+    int i, iNode, numEquations = Krr->neqs();
+    int rDofs[DofSet::max_known_dof];
+    int oDofs[DofSet::max_known_dof];
+    Scalar fr[numEquations];
+    for(iNode = 0; iNode < numnodes; ++iNode) {
+      DofSet thisDofSet = (*cc_dsa)[iNode];
+      int nd = thisDofSet.count();
+      c_dsa->number(iNode, thisDofSet, oDofs);
+      cc_dsa->number(iNode, thisDofSet, rDofs);
+      for(i = 0; i < nd; ++i)
+        fr[rDofs[i]] = f[oDofs[i]];
+    }
+
+    int nAve, nCor, k;
+    Scalar s;
+    nCor = Krc?Krc->numCol():0;
+    nAve = Src->numCol() - nCor;
+    for(i=0; i<nAve; ++i) {
+      s = 0.0;
+      for(k=0; k<numEquations; ++k)
+        s += Ave[i][k]*fr[k];
+      Fc[nCor+i] = s;
+    }
+  }
 }
 
 template<class Scalar>
@@ -3040,6 +3338,27 @@ GenSubDomain<Scalar>::getFr(Scalar *f, Scalar *fr)
       fr[rDofs[i]] = f[oDofs[i]];
     }
   }
+
+  if(Ave) { // Averages to zero 072513 JAT 
+    int i, k, nAve, nCor;
+    nCor = Krc?Krc->numCol():0;
+    nAve = Src->numCol() - nCor;
+    int numEquations = Krr->neqs();
+#ifdef NOTBLAS
+    Scalar s;
+    for(i=0; i<nAve; ++i) {
+      s = 0.0;
+      for(k=0; k<numEquations; ++k)
+        s += Ave[i][k]*fr[k];
+      for(k=0; k<numEquations; ++k)
+        fr[k] -= s*Ave[i][k];
+    }
+#else
+   Scalar v[nAve];
+   Tgemv('T', numEquations, nAve, 1.0, Ave[0], numEquations, fr, 1, 0.0, v, 1);
+   Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, fr, 1);
+#endif
+  }
 }
 
 template<class Scalar>
@@ -3071,6 +3390,22 @@ GenSubDomain<Scalar>::mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda)
     iOff += nd;
  }
 
+ // Primal augmentation 030314 JAT
+ if(Ave) {
+   int nCor, nAve;
+   nCor = Krc?Krc->numCol():0;
+   nAve = Src->numCol() - nCor;
+   for(iNode = 0; iNode < numnodes; ++iNode) {
+     DofSet thisDofSet = (*cc_dsa)[iNode];
+     int nd = thisDofSet.count();
+     c_dsa->number(iNode, thisDofSet, oDofs);
+     cc_dsa->number(iNode, thisDofSet, rDofs);
+     for(i = 0; i < nd; ++i)
+       for(j = 0; j < nAve; ++j)
+	 u[oDofs[i]] += Ave[j][rDofs[i]]*uc[cornerEqNums[nCor+j]];
+   }
+ }
+
  // extract uw
  Scalar *uw = (Scalar *) dbg_alloca(numWIdof*sizeof(Scalar));
  for(i=0; i < scomm->lenT(SComm::wet); ++i)
@@ -3099,7 +3434,7 @@ GenSubDomain<Scalar>::makeQ()
      break;
    case FetiInfo::Gs:
    {
-     nGrbm = myMin(rigidBodyModes->numRBM(), solInfo().getFetiInfo().nGs);
+     nGrbm = std::min(rigidBodyModes->numRBM(), solInfo().getFetiInfo().nGs);
      int iLen = scomm->lenT(SComm::std);
      interfaceRBMs = new Scalar[nGrbm*iLen];
      rbms = new Scalar[nGrbm*iLen];
@@ -3131,7 +3466,9 @@ GenSubDomain<Scalar>::makeQ()
            makeEdgeVectorsPlus(false);  // build augmentation for structure dofs
          }
          else {
-           makeEdgeVectorsPlus(isFluid(0));
+           makeEdgeVectorsPlus(isFluid(0),
+			       packedEset[0]->getCategory()==Element::Thermal,
+			       packedEset[0]->getCategory()==Element::Undefined);
          }
          break;
        case FetiInfo::averageTran:
@@ -3430,7 +3767,7 @@ GenSubDomain<Scalar>::makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd)
   for(int i=0; i<numCRN; ++i) {
     int offset2 = 0;
     for(int j=0; j<nsub; ++j) {
-      GlobalToLocalMap& nodeMap = sd[j]->getGlobalToLocalNodeMap();
+      GlobalToLocalMap& nodeMap = sd[j]->getGlobalToLocalNode();
       ConstrainedDSA *cornerEqs = sd[j]->getCDSA();
       if(nodeMap[glCornerNodes[i]] > -1) {
          int count = cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(), cornerEqNums+offset);
@@ -3456,9 +3793,8 @@ GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
 
   // numbers the corner equations
   int offset = 0;
-  for(int i=0; i<numCRN; ++i) {
+  for(int i=0; i<numCRN; ++i)
     offset += cornerEqs->number(glCornerNodes[i], cornerDofs[i].list(), cornerEqNums+offset);
-  }
 
   // number the mpc equations
   for(int i = 0; i < numMPC_primal; ++i) {
@@ -3562,10 +3898,10 @@ GenSubDomain<Scalar>::multKbbMpc(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *
 
   applyBtransposeAndScaling(u, v, deltaU, localw);
 
-  //Scalar norm = 0; for(i=0; i<boundLen; ++i) norm += v[i]*v[i]; cerr << "1. norm = " << sqrt(norm) << endl;
+  //Scalar norm = 0; for(i=0; i<boundLen; ++i) norm += v[i]*v[i]; std::cerr << "1. norm = " << sqrt(norm) << std::endl;
   if((solInfo().getFetiInfo().precno == FetiInfo::lumped) ||
      (solInfo().getFetiInfo().precno == FetiInfo::dirichlet) || errorFlag) Kbb->mult(v, res);  // res = Kbb * v
-  //norm = 0; for(i=0; i<boundLen; ++i) norm += res[i]*res[i]; cerr << "2. norm = " << sqrt(norm) << endl;
+  //norm = 0; for(i=0; i<boundLen; ++i) norm += res[i]*res[i]; std::cerr << "2. norm = " << sqrt(norm) << std::endl;
 
   if((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) || errorFlag) {
     Scalar *iDisp = new Scalar[internalLen];
@@ -3574,9 +3910,9 @@ GenSubDomain<Scalar>::multKbbMpc(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *
     if(Kib) Kib->transposeMultAdd(v, iDisp); // iDisp += Kib^T * v
 
     if(solInfo().getFetiInfo().precno == FetiInfo::dirichlet) {
-      //norm = 0; for(i=0; i<internalLen; ++i) norm += iDisp[i]*iDisp[i]; cerr << "3. norm = " << sqrt(norm) << endl;
+      //norm = 0; for(i=0; i<internalLen; ++i) norm += iDisp[i]*iDisp[i]; std::cerr << "3. norm = " << sqrt(norm) << std::endl;
       if(KiiSolver) KiiSolver->reSolve(iDisp);
-      //norm = 0; for(i=0; i<internalLen; ++i) norm += iDisp[i]*iDisp[i]; cerr << "4. norm = " << sqrt(norm) << endl;
+      //norm = 0; for(i=0; i<internalLen; ++i) norm += iDisp[i]*iDisp[i]; std::cerr << "4. norm = " << sqrt(norm) << std::endl;
       for(i=0; i<numWIdof; ++i) localw[i] = iDisp[wiInternalMap[i]]; // coupled_dph
       if(Kib) Kib->multSub(iDisp, res); // res -= Kib*iDisp
     }
@@ -3808,14 +4144,15 @@ GenSubDomain<Scalar>::insertMpcResidual(Scalar *subv, GenVector<Scalar> &mpcv, S
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::setMpcRhs(Scalar *interfvec, double _t)
+GenSubDomain<Scalar>::setMpcRhs(Scalar *interfvec, double _t, int flag)
 {
   // set the rhs of inequality mpcs to the geometric gap and reset the rhs of the equality mpcs to the original rhs
-  // (used in nonlinear analysis)
-  // idea: initalize to dual-active if gap is open (+ve) // XXXX
+  // if flag = 0 then interfvec = C*u, used in nonlinear analyses to update LMPCs and tied surfaces
+  // if flag = 1 then interfvec = C*(u-u_n), used in nonlinear analyses to update piecewise linear contact surfaces
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if(mpc[locMpcNb]->getSource() != mpc::ContactSurfaces) {
+    if((mpc[locMpcNb]->getSource() != mpc::ContactSurfaces && flag == 0) ||
+       (mpc[locMpcNb]->getSource() == mpc::ContactSurfaces && sinfo.piecewise_contact && flag == 1)) {
       mpc[locMpcNb]->rhs = mpc[locMpcNb]->original_rhs - interfvec[scomm->mapT(SComm::mpc,i)];
     }
   }
@@ -3846,7 +4183,7 @@ GenSubDomain<Scalar>::getMpcError()
       if(mpc[i]->type == 0) {
         ret += ScalarTypes::sqNorm(mpc[i]->rhs);
       }
-      else if(mpc[i]->type == 1) ret += ScalarTypes::sqNorm(MIN(0.0, mpc[i]->rhs));
+      else if(mpc[i]->type == 1 && ScalarTypes::lessThan(mpc[i]->rhs, 0.)) ret += ScalarTypes::sqNorm(mpc[i]->rhs);
     }
   }
   return ret;
@@ -4035,8 +4372,8 @@ GenSubDomain<Scalar>::recvMpcStatus(FSCommPattern<int> *mpcPat, int flag, bool &
  statusChange = false;
  for(i = 0; i < numMPC; ++i) {
    if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) {
-     if(!mpc[i]->active && !tmpStatus[i]) { cerr << "-"; if(print_debug) cerr << " recvMpcStatus: sub = " << subNumber << ", mpc = " << localToGlobalMPC[i] << endl; }
-     else if(mpc[i]->active && tmpStatus[i]) { cerr << "+"; if(print_debug) cerr << " recvMpcStatus: sub = " << subNumber << ", mpc = " << localToGlobalMPC[i] << endl; }
+     if(!mpc[i]->active && !tmpStatus[i]) { std::cerr << "-"; if(print_debug) std::cerr << " recvMpcStatus: sub = " << subNumber << ", mpc = " << localToGlobalMPC[i] << std::endl; }
+     else if(mpc[i]->active && tmpStatus[i]) { std::cerr << "+"; if(print_debug) std::cerr << " recvMpcStatus: sub = " << subNumber << ", mpc = " << localToGlobalMPC[i] << std::endl; }
    }
    mpc[i]->active = !tmpStatus[i];
    if(mpcStatus2[i] == mpc[i]->active) statusChange = true;
@@ -4049,7 +4386,7 @@ GenSubDomain<Scalar>::printMpcStatus()
 {
  for(int i = 0; i < numMPC; ++i) {
    if(mpc[i]->type == 1) {
-     cerr<< (mpc[i]->active ? 'o' : 'x');
+     std::cerr<< (mpc[i]->active ? 'o' : 'x');
    }
  }
 }
@@ -4080,8 +4417,8 @@ GenSubDomain<Scalar>::restoreMpcStatus()
 {
  for(int i = 0; i < numMPC; ++i) {
    if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) {
-     if(!mpc[i]->active && !mpcStatus[i]) cerr << "-";
-     else if(mpc[i]->active && mpcStatus[i]) cerr << "+";
+     if(!mpc[i]->active && !mpcStatus[i]) std::cerr << "-";
+     else if(mpc[i]->active && mpcStatus[i]) std::cerr << "+";
    }
    mpc[i]->active = bool(!mpcStatus[i]);
  }
@@ -4140,7 +4477,7 @@ GenSubDomain<Scalar>::applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *de
               int cdof = (m->terms)[k].cdof;
               if(cdof >= 0) { // mpc dof that exists
                 Scalar coef = (m->terms)[k].coef / m->k[k]; // 1/m->k[k] = A, see generalized preconditioner
-                if(invBoundMap[cdof] < 0) cerr << "error here in GenSubDomain<Scalar>::applyBtransposeAndScaling\n";
+                if(invBoundMap[cdof] < 0) std::cerr << "error here in GenSubDomain<Scalar>::applyBtransposeAndScaling\n";
                 v[invBoundMap[cdof]] += u[iDof] * coef * scaling[iDof];
               }
             }
@@ -4221,7 +4558,7 @@ GenSubDomain<Scalar>::computeContactPressure(Scalar *globStress, Scalar *globWei
       for(int j = 0; j < mpc[locMpcNb]->nterms; ++j) {
         int node = mpc[locMpcNb]->terms[j].nnum;
         int glNode = (domain->outFlag) ? domain->nodeTable[glNums[node]]-1 : glNums[node];
-        globStress[glNode] += abs(localLambda[scomm->mapT(SComm::mpc,i)]);
+        globStress[glNode] += std::abs(localLambda[scomm->mapT(SComm::mpc,i)]);
         globWeight[glNode] += 1.0;
       }
     }
@@ -4237,7 +4574,7 @@ GenSubDomain<Scalar>::computeLocalContactPressure(Scalar *stress, Scalar *weight
     if(mpc[locMpcNb]->type == 1) { // inequality constraint
       for(int j = 0; j < mpc[locMpcNb]->nterms; ++j) {
         int node = mpc[locMpcNb]->terms[j].nnum;
-        stress[node] += abs(localLambda[scomm->mapT(SComm::mpc,i)]);
+        stress[node] += std::abs(localLambda[scomm->mapT(SComm::mpc,i)]);
         weight[node] += 1.0;
       }
     }
@@ -4250,7 +4587,7 @@ GenSubDomain<Scalar>::getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEq
                                         int mpcOffset, GenVector<Scalar> &uc)
 {
 // XXXX needs some work to map both dual and primal into single mpcLambda array
-  if(numMPC > 0 && numMPC_primal > 0) cerr << "unsupported feature in GenSubDomain::getLocalMpcForces \n";
+  if(numMPC > 0 && numMPC_primal > 0) std::cerr << "unsupported feature in GenSubDomain::getLocalMpcForces \n";
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) { // dual mpcs
     int locMpcNb = scomm->mpcNb(i);
     if(localLambda) mpcLambda[locMpcNb] = localLambda[scomm->mapT(SComm::mpc,i)];
@@ -4286,6 +4623,18 @@ GenSubDomain<Scalar>::getConstraintMultipliers(std::map<std::pair<int,int>,doubl
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::getLocalMultipliers(std::vector<double> &lambda)
+{
+  lambda.resize(numMPC);
+
+  for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+    int l = scomm->mpcNb(i);
+    lambda[l] = (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0;
+  }
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::initialize()
 {
   kweight = 0; deltaFmpc = 0; scaling = 0; 
@@ -4302,6 +4651,9 @@ GenSubDomain<Scalar>::initialize()
   bcx_scalar = 0;
   a = 0; b = 0; P = 0; Q = 0; rebuildPade = true;  // pade
   numC_deriv = 0; C_deriv = 0; Cuc_deriv = 0;
+  numK_deriv = 0; K_deriv = 0; Kuc_deriv = 0;
+  num_K_arubber = 0; 
+  K_arubber_l = 0; K_arubber_m = 0; Kuc_arubber_l = 0; Kuc_arubber_m = 0;
 #ifdef HB_COUPLED_PRECOND
   kSumWI = 0;
   precNodeToNode = 0;
@@ -4311,6 +4663,7 @@ GenSubDomain<Scalar>::initialize()
   G = 0; neighbG = 0;
   sharedRstar_g = 0; tmpRstar_g = 0;
   l2g = 0;
+  Ave = 0; Eve = 0; // 070213 JAT
 }
 
 template<class Scalar>
@@ -4376,6 +4729,12 @@ GenSubDomain<Scalar>::~GenSubDomain()
   if(P) delete P; if(Q) delete Q;
   if(C_deriv) { for(int i=0; i<numC_deriv; ++i) delete C_deriv[i]; delete [] C_deriv; }
   if(Cuc_deriv) { for(int i=0; i<numC_deriv; ++i) delete Cuc_deriv[i]; delete [] Cuc_deriv; }
+  if(K_deriv) { for(int i=0; i<numK_deriv; ++i) delete K_deriv[i]; delete [] K_deriv; }
+  if(Kuc_deriv) { for(int i=0; i<numK_deriv; ++i) delete Kuc_deriv[i]; delete [] Kuc_deriv; }
+  if(K_arubber_l) { for(int i=0; i<num_K_arubber; ++i) delete K_arubber_l[i]; delete [] K_arubber_l; }
+  if(Kuc_arubber_l) { for(int i=0; i<num_K_arubber; ++i) delete Kuc_arubber_l[i]; delete [] Kuc_arubber_l; }
+  if(K_arubber_m) { for(int i=0; i<num_K_arubber; ++i) delete K_arubber_m[i]; delete [] K_arubber_m; }
+  if(Kuc_arubber_m) { for(int i=0; i<num_K_arubber; ++i) delete Kuc_arubber_m[i]; delete [] Kuc_arubber_m; }
 #ifdef HB_COUPLED_PRECOND
   if(kSumWI) { delete kSumWI; kSumWI = 0; }
   if(isMixedSub && precNodeToNode) { delete precNodeToNode; precNodeToNode = 0; }
@@ -4398,6 +4757,7 @@ GenSubDomain<Scalar>::~GenSubDomain()
       if(neighbG[i]) { delete neighbG[i]; neighbG[i] = 0; }
      delete [] neighbG; neighbG = 0;
   }
+  if(l2g) delete [] l2g;
 }
 
 template<class Scalar>
@@ -4433,15 +4793,34 @@ GenSubDomain<Scalar>::deleteMPCs()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
+GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
+                                          bool isUndefinedSub)
 {
-  int i;
+  int i, iSub, iNode;
   //bool isCoupled = solInfo().isCoupled;
   int spaceDim = solInfo().solvercntl->fetiInfo.spaceDimension;
   // Number of directions in the coarse problem, choose from 0, 1, ..., 13
   int numDirec = solInfo().getFetiInfo().numdir;
   int numWaves = spaceDim;      // Number of long and trans waves
-  if(isFluidSub)
+  Connectivity &sharedNodes = *(scomm->sharedNodes);
+
+  if (isUndefinedSub) {
+    int nhelm = 0, ntemp = 0, ndisp = 0;
+    for(iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+      if(scomm->subNums[iSub] == subNumber) continue;
+      for(iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
+	if(boundaryDOFs[iSub][iNode].contains(DofSet::Helm)) nhelm++;
+	if(boundaryDOFs[iSub][iNode].contains(DofSet::Temp)) ntemp++;
+	if(boundaryDOFs[iSub][iNode].contains(DofSet::XYZdisp)) ndisp++;
+      }
+    }
+    isFluidSub = nhelm > 0;
+    isThermalSub = ntemp > 0;
+    if (nhelm*ntemp > 0 || nhelm*ndisp || ntemp*ndisp)
+      std::cerr << " *** WARNING: multiple types of dofs with undefined type\n";
+  }
+
+  if(isFluidSub || isThermalSub)
     numWaves = 1;
   int numCS = 2;  // Choose cos or/and sin mode
 
@@ -4490,6 +4869,10 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     if(numR > 0) numR = 1;
     desired = DofSet::Helm;
   }
+  else if(isThermalSub) {
+    if(numR > 0) numR = 1;
+    desired = DofSet::Temp;
+  }
   else {
     if(solInfo().getFetiInfo().rbmType == FetiInfo::rotation || (numR > 3)) {
       numR = 6;
@@ -4498,7 +4881,6 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     else desired = DofSet::XYZdisp;
   }
 
-  Connectivity &sharedNodes = *(scomm->sharedNodes);
   // edgeDofSize: number of augmentation degree of freedom per edge
   if(!edgeDofSize) {
     edgeDofSize = new int[scomm->numNeighb];
@@ -4509,16 +4891,15 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
   int total = 0;
 
   int numdofperNode = 0;
-  if(isFluidSub)
+  if(isFluidSub || isThermalSub)
     numdofperNode = 1;
   else if(solInfo().getFetiInfo().waveType == FetiInfo::solid)
     numdofperNode = 3;
   else numdofperNode = 6;
 
   int numInterfNodes = sharedNodes.numConnect();
-  int lQ = (numR + numDirec*numWaves*numCS)*numdofperNode*numInterfNodes;
-
   int nQPerNeighb = numR + numDirec*numWaves*numCS;
+  int lQ = nQPerNeighb*numdofperNode*numInterfNodes;
   double *Q = new double[lQ];
   bool *isUsed = (bool *) dbg_alloca(sizeof(bool)*(nQPerNeighb*scomm->numNeighb));
   for(i = 0; i < nQPerNeighb*scomm->numNeighb; ++i)
@@ -4527,21 +4908,24 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     Q[i] = 0;
 
   // 1. first count number of edge dofs
-  int iSub, iNode;
-  DofSet *found = new DofSet[scomm->numNeighb];
+  edgeDofs = new DofSet[scomm->numNeighb]; // edgeDofs was called found  JAT 112113
   for(iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-    edgeDofSizeTmp[iSub]=0;
+    edgeDofSizeTmp[iSub] = 0;
     if(scomm->subNums[iSub] == subNumber) continue;
-    int nhelm = 0;
+    int nhelm = 0, ntemp = 0;
     int nx = 0, ny = 0, nz = 0;
     int nxr = 0, nyr = 0, nzr = 0;
     int label = 0;
     for(iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
       if((isFluidSub && !boundaryDOFs[iSub][iNode].contains(DofSet::Helm)) ||
          (!isFluidSub && boundaryDOFs[iSub][iNode].contains(DofSet::Helm))) continue;
+      if((isThermalSub && !boundaryDOFs[iSub][iNode].contains(DofSet::Temp)) ||
+         (!isThermalSub && boundaryDOFs[iSub][iNode].contains(DofSet::Temp))) continue;
 
       if(boundaryDOFs[iSub][iNode].contains(DofSet::Helm))
         nhelm++;
+      if(boundaryDOFs[iSub][iNode].contains(DofSet::Temp))
+	ntemp++;
       if(boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp))
         nx++;
       if(boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp))
@@ -4557,21 +4941,23 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
 
       if(boundaryDOFs[iSub][iNode].containsAllDisp(spaceDim)) label++;
 
-      found[iSub] |= boundaryDOFs[iSub][iNode] & desired;
+      edgeDofs[iSub] |= boundaryDOFs[iSub][iNode] & desired;
     }
 
     // Check if we should add rotation for problems that do not
     // define rotational degrees of freedom
     if(desired.contains(DofSet::XYZrot)) {
       // if ny +nz is bigger than 2 (at least 3) there is no danger in puttin g a Xrot
-      if(ny  + nz > 2) found[iSub] |= DofSet::Xrot;
+      if(ny  + nz > 2) edgeDofs[iSub] |= DofSet::Xrot;
       // if nx+nz > 2 and there are some y AND some z, we add the Yrot
-      if(nx + nz > 2 && (ny*nx) != 0) found[iSub] |= DofSet::Yrot;
-      if(nx + ny > 2 && (nx*ny*nz) != 0) found[iSub] |= DofSet::Zrot;
+      if(nx + nz > 2 && (ny*nx) != 0) edgeDofs[iSub] |= DofSet::Yrot;
+      if(nx + ny > 2 && (nx*ny*nz) != 0) edgeDofs[iSub] |= DofSet::Zrot;
     }
 
     if(numR > 0) {
       if(nhelm > 0)
+        isUsed[iSub*nQPerNeighb] = true;
+      if(ntemp > 0)
         isUsed[iSub*nQPerNeighb] = true;
       if(nx > 0)
         isUsed[0+iSub*nQPerNeighb] = true;
@@ -4580,11 +4966,11 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       if(nz > 0)
         isUsed[2+iSub*nQPerNeighb] = true;
       if(desired.contains(DofSet::XYZrot)) {
-        if((nxr > 0) || ( ny + nz > 2))
+        if((nxr > 0) || (ny + nz > 2))
           isUsed[3+iSub*nQPerNeighb] = true;
-        if((nyr > 0) || ( nx + nz > 2))
+        if((nyr > 0) || (nx + nz > 2))
           isUsed[4+iSub*nQPerNeighb] = true;
-        if((nzr > 0) || ( nx + ny > 2))
+        if((nzr > 0) || (nx + ny > 2))
           isUsed[5+iSub*nQPerNeighb] = true;
       }
     }
@@ -4593,10 +4979,10 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       for(i=0; i<numDirec*numWaves*numCS; i++)
         isUsed[numR+i+iSub*nQPerNeighb] = true;
     if((label == 0) && (nhelm == 0))
-      edgeDofSizeTmp[iSub] = found[iSub].count();
+      edgeDofSizeTmp[iSub] = edgeDofs[iSub].count();
     else {
       if(numR > 0)
-        edgeDofSizeTmp[iSub] = found[iSub].count() + numDirec * numWaves * numCS;
+        edgeDofSizeTmp[iSub] = edgeDofs[iSub].count() + numDirec * numWaves * numCS;
       else
         edgeDofSizeTmp[iSub] = numDirec * numWaves * numCS;
     }
@@ -4641,7 +5027,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
         }
       }
     }
-    if(salinasFlag && isFluidSub) { cerr << "salinas check\n"; k_pFluid = neighbK_p[iSub]; }
+    if(salinasFlag && isFluidSub) { std::cerr << "salinas check\n"; k_pFluid = neighbK_p[iSub]; }
 
     // Find the center of the edge/face for EdgeGs augmentation
     double xc = 0, yc = 0, zc = 0;
@@ -4660,6 +5046,8 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     for(iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
       if((isFluidSub && !boundaryDOFs[iSub][iNode].contains(DofSet::Helm)) ||
          (!isFluidSub && boundaryDOFs[iSub][iNode].contains(DofSet::Helm))) continue;
+      if((isThermalSub && !boundaryDOFs[iSub][iNode].contains(DofSet::Temp)) ||
+         (!isThermalSub && boundaryDOFs[iSub][iNode].contains(DofSet::Temp))) continue;
 
       double x = nodes[sharedNodes[iSub][iNode]]->x;
       double y = nodes[sharedNodes[iSub][iNode]]->y;
@@ -4668,45 +5056,48 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       if(numR > 0) {
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Helm))
           Q[numdofperNode*(iNode+sOffset) + 0] = 1.0;
+        if(boundaryDOFs[iSub][iNode].contains(DofSet::Temp))
+          Q[numdofperNode*(iNode+sOffset) + 0] = 1.0;
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) {
-          Q[numdofperNode*(iNode+sOffset) + 0] = 1;
-          if(found[iSub].contains(DofSet::Yrot) ) {
+          Q[numdofperNode*(iNode+sOffset) + 0] = 1.0;
+          if(edgeDofs[iSub].contains(DofSet::Yrot) ) {
             Q[numdofperNode*(iNode+sOffset+4*numInterfNodes) + 0] = (z-zc);
           }
-          if(found[iSub].contains(DofSet::Zrot) ) {
+          if(edgeDofs[iSub].contains(DofSet::Zrot) ) {
             Q[numdofperNode*(iNode+sOffset+5*numInterfNodes) + 0] = -(y-yc);
           }
         }
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) {
-          Q[numdofperNode*(iNode+sOffset+numInterfNodes) + 1] = 1;
-          if(found[iSub].contains(DofSet::Xrot) ) {
+          Q[numdofperNode*(iNode+sOffset+numInterfNodes) + 1] = 1.0;
+          if(edgeDofs[iSub].contains(DofSet::Xrot) ) {
             Q[numdofperNode*(iNode+sOffset+3*numInterfNodes) + 1] = -(z-zc);
           }
-          if(found[iSub].contains(DofSet::Zrot) ) {
+          if(edgeDofs[iSub].contains(DofSet::Zrot) ) {
             Q[numdofperNode*(iNode+sOffset+5*numInterfNodes) + 1] = (x-xc);
           }
         }
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) {
-          Q[numdofperNode*(iNode+sOffset+2*numInterfNodes) + 2] = 1;
-          if(found[iSub].contains(DofSet::Xrot) ) {
+          Q[numdofperNode*(iNode+sOffset+2*numInterfNodes) + 2] = 1.0;
+          if(edgeDofs[iSub].contains(DofSet::Xrot) ) {
             Q[numdofperNode*(iNode+sOffset+3*numInterfNodes) + 2] = (y-yc);
           }
-          if(found[iSub].contains(DofSet::Yrot) ) {
+          if(edgeDofs[iSub].contains(DofSet::Yrot) ) {
             Q[numdofperNode*(iNode+sOffset+4*numInterfNodes) + 2] = -(x-xc);
           }
         }
-        if(numdofperNode==6) {
-          if((boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) && found[iSub].contains(DofSet::Xrot))
-            Q[numdofperNode*(iNode+sOffset+3*numInterfNodes) + 3] = 1;
-          if((boundaryDOFs[iSub][iNode].contains(DofSet::Yrot)) && found[iSub].contains(DofSet::Yrot))
-            Q[numdofperNode*(iNode+sOffset+4*numInterfNodes) + 4] = 1;
-          if((boundaryDOFs[iSub][iNode].contains(DofSet::Zrot)) && found[iSub].contains(DofSet::Zrot))
-            Q[numdofperNode*(iNode+sOffset+5*numInterfNodes) + 5] = 1;
+        if(numdofperNode == 6) {
+          if((boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) && edgeDofs[iSub].contains(DofSet::Xrot))
+            Q[numdofperNode*(iNode+sOffset+3*numInterfNodes) + 3] = 1.0;
+          if((boundaryDOFs[iSub][iNode].contains(DofSet::Yrot)) && edgeDofs[iSub].contains(DofSet::Yrot))
+            Q[numdofperNode*(iNode+sOffset+4*numInterfNodes) + 4] = 1.0;
+          if((boundaryDOFs[iSub][iNode].contains(DofSet::Zrot)) && edgeDofs[iSub].contains(DofSet::Zrot))
+            Q[numdofperNode*(iNode+sOffset+5*numInterfNodes) + 5] = 1.0;
         }
       }
 
       if(boundaryDOFs[iSub][iNode].containsAllDisp(spaceDim) ||
-         boundaryDOFs[iSub][iNode].contains(DofSet::Helm))
+         boundaryDOFs[iSub][iNode].contains(DofSet::Helm) ||
+	 boundaryDOFs[iSub][iNode].contains(DofSet::Temp))
         for (int iDir=0; iDir<numDirec; iDir++) {
           double k_p, k_s;
           if(boundaryDOFs[iSub][iNode].containsAnyRot()) {
@@ -4785,7 +5176,10 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     }
   }
 
-  GramSchmidt(Q, isUsed, numdofperNode, nQPerNeighb); // see Driver.d/BaseSub.C
+  if (numdofperNode == 6)
+    GramSchmidt(Q, isUsed, DofSet::XYZdisp|DofSet::XYZrot, nQPerNeighb, solInfo().getFetiInfo().augmentimpl==FetiInfo::Primal);
+  else
+    GramSchmidt(Q, isUsed, desired, nQPerNeighb, solInfo().getFetiInfo().augmentimpl==FetiInfo::Primal);
 
   int *nQAdd = (int *) dbg_alloca(sizeof(int)*(scomm->numNeighb));
   int *nQAddWaves = (int *) dbg_alloca(sizeof(int)*(scomm->numNeighb));
@@ -4810,29 +5204,34 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
   }
 
   int *HelmCount = new int[total];
+  int *TempCount = new int[total];
   int *xyzCount = new int[total];
 
   int oldTot = total;
   for(i=0; i<total; ++i) {
     HelmCount[i] = 0;
+    TempCount[i] = 0;
     xyzCount[i] = 0;
   }
 
   total = 0;
   for(iSub = 0; iSub < scomm->numNeighb; ++iSub) {
     if(edgeDofSizeTmp[iSub]==0) continue;
-    int hCount = 0, xCount=0, yCount=0, zCount=0, xrCount=0, yrCount=0, zrCount=0;
+    int hCount=0, tCount=0, xCount=0, yCount=0, zCount=0, xrCount=0, yrCount=0, zrCount=0;
     int waveCount=0;
     for(iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
       if((isFluidSub && !boundaryDOFs[iSub][iNode].contains(DofSet::Helm)) ||
          (!isFluidSub && boundaryDOFs[iSub][iNode].contains(DofSet::Helm))) continue;
+      if((isThermalSub && !boundaryDOFs[iSub][iNode].contains(DofSet::Temp)) ||
+         (!isThermalSub && boundaryDOFs[iSub][iNode].contains(DofSet::Temp))) continue;
 
       if(boundaryDOFs[iSub][iNode].contains(DofSet::Helm)) hCount++;
+      if(boundaryDOFs[iSub][iNode].contains(DofSet::Temp)) tCount++;
       if(numR > 0) {
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) xCount++;
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) yCount++;
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) zCount++;
-        if(numdofperNode==6) {
+        if(numdofperNode == 6) {
           if(boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) xrCount++;
           if(boundaryDOFs[iSub][iNode].contains(DofSet::Yrot)) yrCount++;
           if(boundaryDOFs[iSub][iNode].contains(DofSet::Zrot)) zrCount++;
@@ -4844,28 +5243,31 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     int edgeLength = 0;
     if(numR > 0) {
       if(desired.contains(DofSet::Helm))
-        if(found[iSub].contains(DofSet::Helm) && isUsed[0+iSub*nQPerNeighb] )
+        if(edgeDofs[iSub].contains(DofSet::Helm) && isUsed[0+iSub*nQPerNeighb] )
           edgeLength += HelmCount[total++] = hCount;
+      if(desired.contains(DofSet::Temp))
+        if(edgeDofs[iSub].contains(DofSet::Temp) && isUsed[0+iSub*nQPerNeighb])
+          edgeLength += TempCount[total++] = tCount;
       if(desired.contains(DofSet::XYZdisp)) {
-        if(found[iSub].contains(DofSet::Xdisp) && isUsed[0+iSub*nQPerNeighb] )
+        if(edgeDofs[iSub].contains(DofSet::Xdisp) && isUsed[0+iSub*nQPerNeighb] )
           edgeLength += xyzCount[total++] = xCount;
-        if(found[iSub].contains(DofSet::Ydisp) && isUsed[1+iSub*nQPerNeighb] )
+        if(edgeDofs[iSub].contains(DofSet::Ydisp) && isUsed[1+iSub*nQPerNeighb] )
           edgeLength += xyzCount[total++] = yCount;
-        if(found[iSub].contains(DofSet::Zdisp) && isUsed[2+iSub*nQPerNeighb] )
+        if(edgeDofs[iSub].contains(DofSet::Zdisp) && isUsed[2+iSub*nQPerNeighb] )
           edgeLength += xyzCount[total++] = zCount;
       }
       if(desired.contains(DofSet::XYZrot)) {
-        if(found[iSub].contains(DofSet::Xrot) && isUsed[3+iSub*nQPerNeighb] )
+        if(edgeDofs[iSub].contains(DofSet::Xrot) && isUsed[3+iSub*nQPerNeighb] )
           edgeLength += xyzCount[total++] = xrCount + yCount + zCount;
-        if(found[iSub].contains(DofSet::Yrot) && isUsed[4+iSub*nQPerNeighb] )
+        if(edgeDofs[iSub].contains(DofSet::Yrot) && isUsed[4+iSub*nQPerNeighb] )
           edgeLength += xyzCount[total++] = yrCount + xCount + zCount;
-        if(found[iSub].contains(DofSet::Zrot) && isUsed[5+iSub*nQPerNeighb] )
+        if(edgeDofs[iSub].contains(DofSet::Zrot) && isUsed[5+iSub*nQPerNeighb] )
           edgeLength += xyzCount[total++] = zrCount + xCount + yCount;
       }
     }
     if(desired.contains(DofSet::XYZdisp)) {
       if(waveCount > 0) {
-        if(found[iSub].containsAllDisp(spaceDim)) {
+        if(edgeDofs[iSub].containsAllDisp(spaceDim)) {
           for(i=0; i< numDirec * numWaves * numCS; i++)
             if(isUsed[numR +i+iSub*nQPerNeighb])
               edgeLength += xyzCount[total++] = numWaves*waveCount;
@@ -4873,10 +5275,15 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       }
     }
     if(desired.contains(DofSet::Helm))
-      if((hCount > 0) && (found[iSub].contains(DofSet::Helm)))
+      if((hCount > 0) && (edgeDofs[iSub].contains(DofSet::Helm)))
         for(i=0; i< numDirec * numWaves * numCS; i++)
           if(isUsed[numR +i+iSub*nQPerNeighb])
             edgeLength += HelmCount[total++] = 1*hCount;
+    if(desired.contains(DofSet::Temp))
+      if((tCount > 0) && (edgeDofs[iSub].contains(DofSet::Temp)))
+        for(i = 0; i < numDirec * numWaves * numCS; i++)
+          if(isUsed[numR+i+iSub*nQPerNeighb])
+            edgeLength += TempCount[total++] = 1*tCount;
 
     totalLengthGrc += edgeLength;
   }
@@ -4884,47 +5291,59 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
 
   int *HelmList = new int[totalLengthGrc];
   Scalar *HelmCoefs = new Scalar[totalLengthGrc];
+  int *TempList = new int[totalLengthGrc];
+  Scalar *TempCoefs = new Scalar[totalLengthGrc];
   int *xyzList = new int[totalLengthGrc];
   Scalar *xyzCoefs = new Scalar[totalLengthGrc];
 
   for(i=0; i<totalLengthGrc; ++i) {
     HelmList[i] = 0;
     HelmCoefs[i] = 0.0;
+    TempList[i] = 0;
+    TempCoefs[i] = 0.0;
     xyzList[i] = 0;
     xyzCoefs[i] = 0.0;
   }
 
-  int hOffset=0, xOffset=0, yOffset=0, zOffset=0, waveOffset=0, xrOffset=0, yrOffset=0, zrOffset=0;
+  int hOffset=0, tOffset=0, waveOffset=0;
+  int xOffset=0, yOffset=0, zOffset=0, xrOffset=0, yrOffset=0, zrOffset=0;
   total = 0;
   for(iSub = 0; iSub < scomm->numNeighb; ++iSub) {
     if(edgeDofSizeTmp[iSub]==0) continue;
 
     int index = 0;
     int off;
-    if((desired.contains(DofSet::XYZdisp)) || (desired.contains(DofSet::Helm))) {
+    if((desired.contains(DofSet::XYZdisp)) || (desired.contains(DofSet::Helm)) || (desired.contains(DofSet::Temp))) {
       if(numR > 0) {
         yOffset = xOffset +
-                  ((found[iSub].contains(DofSet::Xdisp) && isUsed[0+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
+                  ((edgeDofs[iSub].contains(DofSet::Xdisp) && isUsed[0+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
         zOffset = yOffset +
-                  ((found[iSub].contains(DofSet::Ydisp) && isUsed[1+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
+                  ((edgeDofs[iSub].contains(DofSet::Ydisp) && isUsed[1+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
         xrOffset= zOffset +
-                  ((found[iSub].contains(DofSet::Zdisp) && isUsed[2+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
+                  ((edgeDofs[iSub].contains(DofSet::Zdisp) && isUsed[2+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
         yrOffset = xrOffset +
-                   ((found[iSub].contains(DofSet::Xrot)  && isUsed[3+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
+                   ((edgeDofs[iSub].contains(DofSet::Xrot)  && isUsed[3+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
         zrOffset = yrOffset +
-                   ((found[iSub].contains(DofSet::Yrot)  && isUsed[4+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
+                   ((edgeDofs[iSub].contains(DofSet::Yrot)  && isUsed[4+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
         if(numdofperNode == 1) {
-          waveOffset = hOffset +
-                       ((found[iSub].contains(DofSet::Helm) && isUsed[0+iSub*nQPerNeighb]) ? HelmCount[total++] : 0);
+          if(isFluidSub)
+	    waveOffset = hOffset +
+	                 ((edgeDofs[iSub].contains(DofSet::Helm) && isUsed[0+iSub*nQPerNeighb]) ? HelmCount[total++] : 0);
+	  else
+	    waveOffset = tOffset +
+                         ((edgeDofs[iSub].contains(DofSet::Temp) && isUsed[0+iSub*nQPerNeighb]) ? TempCount[total++] : 0);
         }
         else {
           waveOffset = zrOffset +
-                       ((found[iSub].contains(DofSet::Zrot)  && isUsed[5+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
+                       ((edgeDofs[iSub].contains(DofSet::Zrot)  && isUsed[5+iSub*nQPerNeighb]) ? xyzCount[total++] : 0);
         }
       }
       if(nQAddWaves[iSub] > 0) {
         if(numdofperNode == 1)
-          index = HelmCount[(total+=nQAddWaves[iSub])-1];
+          if(isFluidSub)
+            index = HelmCount[(total+=nQAddWaves[iSub])-1];
+	  else
+            index = TempCount[(total+=nQAddWaves[iSub])-1];
         else
           index = xyzCount[(total+=nQAddWaves[iSub])-1];
       }
@@ -4932,35 +5351,48 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       off = waveOffset + ((nQAddWaves[iSub] > 0) ? nQAddWaves[iSub]*index : 0);
     }
 
-    double sign = (scomm->subNums[iSub] < subNumber) ? 1.0 : -1.0;
+    double sign = 1.0;
+    if(solInfo().getFetiInfo().augmentimpl != FetiInfo::Primal) // 012314 JAT 
+      sign = (scomm->subNums[iSub] < subNumber) ? 1.0 : -1.0;
     int sOffset = sharedNodes.offset(iSub);
     for(iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
       if((isFluidSub && !boundaryDOFs[iSub][iNode].contains(DofSet::Helm)) ||
          (!isFluidSub && boundaryDOFs[iSub][iNode].contains(DofSet::Helm))) continue;
+      if((isThermalSub && !boundaryDOFs[iSub][iNode].contains(DofSet::Temp)) ||
+         (!isThermalSub && boundaryDOFs[iSub][iNode].contains(DofSet::Temp))) continue;
 
       int qOff = sOffset + iNode;
-      int hDof = -1, xDof = -1, yDof = -1, zDof = -1;
+      int hDof = -1, tDof = -1, xDof = -1, yDof = -1, zDof = -1;
       if(boundaryDOFs[iSub][iNode].contains(DofSet::Helm)) {
         hDof = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Helm);
         if(numR > 0 ) {
-          if(found[iSub].contains(DofSet::Helm) && isUsed[0+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Helm) && isUsed[0+iSub*nQPerNeighb]) {
             HelmList[hOffset] = hDof;
             HelmCoefs[hOffset++] = sign * Q[numdofperNode*qOff+0];
+          }
+        }
+      }
+      if(boundaryDOFs[iSub][iNode].contains(DofSet::Temp)) {
+        tDof = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Temp);
+        if(numR > 0) {
+          if(edgeDofs[iSub].contains(DofSet::Temp) && isUsed[0+iSub*nQPerNeighb]) {
+            TempList[tOffset] = tDof;
+            TempCoefs[tOffset++] = sign * Q[numdofperNode*qOff+0];
           }
         }
       }
       if(boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) {
         xDof = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Xdisp);
         if(numR > 0) {
-          if(found[iSub].contains(DofSet::Xdisp) && isUsed[0+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Xdisp) && isUsed[0+iSub*nQPerNeighb]) {
             xyzList[xOffset] = xDof;
             xyzCoefs[xOffset++] = sign*Q[numdofperNode*qOff];
           }
-          if(found[iSub].contains(DofSet::Yrot)  && isUsed[4+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Yrot)  && isUsed[4+iSub*nQPerNeighb]) {
             xyzList[yrOffset] = xDof;
             xyzCoefs[yrOffset++] = sign* Q[numdofperNode*(qOff+4*numInterfNodes)];
           }
-          if(found[iSub].contains(DofSet::Zrot)  && isUsed[5+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Zrot)  && isUsed[5+iSub*nQPerNeighb]) {
             xyzList[zrOffset] = xDof;
             xyzCoefs[zrOffset++] = sign* Q[numdofperNode*(qOff+5*numInterfNodes)];
           }
@@ -4969,15 +5401,15 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       if(boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) {
         yDof = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Ydisp);
         if(numR > 0) {
-          if(found[iSub].contains(DofSet::Ydisp) && isUsed[1+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Ydisp) && isUsed[1+iSub*nQPerNeighb]) {
             xyzList[yOffset] = yDof;
             xyzCoefs[yOffset++] = sign*Q[numdofperNode*(qOff+numInterfNodes)+1];
           }
-          if(found[iSub].contains(DofSet::Xrot)  && isUsed[3+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Xrot)  && isUsed[3+iSub*nQPerNeighb]) {
             xyzList[xrOffset] = yDof;
             xyzCoefs[xrOffset++] = sign* Q[numdofperNode*(qOff+3*numInterfNodes)+1];
           }
-          if(found[iSub].contains(DofSet::Zrot)  && isUsed[5+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Zrot)  && isUsed[5+iSub*nQPerNeighb]) {
             xyzList[zrOffset] = yDof;
             xyzCoefs[zrOffset++] = sign* Q[numdofperNode*(qOff+5*numInterfNodes)+1];
           }
@@ -4986,15 +5418,15 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       if(boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) {
         zDof = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Zdisp);
         if(numR > 0) {
-          if(found[iSub].contains(DofSet::Zdisp) && isUsed[2+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Zdisp) && isUsed[2+iSub*nQPerNeighb]) {
             xyzList[zOffset] = zDof;
             xyzCoefs[zOffset++] = sign*Q[numdofperNode*(qOff+2*numInterfNodes)+2];
           }
-          if(found[iSub].contains(DofSet::Xrot)  && isUsed[3+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Xrot)  && isUsed[3+iSub*nQPerNeighb]) {
             xyzList[xrOffset] = zDof;
             xyzCoefs[xrOffset++] = sign* Q[numdofperNode*(qOff+3*numInterfNodes)+2];
           }
-          if(found[iSub].contains(DofSet::Yrot)  && isUsed[4+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Yrot)  && isUsed[4+iSub*nQPerNeighb]) {
             xyzList[yrOffset] = zDof;
             xyzCoefs[yrOffset++] = sign* Q[numdofperNode*(qOff+4*numInterfNodes)+2];
           }
@@ -5003,21 +5435,21 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       if((numR > 3) && (numdofperNode==6)) {
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) {
           int xrDof = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Xrot);
-          if(found[iSub].contains(DofSet::Xrot) && isUsed[3+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Xrot) && isUsed[3+iSub*nQPerNeighb]) {
             xyzList[xrOffset] = xrDof;
             xyzCoefs[xrOffset++] = sign*Q[numdofperNode*(qOff+3*numInterfNodes)+3];
           }
         }
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Yrot)) {
           int yrDof = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Yrot);
-          if(found[iSub].contains(DofSet::Yrot) && isUsed[4+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Yrot) && isUsed[4+iSub*nQPerNeighb]) {
             xyzList[yrOffset] = yrDof;
             xyzCoefs[yrOffset++] = sign*Q[numdofperNode*(qOff+4*numInterfNodes)+4];
           }
         }
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Zrot)) {
           int zrDof = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Zrot);
-          if(found[iSub].contains(DofSet::Zrot) && isUsed[5+iSub*nQPerNeighb]) {
+          if(edgeDofs[iSub].contains(DofSet::Zrot) && isUsed[5+iSub*nQPerNeighb]) {
             xyzList[zrOffset] = zrDof;
             xyzCoefs[zrOffset++] = sign*Q[numdofperNode*(qOff+5*numInterfNodes)+5];
           }
@@ -5025,7 +5457,8 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       }
       if(nQAddWaves[iSub] > 0) {
       if(boundaryDOFs[iSub][iNode].containsAllDisp(spaceDim) ||
-         boundaryDOFs[iSub][iNode].contains(DofSet::Helm)) {
+         boundaryDOFs[iSub][iNode].contains(DofSet::Helm) ||
+	 boundaryDOFs[iSub][iNode].contains(DofSet::Temp)) {
         int UsedWaves = 0;
         for(int iDir=0; iDir<numDirec; iDir++)
           for(int iW=0; iW<numWaves; iW++)
@@ -5038,6 +5471,10 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
                   if(hDof > -1) {
                     HelmList[waveOffset]= hDof;
                     HelmCoefs[waveOffset++]= sign*Q[numdofperNode*qOff+0];
+                  }
+                  if(tDof > -1) {
+                    TempList[waveOffset]= tDof;
+                    TempCoefs[waveOffset++]= sign*Q[numdofperNode*qOff+0];
                   }
                 }
                 else {
@@ -5061,6 +5498,10 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
                     HelmList[UsedWaves*index+waveOffset-1]  = hDof;
                     HelmCoefs[UsedWaves*index+waveOffset-1] = sign*Q[numdofperNode*qOff+0];
                   }
+                  if(tDof > -1) {
+                    TempList[UsedWaves*index+waveOffset-1]  = tDof;
+                    TempCoefs[UsedWaves*index+waveOffset-1] = sign*Q[numdofperNode*qOff+0];
+                  }
                 }
                 else {
                   if(xDof > -1) {
@@ -5080,13 +5521,16 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
               UsedWaves++;
             }
         if(UsedWaves != nQAddWaves[iSub])
-          cerr << " Something is wrong for the number of used waves " << endl;
+          std::cerr << " Something is wrong for the number of used waves " << std::endl;
       }
       }
     }
     if(numR > 0)
       if(numdofperNode == 1)
-        hOffset = off;
+        if(isFluidSub)
+          hOffset = off;
+	else
+          tOffset = off;
       else
         xOffset = off;
     else
@@ -5096,7 +5540,10 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     fprintf(stderr, " *** ERROR: total is incorrect %d %d\n", oldTot, total);
 
   if(numdofperNode == 1) {
-    Grc = new GenCuCSparse<Scalar>(total, cc_dsa->size(), HelmCount, HelmList, HelmCoefs);
+    if(isFluidSub)
+      Grc = new GenCuCSparse<Scalar>(total, cc_dsa->size(), HelmCount, HelmList, HelmCoefs);
+    else
+      Grc = new GenCuCSparse<Scalar>(total, cc_dsa->size(), TempCount, TempList, TempCoefs);
     delete [] xyzList;
     delete [] xyzCoefs;
   }
@@ -5104,9 +5551,11 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     Grc = new GenCuCSparse<Scalar>(total, cc_dsa->size(), xyzCount, xyzList, xyzCoefs);
     delete [] HelmList;
     delete [] HelmCoefs;
+    delete [] TempList;
+    delete [] TempCoefs;
   }
 
-  int ii = (isFluidSub) ? 1 : 0;
+  int ii = (isFluidSub || isThermalSub) ? 1 : 0;
   if(edgeQindex[ii] == -1)
     edgeQindex[ii] = Src->addSparseMatrix(Grc);  // store index for possible rebuild (multiple LHS freq sweep)
   else
@@ -5114,12 +5563,42 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
 
   for(i=0; i<scomm->numNeighb; ++i) edgeDofSize[i] += edgeDofSizeTmp[i];
 
+  // Clear the unused dofs JAT 112113
+  for(iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    if(scomm->subNums[iSub] == subNumber) continue;
+    if(numR > 0) {
+      if(desired.contains(DofSet::Temp))
+        if(edgeDofs[iSub].contains(DofSet::Temp) && !isUsed[0+iSub*nQPerNeighb])
+	  edgeDofs[iSub].unmark(DofSet::Temp);
+      if(desired.contains(DofSet::Helm))
+        if(edgeDofs[iSub].contains(DofSet::Helm) && !isUsed[0+iSub*nQPerNeighb])
+	  edgeDofs[iSub].unmark(DofSet::Helm);
+      if(desired.contains(DofSet::XYZdisp)) {
+        if(edgeDofs[iSub].contains(DofSet::Xdisp) && !isUsed[0+iSub*nQPerNeighb])
+	  edgeDofs[iSub].unmark(DofSet::Xdisp);
+        if(edgeDofs[iSub].contains(DofSet::Ydisp) && !isUsed[1+iSub*nQPerNeighb])
+	  edgeDofs[iSub].unmark(DofSet::Ydisp);
+        if(edgeDofs[iSub].contains(DofSet::Zdisp) && !isUsed[2+iSub*nQPerNeighb])
+	  edgeDofs[iSub].unmark(DofSet::Zdisp);
+      }
+      if(desired.contains(DofSet::XYZrot)) {
+        if(edgeDofs[iSub].contains(DofSet::Xrot) && !isUsed[3+iSub*nQPerNeighb])
+	  edgeDofs[iSub].unmark(DofSet::Xrot);
+        if(edgeDofs[iSub].contains(DofSet::Yrot) && !isUsed[4+iSub*nQPerNeighb])
+	  edgeDofs[iSub].unmark(DofSet::Yrot);
+        if(edgeDofs[iSub].contains(DofSet::Zrot) && !isUsed[5+iSub*nQPerNeighb])
+	  edgeDofs[iSub].unmark(DofSet::Zrot);
+      }
+    }
+  }
+
   if(wDir_x) delete [] wDir_x;
   if(wDir_y) delete [] wDir_y;
   if(wDir_z) delete [] wDir_z;
   delete [] HelmCount;
+  delete [] TempCount;
   delete [] xyzCount;
-  delete [] found;
+//  delete [] edgeDofs;
   if(Q) delete [] Q;
 }
 
@@ -5159,7 +5638,7 @@ GenSubDomain<Scalar>::sendMpcDiag(FSCommPattern<Scalar> *mpcDiagPat)
         if(c_dof > -1) {
           int b_dof = invBoundMap[c_dof];
           mpc[locMpcNb]->k[j] = (Kbb) ? Kbb->diag(b_dof) : 1.0;
-          if(ScalarTypes::norm(mpc[locMpcNb]->k[j]) < 1.0e-12) cerr << " *** WARNING: Kbb diagonal < 1.0e-12 \n";
+          if(ScalarTypes::norm(mpc[locMpcNb]->k[j]) < 1.0e-12) std::cerr << " *** WARNING: Kbb diagonal < 1.0e-12 \n";
           if(subNumber != neighb)
             sInfo.data[nOff+mpc[locMpcNb]->gi[j]] = mpc[locMpcNb]->k[j];
           mpc[locMpcNb]->ksum[j] = mpc[locMpcNb]->k[j];
@@ -5204,14 +5683,14 @@ GenSubDomain<Scalar>::collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat)
  if(solInfo().getFetiInfo().mpc_scaling == FetiInfo::kscaling) {
    int iMPC, i;
 #ifdef DEBUG_MPC
-   cerr << "before k scaling: \n";
+   std::cerr << "before k scaling: \n";
    for(iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC]->print();
 #endif
    for(iMPC = 0; iMPC < numMPC; ++iMPC) {
      if(mpc[iMPC]->type == 2) continue; // bmpc
      for(i = 0; i < mpc[iMPC]->nterms; ++i) {
        if(ScalarTypes::norm(mpc[iMPC]->ksum[i]) < 1.0e-12) {
-         //cerr << " *** WARNING: ksum = " << mpc[iMPC]->ksum[i] << ", cdof = " << mpc[iMPC]->terms[i].cdof << ", coef = " << mpc[iMPC]->terms[i].coef << endl;
+         //std::cerr << " *** WARNING: ksum = " << mpc[iMPC]->ksum[i] << ", cdof = " << mpc[iMPC]->terms[i].cdof << ", coef = " << mpc[iMPC]->terms[i].coef << std::endl;
          mpc[iMPC]->ksum[i] = 1.0;
          mpc[iMPC]->k[i] = 1.0;
        }
@@ -5219,7 +5698,7 @@ GenSubDomain<Scalar>::collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat)
      }
    }
 #ifdef DEBUG_MPC
-   cerr << "after k scaling: \n";
+   std::cerr << "after k scaling: \n";
    for(iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC]->print();
 #endif
  }
@@ -5299,7 +5778,7 @@ GenSubDomain<Scalar>::extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
   //globalToLocalMPC.print();
 
 #ifdef DEBUG_MPC
-  cerr << "DUAL MPCs: \n";
+  std::cerr << "DUAL MPCs: \n";
   for(int iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC]->print();
 #endif
 }
@@ -5308,9 +5787,9 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::printLMPC()
 {
-  cerr << "sub = " << subNumber << ", numMPC = " << numMPC << endl;
+  std::cerr << "sub = " << subNumber << ", numMPC = " << numMPC << std::endl;
   for(int iMPC=0; iMPC<numMPC; ++iMPC) {
-    cerr << "local mpc # " << iMPC << ", global mpc # " << localToGlobalMPC[iMPC] << endl;
+    std::cerr << "local mpc # " << iMPC << ", global mpc # " << localToGlobalMPC[iMPC] << std::endl;
     mpc[iMPC]->print();
   }
 }
@@ -5374,7 +5853,7 @@ GenSubDomain<Scalar>::extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &l
   //globalToLocalMPC_primal.print();
 
 #ifdef DEBUG_MPC
-  cerr << "PRIMAL MPCs: \n";
+  std::cerr << "PRIMAL MPCs: \n";
   for(int iMPC = 0; iMPC < numMPC_primal; ++iMPC) mpc_primal[iMPC]->print();
 #endif
 }
@@ -5444,13 +5923,13 @@ GenSubDomain<Scalar>::locateMpcDofs()
     for(int k = 0; k < mpc[i]->nterms; ++k) {
       (mpc[i]->terms)[k].dof = dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
       (mpc[i]->terms)[k].cdof = c_dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
-      (mpc[i]->terms)[k].ccdof = cc_dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
+      if(cc_dsa) (mpc[i]->terms)[k].ccdof = cc_dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
     }
   for(int i = 0; i < numMPC_primal; ++i)
     for(int k = 0; k < mpc_primal[i]->nterms; ++k) {
       (mpc_primal[i]->terms)[k].dof = dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
       (mpc_primal[i]->terms)[k].cdof = c_dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
-      (mpc_primal[i]->terms)[k].ccdof = cc_dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
+      if(cc_dsa) (mpc_primal[i]->terms)[k].ccdof = cc_dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
     }
 }
 
@@ -5711,8 +6190,8 @@ GenSubDomain<Scalar>::factorLocalCCtsolver()
   localCCtsolver->factor();
   int numCCtSing = localCCtsolver->numRBM();
   if(numCCtSing > 0)
-    cerr << "sub = " << subNumber << ", Number of singularities in CCt = "
-         << numCCtSing << endl;
+    std::cerr << "sub = " << subNumber << ", Number of singularities in CCt = "
+              << numCCtSing << std::endl;
 }
 
 template<class Scalar>
@@ -5807,7 +6286,7 @@ GenSubDomain<Scalar>::addConstraintForces(std::map<std::pair<int,int>, double> &
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
 
-  vector<double>::iterator it2 = lambda.begin();
+  std::vector<double>::iterator it2 = lambda.begin();
   for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) {
     int i = scomm->mpcNb(l);
     if(!mpcFlag[i]) continue;
@@ -5842,7 +6321,7 @@ GenSubDomain<Scalar>::addCConstraintForces(std::map<std::pair<int,int>, double> 
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
 
-  vector<double>::iterator it2 = lambda.begin();
+  std::vector<double>::iterator it2 = lambda.begin();
   for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) {
     int i = scomm->mpcNb(l);
     if(!mpcFlag[i]) continue;
@@ -5924,7 +6403,195 @@ GenSubDomain<DComplex>::addNodalData(FSCommPattern<DComplex> *pat, DistVec<doubl
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::dispatchInterfaceGeomState(FSCommPattern<double> *pat, GeomState *geomState)
+{
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[iSub]);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      if((*scomm->sharedNodes)[iSub][iNode] < geomState->numNodesFixed()) {
+        NodeState &ns = (*geomState)[(*scomm->sharedNodes)[iSub][iNode]];
+        sInfo.data[16*iNode] = 1; // status
+        sInfo.data[16*iNode+1 ] = ns.x;
+        sInfo.data[16*iNode+2 ] = ns.y;
+        sInfo.data[16*iNode+3 ] = ns.z;
+        sInfo.data[16*iNode+4 ] = ns.R[0][0];
+        sInfo.data[16*iNode+5 ] = ns.R[0][1];
+        sInfo.data[16*iNode+6 ] = ns.R[0][2];
+        sInfo.data[16*iNode+7 ] = ns.R[1][0];
+        sInfo.data[16*iNode+8 ] = ns.R[1][1];
+        sInfo.data[16*iNode+9 ] = ns.R[1][2];
+        sInfo.data[16*iNode+10] = ns.R[2][0];
+        sInfo.data[16*iNode+11] = ns.R[2][1];
+        sInfo.data[16*iNode+12] = ns.R[2][2];
+        sInfo.data[16*iNode+13] = ns.theta[0];
+        sInfo.data[16*iNode+14] = ns.theta[1];
+        sInfo.data[16*iNode+15] = ns.theta[2];
+      }
+      else {
+        for(int j=0; j<16; ++j) sInfo.data[16*iNode+j] = 0;
+      }
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::collectInterfaceGeomState(FSCommPattern<double> *pat, GeomState *geomState)
+{
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      if((*scomm->sharedNodes)[iSub][iNode] >= geomState->numNodesFixed() && rInfo.data[16*iNode] != 0) {
+        NodeState &ns = (*geomState)[(*scomm->sharedNodes)[iSub][iNode]];
+        ns.x       = rInfo.data[16*iNode+1 ];
+        ns.y       = rInfo.data[16*iNode+2 ];
+        ns.z       = rInfo.data[16*iNode+3 ];
+        ns.R[0][0] = rInfo.data[16*iNode+4 ];
+        ns.R[0][1] = rInfo.data[16*iNode+5 ];
+        ns.R[0][2] = rInfo.data[16*iNode+6 ];
+        ns.R[1][0] = rInfo.data[16*iNode+7 ];
+        ns.R[1][1] = rInfo.data[16*iNode+8 ];
+        ns.R[1][2] = rInfo.data[16*iNode+9 ];
+        ns.R[2][0] = rInfo.data[16*iNode+10];
+        ns.R[2][1] = rInfo.data[16*iNode+11];
+        ns.R[2][2] = rInfo.data[16*iNode+12];
+        ns.theta[0]= rInfo.data[16*iNode+13];
+        ns.theta[1]= rInfo.data[16*iNode+14];
+        ns.theta[2]= rInfo.data[16*iNode+15];
+      }
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::dispatchInterfaceGeomStateDynam(FSCommPattern<double> *pat, GeomState *geomState)
+{
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[iSub]);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      if((*scomm->sharedNodes)[iSub][iNode] < geomState->numNodesFixed()) {
+        NodeState &ns = (*geomState)[(*scomm->sharedNodes)[iSub][iNode]];
+        sInfo.data[28*iNode] = 1; // status
+        sInfo.data[28*iNode+1 ] = ns.x;
+        sInfo.data[28*iNode+2 ] = ns.y;
+        sInfo.data[28*iNode+3 ] = ns.z;
+        sInfo.data[28*iNode+4 ] = ns.R[0][0];
+        sInfo.data[28*iNode+5 ] = ns.R[0][1];
+        sInfo.data[28*iNode+6 ] = ns.R[0][2];
+        sInfo.data[28*iNode+7 ] = ns.R[1][0];
+        sInfo.data[28*iNode+8 ] = ns.R[1][1];
+        sInfo.data[28*iNode+9 ] = ns.R[1][2];
+        sInfo.data[28*iNode+10] = ns.R[2][0];
+        sInfo.data[28*iNode+11] = ns.R[2][1];
+        sInfo.data[28*iNode+12] = ns.R[2][2];
+        sInfo.data[28*iNode+13] = ns.theta[0];
+        sInfo.data[28*iNode+14] = ns.theta[1];
+        sInfo.data[28*iNode+15] = ns.theta[2];
+        sInfo.data[28*iNode+16] = ns.v[0];
+        sInfo.data[28*iNode+17] = ns.v[1];
+        sInfo.data[28*iNode+18] = ns.v[2];
+        sInfo.data[28*iNode+19] = ns.v[3];
+        sInfo.data[28*iNode+20] = ns.v[4];
+        sInfo.data[28*iNode+21] = ns.v[5];
+        sInfo.data[28*iNode+22] = ns.a[0];
+        sInfo.data[28*iNode+23] = ns.a[1];
+        sInfo.data[28*iNode+24] = ns.a[2];
+        sInfo.data[28*iNode+25] = ns.a[3];
+        sInfo.data[28*iNode+26] = ns.a[4];
+        sInfo.data[28*iNode+27] = ns.a[5];
+      }
+      else {
+        for(int j=0; j<28; ++j) sInfo.data[28*iNode+j] = 0;
+      }
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::collectInterfaceGeomStateDynam(FSCommPattern<double> *pat, GeomState *geomState)
+{
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      if((*scomm->sharedNodes)[iSub][iNode] >= geomState->numNodesFixed() && rInfo.data[28*iNode] != 0) {
+        NodeState &ns = (*geomState)[(*scomm->sharedNodes)[iSub][iNode]];
+        ns.x       = rInfo.data[28*iNode+1 ];
+        ns.y       = rInfo.data[28*iNode+2 ];
+        ns.z       = rInfo.data[28*iNode+3 ];
+        ns.R[0][0] = rInfo.data[28*iNode+4 ];
+        ns.R[0][1] = rInfo.data[28*iNode+5 ];
+        ns.R[0][2] = rInfo.data[28*iNode+6 ];
+        ns.R[1][0] = rInfo.data[28*iNode+7 ];
+        ns.R[1][1] = rInfo.data[28*iNode+8 ];
+        ns.R[1][2] = rInfo.data[28*iNode+9 ];
+        ns.R[2][0] = rInfo.data[28*iNode+10];
+        ns.R[2][1] = rInfo.data[28*iNode+11];
+        ns.R[2][2] = rInfo.data[28*iNode+12];
+        ns.theta[0]= rInfo.data[28*iNode+13];
+        ns.theta[1]= rInfo.data[28*iNode+14];
+        ns.theta[2]= rInfo.data[28*iNode+15];
+        ns.v[0]    = rInfo.data[28*iNode+16];
+        ns.v[1]    = rInfo.data[28*iNode+17];
+        ns.v[2]    = rInfo.data[28*iNode+18];
+        ns.v[3]    = rInfo.data[28*iNode+19];
+        ns.v[4]    = rInfo.data[28*iNode+20];
+        ns.v[5]    = rInfo.data[28*iNode+21];
+        ns.a[0]    = rInfo.data[28*iNode+22];
+        ns.a[1]    = rInfo.data[28*iNode+23];
+        ns.a[2]    = rInfo.data[28*iNode+24];
+        ns.a[3]    = rInfo.data[28*iNode+25];
+        ns.a[4]    = rInfo.data[28*iNode+26];
+        ns.a[5]    = rInfo.data[28*iNode+27];
+      }
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::dispatchInterfaceNodalInertiaTensors(FSCommPattern<double> *pat)
+{
+#ifdef USE_EIGEN3
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[iSub]);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      for(int j=0; j<3; ++j)
+        for(int k=0; k<3; ++k)
+          sInfo.data[9*iNode+3*j+k] = Jn[(*scomm->sharedNodes)[iSub][iNode]](j,k);
+    }
+  }
+#endif
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::collectInterfaceNodalInertiaTensors(FSCommPattern<double> *pat)
+{
+#ifdef USE_EIGEN3
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      for(int j=0; j<3; ++j)
+        for(int k=0; k<3; ++k)
+          Jn[(*scomm->sharedNodes)[iSub][iNode]](j,k) += rInfo.data[9*iNode+3*j+k];
+    }
+  }
+#endif
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::setWICommSize(FSCommPattern<Scalar> *pat)
+{
+  for(int i = 0; i < scomm->numT(SComm::fsi); ++i)
+    pat->setLen(subNumber, scomm->neighbT(SComm::fsi,i), numNeighbWIdof[i]);
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::setCSCommSize(FSCommPattern<Scalar> *pat)
 {
   for(int i = 0; i < scomm->numT(SComm::fsi); ++i)
     pat->setLen(subNumber,  scomm->neighbT(SComm::fsi,i), numNeighbWIdof[i]);
@@ -5965,6 +6632,15 @@ GenSubDomain<Scalar>::multM(Scalar *localrhs, GenStackVector<Scalar> **u, int k)
       }
     }
   }
+  if(K_deriv) {
+    for(int j=0; j<=k-1; ++j) {
+      if(K_deriv[k-j]) {
+        double ckj = DCombination(k,j);
+        for(int i=0; i<c_dsa->size(); ++i) localvec[i] = -ckj*(*u[j+1])[i];
+        K_deriv[k-j]->multAdd(localvec, localrhs);
+      }
+    }
+  }
 
   makeFreqSweepLoad(localrhs, k, omega);  // this adds the residual effects of any prescribed displacements
                                           // and other loads that have non-zero kth derivative wrt omega
@@ -5978,7 +6654,7 @@ GenSubDomain<Scalar>::makeFreqSweepLoad(Scalar *d, int iRHS, double omega)
  GenStackVector<Scalar> force(numUncon, d);
 
  // Compute Right Hand Side Force = Fext + Fgravity + Fnh + Fpressure
- buildFreqSweepRHSForce<Scalar>(force, Muc, Cuc_deriv, iRHS, omega);
+ buildFreqSweepRHSForce<Scalar>(force, Muc, Cuc_deriv, Kuc_deriv, iRHS, omega);
 
  for(int i = 0; i < numMPC; ++i) mpc[i]->rhs = 0.0; // set mpc rhs to zero for higher-order derivative solves
 }
@@ -6185,7 +6861,7 @@ GenSubDomain<Scalar>::updateActiveSet(Scalar *v, double tol, int flag, bool &sta
     if(chgstatus[i] > -1) {
       statusChange = true;
       mpc[i]->active = !bool(chgstatus[i]);
-      if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) { if(chgstatus[i] == 0) cerr << "-"; else cerr << "+"; }
+      if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) { if(chgstatus[i] == 0) std::cerr << "-"; else std::cerr << "+"; }
     }
   }
 }
@@ -6219,16 +6895,16 @@ GenSubDomain<Scalar>::split(Scalar *v, Scalar *v_f, Scalar *v_c)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::bmpcQualify(vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus)
+GenSubDomain<Scalar>::bmpcQualify(std::vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus)
 {
   for(int i=0; i<bmpcs->size(); ++i) {
     LMPCons *bmpc = (*bmpcs)[i];
     if(bmpc->psub == subNumber) {
-      int ccdof = cc_dsa->locate(globalToLocal((bmpc->terms)[0].nnum), (1 << (bmpc->terms)[0].dofnum));
+      int ccdof = getCCDSA()->locate(globalToLocal((bmpc->terms)[0].nnum), (1 << (bmpc->terms)[0].dofnum));
       pstatus[i] = (ccdof > -1) ? 1 : 0;
     }
     if(bmpc->nsub == subNumber) {
-      int ccdof = cc_dsa->locate(globalToLocal((bmpc->terms)[0].nnum), (1 << (bmpc->terms)[0].dofnum));
+      int ccdof = getCCDSA()->locate(globalToLocal((bmpc->terms)[0].nnum), (1 << (bmpc->terms)[0].dofnum));
       nstatus[i] = (ccdof > -1) ? 1 : 0;
     }
   }

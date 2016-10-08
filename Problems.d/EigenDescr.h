@@ -1,7 +1,8 @@
 #ifndef _EIGENDESCR_H_
 #define _EIGENDESCR_H_
+#include <Driver.d/Domain.h>
 
-class Domain;
+//class Domain;
 template <class Scalar> class GenDynamMat;
 typedef GenDynamMat<double> DynamMat;
 template <class Scalar> class GenVector;
@@ -31,6 +32,9 @@ class SDEigenPostProcessor {
     { domain = _domain; times = _times; bcx = _bcx;}
 
     void eigenOutput(Vector& eigvalues, VectorSet& eigVectors, int convEig = 0);
+#ifdef USE_EIGEN3
+    void eigenQROutput(Eigen::MatrixXd& X, Eigen::MatrixXd& Q, Eigen::MatrixXd& R);
+#endif
 };
 
 
@@ -54,7 +58,7 @@ class SingleDomainEigen {
  public:
 
     // Constructor
-    SingleDomainEigen(Domain *d) { domain = d; kelArray = 0; melArray =0; 
+    SingleDomainEigen(Domain *d) { domain = d; kelArray = 0; melArray = 0; 
                                    geomState = 0; allCorot = 0; geomKelArray = 0; }
 
     SDEigenPostProcessor *getPostProcessor();
@@ -66,6 +70,7 @@ class SingleDomainEigen {
     int  getNumEigen();
     int  getEigenSolverType();
     int  getEigenSolverSubType();
+    bool getFilter() { return domain->solInfo().readmodeCalled; }
 
     void preProcess();
     void getEigenInfo(int& subspacesize, int& numEig, double& tolEig, 
@@ -78,6 +83,7 @@ class SingleDomainEigen {
 
     void getSubSpaceInfo(int& subspacesize, int& maxIter, 
                          double& tolEig, double& tolJac, bool &explicitK);
+    void convertModeDataToVecSet(VectorSet& vModeData);
 };
 
 #endif

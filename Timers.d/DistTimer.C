@@ -1,6 +1,6 @@
 #include <cstdio>
+#include <algorithm>
 #include <Timers.d/DistTimer.h>
-#include <Math.d/mathUtility.h>
 #include <Comm.d/Communicator.h>
 
 DistTimer::DistTimer(int numTimers)
@@ -48,8 +48,8 @@ DistTimer::getMin()
  double minTime   = timeData[0].time;
  int i;
  for(i=1; i<numSubTimers; ++i) {
-   minMem  = myMin( minMem,  timeData[i].memory );
-   minTime = myMin( minTime, timeData[i].time );
+   minMem  = std::min( minMem,  timeData[i].memory );
+   minTime = std::min( minTime, timeData[i].time );
  }
    
 #ifdef DISTRIBUTED
@@ -75,8 +75,8 @@ DistTimer::getMax()
  double maxTime   = timeData[0].time;
  int i; 
  for(i=1; i<numSubTimers; ++i) {
-   maxMem  = myMax(maxMem,  timeData[i].memory);
-   maxTime = myMax(maxTime, timeData[i].time);
+   maxMem  = std::max(maxMem,  timeData[i].memory);
+   maxTime = std::max(maxTime, timeData[i].time);
  }
  
  // communicate to get global max

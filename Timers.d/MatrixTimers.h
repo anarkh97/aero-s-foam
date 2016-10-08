@@ -21,6 +21,8 @@ class MatrixTimers {
    double constructTime;
    double receiveFluidTime;
    double sendFluidTime;
+   double formRhs;
+   double updateState;
 
    long memoryParse;
    long memorySetUp;
@@ -46,7 +48,7 @@ class MatrixTimers {
    long memoryNodeToElem;
    long memoryElemToSub;
 
-   MatrixTimers() { distributeMPCs=0.0; memoryMPCToNode=0; memoryMPCToSub=0; 
+   MatrixTimers() { distributeMPCs = 0.0; memoryMPCToNode = 0; memoryMPCToSub = 0; 
                     factor = 0.0; assemble = 0.0; readTime = 0.0;
                     readDecomp = 0.0;
                     formTime = 0.0; setUpDataTime = 0.0; 
@@ -54,13 +56,14 @@ class MatrixTimers {
                     makeConnectivity = 0.0; makeSubDomains = 0.0; 
                     makeInternalInfo = 0.0; createDofs = 0.0;
                     renumbering = 0.0; constructTime = 0.0;
-                    receiveFluidTime=0.0; sendFluidTime = 0.0;
+                    receiveFluidTime = 0.0; sendFluidTime = 0.0;
+                    formRhs = 0.0; updateState = 0.0;
                     memoryParse = 0; memorySetUp = 0; memoryForm = 0;
-                    memorySolve = 0; memoryInterface = 0; memoryDistBC=0;
-                    memoryConnect = 0; memorySubdomain=0; memoryInternal=0;
-                    memoryDecomp=0; memoryElemToNode=0; memorySubToElem=0;
-                    memoryNodeToSub=0; memorySubToNode=0; memoryCPUMAP=0;
-                    memoryNodeToElem=0; memoryElemToSub=0; 
+                    memorySolve = 0; memoryInterface = 0; memoryDistBC = 0;
+                    memoryConnect = 0; memorySubdomain = 0; memoryInternal = 0;
+                    memoryDecomp = 0; memoryElemToNode = 0; memorySubToElem = 0;
+                    memoryNodeToSub = 0; memorySubToNode = 0; memoryCPUMAP = 0;
+                    memoryNodeToElem = 0; memoryElemToSub = 0; 
                   }
 };
 

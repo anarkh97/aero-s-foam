@@ -17,6 +17,7 @@ public:
 
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
         FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
+        void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
         double getMass(CoordSet&);
 
 	Element *clone();
@@ -29,13 +30,8 @@ public:
         int* nodes(int * = 0);
 
         PrioInfo examine(int sub, MultiFront *mf);
+        int nDecFaces() { return 4;}
+        int getDecFace(int iFace, int *fn);
 
-	double weight() {
-	  return order-1;
-	}
-	
-	double trueWeight() {
-	  return weight();
-	}
 };
 #endif

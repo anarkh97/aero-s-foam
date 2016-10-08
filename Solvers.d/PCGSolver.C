@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <iostream>
 #include <Solvers.d/KProject.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/SparseMatrix.h>
@@ -68,7 +69,7 @@ void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::solve(Scalar *rhs, Scalar *solution) 
 {
- cerr << "GenPCGSolver::solve(Scalar *rhs, Scalar *solution) is not implemented\n";
+ std::cerr << "GenPCGSolver::solve(Scalar *rhs, Scalar *solution) is not implemented\n";
 /*
  this->solveTime -= getTime(); this->memUsed -= memoryUsed();
  AnyVector sol(solution, this->A->dim());
@@ -100,7 +101,7 @@ void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::reSolve(Scalar *rhs)
 {
-  cerr << "GenPCGSolver::reSolve(Scalar *rhs) is not implemented\n";
+  std::cerr << "GenPCGSolver::reSolve(Scalar *rhs) is not implemented\n";
 /*
   this->solveTime -= getTime(); this->memUsed -= memoryUsed();
   AnyVector sol(rhs, this->A->dim());
@@ -117,7 +118,7 @@ void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::reSolve(int nRHS, Scalar **RHS)
 {
- cerr << "GenPCGSolver::reSolve(int nRHS, Scalar **RHS) is not implemented\n";
+ std::cerr << "GenPCGSolver::reSolve(int nRHS, Scalar **RHS) is not implemented\n";
 /*
  this->solveTime -= getTime(); this->memUsed -= memoryUsed();
  int i,n;

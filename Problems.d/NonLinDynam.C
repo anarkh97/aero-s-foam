@@ -3,6 +3,7 @@
 #include <cstdlib>
 
 #include <Driver.d/Domain.h>
+#include <Element.d/MpcElement.d/MpcElement.h>
 #include <Problems.d/NonLinDynam.h>
 #include <Problems.d/DynamDescr.h>
 #include <Solvers.d/Solver.h>
@@ -19,9 +20,14 @@
 #include <Math.d/FullMatrix.h>
 #include <Solvers.d/Rbm.h>
 #include <Driver.d/GeoSource.h>
+#include <Driver.d/ControlLawInfo.h>
 #include <Element.d/State.h>
 #include <Driver.d/SysState.h>
+#include <Rom.d/PodProjectionSolver.h>
+#include <Hetero.d/FlExchange.h>
+#include <Utils.d/DistHelper.h>
 
+#include <algorithm>
 #include <cstddef>
 
 typedef FSFullMatrix FullMatrix;
@@ -29,6 +35,7 @@ typedef FSFullMatrix FullMatrix;
 extern int verboseFlag;
 
 NonLinDynamic::NonLinDynamic(Domain *d) :
+  SingleDomainBase(d->solInfo()),
   domain(d),
   bcx(0),
   vcx(0),
@@ -39,6 +46,7 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
   spp(NULL),
   res(NULL),
   clawDofs(NULL),
+  K(NULL),
   M(NULL),
   C(NULL),
   Kuc(NULL),
@@ -53,8 +61,6 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
   times(NULL),
   userSupFunc(NULL),
   claw(NULL),
-  X(NULL),
-  Rmem(NULL),
   Cuc(NULL),
   Ccc(NULL),
   Muc(NULL),
@@ -62,8 +68,10 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
   reactions(NULL),
   factor(false)
 {
-  if(domain->GetnContactSurfacePairs())
+  if(domain->GetnContactSurfacePairs()) {
      domain->InitializeStaticContactSearch(MortarHandler::CTC);
+     updateCS = true;
+  }
 }
 
 NonLinDynamic::~NonLinDynamic()
@@ -89,6 +97,7 @@ NonLinDynamic::clean()
   if(kelArray) { delete [] kelArray; kelArray = 0; }
   if(celArray) { delete [] celArray; celArray = 0; }
   if(melArray) { delete [] melArray; melArray = 0; }
+  if(K)        { delete K; K = 0; }
   if(M)        { delete M; M = 0; }
   if(C)        { delete C; C = 0; }
   if(Kuc)      { delete Kuc; Kuc = 0; }
@@ -109,91 +118,45 @@ NonLinDynamic::clean()
 }
 
 void
-NonLinDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
-{
- 
- numR = rbms->numRBM();
-
- if (!numR) return;
-
- fprintf(stderr," ... Building the RBM Projector     ...\n");
- //fprintf(stderr," ... Number of RBM(s)     =   %d     ...\n",numR);
-
- int ndof = M->dim();
-
- // KHP: store this pointer to the RBMs to use in the actual
- //      projection step within the time loop.
- Rmem = new double[numR*ndof];
- rbms->getRBMs(Rmem);
- StackFSFullMatrix Rt(numR, ndof, Rmem);
-
- //DEBUG
-#ifdef DEBUG_RBM_FILTER
- FullMatrix R = Rt.transpose();
- R.print("","R");
-#endif
-
- double *MRmem = new double[numR*ndof];
- StackFSFullMatrix MR(numR, ndof, MRmem);
-
- int n;
- for(n=0; n<numR; ++n)
-   M->mult(Rmem+n*ndof, MRmem+n*ndof);
-
- FullMatrix MRt = MR.transpose();
- //MRt.print("MR","MR");
-
- FullMatrix RtMR(numR,numR);
- Rt.mult(MRt,RtMR);
- //DEBUG
- //RtMR.print("RtMR","RtMR");
-
- FullMatrix RtMRinverse = RtMR.invert();
- //DEBUG
- //RtMRinverse.print("RtMRinverse");
-
- X = new FullMatrix(ndof,numR);
- MRt.mult(RtMRinverse,(*X));
- //DEBUG
- //X->print("MRRtMRinverse");
-
-}
-
-void
-NonLinDynamic::trProject(Vector &f)
-{
- if (!numR) return;
-
- int ndof = f.size();
- 
- double *yMem = (double *) dbg_alloca(numR*sizeof(double));
- double *zMem = (double *) dbg_alloca(ndof*sizeof(double));
- StackVector y(ndof,yMem);
- StackVector z(ndof,zMem);
-
- StackFSFullMatrix Rt(numR, ndof, Rmem);
-
- // y = Rt*f
- Rt.mult(f,y);
-
-
- // z = X*y
- (*X).mult(y,z);
-
-
- // f = f - z;
- f.linC(1.0, f, -1.0, z);
-
-}
-
-void
 NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
                                Vector &v_p, GeomState &geomState)
 {
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
+
     domain->readRestartFile(d_n, v_n, a_n, v_p, bcx, vcx, geomState);
-    updateStates(&geomState, geomState);
+
+    int aeroFlag = domain->solInfo().aeroFlag;
+    if(aeroFlag >= 0) {
+      double time = domain->solInfo().initialTime;
+      double dt = domain->solInfo().getTimeStep();
+      double t_aero = (aeroFlag == 6) ? time+dt/2 : time+dt;
+      dynamCommToFluid(&geomState, &geomState, v_n, v_n, v_p, v_p, domain->solInfo().initialTimeIndex, 1,
+                       domain->solInfo().aeroFlag, t_aero);
+    }
+
+    // update geomState and bcx/vcx/acx for time dependent prescribed displacements and their time derivatives
+    // at the initial time
+    if(claw && userSupFunc) {
+      if(claw->numUserDisp > 0) {
+        double *userDefineDisp = new double[claw->numUserDisp];
+        double *userDefineVel  = new double[claw->numUserDisp];
+        double *userDefineAcc  = new double[claw->numUserDisp];
+        for(int i=0; i<claw->numUserDisp; ++i) {
+          userDefineVel[i] = 0;
+          userDefineAcc[i] = 0;
+        }
+        userSupFunc->usd_disp(domain->solInfo().initialTime, userDefineDisp, userDefineVel, userDefineAcc);
+
+        geomState.updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(),
+                                               userDefineVel, userDefineAcc);
+
+        setBC(userDefineDisp, userDefineVel, userDefineAcc);
+        delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+      }
+    }
+
+    updateStates(&geomState, geomState, domain->solInfo().initialTime);
   }
 }
 
@@ -203,11 +166,19 @@ NonLinDynamic::getInitState(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p)
   // initialize state with IDISP/IDISP6/IVEL or RESTART
   domain->initDispVeloc(d_n, v_n, a_n, v_p);
 
+  // apply rbmfilter projection
+  if(sinfo.filterFlags || sinfo.hzemFilterFlag) {
+    project(d_n);
+    project(v_n);
+    project(a_n);
+    project(v_p);
+  }
+
   updateUserSuppliedFunction(d_n, v_n, a_n, v_p, domain->solInfo().initialTime);
 
   int aeroAlg = domain->solInfo().aeroFlag; // by default, non-aeroelastic computation
-  // call aeroPreProcess if a restart file does not exist
-  if(aeroAlg >= 0 && geoSource->getCheckFileInfo()->lastRestartFile == 0) 
+  // call aeroPreProcess (note: for restarts the initial state is now sent to the fluid in readRestartFile, not aeroPreProcess)
+  if(aeroAlg >= 0)
     domain->aeroPreProcess(d_n, v_n, a_n, v_p, bcx, vcx);
 
   if(domain->solInfo().aeroheatFlag >= 0)
@@ -319,7 +290,7 @@ NonLinDynamic::addUserForce(Vector& f, double *userDefinedForce)
 void
 NonLinDynamic::getConstForce(Vector& constantForce)
 {
-  domain->computeConstantForce(constantForce);
+  domain->computeConstantForce(constantForce, Kuc);
 }
 
 void
@@ -330,7 +301,6 @@ NonLinDynamic::computeTimeInfo()
   // Get total time and time step size and store them 
   totalTime = domain->solInfo().tmax;
   dt0       = domain->solInfo().getTimeStep();
-  //delta     = 0.5*dt0;
 
   // Compute maximum number of steps
   maxStep = (int) ( (totalTime+0.49*dt0)/dt0 );
@@ -339,7 +309,7 @@ NonLinDynamic::computeTimeInfo()
   double remainder = totalTime - maxStep*dt0;
   if(std::abs(remainder)>0.01*dt0){
     domain->solInfo().tmax = totalTime = maxStep*dt0; 
-    fprintf(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
+    filePrint(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
   }
 
   // set half time step size in user defined functions 
@@ -348,14 +318,53 @@ NonLinDynamic::computeTimeInfo()
 }
 
 void
-NonLinDynamic::updateStates(GeomState *refState, GeomState& geomState)
+NonLinDynamic::updateContactSurfaces(GeomState& geomState, GeomState *refState)
 {
-  domain->updateStates(refState, geomState, allCorot);
+  clean();
+  domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
+
+  if(!domain->solInfo().trivial_detection) 
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+
+  domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+
+  if(domain->solInfo().trivial_detection) {
+    double threshold = -1.0;
+    Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
+     for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
+       Element *ele = eset[i];
+       static_cast<MpcElement*>(ele)->update(refState, geomState, domain->getNodes(), 0.0);
+       int n = ele->getNumMPCs();
+       LMPCons **l = ele->getMPCs();
+       for(int j = 0; j < n; ++j) {
+//         if(l[j]->rhs < threshold) {
+           l[j]->type = mpc::ContactSurfaces;
+           domain->addLMPC(l[j]);
+ //        }
+       }
+       delete [] l;
+     }
+  } else {
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+  }
+
+  domain->UpdateContactSurfaceElements(&geomState);
+  factor = false;
+  NonLinDynamic::preProcess();
+  geomState.resizeLocAndFlag(*domain->getCDSA());
+  if(refState) refState->resizeLocAndFlag(*domain->getCDSA());
+}
+
+void
+NonLinDynamic::updateStates(GeomState *refState, GeomState& geomState, double time)
+{
+  if(domain->solInfo().piecewise_contact) updateCS = true;  
+  domain->updateStates(refState, geomState, allCorot, time);
 }
 
 double
 NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
-                                Vector& elementInternalForce, double t, GeomState *refState)
+                                Vector& elementInternalForce, double t, GeomState *refState, bool forceOnly)
 {
   times->buildStiffAndForce -= getTime();
 
@@ -379,24 +388,21 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     }
   }
 
-  if(domain->GetnContactSurfacePairs()) {
-    clean();
-    domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
-    domain->PerformStaticContactSearch(MortarHandler::CTC);
-    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-    domain->UpdateContactSurfaceElements(&geomState);
-    factor = false;
-    preProcess();
-    geomState.resizeLocAndFlag(*domain->getCDSA());
-    residual.resize(domain->getCDSA()->size());
-    elementInternalForce.resize(domain->maxNumDOF());
-    localTemp.resize(domain->getCDSA()->size());
+  if(t != domain->solInfo().initialTime) {
+    if(domain->GetnContactSurfacePairs()) {
+      if(!domain->solInfo().piecewise_contact || updateCS) {
+        updateContactSurfaces(geomState, refState);
+        updateCS = false;
+      }
+      residual.conservativeResize(domain->getCDSA()->size());
+      elementInternalForce.resize(domain->maxNumDOF());
+      localTemp.resize(domain->getCDSA()->size());
+    }
   }
 
-  getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState, melArray);
+  getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState, melArray, forceOnly);
 
-  times->buildStiffAndForce +=  getTime();
+  times->buildStiffAndForce += getTime();
  
   // return residual force norm
   return residual.norm();
@@ -406,127 +412,151 @@ void
 NonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                           Corotator **allCorot, FullSquareMatrix *kelArray,
                                           Vector &residual, double lambda, double time, GeomState *refState,
-                                          FullSquareMatrix *melArray) {
-  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
-                           (Vector*) NULL, melArray);
+                                          FullSquareMatrix *melArray, bool forceOnly) {
+  if(forceOnly) {
+    domain->getInternalForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
+                             (Vector*) NULL, melArray, celArray);
+  }
+  else {
+    domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
+                             (Vector*) NULL, melArray, celArray);
+  }
 }
 
 int
 NonLinDynamic::getNumStages()
 {
-/*
- const double targetFirstResidual= 1.0E5;
- int numStages=2;
- if(firstRes > targetFirstResidual)
-   numStages= int(firstRes/targetFirstResidual)+2;
- return numStages;
-*/
- return int(0.2+ domain->solInfo().getNLInfo().maxLambda / domain->solInfo().getNLInfo().dlambda);
+  return int(0.2+ domain->solInfo().getNLInfo().maxLambda / domain->solInfo().getNLInfo().dlambda);
 }
 
 int
 NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector& dv, 
                                 double time)
 {
-     /*if(dofTypeArray == 0)
-       dofTypeArray = cdsa->makeDofTypeArray();*/
+  if(domain->GetnContactSurfacePairs()) dv.conservativeResize(domain->getCDSA()->size());
+
 #ifdef PRINT_FORCENORMS
-     ConstrainedDSA *cdsa = domain->getCDSA();
-     double momenNorm = 0.0;
-     double forceNorm = 0.0;
-     int i;
-     for(i=0; i<domain->numNodes(); ++i) {
-       if(domain->solInfo().order == 1) {
-         int dof = cdsa->locate(i, DofSet::Temp);
-         if(dof >= 0)
-           forceNorm += (residual[dof]*residual[dof]);
-       }
-       else {
-         int dof = cdsa->locate(i, DofSet::Xdisp);
-         if(dof >= 0)
-           forceNorm += (residual[dof]*residual[dof]);
-         dof = cdsa->locate(i, DofSet::Ydisp);
-         if(dof >= 0)
-           forceNorm += (residual[dof]*residual[dof]);
-         dof = cdsa->locate(i, DofSet::Zdisp);
-         if(dof >= 0)
-           forceNorm += (residual[dof]*residual[dof]);
-         dof = cdsa->locate(i, DofSet::Xrot);
-         if(dof >= 0)
-           momenNorm += (residual[dof]*residual[dof]);
-         dof = cdsa->locate(i, DofSet::Yrot);
-         if(dof >= 0)
-           momenNorm += (residual[dof]*residual[dof]); 
-         dof = cdsa->locate(i, DofSet::Zrot);
-         if(dof >= 0)
-           momenNorm += (residual[dof]*residual[dof]); 
-       }
-     }
-     if(iteration == 0) {
-       firstForceNorm = (forceNorm == 0.0) ? 1.0 : sqrt(forceNorm);
-       firstMomenNorm = (momenNorm == 0.0) ? 1.0 : sqrt(momenNorm);
-     }
-     fprintf(stderr,"===> time %f force Norm %e Moment Norm %e\n",
-             time,
-             sqrt(forceNorm)/firstForceNorm,
-             sqrt(momenNorm)/firstMomenNorm);
+  ConstrainedDSA *cdsa = domain->getCDSA();
+  double momenNorm = 0.0;
+  double forceNorm = 0.0;
+  int i;
+  for(i=0; i<domain->numNodes(); ++i) {
+    if(domain->solInfo().order == 1) {
+      int dof = cdsa->locate(i, DofSet::Temp);
+      if(dof >= 0)
+        forceNorm += (residual[dof]*residual[dof]);
+    }
+    else {
+      int dof = cdsa->locate(i, DofSet::Xdisp);
+      if(dof >= 0)
+        forceNorm += (residual[dof]*residual[dof]);
+      dof = cdsa->locate(i, DofSet::Ydisp);
+      if(dof >= 0)
+        forceNorm += (residual[dof]*residual[dof]);
+      dof = cdsa->locate(i, DofSet::Zdisp);
+      if(dof >= 0)
+        forceNorm += (residual[dof]*residual[dof]);
+      dof = cdsa->locate(i, DofSet::Xrot);
+      if(dof >= 0)
+        momenNorm += (residual[dof]*residual[dof]);
+      dof = cdsa->locate(i, DofSet::Yrot);
+      if(dof >= 0)
+        momenNorm += (residual[dof]*residual[dof]); 
+      dof = cdsa->locate(i, DofSet::Zrot);
+      if(dof >= 0)
+        momenNorm += (residual[dof]*residual[dof]); 
+    }
+  }
+  if(iteration == 0) {
+    firstForceNorm = (forceNorm == 0.0) ? 1.0 : sqrt(forceNorm);
+    firstMomenNorm = (momenNorm == 0.0) ? 1.0 : sqrt(momenNorm);
+  }
+  fprintf(stderr,"===> time %f force Norm %e Moment Norm %e\n",
+          time,
+          sqrt(forceNorm)/firstForceNorm,
+          sqrt(momenNorm)/firstMomenNorm);
 #endif
 
-     double normDv     = dv.norm();
-     double normEnergy = residual*dv;
+  // Note when useTolInc is false, this function is called before normDv is calculated
+  bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity() ||
+                    domain->solInfo().getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
 
-     if(iteration == 0)  { 
-       firstRes = normRes;
-       firstDv  = normDv;
-       firstEng = normEnergy;
-     }
-     if(iteration == 1) secondRes = normRes;
+  double normDv     = dv.norm();
+  double normEnergy = residual*dv;
 
-     double relRes = normRes/firstRes;
-     double relDv  = normDv /firstDv;
-     double relEng = normEnergy/firstEng;
+  if(iteration == 0) { 
+    firstRes = normRes;
+    if(useTolInc) {
+      firstDv  = normDv;
+      firstEng = normEnergy;
+    }
+    else {
+      normDv = 0; firstDv = 1;
+      normEnergy = 0; firstEng = 1;
+    }
+  }
+  if(iteration == 1) {
+    secondRes = normRes;
+    if(!useTolInc) {
+      firstDv  = normDv;
+      firstEng = normEnergy;
+    }
+  }
 
-     int converged = 0;
+  double relRes = normRes/firstRes;
+  double relDv  = normDv /firstDv;
 
-     if(iteration > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) 
-        || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc))) 
-       converged = 1;
+  int converged = 0;
 
-     // Check for divergence
-     else if(iteration > 1 && (normRes >= 1.0e10 * firstRes && normRes > secondRes))
-       converged = -1;
+  // Check for convergence
+  if(iteration > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) 
+     || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc))) 
+    converged = 1;
 
-     if(verboseFlag) {
-       filePrint(stderr," Iteration # %d\n",iteration);
-       filePrint(stderr," r      = %e dv      = %e energy      = %e\n"
+  // Check for divergence
+  else if(iteration > 1 && (normRes >= 1.0e10 * firstRes && normRes > secondRes))
+    converged = -1;
+
+  if(verboseFlag) {
+    filePrint(stderr, " Iteration # %d\n", iteration);
+    if(useTolInc || iteration >= 1) {
+      double relEng = normEnergy/firstEng;
+      filePrint(stderr, " r      = %e dv      = %e energy      = %e\n"
                         " rel. r = %e rel. dv = %e rel. energy = %e\n",
-                          normRes,normDv,normEnergy,
-                          relRes,relDv,relEng);
-     }
+                        normRes, normDv, normEnergy,
+                        relRes, relDv, relEng);
+    }
+    else {
+      filePrint(stderr, " r      = %e\n"
+                        " rel. r = %e\n",
+                        normRes, relRes);
+    }
+  }
 
-     totIter++;
-     filePrint(res,"%d %19.12e %e %e %e %e\n",totIter,time,normRes,relRes, normDv, relDv);
-     fflush(res);
+  totIter++;
+  filePrint(res, "%d %19.12e %e %e %e %e\n", totIter, time, normRes, relRes, normDv, relDv);
+  fflush(res);
 
-     // Store residual norm and dv norm for output
-     times->norms[numSystems].normDv      = normDv;
-     times->norms[numSystems].relativeDv  = relDv;
-     times->norms[numSystems].normRes     = normRes;
-     times->norms[numSystems].relativeRes = relRes;
-     times->numSystems = numSystems;
+  // Store residual norm and dv norm for output
+  times->norms[numSystems].normDv      = normDv;
+  times->norms[numSystems].relativeDv  = relDv;
+  times->norms[numSystems].normRes     = normRes;
+  times->norms[numSystems].relativeRes = relRes;
+  times->numSystems = numSystems;
 
-     numSystems += 1;
+  numSystems += 1;
 
-     return converged;
+  return converged;
 }
 
 GeomState*
 NonLinDynamic::createGeomState()
 {
   if(domain->solInfo().soltyp == 2)
-    return new TemperatureState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes() );
+    return new TemperatureState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes());
   else
-    return new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet() );
+    return new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
+                         domain->getNodalTemperatures());
 }
 
 GeomState*
@@ -577,14 +607,29 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      preProcess(Kcoef, Mcoef, Ccoef);
    }
    else {
-     spm->zeroAll();
+     if(!(domain->solInfo().DEIMPodRom || domain->solInfo().UDEIMPodRom))
+       spm->zeroAll();
      AllOps<double> ops;
      if(Kuc) { Kuc->zeroAll(); ops.Kuc = Kuc; }
      if(spp) { spp->zeroAll(); ops.spp = spp; }
-     domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+     if(domain->solInfo().galerkinPodRom && (domain->solInfo().useMassNormalizedBasis || domain->solInfo().modalDIMASS)) {
+       domain->makeSparseOps<double>(ops, Kcoef, 0.0, Ccoef, spm, kelArray, melArray, celArray);
+       if(domain->solInfo().useMassNormalizedBasis)
+         dynamic_cast<Rom::PodProjectionSolver*>(solver)->addReducedMass(Mcoef);
+       else {
+#ifdef USE_EIGEN3
+         dynamic_cast<Rom::PodProjectionSolver*>(solver)->addToReducedMatrix(VtMV, Mcoef);
+#endif
+       }
+     }
+     else {
+       domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+     }
      if(!verboseFlag) solver->setPrintNullity(false);
+     domain->getTimers().factor -= getTime();
      solver->factor();
      if(prec) prec->factor();
+     domain->getTimers().factor += getTime();
    }
 
  }
@@ -607,6 +652,12 @@ int
 NonLinDynamic::elemVecInfo()
 {
  return domain->maxNumDOF();
+}
+
+double
+NonLinDynamic::getTolerance()
+{
+ return std::max(tolerance*firstRes, domain->solInfo().getNLInfo().absTolRes);
 }
 
 int
@@ -663,8 +714,10 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   }
 
   // update THERMOE 
-  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0)
+  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     domain->thermoeComm();
+    geomState->setNodalTemperatures(domain->getNodalTemperatures());
+  }
 
   // add f(t) to constantForce (not including follower forces)
   double beta, gamma, alphaf, alpham;
@@ -684,20 +737,17 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0)
     domain->buildAeroheatFlux(rhs, prevFrc->lastFluidLoad, tIndex, t);
 
- //  HAI: apply projector here
- if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
-   trProject(rhs);
+  // apply rbmfilter projection
+  if(sinfo.filterFlags || sinfo.hzemFilterFlag)
+    trProject(rhs);
 
- times->formRhs += getTime();
+  times->formRhs += getTime();
 }
 
 void
 NonLinDynamic::getIncDisplacement(GeomState *geomState, Vector &du, GeomState *refState,
                                   bool zeroRot)
 {
-  if(domain->GetnContactSurfacePairs()) {
-    du.resize(domain->getCDSA()->size());
-  }
   geomState->get_inc_displacement(du, *refState, zeroRot);
 }
 
@@ -707,12 +757,11 @@ NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elemen
   // rhs = (fext - fint - Cv)
   rhs = fext;
   getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, rhs, 1.0, domain->solInfo().initialTime, refState,
-                             melArray);
+                             melArray, false);
   if(domain->solInfo().order == 2 && C) {
     C->mult(velocity, localTemp);
     rhs.linC(rhs, -1.0, localTemp);
   }
-  geomState.pull_back(rhs); // f = R^T*f
 }
 
 void
@@ -780,9 +829,10 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
 {
   times->correctorTime -= getTime();
   if(domain->GetnContactSurfacePairs()) {
-    velocity.resize(domain->getCDSA()->size());
-    acceleration.resize(domain->getCDSA()->size());
-    rhs.resize(domain->getCDSA()->size());
+    velocity.conservativeResize(solVecInfo());
+    acceleration.conservativeResize(solVecInfo());
+    rhs.resize(solVecInfo());
+    inc_displacement.conservativeResize(solVecInfo());
   }
 
   if(domain->solInfo().order == 1) {
@@ -871,18 +921,19 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
    allOps.Ccc = domain->constructCCSparse<double>();
  }
 
+ if(domain->solInfo().getNLInfo().linearelastic) {
+   allOps.K = domain->constructDBSparseMatrix<double>();
+ }
  allOps.Kuc = domain->constructCuCSparse<double>();
 
  Rbm *rigidBodyModes = 0;
 
- int useRbmFilter = domain->solInfo().filterFlags;
  int useGrbm = domain->solInfo().rbmflg;
- int useHzemFilter = domain->solInfo().hzemFilterFlag;
- int useHzem   = domain->solInfo().hzemFlag;
+ int useHzem = domain->solInfo().hzemFlag;
 
- if (useGrbm || useRbmFilter)
+ if (useGrbm || sinfo.filterFlags)
    rigidBodyModes = domain->constructRbm();
- else if(useHzem || useHzemFilter)
+ else if(useHzem || sinfo.hzemFilterFlag)
    rigidBodyModes = domain->constructHzem();
 
  // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
@@ -894,16 +945,7 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) NULL, kelArray,
                           melArray, celArray, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
 
- if(useRbmFilter == 1)
-    fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");
- if(useRbmFilter == 2)
-    fprintf(stderr," ... RBM filter Level 2 Requested    ...\n");
- if(useHzemFilter)
-    fprintf(stderr," ... HZEM filter Requested    ...\n");
-
- if(useRbmFilter || useHzemFilter)
-   projector_prep(rigidBodyModes, allOps.M);
-
+ K      = allOps.K;
  Kuc    = allOps.Kuc;
  M      = allOps.M;
  C      = allOps.C;
@@ -915,6 +957,11 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  Mcc    = allOps.Mcc;
  Cuc    = allOps.Cuc;
  Ccc    = allOps.Ccc;
+
+ if(sinfo.filterFlags || sinfo.hzemFilterFlag)
+   projector_prep(rigidBodyModes, M);
+
+ if(rigidBodyModes) delete rigidBodyModes;
 
  if(!allCorot) {
    // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
@@ -969,17 +1016,23 @@ NonLinDynamic::getSolver()
 SDDynamPostProcessor* 
 NonLinDynamic::getPostProcessor()
 {
- return new SDDynamPostProcessor(domain, bcx, vcx, acx, times);
+  return new SDDynamPostProcessor(domain, bcx, vcx, acx, times);
 }
 
 void
 NonLinDynamic::printTimers(double timeLoop)
 {
+  long memoryUsed = solver->size();
+  double solveTime = solver->getSolutionTime();
 
- long memoryUsed = solver->size();
- double solveTime = solver->getSolutionTime();
+  times->printStaticTimers( solveTime, memoryUsed, domain, timeLoop );
 
- times->printStaticTimers( solveTime, memoryUsed, domain, timeLoop );
+  if(domain->solInfo().massFlag) {
+    double mass = domain->computeStructureMass();
+    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," ... Structure mass = %e  ...\n",mass);
+    filePrint(stderr," --------------------------------------\n");
+  }
 }
 
 int
@@ -1006,86 +1059,58 @@ NonLinDynamic::getAeroheatFlag()
   return domain->solInfo().aeroheatFlag;
 }
 
-
 void 
 NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
                                 Vector& velocity, Vector& bkVelocity,
                                 Vector& vp, Vector& bkVp, int step, int parity, 
-                                int aeroAlg)
+                                int aeroAlg, double time)
 {
-
   times->output -= getTime();
 
   if(domain->solInfo().aeroFlag >= 0 && !domain->solInfo().lastIt) {
     domain->getTimers().sendFluidTime -= getTime();
 
+    // update geomState bcx/vcx/acx for time dependent prescribed displacements and their time derivatives
+    ControlLawInfo *claw = geoSource->getControlLaw();
+    ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
+    if(claw && claw->numUserDisp) {
+      // Note: the approprate value of "time" passed into this function should be t^{n+½} for A6 and t^{n+1}
+      // otherwise, where t^n denotes the time at the end of the current structure timestep. Note that the
+      // predictor in FlExchanger::sendDisplacements is not applied to prescribed displacements; we directly
+      // compute here the desired values of the prescribed displacements/velocities rather than predicting them.
+      double *userDefineDisp = new double[claw->numUserDisp];
+      double *userDefineVel  = new double[claw->numUserDisp];
+      double *userDefineAcc  = new double[claw->numUserDisp];
+      for(int i = 0; i < claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
+      userSupFunc->usd_disp(time, userDefineDisp, userDefineVel, userDefineAcc);
+      setBC(userDefineDisp, userDefineVel, userDefineAcc);
+      geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(), userDefineVel, userDefineAcc);
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+    }
+
     // Make d_n_aero from geomState
+    Vector d_n(domain->numUncon(), 0.0);
+    geomState->get_tot_displacement(d_n);
+
     ConstrainedDSA *c_dsa = domain->getCDSA();
     DofSetArray *dsa = domain->getDSA();
 
-    // Note that d_n and a_n are vectors being allocated and de-allocated at
-    // each time-step being executed.
-
-    Vector d_n( domain->numUncon(), 0.0 );
-    Vector d_n2( domain->numUncon(), 0.0 );
-
-    CoordSet &nodes = domain->getNodes();
-    int numNodes = nodes.size();
-
-    for(int i=0; i<geoSource->numNode(); ++i) {
-
-      int xloc  = c_dsa->locate(i, DofSet::Xdisp );
-      int xloc1 =   dsa->locate(i, DofSet::Xdisp );
-
-      if(xloc >= 0)
-        d_n[xloc]  = ( (*geomState)[i].x - nodes[i]->x);
-      else if (xloc1 >= 0)
-        bcx[xloc1] = ( (*geomState)[i].x - nodes[i]->x);
-
-      int yloc  = c_dsa->locate(i, DofSet::Ydisp );
-      int yloc1 =   dsa->locate(i, DofSet::Ydisp );
-
-      if(yloc >= 0)
-        d_n[yloc]  = ( (*geomState)[i].y - nodes[i]->y);
-      else if (yloc1 >= 0)
-        bcx[yloc1] = ( (*geomState)[i].y - nodes[i]->y);
-
-      int zloc  = c_dsa->locate(i, DofSet::Zdisp);
-      int zloc1 =   dsa->locate(i, DofSet::Zdisp);
-
-      if(zloc >= 0)
-        d_n[zloc]  = ( (*geomState)[i].z - nodes[i]->z);
-      else if (zloc1 >= 0)
-        bcx[zloc1] = ( (*geomState)[i].z - nodes[i]->z);
-    }
-
-    if(!parity && aeroAlg==5){ 
-      for(int i=0; i<geoSource->numNode(); ++i) {
-
-        int xloc  = c_dsa->locate(i, DofSet::Xdisp );
-        if(xloc >= 0)
-          d_n2[xloc]  = ( (*bkGeomState)[i].x - nodes[i]->x);
-
-        int yloc  = c_dsa->locate(i, DofSet::Ydisp );
-        if(yloc >= 0)
-          d_n2[yloc]  = ( (*bkGeomState)[i].y - nodes[i]->y);
-
-        int zloc  = c_dsa->locate(i, DofSet::Zdisp);
-        if(zloc >= 0)
-          d_n2[zloc]  = ( (*bkGeomState)[i].z - nodes[i]->z);
-      }
-
+    if(!parity && aeroAlg==5) { 
+      Vector d_n2(domain->numUncon(), 0.0);
+      bkGeomState->get_tot_displacement(d_n2);
       d_n.linC(0.5,d_n,0.5,d_n2);
       velocity.linC(0.5,velocity,0.5,bkVelocity);
       vp.linC(0.5,vp,0.5,bkVp);
     }
     Vector a_n( domain->numUncon(), 0.0 );
-    
 
     State state( c_dsa, dsa, bcx, vcx, d_n, velocity, a_n, vp );
 
     domain->getFileExchanger()->sendDisplacements(state, -1, geomState);
-    if(verboseFlag) filePrint(stderr," ... Sent displacements to Fluid at step %d\n",(step+1));
+    if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");
 
     domain->getTimers().sendFluidTime += getTime();
   }
@@ -1101,7 +1126,6 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
     // each time-step being executed.
 
     Vector d_n( domain->numUncon(), 0.0 );
-    Vector d_n2( domain->numUncon(), 0.0 );
 
     CoordSet &nodes = domain->getNodes();
 
@@ -1146,7 +1170,7 @@ NonLinDynamic::dynamOutput(GeomState* geomState, Vector& velocity,
 {
   times->output -= getTime();
 
-  // update geomState for time dependent prescribed displacements and their time derivatives prior to output
+  // update geomState bcx/vcx/acx for time dependent prescribed displacements and their time derivatives prior to output
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {
@@ -1177,7 +1201,7 @@ NonLinDynamic::dynamOutput(GeomState* geomState, Vector& velocity,
   }
 
   domain->postProcessing(geomState, force, aeroF, time, (step+1), velocity.data(), vcx,
-                         allCorot, melArray, acceleration.data(), acx, refState, reactions);
+                         allCorot, acceleration.data(), acx, refState, reactions, M, C);
   times->output += getTime();
 }
 
@@ -1249,21 +1273,36 @@ NonLinDynamic::factorWhenBuilding() const {
 }
 
 void
-NonLinDynamic::initializeParameters(GeomState *geomState)
+NonLinDynamic::initializeParameters(int step, GeomState *geomState)
 {
-  domain->initializeParameters(*geomState, allCorot);
+  if(step == 1 || domain->solInfo().reinit_lm) {
+    domain->initializeMultipliers(*geomState, allCorot);
+  }
+  domain->initializeParameters();
 }
 
 void
 NonLinDynamic::updateParameters(GeomState *geomState)
 {
-  domain->updateParameters(*geomState, allCorot);
+  domain->updateMultipliers(*geomState, allCorot);
+  domain->updateParameters();
 }
 
 bool
-NonLinDynamic::checkConstraintViolation(double &err)
+NonLinDynamic::checkConstraintViolation(double &err, GeomState *gs)
 {
-  err = domain->getError(allCorot);
+  err = domain->getError(allCorot, *gs);
   return (err <= domain->solInfo().penalty_tol);
 }
 
+LinesearchInfo&
+NonLinDynamic::linesearch()
+{
+ return domain->solInfo().getNLInfo().linesearch;
+}
+
+bool
+NonLinDynamic::getResizeFlag()
+{
+  return (domain->GetnContactSurfacePairs() > 0);
+}

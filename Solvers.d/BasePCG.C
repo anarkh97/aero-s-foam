@@ -1,8 +1,9 @@
 #include <Timers.d/GetTime.h>
 #include <Utils.d/MyComplex.h>
-#include <cstdio>
 #include <Utils.d/print_debug.h>
 #include <Sfem.d/Sfem.h>
+#include <cstdio>
+#include <iostream>
 extern Sfem* sfem;
 
 template <class Scalar, class AnyVector, class AnyOperator, 
@@ -30,6 +31,8 @@ BasePCG<Scalar,AnyVector,AnyOperator,AnyProjector,AnyPreconditioner>
  }
 
  Scalar r0tr0 = res1*res1;
+ if(verbose)
+   std::cerr << " ... Iteration #  0\t Two norm = " << sqrt(r0tr0) << "\t Rel. residual = 1.0" << std::endl;
  if(r0tr0 == 0.0) {
    return 0;
  }
@@ -60,17 +63,16 @@ BasePCG<Scalar,AnyVector,AnyOperator,AnyProjector,AnyPreconditioner>
    // FIRST CHECK CONVERGENCE
    Scalar r1tr1 = res1*res1;
 
-   if(verbose) cerr << " ... Iteration #  " << niter << "\t Two norm = "  << sqrt(r1tr1) 
-                    << "\t Rel. residual = "  << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) << endl;
+   if(verbose)
+     std::cerr << " ... Iteration #  " << niter << "\t Two norm = " << sqrt(r1tr1) << "\t Rel. residual = "  << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) << std::endl;
    if( ScalarTypes::norm(r1tr1) <= ScalarTypes::norm(r0tr0*tolpcg*tolpcg) || niter >= maxitr ) {
       Scalar twonr = sqrt(r1tr1);
       if(verbose) {
-        filePrint(stderr, " ... Total # Iterations = %13d %14.5f s\n", niter, (getTime() - t1)/1000.0);
-        cerr << " ...     Final Two norm = " << twonr << endl;
-        cerr << " ...     Final residual = " << r1tr1 << endl;
+        std::cerr << " ...     Final Two norm = " << twonr << std::endl;
+        std::cerr << " ...     Final residual = " << r1tr1 << std::endl;
         if(niter >= maxitr && ScalarTypes::norm(r1tr1) >= ScalarTypes::norm(r0tr0*tolpcg*tolpcg))
-          cerr << " ... Achieved a rel. residual of " << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) 
-               << " in " << niter << " iter." << endl;
+          std::cerr << " ... Achieved a rel. residual of " << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) 
+               << " in " << niter << " iter." << std::endl;
       }
       finalNorm     = r1tr1;
       numIterations = niter;

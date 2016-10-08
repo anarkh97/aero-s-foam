@@ -9,7 +9,7 @@ PostProcessorRoot::PostProcessorRoot(GeoSource * gs, int localFileCount, const i
   fileStatus_()
 {
   for (int i = 0; i < localFileCount; ++i) {
-    fileStatus_.insert(fileStatus_.end(), make_pair(FileSetId(localFileId[i]), CLOSED));
+    fileStatus_.insert(fileStatus_.end(), std::make_pair(FileSetId(localFileId[i]), CLOSED));
   }
   this->geoSource()->duplicateFilesForPita(localFileCount, localFileId);
 }

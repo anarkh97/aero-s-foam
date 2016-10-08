@@ -3,6 +3,7 @@
 
 #include "MasterMapping.h"
 #include "DistrDomainUtils.h"
+#include "BlockCyclicMap.h"
 
 #include <Driver.d/SubDomain.h>
 
@@ -26,17 +27,18 @@ public:
   NodeIndexIt masterNodeBegin() const { return masterNodes_.begin(); }
   NodeIndexIt masterNodeEnd()   const { return masterNodes_.end();   }
 
+  DistrMasterMapping() {}
   template <typename SubDomFwdIt>
-  DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast);
+  DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast, bool internalNodes=false);
 
-private:
+protected:
   std::vector<MasterMapping> subMapping_;
   std::vector<int> localNodes_;
   std::vector<int> masterNodes_;
 };
 
 template <typename SubDomFwdIt>
-DistrMasterMapping::DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast) {
+DistrMasterMapping::DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast, bool internalNodes) {
   for (SubDomFwdIt subDomIt = subDomFirst; subDomIt != subDomLast; ++subDomIt) {
     SubDomain &sd = *subDomIt;
     const int * const globalBegin = sd.getGlNodes();
@@ -45,7 +47,8 @@ DistrMasterMapping::DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subD
     localNodes_.insert(localNodes_.end(), globalBegin, globalEnd);
 
     std::vector<bool> masterNodes;
-    master_node_flags(sd, std::back_inserter(masterNodes));
+    if(internalNodes) internal_node_flags(sd, std::back_inserter(masterNodes));
+    else master_node_flags(sd, std::back_inserter(masterNodes));
     subMapping_.push_back(MasterMapping(globalBegin, globalEnd, masterNodes.begin()));
 
     std::vector<bool>::const_iterator flagIt = masterNodes.begin();
@@ -53,6 +56,59 @@ DistrMasterMapping::DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subD
       if (*flagIt++) {
         masterNodes_.push_back(*globalIt);
       }
+    }
+  }
+}
+
+class DistrMpcMasterMapping : public DistrMasterMapping {
+public:
+  template <typename SubDomFwdIt>
+  DistrMpcMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast);
+};
+
+template <typename SubDomFwdIt>
+DistrMpcMasterMapping::DistrMpcMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast) {
+  for (SubDomFwdIt subDomIt = subDomFirst; subDomIt != subDomLast; ++subDomIt) {
+    SubDomain &sd = *subDomIt;
+    const int * const globalBegin = sd.getGlMPCs();
+    const int * const globalEnd = globalBegin + sd.getNumMpc();
+
+    localNodes_.insert(localNodes_.end(), globalBegin, globalEnd);
+
+    std::vector<bool> masterNodes(sd.getMpcMaster(), sd.getMpcMaster()+sd.getNumMpc());
+    subMapping_.push_back(MasterMapping(globalBegin, globalEnd, masterNodes.begin()));
+
+    std::vector<bool>::const_iterator flagIt = masterNodes.begin();
+    for (const int *globalIt = globalBegin; globalIt != globalEnd; ++globalIt) {
+      if (*flagIt++) {
+        masterNodes_.push_back(*globalIt);
+      }
+    }
+  }
+}
+
+class DistrTrivialMasterMapping : public DistrMasterMapping {
+public:
+  template <typename SubDomFwdIt>
+  DistrTrivialMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast, int globalLen,
+                            int blockSize, Communicator *com, int numLocalSub);
+private:
+  BlockCyclicMap bcMap_;
+};
+
+template <typename SubDomFwdIt>
+DistrTrivialMasterMapping::DistrTrivialMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast,
+                                                     int globalLen, int blockSize, Communicator *com,
+                                                     int numLocalSub)
+  : bcMap_(globalLen, blockSize, com->numCPUs(), numLocalSub)
+{
+  for (SubDomFwdIt subDomIt = subDomFirst; subDomIt != subDomLast; ++subDomIt) {
+    SubDomain &sd = *subDomIt;
+    const int locLen = bcMap_.subLen(com->myID(), sd.localSubNum());
+    for(int i=0; i<locLen; ++i) {
+      int glIndx = bcMap_.localToGlobal(com->myID(), sd.localSubNum(), i);
+      localNodes_.push_back(glIndx); 
+      masterNodes_.push_back(glIndx);
     }
   }
 }

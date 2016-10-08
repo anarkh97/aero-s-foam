@@ -13,6 +13,7 @@ class RotationBlockerConstraint : public DotType1ConstraintElement
     RotationBlockerConstraint(int*, int, int);
     void buildFrame(CoordSet&);
     int getTopNumber();
+    bool hasRot() { return true; }
 };
 
 #endif

@@ -126,7 +126,7 @@ ReducedLinearDriverImpl::preprocess() {
   finalTime_ = Seconds(solverInfo()->tmax);
  
   SliceCount numSlices(static_cast<int>(ceil((finalTime_.value() - initialTime_.value()) / (sliceRatio_.value() * fineTimeStep_.value()))));
-  finalTime_ = fineTimeStep_ * Seconds(numSlices.value() * sliceRatio_.value()); // Must have only complete time-slices 
+  finalTime_ = fineTimeStep_.operator*(Seconds(numSlices.value() * sliceRatio_.value())); // Must have only complete time-slices
   
   // Main options 
   noForce_ = solverInfo()->pitaNoForce;

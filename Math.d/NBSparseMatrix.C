@@ -37,7 +37,7 @@ GenNBSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
  int i, j, dof;
 
  // For each dof figure out to which node it belongs and
- // its unconstrained number 
+ // its unconstrained number
 
  int kndof = kel.dim();
 
@@ -46,7 +46,7 @@ GenNBSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
  int *dn   = (int *) dbg_alloca(sizeof(int)*kndof);
 
  for(i = 0; i < kndof; ++i) {
-   dof = dsa->getRCN(dofs[i]); 
+   dof = dsa->getRCN(dofs[i]);
    if(dof == -1)
      dn[i] = -1;
    else {
@@ -67,7 +67,7 @@ GenNBSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
 }
 
 template<class Scalar>
-GenNBSparseMatrix<Scalar>::GenNBSparseMatrix(Connectivity *_cn, ConstrainedDSA *c_dsa )
+GenNBSparseMatrix<Scalar>::GenNBSparseMatrix(Connectivity *_cn, ConstrainedDSA *c_dsa)
 {
   con = _cn;
   dsa = c_dsa;
@@ -78,7 +78,7 @@ GenNBSparseMatrix<Scalar>::GenNBSparseMatrix(Connectivity *_cn, ConstrainedDSA *
   if(con->csize() < numnodes) numnodes = con->csize();
 
   dofToNode = new int[dsa->size()];
- 
+
   for(inode=0; inode < numnodes; ++inode) {
    int fDof = dsa->firstdof(inode);
    int lastDof = fDof + dsa->weight(inode);
@@ -195,8 +195,8 @@ GenNBSparseMatrix<Scalar>::diag(int dof) const
 // Then return 1 or the diagonal entry of the matrix
 
 // if( allM[matid][dn][dn] == 0.0 && bc[dof] == BCFIXED )
- 
-  if(allM[matid][dn][dn] == 0.0 )
+
+  if(allM[matid][dn][dn] == 0.0)
     return (1);
   else
     return allM[matid][dn][dn];
@@ -212,7 +212,7 @@ GenNBSparseMatrix<Scalar>::diag(int dof)
   int dton = dofToNode[dof];
   int dn = dof - dsa->firstdof(dton);
   int matid = con->offset(dton, dton);
- 
+
     return allM[matid][dn][dn];
 }
 

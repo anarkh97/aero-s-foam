@@ -38,6 +38,7 @@ GenDistrDomain<Scalar>::initialize()
   nodePat = 0;
   masterStress = 0;
   elemOffsets = 0;
+  clusToCpu = 0;
 }
 
 template<class Scalar>
@@ -55,38 +56,19 @@ GenDistrDomain<Scalar>::~GenDistrDomain()
   if(masterStress) { delete masterStress; masterStress = 0;} 
   if(nodePat) { delete nodePat; nodePat = 0; }
   if(elemOffsets) { delete [] elemOffsets; elemOffsets = 0; }
+  if(clusToCpu) { delete clusToCpu; clusToCpu = 0; }
 }
 
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::initPostPro()
 {
-  //geoSource->setNumNodalOutput();
-
   if(geoSource->getNumOutInfo()) {
 #ifdef DISTRIBUTED
-/* moved to DecDomain::preProcess
-    if(geoSource->getNumNodalOutput()) {
-      for(int i=0; i<this->numSub; ++i)
-        geoSource->distributeOutputNodesX(this->subDomain[i], this->nodeToSub);
-    }
-*/
     createMasterFlag();
     createOutputOffsets();
     makeMasterInfo();
 #endif
-
-/*`
-    if(!this->elemToNode) { // check if elemToNode is required
-      OutputInfo *oinfo = geoSource->getOutputInfo();
-      for(int iInfo = 0; iInfo < geoSource->getNumOutInfo(); iInfo++) {
-        if(oinfo[iInfo].averageFlg == 0) {
-          this->createElemToNode();
-          break;
-        }
-      }
-    }
-*/ 
     if(!this->elemToNode && geoSource->elemOutput()) this->createElemToNode();
   }
 }
@@ -107,7 +89,6 @@ GenDistrDomain<Scalar>::makeMasterInfo()
 #endif
 }
 
-
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::forceContinuity(GenDistrVector<Scalar> &u) {
@@ -116,7 +97,7 @@ GenDistrDomain<Scalar>::forceContinuity(GenDistrVector<Scalar> &u) {
   int iSub;
 
   // initialize and merge displacements from subdomains into cpu array
-  DistSVec<Scalar, 11> disps(this->nodeInfo);
+  DistSVec<Scalar, 11> disps(*this->nodeInfo);
   DistSVec<Scalar, 11> masterDisps(masterInfo);
   disps = 0;
   for(iSub = 0; iSub < this->numSub; ++iSub) {
@@ -124,16 +105,14 @@ GenDistrDomain<Scalar>::forceContinuity(GenDistrVector<Scalar> &u) {
     Scalar *bcx = this->subDomain[iSub]->getBcx();
     this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(xyz, u.subData(iSub), bcx);
   }
-//  if(domain->solInfo().isCoupled && domain->solInfo().isMatching)
-  unify(disps); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
+  unify(disps); // make sure master has solution for all dofs before reducing
   disps.reduce(masterDisps, masterFlag, numFlags);
- this->communicator->sync();
+  this->communicator->sync();
   for(iSub = 0; iSub < this->numSub; ++iSub) {
     Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);
     this->subDomain[iSub]->template forceDistributedContinuity<Scalar>(u.subData(iSub), xyz);
   }
 }
-
 
 template<class Scalar>
 void
@@ -147,35 +126,27 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
-  // check if there are any output files which need to be printed now
-  bool noOut = true;
-  for(int iOut = 0; iOut < numOutInfo; iOut++) {
-    if(oinfo[iOut].interval == 0 || x % oinfo[iOut].interval != 0) continue;
-    if(oinfo[iOut].ndtype != ndflag) continue;
-    if(ndflag != 0 && oinfo[iOut].type != OutputInfo::Disp6DOF && oinfo[iOut].type !=  OutputInfo::Displacement) continue;
-    noOut = false;
-    break;
-  }
-  if(noOut) return;
+  // check if there are any output files which need to be processed now
+  int outLimit = geoSource->getOutLimit();
+  if(geoSource->noOutput(x, ndflag) && !((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0))) return;
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
   int iOut_ffp = -1;
   int iOut_kir = -1;
 
-  int outLimit = geoSource->getOutLimit();
-  if(numOutInfo && x == domain->solInfo().initialTimeIndex && ndflag == 0 && !domain->solInfo().isDynam())
+  if(x == domain->solInfo().initialTimeIndex && ndflag == 0 && !(domain->solInfo().isDynam() || domain->solInfo().timeIntegration == 1))
     filePrint(stderr," ... Postprocessing                 ...\n");
   if(!masterFlag) initPostPro();
 
   int iSub;
 
   // initialize and merge displacements from subdomains into cpu array
-  DistSVec<Scalar, 11> disps_glo(this->nodeInfo);
+  DistSVec<Scalar, 11> disps_glo(*this->nodeInfo);
   DistSVec<Scalar, 11> masterDisps_glo(masterInfo);
   disps_glo = 0;
   DistSVec<Scalar, 11> *disps_loc = 0, *masterDisps_loc = 0;
   if(!domain->solInfo().basicDofCoords) {
-    disps_loc = new DistSVec<Scalar, 11>(this->nodeInfo);
+    disps_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
     masterDisps_loc = new DistSVec<Scalar, 11>(masterInfo);
   }
   for(iSub = 0; iSub < this->numSub; ++iSub) {
@@ -184,15 +155,15 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
     Scalar (*xyz_loc)[11] = (disps_loc) ? (Scalar (*)[11]) disps_loc->subData(iSub) : 0;
     this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(xyz, u.subData(iSub), bcx, xyz_loc);
   }
-  if(domain->solInfo().isCoupled && domain->solInfo().isMatching) {
-    unify(disps_glo); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
+  if((domain->solInfo().isCoupled && domain->solInfo().isMatching) || domain->GetnContactSurfacePairs()) {
+    unify(disps_glo); // make sure master has solution for all dofs before reducing
     if(disps_loc) unify(*disps_loc);
   }
   disps_glo.reduce(masterDisps_glo, masterFlag, numFlags);
   if(disps_loc) disps_loc->reduce(*masterDisps_loc, masterFlag, numFlags);
 
   // initialize and merge aeroelastic forces
-  DistSVec<Scalar, 6> aerof(this->nodeInfo);
+  DistSVec<Scalar, 6> aerof(*this->nodeInfo);
   DistSVec<Scalar, 6> masterAeroF(masterInfo);
   if(domain->solInfo().aeroFlag > -1 && aeroF) {
     GenDistrVector<Scalar> assembledAeroF(*aeroF);
@@ -206,13 +177,13 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   }
 
   // initialize and merge velocities & accelerations
-  DistSVec<Scalar, 11> vels_glo(this->nodeInfo), accs_glo(this->nodeInfo);
+  DistSVec<Scalar, 11> vels_glo(*this->nodeInfo), accs_glo(*this->nodeInfo);
   DistSVec<Scalar, 11> masterVels_glo(masterInfo), masterAccs_glo(masterInfo);
   DistSVec<Scalar, 11> *vels_loc = 0, *masterVels_loc = 0, *accs_loc = 0, *masterAccs_loc = 0;
   if(!domain->solInfo().basicDofCoords) {
-    vels_loc = new DistSVec<Scalar, 11>(this->nodeInfo);
+    vels_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
     masterVels_loc = new DistSVec<Scalar, 11>(masterInfo);
-    accs_loc = new DistSVec<Scalar, 11>(this->nodeInfo);
+    accs_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
     masterAccs_loc = new DistSVec<Scalar, 11>(masterInfo);
   }
   if(distState) {
@@ -268,19 +239,23 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     }
   }
 
-  if((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
+  if((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0)) {
 #ifdef DISTRIBUTED
 
+    Connectivity *subToClus = geoSource->getSubToClus();
+    int clusterId = (*subToClus)[this->localSubToGl[0]][0];
+    int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || 
+         oinfo[iInfo].type == OutputInfo::Energies ||
          oinfo[iInfo].type == OutputInfo::Kirchhoff || 
          oinfo[iInfo].type == OutputInfo::AeroForce) { 
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); } 
         continue;
       }
-      else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
-        if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
+      else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) {
+        if(this->communicator->cpuNum() == firstCpuInCluster) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->computeAndCacheHeaderLength(iInfo);
       }
     }
@@ -291,6 +266,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].nodeNumber == -1 && 
          oinfo[iInfo].type != OutputInfo::Farfield && 
+         oinfo[iInfo].type != OutputInfo::Energies &&
          oinfo[iInfo].type != OutputInfo::Kirchhoff && 
          oinfo[iInfo].type != OutputInfo::AeroForce) {
         for(iSub = 0; iSub < this->numSub; iSub++) {
@@ -610,6 +586,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
           }
         }
         break;
+      case OutputInfo::Energies:
+        this->getEnergies(u, f, iOut, time, distState, dynOps, aeroF);
+        break;
       case OutputInfo::Farfield: 
         domain->nffp = oinfo[iOut].interval;
         iOut_ffp = iOut; // PJSA 3-1-2007 buildFFP doesn't work with serialized output
@@ -639,6 +618,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::AeroZMom:
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 5);
         break;
+/* TODO
+      case OutputInfo::Reactions:
+        break;
+      case OutputInfo::Reactions6:
+        break;
+*/
       case OutputInfo::EigenSlosh:
         getPrimal(disps, masterDisps, time, x, iOut, 1, 10);
         break;
@@ -653,7 +638,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         break;
       case OutputInfo::TDEnforcement: {
         if(domain->tdenforceFlag()) {
-          DistSVec<double, 1> all_data(this->nodeInfo);
+          DistSVec<double, 1> all_data(*this->nodeInfo);
           if(oinfo[iOut].tdenforc_var == 1) all_data = 0.5;
           else all_data = 0;
           double **sub_data = new double * [this->numSub];
@@ -675,7 +660,10 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Velocvector:
       case OutputInfo::Accelvector:
       case OutputInfo::InternalStateVar:
+      case OutputInfo::DualStateVar:
       case OutputInfo::Forcevector:
+      case OutputInfo::Constraintvector:
+      case OutputInfo::Constraintviolation:
       case OutputInfo::Residual:
       case OutputInfo::Jacobian:
       case OutputInfo::RobData:
@@ -704,10 +692,10 @@ this->communicator->sync();
   if(masterAccs_loc) delete masterAccs_loc;
 }
 
-
 template<class Scalar>
+template<int dim>
 void
-GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, 11> &disps, DistSVec<Scalar, 11> &masterDisps, 
+GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, dim> &disps, DistSVec<Scalar, dim> &masterDisps, 
                                   double time, int x, int fileNumber, int ndof, int startdof)
 {
   // this function outputs the primal variables: displacement, temperature, pressure
@@ -727,7 +715,7 @@ GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, 11> &disps, DistSVec<Scalar, 
         int *outIndex = this->subDomain[iSub]->getOutIndex();
         for(int iNode = 0; iNode < nOutNodes; iNode++) {
           if(outIndex[iNode] == fileNumber) {
-            Scalar (*nodeDisp)[11] = (Scalar (*)[11]) disps.subData(iSub);
+            Scalar (*nodeDisp)[dim] = (Scalar (*)[dim]) disps.subData(iSub);
             int *outNodes = this->subDomain[iSub]->getOutputNodes();
             switch(ndof) {
               case 6:
@@ -791,17 +779,11 @@ GenDistrDomain<Scalar>::setsizeSfemStress(int fileNumber)
 
   if(avgnum == 1) this->sizeSfemStress = masterInfo.totLen(); 
   else if(avgnum == 0) {  // element-based output
-  this->sizeSfemStress = 0;
-/*   Connectivity *elemToNode = new Connectivity(domain->getEset());
-   int numele = geoSource->getNumAttributes();  // number of elements; another option domain->numElements();
-   for(int iele=0; iele<numele; ++iele)   {
-//     cerr << "number of nodes in this element  = " << elemToNode->num(iele) << endl;
-     sizeSfemStress = sizeSfemStress + elemToNode->num(iele); // add number of nodes for each element
-   }*/
+    this->sizeSfemStress = 0;
   }
   else {
-   cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << endl;
-   this->sizeSfemStress = 0;
+    std::cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << std::endl;
+    this->sizeSfemStress = 0;
   }
 }
 
@@ -813,8 +795,8 @@ GenDistrDomain<Scalar>::getSfemStress(int fileNumber)
   int avgnum = oinfo[fileNumber].averageFlg;
 
   if(avgnum == 1) return masterStress->data(); // node-based
-  else if(avgnum == 0) return 0; // element-based YYY DG Implement
-  else  { cerr << "avgnum = " << avgnum << " not implemented in Domain::getSfemStress()" << endl; return 0; }
+  else if(avgnum == 0) return 0; // element-based
+  else  { std::cerr << "avgnum = " << avgnum << " not implemented in Domain::getSfemStress()" << std::endl; return 0; }
 }
 
 template<class Scalar>
@@ -824,11 +806,9 @@ GenDistrDomain<Scalar>::updateSfemStress(Scalar* str, int fileNumber)
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int avgnum = oinfo[fileNumber].averageFlg;
 
-  //int numNodes = masterInfo.totLen(); //  size(masterStress)
-
-  if(avgnum == 1)  masterStress->setNewData(str); // YYY DG
-  else if(avgnum == 0) cerr << "updateSfemStress for element not yet implemented" << endl; // YYY DG
-  else {cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << endl;}
+  if(avgnum == 1)  masterStress->setNewData(str);
+  else if(avgnum == 0) std::cerr << "updateSfemStress for element not yet implemented" << std::endl;
+  else std::cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << std::endl;
 }
 
 template<class Scalar>
@@ -842,8 +822,8 @@ GenDistrDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, double time,
     return;
   }
 
-  DistVec<Scalar> stress(this->nodeInfo);
-  DistVec<Scalar> weight(this->nodeInfo);
+  DistVec<Scalar> stress(*this->nodeInfo);
+  DistVec<Scalar> weight(*this->nodeInfo);
 
   stress = 0;
   weight = 0;
@@ -935,7 +915,6 @@ void
 GenDistrDomain<Scalar>::getElementPrincipalStress(GenDistrVector<Scalar> &u, double time,
                                                   int iter, int fileNumber, int strIndex)
 {
-  // PJSA: 3-23-05
   // set stress VS. strain for element subroutines
   int i, j;
   int strInd;
@@ -1008,8 +987,7 @@ void
 GenDistrDomain<Scalar>::getElementPrincipalStress(DistrGeomState *gs, Corotator ***allCorot, double time,
                                                   int x, int fileNumber, int strIndex, DistrGeomState *refState)
 {
-  // PJSA: 3-23-05 Non-linear version
-  // set stress VS. strain for element subroutines
+  // set stress VS. strain for element subroutines (Non-linear version)
   int i, j;
   int strInd;
   int stressORstrain;
@@ -1112,12 +1090,12 @@ GenDistrDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, double tim
 
   // Allocate a distributed vector for stress
   DistVec<Scalar> **stress = new DistVec<Scalar>*[6];
-  DistVec<Scalar> weight(this->nodeInfo);
+  DistVec<Scalar> weight(*this->nodeInfo);
 
   int iSub;
   int str_loop;
   for(str_loop = 0; str_loop < 6; ++str_loop)
-    stress[str_loop] = new DistVec<Scalar> (this->nodeInfo);  
+    stress[str_loop] = new DistVec<Scalar> (*this->nodeInfo);  
 
   // each subdomain computes its stress/strain vector
 
@@ -1163,7 +1141,7 @@ GenDistrDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, double tim
 
   // Calculate Principals at each node
   Scalar svec[6], pvec[3];
-  DistVec<Scalar> allPVec(this->nodeInfo);
+  DistVec<Scalar> allPVec(*this->nodeInfo);
   for(iSub = 0; iSub < this->numSub; ++iSub)  {
 
     Vec<Scalar> &locPVec = allPVec(iSub);
@@ -1291,13 +1269,13 @@ GenDistrDomain<Scalar>::createOutputOffsets()
   // create cluster array of offsets
   int **clNodeOffsets = new int *[numClusters];
   int **clElemNodeOffsets = new int *[numClusters];
-  int **clElemOffsets = new int *[numClusters];  // PJSA
+  int **clElemOffsets = new int *[numClusters]; 
 
   for(iCluster = 0; iCluster < numClusters; iCluster++) {
     clNodeOffsets[iCluster] = new int[clusToSub->num(iCluster)];
     clElemNodeOffsets[iCluster] = new int[clusToSub->num(iCluster)];
     clElemOffsets[iCluster] = new int[clusToSub->num(iCluster)];
-    for(int j=0; j<clusToSub->num(iCluster); ++j) { // PJSA: initialize to zero so global sum will work
+    for(int j=0; j<clusToSub->num(iCluster); ++j) { // initialize to zero so global sum will work
       clNodeOffsets[iCluster][j] = 0;
       clElemNodeOffsets[iCluster][j] = 0;
       clElemOffsets[iCluster][j] = 0;
@@ -1354,6 +1332,11 @@ GenDistrDomain<Scalar>::createOutputOffsets()
   if(clNodeOffsets) { for(int i=0; i<numClusters; i++) delete [] clNodeOffsets[i]; delete [] clNodeOffsets; }
   if(clElemNodeOffsets) { for(int i=0; i<numClusters; i++) delete [] clElemNodeOffsets[i]; delete [] clElemNodeOffsets; }
   if(clElemOffsets) { for(int i=0; i<numClusters; i++) delete [] clElemOffsets[i]; delete [] clElemOffsets; }
+
+  // create clusToCpu connectivity, used to decide which process should initially open each output file
+  Connectivity *subToCpu = this->cpuToSub->reverse();
+  clusToCpu = clusToSub->transcon(subToCpu);
+  delete subToCpu;
 }
 
 // ---------------------------------------------------------------
@@ -1362,44 +1345,52 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 
 template<class Scalar>
 void
-GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
-                                       GenDistrVector<Scalar> *aeroF, DistrGeomState *refState, GenDistrVector<Scalar> *reactions)
+GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<Scalar> &extF, Corotator ***allCorot, double time,
+                                       SysState<GenDistrVector<Scalar> > *distState, GenDistrVector<Scalar> *aeroF, DistrGeomState *refState,
+                                       GenDistrVector<Scalar> *reactions, GenMDDynamMat<Scalar> *dynOps, GenDistrVector<Scalar> *resF)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
+
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
-  // check if there are any output files which need to be printed now
-  bool noOut = true;
-  for(int iOut = 0; iOut < numOutInfo; iOut++) {
-    if(oinfo[iOut].interval == 0 || x % oinfo[iOut].interval != 0) continue;
-    noOut = false; 
-    break;
-  }
 
-  if(noOut) { x++; return; }
+  // check if there are any output files which need to be processed now
+  int outLimit = geoSource->getOutLimit();
+  if(geoSource->noOutput(x) && !((x == 0) || (outLimit > 0 && x%outLimit == 0))) {
+    x++; return;
+  }
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
 
-  int outLimit = geoSource->getOutLimit();
-  if(numOutInfo && x == 0 && !domain->solInfo().isDynam())
+  if(numOutInfo && x == 0 && !(domain->solInfo().isDynam() || domain->solInfo().timeIntegration == 1))
     filePrint(stderr," ... Postprocessing                 ...\n");
   if(!masterFlag) initPostPro();
 
   int iSub;
 
   // initialize and merge displacements from subdomains into cpu array
-  DistSVec<Scalar, 11> disps(this->nodeInfo);
-  DistSVec<Scalar, 11> masterDisps(masterInfo);
-  disps = 0;
-  for(iSub = 0; iSub < this->numSub; ++iSub) {
-    Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);//DofSet::max_known_nonL_dof
-    this->subDomain[iSub]->mergeDistributedNLDisp(xyz, (*geomState)[iSub]);
+  DistSVec<Scalar, 11> disps_glo(*this->nodeInfo);
+  DistSVec<Scalar, 11> masterDisps_glo(masterInfo);
+  disps_glo = 0;
+  DistSVec<Scalar, 11> *disps_loc = 0, *masterDisps_loc = 0;
+  if(!domain->solInfo().basicDofCoords) {
+    disps_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
+    masterDisps_loc = new DistSVec<Scalar, 11>(masterInfo);
   }
-  if(domain->solInfo().isCoupled && domain->solInfo().isMatching) unify(disps); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
-  disps.reduce(masterDisps, masterFlag, numFlags);
+  for(iSub = 0; iSub < this->numSub; ++iSub) {
+    Scalar (*xyz)[11] = (Scalar (*)[11]) disps_glo.subData(iSub);//DofSet::max_known_nonL_dof
+    Scalar (*xyz_loc)[11] = (disps_loc) ? (Scalar (*)[11]) disps_loc->subData(iSub) : 0;
+    this->subDomain[iSub]->mergeDistributedNLDisp(xyz, (*geomState)[iSub], xyz_loc);
+  }
+  if((domain->solInfo().isCoupled && domain->solInfo().isMatching) || domain->GetnContactSurfacePairs()) {
+    unify(disps_glo); // make sure master has solution for all dofs before reducing
+    if(disps_loc) unify(*disps_loc);
+  }
+  disps_glo.reduce(masterDisps_glo, masterFlag, numFlags);
+  if(disps_loc) disps_loc->reduce(*masterDisps_loc, masterFlag, numFlags);
   // initialize and merge aeroelastic forces
-  DistSVec<Scalar, 6> aerof(this->nodeInfo);
+  DistSVec<Scalar, 6> aerof(*this->nodeInfo);
   DistSVec<Scalar, 6> masterAeroF(masterInfo);
   if(domain->solInfo().aeroFlag > -1 && aeroF) {
     GenDistrVector<Scalar> assembledAeroF(*aeroF);
@@ -1412,26 +1403,41 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     aerof.reduce(masterAeroF, masterFlag, numFlags);
   }
   // initialize and merge velocities & accelerations
-  DistSVec<Scalar, 11> vels(this->nodeInfo), accs(this->nodeInfo);
-  DistSVec<Scalar, 11> masterVels(masterInfo), masterAccs(masterInfo);
+  DistSVec<Scalar, 11> vels_glo(*this->nodeInfo), accs_glo(*this->nodeInfo);
+  DistSVec<Scalar, 11> masterVels_glo(masterInfo), masterAccs_glo(masterInfo);
+  DistSVec<Scalar, 11> *vels_loc = 0, *masterVels_loc = 0, *accs_loc = 0, *masterAccs_loc = 0;
+  if(!domain->solInfo().basicDofCoords) {
+    vels_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
+    masterVels_loc = new DistSVec<Scalar, 11>(masterInfo);
+    accs_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
+    masterAccs_loc = new DistSVec<Scalar, 11>(masterInfo);
+  }
   if(distState) {
     GenDistrVector<Scalar> *v_n = &distState->getVeloc();
     GenDistrVector<Scalar> *a_n = &distState->getAccel();
-    vels = 0; accs = 0;
+    vels_glo = 0; accs_glo = 0;
     for(iSub = 0; iSub < this->numSub; ++iSub) {
-      Scalar (*mergedVel)[11] = (Scalar (*)[11]) vels.subData(iSub);
-      Scalar (*mergedAcc)[11] = (Scalar (*)[11]) accs.subData(iSub);
+      Scalar (*mergedVel)[11] = (Scalar (*)[11]) vels_glo.subData(iSub);
+      Scalar (*mergedAcc)[11] = (Scalar (*)[11]) accs_glo.subData(iSub);
       double *vcx = this->subDomain[iSub]->getVcx();
-      Scalar *vcx_scalar = (Scalar *) dbg_alloca(this->subDomain[iSub]->numdof()*sizeof(Scalar));
-      for(int i=0; i<this->subDomain[iSub]->numdof(); ++i) vcx_scalar[i] = vcx[i];
-      this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(mergedVel, v_n->subData(iSub), vcx_scalar);
-      this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(mergedAcc, a_n->subData(iSub));
+      double *acx = this->subDomain[iSub]->getAcx();
+      Scalar *vcx_scalar = new Scalar[this->subDomain[iSub]->numdof()];
+      Scalar *acx_scalar = new Scalar[this->subDomain[iSub]->numdof()];
+      Scalar (*mergedVel_loc)[11] = (vels_loc) ? (Scalar (*)[11]) vels_loc->subData(iSub) : 0;
+      Scalar (*mergedAcc_loc)[11] = (accs_loc) ? (Scalar (*)[11]) accs_loc->subData(iSub) : 0;
+      for(int i=0; i<this->subDomain[iSub]->numdof(); ++i) { vcx_scalar[i] = vcx[i]; acx_scalar[i] = acx[i]; }
+      this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(mergedVel, v_n->subData(iSub), vcx_scalar, mergedVel_loc);
+      this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(mergedAcc, a_n->subData(iSub), acx_scalar, mergedAcc_loc);
+      delete [] vcx_scalar;
+      delete [] acx_scalar;
     }
-    vels.reduce(masterVels, masterFlag, numFlags);
-    accs.reduce(masterAccs, masterFlag, numFlags);
+    vels_glo.reduce(masterVels_glo, masterFlag, numFlags);
+    accs_glo.reduce(masterAccs_glo, masterFlag, numFlags);
+    if(vels_loc) vels_loc->reduce(*masterVels_loc, masterFlag, numFlags);
+    if(accs_loc) accs_loc->reduce(*masterAccs_loc, masterFlag, numFlags);
   }
   // initialize and merge reaction forces
-  DistSVec<Scalar, 11> reacts(this->nodeInfo);
+  DistSVec<Scalar, 11> reacts(*this->nodeInfo);
   DistSVec<Scalar, 11> masterReacts(masterInfo);
   if(reactions) {
     GenDistrVector<Scalar> assembledReactions(*reactions);
@@ -1442,6 +1448,32 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
       this->subDomain[iSub]->mergeDistributedReactions(mergedReactions, assembledReactions.subData(iSub));
     }
     reacts.reduce(masterReacts, masterFlag, numFlags);
+  }
+  // initialize and merge residual
+  DistSVec<Scalar, 6> resf(*this->nodeInfo);
+  DistSVec<Scalar, 6> masterResF(masterInfo);
+  if(resF) {
+    GenDistrVector<Scalar> assembledResF(*resF);
+    this->getSolVecAssembler()->assemble(assembledResF);
+    resf = 0; 
+    for(iSub = 0; iSub < this->numSub; ++iSub) { 
+      Scalar (*mergedResF)[6] = (Scalar (*)[6]) resf.subData(iSub);
+      this->subDomain[iSub]->mergeDistributedForces(mergedResF, assembledResF.subData(iSub));
+    }
+    resf.reduce(masterResF, masterFlag, numFlags);
+  }
+  // initialize and merge external force
+  DistSVec<Scalar, 6> extf(*this->nodeInfo);
+  DistSVec<Scalar, 6> masterExtF(masterInfo);
+  if(geoSource->romExtForceOutput()) {
+    GenDistrVector<Scalar> assembledExtF(extF);
+    this->getSolVecAssembler()->assemble(assembledExtF);
+    extf = 0;
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      Scalar (*mergedExtF)[6] = (Scalar (*)[6]) extf.subData(iSub);
+      this->subDomain[iSub]->mergeDistributedForces(mergedExtF, assembledExtF.subData(iSub));
+    }
+    extf.reduce(masterExtF, masterFlag, numFlags);
   }
 // RT - serialize the OUTPUT, PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT
@@ -1456,17 +1488,22 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     for(int i=0; i<numOutInfo; ++i) numRes[i] = 0;
   }
 
-  if((x == 0) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
+  if((x == 0) || (outLimit > 0 && x%outLimit == 0)) {
 #ifdef DISTRIBUTED
 
+    Connectivity *subToClus = geoSource->getSubToClus();
+    int clusterId = (*subToClus)[this->localSubToGl[0]][0];
+    int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce) {
+      if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce
+         || oinfo[iInfo].type == OutputInfo::Energies || oinfo[iInfo].type == OutputInfo::DissipatedEnergy
+         || oinfo[iInfo].type == OutputInfo::DeletedElements) {
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); }
         continue;
       }
-      else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
-        if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
+      else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) {
+        if(this->communicator->cpuNum() == firstCpuInCluster) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->computeAndCacheHeaderLength(iInfo);
       }
     }
@@ -1474,7 +1511,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     this->communicator->sync();
 #endif
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce) {
+      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce
+         && oinfo[iInfo].type != OutputInfo::Energies && oinfo[iInfo].type != OutputInfo::DissipatedEnergy
+         && oinfo[iInfo].type != OutputInfo::DeletedElements) {
         numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -1513,10 +1552,24 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     if(oinfo[iOut].interval == 0 || x % oinfo[iOut].interval != 0)
       continue;
 
+    // set primal output states to either global or local
+    DistSVec<Scalar, 11> &disps = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? disps_glo : *disps_loc;
+    DistSVec<Scalar, 11> &masterDisps = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? masterDisps_glo : *masterDisps_loc;
+    DistSVec<Scalar, 11> &vels = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? vels_glo : *vels_loc;
+    DistSVec<Scalar, 11> &masterVels = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? masterVels_glo : *masterVels_loc;
+    DistSVec<Scalar, 11> &accs = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? accs_glo : *accs_loc;
+    DistSVec<Scalar, 11> &masterAccs = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? masterAccs_glo : *masterAccs_loc;
+
     // update number of results
     numRes[iOut]++;
     switch(oinfo[iOut].type)  {
-      
+
       case OutputInfo::FreqRespModes:
       case OutputInfo::Displacement:
         getPrimal(disps, masterDisps, time, x, iOut, 3, 0);
@@ -1526,6 +1579,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         break;
       case OutputInfo::Acceleration:
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 3, 0);
+        break;
+      case OutputInfo::RomResidual:
+        if(resF) getPrimal(resf, masterResF, time, x, iOut, 3, 0);
+        break;
+      case OutputInfo::RomExtForce:
+        getPrimal(extf, masterExtF, time, x, iOut, 3, 0);
         break;
       case OutputInfo::Disp6DOF:
         if(oinfo[iOut].rotvecouttype != OutputInfo::Euler || !oinfo[iOut].rescaling) {
@@ -1548,8 +1607,14 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         }
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 6, 0);
         break;
+      case OutputInfo::RomResidual6:
+        if(resF) getPrimal(resf, masterResF, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::RomExtForce6:
+        getPrimal(extf, masterExtF, time, x, iOut, 6, 0);
+        break;
       case OutputInfo::Temperature:
-        getPrimal(disps, masterDisps, time, x, iOut, 1, 6);
+        getPrimal(disps, masterDisps, time, x, iOut, 1, 0);
         break;
       case OutputInfo::TemperatureFirstTimeDerivative:
         if(distState) getPrimal(vels, masterVels, time, x, iOut, 1, 6);
@@ -1602,8 +1667,17 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         else
           filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
       } break;
+      case OutputInfo::Damage:
+        getStressStrain(geomState, allCorot, time, x, iOut, DAMAGE, refState);
+        break;
       case OutputInfo::EquivalentPlasticStrain:
         getStressStrain(geomState, allCorot, time, x, iOut, EQPLSTRN, refState);
+        break;
+      case OutputInfo::Energies:
+        this->getEnergies(geomState, extF, allCorot, iOut, time, distState, dynOps, aeroF);
+        break;
+      case OutputInfo::DissipatedEnergy:
+        this->getDissipatedEnergy(geomState, allCorot, iOut, time);
         break;
       case OutputInfo::StressPR1:
         getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRESS1, refState);
@@ -1799,7 +1873,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         break;
       case OutputInfo::TDEnforcement: {
         if(domain->tdenforceFlag()) {
-          DistSVec<double, 1> all_data(this->nodeInfo);
+          DistSVec<double, 1> all_data(*this->nodeInfo);
           if(oinfo[iOut].tdenforc_var == 1) all_data = 0.5;
           else all_data = 0;
           double **sub_data = new double * [this->numSub];
@@ -1817,11 +1891,17 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         }
         else filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
       } break;
+      case OutputInfo::DeletedElements:
+        getDeletedElements(iOut);
+        break;
       case OutputInfo::Statevector:
       case OutputInfo::Velocvector:
       case OutputInfo::Accelvector:
       case OutputInfo::InternalStateVar:
+      case OutputInfo::DualStateVar:
       case OutputInfo::Forcevector:
+      case OutputInfo::Constraintvector:
+      case OutputInfo::Constraintviolation:
       case OutputInfo::Residual:
       case OutputInfo::Jacobian:
       case OutputInfo::RobData:
@@ -1838,6 +1918,11 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 }
 this->communicator->sync();
 #endif
+  if(disps_loc) delete disps_loc;
+  if(masterDisps_loc) delete masterDisps_loc;
+  if(masterVels_loc) delete masterVels_loc;
+  if(accs_loc) delete accs_loc;
+  if(masterAccs_loc) delete masterAccs_loc;
 }
 
 template<class Scalar>
@@ -1853,8 +1938,8 @@ GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCoro
     return;
   }
 
-  DistVec<Scalar> stress(this->nodeInfo);
-  DistVec<Scalar> weight(this->nodeInfo);
+  DistVec<Scalar> stress(*this->nodeInfo);
+  DistVec<Scalar> weight(*this->nodeInfo);
 
   stress = 0;
   weight = 0;
@@ -1969,12 +2054,12 @@ GenDistrDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allC
       strDir[i] = i+7;
   }
   DistVec<Scalar> **stress = new DistVec<Scalar>*[6];
-  DistVec<Scalar> weight(this->nodeInfo);
+  DistVec<Scalar> weight(*this->nodeInfo);
 
   int iSub;
   int str_loop;
   for(str_loop = 0; str_loop < 6; ++str_loop)
-    stress[str_loop] = new DistVec<Scalar> (this->nodeInfo);  
+    stress[str_loop] = new DistVec<Scalar> (*this->nodeInfo);  
 
   // each subdomain computes its stress/strain vector
 
@@ -2021,7 +2106,7 @@ GenDistrDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allC
 
   // Calculate Principals at each node
   Scalar svec[6], pvec[3];
-  DistVec<Scalar> allPVec(this->nodeInfo);
+  DistVec<Scalar> allPVec(*this->nodeInfo);
   for(iSub = 0; iSub < this->numSub; ++iSub) {
 
     Vec<Scalar> &locPVec = allPVec(iSub);
@@ -2082,7 +2167,7 @@ template<class Scalar>
 void
 GenDistrDomain<Scalar>::unify(DistSVec<Scalar, 11> &vec)
 { 
-  // XXXX PJSA 1-17-08: make sure that every subdomain sharing a node has the same solution for all the dofs. Actually the master sub is really the only one that needs it.
+  // make sure that every subdomain sharing a node has the same solution for all the dofs. Actually the master sub is really the only one that needs it.
   FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(this->communicator, this->cpuToSub, this->myCPU, FSCommPattern<Scalar>::CopyOnSend);
   for(int i=0; i<this->numSub; ++i) this->subDomain[i]->setNodeCommSize(pat, 11);
   pat->finalize();
@@ -2092,8 +2177,6 @@ GenDistrDomain<Scalar>::unify(DistSVec<Scalar, 11> &vec)
   delete pat;
 }
 
-
-//------------------------------------------------------------------------------
 template<class Scalar>
 void GenDistrDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double time)
 {
@@ -2105,8 +2188,8 @@ void GenDistrDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double tim
       return;
     }
 
-  DistVec<double> props(this->nodeInfo);
-  DistVec<double> weight(this->nodeInfo);
+  DistVec<double> props(*this->nodeInfo);
+  DistVec<double> weight(*this->nodeInfo);
 
   // Initialize distributed vector to zero
   props  = 0;
@@ -2148,3 +2231,73 @@ void GenDistrDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double tim
   }
   return;
 }
+
+template<class Scalar>
+void
+GenDistrDomain<Scalar>::getDeletedElements(int iOut)
+{
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+#ifdef SERIALIZED_OUTPUT
+  for(int iSub = 0; iSub < this->numSub; ++iSub) {
+    std::vector<std::pair<double,int> > &deletedElements = this->subDomain[iSub]->getDeletedElements();
+    for(std::vector<std::pair<double,int> >::iterator it = deletedElements.begin(); it != deletedElements.end(); ++it) {
+      filePrint(oinfo[i].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+      fflush(oinfo[i].filptr);
+    }
+    deletedElements.clear();
+  }
+#else
+  std::vector<std::pair<double,int> > localDeletedElements;
+  for(int iSub = 0; iSub < this->numSub; ++iSub) {
+    std::vector<std::pair<double,int> > &deletedElements = this->subDomain[iSub]->getDeletedElements();
+    localDeletedElements.insert(localDeletedElements.end(), deletedElements.begin(), deletedElements.end());
+    deletedElements.clear();
+  }
+  int localCount = localDeletedElements.size();
+  int *recvbuf = new int[this->communicator->size()];
+  this->communicator->gather(&localCount, 1, recvbuf, 1);
+  int globalCount;
+  if(this->communicator->cpuNum() == 0) {
+    globalCount = 0;
+    for(int i=0; i<this->communicator->size(); ++i) globalCount += recvbuf[i];
+  }
+  this->communicator->broadcast(1, &globalCount);
+  if(globalCount > 0) {
+    int *sendbuf2 = new int[localCount];
+    double *sendbuf3 = new double[localCount];
+    if(localCount > 0) {
+      int i=0;
+      for(std::vector<std::pair<double,int> >::iterator it = localDeletedElements.begin(); it != localDeletedElements.end(); ++it, ++i) {
+        sendbuf2[i] = it->second;
+        sendbuf3[i] = it->first;
+      }
+    }
+    int *recvbuf2, *displs;
+    double *recvbuf3;
+    if(this->communicator->cpuNum() == 0) {
+      recvbuf2 = new int[globalCount];
+      recvbuf3 = new double[globalCount];
+      displs = new int[this->communicator->size()];
+      displs[0] = 0;
+      for(int i=1; i<this->communicator->size(); ++i) {
+        displs[i] = displs[i-1] + recvbuf[i-1];
+      }
+    }
+    this->communicator->gatherv(sendbuf2, localCount, recvbuf2, recvbuf, displs);
+    this->communicator->gatherv(sendbuf3, localCount, recvbuf3, recvbuf, displs);
+    delete [] sendbuf2;
+    delete [] sendbuf3;
+    if(this->communicator->cpuNum() == 0) {
+      for(int i=0; i<globalCount; ++i) {
+        filePrint(oinfo[iOut].filptr, " %12.6e  %9d          Undetermined\n", recvbuf3[i], recvbuf2[i]+1);
+        fflush(oinfo[iOut].filptr);
+      }
+      delete [] recvbuf2;
+      delete [] recvbuf3;
+      delete [] displs;
+    }
+  }
+  delete [] recvbuf;
+#endif
+}
+

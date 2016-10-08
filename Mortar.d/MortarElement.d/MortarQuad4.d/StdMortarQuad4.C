@@ -29,7 +29,6 @@ StdMortarQuad4::StdMortarQuad4(double area_, FaceElement* FaceElem)
   SetPtrMasterFace(FaceElem);
 }
 
-
 // -----------------------------------------------------------------------------------------------------
 //                                            GET METHODS
 // -----------------------------------------------------------------------------------------------------
@@ -44,25 +43,46 @@ StdMortarQuad4::nMortarShapeFct() { return 4; }
 // -----------------------------------------------------------------------------------------------------
 // LOCAL METHODS
 // -------------
+#if !defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300
+template<>
 void
-StdMortarQuad4::GetShapeFct(double* Shape, double* m)
-{ 
-   GetStdMortarShapeFct(Shape, m); 
+StdMortarQuad4::GetShapeFctVal(double* Shape, double* m)
+{
+  GetPtrMasterFace()->GetShapeFctVal(Shape, m);
 }
+
+template<>
+void
+StdMortarQuad4::GetdShapeFct(double* dShapex, double* dShapey, double* m)
+{
+  GetPtrMasterFace()->GetdShapeFct(dShapex, dShapey, m);
+}
+
+template<>
+void
+StdMortarQuad4::Getd2ShapeFct(double* d2Shapex, double* d2Shapey, double* d2Shapexy, double* m)
+{
+  GetPtrMasterFace()->Getd2ShapeFct(d2Shapex, d2Shapey, d2Shapexy, m);
+}
+#endif
 
 // ---------------------------------
 // IMPLEMENTATION OF VIRTUAL METHODS
 // ---------------------------------
 void
 StdMortarQuad4::GetShapeFctVal(double* Shape, double* m)
-{ 
-   GetStdMortarShapeFct(Shape, m); 
+{
+  GetShapeFctVal<double>(Shape, m); 
 }
 
-#if (MAX_MORTAR_DERIVATIVES > 0)
 void
-StdMortarQuad4::GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m)
+StdMortarQuad4::GetdShapeFct(double* dShapex, double* dShapey, double* m)
 {
-   GetStdMortarShapeFct(Shape, m);
+  GetdShapeFct<double>(dShapex, dShapey, m);
 }
-#endif
+
+void
+StdMortarQuad4::Getd2ShapeFct(double* d2Shapex, double* d2Shapey, double* d2Shapexy, double* m)
+{
+  Getd2ShapeFct<double>(d2Shapex, d2Shapey, d2Shapexy, m);
+}

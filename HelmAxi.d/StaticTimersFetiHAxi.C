@@ -455,7 +455,7 @@ StaticTimers::printStaticTimersFetiHAxi(MatrixTimers matrixTimer,
              fprintf(f,"8. Total Memory Subdomain Sparse K         = %14.3f Mb"
                        "\n\n", 16.0*totMemSparse*byteToMb);
            else
-             fprintf(f,""); // if we have other subdomain solvers
+             fprintf(f,"\n"); // if we have other subdomain solvers
 
       fprintf(f,"\n********************************************************"
              "***********************\n");

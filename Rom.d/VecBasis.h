@@ -1,8 +1,6 @@
 #ifndef ROM_VECBASIS_H
 #define ROM_VECBASIS_H
 
-#include <memory>
-#include <algorithm>
 #include <Feti.d/DistrVector.h>
 #include <Threads.d/PHelper.h>
 #include <Utils.d/dofset.h>
@@ -10,6 +8,9 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #endif
+#include <memory>
+#include <algorithm>
+#include <vector>
 
 template <typename Scalar> class GenVector;
 
@@ -31,9 +32,7 @@ template <typename Scalar, template <typename> class GenVecType = GenVector>
 class GenVecBasis : private std::allocator<GenVecType<Scalar> > {
 private:
   typedef VecTraits<Scalar, GenVecType> Traits;
-#ifdef USE_EIGEN3
-  Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor> V;
-#endif
+
 public:
   typedef typename Traits::Type VecType;
   typedef typename Traits::InfoType InfoType;
@@ -48,38 +47,45 @@ public:
   Scalar *data()    const { return buffer_; }
 
   // Vector count (and compatibility aliases)
-  int vectorCount() const { return vectorCount_; }
-  int numVec()      const { return vectorCount_; }
-  int numVectors()  const { return vectorCount_; }
+  int vectorCount() const { return blockCols_; }
+  int numVec()      const { return blockCols_; }
+  int numVectors()  const { return blockCols_; }
 
   // Iteration
   typedef const VecType *const_iterator;
-  const_iterator begin() const { return vectors_; }
-  const_iterator end() const { return vectors_ + vectorCount_; }
+  const_iterator begin() const { return vectors_ ; }
+  const_iterator end() const   { return vectors_ + vectorCount_; }
   
   typedef VecType *iterator;
-  iterator begin() { return vectors_; }
-  iterator end() { return vectors_ + vectorCount_; }
+  iterator begin() { return vectors_ ; }
+  iterator end()   { return vectors_ + vectorCount_; }
 
   // Unchecked direct individual vector read access
-  const VecType &operator[](int i) const { return vectors_[i]; }
+  const VecType &operator[](int i) const { return vectors_[startCol_+i]; }
 
   // Unchecked direct individual vector write access
   // (must take care to NOT reallocate underlying memory)
-  VecType &operator[](int i) { return vectors_[i]; }
+  VecType &operator[](int i) { return vectors_[startCol_+i]; }
 
-  //GenVecType<Scalar> & project(GenVecType<Scalar> &, GenVecType<Scalar> &);
-  //void domainMatrixVecMult(GenVecType<Scalar> &, GenVecType<Scalar> &);
-
-  VecType & project(VecType &, VecType &) const;
-  VecType & projectUp(VecType &, VecType &) const;
-  VecType & projectUp(std::vector<double> &, VecType &) const;
-  VecType & projectDown(VecType &, VecType &) const;
-  VecType & projectUp2(VecType &, VecType &) const;
+  VecType & expand(VecType &, VecType &, bool=true) const;
+  VecType & fullExpand(VecType &, VecType &) const;
+  VecType & expand(std::vector<Scalar> &, VecType &) const;
+  VecType & reduce(VecType &, VecType &, bool=true) const;
+  VecType & reduceAll(VecType &, VecType &) const;
+  VecType & compressedVecReduce(VecType &, VecType &) const;
+  VecType & sparseVecReduce(VecType &, VecType &) const;
+  VecType & expand2(VecType &, VecType &) const;
+  VecType & addLocalPart(VecType &, VecType &) const;
   
   void makeSparseBasis(const std::vector<std::vector<int> > &, DofSetArray **);
+  void makeSparseBasis(const std::vector<std::vector<std::pair<int, int> > > &, DofSetArray **);
+  void makeSparseBasis(const std::vector<std::pair<int, int> > &, DofSetArray *);
+  void makeSparseBasis(const std::vector<std::map<int,std::vector<int> > > & nodeVec);
+  void makeSparseBasis(const std::map<int,std::vector<int> > &nodeVec);
   void makeSparseBasis(const std::vector<int> &, DofSetArray *); 
+  void makeSparseBasis(const std::vector<int> & nodeVec, DofSetArray *dsa, DofSetArray *reduced_dsa);
   void makeSparseBasis2(const std::vector<std::vector<int> > &, DofSetArray **);
+  void makeSparseBasis2(const std::vector<int> &, DofSetArray *);
 
   timespec tS1, tS2;
   double time1, time2, time3, time4, time5, time6, counter;
@@ -91,10 +97,13 @@ public:
   // Copy, assignment and swap 
   GenVecBasis(const GenVecBasis &);
   GenVecBasis &operator=(const GenVecBasis &);
-  void swap(GenVecBasis &);
   
   // Reshaping
   void dimensionIs(int vCount, InfoType vInfo);
+
+  // Local bases
+  void localBasisIs(int startCol, int blockCols);
+  int startCol() const { return startCol_; }
 
   ~GenVecBasis();
 
@@ -102,50 +111,56 @@ private:
   typedef std::allocator<VecType> Allocator;
 
   void placeVectors();
+  void cleanUp();
   void copyBufferContent(const GenVecBasis &other);
 
   typename Traits::InternalInfoType vectorInfo_;
   int vectorCount_;
+  int startCol_, blockCols_; // local bases
 
   Scalar *buffer_;
   VecType *vectors_;
 #ifdef USE_EIGEN3
-  Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > basis;
-  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedBasis, compressedBasis2; 
-  std::vector<int> compressedKey, compressedKey2;
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> basis_;
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> compressedBasis_, compressedBasis2_;
+  std::vector<int> compressedKey_, compressedKey2_;
 
 public:
-  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>& getCompressedBasis() { return compressedBasis; }
+  const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor>& basis() const { return basis_; }
+  const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>& compressedBasis() const { return compressedBasis_; }
+  const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>& compressedBasis2() const { return compressedBasis2_; }
+  const std::map<int,int>& compressedKey() const { return compressedKey_; }
 #endif
 };
 
 template <typename Scalar, template <typename> class GenVecType>
 inline
 void
-GenVecBasis<Scalar, GenVecType>::swap(GenVecBasis &other) {
-  std::swap(vectorInfo_,  other.vectorInfo_);
-  std::swap(vectorCount_, other.vectorCount_);
-  std::swap(buffer_,      other.buffer_);
-  std::swap(vectors_,     other.vectors_);
-
+GenVecBasis<Scalar, GenVecType>::placeVectors() {
 #ifdef USE_EIGEN3
-  new (&basis) Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> >(buffer_, vectorSize(), vectorCount());
+  basis_.resize(vectorSize(), vectorCount_);
+  buffer_ = basis_.data();
+#else
+  buffer_ = new Scalar[vectorSize() * vectorCount_];
 #endif
-
-  time1 = 0; time2 = 0; time3 = 0; time4 = 0; time5 = 0; time6 = 0; counter = 0;
+  vectors_ = Allocator::allocate(vectorCount_);
+  for (int iVec = 0; iVec < vectorCount_; ++iVec) {
+    new(vectors_ + iVec) VecType(vectorInfo_, buffer_ + (iVec * vectorSize()), false);
+  }
 }
 
 template <typename Scalar, template <typename> class GenVecType>
 inline
 void
-GenVecBasis<Scalar, GenVecType>::placeVectors() {
-  buffer_ = new Scalar[vectorSize() * vectorCount_];
-  vectors_ = Allocator::allocate(vectorCount_);
-  for (int iVec = 0; iVec < vectorCount_; ++iVec) {
-    new(vectors_ + iVec) VecType(vectorInfo_, buffer_ + (iVec * vectorSize()), false);
+GenVecBasis<Scalar, GenVecType>::cleanUp() {
+  int iVec = vectorCount_;
+  while (iVec--) {
+    Allocator::destroy(vectors_ + iVec);
   }
-#ifdef USE_EIGEN3
-  new (&basis) Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> >(buffer_, vectorSize(), vectorCount());
+
+  Allocator::deallocate(vectors_, vectorCount_);
+#ifndef USE_EIGEN3
+  delete[] buffer_;
 #endif
 }
 
@@ -160,13 +175,6 @@ template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
  vectorInfo_(Traits::defaultInfo()),
  vectorCount_(0)
-#ifdef USE_EIGEN3
- ,basis(NULL,0,0),
- compressedBasis(0,0),
- compressedBasis2(0,0),
- compressedKey(0),
- compressedKey2(0)
-#endif
 {
   placeVectors();
 }
@@ -174,14 +182,9 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
 template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
  vectorInfo_(vInfo),
- vectorCount_(vCount)
-#ifdef USE_EIGEN3
- ,basis(NULL,0,0),
- compressedBasis(0,0),
- compressedBasis2(0,0),
- compressedKey(0),
- compressedKey2(0)
-#endif
+ vectorCount_(vCount),
+ startCol_(0),
+ blockCols_(vCount)
 {
   placeVectors();
 }
@@ -189,14 +192,9 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
 template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
  vectorInfo_(other.vectorInfo_),
- vectorCount_(other.vectorCount_)
-#ifdef USE_EIGEN3
- ,basis(NULL,0,0),
- compressedBasis(0,0),
- compressedBasis2(0,0),
- compressedKey(0),
- compressedKey2(0)
-#endif
+ vectorCount_(other.vectorCount_),
+ startCol_(other.startCol_),
+ blockCols_(other.blockCols_)
 {
   placeVectors();
   copyBufferContent(other);
@@ -206,12 +204,16 @@ template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType> &
 GenVecBasis<Scalar, GenVecType>::operator=(const GenVecBasis &other) {
   if (this != &other) {
-    if (vectorCount_ == other.vectorCount_ && Traits::equals(vectorInfo_, other.vectorInfo_)) {
-      copyBufferContent(other);
-    } else {
-      GenVecBasis temp(other);
-      swap(temp);
+    if (vectorCount_ != other.vectorCount_ || Traits::not_equals(vectorInfo_, other.vectorInfo_)) {
+      cleanUp();
+      vectorCount_ = other.vectorCount_;
+      startCol_ = other.startCol_;
+      blockCols_ = other.blockCols_;
+      typename Traits::InternalInfoType temp(other.vectorInfo_);
+      std::swap(vectorInfo_, temp);
+      placeVectors();
     }
+    copyBufferContent(other);
   }
 
   return *this;
@@ -221,27 +223,27 @@ template <typename Scalar, template <typename> class GenVecType>
 void
 GenVecBasis<Scalar, GenVecType>::dimensionIs(int vCount, InfoType vInfo) {
   if (vCount != vectorCount_ || Traits::not_equals(vInfo, vectorInfo_)) {
-    GenVecBasis temp(vCount, vInfo);
-    swap(temp);
+    cleanUp();
+    vectorCount_ = vCount;
+    startCol_ = 0;
+    blockCols_ = vCount;
+    typename Traits::InternalInfoType temp(vInfo);
+    std::swap(vectorInfo_, temp);
+    placeVectors();
   }
 }
 
 template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::~GenVecBasis() {
-  int iVec = vectorCount_;
-  while (iVec--) {
-    Allocator::destroy(vectors_ + iVec);
-  }
-
-  Allocator::deallocate(vectors_, vectorCount_);
-  delete[] buffer_;
+  cleanUp();
 }
 
 template <typename Scalar, template <typename> class GenVecType>
-inline
 void
-swap(GenVecBasis<Scalar, GenVecType> &a, GenVecBasis<Scalar, GenVecType> &b) {
-  a.swap(b);
+GenVecBasis<Scalar, GenVecType>::localBasisIs(int startCol, int blockCols)
+{
+  startCol_ = startCol;
+  blockCols_ = blockCols;
 }
 
 typedef GenVecBasis<double> VecBasis;

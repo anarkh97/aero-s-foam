@@ -2,8 +2,8 @@
 #define _COMPLEXD_H_
 #define _STANDARD_C_PLUS_PLUS
 #ifdef _STANDARD_C_PLUS_PLUS
- #include <complex>
- using std::complex;
+#include <complex>
+using std::complex;
 #else
 #include <complex.h>
 #endif

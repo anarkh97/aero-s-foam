@@ -1,5 +1,5 @@
         subroutine sands6(area,e,elm,stress,maxsze,maxgus,maxstr,eframe,
-     &                    ix,iy,iz,nu,x,y,z,ug, alpha, tref, Temp)
+     &                    ix,iy,iz,nu,x,y,z,ug,alpha,tref,Temp)
 *********************************************************************
 *	THIS SUBROUTINE WILL COMPUTE THE INTERNAL FORCES FOR THE    *
 * EULER-BERNOULLI BEAM ELEMENT AND STORE THEM IN THE STRESS ARRAY   *
@@ -59,6 +59,8 @@ C
         integer ii,jj,kk,ic
 C
         real*8 pi,G,J,dx,dy,dz,length
+        real*8 stress_0dxy,stress_0dyz,stress_0dxz
+        real*8 stress_1dxy,stress_1dyz,stress_1dxz
         real*8 vec(10),ke(12,12),tug(12),res(12)
         real*8 u(3),v(3),w(3)
         real*8 tran(12,12),t33(3,3)
@@ -186,13 +188,10 @@ C
 
 C
 C.... COMPUTE THERMAL STRESS
-C.... BE CAREFUL!!!!! put tref to 0 in INPUT file if you don't want 
-C.... this term to be included
 
        do i=1,2
         tl(i) = temp(i) - tref
        enddo
-C        print*,"Beam T1 T2 ", temp(1), temp(2)
 
        tstress = e*alpha*area*(tl(1)+tl(2))/2.
 C
@@ -213,7 +212,26 @@ C
         stress(elm,4,2) = res(10)
         stress(elm,5,2) = res(11)
         stress(elm,6,2) = res(12)
-
+C
+C.... WRITE THE VON MISES RESULTANT INTO THE STRESS ARRAY
+C
+        stress_0dxy = stress(elm,1,1) - stress(elm,2,1)
+        stress_0dyz = stress(elm,2,1) - stress(elm,3,1)
+        stress_0dxz = stress(elm,1,1) - stress(elm,3,1)
+        stress_1dxy = stress(elm,1,2) - stress(elm,2,2)
+        stress_1dyz = stress(elm,2,2) - stress(elm,3,2)
+        stress_1dxz = stress(elm,1,2) - stress(elm,3,2)
+C
+        stress(elm,7,1) = dsqrt( 0.5d00*(stress_0dxy*stress_0dxy + 
+     +        stress_0dyz*stress_0dyz + stress_0dxz*stress_0dxz) + 
+     +                   3.0d00*(stress(elm,4,1)*stress(elm,4,1) + 
+     +                           stress(elm,5,1)*stress(elm,5,1) + 
+     +                           stress(elm,6,1)*stress(elm,6,1)) )
+        stress(elm,7,2) = dsqrt( 0.5d00*(stress_1dxy*stress_1dxy + 
+     +        stress_1dyz*stress_1dyz + stress_1dxz*stress_1dxz) + 
+     +                   3.0d00*(stress(elm,4,2)*stress(elm,4,2) + 
+     +                           stress(elm,5,2)*stress(elm,5,2) + 
+     +                           stress(elm,6,2)*stress(elm,6,2)) )
 C
 c       write(6,*) 'Element Number :',elm
 c       write(6,*) 'Force_x :' , res(1),res(7), stress(elm,1,1)

@@ -1,8 +1,8 @@
 #include <cstdio>
+#include <algorithm>
 #include <Utils.d/dbg_alloca.h>
 #include <Paral.d/MDEigen.h>
 #include <Paral.d/MDDynam.h>
-
 #include <Driver.d/SubDomain.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
@@ -16,7 +16,6 @@
 #include <Feti.d/DistrVectorSet.h>
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
-#include <Math.d/mathUtility.h>
 #include <Utils.d/SolverInfo.h>
 #include <Feti.d/Feti.h>
 #include <Utils.d/DistHelper.h>
@@ -216,7 +215,7 @@ GenMultiDomainEigen<Scalar>::getSubSpaceInfo(int& subspacesize, int& maxIter,
  int numIter1 = domain->solInfo().maxitEig;
  int numIter2 = 10*subspacesize;
 
- maxIter = myMax(numIter1, numIter2);
+ maxIter = std::max(numIter1, numIter2);
 
  if (numIter1 > 0) maxIter = numIter1;
 

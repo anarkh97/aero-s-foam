@@ -71,6 +71,26 @@ reduce(const std::map<int, int> &indices, BCondInputIterator first, BCondInputIt
   return result;
 }
 
+template <typename BCondInputIterator, typename BCondOutputIterator>
+BCondOutputIterator
+reduce(const std::map<int, int> &indices, BCondInputIterator first, BCondInputIterator last, BCondOutputIterator result, bool temp) {
+  typedef typename std::iterator_traits<BCondInputIterator>::value_type ValueType;
+  int ValueType::* const slot = MeshSectionTraits<ValueType>::renumbered_slot;
+
+  for (BCondInputIterator source = first; source != last; ++source) {
+    const ValueType &value = *source;
+    if((!temp && value.dofnum == 6) || (temp && value.dofnum != 6)) continue;
+    const std::map<int, int>::const_iterator it = indices.find(value.*slot);
+    if (it != indices.end()) {
+      ValueType newValue(value);
+      newValue.*slot = it->second;
+      *result++ = newValue;
+    }
+  }
+
+  return result;
+}
+
 template <typename V, typename PairOutputIterator>
 PairOutputIterator
 reduce(const std::map<int, int> &indices, const std::map<int, V> &input, PairOutputIterator result) {
@@ -130,6 +150,35 @@ copy_eframes(const Elemset & elemSet, EFrameDataOutputIterator result) {
   }
 
   return result;
+}
+
+void
+copy_cframes(const std::vector<Attrib> &attributes, std::map<int,FrameData> &cframes) {
+  for(std::vector<Attrib>::const_iterator it = attributes.begin(); it != attributes.end(); ++it) {
+    if(it->cmp_frm != -1) {
+      if(cframes.find(it->cmp_frm) == cframes.end()) {
+        FrameData frame;
+        frame.num = it->cmp_frm;
+        for(int i=0; i<9; ++i) frame.d[i] = geoSource->getCframes()[it->cmp_frm][i];
+        cframes[it->cmp_frm] = frame;
+      }
+    }
+  }
+}
+
+void
+copy_coef(const std::vector<Attrib> &attributes, std::map<int,CoefData> &coefdata) {
+  for(std::vector<Attrib>::const_iterator it = attributes.begin(); it != attributes.end(); ++it) {
+    if(it->cmp_attr != -1) {
+      if(coefdata.find(it->cmp_attr) == coefdata.end()) {
+        CoefData coef;
+        for(int i=0; i<7; ++i)
+          for(int j=0; j<6; ++j)
+            coef.c[i][j] = geoSource->getCoefData(it->cmp_attr)->c[i][j];
+        coefdata[it->cmp_attr] = coef;
+      }
+    }
+  }
 }
 
 // Map to sequence conversion
@@ -209,10 +258,22 @@ using namespace Detail;
 
 MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren, const std::map<int, double> &weights) :
   properties_(&geoSource->getStructProps()),
-  materialLaws_(&geoSource->getMaterialLaws())
+  materialLaws_(&geoSource->getMaterialLaws()),
+  elemWeights_(1)
 {
   init(domain, geoSource, ren);
-  reduce(ren.elemRenumbering(), weights, std::inserter(elemWeights_, elemWeights_.end())); 
+  reduce(ren.elemRenumbering(), weights, std::inserter(elemWeights_[0], elemWeights_[0].end())); 
+}
+
+MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren, const std::vector<std::map<int, double> > &weights) :
+  properties_(&geoSource->getStructProps()),
+  materialLaws_(&geoSource->getMaterialLaws()),
+  elemWeights_(weights.size())
+{
+  init(domain, geoSource, ren);
+  for(int j=0; j<weights.size(); ++j) {
+    reduce(ren.elemRenumbering(), weights[j], std::inserter(elemWeights_[j], elemWeights_[j].end()));
+  }
 }
                                                                                       
 MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const SampledMeshRenumbering &ren) :
@@ -236,25 +297,32 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
   const AttribContainer &attrib = geoSource->getAttributes(); 
   reduce(ren.elemRenumbering(), make_value_iterator(attrib.begin()), make_value_iterator(attrib.end()), std::back_inserter(attributes_)); 
 
+    // Composites
+  copy_cframes(attributes_, compositeFrames_);
+  copy_coef(attributes_, coefData_);
+
   // Material laws
   const std::map<int, int> &matLawMap = geoSource->getMaterialLawMapping();
   reduce(ren.elemRenumbering(), geoSource->getMaterialLawMapping(), std::inserter(materialLawMapping_, materialLawMapping_.end()));
 
   // Boundary conditions
-  reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(dirichletBConds_));
-  if(domain->getDefaultMFTT() != NULL) { // TODO: add support for combination load cases
-    // note: reduced constant forces are now precomputed
-    reduce(ren.nodeRenumbering(), domain->getNBC(), domain->getNBC() + domain->nNeumann(), std::back_inserter(neumannBConds_));
-  }
-
+  reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(dirichletBConds_), false);
+/* Now both constant and time-dependent forces are outputted in reduced coordinates, see ElementSamplingDriver::postProcess
+   TODO configuration-dependent nodal forces and moments still should be outputted here, though
+  reduce(ren.nodeRenumbering(), domain->getNBC(), domain->getNBC() + domain->nNeumann(), std::back_inserter(neumannBConds_));
+*/
   // Element pressures
   reduce(ren.elemRenumbering(), geoSource->getElementPressure().begin(), geoSource->getElementPressure().end(),
-          std::inserter(elemPressures_, elemPressures_.end()));
+         std::inserter(elemPressures_, elemPressures_.end()));
 
+/* Now the initial conditions are outputted in the reduced coordinates, see ElementSamplingDriver::postProcess
   // Initial conditions
   reduce(ren.nodeRenumbering(), domain->getInitDisp(), domain->getInitDisp() + domain->numInitDisp(), std::back_inserter(initDisp_));
   reduce(ren.nodeRenumbering(), domain->getInitDisp6(), domain->getInitDisp6() + domain->numInitDisp6(), std::back_inserter(initDisp_));
   reduce(ren.nodeRenumbering(), domain->getInitVelocity(), domain->getInitVelocity() + domain->numInitVelocity(), std::back_inserter(initVel_));
+*/
+  // Nodal temperatures
+  reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(temperatures_), true);
 }
 
 std::ostream &
@@ -267,6 +335,11 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
 
   out << make_section(mesh.attributes().begin(), mesh.attributes().end());
   out << mesh.properties();
+
+  if (!mesh.compositeFrames().empty())
+    out << make_section(mesh.compositeFrames().begin(), mesh.compositeFrames().end(), CFrameTag());
+  if(!mesh.coefData().empty())
+    out << make_section(mesh.coefData().begin(), mesh.coefData().end());
  
   if(!mesh.materialLawMapping().empty())
     out << make_section(mesh.materialLawMapping().begin(), mesh.materialLawMapping().end(), MatUsageTag());
@@ -277,7 +350,7 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
     out << make_section(mesh.dirichletBConds().begin(), mesh.dirichletBConds().end(), BCond::Displacements);
   if(!mesh.neumannBConds().empty()) 
     out << make_section(mesh.neumannBConds().begin(), mesh.neumannBConds().end(), BCond::Forces);
- 
+
   if(!mesh.initDisp().empty())
     out << make_section(mesh.initDisp().begin(), mesh.initDisp().end(), BCond::Idisplacements);
   if(!mesh.initVel().empty())
@@ -286,11 +359,18 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
   if(!mesh.elemPressures().empty())
     out << make_section(mesh.elemPressures().begin(), mesh.elemPressures().end(), ElementPressureTag());
 
+  if(!mesh.temperatures().empty())
+    out << make_section(mesh.temperatures().begin(), mesh.temperatures().end(), BCond::Temperatures);
+
   if (!mesh.sampleNodeIds().empty())
     out << make_section(mesh.sampleNodeIds().begin(), mesh.sampleNodeIds().end(), SampleNodeTag());
 
-  if (!mesh.elemWeights().empty())
-    out << make_section(mesh.elemWeights().begin(), mesh.elemWeights().end(), ElementWeightTag());
+  for(int j=0; j<mesh.numLocal(); ++j) {
+    if (!mesh.elemWeights(j).empty()) {
+      out.precision(std::numeric_limits<double>::digits10+1);
+      out << make_section(mesh.elemWeights(j).begin(), mesh.elemWeights(j).end(), ElementWeightTag(), j+1);
+    }
+  }
 
   return out;
 }

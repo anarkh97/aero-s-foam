@@ -64,12 +64,6 @@ class BeamCorotator : public Corotator {
    void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
                                double *vlr);
 
-   void getNLVonMises(Vector&, Vector& weight,
-                      GeomState &, CoordSet &, int);
-
-   void getNLAllStress(FullM&, Vector&,
-                       GeomState &, CoordSet &, int);
-
    double getElementEnergy(GeomState &, CoordSet &);
  
    void reBuildorigK(FullSquareMatrix &);

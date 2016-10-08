@@ -92,5 +92,17 @@ MortarElement::nMortarShapeFct()
 void
 MortarElement::GetShapeFctVal(double* Shape, double* m)
 {
-  fprintf(stderr," *** WARNING: base class MortarElement::GetShapeFctVal() should NOT be called \n");
+  fprintf(stderr," *** WARNING: base class MortarElement::GetShapeFctVal() is not implemented.\n");
 } 
+
+void
+MortarElement::GetdShapeFct(double* dShapex, double* dShapey, double* m)
+{
+  fprintf(stderr," *** WARNING: base class MortarElement::GetdShapeFct() is not implemented.\n");
+}
+
+void
+MortarElement::Getd2ShapeFct(double* d2Shapex, double* d2Shapey, double* d2Shapexy, double* m)
+{
+  fprintf(stderr," *** WARNING: base class MortarElement::Getd2ShapeFct() is not implemented.\n");
+}

@@ -9,9 +9,13 @@
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
+#include <Math.d/DiagMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/State.h>
 #include <Solvers.d/Rbm.h>
+#include <Timers.d/StaticTimers.h>
+#include <Control.d/ControlInterface.h>
+#include <Driver.d/ControlLawInfo.h>
 #include <Solvers.d/SolverFactory.h>
 
 typedef FSFullMatrix FullMatrix;
@@ -105,12 +109,6 @@ SingleDomainTemp::solVecInfo()
  return domain->numUncon();
 }
 
-int
-SingleDomainTemp::dbcVecInfo()
-{
- return domain->numdof();  // Watch  out!!!!!
-}
-
 void
 SingleDomainTemp::getTempTimes(double &dtemp, double &tmax)
 {
@@ -157,7 +155,7 @@ SingleDomainTemp::getZEMFlag()
 
 void
 SingleDomainTemp::getSteadyStateParam(int &steadyFlag, int &steadyMin,
-                                         int &steadyMax, double &steadyTol)
+                                      int &steadyMax, double &steadyTol)
 {
  steadyFlag  = domain->solInfo().steadyFlag;
  steadyMin   = domain->solInfo().steadyMin;
@@ -181,15 +179,22 @@ SingleDomainTemp::tempInitState(TempState<Vector> &inState)
 void
 SingleDomainTemp::computeExtForce(Vector &ext_f, double t, int tIndex, Vector &prev_f)
 {
+  if(claw && userSupFunc) {
+    if(claw->numUserForce) { // USDF
+      double *userDefineFlux = new double[claw->numUserForce];
+      userSupFunc->usd_forc(t, userDefineFlux);
+      domain->updateUsdfInNbc(userDefineFlux);
+      delete [] userDefineFlux;
+    }
+  }
 
- domain->computeExtForce(ext_f, t, tIndex, kuc, prev_f);
+  domain->computeExtForce(ext_f, t, tIndex, kuc, prev_f);
 
- // apply projector ONLY for Dynamics, hzemFilterFlag is set to zero
- // in the beginning for quasistatic
+  // apply projector ONLY for Dynamics, hzemFilterFlag is set to zero
+  // in the beginning for quasistatic
 
-   int useFilter = domain->solInfo().hzemFilterFlag;
-   if (useFilter) temptrProject(ext_f);
-
+  int useFilter = domain->solInfo().hzemFilterFlag;
+  if (useFilter) temptrProject(ext_f);
 }
 
 void
@@ -212,8 +217,27 @@ SingleDomainTemp::preProcess()
  delete[]bc;
 
  domain->makeAllDOFs();
-}
 
+  // Check for user supplied routines
+  claw = geoSource->getControlLaw();
+  userSupFunc = domain->getUserSuppliedFunction();
+
+ if((domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) || domain->solInfo().isNonLin()) {
+   StaticTimers times;
+   FullSquareMatrix *geomKelArray=0, *melArray = 0;
+   // this function builds corotators, geomstate and kelArray 
+   // for linear+geps only it updates geomState with ETEMP and computes the element stiffness matrices using this updated geomState
+   domain->computeGeometricPreStress(allCorot, geomState, kelArray, &times, geomKelArray, melArray, false);
+ }
+
+ if(domain->solInfo().isNonLin()) {
+    // for nonlinear explicit we only need to initialize geomState with the constant constrained temperatures (TEMP).
+    // the geomState is always updated before use with the current unconstrained temperatures
+    if(domain->nDirichlet() > 0) {
+      geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet(), domain->getNodes());
+    }
+  }
+}
 
 DynamMat
 SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
@@ -266,9 +290,9 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
 
  // assemble operators (K,Kuc,M), also construct/assemble/factor Ax=b solver where A = coek*K+coeM*M 
  if(!useHzem || (domain->solInfo().timeIntegration != 1)) // only use for quasistatics
-   domain->buildOps<double>(allOps, coeK, coeM, 0.0);
+   domain->buildOps<double>(allOps, coeK, coeM, 0.0, (Rbm *)NULL, kelArray);
  else
-   domain->buildOps<double>(allOps, coeK, coeM, 0.0, rbm);
+   domain->buildOps<double>(allOps, coeK, coeM, 0.0, rbm, kelArray);
 
  if(useFilter) {
    fprintf(stderr," ... HZEMFilter Requested           ...\n");
@@ -292,13 +316,21 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
 }
 
 void
-SingleDomainTemp::getInternalForce(Vector& d,Vector& f)
+SingleDomainTemp::getInternalForce(Vector& d, Vector& f)
 {
-  f.zero();
-  FullSquareMatrix *kelArray;
-  kelArray = 0;
-
-  domain->getKtimesU(d,bcx,f,1.0,kelArray);
+ if(domain->solInfo().isNonLin()) {
+   geomState->explicitUpdate(domain->getNodes(), d);
+   Vector residual(domain->numUncon(), 0.0);
+   Vector fele(domain->maxNumDOF());
+   domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, 1.0, geomState);
+   // Note: a dummy value of t is passed to getInternalForce above. This is ok because there are no time-dependent
+   // follower forces for temperature dofs
+   f.linC(residual, -1.0);
+ }
+ else {
+   f.zero();
+   domain->getKtimesU(d, bcx, f, 1.0, kelArray);
+ }
 }
 
 void

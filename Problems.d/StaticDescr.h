@@ -1,6 +1,7 @@
 #ifndef _STATIC_DESCR_H_
 #define _STATIC_DESCR_H_
 
+#include <Problems.d/SingleDomainBase.h>
 #include <Utils.d/MyComplex.h>
 
 class Domain;
@@ -31,19 +32,6 @@ class SingleDomainPostProcessor {
     SolverType *solver;
     GenSparseMatrix<T> *kuc, *kcc;
   public:
-/*
-    SingleDomainPostProcessor<T, VectorType, SolverType>(Domain *d, T *_bcx)
-      { domain = d; bcx = _bcx; }
-
-    SingleDomainPostProcessor<T, VectorType, SolverType>(Domain *d, T *_bcx, 
-                                                         StaticTimers *_times)
-      { domain = d; bcx = _bcx; times = _times; }
-
-    SingleDomainPostProcessor<T, VectorType, SolverType>(Domain *d, T *_bcx, 
-                                                         StaticTimers *_times,
-                                                         SolverType *_solver)
-      { domain = d; bcx = _bcx; times = _times; solver = _solver; }
-*/
     SingleDomainPostProcessor(Domain *_domain, T *_bcx, 
                              StaticTimers *_times = NULL, SolverType *_solver = NULL,
                               GenSparseMatrix<T> *_kuc = NULL, GenSparseMatrix<T> *_kcc = NULL)
@@ -52,14 +40,12 @@ class SingleDomainPostProcessor {
     void staticOutput(VectorType &solution, VectorType &rhs, bool printTimers = true, int ndflag =0);
     void staticOutput(GeomState& gs, double time = 0.0);
     void staticOutput(GeomState *gs, double time = 0.0);
-#ifdef STRUCTOPT
-    void staticOutput(VectorType &solution, VectorType &rhs, double time);
-#endif
+
     void getStressStrain(VectorType &sol, int fileNumber, int stressIndex, double time, int printFlag) 
                      { domain->getStressStrain(sol,bcx,fileNumber,stressIndex,time,printFlag); }
     void setsizeSfemStress(int fileNumber) { domain->setsizeSfemStress(fileNumber); }
     int getsizeSfemStress() { return domain->getsizeSfemStress(); }
-    T* getSfemStress(int fileNumber) { T* ds = 0; return domain->getSfemStress(fileNumber, ds); } // Actually it scould be T* ds, ok for the time being
+    T* getSfemStress(int fileNumber) { T* ds = 0; return domain->getSfemStress(fileNumber, ds); }
     void updateSfemStress(T* str, int fileNumber) { domain->updateSfemStress(str, fileNumber); }
 
     void setSolver(SolverType *s) { solver = s; }
@@ -67,7 +53,7 @@ class SingleDomainPostProcessor {
 
 
 template <class T, class VectorType, class SolverType>
-class SingleDomainStatic 
+class SingleDomainStatic : public SingleDomainBase
 {
  protected:
     Domain *domain;
@@ -75,6 +61,7 @@ class SingleDomainStatic
     DComplex *bcxC;
     GenSparseMatrix<T> *kuc, *kcc;
     AllOps<T> allOps;
+    AllSensitivities<T> allSens;
     SolverType *solver;
     StaticTimers *times; 
 
@@ -83,20 +70,23 @@ class SingleDomainStatic
     Corotator **allCorot;
     GeomState *geomState;
 
-    FSFullMatrix  *X;    // pre-calculated projector
-    double *Rmem;        // global rigid body modes (numdof X 6)
-    int numR;            // number of rigid body modes
+    Rbm *rigidBodyModes;
 
  public:
-    SingleDomainStatic<T,VectorType,SolverType>(Domain *d) { domain = d; Rmem = 0; numR = 0; }
+    SingleDomainStatic<T,VectorType,SolverType>(Domain *d) : SingleDomainBase(d->solInfo()) { domain = d; rigidBodyModes = 0; }
     int solVecInfo();
     int solVecInfo(int i);
     virtual void getRHS(VectorType &);
     void getRHSinpc(VectorType &);
     void setIWaveDir(int _i) { domain->iWaveDir = _i; }
     void getFreqSweepRHS(VectorType *rhs, VectorType **sol_prev, int iRHS);
+    void buildDeltaK(double w0, double w) {
+      domain->template buildDeltaK<T>(w0, w, allOps.K_deriv[0],(allOps.Kuc_deriv)?allOps.Kuc_deriv[0]:0 );
+    }
     virtual void getRHS(VectorType &,double,double);
     void pade(VectorType *sol, VectorType **sol_prev, double *h, double x) { };
+    void preProcessSA();
+    void postProcessSA(GenVector<T> &sol);
     virtual void preProcess();
     void rebuildSolver()
       { clean(); preProcess(); }
@@ -109,13 +99,12 @@ class SingleDomainStatic
     SolverType *getSolver();
     AllOps<T> *getAllOps() { return &allOps; }
     T *getbc() { return bcx; }
-    void project(VectorType &f);
-    void projector_prep(Rbm *rbms);
-    void eigmode_projector_prep();
+
     SingleDomainPostProcessor<T,VectorType,SolverType> *getPostProcessor();
     StaticTimers *getStaticTimers() { return times; }
     void assignRandMat() {domain->assignRandMat(); }
     void retrieveElemset() {domain->retrieveElemset();}
+    AllSensitivities<T> *getAllSensitivities() { return &allSens; }
 #ifdef STRUCTOPT
     void preoptProcess();
     void reBuild(); 

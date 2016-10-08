@@ -23,6 +23,12 @@ void ContactQuadFaceL4<Real>::Compute_Normal(VariableHandle CURRENT_POSITION,
 				       VariableHandle FACE_NORMAL );
 
 template
+void ContactQuadFaceL4<Real>::Compute_Partial_Face_Normal(VariableHandle CURRENT_POSITION, Real (*dface_normal)[3]);
+
+template
+void ContactQuadFaceL4<Real>::Compute_Second_Partial_Face_Normal(VariableHandle CURRENT_POSITION, Real (*dface_normal)[3] );
+
+template
 void ContactQuadFaceL4<Real>::Compute_Normal(VariableHandle POSITION,
                                        Real* normal, Real* local_coords );
 
@@ -95,7 +101,7 @@ void ContactQuadFaceL4<Real>::Smooth_Normal( VariableHandle CURRENT_POSITION,
                                        Real critical_curvature );
 
 template
-void ContactQuadFaceL4<Real>:: Compute_Node_Areas( VariableHandle POSITION, 
+void ContactQuadFaceL4<Real>::Compute_Node_Areas( VariableHandle POSITION, 
                                              VariableHandle FACE_NORMAL,
                                              Real* node_areas );
 

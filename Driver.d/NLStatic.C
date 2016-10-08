@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include <Utils.d/dbg_alloca.h>
 
 // New include files for Restart file
@@ -8,33 +9,33 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-
 #include <Corotational.d/Corotator.h>
 #include <Corotational.d/utilities.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/SubDomain.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/pstress.h>
 #include <Corotational.d/GeomState.h>
 #include <Math.d/FullSquareMatrix.h>
-#include <Math.d/mathUtility.h>
 #include <Math.d/matrix.h>
 #include <Control.d/ControlInterface.h>
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
-
 #include <Driver.d/GeoSource.h>
 #include <Corotational.d/MatNLCorotator.h>
 #include <Element.d/Function.d/utilities.hpp>
-#include <algorithm>
+#include <Utils.d/DistHelper.h>
 
 void
 Domain::getElemStiffAndForce(const GeomState &geomState, double time,
                              const GeomState *refState, const Corotator &elemCorot,
                              double *elemForce, FullSquareMatrix &elemStiff) {
+    // note: delt is the time increment between the refState and current time for dynamics and zero for statics
+    double delt = (sinfo.newmarkBeta == 0) ? sinfo.getTimeStep() : (1-sinfo.newmarkAlphaF)*sinfo.getTimeStep();
     const_cast<Corotator &>(elemCorot).getStiffAndForce(
         const_cast<GeomState *>(refState),
         const_cast<GeomState &>(geomState),
-        nodes, elemStiff, elemForce, domain->solInfo().getTimeStep(), time);
+        nodes, elemStiff, elemForce, delt, time);
 }
 
 void
@@ -50,7 +51,8 @@ void
 Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
                          Corotator **corotators, FullSquareMatrix *kel,
                          Vector &residual, double lambda, double time,
-                         GeomState *refState, Vector *reactions, FullSquareMatrix *mel)
+                         GeomState *refState, Vector *reactions,
+                         FullSquareMatrix *mel, FullSquareMatrix *cel)
 /*******************************************************************
  *
  * Purpose :
@@ -59,8 +61,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
  *  and assemble element internal force into global internal force.
  *  Also compute configuration-dependent external force contribution
  *  to both tangential stiffness matrix and residual.
- *  Also for dynamics, compute fictitious (inertial) force
- *  contribution to both tangential stiffness matrix and residual.
+ *  Also for dynamics, compute inertial and viscous
+ *  corrections to both tangential stiffness matrix and residual.
  *
  * Input :
  *
@@ -85,14 +87,20 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   bool compute_tangents = !initialTime && !solInfo().getNLInfo().linearelastic;
   if(elemAdj.empty()) makeElementAdjacencyLists();
+  if(time != domain->solInfo().initialTime) newDeletedElements.clear();
 
   for(int iele = 0; iele < numele; ++iele) {
 
+    if(matrixTimers) matrixTimers->formTime -= getTime();
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
     if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
+      if(sinfo.newmarkBeta == 0) {
+        corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());
+        handleElementDeletion(iele, geomState, pseudoTime, *corotators[iele], elementForce.data());
+      }
       if(initialTime && packedEset[iele]->isConstraintElement() && packedEset[iele]->hasRot()) {
         // transform constraint jacobian and hessian to solve for the initial convected acceleration
         transformElemStiff(geomState, kel[iele], iele);
@@ -103,10 +111,11 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       Vector disp(packedEset[iele]->numDofs());
       getElementDisp(iele, geomState, disp);
       kel[iele].multiply(disp, elementForce, 1.0);
-      // XXX 1. copy of the linearelastic kelarray before calling this function because the
-      //     load stiffness matrix will be added each time (unless updatedtangents is false,
-      //     but in that case the convergence will not be quadratic)
-      //     2. should be inside getElemStiffAndForce??
+      if(solInfo().getNLInfo().linearelastic && packedEset[iele]->isFreeplayElement()) {
+        Vector f(packedEset[iele]->numDofs());
+        getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], f.data(), kel[iele]);
+        for(int idof = 0; idof < f.size(); ++idof) elementForce[idof] += f[idof];
+      }
     }
 
     // Add configuration-dependent external forces and their element stiffness contributions
@@ -118,7 +127,12 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
     }
 
+    // Transform internal force vector to nodal frame
+    transformVector(elementForce, iele); 
+    if(matrixTimers) matrixTimers->formTime += getTime();
+
     // Assemble element force into residual vector
+    if(matrixTimers) matrixTimers->assemble -= getTime();
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0)
@@ -129,30 +143,40 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
           (*reactions)[cDofNum] += elementForce[idof];
       }
     }
+    if(matrixTimers) matrixTimers->assemble += getTime();
   }
 
   // XXX consider adding the element fictitious forces inside the loop
-  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions,
-                                                mel, compute_tangents);
+  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic)
+    getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, compute_tangents, corotators, cel);
 
-  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
+    if(matrixTimers) matrixTimers->formTime -= getTime(); 
     for(int iele = 0; iele < numele; ++iele)
       kel[iele].symmetrize();
+    if(matrixTimers) matrixTimers->formTime += getTime();
+  }
 }
 
 void
 Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
                          Corotator **corotators, FullSquareMatrix *kel,
                          Vector &residual, double lambda, double time,
-                         GeomState *refState, Vector *reactions, bool compute_tangents)
+                         Vector *reactions, bool compute_tangents)
 {
+  // Note #1: If compute_tangents is true, then the jacobian of the element follower forces 
+  //          will be added to kel. If compute_tangents is false, then kel can be NULL.
+  // Note #2: This function requires followedElemList to be pre-computed; ensure makeFollowedElemList
+  //          is set to true in Domain::makeElementAdjacencyLists().
+
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
 
   for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) {
     const int iele = *it;
 
     elementForce.zero();
-    FullSquareMatrix elementStiff(kel[iele].dim());
+    const int elemDofCount = packedEset[iele]->numDofs();
+    FullSquareMatrix elementStiff(elemDofCount);
     elementStiff.zero();
 
     getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
@@ -161,10 +185,12 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
     if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot())
       transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, compute_tangents);
 
-    kel[iele] += elementStiff;
+    if(compute_tangents) kel[iele] += elementStiff;
+
+    // Transform internal force vector to nodal frame
+    transformVector(elementForce, iele);
 
     // Assemble element force into residual vector
-    const int elemDofCount = kel[iele].dim();
     for(int iDof = 0; iDof < elemDofCount; ++iDof) {
       const int dofId = c_dsa->getRCN((*allDOFs)[iele][iDof]);
       if (dofId >= 0) {
@@ -180,6 +206,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
                              double lambda, double time, bool compute_tangents,
                              BlastLoading::BlastData *conwep)
 {
+  if(solInfo().getNLInfo().linearelastic == 2) return;
   Vector elementForceBuf(_f,bufSize,false);
 
   // 1. Treatment of element pressure
@@ -200,7 +227,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     pbc->val = p0;
 
     if(corotator) {
-      // Include the "load stiffness matrix" in kel2
+      // Include the "load stiffness matrix" in kel
       if(compute_tangents) {
 
         FullSquareMatrix k(kel.dim());
@@ -211,7 +238,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
             kel[i][j] += k[i][j];
       }
 
-      // Determine the elemental force for the corrotated system
+      // Determine the elemental force for the corotated system
       corotator->getExternalForce(geomState, nodes, elementForce.data());
     }
 
@@ -235,7 +262,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
 
     // Compute element thermal force in the local coordinates
     elementForce.zero();
-    packedEset[iele]->getThermalForce(nodes, elementTemp, elementForce, 1);
+    packedEset[iele]->getThermalForce(nodes, elementTemp, elementForce, 1, &geomState);
 
     if(corotator) {
       // Include the "load stiffness matrix" in kel
@@ -284,14 +311,14 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
 
     // Include the "load stiffness matrix" in kel
     if(compute_tangents) {
-      FullSquareMatrix k(neum[i]->numDofs());
-      k.zero();
+      FullSquareMatrix kTan(neum[i]->numDofs());
+      kTan.zero();
 
-      neum[i]->neumVectorJacobian(nodes, k, 0, &geomState, time);
+      neum[i]->neumVectorJacobian(nodes, kTan, 0, &geomState, time);
 
-      for(int i = 0; i < neum[i]->numDofs(); ++i)
-        for(int j = 0; j < neum[i]->numDofs(); ++j)
-          kel[eledofs[i]][eledofs[j]] -= k[i][j];
+      for(int j = 0; j < neum[i]->numDofs(); ++j)
+        for(int k = 0; k < neum[i]->numDofs(); ++k)
+          kel[eledofs[j]][eledofs[k]] -= kTan[j][k];
     }
 
     pbc->val = p0;
@@ -303,10 +330,19 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     int i = it->first;
     std::vector<int> &eledofs = it->second;
 
+    // if the element is an LMPC and the node has a DOF_FRM then the element force and or stiffness must be defined in the DOF_FRM
+    NFrameData *cd = 0;
+    if(packedEset[iele]->isMpcElement() && nodes.dofFrame(nbc[i].nnum)) {
+      LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+      if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+         lmpcons->getSource() == mpc::TiedSurfaces)) cd = nodes.dofFrame(nbc[i].nnum);
+    }
+
     double m0[3] = { 0, 0, 0 }, m[3], r[3], rotvar[3][3];
     MFTTData *mftt = domain->getMFTT(nbc[i].loadsetid);
     double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(nbc[i].loadsetid);
     m0[nbc[i].dofnum-3] = lambda*loadFactor*nbc[i].val;
+    transformVectorInv(m0, nbc[i].nnum, false);
 
     switch(nbc[i].mtype) {
       case BCond::Axial : // axial (constant) moment: m = m0
@@ -324,8 +360,13 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
         std::cerr << " *** WARNING: selected moment type is not supported\n";
     }
 
-    for(int j = 0; j < 3; ++j) {
-      elementForceBuf[eledofs[j]] -= m[j];
+    if(cd) {
+      double m_copy[3] = { m[0], m[1], m[2] };
+      cd->transformVector3(m_copy);
+      for(int j = 0; j < 3; ++j) elementForceBuf[eledofs[j]] -= m_copy[j];
+    }
+    else {
+      for(int j = 0; j < 3; ++j) elementForceBuf[eledofs[j]] -= m[j];
     }
 
     // tangent stiffness contribution: 
@@ -356,6 +397,8 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
         } break;
       }
 
+      if(cd) cd->transformMatrix3(&rotvar[0][0]);
+
       for(int j = 0; j < 3; ++j)
         for(int k = 0; k < 3; ++k)
           kel[eledofs[j]][eledofs[k]] -= rotvar[j][k];
@@ -368,16 +411,24 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     int i = it->first;
     std::vector<int> &eledofs = it->second;
 
+    // if the element is an LMPC and the node has a DOF_FRM then the element force and or stiffness must be defined in the DOF_FRM
+    NFrameData *cd = 0;
+    if(packedEset[iele]->isMpcElement() && nodes.dofFrame(nbc[i].nnum)) {
+      LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+      if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+         lmpcons->getSource() == mpc::TiedSurfaces)) cd = nodes.dofFrame(nbc[i].nnum);
+    }
+
     double f0[3] = { 0, 0, 0 }, f[3];
     MFTTData *mftt = domain->getMFTT(nbc[i].loadsetid);
     double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(nbc[i].loadsetid);
     f0[nbc[i].dofnum] = lambda*loadFactor*nbc[i].val;
+    transformVectorInv(f0, nbc[i].nnum, false);
 
     mat_mult_vec(geomState[nbc[i].nnum].R, f0, f, 0); // f = R*f0
 
-    for(int j = 0; j < 3; ++j) {
-      elementForceBuf[eledofs[j]] -= f[j];
-    }
+    if(cd) cd->transformVector3(f);
+    for(int j = 0; j < 3; ++j) elementForceBuf[eledofs[j]] -= f[j];
 
     // tangent stiffness contribution: 
     if(compute_tangents) {
@@ -390,13 +441,19 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
           kel[eledofs[j]][eledofs[3+k]] += skewf[j][k];
     }
   }
+
+  // 6. Treatment of constrained rotations
+  if(elemAdj[iele].crot.size() > 0) {
+    transformElemStiffAndForce_S2E(geomState, _f, kel, iele, compute_tangents);
+  }
 }
 
 void
 Domain::makeElementAdjacencyLists()
 {
   elemAdj.resize(numele); 
-  bool makeFollowedElemList = (!domain->solInfo().reduceFollower && domain->solInfo().galerkinPodRom);
+  bool makeFollowedElemList = ( ((!domain->solInfo().reduceFollower || domain->solInfo().getNLInfo().linearelastic)
+                                 && domain->solInfo().galerkinPodRom) || geoSource->energiesOutput() || geoSource->romExtForceOutput() );
 
   // 1. pressure applied to elements
   if(domain->pressureFlag()) {
@@ -410,7 +467,7 @@ Domain::makeElementAdjacencyLists()
   // 2. pressure using surfacetopo
   //    build the map from kel array index to neum array index
   SubDomain *subCast = (numNeum > 0) ? dynamic_cast<SubDomain*>(this) : NULL;
-  if(!subCast && !sommerChecked) checkSommerTypeBC(this);
+  if(!subCast && !sommerChecked && numNeum > 0) { checkSommerTypeBC(this); }
   for(int i = 0; i < numNeum; ++i) {
     if((neum[i]->getPressure()) == NULL) continue;
     int iele = (subCast) ? subCast->globalToLocalElem(neum[i]->getAdjElementIndex()) : neum[i]->getAdjElementIndex();
@@ -513,6 +570,15 @@ Domain::makeElementAdjacencyLists()
         for(int inode = 0; inode < nodeToElem->num(current->node); ++inode) { // loop over the elements attached to the node
                                                                               // at which the discrete mass is located
           int iele = (*nodeToElem)[current->node][inode];
+
+          if(packedEset[iele]->isMpcElement() && nodes.dofFrame(current->node)) {
+            LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+            if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+               lmpcons->getSource() == mpc::TiedSurfaces)) continue; // XXX if a discrete mass is associated with an LMPC element 
+                                                                     // the the inertial force and tangent stiffness contribution 
+                                                                     // must be defined in the DOF_FRM.
+          }
+
           std::vector<int> eledofs(3);
           for(int j = 0; j < 3; ++j) {
             eledofs[j] = -1;
@@ -527,9 +593,39 @@ Domain::makeElementAdjacencyLists()
             break;
           }
         }
-        if(!foundAdj) std::cerr << " *** WARNING: could not find adjacent element for discrete mass\n";
+        if(!foundAdj) std::cerr << " *** WARNING: could not find adjacent element for discrete mass at node " << current->node+1 << std::endl;
       }
       current = current->next;
+    }
+  }
+
+  // 7. constrained rotations
+  if(!solInfo().getNLInfo().linearelastic)
+  for(int i = 0; i < numDirichlet; ++i) {
+    if(dbc[i].dofnum == 3 || dbc[i].dofnum == 4 || dbc[i].dofnum == 5) {
+      int dofs[3];
+      c_dsa->number(dbc[i].nnum, DofSet::XYZrot, dofs);
+      if((dbc[i].dofnum == 3 && dofs[1] != -1 && dofs[2] != -1) ||
+         (dbc[i].dofnum == 4 && dofs[0] != -1 && dofs[2] != -1) ||
+         (dbc[i].dofnum == 5 && dofs[0] != -1 && dofs[1] != -1)) {
+        dsa->number(dbc[i].nnum, DofSet::XYZrot, dofs);
+        for(int inode = 0; inode < nodeToElem->num(dbc[i].nnum); ++inode) { // loop over the elements attached to the node
+                                                                            // at which the nodal force is applied
+          int iele = (*nodeToElem)[dbc[i].nnum][inode];
+          std::vector<int> eledofs(3);
+          for(int j = 0; j < 3; ++j) {
+            eledofs[j] = -1;
+            for(int k = 0; k < allDOFs->num(iele); ++k)
+              if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
+          }
+          if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) { 
+            // element has all 3 rotation dofs of node dbc[i].nnum 
+            elemAdj[iele].crot.insert(i);
+            if(makeFollowedElemList) followedElemList.push_back(iele);
+            break;
+          }
+        }
+      }
     }
   }
 
@@ -545,7 +641,8 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                      GeomState &geomState, Vector& elementForce,
                                      Corotator **corotators, FullSquareMatrix *kel,
                                      Vector &residual, double lambda, double time,
-                                     GeomState *refState, FullSquareMatrix *mel)
+                                     GeomState *refState, FullSquareMatrix *mel,
+                                     FullSquareMatrix *kelCopy)
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
   const bool initialTime = (sinfo.isDynam() && time == 0 && solInfo().newmarkBeta != 0);
@@ -559,11 +656,136 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
     for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) kel[*it].zero();
   }
   
+  Vector LinearElForce(maxNumDOFs,0.0);
+  Vector displacement(residual.size(),0.0);
+  if(kelCopy)                        
+    geomState.get_tot_displacement(displacement,false);
+
   for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iele = it->first;
 
     elementForce.zero();
     FullSquareMatrix &elementStiff = kel[iele];
+
+    //option of remove linear component from nonlinear force, default is false 
+    if(kelCopy) {
+      LinearElForce.zero();
+      getElemKtimesU(iele,elementStiff.dim(),displacement,LinearElForce.data(),kelCopy,(double *) dbg_alloca(sizeof(double)*maxNumDOFs*maxNumDOFs));
+    }
+
+    // Get updated tangent stiffness matrix and element internal force
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
+      getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), elementStiff);
+      if(sinfo.newmarkBeta == 0) {
+        corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());
+      }
+    }
+    else {
+      Vector disp(packedEset[iele]->numDofs());
+      getElementDisp(iele, geomState, disp);
+      kel[iele].copy(packedEset[iele]->stiffness(nodes, kel[iele].data())); // XXX
+      kel[iele].multiply(disp, elementForce, 1.0);
+      if(solInfo().getNLInfo().linearelastic && packedEset[iele]->isFreeplayElement()) {
+        Vector f(packedEset[iele]->numDofs());
+        getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], f.data(), kel[iele]);
+        for(int idof = 0; idof < f.size(); ++idof) elementForce[idof] += f[idof];
+      }
+    }
+
+    // Add configuration-dependent external forces and their element stiffness contributions
+    if(domain->solInfo().reduceFollower) {
+      getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                           (corotators[iele]), elementStiff, lambda, time, compute_tangents, conwep);
+    }
+
+    if(packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
+      // Transform element stiffness and force to solve for the increment in the total rotation vector
+      transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, true);
+    }
+   
+    // Apply lumping weight 
+    const double lumpingWeight = it->second;
+    elementForce *= lumpingWeight;
+    elementStiff *= lumpingWeight;
+
+    if(kelCopy)
+     elementStiff -= kelCopy[iele];
+
+    // Assemble element force into residual vector
+    const int elemDofCount = elementStiff.dim();
+    for(int iDof = 0; iDof < elemDofCount; ++iDof) {
+      const int dofId = c_dsa->getRCN((*allDOFs)[iele][iDof]);
+      if (dofId >= 0) {
+        residual[dofId] -= elementForce[iDof];
+        if(kelCopy){
+          residual[dofId] += LinearElForce[iDof];
+        }
+      }
+    }
+  }
+
+  if(!domain->solInfo().reduceFollower) {
+    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, NULL, compute_tangents);
+  }
+
+  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic) {
+    getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time,
+                                   refState, NULL, mel, compute_tangents);
+  }
+
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
+    for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+      const int iele = it->first;
+      kel[iele].symmetrize();
+    }
+    if(!domain->solInfo().reduceFollower) {
+      for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) {
+        kel[*it].symmetrize();
+      }
+    }
+  }
+}
+
+
+void
+Domain::getUnassembledStiffAndForceOnly(const std::map<int, std::vector<int> > &weights,
+                                        GeomState &geomState, Vector& elementForce,
+                                        Corotator **corotators, FullSquareMatrix *kel,
+                                        Vector &residual, int dispSize, double lambda, double time,
+                                        GeomState *refState, FullSquareMatrix *mel,
+                                        FullSquareMatrix *kelCopy)
+{
+  const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
+  const bool initialTime = (sinfo.isDynam() && time == 0 && solInfo().newmarkBeta != 0);
+
+  BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
+  bool compute_tangents = !initialTime;
+  if(elemAdj.empty()) makeElementAdjacencyLists();
+
+  if(!domain->solInfo().reduceFollower) {
+    // Zero element stiffness. otherwise, the follower force tangents will accumulate
+    for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) kel[*it].zero();
+  }
+
+  Vector LinearElForce(maxNumDOFs,0.0);
+  Vector displacement(dispSize,0.0);
+  if(kelCopy)                        
+    geomState.get_tot_displacement(displacement,false);
+
+  int uDofCounter = 0;
+  for(std::map<int, std::vector<int> >::const_iterator mapit = weights.begin(), mapit_end = weights.end(); mapit != mapit_end; ++mapit) {
+    const int iele = mapit->first;
+    const std::vector<int> DOFvector(mapit->second);
+
+    elementForce.zero();
+
+    FullSquareMatrix &elementStiff = kel[iele];
+
+    //option of remove linear component from nonlinear force, default is false 
+    if(kelCopy) {
+      LinearElForce.zero();
+      getElemKtimesU(iele,elementStiff.dim(),displacement,LinearElForce.data(),kelCopy,(double *) dbg_alloca(sizeof(double)*maxNumDOFs*maxNumDOFs));
+    }
 
     // Get updated tangent stiffness matrix and element internal force
     if (const Corotator *elementCorot = corotators[iele]) {
@@ -576,37 +798,39 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                            (corotators[iele]), elementStiff, lambda, time, compute_tangents, conwep);
     }
 
+
     if(packedEset[iele]->hasRot()) {
       // Transform element stiffness and force to solve for the increment in the total rotation vector
       transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, true);
     }
-   
-    // Apply lumping weight 
-    const double lumpingWeight = it->second;
-    elementForce *= lumpingWeight;
-    elementStiff *= lumpingWeight;
+
+    if(kelCopy)
+     elementStiff -= kelCopy[iele];
 
     // Assemble element force into residual vector
     const int elemDofCount = elementStiff.dim();
-    for(int iDof = 0; iDof < elemDofCount; ++iDof) {
-      const int dofId = c_dsa->getRCN((*allDOFs)[iele][iDof]);
+    for(std::vector<int>::const_iterator DOFit = DOFvector.begin(); DOFit != DOFvector.end(); DOFit++) {
+      const int dofId = c_dsa->getRCN((*allDOFs)[iele][*DOFit]);
       if (dofId >= 0) {
-        residual[dofId] -= elementForce[iDof];
+        residual[uDofCounter] -= elementForce[*DOFit];
+        if(kelCopy)
+          residual[uDofCounter] += LinearElForce[*DOFit];
+        uDofCounter += 1;
       }
     }
   }
 
-  if(!domain->solInfo().reduceFollower) {
-    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, compute_tangents);
-  }
+//  if(!domain->solInfo().reduceFollower) {
+ //   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, NULL, compute_tangents);
+//  }
 
   if(sinfo.isDynam() && mel) {
-    getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time,
+    getUDEIMFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time,
                                    refState, NULL, mel, compute_tangents);
   }
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
-    for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+    for(std::map<int, std::vector<int> >::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
       const int iele = it->first;
       kel[iele].symmetrize();
     }
@@ -638,66 +862,80 @@ Domain::applyResidualCorrection(GeomState &geomState, Corotator **corotators, Ve
 }
 
 void
-Domain::updateStates(GeomState *refState, GeomState &geomState, Corotator **corotators)
+Domain::updateStates(GeomState *refState, GeomState &geomState, Corotator **corotators, double time)
 {
+  if(matrixTimers) matrixTimers->updateState -= getTime();
+  double delt = std::max(sinfo.newmarkAlphaF,std::numeric_limits<double>::epsilon())*sinfo.getTimeStep();
   for(int iele = 0; iele < numele; ++iele) {
-    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes);
+    if(corotators[iele]) {
+      corotators[iele]->updateStates(refState, geomState, nodes, delt);
+      if(sinfo.newmarkBeta != 0) handleElementDeletion(iele, geomState, time, *corotators[iele]);
+    }
   }
+  if(matrixTimers) matrixTimers->updateState += getTime();
 }
 
 void
 Domain::updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomState *refState,
-                                     GeomState &geomState, Corotator **corotators)
+                                     GeomState &geomState, Corotator **corotators, double time)
 {
-  for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+  if(matrixTimers) matrixTimers->updateState -= getTime();
+  double delt = std::max(sinfo.newmarkAlphaF,std::numeric_limits<double>::epsilon())*sinfo.getTimeStep();
+  for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iele = it->first;
-    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes);
+    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes, delt);
   }
+  if(matrixTimers) matrixTimers->updateState += getTime();
 }
 
 void
-Domain::initializeParameters(GeomState &geomState, Corotator **corotators)
+Domain::updateWeightedElemStatesOnly(const std::set<int> &weightedElems, GeomState *refState,
+                                     GeomState &geomState, Corotator **corotators, double time)
+{
+  if(matrixTimers) matrixTimers->updateState -= getTime();
+  double delt = std::max(sinfo.newmarkAlphaF,std::numeric_limits<double>::epsilon())*sinfo.getTimeStep();
+  for(std::set<int>::const_iterator it = weightedElems.begin(), it_end = weightedElems.end(); it != it_end; ++it) {
+    const int iele = *it;
+    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes, delt);
+  }
+  if(matrixTimers) matrixTimers->updateState += getTime();
+}
+
+void
+Domain::initializeMultipliers(GeomState &geomState, Corotator **corotators)
 {
   for(int iele = 0; iele < numele; ++iele) {
     if(corotators[iele]) corotators[iele]->initMultipliers(geomState);
   }
-
-  SPropContainer &sProps = geoSource->getStructProps();
-  SPropContainer::iterator it = sProps.begin();
-  while(it != sProps.end()) {
-    StructProp* p = &(it->second);
-    p->penalty = p->initialPenalty;
-    it++;
-  }
-  if(p) p->penalty = sinfo.penalty; 
 }
 
 void
-Domain::updateParameters(GeomState &geomState, Corotator **corotators)
+Domain::initializeParameters(bool flag)
+{
+  if(flag) geoSource->initializeParameters();
+}
+
+void
+Domain::updateMultipliers(GeomState &geomState, Corotator **corotators)
 {
   for(int iele = 0; iele < numele; ++iele) {
     if(corotators[iele]) corotators[iele]->updateMultipliers(geomState);
   }
+}
 
-  SPropContainer &sProps = geoSource->getStructProps();
-  SPropContainer::iterator it = sProps.begin();
-  while(it != sProps.end()) {
-    StructProp* p = &(it->second);
-    p->penalty *= sinfo.penalty_beta;
-    it++;
-  }
-  if(p) p->penalty *= sinfo.penalty_beta;
-  // TODO this doesn't allow for elements that have a property that is not in the sProps container
-  // or StructProps that don't use the global default penalty parameter from SolverInfo
+void
+Domain::updateParameters(bool flag)
+{
+  if(flag) geoSource->updateParameters();
 }
 
 double
-Domain::getError(Corotator **corotators)
+Domain::getError(Corotator **corotators, GeomState &gs)
 {
   // returns the largest constraint violation
   double err = 0;
   for(int iele = 0; iele < numele; ++iele) {
-    if(corotators[iele]) err = std::max(err,corotators[iele]->getError());
+    if(corotators[iele]) err = std::max(err,corotators[iele]->getError(gs));
   }
   return err;
 }
@@ -726,11 +964,10 @@ Domain::createKelArray(FullSquareMatrix *&kArray)
 void
 Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
 {
-
  // Allocate array of pointers to FullSquareMatrix to store
  // the element stiffness matrices and element mass matrices
- kArray = new FullSquareMatrix[numele];
- mArray = new FullSquareMatrix[numele];
+ kArray = new FullSquareMatrix[maxNumElements()];
+ mArray = new FullSquareMatrix[maxNumElements()];
 
  // Allocate the correct size for each element's stiffness & mass matrix
  int iele;
@@ -746,7 +983,7 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
    //       (only the euler beam element is affected)
    double mratio = (packedEset[iele]->hasRot() && sinfo.isNonLin() && sinfo.isDynam()) ? 0 : geoSource->getMRatio();
    mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
-   if(domain->solInfo().galerkinPodRom) {
+   if(domain->solInfo().elemLumpPodRom) {
      kArray[iele].zero();
    }
    else {
@@ -770,6 +1007,9 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
    }
  }
 
+ if(sinfo.isNonLin() && !domain->solInfo().basicDofCoords) {
+   for(iele=0; iele<numele; ++iele) transformMatrix(mArray[iele], iele);
+ }
 }
 
 // used in nonlinear dynamics
@@ -798,7 +1038,7 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
    double mratio = (packedEset[iele]->hasRot() && sinfo.isNonLin() && sinfo.isDynam()) ? 0 : geoSource->getMRatio();
    mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
    cArray[iele].copy(packedEset[iele]->dampingMatrix(nodes, cArray[iele].data()));
-   if(domain->solInfo().galerkinPodRom) {
+   if(domain->solInfo().elemLumpPodRom) {
      kArray[iele].zero();
    }
    else {
@@ -833,7 +1073,14 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
              mArray[iele][i][j] = 0.0;
              cArray[iele][i][j] = 0.0;
          }
-   } 
+   }
+ }
+
+ if(sinfo.isNonLin() && !domain->solInfo().basicDofCoords) {
+   for(iele=0; iele<numele; ++iele) {
+     transformMatrix(mArray[iele], iele);
+     transformMatrix(cArray[iele], iele);
+   }
  }
 }
 
@@ -852,8 +1099,9 @@ Domain::reactionsReqd(double time, int step)
 void
 Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
                        double time, int step, double* velocity, double *vcx,
-                       Corotator **allCorot, FullSquareMatrix *mel, double *acceleration,
-                       double *acx, GeomState *refState, Vector *reactions)
+                       Corotator **allCorot, double *acceleration, double *acx,
+                       GeomState *refState, Vector *reactions, SparseMatrix *M,
+                       SparseMatrix *C)
 {
   if(time == sinfo.initialTime) {
     geoSource->openOutputFiles();
@@ -869,7 +1117,7 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
   for(int iInfo = 0; iInfo < numOutInfo; ++iInfo)
   {
     postProcessingImpl(iInfo, geomState, force, aeroForce, time, step, velocity, vcx,
-                       allCorot, mel, acceleration, acx, refState, reactions);
+                       allCorot, acceleration, acx, refState, reactions, M, C);
   }
 
 }
@@ -877,8 +1125,9 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
 void
 Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vector &aeroForce,
                            double time, int step, double* velocity, double *vcx,
-                           Corotator **allCorot, FullSquareMatrix *mel, double *acceleration,
-                           double *acx, GeomState *refState, Vector *reactions)
+                           Corotator **allCorot, double *acceleration, double *acx,
+                           GeomState *refState, Vector *reactions, SparseMatrix *M,
+                           SparseMatrix *C)
 {
  if(outFlag && !nodeTable) makeNodeTable(outFlag);
  int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
@@ -924,20 +1173,37 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         data[nodeI][0] = (nodes[iNode] && iNode<geomState->numNodes()) ? (*geomState)[iNode].x-nodes[iNode]->x : 0;
         data[nodeI][1] = (nodes[iNode] && iNode<geomState->numNodes()) ? (*geomState)[iNode].y-nodes[iNode]->y : 0;
         data[nodeI][2] = (nodes[iNode] && iNode<geomState->numNodes()) ? (*geomState)[iNode].z-nodes[iNode]->z : 0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
       }
       geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
       delete [] data;
     }
       break;
     case OutputInfo::Temperature:  {
-      double *data = new double[nPrintNodes];
-      for (i = 0, realNode = -1; i < nNodes; ++i) {
-        int iNode = first_node+i;
-        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x : 0;
+      if(sinfo.order == 1 || sinfo.soltyp == 2) { // thermal analysis
+        double *data = new double[nPrintNodes];
+        for (i = 0, realNode = -1; i < nNodes; ++i) {
+          int iNode = first_node+i;
+          if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+          data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x : 0;
+        }
+        geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+        delete [] data;
       }
-      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
-      delete [] data;
+      else { // structural analysis with thermal load
+        double *nodalTemperatures = 0;
+        // Either get the nodal temperatures from the input file or from the thermal model
+        if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
+        else if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
+        double *data = new double[nPrintNodes];
+        for (i = 0, realNode = -1; i < nNodes; ++i) {
+          int iNode = first_node+i;
+          if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+          data[nodeI] = (nodalTemperatures) ? nodalTemperatures[iNode] : 0;
+        }
+        geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+        delete [] data;
+      }
     } 
       break;
     case OutputInfo::Disp6DOF:  {
@@ -951,6 +1217,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           data[nodeI][2] = (*geomState)[iNode].z - nodes[iNode]->z;
           tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
                     oinfo[iInfo].rotvecouttype, &data[nodeI][3]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, true);
         }
         else {
           std::fill_n(&data[nodeI][0], 6, 0.0);
@@ -975,6 +1242,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           data[nodeI][6] = (*geomState)[iNode].R[2][0];
           data[nodeI][7] = (*geomState)[iNode].R[2][1];
           data[nodeI][8] = (*geomState)[iNode].R[2][2];
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformMatrix(data[nodeI], iNode, false);
         }
         else {
           std::fill_n(&data[nodeI][0], 9, 0.0);
@@ -990,7 +1258,14 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if (iNode < geomState->numNodes() && nodes[iNode]) {
-          mat_to_quat((*geomState)[iNode].R, data[nodeI]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) {
+            double R[3][3] = { { (*geomState)[iNode].R[0][0], (*geomState)[iNode].R[0][1], (*geomState)[iNode].R[0][2] },
+                               { (*geomState)[iNode].R[1][0], (*geomState)[iNode].R[1][1], (*geomState)[iNode].R[1][2] },
+                               { (*geomState)[iNode].R[2][0], (*geomState)[iNode].R[2][1], (*geomState)[iNode].R[2][2] } };
+            transformMatrix(&(R[0][0]), iNode, false); 
+            mat_to_quat(R, data[nodeI]);
+          }
+          else mat_to_quat((*geomState)[iNode].R, data[nodeI]);
         }
         else {
           std::fill_n(&data[nodeI][0], 4, 0.0);
@@ -1007,6 +1282,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if (iNode < geomState->numNodes() && nodes[iNode]) {
           for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].v[j];
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
         }
         else {
           std::fill_n(&data[nodeI][0], 3, 0.0);
@@ -1017,6 +1293,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     }
       break;
     case OutputInfo::TemperatureFirstTimeDerivative:  {
+      if(sinfo.order == 1 || sinfo.soltyp == 2) {
       double *data = new double[nPrintNodes];
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
@@ -1025,6 +1302,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
+      } else fprintf(stderr," *** WARNING: Output case %d not implemented for non-linear direct solver \n", iInfo);
     }
       break;
     case OutputInfo::Velocity6: {
@@ -1036,6 +1314,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].v[j];
           tran_veloc((*geomState)[iNode].R, (*geomState)[iNode].theta, &(*geomState)[iNode].v[3], angularintype,
                      oinfo[iInfo].angularouttype, rescalein, oinfo[iInfo].rescaling, &data[nodeI][3]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, true);
         }
         else {
           std::fill_n(&data[nodeI][0], 6, 0.0);
@@ -1052,6 +1331,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if (iNode < geomState->numNodes() && nodes[iNode]) {
           for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].a[j];
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
         }
         else {
           std::fill_n(&data[nodeI][0], 3, 0.0);
@@ -1070,6 +1350,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].a[j];
           tran_accel((*geomState)[iNode].R, (*geomState)[iNode].theta, &(*geomState)[iNode].v[3], &(*geomState)[iNode].a[3],
                      angularintype, oinfo[iInfo].angularouttype, rescalein, oinfo[iInfo].rescaling, &data[nodeI][3]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, true);
         }
         else {
           std::fill_n(&data[nodeI][0], 6, 0.0);
@@ -1084,7 +1365,21 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x - nodes[iNode]->x : 0;
+        if(nodes[iNode] && iNode < geomState->numNodes()) {
+          if(oinfo[iInfo].oframe == OutputInfo::Local) {
+            double d[3] = { (*geomState)[iNode].x - nodes[iNode]->x,
+                            (*geomState)[iNode].y - nodes[iNode]->y,
+                            (*geomState)[iNode].z - nodes[iNode]->z };
+            transformVector(d, iNode, false);
+            data[nodeI] = d[0];
+          }
+          else {
+            data[nodeI] = (*geomState)[iNode].x - nodes[iNode]->x;
+          }
+        }
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1095,7 +1390,21 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].y - nodes[iNode]->y : 0;
+        if(nodes[iNode] && iNode < geomState->numNodes()) {
+          if(oinfo[iInfo].oframe == OutputInfo::Local) {
+            double d[3] = { (*geomState)[iNode].x - nodes[iNode]->x,
+                            (*geomState)[iNode].y - nodes[iNode]->y,
+                            (*geomState)[iNode].z - nodes[iNode]->z };
+            transformVector(d, iNode, false);
+            data[nodeI] = d[1];
+          }
+          else {
+            data[nodeI] = (*geomState)[iNode].y - nodes[iNode]->y;
+          }
+        }
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1106,7 +1415,21 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].z - nodes[iNode]->z : 0;
+        if(nodes[iNode] && iNode < geomState->numNodes()) {
+          if(oinfo[iInfo].oframe == OutputInfo::Local) {
+            double d[3] = { (*geomState)[iNode].x - nodes[iNode]->x,
+                            (*geomState)[iNode].y - nodes[iNode]->y,
+                            (*geomState)[iNode].z - nodes[iNode]->z };
+            transformVector(d, iNode, false);
+            data[nodeI] = d[2];
+          }
+          else {
+            data[nodeI] = (*geomState)[iNode].z - nodes[iNode]->z;
+          }
+        }
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1121,6 +1444,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           double rot[3];
           tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
                     oinfo[iInfo].rotvecouttype, rot);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(rot, iNode, false);
           data[nodeI] = rot[0];
         }
         else {
@@ -1140,6 +1464,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           double rot[3];
           tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
                     oinfo[iInfo].rotvecouttype, rot);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(rot, iNode, false);
           data[nodeI] = rot[1];
         }
         else {
@@ -1159,6 +1484,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           double rot[3];
           tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
                     oinfo[iInfo].rotvecouttype, rot);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(rot, iNode, false);
           data[nodeI] = rot[2];
         }
         else {
@@ -1284,6 +1610,9 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     case OutputInfo::StrainPR3:
       getPrincipalStress(*geomState,allCorot,iInfo,PSTRAIN3, time);
       break;
+    case OutputInfo::Damage:
+      getStressStrain(*geomState, allCorot,  iInfo, DAMAGE, time, refState);
+      break;
     case OutputInfo::EquivalentPlasticStrain:
       getStressStrain(*geomState, allCorot,  iInfo, EQPLSTRN, time, refState);
       break;
@@ -1342,161 +1671,33 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       getElementForces(*geomState, allCorot, iInfo, AZM, time);
       break;
     case OutputInfo::Energies: {
-
-      // Since this file is used for both Non-linear Statics
-      // and Non-linear Dynamics
-      // we need both included in this routine.
-
-      // Build displacement Vector
-      Vector sol(numUncon(), 0.0 );
-      int i;
-      for(i=0; i<numNodes; ++i) {
-        int xloc  = c_dsa->locate(i, DofSet::Xdisp);
-        if(xloc >= 0)
-          sol[xloc]  = ( (*geomState)[i].x - nodes[i]->x);
-        int yloc  = c_dsa->locate(i, DofSet::Ydisp);
-        if(yloc >= 0)
-          sol[yloc]  = ( (*geomState)[i].y - nodes[i]->y);
-        int zloc  = c_dsa->locate(i, DofSet::Zdisp);
-        if(zloc >= 0)
-          sol[zloc]  = ( (*geomState)[i].z - nodes[i]->z);
-        double rot[3];
-        mat_to_vec((*geomState)[i].R,rot);
-        int xrot  = c_dsa->locate(i, DofSet::Xrot);
-        if(xrot >= 0)
-          sol[xrot]  = rot[0];
-        int yrot  = c_dsa->locate(i, DofSet::Yrot);
-        if(yrot >= 0)
-          sol[yrot]  = rot[1];
-        int zrot  = c_dsa->locate(i, DofSet::Zrot);
-        if(zrot >= 0)
-          sol[zrot]  = rot[2];
-      }
-
-      // Non-Linear Dynamics
-      if (sinfo.probType == SolverInfo::NonLinDynam) {
-        double dW=0.0, dWaero = 0.0, Wela=0.0, Wkin=0.0;
-
-        if(!previousExtForce) {
-          Wext=0.0;
-          Waero=0.0;
-          Wdmp=0.0;
-          pWela=0.0;
-          pWkin=0.0;
-          previousExtForce = new Vector(force);
-          previousAeroForce = new Vector(aeroForce);
-          dW = force*sol;
-          dWaero = aeroForce*sol;
-        } else {
-          double c = solInfo().newmarkGamma;
-/*
-     NOTE: The formula for dW should be (1-c)*f^n + c*f^{n+1}.
-           However, force stores f^{n+1/2}
-           and previousExtForce stores f^{n-1/2}. For this reason,
-           the formula below looksk
-           different. Furthermore, we had to assume
-           f^n = (f^{n-1/2} + f^{n+1/2})/2 to minimize
-           code changes. On the other hand, f^{n+1/2} = (f^n + f^{n+1})/2
-           holds without any assumption.
-*/
-
-          dW = (c*force + (1.0-c)*(*previousExtForce)) * (sol - (*previousDisp));
-          dWaero = (c*aeroForce + (1.0-c)*(*previousAeroForce)) *(sol - (*previousDisp));
-
-          if(step==sinfo.initialTimeIndex) { dW*=2.0; dWaero *= 2.0; }
-        }
-
-        Wext += dW;
-        Waero += dWaero;
-
-        Vector vtmp(velocity,numUncon());
-        Vector tmpVec(numUncon(),0.0);
-        int iele, idof, jdof, dofn1, dofn2;
-
-        // Compute Kinetic Energy
-        // Compute vtmp^t M vtmp
-        for(iele = 0; iele < numele; ++iele) {
-          for(idof = 0; idof <  mel[iele].dim(); ++idof) {
-            dofn1 = c_dsa->getRCN((*allDOFs)[iele][idof]);
-            if(dofn1 >= 0) {
-              for(jdof = 0; jdof <  mel[iele].dim(); ++jdof) {
-                dofn2 = c_dsa->getRCN((*allDOFs)[iele][jdof]);
-                if(dofn2 >= 0)
-                  tmpVec[dofn1] += vtmp[dofn2]*mel[iele][idof][jdof];
-              }
-            }
-          }
-        }
-      Wkin = 0.5 * (vtmp * tmpVec);
-
-      // Compute Internal Energy
-      // This is done at the element level.
-      double EleWela;
-      for(iele = 0; iele < numele; ++iele) {
-        EleWela = 0.0;
-        EleWela = allCorot[iele]->getElementEnergy(*geomState,nodes);
-        Wela += EleWela;
-      }
-
-      double error = (time==sinfo.initialTime) ? 0.0 : (Wela+Wkin)-(pWela+pWkin)-dW;
-      geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, 0.0, error);
-
-      pWela=Wela;
-      pWkin=Wkin;
-
-      if(!previousDisp) {
-        previousDisp = new Vector(sol);
-      } else {
-        (*previousExtForce) = force;
-        (*previousAeroForce) = aeroForce;
-        (*previousDisp)     = sol;
-      }
-
-      // Non-Linear Statics
-    } else {
-      double lambda = time;
-      if (time == 0.0) {
-        double deltaLambda = solInfo().getNLInfo().dlambda;
-        double maxLambda = solInfo().getNLInfo().maxLambda;
-        if(deltaLambda == maxLambda) lambda = 1.0;
-      }
-      Wext=0.0;
-      Waero=0.0;
-      Wdmp=0.0;
-      pWela=0.0;
-      pWkin=0.0;
-
-      // Wkin = kinetic energy
-      // Total Energy = Wext+Wela+Wkin
-      double Wkin=0.0;
-
-      // Wext = external energy
-      Wext = lambda*force * sol;
-      Waero = lambda*aeroForce * sol;
-
-      // Compute Internal Energy
-      // This is done at the element level.
-      // Wela = elastic energy
-      int iele;
-      double Wela = 0.0;
-      double EleWela;
-        for(iele = 0; iele < numele; ++iele) {
-          EleWela = 0.0;
-          EleWela = allCorot[iele]->getElementEnergy(*geomState,nodes);
-          Wela += EleWela;
-        }
-
-          double error = Wext+Wela+Wkin;
-          geoSource->outputEnergies(iInfo,time,Wext, Waero, Wela,Wkin,0.0,error);
-        }
+      double Wkin, Wela, Wdis, error;
+      computeEnergies(geomState, force, time, &aeroForce, velocity, allCorot, M, C, Wela, Wkin, Wdis, error);
+      geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, Wdmp+Wdis, error);
+    } break;
+    case OutputInfo::DissipatedEnergy: {
+      double D = getDissipatedEnergy(geomState, allCorot);
+      geoSource->outputEnergy(iInfo, time, D);
     } break;
     case OutputInfo::AeroForce: break; // this is done in FlExchange.C
     case OutputInfo::AeroXForce:  {
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
-        data[nodeI]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+          data[nodeI]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
+        }
+        else {
+          int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+          int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+          int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+          double f[3] = { (xloc >= 0) ? aeroForce[xloc] : 0.0,
+                          (yloc >= 0) ? aeroForce[yloc] : 0.0,
+                          (zloc >= 0) ? aeroForce[zloc] : 0.0 };
+          transformVectorInv(f, first_node+iNode, false);
+          data[nodeI] = f[0];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1505,8 +1706,20 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
-        data[nodeI]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+          data[nodeI]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
+        }
+        else {
+          int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+          int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+          int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+          double f[3] = { (xloc >= 0) ? aeroForce[xloc] : 0.0,
+                          (yloc >= 0) ? aeroForce[yloc] : 0.0,
+                          (zloc >= 0) ? aeroForce[zloc] : 0.0 };
+          transformVectorInv(f, first_node+iNode, false);
+          data[nodeI] = f[1];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1515,8 +1728,20 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
-        data[nodeI] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+          data[nodeI] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
+        }
+        else {
+          int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+          int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+          int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+          double f[3] = { (xloc >= 0) ? aeroForce[xloc] : 0.0,
+                          (yloc >= 0) ? aeroForce[yloc] : 0.0,
+                          (zloc >= 0) ? aeroForce[zloc] : 0.0 };
+          transformVectorInv(f, first_node+iNode, false);
+          data[nodeI] = f[2];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1525,8 +1750,20 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
-        data[nodeI] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+          data[nodeI] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
+        }
+        else {
+          int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+          int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+          int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+          double m[3] = { (xrot >= 0) ? aeroForce[xrot] : 0.0,
+                          (yrot >= 0) ? aeroForce[yrot] : 0.0,
+                          (zrot >= 0) ? aeroForce[zrot] : 0.0 };
+          transformVectorInv(m, first_node+iNode, false);
+          data[nodeI] = m[0];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1535,8 +1772,20 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
-        data[nodeI] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+          data[nodeI] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
+        }
+        else {
+          int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+          int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+          int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+          double m[3] = { (xrot >= 0) ? aeroForce[xrot] : 0.0,
+                          (yrot >= 0) ? aeroForce[yrot] : 0.0,
+                          (zrot >= 0) ? aeroForce[zrot] : 0.0 };
+          transformVectorInv(m, first_node+iNode, false);
+          data[nodeI] = m[1];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1545,8 +1794,20 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
-        data[nodeI] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+          data[nodeI] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
+        }
+        else {
+          int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+          int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+          int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+          double m[3] = { (xrot >= 0) ? aeroForce[xrot] : 0.0,
+                          (yrot >= 0) ? aeroForce[yrot] : 0.0,
+                          (zrot >= 0) ? aeroForce[zrot] : 0.0 };
+          transformVectorInv(m, first_node+iNode, false);
+          data[nodeI] = m[2];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1555,13 +1816,14 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       if(!reactions) break;
       double (*rxyz)[3] = new double[nPrintNodes][3];
       DofSet dofs[3] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp };
-      for(int iNode = 0, realNodes = -1; iNode < nNodes; ++iNode) {
+      for(int iNode = 0, realNode = -1; iNode < nNodes; ++iNode) {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
         for(int k = 0; k < 3; ++k) {
           int dof =   dsa->locate(first_node+iNode, dofs[k].list());
           int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
           rxyz[nodeI][k] = (cdof >= 0) ? (*reactions)[cdof] : 0;     // constrained
         }
+        if(oinfo[iInfo].oframe == OutputInfo::Global) transformVectorInv(rxyz[nodeI], first_node+iNode, false);
       }
       geoSource->outputNodeVectors(iInfo, rxyz, nPrintNodes, time);
       delete [] rxyz;
@@ -1578,9 +1840,17 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
           rxyz[nodeI][k] = (cdof >= 0) ? (*reactions)[cdof] : 0;     // constrained
         }
+        if(oinfo[iInfo].oframe == OutputInfo::Global) transformVectorInv(rxyz[nodeI], first_node+iNode, true);
       }
       geoSource->outputNodeVectors6(iInfo, rxyz, nPrintNodes, time);
       delete [] rxyz;
+    } break;
+    case OutputInfo::DeletedElements: {
+      for(std::vector<std::pair<double,int> >::iterator it = outDeletedElements.begin(); it != outDeletedElements.end(); ++it) {
+        filePrint(oinfo[iInfo].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+        fflush(oinfo[iInfo].filptr);
+      }
+      outDeletedElements.clear();
     } break;
      case OutputInfo::Statevector:
         break;
@@ -1589,6 +1859,8 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
      case OutputInfo::Accelvector:
         break;
      case OutputInfo::InternalStateVar:
+        break;
+     case OutputInfo::DualStateVar:
         break;
      case OutputInfo::Residual:
         break;
@@ -1617,6 +1889,26 @@ Domain::createCorotators(Corotator **allCorot)
    allCorot[iele] = packedEset[iele]->getCorotator(nodes, kmatrix,
                                       sinfo.getNLInfo().fitAlgShell,
                                       sinfo.getNLInfo().fitAlgBeam);
+
+ delete [] kmatrix;
+}
+
+void
+Domain::createContactCorotators(Corotator **allCorot, FullSquareMatrix *kArray, FullSquareMatrix *mArray)
+{
+ // Allocate memory for element stiffness matrix
+ double *kmatrix = new double[maxNumDOFs*maxNumDOFs];
+
+ // Loop over elements to get their Corotators
+ for(int iele = numele-contactSurfElems.size(); iele < numele; ++iele) {
+   allCorot[iele] = packedEset[iele]->getCorotator(nodes, kmatrix,
+                                      sinfo.getNLInfo().fitAlgShell,
+                                      sinfo.getNLInfo().fitAlgBeam);
+
+   int dimension = packedEset[iele]->numDofs();
+   kArray[iele].setSize(dimension);
+   mArray[iele].setSize(dimension);
+ }
 
  delete [] kmatrix;
 }
@@ -1664,7 +1956,7 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 {
    // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
    times->corotatorTime -= getTime();
-   allCorot = new Corotator *[numElements()];
+   allCorot = new Corotator *[maxNumElements()];
 
    // ... CREATE THE ARRAY OF POINTERS TO COROTATORS
    createCorotators(allCorot);
@@ -1683,7 +1975,10 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 #endif
 
    times->timeGeom -= getTime();
-   geomState = new GeomState( *getDSA(), *getCDSA(), getNodes(), &getElementSet() );
+   if(domain->solInfo().soltyp == 2)
+     geomState =  new TemperatureState(*getDSA(), *getCDSA(), getNodes());
+   else 
+     geomState = new GeomState(*getDSA(), *getCDSA(), getNodes(), &getElementSet(), getNodalTemperatures());
    times->timeGeom += getTime();
 #ifdef PRINT_NLTIMERS
    fprintf(stderr," ... Build GeomState %29.5f s\n", times->timeGeom/1000.0);
@@ -1699,16 +1994,18 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 #endif
    }
 
-   times->buildStiffAndForce -= getTime();
-   Vector elementInternalForce(maxNumDOF(), 0.0);
-   Vector residual(numUncon(), 0.0);
-   getStiffAndForce(*geomState, elementInternalForce, allCorot,
-                    kelArray, residual, 1.0, 0.0, geomState, (Vector*) NULL, melArray);
-   times->buildStiffAndForce += getTime();
+   if(!domain->solInfo().samplingPodRom && !domain->solInfo().DEIMBasisPod && !domain->solInfo().UDEIMBasisPod) {
+     times->buildStiffAndForce -= getTime();
+     Vector elementInternalForce(maxNumDOF(), 0.0);
+     Vector residual(numUncon(), 0.0);
+     getStiffAndForce(*geomState, elementInternalForce, allCorot,
+                      kelArray, residual, 1.0, 0.0, geomState, (Vector*) NULL, melArray);
+     times->buildStiffAndForce += getTime();
 #ifdef PRINT_NLTIMERS
-   fprintf(stderr," ... Build Element Tangent Stiffness %13.5f s\n",
-           times->buildStiffAndForce/1000.0);
+     fprintf(stderr," ... Build Element Tangent Stiffness %13.5f s\n",
+             times->buildStiffAndForce/1000.0);
 #endif
+   }
 
    // Buckling analysis if requested
    if(geomKelArray) {
@@ -1738,6 +2035,8 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   // median surface = 2
   // lower  surface = 3
 
+  OutputInfo::FrameType oframe = oinfo[fileNumber].oframe;
+
   int k;
 
   // ... OUTPUT FILE field width
@@ -1747,8 +2046,8 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   int p = oinfo[fileNumber].precision;
 
   // ... WRITE CURRENT TIME VALUE
-  //if(oinfo[fileNumber].nodeNumber == -1)
-   // fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
+  if(avgnum == 0 || avgnum == -1)
+    fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
 
   // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
   if(stress == 0)
@@ -1765,19 +2064,27 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     elDisp = new Vector(maxNumDOFs,0.0);
 
   int iele;
-  if((elstress == 0)||(elweight == 0)) {
+  if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
       if(avgnum == -1) {
-        maxNodesPerElement = myMax(maxNodesPerElement, allCorot[iele]->getNumGaussPoints());
+        maxNodesPerElement = std::max(maxNodesPerElement, allCorot[iele]->getNumGaussPoints());
       }
     }
     if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
     if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
+    if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullM(maxNodesPerElement,9);
   }
 
+  int *nodeNumbers = new int[maxNumNodes];
+  Vector elemNodeTemps(maxNumNodes);
+  // Either get the nodal temperatures from the input file or
+  // from the thermal model
+  double *nodalTemperatures = 0;
+  if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
+  if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
 
   int flag;
   for(iele = 0; iele < numElements(); ++iele) {
@@ -1786,103 +2093,127 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     elstress->zero();
     elweight->zero();
 
-     // extract deformations from current Geometry State of structure
-     allCorot[iele]->extractDeformations( geomState, nodes,
-                                          elDisp->data(), flag);
-//---------------------------------------------------------------------------
+    int NodesPerElement = packedEset[iele]->numNodes();
 
-   int *nodeNumbers = new int[maxNumNodes];
-   Vector elemNodeTemps(maxNumNodes);
-   elemNodeTemps.zero();
+    // extract deformations from current Geometry State of structure
+    allCorot[iele]->extractDeformations(geomState, nodes,
+                                        elDisp->data(), flag);
 
-   packedEset[iele]->nodes(nodeNumbers);
+    // get element's nodal temperatures
+    if(flag == 1) {
+      elemNodeTemps.zero();
+      if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
+      for(int iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
+    }
 
-   int NodesPerElement = packedEset[iele]->numNodes();
-   double *nodalTemperatures = 0;
-   // Either get the nodal temperatures from the input file or
-   // from the thermal model
-   if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
-   if(sinfo.thermoeFlag >=0) nodalTemperatures = temprcvd;
+    // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
+    if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))
+       && (flag == 1 || flag == 2)) { // transform non-invariant stresses/strains from basic frame to DOF_FRM
 
-   int iNode;
-   if (sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0))
-     for (iNode = 0; iNode < NodesPerElement; ++iNode) {
-       if (nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-         elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-       else
-         elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-     }
-   delete [] nodeNumbers;
+      // First, calculate stress/strain tensor for each node of the element
+      p_elstress->zero();
+      int strInd = (stressIndex >= 0 && stressIndex <= 5) ? 0 : 1;
+      if (flag == 1) {
+        // USE LINEAR STRESS ROUTINE
+        packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
+                                       *elDisp, strInd, surface,
+                                       elemNodeTemps.data());
+      }
+      else {
+        // USE NON-LINEAR STRESS ROUTINE
+        // note: in this case the element nodal temperatures are extracted from geomState inside the function
+        allCorot[iele]->getNLAllStress(*p_elstress, *elweight, geomState,
+                                       refState, nodes, strInd, surface);
+      }
 
-//----------------------------------------------------------------------------
+      // Second, transform stress/strain tensor to nodal frame coordinates
+      transformStressStrain(*p_elstress, iele);
 
-     if (flag == 1) {
-// USE LINEAR STRESS ROUTINE
-// ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-     packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
-                                   *elDisp, stressIndex, surface,
-				   elemNodeTemps.data(), ylayer,
-                                   zlayer, avgnum);
+      // Third, extract the requested stress/strain value from the stress/strain tensor
+      for(int iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(strInd == 0)
+          (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex];
+        else
+          (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex-7];
+      }
+    }
+    else {
+      if (flag == 1) {
+        // USE LINEAR STRESS ROUTINE
+        packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
+                                      *elDisp, stressIndex, surface,
+                                      elemNodeTemps.data(), ylayer,
+                                      zlayer, avgnum);
 
-     } else if (flag == 2) {
-// USE NON-LINEAR STRESS ROUTINE
-     allCorot[iele]->getNLVonMises(*elstress, *elweight, geomState,
-                                   refState, nodes, stressIndex, surface,
-                                   elemNodeTemps.data(), ylayer, zlayer,
-                                   avgnum);
+      }
+      else if (flag == 2) {
+        // USE NON-LINEAR STRESS ROUTINE
+        // note: in this case the element nodal temperatures are extracted from geomState inside the function
+        allCorot[iele]->getNLVonMises(*elstress, *elweight, geomState,
+                                      refState, nodes, stressIndex, surface,
+                                      ylayer, zlayer, avgnum);
 
-     } else {
-// NO STRESS RECOVERY
-     }
+      } else {
+        // NO STRESS RECOVERY
+      }
+    }
 
-// ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
-     if(avgnum == 0 || avgnum == -1) {
-       int numPoints = (avgnum == -1) ? allCorot[iele]->getNumGaussPoints() : NodesPerElement;
-       for(k=0; k<numPoints; ++k)
-         fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*elstress)[k]);
-       fprintf(oinfo[fileNumber].filptr,"\n");
-     }
-// ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-     else {
-       for(k=0; k<NodesPerElement; ++k) {
-         (*stress)[(*elemToNode)[iele][k]] += (*elstress)[k];
-         (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
-       }
-     }
+    // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
+    if(avgnum == 0 || avgnum == -1) {
+      int numPoints = (avgnum == -1) ? allCorot[iele]->getNumGaussPoints() : NodesPerElement;
+      for(k=0; k<numPoints; ++k)
+        fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*elstress)[k]);
+      fprintf(oinfo[fileNumber].filptr,"\n");
+    }
+    // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+    else {
+      for(k=0; k<NodesPerElement; ++k) {
+        (*stress)[(*elemToNode)[iele][k]] += (*elstress)[k];
+        (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
+      }
+    }
   }
-
 
 // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
 // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
 
-   if(avgnum == 1 || avgnum == 2) {
+  if(avgnum == 1 || avgnum == 2) {
 
-     if(oinfo[fileNumber].nodeNumber == -1) {
-       int numNodes = geoSource->numNode();
-       int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
-       double *data = new double[numNodesOut];
-       for(k=0; k<numNodesOut; ++k) data[k] = 0;
-       for(k=0; k<numNodes; ++k) {
-          int l = (outFlag) ? nodeTable[k]-1 : k;
-          if(l < 0) continue;
-          if(k < numnodes && (*weight)[k] != 0)
-            data[l] = (*stress)[k]/=(*weight)[k];
-       }
-       geoSource->outputNodeScalars(fileNumber, data, numNodesOut, time);
-       delete [] data;
-     } else {
-       if((*weight)[oinfo[fileNumber].nodeNumber] == 0.0)
-         fprintf(oinfo[fileNumber].filptr," %*.*E % *.*E\n",w,p,time,w,p,0.0);
-       else
-         fprintf(oinfo[fileNumber].filptr," %*.*E % *.*E\n",w,p,time,w,p,(*stress)[oinfo[fileNumber].nodeNumber]/=(*weight)[oinfo[fileNumber].nodeNumber]);
-     }
-   }
-   fflush(oinfo[fileNumber].filptr);
+    if(oinfo[fileNumber].nodeNumber == -1) {
+      int numNodes = geoSource->numNode();
+      int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
+      double *data = new double[numNodesOut];
+      for(k=0; k<numNodesOut; ++k) data[k] = 0;
+      for(k=0; k<numNodes; ++k) {
+        int l = (outFlag) ? nodeTable[k]-1 : k;
+        if(l < 0) continue;
+        if(k < numnodes && (*weight)[k] != 0)
+          data[l] = (*stress)[k]/=(*weight)[k];
+      }
+      geoSource->outputNodeScalars(fileNumber, data, numNodesOut, time);
+      delete [] data;
+    }
+    else {
+      if((*weight)[oinfo[fileNumber].nodeNumber] == 0.0)
+        fprintf(oinfo[fileNumber].filptr," %*.*E % *.*E\n",w,p,time,w,p,0.0);
+      else
+        fprintf(oinfo[fileNumber].filptr," %*.*E % *.*E\n",w,p,time,w,p,(*stress)[oinfo[fileNumber].nodeNumber]/=(*weight)[oinfo[fileNumber].nodeNumber]);
+    }
+  }
+  fflush(oinfo[fileNumber].filptr);
+
+  delete [] nodeNumbers;
 }
 
 void
 Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
-                         int fileNumber, int stressIndex, double time)
+                           int fileNumber, int stressIndex, double time,
+                           GeomState *refState)
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
@@ -1927,11 +2258,11 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
   if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
 
   int iele;
-  if((p_elstress == 0)||(elweight == 0)) {
+  if((p_elstress == 0) || (elweight == 0)) {
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     if(p_elstress == 0) p_elstress = new FullM(maxNodesPerElement,9);
     if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -1941,8 +2272,16 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
   p_stress->zero();
   weight->zero();
 
+  int *nodeNumbers = new int[maxNumNodes];
+  Vector elemNodeTemps(maxNumNodes);
+  // Either get the nodal temperatures from the input file or
+  // from the thermal model
+  double *nodalTemperatures = 0;
+  if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
+  if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
+
   // ... WRITE CURRENT TIME VALUE
-  if(n == -1) {
+  if(avgnum == 0) {
     fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
   }
 
@@ -1954,26 +2293,38 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
     p_elstress->zero();
     elweight->zero();
 
-     // extract deformations from current Geometry State of structure
-     allCorot[iele]->extractDeformations( geomState, nodes,
-                                          elDisp->data(), flag);
+    // extract deformations from current Geometry State of structure
+    allCorot[iele]->extractDeformations(geomState, nodes,
+                                        elDisp->data(), flag);
 
-     if (flag == 1) {
-// USE LINEAR STRESS ROUTINE
-// ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-     packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
-                                    *elDisp, strInd, surface);
+    if (flag == 1) {
+      // get element's nodal temperatures
+      elemNodeTemps.zero();
+      if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
+      for(int iNode = 0; iNode < packedEset[iele]->numNodes(); ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
 
-     } else if (flag == 2) {
-// USE NON-LINEAR STRESS ROUTINE
-     allCorot[iele]->getNLAllStress(*p_elstress, *elweight, geomState,
-                                    nodes, strInd);
+      // USE LINEAR STRESS ROUTINE
+      // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
+      packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
+                                     *elDisp, strInd, surface,
+                                     elemNodeTemps.data());
+    }
+    else if (flag == 2) {
+      // USE NON-LINEAR STRESS ROUTINE
+      // note: in this case the element nodal temperatures are extracted from geomState inside the function
+      allCorot[iele]->getNLAllStress(*p_elstress, *elweight, geomState,
+                                     refState, nodes, strInd, surface);
+    }
+    else {
+      // NO STRESS RECOVERY
+    }
 
-     } else {
-// NO STRESS RECOVERY
-     }
-
-// ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+    // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
 
     int NodesPerElement = elemToNode->num(iele);
 
@@ -1984,16 +2335,17 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
       (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
     }
 
-// ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
-//     THIS WRITES THE CHOSEN PRINCIPAL STRESS FOR EACH ELEMENT
+    // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
+    //     THIS WRITES THE CHOSEN PRINCIPAL STRESS FOR EACH ELEMENT
     if(avgnum == 0) {
-      geoSource->outputNodeScalars(fileNumber, (*p_elstress)[0]+(5+strDir), 1);
-      //fprintf(oinfo[fileNumber].filptr," % *.*E\n", w,p,(*p_elstress)[0][5+strDir]);
+      for(k=0; k<NodesPerElement; ++k)
+         fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*p_elstress)[k][5+strDir]);
+       fprintf(oinfo[fileNumber].filptr,"\n");
     }
   }
 
-// ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
-// ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
+  // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
+  // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
 
   if(avgnum == 1 || avgnum == 2) {
 
@@ -2021,7 +2373,7 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
       }
     }
 
-// ... CALCULATE PRINCIPALS AT EACH NODE
+    // ... CALCULATE PRINCIPALS AT EACH NODE
 
     double svec[6], pvec[3];
     if(n == -1) {
@@ -2034,7 +2386,7 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
         for (j=0; j<6; ++j) {
           svec[j] = (*p_stress)[k][j];
         }
-// Convert Engineering to Tensor Strains
+        // Convert Engineering to Tensor Strains
         if(strInd != 0) {
           svec[3] /= 2;
           svec[4] /= 2;
@@ -2042,7 +2394,6 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
         }
         pstress(svec,pvec);
         globalPVec[l] = pvec[strDir-1];
-        //fprintf(oinfo[fileNumber].filptr," % *.*E\n",w,p,pvec[strDir-1]);
       }
       geoSource->outputNodeScalars(fileNumber, globalPVec, numNodesOut, time);
     }
@@ -2050,7 +2401,7 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
       for (j=0; j<6; ++j) {
         svec[j] = (*p_stress)[n][j];
       }
-// Convert Engineering to Tensor Strains
+      // Convert Engineering to Tensor Strains
       if(strInd != 0) {
         svec[3] /= 2;
         svec[4] /= 2;
@@ -2063,15 +2414,15 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
   else {
     fflush(oinfo[fileNumber].filptr);
   }
-}
 
+  delete [] nodeNumbers;
+}
 
 // Nonlinear version of getElementForces
 void
-Domain::getElementForces( GeomState &geomState, Corotator **allCorot,
-                          int fileNumber, int forceIndex, double time)
+Domain::getElementForces(GeomState &geomState, Corotator **allCorot,
+                         int fileNumber, int forceIndex, double time)
 {
-
   // allocate integer array to store node numbers
   // make sure that maxNumNodes is computed
   int *nodeNumbers = new int[maxNumNodes];
@@ -2097,7 +2448,7 @@ Domain::getElementForces( GeomState &geomState, Corotator **allCorot,
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elstress = new Vector(maxNodesPerElement, 0.0);
   }
@@ -2106,23 +2457,22 @@ Domain::getElementForces( GeomState &geomState, Corotator **allCorot,
 
   for(iele=0; iele<numele; ++iele) {
 
-  packedEset[iele]->nodes(nodeNumbers);
+    packedEset[iele]->nodes(nodeNumbers);
 
 // ... DETERMINE ELEMENT DISPLACEMENT VECTOR
 
-    allCorot[iele]->extractDeformations(geomState, nodes,
-                                        elDisp->data(), flag);
+    allCorot[iele]->extractDeformations(geomState, nodes, elDisp->data(), flag);
 
 // ... CALCULATE INTERNAL FORCE VALUE FOR EACH ELEMENT
-     if(sinfo.thermalLoadFlag || (sinfo.thermoeFlag >=0)) {
-       int iNode;
-       for(iNode=0; iNode<NodesPerElement; ++iNode) {
-        if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-        else
-          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-      }
-     }
+
+    elemNodeTemps.zero();
+    if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
+    for(int iNode = 0; iNode < packedEset[iele]->numNodes(); ++iNode) {
+      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+      else
+        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+    }
 
     packedEset[iele]->getIntrnForce(*elstress,nodes,elDisp->data(),forceIndex,elemNodeTemps.data());
 
@@ -2145,7 +2495,7 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n, Vector &a_n,
 // either test for pointer or frequency > 0
 
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*domain->solInfo().getTimeStep())) {
+ if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*domain->solInfo().getTimeStep()) || domain->solInfo().stop_AeroS) {
 
    int fn;
    if(strlen(ext) != 0) {
@@ -2314,14 +2664,8 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
        else if (zloc1 >= 0)
          bcx[zloc1] = ( (geomState)[i].z - nodes[i]->z);
      }
-
-     if(solInfo().aeroFlag >= 0 && solInfo().newmarkBeta != 0  // for nonlinear explicit aeroPreProcess is called in the main driver
-        && !dynamic_cast<SubDomain*>(this))         // likewise for multi-domain
-       aeroPreProcess( d_n, v_n, a_n, v_p, bcx, vcx );
-
    } else {
-      perror(" *** ERROR: Restart file could not be opened: ");
-      //exit(-1);
+     perror(" *** ERROR: Restart file could not be opened: ");
    }
  }
 }
@@ -2377,7 +2721,6 @@ Domain::computeReactionForce(Vector &fc, GeomState *geomState, Corotator **corot
 
   if(ccc) ccc->multAddNew(Vc.data(), fc.data()); // fc += Ccc * Vc
   if(mcc) mcc->multAddNew(Ac.data(), fc.data()); // fc += Mcc * Ac
-
 }
 
 void
@@ -2385,42 +2728,120 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
                                    FullSquareMatrix &kel, int iele, bool compute_tangents)
 {
 #ifdef USE_EIGEN3
+  // if the element is an LMPC and the node has a DOF_FRM then the element force and or stiffness are be defined in the DOF_FRM
+  bool basicDofCoords = true;
+  if(packedEset[iele]->isMpcElement() && !domain->solInfo().basicDofCoords) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) basicDofCoords = false;
+  }
+
   // Convert from eulerian spatial to total lagrangian or updated lagrangian spatial
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> >
     G(elementForce, packedEset[iele]->numDofs());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >
     H(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
+  int numDofs = packedEset[iele]->numDofs();
   int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
-  int *nodes = packedEset[iele]->nodes();
-  for(int k = 0; k < numNodes; ++k) {
-    Eigen::Vector3d Psi;
-    Psi << geomState[nodes[k]].theta[0], geomState[nodes[k]].theta[1], geomState[nodes[k]].theta[2];
+  int dofsPerNode = (numDofs-packedEset[iele]->getNumMPCs())/numNodes;
+  if((dofsPerNode == 6 || dofsPerNode == 3) && (numDofs-packedEset[iele]->getNumMPCs())%numNodes == 0) {
+    int *nodes = packedEset[iele]->nodes();
+    for(int k = 0; k < numNodes; ++k) {
+      Eigen::Vector3d Psi;
+      Psi << geomState[nodes[k]].theta[0], geomState[nodes[k]].theta[1], geomState[nodes[k]].theta[2];
+      if(!basicDofCoords) { if(NFrameData *cd = getNodes().dofFrame(nodes[k])) cd->transformVector3(&Psi[0]); } // Transform from basic frame to DOF_FRM
 
-    Eigen::Matrix3d T;
-    tangential_transf(Psi, T);
+      Eigen::Matrix3d T;
+      tangential_transf(Psi, T);
 
-    Eigen::Vector3d V = G.segment<3>(6*k+3);
-    G.segment<3>(6*k+3) = T*V;
+      int p = dofsPerNode*k + (dofsPerNode-3);
+      Eigen::Vector3d V = G.segment<3>(p);
+      G.segment<3>(p) = (domain->solInfo().newmarkBeta == 0) ? (Jn[nodes[k]]*(T.transpose()*Jn[nodes[k]]*T).inverse()*T*V).eval() : (T*V).eval();
  
-    if(compute_tangents) {
-      Eigen::Matrix3d C1;
-      directional_deriv1(Psi, V, C1);
+      if(compute_tangents) {
+        Eigen::Matrix3d C1;
+        directional_deriv1(Psi, V, C1);
 
-      for(int l=0; l<2*numNodes; ++l) {
-        H.block<3,3>(6*k+3,3*l) = (T*H.block<3,3>(6*k+3,3*l)).eval();
-        H.block<3,3>(3*l,6*k+3) = (H.block<3,3>(3*l,6*k+3)*T.transpose()).eval();
+        for(int l=0; l<dofsPerNode/3*numNodes; ++l) {
+          int q = 3*l;
+          H.block<3,3>(p,q) = T*H.block<3,3>(p,q);
+          H.block<3,3>(q,p) = H.block<3,3>(q,p)*T.transpose();
+        }
+        for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+          int q = dofsPerNode*numNodes+l;
+          H.block<3,1>(p,q) = T*H.block<3,1>(p,q);
+          H.block<1,3>(q,p) = H.block<1,3>(q,p)*T.transpose();
+        }
+        H.block<3,3>(p,p) += 0.5*(C1 + C1.transpose());
       }
-      for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
-        H.block<3,1>(6*k+3,6*numNodes+l) = (T*H.block<3,1>(6*k+3,6*numNodes+l)).eval();
-        H.block<1,3>(6*numNodes+l,6*k+3) = (H.block<1,3>(6*numNodes+l,6*k+3)*T.transpose()).eval();
-      }
-      H.block<3,3>(6*k+3,6*k+3) += 0.5*(C1 + C1.transpose());
     }
+    delete [] nodes;
   }
-  delete [] nodes;
+  else {
+    std::cerr << " *** WARNING: Domain::transformElemStiffAndForce is not implemented for element " << packedEset[iele]->getGlNum()+1
+              << " type " << packedEset[iele]->getElementType() << std::endl;
+  }
 #else
-  cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiffAndForce\n";
+  std::cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiffAndForce\n";
   exit(-1);
+#endif
+}
+
+void
+Domain::transformElemStiffAndForce_S2E(const GeomState &geomState, double *elementForce,
+                                       FullSquareMatrix &kel, int iele, bool compute_tangents)
+{
+#ifdef USE_EIGEN3
+  // if the element is an LMPC and the node has a DOF_FRM then the element force and or stiffness are be defined in the DOF_FRM
+  bool basicDofCoords = true;
+  if(packedEset[iele]->isMpcElement() && !domain->solInfo().basicDofCoords) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) basicDofCoords = false;
+  }
+
+  // Convert from eulerian spatial to constrained subset of SO(3), S²E
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> >
+    G(elementForce, packedEset[iele]->numDofs());
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >
+    H(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
+  int numDofs = packedEset[iele]->numDofs();
+  int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
+  int dofsPerNode = (numDofs-packedEset[iele]->getNumMPCs())/numNodes;
+  if((dofsPerNode == 6 || dofsPerNode == 3) && (numDofs-packedEset[iele]->getNumMPCs())%numNodes == 0) {
+    int *nodes = packedEset[iele]->nodes();
+    for(std::set<int>::iterator it = elemAdj[iele].crot.begin(); it != elemAdj[iele].crot.end(); ++it) {
+      int k =0; for(int i = 0; i < numNodes; ++i) if(nodes[i] == dbc[*it].nnum) { k = i; break; }
+      Eigen::Vector3d Psi;
+      Psi << geomState[nodes[k]].theta[0], geomState[nodes[k]].theta[1], geomState[nodes[k]].theta[2];
+      if(!basicDofCoords) { if(NFrameData *cd = getNodes().dofFrame(nodes[k])) cd->transformVector3(&Psi[0]); } // Transform from basic frame to DOF_FRM
+
+      Eigen::Matrix3d T;
+      tangential_transf_S2E(Psi, ((basicDofCoords) ? getNodes().dofFrame(nodes[k]) : 0), dbc[*it].dofnum-3, T);
+
+      int p = dofsPerNode*k + (dofsPerNode-3);
+      Eigen::Vector3d V = G.segment<3>(p);
+      G.segment<3>(p) = (T*V).eval();
+ 
+      if(compute_tangents) {
+        for(int l=0; l<dofsPerNode/3*numNodes; ++l) {
+          int q = 3*l;
+          H.block<3,3>(p,q) = T*H.block<3,3>(p,q);
+          H.block<3,3>(q,p) = H.block<3,3>(q,p)*T.transpose();
+        }
+        for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+          int q = dofsPerNode*numNodes+l;
+          H.block<3,1>(p,q) = T*H.block<3,1>(p,q);
+          H.block<1,3>(q,p) = H.block<1,3>(q,p)*T.transpose();
+        }
+      }
+    }
+    delete [] nodes;
+  }
+  else {
+    std::cerr << " *** WARNING: Domain::transformElemStiffAndForce_S2E is not implemented for element " << packedEset[iele]->getGlNum()+1
+              << " type " << packedEset[iele]->getElementType() << std::endl;
+  }
 #endif
 }
 
@@ -2440,7 +2861,7 @@ Domain::transformNodalMoment(const GeomState &geomState, double _G[],
   tangential_transf(Psi, T);
 
   Eigen::Vector3d V = G;
-  G = T*V;
+  G = (domain->solInfo().newmarkBeta == 0) ? (Jn[inode]*(T.transpose()*Jn[inode]*T).inverse()*T*V).eval() : (T*V).eval();
   if(compute_tangents) {
     Eigen::Matrix3d C1;
     directional_deriv1(Psi, V, C1);
@@ -2448,7 +2869,7 @@ Domain::transformNodalMoment(const GeomState &geomState, double _G[],
     H = (T*H*T.transpose()).eval() + 0.5*(C1 + C1.transpose());
   }
 #else
-  cerr << "USE_EIGEN3 is not defined here in Domain::transformNodalMoment\n";
+  std::cerr << "USE_EIGEN3 is not defined here in Domain::transformNodalMoment\n";
   exit(-1);
 #endif
 }
@@ -2460,26 +2881,53 @@ Domain::transformElemStiff(const GeomState &geomState, FullSquareMatrix &kel, in
   // Convert from eulerian spatial to eulerian convected
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >
     H(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
+  int numDofs = packedEset[iele]->numDofs();
   int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
-  int *nodes = packedEset[iele]->nodes();
-  for(int k = 0; k < numNodes; ++k) {
-    Eigen::Matrix3d R;
-    R << geomState[nodes[k]].R[0][0], geomState[nodes[k]].R[0][1], geomState[nodes[k]].R[0][2],
-         geomState[nodes[k]].R[1][0], geomState[nodes[k]].R[1][1], geomState[nodes[k]].R[1][2],
-         geomState[nodes[k]].R[2][0], geomState[nodes[k]].R[2][1], geomState[nodes[k]].R[2][2];
+  int dofsPerNode = (numDofs-packedEset[iele]->getNumMPCs())/numNodes;
+  if((dofsPerNode == 3 || dofsPerNode == 6) && (numDofs-packedEset[iele]->getNumMPCs())%numNodes == 0) {
+    int *nodes = packedEset[iele]->nodes();
+    for(int k = 0; k < numNodes; ++k) {
+      Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > R(&geomState[nodes[k]].R[0][0],3,3);
+      if(R.isIdentity()) continue;
 
-    for(int l=0; l<2*numNodes; ++l) {
-      H.block<3,3>(6*k+3,3*l) = (R.transpose()*H.block<3,3>(6*k+3,3*l)).eval();
-      H.block<3,3>(3*l,6*k+3) = (H.block<3,3>(3*l,6*k+3)*R).eval();
+      if(dofsPerNode == 6) {
+        for(int l=0; l<2*numNodes; ++l) {
+          H.block<3,3>(6*k+3,3*l) = (R.transpose()*H.block<3,3>(6*k+3,3*l)).eval();
+          H.block<3,3>(3*l,6*k+3) = (H.block<3,3>(3*l,6*k+3)*R).eval();
+        }
+        for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+          H.block<3,1>(6*k+3,6*numNodes+l) = (R.transpose()*H.block<3,1>(6*k+3,6*numNodes+l)).eval();
+          H.block<1,3>(6*numNodes+l,6*k+3) = (H.block<1,3>(6*numNodes+l,6*k+3)*R).eval();
+        }
+      }
+      else if(dofsPerNode == 3) {
+        for(int l=0; l<numNodes; ++l) {
+          H.block<3,3>(3*k,3*l) = (R.transpose()*H.block<3,3>(3*k,3*l)).eval();
+          H.block<3,3>(3*l,3*k) = (H.block<3,3>(3*l,3*k)*R).eval();
+        }
+        for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+          H.block<3,1>(3*k,3*numNodes+l) = (R.transpose()*H.block<3,1>(3*k,3*numNodes+l)).eval();
+          H.block<1,3>(3*numNodes+l,3*k) = (H.block<1,3>(3*numNodes+l,3*k)*R).eval();
+        }
+      }
     }
-    for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
-      H.block<3,1>(6*k+3,6*numNodes+l) = (R.transpose()*H.block<3,1>(6*k+3,6*numNodes+l)).eval();
-      H.block<1,3>(6*numNodes+l,6*k+3) = (H.block<1,3>(6*numNodes+l,6*k+3)*R).eval();
-    }
+    delete [] nodes;
   }
-  delete [] nodes;
+  else { 
+    // XXX there are a few elements with 3 dofs at one node and 6 at the other, eg. element 201 and 117
+    int *nodes = packedEset[iele]->nodes();
+    for(int k = 0; k < numNodes; ++k) {
+      Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > R(&geomState[nodes[k]].R[0][0],3,3);
+      if(!R.isIdentity()) {
+        std::cerr << " *** WARNING: Domain::transformElemStiff is not implemented for element " << packedEset[iele]->getGlNum()+1
+                  << " type " << packedEset[iele]->getElementType() << std::endl;
+        break;
+      }
+    }
+    delete [] nodes;
+  }
 #else
-  cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiff\n";
+  std::cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiff\n";
   exit(-1);
 #endif
 }
@@ -2493,7 +2941,6 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
 
   for(int i=0,l=0; i<packedEset[iele]->numNodes(); ++i) {
     int ndofs = dsa->number(nn[i], DofSet::nonL_dof, dofs);
-    bool got_psi = false;
     for(int j=0; j<ndofs; ++j) {
       if(dofs[j] > -1) {
         for(int k=0; k<packedEset[iele]->numDofs(); ++k) {
@@ -2509,14 +2956,13 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
                 disp[l++] = geomState[nn[i]].z - nodes[nn[i]]->z;
                 break;
               case 3 : case 4 : case 5 : // x,y,z rotations
-                if(!got_psi) { 
-                  mat_to_vec(geomState[nn[i]].R, psi);
-                  got_psi = true;
-                }
-                disp[l++] = psi[j-3];
+                disp[l++] = geomState[nn[i]].theta[j-3];
                 break;
               case 6 : case 7 : case 8 : // temperature and lagrange multipliers
                 disp[l++] = geomState[nn[i]].x;
+                break;
+              default :
+                disp[l++] = 0;
                 break;
             }
             break;
@@ -2526,4 +2972,85 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
     }
   }
   delete [] nn;
+}
+
+void
+Domain::computeEnergies(GeomState *geomState, Vector &force, double t, Vector *aeroForce, double *velocity,
+                        Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
+                        double &Wdis, double &error)
+{
+  // Build displacement vector
+  Vector disp(numUncon(), 0.0);
+  geomState->get_tot_displacement(disp, false);
+
+  double lambda, time;
+  if(sinfo.isDynam()) { time = t; lambda = 1.0; }
+  else {
+    time = 0.0;
+    double &dlambda = solInfo().getNLInfo().dlambda;
+    double &maxLambda = solInfo().getNLInfo().maxLambda;
+    lambda = (dlambda == maxLambda) ? maxLambda : t;
+  }
+
+  // Compute follower force
+  Vector elemForce(maxNumDOFs);
+  Vector folForce(numUncon(), 0.0);
+  getFollowerForce(*geomState, elemForce, allCorot, (FullSquareMatrix *) NULL,
+                   folForce, lambda, time, (Vector *) NULL, false);
+
+  if(sinfo.isDynam()) {
+    double pWext = Wext, pWdmp = Wdmp;
+    StackVector vel(velocity, numUncon());
+    computeExtAndDmpEnergies(disp, force, time, aeroForce, &vel, C, &folForce);
+
+    Vector tmpVec(numUncon());
+    if(M) {
+      M->mult(vel, tmpVec);
+      Wkin = 0.5 * (vel * tmpVec);
+    }
+    Wela = getStrainEnergy(geomState, allCorot);
+    Wdis = getDissipatedEnergy(geomState, allCorot);
+
+    // XXX consider sign of Wdmp+Wdis in this equation:
+    error = (time == sinfo.initialTime) ? 0.0 : (Wela+Wkin+Wdmp+Wdis-Wext)-(pWela+pWkin+pWdmp+pWdis-pWext);
+
+    pWela = Wela;
+    pWkin = Wkin;
+    pWdis = Wdis;
+  }
+  else { // nonlinear statics
+    Wext  = (lambda*force + folForce) * disp;
+    Waero = 0;
+    Wdmp  = 0;
+    Wkin  = 0;
+    Wela  = getStrainEnergy(geomState, allCorot);
+    Wdis  = getDissipatedEnergy(geomState, allCorot);
+    error = 0;
+  }
+}
+
+double
+Domain::getStrainEnergy(GeomState *geomState, Corotator **allCorot)
+{
+  // Compute strain energy
+  double W = 0;
+  for(int iele = 0; iele < numele; ++iele) {
+    if(allCorot[iele] != NULL) {
+      W += allCorot[iele]->getElementEnergy(*geomState, nodes);
+    }
+  }
+  return W;
+}
+
+double
+Domain::getDissipatedEnergy(GeomState *geomState, Corotator **allCorot)
+{
+  // Compute dissipated energy due to plastic deformation
+  double D = 0;
+  for(int iele = 0; iele < numele; ++iele) {
+    if(allCorot[iele] != NULL) {
+      D += allCorot[iele]->getDissipatedEnergy(*geomState, nodes);
+    }
+  }
+  return D;
 }

@@ -8,9 +8,11 @@
 
 namespace Rom {
 
-class DistrNodeDof6Buffer {
+template<int DOFS_PER_NODE>
+class DistrNodeDofBuffer {
 public:
   int localNodeCount() const { return globalNodeIndices_.size(); }
+  int dofsPerNode() const { return DOFS_PER_NODE; }
 
   typedef std::vector<int>::const_iterator NodeItConst;
   NodeItConst globalNodeIndexBegin() const { return globalNodeIndices_.begin(); }
@@ -18,27 +20,34 @@ public:
 
   const double *operator[](int globalNodeIdx) const;
   double *operator[](int globalNodeIdx) {
-    const DistrNodeDof6Buffer &self = *this;
+    const DistrNodeDofBuffer &self = *this;
     return const_cast<double *>(self[globalNodeIdx]);
   }
 
   template <typename IdxInIt>
-  DistrNodeDof6Buffer(IdxInIt first, IdxInIt last);
+  DistrNodeDofBuffer(IdxInIt first, IdxInIt last, int offset = 0);
 
 private:
   void initialize();
 
   std::map<int, int> localNodeIndices_;
   std::vector<int> globalNodeIndices_;
-  NodeDof6Buffer buffer_;
+  NodeDofBuffer<DOFS_PER_NODE> buffer_;
 };
 
+typedef DistrNodeDofBuffer<6> DistrNodeDof6Buffer;
+typedef DistrNodeDofBuffer<1> DistrNodeDof1Buffer;
+
+template <int DOFS_PER_NODE>
 template <typename IdxInIt>
-DistrNodeDof6Buffer::DistrNodeDof6Buffer(IdxInIt first, IdxInIt last) :
+DistrNodeDofBuffer<DOFS_PER_NODE>::DistrNodeDofBuffer(IdxInIt first, IdxInIt last, int offset) :
   localNodeIndices_(),
   globalNodeIndices_(first, last),
   buffer_()
 {
+  if(offset != 0) {
+    for(std::vector<int>::iterator it = globalNodeIndices_.begin(); it != globalNodeIndices_.end(); ++it) (*it) -= offset;
+  }
   initialize();
 }
 

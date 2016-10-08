@@ -8,6 +8,7 @@
 // 3. add an output message in Driver.d/Header.h
 // 
 
+#include <Utils.d/BinFileHandler.h>
 #include <cstdio>
 
 struct OutputInfo {
@@ -16,7 +17,8 @@ struct OutputInfo {
           StressXY,     StressYZ,    StressXZ,    StrainXX,    StrainYY,
           StrainZZ,     StrainXY,    StrainYZ,    StrainXZ,    HeatFlXX,
           HeatFlXY,     HeatFlXZ,    GrdTempX,    GrdTempY,    GrdTempZ,
-          StressVM,     StressPR1,   StressPR2,   StressPR3,   StrainPR1,
+          StressVM,     AggrStVM,
+          StressPR1,   StressPR2,   StressPR3,   StrainPR1,
           StrainPR2,    StrainPR3,   InXForce,    InYForce,    InZForce,
           AXMoment,     AYMoment,    AZMoment,    Energies,    AeroForce,
           EigenPair,    StrainVM,    Helmholtz,   Disp6DOF,    EigenPair6, 
@@ -36,21 +38,29 @@ struct OutputInfo {
           EigenSlosh, SloshDispX, SloshDispY, SloshDispZ, SloshDisplacement,
           TDEnforcement, Damage, EquivalentPlasticStrain, 
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
-	  HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
-	  RobData, SampleMesh, Accelvector, Forcevector,
+          HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
+          RobData, SampleMesh, Accelvector, Forcevector,
           RotationMatrix, ExternalXForce, ExternalYForce, ExternalZForce,
           ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar, Quaternion,
           PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
           PlasticStrainYZ, PlasticStrainXZ, BackStressXX, BackStressYY,
-          BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ };
+          BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ, 
+          WeigThic, WeigShap, VMstThic, VMstShap, VMstMach, VMstAlpha, VMstBeta,
+          DispThic, DispShap, DispMach, DispAlph, DispBeta,
+          AGstShap, AGstThic, 
+          DissipatedEnergy, DeletedElements, DualStateVar,
+          Constraintvector, Constraintviolation, RomResidual, RomResidual6,
+          RomExtForce, RomExtForce6 };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
    int   interval;
    char* filename;
    FILE* filptr;
+   BinFileHandler *binfilptr;
    int   averageFlg;
    int   surface;
+   int   str_therm_option;
    int   width;
    int   precision;
    int   nodeNumber;	// To output just one node's information to a file.
@@ -61,6 +71,7 @@ struct OutputInfo {
    double ylayer,zlayer;
    int timeSliceRank; // Global rank of the corresponding time-slice (used by PITA)
    int ndtype; // 0 = deterministic, 1 = mean, 2 = stddev, 3 = pdf
+   int sentype;  // 0 = non-sensitivity, 1 = sensitivity
    enum { realimag, modulusphase, animate };
    int complexouttype;
    int ncomplexout;   
@@ -72,6 +83,7 @@ struct OutputInfo {
                       // reference: "The vectorial parameterization of rotation" by Bauchau and Trainelli
    bool matlab;
    bool PodRomfile;
+   bool isFirst;
    int tdenforc_var; // CONFACE=1, NORMAL_FORCE_MAG, NORMAL_TRACTION_MAG, TANGENTIAL_FORCE_MAG, TANGENTIAL_TRACTION_MAG,
                      // CDIRNORX, CDIRNORY, CDIRNORZ, CDIRTANX, CDIRTANY, CDIRTANZ, SLIP_MAG, NODAL_DISSIPATION,
                      // CONTACT_AREA, GAP_CUR, GAP_OLD
@@ -85,15 +97,18 @@ struct OutputInfo {
      precision = 4;
      interval = 0;
      filptr = 0;
+     binfilptr = 0;
      filename = 0;
      averageFlg = 1;
      surface = 2;
+     str_therm_option = 0;
      nodeNumber = -1;
      groupNumber = -1;
      ylayer = 0.0;
      zlayer = 0.0;
      timeSliceRank = 0;
      ndtype = 0;
+     sentype = 0;
      complexouttype = OutputInfo::realimag;
      ncomplexout = 16;
      angularouttype = OutputInfo::convected;
@@ -101,6 +116,7 @@ struct OutputInfo {
      rotvecouttype = OutputInfo::Euler;
      tdenforc_var = 3;
      matlab = false;
+     isFirst = true;
      PodRomfile = false;
      topFlag = 0;
      oframe = OutputInfo::Global;
@@ -112,6 +128,8 @@ struct OutputInfo {
      else if(numColumns == 6 && (type == Velocity)) type = Velocity6;
      else if(numColumns == 6 && (type == Acceleration)) type = Accel6;
      else if(numColumns == 6 && (type == Reactions)) type = Reactions6;
+     else if(numColumns == 6 && (type == RomResidual)) type = RomResidual6;
+     else if(numColumns == 6 && (type == RomExtForce)) type = RomExtForce6;
 
      if (averageFlg == 1 || averageFlg == 3)
        dataType = 1;
@@ -211,6 +229,11 @@ struct OutputInfo {
      case BackStressXY:
      case BackStressYZ:
      case BackStressXZ:
+     case Energies:
+     case DissipatedEnergy:
+     case Reactions:
+     case Reactions6:
+     case Damage:
        return true; 
        break;
      default:
@@ -237,10 +260,10 @@ struct OutputInfo {
    }
  }
 
- 
  void copyParam(const OutputInfo& oI) {
     *this = oI;  
     filptr = 0;
+    binfilptr = 0;
  }
   
 };

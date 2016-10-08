@@ -10,15 +10,18 @@ class AngleType1ConstraintElement : public ConstraintFunctionElement<Simo::Angle
     double (*C0)[3]; // initial frame (axes stored row-wise)
     int axis1, axis2;
     double offset;
+    int ieqtype; // 1: c(x) <= 0, 2: c(x) >= 0 (equivalently -c(x) <= 0) ... only applies for inequality constraints (i.e. type = 1)
 
   public:
-    AngleType1ConstraintElement(int*, int, int, double = M_PI/2); 
+    AngleType1ConstraintElement(int*, int, int, double = M_PI/2, int = 0, int = 1); 
     ~AngleType1ConstraintElement();
     void buildFrame(CoordSet&);
     void setFrame(EFrame *);
+    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
   protected:
-    void getConstants(CoordSet&, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs = NULL);
+    void getConstants(CoordSet&, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,1,1>&, GeomState *gs = NULL);
 };
 
 #endif

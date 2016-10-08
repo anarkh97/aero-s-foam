@@ -41,13 +41,16 @@ class ContactWedgeElemL6 : public ContactElem<DataType> {
   void DeleteTopology(ContactFixedSizeAllocator*);
   void UpdateTopology(ContactFace<DataType>*, VariableHandle, VariableHandle,
                       VariableHandle, Real, bool use_node_normals=false);
+  void Compute_Partial_Face_Normal( int, VariableHandle, VariableHandle, DataType (*)[3], Real, DataType (*)[3], DataType * );
+  void Compute_Second_Partial_Face_Normal( int, VariableHandle, VariableHandle, DataType (*)[3], DataType (*)[3], Real,
+                                           DataType (*)[3], DataType * );
   int Nodes_Per_Element() { return 6; };
   int Edges_Per_Element() { return 9; };
   int Faces_Per_Element() { return 5; };
   void Evaluate_Shape_Functions( DataType*, DataType* );
   void Compute_Local_Coordinates( DataType, VariableHandle, VariableHandle,
 				  VariableHandle, DataType*, DataType* );
-  void Compute_Local_Coordinates( VariableHandle, DataType*, DataType* );
+  bool Compute_Local_Coordinates( VariableHandle, DataType*, DataType* );
   void Compute_Global_Coordinates( VariableHandle, DataType*, DataType* );
   bool Is_Local_Coordinates_Inside_Element( DataType* );
   bool Is_Local_Coordinates_Near_Element( DataType*, DataType );
@@ -57,14 +60,14 @@ class ContactWedgeElemL6 : public ContactElem<DataType> {
     {return ContactSearch::LINEEDGEL2;};
   ContactSearch::ContactFace_Type Face_Type(int i) 
     {return faces[i]->FaceType();};
-                      
+
   static void Compute_Shape_Functions( DataType local_coords[4], 
                                        DataType Shape_Funcs[6] );
   
   static void Compute_Shape_Derivatives( DataType local_coords[4],
                                          DataType shape_derivatives[3][6] );
   
-  static void Compute_Local_Coords( DataType node_positions[6][3],
+  static bool Compute_Local_Coords( DataType node_positions[6][3],
 				    DataType global_coords[3],
 				    DataType local_coords[4] );
   

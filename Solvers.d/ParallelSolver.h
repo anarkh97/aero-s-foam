@@ -18,14 +18,16 @@ class GenParallelSolver {
       std::cerr << "GenParallelSolver::squareRootMult(GenDistrVector<Scalar> &) is not implemented\n"; }
     virtual void inverseSquareRootMult(GenDistrVector<Scalar> &) {
       std::cerr << "GenParallelSolver::inverseSquareRootMult(GenDistrVector<Scalar> &) is not implemented\n"; }
-    virtual void getRBMs(Scalar *) {
-      std::cerr << "GenParallelSolver::getRBMs(Scalar *) is not implemented\n"; }
+    virtual void getRBMs(double *) {
+      std::cerr << "GenParallelSolver::getRBMs(double *) is not implemented\n"; }
     virtual Timings& getTimers() = 0;
     virtual int numRBM() {
       std::cerr << "GenParallelSolver::numRBM() is not implemented\n";
       return 0; } 
-    virtual void getRBMs(GenDistrVectorSet<Scalar> &) {
-      std::cerr << "GenParallelSolver::getRBMs(GenDistrVectorSet<Scalar> &) is not implemented\n"; }
+    virtual void getRBMs(GenDistrVectorSet<double> &) {
+      std::cerr << "GenParallelSolver::getRBMs(DistrVectorSet &) is not implemented\n"; }
+    virtual void getRBMs(GenDistrVector<double> *rbms) {
+      std::cerr << "GenParallelSolver::getRBMs(DistrVector *) is not implemented\n"; }
 
     virtual void reconstruct() {
       // Nothing to do

@@ -91,8 +91,7 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    void factor();
    void allFactor(bool fctIsParal);
 
-   void solve(Scalar *rhs);
-   void reSolve(Scalar *rhs) { solve(rhs); }
+   void reSolve(Scalar *rhs);
    void solve(Scalar *rhs, Scalar *solution);
    
    void print();
@@ -107,6 +106,8 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    void    cleanUp();
    double  getSolutionTime()  { return 0.0; }
    double  getConstructTime() { return 0.0; }
+
+   int numRBM() { return 0; } // note: spooles should not be used for singular matrices.
  
  private:
    void init();
@@ -132,9 +133,5 @@ class WrapSpooles : public GenSpoolesSolver<Scalar>
 
 typedef GenSpoolesSolver<double> SpoolesSolver;
 typedef GenSpoolesSolver<DComplex> ComplexSpoolesSolver;
-
-#ifdef _TEMPLATE_FIX_
-#include <Solvers.d/Spooles.C>
-#endif
 
 #endif

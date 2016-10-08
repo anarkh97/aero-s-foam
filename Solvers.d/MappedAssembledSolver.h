@@ -14,8 +14,13 @@
 #include <Math.d/FullMatrix.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
+#include <Math.d/SparseMatrix.h>
 #include <Math.d/Vector.h>
+#include <Math.d/VectorSet.h>
+#include <Solvers.d/Rbm.h>
 #include <Utils.d/dofset.h>
+
+typedef GenVectorSet<double> VectorSet;
 
 struct DOFMap {
   int ndofs;
@@ -125,15 +130,16 @@ class MappedAssembledSolver : public BaseSolver, public Map
 {
     ResizeArray<int> mappedDofs;
     ResizeArray<double> dd;
-    ResizeArray<std::complex<double> > dz;
+    ResizeArray<complex<double> > dz;
     ResizeArray<Scalar> ds;
     GenVector<Scalar> f;
     ConstrainedDSA *cdsa;
+    Rbm *rbm;
 
   public:
     template <class BaseArgs>
-    MappedAssembledSolver(BaseArgs &ba, int nEq, DOFMap *baseMap, int nMappedEq, DOFMap *eqMap, ConstrainedDSA *_cdsa) :
-      BaseSolver(ba), Map(nEq, baseMap, nMappedEq, eqMap), mappedDofs(0), dd(0), dz(0), ds(0), f(nMappedEq), cdsa(_cdsa) {
+    MappedAssembledSolver(BaseArgs &ba, int nEq, DOFMap *baseMap, int nMappedEq, DOFMap *eqMap, ConstrainedDSA *_cdsa, Rbm *_rbm=0) :
+      BaseSolver(ba), Map(nEq, baseMap, nMappedEq, eqMap), mappedDofs(0), dd(0), dz(0), ds(0), f(nMappedEq), cdsa(_cdsa), rbm(_rbm) {
         f.zero();
     }
     ~MappedAssembledSolver() {}
@@ -153,27 +159,32 @@ class MappedAssembledSolver : public BaseSolver, public Map
     void addImaginary(FullSquareMatrix &mat, int *dofs) {
       FullSquareMatrix m = Map::map(mat, dofs, mappedDofs, dd);
       BaseSolver::addImaginary(m, mappedDofs.data());
-      cerr << "MappedAssembledSolver::addImaginary(FullSquareMatrix&, int*) is not implemented\n";
     }
 
     void add(FullSquareMatrixC &mat, int *dofs) {
       FullSquareMatrixC m = Map::map(mat, dofs, mappedDofs, dz);
       BaseSolver::add(m, mappedDofs.data());
-      cerr << "MappedAssembledSolver::add(FullSquareMatrixC&, int*) is not implemented\n";
     }
 
     void add(GenFullM<Scalar> &mat, int *dofs) {
       GenFullM<Scalar> m = Map::map(mat, dofs, mappedDofs, dz);
       BaseSolver::add(m, mappedDofs.data());
-      cerr << "MappedAssembledSolver::add(GenFullM<Scalar>&, int*) is not implemented\n";
     }
 
     void add(GenFullM<Scalar> &mat, int fi, int fj) {
-      cerr << "MappedAssembledSolver::add(GenFullM<Scalar>&, int, int) is not implemented\n";
+      std::cerr << "MappedAssembledSolver::add(GenFullM<Scalar>&, int, int) is not implemented\n";
     }
 
     void add(GenAssembledFullM<Scalar> &mat, int *dofs) {
-      cerr << "MappedAssembledSolver::add(GenAssembledFullM<Scalar>&, int*) is not implemented\n";
+      std::cerr << "MappedAssembledSolver::add(GenAssembledFullM<Scalar>&, int*) is not implemented\n";
+    }
+
+    void addDiscreteMass(int dof, Scalar s) {
+      GenSparseMatrix<Scalar>::addDiscreteMass(dof, s);
+    }
+
+    void add(int dofi, int dofj, Scalar s) {
+      GenSparseMatrix<Scalar>::add(dofi, dofj, s);
     }
 
     void factor() {
@@ -181,26 +192,39 @@ class MappedAssembledSolver : public BaseSolver, public Map
     } 
 
     void reSolve(Scalar *rhs);
+    void reSolve(GenVector<Scalar> &rhs) { reSolve(rhs.data()); }
+    void reSolve(int nRHS, Scalar **rhs) { for(int i=0; i<nRHS; ++i) reSolve(rhs[i]); }
+    void reSolve(int nRHS, Scalar  *rhs) { for(int i=0; i<nRHS; ++i) reSolve(rhs + i*Map::numMappedEqs); }
+    void reSolve(int nRHS, GenVector<Scalar> *rhs) { for(int i=0; i<nRHS; ++i) reSolve(rhs[i].data()); }
 
     void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution) { 
       solution = rhs;
       reSolve(solution.data());
     }
+    void solve(Scalar *rhs, Scalar *solution) {
+      std::cerr << "MappedAssembledSolver::solve(Scalar *, Scalar *) is not implemented\n";
+    }
 
-   double getResidualNorm(const GenVector<Scalar> &v) {
-     GenVector<Scalar> v1(Map::numMappedEqs);
-     GenVector<Scalar> v2(BaseSolver::neqs());
-     v2.zero();
-     for(int i = 0; i < Map::numMappedEqs; ++i) {
-       v1[i] = Map::eqMaps[i].rhs;
-       for(int j = 0; j < Map::eqMaps[i].ndofs; ++j) {
-         v2[Map::eqMaps[i].dofs[j]] += Map::eqMaps[i].coefs[j]*(v[i]-f[i]);
-       }
-     }
-     return sqrt(v1.sqNorm()+v2.sqNorm());
-   }
+    double getResidualNorm(const GenVector<Scalar> &v) {
+      GenVector<Scalar> v1(Map::numMappedEqs);
+      GenVector<Scalar> v2(BaseSolver::neqs());
+      v2.zero();
+      for(int i = 0; i < Map::numMappedEqs; ++i) {
+        v1[i] = Map::eqMaps[i].rhs;
+        for(int j = 0; j < Map::eqMaps[i].ndofs; ++j) {
+          v2[Map::eqMaps[i].dofs[j]] += Map::eqMaps[i].coefs[j]*(v[i]-f[i]);
+        }
+      }
+      return sqrt(v1.sqNorm()+v2.sqNorm());
+    }
 
+    void getRBMs(double *rbms) {
+      std::cerr << "MappedAssembledSolver::getRBMs(double *) is not implemented\n";
+    }
 
+    void getRBMs(Vector *rbms);
+
+    void getRBMs(VectorSet &rbms);
 };
 
 template<class BaseSolver, class Scalar, class Map>
@@ -220,6 +244,51 @@ void MappedAssembledSolver<BaseSolver, Scalar, Map>::reSolve(Scalar *s)
     s[i] = Map::eqMaps[i].rhs; // PJSA extension for non-zero lmpc rhs
     for(int j = 0; j < Map::eqMaps[i].ndofs; ++j)
       s[i] += s2[Map::eqMaps[i].dofs[j]]*Map::eqMaps[i].coefs[j];
+  }
+}
+
+template<class BaseSolver, class Scalar, class Map>
+void MappedAssembledSolver<BaseSolver, Scalar, Map>::getRBMs(Vector *rbms)
+{
+  if(rbm && rbm->numRBM() == BaseSolver::numRBM()) {
+    rbm->getRBMs(rbms);
+    return;
+  }
+  Vector *rbms2 = new Vector[BaseSolver::numRBM()];
+  for(int iRBM = 0; iRBM < BaseSolver::numRBM(); ++iRBM) {
+    rbms2[iRBM].initialize(BaseSolver::neqs());
+    rbms2[iRBM].zero();
+  }
+  BaseSolver::getRBMs(rbms2);
+  for(int iRBM = 0; iRBM < BaseSolver::numRBM(); ++iRBM) {
+    const Vector &s = rbms[iRBM];
+    const Vector &s2 = rbms2[iRBM];
+    for(int i = 0; i < Map::numMappedEqs; ++i) {
+      s[i] = 0;
+      for(int j = 0; j < Map::eqMaps[i].ndofs; ++j)
+        s[i] += s2[Map::eqMaps[i].dofs[j]]*Map::eqMaps[i].coefs[j];
+    }
+  }
+  delete [] rbms2;
+}
+
+template<class BaseSolver, class Scalar, class Map>
+void MappedAssembledSolver<BaseSolver, Scalar, Map>::getRBMs(VectorSet &rbms)
+{
+  if(rbm && rbm->numRBM() == BaseSolver::numRBM()) {
+    rbm->getRBMs(rbms);
+    return;
+  }
+  VectorSet rbms2(BaseSolver::numRBM(), BaseSolver::neqs(), 0.0);
+  BaseSolver::getRBMs(rbms2);
+  for(int iRBM = 0; iRBM < BaseSolver::numRBM(); ++iRBM) {
+    const Vector &s = rbms[iRBM];
+    const Vector &s2 = rbms2[iRBM];
+    for(int i = 0; i < Map::numMappedEqs; ++i) {
+      s[i] = 0;
+      for(int j = 0; j < Map::eqMaps[i].ndofs; ++j)
+        s[i] += s2[Map::eqMaps[i].dofs[j]]*Map::eqMaps[i].coefs[j];
+    }
   }
 }
 

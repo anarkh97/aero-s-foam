@@ -1,9 +1,11 @@
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
 #include <limits>
 
 #include <Element.d/Element.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/pstress.h>
 
 void
@@ -22,16 +24,47 @@ Element::setCompositeData2(int, int, double*, double*, CoordSet&, double)
 }
 
 void
-Element::getVonMisesInt(CoordSet &,Vector &,double &,double &, int,
-			double &,double &, double* dT)
+Element::getVonMisesInt(CoordSet&, Vector&, double&, double&, int,
+			double&, double&, double* dT)
 {
   assert(0);
+}
+
+double
+Element::weight(CoordSet& cs, double *gravityAcceleration)
+{
+  if(prop == NULL || gravityAcceleration == NULL) return 0.0;
+
+  double mass = getMass(cs);
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return mass*gravAccNorm;
+}
+
+double
+Element::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration)
+{
+  if(prop == NULL || gravityAcceleration == NULL) return 0.0;
+
+  double massSensitivity = getMassThicknessSensitivity(cs);
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return massSensitivity*gravAccNorm;
+}
+
+void 
+Element::getWeightNodalCoordinateSensitivity(Vector& dwdx, CoordSet& cs, double *gravityAcceleration) 
+{ 
+  dwdx.zero();
+  fprintf(stderr," *** WARNING : getWeightNodalCoordinateSensitivity is not implemented yet\n"); 
 }
 
 void
 Element::getVonMises(Vector &stress, Vector &weight,
 		     CoordSet &, Vector &, int, int, double*,
-		     double,double,int)
+		     double, double, int)
 {
   if(!isConstraintElement() && !isSpring())
     fprintf(stderr," *** WARNING: getVonMises not implemented for element type %d\n", elementType);
@@ -99,10 +132,38 @@ Element::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                       Vector &elDisp, int strInd, int surface,
                       double *ndTemps)
 {
-  if(!isConstraintElement() && !isSpring())
-    fprintf(stderr," *** WARNING: getAllStress not implemented for element type %d\n", elementType);
-  stress.zero();
-  weight.zero();
+  if(isConstraintElement() || isSpring()) {
+    stress.zero();
+    weight.zero();
+  }
+  else {
+    // Get components of symmetric stress or strain tensors one at a time by calling Element::getVonMises.
+    Vector s(numNodes());
+    for(int i=0; i<6; ++i) {
+      int index = (strInd == 0) ? i : i+7;
+      getVonMises(s, weight, cs, elDisp, index, surface, ndTemps);
+      for(int j=0; j<numNodes(); ++j) stress[j][i] = s[j];
+    }
+
+    // Get element principal stress or strain for each node
+    double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+    double pvec[3] = {0.0,0.0,0.0};
+    for(int i=0; i<numNodes(); ++i) {
+      for(int j=0; j<6; ++j) {
+        svec[j] = stress[i][j];
+      }
+      // Convert engineering to tensor strains
+      if(strInd != 0) {
+        svec[3] /= 2;
+        svec[4] /= 2;
+        svec[5] /= 2;
+      }
+      pstress(svec,pvec);
+      for(int j=0; j<3; ++j) {
+        stress[i][j+6] = pvec[j];
+      }
+    }
+  }
 }
 
 void
@@ -153,17 +214,34 @@ PrioInfo Element::examine(int sub, MultiFront *mf)
 void
 Element::getGravityForce(CoordSet&, double *, Vector &force, int, GeomState *)
 {
-  if(!isConstraintElement() && !isSpring())
-    fprintf(stderr," *** WARNING: Gravity force not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
+  if(!isConstraintElement() && !isSpring() && category != Element::Thermal)
+    fprintf(stderr," *** WARNING: Gravity force not implemented for element (%d), type %d\n", getGlNum()+1, elementType);
   force.zero();
+}
+
+void
+Element::getGravityForceThicknessSensitivity(CoordSet&, double *, Vector &forceSen, int, GeomState *)
+{
+//  if(!isConstraintElement() && !isSpring())
+//    fprintf(stderr," *** WARNING: Gravity force sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
+  forceSen.zero();
+}
+
+void
+Element::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                      GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+{
+  if(!isConstraintElement() && !isSpring())
+    fprintf(stderr," *** WARNING: Gravity force sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
+  dGfdx.zero();
 }
 
 void
 Element::getThermalForce(CoordSet&, Vector &, Vector &force, int glflag,
                          GeomState *)
 {
-  if(!isConstraintElement() && !isSpring())
-   // fprintf(stderr," *** WARNING: Thermal force not implemented for element type %d\n", elementType);
+  //if(!isConstraintElement() && !isSpring())
+  //  fprintf(stderr," *** WARNING: Thermal force not implemented for element type %d\n", elementType);
   force.zero();
 }
 
@@ -195,18 +273,18 @@ Element::computeHeatFluxes(Vector &heatflux, CoordSet&, Vector &, int)
 void
 Element::computeSloshDisp(Vector &fluidDispSlosh, CoordSet&, Vector &, int)
 {
-  if (elementType != 302)  {
-      fprintf(stderr," *** WARNING: Fluid Displacements not implemented for element type %d\n", elementType);
-  fluidDispSlosh.zero();
+  if (elementType != 302) {
+    fprintf(stderr," *** WARNING: Fluid Displacements not implemented for element type %d\n", elementType);
+    fluidDispSlosh.zero();
   }
 }
 
 void
 Element::computeSloshDispAll(Vector &fluidDispSlosh, CoordSet&, Vector &)
 {
-  if (elementType != 302)  {
-      fprintf(stderr," *** WARNING: Fluid Displacements not implemented for element type %d\n", elementType);
-  fluidDispSlosh.zero();
+  if (elementType != 302) {
+    fprintf(stderr," *** WARNING: Fluid Displacements not implemented for element type %d\n", elementType);
+    fluidDispSlosh.zero();
   }
 }
 
@@ -218,6 +296,12 @@ Element::getIntrnForce(Vector &elForce, CoordSet&, double *, int,double *)
   elForce.zero();
 }
 
+int
+Element::getFace(int iFace, int *fn)
+{
+  fprintf(stderr," *** WARNING: getFace not implemented for element type %d\n", elementType);
+  return 0;
+}
 
 void
 Element::computePressureForce(CoordSet&, Vector& elPressureForce,
@@ -245,7 +329,14 @@ Element::addFaces(PolygonSet *)
 void
 Element::setMaterial(NLMaterial *)
 {
-  fprintf(stderr, "WARNING: Trying to use Material on unsupported element!\n");
+  fprintf(stderr, " *** WARNING: Trying to use Material on unsupported element!\n");
+}
+
+Corotator *
+Element::getCorotator(CoordSet &, double *, int, int)
+{
+  fprintf(stderr, " *** WARNING: Corotator not implemented for element %d\n", glNum+1);
+  return 0;
 }
 
 void
@@ -295,6 +386,18 @@ FullSquareMatrix Element::massMatrix(CoordSet&, double* mel, int cmflg)
   return result;
 }
 
+FullSquareMatrixC
+Element::stiffness(CoordSet&, complex<double> *d)
+{ 
+  return FullSquareMatrixC();
+}
+
+FullSquareMatrixC
+Element::massMatrix(CoordSet&, complex<double> *d)
+{
+  return FullSquareMatrixC();
+}
+
 FullSquareMatrix
 Element::dampingMatrix(CoordSet& cs, double *m, int cmflg)
 {
@@ -307,10 +410,16 @@ Element::dampingMatrix(CoordSet& cs, double *m, int cmflg)
 FullSquareMatrix
 Element::imStiffness(CoordSet& cs, double *m, int cmflg)
 {
-  fprintf(stderr,"  ElementC imStiffness not implmented for this element\n");
+  fprintf(stderr, " *** WARNING: Element imStiffness not implmented for this element\n");
   FullSquareMatrix ret(4,m);
   ret.zero();
   return ret;
+}
+
+
+void Element::aRubberStiffnessDerivs(CoordSet& cs, complex<double> *d, int n,
+                                     double omega) {
+  fprintf(stderr, " *** WARNING: Element aRubberStiffnessDerivs not implemented for this element\n");
 }
 
 void Element::lumpMatrix(FullSquareMatrix& m)
@@ -329,7 +438,6 @@ void Element::lumpMatrix(FullSquareMatrix& m)
     const double factor = MM/MD;
     for(int i = 0; i < dim; ++i) {
       m[i][i] *= factor;
-      //cerr << "i = " << i << ", m[i][i] = " << m[i][i] << endl;
       factors.push_back(m[i][i]/MM); // PJSA store this for getGravityForce
       for(int j = 0; j < i; ++j) {
         m[i][j] = m[j][i] = 0.0;
@@ -383,9 +491,10 @@ double
 Element::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, GeomState *gs,
                                   double stable_tol, int stable_maxit)
 {
-  if(prop && prop->rho != 0) {
+  if(prop && (prop->rho != 0 || getMass(cs) != 0)) {
 
       using std::sqrt;
+      using std::abs;
       double eigmax;
       double relTol    = stable_tol; // stable_tol default is 1.0e-3
       double preeigmax = 0.0;
@@ -435,3 +544,59 @@ Element::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, Coor
   }
 }
 
+void
+Element::getStiffnessThicknessSensitivity(CoordSet&, FullSquareMatrix &dStiffdThick, int)
+{
+  dStiffdThick.zero();
+}
+
+void
+Element::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
+{
+  for(int i=0; i<numNodes()*3; ++i) dStiffdx[i].zero();
+  fprintf(stderr," *** WARNING : getStiffnessNodalCoordinateSensitivity is not implemented yet\n");
+}
+
+void
+Element::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet&, Vector&,
+                                         int, int, double *, int, double, double)
+{
+  weight = 1;
+  dStdThick.zero();
+}
+
+void
+Element::getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet&,
+                                         ComplexVector&, int, int, double *, int, double, double)
+{
+  weight = DComplex(1,0);
+  dStdThick.zero();
+}
+
+void
+Element::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet&,
+                                            Vector&, int, int, double *, int, double, double)
+{
+  weight = 1;
+  dStdDisp.zero();
+  fprintf(stderr," *** WARNING : getVonMisesDisplacementSensitivity is not implemented yet\n"); 
+}
+
+void
+Element::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight,
+                                            CoordSet&, ComplexVector&, int, int, double *,
+                                            int, double, double)
+{
+  weight = DComplex(1,0);
+  dStdDisp.zero();
+  fprintf(stderr," *** WARNING : getVonMisesDisplacementSensitivity is not implemented yet\n"); 
+}
+
+void
+Element::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet&, Vector&,
+                                               int, int, double *, int, double, double)
+{
+  weight = 1;
+  dStdx.zero();
+  fprintf(stderr," *** WARNING : getVonMisesNodalCoordinateSensitivity is not implemented yet\n");
+}

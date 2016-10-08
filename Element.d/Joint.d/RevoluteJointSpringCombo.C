@@ -12,8 +12,8 @@ RevoluteJointSpringCombo::RevoluteJointSpringCombo(int* _nn)
   nSubElems = 2;
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
-  subElems[0] = new RevoluteJoint(nnloc);
-  subElems[1] = new NonlinearTorsionalSpring(nnloc, 2, 1);
+  subElems[0] = new RevoluteJoint(nnloc);              // ↓ propIndex
+  subElems[1] = new NonlinearTorsionalSpring(nnloc, 2, 1, 0);
 }
 
 int 

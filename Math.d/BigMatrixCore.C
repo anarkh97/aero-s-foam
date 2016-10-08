@@ -11,7 +11,7 @@ extern "C" {
 
   void _FORTRAN(zgemm)(const char &, const char &, const int &,const int &,
                        const int &, const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *,                       const int &);
+                       complex<double> *, const int &, const complex<double> &, complex<double> *, const int &);
 
   void _FORTRAN(dgemv)(const char &, const int &,const int &,
                        const double &, double *, const int &,

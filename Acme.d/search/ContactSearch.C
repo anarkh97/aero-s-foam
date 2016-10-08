@@ -348,7 +348,8 @@ ContactSearch::ContactSearch( int  Dimensionality,
   edge_physical_faces         = INACTIVE;
   physical_face_algorithm     = PF_FACE_BASED;
   shell_simple_lofting        = INACTIVE;
-
+  compute_partials            = INACTIVE;
+  computed_partials_order     = 0;
 
   //===================================================================
   // Create a topology object with the current entity block structures
@@ -440,7 +441,7 @@ ContactSearch::ContactSearch( int  Dimensionality,
   max_remaining_gaps[1] = 0.0;
   max_remaining_gaps[2] = 0.0;
   max_remaining_gap_mag = 0.0;
-} 
+}
 
 ContactSearch::~ContactSearch()
 {
@@ -551,16 +552,16 @@ ContactSearch::~ContactSearch()
   tables             = NULL;
   enforcement        = NULL;
   
-  delete [] ctrl;
-  delete [] ctrcl;
-  delete [] ctrcl_facets;
-  delete [] pushback_dir_flag;
-  delete [] ms_coordinates_c;
-  delete [] ms_coordinates_a;
-  delete [] ms_coordinates_p;
-  delete [] ms_normals_c;
-  delete [] ms_normals_a;
-  delete [] ms_normals_p;
+  if(ctrl) delete [] ctrl;
+  if(ctrcl) delete [] ctrcl;
+  if(ctrcl_facets) delete [] ctrcl_facets;
+  if(pushback_dir_flag) delete [] pushback_dir_flag;
+  if(ms_coordinates_c) delete [] ms_coordinates_c;
+  if(ms_coordinates_a) delete [] ms_coordinates_a;
+  if(ms_coordinates_p) delete [] ms_coordinates_p;
+  if(ms_normals_c) delete [] ms_normals_c;
+  if(ms_normals_a) delete [] ms_normals_a;
+  if(ms_normals_p) delete [] ms_normals_p;
 }
 
 void ContactSearch::Reset_Search() {
@@ -793,9 +794,8 @@ ContactSearch::Set_Zoltan_Method(char *zoltan_method)
 #endif
 }
 
-
-
-void ContactSearch::Set_Up_Allocators()
+void
+ContactSearch::Set_Up_Allocators()
 {
   allocators = new ContactFixedSizeAllocator[ALLOC_NUM_ALLOCATED_ENTITIES];
   ContactNode_SizeAllocator<Real>(allocators[ALLOC_ContactNode]);
@@ -816,7 +816,7 @@ void ContactSearch::Set_Up_Allocators()
 	 allocators[ALLOC_ContactNodeFaceInteraction]);
   ContactNodeSurfaceInteraction_SizeAllocator(
 	 allocators[ALLOC_ContactNodeSurfaceInteraction]);
-  ContactFaceFaceInteraction_SizeAllocator(
+  ContactFaceFaceInteraction_SizeAllocator<Real>(
 	 allocators[ALLOC_ContactFaceFaceInteraction]);
   ContactFaceCoverageInteraction_SizeAllocator(
 	 allocators[ALLOC_ContactFaceCoverageInteraction]);
@@ -855,7 +855,7 @@ void ContactSearch::Set_Up_Allocators()
          active_allocators[ALLOC_ContactNodeFaceInteraction]);
   ContactNodeSurfaceInteraction_SizeAllocator(
          active_allocators[ALLOC_ContactNodeSurfaceInteraction]);
-  ContactFaceFaceInteraction_SizeAllocator(
+  ContactFaceFaceInteraction_SizeAllocator<ActiveScalar>(
          active_allocators[ALLOC_ContactFaceFaceInteraction]);
   ContactFaceCoverageInteraction_SizeAllocator(
          active_allocators[ALLOC_ContactFaceCoverageInteraction]);
@@ -1062,6 +1062,13 @@ ContactSearch::Set_Search_Option( Search_Option option,
   case SHELL_SIMPLE_LOFTING:
     shell_simple_lofting = status;
     break;
+  case COMPUTE_PARTIALS:
+    compute_partials = status;
+    if( status == ACTIVE ){
+      computed_partials_order = (int) data[0];
+    } else {
+      computed_partials_order = 0;
+    }
   default:
     POSTCONDITION(0);
     break;
@@ -1162,6 +1169,13 @@ ContactSearch::Get_Search_Option( Search_Option option,
     break;
   case SHELL_SIMPLE_LOFTING:
     status = shell_simple_lofting;
+    break;
+  case COMPUTE_PARTIALS:
+    status = compute_partials;
+    if( status == ACTIVE && data!=NULL ){
+      PRECONDITION( data );
+      data[0] = computed_partials_order;
+    }
     break;
   default:
     POSTCONDITION(0);
@@ -2133,6 +2147,7 @@ void ContactSearch::Size_FaceFace_Interactions(
 
 void ContactSearch::Get_FaceFace_Interactions( int* slave_face_block_ids,
                                                int* slave_face_indexes_in_block,
+                                               int* slave_face_proc,
                                                int* master_face_block_ids,  
                                                int* master_face_indexes_in_block,
                                                int* master_face_proc,
@@ -2141,6 +2156,7 @@ void ContactSearch::Get_FaceFace_Interactions( int* slave_face_block_ids,
 {
   primary_topology->Get_FaceFace_Interactions( slave_face_block_ids, 
 					       slave_face_indexes_in_block,
+					       slave_face_proc,
 					       master_face_block_ids, 
 					       master_face_indexes_in_block,
 					       master_face_proc, 

@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Driver.d/Domain.h>
@@ -8,7 +9,7 @@
 
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
-#include <Math.d/mathUtility.h>
+#include <Math.d/NBSparseMatrix.h>
 #include <Math.d/Vector.h>
 #include <Math.d/VectorSet.h>
 #include <Math.d/AddedMassMatrix.h>
@@ -18,6 +19,10 @@
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
 #include <Corotational.d/GeomState.h>
+#include <Utils.d/DistHelper.h>
+#include <Utils.d/ModeData.h>
+
+extern ModeData modeData;
 
 int
 SingleDomainEigen::solVecSize()
@@ -63,8 +68,7 @@ SingleDomainEigen::preProcess()
  domain->makeAllDOFs();
  times->makeDOFs += getTime();
 
- //ADDED FOR HEV PROBLEM, EC, 20070820
- if (domain->solInfo().HEV)  {
+ if(domain->solInfo().HEV) {
    domain->makeAllDOFsFluid();
  }
  
@@ -113,21 +117,18 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  // Used for printing out K during debugging.
  allOps.K = domain->constructDBSparseMatrix<double>();
 
- // construct geometric rigid body modes if necessary
- //Rbm *rigidBodyModes = 0;
+ // ... Construct geometric rigid body modes if necessary
  if(domain->solInfo().rbmflg) { 
-   //filePrint(stderr, " ... Constructing Geometric RBMs    ... \n");
    dMat.rigidBodyModes = domain->constructRbm();
  }
 
- if(domain->solInfo().hzemFlag) {
-   //filePrint(stderr, " ... Constructing HZEMs             ... \n");
+ // ... Construct "thermal rigid body mode" if necessary
+ else if(domain->solInfo().hzemFlag) {
    dMat.rigidBodyModes = domain->constructHzem();
  }
 
- // construct rigid body modes for sloshing problems if necessary
- if(domain->solInfo().slzemFlag) { 
-   //filePrint(stderr, " ... Constructing Sloshing RBMs     ... \n");
+ // ... Construct "sloshing rigid body mode" if necessary
+ else if(domain->solInfo().slzemFlag) { 
    dMat.rigidBodyModes = domain->constructSlzem();
  }
 
@@ -215,7 +216,7 @@ SingleDomainEigen::getSubSpaceInfo(int& subspacesize, int& maxIter,
  int numIter1 = domain->solInfo().maxitEig;
  int numIter2 = 10*subspacesize;
 
- maxIter = myMax(numIter1, numIter2);
+ maxIter = std::max(numIter1, numIter2);
 
  if (numIter1 > 0) maxIter = numIter1;
 
@@ -265,6 +266,28 @@ SingleDomainEigen::printTimers(Solver *solver)
  double solveTime  = solver->getSolutionTime();
 
  times->printStaticTimers(solveTime, memoryUsed, domain);
+
+  if(domain->solInfo().doEigSweep && domain->solInfo().massFlag) {
+    double mass = domain->computeStructureMass();
+    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," ... Structure mass = %e  ...\n",mass);
+    filePrint(stderr," --------------------------------------\n");
+  }
+}
+
+void
+SingleDomainEigen::convertModeDataToVecSet(VectorSet& vModeData)
+{
+  DofSetArray *cdsa = domain->getCDSA();
+  for(int j=0; j<domain->numNodes(); ++j) { // loop over nodes
+    for(int k=0; k<6; ++k) { // loop over dofs
+      int dof = cdsa->locate(modeData.nodes[j]-1, 1 << k);
+      if(dof >= 0)
+        for(int i=0; i<modeData.numModes; ++i) {
+          vModeData[i][dof] = modeData.modes[i][j][k];
+        }
+    }
+  }
 }
 
 void
@@ -275,3 +298,12 @@ SDEigenPostProcessor::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, 
  times->output += getTime(); 
 }
 
+#ifdef USE_EIGEN3
+void
+SDEigenPostProcessor::eigenQROutput(Eigen::MatrixXd& XVectors, Eigen::MatrixXd& QVectors, Eigen::MatrixXd& RVectors)
+{
+ times->output -= getTime();
+ domain->eigenQROutput(XVectors, QVectors,RVectors);
+ times->output += getTime();
+}
+#endif

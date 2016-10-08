@@ -64,7 +64,7 @@ public:
     virtual void dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
                                 Vector& velocity, Vector& bkVelocity,
                                 Vector& vp, Vector& bkVp, int step, int parity,
-                                int aeroAlg) {};
+                                int aeroAlg, double time) {};
     virtual void dynamOutput(GeomState * geomState, Vector & velocity, Vector & vp, double time, int step, Vector & force, Vector & aeroF,
                              Vector & acceleration, GeomState * refState) const;
   private:

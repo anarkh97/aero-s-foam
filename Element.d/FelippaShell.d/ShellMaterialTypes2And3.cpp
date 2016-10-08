@@ -3,34 +3,37 @@
 #include <stdexcept>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 
+extern int quietFlag;
+
 template<typename doublereal>
 ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
-  int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe)
-  : nlayer(_nlayer), mtlayer(_mtlayer,12,_nlayer), couple(_couple), aframe(_aframe)
+  int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe, doublereal _Ta, doublereal _nsm)
+  : nlayer(_nlayer), mtlayer(_mtlayer,12,_nlayer), couple(_couple), aframe(_aframe), Ta(_Ta), nsm(_nsm)
 {
 // .....COMPUTE THE THICKNESS FOR TYPE-2 AND TYPE-3 CONSTITUTIVE LAWS 
 // .....IT IS ASSUMED CONSTANT AND EQUAL TO THE SUM OF EACH LAYER'S THICKNESS 
 
-    thick = 0;
+    h = 0;
 
     for (int ilayer = 0; ilayer < nlayer; ++ilayer) {
-      thick += mtlayer(7, ilayer);
+      h += mtlayer(7, ilayer);
     }
 
 // .....COMPUTE THE AREA DENSITY FOR TYPE-2 AND TYPE-3 CONSTITUTIVE LAWS 
+// .....NOTE: NSM IS THE NON-STRUCTURAL MASS DENSITY PER UNIT AREA
 
-    rhoh = 0;
+    rhoh = nsm;
 
     for (int ilayer = 0; ilayer < nlayer; ++ilayer) {
       rhoh += mtlayer(6, ilayer)*mtlayer(7, ilayer);
     }
-
 }
 
 template<typename doublereal>
 void
 ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                                                             doublereal *eframe, int gp)
+                                                             doublereal *eframe, int, doublereal temp, doublereal,
+                                                             doublereal *, doublereal *)
 {
     // Initialized data 
     doublereal one = 1.;
@@ -42,7 +45,7 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
     int i, j, k;
     doublereal c, s, e1, e2, z0, g12, s11, s12, s13, s22, pi, s23, s33, mu1, mu2, nu12;
     int irot, ilayer;
-    doublereal dets, thetaf, zsup, zinf, intthick;
+    doublereal dets, thetaf, zsup, zinf;
     doublereal *data = (_D == NULL) ? new doublereal[36] : _D;
     Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon), Sigma(_Sigma);
     Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(data);
@@ -50,21 +53,25 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
         Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
         Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
     Eigen::Matrix<doublereal,3,3> C, invT;
+    Eigen::Matrix<doublereal,3,1> alpha, epsilonT;
+    Eigen::Matrix<doublereal,6,1> SigmaT = Eigen::Matrix<doublereal,6,1>::Zero();
+    Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1> >
+      N = SigmaT.head(3), M = SigmaT.tail(3);
 
 // ==================================================================== 
 //                                                                      
-//     Perform =   Assembles the 6 by 6 Constitutive Matrix According   
-//     ---------   to the Type of Constitutive Law Requested.           
+//     Perform =   Assembles the 6 by 6 constitutive matrix according   
+//     ---------   to the type of constitutive law requested, and 
+//                 computes the generalized stress resultants
 //                                                                      
 //                                                                      
 //     Input/Output =                                                   
 //     --------------                                                   
-//     NLAYER  <input>  number of layers of the composite element       
-//     MTLAYER <input>  material properties of each layer               
+//     Upsilon <input>  generalized strains
+//     Sigma   <output> generalized stresses
 //     D       <output> 6 by 6 constitutive matrix                      
-//     COUPLE  <input>  type of constitutive law                        
-//     EFRAME  <input>  element level 3x3 frame                         
-//     AFRAME  <input>  arbitrary 3x3 frame of the constitutive law     
+//     eframe  <input>  element level 3x3 frame                         
+//     temp    <input>  arbitrary 3x3 frame of the constitutive law     
 //                                                                      
 //                                                                      
 //     Computations =                                                   
@@ -182,6 +189,9 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
         mu1    = mtlayer(4, ilayer);
         mu2    = mtlayer(5, ilayer);
         thetaf = mtlayer(8, ilayer);
+        alpha[0] = mtlayer(9,  ilayer);
+        alpha[1] = mtlayer(10, ilayer);
+        alpha[2] = mtlayer(11, ilayer);
 
 // .....CALCULATE THE COMPLIANCE MATRIX [S] WHICH RELATES THE STRESSES 
 // .....[s1], [s2] AND [s12] TO THE STRAINS [e1], [e2] AND [e12] IN 
@@ -201,11 +211,11 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
         dets += s12 * 2. * s13 * s23;
 
         if (dets == 0) {
-            throw std::runtime_error(
-                "*** FATAL ERROR in Routine COMPCST    ***\n"
-                "*** The Compliance Matrix is Singular ***\n"
-                "*** ... Check Material Properties ... ***\n"
-                "*** STOP ALL TREATMENTS RIGHT HERE    ***\n");
+            throw std::runtime_error("\n"
+                "*** FATAL ERROR in ShellMaterialTypes2And3::GetConstitutiveResponse ***\n"
+                "*** The compliance matrix is singular                               ***\n"
+                "*** Check Material Properties                                       ***\n"
+                "*** STOP ALL TREATMENTS RIGHT HERE                                  ***\n");
             break;
         }
 
@@ -258,10 +268,10 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
         zsup = z0;
 
         for (i = 0; i < nlayer; ++i) {
-            if (i < ilayer) {
+            if (i > ilayer) {
                 zinf += mtlayer(7, i);
             }
-            if (i <= ilayer) {
+            if (i >= ilayer) {
                 zsup += mtlayer(7, i);
             }
         }
@@ -289,20 +299,53 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
             Dmb += C * (zsup * zsup - zinf * zinf) * .5;
         }
 
+// .....ASSEMBLE THE GENERALIZED "THERMAL STRESSES"
+
+        if(temp != Ta) {
+
+           epsilonT = (temp-Ta)*invT*alpha;
+           N += C * epsilonT * (zsup - zinf);
+
+           if(couple) M += C.transpose() * epsilonT * (zsup * zsup - zinf * zinf) * .5;
+        }
+
     }
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
 
-    Sigma = D*Upsilon; // this could alternatively be formed by integrating the stresses through the thickness
+    Sigma = D*Upsilon - SigmaT;
 
     if(_D == NULL) delete [] data;
 }
 
 template<typename doublereal>
 void
+ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
+                                                                               doublereal *eframe, int gp)
+{
+    for(int i=0; i<18; ++i) { GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta); dUpsilondu += 6; dSigmadu += 6; }
+}
+
+template<typename doublereal>
+void
+ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponseSensitivityWRTthic(doublereal *, doublereal *_dSigmadh, doublereal *_dDdh,
+                                                                               doublereal *, int, doublereal)
+{
+    Eigen::Map<Eigen::Matrix<doublereal,6,1> > dSigmadh(_dSigmadh);
+    dSigmadh.setZero();
+
+    if(_dDdh) {
+        Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(_dDdh);
+        D.setZero();
+    }
+}
+
+template<typename doublereal>
+void
 ShellMaterialTypes2And3<doublereal>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
-                               doublereal *eframe, int)
+                               doublereal *eframe, int, doublereal temp, doublereal,
+                               doublereal *, doublereal *)
 {
     // Initialized data 
     doublereal one = 1.;
@@ -319,6 +362,7 @@ ShellMaterialTypes2And3<doublereal>
     Eigen::Matrix<doublereal,3,3> C; // plane stress elasticity stiffness matrix
     Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon);
     Eigen::Map<Eigen::Matrix<doublereal,3,1> > sigma(_sigma);
+    Eigen::Matrix<doublereal,3,1> alpha; // coefficients of thermal expansion
 
     // Some convenient definitions 
     Eigen::VectorBlock< Eigen::Map< Eigen::Matrix<doublereal,6,1> > >
@@ -340,16 +384,16 @@ ShellMaterialTypes2And3<doublereal>
       zsup = -0.5 * GetShellThickness();
 
       for (i = 0; i < nlayer; ++i) {
-        if (i < ilayer) {
+        if (i > ilayer) {
           zinf += mtlayer(7, i);
         }
-        if (i <= ilayer) {
+        if (i >= ilayer) {
           zsup += mtlayer(7, i);
         }
       }
 
-      zinf = (ilayer == 0) ? -std::numeric_limits<double>::infinity() : zinf;
-      zsup = (ilayer == nlayer-1) ? std::numeric_limits<double>::infinity() : zsup;
+      zinf = (ilayer == nlayer-1) ? -std::numeric_limits<double>::infinity() : zinf;
+      zsup = (ilayer == 0) ? std::numeric_limits<double>::infinity() : zsup;
 
 // .....CHECK IF THIS IS THE LAYER CONTAINING z
       // TODO this doesn't deal with the case when z is exactly on the boundary between 2 layers
@@ -366,6 +410,9 @@ ShellMaterialTypes2And3<doublereal>
       mu1    = mtlayer(4, ilayer);
       mu2    = mtlayer(5, ilayer);
       thetaf = mtlayer(8, ilayer);
+      alpha[0] = mtlayer(9,  ilayer);
+      alpha[1] = mtlayer(10, ilayer);
+      alpha[2] = mtlayer(11, ilayer);
 
 // .....CALCULATE THE COMPLIANCE MATRIX [S] WHICH RELATES THE STRESSES 
 // .....[s1], [s2] AND [s12] TO THE STRAINS [e1], [e2] AND [e12] IN 
@@ -385,11 +432,11 @@ ShellMaterialTypes2And3<doublereal>
       dets += s12 * 2. * s13 * s23;
 
       if (dets == 0) {
-        throw std::runtime_error(
-          "*** FATAL ERROR in Routine COMPCST    ***\n"
-          "*** The Compliance Matrix is Singular ***\n"
-          "*** ... Check Material Properties ... ***\n"
-          "*** STOP ALL TREATMENTS RIGHT HERE    ***\n");
+        throw std::runtime_error("\n"
+          "*** FATAL ERROR in ShellMaterialTypes2And3::GetLocalConstitutiveResponse ***\n"
+          "*** The compliance matrix is singular                                    ***\n"
+          "*** Check Material Properties                                            ***\n"
+          "*** STOP ALL TREATMENTS RIGHT HERE                                       ***\n");
         break;
       }
 
@@ -436,22 +483,59 @@ ShellMaterialTypes2And3<doublereal>
       invT = this->andesinvt(eframe, aframe, thetaf);
       C = invT * C * invT.transpose();
 
-      sigma = C*epsilon;
+      sigma = C*(epsilon - (temp-Ta)*invT*alpha);
       break;
     }
 }
 
-template
-ShellMaterialTypes2And3<double>::ShellMaterialTypes2And3(
-  int nlayer, double *mtlayer, bool couple, double *aframe);
+template<typename doublereal>
+void
+ShellMaterialTypes2And3<doublereal>
+::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
+                                                 doublereal *eframe, int gp)
+{
+    for(int i=0; i<18; ++i) { GetLocalConstitutiveResponse(dUpsilondu, dsigmadu, z, eframe, gp, Ta); dUpsilondu += 6; dsigmadu += 3; }
+}
+
+template<typename doublereal>
+void
+ShellMaterialTypes2And3<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthic(doublereal*, doublereal *dsigmadh,
+                                                                                    doublereal, doublereal *, int)
+{
+    for(int i=0; i<3; ++i) dsigmadh = 0;
+}
 
 template
-void
-ShellMaterialTypes2And3<double>::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D,
-                                                         double *eframe, int gp);
+ShellMaterialTypes2And3<double>
+::ShellMaterialTypes2And3(int, double *, bool, double *, double, double);
 
 template
 void
 ShellMaterialTypes2And3<double>
-::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *eframe, int);
+::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double, double *, double *);
+
+template
+void
+ShellMaterialTypes2And3<double>
+::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double, double *, double *);
+
+template
+void
+ShellMaterialTypes2And3<double>
+::GetConstitutiveResponseSensitivityWRTthic(double *, double *, double *, double *, int, double);
+
+template
+void
+ShellMaterialTypes2And3<double>
+::GetConstitutiveResponseSensitivityWRTdisp(double *, double *, double *, double *, int);
+
+template
+void
+ShellMaterialTypes2And3<double>
+::GetLocalConstitutiveResponseSensitivityWRTthic(double *, double *, double, double *, int);
+
+template
+void
+ShellMaterialTypes2And3<double>
+::GetLocalConstitutiveResponseSensitivityWRTdisp(double *, double *, double, double *, int);
 #endif

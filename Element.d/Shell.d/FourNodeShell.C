@@ -20,7 +20,6 @@ FourNodeShell::FourNodeShell(int *nodenums)
 
   subElemNodes[1] = new int[3];
   subElemNodes[1][0] = 2; subElemNodes[1][1] = 3; subElemNodes[1][2] = 1;
-  // subElemNodes[1][0] = 1; subElemNodes[1][1] = 2; subElemNodes[1][2] = 3;
 
   for(i=0; i<2; ++i) {
     int tmp[3];
@@ -32,9 +31,6 @@ FourNodeShell::FourNodeShell(int *nodenums)
         subElemDofs[i][6*j+k] = 6*nij+k;   
       }
     }
-    // cerr << "SubElem " << i << ", nodes " << tmp[0] << " " << tmp[1] << " " << tmp[2] << ", subElemNodes "
-    //      << subElemNodes[i][0] << " " << subElemNodes[i][1] << " " << subElemNodes[i][2] << ", subElemDofs ";
-    // for(j=0;j<18;++j) cerr << subElemDofs[i][j] << " "; cerr << endl;
     subElems[i] = new ThreeNodeShell(tmp);
   }
   nnodes = 4;

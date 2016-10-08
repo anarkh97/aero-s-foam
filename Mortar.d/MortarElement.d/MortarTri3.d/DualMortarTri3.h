@@ -4,20 +4,19 @@
 #ifndef _DUALMORTARTRI3_H_
 #define _DUALMORTARTRI3_H_
 
-//#include <Math.d/matrix.h>
-//#include <Element.d/Element.h>
 #include <Mortar.d/MortarElement.d/MortarElement.h>
+#include <Mortar.d/FaceElement.d/FaceTri3.d/FaceTri3.h>
 
 class CoordSet;
-template <class Scalar> class GenFullM;
-typedef GenFullM<double> FullM;
+//template <class Scalar> class GenFullM;
+//typedef GenFullM<double> FullM;
 class FaceElement;
 
 class DualMortarTri3: public MortarElement {
   private:
         // !!! NO NEED TO COMPUTE THE Alpha COEFFS:
         // -> THEY ARE A PRIORI INDEPENDANT OF THE FACE ELEMENT GEOMETRY
-	//double Alpha[3]; // coeffs for computing dual shape fcts 
+        //double Alpha[3]; // coeffs for computing dual shape fcts 
                            // from the std ones: 
                            //  Phidual[i] = Sum{alpha[i,j].PhiStd[j]} 
   public:
@@ -27,32 +26,41 @@ class DualMortarTri3: public MortarElement {
         DualMortarTri3(FaceElement*);
         DualMortarTri3(FaceElement*, CoordSet&);
         
-	DualMortarTri3(double, FaceElement*);  
+        DualMortarTri3(double, FaceElement*);  
         DualMortarTri3(double, FaceElement*, CoordSet&);  
         
-	// Destructor 
+        // Destructor 
         // ~~~~~~~~~~
         virtual ~DualMortarTri3();
-	
-	// Set methods
-	// ~~~~~~~~~~~
-	// -> local methods
-	//void SetDualCoeffs();
- 
-	// Get methods
-	// ~~~~~~~~~~~
-	// -> implementation of virtual methods
-	int nNodes();
-	int nMortarShapeFct();
+        
+        // Get methods
+        // ~~~~~~~~~~~
+        // -> implementation of virtual methods
+        int nNodes();
+        int nMortarShapeFct();
+        bool GetDualFlag() { return true; }
 
-	// Shape fct methods
-	// ~~~~~~~~~~~~~~~~~
-	// -> local methods
+        // Shape fct methods
+        // ~~~~~~~~~~~~~~~~~
+        // -> local methods
         //void ComputeDualCoeffs(CoordSet&);
-	void GetDualMortarShapeFct(double* Shape, double* m);
-	void GetShapeFct(double* Shape, double* m);
+        template<typename Scalar>
+          void GetShapeFctVal(Scalar* Shape, Scalar* m);
 
-	// -> implementation of virtual methods
-	void GetShapeFctVal(double* Shape, double* m);
+        // -> implementation of virtual methods
+        void GetShapeFctVal(double* Shape, double* m);
 };
+
+template<typename Scalar>
+void
+DualMortarTri3::GetShapeFctVal(Scalar* Shape, Scalar* m)
+{
+  Scalar StdShape[3];
+  static_cast<FaceTri3*>(GetPtrMasterFace())->GetShapeFctVal(StdShape, m);
+
+  Shape[0] = 3.*StdShape[0] -    StdShape[1] -    StdShape[2];
+  Shape[1] =  - StdShape[0] + 3.*StdShape[1] -    StdShape[2];
+  Shape[2] =  - StdShape[0] -    StdShape[1] + 3.*StdShape[2];
+}
+
 #endif

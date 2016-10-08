@@ -39,7 +39,7 @@ void *
 SComm::getExchangeData(int iSub)
 {
 #ifdef DISTRIBUTED
-  cerr << " *** ERROR: SComm::getExchangeData is not implemented for distributed memory \n";
+  std::cerr << " *** ERROR: SComm::getExchangeData is not implemented for distributed memory \n";
   return 0;
 #else
   return neighb[iSub]->getExchangePointer(remoteId[iSub]);
@@ -50,7 +50,7 @@ void
 SComm::setExchangeData(int iSub, void *data)
 {
 #ifdef DISTRIBUTED
-  cerr << " *** ERROR: SComm::setExchangeData is not implemented for distributed memory \n";
+  std::cerr << " *** ERROR: SComm::setExchangeData is not implemented for distributed memory \n";
 #else
   exchangeData[iSub] = data;
 #endif

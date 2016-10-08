@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
-using namespace std;
 #include <unistd.h>
 #include <memory>
 #include <Utils.d/dbg_alloca.h>
@@ -32,6 +31,7 @@ using namespace std;
 #include <Paral.d/MDEigen.h>
 #include <Paral.d/MDNLStatic.h>
 #include <Paral.d/MDNLDynam.h>
+#include <Paral.d/MDTemp.h>
 #include <HelmAxi.d/FourierDescrip.h>
 #include <HelmAxi.d/FourierProbTyp.h>
 #include <HelmAxi.d/FourierHelmBCs.h>
@@ -44,6 +44,8 @@ using namespace std;
 #include <Rom.d/DistrSnapshotNonLinDynamic.h>
 #include <Rom.d/PodProjectionNonLinDynamic.h>
 #include <Rom.d/LumpedPodProjectionNonLinDynamic.h>
+#include <Rom.d/DEIMPodProjectionNonLinDynamic.h>
+#include <Rom.d/UDEIMPodProjectionNonLinDynamic.h>
 #include <Rom.d/CheckNonLinDynamic.h>
 #include <Rom.d/PodProjectionSolver.h>
 #include <Rom.d/EiGalerkinProjectionSolver.h>
@@ -52,6 +54,8 @@ using namespace std;
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamic.h>
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamicBase.h>
 #include <Rom.d/DistrExplicitLumpedPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrExplicitDEIMPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrExplicitUDEIMPodProjectionNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
   #include <Pita.d/Old.d/NLDistrTimeDecompSolver.h>
@@ -69,21 +73,9 @@ void writeOptionsToScreen();
 #include <omp.h>
 #endif
 
-#ifdef STRUCTOPT
-#include <Structopt.d/Structopt_base.h>
-#include <Structopt.d/Driver_opt.d/Domain_opt.h>
-#include <Structopt.d/Driver_opt.d/SubDomainFactory_opt.h>
-#include <Structopt.d/Element_opt.d/Element_opt.h>
-
-#include <Structopt.d/Paral_opt.d/MDStatic_opt.h>
-#include <Structopt.d/Structopt_dec.h>
-#endif
-
 DecInit * decInit=0;
 
 #ifdef TFLOP
-extern map<int,double> weightList;
-
 extern int optind;
 extern "C" int getopt (
              int argc,
@@ -92,22 +84,17 @@ extern "C" int getopt (
 #endif
 
 // .... global and static member variable initialization
-map<int,SolverCntl> SolverInfo::solvercntls = std::map<int,SolverCntl>();
+std::map<int,SolverCntl> SolverInfo::solvercntls = std::map<int,SolverCntl>();
 SolverCntl default_cntl;
 std::auto_ptr<GenSolverFactory<double> >   solverFactory(new GenSolverFactory<double>());
 std::auto_ptr<GenSolverFactory<DComplex> > solverFactoryC(new GenSolverFactory<DComplex>());;
 
-#ifdef STRUCTOPT
-Domain *domain = new Domain_opt();
-std::auto_ptr<ElementFactory> elemFact(new ElementFactory_opt());
-std::auto_ptr<GenSubDomainFactory<double> >   subDomainFactory(new GenSubDomainFactory_opt<double>());
-std::auto_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomainFactory_opt<DComplex>());;
-#else
 Domain *domain = new Domain();
 std::auto_ptr<ElementFactory> elemFact(new ElementFactory());
 std::auto_ptr<GenSubDomainFactory<double> >   subDomainFactory(new GenSubDomainFactory<double>());
 std::auto_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomainFactory<DComplex>());;
-#endif
+
+SolverInfo &solInfo = domain->solInfo();
 
 Sfem *sfem = new Sfem();
 
@@ -128,12 +115,16 @@ bool weightOutFlag=false;
 bool nosa=false;
 bool useFull=false;
 bool trivialFlag=false;
+bool randomShuffle=false;
+bool fsglFlag = false;
 
 int verboseFlag = 0;
+int contactPrintFlag = 0;
 int salinasFlag = 0;
 int totalNewtonIter = 0;
 int iterTotal = 0;
 int debugFlag = 0;
+int quietFlag = 0;
 
 SysCom *syscom = 0;
 Communicator *structCom = 0;
@@ -141,6 +132,7 @@ Communicator *heatStructCom;
 Communicator *fluidCom;
 
 extern const char* problemTypeMessage[];
+extern const char* sensitivityTypeMessage[];
 extern const char* solverTypeMessage[];
 
 std::string clusterData_ = "INPUT.msh";
@@ -176,6 +168,8 @@ int main(int argc, char** argv)
  weightList[4] = 2.0;   // Triangle3
  weightList[8] = 3.0;   // ThreeNodeShell
  weightList[10] = 2.0;  // ThermQuadGal
+ weightList[11] = 1.0;  // TorSpring
+ weightList[12] = 1.0;  // LinSpring
  weightList[13] = 2.0;  // thermoleastic quad
  weightList[15] = 3.0;  // FelippaShell
  weightList[1515] = 4.0;  // FelippaShellX2
@@ -213,6 +207,7 @@ int main(int argc, char** argv)
  weightList[84] = 2.0;
  weightList[85] = 3.0;
  weightList[86] = 4.0;
+ weightList[87] = 4.0;
  weightList[88] = 4.0;  // FourNodeShell
  weightList[90] = 3.0;  // HelmPenta
  weightList[91] = 6.0;  // 3d 32 node serendipity brick
@@ -222,7 +217,6 @@ int main(int argc, char** argv)
  weightList[97] = 4.0;  // 3d 15 node serendipity wedge
  weightList[201] = 3.0; // nonlinear translational spring
  weightList[202] = 3.0; // nonlinear torsional spring
- weightList[102] = 3.0; // 3d LEIsoParamHexa
  weightList[301] = 1.0; // 2d 4-node sloshing (fluid) quadrilateral
  weightList[302] = 1.0; // 2d 2-node free-surface (fluid)
  weightList[311] = 3.0; // 3d 4-node sloshing (fluid) tetrahedron
@@ -271,7 +265,6 @@ int main(int argc, char** argv)
  bool callSower = false;
  bool exitAfterSower = false;
 
- // Process command line arguments
  if(argc == 1) {
    writeOptionsToScreen();
  }
@@ -307,15 +300,13 @@ int main(int argc, char** argv)
    {"prefix", 1, 0, 1011},
    {"nclus", 1, 0, 1012},
    {"debug", 0, 0, 1006},
+   {"quiet", 0, 0, 'q'},
    {0, 0, 0, 0}
  };
 
  filePrint(stderr,"\n --------- R U N  PARAMETERS ----------\n");
-#ifdef PRINT_CHANGESETID
- filePrint(stderr," ... Changeset ID%14s    ...\n",THE_VERSION);
-#endif
  FILE * weightFile;
- while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:",long_options, &option_index)) != -1)
+ while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:q",long_options, &option_index)) != -1)
       switch (c) {
       case 1000 :  // call dec from FEM
 	callDec = true;
@@ -347,7 +338,7 @@ int main(int argc, char** argv)
 		int res=fscanf(weightFile,"%d",&k);
 		if(res == 0 || res == EOF)
 		  {
-		    cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " bad object ID." <<endl;
+		    std::cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " bad object ID." << std::endl;
 		    exit(1);
 		  }
 		fgetpos(weightFile, &position);
@@ -355,14 +346,14 @@ int main(int argc, char** argv)
 		  ;
 		if(c=='\n')
 		  {
-		    cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << endl;
+		    std::cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << std::endl;
 		    exit(1);
 		  }
 		fsetpos(weightFile, &position);
 		res=fscanf(weightFile,"%lf",&w);
 		if(res == 0 || res == EOF)
 		   {
-		     cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << endl;
+		     std::cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << std::endl;
 		     exit(1);
 		   }
 		weightList[k]=w;
@@ -469,7 +460,10 @@ int main(int argc, char** argv)
         default_cntl.fetiInfo.primalFlag = 1;
         break;
       case 'c':
-        default_cntl.fetiInfo.contactPrintFlag = atoi(optarg);
+        contactPrintFlag = default_cntl.fetiInfo.contactPrintFlag = atoi(optarg);
+        break;
+      case 'q':
+        quietFlag = 1;
         break;
       case '?':
         {
@@ -517,13 +511,15 @@ int main(int argc, char** argv)
  if(verboseFlag) filePrint(stderr," ... Parsed Input File In %8.2e sec and %8.2e Mb ...\n",
 	                   (getTime() - t1)/1000.0, times.memoryParse/oneMegaByte);
 
- // Check if Input file had any errors
+ // Check if input file had any errors
  if(error) {
    filePrint(stderr," ****************************************************\n");
    filePrint(stderr," *** ERROR: Input file contained errors. Aborting ***\n");
    filePrint(stderr," ****************************************************\n");
    exit(error);
  }
+ domain->buildSensitivityInfo();
+
  if(decInit != 0 && decInit->skip==false) { // dec initializers in parser !
    if(numThreads == 1) // command line option prevail !!!
      numThreads = decInit->nthreads;
@@ -537,11 +533,13 @@ int main(int argc, char** argv)
      weightOutFlag = true;
    if(decInit->trivial)
      trivialFlag = true;
+   if (decInit->fsgl)
+     fsglFlag = true;
    if(decInit->memory) {
      estFlag = true;
      useFull = true;
    }
-   if(!nosa) nosa = decInit->nosa; // PJSA
+   if(!nosa) nosa = decInit->nosa;
    if(topFlag < 0) {
      callDec=true;
      if(geoSource->getCheckFileInfo()->decPtr == 0 && decInit->file !=0)
@@ -550,23 +548,29 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().readmodeCalled) {
-   if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag)
-      && (domain->solInfo().readInModes == "")) {
-     domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));
+   if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag || domain->solInfo().aeroFlag == 8 || domain->probType() == SolverInfo::Modal)
+      && (strcmp(domain->solInfo().readInModes[0].c_str(),"") == 0)) {
+     domain->readInModes(domain->solInfo().readInROBorModes[0].c_str());
    }
-   else if (!domain->solInfo().samplingPodRom) {
-     domain->solInfo().activatePodRom = true;
-     domain->solInfo().galerkinPodRom = true;
+   else {
+     if (!domain->solInfo().samplingPodRom) {
+       domain->solInfo().activatePodRom = true;
+       domain->solInfo().galerkinPodRom = true;
 #ifdef USE_EIGEN3
      if(domain->solInfo().solvercntl->subtype != 12) domain->solInfo().solvercntl->subtype = 13;
 #else
      domain->solInfo().solvercntl->subtype = 12;
 #endif
+     }
      if(domain->solInfo().modalCalled) {
        // for doing ROM with 2 sets of modes, #1 for the reduced order basis and #2 for modal IDISP/IVEL
-       domain->readInModes(const_cast<char*>(domain->solInfo().readInModes));
+       domain->readInModes(domain->solInfo().readInModes[0].c_str());
      }
    }
+ }
+
+ if(domain->solInfo().readShapeSen) {
+   domain->readInShapeDerivatives(const_cast<char*>(domain->solInfo().readInShapeSen));
  }
 
 #define MAX_CODES 4
@@ -589,6 +593,9 @@ int main(int argc, char** argv)
                                     // mechanical structure codes
  }
  fluidCom = allCom[FLUID_ID];
+#ifdef PRINT_CHANGESETID
+ filePrint(stderr," ... Changeset ID%15s    ...\n",THE_VERSION);
+#endif
 
  threadManager = new ThreadManager(numThreads);
  if(threadManager->numThr() != numThreads) { //HB: for checking purpose
@@ -599,7 +606,7 @@ int main(int argc, char** argv)
    filePrint(stderr,"         compiler (for instance, icpc or g++ version 4.2)\n");
  }
 
- if(!domain->solInfo().basicPosCoords) {
+ if(!domain->solInfo().basicPosCoords || domain->solInfo().scalePosCoords) {
 #ifndef USE_EIGEN3
    filePrint(stderr," *** ERROR: use of Nodal Frames for node coordinates is not supported by this AERO-S build.\n");
    filePrint(stderr," -> tip: you need to configure AERO-S with \"cmake -DEIGEN3_INCLUDE_DIR:PATH=xxx .\"\n");
@@ -609,7 +616,7 @@ int main(int argc, char** argv)
    geoSource->transformCoords();
  }
 
- if(geoSource->binaryInput) geoSource->readGlobalBinaryData(); // SOWERX
+ if(geoSource->binaryInput) geoSource->readGlobalBinaryData();
 #ifdef SOWER_SURFS
  else {
 #endif
@@ -617,7 +624,7 @@ int main(int argc, char** argv)
    if(topFlag < 0) {
      domain->SetUpSurfaces(&(geoSource->GetNodes()));
      if(!callSower) {
-       domain->ProcessSurfaceBCs();
+       domain->ProcessSurfaceBCs(topFlag);
        domain->SetMortarPairing();
        if(!domain->tdenforceFlag()) {
          if(domain->solInfo().isNonLin()) { // for nonlinear statics and dynamics just process the tied surfaces here
@@ -649,26 +656,11 @@ int main(int argc, char** argv)
      domain->PrintMortarConds();
      domain->printLMPC();
 #endif
-     //if(domain->solInfo().solvercntl->fetiInfo.c_normalize) domain->normalizeLMPC(); // PJSA 5-24-06
    }
+   else domain->ProcessSurfaceBCs(topFlag);
 #ifdef SOWER_SURFS
  }
 #endif
-/* XXXX
- bool ctcflag1 = geoSource->checkLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
- bool ctcflag2 = (domain->GetnContactSurfacePairs() && domain->solInfo().lagrangeMult);
- if((ctcflag1 || ctcflag2) && domain->solInfo().solvercntl->type != 2 && domain->solInfo().newmarkBeta != 0
-    && domain->solInfo().solvercntl->subtype != 14) { // note: subtype 14 is Goldfarb-Idnani QP solver
-   if(verboseFlag) {
-     filePrint(stderr, " *** WARNING: Selected solver does not support contact with Lagrange multipliers.\n");
-     filePrint(stderr, " ***          Using FETI-DP instead.\n");
-   }
-   domain->solInfo().solvercntl->type = 2;
-   domain->solInfo().solvercntl->fetiInfo.version = FetiInfo::fetidp;
-   domain->solInfo().solvercntl->fetiInfo.local_cntl->subtype = (FetiInfo::Solvertype) domain->solInfo().solvercntl->subtype;
-   if(geoSource->getCheckFileInfo()->decPtr == 0) callDec = true;
- }
-*/
  if(!domain->solInfo().basicDofCoords) {
 #ifndef USE_EIGEN3
    filePrint(stderr," *** ERROR: use of Nodal Frames for degrees of freedom is not supported by this AERO-S build.\n");
@@ -679,21 +671,22 @@ int main(int argc, char** argv)
    geoSource->transformLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  }
 
- if(domain->solInfo().solvercntl->type != 2)
+ if(domain->solInfo().solvercntl->type != 2 && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && domain->solInfo().readInDualROB.empty()
+    && !domain->solInfo().samplingPodRom)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
  if((domain->solInfo().solvercntl->type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
    geoSource->addFsiElements(domain->getNumFSI(), domain->getFSI());
 
  if(!geoSource->binaryInput) {
-   domain->setUpData();
+   domain->setUpData(topFlag);
  }
 
  if(!(geoSource->getCheckFileInfo()->decPtr || callDec || decInit || geoSource->binaryInput)) {
    // activate multi-domain mode for the explicit dynamics Rom drivers which are not supported in single-domain mode
    // so it is not necessary to include "DECOMP" with "nsubs 1" in the input file
    if((domain->solInfo().activatePodRom && domain->probType() == SolverInfo::NonLinDynam && domain->solInfo().newmarkBeta == 0)
-      || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess)) {
+      || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess) || domain->solInfo().clustering > 0) {
      callDec = true;
      trivialFlag = true;
      numSubdomains = 1;
@@ -701,32 +694,16 @@ int main(int argc, char** argv)
  }
 
  if(callDec) {
-//   if(domain->solInfo().solvercnlt->type == 2 || domain->solInfo().solvercntl->type == 3) { // DEC requires FETI or BLOCKDIAG to be activated (see below)
-     Dec::dec(numProcessors, numThreads, numSubdomains, topFlag);
-     if(exitAfterDec && !callSower) {
-       filePrint(stderr," ... Exiting after Dec run          ...\n");
-       filePrint(stderr," --------------------------------------\n");
-       delete threadManager; // PJSA
-       exit(0);
-     }
-//   }
-//   else {
-//     //  It doesn't make sense to use DEC outside of FETI. However when preparing files, user might not specify
-//     //  the FETI solver in the input file as they are not solving yet. In that case proper FETI initializations do
-//     //  not occur and the decomposition is different than what it would have been if the FETI keyword was here.
-//     //  Thus as of 09/14/06 FETI has to be there to be able to use the decomposer.
-//     filePrint(stderr,"*******************************************\n");
-//     filePrint(stderr,"*** ERROR: FETI command missing            \n");
-//     filePrint(stderr,"*******************************************\n");
-//     delete threadManager; // PJSA
-//     exit(0);
-//   }
+   Dec::dec(numProcessors, numThreads, numSubdomains, topFlag);
+   if(exitAfterDec && !callSower) {
+     filePrint(stderr," ... Exiting after Dec run          ...\n");
+     filePrint(stderr," --------------------------------------\n");
+     delete threadManager;
+     closeComm();
+     exit(0);
+   }
  }
  useFull = true; // or TenNodeTetraHedral will crush ! (bad design not from me !)
-
-// if(!geoSource->binaryInput) {
-//   domain->setUpData();
-// }
 
  if(callSower) {
    filePrint(stderr," ... Writing Distributed Binary Input Files ... \n");
@@ -734,6 +711,7 @@ int main(int argc, char** argv)
    if(exitAfterSower) {
      filePrint(stderr," ... Exiting after Sower run        ...\n");
      filePrint(stderr," --------------------------------------\n");
+     closeComm();
      exit(0);
    }
  }
@@ -762,15 +740,15 @@ int main(int argc, char** argv)
 #else
  bool parallel_proc = (threadManager->numThr() > 1);
 #endif
- // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
- if(domain->solInfo().newmarkBeta == 0) {
-   if(domain->solInfo().inertiaLumping == 2) {
+ // 3. choose lumped mass (also pressure and gravity) and diagonal or block-diagonal "solver" for explicit dynamics 
+ if(domain->solInfo().newmarkBeta == 0 || (domain->solInfo().svdPodRom && geoSource->getMRatio() == 0)) {
+   if(domain->solInfo().inertiaLumping == 2) { // block-diagonal lumping
      domain->solInfo().solvercntl->subtype = 1;
      domain->solInfo().getFetiInfo().local_cntl->subtype = FetiInfo::sparse;
-     if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 2;
+     if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 2; // XXX type 3 could be upgraded to work for this case,
+                                                                                //     rather than using feti
    }
    else {
-     domain->solInfo().inertiaLumping = 1; // diagonal lumping
      domain->solInfo().solvercntl->subtype = 10;
      domain->solInfo().getFetiInfo().local_cntl->subtype = FetiInfo::diagonal;
      if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 3;
@@ -783,16 +761,26 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().aeroFlag >= 0)
-   filePrint(stderr," ... AeroElasticity Flag   = %d      ...\n", domain->solInfo().aeroFlag);
+   filePrint(stderr," ... AeroElasticity Flag   = %2d     ...\n", domain->solInfo().aeroFlag);
  if(domain->solInfo().thermoeFlag >= 0)
-   filePrint(stderr," ... ThermoElasticity Flag = %d      ...\n", domain->solInfo().thermoeFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %2d     ...\n", domain->solInfo().thermoeFlag);
  if(domain->solInfo().aeroheatFlag >= 0)
-   filePrint(stderr," ... AeroThermo Flag       = %d      ...\n", domain->solInfo().aeroheatFlag);
+   filePrint(stderr," ... AeroThermo Flag       = %2d     ...\n", domain->solInfo().aeroheatFlag);
  if(domain->solInfo().thermohFlag >= 0)
-   filePrint(stderr," ... ThermoElasticity Flag = %d      ...\n", domain->solInfo().thermohFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %2d     ...\n", domain->solInfo().thermohFlag);
 
  // ... PRINT PROBLEM TYPE
- filePrint(stderr, problemTypeMessage[domain->solInfo().probType]);
+ if(domain->solInfo().sensitivity) {
+   if(domain->runSAwAnalysis) {
+     filePrint(stderr, sensitivityTypeMessage[1]);
+     filePrint(stderr, problemTypeMessage[domain->solInfo().probType]);
+   } else {
+     filePrint(stderr, sensitivityTypeMessage[0]);
+   }
+ } else {
+   filePrint(stderr, problemTypeMessage[domain->solInfo().probType]);
+ }
+
  if(domain->solInfo().gepsFlg == 1) {
    if(domain->solInfo().isNonLin()) { // GEPS is not used for nonlinear
      domain->solInfo().gepsFlg = 0;
@@ -810,7 +798,8 @@ int main(int argc, char** argv)
     || (domain->solInfo().solvercntl->type == 1 && domain->solInfo().solvercntl->iterType == 1 && domain_decomp)
     || (domain->solInfo().solvercntl->type == 0 && domain->solInfo().solvercntl->subtype == 9 && domain_decomp)
     || (domain->solInfo().svdPodRom && domain_decomp)
-    || (domain->solInfo().samplingPodRom && domain_decomp)) {
+    || (domain->solInfo().samplingPodRom && domain_decomp)
+    || domain->solInfo().ROMPostProcess) {
 
    if(parallel_proc) {
 #ifdef USE_MPI
@@ -825,8 +814,15 @@ int main(int argc, char** argv)
    }
 
    switch(domain->probType()) {
-     case SolverInfo::Dynamic: 
      case SolverInfo::TempDynamic:
+       {
+         MultiDomainTemp tempProb(domain);
+         TempSolver<MDDynamMat, DistrVector, MDTempDynamPostProcessor,
+                    MultiDomainTemp> dynaSolver(&tempProb);
+         dynaSolver.solve();
+       }
+       break;
+     case SolverInfo::Dynamic: 
        {
         if(domain->solInfo().mdPita) { // Not implemented yet
           filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
@@ -889,22 +885,8 @@ int main(int argc, char** argv)
      case SolverInfo::Static: {
        if(geoSource->isShifted()) filePrint(stderr, " ... Frequency Response Analysis ");
        if(domain->isComplex()) {
-         if(domain->solInfo().inpc) cerr << "inpc not implemented for complex domain \n";
+         if(domain->solInfo().inpc) std::cerr << "inpc not implemented for complex domain \n";
          if(geoSource->isShifted()) filePrint(stderr, "in Complex Domain ...\n");
-#ifdef STRUCTOPT
-	 // quick-fix, for debugging SOpt
-	 if (dynamic_cast<Domain_opt*>(domain)->getStructoptFlag())
-	   {
-	     // structopt requested
-#ifdef DISTRIBUTED
-	     GenDistrDomain_opt<DComplex> dd(dynamic_cast<Domain_opt*>(domain));
-#else
-	     GenDecDomain_opt<DComplex> dd(dynamic_cast<Domain_opt*>(domain));
-#endif
-	     dd.structoptSolve();
-	   }
-	 else
-#endif
 	   {
          GenMultiDomainStatic<complex<double> > statProb(domain);
          StaticSolver<complex<double>, GenMDDynamMat<complex<double> >, GenDistrVector<complex<double> >,
@@ -925,20 +907,6 @@ int main(int argc, char** argv)
            statSolver.solve();
          }
          else {
-#ifdef STRUCTOPT
-	 // quick-fix, for debugging SOpt
-	 if (dynamic_cast<Domain_opt*>(domain)->getStructoptFlag())
-	   {
-	     // structopt requested
-#ifdef DISTRIBUTED
-	     GenDistrDomain_opt<double> dd(dynamic_cast<Domain_opt*>(domain));
-#else
-	     GenDecDomain_opt<double> dd(dynamic_cast<Domain_opt*>(domain));
-#endif
-	     dd.structoptSolve();
-	   }
-	 else 
-#endif
      {
        GenMultiDomainStatic<double> statProb(domain);
        StaticSolver<double, GenMDDynamMat<double>, GenDistrVector<double>,
@@ -974,28 +942,56 @@ int main(int argc, char** argv)
        }
      } break;
      case SolverInfo::NonLinDynam: {
-       if(domain->solInfo().newmarkBeta == 0) { // explicit
+       if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().timeIntegration == 1) { // explicit or quasi-static
          if (!domain->solInfo().activatePodRom) {
-           MultiDomainDynam dynamProb(domain);
-           DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-                           MultiDomainDynam, double > dynamSolver(&dynamProb);
-           dynamSolver.solve();
+           if(domain->solInfo().soltyp == 2) {
+             MultiDomainTemp tempProb(domain);
+             TempSolver<MDDynamMat, DistrVector, MDTempDynamPostProcessor,
+                        MultiDomainTemp> dynamSolver(&tempProb);
+             dynamSolver.solve();
+           }
+           else {
+             MultiDomainDynam dynamProb(domain);
+             DynamicSolver<MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                           MultiDomainDynam, double> dynamSolver(&dynamProb);
+             dynamSolver.solve();
+           }
          } 
          else { // POD ROM
            if (domain->solInfo().galerkinPodRom) {
              if (domain->solInfo().elemLumpPodRom) {
-               if (domain->solInfo().reduceFollower)
+               if(domain->solInfo().DEIMPodRom){
+                if (domain->solInfo().reduceFollower)
+                   filePrint(stderr, " ... POD: ROM with stiffness & follower interpolation ...\n");
+                else
+                   filePrint(stderr, " ... POD: ROM with stiffness interpolation ...\n");
+                Rom::DistrExplicitDEIMPodProjectionNonLinDynamic dynamProb(domain);
+                DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
+                                Rom::DistrExplicitDEIMPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+                dynamSolver.solve();
+               } else if(domain->solInfo().UDEIMPodRom) {
+                if (domain->solInfo().reduceFollower)
+                   filePrint(stderr, " ... POD: unassembled ROM with stiffness & follower interpolation ...\n");
+                else
+                   filePrint(stderr, " ... POD: unassembled ROM with stiffness interpolation ...\n");
+                Rom::DistrExplicitUDEIMPodProjectionNonLinDynamic dynamProb(domain);
+                DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
+                                Rom::DistrExplicitUDEIMPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+                dynamSolver.solve();
+               } else {
+                if (domain->solInfo().reduceFollower)
                  filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
-	           else
-                 filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
-               Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
-               DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
+	        else
+                 filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
+                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
+                DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
                                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
-               dynamSolver.solve();
+                dynamSolver.solve();
+               }
              } else {
                filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
                Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
-               DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
+               DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
                              Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();
              }
@@ -1030,20 +1026,27 @@ int main(int argc, char** argv)
      case SolverInfo::PodRomOffline: {
        Rom::DriverInterface *driver;
        if (domain->solInfo().svdPodRom) {
-         // Stand-alone SVD orthogonalization
-         filePrint(stderr, " ... POD: Distributed SVD Orthogonalization ...\n");
-         driver = distrBasisOrthoDriverNew(domain);
+         if(domain->solInfo().use_nmf) {
+           filePrint(stderr, " ... Distributed Nonneg. Matrix Factorization   ...\n");
+           driver = distrPositiveDualBasisDriverNew(domain);
+         }
+         else if(domain->solInfo().clustering) {
+           filePrint(stderr, " ... Distributed Snapshot Clustering            ...\n");
+           driver = distrSnapshotClusteringDriverNew(domain);
+         }
+         else {
+           // Stand-alone SVD orthogonalization
+           filePrint(stderr, " ... Distributed Singular Value Decomposition   ...\n");
+           driver = distrBasisOrthoDriverNew(domain);
+         }
        } 
        else if (domain->solInfo().ROMPostProcess) {
-         filePrint(stderr, " ... POD: Post Processing of Results...\n");
+         filePrint(stderr, " ... Post-processing ROM Results    ...\n");
          driver = distrROMPostProcessingDriverNew(domain);
        }
        else if (domain->solInfo().samplingPodRom) {
          // Element-based hyper-reduction
-         if(domain->solInfo().reduceFollower)
-           filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh with external lumping ...\n");
-         else
-           filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh ...\n");
+         filePrint(stderr, " ... Element Sampling and Weighting ...\n");
          driver = distrElementSamplingDriverNew(domain);
        }
        else {
@@ -1065,109 +1068,9 @@ int main(int argc, char** argv)
  }
  else {
 
-   //--------------------------------
-#ifdef STRUCTOPT
-   // print what type of problem we are doing
-   if (dynamic_cast<Domain_opt*>(domain)->getStructoptFlag()) {
-     if (domain->solInfo().aeroFlag > 0) {
-       fprintf(stderr," ... Multiphysics structural opt: %d ...\n",
-	       domain->solInfo().aeroFlag);
-     }
-     else {
-       fprintf(stderr," ... Structural optimization: %d	...\n",
-	       dynamic_cast<Domain_opt*>(domain)->getStructoptFlag());
-     }
-   }
-   else if (dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag() > 0) {
-     fprintf(stderr," ... Structural reliability: %d    ...\n",
-	     dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag());
-   }
-   /*
-   else if (domain->solInfo().aeroFlag > 0) {
-     fprintf(stderr," ... Multiphysics structural: %d   ...\n",
-	     domain->solInfo().aeroFlag);
-   }
-   else if (domain->solInfo().eigenEmFlag > 0) {
-     fprintf(stderr," ... MP Structural eigenvalue: %d  ...\n",
-	     domain->solInfo().eigenEmFlag);
-   }
-   else if (domain->solInfo().podBasEmFlag > 0) {
-     fprintf(stderr," ... MP Structural POD Decomp: %d  ...\n",
-	     domain->solInfo().podBasEmFlag);
-   }
-   else if (domain->solInfo().elecstrcFlag > 0) {
-     fprintf(stderr," ... Multiphysics Electrostatic: %d...\n",
-	     domain->solInfo().elecstrcFlag );
-   }
-   else if (domain->solInfo().optelecstrcFlag > 0) {
-     fprintf(stderr," ... MP Electrostatic optimiz: %d  ...\n",
-	     domain->solInfo().optelecstrcFlag);
-   }
-   else if (domain->solInfo().eigenEmFlag > 0) {
-     fprintf(stderr," ... MP Structural eigenvalue: %d  ...\n",
-	     domain->solInfo().eigenEmFlag);
-   }
-   else if (domain->solInfo().eigelecstrcFlag > 0) {
-     fprintf(stderr," ... MP Electrostatic eigenval: %d ...\n",
-	     domain->solInfo().eigelecstrcFlag);
-   }
-   else if (domain->solInfo().podelecstrcFlag > 0) {
-     fprintf(stderr," ... MP Electrostatic POD Dec: %d  ...\n",
-	     domain->solInfo().podelecstrcFlag);
-   }
-   else if (domain->solInfo().meshmotFlag > 0) {
-     fprintf(stderr," ... Multiphysics Mesh-motion: %d  ...\n",
-	     domain->solInfo().meshmotFlag );
-   }
-   else if (domain->solInfo().optmeshmotFlag > 0) {
-     fprintf(stderr," ... MP Mesh-motion optimiz: %d    ...\n",
-	     domain->solInfo().optmeshmotFlag);
-   }
-   else if (domain->solInfo().eigmeshmotFlag > 0) {
-     fprintf(stderr," ... MP Mesh-motion eigenvalue: %d ...\n",
-	     domain->solInfo().eigmeshmotFlag);
-   }
-   else if (domain->solInfo().podmeshmotFlag > 0) {
-     fprintf(stderr," ... MP Mesh-motion POD Decomp: %d ...\n",
-	     domain->solInfo().podmeshmotFlag);
-   }
-   else if (domain->solInfo().thermoeFlag > 0) {
-     fprintf(stderr," ... MP Thermoelastic: %d ...\n",
-	     domain->solInfo().thermoeFlag);
-   }
-   */
-
-   if ( dynamic_cast<Domain_opt*>(domain)->getStructoptFlag()        > 0 ||
-	dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag()      > 0 /*||
-	domain->solInfo().aeroFlag        > 0 ||
-	domain->solInfo().eigenEmFlag     > 0 ||
-	domain->solInfo().podBasEmFlag    > 0 ||
-	domain->solInfo().elecstrcFlag    > 0 ||
-	domain->solInfo().optelecstrcFlag > 0 ||
-	domain->solInfo().eigelecstrcFlag > 0 ||
-	domain->solInfo().podelecstrcFlag > 0 ||
-	domain->solInfo().meshmotFlag     > 0 ||
-	domain->solInfo().optmeshmotFlag  > 0 ||
-	domain->solInfo().eigelecstrcFlag > 0 ||
-	domain->solInfo().eigmeshmotFlag  > 0 ||
-	domain->solInfo().podmeshmotFlag  > 0 ||
-	domain->solInfo().thermoeFlag    == 2 */ )
-     {
-       dynamic_cast<Domain_opt*>(domain)->copyNodes();	//copy nodes; always needed
-       if (dynamic_cast<Domain_opt*>(domain)->getStructoptFlag() > 0 )
-	 { dynamic_cast<Domain_opt*>(domain)->structoptSolve(); }
-       else
-	 {
-	   if(dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag() > 0)
-	     { dynamic_cast<Domain_opt*>(domain)->reliabilitySolve(); }
-	 }
-     /* Execute other types of analysis such as AEROELASTIC or MESHMOTION */
-     }
-   else
-#endif
    switch(domain->probType()) {
      case SolverInfo::DisEnrM: {
-        filePrint(stderr, " ... DEM Problem ...\n");
+        filePrint(stderr, " ... DEM Problem                    ...\n");
         DEM dem;
         dem.run(domain,geoSource);
         break;
@@ -1197,13 +1100,12 @@ int main(int argc, char** argv)
        break;
 
      case SolverInfo::Dynamic:
-     //case SolverInfo::TempDynamic:
        {
         if(domain->solInfo().modal) {
-	  fprintf(stderr," ... Modal Method  ...\n");
+          fprintf(stderr," ... Modal Method                   ...\n");
           ModalDescr<double> * modalProb = new ModalDescr<double>(domain);
           DynamicSolver<ModalOps, Vector, ModalDescr<double>, ModalDescr<double>, double>
-              modalSolver(modalProb);
+          modalSolver(modalProb);
           modalSolver.solve();
         }
         else {
@@ -1212,10 +1114,10 @@ int main(int argc, char** argv)
              SingleDomainDynamic dynamProb(domain);
              Pita::LinearDriver::Ptr driver;
              if (!domain->solInfo().pitaTimeReversible) {
-                 filePrint(stderr," ... Linear PITA ...\n");
+                 filePrint(stderr," ... Linear PITA                    ...\n");
                  driver = linearPitaDriverNew(&dynamProb);
              } else {
-                 filePrint(stderr," ... Time-reversible linear PITA ...\n");
+                 filePrint(stderr," ... Time-reversible linear PITA    ...\n");
                  driver = linearReversiblePitaDriverNew(&dynamProb);
              }
              driver->solve();
@@ -1295,40 +1197,65 @@ int main(int argc, char** argv)
              Pita::NlDriver::Ptr pitaDriver = nlReversiblePitaDriverNew(&pitaProblem);
              pitaDriver->solve();
            } else {
-             filePrint(stderr, " ... Nonlinear PITA ...\n");
+             filePrint(stderr, " ... Nonlinear PITA                 ...\n");
              Pita::Old::PitaNonLinDynamic pitaProblem(domain);
              Pita::Old::NLDistrTimeDecompSolver pitaSolver(&pitaProblem);
              pitaSolver.solve();
            }
-           filePrint(stderr, "End NlPita\n");
 #else
            filePrint(stderr," ... PITA requires distributed version ...\n");
 #endif
          }
          else {
-           if(domain->solInfo().newmarkBeta == 0) { // explicit
-             SingleDomainDynamic dynamProb(domain);
-             DynamicSolver <GenDynamMat<double>, Vector,
-                   SDDynamPostProcessor, SingleDomainDynamic, double>
-               dynaSolver(&dynamProb);
-             dynaSolver.solve();
+           if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().timeIntegration == 1) { // explicit or quasi-static
+             if(domain->solInfo().soltyp == 2) {
+               SingleDomainTemp tempProb(domain);
+               TempSolver<DynamMat, Vector, SDTempDynamPostProcessor,
+                          SingleDomainTemp> dynaSolver(&tempProb);
+               dynaSolver.solve();
+             }
+             else {
+               SingleDomainDynamic dynamProb(domain);
+               DynamicSolver<GenDynamMat<double>, Vector, SDDynamPostProcessor,
+                             SingleDomainDynamic, double> dynaSolver(&dynamProb);
+               dynaSolver.solve();
+             }
            }
            else { // implicit
-             // filePrint(stderr, "Non-Linear Implicit Dynamic solver\n");
              if (!domain->solInfo().activatePodRom) {
                NonLinDynamic nldynamic(domain);
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
                nldynamicSolver.solve();
              } else { // POD ROM
                if (domain->solInfo().galerkinPodRom && domain->solInfo().elemLumpPodRom) {
-                 if (domain->solInfo().reduceFollower)
-                   filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
-                 else
-                   filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
-                 Rom::LumpedPodProjectionNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
-                                ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
-                 nldynamicSolver.solve();
+                 if(domain->solInfo().DEIMPodRom){
+                   if (domain->solInfo().reduceFollower)
+                     filePrint(stderr, " ... POD: ROM with stiffness & follower interpolation ...\n");
+                   else
+                     filePrint(stderr, " ... POD: ROM with stiffness interpolation ...\n");
+                   Rom::DEIMPodProjectionNonLinDynamic nldynamic(domain);
+                   NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
+                                  ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                   nldynamicSolver.solve();
+                 } else if(domain->solInfo().UDEIMPodRom) {
+                   if (domain->solInfo().reduceFollower)
+                     filePrint(stderr, " ... POD: unassembled ROM with stiffness & follower interpolation ...\n");
+                   else
+                     filePrint(stderr, " ... POD: unassembled ROM with stiffness interpolation ...\n");
+                   Rom::UDEIMPodProjectionNonLinDynamic nldynamic(domain);
+                   NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
+                                  ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                   nldynamicSolver.solve();
+                 } else {
+                   if (domain->solInfo().reduceFollower)
+                     filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
+                   else
+                     filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
+                   Rom::LumpedPodProjectionNonLinDynamic nldynamic(domain);
+                   NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
+                                  ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                   nldynamicSolver.solve();
+                 }
                } else if (domain->solInfo().galerkinPodRom) {
                  filePrint(stderr, " ... POD: Reduced-order model       ...\n");
                  Rom::PodProjectionNonLinDynamic nldynamic(domain);
@@ -1416,21 +1343,40 @@ int main(int argc, char** argv)
        {
          std::auto_ptr<Rom::DriverInterface> driver;
          if (domain->solInfo().svdPodRom) {
-           // Stand-alone SVD orthogonalization
-           filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
-           driver.reset(basisOrthoDriverNew(domain));
+           if(domain->solInfo().use_nmf) {
+             filePrint(stderr, " ... Nonneg. Matrix Factorization   ...\n");
+             driver.reset(positiveDualBasisDriverNew(domain));
+           } else {
+             filePrint(stderr, " ... Singular Value Decomposition   ...\n");
+             driver.reset(basisOrthoDriverNew(domain));
+           }
          }
          else if (domain->solInfo().samplingPodRom) {
-           // Element-based hyper-reduction
-           if(domain->solInfo().reduceFollower)
-             filePrint(stderr, " ... POD: Element-based Reduced Mesh with external lumping ...\n");
-           else 
-             filePrint(stderr, " ... POD: Element-based Reduced Mesh ...\n");
-           driver.reset(elementSamplingDriverNew(domain));
+           if(domain->solInfo().computeConstraintSnap){
+             filePrint(stderr, " ... Constraint Sampling and Weighting ...\n");
+             driver.reset(constraintSamplingDriverNew(domain));
+           } else {
+             filePrint(stderr, " ... Element Sampling and Weighting ...\n");
+             driver.reset(elementSamplingDriverNew(domain));
+           }
          }
          else if (domain->solInfo().snapProjPodRom) {
            filePrint(stderr, " ... POD: Post-processing of Projected Snapshots ...\n");
            driver.reset(snapshotProjectionDriverNew(domain));
+         }
+         else if (domain->solInfo().DEIMBasisPod) {
+           filePrint(stderr, " ... POD: DEIM Basis Construction ");
+           if (domain->solInfo().ConstraintBasisPod) {
+             filePrint(stderr,"for Nonlinear Constraints ...\n");
+             driver.reset(deimConstraintSamplingDriverNew(domain));
+           } else {
+             filePrint(stderr,"for Nonlinear Forces ...\n");
+             driver.reset(deimSamplingDriverNew(domain));
+           }
+         }
+         else if (domain->solInfo().UDEIMBasisPod) {
+           filePrint(stderr, " ... POD: UDEIM Basis Construction  ...\n");
+           driver.reset(udeimSamplingDriverNew(domain));
          }
          else {
            filePrint(stderr, " ... Unknown Analysis Type          ...\n");
@@ -1501,7 +1447,8 @@ writeOptionsToScreen()
  fprintf(stderr,"                                 the various Xpost element sets; useful only\n");
  fprintf(stderr,"                                 in conjonction with the -m and -M options\n");
  fprintf(stderr,"                                 which can generate multiple Xpost element sets;\n");
- fprintf(stderr,"                                 automatically generates a global element set");
+ fprintf(stderr,"                                 automatically generates a global element set\n");
+ fprintf(stderr," -q                            = suppress certain warnings");
  fprintf(stderr,"\n*********** DOMDEC Options (FETI) *************************************************\n");
  fprintf(stderr," --dec                         = embedded DOMDEC module is applied to input file\n"
 	        "                                 to generate a mesh decomposition\n");
@@ -1525,6 +1472,4 @@ writeOptionsToScreen()
 
  fprintf(stderr,"************************************************************************************\n");
  exit(-1);
-
-
 }

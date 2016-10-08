@@ -4,6 +4,8 @@
 #include <Utils.d/ModeData.h>
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/SysState.h>
+#include <Utils.d/DistHelper.h>
+#include <Math.d/DBSparseMatrix.h>
 
 extern ModeData modeData;
 
@@ -255,7 +257,7 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
       delete allOps.M;
 
       if(domain->numInitVelocity() > 0) {
-        filePrint(stderr, " ... Compute initial velocity in generalized coordinate system ... \n"); //PJSA
+        filePrint(stderr, " ... Compute initial velocity in generalized coordinate system ... \n");
         Vector fullVel(domain->numdof(), 0.0);
         for(int j = 0; j <  domain->numInitVelocity(); ++j) {
           int k = domain->getCDSA()->locate(domain->getInitVelocity()[j].nnum, 1 << domain->getInitVelocity()[j].dofnum);
@@ -267,7 +269,7 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
       }
       if(sinfo.zeroInitialDisp == 0) {
         if(domain->numInitDisp() > 0 && (domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1)) {
-          filePrint(stderr, " ... Compute initial displacement in generalized coordinate system ... \n"); //PJSA
+          filePrint(stderr, " ... Compute initial displacement in generalized coordinate system ... \n");
           Vector fullDsp(domain->numdof(), 0.0);
           for(int j = 0; j <  domain->numInitDisp(); ++j) {
             int k = domain->getCDSA()->locate(domain->getInitDisp()[j].nnum, 1 << domain->getInitDisp()[j].dofnum);
@@ -277,8 +279,8 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
             for(int k = 0; k < fullDsp.size(); ++k)
               dsp[j] += tPhiM[j][k]*fullDsp[k];
         }
-        if(domain->numInitDisp6() > 0 && ((domain->numInitDisp() == 0 && domain->numInitDispModal() == 0) || sinfo.gepsFlg == 0)) {
-          filePrint(stderr, " ... Compute initial displacement in generalized coordinate system ... \n"); //PJSA
+        if(domain->numInitDisp6() > 0 && sinfo.gepsFlg == 0) {
+          filePrint(stderr, " ... Compute initial displacement in generalized coordinate system ... \n");
           Vector fullDsp(domain->numdof(), 0.0);
           for(int j = 0; j <  domain->numInitDisp6(); ++j) {
             int k = domain->getCDSA()->locate(domain->getInitDisp6()[j].nnum, 1 << domain->getInitDisp6()[j].dofnum);

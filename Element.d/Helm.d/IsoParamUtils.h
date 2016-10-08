@@ -854,6 +854,101 @@ public:
 #endif
 
 
+class LEARubberStiffFunction : public IntegFunctionV3d {
+ int n;
+ complex<double> *K;
+public:
+ LEARubberStiffFunction(int _n, complex<double> *_K) {
+   n = _n; K = _K; 
+ }
+
+ void evaluate(double *x, double *N, double (*dNdx)[3], double w, double det){
+   int nn = n/3;
+   double wdet = w*det;
+
+   int i;
+   double *e = (double*)alloca(sizeof(double)*3*nn);
+   for(i=0;i<nn;i++) { 
+     e[3*i+0] = dNdx[i][0];
+     e[3*i+1] = dNdx[i][1];
+     e[3*i+2] = dNdx[i][2];
+   }
+   {
+     complex<double> wdet2mu = wdet*2.0;
+     complex<double> wdetlambda = wdet;
+     for(int j=0;j<nn;j++) for(i=j+1;i<nn;i++) {
+       int a,b;
+       a = 0; b = 0;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
+        e[3*i+0]*e[3*j+0]+0.5*e[3*i+1]*e[3*j+1]+0.5*e[3*i+2]*e[3*j+2] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+0]*e[3*j+0];
+       a = 1; b = 1;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
+        e[3*i+1]*e[3*j+1]+0.5*e[3*i+0]*e[3*j+0]+0.5*e[3*i+2]*e[3*j+2] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+1]*e[3*j+1];
+       a = 2; b = 2;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
+        e[3*i+2]*e[3*j+2]+0.5*e[3*i+0]*e[3*j+0]+0.5*e[3*i+1]*e[3*j+1] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+2]*e[3*j+2];
+       a = 0; b = 1;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
+        0.5*e[3*i+1]*e[3*j+0] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+0]*e[3*j+1];
+       a = 1; b = 0;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
+        0.5*e[3*i+0]*e[3*j+1] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+1]*e[3*j+0];
+       a = 0; b = 2;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
+        0.5*e[3*i+2]*e[3*j+0] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+0]*e[3*j+2];
+       a = 2; b = 0;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
+        0.5*e[3*i+0]*e[3*j+2] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+2]*e[3*j+0];
+       a = 1; b = 2;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
+        0.5*e[3*i+2]*e[3*j+1] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+1]*e[3*j+2];
+       a = 2; b = 1;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
+        0.5*e[3*i+1]*e[3*j+2] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+2]*e[3*j+1];
+     }
+     for(int j=0;j<nn;j++) {
+       int a,b;
+       int i = j;
+       a = 0; b = 0;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
+        e[3*i+0]*e[3*j+0]+0.5*e[3*i+1]*e[3*j+1]+0.5*e[3*i+2]*e[3*j+2] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+0]*e[3*j+0];
+       a = 1; b = 1;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
+        e[3*i+1]*e[3*j+1]+0.5*e[3*i+0]*e[3*j+0]+0.5*e[3*i+2]*e[3*j+2] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+1]*e[3*j+1];
+       a = 2; b = 2;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*(
+        e[3*i+2]*e[3*j+2]+0.5*e[3*i+0]*e[3*j+0]+0.5*e[3*i+1]*e[3*j+1] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+2]*e[3*j+2];
+       a = 1; b = 0;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
+        0.5*e[3*i+0]*e[3*j+1] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+1]*e[3*j+0];
+       a = 2; b = 0;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
+        0.5*e[3*i+0]*e[3*j+2] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+2]*e[3*j+0];
+       a = 2; b = 1;
+       K[0*n*n+(3*j+b)*n+3*i+a] += wdet2mu*( 
+        0.5*e[3*i+1]*e[3*j+2] );
+       K[1*n*n+(3*j+b)*n+3*i+a] += wdetlambda*e[3*i+2]*e[3*j+1];
+     }
+   }
+
+ }
+};
+
+
 
 class LEMassFunction : public IntegFunctionV3d {
  int n;

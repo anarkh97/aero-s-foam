@@ -3,78 +3,68 @@
 
 #include <Element.d/Element.h>
 
-class PentaCorotator;
-class NLMaterial;
+class Pentahedral: public Element
+{
+    int nn[6];
+    double *cCoefs;
+    double *cFrame;
+    NLMaterial *mat;
 
-class Pentahedral: public Element {
+  public:
+    Pentahedral(int*);
+    ~Pentahedral();
 
-	int nn[6];
-        double  *cCoefs;  // HB 4-15-05
-        double  *cFrame;  // HB 4-15-05
-                                                                                                                  
-        PentaCorotator* pentaCorotator;
-        NLMaterial *mat;
-public:
-	Pentahedral(int*);
+    Element *clone();
 
-	Element *clone();
+    void renum(int *);
+    void renum(EleRenumMap&);
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
+    FullSquareMatrix massMatrix(CoordSet&,double *mel, int cmflg=1);
+    double getMass(CoordSet& cs);
 
-	FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet&,double *mel, int cmflg=1);
-	double           getMass(CoordSet& cs);
-        void             getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
-	                                 GeomState *geomState);
+    void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
+    void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs=0);
 
-        void getVonMises(Vector &stress, Vector &weight,CoordSet &cs,
-			 Vector &elDisp,int strInd,int surface=0,
-                                 double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+    void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                     int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
-        void getAllStress(FullM &stress, Vector &weight,CoordSet &cs,
-			 Vector &elDisp,int strInd,int surface=0,
-                                 double *ndTemps=0);
+    void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                      int surface=0, double *ndTemps=0);
 
-	void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+    void markDofs(DofSetArray &);
+    int* dofs(DofSetArray &, int *p=0);
+    int numDofs();
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-	int getTopNumber();
+    int numNodes();
+    int* nodes(int * = 0);
 
-        // HB (09-21-03): implement thermal forces. MUST BE VALIDATED !!!
-       void getThermalForce(CoordSet &cs, Vector &ndTemps,
-                            Vector &elementThermalForce, int glflag, GeomState *geomState);
+    int getTopNumber();
 
-       PrioInfo examine(int sub, MultiFront *);
-       //double weight() { return 2; } // should be 12 for penta 15
-       //double trueWeight() { return 2; } // should be 12 for penta 15
+    PrioInfo examine(int sub, MultiFront *);
+    int nDecFaces() { return 5; }
+    int getDecFace(int iFace, int *fn);
 
-        void setCompositeData(int _type, int nlays, double *lData,
-                              double *coefs, double *frame)
-          { cCoefs = coefs; cFrame = frame; } // PJSA 3-30-05
+    int getFace(int iFace, int *fn) { return getDecFace(iFace, fn); }
 
-        double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
-        { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
-                 "              for Pentahedral el.\n"); return (double *) 0;
-        }
+    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
+      { cCoefs = coefs; cFrame = frame; }
 
-       //HB: add "corotator" methods
-       Corotator *getCorotator(CoordSet &cs, double *kel, int , int );
-       
-      //HB 05-26-0 
-      void getVonMisesAniso(Vector &stress, Vector &weight,CoordSet &cs,
-        	            Vector &elDisp,int strInd,int surface=0,
-        	            double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+    double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
+      { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
+                "              for Pentahedral el.\n"); return (double *) 0;
+      }
 
+    void getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                          int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
-     void getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
-		            Vector &elDisp, int strInd, int surface=0, double *ndTemps=0);
+    void getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
+                           Vector &elDisp, int strInd, int surface=0, double *ndTemps=0);
 
-     void setMaterial(NLMaterial *);
-     int numStates();
+    void setMaterial(NLMaterial *);
+    int numStates();
+    void initStates(double *st);
+    Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);
 };
-#endif
 
+#endif

@@ -1,6 +1,5 @@
 #include <cmath>
 #include <Corotational.d/utilities.h>
-#include <Math.d/mathUtility.h>
 #include <iostream>
 #include <Utils.d/linkfc.h>
 
@@ -46,7 +45,6 @@ void mat_to_quat( double rten[3][3], double q[4] )
       // using this version causes reparameterization of rotations at -2/3*pi,4/3*pi
       Eigen::Matrix3d rm;
       for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) rm(i,j) = rten[i][j];
-      //if(rm.determinant() < 0) cerr << "whoops-a-daisy\n";
       Eigen::Quaterniond qq(rm);
       q[0] = qq.w();
       q[1] = qq.x();

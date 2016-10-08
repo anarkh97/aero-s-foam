@@ -1,6 +1,7 @@
 #ifdef USE_EIGEN3
 #include <Element.d/MpcElement.d/DotType1ConstraintElement.h>
 #include <Corotational.d/GeomState.h>
+#include <iostream>
 
 DotType1ConstraintElement::DotType1ConstraintElement(int* _nn, int _axis1, int _axis2, double _d0)
  : ConstraintFunctionElement<Simo::DotType1ConstraintFunction>(2, DofSet::XYZrot, _nn, 0)
@@ -48,10 +49,23 @@ void
 DotType1ConstraintElement::buildFrame(CoordSet& cs)
 {
   if(!C0) {
-    cerr << " *** ERROR: element frame is not defined for DotType1 constraint function element\n";
+    std::cerr << " *** ERROR: A reference frame needs to be specified using EFRAMES for element " << glNum+1 << ". Exiting...\n";
     exit(-1);
   }
 
   ConstraintFunctionElement<Simo::DotType1ConstraintFunction>::buildFrame(cs);
 }
+
+double
+DotType1ConstraintElement::getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double)
+{
+  return 0.;
+}
+
+double
+DotType1ConstraintElement::getAccelerationConstraintRhs(GeomState* refState, GeomState& gState, CoordSet& cs, double t)
+{
+  return MpcElement::getAccelerationConstraintRhs(refState, gState, cs, t);
+}
+
 #endif

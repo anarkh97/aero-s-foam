@@ -30,7 +30,7 @@ class ContactTopologyEntityList;
 class ContactFixedSizeAllocator;
 class ContactTopology;
 
-class ContactNodeNodeInteraction : public ContactInteractionEntity {
+class ContactNodeNodeInteraction : public ContactInteractionEntity<Real> {
 
  public:
 
@@ -106,15 +106,15 @@ class ContactNodeNodeInteraction : public ContactInteractionEntity {
 
 inline int ContactNodeNodeInteraction::Size()
 {
-  return(ContactInteractionEntity::Size()+2*sizeof(entity_data)+
+  return(ContactInteractionEntity<Real>::Size()+2*sizeof(entity_data)+
          (NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS)*sizeof(Real));
 }
 
 inline char* ContactNodeNodeInteraction::Pack( char* buffer )
 {
   char* buff = buffer;
-  ContactInteractionEntity::Pack( buffer );
-  buff += ContactInteractionEntity::Size();
+  ContactInteractionEntity<Real>::Pack( buffer );
+  buff += ContactInteractionEntity<Real>::Size();
   
   int  cnt    = 0;
   int* i_buf  = reinterpret_cast<int*>(buff);
@@ -131,8 +131,8 @@ inline char* ContactNodeNodeInteraction::Pack( char* buffer )
 inline char* ContactNodeNodeInteraction::Unpack( char* buffer )
 {
   char* buff = buffer;
-  ContactInteractionEntity::Unpack( buffer );
-  buff += ContactInteractionEntity::Size();
+  ContactInteractionEntity<Real>::Unpack( buffer );
+  buff += ContactInteractionEntity<Real>::Size();
   
   int cnt    = 0;
   int* i_buf = reinterpret_cast<int*>(buff);
@@ -148,7 +148,7 @@ inline char* ContactNodeNodeInteraction::Unpack( char* buffer )
 
 inline void ContactNodeNodeInteraction::Copy( ContactNodeNodeInteraction* src )
 {
-  ContactInteractionEntity::Copy( src );
+  ContactInteractionEntity<Real>::Copy( src );
   slave_node_entity_data  = src->slave_node_entity_data;
   master_node_entity_data = src->master_node_entity_data;
   std::memcpy( DataArray,src->DataArray_Buffer(),

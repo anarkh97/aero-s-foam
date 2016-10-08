@@ -4,9 +4,6 @@ Beam.d/beamRotation.f
 Beam.d/e3dmas.f
 Beam.d/EulerBeam.C
 Beam.d/frame6.f
-Beam.d/g_mass7.f
-Beam.d/g_modmstif7.f
-Beam.d/g_sands7.f
 Beam.d/mass6.f
 Beam.d/mass7.f
 Beam.d/modmstif6.f
@@ -15,6 +12,7 @@ Beam.d/sands6.f
 Beam.d/sands7.f
 Beam.d/TimoshenkoBeam.C
 Beam.d/transf.f
+Beam.d/BeamElementInstance.cpp
 BelytschkoTsayShell.d/BelytschkoTsayShell.C
 BelytschkoTsayShell.d/fint3dshl_hypo.f90
 BelytschkoTsayShell.d/base_mech_transf.f90
@@ -36,12 +34,6 @@ Brick20.d/br20mas.f
 Brick20.d/br20vmint.f
 Brick20.d/Brick20.C
 Brick20.d/brik20v.f
-Brick20.d/g_br20mas.f
-Brick20.d/g_br20vmint.f
-Brick20.d/g_brik20v.f
-Brick20.d/g_h20shpe.f
-#Brick20.d/g_sands20.f
-Brick20.d/g_vol20.f
 Brick20.d/h20shpe.f
 Brick20.d/hexa20.f
 Brick20.d/Hexa20ShapeFct.C
@@ -90,27 +82,8 @@ CompShell.d/Compo3NodeShell.C
 CompShell.d/Compo4NodeShell.C
 CompShell.d/compst.f
 CompShell.d/compvms.f
-CompShell.d/g_compbBB.f
-CompShell.d/g_compbBM.f
-CompShell.d/g_compbMB.f
-CompShell.d/g_compbMM.f
-CompShell.d/g_compcrd2.f
-CompShell.d/g_compcrd.f
-CompShell.d/g_compcst.f
-CompShell.d/g_compfrot.f
-CompShell.d/g_comphBB.f
-CompShell.d/g_comphBM.f
-CompShell.d/g_comphMB.f
-CompShell.d/g_comphMM.f
-CompShell.d/g_complay.f
-CompShell.d/g_compms1.f
-CompShell.d/g_compms2.f
-CompShell.d/g_compst.f
-CompShell.d/g_compvms.f
-CompShell.d/g_straineq.f
-CompShell.d/g_transform.f
-CompShell.d/g_trirotation.f
-ContactResistance.d/BrickContact.C  ContactResistance.d/QuadContact.C
+ContactResistance.d/BrickContact.C
+ContactResistance.d/QuadContact.C
 ContactResistance.d/PentaContact.C
 Convection.d/BarConvec.C
 Convection.d/convecquad.f
@@ -118,6 +91,7 @@ Convection.d/QuadConvec.C
 Convection.d/trianarea.f
 Convection.d/TriangleConvec.C
 CtcVirtualElt.d/CtcVirtualElt.C
+DiscreteMass.d/DiscreteMass6Dof.C
 FelippaShell.d/EffMembraneTriangleInstance.cpp
 FelippaShell.d/AndesBendingTriangleInstance.cpp
 FelippaShell.d/ShellElementInstance.cpp
@@ -128,6 +102,8 @@ FelippaShell.d/ShellMaterialType0.cpp
 FelippaShell.d/ShellMaterialType1.cpp
 FelippaShell.d/ShellMaterialTypes2And3.cpp
 FelippaShell.d/ShellMaterialType4.cpp
+FelippaShell.d/ShellMaterialType5.cpp
+FelippaShell.d/ShellMaterialType6.cpp
 FluidQuad.d/BarSloshFS.C    FluidTetra.d/HEVibTetra.C
 FluidQuad.d/HEVibQuadGal.C  FluidTetra.d/SloshTetra.C
 FluidQuad.d/SloshQuadGal.C  FluidTriangle3.d/SloshTriangleFS.C
@@ -135,8 +111,20 @@ FluidQuad.d/barsloshfs.f  FluidQuad.d/slsas2.f  FluidQuad.d/thermquad3b.f
 Force.d/BoundaryElement.C
 Force.d/FollowerMomentElement.C
 Force.d/FollowerForceElement.C
+Force.d/PseudoTangentialMomentElement.C
+Force.d/HexaQ1P0.C
+Force.d/HexaQ2P0.C
+Force.d/HexaQ2P1.C
+Force.d/IncompressibleHexaQ1P0.C
 Function.d/ExternalForce.d/FollowerMomentForceFunction.C
 Function.d/ExternalForce.d/FollowerForceFunction.C
+Function.d/InertialForce.d/InertialType1ForceFunction.C
+Function.d/InertialForce.d/InertialType2ForceFunction.C
+Function.d/InertialForce.d/Inertial6DofForceFunction.C
+Function.d/Rotation.d/IncrementalRotationVector.C
+Function.d/Shape.d/Tet4LagrangePolynomial.C
+Function.d/Shape.d/Hex8LagrangePolynomial.C
+Function.d/Shape.d/Constant.C
 Helm.d/GaussRule.C
 Helm.d/GaussRules.C
 Helm.d/genTetra10.C
@@ -215,6 +203,8 @@ Joint.d/RevoluteJointSpringCombo.C
 Joint.d/CylindricalJointSpringCombo.C
 Joint.d/PrismaticJointSpringCombo.C
 Joint.d/PinInSlotJointSpringCombo.C
+Joint.d/RevoluteJointSpringComboWithFreeplay.C
+Joint.d/PrismaticJointSpringComboWithFreeplay.C
 MatrixElement.d/MatrixElement.C
 Membrane.d/mass8.f
 Membrane.d/Membrane.C
@@ -239,6 +229,9 @@ MpcElement.d/PointPlaneDistanceConstraintElement.C
 MpcElement.d/PointVariPointDistanceConstraintElement.C
 MpcElement.d/PointVariLineDistanceConstraintElement.C
 MpcElement.d/PointVariPlaneDistanceConstraintElement.C
+MpcElement.d/PointVariPlaneSegmentDistanceConstraintElement.C
+#for comparison with new method
+MpcElement.d/PointVariPlaneSegmentDistanceConstraintElement2.C 
 Function.d/Constraint.d/DistanceConstraintFunction.C
 Function.d/Constraint.d/DotType1ConstraintFunction.C
 Function.d/Constraint.d/DotType2ConstraintFunction.C
@@ -247,11 +240,18 @@ Function.d/Constraint.d/AngleType1ConstraintFunction.C
 Function.d/Constraint.d/PointPointDistanceConstraintFunction.C
 Function.d/Constraint.d/PointLineDistanceConstraintFunction.C
 Function.d/Constraint.d/PointPlaneDistanceConstraintFunction.C
+Function.d/Constraint.d/PointVariPlaneDistanceConstraintFunction.C
 Function.d/Constraint.d/PointVariPointDistanceConstraintFunction.C
 Function.d/Constraint.d/exp-map.C
 NonLinearity.d/2DMat.C
 NonLinearity.d/ShapeFunction.C
 NonLinearity.d/ElaLinIsoMat.C
+NonLinearity.d/OgdenMat.C
+NonLinearity.d/SimoElasticMat.C
+NonLinearity.d/SimoPlasticMat.C
+NonLinearity.d/NeoHookeanMat.C
+NonLinearity.d/MooneyRivlinMat.C
+NonLinearity.d/BilinPlasKinHardMatInstance.C
 NonLinearity.d/GaussIntgElem.C
 NonLinearity.d/NLHexahedral.C
 NonLinearity.d/NLPentahedral.C
@@ -294,8 +294,6 @@ Rigid.d/RigidThreeNodeShell.C
 Rigid.d/RigidTransSprlink.C
 Rigid.d/RigidTwoNodeTruss.C
 Rigid.d/RigidFourNodeShell.C
-Rigid.d/FlexibleBeam.C
-Rigid.d/FlexibleTwoNodeTruss.C
 Shear.d/b3dstf.f
 Shear.d/shearmass.f
 Shear.d/ShearPanel.C
@@ -306,22 +304,6 @@ Shear.d/vec.f
 Shell.d/basico.f
 Shell.d/ConnectedTri.C
 Shell.d/FourNodeShell.C
-Shell.d/ExpFourNodeShell.C
-Shell.d/g_basico.f
-Shell.d/g_dummy.f
-Shell.d/g_mass8.f
-Shell.d/g_membra.f
-Shell.d/g_momen.f
-Shell.d/g_rotation.f
-Shell.d/g_sands8.f
-Shell.d/g_sm3mb.f
-Shell.d/g_sm3mhe.f
-Shell.d/g_smcbh.f
-Shell.d/g_straineq.f
-Shell.d/g_transform.f
-Shell.d/g_tria3d.f
-Shell.d/g_trirotation.f
-Shell.d/g_vonmis.f
 Shell.d/localXY.f
 Shell.d/mass8.f
 Shell.d/membra.f
@@ -358,13 +340,6 @@ Sommerfeld.d/SpectralIsoParamQuadSommer.C
 Sommerfeld.d/Tri6Gauss.C
 Sommerfeld.d/Triangle6SommerBC.C
 Sommerfeld.d/TriangleSommerBC.C
-Sommerfeld.d/QuadPressureBC.C
-Sommerfeld.d/TrianglePressureBC.C
-Sommerfeld.d/Quad8PressureBC.C
-Sommerfeld.d/Quad9PressureBC.C
-Sommerfeld.d/Triangle6PressureBC.C
-Sommerfeld.d/Quad12PressureBC.C
-Sommerfeld.d/Triangle10PressureBC.C
 Spring.d/mstf11.f
 Spring.d/mstf21.f
 Spring.d/mstf22.f
@@ -372,6 +347,7 @@ Spring.d/outprd.f
 Spring.d/RotnSprlink.C
 Spring.d/TorSpring.C
 Spring.d/TransSprlink.C
+Spring.d/LinSpring.C
 Tetra10.d/dpe25.C
 Tetra10.d/mass25.f
 Tetra10.d/mstf25.f

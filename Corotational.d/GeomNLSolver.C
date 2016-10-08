@@ -4,6 +4,8 @@
 #include <Corotational.d/Corotator.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/GeomNLSolver.h>
+#include <Math.d/CuCSparse.h>
+#include <Solvers.d/Solver.h>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/dofset.h>
 
@@ -391,7 +393,7 @@ Domain::arcLength()
    // ... CALL EXTENDED NEWTON
    nlSolver.extendedNewton(u,dU,lambda,deltaLambda,deltaS,w,numExtIter);
 
-   if( abs(lambda) >= 1.0 ) break;
+   if( std::abs(lambda) >= 1.0 ) break;
 
    // ... DETERMINE CONTROL PARAMETER BASED ON # OF ITERATIONS 
    // ... IN EXTENDED NEWTON 

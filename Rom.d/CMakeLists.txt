@@ -5,6 +5,12 @@ ADD_LIBRARY( Rom
   BasisInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
+  PositiveDualBasisDriver.C
+  DistrPositiveDualBasisDriver.C
+  DEIMSamplingDriver.C 
+  UDEIMSamplingDriver.C
+  DEIMConstraintSamplingDriver.C
+  ConstraintSamplingDriver.C
   CheckNonLinDynamic.C
   CholeskyUtils.C
   DistrBasisFile.C
@@ -15,16 +21,24 @@ ADD_LIBRARY( Rom
   DistrExplicitPodProjectionNonLinDynamicBase.C
   DistrExplicitPodProjectionNonLinDynamic.C
   DistrExplicitLumpedPodProjectionNonLinDynamic.C
+  DistrExplicitDEIMPodProjectionNonLinDynamic.C
+  DistrExplicitUDEIMPodProjectionNonLinDynamic.C
   DistrROMPostProcessingDriver.C
   DistrNodeDof6Buffer.C
-  DistrVecBasis.C
+  DistrNonnegativeMatrixFactorization.C
+  DistrSnapshotClusteringDriver.C
+  DistrSnapshotClusteringSolver.C
   DistrSvdOrthogonalization.C
+  DistrVecBasis.C
   DistrVecNodeDof6Conversion.C
   ElementSamplingDriverInstance.C
   FileNameInfo.C
   SubElementSamplingDriver.C
   LumpedPodProjectionNonLinDynamic.C
+  DEIMPodProjectionNonLinDynamic.C
+  UDEIMPodProjectionNonLinDynamic.C
   SparseNonNegativeLeastSquaresSolverInstance.C
+  ParallelSparseNonNegativeLeastSquaresSolver.C
   NodalRestrictionMapping.C
   MappedNodeDof6Buffer.C
   MeshOutput.C
@@ -36,14 +50,36 @@ ADD_LIBRARY( Rom
   RestrictedVecNodeDof6Conversion.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
+  NonnegativeMatrixFactorization.C
   VecBasis.C
   VecBasisFile.C
   VecBasisUtils.C
   VecNodeDof6Conversion.C
   VecNodeDof6Map.C
   DofSetUtils.C
-  LawsonHanson.d/diff.cpp
-  LawsonHanson.d/g1.cpp
-  LawsonHanson.d/h12.cpp
-  LawsonHanson.d/spnnls.cpp
+  SparseSolvers.d/LawsonHanson.d/diff.f
+  SparseSolvers.d/LawsonHanson.d/g1.f
+  SparseSolvers.d/LawsonHanson.d/h12.f
+  SparseSolvers.d/LawsonHanson.d/spnnls.f
+  SDDynamPodPostProcessor.C
+  EiGalerkinProjectionSolverInstance.C
+  SparseSolvers.d/DirectionalPursuit.d/nncgp.C
+  SparseSolvers.d/DirectionalPursuit.d/pnncgp.C
+  SparseSolvers.d/PolytopeFacesPursuit.d/pgpfp.C
+  SparseSolvers.d/LARS.d/pcglars.C
+  SparseSolvers.d/PolytopeFacesPursuit.d/gpfp.C
+  SparseSolvers.d/LARS.d/lars.C
+  SparseSolvers.d/LARS.d/cglars.C
+  SparseSolvers.d/MatchingPursuits.d/mp.C
+  SparseSolvers.d/OrthogonalMatchingPursuits.d/omp.C
+  SparseSolvers.d/OrthogonalMatchingPursuits.d/pomp.C
+  SparseSolvers.d/ScalaLH.d/splh.C
+  SparseSolvers.d/ScalaLH.d/Plh.C
+  SparseSolvers.d/ScalaLH.d/plhsolve.C
+  ClusterSolvers.d/Kmeans.d/Kmeans.C
+  ClusterSolvers.d/Kmeans.d/kmeanssolve.C
+  ClusterSolvers.d/SSC.d/SSC.C
+  ClusterSolvers.d/SSC.d/sparsesubspaceclusteringsolve.C
+  NmfSolvers.d/ScalaPQN.d/Nmf.C
+  NmfSolvers.d/ScalaPQN.d/nmfsolve.C
 )

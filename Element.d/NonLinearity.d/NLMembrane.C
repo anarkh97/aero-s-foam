@@ -1,6 +1,8 @@
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
+#include <Element.d/Utils.d/SolidElemUtils.h>
+#include <Math.d/matrix.h>
 #include <Math.d/TTensor.h>
 #include <Corotational.d/utilities.h>
 #include <Corotational.d/GeomState.h>
@@ -154,8 +156,6 @@ GLStrain2D<n>::getEBandDB(typename TwoDTensorTypes<n>::StrainTensor &e,
 
 }
 
-//typedef SymTensor<double,2> Stress2D;
-//typedef SimpleTensor<Stress2D, 9> Stress2DDeriv9;
 void
 TriMembraneShapeFunct::getGlobalGrads(Grad2D &gradU, Grad2DDeriv9 &dGradUdqk,
                                       double *_jac,
@@ -170,8 +170,7 @@ TriMembraneShapeFunct::getGlobalGrads(Grad2D &gradU, Grad2DDeriv9 &dGradUdqk,
                        nodes[2].y-nodes[0].y,
                        nodes[2].z-nodes[0].z },
 		   };
-  //fprintf(stderr, "Dirs %e %e %e   %e %e %e\n", d[0][0], d[0][1],d[0][2], d[1][0],d[1][1],
-  //d[1][2]);
+
   double X[3][3];
   X[2][0] = d[0][1]*d[1][2] - d[0][2]*d[1][1];
   X[2][1] = d[0][2]*d[1][0] - d[0][0]*d[1][2];
@@ -179,7 +178,6 @@ TriMembraneShapeFunct::getGlobalGrads(Grad2D &gradU, Grad2DDeriv9 &dGradUdqk,
  
   double l1inv = 1.0/sqrt(d[0][0]*d[0][0]+d[0][1]*d[0][1]+d[0][2]*d[0][2]);
   double l3inv = 1.0/sqrt(X[2][0]*X[2][0]+X[2][1]*X[2][1]+X[2][2]*X[2][2]);
-  //fprintf(stderr, "linvs: %e %e\n", l1inv, l3inv);
   for(i = 0; i < 3; ++i) {
     X[0][i] = l1inv*d[0][i];
     X[2][i] *= l3inv;
@@ -187,9 +185,6 @@ TriMembraneShapeFunct::getGlobalGrads(Grad2D &gradU, Grad2DDeriv9 &dGradUdqk,
   X[1][0] = X[2][1]*X[0][2] - X[2][2]*X[0][1];
   X[1][1] = X[2][2]*X[0][0] - X[2][0]*X[0][2];
   X[1][2] = X[2][0]*X[0][1] - X[2][1]*X[0][0];
- 
-  // fprintf(stderr, "Axis %e %e %e   %e %e %e %e %e %e\n", X[0][0], X[0][1], X[0][2], 
-  //   X[1][0], X[1][1], X[1][2], X[2][0], X[2][1], X[2][2]);
  
   // This is dX_i/dxi_j
   double dXdxi[2][2] = { { d[0][0]*X[0][0]+d[0][1]*X[0][1]+d[0][2]*X[0][2],
@@ -223,8 +218,6 @@ TriMembraneShapeFunct::getGlobalGrads(Grad2D &gradU, Grad2DDeriv9 &dGradUdqk,
                          { dxidX[0][0], dxidX[0][1] },
                          { dxidX[1][0], dxidX[1][1] }
 		      };
-  // fprintf(stderr, "dNdX: %e %e  %e %e   %e %e\n", 
-  //     dNdX[0][0], dNdX[0][1], dNdX[1][0], dNdX[1][1], dNdX[2][0], dNdX[2][1]);
   for(i = 0; i < 2; ++i) {
     gradU[i][0] = dNdX[0][i]*Utilde[0][0]
                 + dNdX[1][i]*Utilde[1][0]
@@ -251,8 +244,7 @@ TriMembraneShapeFunct::getGlobalGrads(Grad2D &gradU, Grad2DDeriv9 &dGradUdqk,
 }
 
 void
-TriMembraneShapeFunct::getGradU(Grad2D &gradU,
-                       Node *nodes, double xi[3], Vector &disp)
+TriMembraneShapeFunct::getGradU(Grad2D &gradU, Node *nodes, double xi[3], Vector &disp)
 {
   int i;
   // First obtain the frame X, in which xi[i] runs along X[i].
@@ -263,8 +255,6 @@ TriMembraneShapeFunct::getGradU(Grad2D &gradU,
                        nodes[2].y-nodes[0].y,
                        nodes[2].z-nodes[0].z },
 		   };
-  // fprintf(stderr, "Dirs %e %e %e   %e %e %e\n", d[0][0], d[0][1],d[0][2], d[1][0],d[1][1],
-  // d[1][2]);
   double X[3][3];
   X[2][0] = d[0][1]*d[1][2] - d[0][2]*d[1][1];
   X[2][1] = d[0][2]*d[1][0] - d[0][0]*d[1][2];
@@ -272,7 +262,6 @@ TriMembraneShapeFunct::getGradU(Grad2D &gradU,
  
   double l1inv = 1.0/sqrt(d[0][0]*d[0][0]+d[0][1]*d[0][1]+d[0][2]*d[0][2]);
   double l3inv = 1.0/sqrt(X[2][0]*X[2][0]+X[2][1]*X[2][1]+X[2][2]*X[2][2]);
-  // fprintf(stderr, "linvs: %e %e\n", l1inv, l3inv);
   for(i = 0; i < 3; ++i) {
     X[0][i] = l1inv*d[0][i];
     X[2][i] *= l3inv;
@@ -280,9 +269,6 @@ TriMembraneShapeFunct::getGradU(Grad2D &gradU,
   X[1][0] = X[2][1]*X[0][2] - X[2][2]*X[0][1];
   X[1][1] = X[2][2]*X[0][0] - X[2][0]*X[0][2];
   X[1][2] = X[2][0]*X[0][1] - X[2][1]*X[0][0];
- 
-  // fprintf(stderr, "Axis %e %e %e   %e %e %e %e %e %e\n", X[0][0], X[0][1], X[0][2], 
-  //     X[1][0], X[1][1], X[1][2], X[2][0], X[2][1], X[2][2]);
  
   // This is dX_i/dxi_j
   double dXdxi[2][2] = { { d[0][0]*X[0][0]+d[0][1]*X[0][1]+d[0][2]*X[0][2],
@@ -316,8 +302,6 @@ TriMembraneShapeFunct::getGradU(Grad2D &gradU,
                          { dxidX[0][0], dxidX[0][1] },
                          { dxidX[1][0], dxidX[1][1] }
 		      };
-  // fprintf(stderr, "dNdX: %e %e  %e %e   %e %e\n", 
-  //     dNdX[0][0], dNdX[0][1], dNdX[1][0], dNdX[1][1], dNdX[2][0], dNdX[2][1]);
   for(i = 0; i < 2; ++i) {
     gradU[i][0] = dNdX[0][i]*Utilde[0][0]
                 + dNdX[1][i]*Utilde[1][0]
@@ -331,10 +315,16 @@ TriMembraneShapeFunct::getGradU(Grad2D &gradU,
   }
 }
 
+double
+TriMembraneShapeFunct::interpolateScalar(double *q, double xi[3])
+{
+  return xi[0]*q[0] + xi[1]*q[1] + (1-xi[0]-xi[1])*q[2];
+}
+
 static TriMembraneShapeFunct shpFct;
 
 NLMembrane::NLMembrane(int *nd)
- : material(NULL)
+ : material(NULL), cFrame(NULL), cCoefs(NULL)
 {
   for(int i = 0; i < 3; ++i)
     n[i] = nd[i];
@@ -343,7 +333,7 @@ NLMembrane::NLMembrane(int *nd)
 
 NLMembrane::~NLMembrane()
 {
-  if(material && useDefaultMaterial) delete material;
+  if(material && (useDefaultMaterial || cCoefs)) delete material;
 }
 
 int
@@ -443,18 +433,52 @@ NLMembrane::markDofs(DofSetArray &dsa)
 }
 
 void
-NLMembrane::setMaterial(NLMaterial *m)
+NLMembrane::setProp(StructProp *p, bool _myProp)
 {
-  material = m;
+  Element::setProp(p, _myProp);
+  if(!material && prop) {
+    material = new ElaLinIsoMat2D(prop);
+    material->setTDProps(prop->ymtt, prop->ctett);
+    useDefaultMaterial = true;
+  }
 }
 
-int
-NLMembrane::numInternalNodes()
+void
+NLMembrane::setCompositeData(int, int, double *, double *coefs, double *frame)
 {
-  // this function is called after setMaterial
-  useDefaultMaterial = (material == NULL);
-  if(useDefaultMaterial) material = new ElaLinIsoMat2D(prop);
-  return 0;
+  cCoefs = coefs;
+  cFrame = frame;
+  if(material) { // anisotropic material
+    double C[6][6], alpha[6];
+    // transform local constitutive matrix to global frame
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);
+    material->setTangentMaterial(C);
+    // transform local coefficients of thermal expansion to global frame
+    rotateVector(cCoefs+36, cFrame, alpha);
+    material->setThermalExpansionCoef(alpha);
+  }
+}
+
+void
+NLMembrane::setMaterial(NLMaterial *m)
+{
+  if(material) delete material;
+  useDefaultMaterial = false;
+  if(cCoefs) { // anisotropic material
+    material = m->clone();
+    if(material) {
+      double C[6][6], alpha[6];
+      // transform local constitutive matrix to global frame
+      rotateConstitutiveMatrix(cCoefs, cFrame, C);
+      material->setTangentMaterial(C);
+      // transform local coefficients of thermal expansion to global frame
+      rotateVector(cCoefs+36, cFrame, alpha);
+      material->setThermalExpansionCoef(alpha);
+    }
+  }
+  else {
+    material = m;
+  }
 }
 
 void
@@ -470,6 +494,22 @@ NLMembrane::computePressureForce(CoordSet& cs, Vector& force,
     gs[3*i+2] = (*geomState)[n[i]].z;
   }
 
+//#define USE_FORCE_PER_REFERENCE_AREA
+#ifdef USE_FORCE_PER_REFERENCE_AREA
+  double d0[2][3] = { { nodes[1].x-nodes[0].x,
+                        nodes[1].y-nodes[0].y,
+                        nodes[1].z-nodes[0].z },
+                      { nodes[2].x-nodes[0].x,
+                        nodes[2].y-nodes[0].y,
+                        nodes[2].z-nodes[0].z },
+                    };
+  double n0[3];
+  n0[0] = d0[0][1]*d0[1][2] - d0[0][2]*d0[1][1];
+  n0[1] = d0[0][2]*d0[1][0] - d0[0][0]*d0[1][2];
+  n0[2] = d0[0][0]*d0[1][1] - d0[0][1]*d0[1][0];
+  double A0 = 0.5*sqrt(n0[0]*n0[0]+n0[1]*n0[1]+n0[2]*n0[2]);
+#endif
+
   double d[2][3] = { { nodes[1].x+gs[3]-nodes[0].x-gs[0], 
                        nodes[1].y+gs[4]-nodes[0].y-gs[1],
                        nodes[1].z+gs[5]-nodes[0].z-gs[2] },
@@ -482,8 +522,14 @@ NLMembrane::computePressureForce(CoordSet& cs, Vector& force,
   n[1] = d[0][2]*d[1][0] - d[0][0]*d[1][2];
   n[2] = d[0][0]*d[1][1] - d[0][1]*d[1][0];
   double p = getPressure()->val;
-  for(int i=0; i < 3; ++i)
-    force[i] = force[i+3]=force[i+6] = 1.0/6.0*p*n[i];
+#ifdef USE_FORCE_PER_REFERENCE_AREA
+  double A = 0.5*sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
+  for(int i = 0; i < 3; ++i)
+    force[i] = force[i+3] = force[i+6] = 1.0/6.0*p*n[i]*A0/A;
+#else
+  for(int i = 0; i < 3; ++i)
+    force[i] = force[i+3] = force[i+6] = 1.0/6.0*p*n[i];
+#endif
 }
 
 #include <Corotational.d/PhantomCorotator.h>
@@ -533,7 +579,7 @@ NLMembrane::massMatrix(CoordSet &cs, double *mel, int cmflg)
          0, 0, 1, 0, 0, 1, 0, 0, 2;
      M *= mass/12;
 #else
-     std::cerr << " ERROR: consistent mass matrix for NLMembrane element requires Eigen3 library\n";
+     std::cerr << " *** ERROR: Consistent mass matrix for NLMembrane element requires AERO-S configured with Eigen library. Exiting...\n";
      exit(-1);
 #endif
   }

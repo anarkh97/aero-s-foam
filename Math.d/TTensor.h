@@ -28,9 +28,9 @@ class SimpleTensor : public Tensor, public CTD<S,d> {
       return res;
     }
     SimpleTensor &operator = (const S &v) {
-	   for(int i=0; i < d; ++i)
-		    (*this)[i] = v;
-           return *this;
+      for(int i=0; i < d; ++i)
+        (*this)[i] = v;
+      return *this;
     }
 };
 
@@ -42,13 +42,13 @@ class SymTensor :  public Tensor, public CTD<S,(d*(d+1))/2> {
        dc.assignTo(this);
        return *this;
       }
-  void dblContractInto(const Tensor &, Tensor *) const ;
+  void dblContractInto(const Tensor &, Tensor *) const;
 };
 
 template <class S, int d>
 class SimpleTensor<SymTensor<S,2>,d> : public Tensor, public CTD<SymTensor<S,2>,d> {
   public:
-    void dblContractInto(const Tensor &, Tensor *) const ;
+    void dblContractInto(const Tensor &, Tensor *) const;
 };
 
 typedef SymTensor<double,2> Stress2D;
@@ -68,8 +68,6 @@ SymTensor<double,2> dblContract(const SymTensor<SymTensor<double,2>,2> &a, SymTe
   res[0] = dblContract(a[0],b);
   res[1] = dblContract(a[1],b);
   res[2] = dblContract(a[2],b);
-//  fprintf(stderr, "dblC %e %e %e %e %e %e %e %e %e,  %e %e %e gives %e %e %e\n",
-//     a[0][0], a[0][1], a[0][2], a[1][0], a[1][1], a[1][2], a[2][0], a[2][1], a[2][2], b[0], b[1], b[2], res[0], res[1], res[2]);
   return res; 
 }
 
@@ -77,7 +75,7 @@ SymTensor<double,2> dblContract(const SymTensor<SymTensor<double,2>,2> &a, SymTe
 template<int n, int dim >
 SimpleTensor<SymTensor<double,dim>, n>
 dblContractTransp(SymTensor<SymTensor<double,dim>,dim> &a,
-                 SimpleTensor<SymTensor<double,dim>, n> &b) {
+                  SimpleTensor<SymTensor<double,dim>, n> &b) {
   SimpleTensor<SymTensor<double,dim>, n> res;
   for(int i=0; i < n; ++i) {
      res[i] = dblContract(a,b[i]);
@@ -93,16 +91,15 @@ SymTensor<SymTensor<double,2>,2>::dblContractInto(const Tensor &b, Tensor *res) 
 template<class S, int n>
 void
 SimpleTensor<SymTensor<S,2>,n>::dblContractInto(const Tensor &b, Tensor *res) const {
-  Tensor_d2s0 &resMat = dynamic_cast<Tensor_d2s0 &>(*res);
-  if(&resMat != 0) {
+  Tensor_d2s0 *resMat = dynamic_cast<Tensor_d2s0 *>(res);
+  if(resMat != 0) {
     const SimpleTensor<SymTensor<S,2>, n> &bb = 
                dynamic_cast<const SimpleTensor<SymTensor<S,2>, n> &>(b);
     for(int i = 0; i < n; ++i)
       for(int j = 0; j < n; ++j) {
-        resMat[i*n+j] = 
+        (*resMat)[i*n+j] = 
           (*this)[i][0]*bb[j][0]+(*this)[i][1]*bb[j][1]+2*(*this)[i][2]*bb[j][2];
-//	  fprintf(stderr, "Worked on %e %e %e    %e %e %e    res %e\n",(*this)[i][0],(*this)[i][1],(*this)[i][2],bb[j][0],bb[j][1],bb[j][2],resMat[i*n+j]);
-	  }
+      }
   } else {
     fprintf(stderr, "Tried to double contract a Sym 3th order tensor into something unknown\n");
   }   
@@ -130,7 +127,7 @@ SimpleTensor<S,n> operator*(double a, const SimpleTensor<S,n> &b)
 
 template<class S, int n, int d>
 SimpleTensor<SimpleTensor<S,n>,n> operator||(const SimpleTensor<SimpleTensor<SymTensor<S,d>, n>, n> &a,
-      SymTensor<S,d> &b)
+                                             SymTensor<S,d> &b)
 {
     SimpleTensor<SimpleTensor<S,n>,n> res;
     for(int i = 0; i < n; ++i)

@@ -7,8 +7,8 @@ class BarRadiation: public virtual Element {
 
         int nn[2];
 public:
-
 	BarRadiation(int*);
+        ~BarRadiation();
 
         Element *clone();
 
@@ -25,12 +25,15 @@ public:
 
         Corotator* getCorotator(CoordSet &, double*, int, int);
         
-        //void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &ThermalForce, int glflag,
-        //                   GeomState *gs) { ThermalForce.zero(); }
-
         int              numNodes();
         int*             nodes(int * = 0);
 	PrioInfo examine(int sub, MultiFront *);
 	int 		getTopNumber();
+
+        bool isRadiationElement() { return true; }
+
+        void computeTemp(CoordSet&, State &, double[2], double*);
+        void getFlFlux(double[2], double *, double *);
 };
+
 #endif

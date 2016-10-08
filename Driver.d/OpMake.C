@@ -1,4 +1,7 @@
+#ifndef _OPMAKE_C_
+#define _OPMAKE_C_
 #include <typeinfo>
+#include <algorithm>
 #include <Utils.d/dbg_alloca.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
@@ -8,10 +11,6 @@
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/BLKSparseMatrix.h>
-#include <Solvers.d/PCGSolver.h>
-#include <Solvers.d/CRSolver.h>
-#include <Solvers.d/BCGSolver.h>
-#include <Solvers.d/GmresSolver.h>
 #include <Timers.d/GetTime.h>
 #include <Utils.d/Memory.h>
 #include <Driver.d/GeoSource.h>
@@ -27,8 +26,10 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/MFTT.h>
 #include <Utils.d/MathUtils.h>
+#include <Utils.d/DistHelper.h>
 #include <Solvers.d/SolverFactory.h>
 #include <Control.d/ControlInterface.h>
+#include <Driver.d/SubDomain.h>
 
 extern Sfem* sfem;
 extern int verboseFlag;
@@ -36,44 +37,6 @@ extern int verboseFlag;
 #include <Comm.d/Communicator.h>
 extern Communicator *structCom;
 #endif
-
-/** abstract method of operator assembly */
-template<class Scalar, class OpList>
-void
-Domain::assembleSparseOps(OpList &ops) {
-  int size = sizeof(Scalar)*maxNumDOFs*maxNumDOFs;
-  Scalar *karray = (Scalar *) dbg_alloca(size);
-  Scalar *marray = (Scalar *) dbg_alloca(size);
-  for(int iele=0; iele < numele; ++iele) {
-    // Skip all irrelevant elements
-    if(packedEset[iele]->isSommerElement()) continue;
-
-    if(ops.needStiff()) {
-      GenFullSquareMatrix<Scalar> kel = packedEset[iele]->stiffness(nodes, karray);
-      ops.addStiffness((*allDOFs)[iele], kel);
-    }
-    if(ops.needMass()) {
-      GenFullSquareMatrix<Scalar> kel = packedEset[iele]->massMatrix(nodes, karray);
-      ops.addMass((*allDOFs)[iele], kel);
-    }
-  }
-
-  if(ops.needMass()) {
-    // Add discrete mass contribution to the Mass Matrix
-    // Three matrices need to be changed. Mass matrix itself,
-    // Damping Matrix and K tilda.
-    Scalar m;
-    DMassData *current = firstDiMass;
-    while(current != 0) {
-      int dof = dsa->locate(current->node, (1 << current->dof));
-      int jdof = (current->jdof > -1) ?// PJSA 10-9-06 for off-diagonal mass terms eg. products of inertia I21, I31, I32
-         dsa->locate(current->node, (1 << current->jdof)) : dof;
-
-      ops.addMass(dof, jdof, current->diMass);
-      current = current->next;
-    }
-  }
-}
 
 template<class Scalar>
 void
@@ -92,7 +55,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
 
- double *karray = new double[maxNumDOFs*maxNumDOFs];
+ double *karray = new double[std::max(maxNumDOFs*maxNumDOFs,maxNumDOFsFluid*maxNumDOFsFluid)];
  double *ikarray = new double[maxNumDOFs*maxNumDOFs];
  double *marray = new double[maxNumDOFs*maxNumDOFs];
 
@@ -137,6 +100,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  for(iele = 0; iele < numele; ++iele) {
    StructProp *prop = packedEset[iele]->getProperty();
    if(packedEset[iele]->isSommerElement()) continue;
+   if(prop && (prop->E0!=0.0 || prop->mu0!=0.0)) continue; // rubber handled below
    bool isComplexF = (prop && prop->fp.PMLtype != 0);
    if(packedEset[iele]->isConstraintElement()) { alpha = beta = eta = 0; }
    else {
@@ -215,7 +179,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(melArray) mel.copy(melArray[iele]);
        else mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
        this->densProjectStiffness(mel, iele);
-       this->transformMatrix(mel, iele);
+       if(!sinfo.isNonLin()) this->transformMatrix(mel, iele);
      }
      if(sinfo.isCoupled) { 
        if(isStructureElement(iele)) mel *= cscale_factor2;
@@ -238,7 +202,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 	 for(i = 0; i < dim; ++i)
 	   for(j = 0; j < dim; ++j)
              izel[i][j] = -omega*(beta*kel[i][j] + alpha*mel[i][j]);
-//if (iele==0) fprintf(stderr,"gaga beta: %.16e alpha: %.16e\n",beta,alpha);
        }
      }
      if(isComplexF) {
@@ -404,6 +367,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    for(iele = 0; iele < numele; ++iele) {
      StructProp *prop = packedEset[iele]->getProperty();
      if(packedEset[iele]->isSommerElement()) continue;
+     if(prop && (prop->E0!=0.0 || prop->mu0!=0.0)) continue; // rubber handled below
      if(!packedEset[iele]->isComplex()) continue;
 
      if(matrixTimers) matrixTimers->formTime -= getTime();
@@ -463,6 +427,86 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(matrixTimers) matrixTimers->assemble += getTime();
    }
  }
+
+ // Acoustic rubber elements
+ int N = sinfo.doFreqSweep ? solInfo().getSweepParams()->nFreqSweepRHS - 1:0; // number of derivatives
+ complex<double> *krarray = new complex<double>[(N+3)*maxNumDOFs*maxNumDOFs];
+ for(iele = 0; iele < numele; ++iele) {
+   StructProp *prop = packedEset[iele]->getProperty();
+
+   if(!prop || (prop && (prop->E0==0.0 || prop->mu0==0.0)) || !isShifted) continue; 
+
+   omega2 = geoSource->shiftVal();
+   SPropContainer& sProps = geoSource->getStructProps();
+   SPropContainer::iterator it = sProps.begin();
+   bool found = false;
+   int i_arubber = 0;
+   while(it != sProps.end()) {
+     StructProp* p = &(it->second);
+      if((p->E0!=0.0 || p->mu0!=0.0)) {
+        if (prop==p) {
+          found = true;
+          break;
+        }
+        i_arubber++;
+      }
+      it++;
+   }
+   if (!found) fprintf(stderr,"Error: rubber material not found.\n");
+
+   if(matrixTimers) matrixTimers->formTime -= getTime();
+   packedEset[iele]->aRubberStiffnessDerivs(nodes, krarray,N,sqrt(omega2));
+   mel = packedEset[iele]->massMatrix(nodes, marray,1);
+   int ndof = packedEset[iele]->numDofs();
+   if(sinfo.isCoupled) if(isStructureElement(iele)) {  // coupled scaling
+     for(int i=0;i<ndof*ndof;i++)  marray[i] *= cscale_factor2;
+     for(int i=0;i<ndof*ndof*(N+3);i++)  krarray[i] *= cscale_factor2;
+   }
+
+   if(matrixTimers) matrixTimers->formTime += getTime();
+   if(matrixTimers) matrixTimers->assemble -= getTime();
+   if(ops.M)   ops.M->add(mel,(*allDOFs)[iele]);
+   if(ops.Muc) ops.Muc->add(mel,(*allDOFs)[iele]);
+   if(ops.Mcc) ops.Mcc->add(mel,(*allDOFs)[iele]);
+   if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
+   if (sinfo.doFreqSweep) for(int i=0;i<=N;i++) {
+     FullSquareMatrixC kdel(ndof,krarray+ndof*ndof*(i+2));
+     if (ops.K_deriv) if (ops.K_deriv[i]) ops.K_deriv[i]->add(kdel,(*allDOFs)[iele]);
+     if (ops.Kuc_deriv) if (ops.Kuc_deriv[i]) ops.Kuc_deriv[i]->add(kdel,(*allDOFs)[iele]);
+   }
+
+   FullSquareMatrixC krel_m(ndof,krarray+ndof*ndof*0);
+   FullSquareMatrixC krel_l(ndof,krarray+ndof*ndof*1);
+
+
+   if (found & sinfo.doFreqSweep) { 
+     if(ops.K_arubber_m[i_arubber])
+       ops.K_arubber_m[i_arubber]->add(krel_m,(*allDOFs)[iele]);
+     if(ops.K_arubber_l[i_arubber])
+       ops.K_arubber_l[i_arubber]->add(krel_l,(*allDOFs)[iele]);
+     if(ops.Kuc_arubber_m) if(ops.Kuc_arubber_m[i_arubber])
+       ops.Kuc_arubber_m[i_arubber]->add(krel_m,(*allDOFs)[iele]);
+     if(ops.Kuc_arubber_l) if(ops.Kuc_arubber_l[i_arubber])
+       ops.Kuc_arubber_l[i_arubber]->add(krel_l,(*allDOFs)[iele]);
+   }
+
+   FullSquareMatrixC krel(ndof,krarray+ndof*ndof*2);
+   if(ops.K)   ops.K->add(krel,(*allDOFs)[iele]);
+   for(int i=0;i<ndof*ndof;i++)  krarray[i+ndof*ndof*2] -= omega2*marray[i];
+   if(ops.Kuc) ops.Kuc->add(krel,(*allDOFs)[iele]);
+   if(ops.Kcc) ops.Kcc->add(krel,(*allDOFs)[iele]);
+
+   if(mdds_flag) {
+#if defined(_OPENMP)
+     #pragma omp critical
+#endif
+     mat->add(krel,(*domain->getAllDOFs())[subCast->getGlElems()[iele]]);
+   }
+   else if(mat) mat->add(krel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(krel,(*allDOFs)[iele]);
+   if(matrixTimers) matrixTimers->assemble += getTime();
+ }
+ delete[] krarray;
 
  if(sinfo.ATDARBFlag >= 1.0) {
    getCurvatures3Daccurate(this);
@@ -624,7 +668,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          // note: for coupled problems we are assuming lumped mass is structural not fluid
          double mass = sinfo.isCoupled ? current->diMass*cscale_factor2 : current->diMass;
          double m_real = -omega2*mass;
-         double m_imag = isDamped ? -omega*alpha*mass : 0.0; 
+         double m_imag = isDamped ? -omega*alphaDamp*mass : 0.0; 
          ScalarTypes::initScalar(m, m_real, m_imag);
          if(mdds_flag) {
 #if defined(_OPENMP)
@@ -636,7 +680,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          else if(mat) mat->add(dof, jdof, m);
          if(ops.spp) ops.spp->add(dof, jdof, m);
          if(isDamped) {
-           ScalarTypes::initScalar(m, 0.0, alpha*mass);
+           ScalarTypes::initScalar(m, 0.0, alphaDamp*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->add(dof, jdof, m);
          }
          if(ops.M) ops.M->add(dof, jdof, mass);
@@ -645,25 +689,27 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        else {
          if(ops.M) ops.M->add(dof,jdof,current->diMass);
          if(ops.Msolver) ops.Msolver->add(dof,jdof,current->diMass);
-         if(ops.C) ops.C->add(dof,jdof,alpha*current->diMass);
+         if(ops.C) ops.C->add(dof,jdof,alphaDamp*current->diMass);
          double mass = Mcoef*current->diMass;
-         if (ops.C) mass += Ccoef*alpha*mass;
+         if(isDamped) mass += Ccoef*alphaDamp*current->diMass;
+         if(mass != 0) {
          if(mdds_flag) {
 #if defined(_OPENMP)
-           #pragma omp critical
+             #pragma omp critical
 #endif
-           mat->add(domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->dof)),
-                    domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->jdof)), mass);
+             mat->add(domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->dof)),
+                      domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->jdof)), mass);
+           }
+           else if(mat) mat->add(dof,jdof,mass);
+           if(ops.spp) ops.spp->add(dof,jdof,mass);
          }
-         else if(mat) mat->add(dof,jdof,mass);
-         if(ops.spp) ops.spp->add(dof,jdof,mass);
        }
      }
      else {
        if(isShifted) {  // add discrete mass contributions to global matrices for frequency response analysis
          double mass = sinfo.isCoupled ? current->diMass*cscale_factor2 : current->diMass;
          double m_real = -omega2*mass;
-         double m_imag = isDamped ? -omega*alpha*mass : 0.0;
+         double m_imag = isDamped ? -omega*alphaDamp*mass : 0.0;
          ScalarTypes::initScalar(m, m_real, m_imag);
          if(mdds_flag) {
 #if defined(_OPENMP)
@@ -674,7 +720,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          else if(mat) mat->addDiscreteMass(dof, m);
          if(ops.spp) ops.spp->addDiscreteMass(dof, m);
          if(isDamped) {
-           ScalarTypes::initScalar(m, 0.0, alpha*mass);
+           ScalarTypes::initScalar(m, 0.0, alphaDamp*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->addDiscreteMass(dof, m);
          }
          if(ops.M) ops.M->addDiscreteMass(dof, mass);
@@ -683,24 +729,25 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        else {
          if(ops.M) ops.M->addDiscreteMass(dof, current->diMass);
          if(ops.Msolver) ops.Msolver->addDiscreteMass(dof, current->diMass);
-         if(ops.C) ops.C->addDiscreteMass(dof, alpha*current->diMass);
+         if(ops.C) ops.C->addDiscreteMass(dof, alphaDamp*current->diMass);
          double mass = Mcoef*current->diMass;
-         if (ops.C) mass += Ccoef*alpha*mass;
-         if(mdds_flag) {
+         if(isDamped) mass += Ccoef*alphaDamp*current->diMass;
+         if(mass != 0) {
+           if(mdds_flag) {
 #if defined(_OPENMP)
-           #pragma omp critical
+             #pragma omp critical
 #endif
-           mat->addDiscreteMass(domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->dof)), mass);
+             mat->addDiscreteMass(domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->dof)), mass);
+           }
+           else if(mat) mat->addDiscreteMass(dof, mass);
+           if(ops.spp) ops.spp->addDiscreteMass(dof, mass);
          }
-         else if(mat) mat->addDiscreteMass(dof, mass);
-         if(ops.spp) ops.spp->addDiscreteMass(dof, mass);
        }
      }
      current = current->next;
    }
  }
 
- //ADDED FOR HEV PROBLEM, EC, 20070820
  if((sinfo.HEV) && (probType() == SolverInfo::Modal)) {
    Mff = new GenBLKSparseMatrix<double>(nodeToNodeFluid, dsaFluid, c_dsaFluid, sinfo.solvercntl->trbm, *sinfo.solvercntl, 0);
    Mff->zeroAll();
@@ -811,7 +858,7 @@ Domain::constructEiSparseMatrix(DofSetArray *c_dsa, Connectivity *nodeToNode, bo
   if(nodeToNode == 0) nodeToNode = Domain::nodeToNode;
   return new GenEiSparseMatrix<Scalar,SolverClass>(nodeToNode, dsa, c_dsa, flag);
 #else
- cerr << "USE_EIGEN3 is not defined\n";
+ std::cerr << "USE_EIGEN3 is not defined\n";
 #endif
 }
 
@@ -850,6 +897,8 @@ GenBLKSparseMatrix<Scalar> *
 Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
 {
   if(DSA == 0) DSA = c_dsa;
+  // use the correct zero pivot tolerance for GRBM or TRBM.
+  double trbm = (rbm && geoSource->shiftVal() == 0) ? sinfo.solvercntl->trbm2 : sinfo.solvercntl->trbm;
   if(sinfo.newmarkBeta == 0.0 && (sinfo.acoustic || sinfo.inertiaLumping == 2)) {
     if(sinfo.ATDARBFlag >- 1.0 && sinfo.acoustic) {
       return new GenBLKSparseMatrix<Scalar>(nodeToNode_sommer->modify(), dsa, DSA, sinfo.solvercntl->trbm, *sinfo.solvercntl, rbm);
@@ -859,7 +908,6 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
       // import a diagonal connectivity for the mass matrix
       Connectivity *connForMas = 0;
       connForMas = new Connectivity(numN);
-      //connForMass->print();
       connForMas = connForMas->modify();
       GenBLKSparseMatrix<Scalar> * retur =  new GenBLKSparseMatrix<Scalar>(connForMas, dsa, DSA, sinfo.solvercntl->trbm, *sinfo.solvercntl, rbm);
       delete connForMas;
@@ -878,10 +926,38 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
       if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
       MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
       typename WrapSparseMat<Scalar>::CtorData
-        baseArg(nodeToNodeDirect, dsa, MpcDSA, sinfo.solvercntl->trbm, *sinfo.solvercntl, /*rbm*/ (Rbm*)NULL); // TODO consider rbm issue
+        baseArg(nodeToNodeDirect, dsa, MpcDSA, sinfo.solvercntl->trbm, *sinfo.solvercntl, rbm);
       int nMappedEq = DSA->size();
-      return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap, c_dsa);
+      return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap, c_dsa, rbm);
     }
+  }
+}
+
+template<class Scalar>
+void
+Domain::buildPreSensitivities(AllSensitivities<Scalar> &allSens, Scalar *bcx)
+{
+  switch(sinfo.solvercntl->type) {
+    default:
+      fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
+    case 0:
+      makePreSensitivities(allSens, bcx);
+      break;
+  }
+}
+
+template<class Scalar>
+void
+Domain::buildPostSensitivities(GenSolver<Scalar> *sysSolver,
+                               GenSparseMatrix<Scalar> *K, GenSparseMatrix<Scalar> *spm,
+                               AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx, bool isDynam)
+{
+  switch(sinfo.solvercntl->type) {
+    default:
+      fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
+    case 0:
+      makePostSensitivities(sysSolver, spm, allSens, sol, bcx, K, isDynam);
+      break;
   }
 }
 
@@ -895,15 +971,15 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
 
  if(allOps.sysSolver) delete allOps.sysSolver;
  GenSolver<Scalar> *systemSolver = 0;
- if(geoSource->isShifted() || Mcoef != 0 || Ccoef != 0) rbm = 0; // PJSA: don't pass
-                                                                 // geometric rbms to
-                                                                 // solver in this case
+ if(geoSource->shiftVal() != 0 || Mcoef != 0 || Ccoef != 0) rbm = 0; // PJSA: don't pass
+                                                                     // geometric rbms to
+                                                                     // solver in this case
  allOps.spm = 0;
  SfemBlockMatrix<Scalar> *sfbm = 0;
  int L = 1;
  int ndim = 0;
- if(sinfo.inpc||sinfo.noninpc) {
-   L =  sfem->getL();
+ if(sinfo.inpc || sinfo.noninpc) {
+   L = sfem->getL();
    int n = domain->numUncon();
    int P = sfem->getP();
    ndim = sfem->getndim();
@@ -950,7 +1026,7 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    switch(sinfo.solvercntl->iterType) {
      default:
      case 0 : {
-       filePrint(stderr," ... CG Solver is Selected           ...\n");
+       filePrint(stderr," ... CG Solver is Selected          ...\n");
        allOps.sysSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sfbm, sinfo.solvercntl->precond, sinfo.solvercntl->maxit,
                                                                                                 sinfo.solvercntl->tol, sinfo.solvercntl->maxvecsize,
                                                                                                 sinfo.solvercntl->verbose);
@@ -984,8 +1060,9 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
      }
 
      if(matrixTimers) matrixTimers->factor += getTime();
-     if(matrixTimers) matrixTimers->memorySolve += memoryUsed();
    }
+
+ if(matrixTimers) matrixTimers->memorySolve += memoryUsed();
 }
 
 template<class Scalar>
@@ -1044,7 +1121,6 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
          systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
        }
        break;
-#ifdef EIGEN_SPARSELU_SUPPORT
        case 15: {
          spm = (GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*)allOps.sysSolver;
          spm->zeroAll();
@@ -1052,7 +1128,6 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
          systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*) spm;
        }
        break;
-#endif
        case 17: {
          spm = (GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*)allOps.sysSolver;
          spm->zeroAll();
@@ -1096,8 +1171,11 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
        }
        break;
 #endif
+#else
+       case 3: case 4: case 5: case 6: case 7: case 15: case 16: case 17:
+         std::cerr << " *** ERROR: Solver requires AERO-S configured with the Eigen library. Exiting...\n";         
+         exit(-1);
 #endif
-#ifdef USE_SPOOLES
        case 8: {
          spm =(GenSpoolesSolver<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
@@ -1105,8 +1183,6 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
          systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
        }
        break;
-#endif
-#ifdef USE_MUMPS
        case 9: {
          spm = (GenMumpsSolver<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
@@ -1114,7 +1190,6 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
          systemSolver   = (GenMumpsSolver<Scalar>*) spm;
        }
        break;
-#endif
      }
      break;
 
@@ -1134,44 +1209,7 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
 
 template<class Scalar>
 void
-Domain::getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&kuc,
-                        FullSquareMatrix *kelArray, bool factorize)
-{
- // ... Declare an AllOps structure
- AllOps<Scalar> allOps;
-
- // ... Call necessary Operator's constructors
- allOps.Kuc = constructCuCSparse<Scalar>();
-
- Rbm *rbm = 0;
- // ... Construct geometric rigid body modes if necessary
- if(sinfo.rbmflg) rbm = constructRbm();
-
- // ... Construct "thermal rigid body mode" if necessary
- if(sinfo.hzemFlag) {
-   rbm = constructHzem();
-   if(rbm->numRBM() == 0) rbm = 0;
- }
-
- // ... Construct "Sloshing rigid body mode" if necessary
- // ADDED FOR SLOSHING PROBLEM, EC, 20070723
- if(sinfo.slzemFlag) {
-   fprintf(stderr," ... constructSlzem called in OpMake.C -- THIS CALL HAS NOT BEEN DEBUGGED ...\n");
-   rbm = constructSlzem();
-   if(rbm->numRBM() == 0) rbm = 0;
- }
-
- // ... Build stiffness matrix K and Kuc
- buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, factorize);
-
- // ... Return with solver and Kuc
- solver = allOps.sysSolver;
- kuc    = allOps.Kuc;
-}
-
-template<class Scalar>
-void
-Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool factorize)
+Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, Rbm *rbm, bool factorize)
 {
  // PJSA 10-5-04: new version, this one can pass all sys matricies back via allOps
  // not just K and Kuc. This is required for frequency sweep analysis
@@ -1179,28 +1217,14 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  // ... Call necessary Operator's constructors
  allOps.Kuc = constructCuCSparse<Scalar>();
  allOps.Kcc = constructCCSparse<Scalar>();
-
- Rbm *rbm = 0;
- // ... Construct geometric rigid body modes if necessary
- if(sinfo.rbmflg) rbm = constructRbm();
-
- // ... Construct "thermal rigid body mode" if necessary
- if(sinfo.hzemFlag) {
-   rbm = constructHzem();
-   if(rbm->numRBM() == 0) rbm = 0;
- }
-
- // ... Construct "Sloshing rigid body mode" if necessary
- // ADDED FOR SLOSHING PROBLEM, EC, 20070723
- if(sinfo.slzemFlag) {
-   fprintf(stderr," ... constructSlzem called in OpMake.C -- THIS CALL HAS NOT BEEN DEBUGGED ...\n");
-   rbm = constructSlzem();
-   if(rbm->numRBM() == 0) rbm = 0;
- }
+#ifdef USE_EIGEN3
+ if(sinfo.sensitivity)
+   allOps.K = constructEiSparseMatrix<Scalar, Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa, nodeToNode, false);
+#endif
 
  // for freqency sweep: need M, Muc, C, Cuc
  bool isDamped = (sinfo.alphaDamp != 0.0) || (sinfo.betaDamp != 0.0) || packedEset.hasDamping();
- if((sinfo.doFreqSweep && (sinfo.getSweepParams()->nFreqSweepRHS > 1 || isDamped)) || sinfo.getSweepParams()->isAdaptSweep) {
+ if(sinfo.doFreqSweep && (sinfo.getSweepParams()->nFreqSweepRHS > 1 || isDamped || sinfo.getSweepParams()->isAdaptSweep)) {
    //---- UH ----
    if(sinfo.getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos ||
       sinfo.getSweepParams()->freqSweepMethod == SweepParams::GalProjection ||
@@ -1238,7 +1262,52 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
        for(int n=numC_deriv; n<sinfo.getSweepParams()->nFreqSweepRHS - 1; ++n)
          allOps.Cuc_deriv[n] = 0;
      }
+
    }
+ }
+ // for rbmfilter: need M
+ else if(sinfo.filterQ == 0 && (sinfo.filterFlags || sinfo.hzemFilterFlag || sinfo.slzemFilterFlag)) {
+   allOps.M = constructDBSparseMatrix<Scalar>();
+ }
+
+ if(isDamped) {
+     if (allOps.K_deriv) for(int i=0;i<=allOps.n_Kderiv;i++) if (allOps.K_deriv[i]) delete allOps.K_deriv[i];
+     if (allOps.Kuc_deriv) for(int i=0;i<=allOps.n_Kderiv;i++) if (allOps.Kuc_deriv[i]) delete allOps.Kuc_deriv[i];
+     int numK_deriv = sinfo.doFreqSweep ? sinfo.getSweepParams()->nFreqSweepRHS-1:0;
+     allOps.n_Kderiv = numK_deriv;
+     allOps.K_deriv = new GenSparseMatrix<Scalar> * [numK_deriv+1];
+     for(int n=0; n<=numK_deriv; ++n)
+       allOps.K_deriv[n] = constructDBSparseMatrix<Scalar>();
+     if(c_dsa->size() > 0 && (c_dsa->size() - dsa->size()) != 0) {
+       allOps.Kuc_deriv = new GenSparseMatrix<Scalar> * [numK_deriv+1];
+       for(int n=0; n<=numK_deriv; ++n)
+         allOps.Kuc_deriv[n] = constructCuCSparse<Scalar>();
+     }
+
+     if (allOps.K_arubber_l) for(int i=0;i<allOps.num_K_arubber;i++) {
+        if (allOps.K_arubber_l[i]) delete allOps.K_arubber_l[i];
+        if (allOps.K_arubber_m[i]) delete allOps.K_arubber_m[i];
+     }
+     if (allOps.Kuc_arubber_l) for(int i=0;i<allOps.num_K_arubber;i++) {
+         if (allOps.Kuc_arubber_l[i]) delete allOps.Kuc_arubber_l[i];
+         if (allOps.Kuc_arubber_m[i]) delete allOps.Kuc_arubber_m[i];
+     }
+     int num_K_arubber = geoSource->num_arubber;
+     allOps.num_K_arubber= num_K_arubber;
+     allOps.K_arubber_l = new GenSparseMatrix<Scalar> * [num_K_arubber];
+     allOps.K_arubber_m = new GenSparseMatrix<Scalar> * [num_K_arubber];
+     for(int n=0; n<num_K_arubber; ++n) {
+       allOps.K_arubber_l[n] = constructDBSparseMatrix<Scalar>();
+       allOps.K_arubber_m[n] = constructDBSparseMatrix<Scalar>();
+     }
+     if(c_dsa->size() > 0 && (c_dsa->size() - dsa->size()) != 0) {
+       allOps.Kuc_arubber_l = new GenSparseMatrix<Scalar> * [num_K_arubber];
+       allOps.Kuc_arubber_m = new GenSparseMatrix<Scalar> * [num_K_arubber];
+       for(int n=0; n<num_K_arubber; ++n) {
+         allOps.Kuc_arubber_l[n] = constructCuCSparse<Scalar>();
+         allOps.Kuc_arubber_m[n] = constructCuCSparse<Scalar>();
+       }
+     }
  }
 
  // ... Build stiffness matrix K and Kuc, etc...
@@ -1274,6 +1343,7 @@ Domain::addGravityForce(GenVector<Scalar> &force)
 {
   // ... ADD ELEMENT MASS CONTRIBUTION ...
   Vector elementGravityForce(maxNumDOFs);
+  GenVector<Scalar> gravityForce(force.size(),0.0);
   int gravflg;
   for(int iele = 0; iele < numele; ++iele) {
     if(packedEset[iele]->getProperty() == 0) continue; // phantom element
@@ -1291,8 +1361,10 @@ Domain::addGravityForce(GenVector<Scalar> &force)
 
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
       int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
-      if(cn >= 0)
+      if(cn >= 0) {
         force[cn] += elementGravityForce[idof];
+        gravityForce[cn] += elementGravityForce[idof];
+      }
     }
   }
 
@@ -1301,14 +1373,55 @@ Domain::addGravityForce(GenVector<Scalar> &force)
   while(current != 0) {
     int thisDof = c_dsa->locate(current->node, (1 << current->dof));
     if(thisDof >= 0 ) {
-      if(current->dof == 0)
-        force[thisDof] += (current->diMass)*gravityAcceleration[0];
-      if(current->dof == 1)
-        force[thisDof] += (current->diMass)*gravityAcceleration[1];
-      if(current->dof == 2)
-        force[thisDof] += (current->diMass)*gravityAcceleration[2];
+      if(nodes[current->node]->cd == 0) {
+        if(current->dof == 0)
+          force[thisDof] += (current->diMass)*gravityAcceleration[0];
+        if(current->dof == 1)
+          force[thisDof] += (current->diMass)*gravityAcceleration[1];
+        if(current->dof == 2)
+          force[thisDof] += (current->diMass)*gravityAcceleration[2];
+      }
+      else {
+        double g[3] = { gravityAcceleration[0], gravityAcceleration[1], gravityAcceleration[2] }; 
+        transformVector(g, current->node, false);
+        if(current->dof == 0)
+          force[thisDof] += (current->diMass)*g[0];
+        if(current->dof == 1)
+          force[thisDof] += (current->diMass)*g[1];
+        if(current->dof == 2)
+          force[thisDof] += (current->diMass)*g[2];
+      }
     }
     current = current->next;
+  }
+}
+
+template<class Scalar>
+void
+Domain::addGravityForceSensitivity(GenVector<Scalar> &forceSen)
+{
+  // ... ADD ELEMENT MASS CONTRIBUTION ...
+  Vector elementGravityForceSen(maxNumDOFs);
+  int gravflg;
+  for(int iele = 0; iele < numele; ++iele) {
+    if(packedEset[iele]->getProperty() == 0) continue; // phantom element
+       
+    if(geoSource->consistentQFlag() && !(sinfo.isDynam() && packedEset[iele]->getMassType() == 0)) 
+      gravflg = 2;                       // 2: consistent (for dynamics, consistent gravity should not be used if element only has a lumped mass matrix)
+    else gravflg = geoSource->fixedEndM; // 1: lumped with fixed-end moments
+                                         // 0: lumped without fixed-end moments
+
+    elementGravityForceSen.zero();
+    packedEset[iele]->getGravityForceThicknessSensitivity(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
+
+    // transform vector from basic to DOF_FRM coordinates
+    transformVector(elementGravityForceSen, iele);
+
+    for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+      int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(cn >= 0)
+        forceSen[cn] += elementGravityForceSen[idof];
+    }
   }
 }
 
@@ -1530,7 +1643,6 @@ Domain::scaleDisp(Scalar *u)
   }
 }
 
-
 template<class Scalar>
 void
 Domain::scaleInvDisp(Scalar *u)
@@ -1556,17 +1668,16 @@ Domain::scaleDisp(Scalar *u, double alpha)
   }
 }
 
-
 template<class Scalar>
 int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx, Scalar (*xyz_loc)[11])
 {
   // PJSA 9-22-06 u is already scaled
   int inode, nodeI;
   int realNode = -1;
-  for (inode = 0; inode < numnodes; ++inode){
 
-    if(nodeToElem)
-      if(nodeToElem->num(inode) <= 0) continue;
+  for(inode = 0; inode < numnodes; ++inode) {
+
+    if(nodes[inode] == 0) continue;
     realNode++;
     nodeI = (outFlag) ? realNode : inode;
 
@@ -1666,14 +1777,13 @@ int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx, Scal
       && c_dsa->locate(inode, DofSet::LagrangeI) < 0) {
       if(xyz_loc) for(int j=0; j<11; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
       bool hasRot = (xRot >= 0 || xRot1 >= 0 || yRot >= 0 || yRot1 >= 0 || zRot >= 0 || zRot1 >= 0);
-      transformVectorInv(&(xyz[nodeI][0]), nodeI, hasRot);
+      transformVectorInv(&(xyz[nodeI][0]), inode, hasRot);
     }
 
   }
 
   return ++realNode;
 }
-
 
 template<class Scalar>
 void Domain::forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::max_known_nonL_dof
@@ -1734,8 +1844,6 @@ void Domain::forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::m
 //  return ++realNode;
 }
 
-
-
 template<class Scalar>
 void
 Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
@@ -1766,14 +1874,15 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   for(i=0; i < numComplexNeuman; ++i) {
     int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
     if(dof < 0) continue;
-    switch(nbc[i].type) {
+/*
+    switch(cnbc[i].type) {
       case(BCond::Forces) : case(BCond::Flux) : case(BCond::Convection) : case(BCond::Hneu) : {
         double loadFactor = domain->getLoadFactor(cnbc[i].loadsetid);
         ScalarTypes::addScalar(force[dof], loadFactor*cnbc[i].reval, loadFactor*cnbc[i].imval);
       } break;
-      default :
+      default : */
         ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
-    }
+    //}
   }
 
   if (implicitFlag) {
@@ -1831,13 +1940,13 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   if(gravityFlag()) addGravityForce<Scalar>(force);
 
   // ... ADD THERMAL FORCES
-  if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
+  if(thermalFlag() && !sinfo.isNonLinExtF()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
+  if(!sinfo.isNonLinExtF()) addPressureForce<Scalar>(force);
 
   // ... ADD LMPC RHS
-  if(!sinfo.isNonLin()) addMpcRhs<Scalar>(force);
+  if(!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) addMpcRhs<Scalar>(force);
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {
@@ -1862,8 +1971,8 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
       if(dof < 0) continue;
       dof = c_dsa->invRCN(dof);
       if(dof >= 0) {
-        if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else // PJSA 1-9-08
-        ScalarTypes::initScalar(Vc[dof], dbc[i].val);
+        if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling);
+        else ScalarTypes::initScalar(Vc[dof], dbc[i].val);
       }
     }
 
@@ -1874,8 +1983,8 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
       if(dof2 < 0) continue;
       dof2 = c_dsa->invRCN(dof2);
       if(dof2 >= 0) {
-        if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
-        ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
+        if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling);
+        else ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
       }
     }
 
@@ -1926,7 +2035,11 @@ template<class Scalar>
 void
 Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
                       GenSparseMatrix<Scalar> *kuc, GenSparseMatrix<Scalar> *muc, 
-                      GenSparseMatrix<Scalar> **cuc_deriv, double omega, double delta_omega, GeomState *gs)
+                      GenSparseMatrix<Scalar> **cuc_deriv,
+                      GenSparseMatrix<Scalar> **kuc_deriv,
+                      GenSparseMatrix<Scalar> **kuc_arubber_l,
+                      GenSparseMatrix<Scalar> **kuc_arubber_m,
+ double omega, double delta_omega, GeomState *gs)
 {
   if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
     checkSommerTypeBC(this);
@@ -1952,14 +2065,15 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
   for(i=0; i < numComplexNeuman; ++i) {
     int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
     if(dof < 0) continue;
+/*
     switch(nbc[i].type) {
       case(BCond::Forces) : case(BCond::Flux) : case(BCond::Convection) : case(BCond::Hneu) : {
         double loadFactor = domain->getLoadFactor(cnbc[i].loadsetid);
         ScalarTypes::addScalar(force[dof], loadFactor*cnbc[i].reval, loadFactor*cnbc[i].imval);
       } break;
-      default :
-        ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval); 
-    }
+      default :*/
+        ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
+//    }
   }
 
   // PJSA: new FETI-H stuff
@@ -2028,10 +2142,10 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
   if(gravityFlag()) addGravityForce<Scalar>(force);
 
   // ... ADD THERMAL FORCES
-  if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
+  if(thermalFlag() && !sinfo.isNonLinExtF()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
+  if(!sinfo.isNonLinExtF()) addPressureForce<Scalar>(force);
 
   GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
 
@@ -2041,8 +2155,8 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     if(dof < 0) continue;
     dof = c_dsa->invRCN(dof);
     if(dof >= 0) {
-      if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else // PJSA 1-9-08
-      ScalarTypes::initScalar(Vc[dof], dbc[i].val);
+      if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling);
+      else ScalarTypes::initScalar(Vc[dof], dbc[i].val);
     }
   }
 
@@ -2053,8 +2167,8 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     if(dof2 < 0) continue;
     dof2 = c_dsa->invRCN(dof2);
     if(dof2 >= 0) {
-      if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
-      ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
+      if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling);
+      else ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
     }
   }
 
@@ -2078,6 +2192,37 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     if(kuc) {
       kuc->multSubtract(Vc, force);
     }
+    complex<double> *lambda=0, *mu=0, *deltalambda=0, *deltamu=0;
+    int num_arubber = geoSource->num_arubber;
+    if (num_arubber>0)  {
+      lambda = new complex<double>[num_arubber];
+      mu = new complex<double>[num_arubber];
+      deltalambda = new complex<double>[num_arubber];
+      deltamu = new complex<double>[num_arubber];
+    }
+    geoSource->getARubberLambdaMu(omega,deltalambda,deltamu);
+    geoSource->getARubberLambdaMu(omega-delta_omega,lambda,mu);
+    for(int ir=0;ir<num_arubber;ir++) {
+     deltalambda[ir] -= lambda[ir];
+     deltamu[ir] -= mu[ir];
+    }
+
+// Acoustic rubber    
+    for(int ir=0;ir<num_arubber;ir++) {
+      tmp.zero();
+      if(kuc_arubber_l) if (kuc_arubber_l[ir]) kuc_arubber_l[ir]->multSubtract(Vc,tmp);
+      Scalar c = 0;
+      ScalarTypes::addComplex(c,deltalambda[ir]);
+      tmp *= c;
+      force += tmp;
+      tmp.zero();
+      if (kuc_arubber_m) if (kuc_arubber_m[ir]) kuc_arubber_m[ir]->multSubtract(Vc,tmp);
+      c = 0;
+      ScalarTypes::addComplex(c,deltamu[ir]);
+      tmp *= c;
+      force += tmp;
+    }
+
     if (muc) {
       tmp.zero();
       muc->multSubtract(Vc, tmp);
@@ -2098,7 +2243,9 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
 template<class Scalar>
 void
 Domain::buildFreqSweepRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *muc,
-                               GenSparseMatrix<Scalar> **cuc_deriv, int iRHS, double omega)
+                               GenSparseMatrix<Scalar> **cuc_deriv,
+                               GenSparseMatrix<Scalar> **kuc_deriv,
+ int iRHS, double omega)
 {
   if(iRHS < 1) return; // this shouldn't happen
 
@@ -2310,6 +2457,40 @@ fprintf(stderr,"Complex kappa2 not supported yet!\n");
   }
 
   if(cuc_deriv && cuc_deriv[iRHS-1]) cuc_deriv[iRHS-1]->multSubtract(Vc, force);
+  if(kuc_deriv && kuc_deriv[iRHS-1]) kuc_deriv[iRHS-1]->multSubtract(Vc, force);
+}
+
+
+template<class Scalar>
+void
+Domain::buildDeltaK(double w0, double w, GenSparseMatrix<Scalar> *deltaK,
+                                         GenSparseMatrix<Scalar> *deltaKuc) {
+ // Acoustic rubber elements
+ complex<double> *krarray = new complex<double>[3*maxNumDOFs*maxNumDOFs];
+ complex<double> *krarray2 = new complex<double>[3*maxNumDOFs*maxNumDOFs];
+ for(int iele = 0; iele < numele; ++iele) {
+   StructProp *prop = packedEset[iele]->getProperty();
+   if(!prop || (prop && (prop->E0==0.0 || prop->mu0==0.0)) ) continue; 
+
+   if(matrixTimers) matrixTimers->formTime -= getTime();
+   int N = 0; // number of derivatives
+   packedEset[iele]->aRubberStiffnessDerivs(nodes, krarray,N,w0);
+   packedEset[iele]->aRubberStiffnessDerivs(nodes, krarray2,N,w);
+   int ndof = packedEset[iele]->numDofs();
+   for(int i=0;i<ndof*ndof;i++)
+       krarray2[i+2*ndof*ndof] -= krarray[i+2*ndof*ndof];
+   if(sinfo.isCoupled) if(isStructureElement(iele)) {  // coupled scaling
+     for(int i=0;i<ndof*ndof;i++)  krarray2[i+2*ndof*ndof] *= cscale_factor2;
+   }
+
+   FullSquareMatrixC kdel(ndof,krarray2+2*ndof*ndof);
+   deltaK->add(kdel,(*allDOFs)[iele]);
+   if (deltaKuc) deltaKuc->add(kdel,(*allDOFs)[iele]);
+
+ }
+ delete[] krarray;
+ delete[] krarray2;
+ fprintf(stderr,"Domain::buildDeltaK exiting\n");
 }
 
 template<class Scalar>
@@ -2614,7 +2795,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
            break;
          case 2:
          default:
-           cerr << " *** ERROR: Sommerfeld type " << sommerfeldType << " is not supported for frequency sweep \n";
+           std::cerr << " *** ERROR: Sommerfeld type " << sommerfeldType << " is not supported for frequency sweep \n";
            break;
        }
      }
@@ -2648,36 +2829,9 @@ Domain::computeSommerDerivatives(double HH, double KK, int curvatureFlag, int *d
       ms.multiply(mm,imag(cm)); // mm = imaginary part of cm*ms
       updateDampingMatrices(ops,dofs,0,&mm,ss,n);
     }
-    else cerr << " *** WARNING: 3D 2nd order Sommerfeld with curvatureFlag 2 is not supported for frequency sweep \n";
+    else std::cerr << " *** WARNING: 3D 2nd order Sommerfeld with curvatureFlag 2 is not supported for frequency sweep \n";
   }
 
-/* PJSA DEBUG    
-  GenFullSquareMatrix<DComplex> bt2(ms.dim(),(DComplex*)dbg_alloca(ms.dim()*ms.dim()*sizeof(DComplex)));
-  int kDof=0;
-  for(int iDof=0; iDof<ms.dim(); iDof++) {
-    for(int jDof=0; jDof<ms.dim(); jDof++) {
-      bt2[iDof][jDof] = bt2Matrix[kDof];
-      kDof++;
-    }
-  }
-  FullSquareMatrix ksRe(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
-  FullSquareMatrix ksIm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
-
-  GenFullSquareMatrix<DComplex> bt2n(bt2,1.0);
-  for(int n=1; n<=N; ++n) {
-    GenFullSquareMatrix<DComplex> copy(bt2n, 1.0);
-    copy.multiply(bt2,bt2n);  // bt2n = bt2n*bt2
-    DComplex cm = -pow(1.0/(2.0*ii*kappa),n+1)*pow(-2.0*ii,n)*double(DFactorial(n));
-    for(int iDof=0; iDof<ms.dim(); iDof++) {
-      for(int jDof=0; jDof<ms.dim(); jDof++) {
-        DComplex cmbt = cm*bt2n[iDof][jDof];
-        ksRe[iDof][jDof] = real(cmbt);
-        ksIm[iDof][jDof] = imag(cmbt);
-      }
-    }
-    updateDampingMatrices(ops,dofs,&ksRe,&ksIm,ss,n);
-  }
-*/
   FullSquareMatrix ksRe(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
   FullSquareMatrix ksIm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
   for(int n=1; n<=N; ++n) {
@@ -2779,11 +2933,12 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
     case OutputInfo::EigenPair:  {
       if (success == 0)
         tag = freq;
-      if (oinfo.nodeNumber == -1) { // all nodes
+      if (oinfo.nodeNumber == -1) { // all nodes, or select group
         geoSource->outputNodeVectors(i, glDisp, numNodes, tag);
       }
-      else {   // one node
-        geoSource->outputNodeVectors(i, &(glDisp[oinfo.nodeNumber]), 1, tag);
+      else { // one node
+        int inode = (outFlag == 1) ? nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
+        geoSource->outputNodeVectors(i, &(glDisp[inode]), 1, tag);
       }
       success = 1;
     }
@@ -2794,11 +2949,12 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
     case OutputInfo::EigenPair6:  {
      if (success == 0)
         tag = freq;
-      if (oinfo.nodeNumber == -1) { // all nodes
+      if (oinfo.nodeNumber == -1) { // all nodes, or select group
         geoSource->outputNodeVectors6(i, glDisp, numNodes, tag);
       }
-      else {
-        geoSource->outputNodeVectors6(i, &(glDisp[oinfo.nodeNumber]), 1, tag);
+      else { // one node
+        int inode = (outFlag == 1) ? nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
+        geoSource->outputNodeVectors6(i, &(glDisp[inode]), 1, tag);
       }
       success = 1;
     }
@@ -2859,8 +3015,10 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         }
         if (oinfo.nodeNumber == -1)
           geoSource->outputNodeScalars(i, globVal, numNodes, time);
-        else
-          geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
+        else {
+          int inode = (outFlag == 1) ? nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
+          geoSource->outputNodeScalars(i, &(globVal[inode]), 1, time);
+        }
         break;
       case OutputInfo::Temperature:
         if (dof==-1) { dof = 6; tag = time; }
@@ -2885,8 +3043,10 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         }
         if(oinfo.nodeNumber == -1)
           geoSource->outputNodeScalars(i, globVal, numNodes, tag);
-        else
-          geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, tag);
+        else {
+          int inode = (outFlag == 1) ? nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
+          geoSource->outputNodeScalars(i, &(globVal[inode]), 1, tag);
+        }
         break;
       default:
         break;
@@ -2962,6 +3122,9 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
       break;
     case OutputInfo::StressVM:
       getStressStrain(d_n,bcx,i,VON, time);
+      break;
+    case OutputInfo::AggrStVM:
+      getStressStrain(d_n,bcx,i,AGGREGATEDVON, time);
       break;
     case OutputInfo::Damage:
       getStressStrain(d_n,bcx,i,DAMAGE, time);
@@ -3040,7 +3203,202 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 }
 
 //-------------------------------------------------------------------------------------
+template <class Scalar>
+void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
+#ifdef USE_EIGEN3
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+  int numOutInfo = geoSource->getNumOutInfo();
+  if(firstOutput) geoSource->openOutputFiles();
+  for(int i = 0; i < numOutInfo; ++i)  {
+    if(oinfo[i].type == OutputInfo::WeigThic) geoSource->outputSensitivityScalars(i, allSens.weightWRTthick, allSens.weight);
+    if(oinfo[i].type == OutputInfo::WeigShap) geoSource->outputSensitivityScalars(i, allSens.weightWRTshape, allSens.weight);
+    if(oinfo[i].type == OutputInfo::AGstShap) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTshape, *aggregatedStress);
+    if(oinfo[i].type == OutputInfo::AGstThic) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTthick, *aggregatedStress);
+    if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTthick);
+    if(oinfo[i].type == OutputInfo::VMstShap) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTshape);
+    if(oinfo[i].type == OutputInfo::VMstMach) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTmach);
+    if(oinfo[i].type == OutputInfo::VMstAlpha) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTalpha);
+    if(oinfo[i].type == OutputInfo::VMstBeta) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTbeta);
+    if(oinfo[i].type == OutputInfo::DispThic) {
+      int numThicknessGroup = getNumThicknessGroups();
+      allSens.gdispWRTthick = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroup];
+      for(int iparam=0; iparam<numThicknessGroup; ++iparam) { 
+        if(solInfo().sensitivityMethod == SolverInfo::Direct) {
+          allSens.gdispWRTthick[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+          mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam]);
+        } else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+          allSens.gdispWRTthick[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numDispNodes, numDispDofs);
+          mergeAdjointDistributedDispSensitivity<Scalar>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam]);
+        }
+      }
+      if(solInfo().sensitivityMethod == SolverInfo::Direct) geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTthick, 0, numThicknessGroup, numnodes);
+      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTthick, 0, numThicknessGroup, numDispNodes, numDispDofs, dispNodes);
+      }
+    }
+    if(oinfo[i].type == OutputInfo::DispShap) {
+      int numShapeVars = getNumShapeVars();
+      allSens.gdispWRTshape = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+      for(int iparam=0; iparam<numShapeVars; ++iparam) {
+        if(solInfo().sensitivityMethod == SolverInfo::Direct) { 
+          allSens.gdispWRTshape[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+          mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam]);
+        } else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+          allSens.gdispWRTshape[iparam] = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numDispNodes, numDispDofs);
+          mergeAdjointDistributedDispSensitivity<Scalar>(allSens.gdispWRTshape[iparam], allSens.dispWRTshape[iparam]);
+        }
+      }
+      if(solInfo().sensitivityMethod == SolverInfo::Direct) geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTshape, 0, numShapeVars, numnodes);
+      else if(solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTshape, 0, numShapeVars, numDispNodes, numDispDofs, dispNodes);
+      }
+    }
+    if(oinfo[i].type == OutputInfo::DispMach) {
+      allSens.gdispWRTmach = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+      mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTmach, allSens.dispWRTmach);
+      geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTmach, 0, numnodes);
+    }
+    if(oinfo[i].type == OutputInfo::DispAlph) {
+      allSens.gdispWRTalpha = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+      mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTalpha, allSens.dispWRTalpha);
+      geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTalpha, 0, numnodes);
+    }
+    if(oinfo[i].type == OutputInfo::DispBeta) {
+      allSens.gdispWRTmach = new Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>(numnodes, 6);
+      mergeDistributedDispSensitivity<Scalar>(allSens.gdispWRTbeta, allSens.dispWRTbeta);
+      geoSource->outputSensitivityDispVectors(i, allSens.gdispWRTbeta, 0, numnodes);
+    }
+  }
+  firstOutput = false;
+#endif
+}
 
+//-------------------------------------------------------------------------------------
+#ifdef USE_EIGEN3
+template<class Scalar>
+void Domain::mergeDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispSen, 
+                                            Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispSen)
+{
+  int inode, nodeI;
+  int realNode = -1;
+
+  for(inode = 0; inode < numnodes; ++inode) {
+
+    if(nodes[inode] == 0) continue;
+    realNode++;
+    nodeI = (outFlag) ? realNode : inode;
+
+    int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
+    int xLoc1 =   dsa->locate(inode, DofSet::Xdisp);
+
+    if (xLoc >= 0)
+      (*gdispSen)(nodeI,0) = (*dispSen)(xLoc,0);          // free
+    else
+      (*gdispSen)(nodeI,0) = 0.0;
+
+    int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
+    int yLoc1 =   dsa->locate(inode, DofSet::Ydisp);
+
+    if (yLoc >= 0)
+      (*gdispSen)(nodeI,1) = (*dispSen)(yLoc,0);
+    else
+      (*gdispSen)(nodeI,1) = 0.0;
+
+    int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
+    int zLoc1 =   dsa->locate(inode, DofSet::Zdisp);
+
+    if (zLoc >= 0)
+      (*gdispSen)(nodeI,2) = (*dispSen)(zLoc,0);
+    else
+      (*gdispSen)(nodeI,2) = 0.0;
+
+    int xRot  = c_dsa->locate(inode, DofSet::Xrot);
+    int xRot1 =   dsa->locate(inode, DofSet::Xrot);
+
+    if (xRot >= 0)
+      (*gdispSen)(nodeI,3) = (*dispSen)(xRot,0);
+    else
+      (*gdispSen)(nodeI,3) = 0.0;
+
+    int yRot  = c_dsa->locate(inode, DofSet::Yrot);
+    int yRot1 =   dsa->locate(inode, DofSet::Yrot);
+
+    if (yRot >= 0)
+      (*gdispSen)(nodeI,4) = (*dispSen)(yRot,0);
+    else
+      (*gdispSen)(nodeI,4) = 0.0;
+
+    int zRot  = c_dsa->locate(inode, DofSet::Zrot);
+    int zRot1 =   dsa->locate(inode, DofSet::Zrot);
+
+    if (zRot >= 0)
+      (*gdispSen)(nodeI,5) = (*dispSen)(zRot,0);
+    else
+      (*gdispSen)(nodeI,5) = 0.0;
+/*
+    int xTemp  = c_dsa->locate(inode, DofSet::Temp);
+    int xTemp1 =   dsa->locate(inode, DofSet::Temp);
+
+    if (xTemp >= 0)
+      xyz[nodeI][6] = u[xTemp];
+    else
+      xyz[nodeI][6] = 0.0;
+
+    int xHelm  = c_dsa->locate(inode, DofSet::Helm);
+    int xHelm1 =   dsa->locate(inode, DofSet::Helm);
+
+    if (xHelm >= 0)
+      xyz[nodeI][7] = u[xHelm];
+    else
+      xyz[nodeI][7] = 0.0;
+
+    int xPot  = c_dsa->locate(inode, DofSet::Potential);
+    int xPot1 =   dsa->locate(inode, DofSet::Potential);
+
+    if (xPot >= 0)
+      xyz[nodeI][10] = u[xPot];
+    else
+      xyz[nodeI][10] = 0.0;
+
+    // transform displacements and rotations (if present) from DOF_FRM to basic coordinates
+    // and keep a copy of the original in xyz_loc
+    if(!domain->solInfo().basicDofCoords && c_dsa->locate(inode, DofSet::LagrangeE) < 0
+      && c_dsa->locate(inode, DofSet::LagrangeI) < 0) {
+      if(xyz_loc) for(int j=0; j<11; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
+      bool hasRot = (xRot >= 0 || xRot1 >= 0 || yRot >= 0 || yRot1 >= 0 || zRot >= 0 || zRot1 >= 0);
+      transformVectorInv(&(xyz[nodeI][0]), inode, hasRot);
+    }
+*/
+  }
+
+}
+#endif
+
+//-------------------------------------------------------------------------------------
+#ifdef USE_EIGEN3
+template<class Scalar>
+void Domain::mergeAdjointDistributedDispSensitivity(Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispSen, 
+                                                    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispSen)
+{
+  int inode;
+  int realNode = -1;
+
+  for(inode = 0; inode < numDispNodes; ++inode) {
+    int node = dispNodes[inode], loc;
+    for(int idof=0; idof<numDispDofs; ++idof) {
+      int dof = dispDofs[idof];
+      loc = returnLocalDofNum(node, dof);
+      if (loc >= 0)
+        (*gdispSen)(inode,idof) = (*dispSen)(inode*numDispDofs+idof,0); 
+      else
+        (*gdispSen)(inode,0) = 0.0;
+    }
+  }
+
+}
+#endif
+
+//-------------------------------------------------------------------------------------
 // Templated Post-processing for direct solver statics, frequency response, helmholtz and eigen
 template<class Scalar>
 void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &force,
@@ -3060,11 +3418,11 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   int numOutInfo = geoSource->getNumOutInfo();
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
-  if(numOutInfo && (firstOutput || domain->solInfo().loadcases.size() > 0) && ndflag==0)
+  if(numOutInfo && (firstOutput || domain->solInfo().loadcases.size() > 0) && ndflag<=1)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   // organize displacements
-  int numNodeLim = myMax(numNodes,numnodes); 
+  int numNodeLim = std::max(numNodes,numnodes); 
     
   Scalar (*xyz)[11] = new Scalar[numNodeLim][11];
   Scalar (*xyz_loc)[11] = (domain->solInfo().basicDofCoords) ? 0 : new Scalar[numNodeLim][11];
@@ -3078,17 +3436,10 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   // Open files and write file headers in first time step
   if(firstOutput) geoSource->openOutputFiles();
 
-  // Define Energy Terms
-  // Total Energy = Wext+Wela+Wkin+Wdmp
-  Wext = 0.0;  // external energy
-  Waero = 0.0;  // aerodynamic force energy
-  Wdmp = 0.0;  // damping energy
-  double Wela=0.0;  // elastic energy
-  double Wkin=0.0;  // kinetic energy
-
   int dof;
   int iNode;
   for(i = 0; i < numOutInfo; ++i)  {
+    if(oinfo[i].sentype > 0) continue;
     if(oinfo[i].ndtype != ndflag) continue;
     if(ndflag !=0 && oinfo[i].type != OutputInfo::Disp6DOF && oinfo[i].type !=  OutputInfo::Displacement) continue;
     // if non-deterministic and NOT displacement
@@ -3102,17 +3453,15 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
       else
         success = processDispTypeOutputs(oinfo[i], xyz_loc, numNodesOut, i, time, freq);
       if (success) continue;
-      success = processOutput(oinfo[i].type, sol, bcx, i, time, freq);
+      success = processOutput(oinfo[i].type, sol, bcx, i, time, freq, 0);
       if (success) continue;
       success = 1;
       switch(oinfo[i].type)  {
         case OutputInfo::Energies: {
-          Wext = ScalarTypes::Real(force*sol);   // Wext = external energy
-          Wela =   0.5 * Wext;   // Wela = elastic energy
-          double error = Wext+Wela+Wkin+Wdmp;
-          geoSource->outputEnergies(i, freq, Wext, Waero, Wela, Wkin, Wdmp, error);
-          }
-          break;
+          double Wext = ScalarTypes::Real(force*sol); // Wext = external energy
+          double Wela =   0.5 * Wext;                 // Wela = elastic energy
+          geoSource->outputEnergies(i, freq, Wext, 0.0, Wela, 0.0, 0.0, 0.0);
+        } break;
         case OutputInfo::Farfield: case OutputInfo::Kirchhoff:
           outputFFP(sol, i);
           break;
@@ -3133,8 +3482,8 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           computeReactionForce(fc, sol, kuc, kcc);
           Scalar (*rxyz)[3] = new Scalar[numNodeLim][3];
           DofSet dofs[3] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp };
-          for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
-            if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
+          for(int inode = 0, realNode = -1; inode < nodes.size(); ++inode) {
+            if(nodes[inode] == 0) continue;
             realNode++;
             int nodeI = (outFlag) ? realNode : inode;
             for(int k = 0; k < 3; ++k) {
@@ -3155,8 +3504,8 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           Scalar (*rxyz)[6] = new Scalar[numNodeLim][6];
           DofSet dofs[6] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp,
                              DofSet::Xrot, DofSet::Yrot, DofSet::Zrot };
-          for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
-            if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
+          for(int inode = 0, realNode = -1; inode < nodes.size(); ++inode) {
+            if(nodes[inode] == 0) continue;
             realNode++;
             int nodeI = (outFlag) ? realNode : inode;
             for(int k = 0; k < 6; ++k) {
@@ -3176,8 +3525,8 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           computeReactionForce(fc, sol, kuc, kcc);
           Scalar *rxyz = new Scalar[numNodeLim];
           DofSet dofs[1] = { DofSet::Temp };
-          for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
-            if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
+          for(int inode = 0, realNode = -1; inode < nodes.size(); ++inode) {
+            if(nodes[inode] == 0) continue;
             realNode++;
             int nodeI = (outFlag) ? realNode : inode;
             for(int k = 0; k < 1; ++k) {
@@ -3194,7 +3543,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           break;
       }
       if (success == 0)
-        fprintf(stderr, " *** AS.WRN: output %d is not supported \n", i);
+        fprintf(stderr, " *** WARNING: output %d is not supported \n", i);
     }
     if(globVal)
       { delete [] globVal; globVal = 0; }
@@ -3219,6 +3568,13 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
  if (xyz_loc) delete [] xyz_loc;
 }
 
+template<class Scalar>
+void
+Domain::addConstantForceSensitivity(GenVector<Scalar>& cnst_fSen, GenSparseMatrix<Scalar>* kuc)
+{
+  if(domain->gravityFlag()) addGravityForceSensitivity(cnst_fSen);
+}
+
 template <class Scalar>
 void
 Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>* kuc)
@@ -3239,18 +3595,18 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // note #2 when HFTT is present the FLUX contribution is not constant
   // note #3 see getStiffAndForce/getInternalForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
   for(int i = 0; i < numNeuman; ++i) {
-    if(sinfo.isNonLin() && nbc[i].type == BCond::Forces && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
+    if(sinfo.isNonLinExtF() && nbc[i].type == BCond::Forces && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {
       case(BCond::Forces) : {
-        if(!domain->getMFTT(nbc[i].loadsetid)) {
+        if(!sinfo.isDynam() || !domain->getMFTT(nbc[i].loadsetid)) {
           double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
           cnst_f[dof] += loadFactor*nbc[i].val;
         }
       } break;
       case(BCond::Flux) : {
-        if(!domain->getHFTT(nbc[i].loadsetid)) {
+        if(!sinfo.isDynam() || !domain->getHFTT(nbc[i].loadsetid)) {
           double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
           cnst_f[dof] += loadFactor*nbc[i].val;
         }
@@ -3273,21 +3629,21 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM PRESSURE
   // note #1: even when MFTTs/CONWEP are present this term may now be constant
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce/getInternalForce)
-  if(!sinfo.isNonLin()) addPressureForce(cnst_f, 0);
+  if(!sinfo.isNonLinExtF()) addPressureForce(cnst_f, 0);
 
   // ... ADD RHS FROM LMPCs for linear statics
-  if(!sinfo.isNonLin() && !sinfo.isDynam()) addMpcRhs(cnst_f);
+  if((!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) && !sinfo.isDynam()) addMpcRhs(cnst_f);
 
   // ... COMPUTE FORCE FROM TEMPERATURES
   // note #1: for THERMOE problems TEMPERATURES are ignored 
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce/getInternalForce)
-  if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLin()) addThermalForce(cnst_f);
+  if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLinExtF()) addThermalForce(cnst_f);
 
   // ... COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is present this is term is not constant (see computeExtForce)
   // note #2  for nonlinear this term is not constant (see getStiffAndForce/getInternalForce) 
-  if(numDirichlet && !(claw && claw->numUserDisp) && !sinfo.isNonLin() && kuc) {
-    Vector Vc(numDirichlet, 0.0);
+  if(numDirichlet && !(claw && claw->numUserDisp) && (!sinfo.isNonLin() || (sinfo.galerkinPodRom && sinfo.getNLInfo().linearelastic)) && kuc) {
+    GenVector<Scalar> Vc(numDirichlet, 0.0);
     // construct the non-homogeneous dirichlet bc vector
     for(int i = 0; i < numDirichlet; ++i) {
       int dof = dsa->locate(dbc[i].nnum, (1 << dbc[i].dofnum));
@@ -3315,8 +3671,8 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // note #3 see Domain::getStiffAndForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
   if(numNeuman && (domain->getNumMFTT() || domain->getNumHFTT() || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
-      if(sinfo.isNonLin() && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf 
-         || nbc[i].type == BCond::Actuators) && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
+      if(sinfo.isNonLinExtF() && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf 
+         || nbc[i].type == BCond::Actuators) && !((nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3) || nbc[i].dofnum == 6)) continue;
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
       switch(nbc[i].type) {
@@ -3339,21 +3695,21 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT/CONWEP are present this term may not be constant
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce/getInternalForce)
-  if((domain->getNumMFTT() > 0 || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(f, 1, t);
+  if((domain->getNumMFTT() > 0 || sinfo.ConwepOnOff) && !sinfo.isNonLinExtF()) addPressureForce(f, 1, t);
 
   // ... ADD RHS FROM LMPCs for linear dynamics
-  if(!sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f, t);
+  if((!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) && sinfo.isDynam()) addMpcRhs(f, t);
 
   // COMPUTE FORCE FROM THERMOE
   // note #1: for NONLINEAR problems this term is follower (see getStiffAndForce/getInternalForce)
-  if(sinfo.thermoeFlag >= 0 && !sinfo.isNonLin()) addThermalForce(f);
+  if(sinfo.thermoeFlag >= 0 && !sinfo.isNonLinExtF()) addThermalForce(f);
 
   // COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is not present this term is constant (see computeConstantForce)
   // note #2: for nonlinear the contribution due to Kuc is follower (see getStiffAndForce/getInternalForce)
   // note #3: for linear and nonlinear dynamics the contribution due to Cuc and Muc is now included
   if(numDirichlet && (claw && claw->numUserDisp)) {
-    Vector Vc(numDirichlet, 0.0);
+    GenVector<Scalar> Vc(numDirichlet, 0.0);
     // construct the non-homogeneous dirichlet bc vector
     for(int i = 0; i < numDirichlet; ++i) {
       int dof = dsa->locate(dbc[i].nnum, (1 << dbc[i].dofnum));
@@ -3363,7 +3719,7 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
     }
 
     // compute the non-homogeneous force due to Kuc
-    if(!sinfo.isNonLin() && kuc) kuc->multSubtract(Vc, f);
+    if((!sinfo.isNonLin() || (sinfo.galerkinPodRom && sinfo.getNLInfo().linearelastic)) && kuc) kuc->multSubtract(Vc, f);
 
     if(sinfo.isDynam() && userSupFunc && claw && claw->numUserDisp > 0) {
 
@@ -3434,3 +3790,4 @@ Domain::computeExtForce4(GenVector<Scalar>& f, const GenVector<Scalar>& constant
   // ADD CONSTANT FORCE
   f += constantForce;
 }
+#endif

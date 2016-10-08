@@ -21,7 +21,7 @@ private:
   void preProcess();
   void bufferReducedFiles();
   void setPODsize();
-
+  void subUpdateStates(int i, double time);
 
   MultiDomDynPostProcessor *mddPostPro;
 
@@ -34,6 +34,10 @@ private:
   GenDistrVector<double> * fullAccBuffer;
   GenDistrVector<double> * fullVel2Buffer;
   GenDistrVector<double> * fullDummyBuffer;
+  GenDistrVector<double> * fullConstForceBuffer;
+  GenDistrVector<double> * fullExtForceBuffer;
+  GenDistrVector<double> * fullInertForceBuffer;
+  GenDistrVector<double> * fullResBuffer;
 
   std::vector< std::vector<double> >  TimeStamps;
   std::vector<double>                 reducedAccBuffer;

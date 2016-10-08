@@ -39,11 +39,11 @@
 // Extern routine
 extern "C" {
 void _FORTRAN(qgauss)(int &, int &, int &, int &,
-               double &,  double &, double &);
+                      double &,  double &, double &);
 }
 
 // -----------------------------------------------------------------------------------------------------
-//                                  STATIC MEMBERS 
+//                                  STATIC MEMBERS
 // -----------------------------------------------------------------------------------------------------
 // coords of the nodes in the ref./parametric domain
 double FaceQuad8::RefCoords[8][2] = {{-1.0,-1.0},
@@ -54,11 +54,12 @@ double FaceQuad8::RefCoords[8][2] = {{-1.0,-1.0},
                                      { 1.0, 0.0},
                                      { 0.0, 1.0},
                                      {-1.0, 0.0}};
-double* 
+
+double*
 FaceQuad8::ViewRefCoords() { return(FaceQuad8::RefCoords[0]); }
 
 // -----------------------------------------------------------------------------------------------------
-//                              CONSTRUCTORS 
+//                                            CONSTRUCTORS 
 // -----------------------------------------------------------------------------------------------------
 
 FaceQuad8::FaceQuad8(int* nodenums)
@@ -73,29 +74,18 @@ FaceQuad8::FaceQuad8(int* nodenums)
   Nodes[7] = nodenums[7];
 }
 
-// copy constructor
-/*
-FaceQuad8::FaceQuad8(const FaceQuad8 &FQ8)
-{
-  // copy nodes Id
-  FQ8.GetNodes(Nodes);
-}
-*/
-
-// -----------------------------------------------------------------------------------------------------
-//                              COPY & CLONE 
-// -----------------------------------------------------------------------------------------------------
-// IMPLEMENTATION OF VIRTUAL METHODS
-// ---------------------------------
-/*
-FaceElement* 
+FaceElement *
 FaceQuad8::clone()
 {
-  return new FaceQuad8(*this);
+  return new FaceQuad8(Nodes);
 }
-*/
 
-void 
+// -----------------------------------------------------------------------------------------------------
+//                                       SETUP & UPDATE METHODS
+// -----------------------------------------------------------------------------------------------------
+// IMPLEMENTATION OF PURE VIRTUAL METHODS
+// --------------------------------------
+void
 FaceQuad8::Renumber(std::map<int,int>& OldToNewNodeIds)
 {
   Nodes[0] = OldToNewNodeIds[Nodes[0]];
@@ -109,7 +99,7 @@ FaceQuad8::Renumber(std::map<int,int>& OldToNewNodeIds)
 }
 
 // -----------------------------------------------------------------------------------------------------
-//                              GET METHODS 
+//                                            GET METHODS 
 // -----------------------------------------------------------------------------------------------------
 // IMPLEMENTATION OF LOCAL METHODS
 // -------------------------------
@@ -117,12 +107,12 @@ int
 FaceQuad8::nQuad4Nodes() { return 4; }
 
 int
-FaceQuad8::GetQuad4Node(int i) { return Nodes[i]; } 
+FaceQuad8::GetQuad4Node(int i) { return Nodes[i]; }
 
 void
 FaceQuad8::GetQuad4Nodes(int *p, int* renumTable)
 {
-  if(renumTable){
+  if(renumTable) {
     p[0] = renumTable[Nodes[0]];
     p[1] = renumTable[Nodes[1]];
     p[2] = renumTable[Nodes[2]];
@@ -136,7 +126,7 @@ FaceQuad8::GetQuad4Nodes(int *p, int* renumTable)
 }
 
 void
-FaceQuad8::GetQuad4Nodes(int *p, std::map<int,int>&renumTable)
+FaceQuad8::GetQuad4Nodes(int *p, std::map<int,int>& renumTable)
 {
   p[0] = renumTable[Nodes[0]];
   p[1] = renumTable[Nodes[1]];
@@ -156,7 +146,7 @@ FaceQuad8::GetNode(int i) { return Nodes[i]; }
 void
 FaceQuad8::GetNodes(int *p, int* renumTable)
 {
-  if(renumTable){
+  if(renumTable) {
     p[0] = renumTable[Nodes[0]];
     p[1] = renumTable[Nodes[1]];
     p[2] = renumTable[Nodes[2]];
@@ -196,9 +186,9 @@ FaceQuad8::GetNodeIndex(int gNode)
   int i;
   bool found = false; 
   for(i=0; i<8; i++)
-    if(gNode==Nodes[i]){ found = true; break; }
-  if(!found)  
-    filePrint(stderr," ### In FaceQuad8::GetNodeIndex(...): node (%6d) does not belong to this element\n",gNode);
+    if(gNode==Nodes[i]) { found = true; break; }
+  if(!found)
+    filePrint(stderr," *** WARNING: FaceQuad8::GetNodeIndex(): node (%6d) does not belong to this element\n", gNode);
   return i; 
 }
 
@@ -206,25 +196,25 @@ int
 FaceQuad8::GetFaceElemType() { return FaceElement::QUADFACEQ8; }
 
 #ifdef USE_ACME
- ContactSearch::ContactFace_Type
- FaceQuad8::GetACMEFaceElemType() { return ContactSearch::QUADFACEQ8; }
+ContactSearch::ContactFace_Type
+FaceQuad8::GetACMEFaceElemType() { return ContactSearch::QUADFACEQ8; }
 #else
- int
- FaceQuad8::GetACMEFaceElemType() { return 2; }
+int
+FaceQuad8::GetACMEFaceElemType() { return 2; }
 #endif
 
 // -> for dealing with quadratic face element (see FaceElement.h for more details)
-int 
+int
 FaceQuad8::nVertices() { return nQuad4Nodes(); }
 
-int 
+int
 FaceQuad8::GetVertex(int i) { return GetQuad4Node(i); }
 
-void 
+void
 FaceQuad8::GetVertices(int* p, int* renumTable) { GetQuad4Nodes(p, renumTable); }
 
-void 
-FaceQuad8::GetVertices(int* p, std::map<int,int>&renumTable) { GetQuad4Nodes(p, renumTable); }
+void
+FaceQuad8::GetVertices(int* p, std::map<int,int>& renumTable) { GetQuad4Nodes(p, renumTable); }
 
 // As ACME doesn't support the Quad8 face element for
 // FaceFaceInteraction (FFI), we will pass to it the Quad4 face element
@@ -232,239 +222,147 @@ FaceQuad8::GetVertices(int* p, std::map<int,int>&renumTable) { GetQuad4Nodes(p, 
 // This is OK if the Quad8 face element has straight edges, but its is an
 // APPROXIMATION in the general case (i.e. curved edges/face).
 #ifdef USE_ACME
- ContactSearch::ContactFace_Type
- FaceQuad8::GetACMEFFIFaceElemType() { return  ContactSearch::QUADFACEL4; }
+ContactSearch::ContactFace_Type
+FaceQuad8::GetACMEFFIFaceElemType() { return ContactSearch::QUADFACEL4; }
 #else
- int
- FaceQuad8::GetACMEFFIFaceElemType() { return 1; }
+int
+FaceQuad8::GetACMEFFIFaceElemType() { return 1; }
 #endif
 
 // -----------------------------------------------------------------------------------------------------
-//                          MAPPING & SHAPE FUNCTION METHODS 
+//                                      MAPPING & SHAPE FUNCTION METHODS 
 // -----------------------------------------------------------------------------------------------------
-// LOCAL METHODS
-// -------------
-void
-FaceQuad8::GetShapeFct(double *Shape, double *m)
-{
-  double x = m[0];
-  double y = m[1];
-  double onequart = 1./4.;
-  double onehalf  = 1./2.;
-
-  double xm = 1.-x;
-  double xp = 1.+x;
-  double ym = 1.-y;
-  double yp = 1.+y;
-  double xxm= 1.-x*x;
-  double yym= 1.-y*y;
-
-  Shape[0] = onequart*xm*ym*(-1.-x-y);
-  Shape[1] = onequart*xp*ym*(-1.+x-y);
-  Shape[2] = onequart*xp*yp*(-1.+x+y);
-  Shape[3] = onequart*xm*yp*(-1.-x+y);
-  Shape[4] = onehalf*xxm*ym;
-  Shape[5] = onehalf*yym*xp;
-  Shape[6] = onehalf*xxm*yp;
-  Shape[7] = onehalf*yym*xm;
-}
-
-void
-FaceQuad8::GetdShapeFct(double *dShapex, double *dShapey, double *m)
-{
-  double x = m[0];
-  double y = m[1];
-  double onequart = 1./4.;
-  double onehalf  = 1./2.;
-
-  double xm = 1.-x;
-  double xp = 1.+x;
-  double ym = 1.-y;
-  double yp = 1.+y;
-  double xxm= 1.-x*x;
-  double yym= 1.-y*y;
-
-  dShapex[0] = onequart*ym*(2.*x+y);
-  dShapex[1] = onequart*ym*(2.*x-y);
-  dShapex[2] = onequart*yp*(2.*x+y);
-  dShapex[3] = onequart*yp*(2.*x-y);
-  dShapex[4] = -x*ym;  
-  dShapex[5] = onehalf*yym;  
-  dShapex[6] = -x*yp;  
-  dShapex[7] = -onehalf*yym;  
-
-  dShapey[0] = onequart*xm*( x+2.*y);
-  dShapey[1] = onequart*xp*(-x+2.*y);
-  dShapey[2] = onequart*xp*( x+2.*y);
-  dShapey[3] = onequart*xm*(-x+2.*y);
-  dShapey[4] = -onehalf*xxm;
-  dShapey[5] = -y*xp;  
-  dShapey[6] = onehalf*xxm;
-  dShapey[7] = -y*xm;  
-}
-
-double
-FaceQuad8::GetShapeFctAndJacobian(double *Shape, double *m, CoordSet &cs)
-{
-  GetShapeFct(Shape, m);
-  return(GetJacobian(m, cs));
-}
-
-void
-FaceQuad8::ComputedMdxAnddMdy(double *dMdx, double *dMdy, double *m, CoordSet &cs)
-{
-  // Compute shape fcts derivatives
-  double dShapex[8], dShapey[8];
-  GetdShapeFct(dShapex, dShapey, m);
-
-  // Compute dM/dx & dM/dy
-  Node &nd1 = cs.getNode(Nodes[0]);
-  Node &nd2 = cs.getNode(Nodes[1]);
-  Node &nd3 = cs.getNode(Nodes[2]);
-  Node &nd4 = cs.getNode(Nodes[3]);
-  Node &nd5 = cs.getNode(Nodes[4]);
-  Node &nd6 = cs.getNode(Nodes[5]);
-  Node &nd7 = cs.getNode(Nodes[6]);
-  Node &nd8 = cs.getNode(Nodes[7]);
-
-  double X[8], Y[8], Z[8];
-  X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
-  X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
-  X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
-  X[3] = nd4.x; Y[3] = nd4.y; Z[3] = nd4.z;
-  X[4] = nd5.x; Y[4] = nd5.y; Z[4] = nd5.z;
-  X[5] = nd6.x; Y[5] = nd6.y; Z[5] = nd6.z;
-  X[6] = nd7.x; Y[6] = nd7.y; Z[6] = nd7.z;
-  X[7] = nd8.x; Y[7] = nd8.y; Z[7] = nd8.z;
-
-  dMdx[0] = dMdx[1] = dMdx[2] = 0.0;
-  dMdy[0] = dMdy[1] = dMdy[2] = 0.0;
-  for(int i=0; i<8; i+=4){
-    dMdx[0] += dShapex[i]*X[i] + dShapex[i+1]*X[i+1] + dShapex[i+2]*X[i+2] + dShapex[i+3]*X[i+3];
-    dMdx[1] += dShapex[i]*Y[i] + dShapex[i+1]*Y[i+1] + dShapex[i+2]*Y[i+2] + dShapex[i+3]*Y[i+3];
-    dMdx[2] += dShapex[i]*Z[i] + dShapex[i+1]*Z[i+1] + dShapex[i+2]*Z[i+2] + dShapex[i+3]*Z[i+3];
-    dMdy[0] += dShapey[i]*X[i] + dShapey[i+1]*X[i+1] + dShapey[i+2]*X[i+2] + dShapey[i+3]*X[i+3];
-    dMdy[1] += dShapey[i]*Y[i] + dShapey[i+1]*Y[i+1] + dShapey[i+2]*Y[i+2] + dShapey[i+3]*Y[i+3];
-    dMdy[2] += dShapey[i]*Z[i] + dShapey[i+1]*Z[i+1] + dShapey[i+2]*Z[i+2] + dShapey[i+3]*Z[i+3];
-  }
-}
-
-double
-FaceQuad8::GetIsoParamMappingNormalAndJacobian(double *Normal, double *m, CoordSet &cs)
-{
-  // Compute dM/dx & dM/dy
-  double dMdx[3], dMdy[3];
-  ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
-
-  // N = dM/dx x dM/dy
-  Normal[0] = dMdx[1]*dMdy[2] - dMdx[2]*dMdy[1];
-  Normal[1] = dMdx[2]*dMdy[0] - dMdx[0]*dMdy[2];
-  Normal[2] = dMdx[0]*dMdy[1] - dMdx[1]*dMdy[0];
-
-  double NormN = sqrt(Normal[0]*Normal[0]+Normal[1]*Normal[1]+Normal[2]*Normal[2]);
-
-  if(NormN!=0.0){
-    Normal[0] /= NormN; Normal[1] /= NormN; Normal[2] /= NormN;
-  }
-  return(NormN); // !!! TO CHECK !!!
-}
-
-void
-FaceQuad8::GetIsoParamMappingNormalJacobianProduct(double *JNormal, double *m, CoordSet &cs)
-{
-  // Compute dM/dx & dM/dy
-  double dMdx[3], dMdy[3];
-  ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
-
-  // N = dM/dx x dM/dy
-  JNormal[0] = dMdx[1]*dMdy[2] - dMdx[2]*dMdy[1];
-  JNormal[1] = dMdx[2]*dMdy[0] - dMdx[0]*dMdy[2];
-  JNormal[2] = dMdx[0]*dMdy[1] - dMdx[1]*dMdy[0];
-}
-
-// --------------------------------------
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------
 void
 FaceQuad8::LocalToGlobalCoord(double *M, double *m, CoordSet &cs)
 {
-  Node &nd1 = cs.getNode(Nodes[0]);
-  Node &nd2 = cs.getNode(Nodes[1]);
-  Node &nd3 = cs.getNode(Nodes[2]);
-  Node &nd4 = cs.getNode(Nodes[3]);
-  Node &nd5 = cs.getNode(Nodes[4]);
-  Node &nd6 = cs.getNode(Nodes[5]);
-  Node &nd7 = cs.getNode(Nodes[6]);
-  Node &nd8 = cs.getNode(Nodes[7]);
-
-  double Shape[8];
-  GetShapeFct(Shape,m);
-
-  double X[8], Y[8], Z[8];
-  X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
-  X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
-  X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
-  X[3] = nd4.x; Y[3] = nd4.y; Z[3] = nd4.z;
-  X[4] = nd5.x; Y[4] = nd5.y; Z[4] = nd5.z;
-  X[5] = nd6.x; Y[5] = nd6.y; Z[5] = nd6.z;
-  X[6] = nd7.x; Y[6] = nd7.y; Z[6] = nd7.z;
-  X[7] = nd8.x; Y[7] = nd8.y; Z[7] = nd8.z;
-
-  M[0] = 0.0; M[1] = 0.0; M[2] = 0.0;
-  for(int i=0; i<8; i+=4){
-    M[0] += Shape[i]*X[i] + Shape[i+1]*X[i+1] + Shape[i+2]*X[i+2] + Shape[i+3]*X[i+3];
-    M[1] += Shape[i]*Y[i] + Shape[i+1]*Y[i+1] + Shape[i+2]*Y[i+2] + Shape[i+3]*Y[i+3];
-    M[2] += Shape[i]*Z[i] + Shape[i+1]*Z[i+1] + Shape[i+2]*Z[i+2] + Shape[i+3]*Z[i+3];
-  }
+  LocalToGlobalCoord<double,CoordSet>(M, m, cs);
 }
 
-void 
+void
 FaceQuad8::GetShapeFctVal(double *Shape, double *m)
 {
-  GetShapeFct(Shape, m);
+  GetShapeFctVal<double>(Shape, m);
 }
 
 double
 FaceQuad8::GetJacobian(double *m, CoordSet &cs)
 {
-  // Compute dM/dx & dM/dy
-  double dMdx[3], dMdy[3];
-  ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
-
-  // N = dM/dx x dM/dy
-  double N[3];
-  N[0] = dMdx[1]*dMdy[2] - dMdx[2]*dMdy[1];
-  N[1] = dMdx[2]*dMdy[0] - dMdx[0]*dMdy[2];
-  N[2] = dMdx[0]*dMdy[1] - dMdx[1]*dMdy[0];
-
-  return(sqrt(N[0]*N[0]+N[1]*N[1]+N[2]*N[2]));
+  return GetJacobian<double,CoordSet>(m, cs);
 }
 
+double
+FaceQuad8::GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordSet& cs)
+{
+  return GetIsoParamMappingNormalAndJacobian<double,CoordSet>(Normal, m, cs);
+}
+
+void
+FaceQuad8::GetIsoParamMappingNormalJacobianProduct(double* JNormal, double* m, CoordSet& cs)
+{
+  GetIsoParamMappingNormalJacobianProduct<double,CoordSet>(JNormal, m, cs);
+}
+
+// ---------------------------------
+// IMPLEMENTATION OF VIRTUAL METHODS
+// ---------------------------------
+void
+FaceQuad8::GetdShapeFct(double* dShapex, double* dShapey, double* m)
+{
+  GetdShapeFct<double>(dShapex, dShapey, m);
+}
+
+void
+FaceQuad8::Getd2ShapeFct(double *d2Shapex, double *d2Shapey, double *d2Shapexy, double *m)
+{
+  Getd2ShapeFct<double>(d2Shapex, d2Shapey, d2Shapexy, m);
+}
+
+void
+FaceQuad8::Getd3ShapeFct(double *d3Shapex, double *d3Shapey, double *d2Shapex2y, double *d2Shapexy2, double *m)
+{
+  Getd3ShapeFct<double>(d3Shapex, d3Shapey, d2Shapex2y, d2Shapexy2, m);
+}
+
+void
+FaceQuad8::ComputedMdxAnddMdy(double* dMdx, double* dMdy, double* m, CoordSet& cs)
+{
+  ComputedMdxAnddMdy<double,CoordSet>(dMdx, dMdy, m, cs);
+}
+
+void
+FaceQuad8::Computed2Mdx2d2Mdy2Andd2Mdxdy(double *d2Mdx2, double *d2Mdy2, double *d2Mdxdy, double *m, CoordSet &cs)
+{
+  Computed2Mdx2d2Mdy2Andd2Mdxdy<double,CoordSet>(d2Mdx2, d2Mdy2, d2Mdxdy, m, cs);
+}
+
+void
+FaceQuad8::Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(double *d3Mdx3, double *d3Mdy3, double *d3Mdx2dy, double *d3Mdxdy2, double *m, CoordSet &cs)
+{
+  Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2<double,CoordSet>(d3Mdx3, d3Mdy3, d3Mdx2dy, d3Mdxdy2, m, cs);
+}
+
+void
+FaceQuad8::GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs)
+{
+  GetdJNormal<double,CoordSet>(dJNormal, m, cs);
+}
+
+void
+FaceQuad8::Getd2JNormal(double d2JNormal[][3], double* m, CoordSet& cs)
+{
+  Getd2JNormal<double,CoordSet>(d2JNormal, m, cs);
+}
+
+void
+FaceQuad8::ComputedJNormaldxAnddJNormaldy(double *dJNormaldx, double *dJNormaldy, double *m, CoordSet &cs)
+{
+  ComputedJNormaldxAnddJNormaldy<double,CoordSet>(dJNormaldx, dJNormaldy, m, cs);
+}
+
+void
+FaceQuad8::Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(double *d2JNormaldx2, double *d2JNormaldy2, double *d2JNormaldxdy, double *m, CoordSet &cs)
+{
+  Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy<double,CoordSet>(d2JNormaldx2, d2JNormaldy2, d2JNormaldxdy, m, cs);
+}
+
+void
+FaceQuad8::ComputeddJNormaldxAndddJNormaldy(double ddJNormaldx[][3], double ddJNormaldy[][3], double* m, CoordSet& cs)
+{
+  ComputeddJNormaldxAndddJNormaldy<double,CoordSet>(ddJNormaldx, ddJNormaldy, m, cs);
+}
+
+void
+FaceQuad8::GetUnitNormal(double UnitNormal[3], double* m, CoordSet& cs)
+{
+  GetUnitNormal<double,CoordSet>(UnitNormal, m, cs);
+}
 
 // -----------------------------------------------------------------------------------------------------
-//                              MISCELLEANEOUS METHODS 
+//                                            MISCELLEANEOUS METHODS 
 // -----------------------------------------------------------------------------------------------------
 /*double
-FaceQuad8::ComputeArea(CoordSet &cs,const int ngp=2)
+FaceQuad8::ComputeArea(CoordSet &cs, const int ngp=2)
 {
   double Area = 0.0;
   double dA, Shape[4];
   double xi, eta, weight, m[2];
-	
-  for(int i=0;i<ngp;i++){
-    for(int j=0;j<ngp;j++){
-     	_FORTRAN(qgauss)(ngp,i,ngp,j,&xi,&eta,&weight);
-	m[0] = xi; m[1] = eta;
-      //dA = ComputeDiffSurfNormaleAndJacobian(Normal, m, cs);  
+
+  for(int i=0;i<ngp;i++) {
+    for(int j=0;j<ngp;j++) {
+      _FORTRAN(qgauss)(ngp,i,ngp,j,&xi,&eta,&weight);
+      m[0] = xi; m[1] = eta;
+      //dA = ComputeDiffSurfNormaleAndJacobian(Normal, m, cs);
       dA = GetShapeFctAndJacobian(Shape, m, cs);
-    	Area += weight*dA;
+      Area += weight*dA;
     }
   }
   return Area;
 } */
 
 // -----------------------------------------------------------------------------------------------------
-//                              MASS MATRIX METHODS
+//                                            MASS MATRIX METHODS
 // -----------------------------------------------------------------------------------------------------
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------
@@ -477,21 +375,21 @@ FaceQuad8::ScalarMass(CoordSet &cs, double rho, int ngp)
   FullM Mass(8);
   Mass.zero();
 
-  for(int igp=0;igp<ngp;igp++){
-    for(int jgp=0;jgp<ngp;jgp++){
+  for(int igp=0;igp<ngp;igp++) {
+    for(int jgp=0;jgp<ngp;jgp++) {
       _FORTRAN(qgauss)(ngp,igp,ngp,jgp,xi,eta,weight);
       m[0] = xi; m[1] = eta;
       dA = GetShapeFctAndJacobian(Shape, m, cs);
       // upper part
       for(int i=0;i<8;i++)
-        for(int j=i;j<8;j++) 
-          Mass[i][j] += rho*weight*dA*Shape[i]*Shape[j];    
+        for(int j=i;j<8;j++)
+          Mass[i][j] += rho*weight*dA*Shape[i]*Shape[j];
     }
   }
   // lower part by symmetry 
   for(int i=0;i<8;i++)
-    for(int j=0;j<i;j++) 
-      Mass[i][j] = Mass[j][i];    
+    for(int j=0;j<i;j++)
+      Mass[i][j] = Mass[j][i];
 
   return(Mass);
 }
@@ -504,8 +402,8 @@ FaceQuad8::IntegrateShapeFcts(double* ShapeIntg, CoordSet& cs, double rho, int n
   double dA, Shape[8];
   double xi, eta, weight, m[2];
 
-  for(int igp=0;igp<ngp;igp++){
-    for(int jgp=0;jgp<ngp;jgp++){
+  for(int igp=0;igp<ngp;igp++) {
+    for(int jgp=0;jgp<ngp;jgp++) {
       _FORTRAN(qgauss)(ngp,igp,ngp,jgp,xi,eta,weight);
       m[0] = xi; m[1] = eta;
       dA = GetShapeFctAndJacobian(Shape, m, cs);
@@ -515,9 +413,8 @@ FaceQuad8::IntegrateShapeFcts(double* ShapeIntg, CoordSet& cs, double rho, int n
   }
 }
 
-
 // -----------------------------------------------------------------------------------------------------
-//                              PRINT METHODS 
+//                                            PRINT METHODS 
 // -----------------------------------------------------------------------------------------------------
 // LOCAL METHODS
 // -------------

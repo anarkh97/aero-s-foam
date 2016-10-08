@@ -18,6 +18,9 @@
 // along with ACME.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#ifndef ContactShellTriFaceL3_C_
+#define ContactShellTriFaceL3_C_
+
 #include "ContactShellTriFaceL3.h"
 #include "ContactFixedSizeAllocator.h"
 #include <new>
@@ -56,3 +59,4 @@ ContactShellTriFaceL3<DataType>::~ContactShellTriFaceL3()
 {
 }
 
+#endif // ContactShellTriFaceL3_C_

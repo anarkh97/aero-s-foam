@@ -28,7 +28,7 @@ template<>
 inline void
 GenSubDomain<DComplex>::makeLocalRstar(FullM **Qtranspose)
 {
-  cerr << "GenSubDomain<DComplex>::makeLocalRstar(FullM **Qtranspose) is not implemented\n";
+  std::cerr << "GenSubDomain<DComplex>::makeLocalRstar(FullM **Qtranspose) is not implemented\n";
 }
 
 template<class Scalar>
@@ -143,12 +143,11 @@ GenSubDomain<Scalar>::makeG()
           int cDof = (m->terms)[k].cdof;
           if(cDof > -1) {
             for(int iRbm = 0; iRbm < numGroupRBM; ++iRbm)
-              (*G[i])[j][iRbm] += Rstar[cDof][iRbm]*(m->terms)[k].coef; // NEW G (switched sign)
+              (*G[i])[j][iRbm] += Rstar[cDof][iRbm]*(m->terms)[k].coef;
           }
         }
       }
     }
-    //cerr << "sub = " << subNumber << ", i = " << i << ", , neighb = " << scomm->neighbT(SComm::mpc,i) << ", G[i] = \n"; G[i]->print();
   }
 }
 
@@ -164,8 +163,8 @@ GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
   Scalar *localc = (Scalar *) dbg_alloca(sizeof(Scalar)*numCDofs);
 
   int nrbms_local = 0; int first = 0;
-  map<int, int> localToGlobalRBM;
-  map<int, int> globalToLocalRBM;
+  std::map<int, int> localToGlobalRBM;
+  std::map<int, int> globalToLocalRBM;
   for(int iRbm = 0; iRbm < nrbm; ++iRbm) {
     Scalar *rbm = rbms + size*iRbm;
     Scalar dot = 0.0;
@@ -179,8 +178,7 @@ GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
       nrbms_local++;
     }
   }
-  //if(nrbms_local)
-  //  cerr << "sub = " << subNumber << " has " << nrbms_local << " rbms, offset = " << first << endl;
+
   numGroupRBM = nrbms_local; // TODO this isn't general since global trbms may not be grouped like grbms
   groupRBMoffset = first;    // TODO this isn't general
 
@@ -225,9 +223,6 @@ GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
     }
   }
   delete [] localr;
-
-  //for(int i = 0; i < scomm->numT(SComm::mpc); ++i)
-  //  cerr << "sub = " << subNumber << ", i = " << i << ", neighb = " << scomm->neighbT(SComm::mpc,i) << ", G[i] = \n"; G[i]->print();
 }
 
 template<class Scalar>
@@ -402,6 +397,7 @@ GenSubDomain<Scalar>::buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, Connectivity *c
     GenFullM<Scalar> groupX(Xmatrix, numGroupRBM, groupRBMoffset, numGlobalRBMs, 0); 
     Rstar_g = Rstar * groupX;
 
+    if(!cornerToSub) return;
     double *sharedUse = new double[Rstar.numRow()];
     for(i=0; i<Rstar.numRow(); ++i) sharedUse[i] = 1.0;
     // if i is a shared dof set sharedUse[i] = 0.0

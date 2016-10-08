@@ -21,9 +21,7 @@ filePrint(FILE *file, const char *format, ...)
   va_list args;
   va_start(args, format);
 #ifdef DISTRIBUTED 
-  // cerr << "structCom->myID() = " << structCom->myID() << endl;
   if( !structCom || structCom->myID() == 0 )
-  //if( !syscom || syscom->myID() == 0 )
 #endif
 //#ifdef ANDROID
 //  __android_log_print(ANDROID_LOG_ERROR, "FemLib", format, args);
@@ -32,24 +30,5 @@ filePrint(FILE *file, const char *format, ...)
 //#endif
   va_end(args);
  }
-}
-
-void
-filePrint2(FILE *file, const char *format, ...)
-{
-#ifdef DISTRIBUTED
- if(!salinasFlag || (salinasFlag && verboseFlag)) {
-  va_list args;
-  va_start(args, format);
-  if( !structCom || structCom->myID() == 0 )
-  //if( !syscom || syscom->myID() == 0 )
-//#ifdef ANDROID
-//  __android_log_print(ANDROID_LOG_ERROR, "FemLib", format, args);
-//#else
-  vfprintf(file, format, args);
-//#endif
-  va_end(args);
- }
-#endif
 }
 

@@ -16,6 +16,8 @@ class DotType1ConstraintElement : public ConstraintFunctionElement<Simo::DotType
     ~DotType1ConstraintElement();
     void buildFrame(CoordSet&);
     void setFrame(EFrame *);
+    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
   protected:
     void getConstants(CoordSet&, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs = NULL);

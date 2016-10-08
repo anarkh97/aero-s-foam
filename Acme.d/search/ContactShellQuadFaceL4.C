@@ -18,6 +18,9 @@
 // along with ACME.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#ifndef ContactShellQuadFaceL4_C_
+#define ContactShellQuadFaceL4_C_
+
 #include "ContactShellQuadFaceL4.h"
 #include "ContactFixedSizeAllocator.h"
 #include <new>
@@ -57,3 +60,4 @@ ContactShellQuadFaceL4<DataType>::~ContactShellQuadFaceL4()
 {
 }
 
+#endif // ContactShellQuadFaceL4_C_

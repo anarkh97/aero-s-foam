@@ -1,8 +1,9 @@
 #ifndef SFEM_BLOCK_MATRIX_H_
 #define SFEM_BLOCK_MATRIX_H_
 
-#include<Utils.d/MyComplex.h>
-#include<Math.d/matrix.h>
+#include <Utils.d/MyComplex.h>
+#include <Math.d/matrix.h>
+#include <iostream>
 
 template<class Scalar>
 class SfemBlockMatrix {
@@ -22,7 +23,7 @@ class SfemBlockMatrix {
   void setKi(GenSparseMatrix<Scalar>* K, int i);
   void matvec_sfem_block(GenVector<Scalar> &u);
   void mult(GenVector<Scalar> &u, GenVector<Scalar> &ku);
-  void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result) { cerr << "transposeMult not implemented in SfemBlockMatrix\n"; }
+  void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result) { std::cerr << "transposeMult not implemented in SfemBlockMatrix\n"; }
   BlockInfo & dim(); 
   Scalar diag(int i);
   int* getFirstDof();

@@ -497,6 +497,7 @@ LOCAL_SRC_FILES  := ../Element.d/AddElem.C \
 	../Element.d/MpcElement.d/PointVariPointDistanceConstraintElement.C \
 	../Element.d/MpcElement.d/PointVariLineDistanceConstraintElement.C \
 	../Element.d/MpcElement.d/PointVariPlaneDistanceConstraintElement.C \
+        ../Element.d/MpcElement.d/PointVariPlaneSegmentDistanceConstraintElement.C \
 	../Element.d/Function.d/Constraint.d/DistanceConstraintFunction.C \
 	../Element.d/Function.d/Constraint.d/DotType1ConstraintFunction.C \
 	../Element.d/Function.d/Constraint.d/DotType2ConstraintFunction.C \

@@ -3,11 +3,14 @@
 
 #include <Problems.d/ModalBase.h>
 #include <Math.d/Vector.h>
+#include <Driver.d/Domain.h>
 
 #include <Hetero.d/FlExchange.h>
 
 template<class VecType> class SysState;
 class FlExchanger;
+template <typename Scalar> struct AllSensitivities;
+struct SensitivityInfo;
 
 template <class Scalar>
 class ModalDescr : public ModalBase {
@@ -16,18 +19,22 @@ class ModalDescr : public ModalBase {
 */
 private:
 
-  ModalOps modalOps;
+  ModalOps &modalOps;
+  double Wdmp;
+  Vector *previousCq;
+  Vector *previousDisp;
 
 public:
 
-  ModalDescr() {}
   ModalDescr(Domain *d);
-  //~ModalDescr()  { if (modalOps)  delete modalOps; modalOps = 0; }
+  ~ModalDescr();
 
   void projectForce(Vector &fullV, Vector& modalV);
   void expand(const Vector &modalV, Vector& fullV);
 
   void preProcess();
+  void preProcessSA();
+  void postProcessSA(ModalOps *,Vector &sol);
   void processLastOutput();
 
   ModalDescr* getPostProcessor() { return this; }
@@ -38,23 +45,30 @@ public:
   double getInitialForceNorm();
 
   int solVecInfo() { return numModes; }
+  int masterSolVecInfo() { return numModes; }
   int bcInfo() {return 0;}
 
   void getConstForce(Vector &constF);
+  void addConstForceSensitivity(Vector &gravityForceSen);
   void getSteadyStateParam(int &flag, int &min, int &max, double &tol);
+  void getSensitivityStateParam(double &tol, double &ratioTol);
   int getTimeIntegration() { return domain->solInfo().timeIntegration; }
   void getNewMarkParameters(double &beta, double &gamma,
     double &alphaf, double  &alpham);
   Domain *getDomain() { return domain; };
+  AllSensitivities<Scalar> *getAllSensitivities();
   void getInitialTime(int &tIndex, double &time);
   void getRayleighCoef(double &alpha) { alpha =  domain->solInfo().alphaDamp; }
 
-//  template <class Scalar> 
   ModalOps* buildOps(double kcoef, double ccoef, double mcoef);
 
-  void computeStabilityTimeStep(double &dt, ModalOps &){ /* leave blank */ }
+  void computeStabilityTimeStep(double &dt, ModalOps &);
   void updateState(double, Vector &, Vector &){ /* leave blank */ }
+  void push_forward(Vector &){ /* leave blank */ }
+  void pull_back(Vector &){ /* leave blank */ }
   void getQuasiStaticParameters(double &maxVel, double &delta);
+  SensitivityInfo *getSensitivityInfo() { return domain->senInfo; }
+  int getNumSensitivities() { return domain->getNumSensitivities(); }
   int getFilterFlag() { return domain->solInfo().filterFlags; }
   void project(Vector &v) { /* leave blank */ }
 
@@ -62,7 +76,12 @@ public:
   void computeExtForce2(SysState<Vector>& state, Vector &extF,
                         Vector &constF, int tIndex, double time, Vector *aeroF = 0,
                         double gamma = 0.5, double alphaf = 0.5);
+  void getAeroelasticForceSensitivity(int t_index, double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5);
+
   void getInternalForce(Vector &d, Vector &f, double t, int tIndex);
+  double getElasticEnergy(Vector &d);
+  double getKineticEnergy(Vector &v);
+  double getDampingEnergy(Vector &d, Vector &v, double time);
 
   void printTimers(ModalOps *, double) { /* leave blank */}
 
@@ -76,6 +95,11 @@ public:
 
   void computeTimeInfo() {};
   int aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
+  int aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
+  int sendDisplacements(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
+  void sendNumParam(int numParam, int actvar, double steadyTol){ flExchanger->sendNumParam(numParam, actvar, steadyTol); }
+  void getNumParam(bool &numParam){ flExchanger->getNumParam(numParam); }
+  void sendRelativeResidual(double relres){ flExchanger->sendRelativeResidual(relres); }
   int cmdCom(int cmdFlag){ return flExchanger->cmdCom(cmdFlag); }
  
   void a5TimeLoopCheck(int& parity, double& t, double dt);
@@ -91,12 +115,11 @@ public:
   void aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p) { domain->aeroHeatPreProcess(d_n, v_n, v_p, bcx); }
   int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
 
-  void addPrescContrib(SparseMatrix *Muc, SparseMatrix *Cuc, Vector& dnc, Vector& vnc, Vector& anc,
-                       Vector& result, double tm, double tf) { result.zero(); } // TODO
+  void solveAndUpdate(Vector &, Vector &, Vector &, double, double){ /* leave blank */ }
 };
+
 #ifdef _TEMPLATE_FIX_
   #include <Problems.d/ModalDescrTem.C>
-//  #include <Problems.d/ModalDescr.C>
 #endif
 
 #endif

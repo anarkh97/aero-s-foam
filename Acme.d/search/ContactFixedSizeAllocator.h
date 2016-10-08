@@ -31,9 +31,6 @@
 //
 // NOTE:  The Delete_Frag() function does not set the pointer to Null.
 
-using namespace std;
-
-
 class ContactFixedSizeAllocator {
 public:
   

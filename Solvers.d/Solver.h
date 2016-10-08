@@ -49,9 +49,9 @@ class GenSolver {
     virtual void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution);
     virtual void solve(Scalar *rhs, Scalar *solution);
     virtual void solve(GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &solution)
-             {cerr << "GenSolver::solve(GenDistrVector<Scalar> NOT implemented" << endl; } 
+             {std::cerr << "GenSolver::solve(GenDistrVector<Scalar> NOT implemented" << std::endl; } 
     virtual void solve(DistrBlockVector<Scalar> &rhs, DistrBlockVector<Scalar> &solution)
-             {cerr << "GenSolver::solve(DistrBlockVector<Scalar> NOT implemented" << endl; } 
+             {std::cerr << "GenSolver::solve(DistrBlockVector<Scalar> NOT implemented" << std::endl; } 
 
     // reSolve functions overwrite the rhs vector with the solution
     virtual void reSolve(Scalar *rhs); 
@@ -108,7 +108,7 @@ class GenSolver {
       
     virtual Connectivity *getAllDofs()  
             { fprintf(stderr, " ... This solver has no getAllDofs()\n"); return 0; }
-   virtual void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
+    virtual void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
     virtual void addone(Scalar d, int dofi, int dofj);
     virtual Scalar getone(int dofi, int dofj);
     virtual void unify(FSCommunicator *communicator);

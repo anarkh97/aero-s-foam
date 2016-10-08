@@ -1,7 +1,7 @@
 #ifndef	_ELEMENT_H_
 #define	_ELEMENT_H_
 
-#include <Math.d/matrix.h>
+#include <Math.d/ComplexD.h>
 #include <Utils.d/BlockAlloc.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/GlobalToLocalMap.h>
@@ -14,13 +14,6 @@
 #include <set>
 #include <map>
 
-
-// this is a fix to get around apparent template bug in solaris compiler
-inline double abs(std::complex<double> a)
-{
-  return sqrt(a.real()*a.real() + a.imag()*a.imag());
-}
-
 class Corotator;
 class State;
 class PolygonSet;
@@ -28,22 +21,28 @@ class InterpPoint;
 class NLMaterial;
 class LMPCons;
 class GeomState;
+class NFrameData;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 typedef GenVector<DComplex> ComplexVector;
 template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;
-typedef GlobalToLocalMap  EleRenumMap;
+typedef GenFullM<DComplex> FullMC;
+template <class Scalar> class GenFullSquareMatrix;
+typedef GenFullSquareMatrix<double> FullSquareMatrix;
+typedef GenFullSquareMatrix<DComplex> FullSquareMatrixC;
+typedef GlobalToLocalMap EleRenumMap;
 
 // Boundary Condition Structure
 struct BCond {
   int nnum;   // node number
   int dofnum; // dof number (0-6)
-  double val;    // value of bc
+  double val; // value of bc
   enum BCType { Forces=0, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
          Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
          Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
-         Sensors, Undefined, Lmpc, PointPointDistance, PointLineDistance, PointPlaneDistance } type;
+         Sensors, Undefined, Lmpc, PointPointDistance, PointLineDistance, PointPlaneDistance,
+         Etemperatures } type;
   int loadsetid;
   enum MomentType { Axial=0, Rotational, Follower } mtype;
   void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined, int _loadsetid = -1, 
@@ -73,8 +72,9 @@ struct PressureBCond {
   MFTTData *mftt;
   BlastLoading::BlastData *conwep;
   double loadfactor;
+  int face;
   void setData(int _elnum, double _val, int _loadsetid, bool _conwepswitch, MFTTData *_mftt = NULL, BlastLoading::BlastData *_conwep = NULL) 
-   { elnum = _elnum; val = _val; loadsetid = _loadsetid; conwepswitch = _conwepswitch; mftt = _mftt; conwep = _conwep; loadfactor = 1; }
+   { elnum = _elnum; val = _val; loadsetid = _loadsetid; conwepswitch = _conwepswitch; mftt = _mftt; conwep = _conwep; loadfactor = 1; face = -1; }
 };
 
 struct NumExc {
@@ -96,94 +96,113 @@ struct PMLProps {
  double gamma, Rx, Ry, Rz, Sx, Sy, Sz;
 };
 
+struct FreeplayProps {
+  double k, ll, ul, lz, dz, uz;
+};
+
 class StructProp {
   public:
     union {
         double  A;      // Cross-sectional area
         double kx;
+        double cx;      // x-component of discrete mass offset
         };
     union {
-	double	E;      // Elastic modulus
-	double d0;      // Initial stiffness of nonlin element
+        double	E;      // Elastic modulus
+        double d0;      // Initial stiffness of nonlin element
         double ky;
-	};
+        double cy;      // y-component of discrete mass offset
+        };
     union {
-	double	nu; 	// Poisson's ratio
-	double a;	// shear-t contribution ratio
+        double	nu; 	// Poisson's ratio
+        double a;	// shear-t contribution ratio
         double kz;
         double lambda;  // damage control
         double omega;
-	};
-     union {
-	double  rho; 	// Mass density per unit volume
+        double cz;      // z-component of discrete mass offset
         };
      union {
-	double  eh;	// Element thickness
-	double  C1;	// Non-uniform torsion constant
-	double b;       // shear-s contribution ratio
-	double xo;      // Plastic parameter    -January 2002 - JMP
+        double  rho; 	// Mass density per unit volume
+        };
+     union {
+        double  eh;	// Element thickness
+        double  C1;	// Non-uniform torsion constant
+        double b;       // shear-s contribution ratio
+        double xo;      // Plastic parameter
         double phase;
         double c1;      // 1st parameter of an elementary prescribed motion function
-	};
+        };
      union {
-	double  Ixx;	// Cross-sectional moment of inertia about local x-axis
+        double  Ixx;	// Cross-sectional moment of inertia about local x-axis
         double  ss;     // speed of sound
         double  c2;     // 2nd parameter of an elementary prescribed motion function
         };
      union {
-	double  Iyy;	// Cross-sectional moment of inertia about local y-axis
+        double  Iyy;	// Cross-sectional moment of inertia about local y-axis
         double  c3;     // 3rd parameter of an elementary prescribed motion function
         };
      union {
-	double  Izz;	// Cross-sectional moment of inertia about local z-axis
+        double  Izz;	// Cross-sectional moment of inertia about local z-axis
         double  c4;     // 4th parameter of an elementary prescribed motion function
         };
      union {
-	double c; 	// Thermal convection coefficient
-	double alphaY;  // Shear deflection constant associated to Iyy
-	double sigmax;
-	double sigE;    // Elastic limit
-	double ft;      // Tensile strength     -October 2001 - JMP
+        double c;       // Thermal convection coefficient
+        double alphaY;  // Shear deflection constant associated to Iyy
+        double sigmax;
+        double sigE;    // Elastic limit
+        double ft;      // Tensile strength
         double eps;     // Radiation: Emissivity of the body (for a black body, eps=1)
         double amplitude;
-	};
-     union {
-	double k;       // Heat conduction coefficient
-	double alphaZ;  // Shear deflection constant associated to Izz
-	double v2;      // Fracture Energy
-	double fc;      // Compressive strength -October 2001 - JMP
-        double Ep;      // Hardening modulus
-        double offset;
-	};
-     union {
-        double Q;	// Specific heat coeffiecient
-        double Mx;      // global x-component of applied moment
-        double Fx;      // global x-component of applied force
         };
      union {
-	double W;	// Thermal expansion coefficient
+        double k;       // Heat conduction coefficient
+        double alphaZ;  // Shear deflection constant associated to Izz
+        double v2;      // Fracture Energy
+        double fc;      // Compressive strength
+        double Ep;      // Hardening modulus
+        double offset;
+        };
+     union {
+        double Q;       // Specific heat coefficient
+        double Mx;      // global x-component of applied moment
+        double Fx;      // global x-component of applied force
+        double F0;      // magnitude of an applied force
+        };
+     union {
+        double W;       // Thermal expansion coefficient
         double My;      // global y-component of applied moment
         double Fy;      // global y-component of applied force
         };
      union {
-        double P;	// Perimeter/circumference of thermal truss/beams
+        double P;       // Perimeter/circumference of thermal truss/beams
         double Mz;      // global z-component of applied moment
         double Fz;      // global z-component of applied force
         };
      union {
-        double Ta;	// Ambient temperature
+        double Ta;      // Ambient temperature
         double Tr;      // Temperature of the enclosure receiving the radiation
         };
         double sigma;   // Stefan's constant (5.6704e-8 in SI)
-	double ymin;    // minimum height (< 0) for cross section of beam (local y-direction)
-	double ymax;    // maximum height (> 0) for cross section of beam (local y-direction)
-	double zmin;    // minimum height (< 0) for cross section of beam (local z-direction)
-	double zmax;	// maximum height (> 0) for cross section of beam (local z-direction)
+      union {
+        double ymin;    // minimum height (< 0) for cross section of beam (local y-direction)
+        double Ixy;     // product of inertia
+        };
+      union {
+        double ymax;    // maximum height (> 0) for cross section of beam (local y-direction)
+        double Iyz;     // product of inertia
+        };
+      union {
+        double zmin;    // minimum height (< 0) for cross section of beam (local z-direction)
+        double Ixz;     // product of inertia
+        };
+        double zmax;    // maximum height (> 0) for cross section of beam (local z-direction)
 
         double betaDamp; // Rayleigh stiffness damping coefficient
         double alphaDamp; // Rayleigh mass damping coefficient
         double etaDamp; // Structural damping coefficient
         int etaDampTable; // Structural damping coefficient table id
+        double eta_mu, deta_mu, eta_E, deta_E, mu0, dmu, E0, dE ;
+        int rubDampTable;
 
         double kappaHelm; // wave number for Helmholtz proplem
         double kappaHelmImag; // imaginary part of the wavenumber for
@@ -197,8 +216,10 @@ class StructProp {
         int relop; // 0: equality (==), 1: inequality (<=)
         int constraint_hess;
         double constraint_hess_eps;
-        enum { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
+        FreeplayProps freeplay[3];
+        enum PropType { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
         double k1, k2, k3;
+        MFTTData *ymtt, *ctett;
 
 	// Fabric Material Options
 	int F_op; // Fabric Material Option
@@ -217,14 +238,10 @@ class StructProp {
 	int F_Nf; // Number of Fibrils in a Yarn
 	int Seed; // Seed for Random Number Generator
 
-
         PMLProps fp;
 
-        bool isReal;
-        bool isRigid;
-
 	/** the W and E coefficient might encode integer values when they're negative
-	 * (see manual for this). Heavily templated Sower needs a temporary storage that's adressable.
+	 * (see manual for this). Heavily templated Sower needs a temporary storage that's addressable.
 	 * For some reason it wont let us do that any other way than this. I'm hoping to improve this. TG
 	 */
 	int __SOWER_TMP;
@@ -236,17 +253,23 @@ class StructProp {
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        etaDamp = 0.0; etaDampTable = -1;
                        ymin = 0.0; ymax = 0.0;
-                       zmin = 0.0; zmax = 0.0; isReal = false; isRigid = false;
+                       zmin = 0.0; zmax = 0.0;
                        lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
-                       k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0; } 
+                       k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0;
+                       freeplay[0].dz = freeplay[1].dz = freeplay[2].dz = 1; ymtt = NULL; ctett = NULL;
+                       eta_mu=deta_mu=eta_E=deta_E=mu0=dmu=E0=dE = 0.0;
+                       rubDampTable = -1;
+ } 
 
 };
 
+typedef std::map<int, StructProp, std::less<int>, block_allocator<std::pair<const int, StructProp> > > SPropContainer;
+
 // ****************************************************************
-// *
-// *     class Node: Keeps the coordinates of a node
-// *
+// *                                                              *
+// *     class Node: Keeps the coordinates of a node              *
+// *                                                              *
 // ****************************************************************
 
 class Node {
@@ -277,7 +300,6 @@ class Node {
 // *       from the user at any time a node is read in rather     *
 // *       then keeping it from 1 and then subtracting 1 here     *
 // *       and there....                                          *
-// *       functions for this class are in Element.d/Elemset.C   *
 // ****************************************************************
 
 class CoordSet {
@@ -305,27 +327,24 @@ public:
         void getCoordinates(int *nn, int numNodes,
                             double *xx, double *yy, double *zz);
 
-        //Node * operator[] (int i) { return (i >= nmax) ? 0 : nodes[i]; }
         Node * operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
         Node *& operator[] (int i);
 
         int nnz();
+        NFrameData * dofFrame(int i);
 };
 
 
- //DEC
 struct PrioInfo {
   int priority; // the level of priority (undefined in isReady == 0)
   bool isReady; // whether this element is ready to be inserted
-  // PrioInfo() { isReady = false; }  PJSA
 };
 
 class MultiFront;
-// END DEC
 
-
-/** \brief Abstract Element class
- *
+/****************************************************************
+ *                 Abstract Element class                       *
+ *                                                              *
  * Class Element defines functions for finite elements.         *
  * Each element has a structural property and a pressure        *
  * associated with it. Each element defines it's own dofs, sets *
@@ -340,19 +359,20 @@ class MultiFront;
 
 class Element {
   public:
-        enum Category { Structural, Acoustic, Thermal, Sloshing, HEV, Undefined };
+        enum Category { Structural=0, Acoustic, Thermal, Fluid, Undefined };
   private:
         Category category;
         double _weight, _trueWeight;
         int elementType;
+        bool includeStressNodes;
   protected:
-	StructProp *prop;	// structural properties for this element
+        StructProp *prop;	// structural properties for this element
         bool myProp;
         int glNum, subNum, stateOffset;
-        vector<double> factors;
-	void lumpMatrix(FullSquareMatrix&);
+        std::vector<double> factors;
+        void lumpMatrix(FullSquareMatrix&);
   public:
-        Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; category = Undefined; };
+        Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; category = Undefined; includeStressNodes = false; };
         virtual ~Element() { if(myProp && prop) delete prop; }
         StructProp * getProperty() { return prop; }
 
@@ -369,7 +389,7 @@ class Element {
         }
 
         // By default ignore any element pressure
-	virtual void setPressure(PressureBCond *pbc) {}
+        virtual void setPressure(PressureBCond *pbc) {}
         virtual PressureBCond* getPressure() { return NULL; }
 
         // By default ignore any element preload
@@ -377,7 +397,7 @@ class Element {
         virtual std::vector<double> getPreLoad() { return std::vector<double>(0); }
 
         virtual void setGlNum(int gn, int sn=0) { glNum = gn; subNum = sn; }
-        int getGlNum()  { return glNum; }
+        int getGlNum() { return glNum; }
 
         // By default, an element has no frame
         virtual void setFrame(EFrame *) {}
@@ -391,39 +411,69 @@ class Element {
                                            double *coefs, CoordSet &cs, double theta);
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
-	virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
+        virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1);
+        virtual void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
+        virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
-	FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
-        virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};
-        virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};
+        FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
+        virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d);
+        virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d);
+        virtual void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n,
+                                            double omega);
 
-	virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
+        virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
 
         virtual double getMass(CoordSet&) { return 0; }
+        virtual double getMassThicknessSensitivity(CoordSet&) { return 0; }
+        virtual double weight(CoordSet&, double *);
+        virtual double getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration);
+        virtual void getWeightNodalCoordinateSensitivity(Vector& dwdx, CoordSet& cs, double *gravityAcceleration);
         virtual double getDCmass(CoordSet &,Vector &, double&) { return 0; }
 
-        virtual void   getGravityForce(CoordSet&,double *gravity,Vector &force,
-                                       int gravflg, GeomState *gs=0);
+        virtual void getGravityForce(CoordSet&,double *gravity,Vector &force,
+                                     int gravflg, GeomState *gs=0);
 
-        virtual void   getThermalForce(CoordSet& cs,Vector &ndT,Vector &force,
+        virtual void getGravityForceThicknessSensitivity(CoordSet&,double *gravity, Vector &force,
+                                                         int gravflg, GeomState *gs=0);
+
+        virtual void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                               GenFullM<double> &dGfdx, int gravflg, GeomState *geomState = 0);
+
+        virtual void   getThermalForce(CoordSet& cs, Vector &ndT, Vector &force,
                                        int glflag, GeomState *gs=0);
-        virtual void   getThermalForceAdj(CoordSet& cs,Vector &ndT,Vector &force,
+        virtual void   getThermalForceAdj(CoordSet& cs, Vector &ndT, Vector &force,
                                           int glflag);
 
-	virtual void   getIntrnForce(Vector &elForce, CoordSet& cs,
-				     double *elDisp, int Index, double *ndTemps);
+        virtual void   getIntrnForce(Vector &elForce, CoordSet& cs,
+                                     double *elDisp, int Index, double *ndTemps);
 
-        // this can't be templated, c++ doesn't allow virtual member functions to be templated
-	virtual void   getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
-		                   Vector &elDisp, int strInd, int surface=0,
-                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 0); //CBM
+        virtual void   getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
+                                   Vector &elDisp, int strInd, int surface=0,
+                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 1);
 
         virtual void   getVonMises(ComplexVector &stress, Vector &weight, CoordSet &cs,
                                    ComplexVector &elDisp, int strInd, int surface=0,
-                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 0); //CBM
+                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 1);
 
-	virtual void   getVonMisesInt(CoordSet &,Vector &,double &,double &, int,
-				      double &,double &, double* dT=0 );
+        virtual void   getVonMisesInt(CoordSet &,Vector &,double &,double &, int,
+                                      double &,double &, double* dT=0 );
+
+        virtual void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                              double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+
+        virtual void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
+                                              double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+
+        virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, 
+                                                        CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                        double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+
+        virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, 
+                                                        CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
+                                                        double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+
+        virtual void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                           double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void   getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                                     Vector &elDisp, int strInd, int surface=0,
@@ -439,16 +489,14 @@ class Element {
         virtual void  trussHeatFluxes(double &trussflux, CoordSet &cs,
                                       Vector& elTemp, int hflInd) {}
 
-        //ADDED FOR SLOSHING PROBLEM, EC, 20070723
         virtual void   computeSloshDisp(Vector& fluidDispSlosh, CoordSet &cs,
                                          Vector& elPotSlosh, int hflInd);
 
-        //ADDED FOR SLOSHING PROBLEM, EC, 20081101
         virtual void   computeSloshDispAll(Vector& fluidDispSlosh, CoordSet &cs,
                                          Vector& elPotSlosh);
 
         virtual void   computeDisp(CoordSet&, State&, const InterpPoint &,
-                                   double*, GeomState *gs=0)  {}
+                                   double*, GeomState *gs=0) {}
 
         virtual void   getFlLoad(CoordSet &, const InterpPoint &,
                                  double *, double *, GeomState *gs=0) {}
@@ -465,8 +513,7 @@ class Element {
 	virtual int*   nodes(int * = 0) = 0;
         virtual int*   allNodes(int *x = 0) { return nodes(x); }
 
-        virtual Corotator *getCorotator(CoordSet &, double *, int = 2, int = 2)
-        { printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0; }
+        virtual Corotator *getCorotator(CoordSet &, double *, int = 2, int = 2);
 
 	virtual int  getTopNumber();
         virtual int  numTopNodes() { return numNodes() - numInternalNodes(); }   // this is the number of nodes printed in the top file
@@ -494,11 +541,9 @@ class Element {
 
 	virtual bool isSafe() { return true; }
 
-
 	// from DEC
 	// TOP/DOMDEC Element Functions
-	virtual int facelist(PolygonSet &, int * = 0) {return 0; }
-
+	virtual int facelist(PolygonSet &, int * = 0) { return 0; }
 
 	// DEC : Routines for the decomposer
 	// isStart indicates if an element is suitable to
@@ -513,21 +558,30 @@ class Element {
  	virtual PrioInfo examine(int sub, MultiFront *mf);
 	virtual double weight() { return _weight; }
 	virtual double trueWeight() { return _trueWeight; }
-	void setWeight(double weight){ _weight = weight; }
-	void setTrueWeight(double trueWeight){ _trueWeight = trueWeight; }
+	void setWeight(double weight) { _weight = weight; }
+	void setTrueWeight(double trueWeight) { _trueWeight = trueWeight; }
 
 	void getCG(CoordSet &cset, double &xcg, double &ycg, double &zcg);
+        virtual int nDecFaces() { return 0; } 
+        virtual int getDecFace(int iFace, int *fn) { return 0; }
 	// END FROM DEC
 
-         // PJSA: this need to be defined for 6 node tri shell & 8 node quad shell
+        // this need to be defined for 6 node tri shell & 8 node quad shell
         virtual bool isRotMidSideNode(int iNode) { return false; }
+
+        // the following function is used for element pressure with the face keyword 
+        // and differs from getDecFace in that (a) midside nodes are not ignored, and
+        // (b) for 3D solid element all face normals are outward pointing.
+        virtual int getFace(int iFace, int *fn);
 
 	virtual bool hasDamping() { return false; }
         bool isFluidElement();
         virtual bool isSommerElement() { return false; }
+        virtual bool isRadiationElement() { return false; }
+        virtual bool isSloshingElement() { return false; }
         virtual bool isMpcElement() { return false; }
         virtual bool isFsiElement() { return false; }
-        virtual bool isHEVFluidElement() { return false; }  //ADDED FOR HEV PROBLEM, EC, 20070820
+        virtual bool isHEVFluidElement() { return false; }
         virtual int  fsiFluidNode() { return -1; }
         virtual int  fsiStrutNode() { return -1; }
         //virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false) { return false; }
@@ -550,7 +604,11 @@ class Element {
         virtual bool isShell() { return false; }
 
         virtual bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isFsiElement()); }
+        virtual bool isConstraintElementIeq() { return (isMpcElement() && prop->relop != 0); }
+        virtual bool isFreeplayElement() { return false; }
         virtual bool isPhantomElement() { return (!(prop || isConstraintElement() || isSommerElement())); }
+        bool doesIncludeStressNodes() { return includeStressNodes; }
+        void setIncludeStressNodes(bool isIn) { includeStressNodes = isIn; }
 
         int getElementType() { return elementType; }
         void setElementType(int _type) { elementType = _type; }
@@ -565,7 +623,7 @@ class Element {
 	virtual FullSquareMatrixC complexMassMatrix(CoordSet& cs, DComplex* m, double mratio);
 
         Category getCategory() { return category; } 
-        void setCategory(Category _category) { category = _category; } // currently this is only called for thermal elements, could be extended.
+        void setCategory(Category _category) { category = _category; }
         bool isDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
         bool isSDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->etaDamp != 0.0 )) : false; }
 
@@ -585,7 +643,6 @@ class Element {
 // *****************************************************************
 // *                        WARNING                                *
 // *       The same remark as for node is valid for elements       *
-// *       The functions for this class are in Element.d/ElemSet.C *
 // *****************************************************************
 
 class Elemset
@@ -596,6 +653,7 @@ class Elemset
     BlockAlloc ba;
     bool myData;
     int dampingFlag;
+    std::vector<std::pair<int,int> > etypes;
   public:
     Elemset(int = 256);
     virtual ~Elemset() { deleteElems(); }
@@ -611,116 +669,21 @@ class Elemset
     void setEmax(int max)  { emax = max; }
     void list();
     void deleteElems();
-    void remove(int num) { elem[num] = 0; }//DEC
+    void remove(int num) { elem[num] = 0; }
+    void removeAll();
     void setMyData(bool _myData) { myData = _myData; }
     bool hasDamping();
     void collapseRigid6(std::set<int> &);
     void deleteElem(int i);
-};
-
-class EsetGeomAccessor {
-  public:
-    static int getNum(/*const*/ Elemset &eSet, int elNum)
-     { return eSet[elNum] ? eSet[elNum]->numNodes() : 0; }
-    static int getSize(const Elemset &eSet)
-     { return eSet.last(); }
-    static int *getData(/*const*/ Elemset &eSet, int elNum, int *nd)
-     { return eSet[elNum] ? eSet[elNum]->allNodes(nd) : 0; }
-};
-
-class EsetDataAccessor {
- public:
-  static int getNum(/*const*/ Elemset &eSet, int elNum)
-    { return 1; }
-    static int getSize(const Elemset &eSet)
-     { return eSet.last(); }
-    static int *getData(/*const*/ Elemset &eSet, int elNum, int *nd)
-     {
-       if(eSet[elNum])
-	 {
-	   if(nd) { nd[0] = elNum; return nd;}
-	   else { std ::cerr << "(EE) error : unefficient use of EsetPressureAccessor" << std::endl; return 0;}
-	 }
-       else
-	 {
-	   return 0;
-	 }
-     }
-};
-
-#include <Driver.d/EFrameData.h>
-
-class  EFrameDataAccessor{
- public:
-    static int getNum(/*const*/ std::pair<int,ResizeArray<EFrameData>* > &, int )
-     { return 1; }
-    static int getSize(const std::pair<int,ResizeArray<EFrameData>* > &o)
-     { return o.first; }
-    static int *getData(/*const*/ std::pair<int,ResizeArray<EFrameData>* > &o, int i, int *nd)
-     {
-       if(i>=o.first)
-	 cout << "EFrameDataAccessor corruption" << endl;
-       if(nd) { nd[0] = ((*(o.second))[i]).elnum; return nd; }
-       else return &(*o.second)[i].elnum;
-     }
-};
-
-#include <Driver.d/DMassData.h>
-
-class DimassAccessor{
- public:
-  static int getNum(/*const*/ vector<DMassData*> &, int )
-    { return 1; }
-  static int getSize(const  vector<DMassData*> &o)
-    { return o.size(); }
-  static int *getData(/*const*/  vector<DMassData*> &o, int i, int *nd)
-    {
-      if(nd != 0)
-	{
-	  nd[0] = (*(o[i])).node; return nd;
-	}
-      else
-	return &(*(o[i])).node;
-    }
-};
-
-class BCDataAccessor {
-  public:
-    static int getNum(/*const*/ std::pair<int,BCond *> &, int )
-     { return 1; }
-    static int getSize(const std::pair<int,BCond *> &o)
-     { return o.first; }
-    static int *getData(/*const*/ std::pair<int,BCond *> &o, int i, int *nd)
-     {
-       if(i>=o.first)
-	 cout << "BCDataAccessor" << endl;
-       if(nd) { nd[0] = o.second[i].nnum; return nd; }
-       else return &o.second[i].nnum;
-     }
-};
-
-class ComplexBCDataAccessor {
-  public:
-    static int getNum(/*const*/ std::pair<int,ComplexBCond *> &, int )
-     { return 1; }
-    static int getSize(const std::pair<int,ComplexBCond *> &o)
-     { return o.first; }
-    static int *getData(/*const*/ std::pair<int,ComplexBCond *> &o, int i, int *nd)
-     {
-       if(i>=o.first)
-         cout << "ComplexBCDataAccessor" << endl;
-       if(nd) { nd[0] = o.second[i].nnum; return nd; }
-       else return &o.second[i].nnum;
-     }
+    void setWeights();
 };
 
 class ElementFactory
 {
- public:
-  ElementFactory() {}
-  virtual ~ElementFactory() {}
-  virtual Element* elemadd(int num, int type, int nnodes, int *nodes,
-			   BlockAlloc& ba);
+  public:
+    ElementFactory() {}
+    virtual ~ElementFactory() {}
+    virtual Element* elemadd(int num, int type, int nnodes, int *nodes, BlockAlloc& ba);
 };
 
 #endif

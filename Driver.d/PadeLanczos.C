@@ -7,12 +7,11 @@
 #include <cstdlib>
 #include <sys/time.h>
 #include <Timers.d/GetTime.h>
+#include <Utils.d/DistHelper.h>
 
-       #include <sys/types.h>
-       #include <sys/stat.h>
-       #include <fcntl.h>
-
-
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 template < class Scalar,
            class OpSolver,
@@ -38,7 +37,7 @@ StaticSolver< Scalar, OpSolver, VecType,
   if (allOps->C_deriv) {
     std::cerr << "\n !!! The Pade-Lanczos algorithm is not implemented yet";
     std::cerr << " for the damped case !!!\n\n";
-    assert(0 > 1);
+    exit(-1);
   }
 
   srand((unsigned int) time(0));
@@ -381,18 +380,23 @@ StaticSolver< Scalar, OpSolver, VecType,
   ::galProjection(bool gpReorthoFlag,
                   int nRHS, VecType *sol, VecType **u, VecType **v,
                   Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
+                  Scalar **&VhK_arubber_lV, Scalar **&VhK_arubber_mV,
                   double w, double deltaw)
 {
- filePrint(stderr,"w deltaw size: %f %f %d\n",w,deltaw,sol->size());
-
+ filePrint(stderr,"w deltaw size: %f %f %d %d\n",w,deltaw,sol->size(),int(gpReorthoFlag));
 
  VecType *f = new VecType(probDesc->solVecInfo());
+ VecType *a = new VecType(probDesc->solVecInfo());
+ VecType *b = new VecType(probDesc->solVecInfo());
+ VecType *c = new VecType(probDesc->solVecInfo());
+ int num_arubber = geoSource->num_arubber;
+ VecType *dl = (num_arubber>0)?new VecType(probDesc->solVecInfo()):0;
+ VecType *dm = (num_arubber>0)?new VecType(probDesc->solVecInfo()):0;
 
  if (gpReorthoFlag) {
 
 double time = 0.0;
 time -= getTime();
-   VecType *a = new VecType(probDesc->solVecInfo());
 
    for(int i=0;i<nRHS;i++) {
      *u[i] = *v[i];
@@ -429,15 +433,32 @@ time -= getTime();
      }
    }
 
-
-   VecType *b = new VecType(probDesc->solVecInfo());
-   VecType *c = new VecType(probDesc->solVecInfo());
    if (VhMV!=0) delete[] VhMV; 
    if (VhKV!=0) delete[] VhKV; 
    if (VhCV!=0) delete[] VhCV; 
+   if (VhK_arubber_lV!=0) {
+     for(int ir=0;ir<num_arubber;ir++) {
+       delete VhK_arubber_lV[ir];
+       delete VhK_arubber_mV[ir];
+     }
+     delete VhK_arubber_lV;
+     delete VhK_arubber_mV;
+   }
+
    VhMV = new Scalar[(nRHS)*(nRHS)];
    VhKV = new Scalar[(nRHS)*(nRHS)];
    VhCV = new Scalar[(nRHS)*(nRHS)];
+   if (num_arubber>0) {
+     VhK_arubber_lV = new Scalar*[num_arubber];
+     VhK_arubber_mV = new Scalar*[num_arubber];
+     for(int ir=0;ir<num_arubber;ir++) {
+       VhK_arubber_lV[ir] = new Scalar[(nRHS)*(nRHS)];
+       VhK_arubber_mV[ir] = new Scalar[(nRHS)*(nRHS)];
+     }
+   } else {
+     VhK_arubber_lV = VhK_arubber_mV = 0;
+   }
+   
    for(int i=0;i<nRHS;i++) {
      
      allOps->K->mult(*(u[i]), *a);
@@ -449,6 +470,7 @@ time -= getTime();
        }
      } else (*c).zero(); 
      //else if (allOps->C) allOps->C->mult(*(u[i]), *c);  
+     
 
      for(int j=0;j<nRHS;j++) {
        VhMV[i*(nRHS)+j] = *b * *u[j];
@@ -457,13 +479,36 @@ time -= getTime();
 // + (w-deltaw)*(w-deltaw) * VhMV[i*(nRHS)+j];
 //       ScalarTypes::addComplex(VhKV[i*(nRHS)+j], -(w-deltaw)*VhCV[i*(nRHS)+j] );
      }
+
+     for(int ir=0;ir<num_arubber;ir++) {
+       allOps->K_arubber_l[ir]->mult(*(u[i]), *dl);
+       allOps->K_arubber_m[ir]->mult(*(u[i]), *dm);
+       for(int j=0;j<nRHS;j++) {
+         VhK_arubber_lV[ir][i*(nRHS)+j] = *dl * *u[j];
+         VhK_arubber_mV[ir][i*(nRHS)+j] = *dm * *u[j];
+       }
+     }
+
    }
-   delete b;
-   delete c;
-   delete a;
 time += getTime();
 filePrint(stderr,"Ortho + proj setup time: %e\n",time);
  }
+
+//#define ARUBBER_O
+#ifdef ARUBBER_O
+ allOps->K_deriv[0]->zeroAll();
+ probDesc->buildDeltaK(w-deltaw,w);
+ Scalar* VdeltaKV = new Scalar[(nRHS)*(nRHS)];
+ for(int i=0;i<(nRHS)*(nRHS);i++) VdeltaKV[i] = 0.0;
+ if (allOps->K_deriv) if (allOps->K_deriv[0]) {
+   for(int i=0;i<nRHS;i++) {
+     allOps->K_deriv[0]->mult(*(u[i]), *a);
+     for(int j=0;j<nRHS;j++)  
+       VdeltaKV[i*(nRHS)+j] = *a * *u[j];
+     }
+ }
+#endif
+
 
 double time = 0.0;
 time -= getTime();
@@ -476,14 +521,50 @@ time -= getTime();
    z[i] = *f * *u[i];
  }
 
- 
  Scalar *zz = new Scalar[(nRHS)*(nRHS)];
  for(int i=0;i<nRHS;i++)
    for(int j=0;j<nRHS;j++) {
      zz[i*(nRHS)+j] = VhKV[i*(nRHS)+j] - w*w * VhMV[i*(nRHS)+j];
+#ifdef ARUBBER_O
+     zz[i*(nRHS)+j] += VdeltaKV[i*(nRHS)+j];
+#endif
      ScalarTypes::addComplex(zz[i*(nRHS)+j], 
                       w * VhCV[i*(nRHS)+j]);
    }
+
+ complex<double> *lambda=0, *mu=0, *deltalambda=0, *deltamu=0;
+ if (num_arubber>0)  {
+   lambda = new complex<double>[num_arubber];
+   mu = new complex<double>[num_arubber];
+   deltalambda = new complex<double>[num_arubber];
+   deltamu = new complex<double>[num_arubber];
+ }
+ geoSource->getARubberLambdaMu(w,deltalambda,deltamu);
+ geoSource->getARubberLambdaMu(w-deltaw,lambda,mu);
+ for(int ir=0;ir<num_arubber;ir++) {
+  deltalambda[ir] -= lambda[ir];
+  deltamu[ir] -= mu[ir];
+ }
+
+ for(int ir=0;ir<num_arubber;ir++)      
+ for(int i=0;i<nRHS;i++)
+   for(int j=0;j<nRHS;j++) 
+    ScalarTypes::addComplex(zz[i*(nRHS)+j],
+       deltalambda[ir]*VhK_arubber_lV[ir][i*(nRHS)+j] +
+       deltamu[ir]*VhK_arubber_mV[ir][i*(nRHS)+j]);
+
+/*
+ {
+ int ir=0;
+ for(int i=0;i<nRHS*nRHS;i++) fprintf(stderr,"VdeltaKV %d %e %e   %e %e  %e\n",
+      i,ScalarTypes::Real(VdeltaKV[i]),ScalarTypes::Imag(VdeltaKV[i]),
+       ScalarTypes::Real(deltalambda[ir]*VhK_arubber_lV[ir][i] +
+       deltamu[ir]*VhK_arubber_mV[ir][i]),
+       ScalarTypes::Imag(deltalambda[ir]*VhK_arubber_lV[ir][i] +
+       deltamu[ir]*VhK_arubber_mV[ir][i]),
+       ScalarTypes::Real(VhKV[i]));
+ }
+*/
 
 //--- Solve the reduced linear system
  std::vector<int> ipiv(nRHS);
@@ -502,9 +583,7 @@ filePrint(stderr,"Projection time: %e\n",time);
 
 time = 0.0;
 time -= getTime();
- VecType *a = new VecType(probDesc->solVecInfo());
- VecType *b = new VecType(probDesc->solVecInfo());
- VecType *c = new VecType(probDesc->solVecInfo());
+     Scalar nrmb = 0.0;
  allOps->K->mult(*sol, *a);
  allOps->M->mult(*sol, *b);
  if (allOps->C_deriv) {
@@ -514,6 +593,22 @@ time -= getTime();
  for(int k=0;k<sol->size();k++) 
      ScalarTypes::addComplex((*a)[k], 
                       w * (*c)[k]);
+#ifndef ARUBBER_O
+ for(int ir=0;ir<num_arubber;ir++) {
+   allOps->K_arubber_l[ir]->mult(*sol, *dl);
+   allOps->K_arubber_m[ir]->mult(*sol, *dm);
+   for(int k=0;k<sol->size();k++) 
+     ScalarTypes::addComplex((*a)[k],
+                    deltalambda[ir]* (*dl)[k] + deltamu[ir]* (*dm)[k]);
+ }
+#else
+ if (allOps->K_deriv) if (allOps->K_deriv[0]) { 
+     allOps->K_deriv[0]->mult(*sol, *b);
+     nrmb = *b * *b;
+    (*a).linAdd(1.0,*b);
+ }
+#endif
+
 // (*a).print();
  (*a).linAdd(-1.0,*f);
  forceAssemble(*a);
@@ -521,6 +616,7 @@ time -= getTime();
  Scalar nrma = *a * *a;
  Scalar nrmf = *f * *f;
  filePrint(stderr,"residual: %e\n", sqrt(ScalarTypes::Real(nrma))/sqrt(ScalarTypes::Real(nrmf)));
+ filePrint(stderr,"deltaK res: %e\n", sqrt(ScalarTypes::Real(nrmb))/sqrt(ScalarTypes::Real(nrmf)));
 // (*sol).print();
 time += getTime();
 filePrint(stderr,"Residual compute time: %e\n",time);
@@ -529,6 +625,15 @@ filePrint(stderr,"Residual compute time: %e\n",time);
  delete a;
  delete b;
  delete c;
+ if (dl) delete dl;
+ if (dm) delete dm;
+ if (num_arubber>0)  {
+   delete[] lambda;
+   delete[] mu;
+   delete[] deltalambda;
+   delete[] deltamu;
+ }
+
 
  delete f;
 
@@ -536,6 +641,9 @@ filePrint(stderr,"Residual compute time: %e\n",time);
 
  delete[] z;
  delete[] zz;
+#ifdef ARUBBER_O
+ delete[] VdeltaKV;
+#endif
 
  return sqrt(ScalarTypes::Real(nrma))/sqrt(ScalarTypes::Real(nrmf));
 }
@@ -733,7 +841,8 @@ StaticSolver< Scalar, OpSolver, VecType,
                   VecType *sol, VecType **u, VecType **v,
                   VecType **aa, VecType **bb, VecType **cc, 
                   Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
-                  int ncheck, double *wcheck,
+                  Scalar **&VhK_arubber_lV, Scalar **&VhK_arubber_mV,
+                  int ncheck, double *wcheck, double wc,
                   double alpha, double tol)
 {
  filePrint(stderr,"minRHS,maxRHS,deltaRHS,nOrtho...: %d %d %d  %d %d\n",minRHS,maxRHS,deltaRHS,nOrtho,sol->size());
@@ -756,13 +865,37 @@ time -= getTime();
  VecType *b = new VecType(probDesc->solVecInfo());
  VecType *c = new VecType(probDesc->solVecInfo());
  VecType *f = new VecType(probDesc->solVecInfo());
+ int num_arubber = geoSource->num_arubber;
+ VecType *dl = (num_arubber>0)?new VecType(probDesc->solVecInfo()):0;
+ VecType *dm = (num_arubber>0)?new VecType(probDesc->solVecInfo()):0;
 
  if (VhKV!=0) delete[] VhKV; 
  if (VhMV!=0) delete[] VhMV; 
  if (VhCV!=0) delete[] VhCV; 
+ if (VhK_arubber_lV!=0) {
+   for(int ir=0;ir<num_arubber;ir++) {
+     delete VhK_arubber_lV[ir];
+     delete VhK_arubber_mV[ir];
+   }
+   delete VhK_arubber_lV;
+   delete VhK_arubber_mV;
+ }
  Scalar *tmpVhKV = new Scalar[(nOrtho+maxRHS)*(nOrtho+maxRHS)];
  Scalar *tmpVhMV = new Scalar[(nOrtho+maxRHS)*(nOrtho+maxRHS)];
  Scalar *tmpVhCV = new Scalar[(nOrtho+maxRHS)*(nOrtho+maxRHS)];
+ Scalar **tmpVhK_arubber_lV = 0;
+ Scalar **tmpVhK_arubber_mV = 0;
+ if (num_arubber>0) {
+   tmpVhK_arubber_lV = new Scalar*[num_arubber];
+   tmpVhK_arubber_mV = new Scalar*[num_arubber];
+   for(int ir=0;ir<num_arubber;ir++) {
+     tmpVhK_arubber_lV[ir] = new Scalar[(nOrtho+maxRHS)*(nOrtho+maxRHS)];
+     tmpVhK_arubber_mV[ir] = new Scalar[(nOrtho+maxRHS)*(nOrtho+maxRHS)];
+   }
+ } else {
+   tmpVhK_arubber_lV = tmpVhK_arubber_mV = 0;
+ }
+
 
 projmattime -= getTime();
  for(int i=0;i<nOrtho;i++) {
@@ -781,6 +914,15 @@ projmattime -= getTime();
      tmpVhKV[i*(nOrtho+maxRHS)+j] = *(aa[i]) * *(u[j]);
      tmpVhMV[i*(nOrtho+maxRHS)+j] = *(bb[i]) * *(u[j]);
      tmpVhCV[i*(nOrtho+maxRHS)+j] = *(cc[i]) * *(u[j]);
+
+     for(int ir=0;ir<num_arubber;ir++) {
+       allOps->K_arubber_l[ir]->mult(*(u[i]), *dl);
+       allOps->K_arubber_m[ir]->mult(*(u[i]), *dm);
+       for(int j=0;j<nOrtho;j++) {
+         tmpVhK_arubber_lV[ir][i*(nOrtho+maxRHS)+j] = *dl * *u[j];
+         tmpVhK_arubber_mV[ir][i*(nOrtho+maxRHS)+j] = *dm * *u[j];
+       }
+     }
    }
  }
 projmattime += getTime();
@@ -816,7 +958,7 @@ orthotime -= getTime();
          allOps->M->mult(*u[nOrtho+i-1], *f);
        }
      }
-     filePrint(stderr,"\n ... Solving RHS #%3d               ...\n",i);
+     filePrint(stderr,"\n ... Solving RHSa   #%3d               ...\n",i);
 rhstime -= getTime();
      allOps->sysSolver->solve(*f, *a);
 rhstime += getTime();
@@ -863,6 +1005,14 @@ projmattime2 -= getTime();
        tmpVhMV[i*(nOrtho+maxRHS)+j] = *(bb[i]) * *(u[j]);
        tmpVhCV[i*(nOrtho+maxRHS)+j] = *(cc[i]) * *(u[j]);
      }
+     for(int ir=0;ir<num_arubber;ir++) {
+       allOps->K_arubber_l[ir]->mult(*(u[i]), *dl);
+       allOps->K_arubber_m[ir]->mult(*(u[i]), *dm);
+       for(int j=0;j<nOrtho+uRHS;j++) {
+         tmpVhK_arubber_lV[ir][i*(nOrtho+maxRHS)+j] = *dl * *u[j];
+         tmpVhK_arubber_mV[ir][i*(nOrtho+maxRHS)+j] = *dm * *u[j];
+       }
+     }
    }
    for(int i=0;i<nOrtho+uRHS;i++) {
 //     allOps->K->mult(*(u[i]), *a);
@@ -878,6 +1028,14 @@ projmattime2 -= getTime();
        tmpVhMV[i*(nOrtho+maxRHS)+j] = *(bb[i]) * *(u[j]);
        tmpVhCV[i*(nOrtho+maxRHS)+j] = *(cc[i]) * *(u[j]);
      }
+     for(int ir=0;ir<num_arubber;ir++) {
+       allOps->K_arubber_l[ir]->mult(*(u[i]), *dl);
+       allOps->K_arubber_m[ir]->mult(*(u[i]), *dm);
+       for(int j=nOrtho+lRHS;j<nOrtho+uRHS;j++) {
+         tmpVhK_arubber_lV[ir][i*(nOrtho+maxRHS)+j] = *dl * *u[j];
+         tmpVhK_arubber_mV[ir][i*(nOrtho+maxRHS)+j] = *dm * *u[j];
+       }
+     }
    }
 projmattime2 += getTime();
 
@@ -886,7 +1044,7 @@ projmattime2 += getTime();
 chrestime -= getTime();
    Scalar *zz = new Scalar[(nOrtho+uRHS)*(nOrtho+uRHS)];
    for(int icheck=0;icheck<ncheck;icheck++) {
-     probDesc->getRHS(*f, wcheck[icheck],0.0);
+     probDesc->getRHS(*f, wcheck[icheck],wcheck[icheck]-wc);
      for(int i=0;i<nOrtho+uRHS;i++) {
        z[i] = *f * *u[i];
      }
@@ -898,6 +1056,27 @@ chrestime -= getTime();
                     wcheck[icheck] * tmpVhCV[i*(nOrtho+maxRHS)+j]);
        }
      }
+     complex<double> *lambda=0, *mu=0, *deltalambda=0, *deltamu=0;
+     if (num_arubber>0)  {
+       lambda = new complex<double>[num_arubber];
+       mu = new complex<double>[num_arubber];
+       deltalambda = new complex<double>[num_arubber];
+       deltamu = new complex<double>[num_arubber];
+       geoSource->getARubberLambdaMu(wcheck[icheck],deltalambda,deltamu);
+       geoSource->getARubberLambdaMu(wc,lambda,mu);
+     }
+     for(int ir=0;ir<num_arubber;ir++) {
+      deltalambda[ir] -= lambda[ir];
+      deltamu[ir] -= mu[ir];
+     }
+    
+     for(int ir=0;ir<num_arubber;ir++)      
+     for(int i=0;i<nOrtho+uRHS;i++)
+       for(int j=0;j<nOrtho+uRHS;j++) 
+        ScalarTypes::addComplex(zz[i*(nOrtho+uRHS)+j],
+           deltalambda[ir]*tmpVhK_arubber_lV[ir][i*(nOrtho+maxRHS)+j] +
+           deltamu[ir]*tmpVhK_arubber_mV[ir][i*(nOrtho+maxRHS)+j]);
+
 
      std::vector<int> ipiv(nOrtho+uRHS);
      int lwork = 3 * (nOrtho+uRHS);
@@ -925,6 +1104,18 @@ chrestime -= getTime();
      (*a).linAdd(-wcheck[icheck]*wcheck[icheck],*b);
      for(int k=0;k<sol->size();k++) 
        ScalarTypes::addComplex((*a)[k], wcheck[icheck] * (*c)[k]);
+
+     (*sol).zero();
+     for(int i=0;i<nOrtho+uRHS;i++) 
+       (*sol).linAdd(z[i],*u[i]);
+     for(int ir=0;ir<num_arubber;ir++) {
+       allOps->K_arubber_l[ir]->mult(*sol, *dl);
+       allOps->K_arubber_m[ir]->mult(*sol, *dm);
+       for(int k=0;k<sol->size();k++) 
+         ScalarTypes::addComplex((*a)[k],
+                        deltalambda[ir]* (*dl)[k] + deltamu[ir]* (*dm)[k]);
+     }
+
      (*a).linAdd(-1.0,*f);
      forceAssemble(*a);
      forceAssemble(*f);
@@ -957,6 +1148,16 @@ chrestime += getTime();
  VhKV = new Scalar[(nOrtho+maxRHS)*(nOrtho+maxRHS)];
  VhMV = new Scalar[(nOrtho+maxRHS)*(nOrtho+maxRHS)];
  VhCV = new Scalar[(nOrtho+maxRHS)*(nOrtho+maxRHS)];
+ if (num_arubber>0) {
+   VhK_arubber_lV = new Scalar*[num_arubber];
+   VhK_arubber_mV = new Scalar*[num_arubber];
+   for(int ir=0;ir<num_arubber;ir++) {
+     VhK_arubber_lV[ir] = new Scalar[(nOrtho+maxRHS)*(nOrtho+maxRHS)];
+     VhK_arubber_mV[ir] = new Scalar[(nOrtho+maxRHS)*(nOrtho+maxRHS)];
+   }
+ } else {
+   VhK_arubber_lV = VhK_arubber_mV = 0;
+ }
 
 
  for(int i=0;i<nOrtho+lRHS;i++) {
@@ -964,6 +1165,14 @@ chrestime += getTime();
       VhKV[i*(nOrtho+lRHS)+j] = tmpVhKV[i*(nOrtho+maxRHS)+j];
       VhMV[i*(nOrtho+lRHS)+j] = tmpVhMV[i*(nOrtho+maxRHS)+j];
       VhCV[i*(nOrtho+lRHS)+j] = tmpVhCV[i*(nOrtho+maxRHS)+j];
+    }
+    for(int ir=0;ir<num_arubber;ir++) {
+      for(int j=0;j<nOrtho+lRHS;j++) {
+        VhK_arubber_lV[ir][i*(nOrtho+lRHS)+j] =
+          tmpVhK_arubber_lV[ir][i*(nOrtho+maxRHS)+j];
+        VhK_arubber_mV[ir][i*(nOrtho+lRHS)+j] =
+          tmpVhK_arubber_mV[ir][i*(nOrtho+maxRHS)+j];
+      }
     }
  }
 
@@ -973,6 +1182,14 @@ chrestime += getTime();
  delete[] tmpVhKV;
  delete[] tmpVhMV;
  delete[] tmpVhCV;
+ if (num_arubber>0) {
+   for(int ir=0;ir<num_arubber;ir++) {
+     delete tmpVhK_arubber_lV[ir];
+     delete tmpVhK_arubber_mV[ir];
+   }
+   delete tmpVhK_arubber_lV;
+   delete tmpVhK_arubber_mV;
+ }
  delete[] rescheck;
  delete[] oldrescheck;
  delete[] z;
@@ -981,6 +1198,8 @@ chrestime += getTime();
  delete c;
  delete b;
  delete a;
+ if (dl) delete dl;
+ if (dm) delete dm;
 
 time += getTime();
 filePrint(stderr,"Total setup time: %e\n",time);
@@ -1005,6 +1224,7 @@ StaticSolver< Scalar, OpSolver, VecType,
                   VecType *sol, VecType **u, VecType **v,
                   VecType **aa, VecType **bb, VecType **cc,
                   Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
+                  Scalar **&VhK_arubber_lV, Scalar **&VhK_arubber_mV,
                   double w, double deltaw)
  //                  ,double alpha)
 {
@@ -1038,6 +1258,30 @@ time -= getTime();
                       w * VhCV[i*(nOrtho)+j]);
    }
  }
+ complex<double> *lambda=0, *mu=0, *deltalambda=0, *deltamu=0;
+ int num_arubber = geoSource->num_arubber;
+ VecType *dl = (num_arubber>0)?new VecType(probDesc->solVecInfo()):0;
+ VecType *dm = (num_arubber>0)?new VecType(probDesc->solVecInfo()):0;
+ if (num_arubber>0)  {
+   lambda = new complex<double>[num_arubber];
+   mu = new complex<double>[num_arubber];
+   deltalambda = new complex<double>[num_arubber];
+   deltamu = new complex<double>[num_arubber];
+   geoSource->getARubberLambdaMu(w,deltalambda,deltamu);
+   geoSource->getARubberLambdaMu(w-deltaw,lambda,mu);
+ }
+ for(int ir=0;ir<num_arubber;ir++) {
+  deltalambda[ir] -= lambda[ir];
+  deltamu[ir] -= mu[ir];
+ }
+
+ for(int ir=0;ir<num_arubber;ir++)      
+ for(int i=0;i<nOrtho;i++)
+   for(int j=0;j<nOrtho;j++) 
+    ScalarTypes::addComplex(zz[i*(nOrtho)+j],
+       deltalambda[ir]*VhK_arubber_lV[ir][i*(nOrtho)+j] +
+       deltamu[ir]*VhK_arubber_mV[ir][i*(nOrtho)+j]);
+
 
 //--- Solve the reduced linear system
  std::vector<int> ipiv(nOrtho);
@@ -1075,6 +1319,15 @@ time -= getTime();
  (*a).linAdd(-w*w,*b);
  for(int k=0;k<sol->size();k++) 
      ScalarTypes::addComplex((*a)[k], w * (*c)[k]);
+
+ for(int ir=0;ir<num_arubber;ir++) {
+   allOps->K_arubber_l[ir]->mult(*sol, *dl);
+   allOps->K_arubber_m[ir]->mult(*sol, *dm);
+   for(int k=0;k<sol->size();k++) 
+     ScalarTypes::addComplex((*a)[k],
+                    deltalambda[ir]* (*dl)[k] + deltamu[ir]* (*dm)[k]);
+ }
+
  (*a).linAdd(-1.0,*f);
  forceAssemble(*a);
  forceAssemble(*f);
@@ -1088,6 +1341,8 @@ filePrint(stderr,"Residual compute time: %e\n",time);
  delete b;
  delete c;
  delete f;
+ if (dl) delete dl;
+ if (dm) delete dm;
  delete[] z;
  delete[] zz;
 
@@ -1111,6 +1366,7 @@ StaticSolver< Scalar, OpSolver, VecType,
                   Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
                   double w, double deltaw)
 {
+/*
  filePrint(stderr,"w deltaw size: %f %f %d %d %d\n",w,deltaw,nRHS,nOrtho,sol->size());
 
  VecType *f = new VecType(probDesc->solVecInfo());
@@ -1144,7 +1400,6 @@ StaticSolver< Scalar, OpSolver, VecType,
      for(int i=0;i<p;i++) {
        R[p*nRHS+i] = *a * *u[i];
      }
-     for(int i=0;i<p;i++) {
         fprintf(stderr,"R[%d]= %.20e %.20e\n",i, ScalarTypes::Real(R[p*nRHS+i]),
            ScalarTypes::Imag(R[p*nRHS+i]));
        (*a).linAdd(-R[p*nRHS+i],*u[i]);
@@ -1261,5 +1516,6 @@ StaticSolver< Scalar, OpSolver, VecType,
 
  delete[] z;
  delete[] zz;
+*/
 }
 

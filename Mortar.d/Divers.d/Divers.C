@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <Utils.d/dbg_alloca.h>
 #include <cmath>
 
 void Order2TriangleQuadRule(int, double&, double&, double&, double&);
@@ -36,9 +35,12 @@ Compute3DTriArea(double **NodesCoord, int DimFlag=0)
 
 // Gives integration pt location & weight on the reference triangle
 void
-getGaussPtOnTriangle(int ngp,int igp, double& r, double& s, double& t, double& weight)
+getGaussPtOnTriangle(int ngp, int igp, double& r, double& s, double& t, double& weight)
 {
-  //cerr << "In getGaussPtOnTriangle: ngp = " << ngp << ", igp = " << igp << endl;
+  // Note: the sum of the weights is 0.5 for these rules. This implies that for example in the case
+  // of a three-noded triangle value of "J" used in the integration should be equal to two times the
+  // Area. This is not necessarily a standard practice, it is more conventional to have the sum of 
+  // the weights equal 1.
   switch(ngp){
      case  1: r = 1./3.; s = 1./3.; t = 1.-r-s; weight = 0.5; break;
      case  3: Order2TriangleQuadRule(igp, r, s, t, weight)  ; break;
@@ -58,7 +60,6 @@ Order2TriangleQuadRule(int igp, double& r, double& s, double& t, double& weight)
 {
   double c1 = 1./6.;
   double c2 = 2./3.;
-  //double w0 = 2./3.;
   double w0 = 1./6.;
 
   switch(igp){
@@ -115,19 +116,19 @@ void
 Order6TriangleQuadRule(int igp, double& r, double& s, double& t, double& weight)
 {
 
-  double w1 = 0.116786275726379 ;
-  double l1 = 0.501426509658179 ;
-  double l2 = 0.249286745170910 ;
+  double w1 = 0.116786275726379;
+  double l1 = 0.501426509658179;
+  double l2 = 0.249286745170910;
   double l3 = 1. - l1 - l2;
 
-  double w2 = 0.050844906370207 ;
-  double h1 = 0.873821971016996 ;
-  double h2 = 0.063089014491502 ;
+  double w2 = 0.050844906370207;
+  double h1 = 0.873821971016996;
+  double h2 = 0.063089014491502;
   double h3 = 1. - h1 - h2;
 
-  double w3 = 0.082851075618374 ;
-  double k1 = 0.053145049844817 ;
-  double k2 = 0.310352451033784 ;
+  double w3 = 0.082851075618374;
+  double k1 = 0.053145049844817;
+  double k2 = 0.310352451033784;
   double k3 = 1. - k1 - k2;
 
   // divide weight by 1/2 
@@ -155,7 +156,7 @@ void
 Order8TriangleQuadRule(int igp, double& r, double& s, double& t, double& weight)
 {
 
-  double w1 = 0.144315607677787 ;
+  double w1 = 0.144315607677787;
   double l1 = 1./3.;
   double l2 = l1 ;
   double l3 = 1. - l1 - l2;
@@ -170,14 +171,14 @@ Order8TriangleQuadRule(int igp, double& r, double& s, double& t, double& weight)
   double k2 = 0.170569307751760;
   double k3 = 1. - k1 - k2;
 
-  double w4 = 0.032458497623198 ;
-  double t1 = 0.898905543365938 ;
-  double t2 = 0.050547228317031 ;
+  double w4 = 0.032458497623198;
+  double t1 = 0.898905543365938;
+  double t2 = 0.050547228317031;
   double t3 = 1. - t1 - t2;
 
-  double w5 = 0.027230314174435 ;
-  double d1 = 0.008394777409958 ;
-  double d2 = 0.263112829634638 ;
+  double w5 = 0.027230314174435;
+  double d1 = 0.008394777409958;
+  double d2 = 0.263112829634638;
   double d3 = 1. - d1 - d2;
 
   // divide weight by 1/2 
@@ -185,7 +186,7 @@ Order8TriangleQuadRule(int igp, double& r, double& s, double& t, double& weight)
   w1 *= 0.5; w2 *= 0.5; w3 *= 0.5; 
   w4 *= 0.5; w5 *= 0.5;
   
-  switch(igp){
+  switch(igp) {
     case  1: r = l1; s = l2; t = l3; weight = w1; break;
     case  2: r = h1; s = h2; t = h3; weight = w2; break;
     case  3: r = h2; s = h3; t = h1; weight = w2; break;
@@ -206,49 +207,3 @@ Order8TriangleQuadRule(int igp, double& r, double& s, double& t, double& weight)
   }
 }
 
-/*
-void
-get1DLagShapeFct(double* Shape, double* dShape, double x, int order)
-{
-
-}
-
-void
-Order1_1DLagShapeFct(double* Shape, double* dShape, double x)
-{
-  Shape[0] = 0.5*(1.-x); 
-  Shape[1] = 0.5*(1.+x); 
-
-  dShape[0]= -0.5; 
-  dShape[1]=  0.5; 
-}
-
-void
-Order2_1DLagShapeFct(double* Shape, double* dShape, double x)
-{
-  Shape[0] = -0.5*x*(1.-x); 
-  Shape[1] =  0.5*x*(1.+x); 
-  Shape[2] =   (1.-x*x)   ; 
-
-  dShape[0]= -0.5+x;
-  dShape[1]=  0.5+x;
-  dShape[2]= -2.*x;
-}
-
-void
-Order3_1DLagShapeFct(double* Shape, double* dShape, double x)
-{
-  double c0 = 1./16.;
-  double c1 = 9.*c0;
-
-  Shape[0] = -c0*(1.-x)*(1.-9.*x*x);
-  Shape[1] = -c0*(1.+x)*(1.-9.*x*x);
-  Shape[2] =  c1*(1.-x*x)*(1.-3.*x);
-  Shape[3] =  c1*(1.-x*x)*(1.+3.*x);
-
-  dShape[0]= -c0*(-1.-9.*x*(2.-7.*x));
-  dShape[1]= -c0*( 1.+9.*x*(2.-7.*x));
-  dShape[2]=  c1*(-3.-x*(2.-9.*x));
-  dShape[3]=  c1*( 3.-x*(2.+9.*x));
-}
-*/

@@ -44,15 +44,13 @@ class ContactSymComm;
 class ContactZoltanComm;
 class ContactNodeFaceInteraction;
 class ContactNodeSurfaceInteraction;
-class ContactFaceFaceInteraction;
+template<typename DataType> class ContactFaceFaceInteraction;
 class ContactElementElementInteraction;
 class ContactEnfModel;
 class ContactParOStream;
 class ScratchVariable;
 
 #ifndef CONTACT_NO_MPI
-
-using namespace std;
 
 class ContactEnfZoltan;
 class ContactHostGlobalID;
@@ -259,7 +257,7 @@ class ContactEnforcement {
 
 #ifdef CONTACT_TD_FACE_FACE_ENF
   int number_face_face_interactions;
-  ContactFaceFaceInteraction** face_face_interaction_list;
+  ContactFaceFaceInteraction<Real>** face_face_interaction_list;
 #endif
   int number_element_element_interactions;
   ContactElementElementInteraction** element_element_interaction_list;

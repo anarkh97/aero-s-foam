@@ -4,16 +4,17 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <stack>
+#include <string>
 #include <Parser.d/AuxDefs.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
 #include "parser.hpp"
-#include <stack>
-//#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 int line_num = 1;
 
 // used for include
-stack<YY_BUFFER_STATE> includedFiles;
-stack<int> lineNumber;	// for fancy error message
+std::stack<YY_BUFFER_STATE> includedFiles;
+std::stack<int> lineNumber; // for fancy error message
 
 %}
 
@@ -31,55 +32,53 @@ SPACES [ \t]+
 NAME [a-zA-Z_][a-zA-Z_0-9]*
 TRAIL [a-zA-Z]*
 %%
-"INCLUDE"|"include" 		{ BEGIN(incl); 	} // go to include state 
+"INCLUDE"|"include" { BEGIN(incl);   } // go to include state 
 <incl>[ \t]* 
-<incl>[^ \t\n]+		{
-				// clean up !
-				int c = yyinput();
-				while(c == '\t' || c == ' ')
-					c = yyinput();
-				if(c != '\n')
-					yyunput(c,yytext_ptr);
-				string fname = string(yytext);
-				if(fname.length() > 0)
-				{
-					if(fname[0]=='"' && fname[ fname.length()-1 ]=='"' && fname.length()> 2)
-						fname = fname.substr(1,fname.length()-2);
-						
-					FILE * f = fopen(fname.c_str(),"r");
-					if(f!=NULL)
-					{	// open the file and substitute it as the current buffer
-						//std::cout << " ... Including file " << fname << endl;
-						includedFiles.push(YY_CURRENT_BUFFER);
-						lineNumber.push(line_num);
-						line_num = 1;
-						yy_switch_to_buffer( yy_create_buffer(f,YY_BUF_SIZE) );
-					}
-					else
-					{
-						std::cout << " **************************************************** "<< endl 
-							  << " ** ERROR :  Couldn't open file " << fname << endl
-							  << " **************************************************** "<< endl; 
-                                                exit(-1);
-;
-					}
-					BEGIN(INITIAL); // go back to parsing
-				}	
-		    }
-<<EOF>>	    {
-			if(includedFiles.size()==0)
-			{	// end of everything
-				yyterminate();
-			}
-			else
-			{	// switch to previous buffer
-		    	   yy_delete_buffer( YY_CURRENT_BUFFER );
-            		   yy_switch_to_buffer( includedFiles.top());
-			   line_num = lineNumber.top()+1;
-			   lineNumber.pop();
-			   includedFiles.pop();
-			}
-	    }
+<incl>[^ \t\n\r]+ {
+        int c = yyinput();
+        while(c == '\t' || c == ' ' || c == '\r')
+          c = yyinput();
+        if(c != '\n')
+          yyunput(c,yytext_ptr);
+        std::string fname = std::string(yytext);
+        if(fname.length() > 0)
+        {
+          if(fname[0]=='"' && fname[ fname.length()-1 ]=='"' && fname.length()>2) {
+            fname = fname.substr(1,fname.length()-2);
+          }
+
+          FILE * f = fopen(fname.c_str(),"r");
+          if(f!=NULL)
+          { // open the file and substitute it as the current buffer
+            includedFiles.push(YY_CURRENT_BUFFER);
+            lineNumber.push(line_num);
+            line_num = 1;
+            yy_switch_to_buffer( yy_create_buffer(f,YY_BUF_SIZE) );
+          }
+          else
+          {
+            std::cout << " **************************************************** " << std::endl 
+                      << " ** ERROR :  Couldn't open file " << fname << std::endl
+                      << " **************************************************** " << std::endl; 
+             exit(-1);
+          }
+          BEGIN(INITIAL); // go back to parsing
+        }  
+      }
+<<EOF>> {
+      if(includedFiles.size()==0)
+      { // end of everything
+        yyterminate();
+      }
+      else
+      { // switch to previous buffer
+        yy_delete_buffer( YY_CURRENT_BUFFER );
+        yy_switch_to_buffer( includedFiles.top());
+        line_num = lineNumber.top()+1;
+        lineNumber.pop();
+        includedFiles.pop();
+      }
+    }
 
 "NODE"[a-zA-Z]*|"node"[a-zA-Z]*    { return NODETOKEN;    }
 
@@ -87,7 +86,15 @@ TRAIL [a-zA-Z]*
 
 "READMODE"[a-zA-Z]*|"readmode"[a-zA-Z]* { return READMODE; }
 
+"DUALBASIS"|"dualbasis"            { return DUALBASIS; }
+
+"USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
+
+"ONLINE_MASS_NORMALIZE_BASIS"|"online_mass_normalize_basis" { return ONLINEMASSNORMALIZEBASIS;}
+
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
+
+"FACE"|"face"                       { return FACE; }
 
 "CONW"[a-zA-Z]*|"conw"[a-zA-Z]*    { return CONWEP; }
 
@@ -98,8 +105,6 @@ TRAIL [a-zA-Z]*
 "BUCK"[a-zA-Z]*|"buck"[a-zA-Z]*    { return BUCKLE; }
 
 "CONTROL"[a-zA-Z]*|"control"[a-zA-Z]*    { return CONTROL;  }
-
-"STRU"[a-zA-Z]*|"stru"[a-zA-Z]*    { return OPTIMIZATION;  }
 
 "TOPO"[a-zA-Z]*|"topo"|"topology"  { return TOPOLOGY; }
 
@@ -147,6 +152,8 @@ TRAIL [a-zA-Z]*
 
 "WEIGHTS"|"weights"                { return WEIGHTLIST; }
 
+"FWEI"[a-zA-Z]*|"fwei"[a-zA-Z]*    { return FIELDWEIGHTLIST; }
+
 "trivial"|"TRIVIAL"                { return TRIVIAL; }
 
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
@@ -167,9 +174,27 @@ TRAIL [a-zA-Z]*
 
 "HRC"|"hrc"			   { return HRC; }
 
+"PROJECT"|"project"		   { return PROJSOL; }
+ 
+"POSITIVE"|"positive"		   { return POSELEM; }
+
+"CENT"[a-zA-Z]*|"cent"[a-zA-Z]*    { return CENTER; }
+
+"REVORD"|"revord"                  { return REVERSEORDER; } 
+
 "REDFOL"|"redfol"                  { return REDFOL; }
 
+"EXTFOL"|"extfol"                  { return EXTFOL; }
+
+"FULLND"|"fullnd"		   { return PSEUDOGNAT; }
+
+"FULLEL"|"fullel"		   { return PSEUDOGNATELEM; }
+
 "ELLUMP"                           { return ELLUMP; }
+
+"LOCROB"|"LocRob"|"locrob"         { return LOCALREDUCEDORDERBASES; }
+
+"AUXI"[a-zA-Z]*|"auxi"[a-zA-Z]*    { return AUXILIARY; }
 
 "IDENTITY"|"identity"              { return IDENTITY; }
 
@@ -189,7 +214,7 @@ TRAIL [a-zA-Z]*
 
 "idisp6pita"|"IDISP6PITA"          { return PITADISP6; }
 
-"ivel6pita"|"IVEL6PITA"            { return PITAVEL6; }         
+"ivel6pita"|"IVEL6PITA"            { return PITAVEL6; }        
 
 "IDISP"[a-zA-Z]*|"idisp"[a-zA-Z]*  { return IDIS;  }
 
@@ -202,6 +227,8 @@ TRAIL [a-zA-Z]*
 "IACC"[a-zA-Z]*|"iacc"[a-zA-Z]*    { return IACC; }
 
 "ITEM"[a-zA-Z]*|"item"[a-zA-Z]*    { return ITEMP; }
+
+"ETEM"[a-zA-Z]*|"etem"[a-zA-Z]*    { return ETEMP; }
 
 "TEMP"[a-zA-Z]*|"temp"[a-zA-Z]*    { return TEMP; }
 
@@ -219,7 +246,7 @@ TRAIL [a-zA-Z]*
 
 "USE"|"use"                        { return USE;  }
 
-"SENS"[a-zA-Z]*|"sens"[a-zA-Z]*    { return SENSORS; }
+"SENS"[a-hj-zA-HJ-Z]*|"sens"[a-hj-zA-HJ-Z]*    { return SENSORS; }
 
 "ACTU"[a-zA-Z]*|"actu"[a-zA-Z]*    { return ACTUATORS; }
 
@@ -352,8 +379,6 @@ TRAIL [a-zA-Z]*
 "GMRES"|"gmres"                    { yylval.ival = 1; return ITERTYPE; }
 
 "GCR"|"gcr"                        { yylval.ival = 2; return ITERTYPE; }
-
-"CGAL"|"cgal"                      { yylval.ival = 3; return ITERTYPE; }
 
 "BCG"|"bcg"                        { yylval.ival = 4; return ITERTYPE; }
 
@@ -515,8 +540,6 @@ TRAIL [a-zA-Z]*
 
 "goldfarb_tol"|"GOLDFARB_TOL"      { return GOLDFARBTOL; }
 
-"goldfarb_check"|"GOLDFARB_CHECK"  { return GOLDFARBCHECK; }
-
 "ilu_"[a-zA-Z]*|"ILU_"[a-zA-Z]*    { return ILUDROPTOL; }
 
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
@@ -580,8 +603,6 @@ TRAIL [a-zA-Z]*
 
 "HESSI"[a-zA-Z]*|"hessi"[a-zA-Z]*  { return HESSIAN; }
 
-"RIGID"|"rigid"                    { return RIGID; }
-
 "PENA"[a-zA-Z]*|"pena"[a-zA-Z]*    { return PENALTY; }
 
 "AUGMENTE"[a-zA-Z]*|"augmente"[a-zA-Z]* { return AUGMENTED; }
@@ -592,9 +613,13 @@ TRAIL [a-zA-Z]*
 
 "STAB"[a-zA-Z]*|"stab"[a-zA-Z]*    { return STABLE; }
 
+"DELE"[a-zA-Z_]*|"dele"[a-zA-Z_]*  { return DELETEELEMENTS; }
+
 "CHEC"[a-zA-Z]*|"chec"[a-zA-Z]*    { return CHECKTOKEN; }
 
 "rbmf"[a-zA-Z]*|"RBMF"[a-zA-Z]*    { return RBMFILTER; }
+
+"lisr"[a-zA-Z]*|"LISR"[a-zA-Z]*    { return LISRBM; }
 
 "RESTART"|"restart"                { return RESTART; }
 
@@ -626,6 +651,8 @@ TRAIL [a-zA-Z]*
 
 "subt"[a-zA-Z]*|"SUBT"[a-zA-Z]*    { return SUBTYPE; }
 
+"maxel"[a-zA-Z]*|"MAXEL"[a-zA-Z]*  { return MAXELEM; }
+
 "maxit"[a-zA-Z]*|"MAXIT"[a-zA-Z]*  { return MAXITR; }
 
 "propo"[a-zA-Z]*|"PROPO"[a-zA-Z]*  { return PROPORTIONING; }
@@ -652,6 +679,16 @@ TRAIL [a-zA-Z]*
 
 "tolj"[a-zA-Z]*|"TOLJ"[a-zA-Z]*    { return TOLJAC; }
 
+"tolsen"[a-zA-Z]*|"TOLSEN"[a-zA-Z]* { return TOLSEN; }
+
+"ratiotolsen"|"RATIOTOLSEN"        { return RATIOTOLSEN; }
+
+"ksparam"|"KSPARAM"                { return KSPARAM; }
+
+"ksmax"|"KSMAX"                    { return KSMAX; }
+
+"qrfactorization"|"QRFACTORIZATION" { return QRFACTORIZATION; }
+
 "expl"[a-zA-Z]*|"EXPL"[a-zA-Z]*    { return EXPLICIT; }
 
 "lobpcg"[a-zA-Z]*|"LOBPCG"[a-zA-Z]* { return LOBPCG; }
@@ -662,13 +699,17 @@ TRAIL [a-zA-Z]*
 
 "jacobi"|"JACOBI"                  { return JACOBI; }
 
-"damp"[a-zA-Z]*|"DAMP"[a-zA-Z]*    { return DAMPING; }
+"damp"[a-zA-Z]*|"DAMP"[a-zA-Z]*    { yylval.ival = 0; return DAMPING; }
 
-"rayd"[a-zA-Z]*|"RAYD"[a-zA-Z]*    { return RAYDAMP; }
+"rayd"[a-zA-Z]*|"RAYD"[a-zA-Z]*    { yylval.ival = 1; return DAMPING; }
 
-"strd"[a-zA-Z]*|"STRD"[a-zA-Z]*    { return STRDAMP; }
+"strd"[a-zA-Z]*|"STRD"[a-zA-Z]*    { yylval.ival = 2; return DAMPING; }
+
+"rubdam"[a-zA-Z]*|"RUBDAM"[a-zA-Z]* { yylval.ival = 3; return DAMPING; }
 
 "modd"[a-zA-Z]*|"MODD"[a-zA-Z]*    { return MODDAMP; }
+
+"ARUBBERMAT"|"arubbermat"            { return ARUBBERMAT; }
 
 "time"|"TIME"                      { return TIME; }
 
@@ -700,11 +741,25 @@ TRAIL [a-zA-Z]*
 
 "acou"[a-zA-Z]*|"ACOU"[a-zA-Z]*    { return ACOU; }
 
+"flui"|"FLUI"                      { return FLUID; }
+
 "OUTPUT"|"output"                  { return OUTPUT; }
 
 "OUTPUT6"|"output6"                { return OUTPUT6; }
 
 "EIGE"[a-zA-Z]*|"eige"[a-zA-Z]*    { return EIGEN; }
+ 
+"SENSITIVITY"|"sensitivity"        { return SENSITIVITY; }
+
+"READSE"[a-zA-Z]*|"readse"[a-zA-Z]*  { return READSENSITIVITY; }
+
+"THGRLI"|"thgrli"                  { return THICKNESSGROUPLIST; }
+
+"STNOLI"|"stnoli"                  { return STRESSNODELIST; }
+
+"DINOLI"|"dinoli"                  { return DISPNODELIST; }
+
+"DIDOLI"|"didoli"                  { return DISPDOFLIST; }
 
 "addedmass"                        { return ADDEDMASS; }
 
@@ -730,6 +785,8 @@ TRAIL [a-zA-Z]*
 
 "arcl"[a-zA-Z]*|"ARCL"[a-zA-Z]*    { return ARCLENGTH; }
 
+"newt"[a-zA-Z]*|"NEWT"[a-zA-Z]*|"Newt"[a-zA-Z]* { return NEWTON; }
+
 "dlam"[a-zA-Z]*|"DLAM"[a-zA-Z]*    { return DLAMBDA; }
 
 "lfac"[a-zA-Z]*|"LFAC"[a-zA-Z]*    { return LFACTOR; }
@@ -737,6 +794,14 @@ TRAIL [a-zA-Z]*
 "unsy"[a-zA-Z]*|"UNSY"[a-zA-Z]*    { return UNSYMMETRIC; }
 
 "rebuild"|"REBUILD"                { return REBUILD; }
+
+"back"[a-zA-Z]*|"BACK"[a-zA-Z]*    { yylval.ival = 1; return ALPROC; }
+
+"bise"[a-zA-Z]*|"BISE"[a-zA-Z]*    { yylval.ival = 2; return ALPROC; }
+
+"regu"[a-zA-Z]*|"REGU"[a-zA-Z]*    { yylval.ival = 3; return ALPROC; }
+
+"seca"[a-zA-Z]*|"SECA"[a-zA-Z]*    { yylval.ival = 4; return ALPROC; }
 
 "tang"[a-zA-Z]*|"TANG"[a-zA-Z]*    { return TANGENT; }
 
@@ -782,11 +847,19 @@ TRAIL [a-zA-Z]*
 
 "SDETAFT"|"sdetaft"                { return SDETAFT; }
 
+"RUBDAFT"|"rubdaft"                { return RUBDAFT; }
+
 "MATLAB"|"matlab"                  { return MATLAB; }
 
 "curve"|"CURVE"                    { return CURVE; }
 
+"table"|"TABLE"                    { return TABLE; }
+
 "TETT"|"tett"                      { return TETT; }
+
+"YSST"|"ysst"                      { return YSST; }
+
+"YSSRT"|"yssrt"                    { return YSSRT; }
 
 "REOR"[a-zA-Z]*|"reor"[a-zA-Z]*    { return REORTHO; }
 
@@ -802,6 +875,9 @@ TRAIL [a-zA-Z]*
 
 "fsi_cor"[a-zA-Z]*|"FSI_COR"[a-zA-Z]* { return FSICORNER; }
 
+
+"FSGL"|"fsgl" { return FSGL; }
+
 "coupled_scale"      { return COUPLEDSCALE; }
 
 "wet_corners"        { return WETCORNERS; }
@@ -810,7 +886,7 @@ TRAIL [a-zA-Z]*
 
 "stif"[a-zA-Z]*|"STIF"[a-zA-Z]*    { yylval.ival = 1; return SCALINGTYPE; }
 
-"topological" { yylval.ival = 2; return SCALINGTYPE; }
+"topological"                      { yylval.ival = 2; return SCALINGTYPE; }
 
 "sloan"|"SLOAN"                    { yylval.ival = 1; return RENUMBERID; }
 
@@ -874,6 +950,8 @@ TRAIL [a-zA-Z]*
 
 "SPRINGMAT"|"springmat"            { return SPRINGMAT; }
 
+"FREEPLAY"|"freeplay"|"FreePlay"   { return FREEPLAY; }
+
 "SINE"[a-zA-Z]*|"sine"[a-zA-Z]*|"Sine"[a-zA-Z]*  { yylval.ival = 0; return ELEMENTARYFUNCTIONTYPE; }
 "RAMP"[a-zA-Z]*|"ramp"[a-zA-Z]*|"Ramp"[a-zA-Z]*  { yylval.ival = 1; return ELEMENTARYFUNCTIONTYPE; }
 "TRIA"[a-zA-Z]*|"tria"[a-zA-Z]*|"Tria"[a-zA-Z]*  { yylval.ival = 2; return ELEMENTARYFUNCTIONTYPE; }
@@ -905,6 +983,8 @@ TRAIL [a-zA-Z]*
 "noprec"[a-zA-Z]*|"NOPREC"[a-zA-Z]* { yylval.ival = FetiInfo::noPrec;    return FETIPREC; }
 
 "lump"[a-zA-Z]*|"LUMP"[a-zA-Z]*    { return LUMPED; }
+
+"maug"[a-zA-Z]*|"MAUG"[a-zA-Z]*    { return MASSAUGMENTATION; }
 
 "diri"[a-zA-Z]*|"DIRI"[a-zA-Z]*    { yylval.ival = FetiInfo::dirichlet; return FETIPREC; }
 
@@ -940,9 +1020,17 @@ TRAIL [a-zA-Z]*
 
 "B0"|"b0"                          { yylval.ival = 10; return AEROTYPE; }
 
-"C0"|"c0"                          { yylval.ival = 20; return AEROTYPE; }
+"C0_legacy"|"c0_legacy"            { yylval.ival = 20; return AEROTYPE; }
+
+"C0"|"c0"                          { yylval.ival = 22; return AEROTYPE; }
 
 "EMBE"[a-zA-Z]*|"embe"[a-zA-z]*    { return AEROEMBED; }
+
+"method"|"METHOD"                  { return SENSITIVITYMETHOD; }
+
+"Direct"                           { yylval.ival = SolverInfo::Direct;  return SENSITIVITYID; }
+
+"Adjoint"                          { yylval.ival = SolverInfo::Adjoint; return SENSITIVITYID; }
 
 "displacx"|"DISPLACX"              { yylval.ival = OutputInfo::DispX;  return STRESSID; }
 
@@ -962,6 +1050,34 @@ TRAIL [a-zA-Z]*
 
 "gdispmod"|"GDISPMOD"              { yylval.ival = OutputInfo::TotMod; return STRESSID; }
 
+"weigthic"|"WEIGTHIC"              { yylval.ival = OutputInfo::WeigThic; return STRESSID; }
+
+"weigshap"|"WEIGSHAP"              { yylval.ival = OutputInfo::WeigShap; return STRESSID; }
+
+"agstthic"|"AGSTTHIC"              { yylval.ival = OutputInfo::AGstThic; return STRESSID; }
+
+"agstshap"|"AGSTSHAP"              { yylval.ival = OutputInfo::AGstShap; return STRESSID; }
+
+"vmstthic"|"VMSTTHIC"              { yylval.ival = OutputInfo::VMstThic; return STRESSID; }
+
+"vmstshap"|"VMSTSHAP"              { yylval.ival = OutputInfo::VMstShap; return STRESSID; }
+
+"vmstmach"|"VMSTMACH"              { yylval.ival = OutputInfo::VMstMach; return STRESSID; }
+
+"vmstalph"|"VMSTALPH"              { yylval.ival = OutputInfo::VMstAlpha; return STRESSID; }
+
+"vmstbeta"|"VMSTBETA"              { yylval.ival = OutputInfo::VMstBeta; return STRESSID; }
+
+"dispthic"|"DISPTHIC"              { yylval.ival = OutputInfo::DispThic; return STRESSID; }
+
+"dispshap"|"DISPSHAP"              { yylval.ival = OutputInfo::DispShap; return STRESSID; }
+
+"dispmach"|"DISPMACH"              { yylval.ival = OutputInfo::DispMach; return STRESSID; }
+
+"dispalph"|"DISPALPH"              { yylval.ival = OutputInfo::DispAlph; return STRESSID; }
+
+"dispbeta"|"DISPBTEA"              { yylval.ival = OutputInfo::DispBeta; return STRESSID; }
+
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
 "gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }
@@ -976,9 +1092,13 @@ TRAIL [a-zA-Z]*
 
 "lower"[a-zA-Z]*|"LOWER"[a-zA-Z]*  { yylval.ival = 3; return SURFACE; }
 
-"gdisplac"|"GDISPLAC"              { yylval.ival = OutputInfo::Displacement; return STRESSID; }
+"thermomechanical"[a-zA-Z]*|"THERMOMECHANICAL"[a-zA-Z]*  { yylval.ival = 0; return STR_THERM_OPTION; }
 
-"disp6dof"|"DISP6DOF"              { yylval.ival = OutputInfo::Disp6DOF;     return STRESSID; }
+"thermal"[a-zA-Z]*|"THERMAL"[a-zA-Z]*  { yylval.ival = 1; return STR_THERM_OPTION; }
+
+"mechanical"[a-zA-Z]*|"MECHANICAL"[a-zA-Z]* { yylval.ival = 2; return STR_THERM_OPTION; }
+
+"gdisplac"|"GDISPLAC"              { yylval.ival = OutputInfo::Displacement; return STRESSID; }
 
 "romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
 
@@ -996,15 +1116,24 @@ TRAIL [a-zA-Z]*
 
 "accelvct"|"ACCELVCT"		   { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
 
-"frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
+"frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; } /* deprecated */
+"frcngvct"|"FRCNGVCT"              { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
 
-"residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; }
+"constvct"|"CONSTVCT"		   { yylval.ival = OutputInfo::Constraintvector;  return STRESSID; }
+
+"cviolate"|"CVIOLATE"              { yylval.ival = OutputInfo::Constraintviolation;  return STRESSID; }
+
+"residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; } /* deprecated */
+"fdiffvct"|"FDIFFVCT"              { yylval.ival = OutputInfo::Residual;     return STRESSID; }
 
 "jacobvct"|"JACOBVCT"		   { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
 
 "isvarvct"|"ISVARVCT"              { yylval.ival = OutputInfo::InternalStateVar; return STRESSID; }
 
+"dsvarvct"|"DSVARVCT"              { yylval.ival = OutputInfo::DualStateVar; return STRESSID; }
+
 "robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
+"clusterf"|"CLUSTERF"              { yylval.ival = OutputInfo::RobData;      return STRESSID; }
 
 "samplmsh"|"SAMPLMSH" 		   { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
 
@@ -1048,7 +1177,7 @@ TRAIL [a-zA-Z]*
 
 "grdtempz"|"GRDTEMPZ"              { yylval.ival = OutputInfo::GrdTempZ;     return STRESSID; }
 
-"sdisplac"|"SDISPLAC"              { yylval.ival = OutputInfo::SloshDisplacement;     return STRESSID; }
+"slshdisp"|"SLSHDISP"              { yylval.ival = OutputInfo::SloshDisplacement;     return STRESSID; }
 
 "slshdspx"|"SLSHDSPX"              { yylval.ival = OutputInfo::SloshDispX;     return STRESSID; }
 
@@ -1057,6 +1186,8 @@ TRAIL [a-zA-Z]*
 "slshdspz"|"SLSHDSPZ"              { yylval.ival = OutputInfo::SloshDispZ;     return STRESSID; }
 
 "stressvm"|"STRESSVM"              { yylval.ival = OutputInfo::StressVM;     return STRESSID; }
+
+"aggrstvm"|"AGGRSTVM"              { yylval.ival = OutputInfo::AggrStVM;     return STRESSID; }
 
 "stressp1"|"STRESSP1"              { yylval.ival = OutputInfo::StressPR1;    return STRESSID; }
 
@@ -1086,9 +1217,11 @@ TRAIL [a-zA-Z]*
 
 "raerofor"|"RAEROFOR"              { yylval.ival = OutputInfo::AeroForce;    return STRESSID; }
 
-"geigenpa"|"GEIGENPA"              { yylval.ival = OutputInfo::EigenPair;    return STRESSID; }
+"romresid"|"ROMRESID"              { yylval.ival = OutputInfo::RomResidual;  return STRESSID; }
 
-"geig6dof"|"GEIG6DOF"              { yylval.ival = OutputInfo::EigenPair6;   return STRESSID; }
+"romextfo"|"ROMEXTFO"              { yylval.ival = OutputInfo::RomExtForce;  return STRESSID; }
+
+"geigenpa"|"GEIGENPA"              { yylval.ival = OutputInfo::EigenPair;    return STRESSID; }
 
 "strainvm"|"STRAINVM"              { yylval.ival = OutputInfo::StrainVM;     return STRESSID; }
 
@@ -1126,10 +1259,6 @@ TRAIL [a-zA-Z]*
 
 "gacceler"|"GACCELER"              { yylval.ival = OutputInfo::Acceleration; return STRESSID; }
 
-"gvel6dof"|"GVEL6DOF"              { yylval.ival = OutputInfo::Velocity6;     return STRESSID; }
-
-"gacc6dof"|"GACC6DOF"              { yylval.ival = OutputInfo::Accel6; return STRESSID; }
-
 "gtempvel"|"GTEMPVEL"              { yylval.ival = OutputInfo::TemperatureFirstTimeDerivative; return STRESSID; }
 
 "gacouvel"|"GACOUVEL"              { yylval.ival = OutputInfo::PressureFirstTimeDerivative; return STRESSID; }
@@ -1161,10 +1290,6 @@ TRAIL [a-zA-Z]*
 "heatflx"|"HEATFLX"                { yylval.ival = OutputInfo::HeatFlX;       return STRESSID; }
 
 "grdtemp"|"GRDTEMP"                { yylval.ival = OutputInfo::GrdTemp;       return STRESSID; }
-
-"velo6dof"|"VELO6DOF"              { yylval.ival = OutputInfo::Velocity6;    return STRESSID; }
-
-"accl6dof"|"ACCL6DOF"              { yylval.ival = OutputInfo::Accel6;       return STRESSID; }
 
 "gencoord"|"GENCOORD"              { yylval.ival = OutputInfo::ModeAlpha;    return STRESSID; }
 
@@ -1226,6 +1351,14 @@ TRAIL [a-zA-Z]*
 
 "rescal"[a-zA-Z]*|"RESCAL"[a-zA-Z]* { return RESCALING; }
 
+"oeigenvalue"|"OEIGENVALUE"          { return EIGENVALUE; }
+
+"xmatrix"|"XMATRIX"                { return XMATRIX; }
+
+"qmatrix"|"QMATRIX"                { return QMATRIX; }
+
+"rmatrix"|"RMATRIX"                { return RMATRIX; }
+
 "conface"|"CONFACE"                                  { yylval.ival = 1; return TDENFORC; }
 "normal_force_mag"|"NORMAL_FORCE_MAG"                { yylval.ival = 2; return TDENFORC; }
 "normal_traction_mag"|"NORMAL_TRACTION_MAG"          { yylval.ival = 3; return TDENFORC; }
@@ -1243,8 +1376,11 @@ TRAIL [a-zA-Z]*
 "gap_cur"|"GAP_CUR"                                  { yylval.ival = 15; return TDENFORC; }
 "gap_old"|"GAP_OLD"                                  { yylval.ival = 16; return TDENFORC; }
 
-"damage"|"DAMAGE"                  { yylval.ival = OutputInfo::Damage; return STRESSID; }
-"eqplstrn"|"EQPLSTRN"|"effpstrn"|"EFFPSTRN"          { yylval.ival = OutputInfo::EquivalentPlasticStrain; return STRESSID; }
+"elemdele"|"ELEMDELE"              { yylval.ival = OutputInfo::DeletedElements; return STRESSID; }
+
+"damagesc"|"DAMAGESC"              { yylval.ival = OutputInfo::Damage; return STRESSID; }
+
+"effpstrn"|"EFFPSTRN"              { yylval.ival = OutputInfo::EquivalentPlasticStrain; return STRESSID; }
 
 "plstrnxx"|"PLSTRNXX"              { yylval.ival = OutputInfo::PlasticStrainXX; return STRESSID; }
 
@@ -1274,6 +1410,8 @@ TRAIL [a-zA-Z]*
 
 "bkstrsyz"|"BKSTRSYZ"              { yylval.ival = OutputInfo::BackStressYZ;    return STRESSID; }
 
+"dissipat"|"DISSIPAT"              { yylval.ival = OutputInfo::DissipatedEnergy;return STRESSID; }
+
 "MATSPEC"|"matspec"                { return MATSPEC; }
 
 "MATLAW"|"matlaw"                  { return MATSPEC; }
@@ -1286,6 +1424,7 @@ TRAIL [a-zA-Z]*
 
 "logs"[a-zA-Z]*|"LOGS"[a-zA-Z]*|"LogS"[a-zA-Z]*         { return LOGSTRAINPLASTIC; }
 
+
 "linearplanestress"|"LINEARPLANESTRESS"|"LinearPlaneStress" { return LINPLSTRESS; }
 
 "hyperelasticplanestress"|"HYPERELASTICPLANESTRESS"|"HyperElasticPlaneStress" { return SVKPLSTRESS; }
@@ -1294,13 +1433,49 @@ TRAIL [a-zA-Z]*
 
 "isotropiclinearelastic"|"ISOTROPICLINEARELASTIC"|"IsotropicLinearElastic"  { return ISOTROPICLINEARELASTIC; }
 
+"viscolinearelastic"|"VISCOLINEARELASTIC"|"ViscoLinearElastic"|"ViscoLinear"  { return VISCOLINEARELASTIC; }
+
+"viscostve"[a-zA-Z]*|"VISCOSTVE"[a-zA-Z]*|"ViscoStVe"[a-zA-Z]*  { return VISCOSTVENANTKIRCHHOFF; }
+
+"PlaneStressLinear"[a-zA-Z]*                            { return PLANESTRESSLINEAR; }
+
+"PlaneStressStVenantKirchhoff"[a-zA-Z]*                 { return PLANESTRESSSTVENANTKIRCHHOFF; }
+
+"PlaneStressNeoHookean"[a-zA-Z]*                        { return PLANESTRESSNEOHOOKEAN; }
+
+"PlaneStressMooneyRivlin"[a-zA-Z]*                      { return PLANESTRESSMOONEYRIVLIN; }
+
+"PlaneStressBilinearPlastic"[a-zA-Z]*                   { return PLANESTRESSBILINEARPLASTIC; }
+
+"PlaneStressFiniteStrainPlastic"[a-zA-Z]*               { return PLANESTRESSFINITESTRAINPLASTIC; }
+
+"PlaneStressViscoLinearElastic"[a-zA-Z]*                { return PLANESTRESSVISCOLINEARELASTIC; }
+
+"PlaneStressViscoStVenantKirchhoff"[a-zA-Z]*            { return PLANESTRESSVISCOSTVENANTKIRCHHOFF; }
+
+"PlaneStressViscoNeoHookean"[a-zA-Z]*                   { return PLANESTRESSVISCONEOHOOKEAN; }
+
+"PlaneStressViscoMooneyRivlin"[a-zA-Z]*                 { return PLANESTRESSVISCOMOONEYRIVLIN; }
+
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
+
+"tule"[a-zA-Z]*|"TULE"[a-zA-Z]*|"Tule"[a-zA-Z]*         { return TULERBUTCHER; }
 
 "henc"[a-zA-Z]*|"HENC"[a-zA-Z]*|"Henc"[a-zA-Z]*         { return HENCKY; }
 
 "neoh"[a-zA-Z]*|"NEOH"[a-zA-Z]*|"NeoH"[a-zA-Z]*         { return NEOHOOKEAN; }
 
+"visconeoh"[a-zA-Z]*|"VISCONEOH"[a-zA-Z]*|"ViscoNeoH"[a-zA-Z]*         { return VISCONEOHOOKEAN; }
+
 "moon"[a-zA-Z]*|"MOON"[a-zA-Z]*|"Moon"[a-zA-Z]*         { return MOONEYRIVLIN; }
+
+"ogde"[a-zA-Z]*|"OGDE"[a-zA-Z]*|"Ogde"[a-zA-Z]*         { return OGDEN; }
+
+"simoe"[a-zA-Z]*|"SIMOE"[a-zA-Z]*|"SimoE"[a-zA-Z]*      { return SIMOELASTIC; }
+
+"simop"[a-zA-Z]*|"SIMOP"[a-zA-Z]*|"SimoP"[a-zA-Z]*      { return SIMOPLASTIC; }
+
+"viscomoon"[a-zA-Z]*|"VISCOMOON"[a-zA-Z]*|"ViscoMoon"[a-zA-Z]*         { return VISCOMOONEYRIVLIN; }
 
 "isotropiclinearelasticj2plastic"|"ISOTROPICLINEARELASTICJ2PLASTIC"|"IsotropicLinearElasticJ2Plastic" { return ISOTROPICLINEARELASTICJ2PLASTIC; }
 
@@ -1361,7 +1536,9 @@ TRAIL [a-zA-Z]*
 
 "POINTPLANE"|"pointplane"|"PointPlane" { yylval.ival = BCond::PointPlaneDistance; return CSTYPE; }
 
-"NO_SECONDARY"|"no_secondary"  { return NOSECONDARY; }
+"NO_SECONDARY"|"no_secondary"      { return NOSECONDARY; }
+
+"TDEN"[a-zA-Z]*|"tden"[a-zA-Z]*    { return TDENFORCE; }
 
 "ACME"[a-zA-Z]*|"acme"[a-zA-Z]*    { return ACMECNTL; }
 
@@ -1382,49 +1559,126 @@ TRAIL [a-zA-Z]*
 "STDV"|"stdv" { yylval.ival = 2; return NDTYPE; }
 "PDF"|"pdf" { yylval.ival = 3; return NDTYPE; }
 
+"CONFOR"|"ConFor"|"confor"                { return REBUILDFORCE; }
+
+"REBCON"|"RebCon"|"rebcon" 		  { return REBUILDCONSTRAINT; }
+
+"SNSLOT"|"SnSlot"|"snslot"                { return SAMPNODESLOT; }
+
+"REDSTIFF"|"RedStiff"|"redstiff"	  { return REDUCEDSTIFFNESS; }
+
+"UDBASIS"|"UDBasis"|"udbasis"		  { return UDEIMBASIS; }
+
+"FPODRB"|"FPODRb"|"fpodrb"                { return FORCEROB; }
+
+"CPODRB"|"CPODrb"|"cpodrb" 	          { return CONSTRAINTROB; }
+
+"FLTROW"|"FltRow"|"fltrow"		  { return FILTERROWS; }
+
+"svdfrc"|"SvdFrc"|"svdfrc"		  { return SVDFORCESNAP; }
+
+"svdcon"|"SvdCon"|"svdcon" 		  { return SVDCONSTRAINTSNAP; }
+
+"DEIM"|"Deim"|"deim"                      { return DEIMINDICES; }
+ 
+"UDEIM"|"UDeim"|"udeim"                   { return UDEIMINDICES; }
+
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 
 "MNORMA"|"MNorma"|"mnorma"		  { return NORMALIZETOKEN; }
 
+"MPRO"[a-zA-Z]*|"mpro"[a-zA-Z]*           { return MPROJECT; }
+
 "blcksz"|"BlckSz"|"BLCKSZ"                { return BLOCKSIZE; }
 
-"RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } // reduced order data conversion token
+"RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } /* reduced order data conversion token */
  
-"CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } // reduced order data conversion files
+"CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } /* reduced order data conversion files */
+
+"ROMRES"|"RomRes"|"romres"                { return ROMRES; }
 
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
+"VELSNAPFI"|"VelSnapFi"|"velsnapfi"       { return VELSNAPFI; }
+"ACCSNAPFI"|"AccSnapFi"|"accsnapfi"       { return ACCSNAPFI; }
+"DSVSNAPFI"|"DsvSnapFi"|"dsvsnapfi"       { return DSVSNAPFI; }
 
 "ROBFI"|"RobFi"|"robfi"		          { return ROBFI; }
 
-"SNAPWEIGHT"|"SnapWeight"|"snapweight"    { return SNAPWEIGHT; }
+"SNAPWEIGHT"|"SnapWeight"|"snapweight"    { return SNAPWEIGHT; } /* deprecated */
+"SSCALI"|"SScali"|"sscali"                { return SNAPWEIGHT; }
 
 "CONCFG"|"ConCfg"|"concfg"                { return CONWEPCFG; }
+
+"POSCFG"|"PosCfg"|"poscfg"                { return SCALEPOSCOORDS; }
+
+"NDSCFG"|"NdsCfg"|"ndscfg"		  { return NODEPOSCOORDS; }
+
+"MESHSCALE"|"MeshScale"|"meshscale"       { return MESHSCALEFACTOR; }
 
 "NORMFI"|"NormFi"|"normfi"		  { return VECTORNORM; }
 
 "PODROB"|"PodRob"|"podrob"		  { return PODROB; }
 
-"TRNVCT"|"TrnVct"|"trnvct"		  { return TRNVCT; }
+"TRNVCT"|"TrnVct"|"trnvct"		  { return TRNVCT; } /* deprecated */
+"TRNSOL"|"TrnSol"|"trnsol"                { return TRNVCT; }
 
 "OFFSET"|"OffSet"|"offset"		  { return OFFSET; }
 
 "DIMENS"|"Dimens"|"dimens"		  { return PODSIZEMAX; }
 
+"ROMENR"|"RomEnr"|"romenr"                { return ROMENERGY; }
+
 "ORTHOG"|"Orthog"|"orthog"		  { return ORTHOG; }
 
 "RMSHC"|"Rmshc"|"rmshc" 		  { return SAMPLING; }
 
-"SNAPPR"|"SnapPr"|"snappr"        { return SNAPSHOTPROJECT; }
+"SNAPPR"|"SnapPr"|"snappr"                { return SNAPSHOTPROJECT; }
 
-"TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; }
-
-"LOCTOL"|"LocTol"|"loctol"		  { return LOCALTOLERANCE; }
+"TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; } /* deprecated */
+"TOLERA"|"Tolera"|"tolera"                { return TOLER; }
 
 "NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
+"SAMFRQ"|"SamFrq"|"samfrq"                { return SKIP; }
+"RANSMP"|"RanSmp"|"ransmp"    	          { return RANDOMSAMPLE; }
 
-"OUT_OF"[a-zA-Z_]*|"Out_Of"[a-zA-Z_]*|"out_of"[a-zA-Z_]* { return OUTOFCORE; }
+"SOLVER"|"Solver"|"solver"                { return SOLVER; }
 
-"REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
+"NPMAX"|"npMax"|"npmax"                   { return NPMAX; }
+
+"BSSPLH"|"bsSplh"|"bssplh"                { return BSSPLH; }
+
+"PGSPLH"|"pgSplh"|"pgsplh"                { return PGSPLH; }
+
+"lh"|"LH"                                 { yylval.ival = 0; return SPNNLSSOLVERTYPE; }
+"nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CGNNLS"|"cgnnls"                         { yylval.ival = 1; return SPNNLSSOLVERTYPE; }  
+"gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CGPFP"|"cgpfp"                           { yylval.ival = 2; return SPNNLSSOLVERTYPE; } 
+"lars"|"LARS"				  { yylval.ival = 3; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CHLASSO"|"chlasso"                       { yylval.ival = 3; return SPNNLSSOLVERTYPE; }
+"mp"|"MP"				  { yylval.ival = 4; return SPNNLSSOLVERTYPE; }
+"omp"|"OMP"                               { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
+"splh"|"SPLH" 				  { yylval.ival = 6; return SPNNLSSOLVERTYPE; } /* deprecated */
+"QRNNLS"|"qrnnls"                         { yylval.ival = 6; return SPNNLSSOLVERTYPE; } 
+"cglars"|"CGLARS"                         { yylval.ival = 7; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CGLASSO"|"cglasso"                       { yylval.ival = 7; return SPNNLSSOLVERTYPE; }
+"sppfp"|"SPPFP"				  { yylval.ival = 8; return SPNNLSSOLVERTYPE; } /* deprecated */
+"QRPFP"|"qrpfp"                           { yylval.ival = 8; return SPNNLSSOLVERTYPE; } 
+
+"MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
+
+"REFSUBTRACT"|"refsubtract"|"RefSubtract" { return REFSUBTRACT; } 
+
+"USE_NMF"|"use_nmf"                       { return USENMF; }
+"USE_GREEDY"|"use_greedy"                 { return USEGREEDY; }
+"USE_PQN"|"use_pqn"                       { return USEPQN; }
+
+"DO_CLUSTERING"|"do_clustering"           { return DOCLUSTERING; }
+"ANGLE"|"angle" 			  { return ANGLE; }
+"CLUSTERSOLVER"|"clustersolver"           { return CLUSTERSOLVER; }
+"CRANDOM"|"crandom"                       { yylval.ival = 0; return CLUSTERSOLVERTYPE; }
+"KMEANS"|"kmeans"                         { yylval.ival = 1; return CLUSTERSOLVERTYPE; }
+"SSC"|"ssc" 	           	          { yylval.ival = 2; return CLUSTERSOLVERTYPE; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 
@@ -1451,7 +1705,7 @@ TRAIL [a-zA-Z]*
        for(il = 0; yytext[il] != 'd' && yytext[il] != 'D';) ++il;
        yytext[il] = 'e'; yylval.fval = atof(yytext) ; return DblConstant ; }
 
-"*" { while(yyinput() != '\n') ; line_num++; }
+"*" { while(yyinput() != '\n') {}; line_num++; }
 
 
 

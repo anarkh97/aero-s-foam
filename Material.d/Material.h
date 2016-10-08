@@ -145,36 +145,6 @@ class SimpleMaterial: public Material
 
 
 /** 
-    \brief NeoHookean constitutive behavior
-    
-*/
-
-class NeoHookean: public SimpleMaterial
-{
- public:
-  NeoHookean(double LambdaInput, double MuInput, double rhoInput=0)
-    :SimpleMaterial(rhoInput), Lambda(LambdaInput), Mu(MuInput) {}
-  virtual ~NeoHookean() {}
-  NeoHookean(const NeoHookean &NewMat): 
-    SimpleMaterial(NewMat), Lambda(NewMat.Lambda), Mu(NewMat.Mu) {}
-  virtual NeoHookean * Clone() const { return new NeoHookean(*this); }
-  
-  bool GetConstitutiveResponse(const std::vector<double> * strain,
-			       std::vector<double> * stress,
-			       std::vector<double> * tangents = 0) const;
-
-  const std::string GetMaterialName() const { return "NeoHookean"; }
-
- private:
-  // Lame constants
-  double Lambda;
-  double Mu;
-};
-
-
-
-
-/** 
     \brief Linear Elastic constitutive behavior
     
     This is an abstract class that provides the constitutive response of a linear elastic material.

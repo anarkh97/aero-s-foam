@@ -6,6 +6,8 @@
 #include <Element.d/Helm.d/IsoParamUtils.h>
 #include <Element.d/Helm.d/GaussRules.h>
 
+#include <Element.d/Helm.d/ARubberF.h>
+
 #include <Math.d/matrix.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
@@ -28,6 +30,9 @@ LEIsoParamTetra::LEIsoParamTetra(int o, int* nodenums) {
  nn = new int[orderc];
  int i;
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
+
+ setWeight(order-1);
+ setTrueWeight(order-1);
 }
 
 
@@ -137,6 +142,35 @@ FullSquareMatrix LEIsoParamTetra::stiffness(CoordSet &cs, double *K, int flg ) {
 }
 
 
+void LEIsoParamTetra::aRubberStiffnessDerivs(CoordSet& cs,
+                                           complex<double> *K, int n, double omega) {
+
+ IsoParamUtilsTetra ipu(order);
+ int orderc = ipu.getorderc();
+ double *xyz=(double*)alloca(sizeof(double)*3*orderc);
+ cs.getCoordinates(nn,orderc,xyz,xyz+orderc,xyz+2*orderc);
+
+ LEARubberStiffFunction f(3*orderc, K);
+
+ ipu.zeroOut<complex<double> > ((n+3)*9*orderc*orderc,K);
+ int gorder = 7*7*7;
+ if (order<=3) gorder = 4*4*4;
+ ipu.volumeInt3d(xyz, f, gorder);
+ for(int i=0;i<=(n+2);i++)
+   ipu.symmetrize(3*orderc,K+i*9*orderc*orderc);
+
+ ARubberF ar(n,omega,
+              prop->E0,prop->dE,prop->mu0,prop->dmu,
+              prop->eta_E,prop->deta_E,prop->eta_mu,prop->deta_mu);
+ int ndofs = 3*orderc;
+ for(int j=0;j<=n;j++)
+   for(int i=0;i<ndofs*ndofs;i++)
+       K[i+(j+2)*ndofs*ndofs] = ar.d_lambda(j)*K[i+1*ndofs*ndofs]+
+                                ar.d_mu(j)*K[i+0*ndofs*ndofs];
+
+}
+
+
 extern bool useFull;
 
 int
@@ -146,5 +180,16 @@ LEIsoParamTetra::numNodes() {
     return (order*(order+1)*(order+2))/6;
   else
     return(4);   // to ignore effect of mid-size nodes in dec
+}
+
+int LEIsoParamTetra::getDecFace(int iFace, int *fn) {
+  IsoParamUtilsTetra ipu(order);
+  int ordersq = ipu.getordersq();
+  ipu.faceindeces(iFace+1, fn);
+  for(int i=0;i<ordersq;i++) {
+    int tmp = fn[i];
+    fn[i] = nn[tmp];
+  }
+  return ordersq;
 }
 

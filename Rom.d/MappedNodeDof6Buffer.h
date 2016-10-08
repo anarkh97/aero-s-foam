@@ -8,7 +8,8 @@
 
 namespace Rom {
 
-class MappedNodeDof6Buffer {
+template<int DOFS_PER_NODE>
+class MappedNodeDofBuffer {
 public:
   int nodeCount() const { return nodeIndices_.size(); }
 
@@ -18,30 +19,33 @@ public:
 
   const double *operator[](int iNode) const;
   double *operator[](int iNode) {
-    const MappedNodeDof6Buffer &self = *this;
+    const MappedNodeDofBuffer &self = *this;
     return const_cast<double *>(self[iNode]);
   }
 
   double *array() { return buffer_.array(); }
   const double *array() const { return buffer_.array(); }
 
-  const NodeDof6Buffer &underlyingBuffer() const { return buffer_; }
-  NodeDof6Buffer &underlyingBuffer() { return buffer_; }
+  const NodeDofBuffer<DOFS_PER_NODE> &underlyingBuffer() const { return buffer_; }
+  NodeDofBuffer<DOFS_PER_NODE> &underlyingBuffer() { return buffer_; }
 
   // Range [first, last) should not have duplicated elements
   template <typename IdxInIt>
-  MappedNodeDof6Buffer(IdxInIt first, IdxInIt last);
+  MappedNodeDofBuffer(IdxInIt first, IdxInIt last);
 
 private:
   void initialize();
 
   std::map<int, int> underlyingNodeIndices_;
   std::vector<int> nodeIndices_;
-  NodeDof6Buffer buffer_;
+  NodeDofBuffer<DOFS_PER_NODE> buffer_;
 };
 
+typedef MappedNodeDofBuffer<6> MappedNodeDof6Buffer;
+
+template <int DOFS_PER_NODE>
 template <typename IdxInIt>
-MappedNodeDof6Buffer::MappedNodeDof6Buffer(IdxInIt first, IdxInIt last) :
+MappedNodeDofBuffer<DOFS_PER_NODE>::MappedNodeDofBuffer(IdxInIt first, IdxInIt last) :
   underlyingNodeIndices_(),
   nodeIndices_(first, last),
   buffer_()

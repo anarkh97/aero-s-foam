@@ -430,7 +430,7 @@ ContactNodeFaceInteraction::Modify_for_Curvature( VariableHandle POSITION,
 //----------------------------------------------------------------------
 int ContactNodeFaceInteraction::Size()
 {
-  return(ContactInteractionEntity::Size()+
+  return(ContactInteractionEntity<Real>::Size()+
          sizeof(entity_data)+sizeof(int)+
          number_shared_faces*sizeof(ContactTopologyEntity<Real>::connection_data)+
          (NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS)*sizeof(Real));
@@ -439,8 +439,8 @@ int ContactNodeFaceInteraction::Size()
 char* ContactNodeFaceInteraction::Pack( char* buffer )
 {
   char* buff = buffer;
-  ContactInteractionEntity::Pack( buffer );
-  buff += ContactInteractionEntity::Size();
+  ContactInteractionEntity<Real>::Pack( buffer );
+  buff += ContactInteractionEntity<Real>::Size();
   
   int  cnt     = 0;
   int* i_buf   = reinterpret_cast<int*> (buff);
@@ -460,8 +460,8 @@ char* ContactNodeFaceInteraction::Pack( char* buffer )
 char* ContactNodeFaceInteraction::Unpack( char* buffer )
 {
   char* buff = buffer;
-  ContactInteractionEntity::Unpack( buff );
-  buff += ContactInteractionEntity::Size();
+  ContactInteractionEntity<Real>::Unpack( buff );
+  buff += ContactInteractionEntity<Real>::Size();
   
   int cnt    = 0;
   int* i_buf = reinterpret_cast<int*> (buff);
@@ -507,15 +507,15 @@ char* ContactNodeFaceInteraction::Unpack( char* buffer )
 int ContactNodeFaceInteraction::Size_ForSecondary()
 {
   DEFINE_DATA_TO_SEND;
-  return(ContactInteractionEntity::Size_ForSecondary()+
+  return(ContactInteractionEntity<Real>::Size_ForSecondary()+
          3*sizeof(int)+(scalar_data+3*vector_data)*sizeof(Real));
 }
 
 char* ContactNodeFaceInteraction::Pack_ForSecondary( char* buffer )
 {
   char* buff = buffer;
-  ContactInteractionEntity::Pack_ForSecondary( buffer );
-  buff += ContactInteractionEntity::Size_ForSecondary();
+  ContactInteractionEntity<Real>::Pack_ForSecondary( buffer );
+  buff += ContactInteractionEntity<Real>::Size_ForSecondary();
   
   int  cnt     = 0;
   int* i_buf   = reinterpret_cast<int*> (buff);
@@ -544,7 +544,7 @@ char* ContactNodeFaceInteraction::Pack_ForSecondary( char* buffer )
 char* ContactNodeFaceInteraction::Unpack_ForSecondary( char* buffer )
 {
   char* buff = buffer;
-  buff += ContactInteractionEntity::Size_ForSecondary();
+  buff += ContactInteractionEntity<Real>::Size_ForSecondary();
   
   int cnt    = 0;
   int* i_buf = reinterpret_cast<int*> (buff);

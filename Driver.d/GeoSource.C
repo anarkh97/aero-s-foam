@@ -1,7 +1,11 @@
+#ifndef _GEOSOURCE_C_
+#define _GEOSOURCE_C_
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/DistHelper.h>
+#include <Utils.d/MyComplex.h>
 #include <Driver.d/Domain.h>
 #include <Driver.d/SubDomain.h>
 #include <Driver.d/Mpc.h>
@@ -20,6 +24,8 @@
 #ifdef SOWER_SURFS
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 #endif
+
+extern int verboseFlag;
 
 template<class Scalar>
 void GeoSource::distributeBCs(GenSubDomain<Scalar> *&tmpSub, int *cl2LocNodeMap,
@@ -169,23 +175,6 @@ GeoSource::distributeOutputNodesX(GenSubDomain<Scalar> *tmpSub, Connectivity *no
 #ifndef SALINAS
 #include <Driver.d/Sower.h>
 
-#ifdef SOWER_SURFS 
-template<class Scalar>
-void GeoSource::readDistributedSurfs(int subNum)
-{
-  Sower sower;
-  BinFileHandler *f = sower.openBinaryFile(subNum);
-  //filePrint(stderr," ... Read surfaces data\n");
-  for(int isurf=0; isurf<domain->getNumSurfs(); isurf++) {
-    //filePrint(stderr," ... Read data of surface %d\n",isurf);
-    int* dummy= 0;
-    SurfaceEntity* surf = sower.template read<SurfaceIO>(*f, isurf, dummy, true);
-    if(dummy) { delete [] dummy; dummy= 0; } // not used
-    domain->AddSurfaceEntity(surf,isurf);
-  }
-}
-#endif
-
 template<class Scalar>
 GenSubDomain<Scalar> *
 GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
@@ -218,7 +207,7 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 
   // elements
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Elements" << endl;
+  std::cerr << std::endl << "--Reading Elements" << std::endl;
 #endif
   int *glElemNums = 0; // PJSA: this is the localToGlobal element numbering map, allocated in Sower::read
   Elemset *ese = sower.template read<ElemsetIO>(*f, subNum, glElemNums);
@@ -230,16 +219,16 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 
   // materials
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Materials" << endl;
+  std::cerr << std::endl << "--Reading Materials" << std::endl;
 #endif
   int *glNums = 0;
-  std::pair<int, map<int,StructProp>* > *rat0 = sower.template read<MatIO>(*f, subNum, glNums);
+  std::pair<int, std::map<int,StructProp>* > *rat0 = sower.template read<MatIO>(*f, subNum, glNums);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(rat0) {
     for(int l=0; l < rat0->first; ++l) {
-      map<int,StructProp> *tm = rat0->second;
-      cerr << l << ":" <<(*tm)[l].E << ","
+      std::map<int,StructProp> *tm = rat0->second;
+      std::cerr << l << ":" <<(*tm)[l].E << ","
            << (*tm)[l].A
            << "," << (*tm)[l].nu
            << "," << (*tm)[l].rho
@@ -257,23 +246,23 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
            << "," << (*tm)[l].ymax
            << "," << (*tm)[l].zmin
            << "," << (*tm)[l].zmax
-           << (*tm)[l].kappaHelm << endl;
+           << (*tm)[l].kappaHelm << std::endl;
       }
   }
 #endif
 
   // attributes
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Attributes" << endl;
+  std::cerr << std::endl << "--Reading Attributes" << std::endl;
 #endif
-  std::pair<int, map<int,Attrib>* > *rat = sower.template read<AttribIO>(*f, subNum, glNums);
+  std::pair<int, std::map<int,Attrib>* > *rat = sower.template read<AttribIO>(*f, subNum, glNums);
   // composites
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Composites" << endl;
+  std::cerr << std::endl << "--Reading Composites" << std::endl;
 #endif
-  /*std::pair<int,map<int,CoefData*>* > *rcd =*/ sower.template read<CompositeCIO>(*f, subNum, glNums);
-  /*std::pair<int,map<int,LayInfo*>* > *rli =*/ sower.template read<CompositeLIO>(*f, subNum, glNums);
-  /*std::pair<int,map<int,double*>* > *rcf =*/ sower.template read<CFramesIO>(*f, subNum, glNums);
+  /*std::pair<int,std::map<int,CoefData*>* > *rcd =*/ sower.template read<CompositeCIO>(*f, subNum, glNums);
+  /*std::pair<int,std::map<int,LayInfo*>* > *rli =*/ sower.template read<CompositeLIO>(*f, subNum, glNums);
+  /*std::pair<int,std::map<int,double*>* > *rcf =*/ sower.template read<CFramesIO>(*f, subNum, glNums);
 
   if(rat) {
     for(int iAttr=0; iAttr<rat->first; ++iAttr) {
@@ -296,26 +285,26 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 
   // neuman bounday conditions
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Neuman Boundary Conditions (forces)" << std::endl;
+  std::cerr << std::endl << "--Reading Neuman Boundary Conditions (forces)" << std::endl;
 #endif
-  list<BCond *> *fo = sower.template read<BCDataIO<FORCES_TYPE> >(*f, subNum, glNums);
+  std::list<BCond *> *fo = sower.template read<BCDataIO<FORCES_TYPE> >(*f, subNum, glNums);
   if(fo) subd->setNeumanBC(fo);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(fo) {
-    for(list<BCond *>::iterator it = fo->begin(); it != fo->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
+    for(std::list<BCond *>::iterator it = fo->begin(); it != fo->end(); ++it) {
+      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
     }
   }
 #endif
 
   //boffset
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Beam offsets" << endl;
+  std::cerr << std::endl << "--Reading Beam offsets" << std::endl;
 #endif
-  vector<OffsetData> *offsets2 = sower.template read<BoffsetIO>(*f, subNum, glNums);
+  std::vector<OffsetData> *offsets2 = sower.template read<BoffsetIO>(*f, subNum, glNums);
   if(offsets2) {
-    for(vector<OffsetData>::iterator it = (*offsets2).begin() ; it!= (*offsets2).end() ;++it)
+    for(std::vector<OffsetData>::iterator it = (*offsets2).begin() ; it!= (*offsets2).end() ;++it)
       {
         offsets.push_back(*it);
       }
@@ -323,11 +312,11 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 
   //eframes
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Eframes" << endl;
+  std::cerr << std::endl << "--Reading Eframes" << std::endl;
 #endif
-  vector<EFrameData> *efd2 = sower.template read<EFrameIO>(*f,subNum,glNums);
+  std::vector<EFrameData> *efd2 = sower.template read<EFrameIO>(*f,subNum,glNums);
   if(efd2) {
-    for(vector<EFrameData>::iterator it = (*efd2).begin();it!= (*efd2).end();++it)
+    for(std::vector<EFrameData>::iterator it = (*efd2).begin();it!= (*efd2).end();++it)
       {
         double fr[9];
         fr[0] = (*it).frame[0][0];
@@ -345,60 +334,60 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 
   // dirichlet boundary conditions
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Dirichlet Boundary=disp" << endl;
+  std::cerr << std::endl << "--Reading Dirichlet Boundary=disp" << std::endl;
 #endif
-  list<BCond *> *fo2 = sower.template read<BCDataIO<DISPLACEMENTS_TYPE> >(*f, subNum, glNums);
+  std::list<BCond *> *fo2 = sower.template read<BCDataIO<DISPLACEMENTS_TYPE> >(*f, subNum, glNums);
   if(fo2) subd->setDirichletBC(fo2);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(fo2) {
-    for(list<BCond *>::iterator it = fo2->begin(); it != fo2->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
+    for(std::list<BCond *>::iterator it = fo2->begin(); it != fo2->end(); ++it) {
+      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
     }
   }
 #endif
 
   // initial displacements
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Initial Displacement" << endl;
+  std::cerr << std::endl << "--Reading Initial Displacement" << std::endl;
 #endif
-  list<BCond *> *idlist = sower.template read<BCDataIO<IDISP_TYPE> >(*f, subNum, glNums);
+  std::list<BCond *> *idlist = sower.template read<BCDataIO<IDISP_TYPE> >(*f, subNum, glNums);
   if(idlist) subd->setInitialDisplacement(idlist);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(idlist) {
-    for(list<BCond *>::iterator it = idlist->begin(); it != idlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
+    for(std::list<BCond *>::iterator it = idlist->begin(); it != idlist->end(); ++it) {
+      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
     }
   }
 #endif
 
   // initial displacements (6 column)
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Initial Displacement 6" << endl;
+  std::cerr << std::endl << "--Reading Initial Displacement 6" << std::endl;
 #endif
-  list<BCond *> *id6list = sower.template read<BCDataIO<IDISP6_TYPE> >(*f, subNum, glNums);
+  std::list<BCond *> *id6list = sower.template read<BCDataIO<IDISP6_TYPE> >(*f, subNum, glNums);
   if(id6list) subd->setInitialDisplacement6(id6list);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(id6list) {
     for(list<BCond *>::iterator it = id6list->begin(); it != id6list->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
+      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
     }
   }
 #endif
 
   // initial velocities
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Initial Velocity" << endl;
+  std::cerr << std::endl << "--Reading Initial Velocity" << std::endl;
 #endif
-  list<BCond *> *ivlist = sower.template read<BCDataIO<IVEL_TYPE> >(*f, subNum, glNums);
+  std::list<BCond *> *ivlist = sower.template read<BCDataIO<IVEL_TYPE> >(*f, subNum, glNums);
   if(ivlist) subd->setInitialVelocity(ivlist);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(ivlist) {
-    for(list<BCond *>::iterator it = ivlist->begin(); it != ivlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
+    for(std::list<BCond *>::iterator it = ivlist->begin(); it != ivlist->end(); ++it) {
+      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
     }
   }
 #endif
@@ -407,60 +396,60 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 
   // claw->sensors
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Sensors (claw)" << endl;
+  std::cerr << std::endl << "--Reading Sensors (claw)" << std::endl;
 #endif
-  list<BCond *> *sensorlist = sower.template read<BCDataIO<SENSOR_TYPE> >(*f, subNum, glNums);
+  std::list<BCond *> *sensorlist = sower.template read<BCDataIO<SENSOR_TYPE> >(*f, subNum, glNums);
   if(sensorlist) subd->setSensor(sensorlist);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(sensorlist) {
-    for(list<BCond *>::iterator it = sensorlist->begin(); it != sensorlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
+    for(std::list<BCond *>::iterator it = sensorlist->begin(); it != sensorlist->end(); ++it) {
+      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
     }
   }
 #endif
 
   // claw->actuator
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Actuator (claw)" << endl;
+  std::cerr << std::endl << "--Reading Actuator (claw)" << std::endl;
 #endif
-  list<BCond *> *actuatorlist = sower.template read<BCDataIO<ACTUATOR_TYPE> >(*f, subNum, glNums);
+  std::list<BCond *> *actuatorlist = sower.template read<BCDataIO<ACTUATOR_TYPE> >(*f, subNum, glNums);
   if(actuatorlist) subd->setActuator(actuatorlist);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(actuatorlist) {
-    for(list<BCond *>::iterator it = actuatorlist->begin(); it != actuatorlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
+    for(std::list<BCond *>::iterator it = actuatorlist->begin(); it != actuatorlist->end(); ++it) {
+      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
     }
   }
 #endif
                                                                                                  
   // claw->userDisp
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Usdd (claw)" << endl;
+  std::cerr << std::endl << "--Reading Usdd (claw)" << std::endl;
 #endif
-  list<BCond *> *usddlist = sower.template read<BCDataIO<USDD_TYPE> >(*f, subNum, glNums);
+  std::list<BCond *> *usddlist = sower.template read<BCDataIO<USDD_TYPE> >(*f, subNum, glNums);
   if(usddlist) subd->setUsdd(usddlist); 
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(usddlist) {
-    for(list<BCond *>::iterator it = usddlist->begin(); it != usddlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
+    for(std::list<BCond *>::iterator it = usddlist->begin(); it != usddlist->end(); ++it) {
+      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
     }
   }
 #endif
   
   // claw->userForce
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Usdf (claw)" << endl;
+  std::cerr << std::endl << "--Reading Usdf (claw)" << std::endl;
 #endif
-  list<BCond *> *usdflist = sower.template read<BCDataIO<USDF_TYPE> >(*f, subNum, glNums);
+  std::list<BCond *> *usdflist = sower.template read<BCDataIO<USDF_TYPE> >(*f, subNum, glNums);
   if(usdflist) subd->setUsdf(usdflist);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(usdflist) {
-    for(list<BCond *>::iterator it = usdflist->begin(); it != usdflist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
+    for(std::list<BCond *>::iterator it = usdflist->begin(); it != usdflist->end(); ++it) {
+      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
     }
   }
 #endif
@@ -468,60 +457,60 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 
   // complex dirichlet
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Complex Dirichlet" << endl;
+  std::cerr << std::endl << "--Reading Complex Dirichlet" << std::endl;
 #endif
-  list<ComplexBCond *> *cdlist = sower.template read<ComplexBCDataIO<HDIR_TYPE> >(*f, subNum, glNums);
+  std::list<ComplexBCond *> *cdlist = sower.template read<ComplexBCDataIO<HDIR_TYPE> >(*f, subNum, glNums);
   if(cdlist) subd->setComplexDirichletBC(cdlist);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(cdlist) {
-    for(list<ComplexBCond *>::iterator it = cdlist->begin(); it != cdlist->end(); ++it) {
+    for(std::list<ComplexBCond *>::iterator it = cdlist->begin(); it != cdlist->end(); ++it) {
       std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->reval 
-                << "," << (*it)->imval << endl;
+                << "," << (*it)->imval << std::endl;
     }
   }
 #endif
 
   // complex neuman
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Complex Neuman" << endl;
+  std::cerr << std::endl << "--Reading Complex Neuman" << std::endl;
 #endif
-  list<ComplexBCond *> *cnlist = sower.template read<ComplexBCDataIO<HNEU_TYPE> >(*f, subNum, glNums);
+  std::list<ComplexBCond *> *cnlist = sower.template read<ComplexBCDataIO<HNEU_TYPE> >(*f, subNum, glNums);
   if(cnlist) subd->setComplexNeumanBC(cnlist);
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(cnlist) {
-    for(list<ComplexBCond *>::iterator it = cnlist->begin(); it != cnlist->end(); ++it) {
+    for(std::list<ComplexBCond *>::iterator it = cnlist->begin(); it != cnlist->end(); ++it) {
       std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->reval 
-                << "," << (*it)->imval << endl;
+                << "," << (*it)->imval << std::endl;
     }
   }
 #endif
 
   //ATDDNB & HDNB
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading DNB (ATDDNB or HDNB)" << endl;
+  std::cerr << std::endl << "--Reading DNB (ATDDNB or HDNB)" << std::endl;
 #endif
-  list<SommerElement *> *dnblist = sower.template read<SommerDataIO<DNB_TYPE> >(*f, subNum, glNums);
+  std::list<SommerElement *> *dnblist = sower.template read<SommerDataIO<DNB_TYPE> >(*f, subNum, glNums);
   if(dnblist) subd->setDnb(dnblist);
   if(glNums) { delete[] glNums; glNums = 0; } //not used
 #ifdef SOWER_DEBUG
   if(dnblist) {
     int i, numN = 0;
-    for(list<SommerElement *>::iterator it = dnblist->begin(); it != dnblist->end(); ++it) {
+    for(std::list<SommerElement *>::iterator it = dnblist->begin(); it != dnblist->end(); ++it) {
       //get type and list of nodes
       numN = (*it)->numNodes();
       std::cerr << " node: ";
       for (i = 0 ; i < numN-1 ; i++)
         std::cerr << (*it)->getNode(i) << ", ";
-      std::cerr << (*it)->getNode(numN-1) << endl;
+      std::cerr << (*it)->getNode(numN-1) << std::endl;
     }
   }
 #endif
 
   //LMPC
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading LMPC" << endl;
+  std::cerr << std::endl << "--Reading LMPC" << std::endl;
 #endif
   std::pair<int,ResizeArray<LMPCons*>* > *mpc = sower.template read<LMPCIO >(*f, subNum, glNums);
   if(mpc) {
@@ -530,7 +519,7 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
   if(glNums) { delete[] glNums; glNums = 0; }
 #ifdef SOWER_DEBUG
   if(mpc) {
-    cerr << "numLMPC = " << mpc->first << endl;
+    std::cerr << "numLMPC = " << mpc->first << std::endl;
     for(int i=0; i<mpc->first; ++i) {
       (*mpc->second)[i]->print();
     }
@@ -539,54 +528,54 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
   
   //TETT
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading TETT" << endl;
+  std::cerr << std::endl << "--Reading TETT" << std::endl;
 #endif
   /*std::pair<int, ResizeArray<MFTTData*>* >* tett =*/ sower.template read<MFTTDataIO<TETT_TYPE> >(*f, subNum, glNums);
 
   //YMTT
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading YMTT" << endl;
+  std::cerr << std::endl << "--Reading YMTT" << std::endl;
 #endif
   /*std::pair<int, ResizeArray<MFTTData*>* >* ymtt =*/ sower.template read<MFTTDataIO<YMTT_TYPE> >(*f, subNum, glNums);
 
   //ATDROB & HSCB
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Scatter (ATDROB & HSCB)" << endl;
+  std::cerr << std::endl << "--Reading Scatter (ATDROB & HSCB)" << std::endl;
 #endif
-  list<SommerElement *> *scatlist = sower.template read<SommerDataIO<SCAT_TYPE> >(*f, subNum, glNums);
+  std::list<SommerElement *> *scatlist = sower.template read<SommerDataIO<SCAT_TYPE> >(*f, subNum, glNums);
   if(scatlist) subd->setScat(scatlist);
   if(glNums) {delete[] glNums; glNums = 0; } //not used
 #ifdef SOWER_DEBUG
   if(scatlist) {
     int i, numN = 0;
-    for(list<SommerElement *>::iterator it = scatlist->begin(); it != scatlist->end(); ++it) {
+    for(std::list<SommerElement *>::iterator it = scatlist->begin(); it != scatlist->end(); ++it) {
       //get type and list of nodes
       numN = (*it)->numNodes();
       std::cerr << " node: ";
       for (i = 0 ; i < numN-1 ; i++)
         std::cerr << (*it)->getNode(i) << ", ";
-      std::cerr << (*it)->getNode(numN-1) << endl;
+      std::cerr << (*it)->getNode(numN-1) << std::endl;
     }
   }
 #endif
 
   //ATDARB & HARB
 #ifdef SOWER_DEBUG
-  cerr << endl << "--Reading ARB (ATDARB & HARB)" << endl;
+  std::cerr << std::endl << "--Reading ARB (ATDARB & HARB)" << std::endl;
 #endif
-  list<SommerElement *> *arblist = sower.template read<SommerDataIO<ARB_TYPE> >(*f, subNum, glNums);
+  std::list<SommerElement *> *arblist = sower.template read<SommerDataIO<ARB_TYPE> >(*f, subNum, glNums);
   if(arblist)  subd->setArb(arblist);
   if(glNums) {delete[] glNums; glNums = 0; } //not used
 #ifdef SOWER_DEBUG
   if(arblist) {
     int i, numN = 0;
-    for(list<SommerElement *>::iterator it = arblist->begin(); it != arblist->end(); ++it) {
+    for(std::list<SommerElement *>::iterator it = arblist->begin(); it != arblist->end(); ++it) {
       //get type and list of nodes
       numN = (*it)->numNodes();
       std::cerr << " node: ";
       for (i = 0 ; i < numN-1 ; i++)
         std::cerr << (*it)->getNode(i) << ", ";
-      std::cerr << (*it)->getNode(numN-1) << endl;
+      std::cerr << (*it)->getNode(numN-1) << std::endl;
     }
   }
 #endif
@@ -602,6 +591,259 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
   return NULL;
 }
 #endif
+
+//------------------------------------------------------------
+#ifdef USE_EIGEN3
+template<class Scalar>
+void 
+GeoSource::outputSensitivityScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *output, double time)
+{
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
+
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0," ", "\n", " ", " ");
+  if(oinfo[fileNum].isFirst) {
+    std::ofstream fileout(oinfo[fileNum].filename, std::ios::out);
+#ifdef SENSITIVITY_DEBUG
+    if(verboseFlag) std::cerr << oinfo[fileNum].filename << std::endl;
+    if(verboseFlag) std::cerr << time << std::endl;
+    if(verboseFlag) std::cerr << (*output) << std::endl;
+#endif
+    fileout << "\t" << std::setprecision(p) << time << std::endl;
+    fileout << (*output).format(CleanFmt) << std::endl;
+    fileout.close();
+    oinfo[fileNum].isFirst = false;
+  } else {
+    std::ofstream fileout(oinfo[fileNum].filename, std::ios::app);
+    fileout << "\t" << std::setprecision(p) << time << "\n";
+    fileout << (*output).format(CleanFmt) << std::endl;
+    fileout.close();
+  }
+}
+
+template<class Scalar>
+void
+GeoSource::outputSensitivityVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, double time)
+{ 
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
+  
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
+  if(oinfo[fileNum].isFirst) {
+    std::ofstream fileout(oinfo[fileNum].filename, std::ios::out);
+    fileout << "\t" << time << "\n";
+    fileout << (*output).format(CleanFmt) << std::endl;
+    fileout.close();
+    oinfo[fileNum].isFirst = false;
+  } else {
+    std::ofstream fileout(oinfo[fileNum].filename, std::ios::app);
+    fileout << "\t" << time << "\n";
+    fileout << (*output).format(CleanFmt) << std::endl;
+    fileout.close();
+  }
+}
+
+template<class Scalar>
+void
+GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **output, 
+                                        double time, int numParams, int numnodes)
+{
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
+
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
+    
+  if(oinfo[fileNum].isFirst) {
+    filePrint(oinfo[fileNum].filptr, " %d %d\n", numParams, numnodes);
+    for(int iparam=0; iparam<numParams; ++iparam) {
+      filePrint(oinfo[fileNum].filptr, "%d \n", iparam+1);
+      for(int inode = 0; inode < numnodes; ++inode) {
+//        std::cerr << (*output[iparam])(inode,0) << std::endl;
+        filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                        inode+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,4)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,5))); 
+      }
+    }
+    oinfo[fileNum].isFirst = false;
+    fflush(oinfo[fileNum].filptr);
+  } else {
+    filePrint(oinfo[fileNum].filptr, " %d %d\n", numParams, numnodes);
+    for(int iparam=0; iparam<numParams; ++iparam) {
+      filePrint(oinfo[fileNum].filptr, " %d \n", iparam+1);
+      for(int inode = 0; inode < numnodes; ++inode) {
+        filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                        inode+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,4)), 
+                                 w, p, ScalarTypes::Real((*output[iparam])(inode,5)));  
+      }
+    }
+    fflush(oinfo[fileNum].filptr);
+  }
+}
+
+template<class Scalar>
+void
+GeoSource::outputSensitivityAdjointDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **output, 
+                                               double time, int numParams, int numnodes, int numdofs, std::vector<int> dispNodes)
+{
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
+
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
+    
+  if(oinfo[fileNum].isFirst) {
+    filePrint(oinfo[fileNum].filptr, " %d %d %d\n", numParams, numnodes, numdofs);
+    for(int iparam=0; iparam<numParams; ++iparam) {
+      filePrint(oinfo[fileNum].filptr, "%d \n", iparam+1);
+      for(int inode = 0; inode < numnodes; ++inode) {
+        switch(numdofs) {
+          case 1:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0))); 
+            break; 
+          case 2:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1))); 
+            break; 
+          case 3:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2))); 
+            break; 
+          case 4:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3))); 
+            break; 
+          case 5:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,4))); 
+            break; 
+          case 6:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,4)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,5))); 
+            break; 
+        }
+      }
+    }
+    oinfo[fileNum].isFirst = false;
+    fflush(oinfo[fileNum].filptr);
+  } else {
+    filePrint(oinfo[fileNum].filptr, " %d %d %d\n", numParams, numnodes, numdofs);
+    for(int iparam=0; iparam<numParams; ++iparam) {
+      filePrint(oinfo[fileNum].filptr, " %d \n", iparam+1);
+      for(int inode = 0; inode < numnodes; ++inode) {
+        switch(numdofs) {
+          case 1:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0))); 
+            break; 
+          case 2:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1))); 
+            break; 
+          case 3:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2))); 
+            break; 
+          case 4:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3))); 
+            break; 
+          case 5:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,4))); 
+            break; 
+          case 6:
+            filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                          dispNodes[inode]+1, w, p, ScalarTypes::Real((*output[iparam])(inode,0)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,1)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,2)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,3)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,4)), 
+                                   w, p, ScalarTypes::Real((*output[iparam])(inode,5))); 
+            break; 
+        }
+      }
+    }
+    fflush(oinfo[fileNum].filptr);
+  }
+}
+
+template<class Scalar>
+void
+GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, 
+                                        double time, int numnodes)
+{
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
+
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
+    
+  if(oinfo[fileNum].isFirst) {
+    filePrint(oinfo[fileNum].filptr, "%d\n", numnodes);
+    for(int inode = 0; inode < numnodes; ++inode) {
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                      inode+1, w, p, ScalarTypes::Real((*output)(inode,0)), 
+                               w, p, ScalarTypes::Real((*output)(inode,1)), 
+                               w, p, ScalarTypes::Real((*output)(inode,2)), 
+                               w, p, ScalarTypes::Real((*output)(inode,3)), 
+                               w, p, ScalarTypes::Real((*output)(inode,4)), 
+                               w, p, ScalarTypes::Real((*output)(inode,5))); 
+    }
+    oinfo[fileNum].isFirst = false;
+    fflush(oinfo[fileNum].filptr);
+  } else {
+    filePrint(oinfo[fileNum].filptr, "%d\n", numnodes);
+    for(int inode = 0; inode < numnodes; ++inode) {
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                      inode+1, w, p, ScalarTypes::Real((*output)(inode,0)), 
+                               w, p, ScalarTypes::Real((*output)(inode,1)), 
+                               w, p, ScalarTypes::Real((*output)(inode,2)), 
+                               w, p, ScalarTypes::Real((*output)(inode,3)), 
+                               w, p, ScalarTypes::Real((*output)(inode,4)), 
+                               w, p, ScalarTypes::Real((*output)(inode,5)));  
+    }
+    fflush(oinfo[fileNum].filptr);
+  }
+}
+#endif
+//------------------------------------------------------------
 
 template<int bound>
 void
@@ -620,14 +862,14 @@ GeoSource::outputNodeVectors(int fileNum, double (*glv)[bound], int outputSize, 
   if (oinfo[fileNum].groupNumber > 0)  {
 
     int group = oinfo[fileNum].groupNumber;
-    list<int>::iterator it = nodeGroup[group].begin();
+    std::list<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 
-      int inode = *it;
+      int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
 
       filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
                 w, p, glv[inode][0], w, p, glv[inode][1], w, p, glv[inode][2]);
       it++;
     }
@@ -667,13 +909,13 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        list<int>::iterator it = nodeGroup[group].begin();
+        std::list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
 
-         int inode = *it;
+         int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
-              inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+              *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
               w,p,glv[inode][0].real(), w,p,glv[inode][0].imag(), w,p,glv[inode][1].real(),
               w,p,glv[inode][1].imag(), w,p,glv[inode][2].real(), w,p,glv[inode][2].imag());
           it++;
@@ -714,13 +956,13 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        list<int>::iterator it = nodeGroup[group].begin();
+        std::list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
 
-          int inode = *it;
+          int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
           fprintf(oinfo[fileNum].filptr, " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
-              inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z, w,p,
+              *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z, w,p,
               std::abs(glv[inode][0]), w,p,std::abs(glv[inode][1]), w,p,std::abs(glv[inode][2]),
               w,p,arg(glv[inode][0]), w,p,arg(glv[inode][1]), w,p,arg(glv[inode][2]));
           it++;
@@ -766,7 +1008,7 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
           phi += incr;
         }
       }
-      else cerr << " *** WARNING: animate not supported for single-node or nodal group output \n";
+      else std::cerr << " *** WARNING: animate not supported for single-node or nodal group output \n";
       break;
   }
 
@@ -794,13 +1036,13 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[bound],
      return;
 
     int group = oinfo[fileNum].groupNumber;
-    list<int>::iterator it = nodeGroup[group].begin();
+    std::list<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 
-      int inode = *it;
+      int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
       filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
                 w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2],
                 w, p, xyz[inode][3], w, p, xyz[inode][4], w, p, xyz[inode][5]);
       it++;
@@ -844,13 +1086,13 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        list<int>::iterator it = nodeGroup[group].begin();
+        std::list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
-          int inode = *it;
+          int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
           filePrint(oinfo[fileNum].filptr,
             " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
-            inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+            *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
             w, p, xyz[inode][0].real(), w, p, xyz[inode][1].real(), w, p, xyz[inode][2].real(),
             w, p, xyz[inode][3].real(), w, p, xyz[inode][4].real(), w, p, xyz[inode][5].real(),
             w, p, xyz[inode][0].imag(), w, p, xyz[inode][1].imag(), w, p, xyz[inode][2].imag(),
@@ -903,13 +1145,13 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        list<int>::iterator it = nodeGroup[group].begin();
+        std::list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
-          int inode = *it;
+          int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
           filePrint(oinfo[fileNum].filptr,
             " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
-                  inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                  *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
                   w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),
                   w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),
                   w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]),
@@ -971,7 +1213,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
           phi += incr;
         }
       }
-      else cerr << " *** WARNING: animate not supported for single-node or node group output \n";
+      else std::cerr << " *** WARNING: animate not supported for single-node or node group output \n";
       break;
   }
 
@@ -1000,13 +1242,13 @@ void GeoSource::outputNodeVectors9(int fileNum, double (*xyz)[bound],
      return;
 
     int group = oinfo[fileNum].groupNumber;
-    list<int>::iterator it = nodeGroup[group].begin();
+    std::list<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 
-      int inode = *it;
+      int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
       filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
                 w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2],
                 w, p, xyz[inode][3], w, p, xyz[inode][4], w, p, xyz[inode][5],
                 w, p, xyz[inode][6], w, p, xyz[inode][7], w, p, xyz[inode][8]);
@@ -1051,13 +1293,13 @@ void GeoSource::outputNodeVectors4(int fileNum, double (*xyz)[bound],
      return;
 
     int group = oinfo[fileNum].groupNumber;
-    list<int>::iterator it = nodeGroup[group].begin();
+    std::list<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 
-      int inode = *it;
+      int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
       filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
                 w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2],
                 w, p, xyz[inode][3]);
       it++;
@@ -1076,3 +1318,4 @@ void GeoSource::outputNodeVectors4(int fileNum, double (*xyz)[bound],
 
   fflush(oinfo[fileNum].filptr);
 }
+#endif

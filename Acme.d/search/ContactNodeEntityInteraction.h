@@ -34,7 +34,7 @@ class ContactFixedSizeAllocator;
 class ContactTopology;
 class ContactFixedSizeAllocator;
 
-class ContactNodeEntityInteraction : public ContactInteractionEntity {
+class ContactNodeEntityInteraction : public ContactInteractionEntity<Real> {
 
  public:
  
@@ -93,12 +93,12 @@ class ContactNodeEntityInteraction : public ContactInteractionEntity {
    inline void Initialize_Memory();
 
    inline ContactTopologyEntity<Real>*                 Entity();
-   inline const ContactInteractionEntity::entity_data* Get_Entity_Data();
+   inline const ContactInteractionEntity<Real>::entity_data* Get_Entity_Data();
    inline int                                          Set_Entity_Data();
    inline int                                          Get_Entity_Owner();
 
    inline ContactNode<Real>*                                 Node();
-   inline const ContactInteractionEntity::entity_data* NodeEntityData();
+   inline const ContactInteractionEntity<Real>::entity_data* NodeEntityData();
    inline int                                          Set_NodeEntityData();
 
    inline int Get_Entity_Key();
@@ -189,8 +189,8 @@ class ContactNodeEntityInteraction : public ContactInteractionEntity {
    Real DataArray[NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS];
    ContactNode<Real>* node;
    ContactTopologyEntity<Real>* entity;
-   ContactInteractionEntity::entity_data node_entity_data;
-   ContactInteractionEntity::entity_data entity_entity_data;
+   ContactInteractionEntity<Real>::entity_data node_entity_data;
+   ContactInteractionEntity<Real>::entity_data entity_entity_data;
    InteractionType type;
 };
 
@@ -218,7 +218,7 @@ int ContactNodeEntityInteraction::Get_Entity_Key() {
   return entity->Entity_Key();
 }
 
-inline const ContactInteractionEntity::entity_data* ContactNodeEntityInteraction::Get_Entity_Data()
+inline const ContactInteractionEntity<Real>::entity_data* ContactNodeEntityInteraction::Get_Entity_Data()
 {
   return &entity_entity_data;
 }
@@ -226,7 +226,7 @@ inline const ContactInteractionEntity::entity_data* ContactNodeEntityInteraction
 inline int ContactNodeEntityInteraction::Set_Entity_Data() 
 {
   if (entity) {
-    ContactInteractionEntity::SetEntityData(&entity_entity_data, entity);
+    ContactInteractionEntity<Real>::SetEntityData(&entity_entity_data, entity);
     return 1;
   }else{      
     return 0;
@@ -242,7 +242,7 @@ inline ContactNode<Real>* ContactNodeEntityInteraction::Node()
   return node;
 }
 
-inline const ContactInteractionEntity::entity_data* ContactNodeEntityInteraction::NodeEntityData()
+inline const ContactInteractionEntity<Real>::entity_data* ContactNodeEntityInteraction::NodeEntityData()
 {
   return &node_entity_data;
 }
@@ -250,7 +250,7 @@ inline const ContactInteractionEntity::entity_data* ContactNodeEntityInteraction
 inline int ContactNodeEntityInteraction::Set_NodeEntityData() 
 {
   if (node) {
-    ContactInteractionEntity::SetEntityData(&node_entity_data, node);
+    ContactInteractionEntity<Real>::SetEntityData(&node_entity_data, node);
     return 1;
   }else{      
     return 0;

@@ -14,21 +14,32 @@ std::ostream &
 operator<<(std::ostream &out, const Attrib &source) {
   out << source.nele + 1 << " "
       << source.attr + 1;
+  if(source.cmp_attr != -1 && source.cmp_frm != -1) {
+    out << " " << source.cmp_attr + 1 << " " << source.cmp_frm + 1;
+  }
   return out;
 }
 
 std::ostream &
 operator<<(std::ostream &out, const BCond &source) {
-  out << source.nnum   + 1 << " "
-      << source.dofnum + 1 << " "
-      << source.val;
+  if(source.dofnum == 6) { // temperature
+    out << source.nnum   + 1 << " "
+        << source.val;
+  }
+  else {
+    out << source.nnum   + 1 << " "
+        << source.dofnum + 1 << " "
+        << source.val;
+  }
   return out;
 }
 
 std::ostream &
 operator<<(std::ostream &out, const PressureBCond &source) {
-  out << source.elnum   + 1 << " "
-      << source.val;
+  out << source.elnum + 1 << " ";
+  if(source.face > -1) out << "face " << source.face + 1 << " ";
+  out << source.val;
+  if(!source.conwepswitch) out << " off";
   return out;
 }
 
@@ -50,8 +61,35 @@ operator<<(std::ostream &out, const EFrameData &source) {
 }
 
 std::ostream &
+operator<<(std::ostream &out, const FrameData &source) {
+  
+  for (int i = 0; i < 9; ++i) {
+    out << source.d[i];
+    if (i != 8) {
+        out << " ";
+    }
+  }
+
+  return out;
+}
+
+std::ostream &
+operator<<(std::ostream &out, const std::pair<int,CoefData> &source) {
+
+  out << "COEF " << source.first + 1 << std::endl;
+  for(int i=0; i<6; ++i)
+    for(int j=0; j<6; ++j) {
+      out << i+1 << " " << j+1 << " " << source.second.c[i][j];
+      if(!(i==5 && j==5)) out << std::endl;
+    }
+  return out;
+}
+
+std::ostream &
 operator<<(std::ostream &out, const NLMaterial &source) {
+  out.setf(std::ios_base::scientific, std::ios_base::floatfield);
   source.print(out);
+  source.print2(out);
   return out;
 }
 
@@ -103,7 +141,8 @@ operator<<(std::ostream &out, const SPropContainer &source) {
   for (SPropContainer::const_iterator it = source.begin(); it != itEnd; ++it) {
     out << it->first + 1 << " ";
     const StructProp &sp = it->second;
-    out << sp.A    << " "
+    out << std::scientific
+        << sp.A    << " "
         << sp.E    << " "
         << sp.nu   << " "
         << sp.rho  << " "
@@ -120,13 +159,17 @@ operator<<(std::ostream &out, const SPropContainer &source) {
         << sp.ymin << " "
         << sp.ymax << " "
         << sp.zmin << " "
-        << sp.zmax;
-     if(sp.isRigid) {
-       out << " RIGID "
-           << int(sp.lagrangeMult) << " "
-           << sp.penalty;
-     }
-     out << "\n";
+        << sp.zmax << " "
+        << sp.betaDamp << " "
+        << sp.alphaDamp << " "
+        << sp.lagrangeMult << " "
+        << sp.penalty << " "
+        << sp.initialPenalty << " "
+        << sp.funtype << " "
+        << sp.type << " "
+        << sp.k1 << " "
+        << sp.k2 << " "
+        << sp.k3 << "\n";
   }
 
   return out;
@@ -150,6 +193,20 @@ InputFileSectionHelper<EFrameData, EmptyTag>::header(EmptyTag) {
 
 template <>
 const std::string &
+InputFileSectionHelper<std::pair<const int,FrameData>, CFrameTag>::header(CFrameTag) {
+  static const std::string result("CFRAMES");
+  return result;
+}
+
+template <>
+const std::string &
+InputFileSectionHelper<std::pair<const int,CoefData>, EmptyTag>::header(EmptyTag) {
+  static const std::string result("COMPOSITE");
+  return result;
+}
+
+template <>
+const std::string &
 InputFileSectionHelper<Attrib, EmptyTag>::header(EmptyTag) {
   static const std::string result("ATTRIBUTES");
   return result;
@@ -158,7 +215,7 @@ InputFileSectionHelper<Attrib, EmptyTag>::header(EmptyTag) {
 template <>
 const std::string &
 InputFileSectionHelper<BCond, BCond::BCType>::header(BCond::BCType tag) {
-  static const std::string result[] = { "FORCES", "DISPLACEMENTS", "IDISPLACEMENTS", "IVELOCITIES" };
+  static const std::string result[] = { "FORCES", "DISPLACEMENTS", "IDISPLACEMENTS", "IVELOCITIES", "TEMPERATURES" };
   switch (tag) {
     case BCond::Forces:
       return result[0];
@@ -168,6 +225,8 @@ InputFileSectionHelper<BCond, BCond::BCType>::header(BCond::BCType tag) {
       return result[2];
     case BCond::Ivelocities:
       return result[3];
+    case BCond::Temperatures:
+      return result[4];
     default:
       throw std::logic_error("Unknown section tag");
   }

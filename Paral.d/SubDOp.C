@@ -1,6 +1,7 @@
 #include <Feti.d/DistrVector.h>
 #include <Math.d/SparseMatrix.h>
 #include <Paral.d/Assembler.h>
+#include <iostream>
 
 template<class Scalar>
 GenSubDOp<Scalar>::~GenSubDOp() 
@@ -79,7 +80,7 @@ GenSubDOp<Scalar>::invertDiag()
   if(assembler) {
     //use multInvertDiag with a DistrVector that has only 1 as entries
     // or do something else
-    cerr << "pb in SubDOp::invertDiag() " << endl;
+    std::cerr << "pb in SubDOp::invertDiag() " << std::endl;
   }
   else {
     SubDOpInvertDiag<Scalar> sapply(sops);

@@ -887,7 +887,7 @@ FetiHAxiSolver::preCondition(DistrComplexVector &r,
  stopTimerMemory( times.precond, times.memoryPrecond );
 
  // return true primal residual
- return abs(primalResidual);
+ return std::abs(primalResidual);
 
 }
 

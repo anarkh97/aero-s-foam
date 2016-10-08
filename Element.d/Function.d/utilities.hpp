@@ -5,12 +5,30 @@
 #include <limits>
 #include <complex>
 
+#include <Driver.d/EFrameData.h>
+
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/MatrixFunctions>
 
 const double epsilon2 = std::numeric_limits<double>::epsilon()*std::numeric_limits<double>::epsilon();
+
+template <typename Derived>
+Eigen::Matrix<typename Derived::Scalar,3,3> skew(const Eigen::DenseBase<Derived>& V)
+{
+  return (Eigen::Matrix<typename Derived::Scalar,3,3>() << 0, -V[2], V[1],
+                                                           V[2], 0, -V[0],
+                                                          -V[1], V[0], 0).finished();
+}
+
+template <typename Derived>
+Eigen::Matrix<typename Derived::Scalar,3,1> axial(const Eigen::DenseBase<Derived>& Skew)
+{
+  return (Eigen::Matrix<typename Derived::Scalar,3,1>() << Skew(2,1),
+                                                           Skew(0,2),
+                                                           Skew(1,0)).finished();
+}
 
 template<typename Scalar>
 void
@@ -448,9 +466,8 @@ void mat_to_quat(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Matrix<Scalar,4,1
 
 }
 
-//#define USE_MATRIX_LOGARITHM
 template<typename Scalar>
-void mat_to_vec(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Matrix<Scalar,3,1> &rvec)
+void mat_to_vec(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Ref<Eigen::Matrix<Scalar,3,1> > rvec)
 /*****************************************************************
  *  Compute the rotation vector from a rotation tensor
  *
@@ -463,23 +480,6 @@ void mat_to_vec(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Matrix<Scalar,3,1>
  *  Return:
  *****************************************************************/
 {
-#ifdef USE_MATRIX_LOGARITHM
-  //another possibility is to use the matrix logarithm
-  if(rten == Eigen::Matrix<Scalar,3,3>::Identity()) rvec = Eigen::Matrix<Scalar,3,1>::Zero();
-  else {
-    Eigen::Matrix<Scalar,3,3> skew;
-    // method #1: use the matrix logarithm function in unsupported Eigen MatrixFunctions module
-    skew = rten.log();
-/*
-    // method #2: use eigen decomposition (note: that rten is not self-adjoint)
-    Eigen::EigenSolver<Eigen::Matrix<Scalar,3,3> > dec(rten);
-    skew = (dec.eigenvectors() * dec.eigenvalues().array().log().matrix().asDiagonal() * dec.eigenvectors().adjoint()).real();
-*/
-    rvec[0] = skew(2,1);
-    rvec[1] = skew(0,2);
-    rvec[2] = skew(1,0);
-  }
-#else
       using std::sqrt;
       using std::asin;
       using std::acos;
@@ -497,7 +497,6 @@ void mat_to_vec(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Matrix<Scalar,3,1>
       else {
         Scalar sthh = sqrt ( sthh2 );
         if( sthh < 0.7 ) {
-          sthh = sqrt( sthh2 );
           th = 2.0*asin( sthh );
         }
         else {
@@ -516,7 +515,6 @@ void mat_to_vec(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Matrix<Scalar,3,1>
       rvec[0] = coef*q[1];
       rvec[1] = coef*q[2];
       rvec[2] = coef*q[3];
-#endif
 }
 
 template<typename Scalar>
@@ -563,22 +561,8 @@ void vec_to_quat(const Eigen::Matrix<Scalar,3,1> &rvec, Eigen::Matrix<Scalar,4,1
       q[1] = coef*rvec[0];
       q[2] = coef*rvec[1];
       q[3] = coef*rvec[2];
-/* 
-      // Compute norm of quaterion q
-      Scalar norm = sqrt( q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3] );
-      if(norm == 0) {
-        std::cerr << "WARNING: Skipping quaternion normalize( null )\n";
-      }
-      else {
-        // Normalize quaterion q
-        q[0] /= norm;
-        q[1] /= norm;
-        q[2] /= norm;
-        q[3] /= norm;
-      }
-*/
-      q = q.normalized(); // XXXX
-      //q.normalize(); // TODO
+
+      q = q.normalized();
 }
 
 #define USE_EIGEN_QUAT_TO_MAT_SCALAR
@@ -608,21 +592,7 @@ void quat_to_mat(const Eigen::Matrix<Scalar,4,1> &_q, Eigen::Matrix<Scalar,3,3> 
    q.z() = _q[3];
    rten = q.normalized().toRotationMatrix();
 #else
-   // Compute norm of q
-/*
-   Scalar norm = sqrt( q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3] );
-   if(norm == 0) {
-     std::cerr << "WARNING: Skipping quaternion normalize( null )\n";
-   }
-   else {
-     // Normalize q
-     q[0] /= norm;
-     q[1] /= norm;
-     q[2] /= norm;
-     q[3] /= norm;
-   }
-*/
-   Eigen::Matrix<Scalar,4,1> q = _q.normalized(); // XXXX
+   Eigen::Matrix<Scalar,4,1> q = _q.normalized();
 
    rten(0,0) = 2.0*(q[1]*q[1] + q[0]*q[0]) - 1.0;
    rten(1,1) = 2.0*(q[2]*q[2] + q[0]*q[0]) - 1.0;
@@ -635,22 +605,9 @@ void quat_to_mat(const Eigen::Matrix<Scalar,4,1> &_q, Eigen::Matrix<Scalar,3,3> 
    rten(1,0) = 2.0*(q[2]*q[1] + q[3]*q[0]);
    rten(2,0) = 2.0*(q[3]*q[1] - q[2]*q[0]);
    rten(2,1) = 2.0*(q[3]*q[2] + q[1]*q[0]);
-
-/*
-   rten(0,0) = q[1]*q[1] - q[2]*q[2] - q[3]*q[3] + q[0]*q[0];
-   rten(1,0) = 2.0*(q[1]*q[2] + q[3]*q[0]);
-   rten(2,0) = 2.0*(q[1]*q[3] - q[2]*q[0]);
-   rten(0,1) = 2.0*(q[1]*q[2] - q[3]*q[0]);
-   rten(1,1) = -q[1]*q[1] + q[2]*q[2] - q[3]*q[3] + q[0]*q[0];
-   rten(2,1) = 2.0*(q[2]*q[3] + q[1]*q[0]);
-   rten(0,2) = 2.0*(q[1]*q[3] + q[2]*q[0]);
-   rten(1,2) = 2.0*(q[2]*q[3] - q[1]*q[0]);
-   rten(2,2) = -q[1]*q[1] - q[2]*q[2] + q[3]*q[3] + q[0]*q[0];
-*/
 #endif
 }
 
-//#define USE_MATRIX_EXPONENTIAL
 template<typename Scalar>
 void vec_to_mat(const Eigen::Matrix<Scalar,3,1> &rvec, Eigen::Matrix<Scalar,3,3> &rten)
 
@@ -666,38 +623,17 @@ void vec_to_mat(const Eigen::Matrix<Scalar,3,1> &rvec, Eigen::Matrix<Scalar,3,3>
  *  Coded by Bjorn Haugen
  *****************************************************************/
 {
-#ifdef USE_MATRIX_EXPONENTIAL
-  // another possibility is to use the matrix exponential
-  if(rvec == Eigen::Matrix<Scalar,3,1>::Zero()) rten = Eigen::Matrix<Scalar,3,3>::Identity();
-  else {
-    Eigen::Matrix<Scalar,3,3> skew;
-    skew <<        0, -rvec[2],  rvec[1],
-             rvec[2],        0, -rvec[0],
-            -rvec[1],  rvec[0],        0;
-    // method #1: use the matrix exponential function in unsupported Eigen MatrixFunctions module
-    //rten = skew.exp();
-
-    // method #2: use eigen decomposition (note: that skew is not self-adjoint)
-    Eigen::EigenSolver<Eigen::Matrix<Scalar,3,3> > dec(skew);
-    rten = (dec.eigenvectors() * dec.eigenvalues().array().exp().matrix().asDiagonal() * dec.eigenvectors().adjoint()).real();
-  }
-#else
    Eigen::Matrix<Scalar,4,1> q;
 
    vec_to_quat<Scalar>( rvec, q );
 
    quat_to_mat<Scalar>( q, rten );
-#endif
 }
 
 template<typename Scalar>
 void tangential_transf(const Eigen::Matrix<Scalar,3,1> &Psi, Eigen::Matrix<Scalar,3,3> &T, int pflag = 0)
 {
   Scalar psi2 = Psi.squaredNorm();
-  Eigen::Matrix<Scalar,3,3> Psiskew;
-  Psiskew <<      0, -Psi[2],  Psi[1],
-             Psi[2],       0, -Psi[0],
-            -Psi[1],  Psi[0],       0;
 
   if(pflag == 0) {
     Scalar c1, c2, c3;
@@ -716,7 +652,7 @@ void tangential_transf(const Eigen::Matrix<Scalar,3,1> &Psi, Eigen::Matrix<Scala
       c2 = (1-cos(psi))/(psi2);
       c3 = (psi-sin(psi))/(psi*psi2);
     }
-    T = c1*Eigen::Matrix<Scalar,3,3>::Identity() - c2*Psiskew + c3*(Psi*Psi.transpose());
+    T = c1*Eigen::Matrix<Scalar,3,3>::Identity() - c2*skew(Psi) + c3*(Psi*Psi.transpose());
   }
   else if(pflag == 6) { // BauchauTrainelli rotation vector parameterization: p = pow(6*(psi-sin(psi)),1/3.)
     Scalar c1, c2, c3;
@@ -743,7 +679,7 @@ void tangential_transf(const Eigen::Matrix<Scalar,3,1> &Psi, Eigen::Matrix<Scala
        c2 = pow(nu,2)/2;
        c3 = 1/pow(p,2)*(mu-pow(nu,2)/eps);
     }
-    T = c1*Eigen::Matrix<Scalar,3,3>::Identity() + c2*Psiskew + c3*(Psi*Psi.transpose());
+    T = c1*Eigen::Matrix<Scalar,3,3>::Identity() + c2*skew(Psi) + c3*(Psi*Psi.transpose());
   }
 }
 
@@ -752,14 +688,6 @@ void directional_deriv1(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matri
                         Eigen::Matrix<Scalar,3,3> &C1)
 {
   Scalar psi2 = Psi.squaredNorm();
-  Eigen::Matrix<Scalar,3,3> Psiskew;
-  Psiskew <<      0, -Psi[2],  Psi[1],
-             Psi[2],       0, -Psi[0],
-            -Psi[1],  Psi[0],       0;
-  Eigen::Matrix<Scalar,3,3> Vskew;
-  Vskew <<    0, -V[2],  V[1],
-           V[2],     0, -V[0],
-          -V[1],  V[0],     0;
 
   Scalar c1, c2, c3, c4, c5;
   if(psi2 < 5e-6) {
@@ -784,8 +712,8 @@ void directional_deriv1(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matri
     c4 = (cos(psi)-1)/psi2;
     c5 = (psi-sin(psi))/psi3;
   }
-  C1 = c1*V*Psi.transpose() - c2*(Psiskew*V)*Psi.transpose()
-       + c3*Psi.dot(V)*(Psi*Psi.transpose()) - c4*Vskew
+  C1 = c1*V*Psi.transpose() - c2*(skew(Psi)*V)*Psi.transpose()
+       + c3*Psi.dot(V)*(Psi*Psi.transpose()) - c4*skew(V)
        + c5*(Psi.dot(V)*Eigen::Matrix<Scalar,3,3>::Identity() + Psi*V.transpose());
 }
 
@@ -794,14 +722,6 @@ void directional_deriv2(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matri
                         Eigen::Matrix<Scalar,3,3> &C2)
 {
   Scalar psi2 = Psi.squaredNorm();
-  Eigen::Matrix<Scalar,3,3> Psiskew;
-  Psiskew <<      0, -Psi[2],  Psi[1],
-             Psi[2],       0, -Psi[0],
-            -Psi[1],  Psi[0],       0;
-  Eigen::Matrix<Scalar,3,3> Vskew;
-  Vskew <<    0, -V[2],  V[1],
-           V[2],     0, -V[0],
-          -V[1],  V[0],     0;
 
   Scalar c1, c2, c3, c4, c5;
   if(psi2 < 5e-6) {
@@ -826,9 +746,120 @@ void directional_deriv2(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matri
     c4 = (cos(psi)-1)/psi2;
     c5 = (psi-sin(psi))/psi3;
   }
-  C2 = c1*V*Psi.transpose() + c2*(Psiskew*V)*Psi.transpose()
-       + c3*Psi.dot(V)*(Psi*Psi.transpose()) + c4*Vskew
+  C2 = c1*V*Psi.transpose() + c2*(skew(Psi)*V)*Psi.transpose()
+       + c3*Psi.dot(V)*(Psi*Psi.transpose()) + c4*skew(V)
        + c5*(Psi.dot(V)*Eigen::Matrix<Scalar,3,3>::Identity() + Psi*V.transpose());
+}
+
+template<typename Scalar>
+void directional_deriv4(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Scalar,3,1> &Psidot,
+                        Eigen::Matrix<Scalar,3,3> &C4)
+{
+  Scalar psi2 = Psi.squaredNorm();
+
+  Scalar c1, c2, c3, c4, c5;
+  if(psi2 < 5e-6) {
+    Scalar psi4 = psi2*psi2;
+    c1 = -1/3.  + psi2/30   - psi4/840;   // + O(psi^6)
+    c2 = -1/12. + psi2/180  - psi4/6720;  // + O(psi^6)
+    c3 = -1/60. + psi2/1260 - psi4/60480; // + O(psi^6)
+    c4 = -1/2.  + psi2/24   - psi4/720;   // + O(psi^6)
+    c5 = 1/6.   - psi2/120  + psi4/5040;  // + O(psi^6)
+  }
+  else {
+    using std::sqrt;
+    using std::sin;
+    using std::cos;
+    Scalar psi  = sqrt(psi2);
+    Scalar psi3 = psi*psi2;
+    Scalar psi4 = psi*psi3;
+    Scalar psi5 = psi*psi4;
+    c1 = (psi*cos(psi)-sin(psi))/psi3;
+    c2 = (psi*sin(psi)+2*cos(psi)-2)/psi4;
+    c3 = (3*sin(psi)-2*psi-psi*cos(psi))/psi5;
+    c4 = (cos(psi)-1)/psi2;
+    c5 = (psi-sin(psi))/psi3;
+  }
+  C4 = (c1+c5)*Psi.dot(Psidot)*Eigen::Matrix<Scalar,3,3>::Identity() 
+         + 2*c3*Psi.dot(Psidot)*Psi*Psi.transpose() + 2*c5*(Psi*Psidot.transpose())
+         + (c1+c5)*Psidot*Psi.transpose() - c2*(skew(Psi)*Psidot)*Psi.transpose()
+         - c2*(Psi.dot(Psidot))*skew(Psi);
+}
+
+template<typename Scalar>
+void
+directional_deriv5(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Scalar,3,1> &Psidot, Eigen::Matrix<Scalar,3,3>& C5)
+{
+  Scalar psi2 = Psi.squaredNorm();
+
+  Scalar c1, c2, c3, c4, c5, c1p, c2p, c3p; // note: c1p = c1'/psi, c2p = c2'/psi, c3p = c3'/psi
+  if(psi2 < 5e-6) {
+    Scalar psi4 = psi2*psi2;
+    c1 = -1/3.  + psi2/30   - psi4/840;   // + O(psi^6)
+    c2 = -1/12. + psi2/180  - psi4/6720;  // + O(psi^6)
+    c3 = -1/60. + psi2/1260 - psi4/60480; // + O(psi^6)
+    c4 = -1/2.  + psi2/24   - psi4/720;   // + O(psi^6)
+    c5 = 1/6.   - psi2/120  + psi4/5040;  // + O(psi^6)
+    c1p = 1/15. - psi2/210  + psi4/7560;  // + O(psi^6)
+    c2p = 1/90. - psi2/1680 + psi4/75600; // + O(psi^6)
+    c3p = 1/630. - psi2/15120 + psi4/831600; // + O(psi^6)
+  }
+  else {
+    using std::sqrt;
+    using std::sin;
+    using std::cos;
+    Scalar psi  = sqrt(psi2);
+    Scalar psi3 = psi*psi2;
+    Scalar psi4 = psi*psi3;
+    Scalar psi5 = psi*psi4;
+    Scalar psi6 = psi*psi5;
+    Scalar psi7 = psi*psi6;
+    c1 = (psi*cos(psi)-sin(psi))/psi3;
+    c2 = (psi*sin(psi)+2*cos(psi)-2)/psi4;
+    c3 = (3*sin(psi)-2*psi-psi*cos(psi))/psi5;
+    c4 = (cos(psi)-1)/psi2;
+    c5 = (psi-sin(psi))/psi3;
+    c1p = (3*sin(psi)-psi2*sin(psi)-3*psi*cos(psi))/psi5;
+    c2p = (psi2*cos(psi)-5*psi*sin(psi)-8*cos(psi)+8)/psi6;
+    c3p = (7*psi*cos(psi)+8*psi+psi2*sin(psi)-15*sin(psi))/psi7;
+  }
+  using std::pow;
+
+  C5 = (c3*pow(Psi.dot(Psidot),2)+c5*Psidot.squaredNorm())*Eigen::Matrix<Scalar,3,3>::Identity()
+       + (c3p*pow(Psi.dot(Psidot),2) + c3*Psidot.squaredNorm())*Psi*Psi.transpose();
+       + 2*c3*Psi.dot(Psidot)*Psi*Psidot.transpose()
+       + (c1p+c3)*Psi.dot(Psidot)*Psidot*Psi.transpose()
+       - c2p*Psi.dot(Psidot)*skew(Psi)*Psidot*Psi.transpose()
+       - c2*skew(Psi)*Psidot*Psidot.transpose()
+       + c2*Psi.dot(Psidot)*skew(Psidot)
+       + (c1+c5)*Psidot*Psidot.transpose();
+}
+
+template<typename Scalar>
+void
+directional_deriv6(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Scalar,3,1> &V, Eigen::Matrix<Scalar,3,3> &C6)
+{
+  Scalar psi2 = Psi.squaredNorm();
+
+  Scalar a1, a2, a3;
+  if(psi2 < 5e-6) {
+    Scalar psi4 = psi2*psi2;
+    a1 = -1/6.  - psi2/180  - psi4/5040;   // + O(psi^6) 
+    a2 = 1/360. + psi2/7560 + psi4/201600; // + O(psi^6)
+    a3 = 1/12.  + psi2/720  + psi4/30240;  // + O(psi^6)
+  }
+  else {
+    using std::sqrt;
+    using std::cos;
+    using std::sin;
+    Scalar psi = sqrt(psi2);
+    Scalar psi4 = psi2*psi2;
+    a1 = (sin(psi)-psi)/(2*psi-2*psi*cos(psi));
+    a2 = (4*cos(psi)+psi*sin(psi)-4+psi2)/(2*psi4-2*psi4*cos(psi));
+    a3 = (2-2*cos(psi)-psi*sin(psi))/(2*psi2-2*psi2*cos(psi));
+  }
+  C6 = a1*V*Psi.transpose() + a2*Psi.dot(V)*(Psi*Psi.transpose())
+       + a3*(Psi.dot(V)*Eigen::Matrix<Scalar,3,3>::Identity() + Psi*V.transpose()) + 0.5*skew(V);
 }
 
 template<typename Scalar>
@@ -836,15 +867,6 @@ void tangential_transf_dot(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Ma
                            Eigen::Matrix<Scalar,3,3> &Tdot)
 {
   Scalar psi2 = Psi.squaredNorm();
-  Eigen::Matrix<Scalar,3,3> Psiskew;
-  Psiskew <<      0, -Psi[2],  Psi[1],
-             Psi[2],       0, -Psi[0],
-            -Psi[1],  Psi[0],       0;
-
-  Eigen::Matrix<Scalar,3,3> Psidotskew;
-  Psidotskew <<         0, -Psidot[2],  Psidot[1],
-                Psidot[2],          0, -Psidot[0],
-               -Psidot[1],  Psidot[0],          0;
 
   Scalar c1, c2, c3, c4, c5;
   if(psi2 < 5e-6) {
@@ -870,8 +892,8 @@ void tangential_transf_dot(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Ma
     c5 = (psi-sin(psi))/psi3;
   }
   Tdot = c1*Psi.dot(Psidot)*Eigen::Matrix<Scalar,3,3>::Identity() 
-         - c2*Psi.dot(Psidot)*Psiskew + c3*Psi.dot(Psidot)*(Psi*Psi.transpose())
-         + c4*Psidotskew + c5*(Psidot*Psi.transpose() + Psi*Psidot.transpose());
+         - c2*Psi.dot(Psidot)*skew(Psi) + c3*Psi.dot(Psidot)*(Psi*Psi.transpose())
+         + c4*skew(Psidot) + c5*(Psidot*Psi.transpose() + Psi*Psidot.transpose());
 }
 
 template<typename Scalar>
@@ -906,6 +928,59 @@ unscale_rotvec(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Scalar,
   // return either the rotation vector Psi or it's complement, whichever is closest to Psi_n
   Eigen::Matrix<Scalar,3,1> PsiC = complement_rot_vec(Psi);
   return ( (PsiC-Psi_n).norm() < (Psi-Psi_n).norm() ) ? PsiC : Psi;
+}
+
+template<typename Scalar>
+void tangential_transf_S2E(const Eigen::Matrix<Scalar,3,1> &Psi, NFrameData *cd, int j, Eigen::Matrix<Scalar,3,3> &T)
+{
+  if(cd) {
+    Eigen::Matrix<Scalar,3,1> PsiCopy(Psi);
+    cd->transformVector3(PsiCopy.data()); // Transform from basic frame to DOF_FRM
+    tangential_transf_S2E(PsiCopy, (NFrameData*)0, j, T);
+    cd->invTransformMatrix3(T.data()); // Transform from DOF_FRM to basic frame
+  }
+  else {
+    Scalar eta, th, sthh, cthh;
+    Scalar th2 = Psi[0]*Psi[0] + Psi[1]*Psi[1] + Psi[2]*Psi[2];
+
+    if(th2 < 5e-6) {
+      eta = (1.0/12.0) + (1.0/720.0)*th2 + (1.0/30240.0)*(th2*th2);
+    } else {
+      using std::sqrt;
+      th = sqrt(th2);
+      using std::sin;
+      using std::cos;
+      sthh = sin(0.5*th);
+      cthh = cos(0.5*th);
+      eta  = (sthh - 0.5*th*cthh)/(th2*sthh);
+    }
+    switch(j) {
+      case 0 : {
+        Scalar a00 = 1-eta*(Psi[2]*Psi[2]+Psi[1]*Psi[1]),
+               a01 =  0.5*Psi[2]+eta*Psi[0]*Psi[1],
+               a02 = -0.5*Psi[1]+eta*Psi[0]*Psi[2];
+        T <<        0, 0, 0,
+             -a01/a00, 1, 0,
+             -a02/a00, 0, 1;
+      } break;
+      case 1 : {
+        Scalar a10 = -0.5*Psi[2]+eta*Psi[1]*Psi[0],
+               a11 = 1-eta*(Psi[2]*Psi[2]+Psi[0]*Psi[0]),
+               a12 = 0.5*Psi[0]+eta*Psi[1]*Psi[2];
+        T << 1, -a10/a11, 0,
+             0,        0, 0,
+             0, -a12/a11, 1;
+      } break;
+      case 2 : {
+        Scalar a20 = 0.5*Psi[1]+eta*Psi[2]*Psi[0],
+               a21 = -0.5*Psi[0]+eta*Psi[2]*Psi[1],
+               a22 = 1-eta*(Psi[1]*Psi[1]+Psi[0]*Psi[0]);
+        T << 1, 0, -a20/a22,
+             0, 1, -a21/a22,
+             0, 0,        0;
+      } break;
+    }
+  }
 }
 
 #endif

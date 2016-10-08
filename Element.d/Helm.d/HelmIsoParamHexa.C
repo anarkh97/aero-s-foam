@@ -21,6 +21,9 @@ HelmIsoParamHexa::HelmIsoParamHexa(int o, int* nodenums) {
  int orderc = order*order*order;
  nn = new int[orderc];
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
+
+ setWeight(order);
+ setTrueWeight(order);
 }
 
 
@@ -273,3 +276,15 @@ HelmIsoParamHexa::numNodes() {
     return(8);   // to ignore effect of mid-size nodes in dec
 }
 
+
+
+int HelmIsoParamHexa::getDecFace(int iFace, int *fn) {
+  IsoParamUtils ipu(order);
+  int ordersq = ipu.getordersq();
+  ipu.faceindeces(iFace+1, fn);
+  for(int i=0;i<ordersq;i++) {
+    int tmp = fn[i];
+    fn[i] = nn[tmp];
+  }
+  return ordersq;
+}

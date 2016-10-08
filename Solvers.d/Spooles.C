@@ -1,9 +1,11 @@
+#include <Solvers.d/Spooles.h>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/dofset.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Driver.d/Communicator.h>
 #include <Threads.d/Paral.h>
 #include <Solvers.d/SolverCntl.h>
+#include <iostream>
 
 extern double getTime();
 
@@ -15,7 +17,6 @@ extern long totMemSpooles;
 /*************************************************************************************/
 /*************************************************************************************/
 #ifdef USE_SPOOLES
-
 extern "C" {
 #include <MT/spoolesMT.h>
 }
@@ -41,7 +42,7 @@ inline void InpMtx_inputRealOrComplexEntry(InpMtx *inpmtx, int row, int col, DCo
 { InpMtx_inputComplexEntry(inpmtx, row, col, value.real(), value.imag()); }
 
 inline void DenseMtx_realOrComplexEntries(DenseMtx *mtx, double *entries, int neq)
-{ 
+{
   double *temp = DenseMtx_entries(mtx);
   for(int i=0; i<neq; ++i) entries[i] = temp[i];
 }
@@ -59,7 +60,7 @@ inline void DenseMtx_realOrComplexEntries(DenseMtx *mtx, DComplex *entries, int 
     DComplex p(re, im);
     entries[i] = p;
   }
-}   
+}
 
 template<class Scalar>
 class SpoolesType {
@@ -85,9 +86,9 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa,
 {
   // constructor for feti-dp coarse problem
   init();
-  neq = numUncon; 
+  neq = numUncon;
   //int nNodes = nToN->csize();
-  nNonZero = xunonz[numUncon]-1; 
+  nNonZero = xunonz[numUncon]-1;
 
   unonz = new Scalar[xunonz[numUncon]];
   for(int i = 0; i < nNonZero; ++i)
@@ -98,6 +99,9 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa,
 
   // We should know what the number of entries is...
   InpMtx_init(inpMtx, INPMTX_BY_COLUMNS, SpoolesType<Scalar>::type, nNonZero, neq);
+#else
+  std::cerr << " *** ERROR: Solver requires AERO-S configured with the SPOOLES library. Exiting...\n";
+  exit(-1);
 #endif
 }
 
@@ -112,7 +116,7 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa
   unconstrNum = c_dsa->getUnconstrNum();
 
   //int nNodes = nToN->csize();
-  nNonZero = xunonz[numUncon]-1; 
+  nNonZero = xunonz[numUncon]-1;
 
   unonz = new Scalar[xunonz[numUncon]];
   for(int i = 0; i < nNonZero; ++i)
@@ -122,6 +126,9 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa
   inpMtx = InpMtx_new();
 
   InpMtx_init(inpMtx, INPMTX_BY_COLUMNS, SpoolesType<Scalar>::type, nNonZero, neq);
+#else
+  std::cerr << " *** ERROR: Solver requires AERO-S configured with the SPOOLES library. Exiting...\n";
+  exit(-1);
 #endif
 }
 
@@ -136,11 +143,11 @@ GenSpoolesSolver<Scalar>::add(FullSquareMatrix &kel, int *dofs)
     if(unconstrNum[dofs[i]] == -1) continue;   // Skip constrained dofs
     for(j = 0; j < kndof; ++j) {               // Loop over columns.
       if(unconstrNum[dofs[j]] == -1) continue; // Skip constrained dofs
-      if(unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue; 
+      if(unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
       mstart = xunonz[unconstrNum[dofs[j]]];
       mstop  = xunonz[unconstrNum[dofs[j]]+1];
       for(m=mstart; m<mstop; ++m) {
-        // if(rowu[m-1] > unconstrNum[dofs[j]]+1) 
+        // if(rowu[m-1] > unconstrNum[dofs[j]]+1)
         //   fprintf(stderr, "Bigger: %d %d\n", rowu[m-1]-1, unconstrNum[dofs[j]]);
         if(rowu[m-1] == (unconstrNum[dofs[i]] + 1)) {
           unonz[m-1] += kel[i][j];
@@ -161,7 +168,7 @@ GenSpoolesSolver<Scalar>::addBoeing(int nlines, const int *Kai, const int *Kaj,
 
   for(i = 0; i < nlines; ++i) {
     if(map[i] == -1) continue;
-    if(unconstrNum[map[i]] == -1) continue; 
+    if(unconstrNum[map[i]] == -1) continue;
     for(j = Kai[i]; j < Kai[i+1]; ++j) {
       if(unconstrNum[map[Kaj[j-1]-1]] == -1) continue;
       if(unconstrNum[map[Kaj[j-1]-1]] < unconstrNum[map[i]]) continue;
@@ -198,7 +205,7 @@ GenSpoolesSolver<Scalar>::add(int dofi, int dofj, Scalar d)
   }
   // upper part
   mstart = xunonz[colj];
-  mstop  = xunonz[colj+1]; 
+  mstop  = xunonz[colj+1];
   for(m=mstart; m<mstop; ++m) {
     if(rowu[m-1] == (rowi+1)) {
       unonz[m-1] += d;
@@ -263,10 +270,10 @@ template<class Scalar>
 void
 GenSpoolesSolver<Scalar>::add(GenFullM<Scalar> &knd, int fi, int fj)
 {
-  // PJSA 1-24-07 this needs to work for a rectangular matrix also
+  // XXX this needs to work for a rectangular matrix also
   int i, j, m, mstart, mstop, ri, rj;
-  //int kndof = knd.dim();                           // Dimension of element stiff.
-  for(i = 0; i < knd.numRow(); ++i ) {             // Loop over rows.
+  //int kndof = knd.dim();                         // Dimension of element stiff.
+  for(i = 0; i < knd.numRow(); ++i) {              // Loop over rows.
     if((ri =unconstrNum[fi+i]) == -1) continue;    // Skip constrained dofs
     for(j = 0; j < knd.numCol(); ++j) {            // Loop over columns.
       if((rj = unconstrNum[fj+j]) == -1) continue; // Skip constrained dofs
@@ -274,7 +281,7 @@ GenSpoolesSolver<Scalar>::add(GenFullM<Scalar> &knd, int fi, int fj)
       mstart = xunonz[rj];
       mstop  = xunonz[rj+1];
       for(m=mstart; m<mstop; ++m) {
-        if(rowu[m-1] == (ri + 1) ) {
+        if(rowu[m-1] == (ri + 1)) {
           unonz[m-1] += knd[i][j];
           break;
         }
@@ -287,10 +294,9 @@ template<class Scalar>
 void
 GenSpoolesSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
 {
-  // PJSA: 8-26-04 fixed this function, wasn't adding mass properly
   if(dof < 0) return;
   int cdof;
-  if(unconstrNum) cdof = unconstrNum[dof]; // PJSA: dof is now in unconstrained numbering
+  if(unconstrNum) cdof = unconstrNum[dof]; // dof is now in unconstrained numbering
   else cdof = dof;
   if(cdof < 0) return;
 
@@ -304,18 +310,9 @@ GenSpoolesSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
       break;
     }
   }
-
-/*  OLD CODE  (this isn't correct)
-  if(dof < 0) return;
-  if(unconstrNum[dof] < 0) return;  // Skip constrained dofs
-  int m = xunonz[unconstrNum[dof]];
-  if(rowu[m-1] == (unconstrNum[dof] + 1)) {
-    unonz[m-1] += dmass;
-  }
-*/
 }
 
-//PJSA warning THREADS defined causes bug for nonlinear
+// warning THREADS defined causes bug for nonlinear
 #define THREADS
 
 template<class Scalar>
@@ -329,7 +326,7 @@ GenSpoolesSolver<Scalar>::diag(int dof) const
 
   for(m=mstart; m<mstop; ++m) {
     if(rowu[m]-1 == dof) {
-/* PJSA this is done in symmetricScaling ... this function should be consistent with diag - 2
+/* this is done in symmetricScaling ... this function should be consistent with diag - 2
       if(unonz[m] == 0.0) {
         return (1.0);
       } else
@@ -362,17 +359,13 @@ void
 GenSpoolesSolver<Scalar>::symmetricScaling()
 {
   if(numUncon == 0) return;
-  //HB: delete scale array if it already exists
-  //    -> for NonLinSpooles, to avoid memory leak
-  //    each time factor(...) is called (see reBuild(...))
   if(scale) { delete [] scale; scale = 0; }
   scale = new Scalar[numUncon];
 
   int i, j, m, mstart, mstop;
   for(i = 0; i < numUncon; ++i) {
-    //scale[i] = Scalar(1.0) / ScalarTypes::sqrt(ScalarTypes::norm(diag(i)));
     Scalar d = ScalarTypes::norm(diag(i));
-    scale[i] = (d != 0.0) ? Scalar(1.0)/ScalarTypes::sqrt(d) : Scalar(1.0); // PJSA 1-9-08 correction to allow for zero diagonals
+    scale[i] = (d != 0.0) ? Scalar(1.0)/ScalarTypes::sqrt(d) : Scalar(1.0); // correction to allow for zero diagonals
   }
   for(j = 0; j < numUncon; ++j) {
 
@@ -413,7 +406,7 @@ GenSpoolesSolver<Scalar>::factor()
     allFactor(true);
 #else
   numThreads = 1;
-  allFactor(false); 
+  allFactor(false);
 #endif
 }
 
@@ -465,21 +458,21 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
 // spooles_tau - upper bound on the magnitude of the largest element in L or U
 // spooles_seed - random number seed used for ordering
 // spooles_msglvl - message output level
-// spooles_maxdomainsize - maximum subgraph size used by Spooles orderings. used to control the incomplete nested dissection 
+// spooles_maxdomainsize - maximum subgraph size used by Spooles orderings. used to control the incomplete nested dissection
 //     process. Any subgraph whose weight is less than maxdomainsize is not split further
 // spooles_maxzeros - maximum number of zeros allowed in a supernode/front
 // spooles_maxsize - maximum number of internal columns in supernode/front
 
   int seed = scntl.spooles_seed;  // default is 532196
-  int maxdomainsize = int(neq/scntl.spooles_maxdomainsize+0.5);  // default is neq/24
+  int maxdomainsize = std::max(int(neq/scntl.spooles_maxdomainsize+0.5),1);  // default is neq/24
   int maxsize = scntl.spooles_maxsize;  // default is 64
   int maxzeros = int(neq*scntl.spooles_maxzeros+0.5);  // default is 0.04*neq
 
   //tt0=getTime();
 
-  switch(scntl.spooles_renum) { // PJSA 10-11-2007
+  switch(scntl.spooles_renum) {
     default:
-    case 0: // best of nested dissection and multisection ordering 
+    case 0: // best of nested dissection and multisection ordering
       frontETree = orderViaBestOfNDandMS(graph, maxdomainsize, maxzeros, maxsize, seed, msglvl, msgfile); break;
     case 1: // multiple minimum degree
       frontETree = orderViaMMD(graph, seed, msglvl, msgfile); break;
@@ -507,7 +500,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
   InpMtx_changeStorageMode(inpMtx, INPMTX_BY_VECTORS);
   //tt0=getTime();
 
-  symbfacIVL = SymbFac_initFromInpMtx(frontETree, inpMtx); // PJSA
+  symbfacIVL = SymbFac_initFromInpMtx(frontETree, inpMtx);
   //tt0=getTime();
 
 /*
@@ -544,7 +537,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
   else
 #endif
     ChvManager_init(chvmanager, NO_LOCK, 1);
-  DVfill(22, cpus, 0.0); // PJSA changed 1st argument from 10 to 20
+  DVfill(22, cpus, 0.0);
   IVfill(7, stats, 0);
 
   double tau = scntl.spooles_tau; // default is 100.0
@@ -566,7 +559,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
 #endif
   rootchv = FrontMtx_factorInpMtx(frontMtx, inpMtx, tau, 0.0, chvmanager,
                                          &error, cpus, stats, msglvl, msgfile);
-  if(rootchv != NULL) cerr << " ... WARNING: Matrix factored by spooles found to be singular ... \n";
+  if(rootchv != NULL) std::cerr << " ... WARNING: Matrix factored by spooles found to be singular ... \n";
   // note: spooles is only for full rank matrices. For symmetric positive semi definite matrices try sparse or skyline, and for general symmetric indefinite try mumps pivot
 
   ChvManager_free(chvmanager);
@@ -582,31 +575,30 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
   //FrontMtx_writeToFile(frontMtx,"frontMtx1");
 
 #if DEBUG_SPOOLES >= 1
-  cerr << " ... Spooles stats: \n"
-       << "     # of pivots = " << stats[0] << endl
-       << "     # of pivot tests = " << stats[1] << endl
-       << "     # of delayed rows and cols = " << stats[2] << endl
-       << "     # of entries in D = " << stats[3] << endl
-       << "     # of entries in L = " << stats[4] << endl
-       << "     # of entries in U = " << stats[5] << endl;
-  cerr << " ... Spools timings: \n"
-       << "     time to construct graph = " << cpus[0] << endl
-       << "     time to compress graph = " << cpus[1] << endl
-       << "     time to order graph = " << cpus[2] << endl
-       << "     time for symbolic factorization = " << cpus[3] << endl
-       << "     total setup time = " << cpus[4] << endl
-       << "     time to setup the factorization = " << cpus[5] << endl
-       << "     time to permute matrix = " << cpus[6] << endl
-       << "     time to initialize front matrix = " << cpus[7] << endl
-       << "     time to factor matrix = " << cpus[8] << endl
-       << "     time to post-process matrix = " << cpus[9] << endl
-       << "     total factor time = " << cpus[10] << endl;
+  std::cerr << " ... Spooles stats: \n"
+       << "     # of pivots = " << stats[0] << std::endl
+       << "     # of pivot tests = " << stats[1] << std::endl
+       << "     # of delayed rows and cols = " << stats[2] << std::endl
+       << "     # of entries in D = " << stats[3] << std::endl
+       << "     # of entries in L = " << stats[4] << std::endl
+       << "     # of entries in U = " << stats[5] << std::endl;
+  std::cerr << " ... Spools timings: \n"
+       << "     time to construct graph = " << cpus[0] << std::endl
+       << "     time to compress graph = " << cpus[1] << std::endl
+       << "     time to order graph = " << cpus[2] << std::endl
+       << "     time for symbolic factorization = " << cpus[3] << std::endl
+       << "     total setup time = " << cpus[4] << std::endl
+       << "     time to setup the factorization = " << cpus[5] << std::endl
+       << "     time to permute matrix = " << cpus[6] << std::endl
+       << "     time to initialize front matrix = " << cpus[7] << std::endl
+       << "     time to factor matrix = " << cpus[8] << std::endl
+       << "     time to post-process matrix = " << cpus[9] << std::endl
+       << "     total factor time = " << cpus[10] << std::endl;
 #endif
   _size = stats[3]+stats[4]+stats[5];
   totMemSpooles += sizeof(Scalar)*_size/1024;
 #endif
 }
-
 
 
 /***********************************************************************************/
@@ -615,33 +607,21 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
 
 template<class Scalar>
 void
-GenSpoolesSolver<Scalar>::solve(Scalar *rhs)
+GenSpoolesSolver<Scalar>::reSolve(Scalar *rhs)
 {
   if(numUncon==0) return;
   Scalar *solution = (Scalar *) dbg_alloca(sizeof(Scalar)*numUncon);
-  for(int i=0; i < numUncon; i++) solution[i] = 0.0;  // PJSA 8-25-04 debugging test
-  solve(rhs, solution);
+  for(int i=0; i < numUncon; i++) solution[i] = 0.0;
+  GenSpoolesSolver<Scalar>::solve(rhs, solution);
   for(int i=0; i < numUncon; i++)
     rhs[i] = solution[i];
 }
-
-/* PJSA: just for debugging
-template<class Scalar>
-double getMaxRealSq(Scalar *vec, int len) {
-  double ret = 0.0;
-  for(int i=0; i<len; ++i) {
-    double tmp = ScalarTypes::Real(vec[i])*ScalarTypes::Real(vec[i]);
-    if(tmp > ret) ret = tmp;
-  }
-  return ret;
-}
-*/
 
 template<class Scalar>
 void
 GenSpoolesSolver<Scalar>::solve(Scalar *_rhs, Scalar *solution)
 {
-  this->solveTime = -getTime();
+  this->solveTime -= getTime();
 #ifdef USE_SPOOLES
   //double tt0 = getTime();
   Scalar *rhs = (Scalar *) dbg_alloca(sizeof(Scalar)*numUncon);
@@ -677,12 +657,12 @@ GenSpoolesSolver<Scalar>::solve(Scalar *_rhs, Scalar *solution)
 #ifdef THREADS_SOLVE
   SolveMap *solvemap = SolveMap_new();
   SolveMap_ddMap(solvemap,SPOOLES_SYMMETRIC,FrontMtx_upperBlockIVL(frontMtx),
-                 FrontMtx_lowerBlockIVL(frontMtx), numThreads, ownersIV, 
+                 FrontMtx_lowerBlockIVL(frontMtx), numThreads, ownersIV,
                  FrontMtx_frontTree(frontMtx), numThreads/2, 0, 0);
   FrontMtx_MT_solve(frontMtx, mtxX, mtxB, mtxManager, solvemap, cpus, msglvl, msgfile);
 #else
   // FrontMtx_writeToFile(frontMtx,"frontMtx2");
-  FrontMtx_solve(frontMtx, mtxX, mtxB, mtxManager, cpus, msglvl, msgfile); 
+  FrontMtx_solve(frontMtx, mtxX, mtxB, mtxManager, cpus, msglvl, msgfile);
 #endif
 
 /*
@@ -703,21 +683,21 @@ for(i=0;i<neq;i++) solution[i] = 0;
   // End Solution Phase
 
 #if DEBUG_SPOOLES == 2
-  cerr << " ... Spools timings: \n"
-       << "     time to setup the parallel solve = " << cpus[0] << endl
-       << "     time to permute rhs = " << cpus[1] << endl
-       << "     time to solve = " << cpus[2] << endl
-       << "     time to permute solution = " << cpus[3] << endl
-       << "     total solve time = " << cpus[4] << endl;
+  std::cerr << " ... Spools timings: \n"
+       << "     time to setup the parallel solve = " << cpus[0] << std::endl
+       << "     time to permute rhs = " << cpus[1] << std::endl
+       << "     time to solve = " << cpus[2] << std::endl
+       << "     time to permute solution = " << cpus[3] << std::endl
+       << "     total solve time = " << cpus[4] << std::endl;
 #endif
 #endif
-  this->solveTime = +getTime();
+  this->solveTime += getTime();
 }
 
 template<class Scalar>
 double
 GenSpoolesSolver<Scalar>::getMemoryUsed(void)
-{ 
+{
   return 0;
 }
 
@@ -725,23 +705,22 @@ template<class Scalar>
 void
 GenSpoolesSolver<Scalar>::print()
 {
- cout << endl;
- cerr.setf(ios_base::scientific,ios_base::floatfield);
- cerr.precision(16);
+ std::cerr << std::endl;
+ std::cerr.setf(std::ios_base::scientific, std::ios_base::floatfield);
+ std::cerr.precision(16);
  int i, mstart, mstop, m;
  for(i=0; i<numUncon; ++i) {
    mstart = xunonz[i];
    mstop  = xunonz[i+1];
    for(m=mstart; m<mstop; ++m)
-     cerr << "K(" << i+1 << "," << rowu[m-1] << ") = " << unonz[m-1] << ",\n";
+     std::cerr << "K(" << i+1 << "," << rowu[m-1] << ") = " << unonz[m-1] << ",\n";
  }
 }
 
-
 template<class Scalar>
 long
-GenSpoolesSolver<Scalar>::size() 
-{ 
+GenSpoolesSolver<Scalar>::size()
+{
   return _size;
 }
 
@@ -756,13 +735,13 @@ GenSpoolesSolver<Scalar>::unify(FSCommunicator *communicator)
 
 template<class Scalar>
 void
-GenSpoolesSolver<Scalar>::zeroAll() 
+GenSpoolesSolver<Scalar>::zeroAll()
 {
 #ifdef USE_SPOOLES
-  cleanUp(); // PJSA 6-15-06
+  cleanUp();
   // InpMtx_clearData(inpMtx);
   inpMtx = InpMtx_new();
-  InpMtx_init(inpMtx, INPMTX_BY_COLUMNS, SpoolesType<Scalar>::type, nNonZero, neq);  // PJSA
+  InpMtx_init(inpMtx, INPMTX_BY_COLUMNS, SpoolesType<Scalar>::type, nNonZero, neq);
 
   for(int i = 0; i < nNonZero; ++i)
     unonz[i] = 0.0;
@@ -783,10 +762,10 @@ GenSpoolesSolver<Scalar>::cleanUp()
   if(ownersIV) { IV_free(ownersIV); ownersIV = 0; }
   if(mtxB) { DenseMtx_free(mtxB); mtxB = 0; }
   if(mtxX) { DenseMtx_free(mtxX); mtxX = 0; }
-  if(symbfacIVL) { IVL_free(symbfacIVL); symbfacIVL = 0; } // PJSA
-  if(frontETree) { ETree_free(frontETree); frontETree = 0; } // PJSA
-  if(cumopsDV) { DV_free(cumopsDV); cumopsDV = 0; } // PJSA
-  if(graph) { Graph_free(graph); graph = 0; } // PJSA
+  if(symbfacIVL) { IVL_free(symbfacIVL); symbfacIVL = 0; }
+  if(frontETree) { ETree_free(frontETree); frontETree = 0; }
+  if(cumopsDV) { DV_free(cumopsDV); cumopsDV = 0; }
+  if(graph) { Graph_free(graph); graph = 0; }
 #endif
 }
 
@@ -815,7 +794,7 @@ GenSpoolesSolver<Scalar>::init()
   mtxX = 0;
   symbfacIVL = 0;
   frontETree = 0;
-  cumopsDV = 0; 
+  cumopsDV = 0;
   graph = 0;
   pivotingflag = (scntl.pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
 #endif
@@ -826,12 +805,3 @@ GenSpoolesSolver<Scalar>::init()
   _size = 0;
 }
 
-template<>
-void
-GenSpoolesSolver<complex<double> >
-   ::addImaginary(FullSquareMatrix &kel, int *dofs);
-
-template<>
-void
-GenSpoolesSolver<double>
-   ::addImaginary(FullSquareMatrix &kel, int *dofs);

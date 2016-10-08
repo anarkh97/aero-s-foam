@@ -89,10 +89,28 @@
 *       --------------------------
 *       Local Scalar Variables ...
 *       --------------------------
-        INTEGER             KCOL  , SUPSIZ
+        INTEGER             KCOL  , SUPSIZ , MAXDBK
 *
 ************************************************************************
 *
+*       ------------------------------------------------
+*       Compute the maximum size for the last supernode.
+*       ------------------------------------------------
+        IF  ( DEFBLK .NE. 0 )  THEN
+            MAXDBK = N-1
+            DO  KCOL = N, 2, -1
+                IF  ( ETPAR(KCOL-1) .EQ. KCOL )  THEN
+                    IF  ( COLCNT(KCOL-1) .EQ. COLCNT(KCOL)+1 )  THEN
+                        GO TO 50
+                    END IF
+                END IF
+                MAXDBK = N-KCOL+1
+                EXIT
+  50            CONTINUE
+            END DO
+            DEFBLK = MIN(MAXDBK,DEFBLK)
+        ENDIF
+
 *       --------------------------------------------
 *       Compute the fundamental supernode partition.
 *       --------------------------------------------

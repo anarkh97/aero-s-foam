@@ -10,8 +10,8 @@ namespace Simo {
 template<typename Scalar>
 class PointPlaneDistanceConstraintFunction : public ScalarValuedFunction<3,Scalar,17,1,double>
 {
-    // constrains the distance (d) between a point (x0) and a fixed plane (defined by three points x1, x2 and x3) according to
-    // d - (A*sin(omega*t+phi) + (BC*t)*d0) = 0, <= 0 or >= 0
+    // constrains the distance (d) between a point and a fixed plane (defined by three points x1, x2 and x3) according to
+    // d - (A*sin(omega*t+phi) + (B-C*t)*d0) = 0, <= 0 or >= 0
     // see: http://mathworld.wolfram.com/Point-PlaneDistance.html
 
     Eigen::Matrix<double,3,1> x0;

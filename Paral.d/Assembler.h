@@ -26,7 +26,7 @@ class GenBasicAssembler : public GenAssembler<Scalar>
      FSCommPattern<Scalar> *pat;
   public:
      GenBasicAssembler(int _numSub, GenSubDomain<Scalar> **_sd, FSCommPattern<Scalar> *_pat);
-     virtual ~GenBasicAssembler() {}
+     virtual ~GenBasicAssembler() { delete pat; }
      void assemble(GenDistrVector<Scalar> &v, int flag = 0);
      void split(GenDistrVector<Scalar> &v);
   private:

@@ -5,6 +5,7 @@
 #include <Element.d/Beam.d/TimoshenkoBeam.h>
 #include <Element.d/Triangle3.d/Triangle3.h>
 #include <Element.d/Membrane.d/Membrane.h>
+#include <Element.d/Membrane.d/FourNodeMembrane.h>
 #include <Element.d/Penta.d/Pentahedral.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
 #include <Element.d/Tetra10.d/TenNodeTetrahedral.h>
@@ -21,6 +22,7 @@
 #include <Element.d/Shell.d/FourNodeShell.h>
 
 #include <Element.d/Spring.d/TorSpring.h>
+#include <Element.d/Spring.d/LinSpring.h>
 #include <Element.d/Shear.d/ShearPanel.h>
 #include <Element.d/Spring.d/TransSprlink.h>
 #include <Element.d/Spring.d/RotnSprlink.h>
@@ -100,8 +102,6 @@
 #include <Element.d/Rigid.d/RigidSolid.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
-#include <Element.d/Rigid.d/FlexibleBeam.h>
-#include <Element.d/Rigid.d/FlexibleTwoNodeTruss.h>
 
 #include <Element.d/Joint.d/WeldedJoint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
@@ -125,6 +125,8 @@
 #include <Element.d/Joint.d/CylindricalJointSpringCombo.h>
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 #include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
+#include <Element.d/Joint.d/RevoluteJointSpringComboWithFreeplay.h>
+#include <Element.d/Joint.d/PrismaticJointSpringComboWithFreeplay.h>
 #endif
 
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
@@ -230,6 +232,21 @@ EulerBeam::examine(int sub, MultiFront *mf)
 
 PrioInfo 
 TorSpring::examine(int sub, MultiFront *mf)
+{
+ int wn1 = mf->weight(sub, nn[0]);
+ int cn1 = mf->weight(nn[0]);
+
+ PrioInfo res;
+ res.isReady = wn1 > 0;
+ if(res.isReady == false) return res;
+ res.priority = -110 + (wn1-cn1-1);
+ // Compiler bug workaround
+ res.isReady = true;
+ return res;
+}
+
+PrioInfo
+LinSpring::examine(int sub, MultiFront *mf)
 {
  int wn1 = mf->weight(sub, nn[0]);
  int cn1 = mf->weight(nn[0]);
@@ -493,6 +510,12 @@ PrioInfo
 Membrane::examine(int sub, MultiFront *mf)
 {
   return examineTri3(sub, mf, nn);
+}
+
+PrioInfo
+FourNodeMembrane::examine(int sub, MultiFront *mf)
+{
+  return examineQuad4(sub, mf, nn);
 }
 
 PrioInfo 
@@ -1255,7 +1278,7 @@ RigidTwoNodeTruss::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
-FlexibleTwoNodeTruss::examine(int sub, MultiFront *mf)
+RigidTwoNodeTrussWithMass::examine(int sub, MultiFront *mf)
 {
   return examineBar2(sub, mf, nn);
 }
@@ -1267,7 +1290,7 @@ RigidBeam::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
-FlexibleBeam::examine(int sub, MultiFront *mf)
+RigidBeamWithMass::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }
@@ -1456,6 +1479,18 @@ PrismaticJointSpringCombo::examine(int sub, MultiFront *mf)
 
 PrioInfo
 PinInSlotJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+RevoluteJointSpringComboWithFreeplay::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+PrismaticJointSpringComboWithFreeplay::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }

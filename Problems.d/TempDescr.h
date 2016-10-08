@@ -15,7 +15,8 @@ template <class Scalar> class GenFullSquareMatrix;
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
 template <class Scalar> class GenFSFullMatrix;
 typedef GenFSFullMatrix<double> FSFullMatrix;
-
+class ControlInterface;
+class ControlLawInfo;
 
 class SDTempDynamPostProcessor {
     Domain *domain;
@@ -42,18 +43,21 @@ class SingleDomainTemp {
     double **eigmodes;
     double **tPhiM;   // Stores Transpose(Phi)*M
 
+    //For etemp
+    FullSquareMatrix *kelArray;
+    Corotator **allCorot;
+    GeomState *geomState;
+
+    ControlInterface *userSupFunc;
+    ControlLawInfo *claw;
+
  public:
-    SingleDomainTemp(Domain *d) { domain = d; }
-    int* boundary() { return bc;}
-    double* boundaryValue() { return bcx;}
+    SingleDomainTemp(Domain *d) { domain = d; kelArray = 0; allCorot = 0; geomState = 0; claw = 0; userSupFunc = 0; }
 
     DynamMat buildOps(double, double, double);
-//    DynamMat buildDynamicOps(double, double, double);
-    Solver *getSolver();
 
     SDTempDynamPostProcessor *getPostProcessor();
     int solVecInfo();
-    int dbcVecInfo();
     int getTimeIntegration();
     int getAeroheatFlag();
     int getThermohFlag();
@@ -64,7 +68,6 @@ class SingleDomainTemp {
     void tempProject(Vector &v);
     void tempprojector_prep(Rbm *R, SparseMatrix *M);
     void getTempTimes(double &dtemp, double &tmax);
-    void getFluiddTime(double &dtfluid, double &tmaxfluid);
     void getTempNeum(double &epsiln);
     void tempInitState(TempState<Vector> &);
     void computeExtForce(Vector &, double t, int tIndex, Vector &);
@@ -82,8 +85,6 @@ class SingleDomainTemp {
     void modeDecomp(double t, int tIndex, Vector& d_n);
 
     int cmdComHeat(int cmdFlag);
-
 };
-
 
 #endif

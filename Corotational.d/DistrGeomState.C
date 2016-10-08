@@ -33,9 +33,10 @@ DistrGeomState::makeSubGeomStates(int isub, DecDomain *domain)
 {
  SubDomain *sd = domain->getSubDomain(isub);
  if(sd->solInfo().soltyp == 2)
-   gs[isub] = new TemperatureState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
+   gs[isub] = new TemperatureState(*sd->getDSA(), *sd->getCDSA(), sd->getNodes());
  else
-   gs[isub] = new GeomState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes(), &sd->getElementSet() );
+   gs[isub] = new GeomState(*sd->getDSA(), *sd->getCDSA(), sd->getNodes(), &sd->getElementSet(),
+                            sd->getNodalTemperatures());
 }
 
 DistrGeomState::DistrGeomState(const DistrGeomState &g2)
@@ -51,7 +52,7 @@ void
 DistrGeomState::subCopyConstructor(int isub, const DistrGeomState &g2)
 {
   TemperatureState* ts;
-  if(ts = dynamic_cast<TemperatureState*>(g2[isub])) gs[isub] = new TemperatureState(*ts);
+  if((ts = dynamic_cast<TemperatureState*>(g2[isub]))) gs[isub] = new TemperatureState(*ts);
   else gs[isub] = new GeomState(*(g2[isub]));
 
   mu[isub] = g2.mu[isub];
@@ -89,10 +90,10 @@ DistrGeomState::subSetVelocity(int isub, DistrVector &v, int SO3param)
 }
 
 void
-DistrGeomState::subSetAcceleration(int isub, DistrVector &a)
+DistrGeomState::subSetAcceleration(int isub, DistrVector &a, int SO3param)
 {
   StackVector asub(a.subData(isub), a.subLen(isub));
-  gs[isub]->setAcceleration(asub);
+  gs[isub]->setAcceleration(asub, SO3param);
 }
 
 void
@@ -101,6 +102,12 @@ DistrGeomState::subSetVelocityAndAcceleration(int isub, DistrVector &v, DistrVec
   StackVector vsub(v.subData(isub), v.subLen(isub));
   StackVector asub(a.subData(isub), a.subLen(isub));
   gs[isub]->setVelocityAndAcceleration(vsub, asub);
+}
+
+void
+DistrGeomState::subSetNodalTemperatures(int isub, DistrVector &temps)
+{
+  gs[isub]->setNodalTemperatures(temps.subData(isub));
 }
 
 void
@@ -236,15 +243,21 @@ DistrGeomState::setVelocity(DistrVector &v, int SO3param)
 }
 
 void
-DistrGeomState::setAcceleration(DistrVector &a)
+DistrGeomState::setAcceleration(DistrVector &a, int SO3param)
 {
-  execParal1R(numSub, this, &DistrGeomState::subSetAcceleration, a);
+  execParal2R(numSub, this, &DistrGeomState::subSetAcceleration, a, SO3param);
 }
 
 void
 DistrGeomState::setVelocityAndAcceleration(DistrVector &v, DistrVector &a)
 {
   execParal2R(numSub, this, &DistrGeomState::subSetVelocityAndAcceleration, v, a);
+}
+
+void
+DistrGeomState::setNodalTemperatures(DistrVector &temps)
+{
+  execParal1R(numSub, this, &DistrGeomState::subSetNodalTemperatures, temps);
 }
 
 DistrGeomState &
@@ -286,3 +299,56 @@ DistrGeomState::getHaveRot()
   return bool(ret);
 }
 
+void
+DistrGeomState::resize(DecDomain* domain, std::map<std::pair<int,int>,double> *mu)
+{
+  execParal1R(numSub, this, &DistrGeomState::subResize, domain);
+  if(mu) setMultipliers(*mu);
+  domain->exchangeInterfaceGeomState(this);
+}
+
+void
+DistrGeomState::subResize(int isub, DecDomain* domain)
+{
+ SubDomain *sd = domain->getSubDomain(isub);
+ gs[isub]->resize( *sd->getDSA(), *sd->getCDSA(), sd->getNodes(), &sd->getElementSet() );
+}
+
+void
+DistrGeomState::print()
+{
+  for(int i=0; i<numSub; ++i) {
+    gs[i]->print();
+  }
+}
+
+void
+DistrGeomState::getMultipliers(std::map<std::pair<int,int>,double> &mu)
+{
+  for(std::map<std::pair<int,int>,double>::iterator it = mu.begin(); it != mu.end(); it++) {
+    it->second = 0;
+    for(int isub=0; isub<numSub; ++isub) {
+      double val = gs[isub]->getMultiplier(it->first);
+      if(val != 0) { it->second = val; break; }
+    }
+  }
+#ifdef USE_MPI
+  std::vector<double> values;
+  for(std::map<std::pair<int,int>,double>::iterator it = mu.begin(); it != mu.end(); it++) values.push_back(it->second);
+  structCom->globalMax(values.size(), values.data()); // XXX inequlity constraint multipliers always non-negative?
+  std::vector<double>::iterator it2 = values.begin();
+  for(std::map<std::pair<int,int>,double>::iterator it = mu.begin(); it != mu.end(); it++) { it->second = *it2; it2++; }
+#endif
+}
+
+void
+DistrGeomState::setMultipliers(std::map<std::pair<int,int>,double> &mu)
+{
+  execParal1R(numSub, this, &DistrGeomState::subSetMultipliers, mu);
+}
+
+void
+DistrGeomState::subSetMultipliers(int isub, std::map<std::pair<int,int>,double> &mu)
+{
+  gs[isub]->setMultipliers(mu);
+}

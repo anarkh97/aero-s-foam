@@ -32,6 +32,19 @@ void ContactWedgeElemL6<Real>::UpdateTopology(ContactFace<Real>* face,
 					Real tol, bool use_node_normals);
 
 template
+void ContactWedgeElemL6<Real>::Compute_Partial_Face_Normal(int i, VariableHandle CURRENT_POSITION,
+                                                           VariableHandle FACE_NORMAL,
+                                                           Real (*face_dface_normal)[3], Real tol,
+                                                           Real (*elem_facei_dface_normal)[3], Real *dd );
+
+template
+void ContactWedgeElemL6<Real>::Compute_Second_Partial_Face_Normal( int i, VariableHandle CURRENT_POSITION,
+                                                                   VariableHandle FACE_NORMAL,
+                                                                   Real (*face_dface_normal)[3],
+                                                                   Real (*face_d2face_normal)[3], Real tol,
+                                                                   Real (*elem_d2face_normal)[3], Real *d2d );
+
+template
 bool ContactWedgeElemL6<Real>::Is_Local_Coordinates_Inside_Element( Real* local_coords );
 
 template
@@ -55,7 +68,7 @@ void ContactWedgeElemL6<Real>::Compute_Local_Coordinates( Real Config_Param,
 						    Real* local_coords );
 
 template
-void ContactWedgeElemL6<Real>::Compute_Local_Coordinates( VariableHandle POSITION,
+bool ContactWedgeElemL6<Real>::Compute_Local_Coordinates( VariableHandle POSITION,
 						    Real* global_coords,
 						    Real* local_coords );
 
@@ -68,7 +81,7 @@ void ContactWedgeElemL6<Real>::Compute_Shape_Derivatives( Real* local_coords,
 						    Real  shape_derivs[3][6] );
 
 template
-void ContactWedgeElemL6<Real>::Compute_Local_Coords( Real node_positions[8][3], 
+bool ContactWedgeElemL6<Real>::Compute_Local_Coords( Real node_positions[8][3], 
 					       Real* global_coords,
 					       Real* local_coords );
 
@@ -141,7 +154,7 @@ void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coordinates( ActiveScalar C
 						    ActiveScalar* local_coords );
 
 template
-void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coordinates( VariableHandle POSITION,
+bool ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coordinates( VariableHandle POSITION,
 						    ActiveScalar* global_coords,
 						    ActiveScalar* local_coords );
 
@@ -154,7 +167,7 @@ void ContactWedgeElemL6<ActiveScalar>::Compute_Shape_Derivatives( ActiveScalar* 
 						    ActiveScalar  shape_derivs[3][6] );
 
 template
-void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar node_positions[8][3], 
+bool ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar node_positions[8][3], 
 					       ActiveScalar* global_coords,
 					       ActiveScalar* local_coords );
 

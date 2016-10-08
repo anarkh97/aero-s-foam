@@ -68,12 +68,15 @@ class TriMembraneShapeFunct : public GenShapeFunction< TwoDTensorTypes<9> >
                         Node *nodes, double xi[3], Vector &disp);
     void getGradU(Grad2D &gradU,
                   Node *nodes, double xi[3], Vector &disp);
+    double interpolateScalar(double *_q, double _xi[3]);
 };
 
 class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
 {
     int n[3];
     NLMaterial *material;
+    double *cCoefs;
+    double *cFrame;
     bool useDefaultMaterial;
     PressureBCond *pbc;
 
@@ -93,12 +96,13 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     int numDofs() { return 9; }
     void renum(int *);
     void renum(EleRenumMap&);
-    void   markDofs(DofSetArray &);
-    int*   dofs(DofSetArray &, int *p=0);
-    int*   nodes(int * = 0);
+    void markDofs(DofSetArray &);
+    int* dofs(DofSetArray &, int *p=0);
+    int* nodes(int * = 0);
     void updateStates(Node *nodes, double *states, double *un, double *unp) {}
+    void setProp(StructProp *p, bool _myProp = false);
+    void setCompositeData(int, int, double *, double *coefs, double *frame);
     void setMaterial(NLMaterial *);
-    int numInternalNodes();
     void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
     PressureBCond* getPressure() { return pbc; }
     void computePressureForce(CoordSet &cs, Vector& elPressureForce,
@@ -121,7 +125,7 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                       int surface=0, double *ndTemps=0);
 
-    void computeDisp(CoordSet&cs, State &state, const InterpPoint &, double*res, GeomState *gs);
+    void computeDisp(CoordSet &cs, State &state, const InterpPoint &, double *res, GeomState *gs);
     void getFlLoad(CoordSet &, const InterpPoint &,  double *flF, double *resF, GeomState *gs=0);
 
     PrioInfo examine(int sub, MultiFront *mf);

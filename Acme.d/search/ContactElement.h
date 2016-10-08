@@ -78,9 +78,15 @@ class ContactElem : public ContactTopologyEntity<DataType> {
   virtual int Faces_Per_Element() = 0;
   virtual void Evaluate_Shape_Functions( DataType*, DataType* ) = 0;
   virtual void Compute_Global_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
-  virtual void Compute_Local_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
+  virtual bool Compute_Local_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
   virtual bool Is_Local_Coordinates_Inside_Element( DataType* ) = 0;
   virtual bool Is_Local_Coordinates_Near_Element( DataType*, DataType ) = 0;
+  virtual void Compute_Partial_Face_Normal( int, VariableHandle, VariableHandle,
+                                            DataType (*)[3], Real, DataType (*)[3], DataType * )
+               { std::cerr << "ContactElem::Compute_Partial_Face_Normal is not implemented\n"; }
+  virtual void Compute_Second_Partial_Face_Normal( int, VariableHandle, VariableHandle, DataType (*)[3],
+                                                   DataType (*)[3], Real, DataType (*)[3], DataType * )
+               { std::cerr << "ContactElem::Compute_Second_Partial_Face_Normal is not implemented\n"; }
   
   virtual ContactSearch::ContactNode_Type Node_Type() = 0;
   virtual ContactSearch::ContactEdge_Type Edge_Type() = 0;
@@ -248,7 +254,7 @@ class ContactElement : public ContactTopologyEntity<Real> {
   inline int Number_ElementElement_Interactions (int state = 0) 
       { return ElementElementInteractions[state]->NumEntities(); };
                                          
-  inline ContactInteractionDLL* Get_ElementElement_Interactions( int state = 0 )
+  inline ContactInteractionDLL<Real>* Get_ElementElement_Interactions( int state = 0 )
        { return ElementElementInteractions[state]; };
       
   ContactElementElementInteraction* Get_ElementElement_Interaction(int interaction_number,
@@ -282,7 +288,7 @@ class ContactElement : public ContactTopologyEntity<Real> {
   Real DataArray[NUMBER_SCALAR_VARS + 3*NUMBER_VECTOR_VARS];
   
   int number_of_states;
-  ContactInteractionDLL** ElementElementInteractions;
+  ContactInteractionDLL<Real>** ElementElementInteractions;
 };
 
 inline ContactNode<Real>* ContactElement::Node( int i )

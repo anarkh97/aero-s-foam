@@ -3,33 +3,18 @@
 #include <iostream>
 using namespace std;
 
-//------------------------------------------------------------------
-/*
-CoefData::CoefData(double *data)  {
-
-  for (int i = 0; i < 6; i++)
-    for (int j = 0; j < 6; j++)
-      c[i][j] = data[6*i + j];
+void CoefData::setCoef(double data[36])
+{
+ for(int i = 0; i < 6; i++)
+   for(int j = 0; j < 6; j++)
+     c[i][j] = data[6*i + j];
 }
-*/
-//----------------------------------------------------------------
-
-void CoefData::setCoef(double data[36])  {
-
-  for (int i = 0; i < 6; i++)
-    for (int j = 0; j < 6; j++)
-      c[i][j] = data[6*i + j];
-
-}
-
-//---------------------------------------------------------------------
 
 void
 CoefData::zero()
 {
- int i,j;
- for(i=0; i < 6; i++)
-   for(j=0; j < 6; j++)
+ for(int i = 0; i < 6; i++)
+   for(int j = 0; j < 6; j++)
      c[i][j] = 0.0;
 }
 
@@ -63,16 +48,16 @@ LayInfo::add(int ln, double *v, int m)
    double (*newData)[12] = new double[newMaxLayer][12];
    for(i=0; i < numLayers; ++i) 
      for(j=0; j < 12; ++j)
-        newData[i][j] = data[i][j];
-  delete [] data;
-  data     = newData;
-  maxLayer = newMaxLayer;
+       newData[i][j] = data[i][j];
+   delete [] data;
+   data     = newData;
+   maxLayer = newMaxLayer;
  }
  if(ln >= numLayers) numLayers = ln+1;
  for(i=0; i < 12; ++i)
    data[ln][i] = v[i];
 
- matids[ln] = m;  // PJSA
+ matids[ln] = m;
 }
 
 //------------------------------------------------------------
@@ -131,5 +116,4 @@ LayInfo::getLayerMaterialId(int k)
 {
   return matids[k];
 }
-
 

@@ -57,18 +57,16 @@
 *     SNODE     (input) integer array, dimension N
 *               Membership of columns in the supernode partition.
 *
-*     NOFSUB    (output) integer  
+*     NOFSUB    (input) integer  
 *               Number of row indices in the compressed structure
 *               representation.
-*               *** PJSA correction: NOFSUB is input ***
 *
 *     XLINDX    (output) integer array, dimension NSUPER+1
 *               Pointers to column structure of the Cholesky factor.
 *
-*     LINDX     (output) integer array, dimension XSUPER(NSUPER+1)-1
+*     LINDX     (output) integer array, dimension NOFSUB
 *               Row indices of nonzero entries in the Cholesky factor,
 *               stored by columns, in a compressed representation.
-*               *** PJSA correction: dimension is NOFSUB ***
 *
 *     XLNZ      (output) integer array, dimension N+1
 *               Pointers to nonzero entries in the Cholesky factor.

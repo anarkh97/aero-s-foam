@@ -7,8 +7,8 @@ template<typename Scalar>
 class Quad9LagrangePolynomialShapeFunction : public VectorValuedFunction<2,9,Scalar,0,0,double>
 {
   public:
-    Quad9LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
-    {}
+    Quad9LagrangePolynomialShapeFunction() {}
+    Quad9LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&) {}
 
     Eigen::Matrix<Scalar,9,1> operator() (const Eigen::Matrix<Scalar,2,1>& q, Scalar)
     {

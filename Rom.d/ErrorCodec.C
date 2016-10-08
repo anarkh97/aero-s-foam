@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <string>
 #include <fstream>
-#include <math.h>
+#include <cmath>
 #include <iostream>
 
 using namespace std;
@@ -17,108 +17,145 @@ int main (int argc, char *argv[]) {
     return EXIT_SUCCESS;
   }
 
-  if (argc == 2) {
+  if (!(argc == 3 || 4)) {
     print_syntax();
     return EXIT_FAILURE;
   }
 
-  //open input file streams
+  // open input file streams
   ifstream truth_file (argv[1]);
   ifstream comp_file (argv[2]);
 
   string header_buffer;
-  int num_nodes, length2, num_time_steps;
+  int num_nodes, length2;
   double time1, time2, tFinal;
   double a1, b1, c1, a2, b2, c2;
-  double dummy1, dummy2, dummy3, sumx, sumy, sumz, sumx2, sumy2, sumz2;
+  double sumx, sumy, sumz, sumx2, sumy2, sumz2;
   double cum_normx, cum_normy, cum_normz, normalize_factorx, normalize_factory, normalize_factorz;
   double relative_errorx, relative_errory, relative_errorz;
-  int getTime = 1;
-  // check to see of both files were succefully opened
+  bool getTime1 = true, getTime2 = true;
+  // check to see of both files were successfully opened
   if(truth_file.is_open() && comp_file.is_open()) {
 
-  std::cout << "calculate error up to time: ";
-  std::cin >> tFinal;
-  std::cout << "" << std::endl;
+    if( argc == 3 ) {
+      std::cout << "calculate error up to time: ";
+      std::cin >> tFinal;
+      std::cout << std::endl;
+    } else if (argc == 4) {
+      std::string tFinalString(argv[3]);
+ 
+      tFinal = atof(tFinalString.c_str()); 
+    }
 
-    //get header line and length of displacement vector 
-    getline(truth_file,header_buffer);
-    truth_file>>num_nodes;
-    getline(comp_file,header_buffer);
-    comp_file>>length2;
+    // get header line and length of displacement vector 
+    getline(truth_file, header_buffer);
+    truth_file >> num_nodes;
+    getline(comp_file, header_buffer);
+    comp_file >> length2;
 
-// check to see if displacement vectors are same length
-    if(num_nodes != length2){
+    // check to see if displacement vectors are same length
+    if(num_nodes != length2) {
       cout << "incompatible files" << endl;
-      return EXIT_FAILURE;}
+      return EXIT_FAILURE;
+    }
 
-    //first: loop over all timesteps
-    cum_normx = 0; cum_normy = 0; cum_normz = 0;
-    num_time_steps = 0;
-    while((truth_file>>time1) && time1 <= tFinal) {
-      num_time_steps += 1;
+    // initialize variables
+    sumx = 0; sumy = 0; sumz = 0; sumx2 = 0; sumy2 = 0; sumz2 = 0;
+    
+    // begin Froebenius norm computation
+    // first: loop over all timesteps
+    int tcounter = 1;
+    while(true) {
 
-      if(getTime == 1)
-      comp_file>>time2;
+      if(getTime1) {
+       truth_file >> time1;
+       if(truth_file.eof() || time1 > tFinal) {
+         break;
+       }
+     }
 
-     printf("\r time stamp 1 = %f \n",time1);
+      if(getTime2) {
+        comp_file >> time2;
+        if(comp_file.eof() || time2 > tFinal) {
+          break;
+        }
+      }
 
+      printf("\r time stamp %d = %f",tcounter,time1);
+      tcounter++;
+      // second: loop over nodes
+      for(int counter = 0; counter < num_nodes; counter++) {
 
-      //begin computation for L2-norm for timestep, 'num_time_step'
-      sumx = 0; sumy = 0; sumz = 0; sumx2 = 0; sumy2 = 0; sumz2 = 0;
-      // second: loop of nodes
-      for(int counter=0;counter<num_nodes;counter++) {
-        // third: read in all dofs
-	  truth_file>>a1; truth_file>>b1; truth_file>>c1;
+        // if the timestamps are the same then read data from both files
+        if(time1 == time2) {
 
-	if(time1==time2) {
-
-	  comp_file>>a2; comp_file>>b2; comp_file>>c2;
- 	  getTime = 1;
+          // third: read in all dofs
+          truth_file >> a1; truth_file >> b1; truth_file >> c1;
+          comp_file >> a2; comp_file >> b2; comp_file >> c2;
+          getTime1 = true;
+          getTime2 = true;
 	  
-	  sumx += pow((a1-a2),2);      
+          sumx += pow((a1-a2),2);      
           sumy += pow((b1-b2),2);
           sumz += pow((c1-c2),2);
 
           sumx2 += pow(a1,2);
           sumy2 += pow(b1,2);
-          sumz2 += pow(c1,2);}
-	else {
-	  if(counter == 0){
-	  std::cout<<"skipping time step " << time1 << std::endl;
-	  getTime = 0;
-	  }
-	  
-	}
-     }
+          sumz2 += pow(c1,2);
+        }
+        else {
 
-     //sum 2-norm for timestep,"num_time_step" (sum(n=1->n_t)[|v^n - v^n_I|]
-     cum_normx += pow(sumx,0.5);
-     cum_normy += pow(sumy,0.5);
-     cum_normz += pow(sumz,0.5);
+          if(time1 < time2) {
+            truth_file >> a1; truth_file >> b1; truth_file >> c1;
+            if(counter == 0) {
+              std::cout << "\nskipping time step " << time1 << " in truthfile" << std::endl;
+              getTime1 = true;
+              getTime2 = false;
+            }
+          }
 
-     normalize_factorx += pow(sumx2,0.5);
-     normalize_factory += pow(sumy2,0.5);
-     normalize_factorz += pow(sumz2,0.5);
+          if(time1 > time2) {
+            comp_file >> a2; comp_file >> b2; comp_file >> c2;
+            if(counter == 0) {
+              std::cout << "\nskipping time step " << time2 << " in comparisonfile" << std::endl;
+              getTime1 = false;
+              getTime2 = true;
+            }
+          }
+        }
+      }
 
-     if(!truth_file)
+      if(!truth_file)
         break;
     }
 
-    //divide cummulative 2-norm by number of time steps
-     relative_errorx = cum_normx/(normalize_factorx);
-     relative_errory = cum_normy/(normalize_factory);
-     relative_errorz = cum_normz/(normalize_factorz);
+    // square root of differences
+    cum_normx = pow(sumx,0.5);
+    cum_normy = pow(sumy,0.5);
+    cum_normz = pow(sumz,0.5);
 
-     cout << "*** relative error: x ***  = " << relative_errorx*100 << "%"<< endl;
-     cout << "*** relative error: y ***  = " << relative_errory*100 << "%"<< endl;
-     cout << "*** relative error: z ***  = " << relative_errorz*100 << "%"<< endl;
+    // square root of absolute
+    normalize_factorx = pow(sumx2,0.5);
+    normalize_factory = pow(sumy2,0.5);
+    normalize_factorz = pow(sumz2,0.5);
+
+    relative_errorx = cum_normx/(normalize_factorx);
+    relative_errory = cum_normy/(normalize_factory);
+    relative_errorz = cum_normz/(normalize_factorz);
+
+    cout << "\n*** absolute error: x ***  = " << cum_normx << endl;
+    cout << "*** absolute error: y ***  = " << cum_normy << endl;
+    cout << "*** absolute error: z ***  = " << cum_normz << endl;
+
+    cout << "*** relative error: x ***  = " << relative_errorx*100 << "%" << endl;
+    cout << "*** relative error: y ***  = " << relative_errory*100 << "%" << endl;
+    cout << "*** relative error: z ***  = " << relative_errorz*100 << "%" << endl;
 
   }
 }
 
 void print_syntax() {
-  std::printf("Syntax: relerror truthfile comparisonfile\n");
+  std::printf("Syntax: relerr truthfile comparisonfile\n");
 }
 
 void print_help() {

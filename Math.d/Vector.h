@@ -76,7 +76,7 @@ class GenVector {
    GenVector &operator=(const Scalar *data); // v1 = data;
 
    void operator*=(const Scalar c);
-   void operator*(const Scalar c);
+   void operator/=(const Scalar c);
    void operator+=(const GenVector<Scalar> &v2);
    void operator-=(const GenVector<Scalar> &v2);
    void operator/=(const GenVector<Scalar> &v2);
@@ -119,12 +119,14 @@ class GenVector {
    void addDataFrom(double *array, int num);
 
    void setn(int _n) {n = _n; }; 
-   void setData(Scalar *v, int l) { len =l; d =v; }
+   void setData(Scalar *v, int l) { len = l; d = v; }
+   void setData(Scalar *v, int l, bool m) { len = l; d = v; myMemory = m; }
    void setData(const GenVector<Scalar> &v1); 
    void insertData(Scalar *v);
    Scalar* getData() { return d; }
    void reset(int newlen, Scalar initialValue = 0.0);
-   void resize(int newlen);
+   void resize(int newlen); // no-op if the sizes match, otherwise data is lost
+   void conservativeResize(int newlen); // resizing with data preservation
 
    double squareNorm() const;
    double norm() const;
@@ -142,12 +144,12 @@ class GenVector {
 //  Scalar* getBlock(int k) { return d + n*k; }
   GenVector<Scalar>& getBlock(int k);
   void scaleBlock(int k, Scalar s) { for(int i=0; i<n; ++i) d[k*n+i] /= s; }
-  void computeBlockNorms() {cerr << "GenVector::computeBlockNorms() called" << endl;}
-  void printBlockNorms() {cerr << "GenVector::printBlockNorms() called" << endl;}
-  double* getBlockNorms() { cerr << "GenVector::getBlockNorms() called" << endl; return 0;}
-  void setNnzBlocks(int* bl) {}; // YYY DG
-  void printBlockDetails() {}; // YYY DG
-  int isnnz(int i) {return 1;} // YYY DG
+  void computeBlockNorms() {std::cerr << "GenVector::computeBlockNorms() called" << std::endl;}
+  void printBlockNorms() {std::cerr << "GenVector::printBlockNorms() called" << std::endl;}
+  double* getBlockNorms() { std::cerr << "GenVector::getBlockNorms() called" << std::endl; return 0;}
+  void setNnzBlocks(int* bl) {};
+  void printBlockDetails() {};
+  int isnnz(int i) {return 1;}
 };
 
 

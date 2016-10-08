@@ -1,6 +1,9 @@
 #include <cstdio>
 #include <Element.d/Beam.d/EulerBeam.h>
+#include <Element.d/Beam.d/EulerBeamStressWRTDisplacementSensitivity.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <cmath>
@@ -13,6 +16,7 @@
 #include <Hetero.d/InterpPoint.h>
 #include <iostream>
 
+extern int verboseFlag;
 // Define FORTRAN routines as external function
 extern "C" {
  void _FORTRAN(modmstif6)(double&, double&, double*,
@@ -468,82 +472,78 @@ EulerBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 }
 
 void
-EulerBeam::getThermalForce(CoordSet &cs, Vector &ndTemps,
-                           Vector &elementThermalForce, int glflag, GeomState *geomState)
+EulerBeam::getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &elementThermalForce,
+                           int glflag, GeomState *geomState)
 {
-// Called from Dynam.C
-// Computes the thermal-mechanical coupling force C*theta
-// A = cross section, W= dilatation coeff
+  // Computes the thermal-mechanical coupling force C*theta
+  // A = cross section, W = dilatation coeff
+  if (prop == NULL) {
+    elementThermalForce.zero();
+    return;
+  }
 
-    double localThF[12];
-    int i, j;
+  double localThF[12];
+  int i, j;
 
-    double Tref  = prop->Ta;
-    double coeff = prop->E*prop->W*prop->A;
-    double length;
+  double Tref  = prop->Ta;
+  double coeff = prop->E*prop->W*prop->A;
+  double length;
 
-    // Local Thermal Forces : There are only axial forces (see notes)
-    // indices 0-5 --> node1, 6-11 -->node2
+  // Local Thermal Forces : There are only axial forces (see notes)
+  // indices 0-5 --> node1, 6-11 -->node2
 
-    double deltaT1 = ndTemps[0]-Tref;
-    double deltaT2 = ndTemps[1]-Tref;
+  double deltaT1 = ndTemps[0]-Tref;
+  double deltaT2 = ndTemps[1]-Tref;
 
-    //fprintf(stderr," deltaT1 = %f\n", deltaT1);
-    //fprintf(stderr," deltaT2 = %f\n", deltaT2);
+  for(i=0; i<12; i++) localThF[i] = 0.;
 
-    for(i=0; i<12; i++) {localThF[i] = 0. ;}
+  localThF[0] = -coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
+  localThF[6] =  coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
 
-    localThF[0] = -coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
-    localThF[6] =  coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
+  // Compute Global Thermal Forces: From local to global -->
+  //                                transpose(Transform. Matrix)
 
-    // Compute Global Thermal Forces:: From local to global -->
-    //                                transpose(Transform. Matrix)
+  double t0n[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
 
-   double t0n[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
-
-   if (geomState) {
-//   fprintf(stderr," *** UPDATING EFRAMES for Non-Linear [T forces]\n");
+  if(geomState) {
     updTransMatrix(cs, geomState, t0n, length);
-   }  else  {
-//    fprintf(stderr," *** USING initial FRAME\n");
+  }
+  else {
     for(i=0; i<3; ++i) {   
-     for(j=0; j<3; ++j) {
-      t0n[i][j] = (*elemframe)[i][j] ;
-     }
+      for(j=0; j<3; ++j) {
+        t0n[i][j] = (*elemframe)[i][j] ;
+      }
     }
-   }
+  }
 
-//Node 1:
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i] = 0.;
-     for(j=0; j<3; ++j) {
+  //Node 1:
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i] = 0.;
+    for(j=0; j<3; ++j) {
       elementThermalForce[i] += t0n[j][i]*localThF[j];
-//       fprintf(stderr,"Thermal Frame = %f\n", t0n[j][i]);
-     }
     }
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i+3] = 0.;
-     for(j=0; j<3; ++j) {
+  }
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i+3] = 0.;
+    for(j=0; j<3; ++j) {
       elementThermalForce[i+3] += t0n[j][i]*localThF[j+3];
-     }
     }
-//Node 2:
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i+6] = 0.;
-     for(j=0; j<3; ++j) {
-      elementThermalForce[i+6] += t0n[j][i]*localThF[j+6];
-     }
-    }
- 
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i+9] = 0.;
-     for(j=0; j<3; ++j) {
-      elementThermalForce[i+9] += t0n[j][i]*localThF[j+9];
-     }
-    }                                
+  }
 
-//     ndTemps.print();
-//     elementThermalForce.print("Element Thermal Force");
+  //Node 2:
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i+6] = 0.;
+    for(j=0; j<3; ++j) {
+      elementThermalForce[i+6] += t0n[j][i]*localThF[j+6];
+    }
+  }
+ 
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i+9] = 0.;
+    for(j=0; j<3; ++j) {
+      elementThermalForce[i+9] += t0n[j][i]*localThF[j+9];
+    }
+  }                                
 }
 
 void
@@ -980,11 +980,10 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    double elStress[2][7];
    double elForce[3][2]={{0.0,0.0},{0.0,0.0},{0.0,0.0}};
 
-
   _FORTRAN(sands6)(prop->A, prop->E, elm, (double*)elStress, maxsze, maxgus,
                    maxstr, (double*)*elemframe, prop->Ixx, prop->Iyy,
-                   prop->Izz, prop->nu,x,y,z,elDisp.data(), prop->W, prop->Ta, 
-                   ndTemps);
+                   prop->Izz, prop->nu, x, y, z, elDisp.data(), prop->W, prop->Ta, 
+                   ndTemps); 
 
    // elForce[0] -> Axial Force (x-direction)
    // elForce[1] -> Moment around the y-axis (My)
@@ -1018,7 +1017,6 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    } else if (zlayer > 0.0) {
       Z =  zlayer*prop->zmax;
    }
-        
 
    switch (avgnum) {
     
@@ -1028,13 +1026,20 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         
           // Axial Stress
         
-           double IY = prop->Iyy;
+          double IY = prop->Iyy;
           double IZ = prop->Izz;
           double cA = prop->A;
               
           stress[0] = elForce[0][0]/cA - elForce[2][0]*Y/IZ + elForce[1][0]*Z/IY;
-            stress[1] = elForce[0][1]/cA - elForce[2][1]*Y/IZ + elForce[1][1]*Z/IY;
+          stress[1] = elForce[0][1]/cA - elForce[2][1]*Y/IZ + elForce[1][1]*Z/IY;
         
+        } else if (strInd == 6) {
+
+          // von Mises stress resultant
+           
+          stress[0] = elStress[0][6];
+          stress[1] = elStress[1][6];
+
         } else if (strInd == 7) {
         
           // Axial Strain
@@ -1053,7 +1058,7 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
           localThS = alpha * (0.5 * dT1 + 0.5 * dT2);
         
           stress[0] = elForce[0][0]/EA - elForce[2][0]*Y/EIZ + elForce[1][0]*Z/EIY + localThS;
-            stress[1] = elForce[0][1]/EA - elForce[2][1]*Y/EIZ + elForce[1][1]*Z/EIY + localThS;
+          stress[1] = elForce[0][1]/EA - elForce[2][1]*Y/EIZ + elForce[1][1]*Z/EIY + localThS;
          
         } else {
           stress[0] = 0.0;
@@ -1064,7 +1069,14 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
       case 1:
       {
-       if (strInd < 6) {
+       if (strInd == 6) {
+
+          // von Mises stress resultant
+          
+          stress[0] = elStress[0][6];
+          stress[1] = elStress[1][6];
+
+       } else if (strInd < 6) {
 
           // Axial Stress
 
@@ -1138,6 +1150,80 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
       }
 
       default:
-        cerr << "avgnum = " << avgnum << " is not a valid number\n";
+        std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
 }
+
+#ifdef USE_EIGEN3
+void
+EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                              double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+  if(strInd != 6) {
+    std::cerr << " ... Error: strInd must be 6 in EulerBeam::getVonMisesDisplacementSensitivity\n";
+    exit(-1);
+  }
+  if(dStdDisp.numRow() != 2 || dStdDisp.numCol() !=12) {
+    std::cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+    exit(-1);
+  }
+  
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,25,1> dconst;
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+
+  double x[2], y[2], z[2];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; // x coordinates
+  dconst[2] = nd1.y; dconst[3] = nd2.y; // y coordinates
+  dconst[4] = nd1.z; dconst[5] = nd2.z; // z coordinates
+  dconst[6] = prop->A;
+  dconst[7] = prop->E;
+  for(int i=0; i<3; ++i) {
+    for(int j=0; j<3; ++j) {
+      dconst[8+3*i+j] = (*elemframe)[i][j];
+    }
+  }
+  dconst[17] = prop->Ixx;
+  dconst[18] = prop->Iyy;
+  dconst[19] = prop->Izz;
+  dconst[20] = prop->nu;
+  dconst[21] = prop->W;
+  dconst[22] = prop->Ta;
+  if(ndTemps) {
+    dconst[23] = ndTemps[0];
+    dconst[24] = ndTemps[1];
+  } else {
+    dconst[23] = 0.0;
+    dconst[24] = 0.0;
+  }
+
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = avgnum;
+
+  // inputs
+  Eigen::Matrix<double,12,1> q = Eigen::Map<Eigen::Matrix<double,12,1> >(elDisp.data()).segment(0,12); // displacements
+  
+  //Jacobian evaluation
+  Eigen::Matrix<double,2,12> dStressdDisp;
+  Eigen::Matrix<double,7,3> stress;
+
+  if(avgnum == 0 || avgnum == 1) {
+    dStressdDisp.setZero();
+    Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,25,1> >(dconst.data()).segment(8,9); // extract eframe
+    vms6WRTdisp(prop->A, prop->E, 1, dStressdDisp.data(), 1, 2, 7,
+                eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->nu,
+                x, y, z, q.data(), prop->W, prop->Ta, ndTemps);
+    dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
+    if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
+#endif
+  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
+}
+#endif

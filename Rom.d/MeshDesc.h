@@ -4,7 +4,9 @@
 #include "RenumberingUtils.h"
 
 #include <Element.d/Element.h>
-#include <Driver.d/StructProp.h>
+#include <Driver.d/Attrib.h>
+#include <Parser.d/AuxDefs.h>
+#include <Utils.d/CompositeInfo.h>
 
 #include <vector>
 #include <map>
@@ -28,7 +30,9 @@ public:
   const Elemset &elements() const { return elements_; }
 
   const std::vector<EFrameData> &elemFrames() const { return elemFrames_; }
+  const std::map<int,FrameData> &compositeFrames() const { return compositeFrames_; }
   const SPropContainer &properties() const { return *properties_; } 
+  const std::map<int,CoefData> &coefData() const { return coefData_; }
   const std::vector<Attrib> &attributes() const { return attributes_; }
   const std::map<int, NLMaterial *> &materialLaws() const { return *materialLaws_; }
   const std::map<int, int> &materialLawMapping() const { return materialLawMapping_; }
@@ -39,14 +43,20 @@ public:
   const std::vector<BCond> &initDisp() const { return initDisp_; }
   const std::vector<BCond> &initVel() const { return initVel_; }
 
+  const std::vector<BCond> &temperatures() const { return temperatures_; }
+
   const std::vector<PressureBCond> &elemPressures() const { return elemPressures_; }
   
   // Reduced mesh only
   const std::vector<int> &sampleNodeIds() const { return sampleNodeIds_; }
-  const std::map<int, double> &elemWeights() const { return elemWeights_; }
+  const std::map<int, double> &elemWeights(int j) const { return elemWeights_[j]; }
+  int numLocal() const { return elemWeights_.size(); } // local bases
 
   // Create element-based reduced mesh
   MeshDesc(Domain *, GeoSource *, const MeshRenumbering &, const std::map<int, double> &weights);
+
+  // Create collection of element-based reduced meshes for local bases method
+  MeshDesc(Domain *, GeoSource *, const MeshRenumbering &, const std::vector<std::map<int, double> > &weights);
   
   // Create node-based reduced mesh 
   MeshDesc(Domain *, GeoSource *, const SampledMeshRenumbering &);
@@ -60,8 +70,10 @@ private:
   Elemset elements_;
 
   std::vector<EFrameData> elemFrames_;
+  std::map<int,FrameData> compositeFrames_;
   std::vector<Attrib> attributes_;
   const SPropContainer *properties_;
+  std::map<int,CoefData> coefData_;
   std::map<int, int> materialLawMapping_;
   const std::map<int, NLMaterial *> *materialLaws_;
 
@@ -69,10 +81,11 @@ private:
   std::vector<BCond> neumannBConds_;
   std::vector<BCond> initDisp_; 
   std::vector<BCond> initVel_;
+  std::vector<BCond> temperatures_;
   std::vector<PressureBCond> elemPressures_;
 
   const std::vector<int> sampleNodeIds_;
-  std::map<int, double> elemWeights_;
+  std::vector<std::map<int, double> > elemWeights_;
 
   bool mfttFlag_;
 

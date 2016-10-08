@@ -1,14 +1,21 @@
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
 
 #include <Element.d/Truss.d/TwoNodeTruss.h>
+#include <Element.d/Truss.d/TwoNodeTrussStiffnessWRTNodalCoordinateSensitivity.h>
+#include <Element.d/Truss.d/TwoNodeTrussStressWRTNodalCoordinateSensitivity.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Corotational.d/BarCorotator.h>
 #include <Corotational.d/GeomState.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Corotational.d/utilities.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
+
+extern int verboseFlag;
 
 extern "C" {
  void _FORTRAN(transform)(double*, double*, double*, double*, double*, double*, double*);
@@ -59,6 +66,8 @@ void
 TwoNodeTruss::getIntrnForce(Vector& elForce, CoordSet& cs,
 			    double *elDisp, int forceIndex, double *ndTemps)
 {
+        using std::sqrt; 
+
         // ... BARS ONLY CARRY AXIAL FORCES
         if(forceIndex > 0) {
           elForce[0] = 0.0;
@@ -112,6 +121,8 @@ TwoNodeTruss::getIntrnForce(Vector& elForce, CoordSet& cs,
 double
 TwoNodeTruss::getMass(CoordSet& cs)
 {
+        using std::sqrt;
+
         Node &nd1 = cs.getNode( nn[0] );
         Node &nd2 = cs.getNode( nn[1] );
 
@@ -128,6 +139,133 @@ TwoNodeTruss::getMass(CoordSet& cs)
         double   mass = (length*prop->A*prop->rho);
 
         return mass;
+}
+
+void
+TwoNodeTruss::getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx)
+{
+        using std::sqrt;
+
+        if(dMassdx.size() != 6) {
+          std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+          exit(-1);
+        }
+
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        double x[2], y[2], z[2];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
+
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
+        double prefix = prop->A*prop->rho/length;
+        dMassdx[0] = -prefix*dx;
+        dMassdx[1] = -prefix*dy;
+        dMassdx[2] = -prefix*dz;
+        dMassdx[3] = prefix*dx;
+        dMassdx[4] = prefix*dy;
+        dMassdx[5] = prefix*dz;       
+}
+
+void
+TwoNodeTruss::getLengthNodalCoordinateSensitivity(CoordSet &cs, Vector &dLengthdx)
+{
+        using std::sqrt;
+
+        if(dLengthdx.size() != 6) {
+          std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+          exit(-1);
+        }
+
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        double x[2], y[2], z[2];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
+
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
+        dLengthdx[0] = -dx/length;
+        dLengthdx[1] = -dy/length;
+        dLengthdx[2] = -dz/length;
+        dLengthdx[3] = dx/length;
+        dLengthdx[4] = dy/length;
+        dLengthdx[5] = dz/length;        
+}
+
+void
+TwoNodeTruss::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
+{
+  if(dwdx.size() != 6) {
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+  }
+  Vector dMassdx(6);
+  getMassNodalCoordinateSensitivity(cs, dMassdx);
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  dwdx = gravAccNorm*dMassdx;
+}
+
+void
+TwoNodeTruss::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                        GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+{
+       Vector dMassdx(6);
+       getMassNodalCoordinateSensitivity(cs, dMassdx);
+       dGfdx[0][0] = 0.5*gravityAcceleration[0]*dMassdx[0];
+       dGfdx[0][1] = 0.5*gravityAcceleration[1]*dMassdx[0];
+       dGfdx[0][2] = 0.5*gravityAcceleration[2]*dMassdx[0];
+       dGfdx[0][3] = dGfdx[0][0]; 
+       dGfdx[0][4] = dGfdx[0][1];
+       dGfdx[0][5] = dGfdx[0][2];
+
+       dGfdx[1][0] = 0.5*gravityAcceleration[0]*dMassdx[1];
+       dGfdx[1][1] = 0.5*gravityAcceleration[1]*dMassdx[1];
+       dGfdx[1][2] = 0.5*gravityAcceleration[2]*dMassdx[1];
+       dGfdx[1][3] = dGfdx[1][0]; 
+       dGfdx[1][4] = dGfdx[1][1];
+       dGfdx[1][5] = dGfdx[1][2];
+      
+       dGfdx[2][0] = 0.5*gravityAcceleration[0]*dMassdx[2];
+       dGfdx[2][1] = 0.5*gravityAcceleration[1]*dMassdx[2];
+       dGfdx[2][2] = 0.5*gravityAcceleration[2]*dMassdx[2];
+       dGfdx[2][3] = dGfdx[2][0]; 
+       dGfdx[2][4] = dGfdx[2][1];
+       dGfdx[2][5] = dGfdx[2][2];
+      
+       dGfdx[3][0] = 0.5*gravityAcceleration[0]*dMassdx[3];
+       dGfdx[3][1] = 0.5*gravityAcceleration[1]*dMassdx[3];
+       dGfdx[3][2] = 0.5*gravityAcceleration[2]*dMassdx[3];
+       dGfdx[3][3] = dGfdx[3][0]; 
+       dGfdx[3][4] = dGfdx[3][1];
+       dGfdx[3][5] = dGfdx[3][2];
+
+       dGfdx[4][0] = 0.5*gravityAcceleration[0]*dMassdx[4];
+       dGfdx[4][1] = 0.5*gravityAcceleration[1]*dMassdx[4];
+       dGfdx[4][2] = 0.5*gravityAcceleration[2]*dMassdx[4];
+       dGfdx[4][3] = dGfdx[4][0]; 
+       dGfdx[4][4] = dGfdx[4][1];
+       dGfdx[4][5] = dGfdx[4][2];
+
+       dGfdx[5][0] = 0.5*gravityAcceleration[0]*dMassdx[5];
+       dGfdx[5][1] = 0.5*gravityAcceleration[1]*dMassdx[5];
+       dGfdx[5][2] = 0.5*gravityAcceleration[2]*dMassdx[5];
+       dGfdx[5][3] = dGfdx[5][0]; 
+       dGfdx[5][4] = dGfdx[5][1];
+       dGfdx[5][5] = dGfdx[5][2];
 }
 
 void
@@ -181,9 +319,43 @@ TwoNodeTruss::massMatrix(CoordSet &cs, double *mel, int cmflg)
         return elementMassMatrix;
 }
 
+void 
+TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
+{
+#ifdef USE_EIGEN3
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        Eigen::Array<double,3,1> dconst;
+        Eigen::Array<int,0,1> iconst;
+        Eigen::Matrix<double,6,1> q;
+
+        dconst[0] = prop->E;
+        dconst[1] = prop->A;
+        dconst[2] = preload;
+
+        q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z;
+        
+        Eigen::Array<Eigen::Matrix<double,6,6>,1,6> dStiffnessdx; 
+  
+        Simo::FirstPartialSpaceDerivatives<double, TwoNodeTrussStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst); 
+        dStiffnessdx = dKdx(q, 0);
+#ifdef SENSITIVITY_DEBUG
+        Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+        if(verboseFlag) {
+          std::cerr << "dStiffnessdx(AD) =\n";
+          for(int i=0; i<6; ++i) std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
+        } 
+#endif
+        for(int i=0; i<6; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());
+#endif
+}
+
 FullSquareMatrix
 TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
 {
+        using std::sqrt;
+
         Node &nd1 = cs.getNode( nn[0] );
         Node &nd2 = cs.getNode( nn[1] );
 
@@ -192,11 +364,11 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
         x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
         x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
 
-	double dx = x[1] - x[0];
-	double dy = y[1] - y[0];
-	double dz = z[1] - z[0];
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
 
-	double length = sqrt( dx*dx + dy*dy + dz*dz );
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
 
         if(length == 0.0) {
           fprintf(stderr,"ERROR: truss has zero length %d %d\n",nn[0],nn[1]);
@@ -210,7 +382,7 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
         c1[1] = dy/length;
         c1[2] = dz/length;
 
-	FullSquareMatrix ret(6,k);
+        FullSquareMatrix ret(6,k);
 
         // Check for negative or zero area and zero modulus
         if(prop->A <= 0.0)
@@ -220,9 +392,7 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
 
         double elementK = prop->E*prop->A/length;
 
-//        fprintf(stderr,"element K = %g \n", elementK);
-
-	int i,j;
+        int i,j;
         for(i=0; i < 3; ++i)
           for(j=0; j < 3; ++j) {
              ret[i][j]     = elementK*c1[i]*c1[j];
@@ -232,7 +402,6 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
           }
 
         if (preload != 0.0)  {
-//        fprintf(stderr," ... Adding Preload for Truss ...\n");
           for(i=0; i < 3; ++i) {
              ret[i][i]     += preload/length;
              ret[i+3][i+3] += preload/length;
@@ -240,8 +409,6 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
              ret[i][i+3]   = -ret[i][i];
           }
         }
-//        fprintf(stderr," ... Element Stiffness Matrix for Truss ...\n");
-//        ret.print();
         return ret;
 }
 
@@ -288,7 +455,7 @@ TwoNodeTruss::markDofs( DofSetArray &dsa )
 Corotator *
 TwoNodeTruss::getCorotator(CoordSet &cs, double *kel, int, int)
 {
- return new BarCorotator(nn[0], nn[1], prop, preload, cs);
+  return new BarCorotator(nn[0], nn[1], prop, preload, cs);
 }
 
 int
@@ -298,81 +465,69 @@ TwoNodeTruss::getTopNumber()
 }
 
 void
-TwoNodeTruss::getThermalForce(CoordSet &cs, Vector &ndTemps,
-                              Vector &elementThermalForce, int glflag, GeomState *geomState)
+TwoNodeTruss::getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &elementThermalForce,
+                              int glflag, GeomState *)
 {
-// Called from Dynam.C
-// Computes the thermal-mechanical coupling force C*theta
-// See cupb3d.f of RCFEM. C is 6x2 matrix
-// A = cross section, W= dilatation coeff
+  // Computes the thermal-mechanical coupling force C*theta
+  // A = cross section, W = dilatation coeff
+    using std::sqrt;
+  double x[2], y[2], z[2], elC[6][2];
+  double dx,dy,dz,length;
+  int i, j;
+ 
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
 
-
-    double x[2], y[2], z[2], elC[6][2];
-    double dx,dy,dz,length;
-    int i, j;
-    
-    if (geomState) {
-
-       // Update the transformation matrix for nonlinear
-         
-        NodeState &nd1 = (*geomState)[nn[0]];
-	NodeState &nd2 = (*geomState)[nn[1]];
-
-        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;	
-	
-    } 
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;	
      
-    else {
-    
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-	
-        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;	
+  dx = x[1] - x[0];
+  dy = y[1] - y[0];
+  dz = z[1] - z[0];
+
+  length = sqrt( dx*dx + dy*dy + dz*dz ); 
+
+  if(glflag == 1) { // compute force in local frame
+    dx = length;
+    dy = 0;
+    dz = 0;
+  }
      
-     }
-     
-    dx = x[1] - x[0];
-    dy = y[1] - y[0];
-    dz = z[1] - z[0];
+  double Tref  = prop->Ta;
+  double coeff = prop->E*prop->W*prop->A/(2*length);
 
-    length = sqrt( dx*dx + dy*dy + dz*dz ); 
-     
-    double Tref  = prop->Ta;
-    double coeff = prop->E*prop->W*prop->A/(2*length);
+  //  Coupling matrix:
 
-//  Coupling matrix:
+  elC[0][0] = -coeff*dx;
+  elC[0][1] = -coeff*dx;
+  elC[1][0] = -coeff*dy;
+  elC[1][1] = -coeff*dy;
+  elC[2][0] = -coeff*dz;
+  elC[2][1] = -coeff*dz;
 
-    elC[0][0] = -coeff*dx;
-    elC[0][1] = -coeff*dx;
-    elC[1][0] = -coeff*dy;
-    elC[1][1] = -coeff*dy;
-    elC[2][0] = -coeff*dz;
-    elC[2][1] = -coeff*dz;
+  elC[3][0] = coeff*dx;
+  elC[3][1] = coeff*dx;
+  elC[4][0] = coeff*dy;
+  elC[4][1] = coeff*dy;
+  elC[5][0] = coeff*dz;
+  elC[5][1] = coeff*dz;
 
-    elC[3][0] = coeff*dx;
-    elC[3][1] = coeff*dx;
-    elC[4][0] = coeff*dy;
-    elC[4][1] = coeff*dy;
-    elC[5][0] = coeff*dz;
-    elC[5][1] = coeff*dz;
-
-    for(i=0; i<6; ++i) {
-      elementThermalForce[i] = 0.0;
-        for(j=0; j<2; ++j)
-          elementThermalForce[i] += elC[i][j]*(ndTemps[j]-Tref);
-    }
-//     elementThermalForce.print("Thermal Forces");
+  for(i=0; i<6; ++i) {
+    elementThermalForce[i] = 0.0;
+    for(j=0; j<2; ++j)
+      elementThermalForce[i] += elC[i][j]*(ndTemps[j]-Tref);
+  }
 }
-
 
 void
 TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
-			  Vector& elDisp, int strInd, int surface, 
-			  double *ndTemps, double ylayer, double zlayer, int avgnum)
+                          Vector& elDisp, int strInd, int surface, 
+                          double *ndTemps, double ylayer, double zlayer, int avgnum)
 {
-#ifndef SALINAS 
+#ifndef SALINAS
+   using std::abs;
+   using std::sqrt;
+ 
    weight = 1.0;
 
    Node &nd1 = cs.getNode( nn[0] );
@@ -398,12 +553,12 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
    double exx = dq/length;
 
 
-    switch (avgnum) {
+   switch (avgnum) {
 
       case 0:
       {
-	if (strInd == 0) {
-	   // Compute axial force
+        if (strInd == 0 || strInd == 6) {
+           // Compute axial force
            double f = prop->A*prop->E*exx;
 	
            // Add Preload
@@ -413,24 +568,33 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
            double coefficient = prop->E*prop->A*prop->W;
            double Tref = prop->Ta;
  
-           double fth1 = coefficient*(ndTemps[0]-Tref);
-           double fth2 = coefficient*(ndTemps[1]-Tref);
+           double fth1(0); 
+           double fth2(0); 
+           if(ndTemps) {
+              fth1 = coefficient*(ndTemps[0]-Tref);
+              fth2 = coefficient*(ndTemps[1]-Tref);
+           }
 
            // compute stresses 
-	   double elForce[2]={0.0,0.0};
+           double elForce[2]={0.0,0.0};
            elForce[0] = -f + fth1;
            elForce[1] =  f - fth2;
-	   stress[0] = -elForce[0]/prop->A;
-	   stress[1] =  elForce[1]/prop->A;
-	}
-	else if (strInd == 7) {
-	   stress[0] =  exx;
-	   stress[1] =  exx;
-	}
-	else {
-	   stress[0] = 0.0;
-	   stress[1] = 0.0;
-	}
+           if(strInd == 0) {    
+              stress[0] = -elForce[0]/prop->A;
+              stress[1] =  elForce[1]/prop->A;
+           } else {
+              stress[0] = std::abs(elForce[0]);
+              stress[1] = std::abs(elForce[1]);
+           }
+        }
+        else if (strInd == 7) {
+           stress[0] =  exx;
+           stress[1] =  exx;
+        }
+        else {
+           stress[0] = 0.0;
+           stress[1] = 0.0;
+        }
         break;
       }
 
@@ -450,8 +614,12 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
            // Compute thermal force
            double coefficient = prop->E*prop->A*prop->W;
            double Tref = prop->Ta;
-           double fth1 = coefficient*(ndTemps[0]-Tref);
-           double fth2 = coefficient*(ndTemps[1]-Tref);
+           double fth1(0);
+           double fth2(0);
+           if(ndTemps) {
+             fth1 = coefficient*(ndTemps[0]-Tref);
+             fth2 = coefficient*(ndTemps[1]-Tref);
+           }
 
            // return stresses
            double elForce[2]={0.0,0.0};
@@ -465,8 +633,23 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
           _FORTRAN(transform)(xl[0], xl[1], xl[2], xg[0], xg[1], xg[2], tmpStr2);
            stress[0] = tmpStr1[strInd];
            stress[1] = tmpStr2[strInd];
-        }
-        else if (strInd > 6 && strInd < 13) {
+        } else if (strInd == 6) {
+           // Compute von Mises stress resultant
+           double f = prop->A*prop->E*exx;
+           f += preload;
+
+           // Compute thermal force
+           double coefficient = prop->E*prop->A*prop->W;
+           double Tref = prop->Ta;
+           double fth1(0);
+           double fth2(0);
+           if(ndTemps) {
+             fth1 = coefficient*(ndTemps[0]-Tref);
+             fth2 = coefficient*(ndTemps[1]-Tref);
+           }
+          stress[0] = std::abs(-f + fth1);
+          stress[1] = std::abs( f - fth1);      
+        } else if (strInd > 6 && strInd < 13) {
            double tmpStr[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
            tmpStr[0] = exx;
            _FORTRAN(transform)(xl[0], xl[1], xl[2], xg[0], xg[1], xg[2], tmpStr);
@@ -489,9 +672,237 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
       }
 
       default:
-        cerr << "avgnum = " << avgnum << " is not a valid number\n";
+        std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
 #endif
+}
+
+void      
+TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                    double *ndTemps, int avgnum, double ylayer, double zlayer)
+{ 
+#ifdef USE_EIGEN3
+   using std::sqrt;
+
+   weight = 1;
+   // scalar parameters
+   Eigen::Array<double,11,1> dconst;
+
+   Node &nd1 = cs.getNode(nn[0]);
+   Node &nd2 = cs.getNode(nn[1]);
+
+   dconst[0] = prop->E;  // E
+   dconst[1] = prop->A;  // A
+   dconst[2] = prop->W;  // W
+   dconst[3] = prop->Ta; // Ta
+   dconst[4] = preload;
+   dconst[5] = elDisp[0];
+   dconst[6] = elDisp[1];
+   dconst[7] = elDisp[2];
+   dconst[8] = elDisp[3];
+   dconst[9] = elDisp[4];
+   dconst[10] = elDisp[5];
+
+   if(strInd != 6) {
+     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
+     exit(-1);
+   }
+   if(dStdx.numRow() != 6 || dStdx.numCol() != 2) {
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+   weight = 1.0;
+
+
+#ifdef SENSITIVITY_DEBUG
+  if(verboseFlag) {
+    std::cerr << "print displacement =\n";
+    for(int i=0; i<18; ++i) std::cerr << elDisp[i] << "  ";
+    std::cerr << std::endl;
+  }
+#endif
+
+  // integer parameters
+  Eigen::Array<int,0,1> iconst;
+  // inputs
+  Eigen::Matrix<double,6,1> q;
+  q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z;
+
+  double dx = nd2.x - nd1.x;
+  double dy = nd2.y - nd1.y;
+  double dz = nd2.z - nd1.z;
+ 
+  double lengthsquare = dx*dx + dy*dy + dz*dz;
+  double length = sqrt(dx*dx + dy*dy + dz*dz);
+
+  // Compute the change in length of the element
+  double dq = dx*(elDisp[3]-elDisp[0])
+            + dy*(elDisp[4]-elDisp[1])
+            + dz*(elDisp[5]-elDisp[2]);
+
+  switch (avgnum) {
+
+    case 1:
+      { 
+        if (strInd == 6) {
+          double AE = prop->A*prop->E;
+          dStdx[0][0] = AE/lengthsquare*(elDisp[3]-elDisp[0]) - 2*AE/(lengthsquare*lengthsquare)*dx*dq;
+          dStdx[1][0] = AE/lengthsquare*(elDisp[4]-elDisp[1]) - 2*AE/(lengthsquare*lengthsquare)*dy*dq;
+          dStdx[2][0] = AE/lengthsquare*(elDisp[5]-elDisp[2]) - 2*AE/(lengthsquare*lengthsquare)*dz*dq;
+          dStdx[3][0] = -AE/lengthsquare*(elDisp[3]-elDisp[0]) + 2*AE/(lengthsquare*lengthsquare)*dx*dq;
+          dStdx[4][0] = -AE/lengthsquare*(elDisp[4]-elDisp[1]) + 2*AE/(lengthsquare*lengthsquare)*dy*dq;
+          dStdx[5][0] = -AE/lengthsquare*(elDisp[5]-elDisp[2]) + 2*AE/(lengthsquare*lengthsquare)*dz*dq;
+          dStdx[0][1] = dStdx[0][0];
+          dStdx[1][1] = dStdx[1][0];
+          dStdx[2][1] = dStdx[2][0];
+          dStdx[3][1] = dStdx[3][0];
+          dStdx[4][1] = dStdx[4][0];
+          dStdx[5][1] = dStdx[5][0];
+          
+          // scale dx, dy, and dz by the length
+          dx /= length;
+          dy /= length;
+          dz /= length;
+
+          // Compute the change in length of the element
+          dq = dx*(elDisp[3]-elDisp[0])
+             + dy*(elDisp[4]-elDisp[1])
+             + dz*(elDisp[5]-elDisp[2]);
+
+          // Compute axial strain
+          double exx = dq/length;
+          // Compute von Mises stress resultant
+          double f = prop->A*prop->E*exx;
+          f += preload;
+
+          // Compute thermal force
+          double coefficient = prop->E*prop->A*prop->W;
+          double Tref = prop->Ta;
+          double fth1(0);
+          double fth2(0);
+          if(ndTemps) {
+             fth1 = coefficient*(ndTemps[0]-Tref);
+             fth2 = coefficient*(ndTemps[1]-Tref);
+          }
+   
+          if(-f+fth1<0) dStdx *= -1; 
+
+        } 
+        break;
+      }
+
+    case 2:
+      {
+        weight = 0.0;
+        dStdx.zero();
+        break;
+      }
+
+    default:
+      std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
+  }
+#endif
+}
+
+void
+TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                 double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+  using std::sqrt;
+  using std::abs;
+
+  if(strInd != 6) {
+    std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+    exit(-1);
+  }
+  if(dStdDisp.numRow() != 6 || dStdDisp.numCol() != 2) {
+    std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+    exit(-1);
+  }
+  weight = 1.0;
+
+  Node &nd1 = cs.getNode( nn[0] );
+  Node &nd2 = cs.getNode( nn[1] );
+
+  double dx = nd2.x - nd1.x;
+  double dy = nd2.y - nd1.y;
+  double dz = nd2.z - nd1.z;
+
+  double length = sqrt(dx*dx + dy*dy + dz*dz);
+
+  // scale dx, dy, and dz by the length
+  dx /= length;
+  dy /= length;
+  dz /= length;
+
+  // Compute the change in length of the element
+  double dq = dx*(elDisp[3]-elDisp[0])
+            + dy*(elDisp[4]-elDisp[1])
+            + dz*(elDisp[5]-elDisp[2]);
+
+  // Compute axial strain
+  double exx = dq/length;
+
+  switch (avgnum) {
+
+    case 0:
+    case 1:
+      {
+        // Compute axial force
+        double f = prop->A*prop->E*exx;
+	
+        // Add Preload
+        f  += preload;
+
+        // Compute thermal force
+        double coefficient = prop->E*prop->A*prop->W;
+        double Tref = prop->Ta;
+        double fth1, fth2;
+
+        if(ndTemps) {
+          fth1 = coefficient*(ndTemps[0]-Tref);
+          fth2 = coefficient*(ndTemps[1]-Tref);
+        } else {
+          fth1 = 0.0;
+          fth2 = 0.0;
+        }
+
+        // compute stresses
+        double stress[2]; 
+        double elForce[2]={0.0,0.0};
+        elForce[0] = -f + fth1;
+        elForce[1] =  f - fth2;
+        stress[0] = std::abs(elForce[0]);
+        stress[1] = std::abs(elForce[1]);
+        double f1s1 = elForce[0]/stress[0];
+        double f2s2 = elForce[1]/stress[1];
+   
+        // replace automatic differentiation routine with analytic one
+        dStdDisp[0][0] =  f1s1*dx;   dStdDisp[1][0] =  f1s1*dy;   dStdDisp[2][0] =  f1s1*dz;   
+        dStdDisp[3][0] = -f1s1*dx;   dStdDisp[4][0] = -f1s1*dy;   dStdDisp[5][0] = -f1s1*dz; 
+        dStdDisp[0][1] = -f2s2*dx;   dStdDisp[1][1] = -f2s2*dy;   dStdDisp[2][1] = -f2s2*dz;   
+        dStdDisp[3][1] =  f2s2*dx;   dStdDisp[4][1] =  f2s2*dy;   dStdDisp[5][1] =  f2s2*dz; 
+         
+        dStdDisp *= (prop->A*prop->E/length);
+#ifdef SENSITIVITY_DEBUG
+        if(verboseFlag) {
+          std::cerr << " ... dStressdDisp(analytic) = \n" << std::endl;
+          dStdDisp.print();
+        }
+#endif
+        break;
+      }
+
+    case 2:
+      {
+        weight = 0.0;
+        dStdDisp.zero();
+        break;
+      }
+
+    default:
+      std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
+  }
 }
 
 void

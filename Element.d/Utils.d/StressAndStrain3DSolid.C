@@ -52,7 +52,6 @@ computeStressAndEngStrain3DSolid(double Stress[6], double Strain[6], double C[6]
   computeEngStrain3DSolid(Strain, DShape, U, nnodes, ls);
   computeStress3DSolid(Stress, Strain, C);
 }
-                                                                                                                                           
 
 double
 computeVonMisesStress(double Stress[6])

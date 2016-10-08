@@ -8,6 +8,8 @@
 #include <Element.d/Element.h>
 #include <Corotational.d/GeomState.h>
 #include <Feti.d/DistrVectorSet.h>
+#include <iostream>
+#include <set>
 
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
@@ -36,7 +38,7 @@ class Rbm
   DofSetArray*   dsa;
   compStruct*   comp;
   IntFullM *cornerModes;
-  ComplexVector *cgrbm;  // complex grbm, temporary fix to aviod templating class
+  ComplexVector *cgrbm;  // complex grbm, temporary fix to avoid templating class
 
   // Nonlinear members to reuse memory instead of reallocating 
   // at each iteration
@@ -58,7 +60,7 @@ public:
   Rbm(DofSetArray *dsa, ConstrainedDSA *c_dsa, CoordSet &cs, double tolgrb,
       compStruct &components, IntFullM *fm = 0);
   Rbm(DofSetArray *dsa, ConstrainedDSA *c_dsa, CoordSet &cs, double tolgrb,
-      compStruct &components, int numMPC, ResizeArray<LMPCons *> &mpc, IntFullM *fm = 0); // PJSA
+      compStruct &components, int numMPC, ResizeArray<LMPCons *> &mpc, IntFullM *fm = 0);
   Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
       double _tolgrb, double *centroid,
       int *cornerNodes, int numCRN, int numCRNdof, DofSet *cornerDofs,
@@ -67,7 +69,7 @@ public:
       double _tolgrb, double *centroid,
       int *cornerNodes, int numCRN, int numCRNdof, DofSet *cornerDofs,
       int numMPC, SubLMPCons<DComplex> **mpc) 
-    { cerr << "Rbm(...) not implemented for complex LMPCs \n"; }
+    { std::cerr << "Rbm(...) not implemented for complex LMPCs \n"; }
   ~Rbm();
   
   void computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
@@ -85,6 +87,7 @@ public:
   int numComponents()    { return nComponents;         }
   int firstDof(int num)  { return firstDofOfComp[num]; }
   int numDof(int num)    { return numDofPerComp[num];  }
+  int numDof()           { return numUncon;            }
   void getxyzRot(int num, double* ans) {
     ans[0] = xyzRot[num][0]; ans[1] = xyzRot[num][1]; ans[2] = xyzRot[num][2];
   }
@@ -92,12 +95,13 @@ public:
   void setGrbm(Vector *_grbm) { grbm = _grbm; }
   void print();
   template<class Scalar> void getRBMs(Scalar *, bool transpose = false); 
+  void getRBMs(double *, std::set<int> &rbmFilters);
   void getRBMs(double *, int nc, int *dofs, int _numG=-1, int offset=0);
   void getRBMs(DComplex *, int nc, int *dofs, int _numG=-1, int offset=0);
   void getScaledRBMs(double *, int nc, int *dofs, double *scaling, int _numG=-1, int offset=0);
   void getRBMs(Vector* rigidBodyModes);
   void getRBMs(VectorSet& rigidBodyModes);
-  void getRBMs(DistrVectorSet& rigidBodyModes) { cerr << "Rbm::getRBMs(DistrVectorSet& rigidBodyModes) is not implemented\n"; }
+  void getRBMs(DistrVectorSet& rigidBodyModes) { std::cerr << "Rbm::getRBMs(DistrVectorSet& rigidBodyModes) is not implemented\n"; }
 
   void singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow,
                                   double max_value, int &numgrbm, int &rank);

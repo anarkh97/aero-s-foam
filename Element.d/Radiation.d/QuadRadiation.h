@@ -8,6 +8,7 @@ class QuadRadiation: public virtual Element {
         int nn[4];
 public:
         QuadRadiation(int*);
+        ~QuadRadiation();
 
         Element *clone();
 
@@ -28,7 +29,11 @@ public:
         int*             nodes(int * = 0);
         int              getTopNumber();
         PrioInfo examine(int sub, MultiFront *);
+
+        bool isRadiationElement() { return true; }
+
+        void computeTemp(CoordSet&, State &, double[2], double*); 
+        void getFlFlux(double[2], double *, double *);
 };
 
 #endif
-

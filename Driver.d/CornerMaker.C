@@ -1,6 +1,7 @@
 #include <Utils.d/dbg_alloca.h>
-#include <Driver.d/Domain.h>
 #include <Driver.d/CornerMaker.h>
+#include <Driver.d/SubDomain.h>
+#include <Utils.d/SolverInfo.h>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -8,20 +9,16 @@
  #include <climits>
 #endif
 #include <float.h>
+#include <algorithm>
 
 //#define DEBUG_CORNER
 
-extern Domain *domain;
+extern SolverInfo &solInfo;
 
 FILE *myOut;
 void crossprod(double [3], double [3], double [3]);
 
 double magnitude(double[3]);
-
-inline
-int cmMin(int a, int b) {
-  return (a <= b) ? a : b;
-}
 
 // variable used to select corner nodes for the 2D-case
 DofSet XYDofs = DofSet::Xdisp | DofSet::Ydisp;
@@ -109,7 +106,7 @@ SubCornerHandler::SubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes,
   cdims[2] = (cdofs.contains(DofSet::Zdisp)) ? 1 : 0;
   cdims[3] = (cdofs.contains(DofSet::Helm) || cdofs.contains(DofSet::Temp)) ? 1 : 0;
   int cdim = cdims[0]+cdims[1]+cdims[2]+cdims[3];
-  allSafe = ((cdim == 1) || !domain->solInfo().getFetiInfo().pick_unsafe_corners);  // if there is only one active dimension then all elements are safe
+  allSafe = ((cdim == 1) || !solInfo.getFetiInfo().pick_unsafe_corners);  // if there is only one active dimension then all elements are safe
   // can ignore unsafe corners by setting pick_unsafe_corners to false (maybe ok if using pivoting local solver like spooles or mumps)
 
 #ifdef DEBUG_CORNER
@@ -181,7 +178,7 @@ SubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
     if(fsiNodeType[i] == 3) glSafe[i] = (structSafe[i] && fluidSafe[i]);
 
   // brute force option 1: make all shared fsi nodes corners
-  if(domain->solInfo().getFetiInfo().fsi_corner == 1) {
+  if(solInfo.getFetiInfo().fsi_corner == 1) {
     for(int iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
       for(int iNode = 0; iNode < sharedNodes.num(iNeighb); ++iNode) {
         int n = sharedNodes[iNeighb][iNode];
@@ -255,7 +252,7 @@ SubCornerHandler::markMultiDegNodes()
     }
   }
 
-  if(!domain->solInfo().isCoupled || domain->solInfo().getFetiInfo().fsi_corner == 0) { // JLchange
+  if(!solInfo.isCoupled || solInfo.getFetiInfo().fsi_corner == 0) { // JLchange
     for(int iNode = 0; iNode < nnodes; ++iNode) {
       if(weight[iNode] >= 2) isCorner[iNode] = true;
     }
@@ -291,7 +288,7 @@ SubCornerHandler::dispatchRotCorners(FSCommPattern<int> *cpat)
           if((deg[nToN[node][i]] == iNeighb) && !isRotMidSideNode[nToN[node][i]]) count++; // fix for 6 node tri shell
         if(count < 3) {
 	  weight[node] = 2;
-          if(!domain->solInfo().isCoupled || domain->solInfo().getFetiInfo().fsi_corner == 0) // JLchange
+          if(!solInfo.isCoupled || solInfo.getFetiInfo().fsi_corner == 0) // JLchange
 	    isCorner[node] = true; 
           else { if ( !(subPre->onWetInterface(node)) ) isCorner[node] = true; }
 	}
@@ -315,7 +312,7 @@ SubCornerHandler::markRotCorners(FSCommPattern<int> *cpat)
     FSSubRecInfo<int> ri = cpat->recData(neighbSubs[iNeighb], glSubNum);
     for(int iNode = 0; iNode < sharedNodes.num(iNeighb); ++iNode)
       if(ri.data[iNode] > 1) {
-        if(!domain->solInfo().isCoupled || domain->solInfo().getFetiInfo().fsi_corner == 0) // JLchange
+        if(!solInfo.isCoupled || solInfo.getFetiInfo().fsi_corner == 0) // JLchange
           isCorner[sharedNodes[iNeighb][iNode]] = true;
         else {
           if(!subPre->onWetInterface(sharedNodes[iNeighb][iNode]))
@@ -339,7 +336,7 @@ SubCornerHandler::pickAnyCorners()
 #endif
   if(nnodes < dim) {
     for(int i = 0; i < nnodes; ++i) {
-      if(!domain->solInfo().isCoupled || domain->solInfo().getFetiInfo().fsi_corner == 0) // JLchange
+      if(!solInfo.isCoupled || solInfo.getFetiInfo().fsi_corner == 0) // JLchange
         isCorner[i] = true;
       else { if ( !(subPre->onWetInterface(i)) ) isCorner[i] = true; }
       weight[i] = 3;
@@ -361,7 +358,7 @@ SubCornerHandler::pickAnyCorners()
     dist = nd2.distance(nd1);
     if(glSafe[n] && dist > maxDist) { maxDist = dist; n2 = n; }
   }
-  if(!domain->solInfo().isCoupled || domain->solInfo().getFetiInfo().fsi_corner == 0) { // JLchange
+  if(!solInfo.isCoupled || solInfo.getFetiInfo().fsi_corner == 0) { // JLchange
     isCorner[n1] = true;
     isCorner[n2] = true;
   }
@@ -391,7 +388,7 @@ SubCornerHandler::pickAnyCorners()
       if(glSafe[n] && area > maxArea) { maxArea = area; n3 = n; }
     }
   if(maxArea > 0) {
-    if(!domain->solInfo().isCoupled || domain->solInfo().getFetiInfo().fsi_corner == 0) // JLchange
+    if(!solInfo.isCoupled || solInfo.getFetiInfo().fsi_corner == 0) // JLchange
       isCorner[n3] = true;
     else { if (!subPre->onWetInterface(n3)) isCorner[n3] = true; }
     weight[n3] = 3;
@@ -430,7 +427,7 @@ SubCornerHandler::countAndMarkCornerCand(int *mync, int *totnc)
      gotEnough = true; // rotational corners remove singularity XXXX dangerous: also could be multi degree corner
    } 
    else if(weight[iNode] > 2) {
-     if(!domain->solInfo().isCoupled || domain->solInfo().getFetiInfo().fsi_corner == 0) // JLchange
+     if(!solInfo.isCoupled || solInfo.getFetiInfo().fsi_corner == 0) // JLchange
        deg[iNode] = 1;
      else if(!subPre->onWetInterface(iNode)) 
        deg[iNode] = 1;
@@ -450,7 +447,7 @@ SubCornerHandler::countAndMarkCornerCand(int *mync, int *totnc)
     bool *lSafe = isSafe + sharedNodes.offset(iNeighb);
     for(int iNode = 0; iNode < sharedNodes.num(iNeighb); ++iNode) {
       if(lSafe[iNode] && (deg[sharedNodes[iNeighb][iNode]] || isCorner[sharedNodes[iNeighb][iNode]])) {
-        if(!domain->solInfo().isCoupled || domain->solInfo().getFetiInfo().fsi_corner == 0) { // JLchange
+        if(!solInfo.isCoupled || solInfo.getFetiInfo().fsi_corner == 0) { // JLchange
           currentC[numC] = sharedNodes[iNeighb][iNode];
           numC++;
         }
@@ -477,7 +474,7 @@ SubCornerHandler::countAndMarkCornerCand(int *mync, int *totnc)
         weight[sharedNodes[iNeighb][iNode]] = 0;
   }
 
-  if(gotEnough == false && domain->solInfo().getFetiInfo().pickAnyCorner) { // pick dim corners
+  if(gotEnough == false && solInfo.getFetiInfo().pickAnyCorner) { // pick dim corners
     pickAnyCorners(); 
     // XXXX pickAnyCorners adjusts weight array but not deg ... is this ok?
     // what if 2 subdomains pick the same corner here ???
@@ -859,7 +856,7 @@ SubCornerHandler::recNumbering(FSCommPattern<int> *pat, int *fMaster)
       }
     }
   }
-  if(!domain->solInfo().isCoupled || domain->solInfo().getFetiInfo().fsi_corner == 0) { // JLchange
+  if(!solInfo.isCoupled || solInfo.getFetiInfo().fsi_corner == 0) { // JLchange
     totNC = 0;
     for(iNode = 0; iNode < nnodes; ++iNode)
       if(deg[iNode] >= 0)
@@ -1194,7 +1191,7 @@ CornerMaker::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
         int grJ = (*grToGr)[iGr][jGr];
         if(grJ == iGr) continue;
         // Find the comon nodes
-        int maxCm = cmMin( grToCrn->num(iGr), grToCrn->num(grJ) );
+        int maxCm = std::min( grToCrn->num(iGr), grToCrn->num(grJ) );
         // XML this needs to be changed
         int *cnode = (int *) dbg_alloca(maxCm*sizeof(int));
         int nc = 0;
@@ -1360,11 +1357,12 @@ CornerMaker::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
         int pref = -1;
         if(tied[ fav[iGr][0] ] == false)
           pref = 0;
-        else if(fav[iGr][1] >= 0 && tied[ fav[iGr][1] ] == false)
+        else if(fav[iGr][1] >= 0 && tied[ fav[iGr][1] ] == false) {
           if(bamax[iGr][1] > 0.25*bamax[iGr][0])
             pref = 1;
           else
             pref = 0;
+        }
         if(pref >= 0) {
           glCornerList[choices[iGr][pref][0]] = 1;
           if(choices[iGr][pref][1] > -1) glCornerList[choices[iGr][pref][1]] = 1; // PJSA

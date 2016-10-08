@@ -41,7 +41,7 @@ class ContactSequentialAllocator;
 class ContactEnforcement;
 class ContactTable;
 class ContactBoundingBox;
-class ContactFaceFaceInteraction;
+template<typename DataType> class ContactFaceFaceInteraction;
 class ObjectBoundingBox;
 class DomainBox;
 
@@ -72,7 +72,7 @@ int ACME_MPI_Compatibility(int);
 
 void Find_Physical_Face(int num_physical_faces, Real** PF_normals, Real * face_normal, int& physical_face, Real& most_opposed);
 
-class ContactSearch{
+class ContactSearch {
 
  /*!
  This is the documentation for the ContactSearch Base Class
@@ -141,7 +141,8 @@ class ContactSearch{
 		      EDGE_PHYSICAL_FACES,           // 13
                       SHELL_SIMPLE_LOFTING,          // 14
                       NEW_TIED_ENFORCEMENT,          // 15
-                      NUM_OPTS };
+                      NUM_OPTS,                      // 16
+                      COMPUTE_PARTIALS };
 
   enum Search_Option_Status{ INACTIVE=0, ACTIVE };
   enum Smoothing_Resolution{ USE_NODE_NORMAL=0, USE_EDGE_BASED_NORMAL=1 };
@@ -245,7 +246,7 @@ class ContactSearch{
 		     const int* comm_node,
                      
 		     ContactErrorCode& error );
-                 
+
   // Restart functions 
   ContactSearch( Real* restart_data,
 	  	 const int* Node_Host_IDs,
@@ -491,6 +492,7 @@ class ContactSearch{
   void Size_FaceFace_Interactions( int& num_interactions, int& data_size );
   void Get_FaceFace_Interactions( int* slave_face_block_ids,
 				  int* slave_face_indexes_in_block,
+                                  int* slave_face_proc,
 				  int* master_face_block_ids,
 				  int* master_face_indexex_in_block,
                                   int* master_face_proc, 
@@ -580,7 +582,7 @@ class ContactSearch{
 
   static int                        Number_Nodes_Per_Face       (ContactFace_Type face_type);
   static ContactEdge_Type           Face_Edge_Type              (ContactFace_Type face_type);
-  static ContactFace<Real>*               New_ContactFace             (ContactFace_Type type,
+  static ContactFace<Real>*         New_ContactFace             (ContactFace_Type type,
                                                                  ContactFixedSizeAllocator *alloc);
   static ContactFixedSizeAllocator* Get_ContactFaceAlloc        (ContactFace_Type type,
                                                                  ContactFixedSizeAllocator *alloc);
@@ -744,6 +746,20 @@ class ContactSearch{
 
   int NumConfigs() {return nconfigs;};
 
+  template<typename DataType>
+    ContactFaceFaceInteraction<DataType>* Face_Face_Search( ContactFace<DataType>*, ContactFace<DataType>*,
+                                                            ContactElem<DataType>*, VariableHandle,
+                                                            ContactFixedSizeAllocator*);
+  template<typename DataType>
+    ContactFaceFaceInteraction<DataType>* Partial_Face_Face_Search( ContactFace<DataType>*, ContactFace<DataType>*,
+                                                                    ContactElem<DataType>*, VariableHandle,
+                                                                    Real tol, ContactFixedSizeAllocator*);
+
+  template<typename DataType>
+    ContactFaceFaceInteraction<DataType>* Second_Partial_Face_Face_Search( ContactFace<DataType>*, ContactFace<DataType>*,
+                                                                           ContactElem<DataType>*, VariableHandle,
+                                                                           Real tol, ContactFixedSizeAllocator*);
+
  protected:
 
   void Register_Enforcement( ContactEnforcement* );
@@ -826,6 +842,7 @@ class ContactSearch{
   Search_Option_Status edge_physical_faces;
   Search_Option_Status shell_simple_lofting;
   Search_Option_Status new_tied_enforcement;
+  Search_Option_Status compute_partials;
 
   Real orig_sharp_smooth_angle;
   Real sharp_smooth_curvature;
@@ -835,6 +852,7 @@ class ContactSearch{
   Track_Type tracking_type;
   PF_Algorithm physical_face_algorithm;
   int enable_off_face_tracking;
+  int computed_partials_order;
 
   Real max_node_motion[3];
   Real max_node_displacement;
@@ -918,17 +936,6 @@ class ContactSearch{
                                          ContactTopologyEntity<Real>::SearchContext status,
                                          bool use_proximity);
                                          
-  template<typename DataType>
-    ContactFaceFaceInteraction* Face_Face_Search( ContactFace<DataType>*, ContactFace<DataType>*, 
-                                                  ContactElem<DataType>*, VariableHandle);
-  template<typename DataType>
-    bool Face_Face_Search_Step1( ContactFace<DataType>*, ContactFace<DataType>*, 
-                                 ContactElem<DataType>*, VariableHandle, int&, int&);
-
-  template<typename DataType>
-    ContactFaceFaceInteraction* Face_Face_Search_Step2( ContactFace<DataType>*, ContactFace<DataType>*,
-                                                        ContactElem<DataType>*, VariableHandle, int, int);
-
   void Process_Face_Coverage( void );
 
   ContactFixedSizeAllocator* allocators;  // array

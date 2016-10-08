@@ -26,6 +26,7 @@
 #include "ContactQuadFaceL4.h"
 #include "ContactFixedSizeAllocator.h"
 #include "ContactUtilities.h"
+#include "contact_tolerances.h"
 
 #include <algorithm>
 #include <iostream>
@@ -99,6 +100,47 @@ void ContactQuadFaceL4<DataType>::Compute_Normal(VariableHandle CURRENT_POSITION
     face_normal[1] *= Mag;
     face_normal[2] *= Mag;
   }
+}
+
+#include <Mortar.d/FaceElement.d/FaceQuad4.d/FaceQuad4.h>
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Partial_Face_Normal(VariableHandle CURRENT_POSITION, DataType (*dface_normal)[3])
+{
+  // XXX note: the definition of the "face normal" in this function is the normal to the face at the origin of the local frame
+  // which is slightly different from the Compute_Normal function defined above.
+  typedef std::vector<NodeTemplate<DataType>*> CoordSetType;
+  CoordSetType CoordSet(this->Nodes_Per_Face());
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) {
+    CoordSet[i] = new NodeTemplate<DataType>(Node(i)->Variable(CURRENT_POSITION)[0],
+                                             Node(i)->Variable(CURRENT_POSITION)[1],
+                                             Node(i)->Variable(CURRENT_POSITION)[2]);
+  }
+
+  int nodes[4] = { 0, 1, 2, 3 };
+  DataType local_coords[2] = { 0., 0. };
+  FaceQuad4 face(nodes);
+  face.GetdUnitNormal<DataType,CoordSetType>(dface_normal, local_coords, CoordSet);
+
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) delete CoordSet[i];
+}
+
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Second_Partial_Face_Normal(VariableHandle CURRENT_POSITION, DataType (*d2face_normal)[3] )
+{
+  typedef std::vector<NodeTemplate<DataType>*> CoordSetType;
+  CoordSetType CoordSet(this->Nodes_Per_Face());
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) {
+    CoordSet[i] = new NodeTemplate<DataType>(Node(i)->Variable(CURRENT_POSITION)[0],
+                                             Node(i)->Variable(CURRENT_POSITION)[1],
+                                             Node(i)->Variable(CURRENT_POSITION)[2]);
+  }
+
+  int nodes[4] = { 0, 1, 2, 3 };
+  DataType local_coords[2] = { 0., 0. };
+  FaceQuad4 face(nodes);
+  face.Getd2UnitNormal<DataType,CoordSetType>(d2face_normal, local_coords, CoordSet);
+
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) delete CoordSet[i];
 }
 
 template<typename DataType>
@@ -538,7 +580,7 @@ bool ContactQuadFaceL4<DataType>::IsPlanar(VariableHandle POSITION)
   DataType dot = normal0[0]*normal1[0] + 
              normal0[1]*normal1[1] +
              normal0[2]*normal1[2];
-  if (dot<=0.999999) 
+  if (dot<=is_planar_tol) 
     return false;
   else 
     return true;
@@ -778,15 +820,15 @@ void ContactQuadFaceL4<DataType>::FacetDecomposition(int& nfacets,
   }
 }
 
-template<typename DataType>
-void ContactQuadFaceL4<DataType>::FacetStaticRestriction(int nfacets, DataType* coordinates, 
-                                         DataType* normals, DataType* ctrcl_facets, 
-                                         DataType* ctrcl)
+template<>
+inline void ContactQuadFaceL4<Real>::FacetStaticRestriction(int nfacets, Real* coordinates, 
+                                         Real* normals, Real* ctrcl_facets, 
+                                         Real* ctrcl)
 {
   int ii1=0,ilocc=0,ilocs=0;
   int iistored=0,iconcave=0,iinside=1,iout=2;
-  DataType projcv,projmv,one_third=1.0/3.0;
-  DataType dctds,xmc,ymc,zmc,xms,yms,zms,vecmix,vecmiy,vecmiz;
+  Real projcv,projmv,one_third=1.0/3.0;
+  Real dctds,xmc,ymc,zmc,xms,yms,zms,vecmix,vecmiy,vecmiz;
   // Contract the closest point projection of the Node-with-N_Triangles
   // into a single contact with the bilinear QUAD master surface.
   for (int ipass=0; ipass<nfacets; ++ipass) {
@@ -949,22 +991,19 @@ void ContactQuadFaceL4<DataType>::FacetStaticRestriction(int nfacets, DataType* 
   }
 }
 
-#if (MAX_FFI_DERIVATIVES > 0)
-template<>
-void ContactQuadFaceL4<ActiveScalar>::FacetStaticRestriction(int nfacets, ActiveScalar* coordinates,
-                                         ActiveScalar* normals, ActiveScalar* ctrcl_facets,
-                                         ActiveScalar* ctrcl)
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::FacetStaticRestriction(int nfacets, DataType* coordinates,
+                                         DataType* normals, DataType* ctrcl_facets,
+                                         DataType* ctrcl)
 {
-  std::cerr << "ContactQuadFaceL4<ActiveScalar>::FacetStaticRestriction is not implemented\n";
+  std::cerr << "ContactQuadFaceL4<DataType>::FacetStaticRestriction is not implemented\n";
   exit(-1);
 }
-#endif
 
-
-template<typename DataType>
-void ContactQuadFaceL4<DataType>::FacetDynamicRestriction(int nfacets, 
-                                                DataType* ctrcl_facets, 
-                                                DataType* ctrcl)
+template<>
+inline void ContactQuadFaceL4<Real>::FacetDynamicRestriction(int nfacets, 
+                                                Real* ctrcl_facets, 
+                                                Real* ctrcl)
 {
   // There are three possibilities with each triangle
   //   1) Accepted =  1
@@ -1026,17 +1065,15 @@ void ContactQuadFaceL4<DataType>::FacetDynamicRestriction(int nfacets,
   }
 }
 
-#if (MAX_FFI_DERIVATIVES > 0)
-template<>
-inline void
-ContactQuadFaceL4<ActiveScalar>::FacetDynamicRestriction(int nfacets,
-                                                ActiveScalar* ctrcl_facets,
-                                                ActiveScalar* ctrcl)
+template<typename DataType>
+void
+ContactQuadFaceL4<DataType>::FacetDynamicRestriction(int nfacets,
+                                                DataType* ctrcl_facets,
+                                                DataType* ctrcl)
 {
-  std::cerr << "ContactQuadFaceL4<ActiveScalar>::FacetDynamicRestriction is not implemented\n";
+  std::cerr << "ContactQuadFaceL4<DataType>::FacetDynamicRestriction is not implemented\n";
   exit(-1);
 }
-#endif
 
 template<typename DataType>
 void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
@@ -1797,7 +1834,7 @@ int ContactQuadFaceL4<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
                    normal[1]*edge_dir[1] +
                    normal[2]*edge_dir[2];
     // if (edge ray) and (tri3 plane) are parallel => no intersection
-    if (abs(n_dot_d)<1.0e-10) continue;
+    if (abs(n_dot_d)<is_parallel_tol) continue;
     DataType q[3], P[3], t;
     q[0] = node_position0[0]-edge_pnt[0];
     q[1] = node_position0[1]-edge_pnt[1];
@@ -2226,11 +2263,11 @@ ContactQuadFaceL4<DataType>::Compute_Local_Coords( DataType node_positions[MAX_N
   Compute_Quad_Local_Coords(node_positions, global_coords, local_coords);
 }
 
-template<typename DataType>
+template<>
 void 
-ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[MAX_NODES_PER_FACE][3], 
-					 DataType global_coords[3],
-					 DataType local_coords[3] )
+ContactQuadFaceL4<Real>::Compute_Quad_Local_Coords( Real node_positions[MAX_NODES_PER_FACE][3], 
+					 Real global_coords[3],
+					 Real local_coords[3] )
 {
   using std::sqrt;
   using std::abs;
@@ -2238,52 +2275,53 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
   using std::max;
   int  i, j;
   int  nnodes=4;
-  DataType spatial_tolerance = 1.0e-10;
-  //
-  // check for coincidence with one of the face nodes
-  //
-  for (i=0; i<nnodes; ++i) {
-    DataType dx = node_positions[i][0]-global_coords[0];
-    DataType dy = node_positions[i][1]-global_coords[1];
-    DataType dz = node_positions[i][2]-global_coords[2];
-    DataType d  = sqrt(dx*dx+dy*dy+dz*dz);
-    if (d<spatial_tolerance) break;
-  }
-  switch (i) {
-  case 0:
-    local_coords[0] = -1.0;
-    local_coords[1] = -1.0;
-    break;
-  case 1:
-    local_coords[0] =  1.0;
-    local_coords[1] = -1.0;
-    break;
-  case 2:
-    local_coords[0] =  1.0;
-    local_coords[1] =  1.0;
-    break;
-  case 3:
-    local_coords[0] = -1.0;
-    local_coords[1] =  1.0;
-    break;
-  }
-  if (i<nnodes) {
-    local_coords[2] = 0.0;
-    return;
+  if(spatial_tolerance_pre > 0) {
+    //
+    // check for coincidence with one of the face nodes
+    //
+    for (i=0; i<nnodes; ++i) {
+      Real dx = node_positions[i][0]-global_coords[0];
+      Real dy = node_positions[i][1]-global_coords[1];
+      Real dz = node_positions[i][2]-global_coords[2];
+      Real dd  = dx*dx+dy*dy+dz*dz;
+      if (dd == 0 || sqrt(dd) < spatial_tolerance_pre) break;
+    }
+    switch (i) {
+    case 0:
+      local_coords[0] = -1.0;
+      local_coords[1] = -1.0;
+      break;
+    case 1:
+      local_coords[0] =  1.0;
+      local_coords[1] = -1.0;
+      break;
+    case 2:
+      local_coords[0] =  1.0;
+      local_coords[1] =  1.0;
+      break;
+    case 3:
+      local_coords[0] = -1.0;
+      local_coords[1] =  1.0;
+      break;
+    }
+    if (i<nnodes) {
+      local_coords[2] = 0.0;
+      return;
+    }
   }
   //
   // else use newton's method to iterate
   //
-  
   int  iterations=0;
   int  max_iterations=500;
   bool converged = false;
-  DataType tolerance = 1.0e-12;
-  DataType s, s0=0.0, s1, ds=0.0; 
-  DataType t, t0=0.0, t1, dt=0.0;
-  DataType coords[3];
-  DataType J[3][2], f[3], shape_derivatives[2][4];
-  
+  Real s, s0=0.0, s1, ds=0.0; 
+  Real t, t0=0.0, t1, dt=0.0;
+  Real coords[3];
+  Real J[3][2], f[3], shape_derivatives[2][4];
+  Real detJTJ;
+  Real residualNorm2, initialResidualNorm2;
+
   while (!converged && iterations<max_iterations) {
     coords[0] = s0;
     coords[1] = t0;
@@ -2300,7 +2338,7 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
         J[2][i] += shape_derivatives[i][j]*node_positions[j][2];
       }
     }
-    DataType JT[2][3];
+    Real JT[2][3];
     JT[0][0] = J[0][0];
     JT[0][1] = J[1][0];
     JT[0][2] = J[2][0];
@@ -2308,14 +2346,14 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
     JT[1][1] = J[1][1];
     JT[1][2] = J[2][1];
     
-    DataType JTJ[2][2];
+    Real JTJ[2][2];
     JTJ[0][0] = JT[0][0]*J[0][0] + JT[0][1]*J[1][0] + JT[0][2]*J[2][0];
     JTJ[0][1] = JT[0][0]*J[0][1] + JT[0][1]*J[1][1] + JT[0][2]*J[2][1];
     JTJ[1][0] = JT[1][0]*J[0][0] + JT[1][1]*J[1][0] + JT[1][2]*J[2][0];
     JTJ[1][1] = JT[1][0]*J[0][1] + JT[1][1]*J[1][1] + JT[1][2]*J[2][1];
     
-    DataType invJTJ[2][2];
-    DataType detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
+    Real invJTJ[2][2];
+    detJTJ = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
     invJTJ[0][0] =  JTJ[1][1]*detJTJ;
     invJTJ[0][1] = -JTJ[0][1]*detJTJ;
     invJTJ[1][0] = -JTJ[1][0]*detJTJ;
@@ -2323,24 +2361,31 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
 
     // APPLY NEWTON ALGORITHM
 
-    DataType dx = f[0]-global_coords[0];
-    DataType dy = f[1]-global_coords[1];
-    DataType dz = f[2]-global_coords[2];
-    s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
-    t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
+    Real dx = f[0]-global_coords[0];
+    Real dy = f[1]-global_coords[1];
+    Real dz = f[2]-global_coords[2];
+    Real rx = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
+    Real ry = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
+    residualNorm2 = rx*rx + ry*ry;
+    if(iterations == 0) initialResidualNorm2 = residualNorm2;
+    if(residualNorm2 < newton_tolerance*initialResidualNorm2 || residualNorm2 < abs_newton_tolerance) converged = true;
+    else {
+      s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
+      t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
     
-    s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
-    t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
-    ds = abs(s1-s0);
-    dt = abs(t1-t0);
-    s0 = s1;
-    t0 = t1;
-    if (ds<tolerance && dt<tolerance) converged = true;
-    ++iterations;
+      s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
+      t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
+      ds = abs(s1-s0);
+      dt = abs(t1-t0);
+      s0 = s1;
+      t0 = t1;
+      //if (ds<newton_tolerance && dt<newton_tolerance) converged = true;
+      ++iterations;
+    }
   }
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
   if (!converged) {
-    std::cerr << "ContactQuadFaceL4<DataType>::Compute_Local_Coords() did not converge" 
+    std::cerr << "ContactQuadFaceL4<Real>::Compute_Local_Coords() did not converge" 
 	      << std::endl;
     std::cerr << "  Computing Coordinates for point (" << global_coords[0]
 	      << "," << global_coords[1] << "," << global_coords[2] << ")"
@@ -2357,30 +2402,34 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
     std::cerr << "                            (" << node_positions[3][0] 
 	      << "," << node_positions[3][1] << "," << node_positions[3][2]
 	      << ")" << std::endl;
-    std::cerr << "  After " << iterations << "iterations, local_coords = ("
+    std::cerr << "  After " << iterations << " iterations, local_coords = ("
 	      << s0 << "," << t0 << ")" << std::endl;
     std::cerr << "  Going to continuing processing anyway!!!" << std::endl;
   }
 #endif
   POSTCONDITION(converged);
-  // If it's close to any of the edges, snap to it
-  if (abs(s0)<1.0+spatial_tolerance) {
-    s0 = min(s0, 1.0);
-    s0 = max(s0,-1.0);
-  }
-  if (abs(t0)<1.0+spatial_tolerance) {
-    t0 = min(t0, 1.0);
-    t0 = max(t0,-1.0);
+  /*if(!converged) {
+    std::cerr << "ContactQuadFaceL4<Real>::Compute_Local_Coords() did not converge, residualNorm2 = " << residualNorm2 
+              << ", initialResidualNorm2 = " << initialResidualNorm2 << std::endl;
+  }*/
+  if(spatial_tolerance_post > 0) {
+    // If it's close to any of the edges, snap to it
+    if (abs(s0)<1.0+spatial_tolerance_post) {
+      s0 = min(s0, 1.0);
+      s0 = max(s0,-1.0);
+    }
+    if (abs(t0)<1.0+spatial_tolerance_post) {
+      t0 = min(t0, 1.0);
+      t0 = max(t0,-1.0);
+    }
   }
   local_coords[0] = s0;
   local_coords[1] = t0;
   local_coords[2] = 0.0;
-  
 }
 
-#if (MAX_FFI_DERIVATIVES > 0)
-template<>
-inline void 
+template<typename ActiveScalar>
+void 
 ContactQuadFaceL4<ActiveScalar>::Compute_Quad_Local_Coords( ActiveScalar active_node_positions[MAX_NODES_PER_FACE][3], 
 			 		 ActiveScalar active_global_coords[3],
 					 ActiveScalar active_local_coords[3] )
@@ -2400,158 +2449,79 @@ ContactQuadFaceL4<ActiveScalar>::Compute_Quad_Local_Coords( ActiveScalar active_
   using std::min;
   using std::max;
 
-  double spatial_tolerance = 1.0e-10;
-  //
-  // check for coincidence with one of the face nodes
-  //
-  for (i=0; i<nnodes; ++i) {
-    double dx = node_positions[i][0]-global_coords[0];
-    double dy = node_positions[i][1]-global_coords[1];
-    double dz = node_positions[i][2]-global_coords[2];
-    double d  = sqrt(dx*dx+dy*dy+dz*dz);
-    if (d<spatial_tolerance) break;
-  }
-  switch (i) {
-  case 0:
-    local_coords[0] = -1.0;
-    local_coords[1] = -1.0;
-    break;
-  case 1:
-    local_coords[0] =  1.0;
-    local_coords[1] = -1.0;
-    break;
-  case 2:
-    local_coords[0] =  1.0;
-    local_coords[1] =  1.0;
-    break;
-  case 3:
-    local_coords[0] = -1.0;
-    local_coords[1] =  1.0;
-    break;
-  }
-  if (i<nnodes) {
-    local_coords[2] = 0.0;
-  }
-  else {
+  if(spatial_tolerance_pre > 0) {
     //
-    // use newton's method to iterate (values only)
+    // check for coincidence with one of the face nodes
     //
-    int  iterations=0;
-    int  max_iterations=500;
-    bool converged = false;
-    double tolerance = 1.0e-12;
-    double s, s0=0.0, s1, ds=0.0; 
-    double t, t0=0.0, t1, dt=0.0;
-    double J[3][2], f[3], shape_derivatives[2][4], shape_functions[4];
-    double JT[2][3], JTJ[2][2], invJTJ[2][2];
-  
-    while (!converged && iterations<max_iterations) {
-      local_coords[0] = s0;
-      local_coords[1] = t0;
-
-      // BUILD JACOBIAN AND INVERT
-      shape_derivatives[0][0] = -0.25*(1.0-local_coords[1]);
-      shape_derivatives[0][1] =  0.25*(1.0-local_coords[1]);
-      shape_derivatives[0][2] =  0.25*(1.0+local_coords[1]);
-      shape_derivatives[0][3] = -0.25*(1.0+local_coords[1]);
-  
-      shape_derivatives[1][0] = -0.25*(1.0-local_coords[0]);
-      shape_derivatives[1][1] = -0.25*(1.0+local_coords[0]);
-      shape_derivatives[1][2] =  0.25*(1.0+local_coords[0]);
-      shape_derivatives[1][3] =  0.25*(1.0-local_coords[0]);
-
-      for (i=0; i<2; ++i) {
-        J[0][i] = 0.0;
-        J[1][i] = 0.0;
-        J[2][i] = 0.0;
-        for (j=0; j<nnodes; ++j) {
-          J[0][i] += shape_derivatives[i][j]*node_positions[j][0];
-          J[1][i] += shape_derivatives[i][j]*node_positions[j][1];
-          J[2][i] += shape_derivatives[i][j]*node_positions[j][2];
-        }
-      }
-      JT[0][0] = J[0][0];
-      JT[0][1] = J[1][0];
-      JT[0][2] = J[2][0];
-      JT[1][0] = J[0][1];
-      JT[1][1] = J[1][1];
-      JT[1][2] = J[2][1];
-    
-      JTJ[0][0] = JT[0][0]*J[0][0] + JT[0][1]*J[1][0] + JT[0][2]*J[2][0];
-      JTJ[0][1] = JT[0][0]*J[0][1] + JT[0][1]*J[1][1] + JT[0][2]*J[2][1];
-      JTJ[1][0] = JT[1][0]*J[0][0] + JT[1][1]*J[1][0] + JT[1][2]*J[2][0];
-      JTJ[1][1] = JT[1][0]*J[0][1] + JT[1][1]*J[1][1] + JT[1][2]*J[2][1];
-    
-      double detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
-      invJTJ[0][0] =  JTJ[1][1]*detJTJ;
-      invJTJ[0][1] = -JTJ[0][1]*detJTJ;
-      invJTJ[1][0] = -JTJ[1][0]*detJTJ;
-      invJTJ[1][1] =  JTJ[0][0]*detJTJ;
-
-      // APPLY NEWTON ALGORITHM
-      shape_functions[0] = 0.25*(1.0-local_coords[0])*(1.0-local_coords[1]);
-      shape_functions[1] = 0.25*(1.0+local_coords[0])*(1.0-local_coords[1]);
-      shape_functions[2] = 0.25*(1.0+local_coords[0])*(1.0+local_coords[1]);
-      shape_functions[3] = 0.25*(1.0-local_coords[0])*(1.0+local_coords[1]);
-      f[0] = 0.0;
-      f[1] = 0.0;
-      f[2] = 0.0;
-      for( int i=0 ; i<nnodes ; ++i ){
-        for (int j=0; j<3; ++j) {
-          f[j] += shape_functions[i]*node_positions[i][j];
-        }
-      }
-
-      double dx = f[0]-global_coords[0];
-      double dy = f[1]-global_coords[1];
-      double dz = f[2]-global_coords[2];
-      s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
-      t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
-    
-      s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
-      t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
-      ds = abs(s1-s0);
-      dt = abs(t1-t0);
-      s0 = s1;
-      t0 = t1;
-      if (ds<tolerance && dt<tolerance) converged = true;
-      ++iterations;
+    for (i=0; i<nnodes; ++i) {
+      double dx = node_positions[i][0]-global_coords[0];
+      double dy = node_positions[i][1]-global_coords[1];
+      double dz = node_positions[i][2]-global_coords[2];
+      double dd = dx*dx+dy*dy+dz*dz;
+      if (dd == 0 || sqrt(dd) < spatial_tolerance_pre) break;
     }
-    if(!converged) { // in this case assume we are just testing to see if the point is inside the element and 
-                     // the derivatives are not actually required
-      active_local_coords[0] = s0;
-      active_local_coords[1] = t0;
+    switch (i) {
+    case 0:
+      local_coords[0] = -1.0;
+      local_coords[1] = -1.0;
+      break;
+    case 1:
+      local_coords[0] =  1.0;
+      local_coords[1] = -1.0;
+      break;
+    case 2:
+      local_coords[0] =  1.0;
+      local_coords[1] =  1.0;
+      break;
+    case 3:
+      local_coords[0] = -1.0;
+      local_coords[1] =  1.0;
+      break;
+    }
+    if (i<nnodes) {
+      active_local_coords[0] = local_coords[0];
+      active_local_coords[1] = local_coords[1];
       active_local_coords[2] = 0.0;
       return;
     }
   }
-
   //
-  // use newton's method to iterate, starting from solution of previous solve so only one iteration will be required
+  // else use newton's method to iterate (values only)
   //
   int  iterations=0;
   int  max_iterations=500;
   bool converged = false;
-  ActiveScalar tolerance = 1.0e-12;
-  ActiveScalar s, s0=local_coords[0], s1, ds=0.0; 
-  ActiveScalar t, t0=local_coords[1], t1, dt=0.0;
-  ActiveScalar J[3][2], f[3], shape_derivatives[2][4];
-  ActiveScalar JT[2][3], JTJ[2][2], invJTJ[2][2];
+  double s, s0=0.0, s1, ds=0.0; 
+  double t, t0=0.0, t1, dt=0.0;
+  double J[3][2], f[3], shape_derivatives[2][4], shape_functions[4];
+  double JT[2][3], JTJ[2][2], invJTJ[2][2];
+  double detJTJ;
+  double residualNorm2, initialResidualNorm2;
+  double s0_copy=0.0, t0_copy=0.0;
   
   while (!converged && iterations<max_iterations) {
-    active_local_coords[0] = s0;
-    active_local_coords[1] = t0;
+    local_coords[0] = s0;
+    local_coords[1] = t0;
 
     // BUILD JACOBIAN AND INVERT
-    Compute_Shape_Derivatives(active_local_coords, shape_derivatives);
+    shape_derivatives[0][0] = -0.25*(1.0-local_coords[1]);
+    shape_derivatives[0][1] =  0.25*(1.0-local_coords[1]);
+    shape_derivatives[0][2] =  0.25*(1.0+local_coords[1]);
+    shape_derivatives[0][3] = -0.25*(1.0+local_coords[1]);
+  
+    shape_derivatives[1][0] = -0.25*(1.0-local_coords[0]);
+    shape_derivatives[1][1] = -0.25*(1.0+local_coords[0]);
+    shape_derivatives[1][2] =  0.25*(1.0+local_coords[0]);
+    shape_derivatives[1][3] =  0.25*(1.0-local_coords[0]);
+
     for (i=0; i<2; ++i) {
       J[0][i] = 0.0;
       J[1][i] = 0.0;
       J[2][i] = 0.0;
       for (j=0; j<nnodes; ++j) {
-        J[0][i] += shape_derivatives[i][j]*active_node_positions[j][0];
-        J[1][i] += shape_derivatives[i][j]*active_node_positions[j][1];
-        J[2][i] += shape_derivatives[i][j]*active_node_positions[j][2];
+        J[0][i] += shape_derivatives[i][j]*node_positions[j][0];
+        J[1][i] += shape_derivatives[i][j]*node_positions[j][1];
+        J[2][i] += shape_derivatives[i][j]*node_positions[j][2];
       }
     }
     JT[0][0] = J[0][0];
@@ -2566,60 +2536,132 @@ ContactQuadFaceL4<ActiveScalar>::Compute_Quad_Local_Coords( ActiveScalar active_
     JTJ[1][0] = JT[1][0]*J[0][0] + JT[1][1]*J[1][0] + JT[1][2]*J[2][0];
     JTJ[1][1] = JT[1][0]*J[0][1] + JT[1][1]*J[1][1] + JT[1][2]*J[2][1];
     
-    ActiveScalar detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
+    detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
     invJTJ[0][0] =  JTJ[1][1]*detJTJ;
     invJTJ[0][1] = -JTJ[0][1]*detJTJ;
     invJTJ[1][0] = -JTJ[1][0]*detJTJ;
     invJTJ[1][1] =  JTJ[0][0]*detJTJ;
 
     // APPLY NEWTON ALGORITHM
-    Compute_Global_Coords( active_node_positions, active_local_coords, f );
-    ActiveScalar dx = f[0]-active_global_coords[0];
-    ActiveScalar dy = f[1]-active_global_coords[1];
-    ActiveScalar dz = f[2]-active_global_coords[2];
-    s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
-    t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
-    
-    s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
-    t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
-    ds = abs(s1-s0);
-    dt = abs(t1-t0);
-    s0 = s1;
-    t0 = t1;
-    if (ds<tolerance && dt<tolerance) converged = true;
-    ++iterations;
-  }
-#if CONTACT_DEBUG_PRINT_LEVEL>=2
-  if (!converged) {
-    std::cerr << "ContactQuadFaceL4<ActiveScalar>::Compute_Local_Coords() did not converge"
-              << std::endl;
-    std::cerr << "  Computing Coordinates for point (" << global_coords[0]
-              << "," << global_coords[1] << "," << global_coords[2] << ")"
-              << std::endl;
-    std::cerr << "  Face Nodal Coordinates:   (" << node_positions[0][0]
-              << "," << node_positions[0][1] << "," << node_positions[0][2]
-              << ")" << std::endl;
-    std::cerr << "                            (" << node_positions[1][0]
-              << "," << node_positions[1][1] << "," << node_positions[1][2]
-              << ")" << std::endl;
-    std::cerr << "                            (" << node_positions[2][0]
-              << "," << node_positions[2][1] << "," << node_positions[2][2]
-              << ")" << std::endl;
-    std::cerr << "                            (" << node_positions[3][0]
-              << "," << node_positions[3][1] << "," << node_positions[3][2]
-              << ")" << std::endl;
-    std::cerr << "  After " << iterations << "iterations, local_coords = ("
-              << s0 << "," << t0 << ")" << std::endl;
-    std::cerr << "  Going to continuing processing anyway!!!" << std::endl;
-  }
-#endif
-  POSTCONDITION(converged);
+    shape_functions[0] = 0.25*(1.0-local_coords[0])*(1.0-local_coords[1]);
+    shape_functions[1] = 0.25*(1.0+local_coords[0])*(1.0-local_coords[1]);
+    shape_functions[2] = 0.25*(1.0+local_coords[0])*(1.0+local_coords[1]);
+    shape_functions[3] = 0.25*(1.0-local_coords[0])*(1.0+local_coords[1]);
+    f[0] = 0.0;
+    f[1] = 0.0;
+    f[2] = 0.0;
+    for( int i=0 ; i<nnodes ; ++i ){
+      for (int j=0; j<3; ++j) {
+        f[j] += shape_functions[i]*node_positions[i][j];
+      }
+    }
 
-  active_local_coords[0] = s0;
-  active_local_coords[1] = t0;
-  active_local_coords[2] = 0.0;
+    double dx = f[0]-global_coords[0];
+    double dy = f[1]-global_coords[1];
+    double dz = f[2]-global_coords[2];
+    double rx = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
+    double ry = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
+    residualNorm2 = rx*rx + ry*ry;
+    if(iterations == 0) initialResidualNorm2 = residualNorm2;
+    if(residualNorm2 < newton_tolerance*initialResidualNorm2 || residualNorm2 < abs_newton_tolerance) converged = true;
+    else {
+      s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
+      t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
+
+      s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
+      t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
+      ds = abs(s1-s0);
+      dt = abs(t1-t0);
+      s0_copy=s0; t0_copy=t0;
+      s0 = s1;
+      t0 = t1;
+      //if (ds<newton_tolerance && dt<newton_tolerance) converged = true;
+      ++iterations;
+    }
+  }
+  /*if(!converged) {
+    std::cerr << "ContactQuadFaceL4<ActiveScalar>::Compute_Local_Coords() did not converge, residualNorm2 = " << residualNorm2 
+              << ", initialResidualNorm2 = " << initialResidualNorm2 << std::endl;
+  }*/
+  {
+    //
+    // repeat last newton iteration to get derivatives
+    //
+    int  iterations=0;
+    int  max_iterations=1;
+    bool converged = false;
+    ActiveScalar s, s0=s0_copy, s1, ds=0.0; 
+    ActiveScalar t, t0=t0_copy, t1, dt=0.0;
+    ActiveScalar J[3][2], f[3], shape_derivatives[2][4];
+    ActiveScalar JT[2][3], JTJ[2][2], invJTJ[2][2];
+  
+    while (!converged && iterations<max_iterations) {
+      active_local_coords[0] = s0;
+      active_local_coords[1] = t0;
+
+      // BUILD JACOBIAN AND INVERT
+      Compute_Shape_Derivatives(active_local_coords, shape_derivatives);
+      for (i=0; i<2; ++i) {
+        J[0][i] = 0.0;
+        J[1][i] = 0.0;
+        J[2][i] = 0.0;
+        for (j=0; j<nnodes; ++j) {
+          J[0][i] += shape_derivatives[i][j]*active_node_positions[j][0];
+          J[1][i] += shape_derivatives[i][j]*active_node_positions[j][1];
+          J[2][i] += shape_derivatives[i][j]*active_node_positions[j][2];
+        }
+      }
+      JT[0][0] = J[0][0];
+      JT[0][1] = J[1][0];
+      JT[0][2] = J[2][0];
+      JT[1][0] = J[0][1];
+      JT[1][1] = J[1][1];
+      JT[1][2] = J[2][1];
+    
+      JTJ[0][0] = JT[0][0]*J[0][0] + JT[0][1]*J[1][0] + JT[0][2]*J[2][0];
+      JTJ[0][1] = JT[0][0]*J[0][1] + JT[0][1]*J[1][1] + JT[0][2]*J[2][1];
+      JTJ[1][0] = JT[1][0]*J[0][0] + JT[1][1]*J[1][0] + JT[1][2]*J[2][0];
+      JTJ[1][1] = JT[1][0]*J[0][1] + JT[1][1]*J[1][1] + JT[1][2]*J[2][1];
+    
+      ActiveScalar detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
+      invJTJ[0][0] =  JTJ[1][1]*detJTJ;
+      invJTJ[0][1] = -JTJ[0][1]*detJTJ;
+      invJTJ[1][0] = -JTJ[1][0]*detJTJ;
+      invJTJ[1][1] =  JTJ[0][0]*detJTJ;
+
+      // APPLY NEWTON ALGORITHM
+      Compute_Global_Coords( active_node_positions, active_local_coords, f );
+      ActiveScalar dx = f[0]-active_global_coords[0];
+      ActiveScalar dy = f[1]-active_global_coords[1];
+      ActiveScalar dz = f[2]-active_global_coords[2];
+      s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
+      t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
+    
+      s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
+      t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
+      ds = abs(s1-s0);
+      dt = abs(t1-t0);
+      s0 = s1;
+      t0 = t1;
+      //if (ds<newton_tolerance && dt<newton_tolerance) converged = true;
+      ++iterations;
+    }
+    if(spatial_tolerance_post > 0) {
+      // If it's close to any of the edges, snap to it
+      if (abs(s0)<1.0+spatial_tolerance_post) {
+        s0 = min(s0, 1.0);
+        s0 = max(s0,-1.0);
+      }
+      if (abs(t0)<1.0+spatial_tolerance_post) {
+        t0 = min(t0, 1.0);
+        t0 = max(t0,-1.0);
+      }
+    }
+    active_local_coords[0] = s0;
+    active_local_coords[1] = t0;
+    active_local_coords[2] = 0.0;
+  }
 }
-#endif
 
 template<typename DataType>
 void ContactQuadFaceL4<DataType>::Compute_Global_Coords( DataType node_positions[4][3],

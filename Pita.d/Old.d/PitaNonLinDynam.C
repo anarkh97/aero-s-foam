@@ -4,8 +4,12 @@
 #include <Control.d/ControlInterface.h>
 #include <Comm.d/Communicator.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
+#include <Driver.d/ControlLawInfo.h>
+#include <Math.d/DBSparseMatrix.h>
 #include <Timers.d/StaticTimers.h>
 #include <Utils.d/dofset.h>
+#include <Utils.d/DistHelper.h>
 
 #include <iostream>
 
@@ -122,7 +126,7 @@ PitaNonLinDynamic::pitaDynamOutput(int timeSliceRank, GeomState* geomState, Vect
                                    Vector& vp, double time, int step, Vector& force, Vector &aeroF)
 {
   times->output -= getTime();
-  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF, time, step + 1, velocity.data(), vcx, allCorot, melArray);
+  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF, time, step + 1, velocity.data(), vcx, allCorot);
   times->output += getTime();
 }
 

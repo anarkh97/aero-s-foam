@@ -4,6 +4,7 @@
 #include <Element.d/Element.h>
 
 class DofSet;
+template <class Scalar> class GenAssembledFullM;
 
 class MatrixElement : public Element
 {

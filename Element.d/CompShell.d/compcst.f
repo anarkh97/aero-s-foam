@@ -612,7 +612,7 @@ C
 C
       if (   E1.le.zero ) go to 500
       if (   E2.le.zero ) go to 500
-      if ( nu12.le.zero ) go to 500
+C     if ( nu12.le.zero ) go to 500
       if (  G12.le.zero ) go to 500
       if (  mu1.lt.zero ) go to 500
       if (  mu2.lt.zero ) go to 500

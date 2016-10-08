@@ -3,6 +3,14 @@
 namespace Rom {
 
 template
+void
+outputFullWeights<Vector,std::vector<int> >(const Vector &weights, const std::vector<int> &elemIds, int j);
+
+template
+void
+outputFullWeights<std::vector<double>,std::vector<int> >(const std::vector<double> &weights, const std::vector<int> &elemIds, int j);
+
+template
 int
 ElementSamplingDriver<std::vector<double>,size_t>
 ::elementCount() const;
@@ -23,14 +31,14 @@ ElementSamplingDriver<std::vector<double>,size_t>
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
-::assembleTrainingData(const VecBasis &podBasis, const int podVectorCount, const VecBasis &displac,
-                       const VecBasis *veloc, const VecBasis *accel);
+::assembleTrainingData(VecBasis &podBasis, int podVectorCount, VecBasis &displac,
+                       VecBasis *veloc, VecBasis *accel, int j);
 
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
-::assembleTrainingData(const std::vector<StackVector> &podBasis, const int podVectorCount, const std::vector<StackVector> &displac,
-                       const std::vector<StackVector> *veloc, const std::vector<StackVector> *accel);
+::assembleTrainingData(std::vector<StackVector> &podBasis, int podVectorCount, std::vector<StackVector> &displac,
+                       std::vector<StackVector> *veloc, std::vector<StackVector> *accel, int j);
 
 template
 void
@@ -61,61 +69,5 @@ template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
 ::clean();
-
-#ifdef USE_STXXL
-template
-int
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::elementCount() const;
-
-template
-int
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::vectorSize() const;
-
-template
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::ElementSamplingDriver(Domain *d);
-
-template
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::~ElementSamplingDriver();
-
-template
-void
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::assembleTrainingData(const VecBasis &podBasis, const int podVectorCount, const VecBasis &displac,
-                       const VecBasis *veloc, const VecBasis *accel);
-
-template
-void
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::solve();
-
-template
-void
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::computeSolution(Vector &solution, double tol, bool verboseFlag);
-
-template
-void
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::postProcess(Vector &solution, bool verboseFlag);
-
-template
-void
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::preProcess();
-
-template
-void
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::buildDomainCdsa();
-
-template
-void
-ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::clean();
-#endif
 
 } // end namespace Rom

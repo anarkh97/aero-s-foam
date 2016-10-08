@@ -74,22 +74,25 @@ class ContactTopologyDLL {
 
 //=================================================================================================================
 
+template<typename DataType>
 class ContactInteractionDLL {
 
  public:
-  ContactInteractionDLL();
-  ~ContactInteractionDLL();
-  void Append( ContactInteractionEntity* );
+  ContactInteractionDLL() {current = data.begin();};
+
+  ~ContactInteractionDLL() {Clear();};
+
+  void Append( ContactInteractionEntity<DataType>* entity) {data.push_back(entity);};
   
   void DeletePrev() {
-    std::vector< ContactInteractionEntity* >::iterator data_to_erase = current; 
+    typename std::vector< ContactInteractionEntity<DataType>* >::iterator data_to_erase = current; 
     data_to_erase--;   
     data.erase(data_to_erase);
-  }
+  };
   
   inline void IteratorStart() {current = data.begin();};
 
-  inline ContactInteractionEntity* IteratorForward() { 
+  inline ContactInteractionEntity<DataType>* IteratorForward() { 
     if(current < data.end()) {
       return *(current++);
     } else {
@@ -97,19 +100,27 @@ class ContactInteractionDLL {
     }
   };
 
-  inline ContactInteractionEntity* HeadEntity() {return data[0];};
+  inline ContactInteractionEntity<DataType>* HeadEntity() {return data[0];};
 
-  inline ContactInteractionEntity* CurrentEntity() {return *current;};
+  inline ContactInteractionEntity<DataType>* CurrentEntity() {return *current;};
 
   inline int NumEntities() {return data.size();};
   
-  void Display(ContactParOStream&);
-  void Reset();
-  void Clear();
+  void Display(ContactParOStream& postream) {
+    int cur_size = data.size();
+    for(int i = 0; i < cur_size; ++i) {
+      data[i]->Display(postream);
+    }
+  };
+
+  void Clear() {
+    data.clear();
+    current = data.begin();
+  };
 
  private:
-  std::vector< ContactInteractionEntity* > data;
-  std::vector< ContactInteractionEntity* >::iterator current;
+  std::vector< ContactInteractionEntity<DataType>* > data;
+  typename std::vector< ContactInteractionEntity<DataType>* >::iterator current;
 };
 
 #endif

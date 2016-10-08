@@ -866,15 +866,6 @@ MDAxiDesc::postProcessing(DistrComplexVector &u) {
      }
  }
 
-/*
- fprintf(stderr,"\n ---------- PROBLEM PARAMETERS --------");
- for (k=0; k<=glBCs->numModes; ++k) {
-    fprintf(stderr,"\n ... Mode cos # %d        = %e ...",k,sqrt(coeff[k]));
-  if (k>0)
-    fprintf(stderr,"\n ... Mode sin # %d        = %e ...",k,sqrt(scoeff[k]));
- }
- fprintf(stderr,"\n --------------------------------------\n");
-*/
  if (glScatter) 
    buildFFP(globalsol, u);
 

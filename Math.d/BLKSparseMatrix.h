@@ -73,10 +73,10 @@ protected:
 
    // Stiffness matrix
    GenBLKSparseMatrix(Connectivity *, DofSetArray *, DofSetArray *,
-                      double tolerance, SolverCntl& _scntl, Rbm *rbm=0);
+                      double tolerance, SolverCntl& _scntl, Rbm *rbm = 0);
    // Kii
    GenBLKSparseMatrix(Connectivity *, DofSetArray *, int *dofmap,
-                      double tolerance, SolverCntl& _scntl, Rbm *rbm=0);
+                      double tolerance, SolverCntl& _scntl);
    // GtG, Kcc
    GenBLKSparseMatrix(Connectivity *, EqNumberer *, double tolerance, SolverCntl& _scntl, int ngrbm = 0);
 
@@ -158,9 +158,5 @@ class WrapSparseMat : public GenBLKSparseMatrix<Scalar>
 
 typedef GenBLKSparseMatrix<double> BLKSparseMatrix;
 typedef GenBLKSparseMatrix<DComplex> BLKSparseMatrixC;
-
-#ifdef _TEMPLATE_FIX_
-#include <Math.d/BLKSparseMatrix.C>
-#endif
 
 #endif

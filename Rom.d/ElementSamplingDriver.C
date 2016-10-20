@@ -272,14 +272,13 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
         in >> data;
         assert(in);
         config[offset+count] = snapshot.data();
-        // no longer projecting snapshots since this can remove relevent components during training for predictive HROMS
-        /*if(domain->solInfo().useMassOrthogonalProjection) {
+        if(domain->solInfo().useMassOrthogonalProjection) {
           M->mult(snapshot, Msnapshot);
           expand(podBasis, reduce(podBasis, Msnapshot, podComponents), config[offset+count]);
         }
         else {
           expand(podBasis, reduce(podBasis, snapshot, podComponents), config[offset+count]);
-        }*/
+        }
         timeStamps.push_back(data.first);
         if(!domain->solInfo().randomVecSampling)
           skipCounter = 1;

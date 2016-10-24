@@ -773,11 +773,10 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
     double (*gpstress)[9] = new double[getNumGaussPoints()][9];
     //Tensor &gradUn = *shapeF->getGradUInstance();
     Tensor &en = *strainEvaluator->getStrainInstance();
-    Tensor &Dnp = *strainEvaluator->getTMInstance();
 
     for(int i = 0; i < getNumGaussPoints(); i++) {
 
-      double point[3], weight, jacn, jacnp, tempnp;
+      double point[3], weight, tempnp;
       //StackVector dispVecn(dispn, ndofs);
       StackVector dispVecnp(dispnp, ndofs);
 
@@ -791,9 +790,8 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
       // compute temperature at integration point
       tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
-      material->integrate(&s, &Dnp, en, enp,
+      material->integrate(&s, en, enp,
                           staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, cache);
-
       strainEvaluator->transformStress(s, cache, S);
 
       if(avgnum == -1) copyTens(&S, result[i]);
@@ -815,8 +813,8 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
     }
 
     delete [] gpstress;
+    //delete &gradUn;
     delete &en;
-    delete &Dnp;
   }
 
   delete &gradUnp;
@@ -842,22 +840,8 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
   NLMaterial *material = getMaterial();
 
   // Obtain the storage for gradU ( 3x3 )
-  Tensor &gradUn = *shapeF->getGradUInstance();
   Tensor &gradUnp = *shapeF->getGradUInstance();
-  // Obtain the storage for dgradUdqk ( ndof x3x3 )
-  Tensor &dgradUdqkn = *shapeF->getDgradUDqkInstance();
-  Tensor &dgradUdqknp = *shapeF->getDgradUDqkInstance();
 
-  // NDofsx3x3x-> 6xNDofs
-  Tensor &Bn = *strainEvaluator->getBInstance(ndofs);
-  Tensor &Bnp = *strainEvaluator->getBInstance(ndofs);
-
-  // NdofsxNdofsx3x3x -> 6xNdofsxNdofs but sparse
-  Tensor &DBn = *strainEvaluator->getDBInstance(ndofs);
-  Tensor &DBnp = *strainEvaluator->getDBInstance(ndofs);
-
-  Tensor &Dnp = *strainEvaluator->getTMInstance();
-  Tensor &en = *strainEvaluator->getStrainInstance();
   Tensor &enp = *strainEvaluator->getStrainInstance();
   Tensor &s = *strainEvaluator->getStressInstance();
 
@@ -897,25 +881,27 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
   else { // evaluate at the gauss points and (if avgnum != -1) extrapolate to the nodes
 
     double *gpstress = new double[getNumGaussPoints()];
+    //Tensor &gradUn = *shapeF->getGradUInstance();
+    Tensor &en = *strainEvaluator->getStrainInstance();
 
     for(int i = 0; i < getNumGaussPoints(); i++) {
 
-      double point[3], weight, jacn, jacnp, tempnp;
+      double point[3], weight, tempnp;
       //StackVector dispVecn(dispn, ndofs);
       StackVector dispVecnp(dispnp, ndofs);
 
       getGaussPointAndWeight(i, point, weight);
 
-      //shapeF->getGlobalGrads(&gradUn, &dgradUdqkn, &jacn, nodes, point, dispVecn);
-      shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
-      //strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn, cachen);
-      strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp, cache, staten + nstatepgp*i);
+      //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
+      shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
+      //strainEvaluator->getE(en, gradUn);
+      strainEvaluator->getE(enp, gradUnp, cache, staten + nstatepgp*i);
 
       // compute temperature at integration point
       tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
-      material->integrate(&s, &Dnp, en, enp,
-                          staten + nstatepgp*i, statenp + nstatepgp*i, 0, cache);
+      material->integrate(&s, en, enp,
+                          staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, cache);
       strainEvaluator->transformStress(s, cache, S);
 #ifdef USE_EIGEN3
       Eigen::Matrix3d M;
@@ -944,20 +930,13 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
     }
 
     delete [] gpstress;
+    //delete &gradUn;
+    delete &en;
   }
 
-  delete &gradUn;
   delete &gradUnp;
-  delete &dgradUdqkn;
-  delete &dgradUdqknp;
-  delete &Bn;
-  delete &DBn;
-  delete &Bnp;
-  delete &DBnp;
-  delete &en;
   delete &enp;
   delete &s;
-  delete &Dnp;
   if(cache) delete cache;
 }
 

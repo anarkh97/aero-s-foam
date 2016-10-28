@@ -78,16 +78,13 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int pod
   meshOut.precision(std::numeric_limits<double>::digits10+1);
   std::string basisfile = getMeshFilename(fileInfo).c_str();
   basisfile.append(".compressed.basis");
-  if(domain->numInitDisp() || domain->numInitDisp6() || domain->numInitVelocity()) {
-    std::string basisfile2(basisfile);
-    if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) basisfile2.append(".normalized");
-    meshOut << "READMODE \"" << basisfile << "\" \"" << basisfile2 << "\" " << podVectorCount << "\n";
+  meshOut << "READMODE\n";
+  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
+    meshOut << "0 mnorm \"" << basisfile << ".normalized\" " << podVectorCount << "\n"; 
   }
   else {
-    meshOut << "READMODE \"" << basisfile << "\" " << podVectorCount << "\n";
+    meshOut << "0 inorm \"" << basisfile << "\" " << podVectorCount << "\n";
   }
-  if(!domain->solInfo().useMassNormalizedBasis && domain->solInfo().newmarkBeta != 0)
-    meshOut << "use_mass_normalized_basis off\n";
   meshOut << "*\n";
   meshOut << mesh;
 }
@@ -100,23 +97,15 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const std::ve
   meshOut.precision(std::numeric_limits<double>::digits10+1);
   std::string basisfile = getMeshFilename(fileInfo).c_str();
   basisfile.append(".compressed.basis");
-  if(domain->numInitDisp() || domain->numInitDisp6() || domain->numInitVelocity()) {
-    //std::cerr << "Error: IDISP/IVEL is not supported yet for local bases\n";
-    //exit(-1);
-    for(int j=0; j<localBasisSize.size(); ++j) {
-      meshOut << "READMODE \"" << basisfile << j+1 << "\" \"" << basisfile << j+1;
-      if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0)
-        meshOut << ".normalized";
-      meshOut << "\" " << localBasisSize[j] << std::endl;
+  meshOut << "READMODE\n";
+  for(int j=0; j<localBasisSize.size(); ++j) {
+    if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
+      meshOut << j << " mnorm \"" << basisfile << ".normalized\" " << localBasisSize[j] << "\n";                
+    }
+    else {
+      meshOut << j << " inorm \"" << basisfile << "\" " << localBasisSize[j] << "\n";
     }
   }
-  else {
-    for(int j=0; j<localBasisSize.size(); ++j) {
-      meshOut << "READMODE \"" << basisfile << j+1 << "\" " << localBasisSize[j] << "\n";
-    }
-  }
-  if(!domain->solInfo().useMassNormalizedBasis && domain->solInfo().newmarkBeta != 0)
-    meshOut << "use_mass_normalized_basis off\n";
   meshOut << "*\n";
   meshOut << mesh;
 }

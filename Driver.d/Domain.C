@@ -1392,7 +1392,7 @@ Domain::setUpData(int topFlag)
   setIDis(numBC, bc);
   numBC = geoSource->getIDisModal(bc);
   if(numBC) {
-    if(solInfo().keepModalInitialConditions()) { // for modal dynamics, keep the modal idisp and non-modal idisp separate
+    if(solInfo().keepModalInitialDisplacements()) { // for modal dynamics, keep the modal idisp and non-modal idisp separate
       setIDisModal(numBC, bc);
     }
     else { // for non-modal dynamics convert the modal idisp into non-modal idisp
@@ -1416,7 +1416,7 @@ Domain::setUpData(int topFlag)
   setIVel(numBC, bc);
   numBC = geoSource->getIVelModal(bc);
   if(numBC) {
-    if(solInfo().keepModalInitialConditions()) { // for modal dynamics, keep the modal ivel and non-modal ivel separate
+    if(solInfo().keepModalInitialVelocities()) { // for modal dynamics, keep the modal ivel and non-modal ivel separate
       setIVelModal(numBC, bc);
     }
     else {

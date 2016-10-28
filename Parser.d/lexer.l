@@ -86,6 +86,10 @@ TRAIL [a-zA-Z]*
 
 "READMODE"[a-zA-Z]*|"readmode"[a-zA-Z]* { return READMODE; }
 
+"MNORM"|"mnorm"                    { yylval.ival = ModalParams::Mnorm; return ROBTYPE; }
+"INORM"|"inorm"                    { yylval.ival = ModalParams::Inorm; return ROBTYPE; }
+"NONEG"|"noneg"                    { yylval.ival = ModalParams::Noneg; return ROBTYPE; }
+
 "DUALBASIS"|"dualbasis"            { return DUALBASIS; }
 
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
@@ -621,7 +625,9 @@ TRAIL [a-zA-Z]*
 
 "QSTA"[a-zA-Z]*|"qsta"[a-zA-Z]*    { return QSTATIC; }
 
-"modal"|"MODAL"                    { return MODAL; }
+"modal"|"MODAL"|"srom"|"SROM"      { return MODAL; }
+
+"contact"|"CONTACT"                { return CONTACT; }
 
 "precn"o[a-zA-Z]*|"PRECN"O[a-zA-Z]* { return PRECNO; }
 

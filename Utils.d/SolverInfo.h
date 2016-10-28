@@ -63,6 +63,17 @@ public:
    double betaD;
 };
 
+struct ModalParams {
+public:
+  enum Type { Undefined=0, Eigen, Mnorm, Inorm, Noneg } type;
+  ModalParams() {}
+  ModalParams(Type type, std::string fileName, int numvec = 0, double tolerance = 0.)
+    : type(type), fileName(fileName), numvec(numvec), tolerance(tolerance) {}
+  std::string fileName;
+  int numvec;
+  double tolerance;
+};
+
 struct SolverInfo {
 
  private:
@@ -146,7 +157,9 @@ struct SolverInfo {
                                // (0.0 = Use default value: pitaTimeGridRatio^2, -1.0 = Deactivated)
    bool pitaJumpMagnOutput;    // Enables the output of the relative magnitude of the jumps
 
-   bool modal;          // true iff system is to be solved in modal coordinates
+   bool modal;                 // true iff system is to be solved in modal coordinates
+   std::vector<int> modal_id;
+   std::vector<int> contact_modal_id;
    bool acoustic;       // true iff system is to be solved for acoustic time domain
    bool modifiedWaveEquation; // true if solving using the modified wave equation
    double modifiedWaveEquationCoef; // value for the coefficient (theoretically 12.0)
@@ -363,7 +376,7 @@ struct SolverInfo {
    std::vector<std::string> readInDualROB; 
    std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
    std::vector<std::string> readInLocalBasesCent;
-   std::vector<std::string> readInModes;
+   std::map<int,ModalParams> readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
    const char * readInShapeSen;
@@ -390,7 +403,9 @@ struct SolverInfo {
    bool residvectPodRom;
    bool jacobvectPodRom;
    bool readmodeCalled;
-   bool modalCalled;
+   bool modalCalled; // true if modal idisp, modal ivel or modal damping are used
+   int  idis_modal_id;
+   int  ivel_modal_id;
    bool modalLMPC;
    bool modalDIMASS;
    const char * reducedMassFile;
@@ -751,6 +766,7 @@ struct SolverInfo {
                   jacobvectPodRom    = false;
                   readmodeCalled     = false;
                   modalCalled        = false;
+                  idis_modal_id = ivel_modal_id = -1;
                   modalLMPC          = false;
                   modalDIMASS        = false;
                   reducedMassFile    = "";
@@ -1120,25 +1136,12 @@ struct SolverInfo {
              || (probType == MatNonLinStatic) || (probType == ArcLength));
    }
 
-   bool keepModalInitialConditions() {
-     if(galerkinPodRom) {
-       // for nonlinear ROMs, keep the modal ivel and non-modal ivel separate
-       // only if the basis used to define the initial conditions is the same
-       // as the ROB.
-       for(int i = 0; i<readInROBorModes.size(); ++i){
-         std::string rob(readInROBorModes[i]);
-         if(useMassNormalizedBasis) rob.append(".normalized");
-         std::string icb(readInModes[i]);
-         if(!(rob.compare(icb) == 0))// if files are different, compute modal IC's for all
-          return false;
-          
-       }
-       return true;// otherwise keep supplied modal ivel 
-     }
-     else {
-       // for linear ROMs, keep the modal ivel and non-modal ivel separate
-       return modal;
-     }
+   bool keepModalInitialDisplacements() {
+     return (!modal_id.empty() && (idis_modal_id == -1 || idis_modal_id == modal_id.front()));
+   }
+
+   bool keepModalInitialVelocities() {
+     return (!modal_id.empty() && (ivel_modal_id == -1 || ivel_modal_id == modal_id.front()));
    }
 
    int classifySolver();

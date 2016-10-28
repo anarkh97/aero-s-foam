@@ -571,13 +571,56 @@ int main(int argc, char** argv)
    }
  }
 
- if(domain->solInfo().readmodeCalled) {
-   if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag || domain->solInfo().aeroFlag == 8 || domain->probType() == SolverInfo::Modal)
-      && domain->solInfo().readInModes.empty()) {
-     domain->readInModes(domain->solInfo().readInROBorModes[0].c_str());
-   }
-   else {
-     if (!domain->solInfo().samplingPodRom) {
+ if(!domain->solInfo().readInModes.empty()) {
+   if((domain->solInfo().isNonLin() && !domain->solInfo().modal_id.empty()) || domain->solInfo().activatePodRom) {
+     for(int i=0; i<domain->solInfo().modal_id.size(); ++i) {
+       ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id[i]];
+       switch(modalParams.type) {
+         case ModalParams::Inorm : {
+           domain->solInfo().readInROBorModes.push_back(modalParams.fileName);
+           domain->solInfo().localBasisSize.push_back(modalParams.numvec);
+           domain->solInfo().maxSizePodRom += modalParams.numvec;
+           domain->solInfo().useMassNormalizedBasis = false;
+         } break;
+         case ModalParams::Mnorm : {
+           std::string::size_type n = modalParams.fileName.rfind(".normalized");
+           if(n != std::string::npos) {
+             domain->solInfo().readInROBorModes.push_back(modalParams.fileName.substr(0,n));
+             domain->solInfo().localBasisSize.push_back(modalParams.numvec);
+             domain->solInfo().maxSizePodRom += modalParams.numvec;
+             domain->solInfo().useMassNormalizedBasis = true;
+           }
+           else {
+             filePrint(stderr, " *** ERROR: Specified filename for rob_id#%d is missing \".normalized\" extension.\n",i+1);
+             exit(-1);
+           }
+         } break;
+         case ModalParams::Undefined : {
+           domain->solInfo().readInROBorModes.push_back(modalParams.fileName);
+           domain->solInfo().localBasisSize.push_back(modalParams.numvec);
+           domain->solInfo().maxSizePodRom += modalParams.numvec;
+           domain->solInfo().useMassNormalizedBasis = true;
+         } break;
+         default : {
+           filePrint(stderr, " *** ERROR: Specified type for rob_id#%d is not supported.\n", i+1);
+           exit(-1);
+         } break;
+       }
+     }
+     for(int i=0; i<domain->solInfo().contact_modal_id.size(); ++i) {
+       ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().contact_modal_id[i]];
+       switch(modalParams.type) {
+         case ModalParams::Noneg : {
+           domain->solInfo().readInDualROB.push_back(modalParams.fileName);
+           domain->solInfo().localDualBasisSize.push_back(modalParams.numvec);
+         } break;
+         default : {
+           filePrint(stderr, " *** ERROR: Specified type for rob_id#%d is not supported.\n", domain->solInfo().modal_id.size()+i+1);
+           exit(-1);
+         } break;
+       }
+     }
+     if(!domain->solInfo().samplingPodRom) {
        domain->solInfo().activatePodRom = true;
        domain->solInfo().galerkinPodRom = true;
 #ifdef USE_EIGEN3
@@ -586,10 +629,15 @@ int main(int argc, char** argv)
        domain->solInfo().subtype = 12;
 #endif
      }
-     if(domain->solInfo().modalCalled) {
-       // for doing ROM with 2 sets of modes, #1 for the reduced order basis and #2 for modal IDISP/IVEL
-       domain->readInModes(domain->solInfo().readInModes[0].c_str());
-     }
+     // XXX for doing nonlinear ROM with different modes for initial conditions
+     if(domain->solInfo().idis_modal_id != -1)
+       domain->readInModes(domain->solInfo().readInModes[domain->solInfo().idis_modal_id].fileName.c_str());
+     else if(domain->solInfo().ivel_modal_id != -1)
+       domain->readInModes(domain->solInfo().readInModes[domain->solInfo().ivel_modal_id].fileName.c_str());
+   }
+   else {
+     int modal_id = (domain->solInfo().modal_id.empty()) ? 0 : domain->solInfo().modal_id.front(); // XXX
+     domain->readInModes(domain->solInfo().readInModes[modal_id].fileName.c_str());
    }
  }
 

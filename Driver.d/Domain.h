@@ -82,6 +82,7 @@ typedef GenSubDOp<double> SubDOp;
 template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
+struct ModeData;
 
 namespace Rom {
 template <typename Scalar> class GenGalerkinProjectionSolver;
@@ -469,7 +470,7 @@ class Domain : public HData {
      void setVerbose() { outFile = stderr; }
      void setSilent()  { outFile = 0;      }
      void setOutputMatchInTop(bool b) {output_match_in_top = b;};
-     void readInModes(const char* modesFileName);
+     void readInModes(int modal_id, ModeData &modeData);
      void readInShapeDerivatives(char* shapeDerFileName);
      void setSowering(bool b) { sowering = b;}
      bool getSowering() { return sowering;}

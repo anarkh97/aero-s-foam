@@ -139,6 +139,10 @@ std::string connectivity_ = "INPUT.con";
 
 extern const char *THE_VERSION;
 
+extern ModeData modeData;
+extern ModeData modeDataIDis;
+extern ModeData modeDataIVel;
+
 // ... main program
 
 #ifdef CREATE_DSO
@@ -630,16 +634,15 @@ int main(int argc, char** argv)
        domain->solInfo().subtype = 12;
 #endif
      }
-     // XXX for doing nonlinear ROM with different modes for initial conditions
-     if(domain->solInfo().idis_modal_id != -1)
-       domain->readInModes(domain->solInfo().readInModes[domain->solInfo().idis_modal_id].fileName.c_str());
-     else if(domain->solInfo().ivel_modal_id != -1)
-       domain->readInModes(domain->solInfo().readInModes[domain->solInfo().ivel_modal_id].fileName.c_str());
    }
    else {
-     int modal_id = (domain->solInfo().modal_id.empty()) ? 0 : domain->solInfo().modal_id.front(); // XXX
-     domain->readInModes(domain->solInfo().readInModes[modal_id].fileName.c_str());
+     int modal_id = (domain->solInfo().modal_id.empty()) ? 0 : domain->solInfo().modal_id.front();
+     domain->readInModes(modal_id, modeData);
    }
+   if(domain->solInfo().idis_modal_id != -1)
+     domain->readInModes(domain->solInfo().idis_modal_id, modeDataIDis);
+   if(domain->solInfo().ivel_modal_id != -1)
+     domain->readInModes(domain->solInfo().ivel_modal_id, modeDataIVel);
  }
 
  if(domain->solInfo().readShapeSen) {

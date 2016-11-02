@@ -635,7 +635,7 @@ int main(int argc, char** argv)
 #endif
      }
    }
-   else {
+   else if(!domain->solInfo().modal_id.empty() || domain->solInfo().readInModes.find(0) != domain->solInfo().readInModes.end()) {
      int modal_id = (domain->solInfo().modal_id.empty()) ? 0 : domain->solInfo().modal_id.front();
      domain->readInModes(modal_id, modeData);
    }

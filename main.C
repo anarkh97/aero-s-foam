@@ -32,6 +32,7 @@
 #include <Paral.d/MDNLStatic.h>
 #include <Paral.d/MDNLDynam.h>
 #include <Paral.d/MDTemp.h>
+#include <Paral.d/MDModal.h>
 #include <HelmAxi.d/FourierDescrip.h>
 #include <HelmAxi.d/FourierProbTyp.h>
 #include <HelmAxi.d/FourierHelmBCs.h>
@@ -859,9 +860,10 @@ int main(int argc, char** argv)
    }
    else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
  }
- if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline)
+ if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline
+    && domain->solInfo().modal_id.empty())
    filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
-  
+
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
  //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested
@@ -869,6 +871,7 @@ int main(int argc, char** argv)
  if(domain->solInfo().type == 2 || domain->solInfo().type == 3
     || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
     || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)
+    || (!domain->solInfo().modal_id.empty() && domain_decomp)
     || (domain->solInfo().svdPodRom && domain_decomp)
     || (domain->solInfo().samplingPodRom && domain_decomp)
     || domain->solInfo().ROMPostProcess) {
@@ -896,15 +899,24 @@ int main(int argc, char** argv)
        break;
      case SolverInfo::Dynamic: 
        {
-        if(domain->solInfo().mdPita) { // Not implemented yet
-          filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
-        } else {
-          MultiDomainDynam dynamProb(domain);
-          DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-       		MultiDomainDynam, double > dynamSolver(&dynamProb);
-          dynamSolver.solve();
-          fflush(stderr);
+        if(domain->solInfo().modal) {
+          filePrint(stderr," ... Modal Method                   ...\n");
+          MultiDomainModal * modalProb = new MultiDomainModal(domain);
+          DynamicSolver<ModalOps, Vector, MultiDomainModal, MultiDomainModal, double>
+          modalSolver(modalProb);
+          modalSolver.solve();
         }
+        else {
+          if(domain->solInfo().mdPita) { // Not implemented yet
+            filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
+          } else {
+            MultiDomainDynam dynamProb(domain);
+            DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                            MultiDomainDynam, double > dynamSolver(&dynamProb);
+            dynamSolver.solve();
+            fflush(stderr);
+          }
+         }
        }
        break;
 

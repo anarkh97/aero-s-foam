@@ -889,6 +889,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::Acceleration:
           if(distState) getPrimalVector(i, mergedAcc, numNodes, 3, time);
           break;
+        case OutputInfo::EigenPair6:
         case OutputInfo::Disp6DOF:
           getPrimalVector(i, mergedDis, numNodes, 6, time);
           break;

@@ -1,20 +1,22 @@
-#include <Problems.d/ModalDescr.h>
-#include <Driver.d/Domain.h>
+#include <Paral.d/MDModal.h>
+#include <Paral.d/MDOp.h>
+#include <Driver.d/GeoSource.h>
+#include <Driver.d/DecDomain.h>
+#ifdef DISTRIBUTED
+#include <Dist.d/DistDom.h>
+#endif
 #include <Driver.d/SysState.h>
-#include <Driver.d/Dynam.h>
+#include <Utils.d/DistHelper.h>
 
-template <class Scalar>
-ModalDescr<Scalar>::ModalDescr(Domain *d) : modalOps(*(new ModalOps)), ModalBase(d){
+MultiDomainModal::MultiDomainModal(Domain *d) : modalOps(*(new ModalOps)), MDModalBase(d){
 
-  flExchanger = domain->getFileExchanger();
   previousCq = 0;
   previousDisp = 0;
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-ModalDescr<Scalar>::~ModalDescr(){
+MultiDomainModal::~MultiDomainModal(){
 
   if(previousCq) delete previousCq;
   if(previousDisp) delete previousDisp;
@@ -22,46 +24,41 @@ ModalDescr<Scalar>::~ModalDescr(){
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::projectForce(Vector &fullF, Vector& modalF){
+void MultiDomainModal::projectForce(DistrVector &fullF, Vector& modalF){
 /*PRE: ModeBase::modesFl have been populated by a call to
          ModeBase::populateFlexModes
  POST: return in modalF, fullF projected onto modesFl
  NOTE: this projection is not valid for displacements, velocities or accelerations
 */
   for(int i = 0; i < numModes; ++i)
-    modalF[i] = modesFl[i] * fullF;
+    modalF[i] = (*modesFl)[i] * fullF;
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::expand(const Vector &modalV, Vector& fullV){
+void MultiDomainModal::expand(const Vector &modalV, DistrVector& fullV){
 /*PRE: there is at least one modesFl; modesFl are populated
  POST: return in fullV, modalV projected into full space
  NOTE: this expansion is not valid for forces
 */
-  fullV.linC(modalV[0], modesFl[0]);
+  fullV.linC((*modesFl)[0], modalV[0]);
   for(int i = 1; i < numModes; ++i)
-    fullV.linAdd(modalV[i], modesFl[i]);
+    fullV.linAdd(modalV[i], (*modesFl)[i]);
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::processLastOutput()  {
+void MultiDomainModal::processLastOutput(){
 
   OutputInfo *oinfo = geoSource->getOutputInfo();
   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++)
     oinfo[iOut].interval = 1;
-  
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::preProcess(){
-/*NOTE: call to populateFlexModes gives 1 for 2nd arguement to indicate all
+void MultiDomainModal::preProcess(){
+/*NOTE: call to populateFlexModes gives 1 for 2nd argument to indicate all
           modes should be read, including those with zero frequency
         see also ModalBase::populateFlexModes
 */
@@ -72,26 +69,23 @@ void ModalDescr<Scalar>::preProcess(){
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::preProcessSA(){
+void MultiDomainModal::preProcessSA(){
 
-  filePrint(stderr," ... ModalDescr::preProcessSA is not implemented\n");
+  filePrint(stderr," *** ERROR: MultiDomainModal::preProcessSA is not implemented.\n");
   exit(-1);
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::postProcessSA(ModalOps *,Vector &sol){
+void MultiDomainModal::postProcessSA(ModalOps *,Vector &sol){
 
-  filePrint(stderr," ... ModalDescr::postProcessSA is not implemented\n"); 
+  filePrint(stderr," *** ERROR: MultiDomainModal::postProcessSA is not implemented.\n");
   exit(-1);
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::getTimes(double &dt, double &tmax){
+void MultiDomainModal::getTimes(double &dt, double &tmax){
 
   dt   = domain->solInfo().getTimeStep();
   tmax = domain->solInfo().tmax;
@@ -99,61 +93,41 @@ void ModalDescr<Scalar>::getTimes(double &dt, double &tmax){
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::getInitState(SysState<Vector> &state){
+void MultiDomainModal::getInitState(SysState<Vector> &state){
 
   initStateBase(state.getDisp(), state.getVeloc(),
     state.getAccel(), state.getPrevVeloc());
-
-/*
-  state.getDisp().zero();
-  state.getVeloc().zero();
-  state.getAccel().zero();
-  state.getPrevVeloc().zero();
-
-  // values for state obtained directly from domain
-  for(int jj = 0; jj <  domain->numInitDisp(); ++jj)
-    state.getDisp()[domain->getInitDisp()[jj].nnum] +=
-      domain->getInitDisp()[jj].val;
-*/
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::getConstForce(Vector &constF){
+void MultiDomainModal::getConstForce(Vector &constF){
 
-  domain->computeConstantForce(fullTmpGrav); 
-/*
-  fullTmpGrav.zero();
+  MultiDomainOp mdop(&MultiDomainOp::getConstForce, decDomain->getAllSubDomains(), fullTmpGrav, (SubDOp*)0);
+  threadManager->execParal(decDomain->getNumSub(), &mdop);
 
-  if( domain->gravityFlag()  ) domain->buildGravityForce(fullTmpGrav);
-  if( domain->pressureFlag() ) domain->buildPressureForce(fullTmpGrav);
-*/
-  projectForce(fullTmpGrav, constF);
+  projectForce(*fullTmpGrav, constF);
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::addConstForceSensitivity(Vector &constF){
+void MultiDomainModal::addConstForceSensitivity(Vector &constF){
 
-  filePrint(stderr," ... ModalDescr<Scalar>::addConstForceSensitivity is not implemented\n"); 
+  filePrint(stderr," *** ERROR: MultiDomainModal::addConstForceSensitivity is not implemented.\n");
   exit(-1); 
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::getSensitivityStateParam(double &tol, double &ratioTol) {
+void MultiDomainModal::getSensitivityStateParam(double &tol, double &ratioTol) {
+
   tol = domain->solInfo().sensitivityTol;
   ratioTol = domain->solInfo().ratioSensitivityTol;
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::getSteadyStateParam(int &flag, int &min, int &max, double &tol){
+void MultiDomainModal::getSteadyStateParam(int &flag, int &min, int &max, double &tol){
 
   flag = domain->solInfo().steadyFlag;
   min  = domain->solInfo().steadyMin;
@@ -163,8 +137,7 @@ void ModalDescr<Scalar>::getSteadyStateParam(int &flag, int &min, int &max, doub
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::getNewMarkParameters(double &beta, double &gamma,
+void MultiDomainModal::getNewMarkParameters(double &beta, double &gamma,
   double &alphaf, double &alpham){
 
   beta  = domain->solInfo().newmarkBeta;
@@ -175,8 +148,7 @@ void ModalDescr<Scalar>::getNewMarkParameters(double &beta, double &gamma,
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::getInitialTime(int &tIndex, double &time){
+void MultiDomainModal::getInitialTime(int &tIndex, double &time){
 
   tIndex = domain->solInfo().initialTimeIndex;
   time   = domain->solInfo().initialTime;
@@ -184,17 +156,15 @@ void ModalDescr<Scalar>::getInitialTime(int &tIndex, double &time){
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
 double
-ModalDescr<Scalar>::getInitialForceNorm()
+MultiDomainModal::getInitialForceNorm()
 {
   return domain->solInfo().initExtForceNorm;
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef){
+ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
 //PRE: ModalProbDescr is instantiated; modeData is populated
 // POST: operator for time integration
 //
@@ -244,33 +214,36 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::getQuasiStaticParameters(double &maxVel, double &delta){
+void MultiDomainModal::getQuasiStaticParameters(double &maxVel, double &delta){
   maxVel = domain->solInfo().qsMaxvel;
   delta  = domain->solInfo().delta;
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::computeExtForce2(SysState<Vector>& state, Vector &extF,
+void MultiDomainModal::computeExtForce2(SysState<Vector>& state, Vector &extF,
   Vector &constF, int tIndex, double time, Vector *aeroF,
   double gamma, double alphaf){
 /*PRE:
  POST: return in extF, the modalized external force
 */
-  domain->template computeExtForce4<double>(fullTmpF, fullTmpGrav, time, 0);
+  MultiDomainOp mdop(&MultiDomainOp::computeExtForce,
+                     decDomain->getAllSubDomains(), fullTmpF, fullTmpGrav, time, (SubDOp*)0, (ControlInterface*)0, (SubDOp*)0, 0, (SubDOp*)0);
+  threadManager->execParal(decDomain->getNumSub(), &mdop);
+
   if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
-    domain->buildAeroelasticForce(*aeroF, *prevFrc, tIndex, time, gamma, alphaf);
-    fullTmpF += *aeroF;
+    //domain->buildAeroelasticForce(*aeroF, *prevFrc, tIndex, time, gamma, alphaf);
+    //(*fullTmpF) += *aeroF;
+    filePrint(stderr, " *** ERROR: MultiDomainModal::computeExtForce2 is not implemented for aeroFlag = %d.\n", domain->solInfo().aeroFlag);
+    exit(-1);
   }
-  projectForce(fullTmpF, extF);
+
+  projectForce(*fullTmpF, extF);
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::getInternalForce(Vector &d, Vector &f, double t, int tIndex){
+void MultiDomainModal::getInternalForce(Vector &d, Vector &f, double t, int tIndex){
 /*PRE: d is the value of the modal coordinates
  POST: return the modal internal force in f
 */
@@ -280,8 +253,7 @@ void ModalDescr<Scalar>::getInternalForce(Vector &d, Vector &f, double t, int tI
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-double ModalDescr<Scalar>::getElasticEnergy(Vector &d){
+double MultiDomainModal::getElasticEnergy(Vector &d){
 /*PRE: d is the value of the modal coordinates
  POST: return the elastic energy
 */
@@ -293,8 +265,7 @@ double ModalDescr<Scalar>::getElasticEnergy(Vector &d){
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-double ModalDescr<Scalar>::getKineticEnergy(Vector &v){
+double MultiDomainModal::getKineticEnergy(Vector &v){
 /*PRE: v is the value of the first time derivative of the modal coordinates
  POST: return the kinetic energy
 */
@@ -306,8 +277,7 @@ double ModalDescr<Scalar>::getKineticEnergy(Vector &v){
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-double ModalDescr<Scalar>::getDampingEnergy(Vector &d, Vector &v, double time){
+double MultiDomainModal::getDampingEnergy(Vector &d, Vector &v, double time){
 /*PRE: d is the value of the modal coordinates and v is its first time derivative
  POST: return the damping energy
 */
@@ -335,82 +305,83 @@ double ModalDescr<Scalar>::getDampingEnergy(Vector &d, Vector &v, double time){
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::dynamOutput(int tIndex, double time, ModalOps &ops, Vector &extF,
+void MultiDomainModal::dynamOutput(int tIndex, double time, ModalOps &ops, Vector &extF,
   Vector *aeroF, SysState<Vector> &state){
 
-  expand(state.getDisp(), fullDsp);
-  expand(state.getVeloc(), fullVel);
-  expand(state.getAccel(), fullAcc);
-  expand(state.getPrevVeloc(), fullPrevVel);
+  expand(state.getDisp(), *fullDsp);
+  expand(state.getVeloc(), *fullVel);
+  expand(state.getAccel(), *fullAcc);
+  expand(state.getPrevVeloc(), *fullPrevVel);
 
-  DynamMat dumDMat;
+  MDDynamMat dumDMat; 
   domain->setModalEnergies(getElasticEnergy(state.getDisp()),
                            getKineticEnergy(state.getVeloc()),
                            getDampingEnergy(state.getDisp(),state.getVeloc(),time));
-  domain->dynamOutput(tIndex, time, bcx, dumDMat, fullTmpF, fullAeroF,
-    fullDsp, fullVel, fullAcc, fullPrevVel, vcx);
-//  outputModal(state.getDisp(), extF, tIndex);
+  SysState<DistrVector> distState(*fullDsp, *fullVel, *fullAcc, *fullPrevVel);
+  decDomain->postProcessing(*fullDsp, *fullTmpF, time, fullAeroF, tIndex, &dumDMat, &distState);
   outputModal(state, extF, tIndex);
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-int ModalDescr<Scalar>::aeroPreProcess(Vector& d_n, Vector& v_n,
+int MultiDomainModal::aeroPreProcess(Vector& d_n, Vector& v_n,
   Vector& a_n, Vector& v_p){
-/*PRE: arguements are in modal space
+/*PRE: arguments are in modal space
  POST: call domain aeroPreProcess with the expanded state vectors
 */
-  expand(d_n, fullDsp);
-  expand(v_n, fullVel);
-  expand(a_n, fullAcc);
-  expand(v_p, fullPrevVel);
+  expand(d_n, *fullDsp);
+  expand(v_n, *fullVel);
+  expand(a_n, *fullAcc);
+  expand(v_p, *fullPrevVel);
 
-  domain->aeroPreProcess(fullDsp, fullVel, fullAcc, fullPrevVel, bcx, vcx);
+  //domain->aeroPreProcess(fullDsp, fullVel, fullAcc, fullPrevVel, bcx, vcx);
+  filePrint(stderr, " *** ERROR: MultiDomainModal::aeroPreProcess is not implemented.\n");
+  exit(-1);
 
   return domain->solInfo().aeroFlag;
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-int ModalDescr<Scalar>::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n,
+int MultiDomainModal::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n,
   Vector& a_n, Vector& v_p){
-/*PRE: arguements are in modal space
+/*PRE: arguments are in modal space
  POST: call domain aeroSensitivityPreProcess with the expanded state vectors
 */
-  expand(d_n, fullDsp);
-  expand(v_n, fullVel);
-  expand(a_n, fullAcc);
-  expand(v_p, fullPrevVel);
+  expand(d_n, *fullDsp);
+  expand(v_n, *fullVel);
+  expand(a_n, *fullAcc);
+  expand(v_p, *fullPrevVel);
 
-  domain->aeroSensitivityPreProcess(fullDsp, fullVel, fullAcc, fullPrevVel, bcx, vcx);
+  //domain->aeroSensitivityPreProcess(fullDsp, fullVel, fullAcc, fullPrevVel, bcx, vcx);
+  filePrint(stderr, " *** ERROR: MultiDomainModal::aeroSensitivityPreProcess is not implemented.\n");
+  exit(-1);
 
   return domain->solInfo().aeroFlag;
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-int ModalDescr<Scalar>::sendDisplacements(Vector& d_n, Vector& v_n,
-                                          Vector& a_n, Vector& v_p){
-/*PRE: arguements are in modal space
+int MultiDomainModal::sendDisplacements(Vector& d_n, Vector& v_n,
+                                        Vector& a_n, Vector& v_p){
+/*PRE: arguments are in modal space
  POST: call domain sendDisplacements with the expanded state vectors
 */
-  expand(d_n, fullDsp);
-  expand(v_n, fullVel);
-  expand(a_n, fullAcc);
-  expand(v_p, fullPrevVel);
+  expand(d_n, *fullDsp);
+  expand(v_n, *fullVel);
+  expand(a_n, *fullAcc);
+  expand(v_p, *fullPrevVel);
 
-  domain->sendDisplacements(fullDsp, fullVel, fullAcc, fullPrevVel, bcx, vcx);
+  //domain->sendDisplacements(fullDsp, fullVel, fullAcc, fullPrevVel, bcx, vcx);
+  filePrint(stderr, " *** ERROR: MultiDomainModal::sendDisplacements is not implemented.\n");
+  exit(-1);
+
   return domain->solInfo().aeroFlag;
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::a5TimeLoopCheck(int& parity, double& t, double dt){
+void MultiDomainModal::a5TimeLoopCheck(int& parity, double& t, double dt){
 /*NOTE: this function copied from SingleDomainDynamic::a5TimeLoopCheck
 */
   if (domain->solInfo().aeroFlag == 5) {
@@ -421,8 +392,7 @@ void ModalDescr<Scalar>::a5TimeLoopCheck(int& parity, double& t, double dt){
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::a5StatusRevise(int parity, SysState<Vector>& curState,
+void MultiDomainModal::a5StatusRevise(int parity, SysState<Vector>& curState,
   SysState<Vector>& bkState){
 /*NOTE: this function copied from SingleDomainDynamic::a5StatusRevise
 */
@@ -449,25 +419,23 @@ void ModalDescr<Scalar>::a5StatusRevise(int parity, SysState<Vector>& curState,
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-AllSensitivities<Scalar> * ModalDescr<Scalar>::getAllSensitivities(){
+AllSensitivities<double> * MultiDomainModal::getAllSensitivities(){
 
-  filePrint(stderr," ... ModalDescr::getAllSensitivities is not implemented\n"); exit(-1);
-  return 0;
+  filePrint(stderr," *** ERROR: MultiDomainModal::getAllSensitivities is not implemented.\n");
+  exit(-1);
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::getAeroelasticForceSensitivity(int t_index, double t, Vector * aero_f, double gamma, double alphaf){
+void MultiDomainModal::getAeroelasticForceSensitivity(int t_index, double t, Vector * aero_f, double gamma, double alphaf){
 
-  filePrint(stderr," ... ModalDescr::getAeroelasticForceSensitivity is not implemented\n"); exit(-1);
+  filePrint(stderr," *** ERROR: MultiDomainModal::getAeroelasticForceSensitivity is not implemented.\n");
+  exit(-1);
 }
 
 //------------------------------------------------------------------------------
 
-template <class Scalar>
-void ModalDescr<Scalar>::computeStabilityTimeStep(double &dt, ModalOps &dMat){
+void MultiDomainModal::computeStabilityTimeStep(double &dt, ModalOps &dMat){
 
  // ... Compute Stability Time Step
  double sts = domain->computeStabilityTimeStep(dMat);

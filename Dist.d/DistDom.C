@@ -340,6 +340,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Acceleration:
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 3, 0);
         break;
+      case OutputInfo::EigenPair6:
       case OutputInfo::Disp6DOF:
         getPrimal(disps, masterDisps, time, x, iOut, 6, 0);
         break;

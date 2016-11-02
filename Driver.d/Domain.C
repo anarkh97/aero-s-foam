@@ -1913,7 +1913,16 @@ Domain::readInModes(const char* modeFileName)
  fflush(f);
 
  // Read in number of modes and number of nodes
- int count = fscanf(f, "%d%d", &modeData.numModes, &modeData.numNodes);
+ char buf[80];
+ char *str = fgets(buf, sizeof buf, f);
+ if(strncmp("Vector", buf, 6) == 0) {
+   int modal_id = sinfo.modal_id.empty() ? 0 : sinfo.modal_id.front();
+   modeData.numModes = sinfo.readInModes[modal_id].numvec;
+ }
+ else {
+   int count = sscanf(buf, "%d", &modeData.numModes);
+ }
+ int count = fscanf(f, "%d", &modeData.numNodes);
 
  // Allocation of memory for frequencies and mode shapes
  modeData.frequencies  = new double[modeData.numModes];

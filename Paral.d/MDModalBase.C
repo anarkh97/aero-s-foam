@@ -1,5 +1,6 @@
 #include <Paral.d/MDModalBase.h>
 #include <Paral.d/MDOp.h>
+#include <Problems.d/ModalBase.h>
 #include <Driver.d/Domain.h>
 #include <Utils.d/ModeData.h>
 #include <Driver.d/DecDomain.h>
@@ -186,22 +187,32 @@ void MDModalBase::initStateBase(Vector& dsp, Vector& vel,
 
     // superimpose the non-modal initial velocity and/or displacement
     if(domain->numInitVelocity() > 0 || ((domain->numInitDisp() > 0 || domain->numInitDisp6() > 0) && sinfo.zeroInitialDisp == 0)) {
+      // check if basis is mass-normalized or not
+      ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()];
+      bool massNormalizedBasis = (modalParams.type == ModalParams::Eigen || modalParams.type == ModalParams::Mnorm);
+
       GenDistrVectorSet<double> tPhiM(numFlex+numRBM, decDomain->solVecInfo());
 
-      // construct and assemble full mass matrix
-      SparseMatrix **subM = new SparseMatrix * [decDomain->getNumSub()];
-      for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
-        AllOps<double> allOps;
-        allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
-        decDomain->getSubDomain(iSub)->makeSparseOps<double>(allOps, 0, 0, 0);
-      }
-      SubDOp M(decDomain->getNumSub(), subM);
+      if(massNormalizedBasis) {
+        // construct and assemble full mass matrix
+        SparseMatrix **subM = new SparseMatrix * [decDomain->getNumSub()];
+        for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
+          AllOps<double> allOps;
+          allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
+          decDomain->getSubDomain(iSub)->makeSparseOps<double>(allOps, 0, 0, 0);
+        }
+        SubDOp M(decDomain->getNumSub(), subM);
 
-      // taking advantage of symmetry of M and computing M*Phi_i instead of transpose(Phi_i)*M
-      for(int i = 0 ; i<numRBM; ++i)
-        M.mult((*modesRB)[i], tPhiM[i]);
-      for(int i = 0 ; i<numFlex; ++i)
-        M.mult((*modesFl)[i], tPhiM[numRBM+i]);
+        // taking advantage of symmetry of M and computing M*Phi_i instead of transpose(Phi_i)*M
+        for(int i = 0; i<numRBM; ++i)
+          M.mult((*modesRB)[i], tPhiM[i]);
+        for(int i = 0; i<numFlex; ++i)
+          M.mult((*modesFl)[i], tPhiM[numRBM+i]);
+      }
+      else {
+        for(int i = 0; i<numRBM; ++i) tPhiM[i] = (*modesRB)[i];
+        for(int i = 0; i<numFlex; ++i) tPhiM[numRBM+i] = (*modesFl)[i];
+      }
 
       MultiDomainOp mdop(&MultiDomainOp::getInitState, decDomain->getAllSubDomains(),
                          fullDsp, fullVel, fullAcc, fullPrevVel);
@@ -225,10 +236,11 @@ void MDModalBase::initStateBase(Vector& dsp, Vector& vel,
 
 //------------------------------------------------------------------------------
 
-void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex){
+void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex, ModalOps &ops){
 /*PRE:
  POST:
 */
+  if(decDomain->getCommunicator()->cpuNum() != 0) return;
   int numOutInfo = geoSource->getNumOutInfo();
   OutputInfo *oinfo = geoSource->getOutputInfo();
   SolverInfo &sinfo = domain->solInfo();
@@ -239,7 +251,7 @@ void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex)
   Vector &mVel_p = state.getPrevVeloc();
 
   if (sinfo.nRestart > 0) {
-    if(decDomain->getCommunicator()->cpuNum() == 0) domain->writeRestartFile(time, tIndex, mDsp, mVel, mVel_p);
+    domain->writeRestartFile(time, tIndex, mDsp, mVel, mVel_p);
   }
 
   for(i = 0; i < numOutInfo; ++i){
@@ -268,6 +280,42 @@ void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex)
           }
           filePrint(oinfo[i].filptr, "\n");
           fflush(oinfo[i].filptr);
+          break;
+
+        case OutputInfo::ModalMass:
+          if(time == 0) {
+//            fprintf(oinfo[i].filptr, "# modal mass matrix\n");
+            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode)
+                fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.M->diag(iMode) : 0.);
+              fprintf(oinfo[i].filptr, "\n");
+            }
+          }
+          break;
+
+        case OutputInfo::ModalStiffness:
+          if(time == 0) {
+//            fprintf(oinfo[i].filptr, "# modal stiffness matrix\n");
+            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode)
+                fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.K->diag(iMode) : 0.);
+              fprintf(oinfo[i].filptr, "\n");
+            }
+          }
+          break;
+
+        case OutputInfo::ModalDamping:
+          if(time == 0) {
+//            fprintf(oinfo[i].filptr, "# modal damping matrix\n");
+            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode)
+                fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.C->diag(iMode) : 0.);
+              fprintf(oinfo[i].filptr, "\n");
+            }
+          }
           break;
 
         default:

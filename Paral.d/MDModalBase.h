@@ -9,6 +9,7 @@ class Domain;
 template <class Scalar> class GenDecDomain;
 typedef GenDecDomain<double> DecDomain;
 template <class V> class SysState;
+struct ModalOps;
 
 //------------------------------------------------------------------------------
 //******************************************************************************
@@ -47,7 +48,7 @@ public:
   void initStateBase(Vector& dsp, Vector& vel, Vector& acc,
     Vector& vel_p, int idxOffset = 0);
 
-  void outputModal(SysState<Vector> &state, Vector& extF, int tIndex);
+  void outputModal(SysState<Vector> &state, Vector& extF, int tIndex, ModalOps &ops);
 };
 
 #endif

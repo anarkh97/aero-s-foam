@@ -350,8 +350,7 @@ void ModalDescr<Scalar>::dynamOutput(int tIndex, double time, ModalOps &ops, Vec
                            getDampingEnergy(state.getDisp(),state.getVeloc(),time));
   domain->dynamOutput(tIndex, time, bcx, dumDMat, fullTmpF, fullAeroF,
     fullDsp, fullVel, fullAcc, fullPrevVel, vcx);
-//  outputModal(state.getDisp(), extF, tIndex);
-  outputModal(state, extF, tIndex);
+  outputModal(state, extF, tIndex, ops);
 }
 
 //------------------------------------------------------------------------------

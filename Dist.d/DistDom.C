@@ -249,6 +249,11 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || 
          oinfo[iInfo].type == OutputInfo::Energies ||
          oinfo[iInfo].type == OutputInfo::Kirchhoff || 
+         oinfo[iInfo].type == OutputInfo::ModalDsp ||
+         oinfo[iInfo].type == OutputInfo::ModalExF ||
+         oinfo[iInfo].type == OutputInfo::ModalMass ||
+         oinfo[iInfo].type == OutputInfo::ModalStiffness ||
+         oinfo[iInfo].type == OutputInfo::ModalDamping ||
          oinfo[iInfo].type == OutputInfo::AeroForce) { 
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); } 
@@ -268,6 +273,10 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
          oinfo[iInfo].type != OutputInfo::Farfield && 
          oinfo[iInfo].type != OutputInfo::Energies &&
          oinfo[iInfo].type != OutputInfo::Kirchhoff && 
+         oinfo[iInfo].type != OutputInfo::ModalExF &&
+         oinfo[iInfo].type != OutputInfo::ModalMass &&
+         oinfo[iInfo].type != OutputInfo::ModalStiffness &&
+         oinfo[iInfo].type != OutputInfo::ModalDamping &&
          oinfo[iInfo].type != OutputInfo::AeroForce) {
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -669,6 +678,11 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Jacobian:
       case OutputInfo::RobData:
       case OutputInfo::SampleMesh:
+      case OutputInfo::ModalDsp:
+      case OutputInfo::ModalExF:
+      case OutputInfo::ModalMass:
+      case OutputInfo::ModalStiffness:
+      case OutputInfo::ModalDamping:
         break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented \n", iOut);

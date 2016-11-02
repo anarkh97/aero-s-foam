@@ -159,7 +159,10 @@ static const char*header[] = {
 "Vector RESIDUAL under %s for %s\n%d\n",
 "Vector RESIDUAL6 under %s for %s\n%d\n",
 "Vector EXTFORCE under %s for %s\n%d\n",
-"Vector EXTFORCE6 under %s for %s\n%d\n"
+"Vector EXTFORCE6 under %s for %s\n%d\n",
+"",
+"",
+""
 };
 
 static const char * ele_header[] = {
@@ -298,6 +301,9 @@ static const char * ele_header[] = {
 "ElemScalar ELE_BACKSTRESSXY under %s using %s_pattern\n",
 "ElemScalar ELE_BACKSTRESSYZ under %s using %s_pattern\n",
 "ElemScalar ELE_BACKSTRESSXZ under %s using %s_pattern\n",
+"",
+"",
+"",
 "",
 "",
 "",

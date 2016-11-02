@@ -96,7 +96,7 @@ public:
   void initStateBase(Vector& dsp, Vector& vel, Vector& acc,
     Vector& vel_p, int idxOffset = 0);
 
-  void outputModal(SysState<Vector> &state, Vector& extF, int tIndex);
+  void outputModal(SysState<Vector> &state, Vector& extF, int tIndex, ModalOps &ops);
 };
 
 #endif

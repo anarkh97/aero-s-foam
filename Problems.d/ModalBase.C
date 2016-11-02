@@ -240,21 +240,33 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
 
     // superimpose the non-modal initial velocity and/or displacement
     if(domain->numInitVelocity() > 0 || ((domain->numInitDisp() > 0 || domain->numInitDisp6() > 0) && sinfo.zeroInitialDisp == 0)) {
+      // check if basis is mass-normalized or not
+      ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()];
+      bool massNormalizedBasis = (modalParams.type == ModalParams::Eigen || modalParams.type == ModalParams::Mnorm);
+
       double **tPhiM = new double*[numFlex+numRBM];
-      for(int i = 0; i < numFlex+numRBM; ++i)
-        tPhiM[i] = new double[domain->numdof()];
+      if(massNormalizedBasis) {
+        for(int i = 0; i < numFlex+numRBM; ++i)
+          tPhiM[i] = new double[domain->numdof()];
 
-      // construct and assemble full mass matrix
-      AllOps<double> allOps;
-      allOps.M = domain->constructDBSparseMatrix<double>();
-      domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
+        // construct and assemble full mass matrix
+        AllOps<double> allOps;
+        allOps.M = domain->constructDBSparseMatrix<double>();
+        domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
 
-      // taking advantage of symmetry of M and computing M*Phi_i instead of transpose(Phi_i)*M
-      for(int i = 0 ; i<numRBM; ++i)
-        allOps.M->mult(modesRB[i].data(), tPhiM[i]);
-      for(int i = 0 ; i<numFlex; ++i)
-        allOps.M->mult(modesFl[i].data(), tPhiM[numRBM+i]);
-      delete allOps.M;
+        // taking advantage of symmetry of M and computing M*Phi_i instead of transpose(Phi_i)*M
+        for(int i = 0 ; i<numRBM; ++i)
+          allOps.M->mult(modesRB[i].data(), tPhiM[i]);
+        for(int i = 0 ; i<numFlex; ++i)
+          allOps.M->mult(modesFl[i].data(), tPhiM[numRBM+i]);
+        delete allOps.M;
+      }
+      else {
+        for(int i = 0 ; i<numRBM; ++i)
+          tPhiM[i] = modesRB[i].data();
+        for(int i = 0 ; i<numFlex; ++i)
+          tPhiM[numRBM+i] = modesFl[i].data();
+      }
 
       if(domain->numInitVelocity() > 0) {
         filePrint(stderr, " ... Compute initial velocity in generalized coordinate system ... \n");
@@ -292,8 +304,10 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
         }
       }
 
-      for(int i = 0; i < numFlex+numRBM; ++i)
-        delete [] tPhiM[i];
+      if(massNormalizedBasis) {
+        for(int i = 0; i < numFlex+numRBM; ++i)
+          delete [] tPhiM[i];
+      }
       delete [] tPhiM;
     }
 
@@ -303,7 +317,7 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
 
 //------------------------------------------------------------------------------
 
-void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex){
+void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex, ModalOps &ops){
 /*PRE:
  POST:
 */
@@ -345,6 +359,42 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex){
           }
           fprintf(oinfo[i].filptr, "\n");
           fflush(oinfo[i].filptr);
+          break;
+
+        case OutputInfo::ModalMass:
+          if(time == 0) {
+//            fprintf(oinfo[i].filptr, "# modal mass matrix\n");
+            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode)
+                fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.M->diag(iMode) : 0.);
+              fprintf(oinfo[i].filptr, "\n");
+            }
+          }
+          break;
+
+        case OutputInfo::ModalStiffness:
+          if(time == 0) {
+//            fprintf(oinfo[i].filptr, "# modal stiffness matrix\n");
+            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode)
+                fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.K->diag(iMode) : 0.);
+              fprintf(oinfo[i].filptr, "\n");
+            }
+          }
+          break;
+
+        case OutputInfo::ModalDamping:
+          if(time == 0) {
+//            fprintf(oinfo[i].filptr, "# modal damping matrix\n");
+            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode)
+                fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.C->diag(iMode) : 0.);
+              fprintf(oinfo[i].filptr, "\n");
+            }
+          }
           break;
 
         default:

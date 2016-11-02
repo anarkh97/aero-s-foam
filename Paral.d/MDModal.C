@@ -319,7 +319,7 @@ void MultiDomainModal::dynamOutput(int tIndex, double time, ModalOps &ops, Vecto
                            getDampingEnergy(state.getDisp(),state.getVeloc(),time));
   SysState<DistrVector> distState(*fullDsp, *fullVel, *fullAcc, *fullPrevVel);
   decDomain->postProcessing(*fullDsp, *fullTmpF, time, fullAeroF, tIndex, &dumDMat, &distState);
-  outputModal(state, extF, tIndex);
+  outputModal(state, extF, tIndex, ops);
 }
 
 //------------------------------------------------------------------------------

@@ -212,8 +212,6 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       modalOps.M->setDiag(1.0);
       modalOps.Msolver->setDiag(1.0); // Inverse of M
 
-      std::cout << " building eigen matrices " << std::endl;
-
       int i;
       for(i = 0; i < numModes; ++i){
         (*modalOps.K)[i]      = freqs[i] * freqs[i];
@@ -248,8 +246,6 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
     } break;
     case ModalParams::Mnorm : { // if Mass normal basis, only Mass matrix is diagonal
 #ifdef USE_EIGEN3
-
-      std::cout << "building Mnorm matrix " << std::endl;
       modalOps.M       = new DiagonalMatrix(numModes);
       modalOps.Msolver = new DiagonalMatrix(numModes);
       // see below for damping matrix
@@ -325,8 +321,6 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
     } break;
     case ModalParams::Inorm : { // if Identity normal basis, all operators are dense
 #ifdef USE_EIGEN3
-
-      std::cout << " building Inorm matrices " << std::endl;
       modalOps.M       = new DenseMatrix(numModes);
       modalOps.Msolver = new DenseMatrix(numModes);
       // see below for damping matrix

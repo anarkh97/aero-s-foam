@@ -3,13 +3,34 @@
 
 #include <Math.d/Vector.h>
 
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#endif
+
 class Domain;
 class PrevFrc;
 template <class V> class SysState;
 template <class Scalar> class GenSparseMatrix;
 typedef GenSparseMatrix<double> SparseMatrix;
 
-class DiagonalMatrix
+class VirtualBaseMatrix
+{
+  // Abstract base class to fascilitate the use of non-diagonal operators in ModalOps
+public:
+  virtual double &operator[](int i)  =0;
+  
+  virtual void setDiag(double val)         =0;
+  virtual void mult(Vector &v, Vector &Av) =0;
+  virtual void invertDiag()                =0;
+  virtual void reSolve(Vector &rhs)        =0;
+ 
+  virtual int numRBM() {return 0;}
+  virtual int dim(){return 0; }
+  virtual double diag(int i) {return 0;}
+};
+
+class DiagonalMatrix: public VirtualBaseMatrix
 {
 /* a minimalist class for a diagonal matrix
    used as the data type for the members of ModalOps
@@ -26,7 +47,7 @@ public:
   DiagonalMatrix(int b){ neq = b; d = new double[b]; }
   ~DiagonalMatrix(){ if (d) delete [] d; d = 0; }
 
-  double &operator[](int i) const { return d[i]; }
+  double &operator[](int i) { return d[i]; }
 
   void setDiag(double val);
   void mult(Vector &v, Vector &Av);
@@ -37,6 +58,32 @@ public:
   int dim(){ return neq; }
   double diag(int i) { return d[i]; }
 };
+
+#ifdef USE_EIGEN3
+class DenseMatrix: public VirtualBaseMatrix
+{
+  // wrapper class to encapsulate eigen matrix data for non-diagonal matrices
+  // in ModalDescr
+private:
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> denseMat;
+  Eigen::LLT<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>, Eigen::Lower> llt_;
+  int neq; 
+
+public:
+  DenseMatrix();
+  DenseMatrix(int b) { neq = b; denseMat.resize(b,b); denseMat.setZero();}
+ 
+  double &operator[](int i) { return denseMat.data()[i]; }
+
+  void setDiag(double val) { denseMat.setIdentity(); denseMat *= val;} 
+  void mult(Vector &v, Vector &Av);
+  void invertDiag(); 
+  void reSolve(Vector &rhs);
+
+  int dim(){ return neq; }
+ 
+};
+#endif
 
 //------------------------------------------------------------------------------
 //******************************************************************************
@@ -50,7 +97,7 @@ struct ModalOps
    K     stiffness matrix
  dynMat  dynamic operator matrix for time integration
 */
-  DiagonalMatrix *M, *C, *K, *dynMat, *Msolver;
+  VirtualBaseMatrix *M, *C, *K, *dynMat, *Msolver; 
   SparseMatrix *Muc, *Cuc;
 };
 

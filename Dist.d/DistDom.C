@@ -254,6 +254,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
          oinfo[iInfo].type == OutputInfo::ModalMass ||
          oinfo[iInfo].type == OutputInfo::ModalStiffness ||
          oinfo[iInfo].type == OutputInfo::ModalDamping ||
+         oinfo[iInfo].type == OutputInfo::ModalDynamicMatrix ||
          oinfo[iInfo].type == OutputInfo::AeroForce) { 
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); } 
@@ -277,6 +278,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
          oinfo[iInfo].type != OutputInfo::ModalMass &&
          oinfo[iInfo].type != OutputInfo::ModalStiffness &&
          oinfo[iInfo].type != OutputInfo::ModalDamping &&
+         oinfo[iInfo].type != OutputInfo::ModalDynamicMatrix &&
          oinfo[iInfo].type != OutputInfo::AeroForce) {
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -683,6 +685,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::ModalMass:
       case OutputInfo::ModalStiffness:
       case OutputInfo::ModalDamping:
+      case OutputInfo::ModalDynamicMatrix:
         break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented \n", iOut);

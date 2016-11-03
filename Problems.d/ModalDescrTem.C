@@ -197,48 +197,234 @@ template <class Scalar>
 ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef){
 //PRE: ModalProbDescr is instantiated; modeData is populated
 // POST: operator for time integration
-//
-  modalOps.M       = new DiagonalMatrix(numModes);
-  modalOps.Msolver = new DiagonalMatrix(numModes);
-  // see below for damping matrix
-  modalOps.K      = new DiagonalMatrix(numModes);
-  modalOps.dynMat = new DiagonalMatrix(numModes);
+//  need to check what time of modal basis has been parsed (i.e. Eigen, Mnorm, Inorm)
 
-  modalOps.M->setDiag(1.0);
-  modalOps.Msolver->setDiag(1.0); // Inverse of M
+  ModalParams modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()]; // assume only one basis is parsed for modal analysis
+ 
+  switch(modalParams.type) { 
+    case ModalParams::Eigen : { // if eigen basis, all operators are diagonal 
+      modalOps.M       = new DiagonalMatrix(numModes);
+      modalOps.Msolver = new DiagonalMatrix(numModes);
+      // see below for damping matrix
+      modalOps.K       = new DiagonalMatrix(numModes);
+      modalOps.dynMat  = new DiagonalMatrix(numModes);
 
-  int i;
-  for(i = 0; i < numModes; ++i){
-    (*modalOps.K)[i]      = freqs[i] * freqs[i];
-    (*modalOps.dynMat)[i] = kcoef*(*modalOps.K)[i] + mcoef*(*modalOps.M)[i];
-  }
+      modalOps.M->setDiag(1.0);
+      modalOps.Msolver->setDiag(1.0); // Inverse of M
 
-  // damping matrix
-  double alpha = domain->solInfo().alphaDamp;
-  double beta  = domain->solInfo().betaDamp;
+      std::cout << " building eigen matrices " << std::endl;
 
-  BCond* damping;
-  int numDampedModes = geoSource->getModalDamping(damping);
+      int i;
+      for(i = 0; i < numModes; ++i){
+        (*modalOps.K)[i]      = freqs[i] * freqs[i];
+        (*modalOps.dynMat)[i] = kcoef*(*modalOps.K)[i] + mcoef*(*modalOps.M)[i];
+      }
 
-  if(damping){
-    modalOps.C = new DiagonalMatrix(numModes);
-    modalOps.C->setDiag(0.0);
-    for(i = 0; i < numDampedModes; ++i)
-      (*modalOps.C)[damping[i].nnum] += 2*damping[i].val*freqs[damping[i].nnum];
-    for(i = 0; i < numModes; ++i)
-      (*modalOps.dynMat)[i] += ccoef * (*modalOps.C)[i];
-  }
-  else if(alpha != 0.0 || beta != 0.0){
-    modalOps.C = new DiagonalMatrix(numModes);
-    for(i = 0; i < numModes; ++i){
-      (*modalOps.C)[i] = alpha*(*modalOps.M)[i] + beta*(*modalOps.K)[i];
-      (*modalOps.dynMat)[i] += ccoef * (*modalOps.C)[i];
+      // damping matrix
+      double alpha = domain->solInfo().alphaDamp;
+      double beta  = domain->solInfo().betaDamp;
+
+      BCond* damping;
+      int numDampedModes = geoSource->getModalDamping(damping);
+
+      if(damping){
+        modalOps.C = new DiagonalMatrix(numModes);
+        modalOps.C->setDiag(0.0);
+        for(i = 0; i < numDampedModes; ++i)
+          (*modalOps.C)[damping[i].nnum] += 2*damping[i].val*freqs[damping[i].nnum];
+        for(i = 0; i < numModes; ++i)
+          (*modalOps.dynMat)[i] += ccoef * (*modalOps.C)[i];
+      }
+      else if(alpha != 0.0 || beta != 0.0){
+        modalOps.C = new DiagonalMatrix(numModes);
+        for(i = 0; i < numModes; ++i){
+          (*modalOps.C)[i] = alpha*(*modalOps.M)[i] + beta*(*modalOps.K)[i];
+          (*modalOps.dynMat)[i] += ccoef * (*modalOps.C)[i];
+        }
+      }
+      else{modalOps.C = 0;}
+
+      modalOps.dynMat->invertDiag();
+    } break;
+    case ModalParams::Mnorm : { // if Mass normal basis, only Mass matrix is diagonal
+#ifdef USE_EIGEN3
+
+      std::cout << "building Mnorm matrix " << std::endl;
+      modalOps.M       = new DiagonalMatrix(numModes);
+      modalOps.Msolver = new DiagonalMatrix(numModes);
+      // see below for damping matrix
+      modalOps.K       = new DenseMatrix(numModes);
+      modalOps.dynMat  = new DenseMatrix(numModes);
+
+      modalOps.M->setDiag(1.0);
+      modalOps.Msolver->setDiag(1.0); // Inverse of M
+
+      //Construct and assemble full Stiffness matrix
+      AllOps<double> allOps;
+      allOps.K = domain->constructDBSparseMatrix<double>();
+      domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
+      
+      {
+        // allocate space for intermediate container
+        double **tPhiK = new double*[numModes];
+        for(int i = 0; i < numModes; ++i)
+          tPhiK[i] = new double[domain->numdof()];
+
+        // taking advantage of symmetry of K and computing K*Phi_i instead of transpose(Phi_i)*K
+        for(int i = 0 ; i<numModes; ++i)
+          allOps.K->mult(modesFl[i].data(), tPhiK[i]);
+  
+        // now store transpose(Phi_i)*K*Phi_i in dense matrix container modalOps.K
+        Vector fullDsp(domain->numdof(), 0.0);
+        for(int row = 0; row < numModes; ++row){
+          for(int col = 0; col < numModes; ++col){
+            double matEle = 0.0;
+            for(int dof = 0; dof < fullDsp.size(); ++dof)
+              matEle += tPhiK[row][dof]*modesFl[col][dof];
+            (*modalOps.K)[row+numModes*col] = matEle;
+          }
+        }
+        for(int i = 0 ; i<numModes; ++i)
+          delete [] tPhiK[i]; 
+        delete [] tPhiK; 
+      }
+      delete allOps.K;
+
+      // add mass and stiffness contribution to dynMat
+      for(int row = 0; row < numModes; ++row){
+        for(int col = 0; col < numModes; ++col){
+          if(row == col)
+            (*modalOps.dynMat)[row+numModes*col] += kcoef*(*modalOps.K)[row+numModes*col] + mcoef*(*modalOps.M)[col];
+          else
+            (*modalOps.dynMat)[row+numModes*col] += kcoef*(*modalOps.K)[row+numModes*col];
+        }
+      }
+ 
+      // damping matrix
+      double alpha = domain->solInfo().alphaDamp;
+      double beta  = domain->solInfo().betaDamp;
+
+      if(alpha != 0.0 || beta != 0.0){
+        modalOps.C = new DenseMatrix(numModes);
+        for(int row = 0; row < numModes; ++row){
+          for(int col = 0; col < numModes; ++col){
+            if(row == col) { // only add diagonal Mass elements, off diagonal elements don't exist in data structure
+              (*modalOps.C)[row+numModes*col] = alpha*(*modalOps.M)[row+numModes*col] + beta*(*modalOps.K)[row+numModes*col];
+            } else {
+              (*modalOps.C)[row+numModes*col] = beta*(*modalOps.K)[row+numModes*col];
+            }
+            // add damping matrix contribution to dynMat
+            (*modalOps.dynMat)[row+numModes*col] += ccoef*(*modalOps.C)[row+numModes*col];
+          }
+        }
+      } 
+      else{modalOps.C = 0;}
+      modalOps.dynMat->invertDiag(); // this actually forms the LLT factorization for the DenseMatrix class
+      
+#endif
+    } break;
+    case ModalParams::Inorm : { // if Identity normal basis, all operators are dense
+#ifdef USE_EIGEN3
+
+      std::cout << " building Inorm matrices " << std::endl;
+      modalOps.M       = new DenseMatrix(numModes);
+      modalOps.Msolver = new DenseMatrix(numModes);
+      // see below for damping matrix
+      modalOps.K       = new DenseMatrix(numModes);
+      modalOps.dynMat  = new DenseMatrix(numModes);
+
+      //Construct and assemble full Stiffness matrix
+      AllOps<double> allOps;
+      allOps.M = domain->constructDBSparseMatrix<double>();
+      allOps.K = domain->constructDBSparseMatrix<double>();
+      domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
+      
+      { // construction of reduced mass matrix
+        // allocate space for intermediate container
+        double **tPhiM = new double*[numModes];
+        for(int i = 0; i < numModes; ++i)
+          tPhiM[i] = new double[domain->numdof()];
+
+        // taking advantage of symmetry of M and computing M*Phi_i instead of transpose(Phi_i)*M
+        for(int i = 0 ; i<numModes; ++i)
+          allOps.M->mult(modesFl[i].data(), tPhiM[i]);
+
+        // now store transpose(Phi_i)*M*Phi_i in dense matrix container modalOps.M
+        Vector fullDsp(domain->numdof(), 0.0);
+        for(int row = 0; row < numModes; ++row){
+          for(int col = 0; col < numModes; ++col){
+            double matEle = 0.0;
+            for(int dof = 0; dof < fullDsp.size(); ++dof)
+              matEle += tPhiM[row][dof]*modesFl[col][dof];
+            (*modalOps.M)[row+numModes*col]       = matEle;
+            (*modalOps.Msolver)[row+numModes*col] = matEle; 
+          }
+        }
+        for(int i = 0 ; i<numModes; ++i)
+          delete [] tPhiM[i];
+        delete [] tPhiM;
+      }
+
+      modalOps.Msolver->invertDiag(); // compute LLT factorization
+
+      { // construction of reduced stiffness matrix
+        // allocate space for intermediate container
+        double **tPhiK = new double*[numModes];
+        for(int i = 0; i < numModes; ++i)
+          tPhiK[i] = new double[domain->numdof()];
+
+        // taking advantage of symmetry of K and computing K*Phi_i instead of transpose(Phi_i)*K
+        for(int i = 0 ; i<numModes; ++i)
+          allOps.K->mult(modesFl[i].data(), tPhiK[i]);
+  
+        // now store transpose(Phi_i)*K*Phi_i in dense matrix container modalOps.K
+        Vector fullDsp(domain->numdof(), 0.0);
+        for(int row = 0; row < numModes; ++row){
+          for(int col = 0; col < numModes; ++col){
+            double matEle = 0.0;
+            for(int dof = 0; dof < fullDsp.size(); ++dof)
+              matEle += tPhiK[row][dof]*modesFl[col][dof];
+            (*modalOps.K)[row+numModes*col] = matEle;
+          }
+        }
+        for(int i = 0 ; i<numModes; ++i)
+          delete [] tPhiK[i];
+        delete [] tPhiK;
+      }
+      delete allOps.K;
+      delete allOps.M;
+
+      // add mass and stiffness contribution to dynMat
+      for(int row = 0; row < numModes; ++row){
+        for(int col = 0; col < numModes; ++col){
+          (*modalOps.dynMat)[row+numModes*col] += kcoef*(*modalOps.K)[row+numModes*col] + mcoef*(*modalOps.M)[row+numModes*col];
+        }
+      }
+ 
+      // damping matrix
+      double alpha = domain->solInfo().alphaDamp;
+      double beta  = domain->solInfo().betaDamp;
+
+      if(alpha != 0.0 || beta != 0.0){
+        modalOps.C = new DenseMatrix(numModes);
+        for(int row = 0; row < numModes; ++row){
+          for(int col = 0; col < numModes; ++col){
+            (*modalOps.C)[row+numModes*col] = beta*(*modalOps.K)[row+numModes*col];
+            // add damping matrix contribution to dynMat
+            (*modalOps.dynMat)[row+numModes*col] += ccoef*(*modalOps.C)[row+numModes*col];
+          }
+        }
+      } 
+      else{modalOps.C = 0;}
+      modalOps.dynMat->invertDiag(); // this actually forms the LLT factorization for the DenseMatrix class
+      
+#endif
+    } break;
+    case ModalParams::Undefined : {
+       fprintf(stderr," *** ERROR: modal basis type must be specified under READMODE command. \n");
+       exit(-1);
     }
   }
-  else{modalOps.C = 0;}
-
-  modalOps.dynMat->invertDiag();
-
   return (&modalOps);
 }
 
@@ -273,9 +459,12 @@ template <class Scalar>
 void ModalDescr<Scalar>::getInternalForce(Vector &d, Vector &f, double t, int tIndex){
 /*PRE: d is the value of the modal coordinates
  POST: return the modal internal force in f
-*/
+  Stiffness matrix may not be diagonal so this code is no longer valid
   for(int i = 0; i < d.size(); ++i)
     f[i] = d[i]*freqs[i]*freqs[i];
+*/
+  f.zero();
+  modalOps.K->mult(d,f); 
 }
 
 //------------------------------------------------------------------------------
@@ -284,11 +473,19 @@ template <class Scalar>
 double ModalDescr<Scalar>::getElasticEnergy(Vector &d){
 /*PRE: d is the value of the modal coordinates
  POST: return the elastic energy
-*/
+  Stiffness matrix may not be diagonal so this code is no longer valid
   double Wela = 0;
   for(int i = 0; i < d.size(); ++i)
     Wela += 0.5*d[i]*freqs[i]*freqs[i]*d[i];
   return Wela;
+*/
+ Vector Kd(d.size()); 
+ Kd.zero();
+ double Wela = 0.0;
+ modalOps.K->mult(d,Kd);
+ for(int i = 0; i < d.size(); ++i)
+    Wela += 0.5*d[i]*Kd[i];
+ return Wela;
 }
 
 //------------------------------------------------------------------------------
@@ -297,10 +494,19 @@ template <class Scalar>
 double ModalDescr<Scalar>::getKineticEnergy(Vector &v){
 /*PRE: v is the value of the first time derivative of the modal coordinates
  POST: return the kinetic energy
-*/
+
   double Wkin = 0;
   for(int i = 0; i < v.size(); ++i)
     Wkin += 0.5*v[i]*v[i];
+*/ 
+  // mass matrix may not be identity
+  Vector Mv(v.size());
+  Mv.zero();
+  double Wkin = 0.0;
+  modalOps.M->mult(v,Mv);
+  for(int i = 0; i < v.size(); ++i)
+    Wkin += 0.5*v[i]*Mv[i];
+
   return Wkin;
 }
 

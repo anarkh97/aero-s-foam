@@ -1114,6 +1114,8 @@ TRAIL [a-zA-Z]*
 
 "modaldmp"|"MODALDMP"              { yylval.ival = OutputInfo::ModalDamping; return STRESSID; }
 
+"modaldyn"|"MODALDYN"              { yylval.ival = OutputInfo::ModalDynamicMatrix; return STRESSID; }
+
 "gtempera"|"GTEMPERA"              { yylval.ival = OutputInfo::Temperature;  return STRESSID; }
 
 "statevct"|"STATEVCT"		   { yylval.ival = OutputInfo::Statevector;  return STRESSID; }

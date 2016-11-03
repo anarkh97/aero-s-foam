@@ -1210,6 +1210,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::ModalMass:
         case OutputInfo::ModalStiffness:
         case OutputInfo::ModalDamping:
+        case OutputInfo::ModalDynamicMatrix:
           break;
         default:
           filePrint(stderr," *** WARNING: Output case %d not implemented \n", i);

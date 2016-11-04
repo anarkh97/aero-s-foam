@@ -202,7 +202,8 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
   ModalParams modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()]; // assume only one basis is parsed for modal analysis
  
   switch(modalParams.type) { 
-    case ModalParams::Eigen : { // if eigen basis, all operators are diagonal 
+    case ModalParams::Eigen :
+    case ModalParams::Undefined : { // if eigen basis, all operators are diagonal 
       modalOps.M       = new DiagonalMatrix(numModes);
       modalOps.Msolver = new DiagonalMatrix(numModes);
       // see below for damping matrix
@@ -416,8 +417,8 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       
 #endif
     } break;
-    case ModalParams::Undefined : {
-       fprintf(stderr," *** ERROR: modal basis type must be specified under READMODE command. \n");
+    default : {
+       fprintf(stderr," *** ERROR: unsupported modal basis type specified under READMODE command. \n");
        exit(-1);
     }
   }

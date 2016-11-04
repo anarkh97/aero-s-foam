@@ -172,7 +172,8 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
   ModalParams modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()]; // assume only one basis is parsed for modal analysis 
 
   switch(modalParams.type) {
-    case ModalParams::Eigen : { // if eigen basis, all operators are diagonal
+    case ModalParams::Eigen:
+    case ModalParams::Undefined : { // if eigen basis, all operators are diagonal
       // every process gets an identical copy of modalOps
       modalOps.M       = new DiagonalMatrix(numModes);
       modalOps.Msolver = new DiagonalMatrix(numModes);

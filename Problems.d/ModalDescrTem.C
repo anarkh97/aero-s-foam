@@ -300,6 +300,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       double alpha = domain->solInfo().alphaDamp;
       double beta  = domain->solInfo().betaDamp;
 
+      // only Reighley damping is supported currently
       if(alpha != 0.0 || beta != 0.0){
         modalOps.C = new DenseMatrix(numModes);
         for(int row = 0; row < numModes; ++row){
@@ -399,6 +400,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       double alpha = domain->solInfo().alphaDamp;
       double beta  = domain->solInfo().betaDamp;
 
+      // only reighley damping is supported currently
       if(alpha != 0.0 || beta != 0.0){
         modalOps.C = new DenseMatrix(numModes);
         for(int row = 0; row < numModes; ++row){

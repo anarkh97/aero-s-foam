@@ -259,6 +259,7 @@ void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex,
 
       w = oinfo[i].width;
       p = oinfo[i].precision;
+      ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()];
 
       switch(oinfo[i].type){
 
@@ -284,36 +285,82 @@ void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex,
 
         case OutputInfo::ModalMass:
           if(time == 0) {
-//            fprintf(oinfo[i].filptr, "# modal mass matrix\n");
-            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+//            filePrint(oinfo[i].filptr, "# modal mass matrix\n");
+            filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
             for(iMode = 0; iMode < numFlex; ++iMode){
-              for(int jMode = 0; jMode < numFlex; ++jMode)
-                fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.M->diag(iMode) : 0.);
-              fprintf(oinfo[i].filptr, "\n");
+              for(int jMode = 0; jMode < numFlex; ++jMode){
+                switch(modalParams.type) {
+                  case ModalParams::Eigen : {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.M->diag(iMode) : 0.);
+                  } break;
+                  case ModalParams::Mnorm : {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.M->diag(iMode) : 0.);
+                  } break;
+                  case ModalParams::Inorm : {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (*ops.M)[iMode+numModes*jMode]);
+                  } break;
+                }
+              }
+              filePrint(oinfo[i].filptr, "\n");
             }
           }
           break;
 
         case OutputInfo::ModalStiffness:
           if(time == 0) {
-//            fprintf(oinfo[i].filptr, "# modal stiffness matrix\n");
-            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+//            filePrint(oinfo[i].filptr, "# modal stiffness matrix\n");
+            filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
             for(iMode = 0; iMode < numFlex; ++iMode){
-              for(int jMode = 0; jMode < numFlex; ++jMode)
-                fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.K->diag(iMode) : 0.);
-              fprintf(oinfo[i].filptr, "\n");
+              for(int jMode = 0; jMode < numFlex; ++jMode) {
+                switch(modalParams.type) {
+                  case ModalParams::Eigen : {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.K->diag(iMode) : 0.);
+                  } break;
+                  default : {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (*ops.K)[iMode+numModes*jMode]);
+                  } break;
+                }
+              }
+              filePrint(oinfo[i].filptr, "\n");
             }
           }
           break;
 
         case OutputInfo::ModalDamping:
           if(time == 0) {
-//            fprintf(oinfo[i].filptr, "# modal damping matrix\n");
-            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+//            filePrint(oinfo[i].filptr, "# modal damping matrix\n");
+            filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
             for(iMode = 0; iMode < numFlex; ++iMode){
-              for(int jMode = 0; jMode < numFlex; ++jMode)
-                fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.C->diag(iMode) : 0.);
-              fprintf(oinfo[i].filptr, "\n");
+              for(int jMode = 0; jMode < numFlex; ++jMode){
+                switch(modalParams.type) {
+                  case ModalParams::Eigen : {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.C->diag(iMode) : 0.);
+                  } break;
+                  default: {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (*ops.C)[iMode+numModes*jMode]);
+                  } break;
+                }
+              }
+              filePrint(oinfo[i].filptr, "\n");
+            }
+          }
+          break;
+
+          case OutputInfo::ModalDynamicMatrix:
+          if(time == 0) {
+            filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode){
+                switch(modalParams.type) {
+                  case ModalParams::Eigen : {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.dynMat->diag(iMode) : 0.);
+                  } break;
+                  default: {
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (*ops.dynMat)[iMode+numModes*jMode]);
+                  } break;
+                }
+              }
+              filePrint(oinfo[i].filptr, "\n");
             }
           }
           break;

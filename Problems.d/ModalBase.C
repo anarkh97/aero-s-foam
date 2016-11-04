@@ -269,7 +269,8 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
     if(domain->numInitVelocity() > 0 || ((domain->numInitDisp() > 0 || domain->numInitDisp6() > 0) && sinfo.zeroInitialDisp == 0)) {
       // check if basis is mass-normalized or not
       ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()];
-      bool massNormalizedBasis = (modalParams.type == ModalParams::Eigen || modalParams.type == ModalParams::Mnorm);
+      bool massNormalizedBasis = (modalParams.type == ModalParams::Eigen || modalParams.type == ModalParams::Mnorm ||
+                                  modalParams.type == ModalParams::Undefined);
 
       double **tPhiM = new double*[numFlex+numRBM];
       if(massNormalizedBasis) {

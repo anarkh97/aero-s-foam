@@ -173,6 +173,7 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
 
   switch(modalParams.type) {
     case ModalParams::Eigen : { // if eigen basis, all operators are diagonal
+      // every process gets an identical copy of modalOps
       modalOps.M       = new DiagonalMatrix(numModes);
       modalOps.Msolver = new DiagonalMatrix(numModes);
       // see below for damping matrix
@@ -216,6 +217,7 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
     } break;
     case ModalParams::Mnorm : { // if Mass normal basis, only Mass matrix is diagonal
 #ifdef USE_EIGEN3
+      // every process gets an identical copy of modalOps
       modalOps.M       = new DiagonalMatrix(numModes);
       modalOps.Msolver = new DiagonalMatrix(numModes);
       // see below for damping matrix
@@ -281,6 +283,7 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
     } break;
     case ModalParams::Inorm : { // if Identity normal basis, all operators are dense
 #ifdef USE_EIGEN3
+      // every process gets an identcial copy of modalOps
       modalOps.M       = new DenseMatrix(numModes);
       modalOps.Msolver = new DenseMatrix(numModes);
       // see below for damping matrix

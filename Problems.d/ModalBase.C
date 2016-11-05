@@ -128,7 +128,6 @@ void ModalBase::preProcessBase(){
 void ModalBase::populateRBModes(){
 
   // compute the rigid body modes
-//  Rbm *rbm = domain->constructAllRbm();
   Rbm *rbm = domain->constructRbm();
   numRBM   = rbm->numRBM();
   modesRB  = new Vector[numRBM];
@@ -175,7 +174,7 @@ void ModalBase::populateFlexModes(double scale, bool readAll){
       for(iNode = 0; iNode < numNodes; ++iNode){
 
         dof = domain->getCDSA()->locate(iNode, DofSet::Xdisp);
-        if(dof >= 0)   modesFl[iModeFl][dof] = scale*modeData.modes[iMode][iNode][0];
+        if(dof >= 0) modesFl[iModeFl][dof] = scale*modeData.modes[iMode][iNode][0];
 
         dof = domain->getCDSA()->locate(iNode, DofSet::Ydisp);
         if(dof >= 0) modesFl[iModeFl][dof] = scale*modeData.modes[iMode][iNode][1];
@@ -299,9 +298,12 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
       if(domain->numInitVelocity() > 0) {
         filePrint(stderr, " ... Compute initial velocity in generalized coordinate system ... \n");
         Vector fullVel(domain->numdof(), 0.0);
-        for(int j = 0; j <  domain->numInitVelocity(); ++j) {
+        for(int j = 0; j < domain->numInitVelocity(); ++j) {
           int k = domain->getCDSA()->locate(domain->getInitVelocity()[j].nnum, 1 << domain->getInitVelocity()[j].dofnum);
           if(k > -1) fullVel[k] = domain->getInitVelocity()[j].val;
+        }
+        for(int i = 0; i < numConstr; ++i){
+          fullVel[cDofIdx[i]] = 0; // just in case an initial velocity is given for a constrained node
         }
         for(int j = 0; j < vel.size(); ++j)
           for(int k = 0; k < fullVel.size(); ++k)

@@ -269,7 +269,7 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
         for(int row = 0; row < numModes; ++row){
           for(int col = 0; col < numModes; ++col){
             if(row == col) { // only add diagonal Mass elements, off diagonal elements don't exist in data structure
-              (*modalOps.C)[row+numModes*col] = alpha*(*modalOps.M)[row+numModes*col] + beta*(*modalOps.K)[row+numModes*col];
+              (*modalOps.C)[row+numModes*col] = alpha*(*modalOps.M)[col] + beta*(*modalOps.K)[row+numModes*col];
             } else {
               (*modalOps.C)[row+numModes*col] = beta*(*modalOps.K)[row+numModes*col];
             }

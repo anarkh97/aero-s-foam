@@ -200,7 +200,13 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
 //  need to check what time of modal basis has been parsed (i.e. Eigen, Mnorm, Inorm)
 
   ModalParams modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()]; // assume only one basis is parsed for modal analysis
+  
+  // check to see if basis satisfies orthogonality property
+  bool checkBasis = false; 
+  if(modalParams.tolerance > 1e-16)
+    checkBasis = true; 
  
+
   switch(modalParams.type) { 
     case ModalParams::Eigen :
     case ModalParams::Undefined : { // if eigen basis, all operators are diagonal 
@@ -212,6 +218,67 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
 
       modalOps.M->setDiag(1.0);
       modalOps.Msolver->setDiag(1.0); // Inverse of M
+
+      if (checkBasis) {
+        fprintf(stderr," ... Validating orthongality of modal eigen basis ... \n");
+        AllOps<double> allOps;
+        allOps.M = domain->constructDBSparseMatrix<double>();
+        allOps.K = domain->constructDBSparseMatrix<double>();
+        domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
+ 
+        double **tPhiM = new double*[numModes];
+        double **tPhiK = new double*[numModes];
+        for(int i = 0; i < numModes; ++i){
+          tPhiM[i] = new double[domain->numdof()];
+          tPhiK[i] = new double[domain->numdof()];
+        }
+
+        for(int i = 0 ; i<numModes; ++i){
+          allOps.M->mult(modesFl[i].data(), tPhiM[i]);
+          allOps.K->mult(modesFl[i].data(), tPhiK[i]);
+        }
+
+        DenseMatrix redMass(numModes);    
+        DenseMatrix redStif(numModes);
+        double Knorm = 0.0; 
+        Vector fullDsp(domain->numdof(), 0.0);
+        for(int row = 0; row < numModes; ++row){
+          for(int col = 0; col < numModes; ++col){
+            double matEle1 = 0.0; 
+            double matEle2 = 0.0;
+            for(int dof = 0; dof < fullDsp.size(); ++dof){
+              matEle1 += tPhiM[row][dof]*modesFl[col][dof];
+              matEle2 += tPhiK[row][dof]*modesFl[col][dof]; 
+            }
+            redMass[row+numModes*col] = matEle1;
+            redStif[row+numModes*col] = matEle2;
+            if (col == row) {// subtract identity and circular frequencies 
+              redMass[row+numModes*col] -= 1;
+              double Kdiag = freqs[row]*freqs[row];
+              redStif[row+numModes*col] -= Kdiag; 
+              Knorm += Kdiag*Kdiag; 
+            }
+          }
+        }
+        Knorm = sqrt(Knorm); 
+        for(int i = 0 ; i<numModes; ++i){
+          delete [] tPhiM[i];
+          delete [] tPhiK[i];
+        }
+        delete [] tPhiM;
+        delete [] tPhiK;
+        delete allOps.M;
+        delete allOps.K; 
+
+        if (redMass.norm()/sqrt(numModes) > modalParams.tolerance) {
+          fprintf(stderr," ... Modal basis does not satisfy mass matrix orthogonality tolerance, exiting. \n");
+          exit(-1);
+        }
+        if (redStif.norm()/Knorm > modalParams.tolerance) {
+          fprintf(stderr," ... Modal basis does not satisfy stiffness decoupling tolerance, exiting. \n");
+          exit(-1);
+        }
+      }
 
       int i;
       for(i = 0; i < numModes; ++i){
@@ -258,9 +325,42 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
 
       //Construct and assemble full Stiffness matrix
       AllOps<double> allOps;
+      if (checkBasis) allOps.M = domain->constructDBSparseMatrix<double>();
       allOps.K = domain->constructDBSparseMatrix<double>();
       domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
-      
+     
+      if (checkBasis) {
+        fprintf(stderr," ... Validating orthongality of modal basis. ... \n");
+        double **tPhiM = new double*[numModes];
+        for(int i = 0; i < numModes; ++i)
+          tPhiM[i] = new double[domain->numdof()];
+
+        for(int i = 0 ; i<numModes; ++i)
+          allOps.M->mult(modesFl[i].data(), tPhiM[i]);
+
+        DenseMatrix redMass(numModes); 
+        Vector fullDsp(domain->numdof(), 0.0);
+        for(int row = 0; row < numModes; ++row){
+          for(int col = 0; col < numModes; ++col){
+            double matEle = 0.0;
+            for(int dof = 0; dof < fullDsp.size(); ++dof)
+              matEle += tPhiM[row][dof]*modesFl[col][dof];
+            redMass[row+numModes*col]       = matEle;
+            if (col == row) // subtract identity 
+              redMass[row+numModes*col] -= 1; 
+          }
+        }
+        for(int i = 0 ; i<numModes; ++i)
+          delete [] tPhiM[i];
+        delete [] tPhiM;
+
+        if (redMass.norm()/sqrt(numModes) > modalParams.tolerance) {
+          fprintf(stderr," ... Modal basis does not satisfy mass matrix orthogonality tolerance, exiting. \n");
+          exit(-1);   
+        }
+ 
+      }
+ 
       {
         // allocate space for intermediate container
         double **tPhiK = new double*[numModes];
@@ -286,6 +386,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
         delete [] tPhiK; 
       }
       delete allOps.K;
+      if (checkBasis) delete allOps.M; 
 
       // add mass and stiffness contribution to dynMat
       for(int row = 0; row < numModes; ++row){
@@ -328,6 +429,38 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       // see below for damping matrix
       modalOps.K       = new DenseMatrix(numModes);
       modalOps.dynMat  = new DenseMatrix(numModes);
+
+       if (checkBasis) {
+        fprintf(stderr," ... Validating orthongality of modal basis. ... \n");
+        double **tPhi = new double*[numModes];
+        for(int i = 0; i < numModes; ++i)
+          tPhi[i] = new double[domain->numdof()];
+
+        for(int i = 0 ; i<numModes; ++i)
+          tPhi[i] = modesFl[i].data();
+
+        DenseMatrix redIdentity(numModes);
+        Vector fullDsp(domain->numdof(), 0.0);
+        for(int row = 0; row < numModes; ++row){
+          for(int col = 0; col < numModes; ++col){
+            double matEle = 0.0;
+            for(int dof = 0; dof < fullDsp.size(); ++dof)
+              matEle += tPhi[row][dof]*modesFl[col][dof];
+            redIdentity[row+numModes*col]       = matEle;
+            if (col == row) // subtract identity 
+              redIdentity[row+numModes*col] -= 1;
+          }
+        }
+        for(int i = 0 ; i<numModes; ++i)
+          delete [] tPhi[i];
+        delete [] tPhi;
+
+        if (redIdentity.norm()/sqrt(numModes) > modalParams.tolerance) {
+          fprintf(stderr," ... Modal basis does not satisfy self orthogonality tolerance, exiting. \n");
+          exit(-1);
+        }
+
+      }
 
       //Construct and assemble full Stiffness matrix
       AllOps<double> allOps;

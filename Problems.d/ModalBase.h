@@ -74,6 +74,7 @@ public:
   DenseMatrix(int b) { neq = b; denseMat.resize(b,b); denseMat.setZero();}
  
   double &operator[](int i) { return denseMat.data()[i]; }
+  double norm() { return denseMat.norm();} 
 
   void setDiag(double val) { denseMat.setIdentity(); denseMat *= val;} 
   void mult(Vector &v, Vector &Av);

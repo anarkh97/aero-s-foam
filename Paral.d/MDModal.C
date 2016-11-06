@@ -171,6 +171,11 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
 
   ModalParams modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()]; // assume only one basis is parsed for modal analysis 
 
+  // check to see if basis satisfies orthogonality property
+  bool checkBasis = false;
+  if(modalParams.tolerance > 1e-16)
+    checkBasis = true;
+
   switch(modalParams.type) {
     case ModalParams::Eigen:
     case ModalParams::Undefined : { // if eigen basis, all operators are diagonal
@@ -183,6 +188,53 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
 
       modalOps.M->setDiag(1.0);
       modalOps.Msolver->setDiag(1.0); // Inverse of M
+
+      if(checkBasis) {
+        filePrint(stderr," ... Validating orthongality of modal eigen basis ... \n");
+        SparseMatrix **subM = new SparseMatrix * [decDomain->getNumSub()];
+        SparseMatrix **subK = new SparseMatrix * [decDomain->getNumSub()];
+        for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
+          AllOps<double> allOps;
+          allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
+          allOps.K = subK[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
+          decDomain->getSubDomain(iSub)->makeSparseOps<double>(allOps, 0, 0, 0);
+        }
+        SubDOp M(decDomain->getNumSub(), subM);
+        SubDOp K(decDomain->getNumSub(), subK);
+ 
+        DenseMatrix redMass(numModes);
+        DenseMatrix redStif(numModes);
+        GenDistrVectorSet<double> tPhiM(numModes, decDomain->solVecInfo());
+        GenDistrVectorSet<double> tPhiK(numModes, decDomain->solVecInfo());
+        for(int i = 0; i<numModes; ++i){
+          M.mult((*modesFl)[i], tPhiM[i]);
+          K.mult((*modesFl)[i], tPhiK[i]);
+        }
+
+        double Knorm = 0.0;
+        for(int row = 0; row < numModes; ++row) { 
+          for(int col = 0; col < numModes; ++col) {
+            redMass[row+numModes*col] = tPhiM[row]*(*modesFl)[col];
+            redStif[row+numModes*col] = tPhiK[row]*(*modesFl)[col];
+            if(col == row) {// subtract identity and circular freqs
+              redMass[row+numModes*col] -= 1;
+              double Kdiag = freqs[col]*freqs[col];
+              redStif[row+numModes*col] -= Kdiag;
+              Knorm += Kdiag*Kdiag; 
+            }
+          }
+        }
+        Knorm = sqrt(Knorm);
+
+        if(redMass.norm()/sqrt(numModes) > modalParams.tolerance) {
+          filePrint(stderr," ... Modal Basis does not satisfy mass orthogonality tolerance, exiting. \n");
+          exit(-1);
+        }
+        if(redStif.norm()/Knorm > modalParams.tolerance) {
+          filePrint(stderr," ... Modal Basis does not satisfy stiffness decoupling tolerance, exiting. \n");
+          exit(-1);
+        }
+      }
 
       int i;
       for(i = 0; i < numModes; ++i){
@@ -230,13 +282,38 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
 
       //Construct and assemble full Stiffness matrix in parallel
       SparseMatrix **subK = new SparseMatrix * [decDomain->getNumSub()];
+      SparseMatrix **subM;
+      if (checkBasis) subM = new SparseMatrix * [decDomain->getNumSub()];
       for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
         AllOps<double> allOps;
         allOps.K = subK[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
+        if (checkBasis) allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
         decDomain->getSubDomain(iSub)->makeSparseOps<double>(allOps, 0, 0, 0);
       }
       SubDOp K(decDomain->getNumSub(), subK);
      
+      if(checkBasis) {
+        filePrint(stderr," ... Validating orthongality of modal basis ... \n");
+        DenseMatrix redMass(numModes);
+        SubDOp M(decDomain->getNumSub(), subM);
+        GenDistrVectorSet<double> tPhiM(numModes, decDomain->solVecInfo());
+        for(int i = 0; i<numModes; ++i)
+          M.mult((*modesFl)[i], tPhiM[i]);
+
+        for(int row = 0; row < numModes; ++row) {
+          for(int col = 0; col < numModes; ++col) {
+            redMass[row+numModes*col] = tPhiM[row]*(*modesFl)[col];
+            if(col == row) // subtract identity
+              redMass[row+numModes*col] -= 1; 
+          }
+        }
+    
+        if(redMass.norm()/sqrt(numModes) > modalParams.tolerance) {
+          filePrint(stderr," ... Modal Basis does not satisfy mass orthogonality tolerance, exiting. \n");
+          exit(-1); 
+        }
+      }
+
       {
         GenDistrVectorSet<double> tPhiK(numModes, decDomain->solVecInfo());
         for(int i = 0; i<numModes; ++i)
@@ -290,6 +367,27 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
       // see below for damping matrix
       modalOps.K       = new DenseMatrix(numModes);
       modalOps.dynMat  = new DenseMatrix(numModes);
+
+      if(checkBasis) {
+        filePrint(stderr," ... Validating orthongality of modal basis ... \n");
+        DenseMatrix redIdentity(numModes);
+        GenDistrVectorSet<double> tPhi(numModes, decDomain->solVecInfo());
+        for(int i = 0; i<numModes; ++i)
+          tPhi[i] = (*modesFl)[i];
+
+        for(int row = 0; row < numModes; ++row) {
+          for(int col = 0; col < numModes; ++col) {
+            redIdentity[row+numModes*col] = tPhi[row]*(*modesFl)[col];
+            if(col == row) // subtract identity
+              redIdentity[row+numModes*col] -= 1.0;
+          }
+        }
+
+        if(redIdentity.norm()/sqrt(numModes) > modalParams.tolerance) {
+          filePrint(stderr," ... Modal Basis does not satisfy self orthogonality tolerance, exiting. \n");
+          exit(-1);
+        }
+      }
 
       //Construct and assemble full mass and Stiffness matrix
       SparseMatrix **subM = new SparseMatrix * [decDomain->getNumSub()];

@@ -1574,20 +1574,25 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
   int i;
   for(i=0; i<numDirichlet; ++i) {
     int nodeNumber = dbc[i].nnum;
-    std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
-    if(it == dth.end()) {
-      std::vector<double> v(3);
-      v[0] = ns[nodeNumber].theta[0];
-      v[1] = ns[nodeNumber].theta[1];
-      v[2] = ns[nodeNumber].theta[2];
-      dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+    int dofNumber = dbc[i].dofnum;
+    if(nodeNumber < ns.size() && dofNumber < 6) {
+      std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
+      if(it == dth.end()) {
+        std::vector<double> v(3);
+        v[0] = ns[nodeNumber].theta[0];
+        v[1] = ns[nodeNumber].theta[1];
+        v[2] = ns[nodeNumber].theta[2];
+        dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+      }
     }
+    else if(nodeNumber >= ns.size()) { std::cerr << "i = " << i << ", nodeNumber = " << nodeNumber << ", dofnum = " << dbc[i].dofnum << std::endl; }
   }
 
   for(i=0; i<numDirichlet; ++i) {
 
     int nodeNumber = dbc[i].nnum;
     int dofNumber  = dbc[i].dofnum;
+    if(nodeNumber >= ns.size() || dofNumber >= 6) continue;
 
     // we multiply the total prescribed value by delta which
     // is a parameter prescribed by the user in the input file

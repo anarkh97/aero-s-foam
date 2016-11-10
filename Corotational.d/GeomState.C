@@ -1585,7 +1585,6 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
         dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
       }
     }
-    else if(nodeNumber >= ns.size()) { std::cerr << "i = " << i << ", nodeNumber = " << nodeNumber << ", dofnum = " << dbc[i].dofnum << std::endl; }
   }
 
   for(i=0; i<numDirichlet; ++i) {

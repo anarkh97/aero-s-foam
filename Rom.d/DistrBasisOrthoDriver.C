@@ -231,7 +231,7 @@ DistrBasisOrthoDriver::solve() {
   if(domain->solInfo().normalize == 1) {
     MGSVectors(normalizedBasis);
     std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
-    fileName.append(".massorthonormalized");
+    fileName.append(".orthonormalized");
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputOrthoNormalFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
     filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());

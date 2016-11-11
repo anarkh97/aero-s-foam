@@ -310,7 +310,7 @@ BasisOrthoDriver::solve() {
     // Output the renormalized basis as separate file
     if(domain->solInfo().normalize >= 0) {
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-      fileName.append(".normalized");
+      fileName.append(".massorthonormalized");
       BasisOutputStream<6> outputNormalized(fileName, converter, false); 
       filePrint(stderr, " ... Writing mass-normalized basis of size %d to file %s ...\n", orthoBasisDim, fileName.c_str());
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
@@ -321,6 +321,7 @@ BasisOrthoDriver::solve() {
     // Compute and output orthonormal basis if using new method
     if(domain->solInfo().normalize == 1) {
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+      fileName.append(".orthonormalized");
       MGSVectors(normalizedBasis.data(), normalizedBasis.numVec(), normalizedBasis.size());
       BasisOutputStream<6> outputIdentityNormalized(fileName, converter, false); 
       filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());

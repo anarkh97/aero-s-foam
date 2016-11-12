@@ -435,9 +435,11 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.maxP = $8;
           domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
           if ($6 == SweepParams::KrylovGalProjection) 
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
-          else 
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
+          else if ($6 == SweepParams::QRGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
+          else
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
           domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$3;
           domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
           domain->solInfo().getSweepParams()->adaptSweep.atol = $7;
@@ -455,14 +457,21 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.maxP = 6;
           domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
           if ($6 == SweepParams::KrylovGalProjection) {
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
+             domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
+             domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
+             domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 48;
+             domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
+          }
+          else if ($6 == SweepParams::QRGalProjection) {
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
              domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
              domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
              domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 48;
              domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
           }
           else {
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
              domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
              domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
              domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 16;

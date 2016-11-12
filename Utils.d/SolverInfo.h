@@ -28,7 +28,7 @@ struct AdaptiveSweepParams {
 public:
      int maxP,minRHS,maxRHS,deltaRHS,numS;
      double w1,w2,atol;
-     bool dgp_flag;
+     int dgp_flag;
 };
 
 struct SweepParams {

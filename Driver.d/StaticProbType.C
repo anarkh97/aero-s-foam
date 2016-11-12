@@ -124,14 +124,14 @@ StaticSolver< Scalar, OpSolver, VecType,
    } else  
 
 // RTRT
-   if (domain->solInfo().getSweepParams()->isAdaptSweep) 
+   if (domain->solInfo().getSweepParams()->isAdaptSweep && 
+       domain->solInfo().getSweepParams()->adaptSweep.maxP>0) 
    {
      probDesc->setIWaveDir(0); 
 
      int maxP,numS;
      double w1,w2,atol;
-     bool dgp_flag;
-     int dgp_flag_i;
+     int dgp_flag;
      int minRHS,maxRHS,deltaRHS;
      maxP = domain->solInfo().getSweepParams()->adaptSweep.maxP;
      numS = domain->solInfo().getSweepParams()->adaptSweep.numS;
@@ -310,17 +310,10 @@ ncheck = 18;
        double wc = w1 + (double(i))/double(numS)*(w2-w1);
        geoSource->setOmega(wc); 
        double res;
-       if (!dgp_flag)
-         res = adaptGPSolRes(0,nOrtho,sol,GP_solprev, GP_orth_solprev,
+       res = adaptGPSolRes(dgp_flag,nOrtho,sol,GP_solprev, GP_orth_solprev,
                    aa,bb,cc,
                              VhKV, VhMV, VhCV, VhK_arubber_lV, VhK_arubber_mV,
                              wc, wc-oldw);
-        else {
-         res = adaptGPSolRes(1,nOrtho,sol,GP_solprev, GP_orth_solprev,
-                   aa,bb,cc,
-                             VhKV, VhMV, VhCV, VhK_arubber_lV, VhK_arubber_mV,
-                             wc, wc-oldw);
-        }
        domain->frequencies->push_front(wc);
        if(domain->solInfo().isAcousticHelm()) {  
          SPropContainer& sProps = geoSource->getStructProps();
@@ -335,7 +328,10 @@ ncheck = 18;
        postProcessor->staticOutput(*sol, *rhs,  i==numS);
        domain->frequencies->pop_front();
      }
-
+   } else if (domain->solInfo().getSweepParams()->isAdaptSweep && 
+       domain->solInfo().getSweepParams()->adaptSweep.maxP<0) 
+   {
+     adaptWindowSweep();
    } else {
 // RTRT
 

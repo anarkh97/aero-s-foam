@@ -13,6 +13,72 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <valarray>
+
+extern "C" {
+void _FORTRAN(dgetrf) (const int &m, const int &n,
+                       double *a, const int &lda, int *ipiv, int &info);
+void _FORTRAN(dgetrs) (const char & trans, const int &n, const int &nrhs,
+                       double *a, const int &lda, int *ipiv,
+                       double *b, const int &ldb, int &info);
+void _FORTRAN(zgetrf) (const int &m, const int &n,
+                      complex<double> *a, const int &lda, int *ipiv, int &info);
+void _FORTRAN(zgetrs) (const char & trans, const int &n, const int &nrhs,
+                       complex<double> *a, const int &lda, int *ipiv,
+                       complex<double> *b, const int &ldb, int &info);
+}
+inline void Tgetrf (const int &m, const int &n,
+                    double *a, const int &lda, int *ipiv, int &info) {
+ _FORTRAN(dgetrf)(m,n,a,lda,ipiv,info);
+}
+inline void Tgetrf (const int &m, const int &n,
+                    complex<double> *a, const int &lda, int *ipiv, int &info) {
+ _FORTRAN(zgetrf)(m,n,a,lda,ipiv,info);
+}
+inline void Tgetrs (const char & trans, const int &n, const int &nrhs,
+                       double *a, const int &lda, int *ipiv,
+                       double *b, const int &ldb, int &info) {
+ _FORTRAN(dgetrs)(trans,n,nrhs,a,lda,ipiv,b,ldb,info);
+}
+inline void Tgetrs (const char & trans, const int &n, const int &nrhs,
+                       complex<double> *a, const int &lda, int *ipiv,
+                       complex<double> *b, const int &ldb, int &info) {
+ _FORTRAN(zgetrs)(trans,n,nrhs,a,lda,ipiv,b,ldb,info);
+}
+
+
+/*
+extern "C" {
+
+  void _FORTRAN(dgemm)(const char &, const char &, const int &,const int &,
+                       const int &, const double &, double *, const int &,
+                       double *, const int &, const double &, double *,
+                       const int &);
+
+  void _FORTRAN(zgemm)(const char &, const char &, const int &,const int &,
+                       const int &, const complex<double> &, complex<double> *,
+                       const int &, complex<double> *, const int &, 
+                       const complex<double> &, complex<double> *, const int &);
+}
+
+inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
+                  const int &e, const double &f, double *g, const int &h,
+        double *i, const int &j, const double &k, double *l, const int &m)
+{
+ _FORTRAN(dgemm)(a,b,c,d,e,f,g,h,i,j,k,l,m);
+}
+
+inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
+                  const int &e, const complex<double> &f, complex<double> *g,
+                  const int &h, complex<double> *i, const int &j,
+                  const complex<double> &k, complex<double> *l, const int &m)
+{
+ _FORTRAN(zgemm)(a,b,c,d,e,f,g,h,i,j,k,l,m);
+}
+*/
+
+
+
 template < class Scalar,
            class OpSolver,
            class VecType,
@@ -899,18 +965,12 @@ time -= getTime();
 
 projmattime -= getTime();
  for(int i=0;i<nOrtho;i++) {
-//   allOps->K->mult(*(u[i]), *a);
-//   allOps->M->mult(*(u[i]), *b);
    allOps->K->mult(*(u[i]), *(aa[i]));
    allOps->M->mult(*(u[i]), *(bb[i]));
    (*c).zero();
    if (allOps->C_deriv) 
-//     if (allOps->C_deriv[0]) allOps->C_deriv[0]->mult(*(u[i]), *c);
      if (allOps->C_deriv[0]) allOps->C_deriv[0]->mult(*(u[i]), *(cc[i]));
    for(int j=0;j<nOrtho;j++) {
-//     tmpVhKV[i*(nOrtho+maxRHS)+j] = *a * *(u[j]);
-//     tmpVhMV[i*(nOrtho+maxRHS)+j] = *b * *(u[j]);
-//     tmpVhCV[i*(nOrtho+maxRHS)+j] = *c * *(u[j]);
      tmpVhKV[i*(nOrtho+maxRHS)+j] = *(aa[i]) * *(u[j]);
      tmpVhMV[i*(nOrtho+maxRHS)+j] = *(bb[i]) * *(u[j]);
      tmpVhCV[i*(nOrtho+maxRHS)+j] = *(cc[i]) * *(u[j]);
@@ -936,30 +996,124 @@ projmattime += getTime();
  int uRHS = minRHS;
  double maxres = 0.0;
  double oldmaxres = 0.0;
+
+ Scalar *UU = 0;
+ VecType **wcawe_u = 0 ;
+ if (dgpFlag==2) {
+   UU = new Scalar[maxRHS*maxRHS]; 
+   wcawe_u = new VecType * [maxRHS];
+   for(int i = 0; i < maxRHS; ++i) 
+     wcawe_u[i] = new VecType(probDesc->solVecInfo());
+   for(int i = 0; i < maxRHS*maxRHS; ++i) UU[i] = 0.0;
+ }
+ 
  while (!done) {
  
 // Add new vectors 
 orthotime -= getTime();
    int offset = nOrtho+maxRHS;
    for(int i=lRHS;i<uRHS;i++) {
-     if (dgpFlag) {
+     if (i == 0) probDesc->getRHS(*f);
+     if (dgpFlag==1) {
        if (i == 0) {
-         u[offset]->zero();
-         probDesc->getRHS(*f);
+         u[offset]->zero();   // ????
        } else {
          f->zero();
          probDesc->getFreqSweepRHS(f, u+offset, i);
        }
+     } else if (dgpFlag==2) {
+// WCAWE
+       if (i>0) { 
+         int ii = i+1;
+      // for j=1:ii-1;
+         std::vector<Scalar> pb(ii-1); 
+         for(int j=1;j<ii;j++) {
+fprintf(stderr,"wcawe %d %d\n",ii,j);
+           int iimj = ii-j;
+      //     PP = diag(ones(ii-j,1));
+           std::vector<Scalar> PP(iimj*iimj,0);
+           for (int k=0; k<iimj; k++) PP[k+k*iimj] = 1.0;
+      //   for k=1:j;
+           for(int k=1;k<=j;k++) {
+      //     PP = PP*inv(UU(k:(ii-j+k-1),k:(ii-j+k-1)));
+      // Compute the inverse
+            std::vector<Scalar> QQ(iimj*iimj,0);
+            for (int m=k; m<iimj+k; m++) for (int n=k; n<iimj+k; n++)
+              QQ[(m-k)+(n-k)*iimj] = UU[m-1+(n-1)*(maxRHS)];
+            std::vector<Scalar> RR(iimj*iimj,0);
+            for (int k=0; k<iimj; k++) RR[k+k*iimj] = 1.0;
+            std::vector<int> ipiv(iimj);
+            int lwork = 3 * iimj;
+            std::vector<Scalar> work(lwork);
+            int info = 0;
+            Tgesv(iimj, iimj, &QQ[0], iimj, &ipiv[0], &RR[0], iimj, info);
+      // Multiply the matrices PP and RR and store in PP
+            for (int kk=0; kk<iimj*iimj; kk++) QQ[kk] = PP[kk];
+            char transa = 'N'; char transb = 'N';
+            Tgemm(transa, transb, iimj, iimj, iimj,
+                   1.0 , &QQ[0], iimj, &RR[0], iimj, 0.0, &PP[0], iimj);
+      //    end
+           }
+      //   pu = pu + b{j+1}*PP(1,ii-j);
+           pb[j-1] = PP[1-1+(iimj-1)*iimj];
+//fprintf(stderr,"pb %d %e %e\n",j-1,
+//ScalarTypes::Real(pb[j-1]),
+//ScalarTypes::Imag(pb[j-1]));
+      //    end
+         } 
+      
+      //  end
+      // Identical as above except j and k start from 2
+         std::vector<Scalar> pU(ii*ii,0); 
+      //  for j=2:ii-1;
+         for(int j=2;j<ii;j++) {
+           int iimj = ii-j;
+      //    PP = diag(ones(ii-j,1));
+           std::vector<Scalar> PP(iimj*iimj,0);
+           for (int k=0; k<iimj; k++) PP[k+k*iimj] = 1.0;
+      //    for k=2:j;
+           for(int k=2;k<=j;k++) {
+      //     PP = PP*inv(UU(k:(ii-j+k-1),k:(ii-j+k-1)));
+      // Compute the inverse
+            std::vector<Scalar> QQ(iimj*iimj,0);
+            for (int m=k; m<iimj+k; m++) for (int n=k; n<iimj+k; n++)
+              QQ[(m-k)+(n-k)*iimj] = UU[m-1+(n-1)*(maxRHS)];
+            std::vector<Scalar> RR(iimj*iimj,0);
+            for (int k=0; k<iimj; k++) RR[k+k*iimj] = 1.0;
+            std::vector<int> ipiv(iimj);
+            int lwork = 3 * iimj;
+            std::vector<Scalar> work(lwork);
+            int info = 0;
+            Tgesv(iimj, iimj, &QQ[0], iimj, &ipiv[0], &RR[0], iimj, info);
+      // Multiply the matrices PP and RR and store in PP
+            for (int kk=0; kk<iimj*iimj; kk++) QQ[kk] = PP[kk]; ;
+            char transa = 'N'; char transb = 'N';
+            Tgemm(transa, transb, iimj, iimj, iimj,
+                   1.0 , &QQ[0], iimj, &RR[0], iimj, 0.0, &PP[0], iimj);
+      //    end
+           }
+      //    pu = pu - Z{j+1}*W(:,1:(ii-j))*PP(:,ii-j);
+           for(int k=0;k<iimj;k++)  {
+             pU[k+(j-1)*ii] = PP[k+(iimj-1)*iimj];  
+//fprintf(stderr,"pU %d %d %e %e\n",k,j-1,
+//ScalarTypes::Real(pU[k+(j-1)*ii]),
+//ScalarTypes::Imag(pU[k+(j-1)*ii]));
+           }
+      //    end
+         } 
+         probDesc->getWCAWEFreqSweepRHS(f, wcawe_u, &pU[0], &pb[0], maxRHS, i);
+       }
      } else {
-       if (i == 0) {
-         probDesc->getRHS(*f);
-       }
-       else {
-         allOps->M->mult(*u[nOrtho+i-1], *f);
-       }
+// KGP
+       if (i>0) allOps->M->mult(*u[nOrtho+i-1], *f);
      }
      filePrint(stderr,"\n ... Solving RHSa   #%3d               ...\n",i);
 rhstime -= getTime();
+//{
+//        Scalar nrm = *f * *f;
+//fprintf(stderr,"f %d %e\n",i,
+//sqrt(ScalarTypes::Real(nrm)));
+//}
      allOps->sysSolver->solve(*f, *a);
 rhstime += getTime();
      if (dgpFlag) {
@@ -969,6 +1123,30 @@ rhstime += getTime();
        }
        *u[offset+i+1] = *a;
      }
+
+     if (dgpFlag==2) {
+// WCAWE orthogonalize
+       *b = *a; 
+//        Scalar nrm = *a * *a;
+//fprintf(stderr,"a %d %e\n",i,
+//sqrt(ScalarTypes::Real(nrm)));
+       for(int j=0;j<i;j++) {
+          Scalar dotp = *b *  *wcawe_u[j];
+          UU[j+i*maxRHS] = dotp;
+          (*b).linAdd(-dotp,*wcawe_u[j]);
+//fprintf(stderr,"UU %d %d %e %e\n",j,i,
+//ScalarTypes::Real(UU[j+i*maxRHS]),
+//ScalarTypes::Imag(UU[j+i*maxRHS]));
+       }
+       UU[i*maxRHS+i] = sqrt(ScalarTypes::Real(*b * *b));
+//fprintf(stderr,"UU %d %d %e %e\n",i,i,
+//ScalarTypes::Real(UU[i+i*maxRHS]),
+//ScalarTypes::Imag(UU[i+i*maxRHS]));
+       *b *= 1.0/UU[i*maxRHS+i];
+       *wcawe_u[i] = *b;
+     }
+
+// GP space orthogonalize
      if(domain->solInfo().isCoupled) scaleDisp(*a,alpha);
      int ngs = 2;
      for(int m=0;m<ngs;m++) { 
@@ -989,18 +1167,12 @@ orthotime += getTime();
 // Update matrices
 projmattime2 -= getTime();
    for(int i=nOrtho+lRHS;i<nOrtho+uRHS;i++) {
-//     allOps->K->mult(*(u[i]), *a);
-//     allOps->M->mult(*(u[i]), *b);
      allOps->K->mult(*(u[i]), *(aa[i]));
      allOps->M->mult(*(u[i]), *(bb[i]));
      (*c).zero();
      if (allOps->C_deriv) 
-//       if (allOps->C_deriv[0]) allOps->C_deriv[0]->mult(*(u[i]), *c);
        if (allOps->C_deriv[0]) allOps->C_deriv[0]->mult(*(u[i]), *(cc[i]));
      for(int j=0;j<nOrtho+uRHS;j++) {
-//       tmpVhKV[i*(nOrtho+maxRHS)+j] = *a * *(u[j]);
-//       tmpVhMV[i*(nOrtho+maxRHS)+j] = *b * *(u[j]);
-//       tmpVhCV[i*(nOrtho+maxRHS)+j] = *c * *(u[j]);
        tmpVhKV[i*(nOrtho+maxRHS)+j] = *(aa[i]) * *(u[j]);
        tmpVhMV[i*(nOrtho+maxRHS)+j] = *(bb[i]) * *(u[j]);
        tmpVhCV[i*(nOrtho+maxRHS)+j] = *(cc[i]) * *(u[j]);
@@ -1015,15 +1187,7 @@ projmattime2 -= getTime();
      }
    }
    for(int i=0;i<nOrtho+uRHS;i++) {
-//     allOps->K->mult(*(u[i]), *a);
-//     allOps->M->mult(*(u[i]), *b);
-//     (*c).zero();
-//     if (allOps->C_deriv) 
-//       if (allOps->C_deriv[0]) allOps->C_deriv[0]->mult(*(u[i]), *c);
      for(int j=nOrtho+lRHS;j<nOrtho+uRHS;j++) {
-//       tmpVhKV[i*(nOrtho+maxRHS)+j] = *a * *(u[j]);
-//       tmpVhMV[i*(nOrtho+maxRHS)+j] = *b * *(u[j]);
-//       tmpVhCV[i*(nOrtho+maxRHS)+j] = *c * *(u[j]);
        tmpVhKV[i*(nOrtho+maxRHS)+j] = *(aa[i]) * *(u[j]);
        tmpVhMV[i*(nOrtho+maxRHS)+j] = *(bb[i]) * *(u[j]);
        tmpVhCV[i*(nOrtho+maxRHS)+j] = *(cc[i]) * *(u[j]);
@@ -1200,6 +1364,12 @@ chrestime += getTime();
  delete a;
  if (dl) delete dl;
  if (dm) delete dm;
+ 
+ if (dgpFlag==2) {
+   delete[] UU;
+   for(int i=0;i<maxRHS;i++) delete wcawe_u[i];
+   delete[] wcawe_u;
+ }
 
 time += getTime();
 filePrint(stderr,"Total setup time: %e\n",time);
@@ -1366,156 +1536,792 @@ StaticSolver< Scalar, OpSolver, VecType,
                   Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
                   double w, double deltaw)
 {
-/*
- filePrint(stderr,"w deltaw size: %f %f %d %d %d\n",w,deltaw,nRHS,nOrtho,sol->size());
+}
 
- VecType *f = new VecType(probDesc->solVecInfo());
- if (nRHS>0) {
-  
-   VecType *a = new VecType(probDesc->solVecInfo());
-   Scalar *y = new Scalar[nRHS];
-   Scalar *R = new Scalar[nRHS*nRHS];
-   Scalar *S = new Scalar[nRHS*nRHS];
-   Scalar *dotp = new Scalar[nRHS];
-  
-   for(int i=0;i<nRHS*nRHS;i++) R[i] = 0.0;
-  
-  // u stores q (columns of Q); v stores z (columns of Z)
-   for(int p=0;p<nRHS;p++) {
-     if (p==0)
-       probDesc->getRHS(*f);
-     else 
-       probDesc->getFreqSweepRHS(f,0, p);
-     allOps->sysSolver->solve(*f, *a);
-     for(int i=0;i<p;i++) {
-       y[i] = 2.0*double(p)*w*R[(p-1)*nRHS+i];
-       if (p>1) y[i] += double(p)*double(p-1)*R[(p-2)*nRHS+i];
-      }
+template < class Scalar,
+           class OpSolver,
+           class VecType,
+           class PostProcessor,
+           class ProblemDescriptor,
+           class ComplexVecType>
+void
+StaticSolver< Scalar, OpSolver, VecType,
+              PostProcessor, ProblemDescriptor, ComplexVecType >
+  ::adaptWindowSweep()
+{
+  double time = 0.0;
+  double rhstime = 0.0;
+  double rhsctime1 = 0.0;
+  double rhsctime2 = 0.0;
+  double solutiontime = 0.0;
+  double solvertime = 0.0;
+  double outputtime = 0.0;
+  double transitiontime= 0.0;
+  double onefspacetime = 0.0;
+  double fsweeptime = 0.0;
+  double frsweeptime = 0.0;
+  double Arsweeptime = 0.0;
+  double ressweeptime = 0.0;
+  double froneftime = 0.0;
+  double Aroneftime = 0.0;
+  double resoneftime = 0.0;
+  int solvecount = 0;
 
-     for(int i=0;i<p;i++) {
-       (*a).linAdd(y[i],*v[i]);
-        fprintf(stderr,"y[%d]= %.20e %.20e\n",i, ScalarTypes::Real(y[i]),
-           ScalarTypes::Imag(y[i]));
-     }
-     for(int i=0;i<p;i++) {
-       R[p*nRHS+i] = *a * *u[i];
-     }
-        fprintf(stderr,"R[%d]= %.20e %.20e\n",i, ScalarTypes::Real(R[p*nRHS+i]),
-           ScalarTypes::Imag(R[p*nRHS+i]));
-       (*a).linAdd(-R[p*nRHS+i],*u[i]);
-     }
+  time -= getTime();
 
+ double w1 = domain->solInfo().getSweepParams()->adaptSweep.w1;
+ double w2 = domain->solInfo().getSweepParams()->adaptSweep.w2;
+ int numS = domain->solInfo().getSweepParams()->adaptSweep.numS;
+ double dw = (w2-w1)/numS;
+ int nDir = domain->numWaveDirections;
+ if (nDir==0) nDir = 1;
+ int maxLocalV = domain->solInfo().getSweepParams()->adaptSweep.minRHS;
+ int dgpFlag = domain->solInfo().getSweepParams()->adaptSweep.dgp_flag;
+ double tol = domain->solInfo().getSweepParams()->adaptSweep.atol;
+ int localP = domain->solInfo().getSweepParams()->adaptSweep.deltaRHS;
 
-  // Extra reortho
-     int ngs = 2;
-     for(int m=0;m<ngs;m++) { 
-       for(int i=0;i<p;i++) {
-         dotp[i] = *a *  *u[i];
-         fprintf(stderr,"%d %d %.20e %.20e\n",m,i,
-           ScalarTypes::Real(dotp[i]),
-           ScalarTypes::Imag(dotp[i]));
-       }
-       for(int i=0;i<p;i++) {
-         (*a).linAdd(-dotp[i],*u[i]);
-         R[p*nRHS+i] += dotp[i];
-       }
-     }
-  
-     Scalar nrm = *a * *a;
-        fprintf(stderr,"nrm %.20e %.20e\n",
-           ScalarTypes::Real(nrm),
-           ScalarTypes::Imag(nrm));
-     R[p*nRHS+p] = sqrt(ScalarTypes::Real(nrm));
-     *a *= 1.0/sqrt(ScalarTypes::Real(nrm));
-     *u[p] = *a;
-  
-     allOps->M->mult(*u[p], *f);
-     allOps->sysSolver->solve(*f, *a);
-     *v[p] = *a;
-     for(int i=0;i<p;i++) {
-       S[p*nRHS+i] = *v[p] * *u[i];
-       S[i*nRHS+p] = *v[i] * *u[p];
-     }
-   }
+ double ctolf = 1e2; // tolerance factor when looking for next coarse
+ double tol1f = 1e-2; // tolerance factor when looking within one frequency
 
-   for(int p=0;p<nRHS;p++) for(int i=0;i<nRHS;i++) {
-    Scalar d = *v[p] * *v[i];
-        fprintf(stderr,"Z^HZ %d %d  %.20e %.20e\n",p,i,
-           ScalarTypes::Real(d),
-           ScalarTypes::Imag(d));
-   }
+ if (localP)
+   filePrint(stderr,"Adaptive window sweep - local variant\n");
+ else 
+   filePrint(stderr,"Adaptive window sweep\n");
+ if (dgpFlag==1)
+   filePrint(stderr,"DGP with %d local derivatives\n",maxLocalV);
+ else if (dgpFlag==2)
+   filePrint(stderr,"DGP with %d local WCAWE vectors\n",maxLocalV);
+ else 
+   filePrint(stderr,"KGP with %d local vectors\n",maxLocalV);
+ filePrint(stderr,"Parameter values: tol=%e ctolf=%e tol1f=%e\n",
+           tol,ctolf,tol1f);
 
-   VecType *b = new VecType(probDesc->solVecInfo());
-   VecType *c = new VecType(probDesc->solVecInfo());
-
-   if (VhMV!=0) delete[] VhMV; 
-   if (VhKV!=0) delete[] VhKV; 
-   if (VhCV!=0) delete[] VhCV; 
-   VhMV = new Scalar[(nOrtho+nRHS)*(nOrtho+nRHS)];
-   VhKV = new Scalar[(nOrtho+nRHS)*(nOrtho+nRHS)];
-   VhCV = new Scalar[(nOrtho+nRHS)*(nOrtho+nRHS)];
-
-   for(int i=0;i<nRHS+nOrtho;i++) {
-     allOps->K->mult(*(u[i]), *a);
-     allOps->M->mult(*(u[i]), *b);
-     for(int k=0;k<sol->size();k++) (*c)[k] = 0;
-     if (allOps->C_deriv) {
-       if (allOps->C_deriv[0]) allOps->C_deriv[0]->mult(*(u[i]), *c);
-     } else (*c).zero(); 
-     //else if (allOps->C) allOps->C->mult(*(u[i]), *c);  
-
-     for(int j=0;j<nOrtho+nRHS;j++) {
-       VhMV[i*(nOrtho+nRHS)+j] = *b * *u[j];
-       VhCV[i*(nOrtho+nRHS)+j] = *c * *u[j];
-       VhKV[i*(nOrtho+nRHS)+j] = *a * *u[j] + (w-deltaw)*(w-deltaw) * VhMV[i*(nOrtho+nRHS)+j];
-       ScalarTypes::addComplex(VhKV[i*(nOrtho+nRHS)+j], -(w-deltaw)*VhCV[i*(nOrtho+nRHS)+j] );
-     }
-   }
-
-   delete b;
-   delete c;
-   delete a;
+ // Temp storage for DGP and WCAWE
+ VecType **temp_u=0;
+ Scalar *UU = 0;
+ if (dgpFlag) {
+   UU = new Scalar[maxLocalV*maxLocalV];
+   temp_u = new VecType * [maxLocalV+1];
+   for(int i = 0; i < maxLocalV+1; ++i)
+     temp_u[i] = new VecType(probDesc->solVecInfo());
+   for(int i = 0; i < maxLocalV*maxLocalV; ++i) UU[i] = 0.0;
  }
 
- // Project 
- probDesc->getRHS(*f, w,deltaw);
+ // Temp vectors
+ VecType *f = new VecType(probDesc->solVecInfo());
+ VecType *a = new VecType(probDesc->solVecInfo());
+ VecType *fkgp = new VecType(probDesc->solVecInfo());
+ VecType *akgp = new VecType(probDesc->solVecInfo());
+ VecType *b = new VecType(probDesc->solVecInfo());
+ VecType *c = new VecType(probDesc->solVecInfo());
+ VecType *sol = new VecType(probDesc->solVecInfo());
 
- Scalar *z = new Scalar[nOrtho+nRHS];
- for(int i=0;i<nOrtho+nRHS;i++) {
-   z[i] = *f * *u[i];
+ // Subspaces, 2 frequencies at a time
+ const int nF = 2;
+ FWindowSData<Scalar,VecType,ProblemDescriptor> **localFWSSpace = 
+   new FWindowSData<Scalar,VecType,ProblemDescriptor> *[nF*nDir];
+ for(int i=0;i<nF*nDir;i++) {
+   localFWSSpace[i] = 0;
+ }
+
+// vector of residuals, reduced matrix and vector, reduced matrices
+ std::vector<double> res(nDir);   
+ std::vector<Scalar> fr(nF*nDir*maxLocalV);
+ std::vector<Scalar> Ar(nF*nDir*maxLocalV*nF*nDir*maxLocalV);
+ std::map<std::pair<int,int>,Scalar> Kr; 
+ std::map<std::pair<int,int>,Scalar> Mr; 
+ std::map<std::pair<int,int>,Scalar> Cr; 
+
+ int imode = 0;
+ int icoarsew[nF];
+ icoarsew[0] = -1;
+ icoarsew[1] = 0;
+ bool doneF = false;
+ while (!doneF) {
+   transitiontime -= getTime();
+   double w = w1 + icoarsew[1]*dw;
+   // Scaling factor for coupled
+   double alpha = 1.0; // ((w1+w2)/2.0)/w;
+   if (icoarsew[0]!=-1) alpha = w/(w1 + icoarsew[0]*dw);
+filePrint(stderr,"haha icoarsew[0]=%d icoarsew[1]=%d\n",icoarsew[0],icoarsew[1]);
+
+   // Erase old frequency spaces and
+   // move new frequency spaces to old frequency spaces and update with
+   // current scaling
+   for(int iDir=0;iDir<nDir;iDir++)  {
+     if (localFWSSpace[iDir]!=0) delete localFWSSpace[iDir];
+     localFWSSpace[iDir] = 0;
+     if (localFWSSpace[nDir+iDir]!=0) {
+       localFWSSpace[iDir] = localFWSSpace[nDir+iDir];
+       localFWSSpace[nDir+iDir] = 0;
+       // Update u's to current scaling and recompute Ku,Mu,Cu
+       for(int i=0;i<localFWSSpace[iDir]->n;i++) {
+         *(localFWSSpace[iDir]->u[i]) = *(localFWSSpace[iDir]->v[i]);
+         *(localFWSSpace[iDir]->ups[i]) = *(localFWSSpace[iDir]->v[i]);
+         if(domain->solInfo().isCoupled) 
+           scaleDisp(*(localFWSSpace[iDir]->u[i]),alpha);
+         allOps->K->mult(*(localFWSSpace[iDir]->u[i]),
+                         *(localFWSSpace[iDir]->Ku[i]));
+         allOps->M->mult(*(localFWSSpace[iDir]->u[i]),
+                         *(localFWSSpace[iDir]->Mu[i]));
+         if (allOps->C_deriv) if (allOps->C_deriv[0])
+           allOps->C_deriv[0]->mult(*(localFWSSpace[iDir]->u[i]),
+                                    *(localFWSSpace[iDir]->Cu[i]));
+       }
+     }
+   }
+   for(int iDir=0;iDir<nDir;iDir++)  {
+     if (localFWSSpace[iDir]!=0) {
+       // Recompute reduced matrices
+       for(int i=0;i<localFWSSpace[iDir]->n;i++) {
+         // Compute new reduced matrix entries
+         int jDirL = (localP)?iDir:0;
+         int jDirU = (localP)?iDir+1:nDir;
+         for(int jDir=jDirL;jDir<jDirU;jDir++) {
+           if (localFWSSpace[jDir]!=0)
+             for(int j=0;j<localFWSSpace[jDir]->n;j++) {
+                std::pair<int,int> rowcol
+                 (localFWSSpace[jDir]->imode+j,localFWSSpace[iDir]->imode+i); 
+  //               fprintf(stderr,"haha rowcol %d %d\n",localFWSSpace[jDir]->imode+j,localFWSSpace[nDir+iDir]->imode+i);
+                Kr[rowcol] = *(localFWSSpace[iDir]->Ku[i]) *
+                             *(localFWSSpace[jDir]->u[j]);
+                Mr[rowcol] = *(localFWSSpace[iDir]->Mu[i]) *
+                             *(localFWSSpace[jDir]->u[j]);
+                Cr[rowcol] = *(localFWSSpace[iDir]->Cu[i]) *
+                             *(localFWSSpace[jDir]->u[j]);
+                if (iDir!=jDir) {
+                  std::pair<int,int> rowcolt
+                    (localFWSSpace[iDir]->imode+i,
+                     localFWSSpace[jDir]->imode+j); 
+  //               fprintf(stderr,"haha rowcol %d %d\n",localFWSSpace[nDir+iDir]->imode+i,localFWSSpace[jDir]->imode+j);
+                  Kr[rowcolt] = *(localFWSSpace[jDir]->Ku[j]) *
+                                *(localFWSSpace[iDir]->u[i]);
+                  Mr[rowcolt] = *(localFWSSpace[jDir]->Mu[j]) *
+                                *(localFWSSpace[iDir]->u[i]);
+                  Cr[rowcolt] = *(localFWSSpace[jDir]->Cu[j]) *
+                                *(localFWSSpace[iDir]->u[i]);
+                }
+             } 
+         }
+       }
+     }
+   }
+   transitiontime += getTime();
+
+   // Setup solver for new frequency
+   geoSource->setOmega(w);
+   solvertime -= getTime();
+   if (w>w1) rebuildSolver(w);
+   solvertime += getTime();
+
+   // Count reduced variables and number them
+   int nr = 0;
+   for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0) {
+     localFWSSpace[jDir]->irow = nr;
+     nr += localFWSSpace[jDir]->n;
+   }
+
+   if (localP) 
+     for(int jDir=0;jDir<nDir;jDir++) if (localFWSSpace[jDir]!=0)
+          localFWSSpace[jDir]->irow = 0;
+
+   std::valarray<int> isDone(0,nDir);
+   int newDir;
+   if (icoarsew[0]==-1) 
+     newDir = localP?0:nDir/2;
+   else {
+     newDir = localP?0:std::max_element(res.begin(),res.end()) - res.begin();
+   }
+
+   onefspacetime -= getTime();
+   while (isDone.sum()<nDir) {
+filePrint(stderr,"haha nr=%d newDir=%d isDone.sum()=%d \n",nr,newDir,isDone.sum());
+
+   // Build spaces at new frequency
+     if (newDir!=-1) {
+       probDesc->setIWaveDir(newDir);
+       localFWSSpace[nDir+newDir] = 
+         new FWindowSData<Scalar,VecType,ProblemDescriptor>
+             (maxLocalV,imode,probDesc); 
+       VecType **u = localFWSSpace[nDir+newDir]->u;
+       VecType **v = localFWSSpace[nDir+newDir]->v;
+  
+       // Build one space 
+       for(int i=0;i<maxLocalV;i++) {
+         if (i == 0) { 
+           rhsctime1 -= getTime();
+           probDesc->getRHS(*f);
+           rhsctime1 += getTime();
+           if (dgpFlag==1) temp_u[0]->zero();
+           if (dgpFlag==0) *fkgp = *f;
+         } 
+         else if (dgpFlag==1) {
+           f->zero();
+           rhsctime1 -= getTime();
+           probDesc->getFreqSweepRHS(f, temp_u, i);
+           rhsctime1 += getTime();
+         } else if (dgpFlag==2) {
+    // WCAWE
+           int ii = i+1;
+        // for j=1:ii-1;
+           std::vector<Scalar> pb(ii-1); 
+           for(int j=1;j<ii;j++) {
+    filePrint(stderr,"wcawe %d %d\n",ii,j);
+             int iimj = ii-j;
+        //     PP = diag(ones(ii-j,1));
+             std::vector<Scalar> PP(iimj*iimj,0);
+             for (int k=0; k<iimj; k++) PP[k+k*iimj] = 1.0;
+        //   for k=1:j;
+             for(int k=1;k<=j;k++) {
+        //     PP = PP*inv(UU(k:(ii-j+k-1),k:(ii-j+k-1)));
+        // Compute the inverse
+              std::vector<Scalar> QQ(iimj*iimj,0);
+              for (int m=k; m<iimj+k; m++) for (int n=k; n<iimj+k; n++)
+                QQ[(m-k)+(n-k)*iimj] = UU[m-1+(n-1)*(maxLocalV)];
+              std::vector<Scalar> RR(iimj*iimj,0);
+              for (int k=0; k<iimj; k++) RR[k+k*iimj] = 1.0;
+              std::vector<int> ipiv(iimj);
+              int lwork = 3 * iimj;
+              std::vector<Scalar> work(lwork);
+              int info = 0;
+              Tgesv(iimj, iimj, &QQ[0], iimj, &ipiv[0], &RR[0], iimj, info);
+        // Multiply the matrices PP and RR and store in PP
+              for (int kk=0; kk<iimj*iimj; kk++) QQ[kk] = PP[kk];
+              char transa = 'N'; char transb = 'N';
+              Tgemm(transa, transb, iimj, iimj, iimj,
+                     1.0 , &QQ[0], iimj, &RR[0], iimj, 0.0, &PP[0], iimj);
+        //    end
+             }
+        //   pu = pu + b{j+1}*PP(1,ii-j);
+             pb[j-1] = PP[1-1+(iimj-1)*iimj];
+        //    end
+           } 
+        
+        //  end
+        // Identical as above except j and k start from 2
+           std::vector<Scalar> pU(ii*ii,0); 
+        //  for j=2:ii-1;
+           for(int j=2;j<ii;j++) {
+             int iimj = ii-j;
+        //    PP = diag(ones(ii-j,1));
+             std::vector<Scalar> PP(iimj*iimj,0);
+             for (int k=0; k<iimj; k++) PP[k+k*iimj] = 1.0;
+        //    for k=2:j;
+             for(int k=2;k<=j;k++) {
+        //     PP = PP*inv(UU(k:(ii-j+k-1),k:(ii-j+k-1)));
+        // Compute the inverse
+              std::vector<Scalar> QQ(iimj*iimj,0);
+              for (int m=k; m<iimj+k; m++) for (int n=k; n<iimj+k; n++)
+                QQ[(m-k)+(n-k)*iimj] = UU[m-1+(n-1)*(maxLocalV)];
+              std::vector<Scalar> RR(iimj*iimj,0);
+              for (int k=0; k<iimj; k++) RR[k+k*iimj] = 1.0;
+              std::vector<int> ipiv(iimj);
+              int lwork = 3 * iimj;
+              std::vector<Scalar> work(lwork);
+              int info = 0;
+              Tgesv(iimj, iimj, &QQ[0], iimj, &ipiv[0], &RR[0], iimj, info);
+        // Multiply the matrices PP and RR and store in PP
+              for (int kk=0; kk<iimj*iimj; kk++) QQ[kk] = PP[kk]; ;
+              char transa = 'N'; char transb = 'N';
+              Tgemm(transa, transb, iimj, iimj, iimj,
+                     1.0 , &QQ[0], iimj, &RR[0], iimj, 0.0, &PP[0], iimj);
+        //    end
+             }
+        //    pu = pu - Z{j+1}*W(:,1:(ii-j))*PP(:,ii-j);
+             for(int k=0;k<iimj;k++)  {
+               pU[k+(j-1)*ii] = PP[k+(iimj-1)*iimj];  
+             }
+        //    end
+           } 
+           rhsctime1 -= getTime();
+           probDesc->getWCAWEFreqSweepRHS(f, temp_u, &pU[0], &pb[0], maxLocalV, i);
+           rhsctime1 += getTime();
+         } else {
+    // KGP
+           allOps->M->mult(*u[i-1], *f);
+           if (dgpFlag==0) allOps->M->mult(*v[i-1], *fkgp);
+         }
+         filePrint(stderr," ... Solving RHS   #%3d               ...\n",i);
+    rhstime -= getTime();
+         allOps->sysSolver->solve(*f, *a);
+         solvecount++;
+         if (dgpFlag==0) {
+           allOps->sysSolver->solve(*fkgp, *akgp);
+           solvecount++;
+         }
+    rhstime += getTime();
+         if (dgpFlag) {
+           if (domain->solInfo().type == 2) {
+             filePrint(stderr,"Forcing continuity %d.\n",i);
+             forceContinuity(*a);
+           }
+         }
+    
+         if (dgpFlag==1)  *temp_u[i+1] = *a;
+         else if (dgpFlag==2) {
+           // WCAWE orthogonalize
+           for(int j=0;j<i;j++) {
+              Scalar dotp = *a *  *temp_u[j];
+              UU[j+i*maxLocalV] = dotp;
+              (*a).linAdd(-dotp,*temp_u[j]);
+           }
+           UU[i*maxLocalV+i] = sqrt(ScalarTypes::Real(*a * *a));
+           *a *= 1.0/UU[i*maxLocalV+i];
+           *temp_u[i] = *a;
+         }
+    
+         *b = *a;
+         // Global space orthogonalize with previous coupled scaling
+         if(domain->solInfo().isCoupled) scaleDisp(*a,1.0/alpha);
+         int ngs = 2;
+         for(int m=0;m<ngs;m++) { 
+            for(int jDir=0;jDir<nF*nDir;jDir++) 
+             if (localFWSSpace[jDir]!=0)
+              if (!localP || jDir==newDir || jDir==newDir+nDir)
+               for(int j=0;j<localFWSSpace[jDir]->n;j++) 
+                 {
+                   Scalar dotp = *a *  *(localFWSSpace[jDir]->ups[j]);
+                   (*a).linAdd(-dotp,*(localFWSSpace[jDir]->ups[j]));
+                 }
+            Scalar nrm = *a * *a;
+            *a *= 1.0/sqrt(ScalarTypes::Real(nrm));
+         }
+         *(localFWSSpace[nDir+newDir]->ups[i]) = *a;
+         if(domain->solInfo().isCoupled) scaleDisp(*a,alpha);
+         *u[i] = *a;
+         // Local frequency space orthogonalize with current coupled scaling
+         if (dgpFlag==0) *a = *akgp;
+         else *a = *b;
+         for(int m=0;m<ngs;m++) { 
+            for(int jDir=nDir;jDir<nF*nDir;jDir++) 
+             if (localFWSSpace[jDir]!=0)
+              if (!localP || jDir==newDir+nDir)
+               for(int j=0;j<localFWSSpace[jDir]->n;j++) 
+                 {
+                   Scalar dotp = *a *  *(localFWSSpace[jDir]->v[j]);
+                   (*a).linAdd(-dotp,*(localFWSSpace[jDir]->v[j]));
+                 }
+            Scalar nrm = *a * *a;
+            *a *= 1.0/sqrt(ScalarTypes::Real(nrm));
+         }
+         *v[i] = *a;
+       }
+  
+       // Update matrices
+       for(int i=0;i<localFWSSpace[nDir+newDir]->n;i++) {
+         allOps->K->mult(*(u[i]), *(localFWSSpace[nDir+newDir]->Ku[i]));
+         allOps->M->mult(*(u[i]), *(localFWSSpace[nDir+newDir]->Mu[i]));
+         if (allOps->C_deriv) if (allOps->C_deriv[0])
+          allOps->C_deriv[0]->mult(*(u[i]), *(localFWSSpace[nDir+newDir]->Cu[i]));
+       }
+  
+       for(int i=0;i<localFWSSpace[nDir+newDir]->n;i++) {
+         // Compute new reduced matrix entries
+         for(int jDir=0;jDir<nF*nDir;jDir++) {
+           if (localFWSSpace[jDir]!=0)
+            if (!localP || jDir==newDir || jDir==newDir+nDir)
+             for(int j=0;j<localFWSSpace[jDir]->n;j++) {
+                std::pair<int,int> rowcol
+               (localFWSSpace[jDir]->imode+j,localFWSSpace[nDir+newDir]->imode+i); 
+  //               fprintf(stderr,"haha rowcol %d %d\n",localFWSSpace[jDir]->imode+j,localFWSSpace[nDir+newDir]->imode+i);
+                Kr[rowcol] = *(localFWSSpace[nDir+newDir]->Ku[i]) *
+                             *(localFWSSpace[jDir]->u[j]);
+                Mr[rowcol] = *(localFWSSpace[nDir+newDir]->Mu[i]) *
+                             *(localFWSSpace[jDir]->u[j]);
+                Cr[rowcol] = *(localFWSSpace[nDir+newDir]->Cu[i]) *
+                             *(localFWSSpace[jDir]->u[j]);
+                if (newDir+nDir!=jDir) {
+                  std::pair<int,int> rowcolt
+                    (localFWSSpace[nDir+newDir]->imode+i,
+                     localFWSSpace[jDir]->imode+j); 
+  //               fprintf(stderr,"haha rowcol %d %d\n",localFWSSpace[nDir+newDir]->imode+i,localFWSSpace[jDir]->imode+j);
+                  Kr[rowcolt] = *(localFWSSpace[jDir]->Ku[j]) *
+                                *(localFWSSpace[nDir+newDir]->u[i]);
+                  Mr[rowcolt] = *(localFWSSpace[jDir]->Mu[j]) *
+                                *(localFWSSpace[nDir+newDir]->u[i]);
+                  Cr[rowcolt] = *(localFWSSpace[jDir]->Cu[j]) *
+                                *(localFWSSpace[nDir+newDir]->u[i]);
+                }
+             } 
+         }
+       }
+  
+       imode += localFWSSpace[nDir+newDir]->n;
+       if (!localP) {
+         localFWSSpace[nDir+newDir]->irow = nr;
+         nr += localFWSSpace[nDir+newDir]->n;
+       } else {
+         if (localFWSSpace[newDir]!=0)
+            localFWSSpace[nDir+newDir]->irow = localFWSSpace[newDir]->n;
+         else 
+            localFWSSpace[nDir+newDir]->irow = 0;
+       }
+       isDone[newDir] = 1;
+     }
+
+     if (!localP) {
+       // Sample residuals at midpoints of "done" 
+       std::valarray<int> iPick(0,nDir);
+       int nPick = 0;
+       int iLeft,iRight;
+       for(iLeft=0;iLeft<nDir; iLeft++) if (isDone[iLeft]==1) break;
+       if (iLeft/3!=iLeft) iPick[nPick++] = iLeft/3;
+       bool last = false;
+       while (!last) {
+         for(iRight=iLeft+1;iRight<nDir; iRight++) if (isDone[iRight]==1) break;
+         if (iRight==nDir) {
+           if ((iLeft+2*(nDir))/3!=iLeft && (iLeft+2*(nDir))/3<nDir)
+             iPick[nPick++] = (iLeft+2*(nDir))/3;
+           last = true;
+         } else {
+           if ((iLeft+iRight)/2!=iLeft) iPick[nPick++] = (iLeft+iRight)/2;
+         }
+         iLeft = iRight;
+       }
+       filePrint(stderr,"haha iDir= ");
+            for(int ii=0;ii<nPick;ii++) filePrint(stderr," %d",iPick[ii]);
+       filePrint(stderr,"\n");
+       // Evaluate residual at picked rhs's
+       for(int iDir=0;iDir<nDir;iDir++) res[iDir] = 0;
+       for(int ii=0;ii<nPick;ii++) {
+         int iDir = iPick[ii]; 
+         probDesc->setIWaveDir(iDir);
+         rhsctime1 -= getTime();
+         probDesc->getRHS(*f);
+         rhsctime1 += getTime();
+         // Compute reduced vector
+         froneftime -= getTime();
+         for(int ir=0;ir<nr;ir++) fr[ir] = 0;
+         for(int jDir=0;jDir<nF*nDir;jDir++)
+           if (localFWSSpace[jDir]!=0)
+             for(int j=0;j<localFWSSpace[jDir]->n;j++) 
+                fr[localFWSSpace[jDir]->irow+j] =
+                  *f * *(localFWSSpace[jDir]->u[j]);
+         froneftime += getTime();
+         // Compute reduced matrix
+         Aroneftime -= getTime();
+         for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
+         for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0)
+           for(int j=0;j<localFWSSpace[jDir]->n;j++)  {
+             for(int kDir=0;kDir<nF*nDir;kDir++) if (localFWSSpace[kDir]!=0)
+               for(int k=0;k<localFWSSpace[kDir]->n;k++)  {
+                 std::pair<int,int> rowcol
+                   (localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k); 
+                 Ar[localFWSSpace[jDir]->irow+j+
+                   nr*(localFWSSpace[kDir]->irow+k)] = 
+                   Kr[rowcol] - w*w*Mr[rowcol];
+                 ScalarTypes::addComplex(Ar[localFWSSpace[jDir]->irow+j+
+                   nr*(localFWSSpace[kDir]->irow+k)], w *Cr[rowcol]);
+               }
+             }
+         Aroneftime += getTime();
+  
+         // Solve the reduced linear system
+         std::vector<int> ipiv(nr);
+         int lwork = 3 * (nr);
+         std::vector<Scalar> work(lwork);
+         int info = 0;
+         Tgesv(nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
+         // Evaluate the residual
+         resoneftime -= getTime();
+         (*a).zero();
+         for(int jDir=0;jDir<nF*nDir;jDir++)
+           if (localFWSSpace[jDir]!=0)
+             for(int j=0;j<localFWSSpace[jDir]->n;j++) {
+                int ir = localFWSSpace[jDir]->irow+j;
+                (*a).linAdd(fr[ir],*(localFWSSpace[jDir]->Ku[j]),
+                            -w*w*fr[ir],*(localFWSSpace[jDir]->Mu[j]));
+                Scalar dc = 0.0;
+                ScalarTypes::addComplex(dc,w*fr[ir]);
+                if (allOps->C_deriv) if (allOps->C_deriv[0])
+                  (*a).linAdd(dc,*(localFWSSpace[jDir]->Cu[j]));
+             }
+         (*a).linAdd(-1.0,*f);
+         forceAssemble(*a);
+         forceAssemble(*f);
+         Scalar nrma = *a * *a;
+         Scalar nrmf = *f * *f;
+         resoneftime += getTime();
+         res[iDir] = sqrt(ScalarTypes::Real(nrma)/ScalarTypes::Real(nrmf));
+       filePrint(stderr,"haha iDir=%d res=%e\n",iDir,res[iDir]);
+         if (res[iDir]<tol*tol1f) isDone[iDir] = 1;
+       }
+       double maxres = -1.0;
+       for(int iDir=0;iDir<nDir;iDir++) if (res[iDir]>maxres) {
+         maxres = res[iDir];
+         newDir = iDir; 
+         if (res[iDir]<tol*tol1f) newDir = -1;
+       } 
+       filePrint(stderr,"haha maxres=%e newDir=%d\n",maxres,newDir);
+     } else {
+       newDir++;
+     }
+   } 
+   onefspacetime += getTime();
+
+
+   fsweeptime -= getTime();
+   // Compute and output ROM solution and residual
+   //  for interval icoarsew[0], icoarsew[1] 
+   //  and find new frequency above icoarsew[1]
+   int iwr = (icoarsew[0]>=0)?icoarsew[0]-1:0;
+   int deltaiwr;
+   int liwr=-1, uiwr=-1;
+   bool tolMet;
+   bool seekMode = false;
+   while (1) {
+     // Find the increment to the next frequency
+filePrint(stderr,"HAHA icoarsew[0]=%d icoarsew[1]=%d liwr=%d uiwr=%d deltaiwr=%d\n",icoarsew[0],icoarsew[1],liwr, uiwr,deltaiwr);
+     //   If done numS, we are done
+     if (iwr==numS && !seekMode) {  doneF = true; break; }
+     //   If the first first time
+     if (icoarsew[0]<0 && liwr==-1) {
+       seekMode = true;
+       deltaiwr = numS;
+       liwr = 0;
+filePrint(stderr,"init liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
+     }
+     // If generating solutions
+     else if (iwr<icoarsew[1]) {
+       deltaiwr = 1;
+filePrint(stderr,"solution liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
+     }
+     //   If just did the upper frequency, switch to seek mode
+     else if (iwr == icoarsew[1]) {
+        seekMode = true;
+        deltaiwr = icoarsew[1]-icoarsew[0];
+        if (iwr+deltaiwr>numS) deltaiwr = numS-iwr;
+        liwr = icoarsew[1];
+filePrint(stderr,"start seek liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
+     }
+     // Seek mode
+     else {
+       if (tolMet) {
+         liwr = iwr;
+         if (uiwr!=-1) deltaiwr = (uiwr-liwr)/2;
+         if (iwr+deltaiwr>numS) deltaiwr = numS-iwr;
+filePrint(stderr,"tolmet liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
+       }
+       else {
+         uiwr = iwr;
+         deltaiwr = -(uiwr-liwr)/2;
+filePrint(stderr,"tolnotmet liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
+       }
+       if (deltaiwr==0) {
+         iwr = liwr;
+         icoarsew[0] = icoarsew[1];
+         icoarsew[1] = iwr;
+filePrint(stderr,"stop liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
+         break;
+       }
+     }
+
+     iwr = iwr + deltaiwr;
+        
+     double wr = w1 + iwr*dw;
+filePrint(stderr,"haha iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
+//     geoSource->setOmega(wr);
+       // Compute reduced matrix
+     std::vector<int> ipiv(nr);
+     if (!localP) {
+       Arsweeptime -= getTime();
+       for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
+       for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0)
+         for(int j=0;j<localFWSSpace[jDir]->n;j++)  {
+           for(int kDir=0;kDir<nF*nDir;kDir++) if (localFWSSpace[kDir]!=0)
+             for(int k=0;k<localFWSSpace[kDir]->n;k++)  {
+               std::pair<int,int> rowcol
+                 (localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k); 
+  //                 auto Kr_iter = Kr.find(rowcol);
+               if (Kr.find(rowcol)==Kr.end()) fprintf(stderr,
+                           "haha rowcol %d %d not found\n",
+                    localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k);
+               Ar[localFWSSpace[jDir]->irow+j+
+                 nr*(localFWSSpace[kDir]->irow+k)] = 
+                 Kr[rowcol] - wr*wr*Mr[rowcol];
+               ScalarTypes::addComplex(Ar[localFWSSpace[jDir]->irow+j+
+                 nr*(localFWSSpace[kDir]->irow+k)], wr *Cr[rowcol]);
+             }
+         }
+       int info = 0;
+       Tgetrf(nr, nr, &Ar[0], nr, &ipiv[0], info);
+       Arsweeptime += getTime();
+     }
+     for(int iDir=0;iDir<nDir;iDir++) {
+       probDesc->setIWaveDir(iDir);
+       rhsctime2 -= getTime();
+       probDesc->getRHS(*f, wr,wr-(w1+icoarsew[1]*dw));
+       rhsctime2 += getTime();
+       // Compute reduced vector
+       if (localP) {
+          nr = 0;
+          if (localFWSSpace[iDir]!=0) nr += localFWSSpace[iDir]->n;
+          if (localFWSSpace[iDir+nDir]!=0) nr += localFWSSpace[iDir+nDir]->n;
+       }
+       frsweeptime -= getTime();
+       for(int ir=0;ir<nr;ir++) fr[ir] = 0;
+       for(int jDir=0;jDir<nF*nDir;jDir++)
+         if (localFWSSpace[jDir]!=0)
+          if (!localP || jDir==iDir || jDir==iDir+nDir)
+           for(int j=0;j<localFWSSpace[jDir]->n;j++) {
+              fr[localFWSSpace[jDir]->irow+j] =
+                 *f * *(localFWSSpace[jDir]->u[j]);
+           }
+       frsweeptime += getTime();
+//for(int i=0;i<nr;i++) filePrint(stderr,"fr[%d] = %e %e\n",i,
+//ScalarTypes::Real(fr[i]),ScalarTypes::Imag(fr[i]));
+       if (localP) { 
+         Arsweeptime -= getTime();
+         for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
+         for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0)
+          if (jDir==iDir || jDir==iDir+nDir)
+           for(int j=0;j<localFWSSpace[jDir]->n;j++)  {
+             for(int kDir=0;kDir<nF*nDir;kDir++) if (localFWSSpace[kDir]!=0)
+              if (kDir==iDir || kDir==iDir+nDir)
+               for(int k=0;k<localFWSSpace[kDir]->n;k++)  {
+                 std::pair<int,int> rowcol
+                   (localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k); 
+    //                 auto Kr_iter = Kr.find(rowcol);
+                 if (Kr.find(rowcol)==Kr.end()) fprintf(stderr,
+                             "haha rowcol %d %d not found\n",
+                      localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k);
+                 Ar[localFWSSpace[jDir]->irow+j+
+                   nr*(localFWSSpace[kDir]->irow+k)] = 
+                   Kr[rowcol] - wr*wr*Mr[rowcol];
+                 ScalarTypes::addComplex(Ar[localFWSSpace[jDir]->irow+j+
+                   nr*(localFWSSpace[kDir]->irow+k)], wr *Cr[rowcol]);
+               }
+           }
+         Arsweeptime += getTime();
+         // Factor and solve the reduced linear system
+         std::vector<int> ipiv(nr);
+         int info = 0;
+         Tgesv(nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
+       } else {
+         // Solve the reduced linear system
+         int info = 0;
+         char trans = 'N';
+         Tgetrs(trans, nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
+       }
+
+//for(int i=0;i<nr;i++) filePrint(stderr,"Ar[%d,%d] = %e %e\n",i,i,
+//ScalarTypes::Real(Ar[i*nr+i]),ScalarTypes::Imag(Ar[i*nr+i]));
+//for(int i=0;i<nr;i++) filePrint(stderr,"solr[%d] = %e %e\n",i,
+//ScalarTypes::Real(fr[i]),ScalarTypes::Imag(fr[i]));
+       // Evaluate the residual
+       ressweeptime -= getTime();
+       (*a).zero();
+       for(int jDir=0;jDir<nF*nDir;jDir++)
+         if (localFWSSpace[jDir]!=0)
+          if (!localP || jDir==iDir || jDir==iDir+nDir)
+           for(int j=0;j<localFWSSpace[jDir]->n;j++) {
+              int ir = localFWSSpace[jDir]->irow+j;
+              (*a).linAdd(fr[ir],*(localFWSSpace[jDir]->Ku[j]),
+                          -wr*wr*fr[ir],*(localFWSSpace[jDir]->Mu[j]));
+              Scalar dc = 0.0;
+              ScalarTypes::addComplex(dc,wr*fr[ir]);
+              if (allOps->C_deriv) if (allOps->C_deriv[0])
+                (*a).linAdd(dc,*(localFWSSpace[jDir]->Cu[j]));
+           }
+/* 
+       allOps->K->mult(*sol, *a);
+       allOps->M->mult(*sol, *b);
+       if (allOps->C_deriv) {
+          if (allOps->C_deriv[0]) allOps->C_deriv[0]->mult(*sol, *c);
+       } else (*c).zero(); 
+       (*a).linAdd(-wr*wr,*b);
+       for(int k=0;k<sol->size();k++) 
+           ScalarTypes::addComplex((*a)[k], wr * (*c)[k]);
+*/
+       (*a).linAdd(-1.0,*f);
+       forceAssemble(*a);
+       forceAssemble(*f);
+       Scalar nrma = *a * *a;
+       Scalar nrmf = *f * *f;
+       ressweeptime += getTime();
+       res[iDir] = sqrt(ScalarTypes::Real(nrma)/ScalarTypes::Real(nrmf));
+       if (iwr<icoarsew[1]) {
+         solutiontime -= getTime();
+         filePrint(stderr,"fresidual %d: %e %d %d\n",
+                   iDir,res[iDir],iwr,icoarsew[1]);
+         // Compute the approximant vector
+         (*sol).zero();
+         for(int jDir=0;jDir<nF*nDir;jDir++)
+           if (localFWSSpace[jDir]!=0)
+            if (!localP || jDir==iDir || jDir==iDir+nDir)
+             for(int j=0;j<localFWSSpace[jDir]->n;j++) 
+                (*sol).linAdd(fr[localFWSSpace[jDir]->irow+j],
+                              *(localFWSSpace[jDir]->u[j]));
+         if(domain->solInfo().isCoupled) scaleDisp(*sol);
+         solutiontime += getTime();
+         // Output the solution making sure the right frequency appears
+         domain->frequencies->push_front(wr);
+         if(domain->solInfo().isAcousticHelm()) {  
+           SPropContainer& sProps = geoSource->getStructProps();
+           for(int iProp=0;iProp<geoSource->getNumProps();iProp++) {
+             if(sProps[iProp].kappaHelm!=0.0 ||
+                sProps[iProp].kappaHelmImag!=0.0) {
+               complex<double> k1 = wr/sProps[iProp].soundSpeed;
+               sProps[iProp].kappaHelm = real(k1);
+               sProps[iProp].kappaHelmImag = imag(k1);
+             } 
+           }
+         }
+         outputtime -= getTime();
+         postProcessor->staticOutput(*sol, *rhs,(iwr==numS)&&(iDir==nDir-1));
+         outputtime += getTime();
+         domain->frequencies->pop_front();
+       } else
+         filePrint(stderr,"residual %d: %e %d %d\n",
+                   iDir,res[iDir],iwr,icoarsew[1]);
+     }
+     double mres = *std::max_element(res.begin(),res.end());
+     if (iwr<icoarsew[1]) 
+       filePrint(stderr,"max fresidual: %e at %e \n",mres,wr/2.0/M_PI);
+     else
+       filePrint(stderr,"max residual: %e at %e \n",mres,wr/2.0/M_PI);
+     tolMet = mres<tol*ctolf;
+/*
+     if ( (!tolMet && iwr>icoarsew[1]) || (iwr==numS) ) {
+       if (iwr==numS  && icoarsew[1]==numS) doneF = true;
+       icoarsew[0] = icoarsew[1];
+       icoarsew[1] = iwr;
+       break;
+     }
+*/
+   }
+   fsweeptime += getTime();
+ }
+
+ if (dgpFlag) {
+   delete[] UU;
+   for(int i=0;i<maxLocalV+1;i++) delete temp_u[i];
+   delete[] temp_u;
  }
  delete f;
+ delete fkgp;
+ delete c;
+ delete b;
+ delete a;
+ delete akgp;
+ delete sol;
 
- Scalar *zz = new Scalar[(nOrtho+nRHS)*(nOrtho+nRHS)];
- for(int i=0;i<nOrtho+nRHS;i++)
-   for(int j=0;j<nOrtho+nRHS;j++) {
-     zz[i*(nOrtho+nRHS)+j] = VhKV[i*(nOrtho+nRHS)+j] - w*w * VhMV[i*(nOrtho+nRHS)+j];
-     ScalarTypes::addComplex(zz[i*(nOrtho+nRHS)+j], 
-                      w * VhCV[i*(nOrtho+nRHS)+j]);
-   }
-
-//--- Solve the reduced linear system
- std::vector<int> ipiv(nOrtho+nRHS);
- int lwork = 3 * (nOrtho+nRHS);
- std::vector<Scalar> work(lwork);
- int info = 0;
- Tgesv(nOrtho+nRHS, 1, &zz[0], nOrtho+nRHS, &ipiv[0], &z[0], nOrtho+nRHS, info);
-
- fprintf(stderr,"Coefs:");
- for(int i=0;i<nOrtho+nRHS;i++)
-   fprintf(stderr," %e %e",ScalarTypes::Real(z[i]),
-                          ScalarTypes::Imag(z[i]));
- fprintf(stderr,"\n");
-
-//--- Compute the approximant vector
- (*sol).zero();
- for(int i=0;i<nOrtho+nRHS;i++) 
-   (*sol).linAdd(z[i],*u[i]);
-
- if(domain->solInfo().isCoupled) scaleDisp(*sol);
-
- delete[] z;
- delete[] zz;
-*/
+ time += getTime();
+ filePrint(stderr,"Total time: %e\n",time/1e3);
+ filePrint(stderr,"Solver time: %e\n",solvertime/1e3);
+ filePrint(stderr,"Output time: %e\n",outputtime/1e3);
+ filePrint(stderr,"Transition time: %e\n",transitiontime/1e3);
+ filePrint(stderr,"One frequency space construction time: %e\n",onefspacetime/1e3);
+ filePrint(stderr,"RHS solve time: %e count: %d\n",rhstime/1e3,solvecount);
+ filePrint(stderr,"fr time in one f: %e\n",froneftime/1e3);
+ filePrint(stderr,"Ar time in one f: %e\n",Aroneftime/1e3);
+ filePrint(stderr,"Residual computation time in one f: %e\n",resoneftime/1e3);
+ filePrint(stderr,"RHS construction time in one f: %e\n",rhsctime1/1e3);
+ filePrint(stderr,"Frequency sweep time: %e\n",fsweeptime/1e3);
+ filePrint(stderr,"fr time in sweep: %e\n",frsweeptime/1e3);
+ filePrint(stderr,"Ar time in sweep: %e\n",Arsweeptime/1e3);
+ filePrint(stderr,"Residual computation time in sweep: %e\n",ressweeptime/1e3);
+ filePrint(stderr,"RHS construction time in sweep: %e\n",rhsctime2/1e3);
+ filePrint(stderr,"Solution construction time in sweep: %e\n",solutiontime/1e3);
 }
 

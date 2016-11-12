@@ -6367,6 +6367,53 @@ GenSubDomain<Scalar>::multMCoupled2(Scalar *localrhs, FSCommPattern<Scalar> *wiP
   }
 }
 
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::multWCAWE(Scalar *localrhs, GenStackVector<Scalar> **u, Scalar *pU, Scalar *pb, int maxRHS, int iRHS)
+{
+  double omega2 = geoSource->shiftVal();
+  double omega = sqrt(omega2);
+
+  Scalar *localvec = (Scalar *) dbg_alloca(sizeof(Scalar)*c_dsa->size());
+
+//  pu = -Z{2}*W(:,ii-1); Z{2} = (-2.0*freqn * M+i*C)/1.0;
+  for(int i=0; i<c_dsa->size(); ++i) {
+    localvec[i] = 2.0*omega*(*u[iRHS-1])[i];
+  }
+  M->mult(localvec, localrhs);
+
+  if(C_deriv) {
+    if(C_deriv[0]) {
+      for(int i=0; i<c_dsa->size(); ++i) localvec[i] = -(*u[iRHS-1])[i];
+      C_deriv[0]->multAdd(localvec, localrhs);
+    }
+  }
+
+//  pu = pu + b{j+1}*PP(1,ii-j);
+  double factorial = 1.0;
+  for(int j=1;j<=iRHS;j++) {
+    factorial *= double(j);
+    for(int i=0; i<c_dsa->size(); ++i) localvec[i] = 0.0;
+    makeFreqSweepLoad(localvec, j, omega);  
+    for(int i=0; i<c_dsa->size(); ++i) 
+      localrhs[i] += pb[j-1]* localvec[i]/factorial;
+  }
+
+//  pu = pu - Z{j+1}*W(:,1:(ii-j))*PP(:,ii-j);
+//  assume j > 2 all 0 (not so for rubber), and for j=2: Z{3} = -M;
+  if (iRHS>1) for(int j=2;j<=2;j++) {
+    for(int i=0; i<c_dsa->size(); ++i) 
+      localvec[i] = 0.0;
+    for(int k=0;k<iRHS+1-j;k++) {
+      for(int i=0; i<c_dsa->size(); ++i) 
+        localvec[i] -= pU[k+(j-1)*(iRHS+1)]* (*u[k])[i];
+    }
+    M->multAdd(localvec, localrhs);
+  }
+
+}
+
 template<class Scalar>
 void
 GenSubDomain<Scalar>::makeBcx_scalar()

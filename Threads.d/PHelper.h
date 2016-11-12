@@ -141,6 +141,10 @@ void execParal3R(int n, TA *, void (TB::*f)(int, TC*, TD*, TE*), TC*, TD*, TE*);
 template <class TA, class TB, class TC, class TD, class TE>
 void timedParal3(DistTimer &timer, int n, TA *, void (TB::*f)(int, TC*, TD*, TE), TC*, TD*, TE);
 
+// 4 pointer and two object arguments execute in parallel
+template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH>
+void timedParal4P2(DistTimer &timer, int n, TA *, void (TB::*f)(int, TC*, TD*,TE*,TF*, TG,TH), TC*, TD*, TE*, TF*, TG,TH);
+
 // 3 pointer arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE>
 void timedParal3P(DistTimer &timer, int n, TA *, void (TB::*f)(int, TC*, TD*, TE*), TC*, TD*, TE*);

@@ -1104,17 +1104,17 @@ TRAIL [a-zA-Z]*
 
 "quaterni"|"QUATERNI"              { yylval.ival = OutputInfo::Quaternion;   return STRESSID; }
 
-"modaldsp"|"MODALDSP"              { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
+"modaldsp"|"MODALDSP"|"sromdisp"|"SROMDISP" { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
 
-"modalexf"|"MODALEXF"              { yylval.ival = OutputInfo::ModalExF;     return STRESSID; }
+"modalexf"|"MODALEXF"|"sromextf"|"SROMEXTF" { yylval.ival = OutputInfo::ModalExF;     return STRESSID; }
 
-"modalmas"|"MODALMAS"              { yylval.ival = OutputInfo::ModalMass;    return STRESSID; }
+"modalmas"|"MODALMAS"|"srommass"|"SROMMASS" { yylval.ival = OutputInfo::ModalMass;    return STRESSID; }
 
-"modalstf"|"MODALSTF"              { yylval.ival = OutputInfo::ModalStiffness; return STRESSID; }
+"modalstf"|"MODALSTF"|"sromstif"|"SROMSTIF" { yylval.ival = OutputInfo::ModalStiffness; return STRESSID; }
 
-"modaldmp"|"MODALDMP"              { yylval.ival = OutputInfo::ModalDamping; return STRESSID; }
+"modaldmp"|"MODALDMP"|"sromdamp"|"SROMDAMP" { yylval.ival = OutputInfo::ModalDamping; return STRESSID; }
 
-"modaldyn"|"MODALDYN"              { yylval.ival = OutputInfo::ModalDynamicMatrix; return STRESSID; }
+"modaldyn"|"MODALDYN"|"sromdyna"|"SROMDYNA" { yylval.ival = OutputInfo::ModalDynamicMatrix; return STRESSID; }
 
 "gtempera"|"GTEMPERA"              { yylval.ival = OutputInfo::Temperature;  return STRESSID; }
 

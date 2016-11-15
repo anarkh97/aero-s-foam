@@ -7,6 +7,9 @@
 #endif
 #include <Driver.d/SysState.h>
 #include <Utils.d/DistHelper.h>
+#include <Math.d/EiSparseMatrix.h>
+
+extern Communicator *structCom;
 
 MultiDomainModal::MultiDomainModal(Domain *d) : modalOps(*(new ModalOps)), MDModalBase(d){
 
@@ -173,7 +176,7 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
 
   // check to see if basis satisfies orthogonality property
   bool checkBasis = false;
-  if(modalParams.tolerance > 1e-16)
+  if(modalParams.tolerance != 0)
     checkBasis = true;
 
   switch(modalParams.type) {
@@ -190,15 +193,44 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
       modalOps.Msolver->setDiag(1.0); // Inverse of M
 
       if(checkBasis) {
-        filePrint(stderr," ... Validating orthongality of modal eigen basis ... \n");
+        filePrint(stderr," ... Validating orthogonality of modal eigen basis ... \n");
         SparseMatrix **subM = new SparseMatrix * [decDomain->getNumSub()];
         SparseMatrix **subK = new SparseMatrix * [decDomain->getNumSub()];
+#if defined(USE_EIGEN3)
+        int sizeM = 0, sizeK = 0;
+        double normM = 0, normK = 0;
+        for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
+          AllOps<double> allOps;
+          allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructEiSparseMatrix<double>();
+          allOps.K = subK[iSub] = decDomain->getSubDomain(iSub)->constructEiSparseMatrix<double>();
+          decDomain->getSubDomain(iSub)->makeSparseOps<double>(allOps, 0, 0, 0);
+          sizeM += static_cast<EiSparseMatrix*>(allOps.M)->getEigenSparse().size();
+          sizeK += static_cast<EiSparseMatrix*>(allOps.K)->getEigenSparse().size();
+          normM += static_cast<EiSparseMatrix*>(allOps.M)->getEigenSparse().norm();
+          normK += static_cast<EiSparseMatrix*>(allOps.K)->getEigenSparse().norm();
+        }
+        sizeM = structCom->globalSum(sizeM);
+        sizeK = structCom->globalSum(sizeK);
+        if (sizeM == 0 || sizeK == 0) {
+          filePrint(stderr, " *** ERROR: Mass matrix and/or stiffness matrix could not be constructed. Exiting...\n\n");
+          exit(-1);
+        }
+        normM = structCom->globalSum(normM);
+        if (normM == 0) {
+          filePrint(stderr, " ... WARNING: The Frobenius norm of the mass matrix is zero.\n");
+        }
+        normK = structCom->globalSum(normK);
+        if (normK == 0) {
+          filePrint(stderr, " ... WARNING: The Frobenius norm of the stiffness matrix is zero.\n");
+        }
+#else
         for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
           AllOps<double> allOps;
           allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
           allOps.K = subK[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
           decDomain->getSubDomain(iSub)->makeSparseOps<double>(allOps, 0, 0, 0);
         }
+#endif
         SubDOp M(decDomain->getNumSub(), subM);
         SubDOp K(decDomain->getNumSub(), subK);
  
@@ -284,16 +316,34 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
       SparseMatrix **subK = new SparseMatrix * [decDomain->getNumSub()];
       SparseMatrix **subM;
       if (checkBasis) subM = new SparseMatrix * [decDomain->getNumSub()];
+
+      int sizeM = 0; 
+      double normM = 0;
       for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
         AllOps<double> allOps;
+        if (checkBasis) allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructEiSparseMatrix<double>();
         allOps.K = subK[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
-        if (checkBasis) allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
         decDomain->getSubDomain(iSub)->makeSparseOps<double>(allOps, 0, 0, 0);
+        if (checkBasis) {
+          sizeM += static_cast<EiSparseMatrix*>(allOps.M)->getEigenSparse().size();
+          normM += static_cast<EiSparseMatrix*>(allOps.M)->getEigenSparse().norm();
+        }
       }
       SubDOp K(decDomain->getNumSub(), subK);
      
       if(checkBasis) {
-        filePrint(stderr," ... Validating orthongality of modal basis ... \n");
+        filePrint(stderr," ... Validating orthogonality of modal basis ... \n");
+
+        sizeM = structCom->globalSum(sizeM);
+        if (sizeM == 0) {
+          filePrint(stderr, " *** ERROR: Mass matrix could not be constructed. Exiting...\n\n");
+          exit(-1);
+        }
+        normM = structCom->globalSum(normM);
+        if (normM == 0) {
+          filePrint(stderr, " ... WARNING: The Frobenius norm of the mass matrix is zero.\n");
+        }
+
         DenseMatrix redMass(numModes);
         SubDOp M(decDomain->getNumSub(), subM);
         GenDistrVectorSet<double> tPhiM(numModes, decDomain->solVecInfo());
@@ -340,7 +390,7 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
       double alpha = domain->solInfo().alphaDamp;
       double beta  = domain->solInfo().betaDamp;
 
-      // only Reighley damping is supported currently
+      // only Rayleigh damping is supported currently
       if(alpha != 0.0 || beta != 0.0){ 
         modalOps.C = new DenseMatrix(numModes);
         for(int row = 0; row < numModes; ++row){
@@ -369,7 +419,7 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
       modalOps.dynMat  = new DenseMatrix(numModes);
 
       if(checkBasis) {
-        filePrint(stderr," ... Validating orthongality of modal basis ... \n");
+        filePrint(stderr," ... Validating orthogonality of modal basis ... \n");
         DenseMatrix redIdentity(numModes);
         GenDistrVectorSet<double> tPhi(numModes, decDomain->solVecInfo());
         for(int i = 0; i<numModes; ++i)
@@ -428,7 +478,7 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
       double alpha = domain->solInfo().alphaDamp;
       double beta  = domain->solInfo().betaDamp;
 
-      // only Reighley damping is supported currently
+      // only Rayleigh damping is supported currently
       if(alpha != 0.0 || beta != 0.0){
         modalOps.C = new DenseMatrix(numModes);
         for(int row = 0; row < numModes; ++row){

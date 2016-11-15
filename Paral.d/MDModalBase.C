@@ -284,9 +284,10 @@ void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex,
           fflush(oinfo[i].filptr);
           break;
 
+        case OutputInfo::ModalMatrices:
         case OutputInfo::ModalMass:
           if(time == 0) {
-//            filePrint(oinfo[i].filptr, "# modal mass matrix\n");
+            filePrint(oinfo[i].filptr, "* Mr: Reduced mass matrix\n");
             filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
             for(iMode = 0; iMode < numFlex; ++iMode){
               for(int jMode = 0; jMode < numFlex; ++jMode){
@@ -305,11 +306,11 @@ void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex,
               filePrint(oinfo[i].filptr, "\n");
             }
           }
-          break;
+          if(oinfo[i].type != OutputInfo::ModalMatrices) break;
 
         case OutputInfo::ModalStiffness:
           if(time == 0) {
-//            filePrint(oinfo[i].filptr, "# modal stiffness matrix\n");
+            filePrint(oinfo[i].filptr, "* Kr: Reduced stiffness matrix\n");
             filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
             for(iMode = 0; iMode < numFlex; ++iMode){
               for(int jMode = 0; jMode < numFlex; ++jMode) {
@@ -325,11 +326,11 @@ void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex,
               filePrint(oinfo[i].filptr, "\n");
             }
           }
-          break;
+          if(oinfo[i].type != OutputInfo::ModalMatrices) break;
 
         case OutputInfo::ModalDamping:
           if(time == 0) {
-//            filePrint(oinfo[i].filptr, "# modal damping matrix\n");
+            filePrint(oinfo[i].filptr, "* Dr: Reduced mass matrix\n");
             filePrint(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
             for(iMode = 0; iMode < numFlex; ++iMode){
               for(int jMode = 0; jMode < numFlex; ++jMode){

@@ -163,6 +163,7 @@ static const char*header[] = {
 "",
 "",
 "",
+"",
 ""
 };
 
@@ -302,6 +303,7 @@ static const char * ele_header[] = {
 "ElemScalar ELE_BACKSTRESSXY under %s using %s_pattern\n",
 "ElemScalar ELE_BACKSTRESSYZ under %s using %s_pattern\n",
 "ElemScalar ELE_BACKSTRESSXZ under %s using %s_pattern\n",
+"",
 "",
 "",
 "",

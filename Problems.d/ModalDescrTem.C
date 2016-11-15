@@ -2,6 +2,7 @@
 #include <Driver.d/Domain.h>
 #include <Driver.d/SysState.h>
 #include <Driver.d/Dynam.h>
+#include <Math.d/EiSparseMatrix.h>
 
 template <class Scalar>
 ModalDescr<Scalar>::ModalDescr(Domain *d) : modalOps(*(new ModalOps)), ModalBase(d){
@@ -203,7 +204,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
   
   // check to see if basis satisfies orthogonality property
   bool checkBasis = false; 
-  if(modalParams.tolerance > 1e-16)
+  if(modalParams.tolerance != 0)
     checkBasis = true; 
  
 
@@ -220,11 +221,28 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       modalOps.Msolver->setDiag(1.0); // Inverse of M
 
       if (checkBasis) {
-        fprintf(stderr," ... Validating orthongality of modal eigen basis ... \n");
+        fprintf(stderr," ... Validating orthogonality of modal eigen basis ... \n");
         AllOps<double> allOps;
+#if defined(USE_EIGEN3)
+        allOps.M = domain->constructEiSparseMatrix<double>();
+        allOps.K = domain->constructEiSparseMatrix<double>();
+        domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
+        if (static_cast<EiSparseMatrix*>(allOps.M)->getEigenSparse().size() == 0 ||
+            static_cast<EiSparseMatrix*>(allOps.K)->getEigenSparse().size() == 0) {
+          std::cerr << " *** ERROR: Mass matrix and/or stiffness matrix could not be constructed. Exiting...\n\n";
+          exit(-1);
+        }
+        if (static_cast<EiSparseMatrix*>(allOps.M)->getEigenSparse().norm() == 0) {
+          std::cerr << " ... WARNING: The Frobenius norm of the mass matrix is zero.\n";
+        }
+        if (static_cast<EiSparseMatrix*>(allOps.K)->getEigenSparse().norm() == 0) {
+          std::cerr << " ... WARNING: The Frobenius norm of the stiffness matrix is zero.\n";
+        }
+#else
         allOps.M = domain->constructDBSparseMatrix<double>();
         allOps.K = domain->constructDBSparseMatrix<double>();
         domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
+#endif
  
         double **tPhiM = new double*[numModes];
         double **tPhiK = new double*[numModes];
@@ -325,12 +343,20 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
 
       //Construct and assemble full Stiffness matrix
       AllOps<double> allOps;
-      if (checkBasis) allOps.M = domain->constructDBSparseMatrix<double>();
+      if (checkBasis) allOps.M = domain->constructEiSparseMatrix<double>();
       allOps.K = domain->constructDBSparseMatrix<double>();
       domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
-     
       if (checkBasis) {
-        fprintf(stderr," ... Validating orthongality of modal basis. ... \n");
+        fprintf(stderr," ... Validating orthogonality of modal basis. ... \n");
+
+        if (static_cast<EiSparseMatrix*>(allOps.M)->getEigenSparse().size() == 0) {
+          std::cerr << " *** ERROR: Mass matrix could not be constructed. Exiting...\n\n";
+          exit(-1);
+        }
+        if (static_cast<EiSparseMatrix*>(allOps.M)->getEigenSparse().norm() == 0) {
+          std::cerr << " ... WARNING: The Frobenius norm of the mass matrix is zero.\n";
+        }
+     
         double **tPhiM = new double*[numModes];
         for(int i = 0; i < numModes; ++i)
           tPhiM[i] = new double[domain->numdof()];
@@ -402,7 +428,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       double alpha = domain->solInfo().alphaDamp;
       double beta  = domain->solInfo().betaDamp;
 
-      // only Reighley damping is supported currently
+      // only Rayleigh damping is supported currently
       if(alpha != 0.0 || beta != 0.0){
         modalOps.C = new DenseMatrix(numModes);
         for(int row = 0; row < numModes; ++row){
@@ -431,7 +457,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       modalOps.dynMat  = new DenseMatrix(numModes);
 
        if (checkBasis) {
-        fprintf(stderr," ... Validating orthongality of modal basis. ... \n");
+        fprintf(stderr," ... Validating orthogonality of modal basis. ... \n");
         double **tPhi = new double*[numModes];
         for(int i = 0; i < numModes; ++i)
           tPhi[i] = new double[domain->numdof()];

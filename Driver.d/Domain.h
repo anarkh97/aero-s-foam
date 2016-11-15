@@ -836,9 +836,15 @@ class Domain : public HData {
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0);
 
+#ifdef USE_EIGEN3
+     template<typename Scalar, typename SolverClass = Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >
+       GenEiSparseMatrix<Scalar,SolverClass> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
+                           Connectivity *cn=0, bool flag=true);
+#else
      template<typename Scalar, typename SolverClass>
        GenEiSparseMatrix<Scalar,SolverClass> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0, bool flag=true);
+#endif
 
      template<typename Scalar, typename SolverClass>
        GenEiSparseMatrix<Scalar,SolverClass> *constructGoldfarb(DofSetArray *dof_set_array=0,

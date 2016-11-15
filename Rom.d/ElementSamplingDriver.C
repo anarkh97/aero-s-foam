@@ -80,7 +80,7 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int pod
   basisfile.append(".compressed.basis");
   meshOut << "READMODE\n";
   if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
-    meshOut << "0 mnorm \"" << basisfile << ".normalized\" " << podVectorCount << "\n"; 
+    meshOut << "0 mnorm \"" << basisfile << ".massorthonormalized\" " << podVectorCount << "\n"; 
   }
   else {
     meshOut << "0 inorm \"" << basisfile << "\" " << podVectorCount << "\n";
@@ -100,7 +100,7 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const std::ve
   meshOut << "READMODE\n";
   for(int j=0; j<localBasisSize.size(); ++j) {
     if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
-      meshOut << j << " mnorm \"" << basisfile << ".normalized\" " << localBasisSize[j] << "\n";                
+      meshOut << j << " mnorm \"" << basisfile << ".massorthonormalized\" " << localBasisSize[j] << "\n";                
     }
     else {
       meshOut << j << " inorm \"" << basisfile << "\" " << localBasisSize[j] << "\n";
@@ -1098,7 +1098,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
         ss << j+1;
         filename.append(ss.str());
       }
-      if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".normalized");
+      if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".massorthonormalized");
       filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
       BasisOutputStream<6> output(filename, converter, false);
 
@@ -1168,7 +1168,14 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
   // (b) if and orthogonal projection is to be done, then the identity-normalized basis will be read
   {
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, j);
-    if(domain_->solInfo().useMassOrthogonalProjection) fileName.append(".normalized");
+    if(domain_->solInfo().useMassOrthogonalProjection) {
+      if(!domain->solInfo().useMassNormalizedBasis) {
+        std::string::size_type n = fileName.rfind(".orthonormalized");
+        if(n != std::string::npos)
+          fileName = fileName.substr(0,n);
+      }
+      fileName.append(".massorthonormalized");
+    }
     BasisInputStream<6> in(fileName, vecDofConversion);
     if(domain_->solInfo().readInROBorModes.size() == 1) {
       filePrint(stdout," ... Reading basis from %.11s ...\n", fileName.c_str());
@@ -1181,14 +1188,14 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
     } else {
       int globalBasisSize = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.end(), 0);
       if(globalBasisSize <= 0) {
-         int sillyCounter = 0;
-         for(std::vector<int>::iterator it = domain_->solInfo().localBasisSize.begin(); it != domain_->solInfo().localBasisSize.end(); it++){
-           std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
-           if(domain_->solInfo().useMassOrthogonalProjection) dummyName.append(".normalized");
-           BasisInputStream<6> dummyIn(dummyName, vecDofConversion);
-           *it = dummyIn.size();
-           globalBasisSize += *it;
-         }
+        int sillyCounter = 0;
+        for(std::vector<int>::iterator it = domain_->solInfo().localBasisSize.begin(); it != domain_->solInfo().localBasisSize.end(); it++) {
+          std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
+          if(domain_->solInfo().useMassOrthogonalProjection) dummyName.append(".massorthonormalized");
+          BasisInputStream<6> dummyIn(dummyName, vecDofConversion);
+          *it = dummyIn.size();
+          globalBasisSize += *it;
+        }
       }
       int startCol = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+j, 0);
       int blockCols = domain_->solInfo().localBasisSize[j];
@@ -1233,7 +1240,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
   if((domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis)
      && !domain_->solInfo().useMassOrthogonalProjection) {
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,j);
-    fileName.append(".normalized");
+    fileName.append(".massorthonormalized");
     if(domain_->solInfo().readInROBorModes.size() == 1)
       fprintf(stdout," ... reading %d basis vectors from %s ...\n",domain_->solInfo().maxSizePodRom,fileName.c_str());
     else

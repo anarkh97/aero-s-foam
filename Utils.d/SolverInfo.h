@@ -974,7 +974,7 @@ struct SolverInfo {
      if((pbt == Static) && (probType != None)) return; 
 
      // PJSA 4-2-08
-     if((pbt == Dynamic) && (probType != None && probType != PodRomOffline)) { setDynamicProbType(); return; }
+     if((pbt == Dynamic) && (probType != None)) { setDynamicProbType(); return; }
 
      probType = pbt;
    }
@@ -984,6 +984,7 @@ struct SolverInfo {
      switch(probType) {
        case(Top) : 
        case(Decomp) :
+       case(PodRomOffline) :
          break;
        case(NonLinStatic) : 
        case(NonLinDynam) :

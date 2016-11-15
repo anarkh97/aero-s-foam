@@ -588,7 +588,7 @@ int main(int argc, char** argv)
            domain->solInfo().useMassNormalizedBasis = false;
          } break;
          case ModalParams::Mnorm : {
-           std::string::size_type n = modalParams.fileName.rfind(".normalized");
+           std::string::size_type n = modalParams.fileName.rfind(".massorthonormalized");
            if(n != std::string::npos) {
              domain->solInfo().readInROBorModes.push_back(modalParams.fileName.substr(0,n));
              domain->solInfo().localBasisSize.push_back(modalParams.numvec);
@@ -596,7 +596,7 @@ int main(int argc, char** argv)
              domain->solInfo().useMassNormalizedBasis = true;
            }
            else {
-             filePrint(stderr, " *** ERROR: Specified filename for rob_id#%d is missing \".normalized\" extension.\n",i+1);
+             filePrint(stderr, " *** ERROR: Specified filename for rob_id#%d is missing \".massorthonormalized\" extension.\n",i+1);
              exit(-1);
            }
          } break;

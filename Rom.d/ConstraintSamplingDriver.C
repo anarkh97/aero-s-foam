@@ -85,7 +85,7 @@ ConstraintSamplingDriver::readInBasis(VecBasis &basis, BasisId::Type type, Basis
 {
  FileNameInfo fileInfo;
  std::string fileName = BasisFileId(fileInfo, type, level, i);
- if(normalized) fileName.append(".normalized");
+ if(normalized) fileName.append(".massorthonormalized");
 
  if(vectorQuant){ // read in vector valued data
    BasisInputStream<6> in(fileName, *converter6);

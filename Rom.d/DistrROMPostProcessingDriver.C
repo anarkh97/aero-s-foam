@@ -234,7 +234,7 @@ DistrROMPostProcessingDriver::solve() {
    preProcess();
    std::ofstream cvout(domain->solInfo().constraintViolationFile);
 
-   bool computeResidual = false, computeExtForce = false; 
+   bool computeResidual = false, computeExtForce = false, computeEnergies = false; 
    double residualNorm = 0, extForceNorm = 0;
    GenAssembler<double> * assembler = decDomain->getSolVecAssembler();
    OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -255,6 +255,17 @@ DistrROMPostProcessingDriver::solve() {
        computeExtForce = true;
        filePrint(stderr, " ... Computing ROM External Force   ...\n");
        if(!computeResidual) {
+         fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+         fullExtForceBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
+         getConstForce(*fullConstForceBuffer);
+       }
+       break;
+     }
+   }
+   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++) {
+     if(oinfo[iOut].type == OutputInfo::Energies) {
+       computeEnergies = true;
+       if(!computeResidual && !computeExtForce) {
          fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
          fullExtForceBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
          getConstForce(*fullConstForceBuffer);
@@ -305,7 +316,7 @@ DistrROMPostProcessingDriver::solve() {
      geomState->setAcceleration(*fullAccBuffer, 2);
      execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
 
-     if(computeResidual || computeExtForce) {
+     if(computeResidual || computeExtForce || computeEnergies) {
        if(!dummyDynOps) {
          dummyDynOps = buildOps(1,0,0);
        }

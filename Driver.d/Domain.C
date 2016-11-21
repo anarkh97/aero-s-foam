@@ -43,6 +43,8 @@ extern int totalNewtonIter;
 
 // Global variable for mode data
 ModeData modeData;
+ModeData modeDataIVel;
+ModeData modeDataIDis;
 
 //----------------------------------------------------------------------------------
 
@@ -1392,11 +1394,12 @@ Domain::setUpData(int topFlag)
   setIDis(numBC, bc);
   numBC = geoSource->getIDisModal(bc);
   if(numBC) {
-    if(solInfo().keepModalInitialConditions()) { // for modal dynamics, keep the modal idisp and non-modal idisp separate
+    if(solInfo().keepModalInitialDisplacements()) { // keep the modal idisp and non-modal idisp separate
       setIDisModal(numBC, bc);
     }
-    else { // for non-modal dynamics convert the modal idisp into non-modal idisp
+    else { // convert the modal idisp into non-modal idisp
       filePrint(stderr, " ... Compute initial displacement from given modal basis ...\n");
+      ModeData &modeData = (domain->solInfo().idis_modal_id == -1) ? ::modeData : modeDataIDis;
       int numIDisModal = modeData.numNodes*6;
       BCond *iDis_new = new BCond[numIDis+numIDisModal];
       for(int i=0; i<numIDis; ++i) iDis_new[i] = iDis[i]; 
@@ -1416,11 +1419,12 @@ Domain::setUpData(int topFlag)
   setIVel(numBC, bc);
   numBC = geoSource->getIVelModal(bc);
   if(numBC) {
-    if(solInfo().keepModalInitialConditions()) { // for modal dynamics, keep the modal ivel and non-modal ivel separate
+    if(solInfo().keepModalInitialVelocities()) { // keep the modal ivel and non-modal ivel separate
       setIVelModal(numBC, bc);
     }
-    else {
+    else { // convert the modal ivel into non-modal ivel
       filePrint(stderr, " ... Compute initial velocity from given modal basis ...\n");
+      ModeData &modeData = (domain->solInfo().ivel_modal_id == -1) ? ::modeData : modeDataIVel;
       int numIVelModal = modeData.numNodes*6;
       BCond *iVel_new = new BCond[numIVel+numIVelModal];
       for(int i=0; i<numIVel; ++i) iVel_new[i] = iVel[i];
@@ -1900,8 +1904,9 @@ Domain::makeNodeToNode_sommer()
 }
 
 void
-Domain::readInModes(const char* modeFileName)
+Domain::readInModes(int modal_id, ModeData &modeData)
 {
+ const char* modeFileName = sinfo.readInModes[modal_id].fileName.c_str();
  filePrint(stderr," ... Read in Modes from file: %s ...\n",modeFileName);
 
  // Open file containing mode shapes and frequencies.
@@ -1913,7 +1918,15 @@ Domain::readInModes(const char* modeFileName)
  fflush(f);
 
  // Read in number of modes and number of nodes
- int count = fscanf(f, "%d%d", &modeData.numModes, &modeData.numNodes);
+ char buf[80];
+ char *str = fgets(buf, sizeof buf, f);
+ if(strncmp("Vector", buf, 6) == 0) {
+   modeData.numModes = sinfo.readInModes[modal_id].numvec;
+ }
+ else {
+   int count = sscanf(buf, "%d", &modeData.numModes);
+ }
+ int count = fscanf(f, "%d", &modeData.numNodes);
 
  // Allocation of memory for frequencies and mode shapes
  modeData.frequencies  = new double[modeData.numModes];

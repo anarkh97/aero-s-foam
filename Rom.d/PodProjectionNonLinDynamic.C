@@ -131,7 +131,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
 
      std::string fileName = BasisFileId(fileInfo_, BasisId::STATE, BasisId::POD, j);
      if(solInfo().useMassNormalizedBasis) {
-       fileName.append(".normalized");
+       fileName.append(".massorthonormalized");
      }
      BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
      if(solInfo().localBasisSize[j] <=0 || solInfo().localBasisSize[j] > projectionBasisInput.size())
@@ -169,7 +169,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
     std::string fileName = BasisFileId(fileInfo_, BasisId::STATE, BasisId::POD, j);
     if(solInfo().useMassNormalizedBasis) {
       if(j==0) filePrint(stderr, " ... Using Mass-normalized Basis    ...\n");
-      fileName.append(".normalized");
+      fileName.append(".massorthonormalized");
     }
     filePrint(stderr," ... Reading %.22s ...\n",fileName.c_str());
     BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
@@ -198,7 +198,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
     for(int j = 0 ; j < solInfo().readInDualROB.size(); j++) {
       // Load dual projection basis    
       std::string fileName = BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::POD,j);
-      filePrint(stderr,"... Reading %s ...\n",fileName.c_str());
+      filePrint(stderr," ... Reading %s ...\n",fileName.c_str());
       BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
       const int dualProjectionSubspaceSize = locDualBasisVec[j] ?
                                              std::min(locDualBasisVec[j], dualProjectionBasisInput.size()) :

@@ -112,6 +112,9 @@ class WrapEiSparseMat : public GenEiSparseMatrix<Scalar, SolverClass>
     WrapEiSparseMat(CtorData &ctd) : GenEiSparseMatrix<Scalar,SolverClass>(ctd.cn, ctd.dsa, ctd.cdsa, ctd.flg) {}
 };
 
+typedef GenEiSparseMatrix<double> EiSparseMatrix;
+typedef GenEiSparseMatrix<DComplex> EiComplexSparseMatrix;
+
 
 #ifdef _TEMPLATE_FIX_
 #include <Math.d/EiSparseMatrix.C>

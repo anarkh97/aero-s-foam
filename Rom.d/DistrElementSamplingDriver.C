@@ -206,7 +206,7 @@ DistrElementSamplingDriver::solve()
   // read in mass-normalized basis
   if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) {
     std::string normalizedBasisFileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-    normalizedBasisFileName.append(".normalized");
+    normalizedBasisFileName.append(".massorthonormalized");
     DistrBasisInputFile normalizedBasisFile(normalizedBasisFileName);
     for(DistrVecBasis::iterator it = podBasis.begin(), it_end = podBasis.end(); it != it_end; ++it) {
       assert(normalizedBasisFile.validCurrentState());
@@ -400,7 +400,7 @@ DistrElementSamplingDriver::solve()
     domain->preProcessing();
     buildDomainCdsa();
     std::string fileName2 = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName2.append(".normalized");
+    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName2.append(".massorthonormalized");
     const VecNodeDof6Conversion vecDofConversion(*domain->getCDSA());
     BasisInputStream<6> in(fileName2, vecDofConversion);
     VecBasis podBasis;
@@ -461,7 +461,7 @@ DistrElementSamplingDriver::solve()
 //      std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
       std::string filename = getMeshFilename(fileInfo).c_str(); 
       filename.append(".compressed.basis");
-      if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) filename.append(".normalized");
+      if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) filename.append(".massorthonormalized");
       filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
       VecNodeDof6Conversion converter(reduced_cdsa);
       BasisOutputStream<6> output(filename, converter, false);

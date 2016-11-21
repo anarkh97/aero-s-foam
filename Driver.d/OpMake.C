@@ -3852,6 +3852,11 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           geoSource->outputNodeScalars(i, rxyz, numNodesOut, time);
           delete [] rxyz;
           } break;
+        case OutputInfo::Velocity:
+        case OutputInfo::Acceleration:
+        case OutputInfo::Velocity6:
+        case OutputInfo::Accel6:
+          break;
         default:
           success = 0;
           break;

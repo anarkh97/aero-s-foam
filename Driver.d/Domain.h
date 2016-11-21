@@ -82,6 +82,7 @@ typedef GenSubDOp<double> SubDOp;
 template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
+struct ModeData;
 
 namespace Rom {
 template <typename Scalar> class GenGalerkinProjectionSolver;
@@ -469,7 +470,7 @@ class Domain : public HData {
      void setVerbose() { outFile = stderr; }
      void setSilent()  { outFile = 0;      }
      void setOutputMatchInTop(bool b) {output_match_in_top = b;};
-     void readInModes(const char* modesFileName);
+     void readInModes(int modal_id, ModeData &modeData);
      void readInShapeDerivatives(char* shapeDerFileName);
      void setSowering(bool b) { sowering = b;}
      bool getSowering() { return sowering;}
@@ -835,9 +836,15 @@ class Domain : public HData {
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0);
 
+#ifdef USE_EIGEN3
+     template<typename Scalar, typename SolverClass = Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >
+       GenEiSparseMatrix<Scalar,SolverClass> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
+                           Connectivity *cn=0, bool flag=true);
+#else
      template<typename Scalar, typename SolverClass>
        GenEiSparseMatrix<Scalar,SolverClass> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0, bool flag=true);
+#endif
 
      template<typename Scalar, typename SolverClass>
        GenEiSparseMatrix<Scalar,SolverClass> *constructGoldfarb(DofSetArray *dof_set_array=0,

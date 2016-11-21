@@ -101,8 +101,10 @@ MultiDomainOp::computeExtForce(int isub)
   // Get the pointer to the part of the vector cnst_f corresponding to subdomain isub
   StackVector localg(v2->subData(isub),v2->subLen(isub));
 
-  SparseMatrix *localCuc = (Cuc) ? (*Cuc)[isub] : 0; 
-  sd[isub]->computeExtForce4(localf, localg, c1, (*Kuc)[isub], userSupFunc, localCuc, c2, (*Muc)[isub]);
+  SparseMatrix *localKuc = (Kuc) ? (*Kuc)[isub] : 0; 
+  SparseMatrix *localCuc = (Cuc) ? (*Cuc)[isub] : 0;
+  SparseMatrix *localMuc = (Muc) ? (*Muc)[isub] : 0;
+  sd[isub]->computeExtForce4(localf, localg, c1, localKuc, userSupFunc, localCuc, c2, localMuc);
 }
 
 void

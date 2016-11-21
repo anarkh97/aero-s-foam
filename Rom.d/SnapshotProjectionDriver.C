@@ -126,7 +126,14 @@ SnapshotProjectionDriver::preProcess() {
   // (b) if and orthogonal projection is to be done, then the identity-normalized basis will be read
   {
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-    if(domain->solInfo().useMassOrthogonalProjection) fileName.append(".normalized");
+    if(domain->solInfo().useMassOrthogonalProjection) {
+      if(!domain->solInfo().useMassNormalizedBasis) {
+        std::string::size_type n = fileName.rfind(".orthonormalized");
+        if(n != std::string::npos) 
+          fileName = fileName.substr(0,n);
+      }
+      fileName.append(".massorthonormalized");
+    }
     BasisInputStream<6> in(fileName, vecDofConversion);
     const int podSizeMax = domain->solInfo().maxSizePodRom;
     if (podSizeMax != 0) {

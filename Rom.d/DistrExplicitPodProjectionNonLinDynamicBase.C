@@ -414,7 +414,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
     for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob) {
       FileNameInfo fileInfo;
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
-      fileName.append(".normalized");
+      fileName.append(".massorthonormalized");
       DistrBasisInputFile BasisFile(fileName);
       int locSize = domain->solInfo().localBasisSize[rob] ?
                     std::min(domain->solInfo().localBasisSize[rob], BasisFile.stateCount()) :
@@ -440,7 +440,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
     for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob){
       FileNameInfo fileInfo; 
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
-      fileName.append(".normalized");
+      fileName.append(".massorthonormalized");
       DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
       if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
 

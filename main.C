@@ -32,6 +32,7 @@
 #include <Paral.d/MDNLStatic.h>
 #include <Paral.d/MDNLDynam.h>
 #include <Paral.d/MDTemp.h>
+#include <Paral.d/MDModal.h>
 #include <HelmAxi.d/FourierDescrip.h>
 #include <HelmAxi.d/FourierProbTyp.h>
 #include <HelmAxi.d/FourierHelmBCs.h>
@@ -137,6 +138,10 @@ std::string decomposition_ = "INPUT.dec";
 std::string connectivity_ = "INPUT.con";
 
 extern const char *THE_VERSION;
+
+extern ModeData modeData;
+extern ModeData modeDataIDis;
+extern ModeData modeDataIVel;
 
 // ... main program
 
@@ -571,13 +576,56 @@ int main(int argc, char** argv)
    }
  }
 
- if(domain->solInfo().readmodeCalled) {
-   if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag || domain->solInfo().aeroFlag == 8 || domain->probType() == SolverInfo::Modal)
-      && domain->solInfo().readInModes.empty()) {
-     domain->readInModes(domain->solInfo().readInROBorModes[0].c_str());
-   }
-   else {
-     if (!domain->solInfo().samplingPodRom) {
+ if(!domain->solInfo().readInModes.empty()) {
+   if((domain->solInfo().isNonLin() && !domain->solInfo().modal_id.empty()) || domain->solInfo().activatePodRom) {
+     for(int i=0; i<domain->solInfo().modal_id.size(); ++i) {
+       ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id[i]];
+       switch(modalParams.type) {
+         case ModalParams::Inorm : {
+           domain->solInfo().readInROBorModes.push_back(modalParams.fileName);
+           domain->solInfo().localBasisSize.push_back(modalParams.numvec);
+           domain->solInfo().maxSizePodRom += modalParams.numvec;
+           domain->solInfo().useMassNormalizedBasis = false;
+         } break;
+         case ModalParams::Mnorm : {
+           std::string::size_type n = modalParams.fileName.rfind(".massorthonormalized");
+           if(n != std::string::npos) {
+             domain->solInfo().readInROBorModes.push_back(modalParams.fileName.substr(0,n));
+             domain->solInfo().localBasisSize.push_back(modalParams.numvec);
+             domain->solInfo().maxSizePodRom += modalParams.numvec;
+             domain->solInfo().useMassNormalizedBasis = true;
+           }
+           else {
+             filePrint(stderr, " *** ERROR: Specified filename for rob_id#%d is missing \".massorthonormalized\" extension.\n",i+1);
+             exit(-1);
+           }
+         } break;
+         case ModalParams::Undefined : {
+           domain->solInfo().readInROBorModes.push_back(modalParams.fileName);
+           domain->solInfo().localBasisSize.push_back(modalParams.numvec);
+           domain->solInfo().maxSizePodRom += modalParams.numvec;
+           domain->solInfo().useMassNormalizedBasis = true;
+         } break;
+         default : {
+           filePrint(stderr, " *** ERROR: Specified type for rob_id#%d is not supported.\n", i+1);
+           exit(-1);
+         } break;
+       }
+     }
+     for(int i=0; i<domain->solInfo().contact_modal_id.size(); ++i) {
+       ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().contact_modal_id[i]];
+       switch(modalParams.type) {
+         case ModalParams::Noneg : {
+           domain->solInfo().readInDualROB.push_back(modalParams.fileName);
+           domain->solInfo().localDualBasisSize.push_back(modalParams.numvec);
+         } break;
+         default : {
+           filePrint(stderr, " *** ERROR: Specified type for rob_id#%d is not supported.\n", domain->solInfo().modal_id.size()+i+1);
+           exit(-1);
+         } break;
+       }
+     }
+     if(!domain->solInfo().samplingPodRom) {
        domain->solInfo().activatePodRom = true;
        domain->solInfo().galerkinPodRom = true;
 #ifdef USE_EIGEN3
@@ -586,11 +634,15 @@ int main(int argc, char** argv)
        domain->solInfo().subtype = 12;
 #endif
      }
-     if(domain->solInfo().modalCalled) {
-       // for doing ROM with 2 sets of modes, #1 for the reduced order basis and #2 for modal IDISP/IVEL
-       domain->readInModes(domain->solInfo().readInModes[0].c_str());
-     }
    }
+   else if(!domain->solInfo().modal_id.empty() || domain->solInfo().readInModes.find(0) != domain->solInfo().readInModes.end()) {
+     int modal_id = (domain->solInfo().modal_id.empty()) ? 0 : domain->solInfo().modal_id.front();
+     domain->readInModes(modal_id, modeData);
+   }
+   if(domain->solInfo().idis_modal_id != -1)
+     domain->readInModes(domain->solInfo().idis_modal_id, modeDataIDis);
+   if(domain->solInfo().ivel_modal_id != -1)
+     domain->readInModes(domain->solInfo().ivel_modal_id, modeDataIVel);
  }
 
  if(domain->solInfo().readShapeSen) {
@@ -811,9 +863,10 @@ int main(int argc, char** argv)
    }
    else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
  }
- if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline)
+ if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline
+    && domain->solInfo().modal_id.empty())
    filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
-  
+
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
  //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested
@@ -821,6 +874,7 @@ int main(int argc, char** argv)
  if(domain->solInfo().type == 2 || domain->solInfo().type == 3
     || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
     || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)
+    || (!domain->solInfo().modal_id.empty() && domain_decomp)
     || (domain->solInfo().svdPodRom && domain_decomp)
     || (domain->solInfo().samplingPodRom && domain_decomp)
     || domain->solInfo().ROMPostProcess) {
@@ -848,15 +902,24 @@ int main(int argc, char** argv)
        break;
      case SolverInfo::Dynamic: 
        {
-        if(domain->solInfo().mdPita) { // Not implemented yet
-          filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
-        } else {
-          MultiDomainDynam dynamProb(domain);
-          DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-       		MultiDomainDynam, double > dynamSolver(&dynamProb);
-          dynamSolver.solve();
-          fflush(stderr);
+        if(domain->solInfo().modal) {
+          filePrint(stderr," ... Modal Method                   ...\n");
+          MultiDomainModal * modalProb = new MultiDomainModal(domain);
+          DynamicSolver<ModalOps, Vector, MultiDomainModal, MultiDomainModal, double>
+          modalSolver(modalProb);
+          modalSolver.solve();
         }
+        else {
+          if(domain->solInfo().mdPita) { // Not implemented yet
+            filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
+          } else {
+            MultiDomainDynam dynamProb(domain);
+            DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                            MultiDomainDynam, double > dynamSolver(&dynamProb);
+            dynamSolver.solve();
+            fflush(stderr);
+          }
+         }
        }
        break;
 

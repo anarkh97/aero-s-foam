@@ -224,8 +224,8 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
         fprintf(stderr," ... Validating orthogonality of modal eigen basis ... \n");
         AllOps<double> allOps;
 #if defined(USE_EIGEN3)
-        allOps.M = domain->constructEiSparseMatrix<double>();
-        allOps.K = domain->constructEiSparseMatrix<double>();
+        allOps.M = domain->constructEiSparse<double>();
+        allOps.K = domain->constructEiSparse<double>();
         domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
         if (static_cast<EiSparseMatrix*>(allOps.M)->getEigenSparse().size() == 0 ||
             static_cast<EiSparseMatrix*>(allOps.K)->getEigenSparse().size() == 0) {
@@ -343,7 +343,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
 
       //Construct and assemble full Stiffness matrix
       AllOps<double> allOps;
-      if (checkBasis) allOps.M = domain->constructEiSparseMatrix<double>();
+      if (checkBasis) allOps.M = domain->constructEiSparse<double>();
       allOps.K = domain->constructDBSparseMatrix<double>();
       domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
       if (checkBasis) {

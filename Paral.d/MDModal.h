@@ -98,7 +98,7 @@ public:
   void sendNumParam(int numParam, int actvar, double steadyTol) {}
   void getNumParam(bool &numParam) {}
   void sendRelativeResidual(double relres) {}
-  int cmdCom(int cmdFlag) {}
+  int cmdCom(int cmdFlag) { return -1; }
  
   void a5TimeLoopCheck(int& parity, double& t, double dt);
   void a5StatusRevise(int parity, SysState<Vector>& curState, SysState<Vector>& bkState);

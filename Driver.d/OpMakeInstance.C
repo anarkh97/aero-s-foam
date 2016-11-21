@@ -233,6 +233,14 @@ OPMAKE_INSTANTIATION_HELPER(complex<double>);
 #ifdef USE_EIGEN3
 template
 GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *
+Domain::constructEiSparse<double>(DofSetArray*, Connectivity*, bool);
+
+template
+GenEiSparseMatrix<complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> > *
+Domain::constructEiSparse<complex<double> >(DofSetArray*, Connectivity*, bool);
+
+template
+GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *
 Domain::constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);
 
 template 

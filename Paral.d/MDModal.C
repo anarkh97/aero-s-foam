@@ -201,8 +201,8 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
         double normM = 0, normK = 0;
         for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
           AllOps<double> allOps;
-          allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructEiSparseMatrix<double>();
-          allOps.K = subK[iSub] = decDomain->getSubDomain(iSub)->constructEiSparseMatrix<double>();
+          allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructEiSparse<double>();
+          allOps.K = subK[iSub] = decDomain->getSubDomain(iSub)->constructEiSparse<double>();
           decDomain->getSubDomain(iSub)->makeSparseOps<double>(allOps, 0, 0, 0);
           sizeM += static_cast<EiSparseMatrix*>(allOps.M)->getEigenSparse().size();
           sizeK += static_cast<EiSparseMatrix*>(allOps.K)->getEigenSparse().size();
@@ -321,7 +321,7 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
       double normM = 0;
       for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
         AllOps<double> allOps;
-        if (checkBasis) allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructEiSparseMatrix<double>();
+        if (checkBasis) allOps.M = subM[iSub] = decDomain->getSubDomain(iSub)->constructEiSparse<double>();
         allOps.K = subK[iSub] = decDomain->getSubDomain(iSub)->constructDBSparseMatrix<double>();
         decDomain->getSubDomain(iSub)->makeSparseOps<double>(allOps, 0, 0, 0);
         if (checkBasis) {
@@ -496,6 +496,10 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
       else{modalOps.C = 0;}
       modalOps.dynMat->invertDiag(); // this actually forms the LLT factorization for the DenseMatrix class
 #endif
+    }
+    default : {
+      filePrint(stderr," *** ERROR: unsupported modal basis type specified under READMODE command. \n");
+      exit(-1);
     }
   }
   

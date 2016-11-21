@@ -400,6 +400,7 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex, M
             for(iMode = 0; iMode < numFlex; ++iMode){
               for(int jMode = 0; jMode < numFlex; ++jMode){
                 switch(modalParams.type) {
+                  case ModalParams::Undefined :
                   case ModalParams::Eigen : {
                     fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.M->diag(iMode) : 0.);
                   } break;
@@ -409,6 +410,8 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex, M
                   case ModalParams::Inorm : {
                     fprintf(oinfo[i].filptr, "% *.*E", w, p, (*ops.M)[iMode+numModes*jMode]);
                   } break;
+                  default :
+                    break;
                 }
               }
               fprintf(oinfo[i].filptr, "\n");
@@ -423,6 +426,7 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex, M
             for(iMode = 0; iMode < numFlex; ++iMode){
               for(int jMode = 0; jMode < numFlex; ++jMode) {
                 switch(modalParams.type) {
+                  case ModalParams::Undefined :
                   case ModalParams::Eigen : {
                     fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.K->diag(iMode) : 0.);
                   } break; 
@@ -443,6 +447,7 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex, M
             for(iMode = 0; iMode < numFlex; ++iMode){
               for(int jMode = 0; jMode < numFlex; ++jMode){
                 switch(modalParams.type) {
+                  case ModalParams::Undefined :
                   case ModalParams::Eigen : {
                     fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.C->diag(iMode) : 0.);
                   } break; 
@@ -462,6 +467,7 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex, M
             for(iMode = 0; iMode < numFlex; ++iMode){
               for(int jMode = 0; jMode < numFlex; ++jMode){
                 switch(modalParams.type) {
+                  case ModalParams::Undefined :
                   case ModalParams::Eigen : {
                     fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.dynMat->diag(iMode) : 0.);
                   } break;

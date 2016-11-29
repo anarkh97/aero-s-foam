@@ -137,10 +137,12 @@ PronyViscoElastic<Material>::integrate(Tensor *_stress, Tensor &en, Tensor &enp,
 
   for(int i = 0; i < 6; i++) {
     // update stress history variables   
-    statenp[i]    = expTau1*staten[i]    + (g1*(1-expTau1)/(dt/tau1))*((*stress)[i] - staten[i+18]);
-    statenp[i+6]  = expTau2*staten[i+6]  + (g2*(1-expTau2)/(dt/tau2))*((*stress)[i] - staten[i+18]);
-    statenp[i+12] = expTau3*staten[i+12] + (g3*(1-expTau3)/(dt/tau3))*((*stress)[i] - staten[i+18]);
-    statenp[i+18] = (*stress)[i];
+    if(dt != 0) {
+      statenp[i]    = expTau1*staten[i]    + (g1*(1-expTau1)/(dt/tau1))*((*stress)[i] - staten[i+18]);
+      statenp[i+6]  = expTau2*staten[i+6]  + (g2*(1-expTau2)/(dt/tau2))*((*stress)[i] - staten[i+18]);
+      statenp[i+12] = expTau3*staten[i+12] + (g3*(1-expTau3)/(dt/tau3))*((*stress)[i] - staten[i+18]);
+      statenp[i+18] = (*stress)[i];
+    }
     // add viscoelastic contribution to stress
     (*stress)[i]  *= ginf; 
     (*stress)[i]  += statenp[i] + statenp[i+6] + statenp[i+12];

@@ -414,7 +414,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
     for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob) {
       FileNameInfo fileInfo;
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
-      fileName.append(".normalized");
+      fileName.append(".massorthonormalized");
       DistrBasisInputFile BasisFile(fileName);
       int locSize = domain->solInfo().localBasisSize[rob] ?
                     std::min(domain->solInfo().localBasisSize[rob], BasisFile.stateCount()) :
@@ -440,7 +440,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
     for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob){
       FileNameInfo fileInfo; 
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
-      fileName.append(".normalized");
+      fileName.append(".massorthonormalized");
       DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
       if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
 
@@ -611,7 +611,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector>&
 //start local basis functions
 void
 DistrExplicitPodProjectionNonLinDynamicBase::initLocalBasis(DistrVector &q){
-
+#if defined(USE_EIGEN3) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11))
   if(domain->solInfo().readInLocalBasesCent.size() >= 1 || VtV.size() > 0) { // only execute this if doing local ROM
     localBasisId  = selectLocalBasis(q); 
     if(verboseFlag) filePrint(stderr," ... Initial Local Basis # %d        ...\n",localBasisId);
@@ -620,7 +620,10 @@ DistrExplicitPodProjectionNonLinDynamicBase::initLocalBasis(DistrVector &q){
     normalizedBasis_.localBasisIs(startCol,blockCols);
     setLocalReducedMesh(localBasisId);
   }
-
+#else
+  filePrint(stderr,"*** Error: Local auxiliary bases requres Aero-S to be built with eigen library and c++11 support.\n");
+  exit(-1);
+#endif
 }
 
 int
@@ -640,8 +643,9 @@ DistrExplicitPodProjectionNonLinDynamicBase::selectLocalBasis(DistrVector &q){
         cc      = c; 
       }
     }
-  } else if(d.size() > 0 && w.size() > 0 ) { // modelIII: fast implementation using pre-computed auxiliary quantities
-#ifdef USE_EIGEN3
+  }
+#if defined(USE_EIGEN3) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11))
+  else if(d.size() > 0 && w.size() > 0 ) { // modelIII: fast implementation using pre-computed auxiliary quantities
     const int Nv = domain->solInfo().readInROBorModes.size(); // get number of local bases
     const int k  = q.size();                                  // get total number of vectors
     Eigen::Map<Eigen::VectorXd> qi(q.data(),k);               // get working array
@@ -650,12 +654,9 @@ DistrExplicitPodProjectionNonLinDynamicBase::selectLocalBasis(DistrVector &q){
       return (p>m && (w(m,p).dot(qi) + d(m,p)) < 0) || (m>p && (w(p,m).dot(qi) + d(p,m)) > 0);
     });
     return s[0];
-#else
-    filePrint(stderr,"*** Error: Local auxiliary bases  requres Aero-S to be built with eigen library and c++11 support.\n");
-    exit(-1);
+  }
 #endif
-   MPI_Barrier(MPI_COMM_WORLD);
-  } else {
+  else {
     filePrint(stderr,"*** Error: cluster centroids or auxiliary quantities required to select local basis.\n");
     exit(-1);
   }
@@ -664,7 +665,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::selectLocalBasis(DistrVector &q){
 
 void
 DistrExplicitPodProjectionNonLinDynamicBase::setLocalBasis(DistrVector &q, DistrVector &qd){
-
+#if defined(USE_EIGEN3) && ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11))
   if(domain->solInfo().readInLocalBasesCent.size() >= 1 || VtV.size() > 0) {
     int j = selectLocalBasis(q);
     if(j != localBasisId) { // if a new local basis has been selected, update the things
@@ -697,6 +698,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::setLocalBasis(DistrVector &q, Distr
       localBasisId = j;
     }
   }
+#endif
 }
 
 void

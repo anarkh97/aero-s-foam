@@ -86,6 +86,10 @@ TRAIL [a-zA-Z]*
 
 "READMODE"[a-zA-Z]*|"readmode"[a-zA-Z]* { return READMODE; }
 
+"MNORM"|"mnorm"                    { yylval.ival = ModalParams::Mnorm; return ROBTYPE; }
+"INORM"|"inorm"                    { yylval.ival = ModalParams::Inorm; return ROBTYPE; }
+"NONEG"|"noneg"                    { yylval.ival = ModalParams::Noneg; return ROBTYPE; }
+
 "DUALBASIS"|"dualbasis"            { return DUALBASIS; }
 
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
@@ -621,7 +625,9 @@ TRAIL [a-zA-Z]*
 
 "QSTA"[a-zA-Z]*|"qsta"[a-zA-Z]*    { return QSTATIC; }
 
-"modal"|"MODAL"                    { return MODAL; }
+"modal"|"MODAL"|"srom"|"SROM"      { return MODAL; }
+
+"contact"|"CONTACT"                { return CONTACT; }
 
 "precn"o[a-zA-Z]*|"PRECN"O[a-zA-Z]* { return PRECNO; }
 
@@ -1098,9 +1104,19 @@ TRAIL [a-zA-Z]*
 
 "quaterni"|"QUATERNI"              { yylval.ival = OutputInfo::Quaternion;   return STRESSID; }
 
-"modaldsp"|"MODALDSP"              { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
+"modaldsp"|"MODALDSP"|"sromdisp"|"SROMDISP" { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
 
-"modalexf"|"MODALEXF"              { yylval.ival = OutputInfo::ModalExF;     return STRESSID; }
+"modalexf"|"MODALEXF"|"sromextf"|"SROMEXTF" { yylval.ival = OutputInfo::ModalExF;     return STRESSID; }
+
+"modalmas"|"MODALMAS"|"srommass"|"SROMMASS" { yylval.ival = OutputInfo::ModalMass;    return STRESSID; }
+
+"modalstf"|"MODALSTF"|"sromstif"|"SROMSTIF" { yylval.ival = OutputInfo::ModalStiffness; return STRESSID; }
+
+"modaldmp"|"MODALDMP"|"sromdamp"|"SROMDAMP" { yylval.ival = OutputInfo::ModalDamping; return STRESSID; }
+
+"modaldyn"|"MODALDYN"|"sromdyna"|"SROMDYNA" { yylval.ival = OutputInfo::ModalDynamicMatrix; return STRESSID; }
+
+"modalmat"|"MODALMAT"|"srommatr"|"SROMMATR" { yylval.ival = OutputInfo::ModalMatrices; return STRESSID; }
 
 "gtempera"|"GTEMPERA"              { yylval.ival = OutputInfo::Temperature;  return STRESSID; }
 

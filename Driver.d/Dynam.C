@@ -911,6 +911,12 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         case OutputInfo::Jacobian:
         case OutputInfo::RobData:
         case OutputInfo::SampleMesh:
+        case OutputInfo::ModalDsp:
+        case OutputInfo::ModalExF:
+        case OutputInfo::ModalMass:
+        case OutputInfo::ModalStiffness:
+        case OutputInfo::ModalDamping:
+        case OutputInfo::ModalDynamicMatrix:
           break;
 
         default:

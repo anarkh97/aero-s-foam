@@ -217,7 +217,7 @@ DistrBasisOrthoDriver::solve() {
   // Output the renormalized basis as separate file
   if(domain->solInfo().normalize >= 0) {
     std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
-    fileName.append(".normalized");
+    fileName.append(".massorthonormalized");
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputNormalizedFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
     filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
@@ -231,6 +231,7 @@ DistrBasisOrthoDriver::solve() {
   if(domain->solInfo().normalize == 1) {
     MGSVectors(normalizedBasis);
     std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
+    fileName.append(".orthonormalized");
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputOrthoNormalFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
     filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());

@@ -74,21 +74,21 @@ DistrROMPostProcessingDriver::preProcess() {
     // read in distributed POD basis
     FileNameInfo fileInfo;
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, j);
-    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName.append(".normalized");  
+    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName.append(".massorthonormalized");  
     DistrBasisInputFile podBasisFile(fileName);  //read in mass-normalized basis
     if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
 
     int globalBasisSize = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
     if(globalBasisSize <= 0 || globalBasisSize == std::numeric_limits<int>::max()) {
-         int sillyCounter = 0;
-         for(std::vector<int>::iterator it = domain->solInfo().localBasisSize.begin(); it != domain->solInfo().localBasisSize.end(); it++){
-           std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
-           if(domain->solInfo().useMassOrthogonalProjection) dummyName.append(".normalized");
-            DistrBasisInputFile dummyFile(dummyName);
-           *it = dummyFile.stateCount();
-           globalBasisSize += *it;
-         }
+      int sillyCounter = 0;
+      for(std::vector<int>::iterator it = domain->solInfo().localBasisSize.begin(); it != domain->solInfo().localBasisSize.end(); it++) {
+        std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
+        if(domain->solInfo().useMassNormalizedBasis) dummyName.append(".massorthonormalized");
+        DistrBasisInputFile dummyFile(dummyName);
+        *it = dummyFile.stateCount();
+        globalBasisSize += *it;
       }
+    }
 
     for (DistrVecBasis::iterator it = normalizedBasis_.begin() + std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+j, 0),
                                  it_end = normalizedBasis_.begin() + std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
@@ -234,7 +234,7 @@ DistrROMPostProcessingDriver::solve() {
    preProcess();
    std::ofstream cvout(domain->solInfo().constraintViolationFile);
 
-   bool computeResidual = false, computeExtForce = false; 
+   bool computeResidual = false, computeExtForce = false, computeEnergies = false; 
    double residualNorm = 0, extForceNorm = 0;
    GenAssembler<double> * assembler = decDomain->getSolVecAssembler();
    OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -255,6 +255,17 @@ DistrROMPostProcessingDriver::solve() {
        computeExtForce = true;
        filePrint(stderr, " ... Computing ROM External Force   ...\n");
        if(!computeResidual) {
+         fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+         fullExtForceBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
+         getConstForce(*fullConstForceBuffer);
+       }
+       break;
+     }
+   }
+   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++) {
+     if(oinfo[iOut].type == OutputInfo::Energies) {
+       computeEnergies = true;
+       if(!computeResidual && !computeExtForce) {
          fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
          fullExtForceBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
          getConstForce(*fullConstForceBuffer);
@@ -305,7 +316,7 @@ DistrROMPostProcessingDriver::solve() {
      geomState->setAcceleration(*fullAccBuffer, 2);
      execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
 
-     if(computeResidual || computeExtForce) {
+     if(computeResidual || computeExtForce || computeEnergies) {
        if(!dummyDynOps) {
          dummyDynOps = buildOps(1,0,0);
        }

@@ -859,6 +859,17 @@ Domain::constructDBSparseMatrix(DofSetArray *dof_set_array, Connectivity *cn)
    return new GenDBSparseMatrix<Scalar>(cn, dsa, c_dsa);
 }
 
+#ifdef USE_EIGEN3
+template<typename Scalar>
+GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *
+Domain::constructEiSparse(DofSetArray *c_dsa, Connectivity *nodeToNode, bool flag)
+{
+  if(c_dsa == 0) c_dsa = Domain::c_dsa;
+  if(nodeToNode == 0) nodeToNode = Domain::nodeToNode;
+  return new GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(nodeToNode, dsa, c_dsa, flag);
+}
+#endif
+
 template<typename Scalar, typename SolverClass>
 GenEiSparseMatrix<Scalar,SolverClass> *
 Domain::constructEiSparseMatrix(DofSetArray *c_dsa, Connectivity *nodeToNode, bool flag)
@@ -3853,6 +3864,11 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           geoSource->outputNodeScalars(i, rxyz, numNodesOut, time);
           delete [] rxyz;
           } break;
+        case OutputInfo::Velocity:
+        case OutputInfo::Acceleration:
+        case OutputInfo::Velocity6:
+        case OutputInfo::Accel6:
+          break;
         default:
           success = 0;
           break;

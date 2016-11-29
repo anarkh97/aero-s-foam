@@ -67,6 +67,7 @@
  ConstraintOptions copt;
  BlastLoading::BlastData blastData;
  FreeplayProps freeplayProps;
+ ModalParams::Type mpt;
 }
 
 %expect 6
@@ -75,7 +76,7 @@
 %token AUGMENT AUGMENTTYPE AUXILIARY AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
-%token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
+%token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION CONTACT
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token CONSTANT CONWEP
@@ -101,7 +102,7 @@
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
-%token RADIATION RBMFILTER RBMSET READMODE READSENSITIVITY REBUILD REVERSEORDER REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROTVECOUTTYPE RESCALING RUBDAFT
+%token RADIATION RBMFILTER RBMSET READMODE READSENSITIVITY REBUILD REVERSEORDER REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROBTYPE ROTVECOUTTYPE RESCALING RUBDAFT
 %token SCALING SCALINGTYPE SDETAFT SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE STR_THERM_OPTION SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT SENSITIVITYID
@@ -145,6 +146,7 @@
 %type <ival>     DAMPING ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE LoadCase
 %type <ival>     RBMSET RENUMBERID OPTCTV
+%type <mpt>      ROBTYPE
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
 %type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE STR_THERM_OPTION MOMENTTYPE SPNNLSSOLVERTYPE CLUSTERSOLVERTYPE SENSITIVITYID
@@ -882,7 +884,7 @@ DiscrMasses:
           { domain->addDMass($2-1,$3-1,$5,$4-1); }
         | DiscrMasses MODAL NewLine FNAME NewLine
         { domain->solInfo().modalDIMASS = true;
-          domain->solInfo().reducedMassFile = $4;; }
+          domain->solInfo().reducedMassFile = $4; }
         ;
 Gravity:
 	GRAVITY NewLine
@@ -1032,8 +1034,8 @@ DynInfo:
 	| EIGEN Integer NewLine
 	{ domain->solInfo().setProbType(SolverInfo::Modal);
 	  domain->solInfo().nEig = $2;}
-  | QRFACTORIZATION SWITCH NewLine
-  { domain->solInfo().qrfactorization = $2;}
+	| QRFACTORIZATION SWITCH NewLine
+	{ domain->solInfo().qrfactorization = $2;}
 	| NEIGPA Integer NewLine
 	{ domain->solInfo().nEig = $2; }
 	| SUBSPACE NewLine
@@ -1111,6 +1113,13 @@ TopInfo:
 	TOPFILE NewLine
 	{ domain->solInfo().setProbType(SolverInfo::Top); }
 	;
+ModalInfo:
+	MODAL Integer
+	{ domain->solInfo().modal_id.push_back($2); }
+	| ModalInfo Integer
+	{ domain->solInfo().modal_id.push_back($2); }
+	| ModalInfo CONTACT Integer
+	{ domain->solInfo().contact_modal_id.push_back($3); }
 DynamInfo:
         DYNAM NewLine 
         { domain->solInfo().setProbType(SolverInfo::Dynamic); }
@@ -1118,6 +1127,8 @@ DynamInfo:
         | DynamInfo TimeInfo
         | DynamInfo DampInfo
         | DynamInfo MODAL NewLine
+        { domain->solInfo().modal = true; domain->solInfo().modal_id.push_back(0); }
+        | DynamInfo ModalInfo NewLine
         { domain->solInfo().modal = true; }
         | DynamInfo STABLE Integer NewLine
         { domain->solInfo().stable = $3; }
@@ -1203,7 +1214,9 @@ QstaticInfo:
         | QstaticInfo QMechInfo
         | QstaticInfo QHeatInfo
         | QstaticInfo MODAL NewLine
-        { domain->solInfo().modal = true; }
+        { domain->solInfo().modal = true; domain->solInfo().modal_id.push_back(0); }
+        | QstaticInfo MODAL Integer NewLine
+        { domain->solInfo().modal = true; domain->solInfo().modal_id.push_back($3); }
 	;
 QMechInfo:
         MECH Float Float Integer NewLine
@@ -1880,32 +1893,23 @@ AxiLmpc:
         | Integer Float Float Integer Float Float Float Float Float NewLine
         { $$ = MPC($1-1, $2, $3, $4, DComplex($5,$6) , $7, $8, $9); }
 	;
+ReadModeInfo:
+	Integer EIGEN FNAME Integer NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams(ModalParams::Eigen, $3, $4); }
+        | Integer ROBTYPE FNAME Integer NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams($2, $3, $4); }
+        | Integer EIGEN FNAME Integer Float NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams(ModalParams::Eigen, $3, $4, $5); }
+        | Integer ROBTYPE FNAME Integer Float NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams($2, $3, $4, $5); }
+	;
 Mode:
         READMODE FNAME NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readmodeCalled = true; }
+        { domain->solInfo().readInModes[0] = ModalParams(ModalParams::Undefined, $2); }
         | READMODE FNAME Integer NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readmodeCalled = true; 
-          domain->solInfo().maxSizePodRom += $3;
-          domain->solInfo().localBasisSize.push_back($3); }	
-        | READMODE FNAME FNAME NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readInModes.push_back($3);
-          domain->solInfo().readmodeCalled = true; }
-        | READMODE FNAME FNAME Integer NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readInModes.push_back($3);
-          domain->solInfo().readmodeCalled = true;
-          domain->solInfo().maxSizePodRom += $4;
-          domain->solInfo().localBasisSize.push_back($4); }
-        | Mode USEMASSNORMALIZEDBASIS SWITCH NewLine
-        { domain->solInfo().useMassNormalizedBasis = bool($3); }
-        | Mode ONLINEMASSNORMALIZEBASIS SWITCH NewLine
-        { domain->solInfo().performMassNormalization = bool($3); } 
-        | Mode DUALBASIS FNAME Integer NewLine
-        { domain->solInfo().readInDualROB.push_back($3);
-          domain->solInfo().localDualBasisSize.push_back($4); }
+        { domain->solInfo().readInModes[0] = ModalParams(ModalParams::Undefined, $2, $3); }
+	| READMODE NewLine ReadModeInfo
+	| Mode ReadModeInfo
 	;
 IDisp:
         IDIS NewLine
@@ -1919,6 +1923,11 @@ IDisp:
 	{ for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Idisplacements;
           if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1; 
 	  domain->solInfo().modalCalled = true; }
+        | IDisp MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Idisplacements;
+          if(geoSource->setIDisModal($5->n, $5->d) < 0) return -1;
+          domain->solInfo().modalCalled = true;
+          domain->solInfo().idis_modal_id = $3; }
 	;
 IDisp6:
 	IDIS6 Float NewLine
@@ -1993,11 +2002,20 @@ IVel:
         { for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Ivelocities;
           if(geoSource->setIVelModal($4->n, $4->d) < 0) return -1; 
 	  domain->solInfo().modalCalled = true; }
+        | IVel MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Ivelocities;
+          if(geoSource->setIVelModal($5->n, $5->d) < 0) return -1;
+          domain->solInfo().modalCalled = true;
+          domain->solInfo().ivel_modal_id = $3; }
 	;
 ITemp:
         ITEMP NewLine TBCDataList
         { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Itemperatures;
           if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
+        | ITemp MODAL NewLine ModalValList
+        { for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Itemperatures;
+          if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1;
+          domain->solInfo().modalCalled = true; }
 	;
 ETemp:
         ETEMP NewLine TBCDataList
@@ -2035,6 +2053,12 @@ ModalNeumanBC:
         | FORCE Integer NewLine MODAL NewLine ModalValList
         { for(int i=0; i<$6->n; ++i) { $6->d[i].type = BCond::Forces; $6->d[i].loadsetid = $2; }
           if(geoSource->setNeumanModal($6->n, $6->d) < 0) return -1; }
+        | FORCE NewLine MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$6->n; ++i) $6->d[i].type = BCond::Forces;
+          if(geoSource->setNeumanModal($6->n, $6->d) < 0) return -1; }
+        | FORCE Integer NewLine MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$7->n; ++i) { $7->d[i].type = BCond::Forces; $7->d[i].loadsetid = $2; }
+          if(geoSource->setNeumanModal($7->n, $7->d) < 0) return -1; }
         ;
 BCDataList:
 	BC_Data

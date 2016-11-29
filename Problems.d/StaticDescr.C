@@ -379,7 +379,7 @@ SingleDomainStatic<T, VectorType, SolverType>::getWCAWEFreqSweepRHS(VectorType *
       (*vec)[i] = 0;
     for(int k=0;k<iRHS+1-j;k++) {
       for(int i=0; i<vec->size(); ++i)
-        (*vec)[i] -= pU[k+(j-1)*(iRHS+1)]* (*wcawe_u[k])[i];
+        (*vec)[i] += pU[k+(j-1)*(iRHS+1)]* (*wcawe_u[k])[i];
     }
     allOps.M->multAdd(vec->data(), rhs->data());
   }

@@ -26,9 +26,13 @@ const double defaultTemp = -10000000.0;
 
 struct AdaptiveSweepParams {
 public:
+     AdaptiveSweepParams() {
+       ctolf = tol1f = 0.0;
+     }
      int maxP,minRHS,maxRHS,deltaRHS,numS;
      double w1,w2,atol;
      int dgp_flag;
+     double ctolf, tol1f;
 };
 
 struct SweepParams {

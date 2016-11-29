@@ -117,6 +117,7 @@ template <class Scalar,
           class VecType,
           class ProblemDescriptor>
 struct FWindowSData { 
+  int n0;
   int n;
   int imode;
   int irow;
@@ -127,41 +128,41 @@ struct FWindowSData {
   VecType **Ku;
   VecType **Mu;
   VecType **Cu;
-  FWindowSData(int _n, int _imode, ProblemDescriptor* probDesc) {
-    n=_n; imode = _imode; irow = -1;
-    u = new VecType * [n];
-    for(int i = 0; i < n; ++i)
+  FWindowSData(int _n0, int _imode, ProblemDescriptor* probDesc) {
+    n0=_n0; imode = _imode; irow = -1; n = 0;
+    u = new VecType * [n0];
+    for(int i = 0; i < n0; ++i)
       u[i] = new VecType(probDesc->solVecInfo());
-    ups = new VecType * [n];
-    for(int i = 0; i < n; ++i)
+    ups = new VecType * [n0];
+    for(int i = 0; i < n0; ++i)
       ups[i] = new VecType(probDesc->solVecInfo());
-    v = new VecType * [n];
-    for(int i = 0; i < n; ++i)
+    v = new VecType * [n0];
+    for(int i = 0; i < n0; ++i)
       v[i] = new VecType(probDesc->solVecInfo());
-    Ku = new VecType * [n];
-    for(int i = 0; i < n; ++i)
+    Ku = new VecType * [n0];
+    for(int i = 0; i < n0; ++i)
       Ku[i] = new VecType(probDesc->solVecInfo());
-    Mu = new VecType * [n];
-    for(int i = 0; i < n; ++i)
+    Mu = new VecType * [n0];
+    for(int i = 0; i < n0; ++i)
       Mu[i] = new VecType(probDesc->solVecInfo());
-    Cu = new VecType * [n];
-    for(int i = 0; i < n; ++i) {
+    Cu = new VecType * [n0];
+    for(int i = 0; i < n0; ++i) {
       Cu[i] = new VecType(probDesc->solVecInfo());
       Cu[i]->zero();
     }
   }
   ~FWindowSData() {
-    for(int i=0;i<n;i++) delete u[i];
+    for(int i=0;i<n0;i++) delete u[i];
     delete[] u;
-    for(int i=0;i<n;i++) delete ups[i];
+    for(int i=0;i<n0;i++) delete ups[i];
     delete[] ups;
-    for(int i=0;i<n;i++) delete v[i];
+    for(int i=0;i<n0;i++) delete v[i];
     delete[] v;
-    for(int i=0;i<n;i++) delete Ku[i];
+    for(int i=0;i<n0;i++) delete Ku[i];
     delete[] Ku;
-    for(int i=0;i<n;i++) delete Mu[i];
+    for(int i=0;i<n0;i++) delete Mu[i];
     delete[] Mu;
-    for(int i=0;i<n;i++) delete Cu[i];
+    for(int i=0;i<n0;i++) delete Cu[i];
     delete[] Cu;
   }
 };

@@ -6407,7 +6407,7 @@ GenSubDomain<Scalar>::multWCAWE(Scalar *localrhs, GenStackVector<Scalar> **u, Sc
       localvec[i] = 0.0;
     for(int k=0;k<iRHS+1-j;k++) {
       for(int i=0; i<c_dsa->size(); ++i) 
-        localvec[i] -= pU[k+(j-1)*(iRHS+1)]* (*u[k])[i];
+        localvec[i] += pU[k+(j-1)*(iRHS+1)]* (*u[k])[i];
     }
     M->multAdd(localvec, localrhs);
   }

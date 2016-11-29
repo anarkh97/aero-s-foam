@@ -448,6 +448,30 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $11;
           domain->solInfo().getSweepParams()->nFreqSweepRHS = $10;
         }
+        | Impe FREQSWEEPA Float Float Integer RECONSALG Float Integer Integer Integer Integer Float Float NewLine
+        {
+          if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+          domain->setFrequencySet(domain->solInfo().curSweepParam);
+          domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, 2, $5);
+          domain->solInfo().getSweepParams()->isAdaptSweep = true;
+          domain->solInfo().getSweepParams()->adaptSweep.maxP = $8;
+          domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
+          if ($6 == SweepParams::KrylovGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
+          else if ($6 == SweepParams::QRGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
+          else
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
+          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$3;
+          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
+          domain->solInfo().getSweepParams()->adaptSweep.atol = $7;
+          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $10;
+          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $11;
+          domain->solInfo().getSweepParams()->nFreqSweepRHS = $10;
+          domain->solInfo().getSweepParams()->adaptSweep.ctolf = $12;
+          domain->solInfo().getSweepParams()->adaptSweep.tol1f = $13;
+        }
         | Impe FREQSWEEPA Float Float Integer RECONSALG NewLine
         {
           if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);

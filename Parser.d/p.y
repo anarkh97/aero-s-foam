@@ -1155,6 +1155,9 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
+        | DynamInfo PRINTMATLAB FNAME NewLine
+        { domain->solInfo().printMatLab = 1;
+          domain->solInfo().printMatLabFile = $3; }
         ;
 Conwep:
         CONWEP NewLine ConwepData NewLine

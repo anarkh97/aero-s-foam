@@ -139,7 +139,7 @@ int CoordSet::nnz()
 }
 
 NFrameData*
-CoordSet::dofFrame(int i)
+CoordSet::dofFrame(int i) const
 {
   // get a pointer to the degree-of-freedom frame for the specified i^th node
   // if one is defined and it differs from the basic frame.

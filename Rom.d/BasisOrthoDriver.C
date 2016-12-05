@@ -243,7 +243,9 @@ BasisOrthoDriver::solve() {
     
     solver.solve();
 
-    BasisOutputStream<6> output(BasisFileId(fileInfo, type, BasisId::POD), converter, false); 
+    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    fileName.append(".orthonormalized");
+    BasisOutputStream<6> output(fileName, converter, false); 
 
     int orthoBasisDim = domain->solInfo().maxSizePodRom ?
                               std::min(domain->solInfo().maxSizePodRom, solver.singularValueCount()) :
@@ -272,7 +274,7 @@ BasisOrthoDriver::solve() {
 
     // Output solution
     if(domain->solInfo().normalize <= 0) // old method for lumped: outputs identity normalized basis
-      filePrint(stderr, " ... Writing orthonormal basis of size %d to file %s ...\n", orthoBasisDim, BasisFileId(fileInfo, type, BasisId::POD).name().c_str());
+      filePrint(stderr, " ... Writing orthonormal basis of size %d to file %s ...\n", orthoBasisDim, fileName.c_str());
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
       output << std::make_pair(solver.singularValue(iVec), solver.matrixCol(iVec));
     }
@@ -283,7 +285,7 @@ BasisOrthoDriver::solve() {
 
     // Read back in output file to renormalize basis
     VecBasis basis;
-    BasisInputStream<6> in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), converter);
+    BasisInputStream<6> in(fileName, converter);
     readVectors(in, basis);
     if(domain->solInfo().subtractRefPodRom) MGSVectors(basis.data(), basis.numVec(), basis.size()); // orthonormalize offset with respect to basis
 
@@ -320,8 +322,8 @@ BasisOrthoDriver::solve() {
   
     // Compute and output orthonormal basis if using new method
     if(domain->solInfo().normalize == 1) {
-      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-      fileName.append(".orthonormalized");
+      //std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+      //fileName.append(".orthonormalized");
       MGSVectors(normalizedBasis.data(), normalizedBasis.numVec(), normalizedBasis.size());
       BasisOutputStream<6> outputIdentityNormalized(fileName, converter, false); 
       filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());

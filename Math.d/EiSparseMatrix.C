@@ -108,14 +108,14 @@ GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrix &kel, int *dofs)
 
 template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar,SolverClass>::add(int k, int l, Scalar val)
+GenEiSparseMatrix<Scalar,SolverClass>::addCoef(int k, int l, Scalar val)
 {
-   for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
-     if(rowu[m] == k) {
-       unonz[m] += val;
-       break;
-     }
-   }
+  for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
+    if(rowu[m] == k) {
+      unonz[m] += val;
+      break;
+    }
+  }
 }
 
 template<class Scalar, typename SolverClass>

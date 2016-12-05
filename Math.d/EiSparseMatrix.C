@@ -9,7 +9,7 @@ template<typename Scalar, typename SolverClass>
 GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa, int *rCN, bool _selfadjoint)
 : SparseData(dsa,rCN,cn,int(!_selfadjoint)),
   selfadjoint(_selfadjoint),
-  nnz(xunonz[numUncon]),
+  nnz(xunonz[numUncon]-1),
   unonz(new Scalar[nnz]),
   M(numUncon, numUncon, nnz, xunonz, rowu, unonz),
   M_copy(NULL)
@@ -26,7 +26,7 @@ template<typename Scalar, typename SolverClass>
 GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa, DofSetArray *c_dsa, bool _selfadjoint)
 : SparseData(dsa,c_dsa,cn,int(!_selfadjoint)),
   selfadjoint(_selfadjoint),
-  nnz(xunonz[numUncon]),
+  nnz(xunonz[numUncon]-1),
   unonz(new Scalar[nnz]),
   M(numUncon, numUncon, nnz, xunonz, rowu, unonz),
   M_copy(NULL)
@@ -43,7 +43,7 @@ template<typename Scalar, typename SolverClass>
 GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, EqNumberer *eqNums)
 : SparseData(eqNums,cn,(int*)NULL,0,1),
   selfadjoint(true),
-  nnz(xunonz[numUncon]),
+  nnz(xunonz[numUncon]-1),
   unonz(new Scalar[nnz]),
   M(numUncon, numUncon, nnz, xunonz, rowu, unonz),
   M_copy(NULL)

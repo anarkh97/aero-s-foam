@@ -819,7 +819,7 @@ struct SolverInfo {
                   selectFullElem     = false;
                   forcePodSize       = 0;
                   constraintPodSize  = 0;
-                  normalize          = 1;
+                  normalize          = 0;
                   subtractRefPodRom  = false;
                   useScalingSpnnls   = true;
                   useCenterSpnnls    = false;

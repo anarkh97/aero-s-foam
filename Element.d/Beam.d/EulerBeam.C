@@ -554,20 +554,32 @@ EulerBeam::computeDisp(CoordSet&cs,
 //12=3translations, 3rotations + their respect. velocities
 //2=number of nodes in element
 
+    const double *gp = ip.xy;
     double xyz[2][12];
     double locxyz[2][12];
-    double locres[6];
-
+    
+    double w[3];
+    double locGap[3];
+    double gn[3];
+    double dv[3];
     state.getDVRot(nn[0], xyz[0], xyz[0]+6);
     state.getDVRot(nn[1], xyz[1], xyz[1]+6);
 
-    double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
+    double t0[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}}; //original beam frame
+    double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};//current beam frame
     double L;
     int i, j;
 
-    if (geomState) {
+   
+    for(i=0; i<3; ++i) 
+         for(j=0; j<3; ++j) 
+              t0[i][j] = (*elemframe)[i][j] ;
+              
+
+
+    if (geomState) {//large deformation compute current beam frame
       updTransMatrix(cs, geomState, t0n, L);
-    }  else  {
+    }  else  {// small deformation, use original beam frame as current beam frame
                 getLength(cs, L);
                 for(i=0; i<3; ++i) {
                   for(j=0; j<3; ++j) {
@@ -575,147 +587,54 @@ EulerBeam::computeDisp(CoordSet&cs,
                   }
                 }
     }
-
-
-// Rotate displacements from global frame to local frame
-
-//Node 1 (displacements):
-  for(i=0; i<3; ++i) {
-   locxyz[0][i] = 0.;
-   for(j=0; j<3; ++j) {
-    locxyz[0][i] += t0n[i][j]*xyz[0][j];
-   }
-  }
-
-  for(i=0; i<3; ++i) {
-   locxyz[0][i+3] = 0.;
-   for(j=0; j<3; ++j) {
-    locxyz[0][i+3] += t0n[i][j]*xyz[0][j+3];
-   }
-  }
-
-//Node 1 (velocities):
-
-  for(i=0; i<3; ++i) {
-   locxyz[0][i+6] = 0.;
-   for(j=0; j<3; ++j) {
-    locxyz[0][i+6] += t0n[i][j]*xyz[0][j+6];
-   }
-  }
-
-  for(i=0; i<3; ++i) {
-   locxyz[0][i+9] = 0.;
-   for(j=0; j<3; ++j) {
-    locxyz[0][i+9] += t0n[i][j]*xyz[0][j+9];
-   }
-  }
-
-//Node 2 (displacements):
-
-  for(i=0; i<3; ++i) {
-   locxyz[1][i] = 0.;
-   for(j=0; j<3; ++j) {
-    locxyz[1][i] += t0n[i][j]*xyz[1][j];
-   }
-  }
-
-  for(i=0; i<3; ++i) {
-   locxyz[1][i+3] = 0.;
-   for(j=0; j<3; ++j) {
-    locxyz[1][i+3] += t0n[i][j]*xyz[1][j+3];
-   }
-  }
-
-//Node 2 (velocities):
-
-  for(i=0; i<3; ++i) {
-   locxyz[1][i+6] = 0.;
-   for(j=0; j<3; ++j) {
-    locxyz[1][i+6] += t0n[i][j]*xyz[1][j+6];
-   }
-  }
-
-  for(i=0; i<3; ++i) {
-   locxyz[1][i+9] = 0.;
-   for(j=0; j<3; ++j) {
-    locxyz[1][i+9] += t0n[i][j]*xyz[1][j+9];
-   }
-  }
-
-  double locGap[3];
-  // Rotate the gap; note the Z component should be zero
-  for(i=0; i<3; ++i) {
-    locGap[i] = 0;
+    
+    
+    //local displacement
     for(j=0; j<3; ++j)
-      locGap[i] += t0n[i][j]*ip.gap[j];
-  }
+      res[j] = (1.0-gp[0]) * xyz[0][j] + gp[0]*xyz[1][j];
+    //local velocity
+    for(j=0; j<3; ++j)
+      res[j+3] = (1.0-gp[0]) * xyz[0][j+6] + gp[0]*xyz[1][j+6];
 
-// Multiplying by beam shape functions
+    //local angular velocity
+    for(j=0; j<3; ++j)
+      w[j] = (1.0-gp[0]) * xyz[0][j+9] + gp[0]*xyz[1][j+9];
 
-  const double *gp = ip.xy;
-  double gp2 = gp[0]*gp[0] ;
-  double gp3 = gp2*gp[0] ;
-  double Nwi = 1-3*gp2+2*gp3;
-  double Nthi= L*(gp[0]-2*gp2+gp3);
-  double Nwj = 3*gp2-2*gp3;
-  double Nthj= L*(-gp2+gp3);
-  double theta = gp[0]*locxyz[1][3] + (1-gp[0])*locxyz[0][3];
-  double thetadot = gp[0]*locxyz[1][9] + (1-gp[0])*locxyz[0][9];
 
-//x-direction
- locres[0] = (1-gp[0])*locxyz[0][0] + gp[0]*locxyz[1][0];
 
-//y-direction
- locres[1] = Nwi*locxyz[0][1] + Nthi*locxyz[0][5] +
-             Nwj*locxyz[1][1] + Nthj*locxyz[1][5]
-             - theta*locGap[2] ;
+     
+    // Rotate the gap; note the Z component should be zero
+    // double locGap[3];
+    // initial configuration gap vector in C0 local coordinates
+    for(int i=0; i<3; ++i) {
+      locGap[i] = 0;
+      for(j=0; j<3; ++j)
+	locGap[i] += t0[i][j]*ip.gap[j];
+    }
+    // nth configuration gap vector in global coordinates
+    for(int i=0; i<3; ++i) {
+      gn[i] = 0;
+      for(j=0; j<3; ++j)
+	gn[i] += t0n[j][i]*locGap[j];
+    }  
 
-//z-direction (BE CAREFUL OF MOMENT SIGN)
- locres[2] = Nwi*locxyz[0][2] - Nthi*locxyz[0][4] +
-             Nwj*locxyz[1][2] - Nthj*locxyz[1][4]
-             + theta*locGap[1] ;
 
-//x-velocity
-  locres[3] = (1-gp[0])*locxyz[0][6] + gp[0]*locxyz[1][6];
+    //correct the displacement by +Rd - d, here d=ip.gap is the original gap,
+    //gn[i]=Rd is the new gap,here R is the rotation matrix    
+    for(int i=0; i<3; ++i) {
+      res[i] += (gn[i] - ip.gap[i]);
+    }
 
-//y-velocity
-  locres[4] = Nwi*locxyz[0][7] + Nthi*locxyz[0][11] +
-              Nwj*locxyz[1][7] + Nthj*locxyz[1][11]
-             - thetadot*locGap[2] ;
+    // correction to velocity of fluid node due to gap = w x gn, w is the angular velocity
+    crossprod(w, gn, dv);
+    for(int i=0; i<3; ++i) { 
+      res[i+3] += dv[i];
+    }
+    
 
-//z-velocity
-  locres[5] = Nwi*locxyz[0][8] + Nthi*locxyz[0][10] +
-              Nwj*locxyz[1][8] + Nthj*locxyz[1][10]
-             + thetadot*locGap[1] ;
-
-// Transform back to global (Transpose of matrix)
-
-  for(i=0; i<3; ++i) {
-   res[i] = 0.;
-   for(j=0; j<3; ++j) {
-    res[i] += t0n[j][i]*locres[j];
-//       fprintf(stderr,"Displacement Frame = %f\n", t0n[j][i]);
-   }
-  }
-
-  for(i=0; i<3; ++i) {
-   res[i+3] = 0.;
-   for(j=0; j<3; ++j) {
-    res[i+3] += t0n[j][i]*locres[j+3];
-   }
-  }
-
-/* int j;
- for(j=3; j<6; ++j)
-    res[j] = (1-gp[0])*xyz[0][j] + gp[0]*xyz[1][j]; */
-
-/* double xyz[2][6];
- state.getDV(nn[0], xyz[0], xyz[0]+3);
- state.getDV(nn[1], xyz[1], xyz[1]+3);
-
- int j;
- for(j=0; j<6; ++j)
-    res[j] = (1-gp[0])*xyz[0][j] + gp[0]*xyz[1][j]; */
+    // TODO: 
+    // 1. correction to displacement due to deformational rotation (small)
+    
 
 }
 
@@ -745,8 +664,8 @@ EulerBeam::getFlLoad(CoordSet&cs, const InterpPoint &ip, double *flF,
                 }
               }
    }
-
-
+  
+  //load at current beam frame
    for(i=0; i<3; ++i) {
     locload[i] = 0.0;
      for(j=0; j<3; j++) {
@@ -783,11 +702,14 @@ EulerBeam::getFlLoad(CoordSet&cs, const InterpPoint &ip, double *flF,
 //     fprintf(stderr,"Forces %f %f\n ",locresF[i], locresF[i+6]);
     }
 
-   double mLx = locGap[1] * locload[2] - locGap[2] * locload[1];
+    double mL[3];//moment generated by the Fx Fy Fz mL= d crossprod F
+    crossprod(locGap,locload,mL);
    //fprintf(stderr, "Moment in local x: %e will go to %e %e %e\n", mLx,
           //t0n[0][0], t0n[0][1], t0n[0][2]);
-   locresF[3] += mLx*(1-ip.xy[0]);
-   locresF[9] += mLx*(ip.xy[0]);
+    for(i = 0; i < 3; i++){
+      locresF[i+3] += mL[i]*(1-ip.xy[0]);
+      locresF[i+9] += mL[i]*(ip.xy[0]);
+    }
 // Transform back to global load
 
 //Node 1:

@@ -1348,7 +1348,7 @@ GeomState::pull_back(Vector &v)
 
       mat_mult_vec( ns[inode].R, vec, result, 1 ); // result = R^T*vec
 
-      if(cd) cd->transformVector6(result);
+      if(cd) cd->transformVector3(result);
 
       if( loc[inode][3] >= 0 ) v[loc[inode][3]] = result[0];
       if( loc[inode][4] >= 0 ) v[loc[inode][4]] = result[1];

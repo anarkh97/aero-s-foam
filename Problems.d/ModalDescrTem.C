@@ -220,7 +220,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       modalOps.M->setDiag(1.0);
       modalOps.Msolver->setDiag(1.0); // Inverse of M
 
-      if (checkBasis || domain->solInfo().printMatLab) {
+      if (checkBasis) {
         AllOps<double> allOps;
 #if defined(USE_EIGEN3)
         allOps.M = domain->constructEiSparse<double>();
@@ -237,16 +237,11 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
         if (static_cast<EiSparseMatrix*>(allOps.K)->getEigenSparse().norm() == 0) {
           std::cerr << " ... WARNING: The Frobenius norm of the stiffness matrix is zero.\n";
         }
-        if (domain->solInfo().printMatLab) {
-          if(allOps.M) allOps.M->printSparse(std::string(domain->solInfo().printMatLabFile)+".mass");
-          if(allOps.K) allOps.K->printSparse(std::string(domain->solInfo().printMatLabFile)+".stiffness");
-        }
 #else
         allOps.M = domain->constructDBSparseMatrix<double>();
         allOps.K = domain->constructDBSparseMatrix<double>();
         domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
 #endif
-        if (checkBasis) {
         fprintf(stderr," ... Validating orthogonality of modal eigen basis ... \n"); 
         double **tPhiM = new double*[numModes];
         double **tPhiK = new double*[numModes];
@@ -299,7 +294,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
         if (redStif.norm()/Knorm > modalParams.tolerance) {
           fprintf(stderr," ... Modal basis does not satisfy stiffness decoupling tolerance, exiting. \n");
           exit(-1);
-        }}
+        }
       }
 
       int i;
@@ -347,14 +342,9 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
 
       //Construct and assemble full Stiffness matrix
       AllOps<double> allOps;
-      if (checkBasis || domain->solInfo().printMatLab) allOps.M = domain->constructEiSparse<double>();
-      if (domain->solInfo().printMatLab) allOps.K = domain->constructEiSparse<double>(); else
+      if (checkBasis) allOps.M = domain->constructEiSparse<double>();
       allOps.K = domain->constructDBSparseMatrix<double>();
       domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
-      if (domain->solInfo().printMatLab) {
-        if(allOps.M) allOps.M->printSparse(std::string(domain->solInfo().printMatLabFile)+".mass");
-        if(allOps.K) allOps.K->printSparse(std::string(domain->solInfo().printMatLabFile)+".stiffness");
-      }
       if (checkBasis) {
         fprintf(stderr," ... Validating orthogonality of modal basis. ... \n");
 
@@ -499,20 +489,10 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
 
       //Construct and assemble full Stiffness matrix
       AllOps<double> allOps;
-      if (domain->solInfo().printMatLab) {
-        allOps.M = domain->constructEiSparse<double>();
-        allOps.K = domain->constructEiSparse<double>();
-      }
-      else {
-        allOps.M = domain->constructDBSparseMatrix<double>();
-        allOps.K = domain->constructDBSparseMatrix<double>();
-      }
+      allOps.M = domain->constructDBSparseMatrix<double>();
+      allOps.K = domain->constructDBSparseMatrix<double>();
       domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
-      if (domain->solInfo().printMatLab) {
-        if(allOps.M) allOps.M->printSparse(std::string(domain->solInfo().printMatLabFile)+".mass");
-        if(allOps.K) allOps.K->printSparse(std::string(domain->solInfo().printMatLabFile)+".stiffness");
-      }
-      
+
       { // construction of reduced mass matrix
         // allocate space for intermediate container
         double **tPhiM = new double*[numModes];

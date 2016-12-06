@@ -1077,9 +1077,12 @@ DynInfo:
         | DynInfo MAXITR Integer NewLine
         { domain->solInfo().maxitEig = $3; }
         | TESTULRICH NewLine
-          { domain->solInfo().test_ulrich = true; }
+        { domain->solInfo().test_ulrich = true; }
         | ADDEDMASS Integer NewLine
         { domain->solInfo().addedMass = $2; }
+        | DynInfo PRINTMATLAB FNAME NewLine
+        { domain->solInfo().printMatLab = 1;
+          domain->solInfo().printMatLabFile = $3; }
 	;
 DeleteElements:
         DELETEELEMENTS NewLine DeleteElementsList NewLine
@@ -1155,9 +1158,6 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
-        | DynamInfo PRINTMATLAB FNAME NewLine
-        { domain->solInfo().printMatLab = 1;
-          domain->solInfo().printMatLabFile = $3; }
         ;
 Conwep:
         CONWEP NewLine ConwepData NewLine

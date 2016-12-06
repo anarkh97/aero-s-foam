@@ -1185,9 +1185,9 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    }
  }
 
- if(sinfo.printMatLab && !dynamic_cast<GenSubDomain<Scalar>*>(this)) {
+ /*if(sinfo.printMatLab && !dynamic_cast<GenSubDomain<Scalar>*>(this)) {
    allOps.spm->printSparse(sinfo.printMatLabFile);
- }
+ }*/
 
  if(factorize)
    {

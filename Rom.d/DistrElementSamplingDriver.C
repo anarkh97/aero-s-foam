@@ -146,7 +146,9 @@ DistrElementSamplingDriver::solve()
   FileNameInfo fileInfo;
 
   DistrVecBasis podBasis;
-  DistrBasisInputFile podBasisFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD));
+  std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+  fileName.append(".orthonormalized");
+  DistrBasisInputFile podBasisFile(fileName);
 
   const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
                                      std::min(domain->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
@@ -401,6 +403,7 @@ DistrElementSamplingDriver::solve()
     buildDomainCdsa();
     std::string fileName2 = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName2.append(".massorthonormalized");
+    else fileName2.append(".orthonormalized");
     const VecNodeDof6Conversion vecDofConversion(*domain->getCDSA());
     BasisInputStream<6> in(fileName2, vecDofConversion);
     VecBasis podBasis;
@@ -458,10 +461,10 @@ DistrElementSamplingDriver::solve()
     ConstrainedDSA reduced_cdsa(reduced_dsa, num_bc, bc);
     podBasis.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA(), &reduced_cdsa);
     {
-//      std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
       std::string filename = getMeshFilename(fileInfo).c_str(); 
       filename.append(".compressed.basis");
       if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) filename.append(".massorthonormalized");
+      else filename.append(".orthonormalized");
       filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
       VecNodeDof6Conversion converter(reduced_cdsa);
       BasisOutputStream<6> output(filename, converter, false);

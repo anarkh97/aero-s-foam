@@ -209,7 +209,6 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
   config.dimensionIs(snapshotCount, vectorSize);
   timeStamps.clear();
   timeStamps.reserve(snapshotCount);
-  filePrint(stderr, " ... Memory Allocated ...\n");
   
   const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
   const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
@@ -701,7 +700,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
           double t2 = getTime();
       #endif
           for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
-          assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_, j);
+          assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_,
+                               ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
       #ifdef PRINT_ESTIMERS
           fprintf(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
       #endif
@@ -1260,7 +1260,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
     }
   }
 
-  const int snapshotCount = (j==-1) ? std::accumulate(snapshotCounts_.begin(), snapshotCounts_.end(), 0) : snapshotCounts_[j];
+  const int snapshotCount = (domain_->solInfo().readInROBorModes.size() == 1)
+                          ? std::accumulate(snapshotCounts_.begin(), snapshotCounts_.end(), 0) : snapshotCounts_[j];
   solver_.problemSizeIs(podVectorCount*snapshotCount, elementCount());
 }
 

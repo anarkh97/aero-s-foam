@@ -222,7 +222,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
     if(domain->solInfo().doEigSweep) x = this->outEigCount++;
   }
   else time = eigV;
-  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
+  if (domain->solInfo().loadcases.size() > 0 && !domain->solInfo().doFreqSweep) time = domain->solInfo().loadcases.front();
 
 // RT - serialize the OUTPUT,  PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT

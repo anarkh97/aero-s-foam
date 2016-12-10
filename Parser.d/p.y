@@ -84,7 +84,7 @@
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID FREEPLAY
-%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSGL FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
+%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FREQSWEEPAW FSGL FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
@@ -438,7 +438,7 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
           if ($6 == SweepParams::KrylovGalProjection) 
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
-          else if ($6 == SweepParams::QRGalProjection) 
+          else if ($6 == SweepParams::WCAWEGalProjection) 
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
           else
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
@@ -450,7 +450,7 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $11;
           domain->solInfo().getSweepParams()->nFreqSweepRHS = $10;
         }
-        | Impe FREQSWEEPA Float Float Integer RECONSALG Float Integer Integer Integer Integer Float Float NewLine
+        | Impe FREQSWEEPAW Float Float Integer RECONSALG Float Integer Integer Float Float NewLine
         {
           if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
           domain->setFrequencySet(domain->solInfo().curSweepParam);
@@ -460,7 +460,7 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
           if ($6 == SweepParams::KrylovGalProjection) 
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
-          else if ($6 == SweepParams::QRGalProjection) 
+          else if ($6 == SweepParams::WCAWEGalProjection) 
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
           else
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
@@ -468,11 +468,11 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
           domain->solInfo().getSweepParams()->adaptSweep.atol = $7;
           domain->solInfo().getSweepParams()->adaptSweep.minRHS = $9;
-          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $10;
-          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $11;
-          domain->solInfo().getSweepParams()->nFreqSweepRHS = $10;
-          domain->solInfo().getSweepParams()->adaptSweep.ctolf = $12;
-          domain->solInfo().getSweepParams()->adaptSweep.tol1f = $13;
+          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = -1;
+          domain->solInfo().getSweepParams()->nFreqSweepRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.ctolf = $10;
+          domain->solInfo().getSweepParams()->adaptSweep.tol1f = $11;
         }
         | Impe FREQSWEEPA Float Float Integer RECONSALG NewLine
         {
@@ -489,7 +489,7 @@ Impe:
              domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 48;
              domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
           }
-          else if ($6 == SweepParams::QRGalProjection) {
+          else if ($6 == SweepParams::WCAWEGalProjection) {
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
              domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
              domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
@@ -581,7 +581,7 @@ ReconsInfo:
               m = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
-            case SweepParams::QRGalProjection:
+            case SweepParams::WCAWEGalProjection:
               n = $3;
               m = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
@@ -630,7 +630,7 @@ ReconsInfo:
               m = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
-            case SweepParams::QRGalProjection:
+            case SweepParams::WCAWEGalProjection:
               n = $3;
               l = $4;
               m = 1;

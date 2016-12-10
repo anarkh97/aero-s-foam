@@ -1365,7 +1365,7 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, Rbm 
    if(sinfo.getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos ||
       sinfo.getSweepParams()->freqSweepMethod == SweepParams::GalProjection ||
       sinfo.getSweepParams()->freqSweepMethod == SweepParams::KrylovGalProjection ||
-      sinfo.getSweepParams()->freqSweepMethod == SweepParams::QRGalProjection ||
+      sinfo.getSweepParams()->freqSweepMethod == SweepParams::WCAWEGalProjection ||
       sinfo.getSweepParams()->isAdaptSweep) {
      if (allOps.K)
        delete allOps.K;
@@ -3738,7 +3738,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   else freq = domain->getFrequencyOrWavenumber();
 
   if (geoSource->isShifted() || domain->probType() == SolverInfo::Modal) time = freq;
-  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
+  if (domain->solInfo().loadcases.size() > 0 && !domain->solInfo().doFreqSweep) time = domain->solInfo().loadcases.front();
 
   Scalar *globVal = 0;
   int numOutInfo = geoSource->getNumOutInfo();

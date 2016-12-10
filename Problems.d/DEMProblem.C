@@ -336,12 +336,6 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
        kel *= (coupledScaling*coupledScaling);
      int *dofs = (*allDOFs)[iele];
 
-/*
-     fprintf(stderr,"%d:",iele);
-     for(int j=0;j<deme->numDofs();j++) fprintf(stderr," %d",(*allDOFs)[iele][j]);
-     for(int j=0;j<deme->numDofs()*deme->numDofs();j++)  { if (j%deme->numDofs()==0) fprintf(stderr,"\n"); fprintf(stderr,"gaga %e %e\n",real(karray[j]),imag(karray[j])); }
-*/
-
      MK->add(kel,dofs);
    }
 // Wet interface
@@ -355,11 +349,6 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
      FullSquareMatrixC kel(di->numDofs(), iarray);
      kel *= coupledScaling;
      int *dofs = (*allDOFs)[iele];
-/*
-     fprintf(stderr,"%d:",iele);
-     for(int j=0;j<di->numDofs();j++) fprintf(stderr," %d",(*allDOFs)[iele][j]);
-     for(int j=0;j<di->numDofs()*di->numDofs();j++) { if (j%di->numDofs()==0) fprintf(stderr,"\n"); fprintf(stderr,"(%.4e %.4e) ",real(iarray[j]),imag(iarray[j])); }
-*/
      MK->add(kel,dofs);
      delete[] iarray;
    }

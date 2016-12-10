@@ -342,6 +342,8 @@ TRAIL [a-zA-Z]*
 
 "freqsweepa"|"FREQSWEEPA"            { return FREQSWEEPA; }
 
+"freqsweepaw"|"FREQSWEEPAW"            { return FREQSWEEPAW; }
+
 "freqsweep1"|"FREQSWEEP1"          { return FREQSWEEP1; }
 
 "freqsweep2"|"FREQSWEEP2"          { return FREQSWEEP2; }
@@ -364,7 +366,7 @@ TRAIL [a-zA-Z]*
 
 "KrylovGalProjection"|"krylovgalprojection"|"KRYLOVGALPROJECTION" { yylval.ival= 6; return RECONSALG; }
 
-"QRGalProjection"|"qrgalprojection"|"QRGALPROJECTION" { yylval.ival = 7; return RECONSALG; }
+"WCAWEGalProjection"|"wcawegalprojection"|"WCAWEGALPROJECTION" { yylval.ival = 7; return RECONSALG; }
 
 "padepoles"|"PADEPOLES"            { return PADEPOLES; }
 

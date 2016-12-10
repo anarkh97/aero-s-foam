@@ -331,7 +331,7 @@ public:
         Node *& operator[] (int i);
 
         int nnz();
-        NFrameData * dofFrame(int i);
+        NFrameData * dofFrame(int i) const;
 };
 
 

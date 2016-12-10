@@ -160,17 +160,19 @@ DistrBasisOrthoDriver::solve() {
   solver.solve();
 
   // Output solution
+  std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
+  fileName.append(".orthonormalized");
   const int podVectorCount = domain_->solInfo().maxSizePodRom ?
                              std::min(domain_->solInfo().maxSizePodRom, singularValueCount) :
                              singularValueCount;
   {
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-    DistrBasisOutputFile outputFile(BasisFileId(fileInfo, workload, BasisId::POD),
+    DistrBasisOutputFile outputFile(fileName,
                                     nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
                                     comm_, false);
 
     if(domain->solInfo().normalize <= 0)
-      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", BasisFileId(fileInfo, workload, BasisId::POD).name().c_str());
+      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));
       const GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
@@ -183,7 +185,7 @@ DistrBasisOrthoDriver::solve() {
   // Read back in output file to perform renormalization
   DistrVecBasis basis;
   {
-    DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::POD));
+    DistrBasisInputFile inputFile(fileName);
     DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
     basis.dimensionIs(podVectorCount, decDomain->masterSolVecInfo()); 
     int i = 0;
@@ -230,8 +232,6 @@ DistrBasisOrthoDriver::solve() {
   // Compute and output identity normalized basis if using new method
   if(domain->solInfo().normalize == 1) {
     MGSVectors(normalizedBasis);
-    std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
-    fileName.append(".orthonormalized");
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputOrthoNormalFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
     filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());

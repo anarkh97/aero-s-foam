@@ -3019,7 +3019,7 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
                int dofj = unconstrNum[dofs[j]];
                if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
                for(int xyz = 0; xyz < 3; ++xyz) { 
-                 stifWRTsha->add(dofk,dofj,dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][node2][xyz]);
+                 stifWRTsha->addCoef(dofk,dofj,dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][node2][xyz]);
                }
              }
              for(int j = 0; j < DofsPerElement; ++j) {

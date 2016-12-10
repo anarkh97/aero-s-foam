@@ -221,7 +221,6 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       modalOps.Msolver->setDiag(1.0); // Inverse of M
 
       if (checkBasis) {
-        fprintf(stderr," ... Validating orthogonality of modal eigen basis ... \n");
         AllOps<double> allOps;
 #if defined(USE_EIGEN3)
         allOps.M = domain->constructEiSparse<double>();
@@ -243,7 +242,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
         allOps.K = domain->constructDBSparseMatrix<double>();
         domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
 #endif
- 
+        fprintf(stderr," ... Validating orthogonality of modal eigen basis ... \n"); 
         double **tPhiM = new double*[numModes];
         double **tPhiK = new double*[numModes];
         for(int i = 0; i < numModes; ++i){
@@ -493,7 +492,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
       allOps.M = domain->constructDBSparseMatrix<double>();
       allOps.K = domain->constructDBSparseMatrix<double>();
       domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
-      
+
       { // construction of reduced mass matrix
         // allocate space for intermediate container
         double **tPhiM = new double*[numModes];

@@ -10,6 +10,7 @@
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/NBSparseMatrix.h>
+#include <Math.d/EiSparseMatrix.h>
 #include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Math.d/Vector.h>
 #include <Math.d/VectorSet.h>
@@ -113,9 +114,17 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
 
  if(domain->solInfo().addedMass == 2) allOps.M = new AddedMassMatrix<double, Domain>(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(),
                                                                                      domain, &Domain::multC, &Domain::trMultC);
- else 
+#ifdef USE_EIGEN3
+ else if(domain->solInfo().printMatLab)
+   allOps.M = domain->constructEiSparse<double>();
+#endif
+ else
    allOps.M = domain->constructDBSparseMatrix<double>();
- // Used for printing out K during debugging.
+#ifdef USE_EIGEN3
+ if(domain->solInfo().printMatLab)
+   allOps.K = domain->constructEiSparse<double>();
+ else
+#endif
  allOps.K = domain->constructDBSparseMatrix<double>();
 
  // ... Construct geometric rigid body modes if necessary
@@ -138,6 +147,12 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, dMat.rigidBodyModes, kelArray, melArray);
  dMat.dynMat  = allOps.sysSolver;
  dMat.M       = allOps.M;
+#ifdef USE_EIGEN3
+ if(domain->solInfo().printMatLab) {
+   allOps.M->printSparse(std::string(domain->solInfo().printMatLabFile)+".mass");
+   allOps.K->printSparse(std::string(domain->solInfo().printMatLabFile)+".stiffness");
+ }
+#endif
 
  if(domain->solInfo().addedMass == 2) ((AddedMassMatrix<double, Domain>*)allOps.M)->setFluidSolver(domain->Mff);
 

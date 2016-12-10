@@ -409,6 +409,10 @@ SnapshotNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap
       nodeBuffer[4] = snapNode.theta[1];
       nodeBuffer[5] = snapNode.theta[2];
 
+      if(NFrameData *cd = refCoords.dofFrame(iNode)) {
+        cd->transformVector6(nodeBuffer);
+      }
+
     } else {
       // Node does not really exist, corresponds to a gap in node numbering
       std::fill_n(nodeBuffer, 6, 0.0);

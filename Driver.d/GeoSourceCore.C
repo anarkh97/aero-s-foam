@@ -2238,10 +2238,13 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
+
   switch(oinfo[fileNum].complexouttype) {
     default:
     case OutputInfo::realimag :
       // print real part, or in the case group option both the real and imaginary parts
+      // RT: 12/10/2016 - Why only real part?? 
+      // RT: 12/10/2016 - Why do fprintf and filePrint alternate???
       if(time != -1.0) {
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
@@ -2263,17 +2266,24 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       }
       else  {
         for(i = 0; i < outputSize; i++) {
-          if(outputSize == 1)
+          if(outputSize == 1) {
             fprintf(oinfo[fileNum].filptr," % *.*E", w, p, data[i].real());
+          }
           else
             filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].real());
         }
         // print imaginary part
         if(time != -1.0) {
-          if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
+          if(outputSize != 1)
+             filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
         }
-        for (i = 0; i < outputSize; i++)
-          filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].imag());
+        for (i = 0; i < outputSize; i++) {
+        // RT: 12/10/2016 - changed filePrint to fprintf
+          if (outputSize == 1) 
+            fprintf(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].imag());
+          else 
+            filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].imag());
+        }
       }
       break;
     case OutputInfo::modulusphase :

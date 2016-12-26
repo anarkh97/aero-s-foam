@@ -576,7 +576,7 @@ int main(int argc, char** argv)
    }
  }
 
- if(!domain->solInfo().readInModes.empty()) {
+ if(!domain->solInfo().readInModes.empty() || domain->solInfo().modal || domain->solInfo().modalCalled) {
    if((domain->solInfo().isNonLin() && !domain->solInfo().modal_id.empty()) || domain->solInfo().activatePodRom) {
      for(int i=0; i<domain->solInfo().modal_id.size(); ++i) {
        ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id[i]];

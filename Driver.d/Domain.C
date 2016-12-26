@@ -34,6 +34,9 @@ using std::list;
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 
+#include "Rom.d/BasisBinaryFile.h"
+#include "Rom.d/XPostOutputFile.h"
+#include <Rom.d/RobCodec.h>
 #include <Sfem.d/Sfem.h>
 
 extern int verboseFlag;
@@ -1906,27 +1909,48 @@ Domain::makeNodeToNode_sommer()
 void
 Domain::readInModes(int modal_id, ModeData &modeData)
 {
- const char* modeFileName = sinfo.readInModes[modal_id].fileName.c_str();
- filePrint(stderr," ... Read in Modes from file: %s ...\n",modeFileName);
+ std::map<int,ModalParams>::iterator it = sinfo.readInModes.find(modal_id);
+ if(it == sinfo.readInModes.end()) {
+   filePrint(stderr," *** ERROR: A basis with rob_id = %d is specified, but has not been defined via READMODE.\n", modal_id);
+   exit(-1);
+ }
+ const char* modeFileName = it->second.fileName.c_str();
 
  // Open file containing mode shapes and frequencies.
  FILE *f;
- if((f=fopen(modeFileName,"r"))==(FILE *) 0 ){
-   filePrint(stderr," *** ERROR: Cannot open %s, exiting...",modeFileName);
-   exit(0);
+ if((f=fopen(modeFileName,"r"))==(FILE *) 0) {
+   filePrint(stderr," *** ERROR: Cannot open file %s specified in READMODE with rob_id %d.\n", modeFileName, modal_id);
+   exit(-1);
  }
  fflush(f);
 
  // Read in number of modes and number of nodes
  char buf[80];
  char *str = fgets(buf, sizeof buf, f);
+ bool b;
  if(strncmp("Vector", buf, 6) == 0) {
    modeData.numModes = sinfo.readInModes[modal_id].numvec;
+   b = false;
  }
  else {
    int count = sscanf(buf, "%d", &modeData.numModes);
+   b = (count != 1);
  }
  int count = fscanf(f, "%d", &modeData.numNodes);
+ b = b || (count != 1);
+
+ // If the file is not in one of the two valid ascii formats (see manual) then it is assumed to be binary
+ if(b) {
+   filePrint(stderr," ... Convert binary file to ASCII   ...\n");
+   const std::string input_file_name(modeFileName);
+   const std::string output_file_name = input_file_name + ".xpost";
+   convert_rob<Rom::BasisBinaryInputFile, Rom::XPostOutputFile<6> >(input_file_name, output_file_name);
+   sinfo.readInModes[modal_id].fileName = output_file_name;
+   readInModes(modal_id, modeData);
+   return;
+ }
+
+ filePrint(stderr," ... Read in Modes from file: %s ...\n",modeFileName);
 
  // Allocation of memory for frequencies and mode shapes
  modeData.frequencies  = new double[modeData.numModes];
@@ -1940,13 +1964,11 @@ Domain::readInModes(int modal_id, ModeData &modeData)
  char input[500], *substring;
  double tmpinput[7];
 
- //int jj;
  for(iMode=0; iMode<modeData.numModes; ++iMode) {
    modeData.modes[iMode] = new double[modeData.numNodes][6];
 
    count = fscanf(f,"%lf\n",&modeData.frequencies[iMode]);
 
-   //int nodeNum;
    for(iNode=0; iNode<modeData.numNodes; ++iNode) {
 
      char *c = fgets(input, 500, f);

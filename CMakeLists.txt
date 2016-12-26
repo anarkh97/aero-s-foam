@@ -484,6 +484,24 @@ set_target_properties(robcodec
 
 target_link_libraries(robcodec Rom Util)
 
+add_executable(xpostcodec Rom.d/XPostCodec.C)
+set_target_properties(xpostcodec
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME xpo
+                      DEBUG_OUTPUT_NAME xpo.debug)
+
+target_link_libraries(xpostcodec Rom Util)
+
+add_executable(xpostcodec6 Rom.d/XPostCodec6.C)
+set_target_properties(xpostcodec6
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME xpo6
+                      DEBUG_OUTPUT_NAME xpo6.debug)
+
+target_link_libraries(xpostcodec6 Rom Util)
+
 add_executable(errorcodec Rom.d/ErrorCodec.C)
 set_target_properties(errorcodec
                       PROPERTIES

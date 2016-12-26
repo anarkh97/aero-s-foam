@@ -5,6 +5,8 @@
 #include "BasisFileStream.h"
 #include "FileNameInfo.h"
 #include "SimpleBuffer.h"
+#include "XPostInputFile.h"
+#include "RobCodec.h"
 
 #include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
@@ -219,7 +221,13 @@ BasisOrthoDriver::solve() {
     BasisId::Type type = *it;
     // Loop over snapshots
     for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
-      std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
+      BasisFileId basisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
+      std::string fileName = basisFileId.name();
+      if(!basisFileId.isBinary()) {
+        filePrint(stderr," ... Convert ASCII file to binary   ...\n");
+        convert_rob<Rom::XPostInputFile, Rom::BasisBinaryOutputFile>(fileName, fileName+".bin");
+        fileName = domain->solInfo().snapfiPodRom[i] = fileName+".bin";
+      }
       BasisInputStream<6> input(fileName, converter);
       vectorSize = input.vectorSize();
       sizeSnap += input.size()/skipTime;
@@ -227,7 +235,13 @@ BasisOrthoDriver::solve() {
 
     // Loop over rob files 
     for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
-      std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB, i);
+      BasisFileId basisFileId(fileInfo,type,BasisId::ROB, i);
+      std::string fileName = basisFileId.name();
+      if(!basisFileId.isBinary()) {
+        filePrint(stderr," ... Convert ASCII file to binary   ...\n");
+        convert_rob<Rom::XPostInputFile, Rom::BasisBinaryOutputFile>(fileName, fileName+".bin");
+        fileName = domain->solInfo().robfi[i] = fileName+".bin";
+      }
       BasisInputStream<6> input(fileName, converter);
       vectorSize = input.vectorSize();
       sizeROB += input.size();

@@ -42,6 +42,8 @@ public:
   const std::string &name() const { return name_; }
   operator std::string() const { return name_; }
 
+  bool isBinary() const;
+
 private:
   std::string initName(const FileNameInfo &info, int index = 0) const { return info.basisFileName(id_, index); }
 

@@ -3,6 +3,7 @@ ADD_LIBRARY( Rom
   BasisId.C
   BasisFileStream.C
   BasisInputFile.C
+  XPostInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
   PositiveDualBasisDriver.C

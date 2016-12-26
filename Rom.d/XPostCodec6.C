@@ -1,6 +1,8 @@
 #include "BasisBinaryFile.h"
 #include "BasisInputFile.h"
 #include "BasisOutputFile.h"
+#include "XPostInputFile.h"
+#include "XPostOutputFile.h"
 #include "RobCodec.h"
 
 #include <cstdlib>
@@ -26,9 +28,9 @@ int main(int argc, char *argv[]) {
   
   const std::string mode(argv[1]);
   if (mode == "e") {
-    convert_rob<Rom::BasisInputFile, Rom::BasisBinaryOutputFile>(input_file_name, output_file_name);
+    convert_rob<Rom::XPostInputFile, Rom::BasisBinaryOutputFile>(input_file_name, output_file_name);
   } else if (mode == "d") {
-    convert_rob<Rom::BasisBinaryInputFile, Rom::BasisOutputFile>(input_file_name, output_file_name);
+    convert_rob<Rom::BasisBinaryInputFile, Rom::XPostOutputFile<6> >(input_file_name, output_file_name);
   } else {
     print_syntax();
     return EXIT_FAILURE;
@@ -38,7 +40,7 @@ int main(int argc, char *argv[]) {
 }
 
 void print_syntax() {
-  std::printf("Syntax: rob e|d inputfile\n");
+  std::printf("Syntax: xpo6 e|d inputfile\n");
 }
 
 void print_help() {

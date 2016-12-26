@@ -36,7 +36,7 @@ XPostInputFile::XPostInputFile(const std::string &fileName) :
     int count = fscanf(stream_, "%d", &nodeCount_);
     b = (count != 1);
     stateCount_ = 12; // TODO in this case, keep reading until end of file is reached
-    std::ifstream fin(fileName_);
+    std::ifstream fin(fileName_.c_str());
     int linesCount=std::count(std::istreambuf_iterator<char>(fin), 
                               std::istreambuf_iterator<char>(), '\n');
     stateCount_ = (linesCount-2)/(nodeCount_+1);

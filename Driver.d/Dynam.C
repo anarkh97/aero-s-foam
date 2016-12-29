@@ -917,6 +917,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         case OutputInfo::ModalStiffness:
         case OutputInfo::ModalDamping:
         case OutputInfo::ModalDynamicMatrix:
+        case OutputInfo::ModalMatrices:
           break;
 
         default:

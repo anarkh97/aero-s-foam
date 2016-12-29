@@ -341,10 +341,10 @@ void MDModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex,
                 switch(modalParams.type) {
                   case ModalParams::Undefined :
                   case ModalParams::Eigen : {
-                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.C->diag(iMode) : 0.);
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (ops.C && iMode==jMode) ? ops.C->diag(iMode) : 0.);
                   } break;
                   default: {
-                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (*ops.C)[iMode+numModes*jMode]);
+                    filePrint(oinfo[i].filptr, "% *.*E", w, p, (ops.C) ? (*ops.C)[iMode+numModes*jMode] : 0.);
                   } break;
                 }
               }

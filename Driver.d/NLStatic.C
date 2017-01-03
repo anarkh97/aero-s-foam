@@ -2064,7 +2064,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     elDisp = new Vector(maxNumDOFs,0.0);
 
   int iele;
-  if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
+  if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe != OutputInfo::Global)) {
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
@@ -2075,7 +2075,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     }
     if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
     if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
-    if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullM(maxNodesPerElement,9);
+    if(p_elstress == 0 && oframe != OutputInfo::Global) p_elstress = new FullM(maxNodesPerElement,9);
   }
 
   int *nodeNumbers = new int[maxNumNodes];
@@ -2112,8 +2112,8 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     }
 
     // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-    if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))
-       && (flag == 1 || flag == 2)) { // transform non-invariant stresses/strains from basic frame to DOF_FRM
+    if(oframe != OutputInfo::Global && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))
+       && (flag == 1 || flag == 2)) { // transform non-invariant stresses/strains from basic frame to DOF_FRM or CFRAME
 
       // First, calculate stress/strain tensor for each node of the element
       p_elstress->zero();
@@ -2131,8 +2131,8 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
                                        refState, nodes, strInd, surface);
       }
 
-      // Second, transform stress/strain tensor to nodal frame coordinates
-      transformStressStrain(*p_elstress, iele);
+      // Second, transform stress/strain tensor to nodal or material frame coordinates
+      transformStressStrain(*p_elstress, iele, oframe);
 
       // Third, extract the requested stress/strain value from the stress/strain tensor
       for(int iNode = 0; iNode < NodesPerElement; ++iNode) {

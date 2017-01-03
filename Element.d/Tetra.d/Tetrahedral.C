@@ -1122,3 +1122,17 @@ Tetrahedral::getDecFace(int iFace, int *fn)
   }
   return 3;
 }
+
+void
+Tetrahedral::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(Tetrahedral::cFrame) {
+    cFrame[0][0] = Tetrahedral::cFrame[0]; cFrame[0][1] = Tetrahedral::cFrame[1]; cFrame[0][2] = Tetrahedral::cFrame[2];
+    cFrame[1][0] = Tetrahedral::cFrame[3]; cFrame[1][1] = Tetrahedral::cFrame[4]; cFrame[1][2] = Tetrahedral::cFrame[5];
+    cFrame[2][0] = Tetrahedral::cFrame[6]; cFrame[2][1] = Tetrahedral::cFrame[7]; cFrame[2][2] = Tetrahedral::cFrame[8];
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
+}

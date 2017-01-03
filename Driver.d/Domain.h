@@ -1438,8 +1438,8 @@ class Domain : public HData {
      void transformElementSensitivityInv(double *data, int inode, int numNodes, bool hasRot);
      void transformVectorInv(double *data, int inode, bool hasRot);
      void transformVectorInv(complex<double> *data, int inode, bool hasRot);
-     void transformStressStrain(FullM &mat, int iele);
-     void transformStressStrain(FullMC &mat, int iele);
+     void transformStressStrain(FullM &mat, int iele, OutputInfo::FrameType oframe = OutputInfo::Local);
+     void transformStressStrain(FullMC &mat, int iele, OutputInfo::FrameType oframe = OutputInfo::Local);
      void transformMatrix(double *data, int inode, bool sym = true);
      void transformMatrix(complex<double> *data, int inode, bool sym = true);
      void transformMatrixInv(double *data, int inode, bool sym = true);

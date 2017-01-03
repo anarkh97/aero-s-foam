@@ -136,6 +136,51 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
 ShellElementTemplate<doublereal,Membrane,Bending>
+::andesfrm(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *aframe,
+           doublereal *_cframe)
+{
+  // Local variables 
+  doublereal xlp[3], ylp[3], zlp[3];
+  doublereal area;
+
+  Eigen::Matrix<doublereal,3,3> eframe;
+  Eigen::Map<Eigen::Matrix<doublereal,3,3,Eigen::RowMajor> > cframe(_cframe);
+
+// ================================================================== 
+//                                                                    
+//     Perform =    This subroutine will form the composite frame     
+//     ---------    for the 3D 3-node ANDES-EFF shell element.        
+//                                                                    
+//                                                                    
+//     Inputs/Outputs =                                               
+//     ----------------                                               
+//     ELM     <input>  finite element number                         
+//     X       <input>  nodal coordinates in the X-direction          
+//     Y       <input>  nodal coordinates in the Y-direction          
+//     Z       <input>  nodal coordinates in the Z-direction          
+//     AFRAME  <input>  reference composite frame                     
+//     CFRAME  <output> composite frame (projected onto element)      
+//                                                                    
+// ================================================================== 
+// Authors = Francois M. Hemez and Philip J. S. Avery                                       
+// Date    = September 13, 2011                                             
+// Version = 3.0                                                      
+// ================================================================== 
+
+// .....GET THE ELEMENT TRIANGULAR COORDINATES 
+// .....GET THE ELEMENT LEVEL FRAME
+
+    andescrd(elm, x, y, z, eframe.data(), xlp, ylp, zlp, area);
+
+    // andesinvt returns the transformation from element to fibre coordinate system
+    // note: eframe.transpose()*v transforms v from global to element coordinate system
+    // return the matrix that transforms from global to fibre coordinate system, i.e.:
+    cframe = ShellMaterial<doublereal>::andesinvt(eframe.data(), aframe, 0.)*eframe.transpose();
+}
+
+template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
+void
+ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesgf(int elm, doublereal *_x, doublereal *_y, doublereal *_z, doublereal *_gravityForce,
           doublereal *gamma, int gravflg, doublereal rhoh)
 {

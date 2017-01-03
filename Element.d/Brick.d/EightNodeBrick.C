@@ -854,3 +854,16 @@ EightNodeBrick::getFace(int iFace, int *fn)
   return 4;
 }
 
+void
+EightNodeBrick::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(EightNodeBrick::cFrame) {
+    cFrame[0][0] = EightNodeBrick::cFrame[0]; cFrame[0][1] = EightNodeBrick::cFrame[1]; cFrame[0][2] = EightNodeBrick::cFrame[2];
+    cFrame[1][0] = EightNodeBrick::cFrame[3]; cFrame[1][1] = EightNodeBrick::cFrame[4]; cFrame[1][2] = EightNodeBrick::cFrame[5];
+    cFrame[2][0] = EightNodeBrick::cFrame[6]; cFrame[2][1] = EightNodeBrick::cFrame[7]; cFrame[2][2] = EightNodeBrick::cFrame[8];
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
+}

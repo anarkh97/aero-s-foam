@@ -762,7 +762,8 @@ int main(int argc, char** argv)
    // activate multi-domain mode for the explicit dynamics Rom drivers which are not supported in single-domain mode
    // so it is not necessary to include "DECOMP" with "nsubs 1" in the input file
    if((domain->solInfo().activatePodRom && domain->probType() == SolverInfo::NonLinDynam && domain->solInfo().newmarkBeta == 0)
-      || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess) || domain->solInfo().clustering > 0) {
+      || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess) || domain->solInfo().clustering > 0
+      || domain->solInfo().rowClustering > 0) {
      callDec = true;
      trivialFlag = true;
      numSubdomains = 1;
@@ -1114,16 +1115,20 @@ int main(int argc, char** argv)
        Rom::DriverInterface *driver;
        if (domain->solInfo().svdPodRom) {
          if(domain->solInfo().use_nmf) {
-           filePrint(stderr, " ... Distributed Nonneg. Matrix Factorization   ...\n");
+           filePrint(stderr, " ... Nonneg. Matrix Factorization   ...\n");
            driver = distrPositiveDualBasisDriverNew(domain);
          }
          else if(domain->solInfo().clustering) {
-           filePrint(stderr, " ... Distributed Snapshot Clustering            ...\n");
+           filePrint(stderr, " ... Snapshot Clustering            ...\n");
            driver = distrSnapshotClusteringDriverNew(domain);
+         }
+         else if(domain->solInfo().rowClustering) {
+           filePrint(stderr, " ... Snapshot Row Clustering        ...\n");
+           driver = distrSnapshotRowClusteringDriverNew(domain);
          }
          else {
            // Stand-alone SVD orthogonalization
-           filePrint(stderr, " ... Distributed Singular Value Decomposition   ...\n");
+           filePrint(stderr, " ... Singular Value Decomposition   ...\n");
            driver = distrBasisOrthoDriverNew(domain);
          }
        } 

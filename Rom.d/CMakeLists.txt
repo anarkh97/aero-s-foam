@@ -29,6 +29,8 @@ ADD_LIBRARY( Rom
   DistrNonnegativeMatrixFactorization.C
   DistrSnapshotClusteringDriver.C
   DistrSnapshotClusteringSolver.C
+  DistrSnapshotRowClusteringDriver.C
+  DistrSnapshotRowClusteringSolver.C
   DistrSvdOrthogonalization.C
   DistrVecBasis.C
   DistrVecNodeDof6Conversion.C

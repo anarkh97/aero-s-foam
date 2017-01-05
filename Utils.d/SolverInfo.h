@@ -411,7 +411,8 @@ struct SolverInfo {
    int  svdBlockSize;
    bool clusterSubspaceAngle;
    int clustering;
-   int  solverTypeCluster; // 0: Random, 1: K-means 2: Sparse Supspace Clustering
+   int rowClustering;
+   int solverTypeCluster; // 0: Random, 1: K-means 2: Sparse Supspace Clustering
    int use_nmf;
    int nmfNumROBDim;
    int nmfDelROBDim;
@@ -782,6 +783,7 @@ struct SolverInfo {
                   svdBlockSize       = 64;
 		  clusterSubspaceAngle = false;
                   clustering         = 0;
+                  rowClustering      = 0;
                   solverTypeCluster  = 1; // K-means
                   use_nmf            = 0;
                   nmfNumROBDim       = 1;

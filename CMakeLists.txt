@@ -82,6 +82,10 @@ if(AERO)
    FIND_PACKAGE(MPI REQUIRED)
 endif(AERO)
 
+if(ASYNCHRONOUS_IO)
+  add_definitions(-D_AEROS_ASYNCHRONOUS_IO)
+endif(ASYNCHRONOUS_IO)
+
 IF(UNIX)
   IF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
     add_definitions(-D__LINUX)

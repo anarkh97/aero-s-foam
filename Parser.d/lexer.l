@@ -1687,6 +1687,7 @@ TRAIL [a-zA-Z]*
 "USE_PQN"|"use_pqn"                       { return USEPQN; }
 
 "DO_CLUSTERING"|"do_clustering"           { return DOCLUSTERING; }
+"DO_ROWCLUSTERING"|"do_rowclustering"     { return DOROWCLUSTERING; }
 "ANGLE"|"angle" 			  { return ANGLE; }
 "CLUSTERSOLVER"|"clustersolver"           { return CLUSTERSOLVER; }
 "CRANDOM"|"crandom"                       { yylval.ival = 0; return CLUSTERSOLVERTYPE; }

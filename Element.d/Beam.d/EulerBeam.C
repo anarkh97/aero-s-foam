@@ -578,7 +578,7 @@ EulerBeam::computeDisp(CoordSet&cs,
 
 
     if (geomState) {//large deformation compute current beam frame
-      updTransMatrix(cs, geomState, t0n, L);
+      updTransMatrix(cs, geomState, t0n, L, gp[0]);
     }  else  {// small deformation, use original beam frame as current beam frame
                 getLength(cs, L);
                 for(i=0; i<3; ++i) {
@@ -646,7 +646,7 @@ EulerBeam::getFlLoad(CoordSet&cs, const InterpPoint &ip, double *flF,
 // 2DCode sends Fx, Fy, Fz
 
 // Transform forces from global to local
-
+  const double *gp = ip.xy;
   double locload[3];
   double locresF[12];
   int i, j;
@@ -655,7 +655,7 @@ EulerBeam::getFlLoad(CoordSet&cs, const InterpPoint &ip, double *flF,
   double L;
 
   if (geomState) {
-    updTransMatrix(cs, geomState, t0n, L);
+    updTransMatrix(cs, geomState, t0n, L, gp[0]);
    }  else  {
               getLength(cs, L);
               for(i=0; i<3; ++i) {
@@ -685,7 +685,6 @@ EulerBeam::getFlLoad(CoordSet&cs, const InterpPoint &ip, double *flF,
 
 // Multiply by shape functions
 
-    const double *gp = ip.xy;
     double gp2 = gp[0]*gp[0] ;
     double gp3 = gp2*gp[0] ;
     double Nwi = 1-3*gp2+2*gp3;
@@ -744,9 +743,11 @@ EulerBeam::getFlLoad(CoordSet&cs, const InterpPoint &ip, double *flF,
 }
 
 void
-EulerBeam::updTransMatrix(CoordSet& cs, GeomState *geomState, double t0n[3][3], double &length)
+EulerBeam::updTransMatrix(CoordSet& cs, GeomState *geomState, double t0n[3][3], double &length, double weight)
 {
-// Returns t0n[3][3] and length
+// Returns t0n[3][3] the rotation matrix for the beam element at point (1-weight)*xn[0] + weight*xn[1], 
+// the default value of weight is 0.5
+//  and the length of the beam element
 
    double  xn[2][3];
 
@@ -784,8 +785,8 @@ EulerBeam::updTransMatrix(CoordSet& cs, GeomState *geomState, double t0n[3][3], 
                         +(*rot[nod])[i][2]*(*elemframe)[2][2];
       }
    }
-
-/* Fitalg 1: Z-axis from node 1 */
+/*
+// Fitalg 1: Z-axis from node 1
    // We are setting fit Alg. to 2 to average z vectors.
    int fitAlg = 2;
 
@@ -795,12 +796,19 @@ EulerBeam::updTransMatrix(CoordSet& cs, GeomState *geomState, double t0n[3][3], 
       t0n[2][2] = zVecL[0][2];
    }
 
-/* Fitalg .ne. 1: Z-axis as sum of nodal z-axis */
+// Fitalg .ne. 1: Z-axis as sum of nodal z-axis
    else {
       t0n[2][0] = zVecL[0][0] + zVecL[1][0];
       t0n[2][1] = zVecL[0][1] + zVecL[1][1];
       t0n[2][2] = zVecL[0][2] + zVecL[1][2];
    }
+
+*/
+
+   t0n[2][0] = (1 - weight)*zVecL[0][0] + weight*zVecL[1][0];
+   t0n[2][1] = (1 - weight)*zVecL[0][1] + weight*zVecL[1][1];
+   t0n[2][2] = (1 - weight)*zVecL[0][2] + weight*zVecL[1][2];
+
 
 
    t0n[0][0]  = xn[1][0] - xn[0][0];

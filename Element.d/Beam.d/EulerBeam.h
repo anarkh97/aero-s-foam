@@ -74,7 +74,7 @@ public:
 private:
 
        void    getLength(CoordSet&, double &length);
-       void    updTransMatrix(CoordSet&, GeomState *gs, double t[3][3], double &len);
+       void    updTransMatrix(CoordSet&, GeomState *gs, double t[3][3], double &len, double weight = 0.5);
        void    offsetAxis(FullSquareMatrix& mat);
        
 };

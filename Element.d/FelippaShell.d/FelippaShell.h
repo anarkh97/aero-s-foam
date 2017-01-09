@@ -48,6 +48,7 @@ public:
                               double *coefs, double *frame);
         double * setCompositeData2(int _type, int nlays, double *lData,
                                    double *coefs, CoordSet &cs, double theta);
+        void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
         void setMaterial(NLMaterial *);
         int numStates();
 

@@ -1,3 +1,4 @@
+
 // The following specialization is for the Pade-Lanczos
 // UH 05/20/08 
 // revised by PJSA 10/15/08
@@ -451,7 +452,7 @@ StaticSolver< Scalar, OpSolver, VecType,
                   Scalar **&VhK_arubber_lV, Scalar **&VhK_arubber_mV,
                   double w, double deltaw)
 {
- filePrint(stderr,"w deltaw size: %f %f %d %d\n",w,deltaw,sol->size(),int(gpReorthoFlag));
+ if (verboseFlag) filePrint(stderr,"w deltaw size: %f %f %d %d\n",w,deltaw,sol->size(),int(gpReorthoFlag));
 
  VecType *f = new VecType(probDesc->solVecInfo());
  VecType *a = new VecType(probDesc->solVecInfo());
@@ -479,7 +480,7 @@ time -= getTime();
    for(int i=0;i<nRHS;i++) {
      if (domain->solInfo().type == 2) {
        forceContinuity(*u[i]);
-       filePrint(stderr,"Forcing continuity %d.\n",i);
+        if (verboseFlag) filePrint(stderr,"Forcing continuity %d.\n",i);
      }
    }
 
@@ -558,8 +559,8 @@ time -= getTime();
      }
 
    }
-time += getTime();
-filePrint(stderr,"Ortho + proj setup time: %e\n",time);
+   time += getTime();
+   if (verboseFlag) filePrint(stderr,"Ortho + proj setup time: %e\n",time/1e3);
  }
 
 //#define ARUBBER_O
@@ -646,8 +647,8 @@ time -= getTime();
  for(int i=0;i<nRHS;i++) 
    (*sol).linAdd(z[i],*u[i]);
 
-time += getTime();
-filePrint(stderr,"Projection time: %e\n",time);
+ time += getTime();
+ filePrint(stderr,"Projection time: %e\n",time/1e3);
 
 time = 0.0;
 time -= getTime();
@@ -683,11 +684,11 @@ time -= getTime();
  forceAssemble(*f);
  Scalar nrma = *a * *a;
  Scalar nrmf = *f * *f;
- filePrint(stderr,"residual: %e\n", sqrt(ScalarTypes::Real(nrma))/sqrt(ScalarTypes::Real(nrmf)));
- filePrint(stderr,"deltaK res: %e\n", sqrt(ScalarTypes::Real(nrmb))/sqrt(ScalarTypes::Real(nrmf)));
+  if (verboseFlag) filePrint(stderr,"residual: %e\n", sqrt(ScalarTypes::Real(nrma))/sqrt(ScalarTypes::Real(nrmf)));
+  if (verboseFlag) filePrint(stderr,"deltaK res: %e\n", sqrt(ScalarTypes::Real(nrmb))/sqrt(ScalarTypes::Real(nrmf)));
 // (*sol).print();
 time += getTime();
-filePrint(stderr,"Residual compute time: %e\n",time);
+  filePrint(stderr,"Residual compute time: %e\n",time/1e3);
 
 
  delete a;
@@ -731,7 +732,7 @@ StaticSolver< Scalar, OpSolver, VecType,
                   Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
                   double w, double deltaw)
 {
- filePrint(stderr,"w deltaw size: %f %f %d %d %d\n",w,deltaw,nRHS,nOrtho,sol->size());
+ if(verboseFlag) filePrint(stderr,"w deltaw size: %f %f %d %d %d\n",w,deltaw,nRHS,nOrtho,sol->size());
 
  VecType *f = new VecType(probDesc->solVecInfo());
 
@@ -767,7 +768,7 @@ time -= getTime();
      else {
        allOps->M->mult(*u[nOrtho+i-1], *f);
      }
-     filePrint(stderr,"\n ... Solving RHS #%3d               ...\n",i);
+     if(verboseFlag) filePrint(stderr,"\n ... Solving RHS #%3d               ...\n",i);
 time += getTime();
 rhstime -= getTime();
      allOps->sysSolver->solve(*f, *a);
@@ -820,9 +821,9 @@ time -= getTime();
      for(int i=0;i<nOrtho+nRHS;i++)
         scaleDisp(*v[i]);
    }
-time += getTime();
-filePrint(stderr,"Krylov setup time: %e\n",time);
-filePrint(stderr,"RHS solve time: %e\n",rhstime);
+   time += getTime();
+   if(verboseFlag) filePrint(stderr,"Krylov setup time: %e\n",time/1e3);
+   if(verboseFlag) filePrint(stderr,"RHS solve time: %e\n",rhstime/1e3);
  }
 
 double time = 0.0;
@@ -854,8 +855,8 @@ time -= getTime();
  (*sol).zero();
  for(int i=0;i<nOrtho+nRHS;i++) 
    (*sol).linAdd(z[i],*u[i]);
-time += getTime();
-filePrint(stderr,"Projection time: %e\n",time);
+ time += getTime();
+  if (verboseFlag) filePrint(stderr,"Projection time: %e\n",time/1e3);
 
 time = 0.0;
 time -= getTime();
@@ -876,9 +877,9 @@ time -= getTime();
  forceAssemble(*f);
  Scalar nrma = *a * *a;
  Scalar nrmf = *f * *f;
- filePrint(stderr,"residual: %e\n", sqrt(ScalarTypes::Real(nrma))/sqrt(ScalarTypes::Real(nrmf)));
-time += getTime();
-filePrint(stderr,"Residual compute time: %e\n",time);
+  if (verboseFlag) filePrint(stderr,"residual: %e\n", sqrt(ScalarTypes::Real(nrma))/sqrt(ScalarTypes::Real(nrmf)));
+ time += getTime();
+  if (verboseFlag) filePrint(stderr,"Residual compute time: %e\n",time/1e3);
 
  delete a;
  delete b;
@@ -913,7 +914,7 @@ StaticSolver< Scalar, OpSolver, VecType,
                   int ncheck, double *wcheck, double wc,
                   double alpha, double tol)
 {
- filePrint(stderr,"minRHS,maxRHS,deltaRHS,nOrtho...: %d %d %d  %d %d\n",minRHS,maxRHS,deltaRHS,nOrtho,sol->size());
+// filePrint(stderr,"minRHS,maxRHS,deltaRHS,nOrtho...: %d %d %d  %d %d\n",minRHS,maxRHS,deltaRHS,nOrtho,sol->size());
 
 double time = 0.0;
 double rhstime = 0.0;
@@ -965,7 +966,7 @@ time -= getTime();
  }
 
 
-projmattime -= getTime();
+ projmattime -= getTime();
  for(int i=0;i<nOrtho;i++) {
    allOps->K->mult(*(u[i]), *(aa[i]));
    allOps->M->mult(*(u[i]), *(bb[i]));
@@ -987,7 +988,7 @@ projmattime -= getTime();
      }
    }
  }
-projmattime += getTime();
+ projmattime += getTime();
 
  Scalar *z = new Scalar[nOrtho+maxRHS];
  double *rescheck = new double[ncheck];
@@ -1013,7 +1014,7 @@ projmattime += getTime();
  while (!done) {
  
 // Add new vectors 
-orthotime -= getTime();
+   orthotime -= getTime();
    int offset = nOrtho+maxRHS;
    for(int i=lRHS;i<uRHS;i++) {
      if (i == 0) probDesc->getRHS(*f);
@@ -1057,9 +1058,6 @@ orthotime -= getTime();
            }
       //   pu = pu + b{j+1}*PP(1,ii-j);
            pb[j-1] = PP[1-1+(iimj-1)*iimj];
-//fprintf(stderr,"pb %d %e %e\n",j-1,
-//ScalarTypes::Real(pb[j-1]),
-//ScalarTypes::Imag(pb[j-1]));
       //    end
          } 
       
@@ -1094,9 +1092,6 @@ orthotime -= getTime();
       //    pu = pu - Z{j+1}*W(:,1:(ii-j))*PP(:,ii-j);
            for(int k=0;k<iimj;k++)  {
              pU[k+(j-1)*ii] = PP[k+(iimj-1)*iimj];  
-//fprintf(stderr,"pU %d %d %e %e\n",k,j-1,
-//ScalarTypes::Real(pU[k+(j-1)*ii]),
-//ScalarTypes::Imag(pU[k+(j-1)*ii]));
            }
       //    end
          } 
@@ -1106,18 +1101,13 @@ orthotime -= getTime();
 // KGP
        if (i>0) allOps->M->mult(*u[nOrtho+i-1], *f);
      }
-     filePrint(stderr,"\n ... Solving RHSa   #%3d               ...\n",i);
+      if (verboseFlag) filePrint(stderr,"\n ... Solving RHSa   #%3d               ...\n",i);
 rhstime -= getTime();
-//{
-//        Scalar nrm = *f * *f;
-//fprintf(stderr,"f %d %e\n",i,
-//sqrt(ScalarTypes::Real(nrm)));
-//}
      allOps->sysSolver->solve(*f, *a);
 rhstime += getTime();
      if (dgpFlag) {
        if (domain->solInfo().type == 2) {
-         filePrint(stderr,"Forcing continuity %d.\n",i);
+//         filePrint(stderr,"Forcing continuity %d.\n",i);
          forceContinuity(*a);
        }
        *u[offset+i+1] = *a;
@@ -1127,25 +1117,17 @@ rhstime += getTime();
 // WCAWE orthogonalize
        *b = *a; 
         Scalar nrm0 = *a * *a;
-//fprintf(stderr,"a %d %e\n",i,
-//sqrt(ScalarTypes::Real(nrm)));
        for(int j=0;j<i;j++) {
           Scalar dotp = *b *  *wcawe_u[j];
           UU[j+i*maxRHS] = dotp;
           (*b).linAdd(-dotp,*wcawe_u[j]);
-//fprintf(stderr,"UU %d %d %e %e\n",j,i,
-//ScalarTypes::Real(UU[j+i*maxRHS]),
-//ScalarTypes::Imag(UU[j+i*maxRHS]));
        }
        UU[i*maxRHS+i] = sqrt(ScalarTypes::Real(*b * *b));
-//fprintf(stderr,"UU %d %d %e %e\n",i,i,
-//ScalarTypes::Real(UU[i+i*maxRHS]),
-//ScalarTypes::Imag(UU[i+i*maxRHS]));
        *b *= 1.0/UU[i*maxRHS+i];
        *wcawe_u[i] = *b;
         double normRed = 
           ScalarTypes::Real(UU[i*maxRHS+i])/sqrt(ScalarTypes::Real(nrm0));
-filePrint(stderr,"norm reduction - wcawe space: %e\n",normRed);
+//filePrint(stderr,"norm reduction - wcawe space: %e\n",normRed);
         if (normRed<1e-17/tol) { breakDown = true; uRHS = i; break; }
      }
 
@@ -1163,17 +1145,17 @@ filePrint(stderr,"norm reduction - wcawe space: %e\n",normRed);
      *a *= 1.0/sqrt(ScalarTypes::Real(nrm));
       double normRed = 
         sqrt(ScalarTypes::Real(nrm))/sqrt(ScalarTypes::Real(nrm0));
-filePrint(stderr,"norm reduction - global space: %e\n",normRed);
+//filePrint(stderr,"norm reduction - global space: %e\n",normRed);
         if (normRed<1e-20/tol && dgpFlag==2) { breakDown = true; uRHS = i; break; }
      *v[nOrtho+i] = *a;
      *u[nOrtho+i] = *a;
       if(domain->solInfo().isCoupled) scaleDisp(*u[nOrtho+i],1.0/alpha);
    }
-orthotime += getTime();
+   orthotime += getTime();
 
 
 // Update matrices
-projmattime2 -= getTime();
+   projmattime2 -= getTime();
    for(int i=nOrtho+lRHS;i<nOrtho+uRHS;i++) {
      allOps->K->mult(*(u[i]), *(aa[i]));
      allOps->M->mult(*(u[i]), *(bb[i]));
@@ -1209,12 +1191,12 @@ projmattime2 -= getTime();
        }
      }
    }
-projmattime2 += getTime();
+   projmattime2 += getTime();
 
 //Check residual at check points
    if (breakDown) { done = true; lRHS = uRHS; }
    else {
-chrestime -= getTime();
+   chrestime -= getTime();
    Scalar *zz = new Scalar[(nOrtho+uRHS)*(nOrtho+uRHS)];
    for(int icheck=0;icheck<ncheck;icheck++) {
      probDesc->getRHS(*f, wcheck[icheck],wcheck[icheck]-wc);
@@ -1296,14 +1278,17 @@ chrestime -= getTime();
      Scalar nrmf = *f * *f;
      rescheck[icheck] = 
       sqrt(ScalarTypes::Real(nrma))/sqrt(ScalarTypes::Real(nrmf));
-    filePrint(stderr,"rescheck[%d] = %e at %e\n",icheck,rescheck[icheck],wcheck[icheck]);
+     if (verboseFlag)
+       filePrint(stderr,"rescheck[%d] = %e at %e\n",
+                 icheck,rescheck[icheck],wcheck[icheck]);
    }
    delete[] zz;
-chrestime += getTime();
+   chrestime += getTime();
 
    maxres = 0.0;
    for(int i=0;i<ncheck;i++) if (rescheck[i]>maxres) maxres = rescheck[i];
-   filePrint(stderr,"maxres = %e, oldmaxres = %e  tol = %e \n",
+   if (verboseFlag)
+       filePrint(stderr,"maxres = %e, oldmaxres = %e  tol = %e \n",
              maxres,oldmaxres,tol);
    if (maxres<tol) done = true;
    int nsmaller=0;
@@ -1351,7 +1336,7 @@ chrestime += getTime();
  }
 
  nOrtho += lRHS;
- filePrint(stderr,"nOrtho = %d\n",nOrtho);
+ if (verboseFlag) filePrint(stderr,"nOrtho = %d\n",nOrtho);
  
  delete[] tmpVhKV;
  delete[] tmpVhMV;
@@ -1381,13 +1366,15 @@ chrestime += getTime();
    delete[] wcawe_u;
  }
 
-time += getTime();
-filePrint(stderr,"Total setup time: %e\n",time);
-filePrint(stderr,"Matrix setup time: %e\n",projmattime);
-filePrint(stderr,"Matrix setup time2: %e\n",projmattime2);
-filePrint(stderr,"Ortho+ time: %e\n",orthotime-rhstime);
-filePrint(stderr,"RHS solve time: %e\n",rhstime);
-filePrint(stderr,"Check res time: %e\n",chrestime);
+ time += getTime();
+ if (verboseFlag) {
+   filePrint(stderr,"Total setup time: %e\n",time/1e3);
+   filePrint(stderr,"Matrix setup time: %e\n",projmattime/1e3);
+   filePrint(stderr,"Matrix setup time2: %e\n",projmattime2/1e3);
+   filePrint(stderr,"Ortho+ time: %e\n",orthotime-rhstime/1e3);
+   filePrint(stderr,"RHS solve time: %e\n",rhstime/1e3);
+   filePrint(stderr,"Check res time: %e\n",chrestime/1e3);
+ }
 }
 
 
@@ -1408,7 +1395,7 @@ StaticSolver< Scalar, OpSolver, VecType,
                   double w, double deltaw)
  //                  ,double alpha)
 {
- filePrint(stderr,"w deltaw size: %f %f  %d %d\n",w,deltaw,nOrtho,sol->size());
+// filePrint(stderr,"w deltaw size: %f %f  %d %d\n",w,deltaw,nOrtho,sol->size());
 
 double time = 0.0;
 time -= getTime();
@@ -1474,8 +1461,8 @@ time -= getTime();
  (*sol).zero();
  for(int i=0;i<nOrtho;i++) 
    (*sol).linAdd(z[i],*u[i]);
-time += getTime();
-filePrint(stderr,"Projection time: %e\n",time);
+  time += getTime();
+  if (verboseFlag) filePrint(stderr,"Projection time: %e\n",time/1e3);
 
 time = 0.0;
 time -= getTime();
@@ -1514,8 +1501,8 @@ time -= getTime();
  Scalar nrma = *a * *a;
  Scalar nrmf = *f * *f;
  filePrint(stderr,"residual: %e\n", sqrt(ScalarTypes::Real(nrma))/sqrt(ScalarTypes::Real(nrmf)));
-time += getTime();
-filePrint(stderr,"Residual compute time: %e\n",time);
+ time += getTime();
+ if (verboseFlag) filePrint(stderr,"Residual compute time: %e\n",time/1e3);
 
  delete a;
  delete b;
@@ -1541,24 +1528,10 @@ template < class Scalar,
 void
 StaticSolver< Scalar, OpSolver, VecType,
               PostProcessor, ProblemDescriptor, ComplexVecType >
-  ::qrGalProjection(int nRHS, int nOrtho,
-                  VecType *sol, VecType **u, VecType **v,
-                  Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
-                  double w, double deltaw)
-{
-}
-
-template < class Scalar,
-           class OpSolver,
-           class VecType,
-           class PostProcessor,
-           class ProblemDescriptor,
-           class ComplexVecType>
-void
-StaticSolver< Scalar, OpSolver, VecType,
-              PostProcessor, ProblemDescriptor, ComplexVecType >
   ::adaptWindowSweep()
 {
+// Adaptive window (of size 2 frequencies) sweep 
+// with multiple right hand sides done locally or frequency-globally
  double time = 0.0;
  double rhstime = 0.0;
  double rhsctime1 = 0.0;
@@ -1578,6 +1551,9 @@ StaticSolver< Scalar, OpSolver, VecType,
  int solvecount = 0;
  int rebuildscount = 0;
 
+ 
+ domain->isCoarseGridSolve = false;
+
  time -= getTime();
 
  double w1 = domain->solInfo().getSweepParams()->adaptSweep.w1;
@@ -1588,7 +1564,7 @@ StaticSolver< Scalar, OpSolver, VecType,
  int nDir = 1;
  bool isScattering = false;
  if (domain->numWaveDirections>=1 && domain->solInfo().loadcases.size()==0) {
-   int nDir = domain->numWaveDirections;
+   nDir = domain->numWaveDirections;
    isScattering = true;
    filePrint(stderr,"Solving %d scattering cases\n",nDir);
  }
@@ -1602,7 +1578,7 @@ StaticSolver< Scalar, OpSolver, VecType,
  int maxLocalV = domain->solInfo().getSweepParams()->adaptSweep.minRHS;
  int dgpFlag = domain->solInfo().getSweepParams()->adaptSweep.dgp_flag;
  double tol = domain->solInfo().getSweepParams()->adaptSweep.atol;
- int localP = domain->solInfo().getSweepParams()->adaptSweep.deltaRHS;
+ int localP = domain->solInfo().getSweepParams()->adaptSweep.maxP;
  // tolerance factor when looking for next coarse
  double ctolf = domain->solInfo().getSweepParams()->adaptSweep.ctolf;
  // tolerance factor when looking within one frequency
@@ -1678,7 +1654,7 @@ StaticSolver< Scalar, OpSolver, VecType,
    }
    solvertime += getTime();
 
-   if (verboseFlag>=3)
+   if (verboseFlag)
      filePrint(stderr, "icoarsew[0]=%d icoarsew[1]=%d alpha=%e isCoupled=%d\n",
                icoarsew[0],icoarsew[1],alpha,int(domain->solInfo().isCoupled));
 
@@ -1750,24 +1726,26 @@ StaticSolver< Scalar, OpSolver, VecType,
      localFWSSpace[jDir]->irow = nr;
      nr += localFWSSpace[jDir]->n;
    }
-
+ 
    if (localP) 
      for(int jDir=0;jDir<nDir;jDir++) if (localFWSSpace[jDir]!=0)
           localFWSSpace[jDir]->irow = 0;
+
 
    std::valarray<int> isDone(0,nDir);
    int newDir;
    if (icoarsew[0]==-1) 
      newDir = localP?0:nDir/2;
    else {
-     newDir = localP?0:std::max_element(res.begin(),res.end()) - res.begin();
+    newDir = localP?0:std::max_element(res.begin(),res.end()) - res.begin();
    }
+   
 
    onefspacetime -= getTime();
    if (!isScattering) if (domain->solInfo().loadcases.size()>0)
      domain->solInfo().loadcases = loadcases_backup;
    while (isDone.sum()<nDir) {
-     if (verboseFlag>=3)
+     if (verboseFlag)
        filePrint(stderr,
          "nr=%d newDir=%d isDone.sum()=%d \n",nr,newDir,isDone.sum());
 
@@ -1795,16 +1773,15 @@ StaticSolver< Scalar, OpSolver, VecType,
            if (dgpFlag==0) *fkgp = *f;
          } 
          else if (dgpFlag==1) {
+           // DGP
            f->zero();
            rhsctime1 -= getTime();
            probDesc->getFreqSweepRHS(f, temp_u, i);
            rhsctime1 += getTime();
          } else if (dgpFlag==2) {
-    // WCAWE
+           // WCAWE
            int ii = i+1;
-        // for j=1:ii-1;
            std::vector<Scalar> pb(ii-1); 
-
            std::vector<Scalar> invU(i*i,0.0);
            for (int k=0; k<i; k++) invU[k+k*i] = 1.0;
            std::vector<Scalar> matrixU(i*i);
@@ -1815,36 +1792,7 @@ StaticSolver< Scalar, OpSolver, VecType,
            Tgesv(i, i, &matrixU[0], i, &ipiv[0], &invU[0], i, info);
 
            for(int j=1;j<ii;j++) {
-//    filePrint(stderr,"wcawe %d %d\n",ii,j);
              int iimj = ii-j;
-
-/*
-        //     PP = diag(ones(ii-j,1));
-             std::vector<Scalar> PP(iimj*iimj,0);
-             for (int k=0; k<iimj; k++) PP[k+k*iimj] = 1.0;
-        //   for k=1:j;
-             for(int k=1;k<=j;k++) {
-        //     PP = PP*inv(UU(k:(ii-j+k-1),k:(ii-j+k-1)));
-        // Compute the inverse
-              std::vector<Scalar> QQ(iimj*iimj,0);
-              for (int m=k; m<iimj+k; m++) for (int n=k; n<iimj+k; n++)
-                QQ[(m-k)+(n-k)*iimj] = UU[m-1+(n-1)*(maxLocalV)];
-              std::vector<Scalar> RR(iimj*iimj,0);
-              for (int k=0; k<iimj; k++) RR[k+k*iimj] = 1.0;
-              std::vector<int> ipiv(iimj);
-              int info = 0;
-              Tgesv(iimj, iimj, &QQ[0], iimj, &ipiv[0], &RR[0], iimj, info);
-        // Multiply the matrices PP and RR and store in PP
-              for (int kk=0; kk<iimj*iimj; kk++) QQ[kk] = PP[kk];
-              char transa = 'N'; char transb = 'N';
-              Tgemm(transa, transb, iimj, iimj, iimj,
-                     1.0 , &QQ[0], iimj, &RR[0], iimj, 0.0, &PP[0], iimj);
-        //    end
-             }
-        //   pu = pu + b{j+1}*PP(1,ii-j);
-             pb[j-1] = PP[1-1+(iimj-1)*iimj];
-*/
-
              std::vector<Scalar> e(iimj,0);
              e[iimj-1] = 1.0;
              for(int k=j;k>=1;k--) {
@@ -1855,45 +1803,12 @@ StaticSolver< Scalar, OpSolver, VecType,
                 for(int kk=0;kk<iimj;kk++) e[kk] = ee[kk];
               }
               pb[j-1] = e[0];
-               
-        //    end
            } 
         
-        //  end
-        // Identical as above except j and k start from 2
+           // Identical as above except j and k start from 2
            std::vector<Scalar> pU(ii*ii,0); 
-        //  for j=2:ii-1;
            for(int j=2;j<ii;j++) {
              int iimj = ii-j;
-
-/*
-        //    PP = diag(ones(ii-j,1));
-             std::vector<Scalar> PP(iimj*iimj,0);
-             for (int k=0; k<iimj; k++) PP[k+k*iimj] = 1.0;
-        //    for k=2:j;
-             for(int k=2;k<=j;k++) {
-        //     PP = PP*inv(UU(k:(ii-j+k-1),k:(ii-j+k-1)));
-        // Compute the inverse
-              std::vector<Scalar> QQ(iimj*iimj,0);
-              for (int m=k; m<iimj+k; m++) for (int n=k; n<iimj+k; n++)
-                QQ[(m-k)+(n-k)*iimj] = UU[m-1+(n-1)*(maxLocalV)];
-              std::vector<Scalar> RR(iimj*iimj,0);
-              for (int k=0; k<iimj; k++) RR[k+k*iimj] = 1.0;
-              std::vector<int> ipiv(iimj);
-              int info = 0;
-              Tgesv(iimj, iimj, &QQ[0], iimj, &ipiv[0], &RR[0], iimj, info);
-        // Multiply the matrices PP and RR and store in PP
-              for (int kk=0; kk<iimj*iimj; kk++) QQ[kk] = PP[kk]; ;
-              char transa = 'N'; char transb = 'N';
-              Tgemm(transa, transb, iimj, iimj, iimj,
-                     1.0 , &QQ[0], iimj, &RR[0], iimj, 0.0, &PP[0], iimj);
-        //    end
-             }
-        //    pu = pu - Z{j+1}*W(:,1:(ii-j))*PP(:,ii-j);
-             for(int k=0;k<iimj;k++)  
-               pU[k+(j-1)*ii] = PP[k+(iimj-1)*iimj];  
-*/
-
              std::vector<Scalar> e(iimj,0);
              e[iimj-1] = 1.0;
              for(int k=j;k>=2;k--) {
@@ -1905,18 +1820,17 @@ StaticSolver< Scalar, OpSolver, VecType,
               }
               for(int k=0;k<iimj;k++) 
                pU[k+(j-1)*ii] = e[k];  
-        //    end
            } 
            rhsctime1 -= getTime();
            probDesc->getWCAWEFreqSweepRHS(f,
                    temp_u, &pU[0], &pb[0], maxLocalV, i);
            rhsctime1 += getTime();
          } else {
-    // KGP
+           // KGP
            allOps->M->mult(*u[i-1], *f);
            if (dgpFlag==0) allOps->M->mult(*v[i-1], *fkgp);
          }
-         if (verboseFlag>=3)
+         if (verboseFlag)
            filePrint(stderr," ... Solving RHS   #%3d               ...\n",i);
          rhstime -= getTime();
          allOps->sysSolver->solve(*f, *a);
@@ -1928,7 +1842,7 @@ StaticSolver< Scalar, OpSolver, VecType,
          rhstime += getTime();
          if (dgpFlag) {
            if (domain->solInfo().type == 2) {
-             if (verboseFlag>=3)
+             if (verboseFlag)
                filePrint(stderr,"Forcing continuity %d.\n",i);
              forceContinuity(*a);
            }
@@ -1948,8 +1862,8 @@ StaticSolver< Scalar, OpSolver, VecType,
            *temp_u[i] = *a;
            double normRedW = 
              ScalarTypes::Real(UU[i*maxLocalV+i])/sqrt(ScalarTypes::Real(nrm0));
-           if (verboseFlag>=3)
-             filePrint(stderr,"norm reduction - WCAWE: %e\n",normRedW);
+//           if (verboseFlag)
+//             filePrint(stderr,"norm reduction - WCAWE: %e\n",normRedW);
            if (normRedW<1e-17/tol) { break; }
          }
 
@@ -1973,8 +1887,8 @@ StaticSolver< Scalar, OpSolver, VecType,
          Scalar nrm = *a * *a;
          double normRedG = 
              sqrt(ScalarTypes::Real(nrm))/sqrt(ScalarTypes::Real(nrm0));
-         if (verboseFlag>=3)
-           filePrint(stderr,"norm reduction - global space: %e\n",normRedG);
+//         if (verboseFlag)
+//           filePrint(stderr,"norm reduction - global space: %e\n",normRedG);
          *a *= 1.0/sqrt(ScalarTypes::Real(nrm));
          *(localFWSSpace[nDir+newDir]->ups[i]) = *a;
          if(domain->solInfo().isCoupled) scaleDisp(*a,alpha);
@@ -1998,8 +1912,8 @@ StaticSolver< Scalar, OpSolver, VecType,
          *v[i] = *a;
          double normRedL =
            sqrt(ScalarTypes::Real(nrm))/sqrt(ScalarTypes::Real(nrm0));
-         if (verboseFlag>=3)
-           filePrint(stderr,"norm reduction - local space: %e\n",normRedL);
+//         if (verboseFlag)
+//           filePrint(stderr,"norm reduction - local space: %e\n",normRedL);
          if (normRedG<1e-20/tol) break;
          localDim++;
        }
@@ -2074,8 +1988,8 @@ StaticSolver< Scalar, OpSolver, VecType,
          }
          iLeft = iRight;
        }
-       if (verboseFlag>=3) {
-         filePrint(stderr,"haha iDir= ");
+       if (verboseFlag) {
+         filePrint(stderr,"iDir= ");
          for(int ii=0;ii<nPick;ii++)
            filePrint(stderr," %d",iPick[ii]);
          filePrint(stderr,"\n");
@@ -2088,7 +2002,7 @@ StaticSolver< Scalar, OpSolver, VecType,
            probDesc->setIWaveDir(iDir);
          else 
            filePrint(stderr,
-             "Error: multiple loadscases should be called with local only.\n");
+             "Error: multiple loadcases should be called with local only.\n");
          rhsctime1 -= getTime();
          probDesc->getRHS(*f);
          rhsctime1 += getTime();
@@ -2146,8 +2060,8 @@ StaticSolver< Scalar, OpSolver, VecType,
          Scalar nrmf = *f * *f;
          resoneftime += getTime();
          res[iDir] = sqrt(ScalarTypes::Real(nrma)/ScalarTypes::Real(nrmf));
-         if (verboseFlag>=3)
-           filePrint(stderr,"haha iDir=%d res=%e\n",iDir,res[iDir]);
+         if (verboseFlag)
+           filePrint(stderr,"iDir=%d res=%e\n",iDir,res[iDir]);
          if (res[iDir]<tol*tol1f) isDone[iDir] = 1;
        }
        double maxres = -1.0;
@@ -2156,8 +2070,8 @@ StaticSolver< Scalar, OpSolver, VecType,
          newDir = iDir; 
          if (res[iDir]<tol*tol1f) newDir = -1;
        } 
-       if (verboseFlag>=3)
-         filePrint(stderr,"haha maxres=%e newDir=%d\n",maxres,newDir);
+       if (verboseFlag)
+         filePrint(stderr,"maxres=%e newDir=%d\n",maxres,newDir);
      } else {
        newDir++;
      }
@@ -2176,7 +2090,7 @@ StaticSolver< Scalar, OpSolver, VecType,
    bool seekMode = false;
    while (1) {
      // Find the increment to the next frequency
-     if (verboseFlag>=3) filePrint(stderr,"icoarsew[0]=%d icoarsew[1]=%d liwr=%d uiwr=%d deltaiwr=%d\n",icoarsew[0],icoarsew[1],liwr, uiwr,deltaiwr);
+     if (verboseFlag) filePrint(stderr,"icoarsew[0]=%d icoarsew[1]=%d liwr=%d uiwr=%d deltaiwr=%d\n",icoarsew[0],icoarsew[1],liwr, uiwr,deltaiwr);
      //   If done numS, we are done
      if (iwr==numS && !seekMode) {  doneF = true; break; }
      //   If the first first time
@@ -2184,13 +2098,13 @@ StaticSolver< Scalar, OpSolver, VecType,
        seekMode = true;
        deltaiwr = numS;
        liwr = 0;
-       if (verboseFlag>=3) filePrint(stderr,
+       if (verboseFlag) filePrint(stderr,
            "init liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
      }
      // If generating solutions
      else if (iwr<icoarsew[1]) {
        deltaiwr = 1;
-       if (verboseFlag>=3) filePrint(stderr,
+       if (verboseFlag) filePrint(stderr,
          "solution liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
      }
      //   If just did the upper frequency, switch to seek mode
@@ -2199,7 +2113,7 @@ StaticSolver< Scalar, OpSolver, VecType,
         deltaiwr = icoarsew[1]-icoarsew[0];
         if (iwr+deltaiwr>numS) deltaiwr = numS-iwr;
         liwr = icoarsew[1];
-        if (verboseFlag>=3) filePrint(stderr,
+        if (verboseFlag) filePrint(stderr,
           "start seek liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
      }
      // Seek mode
@@ -2208,20 +2122,20 @@ StaticSolver< Scalar, OpSolver, VecType,
          liwr = iwr;
          if (uiwr!=-1) deltaiwr = (uiwr-liwr)/2;
          if (iwr+deltaiwr>numS) deltaiwr = numS-iwr;
-         if (verboseFlag>=3) filePrint(stderr,
+         if (verboseFlag) filePrint(stderr,
            "tolmet liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
        }
        else {
          uiwr = iwr;
          deltaiwr = -(uiwr-liwr)/2;
-         if (verboseFlag>=3) filePrint(stderr,
+         if (verboseFlag) filePrint(stderr,
            "tolnotmet liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
        }
        if (deltaiwr==0) {
          iwr = liwr;
          icoarsew[0] = icoarsew[1];
          icoarsew[1] = iwr;
-         if (verboseFlag>=3) filePrint(stderr,
+         if (verboseFlag) filePrint(stderr,
             "stop liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
          break;
        }
@@ -2230,11 +2144,13 @@ StaticSolver< Scalar, OpSolver, VecType,
      iwr = iwr + deltaiwr;
         
      double wr = w1 + iwr*dw;
-filePrint(stderr,"haha iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
-//     geoSource->setOmega(wr);
-     // Compute reduced matrix
+     if (verboseFlag)
+       filePrint(stderr,"Computing residual at iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
+// RT uncommenting following line  12/8
+     geoSource->setOmega(wr);
      std::vector<int> ipiv(nr);
      if (!localP) {
+       // Compute reduced matrix
        Arsweeptime -= getTime();
        for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
        for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0)
@@ -2245,7 +2161,7 @@ filePrint(stderr,"haha iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
                  (localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k); 
   //                 auto Kr_iter = Kr.find(rowcol);
                if (Kr.find(rowcol)==Kr.end()) fprintf(stderr,
-                           "haha rowcol %d %d not found\n",
+                           "rowcol %d %d not found\n",
                     localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k);
                Ar[localFWSSpace[jDir]->irow+j+
                  nr*(localFWSSpace[kDir]->irow+k)] = 
@@ -2261,6 +2177,7 @@ filePrint(stderr,"haha iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
      if (!isScattering) if (domain->solInfo().loadcases.size()>0)
         domain->solInfo().loadcases = loadcases_backup;
      for(int iDir=0;iDir<nDir;iDir++) {
+       // Get RHS
        if (isScattering)
          probDesc->setIWaveDir(iDir);
        else {
@@ -2285,8 +2202,6 @@ filePrint(stderr,"haha iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
                  *f * *(localFWSSpace[jDir]->u[j]);
            }
        frsweeptime += getTime();
-//for(int i=0;i<nr;i++) filePrint(stderr,"fr[%d] = %e %e\n",i,
-//ScalarTypes::Real(fr[i]),ScalarTypes::Imag(fr[i]));
        if (localP) { 
          Arsweeptime -= getTime();
          for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
@@ -2300,7 +2215,7 @@ filePrint(stderr,"haha iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
                    (localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k); 
     //                 auto Kr_iter = Kr.find(rowcol);
                  if (Kr.find(rowcol)==Kr.end()) fprintf(stderr,
-                             "haha rowcol %d %d not found\n",
+                             "rowcol %d %d not found\n",
                       localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k);
                  Ar[localFWSSpace[jDir]->irow+j+
                    nr*(localFWSSpace[kDir]->irow+k)] = 
@@ -2321,10 +2236,6 @@ filePrint(stderr,"haha iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
          Tgetrs(trans, nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
        }
 
-//for(int i=0;i<nr;i++) filePrint(stderr,"Ar[%d,%d] = %e %e\n",i,i,
-//ScalarTypes::Real(Ar[i*nr+i]),ScalarTypes::Imag(Ar[i*nr+i]));
-//for(int i=0;i<nr;i++) filePrint(stderr,"solr[%d] = %e %e\n",i,
-//ScalarTypes::Real(fr[i]),ScalarTypes::Imag(fr[i]));
        // Evaluate the residual
        ressweeptime -= getTime();
        (*a).zero();
@@ -2357,9 +2268,9 @@ filePrint(stderr,"haha iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
        Scalar nrmf = *f * *f;
        ressweeptime += getTime();
        res[iDir] = sqrt(ScalarTypes::Real(nrma)/ScalarTypes::Real(nrmf));
-       if (iwr<icoarsew[1]) {
+       if (iwr<icoarsew[1] || (iwr==numS && icoarsew[1]==numS)) {
          solutiontime -= getTime();
-         if (verboseFlag>=3) filePrint(stderr,"fresidual %d: %e %d %d\n",
+         if (verboseFlag) filePrint(stderr,"fresidual %d: %e %d %d\n",
                    iDir,res[iDir],iwr,icoarsew[1]);
          // Compute the approximant vector
          (*sol).zero();
@@ -2389,19 +2300,44 @@ filePrint(stderr,"haha iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
          outputtime += getTime();
          domain->frequencies->pop_front();
        } else
-         if (verboseFlag>=3) filePrint(stderr,"residual %d: %e %d %d\n",
+         if (verboseFlag) filePrint(stderr,"residual %d: %e %d %d\n",
                    iDir,res[iDir],iwr,icoarsew[1]);
      }
      double mres = *std::max_element(res.begin(),res.end());
       if (iwr<icoarsew[1]) 
-       if (verboseFlag>=3)
+       if (verboseFlag)
          filePrint(stderr,"max fresidual: %e at %e \n",mres,wr/2.0/M_PI);
      else
-       if (verboseFlag>=3)
+       if (verboseFlag)
          filePrint(stderr,"max residual: %e at %e \n",mres,wr/2.0/M_PI);
      tolMet = mres<tol*ctolf;
    }
    fsweeptime += getTime();
+ }
+
+ time += getTime();
+ if (verboseFlag) {
+   filePrint(stderr,"Total time: %e\n",time/1e3);
+   filePrint(stderr,"----\n");
+   filePrint(stderr,"Transition time: %e\n",transitiontime/1e3);
+   filePrint(stderr,"----\n");
+   filePrint(stderr,"One frequency space construction time: %e\n",
+             onefspacetime/1e3);
+   filePrint(stderr,"solver time: %e in %d solves\n",
+             solvertime/1e3,rebuildscount);
+   filePrint(stderr,"rhs solve time: %e count: %d\n",rhstime/1e3,solvecount);
+   filePrint(stderr,"fr time in one f: %e\n",froneftime/1e3);
+   filePrint(stderr,"Ar time in one f: %e\n",Aroneftime/1e3);
+   filePrint(stderr,"Residual computation time in one f: %e\n",resoneftime/1e3);
+   filePrint(stderr,"RHS construction time in one f: %e\n",rhsctime1/1e3);
+   filePrint(stderr,"----\n");
+   filePrint(stderr,"Frequency sweep time: %e\n",fsweeptime/1e3);
+   filePrint(stderr,"fr time in sweep: %e\n",frsweeptime/1e3);
+   filePrint(stderr,"Ar time in sweep: %e\n",Arsweeptime/1e3);
+   filePrint(stderr,"residual computation time in sweep: %e\n",ressweeptime/1e3);
+   filePrint(stderr,"rhs construction time in sweep: %e\n",rhsctime2/1e3);
+   filePrint(stderr,"solution construction time in sweep: %e\n",solutiontime/1e3);
+   filePrint(stderr,"output time in sweep: %e\n",outputtime/1e3);
  }
 
  if (dgpFlag) {
@@ -2417,27 +2353,693 @@ filePrint(stderr,"haha iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
  delete akgp;
  delete sol;
 
- time += getTime();
- if (verboseFlag>=3) {
-   filePrint(stderr,"Total time: %e\n",time/1e3);
-   filePrint(stderr,"Solver time: %e in %d solves\n",
-             solvertime/1e3,rebuildscount);
-   filePrint(stderr,"Output time: %e\n",outputtime/1e3);
-   filePrint(stderr,"Transition time: %e\n",transitiontime/1e3);
-   filePrint(stderr,"One frequency space construction time: %e\n",
-             onefspacetime/1e3);
-   filePrint(stderr,"RHS solve time: %e count: %d\n",rhstime/1e3,solvecount);
-   filePrint(stderr,"fr time in one f: %e\n",froneftime/1e3);
-   filePrint(stderr,"Ar time in one f: %e\n",Aroneftime/1e3);
-   filePrint(stderr,"Residual computation time in one f: %e\n",resoneftime/1e3);
-   filePrint(stderr,"RHS construction time in one f: %e\n",rhsctime1/1e3);
-   filePrint(stderr,"Frequency sweep time: %e\n",fsweeptime/1e3);
-   filePrint(stderr,"fr time in sweep: %e\n",frsweeptime/1e3);
-   filePrint(stderr,"Ar time in sweep: %e\n",Arsweeptime/1e3);
-   filePrint(stderr,"Residual computation time in sweep: %e\n",ressweeptime/1e3);
-   filePrint(stderr,"RHS construction time in sweep: %e\n",rhsctime2/1e3);
-   filePrint(stderr,"Solution construction time in sweep: %e\n",solutiontime/1e3);
+ for(int i=0;i<nF*nDir;i++) {
+    if (localFWSSpace[i]!=0) delete localFWSSpace[i];
  }
+ delete[] localFWSSpace;
+
 }
 
 
+template < class Scalar,
+           class OpSolver,
+           class VecType,
+           class PostProcessor,
+           class ProblemDescriptor,
+           class ComplexVecType>
+void
+StaticSolver< Scalar, OpSolver, VecType,
+              PostProcessor, ProblemDescriptor, ComplexVecType >
+  ::adaptSweep()
+{
+// Global adaptive sweep with multiple right hand sides done locally
+ double time = 0.0;
+ double romctime = 0.0;
+ double transitiontime= 0.0;
+ double onefspacetime = 0.0;
+ double solvertime = 0.0;
+ double rhstime = 0.0;
+ double rhsctime1 = 0.0;
+ double fsweeptime = 0.0;
+ double frsweeptime = 0.0;
+ double Arsweeptime = 0.0;
+ double ressweeptime = 0.0;
+ double solutiontime = 0.0;
+ double outputtime = 0.0;
+ double rhsctime2 = 0.0;
+ int solvecount = 0;
+ int rebuildscount = 0;
+
+ domain->isCoarseGridSolve = false;
+
+ time -= getTime();
+
+ double w1 = domain->solInfo().getSweepParams()->adaptSweep.w1;
+ double w2 = domain->solInfo().getSweepParams()->adaptSweep.w2;
+ int numS = domain->solInfo().getSweepParams()->adaptSweep.numS;
+ double dw = (w2-w1)/numS;
+
+ int nDir = 1;
+ bool isScattering = false;
+ if (domain->numWaveDirections>=1 && domain->solInfo().loadcases.size()==0) {
+   int nDir = domain->numWaveDirections;
+   isScattering = true;
+   filePrint(stderr,"Solving %d scattering cases\n",nDir);
+ }
+ std::list<int> loadcases_backup;
+ if (domain->solInfo().loadcases.size()>=1) {
+   nDir = domain->solInfo().loadcases.size();
+   loadcases_backup = domain->solInfo().loadcases;
+   filePrint(stderr,"Solving %d loadcases\n",nDir);
+ }
+ if (nDir==0) nDir = 1;
+ int maxLocalV = domain->solInfo().getSweepParams()->adaptSweep.maxRHS;
+ int maxRHS = domain->solInfo().getSweepParams()->adaptSweep.maxRHS;
+ int minRHS = domain->solInfo().getSweepParams()->adaptSweep.minRHS;
+ int deltaRHS = domain->solInfo().getSweepParams()->adaptSweep.deltaRHS;
+ int dgpFlag = domain->solInfo().getSweepParams()->adaptSweep.dgp_flag;
+ double tol = domain->solInfo().getSweepParams()->adaptSweep.atol;
+ int maxP = domain->solInfo().getSweepParams()->adaptSweep.maxP;
+
+ filePrint(stderr,"Adaptive sweep with multiple RHS - local variant\n");
+ if (dgpFlag==1)
+   filePrint(stderr,"DGP with %d,%d,%d local derivatives\n",
+             minRHS,maxRHS,deltaRHS);
+ else if (dgpFlag==2)
+   filePrint(stderr,"DGP with %d,%d,%d local WCAWE vectors\n",
+             minRHS,maxRHS,deltaRHS);
+ else 
+   filePrint(stderr,"KGP with %d,%d,%d local vectors\n",
+             minRHS,maxRHS,deltaRHS);
+ filePrint(stderr,"Parameter values: tol=%e, maxP=%d\n",
+           tol,maxP);
+
+ // Temp storage for DGP and WCAWE
+ VecType **temp_u=0;
+ Scalar *UU = 0;
+ if (dgpFlag) {
+   UU = new Scalar[maxLocalV*maxLocalV];
+   temp_u = new VecType * [maxLocalV+1];
+   for(int i = 0; i < maxLocalV+1; ++i)
+     temp_u[i] = new VecType(probDesc->solVecInfo());
+   for(int i = 0; i < maxLocalV*maxLocalV; ++i) UU[i] = 0.0;
+ }
+
+ // Temp vectors
+ VecType *f = new VecType(probDesc->solVecInfo());
+ VecType *a = new VecType(probDesc->solVecInfo());
+ VecType *b = new VecType(probDesc->solVecInfo());
+ VecType *c = new VecType(probDesc->solVecInfo());
+ VecType *sol = new VecType(probDesc->solVecInfo());
+
+ // Subspaces, all maxP frequencies at a time
+ FWindowSData<Scalar,VecType,ProblemDescriptor> **localFWSSpace = 
+   new FWindowSData<Scalar,VecType,ProblemDescriptor> *[maxP*nDir];
+ for(int i=0;i<maxP*nDir;i++) {
+   localFWSSpace[i] = 0;
+ }
+
+
+// vector of residuals, reduced matrix and vector, reduced matrices
+ const int maxRows = maxP*maxLocalV;
+ std::vector<double> res(nDir);   
+ std::vector<Scalar> fr(maxRows);
+ std::vector<Scalar> Ar(maxRows*maxRows);
+ std::map<std::pair<int,int>,Scalar> Kr; 
+ std::map<std::pair<int,int>,Scalar> Mr; 
+ std::map<std::pair<int,int>,Scalar> Cr; 
+ 
+ std::vector<double> wc(maxP);
+ std::vector<double> wcSorted(maxP);
+ std::vector<double> newW(maxP);
+
+ int numP = 0;
+ int imode = 0;
+ bool doneF = false;
+ int numNewW = 2;
+ newW[0] = w1;
+ newW[1] = w2;
+ int ncheck = 9;
+ std::vector<double> wcheck;
+ 
+ romctime -= getTime();
+ while (!doneF) {
+   for(int kP=0; kP<numNewW; kP++) {
+     double w = newW[kP]; 
+     wc[numP] = w;
+     // Scaling factor for coupled
+     double alpha = w/((w1+w2)/2.0);
+     // Setup solver for new frequency
+     geoSource->setOmega(w);
+     solvertime -= getTime();
+     if (w>w1) {
+       rebuildSolver(w);
+       rebuildscount++;
+     }
+     solvertime += getTime();
+
+     // Update u's to current scaling and recompute Ku,Mu,Cu
+     transitiontime -= getTime();
+     for(int iP=0;iP<numP;iP++)  for(int iDir=0;iDir<nDir;iDir++)  {
+       int iL = iP*nDir + iDir;    
+       if (localFWSSpace[iL]!=0) {
+         for(int i=0;i<localFWSSpace[iL]->n;i++) {
+           *(localFWSSpace[iL]->u[i]) = *(localFWSSpace[iL]->v[i]);
+//           *(localFWSSpace[iL]->ups[i]) = *(localFWSSpace[iL]->v[i]);
+           if(domain->solInfo().isCoupled) 
+             scaleDisp(*(localFWSSpace[iL]->u[i]),alpha);
+           allOps->K->mult(*(localFWSSpace[iL]->u[i]),
+                           *(localFWSSpace[iL]->Ku[i]));
+           allOps->M->mult(*(localFWSSpace[iL]->u[i]),
+                           *(localFWSSpace[iL]->Mu[i]));
+           if (allOps->C_deriv) if (allOps->C_deriv[0])
+             allOps->C_deriv[0]->mult(*(localFWSSpace[iL]->u[i]),
+                                      *(localFWSSpace[iL]->Cu[i]));
+         }
+       }
+     }
+     // Recompute reduced matrices
+     for(int iP=0;iP<numP;iP++)  for(int iDir=0;iDir<nDir;iDir++)  {
+       int iL = iP*nDir + iDir;    
+       if (localFWSSpace[iL]!=0) {
+         for(int i=0;i<localFWSSpace[iL]->n;i++) {
+           for(int jP=0;jP<numP;jP++) {
+             int jL = jP*nDir + iDir;    
+             if (localFWSSpace[jL]!=0) 
+               for(int j=0;j<localFWSSpace[jL]->n;j++) {
+                  std::pair<int,int> rowcol
+                   (localFWSSpace[jL]->imode+j,localFWSSpace[iL]->imode+i); 
+                  Kr[rowcol] = *(localFWSSpace[iL]->Ku[i]) *
+                               *(localFWSSpace[jL]->u[j]);
+                  Mr[rowcol] = *(localFWSSpace[iL]->Mu[i]) *
+                               *(localFWSSpace[jL]->u[j]);
+                  Cr[rowcol] = *(localFWSSpace[iL]->Cu[i]) *
+                               *(localFWSSpace[jL]->u[j]);
+                  if (iL!=jL) {
+                    std::pair<int,int> rowcolt
+                      (localFWSSpace[iL]->imode+i,
+                       localFWSSpace[jL]->imode+j);
+                    Kr[rowcolt] = *(localFWSSpace[jL]->Ku[j]) *
+                                  *(localFWSSpace[iL]->u[i]);
+                    Mr[rowcolt] = *(localFWSSpace[jL]->Mu[j]) *
+                                  *(localFWSSpace[iL]->u[i]);
+                    Cr[rowcolt] = *(localFWSSpace[jL]->Cu[j]) *
+                                  *(localFWSSpace[iL]->u[i]);
+                  }
+               } 
+           }
+         }
+       }
+     }
+     transitiontime += getTime();
+
+     if (!isScattering) if (domain->solInfo().loadcases.size()>0)
+       domain->solInfo().loadcases = loadcases_backup;
+  
+     onefspacetime -= getTime();
+     for(int iDir=0;iDir<nDir;iDir++) {
+       if (verboseFlag)
+         filePrint(stderr, "numP=%d iDir=%d\n",numP,iDir);
+  
+     // Build spaces at new frequency
+       if (isScattering)
+         probDesc->setIWaveDir(iDir);
+       else {
+         if (iDir>0) domain->solInfo().loadcases.pop_front();
+       }
+       int newL = numP*nDir + iDir;
+       localFWSSpace[newL] = 
+         new FWindowSData<Scalar,VecType,ProblemDescriptor>
+             (maxLocalV,imode,probDesc); 
+       VecType **u = localFWSSpace[newL]->u;
+       VecType **v = localFWSSpace[newL]->v;
+    
+       // Build one space 
+       int localDim = 0;
+       for(int i=0;i<maxLocalV;i++) {
+         if (i == 0) { 
+           rhsctime1 -= getTime();
+           probDesc->getRHS(*f);
+           rhsctime1 += getTime();
+           if (dgpFlag==1) temp_u[0]->zero();
+         } 
+         else if (dgpFlag==1) {
+           // DGP
+           f->zero();
+           rhsctime1 -= getTime();
+           probDesc->getFreqSweepRHS(f, temp_u, i);
+           rhsctime1 += getTime();
+         } else if (dgpFlag==2) {
+           // WCAWE
+           int ii = i+1;
+           std::vector<Scalar> pb(ii-1); 
+           std::vector<Scalar> invU(i*i,0.0);
+           for (int k=0; k<i; k++) invU[k+k*i] = 1.0;
+           std::vector<Scalar> matrixU(i*i);
+           for(int k=0;k<i;k++) for(int l=0;l<i;l++)
+             matrixU[k+i*l] = UU[k+l*maxLocalV];
+           std::vector<int> ipiv(i);
+           int info = 0;
+           Tgesv(i, i, &matrixU[0], i, &ipiv[0], &invU[0], i, info);
+
+           for(int j=1;j<ii;j++) {
+             int iimj = ii-j;
+             std::vector<Scalar> e(iimj,0);
+             e[iimj-1] = 1.0;
+             for(int k=j;k>=1;k--) {
+                std::vector<Scalar> ee(iimj,0);
+                char transa = 'N';
+                Tgemv(transa, iimj, iimj, 1.0 , &invU[k-1+(k-1)*i], i,
+                      &e[0], 1, 0.0, &ee[0], 1);
+                for(int kk=0;kk<iimj;kk++) e[kk] = ee[kk];
+              }
+              pb[j-1] = e[0];
+           } 
+        
+           // Identical as above except j and k start from 2
+           std::vector<Scalar> pU(ii*ii,0); 
+           for(int j=2;j<ii;j++) {
+             int iimj = ii-j;
+             std::vector<Scalar> e(iimj,0);
+             e[iimj-1] = 1.0;
+             for(int k=j;k>=2;k--) {
+                std::vector<Scalar> ee(iimj,0);
+                char transa = 'N';
+                Tgemv(transa, iimj, iimj, 1.0 , &invU[k-1+(k-1)*i], i,
+                      &e[0], 1, 0.0, &ee[0], 1);
+                for(int kk=0;kk<iimj;kk++) e[kk] = ee[kk];
+              }
+              for(int k=0;k<iimj;k++) 
+               pU[k+(j-1)*ii] = e[k];  
+           } 
+           rhsctime1 -= getTime();
+           probDesc->getWCAWEFreqSweepRHS(f,
+                   temp_u, &pU[0], &pb[0], maxLocalV, i);
+           rhsctime1 += getTime();
+         } else {
+           // KGP
+           allOps->M->mult(*u[i-1], *f);
+         }
+         if (verboseFlag)
+           filePrint(stderr," ... Solving RHS   #%3d               ...\n",i);
+         rhstime -= getTime();
+         allOps->sysSolver->solve(*f, *a);
+         solvecount++;
+         rhstime += getTime();
+         if (dgpFlag) {
+           if (domain->solInfo().type == 2) {
+             if (verboseFlag)
+               filePrint(stderr,"Forcing continuity %d.\n",i);
+             forceContinuity(*a);
+           }
+         }
+    
+         if (dgpFlag==1)  *temp_u[i+1] = *a;
+         else if (dgpFlag==2) {
+           // WCAWE orthogonalize
+           Scalar nrm0 = *a * *a;
+           for(int j=0;j<i;j++) {
+              Scalar dotp = *a *  *temp_u[j];
+              UU[j+i*maxLocalV] = dotp;
+              (*a).linAdd(-dotp,*temp_u[j]);
+           }
+           UU[i*maxLocalV+i] = sqrt(ScalarTypes::Real(*a * *a));
+           *a *= 1.0/UU[i*maxLocalV+i];
+           *temp_u[i] = *a;
+           double normRedW = 
+             ScalarTypes::Real(UU[i*maxLocalV+i])/sqrt(ScalarTypes::Real(nrm0));
+//           if (verboseFlag)
+//             filePrint(stderr,"norm reduction - WCAWE: %e\n",normRedW);
+           if (normRedW<1e-17/tol) { break; }
+         }
+
+         *b = *a;
+         // Global space orthogonalize with mid-frequency coupled scaling
+         if(domain->solInfo().isCoupled) scaleDisp(*a,1.0/alpha);
+         Scalar nrm0 = *a * *a;
+         int ngs = 2;
+         for(int m=0;m<ngs;m++) { 
+           for(int iP=0;iP<=numP;iP++) {
+             int iL = iP*nDir + iDir;    
+             if (localFWSSpace[iL]!=0) {
+               for(int i=0;i<localFWSSpace[iL]->n;i++) {
+                 Scalar dotp = *a *  *(localFWSSpace[iL]->v[i]);
+                 (*a).linAdd(-dotp,*(localFWSSpace[iL]->v[i]));
+               }
+             }
+           }
+         }
+         Scalar nrm = *a * *a;
+         double normRedG = 
+             sqrt(ScalarTypes::Real(nrm))/sqrt(ScalarTypes::Real(nrm0));
+//         if (verboseFlag)
+//           filePrint(stderr,"norm reduction - global space: %e\n",normRedG);
+         *a *= 1.0/sqrt(ScalarTypes::Real(nrm));
+         *v[i] = *a;
+         if(domain->solInfo().isCoupled) scaleDisp(*a,alpha);
+         *u[i] = *a;
+         if (normRedG<1e-20/tol) break;
+         localDim++;
+         localFWSSpace[newL]->n = localDim; 
+       }
+
+       // Compute new Ku,Mu,Cu
+       for(int i=0;i<localFWSSpace[newL]->n;i++) {
+         allOps->K->mult(*(u[i]), *(localFWSSpace[newL]->Ku[i]));
+         allOps->M->mult(*(u[i]), *(localFWSSpace[newL]->Mu[i]));
+         if (allOps->C_deriv) if (allOps->C_deriv[0])
+           allOps->C_deriv[0]->mult(*(u[i]), *(localFWSSpace[newL]->Cu[i]));
+       }
+  
+       // Compute new reduced matrix entries
+       for(int i=0;i<localFWSSpace[newL]->n;i++) {
+         for(int jP=0;jP<=numP;jP++) {
+           int jL = jP*nDir + iDir;    
+           if (localFWSSpace[jL]!=0) 
+             for(int j=0;j<localFWSSpace[jL]->n;j++) {
+               std::pair<int,int> rowcol
+               (localFWSSpace[jL]->imode+j,localFWSSpace[newL]->imode+i); 
+               Kr[rowcol] = *(localFWSSpace[newL]->Ku[i]) *
+                            *(localFWSSpace[jL]->u[j]);
+               Mr[rowcol] = *(localFWSSpace[newL]->Mu[i]) *
+                            *(localFWSSpace[jL]->u[j]);
+               Cr[rowcol] = *(localFWSSpace[newL]->Cu[i]) *
+                            *(localFWSSpace[jL]->u[j]);
+               if (newL!=jL) {
+                 std::pair<int,int> rowcolt
+                   (localFWSSpace[newL]->imode+i,
+                    localFWSSpace[jL]->imode+j); 
+                 Kr[rowcolt] = *(localFWSSpace[jL]->Ku[j]) *
+                               *(localFWSSpace[newL]->u[i]);
+                 Mr[rowcolt] = *(localFWSSpace[jL]->Mu[j]) *
+                               *(localFWSSpace[newL]->u[i]);
+                 Cr[rowcolt] = *(localFWSSpace[jL]->Cu[j]) *
+                               *(localFWSSpace[newL]->u[i]);
+               }
+             } 
+         }
+       }
+
+       imode += localFWSSpace[newL]->n;
+filePrint(stderr,"imode=%d\n",imode);
+
+       int prevL = (numP-1)*nDir + iDir;
+       if (numP>0) 
+         localFWSSpace[newL]->irow = localFWSSpace[prevL]->irow +
+                                      localFWSSpace[prevL]->n;
+       else localFWSSpace[newL]->irow = 0;
+     }
+     numP++; 
+     onefspacetime += getTime();
+     if (numP==maxP) break;
+   }
+
+   if (numP==maxP) break;
+ 
+   // Sample intervals and find new coarse points
+   numNewW = 0; 
+   for(int nP=0;nP<numP;nP++) wcSorted[nP] = wc[nP];
+   sort(wcSorted.begin(),wcSorted.begin()+numP);
+   doneF = true;
+   for(int nP=0;nP<numP-1;nP++) {
+     double maxres = -1.0;
+     int maxDir, maxIS;
+     for(int iS=0;iS<ncheck;iS++) {
+       double wS = wcSorted[nP] +
+                   double(iS+1)/double(ncheck+1)*(wcSorted[nP+1]-wcSorted[nP]);
+       // Check the residual at wS
+       if (!isScattering) if (domain->solInfo().loadcases.size()>0)
+          domain->solInfo().loadcases = loadcases_backup;
+       for(int iDir=0;iDir<nDir;iDir++) {
+         // Compute RHS
+         if (isScattering)
+           probDesc->setIWaveDir(iDir);
+         else {
+           if (iDir>0) domain->solInfo().loadcases.pop_front();
+         }
+         rhsctime2 -= getTime();
+         probDesc->getRHS(*f, wS,wS-wc[numP-1]);
+         rhsctime2 += getTime();
+
+         // Compute reduced vector
+         frsweeptime -= getTime();
+         int nr = 0;
+         for(int iP=0;iP<numP;iP++) {
+           int iL = iP*nDir + iDir;
+           if (localFWSSpace[iL]!=0) {
+             nr += localFWSSpace[iL]->n;
+             for(int j=0;j<localFWSSpace[iL]->n;j++) {
+               fr[localFWSSpace[iL]->irow+j] = *f * *(localFWSSpace[iL]->u[j]);
+             }
+           }
+         }
+         frsweeptime += getTime();
+    
+         // Compute reduced matrix
+         Arsweeptime -= getTime();
+         for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
+         for(int jP=0;jP<numP;jP++) {
+           int jL = jP*nDir + iDir;
+           if (localFWSSpace[jL]!=0) for(int j=0;j<localFWSSpace[jL]->n;j++)  {
+             for(int kP=0;kP<numP;kP++) {
+               int kL = kP*nDir + iDir;
+               if (localFWSSpace[kL]!=0)
+                 for(int k=0;k<localFWSSpace[kL]->n;k++) {
+                 std::pair<int,int> rowcol
+                   (localFWSSpace[jL]->imode+j,localFWSSpace[kL]->imode+k); 
+                 if (Kr.find(rowcol)==Kr.end()) fprintf(stderr,
+                             "rowcol %d %d not found\n",
+                    localFWSSpace[jL]->imode+j,localFWSSpace[kL]->imode+k);
+                 Ar[localFWSSpace[jL]->irow+j+
+                 nr*(localFWSSpace[kL]->irow+k)] = 
+                     Kr[rowcol] - wS*wS*Mr[rowcol];
+                   ScalarTypes::addComplex(Ar[localFWSSpace[jL]->irow+j+
+                     nr*(localFWSSpace[kL]->irow+k)], wS *Cr[rowcol]);
+                   }
+                 }
+             }
+         }
+         Arsweeptime += getTime();
+         // Factor and solve the reduced linear system
+         std::vector<int> ipiv(nr);
+         int info = 0;
+         Tgesv(nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
+    
+         // Evaluate the residual
+         ressweeptime -= getTime();
+         (*a).zero();
+         for(int jP=0;jP<numP;jP++) {
+           int jL = jP*nDir + iDir;
+           if (localFWSSpace[jL]!=0) for(int j=0;j<localFWSSpace[jL]->n;j++)  {
+             int ir = localFWSSpace[jL]->irow+j;
+             (*a).linAdd(fr[ir],*(localFWSSpace[jL]->Ku[j]),
+                         -wS*wS*fr[ir],*(localFWSSpace[jL]->Mu[j]));
+             Scalar dc = 0.0;
+             ScalarTypes::addComplex(dc,wS*fr[ir]);
+             if (allOps->C_deriv) if (allOps->C_deriv[0])
+               (*a).linAdd(dc,*(localFWSSpace[jL]->Cu[j]));
+           }
+         }
+         (*a).linAdd(-1.0,*f);
+         forceAssemble(*a);
+         forceAssemble(*f);
+         Scalar nrma = *a * *a;
+         Scalar nrmf = *f * *f;
+         ressweeptime += getTime();
+         res[iDir] = sqrt(ScalarTypes::Real(nrma)/ScalarTypes::Real(nrmf));
+    
+         solutiontime -= getTime();
+         if (verboseFlag) filePrint(stderr,"residual %d %d: %e\n",
+                   numP,iDir,res[iDir]);
+
+       }
+       for(int iDir=0;iDir<nDir;iDir++) if (res[iDir]>maxres) {
+         maxres = res[iDir];
+         maxDir = iDir;
+         maxIS = iS; 
+       }
+     }
+     if (maxres > tol) {
+       newW[numNewW] = wcSorted[nP] + double(maxIS+1)/double(ncheck+1)*
+                          (wcSorted[nP+1]-wcSorted[nP]);
+       if (verboseFlag) filePrint(stderr,"Selecting new frequency %e\n",
+                                  newW[numNewW]);
+                   
+       numNewW++;
+       doneF = false;
+     }
+   }
+ }
+ romctime += getTime();
+
+ // Compute the residual and output the  ROM solution 
+ //  for interval w1,w2
+ fsweeptime -= getTime();
+ for(int iwr=0;iwr<=numS;iwr++) {
+   double wr = w1 + iwr*dw;
+   filePrint(stderr,"Solution for iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
+// RT uncommenting following line  12/8
+   geoSource->setOmega(wr);
+   if (!isScattering) if (domain->solInfo().loadcases.size()>0)
+      domain->solInfo().loadcases = loadcases_backup;
+   for(int iDir=0;iDir<nDir;iDir++) {
+     // Compute RHS
+     if (isScattering)
+       probDesc->setIWaveDir(iDir);
+     else {
+       if (iDir>0) domain->solInfo().loadcases.pop_front();
+     }
+     rhsctime2 -= getTime();
+     probDesc->getRHS(*f, wr,wr-wc[numP-1]);
+     rhsctime2 += getTime();
+     // Compute reduced vector
+     frsweeptime -= getTime();
+     int nr = 0;
+     for(int iP=0;iP<numP;iP++) {
+       int iL = iP*nDir + iDir;
+       if (localFWSSpace[iL]!=0) {
+         nr += localFWSSpace[iL]->n;
+         for(int j=0;j<localFWSSpace[iL]->n;j++) 
+           fr[localFWSSpace[iL]->irow+j] = *f * *(localFWSSpace[iL]->u[j]);
+       }
+     }
+     frsweeptime += getTime();
+
+     // Compute reduced matrix
+     Arsweeptime -= getTime();
+     for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
+     for(int jP=0;jP<numP;jP++) {
+       int jL = jP*nDir + iDir;
+       if (localFWSSpace[jL]!=0) for(int j=0;j<localFWSSpace[jL]->n;j++)  {
+         for(int kP=0;kP<numP;kP++) {
+           int kL = kP*nDir + iDir;
+           if (localFWSSpace[kL]!=0) for(int k=0;k<localFWSSpace[kL]->n;k++) {
+             std::pair<int,int> rowcol
+               (localFWSSpace[jL]->imode+j,localFWSSpace[kL]->imode+k); 
+             if (Kr.find(rowcol)==Kr.end()) fprintf(stderr,
+                         "rowcol %d %d not found\n",
+                localFWSSpace[jL]->imode+j,localFWSSpace[kL]->imode+k);
+             Ar[localFWSSpace[jL]->irow+j+
+             nr*(localFWSSpace[kL]->irow+k)] = 
+                 Kr[rowcol] - wr*wr*Mr[rowcol];
+               ScalarTypes::addComplex(Ar[localFWSSpace[jL]->irow+j+
+                 nr*(localFWSSpace[kL]->irow+k)], wr *Cr[rowcol]);
+               }
+             }
+         }
+     }
+     Arsweeptime += getTime();
+     // Factor and solve the reduced linear system
+     std::vector<int> ipiv(nr);
+     int info = 0;
+     Tgesv(nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
+
+     // Evaluate the residual
+     ressweeptime -= getTime();
+     (*a).zero();
+     for(int jP=0;jP<numP;jP++) {
+       int jL = jP*nDir + iDir;
+       if (localFWSSpace[jL]!=0) for(int j=0;j<localFWSSpace[jL]->n;j++)  {
+         int ir = localFWSSpace[jL]->irow+j;
+         (*a).linAdd(fr[ir],*(localFWSSpace[jL]->Ku[j]),
+                     -wr*wr*fr[ir],*(localFWSSpace[jL]->Mu[j]));
+         Scalar dc = 0.0;
+         ScalarTypes::addComplex(dc,wr*fr[ir]);
+         if (allOps->C_deriv) if (allOps->C_deriv[0])
+           (*a).linAdd(dc,*(localFWSSpace[jL]->Cu[j]));
+       }
+     }
+/* 
+     allOps->K->mult(*sol, *a);
+     allOps->M->mult(*sol, *b);
+     if (allOps->C_deriv) {
+        if (allOps->C_deriv[0]) allOps->C_deriv[0]->mult(*sol, *c);
+     } else (*c).zero(); 
+     (*a).linAdd(-wr*wr,*b);
+     for(int k=0;k<sol->size();k++) 
+         ScalarTypes::addComplex((*a)[k], wr * (*c)[k]);
+*/
+     (*a).linAdd(-1.0,*f);
+     forceAssemble(*a);
+     forceAssemble(*f);
+     Scalar nrma = *a * *a;
+     Scalar nrmf = *f * *f;
+     res[iDir] = sqrt(ScalarTypes::Real(nrma)/ScalarTypes::Real(nrmf));
+     ressweeptime += getTime();
+
+     solutiontime -= getTime();
+     if (verboseFlag) filePrint(stderr,"fresidual %d: %e\n",
+               iDir,res[iDir]);
+     // Compute the approximant vector
+     (*sol).zero();
+     for(int jP=0;jP<numP;jP++) {
+       int jL = jP*nDir + iDir;
+       if (localFWSSpace[jL]!=0) for(int j=0;j<localFWSSpace[jL]->n;j++)  {
+         (*sol).linAdd(fr[localFWSSpace[jL]->irow+j],
+                          *(localFWSSpace[jL]->u[j]));
+       }
+     }
+     if(domain->solInfo().isCoupled) scaleDisp(*sol);
+     solutiontime += getTime();
+     // Output the solution making sure the right frequency appears
+     domain->frequencies->push_front(wr);
+     if(domain->solInfo().isAcousticHelm()) {  
+       SPropContainer& sProps = geoSource->getStructProps();
+       for(int iProp=0;iProp<geoSource->getNumProps();iProp++) {
+         if(sProps[iProp].kappaHelm!=0.0 ||
+            sProps[iProp].kappaHelmImag!=0.0) {
+           complex<double> k1 = wr/sProps[iProp].soundSpeed;
+           sProps[iProp].kappaHelm = real(k1);
+           sProps[iProp].kappaHelmImag = imag(k1);
+         } 
+       }
+     }
+     outputtime -= getTime();
+     postProcessor->staticOutput(*sol, *rhs,(iwr==numS)&&(iDir==nDir-1));
+     outputtime += getTime();
+     domain->frequencies->pop_front();
+   }
+ }
+ fsweeptime += getTime();
+
+ time += getTime();
+
+ if (verboseFlag) {
+   filePrint(stderr,"Total time: %e\n",time/1e3);
+   filePrint(stderr,"----\n");
+   filePrint(stderr,"ROM construction time: %e\n",romctime/1e3);
+   filePrint(stderr,"transition time: %e\n",transitiontime/1e3);
+   filePrint(stderr,"solver time: %e in %d solves\n",
+             solvertime/1e3,rebuildscount);
+   filePrint(stderr,"one frequency space construction time: %e\n",
+             onefspacetime/1e3);
+   filePrint(stderr,"rhs construction time in one f: %e\n",rhsctime1/1e3);
+   filePrint(stderr,"rhs solve time: %e count: %d\n",rhstime/1e3,solvecount);
+   filePrint(stderr,"----\n");
+   filePrint(stderr,"Final frequency sweep time: %e\n",fsweeptime/1e3);
+   filePrint(stderr,"fr time in sweep: %e\n",frsweeptime/1e3);
+   filePrint(stderr,"Ar time in sweep: %e\n",Arsweeptime/1e3);
+   filePrint(stderr,"residual computation time in sweep: %e\n",ressweeptime/1e3);
+   filePrint(stderr,"rhs construction time in sweep: %e\n",rhsctime2/1e3);
+   filePrint(stderr,"solution construction time in sweep: %e\n",solutiontime/1e3);
+   filePrint(stderr,"output time: %e\n",outputtime/1e3);
+ }
+
+ if (dgpFlag) {
+   delete[] UU;
+   for(int i=0;i<maxLocalV+1;i++) delete temp_u[i];
+   delete[] temp_u;
+ }
+ delete f;
+ delete c;
+ delete b;
+ delete a;
+ delete sol;
+
+ for(int iP=0;iP<numP;iP++) for(int iDir=0;iDir<nDir;iDir++) {
+    int iL = iP*nDir + iDir;
+    if (localFWSSpace[iL]!=0) delete localFWSSpace[iL];
+ }
+ delete[] localFWSSpace;
+
+}

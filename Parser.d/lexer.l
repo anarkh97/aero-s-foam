@@ -126,6 +126,7 @@ TRAIL [a-zA-Z]*
 "LOCF"[a-zA-Z]*|"locf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
 "NODF"[a-zA-Z]*|"nodf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
 "GLOF"[a-zA-Z]*|"glof"[a-zA-Z]*    { yylval.ival = OutputInfo::Global; return OUTPUTFRAME; }
+"MATF"[a-zA-Z]*|"matf"[a-zA-Z]*    { yylval.ival = OutputInfo::Material; return OUTPUTFRAME; }
 
 "ON"|"on"|"On"                     { yylval.ival = 1; return SWITCH; }
 "OFF"|"off"|"Off"                  { yylval.ival = 0; return SWITCH; }
@@ -342,6 +343,8 @@ TRAIL [a-zA-Z]*
 
 "freqsweepa"|"FREQSWEEPA"            { return FREQSWEEPA; }
 
+"freqsweepaw"|"FREQSWEEPAW"            { return FREQSWEEPAW; }
+
 "freqsweep1"|"FREQSWEEP1"          { return FREQSWEEP1; }
 
 "freqsweep2"|"FREQSWEEP2"          { return FREQSWEEP2; }
@@ -364,7 +367,7 @@ TRAIL [a-zA-Z]*
 
 "KrylovGalProjection"|"krylovgalprojection"|"KRYLOVGALPROJECTION" { yylval.ival= 6; return RECONSALG; }
 
-"QRGalProjection"|"qrgalprojection"|"QRGALPROJECTION" { yylval.ival = 7; return RECONSALG; }
+"WCAWEGalProjection"|"wcawegalprojection"|"WCAWEGALPROJECTION" { yylval.ival = 7; return RECONSALG; }
 
 "padepoles"|"PADEPOLES"            { return PADEPOLES; }
 
@@ -1684,6 +1687,7 @@ TRAIL [a-zA-Z]*
 "USE_PQN"|"use_pqn"                       { return USEPQN; }
 
 "DO_CLUSTERING"|"do_clustering"           { return DOCLUSTERING; }
+"DO_ROWCLUSTERING"|"do_rowclustering"     { return DOROWCLUSTERING; }
 "ANGLE"|"angle" 			  { return ANGLE; }
 "CLUSTERSOLVER"|"clustersolver"           { return CLUSTERSOLVER; }
 "CRANDOM"|"crandom"                       { yylval.ival = 0; return CLUSTERSOLVERTYPE; }

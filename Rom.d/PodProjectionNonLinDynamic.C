@@ -171,7 +171,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
       if(j==0) filePrint(stderr, " ... Using Mass-normalized Basis    ...\n");
       fileName.append(".massorthonormalized");
     }
-    filePrint(stderr," ... Reading %.22s ...\n",fileName.c_str());
+    filePrint(stderr," ... Reading %s ...\n",fileName.c_str());
     BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
 
 
@@ -1142,7 +1142,7 @@ PodProjectionNonLinDynamic::initLocalBasis(Vector &q0)
     int oldLBI = localBasisId;
     localBasisId = selectLocalBasis(q0);
     if(oldLBI != localBasisId) 
-      std::cout << " selecting Basis " << localBasisId << std::endl;
+      std::cerr << " selecting local basis " << localBasisId << "               " << std::endl;
     GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
     int blockCols = domain->solInfo().localBasisSize[localBasisId];
     int startCol = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+localBasisId, 0);
@@ -1180,7 +1180,7 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
     geomState_Big->update(*refState_Big, dq_Big, 2); 
 
     if(j != localBasisId) { // if a new local basis has been selected, update the things
-      std::cout << "selecting local basis " << j << std::endl;
+      std::cerr << "\r selecting local basis " << j << "               " << std::endl;
       Vector vel_Big(NonLinDynamic::solVecInfo()),
              acc_Big(NonLinDynamic::solVecInfo());
 

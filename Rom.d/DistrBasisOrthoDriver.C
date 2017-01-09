@@ -12,6 +12,8 @@
 
 #include "FileNameInfo.h"
 #include "DistrBasisFile.h"
+#include "XPostInputFile.h"
+#include "RobCodec.h"
 
 #include <Utils.d/DistHelper.h>
 
@@ -99,14 +101,26 @@ DistrBasisOrthoDriver::solve() {
   int robBasisStateCount = 0;
   if(!domain->solInfo().snapfiPodRom.empty()) {
     for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
-      std::string fileName = BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS, i);
+      BasisFileId basisFileId(fileInfo, workload, BasisId::SNAPSHOTS, i);
+      std::string fileName = basisFileId.name();
+      if(!basisFileId.isBinary()) {
+        filePrint(stderr," ... Convert ASCII file to binary   ...\n");
+        convert_rob<Rom::XPostInputFile, Rom::BasisBinaryOutputFile>(fileName, fileName+".bin");
+        fileName = domain->solInfo().snapfiPodRom[i] = fileName+".bin";
+      }
       DistrBasisInputFile inputFile(fileName);
       snapBasisStateCount += 1+(inputFile.stateCount()-1)/skipFactor;
     }
   }
   if(!domain->solInfo().robfi.empty()) {
     for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
-      std::string fileName = BasisFileId(fileInfo, workload, BasisId::ROB, i);
+      BasisFileId basisFileId(fileInfo, workload, BasisId::ROB, i);
+      std::string fileName = basisFileId.name();
+      if(!basisFileId.isBinary()) {
+        filePrint(stderr," ... Convert ASCII file to binary   ...\n");
+        convert_rob<Rom::XPostInputFile, Rom::BasisBinaryOutputFile>(fileName, fileName+".bin");
+        fileName = domain->solInfo().robfi[i] = fileName+".bin";
+      }
       DistrBasisInputFile inputFile(fileName);
       robBasisStateCount += inputFile.stateCount();
     }
@@ -137,8 +151,8 @@ DistrBasisOrthoDriver::solve() {
     exit(-1);
   }
   if(domain->solInfo().normalize == 0 && !(domain->solInfo().type == 0 && domain->solInfo().subtype == 9)) {
-    filePrint(stderr, " *** ERROR: \"mnorma 0\" requires the MUMPS solver to be selected under STATICS when a decomposition is used.\n");
-    exit(-1);
+    domain->solInfo().type = 0;
+    domain->solInfo().subtype = 9;
   }
   // Assembling mass matrix
   MDDynamMat *dynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
@@ -160,17 +174,19 @@ DistrBasisOrthoDriver::solve() {
   solver.solve();
 
   // Output solution
+  std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
+  fileName.append(".orthonormalized");
   const int podVectorCount = domain_->solInfo().maxSizePodRom ?
                              std::min(domain_->solInfo().maxSizePodRom, singularValueCount) :
                              singularValueCount;
   {
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-    DistrBasisOutputFile outputFile(BasisFileId(fileInfo, workload, BasisId::POD),
+    DistrBasisOutputFile outputFile(fileName,
                                     nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
                                     comm_, false);
 
     if(domain->solInfo().normalize <= 0)
-      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", BasisFileId(fileInfo, workload, BasisId::POD).name().c_str());
+      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));
       const GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
@@ -183,7 +199,7 @@ DistrBasisOrthoDriver::solve() {
   // Read back in output file to perform renormalization
   DistrVecBasis basis;
   {
-    DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::POD));
+    DistrBasisInputFile inputFile(fileName);
     DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
     basis.dimensionIs(podVectorCount, decDomain->masterSolVecInfo()); 
     int i = 0;
@@ -230,8 +246,6 @@ DistrBasisOrthoDriver::solve() {
   // Compute and output identity normalized basis if using new method
   if(domain->solInfo().normalize == 1) {
     MGSVectors(normalizedBasis);
-    std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
-    fileName.append(".orthonormalized");
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputOrthoNormalFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
     filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());

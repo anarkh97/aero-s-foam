@@ -387,9 +387,6 @@ public:
    complex<double> alpha = f.alpha(r);
 
    complex<double> wdetb = w*det*beta*alpha*alpha;
-//fprintf(stderr,"haha %f %f %f %f %f %f\n",real(beta*alpha*alpha),imag(beta*alpha*alpha),
-//real(beta),imag(beta), real(alpha),imag(alpha)
-//);
   
    for(int j=0;j<n;j++)
      for(int i=j;i<n;i++)

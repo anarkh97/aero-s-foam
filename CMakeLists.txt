@@ -82,6 +82,10 @@ if(AERO)
    FIND_PACKAGE(MPI REQUIRED)
 endif(AERO)
 
+if(ASYNCHRONOUS_IO)
+  add_definitions(-D_AEROS_ASYNCHRONOUS_IO)
+endif(ASYNCHRONOUS_IO)
+
 IF(UNIX)
   IF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
     add_definitions(-D__LINUX)
@@ -483,6 +487,24 @@ set_target_properties(robcodec
                       DEBUG_OUTPUT_NAME rob.debug)
 
 target_link_libraries(robcodec Rom Util)
+
+add_executable(xpostcodec Rom.d/XPostCodec.C)
+set_target_properties(xpostcodec
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME xpo
+                      DEBUG_OUTPUT_NAME xpo.debug)
+
+target_link_libraries(xpostcodec Rom Util)
+
+add_executable(xpostcodec6 Rom.d/XPostCodec6.C)
+set_target_properties(xpostcodec6
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME xpo6
+                      DEBUG_OUTPUT_NAME xpo6.debug)
+
+target_link_libraries(xpostcodec6 Rom Util)
 
 add_executable(errorcodec Rom.d/ErrorCodec.C)
 set_target_properties(errorcodec

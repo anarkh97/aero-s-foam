@@ -409,6 +409,7 @@ class Element {
                                       double *coefs, double *frame);
         virtual double * setCompositeData2(int _type, int nlays, double *lData,
                                            double *coefs, CoordSet &cs, double theta);
+        virtual void getCFrame(CoordSet& cs, double cFrame[3][3]) const;
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
         virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1);

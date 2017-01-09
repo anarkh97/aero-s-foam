@@ -222,7 +222,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
     if(domain->solInfo().doEigSweep) x = this->outEigCount++;
   }
   else time = eigV;
-  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
+  if (domain->solInfo().loadcases.size() > 0 && !domain->solInfo().doFreqSweep) time = domain->solInfo().loadcases.front();
 
 // RT - serialize the OUTPUT,  PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT
@@ -255,6 +255,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
          oinfo[iInfo].type == OutputInfo::ModalStiffness ||
          oinfo[iInfo].type == OutputInfo::ModalDamping ||
          oinfo[iInfo].type == OutputInfo::ModalDynamicMatrix ||
+         oinfo[iInfo].type == OutputInfo::ModalMatrices ||
          oinfo[iInfo].type == OutputInfo::AeroForce) { 
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); } 
@@ -279,6 +280,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
          oinfo[iInfo].type != OutputInfo::ModalStiffness &&
          oinfo[iInfo].type != OutputInfo::ModalDamping &&
          oinfo[iInfo].type != OutputInfo::ModalDynamicMatrix &&
+         oinfo[iInfo].type != OutputInfo::ModalMatrices &&
          oinfo[iInfo].type != OutputInfo::AeroForce) {
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -686,6 +688,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::ModalStiffness:
       case OutputInfo::ModalDamping:
       case OutputInfo::ModalDynamicMatrix:
+      case OutputInfo::ModalMatrices:
         break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented \n", iOut);

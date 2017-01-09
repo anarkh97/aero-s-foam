@@ -52,7 +52,7 @@ public:
                   alphaD = 0.0; betaD = 0.0;
    }
    int nFreqSweepRHS;
-   enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, QRGalProjection };
+   enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, WCAWEGalProjection };
    AdaptiveSweepParams adaptSweep;
    bool isAdaptSweep;
    int freqSweepMethod;
@@ -298,18 +298,6 @@ struct SolverInfo {
    std::map<int,SweepParams> sweepParams;
    SweepParams* getSweepParams() { return &(sweepParams[curSweepParam]); }
    bool doFreqSweep,doEigSweep;
-/*
-   int nFreqSweepRHS;
-   enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, QRGalProjection };
-   AdaptiveSweepParams adaptSweep;
-   bool isAdaptSweep;
-   int freqSweepMethod;
-   int padeL, padeM, padeN;
-   bool pade_pivot;
-   double pade_tol;
-   bool pade_poles;
-   double pade_poles_sigmaL, pade_poles_sigmaU;
-*/
 
    bool test_ulrich;
    int modeFilterFlag;
@@ -423,7 +411,8 @@ struct SolverInfo {
    int  svdBlockSize;
    bool clusterSubspaceAngle;
    int clustering;
-   int  solverTypeCluster; // 0: Random, 1: K-means 2: Sparse Supspace Clustering
+   int rowClustering;
+   int solverTypeCluster; // 0: Random, 1: K-means 2: Sparse Supspace Clustering
    int use_nmf;
    int nmfNumROBDim;
    int nmfDelROBDim;
@@ -794,6 +783,7 @@ struct SolverInfo {
                   svdBlockSize       = 64;
 		  clusterSubspaceAngle = false;
                   clustering         = 0;
+                  rowClustering      = 0;
                   solverTypeCluster  = 1; // K-means
                   use_nmf            = 0;
                   nmfNumROBDim       = 1;

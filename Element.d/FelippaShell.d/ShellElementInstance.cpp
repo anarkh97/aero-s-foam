@@ -13,6 +13,11 @@ ShellElementTemplate<double,Membrane,Bending> \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
+::andesfrm(int elm, double *x, double *y, double *z, double *aframe, \
+           double *cframe); \
+template \
+void \
+ShellElementTemplate<double,Membrane,Bending> \
 ::andesgf(int elm, double *x, double *y, double *z, double *_gravityForce, \
           double *gamma, int gravflg, double rhoh); \
 template \

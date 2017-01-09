@@ -611,6 +611,16 @@ Compo3NodeShell::setCompositeData2(int _type, int nlays, double *lData,
  return cFrame;
 }
 
+void
+Compo3NodeShell::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(Compo3NodeShell::cFrame) {
+    fprintf(stderr," *** WARNING: Compo3NodeShell::getCFrame is not implemented\n");
+  }
+  cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+  cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+}
+
 FullSquareMatrix
 Compo3NodeShell::stiffness(CoordSet &cs, double *d, int flg)
 {

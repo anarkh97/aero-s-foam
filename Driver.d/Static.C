@@ -1535,7 +1535,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     else if(printFlag == 1 && stressAllElems == 0) stressAllElems = new Vector(sizeSfemStress,0.0);
     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
 
-    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
+    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe != OutputInfo::Global)) {
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
@@ -1543,7 +1543,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       }
       if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
-      if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullM(maxNodesPerElement,9);
+      if(p_elstress == 0 && oframe != OutputInfo::Global) p_elstress = new FullM(maxNodesPerElement,9);
     }
 
     if(avgnum != 0) {
@@ -1596,8 +1596,8 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       // transform displacements from DOF_FRM to basic coordinates
       transformVectorInv(*elDisp, iele);
 
-      // transform non-invariant stresses/strains from basic frame to DOF_FRM
-      if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12)) && stressIndex != 31) {
+      // transform non-invariant stresses/strains from basic frame to DOF_FRM or CFRAME
+      if(oframe != OutputInfo::Global && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))) {
 
         // first, calculate stress/strain tensor for each node of the element
         p_elstress->zero();
@@ -1606,8 +1606,8 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
                                        *elDisp, strInd, surface,
                                        elemNodeTemps.data());
 
-        // second, transform stress/strain tensor to nodal frame coordinates
-        transformStressStrain(*p_elstress, iele);
+        // second, transform stress/strain tensor to nodal or material frame coordinates
+        transformStressStrain(*p_elstress, iele, oframe);
 
         // third, extract the requested stress/strain value from the stress/strain tensor
         for (iNode = 0; iNode < NodesPerElement; ++iNode) {
@@ -1759,7 +1759,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
     if(elDisp == 0) elDisp = new ComplexVector(maxNumDOFs,0.0);
 
 
-    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
+    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe != OutputInfo::Global)) {
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
@@ -1767,7 +1767,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       }
       if(elstress == 0) elstress = new ComplexVector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
-      if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullMC(maxNodesPerElement,9);
+      if(p_elstress == 0 && oframe != OutputInfo::Global) p_elstress = new FullMC(maxNodesPerElement,9);
     }
 
     if(avgnum != 0) {
@@ -1818,8 +1818,8 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       // transform displacements from DOF_FRM to basic coordinates
       transformVectorInv(*elDisp, iele);
 
-      // transform non-invariant stresses/strains from basic frame to DOF_FRM
-      if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))) {
+      // transform non-invariant stresses/strains from basic frame to DOF_FRM or CFRAME
+      if(oframe != OutputInfo::Global && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))) {
 
         // first, calculate stress/strain tensor for each node of the element
         p_elstress->zero();
@@ -1828,8 +1828,8 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
                                        *elDisp, strInd, surface,
                                        elemNodeTemps.data());
 
-        // second, transform stress/strain tensor to nodal frame coordinates
-        transformStressStrain(*p_elstress, iele);
+        // second, transform stress/strain tensor to nodal or material frame coordinates
+        transformStressStrain(*p_elstress, iele, oframe);
 
         // third, extract the requested stress/strain value from the stress/strain tensor
         for (iNode = 0; iNode < NodesPerElement; ++iNode) {
@@ -2772,27 +2772,87 @@ Domain::transformElementSensitivityInv(double *data, int inode, int numNodes, bo
 }
 
 void
-Domain::transformStressStrain(FullM &mat, int iele)
+Domain::transformStressStrain(FullM &mat, int iele, OutputInfo::FrameType oframe)
 {
-  // transform element stress or strain tensors from basic to DOF_FRM coordinates
-  if(domain->solInfo().basicDofCoords) return;
-  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
-  int *nn = packedEset[iele]->nodes();
-  for(int k=0; k<numNodes; ++k)
-    transformMatrix(mat[k], nn[k]);
-  delete [] nn;
+  // transform element stress or strain tensors from basic to DOF_FRM or CFRAME coordinates
+  switch(oframe) {
+    default:
+    case OutputInfo::Local: {
+      if(domain->solInfo().basicDofCoords) return;
+      int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+      int *nn = packedEset[iele]->nodes();
+      for(int k=0; k<numNodes; ++k)
+        transformMatrix(mat[k], nn[k]);
+      delete [] nn;
+    } break;
+    case OutputInfo::Global: 
+      break;
+    case OutputInfo::Material: {
+#ifdef USE_EIGEN3
+      double cFrame[3][3];
+      packedEset[iele]->getCFrame(nodes, cFrame);
+      Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(&cFrame[0][0]);
+      int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+      for(int k=0; k<numNodes; ++k) {
+        Eigen::Matrix<double,3,3> M;
+        M << mat[k][0], mat[k][3], mat[k][5],
+             mat[k][3], mat[k][1], mat[k][4],
+             mat[k][5], mat[k][4], mat[k][2];
+
+        M = T*M*T.transpose();
+
+        mat[k][0] = M(0,0);
+        mat[k][1] = M(1,1);
+        mat[k][2] = M(2,2);
+        mat[k][3] = M(0,1);
+        mat[k][4] = M(1,2);
+        mat[k][5] = M(0,2);
+      }
+#endif
+    } break;
+  }
 }
 
 void
-Domain::transformStressStrain(FullMC &mat, int iele)
+Domain::transformStressStrain(FullMC &mat, int iele, OutputInfo::FrameType oframe)
 {
-  // transform element stress or strain tensors from basic to DOF_FRM coordinates
-  if(domain->solInfo().basicDofCoords) return;
-  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
-  int *nn = packedEset[iele]->nodes();
-  for(int k=0; k<numNodes; ++k)
-    transformMatrix(mat[k], nn[k]);
-  delete [] nn;
+  // transform element stress or strain tensors from basic to DOF_FRM or CFRAME coordinates
+  switch(oframe) {
+    default:
+    case OutputInfo::Local: {
+      if(domain->solInfo().basicDofCoords) return;
+      int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+      int *nn = packedEset[iele]->nodes();
+      for(int k=0; k<numNodes; ++k)
+        transformMatrix(mat[k], nn[k]);
+      delete [] nn;
+    } break;
+    case OutputInfo::Global:
+      break;
+    case OutputInfo::Material: {
+#ifdef USE_EIGEN3
+      double cFrame[3][3];
+      packedEset[iele]->getCFrame(nodes, cFrame);
+      Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(&cFrame[0][0]);
+      int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+      for(int k=0; k<numNodes; ++k) {
+        Eigen::Matrix<complex<double>,3,3> M;
+        M << mat[k][0], mat[k][3], mat[k][5],
+             mat[k][3], mat[k][1], mat[k][4],
+             mat[k][5], mat[k][4], mat[k][2];
+
+        M = T*M*T.transpose();
+
+        mat[k][0] = M(0,0);
+        mat[k][1] = M(1,1);
+        mat[k][2] = M(2,2);
+        mat[k][3] = M(0,1);
+        mat[k][4] = M(1,2);
+        mat[k][5] = M(0,2);
+      }
+#endif
+    } break;
+  }
 }
 
 void
@@ -3019,7 +3079,7 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
                int dofj = unconstrNum[dofs[j]];
                if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
                for(int xyz = 0; xyz < 3; ++xyz) { 
-                 stifWRTsha->add(dofk,dofj,dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][node2][xyz]);
+                 stifWRTsha->addCoef(dofk,dofj,dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][node2][xyz]);
                }
              }
              for(int j = 0; j < DofsPerElement; ++j) {

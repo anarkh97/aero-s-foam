@@ -96,10 +96,8 @@ class StaticSolver
                   Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
                   Scalar **&VhK_arubber_lV, Scalar **&VhK_arubber_mV,
                   double w, double deltaw);
-     void qrGalProjection(int,int,VecType *sol, VecType **u, VecType **v,
-                        Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
-                        double w, double deltaw);
      void adaptWindowSweep();
+     void adaptSweep();
 
      void fourier(VecType *sol, VecType **u, double *h, double x);
      void stochStress(VecType *sol);

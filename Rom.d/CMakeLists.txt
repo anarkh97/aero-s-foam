@@ -3,6 +3,7 @@ ADD_LIBRARY( Rom
   BasisId.C
   BasisFileStream.C
   BasisInputFile.C
+  XPostInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
   PositiveDualBasisDriver.C
@@ -28,6 +29,8 @@ ADD_LIBRARY( Rom
   DistrNonnegativeMatrixFactorization.C
   DistrSnapshotClusteringDriver.C
   DistrSnapshotClusteringSolver.C
+  DistrSnapshotRowClusteringDriver.C
+  DistrSnapshotRowClusteringSolver.C
   DistrSvdOrthogonalization.C
   DistrVecBasis.C
   DistrVecNodeDof6Conversion.C

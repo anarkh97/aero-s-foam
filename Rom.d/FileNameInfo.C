@@ -138,4 +138,37 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
   return builder.str();
 }
 
+bool
+BasisFileId::isBinary() const
+{
+  const char* modeFileName = name_.c_str();
+
+  // Open file containing mode shapes and frequencies.
+  FILE *f;
+  if((f=fopen(modeFileName,"r"))==(FILE *) 0 ){
+    std::cerr << " *** ERROR: Cannot open " << name_ << ", exiting...\n";
+    exit(0);
+  }
+  fflush(f);
+
+  // Read in number of modes and number of nodes
+  char buf[80];
+  char *str = fgets(buf, sizeof buf, f);
+  bool b;
+  if(strncmp("Vector", buf, 6) == 0) {
+    b = false;
+  }
+  else {
+    int numModes;
+    int count = sscanf(buf, "%d", &numModes);
+    b = (count != 1);
+  }
+  int numNodes;
+  int count = fscanf(f, "%d", &numNodes);
+  b = b || (count != 1);
+
+  // If the file is not in one of the two valid ascii formats (see manual) then it is assumed to be binary
+  return b;
+}
+
 } /* end namespace Rom */

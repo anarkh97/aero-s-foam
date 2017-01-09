@@ -861,7 +861,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     if(domain->solInfo().doEigSweep) x = outEigCount++; 
   }
   else time = eigV;
-  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
+  if (domain->solInfo().loadcases.size() > 0 && !domain->solInfo().doFreqSweep) time = domain->solInfo().loadcases.front();
 
   // open output files
   if(x == domain->solInfo().initialTimeIndex && firstOutput) geoSource->openOutputFiles();
@@ -1211,6 +1211,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::ModalStiffness:
         case OutputInfo::ModalDamping:
         case OutputInfo::ModalDynamicMatrix:
+        case OutputInfo::ModalMatrices:
           break;
         default:
           filePrint(stderr," *** WARNING: Output case %d not implemented \n", i);

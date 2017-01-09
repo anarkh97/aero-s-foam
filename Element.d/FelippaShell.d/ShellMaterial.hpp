@@ -48,8 +48,7 @@ class ShellMaterial
     virtual void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
                                                                 doublereal *eframe, int gp) = 0;
 
-  protected:
-    Eigen::Matrix<doublereal,3,3>
+    static Eigen::Matrix<doublereal,3,3>
     andesinvt(doublereal *_eframe, doublereal *_aframe, doublereal thetaf);
 };
 

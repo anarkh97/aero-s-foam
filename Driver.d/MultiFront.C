@@ -242,7 +242,6 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFla
    }
  }
 
-//fprintf(stderr,"haha MultiFront::MultiFront %d %d %d\n",int(have_fsi),int(reallyHaveFSI),
 //int(fsGlFlag));
  if (reallyHaveFSI) fsGlFlag = false;
  if (fsGlFlag) {

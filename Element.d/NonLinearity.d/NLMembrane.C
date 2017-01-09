@@ -460,6 +460,18 @@ NLMembrane::setCompositeData(int, int, double *, double *coefs, double *frame)
 }
 
 void
+NLMembrane::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(NLMembrane::cFrame) {
+    fprintf(stderr," *** WARNING: NLMembrane::getCFrame is not implemented\n");
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
+}
+
+void
 NLMembrane::setMaterial(NLMaterial *m)
 {
   if(material) delete material;

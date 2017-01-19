@@ -5919,7 +5919,9 @@ ScalePosCoords:
    ;
 
 NodePosCoords:
-   NODEPOSCOORDS StringList
+   NODEPOSCOORDS NewLine
+   { }
+   | NodePosCoords StringList NewLine
    { domain->solInfo().NodeTrainingFiles.push_back(std::string($2.v[0]));
      for(int i=1; i<$2.nval; ++i) domain->solInfo().MassOrthogonalBasisFiles.push_back(std::string($2.v[i])); }
    ;

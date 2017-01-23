@@ -24,6 +24,7 @@
 #include <Math.d/CuCSparse.h>
 
 #include <list>
+#include <set>
 
 extern int verboseFlag;
 
@@ -1503,6 +1504,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
   // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
+  // avgnum = 3 --> only include elements whose nodes are in the ouputGroup in averaging
   int avgnum = oinfo[fileNumber].averageFlg;
 
   double ylayer = oinfo[fileNumber].ylayer;
@@ -1519,6 +1521,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
 
   int k;
   int iele;
+  int iNode;
 
   double *nodalTemperatures = 0;
   // Either get the nodal temperatures from the input file or
@@ -1528,7 +1531,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
 
   if(printFlag != 2) {
     // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
-    if(avgnum != 0) {
+    if(avgnum > 0) {
       if(stress == 0) stress = new Vector(numNodes,0.0);
       if(weight == 0) weight = new Vector(numNodes,0.0);
     }
@@ -1546,7 +1549,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       if(p_elstress == 0 && oframe != OutputInfo::Global) p_elstress = new FullM(maxNodesPerElement,9);
     }
 
-    if(avgnum != 0) {
+    if(avgnum > 0) {
       // zero the vectors
       stress->zero();
       weight->zero();
@@ -1570,6 +1573,18 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
           (avgnum == 2 && packedEset[iele]->getElementType() == 7) ||
           (avgnum == 2 && packedEset[iele]->getElementType() == 1)) continue;
 
+      // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+      if (avgnum == 3) {
+        int groupId = oinfo[fileNumber].groupNumber;
+        if (groupId > 0) {
+          std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+          std::set<int>::iterator it;
+          for (iNode = 0; iNode < NodesPerElement; ++iNode)
+            if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+          if(it == groupNodes.end()) continue;
+        }
+      }
+
       elDisp->zero();
       elstress->zero();
       elweight->zero();
@@ -1585,7 +1600,6 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
         }
       }
 
-      int iNode;
       for (iNode = 0; iNode < NodesPerElement; ++iNode) {
         if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp || str_therm_option == 2)
           elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
@@ -1626,7 +1640,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
                                       elemNodeTemps.data(), ylayer, zlayer, avgnum);
       }
 
-      if(avgnum != 0) {
+      if(avgnum > 0) {
         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
         for(k = 0; k < NodesPerElement; ++k) {
           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
@@ -1668,7 +1682,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
 
   // AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
   // ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
-  if(avgnum == 1 || avgnum == 2) {
+  if(avgnum > 0) {
 
     if(printFlag != 2) {
     // assemble stress vector
@@ -1724,6 +1738,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
   // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
+  // avgnum = 3 --> only include elements whose nodes are in the ouputGroup in averaging
   int avgnum = oinfo[fileNumber].averageFlg;
 
   double ylayer = oinfo[fileNumber].ylayer;
@@ -1736,6 +1751,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
 
   int k;
   int iele;
+  int iNode;
 
   double *nodalTemperatures = 0;
   // Either get the nodal temperatures from the input file or
@@ -1794,6 +1810,18 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
           (avgnum == 2 && packedEset[iele]->getElementType() == 7) ||
           (avgnum == 2 && packedEset[iele]->getElementType() == 1)) continue;
 
+      // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+      if (avgnum == 3) { 
+        int groupId = oinfo[fileNumber].groupNumber;
+        if (groupId > 0) {
+          std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+          std::set<int>::iterator it;
+          for (iNode = 0; iNode < NodesPerElement; ++iNode)
+            if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+          if(it == groupNodes.end()) continue;
+        } 
+      }
+
       elDisp->zero();
       elstress->zero();
       elweight->zero();
@@ -1807,7 +1835,6 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
       }
 
-      int iNode;
       for (iNode = 0; iNode < NodesPerElement; ++iNode) {
         if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
           elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
@@ -1848,7 +1875,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
                                       elemNodeTemps.data(), ylayer, zlayer, avgnum);
       }
 
-      if(avgnum != 0) {
+      if(avgnum > 0) {
         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
         for(k = 0; k < NodesPerElement; ++k) {
           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
@@ -1888,7 +1915,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
 
   // AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
   // ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
-  if(avgnum == 1 || avgnum == 2) {
+  if(avgnum > 0) {
 
     if(printFlag != 2) {
     // assemble stress vector
@@ -1960,7 +1987,7 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
   // thermal = 1
   // mechanical = 2
 
-  int j,k;
+  int j,k,iNode;
   // ... OUTPUT FILE field width
   int w = oinfo[fileNumber].width;
   // ... OUTPUT FILE precision
@@ -1998,13 +2025,24 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 
   for(iele=0; iele<numele; ++iele) {
 
+    int NodesPerElement = elemToNode->num(iele);
+    packedEset[iele]->nodes(nodeNumbers);
+
+    // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+    if (avgnum == 3) {
+      int groupId = oinfo[fileNumber].groupNumber;
+      if (groupId > 0) {
+        std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+        std::set<int>::iterator it;
+        for (iNode = 0; iNode < NodesPerElement; ++iNode)
+          if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+        if(it == groupNodes.end()) continue;
+      }
+    }
+
     elDisp->zero();
     p_elstress->zero();
     elweight->zero();
-
-    int NodesPerElement = elemToNode->num(iele);
-
-    packedEset[iele]->nodes(nodeNumbers);
 
 // ... DETERMINE ELEMENT DISPLACEMENT VECTOR
 
@@ -2018,7 +2056,6 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
       }
     }
 
-    int iNode;
     for(iNode=0; iNode<NodesPerElement; ++iNode) {
       if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp || str_therm_option == 2)
         elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
@@ -2057,7 +2094,7 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
 // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
 
-  if(avgnum == 1 || avgnum == 2) {
+  if(avgnum > 0) {
 
     if(n == -1) {
       for(k=0; k<numNodes; ++k) {

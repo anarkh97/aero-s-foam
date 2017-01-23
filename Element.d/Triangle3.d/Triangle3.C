@@ -643,16 +643,14 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 
   //Jacobian evaluation
   Eigen::Matrix<double,3,6> dStressdDisp;
-  if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
-    dStressdDisp.setZero();
-    vms4WRTdisp(x, y, q.data(), 
-                dStressdDisp.data(), 
-                prop->E, prop->nu); 
-    dStdDisp.copy(dStressdDisp.data());
+  dStressdDisp.setZero();
+  vms4WRTdisp(x, y, q.data(), 
+              dStressdDisp.data(), 
+              prop->E, prop->nu); 
+  dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
+  if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
 #endif
-  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
   std::cerr << " ... Error! Triangle3::getVonMisesDisplacementSensitivity needs Eigen library\n";
   exit(-1);

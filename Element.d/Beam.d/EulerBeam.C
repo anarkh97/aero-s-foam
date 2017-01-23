@@ -997,7 +997,7 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         break;
       }
 
-      case 1:
+      case 1: case 3:
       {
        if (strInd == 6) {
 
@@ -1144,7 +1144,7 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
   Eigen::Matrix<double,2,12> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
 
-  if(avgnum == 0 || avgnum == 1) {
+  if(avgnum == 0 || avgnum == 1 || avgnum == 3) {
     dStressdDisp.setZero();
     Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,25,1> >(dconst.data()).segment(8,9); // extract eframe
     vms6WRTdisp(prop->A, prop->E, 1, dStressdDisp.data(), 1, 2, 7,

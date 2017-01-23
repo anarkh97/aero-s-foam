@@ -861,7 +861,7 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         break;
       }
 
-      case 1: // nodalfull
+      case 1: case 3: // nodalfull or nodalpartialgroup
       {
         if (strInd == 6) { 
 
@@ -1010,7 +1010,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   Eigen::Matrix<double,2,12> dStressdDisp;
   dStressdDisp.setZero();
   Eigen::Matrix<double,7,3> stress;
-  if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
+  if(avgnum == 1 || avgnum == 0 || avgnum == 3) { // ELEMENTAL or NODALFULL or NODALPARTIALGROUP
 
     dStressdDisp.setZero();
     Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,28,1> >(dconst.data()).segment(8,9); // extract eframe
@@ -1092,7 +1092,7 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
   Eigen::Matrix<double,2,6> dStressdx;
   Eigen::Matrix<double,7,3> stress;
 
-  if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
+  if(avgnum == 1 || avgnum == 0 || avgnum == 3) { // ELEMENTAL or NODALFULL or NODALPARTIALGROUP
 
     Simo::Jacobian<double,TimoshenkoBeamStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
     if(elDisp.norm() == 0) dStressdx.setZero();

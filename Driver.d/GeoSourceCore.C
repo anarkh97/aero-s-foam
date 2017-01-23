@@ -1399,19 +1399,10 @@ void GeoSource::setUpData(int topFlag)
       for(int k = 0; k < domain->getNumSurfs(); k++) {
         if((*SurfEntities)[k]->ID()-1 == *j) {
           for(int l = 0; l < (*SurfEntities)[k]->GetnNodes(); ++l) 
-            nodeGroup[i->first].push_back((*SurfEntities)[k]->GetPtrGlNodeIds()[l]);
+            nodeGroup[i->first].insert((*SurfEntities)[k]->GetPtrGlNodeIds()[l]);
         }
       }
     }
-  }
-
-  // verify node groups
-  map<int, list<int> >::iterator ngIter = nodeGroup.begin();
-
-  while (ngIter != nodeGroup.end())   {
-    nodeGroup[ngIter->first].sort();
-    nodeGroup[ngIter->first].unique();
-    ngIter++;
   }
 
   for (int iOut = 0; iOut < numOutInfo; iOut++) {
@@ -2211,7 +2202,7 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
   if (oinfo[fileNum].groupNumber > 0)  {
 
     int group = oinfo[fileNum].groupNumber;
-    std::list<int>::iterator it = nodeGroup[group].begin();
+    std::set<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
       int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
@@ -2254,7 +2245,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
           int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
@@ -2297,7 +2288,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
           int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
@@ -3907,7 +3898,7 @@ void GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
   }
 
   int avgnum = oinfo[fileNumber].averageFlg;
-  if (avgnum == 1 || avgnum == 2)  {
+  if (avgnum > 0)  {
     if (oinfo[fileNumber].groupNumber > 0)  {
       char ng[80];
       sprintf(ng, "NODALGROUP %d: NODENUMBER X0  Y0  Z0  RESULT-1 RESULT-2 ... RESULT-N", oinfo[fileNumber].groupNumber);
@@ -4769,16 +4760,16 @@ void GeoSource::makeEframe(int ele, int refnode, double *d)
 }
 
 
-void GeoSource::setGroupAttribute(int a, int g)
+void GeoSource::setAttributeGroup(int a, int g)
 {
- group[g].attributes.push_back(a);
+  group[g].attributes.push_back(a);
 }
 
 //-------------------------------------------------------
 
 void GeoSource::setNodeGroup(int nn, int id)  {
 
-  nodeGroup[id].push_back(nn);
+  nodeGroup[id].insert(nn);
 }
 
 //-------------------------------------------------------

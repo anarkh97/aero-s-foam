@@ -6,7 +6,7 @@
 #endif 
 #include <cmath>
 #include <Utils.d/dbg_alloca.h>
-
+#include <set>
 #include <climits> //--- UH
 
 #include <Element.d/Element.h>
@@ -2293,6 +2293,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
   if(elemToNode==0) elemToNode = new Connectivity(&packedEset);
 
   // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
+  // avgnum = 3 --> only include elements whose nodes are in the ouputGroup in averaging
   int avgnum = oinfo[fileNumber].averageFlg;
 
   // ylayer and zlayer are needed when calculating the axial stress/strain in a beam element
@@ -2308,7 +2309,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
   int k;
   int surface = oinfo[fileNumber].surface;
 
-  int iele;
+  int iele, iNode;
   GenVector<Scalar> *elstress = new GenVector<Scalar>(maxNumNodes);
   GenVector<double> *elweight = new GenVector<double>(maxNumNodes);
   GenVector<Scalar> *elDisp = new GenVector<Scalar>(maxNumDOFs);
@@ -2325,12 +2326,24 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
         (avgnum == 2 && packedEset[iele]->getElementType() == 7) ||
         (avgnum == 2 && packedEset[iele]->getElementType() == 1)) continue;
 
+    int NodesPerElement = packedEset[iele]->numNodes();
+    packedEset[iele]->nodes(nodeNumbers);
+
+    // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+    if (avgnum == 3) {
+      int groupId = oinfo[fileNumber].groupNumber;
+      if (groupId > 0) {
+        std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+        std::set<int>::iterator it;
+        for (iNode = 0; iNode < NodesPerElement; ++iNode)
+          if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+        if(it == groupNodes.end()) continue;
+      }
+    }
+
     elstress->zero();
     elweight->zero();
     elDisp->zero();
-
-    int NodesPerElement = packedEset[iele]->numNodes();
-    packedEset[iele]->nodes(nodeNumbers);
 
     if(!isFluid(iele)) {
 
@@ -2342,7 +2355,6 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
           (*elDisp)[k] = Bcx((*allDOFs)[iele][k]);
       }
 
-      int iNode;
       if(packedEset[iele]->getProperty()) {
         for(iNode=0; iNode<NodesPerElement; ++iNode) {
           if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
@@ -2425,6 +2437,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
   if(elemToNode==0) elemToNode = new Connectivity(&packedEset);
 
   // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
+  // avgnum = 3 --> only include elements whose nodes are in the ouputGroup in averaging
   int avgnum = oinfo[fileNumber].averageFlg;
 
   // ylayer and zlayer are needed when calculating the axial stress/strain in a beam element
@@ -2440,7 +2453,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
   int k;
   int surface = oinfo[fileNumber].surface;
 
-  int iele;
+  int iele, iNode;
   GenVector<Scalar> *elstress = new GenVector<Scalar>(maxNumNodes);
   GenVector<double> *elweight = new GenVector<double>(maxNumNodes);
   GenVector<Scalar> *elDisp = new GenVector<Scalar>(maxNumDOFs);
@@ -2459,16 +2472,27 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
         (avgnum == 2 && packedEset[iele]->getElementType() == 7) ||
         (avgnum == 2 && packedEset[iele]->getElementType() == 1)) continue;
 
+    int NodesPerElement = elemToNode->num(iele);
+    packedEset[iele]->nodes(nodeNumbers);
+
+    // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+    if (avgnum == 3) {
+      int groupId = oinfo[fileNumber].groupNumber;
+      if (groupId > 0) {
+        std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+        std::set<int>::iterator it;
+        for (iNode = 0; iNode < NodesPerElement; ++iNode)
+          if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+        if(it == groupNodes.end()) continue;
+      }
+    }
+
     elstress->zero();
     elweight->zero();
     elDisp->zero();
 
     allCorot[iele]->extractDeformations(*gs, nodes, elDisp->data(), flag);
 
-    int NodesPerElement = elemToNode->num(iele);
-    packedEset[iele]->nodes(nodeNumbers);
-
-    int iNode;
     if(flag == 1 && packedEset[iele]->getProperty()) {
       for(iNode=0; iNode<NodesPerElement; ++iNode) {
         if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)

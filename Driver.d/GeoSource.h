@@ -7,6 +7,7 @@
 #include <list>
 #include <vector>
 #include <map>
+#include <set>
 
 #include <Element.d/Element.h>
 #include <Utils.d/OutputInfo.h>
@@ -258,7 +259,7 @@ class GeoSource {
   Decomposition *optDec, *optDecCopy;
 
   std::map<int, Group> group;
-  std::map<int, std::list<int> > nodeGroup;
+  std::map<int, std::set<int> > nodeGroup;
   std::map<int, std::list<int> > surfaceGroup;
 
   std::map<int, AttributeToElement> atoe;
@@ -655,12 +656,13 @@ public:
 
   void makeEframe(int ele, int refnode, double *d);
 
-// Group stuff
-   void setGroupAttribute(int a, int g);
-   void setNodeGroup(int nn, int id);
-   void setSurfaceGroup(int sn, int id);
+  // Group stuff
+  void setAttributeGroup(int a, int g);
+  void setNodeGroup(int nn, int id);
+  std::set<int> & getNodeGroup(int id) { return nodeGroup[id]; }
+  void setSurfaceGroup(int sn, int id);
 
-// Sfem stuff
+  // Sfem stuff
   enum Rprop { A, E, NU, RHO, T, KX, KY, KZ }; // sfem
   void setGroupRandomProperty(int g, Rprop prop_type, double mean, double std_dev);
   void printGroups();

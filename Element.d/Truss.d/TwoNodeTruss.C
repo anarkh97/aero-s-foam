@@ -598,7 +598,7 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
         break;
       }
 
-      case 1:
+      case 1: case 3:
       { 
         double xl[3][3];
         double xg[3][3] = {{1.0,0.0,0.0},{0.0,1.0,0.0},{0.0,0.0,1.0}};
@@ -742,7 +742,7 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 
   switch (avgnum) {
 
-    case 1:
+    case 1: case 3:
       { 
         if (strInd == 6) {
           double AE = prop->A*prop->E;
@@ -847,6 +847,7 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
 
     case 0:
     case 1:
+    case 3:
       {
         // Compute axial force
         double f = prop->A*prop->E*exx;

@@ -862,7 +862,7 @@ GeoSource::outputNodeVectors(int fileNum, double (*glv)[bound], int outputSize, 
   if (oinfo[fileNum].groupNumber > 0)  {
 
     int group = oinfo[fileNum].groupNumber;
-    std::list<int>::iterator it = nodeGroup[group].begin();
+    std::set<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 
@@ -909,7 +909,7 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
 
@@ -956,7 +956,7 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
 
@@ -1036,7 +1036,7 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[bound],
      return;
 
     int group = oinfo[fileNum].groupNumber;
-    std::list<int>::iterator it = nodeGroup[group].begin();
+    std::set<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 
@@ -1086,7 +1086,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
           int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
@@ -1145,7 +1145,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
           int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
@@ -1242,7 +1242,7 @@ void GeoSource::outputNodeVectors9(int fileNum, double (*xyz)[bound],
      return;
 
     int group = oinfo[fileNum].groupNumber;
-    std::list<int>::iterator it = nodeGroup[group].begin();
+    std::set<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 
@@ -1293,7 +1293,7 @@ void GeoSource::outputNodeVectors4(int fileNum, double (*xyz)[bound],
      return;
 
     int group = oinfo[fileNum].groupNumber;
-    std::list<int>::iterator it = nodeGroup[group].begin();
+    std::set<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 

@@ -1083,11 +1083,13 @@ TRAIL [a-zA-Z]*
 
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
-"gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }
+"gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*         { yylval.ival = -1; return AVERAGED; }
 
-"nodal"|"NODAL"|"nodalfull"|"NODALFULL"  { yylval.ival =  1; return AVERAGED; }
+"nodal"|"NODAL"|"nodalfull"|"NODALFULL"   { yylval.ival =  1; return AVERAGED; }
 
-"nodalpartial"|"NODALPARTIAL"      { yylval.ival =  2; return AVERAGED; }
+"nodalpartial"|"NODALPARTIAL"             { yylval.ival =  2; return AVERAGED; }
+
+"nodalpartialgroup"|"NODALPARTIALGROUP"   { yylval.ival =  3; return AVERAGED; }
 
 "upper"[a-zA-Z]*|"UPPER"[a-zA-Z]*  { yylval.ival = 1; return SURFACE; }
 

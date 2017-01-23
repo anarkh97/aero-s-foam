@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
+#include <set>
 #include <Utils.d/dbg_alloca.h>
 
 // New include files for Restart file
@@ -2089,11 +2090,25 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   int flag;
   for(iele = 0; iele < numElements(); ++iele) {
     if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
+
+    int NodesPerElement = packedEset[iele]->numNodes();
+
+    // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+    if (avgnum == 3) {
+      int groupId = oinfo[fileNumber].groupNumber;
+      if (groupId > 0) {
+        packedEset[iele]->nodes(nodeNumbers);
+        std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+        std::set<int>::iterator it;
+        for (int iNode = 0; iNode < NodesPerElement; ++iNode)
+          if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+        if(it == groupNodes.end()) continue;
+      }
+    }
+
     elDisp->zero();
     elstress->zero();
     elweight->zero();
-
-    int NodesPerElement = packedEset[iele]->numNodes();
 
     // extract deformations from current Geometry State of structure
     allCorot[iele]->extractDeformations(geomState, nodes,
@@ -2182,7 +2197,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
 // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
 // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
 
-  if(avgnum == 1 || avgnum == 2) {
+  if(avgnum > 0) {
 
     if(oinfo[fileNumber].nodeNumber == -1) {
       int numNodes = geoSource->numNode();
@@ -2289,6 +2304,22 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
 
   for(iele = 0; iele < numElements(); ++iele) {
     if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
+
+    int NodesPerElement = elemToNode->num(iele);
+
+    // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+    if (avgnum == 3) {
+      int groupId = oinfo[fileNumber].groupNumber;
+      if (groupId > 0) {
+        packedEset[iele]->nodes(nodeNumbers);
+        std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+        std::set<int>::iterator it;
+        for (int iNode = 0; iNode < NodesPerElement; ++iNode)
+          if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+        if(it == groupNodes.end()) continue;
+      }
+    }
+
     elDisp->zero();
     p_elstress->zero();
     elweight->zero();
@@ -2325,9 +2356,6 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
     }
 
     // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-
-    int NodesPerElement = elemToNode->num(iele);
-
     for(k=0; k<NodesPerElement; ++k) {
       for(j=0; j<6; ++j) {
         (*p_stress)[(*elemToNode)[iele][k]][j] += (*p_elstress)[k][j];
@@ -2347,7 +2375,7 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
   // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
   // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
 
-  if(avgnum == 1 || avgnum == 2) {
+  if(avgnum > 0) {
 
     if(n == -1) {
       for(k=0; k<numnodes; ++k) {

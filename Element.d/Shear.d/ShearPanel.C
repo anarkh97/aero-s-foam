@@ -170,16 +170,13 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
 
   // Jacobian evaluation
   Eigen::Matrix<double,4,12> dStressdDisp;
- 
-  if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
-    dStressdDisp.setZero();
-    vmssWRTdisp(globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
-                dconst[13], prop->E, dStressdDisp.data(), vmssig);   
-    dStdDisp.copy(dStressdDisp.data());
+  dStressdDisp.setZero();
+  vmssWRTdisp(globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
+              dconst[13], prop->E, dStressdDisp.data(), vmssig);   
+  dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+  if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
 #endif
-  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
   std::cerr << " ... Error! ShearPanel::getVonMisesDisplacementSensitivity needs Eigen library.\n";
   exit(-1);

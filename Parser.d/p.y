@@ -383,7 +383,7 @@ Inpc:
 Group:
         GROUP NewLine
         | Group GROUPTYPE Integer Integer NewLine
-        { if ($2 == OutputInfo::Attribute)  geoSource->setGroupAttribute($3-1, $4-1);
+        { if ($2 == OutputInfo::Attribute)  geoSource->setAttributeGroup($3-1, $4-1);
           else if ($2 == OutputInfo::Nodal)  geoSource->setNodeGroup($3-1, $4);
           else  {  fprintf(stderr, " ### AS.ERR: Unrecognized Group Type: %d\n", $2);  exit(-1); }
         }
@@ -391,7 +391,7 @@ Group:
         { int i;
           if ($2 == OutputInfo::Attribute)  {
             for(i=$3; i<$4+1; ++i)
-              geoSource->setGroupAttribute(i-1,$5-1);
+              geoSource->setAttributeGroup(i-1,$5-1);
           }
           else if ($2 == OutputInfo::Nodal)  {
             for(i=$3; i<$4+1; ++i)

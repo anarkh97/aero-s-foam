@@ -1,7 +1,9 @@
 #include <Rom.d/ModalGeomState.h>
 #include <Corotational.d/utilities.h>
 
-ModalGeomState::ModalGeomState(int nFlex) :
+// constructor for single domain
+template<>
+GenModalGeomState<Vector>::GenModalGeomState(int nFlex) :
   q(nFlex, 0.0), vel(nFlex, 0.0),
   acc(nFlex, 0.0), numFlex(nFlex){
 /*PRE: ModalGeomState instantiated with a given number of flexible modes
@@ -9,9 +11,19 @@ ModalGeomState::ModalGeomState(int nFlex) :
 */
 }
 
-//------------------------------------------------------------------------------
+// constructor for distributed class
+template<>
+GenModalGeomState<DistrVector>::GenModalGeomState(DistrInfo &dinfo) :
+  q(dinfo), vel(dinfo),
+  acc(dinfo), numFlex(dinfo.len) {
+/*PRE: DistrModalGeomState instantiated with a given number of flexible modes
+ *  POST: parameterized constructor
+ *  */
+}
 
-ModalGeomState::ModalGeomState(const ModalGeomState& mgs) : q(mgs.q),
+//------------------------------------------------------------------------------
+template<class VecType>
+GenModalGeomState<VecType>::GenModalGeomState(const GenModalGeomState<VecType>& mgs) : q(mgs.q),
    vel(mgs.vel), acc(mgs.acc), numFlex(mgs.numFlex){
 /*PRE: none
  POST: copy constructor
@@ -20,7 +32,8 @@ ModalGeomState::ModalGeomState(const ModalGeomState& mgs) : q(mgs.q),
 
 //------------------------------------------------------------------------------
 
-void ModalGeomState::update(const Vector &dsp, int){
+template<class VecType>
+void GenModalGeomState<VecType>::update(const VecType &dsp, int){
 /*PRE: q is approximation to the solution at t^{n+1-alphaf}
        dsp is the difference between the next approx and the current one
  POST: update q to be the next approximation to soln at n+1-alphaf
@@ -29,8 +42,8 @@ void ModalGeomState::update(const Vector &dsp, int){
 }
 
 //------------------------------------------------------------------------------
-
-void ModalGeomState::midpoint_step_update(Vector &v_n, Vector &a_n, double delta, ModalGeomState &stepState,
+template<class VecType>
+void GenModalGeomState<VecType>::midpoint_step_update(VecType &v_n, VecType &a_n, double delta, GenModalGeomState<VecType> &stepState,
                                           double beta, double gamma, double alphaf, double alpham,
                                           bool zeroRot) {
 /*PRE: q is converged solution at t^{n+1-alphaf}
@@ -51,7 +64,8 @@ void ModalGeomState::midpoint_step_update(Vector &v_n, Vector &a_n, double delta
   acc = avcoef*(vel - v_n) + aacoef*a_n;
   
   double tcoef = 1/(1-alphaf);
-  q = tcoef*(q - alphaf*stepState.q);
+  q  = tcoef*(q);
+  q -= (tcoef*alphaf)*stepState.q;
 
   stepState.q = q;
   stepState.vel = vel;
@@ -61,8 +75,8 @@ void ModalGeomState::midpoint_step_update(Vector &v_n, Vector &a_n, double delta
 }
 
 //------------------------------------------------------------------------------
-
-void ModalGeomState::printState(const char* text){
+template<>
+void GenModalGeomState<Vector>::printState(const char* text){
 /*PRE: none
  POST: print to stderr, the private data members
 */
@@ -77,3 +91,6 @@ void ModalGeomState::printState(const char* text){
 
 }
 
+template class GenModalGeomState<Vector>; // this stupid thing has to be here for the compiler to know wtf to do
+template class GenModalGeomState<DistrVector>;
+//template class GenModalGeomState<DistrVector>;

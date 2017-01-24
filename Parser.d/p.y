@@ -120,7 +120,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE
-%token SNAPFI VELSNAPFI ACCSNAPFI DSVSNAPFI PODROB ROMENERGY TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI ROMRES SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS NODEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN FILTERROWS
+%token SNAPFI VELSNAPFI ACCSNAPFI DSVSNAPFI PODROB ROMENERGY TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI ROMRES SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS NODEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USENMFC USEGREEDY USEPQN FILTERROWS
 %token VECTORNORM REBUILDFORCE REBUILDCONSTRAINT SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB CONSTRAINTROB DEIMINDICES UDEIMINDICES SVDFORCESNAP SVDCONSTRAINTSNAP
 %token USEMASSNORMALIZEDBASIS ONLINEMASSNORMALIZEBASIS
 %token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST DISPDOFLIST 
@@ -5692,22 +5692,33 @@ SvdOption:
     domain->solInfo().nmfPqnAlpha = $8; }
   */
   | USEPQN Integer Float Integer Float
-  { domain->solInfo().use_nmf = 3;
-    domain->solInfo().nmfMaxIter = $2;
-    domain->solInfo().nmfTol = $3;
+  { domain->solInfo().use_nmf            = 3;
+    domain->solInfo().nmfMaxIter         = $2;
+    domain->solInfo().nmfTol             = $3;
     domain->solInfo().nmfPqnNumInnerIter = $4;
-    domain->solInfo().nmfPqnAlpha = $5; }
+    domain->solInfo().nmfPqnAlpha        = $5; }
   | USENMF Integer Integer Integer Integer Float
   { domain->solInfo().use_nmf = 1;
     domain->solInfo().nmfNumROBDim = $2;
     domain->solInfo().nmfDelROBDim = $3;
-    domain->solInfo().nmfRandInit = $4;
-    domain->solInfo().nmfMaxIter = $5;
+    domain->solInfo().nmfRandInit  = $4;
+    domain->solInfo().nmfMaxIter   = $5;
     domain->solInfo().nmfTol = $6; }
   | USENMF Integer Float
-  { domain->solInfo().use_nmf = 1;
+  { domain->solInfo().use_nmf    = 1;
     domain->solInfo().nmfMaxIter = $2;
-    domain->solInfo().nmfTol = $3; }
+    domain->solInfo().nmfTol     = $3; }
+  | USENMFC Integer Float Float Float Float
+  { domain->solInfo().use_nmf    = 4;   
+    domain->solInfo().nmfMaxIter = $2; 
+    domain->solInfo().nmfTol     = $3; 
+    domain->solInfo().nmfcAlpha  = $4;
+    domain->solInfo().nmfcBeta   = $5;
+    domain->solInfo().nmfcGamma  = $6;}
+  | USENMFC Integer Float
+  { domain->solInfo().use_nmf    = 4;
+    domain->solInfo().nmfMaxIter = $2;
+    domain->solInfo().nmfTol     = $3; }
   | NSUBS Integer
   { domain->solInfo().nmfNumSub = $2; }
   | USEGREEDY

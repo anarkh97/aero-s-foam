@@ -5,6 +5,7 @@
 #include <Math.d/DBSparseMatrix.h>
 
 #include "VecBasis.h"
+#include "DistrVecBasis.h"
 #include "BasisOps.h"
 
 #include <cstddef>
@@ -16,7 +17,7 @@
 
 namespace Rom {
 
-template <typename Scalar>
+template <typename Scalar, template<typename> class GenVecType = GenVector>
 class GenPodProjectionSolver {
 public:
   // Local bases
@@ -30,32 +31,34 @@ public:
   virtual void activateContact() = 0;
   virtual void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef) = 0;
   virtual void addModalLMPCs(double Kcoef, int Wcols, std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end) = 0;
-  virtual void updateLMPCs(GenVector<Scalar> &q) = 0;
+  virtual void updateLMPCs(GenVecType<Scalar> &q) = 0;
 
   // Solution
   virtual void factor() = 0;
-  virtual void reSolve(GenVector<Scalar> &rhs) = 0;
+  virtual void reSolve(GenVecType<Scalar> &rhs) = 0;
 
   // Reduced basis parameters
   virtual int basisSize() const = 0;
-  virtual GenVecBasis<Scalar> &projectionBasis() = 0;
-  virtual GenVecBasis<Scalar> &dualProjectionBasis() = 0;
-  virtual void projectionBasisIs(GenVecBasis<Scalar> &) = 0; 
-  virtual void dualProjectionBasisIs(GenVecBasis<Scalar> &) = 0;
+  virtual GenVecBasis<Scalar,GenVecType> &projectionBasis() = 0;
+  virtual GenVecBasis<Scalar,GenVecType> &dualProjectionBasis() = 0;
+  virtual void projectionBasisIs(GenVecBasis<Scalar,GenVecType> &) = 0; 
+  virtual void dualProjectionBasisIs(GenVecBasis<Scalar,GenVecType> &) = 0;
   virtual void EmpiricalSolver() = 0; 
 #ifdef USE_EIGEN3
   virtual void addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &, double = 1.0) = 0;
+  virtual double getResidualNorm(const GenVecType<Scalar> &) =0;
 #endif
 
   // Data collection
-  virtual const GenVector<Scalar> &lastReducedSolution() const = 0;
-  virtual const GenVecBasis<Scalar> &lastReducedMatrixAction() const = 0;
+  virtual const GenVecType<Scalar> &lastReducedSolution() const = 0;
+  virtual const GenVecBasis<Scalar,GenVecType> &lastReducedMatrixAction() const = 0;
 #ifdef USE_EIGEN3
   virtual const Eigen::Matrix<Scalar,Eigen::Dynamic,1> &lastReducedConstraintForce() const = 0;
 #endif
 };
 
 typedef GenPodProjectionSolver<double> PodProjectionSolver;
+typedef GenPodProjectionSolver<double, GenDistrVector> DistrPodProjectionSolver;
 
 template <typename Scalar>
 class GenDBSparsePodProjectionSolver : public GenPodProjectionSolver<Scalar>, public GenSolver<Scalar>, public GenDBSparseMatrix<Scalar> {
@@ -74,6 +77,11 @@ public:
 
   void setLocalDualBasis(int startDualCol, int blockDualCols) {
     std::cerr << "ERROR: GenDBSparsePodProjectionSolver::setLocalDualBases is not implemented\n";
+    exit(-1);
+  }
+
+  double getResidualNorm(const GenVector<Scalar> &){
+    std::cerr << "ERROR: GenDBSparsePodProjectionSolver::getResidualNorm is not implemented\n";
     exit(-1);
   }
 

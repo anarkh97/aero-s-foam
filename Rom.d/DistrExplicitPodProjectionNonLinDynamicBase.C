@@ -161,8 +161,8 @@ MultiDomDynPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
   for(int i = 0; i < decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
 
   SensorBasis = fullBasis;
-  SensorBasis->makeSparseBasis2(nodeVector, all_cdsa);
 
+  SensorBasis->makeSparseBasis2(nodeVector, all_cdsa);
   // allocate space for containers to hold sensor values
   if(DispSensor) {
     DispSensorValues = new GenDistrVector<double>(SensorBasis->vectorInfo());

@@ -6,6 +6,9 @@
 #include <cstddef>
 #include <map>
 #include <vector>
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
 
 class Domain;
 template <class Scalar> class GenDecDomain;
@@ -98,6 +101,10 @@ class MDNLDynamic : public MultiDomainBase
     std::vector<double> *lambda; // lagrange multipliers for all the other constraints
 
     bool updateCS;
+
+#ifdef USE_EIGEN3
+    Eigen::MatrixXd VtMV;
+#endif
 
  public:
 

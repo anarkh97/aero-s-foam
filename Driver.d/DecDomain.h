@@ -5,6 +5,7 @@
 #include <Feti.d/DistrVectorSet.h>
 #include <Paral.d/SubDOp.h>
 #include <vector>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 
 class Domain;
 template <class Scalar> class GenSubDomain;

@@ -422,6 +422,9 @@ struct SolverInfo {
    double nmfTol;
    int nmfPqnNumInnerIter;
    double nmfPqnAlpha;
+   double nmfcAlpha;
+   double nmfcBeta; 
+   double nmfcGamma; 
    bool DEIMBasisPod;
    bool UDEIMBasisPod;
    bool ConstraintBasisPod;
@@ -794,6 +797,9 @@ struct SolverInfo {
                   nmfTol             = 1e-6;
                   nmfPqnNumInnerIter = 2;
                   nmfPqnAlpha        = 0.4;
+                  nmfcAlpha          = 0.0;
+                  nmfcBeta           = 0.0;
+                  nmfcGamma          = 1.6;
                   ksParameter        = 50;
                   ksMax              = 1.0e5;
                   samplingPodRom     = false;

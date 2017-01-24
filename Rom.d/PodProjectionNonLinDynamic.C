@@ -24,6 +24,11 @@
 #include <cstddef>
 #include <numeric>
 
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#include <Eigen/Sparse>
+#endif
+
 extern GeoSource * geoSource;
 extern int verboseFlag;
 
@@ -1037,7 +1042,6 @@ PodProjectionNonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, V
 
   const GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
   projectionBasis.expand(velocity, velocity_Big);
-
   NonLinDynamic::formRHSinitializer(fext_Big, velocity_Big, elementInternalForce, *geomState_Big, rhs_Big, refState_Big);
 
   projectionBasis.reduce(rhs_Big, rhs);
@@ -1346,7 +1350,6 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
     }
   }
 #endif
-
   return residual.norm();
 }
 

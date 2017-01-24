@@ -5,6 +5,9 @@
 #include <iostream>
 #include <vector>
 
+#include <Eigen/Core>
+#include <Eigen/Dense>
+
 extern "C" {
   void _FORTRAN(spnnls)(double *a, const long int *mda, const long int *m, const long int *n,
                         const double *b, double *x, const double *reltol, double *rnorm, double *w,
@@ -23,7 +26,10 @@ NonnegativeMatrixFactorization::NonnegativeMatrixFactorization(int maxBasisDimen
   method_(method),
   matrixBuffer_(0),
   robBuffer_(0),
-  maxIter_(100)
+  maxIter_(100),
+  nmfcAlpha(0.0),
+  nmfcBeta(0.0),
+  nmfcGamma(0.0)
 {}
 
 void
@@ -48,6 +54,21 @@ NonnegativeMatrixFactorization::maxIterIs(int maxIter) {
 void
 NonnegativeMatrixFactorization::toleranceIs(double tol) {
   tol_ = tol;
+}
+
+void
+NonnegativeMatrixFactorization::nmfcAlphaIs(double alp) {
+  nmfcAlpha = alp;
+}
+
+void
+NonnegativeMatrixFactorization::nmfcBetaIs(double bet) {
+  nmfcBeta = bet;
+}
+
+void
+NonnegativeMatrixFactorization::nmfcGammaIs(double gam) {
+  nmfcGamma = gam;
 }
 
 void
@@ -156,6 +177,90 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
       }
       // normalize vectors in W
       for (int i=0; i<k; ++i) W.col(i).normalize();
+    } break;
+    case 4 : { // Alternating direction algorithm for Nonnegative matrix completion,  Xu, Yin, Wen, Zhang
+      // initialize working arrays
+      W.setZero(); H.Random();
+      Eigen::MatrixXd U(m,k), V(k,n); U.setZero(); V.setZero();
+      Eigen::MatrixXd Lambda(m,k), Pi(k,n); Lambda.setZero(); Pi.setZero();
+      Eigen::MatrixXd Z = A; 
+      
+      double alpha = (nmfcAlpha > 1e-16) ? nmfcAlpha : Z.lpNorm<Eigen::Infinity>();
+      double beta  = (nmfcBeta  > 1e-16) ? nmfcBeta  : Z.lpNorm<Eigen::Infinity>();
+      double gamma = (nmfcGamma > 1e-16) ? nmfcGamma : 1.6;
+    
+      Eigen::MatrixXd rhs1; rhs1.resize(m,k); rhs1.setZero();
+      Eigen::MatrixXd rhs2; rhs2.resize(k,n); rhs2.setZero();
+      Eigen::MatrixXd lhs;  lhs.resize(k,k);  lhs.setZero();
+      Eigen::LLT<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>, Eigen::Lower> llt_;
+
+      double nrmX = A.norm();
+      //begin nonnegative matrix completion
+      for (int i = 0; i < maxIter_; ++i) {
+ 
+        // fist update W
+        rhs1 = Z*H.transpose() + alpha*U - Lambda;
+        lhs  = H*H.transpose() + alpha*Eigen::MatrixXd::Identity(k,k);
+   
+        llt_.compute(lhs.transpose());
+        W.transpose() = llt_.solve(rhs1.transpose());
+
+        // then update H
+        rhs2 = W.transpose()*Z + beta*V - Pi;
+        lhs  = W.transpose()*W + beta*Eigen::MatrixXd::Identity(k,k);
+
+        llt_.compute(lhs);
+        H = llt_.solve(rhs2);
+
+        // compute current approximation
+        Z = W*H;
+
+        // update constraints
+        U = W + (1/alpha)*Lambda;
+        V = H + (1/beta)*Pi;
+
+        double stpcrt = 0.0;
+        // enforce equality of non-zero components
+        for(int col = 0; col < n; ++col){
+          for(int row = 0; row < m; ++row) {
+            if(A(row,col) > 1e-16){
+              stpcrt += pow(A(row,col) - Z(row,col),2.0);
+              Z(row,col) = A(row,col);
+            }
+          }
+        }
+
+        // threshold constraints 
+        for(int col = 0; col < k; ++col){
+          for(int row = 0; row < m; ++row) {
+            if(U(row,col) < 0.)
+              U(row,col) = 0.;
+          }
+        } 
+
+        for(int col = 0; col < n; ++col){
+          for(int row = 0; row < k; ++row) {
+            if(V(row,col) < 0.)
+              V(row,col) = 0.;
+          }
+        }
+
+        // update Lagrange multipliers
+        Lambda += gamma*alpha*(W - U);
+        Pi     += gamma*beta*(H - V);
+
+        fprintf(stderr,"Iteration: %d, Norm(P(W*H - X))/norm(X) %3.2f, Stopping tolerance: %3.2f \n", i, sqrt(stpcrt)/nrmX, tol_);
+
+        if((sqrt(stpcrt) < tol_*nrmX) || (i > maxIter_)){
+          if(sqrt(stpcrt) <tol_*nrmX)
+            fprintf(stderr,"Stopping criteria reached\n");
+          if(i > maxIter_)
+            fprintf(stderr,"Maximum iteration exeeced\n");
+          break;
+        }
+
+      }
+  
     } break;
   }
 

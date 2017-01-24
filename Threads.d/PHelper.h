@@ -290,6 +290,11 @@ void execParal8R(int n, TA *, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG&, TH, TI
 template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI, class TJ>
 void execParal8R(int n, TA *, void (TA::*f)(int, TB*, TC&, TD*, TE, TG*, TH*, TI*, TJ*), TB*, TC&, TD*, TE, TG*, TH*, TI*, TJ*);
 
+// 1 reference, 3 object and 4 pointer-to-pointer arguments execute in parallel
+template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI, class TJ>
+void execParal8R(int n, TA *, void (TA::*f)(int, TB&, TC, TD, TE, TG**, TH**, TI**, TJ**), TB&, TC, TD, TE, TG**, TH**, TI**, TJ**);
+ 
+
 // four reference and five object arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI, class TJ, class TK>
 void execParal9R(int n, TA *, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG, TH, TI, TJ, TK), TB&, TC&, TD&, TE&, TG, TH, TI, TJ, TK);

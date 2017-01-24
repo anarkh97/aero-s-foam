@@ -48,6 +48,8 @@ ADD_LIBRARY( Rom
   MeshDesc.C
   ModalGeomState.C
   PodProjectionNonLinDynamic.C
+  DistrPodProjectionNonLinDynamic.C
+  DistrLumpedPodProjectionNonLinDynamic.C
   SnapshotProjectionDriver.C
   RenumberingUtils.C
   RestrictedVecNodeDof6Conversion.C

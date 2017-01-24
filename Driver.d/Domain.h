@@ -18,6 +18,8 @@
 #include <Utils.d/OutputInfo.h>
 #include <Utils.d/ShapeSensitivityData.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
+#include <Rom.d/GalerkinProjectionSolver.h>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 
 class MortarHandler;
 class MFTTData;
@@ -86,7 +88,7 @@ struct ModeData;
 
 namespace Rom {
 template <typename Scalar> class GenGalerkinProjectionSolver;
-template <typename Scalar> class GenEiSparseGalerkinProjectionSolver;
+template <typename Scalar,  template<typename> class GenVecType, class BaseSolver> class GenEiSparseGalerkinProjectionSolver;
 } /* end namespace Rom */
 
 // HB

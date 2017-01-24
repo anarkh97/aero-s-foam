@@ -1685,6 +1685,7 @@ TRAIL [a-zA-Z]*
 "REFSUBTRACT"|"refsubtract"|"RefSubtract" { return REFSUBTRACT; } 
 
 "USE_NMF"|"use_nmf"                       { return USENMF; }
+"USE_NMFC"|"use_nmfc"                     { return USENMFC; }
 "USE_GREEDY"|"use_greedy"                 { return USEGREEDY; }
 "USE_PQN"|"use_pqn"                       { return USEPQN; }
 

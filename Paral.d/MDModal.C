@@ -1,5 +1,6 @@
 #include <Paral.d/MDModal.h>
 #include <Paral.d/MDOp.h>
+#include <Problems.d/ModalBase.h>
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/DecDomain.h>
 #ifdef DISTRIBUTED
@@ -9,6 +10,7 @@
 #include <Utils.d/DistHelper.h>
 #include <Math.d/EiSparseMatrix.h>
 
+class DenseMatrix;
 extern Communicator *structCom;
 
 MultiDomainModal::MultiDomainModal(Domain *d) : modalOps(*(new ModalOps)), MDModalBase(d){

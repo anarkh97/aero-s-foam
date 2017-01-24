@@ -321,7 +321,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
         } break;
       }
     }
-    else if(solInfo.type == 1) {
+    else if(solInfo.type == 1 || (solInfo.type == 0 && solInfo.subtype == 13)) {
       dynMats[isub] = 0;
       switch(solInfo.iterSubtype) {
         case 2 :

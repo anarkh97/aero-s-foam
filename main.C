@@ -43,6 +43,8 @@
 #include <Sfem.d/Sfem.h>
 #include <Rom.d/SnapshotNonLinDynamic.h>
 #include <Rom.d/DistrSnapshotNonLinDynamic.h>
+#include <Rom.d/DistrPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrLumpedPodProjectionNonLinDynamic.h>
 #include <Rom.d/PodProjectionNonLinDynamic.h>
 #include <Rom.d/LumpedPodProjectionNonLinDynamic.h>
 #include <Rom.d/DEIMPodProjectionNonLinDynamic.h>
@@ -1101,15 +1103,35 @@ int main(int argc, char** argv)
            nldynamicSolver.solve();
          } 
          else { // POD ROM
-           filePrint(stderr, " ... POD: Snapshot collection       ...\n");
-           Rom::DistrSnapshotNonLinDynamic nldynamic(domain);
-           NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
-                         Rom::DistrSnapshotNonLinDynamic, DistrGeomState,
-                         Rom::DistrSnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
-           nldynamicSolver.solve();
-           nldynamic.postProcess();
+           if (domain->solInfo().galerkinPodRom) {
+             if(domain->solInfo().elemLumpPodRom) {
+               filePrint(stderr, " ... POD: Parallel Implicit Galerkin HROM   ...\n");
+               Rom::DistrLumpedPodProjectionNonLinDynamic nldynamic(domain);
+               NLDynamSolver <Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> >, 
+                              DistrVector, MultiDomainPostProcessor,
+                              Rom::DistrPodProjectionNonLinDynamic, DistrModalGeomState,
+                              Rom::DistrPodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+               nldynamicSolver.solve();
+             } else {
+               filePrint(stderr, " ... POD: Parallel Implicit Galerkin ROM   ...\n");
+               Rom::DistrPodProjectionNonLinDynamic nldynamic(domain);
+               NLDynamSolver <Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> >, 
+                              DistrVector, MultiDomainPostProcessor,
+                              Rom::DistrPodProjectionNonLinDynamic, DistrModalGeomState,
+                              Rom::DistrPodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+               nldynamicSolver.solve();
+             }
+           } else {
+             filePrint(stderr, " ... POD: Snapshot collection       ...\n");
+             Rom::DistrSnapshotNonLinDynamic nldynamic(domain);
+             NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
+                           Rom::DistrSnapshotNonLinDynamic, DistrGeomState,
+                           Rom::DistrSnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+             nldynamicSolver.solve();
+             nldynamic.postProcess();
+           }
          }
-       }
+       } 
      } break;
      case SolverInfo::PodRomOffline: {
        Rom::DriverInterface *driver;
@@ -1157,8 +1179,7 @@ int main(int argc, char** argv)
    totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;
    delete threadManager;
 
- }
- else {
+ } else {
 
    switch(domain->probType()) {
      case SolverInfo::DisEnrM: {
@@ -1349,7 +1370,7 @@ int main(int argc, char** argv)
                    nldynamicSolver.solve();
                  }
                } else if (domain->solInfo().galerkinPodRom) {
-                 filePrint(stderr, " ... POD: Reduced-order model       ...\n");
+                 filePrint(stderr, " ... POD: Implicit Reduced-order model       ...\n");
                  Rom::PodProjectionNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
                                 ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);

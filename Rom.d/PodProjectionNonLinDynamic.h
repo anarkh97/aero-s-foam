@@ -8,14 +8,16 @@
 #include <Rom.d/ModalGeomState.h>
 #include <Corotational.d/GeomState.h>
 #include "VecBasis.h"
+#include "PodProjectionSolver.h"
 
 #include <memory>
 
 namespace Rom {
 
-template <typename Scalar> class GenPodProjectionSolver;
+//template <typename Scalar, template<typename> class GenVecType> class GenPodProjectionSolver;
 template <int> class VecNodeDofConversion;
 typedef VecNodeDofConversion<6> VecNodeDof6Conversion;
+typedef GenModalGeomState<Vector> ModalGeomState; 
 
 class SDDynamPodPostProcessor : public SDDynamPostProcessor
 {

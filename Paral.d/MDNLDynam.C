@@ -15,6 +15,7 @@
 #include <Paral.d/MDStatic.h>
 #include <Paral.d/MDDynam.h>
 #include <Paral.d/MDOp.h>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 #ifdef DISTRIBUTED
 #include <Dist.d/DistDom.h>
 #endif
@@ -655,7 +656,9 @@ MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta
    GenMDDynamMat<double> ops;
    ops.sysSolver = solver;
    ops.Kuc = Kuc;
+
    decDomain->rebuildOps(ops, Mcoef, Ccoef, Kcoef, kelArray, melArray, celArray);
+
    Kcoef_p = Kcoef;
 
  } else

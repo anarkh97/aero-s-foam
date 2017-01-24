@@ -399,7 +399,6 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
       localTemp.resize(domain->getCDSA()->size());
     }
   }
-
   getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState, melArray, forceOnly);
 
   times->buildStiffAndForce += getTime();

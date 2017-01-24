@@ -67,7 +67,7 @@ template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::zeroAll()
 {
-  for(int i=0; i<nnz; ++i) unonz[i] = 0;
+  for(int i=0; i<nnz; ++i) unonz[i] = 0.;
 }
 
 template<typename Scalar, typename SolverClass> 

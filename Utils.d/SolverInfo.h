@@ -799,7 +799,7 @@ struct SolverInfo {
                   nmfPqnAlpha        = 0.4;
                   nmfcAlpha          = 0.0;
                   nmfcBeta           = 0.0;
-                  nmfcGamma          = 1.6;
+                  nmfcGamma          = 0.0;
                   ksParameter        = 50;
                   ksMax              = 1.0e5;
                   samplingPodRom     = false;

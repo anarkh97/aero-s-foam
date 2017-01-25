@@ -103,13 +103,19 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
   int m = rows.size();
   int n = cols.size();
   const int &k = basisDimension_;
+  std::cerr << "Factoring data into " << k << " nonnegative columns " << std::endl;
   Eigen::MatrixXd A(m,n);
+  int npi = 0;
   for(int i=0; i<m; ++i){
     for(int j=0; j<n; ++j){
-      A(i,j) = -X(rows[i],cols[j]); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
+      double elem = X(rows[i],cols[j]);
+      if(elem > 0)
+        npi += 1;
+      A(i,j) = abs(elem); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
     }
   }
-
+  if(npi > 0)
+    std::cout << "Warning: there are " << npi << " negative elements in the data set." << std::endl;
   
 
   Eigen::MatrixXd W(m,k), H(k,n);
@@ -180,19 +186,22 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
     } break;
     case 4 : { // Alternating direction algorithm for Nonnegative matrix completion,  Xu, Yin, Wen, Zhang
       // initialize working arrays
-      W.setZero(); H.Random();
+      std::cout << "... Nonnegative Matrix Completion ..." << std::endl;
+      W.setZero(); H = Eigen::MatrixXd::Random(k,n);
       Eigen::MatrixXd U(m,k), V(k,n); U.setZero(); V.setZero();
       Eigen::MatrixXd Lambda(m,k), Pi(k,n); Lambda.setZero(); Pi.setZero();
       Eigen::MatrixXd Z = A; 
-      
+     
+      // set solver coefficients 
       double alpha = (nmfcAlpha > 1e-16) ? nmfcAlpha : Z.lpNorm<Eigen::Infinity>();
       double beta  = (nmfcBeta  > 1e-16) ? nmfcBeta  : Z.lpNorm<Eigen::Infinity>();
-      double gamma = (nmfcGamma > 1e-16) ? nmfcGamma : 1.6;
-    
+      double gamma = (nmfcGamma > 1e-16) ? nmfcGamma : 1.618;
+   
+      fprintf(stderr,"... α =% 3.2e, β =%3.2e, γ= %3.2e ...\n", alpha, beta, gamma);
+
       Eigen::MatrixXd rhs1; rhs1.resize(m,k); rhs1.setZero();
       Eigen::MatrixXd rhs2; rhs2.resize(k,n); rhs2.setZero();
       Eigen::MatrixXd lhs;  lhs.resize(k,k);  lhs.setZero();
-      Eigen::LLT<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>, Eigen::Lower> llt_;
 
       double nrmX = A.norm();
       //begin nonnegative matrix completion
@@ -201,16 +210,14 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
         // fist update W
         rhs1 = Z*H.transpose() + alpha*U - Lambda;
         lhs  = H*H.transpose() + alpha*Eigen::MatrixXd::Identity(k,k);
-   
-        llt_.compute(lhs.transpose());
-        W.transpose() = llt_.solve(rhs1.transpose());
+  
+        W.transpose() = lhs.selfadjointView<Eigen::Lower>().llt().solve(rhs1.transpose());
 
         // then update H
         rhs2 = W.transpose()*Z + beta*V - Pi;
         lhs  = W.transpose()*W + beta*Eigen::MatrixXd::Identity(k,k);
 
-        llt_.compute(lhs);
-        H = llt_.solve(rhs2);
+        H = lhs.selfadjointView<Eigen::Lower>().llt().solve(rhs2);
 
         // compute current approximation
         Z = W*H;
@@ -249,18 +256,18 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
         Lambda += gamma*alpha*(W - U);
         Pi     += gamma*beta*(H - V);
 
-        fprintf(stderr,"Iteration: %d, Norm(P(W*H - X))/norm(X) %3.2f, Stopping tolerance: %3.2f \n", i, sqrt(stpcrt)/nrmX, tol_);
+        fprintf(stderr,"\r Iteration: %d, Norm(P(W*H - X))/norm(X) %3.2e, Stopping tolerance: %3.2e", i, sqrt(stpcrt)/nrmX, tol_);
 
         if((sqrt(stpcrt) < tol_*nrmX) || (i > maxIter_)){
           if(sqrt(stpcrt) <tol_*nrmX)
             fprintf(stderr,"Stopping criteria reached\n");
           if(i > maxIter_)
-            fprintf(stderr,"Maximum iteration exeeced\n");
+            fprintf(stderr,"Maximum iteration exceeded\n");
           break;
         }
 
       }
-  
+      fprintf(stderr,"\n"); 
     } break;
   }
 

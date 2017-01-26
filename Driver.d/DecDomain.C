@@ -3858,7 +3858,7 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 
 
 template<>
-void
+inline void
 GenDecDomain<double>::rebuildOps(GenMDDynamMat<double> &res, double coeM, double coeC, double coeK, 
                                  FullSquareMatrix **kelArray, FullSquareMatrix **melArray, FullSquareMatrix **celArray)
 {

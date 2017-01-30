@@ -254,19 +254,28 @@ GenEiSparseGalerkinProjectionSolver<double,GenDistrVector,GenParallelSolver<doub
   // addReducedMass and addToReducedMatrix
   if(selfadjoint_ && !Empirical) {
    
-    GenFullSquareMatrix<double> K_reduced;
-    calculateReducedStiffness(*K, *projectionBasis_, K_reduced); 
+    GenFullSquareMatrix<double> K_reduced; // local data structure
+    calculateReducedStiffness(*K, *projectionBasis_, K_reduced, selfadjoint_); // parallel multiplication
 
+    // upper half of K_reduced is filled, but data structure is row major, Krmap is Column major
     Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> > Krmap(K_reduced.data(), blockCols_, blockCols_);
-    reducedMatrix_ += Krmap; 
- 
+    reducedMatrix_.triangularView<Eigen::Lower>() 
+    += Krmap; 
+
     if(dualBlockCols_ > 0) c1_ = reducedMatrix_.trace();
     llt_.compute(reducedMatrix_);
   }
   else {
     if(Empirical) {
       lu_.compute(reducedMatrix_); 
-    } else {
+    } else { 
+
+      GenFullSquareMatrix<double> K_reduced;
+      calculateReducedStiffness(*K, *projectionBasis_, K_reduced);
+
+      Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> > Krmap(K_reduced.data(), blockCols_, blockCols_);
+      reducedMatrix_ += Krmap;
+
       lu_.compute(reducedMatrix_);
     }
   }
@@ -276,7 +285,6 @@ template <typename Scalar, template<typename> class GenVecType, class BaseSolver
 void
 GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::reSolve(GenVecType<Scalar> &rhs)
 {
-//  LocalBasisType V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data()+startCol_, blockCols_);
 
   if(dualBlockCols_ > 0 && contact_) {
@@ -298,7 +306,6 @@ template <typename Scalar, template<typename> class GenVecType, class BaseSolver
 void
 GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::solve(GenVecType<Scalar> &rhs, GenVecType<Scalar> &sol)
 {
-//  LocalBasisType V = projectionBasis_->basis().block(0,startCol_,projectionBasis_->size(),blockCols_);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data()+startCol_, blockCols_), x(sol.data()+startCol_, blockCols_);
   sol.zero();
 
@@ -326,7 +333,8 @@ template <typename Scalar, template<typename> class GenVecType, class BaseSolver
 double
 GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::getFNormSq(GenVecType<Scalar> &v)
 {
-  double dummy = v.norm();
+  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > vj(v.data()+startCol_, blockCols_);
+  double dummy = vj.norm();
   return dummy*dummy;
 }
 

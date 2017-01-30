@@ -127,7 +127,7 @@ DistrPodProjectionNonLinDynamic::preProcess() {
                       BasisFile.stateCount();
         dualLocBasisVec.push_back(locSize);
         if(verboseFlag && domain->solInfo().readInDualROB.size()>1) 
-          filePrint(stderr, " ... Local Dual Basis %d size %-3d ...\n",rob,locBasisVec[rob]);
+          filePrint(stderr, " ... Local Dual Basis %d size %-3d ...\n",rob,dualLocBasisVec[rob]);
       }
 
       //initialize helper objects for reading in distributed basis vectors
@@ -177,16 +177,16 @@ DistrPodProjectionNonLinDynamic::preProcess() {
         solver_->addLMPCs(numLMPC, lmpc.data(), Kcoef);
         for(int i=0; i<numLMPC; ++i) delete lmpc[i];
       }
+    } 
 
-      if(domain->solInfo().modalLMPC) {
-        for(int b = 0; b < domain->solInfo().localDualBasisSize.size(); b++)
-          filePrint(stderr," ... Dual Basis %d is size %d ... ",b,domain->solInfo().localDualBasisSize[b]);
-        double dt = domain->solInfo().getTimeStep(), beta = domain->solInfo().newmarkBeta;
-        double Kcoef = dt*dt*beta;
-        int numCols = std::accumulate(domain->solInfo().localDualBasisSize.begin(),domain->solInfo().localDualBasisSize.end(),0);
-        filePrint(stderr," ... Total Dual Basis Size is %d ...",numCols);
-        solver_->addModalLMPCs(Kcoef,numCols,geoSource->ROMLMPCVecBegin(),geoSource->ROMLMPCVecEnd());
-      }
+    if(domain->solInfo().modalLMPC) {
+      for(int b = 0; b < domain->solInfo().localDualBasisSize.size(); b++)
+        filePrint(stderr," ... Dual Basis %d is size %d ... \n",b,domain->solInfo().localDualBasisSize[b]);
+      double dt = domain->solInfo().getTimeStep(), beta = domain->solInfo().newmarkBeta;
+      double Kcoef = dt*dt*beta;
+      int numCols = std::accumulate(domain->solInfo().localDualBasisSize.begin(),domain->solInfo().localDualBasisSize.end(),0);
+      filePrint(stderr," ... Total Dual Basis Size is %d ...\n",numCols);
+      solver_->addModalLMPCs(Kcoef,numCols,geoSource->ROMLMPCVecBegin(),geoSource->ROMLMPCVecEnd());
     }
 
     // if performing local basis analysis and centroids are provided, read in centroids for basis switching
@@ -877,6 +877,7 @@ DistrPodProjectionNonLinDynamic::readLocalBasesAuxi()
       for(int j=i+1; j<Nv; ++j) {
         int kj = domain->solInfo().localBasisSize[j];
         std::string fileName = domain->solInfo().readInLocalBasesAuxi[std::make_pair(i,j)];
+        if(verboseFlag) filePrint(stderr, " ... Reading aux data from file %s ...\n", fileName.c_str());
         std::ifstream file(fileName.c_str());
         VtV(i,j).resize(ki,kj);
         for(int irow = 0; irow < ki; ++irow) {

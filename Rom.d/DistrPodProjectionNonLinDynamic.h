@@ -61,9 +61,9 @@ public:
   DistrModalGeomState* createGeomState();
   DistrModalGeomState* copyGeomState(DistrModalGeomState* geomState);
 
-  void updateStates(DistrModalGeomState *refState, DistrModalGeomState& geomState, double time);
+  virtual void updateStates(DistrModalGeomState *refState, DistrModalGeomState& geomState, double time);
 
-  double getStiffAndForce(DistrModalGeomState& geomState, DistrVector& residual, DistrVector& elementInternalForce,
+  virtual double getStiffAndForce(DistrModalGeomState& geomState, DistrVector& residual, DistrVector& elementInternalForce,
                             double midtime=-1, DistrModalGeomState *refState = NULL, bool forceOnly = false);
 
   void reBuild(DistrModalGeomState& geomState, int iter, double localDelta, double t);

@@ -170,7 +170,7 @@ class MDNLDynamic : public MultiDomainBase
 
     // getStiffAndForce forms element stiffness matrices and/or
     // returns the residual force = external - internal forces
-    double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, DistrVector& elementInternalForce,
+    virtual double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, DistrVector& elementInternalForce,
                             double midtime=-1, DistrGeomState *refState = NULL, bool forceOnly = false);
 
     // reBuild assembles new dynamic stiffness matrix

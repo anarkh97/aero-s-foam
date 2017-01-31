@@ -115,7 +115,7 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   packedWeightedNodes_.resize(packedNodeIt-packedWeightedNodes_.begin());
 
   if(geoSource->elementLumpingWeightSize() == 1 && packedWeightedElems_.size() < domain->numElements()) {
-    if(domain->solInfo().useMassNormalizedBasis) { // don't compress if using Local mesh
+    if(domain->solInfo().useMassNormalizedBasis) { // don't compress yet if using Local mesh
       filePrint(stderr, " ... Compressing Basis              ...\n");
       GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
       projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());

@@ -29,10 +29,7 @@ DistrLumpedPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geo
                                                   double t, DistrModalGeomState *refState, bool forceOnly)
 {
   DistrVector r(solVecInfo()); r.zero();
-  if(domain->solInfo().getNLInfo().linearelastic == 1 && domain->getFollowedElemList().empty() && !domain->solInfo().elemLumpPodRom) {
-
-  }
-  else {
+  {
     DistrVector        q_Big(MDNLDynamic::solVecInfo()),
                 residual_Big(MDNLDynamic::solVecInfo());
     residual_Big.zero();
@@ -140,16 +137,17 @@ DistrLumpedPodProjectionNonLinDynamic::updateStates(DistrModalGeomState *refStat
 void
 DistrLumpedPodProjectionNonLinDynamic::subUpdateStates(int iSub, DistrGeomState *refState, DistrGeomState *geomState, double time)
 {
-  std::map<int, double> &subElementWeights = packedElementWeights_[localReducedMeshId_][iSub];
+  std::set<int> &subWeightedElems = packedWeightedElems_[iSub];
   SubDomain *sd = decDomain->getSubDomain(iSub);
   GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
-  sd->updateWeightedElemStatesOnly(subElementWeights, subRefState, *(*geomState)[iSub], allCorot[iSub], time);
+  sd->updateWeightedElemStatesOnly(subWeightedElems, subRefState, *(*geomState)[iSub], allCorot[iSub], time);
 }
 
 void
 DistrLumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   
   packedElementWeights_.resize(geoSource->elementLumpingWeightSize());    // resize packedElementWeights_ to number of local meshes provided
+  packedWeightedElems_.resize(decDomain->getNumSub());
   localPackedWeightedNodes_.resize(geoSource->elementLumpingWeightSize());// resize localPackedWeightedNodes_ to number of local meshes provided
   packedWeightedNodes_.resize(decDomain->getNumSub());
   int elemCounter;
@@ -171,9 +169,15 @@ DistrLumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
       filePrint(stderr, " ... # Elems. in Reduced Mesh %d = %-4d...\n", j,elemCounter);
   }
 
-  if(geoSource->elementLumpingWeightSize() == 1 && packedWeightedElems_.size() < domain->numElements()) {
+  int numElems = 0;
+  for(int ns = 0; ns < packedWeightedElems_.size(); ++ns)
+    numElems += packedWeightedElems_[ns].size(); 
+
+  if(structCom) numElems = structCom->globalSum(numElems);
+
+  if(geoSource->elementLumpingWeightSize() == 1 && numElems < domain->numElements()) {
     if(domain->solInfo().useMassNormalizedBasis) { // don't compress if using Local mesh
-      filePrint(stderr, " ... Compressing Basis              ...\n");
+      filePrint(stderr, " ...       Compressing Basis        ...\n");
       DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
       for(int i=0; i<decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
       GenVecBasis<double,GenDistrVector> &projectionBasis = solver_->projectionBasis();
@@ -210,7 +214,8 @@ DistrLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int iSub)
 {
   SubDomain *sd = decDomain->getSubDomain(iSub);
   std::map<int, double> &subElementWeights = packedElementWeights_[localReducedMeshId_][iSub];
-  std::vector<int> &subWeightedNodes       = packedWeightedNodes_[iSub];
+  std::set<int>         &subWeightedElems  = packedWeightedElems_[iSub];
+  std::vector<int>      &subWeightedNodes  = packedWeightedNodes_[iSub];
   std::vector<int> &subLocalWeightedNodes  = localPackedWeightedNodes_[localReducedMeshId_][iSub];
 
   for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(localReducedMeshId_),
@@ -234,6 +239,7 @@ DistrLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int iSub)
       if(geoSource->elementLumpingWeightSize() > 1)
         subLocalWeightedNodes.insert(subLocalWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
     }
+    subWeightedElems.insert(packedId);
   }
 
   if(!domain->solInfo().reduceFollower) {
@@ -274,7 +280,7 @@ DistrLumpedPodProjectionNonLinDynamic::setLocalReducedMesh(int j)
 
   // make new sparse basis
   GenVecBasis<double,GenDistrVector> &projectionBasis = solver_->projectionBasis();
-  projectionBasis.makeSparseBasis(localPackedWeightedNodes_[j], all_cdsa); // these could be computed once, stored and then switched between
+  projectionBasis.makeSparseBasis(localPackedWeightedNodes_[localReducedMeshId_], all_cdsa); // these could be computed once, stored and then switched between
   delete [] all_cdsa;
 }
 

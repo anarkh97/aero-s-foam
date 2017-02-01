@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -10,7 +11,7 @@
 #include "NodeDof6Buffer.h"
 
 template <typename InFile, typename OutFile>
-void transfer_rob(InFile &input, OutFile &output, int numvec = std::numeric_limits<int>::max()) {
+int transfer_rob(InFile &input, OutFile &output, int numvec = std::numeric_limits<int>::max()) {
   Rom::NodeDof6Buffer state_buffer(input.nodeCount());
   int count = 0;
   while (input.validCurrentState() && count < numvec) {
@@ -20,6 +21,7 @@ void transfer_rob(InFile &input, OutFile &output, int numvec = std::numeric_limi
     input.currentStateIndexInc();
     count++;
   }
+  return count;
 }
 
 template <typename InFile, typename OutFile>
@@ -33,14 +35,20 @@ template <typename InFile, typename OutFile>
 void convert_rob(const std::vector<std::string> &inFilenames, const std::string &outFilename) {
   InFile firstInput(inFilenames.front());
   OutFile output(outFilename, firstInput.nodeIdBegin(), firstInput.nodeIdEnd(), false);
+  std::string s = outFilename+".sources";
+  std::ofstream sources(s.c_str());
+  int fileIndex = 0;
   for(std::vector<std::string>::const_iterator it = inFilenames.begin(); it != inFilenames.end(); ++it) {
     InFile input(*it);
     if(!std::equal(firstInput.nodeIdBegin(), firstInput.nodeIdEnd(), input.nodeIdBegin())) {
       std::cerr << " *** ERROR: input files are not consistent\n";
       exit(-1);
     }
-    transfer_rob(input, output);
+    int count = transfer_rob(input, output);
+    for(int i = 0; i < count; ++i) sources << fileIndex+1 << " " << i+1 << std::endl;
+    fileIndex++;
   }
+  sources.close();
 }
 
 template <typename InFile, typename OutFile>

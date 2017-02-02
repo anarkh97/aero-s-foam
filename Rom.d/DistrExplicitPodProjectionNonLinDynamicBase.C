@@ -727,7 +727,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::reduceDisp(DistrVector &d, DistrVec
 {
   DistrVector Md(MultiDomainDynam::solVecInfo());
   dynMat->M->mult(d, Md);
-  normalizedBasis_.reduce(Md, dr);
+  normalizedBasis_.reduce(Md, dr, false);
 }
 
 void 

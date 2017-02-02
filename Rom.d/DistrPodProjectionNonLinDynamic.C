@@ -197,7 +197,6 @@ DistrPodProjectionNonLinDynamic::preProcess() {
     readLocalBasesAuxi();
   }
 
-  GenVecBasis<double,GenDistrVector> &projectionBasis = solver_->projectionBasis();
   //preProcessing for reduced solution vector information
   {
     reducedInfo.domLen = new int[MDNLDynamic::solVecInfo().numDom];
@@ -205,10 +204,10 @@ DistrPodProjectionNonLinDynamic::preProcess() {
     int totLen = 0;
     for(int iSub = 0; iSub < MDNLDynamic::solVecInfo().numDom; ++iSub) {
       if(domain->solInfo().readInROBorModes.size() == 1)
-        reducedInfo.domLen[iSub] = (iSub==0) ? projectionBasis.numVec() : 0;
+        reducedInfo.domLen[iSub] = (iSub==0) ? projectionBasis_.numVec() : 0;
       else
         reducedInfo.domLen[iSub] = (iSub==0) ? std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0) : 0;
-       totLen += reducedInfo.domLen[iSub];
+      totLen += reducedInfo.domLen[iSub];
     }
 
     reducedInfo.len = totLen;
@@ -220,11 +219,12 @@ DistrPodProjectionNonLinDynamic::preProcess() {
     throw std::runtime_error("Pod Post Processor did not bind\n");
 
   if(domain->solInfo().readInROBorModes.size() == 1){
-    podPostPro->printPODSize(projectionBasis.numVec());
+    podPostPro->printPODSize(projectionBasis_.numVec());
   } else {
-    podPostPro->printPODSize(std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0));
+    int podSize = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
+    podPostPro->printPODSize(podSize);
   }
-  podPostPro->makeSensorBasis(&projectionBasis);
+  podPostPro->makeSensorBasis(&projectionBasis_);
 
   if(domain->solInfo().getNLInfo().linearelastic) {
     // TODO for doing linear elastic analysis with nonlinear driver
@@ -535,7 +535,7 @@ DistrPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geomState
       DistrVector dq = geomState.q;
       dq -= refState->q;
       projectionBasis.expand(dq, q_Big);
-      geomState_Big->update(q_Big);
+      geomState_Big->update(*refState_Big, q_Big, 2);
     }
     else {
       projectionBasis.expand(geomState.q, q_Big);
@@ -761,7 +761,7 @@ DistrPodProjectionNonLinDynamic::initLocalBasis(DistrVector &q0){
     int oldLBI = localBasisId;
     localBasisId = selectLocalBasis(q0);
     if(oldLBI != localBasisId) 
-      std::cout << " selecting Basis " << localBasisId << std::endl;
+      filePrint(stderr," ... Selecting Local Basis # %d     ...\n",localBasisId);
     GenVecBasis<double,GenDistrVector> &projectionBasis = solver_->projectionBasis();
     int blockCols = domain->solInfo().localBasisSize[localBasisId];
     int startCol = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+localBasisId, 0);
@@ -803,7 +803,7 @@ DistrPodProjectionNonLinDynamic::setLocalBasis(DistrModalGeomState *refState, Di
     geomState_Big->update(dq_Big);
 
     if(j != localBasisId) { // if a new local basis has been selected, update the things
-      std::cout << "selecting local basis " << j << std::endl;
+      filePrint(stderr," ... Selecting Local Basis # %d \n     ... ",j);
       DistrVector vel_Big(MDNLDynamic::solVecInfo()),
                   acc_Big(MDNLDynamic::solVecInfo());
       if(VtV.size() == 0) {

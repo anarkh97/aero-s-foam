@@ -15,7 +15,7 @@ class DistrLumpedPodProjectionNonLinDynamic;
 template<class VecType>
 class GenModalGeomState {
 /* class used by PodProjectionNonLinDynamic for storing the geometric state of the structure
-   passed as a tmeplate parameter GeomType to class NLDynamSolver defined in
+   passed as a template parameter GeomType to class NLDynamSolver defined in
    Driver.d/NLDynamProbType.[Ch]
 */
 protected:

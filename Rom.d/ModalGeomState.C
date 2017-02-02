@@ -19,6 +19,9 @@ GenModalGeomState<DistrVector>::GenModalGeomState(DistrInfo &dinfo) :
 /*PRE: DistrModalGeomState instantiated with a given number of flexible modes
  *  POST: parameterized constructor
  *  */
+  q.zero();
+  vel.zero();
+  acc.zero();
 }
 
 //------------------------------------------------------------------------------
@@ -67,7 +70,7 @@ void GenModalGeomState<VecType>::midpoint_step_update(VecType &v_n, VecType &a_n
   q  = tcoef*(q);
   q -= (tcoef*alphaf)*stepState.q;
 
-  stepState.q = q;
+  stepState.q   = q;
   stepState.vel = vel;
   stepState.acc = acc;
   v_n = vel;
@@ -93,4 +96,3 @@ void GenModalGeomState<Vector>::printState(const char* text){
 
 template class GenModalGeomState<Vector>; // this stupid thing has to be here for the compiler to know wtf to do
 template class GenModalGeomState<DistrVector>;
-//template class GenModalGeomState<DistrVector>;

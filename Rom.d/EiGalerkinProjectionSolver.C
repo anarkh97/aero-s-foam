@@ -66,7 +66,7 @@ template <typename Scalar, template<typename> class GenVecType, class BaseSolver
 void
 GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::setLocalBasis(int startCol, int blockCols) 
 {
-  startCol_ = startCol;
+  startCol_  = startCol;
   blockCols_ = blockCols;
   reducedMatrix_.resize(blockCols_,blockCols_);
   reducedMatrix_.setZero();
@@ -298,6 +298,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::reSolve(GenVe
   else if(selfadjoint_ && !Empirical) llt_.solveInPlace(x);
   else x = (lu_.solve(x)).eval();
 
+  // zero out unused parts of rhs
   for(int i=0; i<startCol_; ++i) rhs[i] = 0;
   for(int i=startCol_+blockCols_; i<rhs.size(); ++i) rhs[i] = 0;
 }

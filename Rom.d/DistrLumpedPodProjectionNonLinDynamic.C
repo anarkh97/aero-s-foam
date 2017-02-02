@@ -39,7 +39,7 @@ DistrLumpedPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geo
       DistrVector dq = geomState.q;
       dq -= refState->q;
       projectionBasis.expand(dq, q_Big);
-      geomState_Big->update(q_Big);
+      geomState_Big->update(*refState_Big, q_Big, 2);
     }
     else {
       projectionBasis.expand(geomState.q, q_Big);
@@ -137,7 +137,7 @@ DistrLumpedPodProjectionNonLinDynamic::updateStates(DistrModalGeomState *refStat
 void
 DistrLumpedPodProjectionNonLinDynamic::subUpdateStates(int iSub, DistrGeomState *refState, DistrGeomState *geomState, double time)
 {
-  std::set<int> &subWeightedElems = packedWeightedElems_[iSub];
+  std::map<int, double> &subWeightedElems = packedElementWeights_[localReducedMeshId_][iSub];
   SubDomain *sd = decDomain->getSubDomain(iSub);
   GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
   sd->updateWeightedElemStatesOnly(subWeightedElems, subRefState, *(*geomState)[iSub], allCorot[iSub], time);
@@ -174,6 +174,9 @@ DistrLumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
     numElems += packedWeightedElems_[ns].size(); 
 
   if(structCom) numElems = structCom->globalSum(numElems);
+
+  if(geoSource->elementLumpingWeightSize() > 1)
+    filePrint(stderr, " ... # of unique Elems in Mesh = %-4d ... \n",numElems);
 
   if(geoSource->elementLumpingWeightSize() == 1 && numElems < domain->numElements()) {
     if(domain->solInfo().useMassNormalizedBasis) { // don't compress if using Local mesh
@@ -218,9 +221,9 @@ DistrLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int iSub)
   std::vector<int>      &subWeightedNodes  = packedWeightedNodes_[iSub];
   std::vector<int> &subLocalWeightedNodes  = localPackedWeightedNodes_[localReducedMeshId_][iSub];
 
-  for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(localReducedMeshId_),
+  for (GeoSource::ElementWeightMap::const_iterator     it = geoSource->elementLumpingWeightBegin(localReducedMeshId_),
                                                    it_end = geoSource->elementLumpingWeightEnd(localReducedMeshId_);
-                                                   it != it_end; ++it) {
+                                                      it != it_end; ++it) {
     const int elemId = it->first;
 
     const int packedId = sd->glToPackElem(elemId);
@@ -270,15 +273,17 @@ void
 DistrLumpedPodProjectionNonLinDynamic::setLocalReducedMesh(int j)
 {
 
+  // first zero out the old element stiffness arrays
   execParal(decDomain->getNumSub(), this, &DistrLumpedPodProjectionNonLinDynamic::subZeroStiffMats); 
 
-  // set new ID number
+  // then set new ID number
   localReducedMeshId_ = std::min(geoSource->elementLumpingWeightSize()-1, j);
 
   DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
   for(int i=0; i<decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
 
   // make new sparse basis
+  if(verboseFlag) filePrint(stderr," ... Compressing Local Basis       ... \n");
   GenVecBasis<double,GenDistrVector> &projectionBasis = solver_->projectionBasis();
   projectionBasis.makeSparseBasis(localPackedWeightedNodes_[localReducedMeshId_], all_cdsa); // these could be computed once, stored and then switched between
   delete [] all_cdsa;

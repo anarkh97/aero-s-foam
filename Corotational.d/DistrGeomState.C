@@ -76,6 +76,13 @@ DistrGeomState::subUpdate(int isub, DistrVector &v, int SO3param)
 }
 
 void
+DistrGeomState::subUpdateRef(int isub, DistrGeomState &ref, DistrVector &v, int SO3param)
+{
+  StackVector vec(v.subData(isub), v.subLen(isub));
+  gs[isub]->update(*ref[isub], vec, SO3param);
+}
+
+void
 DistrGeomState::subExplicitUpdate(int isub, DistrVector &v, GenDecDomain<double> *decDomain)
 {
   StackVector vec(v.subData(isub), v.subLen(isub));
@@ -228,6 +235,12 @@ void
 DistrGeomState::update(DistrVector &v, int SO3param)
 {
   execParal2R(numSub, this, &DistrGeomState::subUpdate, v, SO3param);
+}
+
+void
+DistrGeomState::update(DistrGeomState &ref, DistrVector &v, int SO3param)
+{
+  execParal3R(numSub, this, &DistrGeomState::subUpdateRef, ref, v, SO3param);
 }
 
 void

@@ -3760,6 +3760,19 @@ Domain::ProcessSurfaceBCs(int topFlag)
             geoSource->setDirichlet(nNodes, bc);
             if(numDirichlet_copy != 0) delete [] bc;
           } break;
+          case BCond::Usdd : {
+            BCond *bc = new BCond[nNodes];
+            for(int k=0; k<nNodes; ++k) { 
+              bc[k].nnum = glNodes[k];
+              bc[k].dofnum = surface_dbc[i].dofnum;
+              bc[k].val = surface_dbc[i].val; 
+              bc[k].type = surface_dbc[i].type;
+            }
+            int numDirichlet_copy = geoSource->getNumDirichlet();
+            geoSource->setUsddLocation(nNodes, bc);
+            geoSource->setDirichlet(nNodes, bc);
+            if(numDirichlet_copy != 0) delete [] bc;
+          } break;
           case BCond::Lmpc : {
             for(int k=0; k<nNodes; ++k) {
               LMPCTerm term(glNodes[k], surface_dbc[i].dofnum, 1);

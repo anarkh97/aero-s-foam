@@ -3757,14 +3757,41 @@ int GeoSource::setUsddLocation(int _numSensor, BCond *_sensor)
 {
   if (claw == 0) claw = new ControlLawInfo;
 
-  claw->numUserDisp = _numSensor;
+  if (claw->userDisp) {
+    // Allocate memory for correct number of usdd
+    BCond *nd = new BCond[claw->numUserDisp + _numSensor];
 
-  // need to copy the pointer data
-  claw->userDisp    = new BCond[claw->numUserDisp];
-  for (int k = 0; k < claw->numUserDisp; k++)  {
-    claw->userDisp[k].nnum = _sensor[k].nnum;
-    claw->userDisp[k].dofnum = _sensor[k].dofnum;
-    claw->userDisp[k].val = _sensor[k].val;
+    // copy old usdd
+    int i;
+    for(i = 0; i < claw->numUserDisp; ++i)
+       nd[i] = claw->userDisp[i];
+
+    // copy new usdd
+    for(i = 0; i<_numSensor; ++i) {
+      nd[i+claw->numUserDisp].nnum = _sensor[i].nnum;
+      nd[i+claw->numUserDisp].dofnum = _sensor[i].dofnum;
+      nd[i+claw->numUserDisp].val = _sensor[i].val;
+    }
+
+    // set correct number of usdd 
+    claw->numUserDisp += _numSensor;
+
+    // delete old array of usdd
+    delete [] claw->userDisp;
+
+    // set new pointer to correct number of usdd
+    claw->userDisp = nd;
+  }
+  else {
+    claw->numUserDisp = _numSensor;
+
+    // need to copy the pointer data
+    claw->userDisp    = new BCond[claw->numUserDisp];
+    for (int k = 0; k < claw->numUserDisp; k++)  {
+      claw->userDisp[k].nnum = _sensor[k].nnum;
+      claw->userDisp[k].dofnum = _sensor[k].dofnum;
+      claw->userDisp[k].val = _sensor[k].val;
+    }
   }
 
   return 0;

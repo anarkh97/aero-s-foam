@@ -133,6 +133,7 @@
 %type <bclist>   BCDataList IDisp6 TBCDataList PBCDataList AtdDirScatterer AtdNeuScatterer IDisp6Pita IVel6Pita
 %type <bclist>   DirichletBC NeumanBC TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
 %type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem 
+%type <bclist>   UsddLocations
 %type <bcval>    BC_Data TBC_Data ModalVal PBC_Data HEVDBC_Data
 %type <coefdata> CoefList
 %type <cxbcval>  ComplexBC_Data ComplexMPCHeader
@@ -230,6 +231,8 @@ Component:
 	| SensorLocations
 	| ActuatorLocations
 	| UsddLocations
+        { if(geoSource->setUsddLocation($1->n,$1->d) < 0) return -1;
+          if(geoSource->setDirichlet($1->n,$1->d) < 0)    return -1; delete $1; }
 	| UsdfLocations
         | DynInfo
         | DeleteElements
@@ -932,11 +935,21 @@ UsdfLocations:
           if(geoSource->setNeuman($3->n,$3->d) < 0)       return -1; } 
 	;
 UsddLocations:
-	USERDEFINEDISP NewLine BCDataList
-	{ geoSource->binaryInputControlLeft = true;
-          for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdd;
-          if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;
-          if(geoSource->setDirichlet($3->n,$3->d) < 0)    return -1; }
+        USERDEFINEDISP NewLine
+        { geoSource->binaryInputControlLeft = true;
+          $$ = new BCList; }
+        | UsddLocations BC_Data
+        { $2.type = BCond::Usdd; $$->add($2); }
+        | UsddLocations Integer THRU Integer Integer NewLine
+        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, 0., BCond::Usdd); $$->add(bc); } }
+        | UsddLocations Integer THRU Integer STEP Integer Integer NewLine
+        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, 0., BCond::Usdd); $$->add(bc); } }
+        | UsddLocations SURF BC_Data
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0] = $3;
+          surf_bc[0].type = BCond::Usdd;
+          geoSource->addSurfaceDirichlet(1,surf_bc);
+          if(geoSource->getNumSurfaceDirichlet() > 1) delete [] surf_bc; }
 	;
 Output:
 	OUTPUT NewLine

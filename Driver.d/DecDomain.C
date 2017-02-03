@@ -3862,7 +3862,7 @@ inline void
 GenDecDomain<double>::rebuildOps(GenMDDynamMat<double> &res, double coeM, double coeC, double coeK, 
                                  FullSquareMatrix **kelArray, FullSquareMatrix **melArray, FullSquareMatrix **celArray)
 {
- if(domain->solInfo().galerkinPodRom) {
+ if(domain->solInfo().galerkinPodRom && domain->solInfo().newmarkBeta != 0) {
 #ifdef USE_EIGEN3
 
    // rebuild the dynamic stiffness matrix

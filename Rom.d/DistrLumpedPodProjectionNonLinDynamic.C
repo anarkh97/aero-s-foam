@@ -48,7 +48,7 @@ DistrLumpedPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geo
 
     execParal6R(decDomain->getNumSub(), this, &DistrLumpedPodProjectionNonLinDynamic::subGetStiffAndForce, *geomState_Big, residual_Big, elementInternalForce, t, refState_Big, forceOnly);
 
-    projectionBasis.reduce(residual_Big, r);
+    projectionBasis.sparseVecReduce(residual_Big, r);
     residual += r;
   }
 

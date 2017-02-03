@@ -195,19 +195,19 @@ GenVecBasis<double, GenDistrVector>::reduce(GenDistrVector<double> &x, GenDistrV
     result.setZero();
 
     if(useCompressedBasis && compressedKey_.size() > 0) {
-      Eigen::VectorXd coordBuffer(compressedKey_.size());
+      /*Eigen::VectorXd coordBuffer(compressedKey_.size());
       for(int i = 0; i < compressedKey_.size(); i++)
         coordBuffer(i) = FullCoordinates(compressedKey_[i]);
 
-      result = compressedBasis_.transpose()*coordBuffer;
+      result = compressedBasis_.transpose()*coordBuffer;*/
+      sparseVecReduce(x, _result);
     }
     else {
       result = basis_.block(0,startCol_,basis_.rows(),blockCols_).transpose()*FullCoordinates;
+      //each process gets a copy of reduced coordinates
+      if(structCom)
+        structCom->globalSum(result.size(), result.data());
     }
-
-    //each process gets a copy of reduced coordinates
-    if(structCom)
-      structCom->globalSum(result.size(), result.data());
   }
   else if(structCom) {
     Eigen::Matrix<double,Eigen::Dynamic, 1> result(blockCols_);

@@ -217,6 +217,37 @@ DistrElementSamplingDriver::solve()
       normalizedBasisFile.currentStateIndexInc();
     }
   }
+
+  // read in ndscfg coordinates
+  DistrVecBasis *ndscfgCoords = 0;
+  if(domain->solInfo().NodeTrainingFiles.size() > 0) {
+    DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub(), false);
+    ndscfgCoords = new DistrVecBasis[domain->solInfo().NodeTrainingFiles.size()];
+    DistrInfo coordVecInfo;
+    decDomain->makeBasicDistrInfo(coordVecInfo, &Domain::coordVecSize);
+    for(int i = 0; i < domain->solInfo().NodeTrainingFiles.size(); ++i) {
+      DistrBasisInputFile in(domain->solInfo().NodeTrainingFiles[i]);
+      ndscfgCoords[i].dimensionIs(1, coordVecInfo);
+      in.currentStateBuffer(buffer);
+      converter.vector(buffer, *ndscfgCoords[i].begin());
+    }
+  }
+
+  // read in ndscfg mass orthogonal bases
+  DistrVecBasis *ndscfgMassOrthogonalBases = 0;
+  if(domain->solInfo().MassOrthogonalBasisFiles.size() > 0) {
+    ndscfgMassOrthogonalBases = new DistrVecBasis[domain->solInfo().MassOrthogonalBasisFiles.size()];
+    for(int i = 0; i < domain->solInfo().MassOrthogonalBasisFiles.size(); ++i) {
+      DistrBasisInputFile in(domain->solInfo().MassOrthogonalBasisFiles[i]);
+      ndscfgMassOrthogonalBases[i].dimensionIs(projectionSubspaceSize, vectorSize());
+      for(DistrVecBasis::iterator it = ndscfgMassOrthogonalBases[i].begin(), it_end = ndscfgMassOrthogonalBases[i].end(); it != it_end; ++it) {
+        assert(in.validCurrentState());
+        in.currentStateBuffer(buffer);
+        converter.vector(buffer, *it);
+        in.currentStateIndexInc();
+      }
+    }
+  }
  
   int glNumSubs = decDomain->getNumSub();
   structCom->globalSum(1,&glNumSubs);
@@ -269,14 +300,37 @@ DistrElementSamplingDriver::solve()
       }
     }
 
+    std::vector<StackVector> *subNdscfgCoords = 0;
+    if(ndscfgCoords) {
+      subNdscfgCoords = new std::vector<StackVector>[domain->solInfo().NodeTrainingFiles.size()];
+      for(int j = 0; j < domain->solInfo().NodeTrainingFiles.size(); ++j) {
+        subNdscfgCoords[j].resize(1);
+        subNdscfgCoords[j][0].setData(ndscfgCoords[j][0].subData(i), ndscfgCoords[j][0].subLen(i));
+      }
+    }
+
+    std::vector<StackVector> *subNdscfgMassOrthogonalBases = 0;
+    if(ndscfgMassOrthogonalBases) {
+      subNdscfgMassOrthogonalBases = new std::vector<StackVector>[domain->solInfo().MassOrthogonalBasisFiles.size()];
+      for(int j = 0; j < domain->solInfo().MassOrthogonalBasisFiles.size(); ++j) {
+        subNdscfgMassOrthogonalBases[j].resize(podVectorCount);
+        for(int k = 0; k < podVectorCount; ++k) {
+          subNdscfgMassOrthogonalBases[j][k].setData(ndscfgMassOrthogonalBases[j][k].subData(i), ndscfgMassOrthogonalBases[j][k].subLen(i));
+        }
+      }
+    }
+
     subDrivers[i]->preProcess();
     subDrivers[i]->solver().problemSizeIs(podVectorCount*snapshotCount, subDrivers[i]->elementCount());
 
     for(int j=0; j<subDrivers[i]->solver().equationCount(); ++j) subDrivers[i]->solver().rhsBuffer()[j] = 0.0;
-    subDrivers[i]->assembleTrainingData(subPodBasis, podVectorCount, subDisplac, subVeloc, subAccel);
+    subDrivers[i]->assembleTrainingData(subPodBasis, podVectorCount, subDisplac, subVeloc, subAccel,
+                                        subNdscfgCoords, subNdscfgMassOrthogonalBases);
     subDrivers[i]->clean();
     if(subVeloc) delete subVeloc;
     if(subAccel) delete subAccel;
+    if(subNdscfgCoords) delete [] subNdscfgCoords;
+    if(subNdscfgMassOrthogonalBases) delete [] subNdscfgMassOrthogonalBases;
 
     StackVector trainingTarget(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
 #if defined(_OPENMP)
@@ -287,6 +341,8 @@ DistrElementSamplingDriver::solve()
   delete displac;
   if(veloc) delete veloc;
   if(accel) delete accel;
+  if(ndscfgCoords) delete [] ndscfgCoords;
+  if(ndscfgMassOrthogonalBases) delete [] ndscfgMassOrthogonalBases;
 
   if(structCom) 
     structCom->globalSum(glTrainingTarget.size(), glTrainingTarget.data()); 
@@ -423,7 +479,7 @@ DistrElementSamplingDriver::solve()
 
     // Output the reduced forces
     std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
-    if(domain->solInfo().reduceFollower) meshOut << "EXTFOL\n";
+    if(domain->solInfo().reduceFollower) meshOut << "*\nEXTFOL\n";
     if(domain->gravityFlag()) {
       meshOut << "*\nFORCES -1\nMODAL\n"; // note: gravity forces are put in loadset -1 so that MFTT (if present) will not be applied
       meshOut.precision(std::numeric_limits<double>::digits10+1);

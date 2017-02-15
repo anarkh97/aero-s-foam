@@ -798,11 +798,11 @@ void
 Domain::make_constrainedDSA(int fake)
 { // make a fake constrainedDSA if fake !=0; ie lie to the code by telling
   //   it that there are noconstraints
-  if(fake){
+  if(fake) {
     if(c_dsa) delete c_dsa;
     c_dsa = new ConstrainedDSA(*dsa, 0, dbc);
   }
-  else{
+  else {
     make_constrainedDSA();
   }
 }

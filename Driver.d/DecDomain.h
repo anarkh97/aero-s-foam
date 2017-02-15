@@ -176,7 +176,6 @@ class GenDecDomain
   void makeSysVecInfo();
   void makeNodeInfo();
   void setNonTrivialMasterFlag(DistrInfo &);
-  void makeBasicDistrInfo(DistrInfo &, int(Domain::*)());
   void getCPUMap();
   void makeSubDMaps();
   void constructSubDomains(int iSub);
@@ -198,6 +197,7 @@ class GenDecDomain
   void printLMPC();
   void makeBlockCyclicDistrInfo(DistrInfo &, int globalLen, int blockSize);
   void makeNonOverlappingDistrInfo(DistrInfo &info);
+  void makeBasicDistrInfo(DistrInfo &, int(Domain::*)());
 
  private:
   void initialize();

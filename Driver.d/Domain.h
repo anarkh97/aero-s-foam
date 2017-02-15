@@ -1165,6 +1165,10 @@ class Domain : public HData {
        return c_dsa ? c_dsa->size() : dsa ? dsa->size() : 0;
      }
 
+     int coordVecSize() {
+       return dsa ? dsa->numNodes()*6 : 0;
+     }
+
      // returns the number of unconstrained Fluid dof
      int numUnconFluid() {
        return c_dsaFluid ? c_dsaFluid->size() : dsaFluid->size();

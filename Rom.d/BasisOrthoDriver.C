@@ -255,7 +255,7 @@ BasisOrthoDriver::solve() {
     readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver, skipTime); // read in snapshots
     readIntoSolver(solver, converter, BasisId::ROB, domain->solInfo().robfi.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver); // read in ROB
     
-    solver.solve();
+    if(domain->solInfo().robcSolve) solver.solve();
 
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     fileName.append(".orthonormalized");

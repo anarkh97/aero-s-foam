@@ -318,7 +318,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::ElementSamplingDriver(Domain *
   kelArray_(NULL),
   melArray_(NULL),
   veloc_(NULL),
-  accel_(NULL)
+  accel_(NULL),
+  ndscfgCoords_(NULL),
+  ndscfgMassOrthogonalBases_(NULL)
 {}
 
 template<typename MatrixBufferType, typename SizeType>
@@ -347,6 +349,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::clean() {
   if(veloc_) { delete veloc_; veloc_ = NULL; }
   if(accel_) { delete accel_; accel_ = NULL; }
 
+  if(ndscfgCoords_) { delete [] ndscfgCoords_; ndscfgCoords_ = 0; }
+  if(ndscfgMassOrthogonalBases_) { delete [] ndscfgMassOrthogonalBases_; ndscfgMassOrthogonalBases_ = 0; }
+
   timeStamps_.clear();
 }
 
@@ -354,13 +359,15 @@ template<typename MatrixBufferType, typename SizeType>
 template<typename VecBasisType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>
-::assembleTrainingData(VecBasisType &podBasis, int podVectorCount, VecBasisType &displac,
-                       VecBasisType *veloc,VecBasisType *accel, int j)
+::assembleTrainingData(VecBasisType &podBasisInput, int podVectorCount, VecBasisType &displac,
+                       VecBasisType *veloc, VecBasisType *accel, VecBasisType *ndscfgCoords,
+                       VecBasisType *ndscfgMassOrthogonalBases, int j)
 {
   const FileNameInfo fileInfo;
   std::vector<double>::iterator timeStampFirst = timeStamps_.begin();
   typename MatrixBufferType::iterator elemContributions = solver_.matrixBuffer();
   double *trainingTarget = solver_.rhsBuffer();
+  VecBasisType *podBasis = &podBasisInput;
 
   // Temporary buffers shared by all iterations
   Vector elemTarget(podVectorCount);
@@ -379,10 +386,12 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
   int kParam, kSnap, jParam = -1;
   const int skipFactor  = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
   const int skipOffSet  = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
+  // these flags are for training with snapshots from multiple simulations in which the mesh is deformed
   const bool poscfg     = domain->solInfo().activatePOSCFG;
   const bool sclfactor  = (domain->solInfo().xScaleFactors.size() > 0);
-  const bool ndfile     = (domain->solInfo().NodeTrainingFiles.size() > 0);
-  const bool swtchbasis = (domain->solInfo().MassOrthogonalBasisFiles.size() > 0);
+  const bool ndfile     = (ndscfgCoords && domain->solInfo().NodeTrainingFiles.size() > 0);
+  const bool swtchbasis = (ndscfgMassOrthogonalBases && domain->solInfo().MassOrthogonalBasisFiles.size() > 0);
+  double xScaleFactor, yScaleFactor, zScaleFactor;
   std::ifstream sources;
 
   for (int iElem = 0; iElem != elementCount(); ++iElem) { // outer loop over element set
@@ -394,170 +403,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
       if(!domain_->solInfo().conwepConfigurations.empty()) {
         conwep = &domain_->solInfo().conwepConfigurations[i];
       }
-      if(poscfg) { // opon sources file 
-        std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS, i);
-        fileName.append(".sources");
-        sources.open(fileName.c_str());
-        for(int k = 0; k < skipOffSet; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-      }
-
-      for (int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap) { // inner loop over snapshot list
-        if(poscfg) { // if there is a transformation supplied, apply to mesh for current snapshot
-          sources >> kParam >> kSnap;
-          for(int k = 0; k < skipFactor; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-          if(kParam != jParam) { // check to see if new transformation is required, if not continue
-            if(jParam == -1) {
-              domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactor;
-              domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactor;
-              domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactor;
-            }
-            else {
-              domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactors[jParam-1];
-              domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactors[jParam-1];
-              domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactors[jParam-1];
-            }
-//            std::cerr << "scaling position coordinates by " << domain->solInfo().xScaleFactor << " " << domain->solInfo().yScaleFactor
-//                      << " " << domain->solInfo().zScaleFactor << std::endl;
-            geoSource->transformCoords();
-            jParam = kParam;
-
-          }
-        }
-        geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
-            nodes, displac[iSnap]); // just set the state at the nodes of element iElem
-        if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
-            (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
-        if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
-            (*accel)[iSnap], 2); // just set the acceleration at the nodes of element iElem
-        // Evaluate and store element contribution at training configuration
-        if(corotators_[iElem] && (!domain_->solInfo().getNLInfo().linearelastic ||
-          (domain_->getElementSet()[iElem]->isConstraintElement() && domain_->solInfo().getNLInfo().linearelastic == 2))) {
-          domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
-        }
-        else {
-          Vector disp(kelArray_[iElem].dim());
-          StackVector force(elementForce.array(), kelArray_[iElem].dim());
-          domain->getElementDisp(iElem, *geomState_, disp);
-          force.zero();
-          kelArray_[iElem].multiply(disp, force, 1.0);
-        }
-        if(domain_->solInfo().reduceFollower)
-          domain_->getElemFollowerForce(iElem, *geomState_, elementForce.array(), elementForce.size(), (corotators_[iElem]),
-                                        kelArray_[iElem], 1.0, *timeStampIt, false, conwep);
-        if(domain_->getElementSet()[iElem]->hasRot() && !domain_->solInfo().getNLInfo().linearelastic) {
-          domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
-          domain_->getElemFictitiousForce(iElem, *geomState_, elementForce.array(), kelArray_[iElem],
-              *timeStampIt, geomState_, melArray_[iElem], false);
-        }
-
-        elemTarget.zero();
-        const int dofCount = kelArray_[iElem].dim();
-        for (int iDof = 0; iDof != dofCount; ++iDof) {
-          const int vecLoc = domain_->getCDSA()->getRCN((*domain_->getAllDOFs())[iElem][iDof]);
-          if (vecLoc >= 0) {
-            const double dofForce = elementForce[iDof];
-            for (int iPod = 0; iPod != podVectorCount; ++iPod) {
-              const double contrib = dofForce * podBasis[iPod][vecLoc];
-              elemTarget[iPod] += contrib;
-            }
-          }
-        }
-        for(int iPod = 0; iPod != podVectorCount; ++iPod) {
-          *elemContributions = elemTarget[iPod];
-          elemContributions++;
-          trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
-        }
-        timeStampIt++;
-      }
-      // reset the element internal states for the next group of snapshots, assuming for now that each group of snapshots
-      // was generated by an independent simulation rather than a restart. For a restart it would be appropriate to not
-      // reset the internal states. This could be controlled by a user defined switch.
-      int numStates = geomState_->getNumElemStates(domain_->getElementSet()[iElem]->getGlNum());
-      if(numStates > 0) {
-        double *states = geomState_->getElemState(domain_->getElementSet()[iElem]->getGlNum());
-        for (int j = 0; j < numStates; ++j) states[j] = 0;
-        domain_->getElementSet()[iElem]->initStates(states);
-      }
-      if(poscfg) sources.close();
-    }
-
-    delete [] nodes;
-  }
-  filePrint(stderr,"\r %4.2f%% complete\n", 100.);
-
-
-  if(poscfg) {
-    domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactor/domain->solInfo().xScaleFactors[kParam-1];
-    domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactor/domain->solInfo().yScaleFactors[kParam-1];
-    domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactor/domain->solInfo().zScaleFactors[kParam-1];
-    geoSource->transformCoords();
-  }
-
-}
-
-
-// class specialization to enable training from multiple data sets with multiple node files and associated mass orthonormal bases 
-template<>
-template<>
-void
-ElementSamplingDriver<std::vector<double>,size_t>
-::assembleTrainingData<VecBasis>(VecBasis &podBasisInput, int podVectorCount, VecBasis &displac,
-                       VecBasis *veloc,VecBasis *accel, int j)
-{
-#if ((__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11))
-  const FileNameInfo fileInfo;
-  std::vector<double>::iterator timeStampFirst = timeStamps_.begin();
-   std::vector<double>::iterator elemContributions = solver_.matrixBuffer();
-  double *trainingTarget = solver_.rhsBuffer();
-
-  std::unique_ptr<VecBasis> podBasis (new VecBasis);
-  *podBasis = podBasisInput; //empty
-
-  // Temporary buffers shared by all iterations
-  Vector elemTarget(podVectorCount);
-  SimpleBuffer<double> elementForce(domain_->maxNumDOF());
-
-  // load CONWEP configuration data
-  BlastLoading::BlastData *conwep;
-  if(domain_->solInfo().conwepConfigurations.empty()) conwep = (domain_->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
-  else if(domain_->solInfo().conwepConfigurations.size() < domain_->solInfo().statePodRomFile.size()) {
-    filePrint(stderr, " *** ERROR: Must provide one Conwep configuration per state snapshot file\n");
-    exit(-1);
-  }
-  domain_->makeElementAdjacencyLists();
-
-  // set snapshot sampling parameters
-  int kParam, kSnap, jParam = -1;
-  const int skipFactor  = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
-  const int skipOffSet  = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
-  // these flags of for training with snapshots from multiple simulations in which the mesh is deformed
-  const bool poscfg     = domain->solInfo().activatePOSCFG;
-  const bool sclfactor  = (domain->solInfo().xScaleFactors.size() > 0);
-  const bool ndfile     = (domain->solInfo().NodeTrainingFiles.size() > 0);
-  const bool swtchbasis = (domain->solInfo().MassOrthogonalBasisFiles.size() > 0);
-  std::ifstream sources;
-
-  double origScalex = 0.;
-  double origScaley = 0.; 
-  double origScalez = 0.;
-  if(poscfg) {
-    if(sclfactor) {
-      origScalex = domain->solInfo().xScaleFactor;
-      origScaley = domain->solInfo().yScaleFactor;
-      origScalez = domain->solInfo().zScaleFactor;
-    }
-  }
-
-  for (int iElem = 0; iElem != elementCount(); ++iElem) { // outer loop over element set
-    filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
-    std::vector<double>::iterator timeStampIt = timeStampFirst;
-    int *nodes = domain_->getElementSet()[iElem]->nodes();
-    int iSnap = 0;
-    for(int i = ((j<0)?0:j); i < ((j<0)?snapshotCounts_.size():(j+1)); i++) { // loop over type of snapshot
-      if(!domain_->solInfo().conwepConfigurations.empty()) {
-        conwep = &domain_->solInfo().conwepConfigurations[i];
-      }
-      if(poscfg) { // opon sources file 
+      if(poscfg) { // open sources file 
         std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS, i);
         fileName.append(".sources");
         sources.open(fileName.c_str());
@@ -567,32 +413,31 @@ ElementSamplingDriver<std::vector<double>,size_t>
 
       for (int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap) { // inner loop over snapshot list
         if(poscfg) { // if there is a transformation supplied, apply to mesh for current snapshot
-          sources >> kParam >> kSnap; 
-          for(int k = 0; k < skipFactor; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // account for snapshot skipping 
+          sources >> kParam >> kSnap;
+          for(int k = 0; k < skipFactor; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // account for snapshot skipping
           if(kParam != jParam) { // check to see if new transformation is required, if not continue
             if(sclfactor) { // if doing linear stretching of coordinates, do this block
               if(jParam == -1) {
-                domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactor;
-                domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactor;
-                domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactor;
-              }else{
-                domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactors[jParam-1];
-                domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactors[jParam-1];
-                domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactors[jParam-1];
+                xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactor;
+                yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactor;
+                zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactor;
               }
-              geoSource->transformCoords();
-            } else if (ndfile) { // if using arbitrarily deformed mesh, do this block
-              geoSource->setNewCoords(domain->solInfo().NodeTrainingFiles[kParam-1]);
+              else {
+                xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactors[jParam-1];
+                yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactors[jParam-1];
+                zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactors[jParam-1];
+              }
+              //std::cerr << "scaling position coordinates by " << domain->solInfo().xScaleFactor << " " << domain->solInfo().yScaleFactor
+              //          << " " << domain->solInfo().zScaleFactor << std::endl;
+              geomState_->transformCoords(xScaleFactor, yScaleFactor, zScaleFactor);
             }
-
+            else if(ndfile) { // if using arbitrarily deformed mesh, do this block
+              geomState_->setNewCoords(ndscfgCoords[kParam-1][0]);
+            }
             jParam = kParam;
-
             if(swtchbasis) { // if using mass orthonormalized basis, need to switch to that basis
-              VecNodeDof6Conversion vecDofConversion(*domain->getCDSA());
               int numClust = domain_->solInfo().readInROBorModes.size(); // stride through appropriate local training bases
-              BasisInputStream<6> in(domain->solInfo().MassOrthogonalBasisFiles[j+(numClust*(kParam-1))], vecDofConversion);
-              podBasis.reset(new VecBasis); 
-              readVectors(in, *podBasis,podVectorCount); // make sure to read in number of vectors already allocated for
+              podBasis = &ndscfgMassOrthogonalBases[((j<0)?0:j)+(numClust*(kParam-1))];
             }
           }
         }
@@ -660,22 +505,20 @@ ElementSamplingDriver<std::vector<double>,size_t>
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 
 
-  // finally, undo scaling to orginial mesh for post processing
+  // finally, undo scaling to original mesh for post processing
   if(poscfg) {
-    if(sclfactor) { // if doing linear stretching of coordinates, do this block
-      domain->solInfo().xScaleFactor = origScalex/domain->solInfo().xScaleFactors[kParam-1];
-      domain->solInfo().yScaleFactor = origScaley/domain->solInfo().yScaleFactors[kParam-1];
-      domain->solInfo().zScaleFactor = origScalez/domain->solInfo().zScaleFactors[kParam-1];
-      geoSource->transformCoords();
-    } else if (ndfile) {
-      geoSource->setNewCoords(domain->solInfo().NodeTrainingFiles[domain->solInfo().NodeTrainingFiles.size()-1]); // set nodes to original position, nodefile at end of list
+    if(sclfactor) {
+      xScaleFactor = domain->solInfo().xScaleFactor/domain->solInfo().xScaleFactors[kParam-1];
+      yScaleFactor = domain->solInfo().yScaleFactor/domain->solInfo().yScaleFactors[kParam-1];
+      zScaleFactor = domain->solInfo().zScaleFactor/domain->solInfo().zScaleFactors[kParam-1];
+      geomState_->transformCoords(xScaleFactor, yScaleFactor, zScaleFactor);
+    }
+    else if(ndfile) {
+      geomState_->setNewCoords(ndscfgCoords[domain->solInfo().NodeTrainingFiles.size()-1][0]);
     }
   }
-#else
-  std::cerr << " *** ERROR: C++11 support required in ElementSamplingDriver::assembleTrainingData().\n";
-  exit(-1); 
-#endif
 }
+
 
 template<typename MatrixBufferType, typename SizeType>
 void
@@ -700,7 +543,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
           double t2 = getTime();
       #endif
           for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
-          assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_,
+          assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_, ndscfgCoords_, ndscfgMassOrthogonalBases_,
                                ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
       #ifdef PRINT_ESTIMERS
           fprintf(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
@@ -1071,7 +914,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
   }
 
   // build and output reduced mass matrix if mass-normalized basis is not used
-  if(!domain_->solInfo().useMassNormalizedBasis) {
+  if(!(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis)) {
     std::string fileName = domain->solInfo().reducedMeshFile;
     fileName.append(".reducedmass");
     meshOut << "*\nDIMASS\nMODAL\n\"" << fileName << "\"\n";
@@ -1257,6 +1100,26 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
       int startCol = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+j, 0);
       int blockCols = domain_->solInfo().localBasisSize[j];
       readVectors(in, podBasis_, globalBasisSize, blockCols, startCol);
+    }
+  }
+
+  // read in ndscfg coordinates
+  if(domain->solInfo().NodeTrainingFiles.size() > 0) {
+    const VecNodeDofConversion<6> vecDofConversion(domain_->getCDSA()->numNodes()); // note: no constraints
+    ndscfgCoords_ = new VecBasis[domain->solInfo().NodeTrainingFiles.size()];
+    for(int i = 0; i < domain->solInfo().NodeTrainingFiles.size(); ++i) {
+      BasisInputStream<6> in(domain->solInfo().NodeTrainingFiles[i], vecDofConversion); // XXX only need 3 dofs per node, not 6.
+      readVectors(in, ndscfgCoords_[i], 1);
+    }
+  }
+
+  // read in ndscfg mass-normalized bases
+  if(useMassNormalizedBasis && domain->solInfo().MassOrthogonalBasisFiles.size() > 0) {
+    ndscfgMassOrthogonalBases_ = new VecBasis[domain->solInfo().MassOrthogonalBasisFiles.size()];
+    for(int i = 0; i < domain->solInfo().MassOrthogonalBasisFiles.size(); ++i) {
+      int numClust = domain_->solInfo().readInROBorModes.size(); // stride through appropriate local training bases
+      BasisInputStream<6> in(domain->solInfo().MassOrthogonalBasisFiles[i], vecDofConversion);
+      readVectors(in, ndscfgMassOrthogonalBases_[i], podVectorCount); // make sure to read in number of vectors already allocated for */
     }
   }
 

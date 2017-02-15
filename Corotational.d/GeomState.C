@@ -2329,6 +2329,29 @@ void GeomState::getGlobalRot(double R[3][3])
       R[i][j] = gRot[i][j];
 }
 
+void GeomState::transformCoords(double xScaleFactor, double yScaleFactor, double zScaleFactor)
+{
+  for(int i = 0; i < numnodes; ++i) {
+    if(X0 && (*X0)[i]) {
+      (*X0)[i]->x *= xScaleFactor;
+      (*X0)[i]->y *= yScaleFactor;
+      (*X0)[i]->z *= zScaleFactor;
+    }
+  }
+}
+
+void
+GeomState::setNewCoords(const Vector &X)
+{
+  for(int i = 0; i < numnodes; ++i) {
+    if(X0 && (*X0)[i]) {
+      (*X0)[i]->x = X[6*i+0];
+      (*X0)[i]->y = X[6*i+1];
+      (*X0)[i]->z = X[6*i+2];
+    }
+  }
+}
+
 double
 NodeState::diff(const Node &un, int dof)
 {

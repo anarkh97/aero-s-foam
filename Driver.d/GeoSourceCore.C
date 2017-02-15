@@ -1002,7 +1002,8 @@ void GeoSource::transformCoords()
 #endif
 }
 
-void GeoSource::setNewCoords(std::string nodeFile){
+void GeoSource::setNewCoords(std::string nodeFile)
+{
   // this function is for setting new xyz locations for a mesh 
   // during an HROM training with training vectors from multiple
   // simulations in which the mesh deformation is a parameter
@@ -1014,7 +1015,7 @@ void GeoSource::setNewCoords(std::string nodeFile){
   
   // now loop over nodes
   for(int i=0; i<lastNode; ++i) {
-     if(nodes[i] == NULL) continue; // if node pointer is empty , skip
+     if(nodes[i] == NULL) continue; // if node pointer is empty, skip
      int nnum;
      double x,y,z;
      newNodes >> nnum; newNodes >> x; newNodes >> y; newNodes >> z;
@@ -1024,7 +1025,6 @@ void GeoSource::setNewCoords(std::string nodeFile){
      nodes[i]->y = y; 
      nodes[i]->z = z;  
   } 
-
 }
 
 void GeoSource::setUpData(int topFlag)

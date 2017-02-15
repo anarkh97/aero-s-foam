@@ -1600,6 +1600,8 @@ TRAIL [a-zA-Z]*
 
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 
+"SOLVE"|"solve"                           { return SOLVE; }
+
 "MNORMA"|"MNorma"|"mnorma"		  { return NORMALIZETOKEN; }
 
 "MPRO"[a-zA-Z]*|"mpro"[a-zA-Z]*           { return MPROJECT; }

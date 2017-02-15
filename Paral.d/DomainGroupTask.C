@@ -343,6 +343,10 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
         sps[isub] = (GenSolver<Scalar>*) dm;
       }
     }
+    else if(solInfo.type == -1) {
+      dynMats[isub] = 0;
+      spMats[isub] = 0;
+    }
 
     if(solInfo.type == 2 && solInfo.getFetiInfo().version == FetiInfo::fetidp) {
       sd[isub]->constructKcc();

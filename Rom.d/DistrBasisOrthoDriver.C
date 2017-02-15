@@ -150,14 +150,11 @@ DistrBasisOrthoDriver::solve() {
     filePrint(stderr, " *** ERROR: \"mnorma 1\" is only available for LUMPED mass matrices when a decomposition is used.\n");
     exit(-1);
   }
-  if(domain->solInfo().normalize == 0 && !(domain->solInfo().type == 0 && domain->solInfo().subtype == 9)) {
-    domain->solInfo().type = 0;
-    domain->solInfo().subtype = 9;
-  }
+  if(domain->solInfo().normalize == 0) domain->solInfo().type = -1; // no solver required
   // Assembling mass matrix
   MDDynamMat *dynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
   assert(dynOps->M);
-  assert(dynOps->dynMat);
+  if(domain->solInfo().normalize == 1) assert(dynOps->dynMat);
  
   if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
     filePrint(stderr, " *** ERROR: no files provided\n");
@@ -171,7 +168,8 @@ DistrBasisOrthoDriver::solve() {
 
   readIntoSolver(solver, inputBuffer, nodeCount, converter, dynOps, decDomain->solVecInfo(), BasisId::ROB,
                  domain->solInfo().robfi.size(), solverCol); // read in robs
-  solver.solve();
+
+  if(domain->solInfo().robcSolve) solver.solve();
 
   // Output solution
   std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
@@ -188,7 +186,8 @@ DistrBasisOrthoDriver::solve() {
     if(domain->solInfo().normalize <= 0)
       filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
-      double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));
+      double * const vecBuffer = (domain->solInfo().robcSolve) ? const_cast<double *>(solver.basisColBuffer(iVec))
+                                                               : const_cast<double *>(solver.matrixColBuffer(iVec));
       const GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
       converter.paddedNodeDof6(vec, outputBuffer);
       outputFile.stateAdd(outputBuffer, solver.singularValue(iVec));

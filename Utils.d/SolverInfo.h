@@ -479,6 +479,7 @@ struct SolverInfo {
    int  orthogPodRom;
    int  numRODFile;
    int  romresidType;
+   bool robcSolve;
    double tolPodRom;
    bool useMassNormalizedBasis;
    bool useMassOrthogonalProjection;
@@ -842,6 +843,7 @@ struct SolverInfo {
                   orthogPodRom       = 1;
                   numRODFile         = 0;
                   romresidType       = 0;
+                  robcSolve          = true;
                   tolPodRom          = 1.0e-6;
                   useMassNormalizedBasis = true;
                   useMassOrthogonalProjection = false;

@@ -203,9 +203,9 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
 
   }
   double t = (getTime() - t0)/1000.0;
-  fprintf(stderr, " ... Solve Time    = %12.6f s ...\n",t);
-  fprintf(stderr, " ... DDate Time    = %12.6f s ...\n",dtime);
-  fprintf(stderr, " ... %% DDate       = %12.6f %% ...\n",(dtime/t)*100.);
+  fprintf(stderr, " ... Solve Time    = %9.3e s    ...\n",t);
+  fprintf(stderr, " ... Downdate Time = %9.3e s    ...\n",dtime);
+  fprintf(stderr, " ... %% Downdate    = %9.2f %%    ...\n",(dtime/t)*100.);
   fprintf(stderr, " ... Elements      = %12d   ...\n",nnz);
   if (info == 2) {
     throw std::logic_error("Illegal problem size");

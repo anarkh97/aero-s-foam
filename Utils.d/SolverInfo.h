@@ -504,6 +504,7 @@ struct SolverInfo {
                        //          but lumped mass matrices which are block-diagonal remain so.
    bool printMatLab;
    const char * printMatLabFile;
+   bool printMatLabExit;
 
    bool elementDeletion;
    std::map<int,double> deleteElements; // elements to be deleted at specific time or times (specified in input file)
@@ -862,6 +863,7 @@ struct SolverInfo {
                   inertiaLumping     = 0;
                   printMatLab        = false;
                   printMatLabFile    = "";
+                  printMatLabExit    = false;
                   elementDeletion    = false;
                   piecewise_contact  = true;
                   npMax              = 0;  // 0 => reduced mesh size is not limited

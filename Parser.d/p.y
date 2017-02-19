@@ -1094,8 +1094,12 @@ DynInfo:
         | ADDEDMASS Integer NewLine
         { domain->solInfo().addedMass = $2; }
         | DynInfo PRINTMATLAB FNAME NewLine
-        { domain->solInfo().printMatLab = 1;
+        { domain->solInfo().printMatLab = true;
           domain->solInfo().printMatLabFile = $3; }
+        | DynInfo PRINTMATLAB FNAME EXITAFTERDEC NewLine
+        { domain->solInfo().printMatLab = true;
+          domain->solInfo().printMatLabFile = $3; 
+          domain->solInfo().printMatLabExit = true; }
 	;
 DeleteElements:
         DELETEELEMENTS NewLine DeleteElementsList NewLine
@@ -4038,9 +4042,9 @@ Solver:
         | UPROJ Integer NewLine
         { domain->solInfo().fetiInfo.uproj = $2; }
 	| PRINTMATLAB NewLine
-	{ domain->solInfo().fetiInfo.printMatLab = 1; }
+	{ domain->solInfo().fetiInfo.printMatLab = true; }
         | PRINTMATLAB FNAME NewLine
-        { domain->solInfo().printMatLab = 1;
+        { domain->solInfo().printMatLab = true;
           domain->solInfo().printMatLabFile = $2; }
 	| LOCALSOLVER SOLVERTYPE NewLine
 	{ domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) $2; }

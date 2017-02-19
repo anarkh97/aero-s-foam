@@ -151,6 +151,7 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  if(domain->solInfo().printMatLab) {
    allOps.M->printSparse(std::string(domain->solInfo().printMatLabFile)+".mass");
    allOps.K->printSparse(std::string(domain->solInfo().printMatLabFile)+".stiffness");
+   if(domain->solInfo().printMatLabExit) return;
  }
 #endif
 

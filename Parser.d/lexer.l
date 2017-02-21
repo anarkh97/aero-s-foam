@@ -1600,9 +1600,14 @@ TRAIL [a-zA-Z]*
 
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 
-"SOLVE"|"solve"                           { return ROBCSOLVE; }
+"SOLVE"|"solve"                           { return ROBCSOLVE; } /* deprecated */
+"COMPRESS"|"Compress"|"compress"          { return ROBCSOLVE; }
 
 "MNORMA"|"MNorma"|"mnorma"		  { return NORMALIZETOKEN; }
+
+"mi"|"MI"                                 { yylval.ival = 1;  return FLAGMN; }
+"im"|"IM"                                 { yylval.ival = 0;  return FLAGMN; }
+"id"|"ID"                                 { yylval.ival = -1; return FLAGMN; }
 
 "MPRO"[a-zA-Z]*|"mpro"[a-zA-Z]*           { return MPROJECT; }
 

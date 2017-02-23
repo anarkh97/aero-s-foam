@@ -150,7 +150,7 @@ DistrBasisOrthoDriver::solve() {
     filePrint(stderr, " *** ERROR: \"mnorma 1\" is only available for LUMPED mass matrices when a decomposition is used.\n");
     exit(-1);
   }
-  if(domain->solInfo().normalize == 0) domain->solInfo().type = -1; // no solver required
+  if(domain->solInfo().normalize <= 0) domain->solInfo().type = -1; // no solver required
   // Assembling mass matrix
   MDDynamMat *dynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
   assert(dynOps->M);

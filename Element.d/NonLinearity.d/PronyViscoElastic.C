@@ -95,28 +95,37 @@ PronyViscoElastic<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &en,
   // compute hyperelastic response
   Material::integrate(_stress, _tm, en, enp, staten, statenp, temp, cache, dt);
 
-  // add viscoelastic contribution to long-term hyperelastic response (both stress and tm)
-  // using the the time step dt and history variables at t_n (statenp),
-  // and also compute the updated history variables (statenp)
   Tensor_d0s4_Ss12s34 *tm  = static_cast<Tensor_d0s4_Ss12s34 *>(_tm);
   Tensor_d0s2_Ss12 *stress = static_cast<Tensor_d0s2_Ss12 *>(_stress);
 
-  double expTau1 = std::exp(-dt/tau1);
-  double expTau2 = std::exp(-dt/tau2);
-  double expTau3 = std::exp(-dt/tau3);
+  if(statenp == 0) {
+    for(int i = 0; i < 6; i++) {
+      (*stress)[i] *= ginf;
+      for(int j=0; j<6; j++) (*tm)[i][j] *= ginf;
+    }
+  }
+  else {
+    // add viscoelastic contribution to long-term hyperelastic response (both stress and tm)
+    // using the the time step dt and history variables at t_n (statenp),
+    // and also compute the updated history variables (statenp)
 
-  for(int i = 0; i < 6; i++) {
-    // update stress history variables
-    statenp[i]    = expTau1*staten[i]    + (g1*(1-expTau1)/(dt/tau1))*((*stress)[i] - staten[i+18]);
-    statenp[i+6]  = expTau2*staten[i+6]  + (g2*(1-expTau2)/(dt/tau2))*((*stress)[i] - staten[i+18]);
-    statenp[i+12] = expTau3*staten[i+12] + (g3*(1-expTau3)/(dt/tau3))*((*stress)[i] - staten[i+18]);
-    statenp[i+18] = (*stress)[i];
-    // add viscoelastic contribution to stress
-    (*stress)[i]  *= ginf; 
-    (*stress)[i]  += statenp[i] + statenp[i+6] + statenp[i+12];
-    for(int j=0; j<6; j++){
-      // add viscoelastic contribution to tm 
-      (*tm)[i][j] *= ginf+g1*(1-expTau1)/(dt/tau1)+g2*(1-expTau2)/(dt/tau2)+g3*(1-expTau3)/(dt/tau3);
+    double expTau1 = std::exp(-dt/tau1);
+    double expTau2 = std::exp(-dt/tau2);
+    double expTau3 = std::exp(-dt/tau3);
+
+    for(int i = 0; i < 6; i++) {
+      // update stress history variables
+      statenp[i]    = expTau1*staten[i]    + (g1*(1-expTau1)/(dt/tau1))*((*stress)[i] - staten[i+18]);
+      statenp[i+6]  = expTau2*staten[i+6]  + (g2*(1-expTau2)/(dt/tau2))*((*stress)[i] - staten[i+18]);
+      statenp[i+12] = expTau3*staten[i+12] + (g3*(1-expTau3)/(dt/tau3))*((*stress)[i] - staten[i+18]);
+      statenp[i+18] = (*stress)[i];
+      // add viscoelastic contribution to stress
+      (*stress)[i]  *= ginf; 
+      (*stress)[i]  += statenp[i] + statenp[i+6] + statenp[i+12];
+      for(int j=0; j<6; j++) {
+        // add viscoelastic contribution to tm 
+        (*tm)[i][j] *= ginf+g1*(1-expTau1)/(dt/tau1)+g2*(1-expTau2)/(dt/tau2)+g3*(1-expTau3)/(dt/tau3);
+      }
     }
   }
 }

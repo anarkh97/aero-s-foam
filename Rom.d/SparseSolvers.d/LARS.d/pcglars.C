@@ -16,15 +16,6 @@
 #include <omp.h>
 #endif
 
-Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
-pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime);
-
-Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
-splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime,
-       int npMax, int scpkMB, int scpkNB, int scpkMP, int scpkNP, int option);
-
 struct double_int {
   double val;
   int rank;
@@ -34,6 +25,16 @@ struct long_int {
   long index;
   int sub;
 };
+
+Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
+pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime, 
+       std::list<std::pair<int,long_int> > &hotIndices);
+
+Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
+splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime,
+       int npMax, int scpkMB, int scpkNB, int scpkMP, int scpkNP, int option);
 
 bool operator== (const long_int& lhs, const long_int& rhs);
 
@@ -591,7 +592,8 @@ pcglars(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd>
 #if defined(USE_MPI) && defined(USE_SCALAPACK)
     dummyx = splh(subsetA, b, rnorm, n, info, maxsze, maxit, reltol, true, scaling, false, dtime, 0, 0, 0, 0, 0, 0);
 #else
-    dummyx = pnncgp(subsetA, b, rnorm, n, info, maxsze, maxite, reltol, true, scaling, center, dtime);
+    std::list<std::pair<int,long_int> > hotIndices;
+    dummyx = pnncgp(subsetA, b, rnorm, n, info, maxsze, maxite, reltol, true, scaling, center, dtime, hotIndices);
 #endif
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)

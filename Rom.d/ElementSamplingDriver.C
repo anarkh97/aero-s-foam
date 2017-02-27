@@ -579,6 +579,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
   solver_.maxSizeRatioIs(domain->solInfo().maxSizeSpnnls);
   solver_.maxIterRatioIs(domain->solInfo().maxIterSpnnls);
   solver_.maxNumElemsIs(domain->solInfo().maxElemSpnnls);
+  solver_.useHotStart(domain->solInfo().hotstartSample);
   try {
     solver_.solve();
   }

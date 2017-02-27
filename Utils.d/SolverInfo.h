@@ -413,6 +413,7 @@ struct SolverInfo {
    int clustering;
    int rowClustering;
    int solverTypeCluster; // 0: Random, 1: K-means 2: Sparse Supspace Clustering
+   bool hotstartSample;
    int use_nmf;
    int nmfNumROBDim;
    int nmfDelROBDim;
@@ -790,6 +791,7 @@ struct SolverInfo {
                   clustering         = 0;
                   rowClustering      = 0;
                   solverTypeCluster  = 1; // K-means
+                  hotstartSample     = false;
                   use_nmf            = 0;
                   nmfNumROBDim       = 1;
                   nmfDelROBDim       = 10;

@@ -147,7 +147,8 @@ template <typename Scalar, template<typename> class GenVecType, class BaseSolver
 void
 GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::addModalLMPCs(double Kcoef, int Wcols, std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end)
 {
-  std::cout << " ... Using Modal LMPCs              ..." << std::endl;
+  //std::cout << " ... Using Modal LMPCs              ..." << std::endl;
+  filePrint(stderr," ... Using Modal LMPCs              ...\n");
   dualBasisSize_  = dualBlockCols_ = Wcols;
   int counter = 0; int column = 0; int row = 0;
   reducedConstraintMatrix_.setZero(dualBasisSize_,basisSize_); //allocate enough space for all local bases

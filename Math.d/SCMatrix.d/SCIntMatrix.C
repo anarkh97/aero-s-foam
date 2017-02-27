@@ -201,6 +201,12 @@ SCIntMatrix::getElement(int i, int j) {
     return value;
 }
 
+int
+SCIntMatrix::getElement(int i, int j, char scope) {
+    int value;
+    _FORTRAN(pielget)(&scope, &_top, &value, _matrix, &i, &j, _desc);
+    return value;
+}
 
 int
 SCIntMatrix::getLocalElements(int *elems) {

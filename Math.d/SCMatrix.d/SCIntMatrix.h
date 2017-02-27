@@ -26,6 +26,7 @@ class SCIntMatrix : public SCBaseMatrix {
         void setElement(int i, int j, int value);
         int getElementLocal(int i) {return _matrix[i];}
         int getElement(int i, int j);
+        int getElement(int i, int j, char scope);
         int getLocalElements(int *elems);
         int permute(char direc, char rowcol, SCIntMatrix &ip, int m=0, int n=0);
         int reorder(SCIntMatrix& order);

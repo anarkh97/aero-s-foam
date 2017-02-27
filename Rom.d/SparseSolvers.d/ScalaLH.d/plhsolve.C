@@ -93,6 +93,8 @@ Plh::solve() {
         _iter++;
         _iter_total++;
     }
+    //writeSet();
+    copyToHotInd();
     // Write the final residual regardless of _residualIncr 
     if ((_iter-1) % _residualIncr != 0) writeResidual();
     if (_col_scaling) _x->hadamardProduct(*_colnorms);
@@ -375,6 +377,24 @@ Plh::nextVector() {
     startTime(TIME_NEXT_VECTOR);
     // For convenience of finding the maximum w in Z, set all w in P to -LARGE
     bool retval = true; // Means we are done. Default is true.
+    if(_hotStart) { // force add next element in hotstart set
+      int j = hotIndices[_hotInd];
+      _hotInd++;
+      if(_hotInd >= _sizeHS) _hotStart = false;
+      if(j == _constraint && _hotStart) { // theres only one constraint, don't violate it
+        j = hotIndices[_hotInd];
+        _hotInd++; if(_hotInd >= _sizeHS) _hotStart = false;
+      } 
+      if(j != _constraint) { // protect against case where last hot indice was constrained
+        _nP++;
+        _nZ--;
+        _wmax.x = _w->getElement(1,j);
+        _wmax.i = j; 
+        _QtoA->setElement(1,_nP, j);
+        retval = false; 
+        return retval; 
+      }
+    } 
     startTime(TIME_GETMAX);
     _wmax = _w->getMax(); // getMax() distributes to all processors
     stopTime(TIME_GETMAX);
@@ -393,10 +413,25 @@ bool
 Plh::rejectVector() {
     startTime(TIME_REJECT_VECTOR);
     bool done = false;
+    if(_hotStart) {
+       int j = hotIndices[_hotInd]; _hotInd++; 
+       if(_hotInd >= _sizeHS) _hotStart = false; 
+       if(j == _constraint && _hotStart) { // theres only one constraint, don't violate it
+         j = hotIndices[_hotInd];
+         _hotInd++; if(_hotInd >= _sizeHS) _hotStart = false;
+       }
+       if(j != _constraint) {
+         _wmax.x = _w->getElement(1,j);
+         _wmax.i = j;     
+         _QtoA->setElement(1,_nP,_wmax.i);
+         return done;
+       }
+    } 
+
     _w->setElement(1,_wmax.i,0.0);
-    startTime(TIME_GETMAX);
     DoubleInt maxval;
-    _wmax = _w->getMax(); // getMax() distributes to all processors
+    startTime(TIME_GETMAX);
+     _wmax = _w->getMax(); // getMax() distributes to all processors
     stopTime(TIME_GETMAX);
     if (_wmax.x <= 0.0) {
         done = true;
@@ -404,6 +439,7 @@ Plh::rejectVector() {
     } else {
         _QtoA->setElement(1,_nP,_wmax.i);
     }
+    
     stopTime(TIME_REJECT_VECTOR);
     return done;
 }
@@ -498,14 +534,29 @@ Plh::gradf() {
     int j, k;
     double x;
 
-    mcopyQtoA(_rQR, _workm);                                 // dump contents of _rQR to _workm
+    mcopyQtoA(_rQR, _workm);                                   // dump contents of _rQR to _workm
     MPI_Barrier(_comm);
     startTime(TIME_MULT_GRADF);
-    _A->multiply(*_workm, *_w, 'T', _m, _n, 1.0, 0.0);       // this permorfs A^T*residual
-    if(_PFP) {                                               // extra step for Polytope faces pursuit
-      _Atv->set(1.0);                                        // compute 1 - A^T*_vertex
-      _A->multiply(*_vertex, *_Atv, 'T', _m, _n, -1.0, 1.0);
-      _w->invHadamardProduct(*_Atv);                         // compute A^T*residual/(1 - A^T*_vertex) | A^T&residual > 0
+    if(_hotStart && _hotInd < _sizeHS-1) {
+      _w->zero();
+      if(_PFP) _Atv->set(1.0);
+      j = hotIndices[ _hotInd];
+      _A->multiply('T', _m, 1, 1.0, 1, j,
+                   *_workm, 1, 1, 1, 0.0,
+                   *_w, 1, j, 1);
+      if(_PFP) {
+        _A->multiply('T', _m, 1, 1.0, 1, j, 
+                     *_vertex, 1, 1, 1,-1.0,
+                     *_Atv, 1, j, 1);
+      }
+      if(_PFP) _w->invHadamardProduct(*_Atv);
+    } else {
+      _A->multiply(*_workm, *_w, 'T', _m, _n, 1.0, 0.0);       // this permorfs A^T*residual
+      if(_PFP) {                                               // extra step for Polytope faces pursuit
+        _Atv->set(1.0);                                        // compute 1 - A^T*_vertex
+        _A->multiply(*_vertex, *_Atv, 'T', _m, _n, -1.0, 1.0);
+        _w->invHadamardProduct(*_Atv);                         // compute A^T*residual/(1 - A^T*_vertex) | A^T&residual > 0
+      }
     }
     stopTime(TIME_MULT_GRADF);
     for (int i=1; i<=_nP; i++) {                             // zero out the elements already in the active set
@@ -514,7 +565,6 @@ Plh::gradf() {
     }
     if (_ddmask) _w->hadamardProduct(*_wmask);               // if downdating, mask stuff
     if (_constraint > -1) _w->setElement(1,_constraint,0.0); // enforce an element not to be selected
-
     stopTime(TIME_GRADF);
     return 0;
 }
@@ -753,11 +803,43 @@ void
 Plh::writeSet(std::string filename) {
     FILE * fptr = fopen(filename.c_str(), "w");
     int j;
-    for (int i=0; i<_nP; i++) {
+    for (int i=1; i<= _nP; i++) {
         j = _QtoA->getElement(1,i);
         fprintf(fptr, "%d\n", j);
     }
     fclose(fptr);
+}
+
+void
+Plh::writeSet() {
+    int j;
+    fprintf(stderr," ... writing _QtoA ... \n");
+    for (int i=1; i<= _nP; i++) {
+        j = _QtoA->getElement(1,i);
+        fprintf(stderr, "%d ", j);
+    }
+    fprintf(stderr, "\n");
+}
+
+void
+Plh::writeHotSet() {
+    fprintf(stderr," ... writing hotIndices ... \n");
+    for (std::vector<int>::iterator it = hotIndices.begin();
+         it != hotIndices.end(); it++) {
+        fprintf(stderr, "%d ", *it);
+    }
+    fprintf(stderr, "\n");
+}
+
+void
+Plh::copyToHotInd(){
+    int j;
+    hotIndices.clear();
+    for(int i=1; i<= _nP; i++){
+      j = _QtoA->getElement(1,i,'A');
+      hotIndices.push_back(j);
+    }
+    //fprintf(stderr,"size of set is %d \n", hotIndices.size());
 }
 
 #endif

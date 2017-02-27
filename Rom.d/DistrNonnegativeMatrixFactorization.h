@@ -7,6 +7,7 @@ class SCDoubleMatrix;
 
 #include <Eigen/Core>
 #include <vector> 
+#include <Math.d/SCMatrix.d/SCIntMatrix.h>
 
 namespace Rom {
 

@@ -38,7 +38,7 @@ bool operator== (const long_int& lhs, const long_int& rhs)
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime)
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool center, double &dtime, std::list<std::pair<int,long_int> > &hotIndices)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector
@@ -59,6 +59,11 @@ pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> 
 #endif
   struct double_int s;
   struct long_int p, q;
+
+  bool hotStart = false;
+  if(hotIndices.size() > 0) {
+    hotStart = true;
+  }
 
   const long int m = b.rows();
   const long int maxvec = std::min(m, (long int)(maxsze*n));
@@ -137,54 +142,78 @@ pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> 
     if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
     if(iter >= maxit) { info = 3; break; }
 
+    int ik; // subdomain which has the max coeff
+
+    if(hotStart) {
+      
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif  
+      for(int i=0; i<nsub; ++i) 
+        g[i].setZero();
+
+      std::list<std::pair<int,long_int> >::iterator it = hotIndices.begin();
+      for(int prek = 0; prek < k+1; ++k, ++it) { // loop through initial guess to get location of element
+        s.rank = it->first;
+        ik     = it->second.sub; 
+        jk[ik] = it->second.index;
+        
+        if(s.rank == myrank) {// if this element is on this processor, then multiply
+          g[ik][jk[ik]] = S[ik][jk[ik]]*A[ik].col(jk[ik]).transpose()*r;
+        }
+
+        if(it == hotIndices.end()) hotStart = false; // once all elements are looped through, exit hotStart mode
+      }
+
+    } else {
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
-    for(int i=0; i<nsub; ++i) {
-      g[i] = S[i].asDiagonal()*(A[i].transpose()*r);
-      // make sure the index has not already been selected
-      h[i] = g[i]; for(long int j=0; j<l[i]; ++j) h[i][indices[i][j]] = -std::numeric_limits<double>::max();
-      // also make sure near linear dependent indices are not selected
-      for(std::list<std::pair<int,long_int> >::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it)
-        if(it->first == myrank && it->second.sub == i) h[i][it->second.index] = -std::numeric_limits<double>::max();
-      gmax[i] = (A[i].cols() > 0) ? h[i].maxCoeff(&jk[i]) : -std::numeric_limits<double>::max();
-    }
-    int ik; // subdomain which has the max coeff.
-    s.val  = (nsub > 0) ? gmax.maxCoeff(&ik) : -std::numeric_limits<double>::max();
-    s.rank = myrank;
-#ifdef USE_MPI
-    MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MAXLOC, mpicomm);
-#endif
-    if(s.val <= 0) break;
-
-    q.index = 0; q.sub = myrank;
-    for(int i=0; i<nsub; ++i) q.index += l[i];
-#ifdef USE_MPI
-    MPI_Allreduce(MPI_IN_PLACE, &q, 1, MPI_LONG_INT, MPI_MINLOC, mpicomm); // find mpi process with minimum inactive set
-#endif
-    //if(myrank == 0) std::cerr << "rank of process with fewest elements (" << q.index << ") is " << q.sub << std::endl;
-
-#ifdef USE_MPI
-    if(q.sub != s.rank) {
-      if(s.rank == myrank) { // exchange column of A with process with fewest elements
-        MPI_Sendrecv_replace(const_cast<double*>(A[ik].col(jk[ik]).data()), m, MPI_DOUBLE,
-                             q.sub, 0, q.sub, 0, mpicomm, &status);                                            // send column of A
-        if(scaling) MPI_Sendrecv_replace(&S[ik][jk[ik]], 1, MPI_DOUBLE, q.sub, 1, q.sub, 1, mpicomm, &status); // send scaling factor
-        MPI_Sendrecv_replace(&perm[ik][jk[ik]].first, 1, MPI_INT, q.sub, 2, q.sub, 2, mpicomm, &status);       // send permutation 1
-        MPI_Sendrecv_replace(&perm[ik][jk[ik]].second, 1, MPI_LONG_INT, q.sub, 3, q.sub, 3, mpicomm, &status); // send permutation 2
+      for(int i=0; i<nsub; ++i) {
+        g[i] = S[i].asDiagonal()*(A[i].transpose()*r);
+        // make sure the index has not already been selected
+        h[i] = g[i]; for(long int j=0; j<l[i]; ++j) h[i][indices[i][j]] = -std::numeric_limits<double>::max();
+        // also make sure near linear dependent indices are not selected
+        for(std::list<std::pair<int,long_int> >::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it)
+          if(it->first == myrank && it->second.sub == i) h[i][it->second.index] = -std::numeric_limits<double>::max();
+        gmax[i] = (A[i].cols() > 0) ? h[i].maxCoeff(&jk[i]) : -std::numeric_limits<double>::max();
       }
-      if(q.sub == myrank) {
-        MPI_Sendrecv_replace(const_cast<double*>(A[ik].col(jk[ik]).data()), m, MPI_DOUBLE, 
-                             s.rank, 0, s.rank, 0, mpicomm, &status);                                            // recieve column A 
-        if(scaling) MPI_Sendrecv_replace(&S[ik][jk[ik]], 1, MPI_DOUBLE, s.rank, 1, s.rank, 1, mpicomm, &status); // recieve scaling factor
-        MPI_Sendrecv_replace(&perm[ik][jk[ik]].first, 1, MPI_INT, s.rank, 2, s.rank, 2, mpicomm, &status);       // recieve permuation 1
-        MPI_Sendrecv_replace(&perm[ik][jk[ik]].second, 1, MPI_LONG_INT, s.rank, 3, s.rank, 3, mpicomm, &status); // recieve permutation 2
-        p.index = jk[ik];
-        p.sub   = ik;
-      }
-      s.rank = q.sub;
-    }
+      s.val  = (nsub > 0) ? gmax.maxCoeff(&ik) : -std::numeric_limits<double>::max();
+      s.rank = myrank;
+#ifdef USE_MPI
+      MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MAXLOC, mpicomm);
 #endif
+      if(s.val <= 0) break;
+    
+      q.index = 0; q.sub = myrank;
+      for(int i=0; i<nsub; ++i) q.index += l[i];
+#ifdef USE_MPI
+      MPI_Allreduce(MPI_IN_PLACE, &q, 1, MPI_LONG_INT, MPI_MINLOC, mpicomm); // find mpi process with minimum inactive set
+#endif
+      //if(myrank == 0) std::cerr << "rank of process with fewest elements (" << q.index << ") is " << q.sub << std::endl;
+
+#ifdef USE_MPI
+      if(q.sub != s.rank) {
+        if(s.rank == myrank) { // exchange column of A with process with fewest elements
+          MPI_Sendrecv_replace(const_cast<double*>(A[ik].col(jk[ik]).data()), m, MPI_DOUBLE,
+                               q.sub, 0, q.sub, 0, mpicomm, &status);                                            // send column of A
+          if(scaling) MPI_Sendrecv_replace(&S[ik][jk[ik]], 1, MPI_DOUBLE, q.sub, 1, q.sub, 1, mpicomm, &status); // send scaling factor
+          MPI_Sendrecv_replace(&perm[ik][jk[ik]].first, 1, MPI_INT, q.sub, 2, q.sub, 2, mpicomm, &status);       // send permutation 1
+          MPI_Sendrecv_replace(&perm[ik][jk[ik]].second, 1, MPI_LONG_INT, q.sub, 3, q.sub, 3, mpicomm, &status); // send permutation 2
+        }
+        if(q.sub == myrank) {
+          MPI_Sendrecv_replace(const_cast<double*>(A[ik].col(jk[ik]).data()), m, MPI_DOUBLE, 
+                               s.rank, 0, s.rank, 0, mpicomm, &status);                                            // recieve column A 
+          if(scaling) MPI_Sendrecv_replace(&S[ik][jk[ik]], 1, MPI_DOUBLE, s.rank, 1, s.rank, 1, mpicomm, &status); // recieve scaling factor
+          MPI_Sendrecv_replace(&perm[ik][jk[ik]].first, 1, MPI_INT, s.rank, 2, s.rank, 2, mpicomm, &status);       // recieve permuation 1
+          MPI_Sendrecv_replace(&perm[ik][jk[ik]].second, 1, MPI_LONG_INT, s.rank, 3, s.rank, 3, mpicomm, &status); // recieve permutation 2
+          p.index = jk[ik];
+          p.sub   = ik;
+        }
+        s.rank = q.sub;
+      }
+#endif
+    } 
 
     if(s.rank == myrank) {
       B[ik].col(l[ik]) = S[ik][jk[ik]]*A[ik].col(jk[ik]);
@@ -317,6 +346,11 @@ pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> 
         // remove index from the global active set
         std::list<std::pair<int,long_int> >::iterator pos = std::find(gindices.begin(), gindices.end(), std::pair<int,long_int>(s.rank,p));
         std::list<std::pair<int,long_int> >::iterator fol = gindices.erase(pos);
+
+        if(hotStart){
+          std::list<std::pair<int,long_int> >::iterator posh = std::find(hotIndices.begin(), hotIndices.end(), std::pair<int,long_int>(s.rank,p));
+          gindices.erase(posh);
+        }
 
         // Note: it is necessary to re-G-orthogonalize the basis D now, project the solution y onto the new basis and compute the corresponding residual r.
         // This is done here by starting from the column of D pointed to by fol (because the ones before this are already G-orthogonal), and then
@@ -465,6 +499,7 @@ pnncgp(std::vector<Eigen::Map<Eigen::MatrixXd> >&A, Eigen::Ref<Eigen::VectorXd> 
   }
   MPI_Allreduce(MPI_IN_PLACE, toSend, numproc, MPI_INT, MPI_SUM, mpicomm);
   MPI_Allreduce(MPI_IN_PLACE, &maxindex, 1, MPI_INT, MPI_MAX, mpicomm);
+  hotIndices.assign(gindices.begin(),gindices.end());
   for(int i=0; i<nsub; ++i) {
     for(long int j=0; j<l[i]; ++j) {
       const long int &k = indices[i][j];

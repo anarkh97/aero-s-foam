@@ -64,6 +64,10 @@ Plh::initDefaults() {
     _colnorms    = NULL;
     _col_scaling = false;
     _PFP         = false;
+    _hotStart    = false;
+
+    _hotInd = 0; 
+    _sizeHS = 0;
 }
 
 

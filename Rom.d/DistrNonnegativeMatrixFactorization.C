@@ -394,6 +394,7 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   }
 
   int iter = 0;
+  bool hotStart = domain->solInfo().hotstartSample;
   for(int i=1; i<=nrhs; i++) {
   
     t2 -= getTime();
@@ -402,6 +403,8 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
     else        subB->add(b, 'T', A.getNumberOfRows(), 1, 1.0, 0.0, i, 1, 1, 1);
     t2 += getTime();
 
+    if(hotStart && i > 1) solver.hotStart(); // use pre-computed solution
+   
     // solve: min ||Ax-b|| s.t. x >= 0
     t3 -= getTime();
     if(SSCflag){ // don't let a snapshot select itself
@@ -417,7 +420,6 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
     solver.solve();
     iter += solver.getIter();
     t3 += getTime();
-
     // copy x to ith row of subX
     t4 -= getTime();
     x.add(*subX, 'N', 1, A.getNumberOfCols(), 1.0, 0.0, 1, 1, i, 1);

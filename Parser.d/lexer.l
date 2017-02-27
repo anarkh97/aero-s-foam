@@ -183,6 +183,8 @@ TRAIL [a-zA-Z]*
  
 "POSITIVE"|"positive"		   { return POSELEM; }
 
+"HOTSTART"|"hotstart"		   { return HOTSTART; }
+
 "CENT"[a-zA-Z]*|"cent"[a-zA-Z]*    { return CENTER; }
 
 "REVORD"|"revord"                  { return REVERSEORDER; } 

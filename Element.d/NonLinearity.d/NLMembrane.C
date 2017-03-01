@@ -1,6 +1,7 @@
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
+#include <Parser.d/AuxDefs.h>
 #include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Math.d/matrix.h>
 #include <Math.d/TTensor.h>
@@ -449,6 +450,11 @@ NLMembrane::setCompositeData(int, int, double *, double *coefs, double *frame)
   cCoefs = coefs;
   cFrame = frame;
   if(material) { // anisotropic material
+    if(useDefaultMaterial) { // switch from LinearPlaneStress to PlaneStressLinear (which supports COEF)
+      delete material;
+      material = new PlaneStressMat<ElaLinIsoMat>(prop->rho, prop->E, prop->nu, prop->eh);
+      material->setTDProps(prop->ymtt, prop->ctett);
+    }
     double C[6][6], alpha[6];
     // transform local constitutive matrix to global frame
     rotateConstitutiveMatrix(cCoefs, cFrame, C);

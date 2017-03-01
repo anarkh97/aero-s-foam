@@ -4,7 +4,7 @@
 #include <Utils.d/NodeSpaceArray.h>
 
 #ifdef USE_EIGEN3
-#include <Eigen/Core>
+#include <Eigen/Dense>
 #endif
 
 template<typename BaseMaterial>

@@ -89,7 +89,7 @@ class GenDecDomain
   GenDecDomain(Domain *d);
   virtual ~GenDecDomain();
 
-  void clean();
+  virtual void clean();
   Domain *getDomain() { return domain; }
 
   GenSubDomain<Scalar>** getAllSubDomains() { return subDomain; }

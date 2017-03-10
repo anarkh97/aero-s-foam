@@ -25,6 +25,8 @@ class GenDistrDomain : virtual public GenDecDomain<Scalar>
     GenDistrDomain(Domain *d);
     virtual ~GenDistrDomain();
 
+    void clean();
+
     void postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f, double eigV = 0.0,
                         GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                         SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 

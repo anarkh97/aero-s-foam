@@ -61,6 +61,14 @@ GenDistrDomain<Scalar>::~GenDistrDomain()
 
 template<class Scalar>
 void
+GenDistrDomain<Scalar>::clean()
+{
+  if(nodePat) { delete nodePat; nodePat = 0; }
+  GenDecDomain<Scalar>::clean();
+}
+
+template<class Scalar>
+void
 GenDistrDomain<Scalar>::initPostPro()
 {
   if(geoSource->getNumOutInfo()) {

@@ -1760,7 +1760,18 @@ Domain::getRenumbering()
  if(renumb.xcomp) { delete [] renumb.xcomp; renumb.xcomp=0; }
 
  // renumber the nodes
- renumb = nodeToNode->renumByComponent(sinfo.renum);
+ if(!GetnContactSurfacePairs() || !sinfo.isNonLin() || tdenforceFlag()) {
+   renumb = nodeToNode->renumByComponent(sinfo.renum);
+ }
+ else {
+   // for nonlinear mortar contact, the number of "components" of the nodeToNode connectivity may change due to new interactions
+   // however, we don't want the node numbering to change therefore renumByComponent is not appropriate for this application
+   renumb.numComp = 1;
+   renumb.renum = new int[numnodes];
+   for(int i=0; i<numnodes; ++i) renumb.renum[i] = i;
+   renumb.xcomp = new int[2];
+   renumb.xcomp[0] = 0; renumb.xcomp[1] = numnodes;
+ }
 
  int *order = new int[numnodes];
 

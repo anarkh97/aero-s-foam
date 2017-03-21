@@ -332,7 +332,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                          midtime, maxit, initialRes, resN, probDesc->getTolerance());
       }
 
-      if((failed = (failSafe && converged != 1 && resN > solInfo.getNLInfo().failsafe_tol))) {
+      if((failed = (failSafe && converged != 1 && resN > solInfo.getNLInfo().failsafe_tol && q < (std::numeric_limits<int>::max() >> 1)))) {
         // if a Newton solve fails to converge, terminate constraint enforcement iterations
         break;
       }

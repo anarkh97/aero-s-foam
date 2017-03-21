@@ -257,10 +257,6 @@ BasisOrthoDriver::solve() {
     
     if(domain->solInfo().robcSolve) solver.solve();
 
-    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-    fileName.append(".orthonormalized");
-    BasisOutputStream<6> output(fileName, converter, false); 
-
     int orthoBasisDim = domain->solInfo().maxSizePodRom ?
                               std::min(domain->solInfo().maxSizePodRom, solver.singularValueCount()) :
                               solver.singularValueCount();
@@ -278,7 +274,7 @@ BasisOrthoDriver::solve() {
       bool reset = true;
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
         double energy = toto[iVec]/toto[0];
-        if(energy < domain->solInfo().romEnergy && reset){
+        if(energy < domain->solInfo().romEnergy && reset) {
           orthoBasisDim = iVec+1;
           reset = false;
         }
@@ -287,6 +283,10 @@ BasisOrthoDriver::solve() {
     }
 
     // Output solution
+    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    fileName.append(".orthonormalized");
+    BasisOutputStream<6> output(fileName, converter, false);
+
     if(domain->solInfo().normalize <= 0) // old method for lumped: outputs identity normalized basis
       filePrint(stderr, " ... Writing orthonormal basis of size %d to file %s ...\n", orthoBasisDim, fileName.c_str());
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
@@ -336,11 +336,9 @@ BasisOrthoDriver::solve() {
   
     // Compute and output orthonormal basis if using new method
     if(domain->solInfo().normalize == 1) {
-      //std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-      //fileName.append(".orthonormalized");
       MGSVectors(normalizedBasis.data(), normalizedBasis.numVec(), normalizedBasis.size());
       BasisOutputStream<6> outputIdentityNormalized(fileName, converter, false); 
-      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
+      filePrint(stderr, " ... Writing orthonormal basis of size %d to file %s ...\n", orthoBasisDim, fileName.c_str());
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
         outputIdentityNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
       }

@@ -171,12 +171,35 @@ DistrBasisOrthoDriver::solve() {
 
   if(domain->solInfo().robcSolve) solver.solve();
 
+  int podVectorCount = domain_->solInfo().maxSizePodRom ?
+                       std::min(domain_->solInfo().maxSizePodRom, singularValueCount) :
+                       singularValueCount;
+
+  // Compute and output the truncation error
+  {
+    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    fileName += ".truncation_error.txt";
+    std::vector<double> toto(podVectorCount+1);
+    toto[podVectorCount] = 0;
+    for (int iVec = podVectorCount-1; iVec >= 0; --iVec) {
+      toto[iVec] = toto[iVec+1]+solver.singularValue(iVec); // running sum
+    }
+    std::ofstream out;
+    if(comm_->myID() == 0) out.open(fileName.c_str());
+    bool reset = true;
+    for (int iVec = 0; iVec < podVectorCount; ++iVec) {
+      double energy = toto[iVec]/toto[0];
+      if(energy < domain->solInfo().romEnergy && reset) {
+        podVectorCount = iVec+1;
+        reset = false;
+      }
+      if(comm_->myID() == 0) out << iVec+1 << " " << solver.singularValue(iVec) << " " << energy << std::endl;
+    }
+  }
+
   // Output solution
   std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
   fileName.append(".orthonormalized");
-  const int podVectorCount = domain_->solInfo().maxSizePodRom ?
-                             std::min(domain_->solInfo().maxSizePodRom, singularValueCount) :
-                             singularValueCount;
   {
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputFile(fileName,
@@ -184,7 +207,7 @@ DistrBasisOrthoDriver::solve() {
                                     comm_, false);
 
     if(domain->solInfo().normalize <= 0)
-      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
+      filePrint(stderr, " ... Writing orthonormal basis of size %d to file %s ...\n", podVectorCount, fileName.c_str());
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       double * const vecBuffer = (domain->solInfo().robcSolve) ? const_cast<double *>(solver.basisColBuffer(iVec))
                                                                : const_cast<double *>(solver.matrixColBuffer(iVec));
@@ -235,7 +258,7 @@ DistrBasisOrthoDriver::solve() {
     fileName.append(".massorthonormalized");
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputNormalizedFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
-    filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
+    filePrint(stderr, " ... Writing mass-normalized basis of size %d to file %s ...\n", podVectorCount, fileName.c_str());
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);
       outputNormalizedFile.stateAdd(outputBuffer, solver.singularValue(iVec));
@@ -247,7 +270,7 @@ DistrBasisOrthoDriver::solve() {
     MGSVectors(normalizedBasis);
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputOrthoNormalFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
-    filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
+    filePrint(stderr, " ... Writing orthonormal basis of size %d to file %s ...\n", podVectorCount, fileName.c_str());
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);
       outputOrthoNormalFile.stateAdd(outputBuffer, solver.singularValue(iVec));

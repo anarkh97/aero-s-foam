@@ -7,6 +7,7 @@
 #include <Math.d/TTensor.h>
 #include <Corotational.d/utilities.h>
 #include <Corotational.d/GeomState.h>
+#include <cmath>
 
 template <int n>
 void
@@ -463,6 +464,64 @@ NLMembrane::setCompositeData(int, int, double *, double *coefs, double *frame)
     rotateVector(cCoefs+36, cFrame, alpha);
     material->setThermalExpansionCoef(alpha);
   }
+}
+
+double *
+NLMembrane::setCompositeData2(int type, int nlays, double *lData,
+                              double *coefs, CoordSet &cs, double theta)
+{
+  // cframe is not pre-defined but calculated from nodal coordinates and angle theta
+  // theta is the angle in degrees between node1-node2 and the material x axis
+
+  // compute cFrame
+  cFrame = new double[9];
+
+  Node &nd1 = cs.getNode(n[0]);
+  Node &nd2 = cs.getNode(n[1]);
+  Node &nd3 = cs.getNode(n[2]);
+
+  double ab[3], ac[3], x[3], y[3], z[3];
+  ab[0] = nd2.x - nd1.x; ab[1] = nd2.y - nd1.y; ab[2] = nd2.z - nd1.z;
+  ac[0] = nd3.x - nd1.x; ac[1] = nd3.y - nd1.y; ac[2] = nd3.z - nd1.z;
+  // x = AB
+  x[0] = ab[0]; x[1] = ab[1]; x[2] = ab[2];
+  // z = AB cross AC
+  z[0] = ab[1]*ac[2]-ab[2]*ac[1];
+  z[1] = ab[2]*ac[0]-ab[0]*ac[2];
+  z[2] = ab[0]*ac[1]-ab[1]*ac[0];
+  // y = z cross x
+  y[0] = z[1]*x[2]-z[2]*x[1];
+  y[1] = z[2]*x[0]-z[0]*x[2];
+  y[2] = z[0]*x[1]-z[1]*x[0];
+  // rotate x and y about z
+  theta *= M_PI/180.; // convert to radians
+  double c = cos(theta), s = sin(theta);
+
+  // use Rodrigues' Rotation Formula to rotation x and y about z by an angle theta
+  double R[3][3];
+  normalize(x); normalize(y); normalize(z); double wx = z[0], wy = z[1], wz = z[2];
+  R[0][0] = c + wx*wx*(1-c);
+  R[0][1] = wx*wy*(1-c)-wz*s;
+  R[0][2] = wy*s+wx*wz*(1-c);
+  R[1][0] = wz*s+wx*wy*(1-c);
+  R[1][1] = c+wy*wy*(1-c);
+  R[1][2] = -wx*s+wy*wz*(1-c);
+  R[2][0] = -wy*s+wx*wz*(1-c);
+  R[2][1] = wx*s+wy*wz*(1-c);
+  R[2][2] = c+wz*wz*(1-c);
+
+  cFrame[0] = R[0][0]*x[0] + R[0][1]*x[1] + R[0][2]*x[2];
+  cFrame[1] = R[1][0]*x[0] + R[1][1]*x[1] + R[1][2]*x[2];
+  cFrame[2] = R[2][0]*x[0] + R[2][1]*x[1] + R[2][2]*x[2];
+  cFrame[3] = R[0][0]*y[0] + R[0][1]*y[1] + R[0][2]*y[2];
+  cFrame[4] = R[1][0]*y[0] + R[1][1]*y[1] + R[1][2]*y[2];
+  cFrame[5] = R[2][0]*y[0] + R[2][1]*y[1] + R[2][2]*y[2];
+  cFrame[6] = z[0];
+  cFrame[7] = z[1];
+  cFrame[8] = z[2];
+
+  setCompositeData(type, nlays, lData, coefs, cFrame);
+  return cFrame;
 }
 
 void

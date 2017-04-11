@@ -235,6 +235,7 @@ Component:
           if(geoSource->setDirichlet($1->n,$1->d) < 0)    return -1; delete $1; }
 	| UsdfLocations
         | DynInfo
+        | PrintMat
         | DeleteElements
         | Conwep
 	| SloshInfo 
@@ -1093,12 +1094,14 @@ DynInfo:
         { domain->solInfo().test_ulrich = true; }
         | ADDEDMASS Integer NewLine
         { domain->solInfo().addedMass = $2; }
-        | DynInfo PRINTMATLAB FNAME NewLine
+        ;
+PrintMat:
+        PRINTMATLAB FNAME NewLine
         { domain->solInfo().printMatLab = true;
-          domain->solInfo().printMatLabFile = $3; }
-        | DynInfo PRINTMATLAB FNAME EXITAFTERDEC NewLine
+          domain->solInfo().printMatLabFile = $2; }
+        | PRINTMATLAB FNAME EXITAFTERDEC NewLine
         { domain->solInfo().printMatLab = true;
-          domain->solInfo().printMatLabFile = $3; 
+          domain->solInfo().printMatLabFile = $2; 
           domain->solInfo().printMatLabExit = true; }
 	;
 DeleteElements:
@@ -4041,11 +4044,6 @@ Solver:
         { domain->solInfo().fetiInfo.rebuildcct = int($2); }
         | UPROJ Integer NewLine
         { domain->solInfo().fetiInfo.uproj = $2; }
-	| PRINTMATLAB NewLine
-	{ domain->solInfo().fetiInfo.printMatLab = true; }
-        | PRINTMATLAB FNAME NewLine
-        { domain->solInfo().printMatLab = true;
-          domain->solInfo().printMatLabFile = $2; }
 	| LOCALSOLVER SOLVERTYPE NewLine
 	{ domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) $2; }
 	| COARSESOLVER SOLVERTYPE NewLine

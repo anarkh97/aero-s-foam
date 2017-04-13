@@ -170,7 +170,10 @@ void
 copy_coef(const std::vector<Attrib> &attributes, std::map<int,CoefData> &coefdata) {
   for(std::vector<Attrib>::const_iterator it = attributes.begin(); it != attributes.end(); ++it) {
     if(it->cmp_attr != -1) {
-      if(coefdata.find(it->cmp_attr) == coefdata.end()) {
+      if(geoSource->getCoefData(it->cmp_attr) == NULL) {
+        std::cerr << " *** WARNING: only COEF-type composites are copied to reduced mesh file\n";
+      }
+      else if(coefdata.find(it->cmp_attr) == coefdata.end()) {
         CoefData coef;
         for(int i=0; i<7; ++i)
           for(int j=0; j<6; ++j)

@@ -339,7 +339,7 @@ public:
   int  addMat(int, const StructProp &);
   int  addLay(int, LayInfo *);
   int  addCoefInfo(int, CoefData &);
-  CoefData* getCoefData(int i) { assert(i >= 0 && i < numCoefData); return coefData[i]; }
+  CoefData* getCoefData(int i) { return (i >= 0 && i < numCoefData) ? coefData[i] : NULL; }
   int  addLayMat(int m, double *);
   int  setAttrib(int n, int a, int ca = -1, int cfrm = -1, double ctheta = 0.0);
   void setMortarAttrib(int n, int a);

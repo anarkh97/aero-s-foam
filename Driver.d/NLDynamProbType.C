@@ -44,6 +44,7 @@ void
 NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 		GeomType, StateUpdate >::solve() 
 {
+  try {
   // Set up nonlinear dynamics problem descriptor 
   probDesc->preProcess();
 
@@ -419,7 +420,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     delete bkStateIncr;
     delete bkGeomState;
     delete bkStepState;
-  }
-
+  }}
+  catch(std::exception) {} 
 }
 

@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <exception>
 
 typedef FSFullMatrix FullMatrix;
 
@@ -612,7 +613,10 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      if(Kuc) { Kuc->zeroAll(); ops.Kuc = Kuc; }
      if(spp) { spp->zeroAll(); ops.spp = spp; }
 #ifdef USE_EIGEN3
-     if(domain->solInfo().printMatLab) { ops.K = domain->constructEiSparse<double>(); ops.K->zeroAll(); }
+     if(domain->solInfo().printMatLab) {
+       ops.K = domain->constructEiSparse<double>(); ops.K->zeroAll();
+       ops.M = domain->constructEiSparse<double>(); ops.M->zeroAll();
+     }
 #endif
      if(domain->solInfo().galerkinPodRom && (domain->solInfo().useMassNormalizedBasis || domain->solInfo().modalDIMASS)) {
        domain->makeSparseOps<double>(ops, Kcoef, 0.0, Ccoef, spm, kelArray, melArray, celArray);
@@ -629,9 +633,9 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      }
 #ifdef USE_EIGEN3
      if(domain->solInfo().printMatLab) {
-       M->printSparse(std::string(domain->solInfo().printMatLabFile)+".mass");
+       ops.M->printSparse(std::string(domain->solInfo().printMatLabFile)+".mass");
        ops.K->printSparse(std::string(domain->solInfo().printMatLabFile)+".stiffness");
-       if(domain->solInfo().printMatLabExit) exit(0);
+       if(domain->solInfo().printMatLabExit) throw std::exception();
      }
 #endif
      if(!verboseFlag) solver->setPrintNullity(false);
@@ -920,11 +924,6 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
 
  AllOps<double> allOps;
 
-#ifdef USE_EIGEN3
- if(domain->solInfo().printMatLab)
-   allOps.M = domain->constructEiSparse<double>();
- else
-#endif
  allOps.M = domain->constructDBSparseMatrix<double>();
  allOps.Muc = domain->constructCuCSparse<double>();
  allOps.Mcc = domain->constructCCSparse<double>();

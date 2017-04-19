@@ -734,6 +734,16 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                    refState, NULL, mel, compute_tangents);
   }
 
+  if(mel && domain->solInfo().printMatLab && domain->solInfo().printMatLabExit) {
+    filePrint(stderr, " ... Applying Weights to Mass Matrix...\n");
+    for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+      const int iele = it->first;
+      const double lumpingWeight = it->second;
+      FullSquareMatrix &elementMass = mel[iele];
+      elementMass *= lumpingWeight;
+    }
+  }
+
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
     for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
       const int iele = it->first;

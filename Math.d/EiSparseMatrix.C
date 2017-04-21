@@ -192,7 +192,8 @@ template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::mult(const Scalar *_rhs, Scalar *_result)
 {
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(const_cast<Scalar*>(_rhs),numUncon,1), result(_result,numUncon,1);
+  Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
+  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > result(_result,numUncon,1);
   if(selfadjoint)
     result = M.template selfadjointView<Eigen::Upper>()*rhs;
   else
@@ -223,9 +224,22 @@ GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const GenVector<Scalar> &_r
 
 template<typename Scalar, typename SolverClass>
 void
+GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const Scalar *_rhs, Scalar *_result)
+{
+  Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
+  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > result(_result,numUncon,1);
+  if(selfadjoint)
+    result = M.template selfadjointView<Eigen::Upper>()*rhs;
+  else
+    result = M.adjoint()*rhs;
+}
+
+template<typename Scalar, typename SolverClass>
+void
 GenEiSparseMatrix<Scalar,SolverClass>::multAdd(const Scalar *_rhs, Scalar *_result)
 {
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(const_cast<Scalar*>(_rhs),numUncon,1), result(_result,numUncon,1);
+  Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
+  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > result(_result,numUncon,1);
   if(selfadjoint)
     result += M.template selfadjointView<Eigen::Upper>()*rhs;
   else

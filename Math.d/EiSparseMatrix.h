@@ -58,6 +58,7 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    void mult(const Scalar *, Scalar *);
    void multAdd(const Scalar *, Scalar *);
    void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result);
+   void transposeMult(const Scalar *, Scalar *);
    void upperMult(Scalar* result);
    void backward(Scalar* result);
 

@@ -1760,7 +1760,7 @@ Domain::getRenumbering()
  if(renumb.xcomp) { delete [] renumb.xcomp; renumb.xcomp=0; }
 
  // renumber the nodes
- if(!GetnContactSurfacePairs() || !sinfo.isNonLin() || tdenforceFlag()) {
+ if((!GetnContactSurfacePairs() || !sinfo.isNonLin() || tdenforceFlag()) && !sinfo.printMatLab) {
    renumb = nodeToNode->renumByComponent(sinfo.renum);
  }
  else {

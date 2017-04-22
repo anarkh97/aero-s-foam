@@ -52,6 +52,11 @@ public:
   virtual void solve(GenVecType<Scalar> &rhs, GenVecType<Scalar> &sol);
   virtual void reSolve(GenVecType<Scalar> &rhs);
 
+  double refactorTime = 0.0;
+  double reducedSolveTime = 0.0;
+  int nRefactor = 0; 
+  int nSolve = 0;
+
   // Reduced basis parameters
   int basisSize() const { return basisSize_; };
   GenVecBasis<Scalar,GenVecType> &projectionBasis() { return *projectionBasis_; }

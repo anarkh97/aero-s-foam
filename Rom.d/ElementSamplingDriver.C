@@ -459,6 +459,12 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
           domain->getElementDisp(iElem, *geomState_, disp);
           force.zero();
           kelArray_[iElem].multiply(disp, force, 1.0);
+          if(domain_->solInfo().useConstantMassForces){
+            Vector accel(melArray_[iElem].dim());
+            StackVector iForce(elementForce.array(), melArray_[iElem].dim());
+            domain->getElementAccel(iElem, *geomState_, accel);
+            melArray_[iElem].multiply(accel, iForce, 1.0);
+          }
         }
         if(domain_->solInfo().reduceFollower)
           domain_->getElemFollowerForce(iElem, *geomState_, elementForce.array(), elementForce.size(), (corotators_[iElem]),

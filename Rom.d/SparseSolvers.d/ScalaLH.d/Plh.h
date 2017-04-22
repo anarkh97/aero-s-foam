@@ -119,6 +119,7 @@ class Plh {
         void setMaxIter( double max_iter ) {_max_iter=max_iter;}
         void setColumnScaling();
         void setPolytopeFacesPursuit();
+        void setOrthogonalMatchingPursuit();
         void setConstraint(int zeroedCol) {_constraint = zeroedCol; }
         int getStatus() {return _status;}
         int getContext() {return _context;}
@@ -177,6 +178,7 @@ class Plh {
         bool _ddmask;
         bool _col_scaling;
         bool _PFP; 
+        bool _OMP; 
         bool _hotStart;
         int _residualIncr;
         std::string _iterstring;

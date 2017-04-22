@@ -1421,6 +1421,14 @@ SCDoubleMatrix::elementWiseInverse() {
     }
 }
 
+void
+SCDoubleMatrix::elementWiseAbsoluteValue() {
+    for (int i=0; i<_sizelocal; i++) {
+        if (_matrix[i] != 0.0) {
+            _matrix[i] = std::abs(_matrix[i]);
+        }
+    }
+}
 
 void
 SCDoubleMatrix::columnScaling(SCDoubleMatrix& colScale) {

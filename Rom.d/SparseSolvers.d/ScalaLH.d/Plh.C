@@ -64,6 +64,7 @@ Plh::initDefaults() {
     _colnorms    = NULL;
     _col_scaling = false;
     _PFP         = false;
+    _OMP         = false;
     _hotStart    = false;
 
     _hotInd = 0; 
@@ -368,6 +369,11 @@ Plh::setColumnScaling() {
 void
 Plh::setPolytopeFacesPursuit(){
     _PFP = true;
+}
+
+void
+Plh::setOrthogonalMatchingPursuit(){
+    _OMP = true; 
 }
 
 int

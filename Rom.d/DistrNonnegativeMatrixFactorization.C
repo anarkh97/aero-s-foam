@@ -339,7 +339,7 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   solver.setQProcGrid(rowCpus, colCpus);
   solver.setABlockSize(blockSize_, blockSize_);
   solver.setQBlockSize(blockSize_, blockSize_);
-  if(!SSCflag) solver.setColumnScaling(); 
+  solver.setColumnScaling(); 
   solver.init();
   MPI_Barrier(comm); t1 -= getTime();
   for(int k = 0; k < nsub; ++k) {
@@ -349,6 +349,8 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   t1 += getTime();
   solver.setVerbose(0);
   solver.setMaxIterRatio(3);
+  if(domain->solInfo().solverTypeSpnnls == 5)
+    solver.setOrthogonalMatchingPursuit();
 
   SCDoubleMatrix &b = solver.getRhsVector(); 
   SCDoubleMatrix &x = solver.getSolutionVector();

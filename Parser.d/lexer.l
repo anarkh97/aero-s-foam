@@ -94,6 +94,8 @@ TRAIL [a-zA-Z]*
 
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
 
+"USE_CONSTANT_MASS_FORCES"|"use_constant_mass_forces" { return USECONSTANTMASS; }
+
 "ONLINE_MASS_NORMALIZE_BASIS"|"online_mass_normalize_basis" { return ONLINEMASSNORMALIZEBASIS;}
 
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }

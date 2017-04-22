@@ -65,7 +65,7 @@ Plh::solve() {
             if (done) break;
             solveR();
             _zmin = _zQR->getMin(1, _nP);
-            while (_zmin.x <= 0.0) { // loop to reject elements that violate constraints
+            while (_zmin.x <= 0.0 && !_OMP) { // loop to reject elements that violate constraints
                 // Downdate
                 startTime(TIME_DOWNDATE);
                 if(_ddmask) _wmask->setElement(1,_zmin.i,0.0); // Don't allow this vector back until mask is reset.
@@ -76,7 +76,7 @@ Plh::solve() {
                 updateQtb();
                 solveR();
                 _zmin = _zQR->getMin(1, _nP);
-                sub_iteration_output(iqr);
+                 sub_iteration_output(iqr);
                 _subiter++;
                 _iter_total++;
                 stopTime(TIME_DOWNDATE);
@@ -342,7 +342,7 @@ Plh::updateQtb(int iqr) {
         }
         distributeVector(_contextQR, 'R', top, &q, 1, 0);
         ztest = q/a;
-        if (ztest <= 0.0) {
+        if (ztest <= 0.0 && !_OMP) {
             reject = true;
         }
         stopTime(TIME_PZCHECK);
@@ -396,6 +396,7 @@ Plh::nextVector() {
       }
     } 
     startTime(TIME_GETMAX);
+    if(_OMP) _w->elementWiseAbsoluteValue();
     _wmax = _w->getMax(); // getMax() distributes to all processors
     stopTime(TIME_GETMAX);
     if (_wmax.x > 0.0 && _nZ > 0) {

@@ -483,6 +483,7 @@ struct SolverInfo {
    bool robcSolve;
    double tolPodRom;
    bool useMassNormalizedBasis;
+   bool useConstantMassForces; 
    bool useMassOrthogonalProjection;
    bool performMassNormalization;
    bool ConwepOnOff;
@@ -849,6 +850,7 @@ struct SolverInfo {
                   robcSolve          = true;
                   tolPodRom          = 1.0e-6;
                   useMassNormalizedBasis = true;
+                  useConstantMassForces = false;
                   useMassOrthogonalProjection = false;
                   performMassNormalization = false;
                   ConwepOnOff        = false;

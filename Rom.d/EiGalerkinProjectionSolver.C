@@ -253,6 +253,7 @@ void
 GenEiSparseGalerkinProjectionSolver<double,GenDistrVector,GenParallelSolver<double> >::refactor()
 { // for parallel implicit ROM, V^T*M*V is computed in problem descriptor and passed through
   // addReducedMass and addToReducedMatrix
+  double dummyTime = 0.0;
   if(selfadjoint_ && !Empirical) {
    
     GenFullSquareMatrix<double> K_reduced; // local data structure
@@ -263,8 +264,10 @@ GenEiSparseGalerkinProjectionSolver<double,GenDistrVector,GenParallelSolver<doub
     reducedMatrix_.triangularView<Eigen::Lower>() 
     += Krmap; 
 
+    dummyTime -= getTime();
     if(dualBlockCols_ > 0) c1_ = reducedMatrix_.trace();
     llt_.compute(reducedMatrix_);
+    dummyTime += getTime();
   }
   else {
     if(Empirical) {
@@ -277,9 +280,14 @@ GenEiSparseGalerkinProjectionSolver<double,GenDistrVector,GenParallelSolver<doub
       Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> > Krmap(K_reduced.data(), blockCols_, blockCols_);
       reducedMatrix_ += Krmap;
 
+      dummyTime -= getTime(); 
       lu_.compute(reducedMatrix_);
+      dummyTime += getTime();
     }
   }
+  refactorTime += dummyTime/1000.0;
+  nRefactor++;
+  filePrint(stderr,"Average Refactor Time: %3.2e \n",refactorTime/double(nRefactor)); 
 }
 
 template <typename Scalar, template<typename> class GenVecType, class BaseSolver>
@@ -288,6 +296,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::reSolve(GenVe
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data()+startCol_, blockCols_);
 
+  double dummyTime = -1.0*getTime();
   if(dualBlockCols_ > 0 && contact_) {
     Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.block(startDualCol_,startCol_,dualBlockCols_,blockCols_).transpose();
     Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -x, ce0(0,1), _x(blockCols_), Lambda(0,1), Mu(dualBlockCols_);
@@ -298,6 +307,11 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::reSolve(GenVe
   }
   else if(selfadjoint_ && !Empirical) llt_.solveInPlace(x);
   else x = (lu_.solve(x)).eval();
+  
+  dummyTime += getTime();
+  reducedSolveTime += dummyTime/1000.0; 
+  nSolve++;
+  filePrint(stderr,"Average Solve Time: %3.2e \n",reducedSolveTime/double(nSolve));
 
   // zero out unused parts of rhs
   for(int i=0; i<startCol_; ++i) rhs[i] = 0;
@@ -311,6 +325,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::solve(GenVecT
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data()+startCol_, blockCols_), x(sol.data()+startCol_, blockCols_);
   sol.zero();
 
+  double dummyTime = -1.0*getTime();
   if(dualBlockCols_ > 0 && contact_) {
     Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.block(startDualCol_,startCol_,dualBlockCols_,blockCols_).transpose();
     Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -b, ce0(0,1), _x(blockCols_), Lambda(0,1), Mu(dualBlockCols_);
@@ -321,6 +336,11 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::solve(GenVecT
   }
   else if(selfadjoint_ && !Empirical) x = llt_.solve(b);
   else x = lu_.solve(b);
+
+  dummyTime += getTime();
+  reducedSolveTime += dummyTime/1000.0;
+  nSolve++;
+  filePrint(stderr,"Average Solve Time: %3.2e \n",reducedSolveTime/double(nSolve));
 }
 
 template <typename Scalar, template<typename> class GenVecType, class BaseSolver>

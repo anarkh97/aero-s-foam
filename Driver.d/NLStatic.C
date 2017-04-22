@@ -3013,6 +3013,50 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
 }
 
 void
+Domain::getElementVelo(int iele, GeomState& geomState, Vector& velo)
+{
+  int *nn = packedEset[iele]->nodes();
+  int dofs[DofSet::max_known_nonL_dof];
+
+  // place holder in velo vector: l
+  for(int i=0,l=0; i<packedEset[iele]->numNodes(); ++i) { // loop over nodes: i
+    int ndofs = dsa->number(nn[i], DofSet::nonL_dof, dofs);
+    for(int j=0; j<ndofs; ++j) {// loop over element dofs: j 
+      if(dofs[j] > -1) { // check if dof is fixed
+        for(int k=0; k<packedEset[iele]->numDofs(); ++k) { // loop over numdofs for that node: k 
+          if(dofs[j] == (*allDOFs)[iele][k] && j < 6) { // check offsets 
+            velo[l++] = geomState[nn[i]].v[j];
+          }
+        }
+      }
+    }
+  }
+  delete [] nn;
+}
+
+void
+Domain::getElementAccel(int iele, GeomState& geomState, Vector& accel)
+{
+  int *nn = packedEset[iele]->nodes();
+  int dofs[DofSet::max_known_nonL_dof];
+
+  // place holder in accel vector: l
+  for(int i=0,l=0; i<packedEset[iele]->numNodes(); ++i) { // loop over nodes: i
+    int ndofs = dsa->number(nn[i], DofSet::nonL_dof, dofs);
+    for(int j=0; j<ndofs; ++j) {// loop over element dofs: j 
+      if(dofs[j] > -1) { // check if dof is fixed
+        for(int k=0; k<packedEset[iele]->numDofs(); ++k) { // loop over numdofs for that node: k 
+          if(dofs[j] == (*allDOFs)[iele][k] && j < 0) { // check offsets 
+            accel[l++] = geomState[nn[i]].a[j]; 
+          }
+        }
+      }
+    }
+  }
+  delete [] nn;
+}
+
+void
 Domain::computeEnergies(GeomState *geomState, Vector &force, double t, Vector *aeroForce, double *velocity,
                         Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
                         double &Wdis, double &error)

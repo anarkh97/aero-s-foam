@@ -52,10 +52,10 @@ public:
   virtual void solve(GenVecType<Scalar> &rhs, GenVecType<Scalar> &sol);
   virtual void reSolve(GenVecType<Scalar> &rhs);
 
-  double refactorTime = 0.0;
+  /*double refactorTime = 0.0;
   double reducedSolveTime = 0.0;
   int nRefactor = 0; 
-  int nSolve = 0;
+  int nSolve = 0;*/
 
   // Reduced basis parameters
   int basisSize() const { return basisSize_; };
@@ -96,8 +96,8 @@ private:
   int startCol_, blockCols_; // local bases quantities
   int startDualCol_, dualBlockCols_;
   double tol_; // convergence tolerance used by QP solver for contact
-  double solveTime;
-  Timings times; 
+  //double solveTime;
+  //Timings times; 
   Scalar c1_; // trace of reducedConstraintMatrix_
   GenVecBasis<Scalar,GenVecType> *projectionBasis_, *dualProjectionBasis_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> reducedMatrix_, reducedConstraintMatrix_;

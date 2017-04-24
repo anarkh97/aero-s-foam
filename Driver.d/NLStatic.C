@@ -3046,7 +3046,7 @@ Domain::getElementAccel(int iele, GeomState& geomState, Vector& accel)
     for(int j=0; j<ndofs; ++j) {// loop over element dofs: j 
       if(dofs[j] > -1) { // check if dof is fixed
         for(int k=0; k<packedEset[iele]->numDofs(); ++k) { // loop over numdofs for that node: k 
-          if(dofs[j] == (*allDOFs)[iele][k] && j < 0) { // check offsets 
+          if(dofs[j] == (*allDOFs)[iele][k] && j < 6) { // check offsets 
             accel[l++] = geomState[nn[i]].a[j]; 
           }
         }

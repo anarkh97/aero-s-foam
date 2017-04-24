@@ -25,6 +25,8 @@ public:
   ~GenEiSparseGalerkinProjectionSolver() { /* do nothing */ }
 
   using GenEiSparseMatrix<Scalar>::neqs;
+  using GenEiSparseMatrix<Scalar>::solveTime;
+  using GenEiSparseMatrix<Scalar>::times;
 
   // Local bases
   void setLocalBasis(int startCol, int blockCols);
@@ -96,8 +98,8 @@ private:
   int startCol_, blockCols_; // local bases quantities
   int startDualCol_, dualBlockCols_;
   double tol_; // convergence tolerance used by QP solver for contact
-  //double solveTime;
-  //Timings times; 
+//  double solveTime;
+//  Timing times; 
   Scalar c1_; // trace of reducedConstraintMatrix_
   GenVecBasis<Scalar,GenVecType> *projectionBasis_, *dualProjectionBasis_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> reducedMatrix_, reducedConstraintMatrix_;

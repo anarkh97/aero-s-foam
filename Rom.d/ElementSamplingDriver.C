@@ -463,7 +463,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
             Vector accel(melArray_[iElem].dim());
             StackVector iForce(elementForce.array(), melArray_[iElem].dim());
             domain->getElementAccel(iElem, *geomState_, accel);
+  //          fprintf(stderr,"Force norm before %3.2e\n",iForce.norm());
             melArray_[iElem].multiply(accel, iForce, 1.0);
+//            fprintf(stderr,"Force norm after %3.2e\n",iForce.norm());
           }
         }
         if(domain_->solInfo().reduceFollower)

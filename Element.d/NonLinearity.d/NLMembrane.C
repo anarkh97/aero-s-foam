@@ -615,7 +615,26 @@ Corotator*
 NLMembrane::getCorotator(CoordSet &, double *, int , int)
 {
   if(prop == NULL) return new PhantomCorotator();
-  else return new MatNLCorotator(this, false);
+  else {
+    if(useDefaultMaterial) {
+      delete material;
+      if(cCoefs) {
+        material = new PlaneStressMat<StVenantKirchhoffMat>(prop->rho, prop->E, prop->nu, prop->eh);
+        double C[6][6], alpha[6];
+        // transform local constitutive matrix to global frame
+        rotateConstitutiveMatrix(cCoefs, cFrame, C);
+        material->setTangentMaterial(C);
+        // transform local coefficients of thermal expansion to global frame
+        rotateVector(cCoefs+36, cFrame, alpha);
+        material->setThermalExpansionCoef(alpha);
+      }
+      else {
+        material = new StVenantKirchhoffMat2D(prop);
+      }
+      material->setTDProps(prop->ymtt, prop->ctett);
+    }
+    return new MatNLCorotator(this, false);
+  }
 }
 
 FullSquareMatrix

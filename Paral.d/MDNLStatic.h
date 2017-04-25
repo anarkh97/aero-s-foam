@@ -68,7 +68,7 @@ class MDNLStatic
 
     MultiDomainPostProcessor *getPostProcessor();
 
-    void preProcess();
+    void preProcess(bool factor = true);
 
     int reBuild(int iter, int step, DistrGeomState& geomState);
 

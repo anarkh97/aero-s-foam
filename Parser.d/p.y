@@ -1098,7 +1098,8 @@ DynInfo:
 PrintMat:
         PRINTMATLAB FNAME NewLine
         { domain->solInfo().printMatLab = true;
-          domain->solInfo().printMatLabFile = $2; }
+          domain->solInfo().printMatLabFile = $2;
+          domain->solInfo().printMatLabExit = true; }
         | PRINTMATLAB FNAME EXITAFTERDEC NewLine
         { domain->solInfo().printMatLab = true;
           domain->solInfo().printMatLabFile = $2; 

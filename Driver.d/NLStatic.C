@@ -3024,12 +3024,30 @@ Domain::getElementVelo(int iele, GeomState& geomState, Vector& velo)
     for(int j=0; j<ndofs; ++j) {// loop over element dofs: j 
       if(dofs[j] > -1) { // check if dof is fixed
         for(int k=0; k<packedEset[iele]->numDofs(); ++k) { // loop over numdofs for that node: k 
-          if(dofs[j] == (*allDOFs)[iele][k] && j < 6) { // check offsets 
-            velo[l++] = geomState[nn[i]].v[j];
-          }
+          switch(j) {
+              case 0 : // x velocity
+                velo[l++] = geomState[nn[i]].v[j];
+                break;
+              case 1 : // y velocity
+                velo[l++] = geomState[nn[i]].v[j];
+                break;
+              case 2 : // z velocity
+                velo[l++] = geomState[nn[i]].v[j];
+                break;
+              case 3 : case 4 : case 5 : // x,y,z rotational velocity
+                velo[l++] = geomState[nn[i]].v[j];
+                break;
+              case 6 : case 7 : case 8 : // temperature and lagrange multipliers
+                velo[l++] = 0.0;
+                break;
+              default :
+                velo[l++] = 0.0;
+                break;
+            }
+            break;
         }
       }
-    }
+    }  
   }
   delete [] nn;
 }
@@ -3041,16 +3059,34 @@ Domain::getElementAccel(int iele, GeomState& geomState, Vector& accel)
   int dofs[DofSet::max_known_nonL_dof];
 
   // place holder in accel vector: l
-  for(int i=0,l=0; i<packedEset[iele]->numNodes(); ++i) { // loop over nodes: i
+  for(int i=0,l=0; i<packedEset[iele]->numNodes(); ++i) { // loop over nodes in element iele: i
     int ndofs = dsa->number(nn[i], DofSet::nonL_dof, dofs);
-    for(int j=0; j<ndofs; ++j) {// loop over element dofs: j 
+    for(int j=0; j<ndofs; ++j) {// for node i, loop over dofs: j 
       if(dofs[j] > -1) { // check if dof is fixed
-        for(int k=0; k<packedEset[iele]->numDofs(); ++k) { // loop over numdofs for that node: k 
-          if(dofs[j] == (*allDOFs)[iele][k] && j < 6) { // check offsets 
-            accel[l++] = geomState[nn[i]].a[j]; 
-          }
+        for(int k=0; k<packedEset[iele]->numDofs(); ++k) { // loop over numdofs for element iele: k 
+          switch(j) {
+              case 0 : // x acceleration
+                accel[l++] = geomState[nn[i]].a[j];
+                break;
+              case 1 : // y acceleration 
+                accel[l++] = geomState[nn[i]].a[j];
+                break;
+              case 2 : // z acceleration
+                accel[l++] = geomState[nn[i]].a[j];
+                break;
+              case 3 : case 4 : case 5 : // x,y,z rotational accelerations
+                accel[l++] = geomState[nn[i]].a[j];
+                break;
+              case 6 : case 7 : case 8 : // temperature and lagrange multipliers
+                accel[l++] = 0.0;
+                break;
+              default :
+                accel[l++] = 0.0;
+                break;
+            }
+            break;         
         }
-      }
+      } 
     }
   }
   delete [] nn;

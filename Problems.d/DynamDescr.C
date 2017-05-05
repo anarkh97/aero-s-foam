@@ -1249,6 +1249,8 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
           // Write error
           fprintf(oinfo[i].filptr, "%e % *.*E\n", t, w, p, normerror);
           fflush(oinfo[i].filptr);
+          delete [] sumalfa;
+          delete [] error;
         } break;
    
         default: 

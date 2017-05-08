@@ -110,6 +110,7 @@ struct SolverInfo {
    int thermoeFlag;
    int thermohFlag;
    int modeDecompFlag;
+   int mode_modal_id;
    int isCollocated;
    double alphas[2];
    double alphat[2];
@@ -601,6 +602,7 @@ struct SolverInfo {
                   thermalLoadFlag = 0;
                   radiationFlag = 0;
                   modeDecompFlag = 0;
+                  mode_modal_id = -1;
                   hzemFlag = 0;
                   hzemFilterFlag = 0;
                   slzemFlag = 0;
@@ -907,8 +909,8 @@ struct SolverInfo {
    void setThermoh(int alg)
       { thermohFlag = alg; }
 
-   void setModeDecomp(int alg)
-      { modeDecompFlag = alg; }
+   void setModeDecomp(int alg, int modal_id = -1)
+      { modeDecompFlag = alg; mode_modal_id = modal_id; }
 
    // SET CONDITION NUMBER TOLERANCE
    void setCondNumTol(double tolerance, int maxit) { condNumTolerance = tolerance; condNumMaxit = maxit; }

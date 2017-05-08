@@ -1342,6 +1342,8 @@ ThermoeInfo:
 ModeInfo:
         MODE NewLine 
         { domain->solInfo().setModeDecomp(1); }
+        | MODE Integer NewLine
+        { domain->solInfo().setModeDecomp(1, $2); }
 	;
 HzemInfo:
         HZEM NewLine

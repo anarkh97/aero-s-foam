@@ -27,6 +27,9 @@
 #include <Problems.d/ModalBase.h>
 
 extern ModeData modeData; 
+extern ModeData modeDataIDis;
+extern ModeData modeDataIVel;
+extern ModeData modeDataMode;
 extern int verboseFlag;
 
 void
@@ -38,7 +41,8 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, const 
 
  // ... SET INITIAL VELOCITY
  if(numIVelModal) {
-   filePrint(stderr, " ... Compute initial velocity from given modal basis (v0=X.y0) ... \n");
+   filePrint(stderr, " ... Compute initial velocity from given modal basis ... \n");
+   ModeData &modeData = (sinfo.ivel_modal_id == -1) ? ::modeData : modeDataIVel;
    modeData.addMultY(numIVelModal, iVelModal, v_n, c_dsa);
  }
  for(int i = 0; i < numIVel; ++i) {
@@ -55,7 +59,8 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, const 
    // ... OR IF WE ARE USING GEOMETRIC PRE-STRESS (GEPS)
    if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1) { // note: always use global num to do this check
      if(numIDisModal) {
-       filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0) ... \n");
+       filePrint(stderr, " ... Compute initial displacement from given modal basis ... \n");
+       ModeData &modeData = (sinfo.idis_modal_id == -1) ? ::modeData : modeDataIDis;
        modeData.addMultY(numIDisModal, iDisModal, d_n, c_dsa);
      }
      for(int i = 0; i < numIDis; ++i) {

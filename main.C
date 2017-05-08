@@ -144,6 +144,7 @@ extern const char *THE_VERSION;
 extern ModeData modeData;
 extern ModeData modeDataIDis;
 extern ModeData modeDataIVel;
+extern ModeData modeDataMode;
 
 // ... main program
 
@@ -645,6 +646,8 @@ int main(int argc, char** argv)
      domain->readInModes(domain->solInfo().idis_modal_id, modeDataIDis);
    if(domain->solInfo().ivel_modal_id != -1)
      domain->readInModes(domain->solInfo().ivel_modal_id, modeDataIVel);
+   if(domain->solInfo().mode_modal_id != -1)
+     domain->readInModes(domain->solInfo().mode_modal_id, modeDataMode);
  }
 
  if(domain->solInfo().readShapeSen) {

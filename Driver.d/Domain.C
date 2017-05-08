@@ -48,6 +48,7 @@ extern int totalNewtonIter;
 ModeData modeData;
 ModeData modeDataIVel;
 ModeData modeDataIDis;
+ModeData modeDataMode;
 
 //----------------------------------------------------------------------------------
 
@@ -61,7 +62,7 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
  initialize();
 
  int iele;
- numele = nele;        // number of elements
+ numele = nele; // number of elements
  for(int i=0; i < numele; ++i)
    packedEset.elemadd(i, d.packedEset[eles[i]]);
 
@@ -1927,7 +1928,7 @@ Domain::readInModes(int modal_id, ModeData &modeData)
  }
  const char* modeFileName = it->second.fileName.c_str();
 
- // Open file containing mode shapes and frequencies.
+ // Open file containing mode shapes and frequencies
  FILE *f;
  if((f=fopen(modeFileName,"r"))==(FILE *) 0) {
    filePrint(stderr," *** ERROR: Cannot open file %s specified in READMODE with rob_id %d.\n", modeFileName, modal_id);
@@ -2005,7 +2006,7 @@ Domain::readInModes(int modal_id, ModeData &modeData)
          modeData.modes[iMode][iNode][5] = 0.0;
          break;
        case 4:
-         modeData.nodes[iNode] = (int) tmpinput[0];
+         modeData.nodes[iNode] = int(tmpinput[0]+0.5)-1;
          modeData.modes[iMode][iNode][0] = tmpinput[1];
          modeData.modes[iMode][iNode][1] = tmpinput[2];
          modeData.modes[iMode][iNode][2] = tmpinput[3];
@@ -2023,7 +2024,7 @@ Domain::readInModes(int modal_id, ModeData &modeData)
          modeData.modes[iMode][iNode][5] = tmpinput[5];
          break;
        case 7:
-         modeData.nodes[iNode] = (int) tmpinput[0];
+         modeData.nodes[iNode] = int(tmpinput[0]+0.5)-1;
          modeData.modes[iMode][iNode][0] = tmpinput[1];
          modeData.modes[iMode][iNode][1] = tmpinput[2];
          modeData.modes[iMode][iNode][2] = tmpinput[3];

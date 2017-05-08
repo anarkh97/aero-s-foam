@@ -31,6 +31,7 @@
 #include <Utils.d/BinFileHandler.h>
 #include <Utils.d/DistHelper.h>
 #include <Utils.d/linkfc.h>
+#include <Utils.d/ModeData.h>
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/ControlLawInfo.h>
 
@@ -46,6 +47,7 @@ extern Communicator *structCom;
 
 typedef FSFullMatrix FullMatrix;
 
+extern ModeData modeDataMode;
 extern int verboseFlag;
 
 // SDDynamPostProcessor implementation
@@ -1105,62 +1107,86 @@ SingleDomainDynamic::getModeDecompFlag()
 void
 SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
 {
-
-// Read Eigenvectors from file EIGENMODES
-// ======================================
-    int eigsize;
+  int eigsize;
  
+  if(sinfo.mode_modal_id < 0) {
+
+    // Read Eigenvectors from file EIGENMODES
+    // ======================================
+
     BinFileHandler modefile("EIGENMODES" ,"r");
     modefile.read(&maxmode, 1);
  
     modefile.read(&eigsize, 1);
  
     eigmodes = new double*[maxmode];
-    int i;
-    for (i=0; i<maxmode; ++i)
-     eigmodes[i] = new double[eigsize];
+    for (int i = 0; i<maxmode; ++i)
+      eigmodes[i] = new double[eigsize];
 
-// Check if the problem sizes are identical
+    // Check if the problem sizes are identical
 
     int numdof = solVecInfo();
 
     if (eigsize != numdof)
-      fprintf(stderr, "... ERROR !! EigenVector and Problem sizes differ... ");
-      fflush(stderr);
+      fprintf(stderr, " *** ERROR: EigenVector and problem sizes differ ...\n");
 
-    for (i=0; i<maxmode; ++i)
-      modefile.read(eigmodes[i], eigsize);  
+    for (int i = 0; i<maxmode; ++i)
+      modefile.read(eigmodes[i], eigsize);
+  }
+  else {
 
-// Compute Transpose(Phi_i)*M once and for all
-// ===========================================
+    // Use vectors read from file specified with READMODE command
+    // ==========================================================
+
+    maxmode = modeDataMode.numModes;
+    DofSetArray *cdsa = domain->getCDSA();
+    eigsize = cdsa->size();
+    eigmodes = new double*[maxmode];
+    for (int i = 0; i<maxmode; ++i) {
+      eigmodes[i] = new double[eigsize];
+      std::fill(eigmodes[i], eigmodes[i]+eigsize, 0.);
+      BCond y; y.nnum = i; y.val = 1.;
+      modeDataMode.addMultY(1, &y, eigmodes[i], cdsa);
+    }
+  }
+
+  tPhiM = new double*[maxmode];
+    for (int i = 0; i<maxmode; ++i)
+      tPhiM[i] = new double[eigsize];
  
-   if(verboseFlag) filePrint(stderr, " ... Preparing Transpose(Phi_i)*M for %d modes ...\n", maxmode);
- 
-   tPhiM =  new double*[maxmode];
-     for (i=0; i<maxmode; ++i)
-       tPhiM[i] = new double[eigsize];
- 
-   for (i = 0 ; i<maxmode; ++i)
-     M->mult(eigmodes[i], tPhiM[i]);  // taking advantage of symmetry of M and computing
-                                      //   M*Phi_i instead of transpose(Phi_i)*M
-//  DEBUG: UNCOMMENT FOR DEBUGGING
+  if(sinfo.mode_modal_id < 0 || sinfo.readInModes[sinfo.mode_modal_id].type != ModalParams::Inorm) {
+
+    // Compute Transpose(Phi_i)*M once and for all
+    // ===========================================
+
+    if(verboseFlag) filePrint(stderr, " ... Preparing Transpose(Phi_i)*M for %d modes ...\n", maxmode);
+
+    for (int i = 0; i<maxmode; ++i)
+      M->mult(eigmodes[i], tPhiM[i]);  // taking advantage of symmetry of M and computing
+                                       // M*Phi_i instead of transpose(Phi_i)*M
 /*
-// Verify that Phi_i*M*Phi_i = 1 and Phi_i*M*Phi_j = 0
-// ===================================================
+    // Verify that Phi_i*M*Phi_i = 1 and Phi_i*M*Phi_j = 0
+    // NOTE: the following assumes M is diagonal
+    // ===================================================
 
-   double PhiMPhi = 0;
+    double PhiMPhi = 0;
 
-   for (i =0; i<maxmode; ++i) {
-     for (int j =0; j<maxmode; ++j) {
-      for (int k = 0; k < eigsize; ++k) {
+    for (int i = 0; i < maxmode; ++i) {
+      for (int j = 0; j < maxmode; ++j) {
+        for (int k = 0; k < eigsize; ++k) {
           PhiMPhi = PhiMPhi + eigmodes[i][k]*M->diag(k)*eigmodes[j][k];
+        }
+        fprintf(stderr, "Phi_%d*M*Phi_%d = %19.11e\n",i,j, PhiMPhi) ;
+        PhiMPhi = 0;
       }
-     fprintf(stderr, "Phi_%d*M*Phi_%d = %19.11e\n",i,j, PhiMPhi) ;
-     PhiMPhi = 0;
-     }
-     fprintf(stderr,"\n");
-   }
+      fprintf(stderr,"\n");
+    }
 */
+  }
+  else {
+    for (int i = 0; i<maxmode; ++i)
+      std::copy(eigmodes[i], eigmodes[i]+eigsize, tPhiM[i]);
+  }
 }
 
 void
@@ -1201,7 +1227,7 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
           fprintf(oinfo[i].filptr, "%e  ", t);
           for(j=0; j<maxmode; ++j)
             fprintf(oinfo[i].filptr, "% *.*E ", w, p, alfa[j]);
-            fprintf(oinfo[i].filptr, "\n");
+          fprintf(oinfo[i].filptr, "\n");
      
           fflush(oinfo[i].filptr);
         } break;

@@ -824,7 +824,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::getContactForce(DistrVector &d, Dis
   // next call masked function to compute contact force in embedding space
   MultiDomainDynam::getContactForce(*d_n, *tempVec, *ctc_f, t_n_p, dt, dt_old); 
   // then project contact force onto reduced subspace
-  normalizedBasis_.reduce(*ctc_f, ctc_r);
+  normalizedBasis_.sparseVecReduce(*ctc_f, ctc_r);
 
 }
 

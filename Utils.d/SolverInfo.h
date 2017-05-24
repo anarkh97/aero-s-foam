@@ -487,6 +487,7 @@ struct SolverInfo {
    bool useConstantMassForces; 
    bool useMassOrthogonalProjection;
    bool performMassNormalization;
+   bool stackedElementSampling;
    bool ConwepOnOff;
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
@@ -851,10 +852,11 @@ struct SolverInfo {
                   romresidType       = 0;
                   robcSolve          = true;
                   tolPodRom          = 1.0e-6;
-                  useMassNormalizedBasis = true;
-                  useConstantMassForces = false;
+                  useMassNormalizedBasis      = true;
+                  useConstantMassForces       = false;
                   useMassOrthogonalProjection = false;
-                  performMassNormalization = false;
+                  performMassNormalization    = false;
+                  stackedElementSampling      = false; 
                   ConwepOnOff        = false;
                   basicDofCoords     = true;
                   basicPosCoords     = true;

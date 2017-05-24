@@ -8,13 +8,16 @@
 #include <Parser.d/AuxDefs.h>
 #include <Utils.d/CompositeInfo.h>
 
+#include <Driver.d/Domain.h>
+#include <Mortar.d/MortarDriver.d/MortarHandler.h>
+
 #include <vector>
 #include <map>
 #include <iterator>
 #include <cstring>
 #include <utility>
 
-class Domain;
+//class Domain;
 class GeoSource;
 
 class EFrameData;
@@ -23,6 +26,25 @@ class NLMaterial;
 class BCond;
 
 namespace Rom {
+
+struct ContactContainer {
+  
+  int MasterId;
+  int SlaveId;
+  int MortarType;
+
+  double NormalTol;
+  double TangentTol;
+
+  ContactContainer(int m, int s, int t, double n, double tol): 
+    MasterId(m),
+    SlaveId(s),
+    MortarType(t),
+    NormalTol(n),
+    TangentTol(tol)
+  {}
+
+};
 
 class MeshDesc {
 public:
@@ -46,6 +68,7 @@ public:
   const std::vector<BCond> &temperatures() const { return temperatures_; }
 
   const std::vector<PressureBCond> &elemPressures() const { return elemPressures_; }
+  const std::set<int>              &activeSurfaces() const { return activeSurfs_; }
   
   // Reduced mesh only
   const std::vector<int> &sampleNodeIds() const { return sampleNodeIds_; }
@@ -60,6 +83,13 @@ public:
   
   // Create node-based reduced mesh 
   MeshDesc(Domain *, GeoSource *, const SampledMeshRenumbering &);
+
+  // Contact Surface Utilities
+  int GetnContactSurfacePairs() const { return domain_->GetnContactSurfacePairs(); } 
+  int GetnMortarConds() const { return domain_->GetnMortarConds(); }
+  MortarHandler* GetMortarCond(int i) const { return domain_->GetMortarCond(i); }
+  const ResizeArray<SurfaceEntity*>* GetSurfaceEntities() const { return (&ActiveSurfaces); }
+  const std::vector<ContactContainer> &ContactSufaces() const { return ContactPairs_; }
   
 private:
   void init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren);
@@ -68,6 +98,8 @@ private:
   
   CoordSet nodes_; 
   Elemset elements_;
+
+  Domain *domain_;
 
   std::vector<EFrameData> elemFrames_;
   std::map<int,FrameData> compositeFrames_;
@@ -83,6 +115,10 @@ private:
   std::vector<BCond> initVel_;
   std::vector<BCond> temperatures_;
   std::vector<PressureBCond> elemPressures_;
+  std::vector<ContactContainer> ContactPairs_; 
+  std::set<int> activeSurfs_;
+
+  ResizeArray<SurfaceEntity*> ActiveSurfaces;  
 
   const std::vector<int> sampleNodeIds_;
   std::vector<std::map<int, double> > elemWeights_;

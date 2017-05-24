@@ -2,6 +2,8 @@
 
 #include "SimpleBuffer.h"
 
+#include <Driver.d/Domain.h>
+
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 
 #include <algorithm>
@@ -131,6 +133,47 @@ operator<<(std::ostream &out, const Elemset &source) {
   }
 
   return out;
+}
+
+std::ostream &
+operator<<(std::ostream &out, const std::vector<ContactContainer> &source) {
+
+  out << "*\nCONTACTSURFACES\n";
+    for(int mc = 0; mc<source.size(); ++mc){
+      out << mc + 1 << " " << source[mc].MasterId   << " "
+                           << source[mc].SlaveId    << " "
+                           << source[mc].MortarType << " "
+                           << source[mc].NormalTol  << " "
+                           << source[mc].TangentTol;
+    }
+    out << "\n";
+
+}
+
+// this function is a fucking work of art
+std::ostream &
+operator<<(std::ostream &out, const ResizeArray<SurfaceEntity*>* source) {
+  int numSurf = const_cast<ResizeArray<SurfaceEntity*>* >(source)->max_size();
+
+  int glEleNum = 1; 
+  for (int isurf = 0; isurf < numSurf; ++isurf) { // loop over each surface
+    out << "*\nSURFACETOPO " << (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetId() << "\n"; 
+    int numEle = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetnFaceElems(); 
+    FaceElemSet * fEleSet = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetPtrFaceElemSet();
+    int *glNodeNum = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetPtrGlNodeIds(); 
+    for(int iEle = 0; iEle < numEle; ++iEle) { // loop over each element in that surface
+      int ftype = (*fEleSet)[iEle]->GetFaceElemType();
+      int nn = (*fEleSet)[iEle]->nNodes();
+      out << glEleNum << " " << ftype << " "; 
+      for(int iNode = 0; iNode < nn; ++iNode) { // loop over each node in that element
+         int localNodeId = (*fEleSet)[iEle]->GetNode(iNode); 
+         out << glNodeNum[localNodeId] + 1 << " "; // map from numbering local to surface to global reduced mesh numbering
+      } // win
+      glEleNum++;
+      out << "\n"; 
+    }
+  } 
+
 }
 
 std::ostream &

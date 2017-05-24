@@ -371,6 +371,12 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
 
   // Temporary buffers shared by all iterations
   Vector elemTarget(podVectorCount);
+  Vector *elemTarget2;
+  SimpleBuffer<double> *elementForce2;
+  if(domain_->solInfo().stackedElementSampling){
+    elemTarget2   = new Vector(podVectorCount);
+    elementForce2 = new SimpleBuffer<double>(domain_->maxNumDOF());
+  }
   SimpleBuffer<double> elementForce(domain_->maxNumDOF());
 
   // load CONWEP configuration data
@@ -461,9 +467,15 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
           kelArray_[iElem].multiply(disp, force, 1.0);
           if(domain_->solInfo().useConstantMassForces){
             Vector accel(melArray_[iElem].dim()); 
-            StackVector iForce(elementForce.array(), melArray_[iElem].dim());
+            StackVector *iForce;
+            if(domain_->solInfo().stackedElementSampling){
+              iForce = new StackVector(elementForce2->array(), melArray_[iElem].dim());; 
+              iForce->zero();
+            } else {
+              iForce = new StackVector(elementForce.array(), melArray_[iElem].dim());
+            }
             domain->getElementAccel(iElem, *geomState_, accel);
-            melArray_[iElem].multiply(accel, iForce, -1.0);
+            melArray_[iElem].multiply(accel, *iForce, -1.0);
           }
         }
         if(domain_->solInfo().reduceFollower)
@@ -476,13 +488,23 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
         }
 
         elemTarget.zero();
+        if(domain_->solInfo().stackedElementSampling)
+          elemTarget2->zero();
         const int dofCount = kelArray_[iElem].dim();
         for (int iDof = 0; iDof != dofCount; ++iDof) {
           const int vecLoc = domain_->getCDSA()->getRCN((*domain_->getAllDOFs())[iElem][iDof]);
           if (vecLoc >= 0) {
             const double dofForce = elementForce[iDof];
+            double dofForce2 = 0.0; 
+            if(domain_->solInfo().stackedElementSampling)
+              dofForce2 = (*elementForce2)[iDof];
             for (int iPod = 0; iPod != podVectorCount; ++iPod) {
               const double contrib = dofForce * (*podBasis)[iPod][vecLoc];
+              double contrib2 = 0.0;
+              if(domain_->solInfo().stackedElementSampling){
+                contrib2 = dofForce2 * (*podBasis)[iPod][vecLoc];
+                (*elemTarget2)[iPod] += contrib2;
+              }
               elemTarget[iPod] += contrib;
             }
           }
@@ -490,7 +512,14 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
         for(int iPod = 0; iPod != podVectorCount; ++iPod) {
           *elemContributions = elemTarget[iPod];
           elemContributions++;
-          trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
+          if(domain_->solInfo().stackedElementSampling){
+            *elemContributions = (*elemTarget2)[iPod];
+            elemContributions++;
+            trainingTarget[2*podVectorCount * iSnap + 2*iPod]   +=   elemTarget[iPod];
+            trainingTarget[2*podVectorCount * iSnap + 2*iPod+1] += (*elemTarget2)[iPod];
+          } else {
+            trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
+          }
         }
         timeStampIt++;
       }
@@ -510,6 +539,10 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 
+  if(domain_->solInfo().stackedElementSampling){
+    delete elemTarget2;
+    delete elementForce2;
+  } 
 
   // finally, undo scaling to original mesh for post processing
   if(poscfg) {
@@ -757,7 +790,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
   // output the reduced mesh
   Elemset &inputElemSet = *(geoSource->getElemSet());
   std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
-  const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
+  // add nodes associated with surface topologies as well
+  const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, domain_, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
   if(domain_->solInfo().localBasisSize.size() <= 1)
     outputMeshFile(fileInfo, reducedMesh, podBasis_.vectorCount());
@@ -1132,7 +1166,11 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
 
   const int snapshotCount = (domain_->solInfo().readInROBorModes.size() == 1)
                           ? std::accumulate(snapshotCounts_.begin(), snapshotCounts_.end(), 0) : snapshotCounts_[j];
-  solver_.problemSizeIs(podVectorCount*snapshotCount, elementCount());
+  // check whether to separate the inertial and internal forces or not
+  if(domain_->solInfo().stackedElementSampling)
+    solver_.problemSizeIs(2*podVectorCount*snapshotCount, elementCount());
+  else 
+    solver_.problemSizeIs(podVectorCount*snapshotCount, elementCount());
 }
 
 template<typename MatrixBufferType, typename SizeType>

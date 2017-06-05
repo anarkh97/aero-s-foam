@@ -336,9 +336,11 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
   // Nodal temperatures
   reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(temperatures_), true);
  
+  // Contact Surfaces
   int numMC = domain->GetnMortarConds();
-  if(numMC > 0) { 
-    for(int mc = 0; mc<numMC; ++mc) {
+  if(numMC > 0) { // check if any contact conditions are specified
+    for(int mc = 0; mc<numMC; ++mc) { // if so, first loop over mortar conditions
+      // if the mortar condition is CTC type, store for output to reduced mesh
       if(domain->GetMortarCond(mc)->GetInteractionType() == MortarHandler::CTC){
         ContactContainer CC(GetMortarCond(mc)->GetMasterEntityId(),
                             GetMortarCond(mc)->GetSlaveEntityId(),
@@ -353,11 +355,13 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
 
     int nCS = 0;
     std::map<int,int> renumMap = ren.nodeRenumbering(); 
-    for(std::set<int>::iterator it = activeSurfs_.begin(); it != activeSurfs_.end(); ++it){
-      for(int surf = 0; surf < domain->getNumSurfs(); ++surf) {
+    // loop over all active surfaces
+    for(std::set<int>::iterator it = activeSurfs_.begin(); it != activeSurfs_.end(); ++it){ 
+      // then loop over all surface topologies to find matching ID 
+      for(int surf = 0; surf < domain->getNumSurfs(); ++surf) { 
         if(*it == domain->GetSurfaceEntity(surf)->GetId()) {
           ActiveSurfaces[nCS++] = domain->GetSurfaceEntity(surf);// save pointer to SurfaceEntity class
-          // then apply new global numbering 
+          // then apply new global numbering to node map stored in surface entity
           int *glRenumber = ActiveSurfaces[nCS-1]->GetPtrGlNodeIds();  
           int numNodes = ActiveSurfaces[nCS-1]->GetnNodes();
           for(int lnn = 0; lnn < numNodes; ++lnn) {

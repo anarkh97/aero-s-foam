@@ -600,9 +600,58 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
     } 
     postProcessLocal(solution, packedToInput, j, sampleElemIds, weights[j]);
   }
+  addContactElems(sampleElemIds, weights, sampleElemIds);
   postProcessGlobal(sampleElemIds, weights);
 }
 
+template<typename MatrixBufferType, typename SizeType>
+void
+ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights, std::vector<int> &packedToInput) {
+
+  // Add elements attached to Contact surfaces, needed for assigning mass to nodes in surface
+  int numMC = domain->GetnMortarConds();
+  if(numMC > 0) { 
+    std::set<int> activeSurfs;
+    //First: loop over Mortar Constraints to identify active surfaces
+    for(int mc = 0; mc<numMC; ++mc){
+      if(domain->GetMortarCond(mc)->GetInteractionType() == MortarHandler::CTC){
+        activeSurfs.insert(domain->GetMortarCond(mc)->GetMasterEntityId());
+        activeSurfs.insert(domain->GetMortarCond(mc)->GetSlaveEntityId());
+      }
+    }
+
+    Elemset &inputElemSet = *(geoSource->getElemSet());
+    std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
+    Connectivity *nodeToElem = elemToNode->reverse();
+
+    //Second: loop over list of surfaces to extract elements attached to surface nodes 
+    for(std::set<int>::iterator it = activeSurfs.begin(); it != activeSurfs.end(); ++it){
+      for(int surf = 0; surf < domain->getNumSurfs(); ++surf) { // loop through surfaces and check for matching ID
+        if(*it == domain->GetSurfaceEntity(surf)->GetId()) {
+          int nNodes = domain->GetSurfaceEntity(surf)->GetnNodes();
+          // loop through nodes of surface
+          for(int nn = 0; nn < nNodes; ++nn) {
+            int glNode = domain->GetSurfaceEntity(surf)->GetGlNodeId(nn);
+            // loop through elements attached to node
+            for(int j = 0; j < nodeToElem->num(glNode); ++j) {
+              const int elemRank = (*nodeToElem)[glNode][j];
+              //const int elemRank = packedToInput[k];
+              fprintf(stderr,"for node %d, element has rank = %d\n",glNode, elemRank);
+              // check if element already in weighted set, if not, add to weights and reduced ElemIds; 
+              if(std::find(sampleElemIds.begin(), sampleElemIds.end(), elemRank) == sampleElemIds.end()){
+                sampleElemIds.push_back(elemRank);
+                // now add zero weight to each local weight map
+                for(int lm = 0; lm < weights.size(); ++lm)
+                  weights[lm].insert(std::make_pair(elemRank, 0.0)); 
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+}
 template<typename MatrixBufferType, typename SizeType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &solution, double relativeTolerance, bool verboseFlag) {
@@ -790,8 +839,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
   // output the reduced mesh
   Elemset &inputElemSet = *(geoSource->getElemSet());
   std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
-  // add nodes associated with surface topologies as well
-  const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, domain_, verboseFlag);
+  const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
   if(domain_->solInfo().localBasisSize.size() <= 1)
     outputMeshFile(fileInfo, reducedMesh, podBasis_.vectorCount());

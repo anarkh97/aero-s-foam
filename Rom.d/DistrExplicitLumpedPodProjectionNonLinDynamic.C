@@ -194,6 +194,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
       subElementWeights.insert(subElementWeights.end(), std::make_pair(packedId, weight)); //pack element weight
       //put nodes for weighted element into dummy vector and insert into packed node vector
       ele->nodes(node_buffer.data());
+      int numNodes = node_buffer.size();
       subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
       if(geoSource->elementLumpingWeightSize() > 1)
         subLocalWeightedNodes.insert(subLocalWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
@@ -212,6 +213,20 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
         subLocalWeightedNodes.insert(subLocalWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
     }
   }
+
+  int numSurf = domain->getNumSurfs();
+  if(numSurf > 0) { // add nodes associated with surface topologies
+    for(int surf = 0; surf < numSurf; ++surf) {
+      int nNodes = domain->GetSurfaceEntity(surf)->GetnNodes();
+      for(int nn = 0; nn < nNodes; ++nn){
+        int newNode = domain->GetSurfaceEntity(surf)->GetGlNodeId(nn); //get node from surface
+        const int pnId = sd->globalToLocal(newNode); // see if its in this subdomain
+        if(pnId > 0)
+          subWeightedNodes.push_back(pnId); 
+      }
+    }
+  }
+
 /* XXX consider whether to also add the nodes with non-follower external forces
   for(int i = 0; i < sd->nNeumann(); ++i) {
     subWeightedNodes.push_back(sd->getNBC()[i].nnum);

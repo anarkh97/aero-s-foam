@@ -246,6 +246,7 @@ NonLinearity.d/2DMat.C
 NonLinearity.d/ShapeFunction.C
 NonLinearity.d/ElaLinIsoMat.C
 NonLinearity.d/OgdenMat.C
+NonLinearity.d/PronyViscoElastic.C
 NonLinearity.d/SimoElasticMat.C
 NonLinearity.d/SimoPlasticMat.C
 NonLinearity.d/NeoHookeanMat.C
@@ -394,6 +395,7 @@ DEM.d/DEMLE2d.C
 DEM.d/DEMLE3d.C
 )
 
+   set_source_files_properties(NonLinearity.d/PronyViscoElastic.C PROPERTIES HEADER_FILE_ONLY TRUE)
 SET(INC_DIR ..)
 
 INCLUDE_DIRECTORIES( ${INC_DIR} )

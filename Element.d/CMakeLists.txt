@@ -395,7 +395,9 @@ DEM.d/DEMLE2d.C
 DEM.d/DEMLE3d.C
 )
 
-   set_source_files_properties(NonLinearity.d/PronyViscoElastic.C PROPERTIES HEADER_FILE_ONLY TRUE)
+# Make sure we don't compile the following:
+SET_SOURCE_FILES_PROPERTIES(NonLinearity.d/PronyViscoElastic.C PROPERTIES HEADER_FILE_ONLY TRUE)
+
 SET(INC_DIR ..)
 
 INCLUDE_DIRECTORIES( ${INC_DIR} )

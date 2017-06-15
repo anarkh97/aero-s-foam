@@ -9,6 +9,8 @@
 #include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
 
+#include <Mortar.d/MortarDriver.d/MortarHandler.h>
+
 #include <functional>
 #include <algorithm>
 #include <deque>
@@ -262,7 +264,9 @@ using namespace Detail;
 MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren, const std::map<int, double> &weights) :
   properties_(&geoSource->getStructProps()),
   materialLaws_(&geoSource->getMaterialLaws()),
-  elemWeights_(1)
+  elemWeights_(1),
+  ActiveSurfaces(0,0),
+  domain_(domain)
 {
   init(domain, geoSource, ren);
   reduce(ren.elemRenumbering(), weights, std::inserter(elemWeights_[0], elemWeights_[0].end())); 
@@ -271,7 +275,9 @@ MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const MeshRenumbering &
 MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren, const std::vector<std::map<int, double> > &weights) :
   properties_(&geoSource->getStructProps()),
   materialLaws_(&geoSource->getMaterialLaws()),
-  elemWeights_(weights.size())
+  elemWeights_(weights.size()),
+  ActiveSurfaces(0,0),
+  domain_(domain)
 {
   init(domain, geoSource, ren);
   for(int j=0; j<weights.size(); ++j) {
@@ -282,13 +288,16 @@ MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const MeshRenumbering &
 MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const SampledMeshRenumbering &ren) :
   properties_(&geoSource->getStructProps()),
   materialLaws_(&geoSource->getMaterialLaws()),
-  sampleNodeIds_(ren.reducedSampleNodeIds().begin(), ren.reducedSampleNodeIds().end())
+  sampleNodeIds_(ren.reducedSampleNodeIds().begin(), ren.reducedSampleNodeIds().end()),
+  ActiveSurfaces(0,0),
+  domain_(domain)
 {
   init(domain, geoSource, ren);
 }
 
 void
 MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren) {
+
   // Nodes
   reduce(ren.reducedNodeIds().begin(), ren.reducedNodeIds().end(), domain->getNodes(), nodes_);
 
@@ -326,6 +335,44 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
 */
   // Nodal temperatures
   reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(temperatures_), true);
+ 
+  // Contact Surfaces
+  int numMC = domain->GetnMortarConds();
+  if(numMC > 0) { // check if any contact conditions are specified
+    for(int mc = 0; mc<numMC; ++mc) { // if so, first loop over mortar conditions
+      // if the mortar condition is CTC type, store for output to reduced mesh
+      if(domain->GetMortarCond(mc)->GetInteractionType() == MortarHandler::CTC){
+        ContactContainer CC(GetMortarCond(mc)->GetMasterEntityId(),
+                            GetMortarCond(mc)->GetSlaveEntityId(),
+                            0,
+                            GetMortarCond(mc)->GetNormalTol(),
+                            GetMortarCond(mc)->GetTangentialTol());
+        ContactPairs_.push_back(CC);
+        activeSurfs_.insert(domain->GetMortarCond(mc)->GetMasterEntityId());
+        activeSurfs_.insert(domain->GetMortarCond(mc)->GetSlaveEntityId());
+      }
+    }
+
+    int nCS = 0;
+    std::map<int,int> renumMap = ren.nodeRenumbering(); 
+    // loop over all active surfaces
+    for(std::set<int>::iterator it = activeSurfs_.begin(); it != activeSurfs_.end(); ++it){ 
+      // then loop over all surface topologies to find matching ID 
+      for(int surf = 0; surf < domain->getNumSurfs(); ++surf) { 
+        if(*it == domain->GetSurfaceEntity(surf)->GetId()) {
+          ActiveSurfaces[nCS++] = domain->GetSurfaceEntity(surf);// save pointer to SurfaceEntity class
+          // then apply new global numbering to node map stored in surface entity
+          int *glRenumber = ActiveSurfaces[nCS-1]->GetPtrGlNodeIds();  
+          int numNodes = ActiveSurfaces[nCS-1]->GetnNodes();
+          for(int lnn = 0; lnn < numNodes; ++lnn) {
+            int intBuffer = renumMap[glRenumber[lnn]];
+            glRenumber[lnn] = intBuffer;
+          }
+        }
+      }
+    }
+  }
+ 
 }
 
 std::ostream &
@@ -335,6 +382,9 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
   if (!mesh.elemFrames().empty()) {
     out << make_section(mesh.elemFrames().begin(), mesh.elemFrames().end());
   }
+
+  if(mesh.GetnContactSurfacePairs() != 0)
+    out << mesh.ContactSufaces();
 
   out << make_section(mesh.attributes().begin(), mesh.attributes().end());
   out << mesh.properties();
@@ -361,6 +411,9 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
 
   if(!mesh.elemPressures().empty())
     out << make_section(mesh.elemPressures().begin(), mesh.elemPressures().end(), ElementPressureTag());
+
+  if(!mesh.activeSurfaces().empty())
+    out << mesh.GetSurfaceEntities();
 
   if(!mesh.temperatures().empty())
     out << make_section(mesh.temperatures().begin(), mesh.temperatures().end(), BCond::Temperatures);

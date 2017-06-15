@@ -526,6 +526,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   a_n        = new DistrVector(MultiDomainDynam::solVecInfo());
   v_p        = new DistrVector(MultiDomainDynam::solVecInfo());
   tempVec    = new DistrVector(MultiDomainDynam::solVecInfo());
+  ctc_f      = new DistrVector(MultiDomainDynam::solVecInfo());
   dummyState = new SysState<DistrVector>(*d_n, *v_n, *a_n, *v_p);
   times      = new StaticTimers;}
 
@@ -813,6 +814,18 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
     normalizedBasis_.addLocalPart(cnst_f,f);
     MultiDomainDynam::computeExtForce2( *dummyState, *fExt, *cnst_fBig, tIndex, t, aero_fBig, gamma, alphaf);
   }
+}
+
+void
+DistrExplicitPodProjectionNonLinDynamicBase::getContactForce(DistrVector &d, DistrVector &dinc, DistrVector &ctc_r, double t_n_p, double dt, double dt_old) {
+
+  // first expand state increment into high dimensional container
+  normalizedBasis_.expand(dinc, *tempVec);
+  // next call masked function to compute contact force in embedding space
+  MultiDomainDynam::getContactForce(*d_n, *tempVec, *ctc_f, t_n_p, dt, dt_old); 
+  // then project contact force onto reduced subspace
+  normalizedBasis_.sparseVecReduce(*ctc_f, ctc_r);
+
 }
 
 MDDynamMat *

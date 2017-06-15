@@ -6,6 +6,9 @@
 #include <Element.d/Element.h>
 #include <Parser.d/AuxDefs.h>
 #include <Utils.d/CompositeInfo.h>
+#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
+#include "MeshDesc.h"
+
 
 class NLMaterial;
 
@@ -26,6 +29,12 @@ operator<<(std::ostream &, const CoordSet &);
 
 std::ostream &
 operator<<(std::ostream &, const Elemset &);
+
+std::ostream &
+operator<<(std::ostream &, const std::vector<ContactContainer> &);
+
+std::ostream &
+operator<<(std::ostream &, const ResizeArray<SurfaceEntity*>*);
 
 std::ostream &
 operator<<(std::ostream &, const SPropContainer &);
@@ -154,6 +163,11 @@ struct MatLawTag {
 
 struct CFrameTag {
   typedef FrameData SecondType;
+  static const FrameData& valueTransformation(const FrameData &x) { return x; }
+};
+
+struct CTSurfaceTag {
+  typedef FrameData SecondType; 
   static const FrameData& valueTransformation(const FrameData &x) { return x; }
 };
 

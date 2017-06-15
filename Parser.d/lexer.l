@@ -98,6 +98,8 @@ TRAIL [a-zA-Z]*
 
 "ONLINE_MASS_NORMALIZE_BASIS"|"online_mass_normalize_basis" { return ONLINEMASSNORMALIZEBASIS;}
 
+"STACKED_TRAINING"|"stacked_training" { return STACKED; }
+
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
 
 "FACE"|"face"                       { return FACE; }

@@ -153,7 +153,7 @@ PronyViscoElastic<Material>::integrate(Tensor *_stress, Tensor &en, Tensor &enp,
   // compute hyperelastic response
   Material::integrate(_stress, en, enp, staten, statenp, temp, cache, dt);
 
-  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress); // second P-K stress tensor
+  Tensor_d0s2_Ss12 *stress = static_cast<Tensor_d0s2_Ss12 *>(_stress); // second P-K stress tensor
 
   if(statenp == 0) {
     for(int i = 0; i < 6; i++) {

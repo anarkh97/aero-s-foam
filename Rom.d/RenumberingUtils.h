@@ -1,6 +1,8 @@
 #ifndef ROM_RENUMBERINGUTILS_H
 #define ROM_RENUMBERINGUTILS_H
 
+#include <Driver.d/Domain.h>
+
 #include <utility>
 #include <map>
 #include <vector>
@@ -23,6 +25,12 @@ public:
   template <typename IdxInIt>
   MeshRenumbering(IdxInIt firstSampleElem, IdxInIt lastSampleElem,
                   const Connectivity &elemToNode, bool verboseFlag = true);
+  
+  // additional constructor for initializing when surface topologies are specified
+  template <typename IdxInIt>
+  MeshRenumbering(IdxInIt firstSampleElem, IdxInIt lastSampleElem,
+                  const Connectivity &elemToNode, Domain * domain, 
+                  bool verboseFlag = true);
 
 protected:
   MeshRenumbering() {}
@@ -35,6 +43,7 @@ protected:
 
 private:
   void init(const Connectivity &, bool verboseFlag);
+  void init(const Connectivity &, Domain * domain, bool verboseFlag);
 
   // Disallow copy & assignment
   MeshRenumbering(const MeshRenumbering &);
@@ -49,6 +58,13 @@ MeshRenumbering::MeshRenumbering(IdxInIt firstSampleElem, IdxInIt lastSampleElem
   init(elemToNode, verboseFlag);
 }
 
+template <typename IdxInIt>
+MeshRenumbering::MeshRenumbering(IdxInIt firstSampleElem, IdxInIt lastSampleElem,
+                                 const Connectivity &elemToNode, Domain * domain, bool verboseFlag) :
+  reducedElemIds_(firstSampleElem, lastSampleElem)
+{
+  init(elemToNode, domain, verboseFlag);
+}
 
 class SampledMeshRenumbering : public MeshRenumbering {
 public:

@@ -148,9 +148,10 @@ operator<<(std::ostream &out, const std::vector<ContactContainer> &source) {
     }
     out << "\n";
 
+  return out;
 }
 
-// this function is a fucking work of art
+// this function is a f***ing work of art
 std::ostream &
 operator<<(std::ostream &out, const ResizeArray<SurfaceEntity*>* source) {
   int numSurf = const_cast<ResizeArray<SurfaceEntity*>* >(source)->max_size();
@@ -174,6 +175,7 @@ operator<<(std::ostream &out, const ResizeArray<SurfaceEntity*>* source) {
     }
   } 
 
+  return out;
 }
 
 std::ostream &

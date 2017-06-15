@@ -52,17 +52,17 @@ template<typename Material, class tensor_policy>
 int
 PronyViscoElastic<Material, tensor_policy>::getNumStates()
 {
-    std::size_t s =  tensor_policy::stride;
+  std::size_t s = tensor_policy::stride;
 
-  // storage order: h1 (6), h2 (6), h3 (6), sigma(tn-1) (6), ???? should 6 change to  stride here??
-  return s * 4; // store 4 Prony PK2 stresses (24 = 6*4) from previous time step or whatever the stride indicates
+  // storage order: h1 (s), h2 (s), h3 (s), sigma(tn-1) (s)
+  return s * 4; // store 4 Prony stress tensors from previous time step
 }
 
 template<typename Material, class tensor_policy>
 void
 PronyViscoElastic<Material, tensor_policy>::initStates(double *state)
 {
-  for(int i=0; i<getNumStates(); ++i) state[i] = 0;
+  for(int i = 0; i < getNumStates(); ++i) state[i] = 0;
 }
 
 template<typename Material, class tensor_policy>
@@ -73,7 +73,7 @@ PronyViscoElastic<Material, tensor_policy>::getStress(Tensor *_stress, Tensor &_
   Material::getStress(_stress, _strain, state, temp);
 
   // add visco-hyperelastic contribution to long-term hyperelastic response
-  Tensor_d0s2_Ss12 *stress = static_cast<Tensor_d0s2_Ss12 *>(_stress); // 2nd Piola-Kirchhoff stress tensor
+  typename tensor_policy::d0s2_S *stress = static_cast<typename tensor_policy::d0s2_S *>(_stress); // stress tensor
 
   std::size_t s = tensor_policy::stride;
 
@@ -86,11 +86,11 @@ PronyViscoElastic<Material, tensor_policy>::getStress(Tensor *_stress, Tensor &_
 template<typename Material, class tensor_policy>
 void
 PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor *_tm, Tensor &en, Tensor &enp,
-                                       double *staten, double *statenp, double temp, Tensor *cache, double dt)
+                                                      double *staten, double *statenp, double temp, Tensor *cache, double dt)
 {
-  // _stress - constainer for 2nd P-K stress tensor that is updated by calling integrate
-  // _tm     - elasticity tensor (derivative of 2nd P-K stress tensor)
-  // enp     - Green-Lagrange strain tensor
+  // _stress - constainer for stress tensor that is updated by calling integrate
+  // _tm     - elasticity tensor (derivative of stress tensor)
+  // enp     - strain tensor
   // staten  - internal variables before computing material response (get them out of here)
   // statenp - internal variables after computing material response  (put them into here)
   // temp    - material temperature
@@ -107,12 +107,12 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor *_
   if(statenp == 0) {
     for(int i = 0; i < s; i++) {
       (*stress)[i] *= ginf;
-      for(int j=0; j<s; j++) (*tm)[i][j] *= ginf;
+      for(int j = 0; j < s; j++) (*tm)[i][j] *= ginf;
     }
   }
   else {
     // add viscoelastic contribution to long-term hyperelastic response (both stress and tm)
-    // using the the time step dt and history variables at t_n (statenp),
+    // using the the time step dt and history variables at t_n (staten),
     // and also compute the updated history variables (statenp)
 
     double g[3] = { g1, g2, g3 }, tau[3] = { tau1, tau2, tau3 }, expTau[3], gxxTau[3];
@@ -136,14 +136,14 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor *_
 
     for(int i = 0; i < s; i++) {
       // update stress history variables
-      statenp[i]    = expTau[0]*staten[i]    + gxxTau[0]*((*stress)[i] - staten[i+3*s]);
-      statenp[i+s]  = expTau[1]*staten[i+s]  + gxxTau[1]*((*stress)[i] - staten[i+3*s]);
+      statenp[i]     = expTau[0]*staten[i]     + gxxTau[0]*((*stress)[i] - staten[i+3*s]);
+      statenp[i+s]   = expTau[1]*staten[i+s]   + gxxTau[1]*((*stress)[i] - staten[i+3*s]);
       statenp[i+2*s] = expTau[2]*staten[i+2*s] + gxxTau[2]*((*stress)[i] - staten[i+3*s]);
       statenp[i+3*s] = (*stress)[i];
       // add viscoelastic contribution to stress
       (*stress)[i] *= ginf;
       (*stress)[i] += statenp[i] + statenp[i+s] + statenp[i+2*s];
-      for(int j=0; j<s; j++) {
+      for(int j = 0; j < s; j++) {
         // add viscoelastic contribution to tm
         (*tm)[i][j] *= ginf + gxxTau[0] + gxxTau[1] + gxxTau[2];
       }
@@ -154,12 +154,12 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor *_
 template<typename Material, class tensor_policy>
 void
 PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor &en, Tensor &enp,
-                                       double *staten, double *statenp, double temp, Tensor *cache, double dt)
+                                                      double *staten, double *statenp, double temp, Tensor *cache, double dt)
 {
   // compute hyperelastic response
   Material::integrate(_stress, en, enp, staten, statenp, temp, cache, dt);
 
-  typename tensor_policy::d0s2_S *stress = static_cast<typename tensor_policy::d0s2_S *>(_stress); // second P-K stress tensor
+  typename tensor_policy::d0s2_S *stress = static_cast<typename tensor_policy::d0s2_S *>(_stress); // stress tensor
 
   std::size_t s = tensor_policy::stride;
 
@@ -170,7 +170,7 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor &e
   }
   else {
     // add viscoelastic contribution to long-term hyperelastic response
-    // using the the time step dt and history variables at t_n (statenp),
+    // using the the time step dt and history variables at t_n (staten),
     // and also compute the updated history variables (statenp)
 
     double g[3] = { g1, g2, g3 }, tau[3] = { tau1, tau2, tau3 }, expTau[3], gxxTau[3];
@@ -194,8 +194,8 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor &e
 
     for(int i = 0; i < s; i++) {
       // update stress history variables
-      statenp[i]    = expTau[0]*staten[i]    + gxxTau[0]*((*stress)[i] - staten[i+3*s]);
-      statenp[i+s]  = expTau[1]*staten[i+2*s]  + gxxTau[1]*((*stress)[i] - staten[i+3*s]);
+      statenp[i]     = expTau[0]*staten[i]     + gxxTau[0]*((*stress)[i] - staten[i+3*s]);
+      statenp[i+s]   = expTau[1]*staten[i+2*s] + gxxTau[1]*((*stress)[i] - staten[i+3*s]);
       statenp[i+2*s] = expTau[2]*staten[i+3*s] + gxxTau[2]*((*stress)[i] - staten[i+3*s]);
       statenp[i+3*s] = (*stress)[i];
       // add viscoelastic contribution to stress

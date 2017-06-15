@@ -4,10 +4,28 @@
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/NeoHookeanMat.h>
 #include <Element.d/NonLinearity.d/MooneyRivlinMat.h>
+#include <Element.d/NonLinearity.d/OgdenMat.h>
 
 class Tensor;
 
-template<typename Material>
+
+struct stress_policy_green_langrage
+{
+    // Stress tensor is symmetric and needs 6 elements to store
+    typedef Tensor_d0s4_Ss12s34 d0s4_S;
+    typedef Tensor_d0s2_Ss12 d0s2_S;
+    const static std::size_t stride = 6;
+};
+
+struct stress_policy_stretches
+{
+    // Stress tensor is diagonal and needs 3 elements to store (For example as used in the OgdenMat)
+    typedef Tensor_d0s4_Ss12s34_diag d0s4_S;
+    typedef Tensor_d0s2_Ss12_diag    d0s2_S;
+    const static std::size_t stride = 3;
+};
+
+template<typename Material, class tensor_policy = stress_policy_green_langrage>
 class PronyViscoElastic : public Material
 {
   public:
@@ -45,11 +63,12 @@ class PronyViscoElastic : public Material
     NLMaterial * clone() const;
 
   private:
-    double ginf; 
+    double ginf;
     double g1, tau1;
     double g2, tau2;
     double g3, tau3;
 };
+
 
 #ifdef _TEMPLATE_FIX_
   #include <Element.d/NonLinearity.d/PronyViscoElastic.C>

@@ -319,6 +319,7 @@ int main(int argc, char** argv)
    {"output-topdomdec-asymetric-mesh", 1, 0, 'r'},
    {"output-primal", 1, 0, 'p'},
    {"contact-status-verbose", 1, 0, 'c'},
+   {"screen-output-interval-in-time-loop", 1, 0, 's'},
    {"output-topdomdec-gaps-renumbered-sequentially", 0, 0, 'T'},
    {"output-topdomdec-element-equals-materials-number", 0, 0, 'm'},
    {"output-topdomdec-element-equals-materials-numberc-gaps-renumbered-sequentially", 0, 0, 'M'},
@@ -493,6 +494,9 @@ int main(int argc, char** argv)
         break;
       case 'c':
         contactPrintFlag = domain->solInfo().fetiInfo.contactPrintFlag = atoi(optarg);
+        break;
+      case 's':
+        domain->solInfo().printNumber = atoi(optarg);
         break;
       case 'q':
         quietFlag = 1;

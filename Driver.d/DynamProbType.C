@@ -4,6 +4,8 @@
 #include <Driver.d/SysState.h>
 #include <Problems.d/DynamProbTraits.h>
 
+#include <limits>
+
 //-------------------------------------------------------------------------------------------
 template<class VecType>
 SysState<VecType> & SysState<VecType>::operator=(const SysState<VecType> &v2)
@@ -960,10 +962,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    // ... BEGIN MAIN TIME-LOOP
    double s0 = -getTime(), s1 = -51, s2 = 0;
    char ch[4] = { '|', '/', '-', '\\' };
-   if(aeroAlg < 0) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
+   int printNumber = (solInfo.printNumber > 0) ? solInfo.printNumber : std::numeric_limits<int>::max();
+   if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max()) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
    for( ; t < tmax-0.01*dt; t += dt, s2 = s0+getTime()) {
-     if(aeroAlg < 0 && (s2-s1 > 50)) {
+     if(aeroAlg < 0 && (s2-s1 > printNumber)) {
        s1 = s2;
        filePrint(stderr, "\r ⌊\x1B[33m %c t = %9.3e Δt = %8.2e %3d%% \x1B[0m⌋",
                  ch[int(s1/250)%4], t+dt, dt, int((t+dt)/(tmax-0.01*dt)*100));
@@ -1073,7 +1076,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      if(aeroAlg == 5) probDesc->a5TimeLoopCheck( parity, t, dt );
 
    }
-   if(aeroAlg < 0)
+   if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max())
      filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", t, dt);
 
    if(aeroAlg == 5) {
@@ -1222,14 +1225,15 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     energies << "n " << "time " << "       Wkin           " << "   Wext          " << "    Wint         " << "   Wdis         " << "    Sum(W_i)     " 
              << " abs(Wkin+Wint-Wext) " << " eps1*max(We,Wi,Wk) " << "  dt " << std::endl;
 #endif
-  if(aeroAlg < 0) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
+  int printNumber = (solInfo.printNumber > 0) ? solInfo.printNumber : std::numeric_limits<int>::max();
+  if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max()) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
   for( ; t_n < tmax-0.01*dt_n_h && !domain->solInfo().stop_AeroS; s2 = s0+getTime()) {
 
     // Time update:
     t_n_h = t_n + dt_n_h/2; // t^{n+1/2} = t^n + 1/2*deltat^{n+1/2}
 
-    if(aeroAlg < 0 && (s2-s1 > 50)) {
+    if(aeroAlg < 0 && (s2-s1 > printNumber)) {
       s1 = s2;
       filePrint(stderr, "\r ⌊\x1B[33m %c t = %9.3e Δt = %8.2e %3d%% \x1B[0m⌋",
                 ch[int(s1/250)%4], t_n, dt_n_h, int((t_n-t0)/((tmax-t0)-0.01*dt_n_h)*100));
@@ -1419,7 +1423,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     } 
   }
-  if(aeroAlg < 0)
+  if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max())
     filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", t_n, dt_n_h);
 
 #ifdef PRINT_TIMERS

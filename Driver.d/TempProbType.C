@@ -4,6 +4,8 @@
 #include <Math.d/TVectorSet.h>
 #include <Utils.d/DistHelper.h>
 
+#include <limits>
+
 extern int verboseFlag;
 
 template<
@@ -146,11 +148,12 @@ TempSolver<
   char ch[4] = { '|', '/', '-', '\\' };
 
   bool coupled = (probDesc->getAeroheatFlag() >= 0 || probDesc->getThermohFlag() >= 0);
-  if(!coupled) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
+  int printNumber = (domain->solInfo().printNumber > 0) ? domain->solInfo().printNumber : std::numeric_limits<int>::max();
+  if(!coupled && printNumber < std::numeric_limits<int>::max()) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
   for( ; t < tmax-0.01*dt; t += dt, s2 = s0+getTime()) {
 
-    if(!coupled && (s2-s1 > 50)) {
+    if(!coupled && (s2-s1 > printNumber)) {
       s1 = s2;
       filePrint(stderr, "\r ⌊\x1B[33m %c t = %9.3e Δt = %8.2e %3d%% \x1B[0m⌋",
                 ch[int(s1/250.)%4], t+dt, dt, int((t+dt)/(tmax-0.01*dt)*100));
@@ -210,7 +213,7 @@ TempSolver<
     postProcessor->tempdynamOutput(n, dynOps, ext_f, curState);
 
   }
-  if(!coupled)
+  if(!coupled && printNumber < std::numeric_limits<int>::max())
     filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", t, dt);
 
 #ifdef PRINT_TIMERS

@@ -203,7 +203,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   double tmax = maxStep*dt0;
 
   // Time stepping loop
-  if(aeroAlg < 0) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
+  int printNumber = (solInfo.printNumber > 0) ? solInfo.printNumber : std::numeric_limits<int>::max();
+  if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max()) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
   for( ; step+1 <= maxStep || failed; s2 = s0+getTime()) {
 
@@ -211,7 +212,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     solInfo.setTimeStep(dt);
     delta = dt/2;
 
-    if(aeroAlg < 0 && (s2-s1 > 50)) {
+    if(aeroAlg < 0 && (s2-s1 > printNumber)) {
       s1 = s2;
       filePrint(stderr, "\r ⌊\x1B[33m %c t = %9.3e Δt = %8.2e %3d%% \x1B[0m⌋",
                 ch[int(s1/250.)%4], time, dt, int((time-t0)/(tmax-t0)*100+0.5));
@@ -399,7 +400,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     }
   } // end of time stepping loop
 
-  if(aeroAlg < 0)
+  if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max())
     filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", time, dt); 
 
 #ifdef PRINT_TIMERS

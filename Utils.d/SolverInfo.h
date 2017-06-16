@@ -105,6 +105,7 @@ struct SolverInfo {
    float ATDROBalpha;
    float ATDROBbeta;
    int aeroFlag;
+   int printNumber;
    bool dyna3d_compat;
    int aeroheatFlag;
    int thermoeFlag;
@@ -596,6 +597,7 @@ struct SolverInfo {
                   ATDROBbeta = 0.0;
 
                   aeroFlag = -1;
+                  printNumber = 50;
                   dyna3d_compat = false;
                   aeroheatFlag = -1;
                   thermoeFlag = -1;

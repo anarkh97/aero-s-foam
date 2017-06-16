@@ -3794,7 +3794,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
        res.spMat->zeroAll();
        res.dynMat = 
            new Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> >
-              (domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), numSub, dgt.spMats, !domain->solInfo().unsym());
+              (domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), numSub, dgt.spMats, !domain->solInfo().unsym(), 1e-6, domain->solInfo().numberOfRomCPUs);
        delete [] dgt.dynMats;
      } else { // else mumps
        if(dgt.dynMats[0]) {

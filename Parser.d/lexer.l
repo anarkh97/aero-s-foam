@@ -780,6 +780,8 @@ TRAIL [a-zA-Z]*
 
 "NONL"[a-zA-Z]*|"nonl"[a-zA-Z]*    { return NL; }
 
+"ROMCPUS"|"romcpus"|"ROMcpus"      { return NUMROMCPUS; }
+
 "nlmat"[a-zA-Z]*|"nlmat"[a-zA-Z]*  { return NLMAT; }
 
 "FITA"[a-zA-Z]*|"fita"[a-zA-Z]*    { return FITALG; }

@@ -507,6 +507,7 @@ struct SolverInfo {
                        //          off-diagonal entries of lumped mass matrices which are block-diagonal are dropped.
                        // note #3: for block-diagonal lumping, consistent mass matrices are still diagonally lumped
                        //          but lumped mass matrices which are block-diagonal remain so.
+   int numberOfRomCPUs; // number of cpus to cooperate on solving reduced system of equations
    bool printMatLab;
    const char * printMatLabFile;
    bool printMatLabExit;
@@ -871,6 +872,7 @@ struct SolverInfo {
                   yLMPCFactor        = 1.0;
                   zLMPCFactor        = 1.0;
                   inertiaLumping     = 0;
+                  numberOfRomCPUs    = 1;  
                   printMatLab        = false;
                   printMatLabFile    = "";
                   printMatLabExit    = false;

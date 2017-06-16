@@ -820,6 +820,7 @@ void
 DistrExplicitPodProjectionNonLinDynamicBase::getContactForce(DistrVector &d, DistrVector &dinc, DistrVector &ctc_r, double t_n_p, double dt, double dt_old) {
 
   // first expand state increment into high dimensional container
+  // could be optimized to expand only components on contact surfaces
   normalizedBasis_.expand(dinc, *tempVec);
   // next call masked function to compute contact force in embedding space
   MultiDomainDynam::getContactForce(*d_n, *tempVec, *ctc_f, t_n_p, dt, dt_old); 

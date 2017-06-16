@@ -21,8 +21,13 @@ class GenEiSparseGalerkinProjectionSolver : public BaseSolver, public GenEiSpars
                              Eigen::Dynamic, Eigen::Dynamic, false> LocalBasisType;
 public:
   GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, bool = true, double tol = 1e-6);
-  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, int numSub_, GenSparseMatrix<Scalar>**, bool = true, double tol = 1e-6);
-  ~GenEiSparseGalerkinProjectionSolver() { /* do nothing */ }
+  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, int numSub_, GenSparseMatrix<Scalar>**, bool = true, double tol = 1e-6, int grpSize_ = 1);
+  ~GenEiSparseGalerkinProjectionSolver() { 
+#ifdef USE_MPI
+     if(grpSize > 1) 
+       MPI_Comm_free(&JacobiComm); 
+#endif
+  }
 
   using GenEiSparseMatrix<Scalar>::neqs;
   using GenEiSparseMatrix<Scalar>::solveTime;
@@ -53,11 +58,6 @@ public:
   virtual void refactor();
   virtual void solve(GenVecType<Scalar> &rhs, GenVecType<Scalar> &sol);
   virtual void reSolve(GenVecType<Scalar> &rhs);
-
-  /*double refactorTime = 0.0;
-  double reducedSolveTime = 0.0;
-  int nRefactor = 0; 
-  int nSolve = 0;*/
 
   // Reduced basis parameters
   int basisSize() const { return basisSize_; };
@@ -98,8 +98,6 @@ private:
   int startCol_, blockCols_; // local bases quantities
   int startDualCol_, dualBlockCols_;
   double tol_; // convergence tolerance used by QP solver for contact
-//  double solveTime;
-//  Timing times; 
   Scalar c1_; // trace of reducedConstraintMatrix_
   GenVecBasis<Scalar,GenVecType> *projectionBasis_, *dualProjectionBasis_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> reducedMatrix_, reducedConstraintMatrix_;
@@ -107,6 +105,21 @@ private:
   Eigen::LLT<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>, Eigen::Lower> llt_;
   Eigen::PartialPivLU<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > lu_;
   
+  // member variables for parallel block Jacobi solver
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> blockJacobi(Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > &b);
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> x0;
+  int  startq;        // starting position in reduced matrix
+  int  endq;          // ending position in reduced matrix
+  int  qsize;         // size of diagonal block element
+  int  myID;          // container for my MPI process id
+  int  grpSize;       // number of processors in block Jacobi group
+  bool useX0 = false; // use initial guess
+  std::vector<int> recvcounts; // block size for each process
+  std::vector<int> displs;     // offset for each process
+#ifdef USE_MPI
+  MPI_Comm JacobiComm; 
+#endif
+
   // Disallow copy and assignment
   GenEiSparseGalerkinProjectionSolver(const GenEiSparseGalerkinProjectionSolver<Scalar> &);
   GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType> &operator=(const GenEiSparseGalerkinProjectionSolver<Scalar> &);

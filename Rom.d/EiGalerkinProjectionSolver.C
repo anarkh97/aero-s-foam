@@ -37,7 +37,8 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::GenEiSparseGa
   endq(0),
   qsize(0),
   myID(0),
-  grpSize(1)
+  grpSize(1),
+  useX0(false)
 {
 }
 
@@ -66,7 +67,8 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::GenEiSparseGa
   endq(0),
   qsize(0),
   myID(0),
-  grpSize(grpSize_)
+  grpSize(grpSize_),
+  useX0(false)
 {
   K = new GenSubDOp<Scalar>(numSub,spMat);
 

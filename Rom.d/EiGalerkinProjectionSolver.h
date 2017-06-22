@@ -113,7 +113,7 @@ private:
   int  qsize;         // size of diagonal block element
   int  myID;          // container for my MPI process id
   int  grpSize;       // number of processors in block Jacobi group
-  bool useX0 = false; // use initial guess
+  bool useX0;         // use initial guess
   std::vector<int> recvcounts; // block size for each process
   std::vector<int> displs;     // offset for each process
 #ifdef USE_MPI

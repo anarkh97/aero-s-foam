@@ -1448,7 +1448,7 @@ int main(int argc, char** argv)
      case SolverInfo::Top:
        {
          double mass = domain->computeStructureMass();
-         fprintf(stderr," ... Structure mass = %10.4f    ...\n",mass);
+         fprintf(stderr," ... Structure mass = %13.7g ...\n",mass);
 	 domain->makeTopFile(topFlag);
        }
        break;
@@ -1510,7 +1510,7 @@ int main(int argc, char** argv)
          if(domain->solInfo().massFlag) {
            domain->preProcessing();
            double mass = domain->computeStructureMass();
-           fprintf(stderr," ... Structure mass = %10.4f    ...\n",mass);
+           fprintf(stderr," ... Structure mass = %13.7g ...\n",mass);
          }
          fprintf(stderr," ... No Analysis Type selected      ...\n");
        }

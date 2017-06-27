@@ -255,6 +255,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::projectionBas
   startCol_  = 0;
   blockCols_ = basisSize_;
 
+#ifdef USE_MPI
   if(structCom && grpSize > 1){
     x0.resize(blockCols_); x0.setZero();
 
@@ -274,6 +275,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::projectionBas
     MPI_Allreduce(MPI_IN_PLACE,  &recvcounts.data()[0], recvcounts.size(), MPI_INT, MPI_SUM, JacobiComm);
     MPI_Allreduce(MPI_IN_PLACE,  &displs.data()[0],     displs.size(),     MPI_INT, MPI_SUM, JacobiComm);
   }
+#endif
 }
 
 template <typename Scalar, template<typename> class GenVecType, class BaseSolver>

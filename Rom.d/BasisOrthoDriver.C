@@ -272,14 +272,16 @@ BasisOrthoDriver::solve() {
       }
       std::ofstream out(fileName.c_str());
       bool reset = true;
+      int truncatedDim;
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
         double energy = toto[iVec]/toto[0];
         if(energy < domain->solInfo().romEnergy && reset) {
-          orthoBasisDim = iVec+1;
+          truncatedDim = iVec+1;
           reset = false;
         }
         out << iVec+1 << " " << solver.singularValue(iVec) << " " << energy << std::endl;
       }
+      if(!reset) orthoBasisDim = truncatedDim;
     }
 
     // Output solution

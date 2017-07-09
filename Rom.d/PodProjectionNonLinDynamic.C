@@ -724,6 +724,21 @@ PodProjectionNonLinDynamic::preProcess() {
       if(numNeumanModal) delete [] nbcModal;
     }
   }
+
+  if(!domain->solInfo().useMassNormalizedBasis) {
+#ifdef USE_EIGEN3
+    if(domain->solInfo().modalDIMASS) {
+      filePrint(stderr, " ... Reading Reduced Mass Matrix    ...\n");
+      std::ifstream matrixin(domain->solInfo().reducedMassFile);
+      int n = solver_->projectionBasis().vectorCount();
+      VtMV.resize(n,n);
+      for(int i=0; i<n; ++i)
+        for(int j=0; j<n; ++j)
+          matrixin >>VtMV(i,j);
+      matrixin.close();
+    }
+#endif
+  }
 }
 
 const PodProjectionSolver *
@@ -1210,8 +1225,8 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
       }
 
       if(VtV.size() == 0) {
-        reduceDisp(vel_Big, vel);
-        reduceDisp(acc_Big, acc);
+        vel = 0.; reduceDisp(vel_Big, vel);
+        acc = 0.; reduceDisp(acc_Big, acc);
       } else {
         // using precomputed Vi^T*Vj (or Vi^T*M*Vj for M-orthogonal local bases)
         projectLocalBases(localBasisId, j, vel);

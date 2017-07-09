@@ -100,10 +100,10 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const std::ve
   meshOut << "READMODE\n";
   for(int j=0; j<localBasisSize.size(); ++j) {
     if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
-      meshOut << j << " mnorm \"" << basisfile << ".massorthonormalized\" " << localBasisSize[j] << "\n";                
+      meshOut << j+1 << " mnorm \"" << basisfile << (j+1) << ".massorthonormalized\" " << localBasisSize[j] << "\n";                
     }
     else {
-      meshOut << j << " inorm \"" << basisfile << ".orthonormalized\" " << localBasisSize[j] << "\n";
+      meshOut << j+1 << " inorm \"" << basisfile << (j+1) << ".orthonormalized\" " << localBasisSize[j] << "\n";
     }
   }
   meshOut << "*\n";

@@ -121,34 +121,21 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
       projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
     }
   }
-  else if(geoSource->elementLumpingWeightSize() > 1) {
-    GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
-    for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {    
-      std::sort(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
-      std::vector<int>::iterator packedNodeIt = std::unique(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
-      localPackedWeightedNodes_[j].resize(packedNodeIt-localPackedWeightedNodes_[j].begin());
-      filePrint(stderr, " ... # Nodes in Reduced Mesh = %-5d...\n", localPackedWeightedNodes_[j].size());
-    }
-  }
   else {
-    if(!domain->solInfo().useMassNormalizedBasis) {
-#ifdef USE_EIGEN3
-      if(domain->solInfo().modalDIMASS) {
-        filePrint(stderr, " ... Reading Reduced Mass Matrix    ...\n");
-        std::ifstream matrixin(domain->solInfo().reducedMassFile);
-        int n = solver_->projectionBasis().vectorCount();
-        VtMV.resize(n,n);
-        for(int i=0; i<n; ++i)
-          for(int j=0; j<n; ++j)
-            matrixin >>VtMV(i,j);
-        matrixin.close();
+    if(geoSource->elementLumpingWeightSize() > 1) {
+      GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
+      for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {    
+        std::sort(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
+        std::vector<int>::iterator packedNodeIt = std::unique(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
+        localPackedWeightedNodes_[j].resize(packedNodeIt-localPackedWeightedNodes_[j].begin());
+        filePrint(stderr, " ... # Nodes in Reduced Mesh = %-5d...\n", localPackedWeightedNodes_[j].size());
       }
-      else
-#endif
-        filePrint(stderr, " *** WARNING: \"use_mass_normalized_basis off\" is not supported for\n"
-                          "     for model III when \"samplmsh.elementmesh.inc\" file is used   \n"
-                          "     unless a modal DIMASS file is specified containing the reduced \n"
-                          "     mass matrix.\n");
+    }
+    if(!domain->solInfo().useMassNormalizedBasis && !domain->solInfo().modalDIMASS) {
+      filePrint(stderr, " *** WARNING: \"use_mass_normalized_basis off\" is not supported for\n"
+                        "     for model III when \"samplmsh.elementmesh.inc\" file is used   \n"
+                        "     unless a modal DIMASS file is specified containing the reduced \n"
+                        "     mass matrix.\n");
     }
   }
 }

@@ -639,8 +639,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   doublereal clr = 0;
   doublereal cqr = 1;
   doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal alpha = 1.5; // using 0 here seems to work better for thin shell
+  doublereal betam = .32; // using 0 here seems to work better for very thin shell
 
   // Local variables 
   int i, j;

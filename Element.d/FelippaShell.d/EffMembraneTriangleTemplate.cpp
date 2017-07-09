@@ -184,6 +184,7 @@ EffMembraneTriangle<doublereal>::Bd(doublereal x[3], doublereal y[3], doublereal
 
 // .....CONSTRUCT LOCAL MATRIX [HMV] W/ SHAPE FUNCTION DERIVATIVES
 //      Although it's not given in Alvin et al in this form, presumably Hmv = Hms * Hst * Hrtheta * Hthetav
+//      Most likely this has alphah = 5/4 built in, which is optimal for pure bending
 
     Hmv(0, 0) = cay30 * x32;
     Hmv(0, 1) = cay30 * y32;

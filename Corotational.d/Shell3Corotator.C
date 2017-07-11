@@ -953,7 +953,7 @@ Shell3Corotator::localCoord(double x0[3][3], double xn[3][3],
       }
       innerVal = s0[0]*sn[0] + s0[1]*sn[1];
       if (innerVal < 0.0){
-         fprintf(stderr,"\nWARNING OBTUSE ANGLE 2-3 In localCoord: %10.6e: %d %d %d\n",innerVal,n1+1,n2+1,n3+1);
+         //fprintf(stderr,"\nWARNING OBTUSE ANGLE 2-3 In localCoord: %10.6e: %d %d %d\n",innerVal,n1+1,n2+1,n3+1);
          alpha = M_PI - asin(sn[0]*s0[1] - s0[0]*sn[1] );
       }
       else  alpha = asin( sn[0]*s0[1] - s0[0]*sn[1] );
@@ -971,7 +971,7 @@ Shell3Corotator::localCoord(double x0[3][3], double xn[3][3],
       }
       innerVal = s0[0]*sn[0] + s0[1]*sn[1];
       if (innerVal < 0.0){
-          fprintf(stderr,"\nWARNING OBTUSE ANGLE 3-1 In localCoord: %10.6e: %d %d %d\n",innerVal,n1+1,n2+1,n3+1);
+          //fprintf(stderr,"\nWARNING OBTUSE ANGLE 3-1 In localCoord: %10.6e: %d %d %d\n",innerVal,n1+1,n2+1,n3+1);
           alpha += M_PI - asin( sn[0]*s0[1] - s0[0]*sn[1] );
       }
       else alpha += asin( sn[0]*s0[1] - s0[0]*sn[1] );

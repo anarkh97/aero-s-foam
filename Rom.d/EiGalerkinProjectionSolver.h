@@ -20,8 +20,12 @@ class GenEiSparseGalerkinProjectionSolver : public BaseSolver, public GenEiSpars
   typedef const Eigen::Block<const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor>, 
                              Eigen::Dynamic, Eigen::Dynamic, false> LocalBasisType;
 public:
-  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, bool = true, double tol = 1e-6);
-  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, int numSub_, GenSparseMatrix<Scalar>**, bool = true, double tol = 1e-6, int grpSize_ = 1);
+  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, 
+                                      bool = true, double tol = 1e-6);
+  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, 
+                                      int numSub_, GenSparseMatrix<Scalar>**, bool = true, 
+                                      double tol = 1e-6, int grpSize_ = 1);
+
   ~GenEiSparseGalerkinProjectionSolver() { 
 #ifdef USE_MPI
      if(grpSize > 1) 
@@ -90,13 +94,13 @@ private:
   ConstrainedDSA *cdsa_;
   GenSparseMatrix<Scalar> **spMat;
   GenSubDOp<Scalar> *K;
-  int numSub; 
+  int  numSub; 
   bool selfadjoint_;
   bool Empirical;
   bool contact_;
-  int basisSize_, dualBasisSize_; // global basis quantities
-  int startCol_, blockCols_; // local bases quantities
-  int startDualCol_, dualBlockCols_;
+  int  basisSize_,    dualBasisSize_; // global basis quantities
+  int  startCol_,     blockCols_;     // local bases quantities
+  int  startDualCol_, dualBlockCols_;
   double tol_; // convergence tolerance used by QP solver for contact
   Scalar c1_; // trace of reducedConstraintMatrix_
   GenVecBasis<Scalar,GenVecType> *projectionBasis_, *dualProjectionBasis_;

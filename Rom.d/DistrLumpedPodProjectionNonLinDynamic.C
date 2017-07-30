@@ -3,6 +3,7 @@
 
 #include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
+#include <Timers.d/StaticTimers.h>
 
 #include <fstream>
 #include <utility>
@@ -21,13 +22,15 @@ void
 DistrLumpedPodProjectionNonLinDynamic::preProcess() {
   DistrPodProjectionNonLinDynamic::preProcess();
 
-  buildPackedElementWeights();
+  //if(!resetFromClean)
+    buildPackedElementWeights();
 }
 
 double
 DistrLumpedPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geomState, DistrVector& residual, DistrVector& elementInternalForce,
                                                   double t, DistrModalGeomState *refState, bool forceOnly)
 {
+  times->buildStiffAndForce -= getTime();
   DistrVector r(solVecInfo()); r.zero();
   {
     DistrVector        q_Big(MDNLDynamic::solVecInfo()),
@@ -44,6 +47,21 @@ DistrLumpedPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geo
     else {
       projectionBasis.expand(geomState.q, q_Big);
       geomState_Big->explicitUpdate(decDomain, q_Big);
+    }
+
+    // update the contact surfaces
+    if(t != domain->solInfo().initialTime) {
+      if(domain->GetnContactSurfacePairs()) {
+        if(!domain->solInfo().piecewise_contact || updateCS) {
+          updateContactSurfaces(*geomState_Big, refState_Big);
+          updateCS = false;
+        }
+        elementInternalForce.resize(MDNLDynamic::elemVecInfo());
+        residual_Big.conservativeResize(MDNLDynamic::solVecInfo());
+        localTemp->resize(MDNLDynamic::solVecInfo());
+      }
+      // set the gap for the linear constraints
+      if(fetiSolver) decDomain->setConstraintGap(geomState_Big, refState_Big, fetiSolver, t);
     }
 
     execParal6R(decDomain->getNumSub(), this, &DistrLumpedPodProjectionNonLinDynamic::subGetStiffAndForce, *geomState_Big, residual_Big, elementInternalForce, t, refState_Big, forceOnly);
@@ -82,6 +100,7 @@ DistrLumpedPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geo
     }
   }
 #endif
+  times->buildStiffAndForce += getTime();
   return solver_->getResidualNorm(residual);
 }
 
@@ -106,6 +125,7 @@ DistrLumpedPodProjectionNonLinDynamic::subGetStiffAndForce(int iSub,  DistrGeomS
 void
 DistrLumpedPodProjectionNonLinDynamic::updateStates(DistrModalGeomState *refState, DistrModalGeomState& geomState, double time)
 {
+  if(domain->solInfo().piecewise_contact) updateCS = true; // update that shit
   if((!domain->solInfo().getNLInfo().linearelastic && (geomState_Big->getHaveRot() || geomState_Big->getTotalNumElemStates() > 0))
      || domain->solInfo().readInROBorModes.size() > 1) {
     // updateStates is called after midpoint update (i.e. once per timestep)
@@ -162,11 +182,15 @@ DistrLumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
     elemCounter = 0;
     for(int i=0; i<decDomain->getNumSub(); ++i) elemCounter += packedElementWeights_[j][i].size();
     if(structCom) elemCounter = structCom->globalSum(elemCounter);
-
-    if(geoSource->elementLumpingWeightSize() == 1)
-      filePrint(stderr, " ... # Elems. in Reduced Mesh = %-4d...\n", elemCounter);
-    else
-      filePrint(stderr, " ... # Elems. in Reduced Mesh %d = %-4d...\n", j,elemCounter);
+ 
+    if(!resetFromClean) {
+      if(geoSource->elementLumpingWeightSize() == 1)
+        filePrint(stderr, " ... # Elems. in Reduced Mesh = %-4d...\n", elemCounter);
+      else
+        filePrint(stderr, " ... # Elems. in Reduced Mesh %d = %-4d...\n", j,elemCounter);
+    } else {
+      if(verboseFlag) filePrint(stderr, " ... # Elems. in Reduced Mesh = %-4d...\n", elemCounter);
+    }
   }
 
   int numElems = 0;
@@ -175,12 +199,12 @@ DistrLumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
 
   if(structCom) numElems = structCom->globalSum(numElems);
 
-  if(geoSource->elementLumpingWeightSize() > 1)
+  if(geoSource->elementLumpingWeightSize() > 1 && !resetFromClean)
     filePrint(stderr, " ... # of unique Elems in Mesh = %-4d ... \n",numElems);
 
   if(geoSource->elementLumpingWeightSize() == 1 && numElems < domain->numElements()) {
     if(domain->solInfo().useMassNormalizedBasis) { // don't compress if using Local mesh
-      filePrint(stderr, " ...       Compressing Basis        ...\n");
+      if(!resetFromClean) filePrint(stderr, " ...       Compressing Basis        ...\n");
       DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
       for(int i=0; i<decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
       GenVecBasis<double,GenDistrVector> &projectionBasis = solver_->projectionBasis();
@@ -189,7 +213,7 @@ DistrLumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
     }
   }
   else {
-    if(!domain->solInfo().useMassNormalizedBasis) {
+    if(!domain->solInfo().useMassNormalizedBasis && !resetFromClean) {
 #ifdef USE_EIGEN3
       if(domain->solInfo().modalDIMASS) {
         filePrint(stderr, " ... Reading Reduced Mass Matrix    ...\n");
@@ -221,9 +245,17 @@ DistrLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int iSub)
   std::vector<int>      &subWeightedNodes  = packedWeightedNodes_[iSub];
   std::vector<int> &subLocalWeightedNodes  = localPackedWeightedNodes_[localReducedMeshId_][iSub];
 
-  for (GeoSource::ElementWeightMap::const_iterator     it = geoSource->elementLumpingWeightBegin(localReducedMeshId_),
+  // clear lists to account for shrinking element set
+  subElementWeights.clear();
+  subWeightedElems.clear();
+  subWeightedNodes.clear();
+  subLocalWeightedNodes.clear();
+
+  //fprintf(stderr," num MPCs %d, num MPCs_primal %d \n", sd->numMPCs(), sd->numMPCs_primal());
+  for (GeoSource::ElementWeightMap::const_iterator it     = geoSource->elementLumpingWeightBegin(localReducedMeshId_),
                                                    it_end = geoSource->elementLumpingWeightEnd(localReducedMeshId_);
-                                                      it != it_end; ++it) {
+                                                   it    != it_end; ++it) {
+
     const int elemId = it->first;
 
     const int packedId = sd->glToPackElem(elemId);
@@ -232,7 +264,7 @@ DistrLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int iSub)
     }
 
     const double weight = it->second;
-    if (weight != 0.0) {
+    if (weight > 1e-16) {
       Element *ele = sd->getElementSet()[packedId]; // get weighted element data
       std::vector<int> node_buffer(ele->numNodes());
       subElementWeights.insert(subElementWeights.end(), std::make_pair(packedId, weight)); //pack element weight
@@ -241,8 +273,8 @@ DistrLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int iSub)
       subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
       if(geoSource->elementLumpingWeightSize() > 1)
         subLocalWeightedNodes.insert(subLocalWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
+      subWeightedElems.insert(packedId);
     }
-    subWeightedElems.insert(packedId);
   }
 
   if(!domain->solInfo().reduceFollower) {
@@ -255,6 +287,19 @@ DistrLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int iSub)
       subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
       if(geoSource->elementLumpingWeightSize() > 1)
         subLocalWeightedNodes.insert(subLocalWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
+    }
+  }
+
+  int numSurf = domain->getNumSurfs();
+  if(numSurf > 0) { // add nodes associated with surface topologies
+    for(int surf = 0; surf < numSurf; ++surf) { // loop through each surface
+      int nNodes = domain->GetSurfaceEntity(surf)->GetnNodes(); // get number of nodes in that surface
+      for(int nn = 0; nn < nNodes; ++nn){ // loop throught the nodes
+        int newNode = domain->GetSurfaceEntity(surf)->GetGlNodeId(nn); //get node from surface
+        const int pnId = sd->globalToLocal(newNode); // see if its in this subdomain
+        if(pnId > 0)
+          subWeightedNodes.push_back(pnId);
+      }
     }
   }
 

@@ -636,7 +636,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<in
             for(int j = 0; j < nodeToElem->num(glNode); ++j) {
               const int elemRank = (*nodeToElem)[glNode][j];
               //const int elemRank = packedToInput[k];
-              fprintf(stderr,"for node %d, element has rank = %d\n",glNode, elemRank);
+              //fprintf(stderr,"for node %d, element has rank = %d\n",glNode, elemRank);
               // check if element already in weighted set, if not, add to weights and reduced ElemIds; 
               if(std::find(sampleElemIds.begin(), sampleElemIds.end(), elemRank) == sampleElemIds.end()){
                 sampleElemIds.push_back(elemRank);
@@ -650,8 +650,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<in
       }
     }
   }
-
+  std::sort(sampleElemIds.begin(), sampleElemIds.end());
 }
+
 template<typename MatrixBufferType, typename SizeType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &solution, double relativeTolerance, bool verboseFlag) {
@@ -790,6 +791,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
   else {
     domain->computeUnamplifiedExtForce(forceFull, 0);
     if(forceFull.norm() != 0) {
+      std::cerr << " ... Computing reduced forces ..\n";
       reduce(podBasis_, forceFull, constForceRed[0]);
       reduce_f.push_back(0);
     }

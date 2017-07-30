@@ -344,6 +344,8 @@ GenEiSparseGalerkinProjectionSolver<double,GenDistrVector,GenParallelSolver<doub
     reducedMatrix_.triangularView<Eigen::Lower>() 
     += Krmap; 
 
+    //std::cout << "Kr = \n" << Krmap << std::endl;
+
     if(dualBlockCols_ > 0) c1_ = reducedMatrix_.trace();
     if (structCom && grpSize > 1) // if using block Jacobi, only factorize diagonal sub-matrix
       llt_.compute(reducedMatrix_.block(startq,startq,qsize,qsize));
@@ -360,6 +362,9 @@ GenEiSparseGalerkinProjectionSolver<double,GenDistrVector,GenParallelSolver<doub
 
       Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> > Krmap(K_reduced.data(), blockCols_, blockCols_);
       reducedMatrix_ += Krmap;
+
+      //std::cout << "Kr = \n" << Krmap << std::endl;
+
       if(structCom && grpSize > 1)
         lu_.compute(reducedMatrix_.block(startq,startq,qsize,qsize));
       else
@@ -456,6 +461,8 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::reSolve(GenVe
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data()+startCol_, blockCols_);
 
+  //std::cout << "rhs = \n" << x.transpose() << std::endl; 
+
   //double dummyTime = -1.0*getTime();
   if(dualBlockCols_ > 0 && contact_) {
     Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.block(startDualCol_,startCol_,dualBlockCols_,blockCols_).transpose();
@@ -476,7 +483,9 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::reSolve(GenVe
     else
       x = (lu_.solve(x)).eval();
   }
-  
+
+  //std::cout << "x = \n" << x.transpose() << std::endl;
+
   // zero out unused parts of rhs
   for(int i=0; i<startCol_; ++i) rhs[i] = 0;
   for(int i=startCol_+blockCols_; i<rhs.size(); ++i) rhs[i] = 0;
@@ -515,6 +524,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::solve(GenVecT
        x = lu_.solve(b);
      }
   }
+
   //dummyTime += getTime();
   //reducedSolveTime += dummyTime/1000.0;
   //nSolve++;

@@ -36,63 +36,67 @@ SparseSubspaceClustering::sparsesubspacecluster(SCDoubleMatrix & snapshots) {
 
     // take the snapshots and compute connectivity
     // this class is defined in the Rom namespace, for you noobs, that means you must use namespace delimiter
-    Rom::DistrNonnegativeMatrixFactorization solver(_otherComm, snapshots.getNumberOfRows(), snapshots.getNumberOfCols(), snapshots.getNumberOfRowsLocal(), snapshots.getNumberOfRows(), 
-                                                    snapshots.getRowBlockingFactor(), snapshots.getNumberOfRows()*10, sparseTol, 1, 0, 0, 0.0);
+    Rom::DistrNonnegativeMatrixFactorization solver(_otherComm, snapshots.getNumberOfRows(), snapshots.getNumberOfCols(), 
+                                                    snapshots.getNumberOfRowsLocal(), snapshots.getNumberOfRows(), 
+                                                    snapshots.getRowBlockingFactor(), snapshots.getNumberOfRows()*10, 
+                                                    sparseTol, 1, 0, 0, 0.0);
 
     SCDoubleMatrix ConnectivityGraph(_context, snapshots.getNumberOfCols(), snapshots.getNumberOfCols(), _mb, _nb, _comm); // allocate space for snapshot connectivity
     ConnectivityGraph.zero();
 
+    //snapshots.normalizeColumns();     
+
     if (_mypid == 0) {
-      std::cout << "Building Connectivity Graph" << std::endl;
+      std::cout << " Building Connectivity Graph" << std::endl;
     }
 
     startTime(TIME_SPARSESUBSPACECLUSTERING_MAIN_LOOP);
     {
-      if(_mypid == 0) std::cout << "Making copy of Data" << std::endl; 
+      if(_mypid == 0) std::cout << " Making copy of Data" << std::endl; 
       SCDoubleMatrix CopyMat(snapshots,true); // copy for targets 
-      if(_mypid == 0) std::cout << "Done, entering solver" << std::endl;
+      if(_mypid == 0) std::cout << " Done, entering solver" << std::endl;
       solver.solveNNLS_MRHS(snapshots, CopyMat, ConnectivityGraph, 0, 1); // call NNLS for multiple right hand sides to get connectivity
     }
 
     if (_mypid == 0) {
-      std::cout << "Symmetrizing Snapshot Connectivity" << std::endl;
+      std::cout << " Symmetrizing Snapshot Connectivity" << std::endl;
     }
 
     // write connectivity graph for visualization
     ConnectivityGraph.write("graphfile.txt");
 
     // symmetrize connectivity graph
-    if(_mypid == 0) std::cout << "Making copy of graph" << std::endl;
+    if(_mypid == 0) std::cout << " Making copy of graph" << std::endl;
     SCDoubleMatrix CopyGraph(ConnectivityGraph,true); 
-    if(_mypid == 0) std::cout << "Done. Symmetrizing" << std::endl;
+    if(_mypid == 0) std::cout << " Done. Symmetrizing" << std::endl;
     CopyGraph.add(ConnectivityGraph,'T',ConnectivityGraph.getNumberOfRows(), ConnectivityGraph.getNumberOfCols(), 1.0, 1.0); // Symmetrize graph
 
     ConnectivityGraph.write("symmetrizedGraphfile.txt");
 
     // compute Laplacian matrix L = D^(-1/2)*A*D^(-1/2) -> required for eigevectors to cluster on surface of hypersphere
     if (_mypid == 0) {
-      std::cout << "Forming Laplacian Matrix" << std::endl;
+      std::cout << " Forming Laplacian Matrix" << std::endl;
     }
     ConnectivityGraph.computeLaplacian('1','Y');
     ConnectivityGraph.write("Laplacian.txt");
 
     // Now compute eigenvectors of Laplacian matrix
     if (_mypid == 0) {
-      std::cout << "Spectral clustering of Laplacian Matrix" << std::endl;
+      std::cout << " Spectral clustering of Laplacian Matrix" << std::endl;
     }
     computeEigenvectors(ConnectivityGraph);
 
     int status = sparsesubspaceclusterInit(*_eigVectors);// initialize clusters for eigenvector rows computed in last function call
     if (status != 0) {
         if (_mypid == 0) {
-            std::cout << "SparseSubspaceClustering initialization failed." << std::endl;
+            std::cout << " SparseSubspaceClustering initialization failed." << std::endl;
         }
         return 1;
     }
 
     // perform kmeans clustering on normalized rows of eigenvectors
     if (_mypid == 0) {
-      std::cout << "Kmeans clustering of Largest Laplacian Eigenvectors" << std::endl;
+      std::cout << " Kmeans clustering of Largest Laplacian Eigenvectors" << std::endl;
     }
     bool done = false;
     _snapshotCentroids->zero();
@@ -170,7 +174,7 @@ SparseSubspaceClustering::computeEigenvectors(SCDoubleMatrix & graph) {
 
     {
       if (_mypid == 0) {
-        std::cout << "Computing Eigenvalue range" << std::endl;
+        std::cout << " Computing Eigenvalue range" << std::endl;
       }
       // the second call actually computes the eigenvalues, upper(lower) part of input matrix is destroyed on exit (see scalapack documentation)
       const int lwork = static_cast<int>(workspaceQuery);
@@ -312,7 +316,7 @@ SparseSubspaceClustering::sparsesubspaceclusterInit(SCDoubleMatrix & snapshots) 
 void
 SparseSubspaceClustering::printCentroidIndices(int * centroidIndices) {
     if (_mypid == 0) {
-        std::cout << "Initial cluster centroid indices are: ";
+        std::cout << " Initial cluster centroid indices are: ";
         for (int i=0; i<_numClusters; i++) {
             std::cout << centroidIndices[i];
             if (i < _numClusters-1) {

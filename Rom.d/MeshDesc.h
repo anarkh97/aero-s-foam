@@ -89,7 +89,7 @@ public:
   int GetnMortarConds() const { return domain_->GetnMortarConds(); }
   MortarHandler* GetMortarCond(int i) const { return domain_->GetMortarCond(i); }
   const ResizeArray<SurfaceEntity*>* GetSurfaceEntities() const { return (&ActiveSurfaces); }
-  const std::vector<ContactContainer> &ContactSufaces() const { return ContactPairs_; }
+  const std::vector<ContactContainer> &ContactSurfaces() const { return ContactPairs_; }
   
 private:
   void init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren);

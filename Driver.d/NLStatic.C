@@ -679,6 +679,11 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
       getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), elementStiff);
       if(sinfo.newmarkBeta == 0) {
         corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());
+        // this is where handleElementDeletions would go
+      }
+      if(initialTime && packedEset[iele]->isConstraintElement() && packedEset[iele]->hasRot()) {
+        // transform constraint jacobian and hessian to solve for the initial convected acceleration
+        transformElemStiff(geomState, kel[iele], iele);
       }
     }
     else {

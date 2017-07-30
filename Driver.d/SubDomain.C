@@ -5932,13 +5932,13 @@ GenSubDomain<Scalar>::addConstraintForces(std::map<std::pair<int,int>, double> &
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
 
   std::vector<double>::iterator it2 = lambda.begin();
-  for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) {
+  for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) { // loop over all MPCs
     int i = scomm->mpcNb(l);
     if(!mpcFlag[i]) continue;
-    if(mpc[i]->getSource() == mpc::ContactSurfaces) { // contact
-      std::map<std::pair<int,int>, double>::iterator it1 = mu.find(mpc[i]->id);
+    if(mpc[i]->getSource() == mpc::ContactSurfaces) { // check if contact constraint
+      std::map<std::pair<int,int>, double>::iterator it1 = mu.find(mpc[i]->id); // get multiplier value
       if(it1 != mu.end()) {
-        for(int j = 0; j < mpc[i]->nterms; ++j) {
+        for(int j = 0; j < mpc[i]->nterms; ++j) { // number of nterms associated with this multiplier
           int dof = c_dsa->locate(mpc[i]->terms[j].nnum, (1 << mpc[i]->terms[j].dofnum));
           if(dof < 0) continue;
           f[dof] += mpc[i]->terms[j].coef*it1->second;

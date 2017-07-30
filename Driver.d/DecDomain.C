@@ -3794,7 +3794,9 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
        res.spMat->zeroAll();
        res.dynMat = 
            new Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> >
-              (domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), numSub, dgt.spMats, !domain->solInfo().unsym(), 1e-6, domain->solInfo().numberOfRomCPUs);
+              (domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), 
+               numSub, dgt.spMats, !domain->solInfo().unsym(), 1e-6, 
+               domain->solInfo().numberOfRomCPUs);
        delete [] dgt.dynMats;
      } else { // else mumps
        if(dgt.dynMats[0]) {
@@ -3954,7 +3956,7 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   if(domain->solInfo().type == 0) {
     if(domain->solInfo().subtype == 13){// if performing reduced order model, point to subdomain matrices and pass these to makeSparseOps
       GenSparseMatrix<Scalar> *spmat = 
-           dynamic_cast<Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> > *>(res.dynMat)->getSpMat(iSub);
+      dynamic_cast<Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> > *>(res.dynMat)->getSpMat(iSub);
       dynamic_cast<Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> > *>(res.dynMat)->zeroAll(); //clear contents of ROM solver
       subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
                                                      (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);

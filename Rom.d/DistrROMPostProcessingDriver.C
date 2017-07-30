@@ -157,7 +157,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
                     reducedCoordFile>>dummyVar;
                     reducedAccBuffer.push_back(dummyVar);
                   }
-                  filePrint(stderr,"\r Timestamp = %e", time);
+                  filePrint(stderr,"\r ... Timestamp = %e ... ", time);
                 } else {
                   for(int j = 0; j < podsize; j++) 
                     reducedCoordFile>>dummyVar;
@@ -178,7 +178,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
                     reducedCoordFile>>dummyVar;
                     reducedDispBuffer.push_back(dummyVar);
                   }
-                  filePrint(stderr,"\r Timestamp = %e", time);
+                  filePrint(stderr,"\r ... Timestamp = %e ... ", time);
                 } else {
                   for(int j = 0; j < podsize; j++) 
                     reducedCoordFile>>dummyVar;
@@ -199,7 +199,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
                     reducedCoordFile>>dummyVar;
                     reducedVelBuffer.push_back(dummyVar);
                   }
-                  filePrint(stderr,"\r Timestamp = %e", time);
+                  filePrint(stderr,"\r ... Timestamp = %e ...", time);
                 } else {
                   for(int j = 0; j < podsize; j++)
                     reducedCoordFile>>dummyVar;

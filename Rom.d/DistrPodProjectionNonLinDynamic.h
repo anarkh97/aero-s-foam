@@ -110,6 +110,7 @@ protected:
   DistrVector *d0_Big, *v0_Big;
   GenFullSquareMatrix<double> K_reduced;
   int localBasisId;
+  bool resetFromClean;
   DistrInfo reducedInfo;
   DistrVecBasis  centroids;
   DistrVecBasis projectionBasis_;

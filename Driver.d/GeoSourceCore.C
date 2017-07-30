@@ -586,6 +586,12 @@ void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map
         //cerr << "adding lmpc " << i << " to elemset at index " << nEle << std::endl;
         elemSet.mpcelemadd(nEle, lmpc[i]); // new
         elemSet[nEle]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
+        if(elementLumpingWeights_.size() > 0) {
+          for(int locMesh = 0; locMesh < elementLumpingWeights_.size(); locMesh++){
+            //fprintf(stderr,"adding %d to weight maps\n", nEle);
+            elementLumpingWeights_[locMesh].insert(std::make_pair(nEle,1.0));
+          }
+        }
         if(elemSet[nEle]->numInternalNodes() == 1) {
           int in[1] = { nNode++ };
           elemSet[nEle]->setInternalNodes(in);
@@ -599,6 +605,13 @@ void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map
   int count2 = 0;
   while(count < contactSurfElems.size()) {
     //cerr << "deleting elemset " << contactSurfElems.back() << std::endl;
+    if(elementLumpingWeights_.size() > 0) {
+      for(int locMesh = 0; locMesh < elementLumpingWeights_.size(); locMesh++){
+        //fprintf(stderr,"removing %d from weight maps\n", contactSurfElems.back());
+        ElementWeightMap::iterator wIt = elementLumpingWeights_[locMesh].find(contactSurfElems.back());
+        elementLumpingWeights_[locMesh].erase(wIt);
+      }
+    }
     elemSet.deleteElem(contactSurfElems.back());
     contactSurfElems.pop_back();
     count2++;

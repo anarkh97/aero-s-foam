@@ -156,7 +156,7 @@ std::ostream &
 operator<<(std::ostream &out, const ResizeArray<SurfaceEntity*>* source) {
   int numSurf = const_cast<ResizeArray<SurfaceEntity*>* >(source)->max_size();
 
-  int glEleNum = 1; 
+  int glEleNum = 2000; 
   for (int isurf = 0; isurf < numSurf; ++isurf) { // loop over each surface
     out << "*\nSURFACETOPO " << (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetId() << "\n"; 
     int numEle = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetnFaceElems(); 

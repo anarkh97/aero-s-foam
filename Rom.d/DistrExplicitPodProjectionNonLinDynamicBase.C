@@ -432,7 +432,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
 
     typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
     DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
-                                   SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
+                                    SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
     DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
 
     // this loop reads in vectors and stores them in a single Distributed Basis structure
@@ -681,6 +681,8 @@ DistrExplicitPodProjectionNonLinDynamicBase::setLocalBasis(DistrVector &q, Distr
         normalizedBasis_.expand(q,  q_Big);
         normalizedBasis_.expand(qd, qd_Big); // make sure velocities are projected
 
+        Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > qMap(q.data(), q.size());
+
         //zero out generalized coordinates
         q.zero();
         qd.zero();
@@ -688,7 +690,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::setLocalBasis(DistrVector &q, Distr
         // reduced coordinates have already been projected into embedding space with previous basis
         // now project tham back on to the new subspace with updated basis
         normalizedBasis_.localBasisIs(startCol,blockCols);
-        reduceDisp(q_Big,  q); // d_n has already been updated, regardless of rotational degrees of freedom
+        reduceDisp(q_Big,  q);  // d_n has already been updated, regardless of rotational degrees of freedom
         reduceDisp(qd_Big, qd);
       } else {
         normalizedBasis_.localBasisIs(startCol,blockCols);

@@ -384,7 +384,7 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
   }
 
   if(mesh.GetnContactSurfacePairs() != 0)
-    out << mesh.ContactSufaces();
+    out << mesh.ContactSurfaces();
 
   out << make_section(mesh.attributes().begin(), mesh.attributes().end());
   out << mesh.properties();

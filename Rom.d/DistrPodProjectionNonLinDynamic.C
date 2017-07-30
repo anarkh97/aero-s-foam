@@ -35,7 +35,8 @@ DistrPodProjectionNonLinDynamic::DistrPodProjectionNonLinDynamic(Domain *domain)
   geomState_Big(NULL),
   refState_Big(NULL),
   solver_(NULL),  
-  localBasisId(0)
+  localBasisId(0),
+  resetFromClean(false)
 {}
 
 //Destructor
@@ -62,54 +63,59 @@ DistrPodProjectionNonLinDynamic::preProcess() {
     throw std::runtime_error("Solver must be EiGalerkinProjectionSolver");
   }
 
-  // read in primal and dual bases
-  {
-    std::vector<int> locBasisVec;
-    for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob) {
-      FileNameInfo fileInfo;
-      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
-      fileName.append(".massorthonormalized");
-      DistrBasisInputFile BasisFile(fileName);
-      int locSize = domain->solInfo().localBasisSize[rob] ?
-                    std::min(domain->solInfo().localBasisSize[rob], BasisFile.stateCount()) :
-                    BasisFile.stateCount();
-      locBasisVec.push_back(locSize);
-      if(verboseFlag && domain->solInfo().readInROBorModes.size()>1) 
-        filePrint(stderr, " ... Local Basis %d size %-3d ...\n",rob,locBasisVec[rob]);
+
+    if(projectionBasis_.data() != NULL) {
+      resetFromClean = true;
     }
+    // read in primal and dual bases
+    {
+      std::vector<int> locBasisVec;
+      for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob) {
+        FileNameInfo fileInfo;
+        std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
+        fileName.append(".massorthonormalized");
+        DistrBasisInputFile BasisFile(fileName);
+        int locSize = domain->solInfo().localBasisSize[rob] ?
+                      std::min(domain->solInfo().localBasisSize[rob], BasisFile.stateCount()) :
+                      BasisFile.stateCount();
+        locBasisVec.push_back(locSize);
+        if(verboseFlag && domain->solInfo().readInROBorModes.size()>1 && !resetFromClean) 
+          filePrint(stderr, " ... Local Basis %d size %-3d ...\n",rob,locBasisVec[rob]);
+      }
 
-    //initialize helper objects for reading in distributed basis vectors
-    const int projectionSubspaceSize = std::accumulate(locBasisVec.begin(),locBasisVec.end(),0);
-    filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
-    projectionBasis_.dimensionIs(projectionSubspaceSize, MDNLDynamic::solVecInfo());
+      //initialize helper objects for reading in distributed basis vectors
+      const int projectionSubspaceSize = std::accumulate(locBasisVec.begin(),locBasisVec.end(),0);
+      if(!resetFromClean) filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
+      projectionBasis_.dimensionIs(projectionSubspaceSize, MDNLDynamic::solVecInfo());
 
-    DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
+      DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
 
-    typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
+      typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
 
-    DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
-                                   SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
-    DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
+      DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
+                                       SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
+      DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
   
 
-    // this loop reads in vectors and stores them in a single Distributed Basis structure
-    DistrVecBasis::iterator it = projectionBasis_.begin();
-    for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob){
-      FileNameInfo fileInfo;
-      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
-      fileName.append(".massorthonormalized");
-      DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
+      // this loop reads in vectors and stores them in a single Distributed Basis structure
+      DistrVecBasis::iterator it = projectionBasis_.begin();
+      for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob){
+        FileNameInfo fileInfo;
+        std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
+        fileName.append(".massorthonormalized");
+        DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
 
-      if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
-      for (int currentVec = 0; currentVec<locBasisVec[rob]; ++currentVec) {
-        assert(BasisFile.validCurrentState());
+        if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
+        for (int currentVec = 0; currentVec<locBasisVec[rob]; ++currentVec) {
+          assert(BasisFile.validCurrentState());
 
-        BasisFile.currentStateBuffer(buffer);
-        converter.vector(buffer, *it);
-        it++;  
-        BasisFile.currentStateIndexInc();
+          BasisFile.currentStateBuffer(buffer);
+          converter.vector(buffer, *it);
+          it++;  
+          BasisFile.currentStateIndexInc();
+        }
       }
-    }
+    
 
     solver_->projectionBasisIs(projectionBasis_);
 
@@ -198,7 +204,7 @@ DistrPodProjectionNonLinDynamic::preProcess() {
   }
 
   //preProcessing for reduced solution vector information
-  {
+  if(!resetFromClean){
     reducedInfo.domLen = new int[MDNLDynamic::solVecInfo().numDom];
     reducedInfo.numDom = MDNLDynamic::solVecInfo().numDom;
     int totLen = 0;
@@ -215,19 +221,21 @@ DistrPodProjectionNonLinDynamic::preProcess() {
   }
  
   // initialized postprocessor for outputing reduced coordinates
-  if(!(podPostPro = new MultiDomDynPodPostProcessor(decDomain, times, geomState_Big, allCorot)))
-    throw std::runtime_error("Pod Post Processor did not bind\n");
+  if(!resetFromClean) {
+    if(!(podPostPro = new MultiDomDynPodPostProcessor(decDomain, times, geomState_Big, allCorot)))
+      throw std::runtime_error("Pod Post Processor did not bind\n");
 
-  if(domain->solInfo().readInROBorModes.size() == 1){
-    podPostPro->printPODSize(projectionBasis_.numVec());
-  } else {
-    int podSize = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
-    podPostPro->printPODSize(podSize);
-  }
-  podPostPro->makeSensorBasis(&projectionBasis_);
+    if(domain->solInfo().readInROBorModes.size() == 1){
+      podPostPro->printPODSize(projectionBasis_.numVec());
+    } else {
+      int podSize = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
+      podPostPro->printPODSize(podSize);
+    }
+    podPostPro->makeSensorBasis(&projectionBasis_);
 
-  if(domain->solInfo().getNLInfo().linearelastic) {
-    // TODO for doing linear elastic analysis with nonlinear driver
+    if(domain->solInfo().getNLInfo().linearelastic) {
+      // TODO for doing linear elastic analysis with nonlinear driver
+    }
   }
 
   solver_->refactor();
@@ -384,7 +392,7 @@ DistrPodProjectionNonLinDynamic::getExternalForce(DistrVector &rhs, DistrVector 
     constantForce_Big.zero();
 
     MDNLDynamic::getExternalForce(rhs_Big, constantForce_Big, tIndex, t, geomState_Big, elementInternalForce,
-                                    aeroForce_Big, localDelta);
+                                  aeroForce_Big, localDelta);
 
     if(rhs_Big.norm() != 0) {
       projectionBasis.reduce(rhs_Big, rhs, false);
@@ -441,7 +449,7 @@ DistrPodProjectionNonLinDynamic::formRHScorrector(DistrVector& inc_displacement,
     projectionBasis.fullExpand(acceleration, acceleration_Big);
 
     MDNLDynamic::formRHScorrector(inc_displacement_Big, velocity_Big, acceleration_Big,
-                                    residual_Big, rhs_Big, geomState_Big, localDelta);
+                                  residual_Big, rhs_Big, geomState_Big, localDelta);
 
     projectionBasis.reduce(rhs_Big, rhs);
   }
@@ -488,6 +496,7 @@ DistrPodProjectionNonLinDynamic::factorWhenBuilding() const
 void
 DistrPodProjectionNonLinDynamic::updateStates(DistrModalGeomState *refState, DistrModalGeomState& geomState, double time)
 {
+  if(domain->solInfo().piecewise_contact) updateCS = true; // update that shit
   if((!domain->solInfo().getNLInfo().linearelastic && (geomState_Big->getHaveRot() || geomState_Big->getTotalNumElemStates() > 0))
      || domain->solInfo().readInROBorModes.size() > 1) {
     // updateStates is called after midpoint update (i.e. once per timestep)
@@ -508,8 +517,9 @@ DistrPodProjectionNonLinDynamic::updateStates(DistrModalGeomState *refState, Dis
       geomState_Big->setAcceleration(acc_Big);
     }
 
-    if(geomState_Big->getTotalNumElemStates() > 0)
+    if(geomState_Big->getTotalNumElemStates() > 0){
       MDNLDynamic::updateStates(refState_Big, *geomState_Big, time);
+    }
 
     *refState_Big = *geomState_Big;
   }
@@ -600,10 +610,10 @@ DistrPodProjectionNonLinDynamic::dynamCommToFluid(DistrModalGeomState* geomState
                     bkVp_Big(MDNLDynamic::solVecInfo());
   DistrGeomState *bkGeomState_Big = NULL;
   const GenVecBasis<double,GenDistrVector> &projectionBasis = solver_->projectionBasis();
-  projectionBasis.expand(velocity, velocity_Big);
+  projectionBasis.expand(velocity  , velocity_Big);
   projectionBasis.expand(bkVelocity, bkVelocity_Big);
-  projectionBasis.expand(vp, vp_Big);
-  projectionBasis.expand(bkVp, bkVp_Big);
+  projectionBasis.expand(vp        , vp_Big);
+  projectionBasis.expand(bkVp      , bkVp_Big);
 
   MDNLDynamic::dynamCommToFluid(geomState_Big, bkGeomState_Big, velocity_Big, bkVelocity_Big, vp_Big, bkVp_Big, step, parity, aeroAlg, time);
 }

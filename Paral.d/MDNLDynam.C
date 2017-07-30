@@ -509,7 +509,8 @@ MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *re
     geoSource->getElems(domain->getElementSet());
     domain->setNumElements(domain->getElementSet().last());
     decDomain->clean();
-    MDNLDynamic::preProcess();
+    //MDNLDynamic::preProcess();
+    this->preProcess();
     if(muCopy) for(int i=0; i<decDomain->getNumSub(); ++i) muCopy[i] = mu[i];
     geomState.resize(decDomain, mu);
     if(refState) {

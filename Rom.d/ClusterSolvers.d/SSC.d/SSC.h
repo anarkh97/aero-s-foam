@@ -97,7 +97,7 @@ class SparseSubspaceClustering {
         SCDoubleMatrix * _centroids;
         SCDoubleMatrix * _evCentroids;
         SCDoubleMatrix * _eigVectors;
-        SCIntMatrix * _snapshotCentroids; // container for which centroid a snapshot belongs to
+        SCIntMatrix    * _snapshotCentroids; // container for which centroid a snapshot belongs to
 
         int init(SCDoubleMatrix & A);
         int sparsesubspacecluster(SCDoubleMatrix & snapshots);

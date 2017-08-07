@@ -165,6 +165,8 @@ TRAIL [a-zA-Z]*
 
 "trivial"|"TRIVIAL"                { return TRIVIAL; }
 
+"allowmechanisms"|"ALLOWMECHANISMS" { return ALLOWMECHANISMS; }
+
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
 
 "global"|"GLOBAL"                  { return GLOBAL; }
@@ -1563,7 +1565,17 @@ TRAIL [a-zA-Z]*
 
 "TDEN"[a-zA-Z]*|"tden"[a-zA-Z]*    { return TDENFORCE; }
 
+"PARA"[a-zA-Z]*|"para"[a-zA-Z]*    { return PARAMETERS; }
+
 "ACME"[a-zA-Z]*|"acme"[a-zA-Z]*    { return ACMECNTL; }
+
+"ANDES_CLR"|"andes_clr"            { return ANDESCLR; }
+"ANDES_CQR"|"andes_cqr"            { return ANDESCQR; }
+"ANDES_BETAB"|"andes_betab"        { return ANDESBETAB; }
+"ANDES_ALPHA"|"andes_alpha"        { return ANDESALPHA; }
+"ANDES_BETAM"|"andes_betam"        { return ANDESBETAM; }
+
+"NLMEM_PTYPE"|"nlmem_ptype"        { return NLMEMPTYPE; }
 
 "ffi_debug"                        { return FFIDEBUG; }
 

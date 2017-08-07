@@ -48,6 +48,7 @@ extern bool estFlag;
 extern bool weightOutFlag;
 extern bool trivialFlag;
 extern bool randomShuffle;
+extern bool allowMechanisms;
 extern int verboseFlag;
 #ifndef SALINAS
 extern Sfem *sfem;
@@ -4222,7 +4223,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  int iEle, iSub;
  for(iEle = 0; iEle < maxEle; ++iEle)
    if(elemSet[iEle]) {
-     if(elemSet[iEle]->isSpring() == false && elemSet[iEle]->isMass() == false)
+     if(allowMechanisms || (elemSet[iEle]->isSpring() == false && elemSet[iEle]->isMass() == false))
        baseSet.elemadd(iEle, elemSet[iEle]);
      else {
        if(elemSet[iEle]->isSpring()) {
@@ -4256,7 +4257,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    int *lNd = (int *) dbg_alloca(sizeof(int)*maxSprNodes);
    nSpring = 0;
    for(iEle = 0; iEle < maxEle; ++iEle)
-     if(elemSet[iEle] && (elemSet[iEle]->isSpring() || elemSet[iEle]->isMass())) {
+     if(elemSet[iEle] && (!allowMechanisms && (elemSet[iEle]->isSpring() || elemSet[iEle]->isMass()))) {
        elemSet[iEle]->nodes(lNd);
        springAssign[nSpring][0] = iEle;
        springAssign[nSpring][1] = mf.bestSubFor(elemSet[iEle]->numNodes(), lNd);
@@ -4295,7 +4296,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
      for(iEle = 0; iEle < optDec->num(iSub); ++iEle) {
        int nds[128];
        int enm = (*optDec)[iSub][iEle];
-       if(elemSet[enm]->isSpring() == false && elemSet[enm]->isMass() == false) {
+       if(allowMechanisms || (elemSet[enm]->isSpring() == false && elemSet[enm]->isMass() == false)) {
 	 int nn = elemSet[enm]->numNodes();
 	 elemSet[enm]->nodes(nds);
 	 for(int i = 0; i < nn; ++i)
@@ -4305,7 +4306,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
      for(iEle = 0; iEle < optDec->num(iSub); ++iEle) {
        int nds[128];
        int enm = (*optDec)[iSub][iEle];
-       if(elemSet[enm]->isSpring()|| elemSet[enm]->isMass()) {
+       if(!allowMechanisms && (elemSet[enm]->isSpring() || elemSet[enm]->isMass())) {
 	 elemSet[enm]->nodes(nds);
 	 if(ndIsUsed[nds[0]] == false && ndIsUsed[nds[1]] == false)
 	   filePrint(stderr, " *** WARNING: Found a badly assigned spring\n");
@@ -4314,7 +4315,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
      for(iEle = 0; iEle < optDec->num(iSub); ++iEle) {
        int nds[128];
        int enm = (*optDec)[iSub][iEle];
-       if(elemSet[enm]->isSpring() == false && elemSet[enm]->isMass() == false) {
+       if(allowMechanisms || (elemSet[enm]->isSpring() == false && elemSet[enm]->isMass() == false)) {
 	 int nn = elemSet[enm]->numNodes();
 	 elemSet[enm]->nodes(nds);
 	 for(int i = 0; i < nn; ++i)

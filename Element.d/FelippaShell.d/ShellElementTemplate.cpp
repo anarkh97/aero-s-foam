@@ -8,8 +8,11 @@
 #include <iostream>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
+#include <Utils.d/SolverInfo.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+
+extern SolverInfo &solInfo;
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
@@ -636,11 +639,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 {
   // Initialized data 
   bool debug = false;
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5; // using 0 here seems to work better for thin shell
-  doublereal betam = .32; // using 0 here seems to work better for very thin shell
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha; // using 0 here seems to work better for thin shell
+  doublereal betam = solInfo.andes_betam; // using 0 here seems to work better for very thin shell
 
   // Local variables 
   int i, j;
@@ -911,11 +914,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                   int tflg, doublereal *ndtemps)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -1127,11 +1130,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
            doublereal *statenp)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -1474,11 +1477,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                   int surface, int sflg, doublereal *ndtemps)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -1704,11 +1707,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                   int surface, int sflg, doublereal *ndtemps)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -2131,11 +2134,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
            int sflg, int tflg, doublereal *ndtemps, doublereal dt)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i;

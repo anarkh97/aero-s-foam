@@ -115,7 +115,8 @@ bool nosa=false;
 bool useFull=false;
 bool trivialFlag=false;
 bool randomShuffle=false;
-bool fsglFlag = false;
+bool fsglFlag=false;
+bool allowMechanisms=false;
 
 int verboseFlag = 0;
 int contactPrintFlag = 0;
@@ -309,6 +310,7 @@ int main(int argc, char** argv)
    {"exit", 0, 0, 1002},
    {"deter", 0, 0, 1005},
    {"trivial", 0, 0, 1007},
+   {"allow-mechanisms", 0, 0, 1008},
    {"use-weight-from", 1, 0, 1004},
    {"threads-number", 1, 0, 'n'},
    {"decomposition-filename", 1, 0, 'd'},
@@ -411,6 +413,9 @@ int main(int argc, char** argv)
         break;
       case 1007 :
         trivialFlag = 1;
+        break;
+      case 1008 :
+        allowMechanisms = true;
         break;
       case 1010 :
 	callSower = true;

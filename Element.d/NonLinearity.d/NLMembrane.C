@@ -7,7 +7,10 @@
 #include <Math.d/TTensor.h>
 #include <Corotational.d/utilities.h>
 #include <Corotational.d/GeomState.h>
+#include <Utils.d/SolverInfo.h>
 #include <cmath>
+
+extern SolverInfo &solInfo;
 
 template <int n>
 void
@@ -571,42 +574,40 @@ NLMembrane::computePressureForce(CoordSet& cs, Vector& force,
     gs[3*i+2] = (*geomState)[n[i]].z;
   }
 
-//#define USE_FORCE_PER_REFERENCE_AREA
-#ifdef USE_FORCE_PER_REFERENCE_AREA
-  double d0[2][3] = { { nodes[1].x-nodes[0].x,
-                        nodes[1].y-nodes[0].y,
-                        nodes[1].z-nodes[0].z },
-                      { nodes[2].x-nodes[0].x,
-                        nodes[2].y-nodes[0].y,
-                        nodes[2].z-nodes[0].z },
-                    };
-  double n0[3];
-  n0[0] = d0[0][1]*d0[1][2] - d0[0][2]*d0[1][1];
-  n0[1] = d0[0][2]*d0[1][0] - d0[0][0]*d0[1][2];
-  n0[2] = d0[0][0]*d0[1][1] - d0[0][1]*d0[1][0];
-  double A0 = 0.5*sqrt(n0[0]*n0[0]+n0[1]*n0[1]+n0[2]*n0[2]);
-#endif
-
   double d[2][3] = { { nodes[1].x+gs[3]-nodes[0].x-gs[0], 
                        nodes[1].y+gs[4]-nodes[0].y-gs[1],
                        nodes[1].z+gs[5]-nodes[0].z-gs[2] },
                      { nodes[2].x+gs[6]-nodes[0].x-gs[0], 
                        nodes[2].y+gs[7]-nodes[0].y-gs[1],
                        nodes[2].z+gs[8]-nodes[0].z-gs[2] },
-		   };
+                   };
   double n[3];
   n[0] = d[0][1]*d[1][2] - d[0][2]*d[1][1];
   n[1] = d[0][2]*d[1][0] - d[0][0]*d[1][2];
   n[2] = d[0][0]*d[1][1] - d[0][1]*d[1][0];
   double p = getPressure()->val;
-#ifdef USE_FORCE_PER_REFERENCE_AREA
-  double A = 0.5*sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
-  for(int i = 0; i < 3; ++i)
-    force[i] = force[i+3] = force[i+6] = 1.0/6.0*p*n[i]*A0/A;
-#else
-  for(int i = 0; i < 3; ++i)
-    force[i] = force[i+3] = force[i+6] = 1.0/6.0*p*n[i];
-#endif
+
+  if(solInfo.nlmembrane_pressure_type == 1) { // area computed using reference/undeformed configuration
+    double d0[2][3] = { { nodes[1].x-nodes[0].x,
+                          nodes[1].y-nodes[0].y,
+                          nodes[1].z-nodes[0].z },
+                        { nodes[2].x-nodes[0].x,
+                          nodes[2].y-nodes[0].y,
+                          nodes[2].z-nodes[0].z },
+                      };
+    double n0[3];
+    n0[0] = d0[0][1]*d0[1][2] - d0[0][2]*d0[1][1];
+    n0[1] = d0[0][2]*d0[1][0] - d0[0][0]*d0[1][2];
+    n0[2] = d0[0][0]*d0[1][1] - d0[0][1]*d0[1][0];
+    double A0 = 0.5*sqrt(n0[0]*n0[0]+n0[1]*n0[1]+n0[2]*n0[2]);
+    double A = 0.5*sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
+    for(int i = 0; i < 3; ++i)
+      force[i] = force[i+3] = force[i+6] = 1.0/6.0*p*n[i]*A0/A;
+  }
+  else { // area computed using current/deformed configuration
+    for(int i = 0; i < 3; ++i)
+      force[i] = force[i+3] = force[i+6] = 1.0/6.0*p*n[i];
+  }
 }
 
 #include <Corotational.d/PhantomCorotator.h>

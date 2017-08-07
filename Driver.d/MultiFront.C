@@ -20,6 +20,7 @@
 
 extern bool nosa;
 extern int verboseFlag;
+extern bool allowMechanisms;
 
 #include <Element.d/Element.h>
 class DecGluedElement: public Element {
@@ -327,7 +328,7 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFla
  for(iEle = 0; iEle < numEle; ++iEle) {
    assignedSubD[iEle] = -1;
    if((*elems)[iEle])
-     elemHasRot[iEle] = (*elems)[iEle]->hasRot();
+     elemHasRot[iEle] = ((*elems)[iEle]->hasRot() || allowMechanisms);
  }
  int numNode = nToE->csize();
  // Now we create a flag array used for checking during an operation
@@ -591,7 +592,7 @@ MultiFront::decompose(int numSub, bool have_fsi)
  for(iElem = 0; iElem < numEle; ++ iElem)
    if((*elems)[iElem]) {
      nRemain++;
-     if((*elems)[iElem]->hasRot()) nRotEl++;
+     if((*elems)[iElem]->hasRot() || allowMechanisms) nRotEl++;
    }
  int iSub = 0;
  //int targetNumEle = nRemain/(numSub);

@@ -131,9 +131,17 @@
 
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
 
+extern bool allowMechanisms;
+
+PrioInfo examineBeam2(int sub, MultiFront *mf, int *nn);
+PrioInfo examineTri3Shell(int sub, MultiFront *mf, int *nn);
+PrioInfo examineQuad4Shell(int sub, MultiFront *mf, int *nn);
+
 PrioInfo
 examineBar2(int sub, MultiFront *mf, int *nn)
 {
+ if (allowMechanisms) return examineBeam2(sub, mf, nn);
+
  int wn1 = mf->weight(sub, nn[0]);
  int wn2 = mf->weight(sub, nn[1]);
  int cn1 = mf->weight(nn[0]);
@@ -263,6 +271,8 @@ LinSpring::examine(int sub, MultiFront *mf)
 PrioInfo
 examineQuad4(int sub, MultiFront *mf, int *nn)
 {
+ if(allowMechanisms) return examineQuad4Shell(sub, mf, nn);
+
  int wn[4];
  int cn[4];
  int i;
@@ -462,6 +472,8 @@ HelmIsoParamQuad::examine(int sub, MultiFront *mf)
 PrioInfo
 examineTri3(int sub, MultiFront *mf, int *nn)
 {
+ if(allowMechanisms) return examineTri3Shell(sub, mf, nn);
+
  int wn[3];
  int cn[3];
  int i;

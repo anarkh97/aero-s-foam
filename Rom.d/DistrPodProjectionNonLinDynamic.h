@@ -1,5 +1,6 @@
 #ifndef ROM_DISTRPODPROJECTIONNONLINDYNAMIC_H
 #define ROM_DISTRPODPROJECTIONNONLINDYNAMIC_H
+#ifdef USE_EIGEN3
 
 #include <Paral.d/MDNLDynam.h>
 
@@ -114,12 +115,10 @@ protected:
   DistrInfo reducedInfo;
   DistrVecBasis  centroids;
   DistrVecBasis projectionBasis_;
-#ifdef USE_EIGEN3
   // data structures for fast basis switching
   Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,Eigen::Dynamic> VtV;
   Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic> d;
   Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,Eigen::Dynamic> w;
-#endif
 
 private:
   friend class Updater;
@@ -163,5 +162,7 @@ public:
 };
 
 } /* end namespace Rom */
+
+#endif /* USE_EIGEN3 */
 
 #endif /* ROM_DISTRPODPROJECTIONNONLINDYNAMIC_H */

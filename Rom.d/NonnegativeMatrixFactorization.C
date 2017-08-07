@@ -6,8 +6,10 @@
 #include <vector>
 #include <cstdio>
 
+#ifdef USE_EIGEN3
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#endif
 
 extern "C" {
   void _FORTRAN(spnnls)(double *a, const long int *mda, const long int *m, const long int *n,

@@ -3790,13 +3790,15 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    case 0 : { // direct
      if(domain->solInfo().subtype == 13) { // if ROM, dont need dgt.dynMats, keep dgt.spMats for V^T*K*V, factor after pod basis has been buffered
        if(!(res.spMat  = new GenSubDOp<Scalar>(numSub, dgt.spMats)))
-         throw std::runtime_error("subdomain matricies did not bind");
+         throw std::runtime_error("subdomain matrices did not bind");
        res.spMat->zeroAll();
+#ifdef USE_EIGEN3
        res.dynMat = 
            new Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> >
               (domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), 
                numSub, dgt.spMats, !domain->solInfo().unsym(), 1e-6, 
                domain->solInfo().numberOfRomCPUs);
+#endif
        delete [] dgt.dynMats;
      } else { // else mumps
        if(dgt.dynMats[0]) {
@@ -3954,12 +3956,14 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   allOps.zero();
 
   if(domain->solInfo().type == 0) {
-    if(domain->solInfo().subtype == 13){// if performing reduced order model, point to subdomain matrices and pass these to makeSparseOps
+    if(domain->solInfo().subtype == 13) { // if performing reduced order model, point to subdomain matrices and pass these to makeSparseOps
+#ifdef USE_EIGEN3
       GenSparseMatrix<Scalar> *spmat = 
       dynamic_cast<Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> > *>(res.dynMat)->getSpMat(iSub);
-      dynamic_cast<Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> > *>(res.dynMat)->zeroAll(); //clear contents of ROM solver
+      dynamic_cast<Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> > *>(res.dynMat)->zeroAll();
       subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
                                                      (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
+#endif
     } else {
       GenSparseMatrix<Scalar> *spmat = (res.dynMat) ? dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat) : NULL;
       if(iSub == 0 && spmat) spmat->zeroAll();

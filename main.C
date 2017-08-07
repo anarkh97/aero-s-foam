@@ -1111,6 +1111,7 @@ int main(int argc, char** argv)
          } 
          else { // POD ROM
            if (domain->solInfo().galerkinPodRom) {
+#ifdef USE_EIGEN3
              if(domain->solInfo().elemLumpPodRom) {
                filePrint(stderr, " ... POD: Parallel Implicit Galerkin HROM   ...\n");
                Rom::DistrLumpedPodProjectionNonLinDynamic nldynamic(domain);
@@ -1128,6 +1129,7 @@ int main(int argc, char** argv)
                               Rom::DistrPodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                nldynamicSolver.solve();
              }
+#endif
            } else {
              filePrint(stderr, " ... POD: Snapshot collection       ...\n");
              Rom::DistrSnapshotNonLinDynamic nldynamic(domain);

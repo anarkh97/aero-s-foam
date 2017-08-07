@@ -236,8 +236,6 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
         SubDOp M(decDomain->getNumSub(), subM);
         SubDOp K(decDomain->getNumSub(), subK);
  
-        DenseMatrix redMass(numModes);
-        DenseMatrix redStif(numModes);
         GenDistrVectorSet<double> tPhiM(numModes, decDomain->solVecInfo());
         GenDistrVectorSet<double> tPhiK(numModes, decDomain->solVecInfo());
         for(int i = 0; i<numModes; ++i){
@@ -245,6 +243,9 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
           K.mult((*modesFl)[i], tPhiK[i]);
         }
 
+#ifdef USE_EIGEN3
+        DenseMatrix redMass(numModes);
+        DenseMatrix redStif(numModes);
         double Knorm = 0.0;
         for(int row = 0; row < numModes; ++row) { 
           for(int col = 0; col < numModes; ++col) {
@@ -268,6 +269,7 @@ ModalOps* MultiDomainModal::buildOps(double mcoef, double ccoef, double kcoef){
           filePrint(stderr," ... Modal Basis does not satisfy stiffness decoupling tolerance, exiting. \n");
           exit(-1);
         }
+#endif
       }
 
       int i;

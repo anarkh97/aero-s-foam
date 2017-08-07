@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include "DistrPodProjectionNonLinDynamic.h"
 
 #include "DistrBasisFile.h"
@@ -62,7 +63,6 @@ DistrPodProjectionNonLinDynamic::preProcess() {
   if (!(solver_ = dynamic_cast<GenEiSparseGalerkinProjectionSolver<double,GenDistrVector,GenParallelSolver<double> > *>(MDNLDynamic::getSolver()))) {
     throw std::runtime_error("Solver must be EiGalerkinProjectionSolver");
   }
-
 
     if(projectionBasis_.data() != NULL) {
       resetFromClean = true;
@@ -927,3 +927,4 @@ DistrPodProjectionNonLinDynamic::projectLocalBases(int i, int j, DistrVector &q)
 }
 
 } /* end namespace Rom */
+#endif

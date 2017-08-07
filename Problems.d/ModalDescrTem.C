@@ -255,6 +255,7 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
           allOps.K->mult(modesFl[i].data(), tPhiK[i]);
         }
 
+#ifdef USE_EIGEN3
         DenseMatrix redMass(numModes);    
         DenseMatrix redStif(numModes);
         double Knorm = 0.0; 
@@ -278,14 +279,6 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
           }
         }
         Knorm = sqrt(Knorm); 
-        for(int i = 0 ; i<numModes; ++i){
-          delete [] tPhiM[i];
-          delete [] tPhiK[i];
-        }
-        delete [] tPhiM;
-        delete [] tPhiK;
-        delete allOps.M;
-        delete allOps.K; 
 
         if (redMass.norm()/sqrt(numModes) > modalParams.tolerance) {
           fprintf(stderr," ... Modal basis does not satisfy mass matrix orthogonality tolerance, exiting. \n");
@@ -295,6 +288,15 @@ ModalOps* ModalDescr<Scalar>::buildOps(double mcoef, double ccoef, double kcoef)
           fprintf(stderr," ... Modal basis does not satisfy stiffness decoupling tolerance, exiting. \n");
           exit(-1);
         }
+#endif
+        for(int i = 0 ; i<numModes; ++i){
+          delete [] tPhiM[i];
+          delete [] tPhiK[i];
+        }
+        delete [] tPhiM;
+        delete [] tPhiK;
+        delete allOps.M;
+        delete allOps.K;
       }
 
       int i;

@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include "DistrLumpedPodProjectionNonLinDynamic.h"
 #include "PodProjectionSolver.h"
 
@@ -348,3 +349,4 @@ DistrLumpedPodProjectionNonLinDynamic::subZeroStiffMats(int iSub)
 }
 
 } /* end namespace Rom */
+#endif

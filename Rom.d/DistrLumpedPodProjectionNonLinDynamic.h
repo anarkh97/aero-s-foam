@@ -1,5 +1,6 @@
 #ifndef ROM_DISTRLUMPEDPODPROJECTIONNONLINDYNAMIC_H
 #define ROM_DISTRLUMPEDPODPROJECTIONNONLINDYNAMIC_H
+#ifdef USE_EIGEN3
 
 #include "DistrPodProjectionNonLinDynamic.h"
 
@@ -34,5 +35,7 @@ protected:
 };
 
 } /* end namespace Rom */
+
+#endif /* USE_EIGEN3 */
 
 #endif /* ROM_LUMPEDPODPROJECTIONNONLINDYNAMIC_H */

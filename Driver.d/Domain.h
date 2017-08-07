@@ -884,9 +884,11 @@ class Domain : public HData {
 
      template<class Scalar>
        Rom::GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
-     
+
+#ifdef USE_EIGEN3
      template<class Scalar>
       Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *constructEiSparseGalerkinProjectionSolver();
+#endif
 
      Rbm              *constructRbm(bool printFlag = true);
      Rbm              *constructHzem(bool printFlag = true);

@@ -48,7 +48,7 @@ struct OutputInfo {
           WeigThic, WeigShap, VMstThic, VMstShap, VMstMach, VMstAlpha, VMstBeta,
           DispThic, DispShap, DispMach, DispAlph, DispBeta,
           AGstShap, AGstThic, 
-          DissipatedEnergy, DeletedElements, DualStateVar,
+          DissipatedEnergy, DeletedElements, DualStateVar, MuStateVar,
           Constraintvector, Constraintviolation, RomResidual, RomResidual6,
           RomExtForce, RomExtForce6, ModalMass, ModalStiffness, ModalDamping, ModalDynamicMatrix, ModalMatrices };
 

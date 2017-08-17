@@ -24,6 +24,8 @@ public:
     return const_cast<double *>(self[globalNodeIdx]);
   }
 
+  void zero() { buffer_.zero(); }
+
   template <typename IdxInIt>
   DistrNodeDofBuffer(IdxInIt first, IdxInIt last, int offset = 0);
 

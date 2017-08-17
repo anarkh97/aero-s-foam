@@ -2,6 +2,7 @@
 
 #include <Utils.d/linkfc.h>
 
+#include <math.h>
 #include <iostream>
 #include <vector>
 #include <cstdio>
@@ -33,7 +34,9 @@ NonnegativeMatrixFactorization::NonnegativeMatrixFactorization(int maxBasisDimen
   nmfcAlpha(0.0),
   nmfcBeta(0.0),
   nmfcGamma(0.0)
-{}
+{
+  bFile = fopen("LambdaBasisFile.m","w+");
+}
 
 void
 NonnegativeMatrixFactorization::matrixSizeIs(int rows, int cols) {
@@ -108,19 +111,20 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
   const int &k = basisDimension_;
   std::cerr << "Factoring data into " << k << " nonnegative columns " << std::endl;
   Eigen::MatrixXd A(m,n);
-  int npi = 0;
+  FILE * pFile;
+  pFile = fopen("LambdaSnapFile.m","w+");
+  fprintf(pFile,"A = [\n");
   for(int i=0; i<m; ++i){
     for(int j=0; j<n; ++j){
       double elem = X(rows[i],cols[j]);
-      if(elem > 0)
-        npi += 1;
-      A(i,j) = abs(elem); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
+      double ebuf = elem*elem;
+      A(i,j) = sqrt (ebuf); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
+      fprintf(pFile," %7.6e",A(i,j));
     }
+    fprintf(pFile,"\n");
   }
-  if(npi > 0)
-    std::cout << "Warning: there are " << npi << " negative elements in the data set." << std::endl;
-  
-
+  fprintf(pFile,"];");
+  fclose(pFile); 
   Eigen::MatrixXd W(m,k), H(k,n);
 
   double res, index;
@@ -208,7 +212,7 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
 
       double nrmX = A.norm();
       //begin nonnegative matrix completion
-      for (int i = 0; i < maxIter_; ++i) {
+      for (int i = 0; i <= maxIter_; ++i) {
  
         // fist update W
         rhs1 = Z*H.transpose() + alpha*U - Lambda;
@@ -262,23 +266,31 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
         fprintf(stderr,"\r Iteration: %d, Norm(P(W*H - X))/norm(X) %3.2e, Stopping tolerance: %3.2e", i, sqrt(stpcrt)/nrmX, tol_);
 
         if((sqrt(stpcrt) < tol_*nrmX) || (i > maxIter_)){
+          W = U; 
           if(sqrt(stpcrt) <tol_*nrmX)
-            fprintf(stderr,"Stopping criteria reached\n");
+            fprintf(stderr,"\nStopping criteria reached\n");
           if(i > maxIter_)
-            fprintf(stderr,"Maximum iteration exceeded\n");
+            fprintf(stderr,"\nMaximum iteration exceeded\n");
           break;
         }
 
       }
-      fprintf(stderr,"\n"); 
+      fprintf(stderr,"\n");
+      W = U;  
     } break;
   }
 
+  fprintf(bFile,"W%d = [\n",k);
   // copy W into buffer
   ROB.setZero();
-  for(int i=0; i<m; ++i)
-    for(int j=0; j<k; ++j)
+  for(int i=0; i<m; ++i){
+    for(int j=0; j<k; ++j){
       ROB(rows[i],j) = W(i,j);
+      fprintf(bFile," %7.6e", W(i,j));
+    }
+    fprintf(bFile,"\n");
+  }
+  fprintf(bFile,"];\n");
 #endif
 }
 

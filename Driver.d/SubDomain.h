@@ -13,6 +13,8 @@
 #include <Solvers.d/Rbm.h>
 #include <Utils.d/GlobalToLocalMap.h>
 #include <Utils.d/MathUtils.h>
+#include <Rom.d/VecBasis.h>
+#include <Rom.d/DistrVecBasis.h>
 #include <vector>
 #include <list>
 
@@ -53,6 +55,8 @@ class DistrComplexVector;
 template <class Scalar> class GenSparseMatrix;
 typedef GenSparseMatrix<double> SparseMatrix;
 template <class Scalar> class GenMpcSparse;
+//template <class Scalar, class GenVecType> class GenVecBasis;
+//typedef GenVecBasis<double, DistrVector> DistrVecBasis;
 
 class BaseSub : virtual public Domain 
 //class BaseSub : public Domain
@@ -649,6 +653,8 @@ class GenSubDomain : public BaseSub
   void constraintProduct(int num_vect, const double* R[], Scalar** V, int trans);
   void addConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
   void addCConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &fc, double s);
+  void dualConstraintProjection(std::vector<std::map<int,double> > &W, Rom::DistrVecBasis &CtW, Eigen::Matrix<double,Eigen::Dynamic,1> &WtRhs,
+                                int startCol, int blockCols);
   void locateMpcDofs();
   void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray 
   void makeLocalMpcToMpc();

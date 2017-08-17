@@ -193,7 +193,7 @@ DistrExplicitPodProjectionNonLinDynamicDetail::RecordingSnapshotHandler::Recordi
   decDomain_(decDom),
   converter_(decDom->getAllSubDomains(), decDom->getAllSubDomains() + decDom->getNumSub()),
   masterMapping_(SubDomIt(decDom->getAllSubDomains()), SubDomIt(decDom->getAllSubDomains() + decDom->getNumSub())),
-  buffer_(masterMapping_.masterNodeBegin(), masterMapping_.masterNodeEnd()),
+  buffer_(masterMapping_.localNodeBegin(), masterMapping_.localNodeEnd()),
   assembledSnapshot_(decDom->solVecInfo()),
   stateSkip_(0),
   accelSkip_(0),

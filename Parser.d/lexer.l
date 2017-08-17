@@ -1157,6 +1157,8 @@ TRAIL [a-zA-Z]*
 
 "dsvarvct"|"DSVARVCT"              { yylval.ival = OutputInfo::DualStateVar; return STRESSID; }
 
+"muvarvct"|"MUVARVCT"              { yylval.ival = OutputInfo::MuStateVar; return STRESSID; }
+
 "robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
 "clusterf"|"CLUSTERF"              { yylval.ival = OutputInfo::RobData;      return STRESSID; }
 
@@ -1643,6 +1645,7 @@ TRAIL [a-zA-Z]*
 "VELSNAPFI"|"VelSnapFi"|"velsnapfi"       { return VELSNAPFI; }
 "ACCSNAPFI"|"AccSnapFi"|"accsnapfi"       { return ACCSNAPFI; }
 "DSVSNAPFI"|"DsvSnapFi"|"dsvsnapfi"       { return DSVSNAPFI; }
+"MUVSNAPFI"|"MuvSnapFi"|"muvsnapfi"       { return MUVSNAPFI; }
 
 "ROBFI"|"RobFi"|"robfi"		          { return ROBFI; }
 

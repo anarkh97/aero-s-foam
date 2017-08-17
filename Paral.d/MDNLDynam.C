@@ -483,14 +483,14 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
 void
 MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *refState)
 {
-  if(fetiSolver) {
+  if(fetiSolver || (!domain->solInfo().readInDualROB.empty() && domain->solInfo().activatePodRom)) {
     domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
     domain->PerformStaticContactSearch(MortarHandler::CTC);
     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
     domain->ExpComputeMortarLMPC(MortarHandler::CTC);
     domain->CreateMortarToMPC();
     decDomain->reProcessMPCs();
-    fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+    if(fetiSolver) fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
   }
   else {
     clean();

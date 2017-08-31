@@ -100,16 +100,20 @@ template<class Scalar>
 void
 GenDiagMatrix<Scalar>::solve(Scalar *rhs, Scalar *sol)
 {
+  this->solveTime -= getTime();
   for(int i=0; i<neq; ++i)
     sol[i] = rhs[i]/v[i];
+  this->solveTime += getTime();
 }
 
 template<class Scalar>
 void
 GenDiagMatrix<Scalar>::reSolve(Scalar *rhsSol)
 {
+  this->solveTime -= getTime();
   for(int i = 0 ; i < neq ; ++i)
     rhsSol[i] = rhsSol[i]/v[i];
+  this->solveTime += getTime();
 }
 
 /*

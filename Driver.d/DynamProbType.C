@@ -4,6 +4,8 @@
 #include <Driver.d/SysState.h>
 #include <Problems.d/DynamProbTraits.h>
 
+#include <limits>
+
 //-------------------------------------------------------------------------------------------
 template<class VecType>
 SysState<VecType> & SysState<VecType>::operator=(const SysState<VecType> &v2)
@@ -339,7 +341,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
            dynOps = probDesc->buildOps(1.0, 0.0, 0.0);
 
          probDesc->getConstForce( *constForce );
-
+ 
          // Check stability time step
          if(domain->solInfo().stable && (aeroAlg < 0 || domain->solInfo().dyna3d_compat)) probDesc->computeStabilityTimeStep(dt, *dynOps);
 
@@ -350,7 +352,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
          if(probDesc->getThermohFlag() >= 0) probDesc->thermohPreProcess(*d_n, *v_n, *v_p);
          
-
          // Time Integration Loop 
          explicitNewmarkLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax);
        } 
@@ -417,7 +418,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          filePrint(stderr, " ... In structure,  numFluidQuantTypes is %d\n", numFluidQuantTypes);
        }
        
-       if(domain->solInfo().sensitivity) {
+       if(domain->solInfo().sensitivity) { 
          double wall0 = -getTime(); 
          probDesc->postProcessSA(dynOps,*d_n);
          wall0 += getTime();
@@ -435,14 +436,16 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                    if(!allSens->dispWRTshape) { 
                      allSens->dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
                      for(int ishap=0; ishap< numShapeVars; ++ishap) {
-                       allSens->dispWRTshape[ishap] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                       allSens->dispWRTshape[ishap] = new Eigen::Matrix<double, Eigen::Dynamic,
+                                                                                Eigen::Dynamic> (domain->numUncon(),1);
                        rhsSen = new VecType( probDesc->solVecInfo() );
                        rhsSen->copy(allSens->linearstaticWRTshape[ishap]->data());
                        (*rhsSen) *= -1; 
                        aeroForceSen->zero();
                        *d_nSen = 0.0;
                        aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-                       *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+                       *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,
+                                                                  Eigen::Dynamic,Eigen::Dynamic>>(d_nSen->data(),domain->numUncon(),1);
                        delete rhsSen;
                      }
                    }
@@ -452,7 +455,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                    int numDispNodes = domain->getNumDispNodes();
                    int numTotalDispDofs = domain->getTotalNumDispDofs();
                    if(!allSens->lambdaDisp) {
-                     probDesc->sendNumParam(numTotalDispDofs, 8, ratioSensitivityTol*sensitivityTol); // actvar = 8, structure displacement
+                     probDesc->sendNumParam(numTotalDispDofs, 8,
+                                            ratioSensitivityTol*sensitivityTol); // actvar = 8, structure displacement
                      computeLambdaDisp(numTotalDispDofs, numDispNodes);
                    }
                    allSens->dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
@@ -464,7 +468,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                      for(int inode=0; inode < numDispNodes; ++inode) {
                        int numDispDofs = (*dispNodes)[inode].numdofs;
                        for(int idof=0; idof < numDispDofs; ++idof) {
-                         (*allSens->dispWRTshape[ishap])(dispDofIndex,0) -= allSens->lambdaDisp[dispDofIndex]->adjoint()*(allSens->linearstaticWRTshape[ishap]->col(0));
+                         (*allSens->dispWRTshape[ishap])(dispDofIndex,0) -=
+                               allSens->lambdaDisp[dispDofIndex]->adjoint()*(allSens->linearstaticWRTshape[ishap]->col(0));
                          dispDofIndex++;
                        }
                      }
@@ -482,14 +487,17 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                    if(!allSens->dispWRTthick) { 
                      allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
                      for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
-                       allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                       allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic,
+                                                                                 Eigen::Dynamic>(domain->numUncon(),1);
                        rhsSen = new VecType( probDesc->solVecInfo() );
                        rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
                        (*rhsSen) *= -1; 
                        aeroForceSen->zero();
                        *d_nSen = 0.0;
                        aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-                       *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+                       *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,
+                                                                   Eigen::Dynamic,Eigen::Dynamic>>(d_nSen->data(),
+                                                                                                   domain->numUncon(),1);
                        delete rhsSen;
                      }
                    }
@@ -499,7 +507,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                    int numDispNodes = domain->getNumDispNodes();
                    int numTotalDispDofs = domain->getTotalNumDispDofs();
                    if(!allSens->lambdaDisp) {
-                     probDesc->sendNumParam(numTotalDispDofs, 8, ratioSensitivityTol*sensitivityTol); // actvar = 8, structure displacement
+                     probDesc->sendNumParam(numTotalDispDofs,
+                                            8, ratioSensitivityTol*sensitivityTol); // actvar = 8, structure displacement
                      computeLambdaDisp(numTotalDispDofs, numDispNodes);
                    }
                    allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
@@ -511,7 +520,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                      for(int inode=0; inode < numDispNodes; ++inode) {
                        int numDispDofs = (*dispNodes)[inode].numdofs;
                        for(int idof=0; idof < numDispDofs; ++idof) {
-                         (*allSens->dispWRTthick[iparam])(dispDofIndex,0) -= allSens->lambdaDisp[dispDofIndex]->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
+                         (*allSens->dispWRTthick[iparam])(dispDofIndex,0) -=
+                              allSens->lambdaDisp[dispDofIndex]->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
                          dispDofIndex++;
                        }
                      }
@@ -530,7 +540,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                  }
                  if(!allSens->lambdaAggregatedStressVM) computeLambdaAggregatedStressVM();
                  for(int iparam=0; iparam< numThicknessGroups; ++iparam)  
-                   (*allSens->aggregatedVonMisesWRTthick)(iparam) -= allSens->lambdaAggregatedStressVM->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
+                   (*allSens->aggregatedVonMisesWRTthick)(iparam) -=
+                            allSens->lambdaAggregatedStressVM->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
                }
                break;
 
@@ -543,7 +554,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                  }
                  if(!allSens->lambdaAggregatedStressVM) computeLambdaAggregatedStressVM(); 
                  for(int ishap=0; ishap< numShapeVars; ++ishap)  
-                   (*allSens->aggregatedVonMisesWRTshape)(ishap) -= allSens->lambdaAggregatedStressVM->adjoint()*(allSens->linearstaticWRTshape[ishap]->col(0));
+                   (*allSens->aggregatedVonMisesWRTshape)(ishap) -=
+                          allSens->lambdaAggregatedStressVM->adjoint()*(allSens->linearstaticWRTshape[ishap]->col(0));
                }
                break;
 
@@ -555,14 +567,17 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                    if(!allSens->dispWRTshape) { 
                      allSens->dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
                      for(int ishap=0; ishap< numShapeVars; ++ishap) {
-                       allSens->dispWRTshape[ishap] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                       allSens->dispWRTshape[ishap] = new Eigen::Matrix<double,
+                                                                        Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
                        rhsSen = new VecType( probDesc->solVecInfo() );
                        rhsSen->copy(allSens->linearstaticWRTshape[ishap]->data());
                        (*rhsSen) *= -1; 
                        aeroForceSen->zero();
                        *d_nSen = 0.0;
                        aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-                       *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+                       *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                                       Eigen::Dynamic >>(d_nSen->data(),
+                                                                                        domain->numUncon(),1);
                        delete rhsSen;
                      }
                    }
@@ -574,7 +589,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                    if(!allSens->lambdaStressVM) computeLambdaStressVM(numStressNodes);
                    for(int inode = 0; inode < numStressNodes; ++inode) 
                      for(int ishap=0; ishap< numShapeVars; ++ishap) { 
-                       (*allSens->vonMisesWRTshape)(inode,ishap) -= allSens->lambdaStressVM[inode]->adjoint()*(allSens->linearstaticWRTshape[ishap]->col(0));
+                       (*allSens->vonMisesWRTshape)(inode,ishap) -=
+                             allSens->lambdaStressVM[inode]->adjoint()*(allSens->linearstaticWRTshape[ishap]->col(0));
                      }
                  }
                }
@@ -587,14 +603,17 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                    probDesc->sendNumParam(numThicknessGroups, 5, ratioSensitivityTol*sensitivityTol);
                    allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
                    for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
-                     allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                     allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic,
+                                                                                Eigen::Dynamic>(domain->numUncon(),1);
                      rhsSen = new VecType( probDesc->solVecInfo() );
                      rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
                      (*rhsSen) *= -1;
                      aeroForceSen->zero();
                      *d_nSen = 0.0;
                      aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-                     *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+                     *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                                      Eigen::Dynamic > >(d_nSen->data(),
+                                                                                                        domain->numUncon(),1);
                      allSens->vonMisesWRTthick->col(iparam) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTthick[iparam]);
                      delete rhsSen;
                    }  
@@ -604,7 +623,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                    if(!allSens->lambdaStressVM) computeLambdaStressVM(numStressNodes);
                    for(int inode = 0; inode < numStressNodes; ++inode) 
                      for(int iparam=0; iparam < numThicknessGroups; ++iparam) 
-                       (*allSens->vonMisesWRTthick)(inode,iparam) -= allSens->lambdaStressVM[inode]->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
+                       (*allSens->vonMisesWRTthick)(inode,iparam) -=
+                            allSens->lambdaStressVM[inode]->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
                  }
                }
                break;
@@ -619,7 +639,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                aeroForceSen->copy(1e4);
                *d_nSen = 0.0;
                aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-               *allSens->dispWRTmach = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+               *allSens->dispWRTmach = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                       Eigen::Dynamic > >(d_nSen->data(),
+                                                                                         domain->numUncon(),1);
                allSens->vonMisesWRTmach->col(0) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTmach);
                delete rhsSen;
                break;
@@ -634,7 +656,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                aeroForceSen->copy(1e4);
                *d_nSen = 0.0;
                aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-               *allSens->dispWRTalpha = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+               *allSens->dispWRTalpha = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                        Eigen::Dynamic > >(d_nSen->data(),
+                                                                                           domain->numUncon(),1);
                allSens->vonMisesWRTalpha->col(0) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTalpha);
                delete rhsSen;
                break;
@@ -649,7 +673,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                aeroForceSen->copy(1e4);
                *d_nSen = 0.0;
                aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-               *allSens->dispWRTbeta = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+               *allSens->dispWRTbeta = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                        Eigen::Dynamic> >(d_nSen->data(),
+                                                                                          domain->numUncon(),1);
                allSens->vonMisesWRTbeta->col(0) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTbeta);
                delete rhsSen;
                break;
@@ -727,7 +753,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   (*aeroForceSen)[0] = 1.0e2;
   *lambda_nSen = 0.0;
   aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-  *allSens->lambdaFluidQuantity = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(lambda_nSen->data(),domain->numUncon(),1);
+  *allSens->lambdaFluidQuantity = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                  Eigen::Dynamic> >(lambda_nSen->data(),
+                                                                                    domain->numUncon(),1);
   delete rhsSen;
 }
 
@@ -757,7 +785,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       aeroForceSen->zero();
       *lambda_nSen = 0.0;
       aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-      *allSens->lambdaDisp[dispDofIndex] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(lambda_nSen->data(),domain->numUncon(),1);
+      *allSens->lambdaDisp[dispDofIndex] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                           Eigen::Dynamic> >(lambda_nSen->data(),
+                                                                                             domain->numUncon(),1);
       delete rhsSen;
       dispDofIndex++;
     }
@@ -779,7 +809,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   aeroForceSen->zero();
   *lambda_nSen = 0.0;
   aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-  *allSens->lambdaAggregatedStressVM = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(lambda_nSen->data(),domain->numUncon(),1);
+  *allSens->lambdaAggregatedStressVM = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                       Eigen::Dynamic> >(lambda_nSen->data(),
+                                                                                         domain->numUncon(),1);
   delete rhsSen;
 }
 
@@ -801,7 +833,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     aeroForceSen->zero();
     *lambda_nSen = 0.0;
     aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-    *allSens->lambdaStressVM[inode] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(lambda_nSen->data(),domain->numUncon(),1);
+    *allSens->lambdaStressVM[inode] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                      Eigen::Dynamic> >(lambda_nSen->data(),
+                                                                                        domain->numUncon(),1);
     delete rhsSen;
   }
 }
@@ -1232,10 +1266,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    // ... BEGIN MAIN TIME-LOOP
    double s0 = -getTime(), s1 = -51, s2 = 0;
    char ch[4] = { '|', '/', '-', '\\' };
-   if(aeroAlg < 0) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
+   int printNumber = (solInfo.printNumber > 0) ? solInfo.printNumber : std::numeric_limits<int>::max();
+   if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max()) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
    for( ; t < tmax-0.01*dt; t += dt, s2 = s0+getTime()) {
-     if(aeroAlg < 0 && (s2-s1 > 50)) {
+     if(aeroAlg < 0 && (s2-s1 > printNumber)) {
        s1 = s2;
        filePrint(stderr, "\r ⌊\x1B[33m %c t = %9.3e Δt = %8.2e %3d%% \x1B[0m⌋",
                  ch[int(s1/250)%4], t+dt, dt, int((t+dt)/(tmax-0.01*dt)*100));
@@ -1345,7 +1380,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      if(aeroAlg == 5) probDesc->a5TimeLoopCheck( parity, t, dt );
 
    }
-   if(aeroAlg < 0)
+   if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max())
      filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", t, dt);
 
    if(aeroAlg == 5) {
@@ -1452,7 +1487,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
   // Compute the initial acceleration a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
   // note: for restarted nonlinear, the initial acceleration is read from the restart file
-  if(!(geoSource->getCheckFileInfo()->lastRestartFile && domain->solInfo().isNonLin())) {
+  if(solInfo.iacc_switch && !(geoSource->getCheckFileInfo()->lastRestartFile && domain->solInfo().isNonLin())) {
     if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
     domain->getTimers().formRhs -= getTime();
     if(dynOps.C) {
@@ -1494,14 +1529,15 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     energies << "n " << "time " << "       Wkin           " << "   Wext          " << "    Wint         " << "   Wdis         " << "    Sum(W_i)     " 
              << " abs(Wkin+Wint-Wext) " << " eps1*max(We,Wi,Wk) " << "  dt " << std::endl;
 #endif
-  if(aeroAlg < 0) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
+  int printNumber = (solInfo.printNumber > 0) ? solInfo.printNumber : std::numeric_limits<int>::max();
+  if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max()) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
   for( ; t_n < tmax-0.01*dt_n_h && !domain->solInfo().stop_AeroS; s2 = s0+getTime()) {
 
     // Time update:
     t_n_h = t_n + dt_n_h/2; // t^{n+1/2} = t^n + 1/2*deltat^{n+1/2}
 
-    if(aeroAlg < 0 && (s2-s1 > 50)) {
+    if(aeroAlg < 0 && (s2-s1 > printNumber)) {
       s1 = s2;
       filePrint(stderr, "\r ⌊\x1B[33m %c t = %9.3e Δt = %8.2e %3d%% \x1B[0m⌋",
                 ch[int(s1/250)%4], t_n, dt_n_h, int((t_n-t0)/((tmax-t0)-0.01*dt_n_h)*100));
@@ -1691,7 +1727,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     } 
   }
-  if(aeroAlg < 0)
+  if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max())
     filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", t_n, dt_n_h);
 
 #ifdef PRINT_TIMERS

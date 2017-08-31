@@ -1,8 +1,12 @@
 #ifndef _NON_LIN_DYNAM_H_
 #define _NON_LIN_DYNAM_H_
 
+#include <Problems.d/SingleDomainBase.h>
 #include <Math.d/Vector.h>
 #include <Utils.d/OutputInfo.h>
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
 
 class Domain;
 class Rbm;
@@ -42,7 +46,7 @@ public:
 };
 
 // Virtual methods to allow derived class PitaNonLinDynamic in Pita.d/PitaNonLinDynam.d
-class NonLinDynamic : public NLDynamPostProcessor {
+class NonLinDynamic : public NLDynamPostProcessor, public SingleDomainBase {
 
   protected:
     Domain *domain;
@@ -105,6 +109,9 @@ class NonLinDynamic : public NLDynamPostProcessor {
     Vector *reactions;
     bool factor;
     bool updateCS;
+#ifdef USE_EIGEN3
+    Eigen::MatrixXd VtMV;
+#endif
 
  public:
     // Constructor
@@ -126,7 +133,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int  sysVecInfo();
     int  elemVecInfo();
 
-    double getTolerance() { return (tolerance*firstRes); }
+    double getTolerance();
 
     void   computeTimeInfo();
 

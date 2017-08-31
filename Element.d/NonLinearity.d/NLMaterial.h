@@ -7,6 +7,7 @@
 
 class StrainEvaluator;
 class Tensor;
+class Tensor_d0s2_Ss12;
 template <typename Tensor> class GenStrainEvaluator;
 template <int n> class TwoDTensorTypes;
 class MFTTData;
@@ -24,17 +25,19 @@ class NLMaterial
 
      virtual void getElasticity(Tensor *tm) = 0;
 
-     virtual void getStress(Tensor *stress, Tensor &strain, double *state, double temp) = 0;
+     virtual void getStress(Tensor *stress, Tensor &strain, double *state, double temp) = 0; // returns conjugate stress
 
      virtual void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double *state, double temp) = 0;
 
      virtual void updateStates(Tensor& en, Tensor& enp, double *state, double temp) = 0;
 
      virtual void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                            double *staten, double *statenp, double temp, double dt=0) = 0;
+                            double *staten, double *statenp, double temp,
+                            Tensor *cache, double dt=0) = 0;
 
      virtual void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                            double *staten, double *statenp, double temp, double dt=0) = 0;
+                            double *staten, double *statenp, double temp,
+                            Tensor *cache, double dt=0) = 0;
 
      virtual void initStates(double *) = 0;
 
@@ -61,11 +64,15 @@ class NLMaterial
 
      virtual double getThickness() { return 0; }
 
+     virtual double getReferenceTemperature() { return 0; }
+
      virtual double getPosdefifyTol() { return -1; }
 
      virtual void print(std::ostream &out) const {
        throw std::range_error("material law does not implement print function");
      }
+
+     virtual void print2(std::ostream &out) const {}
 
      virtual NLMaterial * clone() const {
        std::cerr << "material law does not implement clone function\n";

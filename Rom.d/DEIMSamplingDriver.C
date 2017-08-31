@@ -115,7 +115,7 @@ DEIMSamplingDriver::readInBasis(VecBasis &podBasis, BasisId::Type type, BasisId:
 {
  FileNameInfo fileInfo;
  std::string fileName = BasisFileId(fileInfo, type, level);
- if(normalized) fileName.append(".normalized");
+ if(normalized) fileName.append(".massorthonormalized");
  BasisInputStream<6> in(fileName, *converter);
  if (podSizeMax != 0) {
    std::cout << "reading in " << podSizeMax << " vectors from " << fileName.c_str() << std::endl;
@@ -523,7 +523,7 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
     DEIMfilename.erase(DEIMfilename.end()-5,DEIMfilename.end());
     DEIMfilename.append(".reduced.deim");
     if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) {
-      PODfilename.append(".normalized");
+      PODfilename.append(".massorthonormalized");
     }
     filePrint(stderr," ... Writing compressed POD/DEIM basis to file %s and %s ...\n", PODfilename.c_str(), DEIMfilename.c_str());
     DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));

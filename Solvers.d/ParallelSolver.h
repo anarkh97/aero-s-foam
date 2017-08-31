@@ -36,6 +36,7 @@ class GenParallelSolver {
       // Nothing to do
     }
     virtual double getFNormSq(GenDistrVector<Scalar> &f);
+    virtual double getResidualNorm(const GenDistrVector<Scalar> &r);
 };
 
 template <class Scalar>
@@ -50,7 +51,15 @@ template <class Scalar>
 inline
 double
 GenParallelSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &) {
-  std::cerr << "GenParallelSolver::getSqNorm not implemented\n";
+  std::cerr << "GenParallelSolver::getFNormSq not implemented\n";
+  return 0.0;
+}
+
+template <class Scalar>
+inline
+double
+GenParallelSolver<Scalar>::getResidualNorm(const GenDistrVector<Scalar> &) {
+  std::cerr << "GenParallelSolver::getResidualNorm not implemented\n";
   return 0.0;
 }
 

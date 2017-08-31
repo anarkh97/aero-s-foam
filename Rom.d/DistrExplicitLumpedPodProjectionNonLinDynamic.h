@@ -18,6 +18,8 @@ public:
   void getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex); // Alternate internal force computation
   MDDynamMat * buildOps(double, double, double);
 
+  virtual void setLocalReducedMesh(int j);
+
 private:
   void buildPackedElementWeights();
   void subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double &t, int &tIndex);
@@ -27,11 +29,14 @@ private:
   void subBuildPackedElementWeights(int iSub);
 
   std::vector<std::vector<int> > packedWeightedNodes_;
-
+  std::vector<std::vector<std::vector<int> > > localPackedWeightedNodes_;
+  
 protected:
   void subTransformWeightedNodesOnly(int iSub, DistrVector &v, int type);
 
-  std::vector<std::map<int, double> > packedElementWeights_;
+  std::vector<std::vector<std::map<int, double> > > packedElementWeights_;
+
+  int localReducedMeshId_;
 
   SubDOp *K;
 };

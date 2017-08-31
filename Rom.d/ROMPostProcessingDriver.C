@@ -85,7 +85,8 @@ ROMPostProcessingDriver::preProcess()
   if(domain->solInfo().sensitivity) {
  
     if(!domain->solInfo().readInAdjointROB.empty()) {
-      int adjointSubspaceMaxSize = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.end(), 0); 
+      int adjointSubspaceMaxSize = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(),
+                                                   domain->solInfo().maxSizeAdjointBasis.end(), 0); 
       adjointBasis_.dimensionIs(adjointSubspaceMaxSize, solVecInfo());
 
       for(int j=0; j<domain->solInfo().readInAdjointROB.size(); ++j) {
@@ -95,11 +96,12 @@ ROMPostProcessingDriver::preProcess()
 
         const int &adjointSubspaceSize = domain->solInfo().maxSizeAdjointBasis[j];
         if(adjointSubspaceSize > adjointBasisInput.size()) {
-          std::cerr << "ERROR: selected size of adjoint basis is larger than the available number of basis vectors in file " << fileName << std::endl;
+          std::cerr << 
+            "ERROR: selected size of adjoint basis is larger than the available number of basis vectors in file " 
+            << fileName << std::endl;
           exit(-1);
         }
 
-        //readVectors(adjointBasisInput, adjointBasis_, adjointSubspaceSize);
         readVectors(adjointBasisInput, adjointBasis_,
                     std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.end(), 0),
                     adjointSubspaceSize,
@@ -246,8 +248,8 @@ ROMPostProcessingDriver::solve()
 {
   preProcess();
 
-  GeomState *geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
-                                       domain->getNodalTemperatures());
+  GeomState *geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), 
+                                       &domain->getElementSet(),domain->getNodalTemperatures());
   Vector fext(solVecInfo()), constantForce(solVecInfo());
   getConstForce(constantForce);
 
@@ -289,7 +291,8 @@ ROMPostProcessingDriver::solve()
       domain->updateStates(geomState,*geomState,allCorot,*it);
       getExternalForce(fext, constantForce, counter, *it, geomState, *fullDummyBuffer, *fullDummyBuffer,
                        domain->solInfo().getTimeStep()/2);
-      dynamOutput(geomState, *fullVelBuffer, *fullVel2Buffer, *it, counter-1, fext, *fullDummyBuffer, *fullAccBuffer, geomState);
+      dynamOutput(geomState, *fullVelBuffer, *fullVel2Buffer, *it, counter-1, fext, *fullDummyBuffer, 
+                  *fullAccBuffer, geomState);
 
       filePrint(stderr,"\r ... ROM Conversion Loop: t = %9.3e, %3d%% complete ...",
                 *it, int(*it/(TimeStamps[0].back())*100));
@@ -304,14 +307,12 @@ ROMPostProcessingDriver::solve()
     Vector residual(domain->numUncon(), 0.0);
     residual = fext;
     domain->getStiffAndForce(*geomState, elementInternalForce, allCorot, kelArray, residual,
-                             1.0, TimeStamps[0].back(), geomState, (Vector*) NULL, ((melArray) ? melArray : NULL));
+                             1.0, TimeStamps[0].back(), geomState, (Vector*) NULL, 
+                             ((melArray) ? melArray : NULL));
     reBuild(*geomState, counter, domain->solInfo().getTimeStep(), TimeStamps[0].back());
     allSens->residual = new Eigen::Matrix<double,Eigen::Dynamic,1>(residual.size());
     *(allSens->residual) = Eigen::Map<Eigen::VectorXd>(residual.data(),residual.size());    
-//    postProcessSA(*fullDispBuffer);
-//    postProcessNLSA(geomState, geomState);
     sensitivityAnalysis(geomState, geomState);
-//    domain->sensitivityPostProcessing(*allSens, fullDispBuffer);
   }
 #endif
 

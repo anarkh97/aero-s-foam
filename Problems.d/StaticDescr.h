@@ -1,6 +1,7 @@
 #ifndef _STATIC_DESCR_H_
 #define _STATIC_DESCR_H_
 
+#include <Problems.d/SingleDomainBase.h>
 #include <Utils.d/MyComplex.h>
 
 class Domain;
@@ -52,7 +53,7 @@ class SingleDomainPostProcessor {
 
 
 template <class T, class VectorType, class SolverType>
-class SingleDomainStatic 
+class SingleDomainStatic : public SingleDomainBase
 {
  protected:
     Domain *domain;
@@ -70,18 +71,17 @@ class SingleDomainStatic
     GeomState *geomState;
 
     Rbm *rigidBodyModes;
-    FSFullMatrix *X;     // pre-calculated projector
-    double *Rmem;        // global rigid body modes (numdof X 6)
-    int numR;            // number of rigid body modes
 
  public:
-    SingleDomainStatic<T,VectorType,SolverType>(Domain *d) { domain = d; rigidBodyModes = 0; Rmem = 0; numR = 0; }
+    SingleDomainStatic<T,VectorType,SolverType>(Domain *d) : SingleDomainBase(d->solInfo()) { domain = d; rigidBodyModes = 0; }
     int solVecInfo();
     int solVecInfo(int i);
     virtual void getRHS(VectorType &);
     void getRHSinpc(VectorType &);
     void setIWaveDir(int _i) { domain->iWaveDir = _i; }
     void getFreqSweepRHS(VectorType *rhs, VectorType **sol_prev, int iRHS);
+    void getWCAWEFreqSweepRHS(VectorType *rhs, VectorType **wcawe_u,
+                T *pU, T* pb, int maxRHS, int iRHS);
     void buildDeltaK(double w0, double w) {
       domain->template buildDeltaK<T>(w0, w, allOps.K_deriv[0],(allOps.Kuc_deriv)?allOps.Kuc_deriv[0]:0 );
     }
@@ -101,9 +101,7 @@ class SingleDomainStatic
     SolverType *getSolver();
     AllOps<T> *getAllOps() { return &allOps; }
     T *getbc() { return bcx; }
-    void project(VectorType &f);
-    void projector_prep(Rbm *rbms);
-    void eigmode_projector_prep();
+
     SingleDomainPostProcessor<T,VectorType,SolverType> *getPostProcessor();
     StaticTimers *getStaticTimers() { return times; }
     void assignRandMat() {domain->assignRandMat(); }

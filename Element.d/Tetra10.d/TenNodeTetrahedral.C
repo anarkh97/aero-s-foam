@@ -804,8 +804,26 @@ TenNodeTetrahedral::setMaterial(NLMaterial *_mat)
 int
 TenNodeTetrahedral::numStates()
 {
-  int numGaussPoints = 15;
+#ifdef USE_EIGEN3
+  int numGaussPoints = NLTetrahedral10::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+#else
+  return 0;
+#endif
+}
+
+void
+TenNodeTetrahedral::initStates(double *st)
+{
+#ifdef USE_EIGEN3
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLTetrahedral10::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
+#endif
 }
 
 Corotator *
@@ -862,3 +880,18 @@ TenNodeTetrahedral::getFace(int iFace, int *fn)
   }
   return 6;
 }
+
+void
+TenNodeTetrahedral::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(TenNodeTetrahedral::cFrame) {
+    cFrame[0][0] = TenNodeTetrahedral::cFrame[0]; cFrame[0][1] = TenNodeTetrahedral::cFrame[1]; cFrame[0][2] = TenNodeTetrahedral::cFrame[2];
+    cFrame[1][0] = TenNodeTetrahedral::cFrame[3]; cFrame[1][1] = TenNodeTetrahedral::cFrame[4]; cFrame[1][2] = TenNodeTetrahedral::cFrame[5];
+    cFrame[2][0] = TenNodeTetrahedral::cFrame[6]; cFrame[2][1] = TenNodeTetrahedral::cFrame[7]; cFrame[2][2] = TenNodeTetrahedral::cFrame[8];
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
+}
+

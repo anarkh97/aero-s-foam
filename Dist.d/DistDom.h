@@ -25,13 +25,15 @@ class GenDistrDomain : virtual public GenDecDomain<Scalar>
     GenDistrDomain(Domain *d);
     virtual ~GenDistrDomain();
 
+    void clean();
+
     void postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f, double eigV = 0.0,
                         GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                         SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
     void postProcessing(DistrGeomState *u, GenDistrVector<Scalar> &, Corotator ***, double x = 0,
                         SysState<GenDistrVector<Scalar> > *distState = 0, GenDistrVector<Scalar> *aeroF = 0,
                         DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0,
-                        GenMDDynamMat<Scalar> *dynOps = 0);
+                        GenMDDynamMat<Scalar> *dynOps = 0, GenDistrVector<Scalar> *resF = 0);
     virtual void forceContinuity(GenDistrVector<Scalar> &u);
 
     void setsizeSfemStress(int fileNumber);
@@ -46,7 +48,8 @@ class GenDistrDomain : virtual public GenDecDomain<Scalar>
     void makeMasterInfo();
     void createMasterFlag();
     void createOutputOffsets();
-    void getPrimal(DistSVec<Scalar, 11> &disps, DistSVec<Scalar, 11> &masterDisps,
+    template<int dim>
+    void getPrimal(DistSVec<Scalar, dim> &disps, DistSVec<Scalar, dim> &masterDisps,
                    double time, int x, int fileNumber, int ndof, int startdof);//DofSet::max_known_nonL_dof
     void getAeroForceScalar(DistSVec<Scalar, 6> &aerof, DistSVec<Scalar, 6> &masterAeroF,
                             double time, int x, int fileNumber, int dof);

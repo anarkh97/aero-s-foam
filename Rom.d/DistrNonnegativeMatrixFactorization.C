@@ -300,7 +300,7 @@ DistrNonnegativeMatrixFactorization::solve()
 }
 
 void
-DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleMatrix &B, SCDoubleMatrix &X, int flag)
+DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleMatrix &B, SCDoubleMatrix &X, int flag, int SSCflag)
 {
   // if flag = 0 then solve: min ||AX^T-B|| s.t. X >= 0
   // if flag = 1 then solve: min ||AX^T-B^T|| s.t. X >= 0
@@ -339,7 +339,7 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   solver.setQProcGrid(rowCpus, colCpus);
   solver.setABlockSize(blockSize_, blockSize_);
   solver.setQBlockSize(blockSize_, blockSize_);
-  solver.setColumnScaling();
+  solver.setColumnScaling(); 
   solver.init();
   MPI_Barrier(comm); t1 -= getTime();
   for(int k = 0; k < nsub; ++k) {
@@ -349,32 +349,43 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   t1 += getTime();
   solver.setVerbose(0);
   solver.setMaxIterRatio(3);
+  if(domain->solInfo().solverTypeSpnnls == 5)
+    solver.setOrthogonalMatchingPursuit();
 
   SCDoubleMatrix &b = solver.getRhsVector(); 
   SCDoubleMatrix &x = solver.getSolutionVector();
 
+  std::vector<int> columns; 
+
   // copy/redistribute from B to subB, if necessary
-  SCDoubleMatrix *subB, *subX;
+  SCDoubleMatrix *subB, *subX; // this is for setting the correct constraints for sparse subspace clustering
   int nrhs;
-  if(nsub == 1) {
+  if(nsub == 1) { // if there is only 1 subdomain, B stays intact
     nrhs = X.getNumberOfRows();
     subX = &X;
     subB = &B;
-  }
-  else {
+    if(SSCflag) {
+      for(int col = 1; col <= A.getNumberOfCols(); col++)
+        columns.push_back(col); // column ordering doesn't change
+    }
+  } else {        // otherwise, B is divided up among the processes
     nrhs = X.getNumberOfRows()/nsub + ((color < X.getNumberOfRows()%nsub) ? 1 : 0);
     subX = new SCDoubleMatrix(context, nrhs, X.getNumberOfCols(), blockSize_, blockSize_, comm);
     MPI_Barrier(comm); t5 -= getTime();
     if(flag == 0) {
-      subB = new SCDoubleMatrix(context, B.getNumberOfRows(), nrhs, blockSize_, blockSize_, comm);
+      subB   = new SCDoubleMatrix(context, B.getNumberOfRows(), nrhs, blockSize_, blockSize_, comm);
       for(int k=0,ja=1,n; k<nsub; ++k, ja+=n) {
         n = X.getNumberOfRows()/nsub + ((k < X.getNumberOfRows()%nsub) ? 1 : 0);
         if(k != color) B.copyRedist(A.getNumberOfRows(), n, 1, ja, A.getContext());              // send only
         else           B.copyRedist(A.getNumberOfRows(), n, 1, ja, *subB, 1, 1, A.getContext()); // send and receive
+        if(SSCflag && k == color){
+          for(int locCol = ja; locCol < ja+n; ++locCol)
+            columns.push_back(locCol); // get local column numbers 
+        }
       }
     }
     else {
-      subB = new SCDoubleMatrix(context, nrhs, B.getNumberOfCols(), blockSize_, blockSize_, comm);
+      subB   = new SCDoubleMatrix(context, nrhs, B.getNumberOfCols(), blockSize_, blockSize_, comm);
       for(int k=0,ia=1,m; k<nsub; ++k, ia+=m) {
         m = X.getNumberOfRows()/nsub + ((k < X.getNumberOfRows()%nsub) ? 1 : 0);
         if(k != color) B.copyRedist(m, A.getNumberOfRows(), ia, 1, A.getContext());              // send only
@@ -385,26 +396,39 @@ DistrNonnegativeMatrixFactorization::solveNNLS_MRHS(SCDoubleMatrix &A, SCDoubleM
   }
 
   int iter = 0;
+  bool hotStart = domain->solInfo().hotstartSample;
   for(int i=1; i<=nrhs; i++) {
-
+  
     t2 -= getTime();
     // copy ith column/row of matrix subB into vector b
     if(flag==0) subB->add(b, 'N', A.getNumberOfRows(), 1, 1.0, 0.0, 1, i, 1, 1);
     else        subB->add(b, 'T', A.getNumberOfRows(), 1, 1.0, 0.0, i, 1, 1, 1);
     t2 += getTime();
 
+    if(hotStart && i > 1) solver.hotStart(); // use pre-computed solution
+   
     // solve: min ||Ax-b|| s.t. x >= 0
     t3 -= getTime();
-    solver.setRtol(1e-16);
+    if(SSCflag){ // don't let a snapshot select itself
+      if(communicator_->myID() == 0) {
+        fprintf(stderr,"\r");
+        fprintf(stderr,"%3.2f percent done",100.0*double(i)/double(nrhs));
+      }
+      solver.setConstraint(columns[i-1]); // dont let clustering solver select itself
+      solver.setRtol(tol_);
+    } else {
+      solver.setRtol(1e-16);
+    }
     solver.solve();
     iter += solver.getIter();
     t3 += getTime();
-
     // copy x to ith row of subX
     t4 -= getTime();
     x.add(*subX, 'N', 1, A.getNumberOfCols(), 1.0, 0.0, 1, 1, i, 1);
     t4 += getTime();
   }
+
+  if(SSCflag && communicator_->myID() == 0) fprintf(stderr,"\n");
 
   if(verboseFlag && communicator_->myID() == 0) {
     std::cerr << "Total number of iterations = " << iter << std::endl;

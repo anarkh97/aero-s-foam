@@ -19,6 +19,7 @@ Jacobian<double,AngleType1ConstraintFunction>
   b0 << sconst(3), sconst(4), sconst(5);
   a0hat = a0.normalized();
   b0hat = b0.normalized();
+  int type = iconst(0);
 
   if( (q.array() == 0).all()) {
 
@@ -27,7 +28,7 @@ Jacobian<double,AngleType1ConstraintFunction>
     J.head<3>() = a0hat.cross(b0hat);
     J.tail<3>() = -J.head<3>();
     J *= dacosdx;
-    return J.transpose();
+    if(type == 2) return -J.transpose(); else return J.transpose();
   }
 
   // rotation parameters
@@ -58,7 +59,7 @@ Jacobian<double,AngleType1ConstraintFunction>
     J[3+i] = dacosdx*(ahat.dot(d2));
   }
 
-  return J.transpose();
+  if(type == 2) return -J.transpose(); else return J.transpose();
 }
 
 // specializing the member function template of constraint hessian operator for angle
@@ -78,6 +79,7 @@ Hessian<double,AngleType1ConstraintFunction>
   b0 << sconst(3), sconst(4), sconst(5);
   a0hat = a0.normalized();
   b0hat = b0.normalized();
+  int type = iconst(0);
 
   if( (q.array() == 0).all()) {
 
@@ -115,7 +117,7 @@ Hessian<double,AngleType1ConstraintFunction>
 
     H += tmp3;
 
-    return H;
+    if(type == 2) return -H; else return H;
   }
 
 
@@ -165,7 +167,7 @@ Hessian<double,AngleType1ConstraintFunction>
     }
   }
 
-  return H;
+  if(type == 2) return -H; else return H;
 }
 
 } // namespace Simo

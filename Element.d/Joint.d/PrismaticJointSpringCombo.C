@@ -12,8 +12,8 @@ PrismaticJointSpringCombo::PrismaticJointSpringCombo(int* _nn)
   nSubElems = 2;
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
-  subElems[0] = new PrismaticJoint(nnloc);
-  subElems[1] = new NonlinearTranslationalSpring(nnloc,0);
+  subElems[0] = new PrismaticJoint(nnloc);              // ↓ propIndex
+  subElems[1] = new NonlinearTranslationalSpring(nnloc, 0, 0);
 }
 
 int 

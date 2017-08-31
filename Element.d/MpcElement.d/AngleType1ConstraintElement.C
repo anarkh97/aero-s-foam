@@ -3,13 +3,14 @@
 #include <Corotational.d/GeomState.h>
 #include <iostream>
 
-AngleType1ConstraintElement::AngleType1ConstraintElement(int* _nn, int _axis1, int _axis2, double _offset)
- : ConstraintFunctionElement<Simo::AngleType1ConstraintFunction>(2, DofSet::XYZrot, _nn, 0)
+AngleType1ConstraintElement::AngleType1ConstraintElement(int* _nn, int _axis1, int _axis2, double _offset, int _type, int _ieqtype)
+ : ConstraintFunctionElement<Simo::AngleType1ConstraintFunction>(2, DofSet::XYZrot, _nn, _type)
 {
   C0 = 0;
   axis1 = _axis1;
   axis2 = _axis2;
   offset = _offset;
+  ieqtype = _ieqtype;
 }
 
 AngleType1ConstraintElement::~AngleType1ConstraintElement()
@@ -18,13 +19,14 @@ AngleType1ConstraintElement::~AngleType1ConstraintElement()
 }
 
 void
-AngleType1ConstraintElement::getConstants(CoordSet&, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs)
+AngleType1ConstraintElement::getConstants(CoordSet&, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,1,1>& iconst, GeomState *gs)
 {
   // gs is the current configuration for eulerian description of rotations
   // if gs == NULL the current configuration is identical to ihe undeformed configuration
   if(gs == NULL) {
     Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > C0(&AngleType1ConstraintElement::C0[0][0]);
     sconst << C0(axis1,0), C0(axis1,1), C0(axis1,2), C0(axis2,0), C0(axis2,1), C0(axis2,2), offset;
+    iconst << ieqtype;
   }
   else {
     Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > C0(&AngleType1ConstraintElement::C0[0][0]),
@@ -33,6 +35,7 @@ AngleType1ConstraintElement::getConstants(CoordSet&, Eigen::Array<double,7,1>& s
     // rotate specified axes to their position in the specified (either reference or current) configuration
     Eigen::Matrix<double,1,3> a0 = C0.row(axis1)*R1.transpose(), b0 = C0.row(axis2)*R2.transpose();
     sconst << a0[0], a0[1], a0[2], b0[0], b0[1], b0[2], offset;
+    iconst << ieqtype;
   }
 }
 

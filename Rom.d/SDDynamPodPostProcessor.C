@@ -52,7 +52,7 @@ SDDynamPodPostProcessor::SDDynamPodPostProcessor(Domain *d, double *bcx, double 
           filePrint(oinfo[iOut].filptr, "1\n");
         }
         break;
-      case OutputInfo::Velocity6 : case OutputInfo::Velocity : TemperatureFirstTimeDerivative :
+      case OutputInfo::Velocity6 : case OutputInfo::Velocity : case OutputInfo::TemperatureFirstTimeDerivative :
         if(oinfo[iOut].nodeNumber != -1) {
           VelSensor = true;
           if(oinfo[iOut].type == OutputInfo::Velocity6 && (oinfo[iOut].angularouttype != OutputInfo::total || oinfo[iOut].rescaling)) {

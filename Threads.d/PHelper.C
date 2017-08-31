@@ -725,6 +725,42 @@ void timedParal(DistTimer &timer, int n, TA *target, void (TA::*fct)(int, TB, TC
 }
 
 template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH>
+class SixArgExecuterF: public TaskDescr {
+    TA *target;
+    void (TB::*fct)(int, TC, TD, TE, TF, TG, TH);
+    TC c;
+    TD d;
+    TE e;
+    TF f;
+    TG g;
+    TH h;
+  public:
+    SixArgExecuterF(TA *t, void (TB::*_fc)(int, TC, TD, TE,TF,TG,TH),TC _c,
+TD _d, TE _e, TF _f, TG _g, TH _h)
+     : target(t), c(_c), d(_d), e(_e), f(_f), g(_g), h(_h) { fct = _fc; }
+    void runFor(int);
+};
+
+
+template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH>
+void
+SixArgExecuterF<TA,TB,TC,TD, TE,TF,TG,TH>::runFor(int i)
+{
+ TB *tg = static_cast<TB *>(target);
+ (tg->*fct)(i, c, d, e,f,g,h);
+}
+
+template <class TA, class TB,  class TC, class TD, class TE, class TF, class TG, class TH>
+void timedParal4P2(DistTimer &timer, int n, TA *target, void (TB::*f)(int, TC*, TD*, TE*,TF*,TG,TH), TC *c, TD *d, TE* e, TF *ff, TG g, TH h)
+{
+ SixArgExecuterF<TA,TB,TC*,TD*, TE*,TF*,TG,TH> fe(target,f,c,d,e,ff,g,h);
+ double initTime = getTime();
+ long initMem  = threadManager->memoryUsed();
+ threadManager->execTimedParal(timer, n, &fe);
+ timer.addOverAll( threadManager->memoryUsed()-initMem, getTime()-initTime );
+}
+
+template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH>
 class SevenArgExecuter: public TaskDescr {
     TA *target;
     void (TA::*fct)(int, TB, TC, TD, TE, TF, TG, TH);
@@ -741,6 +777,7 @@ TD _d, TE _e, TF _f, TG _g, TH _h)
      : target(t), b(_b), c(_c), d(_d), e(_e), f(_f), g(_g), h(_h) { fct = _fc; }
     void runFor(int);
 };
+
 
 template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH>
 void
@@ -823,6 +860,13 @@ template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, 
 void execParal8R(int n, TA *target, void (TA::*fct)(int, TB*, TC&, TD*, TE, TF*, TG*, TH*, TI*), TB *b, TC &c, TD *d, TE e, TF *f, TG *g, TH *h, TI *i)
 {
  EightArgExecuter<TA,TB*,TC&,TD*,TE,TF*,TG*,TH*,TI*> fe(target,fct, b, c, d, e, f, g, h, i);
+ threadManager->execParal(n, &fe);
+}
+
+template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH, class TI>
+void execParal8R(int n, TA *target, void (TA::*fct)(int, TB&, TC, TD, TE, TF**, TG**, TH**, TI**), TB &b, TC c, TD d, TE e, TF **f, TG **g, TH **h, TI **i)
+{
+ EightArgExecuter<TA,TB&,TC,TD,TE,TF**,TG**,TH**,TI**> fe(target,fct, b,c,d,e,f,g,h,i);
  threadManager->execParal(n, &fe);
 }
 

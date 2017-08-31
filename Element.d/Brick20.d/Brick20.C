@@ -748,8 +748,26 @@ Brick20::setMaterial(NLMaterial *_mat)
 int
 Brick20::numStates()
 {
-  int numGaussPoints = 27;
+#ifdef USE_EIGEN3
+  int numGaussPoints = NLHexahedral20::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+#else
+  return 0;
+#endif
+}
+
+void
+Brick20::initStates(double *st)
+{
+#ifdef USE_EIGEN3
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLHexahedral20::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
+#endif
 }
 
 Corotator *
@@ -813,3 +831,18 @@ Brick20::getFace(int iFace, int *fn)
   }
   return 8;
 }
+
+void
+Brick20::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(Brick20::cFrame) {
+    cFrame[0][0] = Brick20::cFrame[0]; cFrame[0][1] = Brick20::cFrame[1]; cFrame[0][2] = Brick20::cFrame[2];
+    cFrame[1][0] = Brick20::cFrame[3]; cFrame[1][1] = Brick20::cFrame[4]; cFrame[1][2] = Brick20::cFrame[5];
+    cFrame[2][0] = Brick20::cFrame[6]; cFrame[2][1] = Brick20::cFrame[7]; cFrame[2][2] = Brick20::cFrame[8];
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
+}
+

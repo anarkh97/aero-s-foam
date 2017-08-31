@@ -5,6 +5,7 @@
 #include <Feti.d/DistrVectorSet.h>
 #include <Paral.d/SubDOp.h>
 #include <vector>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 
 class Domain;
 template <class Scalar> class GenSubDomain;
@@ -88,7 +89,7 @@ class GenDecDomain
   GenDecDomain(Domain *d);
   virtual ~GenDecDomain();
 
-  void clean();
+  virtual void clean();
   Domain *getDomain() { return domain; }
 
   GenSubDomain<Scalar>** getAllSubDomains() { return subDomain; }
@@ -118,7 +119,7 @@ class GenDecDomain
   virtual void postProcessing(DistrGeomState *u, GenDistrVector<Scalar> &, Corotator ***, double x = 0,
                               SysState<GenDistrVector<Scalar> > *distState = 0, GenDistrVector<Scalar> *aeroF = 0,
                               DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0,
-                              GenMDDynamMat<Scalar> *dynOps = 0);
+                              GenMDDynamMat<Scalar> *dynOps = 0, GenDistrVector<Scalar> *resF = 0);
   DistrInfo &solVecInfo() { return *internalInfo; } // unconstrained dofs
   const DistrInfo &masterSolVecInfo() const;
   DistrInfo &sysVecInfo() { return *internalInfo2; } // all dofs
@@ -175,7 +176,6 @@ class GenDecDomain
   void makeSysVecInfo();
   void makeNodeInfo();
   void setNonTrivialMasterFlag(DistrInfo &);
-  void makeBasicDistrInfo(DistrInfo &, int(Domain::*)());
   void getCPUMap();
   void makeSubDMaps();
   void constructSubDomains(int iSub);
@@ -197,6 +197,7 @@ class GenDecDomain
   void printLMPC();
   void makeBlockCyclicDistrInfo(DistrInfo &, int globalLen, int blockSize);
   void makeNonOverlappingDistrInfo(DistrInfo &info);
+  void makeBasicDistrInfo(DistrInfo &, int(Domain::*)());
 
  private:
   void initialize();

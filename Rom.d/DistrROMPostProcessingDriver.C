@@ -35,6 +35,7 @@ MultiDomainDynam(domain_),
 normalizedBasis_(),
 curState(NULL), fullDispBuffer(NULL), fullVelBuffer(NULL), fullAccBuffer(NULL),
 fullVel2Buffer(NULL), fullDummyBuffer(NULL),
+fullConstForceBuffer(NULL), fullExtForceBuffer(NULL), fullInertForceBuffer(NULL), fullResBuffer(NULL),
 dummyDynOps(NULL)
 {}
 
@@ -46,6 +47,10 @@ DistrROMPostProcessingDriver::~DistrROMPostProcessingDriver()
  if(fullAccBuffer) delete fullAccBuffer;
  if(fullVel2Buffer) delete fullVel2Buffer;
  if(fullDummyBuffer) delete fullDummyBuffer;
+ if(fullConstForceBuffer) delete fullConstForceBuffer;
+ if(fullExtForceBuffer) delete fullExtForceBuffer;
+ if(fullInertForceBuffer) delete fullInertForceBuffer;
+ if(fullResBuffer) delete fullResBuffer;
  if(dummyDynOps) delete dummyDynOps;
 }
 
@@ -69,21 +74,21 @@ DistrROMPostProcessingDriver::preProcess() {
     // read in distributed POD basis
     FileNameInfo fileInfo;
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, j);
-    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName.append(".normalized");  
+    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName.append(".massorthonormalized");  
     DistrBasisInputFile podBasisFile(fileName);  //read in mass-normalized basis
     if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
 
     int globalBasisSize = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
-    if(globalBasisSize <= 0) {
-         int sillyCounter = 0;
-         for(std::vector<int>::iterator it = domain->solInfo().localBasisSize.begin(); it != domain->solInfo().localBasisSize.end(); it++){
-           std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
-           if(domain->solInfo().useMassOrthogonalProjection) dummyName.append(".normalized");
-            DistrBasisInputFile dummyFile(dummyName);
-           *it = dummyFile.stateCount();
-           globalBasisSize += *it;
-         }
+    if(globalBasisSize <= 0 || globalBasisSize == std::numeric_limits<int>::max()) {
+      int sillyCounter = 0;
+      for(std::vector<int>::iterator it = domain->solInfo().localBasisSize.begin(); it != domain->solInfo().localBasisSize.end(); it++) {
+        std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
+        if(domain->solInfo().useMassNormalizedBasis) dummyName.append(".massorthonormalized");
+        DistrBasisInputFile dummyFile(dummyName);
+        *it = dummyFile.stateCount();
+        globalBasisSize += *it;
       }
+    }
 
     for (DistrVecBasis::iterator it = normalizedBasis_.begin() + std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+j, 0),
                                  it_end = normalizedBasis_.begin() + std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.end(), 0);
@@ -152,7 +157,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
                     reducedCoordFile>>dummyVar;
                     reducedAccBuffer.push_back(dummyVar);
                   }
-                  filePrint(stderr,"\r Timestamp = %f", time);
+                  filePrint(stderr,"\r ... Timestamp = %e ... ", time);
                 } else {
                   for(int j = 0; j < podsize; j++) 
                     reducedCoordFile>>dummyVar;
@@ -173,7 +178,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
                     reducedCoordFile>>dummyVar;
                     reducedDispBuffer.push_back(dummyVar);
                   }
-                  filePrint(stderr,"\r Timestamp = %f", time);
+                  filePrint(stderr,"\r ... Timestamp = %e ... ", time);
                 } else {
                   for(int j = 0; j < podsize; j++) 
                     reducedCoordFile>>dummyVar;
@@ -194,7 +199,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
                     reducedCoordFile>>dummyVar;
                     reducedVelBuffer.push_back(dummyVar);
                   }
-                  filePrint(stderr,"\r Timestamp = %f", time);
+                  filePrint(stderr,"\r ... Timestamp = %e ...", time);
                 } else {
                   for(int j = 0; j < podsize; j++)
                     reducedCoordFile>>dummyVar;
@@ -229,6 +234,45 @@ DistrROMPostProcessingDriver::solve() {
    preProcess();
    std::ofstream cvout(domain->solInfo().constraintViolationFile);
 
+   bool computeResidual = false, computeExtForce = false, computeEnergies = false; 
+   double residualNorm = 0, extForceNorm = 0;
+   GenAssembler<double> * assembler = decDomain->getSolVecAssembler();
+   OutputInfo *oinfo = geoSource->getOutputInfo();
+   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++) {
+     if(oinfo[iOut].type == OutputInfo::RomResidual || oinfo[iOut].type == OutputInfo::RomResidual6) {
+       computeResidual = true;
+       filePrint(stderr, " ... Computing ROM Residual         ...\n");
+       fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+       fullExtForceBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
+       fullInertForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+       fullResBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
+       getConstForce(*fullConstForceBuffer);
+       break;
+     }
+   }
+   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++) {
+     if(oinfo[iOut].type == OutputInfo::RomExtForce || oinfo[iOut].type == OutputInfo::RomExtForce6) {
+       computeExtForce = true;
+       filePrint(stderr, " ... Computing ROM External Force   ...\n");
+       if(!computeResidual) {
+         fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+         fullExtForceBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
+         getConstForce(*fullConstForceBuffer);
+       }
+       break;
+     }
+   }
+   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++) {
+     if(oinfo[iOut].type == OutputInfo::Energies) {
+       computeEnergies = true;
+       if(!computeResidual && !computeExtForce) {
+         fullConstForceBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+         fullExtForceBuffer = new GenDistrVector<double>(decDomain->masterSolVecInfo());
+         getConstForce(*fullConstForceBuffer);
+       }
+       break;
+     }
+   }
    int counter = 0; //TODO: make this portion more general so it doesn't depend on the assumption
                     //that all files have matching timestamps
    if(TimeStamps.size() > 0)
@@ -268,13 +312,46 @@ DistrROMPostProcessingDriver::solve() {
      }
 
      geomState->explicitUpdate(decDomain, *fullDispBuffer);
+     geomState->setVelocity(*fullVelBuffer, 2);
+     geomState->setAcceleration(*fullAccBuffer, 2);
+     execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
+
+     if(computeResidual || computeExtForce || computeEnergies) {
+       if(!dummyDynOps) {
+         dummyDynOps = buildOps(1,0,0);
+       }
+       // compute non-follower external forces
+       computeExtForce2(*curState, *fullExtForceBuffer, *fullConstForceBuffer, counter, *it);
+       if(computeResidual) {
+         // compute linear inertial forces M*a
+         dummyDynOps->M->mult(*fullAccBuffer, *fullInertForceBuffer);
+         // compute internal forces and other configuration-dependent forces including external follower forces
+         // and nonlinear inertial force correction
+         getInternalForce(*fullDispBuffer, *fullResBuffer, *it, counter);
+         // add all forces and compute norm
+         *fullResBuffer -= *fullExtForceBuffer;
+         *fullResBuffer += *fullInertForceBuffer;
+         if(domain->solInfo().romresidType == 0) geomState->transform(*fullResBuffer, 2, true); // multiply by T^{-1}
+         assembler->assemble(*fullResBuffer);
+         residualNorm += fullResBuffer->sqNorm();
+       }
+       if(computeExtForce) {
+         // compute external follower forces and add to fullExtForceBuffer
+         getFollowerForce(*fullExtForceBuffer, *it, counter);
+         if(domain->solInfo().romresidType == 0) geomState->transform(*fullExtForceBuffer, 2, true); // multiply by T^{-1}
+         assembler->assemble(*fullExtForceBuffer);
+         extForceNorm += fullExtForceBuffer->sqNorm();
+       }
+     } else
+     if(!dummyDynOps) dummyDynOps = new MDDynamMat;
+
      geomState->transform(*fullVelBuffer, 0, true); // transform angular velocity from the 1st time derivative
                                                     // of the (unscaled) total rotation vector to convected
      geomState->transform(*fullAccBuffer, 4, true); // transform angular acceleration from the 2nd time derivative
                                                     // of the (unscaled) total rotation vector to convected
-     execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
-     if(!dummyDynOps) dummyDynOps = new MDDynamMat;
-     mddPostPro->dynamOutput(counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);
+
+     mddPostPro->dynamOutput(counter, *it, *dummyDynOps, ((fullExtForceBuffer) ? *fullExtForceBuffer : *fullDummyBuffer),
+                             fullDummyBuffer, *curState, fullResBuffer);
 
      if(geoSource->getNumConstraintElementsIeq() && decDomain->getGlobalNumSub() == 1) { // output the constraint violation
        double err = 0;
@@ -294,6 +371,10 @@ DistrROMPostProcessingDriver::solve() {
      counter += 1;
    }  //end of loop over time stamps
 
+   if(computeResidual)
+     filePrint(stderr, "\n ... ROM Residual Norm = %10.4e ...\n", sqrt(residualNorm));
+   if(computeExtForce)
+     filePrint(stderr, " ... Ext. Force Norm   = %10.4e ...\n", sqrt(extForceNorm));
 }
 
 void

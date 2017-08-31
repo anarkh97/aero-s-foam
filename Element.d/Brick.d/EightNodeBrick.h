@@ -61,6 +61,7 @@ class EightNodeBrick: virtual public Element
       { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
                 "              for Hexahedral el.\n"); return (double *) 0;
       }
+    void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
 
     void getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                           int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
@@ -70,6 +71,7 @@ class EightNodeBrick: virtual public Element
 
     void setMaterial(NLMaterial *);
     int numStates();
+    void initStates(double *);
     Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);
 };
 

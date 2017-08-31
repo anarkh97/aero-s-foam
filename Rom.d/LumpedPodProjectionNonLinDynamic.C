@@ -4,6 +4,7 @@
 #include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
 
+#include <fstream>
 #include <utility>
 
 extern GeoSource *geoSource;
@@ -76,9 +77,9 @@ LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGe
 
 void
 LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
-  packedElementWeights_.resize(geoSource->elementLumpingWeightSize());
-  localPackedWeightedNodes_.resize(geoSource->elementLumpingWeightSize());
-  for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {
+  packedElementWeights_.resize(geoSource->elementLumpingWeightSize());    // resize packedElementWeights_ to number of local meshes provided
+  localPackedWeightedNodes_.resize(geoSource->elementLumpingWeightSize());// resize localPackedWeightedNodes_ to number of local meshes provided
+  for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {           // loop over each reduced Mesh
     for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(j),
                                                      it_end = geoSource->elementLumpingWeightEnd(j);
          it != it_end; ++it) {
@@ -115,25 +116,27 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   packedWeightedNodes_.resize(packedNodeIt-packedWeightedNodes_.begin());
 
   if(geoSource->elementLumpingWeightSize() == 1 && packedWeightedElems_.size() < domain->numElements()) {
-    filePrint(stderr, " ... Compressing Basis              ...\n");
-    GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
-    projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
-  }
-  else if(geoSource->elementLumpingWeightSize() > 1) {
-    GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
-    for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {    
-      std::sort(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
-      std::vector<int>::iterator packedNodeIt = std::unique(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
-      localPackedWeightedNodes_[j].resize(packedNodeIt-localPackedWeightedNodes_[j].begin());
-      filePrint(stderr, " ... # Nodes in Reduced Mesh = %-5d...\n", localPackedWeightedNodes_[j].size());
+    if(domain->solInfo().useMassNormalizedBasis) { // don't compress yet if using Local mesh
+      filePrint(stderr, " ... Compressing Basis              ...\n");
+      GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
+      projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
     }
   }
   else {
-    if(!domain->solInfo().useMassNormalizedBasis) {
-      // XXX to support this case we would need to precompute offline and the load online the reduced mass matrix,
-      //     or we could hyper reduce the entire inertial force vector rather than just the nonlinear part
+    if(geoSource->elementLumpingWeightSize() > 1) {
+      GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
+      for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {    
+        std::sort(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
+        std::vector<int>::iterator packedNodeIt = std::unique(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
+        localPackedWeightedNodes_[j].resize(packedNodeIt-localPackedWeightedNodes_[j].begin());
+        filePrint(stderr, " ... # Nodes in Reduced Mesh = %-5d...\n", localPackedWeightedNodes_[j].size());
+      }
+    }
+    if(!domain->solInfo().useMassNormalizedBasis && !domain->solInfo().modalDIMASS) {
       filePrint(stderr, " *** WARNING: \"use_mass_normalized_basis off\" is not supported for\n"
-                        "     for model III when \"samplmsh.elementmesh.inc\" file is used.\n");
+                        "     for model III when \"samplmsh.elementmesh.inc\" file is used   \n"
+                        "     unless a modal DIMASS file is specified containing the reduced \n"
+                        "     mass matrix.\n");
     }
   }
 }
@@ -141,14 +144,17 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
 void
 LumpedPodProjectionNonLinDynamic::setLocalReducedMesh(int j)
 {
+  // zero out current element stiffness matrices
   for(std::map<int, double>::const_iterator it = packedElementWeights_[localReducedMeshId_].begin(),
                                         it_end = packedElementWeights_[localReducedMeshId_].end(); it != it_end; ++it) {
     const int iele = it->first;
     kelArray[iele].zero();
   }
 
+  // set new ID number
   localReducedMeshId_ = std::min(geoSource->elementLumpingWeightSize()-1, j);
 
+  // make new sparse basis
   GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
   projectionBasis.makeSparseBasis(localPackedWeightedNodes_[j], domain->getCDSA()); // these could be computed once, stored and then switched between
 }

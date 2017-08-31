@@ -97,7 +97,7 @@ int main (int argc, char *argv[]) {
         }
       }
 
-      printf("\r time stamp %d = %f \n",tcounter,time1);
+      printf("\r time stamp %d = %f",tcounter,time1);
       tcounter++;
 
       // second: loop over nodes
@@ -138,7 +138,7 @@ int main (int argc, char *argv[]) {
             truth_file >> a1; truth_file >> b1; truth_file >> c1;
             truth_file >> d1; truth_file >> e1; truth_file >> f1;
             if(counter == 0) {
-              std::cout << "skipping time step " << time1 << " in truthfile" << std::endl;
+              std::cout << "\nskipping time step " << time1 << " in truthfile" << std::endl;
               getTime1 = true;
               getTime2 = false;
             }
@@ -149,7 +149,7 @@ int main (int argc, char *argv[]) {
             comp_file >> a2; comp_file >> b2; comp_file >> c2;
             comp_file >> d2; comp_file >> e2; comp_file >> f2;
             if(counter == 0) {
-              std::cout << "skipping time step " << time2 << " in comparisonfile" << std::endl;
+              std::cout << "\nskipping time step " << time2 << " in comparisonfile" << std::endl;
               getTime1 = false;
               getTime2 = true;
             }
@@ -184,7 +184,7 @@ int main (int argc, char *argv[]) {
     relative_errorry = cum_normry/(normalize_factorry);
     relative_errorrz = cum_normrz/(normalize_factorrz);
 
-    cout << "*** absolute error: x ***  = " << cum_normx << endl;
+    cout << "\n*** absolute error: x ***  = " << cum_normx << endl;
     cout << "*** absolute error: y ***  = " << cum_normy << endl;
     cout << "*** absolute error: z ***  = " << cum_normz << endl;
     cout << "*** absolute error: x rotation ***  = " << cum_normrx << endl;

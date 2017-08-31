@@ -61,6 +61,14 @@ GenDistrDomain<Scalar>::~GenDistrDomain()
 
 template<class Scalar>
 void
+GenDistrDomain<Scalar>::clean()
+{
+  if(nodePat) { delete nodePat; nodePat = 0; }
+  GenDecDomain<Scalar>::clean();
+}
+
+template<class Scalar>
+void
 GenDistrDomain<Scalar>::initPostPro()
 {
   if(geoSource->getNumOutInfo()) {
@@ -222,7 +230,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
     if(domain->solInfo().doEigSweep) x = this->outEigCount++;
   }
   else time = eigV;
-  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
+  if (domain->solInfo().loadcases.size() > 0 && !domain->solInfo().doFreqSweep) time = domain->solInfo().loadcases.front();
 
 // RT - serialize the OUTPUT,  PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT
@@ -249,6 +257,13 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || 
          oinfo[iInfo].type == OutputInfo::Energies ||
          oinfo[iInfo].type == OutputInfo::Kirchhoff || 
+         oinfo[iInfo].type == OutputInfo::ModalDsp ||
+         oinfo[iInfo].type == OutputInfo::ModalExF ||
+         oinfo[iInfo].type == OutputInfo::ModalMass ||
+         oinfo[iInfo].type == OutputInfo::ModalStiffness ||
+         oinfo[iInfo].type == OutputInfo::ModalDamping ||
+         oinfo[iInfo].type == OutputInfo::ModalDynamicMatrix ||
+         oinfo[iInfo].type == OutputInfo::ModalMatrices ||
          oinfo[iInfo].type == OutputInfo::AeroForce) { 
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); } 
@@ -268,6 +283,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
          oinfo[iInfo].type != OutputInfo::Farfield && 
          oinfo[iInfo].type != OutputInfo::Energies &&
          oinfo[iInfo].type != OutputInfo::Kirchhoff && 
+         oinfo[iInfo].type != OutputInfo::ModalExF &&
+         oinfo[iInfo].type != OutputInfo::ModalMass &&
+         oinfo[iInfo].type != OutputInfo::ModalStiffness &&
+         oinfo[iInfo].type != OutputInfo::ModalDamping &&
+         oinfo[iInfo].type != OutputInfo::ModalDynamicMatrix &&
+         oinfo[iInfo].type != OutputInfo::ModalMatrices &&
          oinfo[iInfo].type != OutputInfo::AeroForce) {
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -340,6 +361,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Acceleration:
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 3, 0);
         break;
+      case OutputInfo::EigenPair6:
       case OutputInfo::Disp6DOF:
         getPrimal(disps, masterDisps, time, x, iOut, 6, 0);
         break;
@@ -668,6 +690,13 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Jacobian:
       case OutputInfo::RobData:
       case OutputInfo::SampleMesh:
+      case OutputInfo::ModalDsp:
+      case OutputInfo::ModalExF:
+      case OutputInfo::ModalMass:
+      case OutputInfo::ModalStiffness:
+      case OutputInfo::ModalDamping:
+      case OutputInfo::ModalDynamicMatrix:
+      case OutputInfo::ModalMatrices:
         break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented \n", iOut);
@@ -693,8 +722,9 @@ this->communicator->sync();
 }
 
 template<class Scalar>
+template<int dim>
 void
-GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, 11> &disps, DistSVec<Scalar, 11> &masterDisps, 
+GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, dim> &disps, DistSVec<Scalar, dim> &masterDisps, 
                                   double time, int x, int fileNumber, int ndof, int startdof)
 {
   // this function outputs the primal variables: displacement, temperature, pressure
@@ -714,7 +744,7 @@ GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, 11> &disps, DistSVec<Scalar, 
         int *outIndex = this->subDomain[iSub]->getOutIndex();
         for(int iNode = 0; iNode < nOutNodes; iNode++) {
           if(outIndex[iNode] == fileNumber) {
-            Scalar (*nodeDisp)[11] = (Scalar (*)[11]) disps.subData(iSub);
+            Scalar (*nodeDisp)[dim] = (Scalar (*)[dim]) disps.subData(iSub);
             int *outNodes = this->subDomain[iSub]->getOutputNodes();
             switch(ndof) {
               case 6:
@@ -1346,7 +1376,7 @@ template<class Scalar>
 void
 GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<Scalar> &extF, Corotator ***allCorot, double time,
                                        SysState<GenDistrVector<Scalar> > *distState, GenDistrVector<Scalar> *aeroF, DistrGeomState *refState,
-                                       GenDistrVector<Scalar> *reactions, GenMDDynamMat<Scalar> *dynOps)
+                                       GenDistrVector<Scalar> *reactions, GenMDDynamMat<Scalar> *dynOps, GenDistrVector<Scalar> *resF)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
@@ -1447,6 +1477,32 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector
       this->subDomain[iSub]->mergeDistributedReactions(mergedReactions, assembledReactions.subData(iSub));
     }
     reacts.reduce(masterReacts, masterFlag, numFlags);
+  }
+  // initialize and merge residual
+  DistSVec<Scalar, 6> resf(*this->nodeInfo);
+  DistSVec<Scalar, 6> masterResF(masterInfo);
+  if(resF) {
+    GenDistrVector<Scalar> assembledResF(*resF);
+    this->getSolVecAssembler()->assemble(assembledResF);
+    resf = 0; 
+    for(iSub = 0; iSub < this->numSub; ++iSub) { 
+      Scalar (*mergedResF)[6] = (Scalar (*)[6]) resf.subData(iSub);
+      this->subDomain[iSub]->mergeDistributedForces(mergedResF, assembledResF.subData(iSub));
+    }
+    resf.reduce(masterResF, masterFlag, numFlags);
+  }
+  // initialize and merge external force
+  DistSVec<Scalar, 6> extf(*this->nodeInfo);
+  DistSVec<Scalar, 6> masterExtF(masterInfo);
+  if(geoSource->romExtForceOutput()) {
+    GenDistrVector<Scalar> assembledExtF(extF);
+    this->getSolVecAssembler()->assemble(assembledExtF);
+    extf = 0;
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      Scalar (*mergedExtF)[6] = (Scalar (*)[6]) extf.subData(iSub);
+      this->subDomain[iSub]->mergeDistributedForces(mergedExtF, assembledExtF.subData(iSub));
+    }
+    extf.reduce(masterExtF, masterFlag, numFlags);
   }
 // RT - serialize the OUTPUT, PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT
@@ -1553,6 +1609,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Acceleration:
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 3, 0);
         break;
+      case OutputInfo::RomResidual:
+        if(resF) getPrimal(resf, masterResF, time, x, iOut, 3, 0);
+        break;
+      case OutputInfo::RomExtForce:
+        getPrimal(extf, masterExtF, time, x, iOut, 3, 0);
+        break;
       case OutputInfo::Disp6DOF:
         if(oinfo[iOut].rotvecouttype != OutputInfo::Euler || !oinfo[iOut].rescaling) {
           filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
@@ -1573,6 +1635,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
           break;
         }
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::RomResidual6:
+        if(resF) getPrimal(resf, masterResF, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::RomExtForce6:
+        getPrimal(extf, masterExtF, time, x, iOut, 6, 0);
         break;
       case OutputInfo::Temperature:
         getPrimal(disps, masterDisps, time, x, iOut, 1, 0);

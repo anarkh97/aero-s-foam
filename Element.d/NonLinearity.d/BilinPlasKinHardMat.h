@@ -50,14 +50,16 @@ class ElasPlasKinHardMat : public NLMaterial
                                       // and the equivalent plastic strain (1 double)
 
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, double dt=0);
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, double dt=0);
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
 
     void initStates(double *);
 
     double getDensity() { return rho; }
+
+    double getReferenceTemperature() { return Tref; }
 
     StrainEvaluator * getStrainEvaluator();
 
@@ -74,6 +76,8 @@ class ElasPlasKinHardMat : public NLMaterial
     double getDissipatedEnergy(double *statenp);
 
     void print(std::ostream &out) const;
+
+    void print2(std::ostream &out) const;
 
     void setSDProps(MFTTData *_ysst) { if(sigE < 0 && _ysst && _ysst->getID() == -int(sigE)) ysst = _ysst; }
 

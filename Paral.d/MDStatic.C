@@ -18,6 +18,7 @@
 
 template<class Scalar>
 GenMultiDomainStatic<Scalar>::GenMultiDomainStatic(Domain *d)
+ : MultiDomainBase(d->solInfo())
 {
  domain = d;
 #ifdef DISTRIBUTED
@@ -27,7 +28,6 @@ GenMultiDomainStatic<Scalar>::GenMultiDomainStatic(Domain *d)
 #endif
 
  times  = new StaticTimers;
- R = 0; X = 0;
 }
 
 template<class Scalar>
@@ -36,8 +36,6 @@ GenMultiDomainStatic<Scalar>::~GenMultiDomainStatic()
  delete decDomain;
  delete times;
  // solver deleted in StaticSolver
- if(R) delete R;
- if(X) delete X;
 }
 
 template<class Scalar>
@@ -69,7 +67,7 @@ GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
 
  // rbm or eigen mode projector 
  if(domain->solInfo().filterFlags || domain->solInfo().modeFilterFlag)
-   project(rhs);
+   trProject(rhs);
 
  if(domain->solInfo().type == 1) allOps.spMat->getAssembler()->assemble(rhs); // XXXX
 
@@ -107,7 +105,7 @@ GenMultiDomainStatic<Scalar>::preProcess()
    MultiDomainRbm<Scalar> *rigidBodyModes = decDomain->constructRbm();
    if(useRbmFilter) {
      filePrint(stderr," ... RBM Filter Requested           ...\n");
-     projector_prep(rigidBodyModes);
+     projector_prep(rigidBodyModes, allOps.M);
    }
    delete rigidBodyModes;
  }
@@ -115,7 +113,7 @@ GenMultiDomainStatic<Scalar>::preProcess()
  int useModeFilter = domain->solInfo().modeFilterFlag;
  if(useModeFilter) {
    filePrint(stderr, " ... MODE Filter Requested          ...\n");
-   eigmode_projector_prep();
+   eigmode_projector_prep(decDomain->solVecInfo());
  }
 }
 
@@ -410,6 +408,7 @@ GenMultiDomainStatic<Scalar>::multM(int iSub, GenDistrVector<Scalar> *rhs, GenDi
   }
 }
 
+
 template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::multMCoupled1(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
@@ -428,6 +427,64 @@ GenMultiDomainStatic<Scalar>::multMCoupled2(int iSub, GenDistrVector<Scalar> *rh
 {
   GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
   sd->multMCoupled2(rhs->subData(sd->localSubNum()), decDomain->getWiCommPattern()); // TODO
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::getWCAWEFreqSweepRHS(GenDistrVector<Scalar> *rhs, 
+   GenDistrVector<Scalar> **wcawe_u, Scalar *pU, Scalar *pb,
+   int maxRHS, int iRHS)
+{
+  for(int i=0;i<decDomain->getNumSub();i++) {
+    decDomain->getSubDomain(i)->M = (*allOps.M)[i];
+    decDomain->getSubDomain(i)->Muc = (GenCuCSparse<Scalar> *)(*allOps.Muc)[i];
+    if (allOps.C) decDomain->getSubDomain(i)->C = (*allOps.C)[i];
+    if (allOps.C_deriv) {
+      decDomain->getSubDomain(i)->C_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      (decDomain->getSubDomain(i)->C_deriv)[0] = (*(allOps.C_deriv[0]))[i];
+      for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->C_deriv)[j] = 0;
+    }
+    if (allOps.Cuc_deriv) {
+      decDomain->getSubDomain(i)->Cuc_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      (decDomain->getSubDomain(i)->Cuc_deriv)[0] = (*(allOps.Cuc_deriv[0]))[i];
+      for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->Cuc_deriv)[j] = 0;
+    }
+    if (allOps.K_deriv) {
+      decDomain->getSubDomain(i)->K_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      for(int j=0;j<iRHS+1;j++) if ((*(allOps.K_deriv[j]))[i]!=0) {
+          (decDomain->getSubDomain(i)->K_deriv)[j] = (*(allOps.K_deriv[j]))[i];
+      }
+    }
+    if (allOps.Kuc_deriv) {
+      decDomain->getSubDomain(i)->Kuc_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      for(int j=0;j<iRHS+1;j++) if ((*(allOps.Kuc_deriv[j]))[i]!=0) 
+        (decDomain->getSubDomain(i)->Kuc_deriv)[j] = (*(allOps.Kuc_deriv[j]))[i];
+                                else
+        (decDomain->getSubDomain(i)->Kuc_deriv)[j] = 0;
+      
+    }
+  }
+  Timings &timers = solver->getTimers();
+  timedParal4P2(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multWCAWE, rhs, wcawe_u, pU, pb, maxRHS, iRHS);
+ 
+}
+
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::multWCAWE(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, Scalar *pU, Scalar *pb, int maxRHS, int iRHS)
+{
+  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
+  GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [iRHS+1];
+  for(int i=0; i<=iRHS; ++i)
+    sub_u[i]=
+      new  GenStackVector<Scalar>(u[i]->subData(iSub), u[i]->subLen(iSub));
+  sd->multWCAWE(rhs->subData(iSub), sub_u, pU,pb,maxRHS,iRHS); 
+  delete [] sub_u;
 }
 
 template<class Scalar>
@@ -475,111 +532,6 @@ GenMultiDomainStatic<Scalar>::subPade(int iSub, GenDistrVector<Scalar> *sol, Gen
     sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(iSub), u[i]->subLen(iSub));
   sd->pade(sub_sol, sub_u, h, x); // TODO
   delete [] sub_u;
-}
-
-template<class Scalar>
-void
-GenMultiDomainStatic<Scalar>::projector_prep(MultiDomainRbm<Scalar> *rbms)
-{
-  int numR = rbms->numRBM();
-
-  if(numR == 0) return;
-
-  filePrint(stderr," ... Building the RBM Projector     ...\n");
-  filePrint(stderr," ... Number of RBMs = %-4d          ...\n",numR);
-
-  R = new GenDistrVectorSet<Scalar>(numR, decDomain->solVecInfo());
-  rbms->getRBMs(*R);
-
-  GenFSFullMatrix<Scalar> RtR(numR,numR);
-  for(int i=0; i<numR; ++i)
-    for(int j=i; j<numR; ++j)
-      RtR[i][j] = RtR[j][i] = (*R)[i]*(*R)[j];
-
-  GenFSFullMatrix<Scalar> RtRinverse(numR, numR);
-  RtRinverse = RtR.invert();
-
-  Scalar *y = (Scalar *) dbg_alloca(numR*sizeof(Scalar));
-  Scalar *x = (Scalar *) dbg_alloca(numR*sizeof(Scalar));
-
-  X = new GenDistrVectorSet<Scalar>(numR, decDomain->solVecInfo());
-  for(int i=0; i<R->size()/numR; ++i) {
-    for(int j=0; j<numR; ++j) y[j] = (*R)[j].data()[i];
-    RtRinverse.mult(y, x);
-    for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
-  }
-}
-
-template<class Scalar>
-void
-GenMultiDomainStatic<Scalar>::eigmode_projector_prep()
-{
-  if(R) return; // already done it or requested some other filter
-
-  // Read computed eigenvectors from file EIGENMODES
-  // ======================================
-#ifdef DISTRIBUTED
-  char *filename = new char[40];
-  sprintf(filename,"EIGENMODES%d",structCom->myID());
-  BinFileHandler modefile(filename, "r");
-#else
-  BinFileHandler modefile("EIGENMODES", "r");
-#endif
-  if(modefile.get_fileid() <= 0) { fprintf(stderr, " *** Error: Failed to open EIGENMODES file ***\n"); exit(-1); }
-
-  int numR;
-  modefile.read(&numR, 1);
-  filePrint(stderr," ... Reading %d modes from EIGENMODES file ...\n", numR);
-
-  int eigsize;
-  modefile.read(&eigsize, 1);
-  if(eigsize != solVecInfo().totLen()) {
-    fprintf(stderr, " *** Error: Bad data in EIGENMODES file %d %d ***\n", eigsize, solVecInfo().totLen()); exit(-1);
-  }
-
-  R = new GenDistrVectorSet<Scalar>(numR, decDomain->solVecInfo());
-  double *data = new double[eigsize];
-  for(int i = 0; i < numR; ++i) {
-    modefile.read(data, eigsize);
-    for(int j=0; j<eigsize; ++j) (*R)[i].data()[j] = data[j];
-  }
-  delete [] data;
-
-  GenFSFullMatrix<Scalar> RtR(numR,numR);
-  for(int i=0; i<numR; ++i)
-    for(int j=i; j<numR; ++j)
-      RtR[i][j] = RtR[j][i] = (*R)[i]*(*R)[j];
-
-  GenFSFullMatrix<Scalar> RtRinverse(numR, numR);
-  RtRinverse = RtR.invert();
-
-  Scalar *y = (Scalar *) dbg_alloca(numR*sizeof(Scalar));
-  Scalar *x = (Scalar *) dbg_alloca(numR*sizeof(Scalar));
-
-  X = new GenDistrVectorSet<Scalar>(numR, decDomain->solVecInfo());
-  for(int i=0; i<R->size()/numR; ++i) {
-    for(int j=0; j<numR; ++j) y[j] = (*R)[j].data()[i];
-    RtRinverse.mult(y, x);
-    for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
-  }
-}
-
-template<class Scalar>
-void
-GenMultiDomainStatic<Scalar>::project(GenDistrVector<Scalar> &b)
-{
-  int numR = (R) ? R->numVec() : 0;
-  if(numR == 0) return;
-
-  Scalar *y = (Scalar *) dbg_alloca(numR*sizeof(Scalar));
-
-  // y = Rt*b
-  for(int i=0; i<numR; ++i)
-    y[i] = (*R)[i]*b;
-
-  // b = b - X*y
-  for(int i=0; i<b.size(); ++i)
-    for(int j=0; j<numR; ++j) b.data()[i] -= (*X)[j].data()[i]*y[j];
 }
 
 template<class Scalar>

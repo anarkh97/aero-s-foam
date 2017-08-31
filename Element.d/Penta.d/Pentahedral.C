@@ -742,8 +742,26 @@ Pentahedral::setMaterial(NLMaterial *_mat)
 int
 Pentahedral::numStates()
 {
-  int numGaussPoints = 6;
+#ifdef USE_EIGEN3
+  int numGaussPoints = NLPentahedral6::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+#else
+  return 0;
+#endif
+}
+
+void
+Pentahedral::initStates(double *st)
+{
+#ifdef USE_EIGEN3
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLPentahedral6::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
+#endif
 }
 
 Corotator *
@@ -786,3 +804,16 @@ Pentahedral::getDecFace(int iFace, int *fn)
   return count;
 }
 
+void
+Pentahedral::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(Pentahedral::cFrame) {
+    cFrame[0][0] = Pentahedral::cFrame[0]; cFrame[0][1] = Pentahedral::cFrame[1]; cFrame[0][2] = Pentahedral::cFrame[2];
+    cFrame[1][0] = Pentahedral::cFrame[3]; cFrame[1][1] = Pentahedral::cFrame[4]; cFrame[1][2] = Pentahedral::cFrame[5];
+    cFrame[2][0] = Pentahedral::cFrame[6]; cFrame[2][1] = Pentahedral::cFrame[7]; cFrame[2][2] = Pentahedral::cFrame[8];
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
+}

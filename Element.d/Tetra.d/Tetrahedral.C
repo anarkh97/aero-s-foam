@@ -148,7 +148,8 @@ Tetrahedral::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 }
 
 void
-Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                                CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                 double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
    if(strInd != 6) {
@@ -253,9 +254,6 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
   Simo::Jacobian<double,TetraElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
   dStressdx = dSdx(q, 0);
   dStdx.copy(dStressdx.data());
-#ifdef SENSITIVITY_DEBUG 
-  if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
-#endif
 
 #else
   std::cerr << " ... Error! Tetrahedral::getVonMisesNodalCoordinateSensitivity needs Eigen library.\n";
@@ -1065,8 +1063,26 @@ Tetrahedral::setMaterial(NLMaterial *_mat)
 int
 Tetrahedral::numStates()
 {
-  int numGaussPoints = 1;
+#ifdef USE_EIGEN3
+  int numGaussPoints = NLTetrahedral4::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+#else
+  return 0;
+#endif
+}
+
+void
+Tetrahedral::initStates(double *st)
+{
+#ifdef USE_EIGEN3
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLTetrahedral4::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
+#endif
 }
 
 Corotator *
@@ -1105,4 +1121,18 @@ Tetrahedral::getDecFace(int iFace, int *fn)
     case 3: fn[0] = nn[2]; fn[1] = nn[3]; fn[2] = nn[1]; break;
   }
   return 3;
+}
+
+void
+Tetrahedral::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(Tetrahedral::cFrame) {
+    cFrame[0][0] = Tetrahedral::cFrame[0]; cFrame[0][1] = Tetrahedral::cFrame[1]; cFrame[0][2] = Tetrahedral::cFrame[2];
+    cFrame[1][0] = Tetrahedral::cFrame[3]; cFrame[1][1] = Tetrahedral::cFrame[4]; cFrame[1][2] = Tetrahedral::cFrame[5];
+    cFrame[2][0] = Tetrahedral::cFrame[6]; cFrame[2][1] = Tetrahedral::cFrame[7]; cFrame[2][2] = Tetrahedral::cFrame[8];
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
 }

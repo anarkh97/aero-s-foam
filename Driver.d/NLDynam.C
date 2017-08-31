@@ -83,7 +83,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
-    if(corotators[iele] && (!solInfo().getNLInfo().linearelastic || (packedEset[iele]->isConstraintElement() && solInfo().getNLInfo().linearelastic == 2))) {
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
       if(sinfo.newmarkBeta == 0) handleElementDeletion(iele, geomState, pseudoTime, *corotators[iele], elementForce.data());
     }
@@ -92,6 +92,11 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
       Vector disp(packedEset[iele]->numDofs());
       getElementDisp(iele, geomState, disp);
       kel[iele].multiply(disp, elementForce, 1.0);
+      if(solInfo().getNLInfo().linearelastic && packedEset[iele]->isFreeplayElement()) {
+        Vector f(packedEset[iele]->numDofs());
+        getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], f.data(), kel[iele]);
+        for(int idof = 0; idof < f.size(); ++idof) elementForce[idof] += f[idof];
+      }
     }
 
     // Add configuration-dependent external forces and their element stiffness contributions
@@ -155,7 +160,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
     }
   
     // Get updated tangent stiffness matrix and element internal force
-    if(corotators[iele] && (!solInfo().getNLInfo().linearelastic || (packedEset[iele]->isConstraintElement() && solInfo().getNLInfo().linearelastic == 2))) {
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), elementStiff);
     }
     else {
@@ -163,6 +168,11 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
       getElementDisp(iele, geomState, disp);
       kel[iele].copy(packedEset[iele]->stiffness(nodes, kel[iele].data())); // XXX
       kel[iele].multiply(disp, elementForce, 1.0);
+      if(solInfo().getNLInfo().linearelastic && packedEset[iele]->isFreeplayElement()) {
+        Vector f(packedEset[iele]->numDofs());
+        getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], f.data(), kel[iele]);
+        for(int idof = 0; idof < f.size(); ++idof) elementForce[idof] += f[idof];
+      }
     }
 
     // Add configuration-dependent external forces and their element stiffness contributions
@@ -393,7 +403,7 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_fel, Ful
   // element iele with rotation dofs. Currently implemented for lumped mass matrix only
   // (or more specifically, mass matrices with decoupled rotational and translational diagonal blocks),
   // and elements with either 3 or 6 dofs per node.
-  double &beta = sinfo.newmarkBeta,
+  double &beta = domain->solInfo().newmarkBeta,
          &gamma = sinfo.newmarkGamma,
          &alphaf = sinfo.newmarkAlphaF,
          &alpham = sinfo.newmarkAlphaM,
@@ -579,7 +589,7 @@ void
 Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, GeomState *refState, Eigen::Matrix3d &J,
                                Eigen::Vector3d &f, Eigen::Matrix3d &K, bool compute_tangents)
 {
-  double &beta = sinfo.newmarkBeta,
+  double &beta = domain->solInfo().newmarkBeta,
          &gamma = sinfo.newmarkGamma,
          &alphaf = sinfo.newmarkAlphaF,
          &alpham = sinfo.newmarkAlphaM,
@@ -613,7 +623,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
     if(compute_tangents) K.setZero();
   }
   else { // compute the tangent stiffness and/or force correction due to rotary inertia for implicit generalized-alpha
-    if(domain->solInfo().samplingPodRom) {
+    if(domain->solInfo().samplingPodRom || domain->solInfo().ROMPostProcess) {
       // V and A are the convected angular velocity and acceleration at current snapshot after projection
       tangential_transf<double>(Psi, T);
       Eigen::Matrix3d Tinv = T.inverse();

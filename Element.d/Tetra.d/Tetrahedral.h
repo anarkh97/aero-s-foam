@@ -42,7 +42,8 @@ class Tetrahedral: public Element,
                                                int surface, double* ndTemps=0,
                                                int avgnum=1, double ylayer=0, double zlayer=0);
 
-    void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+    void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *,
+                                            CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                             double *ndTemps, int avgnum, double ylayer, double zlayer);
 
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
@@ -70,6 +71,7 @@ class Tetrahedral: public Element,
       { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
                 "              for Tetrahedral el.\n"); return (double *) 0;
       }
+    void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
 
     void getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                           int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
@@ -79,6 +81,7 @@ class Tetrahedral: public Element,
 
     void setMaterial(NLMaterial *);
     int numStates();
+    void initStates(double *st);
     Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);
 };
 

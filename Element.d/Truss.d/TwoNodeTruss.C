@@ -340,13 +340,6 @@ TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
   
         Simo::FirstPartialSpaceDerivatives<double, TwoNodeTrussStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst); 
         dStiffnessdx = dKdx(q, 0);
-#ifdef SENSITIVITY_DEBUG
-        Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-        if(verboseFlag) {
-          std::cerr << "dStiffnessdx(AD) =\n";
-          for(int i=0; i<6; ++i) std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
-        } 
-#endif
         for(int i=0; i<6; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());
 #endif
 }
@@ -599,7 +592,7 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
         break;
       }
 
-      case 1:
+      case 1: case 3:
       { 
         double xl[3][3];
         double xg[3][3] = {{1.0,0.0,0.0},{0.0,1.0,0.0},{0.0,0.0,1.0}};
@@ -711,7 +704,7 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 
   switch (avgnum) {
 
-    case 1:
+    case 1: case 3:
       { 
         if (strInd == 6) {
           double AE = prop->A*prop->E;
@@ -773,7 +766,8 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 }
 
 void
-TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                                 CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                  double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   using std::sqrt;
@@ -815,6 +809,7 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
 
     case 0:
     case 1:
+    case 3:
       {
         // Compute axial force
         double f = prop->A*prop->E*exx;
@@ -852,12 +847,6 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
         dStdDisp[3][1] =  f2s2*dx;   dStdDisp[4][1] =  f2s2*dy;   dStdDisp[5][1] =  f2s2*dz; 
          
         dStdDisp *= (prop->A*prop->E/length);
-#ifdef SENSITIVITY_DEBUG
-        if(verboseFlag) {
-          std::cerr << " ... dStressdDisp(analytic) = \n" << std::endl;
-          dStdDisp.print();
-        }
-#endif
         break;
       }
 

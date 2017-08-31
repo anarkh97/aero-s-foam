@@ -47,7 +47,7 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
 
    // GenSparseMatrix assembly
    void add(FullSquareMatrix &, int *dofs);
-   void add(int, int, Scalar);
+   void addCoef(int, int, Scalar);
    void add(GenAssembledFullM<Scalar> &, int *);
    void addImaginary(FullSquareMatrix &, int *dofs);
    void add(FullSquareMatrixC &, int *dofs); 
@@ -58,6 +58,7 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    void mult(const Scalar *, Scalar *);
    void multAdd(const Scalar *, Scalar *);
    void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result);
+   void transposeMult(const Scalar *, Scalar *);
    void upperMult(Scalar* result);
    void backward(Scalar* result);
 
@@ -111,6 +112,9 @@ class WrapEiSparseMat : public GenEiSparseMatrix<Scalar, SolverClass>
 
     WrapEiSparseMat(CtorData &ctd) : GenEiSparseMatrix<Scalar,SolverClass>(ctd.cn, ctd.dsa, ctd.cdsa, ctd.flg) {}
 };
+
+typedef GenEiSparseMatrix<double> EiSparseMatrix;
+typedef GenEiSparseMatrix<DComplex> EiComplexSparseMatrix;
 
 
 #ifdef _TEMPLATE_FIX_

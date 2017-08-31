@@ -17,6 +17,7 @@ Jacobian<double,DotType2ConstraintFunction>
   a0 << sconst(0), sconst(1), sconst(2);
   b0 << sconst(3), sconst(4), sconst(5);
   b0hat = b0.normalized();
+  int type = iconst(0);
 
   a = a0 + q.segment<3>(6) - q.segment<3>(0);
 
@@ -25,7 +26,7 @@ Jacobian<double,DotType2ConstraintFunction>
     J.segment<3>(0) = -b0hat;
     J.segment<3>(3) = b0hat.cross(a);
     J.segment<3>(6) = b0hat;
-    return J.transpose();
+    if(type == 2) return -J.transpose(); else return J.transpose();
   }
 
   // rotation parameters
@@ -52,7 +53,7 @@ Jacobian<double,DotType2ConstraintFunction>
     J[3+i] = d1.dot(a);
   }
 
-  return J.transpose();
+  if(type == 2) return -J.transpose(); else return J.transpose();
 }
 
 // specializing the member function template of constraint hessian operator for dot
@@ -69,6 +70,7 @@ Hessian<double,DotType2ConstraintFunction>
   a0 << sconst(0), sconst(1), sconst(2);
   b0 << sconst(3), sconst(4), sconst(5);
   b0hat = b0.normalized();
+  int type = iconst(0);
 
   a = a0 + q.segment<3>(6) - q.segment<3>(0);
 
@@ -92,7 +94,7 @@ Hessian<double,DotType2ConstraintFunction>
     H(3,1) = H(1,3) = H(4,6) = H(6,4) = b0hat[2];
     H(3,7) = H(7,3) = H(4,0) = H(0,4) = -b0hat[2];
 
-    return H;
+    if(type == 2) return -H; return H;
   }
 
   // rotation parameters
@@ -118,7 +120,7 @@ Hessian<double,DotType2ConstraintFunction>
     }
   }
 
-  return H;
+  if(type == 2) return -H; return H;
 }
 
 } // namespace Simo

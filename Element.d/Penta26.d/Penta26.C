@@ -569,8 +569,26 @@ Penta26::setMaterial(NLMaterial *_mat)
 int
 Penta26::numStates()
 {
-  int numGaussPoints = 18;
+#ifdef USE_EIGEN3
+  int numGaussPoints = NLPentahedral26::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates() : 0;
+#else
+  return 0;
+#endif
+}
+
+void
+Penta26::initStates(double *st)
+{
+#ifdef USE_EIGEN3
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLPentahedral26::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
+#endif
 }
 
 Corotator *
@@ -636,5 +654,19 @@ Penta26::getFace(int iFace, int *fn)
             fn[8] = nn[17]; fn[9] = nn[16]; fn[10]= nn[23]; fn[11]= nn[22]; count = 12; break;
   }
   return count;
+}
+
+void
+Penta26::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(Penta26::cFrame) {
+    cFrame[0][0] = Penta26::cFrame[0]; cFrame[0][1] = Penta26::cFrame[1]; cFrame[0][2] = Penta26::cFrame[2];
+    cFrame[1][0] = Penta26::cFrame[3]; cFrame[1][1] = Penta26::cFrame[4]; cFrame[1][2] = Penta26::cFrame[5];
+    cFrame[2][0] = Penta26::cFrame[6]; cFrame[2][1] = Penta26::cFrame[7]; cFrame[2][2] = Penta26::cFrame[8];
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
 }
 

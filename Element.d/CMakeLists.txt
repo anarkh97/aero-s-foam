@@ -103,6 +103,7 @@ FelippaShell.d/ShellMaterialType1.cpp
 FelippaShell.d/ShellMaterialTypes2And3.cpp
 FelippaShell.d/ShellMaterialType4.cpp
 FelippaShell.d/ShellMaterialType5.cpp
+FelippaShell.d/ShellMaterialType6.cpp
 FluidQuad.d/BarSloshFS.C    FluidTetra.d/HEVibTetra.C
 FluidQuad.d/HEVibQuadGal.C  FluidTetra.d/SloshTetra.C
 FluidQuad.d/SloshQuadGal.C  FluidTriangle3.d/SloshTriangleFS.C
@@ -202,6 +203,8 @@ Joint.d/RevoluteJointSpringCombo.C
 Joint.d/CylindricalJointSpringCombo.C
 Joint.d/PrismaticJointSpringCombo.C
 Joint.d/PinInSlotJointSpringCombo.C
+Joint.d/RevoluteJointSpringComboWithFreeplay.C
+Joint.d/PrismaticJointSpringComboWithFreeplay.C
 Membrane.d/mass8.f
 Membrane.d/Membrane.C
 Membrane.d/sands19.f
@@ -242,6 +245,12 @@ Function.d/Constraint.d/exp-map.C
 NonLinearity.d/2DMat.C
 NonLinearity.d/ShapeFunction.C
 NonLinearity.d/ElaLinIsoMat.C
+NonLinearity.d/OgdenMat.C
+NonLinearity.d/PronyViscoElastic.C
+NonLinearity.d/SimoElasticMat.C
+NonLinearity.d/SimoPlasticMat.C
+NonLinearity.d/NeoHookeanMat.C
+NonLinearity.d/MooneyRivlinMat.C
 NonLinearity.d/BilinPlasKinHardMatInstance.C
 NonLinearity.d/GaussIntgElem.C
 NonLinearity.d/NLHexahedral.C
@@ -385,6 +394,9 @@ DEM.d/DEMHelm3d.C
 DEM.d/DEMLE2d.C
 DEM.d/DEMLE3d.C
 )
+
+# Make sure we don't compile the following:
+SET_SOURCE_FILES_PROPERTIES(NonLinearity.d/PronyViscoElastic.C PROPERTIES HEADER_FILE_ONLY TRUE)
 
 SET(INC_DIR ..)
 

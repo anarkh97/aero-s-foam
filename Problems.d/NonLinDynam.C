@@ -27,14 +27,17 @@
 #include <Hetero.d/FlExchange.h>
 #include <Utils.d/DistHelper.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <numeric>
+#include <exception>
 
 typedef FSFullMatrix FullMatrix;
 
 extern int verboseFlag;
 
 NonLinDynamic::NonLinDynamic(Domain *d) :
+  SingleDomainBase(d->solInfo()),
   domain(d),
   bcx(0),
   vcx(0),
@@ -167,6 +170,14 @@ NonLinDynamic::getInitState(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p)
 {
   // initialize state with IDISP/IDISP6/IVEL or RESTART
   domain->initDispVeloc(d_n, v_n, a_n, v_p);
+
+  // apply rbmfilter projection
+  if(sinfo.filterFlags || sinfo.hzemFilterFlag) {
+    project(d_n);
+    project(v_n);
+    project(a_n);
+    project(v_p);
+  }
 
   updateUserSuppliedFunction(d_n, v_n, a_n, v_p, domain->solInfo().initialTime);
 
@@ -315,7 +326,6 @@ void
 NonLinDynamic::updateContactSurfaces(GeomState& geomState, GeomState *refState)
 {
   clean();
-  std::cout << "line number " << __LINE__ << " of " << __FILE__ << std::endl;
   domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
 
   if(!domain->solInfo().trivial_detection) 
@@ -345,7 +355,8 @@ NonLinDynamic::updateContactSurfaces(GeomState& geomState, GeomState *refState)
 
   domain->UpdateContactSurfaceElements(&geomState);
   factor = false;
-  preProcess();
+  //NonLinDynamic::preProcess();
+  this->preProcess();
   geomState.resizeLocAndFlag(*domain->getCDSA());
   if(refState) refState->resizeLocAndFlag(*domain->getCDSA());
 }
@@ -394,7 +405,6 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
       localTemp.resize(domain->getCDSA()->size());
     }
   }
-
   getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState, melArray, forceOnly);
 
   times->buildStiffAndForce += getTime();
@@ -614,13 +624,32 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      AllOps<double> ops;
      if(Kuc) { Kuc->zeroAll(); ops.Kuc = Kuc; }
      if(spp) { spp->zeroAll(); ops.spp = spp; }
-     if(domain->solInfo().galerkinPodRom && domain->solInfo().useMassNormalizedBasis) {
+#ifdef USE_EIGEN3
+     if(domain->solInfo().printMatLab) {
+       ops.K = domain->constructEiSparse<double>(); ops.K->zeroAll();
+       ops.M = domain->constructEiSparse<double>(); ops.M->zeroAll();
+     }
+#endif
+     if(domain->solInfo().galerkinPodRom && (domain->solInfo().useMassNormalizedBasis || domain->solInfo().modalDIMASS)) {
        domain->makeSparseOps<double>(ops, Kcoef, 0.0, Ccoef, spm, kelArray, melArray, celArray);
-       dynamic_cast<Rom::PodProjectionSolver*>(solver)->addReducedMass(Mcoef);
+       if(domain->solInfo().useMassNormalizedBasis)
+         dynamic_cast<Rom::PodProjectionSolver*>(solver)->addReducedMass(Mcoef);
+       else {
+#ifdef USE_EIGEN3
+         dynamic_cast<Rom::PodProjectionSolver*>(solver)->addToReducedMatrix(VtMV, Mcoef);
+#endif
+       }
      }
      else {
        domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
      }
+#ifdef USE_EIGEN3
+     if(domain->solInfo().printMatLab) {
+       ops.M->printSparse(std::string(domain->solInfo().printMatLabFile)+".mass");
+       ops.K->printSparse(std::string(domain->solInfo().printMatLabFile)+".stiffness");
+       if(domain->solInfo().printMatLabExit) throw std::exception();
+     }
+#endif
      if(!verboseFlag) solver->setPrintNullity(false);
      domain->getTimers().factor -= getTime();
      solver->factor();
@@ -648,6 +677,12 @@ int
 NonLinDynamic::elemVecInfo()
 {
  return domain->maxNumDOF();
+}
+
+double
+NonLinDynamic::getTolerance()
+{
+ return std::max(tolerance*firstRes, domain->solInfo().getNLInfo().absTolRes);
 }
 
 int
@@ -727,7 +762,11 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0)
     domain->buildAeroheatFlux(rhs, prevFrc->lastFluidLoad, tIndex, t);
 
- times->formRhs += getTime();
+  // apply rbmfilter projection
+  if(sinfo.filterFlags || sinfo.hzemFilterFlag)
+    trProject(rhs);
+
+  times->formRhs += getTime();
 }
 
 void
@@ -830,9 +869,6 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
     getNewmarkParameters(beta, gamma, alphaf, alpham);
     if(domain->solInfo().quasistatic) rhs = 0.;
     else {
-      // rhs = dt*dt*beta*residual - ((1-alpham)/(1-alphaf)*M+dt*gamma*C)*inc_displacement
-      //       + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
-      //       + (dt*dt*((1-alpham)/2-beta)*M - dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2*C)*acceleration
       localTemp.linC(-(1-alpham)/(1-alphaf), inc_displacement, dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
       M->mult(localTemp, rhs);
     }
@@ -926,12 +962,10 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  int useGrbm = domain->solInfo().rbmflg;
  int useHzem = domain->solInfo().hzemFlag;
 
- if (useGrbm)
+ if (useGrbm || sinfo.filterFlags)
    rigidBodyModes = domain->constructRbm();
- else if(useHzem)
+ else if(useHzem || sinfo.hzemFilterFlag)
    rigidBodyModes = domain->constructHzem();
-
- if(rigidBodyModes) delete rigidBodyModes;
 
  // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
  if(!kelArray) {
@@ -954,6 +988,11 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  Mcc    = allOps.Mcc;
  Cuc    = allOps.Cuc;
  Ccc    = allOps.Ccc;
+
+ if(sinfo.filterFlags || sinfo.hzemFilterFlag)
+   projector_prep(rigidBodyModes, M);
+
+ if(rigidBodyModes) delete rigidBodyModes;
 
  if(!allCorot) {
    // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
@@ -1346,7 +1385,9 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
                   rhsSen->copy(allSens->linearstaticWRTshape[ishap]->data());
                   (*rhsSen) *= -1;
                   getSolver()->reSolve(*rhsSen);
-                  *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(rhsSen->data(),domain->numUncon(),1);
+                  *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                                  Eigen::Dynamic> >(rhsSen->data(),
+                                                                                                    domain->numUncon(),1);
                   delete rhsSen;
                 }
               }
@@ -1368,7 +1409,9 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
                   rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
                   (*rhsSen) *= -1; 
                   getSolver()->reSolve(*rhsSen);
-                  *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(rhsSen->data(),domain->numUncon(),1);
+                  *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                                   Eigen::Dynamic> >(rhsSen->data(),
+                                                                                                     domain->numUncon(),1);
                   delete rhsSen;
                 }
               }
@@ -1386,7 +1429,8 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
                 for(int inode=0; inode < numDispNodes; ++inode) {
                   int numDispDofs = (*dispNodes)[inode].numdofs;
                   for(int idof=0; idof < numDispDofs; ++idof) {
-                     (*allSens->dispWRTthick[iparam])(dispDofIndex,0) -= allSens->lambdaDisp[dispDofIndex]->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
+                     (*allSens->dispWRTthick[iparam])(dispDofIndex,0) -= 
+                        allSens->lambdaDisp[dispDofIndex]->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
                      dispDofIndex++;
                   }
                 }
@@ -1398,7 +1442,6 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
             allSens->dwrDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numTotalDispDofs);
             for (int i=0; i<numTotalDispDofs; ++i) {
               (*allSens->dwrDisp)[i] = allSens->lambdaDisp[i]->dot(*(allSens->residual));
-              std::cerr << "allSens.dwrDisp[" << i << "] = " << (*allSens->dwrDisp)[i] << std::endl;
             }
           }
           break;
@@ -1415,7 +1458,9 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
                 rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
                 (*rhsSen) *= -1;
                 getSolver()->reSolve(*rhsSen);
-                *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(rhsSen->data(),domain->numUncon(),1);
+                *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                                 Eigen::Dynamic> >(rhsSen->data(),
+                                                                                                   domain->numUncon(),1);
                 allSens->vonMisesWRTthick->col(iparam) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTthick[iparam]);
                 delete rhsSen;
               }
@@ -1425,7 +1470,8 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
               if(!allSens->lambdaStressVM) computeLambdaNLStressVM(numStressNodes);
               for(int inode = 0; inode < numStressNodes; ++inode)
                 for(int iparam=0; iparam < numThicknessGroups; ++iparam)
-                  (*allSens->vonMisesWRTthick)(inode,iparam) -= allSens->lambdaStressVM[inode]->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
+                  (*allSens->vonMisesWRTthick)(inode,iparam) -= 
+                      allSens->lambdaStressVM[inode]->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
             }
           }
           if (allSens->residual !=0 && allSens->dwrStressVM==0) {
@@ -1433,7 +1479,6 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
             allSens->dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
             for (int i=0; i<numStressNodes; i++) {
               (*allSens->dwrStressVM)[i] = allSens->lambdaStressVM[i]->dot(*(allSens->residual));
-               std::cerr << "allSens.dwrStressVM[" << i << "] = " << (*allSens->dwrStressVM)[i] << std::endl;
             }
           }
           break;
@@ -1448,13 +1493,13 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
               computeLambdaAggregatedStress();
             }
             for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
-              (*allSens->aggregatedVonMisesWRTthick)(iparam) -= allSens->lambdaAggregatedStressVM->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
+              (*allSens->aggregatedVonMisesWRTthick)(iparam) -= 
+                  allSens->lambdaAggregatedStressVM->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
             }
           }
          if (allSens->residual !=0 && allSens->dwrAggregatedStressVM == 0) {
            allSens->dwrAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(1);
            (*allSens->dwrAggregatedStressVM)[0] = allSens->lambdaAggregatedStressVM->dot(*(allSens->residual));
-          std::cerr << "allSens.dwrAggregatedStressVM = " << (*allSens->dwrAggregatedStressVM)[0] << std::endl;
           }
           break;
 
@@ -1473,6 +1518,7 @@ NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
 void
 NonLinDynamic::computeLambdaNLStressVM(int numStressNodes) 
 {
+  #ifdef USE_EIGEN3
   AllSensitivities<double> *allSens = getAllSensitivities();
   std::vector<int> *stressNodes = domain->getStressNodes();
   allSens->lambdaStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>*[numStressNodes];
@@ -1483,14 +1529,17 @@ NonLinDynamic::computeLambdaNLStressVM(int numStressNodes)
     rhsSen = new Vector( solVecInfo() );
     for(int i=0; i<domain->numUncon(); ++i) (*rhsSen)[i] = (*allSens->vonMisesWRTdisp)((*stressNodes)[inode],i);
     getSolver()->reSolve(*rhsSen);
-    *allSens->lambdaStressVM[inode] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(rhsSen->data(),domain->numUncon(),1);
+    *allSens->lambdaStressVM[inode] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                      Eigen::Dynamic> >(rhsSen->data(),domain->numUncon(),1);
     delete rhsSen;
   }
+  #endif
 }
 
 void 
 NonLinDynamic::computeLambdaAggregatedStress()
 {
+  #ifdef USE_EIGEN3
   AllSensitivities<double> *allSens = getAllSensitivities();
   allSens->lambdaAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(domain->numUncon());
   Vector *rhsSen = new Vector( solVecInfo() );
@@ -1498,14 +1547,17 @@ NonLinDynamic::computeLambdaAggregatedStress()
 
   for(int i=0; i<domain->numUncon(); ++i) { (*rhsSen)[i] = (*allSens->aggregatedVonMisesWRTdisp)(i); }
   getSolver()->reSolve(*rhsSen);
-  *allSens->lambdaAggregatedStressVM = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(rhsSen->data(),domain->numUncon(),1);
+  *allSens->lambdaAggregatedStressVM = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                       Eigen::Dynamic> >(rhsSen->data(),
+                                                                                         domain->numUncon(),1);
   delete rhsSen;
-
+  #endif
 }
 
 void
 NonLinDynamic::computeLambdaDisp(int numDispNodes, int numTotalDispDofs)
 {
+  #ifdef USE_EIGEN3
   AllSensitivities<double> *allSens = getAllSensitivities();
   std::vector<DispNode> *dispNodes = domain->getDispNodes();
   allSens->lambdaDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>*[numTotalDispDofs];
@@ -1526,16 +1578,18 @@ NonLinDynamic::computeLambdaDisp(int numDispNodes, int numTotalDispDofs)
       if (loc >= 0) { rhsSen->zero(); (*rhsSen)[loc] = 1.0; }
       else continue;
       getSolver()->reSolve(*rhsSen);
-      *allSens->lambdaDisp[dispDofIndex] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(rhsSen->data(),domain->numUncon(),1);
+      *allSens->lambdaDisp[dispDofIndex] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                           Eigen::Dynamic> >(rhsSen->data(),
+                                                                                             domain->numUncon(),1);
       delete rhsSen;
       dispDofIndex++;
     }
   }
+  #endif
 }
 
 void 
 NonLinDynamic::setUpPODSolver(OutputInfo::Type type) {
-
   if(!domain->solInfo().readInAdjointROB.empty()) {
     Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(solver);
     if(podSolver) {
@@ -1543,7 +1597,8 @@ NonLinDynamic::setUpPODSolver(OutputInfo::Type type) {
       if(it != domain->solInfo().adjointMap.end()) {
         int adjointBasisId = it->second;
         int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
-        int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+        int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), 
+                                       domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
         podSolver->setLocalBasis(startCol, blockCols);
         podSolver->factor();
       }

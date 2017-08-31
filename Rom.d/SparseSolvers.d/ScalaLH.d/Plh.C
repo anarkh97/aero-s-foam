@@ -36,9 +36,10 @@ Plh::initDefaults() {
     _contextInitialized = false;
 
     // Solver
-    _rtol    = 0.0;
-    _maxNP   = 0;
-    _verbose = 1;
+    _rtol       = 0.0;
+    _maxNP      = 0;
+    _verbose    = 1;
+    _constraint = -1;
 
     // Communicator
     _comm = MPI_COMM_WORLD;
@@ -54,14 +55,20 @@ Plh::initDefaults() {
     _mbq     = MBQ_DEFAULT;
     _nbq     = NBQ_DEFAULT;
 
-    _residualIncr = -1;
+    _residualIncr    = -1;
     _residualFilePtr = NULL;
 
     // Downdate masking. A test...
-    _ddmask = false;
-    _wmask = NULL;
-    _colnorms = NULL;
+    _ddmask      = false;
+    _wmask       = NULL;
+    _colnorms    = NULL;
     _col_scaling = false;
+    _PFP         = false;
+    _OMP         = false;
+    _hotStart    = false;
+
+    _hotInd = 0; 
+    _sizeHS = 0;
 }
 
 
@@ -192,6 +199,14 @@ Plh::~Plh() {
         delete _rQR;
         delete _workmQR;
 
+        if(_PFP) { // delete is necessary
+          delete _vertex;
+          delete _oneVecQR;
+          delete _trslvQR;
+          delete _trslv;
+          delete _Atv; 
+        }
+
         if (_work_qr) delete[] _work_qr;
     }
 
@@ -288,6 +303,15 @@ Plh::init() {
     _rQR     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq, _comm);
     _workmQR = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq, _comm); // Change _mb to _mbq and _nb to _nbq
 
+    // Initialize Polytope Face Pursuit data structures
+    if(_PFP) {
+      _vertex   = new SCDoubleMatrix(_context,   _m,    1, _mb,   _nb, _comm);
+      _trslv    = new SCDoubleMatrix(_context,   _n,    1, _mb,   _nb, _comm);
+      _oneVecQR = new SCDoubleMatrix(_contextQR,  1,   _n, _mbq, _nbq, _comm);
+      _trslvQR  = new SCDoubleMatrix(_contextQR, _n,    1, _mbq, _nbq, _comm);
+      _Atv      = new SCDoubleMatrix(_context,    1,   _n, _mb,   _nb, _comm);
+    }
+
     _Q->initqr();
     _work_qr = NULL;
 
@@ -342,6 +366,15 @@ Plh::setColumnScaling() {
     _col_scaling = true;
 }
 
+void
+Plh::setPolytopeFacesPursuit(){
+    _PFP = true;
+}
+
+void
+Plh::setOrthogonalMatchingPursuit(){
+    _OMP = true; 
+}
 
 int
 Plh::setMatrixColumn(int j, double *col) {

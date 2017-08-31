@@ -48,68 +48,6 @@ MaterialWrapper<Material>::getStress(Tensor *_stress, Tensor &_strain, double*, 
 
 template<>
 inline void
-MaterialWrapper<NeoHookean>::getStress(Tensor *_stress, Tensor &_strain, double* state, double temp)
-{
-  // Note: this function is called for post-processing.
-  // In this case we prefer to output the PK2 stress to be consistent with other
-  // materials, and also because the second invariant of the deviatoric PK1 stress
-  // can be negative.
-  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
-  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
-
-  std::vector<double> lstrain; // deformation gradient
-  std::vector<double> lstress; // first P-K stress tensor
-
-  lstrain.resize(9);
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      lstrain[3*i+j] = strain[3*i+j];
-
-  mat->GetConstitutiveResponse(&lstrain, &lstress, NULL);
-
-#ifdef USE_EIGEN3
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&lstrain[0]), P(&lstress[0]), s(&(*stress)[0]);
-  s = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
-#else
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      (*stress)[3*i+j] = lstress[3*i+j];
-#endif
-}
-
-template<>
-inline void
-MaterialWrapper<MooneyRivlin>::getStress(Tensor *_stress, Tensor &_strain, double* state, double temp)
-{
-  // Note: this function is called for post-processing.
-  // In this case we prefer to output the PK2 stress to be consistent with other
-  // materials, and also because the second invariant of the deviatoric PK1 stress
-  // can be negative.
-  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
-  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
-
-  std::vector<double> lstrain; // deformation gradient
-  std::vector<double> lstress; // first P-K stress tensor
-
-  lstrain.resize(9);
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      lstrain[3*i+j] = strain[3*i+j];
-
-  mat->GetConstitutiveResponse(&lstrain, &lstress, NULL);
-
-#ifdef USE_EIGEN3
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&lstrain[0]), P(&lstress[0]), s(&(*stress)[0]);
-  s = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
-#else
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      (*stress)[3*i+j] = lstress[3*i+j];
-#endif
-}
-
-template<>
-inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getStress(Tensor *_stress, Tensor &_strain, double* state, double temp)
 {
   // clone material for thread-safety reasons
@@ -312,7 +250,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStressAn
 template<typename Material>
 void 
 MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                     double *, double *statenp, double, double)
+                                     double *, double *statenp, double, Tensor *, double)
 {
   Tensor_d0s4 *tm = static_cast<Tensor_d0s4 *>(_tm);
   Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
@@ -343,7 +281,7 @@ MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Ten
 template<typename Material>
 void
 MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                                     double *, double *statenp, double, double)
+                                     double *, double *statenp, double, Tensor *, double)
 {
   Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
   Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
@@ -366,7 +304,8 @@ MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
 template<>
 inline void 
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                                                    double *staten, double *statenp, double, double dt)
+                                                                    double *staten, double *statenp, double,
+                                                                    Tensor *, double dt)
 {
   // clone material for thread-safety reasons
   IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
@@ -423,7 +362,8 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
 template<>
 inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                                                               double *staten, double *statenp, double, double)
+                                                                               double *staten, double *statenp, double,
+                                                                               Tensor *, double)
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
 }
@@ -431,7 +371,8 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(T
 template<>
 inline void 
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                                                                    double *staten, double *statenp, double, double dt)
+                                                                    double *staten, double *statenp, double,
+                                                                    Tensor *, double dt)
 {
   // clone material for thread-safety reasons
   IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
@@ -480,7 +421,8 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
 template<>
 inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                                                                               double *staten, double *statenp, double, double)
+                                                                               double *staten, double *statenp, double,
+                                                                               Tensor *, double)
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
 }
@@ -602,36 +544,6 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::setSRDProps
   }
 }
 
-#ifdef USE_EIGEN3
-template<>
-inline double
-MaterialWrapper<NeoHookean>::getStrainEnergyDensity(Tensor &_enp, double *, double temp)
-{
-  Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&enp[0]);
-
-  using std::log;
-  double lnJ = log(F.determinant());
-  return mu/2*((F*F.transpose()).trace() - 3) - mu*lnJ + lambda/2*lnJ*lnJ;
-}
-
-template<>
-inline double
-MaterialWrapper<MooneyRivlin>::getStrainEnergyDensity(Tensor &_enp, double *, double temp)
-{
-  Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&enp[0]);
-
-  using std::log;
-  Eigen::Matrix<double,3,3> C = F.transpose()*F;
-  double I1 = C.trace();
-  double I2 = 0.5*(I1*I1-(C*C).trace());
-  double J = F.determinant();
-  double d = 2*(mu1+2*mu2);
-  return mu1*(I1-3) + mu2*(I2-3) + kappa*(J-1)*(J-1) - d*log(J);
-}
-#endif
-
 template<>
 inline void
 MaterialWrapper<IsotropicLinearElastic>::print(std::ostream &out) const
@@ -640,16 +552,6 @@ MaterialWrapper<IsotropicLinearElastic>::print(std::ostream &out) const
   double E = mu*(3*lambda+2*mu)/(lambda+mu);
   double nu = lambda/(2*(lambda+mu));
   out << "IsotropicLinearElastic " << rho << " " << E << " " << nu;
-}
-
-template<>
-inline void 
-MaterialWrapper<NeoHookean>::print(std::ostream &out) const
-{
-  double rho = mat->GetDensityInReference();
-  double E = mu*(3*lambda+2*mu)/(lambda+mu);
-  double nu = lambda/(2*(lambda+mu));
-  out << "NeoHookean " << rho << " " << E << " " << nu;
 }
 
 template<>
@@ -684,14 +586,6 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::print(std::
       << " " << Tol << " " << epsF << " " << yssrtid;
 }
 
-template<>
-inline void 
-MaterialWrapper<MooneyRivlin>::print(std::ostream &out) const
-{
-  double rho = mat->GetDensityInReference();
-  out << "MooneyRivlin " << rho << " " << mu1 << " " << mu2 << " " << kappa;
-}
-
 template<typename Material>
 void
 MaterialWrapper<Material>::getMaterialConstants(std::vector<double> &c)
@@ -699,21 +593,3 @@ MaterialWrapper<Material>::getMaterialConstants(std::vector<double> &c)
   std::cerr << "material law does not implement getMaterialConstants function\n";
 }
 
-template<>
-inline void
-MaterialWrapper<NeoHookean>::getMaterialConstants(std::vector<double> &c)
-{
-  c.resize(2);
-  c[0] = lambda;
-  c[1] = mu;
-}
-
-template<>
-inline void
-MaterialWrapper<MooneyRivlin>::getMaterialConstants(std::vector<double> &c)
-{
-  c.resize(3);
-  c[0] = mu1;
-  c[1] = mu2;
-  c[2] = kappa;
-}

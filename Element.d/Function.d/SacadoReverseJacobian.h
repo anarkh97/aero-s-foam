@@ -9,6 +9,8 @@
 
 #ifdef USE_SACADO
 #include <Sacado.hpp>
+#include <Sacado_trad.hpp>
+#include <Sacado_tradvec.hpp>
 
 namespace Eigen { namespace internal {
 

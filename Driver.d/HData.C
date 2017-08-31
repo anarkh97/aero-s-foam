@@ -1755,9 +1755,9 @@ HData::setWaveDirections(int iDir, double d1, double d2, double d3)
   double d = sqrt(d1*d1 + d2*d2 + d3*d3);
   if (pointSourceFlag) d = 1.0;
   if (iDir==0) {
-    if (numWaveDirections %10 == 0) {
+    if (numWaveDirections %100 == 0) {
        int i;
-       double *p = new double[(numWaveDirections+10)*3];
+       double *p = new double[(numWaveDirections+100)*3];
        for(i=0;i<numWaveDirections*3;i++) p[i] = waveDirections[i];
        if (numWaveDirections!=0) delete waveDirections;
        waveDirections = p;

@@ -1,9 +1,15 @@
 #ifndef _MD_NL_DYNAMIC_H_
 #define _MD_NL_DYNAMIC_H_
 
+#include <Paral.d/MultiDomainBase.h>
+
 #include <cstddef>
 #include <map>
 #include <vector>
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
+#include <Rom.d/ModalGeomState.h>
 
 class Domain;
 template <class Scalar> class GenDecDomain;
@@ -36,7 +42,7 @@ struct SensitivityInfo;
 
 // Multiple Domain Nonlinear Dynamic problem descriptor
 
-class MDNLDynamic 
+class MDNLDynamic : public MultiDomainBase
 {
   protected:
     Domain *domain;
@@ -100,6 +106,10 @@ class MDNLDynamic
     bool updateCS;
     AllSensitivities<double> *allSens;
 
+#ifdef USE_EIGEN3
+    Eigen::MatrixXd VtMV;
+#endif
+
  public:
 
     // Constructor
@@ -120,7 +130,7 @@ class MDNLDynamic
     DistrInfo& elemVecInfo();
     DistrInfo& sysVecInfo();
 
-    double getTolerance() { return (tolerance*firstRes); }
+    double getTolerance();
 
     void computeTimeInfo();
 
@@ -142,7 +152,7 @@ class MDNLDynamic
 
     double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                            DistrVector& residual, DistrVector& rhs, DistrGeomState *geomState, double localDelta);
-    
+
     void formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, DistrVector& residual,
                           DistrVector& rhs, DistrGeomState &, double mid, double localDelta);
 
@@ -164,7 +174,7 @@ class MDNLDynamic
 
     // getStiffAndForce forms element stiffness matrices and/or
     // returns the residual force = external - internal forces
-    double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, DistrVector& elementInternalForce,
+    virtual double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, DistrVector& elementInternalForce,
                             double midtime=-1, DistrGeomState *refState = NULL, bool forceOnly = false);
 
     // reBuild assembles new dynamic stiffness matrix
@@ -199,6 +209,7 @@ class MDNLDynamic
                 DistrVector &v, DistrVector &a, DistrVector &vp, DistrVector &force);
 
     void sensitivityAnalysis(DistrGeomState*, DistrGeomState*) {}
+    void sensitivityAnalysis(DistrModalGeomState*, DistrModalGeomState *){}
     void preProcessSA() {}
     void postProcessNLSA(DistrGeomState*, DistrGeomState*) {}
     AllSensitivities<double> *getAllSensitivities() { return allSens; }

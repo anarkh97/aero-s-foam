@@ -204,8 +204,9 @@ SuperCorotator::extractDeformations(GeomState &geomState, CoordSet &cs, double *
     sub_vld = new double * [nSubElems];
     for(i=0; i<nSubElems; ++i) sub_vld[i] = 0;
   }
-  for(i=0; i<superElem->numDofs(); ++i) vld[i] = 0.0; // this shouldn't be used, should always use sub_vld for non-linear
-                                                      // because the same dof can have 2 different vld displacements in different sub elements
+  for(i=0; i<superElem->numDofs(); ++i) vld[i] = 0.0; // this shouldn't be used, should always use sub_vld 
+                                                      // for non-linear because the same dof can have 2
+                                                      //different vld displacements in different sub elements
   nlflag = 999;
 
   for(i=0; i<nSubElems; ++i) {
@@ -314,8 +315,9 @@ SuperCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, doubl
     sub_vlr = new double * [nSubElems];
     for(i=0; i<nSubElems; ++i) sub_vlr[i] = 0;
   }
-  for(i=0; i<superElem->numDofs(); ++i) vlr[i] = 0.0; // this shouldn't be used, should always use sub_vlr for non-linear
-                                                      // because the same dof can have 2 different vlr displacements in different sub elements
+  for(i=0; i<superElem->numDofs(); ++i) vlr[i] = 0.0; // this shouldn't be used, should always use sub_vlr 
+                                                      // for non-linear because the same dof can have 
+                                                      // 2 different vlr displacements in different sub elements
   for(i=0; i<nSubElems; ++i) {
     int ndofs = superElem->getSubElemNumDofs(i);
     if(!sub_vlr[i]) sub_vlr[i] = new double[ndofs];
@@ -468,7 +470,8 @@ SuperCorotator::extractDeformationsDisplacementSensitivity(GeomState &geomState,
   }
   int N = superElem->numDofs();
   for(i=0; i<N*N; ++i) dvld[i] = 0;  // this shouldn't be used, should always use sub_dvld for non-linear
-                                     // because the same dof can have 2 different dvld displacement sensitivities in different sub elements
+                                     // because the same dof can have 2 different dvld displacement
+                                     // sensitivities in different sub elements
 
  for(i=0; i<nSubElems; ++i) {
     int n = superElem->getSubElemNumDofs(i);

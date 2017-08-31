@@ -60,6 +60,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int multiply(SCDoubleMatrix &B, SCDoubleMatrix &C, char transA='N', char transB='N', double alpha=1.0, double beta=0.0, int m=0, int n=0, int k=0);
         void getLocalColumn(int jloc, int send_proc, int recv_proc, double *col);
         int hadamardProduct(SCDoubleMatrix &x);
+        int invHadamardProduct(SCDoubleMatrix &x);
         int zero();
         void zero(int ix, int jx, int ni, int nj);
         int set(double val);
@@ -109,9 +110,14 @@ class SCDoubleMatrix : public SCBaseMatrix {
         void stopTime(int i) {_wallclock[i] += SCBaseMatrix::getWallTime(); _wallclock_total[i] += _wallclock[i];}
         double getTime(int i) { return _wallclock_total[i]; }
         double getMaxTime(int i);
-        int norm2Colunns(SCDoubleMatrix& colnorms);
+        int norm2Columns(SCDoubleMatrix& colnorms);
+        int normalizeColumns(char normType = '2', char squareRoot = 'N');
+        int normalizeRows(char normType = '2', char squareRoot = 'N');
+        int computeLaplacian(char normType = '2', char squareRoot = 'N');
+        int computeZeroNormCol(std::vector<int> &container);
         void columnScaling(SCDoubleMatrix& colScale);
         void elementWiseInverse();
+        void elementWiseAbsoluteValue();
         void scaleColumnsByL2Norm(SCDoubleMatrix& colScale);
         bool isFeasible();
         void hessian(SCDoubleMatrix& A, int n=0, bool transpose=false);

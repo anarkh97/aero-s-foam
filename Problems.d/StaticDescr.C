@@ -20,99 +20,6 @@ extern Communicator *structCom;
 #endif
 
 extern Sfem *sfem;
-typedef FSFullMatrix FullMatrix;
-template <class Scalar> class GenVector;
-typedef GenVector<DComplex> ComplexVector;
-
-template<class T, class VectorType, class SolverType>
-void
-SingleDomainStatic<T, VectorType, SolverType>::projector_prep(Rbm *rbms)
-{
- numR = rbms->numRBM(); 
- if (!numR) return;
-
- // KHP: store this pointer to the RBMs to use in the actual
- //      projection step 
- int useProjector = domain->solInfo().filterFlags;
- if(useProjector) {
-   filePrint(stderr," ... Building the RBM Projector     ...\n");
-   filePrint(stderr," ... Number of RBMs = %-4d          ...\n",numR);
- }
-
- int useHzemFilter = domain->solInfo().hzemFilterFlag;
- if(useHzemFilter) {
-   filePrint(stderr," ... Building the HZEM Projector    ...\n");
-   filePrint(stderr," ... Number of HZEMs = %-4d         ...\n",numR);
- }
- int ndof = solVecInfo();
- Rmem = new double[numR*ndof];
- if (useProjector) rbms->getRBMs(Rmem);
- if (useHzemFilter) {
-   for(int n=0; n<ndof; ++n) Rmem[n] = 1.;
- }
-
- int useSlzemFilter = domain->solInfo().slzemFilterFlag;
- if(useSlzemFilter) {
-   filePrint(stderr," ... Building the SLZEM Projector    ...\n");
-   filePrint(stderr," ... Number of SLZEMs = %-4d         ...\n",numR);
- }
-
- if (useSlzemFilter) {
-   for(int n=0; n<ndof; ++n) Rmem[n] = 1.;
- }
-
- StackFSFullMatrix Rt(numR, ndof, Rmem);
-
- FullMatrix R = Rt.transpose();
-
- FullMatrix RtR(numR,numR);
- Rt.mult(R,RtR);
-
- FullMatrix RtRinverse = RtR.invert();
-
- X = new FullMatrix(ndof,numR);
- R.mult(RtRinverse,(*X));
-}
-
-inline void applyMult(FSFullMatrix &M, GenVector<double> &x, GenVector<double> &y)
-{
- M.mult(x,y);
-}
-inline void applyMult(FSFullMatrix &M, ComplexVector &x, ComplexVector &y)
-{
- fprintf(stderr, "Programming error: Project was called on complex vector\n");
-}
-
-template<class T, class VectorType, class SolverType>
-void
-SingleDomainStatic<T, VectorType, SolverType>::project(VectorType &f)
-{
- if (!numR) return;
-
- int ndof = f.size();
-
- typedef typename VectorType::DataType Scalar;
- Scalar *yMem = (Scalar *) dbg_alloca(ndof*sizeof(Scalar));
- Scalar *zMem = (Scalar *) dbg_alloca(ndof*sizeof(Scalar));
-
- GenStackVector<Scalar> y(ndof,yMem);
- GenStackVector<Scalar> z(ndof,zMem);
-
- StackFSFullMatrix Rt(numR, ndof, Rmem);
-
- // y = Rt*f
- y.zero(); applyMult(Rt,f,y);
-
- // z = X*y
- z.zero(); applyMult(*X,y,z);
-
- // f = f - z;
- f.linC(1.0, f, -1.0, z);
-
- // check R^T*f = 0
- //y.zero(); applyMult(Rt,f,y); cerr << "5. y = "; print_debug(y);
-}
-
 
 template<class T, class VectorType, class SolverType>
 int
@@ -123,7 +30,6 @@ SingleDomainStatic<T, VectorType, SolverType>::solVecInfo()
  return ret;
 }
 
-
 template<class T, class VectorType, class SolverType>
 int
 SingleDomainStatic<T, VectorType, SolverType>::solVecInfo(int i)
@@ -132,7 +38,6 @@ SingleDomainStatic<T, VectorType, SolverType>::solVecInfo(int i)
  ret *= i;
  return ret;
 }
-
 
 template<class T, class VectorType, class SolverType>
 void
@@ -158,7 +63,7 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHS(VectorType &rhs)
  // rigid body mode projector (or eigen mode projector)
  bool useProjector = (domain->solInfo().filterFlags || domain->solInfo().modeFilterFlag);
  if(useProjector) 
-   project(rhs);
+   trProject(rhs);
 
  stopTimerMemory(times->formRhs, times->memoryRhs);
 }
@@ -176,7 +81,7 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHSinpc(VectorType &rhs)
 
  int useProjector=domain->solInfo().filterFlags;
  if(useProjector)
-   project(rhs);
+   trProject(rhs);
 
  stopTimerMemory(times->formRhs, times->memoryRhs);
 }
@@ -247,36 +152,25 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
 
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
 
- if(!rigidBodyModes) {
-   int useProjector = domain->solInfo().filterFlags;
-   int useHzemFilter = domain->solInfo().hzemFilterFlag;
-   int useSlzemFilter = domain->solInfo().slzemFilterFlag;
+ int useProjector = domain->solInfo().filterFlags;
+ int useHzemFilter = domain->solInfo().hzemFilterFlag;
+ int useSlzemFilter = domain->solInfo().slzemFilterFlag;
 
+ if(!rigidBodyModes) {
    // ... Construct geometric rigid body modes if necessary
    if(useProjector || domain->solInfo().rbmflg) {
      rigidBodyModes = domain->constructRbm();
-     if(useProjector) {
-       std::cout << " ... RBM Filter Requested           ..." << std::endl;
-       projector_prep(rigidBodyModes);
-     }
+     if(useProjector) std::cout << " ... RBM Filter Requested           ..." << std::endl;
    }
-
    // ... Construct "thermal rigid body mode" if necessary
    else if(useHzemFilter || domain->solInfo().hzemFlag) {
      rigidBodyModes = domain->constructHzem();
-     if(useHzemFilter) {
-       std::cout << " ... HZEM Filter Requested          ..." << std::endl;
-       projector_prep(rigidBodyModes);
-     }
+     if(useHzemFilter) std::cout << " ... HZEM Filter Requested          ..." << std::endl;
    }
-
    // ... Construct "sloshing rigid body mode" if necessary
    else if(useSlzemFilter || domain->solInfo().slzemFlag) {
      rigidBodyModes = domain->constructSlzem();
-     if(useSlzemFilter) {
-       std::cout << " ... SLZEM Filter Requested         ..." << std::endl;
-       projector_prep(rigidBodyModes);
-     }
+     if(useSlzemFilter) std::cout << " ... SLZEM Filter Requested         ..." << std::endl;
    }
  }
 
@@ -289,6 +183,9 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
  solver = allOps.sysSolver;
  kuc = allOps.Kuc;
  kcc = allOps.Kcc;
+
+ if(useProjector || useHzemFilter || useSlzemFilter)
+   projector_prep(rigidBodyModes, allOps.M);
 }
 
 template<class T, class VectorType, class SolverType>
@@ -388,9 +285,6 @@ void
 SingleDomainStatic<T, VectorType, SolverType>::getFreqSweepRHS(VectorType *rhs, VectorType **u, int k)
 { 
   startTimerMemory(times->formRhs, times->memoryRhs);
-// RT: 11/17/2008
-//  double omega2 = (domain->isFluidElement(0) && !domain->solInfo().isCoupled) 
-//                   ? domain->getElementSet()[0]->helmCoef() : geoSource->shiftVal();
   double omega2 = geoSource->shiftVal();
 
   double omega = sqrt(omega2);
@@ -441,56 +335,57 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHS(VectorType &rhs, double om
   delete vec;
 }
 
+//------------------------------------------------------------------------------
+
+
+
+
+
 template<class T, class VectorType, class SolverType>
 void
-SingleDomainStatic<T, VectorType, SolverType>::eigmode_projector_prep()
-{
-  if(Rmem) return; // already done it or requested some other filter
+SingleDomainStatic<T, VectorType, SolverType>::getWCAWEFreqSweepRHS(VectorType *rhs, VectorType **wcawe_u, T* pU, T*pb, int maxRHS,  int iRHS)
+{ 
+  startTimerMemory(times->formRhs, times->memoryRhs);
 
-  // Read computed eigenvectors from file EIGENMODES
-  // ======================================
-  BinFileHandler modefile("EIGENMODES" ,"r");
-  if(modefile.get_fileid() <= 0) { fprintf(stderr, " *** Error: Failed to open EIGENMODES file ***\n"); exit(-1); }
+  double omega2 = geoSource->shiftVal();
+  double omega = sqrt(omega2);
 
-  modefile.read(&numR, 1);
-  fprintf(stderr," ... Reading %d modes from EIGENMODES file ...\n", numR);
-
-  int eigsize;
-  modefile.read(&eigsize, 1);
-  if(eigsize != solVecInfo()) { fprintf(stderr, " *** Error: Bad data in EIGENMODES file ***\n"); exit(-1); }
-
-  Rmem = new double[numR*eigsize];
-  for(int i = 0; i < numR; ++i)
-    modefile.read(Rmem+i*eigsize, eigsize);
-
-/*
-  // Check if eigenvectors are M-orthonormal: Phi_i*M*Phi_i = 1 and Phi_i*M*Phi_j = 0
-  // ======================================
-  GenSparseMatrix<double> *M = (GenSparseMatrix<double> *) allOps.M; // XXXX won't work for complex
-  double *tPhiM =  new double[numR*eigsize];
-  for(int i = 0; i < numR; ++i)
-    M->mult(Rmem+i*eigsize, tPhiM+i*eigsize);  // taking advantage of symmetry of M and computing
-                                               // M*Phi_i instead of transpose(Phi_i)*M
-  for(int i = 0; i < numR; ++i) {
-    for(int j = 0; j < numR; ++j) {
-      double PhiMPhi = 0;
-      for(int k = 0; k < eigsize; ++k) {
-        PhiMPhi += Rmem[k+i*eigsize]*tPhiM[k+j*eigsize];
-      }
-      fprintf(stderr, "Phi_%d*M*Phi_%d = %19.11e\n", i, j, PhiMPhi);
+  VectorType *vec = new VectorType(solVecInfo());
+//  pu = -Z{2}*W(:,ii-1); Z{2} = (-2.0*freqn * M+i*C)/1.0;
+  for(int i=0; i<vec->size(); ++i)
+      (*vec)[i] = 2.0*omega*(*wcawe_u[iRHS-1])[i];
+  allOps.M->mult(vec->data(), rhs->data());
+  if(allOps.C_deriv) {
+    if(allOps.C_deriv[0]) {
+      for(int i=0; i<vec->size(); ++i)
+        (*vec)[i] = -(*wcawe_u[iRHS-1])[i];
+      allOps.C_deriv[0]->multAdd(vec->data(), rhs->data()); 
     }
-    fprintf(stderr,"\n");
   }
-*/
-  // Build U_c(U_c^T*U_c)^{-1} for projector
-  // ======================================
-  StackFSFullMatrix Rt(numR, eigsize, Rmem);
-  FullMatrix R = Rt.transpose();
-  FullMatrix RtR(numR, numR);
-  Rt.mult(R, RtR);
-  FullMatrix RtRinverse = RtR.invert();
+//  pu = pu + b{j+1}*PP(1,ii-j);
+  double factorial = 1.0;
+  for(int j=1;j<=iRHS;j++) {
+    factorial *= double(j);
+    for(int i=0; i<vec->size(); ++i)
+      (*vec)[i] = 0;
+    domain->template buildFreqSweepRHSForce<T>(*vec,
+                           allOps.Muc, allOps.Cuc_deriv,allOps.Kuc_deriv, j, omega);
+    for(int i=0; i<vec->size(); ++i)
+      (*rhs)[i] += pb[j-1]* (*vec)[i]/factorial;
+  }
+//  pu = pu - Z{j+1}*W(:,1:(ii-j))*PP(:,ii-j);
+//  assume j > 2 all 0 (not so for rubber), and for j=2: Z{3} = -M;
+  if (iRHS>1) for(int j=2;j<=2;j++) {
+    for(int i=0; i<vec->size(); ++i)
+      (*vec)[i] = 0;
+    for(int k=0;k<iRHS+1-j;k++) {
+      for(int i=0; i<vec->size(); ++i)
+        (*vec)[i] += pU[k+(j-1)*(iRHS+1)]* (*wcawe_u[k])[i];
+    }
+    allOps.M->multAdd(vec->data(), rhs->data());
+  }
 
-  X = new FullMatrix(eigsize, numR); // X = U(U^t*U)^{-1}
-  R.mult(RtRinverse,(*X));
+  delete vec;
+  stopTimerMemory(times->formRhs, times->memoryRhs);
 }
 

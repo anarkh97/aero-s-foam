@@ -78,16 +78,13 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int pod
   meshOut.precision(std::numeric_limits<double>::digits10+1);
   std::string basisfile = getMeshFilename(fileInfo).c_str();
   basisfile.append(".compressed.basis");
-  if(domain->numInitDisp() || domain->numInitDisp6() || domain->numInitVelocity()) {
-    std::string basisfile2(basisfile);
-    if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) basisfile2.append(".normalized");
-    meshOut << "READMODE \"" << basisfile << "\" \"" << basisfile2 << "\" " << podVectorCount << "\n";
+  meshOut << "READMODE\n";
+  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
+    meshOut << "0 mnorm \"" << basisfile << ".massorthonormalized\" " << podVectorCount << "\n"; 
   }
   else {
-    meshOut << "READMODE \"" << basisfile << "\" " << podVectorCount << "\n";
+    meshOut << "0 inorm \"" << basisfile << ".orthonormalized\" " << podVectorCount << "\n";
   }
-  if(!domain->solInfo().useMassNormalizedBasis && domain->solInfo().newmarkBeta != 0)
-    meshOut << "use_mass_normalized_basis off\n";
   meshOut << "*\n";
   meshOut << mesh;
 }
@@ -100,17 +97,15 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const std::ve
   meshOut.precision(std::numeric_limits<double>::digits10+1);
   std::string basisfile = getMeshFilename(fileInfo).c_str();
   basisfile.append(".compressed.basis");
-  if(domain->numInitDisp() || domain->numInitDisp6() || domain->numInitVelocity()) {
-    std::cerr << "Error: IDISP/IVEL is not supported yet for local bases\n";
-    exit(-1);
-  }
-  else {
-    for(int j=0; j<localBasisSize.size(); ++j) {
-      meshOut << "READMODE \"" << basisfile << j+1 << "\" " << localBasisSize[j] << "\n";
+  meshOut << "READMODE\n";
+  for(int j=0; j<localBasisSize.size(); ++j) {
+    if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
+      meshOut << j+1 << " mnorm \"" << basisfile << (j+1) << ".massorthonormalized\" " << localBasisSize[j] << "\n";                
+    }
+    else {
+      meshOut << j+1 << " inorm \"" << basisfile << (j+1) << ".orthonormalized\" " << localBasisSize[j] << "\n";
     }
   }
-  if(!domain->solInfo().useMassNormalizedBasis && domain->solInfo().newmarkBeta != 0)
-    meshOut << "use_mass_normalized_basis off\n";
   meshOut << "*\n";
   meshOut << mesh;
 }
@@ -144,9 +139,11 @@ outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds, 
       elemAttrib[it->second.nele] = it;
   }
 
-  weightOut << "ATTRIBUTES\n";
+  weightOut << "ATTRIBUTES";
+  if(j >= 0) weightOut << " " << j+1;
+  weightOut << "\n";
   for (int i = 0, iEnd = weights.size(); i != iEnd; ++i) {
-    if(elemAttrib[elemIds[i]] != attrib.end()) {
+    if(elemAttrib[elemIds[i]] != attrib.end() && j < 0) {
       // element has an attribute
       Attrib &a = elemAttrib[elemIds[i]]->second;
       weightOut << elemIds[i]+1 << " " << a.attr+1 << " ";
@@ -183,7 +180,8 @@ int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts, int j=-1, int
     std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
     DistrBasisInputFile in(fileName);
     if(domain->solInfo().randomVecSampling){ // if random sampling, do this
-      const int singleSnapshotCount = std::max(domain->solInfo().skipOffSet, podBasisSize);
+      //const int singleSnapshotCount = std::max(domain->solInfo().randomSampleSize, podBasisSize);
+      const int singleSnapshotCount = domain->solInfo().randomSampleSize;
       snapshotCounts.push_back(singleSnapshotCount);
     } else { // otherwise compute this stuff
       const double N = in.stateCount() - skipOffSet;
@@ -211,7 +209,6 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
   config.dimensionIs(snapshotCount, vectorSize);
   timeStamps.clear();
   timeStamps.reserve(snapshotCount);
-
   
   const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
   const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
@@ -222,19 +219,19 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
 
   // this ain't pretty
   // allocate vector with length equal to total number of vectors 
-  int numberOfVectorsInFile;
   std::vector<int> randRead;
   {
     std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, 0);
     BasisInputStream<6> in(fileName, vecDofConversion);
-    numberOfVectorsInFile = in.size();
-    randRead.resize(in.size());
+    int numberOfVectorsInFile = in.size();
+    randRead.resize(numberOfVectorsInFile);
   }
   std::fill(randRead.begin(),randRead.end(),0);
   // if reading in N randomly selected vectors, call this portion and shuffle 
   if(domain->solInfo().randomVecSampling){
    // start at the offset, then fill in
-   int numberOfVectors = std::max(domain->solInfo().skipPodRom,podVectorCount);// need at least as many vectors as the size of the subspace because reasons
+   //int numberOfVectors = std::max(domain->solInfo().randomSampleSize,podVectorCount);// need at least as many vectors as the size of the subspace because reasons
+   int numberOfVectors = domain->solInfo().randomSampleSize;
    for(int setRead = 0+skipOffSet; setRead < numberOfVectors; setRead++)
     randRead[setRead] = 1;
 
@@ -262,6 +259,7 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
         data.second = snapshot.data();
         in >> data;
         assert(in);
+        config[offset+count] = snapshot.data();
         if(domain->solInfo().useMassOrthogonalProjection) {
           M->mult(snapshot, Msnapshot);
           expand(podBasis, reduce(podBasis, Msnapshot, podComponents), config[offset+count]);
@@ -320,7 +318,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::ElementSamplingDriver(Domain *
   kelArray_(NULL),
   melArray_(NULL),
   veloc_(NULL),
-  accel_(NULL)
+  accel_(NULL),
+  ndscfgCoords_(NULL),
+  ndscfgMassOrthogonalBases_(NULL)
 {}
 
 template<typename MatrixBufferType, typename SizeType>
@@ -349,6 +349,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::clean() {
   if(veloc_) { delete veloc_; veloc_ = NULL; }
   if(accel_) { delete accel_; accel_ = NULL; }
 
+  if(ndscfgCoords_) { delete [] ndscfgCoords_; ndscfgCoords_ = 0; }
+  if(ndscfgMassOrthogonalBases_) { delete [] ndscfgMassOrthogonalBases_; ndscfgMassOrthogonalBases_ = 0; }
+
   timeStamps_.clear();
 }
 
@@ -356,18 +359,27 @@ template<typename MatrixBufferType, typename SizeType>
 template<typename VecBasisType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>
-::assembleTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
-                       const VecBasisType *veloc, const VecBasisType *accel, int j)
+::assembleTrainingData(VecBasisType &podBasisInput, int podVectorCount, VecBasisType &displac,
+                       VecBasisType *veloc, VecBasisType *accel, VecBasisType *ndscfgCoords,
+                       VecBasisType *ndscfgMassOrthogonalBases, int j)
 {
   const FileNameInfo fileInfo;
   std::vector<double>::iterator timeStampFirst = timeStamps_.begin();
   typename MatrixBufferType::iterator elemContributions = solver_.matrixBuffer();
   double *trainingTarget = solver_.rhsBuffer();
+  VecBasisType *podBasis = &podBasisInput;
 
   // Temporary buffers shared by all iterations
   Vector elemTarget(podVectorCount);
+  Vector *elemTarget2;
+  SimpleBuffer<double> *elementForce2;
+  if(domain_->solInfo().stackedElementSampling){
+    elemTarget2   = new Vector(podVectorCount);
+    elementForce2 = new SimpleBuffer<double>(domain_->maxNumDOF());
+  }
   SimpleBuffer<double> elementForce(domain_->maxNumDOF());
 
+  // load CONWEP configuration data
   BlastLoading::BlastData *conwep;
   if(domain_->solInfo().conwepConfigurations.empty()) conwep = (domain_->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   else if(domain_->solInfo().conwepConfigurations.size() < domain_->solInfo().statePodRomFile.size()) {
@@ -376,10 +388,16 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
   }
   domain_->makeElementAdjacencyLists();
 
+  // set snapshot sampling parameters
   int kParam, kSnap, jParam = -1;
-  const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
-  const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
-  const bool poscfg = (domain->solInfo().xScaleFactors.size() > 0);
+  const int skipFactor  = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
+  const int skipOffSet  = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
+  // these flags are for training with snapshots from multiple simulations in which the mesh is deformed
+  const bool poscfg     = domain->solInfo().activatePOSCFG;
+  const bool sclfactor  = (domain->solInfo().xScaleFactors.size() > 0);
+  const bool ndfile     = (ndscfgCoords && domain->solInfo().NodeTrainingFiles.size() > 0);
+  const bool swtchbasis = (ndscfgMassOrthogonalBases && domain->solInfo().MassOrthogonalBasisFiles.size() > 0);
+  double xScaleFactor, yScaleFactor, zScaleFactor;
   std::ifstream sources;
 
   for (int iElem = 0; iElem != elementCount(); ++iElem) { // outer loop over element set
@@ -391,34 +409,45 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
       if(!domain_->solInfo().conwepConfigurations.empty()) {
         conwep = &domain_->solInfo().conwepConfigurations[i];
       }
-      if(poscfg) { // XXX
+      if(poscfg) { // open sources file 
         std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS, i);
         fileName.append(".sources");
         sources.open(fileName.c_str());
+        // this discards everything up to the \n delimiter. called skipOffSet times to account for potential offset
         for(int k = 0; k < skipOffSet; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
       }
 
       for (int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap) { // inner loop over snapshot list
-        if(poscfg) { // XXX
+        if(poscfg) { // if there is a transformation supplied, apply to mesh for current snapshot
           sources >> kParam >> kSnap;
-          for(int k = 0; k < skipFactor; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-          if(kParam != jParam) {
-            if(jParam == -1) {
-              domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactor;
-              domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactor;
-              domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactor;
+          for(int k = 0; k < skipFactor; ++k) sources.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // account for snapshot skipping
+          if(kParam != jParam) { // check to see if new transformation is required, if not continue
+            if(sclfactor) { // if doing linear stretching of coordinates, do this block
+              if(jParam == -1) {
+                xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactor;
+                yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactor;
+                zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactor;
+              }
+              else {
+                xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactors[jParam-1];
+                yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactors[jParam-1];
+                zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactors[jParam-1];
+              }
+              //std::cerr << "scaling position coordinates by " << domain->solInfo().xScaleFactor << " " << domain->solInfo().yScaleFactor
+              //          << " " << domain->solInfo().zScaleFactor << std::endl;
+              geomState_->transformCoords(xScaleFactor, yScaleFactor, zScaleFactor);
             }
-            else {
-              domain->solInfo().xScaleFactor = domain->solInfo().xScaleFactors[kParam-1]/domain->solInfo().xScaleFactors[jParam-1];
-              domain->solInfo().yScaleFactor = domain->solInfo().yScaleFactors[kParam-1]/domain->solInfo().yScaleFactors[jParam-1];
-              domain->solInfo().zScaleFactor = domain->solInfo().zScaleFactors[kParam-1]/domain->solInfo().zScaleFactors[jParam-1];
+            else if(ndfile) { // if using arbitrarily deformed mesh, do this block
+              geomState_->setNewCoords(ndscfgCoords[kParam-1][0]);
             }
-//            std::cerr << "scaling position coordinates by " << domain->solInfo().xScaleFactor << " " << domain->solInfo().yScaleFactor
-//                      << " " << domain->solInfo().zScaleFactor << std::endl;
-            geoSource->transformCoords();
             jParam = kParam;
+            if(swtchbasis) { // if using mass orthonormalized basis, need to switch to that basis
+              int numClust = domain_->solInfo().readInROBorModes.size(); // stride through appropriate local training bases
+              podBasis = &ndscfgMassOrthogonalBases[((j<0)?0:j)+(numClust*(kParam-1))];
+            }
           }
         }
+
         geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
             nodes, displac[iSnap]); // just set the state at the nodes of element iElem
         if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
@@ -436,6 +465,18 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
           domain->getElementDisp(iElem, *geomState_, disp);
           force.zero();
           kelArray_[iElem].multiply(disp, force, 1.0);
+          if(domain_->solInfo().useConstantMassForces){
+            Vector accel(melArray_[iElem].dim()); 
+            StackVector *iForce;
+            if(domain_->solInfo().stackedElementSampling){
+              iForce = new StackVector(elementForce2->array(), melArray_[iElem].dim());; 
+              iForce->zero();
+            } else {
+              iForce = new StackVector(elementForce.array(), melArray_[iElem].dim());
+            }
+            domain->getElementAccel(iElem, *geomState_, accel);
+            melArray_[iElem].multiply(accel, *iForce, -1.0);
+          }
         }
         if(domain_->solInfo().reduceFollower)
           domain_->getElemFollowerForce(iElem, *geomState_, elementForce.array(), elementForce.size(), (corotators_[iElem]),
@@ -447,13 +488,23 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
         }
 
         elemTarget.zero();
+        if(domain_->solInfo().stackedElementSampling)
+          elemTarget2->zero();
         const int dofCount = kelArray_[iElem].dim();
         for (int iDof = 0; iDof != dofCount; ++iDof) {
           const int vecLoc = domain_->getCDSA()->getRCN((*domain_->getAllDOFs())[iElem][iDof]);
           if (vecLoc >= 0) {
             const double dofForce = elementForce[iDof];
+            double dofForce2 = 0.0; 
+            if(domain_->solInfo().stackedElementSampling)
+              dofForce2 = (*elementForce2)[iDof];
             for (int iPod = 0; iPod != podVectorCount; ++iPod) {
-              const double contrib = dofForce * podBasis[iPod][vecLoc];
+              const double contrib = dofForce * (*podBasis)[iPod][vecLoc];
+              double contrib2 = 0.0;
+              if(domain_->solInfo().stackedElementSampling){
+                contrib2 = dofForce2 * (*podBasis)[iPod][vecLoc];
+                (*elemTarget2)[iPod] += contrib2;
+              }
               elemTarget[iPod] += contrib;
             }
           }
@@ -461,12 +512,19 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
         for(int iPod = 0; iPod != podVectorCount; ++iPod) {
           *elemContributions = elemTarget[iPod];
           elemContributions++;
-          trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
+          if(domain_->solInfo().stackedElementSampling){
+            *elemContributions = (*elemTarget2)[iPod];
+            elemContributions++;
+            trainingTarget[2*podVectorCount * iSnap + 2*iPod]   +=   elemTarget[iPod];
+            trainingTarget[2*podVectorCount * iSnap + 2*iPod+1] += (*elemTarget2)[iPod];
+          } else {
+            trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
+          }
         }
         timeStampIt++;
       }
       // reset the element internal states for the next group of snapshots, assuming for now that each group of snapshots
-      // was generated by an independent simulation rather than a restart. For a restart it would be approprate to not
+      // was generated by an independent simulation rather than a restart. For a restart it would be appropriate to not
       // reset the internal states. This could be controlled by a user defined switch.
       int numStates = geomState_->getNumElemStates(domain_->getElementSet()[iElem]->getGlNum());
       if(numStates > 0) {
@@ -481,15 +539,25 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 
+  if(domain_->solInfo().stackedElementSampling){
+    delete elemTarget2;
+    delete elementForce2;
+  } 
 
+  // finally, undo scaling to original mesh for post processing
   if(poscfg) {
-    domain->solInfo().xScaleFactor /= domain->solInfo().xScaleFactors[kParam-1];
-    domain->solInfo().yScaleFactor /= domain->solInfo().yScaleFactors[kParam-1];
-    domain->solInfo().zScaleFactor /= domain->solInfo().zScaleFactors[kParam-1];
-    geoSource->transformCoords();
+    if(sclfactor) {
+      xScaleFactor = domain->solInfo().xScaleFactor/domain->solInfo().xScaleFactors[kParam-1];
+      yScaleFactor = domain->solInfo().yScaleFactor/domain->solInfo().yScaleFactors[kParam-1];
+      zScaleFactor = domain->solInfo().zScaleFactor/domain->solInfo().zScaleFactors[kParam-1];
+      geomState_->transformCoords(xScaleFactor, yScaleFactor, zScaleFactor);
+    }
+    else if(ndfile) {
+      geomState_->setNewCoords(ndscfgCoords[domain->solInfo().NodeTrainingFiles.size()-1][0]);
+    }
   }
-
 }
+
 
 template<typename MatrixBufferType, typename SizeType>
 void
@@ -503,26 +571,86 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
   makePackedToInput(packedToInput);
 
   for(int j=0; j<domain_->solInfo().readInROBorModes.size(); ++j) {
-
+   
     preProcessLocal(allOps, j);
 
-    // Training target (solver_.rhsBuffer) is the sum of elementary contributions
-#ifdef PRINT_ESTIMERS
-    double t2 = getTime();
-#endif
-    for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
-    assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_, j);
-#ifdef PRINT_ESTIMERS
-    fprintf(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
-#endif
-
     Vector solution;
-    computeSolution(solution, domain_->solInfo().tolPodRom);
 
+    if (geoSource->elementLumpingWeightSize() == 0 || geoSource->elementLumpingWeightLocalSize(0) == 0) {
+        // Training target (solver_.rhsBuffer) is the sum of elementary contributions
+      #ifdef PRINT_ESTIMERS
+          double t2 = getTime();
+      #endif
+          for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
+          assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_, ndscfgCoords_, ndscfgMassOrthogonalBases_,
+                               ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
+      #ifdef PRINT_ESTIMERS
+          fprintf(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
+      #endif
+
+          computeSolution(solution, domain_->solInfo().tolPodRom);
+    }
+    else {
+        solution.initialize(elementCount());
+        for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(j),
+                                                          it_end = geoSource->elementLumpingWeightEnd(j);
+                it != it_end; ++it) {
+                solution[it->first] = it->second;
+        }
+    } 
     postProcessLocal(solution, packedToInput, j, sampleElemIds, weights[j]);
   }
-
+  addContactElems(sampleElemIds, weights, sampleElemIds);
   postProcessGlobal(sampleElemIds, weights);
+}
+
+template<typename MatrixBufferType, typename SizeType>
+void
+ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights, std::vector<int> &packedToInput) {
+
+  // Add elements attached to Contact surfaces, needed for assigning mass to nodes in surface
+  int numMC = domain->GetnMortarConds();
+  if(numMC > 0) { 
+    std::set<int> activeSurfs;
+    //First: loop over Mortar Constraints to identify active surfaces
+    for(int mc = 0; mc<numMC; ++mc){
+      if(domain->GetMortarCond(mc)->GetInteractionType() == MortarHandler::CTC){
+        activeSurfs.insert(domain->GetMortarCond(mc)->GetMasterEntityId());
+        activeSurfs.insert(domain->GetMortarCond(mc)->GetSlaveEntityId());
+      }
+    }
+
+    Elemset &inputElemSet = *(geoSource->getElemSet());
+    std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
+    Connectivity *nodeToElem = elemToNode->reverse();
+
+    //Second: loop over list of surfaces to extract elements attached to surface nodes 
+    for(std::set<int>::iterator it = activeSurfs.begin(); it != activeSurfs.end(); ++it){
+      for(int surf = 0; surf < domain->getNumSurfs(); ++surf) { // loop through surfaces and check for matching ID
+        if(*it == domain->GetSurfaceEntity(surf)->GetId()) {
+          int nNodes = domain->GetSurfaceEntity(surf)->GetnNodes();
+          // loop through nodes of surface
+          for(int nn = 0; nn < nNodes; ++nn) {
+            int glNode = domain->GetSurfaceEntity(surf)->GetGlNodeId(nn);
+            // loop through elements attached to node
+            for(int j = 0; j < nodeToElem->num(glNode); ++j) {
+              const int elemRank = (*nodeToElem)[glNode][j];
+              //const int elemRank = packedToInput[k];
+              //fprintf(stderr,"for node %d, element has rank = %d\n",glNode, elemRank);
+              // check if element already in weighted set, if not, add to weights and reduced ElemIds; 
+              if(std::find(sampleElemIds.begin(), sampleElemIds.end(), elemRank) == sampleElemIds.end()){
+                sampleElemIds.push_back(elemRank);
+                // now add zero weight to each local weight map
+                for(int lm = 0; lm < weights.size(); ++lm)
+                  weights[lm].insert(std::make_pair(elemRank, 0.0)); 
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  std::sort(sampleElemIds.begin(), sampleElemIds.end());
 }
 
 template<typename MatrixBufferType, typename SizeType>
@@ -540,6 +668,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
   solver_.maxSizeRatioIs(domain->solInfo().maxSizeSpnnls);
   solver_.maxIterRatioIs(domain->solInfo().maxIterSpnnls);
   solver_.maxNumElemsIs(domain->solInfo().maxElemSpnnls);
+  solver_.useHotStart(domain->solInfo().hotstartSample);
   try {
     solver_.solve();
   }
@@ -662,6 +791,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
   else {
     domain->computeUnamplifiedExtForce(forceFull, 0);
     if(forceFull.norm() != 0) {
+      std::cerr << " ... Computing reduced forces ..\n";
       reduce(podBasis_, forceFull, constForceRed[0]);
       reduce_f.push_back(0);
     }
@@ -683,16 +813,17 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
 #ifdef USE_EIGEN3
   GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *M;
 #endif
-  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0 || domain_->solInfo().readInROBorModes.size() > 1) {
-    AllOps<double> allOps;
-    if(reduce_idis || reduce_ivel || domain_->solInfo().readInROBorModes.size() > 1) { 
+  AllOps<double> allOps;
+  if(((domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0)
+       && (reduce_idis || reduce_ivel || domain_->solInfo().readInROBorModes.size() > 1)) || !domain->solInfo().useMassNormalizedBasis) {
 #ifdef USE_EIGEN3
-      allOps.M = M = domain_->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
+    allOps.M = M = domain_->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
 #else
-      allOps.M = domain->constructDBSparseMatrix<double>();
+    allOps.M = domain->constructDBSparseMatrix<double>();
 #endif
-      domain->makeSparseOps(allOps, 0, 0, 0);
-    }
+    domain->makeSparseOps(allOps, 0, 0, 0);
+  }
+  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
     if(reduce_idis) {
       allOps.M->mult(d0Full, tmp);
       reduce(podBasis_, tmp, d0Red);
@@ -873,6 +1004,18 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
     }
   }
 
+  // build and output reduced mass matrix if mass-normalized basis is not used
+  if(!(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis)) {
+    std::string fileName = domain->solInfo().reducedMeshFile;
+    fileName.append(".reducedmass");
+    meshOut << "*\nDIMASS\nMODAL\n\"" << fileName << "\"\n";
+    std::ofstream matrixOut(fileName.c_str());
+    filePrint(stderr," ... Writing reduced mass matrix to file %s ...\n", fileName.c_str());
+    matrixOut << std::setprecision(16) 
+              << podBasis_.basis().transpose()*(M->getEigenSparse().selfadjointView<Eigen::Upper>()*podBasis_.basis()) << std::endl;
+    matrixOut.close();
+  }
+
   // build and output compressed basis
   DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
   int num_bc = reducedMesh.dirichletBConds().size();
@@ -889,7 +1032,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
         ss << j+1;
         filename.append(ss.str());
       }
-      if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".normalized");
+      if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".massorthonormalized");
+      else filename.append(".orthonormalized");
       filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
       BasisOutputStream<6> output(filename, converter, false);
 
@@ -952,17 +1096,18 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
   
   // Read order reduction data
   const VecNodeDof6Conversion vecDofConversion(*domain_->getCDSA());
-  assert(vectorSize() == vecDofConversion.vectorSize());
+  assert(vectorSize() == vecDofConversion.vectorSize()); 
 
   // Read in basis to be used for the projection:
   // (a) if a mass-orthogonal projection is to be done, then the mass-normalized basis will be read
   // (b) if and orthogonal projection is to be done, then the identity-normalized basis will be read
   {
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, j);
-    if(domain_->solInfo().useMassOrthogonalProjection) fileName.append(".normalized");
+    if(domain_->solInfo().useMassOrthogonalProjection) fileName.append(".massorthonormalized");
+    else fileName.append(".orthonormalized");
     BasisInputStream<6> in(fileName, vecDofConversion);
     if(domain_->solInfo().readInROBorModes.size() == 1) {
-      fprintf(stdout,"... Reading basis from %s ...\n",fileName.c_str());
+      filePrint(stdout," ... Reading basis from %s ...\n", fileName.c_str());
       const int podSizeMax = domain_->solInfo().maxSizePodRom;
       if(podSizeMax != 0) {
         readVectors(in, podBasis_, podSizeMax);
@@ -972,14 +1117,15 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
     } else {
       int globalBasisSize = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.end(), 0);
       if(globalBasisSize <= 0) {
-         int sillyCounter = 0;
-         for(std::vector<int>::iterator it = domain_->solInfo().localBasisSize.begin(); it != domain_->solInfo().localBasisSize.end(); it++){
-           std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
-           if(domain_->solInfo().useMassOrthogonalProjection) dummyName.append(".normalized");
-           BasisInputStream<6> dummyIn(dummyName, vecDofConversion);
-           *it = dummyIn.size();
-           globalBasisSize += *it;
-         }
+        int sillyCounter = 0;
+        for(std::vector<int>::iterator it = domain_->solInfo().localBasisSize.begin(); it != domain_->solInfo().localBasisSize.end(); it++) {
+          std::string dummyName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, sillyCounter); sillyCounter++;
+          if(domain_->solInfo().useMassOrthogonalProjection) dummyName.append(".massorthonormalized");
+          else dummyName.append(".orthonormalized");
+          BasisInputStream<6> dummyIn(dummyName, vecDofConversion);
+          *it = dummyIn.size();
+          globalBasisSize += *it;
+        }
       }
       int startCol = std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+j, 0);
       int blockCols = domain_->solInfo().localBasisSize[j];
@@ -990,10 +1136,13 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
 
   const int podVectorCount = podBasis_.vectorCount();
 
-  // Read some displacement snapshots from one or more files and project them on to the basis
-  readAndProjectSnapshots(BasisId::STATE, vectorSize(), podBasis_, vecDofConversion,
-                          snapshotCounts_, timeStamps_, displac_, allOps.M,
-                          ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
+  // Optionally, read some displacement snapshots from one or more files and project them on to the basis
+  if (!domain_->solInfo().statePodRomFile.empty())
+    readAndProjectSnapshots(BasisId::STATE, vectorSize(), podBasis_, vecDofConversion,
+                              snapshotCounts_, timeStamps_, displac_, allOps.M,
+                              ((domain_->solInfo().readInROBorModes.size() == 1) ? -1 : j));
+  else
+    snapshotCounts_.push_back(0);
 
   // Optionally, read some velocity snapshots and project them on to the reduced order basis
   if(!domain_->solInfo().velocPodRomFile.empty()) {
@@ -1017,12 +1166,17 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
     if(accSnapshotCounts != snapshotCounts_) std::cerr << " *** WARNING: inconsistent acceleration snapshots\n";
   }
   
-  // Read in mass-normalized basis if necessary
-  if((domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis)
-     && !domain_->solInfo().useMassOrthogonalProjection) {
-    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,j);
-    fileName.append(".normalized");
-    fprintf(stdout,"... reading basis from %s ...\n",fileName.c_str());
+  // Read in training basis if necessary (i.e. if it is different to the projection basis)
+  bool useMassNormalizedBasis = (domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis);
+  if((useMassNormalizedBasis && !domain_->solInfo().useMassOrthogonalProjection) ||
+     (!useMassNormalizedBasis && domain_->solInfo().useMassOrthogonalProjection))  {
+    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD, j);
+    if(useMassNormalizedBasis) fileName.append(".massorthonormalized");
+    else fileName.append(".orthonormalized");
+    if(domain_->solInfo().readInROBorModes.size() == 1)
+      fprintf(stdout," ... reading %d basis vectors from %s ...\n",domain_->solInfo().maxSizePodRom,fileName.c_str());
+    else
+      fprintf(stdout," ... reading %d bases vectors from %s ...\n",domain_->solInfo().localBasisSize[j],fileName.c_str());
     BasisInputStream<6> in(fileName, vecDofConversion);
     if(domain_->solInfo().readInROBorModes.size() == 1) {
       const int podSizeMax = domain_->solInfo().maxSizePodRom;
@@ -1040,8 +1194,33 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcessLocal(AllOps<double>
     }
   }
 
-  const int snapshotCount = (j==-1) ? std::accumulate(snapshotCounts_.begin(), snapshotCounts_.end(), 0) : snapshotCounts_[j];
-  solver_.problemSizeIs(podVectorCount*snapshotCount, elementCount());
+  // read in ndscfg coordinates
+  if(domain->solInfo().NodeTrainingFiles.size() > 0) {
+    const VecNodeDofConversion<6> vecDofConversion(domain_->getCDSA()->numNodes()); // note: no constraints
+    ndscfgCoords_ = new VecBasis[domain->solInfo().NodeTrainingFiles.size()];
+    for(int i = 0; i < domain->solInfo().NodeTrainingFiles.size(); ++i) {
+      BasisInputStream<6> in(domain->solInfo().NodeTrainingFiles[i], vecDofConversion); // XXX only need 3 dofs per node, not 6.
+      readVectors(in, ndscfgCoords_[i], 1);
+    }
+  }
+
+  // read in ndscfg mass-normalized bases
+  if(useMassNormalizedBasis && domain->solInfo().MassOrthogonalBasisFiles.size() > 0) {
+    ndscfgMassOrthogonalBases_ = new VecBasis[domain->solInfo().MassOrthogonalBasisFiles.size()];
+    for(int i = 0; i < domain->solInfo().MassOrthogonalBasisFiles.size(); ++i) {
+      int numClust = domain_->solInfo().readInROBorModes.size(); // stride through appropriate local training bases
+      BasisInputStream<6> in(domain->solInfo().MassOrthogonalBasisFiles[i], vecDofConversion);
+      readVectors(in, ndscfgMassOrthogonalBases_[i], podVectorCount); // make sure to read in number of vectors already allocated for */
+    }
+  }
+
+  const int snapshotCount = (domain_->solInfo().readInROBorModes.size() == 1)
+                          ? std::accumulate(snapshotCounts_.begin(), snapshotCounts_.end(), 0) : snapshotCounts_[j];
+  // check whether to separate the inertial and internal forces or not
+  if(domain_->solInfo().stackedElementSampling)
+    solver_.problemSizeIs(2*podVectorCount*snapshotCount, elementCount());
+  else 
+    solver_.problemSizeIs(podVectorCount*snapshotCount, elementCount());
 }
 
 template<typename MatrixBufferType, typename SizeType>

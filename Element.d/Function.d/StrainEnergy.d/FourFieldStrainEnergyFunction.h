@@ -7,6 +7,7 @@
 #include <Element.d/Function.d/StrainEnergyDensity.d/SaintVenantKirchhoffStrainEnergyDensityFunction.h>
 #include <Element.d/Function.d/StrainEnergyDensity.d/NeoHookeanStrainEnergyDensityFunction.h>
 #include <Element.d/Function.d/StrainEnergyDensity.d/MooneyRivlinStrainEnergyDensityFunction.h>
+#include <Element.d/Function.d/StrainEnergyDensity.d/OgdenStrainEnergyDensityFunction.h>
 
 #include <cassert>
 #include <iostream>
@@ -40,7 +41,7 @@ class FourFieldStrainEnergyFunction
   public:
     enum {
       NumberOfNodes  = ShapeFunctionTemplate<Scalar>::NumberOfValues,
-      MaximumNumberOfMaterialConstants = 3,
+      MaximumNumberOfMaterialConstants = 6,
       NumberOfNodes2 = ShapeFunctionTemplate2<Scalar>::NumberOfValues,
       NumberOfNodes3 = ShapeFunctionTemplate3<Scalar>::NumberOfValues,
       NumberOfNodes4 = ShapeFunctionTemplate4<Scalar>::NumberOfValues,
@@ -118,6 +119,9 @@ class FourFieldStrainEnergyFunction
           break;
         case 4 :
           W = new MooneyRivlinStrainEnergyDensityFunction<Scalar>(c[0],c[1]);
+          break;
+        case 5 : 
+          W = new OgdenStrainEnergyDensityFunction<Scalar>(c[0],c[1],c[2],c[3],c[4],c[5]);
           break;
         default : {
           std::cerr << "Error: unsupported strain energy density in FourFieldStrainEnergyFunction\n";

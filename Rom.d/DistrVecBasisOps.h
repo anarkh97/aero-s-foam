@@ -101,9 +101,9 @@ transposeMult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDist
 
   result.dimensionIs(basis.vectorCount(), basis.vectorInfo());
   
-  for (VecIt it = const_cast<BasisType &>(basis).begin(),
+  for (VecIt     it = const_cast<BasisType &>(basis).begin(),
              it_end = const_cast<BasisType &>(basis).end(),
-             jt = result.begin();
+                 jt = result.begin();
        it != it_end;
        ++it, ++jt) {
     const_cast<GenSubDOp<Scalar> &>(matrix).transposeMult(*it, *jt);
@@ -151,17 +151,23 @@ renormalized_basis(const GenSubDOp<Scalar> &metric, const GenVecBasis<Scalar, Ge
 
 // Calculates the reduced stiffness matrix  K_red = Phi^T * K * Phi with Phi as the mass-normalized basis
 template <typename Scalar>
-void calculateReducedStiffness(const GenSubDOp<Scalar> &K, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullSquareMatrix<Scalar> &K_reduced) {
+void calculateReducedStiffness(const GenSubDOp<Scalar> &K, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullSquareMatrix<Scalar> &K_reduced, bool sym = false) {
   // K^T * Phi
   DistrVecBasis product; // used as a buffer for intermediate steps
   transposeMult(K, basis, product);
   // calculate transpose of product multiplied with basis  (K^T * Phi)^T * Phi = Phi^T * K * Phi
   const int vecCount = product.vectorCount();
 
-  GenFullSquareMatrix<Scalar> normalMatrix(vecCount);
+  GenFullSquareMatrix<Scalar> normalMatrix(vecCount); normalMatrix.zero();
   for(int i = 0; i < vecCount; i++){
-    for(int j = 0 ; j < vecCount; j++){
-      normalMatrix[i][j] = dot_ignore_master_flag(product[i],basis[j]);
+    if(sym) { // if symmetric, compute only upper half
+      for(int j = i ; j < vecCount; j++){
+        normalMatrix[i][j] = dot_ignore_master_flag(product[i],basis[j]);
+      }
+    } else { // if not, compute who matrix
+      for(int j = 0 ; j < vecCount; j++){
+        normalMatrix[i][j] = dot_ignore_master_flag(product[i],basis[j]);
+      }
     }
   }
   K_reduced.copy(normalMatrix);

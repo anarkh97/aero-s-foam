@@ -12,7 +12,8 @@ template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                          doublereal*, int point, doublereal temp, doublereal dt)
+                          doublereal *, int point, doublereal temp, doublereal dt,
+                          doublereal *, doublereal *)
 {
   // Local variables 
   int ilayer;
@@ -105,7 +106,8 @@ template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *sigma, doublereal z,
-                               doublereal*, int nd, doublereal temp, doublereal dt)
+                               doublereal*, int nd, doublereal temp, doublereal dt,
+                               doublereal*, doublereal *)
 {
     // Local variables 
     int ilayer;
@@ -192,7 +194,7 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>
-::UpdateState(doublereal *_Upsilon, doublereal *state, int point, doublereal dt)
+::UpdateState(doublereal *_Upsilon, doublereal *, doublereal *state, int point, doublereal temp, doublereal dt)
 {
   // Local variables 
   int ilayer;
@@ -250,7 +252,7 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 std::vector<doublereal>
 ShellMaterialType4<doublereal,localmaterial>
-::GetLocalPlasticStrain(int nd, doublereal z)
+::GetLocalPlasticStrain(int nd, doublereal z, doublereal *)
 {
   // return a copy of the 3-vector of plastic strain
   // at node nd, and layer determined by z, as follows:
@@ -265,7 +267,7 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 std::vector<doublereal>
 ShellMaterialType4<doublereal,localmaterial>
-::GetLocalBackStress(int nd, doublereal z)
+::GetLocalBackStress(int nd, doublereal z, doublereal *)
 {
   // return a copy of the 3-vector of back-stress
   // at node nd, and layer determined by z, as follows:
@@ -280,7 +282,7 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 doublereal
 ShellMaterialType4<doublereal,localmaterial>
-::GetLocalEquivalentPlasticStrain(int nd, doublereal z)
+::GetLocalEquivalentPlasticStrain(int nd, doublereal z, doublereal *)
 {
   // return the equivalent plastic strain
   // at node nd, and layer determined by z, as follows:
@@ -295,7 +297,7 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 doublereal
 ShellMaterialType4<doublereal,localmaterial>
-::GetLocalDamage(int nd, doublereal z)
+::GetLocalDamage(int nd, doublereal z, doublereal *)
 {
   // return the scalar damage
   // at node nd, and layer determined by z, as follows:
@@ -310,7 +312,7 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 doublereal
 ShellMaterialType4<doublereal,localmaterial>
-::GetDissipatedEnergy(int point)
+::GetDissipatedEnergy(int point, doublereal *)
 { 
     doublereal D = 0;
     int ilayer;
@@ -335,7 +337,7 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 bool
 ShellMaterialType4<doublereal,localmaterial>
-::CheckFailure()
+::CheckFailure(doublereal *)
 {
   for(int i = 0; i < nlayer*maxgus; ++i) {
     if(mat[i]->GetMaterialEquivalentPlasticStrain() < mat[i]->GetEquivalentPlasticStrainAtFailure()) return false;
@@ -391,12 +393,12 @@ ShellMaterialType4<doublereal,localmaterial>
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double);
+::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double, double *, double *);
 
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double);
+::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double, double *, double *);
 
 template
 void
@@ -411,37 +413,37 @@ ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::UpdateState(double *, double *, int, double);
+::UpdateState(double *, double *, double *, int, double, double);
 
 template
 std::vector<double>
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalPlasticStrain(int, double);
+::GetLocalPlasticStrain(int, double, double *);
 
 template
 std::vector<double>
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalBackStress(int, double);
+::GetLocalBackStress(int, double, double *);
 
 template
 double
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalEquivalentPlasticStrain(int, double);
+::GetLocalEquivalentPlasticStrain(int, double, double *);
 
 template
 double
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalDamage(int, double);
+::GetLocalDamage(int, double, double *);
 
 template
 double
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetDissipatedEnergy(int);
+::GetDissipatedEnergy(int, double *);
 
 template
 bool
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::CheckFailure();
+::CheckFailure(double *);
 
 template
 void

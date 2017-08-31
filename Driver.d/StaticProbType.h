@@ -96,9 +96,8 @@ class StaticSolver
                   Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
                   Scalar **&VhK_arubber_lV, Scalar **&VhK_arubber_mV,
                   double w, double deltaw);
-     void qrGalProjection(int,int,VecType *sol, VecType **u, VecType **v,
-                        Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
-                        double w, double deltaw);
+     void adaptWindowSweep();
+     void adaptSweep();
 
      void fourier(VecType *sol, VecType **u, double *h, double x);
      void stochStress(VecType *sol);
@@ -106,6 +105,67 @@ class StaticSolver
      void PadeLanczos_BuildSubspace(int nRHS, VecType **sol_prev, VecType **OrthoVec, int numOrthoVec);
      void PadeLanczos_Evaluate(int nRHS, VecType **BasisVector, double* &VtKV, double* &Vtb, double w, VecType *sol, double shiftForK = 0.0);
 };
+
+struct FreqP {
+ int findex;
+ int pindex;
+};
+
+template <class Scalar,
+          class VecType,
+          class ProblemDescriptor>
+struct FWindowSData { 
+  int n0;
+  int n;
+  int imode;
+  int irow;
+  VecType **u; // globally orthogonalized / previous scaling space
+  VecType **ups; // globally orthogonalized / previous scaling space 
+  VecType **v; // localy orthogonalized /
+               // scaling based on current frequency
+  VecType **Ku;
+  VecType **Mu;
+  VecType **Cu;
+  FWindowSData(int _n0, int _imode, ProblemDescriptor* probDesc) {
+    n0=_n0; imode = _imode; irow = -1; n = 0;
+    u = new VecType * [n0];
+    for(int i = 0; i < n0; ++i)
+      u[i] = new VecType(probDesc->solVecInfo());
+    ups = new VecType * [n0];
+    for(int i = 0; i < n0; ++i)
+      ups[i] = new VecType(probDesc->solVecInfo());
+    v = new VecType * [n0];
+    for(int i = 0; i < n0; ++i)
+      v[i] = new VecType(probDesc->solVecInfo());
+    Ku = new VecType * [n0];
+    for(int i = 0; i < n0; ++i)
+      Ku[i] = new VecType(probDesc->solVecInfo());
+    Mu = new VecType * [n0];
+    for(int i = 0; i < n0; ++i)
+      Mu[i] = new VecType(probDesc->solVecInfo());
+    Cu = new VecType * [n0];
+    for(int i = 0; i < n0; ++i) {
+      Cu[i] = new VecType(probDesc->solVecInfo());
+      Cu[i]->zero();
+    }
+  }
+  ~FWindowSData() {
+    for(int i=0;i<n0;i++) delete u[i];
+    delete[] u;
+    for(int i=0;i<n0;i++) delete ups[i];
+    delete[] ups;
+    for(int i=0;i<n0;i++) delete v[i];
+    delete[] v;
+    for(int i=0;i<n0;i++) delete Ku[i];
+    delete[] Ku;
+    for(int i=0;i<n0;i++) delete Mu[i];
+    delete[] Mu;
+    for(int i=0;i<n0;i++) delete Cu[i];
+    delete[] Cu;
+  }
+};
+
+
 
 #ifdef _TEMPLATE_FIX_
 #include <Driver.d/StaticProbType.C>

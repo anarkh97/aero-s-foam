@@ -18,6 +18,9 @@ public:
   void matrixSizeIs(int rows, int cols);
   void maxIterIs(int maxIter);
   void toleranceIs(double tol);
+  void nmfcAlphaIs(double alp);
+  void nmfcBetaIs(double bet);
+  void nmfcGammaIs(double gam);
   void basisDimensionIs(int basisDimension);
   void maxBasisDimensionIs(int maxBasisDimension);
   void numRandInitIs(int numRandInit);
@@ -39,7 +42,7 @@ public:
 
 private:
   int rowCount_, colCount_, maxBasisDimension_, basisDimension_, numRandInit_, method_, maxIter_;
-  double tol_;
+  double tol_, nmfcAlpha, nmfcBeta, nmfcGamma;
 
   SimpleBuffer<double> matrixBuffer_;
   SimpleBuffer<double> robBuffer_;

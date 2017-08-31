@@ -76,6 +76,13 @@ DistrGeomState::subUpdate(int isub, DistrVector &v, int SO3param)
 }
 
 void
+DistrGeomState::subUpdateRef(int isub, DistrGeomState &ref, DistrVector &v, int SO3param)
+{
+  StackVector vec(v.subData(isub), v.subLen(isub));
+  gs[isub]->update(*ref[isub], vec, SO3param);
+}
+
+void
 DistrGeomState::subExplicitUpdate(int isub, DistrVector &v, GenDecDomain<double> *decDomain)
 {
   StackVector vec(v.subData(isub), v.subLen(isub));
@@ -90,10 +97,10 @@ DistrGeomState::subSetVelocity(int isub, DistrVector &v, int SO3param)
 }
 
 void
-DistrGeomState::subSetAcceleration(int isub, DistrVector &a)
+DistrGeomState::subSetAcceleration(int isub, DistrVector &a, int SO3param)
 {
   StackVector asub(a.subData(isub), a.subLen(isub));
-  gs[isub]->setAcceleration(asub);
+  gs[isub]->setAcceleration(asub, SO3param);
 }
 
 void
@@ -231,6 +238,12 @@ DistrGeomState::update(DistrVector &v, int SO3param)
 }
 
 void
+DistrGeomState::update(DistrGeomState &ref, DistrVector &v, int SO3param)
+{
+  execParal3R(numSub, this, &DistrGeomState::subUpdateRef, ref, v, SO3param);
+}
+
+void
 DistrGeomState::explicitUpdate(GenDecDomain<double> *decDomain, DistrVector &v)
 {
   execParal2R(numSub, this, &DistrGeomState::subExplicitUpdate, v, decDomain);
@@ -243,9 +256,9 @@ DistrGeomState::setVelocity(DistrVector &v, int SO3param)
 }
 
 void
-DistrGeomState::setAcceleration(DistrVector &a)
+DistrGeomState::setAcceleration(DistrVector &a, int SO3param)
 {
-  execParal1R(numSub, this, &DistrGeomState::subSetAcceleration, a);
+  execParal2R(numSub, this, &DistrGeomState::subSetAcceleration, a, SO3param);
 }
 
 void

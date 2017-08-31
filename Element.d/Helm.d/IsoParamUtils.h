@@ -211,14 +211,19 @@ public:
  void evaluate(double *x, double *N, double *cross, double nsign, double w) {
    complex<double> e;
    if (pflag==0) {
-     complex<double> a = complex<double>(0.0,
-                              (incdir[0]*x[0]+incdir[1]*x[1]+incdir[2]*x[2]));
+     double aa = incdir[0]*x[0]+incdir[1]*x[1]+incdir[2]*x[2];
+     complex<double> a = complex<double>(0.0,aa);
      complex<double> b = complex<double>(0.0,(nsign*
               (cross[0]*incdir[0]+cross[1]*incdir[1]+cross[2]*incdir[2])));
      if (k==0) 
        e = b * kappa * exp(a*kappa);
-     else 
+     else if (aa==0) {
+       if (k==1) e = b;
+       else e = 0;
+     }
+     else  {
        e = b * pow(a,k-1) * (double(k)+a*kappa) * exp(a*kappa);
+     }
    } else {
      double r = sqrt((x[0]-incdir[0])*(x[0]-incdir[0])+
                      (x[1]-incdir[1])*(x[1]-incdir[1])+

@@ -306,8 +306,10 @@ SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       if(subdvld) subElDvld = new GenFullM<double>(subdvld, n, n);
     }
     if(!subElDisp) subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
-    if(!subElDvld && dDispDisp) subElDvld = new GenFullM<double>(*dDispDisp, subElems[i]->numDofs(), subElemDofs[i], subElems[i]->numDofs(), subElemDofs[i]); 
-    subElems[i]->getVonMisesDisplacementSensitivity(subVonMisesDisplacementSensitivity, subWeight, subElDvld, cs, *subElDisp, strInd, surface, 
+    if(!subElDvld && dDispDisp) subElDvld = new GenFullM<double>(*dDispDisp, subElems[i]->numDofs(), subElemDofs[i],
+                                                                 subElems[i]->numDofs(), subElemDofs[i]); 
+    subElems[i]->getVonMisesDisplacementSensitivity(subVonMisesDisplacementSensitivity, subWeight, subElDvld, cs,
+                                                    *subElDisp, strInd, surface, 
                                                     0, subAvgnum, ylayer, zlayer);
     weight.add(subWeight, subElemNodes[i]);
     for(int j = 0; j < subElems[i]->numDofs(); ++j) {
@@ -822,6 +824,15 @@ SuperElement::isConstraintElement()
   // return true if one of the sub elements is a rigid mpc element
   for(int i = 0; i < nSubElems; ++i)
     if(subElems[i]->isConstraintElement()) return true;
+  return false;
+}
+
+bool
+SuperElement::isFreeplayElement()
+{
+  // return true if one of the sub elements is a freeplay element
+  for(int i = 0; i < nSubElems; ++i)
+    if(subElems[i]->isFreeplayElement()) return true;
   return false;
 }
 

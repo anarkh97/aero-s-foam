@@ -26,6 +26,7 @@
  extern std::string decomposition_;
  extern std::string connectivity_;
  extern bool randomShuffle;
+ extern bool allowMechanisms;
 %}
 
 %union
@@ -42,7 +43,9 @@
  MFTTData *ymtt;
  MFTTData *ctett;
  MFTTData *sdetaft;
+#ifdef USE_EIGEN3
  GenMFTTData<Eigen::Vector4d> *rubdaft;
+#endif
  ComplexBCList *cxbclist;
  ComplexBCond cxbcval;
  FrameData frame;
@@ -64,23 +67,25 @@
  OutputInfo oinfo;
  ConstraintOptions copt;
  BlastLoading::BlastData blastData;
+ FreeplayProps freeplayProps;
+ ModalParams::Type mpt;
 }
 
 %expect 6
 
 %token ACTUATORS ADJOINTBASIS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT 
-%token AUGMENT AUGMENTTYPE AUXILIARY AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
-%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
+%token AUGMENT AUGMENTTYPE AUXILIARY AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU ALLOWMECHANISMS
+%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED ANDESCLR ANDESCQR ANDESBETAB ANDESALPHA ANDESBETAM AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
-%token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
+%token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION CONTACT
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token CONSTANT CONWEP
-%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING ANGLE DUALBASIS DUALRB KMEANS CRANDOM
+%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING DOROWCLUSTERING ANGLE DUALBASIS DUALRB KMEANS CRANDOM
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
-%token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
-%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSGL FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
+%token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLAGMN FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID FREEPLAY
+%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FREQSWEEPAW FSGL FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
@@ -88,36 +93,37 @@
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL IMESH 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KEYLETTER KRYLOVTYPE KIRLOC
-%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOADCASE LOBPCG LOCALREDUCEDORDERBASES LOCALSOLVER LINESEARCH LUMPED
+%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LISRBM LMPC LOAD LOADCASE LOBPCG LOCALREDUCEDORDERBASES LOCALSOLVER LINESEARCH LUMPED
 %token KSPARAM KSMAX 
 %token MASS MASSAUGMENTATION MATERIALS MATLAB MAXITR MAXELEM MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
-%token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
+%token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLMEMPTYPE NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
 %token SENSITIVITY SENSITIVITYMETHOD OUTPUT OUTPUT6 OUTPUTFRAME
 %token QSTATIC QLOAD QUASISTATIC
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
-%token RADIATION RBMFILTER RBMSET READMODE READSENSITIVITY REBUILD REVERSEORDER REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROTVECOUTTYPE RESCALING RUBDAFT
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE PARAMETERS
+%token RADIATION RBMFILTER RBMSET READMODE READSENSITIVITY REBUILD REVERSEORDER REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROBTYPE ROTVECOUTTYPE RESCALING RUBDAFT
 %token SCALING SCALINGTYPE SDETAFT SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
-%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT SENSITIVITYID
+%token STATS STRESSID SUBSPACE SURFACE STR_THERM_OPTION SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT SENSITIVITYID
 %token TABLE TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOLSEN TOPFILE TOPOLOGY TRBM THERMOE THERMOH RATIOTOLSEN 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL CENTER POSELEM HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL THICKNESSGROUPLIST
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL CENTER POSELEM HOTSTART HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL NUMROMCPUS THICKNESSGROUPLIST
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WETCORNERS YMTT YSST YSSRT
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC VISCOLINEARELASTIC VISCOSTVENANTKIRCHHOFF NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS
+%token PLANESTRESSLINEAR PLANESTRESSSTVENANTKIRCHHOFF PLANESTRESSNEOHOOKEAN PLANESTRESSMOONEYRIVLIN PLANESTRESSBILINEARPLASTIC PLANESTRESSFINITESTRAINPLASTIC PLANESTRESSVISCOLINEARELASTIC PLANESTRESSVISCOSTVENANTKIRCHHOFF PLANESTRESSVISCONEOHOOKEAN PLANESTRESSVISCOMOONEYRIVLIN
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
-%token NSUBS EXITAFTERDEC SKIP RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
+%token NSUBS EXITAFTERDEC SKIP ROBCSOLVE RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE
-%token SNAPFI VELSNAPFI ACCSNAPFI DSVSNAPFI PODROB ROMENERGY TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN FILTERROWS
+%token SNAPFI VELSNAPFI ACCSNAPFI DSVSNAPFI PODROB ROMENERGY TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI ROMRES SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS NODEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USENMFC USEGREEDY USEPQN FILTERROWS
 %token VECTORNORM REBUILDFORCE REBUILDCONSTRAINT SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB CONSTRAINTROB DEIMINDICES UDEIMINDICES SVDFORCESNAP SVDCONSTRAINTSNAP
-%token USEMASSNORMALIZEDBASIS ONLINEMASSNORMALIZEBASIS
+%token USEMASSNORMALIZEDBASIS USECONSTANTMASS ONLINEMASSNORMALIZEBASIS STACKED
 %token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST RELAXATIONSEN 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 %token NPMAX BSSPLH PGSPLH
@@ -128,6 +134,7 @@
 %type <bclist>   BCDataList IDisp6 TBCDataList PBCDataList AtdDirScatterer AtdNeuScatterer IDisp6Pita IVel6Pita
 %type <bclist>   DirichletBC NeumanBC TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
 %type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem 
+%type <bclist>   UsddLocations
 %type <bcval>    BC_Data TBC_Data ModalVal PBC_Data HEVDBC_Data
 %type <coefdata> CoefList
 %type <cxbcval>  ComplexBC_Data ComplexMPCHeader
@@ -141,9 +148,10 @@
 %type <ival>     DAMPING ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE LoadCase
 %type <ival>     RBMSET RENUMBERID OPTCTV
+%type <mpt>      ROBTYPE
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
-%type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE MOMENTTYPE SPNNLSSOLVERTYPE CLUSTERSOLVERTYPE SENSITIVITYID
+%type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE STR_THERM_OPTION MOMENTTYPE SPNNLSSOLVERTYPE CLUSTERSOLVERTYPE SENSITIVITYID
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
@@ -164,14 +172,16 @@
 %type <MortarCondObj> MortarCondition TiedSurfaces ContactSurfacesInfo
 %type <ival>     MPCTYPEID MPCPRECNOID MPCBLOCKID
 %type <ival>     ISOLVERTYPE RECONSALG
-%type <ival>     PRECTYPEID SWITCH KEYLETTER Pressure
+%type <ival>     PRECTYPEID SWITCH KEYLETTER Pressure FLAGMN
 %type <oinfo>    OutInfo
 %type <copt>     ConstraintOptionsData
 %type <blastData> ConwepData
+%type <freeplayProps> FreeplayProps
 %%
 FinalizedData:
 	All END
 	 { 
+          if(domain->solInfo().piecewise || domain->solInfo().freeplay) domain->solInfo().activatePiecewise();
           return 0;
          }
 	;
@@ -222,8 +232,11 @@ Component:
 	| SensorLocations
 	| ActuatorLocations
 	| UsddLocations
+        { if(geoSource->setUsddLocation($1->n,$1->d) < 0) return -1;
+          if(geoSource->setDirichlet($1->n,$1->d) < 0)    return -1; delete $1; }
 	| UsdfLocations
         | DynInfo
+        | PrintMat
         | DeleteElements
         | Conwep
 	| SloshInfo 
@@ -349,7 +362,7 @@ Component:
         {}
 	| BoffsetList
 	| ParallelInTimeInfo 
-        | AcmeControls
+        | Parameters 
         | Constraints
 	| SvdToken
         | DeimIndices
@@ -375,7 +388,7 @@ Inpc:
 Group:
         GROUP NewLine
         | Group GROUPTYPE Integer Integer NewLine
-        { if ($2 == OutputInfo::Attribute)  geoSource->setGroupAttribute($3-1, $4-1);
+        { if ($2 == OutputInfo::Attribute)  geoSource->setAttributeGroup($3-1, $4-1);
           else if ($2 == OutputInfo::Nodal)  geoSource->setNodeGroup($3-1, $4);
           else  {  fprintf(stderr, " ### AS.ERR: Unrecognized Group Type: %d\n", $2);  exit(-1); }
         }
@@ -383,7 +396,7 @@ Group:
         { int i;
           if ($2 == OutputInfo::Attribute)  {
             for(i=$3; i<$4+1; ++i)
-              geoSource->setGroupAttribute(i-1,$5-1);
+              geoSource->setAttributeGroup(i-1,$5-1);
           }
           else if ($2 == OutputInfo::Nodal)  {
             for(i=$3; i<$4+1; ++i)
@@ -429,9 +442,11 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.maxP = $8;
           domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
           if ($6 == SweepParams::KrylovGalProjection) 
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
-          else 
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
+          else if ($6 == SweepParams::WCAWEGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
+          else
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
           domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$3;
           domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
           domain->solInfo().getSweepParams()->adaptSweep.atol = $7;
@@ -439,6 +454,30 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $10;
           domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $11;
           domain->solInfo().getSweepParams()->nFreqSweepRHS = $10;
+        }
+        | Impe FREQSWEEPAW Float Float Integer RECONSALG Float Integer Integer Float Float NewLine
+        {
+          if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+          domain->setFrequencySet(domain->solInfo().curSweepParam);
+          domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, 2, $5);
+          domain->solInfo().getSweepParams()->isAdaptSweep = true;
+          domain->solInfo().getSweepParams()->adaptSweep.maxP = $8;
+          domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
+          if ($6 == SweepParams::KrylovGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
+          else if ($6 == SweepParams::WCAWEGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
+          else
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
+          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$3;
+          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
+          domain->solInfo().getSweepParams()->adaptSweep.atol = $7;
+          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = -1;
+          domain->solInfo().getSweepParams()->nFreqSweepRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.ctolf = $10;
+          domain->solInfo().getSweepParams()->adaptSweep.tol1f = $11;
         }
         | Impe FREQSWEEPA Float Float Integer RECONSALG NewLine
         {
@@ -449,14 +488,21 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.maxP = 6;
           domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
           if ($6 == SweepParams::KrylovGalProjection) {
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
+             domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
+             domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
+             domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 48;
+             domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
+          }
+          else if ($6 == SweepParams::WCAWEGalProjection) {
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
              domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
              domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
              domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 48;
              domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
           }
           else {
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
              domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
              domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
              domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 16;
@@ -540,7 +586,7 @@ ReconsInfo:
               m = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
-            case SweepParams::QRGalProjection:
+            case SweepParams::WCAWEGalProjection:
               n = $3;
               m = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
@@ -589,7 +635,7 @@ ReconsInfo:
               m = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
-            case SweepParams::QRGalProjection:
+            case SweepParams::WCAWEGalProjection:
               n = $3;
               l = $4;
               m = 1;
@@ -662,6 +708,8 @@ Decompose :
          {decInit->trivial = true; randomShuffle = bool($3); }
        | Decompose FSGL NewLine
          {decInit->fsgl = true; }
+       | Decompose ALLOWMECHANISMS NewLine
+         {allowMechanisms = true; }
        ;
 WeightList :
        WEIGHTLIST NewLine
@@ -701,6 +749,12 @@ LoadCase:
         { $$ = 0; }
         | LOADCASE Integer NewLine
         { $$ = $2; }
+        | LOADCASE Integer GRAVITY SWITCH NewLine 
+        { $$ = $2; domain->setLoadFactorGrav($2, $4); }
+        | LOADCASE Integer TEMP SWITCH NewLine 
+        { $$ = $2; domain->setLoadFactorTemp($2, $4); }
+        | LOADCASE Integer GRAVITY SWITCH TEMP SWITCH NewLine
+        { $$ = $2; domain->setLoadFactorGrav($2, $4); domain->setLoadFactorTemp($2, $6); }
         | LoadCase Integer Float NewLine
         { domain->setLoadFactor($$, $2, $3); }
         | LoadCase Integer MFTT Integer NewLine
@@ -835,7 +889,10 @@ DiscrMasses:
 	  { domain->addDMass($2-1,$3-1,$4); }
         | DiscrMasses Integer Integer Integer Float NewLine
           { domain->addDMass($2-1,$3-1,$5,$4-1); }
-	;
+        | DiscrMasses MODAL NewLine FNAME NewLine
+        { domain->solInfo().modalDIMASS = true;
+          domain->solInfo().reducedMassFile = $4; }
+        ;
 Gravity:
 	GRAVITY NewLine
 	| Gravity Float Float Float NewLine
@@ -882,11 +939,21 @@ UsdfLocations:
           if(geoSource->setNeuman($3->n,$3->d) < 0)       return -1; } 
 	;
 UsddLocations:
-	USERDEFINEDISP NewLine BCDataList
-	{ geoSource->binaryInputControlLeft = true;
-          for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdd;
-          if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;
-          if(geoSource->setDirichlet($3->n,$3->d) < 0)    return -1; }
+        USERDEFINEDISP NewLine
+        { geoSource->binaryInputControlLeft = true;
+          $$ = new BCList; }
+        | UsddLocations BC_Data
+        { $2.type = BCond::Usdd; $$->add($2); }
+        | UsddLocations Integer THRU Integer Integer NewLine
+        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, 0., BCond::Usdd); $$->add(bc); } }
+        | UsddLocations Integer THRU Integer STEP Integer Integer NewLine
+        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, 0., BCond::Usdd); $$->add(bc); } }
+        | UsddLocations SURF BC_Data
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0] = $3;
+          surf_bc[0].type = BCond::Usdd;
+          geoSource->addSurfaceDirichlet(1,surf_bc);
+          if(geoSource->getNumSurfaceDirichlet() > 1) delete [] surf_bc; }
 	;
 Output:
 	OUTPUT NewLine
@@ -905,6 +972,10 @@ Output:
         { numColumns = 3; domain->outFlag = $2; geoSource->setOutLimit($3); }
         | OUTPUT6 KEYLETTER Integer NewLine
         { numColumns = 6; domain->outFlag = $2; geoSource->setOutLimit($3); }
+        | OUTPUT FNAME NewLine
+        { numColumns = 3; geoSource->getCheckFileInfo()->outputExt = $2; }
+        | OUTPUT6 FNAME NewLine
+        { numColumns = 6; geoSource->getCheckFileInfo()->outputExt = $2; }
         | Output OutInfo NewLine
         { $2.finalize(numColumns); geoSource->addOutput($2); }
         ;
@@ -939,6 +1010,8 @@ OutInfo:
         { $$.nodeNumber = $3-1; }
         | OutInfo SURFACE
         { $$.surface = $2; }
+        | OutInfo STR_THERM_OPTION
+        { $$.str_therm_option = $2; }
         | OutInfo Float Float
         { $$.ylayer = $2; $$.zlayer = $3; }
         | OutInfo AVERAGED
@@ -980,8 +1053,8 @@ DynInfo:
 	| EIGEN Integer NewLine
 	{ domain->solInfo().setProbType(SolverInfo::Modal);
 	  domain->solInfo().nEig = $2;}
-  | QRFACTORIZATION SWITCH NewLine
-  { domain->solInfo().qrfactorization = $2;}
+	| QRFACTORIZATION SWITCH NewLine
+	{ domain->solInfo().qrfactorization = $2;}
 	| NEIGPA Integer NewLine
 	{ domain->solInfo().nEig = $2; }
 	| SUBSPACE NewLine
@@ -1023,9 +1096,19 @@ DynInfo:
         | DynInfo MAXITR Integer NewLine
         { domain->solInfo().maxitEig = $3; }
         | TESTULRICH NewLine
-          { domain->solInfo().test_ulrich = true; }
+        { domain->solInfo().test_ulrich = true; }
         | ADDEDMASS Integer NewLine
         { domain->solInfo().addedMass = $2; }
+        ;
+PrintMat:
+        PRINTMATLAB FNAME NewLine
+        { domain->solInfo().printMatLab = true;
+          domain->solInfo().printMatLabFile = $2;
+          domain->solInfo().printMatLabExit = true; }
+        | PRINTMATLAB FNAME EXITAFTERDEC NewLine
+        { domain->solInfo().printMatLab = true;
+          domain->solInfo().printMatLabFile = $2; 
+          domain->solInfo().printMatLabExit = true; }
 	;
 DeleteElements:
         DELETEELEMENTS NewLine DeleteElementsList NewLine
@@ -1059,6 +1142,13 @@ TopInfo:
 	TOPFILE NewLine
 	{ domain->solInfo().setProbType(SolverInfo::Top); }
 	;
+ModalInfo:
+	MODAL Integer
+	{ domain->solInfo().modal_id.push_back($2); }
+	| ModalInfo Integer
+	{ domain->solInfo().modal_id.push_back($2); }
+	| ModalInfo CONTACT Integer
+	{ domain->solInfo().contact_modal_id.push_back($3); }
 DynamInfo:
         DYNAM NewLine 
         { domain->solInfo().setProbType(SolverInfo::Dynamic); }
@@ -1066,6 +1156,8 @@ DynamInfo:
         | DynamInfo TimeInfo
         | DynamInfo DampInfo
         | DynamInfo MODAL NewLine
+        { domain->solInfo().modal = true; domain->solInfo().modal_id.push_back(0); }
+        | DynamInfo ModalInfo NewLine
         { domain->solInfo().modal = true; }
         | DynamInfo STABLE Integer NewLine
         { domain->solInfo().stable = $3; }
@@ -1153,7 +1245,9 @@ QstaticInfo:
         | QstaticInfo QMechInfo
         | QstaticInfo QHeatInfo
         | QstaticInfo MODAL NewLine
-        { domain->solInfo().modal = true; }
+        { domain->solInfo().modal = true; domain->solInfo().modal_id.push_back(0); }
+        | QstaticInfo MODAL Integer NewLine
+        { domain->solInfo().modal = true; domain->solInfo().modal_id.push_back($3); }
 	;
 QMechInfo:
         MECH Float Float Integer NewLine
@@ -1255,6 +1349,8 @@ ThermoeInfo:
 ModeInfo:
         MODE NewLine 
         { domain->solInfo().setModeDecomp(1); }
+        | MODE Integer NewLine
+        { domain->solInfo().setModeDecomp(1, $2); }
 	;
 HzemInfo:
         HZEM NewLine
@@ -1281,7 +1377,7 @@ ToleranceInfo:
         | GRBM Float Float Float NewLine Float Float NewLine
         { domain->solInfo().setGrbm($6,$7);
           std::vector<double> &grbm_ref = domain->solInfo().grbm_ref;
-          grbm_ref.reserve(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
+          grbm_ref.resize(3); grbm_ref[0] = $2; grbm_ref[1] = $3; grbm_ref[2] = $4;
         }
         | GRBM Float Float Float NewLine Float NewLine
         { domain->solInfo().setGrbm($6);
@@ -1314,24 +1410,24 @@ RbmFilterInfo:
         | RBMFILTER Integer Integer NewLine
         { domain->solInfo().useRbmFilter($2);
           domain->solInfo().filterQ = $3; }
-        | RBMFILTER NewLine RbmList NewLine
+        | RbmFilterInfo RbmList NewLine
 	;
 RbmList:
-    Integer
-    { if($1 < 1 || $1 > 6){
-        fprintf(stderr, " *** ERROR: RBMF specifier must be in the range 1-6, found: %d\n", $1);
+    LISRBM Integer
+    { if($2 < 1) {
+        fprintf(stderr, " *** ERROR: mode %d specified under RBMFILTER is invalid.\n", $2);
         yyerror(NULL);
         exit(-1);
       }
-      domain->solInfo().rbmFilters[$1-1] = 1;
+      domain->solInfo().rbmFilters.insert($2-1);
     }
     | RbmList Integer
-    { if($2 < 1 || $2 > 6){
-        fprintf(stderr, " *** ERROR: RBMF specifier must be in the range 1-6, found: %d\n", $2);
+    { if($2 < 1) {
+        fprintf(stderr, " *** ERROR: mode %d specified under RBMFILTER is invalid.\n", $2);
         yyerror(NULL);
         exit(-1);
       }
-      domain->solInfo().rbmFilters[$2-1] = 1;
+      domain->solInfo().rbmFilters.insert($2-1);
     }
     ;
 HzemFilterInfo:
@@ -1606,6 +1702,15 @@ TempConvection:
         | TempConvection Integer Float Float Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
           bc.val = $3*$4*$5; bc.type = BCond::Convection; bc.loadsetid = $$->loadsetid; $$->add(bc); }
+        | TempConvection SURF Integer Float Float Float NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $3-1;
+          surf_bc[0].dofnum = 6;
+          surf_bc[0].val = $4*$5*$6;
+          surf_bc[0].type = BCond::Convection;
+          surf_bc[0].loadsetid = $$->loadsetid;
+          geoSource->addSurfaceNeuman(1,surf_bc);
+          if(geoSource->getNumSurfaceNeuman() > 1) delete [] surf_bc; }
 	;
 TempRadiation:
         RADIATION NewLine
@@ -1821,32 +1926,23 @@ AxiLmpc:
         | Integer Float Float Integer Float Float Float Float Float NewLine
         { $$ = MPC($1-1, $2, $3, $4, DComplex($5,$6) , $7, $8, $9); }
 	;
+ReadModeInfo:
+	Integer EIGEN FNAME Integer NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams(ModalParams::Eigen, $3, $4); }
+        | Integer ROBTYPE FNAME Integer NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams($2, $3, $4); }
+        | Integer EIGEN FNAME Integer Float NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams(ModalParams::Eigen, $3, $4, $5); }
+        | Integer ROBTYPE FNAME Integer Float NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams($2, $3, $4, $5); }
+	;
 Mode:
         READMODE FNAME NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readmodeCalled = true; }
+        { domain->solInfo().readInModes[0] = ModalParams(ModalParams::Undefined, $2); }
         | READMODE FNAME Integer NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readmodeCalled = true; 
-          domain->solInfo().maxSizePodRom += $3;
-          domain->solInfo().localBasisSize.push_back($3); }	
-        | READMODE FNAME FNAME NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readInModes = $3;
-          domain->solInfo().readmodeCalled = true; }
-        | READMODE FNAME FNAME Integer NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readInModes = $3;
-          domain->solInfo().readmodeCalled = true;
-          domain->solInfo().maxSizePodRom += $4;
-          domain->solInfo().localBasisSize.push_back($4); }
-        | Mode USEMASSNORMALIZEDBASIS SWITCH NewLine
-        { domain->solInfo().useMassNormalizedBasis = bool($3); }
-        | Mode ONLINEMASSNORMALIZEBASIS SWITCH NewLine
-        { domain->solInfo().performMassNormalization = bool($3); } 
-        | Mode DUALBASIS FNAME Integer NewLine
-        { domain->solInfo().readInDualROB.push_back($3);
-          domain->solInfo().localDualBasisSize.push_back($4); }
+        { domain->solInfo().readInModes[0] = ModalParams(ModalParams::Undefined, $2, $3); }
+	| READMODE NewLine ReadModeInfo
+	| Mode ReadModeInfo
         | Mode ADJOINTBASIS FNAME Integer STRESSID NewLine
         { domain->solInfo().adjointMap[(OutputInfo::Type)$5] = domain->solInfo().readInAdjointROB.size();
           domain->solInfo().readInAdjointROB.push_back($3);
@@ -1864,6 +1960,11 @@ IDisp:
 	{ for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Idisplacements;
           if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1; 
 	  domain->solInfo().modalCalled = true; }
+        | IDisp MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Idisplacements;
+          if(geoSource->setIDisModal($5->n, $5->d) < 0) return -1;
+          domain->solInfo().modalCalled = true;
+          domain->solInfo().idis_modal_id = $3; }
 	;
 IDisp6:
 	IDIS6 Float NewLine
@@ -1938,11 +2039,20 @@ IVel:
         { for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Ivelocities;
           if(geoSource->setIVelModal($4->n, $4->d) < 0) return -1; 
 	  domain->solInfo().modalCalled = true; }
+        | IVel MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Ivelocities;
+          if(geoSource->setIVelModal($5->n, $5->d) < 0) return -1;
+          domain->solInfo().modalCalled = true;
+          domain->solInfo().ivel_modal_id = $3; }
 	;
 ITemp:
         ITEMP NewLine TBCDataList
         { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Itemperatures;
           if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
+        | ITemp MODAL NewLine ModalValList
+        { for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Itemperatures;
+          if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1;
+          domain->solInfo().modalCalled = true; }
 	;
 ETemp:
         ETEMP NewLine TBCDataList
@@ -1980,6 +2090,12 @@ ModalNeumanBC:
         | FORCE Integer NewLine MODAL NewLine ModalValList
         { for(int i=0; i<$6->n; ++i) { $6->d[i].type = BCond::Forces; $6->d[i].loadsetid = $2; }
           if(geoSource->setNeumanModal($6->n, $6->d) < 0) return -1; }
+        | FORCE NewLine MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$6->n; ++i) $6->d[i].type = BCond::Forces;
+          if(geoSource->setNeumanModal($6->n, $6->d) < 0) return -1; }
+        | FORCE Integer NewLine MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$7->n; ++i) { $7->d[i].type = BCond::Forces; $7->d[i].loadsetid = $2; }
+          if(geoSource->setNeumanModal($7->n, $7->d) < 0) return -1; }
         ;
 BCDataList:
 	BC_Data
@@ -2073,11 +2189,29 @@ RUBDAFTable:
         ;
 RUBDAFList:
         TABLE Integer NewLine Float Float Float Float Float NewLine
-        { $$ = new GenMFTTData<Eigen::Vector4d>($2); $$->add($4, Eigen::Vector4d($5,$6,$7,$8)); domain->addRUBDAFT($$); }
+        { 
+#ifdef USE_EIGEN3
+          $$ = new GenMFTTData<Eigen::Vector4d>($2); $$->add($4, Eigen::Vector4d($5,$6,$7,$8)); domain->addRUBDAFT($$);
+#else
+          std::cerr << " *** ERROR: RUBDAFT command requires AERO-S configured with Eigen library. Exiting...\n"; exit(-1);
+#endif
+        }
         | RUBDAFList Float Float Float Float Float NewLine
-        { $$->add($2, Eigen::Vector4d($3,$4,$5,$6)); }
+        {
+#ifdef USE_EIGEN3
+          $$->add($2, Eigen::Vector4d($3,$4,$5,$6));
+#else
+          std::cerr << " *** ERROR: RUBDAFT command requires AERO-S configured with Eigen library. Exiting...\n"; exit(-1);
+#endif
+        }
         | RUBDAFList TABLE Integer NewLine Float Float Float Float Float NewLine
-        { $$ = new GenMFTTData<Eigen::Vector4d>($3); $$->add($5, Eigen::Vector4d($6,$7,$8,$9)); domain->addRUBDAFT($$); }
+        {
+#ifdef USE_EIGEN3
+          $$ = new GenMFTTData<Eigen::Vector4d>($3); $$->add($5, Eigen::Vector4d($6,$7,$8,$9)); domain->addRUBDAFT($$);
+#else
+          std::cerr << " *** ERROR: RUBDAFT command requires AERO-S configured with Eigen library. Exiting...\n"; exit(-1);
+#endif
+        }
         ;
 LMPConstrain:
         LMPC NewLine
@@ -2702,6 +2836,15 @@ MatData:
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT SPRINGMAT Float FREEPLAY FreeplayProps NewLine
+        { // RevoluteJointSpringComboWithFreeplay with default constraint options
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.k1 = $4;
+          sp.freeplay[0] = $6;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float NewLine
         { // RevoluteJointSpringCombo
           StructProp sp;
@@ -2714,12 +2857,36 @@ MatData:
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float FREEPLAY FreeplayProps NewLine
+        { // RevoluteJointSpringComboWithFreeplay
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.k1 = $5;
+          sp.freeplay[0] = $7;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT SPRINGMAT Float Float NewLine
         { // UniversalJointSpringCombo with default constraint options
           StructProp sp;
           sp.type = StructProp::Undefined;
           sp.k1 = $4;
           sp.k2 = $5;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT SPRINGMAT Float Float FREEPLAY FreeplayProps FreeplayProps NewLine
+        { // UniversalJointSpringComboWithFreeplay with default constraint options
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.k1 = $4;
+          sp.k2 = $5;
+          sp.freeplay[0] = $7;
+          sp.freeplay[1] = $8;
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
@@ -2736,6 +2903,21 @@ MatData:
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float Float FREEPLAY FreeplayProps FreeplayProps NewLine
+        { // UniversalJointSpringComboWithFreeplay
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.k1 = $5;
+          sp.k2 = $6;
+          sp.freeplay[0] = $8;
+          sp.freeplay[1] = $9;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT SPRINGMAT Float Float Float NewLine
         { // SphericalJointSpringCombo with default constraint options
           StructProp sp;
@@ -2743,6 +2925,19 @@ MatData:
           sp.k1 = $4;
           sp.k2 = $5;
           sp.k3 = $6;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT SPRINGMAT Float Float Float FREEPLAY FreeplayProps FreeplayProps FreeplayProps NewLine
+        { // SphericalJointSpringComboWithFreeplay with default constraint options
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.k1 = $4;
+          sp.k2 = $5;
+          sp.k3 = $6;
+          sp.freeplay[0] = $8;
+          sp.freeplay[1] = $9;
+          sp.freeplay[2] = $10;
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
@@ -2760,11 +2955,38 @@ MatData:
           sp.rho = 0;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float Float Float FREEPLAY FreeplayProps FreeplayProps FreeplayProps NewLine
+        { // SphericalJointSpringComboWithFreeplay
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.k1 = $5;
+          sp.k2 = $6;
+          sp.k3 = $7;
+          sp.freeplay[0] = $9;
+          sp.freeplay[1] = $10;
+          sp.freeplay[2] = $11;
+          sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer SPRINGMAT Float NewLine
-        { // TorsionalSpringType1 or TranslationalSpring
+        { // TorsionalSpring or TranslationalSpring (types 200,201,202)
           StructProp sp;
           sp.k1 = $3;
           sp.rho = 0;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer SPRINGMAT Float FREEPLAY Float NewLine
+        { // 1-sided TorsionalSpring or TranslationalSpring with freeplay (types 203,204,205)
+          StructProp sp;
+          sp.k1 = $3;
+          sp.rho = 0;
+          sp.freeplay[0].ul = $5;
+          sp.freeplay[0].dz = 0.0;
+          sp.freeplay[0].uz = 1.0;
           geoSource->addMat( $1-1, sp );
         }
         | Integer ARUBBERMAT Float Float Float Float Float Float Float Float Float NewLine
@@ -2782,6 +3004,23 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
 	;
+FreeplayProps:
+      /*Float NewLine
+        { // 1-parameter freeplay model
+          $$.ll = -$1;
+          $$.ul =  $1;
+          $$.lz = 1.0;
+          $$.dz = 0.0;
+          $$.uz = 1.0;
+        }*/
+        Float Float Float Float Float
+        { // 5-parameter freeplay model
+          $$.ll = $1;
+          $$.ul = $2;
+          $$.lz = $3;
+          $$.dz = $4;
+          $$.uz = $5;
+        }
 ElemSet:
 	TOPOLOGY NewLine Element
 	| ElemSet Element
@@ -3072,15 +3311,28 @@ ContactSurfacesInfo:
           $$->SetCtcMode(domain->solInfo().contactsurface_mode);
         }
         ;
-AcmeControls:
-        ACMECNTL Integer NewLine
-        { domain->solInfo().dist_acme = $2; }
-        | FFIDEBUG Integer NewLine
-        { domain->solInfo().ffi_debug = bool($2); }
-        | MORTARSCALING Float NewLine
-        { domain->solInfo().mortar_scaling = $2; }
-        | MORTARINTEGRATIONRULE Integer NewLine
-        { domain->solInfo().mortar_integration_rule = $2; }
+Parameters:
+        PARAMETERS NewLine
+        | Parameters ACMECNTL Integer NewLine
+        { domain->solInfo().dist_acme = $3; }
+        | Parameters FFIDEBUG Integer NewLine
+        { domain->solInfo().ffi_debug = bool($3); }
+        | Parameters MORTARSCALING Float NewLine
+        { domain->solInfo().mortar_scaling = $3; }
+        | Parameters MORTARINTEGRATIONRULE Integer NewLine
+        { domain->solInfo().mortar_integration_rule = $3; }
+        | Parameters ANDESCLR Float NewLine
+        { domain->solInfo().andes_clr = $3; }
+        | Parameters ANDESCQR Float NewLine
+        { domain->solInfo().andes_cqr = $3; }
+        | Parameters ANDESBETAB Float NewLine
+        { domain->solInfo().andes_betab = $3; }
+        | Parameters ANDESALPHA Float NewLine
+        { domain->solInfo().andes_alpha = $3; }
+        | Parameters ANDESBETAM Float NewLine
+        { domain->solInfo().andes_betam = $3; }
+        | Parameters NLMEMPTYPE Integer NewLine
+        { domain->solInfo().nlmembrane_pressure_type = $3; }
 NodeSet:
 	NODETOKEN NewLine Node
 	{ geoSource->addNode($3.num, $3.xyz, $3.cp, $3.cd); }
@@ -3210,6 +3462,8 @@ BoffsetList:
 Attributes:
 	ATTRIBUTES NewLine 
         { $$ = 0; }
+        | ATTRIBUTES Integer NewLine
+        { geoSource->setLocalIndex($2-1); }
         /* define hyper reduction coefficient for element with no attribute */
         | Attributes Integer HRC Float NewLine
         { geoSource->setElementLumpingWeight($2-1,$4);
@@ -3507,39 +3761,13 @@ Statics:
         | Statics CASES CasesList NewLine
         | Statics PIECEWISE NewLine
         { // activate piecewise constant configuration dependent external forces for a linear dynamic analysis
-          if(!domain->solInfo().isNonLin()) { 
-            if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
-              domain->solInfo().probType = SolverInfo::NonLinStatic;
-            else if(domain->solInfo().probType == SolverInfo::Dynamic)
-              domain->solInfo().probType = SolverInfo::NonLinDynam;
-            else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
-              domain->solInfo().order = 1;
-              domain->solInfo().probType = SolverInfo::NonLinDynam;
-            }
-            domain->solInfo().setNewton(std::numeric_limits<int>::max());
-            domain->solInfo().getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
-            domain->solInfo().getNLInfo().linearelastic = 1;
-            domain->solInfo().getNLInfo().maxiter = 1;
-          }
+          domain->solInfo().piecewise = true;
         }
         | Statics PIECEWISE Float Float NewLine
         { // activate piecewise constant configuration dependent external forces for a linear static analysis
-          if(!domain->solInfo().isNonLin()) {  
-            if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
-              domain->solInfo().probType = SolverInfo::NonLinStatic;
-            else if(domain->solInfo().probType == SolverInfo::Dynamic)
-              domain->solInfo().probType = SolverInfo::NonLinDynam;
-            else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
-              domain->solInfo().order = 1;
-              domain->solInfo().probType = SolverInfo::NonLinDynam;
-            }
-            domain->solInfo().setNewton(std::numeric_limits<int>::max());
-            domain->solInfo().getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
-            domain->solInfo().getNLInfo().linearelastic = 1;
-            domain->solInfo().getNLInfo().maxiter = 1;
-            domain->solInfo().getNLInfo().dlambda = $3;
-            domain->solInfo().getNLInfo().maxLambda = $4;
-          }
+          domain->solInfo().piecewise = true;
+          domain->solInfo().piecewise_dlambda = $3;
+          domain->solInfo().piecewise_maxLambda = $4;
         }
         ;
 CasesList:
@@ -3857,11 +4085,6 @@ Solver:
         { domain->solInfo().fetiInfo.rebuildcct = int($2); }
         | UPROJ Integer NewLine
         { domain->solInfo().fetiInfo.uproj = $2; }
-	| PRINTMATLAB NewLine
-	{ domain->solInfo().fetiInfo.printMatLab = 1; }
-        | PRINTMATLAB FNAME NewLine
-        { domain->solInfo().printMatLab = 1;
-          domain->solInfo().printMatLabFile = $2; }
 	| LOCALSOLVER SOLVERTYPE NewLine
 	{ domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) $2; }
 	| COARSESOLVER SOLVERTYPE NewLine
@@ -4412,6 +4635,8 @@ NLInfo:
           domain->solInfo().penalty_beta = $5;
           domain->solInfo().reinit_lm = bool($6);
           domain->solInfo().lm_update_flag = $7; }
+        | NLInfo NUMROMCPUS Integer NewLine
+        { domain->solInfo().numberOfRomCPUs = $3; }
         | NLInfo NewtonInfo
         ;
 NewtonInfo:
@@ -4624,12 +4849,30 @@ MatSpec:
 	| MatSpec Integer LINEARELASTIC Float Float Float NewLine
 	 { 
            geoSource->addMaterial($2-1, 
-             new ElaLinIsoMat($4, $5, $6, 0, 0));
+             new ElaLinIsoMat($4, $5, $6));
 	 }
         | MatSpec Integer LINEARELASTIC Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ElaLinIsoMat($4, 0, 0, 0, 0));
+             new ElaLinIsoMat($4));
+         }
+        | MatSpec Integer LINEARELASTIC Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<ElaLinIsoMat>($4, $5, $6, $7, $8, $10, $11, $12));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer LINEARELASTIC Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<ElaLinIsoMat>($4, $5, $6, $8, $9, $10));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer LINEARELASTIC Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<ElaLinIsoMat>($4, $6, $7, $8));
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer STVENANTKIRCHHOFF Float Float Float Float Float NewLine
          {
@@ -4639,12 +4882,30 @@ MatSpec:
         | MatSpec Integer STVENANTKIRCHHOFF Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new StVenantKirchhoffMat($4, $5, $6, 0, 0));
+             new StVenantKirchhoffMat($4, $5, $6));
          }
         | MatSpec Integer STVENANTKIRCHHOFF Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new StVenantKirchhoffMat($4, 0, 0, 0, 0));
+             new StVenantKirchhoffMat($4));
+         }
+        | MatSpec Integer STVENANTKIRCHHOFF Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<StVenantKirchhoffMat>($4, $5, $6, $7, $8, $10, $11, $12));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer STVENANTKIRCHHOFF Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<StVenantKirchhoffMat>($4, $5, $6, $8, $9, $10));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer STVENANTKIRCHHOFF Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<StVenantKirchhoffMat>($4, $6, $7, $8));
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer HENCKY Float Float Float Float Float NewLine
          {
@@ -4654,12 +4915,30 @@ MatSpec:
         | MatSpec Integer HENCKY Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new HenckyMat($4, $5, $6, 0, 0));
+             new HenckyMat($4, $5, $6));
          }
         | MatSpec Integer HENCKY Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new HenckyMat($4, 0, 0, 0, 0));
+             new HenckyMat($4));
+         }
+        | MatSpec Integer HENCKY Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<HenckyMat>($4, $5, $6, $7, $8, $10, $11, $12));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer HENCKY Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<HenckyMat>($4, $5, $6, $8, $9, $10));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer HENCKY Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BrittleFractureTB<HenckyMat>($4, $6, $7, $8));
+           domain->solInfo().elementDeletion = true;
          }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {
@@ -4681,36 +4960,556 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new StVenantKirchhoffMat2D($4, $5, $6, $7, $8, $9));
          }
+        | MatSpec Integer PLANESTRESSLINEAR Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<ElaLinIsoMat>($4, $5, $6, $7));
+         }
+        | MatSpec Integer PLANESTRESSLINEAR Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<ElaLinIsoMat>($4, $5, $6, $7, $8, $9));
+         }
+        | MatSpec Integer PLANESTRESSLINEAR Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BrittleFractureTB<ElaLinIsoMat> >($4, $5, $6, $9, $10, $11, $7));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer PLANESTRESSLINEAR Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BrittleFractureTB<ElaLinIsoMat> >($4, $5, $6, $7, $8, $11, $12, $13, $9));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer PLANESTRESSSTVENANTKIRCHHOFF Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<StVenantKirchhoffMat>($4, $5, $6, $7));
+         }
+        | MatSpec Integer PLANESTRESSSTVENANTKIRCHHOFF Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<StVenantKirchhoffMat>($4, $5, $6, $7, $8, $9));
+         }
+        | MatSpec Integer PLANESTRESSSTVENANTKIRCHHOFF Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BrittleFractureTB<StVenantKirchhoffMat> >($4, $5, $6, $9, $10, $11, $7));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer PLANESTRESSSTVENANTKIRCHHOFF Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BrittleFractureTB<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $11, $12, $13, $9));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer PLANESTRESSNEOHOOKEAN Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<NeoHookeanMat>($4, $5, $6, $7));
+         }
+        | MatSpec Integer PLANESTRESSNEOHOOKEAN Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BrittleFractureTB<NeoHookeanMat> >($4, $5, $6, $9, $10, $11, $7));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer PLANESTRESSMOONEYRIVLIN Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<MooneyRivlinMat>($4, $5, $6, $7, $8));
+         }
+        | MatSpec Integer PLANESTRESSMOONEYRIVLIN Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BrittleFractureTB<MooneyRivlinMat> >($4, $5, $6, $7, $10, $11, $12, $8));
+           domain->solInfo().elementDeletion = true;
+         }
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9) );
+         }
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10) );
+         }
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+         }
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($13 > 0 && $13 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+           }
+         }
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($13 > 0 && $13 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13, $14, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11,
+                                    std::numeric_limits<double>::infinity(), $14, $12) );
+           }
+         }
+        | MatSpec Integer PLANESTRESSBILINEARPLASTIC Float Float Float Float Float Float Float Float Float Float Float Integer NewLine
+         {
+           if($13 > 0 && $13 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13, $14, $15, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new PlaneStressMat<BilinPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11,
+                                    std::numeric_limits<double>::infinity(), $14, $15, $12) );
+           }
+         }
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9) );
+         }
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10) );
+         }
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+         }
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($13 > 0 && $13 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+           }
+         }
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($13 > 0 && $13 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13, $14, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11,
+                                    std::numeric_limits<double>::infinity(), $14, $12) );
+           }
+         }
+        | MatSpec Integer PLANESTRESSFINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float Float Float Integer NewLine
+         {
+           if($13 > 0 && $13 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11, $13, $14, $15, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new PlaneStressMat<FiniteStrainPlasKinHardMat>($4, $5, $6, $7, $8, $9, $10, $11,
+                                    std::numeric_limits<double>::infinity(), $14, $15, $12) );
+           }
+         }
         | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine
           {
             double params[3] = { $4, $5, $6 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElastic>(params));
           }
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<ElaLinIsoMat>($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12));
+          }
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<ElaLinIsoMat>($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14));
+          }
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12, $14, $15, $16));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer VISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14, $16, $17, $18));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $13));
+          }
+        | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $15;
+            double gtwo   = $13;
+            double gone   = $11;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, $9, ginf, $10, $11, $12, $13, $14, $15));
+          }
+        | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9; 
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> > >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $15, $16, $17, $13));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $15;
+            double gtwo   = $13;
+            double gone   = $11;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> > >($4, $5, $6, $7, $8, $9, ginf, $10, $11, $12, $13, $14, $17, $18, $19, $15));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<StVenantKirchhoffMat>($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12));
+          }
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<StVenantKirchhoffMat>($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14));
+          }
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12, $14, $15, $16));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer VISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14, $16, $17, $18));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer PLANESTRESSVISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $13));
+          }
+        | MatSpec Integer PLANESTRESSVISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $15;
+            double gtwo   = $13;
+            double gone   = $11;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<StVenantKirchhoffMat> >($4, $5, $6, $7, $8, $9, ginf, $10, $11, $12, $13, $14, $15));
+          }
+        | MatSpec Integer PLANESTRESSVISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> > >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $15, $16, $17, $13));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer PLANESTRESSVISCOSTVENANTKIRCHHOFF Float Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $15;
+            double gtwo   = $13;
+            double gone   = $11;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<BrittleFractureTB<PronyViscoElastic<StVenantKirchhoffMat> > >($4, $5, $6, $7, $8, $9, ginf, $10, $11, $12, $13, $14, $17, $18, $19, $15));
+            domain->solInfo().elementDeletion = true;
+          }
         | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
           {
-            double params[4] = { $4, $5, $6, -1 };
             geoSource->addMaterial($2-1,
-              new MaterialWrapper<NeoHookean>(params));
+              new NeoHookeanMat($4, $5, $6));
           }
-        | MatSpec Integer NEOHOOKEAN Float Float Float Float NewLine
+        | MatSpec Integer NEOHOOKEAN Float Float Float TULERBUTCHER Float Float Float NewLine
           {
-            double params[4] = { $4, $5, $6, $7 };
             geoSource->addMaterial($2-1,
-              new MaterialWrapper<NeoHookean>(params));
+              new BrittleFractureTB<NeoHookeanMat>($4, $5, $6, $8, $9, $10));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<NeoHookeanMat>($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12));
+          }
+        | MatSpec Integer VISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $12;
+            double gtwo   = $10;
+            double gone   = $8;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<NeoHookeanMat> >($4, $5, $6, ginf, $7, $8, $9, $10, $11, $12, $14, $15, $16));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer PLANESTRESSVISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<NeoHookeanMat> >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $13));
+          }
+        | MatSpec Integer PLANESTRESSVISCONEOHOOKEAN Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<BrittleFractureTB<PronyViscoElastic<NeoHookeanMat> > >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $15, $16, $17, $13));
+            domain->solInfo().elementDeletion = true;
           }
         | MatSpec Integer MOONEYRIVLIN Float Float Float Float NewLine
           {
-            double params[5] = { $4, $5, $6, $7, -1 };
             geoSource->addMaterial($2-1,
-              new MaterialWrapper<MooneyRivlin>(params));
+              new MooneyRivlinMat($4, $5, $6, $7));
           }
-        | MatSpec Integer MOONEYRIVLIN Float Float Float Float Float NewLine
+        | MatSpec Integer MOONEYRIVLIN Float Float Float Float TULERBUTCHER Float Float Float NewLine
           {
-            double params[5] = { $4, $5, $6, $7, $8 };
             geoSource->addMaterial($2-1,
-              new MaterialWrapper<MooneyRivlin>(params));
+              new BrittleFractureTB<MooneyRivlinMat>($4, $5, $6, $7, $9, $10, $11));
+            domain->solInfo().elementDeletion = true;
           }
+        | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PronyViscoElastic<MooneyRivlinMat>($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $13));
+          }
+        | MatSpec Integer VISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $13;
+            double gtwo   = $11;
+            double gone   = $9;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new BrittleFractureTB<PronyViscoElastic<MooneyRivlinMat> >($4, $5, $6, $7, ginf, $8, $9, $10, $11, $12, $13, $15, $16, $17));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer PLANESTRESSVISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<PronyViscoElastic<MooneyRivlinMat> >($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14));
+          }
+        | MatSpec Integer PLANESTRESSVISCOMOONEYRIVLIN Float Float Float Float Float Float Float Float Float Float Float TULERBUTCHER Float Float Float NewLine
+          {
+            double gthree = $14;
+            double gtwo   = $12;
+            double gone   = $10;
+            double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+            geoSource->addMaterial($2-1,
+              new PlaneStressMat<BrittleFractureTB<PronyViscoElastic<MooneyRivlinMat> > >($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $16, $17, $18, $14));
+            domain->solInfo().elementDeletion = true;
+          }
+        | MatSpec Integer OGDEN Float Float Float Float NewLine 
+          {
+            double mu[1] = { $5 };
+            double alpha[1] = { $6 };
+            double K[1] = { $7 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float NewLine
+          {
+            double mu[2] = { $5, $6 };
+            double alpha[2] = { $7, $8 };
+            double K[1] = { $9 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float NewLine
+          {
+            double mu[2] = { $5, $6 }; 
+            double alpha[2] = { $7, $8 };
+            double K[2] = { $9, $10 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[3] = { $5, $6, $7 };
+            double alpha[3] = { $8, $9, $10 };
+            double K[1] = { $11 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[3] = { $5, $6, $7 };
+            double alpha[3] = { $8, $9, $10 };
+            double K[2] = { $11, $12 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[4] = { $5, $6, $7, $8 };
+            double alpha[4] = { $9, $10, $11, $12 };
+            double K[1] = { $13 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[4] = { $5, $6, $7, $8 };
+            double alpha[4] = { $9, $10, $11, $12 };
+            double K[2] = { $13, $14 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[5] = { $5, $6, $7, $8, $9 };
+            double alpha[5] = { $10, $11, $12, $13, $14 };
+            double K[1] = { $15 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[5] = { $5, $6, $7, $8, $9 };
+            double alpha[5] = { $10, $11, $12, $13, $14 };
+            double K[2] = { $15, $16 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[6] = { $5, $6, $7, $8, $9, $10 };
+            double alpha[6] = { $11, $12, $13, $14, $15, $16 };
+            double K[1] = { $17 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[6] = { $5, $6, $7, $8, $9, $10 };
+            double alpha[6] = { $11, $12, $13, $14, $15, $16 };
+            double K[2] = { $17, $18 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[7] = { $5, $6, $7, $8, $9, $10, $11 };
+            double alpha[7] = { $12, $13, $14, $15, $16, $17, $18 };
+            double K[1] = { $19 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[7] = { $5, $6, $7, $8, $9, $10, $11 };
+            double alpha[7] = { $12, $13, $14, $15, $16, $17, $18 };
+            double K[2] = { $19, $20 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[8] = { $5, $6, $7, $8, $9, $10, $11, $12 };
+            double alpha[8] = { $13, $14, $15, $16, $17, $18, $19, $20 };
+            double K[1] = { $21 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[8] = { $5, $6, $7, $8, $9, $10, $11, $12 };
+            double alpha[8] = { $13, $14, $15, $16, $17, $18, $19, $20 };
+            double K[2] = { $21, $22 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[9] = { $5, $6, $7, $8, $9, $10, $11, $12, $13 };
+            double alpha[9] = { $14, $15, $16, $17, $18, $19, $20, $21, $22 };
+            double K[1] = { $23 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer OGDEN Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double mu[9] = { $5, $6, $7, $8, $9, $10, $11, $12, $13 };
+            double alpha[9] = { $14, $15, $16, $17, $18, $19, $20, $21, $22 };
+            double K[2] = { $23, $24 };
+            geoSource->addMaterial($2-1, new OgdenMat($4, mu, alpha, K));
+          }
+        | MatSpec Integer SIMOELASTIC Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new SimoElasticMat($4, $5, $6));
+         }
+        | MatSpec Integer SIMOPLASTIC Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new SimoPlasticMat($4, $5, $6, $7, $8) );
+         }
+        | MatSpec Integer SIMOPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new SimoPlasticMat($4, $5, $6, $7, $8, $9) );
+         }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float NewLine
           {
             double params[9] = { $4, $5, $6, $7, $8, $9, 1.0e-6, std::numeric_limits<double>::infinity(), 0. };
@@ -4921,6 +5720,11 @@ SvdOption:
   { domain->solInfo().normalize = $2; }
   | NORMALIZETOKEN SWITCH
   { domain->solInfo().normalize = $2; }
+  | NORMALIZETOKEN FLAGMN
+  { domain->solInfo().normalize = $2; }
+  | REFSUBTRACT FNAME
+  { domain->solInfo().subtractRefPodRom = true;
+    domain->solInfo().readInLocalBasesCent.push_back(std::string($2)); }
   | SNAPWEIGHT FloatList /* deprecated */
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().snapshotWeights.push_back($2.v[i]); }
   | SNAPWEIGHT SWITCH FloatList
@@ -4930,6 +5734,8 @@ SvdOption:
   | SKIP Integer Integer
   { domain->solInfo().skipPodRom = $2;
     domain->solInfo().skipOffSet = $3; }
+  | ROBCSOLVE SWITCH
+  { domain->solInfo().robcSolve = bool($2); }
   | ROBFI StringList
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i])); }
   | BLOCKSIZE Integer
@@ -4948,22 +5754,33 @@ SvdOption:
     domain->solInfo().nmfPqnAlpha = $8; }
   */
   | USEPQN Integer Float Integer Float
-  { domain->solInfo().use_nmf = 3;
-    domain->solInfo().nmfMaxIter = $2;
-    domain->solInfo().nmfTol = $3;
+  { domain->solInfo().use_nmf            = 3;
+    domain->solInfo().nmfMaxIter         = $2;
+    domain->solInfo().nmfTol             = $3;
     domain->solInfo().nmfPqnNumInnerIter = $4;
-    domain->solInfo().nmfPqnAlpha = $5; }
+    domain->solInfo().nmfPqnAlpha        = $5; }
   | USENMF Integer Integer Integer Integer Float
   { domain->solInfo().use_nmf = 1;
     domain->solInfo().nmfNumROBDim = $2;
     domain->solInfo().nmfDelROBDim = $3;
-    domain->solInfo().nmfRandInit = $4;
-    domain->solInfo().nmfMaxIter = $5;
+    domain->solInfo().nmfRandInit  = $4;
+    domain->solInfo().nmfMaxIter   = $5;
     domain->solInfo().nmfTol = $6; }
   | USENMF Integer Float
-  { domain->solInfo().use_nmf = 1;
+  { domain->solInfo().use_nmf    = 1;
     domain->solInfo().nmfMaxIter = $2;
-    domain->solInfo().nmfTol = $3; }
+    domain->solInfo().nmfTol     = $3; }
+  | USENMFC Integer Float Float Float Float
+  { domain->solInfo().use_nmf    = 4;   
+    domain->solInfo().nmfMaxIter = $2; 
+    domain->solInfo().nmfTol     = $3; 
+    domain->solInfo().nmfcAlpha  = $4;
+    domain->solInfo().nmfcBeta   = $5;
+    domain->solInfo().nmfcGamma  = $6;}
+  | USENMFC Integer Float
+  { domain->solInfo().use_nmf    = 4;
+    domain->solInfo().nmfMaxIter = $2;
+    domain->solInfo().nmfTol     = $3; }
   | NSUBS Integer
   { domain->solInfo().nmfNumSub = $2; }
   | USEGREEDY
@@ -4975,6 +5792,20 @@ SvdOption:
     domain->solInfo().clusterSubspaceAngle = true; }
   | CLUSTERSOLVER CLUSTERSOLVERTYPE
   { domain->solInfo().solverTypeCluster = $2; }
+  | CLUSTERSOLVER CLUSTERSOLVERTYPE Float
+  { domain->solInfo().solverTypeCluster = $2;
+    domain->solInfo().tolPodRom = $3;}
+  | CLUSTERSOLVER CLUSTERSOLVERTYPE Float SPNNLSSOLVERTYPE
+  { domain->solInfo().solverTypeCluster = $2;
+    domain->solInfo().tolPodRom = $3;
+    domain->solInfo().solverTypeSpnnls = $4; }
+  | HOTSTART SWITCH
+  { domain->solInfo().hotstartSample = bool($2); }
+  | DOROWCLUSTERING Integer
+  { domain->solInfo().rowClustering = $2; }
+  | DOROWCLUSTERING Integer ANGLE
+  { domain->solInfo().rowClustering = $2;
+    domain->solInfo().clusterSubspaceAngle = true; }
   | ConwepConfig
   ;
 
@@ -5002,6 +5833,7 @@ Sampling:
   | Sampling SamplingOption NewLine
   | Sampling ConwepConfig
   | Sampling ScalePosCoords
+  | Sampling NodePosCoords
   ;
 
 SnapshotProject:
@@ -5035,7 +5867,7 @@ SamplingOption:
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; }
   | RANDOMSAMPLE Integer
-  { domain->solInfo().skipPodRom = $2; 
+  { domain->solInfo().randomSampleSize = $2; 
     domain->solInfo().randomVecSampling = true; }
   | OFFSET Integer
   { domain->solInfo().skipOffSet = $2; }
@@ -5050,6 +5882,10 @@ SamplingOption:
     domain->solInfo().maxDeimBasisSize = $4; }
   | USEMASSNORMALIZEDBASIS SWITCH
   { domain->solInfo().useMassNormalizedBasis = bool($2); }
+  | USECONSTANTMASS SWITCH
+  { domain->solInfo().useConstantMassForces = bool($2); }
+  | STACKED SWITCH
+  { domain->solInfo().stackedElementSampling = bool($2); }
   | MPROJECT SWITCH
   { domain->solInfo().useMassOrthogonalProjection = bool($2); }
   | REDFOL SWITCH /* deprecated */
@@ -5073,6 +5909,8 @@ SamplingOption:
   { domain->solInfo().projectSolution = bool($2); }
   | POSELEM SWITCH
   { domain->solInfo().positiveElements = bool($2); }
+  | HOTSTART SWITCH
+  { domain->solInfo().hotstartSample = bool($2); }
   | SOLVER SPNNLSSOLVERTYPE
   { domain->solInfo().solverTypeSpnnls = $2; }
   | MAXSIZE Float
@@ -5153,12 +5991,25 @@ MeshScaleFactor:
      domain->solInfo().zScaleFactor = $4;}
    ;
 
+
 ScalePosCoords:
    SCALEPOSCOORDS NewLine
+   { domain->solInfo().activatePOSCFG = true; } 
    | ScalePosCoords Float Float Float NewLine
    { domain->solInfo().xScaleFactors.push_back($2);
      domain->solInfo().yScaleFactors.push_back($3);
      domain->solInfo().zScaleFactors.push_back($4); }
+   | ScalePosCoords FNAME NewLine
+   { domain->solInfo().MassOrthogonalBasisFiles.push_back($2); }
+   ;
+
+NodePosCoords:
+   NODEPOSCOORDS NewLine
+   { domain->solInfo().activatePOSCFG = true; }
+   | NodePosCoords StringList NewLine
+   { domain->solInfo().NodeTrainingFiles.push_back(std::string($2.v[0]));
+     for(int i=1; i<$2.nval; ++i) domain->solInfo().MassOrthogonalBasisFiles.push_back(std::string($2.v[i])); }
+   ;
    
 ConversionToken:
     CONVERSIONTOKEN NewLine
@@ -5176,6 +6027,8 @@ ConversionOption:
   { domain->solInfo().RODConversionFiles.push_back($2);
     domain->solInfo().numRODFile += 1; 
     domain->solInfo().skipPodRom = $3;}
+  | ROMRES Integer
+  { domain->solInfo().romresidType = $2; }
   ;
 
 Integer:

@@ -24,9 +24,9 @@ DistrBasisOutputFile::stateAdd(const DistrNodeDofBuffer<DOFS_PER_NODE> &data, do
   SimpleBuffer<double> buffer(binFile_->localDataSize());
 
   double *target = buffer.array();
-  for (BinaryResultOutputFile::ItemIdIterator it = binFile_->itemIdBegin(),
+  for (BinaryResultOutputFile::ItemIdIterator it     = binFile_->itemIdBegin(),
                                               it_end = binFile_->itemIdEnd();
-                                              it != it_end;
+                                              it    != it_end;
                                               ++it) {
     const double *origin = data[*it];
     std::copy(origin, origin + DOFS_PER_NODE, target);

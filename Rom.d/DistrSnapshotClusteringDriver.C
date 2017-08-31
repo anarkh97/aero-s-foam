@@ -52,10 +52,12 @@ void readIntoSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<DO
       int skipCounter = skipFactor;
       while (count < basisStateCount) {
         assert(inputFile.validCurrentState());
+        double curTimeStamp = inputFile.currentStateHeaderValue();
         inputFile.currentStateBuffer(inputBuffer);
         if (skipCounter >= skipFactor) {
           double *vecBuffer = solver.matrixColBuffer(solverCol);
           GenStackDistVector<double> vec(vectorSize, vecBuffer);
+          solver.setColTimeStamp(solverCol,curTimeStamp);
 
           if(DOFS_PER_NODE == 1) {
             converter.vector(inputBuffer, vec);
@@ -81,27 +83,33 @@ void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<
                       BasisId::Level type, int numClusters, std::vector<int> &basisStateOffset, Communicator *comm)
 {
   FileNameInfo fileInfo;
+  // loop over each cluster 
   for(int i=0; i<numClusters; ++i) {
+    // get number of snapshots in that cluster
     int clusterDim = solver.clusterColCount(i);
     std::string fileName = BasisFileId(fileInfo, workload, type);
     std::ostringstream ss;
     ss << ".cluster" << i+1 << ".of." << numClusters;
     fileName.append(ss.str());
+    // open output file for clustered snapshots named same as input file with new file extension
     DistrBasisOutputFile outputFile(fileName,
                                     nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
                                     comm, false, DOFS_PER_NODE);
     filePrint(stderr, " ... Writing %d clustered snapshots to file %s ...\n", clusterDim, fileName.c_str());
+    // loop over each snapshot in current cluster
     for (int iVec = 0; iVec < clusterDim; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.clusterColBuffer(i,iVec));
+      double timeStampBuffer = solver.getClusterColTimeStamp(i,iVec);
       const GenStackDistVector<double> vec(vectorSize, vecBuffer);
       if(DOFS_PER_NODE == 1)
         converter.paddedNodeDof6(vec, outputBuffer);
       else
         converter.unpaddedNodeDof6(vec, outputBuffer);
-      outputFile.stateAdd(outputBuffer, 1.0);
+      outputFile.stateAdd(outputBuffer, timeStampBuffer);
     }
 
-    if(workload == BasisId::STATE) {
+    // this is writes a file used for hyper reduction that tells AEROS which parameter each snapshot is associated with
+    if(workload == BasisId::STATE || (domain->solInfo().solverTypeCluster == 2 && workload == BasisId::VELOCITY)) {
       std::string fileName2 = fileName+".sources";
       std::ofstream sources(fileName2.c_str());
       for (int iVec = 0; iVec < clusterDim; ++iVec) {
@@ -111,6 +119,7 @@ void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<
         sources << k << " " << j+1-basisStateOffset[k-1] << std::endl;
       }
 
+      // open output file for centroids of clusters
       fileName.append(".centroid");
       DistrBasisOutputFile outputFile2(fileName,
                                        nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
@@ -122,18 +131,6 @@ void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<
       outputFile2.stateAdd(outputBuffer, 1.0);
     }
   }
-}
-
-double
-DistrSnapshotClusteringDriver::computeMinimumAngle(DistrSnapshotClusteringSolver &solver, int clusters){
-
-/*  for(int i = 0; i < clusters){
-    int clusterDim = solver.clusterColCount(i);
-     
-    for(int j = i+1; j < clusters){
-    }
-  }*/
-  return 0;
 }
 
 void
@@ -173,48 +170,44 @@ DistrSnapshotClusteringDriver::solve() {
   DistrInfo distrInfo; decDomain->makeNonOverlappingDistrInfo(distrInfo);
 
   int localLength = distrInfo.totLen();
-  const int numClusters = domain->solInfo().clustering;
+  int numClusters = domain->solInfo().clustering;
   const int globalProbSize = domain->getCDSA()->size();
 
-  DistrSnapshotClusteringSolver *solver; 
-  if(domain->solInfo().clusterSubspaceAngle){
-    filePrint(stderr," ... Using Minimum Subspace Separation for Optimal Number of Clusters ... \n");
-    for(int k = 2; k <= numClusters; ++k){
-      solver = new DistrSnapshotClusteringSolver(comm_, globalProbSize, snapBasisStateCount, localLength, k, blockSize);
-    }
-  } else {
-    solver = new DistrSnapshotClusteringSolver(comm_, globalProbSize, snapBasisStateCount, localLength, numClusters, blockSize);
-  }
+  DistrSnapshotClusteringSolver solver(comm_, globalProbSize, snapBasisStateCount, localLength, numClusters, blockSize);
+  solver.setNNLSTolerance(domain->solInfo().tolPodRom);
  
   int solverCol = 0;
   std::vector<int> basisStateOffset;
   DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-  readIntoSolver<6>(*solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::STATE, BasisId::SNAPSHOTS,
-                 domain->solInfo().snapfiPodRom.size(), solverCol, basisStateOffset, domain->solInfo().skipPodRom); // read in snapshots
+  readIntoSolver<6>(solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::STATE, BasisId::SNAPSHOTS,
+                    domain->solInfo().snapfiPodRom.size(), solverCol, basisStateOffset, domain->solInfo().skipPodRom); // read in snapshots
 
   filePrint(stderr, " ... Partitioning snapshots into %d clusters ...\n", numClusters);
-  solver->solverTypeIs(domain->solInfo().solverTypeCluster);
-  solver->solve();
+  solver.solverTypeIs(domain->solInfo().solverTypeCluster);
+  solver.solve(); // this calls the clustering routine
+  numClusters = solver.getNumClusters();  
 
   DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-  writeOutofSolver<6>(*solver, outputBuffer, nodeCount, converter, distrInfo, BasisId::STATE, BasisId::SNAPSHOTS,
-                   numClusters, basisStateOffset, comm_);
+  writeOutofSolver<6>(solver, outputBuffer, nodeCount, converter, distrInfo, BasisId::STATE, BasisId::SNAPSHOTS,
+                      numClusters, basisStateOffset, comm_);
 
   if(!domain_->solInfo().velocPodRomFile.empty()) {
     solverCol = 0;
-    readIntoSolver<6>(*solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS,
+    readIntoSolver<6>(solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS,
                    domain->solInfo().velocPodRomFile.size(), solverCol, basisStateOffset, domain->solInfo().skipPodRom); // read in velocity snapshots
-    writeOutofSolver<6>(*solver, outputBuffer, nodeCount, converter, distrInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS,
+    if(domain->solInfo().solverTypeCluster == 2) solver.recomputeCentroids(); // for clustering on velocity snapshots, but still need displacement centroids
+    writeOutofSolver<6>(solver, outputBuffer, nodeCount, converter, distrInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS,
                      numClusters, basisStateOffset, comm_);
   }
 
   if(!domain_->solInfo().accelPodRomFile.empty()) {
     solverCol = 0;
-    readIntoSolver<6>(*solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS,
+    readIntoSolver<6>(solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS,
                    domain->solInfo().accelPodRomFile.size(), solverCol, basisStateOffset, domain->solInfo().skipPodRom); // read in acceleration snapshots
-    writeOutofSolver<6>(*solver, outputBuffer, nodeCount, converter, distrInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS,
+    writeOutofSolver<6>(solver, outputBuffer, nodeCount, converter, distrInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS,
                      numClusters, basisStateOffset, comm_);
   }
+
 
   // read in dual snapshots
   if(!domain_->solInfo().dsvPodRomFile.empty()){
@@ -236,9 +229,9 @@ DistrSnapshotClusteringDriver::solve() {
     DistrInfo distrInfo1;
     decDomain->makeBlockCyclicDistrInfo(distrInfo1, domain->getNumCTC(), blockSize);
 
-    readIntoSolver<1>(*solver, inputBuffer1, nodeCount, converter1, distrInfo1, BasisId::DUALSTATE, BasisId::SNAPSHOTS,
-                   domain->solInfo().dsvPodRomFile.size(), solverCol, basisStateOffset, domain->solInfo().skipPodRom); // read in acceleration snapshots
-    writeOutofSolver(*solver, outputBuffer1, nodeCount, converter1, distrInfo1, BasisId::DUALSTATE, BasisId::SNAPSHOTS,
+    readIntoSolver<1>(solver, inputBuffer1, nodeCount, converter1, distrInfo1, BasisId::DUALSTATE, BasisId::SNAPSHOTS,
+                   domain->solInfo().dsvPodRomFile.size(), solverCol, basisStateOffset, domain->solInfo().skipPodRom); // read in dual variable snapshots
+    writeOutofSolver(solver, outputBuffer1, nodeCount, converter1, distrInfo1, BasisId::DUALSTATE, BasisId::SNAPSHOTS,
                      numClusters, basisStateOffset, comm_);
   }
 

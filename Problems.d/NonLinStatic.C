@@ -1,4 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
+#include <algorithm>
 #include <cstdio>
 #include <Utils.d/Memory.h>
 
@@ -433,6 +434,12 @@ NonLinStatic::printTimers()
     filePrint(stderr," ... Structure mass = %e  ...\n",mass);
     filePrint(stderr," --------------------------------------\n");
   }
+}
+
+double
+NonLinStatic::getTolerance()
+{
+  return std::max(tolerance*firstRes, domain->solInfo().getNLInfo().absTolRes);
 }
 
 void

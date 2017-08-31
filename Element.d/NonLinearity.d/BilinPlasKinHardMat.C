@@ -9,6 +9,10 @@
 #include <limits>
 #include <cstddef>
 
+#ifdef USE_EIGEN3
+#include <Eigen/Dense>
+#endif
+
 template <class T> inline double delta(T a, T b) { return (a==b) ? 1.0 : 0.0; }
 
 template<int e>
@@ -81,7 +85,7 @@ ElasPlasKinHardMat<e>::updateStates(Tensor &en, Tensor &enp, double *state, doub
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp,
-                                 double *staten, double *statenp, double temp, double dt)
+                                 double *staten, double *statenp, double temp, Tensor *, double dt)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -232,7 +236,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
-                                 double *staten, double *statenp, double temp, double dt)
+                                 double *staten, double *statenp, double temp, Tensor *, double dt)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -458,22 +462,28 @@ template<>
 inline void
 ElasPlasKinHardMat<0>::print(std::ostream &out) const
 {
-  out << "BilinearPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha
-      << " " << epsF << " " << tol << " " << yssrtid;
+  out << "BilinearPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha;
 }
 
 template<>
 inline void 
 ElasPlasKinHardMat<1>::print(std::ostream &out) const 
 {
-  out << "FiniteStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha
-      << " " << epsF << " " << tol << " " << yssrtid;
+  out << "FiniteStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha;
 }
 
 template<>
 inline void 
 ElasPlasKinHardMat<2>::print(std::ostream &out) const 
 {
-  out << "LogStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha
-      << " " << epsF << " " << tol << " " << yssrtid;
+  out << "LogStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha;
+}
+
+template<int e>
+void
+ElasPlasKinHardMat<e>::print2(std::ostream &out) const
+{
+  if(epsF != std::numeric_limits<double>::infinity() || tol != 1e-6 || yssrtid != 0) {
+    out << " " << epsF << " " << tol << " " << yssrtid;
+  }
 }

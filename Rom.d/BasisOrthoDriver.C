@@ -5,6 +5,8 @@
 #include "BasisFileStream.h"
 #include "FileNameInfo.h"
 #include "SimpleBuffer.h"
+#include "XPostInputFile.h"
+#include "RobCodec.h"
 
 #include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
@@ -43,7 +45,8 @@ class RefSubtraction : public VectorTransform<VecType> {
 public:
   virtual void operator()(VecType &v) const;
 
-  explicit RefSubtraction(const Domain *);
+//  explicit RefSubtraction(const Domain *);
+  explicit RefSubtraction(const Vector &);
 private:
   Vector ref_;
 };
@@ -57,12 +60,19 @@ RefSubtraction<VecType>::operator()(VecType &v) const {
 }
 
 template <typename VecType>
+RefSubtraction<VecType>::RefSubtraction(const Vector &ref) :
+  ref_(ref)
+{}
+
+/*
+template <typename VecType>
 RefSubtraction<VecType>::RefSubtraction(const Domain *domain) :
   ref_(const_cast<Domain *>(domain)->numUncon())
 {
   Vector dummy(const_cast<Domain *>(domain)->numUncon());
   const_cast<Domain *>(domain)->initDispVeloc(ref_, dummy, dummy, dummy);
 }
+*/
 
 } // end anonymous namespace
 
@@ -155,9 +165,19 @@ BasisOrthoDriver::solve() {
   else { workload.push_back(BasisId::STATE);
 	if(verboseFlag) fprintf(stderr," ... For default SVD, workload size = %zd ...\n", workload.size());}
 
+
+
+  // if we want to use affine subspaces (instead of linear subspaces) we need to subtract off an offset
+  Vector *centroid; 
+  if(domain->solInfo().subtractRefPodRom) { // read in centroid for snapshots
+    std::cout << " ... Reading Basis Offset           ... " << std::endl;
+    BasisInputStream<6> centIn(domain->solInfo().readInLocalBasesCent[0], converter);
+    centroid = new Vector(centIn.vectorSize());
+    centIn >> centroid->data();
+  }
   typedef VectorTransform<double *> VecTrans;
   std::auto_ptr<VecTrans> transform(domain->solInfo().subtractRefPodRom ?
-                                    static_cast<VecTrans *>(new RefSubtraction<double *>(domain)) :
+                                    static_cast<VecTrans *>(new RefSubtraction<double *>(*centroid)) :
                                     static_cast<VecTrans *>(new NoOp<double *>));
 
   double mratio = geoSource->getMRatio();
@@ -189,8 +209,8 @@ BasisOrthoDriver::solve() {
     }
   }
   int vectorSize = 0; // size of vectors
-  int sizeSnap = 0; // number of state snapshots
-  int sizeROB = 0;
+  int sizeSnap   = 0; // number of state snapshots
+  int sizeROB    = 0;
   int skipTime = domain->solInfo().skipPodRom;
   if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
     std::cerr << "*** ERROR: no files provided\n";
@@ -201,7 +221,13 @@ BasisOrthoDriver::solve() {
     BasisId::Type type = *it;
     // Loop over snapshots
     for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
-      std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
+      BasisFileId basisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
+      std::string fileName = basisFileId.name();
+      if(!basisFileId.isBinary()) {
+        filePrint(stderr," ... Convert ASCII file to binary   ...\n");
+        convert_rob<Rom::XPostInputFile, Rom::BasisBinaryOutputFile>(fileName, fileName+".bin");
+        fileName = domain->solInfo().snapfiPodRom[i] = fileName+".bin";
+      }
       BasisInputStream<6> input(fileName, converter);
       vectorSize = input.vectorSize();
       sizeSnap += input.size()/skipTime;
@@ -209,7 +235,13 @@ BasisOrthoDriver::solve() {
 
     // Loop over rob files 
     for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
-      std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB, i);
+      BasisFileId basisFileId(fileInfo,type,BasisId::ROB, i);
+      std::string fileName = basisFileId.name();
+      if(!basisFileId.isBinary()) {
+        filePrint(stderr," ... Convert ASCII file to binary   ...\n");
+        convert_rob<Rom::XPostInputFile, Rom::BasisBinaryOutputFile>(fileName, fileName+".bin");
+        fileName = domain->solInfo().robfi[i] = fileName+".bin";
+      }
       BasisInputStream<6> input(fileName, converter);
       vectorSize = input.vectorSize();
       sizeROB += input.size();
@@ -223,9 +255,7 @@ BasisOrthoDriver::solve() {
     readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver, skipTime); // read in snapshots
     readIntoSolver(solver, converter, BasisId::ROB, domain->solInfo().robfi.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver); // read in ROB
     
-    solver.solve();
-
-    BasisOutputStream<6> output(BasisFileId(fileInfo, type, BasisId::POD), converter, false); 
+    if(domain->solInfo().robcSolve) solver.solve();
 
     int orthoBasisDim = domain->solInfo().maxSizePodRom ?
                               std::min(domain->solInfo().maxSizePodRom, solver.singularValueCount()) :
@@ -242,27 +272,38 @@ BasisOrthoDriver::solve() {
       }
       std::ofstream out(fileName.c_str());
       bool reset = true;
+      int truncatedDim;
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
         double energy = toto[iVec]/toto[0];
-        if(energy < domain->solInfo().romEnergy && reset){
-          orthoBasisDim = iVec+1;
+        if(energy < domain->solInfo().romEnergy && reset) {
+          truncatedDim = iVec+1;
           reset = false;
         }
         out << iVec+1 << " " << solver.singularValue(iVec) << " " << energy << std::endl;
       }
+      if(!reset) orthoBasisDim = truncatedDim;
     }
 
     // Output solution
+    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    fileName.append(".orthonormalized");
+    BasisOutputStream<6> output(fileName, converter, false);
+
     if(domain->solInfo().normalize <= 0) // old method for lumped: outputs identity normalized basis
-      filePrint(stderr, " ... Writing orthonormal basis of size %d to file %s ...\n", orthoBasisDim, BasisFileId(fileInfo, type, BasisId::POD).name().c_str());
+      filePrint(stderr, " ... Writing orthonormal basis of size %d to file %s ...\n", orthoBasisDim, fileName.c_str());
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
       output << std::make_pair(solver.singularValue(iVec), solver.matrixCol(iVec));
+    }
+    if(domain->solInfo().subtractRefPodRom){ // add offset to data
+      output << std::make_pair(1.0, centroid->data());
+      orthoBasisDim++; 
     }
 
     // Read back in output file to renormalize basis
     VecBasis basis;
-    BasisInputStream<6> in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), converter);
+    BasisInputStream<6> in(fileName, converter);
     readVectors(in, basis);
+    if(domain->solInfo().subtractRefPodRom) MGSVectors(basis.data(), basis.numVec(), basis.size()); // orthonormalize offset with respect to basis
 
     VecBasis normalizedBasis;
     if(domain->solInfo().normalize == 0) {
@@ -287,7 +328,7 @@ BasisOrthoDriver::solve() {
     // Output the renormalized basis as separate file
     if(domain->solInfo().normalize >= 0) {
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-      fileName.append(".normalized");
+      fileName.append(".massorthonormalized");
       BasisOutputStream<6> outputNormalized(fileName, converter, false); 
       filePrint(stderr, " ... Writing mass-normalized basis of size %d to file %s ...\n", orthoBasisDim, fileName.c_str());
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
@@ -297,16 +338,16 @@ BasisOrthoDriver::solve() {
   
     // Compute and output orthonormal basis if using new method
     if(domain->solInfo().normalize == 1) {
-      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
       MGSVectors(normalizedBasis.data(), normalizedBasis.numVec(), normalizedBasis.size());
       BasisOutputStream<6> outputIdentityNormalized(fileName, converter, false); 
-      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
+      filePrint(stderr, " ... Writing orthonormal basis of size %d to file %s ...\n", orthoBasisDim, fileName.c_str());
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
         outputIdentityNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
       }
     }
 
   }
+  if(domain->solInfo().subtractRefPodRom) delete centroid;
 }
 
 void

@@ -9,5 +9,11 @@
     system "$command";
     $command = "ln -s $src/baseline $dest";
     system "$command";
+    $command = "cp $src/\*.contact* $dest";
+    system "$command";
+    $command = "mkdir $dest/vme4";
+    system "$command";
+    $command = "cp $src/vme4/control.so $dest/vme4";
+    system "$command";
   }  
 

@@ -14,8 +14,6 @@ struct ModeData {
 
   template<class VecType>
   void addMultY(int numY, BCond *Y, VecType& x, DofSetArray* dsa, int ndof=6) { //HB: x <- x + X.y 
-    // The following implementation assumes that all the modes have been given for the SAME nodes
-    // to reduce the number of calls to DofSetArray::locate
     for(int j = 0; j < numNodes; ++j) // loop over nodes
       for(int k = 0; k < ndof; ++k) { // loop over dofs
          int dof = dsa->locate(nodes[j], 1 << k);

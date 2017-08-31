@@ -15,7 +15,8 @@ bool ShellMaterialType5<doublereal>::Wlocal_stress_thic = true;
 template<typename doublereal>
 void
 ShellMaterialType5<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                                                        doublereal *eframe, int, doublereal temp, doublereal)
+                                                        doublereal *eframe, int, doublereal temp, doublereal,
+                                                        doublereal *, doublereal *)
 {
   // Initialized data 
   doublereal zero = 0.;
@@ -189,8 +190,8 @@ ShellMaterialType5<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 template<typename doublereal>
 void
-ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dSigmadu, doublereal *_D,
-                                                                          doublereal *eframe, int gp)
+ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dSigmadu,
+                                                                          doublereal *_D, doublereal *eframe, int gp)
 {
   // Initialized data 
   doublereal zero = 0.;
@@ -235,8 +236,9 @@ ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(double
 
 template<typename doublereal>
 void
-ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTthic(doublereal *_Upsilon, doublereal *_dSigmadh, doublereal *_dDdh,
-                                                                          doublereal *eframe, int gp, doublereal temp)
+ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTthic(doublereal *_Upsilon, doublereal *_dSigmadh, 
+                                                                          doublereal *_dDdh,  doublereal *eframe, int gp,
+                                                                          doublereal temp)
 {
   // Initialized data
   doublereal zero = 0.;
@@ -286,7 +288,8 @@ ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTthic(double
 template<typename doublereal>
 void
 ShellMaterialType5<doublereal>::GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
-                                                             doublereal *eframe, int gp, doublereal temp, doublereal dt)
+                                                             doublereal *eframe, int gp, doublereal temp, doublereal dt,
+                                                             doublereal *, doublereal *)
 {
   sigma[0] = sigma[1] = sigma[2] = 0;
   if(Wlocal_stress) {
@@ -333,12 +336,12 @@ ShellMaterialType5<double>
 template
 void
 ShellMaterialType5<double>
-::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double);
+::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double, double *, double *);
 
 template
 void
 ShellMaterialType5<double>
-::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double);
+::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double, double *, double *);
 
 template
 void

@@ -48,7 +48,7 @@
 
 Eigen::VectorXd
 nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
-      long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime);
+      long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime, std::vector<long int> &indices);
 
 Eigen::VectorXd
 gpfp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
@@ -254,7 +254,8 @@ gpfp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm
   if(project) { // can do a non-negative least squares projection onto the non-negative lasso basis
     std::cout << "*** PROJECTING SOLUTION ON TO SELECTED BASIS ***" << std::endl;
     maxEle = 0;
-    y.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxEle, maxite, reltol, verbose, scaling, center, false, dtime);
+    std::vector<long int> newIndices;
+    y.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxEle, maxite, reltol, verbose, scaling, center, false, dtime, newIndices);
   }
 
   r = b - B.leftCols(k)*y.head(k);

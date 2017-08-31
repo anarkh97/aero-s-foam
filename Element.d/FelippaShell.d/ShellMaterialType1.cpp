@@ -15,7 +15,8 @@ bool ShellMaterialType1<doublereal>::Wlocal_stress_thic = true;
 template<typename doublereal>
 void
 ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                                                        doublereal *eframe, int, doublereal temp, doublereal)
+                                                        doublereal *eframe, int, doublereal temp, doublereal,
+                                                        doublereal *, doublereal *)
 {
   // Initialized data 
   doublereal zero = 0.;
@@ -242,7 +243,8 @@ ShellMaterialType1<doublereal>::GetShellThickness()
 template<typename doublereal>
 void
 ShellMaterialType1<doublereal>::GetLocalConstitutiveResponse(doublereal *, doublereal *sigma, doublereal,
-                                                             doublereal *, int, doublereal, doublereal)
+                                                             doublereal *, int, doublereal, doublereal,
+                                                             doublereal *, doublereal *)
 {
   sigma[0] = sigma[1] = sigma[2] = 0.0;
   if(Wlocal_stress) {
@@ -289,7 +291,7 @@ ShellMaterialType1<double>
 template
 void
 ShellMaterialType1<double>
-::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double);
+::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double, double *, double *);
 
 template
 double 
@@ -299,7 +301,7 @@ ShellMaterialType1<double>
 template
 void
 ShellMaterialType1<double>
-::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double);
+::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double, double *, double *);
 
 template
 void

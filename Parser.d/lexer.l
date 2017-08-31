@@ -86,13 +86,21 @@ TRAIL [a-zA-Z]*
 
 "READMODE"[a-zA-Z]*|"readmode"[a-zA-Z]* { return READMODE; }
 
+"MNORM"|"mnorm"                    { yylval.ival = ModalParams::Mnorm; return ROBTYPE; }
+"INORM"|"inorm"                    { yylval.ival = ModalParams::Inorm; return ROBTYPE; }
+"NONEG"|"noneg"                    { yylval.ival = ModalParams::Noneg; return ROBTYPE; }
+
 "DUALBASIS"|"dualbasis"            { return DUALBASIS; }
 
 "ADJOINTBASIS"|"adjointbasis"      { return ADJOINTBASIS; }
 
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
 
+"USE_CONSTANT_MASS_FORCES"|"use_constant_mass_forces" { return USECONSTANTMASS; }
+
 "ONLINE_MASS_NORMALIZE_BASIS"|"online_mass_normalize_basis" { return ONLINEMASSNORMALIZEBASIS;}
+
+"STACKED_TRAINING"|"stacked_training" { return STACKED; }
 
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
 
@@ -124,6 +132,7 @@ TRAIL [a-zA-Z]*
 "LOCF"[a-zA-Z]*|"locf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
 "NODF"[a-zA-Z]*|"nodf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
 "GLOF"[a-zA-Z]*|"glof"[a-zA-Z]*    { yylval.ival = OutputInfo::Global; return OUTPUTFRAME; }
+"MATF"[a-zA-Z]*|"matf"[a-zA-Z]*    { yylval.ival = OutputInfo::Material; return OUTPUTFRAME; }
 
 "ON"|"on"|"On"                     { yylval.ival = 1; return SWITCH; }
 "OFF"|"off"|"Off"                  { yylval.ival = 0; return SWITCH; }
@@ -158,6 +167,8 @@ TRAIL [a-zA-Z]*
 
 "trivial"|"TRIVIAL"                { return TRIVIAL; }
 
+"allowmechanisms"|"ALLOWMECHANISMS" { return ALLOWMECHANISMS; }
+
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
 
 "global"|"GLOBAL"                  { return GLOBAL; }
@@ -179,6 +190,8 @@ TRAIL [a-zA-Z]*
 "PROJECT"|"project"		   { return PROJSOL; }
  
 "POSITIVE"|"positive"		   { return POSELEM; }
+
+"HOTSTART"|"hotstart"		   { return HOTSTART; }
 
 "CENT"[a-zA-Z]*|"cent"[a-zA-Z]*    { return CENTER; }
 
@@ -340,6 +353,8 @@ TRAIL [a-zA-Z]*
 
 "freqsweepa"|"FREQSWEEPA"            { return FREQSWEEPA; }
 
+"freqsweepaw"|"FREQSWEEPAW"            { return FREQSWEEPAW; }
+
 "freqsweep1"|"FREQSWEEP1"          { return FREQSWEEP1; }
 
 "freqsweep2"|"FREQSWEEP2"          { return FREQSWEEP2; }
@@ -362,7 +377,7 @@ TRAIL [a-zA-Z]*
 
 "KrylovGalProjection"|"krylovgalprojection"|"KRYLOVGALPROJECTION" { yylval.ival= 6; return RECONSALG; }
 
-"QRGalProjection"|"qrgalprojection"|"QRGALPROJECTION" { yylval.ival = 7; return RECONSALG; }
+"WCAWEGalProjection"|"wcawegalprojection"|"WCAWEGALPROJECTION" { yylval.ival = 7; return RECONSALG; }
 
 "padepoles"|"PADEPOLES"            { return PADEPOLES; }
 
@@ -611,6 +626,8 @@ TRAIL [a-zA-Z]*
 
 "rbmf"[a-zA-Z]*|"RBMF"[a-zA-Z]*    { return RBMFILTER; }
 
+"lisr"[a-zA-Z]*|"LISR"[a-zA-Z]*    { return LISRBM; }
+
 "RESTART"|"restart"                { return RESTART; }
 
 "CONVECTI"[a-zA-Z]*|"convecti"[a-zA-Z]* { return CONVECTION; }
@@ -623,7 +640,9 @@ TRAIL [a-zA-Z]*
 
 "QUASISTATIC"|"quasistatic"        { return QUASISTATIC; }
 
-"modal"|"MODAL"                    { return MODAL; }
+"modal"|"MODAL"|"srom"|"SROM"      { return MODAL; }
+
+"contact"|"CONTACT"                { return CONTACT; }
 
 "precn"o[a-zA-Z]*|"PRECN"O[a-zA-Z]* { return PRECNO; }
 
@@ -766,6 +785,8 @@ TRAIL [a-zA-Z]*
 "subs"[a-zA-Z]*|"subs"[a-zA-Z]*    { return SUBSPACE;  }
 
 "NONL"[a-zA-Z]*|"nonl"[a-zA-Z]*    { return NL; }
+
+"ROMCPUS"|"romcpus"|"ROMcpus"      { return NUMROMCPUS; }
 
 "nlmat"[a-zA-Z]*|"nlmat"[a-zA-Z]*  { return NLMAT; }
 
@@ -946,6 +967,8 @@ TRAIL [a-zA-Z]*
 
 "SPRINGMAT"|"springmat"            { return SPRINGMAT; }
 
+"FREEPLAY"|"freeplay"|"FreePlay"   { return FREEPLAY; }
+
 "SINE"[a-zA-Z]*|"sine"[a-zA-Z]*|"Sine"[a-zA-Z]*  { yylval.ival = 0; return ELEMENTARYFUNCTIONTYPE; }
 "RAMP"[a-zA-Z]*|"ramp"[a-zA-Z]*|"Ramp"[a-zA-Z]*  { yylval.ival = 1; return ELEMENTARYFUNCTIONTYPE; }
 "TRIA"[a-zA-Z]*|"tria"[a-zA-Z]*|"Tria"[a-zA-Z]*  { yylval.ival = 2; return ELEMENTARYFUNCTIONTYPE; }
@@ -1074,11 +1097,13 @@ TRAIL [a-zA-Z]*
 
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
-"gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }
+"gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*         { yylval.ival = -1; return AVERAGED; }
 
-"nodal"|"NODAL"|"nodalfull"|"NODALFULL"  { yylval.ival =  1; return AVERAGED; }
+"nodal"|"NODAL"|"nodalfull"|"NODALFULL"   { yylval.ival =  1; return AVERAGED; }
 
-"nodalpartial"|"NODALPARTIAL"      { yylval.ival =  2; return AVERAGED; }
+"nodalpartial"|"NODALPARTIAL"             { yylval.ival =  2; return AVERAGED; }
+
+"nodalpartialgroup"|"NODALPARTIALGROUP"   { yylval.ival =  3; return AVERAGED; }
 
 "upper"[a-zA-Z]*|"UPPER"[a-zA-Z]*  { yylval.ival = 1; return SURFACE; }
 
@@ -1086,15 +1111,31 @@ TRAIL [a-zA-Z]*
 
 "lower"[a-zA-Z]*|"LOWER"[a-zA-Z]*  { yylval.ival = 3; return SURFACE; }
 
+"thermomechanical"[a-zA-Z]*|"THERMOMECHANICAL"[a-zA-Z]*  { yylval.ival = 0; return STR_THERM_OPTION; }
+
+"thermal"[a-zA-Z]*|"THERMAL"[a-zA-Z]*  { yylval.ival = 1; return STR_THERM_OPTION; }
+
+"mechanical"[a-zA-Z]*|"MECHANICAL"[a-zA-Z]* { yylval.ival = 2; return STR_THERM_OPTION; }
+
 "gdisplac"|"GDISPLAC"              { yylval.ival = OutputInfo::Displacement; return STRESSID; }
 
 "romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
 
 "quaterni"|"QUATERNI"              { yylval.ival = OutputInfo::Quaternion;   return STRESSID; }
 
-"modaldsp"|"MODALDSP"              { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
+"modaldsp"|"MODALDSP"|"sromdisp"|"SROMDISP" { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
 
-"modalexf"|"MODALEXF"              { yylval.ival = OutputInfo::ModalExF;     return STRESSID; }
+"modalexf"|"MODALEXF"|"sromextf"|"SROMEXTF" { yylval.ival = OutputInfo::ModalExF;     return STRESSID; }
+
+"modalmas"|"MODALMAS"|"srommass"|"SROMMASS" { yylval.ival = OutputInfo::ModalMass;    return STRESSID; }
+
+"modalstf"|"MODALSTF"|"sromstif"|"SROMSTIF" { yylval.ival = OutputInfo::ModalStiffness; return STRESSID; }
+
+"modaldmp"|"MODALDMP"|"sromdamp"|"SROMDAMP" { yylval.ival = OutputInfo::ModalDamping; return STRESSID; }
+
+"modaldyn"|"MODALDYN"|"sromdyna"|"SROMDYNA" { yylval.ival = OutputInfo::ModalDynamicMatrix; return STRESSID; }
+
+"modalmat"|"MODALMAT"|"srommatr"|"SROMMATR" { yylval.ival = OutputInfo::ModalMatrices; return STRESSID; }
 
 "gtempera"|"GTEMPERA"              { yylval.ival = OutputInfo::Temperature;  return STRESSID; }
 
@@ -1204,6 +1245,10 @@ TRAIL [a-zA-Z]*
 "energies"|"ENERGIES"              { yylval.ival = OutputInfo::Energies;     return STRESSID; }
 
 "raerofor"|"RAEROFOR"              { yylval.ival = OutputInfo::AeroForce;    return STRESSID; }
+
+"romresid"|"ROMRESID"              { yylval.ival = OutputInfo::RomResidual;  return STRESSID; }
+
+"romextfo"|"ROMEXTFO"              { yylval.ival = OutputInfo::RomExtForce;  return STRESSID; }
 
 "geigenpa"|"GEIGENPA"              { yylval.ival = OutputInfo::EigenPair;    return STRESSID; }
 
@@ -1408,6 +1453,7 @@ TRAIL [a-zA-Z]*
 
 "logs"[a-zA-Z]*|"LOGS"[a-zA-Z]*|"LogS"[a-zA-Z]*         { return LOGSTRAINPLASTIC; }
 
+
 "linearplanestress"|"LINEARPLANESTRESS"|"LinearPlaneStress" { return LINPLSTRESS; }
 
 "hyperelasticplanestress"|"HYPERELASTICPLANESTRESS"|"HyperElasticPlaneStress" { return SVKPLSTRESS; }
@@ -1416,13 +1462,49 @@ TRAIL [a-zA-Z]*
 
 "isotropiclinearelastic"|"ISOTROPICLINEARELASTIC"|"IsotropicLinearElastic"  { return ISOTROPICLINEARELASTIC; }
 
+"viscolinearelastic"|"VISCOLINEARELASTIC"|"ViscoLinearElastic"|"ViscoLinear"  { return VISCOLINEARELASTIC; }
+
+"viscostve"[a-zA-Z]*|"VISCOSTVE"[a-zA-Z]*|"ViscoStVe"[a-zA-Z]*  { return VISCOSTVENANTKIRCHHOFF; }
+
+"PlaneStressLinear"[a-zA-Z]*                            { return PLANESTRESSLINEAR; }
+
+"PlaneStressStVenantKirchhoff"[a-zA-Z]*                 { return PLANESTRESSSTVENANTKIRCHHOFF; }
+
+"PlaneStressNeoHookean"[a-zA-Z]*                        { return PLANESTRESSNEOHOOKEAN; }
+
+"PlaneStressMooneyRivlin"[a-zA-Z]*                      { return PLANESTRESSMOONEYRIVLIN; }
+
+"PlaneStressBilinearPlastic"[a-zA-Z]*                   { return PLANESTRESSBILINEARPLASTIC; }
+
+"PlaneStressFiniteStrainPlastic"[a-zA-Z]*               { return PLANESTRESSFINITESTRAINPLASTIC; }
+
+"PlaneStressViscoLinearElastic"[a-zA-Z]*                { return PLANESTRESSVISCOLINEARELASTIC; }
+
+"PlaneStressViscoStVenantKirchhoff"[a-zA-Z]*            { return PLANESTRESSVISCOSTVENANTKIRCHHOFF; }
+
+"PlaneStressViscoNeoHookean"[a-zA-Z]*                   { return PLANESTRESSVISCONEOHOOKEAN; }
+
+"PlaneStressViscoMooneyRivlin"[a-zA-Z]*                 { return PLANESTRESSVISCOMOONEYRIVLIN; }
+
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
+
+"tule"[a-zA-Z]*|"TULE"[a-zA-Z]*|"Tule"[a-zA-Z]*         { return TULERBUTCHER; }
 
 "henc"[a-zA-Z]*|"HENC"[a-zA-Z]*|"Henc"[a-zA-Z]*         { return HENCKY; }
 
 "neoh"[a-zA-Z]*|"NEOH"[a-zA-Z]*|"NeoH"[a-zA-Z]*         { return NEOHOOKEAN; }
 
+"visconeoh"[a-zA-Z]*|"VISCONEOH"[a-zA-Z]*|"ViscoNeoH"[a-zA-Z]*         { return VISCONEOHOOKEAN; }
+
 "moon"[a-zA-Z]*|"MOON"[a-zA-Z]*|"Moon"[a-zA-Z]*         { return MOONEYRIVLIN; }
+
+"ogde"[a-zA-Z]*|"OGDE"[a-zA-Z]*|"Ogde"[a-zA-Z]*         { return OGDEN; }
+
+"simoe"[a-zA-Z]*|"SIMOE"[a-zA-Z]*|"SimoE"[a-zA-Z]*      { return SIMOELASTIC; }
+
+"simop"[a-zA-Z]*|"SIMOP"[a-zA-Z]*|"SimoP"[a-zA-Z]*      { return SIMOPLASTIC; }
+
+"viscomoon"[a-zA-Z]*|"VISCOMOON"[a-zA-Z]*|"ViscoMoon"[a-zA-Z]*         { return VISCOMOONEYRIVLIN; }
 
 "isotropiclinearelasticj2plastic"|"ISOTROPICLINEARELASTICJ2PLASTIC"|"IsotropicLinearElasticJ2Plastic" { return ISOTROPICLINEARELASTICJ2PLASTIC; }
 
@@ -1487,7 +1569,17 @@ TRAIL [a-zA-Z]*
 
 "TDEN"[a-zA-Z]*|"tden"[a-zA-Z]*    { return TDENFORCE; }
 
+"PARA"[a-zA-Z]*|"para"[a-zA-Z]*    { return PARAMETERS; }
+
 "ACME"[a-zA-Z]*|"acme"[a-zA-Z]*    { return ACMECNTL; }
+
+"ANDES_CLR"|"andes_clr"            { return ANDESCLR; }
+"ANDES_CQR"|"andes_cqr"            { return ANDESCQR; }
+"ANDES_BETAB"|"andes_betab"        { return ANDESBETAB; }
+"ANDES_ALPHA"|"andes_alpha"        { return ANDESALPHA; }
+"ANDES_BETAM"|"andes_betam"        { return ANDESBETAM; }
+
+"NLMEM_PTYPE"|"nlmem_ptype"        { return NLMEMPTYPE; }
 
 "ffi_debug"                        { return FFIDEBUG; }
 
@@ -1532,7 +1624,14 @@ TRAIL [a-zA-Z]*
 
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 
+"SOLVE"|"solve"                           { return ROBCSOLVE; } /* deprecated */
+"COMPRESS"|"Compress"|"compress"          { return ROBCSOLVE; }
+
 "MNORMA"|"MNorma"|"mnorma"		  { return NORMALIZETOKEN; }
+
+"mi"|"MI"                                 { yylval.ival = 1;  return FLAGMN; }
+"im"|"IM"                                 { yylval.ival = 0;  return FLAGMN; }
+"id"|"ID"                                 { yylval.ival = -1; return FLAGMN; }
 
 "MPRO"[a-zA-Z]*|"mpro"[a-zA-Z]*           { return MPROJECT; }
 
@@ -1541,6 +1640,8 @@ TRAIL [a-zA-Z]*
 "RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } /* reduced order data conversion token */
  
 "CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } /* reduced order data conversion files */
+
+"ROMRES"|"RomRes"|"romres"                { return ROMRES; }
 
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 "VELSNAPFI"|"VelSnapFi"|"velsnapfi"       { return VELSNAPFI; }
@@ -1555,6 +1656,8 @@ TRAIL [a-zA-Z]*
 "CONCFG"|"ConCfg"|"concfg"                { return CONWEPCFG; }
 
 "POSCFG"|"PosCfg"|"poscfg"                { return SCALEPOSCOORDS; }
+
+"NDSCFG"|"NdsCfg"|"ndscfg"		  { return NODEPOSCOORDS; }
 
 "MESHSCALE"|"MeshScale"|"meshscale"       { return MESHSCALEFACTOR; }
 
@@ -1593,28 +1696,37 @@ TRAIL [a-zA-Z]*
 "PGSPLH"|"pgSplh"|"pgsplh"                { return PGSPLH; }
 
 "lh"|"LH"                                 { yylval.ival = 0; return SPNNLSSOLVERTYPE; }
-"nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; }
-"gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; }
-"lars"|"LARS"				  { yylval.ival = 3; return SPNNLSSOLVERTYPE; }
+"nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CGNNLS"|"cgnnls"                         { yylval.ival = 1; return SPNNLSSOLVERTYPE; }  
+"gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CGPFP"|"cgpfp"                           { yylval.ival = 2; return SPNNLSSOLVERTYPE; } 
+"lars"|"LARS"				  { yylval.ival = 3; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CHLASSO"|"chlasso"                       { yylval.ival = 3; return SPNNLSSOLVERTYPE; }
 "mp"|"MP"				  { yylval.ival = 4; return SPNNLSSOLVERTYPE; }
 "omp"|"OMP"                               { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
-"splh"|"SPLH" 				  { yylval.ival = 6; return SPNNLSSOLVERTYPE; }
-"cglars"|"CGLARS"                         { yylval.ival = 7; return SPNNLSSOLVERTYPE; }
-"sppfp"|"SPPFP"				  { yylval.ival = 8; return SPNNLSSOLVERTYPE; }
+"splh"|"SPLH" 				  { yylval.ival = 6; return SPNNLSSOLVERTYPE; } /* deprecated */
+"QRNNLS"|"qrnnls"                         { yylval.ival = 6; return SPNNLSSOLVERTYPE; } 
+"cglars"|"CGLARS"                         { yylval.ival = 7; return SPNNLSSOLVERTYPE; } /* deprecated */
+"CGLASSO"|"cglasso"                       { yylval.ival = 7; return SPNNLSSOLVERTYPE; }
+"sppfp"|"SPPFP"				  { yylval.ival = 8; return SPNNLSSOLVERTYPE; } /* deprecated */
+"QRPFP"|"qrpfp"                           { yylval.ival = 8; return SPNNLSSOLVERTYPE; } 
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 
 "REFSUBTRACT"|"refsubtract"|"RefSubtract" { return REFSUBTRACT; } 
 
 "USE_NMF"|"use_nmf"                       { return USENMF; }
+"USE_NMFC"|"use_nmfc"                     { return USENMFC; }
 "USE_GREEDY"|"use_greedy"                 { return USEGREEDY; }
 "USE_PQN"|"use_pqn"                       { return USEPQN; }
 
 "DO_CLUSTERING"|"do_clustering"           { return DOCLUSTERING; }
+"DO_ROWCLUSTERING"|"do_rowclustering"     { return DOROWCLUSTERING; }
 "ANGLE"|"angle" 			  { return ANGLE; }
 "CLUSTERSOLVER"|"clustersolver"           { return CLUSTERSOLVER; }
 "CRANDOM"|"crandom"                       { yylval.ival = 0; return CLUSTERSOLVERTYPE; }
 "KMEANS"|"kmeans"                         { yylval.ival = 1; return CLUSTERSOLVERTYPE; }
+"SSC"|"ssc" 	           	          { yylval.ival = 2; return CLUSTERSOLVERTYPE; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

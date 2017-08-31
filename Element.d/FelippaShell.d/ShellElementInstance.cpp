@@ -13,6 +13,11 @@ ShellElementTemplate<double,Membrane,Bending> \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
+::andesfrm(int elm, double *x, double *y, double *z, double *aframe, \
+           double *cframe); \
+template \
+void \
+ShellElementTemplate<double,Membrane,Bending> \
 ::andesgf(int elm, double *x, double *y, double *z, double *_gravityForce, \
           double *gamma, int gravflg, double rhoh); \
 template \
@@ -40,7 +45,8 @@ void \
 ShellElementTemplate<double,Membrane,Bending> \
 ::andesstf(int elm, double *estiff, double *fint, double nu, \
            double *x, double *y, double *z, double *v, int ctyp, \
-           ShellMaterial<double> *gpmat, int flag, int tflg, double *ndtemps, double dt); \
+           ShellMaterial<double> *gpmat, int flag, int tflg, double *ndtemps, \
+           double dt, double *staten, double *statenp); \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
@@ -60,7 +66,8 @@ void \
 ShellElementTemplate<double,Membrane,Bending> \
 ::andesvms(int elm, int maxstr, double nu, double *x, double *y, double *z, \
            double *v, double *stress, int ctyp, ShellMaterial<double> *nmat, \
-           int strainflg, int surface, int sflg, double *ndtemps); \
+           int strainflg, int surface, int sflg, double *ndtemps, \
+           int flag, double *staten, double *statenp); \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
@@ -104,8 +111,9 @@ ShellElementTemplate<double,Membrane,Bending> \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
-::andesups(int elm, double *state, double *X, double *Y, double *Z, double *_v, \
-           ShellMaterial<double> *gpmat, ShellMaterial<double> *nmat, int sflg, double dt); \
+::andesups(int elm, double *staten, double *statenp, double *X, double *Y, double *Z, double *_v, \
+           ShellMaterial<double> *gpmat, ShellMaterial<double> *nmat, int sflg, int tflg, \
+           double *ndtemps, double dt); \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \

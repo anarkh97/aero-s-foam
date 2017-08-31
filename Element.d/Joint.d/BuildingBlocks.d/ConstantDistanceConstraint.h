@@ -10,7 +10,7 @@
 class ConstantDistanceConstraint : public DistanceConstraintElement
 {
   public:
-    ConstantDistanceConstraint(int*);
+    ConstantDistanceConstraint(int*, int=0);
     void buildFrame(CoordSet&);
     int getTopNumber();
 };

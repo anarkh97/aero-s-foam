@@ -15,6 +15,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 #SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
 #SET(CMAKE_EXE_LINKER_FLAGS -static)
 
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-literal-suffix")
+endif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+
 if (${CMAKE_VERSION} VERSION_GREATER 2.8.3 OR ${CMAKE_VERSION} VERSION_EQUAL 2.8.3)
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" AND NOT WITH_CXX11 EQUAL 0)
     execute_process(
@@ -77,6 +81,10 @@ if(AERO)
    MARK_AS_ADVANCED(CLEAR MPI_LIBRARY)
    FIND_PACKAGE(MPI REQUIRED)
 endif(AERO)
+
+if(ASYNCHRONOUS_IO)
+  add_definitions(-D_AEROS_ASYNCHRONOUS_IO)
+endif(ASYNCHRONOUS_IO)
 
 IF(UNIX)
   IF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
@@ -144,8 +152,8 @@ IF(UNIX)
       ENDIF(ARPACK_arpack_LIBRARY AND ARPACK_parpack_LIBRARY)
     ENDIF(NOT MPI_FOUND)
    ELSE(NOT WITH_ARPACK EQUAL 0)
-    SET(ARPACK_arpack_LIBRARY "ARPACK_arpack_LIBRARY-NOTFOUND")
-    SET(ARPACK_parpack_LIBRARY "ARPACK_parpack_LIBRARY-NOTFOUND")
+    SET(ARPACK_arpack_LIBRARY "ARPACK_arpack_LIBRARY-NOTFOUND" CACHE FILEPATH "Path to a library." FORCE)
+    SET(ARPACK_parpack_LIBRARY "ARPACK_parpack_LIBRARY-NOTFOUND" CACHE FILEPATH "Path to a library." FORCE)
    ENDIF(NOT WITH_ARPACK EQUAL 0)
 
 # spooles
@@ -169,6 +177,8 @@ IF(UNIX)
       endif(SPOOLES_spoolesMT_LIBRARY)
       SET(INC_DIR ${INC_DIR} ${SPOOLES_INCLUDE_PATH})
     ENDIF(SPOOLES_FOUND)
+   ELSE(NOT WITH_SPOOLES EQUAL 0)
+    SET(SPOOLES_spooles_LIBRARY "SPOOLES_spooles_LIBRARY-NOTFOUND" CACHE FILEPATH "Path to a library." FORCE)
    ENDIF(NOT WITH_SPOOLES EQUAL 0)
 
 # eigen
@@ -212,6 +222,7 @@ IF(UNIX)
     IF(NOT WITH_SACADO EQUAL 0)
       FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp )
       IF(SACADO_INCLUDE_PATH)
+        set(SACADO_FOUND TRUE)
         MESSAGE("-- A library with SACADO API found. ")
         add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
         include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
@@ -273,6 +284,7 @@ IF(UNIX)
     FIND_PATH(MUMPS_INCLUDE_PATH dmumps_c.h
               PATHS /usr/include usr/local/include)
     if (NOT MPI_FOUND)
+      UNSET(MUMPS_common_LIBRARY CACHE)
       MARK_AS_ADVANCED(CLEAR MUMPS_dmumps_seq_LIBRARY MUMPS_zmumps_seq_LIBRARY
                        MUMPS_common_seq_LIBRARY MUMPS_pord_seq_LIBRARY
                        MUMPS_mpiseq_LIBRARY)
@@ -299,6 +311,7 @@ IF(UNIX)
         SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MUMPS_LIBRARIES})
       endif(MUMPS_FOUND)
     else(NOT MPI_FOUND)
+      UNSET(MUMPS_common_seq_LIBRARY CACHE)
       MARK_AS_ADVANCED(FORCE MUMPS_dmumps_seq_LIBRARY MUMPS_zmumps_seq_LIBRARY
                        MUMPS_common_seq_LIBRARY MUMPS_pord_seq_LIBRARY
                        MUMPS_mpiseq_LIBRARY)
@@ -325,6 +338,14 @@ IF(UNIX)
       endif(BLACS_FOUND AND SCALAPACK_FOUND AND MUMPS_FOUND)
 
     endif(NOT MPI_FOUND)
+   ELSE(NOT WITH_MUMPS EQUAL 0)
+    if (NOT MPI_FOUND)
+      UNSET(MUMPS_common_LIBRARY CACHE)
+      SET(MUMPS_common_seq_LIBRARY "MUMPS_common_seq_LIBRARY-NOTFOUND" CACHE FILEPATH "Path to a library." FORCE)
+    else (NOT MPI_FOUND)
+      UNSET(MUMPS_common_seq_LIBRARY CACHE)
+      SET(MUMPS_common_LIBRARY "MUMPS_common_LIBRARY-NOTFOUND" CACHE FILEPATH "Path to a library." FORCE)
+    endif (NOT MPI_FOUND)
    ENDIF(NOT WITH_MUMPS EQUAL 0)
 
    IF(NOT WITH_BOOST EQUAL 0)
@@ -368,10 +389,6 @@ ELSE (MERCURIAL_EXECUTABLE)
 ENDIF (MERCURIAL_EXECUTABLE)
 
 add_definitions(-D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DSOWER_SURFS -DMAP_MIN_MEMORY)
-
-IF(SENSITIVITY_DEBUG EQUAL 1)
-   add_definitions(-DSENSITIVITY_DEBUG)
-endif(SENSITIVITY_DEBUG EQUAL 1)
 
 IF(AEROS_NO_AD EQUAL 1)
    add_definitions(-DAEROS_NO_AD)
@@ -467,6 +484,24 @@ set_target_properties(robcodec
 
 target_link_libraries(robcodec Rom Util)
 
+add_executable(xpostcodec Rom.d/XPostCodec.C)
+set_target_properties(xpostcodec
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME xpo
+                      DEBUG_OUTPUT_NAME xpo.debug)
+
+target_link_libraries(xpostcodec Rom Util)
+
+add_executable(xpostcodec6 Rom.d/XPostCodec6.C)
+set_target_properties(xpostcodec6
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME xpo6
+                      DEBUG_OUTPUT_NAME xpo6.debug)
+
+target_link_libraries(xpostcodec6 Rom Util)
+
 add_executable(errorcodec Rom.d/ErrorCodec.C)
 set_target_properties(errorcodec
                       PROPERTIES
@@ -503,13 +538,22 @@ set_target_properties(impulseerrorcodec6
 
 target_link_libraries(impulseerrorcodec6 Rom Util)
 
+add_executable(errorcodec1 Rom.d/ErrorCodec1.C)
+set_target_properties(errorcodec1
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME relerr1
+                      DEBUG_OUTPUT_NAME relerr1.debug)
+
+target_link_libraries(errorcodec1 Rom Util)
+
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 
       "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-SET(AllTargets robcodec errorcodec)
+SET(AllTargets robcodec errorcodec errorcodec6 errorcodec1)
 IF(CREATE_DSO)
   SET(AllTargets ${AllTargets} femlib)
 ELSE(CREATE_DSO)
@@ -625,9 +669,9 @@ if(TEST_DURATION_SHORT)
   ADD_TEST(testRtest27a ${EXEC_DIR}/dataComp.py -l dsvm27a)
   ADD_TEST(testRtest27b ${EXEC_DIR}/dataComp.py -l dsvm27b)
   ADD_TEST(testRtest30 ${EXEC_DIR}/dataComp.py -l dsvm30)
-  if(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS)
+  if(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS AND SACADO_FOUND)
     ADD_TEST(testRtest34 ${EXEC_DIR}/dataComp.py -l dsvm34)
-  endif(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS)
+  endif(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS AND SACADO_FOUND)
   ADD_TEST(testRtest35b ${EXEC_DIR}/dataComp.py -l dsvm35b)
   ADD_TEST(testRtest40 ${EXEC_DIR}/dataComp.py -l dsvm40)
   ADD_TEST(testvme1 ${EXEC_DIR}/dataComp.py -l vme1 )
@@ -667,15 +711,14 @@ else(TEST_DURATION_SHORT)
   ADD_TEST(testRtest30 ${EXEC_DIR}/dataComp.py -l dsvm30)
   ADD_TEST(testRtest31 ${EXEC_DIR}/dataComp.py -l dsvm31)
   ADD_TEST(testRtest32 ${EXEC_DIR}/dataComp.py -l dsvm32)
-  if(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS)
+  if(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS AND SACADO_FOUND)
     ADD_TEST(testRtest34 ${EXEC_DIR}/dataComp.py -l dsvm34)
-  endif(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS)
+  endif(EIGEN3_FOUND AND HAS_CXX11_TEMPLATE_ALIAS AND SACADO_FOUND)
   ADD_TEST(testRtest35a ${EXEC_DIR}/dataComp.py -l dsvm35a)
   ADD_TEST(testRtest35b ${EXEC_DIR}/dataComp.py -l dsvm35b)
   ADD_TEST(testRtest37 ${EXEC_DIR}/dataComp.py -l dsvm37)
 #  ADD_TEST(testRtest38 ${EXEC_DIR}/dataComp.py -l dsvm38)
   ADD_TEST(testRtest39 ${EXEC_DIR}/dataComp.py -l dsvm39)
-  # use the -s flag to send results via email
   ADD_TEST(testRtest40 ${EXEC_DIR}/dataComp.py -l dsvm40)
   ADD_TEST(testvme1 ${EXEC_DIR}/dataComp.py -l vme1 )
 #  ADD_TEST(testvme2 ${EXEC_DIR}/dataComp.py -l vme2 )
@@ -686,7 +729,8 @@ else(TEST_DURATION_SHORT)
   ADD_TEST(testvmmech003 ${EXEC_DIR}/dataComp.py -l vmmech003 )
   ADD_TEST(testvmmech063 ${EXEC_DIR}/dataComp.py -l vmmech063 )
   ADD_TEST(testPreStress ${EXEC_DIR}/dataComp.py -l PreStressedMembrane )
-  ADD_TEST(testPressure ${EXEC_DIR}/dataComp.py -l -s PlateUnderPressure )
+  # use the -s flag to send results via email
+  ADD_TEST(testPressure ${EXEC_DIR}/dataComp.py -l PlateUnderPressure )
 #  ADD_TEST(sendResults ${EXEC_DIR}/sendResults.py )
 endif(TEST_DURATION_SHORT)
 

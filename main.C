@@ -32,6 +32,7 @@
 #include <Paral.d/MDNLStatic.h>
 #include <Paral.d/MDNLDynam.h>
 #include <Paral.d/MDTemp.h>
+#include <Paral.d/MDModal.h>
 #include <HelmAxi.d/FourierDescrip.h>
 #include <HelmAxi.d/FourierProbTyp.h>
 #include <HelmAxi.d/FourierHelmBCs.h>
@@ -42,6 +43,8 @@
 #include <Sfem.d/Sfem.h>
 #include <Rom.d/SnapshotNonLinDynamic.h>
 #include <Rom.d/DistrSnapshotNonLinDynamic.h>
+#include <Rom.d/DistrPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrLumpedPodProjectionNonLinDynamic.h>
 #include <Rom.d/PodProjectionNonLinDynamic.h>
 #include <Rom.d/LumpedPodProjectionNonLinDynamic.h>
 #include <Rom.d/DEIMPodProjectionNonLinDynamic.h>
@@ -112,7 +115,8 @@ bool nosa=false;
 bool useFull=false;
 bool trivialFlag=false;
 bool randomShuffle=false;
-bool fsglFlag = false;
+bool fsglFlag=false;
+bool allowMechanisms=false;
 
 int verboseFlag = 0;
 int contactPrintFlag = 0;
@@ -137,6 +141,11 @@ std::string decomposition_ = "INPUT.dec";
 std::string connectivity_ = "INPUT.con";
 
 extern const char *THE_VERSION;
+
+extern ModeData modeData;
+extern ModeData modeDataIDis;
+extern ModeData modeDataIVel;
+extern ModeData modeDataMode;
 
 // ... main program
 
@@ -301,6 +310,7 @@ int main(int argc, char** argv)
    {"exit", 0, 0, 1002},
    {"deter", 0, 0, 1005},
    {"trivial", 0, 0, 1007},
+   {"allow-mechanisms", 0, 0, 1008},
    {"use-weight-from", 1, 0, 1004},
    {"threads-number", 1, 0, 'n'},
    {"decomposition-filename", 1, 0, 'd'},
@@ -311,6 +321,7 @@ int main(int argc, char** argv)
    {"output-topdomdec-asymetric-mesh", 1, 0, 'r'},
    {"output-primal", 1, 0, 'p'},
    {"contact-status-verbose", 1, 0, 'c'},
+   {"screen-output-interval-in-time-loop", 1, 0, 's'},
    {"output-topdomdec-gaps-renumbered-sequentially", 0, 0, 'T'},
    {"output-topdomdec-element-equals-materials-number", 0, 0, 'm'},
    {"output-topdomdec-element-equals-materials-numberc-gaps-renumbered-sequentially", 0, 0, 'M'},
@@ -403,6 +414,9 @@ int main(int argc, char** argv)
       case 1007 :
         trivialFlag = 1;
         break;
+      case 1008 :
+        allowMechanisms = true;
+        break;
       case 1010 :
 	callSower = true;
 	domain->setSowering(true);
@@ -485,6 +499,9 @@ int main(int argc, char** argv)
         break;
       case 'c':
         contactPrintFlag = domain->solInfo().fetiInfo.contactPrintFlag = atoi(optarg);
+        break;
+      case 's':
+        domain->solInfo().printNumber = atoi(optarg);
         break;
       case 'q':
         quietFlag = 1;
@@ -571,13 +588,56 @@ int main(int argc, char** argv)
    }
  }
 
- if(domain->solInfo().readmodeCalled) {
-   if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag || domain->solInfo().aeroFlag == 8 || domain->probType() == SolverInfo::Modal)
-      && (strcmp(domain->solInfo().readInModes,"") == 0)) {
-     domain->readInModes(domain->solInfo().readInROBorModes[0].c_str());
-   }
-   else {
-     if (!domain->solInfo().samplingPodRom) {
+ if(!domain->solInfo().readInModes.empty() || domain->solInfo().modal || domain->solInfo().modalCalled) {
+   if((domain->solInfo().isNonLin() && !domain->solInfo().modal_id.empty()) || domain->solInfo().activatePodRom) {
+     for(int i=0; i<domain->solInfo().modal_id.size(); ++i) {
+       ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id[i]];
+       switch(modalParams.type) {
+         case ModalParams::Inorm : {
+           domain->solInfo().readInROBorModes.push_back(modalParams.fileName);
+           domain->solInfo().localBasisSize.push_back(modalParams.numvec);
+           domain->solInfo().maxSizePodRom += modalParams.numvec;
+           domain->solInfo().useMassNormalizedBasis = false;
+         } break;
+         case ModalParams::Mnorm : {
+           std::string::size_type n = modalParams.fileName.rfind(".massorthonormalized");
+           if(n != std::string::npos) {
+             domain->solInfo().readInROBorModes.push_back(modalParams.fileName.substr(0,n));
+             domain->solInfo().localBasisSize.push_back(modalParams.numvec);
+             domain->solInfo().maxSizePodRom += modalParams.numvec;
+             domain->solInfo().useMassNormalizedBasis = true;
+           }
+           else {
+             filePrint(stderr, " *** ERROR: Specified filename for rob_id#%d is missing \".massorthonormalized\" extension.\n",i+1);
+             exit(-1);
+           }
+         } break;
+         case ModalParams::Undefined : {
+           domain->solInfo().readInROBorModes.push_back(modalParams.fileName);
+           domain->solInfo().localBasisSize.push_back(modalParams.numvec);
+           domain->solInfo().maxSizePodRom += modalParams.numvec;
+           domain->solInfo().useMassNormalizedBasis = true;
+         } break;
+         default : {
+           filePrint(stderr, " *** ERROR: Specified type for rob_id#%d is not supported.\n", i+1);
+           exit(-1);
+         } break;
+       }
+     }
+     for(int i=0; i<domain->solInfo().contact_modal_id.size(); ++i) {
+       ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().contact_modal_id[i]];
+       switch(modalParams.type) {
+         case ModalParams::Noneg : {
+           domain->solInfo().readInDualROB.push_back(modalParams.fileName);
+           domain->solInfo().localDualBasisSize.push_back(modalParams.numvec);
+         } break;
+         default : {
+           filePrint(stderr, " *** ERROR: Specified type for rob_id#%d is not supported.\n", domain->solInfo().modal_id.size()+i+1);
+           exit(-1);
+         } break;
+       }
+     }
+     if(!domain->solInfo().samplingPodRom) {
        domain->solInfo().activatePodRom = true;
        domain->solInfo().galerkinPodRom = true;
        if(!domain->solInfo().ROMPostProcess || (!domain->solInfo().readInAdjointROB.empty())) {
@@ -588,11 +648,17 @@ int main(int argc, char** argv)
 #endif
        }
      }
-     if(domain->solInfo().modalCalled) {
-       // for doing ROM with 2 sets of modes, #1 for the reduced order basis and #2 for modal IDISP/IVEL
-       domain->readInModes(const_cast<char*>(domain->solInfo().readInModes));
-     }
    }
+   else if(!domain->solInfo().modal_id.empty() || domain->solInfo().readInModes.find(0) != domain->solInfo().readInModes.end()) {
+     int modal_id = (domain->solInfo().modal_id.empty()) ? 0 : domain->solInfo().modal_id.front();
+     domain->readInModes(modal_id, modeData);
+   }
+   if(domain->solInfo().idis_modal_id != -1)
+     domain->readInModes(domain->solInfo().idis_modal_id, modeDataIDis);
+   if(domain->solInfo().ivel_modal_id != -1)
+     domain->readInModes(domain->solInfo().ivel_modal_id, modeDataIVel);
+   if(domain->solInfo().mode_modal_id != -1)
+     domain->readInModes(domain->solInfo().mode_modal_id, modeDataMode);
  }
 
  if(domain->solInfo().readShapeSen) {
@@ -712,7 +778,8 @@ int main(int argc, char** argv)
    // activate multi-domain mode for the explicit dynamics Rom drivers which are not supported in single-domain mode
    // so it is not necessary to include "DECOMP" with "nsubs 1" in the input file
    if((domain->solInfo().activatePodRom && domain->probType() == SolverInfo::NonLinDynam && domain->solInfo().newmarkBeta == 0)
-      || domain->solInfo().clustering > 0) {
+      || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess) || domain->solInfo().clustering > 0
+      || domain->solInfo().rowClustering > 0) {
      callDec = true;
      trivialFlag = true;
      numSubdomains = 1;
@@ -813,9 +880,10 @@ int main(int argc, char** argv)
    }
    else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
  }
- if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline)
+ if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline
+    && domain->solInfo().modal_id.empty())
    filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
-  
+
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
  //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested
@@ -823,6 +891,7 @@ int main(int argc, char** argv)
  if(domain->solInfo().type == 2 || domain->solInfo().type == 3
     || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
     || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)
+    || (!domain->solInfo().modal_id.empty() && domain_decomp)
     || (domain->solInfo().svdPodRom && domain_decomp)
     || (domain->solInfo().samplingPodRom && domain_decomp)) {
 
@@ -849,15 +918,24 @@ int main(int argc, char** argv)
        break;
      case SolverInfo::Dynamic: 
        {
-        if(domain->solInfo().mdPita) { // Not implemented yet
-          filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
-        } else {
-          MultiDomainDynam dynamProb(domain);
-          DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-       		MultiDomainDynam, double > dynamSolver(&dynamProb);
-          dynamSolver.solve();
-          fflush(stderr);
+        if(domain->solInfo().modal) {
+          filePrint(stderr," ... Modal Method                   ...\n");
+          MultiDomainModal * modalProb = new MultiDomainModal(domain);
+          DynamicSolver<ModalOps, Vector, MultiDomainModal, MultiDomainModal, double>
+          modalSolver(modalProb);
+          modalSolver.solve();
         }
+        else {
+          if(domain->solInfo().mdPita) { // Not implemented yet
+            filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
+          } else {
+            MultiDomainDynam dynamProb(domain);
+            DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                            MultiDomainDynam, double > dynamSolver(&dynamProb);
+            dynamSolver.solve();
+            fflush(stderr);
+          }
+         }
        }
        break;
 
@@ -1038,30 +1116,56 @@ int main(int argc, char** argv)
            nldynamicSolver.solve();
          } 
          else { // POD ROM
-           filePrint(stderr, " ... POD: Snapshot collection       ...\n");
-           Rom::DistrSnapshotNonLinDynamic nldynamic(domain);
-           NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
-                         Rom::DistrSnapshotNonLinDynamic, DistrGeomState,
-                         Rom::DistrSnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
-           nldynamicSolver.solve();
-           nldynamic.postProcess();
+           if (domain->solInfo().galerkinPodRom) {
+#ifdef USE_EIGEN3
+             if(domain->solInfo().elemLumpPodRom) {
+               filePrint(stderr, " ... POD: Parallel Implicit Galerkin HROM   ...\n");
+               Rom::DistrLumpedPodProjectionNonLinDynamic nldynamic(domain);
+               NLDynamSolver <Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> >, 
+                              DistrVector, MultiDomainPostProcessor,
+                              Rom::DistrPodProjectionNonLinDynamic, DistrModalGeomState,
+                              Rom::DistrPodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+               nldynamicSolver.solve();
+             } else {
+               filePrint(stderr, " ... POD: Parallel Implicit Galerkin ROM   ...\n");
+               Rom::DistrPodProjectionNonLinDynamic nldynamic(domain);
+               NLDynamSolver <Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> >, 
+                              DistrVector, MultiDomainPostProcessor,
+                              Rom::DistrPodProjectionNonLinDynamic, DistrModalGeomState,
+                              Rom::DistrPodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+               nldynamicSolver.solve();
+             }
+#endif
+           } else {
+             filePrint(stderr, " ... POD: Snapshot collection       ...\n");
+             Rom::DistrSnapshotNonLinDynamic nldynamic(domain);
+             NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
+                           Rom::DistrSnapshotNonLinDynamic, DistrGeomState,
+                           Rom::DistrSnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+             nldynamicSolver.solve();
+             nldynamic.postProcess();
+           }
          }
-       }
+       } 
      } break;
      case SolverInfo::PodRomOffline: {
        Rom::DriverInterface *driver;
        if (domain->solInfo().svdPodRom) {
          if(domain->solInfo().use_nmf) {
-           filePrint(stderr, " ... Distributed Nonneg. Matrix Factorization   ...\n");
+           filePrint(stderr, " ... Nonneg. Matrix Factorization   ...\n");
            driver = distrPositiveDualBasisDriverNew(domain);
          }
          else if(domain->solInfo().clustering) {
-           filePrint(stderr, " ... Distributed Snapshot Clustering            ...\n");
+           filePrint(stderr, " ... Snapshot Clustering            ...\n");
            driver = distrSnapshotClusteringDriverNew(domain);
+         }
+         else if(domain->solInfo().rowClustering) {
+           filePrint(stderr, " ... Snapshot Row Clustering        ...\n");
+           driver = distrSnapshotRowClusteringDriverNew(domain);
          }
          else {
            // Stand-alone SVD orthogonalization
-           filePrint(stderr, " ... Distributed Singular Value Decomposition   ...\n");
+           filePrint(stderr, " ... Singular Value Decomposition   ...\n");
            driver = distrBasisOrthoDriverNew(domain);
          }
        } 
@@ -1090,8 +1194,7 @@ int main(int argc, char** argv)
    totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;
    delete threadManager;
 
- }
- else {
+ } else {
 
    switch(domain->probType()) {
      case SolverInfo::DisEnrM: {
@@ -1282,7 +1385,7 @@ int main(int argc, char** argv)
                    nldynamicSolver.solve();
                  }
                } else if (domain->solInfo().galerkinPodRom) {
-                 filePrint(stderr, " ... POD: Reduced-order model       ...\n");
+                 filePrint(stderr, " ... POD: Implicit Reduced-order model       ...\n");
                  Rom::PodProjectionNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
                                 ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
@@ -1353,7 +1456,7 @@ int main(int argc, char** argv)
      case SolverInfo::Top:
        {
          double mass = domain->computeStructureMass();
-         fprintf(stderr," ... Structure mass = %10.4f    ...\n",mass);
+         fprintf(stderr," ... Structure mass = %13.7g ...\n",mass);
 	 domain->makeTopFile(topFlag);
        }
        break;
@@ -1371,8 +1474,7 @@ int main(int argc, char** argv)
            if(domain->solInfo().use_nmf) {
              filePrint(stderr, " ... Nonneg. Matrix Factorization   ...\n");
              driver.reset(positiveDualBasisDriverNew(domain));
-           }
-           else {
+           } else {
              filePrint(stderr, " ... Singular Value Decomposition   ...\n");
              driver.reset(basisOrthoDriverNew(domain));
            }
@@ -1420,7 +1522,7 @@ int main(int argc, char** argv)
          if(domain->solInfo().massFlag) {
            domain->preProcessing();
            double mass = domain->computeStructureMass();
-           fprintf(stderr," ... Structure mass = %10.4f    ...\n",mass);
+           fprintf(stderr," ... Structure mass = %13.7g ...\n",mass);
          }
          fprintf(stderr," ... No Analysis Type selected      ...\n");
        }

@@ -34,6 +34,9 @@ using std::list;
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 
+#include "Rom.d/BasisBinaryFile.h"
+#include "Rom.d/XPostOutputFile.h"
+#include <Rom.d/RobCodec.h>
 #include <Sfem.d/Sfem.h>
 
 extern int verboseFlag;
@@ -43,17 +46,23 @@ extern int totalNewtonIter;
 
 // Global variable for mode data
 ModeData modeData;
+ModeData modeDataIVel;
+ModeData modeDataIDis;
+ModeData modeDataMode;
 
 //----------------------------------------------------------------------------------
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
-  : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0), rubdaft(0), ysst(0), yssrt(0),
-    SurfEntities(0), MortarConds(0)
+  : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
+#ifdef USE_EIGEN3
+    rubdaft(0),
+#endif
+    ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
  int iele;
- numele = nele;        // number of elements
+ numele = nele; // number of elements
  for(int i=0; i < numele; ++i)
    packedEset.elemadd(i, d.packedEset[eles[i]]);
 
@@ -75,11 +84,16 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
  if(verboseFlag == 0) setSilent();
  else setVerbose();
 
+ matrixTimers = new MatrixTimers;
  initializeNumbers();
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
-  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0), rubdaft(0), ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
+  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
+#ifdef USE_EIGEN3
+    rubdaft(0),
+#endif
+    ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -103,10 +117,15 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
  if(verboseFlag == 0) setSilent();
  else setVerbose();
  initializeNumbers();
+ matrixTimers = new MatrixTimers;
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
-   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), sdetaft(0,iniSize), rubdaft(0,iniSize), ysst(0,iniSize), yssrt(0,iniSize),
+   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), sdetaft(0,iniSize),
+#ifdef USE_EIGEN3
+   rubdaft(0,iniSize),
+#endif
+   ysst(0,iniSize), yssrt(0,iniSize),
    SurfEntities(0,iniSize), MortarConds(0,iniSize)
 {
  initialize();
@@ -186,12 +205,12 @@ Domain::makeThicknessGroupElementFlag()
 
   int iele;
   for(iele=0; iele< numele; iele++) { thgreleFlag[iele] = false; thpaIndex[iele] = -1; }
-  for(int iparam = 0; iparam < thicknessGroups.size(); ++iparam) { 
+  for(int iparam = 0; iparam < thicknessGroups.size(); ++iparam) {
     int groupIndex = thicknessGroups[iparam];
-    for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) { 
+    for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {
       for(int eindex = 0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
         iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
-        thgreleFlag[iele] = true; 
+        thgreleFlag[iele] = true;
         thpaIndex[iele] = iparam;
       }
     }
@@ -929,6 +948,18 @@ Domain::setLoadFactorHFTT(int loadcase_id, int loadset_id, int table_id)
 }
 
 void
+Domain::setLoadFactorTemp(int loadcase_id, bool load_factor)
+{
+ loadfactor_temp[loadcase_id] = load_factor;
+}
+
+void
+Domain::setLoadFactorGrav(int loadcase_id, bool load_factor)
+{
+ loadfactor_grav[loadcase_id] = load_factor;
+}
+
+void
 Domain::checkCases()
 {
   for(std::list<int>::const_iterator it1 = sinfo.loadcases.begin(); it1 != sinfo.loadcases.end(); ++it1) {
@@ -975,6 +1006,34 @@ Domain::getLoadFactor(int loadset_id) const
   else {
     // 3. In this case, loadset_id is not included in the loadcase.
     return 0.0;
+  }
+}
+
+int
+Domain::gravityFlag()
+{
+  int loadcase_id = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  std::map<int,bool>::const_iterator it = loadfactor_grav.find(loadcase_id);
+  if(it != loadfactor_grav.end() && it->second == false) {
+    // in this case, gravity has been explicitly deactivated for the current loadcase
+    return 0;
+  }
+  else {
+    return (gravityAcceleration ? 1: 0) || (domain->solInfo().soltyp == 2);
+  }
+}
+
+int
+Domain::thermalFlag()
+{
+  int loadcase_id = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  std::map<int,bool>::const_iterator it = loadfactor_temp.find(loadcase_id);
+  if(it != loadfactor_temp.end() && it->second == false) {
+    // in this case, thermal loads have been explicitly deactivated for the current loadcase
+    return 0;
+  }
+  else {
+    return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0;
   }
 }
 
@@ -1112,6 +1171,7 @@ Domain::addSDETAFT(MFTTData *_sdetaft)
  return 0;
 }
 
+#ifdef USE_EIGEN3
 int
 Domain::addRUBDAFT(GenMFTTData<Eigen::Vector4d> *_rubdaft)
 {
@@ -1128,6 +1188,7 @@ Domain::addRUBDAFT(GenMFTTData<Eigen::Vector4d> *_rubdaft)
 
  return 0;
 }
+#endif
 
 void Domain::printYMTT()
 {
@@ -1333,11 +1394,12 @@ Domain::setUpData(int topFlag)
   setIDis(numBC, bc);
   numBC = geoSource->getIDisModal(bc);
   if(numBC) {
-    if(solInfo().keepModalInitialConditions()) { // for modal dynamics, keep the modal idisp and non-modal idisp separate
+    if(solInfo().keepModalInitialDisplacements()) { // keep the modal idisp and non-modal idisp separate
       setIDisModal(numBC, bc);
     }
-    else { // for non-modal dynamics convert the modal idisp into non-modal idisp
+    else { // convert the modal idisp into non-modal idisp
       filePrint(stderr, " ... Compute initial displacement from given modal basis ...\n");
+      ModeData &modeData = (domain->solInfo().idis_modal_id == -1) ? ::modeData : modeDataIDis;
       int numIDisModal = modeData.numNodes*6;
       BCond *iDis_new = new BCond[numIDis+numIDisModal];
       for(int i=0; i<numIDis; ++i) iDis_new[i] = iDis[i]; 
@@ -1357,11 +1419,12 @@ Domain::setUpData(int topFlag)
   setIVel(numBC, bc);
   numBC = geoSource->getIVelModal(bc);
   if(numBC) {
-    if(solInfo().keepModalInitialConditions()) { // for modal dynamics, keep the modal ivel and non-modal ivel separate
+    if(solInfo().keepModalInitialVelocities()) { // keep the modal ivel and non-modal ivel separate
       setIVelModal(numBC, bc);
     }
-    else {
+    else { // convert the modal ivel into non-modal ivel
       filePrint(stderr, " ... Compute initial velocity from given modal basis ...\n");
+      ModeData &modeData = (domain->solInfo().ivel_modal_id == -1) ? ::modeData : modeDataIVel;
       int numIVelModal = modeData.numNodes*6;
       BCond *iVel_new = new BCond[numIVel+numIVelModal];
       for(int i=0; i<numIVel; ++i) iVel_new[i] = iVel[i];
@@ -1694,7 +1757,18 @@ Domain::getRenumbering()
  if(renumb.xcomp) { delete [] renumb.xcomp; renumb.xcomp=0; }
 
  // renumber the nodes
- renumb = nodeToNode->renumByComponent(sinfo.renum);
+ if((!GetnContactSurfacePairs() || !sinfo.isNonLin() || tdenforceFlag()) && !sinfo.printMatLab) {
+   renumb = nodeToNode->renumByComponent(sinfo.renum);
+ }
+ else {
+   // for nonlinear mortar contact, the number of "components" of the nodeToNode connectivity may change due to new interactions
+   // however, we don't want the node numbering to change therefore renumByComponent is not appropriate for this application
+   renumb.numComp = 1;
+   renumb.renum = new int[numnodes];
+   for(int i=0; i<numnodes; ++i) renumb.renum[i] = i;
+   renumb.xcomp = new int[2];
+   renumb.xcomp[0] = 0; renumb.xcomp[1] = numnodes;
+ }
 
  int *order = new int[numnodes];
 
@@ -1841,20 +1915,50 @@ Domain::makeNodeToNode_sommer()
 }
 
 void
-Domain::readInModes(const char* modeFileName)
+Domain::readInModes(int modal_id, ModeData &modeData)
 {
- filePrint(stderr," ... Read in Modes from file: %s ...\n",modeFileName);
+ std::map<int,ModalParams>::iterator it = sinfo.readInModes.find(modal_id);
+ if(it == sinfo.readInModes.end()) {
+   filePrint(stderr," *** ERROR: A basis with rob_id = %d is specified, but has not been defined via READMODE.\n", modal_id);
+   exit(-1);
+ }
+ const char* modeFileName = it->second.fileName.c_str();
 
- // Open file containing mode shapes and frequencies.
+ // Open file containing mode shapes and frequencies
  FILE *f;
- if((f=fopen(modeFileName,"r"))==(FILE *) 0 ){
-   filePrint(stderr," *** ERROR: Cannot open %s, exiting...",modeFileName);
-   exit(0);
+ if((f=fopen(modeFileName,"r"))==(FILE *) 0) {
+   filePrint(stderr," *** ERROR: Cannot open file %s specified in READMODE with rob_id %d.\n", modeFileName, modal_id);
+   exit(-1);
  }
  fflush(f);
 
  // Read in number of modes and number of nodes
- int count = fscanf(f, "%d%d", &modeData.numModes, &modeData.numNodes);
+ char buf[80];
+ char *str = fgets(buf, sizeof buf, f);
+ bool b;
+ if(strncmp("Vector", buf, 6) == 0) {
+   modeData.numModes = sinfo.readInModes[modal_id].numvec;
+   b = false;
+ }
+ else {
+   int count = sscanf(buf, "%d", &modeData.numModes);
+   b = (count != 1);
+ }
+ int count = fscanf(f, "%d", &modeData.numNodes);
+ b = b || (count != 1);
+
+ // If the file is not in one of the two valid ascii formats (see manual) then it is assumed to be binary
+ if(b) {
+   filePrint(stderr," ... Convert binary file to ASCII   ...\n");
+   const std::string input_file_name(modeFileName);
+   const std::string output_file_name = input_file_name + ".xpost";
+   convert_rob<Rom::BasisBinaryInputFile, Rom::XPostOutputFile<6> >(input_file_name, output_file_name);
+   sinfo.readInModes[modal_id].fileName = output_file_name;
+   readInModes(modal_id, modeData);
+   return;
+ }
+
+ filePrint(stderr," ... Read in Modes from file: %s ...\n",modeFileName);
 
  // Allocation of memory for frequencies and mode shapes
  modeData.frequencies  = new double[modeData.numModes];
@@ -1868,13 +1972,11 @@ Domain::readInModes(const char* modeFileName)
  char input[500], *substring;
  double tmpinput[7];
 
- //int jj;
  for(iMode=0; iMode<modeData.numModes; ++iMode) {
    modeData.modes[iMode] = new double[modeData.numNodes][6];
 
    count = fscanf(f,"%lf\n",&modeData.frequencies[iMode]);
 
-   //int nodeNum;
    for(iNode=0; iNode<modeData.numNodes; ++iNode) {
 
      char *c = fgets(input, 500, f);
@@ -1900,7 +2002,7 @@ Domain::readInModes(const char* modeFileName)
          modeData.modes[iMode][iNode][5] = 0.0;
          break;
        case 4:
-         modeData.nodes[iNode] = (int) tmpinput[0];
+         modeData.nodes[iNode] = int(tmpinput[0]+0.5)-1;
          modeData.modes[iMode][iNode][0] = tmpinput[1];
          modeData.modes[iMode][iNode][1] = tmpinput[2];
          modeData.modes[iMode][iNode][2] = tmpinput[3];
@@ -1918,7 +2020,7 @@ Domain::readInModes(const char* modeFileName)
          modeData.modes[iMode][iNode][5] = tmpinput[5];
          break;
        case 7:
-         modeData.nodes[iNode] = (int) tmpinput[0];
+         modeData.nodes[iNode] = int(tmpinput[0]+0.5)-1;
          modeData.modes[iMode][iNode][0] = tmpinput[1];
          modeData.modes[iMode][iNode][1] = tmpinput[2];
          modeData.modes[iMode][iNode][2] = tmpinput[3];
@@ -3172,7 +3274,7 @@ Domain::initializeNumbers()
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
  aggregatedStress = new double;
  aggregatedStressDenom = new double;
- *aggregatedStress = 0; 
+ *aggregatedStress = 0;
  *aggregatedStressDenom = 0;
  numStressNodes = stressNodes.size();
  numDispNodes = dispNodes.size();
@@ -3213,10 +3315,12 @@ Domain::initialize()
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;
  g_dsa = 0;
- numSensitivity = 0; senInfo = 0;  numSensitivityQuantityTypes = 0;
- runSAwAnalysis = false;   numTotalDispDofs = 0;  
+ numSensitivity = 0; senInfo = 0;
+ runSAwAnalysis = false;   
  aggregatedFlag = false;
- aggregatedFileNumber = 0; 
+ aggregatedFileNumber = 0;
+ numSensitivityQuantityTypes = 0;
+ numTotalDispDofs = 0;
 }
 
 Domain::~Domain()
@@ -3681,6 +3785,19 @@ Domain::ProcessSurfaceBCs(int topFlag)
               bc[k].type = surface_dbc[i].type;
             }
             int numDirichlet_copy = geoSource->getNumDirichlet();
+            geoSource->setDirichlet(nNodes, bc);
+            if(numDirichlet_copy != 0) delete [] bc;
+          } break;
+          case BCond::Usdd : {
+            BCond *bc = new BCond[nNodes];
+            for(int k=0; k<nNodes; ++k) { 
+              bc[k].nnum = glNodes[k];
+              bc[k].dofnum = surface_dbc[i].dofnum;
+              bc[k].val = surface_dbc[i].val; 
+              bc[k].type = surface_dbc[i].type;
+            }
+            int numDirichlet_copy = geoSource->getNumDirichlet();
+            geoSource->setUsddLocation(nNodes, bc);
             geoSource->setDirichlet(nNodes, bc);
             if(numDirichlet_copy != 0) delete [] bc;
           } break;
@@ -4210,6 +4327,7 @@ bool Domain::checkIsInStressNodes(int node, int &iNode)
 
 
 void Domain::updateRUBDAFT(StructProp* p, double omega) {
+#ifdef USE_EIGEN3
  if (p->eta_E<0.0 && p->rubDampTable<0) {
  // First time
    int tid = -int(p->eta_E);
@@ -4236,42 +4354,57 @@ void Domain::updateRUBDAFT(StructProp* p, double omega) {
    p->dmu = dv[2]/(2*M_PI);
    p->deta_mu = dv[3]/(2*M_PI);
  }
+#endif
 }
 
 void Domain::buildSensitivityInfo()
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
-  bool weight(false), aggregatedStressVMSensitivity(false), vonMisesStress(false), displacement(false), noAggregatedStressVM(true); 
+  bool weight(false), aggregatedStressVMSensitivity(false), vonMisesStress(false), displacement(false), noAggregatedStressVM(true);
   int numOutInfo = geoSource->getNumOutInfo();
   for(int i=0; i<numOutInfo; ++i) {
     if(oinfo[i].type == OutputInfo::WeigThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;       addSensitivity(oinfo[i]);  weight = true;
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;
+      addSensitivity(oinfo[i]);  weight = true;
     } else if (oinfo[i].type == OutputInfo::WeigShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;           addSensitivity(oinfo[i]);  weight = true;
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;
+      addSensitivity(oinfo[i]);  weight = true;
     } else if (oinfo[i].type == OutputInfo::AGstThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTthickness;     addSensitivity(oinfo[i]);  aggregatedStressVMSensitivity = true;   aggregatedFileNumber = i;
+      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTthickness;
+      addSensitivity(oinfo[i]);  aggregatedStressVMSensitivity = true;   aggregatedFileNumber = i;
     } else if (oinfo[i].type == OutputInfo::AGstShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTshape;         addSensitivity(oinfo[i]);  aggregatedStressVMSensitivity = true;   aggregatedFileNumber = i;
+      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTshape;
+      addSensitivity(oinfo[i]);  aggregatedStressVMSensitivity = true;   aggregatedFileNumber = i;
     } else if (oinfo[i].type == OutputInfo::VMstThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;     addSensitivity(oinfo[i]);  vonMisesStress = true;
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;
+      addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;         addSensitivity(oinfo[i]);  vonMisesStress = true;
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;
+      addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstMach) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTmach;          addSensitivity(oinfo[i]);  vonMisesStress = true;
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTmach;
+      addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstAlpha) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTalpha;         addSensitivity(oinfo[i]);  vonMisesStress = true;
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTalpha;
+      addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstBeta) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTbeta;          addSensitivity(oinfo[i]);  vonMisesStress = true;
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTbeta;
+      addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::DispThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTthickness; addSensitivity(oinfo[i]);  displacement = true;
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTthickness;
+      addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTshape;     addSensitivity(oinfo[i]);  displacement = true;
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTshape;
+      addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispMach) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTmach;      addSensitivity(oinfo[i]);  displacement = true;
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTmach;
+      addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispAlph) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTalpha;     addSensitivity(oinfo[i]);  displacement = true;
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTalpha;
+      addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispBeta) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTbeta;      addSensitivity(oinfo[i]);  displacement = true;
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTbeta;
+      addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::AggrStVM) noAggregatedStressVM = false;
   }
   if(aggregatedStressVMSensitivity) numSensitivityQuantityTypes++;

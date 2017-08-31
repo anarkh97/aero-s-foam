@@ -91,6 +91,7 @@ class GenDistrVector {
     GenDistrVector &operator*=(Scalar c);
     GenDistrVector &operator/=(Scalar c);
     GenDistrVector &operator+=(GenDistrVector<Scalar> &);
+    GenDistrVector &operator+=(const GenDistrVector<Scalar> &);
     GenDistrVector &operator-=(GenDistrVector<Scalar> &);
     GenDistrVector &operator/=(GenDistrVector<Scalar> &);
     GenDistrVector &linAdd(GenDistrVector<Scalar> &);

@@ -16,8 +16,14 @@ void GeoSource::getOutputFileName(char *result, int fileId, int clusterId, int i
 {
   const char *suffix = computeClusterSuffix(clusterId + 1, clusToSub->csize());
   if (outLimit > -1) {
+    if(strlen(cinfo->outputExt) != 0) 
+      sprintf(result, "%s%s%d_%s", oinfo[fileId].filename, cinfo->outputExt, iter/outLimit, suffix);
+    else
     sprintf(result, "%s%d_%s", oinfo[fileId].filename, iter/outLimit, suffix);
   } else {
+    if(strlen(cinfo->outputExt) != 0)
+      sprintf(result, "%s%s%s", oinfo[fileId].filename, cinfo->outputExt, suffix);
+    else
     sprintf(result, "%s%s", oinfo[fileId].filename, suffix);
   }
   delete[] suffix;
@@ -88,7 +94,13 @@ void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
       outputHeader(*binFile, oinfo[fileId].dim, fileId);
     } else { // ASCII output
       std::ofstream outfile;
-      outfile.open(oinfo[fileId].filename, std::ofstream::out | std::ofstream::trunc);
+      if(strlen(cinfo->outputExt) != 0) {
+        char outfileName[128];
+        sprintf(outfileName, "%s%s", oinfo[fileId].filename, cinfo->outputExt);
+        outfile.open(outfileName, std::ofstream::out | std::ofstream::trunc);
+      }
+      else
+        outfile.open(oinfo[fileId].filename, std::ofstream::out | std::ofstream::trunc);
       if(!outfile.is_open()) {
         fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n", oinfo[fileId].filename);
         exit(-1);
@@ -150,7 +162,13 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
     writeArrayToBinFile(data, numData, glSub, offset, fileNumber, iter, numRes, time, numComponents * numClusNodes, numClusNodes);
   } else {
     std::ofstream outfile;
-    outfile.open(oinfo[fileNumber].filename, std::ios_base::in | std::ios_base::out);
+    if(strlen(cinfo->outputExt) != 0) {
+      char outfileName[128];
+      sprintf(outfileName, "%s%s", oinfo[fileNumber].filename, cinfo->outputExt);
+      outfile.open(outfileName, std::ios_base::in | std::ios_base::out);
+    }
+    else
+      outfile.open(oinfo[fileNumber].filename, std::ios_base::in | std::ios_base::out);
     outfile.precision(oinfo[fileNumber].precision);
 
     int numComponentsPlus = (group == -1) ? numComponents : numComponents + 4; // group output: allow for NODENUMBER, X0, Y0, Z0
@@ -202,7 +220,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
                                                                // note: nodes.size() is not available when using "binaryinput on"
       int glNode = (domain->outFlag) ? domain->nodeTable[glNodeNums[k]]-1 : glNodeNums[k]; k++;
       if(group != -1) {
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
         int grNode = 0;
         while(it != nodeGroup[group].end()) {
           int inode = (domain->outFlag) ? domain->nodeTable[*it]-1 : *it;

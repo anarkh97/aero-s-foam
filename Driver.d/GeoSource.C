@@ -596,7 +596,8 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 #ifdef USE_EIGEN3
 template<class Scalar>
 void 
-GeoSource::outputSensitivityScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *output, double time, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
+GeoSource::outputSensitivityScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *output,
+                                    double time, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -605,11 +606,6 @@ GeoSource::outputSensitivityScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dy
   Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0," ", "\n", " ", " ");
   if(oinfo[fileNum].isFirst) {
     std::ofstream fileout(oinfo[fileNum].filename, std::ios::out);
-#ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << oinfo[fileNum].filename << std::endl;
-    if(verboseFlag) std::cerr << time << std::endl;
-    if(verboseFlag) std::cerr << (*output) << std::endl;
-#endif
     fileout << "\t" << std::setprecision(p) << time << std::endl;
     fileout << (*output).format(CleanFmt) << std::endl;
     if (dwr != 0) 
@@ -628,7 +624,8 @@ GeoSource::outputSensitivityScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dy
 
 template<class Scalar>
 void
-GeoSource::outputSensitivityVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, double time, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
+GeoSource::outputSensitivityVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output,
+                                    double time, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
 { 
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -701,8 +698,9 @@ GeoSource::outputSensitivityDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen
 
 template<class Scalar>
 void
-GeoSource::outputSensitivityAdjointStressVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, Scalar *stress, 
-                                                 double time, int numParams, std::vector<int> stressNodes, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
+GeoSource::outputSensitivityAdjointStressVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output,
+                                                 Scalar *stress, double time, int numParams, std::vector<int> stressNodes,
+                                                 Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -743,8 +741,9 @@ GeoSource::outputSensitivityAdjointStressVectors(int fileNum, Eigen::Matrix<Scal
 
 template<class Scalar>
 void
-GeoSource::outputSensitivityAdjointDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **output, Scalar *disp, 
-                                               double time, int numParams, std::vector<DispNode> dispNodes, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
+GeoSource::outputSensitivityAdjointDispVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **output,
+                                               Scalar *disp, double time, int numParams, std::vector<DispNode> dispNodes,
+                                               Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr)
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -948,7 +947,7 @@ GeoSource::outputNodeVectors(int fileNum, double (*glv)[bound], int outputSize, 
   if (oinfo[fileNum].groupNumber > 0)  {
 
     int group = oinfo[fileNum].groupNumber;
-    std::list<int>::iterator it = nodeGroup[group].begin();
+    std::set<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 
@@ -995,7 +994,7 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
 
@@ -1042,7 +1041,7 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
 
@@ -1122,7 +1121,7 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[bound],
      return;
 
     int group = oinfo[fileNum].groupNumber;
-    std::list<int>::iterator it = nodeGroup[group].begin();
+    std::set<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 
@@ -1172,7 +1171,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
           int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
@@ -1231,7 +1230,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
           int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
@@ -1328,7 +1327,7 @@ void GeoSource::outputNodeVectors9(int fileNum, double (*xyz)[bound],
      return;
 
     int group = oinfo[fileNum].groupNumber;
-    std::list<int>::iterator it = nodeGroup[group].begin();
+    std::set<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 
@@ -1379,7 +1378,7 @@ void GeoSource::outputNodeVectors4(int fileNum, double (*xyz)[bound],
      return;
 
     int group = oinfo[fileNum].groupNumber;
-    std::list<int>::iterator it = nodeGroup[group].begin();
+    std::set<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
 

@@ -16,7 +16,7 @@ class ExpMat : public NLMaterial
     int optcor0; // warping correction (0: off, 1: on), default = 1
                  // reference: Belytschko, Wong and Chiang, CMAME, 1992, vol. 96, pp. 93-107
                  //            "Advances in one point quadrature shell elements" (see eq. 30)
-    int optcor1; // transverse shear projection (0: off, 1: on), default = 1
+    int optcor1; // transverse shear projection (0: off, 1: on), default = 0
                  // reference: Belytschko, Wong and Chiang, CMAME, 1992, vol. 96, pp. 93-107
                  //            "Advances in one point quadrature shell elements" (see eq. 35)
     int optprj;  // rotation projection (0: off, 1: drilling only, 2: coupled drilling and rigid body modes), default = 1
@@ -40,7 +40,7 @@ class ExpMat : public NLMaterial
         ematpro[14] = e15; ematpro[15] = e16; ematpro[16] = e17; ematpro[17] = e18;
         ematpro[18] = e19; // shear correction factor
         optcor0 = 1;
-        optcor1 = 1;
+        optcor1 = 0;
         optprj = 1;
         opthgc = 1;
         prmhgc[0] = prmhgc[1] = prmhgc[2] = 2.5e-3;
@@ -67,11 +67,11 @@ class ExpMat : public NLMaterial
       { std::cerr << "ExpMat::getStressAndTangentMaterial is not implemented\n"; }
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double, double=0)
+                   double *staten, double *statenp, double, Tensor *cache, double=0)
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double, double=0)
+                   double *staten, double *statenp, double, Tensor *cache, double=0)
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
     void initStates(double *) {}

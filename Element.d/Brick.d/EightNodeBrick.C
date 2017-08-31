@@ -776,8 +776,26 @@ EightNodeBrick::setMaterial(NLMaterial *_mat)
 int
 EightNodeBrick::numStates()
 {
-  int numGaussPoints = 8;
+#ifdef USE_EIGEN3
+  int numGaussPoints = NLHexahedral8::numGaussPoints;
   return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+#else
+  return 0;
+#endif
+}
+
+void
+EightNodeBrick::initStates(double *st)
+{
+#ifdef USE_EIGEN3
+  if(mat) {
+    int ninterns = mat->getNumStates();
+    int numGaussPoints = NLHexahedral8::numGaussPoints;
+
+    for(int i = 0; i < numGaussPoints; ++i)
+      mat->initStates(st+i*ninterns);
+  }
+#endif
 }
 
 Corotator *
@@ -836,3 +854,16 @@ EightNodeBrick::getFace(int iFace, int *fn)
   return 4;
 }
 
+void
+EightNodeBrick::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(EightNodeBrick::cFrame) {
+    cFrame[0][0] = EightNodeBrick::cFrame[0]; cFrame[0][1] = EightNodeBrick::cFrame[1]; cFrame[0][2] = EightNodeBrick::cFrame[2];
+    cFrame[1][0] = EightNodeBrick::cFrame[3]; cFrame[1][1] = EightNodeBrick::cFrame[4]; cFrame[1][2] = EightNodeBrick::cFrame[5];
+    cFrame[2][0] = EightNodeBrick::cFrame[6]; cFrame[2][1] = EightNodeBrick::cFrame[7]; cFrame[2][2] = EightNodeBrick::cFrame[8];
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
+}

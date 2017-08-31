@@ -112,3 +112,29 @@ SolverInfo::classifySolver()
   }
   return -1;
 }
+
+void
+SolverInfo::activatePiecewise()
+{
+  if(!isNonLin()) {
+    if(probType == SolverInfo::Static || probType == SolverInfo::None)
+      probType = SolverInfo::NonLinStatic;
+    else if(probType == SolverInfo::Dynamic)
+      probType = SolverInfo::NonLinDynam;
+    else if(probType == SolverInfo::TempDynamic) {
+      order = 1;
+      probType = SolverInfo::NonLinDynam;
+    }
+    setNewton(std::numeric_limits<int>::max());
+    getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
+    getNLInfo().maxiter = 1;
+    if(piecewise) {
+      getNLInfo().linearelastic = 1;
+      getNLInfo().dlambda = piecewise_dlambda;
+      getNLInfo().maxLambda = piecewise_maxLambda;
+    }
+    else if(freeplay) {
+      getNLInfo().linearelastic = 2;
+    }
+  }
+}

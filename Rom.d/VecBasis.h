@@ -42,6 +42,7 @@ public:
 
   // Individual vector size (and compatibility aliases)
   int vectorSize() const { return Traits::length(vectorInfo_); }
+  int globalVectorSize() const { return vectors_[0].size();}
   int size()       const { return vectorSize(); }
  
   Scalar *data()    const { return buffer_; }
@@ -53,12 +54,12 @@ public:
 
   // Iteration
   typedef const VecType *const_iterator;
-  const_iterator begin() const { return vectors_; }
-  const_iterator end() const { return vectors_ + vectorCount_; }
+  const_iterator begin() const { return vectors_ ; }
+  const_iterator end() const   { return vectors_ + vectorCount_; }
   
   typedef VecType *iterator;
-  iterator begin() { return vectors_; }
-  iterator end() { return vectors_ + vectorCount_; }
+  iterator begin() { return vectors_ ; }
+  iterator end()   { return vectors_ + vectorCount_; }
 
   // Unchecked direct individual vector read access
   const VecType &operator[](int i) const { return vectors_[startCol_+i]; }

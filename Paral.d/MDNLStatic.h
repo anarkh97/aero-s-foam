@@ -68,7 +68,7 @@ class MDNLStatic
 
     MultiDomainPostProcessor *getPostProcessor();
 
-    void preProcess();
+    void preProcess(bool factor = true);
 
     int reBuild(int iter, int step, DistrGeomState& geomState);
 
@@ -84,7 +84,7 @@ class MDNLStatic
                             DistrVector& elementInternalForce, DistrVector& gRes,
                             double lambda = 1.0, DistrGeomState *refState = NULL, bool forceOnly = false);
 
-    double getTolerance() { return tolerance*firstRes; }
+    double getTolerance();
 
     LinesearchInfo& linesearch();
     double getEnergy(double lambda, DistrVector& force, DistrGeomState* geomState)

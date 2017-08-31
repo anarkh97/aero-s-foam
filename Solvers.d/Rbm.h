@@ -9,6 +9,7 @@
 #include <Corotational.d/GeomState.h>
 #include <Feti.d/DistrVectorSet.h>
 #include <iostream>
+#include <set>
 
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
@@ -86,6 +87,7 @@ public:
   int numComponents()    { return nComponents;         }
   int firstDof(int num)  { return firstDofOfComp[num]; }
   int numDof(int num)    { return numDofPerComp[num];  }
+  int numDof()           { return numUncon;            }
   void getxyzRot(int num, double* ans) {
     ans[0] = xyzRot[num][0]; ans[1] = xyzRot[num][1]; ans[2] = xyzRot[num][2];
   }
@@ -93,6 +95,7 @@ public:
   void setGrbm(Vector *_grbm) { grbm = _grbm; }
   void print();
   template<class Scalar> void getRBMs(Scalar *, bool transpose = false); 
+  void getRBMs(double *, std::set<int> &rbmFilters);
   void getRBMs(double *, int nc, int *dofs, int _numG=-1, int offset=0);
   void getRBMs(DComplex *, int nc, int *dofs, int _numG=-1, int offset=0);
   void getScaledRBMs(double *, int nc, int *dofs, double *scaling, int _numG=-1, int offset=0);

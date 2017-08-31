@@ -1,5 +1,6 @@
 #include "DEIMConstraintSamplingDriver.h"
 
+#ifdef USE_EIGEN3
 #include "ElementSamplingDriver.h"
 
 #include "SvdOrthogonalization.h"
@@ -27,9 +28,7 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/DistHelper.h>
 
-#ifdef USE_EIGEN3
 #include <Eigen/Dense>
-#endif
 #include <cmath>
 #include <utility>
 #include <algorithm>
@@ -130,7 +129,7 @@ DEIMConstraintSamplingDriver::readInBasis(VecBasis &basis, BasisId::Type type, B
 {
  FileNameInfo fileInfo;
  std::string fileName = BasisFileId(fileInfo, type, level, i);
- if(normalized) fileName.append(".normalized");
+ if(normalized) fileName.append(".massorthonormalized");
 
  if(vectorQuant){ // read in vector valued data
    BasisInputStream<6> in(fileName, *converter6);
@@ -217,7 +216,6 @@ DEIMConstraintSamplingDriver::computeInterpIndices(VecBasis &constraintBasis, st
   int constraintPodSizeMax = domain->solInfo().constraintPodSize;
 
   readInBasis(constraintBasis, BasisId::CONSTRAINT, BasisId::POD, false, 0, constraintPodSizeMax); // read in Constraint ROB specified under cpodrb 
-#ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > constraintMatrix(constraintBasis.data(),constraintBasis.vectorSize(),constraintBasis.vectorCount());
   
   std::set<int> auxilaryIndices;//container for all dofs of selected nodes. Pseudo-GNAT type hyper-reduction
@@ -270,7 +268,6 @@ DEIMConstraintSamplingDriver::computeInterpIndices(VecBasis &constraintBasis, st
 
   Eigen::Map< Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> > indSol(maskIndices.data(),maskIndices.size(),1);
   std::cout << "selected indices of Constraint Function: \n" << indSol.transpose() << std::endl;
-#endif
 }
 
 
@@ -290,7 +287,6 @@ DEIMConstraintSamplingDriver::computeAndWriteDEIMBasis(VecBasis &constraintBasis
     indiceSet.insert(*it);
 
   deimBasis.dimensionIs(dualBasis.vectorCount(),dualBasis.vectorInfo());
-#ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dualMap(dualBasis.data(),dualBasis.size(), dualBasis.vectorCount());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > constraintMap(constraintBasis.data(),constraintBasis.size(), constraintBasis.vectorCount());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > deimMap(deimBasis.data(),deimBasis.size(), deimBasis.vectorCount());
@@ -353,7 +349,6 @@ DEIMConstraintSamplingDriver::computeAndWriteDEIMBasis(VecBasis &constraintBasis
 
   std::vector<double> dummySVs; 
   writeBasisToFile(deimBasis, dummySVs, BasisId::DUALSTATE, BasisId::ROB,false);
-#endif
 }
 
 void
@@ -404,7 +399,7 @@ DEIMConstraintSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
 
 void
 DEIMConstraintSamplingDriver::buildConstraintArray(const VecBasis &displac)
-{//this memeber function is for converting state snapshots to constraint function snapshots in the absence of precollected snapshots from model I
+{//this member function is for converting state snapshots to constraint function snapshots in the absence of precollected snapshots from model I
 
   // set up constraint functions
   if(geoSource->getNumConstraintElementsIeq() > 0) {
@@ -656,7 +651,13 @@ DEIMConstraintSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const 
 }
 
 } /* end namespace Rom */
+#endif
 
 Rom::DriverInterface *deimConstraintSamplingDriverNew(Domain *domain) {
+#ifdef USE_EIGEN3
   return new Rom::DEIMConstraintSamplingDriver(domain);
+#else
+  std::cerr << " *** ERROR: DEIMConstraintSamplingDriver requires AERO-S configured with the Eigen library. Exiting...\n";
+  exit(-1);
+#endif
 }

@@ -3,6 +3,7 @@ ADD_LIBRARY( Rom
   BasisId.C
   BasisFileStream.C
   BasisInputFile.C
+  XPostInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
   PositiveDualBasisDriver.C
@@ -28,6 +29,8 @@ ADD_LIBRARY( Rom
   DistrNonnegativeMatrixFactorization.C
   DistrSnapshotClusteringDriver.C
   DistrSnapshotClusteringSolver.C
+  DistrSnapshotRowClusteringDriver.C
+  DistrSnapshotRowClusteringSolver.C
   DistrSvdOrthogonalization.C
   DistrVecBasis.C
   DistrVecNodeDof6Conversion.C
@@ -45,6 +48,8 @@ ADD_LIBRARY( Rom
   MeshDesc.C
   ModalGeomState.C
   PodProjectionNonLinDynamic.C
+  DistrPodProjectionNonLinDynamic.C
+  DistrLumpedPodProjectionNonLinDynamic.C
   SnapshotProjectionDriver.C
   RenumberingUtils.C
   RestrictedVecNodeDof6Conversion.C
@@ -79,6 +84,8 @@ ADD_LIBRARY( Rom
   SparseSolvers.d/ScalaLH.d/plhsolve.C
   ClusterSolvers.d/Kmeans.d/Kmeans.C
   ClusterSolvers.d/Kmeans.d/kmeanssolve.C
+  ClusterSolvers.d/SSC.d/SSC.C
+  ClusterSolvers.d/SSC.d/sparsesubspaceclusteringsolve.C
   NmfSolvers.d/ScalaPQN.d/Nmf.C
   NmfSolvers.d/ScalaPQN.d/nmfsolve.C
 )

@@ -2,61 +2,48 @@
 
 #define ELASPLASKINHARDMAT_INSTANTIATION_HELPER(e) \
 template \
-ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp *p); \
- \
+ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp*);\
+\
 template \
-void \
-ElasPlasKinHardMat<e>::getStress(Tensor *stress, Tensor &strain, double *state, double temp); \
- \
+void ElasPlasKinHardMat<e>::getStress(Tensor*, Tensor&, double*, double);\
+\
 template \
-void  \
-ElasPlasKinHardMat<e>::getElasticity(Tensor *_tm); \
- \
+void ElasPlasKinHardMat<e>::getElasticity(Tensor*);\
+\
 template \
-void  \
-ElasPlasKinHardMat<e>::getTangentMaterial(Tensor *tm, Tensor &strain, double *state, double temp); \
- \
+void ElasPlasKinHardMat<e>::getTangentMaterial(Tensor*, Tensor&, double*, double);\
+\
 template \
-void  \
-ElasPlasKinHardMat<e>::getStressAndTangentMaterial(Tensor *stess, Tensor *tm, Tensor &strain, double *state, double temp); \
- \
+void ElasPlasKinHardMat<e>::getStressAndTangentMaterial(Tensor*, Tensor*, Tensor&, double*, double);\
+\
 template \
-void  \
-ElasPlasKinHardMat<e>::updateStates(Tensor &en, Tensor &enp, double *state, double temp); \
- \
+void ElasPlasKinHardMat<e>::updateStates(Tensor&, Tensor&, double*, double);\
+\
 template \
-void \
-ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp, \
-                                 double *staten, double *statenp, double temp, double dt); \
- \
+void ElasPlasKinHardMat<e>::integrate(Tensor*, Tensor*, Tensor&, Tensor&, double*, double*, double,\
+                                      Tensor*, double);\
+\
 template \
-void \
-ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp, \
-                                 double *staten, double *statenp, double temp, double dt); \
- \
+void ElasPlasKinHardMat<e>::integrate(Tensor*, Tensor&, Tensor&, double*, double*, double,\
+                                      Tensor*, double);\
+\
 template \
-void  \
-ElasPlasKinHardMat<e>::initStates(double *st); \
- \
+void ElasPlasKinHardMat<e>::initStates(double*);\
+\
 template \
-StrainEvaluator * \
-ElasPlasKinHardMat<e>::getStrainEvaluator(); \
- \
+StrainEvaluator* ElasPlasKinHardMat<e>::getStrainEvaluator();\
+\
 template \
-bool \
-ElasPlasKinHardMat<e>::getBackStress(double *statenp, Tensor *_backstress); \
- \
+bool ElasPlasKinHardMat<e>::getBackStress(double*, Tensor*);\
+\
 template \
-bool \
-ElasPlasKinHardMat<e>::getPlasticStrain(double *statenp, Tensor *_plasticstrain); \
- \
+bool ElasPlasKinHardMat<e>::getPlasticStrain(double*, Tensor*);\
+\
 template \
-double \
-ElasPlasKinHardMat<e>::getStrainEnergyDensity(Tensor &_enp, double *statenp, double temp); \
- \
+double ElasPlasKinHardMat<e>::getStrainEnergyDensity(Tensor&, double*, double);\
+\
 template \
-double \
-ElasPlasKinHardMat<e>::getDissipatedEnergy(double *statenp);
+double ElasPlasKinHardMat<e>::getDissipatedEnergy(double*);
 
 ELASPLASKINHARDMAT_INSTANTIATION_HELPER(0);
 ELASPLASKINHARDMAT_INSTANTIATION_HELPER(1);

@@ -31,14 +31,16 @@ ElementSamplingDriver<std::vector<double>,size_t>
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
-::assembleTrainingData(const VecBasis &podBasis, const int podVectorCount, const VecBasis &displac,
-                       const VecBasis *veloc, const VecBasis *accel, int j);
+::assembleTrainingData(VecBasis &podBasis, int podVectorCount, VecBasis &displac,
+                       VecBasis *veloc, VecBasis *accel, VecBasis *ndscfgCoords,
+                       VecBasis *ndscfgMassOrthogonalBases, int j);
 
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
-::assembleTrainingData(const std::vector<StackVector> &podBasis, const int podVectorCount, const std::vector<StackVector> &displac,
-                       const std::vector<StackVector> *veloc, const std::vector<StackVector> *accel, int j);
+::assembleTrainingData(std::vector<StackVector> &podBasis, int podVectorCount, std::vector<StackVector> &displac,
+                       std::vector<StackVector> *veloc, std::vector<StackVector> *accel, std::vector<StackVector> *ndscfgCoords,
+                       std::vector<StackVector> *ndscfgMassOrthogonalBases, int j);
 
 template
 void

@@ -111,7 +111,7 @@ class LMPCons
 
     std::pair<int,int> id;          // unique identifier
                                     // currently defined for source == ContactSurfaces as follows:
-                                    //   id.first = mortar handler id, id.second = slave node global id
+                                    // id.first = mortar handler id, id.second = slave node global id
 #ifdef USE_EIGEN3
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> H;
 #endif

@@ -24,6 +24,13 @@ Element::setCompositeData2(int, int, double*, double*, CoordSet&, double)
 }
 
 void
+Element::getCFrame(CoordSet& cs, double cFrame[3][3]) const
+{
+  cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+  cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+}
+
+void
 Element::getVonMisesInt(CoordSet&, Vector&, double&, double&, int,
 			double&, double&, double* dT)
 {

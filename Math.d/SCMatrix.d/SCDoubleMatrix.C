@@ -6,6 +6,7 @@
 #endif
 
 #include <iostream>
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
@@ -264,7 +265,7 @@ SCDoubleMatrix::norm2(int n) {
 
 
 int
-SCDoubleMatrix::norm2Colunns(SCDoubleMatrix& colnorms) {
+SCDoubleMatrix::norm2Columns(SCDoubleMatrix& colnorms) {
     if (colnorms._n != _n) {
         return 1;
     }
@@ -281,6 +282,119 @@ SCDoubleMatrix::norm2Colunns(SCDoubleMatrix& colnorms) {
     return 0;
 }
 
+int 
+SCDoubleMatrix::normalizeColumns(char normType, char squareRoot) {
+    
+    int one=1;
+    double norm;
+    for (int j=1; j<=_n; j++) {
+      if(normType == '2') { // 2-norm
+               _FORTRAN(pdnrm2)(&_m, &norm, _matrix, &one, &j, _desc, &one);
+      } else if (normType == '1' || normType == 'O' || normType == 'o') { // 1 norm
+        double work[_nlocal];
+        norm = _FORTRAN(pdlange)(&normType, &_m, &one, _matrix, &one, &j, _desc, work);
+      } else if (normType == 'I' || normType == 'i') { // infinity norm
+        double work[_mlocal];
+        norm = _FORTRAN(pdlange)(&normType, &_m, &one, _matrix, &one, &j, _desc, work);
+      } 
+//      std::cout << "norm of column " << j << " = " << norm << std::endl;
+//
+      if(norm > 1e-16){ 
+        if(squareRoot == 'N')
+          norm = 1.0/norm; // don't divide by 0
+        else if(squareRoot == 'Y')
+          norm = 1.0/sqrt(norm);
+        else
+          norm = 1.0/norm;
+      }
+     _FORTRAN(pdscal)(&_m, &norm, _matrix, &one, &j, _desc, &one); // multiply column by norm
+    }
+    return 0;   
+
+}
+
+int
+SCDoubleMatrix::normalizeRows(char normType, char squareRoot) {
+
+    int one=1;
+    double norm;
+    for (int j=1; j<=_m; j++) {
+      if(normType == '2') { // 2-norm
+               _FORTRAN(pdnrm2)(&_n, &norm, _matrix, &j, &one, _desc, &_m);
+      } else if (normType == '1' || normType == 'O' || normType == 'o') { // 1 norm
+        double work[_nlocal];
+        norm = _FORTRAN(pdlange)(&normType, &one, &_n, _matrix, &j, &one, _desc, work);
+      } else if (normType == 'I' || normType == 'i') { // infinity norm
+        double work[_mlocal];
+        norm = _FORTRAN(pdlange)(&normType, &one, &_n, _matrix, &j, &one, _desc, work);
+      }
+      if(norm > 1e-16){
+        if(squareRoot == 'N')
+          norm = 1.0/norm; // don't divide by 0
+        else if(squareRoot == 'Y')
+          norm = 1.0/sqrt(norm);
+        else
+          norm = 1.0/norm;
+      }
+     _FORTRAN(pdscal)(&_n, &norm, _matrix, &j, &one, _desc, &_m); // multiply row by norm
+    }
+    return 0;
+
+}
+
+int 
+SCDoubleMatrix::computeZeroNormCol(std::vector<int> &container) {
+
+  for (int col=0; col<_nlocal; col++) {
+    int Ccol = col*_mlocal;
+    int nnzlocal = 0;
+    for (int row=0; row<_mlocal; row++) {
+      if( _matrix[Ccol+row]>1e-16)
+       nnzlocal++; 
+    }
+    int nnzglobal = 0;
+    MPI_Allreduce(&nnzlocal, &nnzglobal, 1, MPI_INT, MPI_SUM, _comm);
+    container.push_back(nnzglobal);
+  }
+  return 0;
+
+}
+
+int
+SCDoubleMatrix::computeLaplacian(char normType, char squareRoot) {
+    // Warning: this will only work properly for square matrices
+    int    one = 1;
+    double norm, alpha;
+    std::vector<double> alphaVec; 
+    for (int j=1; j<=_n; j++) {
+      if(normType == '2') { // 2-norm
+               _FORTRAN(pdnrm2)(&_m, &norm, _matrix, &one, &j, _desc, &one);
+      } else if (normType == '1' || normType == 'O' || normType == 'o') { // 1 norm
+        double work[_nlocal];
+        norm = _FORTRAN(pdlange)(&normType, &_m, &one, _matrix, &one, &j, _desc, work);
+      } else if (normType == 'I' || normType == 'i') { // infinity norm
+        double work[_mlocal];
+        norm = _FORTRAN(pdlange)(&normType, &_m, &one, _matrix, &one, &j, _desc, work);
+      }
+      if(norm > 1e-16){
+        if(squareRoot == 'N')
+          alpha = 1.0/norm;
+        else if(squareRoot == 'Y')
+          alpha = 1.0/sqrt(norm);
+        else
+          alpha = 1.0/norm;
+      }
+      alphaVec.push_back(alpha);
+     _FORTRAN(pdscal)(&_m, &alpha, _matrix, &one, &j, _desc, &one); // multiply column by norm
+    }
+
+    for (int j=1; j<=_m; j++) {
+      _FORTRAN(pdscal)(&_n, &alphaVec[j-1], _matrix,   &j, &one, _desc,  &_m); // multiply row by scaling factor after computing its "norm"
+    }
+
+    return 0;
+
+}
 
 // Note, only for vectors. Not matrices!
 int
@@ -374,8 +488,26 @@ SCDoubleMatrix::hadamardProduct(SCDoubleMatrix &x) {
     if (_sizelocal != x._sizelocal) {
         return 1;
     }
+    // this is basically only useful for Polytope Faces Pursuit
     for (int i=0; i<_sizelocal; i++) {
-        _matrix[i] *= x._matrix[i];
+        if(_matrix[i] >= 0.0)
+          _matrix[i] *= x._matrix[i];
+        else
+          _matrix[i] = 0.0;
+    }
+    return 0;
+}
+
+int
+SCDoubleMatrix::invHadamardProduct(SCDoubleMatrix &x) {
+    if (_sizelocal != x._sizelocal) {
+        return 1;
+    }
+    for (int i=0; i<_sizelocal; i++) {
+        if(_matrix[i] < 0.0)
+          _matrix[i] = -1e16;
+        else
+          _matrix[i] /= x._matrix[i];
     }
     return 0;
 }
@@ -1276,6 +1408,7 @@ SCDoubleMatrix::scaleColumnsByL2Norm(SCDoubleMatrix& colScale) {
             }
         }
     }
+
 }
 
 
@@ -1288,6 +1421,14 @@ SCDoubleMatrix::elementWiseInverse() {
     }
 }
 
+void
+SCDoubleMatrix::elementWiseAbsoluteValue() {
+    for (int i=0; i<_sizelocal; i++) {
+        if (_matrix[i] != 0.0) {
+            _matrix[i] = std::abs(_matrix[i]);
+        }
+    }
+}
 
 void
 SCDoubleMatrix::columnScaling(SCDoubleMatrix& colScale) {

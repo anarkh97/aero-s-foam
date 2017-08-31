@@ -96,6 +96,10 @@ struct PMLProps {
  double gamma, Rx, Ry, Rz, Sx, Sy, Sz;
 };
 
+struct FreeplayProps {
+  double k, ll, ul, lz, dz, uz;
+};
+
 class StructProp {
   public:
     union {
@@ -212,6 +216,7 @@ class StructProp {
         int relop; // 0: equality (==), 1: inequality (<=)
         int constraint_hess;
         double constraint_hess_eps;
+        FreeplayProps freeplay[3];
         enum PropType { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
         double k1, k2, k3;
         MFTTData *ymtt, *ctett;
@@ -252,7 +257,7 @@ class StructProp {
                        lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
                        k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0;
-                       ymtt = NULL; ctett = NULL;
+                       freeplay[0].dz = freeplay[1].dz = freeplay[2].dz = 1; ymtt = NULL; ctett = NULL;
                        eta_mu=deta_mu=eta_E=deta_E=mu0=dmu=E0=dE = 0.0;
                        rubDampTable = -1;
  } 
@@ -326,7 +331,7 @@ public:
         Node *& operator[] (int i);
 
         int nnz();
-        NFrameData * dofFrame(int i);
+        NFrameData * dofFrame(int i) const;
 };
 
 
@@ -404,6 +409,7 @@ class Element {
                                       double *coefs, double *frame);
         virtual double * setCompositeData2(int _type, int nlays, double *lData,
                                            double *coefs, CoordSet &cs, double theta);
+        virtual void getCFrame(CoordSet& cs, double cFrame[3][3]) const;
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
         virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1);
@@ -600,6 +606,7 @@ class Element {
 
         virtual bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isFsiElement()); }
         virtual bool isConstraintElementIeq() { return (isMpcElement() && prop->relop != 0); }
+        virtual bool isFreeplayElement() { return false; }
         virtual bool isPhantomElement() { return (!(prop || isConstraintElement() || isSommerElement())); }
         bool doesIncludeStressNodes() { return includeStressNodes; }
         void setIncludeStressNodes(bool isIn) { includeStressNodes = isIn; }

@@ -8,7 +8,7 @@
 namespace Simo {
 
 template<typename Scalar>
-class AngleType1ConstraintFunction : public ScalarValuedFunction<6,Scalar,7,0,double>
+class AngleType1ConstraintFunction : public ScalarValuedFunction<6,Scalar,7,1,double>
 {
    // a0 and b0 are vectors which can be interpreted as one selected axis of each of the body-attached frames attached 
    // to two nodes in some specified configuration.
@@ -17,9 +17,10 @@ class AngleType1ConstraintFunction : public ScalarValuedFunction<6,Scalar,7,0,do
    // (where k is the newton iteration) for eulerian.
    Eigen::Matrix<double,3,1> a0hat, b0hat;
    double theta0;
+   int type;
 
   public:
-    AngleType1ConstraintFunction(const Eigen::Array<double,7,1>& sconst, const Eigen::Array<int,0,1>&)
+    AngleType1ConstraintFunction(const Eigen::Array<double,7,1>& sconst, const Eigen::Array<int,1,1>& iconst)
     {
       Eigen::Matrix<double,3,1> a0,b0;
       a0 << sconst(0), sconst(1), sconst(2);
@@ -27,6 +28,7 @@ class AngleType1ConstraintFunction : public ScalarValuedFunction<6,Scalar,7,0,do
       theta0 = sconst(6);
       a0hat = a0.normalized();
       b0hat = b0.normalized();
+      type = iconst[0];
     }
 
     Scalar operator() (const Eigen::Matrix<Scalar,6,1>& q, Scalar)
@@ -54,8 +56,12 @@ class AngleType1ConstraintFunction : public ScalarValuedFunction<6,Scalar,7,0,do
       Eigen::Quaternion<Scalar> z2;
       z2.setFromOneVector(q.template segment<3>(3));
 
-      return -theta0 + acos((z1.toRotationMatrix()*a0hat.template cast<Scalar>()).dot
-                            (z2.toRotationMatrix()*b0hat.template cast<Scalar>()));
+      if(type == 2) 
+        return  theta0 - acos((z1.toRotationMatrix()*a0hat.template cast<Scalar>()).dot
+                                  (z2.toRotationMatrix()*b0hat.template cast<Scalar>()));
+      else
+        return -theta0 + acos((z1.toRotationMatrix()*a0hat.template cast<Scalar>()).dot
+                                  (z2.toRotationMatrix()*b0hat.template cast<Scalar>()));
     }
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW

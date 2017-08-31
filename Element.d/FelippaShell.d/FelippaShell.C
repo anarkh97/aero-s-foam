@@ -13,6 +13,8 @@
 #include <Element.d/FelippaShell.d/FelippaShell.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
+#include <Element.d/NonLinearity.d/NLMembrane.h>
+#include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Element.d/State.h>
 #include <Hetero.d/InterpPoint.h>
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
@@ -33,6 +35,9 @@ typedef ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle> Im
 
 extern int verboseFlag;
 extern SolverInfo &solInfo;
+
+int FelippaShell::sflg = 1;
+int FelippaShell::tflg = 1;
 
 FelippaShell::FelippaShell(int* nodenums)
 {
@@ -81,8 +86,51 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                           int avgnum)
 
 {
-  int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
-                // In this case the higher-order contribution in B matrix is neglected.
+  getVonMisesImpl(stress, weight, cs, elDisp, strInd, surface, ndTemps, ylayer, zlayer, 1);
+}
+
+void
+FelippaShell::getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
+                            GeomState *refState, CoordSet& c0, int strIndex, int surface,
+                            double ylayer, double zlayer, int avgnum, int measure)
+{
+  Vector elDisp(numDofs(), 0.);
+
+  // Get Nodes original coordinates (C0 configuration)
+  Node &node1 = c0.getNode( n1 );
+  Node &node2 = c0.getNode( n2 );
+  Node &node3 = c0.getNode( n3 );
+
+  // Get Nodes current coordinates (C0n configuration)
+  NodeState &ns1 = curState[ n1 ];
+  NodeState &ns2 = curState[ n2 ];
+  NodeState &ns3 = curState[ n3 ];
+
+  double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3];
+
+  // Extract deformational displacement from C0 to C0n configurations 
+  extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, elDisp.data());
+
+  double *staten = refState->getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
+  double *statenp = curState.getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
+
+  getVonMisesImpl(stress, weight, c0, elDisp, strIndex, surface, (double*)0, ylayer, zlayer, 0, staten, statenp);
+}
+
+void
+FelippaShell::extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
+                                  int &nlflag)
+{
+  if(type == 4) nlflag = 2;
+  else Shell3Corotator::extractDeformations(geomState, cs, vld, nlflag);
+}
+
+void
+FelippaShell::getVonMisesImpl(Vector &stress, Vector &weight, CoordSet &cs,
+                              Vector &elDisp, int strInd, int surface,
+                              double *ndTemps, double ylayer, double zlayer,
+                              int flag, double *staten, double *statenp)
+{
   weight = 1.0;
   if(strInd == -1) return;
 
@@ -136,7 +184,7 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
   Impl::andesvms(glNum+1, maxstr, prop->nu, x, y, z, disp,
                  (double*)elStress, type, nmat, strainFlg,
-                 surface, sflg, ndTemps);
+                 surface, sflg, ndTemps, flag, staten, statenp);
 
   stress[0] = elStress[0][strInd-offset];
   stress[1] = elStress[1][strInd-offset];
@@ -148,8 +196,42 @@ FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                            Vector &elDisp, int strInd, int surface,
                            double *ndTemps)
 {
-  int sflg = 1; // this flag can be set to 0 to use the same stress-recovery as elements 8 and 20.
-                // In this case the higher-order contribution in B matrix is neglected.
+  getAllStressImpl(stress, weight, cs, elDisp, strInd, surface, ndTemps, 1);
+}
+
+void
+FelippaShell::getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
+                             GeomState *refState, CoordSet &c0, int strInd, int surface,
+                             int measure)
+{
+  Vector elDisp(numDofs(), 0.);
+
+  // Get Nodes original coordinates (C0 configuration)
+  Node &node1 = c0.getNode( n1 );
+  Node &node2 = c0.getNode( n2 );
+  Node &node3 = c0.getNode( n3 );
+
+  // Get Nodes current coordinates (C0n configuration)
+  NodeState &ns1 = curState[ n1 ];
+  NodeState &ns2 = curState[ n2 ];
+  NodeState &ns3 = curState[ n3 ];
+
+  double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3];
+
+  // Extract deformational displacement from C0 to C0n configurations 
+  extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, elDisp.data());
+
+  double *staten = refState->getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
+  double *statenp = curState.getElemState(getGlNum()) + subNum*numStates() + gpmat->GetNumStates();
+
+  getAllStressImpl(stress, weight, c0, elDisp, strInd, surface, (double*)0, 0, staten, statenp);
+}
+
+void
+FelippaShell::getAllStressImpl(FullM &stress, Vector &weight, CoordSet &cs,
+                               Vector &elDisp, int strInd, int surface,
+                               double *ndTemps, int flag, double *staten, double *statenp)
+{
   weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
@@ -170,7 +252,7 @@ FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
 
   Impl::andesvms(glNum+1, maxstr, prop->nu, x, y, z, disp,
                  (double*)elStress, type, nmat, strInd,
-                 surface, sflg, ndTemps);
+                 surface, sflg, ndTemps, flag, staten, statenp);
 
   // Store all Stress or all Strain as defined by strInd
   int i,j;
@@ -252,7 +334,7 @@ FelippaShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
   Impl::andesmm(glNum+1, x, y, z, mel, rhoh, mflg);
 
-  FullSquareMatrix ret(18,mel);
+  FullSquareMatrix ret(18, mel);
 
   return ret;
 }
@@ -408,11 +490,33 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
 }
 
 void
+FelippaShell::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(FelippaShell::cFrame) {
+    Node &nd1 = cs.getNode(nn[0]);
+    Node &nd2 = cs.getNode(nn[1]);
+    Node &nd3 = cs.getNode(nn[2]);
+
+    double x[3], y[3], z[3];
+
+    x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+    x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+    x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+    Impl::andesfrm(glNum+1, x, y, z, FelippaShell::cFrame, &cFrame[0][0]);
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
+}
+
+void
 FelippaShell::setMaterial(NLMaterial *_mat)
 {
   if(!prop) return; // phantom element
   ExpMat *expmat = dynamic_cast<ExpMat *>(_mat);
-  if(expmat && expmat->optctv == 5) { // old (deprecated) parser
+  if(expmat && expmat->optctv == 5) { // deprecated
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
     double sigmaY = expmat->ematpro[3], K = expmat->ematpro[4], H = expmat->ematpro[5];
@@ -429,25 +533,52 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     }
     type = 4;
     if(gpmat) delete gpmat;
-    gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 5, 3,
-                                                                                              prop->Ta, prop->W);
-    nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 3, 3,
-                                                                                             prop->Ta, prop->W);
+    gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 5, 3);
+    nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 3, 3);
     delete mat;
   }
-  else { // new parser
+  else {
     MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial> *mat 
       = dynamic_cast<MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial> *>(_mat);
     if(mat) {
       type = 4;
       if(gpmat) delete gpmat;
-      gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 5, 3,
-                                                                                                prop->Ta, prop->W);
-      nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 3, 3,
-                                                                                               prop->Ta, prop->W);
+      gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 5, 3);
+      nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 3, 3);
     }
     else {
-      throw std::runtime_error("Unsupported material type\n");
+      if(_mat->getGenStrainEvaluator() && !_mat->getGenStrainEvaluator()->isNonLinear()) {
+        type = 4;
+        double *cCoefs = (gpmat && gpmat->GetCoefOfConstitutiveLaw()) ? gpmat->GetCoefOfConstitutiveLaw() : 0;
+        if(cCoefs) {
+          NLMaterial *mat = _mat->clone();
+          if(mat) {
+            double C[6][6], alpha[6];
+            // transform local constitutive matrix to global frame
+            rotateConstitutiveMatrix(cCoefs, cFrame, C);
+            mat->setTangentMaterial(C);
+            // transform local coefficients of thermal expansion to global frame
+            rotateVector(cCoefs+36, cFrame, alpha);
+            mat->setThermalExpansionCoef(alpha);
+          }
+          else {
+            fprintf(stderr, " *** ERROR: Unsupported material law specified for element %d.\n", getGlNum()+1);
+            exit(-1);
+          }
+          if(gpmat) delete gpmat;
+          gpmat = new ShellMaterialType6<double,NLMaterial>(mat, 5, 3);
+          nmat = new ShellMaterialType6<double,NLMaterial>(mat, 3, 3);
+        }
+        else {
+          if(gpmat) delete gpmat;
+          gpmat = new ShellMaterialType6<double,NLMaterial>(_mat, 5, 3);
+          nmat = new ShellMaterialType6<double,NLMaterial>(_mat, 3, 3);
+        }
+      }
+      else {
+        fprintf(stderr, " *** ERROR: Unsupported material law specified for element %d.\n", getGlNum()+1);
+        exit(-1);
+      }
     }
   }
 }
@@ -481,7 +612,7 @@ FelippaShell::stiffness(CoordSet &cs, double *d, int flg)
   double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
   double *fint = NULL;
 
-  Impl::andesstf(glNum+1, d, fint, prop->nu, x, y, z, disp, type, gpmat, flg);
+  Impl::andesstf(glNum+1, d, fint, prop->nu, x, y, z, disp, type, gpmat, flg, tflg);
 
   FullSquareMatrix ret(18,d);
 
@@ -584,7 +715,16 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
     x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
     x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-    Impl::andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, gpmat, 0, 1, (double*)NULL, dt);
+    double *staten = refState->getElemState(getGlNum()) + subNum*numStates();
+    double *statenp = geomState.getElemState(getGlNum()) + subNum*numStates();
+
+    // get the nodal temperatures
+    Vector ndTemps(3);
+    int nodeNum[3] = { n1, n2, n3 };
+    geomState.get_temperature(3, nodeNum, ndTemps, prop->Ta);
+
+    Impl::andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, gpmat, 0,
+                   tflg, ndTemps.data(), dt, staten, statenp);
 
     if(numStates() > 0) {
       double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
@@ -735,7 +875,16 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
     x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
     x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-    Impl::andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0, 1, (double*)NULL, dt);
+    double *staten = refState->getElemState(getGlNum()) + subNum*numStates();
+    double *statenp = geomState.getElemState(getGlNum()) + subNum*numStates();
+
+    // get the nodal temperatures
+    Vector ndTemps(3);
+    int nodeNum[3] = { n1, n2, n3 };
+    geomState.get_temperature(3, nodeNum, ndTemps, prop->Ta);
+
+    Impl::andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0,
+                   tflg, ndTemps.data(), dt, staten, statenp);
 
     if(numStates() > 0) {
       double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
@@ -797,7 +946,7 @@ FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &
     double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18];
 
     // Extract deformational displacement from C0 to C0n configurations
-    extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
+    extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld);
 
     double *staten;
     if(refState) {
@@ -819,9 +968,13 @@ FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &
 
     double *statenp = geomState.getElemState(getGlNum()) + subNum*numStates();
 
-    int sflg = 1;
+    // get the nodal temperatures
+    Vector ndTemps(3);
+    int nodeNum[3] = { n1, n2, n3 };
+    geomState.get_temperature(3, nodeNum, ndTemps, prop->Ta);
 
-    Impl::andesups(glNum+1, statenp, x, y, z, vld, gpmat, nmat, sflg, dt);
+    Impl::andesups(glNum+1, staten, statenp, x, y, z, vld, gpmat, nmat, sflg,
+                   tflg, ndTemps.data(), dt);
 
     if(!refState) delete [] staten;
   }
@@ -1150,10 +1303,11 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 }
 
 void
-FelippaShell::getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce, int glflag, GeomState *)
+FelippaShell::getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce, int glflag, GeomState *geomState)
 {
   // force is returned in global coordinates if glflag = 0
-  if(prop == NULL) {
+  // for nonlinear analyses with nonlinear material law, the thermal load for this element is now computed in getStiffAndForce
+  if(prop == NULL || (geomState && type == 4)) {
     elThermalForce.zero();
     return;
   }
@@ -1171,7 +1325,6 @@ FelippaShell::getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalFo
   double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
 
   int flg = (glflag == 0) ? 1 : 0;
-  int tflg = 1;
   Impl::andesstf(glNum+1, (double *)NULL, elThermalForce.data(), prop->nu,
                  x, y, z, disp, type, gpmat, flg, tflg, ndTemps.data());
   elThermalForce *= -1;
@@ -1308,7 +1461,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
 
   double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
   Impl::andesstfWRTthic(glNum+1, dStiffdThick.data(), (double*)NULL, prop->nu,
-                        x, y, z, disp, type, gpmat, flg);
+                        x, y, z, disp, type, gpmat, flg, tflg);
 }
 
 void 
@@ -1337,7 +1490,7 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
   Impl::andesstfWRTcoord(glNum+1, data, prop->E, prop->nu,
                          prop->rho, prop->eh, prop->Ta, prop->W,
                          cFrame, x, y, z, type,
-                         gpmat->GetCoefOfConstitutiveLaw(), flg);
+                         gpmat->GetCoefOfConstitutiveLaw(), flg, tflg);
 }
 
 void 
@@ -1365,8 +1518,6 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-  int sflg = 1;
-
   Impl::andesvmsWRTthic(glNum+1, prop->nu, x, y, z, elDisp.data(),
                         dStdThick.getData(), type, nmat, surface,
                         sflg, ndTemps);
@@ -1388,8 +1539,6 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
-
-  int sflg = 1;
 
   Impl::andesvmsWRTcoord(glNum+1, prop->E, prop->nu, prop->rho,
                          prop->eh, prop->Ta, prop->W, cFrame,
@@ -1417,11 +1566,9 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
 
   double* disp = elDisp.data();
 
-  int sflg = 1;
-
   Impl::andesvmsWRTdisp(glNum+1, prop->nu, x, y, z, elDisp.data(),
                         dStdDisp.getData(), type, nmat, surface,
-                        sflg, ndTemps); 
+                        sflg, ndTemps);  
   if(dDispDisp) dStdDisp ^= (*dDispDisp); 
  
 }
@@ -1477,7 +1624,7 @@ FelippaShell::getInternalForceThicknessSensitivity(GeomState *refState, GeomStat
   x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
   x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-  Impl::andesstfWRTthic(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0);
+  Impl::andesstfWRTthic(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0, tflg);
 
   // Compute gradients of the nodal deformational pseudorotations
   // Correct element stiffness and internal force

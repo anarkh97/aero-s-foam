@@ -2,6 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
+#include <Eigen/Dense>
 
 extern int quietFlag;
 
@@ -32,7 +33,8 @@ ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
 template<typename doublereal>
 void
 ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                                                             doublereal *eframe, int, doublereal temp, doublereal)
+                                                             doublereal *eframe, int, doublereal temp, doublereal,
+                                                             doublereal *, doublereal *)
 {
     // Initialized data 
     doublereal one = 1.;
@@ -302,7 +304,7 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
 
         if(temp != Ta) {
 
-           epsilonT = (temp-Ta)*invT*alpha;
+           epsilonT = (temp-Ta)*invT.transpose().inverse()*alpha;
            N += C * epsilonT * (zsup - zinf);
 
            if(couple) M += C.transpose() * epsilonT * (zsup * zsup - zinf * zinf) * .5;
@@ -343,7 +345,8 @@ template<typename doublereal>
 void
 ShellMaterialTypes2And3<doublereal>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
-                               doublereal *eframe, int, doublereal temp, doublereal)
+                               doublereal *eframe, int, doublereal temp, doublereal,
+                               doublereal *, doublereal *)
 {
     // Initialized data 
     doublereal one = 1.;
@@ -479,9 +482,10 @@ ShellMaterialTypes2And3<doublereal>
 // .....[C'] = [invT] * [C] * [invT]^t 
 
       invT = this->andesinvt(eframe, aframe, thetaf);
-      C = invT * C * invT.transpose();
+      /*C = invT * C * invT.transpose();
 
-      sigma = C*(epsilon - (temp-Ta)*invT*alpha);
+      sigma = C*(epsilon - (temp-Ta)*invT.transpose().inverse()*alpha);*/
+      sigma = invT*C*(invT.transpose()*epsilon - (temp-Ta)*alpha);
       break;
     }
 }
@@ -510,12 +514,12 @@ ShellMaterialTypes2And3<double>
 template
 void
 ShellMaterialTypes2And3<double>
-::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double);
+::GetConstitutiveResponse(double *, double *, double *, double *, int, double, double, double *, double *);
 
 template
 void
 ShellMaterialTypes2And3<double>
-::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double);
+::GetLocalConstitutiveResponse(double *, double *, double, double *, int, double, double, double *, double *);
 
 template
 void

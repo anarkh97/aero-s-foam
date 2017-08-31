@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cmath>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Corotational.d/Corotator.h>
@@ -26,6 +27,7 @@
 
 #include <list>
 #include <numeric>
+#include <set>
 
 extern int verboseFlag;
 
@@ -799,11 +801,11 @@ void
 Domain::make_constrainedDSA(int fake)
 { // make a fake constrainedDSA if fake !=0; ie lie to the code by telling
   //   it that there are noconstraints
-  if(fake){
+  if(fake) {
     if(c_dsa) delete c_dsa;
     c_dsa = new ConstrainedDSA(*dsa, 0, dbc);
   }
-  else{
+  else {
     make_constrainedDSA();
   }
 }
@@ -1509,6 +1511,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
   // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
+  // avgnum = 3 --> only include elements whose nodes are in the ouputGroup in averaging
   int avgnum = oinfo[fileNumber].averageFlg;
 
   double ylayer = oinfo[fileNumber].ylayer;
@@ -1517,10 +1520,15 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     // upper  surface = 1
     // median surface = 2
     // lower  surface = 3
+  int str_therm_option = oinfo[fileNumber].str_therm_option;
+    // thermomechanical = 0
+    // thermal = 1
+    // mechanical = 2
   OutputInfo::FrameType oframe = oinfo[fileNumber].oframe;
 
   int k;
   int iele;
+  int iNode;
 
   double *nodalTemperatures = 0;
   // Either get the nodal temperatures from the input file or
@@ -1530,14 +1538,14 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
 
   if(printFlag != 2) {
     // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
-    if(avgnum != 0) {
+    if(avgnum > 0) {
       if(stress == 0) stress = new Vector(numNodes,0.0);
       if(weight == 0) weight = new Vector(numNodes,0.0);
     }
     else if(printFlag == 1 && stressAllElems == 0) stressAllElems = new Vector(sizeSfemStress,0.0);
     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
 
-    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
+    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe != OutputInfo::Global)) {
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
@@ -1545,10 +1553,10 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       }
       if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
-      if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullM(maxNodesPerElement,9);
+      if(p_elstress == 0 && oframe != OutputInfo::Global) p_elstress = new FullM(maxNodesPerElement,9);
     }
 
-    if(avgnum != 0) {
+    if(avgnum > 0) {
       // zero the vectors
       stress->zero();
       weight->zero();
@@ -1572,22 +1580,35 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
           (avgnum == 2 && packedEset[iele]->getElementType() == 7) ||
           (avgnum == 2 && packedEset[iele]->getElementType() == 1)) continue;
 
+      // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+      if (avgnum == 3) {
+        int groupId = oinfo[fileNumber].groupNumber;
+        if (groupId > 0) {
+          std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+          std::set<int>::iterator it;
+          for (iNode = 0; iNode < NodesPerElement; ++iNode)
+            if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+          if(it == groupNodes.end()) continue;
+        }
+      }
+
       elDisp->zero();
       elstress->zero();
       elweight->zero();
 
       // DETERMINE ELEMENT DISPLACEMENT VECTOR
-      for (k = 0; k < allDOFs->num(iele); ++k) {
-        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-        if (cn >= 0)
-          (*elDisp)[k] = sol[cn];
-        else
-          (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+      if(str_therm_option != 1) {
+        for (k = 0; k < allDOFs->num(iele); ++k) {
+          int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+          if (cn >= 0)
+            (*elDisp)[k] = sol[cn];
+          else
+            (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+        }
       }
 
-      int iNode;
       for (iNode = 0; iNode < NodesPerElement; ++iNode) {
-        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp || str_therm_option == 2)
           elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
         else
           elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
@@ -1596,8 +1617,8 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       // transform displacements from DOF_FRM to basic coordinates
       transformVectorInv(*elDisp, iele);
 
-      // transform non-invariant stresses/strains from basic frame to DOF_FRM
-      if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12)) && stressIndex != 31) {
+      // transform non-invariant stresses/strains from basic frame to DOF_FRM or CFRAME
+      if(oframe != OutputInfo::Global && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))) {
 
         // first, calculate stress/strain tensor for each node of the element
         p_elstress->zero();
@@ -1606,8 +1627,8 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
                                        *elDisp, strInd, surface,
                                        elemNodeTemps.data());
 
-        // second, transform stress/strain tensor to nodal frame coordinates
-        transformStressStrain(*p_elstress, iele);
+        // second, transform stress/strain tensor to nodal or material frame coordinates
+        transformStressStrain(*p_elstress, iele, oframe);
 
         // third, extract the requested stress/strain value from the stress/strain tensor
         for (iNode = 0; iNode < NodesPerElement; ++iNode) {
@@ -1626,7 +1647,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
                                       elemNodeTemps.data(), ylayer, zlayer, avgnum);
       }
 
-      if(avgnum != 0) {
+      if(avgnum > 0) {
         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
         for(k = 0; k < NodesPerElement; ++k) {
           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
@@ -1668,7 +1689,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
 
   // AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
   // ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
-  if(avgnum == 1 || avgnum == 2) {
+  if(avgnum > 0) {
 
     if(printFlag != 2) {
     // assemble stress vector
@@ -1724,6 +1745,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
   // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
+  // avgnum = 3 --> only include elements whose nodes are in the ouputGroup in averaging
   int avgnum = oinfo[fileNumber].averageFlg;
 
   double ylayer = oinfo[fileNumber].ylayer;
@@ -1736,6 +1758,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
 
   int k;
   int iele;
+  int iNode;
 
   double *nodalTemperatures = 0;
   // Either get the nodal temperatures from the input file or
@@ -1759,7 +1782,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
     if(elDisp == 0) elDisp = new ComplexVector(maxNumDOFs,0.0);
 
 
-    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
+    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe != OutputInfo::Global)) {
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
@@ -1767,7 +1790,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       }
       if(elstress == 0) elstress = new ComplexVector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
-      if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullMC(maxNodesPerElement,9);
+      if(p_elstress == 0 && oframe != OutputInfo::Global) p_elstress = new FullMC(maxNodesPerElement,9);
     }
 
     if(avgnum != 0) {
@@ -1794,6 +1817,18 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
           (avgnum == 2 && packedEset[iele]->getElementType() == 7) ||
           (avgnum == 2 && packedEset[iele]->getElementType() == 1)) continue;
 
+      // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+      if (avgnum == 3) { 
+        int groupId = oinfo[fileNumber].groupNumber;
+        if (groupId > 0) {
+          std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+          std::set<int>::iterator it;
+          for (iNode = 0; iNode < NodesPerElement; ++iNode)
+            if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+          if(it == groupNodes.end()) continue;
+        } 
+      }
+
       elDisp->zero();
       elstress->zero();
       elweight->zero();
@@ -1807,7 +1842,6 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
       }
 
-      int iNode;
       for (iNode = 0; iNode < NodesPerElement; ++iNode) {
         if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
           elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
@@ -1818,8 +1852,8 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       // transform displacements from DOF_FRM to basic coordinates
       transformVectorInv(*elDisp, iele);
 
-      // transform non-invariant stresses/strains from basic frame to DOF_FRM
-      if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))) {
+      // transform non-invariant stresses/strains from basic frame to DOF_FRM or CFRAME
+      if(oframe != OutputInfo::Global && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))) {
 
         // first, calculate stress/strain tensor for each node of the element
         p_elstress->zero();
@@ -1828,8 +1862,8 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
                                        *elDisp, strInd, surface,
                                        elemNodeTemps.data());
 
-        // second, transform stress/strain tensor to nodal frame coordinates
-        transformStressStrain(*p_elstress, iele);
+        // second, transform stress/strain tensor to nodal or material frame coordinates
+        transformStressStrain(*p_elstress, iele, oframe);
 
         // third, extract the requested stress/strain value from the stress/strain tensor
         for (iNode = 0; iNode < NodesPerElement; ++iNode) {
@@ -1848,7 +1882,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
                                       elemNodeTemps.data(), ylayer, zlayer, avgnum);
       }
 
-      if(avgnum != 0) {
+      if(avgnum > 0) {
         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
         for(k = 0; k < NodesPerElement; ++k) {
           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
@@ -1888,7 +1922,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
 
   // AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
   // ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
-  if(avgnum == 1 || avgnum == 2) {
+  if(avgnum > 0) {
 
     if(printFlag != 2) {
     // assemble stress vector
@@ -1954,7 +1988,13 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
   // median surface = 2
   // lower  surface = 3
 
-  int j,k;
+  int str_therm_option = oinfo[fileNumber].str_therm_option;
+
+  // thermomechanical = 0
+  // thermal = 1
+  // mechanical = 2
+
+  int j,k,iNode;
   // ... OUTPUT FILE field width
   int w = oinfo[fileNumber].width;
   // ... OUTPUT FILE precision
@@ -1992,27 +2032,39 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 
   for(iele=0; iele<numele; ++iele) {
 
+    int NodesPerElement = elemToNode->num(iele);
+    packedEset[iele]->nodes(nodeNumbers);
+
+    // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+    if (avgnum == 3) {
+      int groupId = oinfo[fileNumber].groupNumber;
+      if (groupId > 0) {
+        std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+        std::set<int>::iterator it;
+        for (iNode = 0; iNode < NodesPerElement; ++iNode)
+          if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+        if(it == groupNodes.end()) continue;
+      }
+    }
+
     elDisp->zero();
     p_elstress->zero();
     elweight->zero();
 
-    int NodesPerElement = elemToNode->num(iele);
-
-    packedEset[iele]->nodes(nodeNumbers);
-
 // ... DETERMINE ELEMENT DISPLACEMENT VECTOR
 
-    for(k=0; k<allDOFs->num(iele); ++k) {
-      int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-      if(cn >= 0)
-        (*elDisp)[k] = sol[cn];
-      else
-        (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+    if(str_therm_option != 1) {
+      for(k=0; k<allDOFs->num(iele); ++k) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+        if(cn >= 0)
+          (*elDisp)[k] = sol[cn];
+        else
+          (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+      }
     }
 
-    int iNode;
     for(iNode=0; iNode<NodesPerElement; ++iNode) {
-      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp || str_therm_option == 2)
         elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
       else
         elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
@@ -2049,7 +2101,7 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
 // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
 
-  if(avgnum == 1 || avgnum == 2) {
+  if(avgnum > 0) {
 
     if(n == -1) {
       for(k=0; k<numNodes; ++k) {
@@ -2764,27 +2816,87 @@ Domain::transformElementSensitivityInv(double *data, int inode, int numNodes, bo
 }
 
 void
-Domain::transformStressStrain(FullM &mat, int iele)
+Domain::transformStressStrain(FullM &mat, int iele, OutputInfo::FrameType oframe)
 {
-  // transform element stress or strain tensors from basic to DOF_FRM coordinates
-  if(domain->solInfo().basicDofCoords) return;
-  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
-  int *nn = packedEset[iele]->nodes();
-  for(int k=0; k<numNodes; ++k)
-    transformMatrix(mat[k], nn[k]);
-  delete [] nn;
+  // transform element stress or strain tensors from basic to DOF_FRM or CFRAME coordinates
+  switch(oframe) {
+    default:
+    case OutputInfo::Local: {
+      if(domain->solInfo().basicDofCoords) return;
+      int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+      int *nn = packedEset[iele]->nodes();
+      for(int k=0; k<numNodes; ++k)
+        transformMatrix(mat[k], nn[k]);
+      delete [] nn;
+    } break;
+    case OutputInfo::Global: 
+      break;
+    case OutputInfo::Material: {
+#ifdef USE_EIGEN3
+      double cFrame[3][3];
+      packedEset[iele]->getCFrame(nodes, cFrame);
+      Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(&cFrame[0][0]);
+      int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+      for(int k=0; k<numNodes; ++k) {
+        Eigen::Matrix<double,3,3> M;
+        M << mat[k][0], mat[k][3], mat[k][5],
+             mat[k][3], mat[k][1], mat[k][4],
+             mat[k][5], mat[k][4], mat[k][2];
+
+        M = T*M*T.transpose();
+
+        mat[k][0] = M(0,0);
+        mat[k][1] = M(1,1);
+        mat[k][2] = M(2,2);
+        mat[k][3] = M(0,1);
+        mat[k][4] = M(1,2);
+        mat[k][5] = M(0,2);
+      }
+#endif
+    } break;
+  }
 }
 
 void
-Domain::transformStressStrain(FullMC &mat, int iele)
+Domain::transformStressStrain(FullMC &mat, int iele, OutputInfo::FrameType oframe)
 {
-  // transform element stress or strain tensors from basic to DOF_FRM coordinates
-  if(domain->solInfo().basicDofCoords) return;
-  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
-  int *nn = packedEset[iele]->nodes();
-  for(int k=0; k<numNodes; ++k)
-    transformMatrix(mat[k], nn[k]);
-  delete [] nn;
+  // transform element stress or strain tensors from basic to DOF_FRM or CFRAME coordinates
+  switch(oframe) {
+    default:
+    case OutputInfo::Local: {
+      if(domain->solInfo().basicDofCoords) return;
+      int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+      int *nn = packedEset[iele]->nodes();
+      for(int k=0; k<numNodes; ++k)
+        transformMatrix(mat[k], nn[k]);
+      delete [] nn;
+    } break;
+    case OutputInfo::Global:
+      break;
+    case OutputInfo::Material: {
+#ifdef USE_EIGEN3
+      double cFrame[3][3];
+      packedEset[iele]->getCFrame(nodes, cFrame);
+      Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(&cFrame[0][0]);
+      int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+      for(int k=0; k<numNodes; ++k) {
+        Eigen::Matrix<complex<double>,3,3> M;
+        M << mat[k][0], mat[k][3], mat[k][5],
+             mat[k][3], mat[k][1], mat[k][4],
+             mat[k][5], mat[k][4], mat[k][2];
+
+        M = T*M*T.transpose();
+
+        mat[k][0] = M(0,0);
+        mat[k][1] = M(1,1);
+        mat[k][2] = M(2,2);
+        mat[k][3] = M(0,1);
+        mat[k][4] = M(1,2);
+        mat[k][5] = M(0,2);
+      }
+#endif
+    } break;
+  }
 }
 
 void
@@ -2856,13 +2968,6 @@ Domain::computeWeightWRTShapeVariableSensitivity(int sindex, AllSensitivities<do
        }
      }
 
-#ifdef SENSITIVITY_DEBUG
-     if(verboseFlag) {
-       filePrint(stderr," *** WEIGHT : %e\n", weight);
-       filePrint(stderr,"printing weight derivative wrt shape variables\n");
-       std::cout << *allSens.weightWRTshape << std::endl;
-     }
-#endif
      allSens.weight = weight;
 #endif
 }
@@ -2898,13 +3003,6 @@ Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double
          }
        }
      }
-#ifdef SENSITIVITY_DEBUG
-     if(verboseFlag) {
-       filePrint(stderr," *** WEIGHT : %e\n", weight);
-       filePrint(stderr,"printing weight derivative wrt thickness\n");
-       std::cout << *allSens.weightWRTthick << std::endl;
-     }
-#endif
      allSens.weight = weight;
 #endif
 }
@@ -2994,7 +3092,7 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
                int dofj = unconstrNum[dofs[j]];
                if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
                for(int xyz = 0; xyz < 3; ++xyz) { 
-                 stifWRTsha->add(dofk,dofj,dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][node2][xyz]);
+                 stifWRTsha->addCoef(dofk,dofj,dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][node2][xyz]);
                }
              }
              for(int j = 0; j < DofsPerElement; ++j) {
@@ -3054,7 +3152,9 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol->data(),numUncon(),1);
        if(allSens.stiffnessWRTthickSparse) {
-         Eigen::MappedSparseMatrix<double, Eigen::ColMajor, int> dKdthick = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTthickSparse[iparam])->getEigenSparse();
+         Eigen::MappedSparseMatrix<double, Eigen::ColMajor, int> dKdthick = 
+               dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,
+                            Eigen::Upper> > *>(allSens.stiffnessWRTthickSparse[iparam])->getEigenSparse();
          *allSens.linearstaticWRTthick[iparam] = dKdthick * disp;
        } else {
          std::cerr << "ERROR! stiffnessWRTthickSparse is not defined yet\n";
@@ -3072,7 +3172,9 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
          *allSens.linearstaticWRTthick[iparam] += (*allSens.dKucdthick[iparam]) * Vc;
        }
      }
-     if(domain->gravityFlag()) subtractGravityForceSensitivityWRTthickness(sindex,allSens); //TODO-> must consider other external forces that depend on thickness
+     if(domain->gravityFlag()) subtractGravityForceSensitivityWRTthickness(sindex,allSens); // TODO-> must consider
+                                                                                            // other external forces
+                                                                                            // that depend on thickness
 #endif
 }
 
@@ -3094,7 +3196,9 @@ Domain::computeLinearStaticWRTShapeVariableSensitivity(int sindex,
      for(int ishape = 0; ishape < numShapeVars; ++ishape) {
        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol->data(),numUncon(),1);
        if(allSens.stiffnessWRTshapeSparse) {
-         Eigen::MappedSparseMatrix<double, Eigen::ColMajor, int> M = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTshapeSparse[ishape])->getEigenSparse();
+         Eigen::MappedSparseMatrix<double, Eigen::ColMajor, int> M = 
+            dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,
+                         Eigen::Upper> > *>(allSens.stiffnessWRTshapeSparse[ishape])->getEigenSparse();
          *allSens.linearstaticWRTshape[ishape] = M * disp;
        } else {
          std::cerr << "ERROR! stiffnessWRTshape is not defined yet\n";
@@ -3112,7 +3216,9 @@ Domain::computeLinearStaticWRTShapeVariableSensitivity(int sindex,
          *allSens.linearstaticWRTshape[ishape] += (*allSens.dKucdshape[ishape]) * Vc;
        }
      }
-     if(domain->gravityFlag()) subtractGravityForceSensitivityWRTShapeVariable(sindex,allSens); //TODO-> must consider other external forces
+     if(domain->gravityFlag()) {
+       subtractGravityForceSensitivityWRTShapeVariable(sindex,allSens);
+      } //TODO-> must consider other external forces
 #endif
 }
 
@@ -3512,7 +3618,8 @@ Domain::computeAggregatedStressVMWRTthicknessSensitivity(int sindex,
      }
      if(!isDynam) {
        for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
-         (*allSens.aggregatedVonMisesWRTthick)(iparam) -= allSens.lambdaAggregatedStressVM->adjoint()*(allSens.linearstaticWRTthick[iparam]->col(0));
+         (*allSens.aggregatedVonMisesWRTthick)(iparam) -= 
+            allSens.lambdaAggregatedStressVM->adjoint()*(allSens.linearstaticWRTthick[iparam]->col(0));
        }
      }
 #endif
@@ -3636,7 +3743,7 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
            for(int j = 0; j < DofsPerElement; ++j) {
              int dofj = unconstrNum[dofs[j]];
              if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
-             if(isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
+             if(std::isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
              (*allSens.vonMisesWRTdisp)(node, dofj) += dStressdDisp[j][k]; 
            }
          }
@@ -3698,7 +3805,7 @@ Domain::computeAggregatedStressVMWRTdisplacementSensitivity(int sindex,
            for(int j = 0; j < DofsPerElement; ++j) {
              int dofj = unconstrNum[dofs[j]];
              if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
-             if(isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
+             if(std::isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
              vonMisesWRTdisp(node, dofj) += dStressdDisp[j][k]; 
            }
          }
@@ -3863,7 +3970,8 @@ Domain::computeAggregatedStressVMWRTShapeVariableSensitivity(int sindex,
 
      if(!isDynam) {
        for(int jSen = 0; jSen < numShapeVars; ++jSen) 
-         (*allSens.aggregatedVonMisesWRTshape)(jSen) -= allSens.lambdaAggregatedStressVM->adjoint()*(allSens.linearstaticWRTshape[jSen]->col(0));
+         (*allSens.aggregatedVonMisesWRTshape)(jSen) -= 
+            allSens.lambdaAggregatedStressVM->adjoint()*(allSens.linearstaticWRTshape[jSen]->col(0));
      }
 
 #endif
@@ -3991,7 +4099,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
                if(it != domain->solInfo().adjointMap.end()) {
                  int adjointBasisId = it->second;
                  int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
-                 int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+                 int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), 
+                                                domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
                  podSolver->setLocalBasis(startCol, blockCols);
                  podSolver->factor();
                }
@@ -4005,7 +4114,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
            allSens.dwrDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numTotalDispDofs);
            for (int i=0; i<numTotalDispDofs; ++i) { 
              (*allSens.dwrDisp)[i] = allSens.lambdaDisp[i]->dot(*(allSens.residual));
-             std::cerr << "allSens.dwrDisp[" << i << "] = " << (*allSens.dwrDisp)[i] << std::endl;
            }
          }
        }
@@ -4031,7 +4139,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
                if(it != domain->solInfo().adjointMap.end()) {
                  int adjointBasisId = it->second;
                  int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
-                 int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+                 int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), 
+                                                domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
                  podSolver->setLocalBasis(startCol, blockCols);
                  podSolver->factor();
                }
@@ -4045,7 +4154,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
            allSens.dwrDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numTotalDispDofs);
            for (int i=0; i<numTotalDispDofs; ++i) {
              (*allSens.dwrDisp)[i] = allSens.lambdaDisp[i]->dot(*(allSens.residual));
-            std::cerr << "allSens.dwrDisp[" << i << "] = " << (*allSens.dwrDisp)[i] << std::endl;
            }
          }
        }
@@ -4074,7 +4182,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
                if(it != domain->solInfo().adjointMap.end()) {
                  int adjointBasisId = it->second;
                  int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
-                 int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+                 int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(),
+                                                domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
                  podSolver->setLocalBasis(startCol, blockCols);
                  podSolver->factor();
                }
@@ -4089,7 +4198,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
          allSens.dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
          for (int i=0; i<numStressNodes; i++) {
            (*allSens.dwrStressVM)[i] = allSens.lambdaStressVM[i]->dot(*(allSens.residual));
-            std::cerr << "allSens.dwrStressVM[" << i << "] = " << (*allSens.dwrStressVM)[i] << std::endl;
          }
        }
      }
@@ -4117,7 +4225,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
                if(it != domain->solInfo().adjointMap.end()) {
                  int adjointBasisId = it->second;
                  int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
-                 int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+                 int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(),
+                                                domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
                  podSolver->setLocalBasis(startCol, blockCols);
                  podSolver->factor();
                }
@@ -4132,7 +4241,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
          allSens.dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
          for (int i=0; i<numStressNodes; i++) {
             (*allSens.dwrStressVM)[i] = allSens.lambdaStressVM[i]->dot(*(allSens.residual));
-            std::cerr << "allSens.dwrStressVM[" << i << "] = " << (*allSens.dwrStressVM)[i] << std::endl;
          }
        }  
      }
@@ -4156,7 +4264,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
              if(it != domain->solInfo().adjointMap.end()) {
                int adjointBasisId = it->second;
                int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
-               int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+               int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(),
+                                              domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
                podSolver->setLocalBasis(startCol, blockCols);
                podSolver->factor();
              }
@@ -4170,7 +4279,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      if (allSens.residual !=0 && allSens.dwrAggregatedStressVM == 0) {
        allSens.dwrAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(1);
        (*allSens.dwrAggregatedStressVM)[0] = allSens.lambdaAggregatedStressVM->dot(*(allSens.residual));
-       std::cerr << "allSens.dwrAggregatedStressVM = " << (*allSens.dwrAggregatedStressVM)[0] << std::endl;
      }
      break;
    }
@@ -4192,7 +4300,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
              if(it != domain->solInfo().adjointMap.end()) {
                int adjointBasisId = it->second;
                int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
-               int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+               int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(),
+                                              domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
                podSolver->setLocalBasis(startCol, blockCols);
                podSolver->factor();
              }
@@ -4206,7 +4315,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      if (allSens.residual !=0 && allSens.dwrAggregatedStressVM == 0) {
        allSens.dwrAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(1);
        (*allSens.dwrAggregatedStressVM)[0] = allSens.lambdaAggregatedStressVM->dot(*(allSens.residual));
-       std::cerr << "allSens.dwrAggregatedStressVM = " << (*allSens.dwrAggregatedStressVM)[0] << std::endl; 
     }
     break;
    }

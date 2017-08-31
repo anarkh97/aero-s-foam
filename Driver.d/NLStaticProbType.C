@@ -27,10 +27,7 @@ void
 NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >::solve()
 {
  // Set up nonlinear problem 
- probDesc->preProcess();
-
- // Get solver
- OpSolver *solver = probDesc->getSolver();
+ probDesc->preProcess(false);
 
  // Allocate appropriate vectors to store external force and residual
  VecType force(probDesc->solVecInfo());
@@ -50,36 +47,44 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  geomState = probDesc->createGeomState();
  stateIncr = StateUpdate::initInc(geomState, &residual);
  
- refState = (solInfo.soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
+ bool failSafe = solInfo.getNLInfo().failsafe;
+ refState = (solInfo.soltyp == 2 && !failSafe) ? 0 : StateUpdate::initRef(geomState);
 
  double lambda = 0.0;
 
  // Incremental step parameter for load / prescribed displacement control 
- double deltaLambda = probDesc->getDeltaLambda0(); 
+ double deltaLambda0 = probDesc->getDeltaLambda0(); 
 
  // Newton iteration loop
  double maxLambda = probDesc->getMaxLambda();
 
  // Output structure initial configuration
- if(deltaLambda != maxLambda)
+ if(deltaLambda0 != maxLambda)
    probDesc->staticOutput(geomState, lambda, force, totalRes, refState);
 
  int numIter = 0;
 
- int numSteps = int(0.5+(maxLambda / deltaLambda));
+ int numSteps = int(0.5+(maxLambda / deltaLambda0));
 
- // Set initial value of lambda equal to deltaLambda
- lambda = deltaLambda;
+ int step = 1;
+ double deltaLambda;
+ bool failed = false;
+ int numConverged = 0;
+ int p = step, q = 1;
 
- int step;
- for(step = 1; step <= numSteps; ++step) {
+ for( ; step <= numSteps || failed; ) {
+
+   deltaLambda = deltaLambda0/q;
 
    filePrint(stderr, " --------------------------------------\n");
-   filePrint(stderr, " ... Newton : Start Step #%d --- Lambda = %e\n", step, lambda);
+   filePrint(stderr, " ... Newton : Start Step #%d --- Lambda = %e\n", step, lambda+deltaLambda);
 
+   if(failSafe && failed) {
+     StateUpdate::copyState(refState, geomState);
+   } else
    if(solInfo.soltyp != 2) StateUpdate::copyState(geomState, refState);
-   probDesc->updatePrescribedDisplacement(geomState, lambda);
-   double time = (deltaLambda == maxLambda) ? 0.0 : lambda;
+
+   probDesc->updatePrescribedDisplacement(geomState, lambda+deltaLambda);
 
    probDesc->initializeParameters(step,geomState); // for augmented Lagrangian (a) Lagrange multipliers are initialized at step 1 only
                                                    // unless SolverInfo::reinit_lm is true, (b) penalty parameter is always reset at each step
@@ -89,9 +94,38 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    for(int i = 0; i < solInfo.num_penalty_its; ++i) {
 
      // call newton iteration with load step lambda
-     converged = newton(force, residual, totalRes,
-                        elementInternalForce, probDesc, solver,
-                        refState, geomState, stateIncr, numIter, resN, lambda, step);
+     try {
+       converged = newton(force, residual, totalRes,
+                          elementInternalForce, probDesc,
+                          refState, geomState, stateIncr, numIter, resN, lambda+deltaLambda, step);
+     }
+     catch(std::runtime_error& e) {
+       if(!failSafe) std::cerr << "\nexception: " << e.what() << std::endl;
+       converged = 0;
+       break;
+     }
+
+     if(converged == 1) {
+       filePrint(stderr," ... Newton : Step #%d, Iter #%d converged after %d iterations\n",
+                 step, i+1, numIter+1);
+     }
+     else if(converged == -1) {
+       if(!failSafe) {
+         filePrint(stderr," ... Newton : Step #%d, Iter #%d diverged after %d iterations\n",
+                   step, i+1, numIter+1);
+         filePrint(stderr," ... Newton : analysis interrupted by divergence\n");
+       }
+       break;
+     } 
+     else if(converged == 0 && !failSafe && solInfo.getNLInfo().stepUpdateK != std::numeric_limits<int>::max()) {
+       filePrint(stderr," *** WARNING: Newton solve did not converge after %d iterations (res = %e, target = %e)\n",
+                 numIter, resN, probDesc->getTolerance());
+     }
+
+     if((failed = (failSafe && converged != 1 && resN > solInfo.getNLInfo().failsafe_tol && q < (std::numeric_limits<int>::max() >> 1)))) {
+       // if a Newton solve fails to converge, terminate constraint enforcement iterations
+       break;
+     }
 
      // check constraint violation error
      feasible = probDesc->checkConstraintViolation(err, geomState);
@@ -101,21 +135,6 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
        probDesc->updateParameters(geomState);
      }
 
-     if(converged == 1) {
-       filePrint(stderr," ... Newton : Step #%d, Iter #%d converged after %d iterations\n",
-                 step, i+1, numIter+1);
-     }
-     else if(converged == -1) {
-       filePrint(stderr," ... Newton : Step #%d, Iter #%d diverged after %d iterations\n",
-                 step, i+1, numIter+1);
-       filePrint(stderr," ... Newton : analysis interrupted by divergence\n");
-       break;
-     } 
-     else if(converged == 0 && solInfo.getNLInfo().stepUpdateK != std::numeric_limits<int>::max()) {
-       filePrint(stderr," *** WARNING: Newton solve did not converge after %d iterations (res = %e, target = %e)\n",
-                 numIter, resN, probDesc->getTolerance());
-     }
-
      filePrint(stderr, " ... Newton : End Step #%d, Iter #%d --- Max Steps = %d, Max Iters = %d\n",
                step, i+1, numSteps, solInfo.num_penalty_its);
      if(err > std::numeric_limits<double>::epsilon()) filePrint(stderr," ... Constraint violation: %8.2e ...\n", err);
@@ -123,25 +142,42 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    
      if(feasible) break;
 
+   } // end of constraint enforcement iteration loop
+
+   if(failed) {
+     // if a Newton solve fails to converge, decrease the load step and try again
+     filePrint(stderr," ... Failsafe: bisecting load step  ...\n");
+     p *= 2;
+     q *= 2;
+     numConverged = 0;
+     continue;
    }
 
-   if(solInfo.soltyp != 2) probDesc->updateStates(refState, *geomState, lambda);
+   if(solInfo.soltyp != 2) probDesc->updateStates(refState, *geomState, lambda+deltaLambda);
 
-   // Output current load step results
-   probDesc->staticOutput(geomState, time, force, totalRes, refState);
-
-   // Exit loop in the case of divergence
-   if(converged == -1) break;
+   p++;
+   numConverged++;
+   if(numConverged >= 2 && (q-p)%2 == 0 && q >= 2) { p /= 2; q /= 2; numConverged = 0; } // increase the load step
 
    // increment load parameter
    lambda += deltaLambda;
+
+   // Output current load step results
+   if(p%q == 0) { // finished a whole step
+     step = p/q;
+     lambda = (step-1)*deltaLambda0;
+     double time = (deltaLambda0 == maxLambda) ? 0.0 : lambda;
+     probDesc->staticOutput(geomState, time, force, totalRes, refState);
+   }
+
+   // Exit loop in the case of divergence
+   if(converged == -1) break;
  }
 
  if(refState) delete refState;
  if(stateIncr) delete stateIncr;
 
  probDesc->printTimers();
-
 }
 
 
@@ -159,9 +195,6 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  // WITH TOTALUPDATE MODE
  // Set up  nonlinear Problem
  probDesc->preProcess();
-
- // Get Solver
- OpSolver *solver = probDesc->getSolver();
 
  // Allocate Vectors
  VecType force(probDesc->solVecInfo());
@@ -209,7 +242,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  int numIter = 0;
  int step    = 1;
  double resN;
- newton(force, residual, totRes, elementInternalForce, probDesc, solver, u0,
+ newton(force, residual, totRes, elementInternalForce, probDesc, u0,
         u, stateIncr, numIter, resN, lambda, step);
 
  // ... Declare Vector dU
@@ -277,7 +310,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
                    , step, deltaLambda, lambda);
    step++;
 
-   predictorStep(*u, *u0, dU, lambda, deltaLambda, deltaS, deltaS0, w, solver,
+   predictorStep(*u, *u0, dU, lambda, deltaLambda, deltaS, deltaS0, w,
                  force, residual,totRes, elementInternalForce,  pVec, step);
 
    //u->diff(*u0, dU);
@@ -285,7 +318,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
    // ... CALL EXTENDED NEWTON
    extendedNewton(*u, *u0, dU, lambda, deltaLambda, deltaS, w, numExtIter,
-                  solver, force, residual, totRes, arcLenResid, forceNorm,
+                  force, residual, totRes, arcLenResid, forceNorm,
                   elementInternalForce, pVec, step);
 
    probDesc->updateStates(u0, *u, lambda);
@@ -312,7 +345,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  // ... CALL NEWTON FOR FINAL SOLUTION
  *u0 = *u;
  step++;
- newton(force, residual, totRes, elementInternalForce, probDesc, solver, u0, u, stateIncr, numIter, resN, lambda, step);
+ newton(force, residual, totRes, elementInternalForce, probDesc, u0, u, stateIncr, numIter, resN, lambda, step);
 
  probDesc->updateStates(u0, *u, lambda);
 
@@ -330,7 +363,7 @@ int
 NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >
 ::newton(VecType& force, VecType& residual, VecType &totalRes,
          VecType& elementInternalForce, ProblemDescriptor *probDesc,
-         OpSolver* solver, typename StateUpdate::RefState *refState,
+         typename StateUpdate::RefState *refState,
          GeomType* geomState, typename StateUpdate::StateIncr *stateIncr,
          int &numIter, double &residualNorm, double lambda, 
          int step)
@@ -461,7 +494,7 @@ template < class OpSolver,
 void
 NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >
 ::predictorStep(GeomType &u, GeomType &u0, VecType &dU, double &lambda, double &deltaLambda,
-                double &deltaS, double &deltaS0, double w, OpSolver* solver,
+                double &deltaS, double &deltaS0, double w,
                 VecType& force, VecType& residual, VecType &totRes, VecType& elementInternalForce, 
                 VecType& duds, int step)
 {
@@ -507,7 +540,7 @@ template < class OpSolver,
 void
 NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >
 ::extendedNewton(GeomType &u, GeomType &u0, VecType &dU, double &lambda, double deltaLambda, 
-                 double &deltaS, double w, int &numExtIter, OpSolver* solver,
+                 double &deltaS, double w, int &numExtIter,
                  VecType& force, VecType& residual,  VecType &totRes,
                  VecType& arcLenResid, 
                  double forceNorm, VecType& elementInternalForce, VecType& pVec, int step)
@@ -529,7 +562,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
   if(firstNorm == 0.0) return;
 
-  //predictorStep(u, lambda, deltaLambda, deltaS, w, solver,
+  //predictorStep(u, lambda, deltaLambda, deltaS, w,
   //              force, residual, pVec, step);
 
 
@@ -570,7 +603,6 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     filePrint(stderr," ### First solve ###\n");
     probDesc->getSolver()->reSolve(residual);
 
-    //solver->resetOrthoSet(); // HB: force reseting orthoset 
     filePrint(stderr," ### Second solve ###\n");
     probDesc->getSolver()->solve(force, pVec);
 

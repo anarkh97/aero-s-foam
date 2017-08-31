@@ -3,8 +3,10 @@
 
 #include <Comm.d/Communicator.h>
 #include <Math.d/SCMatrix.d/SCDoubleMatrix.h>
+#include <Utils.d/DistHelper.h>
 #include <Utils.d/linkfc.h>
 #include <Rom.d/ClusterSolvers.d/Kmeans.d/Kmeans.h>
+#include <Rom.d/ClusterSolvers.d/SSC.d/SSC.h>
 
 #include <mpi.h>
 
@@ -41,6 +43,7 @@ DistrSnapshotClusteringSolver
   kmMaxIter_(1000),
   kmSeed_(1)
 {
+  timeStamps_.resize(colCount); 
 }
 
 void
@@ -88,11 +91,10 @@ DistrSnapshotClusteringSolver::solve()
   Cblacs_gridexit(localContext);
   Cfree_blacs_system_handle(localBlacsHandle);
 
-  // TODO: replace this random assigment with k-means or alternative solution
   switch(solverType_) {
     default :
     case 0 : { // Random assignment 
-      fprintf(stderr, " ... Using Random Clustering ...\n");
+      filePrint(stderr, " ... Using Random Clustering        ...\n");
       std::vector<int> clusterAssignment(colCount_);
       for(int k=0; k<colCount_; ++k) clusterAssignment[k] = rand()%numClusters_;
       // make a list of the columns assigned to each cluster
@@ -109,9 +111,7 @@ DistrSnapshotClusteringSolver::solve()
     } break;
 
     case 1: { // K-means
-      if (communicator_->myID() == 0) {
-          fprintf(stderr, " ... Using K-means Clustering ...\n");
-      }
+      filePrint(stderr, " ... Using K-means Clustering       ...\n");
       Kmeans solver = Kmeans();
       solver.setNumClusters(numClusters_);
       solver.setMaxIter(kmMaxIter_);
@@ -130,10 +130,52 @@ DistrSnapshotClusteringSolver::solve()
         centroidBuffer_.col(i) /= clusterCols_[i].size();
       }
     } break;
+
+    case 2: { // sparse subspace clustering
+      filePrint(stderr, " ... Using Sparse Subspace Clustering ...\n");
+      SparseSubspaceClustering solver = SparseSubspaceClustering();
+      solver.setNumClusters(numClusters_);
+      solver.setMaxIter(kmMaxIter_);
+      solver.setCommunicator(communicator_);
+      solver.setSparseTolerance(nnlsTol);
+      int status = solver.cluster(X);
+      solver.printTimes();
+      int numClust = solver.getNumClusters();
+      numClusters_ = numClust;
+      // resize containers 
+      clusterCols_.resize(numClust);
+      centroidBuffer_.resize(localRows_,numClust);
+      solver.getClusterColumns(clusterCols_);
+      // Recomputing the centroids is easier/faster than mapping from SCDoubleMatrix to Eigen.
+      centroidBuffer_.setZero();
+      for(int i=0; i<numClusters_; ++i) {
+        for (int j=0; j<clusterCols_[i].size(); j++) {
+           centroidBuffer_.col(i) += matrixBuffer_.col(clusterCols_[i][j]);
+        }
+      }
+      for(int i=0; i<numClusters_; ++i) {
+        centroidBuffer_.col(i) /= clusterCols_[i].size();
+      }
+    } break;
   }
 
   Cblacs_gridexit(context);
   Cfree_blacs_system_handle(blacsHandle);
+}
+
+void
+DistrSnapshotClusteringSolver::recomputeCentroids(){
+
+  centroidBuffer_.setZero();
+  for(int i=0; i<numClusters_; ++i) {
+    for (int j=0; j<clusterCols_[i].size(); j++) {
+       centroidBuffer_.col(i) += matrixBuffer_.col(clusterCols_[i][j]);
+    }
+  }
+  for(int i=0; i<numClusters_; ++i) {
+    centroidBuffer_.col(i) /= clusterCols_[i].size();
+  }
+
 }
 
 } // end namespace Rom

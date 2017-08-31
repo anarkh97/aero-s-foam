@@ -82,7 +82,7 @@ internal_node_flags(const SubDomain &subDom, BoolOutIt result) {
     if(! (*sd.getDSA())[iNode].contains(DofSet::XYZdisp | DofSet::XYZrot | DofSet::Temp) ) work[iNode] = true;
   }
 
-#if defined(HACK_INTEL_COMPILER_ITS_CPP11) && (__GLIBC__ == 2) && (__GLIBC_MINOR__ == 12)
+#if defined(HACK_INTEL_COMPILER_ITS_CPP11) && (__GLIBC__ == 2) && (__GLIBC_MINOR__ <= 12)
   // workaround issue in older version of glibc when compiling with -std=c++11
   std::vector<bool>::iterator first = work.begin(), last = work.end();
   while (first!=last) {

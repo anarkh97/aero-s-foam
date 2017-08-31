@@ -9,6 +9,8 @@
 
 #ifdef USE_SACADO
 #  include <Sacado.hpp>
+#  include <Sacado_trad.hpp>
+#  include <Sacado_tradvec.hpp>
 #endif
 
 // note: if this is defined, make sure that COMPUTE_CENTROID_AND_LOCAL_EDGE_COORDS is also defined in Acme.d/search.d/ContactFaceFaceSearch.C

@@ -10,6 +10,7 @@ template <class Scalar> class GenFullSquareMatrix;
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
 class Rbm;
 class FSCommunicator;
+class MatrixTimers;
 
 template<class Scalar>
 class GenDomainGroupTask : public TaskDescr {
@@ -48,11 +49,13 @@ class GenDomainGroupTask : public TaskDescr {
    int solvertype;
    FSCommunicator *com;
    bool makeC, makeC_deriv;
+   MatrixTimers &mt;
 
    GenDomainGroupTask(int nsub, GenSubDomain<Scalar> **_sd, double, double, double,
                       Rbm **_rbms, FullSquareMatrix **_kelArray, double, double, 
                       int, int solvertype, FSCommunicator *, FullSquareMatrix **_melArray,
-                      FullSquareMatrix **_celArray, bool elemsetHasDamping);
+                      FullSquareMatrix **_celArray, bool elemsetHasDamping,
+                      MatrixTimers &_mt);
    virtual ~GenDomainGroupTask();
    void runFor(int isub, bool make_feti);
 };

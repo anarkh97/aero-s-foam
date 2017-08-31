@@ -48,6 +48,7 @@ extern bool estFlag;
 extern bool weightOutFlag;
 extern bool trivialFlag;
 extern bool randomShuffle;
+extern bool allowMechanisms;
 extern int verboseFlag;
 #ifndef SALINAS
 extern Sfem *sfem;
@@ -586,6 +587,12 @@ void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map
         //cerr << "adding lmpc " << i << " to elemset at index " << nEle << std::endl;
         elemSet.mpcelemadd(nEle, lmpc[i]); // new
         elemSet[nEle]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
+        if(elementLumpingWeights_.size() > 0) {
+          for(int locMesh = 0; locMesh < elementLumpingWeights_.size(); locMesh++){
+            //fprintf(stderr,"adding %d to weight maps\n", nEle);
+            elementLumpingWeights_[locMesh].insert(std::make_pair(nEle,1.0));
+          }
+        }
         if(elemSet[nEle]->numInternalNodes() == 1) {
           int in[1] = { nNode++ };
           elemSet[nEle]->setInternalNodes(in);
@@ -599,6 +606,13 @@ void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map
   int count2 = 0;
   while(count < contactSurfElems.size()) {
     //cerr << "deleting elemset " << contactSurfElems.back() << std::endl;
+    if(elementLumpingWeights_.size() > 0) {
+      for(int locMesh = 0; locMesh < elementLumpingWeights_.size(); locMesh++){
+        //fprintf(stderr,"removing %d from weight maps\n", contactSurfElems.back());
+        ElementWeightMap::iterator wIt = elementLumpingWeights_[locMesh].find(contactSurfElems.back());
+        elementLumpingWeights_[locMesh].erase(wIt);
+      }
+    }
     elemSet.deleteElem(contactSurfElems.back());
     contactSurfElems.pop_back();
     count2++;
@@ -958,16 +972,17 @@ void GeoSource::transformCoords()
   using std::sin;
   SolverInfo &sinfo = domain->solInfo();
   int lastNode = numNodes = nodes.size();
-  for(int i=0; i<lastNode; ++i) {
-    if(nodes[i] == NULL) continue;
-    int cp = nodes[i]->cp;
-    if(cp == 0) {
+  for(int i=0; i<lastNode; ++i) {  // loop over all nodes
+    if(nodes[i] == NULL) continue; // if node pointer is empty, skip
+    int cp = nodes[i]->cp;         // get coordinate frame type
+    if(cp == 0) {                  // if eulerian scale and continue
       nodes[i]->x *= sinfo.xScaleFactor;
       nodes[i]->y *= sinfo.yScaleFactor;
       nodes[i]->z *= sinfo.zScaleFactor;
       continue;
     }
 
+    // otherwise apply appropriate transformation 
     Eigen::Vector3d v;
     switch(nfd[cp].type) {
       default:
@@ -999,6 +1014,31 @@ void GeoSource::transformCoords()
     nodes[i]->z = sinfo.zScaleFactor*(v[2] + nfd[cp].origin[2]);
   }
 #endif
+}
+
+void GeoSource::setNewCoords(std::string nodeFile)
+{
+  // this function is for setting new xyz locations for a mesh 
+  // during an HROM training with training vectors from multiple
+  // simulations in which the mesh deformation is a parameter
+
+  // open file stream to file containing nodes numbers and locations
+  std::ifstream newNodes; 
+  newNodes.open(nodeFile.c_str());
+  int lastNode = numNodes = nodes.size();
+  
+  // now loop over nodes
+  for(int i=0; i<lastNode; ++i) {
+     if(nodes[i] == NULL) continue; // if node pointer is empty, skip
+     int nnum;
+     double x,y,z;
+     newNodes >> nnum; newNodes >> x; newNodes >> y; newNodes >> z;
+     nnum--;
+     assert(nnum == i);
+     nodes[i]->x = x; 
+     nodes[i]->y = y; 
+     nodes[i]->z = z;  
+  } 
 }
 
 void GeoSource::setUpData(int topFlag)
@@ -1373,19 +1413,10 @@ void GeoSource::setUpData(int topFlag)
       for(int k = 0; k < domain->getNumSurfs(); k++) {
         if((*SurfEntities)[k]->ID()-1 == *j) {
           for(int l = 0; l < (*SurfEntities)[k]->GetnNodes(); ++l) 
-            nodeGroup[i->first].push_back((*SurfEntities)[k]->GetPtrGlNodeIds()[l]);
+            nodeGroup[i->first].insert((*SurfEntities)[k]->GetPtrGlNodeIds()[l]);
         }
       }
     }
-  }
-
-  // verify node groups
-  map<int, list<int> >::iterator ngIter = nodeGroup.begin();
-
-  while (ngIter != nodeGroup.end())   {
-    nodeGroup[ngIter->first].sort();
-    nodeGroup[ngIter->first].unique();
-    ngIter++;
   }
 
   for (int iOut = 0; iOut < numOutInfo; iOut++) {
@@ -1497,7 +1528,7 @@ void GeoSource::setUpData(int topFlag)
     }
 
     if (oinfo[iOut].groupNumber > 0)  {
-      if (nodeGroup.find(oinfo[iOut].groupNumber) == nodeGroup.end())
+      if (topFlag < 0 && nodeGroup.find(oinfo[iOut].groupNumber) == nodeGroup.end())
         filePrint(stderr, " *** WARNING: Requested group output id not found: %d\n", oinfo[iOut].groupNumber);
     }
   }
@@ -2185,7 +2216,7 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
   if (oinfo[fileNum].groupNumber > 0)  {
 
     int group = oinfo[fileNum].groupNumber;
-    std::list<int>::iterator it = nodeGroup[group].begin();
+    std::set<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
       int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
@@ -2212,10 +2243,13 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
+
   switch(oinfo[fileNum].complexouttype) {
     default:
     case OutputInfo::realimag :
       // print real part, or in the case group option both the real and imaginary parts
+      // RT: 12/10/2016 - Why only real part?? 
+      // RT: 12/10/2016 - Why do fprintf and filePrint alternate???
       if(time != -1.0) {
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
@@ -2225,7 +2259,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
           int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
@@ -2237,17 +2271,24 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       }
       else  {
         for(i = 0; i < outputSize; i++) {
-          if(outputSize == 1)
+          if(outputSize == 1) {
             fprintf(oinfo[fileNum].filptr," % *.*E", w, p, data[i].real());
+          }
           else
             filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].real());
         }
         // print imaginary part
         if(time != -1.0) {
-          if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
+          if(outputSize != 1)
+             filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
         }
-        for (i = 0; i < outputSize; i++)
-          filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].imag());
+        for (i = 0; i < outputSize; i++) {
+        // RT: 12/10/2016 - changed filePrint to fprintf
+          if (outputSize == 1) 
+            fprintf(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].imag());
+          else 
+            filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].imag());
+        }
       }
       break;
     case OutputInfo::modulusphase :
@@ -2261,7 +2302,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
           int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
@@ -2497,6 +2538,15 @@ void GeoSource::getTextDecomp(bool sowering)
         connect[cEle++] =  connect[iele];
     cx[isub+1] = cEle;
     }*/
+
+  if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {
+    optDec = new Decomposition();
+    optDec->nsub = numSub;
+    optDec->pele = new int[numSub+1];
+    optDec->eln  = new int[curEle];
+    for(int i=0; i<=numSub; i++) optDec->pele[i] = cx[i];
+    for(int i=0; i<curEle; i++) optDec->eln[i] = connect[i];
+  }
 
   subToElem = new Connectivity(numSub,cx,connect);
 
@@ -2899,7 +2949,6 @@ int GeoSource::setIVel(int _numIVel, BCond *_iVel)
 int GeoSource::setIVelModal(int _numIVelModal, BCond *_iVelModal)
 {
   if (iVelModal) {
-
     // Allocate memory for correct number of iVelModal
     BCond *nd = new BCond[numIVelModal+_numIVelModal];
 
@@ -3484,7 +3533,7 @@ void GeoSource::openOutputFilesForPita(int sliceRank)
 //--------------------------------------------------------------------
 void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
 {
-  int iInfo;  
+  int iInfo;
 
   if(numOuts == 0) { // open all output files and write their corresponding TOPDOM/DEC header
     for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {
@@ -3722,14 +3771,41 @@ int GeoSource::setUsddLocation(int _numSensor, BCond *_sensor)
 {
   if (claw == 0) claw = new ControlLawInfo;
 
-  claw->numUserDisp = _numSensor;
+  if (claw->userDisp) {
+    // Allocate memory for correct number of usdd
+    BCond *nd = new BCond[claw->numUserDisp + _numSensor];
 
-  // need to copy the pointer data
-  claw->userDisp    = new BCond[claw->numUserDisp];
-  for (int k = 0; k < claw->numUserDisp; k++)  {
-    claw->userDisp[k].nnum = _sensor[k].nnum;
-    claw->userDisp[k].dofnum = _sensor[k].dofnum;
-    claw->userDisp[k].val = _sensor[k].val;
+    // copy old usdd
+    int i;
+    for(i = 0; i < claw->numUserDisp; ++i)
+       nd[i] = claw->userDisp[i];
+
+    // copy new usdd
+    for(i = 0; i<_numSensor; ++i) {
+      nd[i+claw->numUserDisp].nnum = _sensor[i].nnum;
+      nd[i+claw->numUserDisp].dofnum = _sensor[i].dofnum;
+      nd[i+claw->numUserDisp].val = _sensor[i].val;
+    }
+
+    // set correct number of usdd 
+    claw->numUserDisp += _numSensor;
+
+    // delete old array of usdd
+    delete [] claw->userDisp;
+
+    // set new pointer to correct number of usdd
+    claw->userDisp = nd;
+  }
+  else {
+    claw->numUserDisp = _numSensor;
+
+    // need to copy the pointer data
+    claw->userDisp    = new BCond[claw->numUserDisp];
+    for (int k = 0; k < claw->numUserDisp; k++)  {
+      claw->userDisp[k].nnum = _sensor[k].nnum;
+      claw->userDisp[k].dofnum = _sensor[k].dofnum;
+      claw->userDisp[k].val = _sensor[k].val;
+    }
   }
 
   return 0;
@@ -3863,7 +3939,7 @@ void GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
   }
 
   int avgnum = oinfo[fileNumber].averageFlg;
-  if (avgnum == 1 || avgnum == 2)  {
+  if (avgnum > 0)  {
     if (oinfo[fileNumber].groupNumber > 0)  {
       char ng[80];
       sprintf(ng, "NODALGROUP %d: NODENUMBER X0  Y0  Z0  RESULT-1 RESULT-2 ... RESULT-N", oinfo[fileNumber].groupNumber);
@@ -4147,7 +4223,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  int iEle, iSub;
  for(iEle = 0; iEle < maxEle; ++iEle)
    if(elemSet[iEle]) {
-     if(elemSet[iEle]->isSpring() == false && elemSet[iEle]->isMass() == false)
+     if(allowMechanisms || (elemSet[iEle]->isSpring() == false && elemSet[iEle]->isMass() == false))
        baseSet.elemadd(iEle, elemSet[iEle]);
      else {
        if(elemSet[iEle]->isSpring()) {
@@ -4181,7 +4257,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    int *lNd = (int *) dbg_alloca(sizeof(int)*maxSprNodes);
    nSpring = 0;
    for(iEle = 0; iEle < maxEle; ++iEle)
-     if(elemSet[iEle] && (elemSet[iEle]->isSpring() || elemSet[iEle]->isMass())) {
+     if(elemSet[iEle] && (!allowMechanisms && (elemSet[iEle]->isSpring() || elemSet[iEle]->isMass()))) {
        elemSet[iEle]->nodes(lNd);
        springAssign[nSpring][0] = iEle;
        springAssign[nSpring][1] = mf.bestSubFor(elemSet[iEle]->numNodes(), lNd);
@@ -4220,7 +4296,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
      for(iEle = 0; iEle < optDec->num(iSub); ++iEle) {
        int nds[128];
        int enm = (*optDec)[iSub][iEle];
-       if(elemSet[enm]->isSpring() == false && elemSet[enm]->isMass() == false) {
+       if(allowMechanisms || (elemSet[enm]->isSpring() == false && elemSet[enm]->isMass() == false)) {
 	 int nn = elemSet[enm]->numNodes();
 	 elemSet[enm]->nodes(nds);
 	 for(int i = 0; i < nn; ++i)
@@ -4230,7 +4306,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
      for(iEle = 0; iEle < optDec->num(iSub); ++iEle) {
        int nds[128];
        int enm = (*optDec)[iSub][iEle];
-       if(elemSet[enm]->isSpring()|| elemSet[enm]->isMass()) {
+       if(!allowMechanisms && (elemSet[enm]->isSpring() || elemSet[enm]->isMass())) {
 	 elemSet[enm]->nodes(nds);
 	 if(ndIsUsed[nds[0]] == false && ndIsUsed[nds[1]] == false)
 	   filePrint(stderr, " *** WARNING: Found a badly assigned spring\n");
@@ -4239,7 +4315,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
      for(iEle = 0; iEle < optDec->num(iSub); ++iEle) {
        int nds[128];
        int enm = (*optDec)[iSub][iEle];
-       if(elemSet[enm]->isSpring() == false && elemSet[enm]->isMass() == false) {
+       if(allowMechanisms || (elemSet[enm]->isSpring() == false && elemSet[enm]->isMass() == false)) {
 	 int nn = elemSet[enm]->numNodes();
 	 elemSet[enm]->nodes(nds);
 	 for(int i = 0; i < nn; ++i)
@@ -4725,16 +4801,16 @@ void GeoSource::makeEframe(int ele, int refnode, double *d)
 }
 
 
-void GeoSource::setGroupAttribute(int a, int g)
+void GeoSource::setAttributeGroup(int a, int g)
 {
- group[g].attributes.push_back(a);
+  group[g].attributes.push_back(a);
 }
 
 //-------------------------------------------------------
 
 void GeoSource::setNodeGroup(int nn, int id)  {
 
-  nodeGroup[id].push_back(nn);
+  nodeGroup[id].insert(nn);
 }
 
 //-------------------------------------------------------
@@ -4786,6 +4862,15 @@ bool GeoSource::energiesOutput()
 {
   for(int iInfo = 0; iInfo < geoSource->getNumOutInfo(); iInfo++) {
     if(oinfo[iInfo].type == OutputInfo::Energies)
+      return true;
+  }
+  return false;
+}
+
+bool GeoSource::romExtForceOutput()
+{
+  for(int iInfo = 0; iInfo < geoSource->getNumOutInfo(); iInfo++) {
+    if(oinfo[iInfo].type == OutputInfo::RomExtForce || oinfo[iInfo].type == OutputInfo::RomExtForce6)
       return true;
   }
   return false;

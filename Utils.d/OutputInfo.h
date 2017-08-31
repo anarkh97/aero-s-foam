@@ -39,7 +39,7 @@ struct OutputInfo {
           TDEnforcement, Damage, EquivalentPlasticStrain, 
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
           HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
-          RobData, SampleMesh, Accelvector, Forcevector, Constraintvector, Constraintviolation,
+          RobData, SampleMesh, Accelvector, Forcevector,
           RotationMatrix, ExternalXForce, ExternalYForce, ExternalZForce,
           ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar, Quaternion,
           PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
@@ -48,7 +48,9 @@ struct OutputInfo {
           WeigThic, WeigShap, VMstThic, VMstShap, VMstMach, VMstAlpha, VMstBeta,
           DispThic, DispShap, DispMach, DispAlph, DispBeta,
           AGstShap, AGstThic, 
-          DissipatedEnergy, DeletedElements, DualStateVar };
+          DissipatedEnergy, DeletedElements, DualStateVar,
+          Constraintvector, Constraintviolation, RomResidual, RomResidual6,
+          RomExtForce, RomExtForce6, ModalMass, ModalStiffness, ModalDamping, ModalDynamicMatrix, ModalMatrices };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
@@ -58,6 +60,7 @@ struct OutputInfo {
    BinFileHandler *binfilptr;
    int   averageFlg;
    int   surface;
+   int   str_therm_option;
    int   width;
    int   precision;
    int   nodeNumber;	// To output just one node's information to a file.
@@ -86,7 +89,7 @@ struct OutputInfo {
                      // CONTACT_AREA, GAP_CUR, GAP_OLD
    int topFlag; // if this is set to 1 then the output file should use the compressed numbering (i.e. with gaps removed)
                 // compatible with top files generated using -T command line argument
-   enum FrameType { Global=0, Local };
+   enum FrameType { Global=0, Local, Material };
    FrameType oframe;
 
    void initialize() {
@@ -98,6 +101,7 @@ struct OutputInfo {
      filename = 0;
      averageFlg = 1;
      surface = 2;
+     str_therm_option = 0;
      nodeNumber = -1;
      groupNumber = -1;
      ylayer = 0.0;
@@ -124,6 +128,8 @@ struct OutputInfo {
      else if(numColumns == 6 && (type == Velocity)) type = Velocity6;
      else if(numColumns == 6 && (type == Acceleration)) type = Accel6;
      else if(numColumns == 6 && (type == Reactions)) type = Reactions6;
+     else if(numColumns == 6 && (type == RomResidual)) type = RomResidual6;
+     else if(numColumns == 6 && (type == RomExtForce)) type = RomExtForce6;
 
      if (averageFlg == 1 || averageFlg == 3)
        dataType = 1;

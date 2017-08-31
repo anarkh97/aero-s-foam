@@ -735,69 +735,55 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   //Jacobian evaluation
   Eigen::Matrix<double,4,8> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) std::cerr << " ... senMethod is " << senMethod << std::endl;
-#endif
 
-  if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
-    if(senMethod == 1) { // via automatic differentiation
+  if(senMethod == 1) { // via automatic differentiation
 #ifndef AEROS_NO_AD 
-      Simo::Jacobian<double,FourNodeQuadStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
-      dStressdDisp = dSdu(q, 0);
-      dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
-#endif
+    Simo::Jacobian<double,FourNodeQuadStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
+    dStressdDisp = dSdu(q, 0);
+    dStdDisp.copy(dStressdDisp.data());
 #else
-    std::cerr << " ... Error: AEROS_NO_AD is defined in FourNodeQuad::getVonMisesDisplacementSensitivity\n";   exit(-1);
+  std::cerr << " ... Error: AEROS_NO_AD is defined in FourNodeQuad::getVonMisesDisplacementSensitivity\n";   exit(-1);
 #endif
-    }
+  }
  
-    if(senMethod == 0) { // analytic
-      dStressdDisp.setZero();
-      char escm[7] = "extrap";
-      int numel = 1;
-      int elm = 1;
-      int maxgus = 4;
-      int maxstr = 7;
-      bool vmflg = true;
-      bool strainFlg = false;
-      double c[9];
-      getcmt(prop->A, prop->E, prop->nu, c);
-      double tc = prop->E*prop->W/(1.0-prop->nu);
+  if(senMethod == 0) { // analytic
+    dStressdDisp.setZero();
+    char escm[7] = "extrap";
+    int numel = 1;
+    int elm = 1;
+    int maxgus = 4;
+    int maxstr = 7;
+    bool vmflg = true;
+    bool strainFlg = false;
+    double c[9];
+    getcmt(prop->A, prop->E, prop->nu, c);
+    double tc = prop->E*prop->W/(1.0-prop->nu);
       
-      Eigen::Matrix<double,4,1> ndtemps = Eigen::Map<Eigen::Matrix<double,17,1> >(dconst.data()).segment(13,4); // extract eframe
-      vms2WRTdisp(escm, x, y, c, q.data(), 
-                  dStressdDisp.data(), 0, 
-                  maxgus, maxstr, elm, numel, vmflg, 
-                  strainFlg, tc, prop->Ta, ndtemps.data());
-      dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
-#endif
-    }
+    Eigen::Matrix<double,4,1> ndtemps = Eigen::Map<Eigen::Matrix<double,17,1> >(dconst.data()).segment(13,4); // extract eframe
+    vms2WRTdisp(escm, x, y, c, q.data(), 
+                dStressdDisp.data(), 0, 
+                maxgus, maxstr, elm, numel, vmflg, 
+                strainFlg, tc, prop->Ta, ndtemps.data());
+    dStdDisp.copy(dStressdDisp.data());
+  }
 
-    if(senMethod == 2) { // via finite difference
-      FourNodeQuadStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
-      double h = 1.0e-6;
-      for(int j=0; j<8; ++j) {
-        Eigen::Matrix<double,8,1> q_plus(q);
-        Eigen::Matrix<double,8,1> q_minus(q);
-        q_plus[j] += h;  q_minus[j] -= h;
-        Eigen::Matrix<double,4,1> S_plus = foo(q_plus,0);   
-        Eigen::Matrix<double,4,1> S_minus = foo(q_minus,0);
-        Eigen::Matrix<double,4,1> dS = (S_plus-S_minus)/(2*h);
-        dStressdDisp(0,j) = dS[0];
-        dStressdDisp(1,j) = dS[1];
-        dStressdDisp(2,j) = dS[2];
-        dStressdDisp(3,j) = dS[3];
-      }
-      dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) std::cerr << " ... dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
-#endif 
+  if(senMethod == 2) { // via finite difference
+    FourNodeQuadStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
+    double h = 1.0e-6;
+    for(int j=0; j<8; ++j) {
+      Eigen::Matrix<double,8,1> q_plus(q);
+      Eigen::Matrix<double,8,1> q_minus(q);
+      q_plus[j] += h;  q_minus[j] -= h;
+      Eigen::Matrix<double,4,1> S_plus = foo(q_plus,0);   
+      Eigen::Matrix<double,4,1> S_minus = foo(q_minus,0);
+      Eigen::Matrix<double,4,1> dS = (S_plus-S_minus)/(2*h);
+      dStressdDisp(0,j) = dS[0];
+      dStressdDisp(1,j) = dS[1];
+      dStressdDisp(2,j) = dS[2];
+      dStressdDisp(3,j) = dS[3];
     }
-  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
+    dStdDisp.copy(dStressdDisp.data());
+  }
 #else
   std::cerr << " ... ERROR! FourNodeQuad::getVonMisesDisplacementSensitivity needs Eigen library.\n";
   exit(-1);

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdio>
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Threads.d/Paral.h>
@@ -14,6 +15,7 @@
 #include <Paral.d/MDStatic.h>
 #include <Paral.d/MDDynam.h>
 #include <Paral.d/MDOp.h>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 #ifdef DISTRIBUTED
 #include <Dist.d/DistDom.h>
 #endif
@@ -48,6 +50,13 @@ MDNLDynamic::getInitState(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n, 
   MultiDomainOp mdop(&MultiDomainOp::getInitState, decDomain->getAllSubDomains(),
                      &d_n, &v_n, &a_n, &v_p);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
+
+  if(sinfo.filterFlags) {
+    project(d_n);
+    project(v_n);
+    project(a_n);
+    project(v_p);
+  }
 
   if(claw && userSupFunc && claw->numSensor) {
     double *ctrdisp = new double[claw->numSensor];
@@ -142,9 +151,6 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
     getNewmarkParameters(beta, gamma, alphaf, alpham);
     if(domain->solInfo().quasistatic) rhs = 0.;
     else {
-      // rhs = dt*dt*beta*residual - ((1-alpham)/(1-alphaf)*M+dt*gamma*C)*inc_displacement
-      //       + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
-      //       + (dt*dt*((1-alpham)/2-beta)*M - dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2*C)*acceleration
       localTemp->linC(-(1-alpham)/(1-alphaf), inc_displacement, dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
       M->mult(*localTemp, rhs);
     }
@@ -256,6 +262,7 @@ MDNLDynamic::computeTimeInfo()
 }
 
 MDNLDynamic::MDNLDynamic(Domain *d)
+ : MultiDomainBase(d->solInfo())
 {
   domain = d;
 #ifdef DISTRIBUTED
@@ -487,7 +494,7 @@ MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *re
   }
   else {
     clean();
-    std::cout << "line number " << __LINE__ << " of " << __FILE__ << std::endl;
+    //std::cout << "line number " << __LINE__ << " of " << __FILE__ << std::endl;
     domain->ReInitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
     domain->UpdateSurfaces(MortarHandler::CTC, &geomState, decDomain->getAllSubDomains());
     if(domain->solInfo().trivial_detection) {
@@ -502,7 +509,8 @@ MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *re
     geoSource->getElems(domain->getElementSet());
     domain->setNumElements(domain->getElementSet().last());
     decDomain->clean();
-    preProcess();
+    //MDNLDynamic::preProcess();
+    this->preProcess();
     if(muCopy) for(int i=0; i<decDomain->getNumSub(); ++i) muCopy[i] = mu[i];
     geomState.resize(decDomain, mu);
     if(refState) {
@@ -650,7 +658,9 @@ MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta
    GenMDDynamMat<double> ops;
    ops.sysSolver = solver;
    ops.Kuc = Kuc;
+
    decDomain->rebuildOps(ops, Mcoef, Ccoef, Kcoef, kelArray, melArray, celArray);
+
    Kcoef_p = Kcoef;
 
  } else
@@ -699,9 +709,9 @@ MDNLDynamic::preProcess()
     celArray = new FullSquareMatrix*[decDomain->getNumSub()];
 
   // Compute the geometric rigid body modes if requested
-  if(!mu && domain->solInfo().rbmflg) {
-    MultiDomainRbm<double> *rigidBodyModes = decDomain->constructRbm();
-    delete rigidBodyModes;
+  MultiDomainRbm<double> *rigidBodyModes = 0;
+  if(!mu && (domain->solInfo().rbmflg || domain->solInfo().filterFlags)) {
+    rigidBodyModes = decDomain->constructRbm();
   }
 
   // Allocate vector to store reaction forces
@@ -732,6 +742,9 @@ MDNLDynamic::preProcess()
   times->getFetiSolverTime += getTime();
 
   times->memoryPreProcess -= threadManager->memoryUsed();
+
+ if(sinfo.filterFlags) projector_prep(rigidBodyModes, M);
+ if(rigidBodyModes) delete rigidBodyModes;
 
   // Look if there is a user supplied routine for control
   claw = geoSource->getControlLaw();
@@ -876,6 +889,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
   SolverInfo& sinfo = domain->solInfo();
   if(sinfo.aeroFlag >= 0 && tIndex >= 0) {
 
+    domain->getTimers().receiveFluidTime -= getTime();
     aeroForce->zero();
     int iscollocated;
     double tFluid = distFlExchanger->getFluidLoad(*aeroForce, tIndex, t,
@@ -906,6 +920,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
     *prevFrc = *aeroForce;
     prevTime = tFluid;
     prevIndex = tIndex;
+    domain->getTimers().receiveFluidTime += getTime();
   }
 
   // AEROH
@@ -929,6 +944,9 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
 
     *prevFrc = *aeroForce;
   }
+
+  // apply rbmfilter projection
+  if(sinfo.filterFlags) trProject(f);
 
   times->formRhs += getTime();
 }
@@ -1183,6 +1201,12 @@ MDNLDynamic::sysVecInfo()
 }
 
 double
+MDNLDynamic::getTolerance()
+{
+ return std::max(tolerance*firstRes, domain->solInfo().getNLInfo().absTolRes);
+}
+
+double
 MDNLDynamic::getResidualNorm(DistrVector &r, DistrGeomState &geomState, double)
 {
  //returns: sqrt( (r+c^T*lambda)**2 + pos_part(gap)**2 )
@@ -1231,6 +1255,7 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
 {  
   if(domain->solInfo().aeroFlag >= 0 && !domain->solInfo().lastIt) {
 
+    domain->getTimers().sendFluidTime -= getTime();
     // update the geomState according to the USDD prescribed displacements
     if(claw && userSupFunc) {
       if(claw->numUserDisp > 0) {
@@ -1264,6 +1289,7 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
 
     distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
     if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");
+    domain->getTimers().sendFluidTime += getTime();
   }
 
   if(domain->solInfo().aeroheatFlag >= 0) {

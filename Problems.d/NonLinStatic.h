@@ -66,7 +66,7 @@ class NonLinStatic {
 
     void printTimers();
 
-    double getTolerance() { return tolerance*firstRes; }
+    double getTolerance(); 
 
     LinesearchInfo& linesearch(); 
     double getEnergy(double lambda, Vector& force, GeomState* geomState);

@@ -49,8 +49,10 @@ public:
 
   virtual void preProcess();
   template<typename VecBasisType>
-  void assembleTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
-                            const VecBasisType *veloc, const VecBasisType *accel, int j=-1);
+  void assembleTrainingData(VecBasisType &podBasis, int podVectorCount, VecBasisType &displac,
+                            VecBasisType *veloc, VecBasisType *accel, VecBasisType *ndscfgCoords,
+                            VecBasisType *ndscfgMassOrthogonalBases, int j=-1);
+
   void clean();
   SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>& solver() { return solver_; }
   int elementCount() const;
@@ -64,6 +66,7 @@ protected:
                         bool verboseFlag=true);
   void postProcessGlobal(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights, bool verboseFlag=true);
   void makePackedToInput(std::vector<int> &packedToInput);
+  void addContactElems(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights, std::vector<int> &packedToInput);
   Domain *domain_;
 
   Corotator **corotators_;
@@ -74,6 +77,8 @@ protected:
   VecBasis displac_;
   VecBasis *veloc_;
   VecBasis *accel_;
+  VecBasis *ndscfgCoords_;
+  VecBasis *ndscfgMassOrthogonalBases_;
   std::vector<double> timeStamps_;
   std::vector<int> snapshotCounts_;
   SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType> solver_;

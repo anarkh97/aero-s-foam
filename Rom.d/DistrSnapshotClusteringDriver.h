@@ -20,7 +20,6 @@ private:
   Domain *domain_;
   Communicator *comm_;
 
-  double computeMinimumAngle(DistrSnapshotClusteringSolver &, int k);
 };
 
 } /* end namespace Rom */

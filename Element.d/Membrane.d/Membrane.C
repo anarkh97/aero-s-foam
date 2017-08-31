@@ -568,8 +568,8 @@ Membrane::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector 
 }
 
 void
-Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs,
-                                             Vector &elDisp, int, int surface, int, double *ndTemps,
+Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                             CoordSet &cs, Vector &elDisp, int, int surface, int, double *ndTemps,
                                              int avgnum, double, double)
 {
   weight = 1.0;

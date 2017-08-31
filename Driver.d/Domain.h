@@ -18,6 +18,8 @@
 #include <Utils.d/OutputInfo.h>
 #include <Utils.d/ShapeSensitivityData.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
+#include <Rom.d/GalerkinProjectionSolver.h>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 
 class MortarHandler;
 class MFTTData;
@@ -83,10 +85,11 @@ typedef GenSubDOp<double> SubDOp;
 template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
+struct ModeData;
 
 namespace Rom {
 template <typename Scalar> class GenGalerkinProjectionSolver;
-template <typename Scalar> class GenEiSparseGalerkinProjectionSolver;
+template <typename Scalar,  template<typename> class GenVecType, class BaseSolver> class GenEiSparseGalerkinProjectionSolver;
 } /* end namespace Rom */
 
 // HB
@@ -103,7 +106,7 @@ struct AllOps
   GenSparseMatrix<Scalar> *spm;
   GenSolver<Scalar> *prec;       // preconditioner
   GenSparseMatrix<Scalar> *spp;
-  
+
   GenSparseMatrix<Scalar> *Msolver;  // for assembling mass solver: to solve Mx = b
   GenSparseMatrix<Scalar> *K;    // stiffness matrix
   GenSparseMatrix<Scalar> *M;    // mass matrix
@@ -127,7 +130,11 @@ struct AllOps
 
   GenVector<Scalar> *rhs_inpc;
   // Constructor
-  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; Cuc_deriv = 0; K_deriv = 0; Kuc_deriv = 0; K_arubber_l = 0; K_arubber_m = 0; Kuc_arubber_l = 0; Kuc_arubber_m = 0; rhs_inpc = 0; }
+  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; 
+    Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; 
+    Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; 
+    Cuc_deriv = 0; K_deriv = 0; Kuc_deriv = 0; K_arubber_l = 0; 
+    K_arubber_m = 0; Kuc_arubber_l = 0; Kuc_arubber_m = 0; rhs_inpc = 0; }
 
   void zero() {if(K) K->zeroAll();
                if(M) M->zeroAll();
@@ -163,11 +170,11 @@ struct AllSensitivities
   double weight;           // total weight of the structure
   Eigen::Matrix<double, Eigen::Dynamic, 1> *dwrAggregatedStressVM;
   Eigen::Matrix<double, Eigen::Dynamic, 1> *dwrStressVM;
-  Eigen::Matrix<double, Eigen::Dynamic, 1> *dwrDisp; 
+  Eigen::Matrix<double, Eigen::Dynamic, 1> *dwrDisp;
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *residual; // residual of the forward problem
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                     // derivatives of weight wrt thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTshape;                     // derivatives of weight wrt shape variables
-  GenSparseMatrix<Scalar> *vonMisesWRTthickSparse;                                    // derivatives of von Mises stress wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;    // derivatives of weight wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTshape;    // derivatives of weight wrt shape variables
+  GenSparseMatrix<Scalar> *vonMisesWRTthickSparse;             // derivatives of von Mises stress wrt thickness
   GenSparseMatrix<Scalar> *vonMisesWRTdispSparse;       // derivatives of von Mises stress wrt displacement
   GenSparseMatrix<Scalar> *vonMisesWRTshapeSparse;      // derivatives of von Mises stress wrt shape varibales
   GenSparseMatrix<Scalar> **stiffnessWRTthickSparse;    // derivatives of stiffness wrt thickness 
@@ -193,35 +200,38 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *aggregatedVonMisesWRTthick;         // derivative of KS function of von Mises stresses wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *aggregatedVonMisesWRTshape;         // derivative of KS function of von Mises stresses wrt shape variable
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *aggregatedVonMisesWRTdisp;          // derivative of KS function of von Mises stresses wrt displacement 
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *lambdaFluidQuantity;                // dual sensitivity of fluid quantities (e.g., lift, drag...) 
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *lambdaFluidQuantity;                // dual sensitivity of fluid quantities (e.g., lift, drag...)
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *lambdaAggregatedStressVM;           // dual sensitivity of KS function of von Mises stresses 
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> **lambdaStressVM;                    // dual sensitivity of von Mises stress at a specified node
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> **lambdaDisp;                        // dual sensitivity of displacement at a specified node
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **gdispWRTthick;         // derivative of global displacement wrt thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **gdispWRTshape;         // derivative of global displacement wrt shape variables
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispWRTmach;           // derivative of global displacement wrt Mach number
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispWRTalpha;          // derivative of global displacement wrt angle of attack
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispWRTbeta;           // derivative of global displacement wrt yaw angle
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **gdispWRTthick;        // derivative of global displacement wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **gdispWRTshape;        // derivative of global displacement wrt shape variables
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispWRTmach;          // derivative of global displacement wrt Mach number
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispWRTalpha;         // derivative of global displacement wrt angle of attack
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *gdispWRTbeta;          // derivative of global displacement wrt yaw angle
 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTshape;         // derivative of displacement wrt shape variables
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispWRTmach;           // derivative of displacement wrt Mach number
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispWRTalpha;          // derivative of displacement wrt angle of attack
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispWRTbeta;           // derivative of displacement wrt yaw angle
-  
+
   // Constructor
-  AllSensitivities() { residual = 0; weight = 0;                weightWRTshape = 0;        weightWRTthick = 0;        
+  AllSensitivities() { residual = 0; weight = 0;        weightWRTshape = 0;              weightWRTthick = 0;        
                        vonMisesWRTthickSparse = 0;      dKucdthickSparse = 0;            vonMisesWRTshapeSparse = 0; 
-                       vonMisesWRTdispSparse = 0;       stiffnessWRTthickSparse = 0;     dKucdshapeSparse = 0;    lambdaAggregatedStressVM = 0; dwrAggregatedStressVM = 0; 
-                       linearstaticWRTthickSparse = 0;  linearstaticWRTshapeSparse = 0;  dispWRTthickSparse = 0;          dispWRTshapeSparse = 0;
-                       stiffnessWRTshapeSparse = 0;     dispWRTmach = 0;    dispWRTalpha = 0;    dispWRTbeta = 0;        lambdaDisp = 0;   dwrDisp = 0;
-                       lambdaStressVM = 0;    dwrStressVM = 0; vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0;      vonMisesWRTalpha = 0;
-                       vonMisesWRTbeta = 0;   lambdaFluidQuantity = 0; 
-                       aggregatedVonMisesWRTthick = 0;  aggregatedVonMisesWRTshape = 0;  aggregatedVonMisesWRTdisp = 0; 
-                       vonMisesWRTdisp = 0;   stressWeight = 0;          dKucdshape = 0; 
-                       linearstaticWRTthick = 0;  linearstaticWRTshape = 0;  dispWRTthick = 0;          dispWRTshape = 0;
-                       gdispWRTthick = 0;         gdispWRTshape = 0;         gdispWRTmach = 0;
-                       gdispWRTalpha = 0;         gdispWRTbeta = 0; }
+                       vonMisesWRTdispSparse = 0;       stiffnessWRTthickSparse = 0;     dKucdshapeSparse = 0;
+                       lambdaAggregatedStressVM = 0;    dwrAggregatedStressVM = 0;       linearstaticWRTthickSparse = 0;
+                       linearstaticWRTshapeSparse = 0;  dispWRTthickSparse = 0;          dispWRTshapeSparse = 0;
+                       stiffnessWRTshapeSparse = 0;     dispWRTmach = 0;                 dispWRTalpha = 0;
+                       dispWRTbeta = 0;                 lambdaDisp = 0;                  dwrDisp = 0;
+                       lambdaStressVM = 0;              dwrStressVM = 0;                 vonMisesWRTthick = 0;
+                       dKucdthick = 0;                  vonMisesWRTshape = 0;            vonMisesWRTalpha = 0;
+                       vonMisesWRTbeta = 0;             lambdaFluidQuantity = 0;         aggregatedVonMisesWRTthick = 0;
+                       aggregatedVonMisesWRTshape = 0;  aggregatedVonMisesWRTdisp = 0;   vonMisesWRTdisp = 0;
+                       stressWeight = 0;                dKucdshape = 0;                  linearstaticWRTthick = 0;
+                       linearstaticWRTshape = 0;        dispWRTthick = 0;                dispWRTshape = 0;
+                       gdispWRTthick = 0;               gdispWRTshape = 0;               gdispWRTmach = 0;
+                       gdispWRTalpha = 0;               gdispWRTbeta = 0; }
 
   void zero(int numShapeVars=0, int numThicknessGroups=0) {
     if(weightWRTthick) weightWRTthick->setZero();      
@@ -234,12 +244,12 @@ struct AllSensitivities
     if(aggregatedVonMisesWRTthick) aggregatedVonMisesWRTthick->setZero(); 
     if(aggregatedVonMisesWRTshape) aggregatedVonMisesWRTshape->setZero(); 
     if(aggregatedVonMisesWRTdisp) aggregatedVonMisesWRTdisp->setZero(); 
-    if(lambdaFluidQuantity) lambdaFluidQuantity->setZero(); 
+    if(lambdaFluidQuantity) lambdaFluidQuantity->setZero();
     if(lambdaStressVM) lambdaStressVM->setZero(); 
-    if(lambdaDisp)     lambdaDisp->setZero();
+    if(lambdaDisp)     lambdaDisp->setZero(); 
     if(residual) residual->setZero();
     if(dwrStressVM) dwrStressVM->setZero();
-    if(dwrDisp) dwrDisp->setZero(); 
+    if(dwrDisp) dwrDisp->setZero();
     if(dwrAggregatedStressVM) dwrAggregatedStressVM->setZero();
     if(stressWeight)     {  stressWeight->setZero();  }
     if(dispWRTmach)      {  dispWRTmach->setZero();              }
@@ -311,7 +321,7 @@ class Domain : public HData {
      std::vector<int> thicknessGroups;
      std::vector<int> stressNodes;
      std::vector<DispNode> dispNodes;
- 
+
      // BC related data members
      int numDirichlet;		// number of dirichlet bc
      int numDirichletFluid;	// number of dirichlet bc in fluid
@@ -366,6 +376,8 @@ class Domain : public HData {
      std::map<std::pair<int,int>,double> loadfactor;
      std::map<std::pair<int,int>,int> loadfactor_mftt;     
      std::map<std::pair<int,int>,int> loadfactor_hftt;
+     std::map<int,bool> loadfactor_temp;
+     std::map<int,bool> loadfactor_grav;
      std::map<int,MFTTData*> mftval; // Mechanics Force Time Table
      std::map<int,MFTTData*> hftval; // Heat Fluxes Time Table
      int numHFTT;                    // number of HFTTs
@@ -373,7 +385,9 @@ class Domain : public HData {
      int numYMTT;                          // number of YM Temp tables
      ResizeArray<MFTTData *> sdetaft;      // RT: Structural damping versus frequency table
      int numSDETAFT;                       // number of SDETAF tables
+#ifdef USE_EIGEN3
      ResizeArray<GenMFTTData<Eigen::Vector4d> *> rubdaft;      // RT: Rubber damping versus frequency table
+#endif
      int numRUBDAFT;                       // number of RUBDAF tables
      ResizeArray<MFTTData *> ctett;        // Coefficient of thermal expansion vs. temperatur table
      int numCTETT;                         // number of CTE Temp tables
@@ -485,7 +499,7 @@ class Domain : public HData {
      void setVerbose() { outFile = stderr; }
      void setSilent()  { outFile = 0;      }
      void setOutputMatchInTop(bool b) {output_match_in_top = b;};
-     void readInModes(const char* modesFileName);
+     void readInModes(int modal_id, ModeData &modeData);
      void readInShapeDerivatives(char* shapeDerFileName);
      void setSowering(bool b) { sowering = b;}
      bool getSowering() { return sowering;}
@@ -496,12 +510,25 @@ class Domain : public HData {
      void setNumShapeVars(int _numS) { numShapeVars = _numS; }
      void setThicknessGroup(int d) { thicknessGroups.push_back(d-1); numThicknessGroups++; }
      void setStressNodes(int d) { stressNodes.push_back(d-1); numStressNodes++; }
-     void setDispNode(int n, int d1) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.numdofs = 1;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 1; }
-     void setDispNode(int n, int d1, int d2) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2; dn.numdofs = 2;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 2;}
-     void setDispNode(int n, int d1, int d2, int d3) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2; dn.dofs[2] = d3; dn.numdofs = 3;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 3; }
-     void setDispNode(int n, int d1, int d2, int d3, int d4) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2; dn.dofs[2] = d3; dn.dofs[3] = d4; dn.numdofs = 4;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 4; }
-     void setDispNode(int n, int d1, int d2, int d3, int d4, int d5) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2; dn.dofs[2] = d3; dn.dofs[3] = d4; dn.dofs[4] = d5; dn.numdofs = 5;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 5; }
-     void setDispNode(int n, int d1, int d2, int d3, int d4, int d5, int d6) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2; dn.dofs[2] = d3; dn.dofs[3] = d4; dn.dofs[4] = d5; dn.dofs[5] = d6; dn.numdofs = 6;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 6; }
+     void setDispNode(int n, int d1) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.numdofs = 1;
+                                       dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 1; }
+     void setDispNode(int n, int d1, int d2) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2;
+                                               dn.numdofs = 2;  dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 2;}
+     void setDispNode(int n, int d1, int d2, int d3) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2;
+                                                       dn.dofs[2] = d3; dn.numdofs = 3;  dispNodes.push_back(dn);
+                                                       numDispNodes++; numTotalDispDofs += 3; }
+     void setDispNode(int n, int d1, int d2, int d3, int d4) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1; dn.dofs[1] = d2;
+                                                               dn.dofs[2] = d3; dn.dofs[3] = d4; dn.numdofs = 4;
+                                                               dispNodes.push_back(dn); numDispNodes++; numTotalDispDofs += 4; }
+     void setDispNode(int n, int d1, int d2, int d3, int d4, int d5) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1;
+                                                                       dn.dofs[1] = d2; dn.dofs[2] = d3; dn.dofs[3] = d4;
+                                                                       dn.dofs[4] = d5; dn.numdofs = 5;  dispNodes.push_back(dn);
+                                                                       numDispNodes++; numTotalDispDofs += 5; }
+     void setDispNode(int n, int d1, int d2, int d3, int d4, int d5, int d6) { DispNode dn;  dn.nodeID = n;  dn.dofs[0] = d1;
+                                                                               dn.dofs[1] = d2; dn.dofs[2] = d3; dn.dofs[3] = d4;
+                                                                               dn.dofs[4] = d5; dn.dofs[5] = d6; dn.numdofs = 6;
+                                                                               dispNodes.push_back(dn); numDispNodes++;
+                                                                               numTotalDispDofs += 6; }
      std::vector<int> *getStressNodes() { return &stressNodes; }
      std::vector<DispNode> *getDispNodes() { return &dispNodes; }
      std::vector<int> &getThicknessGroups() { return thicknessGroups; }
@@ -627,6 +654,8 @@ class Domain : public HData {
      void updateParameters(bool flag=true);
      double getError(Corotator **corotators, GeomState &gs);
      void getElementDisp(int iele, GeomState& geomState, Vector& disp);
+     void getElementVelo(int iele, GeomState& geomState, Vector& velo);
+     void getElementAccel(int iele, GeomState& geomState, Vector& accel);
      double getKineticEnergy(double *velocity, FullSquareMatrix *mel);
      double getStrainEnergy(GeomState *geomState, Corotator **allCorot);
      double getDissipatedEnergy(GeomState *geomState, Corotator **allCorot);
@@ -677,7 +706,7 @@ class Domain : public HData {
      void makeFsiToNode();
      Connectivity *getFsiToNode() { return fsiToNode; }
      int getNumShapeVars() { return numShapeVars; }
-     int getNumSensitivityQuantityTypes() { return numSensitivityQuantityTypes; } 
+     int getNumSensitivityQuantityTypes() { return numSensitivityQuantityTypes; }
      int getNumStressNodes() { return numStressNodes; }
      int getNumThicknessGroups() { return numThicknessGroups; }
      int getNumDispNodes() { return numDispNodes; }
@@ -697,6 +726,8 @@ class Domain : public HData {
      void setLoadFactorMFTT(int, int, int);
      std::map<std::pair<int,int>,int>& getLoadFactorMFTT() { return loadfactor_mftt; };
      void setLoadFactorHFTT(int, int, int);
+     void setLoadFactorTemp(int, bool);
+     void setLoadFactorGrav(int, bool);
      void checkCases();
      double getLoadFactor(int) const;
      int  setMFTT(MFTTData *, int);
@@ -710,7 +741,9 @@ class Domain : public HData {
      int  addYMTT(MFTTData *);
      int  addSDETAFT(MFTTData *);
      void updateSDETAF(StructProp* p, double omega);
+#ifdef USE_EIGEN3
      int  addRUBDAFT(GenMFTTData<Eigen::Vector4d> *);
+#endif
      void updateRUBDAFT(StructProp* p, double omega);
      void printYMTT();
      int  addCTETT(MFTTData *);
@@ -750,11 +783,11 @@ class Domain : public HData {
      void subtractGravityForceSensitivityWRTShapeVariable(int, AllSensitivities<double> &allSens);
      void computeDisplacementWRTShapeVariableDirectSensitivity(int, GenSolver<double> *, 
                                                                AllSensitivities<double> &,
-                                                               GenSparseMatrix<double> *spm=0, 
+                                                               GenSparseMatrix<double> *spm=0,
                                                                GenSparseMatrix<double> *K=0);
      void computeDisplacementWRTShapeVariableAdjointSensitivity(int, 
                                                                 AllSensitivities<double> &,
-                                                                GenSparseMatrix<double> *spm=0); 
+                                                                GenSparseMatrix<double> *spm=0);
      void computeDisplacementWRTthicknessDirectSensitivity(int, GenSolver<double> *, 
                                                            AllSensitivities<double> &,
                                                            GenSparseMatrix<double> *spm=0,
@@ -784,9 +817,12 @@ class Domain : public HData {
                                                      GeomState *refState, GeomState *geomState, Corotator **allCorot);
      void computeLinearStaticWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens, GenVector<double> *sol);
      void computeStressVMWRTthicknessDirectSensitivity(int, AllSensitivities<double> &allSens, GenVector<double> *sol, double *bcx,
-                                                       GeomState *refState, GeomState *geomState, Corotator **allCorot, bool isDynam = false);
-     void computeNLStressVMWRTthicknessDirectSensitivity(int, AllSensitivities<double> &allSens, GeomState *geomState, Corotator **allCorot, bool isDynam = false);
-     void computeNLStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens, GeomState *geomState, Corotator **allCorot, bool isDynam = false);
+                                                       GeomState *refState, GeomState *geomState, Corotator **allCorot,
+                                                       bool isDynam = false);
+     void computeNLStressVMWRTthicknessDirectSensitivity(int, AllSensitivities<double> &allSens, GeomState *geomState,
+                                                         Corotator **allCorot, bool isDynam = false);
+     void computeNLStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens, GeomState *geomState,
+                                                          Corotator **allCorot, bool isDynam = false);
      void computeAggregatedStressVMWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
                                                                GenVector<double> *sol, double *bcx,
                                                                bool isDynam = false);
@@ -794,7 +830,8 @@ class Domain : public HData {
                                                            GenVector<double> *sol, double *bcx,
                                                            bool isDynam = false);
      void computeAggregatedNLStressVMWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
-                                                             GeomState *geomState, GeomState *refState, Corotator **allCorot, Vector &, Vector &, Vector &, bool isDynam = false); 
+                                                             GeomState *geomState, GeomState *refState, Corotator **allCorot,
+                                                             Vector &, Vector &, Vector &, bool isDynam = false);
      void computeStressVMWRTthicknessAdjointSensitivity(int, AllSensitivities<double> &allSens,
                                                         GenVector<double> *sol, double *bcx,
                                                         bool isDynam = false);
@@ -805,7 +842,8 @@ class Domain : public HData {
      void computeAggregatedStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
                                                               GenVector<double> *sol, double *bcx);
      void computeAggregatedNLStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
-                                                                GeomState *geomState, GeomState *refState, Corotator **allCorot, Vector &, Vector &, Vector &);
+                                                                GeomState *geomState, GeomState *refState, Corotator **allCorot,
+                                                                Vector &, Vector &, Vector &);
      void computeStressVMWRTShapeVariableDirectSensitivity(int, AllSensitivities<double> &allSens,
                                                            GenVector<double> *sol, double *bcx,
                                                            bool isDynam = false);
@@ -816,14 +854,14 @@ class Domain : public HData {
      void computeStressVMWRTangleOfAttackSensitivity(AllSensitivities<double> &allSens);
      void computeStressVMWRTyawAngleSensitivity(AllSensitivities<double> &allSens);
      void makePostSensitivities(GenSolver<double> *, GenSparseMatrix<double> *, AllSensitivities<double> &allSens, 
-                                GenVector<double> *sol, double *, GenSparseMatrix<double> *K=0, bool isDynam = false, 
+                                GenVector<double> *sol, double *, GenSparseMatrix<double> *K=0, bool isDynam = false,
                                 GeomState *rs=NULL, GeomState *gs=NULL, Corotator **allCorot = NULL, bool isNonLin = false);
      void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, AllSensitivities<DComplex> &allSens, 
-                                GenVector<DComplex> *sol, DComplex *, GenSparseMatrix<DComplex> *K=0, bool isDynam = false, 
+                                GenVector<DComplex> *sol, DComplex *, GenSparseMatrix<DComplex> *K=0, bool isDynam = false,
                                 GeomState *rs=NULL, GeomState *gs=NULL, Corotator **allCorot = NULL, bool isNonLin = false);
-     void makeNLPostSensitivities(GenSolver<double> *, AllSensitivities<double> &allSens, 
+     void makeNLPostSensitivities(GenSolver<double> *, AllSensitivities<double> &allSens,
                                   GeomState *rs, GeomState *gs, Corotator **allCorot, bool isDynam = false);
-     void makeNLPostSensitivities(GenSolver<DComplex> *, AllSensitivities<DComplex> &allSens, 
+     void makeNLPostSensitivities(GenSolver<DComplex> *, AllSensitivities<DComplex> &allSens,
                                   GeomState *rs, GeomState *gs, Corotator **allCorot, bool isDynam = false);
      void makeThicknessGroupElementFlag();
 
@@ -840,7 +878,7 @@ class Domain : public HData {
                                    GeomState *refState = NULL, GeomState *geomState = NULL, Corotator **allCorot = NULL, bool isNonLin = false);
 
      template<class Scalar>
-       void buildNLPostSensitivities(GenSolver<Scalar> *sysSolver, AllSensitivities<Scalar> &ops, 
+       void buildNLPostSensitivities(GenSolver<Scalar> *sysSolver, AllSensitivities<Scalar> &ops,
                                      GeomState *refState, GeomState *geomState, Corotator **allCorot, bool isDynam=false);
 
      template<class Scalar>
@@ -874,6 +912,12 @@ class Domain : public HData {
      template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0);
+
+#ifdef USE_EIGEN3
+     template<typename Scalar>
+       GenEiSparseMatrix<Scalar, Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *
+         constructEiSparse(DofSetArray *dof_set_array=0, Connectivity *cn=0, bool flag=true);
+#endif
 
      template<typename Scalar, typename SolverClass>
        GenEiSparseMatrix<Scalar,SolverClass> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
@@ -913,9 +957,11 @@ class Domain : public HData {
 
      template<class Scalar>
        Rom::GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
-     
+
+#ifdef USE_EIGEN3
      template<class Scalar>
       Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *constructEiSparseGalerkinProjectionSolver();
+#endif
 
      Rbm              *constructRbm(bool printFlag = true);
      Rbm              *constructHzem(bool printFlag = true);
@@ -1006,13 +1052,16 @@ class Domain : public HData {
 
      // sensitivity post-processing function
      template<class Scalar>
-     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenVector<Scalar> *sol = 0, Scalar *bcx=0, GeomState *gs=0, GeomState *rs=0, Corotator **ac=0);
+     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenVector<Scalar> *sol = 0, Scalar *bcx=0,
+                                    GeomState *gs=0, GeomState *rs=0, Corotator **ac=0);
 
      template<class Scalar>
-     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenDistrVector<Scalar> *sol, Scalar *bcx=0, GeomState *gs=0, GeomState *rs=0, Corotator **ac=0) {}
+     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenDistrVector<Scalar> *sol, Scalar *bcx=0,
+                                    GeomState *gs=0, GeomState *rs=0, Corotator **ac=0) {}
 
      template<class Scalar>
-     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, DistrBlockVector<Scalar> *sol, Scalar *bcx=0, GeomState *gs=0, GeomState *rs=0, Corotator **ac=0) {}
+     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, DistrBlockVector<Scalar> *sol, Scalar *bcx=0,
+                                    GeomState *gs=0, GeomState *rs=0, Corotator **ac=0) {}
 
      // Nonlinear post processing function
      void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,
@@ -1202,6 +1251,10 @@ class Domain : public HData {
        return c_dsa ? c_dsa->size() : dsa ? dsa->size() : 0;
      }
 
+     int coordVecSize() {
+       return dsa ? dsa->numNodes()*6 : 0;
+     }
+
      // returns the number of unconstrained Fluid dof
      int numUnconFluid() {
        return c_dsaFluid ? c_dsaFluid->size() : dsaFluid->size();
@@ -1263,7 +1316,7 @@ class Domain : public HData {
      Elemset& getElementSet() { return packedEset; }
 
      // returns the value of the gravity Force flag
-     int  gravityFlag() { return (gravityAcceleration ? 1: 0) || (domain->solInfo().soltyp == 2); }
+     int  gravityFlag();
 
      // returns the value of the pressure force flag
      int  pressureFlag();
@@ -1271,7 +1324,7 @@ class Domain : public HData {
      // returns the value of the contact force flag
      int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0 && sinfo.tdenforceFlag); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
 
-     int  thermalFlag() { return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0; }
+     int  thermalFlag();
 
      int  radiationFlag() { return sinfo.radiationFlag; }
 
@@ -1478,8 +1531,8 @@ class Domain : public HData {
      void transformElementSensitivityInv(double *data, int inode, int numNodes, bool hasRot);
      void transformVectorInv(double *data, int inode, bool hasRot);
      void transformVectorInv(complex<double> *data, int inode, bool hasRot);
-     void transformStressStrain(FullM &mat, int iele);
-     void transformStressStrain(FullMC &mat, int iele);
+     void transformStressStrain(FullM &mat, int iele, OutputInfo::FrameType oframe = OutputInfo::Local);
+     void transformStressStrain(FullMC &mat, int iele, OutputInfo::FrameType oframe = OutputInfo::Local);
      void transformMatrix(double *data, int inode, bool sym = true);
      void transformMatrix(complex<double> *data, int inode, bool sym = true);
      void transformMatrixInv(double *data, int inode, bool sym = true);

@@ -4,6 +4,13 @@
 #include "SparseNonNegativeLeastSquaresSolver.h"
 #include "SimpleBuffer.h"
 #include <vector>
+#include <utility>
+#include <list>
+
+struct long_int {
+  long index;
+  int sub;
+};
 
 namespace Rom {
 
@@ -47,6 +54,8 @@ public:
   double maxIterRatio() const { return maxIterRatio_; }
   void maxIterRatioIs(double maxIte) { maxIterRatio_ = maxIte; }
 
+  void useHotStart(bool hs) { hotStart_ = hs; }
+
   // Rhs buffer: [equationCount]
   const double * rhsBuffer() const { return rhsBuffer_.array(); }
   double * rhsBuffer() { return rhsBuffer_.array(); }
@@ -84,6 +93,8 @@ private:
 
   SimpleBuffer<double> rhsBuffer_;
 
+  std::list<std::pair<int,long_int> > hotIndices;
+
   double relativeTolerance_;
   double errorMagnitude_;
   bool verboseFlag_;
@@ -91,6 +102,7 @@ private:
   bool centerFlag_;
   bool projectFlag_;
   bool positivity_;
+  bool hotStart_;
   int solverType_;
   double maxSizeRatio_;
   double maxIterRatio_;

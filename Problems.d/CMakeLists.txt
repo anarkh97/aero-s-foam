@@ -1,4 +1,5 @@
 add_library (Problems EigenDescr.C  
+       SingleDomainBase.C
        DynamDescr.C  
        NonLinStatic.C
        CondDescr.C   

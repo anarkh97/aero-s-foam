@@ -15,10 +15,18 @@ class ShapeFunction
      virtual Tensor *getGradUInstance();
      virtual Tensor *getDgradUDqkInstance();
      virtual Tensor *getValInstance() = 0;
+     virtual Tensor *getNodesCoordinatesInstance();
+     virtual Tensor *getDisplacementsInstance();
+     virtual Tensor *getLocalDerivativesInstance();
      virtual void getLocalDerivatives(Tensor *localDerivatives, double xi[3]) = 0;
      virtual void getValues(Tensor *val, double xi[3]) = 0;
      virtual void getGlobalGrads(Tensor *gradU, Tensor *dgradUdqk, double *jac, 
                                  Node *nodes, double xi[3], Vector &disp);
+     virtual void getNodesCoordinates(Node *nodes, Tensor *nodescoordinates);
+     virtual void getDisplacements(Vector &disp, Tensor *displacements);
+     virtual void getGlobalGrads(Tensor *gradU, Tensor *dgradUdqk, double *jac,
+                                 Tensor *nodescoordinates, double xi[3], Tensor *displacements,
+                                 Tensor *localderivatives);
      virtual void getGradU(Tensor *gradU, Node *nodes, double xi[3], Vector &disp);
      virtual void getGradU(Tensor *gradU, double *jac, Node *nodes, double xi[3], Vector &disp);
      virtual void getJacobianDeterminant(double *jac, Node *nodes, double xi[3]);

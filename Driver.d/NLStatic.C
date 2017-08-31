@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
+#include <set>
 #include <Utils.d/dbg_alloca.h>
 
 // New include files for Restart file
@@ -95,7 +96,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
-    if(corotators[iele] && (!solInfo().getNLInfo().linearelastic || (packedEset[iele]->isConstraintElement() && solInfo().getNLInfo().linearelastic == 2))) {
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
       if(sinfo.newmarkBeta == 0) {
         corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());
@@ -111,24 +112,21 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       Vector disp(packedEset[iele]->numDofs());
       getElementDisp(iele, geomState, disp);
       kel[iele].multiply(disp, elementForce, 1.0);
-      // XXX 1. copy of the linearelastic kelarray before calling this function because the
-      //     load stiffness matrix will be added each time (unless updatedtangents is false,
-      //     but in that case the convergence will not be quadratic)
-      //     2. should be inside getElemStiffAndForce??
+      if(solInfo().getNLInfo().linearelastic && packedEset[iele]->isFreeplayElement()) {
+        Vector f(packedEset[iele]->numDofs());
+        getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], f.data(), kel[iele]);
+        for(int idof = 0; idof < f.size(); ++idof) elementForce[idof] += f[idof];
+      }
     }
 
     // Add configuration-dependent external forces and their element stiffness contributions
     getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
                          (corotators[iele]), kel[iele], lambda, time, compute_tangents, conwep);
 
-#ifdef _USE_TOTAL_ROTATION_VECTOR_
-    transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
-#else
     if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
       // Transform element stiffness and force to solve for the increment in the total rotation vector
       transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
     }
-#endif
 
     // Transform internal force vector to nodal frame
     transformVector(elementForce, iele); 
@@ -185,7 +183,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
     getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
                          (corotators[iele]), elementStiff, lambda, time, compute_tangents, conwep);
 
-    if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot()) 
+    if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot())
       transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, compute_tangents);
 
     if(compute_tangents) kel[iele] += elementStiff;
@@ -209,6 +207,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
                              double lambda, double time, bool compute_tangents,
                              BlastLoading::BlastData *conwep)
 {
+  if(solInfo().getNLInfo().linearelastic == 2) return;
   Vector elementForceBuf(_f,bufSize,false);
 
   // 1. Treatment of element pressure
@@ -455,7 +454,7 @@ Domain::makeElementAdjacencyLists()
 {
   elemAdj.resize(numele); 
   bool makeFollowedElemList = ( ((!domain->solInfo().reduceFollower || domain->solInfo().getNLInfo().linearelastic)
-                                 && domain->solInfo().galerkinPodRom) || geoSource->energiesOutput() );
+                                 && domain->solInfo().galerkinPodRom) || geoSource->energiesOutput() || geoSource->romExtForceOutput() );
 
   // 1. pressure applied to elements
   if(domain->pressureFlag()) {
@@ -676,10 +675,15 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
     }
 
     // Get updated tangent stiffness matrix and element internal force
-    if(corotators[iele] && (!solInfo().getNLInfo().linearelastic || (packedEset[iele]->isConstraintElement() && solInfo().getNLInfo().linearelastic == 2))) {
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), elementStiff);
       if(sinfo.newmarkBeta == 0) {
         corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());
+        // this is where handleElementDeletions would go
+      }
+      if(initialTime && packedEset[iele]->isConstraintElement() && packedEset[iele]->hasRot()) {
+        // transform constraint jacobian and hessian to solve for the initial convected acceleration
+        transformElemStiff(geomState, kel[iele], iele);
       }
     }
     else {
@@ -687,6 +691,11 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
       getElementDisp(iele, geomState, disp);
       kel[iele].copy(packedEset[iele]->stiffness(nodes, kel[iele].data())); // XXX
       kel[iele].multiply(disp, elementForce, 1.0);
+      if(solInfo().getNLInfo().linearelastic && packedEset[iele]->isFreeplayElement()) {
+        Vector f(packedEset[iele]->numDofs());
+        getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], f.data(), kel[iele]);
+        for(int idof = 0; idof < f.size(); ++idof) elementForce[idof] += f[idof];
+      }
     }
 
     // Add configuration-dependent external forces and their element stiffness contributions
@@ -728,6 +737,16 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
   if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic && !solInfo().quasistatic) {
     getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time,
                                    refState, NULL, mel, compute_tangents);
+  }
+
+  if(mel && domain->solInfo().printMatLab && domain->solInfo().printMatLabExit) {
+    filePrint(stderr, " ... Applying Weights to Mass Matrix...\n");
+    for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+      const int iele = it->first;
+      const double lumpingWeight = it->second;
+      FullSquareMatrix &elementMass = mel[iele];
+      elementMass *= lumpingWeight;
+    }
   }
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
@@ -1181,14 +1200,30 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     }
       break;
     case OutputInfo::Temperature:  {
-      double *data = new double[nPrintNodes];
-      for (i = 0, realNode = -1; i < nNodes; ++i) {
-        int iNode = first_node+i;
-        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x : 0;
+      if(sinfo.order == 1 || sinfo.soltyp == 2) { // thermal analysis
+        double *data = new double[nPrintNodes];
+        for (i = 0, realNode = -1; i < nNodes; ++i) {
+          int iNode = first_node+i;
+          if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+          data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x : 0;
+        }
+        geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+        delete [] data;
       }
-      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
-      delete [] data;
+      else { // structural analysis with thermal load
+        double *nodalTemperatures = 0;
+        // Either get the nodal temperatures from the input file or from the thermal model
+        if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
+        else if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
+        double *data = new double[nPrintNodes];
+        for (i = 0, realNode = -1; i < nNodes; ++i) {
+          int iNode = first_node+i;
+          if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+          data[nodeI] = (nodalTemperatures) ? nodalTemperatures[iNode] : 0;
+        }
+        geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+        delete [] data;
+      }
     } 
       break;
     case OutputInfo::Disp6DOF:  {
@@ -1278,6 +1313,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     }
       break;
     case OutputInfo::TemperatureFirstTimeDerivative:  {
+      if(sinfo.order == 1 || sinfo.soltyp == 2) {
       double *data = new double[nPrintNodes];
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
@@ -1286,6 +1322,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
+      } else fprintf(stderr," *** WARNING: Output case %d not implemented for non-linear direct solver \n", iInfo);
     }
       break;
     case OutputInfo::Velocity6: {
@@ -2070,7 +2107,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   }
 
   int iele;
-  if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
+  if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe != OutputInfo::Global)) {
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
@@ -2081,7 +2118,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     }
     if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
     if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
-    if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullM(maxNodesPerElement,9);
+    if(p_elstress == 0 && oframe != OutputInfo::Global) p_elstress = new FullM(maxNodesPerElement,9);
   }
 
   int *nodeNumbers = new int[maxNumNodes];
@@ -2095,11 +2132,25 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   int flag;
   for(iele = 0; iele < numElements(); ++iele) {
     if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
+
+    int NodesPerElement = packedEset[iele]->numNodes();
+
+    // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+    if (avgnum == 3) {
+      int groupId = oinfo[fileNumber].groupNumber;
+      if (groupId > 0) {
+        packedEset[iele]->nodes(nodeNumbers);
+        std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+        std::set<int>::iterator it;
+        for (int iNode = 0; iNode < NodesPerElement; ++iNode)
+          if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+        if(it == groupNodes.end()) continue;
+      }
+    }
+
     elDisp->zero();
     elstress->zero();
     elweight->zero();
-
-    int NodesPerElement = packedEset[iele]->numNodes();
 
 // extract deformations from current Geometry State of structure
     if(sinfo.getNLInfo().linearelastic) {
@@ -2130,7 +2181,8 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     }
 
     // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-    if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12)) && (stressIndex != 31) && (flag == 1 || flag == 2)) { // transform non-invariant stresses/strains from basic frame to DOF_FRM
+    if(oframe != OutputInfo::Global && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))
+       && (flag == 1 || flag == 2)) { // transform non-invariant stresses/strains from basic frame to DOF_FRM or CFRAME
 
       // First, calculate stress/strain tensor for each node of the element
       p_elstress->zero();
@@ -2148,8 +2200,8 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
                                        refState, nodes, strInd, surface);
       }
 
-      // Second, transform stress/strain tensor to nodal frame coordinates
-      transformStressStrain(*p_elstress, iele);
+      // Second, transform stress/strain tensor to nodal or material frame coordinates
+      transformStressStrain(*p_elstress, iele, oframe);
 
       // Third, extract the requested stress/strain value from the stress/strain tensor
       for(int iNode = 0; iNode < NodesPerElement; ++iNode) {
@@ -2202,7 +2254,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
 // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
 // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
 
-  if(avgnum == 1 || avgnum == 2) {
+  if(avgnum > 0) {
 
     if(oinfo[fileNumber].nodeNumber == -1) {
       int numNodes = geoSource->numNode();
@@ -2324,6 +2376,22 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
 
   for(iele = 0; iele < numElements(); ++iele) {
     if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
+
+    int NodesPerElement = elemToNode->num(iele);
+
+    // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+    if (avgnum == 3) {
+      int groupId = oinfo[fileNumber].groupNumber;
+      if (groupId > 0) {
+        packedEset[iele]->nodes(nodeNumbers);
+        std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+        std::set<int>::iterator it;
+        for (int iNode = 0; iNode < NodesPerElement; ++iNode)
+          if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+        if(it == groupNodes.end()) continue;
+      }
+    }
+
     elDisp->zero();
     p_elstress->zero();
     elweight->zero();
@@ -2360,9 +2428,6 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
     }
 
     // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-
-    int NodesPerElement = elemToNode->num(iele);
-
     for(k=0; k<NodesPerElement; ++k) {
       for(j=0; j<6; ++j) {
         (*p_stress)[(*elemToNode)[iele][k]][j] += (*p_elstress)[k][j];
@@ -2382,7 +2447,7 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
   // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
   // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
 
-  if(avgnum == 1 || avgnum == 2) {
+  if(avgnum > 0) {
 
     if(n == -1) {
       for(k=0; k<numnodes; ++k) {
@@ -2791,7 +2856,7 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
 
       int p = dofsPerNode*k + (dofsPerNode-3);
       Eigen::Vector3d V = G.segment<3>(p);
-      G.segment<3>(p) = (sinfo.newmarkBeta == 0) ? (Jn[nodes[k]]*(T.transpose()*Jn[nodes[k]]*T).inverse()*T*V).eval() : (T*V).eval();
+      G.segment<3>(p) = (domain->solInfo().newmarkBeta == 0) ? (Jn[nodes[k]]*(T.transpose()*Jn[nodes[k]]*T).inverse()*T*V).eval() : (T*V).eval();
  
       if(compute_tangents) {
         Eigen::Matrix3d C1;
@@ -2896,7 +2961,7 @@ Domain::transformNodalMoment(const GeomState &geomState, double _G[],
   tangential_transf(Psi, T);
 
   Eigen::Vector3d V = G;
-  G = (sinfo.newmarkBeta == 0) ? (Jn[inode]*(T.transpose()*Jn[inode]*T).inverse()*T*V).eval() : (T*V).eval();
+  G = (domain->solInfo().newmarkBeta == 0) ? (Jn[inode]*(T.transpose()*Jn[inode]*T).inverse()*T*V).eval() : (T*V).eval();
   if(compute_tangents) {
     Eigen::Matrix3d C1;
     directional_deriv1(Psi, V, C1);
@@ -3010,6 +3075,86 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
 }
 
 void
+Domain::getElementVelo(int iele, GeomState& geomState, Vector& velo)
+{
+  int *nn = packedEset[iele]->nodes();
+  int dofs[DofSet::max_known_nonL_dof];
+
+  // place holder in velo vector: l
+  for(int i=0,l=0; i<packedEset[iele]->numNodes(); ++i) { // loop over nodes: i
+    int ndofs = dsa->number(nn[i], DofSet::nonL_dof, dofs);
+    for(int j=0; j<ndofs; ++j) {// loop over element dofs: j 
+      if(dofs[j] > -1) { // check if dof is fixed
+        for(int k=0; k<packedEset[iele]->numDofs(); ++k) { // loop over numdofs for that node: k 
+          switch(j) {
+              case 0 : // x velocity
+                velo[l++] = geomState[nn[i]].v[j];
+                break;
+              case 1 : // y velocity
+                velo[l++] = geomState[nn[i]].v[j];
+                break;
+              case 2 : // z velocity
+                velo[l++] = geomState[nn[i]].v[j];
+                break;
+              case 3 : case 4 : case 5 : // x,y,z rotational velocity
+                velo[l++] = geomState[nn[i]].v[j];
+                break;
+              case 6 : case 7 : case 8 : // temperature and lagrange multipliers
+                velo[l++] = 0.0;
+                break;
+              default :
+                velo[l++] = 0.0;
+                break;
+            }
+            break;
+        }
+      }
+    }  
+  }
+  delete [] nn;
+}
+
+void
+Domain::getElementAccel(int iele, GeomState& geomState, Vector& accel)
+{
+  int *nn = packedEset[iele]->nodes();
+  int dofs[DofSet::max_known_nonL_dof];
+
+  // place holder in accel vector: l
+  for(int i=0,l=0; i<packedEset[iele]->numNodes(); ++i) { // loop over nodes in element iele: i
+    int ndofs = dsa->number(nn[i], DofSet::nonL_dof, dofs);
+    for(int j=0; j<ndofs; ++j) {// for node i, loop over dofs: j 
+      if(dofs[j] > -1) { // check if dof is fixed
+        for(int k=0; k<packedEset[iele]->numDofs(); ++k) { // loop over numdofs for element iele: k 
+          switch(j) {
+              case 0 : // x acceleration
+                accel[l++] = geomState[nn[i]].a[j];
+                break;
+              case 1 : // y acceleration 
+                accel[l++] = geomState[nn[i]].a[j];
+                break;
+              case 2 : // z acceleration
+                accel[l++] = geomState[nn[i]].a[j];
+                break;
+              case 3 : case 4 : case 5 : // x,y,z rotational accelerations
+                accel[l++] = geomState[nn[i]].a[j];
+                break;
+              case 6 : case 7 : case 8 : // temperature and lagrange multipliers
+                accel[l++] = 0.0;
+                break;
+              default :
+                accel[l++] = 0.0;
+                break;
+            }
+            break;         
+        }
+      } 
+    }
+  }
+  delete [] nn;
+}
+
+void
 Domain::computeEnergies(GeomState *geomState, Vector &force, double t, Vector *aeroForce, double *velocity,
                         Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
                         double &Wdis, double &error)
@@ -3114,10 +3259,6 @@ Domain::computeNLStaticWRTthicknessSensitivity(int sindex,
            int DofsPerElement = packedEset[iele]->numDofs();
            GenVector<double> dFintdThick(DofsPerElement,0.0);
            (*allCorot[iele]).getInternalForceThicknessSensitivity(refState, *geomState, nodes, dFintdThick, 0, 0);
-#ifdef _USE_TOTAL_ROTATION_VECTOR_
-           FullSquareMatrix kel(DofsPerElement); 
-           transformElemStiffAndForce(*geomState, dFintdThick.data(), kel, iele, false);
-#endif
            int *dofs = (*allDOFs)[iele];
            int *unconstrNum = c_dsa->getUnconstrNum();
            int *constrndNum = c_dsa->getConstrndNum();
@@ -3129,7 +3270,9 @@ Domain::computeNLStaticWRTthicknessSensitivity(int sindex,
          }
        }
      }
-     if(domain->gravityFlag()) subtractGravityForceSensitivityWRTthickness(sindex,allSens); //TODO-> must consider other external forces that depend on thickness
+     if(domain->gravityFlag()) subtractGravityForceSensitivityWRTthickness(sindex,allSens); // TODO-> must consider other
+                                                                                            // external forces that depend
+                                                                                            // on thickness
 #endif
 }
 
@@ -3171,9 +3314,12 @@ Domain::computeNLStressVMWRTthicknessDirectSensitivity(int sindex, AllSensitivit
          flag = 1;
        } else {
          allCorot[iele]->extractDeformations(*geomState, nodes, elDisp->data(), flag);       
-         if(flag != 1) { filePrint(stderr, " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");  exit(-1);  }
+         if(flag != 1) {
+          filePrint(stderr,
+                " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");
+          exit(-1);
+        }
        }
-//       transformVectorInv(*elDisp, iele);
        // Determine element displacement vector
        if(thgreleFlag[iele]) { 
          packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface); 
@@ -3211,10 +3357,10 @@ Domain::computeAggregatedNLStressVMWRTthicknessSensitivity(int sindex,
                                                            AllSensitivities<double> &allSens,
                                                            GeomState *geomState,
                                                            GeomState *refState, 
-                                                           Corotator **allCorot, Vector &stress, Vector &stressWeight,  Vector &sensCoef, 
+                                                           Corotator **allCorot, Vector &stress, Vector &stressWeight,
+                                                           Vector &sensCoef, 
                                                            bool isDynam)
 {
-//  double tt0 = -getTime(), tt1=0, tt2=0;
 #ifdef USE_EIGEN3
      int surface = senInfo[sindex].surface;
      allSens.aggregatedVonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numThicknessGroups);
@@ -3245,13 +3391,14 @@ Domain::computeAggregatedNLStressVMWRTthicknessSensitivity(int sindex,
          flag = 1;
        } else {
          allCorot[iele]->extractDeformations(*geomState, nodes, elDisp->data(), flag);
-         if(flag != 1) { filePrint(stderr, " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");  exit(-1);  }
+         if(flag != 1) {
+           filePrint(stderr,
+               " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");
+           exit(-1);
+          }
        }
-//       transformVectorInv(*elDisp, iele);         
        if(thgreleFlag[iele]) { 
-         //tt1 -= getTime();
          packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, elweight, nodes, *elDisp, 6, surface); 
-         //tt1 += getTime();
        } else {
          dStressdThick.zero();
          Vector elstress(NodesPerElement,0.0);
@@ -3268,16 +3415,12 @@ Domain::computeAggregatedNLStressVMWRTthicknessSensitivity(int sindex,
        }
      } 
 
-     //tt0 += getTime();
-
-     //tt2 -= getTime();
      if(!isDynam) {
        for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
-         (*allSens.aggregatedVonMisesWRTthick)(iparam) -= allSens.lambdaAggregatedStressVM->adjoint()*(allSens.linearstaticWRTthick[iparam]->col(0));
+         (*allSens.aggregatedVonMisesWRTthick)(iparam) -=
+                allSens.lambdaAggregatedStressVM->adjoint()*(allSens.linearstaticWRTthick[iparam]->col(0));
        }
      }
-     //tt2 += getTime();
-     //std::cerr << "tt0 = " << tt0/1000 << ", tt1 = " << tt1/1000 << ", tt2 = " << tt2/1000 << std::endl;
 #endif
 }
 
@@ -3320,9 +3463,12 @@ Domain::computeNLStressVMWRTthicknessAdjointSensitivity(int sindex,
          flag = 1;
        } else {
          allCorot[iele]->extractDeformations(*geomState, nodes, elDisp->data(), flag);
-         if(flag != 1) { filePrint(stderr, " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");  exit(-1);  }
+         if(flag != 1) {
+           filePrint(stderr,
+                  " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");
+           exit(-1);
+          }
        }
-//       transformVectorInv(*elDisp, iele);    
        if(thgreleFlag[iele]) {     
          packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface);  
        } else {
@@ -3402,12 +3548,15 @@ Domain::computeNLStressVMWRTdisplacementSensitivity(int sindex,
          packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, 0, nodes, *elDisp, 6, surface, 0);
        } else {
          allCorot[iele]->extractDeformations(*geomState, nodes, elDisp->data(), flag);
-         if(flag !=1 ) { filePrint(stderr, " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");  exit(-1);  } 
+         if(flag !=1 ) {
+           filePrint(stderr,
+                   " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");
+           exit(-1);
+          } 
          allCorot[iele]->extractDeformationsDisplacementSensitivity(*geomState, nodes, DeformDispSen.data());
          GenFullM<double> dDispDisp(DeformDispSen.data(),DofsPerElement,DofsPerElement);
          packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, &dDispDisp, nodes, *elDisp, 6, surface, 0);
        }
-//       transformElementSensitivityInv(&dStressdDisp,iele); //TODO: watch out index of dStressdDisp when implementing
 
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
@@ -3419,22 +3568,14 @@ Domain::computeNLStressVMWRTdisplacementSensitivity(int sindex,
            for(int j = 0; j < DofsPerElement; ++j) {
              int dofj = unconstrNum[dofs[j]];
              if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
-             if(isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
+             if(isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" 
+                                                     << k << "] with iele of " << iele << "\n";
              (*allSens.vonMisesWRTdisp)(node, dofj) += dStressdDisp[j][k];
            }
          }
        }
      }   
- /* 
-     for(int inode = 0; inode < numNodes(); ++inode)  {
-       if(stressWeight(inode, 0) == 0.0)
-         for(int dof = 0; dof < numUncon(); ++dof) 
-           (*allSens.vonMisesWRTdisp)(inode,dof) = 0;
-       else
-         for(int dof = 0; dof < numUncon(); ++dof) 
-           (*allSens.vonMisesWRTdisp)(inode,dof) /= stressWeight(inode,0);
-     }
-*/
+
      int *unconstrNum = c_dsa->getUnconstrNum();
      for(int inode = 0; inode < numNodes(); ++inode)  {
        for(int j=0; j<nodeToNode->num(inode); ++j) { // loop over nodes connected to inode
@@ -3451,12 +3592,13 @@ Domain::computeNLStressVMWRTdisplacementSensitivity(int sindex,
          }
        }
      }
-#endif
      if(!sol) delete sol;
+#endif
 }
 
 void 
-Domain::computeNormalizedNLVonMisesStress(GeomState &geomState, GeomState *refState, Corotator **allCorot, int surface, Vector &stress,  Vector &weight, bool normalized)
+Domain::computeNormalizedNLVonMisesStress(GeomState &geomState, GeomState *refState, Corotator **allCorot,
+                                          int surface, Vector &stress,  Vector &weight, bool normalized)
 {
 
   //Vector weight(numNodes(),0.0);
@@ -3568,18 +3710,14 @@ Domain::computeAggregatedNLStressVMWRTdisplacementSensitivity(int sindex,
                                                               AllSensitivities<double> &allSens, 
                                                               GeomState *geomState,
                                                               GeomState *refState,
-                                                              Corotator **allCorot, Vector &stress,  Vector &stressWeight, Vector &sensCoef)
+                                                              Corotator **allCorot, Vector &stress,
+                                                              Vector &stressWeight, Vector &sensCoef)
 {
-//  double tt3 = 0, tt4 = 0, tt6 = -getTime(), tt7 = 0, tt9 = 0, tt10;
 #ifdef USE_EIGEN3
-     //tt10 = -getTime();
      int surface = senInfo[sindex].surface;
      if(!(*aggregatedStressDenom)) computeAggregatedStressDenom(stress);
      allSens.aggregatedVonMisesWRTdisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numUncon());
      allSens.aggregatedVonMisesWRTdisp->setZero();
-  //   tt10 += getTime();
-    // double tt5 = -getTime();
-    // tt5 += getTime();
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
      int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
      Vector *sol = 0;
@@ -3590,14 +3728,12 @@ Domain::computeAggregatedNLStressVMWRTdisplacementSensitivity(int sindex,
      
      for(int iele = 0; iele < numele; iele++) { 
        if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
-       //tt9 -= getTime();
        int NodesPerElement = elemToNode->num(iele);
        int DofsPerElement = packedEset[iele]->numDofs();
        Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> DeformDispSen(DofsPerElement, DofsPerElement);
        GenFullM<double> dStressdDisp(DofsPerElement,NodesPerElement,double(0.0));
        GenVector<double> elweight(NodesPerElement,0.0);
        elDisp->zero();       
-       //tt9 += getTime();
        int flag;
        if(sinfo.getNLInfo().linearelastic) {
          // DETERMINE ELEMENT DISPLACEMENT VECTOR
@@ -3611,18 +3747,18 @@ Domain::computeAggregatedNLStressVMWRTdisplacementSensitivity(int sindex,
          flag = 1;
          packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, elweight, 0, nodes, *elDisp, 6, surface, 0);
        } else {
-         //tt3 -= getTime();
          allCorot[iele]->extractDeformations(*geomState, nodes, elDisp->data(), flag);
-         if(flag != 1) { filePrint(stderr, " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");  exit(-1);  }
+         if(flag != 1) {
+           filePrint(stderr,
+              " ... Error: nonlinear sensitivity for non-corotational elements is not implemented yet. exiting!\n");
+           exit(-1);
+          }
          allCorot[iele]->extractDeformationsDisplacementSensitivity(*geomState, nodes, DeformDispSen.data());
-         //tt3 += getTime();
          GenFullM<double> dDispDisp(DeformDispSen.data(),DofsPerElement,DofsPerElement);
-         //tt4 -= getTime();
-         packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, elweight, &dDispDisp, nodes, *elDisp, 6, surface, 0);
-         //tt4 += getTime();
+         packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, elweight, &dDispDisp, nodes,
+                                                              *elDisp, 6, surface, 0);
        }
 
-       //tt7 -= getTime();
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
          int *unconstrNum = c_dsa->getUnconstrNum();
@@ -3632,20 +3768,12 @@ Domain::computeAggregatedNLStressVMWRTdisplacementSensitivity(int sindex,
            for(int j = 0; j < DofsPerElement; ++j) {
              int dofj = unconstrNum[dofs[j]];
              if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
-             //if(isnan(dStressdDisp[j][k])) std::cerr << "nan occurs in dStressdDisp[" << j << "][" << k << "] with iele of " << iele << "\n";
              if (stressWeight[node] != 0.0)
                (*allSens.aggregatedVonMisesWRTdisp)(dofj) += dStressdDisp[j][k]*sensCoef[node];
-//exp(sinfo.ksParameter*(stress[node]))) / (stressWeight[node]* (*aggregatedStressDenom)); 
            }
          }
        }
-       //tt7 += getTime();
      }   
- 
-     //double tt8 = -getTime(); 
-     //tt8 +=getTime(); 
-    // tt6 +=getTime();
-     //std::cerr << "tt3 = " << tt3/1000 << ", tt4 = " << tt4/1000 << ", tt5 = " << tt5/1000 << ", tt6 = " << tt6/1000 << ", tt7 = " << tt7/1000 <<  ", tt8 = " << tt8/1000 << ", tt9 = " << tt9/1000 << ", tt10 = " << tt10/1000 << std::endl;
 #endif
 }
 
@@ -3669,7 +3797,8 @@ Domain::makeNLPostSensitivities(GenSolver<double> *sysSolver,
 {
 #ifdef USE_EIGEN3
  makeThicknessGroupElementFlag();
- if(solInfo().sensitivityMethod == SolverInfo::Adjoint) setIncludeStressNodes(); //TODO: need to include this function in other sensitivity routine
+ if(solInfo().sensitivityMethod == SolverInfo::Adjoint) setIncludeStressNodes(); // TODO: need to include this
+                                                                                 // function in other sensitivity routine
 
  for(int sindex=0; sindex < numSensitivity; ++sindex) {
   switch(senInfo[sindex].type) {
@@ -3690,7 +3819,6 @@ Domain::makeNLPostSensitivities(GenSolver<double> *sysSolver,
            allSens.dwrDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numTotalDispDofs);
            for (int i=0; i<numTotalDispDofs; ++i) {
              (*allSens.dwrDisp)[i] = allSens.lambdaDisp[i]->dot(*(allSens.residual));
-             std::cerr << "allSens.dwrDisp[" << i << "] = " << (*allSens.dwrDisp)[i] << std::endl;
            }
          }
        }
@@ -3718,7 +3846,6 @@ Domain::makeNLPostSensitivities(GenSolver<double> *sysSolver,
          allSens.dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
          for (int i=0; i<numStressNodes; i++) {
            (*allSens.dwrStressVM)[i] = allSens.lambdaStressVM[i]->dot(*(allSens.residual));
-            std::cerr << "allSens.dwrStressVM[" << i << "] = " << (*allSens.dwrStressVM)[i] << std::endl;
          }
        }
      }
@@ -3728,9 +3855,13 @@ Domain::makeNLPostSensitivities(GenSolver<double> *sysSolver,
    case SensitivityInfo::AggregatedStressVMWRTthickness: 
    {
      if(solInfo().sensitivityMethod == SolverInfo::Direct) {
-       filePrint(stderr, " ... WARNING : Only the adjoint method is available for KS function sensitivities. Switing to the adjoint method.\n");
+       filePrint(stderr,
+         " ... WARNING : Only the adjoint method is available for KS function sensitivities. Switching to the adjoint method.\n");
      }
-     if(aggregatedFlag) { getStressStrain(*geomState, allCorot,  aggregatedFileNumber, AGGREGATEDVON, 0.0, refState); aggregatedFlag = false; }
+     if(aggregatedFlag) {
+       getStressStrain(*geomState, allCorot,  aggregatedFileNumber, AGGREGATEDVON, 0.0, refState);
+       aggregatedFlag = false;
+     }
      int surface = senInfo[sindex].surface;
      Vector stress(numNodes(),0.0);
      Vector stressWeight(numNodes(),0.0);
@@ -3741,13 +3872,16 @@ Domain::makeNLPostSensitivities(GenSolver<double> *sysSolver,
        if (stressWeight[inode]!=0.0)
          sensCoef[inode] = exp(sinfo.ksParameter*(stress[inode])) / (stressWeight[inode]* (*aggregatedStressDenom));
      }
-     if(!allSens.aggregatedVonMisesWRTdisp) computeAggregatedNLStressVMWRTdisplacementSensitivity(sindex,allSens,geomState,refState,allCorot,stress,stressWeight,sensCoef);
+     if(!allSens.aggregatedVonMisesWRTdisp) {
+       computeAggregatedNLStressVMWRTdisplacementSensitivity(sindex,allSens,geomState,refState,allCorot,stress,
+                                                             stressWeight,sensCoef);
+     }
      if(!allSens.linearstaticWRTthick) computeNLStaticWRTthicknessSensitivity(sindex, allSens, refState, geomState, allCorot);
-     computeAggregatedNLStressVMWRTthicknessSensitivity(sindex,allSens,geomState,refState,allCorot,stress,stressWeight,sensCoef,isDynam);
+     computeAggregatedNLStressVMWRTthicknessSensitivity(sindex,allSens,geomState,refState,allCorot,stress,
+                                                        stressWeight,sensCoef,isDynam);
      if (allSens.residual !=0 && allSens.dwrAggregatedStressVM == 0 && !isDynam) {
        allSens.dwrAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(1);
        (*allSens.dwrAggregatedStressVM)[0] = allSens.lambdaAggregatedStressVM->dot(*(allSens.residual));
-       std::cerr << "allSens.dwrAggregatedStressVM = " << (*allSens.dwrAggregatedStressVM)[0] << std::endl;
      }
    } 
    default:

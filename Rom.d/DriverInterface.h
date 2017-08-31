@@ -38,5 +38,6 @@ extern Rom::DriverInterface *snapshotProjectionDriverNew(Domain *);
 extern Rom::DriverInterface *positiveDualBasisDriverNew(Domain *);
 extern Rom::DriverInterface *distrPositiveDualBasisDriverNew(Domain *);
 extern Rom::DriverInterface *distrSnapshotClusteringDriverNew(Domain *);
+extern Rom::DriverInterface *distrSnapshotRowClusteringDriverNew(Domain *);
 
 #endif /* ROM_DRIVERINTERFACE_H */

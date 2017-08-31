@@ -100,7 +100,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  GenSubDomain<Scalar> *subCast = dynamic_cast<GenSubDomain<Scalar>*>(this);
  if(!subCast && (sinfo.ATDARBFlag >= 0.0 || sinfo.ATDROBalpha != 0.0)) checkSommerTypeBC(this);
- bool mdds_flag = (mat && subCast && sinfo.type == 0); // multidomain direct solver
+ bool mdds_flag = (mat && subCast && sinfo.type == 0 && sinfo.subtype != 13); // multidomain direct solver, dont use for ROM
 
  bool zeroRot = (sinfo.zeroRot && sinfo.isNonLin() && sinfo.isDynam() && sinfo.newmarkBeta != 0);
  int *dofType = (zeroRot) ? dsa->makeDofTypeArray() : 0;
@@ -862,6 +862,17 @@ Domain::constructDBSparseMatrix(DofSetArray *dof_set_array, Connectivity *cn)
    return new GenDBSparseMatrix<Scalar>(cn, dsa, c_dsa);
 }
 
+#ifdef USE_EIGEN3
+template<typename Scalar>
+GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *
+Domain::constructEiSparse(DofSetArray *c_dsa, Connectivity *nodeToNode, bool flag)
+{
+  if(c_dsa == 0) c_dsa = Domain::c_dsa;
+  if(nodeToNode == 0) nodeToNode = Domain::nodeToNode;
+  return new GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(nodeToNode, dsa, c_dsa, flag);
+}
+#endif
+
 template<typename Scalar, typename SolverClass>
 GenEiSparseMatrix<Scalar,SolverClass> *
 Domain::constructEiSparseMatrix(DofSetArray *c_dsa, Connectivity *nodeToNode, bool flag)
@@ -1192,9 +1203,9 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    }
  }
 
- if(sinfo.printMatLab && !dynamic_cast<GenSubDomain<Scalar>*>(this)) {
+ /*if(sinfo.printMatLab && !dynamic_cast<GenSubDomain<Scalar>*>(this)) {
    allOps.spm->printSparse(sinfo.printMatLabFile);
- }
+ }*/
 
  if(factorize)
    {
@@ -1372,7 +1383,7 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, Rbm 
    if(sinfo.getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos ||
       sinfo.getSweepParams()->freqSweepMethod == SweepParams::GalProjection ||
       sinfo.getSweepParams()->freqSweepMethod == SweepParams::KrylovGalProjection ||
-      sinfo.getSweepParams()->freqSweepMethod == SweepParams::QRGalProjection ||
+      sinfo.getSweepParams()->freqSweepMethod == SweepParams::WCAWEGalProjection ||
       sinfo.getSweepParams()->isAdaptSweep) {
      if (allOps.K)
        delete allOps.K;
@@ -1408,6 +1419,11 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, Rbm 
 
    }
  }
+ // for rbmfilter: need M
+ else if(sinfo.filterQ == 0 && (sinfo.filterFlags || sinfo.hzemFilterFlag || sinfo.slzemFilterFlag)) {
+   allOps.M = constructDBSparseMatrix<Scalar>();
+ }
+
  if(isDamped) {
      if (allOps.K_deriv) for(int i=0;i<=allOps.n_Kderiv;i++) if (allOps.K_deriv[i]) delete allOps.K_deriv[i];
      if (allOps.Kuc_deriv) for(int i=0;i<=allOps.n_Kderiv;i++) if (allOps.Kuc_deriv[i]) delete allOps.Kuc_deriv[i];
@@ -2267,13 +2283,13 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   if(gravityFlag()) addGravityForce<Scalar>(force);
 
   // ... ADD THERMAL FORCES
-  if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
+  if(thermalFlag() && !sinfo.isNonLinExtF()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
+  if(!sinfo.isNonLinExtF()) addPressureForce<Scalar>(force);
 
   // ... ADD LMPC RHS
-  if(!sinfo.isNonLin()) addMpcRhs<Scalar>(force);
+  if(!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) addMpcRhs<Scalar>(force);
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {
@@ -2469,10 +2485,10 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
   if(gravityFlag()) addGravityForce<Scalar>(force);
 
   // ... ADD THERMAL FORCES
-  if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
+  if(thermalFlag() && !sinfo.isNonLinExtF()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
+  if(!sinfo.isNonLinExtF()) addPressureForce<Scalar>(force);
 
   GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
 
@@ -2597,6 +2613,7 @@ Domain::buildFreqSweepRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar>
       }
     }
   }
+
 
 /*
   if (implicitFlag) {
@@ -3531,14 +3548,15 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 
 //-------------------------------------------------------------------------------------
 template <>
-void Domain::sensitivityPostProcessing(AllSensitivities<DComplex> &allSens, GenVector<DComplex> *sol, DComplex *bcx, GeomState *geomState, GeomState *refState, Corotator **allCorot) {
-
+void Domain::sensitivityPostProcessing(AllSensitivities<DComplex> &allSens, GenVector<DComplex> *sol,
+                                       DComplex *bcx, GeomState *geomState, GeomState *refState, Corotator **allCorot) {
   filePrint(stderr, " ... WARNING : Domain::sensitivityPostProcessing is not implemented\n");
 }
 
 //-------------------------------------------------------------------------------------
 template <>
-void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVector<double> *sol, double *bcx, GeomState *geomState, GeomState *refState, Corotator **allCorot) {
+void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVector<double> *sol, double *bcx,
+                                       GeomState *geomState, GeomState *refState, Corotator **allCorot) {
 #ifdef USE_EIGEN3
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int numOutInfo = geoSource->getNumOutInfo();
@@ -3546,8 +3564,12 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
   for(int i = 0; i < numOutInfo; ++i)  {
     if(oinfo[i].type == OutputInfo::WeigThic) geoSource->outputSensitivityScalars(i, allSens.weightWRTthick, allSens.weight);
     if(oinfo[i].type == OutputInfo::WeigShap) geoSource->outputSensitivityScalars(i, allSens.weightWRTshape, allSens.weight);
-    if(oinfo[i].type == OutputInfo::AGstShap) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTshape, *aggregatedStress, allSens.dwrAggregatedStressVM);
-    if(oinfo[i].type == OutputInfo::AGstThic) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTthick, *aggregatedStress, allSens.dwrAggregatedStressVM);
+    if(oinfo[i].type == OutputInfo::AGstShap) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTshape,
+                                                                                  *aggregatedStress,
+                                                                                  allSens.dwrAggregatedStressVM);
+    if(oinfo[i].type == OutputInfo::AGstThic) geoSource->outputSensitivityScalars(i, allSens.aggregatedVonMisesWRTthick,
+                                                                                  *aggregatedStress,
+                                                                                  allSens.dwrAggregatedStressVM);
     if(oinfo[i].type == OutputInfo::VMstThic) { 
       if(solInfo().sensitivityMethod == SolverInfo::Direct) 
         geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTthick, 0.0, allSens.dwrStressVM);
@@ -3560,7 +3582,8 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
           computeNormalizedVonMisesStress(*sol,bcx,oinfo[i].surface,stress,false);
         }
         int numThicknessGroup = getNumThicknessGroups();
-        geoSource->outputSensitivityAdjointStressVectors(i, allSens.vonMisesWRTthick, stress.data(), 0, numThicknessGroup, stressNodes, allSens.dwrStressVM);
+        geoSource->outputSensitivityAdjointStressVectors(i, allSens.vonMisesWRTthick, stress.data(), 0, numThicknessGroup,
+                                                         stressNodes, allSens.dwrStressVM);
       }
     }
     if(oinfo[i].type == OutputInfo::VMstShap) {
@@ -3575,7 +3598,8 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
           computeNormalizedVonMisesStress(*sol,bcx,oinfo[i].surface,stress,false);
         }
         int numShapeVars = getNumShapeVars();
-        geoSource->outputSensitivityAdjointStressVectors(i, allSens.vonMisesWRTshape, stress.data(), 0, numShapeVars, stressNodes, allSens.dwrStressVM);
+        geoSource->outputSensitivityAdjointStressVectors(i, allSens.vonMisesWRTshape, stress.data(), 0, numShapeVars,
+                                                         stressNodes, allSens.dwrStressVM);
       }
     }
     if(oinfo[i].type == OutputInfo::VMstMach) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTmach);
@@ -3586,19 +3610,22 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
       VecNodeDofConversion<6> vecNodeDof6Conversion(*getCDSA());
       if(allSens.lambdaDisp) {
         std::string fileName = std::string(oinfo[i].filename) + ".DispAdjoint";
-        BasisOutputStream<6> adjointSnapFile(BasisFileId(fileName, BasisId::STATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion, (geoSource->getCheckFileInfo()->lastRestartFile != 0));
+        BasisOutputStream<6> adjointSnapFile(BasisFileId(fileName, BasisId::STATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion,
+                                             (geoSource->getCheckFileInfo()->lastRestartFile != 0));
         for(int idof=0; idof<numTotalDispDofs; ++idof) 
           adjointSnapFile << *allSens.lambdaDisp[idof];
       }
       if(allSens.lambdaStressVM) {
         std::string fileName = std::string(oinfo[i].filename) + ".StressVMAdjoint";
-        BasisOutputStream<6> adjointSnapFile(BasisFileId(fileName, BasisId::STATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion, (geoSource->getCheckFileInfo()->lastRestartFile != 0));
+        BasisOutputStream<6> adjointSnapFile(BasisFileId(fileName, BasisId::STATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion,
+                                             (geoSource->getCheckFileInfo()->lastRestartFile != 0));
         for(int inode=0; inode<numStressNodes; ++inode)
           adjointSnapFile << *allSens.lambdaStressVM[inode];
       }
       if(allSens.lambdaAggregatedStressVM) {
         std::string fileName = std::string(oinfo[i].filename) + ".AggregatedStressVMAdjoint";
-        BasisOutputStream<6> adjointSnapFile(BasisFileId(fileName, BasisId::STATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion, (geoSource->getCheckFileInfo()->lastRestartFile != 0));
+        BasisOutputStream<6> adjointSnapFile(BasisFileId(fileName, BasisId::STATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion,
+                                             (geoSource->getCheckFileInfo()->lastRestartFile != 0));
         adjointSnapFile << *allSens.lambdaAggregatedStressVM;
       }
     }
@@ -3617,7 +3644,8 @@ void Domain::sensitivityPostProcessing(AllSensitivities<double> &allSens, GenVec
           allSens.gdispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numTotalDispDofs, 1);
           mergeAdjointDistributedDispSensitivity<double>(allSens.gdispWRTthick[iparam], allSens.dispWRTthick[iparam], disp, sol);
         }
-        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTthick, disp, 0, numThicknessGroup, dispNodes, allSens.dwrDisp);
+        geoSource->outputSensitivityAdjointDispVectors(i, allSens.gdispWRTthick, disp, 0, numThicknessGroup, dispNodes,
+                                                       allSens.dwrDisp);
       }
     }
     if(oinfo[i].type == OutputInfo::DispShap) {
@@ -3805,7 +3833,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   else freq = domain->getFrequencyOrWavenumber();
 
   if (geoSource->isShifted() || domain->probType() == SolverInfo::Modal) time = freq;
-  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
+  if (domain->solInfo().loadcases.size() > 0 && !domain->solInfo().doFreqSweep) time = domain->solInfo().loadcases.front();
 
   Scalar *globVal = 0;
   int numOutInfo = geoSource->getNumOutInfo();
@@ -3933,6 +3961,11 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           } break;
         case OutputInfo::Statevector: 
           break;
+        case OutputInfo::Velocity:
+        case OutputInfo::Acceleration:
+        case OutputInfo::Velocity6:
+        case OutputInfo::Accel6:
+          break;
         default:
           success = 0;
           break;
@@ -3990,18 +4023,18 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // note #2 when HFTT is present the FLUX contribution is not constant
   // note #3 see getStiffAndForce/getInternalForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
   for(int i = 0; i < numNeuman; ++i) {
-    if(sinfo.isNonLin() && nbc[i].type == BCond::Forces && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
+    if(sinfo.isNonLinExtF() && nbc[i].type == BCond::Forces && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {
       case(BCond::Forces) : {
-        if(!domain->getMFTT(nbc[i].loadsetid)) {
+        if(!sinfo.isDynam() || !domain->getMFTT(nbc[i].loadsetid)) {
           double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
           cnst_f[dof] += loadFactor*nbc[i].val;
         }
       } break;
       case(BCond::Flux) : {
-        if(!domain->getHFTT(nbc[i].loadsetid)) {
+        if(!sinfo.isDynam() || !domain->getHFTT(nbc[i].loadsetid)) {
           double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
           cnst_f[dof] += loadFactor*nbc[i].val;
         }
@@ -4024,15 +4057,15 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM PRESSURE
   // note #1: even when MFTTs/CONWEP are present this term may now be constant
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce/getInternalForce)
-  if(!sinfo.isNonLin()) addPressureForce(cnst_f, 0);
+  if(!sinfo.isNonLinExtF()) addPressureForce(cnst_f, 0);
 
   // ... ADD RHS FROM LMPCs for linear statics
-  if(!sinfo.isNonLin() && !sinfo.isDynam()) addMpcRhs(cnst_f);
+  if((!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) && !sinfo.isDynam()) addMpcRhs(cnst_f);
 
   // ... COMPUTE FORCE FROM TEMPERATURES
   // note #1: for THERMOE problems TEMPERATURES are ignored 
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce/getInternalForce)
-  if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLin()) addThermalForce(cnst_f);
+  if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLinExtF()) addThermalForce(cnst_f);
 
   // ... COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is present this is term is not constant (see computeExtForce)
@@ -4066,7 +4099,7 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // note #3 see Domain::getStiffAndForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
   if(numNeuman && (domain->getNumMFTT() || domain->getNumHFTT() || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
-      if(sinfo.isNonLin() && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf 
+      if(sinfo.isNonLinExtF() && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf 
          || nbc[i].type == BCond::Actuators) && !((nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3) || nbc[i].dofnum == 6)) continue;
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
@@ -4090,14 +4123,14 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT/CONWEP are present this term may not be constant
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce/getInternalForce)
-  if((domain->getNumMFTT() > 0 || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(f, 1, t);
+  if((domain->getNumMFTT() > 0 || sinfo.ConwepOnOff) && !sinfo.isNonLinExtF()) addPressureForce(f, 1, t);
 
   // ... ADD RHS FROM LMPCs for linear dynamics
-  if(!sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f, t);
+  if((!sinfo.isNonLin() || sinfo.getNLInfo().linearelastic) && sinfo.isDynam()) addMpcRhs(f, t);
 
   // COMPUTE FORCE FROM THERMOE
   // note #1: for NONLINEAR problems this term is follower (see getStiffAndForce/getInternalForce)
-  if(sinfo.thermoeFlag >= 0 && !sinfo.isNonLin()) addThermalForce(f);
+  if(sinfo.thermoeFlag >= 0 && !sinfo.isNonLinExtF()) addThermalForce(f);
 
   // COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is not present this term is constant (see computeConstantForce)

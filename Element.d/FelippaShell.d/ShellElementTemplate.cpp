@@ -8,8 +8,11 @@
 #include <iostream>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
+#include <Utils.d/SolverInfo.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+
+extern SolverInfo &solInfo;
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
@@ -131,6 +134,51 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     xlp = lp.col(0);
     ylp = lp.col(1);
     zlp = lp.col(2); 
+}
+
+template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
+void
+ShellElementTemplate<doublereal,Membrane,Bending>
+::andesfrm(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *aframe,
+           doublereal *_cframe)
+{
+  // Local variables 
+  doublereal xlp[3], ylp[3], zlp[3];
+  doublereal area;
+
+  Eigen::Matrix<doublereal,3,3> eframe;
+  Eigen::Map<Eigen::Matrix<doublereal,3,3,Eigen::RowMajor> > cframe(_cframe);
+
+// ================================================================== 
+//                                                                    
+//     Perform =    This subroutine will form the composite frame     
+//     ---------    for the 3D 3-node ANDES-EFF shell element.        
+//                                                                    
+//                                                                    
+//     Inputs/Outputs =                                               
+//     ----------------                                               
+//     ELM     <input>  finite element number                         
+//     X       <input>  nodal coordinates in the X-direction          
+//     Y       <input>  nodal coordinates in the Y-direction          
+//     Z       <input>  nodal coordinates in the Z-direction          
+//     AFRAME  <input>  reference composite frame                     
+//     CFRAME  <output> composite frame (projected onto element)      
+//                                                                    
+// ================================================================== 
+// Authors = Francois M. Hemez and Philip J. S. Avery                                       
+// Date    = September 13, 2011                                             
+// Version = 3.0                                                      
+// ================================================================== 
+
+// .....GET THE ELEMENT TRIANGULAR COORDINATES 
+// .....GET THE ELEMENT LEVEL FRAME
+
+    andescrd(elm, x, y, z, eframe.data(), xlp, ylp, zlp, area);
+
+    // andesinvt returns the transformation from element to fibre coordinate system
+    // note: eframe.transpose()*v transforms v from global to element coordinate system
+    // return the matrix that transforms from global to fibre coordinate system, i.e.:
+    cframe = ShellMaterial<doublereal>::andesinvt(eframe.data(), aframe, 0.)*eframe.transpose();
 }
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
@@ -586,15 +634,16 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesstf(int elm, doublereal *_estiff, doublereal *_fint, doublereal nu,
            doublereal *x, doublereal *y, doublereal *z, doublereal *_v,
            int ctyp, ShellMaterial<doublereal> *gpmat, int flag,
-           int tflg, doublereal *ndtemps, doublereal dt)
+           int tflg, doublereal *ndtemps, doublereal dt, doublereal *staten,
+           doublereal *statenp)
 {
   // Initialized data 
   bool debug = false;
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha; // using 0 here seems to work better for thin shell
+  doublereal betam = solInfo.andes_betam; // using 0 here seems to work better for very thin shell
 
   // Local variables 
   int i, j;
@@ -777,7 +826,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           if(ndtemps && tflg != 0) 
             temp = zeta[i][0]*ndtemps[0] + zeta[i][1]*ndtemps[1] + zeta[i][2]*ndtemps[2];
           doublereal *_D = (_estiff) ? D.data() : NULL;
-          gpmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), _D, eframe.data(), i, temp, dt);
+          gpmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), _D, eframe.data(), i, temp, dt,
+                                         staten, statenp);
         }
 
         if(_estiff) {
@@ -864,11 +914,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                   int tflg, doublereal *ndtemps)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -1076,14 +1126,15 @@ ShellElementTemplate<doublereal,Membrane,Bending>
            doublereal *_v, doublereal *_stress,
            int ctyp, ShellMaterial<doublereal> *nmat, 
            int strainflg, int surface, int sflg,
-           doublereal *ndtemps)
+           doublereal *ndtemps, int flag, doublereal *staten,
+           doublereal *statenp)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -1172,20 +1223,29 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     FRAME SYSTEM (LOCAL TO THE SHELL ELEMENT)   
 //     ------------------------------------------- 
 
-    for(i = 0; i < 18; i += 3)
-        vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
-
-//     ----------------------------------------------------- 
-//     STEP 5                                                
-//     COMPUTE THE ELEMENTAL EXTENSION AND CURVATURE VECTORS 
-//     ----------------------------------------------------- 
-
+// .....CONSTRUCT THE PERMUTATION MATRIX
     Eigen::Matrix<int,18,1> indices;
     indices << 0, 1, 6, 7, 12, 13, 5, 11, 17, // M indices
                2, 3, 4, 8, 9, 10, 14, 15, 16; // B indices
     Eigen::PermutationMatrix<18,18,int> P(indices);
 
-    vd = P.transpose()*vd;
+    if(flag == 1) {
+
+        for(i = 0; i < 18; i += 3)
+            vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
+
+        vd = P.transpose()*vd;
+    }
+    else {
+        // v is already local
+        vd = P.transpose()*v;
+
+    }
+
+//     ----------------------------------------------------- 
+//     STEP 5                                                
+//     COMPUTE THE ELEMENTAL EXTENSION AND CURVATURE VECTORS 
+//     ----------------------------------------------------- 
 
 // .....COMPUTE THE Z- COORDINATE OF THE SELECTED SURFACE
 
@@ -1296,7 +1356,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
             else {
 
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
-                nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
+                nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp, 0, staten, statenp);
 
             }
 
@@ -1323,8 +1383,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE EQUIVALENT PLASTIC STRAIN FOR ELASTO-PLASTIC MATERIALS
 
             if(ctyp == 4) {
-              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
-              stress(0, i) = nmat->GetLocalEquivalentPlasticStrain(i, z);
+              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp, 0, staten, statenp);
+              stress(0, i) = nmat->GetLocalEquivalentPlasticStrain(i, z, statenp);
             }
             else {
               stress(0, i) = 0;
@@ -1337,8 +1397,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE BACKSTRESS FOR ELASTO-PLASTIC MATERIALS
 
             if(ctyp == 4) {
-              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
-              std::vector<doublereal> sigma = nmat->GetLocalBackStress(i, z);
+              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp, 0, staten, statenp);
+              std::vector<doublereal> sigma = nmat->GetLocalBackStress(i, z, statenp);
 
 // .....ROTATE LOCAL STRESSES TO GLOBAL
 
@@ -1365,8 +1425,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE PLASTIC STRAIN TENSOR FOR ELASTO-PLASTIC MATERIALS
 
             if(ctyp == 4) {
-              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
-              std::vector<doublereal> epsilon = nmat->GetLocalPlasticStrain(i, z);
+              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp, 0, staten, statenp);
+              std::vector<doublereal> epsilon = nmat->GetLocalPlasticStrain(i, z, statenp);
 
 // .....ROTATE LOCAL STRAINS TO GLOBAL AND CONVERT SHEAR STRAINS TO ENGINEERING SHEAR STRAINS
 
@@ -1394,8 +1454,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE SCALAR DAMAGE FOR ELASTO-PLASTIC MATERIALS
             if(ctyp == 4) {
-              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
-              stress(0, i) = nmat->GetLocalDamage(i, z);
+              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp, 0, staten, statenp);
+              stress(0, i) = nmat->GetLocalDamage(i, z, statenp);
             }
             else {
               stress(0, i) = 0;
@@ -1417,11 +1477,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                   int surface, int sflg, doublereal *ndtemps)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -1618,11 +1678,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                   int surface, int sflg, doublereal *ndtemps)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -2040,21 +2100,22 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
 ShellElementTemplate<doublereal,Membrane,Bending>
-::andesups(int elm, doublereal *state, doublereal *X, doublereal *Y, doublereal *Z, doublereal *_v,
-           ShellMaterial<doublereal> *gpmat, ShellMaterial<doublereal> *nmat,
-           int sflg, doublereal dt)
+::andesups(int elm, doublereal *staten, doublereal *statenp, doublereal *X, doublereal *Y, doublereal *Z,
+           doublereal *_v, ShellMaterial<doublereal> *gpmat, ShellMaterial<doublereal> *nmat,
+           int sflg, int tflg, doublereal *ndtemps, doublereal dt)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i;
   doublereal xlp[3], ylp[3], zlp[3];
   doublereal area;
+  doublereal temp;
 
   Eigen::Matrix<doublereal,9,3> Lb, Lm;
   Eigen::Matrix<doublereal,3,9> Bb, Bm;
@@ -2074,7 +2135,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     -----------------                                                
 //                                                                      
 //     elm      <input>   Finite Element Number                         
-//     state    <input>   Material States                   
+//     staten   <input>   Material States at t_n             
+//     statenp  <output>  Material States at t_{n+1}
 //     X        <input>   X- Nodal Coordinates                          
 //     Y        <input>   Y- Nodal Coordinates                          
 //     Z        <input>   Z- Nodal Coordinates                          
@@ -2125,6 +2187,15 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
     vd = P.transpose()*v; // note: v is already local in this case
 
+    if(tflg == 0) {
+        // if ndtemps (nodal temperatures) is not null, then the mean temperature is used at each gauss point.
+        temp = (ndtemps) ? doublereal((ndtemps[0]+ndtemps[1]+ndtemps[2])/3) : gpmat->GetAmbientTemperature();
+    }
+    else {
+        // if ndtemps (nodal temperatures) is not null, then the temperature at each gauss point is interpolated.
+        if(!ndtemps) temp = gpmat->GetAmbientTemperature();
+    }
+
     // compute updated material state at the gauss points
     doublereal zeta[3][3] = { { 0.,.5,.5 }, { .5,0.,.5 }, { .5,.5,0. } }; // triangular coordinates of gauss integration points
     for(i = 0; i < 3; ++i) {
@@ -2141,8 +2212,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE UPDATED MATERIAL STATE AT GAUSS POINT i
 
-        gpmat->UpdateState(Upsilon.data(), state, i, dt);
-        state += 5*7; // 5 is the number of layers per gauss point, 7 is the number of states per material point
+        if(ndtemps && tflg != 0)
+            temp = zeta[i][0]*ndtemps[0] + zeta[i][1]*ndtemps[1] + zeta[i][2]*ndtemps[2];
+        gpmat->UpdateState(Upsilon.data(), staten, statenp, i, temp, dt);
+        staten += 5*gpmat->GetNumLocalStates(); // 5 is the number of layers per gauss point
+        statenp += 5*gpmat->GetNumLocalStates();
 
     }
 
@@ -2173,8 +2247,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE UPDATED MATERIAL STATE AT NODE i
 
-        nmat->UpdateState(Upsilon.data(), state, i, dt);
-        state += 3*7; // 3 is the number of layers per node, 7 is the number of states per material point
+        temp = (ndtemps) ? ndtemps[i] : gpmat->GetAmbientTemperature();
+        nmat->UpdateState(Upsilon.data(), staten, statenp, i, temp, dt);
+        staten += 3*nmat->GetNumLocalStates(); // 3 is the number of layers per node
+        statenp += 3*nmat->GetNumLocalStates();
 
     }
 
@@ -2508,7 +2584,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
       J = dfdx(q, 0);
       for(int i=0; i<3; ++i)
         for(int j=0; j<9; ++j)
-          if(isnan(J(i,j))) J(i,j) = 0;
+          if(std::isnan(J(i,j))) J(i,j) = 0;
     } break;
 #endif
     case 2 : { // finite difference approximation 

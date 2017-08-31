@@ -58,9 +58,11 @@ class Brick32: public Element
       { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
                 "              for Hexa32 el.\n"); return (double *) 0;
       }
+    void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
 
     void setMaterial(NLMaterial *);
     int numStates();
+    void initStates(double *st);
     Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);
 };
 

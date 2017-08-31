@@ -1583,6 +1583,10 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
     if(contact_processor_number(communicator)==0)
       std::cerr << "\rerror: contact enforcement failed (inc. force = " << global_inc_force_norm 
                 << ", target = " << std::max(convergence_tolerance*initial_global_inc_force_norm, convergence_tolerance) << ")\n";
+    if(global_inc_force_norm > initial_global_inc_force_norm) {
+      // Set final updated position to the current predicted positiion
+      NEW_POSITION.Duplicate_Scratch(PREDICTED_POS);
+    }
   }
 
 #if !defined (CONTACT_NO_MPI) && defined (CONTACT_TIMINGS)

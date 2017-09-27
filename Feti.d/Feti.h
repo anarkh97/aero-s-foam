@@ -64,7 +64,7 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
 {
   protected:
     GenSubDomain<Scalar> **sd;
-    int nsub;
+    int nsub, glNumSub;
     FetiInfo *fetiInfo;
     int verboseFlag;
     FSCommunicator *fetiCom;
@@ -339,7 +339,7 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     bool proportional;
 
  public:
-    GenFetiDPSolver(int nsub, GenSubDomain<Scalar> **sd, Connectivity *subToSub,
+    GenFetiDPSolver(int nsub, int glNumSub, GenSubDomain<Scalar> **sd, Connectivity *subToSub,
                     FetiInfo *finfo, FSCommunicator *fetiCom, int *glToLoc, Connectivity *mpcToSub, Connectivity *mpcToSub_primal,
                     Connectivity *mpcToMpc, Connectivity *mpcToCpu, Connectivity *cpuToSub, 
                     Connectivity *bodyToSub = 0, GenSolver<Scalar> **sysMatrices = 0,

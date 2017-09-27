@@ -125,9 +125,11 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
 	Connectivity(BinFileHandler &, bool oldSower = false);
         Connectivity(FaceElemSet*, int size = 0);
 	Connectivity(int ns); //dec
+	Connectivity(FILE *f, int nElem); // JAT 100614
         Connectivity(Elemset *els, Connectivity *nodeToElem);
         Connectivity(const Connectivity&);
 	size_t write(BinFileHandler& f);
+	size_t writeg(BinFileHandler& f);
 	size_t read(FILE* f);
 
   	void countlink(int from, int to); //DEC
@@ -157,6 +159,8 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
 
         void findPseudoDiam(int *n1, int *n2, int *mask=0);
         int  rootLS(int root, int *xls, int *ls, int &w, int *mask=0);
+
+long long memsize() {return ((long long)size + numtarget + 1)*sizeof(int);} 
 
         // Create a rooted level structure
         int *renumSloan(int *mask, int &firstNum, int *ren = 0);

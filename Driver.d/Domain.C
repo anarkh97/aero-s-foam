@@ -1017,7 +1017,8 @@ Domain::gravityFlag()
     return 0;
   }
   else {
-    return (gravityAcceleration ? 1: 0) || (domain->solInfo().soltyp == 2);
+//    return (gravityAcceleration ? 1: 0) || (domain->solInfo().soltyp == 2);
+    return (gravityAcceleration ? 1: 0); // 101416 JAT
   }
 }
 

@@ -34,8 +34,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
                                                double _cc, double _ck, Rbm **_rbms, FullSquareMatrix **_kelArray,
                                                double _alpha, double _beta, int _numSommer, int _solvertype,
                                                FSCommunicator *_com, FullSquareMatrix **_melArray,
-                                               FullSquareMatrix **_celArray, bool elemsetHasDamping,
-                                               MatrixTimers &_mt)
+                                               FullSquareMatrix **_celArray, MatrixTimers &_mt)
  : mt(_mt)
 {
   nsub = _nsub;
@@ -80,7 +79,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   beta    = _beta;
   solvertype = _solvertype;
   com = _com;
-  makeC = (alpha != 0.0 || beta != 0.0 || (numSommer > 0) || elemsetHasDamping);
+  makeC = (alpha != 0.0 || beta != 0.0 || (numSommer > 0) || domain->getElementSet().hasDamping());
 // RT - 053013 - to enable multiple impedance section, build C_deriv whenever C
 //  makeC_deriv = (makeC && solInfo.doFreqSweep && solInfo.getSweepParams()->nFreqSweepRHS > 1);
   makeC_deriv = (makeC && solInfo.doFreqSweep);

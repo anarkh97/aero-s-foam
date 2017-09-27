@@ -12,6 +12,7 @@
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/MultiDomainSolver.h>
 #include <Utils.d/MyComplex.h>
+#include <Comm.d/Communicator.h>
 
 class EqNumberer;
 class ConstrainedDSA;
@@ -61,6 +62,9 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    FSCommunicator *mpicomm;
    bool host;
    Timings times;
+
+   bool mumpsCPU; // JAT 052214
+   Communicator *groupcomm; // JAT 072616
 
  public:
    GenMumpsSolver(Connectivity *nToN, EqNumberer *dsa, SolverCntl& _scntl, int *map=0, FSCommunicator *_mpicomm = 0);

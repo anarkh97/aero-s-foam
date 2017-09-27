@@ -197,10 +197,17 @@ void GenDecDomain<Scalar>::addBMPCs()
 }
 
 template<class Scalar>
-void GenDecDomain<Scalar>::getSharedNodes()
+template<class ConnectivityType1, class ConnectivityType2>
+void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, ConnectivityType2 *subToNode)
 {
   // Start timer
   startTimerMemory(mt.makeConnectivity, mt.memoryConnect);
+
+  map<int, int> NESubMap;
+  int numNESub = 0; 
+  for(int iSub = 0; iSub < subToNode->csize(); iSub++)
+    if(subToNode->num(iSub))
+      NESubMap[iSub] = numNESub++;
 
   // PJSA 9-1-04 for coupled_dph all the wet interface nodes need to be included in the sharedNodes list in SComm
   bool coupled_dph = false;
@@ -216,18 +223,24 @@ void GenDecDomain<Scalar>::getSharedNodes()
   // create each subdomain's interface lists
   int iSub, jSub, subJ, iNode;
   int totConnect;
-  int *nConnect = new int[subToNode->csize()];
-  int *flag = new int[subToNode->csize()];
+//  int *nConnect = new int[subToNode->csize()];
+//  int *flag = new int[subToNode->csize()];
+  int *nConnect = new int[numNESub];
+  int *flag = new int[numNESub];
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
-     flag[iSub] = -1;
-     nConnect[iSub] = 0;
+//     flag[iSub] = -1;
+//     nConnect[iSub] = 0;
+    if(subToNode->num(iSub)) {
+      flag[NESubMap[iSub]] = -1;
+      nConnect[NESubMap[iSub]] = 0;
+    }
   }
 
   // Count connectivity
   totConnect = 0;
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) { // loop over the nodes
-      int thisNode = (*subToNode)[iSub][iNode];
+      auto thisNode = (*subToNode)[iSub][iNode];
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[thisNode] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(thisNode); ++jSub) {
         // loop over the subdomains connected to this node
@@ -235,11 +248,15 @@ void GenDecDomain<Scalar>::getSharedNodes()
         bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
         if((subJ > iSub) || neighbWithSelf) {
           // only deal with connection to highered numbered subdomains, guarantees symmetry of lists
-          if(flag[subJ] != iSub) {
-            flag[subJ] = iSub;
-            nConnect[iSub]++;
+	  if(!subToNode->num(subJ)) {
+	    filePrint(stderr, "reference to empty subdomain 1\n");
+	    exit(1);
+	  }
+          if(flag[NESubMap[subJ]] != iSub) {
+            flag[NESubMap[subJ]] = iSub;
+            nConnect[NESubMap[iSub]]++;
             if(!neighbWithSelf) {
-              nConnect[subJ]++;
+              nConnect[NESubMap[subJ]]++;
               totConnect += 2;
             }
             else totConnect += 1;
@@ -249,47 +266,54 @@ void GenDecDomain<Scalar>::getSharedNodes()
     }
   }
 
-  int **nodeCount = new int*[subToNode->csize()];
-  int **connectedDomain = new int*[subToNode->csize()];
-  int **remoteID = new int*[subToNode->csize()];
+//  int **nodeCount = new int*[subToNode->csize()];
+//  int **connectedDomain = new int*[subToNode->csize()];
+//  int **remoteID = new int*[subToNode->csize()];
+  int **nodeCount = new int*[numNESub];
+  int **connectedDomain = new int*[numNESub];
+  int **remoteID = new int*[numNESub];
 
   // Allocate memory for list of connected subdomains
   // (de-allocated in ~SComm)
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
-    int size = nConnect[iSub];
-    connectedDomain[iSub] = new int[size];
-    remoteID[iSub] = new int[size];
-    nodeCount[iSub] = new int[size];
-    flag[iSub] = -1;
-    nConnect[iSub] = 0;
+    if(subToNode->num(iSub)) {
+      int size = nConnect[NESubMap[iSub]];
+      connectedDomain[NESubMap[iSub]] = new int[size];
+      remoteID[NESubMap[iSub]] = new int[size];
+      nodeCount[NESubMap[iSub]] = new int[size];
+      flag[NESubMap[iSub]] = -1;
+      nConnect[NESubMap[iSub]] = 0;
+    }
   }
 
-  int *whichLocal  = new int[subToNode->csize()];
-  int *whichRemote = new int[subToNode->csize()];
+//  int *whichLocal  = new int[subToNode->csize()];
+//  int *whichRemote = new int[subToNode->csize()];
+  int *whichLocal  = new int[numNESub];
+  int *whichRemote = new int[numNESub];
 
   for(iSub=0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) {
-      int nd = (*subToNode)[iSub][iNode];
+      auto nd = (*subToNode)[iSub][iNode];
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[nd] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];
         bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
         if((subJ > iSub) || neighbWithSelf) {
-          if(flag[subJ] != iSub) { // attribute location for this sub
-            flag[subJ] = iSub;
-            connectedDomain[subJ][nConnect[subJ]] = iSub;
-            connectedDomain[iSub][nConnect[iSub]] = subJ;
-            remoteID[subJ][nConnect[subJ]] = nConnect[iSub];
-            remoteID[iSub][nConnect[iSub]] = nConnect[subJ];
-            if(!neighbWithSelf) whichLocal[subJ] = nConnect[iSub]++;
-            else whichLocal[subJ] = nConnect[iSub];
-            whichRemote[subJ] = nConnect[subJ]++;
-            nodeCount[iSub][whichLocal[subJ]] = 1;
-            nodeCount[subJ][whichRemote[subJ]] = 1;
+          if(flag[NESubMap[subJ]] != iSub) { // attribute location for this sub
+            flag[NESubMap[subJ]] = iSub;
+            connectedDomain[NESubMap[subJ]][nConnect[NESubMap[subJ]]] = iSub;
+            connectedDomain[NESubMap[iSub]][nConnect[NESubMap[iSub]]] = subJ;
+            remoteID[NESubMap[subJ]][nConnect[NESubMap[subJ]]] = nConnect[NESubMap[iSub]];
+            remoteID[NESubMap[iSub]][nConnect[NESubMap[iSub]]] = nConnect[NESubMap[subJ]];
+            if(!neighbWithSelf) whichLocal[NESubMap[subJ]] = nConnect[NESubMap[iSub]]++;
+            else whichLocal[NESubMap[subJ]] = nConnect[NESubMap[iSub]];
+            whichRemote[NESubMap[subJ]] = nConnect[NESubMap[subJ]]++;
+            nodeCount[NESubMap[iSub]][whichLocal[NESubMap[subJ]]] = 1;
+            nodeCount[NESubMap[subJ]][whichRemote[NESubMap[subJ]]] = 1;
           }
           else {
-            nodeCount[iSub][whichLocal[subJ]]++;
-            if(!neighbWithSelf) nodeCount[subJ][whichRemote[subJ]]++;
+            nodeCount[NESubMap[iSub]][whichLocal[NESubMap[subJ]]]++;
+            if(!neighbWithSelf) nodeCount[NESubMap[subJ]][whichRemote[NESubMap[subJ]]]++;
           }
         }
       }
@@ -297,40 +321,50 @@ void GenDecDomain<Scalar>::getSharedNodes()
   }
 
   // allocate memory for interface node lists
-  Connectivity **interfNode = new Connectivity *[subToNode->csize()];
+//  Connectivity **interfNode = new Connectivity *[subToNode->csize()];
+  Connectivity **interfNode = new Connectivity *[numNESub];
   for(iSub=0; iSub < subToNode->csize(); ++iSub)
-    interfNode[iSub] = new Connectivity(nConnect[iSub], nodeCount[iSub]);
+    if(subToNode->num(iSub))
+      interfNode[NESubMap[iSub]] = new Connectivity(nConnect[NESubMap[iSub]], nodeCount[NESubMap[iSub]]);
 
   // fill the lists
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
-     flag[iSub]     = -1;
-     nConnect[iSub] =  0;
+    if(subToNode->num(iSub)) {
+      flag[NESubMap[iSub]]     = -1;
+      nConnect[NESubMap[iSub]] =  0;
+    }
   }
 
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) {
-      int nd = (*subToNode)[iSub][iNode];
+      auto nd = (*subToNode)[iSub][iNode];
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[nd] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];
         bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
         if((subJ > iSub) || neighbWithSelf) {
-          if(flag[subJ] != iSub) { // attribute location for this sub
-            flag[subJ] = iSub;
-            if(!neighbWithSelf) whichLocal[subJ] = nConnect[iSub]++;
-            else whichLocal[subJ] = nConnect[iSub];
-            whichRemote[subJ] = nConnect[subJ]++;
-            (*interfNode[iSub])[whichLocal[subJ]][0] = nd;
-            (*interfNode[subJ])[whichRemote[subJ]][0] = nd;
-            nodeCount[iSub][whichLocal[subJ]]=1;
-            nodeCount[subJ][whichRemote[subJ]]=1;
+          if(flag[NESubMap[subJ]] != iSub) { // attribute location for this sub
+            flag[NESubMap[subJ]] = iSub;
+            if(!neighbWithSelf) whichLocal[NESubMap[subJ]] = nConnect[NESubMap[iSub]]++;
+            else whichLocal[NESubMap[subJ]] = nConnect[NESubMap[iSub]];
+            whichRemote[NESubMap[subJ]] = nConnect[NESubMap[subJ]]++;
+            //(*interfNode[iSub])[whichLocal[subJ]][0] = nd;
+            //(*interfNode[subJ])[whichRemote[subJ]][0] = nd;
+            (*interfNode[NESubMap[iSub]])[whichLocal[NESubMap[subJ]]][0] = (glSubToLocal[iSub] >= 0) ? subDomain[glSubToLocal[iSub]]->globalToLocal(nd) : nd;
+            (*interfNode[NESubMap[subJ]])[whichRemote[NESubMap[subJ]]][0] = (glSubToLocal[subJ] >= 0) ? subDomain[glSubToLocal[subJ]]->globalToLocal(nd) : nd;
+
+            nodeCount[NESubMap[iSub]][whichLocal[NESubMap[subJ]]]=1;
+            nodeCount[NESubMap[subJ]][whichRemote[NESubMap[subJ]]]=1;
           }
           else {
-            int il = nodeCount[iSub][whichLocal[subJ]]++;
-            (*interfNode[iSub])[whichLocal[subJ]][il] = nd;
+            int il = nodeCount[NESubMap[iSub]][whichLocal[NESubMap[subJ]]]++;
+            //(*interfNode[iSub])[whichLocal[subJ]][il] = nd;
+            (*interfNode[NESubMap[iSub]])[whichLocal[NESubMap[subJ]]][il] = (glSubToLocal[iSub] >= 0) ? subDomain[glSubToLocal[iSub]]->globalToLocal(nd) : nd;
+
             if(!neighbWithSelf) {
-              int jl = nodeCount[subJ][whichRemote[subJ]]++;
-              (*interfNode[subJ])[whichRemote[subJ]][jl] = nd;
+              int jl = nodeCount[NESubMap[subJ]][whichRemote[NESubMap[subJ]]]++;
+              //(*interfNode[subJ])[whichRemote[subJ]][jl] = nd;
+              (*interfNode[NESubMap[subJ]])[whichRemote[NESubMap[subJ]]][jl] = (glSubToLocal[subJ] >= 0) ? subDomain[glSubToLocal[subJ]]->globalToLocal(nd) : nd;
             }
           }
         }
@@ -340,31 +374,28 @@ void GenDecDomain<Scalar>::getSharedNodes()
   delete [] flag;
   delete [] whichLocal;
   delete [] whichRemote;
-  for(iSub = 0; iSub < subToNode->csize(); ++iSub) delete [] nodeCount[iSub];
+  for(iSub = 0; iSub < numNESub; ++iSub)
+    delete [] nodeCount[iSub];
   delete [] nodeCount;
   delete [] wetInterfaceNodeMap;
 
   for(iSub = 0; iSub < numSub; ++iSub) {
     int subI = (localSubToGl) ? localSubToGl[iSub] : iSub;
-    GenSubDomain<Scalar> **subds = new GenSubDomain<Scalar> * [nConnect[subI]];
-    for(jSub = 0; jSub < nConnect[subI]; ++jSub) {
-       int subJ = glSubToLocal[connectedDomain[subI][jSub]];
+    if(!subToNode->num(subI)) {
+      filePrint(stderr, "reference to empty subdomain 2\n");
+      exit(1);
+    }
+    GenSubDomain<Scalar> **subds = new GenSubDomain<Scalar> * [nConnect[NESubMap[subI]]];
+    for(jSub = 0; jSub < nConnect[NESubMap[subI]]; ++jSub) {
+       int subJ = glSubToLocal[connectedDomain[NESubMap[subI]][jSub]];
        subds[jSub] = (subJ >= 0) ? subDomain[subJ] : NULL;
     }
-    SComm *sc = new SComm(nConnect[subI], connectedDomain[subI], subds,
-                          remoteID[subI], interfNode[subI]);
+    SComm *sc = new SComm(nConnect[NESubMap[subI]], connectedDomain[NESubMap[subI]], subds,
+                          remoteID[NESubMap[subI]], interfNode[NESubMap[subI]]);
     sc->locSubNum = iSub;
     sc->glSubToLocal = glSubToLocal;
     subDomain[iSub]->setSComm(sc);
     delete [] subds;
-  }
-
-  for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
-    if(glSubToLocal[iSub] < 0) {
-      delete [] connectedDomain[iSub];
-      delete [] remoteID[iSub];
-      delete interfNode[iSub];
-    }
   }
 
   delete [] remoteID;
@@ -372,10 +403,10 @@ void GenDecDomain<Scalar>::getSharedNodes()
   delete [] nConnect;
   delete [] interfNode;
 
-  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberSharedNodes);
-
+  //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberSharedNodes);
   stopTimerMemory(mt.makeConnectivity, mt.memoryConnect);
 }
+
 
 template<class Scalar>
 void
@@ -475,15 +506,25 @@ void
 GenDecDomain<Scalar>::makeSubToSubEtc()
 {
   if(soweredInput) {
-    subToSub = geoSource->getSubToSub();
+//    subToSub = geoSource->getSubToSub();
+#ifdef OLD_CLUSTER
     subToNode = geoSource->getSubToNode();
-    subToNode->sortTargets();
+    subToNode->sortTargets(); // PJSA 11-16-2006
 
     mt.memoryNodeToSub -= memoryUsed();
     nodeToSub = subToNode->reverse();
     mt.memoryNodeToSub += memoryUsed();
 
+#endif
+#ifdef SOWER_DISTR
+#ifdef OLD_CLUSTER
+    geoSource->setNumNodes(communicator->globalMax(nodeToSub->csize()));
+#else
+    geoSource->setNumNodes(communicator->globalMax(geoSource->nodeToSub_sparse->csize())); 
+#endif
+#else
     geoSource->setNumNodes(nodeToSub->csize());
+#endif
     //geoSource->computeClusterInfo(localSubToGl[0]);
   }
   else {
@@ -520,7 +561,6 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
       mt.memoryElemToSub += memoryUsed();
       if(domain->numSSN() > 0) domain->checkSommerTypeBC(domain, elemToNode, domain->nodeToElem); // flip normals if necessary
     }
-
     if(geoSource->getGlob()) geoSource->computeClusterInfo(localSubToGl[0], subToNode);
   }
 }
@@ -535,10 +575,11 @@ GenDecDomain<Scalar>::makeSubDomains()
 
   startTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
   if(soweredInput) {
+#ifdef OLD_CLUSTER
     geoSource->computeClusterInfo(localSubToGl[0]);
-    for(int iSub = 0; iSub < this->numSub; iSub++) { 
-      subDomain[iSub] = geoSource->template readDistributedInputFiles<Scalar>(iSub, localSubToGl[iSub]);  
-    }
+#endif
+    for(int iSub = 0; iSub < this->numSub; iSub++)
+      subDomain[iSub] = geoSource->template readDistributedInputFiles<Scalar>(iSub, localSubToGl[iSub]);
 #ifdef SOWER_SURFS
     geoSource->readDistributedSurfs(localSubToGl[0]); //pass dummy sub number
 #endif
@@ -551,7 +592,7 @@ GenDecDomain<Scalar>::makeSubDomains()
     }
     paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberElements); 
   }
-  
+
   paralApply(numSub, subDomain, &BaseSub::makeDSA); 
   stopTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
 }
@@ -582,7 +623,7 @@ GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
  if(finfo->version == FetiInfo::fetidp) {
    bool rbmFlag = ((domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted());
    bool geometricRbms = (domain->solInfo().rbmflg && !domain->solInfo().isNonLin());
-   return new GenFetiDPSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
+   return new GenFetiDPSolver<Scalar>(numSub, globalNumSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
                                       mpcToSub_dual, mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
                                       dgt.dynMats, dgt.spMats, dgt.rbms, rbmFlag, geometricRbms, verboseFlag);
  }
@@ -609,7 +650,7 @@ GenDecDomain<Scalar>::getCPUMap()
 #ifdef DISTRIBUTED
   char *mapName = geoSource->getCpuMapFile(); 
   FILE *f = fopen(mapName,"r");
-  numCPU = geoSource->getCPUMap(f, subToSub);
+  numCPU = geoSource->getCPUMap(f, 0, globalNumSub);
   cpuToCPU = geoSource->getCpuTOCPU();
   if(f) fclose(f);
 #else
@@ -668,14 +709,26 @@ GenDecDomain<Scalar>::preProcess()
  }
  //soweredInput = geoSource->binaryInput;
 
- if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");
  if(!subToElem) {
+   if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");
+#ifndef OLD_CLUSTER
+   if(soweredInput) geoSource->getBinaryDecomp(); else
+#endif
    subToElem = geoSource->getDecomposition();
-   subToElem->sortTargets(); // PJSA 11-16-2006
+//   subToElem->sortTargets(); // JAT 021915 // PJSA 11-16-2006
  }
- globalNumSub = subToElem->csize();
 
  makeSubToSubEtc();
+
+ if(subToSub) globalNumSub = subToSub->csize(); // JAT 021915 // JAT 021916
+#ifdef SOWER_DISTR
+ if(soweredInput)
+#ifdef OLD_CLUSTER
+   globalNumSub = communicator->globalMax(globalNumSub);
+#else
+   globalNumSub = communicator->globalMax(geoSource->subToNode_sparse->csize());
+#endif
+#endif
 
  if(!cpuToSub) getCPUMap();
 
@@ -686,7 +739,10 @@ GenDecDomain<Scalar>::preProcess()
 
  preProcessFSIs();// FLuid-Structure Interaction
 
- getSharedNodes();
+#ifndef OLD_CLUSTER
+ if(soweredInput) getSharedNodes(geoSource->nodeToSub_sparse, geoSource->subToNode_sparse); else
+#endif
+ getSharedNodes(nodeToSub, subToNode);
 
  makeCorners();// Corners for FETI-DP
 
@@ -2580,7 +2636,6 @@ GenDecDomain<Scalar>::makeCorners()
 {
   if(!(domain->solInfo().solvercntl->type == 2 && domain->solInfo().solvercntl->fetiInfo.version == FetiInfo::fetidp)) return;
   if(verboseFlag) filePrint(stderr, " ... Selecting the Corners          ...\n");
-
   FSCommPattern<int> cpat(communicator, cpuToSub, myCPU, FSCommPattern<int>::CopyOnSend);
   for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(&cpat);
   cpat.finalize();
@@ -3661,7 +3716,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
                                 domain->numSommer, domain->solInfo().getFetiInfo().local_cntl->subtype,
-                                communicator, melArray, celArray, domain->getElementSet().hasDamping(), mt);
+                                communicator, melArray, celArray, mt);
 
  if(domain->solInfo().solvercntl->type == 0) {
    switch(domain->solInfo().solvercntl->subtype) {

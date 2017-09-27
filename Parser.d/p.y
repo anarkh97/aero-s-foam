@@ -95,7 +95,7 @@
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LISRBM LMPC LOAD LOADCASE LOBPCG LOCALREDUCEDORDERBASES LOCALSOLVER LINESEARCH LUMPED
 %token KSPARAM KSMAX 
 %token MASS MASSAUGMENTATION MATERIALS MATLAB MAXITR MAXELEM MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
-%token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
+%token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MUMPSMINEQ MUMPSSTRIDE MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
 %token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
 %token SENSITIVITY SENSITIVITYMETHOD OUTPUT OUTPUT6 OUTPUTFRAME
@@ -3908,6 +3908,10 @@ Solver:
 	{ $$->mumps_icntl[$3] = $4; }
 	| Solver MUMPSCNTL Integer Float NewLine
 	{ $$->mumps_cntl[$3] = $4; }
+	| Solver MUMPSMINEQ Integer NewLine
+	{ $$->mumps_mineq = $3; }
+	| Solver MUMPSSTRIDE Integer NewLine
+	{ $$->mumps_stride = $3; }
         | Solver GOLDFARBTOL Float NewLine
         { $$->goldfarb_tol = $3; }
         | Solver TOLPCG Float NewLine
@@ -4080,6 +4084,10 @@ Solver:
           $$->fetiInfo.numdir = $5;
           if($$->fetiInfo.augment == FetiInfo::none)
             $$->fetiInfo.augment = FetiInfo::Edges; }
+        | Solver AUGMENT MPCTYPEID NewLine
+        { if ($3 == 2)
+           $$->fetiInfo.augmentimpl = FetiInfo::Primal;
+        }
 	| Solver ORTHOTOL Float NewLine
 	{ $$->fetiInfo.orthotol = $3; }
         | Solver ORTHOTOL Float Float NewLine

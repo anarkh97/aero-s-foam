@@ -74,7 +74,7 @@ inline double DABS(double x) { return (x>0.0) ? x : -x; }
 
 // New constructor for both shared and distributed memory
 template<class Scalar>
-GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
+GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<Scalar> **_sd,
                   Connectivity *_subToSub, FetiInfo *_fetiInfo, FSCommunicator *_fetiCom,
                   int *_glSubToLoc, Connectivity *_mpcToSub, Connectivity *_mpcToSub_primal, Connectivity *_mpcToMpc,
                   Connectivity *_mpcToCpu, Connectivity *_cpuToSub, Connectivity *_bodyToSub,
@@ -93,6 +93,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
 #endif
 
  this->nsub       = _nsub;        // Number of subdomains
+ this->glNumSub   = _glNumSub;
  this->sd         = _sd;          // pointer to Array of all Subdomains
  this->subToSub   = _subToSub;    // subdomain to subdomain connectivity
  //std::cerr << "this->nsub = " << this->nsub << ", this->subToSub =\n"; this->subToSub->print();
@@ -362,26 +363,26 @@ GenFetiDPSolver<Scalar>::makeKcc()
  startTimerMemory(this->times.coarse1, this->times.memoryGtG);
 
  int i, iSub;
- int glNumSub = this->subToSub->csize();
- if(verboseFlag) filePrint(stderr," ... Number of Subdomains    %5d  ...\n", glNumSub);
+// int glNumSub = this->subToSub->csize();
+ if(verboseFlag) filePrint(stderr," ... Number of Subdomains    %5d  ...\n", this->glNumSub);
 
  // STEP 1. count number of corner nodes and make subToCorner connectivity
  Connectivity *subToCorner = 0;
  if(!cornerToSub) {
-   int *pointer = new int[glNumSub+1];
-   for(i=0; i<glNumSub+1; ++i) pointer[i] = 0;
+   int *pointer = new int[this->glNumSub+1];
+   for(i=0; i<this->glNumSub+1; ++i) pointer[i] = 0;
    for(iSub=0; iSub<this->nsub; ++iSub)
      pointer[this->sd[iSub]->subNum()] = this->sd[iSub]->numCorners();
 #ifdef DISTRIBUTED
-   this->fetiCom->globalSum(glNumSub, pointer);
+   this->fetiCom->globalSum(this->glNumSub, pointer);
 #endif
    int total = 0;
-   for(iSub=0; iSub < glNumSub; ++iSub) {
+   for(iSub=0; iSub < this->glNumSub; ++iSub) {
      int tmp = pointer[iSub];
      pointer[iSub] = total;
      total += tmp;
    }
-   pointer[glNumSub] = total;
+   pointer[this->glNumSub] = total;
 
    int *glCornerNodes = new int[total];
    for(i=0; i<total; ++i) glCornerNodes[i] = 0;
@@ -423,21 +424,36 @@ GenFetiDPSolver<Scalar>::makeKcc()
    this->fetiCom->globalSum(total, target);
 #endif
 
-   subToCorner = new Connectivity(glNumSub, pointer, target);
+   subToCorner = new Connectivity(this->glNumSub, pointer, target);
    cornerToSub = subToCorner->reverse();
  }
  else {
    subToCorner = cornerToSub->reverse();
  }
+ // filePrint(stderr,"subToCorner %d kb\n",(int)(subToCorner->memsize()/1024));
+ // filePrint(stderr,"cornerToSub %d kb\n",(int)(cornerToSub->memsize()/1024));
 
  // STEP 2. make subToCoarse connectivity (includes primal mpcs and augmentation) and coarseConnectivity
- Connectivity *coarseToSub = cornerToSub;
- mpcOffset = coarseToSub->csize();
- if(this->glNumMpc_primal > 0) {
-   coarseToSub = coarseToSub->merge(this->mpcToSub_primal);
- }
- augOffset = coarseToSub->csize();
- switch(fetiInfo->augment) {
+ Connectivity *coarseToSub = 0;
+ Connectivity *subToCoarse = 0;
+ Connectivity *coarseConnectivity = 0;
+ if(fetiInfo->coarse_cntl->type == 2) {
+   if(this->glNumMpc_primal > 0) {
+     filePrint(stderr, " *** ERROR: Mpc not supported with multi-level solver *** \n");
+     exit(-1);
+   }
+   augOffset = glNumCorners;
+   if((fetiInfo->augment == FetiInfo::WeightedEdges ||
+       fetiInfo->augment == FetiInfo::Edges) && !this->edgeToSub)
+     makeEdgeConnectivity();
+ } else {
+   coarseToSub = cornerToSub;
+   mpcOffset = coarseToSub->csize();
+   if(this->glNumMpc_primal > 0) {
+     coarseToSub = coarseToSub->merge(this->mpcToSub_primal);
+   }
+   augOffset = coarseToSub->csize();
+   switch(fetiInfo->augment) {
    case FetiInfo::Gs: {
      Connectivity *augcoarseToSub = coarseToSub->merge(this->subToSub);
      if(coarseToSub != cornerToSub) delete coarseToSub;
@@ -449,19 +465,27 @@ GenFetiDPSolver<Scalar>::makeKcc()
      Connectivity *augcoarseToSub = coarseToSub->merge(this->edgeToSub);
      if(coarseToSub != cornerToSub) delete coarseToSub;
      coarseToSub = augcoarseToSub;
+     // filePrint(stderr,"coarseToSub %d kb\n",(int)(coarseToSub->memsize()/1024));
    } break;
    default:
      break;
+   }
+   subToCoarse = (coarseToSub != cornerToSub) ? coarseToSub->reverse() : subToCorner;
+   // filePrint(stderr,"subToCoarse %d kb\n",(int)(subToCoarse->memsize()/1024));
+   coarseConnectivity = coarseToSub->transcon(subToCoarse);
+   // filePrint(stderr,"coarseConnectivity %d kb\n",(int)(coarseConnectivity->memsize()/1024));
  }
- Connectivity *subToCoarse = (coarseToSub != cornerToSub) ? coarseToSub->reverse() : subToCorner;
- Connectivity *coarseConnectivity = coarseToSub->transcon(subToCoarse);
 
  // STEP 3. make the coarse problem equation numberer
  int renumFlag = (fetiInfo->coarse_cntl->subtype == FetiInfo::skyline || fetiInfo->coarse_cntl->subtype == FetiInfo::blocksky) ? domain->solInfo().renum : 0;
- compStruct renumber = coarseConnectivity->renumByComponent(renumFlag);
  if(cornerEqs) delete cornerEqs;
- cornerEqs = new DofSetArray(coarseConnectivity->csize(), renumber.renum, 1);
- delete [] renumber.xcomp;
+ if(fetiInfo->coarse_cntl->type == 2) {
+   cornerEqs = 0;
+ } else {
+   compStruct renumber = coarseConnectivity->renumByComponent(renumFlag);
+   cornerEqs = new DofSetArray(coarseConnectivity->csize(), renumber.renum, 1);
+   delete [] renumber.xcomp;
+ }
 
 #if defined(USE_MUMPS) && defined(DISTRIBUTED)
  if(fetiInfo->coarse_cntl->subtype == FetiInfo::mumps && fetiInfo->coarse_cntl->mumps_icntl[18] == 3) { // matrix is distributed, use local graph for matrix structure
@@ -471,8 +495,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
    delete subToCPU;
  }
 #endif
- if(coarseToSub != cornerToSub) delete coarseToSub;
- if(subToCoarse != subToCorner) delete subToCoarse;
+ if(coarseToSub && coarseToSub != cornerToSub) delete coarseToSub;
+ if(subToCoarse && subToCoarse != subToCorner) delete subToCoarse;
  if(fetiInfo->coarse_cntl->type != 2) delete subToCorner;
 
  int *glCornerDofs = new int[glNumCorners];
@@ -481,27 +505,31 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #ifdef DISTRIBUTED
  this->fetiCom->globalMpiOp(glNumCorners, glCornerDofs, MPI_BOR); // MPI_BOR is an mpi bitwise or
 #endif
- for(i = 0; i < glNumCorners; ++i) cornerEqs->mark(i, glCornerDofs[i]);
- delete [] glCornerDofs;
+ if(fetiInfo->coarse_cntl->type != 2) {
+   for(i = 0; i < glNumCorners; ++i) cornerEqs->mark(i, glCornerDofs[i]);
+   delete [] glCornerDofs;
 
- if(this->glNumMpc_primal > 0) {
-   for(int iMPC=0; iMPC<this->glNumMpc_primal; ++iMPC)
-     cornerEqs->setWeight(mpcOffset+iMPC, 1);
-   this->times.numMPCs = this->glNumMpc_primal;
+   if(this->glNumMpc_primal > 0) {
+     for(int iMPC=0; iMPC<this->glNumMpc_primal; ++iMPC)
+       cornerEqs->setWeight(mpcOffset+iMPC, 1);
+     this->times.numMPCs = this->glNumMpc_primal;
+   }
  }
 
  if(fetiInfo->augment == FetiInfo::Gs) {
    this->times.numRBMs = 0;
-   int *numRBMPerSub = new int[glNumSub];
-   for(iSub=0; iSub<glNumSub; ++iSub) numRBMPerSub[iSub] = 0;
+   int *numRBMPerSub = new int[this->glNumSub];
+   for(iSub=0; iSub<this->glNumSub; ++iSub) numRBMPerSub[iSub] = 0;
    for(iSub=0; iSub<this->nsub; ++iSub)
      numRBMPerSub[this->sd[iSub]->subNum()] = this->sd[iSub]->numRBM();
 #ifdef DISTRIBUTED
-   this->fetiCom->globalSum(glNumSub,numRBMPerSub);
+   this->fetiCom->globalSum(this->glNumSub,numRBMPerSub);
 #endif
-   for(iSub=0; iSub<glNumSub; ++iSub) {
-     cornerEqs->setWeight(augOffset+iSub, numRBMPerSub[iSub]);
-     this->times.numRBMs += numRBMPerSub[iSub];
+   if(fetiInfo->coarse_cntl->type != 2) {
+     for(iSub=0; iSub<this->glNumSub; ++iSub) {
+       cornerEqs->setWeight(augOffset+iSub, numRBMPerSub[iSub]);
+       this->times.numRBMs += numRBMPerSub[iSub];
+     }
    }
    delete [] numRBMPerSub;
  }
@@ -528,19 +556,24 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #ifdef DISTRIBUTED
    this->fetiCom->globalSum(this->edgeToSub->csize(), edgeWeights);
 #endif
-   for(int iEdge=0; iEdge<this->edgeToSub->csize(); ++iEdge) {
-     cornerEqs->setWeight(augOffset+iEdge, edgeWeights[iEdge]);
-     this->times.numEdges += edgeWeights[iEdge];
+   if(fetiInfo->coarse_cntl->type != 2) {
+     for(int iEdge=0; iEdge<this->edgeToSub->csize(); ++iEdge) {
+       cornerEqs->setWeight(augOffset+iEdge, edgeWeights[iEdge]);
+       this->times.numEdges += edgeWeights[iEdge];
+     }
    }
    delete [] edgeWeights;
  }
 
- cornerEqs->finish();
- this->times.numCRNs = cornerEqs->size();
+ if(fetiInfo->coarse_cntl->type != 2) {
+   cornerEqs->finish();
+   this->times.numCRNs = cornerEqs->size();
+ } else
+   this->times.numCRNs = 0;
 
  if(verboseFlag) {
    filePrint(stderr, " ... Size of Interface  %7d     ...\n", this->interface.len);
-   filePrint(stderr, " ... Size of Global Kcc %7d     ...\n", cornerEqs->size());
+   filePrint(stderr, " ... Size of Global Kcc %7d     ...\n", this->times.numCRNs);
    filePrint(stderr, " ... global_rbm_tol     = %9.3e ...\n", fetiInfo->coarse_cntl->trbm);
  }
 
@@ -811,7 +844,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
  KccSparse = 0;
 
- if(cornerEqs->size() > 0) {
+//  if(cornerEqs->size() > 0) {
+ if(1) {
 
    // build coarse solver
 
@@ -820,11 +854,54 @@ GenFetiDPSolver<Scalar>::makeKcc()
       //cerr << "using FETI-DP solver for coarse problem\n";
       Domain *coarseDomain = new Domain();
       coarseDomain->solInfo().solvercntl = fetiInfo->coarse_cntl;
+      coarseDomain->setNumElements(subToCorner->csize());
+
+      Connectivity *decCoarse = this->cpuToSub;
+      char fn[65];
+      FILE *f;
+      sprintf(fn,"decomposition.%d",coarseDomain->numElements());
+      if ((f = fopen(fn,"r")) != NULL) {
+	if(verboseFlag) filePrint(stderr, " ... Reading Decomposition from file %s ...\n", fn);
+	decCoarse = new Connectivity(f,coarseDomain->numElements());
+	fclose(f);
+      }
+
+      Connectivity *elemToSubCoarse = decCoarse->reverse();
+      Connectivity *CPUMapCoarse = this->cpuToSub->transcon(elemToSubCoarse);
+      delete elemToSubCoarse;
+//      Connectivity *elemToCPUCoarse = CPUMapCoarse->reverse();
+//      elemToCPUCoarse->sortTargets();
+
+      int *pointer = new int[this->glNumSub+1];
+      for(i = 0; i < this->glNumSub+1; ++i)
+	pointer[i] = 0;
+
       for(int i = 0; i < this->nsub; ++i) { 
         int s = this->sd[i]->subNum();
-        coarseDomain->addElem(s, 0, subToCorner->num(s), (*subToCorner)[s]); // 0 is a "matrix" element
+	int nc = subToCorner->num(s);
+        int n = nc;            
+	if (fetiInfo->augmentimpl == FetiInfo::Primal)
+	  for(int iNeighb = 0; iNeighb < this->sd[i]->numNeighbors(); ++iNeighb)
+	    if(this->sd[i]->isEdgeNeighbor(iNeighb) &&
+	       this->sd[i]->edgeDofs[iNeighb].count())
+	      n++;
+	int *elem = new int[n];
+	for(n = 0; n < nc; n++)
+	  elem[n] = (*subToCorner)[s][n];
+	if (fetiInfo->augmentimpl == FetiInfo::Primal) {
+	  int iEdgeN = 0;
+	  for(int iNeighb = 0; iNeighb < this->sd[i]->numNeighbors(); ++iNeighb) {
+	    if(this->sd[i]->isEdgeNeighbor(iNeighb)) {
+	      if(this->sd[i]->edgeDofs[iNeighb].count())
+		elem[n++] = augOffset + (*(this->subToEdge))[s][iEdgeN];
+	      iEdgeN++;
+	    }
+	  }
+	}
+//        coarseDomain->addElem(s, 0, subToCorner->num(s), (*subToCorner)[s]); // 0 is a "matrix" element
+	pointer[s] = n;
+	coarseDomain->addElem(s,0,n,elem);
       }
-      coarseDomain->setNumElements(subToCorner->csize());
 
       if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
       t5 -= getTime();
@@ -832,15 +909,67 @@ GenFetiDPSolver<Scalar>::makeKcc()
       t5 += getTime();
       Elemset& elems = coarseDomain->getElementSet();
       for(int i = 0; i < this->nsub; ++i) {
-        ((MatrixElement*)elems[this->sd[i]->subNum()])->setDofs(this->sd[i]->cornerDofs);
-        ((MatrixElement*)elems[this->sd[i]->subNum()])->setStiffness(this->sd[i]->Kcc);
+        int s = this->sd[i]->subNum();
+        int n = pointer[s];
+	int nc = subToCorner->num(s);
+	DofSet *coarseDofs = new DofSet[n];
+	for(n = 0; n < nc; n++)
+	  coarseDofs[n] = this->sd[i]->cornerDofs[n];
+	if (fetiInfo->augmentimpl == FetiInfo::Primal) {
+	  for(int iNeighb = 0; iNeighb < this->sd[i]->numNeighbors(); ++iNeighb)
+	    if(this->sd[i]->isEdgeNeighbor(iNeighb) &&
+	       this->sd[i]->edgeDofs[iNeighb].count())
+	      coarseDofs[n++] = this->sd[i]->edgeDofs[iNeighb];
+	}
+	((MatrixElement*)elems[s])->setDofs(coarseDofs);
+        ((MatrixElement*)elems[s])->setStiffness(this->sd[i]->Kcc);
+//        ((MatrixElement*)elems[this->sd[i]->subNum()])->setDofs(this->sd[i]->cornerDofs);
+//        ((MatrixElement*)elems[this->sd[i]->subNum()])->setStiffness(this->sd[i]->Kcc);
       }
   
       CoordSet& nodes = coarseDomain->getNodes();
+      double xyz[3];
+      for(int i = 0; i < this->nsub; i++) {
+        int s = this->sd[i]->subNum();
+	int numCorner = this->sd[i]->numCorners();
+	int *localCornerNodes = this->sd[i]->getLocalCornerNodes();
+	for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
+	  Node *node = this->sd[i]->getNodes()[localCornerNodes[iCorner]];
+	  int cornerNum = (*subToCorner)[s][iCorner];
+	  if (!nodes[cornerNum]) {
+	    xyz[0] = node->x; xyz[1] = node->y; xyz[2] = node->z;
+	    nodes.nodeadd(cornerNum, xyz);
+	  }
+	}
+	if (fetiInfo->augmentimpl == FetiInfo::Primal) { // 020314 JAT
+	  CoordSet &subnodes = this->sd[i]->getNodes();
+	  Connectivity &sharedNodes = *(this->sd[i]->getSComm()->sharedNodes);
+	  int iEdgeN = 0, edgeNum;
+	  for(int iNeighb = 0; iNeighb < this->sd[i]->numNeighbors(); ++iNeighb) {
+	    if(this->sd[i]->isEdgeNeighbor(iNeighb)) {
+	      edgeNum = augOffset + (*(this->subToEdge))[s][iEdgeN++];
+	      if (!nodes[edgeNum]) {
+		xyz[0] = xyz[1] = xyz[2] = 0.0;
+		for(int iNode = 0; iNode < sharedNodes.num(iNeighb); iNode++) {
+		  xyz[0] += subnodes[sharedNodes[iNeighb][iNode]]->x;
+		  xyz[1] += subnodes[sharedNodes[iNeighb][iNode]]->y;
+		  xyz[2] += subnodes[sharedNodes[iNeighb][iNode]]->z;
+		}
+		xyz[0] /= sharedNodes.num(iNeighb);
+		xyz[1] /= sharedNodes.num(iNeighb);
+		xyz[2] /= sharedNodes.num(iNeighb);
+		nodes.nodeadd(edgeNum, xyz);
+	      }
+	    }
+	  }
+	}
+      }
+      /*
       double xyz[3] = { 0.0, 0.0, 0.0 };
       for(int i = 0; i < cornerToSub->csize(); ++i) {
         nodes.nodeadd(i, xyz);
       }
+      */
       coarseDomain->setNumNodes(cornerToSub->csize());
 
       // The following loop set the node coordinates... They are needed for the corner maker
@@ -860,9 +989,49 @@ GenFetiDPSolver<Scalar>::makeKcc()
   
       Communicator *structCom = new Communicator(this->fetiCom->getComm());
       GenDecDomain<Scalar> *decCoarseDomain = new GenDecDomain<Scalar>(coarseDomain, structCom, false);
-      decCoarseDomain->setElemToNode(subToCorner);
-      decCoarseDomain->setSubToElem(this->cpuToSub);
-      decCoarseDomain->setCPUMap(new Connectivity(this->numCPUs,1));
+
+      Connectivity *elemToNode; // JAT 220216
+      if (fetiInfo->augmentimpl == FetiInfo::Primal) { // JAT 041114
+#ifdef DISTRIBUTED
+	this->fetiCom->globalSum(this->glNumSub, pointer);
+#endif
+	int total = 0;
+	for(int iSub = 0; iSub < this->glNumSub; ++iSub) {
+	  int tmp = pointer[iSub];
+	  pointer[iSub] = total;
+	  total += tmp;
+	}
+	pointer[this->glNumSub] = total;
+
+	int *target = new int[total];
+	for(int i = 0; i < total; i++) target[i] = 0;
+	for(int i = 0; i < this->nsub; i++) {
+	  int s = this->sd[i]->subNum();
+	  int nc = subToCorner->num(s);
+	  int n, k = pointer[s];
+	  for(n = 0; n < nc; n++)
+	    target[k+n] = (*subToCorner)[s][n];
+	  int iEdgeN = 0;
+	  for(int iNeighb = 0; iNeighb < this->sd[i]->numNeighbors(); ++iNeighb) {
+	    if(this->sd[i]->isEdgeNeighbor(iNeighb)) {
+	      if(this->sd[i]->edgeDofs[iNeighb].count())
+		target[k+n++] = augOffset + (*(this->subToEdge))[s][iEdgeN];
+	      iEdgeN++;
+	    }
+	  }
+	}
+#ifdef DISTRIBUTED
+	this->fetiCom->globalSum(total, target);
+#endif
+	elemToNode = new Connectivity(this->glNumSub, pointer, target);
+      } else
+	elemToNode = subToCorner;
+
+      decCoarseDomain->setElemToNode(elemToNode);
+      if (elemToNode == subToCorner)
+	elemToNode = 0;
+      decCoarseDomain->setSubToElem(decCoarse);
+      decCoarseDomain->setCPUMap(CPUMapCoarse);
       decCoarseDomain->preProcess();
       for(int i=0; i<decCoarseDomain->getNumSub(); ++i) decCoarseDomain->getSubDomain(i)->makeAllDOFs();
       GenMDDynamMat<Scalar> ops;
@@ -872,8 +1041,11 @@ GenFetiDPSolver<Scalar>::makeKcc()
       KccParallelSolver = ops.dynMat;
       //paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp, decCoarseDomain->getSubDomain(0)->getCDSA(),
       //           augOffset, this->subToEdge, mpcOffset, decCoarseDomain->getSubDomain(0)->getGlobalToLocalNodeMap());
-      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2, decCoarseDomain->getNumSub(), 
-                 decCoarseDomain->getAllSubDomains()); // PJSA 10/10/2014
+      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2,
+		 decCoarseDomain->getNumSub(), decCoarseDomain->getAllSubDomains(),
+		 augOffset, this->subToEdge); // JAT 101816
+//      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2, decCoarseDomain->getNumSub(), 
+//                 decCoarseDomain->getAllSubDomains()); // PJSA 10/10/2014
    }
    else {
 
@@ -1867,20 +2039,20 @@ void
 GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
 { 
   int iSub;
-  int glNumSub = this->subToSub->csize();
+//  int glNumSub = this->subToSub->csize();
 
   paralApply(this->nsub, this->sd, &BaseSub::findEdgeNeighbors);
 
   // First count number of edges per subdomain
-  int *cx = new int[glNumSub+1];
-  int *cxx = new int[glNumSub+1];
-  for(iSub=0; iSub<glNumSub+1; ++iSub) { cx[iSub] = 0; cxx[iSub] = 0; }
+  int *cx = new int[this->glNumSub+1];
+  int *cxx = new int[this->glNumSub+1];
+  for(iSub=0; iSub<this->glNumSub+1; ++iSub) { cx[iSub] = 0; cxx[iSub] = 0; }
 
   // count edges in parallel
   execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::countEdges, cx);
 
 #ifdef DISTRIBUTED
-  this->fetiCom->globalSum(glNumSub+1, cx);
+  this->fetiCom->globalSum(this->glNumSub+1, cx);
 #endif
 
   // Sum each subdomain's edge count to compute total number of edges
@@ -1890,16 +2062,16 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
   int totalNumEdges = 0;
 #ifdef DISTRIBUTED
   int i;
-  int *numEdgesPerSub = new int[glNumSub];
-  for(iSub=0; iSub<glNumSub; ++iSub)
+  int *numEdgesPerSub = new int[this->glNumSub];
+  for(iSub=0; iSub<this->glNumSub; ++iSub)
     numEdgesPerSub[iSub] = 0;
 
   for(iSub=0; iSub<this->nsub; ++iSub)  
     numEdgesPerSub[this->sd[iSub]->subNum()] = this->sd[iSub]->numEdgeNeighbors();  // don't include virtual neighbors
 
-  this->fetiCom->globalSum(glNumSub, numEdgesPerSub);
+  this->fetiCom->globalSum(this->glNumSub, numEdgesPerSub);
 
-  for(iSub=0; iSub<glNumSub; ++iSub) {
+  for(iSub=0; iSub<this->glNumSub; ++iSub) {
     int tmp = numEdges;
     numEdges += cx[iSub];
     cx[iSub] = tmp;
@@ -1910,7 +2082,7 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
   // make sure I can delete this
   delete [] numEdgesPerSub;
 #else
-  for(iSub=0; iSub<glNumSub; ++iSub) {
+  for(iSub=0; iSub<this->glNumSub; ++iSub) {
     int tmp = numEdges;
     numEdges += cx[iSub];
     cx[iSub] = tmp;
@@ -1925,7 +2097,7 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
   // filePrint(stderr,"nE %d tnE %d\n",numEdges, totalNumEdges);
 
   int *connect = new int[totalNumEdges];
-  cxx[glNumSub] = totalNumEdges;
+  cxx[this->glNumSub] = totalNumEdges;
 
 #ifdef DISTRIBUTED
   for(i=0; i<totalNumEdges; ++i) connect[i] = -1;
@@ -1959,7 +2131,7 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
   }
   delete [] connect2;
 #endif
-  this->subToEdge = new Connectivity(glNumSub, cxx, connect);
+  this->subToEdge = new Connectivity(this->glNumSub, cxx, connect);
   // create the edge to subdomain connectivity
   this->edgeToSub = this->subToEdge->reverse();
 }

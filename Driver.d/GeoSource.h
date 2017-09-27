@@ -15,9 +15,14 @@
 #include <Driver.d/EFrameData.h>
 #include <Driver.d/OffsetData.h>
 #include <Control.d/ControlInfo.h>
+#include <Utils.d/SparseConnectivityT.h>
 
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
+#endif
+
+#ifndef SALINAS
+#include <Driver.d/Sower.h>
 #endif
 
 using namespace NewVec;
@@ -188,7 +193,7 @@ class GeoSource {
 
   // Connectivities
   Connectivity *clusToSub;
-  Connectivity *subToClus;
+  int *subToClus;
   Connectivity *subToSub;
   Connectivity *subToNode;
   Connectivity *subToElem;
@@ -201,6 +206,8 @@ class GeoSource {
   double mratio; // consistent-lumped matrix ratio; 1==consistent, 0==lumped
 
  public:
+  SparseConnectivityType1 *subToNode_sparse;
+  SparseConnectivityType2 *nodeToSub_sparse;
   int fixedEndM; // 0: don't include fixed end moments in gravity force vector for beams and shells
   int *gl2ClSubMap;
 
@@ -296,7 +303,7 @@ public:
     void distributeBCs(GenSubDomain<Scalar> *&, int *, int *gl2clNodeMap = 0);
   int getBC(BCond *, int, int *, BCond *&, int *gl2clNodeMap = 0);
   void augmentBC(int, BCond *, BCond *&, int &);
-  int getCPUMap(FILE *f, Connectivity *);
+  int getCPUMap(FILE *f, Connectivity *, int glNumSub = 0);
   void createSingleCpuToSub(int numSub);
   int getSubCtrl(BCond *, int, BCond *&, int *, int *, int *&); //bin geo
   int getSubCtrl(BCond *, int, BCond *&, int, int *&); // text geo input
@@ -439,7 +446,7 @@ public:
   //int  glToPack(int i) { return glToPck[i]; }
   int  glToPackElem(int i) const;
   Connectivity *getClusToSub()  { return clusToSub; }
-  Connectivity *getSubToClus()  { return subToClus; }
+  int *getSubToClus()  { return subToClus; }
   Connectivity *getSubToSub()  { return subToSub; }
   Connectivity *getSubToElem()  { return subToElem; }
   void setSubToElem(Connectivity *ste) { subToElem = ste; }

@@ -24,6 +24,8 @@ public:
                   spooles_msglvl = 0;
                   spooles_renum = 0;
                   mumps_icntl[3] = 0; // supress diagnostic output
+                  mumps_mineq = 0; // 053014 JAT
+                  mumps_stride = 1; // 040715 JAT
                   goldfarb_tol = 1.0;
                   goldfarb_check = false;
                   precond = 0;
@@ -54,6 +56,8 @@ public:
    int spooles_renum; // renumbering scheme for spooles: 0 = best of ND and MS, 1 = MMD, 2 = MS, 3 = ND
    std::map<int, int> mumps_icntl;
    std::map<int, double> mumps_cntl;
+   int mumps_mineq; // 053014 JAT
+   int mumps_stride; // 040715 JAT
    double goldfarb_tol;
    bool goldfarb_check;
    int iterType; // 0 = CG, 1 = GMRES, 2 = GCR, 4 = BCG, 5 = CR

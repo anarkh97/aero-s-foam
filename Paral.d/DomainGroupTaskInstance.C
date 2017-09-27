@@ -6,7 +6,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
                                                double _cc, double _ck, Rbm **_rbms, FullSquareMatrix **_kelArray, \
                                                double _alpha, double _beta, int _numSommer, int _solvertype, \
                                                FSCommunicator *_com, FullSquareMatrix **_melArray, \
-                                               FullSquareMatrix **_celArray, bool elemsetHasDamping, MatrixTimers &mt); \
+                                               FullSquareMatrix **_celArray, MatrixTimers &mt); \
 template \
 GenDomainGroupTask<Scalar>::~GenDomainGroupTask(); \
 template \

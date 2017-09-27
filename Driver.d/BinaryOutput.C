@@ -65,7 +65,7 @@ void
 GeoSource::writeArrayToBinFile(const double *data, int dataSize, int subId, int inDataOffset, int fileId, 
                                int iterRank, int resultRank, double timeStamp, int inStateDataCount, int clusterItemCount)
 {
-  const int clusterId = (*subToClus)[subId][0];
+  const int clusterId = subToClus[subId];
   const char *appendFlag = "ws+";
   BinFileHandler *binFile = openBinaryOutputFile(fileId, clusterId, iterRank, appendFlag);
   
@@ -86,7 +86,7 @@ void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
   if(oinfo[fileId].interval != 0) {
     if (binaryOutput) {
       // Determine which cluster subdomain is in
-      const int clusterId = (*subToClus)[glSub][0];
+      const int clusterId = subToClus[glSub];
       const char *truncateFlag = "w";
       BinFileHandler *binFile = openBinaryOutputFile(fileId, clusterId, iter, truncateFlag);
 
@@ -119,7 +119,7 @@ void GeoSource::outputRange(int fileId, int *globalIndex, int nData, int glSub, 
 {
   if(!oinfo[fileId].PodRomfile) {
    if (binaryOutput) {
-    const int clusterId = (*subToClus)[glSub][0];
+    const int clusterId = subToClus[glSub];
     const char *appendFlag = "ws+";
     BinFileHandler *file = openBinaryOutputFile(fileId, clusterId, iter, appendFlag);
 

@@ -164,7 +164,8 @@ class GenDecDomain
   void makeSubDomains();
   void renumberElements(int iSub);
   void createElemToNode();
-  void getSharedNodes();
+  template<class ConnectivityType1, class ConnectivityType2>
+  void getSharedNodes(ConnectivityType1 *, ConnectivityType2 *);
   void addBMPCs();
   void makeSubToSubEtc();
   void preProcessBCsEtc();

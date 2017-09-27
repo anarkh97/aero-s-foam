@@ -80,15 +80,68 @@ GenMumpsSolver<Scalar>::init()
   mumpsId.id.par = 1; // 1: working host model
   mumpsId.id.sym = scntl.pivot ? 2 : 1; // 2: general symmetric, 1: symmetric positive definite, 0: unsymmetric
   if(scntl.unsymmetric) mumpsId.id.sym = 0;
+  mumpsCPU = true;
+  host = (mpicomm) ? (mpicomm->cpuNum() == 0) : true;
 #ifdef USE_MPI
-  if(mpicomm) mumpsId.id.comm_fortran = MPI_Comm_c2f(mpicomm->getComm());
-  else mumpsId.id.comm_fortran = MPI_Comm_c2f(MPI_COMM_SELF);
+  groupcomm = 0;
+  if(mpicomm) {
+    int numCPU = mpicomm->size();  // JAT 052214
+    if(neq < numCPU*scntl.mumps_mineq) {
+      int numMumpsCPU = (neq + scntl.mumps_mineq - 1)/scntl.mumps_mineq;
+      int thisCPU = mpicomm->cpuNum();
+      std::map<int,int>::iterator IcntlIter = scntl.mumps_icntl.find(18);   // JAT 072816
+      if(IcntlIter != scntl.mumps_icntl.end() && IcntlIter->second > 0) {
+        int step = numCPU/numMumpsCPU;
+        int nl = numCPU%numMumpsCPU;
+        int groupNo, groupCPU;
+        if(thisCPU < nl*(step+1)) {
+          groupNo  = thisCPU/(step+1);
+          groupCPU = thisCPU%(step+1);
+        } else {
+          groupNo  = nl + (thisCPU - nl*(step+1))/step;
+          groupCPU = (thisCPU - nl*(step+1))%step;
+        }
+        mumpsCPU = groupCPU == 0;
+        MPI_Comm *mpigroupcomm = new MPI_Comm;
+        MPI_Comm_split(mpicomm->getComm(), groupNo, thisCPU,
+                       mpigroupcomm);
+        groupcomm = new Communicator(*mpigroupcomm,(FILE *)0);
+        if(host)
+          fprintf(stderr, "Mumps distributed init: using %d CPUs out of %d CPUs\n",
+                  numMumpsCPU, numCPU);
+      } else {
+        int stride = scntl.mumps_stride; // JAT 040715
+        if (stride*(numMumpsCPU-1)+1 > numCPU)
+          stride = (numCPU-1)/(numMumpsCPU-1); // reduced stride
+        if(host) {
+          fprintf(stderr, "Mumps init: using %d CPUs out of %d CPUs\n",
+                  numMumpsCPU, numCPU);
+          if (stride != 1) {
+            if (stride == scntl.mumps_stride)
+              fprintf(stderr, "Mumps init: CPU stride %d\n", stride);
+            else
+              fprintf(stderr, "Mumps init: CPU reduced stride %d\n", stride);
+          }
+        }
+        mumpsCPU = (thisCPU % stride == 0) &&
+                   (thisCPU / stride < numMumpsCPU); // JAT 040715
+      }
+      MPI_Comm *mumpscomm = new MPI_Comm;
+      MPI_Comm_split(mpicomm->getComm(), mumpsCPU?0:MPI_UNDEFINED, thisCPU,
+                     mumpscomm);
+      if(mumpsCPU) mumpsId.id.comm_fortran = MPI_Comm_c2f(*mumpscomm);
+    } else
+      mumpsId.id.comm_fortran = MPI_Comm_c2f(mpicomm->getComm());
+  } else
+    mumpsId.id.comm_fortran = MPI_Comm_c2f(MPI_COMM_SELF);
 #else
   mumpsId.id.comm_fortran = USE_COMM_WORLD; // default value for fortran communicator
 #endif
+
+  if(!mumpsCPU) return; // JAT 072616
+
   mumpsId.id.job = -1; // initialize instance of the mumps package
   Tmumps_c(mumpsId.id);
-  host = (mpicomm) ? (mpicomm->cpuNum() == 0) : true;
 
   // Set control parameters CNTL and ICNTL
   std::map<int,double>::iterator CntlIter = scntl.mumps_cntl.begin();
@@ -138,8 +191,10 @@ GenMumpsSolver<Scalar>::zeroAll()
   if(!unonz) unonz = new Scalar[nNonZero];
   for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
 #ifdef USE_MUMPS
-  mumpsId.id.job = -2; // destroy instance of the mumps package
-  Tmumps_c(mumpsId.id);
+  if(mumpsCPU) { // JAT 052314
+    mumpsId.id.job = -2; // destroy instance of the mumps package
+    Tmumps_c(mumpsId.id);
+  }
 #endif
   init();
 }
@@ -275,7 +330,52 @@ void
 GenMumpsSolver<Scalar>::unify(FSCommunicator *_communicator)
 {
 #if defined(USE_MPI) && defined(USE_MUMPS)
-  if(mpicomm && mumpsId.id.ICNTL(18) == 0)
+  if(groupcomm) {
+    int nNonZeroNew = nNonZero;
+    groupcomm->reduce(1, &nNonZeroNew, 0);
+    if(groupcomm->myID() == 0) {
+      int groupSize = groupcomm->numCPUs();
+      int n;
+      int *rowuNew = new int[nNonZeroNew];
+      int *coluNew = new int[nNonZeroNew];
+      Scalar *unonzNew = new Scalar[nNonZeroNew];
+      for(n = 0; n < nNonZero; n++) {
+	rowuNew[n] = rowu[n];
+	coluNew[n] = colu[n];
+	unonzNew[n] = unonz[n];
+      }
+      delete [] rowu;
+      rowu = rowuNew;
+      delete [] colu;
+      colu = coluNew;
+      delete [] unonz;
+      unonz = unonzNew;
+      nNonZero = nNonZeroNew;
+      for(int k = 1; k < groupSize; k++) {
+	RecInfo rInfo;
+	rInfo = groupcomm->recFrom(k, 0, rowu+n, nNonZero-n+1);
+	rInfo = groupcomm->recFrom(k, 0, colu+n, nNonZero-n+1);
+	rInfo = groupcomm->recFrom(k, 0, unonz+n, nNonZero-n+1);
+	n += rInfo.len;
+      }
+      groupcomm->sync();
+      if(n != nNonZero) {
+	fprintf(stderr, "Mumps unify: lengths do not match\n");
+	exit(1);
+      }
+    } else {
+      groupcomm->sendTo(0, 0, rowu, nNonZero);
+      groupcomm->sendTo(0, 0, colu, nNonZero);
+      groupcomm->sendTo(0, 0, unonz, nNonZero);
+      groupcomm->sync();
+      delete [] rowu;
+      rowu = 0;
+      delete [] colu;
+      colu = 0;
+      delete [] unonz;
+      unonz = 0;
+    }
+  } else if(mpicomm && mumpsId.id.ICNTL(18) == 0)
     mpicomm->reduce(xunonz[numUncon]-1, unonz, 0); // assemble on host (mpi process with rank 0)
 #endif
 }
@@ -285,6 +385,11 @@ void
 GenMumpsSolver<Scalar>::factor()
 {
   if(numUncon == 0) return;
+  if(!mumpsCPU) {
+    nrbm = 0; // JAT 310715
+    return; // JAT 052314
+  }
+
 #ifdef USE_MUMPS
   if(host) {
     mumpsId.id.n = neq;
@@ -318,6 +423,13 @@ GenMumpsSolver<Scalar>::factor()
   }
 
   nrbm = mumpsId.id.INFOG(28); // number of zero pivots detected
+
+  if(nrbm > 0 &&
+     mpicomm && neq < mpicomm->size()*scntl.mumps_mineq) { // JAT 310715
+    if(host)
+      std::cerr << "Zero pivot with MUMPS not supported with subset of processes\n";
+    exit(1);
+  }
 
   if(this->print_nullity && host && nrbm > 0)
     std::cerr << " ... Matrix is singular: size = " << neq << ", rank = " << neq-nrbm << ", nullity = " << nrbm << " ...\n";
@@ -355,6 +467,7 @@ template<class Scalar>
 int*
 GenMumpsSolver<Scalar>::getPivnull_list()
 {
+  if (!mumpsCPU) return NULL; // JAT 052314
 #ifdef USE_MUMPS
   return mumpsId.id.pivnul_list;
 #else
@@ -373,8 +486,10 @@ GenMumpsSolver<Scalar>::solve(Scalar *rhs, Scalar *solution)
     copyToMumpsRHS(mumpsId.id.rhs, rhs, numUncon); // mumpsId.id.rhs = copy of rhs;
     mumpsId.id.nrhs = 1;
   }
-  mumpsId.id.job = 3; // 3: solve
-  Tmumps_c(mumpsId.id);
+  if(mumpsCPU) { // JAT 052314
+    mumpsId.id.job = 3; // 3: solve
+    Tmumps_c(mumpsId.id);
+  }
   if(host) copyFromMumpsRHS(solution, mumpsId.id.rhs, numUncon); // solution = mumpsId.id.rhs;
 #ifdef USE_MPI
   if(mpicomm) mpicomm->broadcast(numUncon, solution, 0); // send from host to others
@@ -395,8 +510,10 @@ GenMumpsSolver<Scalar>::reSolve(Scalar *rhs)
     copyToMumpsRHS(mumpsId.id.rhs, rhs, numUncon); // mumpsId.id.rhs = copy of rhs;
     mumpsId.id.nrhs = 1;
   }
-  mumpsId.id.job = 3; // 3: solve
-  Tmumps_c(mumpsId.id);
+  if(mumpsCPU) { // JAT 052314
+    mumpsId.id.job = 3; // 3: solve
+    Tmumps_c(mumpsId.id);
+  }
   if(host) copyFromMumpsRHS(rhs, mumpsId.id.rhs, numUncon); // solution = mumpsId.id.rhs;
 #ifdef USE_MPI
   if(mpicomm) mpicomm->broadcast(numUncon, rhs, 0); // send from host to others
@@ -418,8 +535,10 @@ GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar *rhs)
     mumpsId.id.nrhs = nRHS;
     mumpsId.id.lrhs = numUncon; // leading dimension
   }
-  mumpsId.id.job = 3; // 3: solve
-  Tmumps_c(mumpsId.id);
+  if(mumpsCPU) { // JAT 052314
+    mumpsId.id.job = 3; // 3: solve
+    Tmumps_c(mumpsId.id);
+  }
   if(host) copyFromMumpsRHS(rhs, mumpsId.id.rhs, numUncon*nRHS); // rhs = mumpsId.id.rhs;
 #ifdef USE_MPI
   if(mpicomm) mpicomm->broadcast(numUncon*nRHS, rhs, 0); // send from host to all others
@@ -441,8 +560,10 @@ GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar **rhs)
     mumpsId.id.nrhs = nRHS;
     mumpsId.id.lrhs = numUncon; // leading dimension
   }
-  mumpsId.id.job = 3; // 3: solve
-  Tmumps_c(mumpsId.id);
+  if(mumpsCPU) { // JAT 052314
+    mumpsId.id.job = 3; // 3: solve
+    Tmumps_c(mumpsId.id);
+  }
   if(host) copyFromMumpsRHS(rhs, mumpsId.id.rhs, numUncon, nRHS); // rhs = mumpsId.id.rhs;
 #ifdef USE_MPI
   if(mpicomm) for(int i=0; i<nRHS; ++i) mpicomm->broadcast(numUncon, rhs[i], 0); // send from host to others
@@ -464,8 +585,10 @@ GenMumpsSolver<Scalar>::reSolve(int nRHS, GenVector<Scalar> *rhs)
     mumpsId.id.nrhs = nRHS;
     mumpsId.id.lrhs = numUncon; // leading dimension
   }
-  mumpsId.id.job = 3; // 3: solve
-  Tmumps_c(mumpsId.id);
+  if(mumpsCPU) { // JAT 052314
+    mumpsId.id.job = 3; // 3: solve
+    Tmumps_c(mumpsId.id);
+  }
   if(host) copyFromMumpsRHS(rhs, mumpsId.id.rhs, numUncon, nRHS); // rhs = mumpsId.id.rhs;
 #ifdef USE_MPI
   if(mpicomm) for(int i=0; i<nRHS; ++i) mpicomm->broadcast(numUncon, rhs[i].data(), 0); // send from host to others
@@ -502,6 +625,7 @@ template<class Scalar>
 long int
 GenMumpsSolver<Scalar>::size()
 {
+  if(!mumpsCPU) return 0; // JAT 052314
 #ifdef USE_MUMPS
   if(mumpsId.id.INFOG(3) < 0) return static_cast<long int>(-1e6)*mumpsId.id.INFOG(3);
   else return mumpsId.id.INFOG(3);
@@ -551,8 +675,10 @@ GenMumpsSolver<Scalar>::~GenMumpsSolver()
     unonz = 0;
    }
 
-  mumpsId.id.job = -2; // -2: destroys instance of mumps package
-  Tmumps_c(mumpsId.id);
+  if(mumpsCPU) { // JAT 052314
+    mumpsId.id.job = -2; // -2: destroys instance of mumps package
+    Tmumps_c(mumpsId.id);
+  }
 
 #endif
   if(mpicomm) mpicomm->sync();

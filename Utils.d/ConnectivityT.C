@@ -1,27 +1,9 @@
 #include <iostream>
 #include <cstdio>
-#include <Utils.d/dbg_alloca.h>
-#include <algorithm>
-#include <set>
-using std::stable_sort;
-
-#include <Utils.d/Connectivity.h>
 #include <Utils.d/BinFileHandler.h>
-#include <Utils.d/resize_array.h>
-#include <Utils.d/dofset.h>
-#include <Element.d/Element.h>
-#include <Mortar.d/FaceElement.d/FaceElemSet.h>
-#include <Mortar.d/FaceElement.d/FaceElement.h>
-#include <Element.d/Sommerfeld.d/SommerElement.h>
 
-#include <Utils.d/GlobalInt.h>
-
-//HB: for activating the optimization of renumByComponent without renumbering
-//    Currently, one has to use renumAlg = -1 when calling the renumByComponent method
-//    to use this optimization
-#define HB_RENUMBYCOMP_OPT
- 
-Connectivity::Connectivity(int _size, int *_pointer, int *_target, int _removeable, float *_weight) 
+template<typename IndexType, typename DataType>
+ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType *_pointer, DataType *_target, bool _removeable, float *_weight) 
 {
  size      = _size;
  pointer   = _pointer;
@@ -31,174 +13,37 @@ Connectivity::Connectivity(int _size, int *_pointer, int *_target, int _removeab
  weight    = _weight;
 }
 
-Connectivity::Connectivity(Elemset *els)
-{
- removeable = 1;
- int i;
- weight = (float *) 0;
-
- size = els->last();
-
- // Find out the number of targets we will have
- pointer = new int[size+1] ;
- int pp = 0;
- for(i=0; i < size; ++i) {
-   pointer[i] = pp;
-   pp += (*els)[i] ? (*els)[i]->numNodes() : 0;
- }
- pointer[size] = pp;
- numtarget = pp;
-
- // Create the target array
- target = new int[pp];
-
- // Fill it in
- for(i=0; i < size; ++i) {
-   if((*els)[i]) (*els)[i]->nodes(target+pointer[i]);
- }
-}
-
-Connectivity::Connectivity(Elemset *els, Connectivity *nodeToElem)
-{
- removeable = 1;
- int i;
- weight = (float *) 0;
-
- size = els->last();
-
- // locate any nodes that are not connected to rigid or flexible elements
- std::set<int> mpcnodes;
- for(i=0; i < size; ++i) {
-   Element *ele = (*els)[i];
-   if(ele->isMpcElement() && !ele->isRigidElement()) {
-     int *nodes = (*els)[i]->nodes();
-     for(int j=0; j<ele->numNodes()-ele->numInternalNodes(); ++j) {
-       bool connected = false;
-       for(int k=0; k<nodeToElem->num(nodes[j]); ++k) {
-         Element *kele = (*els)[(*nodeToElem)[nodes[j]][k]];
-         if(kele->isRigidElement() || !kele->isMpcElement()) {
-           connected = true;
-           break;
-         }
-       }
-       if(!connected) mpcnodes.insert(nodes[j]);
-     }
-     delete [] nodes;
-   }
- }
-
- size += mpcnodes.size();
-
- // Find out the number of targets we will have
- pointer = new int[size+1] ;
- int pp = 0;
- for(i = 0; i < size-mpcnodes.size(); ++i) {
-   pointer[i] = pp;
-   Element *ele = (*els)[i];
-   if(ele)  {
-     if(ele->isRigidElement() || !ele->isMpcElement()) {
-       pp += ele->numNodes();
-     }
-   }
- }
- for(i=size-mpcnodes.size(); i < size; ++i) {
-   pointer[i] = pp;
-   pp++;
- }
-
- pointer[size] = pp;
- numtarget = pp;
-
- // Create the target array
- target = new int[pp];
-
- // Fill it in
- for(i = 0; i < size-mpcnodes.size(); ++i) {
-   Element *ele = (*els)[i];
-   if(ele) {
-     if(ele->isRigidElement() || !ele->isMpcElement()) {
-       ele->nodes(target+pointer[i]);
-     }
-   }
- }
- for(std::set<int>::iterator it = mpcnodes.begin(); it != mpcnodes.end(); it++) {
-   target[pointer[i++]] = *it;
- }
-}
-
-Connectivity::Connectivity(Elemset*els, int numSom, SommerElement **som)
-{
-  removeable=1;
-  int i, j, k;
-  weight = (float*) 0;
-
-  size = numSom;
-
-  pointer = new int[numSom+1];
-  for (i = 0 ; i < numSom+1 ; i++)
-    pointer[i] = i;
-  numtarget = numSom;
-
-  target = new int[numSom];
-
-  int nE = els->last();
-  Connectivity *eToN = new Connectivity(els);
-  Connectivity *nToE = eToN->reverse();
-  int *eleCount = new int[nE];
-  int nno, no, el, nei;
-
-  for (i = 0 ; i < numSom ; i++) {
-    el = -1;
-    for (j = 0 ; j < nE ; j++) eleCount[j] = 0;
-    //find the adjascent neighbour: el
-    nno = som[i]->numNodes();
-    for (j = 0 ; j < nno ; j++) {
-      no = som[i]->getNode(j);
-      for (k = 0 ; k < nToE->num(no) ; k++) {
-        nei = (*nToE)[no][k];
-        eleCount[nei]++;
-        if (eleCount[nei]==nno) {
-          el = nei;
-          continue;
-        }
-      }
-      if (el) continue;
-    }
-    if (el==-1) fprintf(stderr,"Connectivity.C, No adjascent element\n");
-    target[i] = el;
-  }
-  delete [] eleCount; eleCount = NULL;
-}
-
-Connectivity::Connectivity(BinFileHandler& f, bool oldSower)
+template<typename IndexType, typename DataType>
+ConnectivityT<IndexType,DataType>::ConnectivityT(BinFileHandler& f, bool oldSower)
 {
   if(!oldSower) {
     f.read(&size,1);
-    pointer = new int[size];
+    pointer = new IndexType[size];
     --size;
     f.read(pointer,size+1);
     f.read(&numtarget,1);
-    target = new int[numtarget];
+    target = new DataType[numtarget];
     f.read(target,numtarget);
-    removeable = 1;
+    removeable = true;
     weight    = 0;
   }
   else {
-    //cerr << " *** WARNING: using OLD_SOWER ::Connectivity(BinFileHandler& f) \n";
-    removeable = 1;
+    //cerr << " *** WARNING: using OLD_SOWER ::ConnectivityT(BinFileHandler& f) \n";
+    removeable = true;
     f.read(&size, 1);
     f.read(&numtarget, 1);
-    pointer = new int[size+1];
-    target = new int[numtarget];
+    pointer = new IndexType[size+1];
+    target = new DataType[numtarget];
     weight = 0;
     f.read(pointer, size+1);
     f.read(target, numtarget);
   }
 }
 
-size_t Connectivity::write(BinFileHandler& f)
+template<typename IndexType, typename DataType>
+size_t ConnectivityT<IndexType,DataType>::write(BinFileHandler& f)
 {
-  int _size = size+1;
+  IndexType _size = size+1;
   f.write(&_size,1);
   f.write(pointer,_size);
   f.write(&numtarget,1);
@@ -206,182 +51,130 @@ size_t Connectivity::write(BinFileHandler& f)
   return 0;
 }
 
-size_t Connectivity::writeg(BinFileHandler& f)
+template<typename IndexType, typename DataType>
+ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType *_count)
 {
-  int _size = size+1;
-  f.write(&_size,1);
-  f.write(pointer,_size);
-  f.write(&numtarget,1);
-  GlobalInt *gtarget = new GlobalInt[numtarget];
-  for(int i = 0; i < numtarget; i++)
-    gtarget[i] = target[i];
-  f.write(gtarget,numtarget);
-  delete [] gtarget;
-  return 0;
-}
-
-Connectivity::Connectivity(int _size, int *_count)
-{
- removeable = 1;
+ removeable = true;
  size    = _size;
- pointer = new int[size+1];
+ pointer = new IndexType[size+1];
  pointer[0] = 0;
- int i;
+ IndexType i;
  for(i=0; i < _size; ++i)
     pointer[i+1] = pointer[i] + _count[i];
  numtarget = pointer[size];
- target = new int[numtarget];
+ target = new DataType[numtarget];
  weight = 0;
 }
 
-Connectivity::Connectivity(int _size, int count)
+template<typename IndexType, typename DataType>
+ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType count)
 {
- removeable = 1;
+ removeable = true;
  size    = _size;
- pointer = new int[size+1];
+ pointer = new IndexType[size+1];
  pointer[0] = 0;
- int i;
+ IndexType i;
  for(i=0; i < _size; ++i)
     pointer[i+1] = pointer[i] + count;
  numtarget = pointer[size];
- target = new int[numtarget];
- for(int i=0; i < numtarget; ++i)
+ target = new DataType[numtarget];
+ for(IndexType i=0; i < numtarget; ++i)
     target[i] = i;
  weight = 0;
 }
 
-Connectivity::Connectivity(FaceElemSet* els, int _size)
+/*ConnectivityT::ConnectivityT(BinFileHandler &file)
 {
- removeable = 1;
- int i;
- weight = (float *)0;
-
- size = (_size == 0) ? els->last() : _size;
-
- // Find out the number of targets we will have
- pointer = new int[size+1] ;
- int pp = 0;
- for(i=0; i < size; ++i) {
-   pointer[i] = pp;
-   pp += (*els)[i] ? (*els)[i]->nNodes() : 0;
- }
- pointer[size] = pp;
- numtarget = pp;
-
- // Create the target array
- target = new int[pp];
-
- // Fill it in
- for(i=0; i < size; ++i) {
-   if((*els)[i]) (*els)[i]->GetNodes(target+pointer[i]);
- }
-}
-
-/*Connectivity::Connectivity(BinFileHandler &file)
-{
-  removeable = 1;
+  removeable = true;
   file.read(&size, 1);
   file.read(&numtarget, 1);
 
-  pointer = new int[size+1];
-  target = new int[numtarget];
+  pointer = new IndexType[size+1];
+  target = new IndexType[numtarget];
   weight = 0;
 
   file.read(pointer, size+1);
   file.read(target, numtarget);
 }*/
 
-Connectivity::Connectivity(const Connectivity &other)
- : removeable(true), size(other.size), numtarget(other.numtarget)
-{
-  if(other.pointer) {
-    pointer = new int[size];
-    for(int i=0; i<size; ++i) pointer[i] = other.pointer[i];
-  }
-  else pointer = NULL;
-
-  if(other.target) {
-    target = new int[numtarget];
-    for(int i=0; i<numtarget; ++i) target[i] = other.target[i];
-  }
-  else pointer = NULL;
-
-  if(other.weight) {
-    weight = new float[size];
-    for(int i=0; i<size; ++i) weight[i] = other.weight[i];
-  }
-  else weight = NULL;
-}
-
-Connectivity::~Connectivity()
+template<typename IndexType, typename DataType>
+ConnectivityT<IndexType,DataType>::~ConnectivityT()
 {
  if(removeable && pointer) { delete [] pointer; pointer = 0; }
  if(removeable && target)  { delete [] target;  target  = 0; }
  if(weight) { delete [] weight; weight = 0; }
 }
 
-int
-Connectivity::offset(int i, int j)
+template<typename IndexType, typename DataType>
+IndexType
+ConnectivityT<IndexType,DataType>::offset(IndexType i, DataType j)
 {
- int ii;
+ IndexType ii;
  for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
   if(target[ii] == j) return ii;
 
  return -1; // We didn't find a connection between i and j
 }
 
-int
-Connectivity::cOffset(int i, int j)
+template<typename IndexType, typename DataType>
+IndexType
+ConnectivityT<IndexType,DataType>::cOffset(IndexType i, DataType j)
 {
- int ii;
+ IndexType ii;
  for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
   if(target[ii] == j) return (ii - pointer[i]);
 
  return -1; // We didn't find a connection between i and j
 }
 
-Connectivity*
-Connectivity::transconOne( Connectivity* tc)
+#if 0
+#include <Utils.d/resize_array.h>
+#include <Utils.d/dbg_alloca.h>
+#include <algorithm>
+using std::stable_sort;
+
+ConnectivityT*
+ConnectivityT::transconOne( ConnectivityT* tc)
 // D. Rixen :for every pointer
 // of tc only one entry in target of tc is considered
 // (used to associate a mpc term for a interface node
 //  to only one sub, with a preference for already included sub)
 {
- int i,j,k;
+ IndexType i,j,k;
 
  // First find the biggest target so we can size arrays correctly
- int tgmax=-1;
+ IndexType tgmax=-1;
 
  for(i =0; i < tc->numtarget; ++i)
    if(tc->target[i] > tgmax) tgmax=tc->target[i];
  tgmax++; // Important adjustment
 
  // Now we can size the array that flags if a target has been visited
- int *flags = (int *) dbg_alloca(sizeof(int)*tgmax);
+ IndexType *flags = (IndexType *) dbg_alloca(sizeof(IndexType)*tgmax);
 
  // For every pointer, build the number of occurrence of targets
  // and choose one target per tc->pointer (max occurrence)
  // At the same time build new pointers np
 
- int cp = 0;
- int *np = new int[size+1];
- int ii;
+ IndexType cp = 0;
+ IndexType *np = new IndexType[size+1];
+ IndexType ii;
  for(i = 0; i < size; ++i) {
    np[i] = cp;
    for(ii = 0; ii < tgmax; ++ii)
     flags[ii] = 0;
    //-- store number of occurence in flag
    for(j = pointer[i]; j < pointer[i+1]; ++j){
-      int intermed = target[j];
+      IndexType intermed = target[j];
       for (k = 0; k < tc->num(intermed); ++k)
           flags[(*tc)[intermed][k]]++;
    }
    //-- set pointer and size target
    for(j = pointer[i]; j < pointer[i+1]; ++j){
-      int intermed = target[j];
+      IndexType intermed = target[j];
       //-- target with max occ.
-      int targMaxOcc;
-      int maxOcc = 0;
+      IndexType targMaxOcc;
+      IndexType maxOcc = 0;
       for (k = 0; k < tc->num(intermed); ++k){
           if(flags[(*tc)[intermed][k]]==-1){
             maxOcc=0;
@@ -397,23 +190,23 @@ Connectivity::transconOne( Connectivity* tc)
  }
  np[size] = cp;
  // Now allocate and fill new target
- int *ntg = new int[cp];
+ IndexType *ntg = new IndexType[cp];
  cp = 0;
  for(i = 0; i < size; ++i) {
    for(ii = 0; ii < tgmax; ++ii)
     flags[ii] = 0;
    //-- store number of occurence in flag
    for(j = pointer[i]; j < pointer[i+1]; ++j){
-      int intermed = target[j];
+      IndexType intermed = target[j];
       for (k = 0; k < tc->num(intermed); ++k)
           flags[(*tc)[intermed][k]]++;
    }
    //-- fill target
    for(j = pointer[i]; j < pointer[i+1]; ++j){
-      int intermed = target[j];
+      IndexType intermed = target[j];
       //-- target with max occ.
-      int targMaxOcc;
-      int maxOcc = 0;
+      IndexType targMaxOcc;
+      IndexType maxOcc = 0;
       for (k = 0; k < tc->num(intermed); ++k){
           if(flags[(*tc)[intermed][k]]==-1){
             maxOcc=0;
@@ -429,7 +222,7 @@ Connectivity::transconOne( Connectivity* tc)
     }
  }
 
- Connectivity *res = new Connectivity();
+ ConnectivityT *res = new ConnectivityT();
  res->size      = size;
  res->pointer   = np;
  res->numtarget = np[size];
@@ -438,26 +231,25 @@ Connectivity::transconOne( Connectivity* tc)
  return res;
 }
 
-int
-Connectivity::num(int nd, int *mask)
+IndexType
+ConnectivityT::num(IndexType nd, IndexType *mask)
 {
- int res=0;
- int jstrt = pointer[nd];
- int jstop = pointer[nd+1];
- int j;
+ IndexType res=0;
+ IndexType jstrt = pointer[nd];
+ IndexType jstop = pointer[nd+1];
+ IndexType j;
  for(j = jstrt; j < jstop; ++j)
     if(mask[target[j]]) res++;
  return res;
 }
 
-
 void
-Connectivity::findPseudoDiam(int *s, int *e, int *mask)
+ConnectivityT::findPseudoDiam(IndexType *s, IndexType *e, IndexType *mask)
 {
- int i,k,nw;
+ IndexType i,k,nw;
  // Select the node with the lowest connectivity
- int cmin = numtarget+1;
- int cmax = 0;
+ IndexType cmin = numtarget+1;
+ IndexType cmax = 0;
  for(i = 0; i < size; ++i) {
   if(mask[i]) {
      if((nw = num(i,mask)) < cmin) {
@@ -468,29 +260,29 @@ Connectivity::findPseudoDiam(int *s, int *e, int *mask)
   }
  }
 
- int *ls  =  new int[numtarget];
- int *xls =  new int[numtarget+1];
+ IndexType *ls  =  new IndexType[numtarget];
+ IndexType *xls =  new IndexType[numtarget+1];
 
  // Created rooted level structure
- int w;
- int h = rootLS(*s, xls, ls, w, mask);
- int subconsize = xls[h];
- int *sorted = (int *) dbg_alloca((cmax+1)*sizeof(int));
+ IndexType w;
+ IndexType h = rootLS(*s, xls, ls, w, mask);
+ IndexType subconsize = xls[h];
+ IndexType *sorted = (IndexType *) dbg_alloca((cmax+1)*sizeof(IndexType));
  *e = ls[xls[h-1]]; // Give a default end point in case h == subconsize.
  while(h < subconsize) {
    for(k=0; k <= cmax; ++k) sorted[k] = -1;
    // Find in the last level the node with the minimum connectivity
-   //int maxweight = subconsize;
-   int kstrt = xls[h-1];
-   int kstop = xls[h];
+   //IndexType maxweight = subconsize;
+   IndexType kstrt = xls[h-1];
+   IndexType kstop = xls[h];
    for(k=kstrt; k < kstop; ++k)
       {
         sorted[num(ls[k],mask)] = ls[k];
       }
-   int w_e = subconsize;
+   IndexType w_e = subconsize;
    for(k = 0; k <= cmax; ++k)
     if(sorted[k] >= 0) {
-      int nh = rootLS(sorted[k], xls, ls, w, mask);
+      IndexType nh = rootLS(sorted[k], xls, ls, w, mask);
       if(w < w_e) {
          if(nh > h) {
            *s = sorted[k];
@@ -508,13 +300,13 @@ Connectivity::findPseudoDiam(int *s, int *e, int *mask)
  return;
 }
 
-int
-Connectivity::rootLS(int root, int *xls, int *ls, int &w, int *mask)
+IndexType
+ConnectivityT::rootLS(IndexType root, IndexType *xls, IndexType *ls, IndexType &w, IndexType *mask)
 {
- int i, j;
+ IndexType i, j;
  w = 0;
 
- int *locMask = new int[size];
+ IndexType *locMask = new IndexType[size];
 
  if(mask)
    for(i = 0; i < size; ++i) locMask[i] = mask[i];
@@ -524,18 +316,18 @@ Connectivity::rootLS(int root, int *xls, int *ls, int &w, int *mask)
  locMask[root] = 0;
  ls[0] = root;
  xls[0] = 0;
- int nlvl = 1;
- int nf = 1;
+ IndexType nlvl = 1;
+ IndexType nf = 1;
  while(nf > xls[nlvl-1]) {
    xls[nlvl] = nf;
-   int lbegin = xls[nlvl-1];
-   int lend   = xls[nlvl];
+   IndexType lbegin = xls[nlvl-1];
+   IndexType lend   = xls[nlvl];
    for (i = lbegin; i <lend; ++i) {
-     int n1 = ls[i];
-     int jstart = pointer[n1];
-     int jstop  = pointer[n1+1];
+     IndexType n1 = ls[i];
+     IndexType jstart = pointer[n1];
+     IndexType jstop  = pointer[n1+1];
      for(j=jstart; j < jstop; ++j) {
-       int n2 = target[j];
+       IndexType n2 = target[j];
        if(locMask[n2]) {
           locMask[n2] = 0;
           ls[nf++] = n2;
@@ -551,19 +343,19 @@ Connectivity::rootLS(int root, int *xls, int *ls, int &w, int *mask)
  return nlvl-1;
 }
 
-compStruct
-Connectivity::renumByComponent(int renumAlg)
+compStructT
+ConnectivityT::renumByComponent(IndexType renumAlg)
 {
   // size = total number of nodes
-  int *globalRenum = new int[size];
-  int *mark = new int[size];
-  int *ls   = new int[size];
-  int *xls  = new int[size+1];
-  ResizeArray<int> xcomp(0,2);
+  IndexType *globalRenum = new IndexType[size];
+  IndexType *mark = new IndexType[size];
+  IndexType *ls   = new IndexType[size];
+  IndexType *xls  = new IndexType[size+1];
+  ResizeArray<IndexType> xcomp(0,2);
   // Initialize mark to zero, accounting for missing node #s
   // Initialize globalMask
 
-  int inode;
+  IndexType inode;
   for(inode = 0; inode < size; ++inode) {
     mark[inode] = (num(inode) != 0) ? 1 : 0;
     globalRenum[inode] = -1;
@@ -571,24 +363,24 @@ Connectivity::renumByComponent(int renumAlg)
 
   // Loop over nodes checking which ones are marked
   // and belong to the same component.
-  int j, k, nextNum = 0, count = 0;
-  int *locMask = new int[size];
+  IndexType j, k, nextNum = 0, count = 0;
+  IndexType *locMask = new IndexType[size];
   for(inode = 0; inode < size; ++inode)
      locMask[inode] = 0;
 
-  int currentNumber = 0;
+  IndexType currentNumber = 0;
   xcomp[0] = currentNumber;
 
-  int *lrenum = 0;
-  if(renumAlg>0) { lrenum = new int[size]; }
+  IndexType *lrenum = 0;
+  if(renumAlg>0) { lrenum = new IndexType[size]; }
  
   for(inode = 0; inode < size; ++inode)
   {
     if(mark[inode] == 1) {
       // Find all neighbors of inode
  
-      int w;
-      int h = rootLS(inode, xls, ls, w);
+      IndexType w;
+      IndexType h = rootLS(inode, xls, ls, w);
 
       // Declare and set local mask
 
@@ -632,7 +424,7 @@ Connectivity::renumByComponent(int renumAlg)
           }
         }else{
 #endif
-          int cnt = 0;
+          IndexType cnt = 0;
           for(j=0; j<size; ++j)
             if(locMask[j])
               globalRenum[j] = currentNumber+cnt++;
@@ -649,7 +441,7 @@ Connectivity::renumByComponent(int renumAlg)
     }
   }
 
-  compStruct ret;
+  compStructT ret;
   ret.numComp = count;
   ret.xcomp   = xcomp.yield(); 
   ret.renum   = globalRenum;
@@ -659,24 +451,24 @@ Connectivity::renumByComponent(int renumAlg)
   return ret;
 }
 
-int *
-Connectivity::renumRCM(int *mask, int &nextNum, int *renum)
+IndexType *
+ConnectivityT::renumRCM(IndexType *mask, IndexType &nextNum, IndexType *renum)
 {
- int i,j,k;
+ IndexType i,j,k;
  if(mask == 0)
   {
-    mask = (int *) dbg_alloca(sizeof(int)*size);
+    mask = (IndexType *) dbg_alloca(sizeof(IndexType)*size);
     for(i=0; i < size; ++i)
        mask[i] = (num(i)) ? 1 : 0;
   }
 
- int s_node, e_node;
+ IndexType s_node, e_node;
 
  findPseudoDiam( &s_node, &e_node, mask);
 
- if(renum == 0) renum = new int[size];
- int *order  = (int *) dbg_alloca(sizeof(int)*size);
- int *degree = (int *) dbg_alloca(sizeof(int)*size);
+ if(renum == 0) renum = new IndexType[size];
+ IndexType *order  = (IndexType *) dbg_alloca(sizeof(IndexType)*size);
+ IndexType *degree = (IndexType *) dbg_alloca(sizeof(IndexType)*size);
 
  // get the degree of all the nodes
  for(i =0; i < size; ++i)
@@ -684,13 +476,13 @@ Connectivity::renumRCM(int *mask, int &nextNum, int *renum)
 
  order[0] =e_node;
  mask[e_node] = -mask[e_node]; // mark we have seen this node
- int lastNode=1; // number of nodes which have been assigned a number
+ IndexType lastNode=1; // number of nodes which have been assigned a number
  for(i = 0; i < lastNode; ++i) {
-   int curNode = order[i];
-   int firstNeighb = lastNode;
+   IndexType curNode = order[i];
+   IndexType firstNeighb = lastNode;
    // Look at the neighbors of this node and add that to the list
    for(j = pointer[curNode]; j < pointer[curNode+1]; ++j) {
-     int neighbNode = target[j];
+     IndexType neighbNode = target[j];
      if(mask[neighbNode] > 0) {
        order[lastNode] = neighbNode;
        mask[neighbNode] = -mask[neighbNode];
@@ -702,7 +494,7 @@ Connectivity::renumRCM(int *mask, int &nextNum, int *renum)
      for(j = firstNeighb; j < lastNode-1; ++j)
       for(k = j+1; k < lastNode; ++k) 
        if(degree[order[k]] < degree[order[j]]) {
-         int tmp = order[k];
+         IndexType tmp = order[k];
          order[k] = order[j];
          order[k] = tmp;
        }
@@ -716,32 +508,32 @@ Connectivity::renumRCM(int *mask, int &nextNum, int *renum)
 }
 
 
-int *
-Connectivity::renumSloan(int *mask, int &nextNum, int *renum)
+IndexType *
+ConnectivityT::renumSloan(IndexType *mask, IndexType &nextNum, IndexType *renum)
 {
- int i,j,k;
- int s_node, e_node;
+ IndexType i,j,k;
+ IndexType s_node, e_node;
  float w1=1.0, w2=2.0;
 
  if(mask == 0)
   {
-    mask = (int *) dbg_alloca(sizeof(int)*size);
+    mask = (IndexType *) dbg_alloca(sizeof(IndexType)*size);
     for(i=0; i < size; ++i)
        mask[i] = (num(i)) ? 1 : 0;
   }
 
  findPseudoDiam( &s_node, &e_node, mask);
 
- int *ls  = new int[numtarget];
- int *xls = new int[numtarget+1];
+ IndexType *ls  = new IndexType[numtarget];
+ IndexType *xls = new IndexType[numtarget+1];
 
- int w;
- int h = rootLS(e_node, xls,ls,w,mask);
+ IndexType w;
+ IndexType h = rootLS(e_node, xls,ls,w,mask);
  // now give a distance to each point
 
- if(renum == 0) renum = new int[size];
- int *distance = renum;
- int *status = distance;
+ if(renum == 0) renum = new IndexType[size];
+ IndexType *distance = renum;
+ IndexType *status = distance;
 
  for(i = 0; i < size; ++i)
    distance[i] = -1;
@@ -763,16 +555,16 @@ Connectivity::renumSloan(int *mask, int &nextNum, int *renum)
  }
 
  // initalize the queue with the starting point
- int *q = (int *) dbg_alloca(sizeof(int)*size);
+ IndexType *q = (IndexType *) dbg_alloca(sizeof(IndexType)*size);
        // maximum size is all the points in the q
  q[0] = s_node;
- int nn=1;
+ IndexType nn=1;
  status[s_node] = -1;
 
  // While the queue is not empty
  while(nn > 0) {
    // Find in the queue the point with maximum priority
-   int next = 0;
+   IndexType next = 0;
    float maxpri = priority[q[next]];
    for(i = 1; i < nn; ++i) {
       if(priority[q[i]] > maxpri) {
@@ -781,15 +573,15 @@ Connectivity::renumSloan(int *mask, int &nextNum, int *renum)
       }
    }
    // Remove the next node numbered from the queue
-   int nextnode = q[next];
+   IndexType nextnode = q[next];
    q[next] = q[nn-1];
    nn = nn-1;
-   int istart = pointer[nextnode], istop = pointer[nextnode+1];
+   IndexType istart = pointer[nextnode], istop = pointer[nextnode+1];
    if(status[nextnode] == -1) {
      status[nextnode] = 0; // So we don't step on our feet.
      // Preactive node. Examine its neighbors
      for(i = istart; i < istop; ++i) {
-        int neighbor = target[i];
+        IndexType neighbor = target[i];
         priority[neighbor] += w2; // update the priority
         if(status[neighbor] == -2) { // if neighbor was inactive, it becomes pre-active
            // NB the next loop will set the same nodes as active
@@ -804,13 +596,13 @@ Connectivity::renumSloan(int *mask, int &nextNum, int *renum)
    // Now scan the preactive neighbors, make them active and their neighbors become
    // preactive if they were inactive
    for(i = istart; i < istop; ++i) {
-      int neighbor = target[i];
+      IndexType neighbor = target[i];
       if(status[neighbor] == -1) {
         status[neighbor] = 0;
         priority[neighbor] += w2;
-        int kstart = pointer[neighbor], kstop = pointer[neighbor+1];
+        IndexType kstart = pointer[neighbor], kstop = pointer[neighbor+1];
         for(k = kstart; k < kstop ; ++k) {
-            int kn = target[k];
+            IndexType kn = target[k];
             priority[kn] += w2;
             if(status[kn] == -2) { // This node is inactive. must become preactive
                status[kn] = -1;
@@ -825,16 +617,16 @@ Connectivity::renumSloan(int *mask, int &nextNum, int *renum)
 }
 
 void
-Connectivity::print(FILE *f, int node)
+ConnectivityT::print(FILE *f, IndexType node)
 {
  if(node == -1) {
-   int i;
-   int maxdist = 0;
+   IndexType i;
+   IndexType maxdist = 0;
    fprintf(f, "Size %d\n",size);
    fflush(f);
    for(i = 0; i < size; ++i) {
      fprintf(f, "%d ->", i+1);
-     int j;
+     IndexType j;
      for(j = pointer[i]; j < pointer[i+1]; ++j) {
        fprintf(f, " %d", target[j]+1);
        if(i-target[j] > maxdist ) maxdist = i-target[j];
@@ -845,7 +637,7 @@ Connectivity::print(FILE *f, int node)
    fflush(f);
  } else {
    fprintf(f,"%d ->",node+1);
-   int j;
+   IndexType j;
    for(j=pointer[node]; j<pointer[node+1]; ++j) {
      fprintf(f," %d", target[j]+1);
    }
@@ -853,18 +645,17 @@ Connectivity::print(FILE *f, int node)
  }
 }
 
-
-int
-Connectivity::findMaxDist(int *renum)
+IndexType
+ConnectivityT::findMaxDist(IndexType *renum)
 {
- int count = numNonZeroP();
- int i;
- int maxdist = 0;
- int localDist;
+ IndexType count = numNonZeroP();
+ IndexType i;
+ IndexType maxdist = 0;
+ IndexType localDist;
  double avgDist=0;
  for(i = 0; i < size; ++i) {
    localDist = 0;
-   int j;
+   IndexType j;
    for(j = pointer[i]; j < pointer[i+1]; ++j) {
      if(renum[i]-renum[target[j]] > maxdist )
 	 maxdist = renum[i]-renum[target[j]];
@@ -879,50 +670,15 @@ Connectivity::findMaxDist(int *renum)
  return maxdist;
 }
 
-int
-Connectivity::findProfileSize(EqNumberer *eqn, int unroll)
+ConnectivityT*
+ConnectivityT::merge(ConnectivityT *con2)
 {
- int i;
- int profileSize = 0;
- int localSize   = 0;
- for(i = 0; i < size; ++i) 
-   {
-     localSize  = 0;
-     int fdof       = eqn->firstdof(i);
-     int localWidth = eqn->weight(i);
+ IndexType size1 = csize();
+ IndexType size2 = con2->csize();
 
-     int j;
-     for(j = pointer[i]; j < pointer[i+1]; ++j) 
-       {
-	 int fjdof = eqn->firstdof(target[j]);
-	 if(fjdof < 0) continue;
-	 
-	 // This is for skyline unrolling of level unroll
-	 fjdof = fjdof - (fjdof % unroll);
-	 
-	 if(fdof - fjdof > localSize)
-	   localSize = fdof - fjdof;
-       }
-     localSize   *= localWidth;
-     localSize   += ((localWidth*(localWidth+1))/2);
-     profileSize += localSize;
-   }
- // fprintf(stderr,"---------------------\n");
- fprintf(stderr, "Profile Size: %d\n", profileSize);
- 
- return profileSize;
- 
-}
-
-Connectivity*
-Connectivity::merge(Connectivity *con2)
-{
- int size1 = csize();
- int size2 = con2->csize();
-
- int i;
- int *cp = new int[size1 + size2+1];
- int fp = 0;
+ IndexType i;
+ IndexType *cp = new IndexType[size1 + size2+1];
+ IndexType fp = 0;
  for(i = 0; i < size1; ++i) {
    cp[i] = fp;
    fp += num(i);
@@ -933,36 +689,36 @@ Connectivity::merge(Connectivity *con2)
  }
  cp[size1 + size2] = fp;
 
- int *ct = new int[fp];
+ IndexType *ct = new IndexType[fp];
  fp = 0;
  for(i=0; i<size1; ++i) {
-   int j;
+   IndexType j;
    for(j =0; j < num(i); ++j)
      ct[fp++] = (*this)[i][j];
  }
  for(i = 0; i < size2; ++i) {
-   int j;
+   IndexType j;
    for(j =0; j < con2->num(i); ++j)
      ct[fp++] = (*con2)[i][j];
  }
 
- return new Connectivity(size1+size2, cp, ct);
+ return new ConnectivityT(size1+size2, cp, ct);
 }
 
 void
-Connectivity::combine(Connectivity *con2, int *&cmap, int *cmap2)
+ConnectivityT::combine(ConnectivityT *con2, IndexType *&cmap, IndexType *cmap2)
 {
  // add con2 to this and make combined cmap
- int i, j;
- int size1 = csize();
- int size2 = con2->csize();
- int *tmp1 = (int *) dbg_alloca(sizeof(int)*size1);
+ IndexType i, j;
+ IndexType size1 = csize();
+ IndexType size2 = con2->csize();
+ IndexType *tmp1 = (IndexType *) dbg_alloca(sizeof(IndexType)*size1);
  for(i=0; i<size1; ++i) tmp1[i] = -1;
- int *tmp2 = (int *) dbg_alloca(sizeof(int)*size2);
+ IndexType *tmp2 = (IndexType *) dbg_alloca(sizeof(IndexType)*size2);
  for(i=0; i<size2; ++i) tmp2[i] = -1;
   
- int *cp = new int[size1 + size2+1];
- int fp = 0;
+ IndexType *cp = new IndexType[size1 + size2+1];
+ IndexType fp = 0;
  for(i = 0; i < size1; ++i) {
    cp[i] = fp;
    fp += num(i);
@@ -975,7 +731,7 @@ Connectivity::combine(Connectivity *con2, int *&cmap, int *cmap2)
      }
    }
  }
- int count = 0;
+ IndexType count = 0;
  for(i = 0; i < size2; ++i) {
    if(tmp2[i] == -1) {
      cp[count+size1] = fp;
@@ -984,9 +740,9 @@ Connectivity::combine(Connectivity *con2, int *&cmap, int *cmap2)
    }
  }
  cp[size1 + count] = fp;
- int *new_cmap = new int[size1 + count];
+ IndexType *new_cmap = new IndexType[size1 + count];
 
- int *ct = new int[fp];
+ IndexType *ct = new IndexType[fp];
  fp = 0;
  for(i=0; i<size1; ++i) {
    new_cmap[i] = cmap[i]; 
@@ -1017,14 +773,14 @@ Connectivity::combine(Connectivity *con2, int *&cmap, int *cmap2)
  pointer   = cp;
  target    = ct;
  numtarget = cp[size1+count];
- removeable = 1;
+ removeable = true;
 }
 
-int
-Connectivity::numNonZeroP()
+IndexType
+ConnectivityT::numNonZeroP()
 {
- int count = 0;
- int i;
+ IndexType count = 0;
+ IndexType i;
  for(i=0; i < size; ++i)
    if(pointer[i+1] != pointer[i]) ++count;
  return count;
@@ -1032,24 +788,24 @@ Connectivity::numNonZeroP()
 
 // Collapse creates a connecivity that represents the grouping
 // of a reflexive connectivity into subconnected groups 
-Connectivity *
-Connectivity::collapse() {
-  int i,j;
-  int count = 0;
+ConnectivityT *
+ConnectivityT::collapse() {
+  IndexType i,j;
+  IndexType count = 0;
   bool *flag = new bool[size];
-  int grIndex;
-  int *group = new int[size];
+  IndexType grIndex;
+  IndexType *group = new IndexType[size];
   for(i=0; i < size; ++i)
     flag[i] = false;
   grIndex = 0;
   for(i = 0; i < size; ++i)
     if(flag[i] == false) {
       count++;
-      int follow = grIndex;
+      IndexType follow = grIndex;
       flag[i] = true;
       group[grIndex++] = i;
       while(follow < grIndex) {
-	int s = group[follow];
+	IndexType s = group[follow];
 	for(j = 0; j < num(s); ++j)
 	  if((*this)[s][j] >= 0 && flag[ (*this)[s][j] ] == false) {
 	    flag[ (*this)[s][j] ] = true;
@@ -1058,7 +814,7 @@ Connectivity::collapse() {
         follow++;
       }
     }
-  int *ptr = new int[count+1];
+  IndexType *ptr = new IndexType[count+1];
   count = 0;
   grIndex = 0;
   for(i=0; i < size; ++i)
@@ -1066,11 +822,11 @@ Connectivity::collapse() {
   for(i = 0; i < size; ++i)
     if(flag[i] == false) {
       ptr[count++] = grIndex;
-      int follow = grIndex;
+      IndexType follow = grIndex;
       flag[i] = true;
       group[grIndex++] = i;
       while(follow < grIndex) {
-	int s = group[follow];
+	IndexType s = group[follow];
 	for(j = 0; j < num(s); ++j)
 	  if((*this)[s][j] >= 0 && (*this)[s][j] <size && flag[ (*this)[s][j] ] == false) {
 	    flag[ (*this)[s][j] ] = true;
@@ -1083,36 +839,36 @@ Connectivity::collapse() {
     }
  ptr[count] = grIndex;
  delete [] flag;
- return new Connectivity(count, ptr, group);      
+ return new ConnectivityT(count, ptr, group);      
 }
 
-Connectivity *
-Connectivity::copy()
+ConnectivityT *
+ConnectivityT::copy()
 {
-  if(size==0) return new Connectivity();
-  int *nptr = new int[size+1];
-  int *ntrg = new int[numConnect()];
-  int i;
+  if(size==0) return new ConnectivityT();
+  IndexType *nptr = new IndexType[size+1];
+  IndexType *ntrg = new IndexType[numConnect()];
+  IndexType i;
   for(i = 0; i <= size; ++i)
     nptr[i] = pointer[i];
   for(i = 0; i < numConnect(); ++i)
     ntrg[i] = target[i];
-  return new Connectivity(size,nptr,ntrg);
+  return new ConnectivityT(size,nptr,ntrg);
 }
 
 // Trim a connectivity to remove targets that have only one corresponding
 // target in the marker connectivity
-Connectivity *
-Connectivity::trim(Connectivity *marker)
+ConnectivityT *
+ConnectivityT::trim(ConnectivityT *marker)
 {
-  int i,j;
-  int count;
+  IndexType i,j;
+  IndexType count;
   count = 0;
   for(i = 0; i < numConnect(); ++i)
     if(marker->num( target[i] ) > 1)
       count++;
-  int *ntrg = new int[count];
-  int *nptr = new int[size+1];
+  IndexType *ntrg = new IndexType[count];
+  IndexType *nptr = new IndexType[size+1];
   count = 0;
   for(i = 0; i < size; ++i) {
     nptr[i] = count;
@@ -1121,21 +877,21 @@ Connectivity::trim(Connectivity *marker)
 	ntrg[count++] = (*this)[i][j];
   }
   nptr[size] = count;
-  return new Connectivity(size, nptr, ntrg);  
+  return new ConnectivityT(size, nptr, ntrg);  
 }
 
 // PJSA: modify a connectivity to insert connection between each target and itself 
 // needed to make bodyToBody, since some bodys may have no MPCs
-Connectivity *
-Connectivity::modify()
+ConnectivityT *
+ConnectivityT::modify()
 {
-  int i,j;
-  int count;
+  IndexType i,j;
+  IndexType count;
   count = 0;
   for(i = 0; i < size; ++i)
     if(num(i) == 0) count++;
-  int *ntrg = new int[numtarget+count];
-  int *nptr = new int[size+1];
+  IndexType *ntrg = new IndexType[numtarget+count];
+  IndexType *nptr = new IndexType[size+1];
   count = 0;
   for(i = 0; i < size; ++i) {
     nptr[i] = count;
@@ -1146,21 +902,21 @@ Connectivity::modify()
     }
   }
   nptr[size] = count;
-  return new Connectivity(size, nptr, ntrg);
+  return new ConnectivityT(size, nptr, ntrg);
 }
 
 // this one is to remove connection with self
-Connectivity *
-Connectivity::modifyAlt()
+ConnectivityT *
+ConnectivityT::modifyAlt()
 {
-  int i,j;
-  int count;
+  IndexType i,j;
+  IndexType count;
   count = 0;
   for(i = 0; i < size; ++i)
     for(j = 0; j < num(i); ++j)
       if((*this)[i][j] == i) count++;
-  int *ntrg = new int[numtarget-count];
-  int *nptr = new int[size+1];
+  IndexType *ntrg = new IndexType[numtarget-count];
+  IndexType *nptr = new IndexType[size+1];
   count = 0;
   for(i = 0; i < size; ++i) {
     nptr[i] = count;
@@ -1168,20 +924,20 @@ Connectivity::modifyAlt()
       if((*this)[i][j] != i) ntrg[count++] = (*this)[i][j];
   }
   nptr[size] = count;
-  return new Connectivity(size, nptr, ntrg);
+  return new ConnectivityT(size, nptr, ntrg);
 }
 
-Connectivity *
-Connectivity::combineAll(int addSize, int* cmap)
+ConnectivityT *
+ConnectivityT::combineAll(IndexType addSize, IndexType* cmap)
 {
-  int i,j,k;
-  int count;
+  IndexType i,j,k;
+  IndexType count;
   bool foundi, foundj;
   //count = 0;
   //for(i = 0; i < size; ++i)
     //if(num(i) == 0) count++;
-  int *ntrg = new int[numtarget+(addSize)*(addSize)];
-  int *nptr = new int[size+1];
+  IndexType *ntrg = new IndexType[numtarget+(addSize)*(addSize)];
+  IndexType *nptr = new IndexType[size+1];
 
   count = 0;
   for(i = 0; i < size; ++i) {
@@ -1191,7 +947,7 @@ Connectivity::combineAll(int addSize, int* cmap)
     for(j = 0; j<num(i); ++j)
       ntrg[count++] = (*this)[i][j];
     //}
-    int oldNumI = num(i);
+    IndexType oldNumI = num(i);
     //fprintf(stderr, " ... i = %d, cmap[addCount] = %d ...\n", i,cmap[addCount]);
     foundi = false;
     for(k = 0; k < addSize; ++k)
@@ -1215,50 +971,44 @@ Connectivity::combineAll(int addSize, int* cmap)
     }
   }
   nptr[size] = count;
-  return new Connectivity(size, nptr, ntrg);
+  return new ConnectivityT(size, nptr, ntrg);
 }
 
 void
-Connectivity::sortTargets()
+ConnectivityT::sortTargets()
 {
-  for(int i = 0; i < size; ++i) 
+  for(IndexType i = 0; i < size; ++i) 
     stable_sort(target+pointer[i], target+pointer[i+1]);
 }
 
-//----------------------------------------------------------------------
+void ConnectivityT::renumberTargets(IndexType *map)  {
 
-void Connectivity::renumberTargets(int *map)  {
-
-  for (int i = 0; i < numtarget; i++)  {
+  for (IndexType i = 0; i < numtarget; i++)  {
     if (map[target[i]] < 0)
       fprintf(stderr, "target(i) is neg: %d\n", target[i]);
     target[i] = map[target[i]];
   }
 }
 
-//----------------------------------------------------------------------
+void ConnectivityT::renumberTargets(map<IndexType, IndexType> &map)  {
  
-void Connectivity::renumberTargets(std::map<int, int> &map)  {
- 
-  for (int i = 0; i < numtarget; i++)  {
+  for (IndexType i = 0; i < numtarget; i++)  {
     if (map.find(target[i]) == map.end())
       fprintf(stderr, "target(i) does not exist: %d\n", target[i]);
     target[i] = map[target[i]];
   }
 }
 
-//----------------------------------------------------------------------
-
-Connectivity *
-Connectivity::subSection(bool *select)
+ConnectivityT *
+ConnectivityT::subSection(bool *select)
 {
-  int i, j;
-  int tgcnt = 0;
+  IndexType i, j;
+  IndexType tgcnt = 0;
   for(i = 0; i < size; ++i)
     if(select[i])
       tgcnt += num(i);
-  int *newPtr  = new int[size+1];
-  int *newTrg = new int[tgcnt];
+  IndexType *newPtr  = new IndexType[size+1];
+  IndexType *newTrg = new IndexType[tgcnt];
   // fprintf(stderr, "Size is %d\n", tgcnt);
   tgcnt = 0;
   for(i = 0; i < size; ++i) {
@@ -1268,53 +1018,53 @@ Connectivity::subSection(bool *select)
         newTrg[tgcnt++] = (*this)[i][j];
   }
   newPtr[size] = tgcnt;
-  return new Connectivity(size, newPtr, newTrg);
+  return new ConnectivityT(size, newPtr, newTrg);
 }
 
-CountedConnectivity::CountedConnectivity(int ns) : Connectivity(ns) {
- cnt = new int[csize()];
+CountedConnectivityT::CountedConnectivityT(IndexType ns) : ConnectivityT(ns) {
+ cnt = new IndexType[csize()];
 }
 
-CountedConnectivity::~CountedConnectivity()
+CountedConnectivityT::~CountedConnectivityT()
 {
  delete [] cnt;
 }
 
 void
-CountedConnectivity::end_count()
+CountedConnectivityT::end_count()
 {
- int i;
+ IndexType i;
  for(i=0; i < csize(); ++i)
    cnt[i] = pointer[i];
- Connectivity::end_count();
+ ConnectivityT::end_count();
 }
 void
-Connectivity::end_count()
+ConnectivityT::end_count()
 {
- for(int i=0; i < size; ++i)
+ for(IndexType i=0; i < size; ++i)
   pointer[i+1] += pointer[i];
  numtarget = pointer[size];
- target = new int[numtarget];
+ target = new IndexType[numtarget];
 }
 
 void
-Connectivity::countlink(int from, int)
+ConnectivityT::countlink(IndexType from, IndexType)
 {
  pointer[from]++;
 }
 
 void
-Connectivity::addlink(int from, int to)
+ConnectivityT::addlink(IndexType from, IndexType to)
 {
- int t = --pointer[from];
+ IndexType t = --pointer[from];
  target[t] = to;
 }
 
 void
-CountedConnectivity::remove(int from, int to)
+CountedConnectivityT::remove(IndexType from, IndexType to)
 {
  cnt[from]--;
- int i, ib, ie;
+ IndexType i, ib, ie;
  ib = pointer[from];
  ie = ib+cnt[from];
  for(i =ib; i < ie; ++i)
@@ -1323,12 +1073,12 @@ CountedConnectivity::remove(int from, int to)
   target[i] = target[i+1];
 }
 
-Connectivity::Connectivity(int ns)
+ConnectivityT::ConnectivityT(IndexType ns)
 {
- removeable = 1;
+ removeable = true;
  size = ns;
- pointer = new int[size+1];
- int i;
+ pointer = new IndexType[size+1];
+ IndexType i;
  for(i=0; i < size+1; ++i)
    pointer[i] = 0;
  numtarget = 0;
@@ -1336,194 +1086,30 @@ Connectivity::Connectivity(int ns)
  weight = 0;
 }
 
-//----------------------------------------------------------------------
-// HB
-//----------------------------------------------------------------------
-// WARNING: ASSUME 1 DOF PER NODE !!!
-double
-Connectivity::estimateComponentCost(EqNumberer *eqn, compStruct &cs, double *cost, double *bandwidth, double coef, int unroll)
+ConnectivityT::ConnectivityT(FILE *f, IndexType n)
 {
-  //fprintf(stderr," Enter Connectivity::estimateCompCost\n");
-  int nComp = cs.numComp;
-  int i,j;
-  double totalCost = 0.0;
-  for(i=0;i<nComp;i++){
-    cost[i] = 0.0; 
-    bandwidth[i] = 0.0;
-    int ndof = 0; 
-    for(j=cs.xcomp[i];j<cs.xcomp[i+1];j++){
-      //int nodej = cs.renum[j];
-      int nodej = cs.order[j];
-
-      int localSize  = 0;
-      int fdof       = eqn->firstdof(nodej);
-      int localWidth = eqn->weight(nodej);
-      //ndof += localWidth;
-      ndof++;
-      int k;
-      for(k = pointer[nodej]; k < pointer[nodej+1]; ++k) {
-        int fjdof = eqn->firstdof(target[k]);
-        if(fjdof < 0) continue;
-
-        // This is for skyline unrolling of level unroll
-        fjdof = fjdof - (fjdof % unroll);
-
-        //fprintf(stderr," fdof - fjdof = %d\n",fdof - fjdof);
-        //fprintf(stderr," fjdof - fdof = %d\n",fjdof - fdof);
-        if(fdof - fjdof > localSize)
-          localSize = fdof - fjdof;
-        //if(fjdof - fdof > localSize)
-        //  localSize = fjdof - fdof;
-      }
-      double localSizefb = (localSize) ? localSize : localSize+1;
-      cost[i] += localSize*localSize*localWidth + ((localWidth*(localWidth+1))/2) + coef*localSizefb*localWidth;
-      //bandwidth[i] += localSize*localSize;
-      bandwidth[i] += localSizefb*localSizefb;
-    }
-    bandwidth[i] = sqrt(bandwidth[i]/ndof);
-    totalCost += cost[i];
-  } 
-  return totalCost;
-}
-
-double
-Connectivity::estimateCost(EqNumberer *eqn, double &cost, double &bandwidth, double coef, int unroll)
-{
-  //fprintf(stderr," Enter Connectivity::estimateCost\n");
-  int i,j;
-  double totalCost = 0.0;
-  cost = 0.0;
-  bandwidth = 0.0;
-  int ndof = 0;
-  // int profileSize = 0;
-  int localSize   = 0;
-  for(i = 0; i < size; ++i) {
-    localSize  = 0;
-    int fdof       = eqn->firstdof(i);
-    int localWidth = eqn->weight(i);
-    ndof++;
-
-    for(j = pointer[i]; j < pointer[i+1]; ++j) {
-      int fjdof = eqn->firstdof(target[j]);
-      if(fjdof < 0) continue;
-
-      // This is for skyline unrolling of level unroll
-      fjdof = fjdof - (fjdof % unroll);
-
-      if(fdof - fjdof > localSize)
-        localSize = fdof - fjdof;
-    }
-    double localSizefb = (localSize) ? localSize : localSize+1;
-    cost += localSize*localSize*localWidth + ((localWidth*(localWidth+1))/2) + coef*localSizefb*localWidth;
-    //bandwidth += localSize*localSize;
-    bandwidth += localSizefb*localSizefb;
-  }
-  bandwidth = sqrt(bandwidth/ndof);
-  totalCost += cost;
-     
-  return totalCost;
-} 
-
-
-Connectivity::Connectivity(SommerElement  **els, int numSommer)
-{
- removeable = 1;
- int i;
- weight = (float *) 0;
-
- size = numSommer;
-
- // Find out the number of targets we will have
- pointer = new int[size+1] ;
- int pp = 0;
- for(i=0; i < size; ++i) {
-   pointer[i] = pp;
-   pp += els[i] ? els[i]->numNodes() : 0;
-  }
- pointer[size] = pp;
- numtarget = pp;
-
- // Create the target array
- target = new int[pp];
-
- // Fill it in
- for(i=0; i < size; ++i)
-  if( els[i]) els[i]->nodes(target+pointer[i]);
-}
-
-Connectivity::Connectivity(SommerElement  **els, int numSommer, int max)
-{
- removeable = 1;
- int i;
- weight = (float *) 0;
-
- size = numSommer;
-
- // Find out the number of targets we will have
- pointer = new int[size+1] ;
- int pp = 0;
- int nmax = 0;
- for(i=0; i < size; ++i) {
-   pointer[i] = pp;
-   int nn = els[i] ? els[i]->numNodes() : 0 ;
-   if (nn > nmax) nmax = nn;
-   pp += (nn > max) ? max : nn;
-  }
- pointer[size] = pp;
- numtarget = pp;
-
- // Create the target array
- target = new int[pp];
-
- int *buffer = (int*) dbg_alloca(nmax*sizeof(int));
-
- // Fill it in
- for(i=0; i < size; ++i)
-  if(els[i]) {
-    els[i]->nodes(buffer);
-    for(int j=0;j<pointer[i+1]-pointer[i] ;j++) *(target+pointer[i]+j)=buffer[j];
-  }
-}
-
-
-Connectivity::Connectivity(FILE *f, int n)
-{
-  removeable = 1;
+  removeable = true;
   weight = (float *) 0;
   numtarget = n;
-  int numalloc = numtarget;
-  target = new int[numtarget];
+  target = new IndexType[numtarget];
 
-  fscanf(f,"%d",&size);
+  IndexType error = fscanf(f,"%d",&size);
 
-  pointer = new int[size+1];
+  pointer = new IndexType[size+1];
 
-  int k = 0, m;
-  for (int i = 0; i < size; ++i) {
+  IndexType k = 0, m;
+  for (IndexType i = 0; i < size; ++i) {
     fscanf(f,"%d",&m);
     pointer[i] = k;
-    if(n) {
-      if(k + m > numtarget) {
-	fprintf(stderr," *** ERROR: Connectivity has too many connections\n");
-	exit(1);
-      }
-    } else {
-      if(k + m > numalloc) {
-	numalloc = (3*numalloc)/2;
-	if(k + m > numalloc)
-	  numalloc = k + m;
-	int *nt = new int[numalloc];
-	for (int j = 0; j < numtarget; j++)
-	  nt[j] = target[j];
-	delete [] target;
-	target = nt;
-      }
-      numtarget = k + m;
+    if(k + m > numtarget) {
+      fprintf(stderr," *** ERROR: ConnectivityT has too many connections\n");
+      exit(1);
     }
-    for (int j = 0; j < m; ++j) {
+    for (IndexType iele = 0; iele < m; ++iele) {
       fscanf(f,"%d",target+k);
       target[k++]--;
     }
   }
   pointer[size] = k;
 }
+#endif

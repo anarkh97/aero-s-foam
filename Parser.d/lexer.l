@@ -512,6 +512,10 @@ TRAIL [a-zA-Z]*
 
 "mumps_cntl"|"MUMPS_CNTL"          { return MUMPSCNTL; }
 
+"mumps_mineq"|"MUMPS_MINEQ"        { return MUMPSMINEQ; }
+
+"mumps_stride"|"MUMPS_STRIDE"      { return MUMPSSTRIDE; }
+
 "pivot"[a-zA-Z]*|"PIVOT"[a-zA-Z]*  { return PIVOT; }
 
 "scaled"[a-zA-Z]*|"SCALED"[a-zA-Z]* { return SCALED; }

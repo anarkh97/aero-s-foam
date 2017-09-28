@@ -56,5 +56,8 @@ Connectivity::SCOTCH_graphPart(int partnbr)
   Connectivity *partToVert = vertToPart.reverse();
   //cerr << "partToVert = \n"; partToVert->print();
   return partToVert;
+#else
+  std::cerr << "USE_SCOTCH is not defined here in Connectivity::SCOTCH_graphPart\n";
+  exit(-1);
 #endif
 }

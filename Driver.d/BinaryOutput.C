@@ -220,7 +220,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
                                                                // note: nodes.size() is not available when using "binaryinput on"
       int glNode = (domain->outFlag) ? domain->nodeTable[glNodeNums[k]]-1 : glNodeNums[k]; k++;
       if(group != -1) {
-        std::list<int>::iterator it = nodeGroup[group].begin();
+        std::set<int>::iterator it = nodeGroup[group].begin();
         int grNode = 0;
         while(it != nodeGroup[group].end()) {
           int inode = (domain->outFlag) ? domain->nodeTable[*it]-1 : *it;

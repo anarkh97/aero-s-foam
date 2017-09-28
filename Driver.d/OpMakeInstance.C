@@ -33,7 +33,12 @@ template \
 void \
 Domain::buildPostSensitivities<Scalar>(GenSolver<Scalar>*, GenSparseMatrix<Scalar>*,\
                                        GenSparseMatrix<Scalar>*, AllSensitivities<Scalar>&,\
-                                       GenVector<Scalar>&, Scalar*, bool);\
+                                       GenVector<Scalar>*, Scalar*, bool, GeomState*, GeomState*, Corotator **, bool);\
+\
+template \
+void \
+Domain::buildNLPostSensitivities<Scalar>(GenSolver<Scalar>*, AllSensitivities<Scalar>&,\
+                                         GeomState*, GeomState*, Corotator **, bool);\
 \
 template \
 void \
@@ -175,7 +180,7 @@ Domain::processOutput<Scalar>(OutputInfo::Type&, GenVector<Scalar>&, Scalar*, in
 \
 template \
 void \
-Domain::sensitivityPostProcessing<Scalar>(AllSensitivities<Scalar>&);\
+Domain::sensitivityPostProcessing<Scalar>(AllSensitivities<Scalar>&, GenVector<Scalar>*, Scalar*, GeomState*, GeomState*, Corotator**);\
 \
 template \
 void \
@@ -207,6 +212,14 @@ OPMAKE_INSTANTIATION_HELPER(double);
 OPMAKE_INSTANTIATION_HELPER(complex<double>);
 
 #ifdef USE_EIGEN3
+template
+GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *
+Domain::constructEiSparse<double>(DofSetArray*, Connectivity*, bool);
+
+template
+GenEiSparseMatrix<complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> > *
+Domain::constructEiSparse<complex<double> >(DofSetArray*, Connectivity*, bool);
+
 template
 GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *
 Domain::constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);

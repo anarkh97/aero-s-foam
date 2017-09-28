@@ -234,9 +234,16 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
    filePrint(f,"         Freq Sweep Series Expansion   time: %14.5f s\n",
              timeFreqSweep/1000.0);
 
- if(domain->tdenforceFlag()) // ACME search and forces for explicit dynamics
+ if(domain->tdenforceFlag()){ // ACME search and forces for explicit dynamics
    filePrint(f,"         TD Enforcement                time: %14.5f s\n", 
              tdenforceTime/1000.0);
+   filePrint(f,"              detection                time: %14.5f s\n",
+             contactSearchTime/1000.0);
+   filePrint(f,"              enforcement              time: %14.5f s\n",
+             contactForcesTime/1000.0);
+   filePrint(f,"              surface update           time: %14.5f s\n",
+             updateSurfsTime/1000.0);
+ }
 
  double totalOutput = std::max(output - times.sendFluidTime, 0.);
  long totMemOutput = memoryOutput;
@@ -813,9 +820,16 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
  if(domain->solInfo().isDynam() || domain->solInfo().isNonLin())
    filePrint(f,"         Update States                 time: %14.5f s\n",
              matrixTimer.updateState/1000.0);
- if(domain->tdenforceFlag()) // ACME search and forces for explicit dynamics
+ if(domain->tdenforceFlag()){ // ACME search and forces for explicit dynamics
    filePrint(f,"         TD Enforcement                time: %14.5f s\n",
              tdenforceTime/1000.0);
+   filePrint(f,"              detection                time: %14.5f s\n",
+             contactSearchTime/1000.0);
+   filePrint(f,"              enforcement              time: %14.5f s\n",
+             contactForcesTime/1000.0);
+   filePrint(f,"              surface update           time: %14.5f s\n",
+             updateSurfsTime/1000.0);
+ }
 
  filePrint(f,"\n6. Write Output Files                  time: %14.5f s %14.3f Mb\n",
            std::max(subTotal[5]-matrixTimer.sendFluidTime,0.)/1000.0, memoryOutput*byteToMb);

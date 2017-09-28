@@ -101,8 +101,10 @@ MultiDomainOp::computeExtForce(int isub)
   // Get the pointer to the part of the vector cnst_f corresponding to subdomain isub
   StackVector localg(v2->subData(isub),v2->subLen(isub));
 
-  SparseMatrix *localCuc = (Cuc) ? (*Cuc)[isub] : 0; 
-  sd[isub]->computeExtForce4(localf, localg, c1, (*Kuc)[isub], userSupFunc, localCuc, c2, (*Muc)[isub]);
+  SparseMatrix *localKuc = (Kuc) ? (*Kuc)[isub] : 0; 
+  SparseMatrix *localCuc = (Cuc) ? (*Cuc)[isub] : 0;
+  SparseMatrix *localMuc = (Muc) ? (*Muc)[isub] : 0;
+  sd[isub]->computeExtForce4(localf, localg, c1, localKuc, userSupFunc, localCuc, c2, localMuc);
 }
 
 void
@@ -611,7 +613,6 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaceTopology(decDomain->getNumSub(), decDomain->getAllSubDomains()); // remove deleted elements
     domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains()); // update to current configuration
-    times->updateSurfsTime += getTime();
 
     // copy and update the current state (geomState) to the predicted state
     DistrGeomState *predictedState = new DistrGeomState(*geomState);
@@ -623,7 +624,8 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
       d_n_p = d_n + dinc;
       execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, d_n_p, predictedState);
     }
- 
+    times->updateSurfsTime += getTime();
+
     // update the prescribed displacements to their correct value at the time of the predictor
     if(claw && userSupFunc && claw->numUserDisp) {
       double *userDefineDisp = new double[claw->numUserDisp];
@@ -1889,6 +1891,13 @@ void
 MultiDomainDynam::postProcessSA(MDDynamMat*, DistrVector&)
 {
   filePrint(stderr," ... MultiDomainDynam::postProcessSA is not implemented\n");
+  exit(-1);
+}
+
+void
+MultiDomainDynam::sensitivityPostProcessing(DistrVector*)
+{
+  filePrint(stderr," ... MultiDomainDynam::sensitivityPostProcessing is not implemented\n");
   exit(-1);
 }
 

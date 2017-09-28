@@ -7,6 +7,7 @@
 #include <list>
 #include <vector>
 #include <map>
+#include <set>
 
 #include <Element.d/Element.h>
 #include <Utils.d/OutputInfo.h>
@@ -49,6 +50,7 @@ struct Group;
 struct AttributeToElement;
 class DistrGeomState;
 class ControlLawInfo;
+struct DispNode;
 
 enum {SXX=0,SYY=1,SZZ=2,SXY= 3,SYZ= 4,SXZ= 5,VON=6,
       EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12,STRAINVON=13,
@@ -265,7 +267,7 @@ class GeoSource {
   Decomposition *optDec, *optDecCopy;
 
   std::map<int, Group> group;
-  std::map<int, std::list<int> > nodeGroup;
+  std::map<int, std::set<int> > nodeGroup;
   std::map<int, std::list<int> > surfaceGroup;
 
   std::map<int, AttributeToElement> atoe;
@@ -345,7 +347,7 @@ public:
   int  addMat(int, const StructProp &);
   int  addLay(int, LayInfo *);
   int  addCoefInfo(int, CoefData &);
-  CoefData* getCoefData(int i) { assert(i >= 0 && i < numCoefData); return coefData[i]; }
+  CoefData* getCoefData(int i) { return (i >= 0 && i < numCoefData) ? coefData[i] : NULL; }
   int  addLayMat(int m, double *);
   int  setAttrib(int n, int a, int ca = -1, int cfrm = -1, double ctheta = 0.0);
   void setMortarAttrib(int n, int a);
@@ -550,15 +552,22 @@ public:
     void outputNodeVectors4(int, double (*)[bound], int, double time = -1.0);
 #ifdef USE_EIGEN3
   template<class Scalar>
-    void outputSensitivityScalars(int, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *, double time = 0.0);
+    void outputSensitivityScalars(int, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *, double time = 0.0,
+                                  Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr = 0);
   template<class Scalar>
-    void outputSensitivityVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, double time = 0.0);
+    void outputSensitivityVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *,
+                                  double time = 0.0, Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr = 0);
   template<class Scalar>
     void outputSensitivityDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, 
                                       double time = 0.0, int numParams = 0, int numnodes = 0);
   template<class Scalar>
-    void outputSensitivityAdjointDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, 
-                                             double time, int numParams, int numnodes, int numdofs, std::vector<int>);
+    void outputSensitivityAdjointStressVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, Scalar *, 
+                                               double time, int numParams, std::vector<int>,
+                                               Eigen::Matrix<double,Eigen::Dynamic, 1> *dwr = 0);
+  template<class Scalar>
+    void outputSensitivityAdjointDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **, Scalar *, 
+                                             double time, int numParams, std::vector<DispNode>,
+                                             Eigen::Matrix<double, Eigen::Dynamic, 1> *dwr = 0);
   template<class Scalar>
     void outputSensitivityDispVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, 
                                       double time = 0.0, int numnodes = 0);
@@ -662,12 +671,13 @@ public:
 
   void makeEframe(int ele, int refnode, double *d);
 
-// Group stuff
-   void setGroupAttribute(int a, int g);
-   void setNodeGroup(int nn, int id);
-   void setSurfaceGroup(int sn, int id);
+  // Group stuff
+  void setAttributeGroup(int a, int g);
+  void setNodeGroup(int nn, int id);
+  std::set<int> & getNodeGroup(int id) { return nodeGroup[id]; }
+  void setSurfaceGroup(int sn, int id);
 
-// Sfem stuff
+  // Sfem stuff
   enum Rprop { A, E, NU, RHO, T, KX, KY, KZ }; // sfem
   void setGroupRandomProperty(int g, Rprop prop_type, double mean, double std_dev);
   void printGroups();

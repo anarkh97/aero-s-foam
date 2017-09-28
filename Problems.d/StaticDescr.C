@@ -97,7 +97,8 @@ template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::postProcessSA(GenVector<T> &sol)
 {
- domain->buildPostSensitivities<T>(allOps.sysSolver, allOps.K, allOps.spm, allSens, sol, bcx);
+ domain->buildPostSensitivities<T>(allOps.sysSolver, allOps.K, allOps.spm, allSens, &sol, bcx);
+ domain->sensitivityPostProcessing(allSens, &sol, bcx);
 }
 
 template<class T, class VectorType, class SolverType>
@@ -284,9 +285,6 @@ void
 SingleDomainStatic<T, VectorType, SolverType>::getFreqSweepRHS(VectorType *rhs, VectorType **u, int k)
 { 
   startTimerMemory(times->formRhs, times->memoryRhs);
-// RT: 11/17/2008
-//  double omega2 = (domain->isFluidElement(0) && !domain->solInfo().isCoupled) 
-//                   ? domain->getElementSet()[0]->helmCoef() : geoSource->shiftVal();
   double omega2 = geoSource->shiftVal();
 
   double omega = sqrt(omega2);
@@ -335,5 +333,59 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHS(VectorType &rhs, double om
                                     allOps.Kuc_arubber_l,allOps.Kuc_arubber_m,
                                     omega, deltaomega);
   delete vec;
+}
+
+//------------------------------------------------------------------------------
+
+
+
+
+
+template<class T, class VectorType, class SolverType>
+void
+SingleDomainStatic<T, VectorType, SolverType>::getWCAWEFreqSweepRHS(VectorType *rhs, VectorType **wcawe_u, T* pU, T*pb, int maxRHS,  int iRHS)
+{ 
+  startTimerMemory(times->formRhs, times->memoryRhs);
+
+  double omega2 = geoSource->shiftVal();
+  double omega = sqrt(omega2);
+
+  VectorType *vec = new VectorType(solVecInfo());
+//  pu = -Z{2}*W(:,ii-1); Z{2} = (-2.0*freqn * M+i*C)/1.0;
+  for(int i=0; i<vec->size(); ++i)
+      (*vec)[i] = 2.0*omega*(*wcawe_u[iRHS-1])[i];
+  allOps.M->mult(vec->data(), rhs->data());
+  if(allOps.C_deriv) {
+    if(allOps.C_deriv[0]) {
+      for(int i=0; i<vec->size(); ++i)
+        (*vec)[i] = -(*wcawe_u[iRHS-1])[i];
+      allOps.C_deriv[0]->multAdd(vec->data(), rhs->data()); 
+    }
+  }
+//  pu = pu + b{j+1}*PP(1,ii-j);
+  double factorial = 1.0;
+  for(int j=1;j<=iRHS;j++) {
+    factorial *= double(j);
+    for(int i=0; i<vec->size(); ++i)
+      (*vec)[i] = 0;
+    domain->template buildFreqSweepRHSForce<T>(*vec,
+                           allOps.Muc, allOps.Cuc_deriv,allOps.Kuc_deriv, j, omega);
+    for(int i=0; i<vec->size(); ++i)
+      (*rhs)[i] += pb[j-1]* (*vec)[i]/factorial;
+  }
+//  pu = pu - Z{j+1}*W(:,1:(ii-j))*PP(:,ii-j);
+//  assume j > 2 all 0 (not so for rubber), and for j=2: Z{3} = -M;
+  if (iRHS>1) for(int j=2;j<=2;j++) {
+    for(int i=0; i<vec->size(); ++i)
+      (*vec)[i] = 0;
+    for(int k=0;k<iRHS+1-j;k++) {
+      for(int i=0; i<vec->size(); ++i)
+        (*vec)[i] += pU[k+(j-1)*(iRHS+1)]* (*wcawe_u[k])[i];
+    }
+    allOps.M->multAdd(vec->data(), rhs->data());
+  }
+
+  delete vec;
+  stopTimerMemory(times->formRhs, times->memoryRhs);
 }
 

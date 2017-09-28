@@ -8,8 +8,11 @@
 #include <iostream>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
+#include <Utils.d/SolverInfo.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+
+extern SolverInfo &solInfo;
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
@@ -131,6 +134,51 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     xlp = lp.col(0);
     ylp = lp.col(1);
     zlp = lp.col(2); 
+}
+
+template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
+void
+ShellElementTemplate<doublereal,Membrane,Bending>
+::andesfrm(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *aframe,
+           doublereal *_cframe)
+{
+  // Local variables 
+  doublereal xlp[3], ylp[3], zlp[3];
+  doublereal area;
+
+  Eigen::Matrix<doublereal,3,3> eframe;
+  Eigen::Map<Eigen::Matrix<doublereal,3,3,Eigen::RowMajor> > cframe(_cframe);
+
+// ================================================================== 
+//                                                                    
+//     Perform =    This subroutine will form the composite frame     
+//     ---------    for the 3D 3-node ANDES-EFF shell element.        
+//                                                                    
+//                                                                    
+//     Inputs/Outputs =                                               
+//     ----------------                                               
+//     ELM     <input>  finite element number                         
+//     X       <input>  nodal coordinates in the X-direction          
+//     Y       <input>  nodal coordinates in the Y-direction          
+//     Z       <input>  nodal coordinates in the Z-direction          
+//     AFRAME  <input>  reference composite frame                     
+//     CFRAME  <output> composite frame (projected onto element)      
+//                                                                    
+// ================================================================== 
+// Authors = Francois M. Hemez and Philip J. S. Avery                                       
+// Date    = September 13, 2011                                             
+// Version = 3.0                                                      
+// ================================================================== 
+
+// .....GET THE ELEMENT TRIANGULAR COORDINATES 
+// .....GET THE ELEMENT LEVEL FRAME
+
+    andescrd(elm, x, y, z, eframe.data(), xlp, ylp, zlp, area);
+
+    // andesinvt returns the transformation from element to fibre coordinate system
+    // note: eframe.transpose()*v transforms v from global to element coordinate system
+    // return the matrix that transforms from global to fibre coordinate system, i.e.:
+    cframe = ShellMaterial<doublereal>::andesinvt(eframe.data(), aframe, 0.)*eframe.transpose();
 }
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
@@ -591,11 +639,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 {
   // Initialized data 
   bool debug = false;
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha; // using 0 here seems to work better for thin shell
+  doublereal betam = solInfo.andes_betam; // using 0 here seems to work better for very thin shell
 
   // Local variables 
   int i, j;
@@ -866,11 +914,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                   int tflg, doublereal *ndtemps)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -1082,11 +1130,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
            doublereal *statenp)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -1429,11 +1477,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                   int surface, int sflg, doublereal *ndtemps)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -1444,18 +1492,16 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   doublereal temp;
 
   Eigen::Matrix<doublereal,9,3> Lb, Lm;
-  Eigen::Matrix<doublereal,3,9> Bb, Bm;
-  Eigen::Matrix<doublereal,3,3> eframe, gframe = Eigen::Matrix<doublereal,3,3>::Identity();
-  Eigen::Matrix<doublereal,18,18> de_disp_du;
+  Eigen::Matrix<doublereal,6,18> B;
+  Eigen::Matrix<doublereal,3,3> eframe;
   Eigen::Map<Eigen::Matrix<doublereal,3,18> > vmsWRTdisp(_vmsWRTdisp);
   Eigen::Matrix<doublereal,18,1> vd;
   Eigen::Map<Eigen::Matrix<doublereal,18,1> > v(_v);
-  Eigen::Matrix<doublereal,18,18> Eframe;
   Eigen::Matrix<doublereal,3,18> dsigmadu;
   Eigen::Matrix<doublereal,3,1> sigma, epsilon;
   Eigen::Matrix<doublereal,6,18> dUpsilondu;
   Eigen::Matrix<doublereal,6,1> Upsilon, Sigma;
-  Eigen::Matrix<doublereal, 6, 18> dSigmadu;
+  Eigen::Matrix<doublereal,6,18> dSigmadu;
   dSigmadu.setZero();
 
   // Some convenient definitions 
@@ -1463,6 +1509,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     e = Upsilon.head(3), chi = Upsilon.tail(3);
   Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1> >
     N = Sigma.head(3), M = Sigma.tail(3);
+  Eigen::Block< Eigen::Matrix<doublereal,6,18>,3,9 >
+    Bm = B.template topLeftCorner<3,9>(),     Bmb = B.template topRightCorner<3,9>(),
+    Bbm = B.template bottomLeftCorner<3,9>(), Bb = B.template bottomRightCorner<3,9>();
+  Bmb.setZero(); Bbm.setZero();
 
 // ==================================================================== 
 //                                                                      
@@ -1497,14 +1547,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....GET THE ELEMENT LEVEL FRAME
 
     andescrd(elm, X, Y, Z, eframe.data(), xlp, ylp, zlp, area);
-    Eigen::Matrix<doublereal,3,3> zeros;
-    zeros.setZero();
-    Eframe << eframe.transpose(), zeros, zeros, zeros, zeros, zeros,
-              zeros, eframe.transpose(), zeros, zeros, zeros, zeros, 
-              zeros, zeros, eframe.transpose(), zeros, zeros, zeros,  
-              zeros, zeros, zeros, eframe.transpose(), zeros, zeros,
-              zeros, zeros, zeros, zeros, eframe.transpose(), zeros, 
-              zeros, zeros, zeros, zeros, zeros, eframe.transpose(); 
 
 //     --------------------------------------------------- 
 //     STEP 2                                              
@@ -1531,19 +1573,12 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     for(i = 0; i < 18; i += 3)
         vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
 
-//     ----------------------------------------------------- 
-//     STEP 5                                                
-//     COMPUTE THE ELEMENTAL EXTENSION AND CURVATURE VECTORS 
-//     AND THEIR SENSITIVITIES                               
-//     ----------------------------------------------------- 
-
     Eigen::Matrix<int,18,1> indices;
     indices << 0, 1, 6, 7, 12, 13, 5, 11, 17, // M indices
                2, 3, 4, 8, 9, 10, 14, 15, 16; // B indices
     Eigen::PermutationMatrix<18,18,int> P(indices);
 
     vd = P.transpose()*vd;
-    de_disp_du = P.transpose()*Eframe;
 
 // .....COMPUTE THE Z- COORDINATE OF THE SELECTED SURFACE
 
@@ -1554,42 +1589,26 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal zeta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
+//     ----------------------------------------------------- 
+//     STEP 5                                                
+//     COMPUTE THE ELEMENTAL EXTENSION AND CURVATURE VECTORS 
+//     AND THEIR SENSITIVITIES                               
+//     ----------------------------------------------------- 
+
         if(sflg == 0) {
-// .....ELEMENTAL CURVATURE COMPUTATION
-
-            chi = (1./area)*Lb.transpose()*vd.tail(9);
-
-// .....ELEMENTAL EXTENSION COMPUTATION
-
-            e = (1./area)*Lm.transpose()*vd.head(9);
-
-// .....COMPUTE SENSITIVITY OF THE GENERALIZED STRAINS
-
-            Eigen::Matrix<doublereal,6,18> LB;
-            LB << (1./area)*Lm.transpose(), Eigen::Matrix<doublereal,3,9>::Zero(),
-                  Eigen::Matrix<doublereal,3,9>::Zero(), (1./area)*Lb.transpose();
-
-            dUpsilondu = LB*de_disp_du;
+            Bb = (1./area)*Lb.transpose();
+            Bm = (1./area)*Lm.transpose();
         }
         else {
-// .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
-
             Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
-            chi = Bb*vd.tail(9);
-
-// .....ELEMENTAL EXTENSION COMPUTATION (including now the higher order contribution)
-
             Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
-            e = Bm*vd.head(9);
-
-// .....COMPUTE SENSITIVITY OF THE GENERALIZED STRAINS
-
-            Eigen::Matrix<doublereal,6,18> LB;
-            LB << Bm, Eigen::Matrix<doublereal,3,9>::Zero(),
-                  Eigen::Matrix<doublereal,3,9>::Zero(), Bb;
-
-            dUpsilondu = LB*de_disp_du; 
         }
+
+        chi = Bb*vd.tail(9);
+        e = Bm*vd.head(9);
+
+        dUpsilondu = B*P.transpose();
+        for(int j=0; j<6; j+=3) for(int k=0; k<18; k+=3) dUpsilondu.template block<3,3>(j,k) *= eframe.transpose();
 
 // .....NODAL TEMPERATURE
         temp = (ndtemps) ? ndtemps[i] : nmat->GetAmbientTemperature();
@@ -1644,7 +1663,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CALCULATE DERIVATIVE OF VON MISES EQUIVALENT STRESS WRT NODAL DISPLACEMENTS
 
         doublereal vms = equivstr(sigma[0], sigma[1], 0, sigma[2]);
-        vmsWRTdisp.template block<1,18>(i,0) = equivstrSensitivityWRTdisp(vms, sigma[0], sigma[1], 0, sigma[2], dsigmadu);
+        vmsWRTdisp.row(i) = equivstrSensitivityWRTdisp(vms, sigma[0], sigma[1], 0, sigma[2], dsigmadu);
     }
 
 }
@@ -1659,11 +1678,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                   int surface, int sflg, doublereal *ndtemps)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i, j;
@@ -1921,10 +1940,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
         -1./3., -1./3., 0.;
     dsdu = D*dsigmadu;
 
-    return 3*dsxx/(2*vms)*dsdu.template block<1,18>(0,0) + 
-           3*dsyy/(2*vms)*dsdu.template block<1,18>(1,0) + 
-           3*dszz/(2*vms)*dsdu.template block<1,18>(2,0) + 
-           3*sxy/vms*dsigmadu.template block<1,18>(2,0);
+    return 3*dsxx/(2*vms)*dsdu.row(0) + 
+           3*dsyy/(2*vms)*dsdu.row(1) + 
+           3*dszz/(2*vms)*dsdu.row(2) + 
+           3*sxy/vms*dsigmadu.row(2);
 }
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
@@ -2086,11 +2105,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
            int sflg, int tflg, doublereal *ndtemps, doublereal dt)
 {
   // Initialized data 
-  doublereal clr = 0;
-  doublereal cqr = 1;
-  doublereal betab = 1;
-  doublereal alpha = 1.5;
-  doublereal betam = .32;
+  doublereal clr = solInfo.andes_clr;
+  doublereal cqr = solInfo.andes_cqr;
+  doublereal betab = solInfo.andes_betab;
+  doublereal alpha = solInfo.andes_alpha;
+  doublereal betam = solInfo.andes_betam;
 
   // Local variables 
   int i;

@@ -35,6 +35,7 @@ class DistrGeomState {
 
      // Update the GeomStates
      void update(DistrVector &v, int SO3param = 0);
+     void update(DistrGeomState &ref, DistrVector &v, int S03param = 0);
      void explicitUpdate(GenDecDomain<double> *decDomain, DistrVector &v);
      void setVelocity(DistrVector &, int SO3param = 0);
      void setAcceleration(DistrVector &, int SO3param = 0);
@@ -75,6 +76,7 @@ class DistrGeomState {
      void subInterp(int isub, double&, DistrGeomState &, DistrGeomState &);
      void subDiff(int isub, DistrGeomState &unp, DistrVector &un);
      void subUpdate(int isub, DistrVector &v, int SO3param);
+     void subUpdateRef(int isub, DistrGeomState &ref, DistrVector &v, int SO3param);
      void subExplicitUpdate(int iSub,DistrVector &v, GenDecDomain<double> *decDomain);
      void subSetVelocity(int isub, DistrVector &v, int SO3param);
      void subSetAcceleration(int isub, DistrVector &a, int SO3param);

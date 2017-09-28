@@ -2,6 +2,7 @@
 #define ROM_SPARSENONNEGATIVELEASTSQUARESSOLVER_H
 
 #include "SimpleBuffer.h"
+#include <vector>
 
 namespace Rom {
 
@@ -50,6 +51,8 @@ public:
   int maxNumElems() const { return maxNumElems_; }
   void maxNumElemsIs(int maxElem) { maxNumElems_ = maxElem; }
 
+  void useHotStart(bool hs) { hotStart_ = hs; }
+
   // Buffers: Internal column-major ordering, zero-based indexing
   // Matrix buffer: [equationCount by unknownCount]
   Scalar matrixEntry(int row, int col) const;
@@ -96,6 +99,8 @@ private:
   SimpleBuffer<Scalar> solutionBuffer_;
   SimpleBuffer<Scalar> dualSolutionBuffer_;
 
+  std::vector<long int> indices; 
+
   double errorMagnitude_;
   bool verboseFlag_;
   bool scalingFlag_;
@@ -103,6 +108,7 @@ private:
   bool reverseFlag_;
   bool projectFlag_;
   bool positivity_;
+  bool hotStart_;
   int solverType_;
   double maxSizeRatio_;
   double maxIterRatio_;

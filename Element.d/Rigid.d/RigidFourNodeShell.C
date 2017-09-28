@@ -188,4 +188,5 @@ RigidFourNodeShell::getFlLoad(CoordSet& cs, const InterpPoint& ip, double *flF,
     resF[i+3]  = resF[i+9] = resF[i+15] = resF[i+21] = 0.0;
   }
 }
+
 #endif

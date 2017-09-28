@@ -48,6 +48,7 @@ public:
                               double *coefs, double *frame);
         double * setCompositeData2(int _type, int nlays, double *lData,
                                    double *coefs, CoordSet &cs, double theta);
+        void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
         void setMaterial(NLMaterial *);
         int numStates();
 
@@ -115,7 +116,7 @@ public:
         void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp,
                                              int strInd, int surface, double *ndTemps = 0, int avgnum = 1,
                                              double ylayer = 0, double zlayer = 0);
-        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
+        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *, CoordSet &cs,
                                                 Vector &elDisp, int strInd, int surface,
                                                 double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
         void getInternalForceThicknessSensitivity(GeomState *refState, GeomState &geomState, CoordSet &cs, Vector &dFintdThick,

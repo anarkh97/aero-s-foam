@@ -50,7 +50,7 @@ struct OutputInfo {
           AGstShap, AGstThic, 
           DissipatedEnergy, DeletedElements, DualStateVar,
           Constraintvector, Constraintviolation, RomResidual, RomResidual6,
-          RomExtForce, RomExtForce6 };
+          RomExtForce, RomExtForce6, ModalMass, ModalStiffness, ModalDamping, ModalDynamicMatrix, ModalMatrices };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
@@ -89,7 +89,7 @@ struct OutputInfo {
                      // CONTACT_AREA, GAP_CUR, GAP_OLD
    int topFlag; // if this is set to 1 then the output file should use the compressed numbering (i.e. with gaps removed)
                 // compatible with top files generated using -T command line argument
-   enum FrameType { Global=0, Local };
+   enum FrameType { Global=0, Local, Material };
    FrameType oframe;
 
    void initialize() {

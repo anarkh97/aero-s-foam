@@ -68,6 +68,8 @@ class GenMultiDomainStatic : public MultiDomainBase
     void clean();
     void setIWaveDir(int _i); // FETI-H
     void getFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **sol_prev, int iRHS);
+    void getWCAWEFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **wcawe_u, Scalar *pU, Scalar *pb, int maxRHS,  int iRHS);
+    void multWCAWE(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, Scalar *pU, Scalar *pb, int maxRHS, int iRHS);
     void getRHS(GenDistrVector<Scalar> &,double,double);
     void buildDeltaK(double w0, double w) {
         for(int i=0;i<decDomain->getNumSub();i++) {

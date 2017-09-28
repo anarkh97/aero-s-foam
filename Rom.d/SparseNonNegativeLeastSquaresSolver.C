@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <iostream>
 #include <algorithm>
+#include <vector> 
 
 extern "C" {
   // Approximately solve the sparse non-negative least-squares problem
@@ -28,7 +29,7 @@ extern "C" {
 
 Eigen::VectorXd
 nncgp( Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
-      long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime);
+      long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime, std::vector<long int> &indices);
 
 Eigen::VectorXd
 gpfp(Eigen::Ref< Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
@@ -72,7 +73,8 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::SparseNonNegativ
   solverType_(0),
   maxSizeRatio_(1.0),
   maxNumElems_(0),
-  maxIterRatio_(3.0)
+  maxIterRatio_(3.0),
+  hotStart_(false)
 {}
 
 template<typename MatrixBufferType, typename SizeType>
@@ -126,7 +128,8 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
       Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      x = nncgp(A, b, errorMagnitude_, info, maxSizeRatio_, maxNumElems_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, centerFlag_, reverseFlag_, dtime);
+      if(!hotStart_) indices.clear();
+      x = nncgp(A, b, errorMagnitude_, info, maxSizeRatio_, maxNumElems_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, centerFlag_, reverseFlag_, dtime, indices);
       nnz = maxNumElems_;
 #else
       std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
@@ -203,9 +206,9 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
 
   }
   double t = (getTime() - t0)/1000.0;
-  fprintf(stderr, " ... Solve Time    = %12.6f s ...\n",t);
-  fprintf(stderr, " ... DDate Time    = %12.6f s ...\n",dtime);
-  fprintf(stderr, " ... %% DDate       = %12.6f %% ...\n",(dtime/t)*100.);
+  fprintf(stderr, " ... Solve Time    = %9.3e s    ...\n",t);
+  fprintf(stderr, " ... Downdate Time = %9.3e s    ...\n",dtime);
+  fprintf(stderr, " ... %% Downdate    = %9.2f %%    ...\n",(dtime/t)*100.);
   fprintf(stderr, " ... Elements      = %12d   ...\n",nnz);
   if (info == 2) {
     throw std::logic_error("Illegal problem size");

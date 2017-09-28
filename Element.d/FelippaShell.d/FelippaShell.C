@@ -132,6 +132,7 @@ FelippaShell::getVonMisesImpl(Vector &stress, Vector &weight, CoordSet &cs,
                               int flag, double *staten, double *statenp)
 {
   weight = 1.0;
+  if(strInd == -1) return;
 
   int strainFlg, offset;
   switch(strInd) {
@@ -486,6 +487,28 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
   }
  
   return cFrame;
+}
+
+void
+FelippaShell::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(FelippaShell::cFrame) {
+    Node &nd1 = cs.getNode(nn[0]);
+    Node &nd2 = cs.getNode(nn[1]);
+    Node &nd3 = cs.getNode(nn[2]);
+
+    double x[3], y[3], z[3];
+
+    x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+    x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+    x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+    Impl::andesfrm(glNum+1, x, y, z, FelippaShell::cFrame, &cFrame[0][0]);
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
+  }
 }
 
 void
@@ -1525,8 +1548,8 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 }
 
 void 
-FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
-                                                 Vector &elDisp, int strInd, int surface, double *ndTemps,
+FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                                 CoordSet &cs, Vector &elDisp, int strInd, int surface, double *ndTemps,
                                                  int avgnum, double, double)
 {
   weight = 1.0;
@@ -1546,6 +1569,8 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   Impl::andesvmsWRTdisp(glNum+1, prop->nu, x, y, z, elDisp.data(),
                         dStdDisp.getData(), type, nmat, surface,
                         sflg, ndTemps);  
+  if(dDispDisp) dStdDisp ^= (*dDispDisp); 
+ 
 }
 
 void

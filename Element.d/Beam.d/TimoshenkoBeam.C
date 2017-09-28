@@ -318,9 +318,6 @@ TimoshenkoBeam::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *
 
   Simo::Jacobian<double,TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity> dGdx(dconst,iconst);
   dGravityForcedx = dGdx(q, 0);
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) std::cerr << "dGravityForcedx(AD) =\n" << dGravityForcedx << std::endl;
-#endif
   dGfdx.copy(dGravityForcedx.data());
 #endif
 }
@@ -493,13 +490,6 @@ TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
 
         Simo::FirstPartialSpaceDerivatives<double, TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst);
         dStiffnessdx = dKdx(q, 0);
-#ifdef SENSITIVITY_DEBUG
-        Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-        if(verboseFlag) {
-          std::cerr << "dStiffnessdx(AD) =\n";
-          for(int i=0; i<6; ++i) std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
-        }
-#endif
         for(int i=0; i<6; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());
 #endif
 }
@@ -753,6 +743,7 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 			double *ndTemps, double ylayer, double zlayer, int avgnum)
 {
    weight = 1.0;
+   if(strInd == -1) return;
 
    Node &nd1 = cs.getNode(nn[0]);
    Node &nd2 = cs.getNode(nn[1]);
@@ -861,16 +852,13 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         break;
       }
 
-      case 1: // nodalfull
+      case 1: case 3: // nodalfull or nodalpartialgroup
       {
         if (strInd == 6) { 
 
           // von Mises stress resultant
           stress[0] = elStress[0][6]; 
           stress[1] = elStress[1][6]; 
-#ifdef SENSITIVITY_DEBUG
-          if(verboseFlag) std::cerr << "von mises stress is " << stress[0] << " " << stress[1] << std::endl;
-#endif
 
         } else if (strInd < 6) {
           // Axial Stress
@@ -951,7 +939,8 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
 #ifdef USE_EIGEN3
 void
-TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                                   CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                    double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
@@ -1010,17 +999,16 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   Eigen::Matrix<double,2,12> dStressdDisp;
   dStressdDisp.setZero();
   Eigen::Matrix<double,7,3> stress;
-  if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
+  if(avgnum == 1 || avgnum == 0 || avgnum == 3) { // ELEMENTAL or NODALFULL or NODALPARTIALGROUP
 
     dStressdDisp.setZero();
     Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,28,1> >(dconst.data()).segment(8,9); // extract eframe
     vms7WRTdisp(1, prop->A, prop->E, eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->alphaY, prop->alphaZ, prop->c,
                 prop->nu, x, y, z, q.data(), dStressdDisp.data(), prop->W, prop->Ta, ndTemps);
-#ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
-#endif
   } 
   dStdDisp.copy(dStressdDisp.data());
+
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }
 
 void
@@ -1092,15 +1080,12 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
   Eigen::Matrix<double,2,6> dStressdx;
   Eigen::Matrix<double,7,3> stress;
 
-  if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
+  if(avgnum == 1 || avgnum == 0 || avgnum == 3) { // ELEMENTAL or NODALFULL or NODALPARTIALGROUP
 
     Simo::Jacobian<double,TimoshenkoBeamStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
     if(elDisp.norm() == 0) dStressdx.setZero();
     else dStressdx = dSdx(q, 0);
     dStdx.copy(dStressdx.data());
-#ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << " ... dStressdx(AD) = \n" << dStressdx << std::endl;
-#endif
   } else dStdx.zero(); // NODALPARTIAL or GAUSS or any others
 }
 #endif

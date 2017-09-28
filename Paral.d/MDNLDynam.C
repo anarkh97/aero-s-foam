@@ -15,6 +15,7 @@
 #include <Paral.d/MDStatic.h>
 #include <Paral.d/MDDynam.h>
 #include <Paral.d/MDOp.h>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 #ifdef DISTRIBUTED
 #include <Dist.d/DistDom.h>
 #endif
@@ -148,11 +149,11 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
   else {
     double beta, gamma, alphaf, alpham, dt = 2*localDelta;
     getNewmarkParameters(beta, gamma, alphaf, alpham);
-    // rhs = dt*dt*beta*residual - ((1-alpham)/(1-alphaf)*M+dt*gamma*C)*inc_displacement
-    //       + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
-    //       + (dt*dt*((1-alpham)/2-beta)*M - dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2*C)*acceleration
-    localTemp->linC(-(1-alpham)/(1-alphaf), inc_displacement, dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
-    M->mult(*localTemp, rhs);
+    if(domain->solInfo().quasistatic) rhs = 0.;
+    else {
+      localTemp->linC(-(1-alpham)/(1-alphaf), inc_displacement, dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
+      M->mult(*localTemp, rhs);
+    }
     if(C) {
       localTemp->linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
       C->multAdd(*localTemp, rhs);
@@ -508,7 +509,8 @@ MDNLDynamic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *re
     geoSource->getElems(domain->getElementSet());
     domain->setNumElements(domain->getElementSet().last());
     decDomain->clean();
-    MDNLDynamic::preProcess();
+    //MDNLDynamic::preProcess();
+    this->preProcess();
     if(muCopy) for(int i=0; i<decDomain->getNumSub(); ++i) muCopy[i] = mu[i];
     geomState.resize(decDomain, mu);
     if(refState) {
@@ -650,12 +652,15 @@ MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta
      getNewmarkParameters(beta, gamma, alphaf, alpham);
      Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
      Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
-     Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+     if(domain->solInfo().quasistatic) Mcoef = 0;
+     else Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
    }
    GenMDDynamMat<double> ops;
    ops.sysSolver = solver;
    ops.Kuc = Kuc;
+
    decDomain->rebuildOps(ops, Mcoef, Ccoef, Kcoef, kelArray, melArray, celArray);
+
    Kcoef_p = Kcoef;
 
  } else
@@ -1977,3 +1982,9 @@ MDNLDynamic::resize(DistrGeomState *refState, DistrGeomState *geomState, DistrGe
     force.conservativeResize(solVecInfo());
   }
 }
+
+SensitivityInfo*
+MDNLDynamic::getSensitivityInfo() { return domain->senInfo; }
+
+int
+MDNLDynamic::getNumSensitivities() { return domain->getNumSensitivities(); }

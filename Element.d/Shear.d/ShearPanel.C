@@ -72,6 +72,7 @@ ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
 			double ylayer, double zlayer, int avgnum)
 {
  	weight = 1.0;
+  if(strInd == -1) return;
 
 	Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
@@ -129,7 +130,8 @@ ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
 }
 
 void
-ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                               CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
 #ifdef USE_EIGEN3
@@ -170,20 +172,15 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
 
   // Jacobian evaluation
   Eigen::Matrix<double,4,12> dStressdDisp;
- 
-  if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
-    dStressdDisp.setZero();
-    vmssWRTdisp(globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
-                dconst[13], prop->E, dStressdDisp.data(), vmssig);   
-    dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
-#endif
-  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
+  dStressdDisp.setZero();
+  vmssWRTdisp(globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
+              dconst[13], prop->E, dStressdDisp.data(), vmssig);   
+  dStdDisp.copy(dStressdDisp.data());
 #else
   std::cerr << " ... Error! ShearPanel::getVonMisesDisplacementSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }
 
 void

@@ -13,7 +13,7 @@
 
 Eigen::VectorXd
 nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
-      long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime);
+      long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime, std::vector<long int> &indices);
 
 Eigen::VectorXd
 mp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
@@ -95,7 +95,8 @@ mp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
 
   double dtime = 0;
   int dummy = 0;
-  ymp.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, dummy, maxite, reltol, verbose, scaling, center, false, dtime);  
+  std::vector<long int> newIndices; 
+  ymp.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, dummy, maxite, reltol, verbose, scaling, center, false, dtime, newIndices);  
 
   if(verbose) std::cout.flush();
 

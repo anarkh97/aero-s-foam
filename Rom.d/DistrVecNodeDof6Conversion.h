@@ -34,7 +34,7 @@ public:
   const VecType &unpaddedMasterVector(const NodeDofType &origin, VecType &target) const;
 
   template <typename SubDomPtrFwdIt>
-  DistrVecNodeDofConversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last);
+  DistrVecNodeDofConversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last, bool = true);
   template <typename SubDomPtrFwdIt>
   DistrVecNodeDofConversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last, int globalLen, int blockSize,
                             Communicator *com, int numLocalSub);
@@ -61,18 +61,23 @@ typedef DistrVecNodeDofConversion<1> DistrVecNodeDof1Conversion;
 
 template <int DOFS_PER_NODE>
 template <typename SubDomPtrFwdIt>
-DistrVecNodeDofConversion<DOFS_PER_NODE>::DistrVecNodeDofConversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last) :
+DistrVecNodeDofConversion<DOFS_PER_NODE>::DistrVecNodeDofConversion(SubDomPtrFwdIt first, SubDomPtrFwdIt last, bool flag) :
   subDomains_(first, last), com_(NULL)
 {
   for (SubDomPtrFwdIt it = first; it != last; ++it) {
     SubDomain * const s = *it;
-    subConversions_.push_back(new VecNodeDofConversion<DOFS_PER_NODE>(*s->getCDSA()));
+    if(flag) {
+      subConversions_.push_back(new VecNodeDofConversion<DOFS_PER_NODE>(*s->getCDSA()));
 
-    std::vector<bool> masterFlags;
-    master_node_flags(*s, std::back_inserter(masterFlags));
-    subRestrictedConversions_.push_back(new RestrictedVecNodeDofConversion<DOFS_PER_NODE>(*s->getCDSA(),
-                                                                                          masterFlags.begin(),
-                                                                                          masterFlags.end()));
+      std::vector<bool> masterFlags;
+      master_node_flags(*s, std::back_inserter(masterFlags));
+      subRestrictedConversions_.push_back(new RestrictedVecNodeDofConversion<DOFS_PER_NODE>(*s->getCDSA(),
+                                                                                            masterFlags.begin(),
+                                                                                            masterFlags.end()));
+    }
+    else {
+      subConversions_.push_back(new VecNodeDofConversion<DOFS_PER_NODE>(s->getCDSA()->numNodes()));
+    }
   }
 }
 

@@ -8,6 +8,9 @@ BISON_TARGET(MyParser p.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp)
 FLEX_TARGET(MyScanner lexer.l  ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp)
 ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
+# Just so that we can see this file in the IDE
+set(IDE_FILES_LIST p.y)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-ADD_LIBRARY(Parser AuxDefs.C ${BISON_MyParser_OUTPUTS} ${FLEX_MyScanner_OUTPUTS})
+ADD_LIBRARY(Parser AuxDefs.C ${BISON_MyParser_OUTPUTS} ${IDE_FILES_LIST} ${FLEX_MyScanner_OUTPUTS})
 SET_TARGET_PROPERTIES(Parser PROPERTIES COMPILE_FLAGS -fPIC) 

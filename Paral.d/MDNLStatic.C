@@ -312,7 +312,7 @@ MDNLStatic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *ref
     geoSource->getElems(domain->getElementSet());
     domain->setNumElements(domain->getElementSet().last());
     decDomain->clean();
-    preProcess();
+    preProcess(false);
     geomState.resize(decDomain, mu);
     if(refState) {
       refState->resize(decDomain);
@@ -403,7 +403,7 @@ MDNLStatic::makeSubDofs(int isub)
 }
 
 void
-MDNLStatic::preProcess()
+MDNLStatic::preProcess(bool factor)
 {
  times->memoryPreProcess -= threadManager->memoryUsed();
 
@@ -442,7 +442,7 @@ MDNLStatic::preProcess()
  times->memoryPreProcess += threadManager->memoryUsed();
  times->getFetiSolverTime -= getTime();
  GenMDDynamMat<double> allOps;
- decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
+ decDomain->buildOps(allOps, 0.0, 0.0, 1.0, (Rbm **) 0, kelArray, true, (FullSquareMatrix **) 0, (FullSquareMatrix **) 0, factor);
  solver = allOps.sysSolver;
  fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
  if(allOps.K) delete allOps.K;

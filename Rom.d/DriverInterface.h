@@ -31,11 +31,13 @@ extern Rom::DriverInterface *deimConstraintSamplingDriverNew(Domain *);
 extern Rom::DriverInterface *constraintSamplingDriverNew(Domain *);
 extern Rom::DriverInterface *distrBasisOrthoDriverNew(Domain *);
 extern Rom::DriverInterface *elementSamplingDriverNew(Domain *);
+extern Rom::DriverInterface *ROMPostProcessingDriverNew(Domain *);
 extern Rom::DriverInterface *distrROMPostProcessingDriverNew(Domain *);
 extern Rom::DriverInterface *distrElementSamplingDriverNew(Domain *);
 extern Rom::DriverInterface *snapshotProjectionDriverNew(Domain *);
 extern Rom::DriverInterface *positiveDualBasisDriverNew(Domain *);
 extern Rom::DriverInterface *distrPositiveDualBasisDriverNew(Domain *);
 extern Rom::DriverInterface *distrSnapshotClusteringDriverNew(Domain *);
+extern Rom::DriverInterface *distrSnapshotRowClusteringDriverNew(Domain *);
 
 #endif /* ROM_DRIVERINTERFACE_H */

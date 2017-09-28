@@ -28,7 +28,8 @@ void
 LumpedPodProjectionNonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                                              Corotator **allCorot, FullSquareMatrix *kelArray,
                                                              Vector &residual, double lambda, double time, GeomState *refState,
-                                                             FullSquareMatrix *melArray, bool forceOnly) {
+                                                             FullSquareMatrix *_melArray, bool forceOnly) {
+  FullSquareMatrix *melArray = (domain->solInfo().quasistatic) ? (FullSquareMatrix*) NULL : _melArray;
   if(forceOnly) {
     domain->getWeightedInternalForceOnly(packedElementWeights_[localReducedMeshId_],
                                          geomState, elementInternalForce,
@@ -115,40 +116,27 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   packedWeightedNodes_.resize(packedNodeIt-packedWeightedNodes_.begin());
 
   if(geoSource->elementLumpingWeightSize() == 1 && packedWeightedElems_.size() < domain->numElements()) {
-    if(domain->solInfo().useMassNormalizedBasis) { // don't compress if using Local mesh
+    if(domain->solInfo().useMassNormalizedBasis) { // don't compress yet if using Local mesh
       filePrint(stderr, " ... Compressing Basis              ...\n");
       GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
       projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
     }
   }
-  else if(geoSource->elementLumpingWeightSize() > 1) {
-    GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
-    for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {    
-      std::sort(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
-      std::vector<int>::iterator packedNodeIt = std::unique(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
-      localPackedWeightedNodes_[j].resize(packedNodeIt-localPackedWeightedNodes_[j].begin());
-      filePrint(stderr, " ... # Nodes in Reduced Mesh = %-5d...\n", localPackedWeightedNodes_[j].size());
-    }
-  }
   else {
-    if(!domain->solInfo().useMassNormalizedBasis) {
-#ifdef USE_EIGEN3
-      if(domain->solInfo().modalDIMASS) {
-        filePrint(stderr, " ... Reading Reduced Mass Matrix    ...\n");
-        std::ifstream matrixin(domain->solInfo().reducedMassFile);
-        int n = solver_->projectionBasis().vectorCount();
-        VtMV.resize(n,n);
-        for(int i=0; i<n; ++i)
-          for(int j=0; j<n; ++j)
-            matrixin >>VtMV(i,j);
-        matrixin.close();
+    if(geoSource->elementLumpingWeightSize() > 1) {
+      GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
+      for (int j=0; j<geoSource->elementLumpingWeightSize(); ++j) {    
+        std::sort(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
+        std::vector<int>::iterator packedNodeIt = std::unique(localPackedWeightedNodes_[j].begin(), localPackedWeightedNodes_[j].end());
+        localPackedWeightedNodes_[j].resize(packedNodeIt-localPackedWeightedNodes_[j].begin());
+        filePrint(stderr, " ... # Nodes in Reduced Mesh = %-5d...\n", localPackedWeightedNodes_[j].size());
       }
-      else
-#endif
-        filePrint(stderr, " *** WARNING: \"use_mass_normalized_basis off\" is not supported for\n"
-                          "     for model III when \"samplmsh.elementmesh.inc\" file is used   \n"
-                          "     unless a modal DIMASS file is specified containing the reduced \n"
-                          "     mass matrix.\n");
+    }
+    if(!domain->solInfo().useMassNormalizedBasis && !domain->solInfo().modalDIMASS) {
+      filePrint(stderr, " *** WARNING: \"use_mass_normalized_basis off\" is not supported for\n"
+                        "     for model III when \"samplmsh.elementmesh.inc\" file is used   \n"
+                        "     unless a modal DIMASS file is specified containing the reduced \n"
+                        "     mass matrix.\n");
     }
   }
 }

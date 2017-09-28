@@ -1174,7 +1174,7 @@ Shell3Corotator::formCorrectGeometricStiffness(double rotvar[3][3][3],
 			    t0n[3][3])
 {
     if ( fitAlg != 2 ) {
-      fprintf(stderr,"Error: Three Node Shell element works correctly only for FitAlg =2\n");
+      fprintf(stderr,"Error: Three Node Shell element works correctly only for FitAlg = 2\n");
       exit(-1);
     }
 

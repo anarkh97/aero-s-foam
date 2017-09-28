@@ -3,6 +3,7 @@
 
 #include <Comm.d/Communicator.h>
 #include <Math.d/SCMatrix.d/SCDoubleMatrix.h>
+#include <Utils.d/DistHelper.h>
 #include <Utils.d/linkfc.h>
 #include <Rom.d/ClusterSolvers.d/Kmeans.d/Kmeans.h>
 #include <Rom.d/ClusterSolvers.d/SSC.d/SSC.h>
@@ -42,7 +43,7 @@ DistrSnapshotClusteringSolver
   kmMaxIter_(1000),
   kmSeed_(1)
 {
-  clusterColTimeStamps.resize(colCount); 
+  timeStamps_.resize(colCount); 
 }
 
 void
@@ -90,11 +91,10 @@ DistrSnapshotClusteringSolver::solve()
   Cblacs_gridexit(localContext);
   Cfree_blacs_system_handle(localBlacsHandle);
 
-  // TODO: replace this random assigment with k-means or alternative solution
   switch(solverType_) {
     default :
     case 0 : { // Random assignment 
-      fprintf(stderr, " ... Using Random Clustering ...\n");
+      filePrint(stderr, " ... Using Random Clustering        ...\n");
       std::vector<int> clusterAssignment(colCount_);
       for(int k=0; k<colCount_; ++k) clusterAssignment[k] = rand()%numClusters_;
       // make a list of the columns assigned to each cluster
@@ -111,9 +111,7 @@ DistrSnapshotClusteringSolver::solve()
     } break;
 
     case 1: { // K-means
-      if (communicator_->myID() == 0) {
-          fprintf(stderr, " ... Using K-means Clustering ...\n");
-      }
+      filePrint(stderr, " ... Using K-means Clustering       ...\n");
       Kmeans solver = Kmeans();
       solver.setNumClusters(numClusters_);
       solver.setMaxIter(kmMaxIter_);
@@ -134,10 +132,7 @@ DistrSnapshotClusteringSolver::solve()
     } break;
 
     case 2: { // sparse subspace clustering
-
-      if (communicator_->myID() == 0) {
-          fprintf(stderr, " ... Using Sparse Subspace Clustering ...\n");
-      }
+      filePrint(stderr, " ... Using Sparse Subspace Clustering ...\n");
       SparseSubspaceClustering solver = SparseSubspaceClustering();
       solver.setNumClusters(numClusters_);
       solver.setMaxIter(kmMaxIter_);

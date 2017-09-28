@@ -61,8 +61,8 @@ public:
         void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp,
                                              int strInd, int surface, int senMethod = 1, double *ndTemps = 0, int avgnum = 1,
                                              double ylayer = 0, double zlayer = 0);
-        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
-                                                Vector &elDisp, int strInd, int surface, int senMethod = 1,
+        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                                CoordSet &cs, Vector &elDisp, int strInd, int surface, int senMethod = 1,
                                                 double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 #endif
 };

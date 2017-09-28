@@ -26,6 +26,7 @@
  extern std::string decomposition_;
  extern std::string connectivity_;
  extern bool randomShuffle;
+ extern bool allowMechanisms;
 %}
 
 %union
@@ -68,23 +69,24 @@
  BlastLoading::BlastData blastData;
  SolverCntl* scntl;
  FreeplayProps freeplayProps;
+ ModalParams::Type mpt;
 }
 
 %expect 6
 
-%token ACTUATORS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT 
-%token AUGMENT AUGMENTTYPE AUXILIARY AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
-%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
+%token ACTUATORS ADJOINTBASIS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT 
+%token AUGMENT AUGMENTTYPE AUXILIARY AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU ALLOWMECHANISMS
+%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED ANDESCLR ANDESCQR ANDESBETAB ANDESALPHA ANDESBETAM AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
-%token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
+%token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION CONTACT
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token CONSTANT CONWEP
-%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING ANGLE DUALBASIS DUALRB KMEANS CRANDOM
+%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING DOROWCLUSTERING ANGLE DUALBASIS DUALRB KMEANS CRANDOM
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
-%token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID FREEPLAY
-%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSGL FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
+%token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLAGMN FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID FREEPLAY
+%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FREQSWEEPAW FSGL FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
@@ -96,18 +98,18 @@
 %token KSPARAM KSMAX 
 %token MASS MASSAUGMENTATION MATERIALS MATLAB MAXITR MAXELEM MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MUMPSMINEQ MUMPSSTRIDE MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
-%token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
+%token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NLMEMPTYPE NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
 %token SENSITIVITY SENSITIVITYMETHOD OUTPUT OUTPUT6 OUTPUTFRAME
-%token QSTATIC QLOAD
+%token QSTATIC QLOAD QUASISTATIC
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PRINTNUMBER PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
-%token RADIATION RBMFILTER RBMSET READMODE READSENSITIVITY REBUILD REVERSEORDER REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROTVECOUTTYPE RESCALING RUBDAFT
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB printmatlab PRINTNUMBER PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE PARAMETERS
+%token RADIATION RBMFILTER RBMSET READMODE READSENSITIVITY REBUILD REVERSEORDER REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROBTYPE ROTVECOUTTYPE RESCALING RUBDAFT
 %token SCALING SCALINGTYPE SDETAFT SENSORS SOLVERCNTL SOLVERHANDLE SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK SPARSERENUM
 %token STATS STRESSID SUBSPACE SURFACE STR_THERM_OPTION SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT SENSITIVITYID
-%token TABLE TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOLSEN TOPFILE TOPOLOGY TRBM THERMOE THERMOH RATIOTOLSEN 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL CENTER POSELEM HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL THICKNESSGROUPLIST
+%token TABLE TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOLSEN TOPFILE TOPOLOGY TRBM trbm THERMOE THERMOH RATIOTOLSEN 
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL CENTER POSELEM HOTSTART HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL NUMROMCPUS THICKNESSGROUPLIST
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERBOSE VERSION WETCORNERS YMTT YSST YSSRT
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
@@ -116,14 +118,14 @@
 %token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC VISCOLINEARELASTIC VISCOSTVENANTKIRCHHOFF NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS
 %token PLANESTRESSLINEAR PLANESTRESSSTVENANTKIRCHHOFF PLANESTRESSNEOHOOKEAN PLANESTRESSMOONEYRIVLIN PLANESTRESSBILINEARPLASTIC PLANESTRESSFINITESTRAINPLASTIC PLANESTRESSVISCOLINEARELASTIC PLANESTRESSVISCOSTVENANTKIRCHHOFF PLANESTRESSVISCONEOHOOKEAN PLANESTRESSVISCOMOONEYRIVLIN
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
-%token NSUBS EXITAFTERDEC SKIP RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
+%token NSUBS EXITAFTERDEC SKIP ROBCSOLVE RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE
-%token SNAPFI VELSNAPFI ACCSNAPFI DSVSNAPFI PODROB ROMENERGY TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI ROMRES SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS NODEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USEGREEDY USEPQN FILTERROWS
+%token SNAPFI VELSNAPFI ACCSNAPFI DSVSNAPFI PODROB ROMENERGY TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI ROMRES SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS NODEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USENMFC USEGREEDY USEPQN FILTERROWS
 %token VECTORNORM REBUILDFORCE REBUILDCONSTRAINT SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB CONSTRAINTROB DEIMINDICES UDEIMINDICES SVDFORCESNAP SVDCONSTRAINTSNAP
-%token USEMASSNORMALIZEDBASIS ONLINEMASSNORMALIZEBASIS
-%token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST DISPDOFLIST 
+%token USEMASSNORMALIZEDBASIS USECONSTANTMASS ONLINEMASSNORMALIZEBASIS STACKED
+%token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST RELAXATIONSEN 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 %token NPMAX BSSPLH PGSPLH
 
@@ -133,6 +135,7 @@
 %type <bclist>   BCDataList IDisp6 TBCDataList PBCDataList AtdDirScatterer AtdNeuScatterer IDisp6Pita IVel6Pita
 %type <bclist>   DirichletBC NeumanBC TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
 %type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem 
+%type <bclist>   UsddLocations
 %type <bcval>    BC_Data TBC_Data ModalVal PBC_Data HEVDBC_Data
 %type <coefdata> CoefList
 %type <cxbcval>  ComplexBC_Data ComplexMPCHeader
@@ -146,6 +149,7 @@
 %type <ival>     DAMPING ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
 %type <ival>     Integer IntConstant ITERTYPE LoadCase
 %type <ival>     RBMSET RENUMBERID OPTCTV
+%type <mpt>      ROBTYPE
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
 %type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE STR_THERM_OPTION MOMENTTYPE SPNNLSSOLVERTYPE CLUSTERSOLVERTYPE SENSITIVITYID
@@ -169,7 +173,7 @@
 %type <MortarCondObj> MortarCondition TiedSurfaces ContactSurfacesInfo
 %type <ival>     MPCTYPEID MPCPRECNOID MPCBLOCKID
 %type <ival>     ISOLVERTYPE RECONSALG
-%type <ival>     PRECTYPEID SWITCH KEYLETTER Pressure
+%type <ival>     PRECTYPEID SWITCH KEYLETTER Pressure FLAGMN
 %type <oinfo>    OutInfo
 %type <copt>     ConstraintOptionsData
 %type <blastData> ConwepData
@@ -231,8 +235,11 @@ Component:
 	| SensorLocations
 	| ActuatorLocations
 	| UsddLocations
+        { if(geoSource->setUsddLocation($1->n,$1->d) < 0) return -1;
+          if(geoSource->setDirichlet($1->n,$1->d) < 0)    return -1; delete $1; }
 	| UsdfLocations
         | DynInfo
+        | PrintMat
         | DeleteElements
         | Conwep
 	| SloshInfo 
@@ -255,9 +262,7 @@ Component:
         | YSSRTable
         | SDETAFTable
         | RUBDAFTable
-/*
 	| RbmTolerance
-*/
         | ToleranceInfo
         | Gravity
 	| RbmFilterInfo
@@ -360,7 +365,7 @@ Component:
         {}
 	| BoffsetList
 	| ParallelInTimeInfo 
-        | AcmeControls
+        | Parameters 
         | Constraints
 	| SvdToken
         | DeimIndices
@@ -386,7 +391,7 @@ Inpc:
 Group:
         GROUP NewLine
         | Group GROUPTYPE Integer Integer NewLine
-        { if ($2 == OutputInfo::Attribute)  geoSource->setGroupAttribute($3-1, $4-1);
+        { if ($2 == OutputInfo::Attribute)  geoSource->setAttributeGroup($3-1, $4-1);
           else if ($2 == OutputInfo::Nodal)  geoSource->setNodeGroup($3-1, $4);
           else  {  fprintf(stderr, " ### AS.ERR: Unrecognized Group Type: %d\n", $2);  exit(-1); }
         }
@@ -394,7 +399,7 @@ Group:
         { int i;
           if ($2 == OutputInfo::Attribute)  {
             for(i=$3; i<$4+1; ++i)
-              geoSource->setGroupAttribute(i-1,$5-1);
+              geoSource->setAttributeGroup(i-1,$5-1);
           }
           else if ($2 == OutputInfo::Nodal)  {
             for(i=$3; i<$4+1; ++i)
@@ -440,9 +445,11 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.maxP = $8;
           domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
           if ($6 == SweepParams::KrylovGalProjection) 
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
-          else 
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
+          else if ($6 == SweepParams::WCAWEGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
+          else
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
           domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$3;
           domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
           domain->solInfo().getSweepParams()->adaptSweep.atol = $7;
@@ -450,6 +457,30 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $10;
           domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $11;
           domain->solInfo().getSweepParams()->nFreqSweepRHS = $10;
+        }
+        | Impe FREQSWEEPAW Float Float Integer RECONSALG Float Integer Integer Float Float NewLine
+        {
+          if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+          domain->setFrequencySet(domain->solInfo().curSweepParam);
+          domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, 2, $5);
+          domain->solInfo().getSweepParams()->isAdaptSweep = true;
+          domain->solInfo().getSweepParams()->adaptSweep.maxP = $8;
+          domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
+          if ($6 == SweepParams::KrylovGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
+          else if ($6 == SweepParams::WCAWEGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
+          else
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
+          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$3;
+          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
+          domain->solInfo().getSweepParams()->adaptSweep.atol = $7;
+          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = -1;
+          domain->solInfo().getSweepParams()->nFreqSweepRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.ctolf = $10;
+          domain->solInfo().getSweepParams()->adaptSweep.tol1f = $11;
         }
         | Impe FREQSWEEPA Float Float Integer RECONSALG NewLine
         {
@@ -460,14 +491,21 @@ Impe:
           domain->solInfo().getSweepParams()->adaptSweep.maxP = 6;
           domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
           if ($6 == SweepParams::KrylovGalProjection) {
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 0; 
+             domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
+             domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
+             domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 48;
+             domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
+          }
+          else if ($6 == SweepParams::WCAWEGalProjection) {
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 2;
              domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
              domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
              domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 48;
              domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
           }
           else {
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = 1;
              domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
              domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
              domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 16;
@@ -551,7 +589,7 @@ ReconsInfo:
               m = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
-            case SweepParams::QRGalProjection:
+            case SweepParams::WCAWEGalProjection:
               n = $3;
               m = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
@@ -600,7 +638,7 @@ ReconsInfo:
               m = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
-            case SweepParams::QRGalProjection:
+            case SweepParams::WCAWEGalProjection:
               n = $3;
               l = $4;
               m = 1;
@@ -673,6 +711,8 @@ Decompose :
          {decInit->trivial = true; randomShuffle = bool($3); }
        | Decompose FSGL NewLine
          {decInit->fsgl = true; }
+       | Decompose ALLOWMECHANISMS NewLine
+         {allowMechanisms = true; }
        ;
 WeightList :
        WEIGHTLIST NewLine
@@ -854,7 +894,7 @@ DiscrMasses:
           { domain->addDMass($2-1,$3-1,$5,$4-1); }
         | DiscrMasses MODAL NewLine FNAME NewLine
         { domain->solInfo().modalDIMASS = true;
-          domain->solInfo().reducedMassFile = $4;; }
+          domain->solInfo().reducedMassFile = $4; }
         ;
 Gravity:
 	GRAVITY NewLine
@@ -902,11 +942,21 @@ UsdfLocations:
           if(geoSource->setNeuman($3->n,$3->d) < 0)       return -1; } 
 	;
 UsddLocations:
-	USERDEFINEDISP NewLine BCDataList
-	{ geoSource->binaryInputControlLeft = true;
-          for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdd;
-          if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;
-          if(geoSource->setDirichlet($3->n,$3->d) < 0)    return -1; }
+        USERDEFINEDISP NewLine
+        { geoSource->binaryInputControlLeft = true;
+          $$ = new BCList; }
+        | UsddLocations BC_Data
+        { $2.type = BCond::Usdd; $$->add($2); }
+        | UsddLocations Integer THRU Integer Integer NewLine
+        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, 0., BCond::Usdd); $$->add(bc); } }
+        | UsddLocations Integer THRU Integer STEP Integer Integer NewLine
+        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, 0., BCond::Usdd); $$->add(bc); } }
+        | UsddLocations SURF BC_Data
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0] = $3;
+          surf_bc[0].type = BCond::Usdd;
+          geoSource->addSurfaceDirichlet(1,surf_bc);
+          if(geoSource->getNumSurfaceDirichlet() > 1) delete [] surf_bc; }
 	;
 Output:
 	OUTPUT NewLine
@@ -927,6 +977,8 @@ Output:
         { numColumns = 6; domain->outFlag = $2; geoSource->setOutLimit($3); }
         | OUTPUT FNAME NewLine
         { numColumns = 3; geoSource->getCheckFileInfo()->outputExt = $2; }
+        | OUTPUT6 FNAME NewLine
+        { numColumns = 6; geoSource->getCheckFileInfo()->outputExt = $2; }
         | Output OutInfo NewLine
         { $2.finalize(numColumns); geoSource->addOutput($2); }
         ;
@@ -1004,8 +1056,8 @@ DynInfo:
 	| EIGEN Integer NewLine
 	{ domain->solInfo().setProbType(SolverInfo::Modal);
 	  domain->solInfo().nEig = $2;}
-  | QRFACTORIZATION SWITCH NewLine
-  { domain->solInfo().qrfactorization = $2;}
+	| QRFACTORIZATION SWITCH NewLine
+	{ domain->solInfo().qrfactorization = $2;}
 	| NEIGPA Integer NewLine
 	{ domain->solInfo().nEig = $2; }
 	| SUBSPACE NewLine
@@ -1047,9 +1099,19 @@ DynInfo:
         | DynInfo MAXITR Integer NewLine
         { domain->solInfo().maxitEig = $3; }
         | TESTULRICH NewLine
-          { domain->solInfo().test_ulrich = true; }
+        { domain->solInfo().test_ulrich = true; }
         | ADDEDMASS Integer NewLine
         { domain->solInfo().addedMass = $2; }
+        ;
+PrintMat:
+        PRINTMATLAB FNAME NewLine
+        { domain->solInfo().printMatLab = true;
+          domain->solInfo().printMatLabFile = $2;
+          domain->solInfo().printMatLabExit = true; }
+        | PRINTMATLAB FNAME EXITAFTERDEC NewLine
+        { domain->solInfo().printMatLab = true;
+          domain->solInfo().printMatLabFile = $2; 
+          domain->solInfo().printMatLabExit = true; }
 	;
 DeleteElements:
         DELETEELEMENTS NewLine DeleteElementsList NewLine
@@ -1083,6 +1145,13 @@ TopInfo:
 	TOPFILE NewLine
 	{ domain->solInfo().setProbType(SolverInfo::Top); }
 	;
+ModalInfo:
+	MODAL Integer
+	{ domain->solInfo().modal_id.push_back($2); }
+	| ModalInfo Integer
+	{ domain->solInfo().modal_id.push_back($2); }
+	| ModalInfo CONTACT Integer
+	{ domain->solInfo().contact_modal_id.push_back($3); }
 DynamInfo:
         DYNAM NewLine 
         { domain->solInfo().setProbType(SolverInfo::Dynamic); }
@@ -1090,6 +1159,8 @@ DynamInfo:
         | DynamInfo TimeInfo
         | DynamInfo DampInfo
         | DynamInfo MODAL NewLine
+        { domain->solInfo().modal = true; domain->solInfo().modal_id.push_back(0); }
+        | DynamInfo ModalInfo NewLine
         { domain->solInfo().modal = true; }
         | DynamInfo STABLE Integer NewLine
         { domain->solInfo().stable = $3; }
@@ -1116,6 +1187,8 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
+        | DynamInfo QUASISTATIC SWITCH NewLine
+        { domain->solInfo().quasistatic = bool($3); }
         ;
 Conwep:
         CONWEP NewLine ConwepData NewLine
@@ -1175,7 +1248,9 @@ QstaticInfo:
         | QstaticInfo QMechInfo
         | QstaticInfo QHeatInfo
         | QstaticInfo MODAL NewLine
-        { domain->solInfo().modal = true; }
+        { domain->solInfo().modal = true; domain->solInfo().modal_id.push_back(0); }
+        | QstaticInfo MODAL Integer NewLine
+        { domain->solInfo().modal = true; domain->solInfo().modal_id.push_back($3); }
 	;
 QMechInfo:
         MECH Float Float Integer NewLine
@@ -1277,6 +1352,8 @@ ThermoeInfo:
 ModeInfo:
         MODE NewLine 
         { domain->solInfo().setModeDecomp(1); }
+        | MODE Integer NewLine
+        { domain->solInfo().setModeDecomp(1, $2); }
 	;
 HzemInfo:
         HZEM NewLine
@@ -1286,12 +1363,10 @@ SlzemInfo:
         SLZEM NewLine
         { domain->solInfo().slzemFlag=1; }
 	;
-/*
 RbmTolerance:
         TRBM NewLine Float NewLine
         { domain->solInfo().setTrbm($3); }
 	;
-*/
 ToleranceInfo:
         GRBM NewLine Float Float NewLine
         { domain->solInfo().setGrbm($3,$4); }
@@ -1854,32 +1929,27 @@ AxiLmpc:
         | Integer Float Float Integer Float Float Float Float Float NewLine
         { $$ = MPC($1-1, $2, $3, $4, DComplex($5,$6) , $7, $8, $9); }
 	;
+ReadModeInfo:
+	Integer EIGEN FNAME Integer NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams(ModalParams::Eigen, $3, $4); }
+        | Integer ROBTYPE FNAME Integer NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams($2, $3, $4); }
+        | Integer EIGEN FNAME Integer Float NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams(ModalParams::Eigen, $3, $4, $5); }
+        | Integer ROBTYPE FNAME Integer Float NewLine
+        { domain->solInfo().readInModes[$1] = ModalParams($2, $3, $4, $5); }
+	;
 Mode:
         READMODE FNAME NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readmodeCalled = true; }
+        { domain->solInfo().readInModes[0] = ModalParams(ModalParams::Undefined, $2); }
         | READMODE FNAME Integer NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readmodeCalled = true; 
-          domain->solInfo().maxSizePodRom += $3;
-          domain->solInfo().localBasisSize.push_back($3); }	
-        | READMODE FNAME FNAME NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readInModes.push_back($3);
-          domain->solInfo().readmodeCalled = true; }
-        | READMODE FNAME FNAME Integer NewLine
-        { domain->solInfo().readInROBorModes.push_back($2);
-          domain->solInfo().readInModes.push_back($3);
-          domain->solInfo().readmodeCalled = true;
-          domain->solInfo().maxSizePodRom += $4;
-          domain->solInfo().localBasisSize.push_back($4); }
-        | Mode USEMASSNORMALIZEDBASIS SWITCH NewLine
-        { domain->solInfo().useMassNormalizedBasis = bool($3); }
-        | Mode ONLINEMASSNORMALIZEBASIS SWITCH NewLine
-        { domain->solInfo().performMassNormalization = bool($3); } 
-        | Mode DUALBASIS FNAME Integer NewLine
-        { domain->solInfo().readInDualROB.push_back($3);
-          domain->solInfo().localDualBasisSize.push_back($4); }
+        { domain->solInfo().readInModes[0] = ModalParams(ModalParams::Undefined, $2, $3); }
+	| READMODE NewLine ReadModeInfo
+	| Mode ReadModeInfo
+        | Mode ADJOINTBASIS FNAME Integer STRESSID NewLine
+        { domain->solInfo().adjointMap[(OutputInfo::Type)$5] = domain->solInfo().readInAdjointROB.size();
+          domain->solInfo().readInAdjointROB.push_back($3);
+          domain->solInfo().maxSizeAdjointBasis.push_back($4); }
 	;
 IDisp:
         IDIS NewLine
@@ -1893,6 +1963,11 @@ IDisp:
 	{ for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Idisplacements;
           if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1; 
 	  domain->solInfo().modalCalled = true; }
+        | IDisp MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Idisplacements;
+          if(geoSource->setIDisModal($5->n, $5->d) < 0) return -1;
+          domain->solInfo().modalCalled = true;
+          domain->solInfo().idis_modal_id = $3; }
 	;
 IDisp6:
 	IDIS6 Float NewLine
@@ -1967,11 +2042,20 @@ IVel:
         { for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Ivelocities;
           if(geoSource->setIVelModal($4->n, $4->d) < 0) return -1; 
 	  domain->solInfo().modalCalled = true; }
+        | IVel MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Ivelocities;
+          if(geoSource->setIVelModal($5->n, $5->d) < 0) return -1;
+          domain->solInfo().modalCalled = true;
+          domain->solInfo().ivel_modal_id = $3; }
 	;
 ITemp:
         ITEMP NewLine TBCDataList
         { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Itemperatures;
           if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
+        | ITemp MODAL NewLine ModalValList
+        { for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Itemperatures;
+          if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1;
+          domain->solInfo().modalCalled = true; }
 	;
 ETemp:
         ETEMP NewLine TBCDataList
@@ -2009,6 +2093,12 @@ ModalNeumanBC:
         | FORCE Integer NewLine MODAL NewLine ModalValList
         { for(int i=0; i<$6->n; ++i) { $6->d[i].type = BCond::Forces; $6->d[i].loadsetid = $2; }
           if(geoSource->setNeumanModal($6->n, $6->d) < 0) return -1; }
+        | FORCE NewLine MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$6->n; ++i) $6->d[i].type = BCond::Forces;
+          if(geoSource->setNeumanModal($6->n, $6->d) < 0) return -1; }
+        | FORCE Integer NewLine MODAL Integer NewLine ModalValList
+        { for(int i=0; i<$7->n; ++i) { $7->d[i].type = BCond::Forces; $7->d[i].loadsetid = $2; }
+          if(geoSource->setNeumanModal($7->n, $7->d) < 0) return -1; }
         ;
 BCDataList:
 	BC_Data
@@ -3224,15 +3314,28 @@ ContactSurfacesInfo:
           $$->SetCtcMode(domain->solInfo().contactsurface_mode);
         }
         ;
-AcmeControls:
-        ACMECNTL Integer NewLine
-        { domain->solInfo().dist_acme = $2; }
-        | FFIDEBUG Integer NewLine
-        { domain->solInfo().ffi_debug = bool($2); }
-        | MORTARSCALING Float NewLine
-        { domain->solInfo().mortar_scaling = $2; }
-        | MORTARINTEGRATIONRULE Integer NewLine
-        { domain->solInfo().mortar_integration_rule = $2; }
+Parameters:
+        PARAMETERS NewLine
+        | Parameters ACMECNTL Integer NewLine
+        { domain->solInfo().dist_acme = $3; }
+        | Parameters FFIDEBUG Integer NewLine
+        { domain->solInfo().ffi_debug = bool($3); }
+        | Parameters MORTARSCALING Float NewLine
+        { domain->solInfo().mortar_scaling = $3; }
+        | Parameters MORTARINTEGRATIONRULE Integer NewLine
+        { domain->solInfo().mortar_integration_rule = $3; }
+        | Parameters ANDESCLR Float NewLine
+        { domain->solInfo().andes_clr = $3; }
+        | Parameters ANDESCQR Float NewLine
+        { domain->solInfo().andes_cqr = $3; }
+        | Parameters ANDESBETAB Float NewLine
+        { domain->solInfo().andes_betab = $3; }
+        | Parameters ANDESALPHA Float NewLine
+        { domain->solInfo().andes_alpha = $3; }
+        | Parameters ANDESBETAM Float NewLine
+        { domain->solInfo().andes_betam = $3; }
+        | Parameters NLMEMPTYPE Integer NewLine
+        { domain->solInfo().nlmembrane_pressure_type = $3; }
 NodeSet:
 	NODETOKEN NewLine Node
 	{ geoSource->addNode($3.num, $3.xyz, $3.cp, $3.cd); }
@@ -3600,6 +3703,8 @@ Sensitivity:
           domain->solInfo().readInShapeSen = $3; }  
         | Sensitivity TOLSEN Float NewLine
         { domain->solInfo().sensitivityTol = $3; }
+        | Sensitivity RELAXATIONSEN Float NewLine
+        { domain->solInfo().qsMaxvelSen = $3; }
         | Sensitivity RATIOTOLSEN Float NewLine
         { domain->solInfo().ratioSensitivityTol = $3; }    
         | Sensitivity KSPARAM Float NewLine
@@ -3610,22 +3715,34 @@ Sensitivity:
         { } 
         | Sensitivity STRESSNODELIST StressNode NewLine
         { } 
-        | Sensitivity DISPNODELIST DispNode NewLine
+        | Sensitivity DISPNODELIST NewLine DispNode
         { } 
-        | Sensitivity DISPDOFLIST DispDof NewLine
-        { }
-  ;
-DispDof:
-        Integer 
-        { domain->setDispDofs($1); }
-        | DispDof Integer 
-        { domain->setDispDofs($2); }
   ;
 DispNode:
-        Integer 
-        { domain->setDispNodes($1); }
-        | DispNode Integer 
-        { domain->setDispNodes($2); }
+        Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1); }
+        | DispNode Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1); }
+        | Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1); }
+        | DispNode Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1); }
+        | Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1); }
+        | DispNode Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1); }
+        | Integer Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1, $5-1); }
+        | DispNode Integer Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1, $6-1); }
+        | Integer Integer Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1, $5-1, $6-1); }
+        | DispNode Integer Integer Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1, $6-1, $7-1); }
+        | Integer Integer Integer Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1, $5-1, $6-1, $7-1); }
+        | DispNode Integer Integer Integer Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1, $6-1, $7-1, $8-1); }
   ;
 StressNode:
         Integer 
@@ -3870,7 +3987,7 @@ Solver:
         { $$->verbose = $3; }
         | Solver PRINTNUMBER Integer NewLine
         { $$->fetiInfo.printNumber = $3; }
-        | Solver TRBM Float NewLine
+        | Solver trbm Float NewLine
         { $$->trbm = $3; }
         | Solver SPARSERENUM Integer NewLine
         { $$->sparse_renum = $3; }
@@ -4103,9 +4220,9 @@ Solver:
         { $$->fetiInfo.rebuildcct = int($3); }
         | Solver UPROJ Integer NewLine
         { $$->fetiInfo.uproj = $3; }
-	| Solver PRINTMATLAB NewLine
-	{ $$->fetiInfo.printMatLab = 1; }
-        | Solver PRINTMATLAB FNAME NewLine
+        | Solver printmatlab NewLine
+        { $$->fetiInfo.printMatLab = 1; }
+        | Solver printmatlab FNAME NewLine
         { $$->printMatLab = 1;
           $$->printMatLabFile = $3; }
         | Solver LOCALSOLVER SolverMethod
@@ -4530,6 +4647,8 @@ NLInfo:
           domain->solInfo().penalty_beta = $5;
           domain->solInfo().reinit_lm = bool($6);
           domain->solInfo().lm_update_flag = $7; }
+        | NLInfo NUMROMCPUS Integer NewLine
+        { domain->solInfo().numberOfRomCPUs = $3; }
         | NLInfo NewtonInfo
         ;
 NewtonInfo:
@@ -5613,6 +5732,8 @@ SvdOption:
   { domain->solInfo().normalize = $2; }
   | NORMALIZETOKEN SWITCH
   { domain->solInfo().normalize = $2; }
+  | NORMALIZETOKEN FLAGMN
+  { domain->solInfo().normalize = $2; }
   | REFSUBTRACT FNAME
   { domain->solInfo().subtractRefPodRom = true;
     domain->solInfo().readInLocalBasesCent.push_back(std::string($2)); }
@@ -5625,6 +5746,8 @@ SvdOption:
   | SKIP Integer Integer
   { domain->solInfo().skipPodRom = $2;
     domain->solInfo().skipOffSet = $3; }
+  | ROBCSOLVE SWITCH
+  { domain->solInfo().robcSolve = bool($2); }
   | ROBFI StringList
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i])); }
   | BLOCKSIZE Integer
@@ -5643,22 +5766,33 @@ SvdOption:
     domain->solInfo().nmfPqnAlpha = $8; }
   */
   | USEPQN Integer Float Integer Float
-  { domain->solInfo().use_nmf = 3;
-    domain->solInfo().nmfMaxIter = $2;
-    domain->solInfo().nmfTol = $3;
+  { domain->solInfo().use_nmf            = 3;
+    domain->solInfo().nmfMaxIter         = $2;
+    domain->solInfo().nmfTol             = $3;
     domain->solInfo().nmfPqnNumInnerIter = $4;
-    domain->solInfo().nmfPqnAlpha = $5; }
+    domain->solInfo().nmfPqnAlpha        = $5; }
   | USENMF Integer Integer Integer Integer Float
   { domain->solInfo().use_nmf = 1;
     domain->solInfo().nmfNumROBDim = $2;
     domain->solInfo().nmfDelROBDim = $3;
-    domain->solInfo().nmfRandInit = $4;
-    domain->solInfo().nmfMaxIter = $5;
+    domain->solInfo().nmfRandInit  = $4;
+    domain->solInfo().nmfMaxIter   = $5;
     domain->solInfo().nmfTol = $6; }
   | USENMF Integer Float
-  { domain->solInfo().use_nmf = 1;
+  { domain->solInfo().use_nmf    = 1;
     domain->solInfo().nmfMaxIter = $2;
-    domain->solInfo().nmfTol = $3; }
+    domain->solInfo().nmfTol     = $3; }
+  | USENMFC Integer Float Float Float Float
+  { domain->solInfo().use_nmf    = 4;   
+    domain->solInfo().nmfMaxIter = $2; 
+    domain->solInfo().nmfTol     = $3; 
+    domain->solInfo().nmfcAlpha  = $4;
+    domain->solInfo().nmfcBeta   = $5;
+    domain->solInfo().nmfcGamma  = $6;}
+  | USENMFC Integer Float
+  { domain->solInfo().use_nmf    = 4;
+    domain->solInfo().nmfMaxIter = $2;
+    domain->solInfo().nmfTol     = $3; }
   | NSUBS Integer
   { domain->solInfo().nmfNumSub = $2; }
   | USEGREEDY
@@ -5673,6 +5807,17 @@ SvdOption:
   | CLUSTERSOLVER CLUSTERSOLVERTYPE Float
   { domain->solInfo().solverTypeCluster = $2;
     domain->solInfo().tolPodRom = $3;}
+  | CLUSTERSOLVER CLUSTERSOLVERTYPE Float SPNNLSSOLVERTYPE
+  { domain->solInfo().solverTypeCluster = $2;
+    domain->solInfo().tolPodRom = $3;
+    domain->solInfo().solverTypeSpnnls = $4; }
+  | HOTSTART SWITCH
+  { domain->solInfo().hotstartSample = bool($2); }
+  | DOROWCLUSTERING Integer
+  { domain->solInfo().rowClustering = $2; }
+  | DOROWCLUSTERING Integer ANGLE
+  { domain->solInfo().rowClustering = $2;
+    domain->solInfo().clusterSubspaceAngle = true; }
   | ConwepConfig
   ;
 
@@ -5749,6 +5894,10 @@ SamplingOption:
     domain->solInfo().maxDeimBasisSize = $4; }
   | USEMASSNORMALIZEDBASIS SWITCH
   { domain->solInfo().useMassNormalizedBasis = bool($2); }
+  | USECONSTANTMASS SWITCH
+  { domain->solInfo().useConstantMassForces = bool($2); }
+  | STACKED SWITCH
+  { domain->solInfo().stackedElementSampling = bool($2); }
   | MPROJECT SWITCH
   { domain->solInfo().useMassOrthogonalProjection = bool($2); }
   | REDFOL SWITCH /* deprecated */
@@ -5772,6 +5921,8 @@ SamplingOption:
   { domain->solInfo().projectSolution = bool($2); }
   | POSELEM SWITCH
   { domain->solInfo().positiveElements = bool($2); }
+  | HOTSTART SWITCH
+  { domain->solInfo().hotstartSample = bool($2); }
   | SOLVER SPNNLSSOLVERTYPE
   { domain->solInfo().solverTypeSpnnls = $2; }
   | MAXSIZE Float
@@ -5865,7 +6016,9 @@ ScalePosCoords:
    ;
 
 NodePosCoords:
-   NODEPOSCOORDS StringList
+   NODEPOSCOORDS NewLine
+   { domain->solInfo().activatePOSCFG = true; }
+   | NodePosCoords StringList NewLine
    { domain->solInfo().NodeTrainingFiles.push_back(std::string($2.v[0]));
      for(int i=1; i<$2.nval; ++i) domain->solInfo().MassOrthogonalBasisFiles.push_back(std::string($2.v[i])); }
    ;

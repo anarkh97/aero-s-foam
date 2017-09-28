@@ -92,6 +92,8 @@ class GenGaussIntgElement : public MatNLElement
       return nst*ngp;
     }
     void initStates(double *);
+    void getStrainTens(Node *nodes, double *dispnp, double (*result)[9], int avgnum);
+    void getVonMisesStrain(Node *nodes, double *dispnp, double *result, int avgnum);
     void getStressTens(Node *nodes, double *dispn, double *staten,
                        double *dispnp, double *statenp, double (*result)[9], int avgnum,
                        double *temps);
@@ -600,6 +602,125 @@ copyTens(Stress2D *stens, Eigen::Matrix3d &smat)
                     0,           0, 0;
 }
 #endif
+
+template <class TensorType>
+void
+GenGaussIntgElement<TensorType>::getStrainTens(Node *nodes, double *dispnp, double (*result)[9],
+                                               int avgnum)
+{
+  int ndofs = numDofs();
+  GenShapeFunction<TensorType> *shapeF = getShapeFunction();
+
+  // Obtain the strain function. It can be linear or non-linear
+  GenStrainEvaluator<TensorType> *strainEvaluator = getGenStrainEvaluator();
+
+  // Obtain the storage for gradU ( 3x3 )
+  typename TensorType::GradUTensor gradUnp;
+
+  typename TensorType::StressTensor enp;
+  
+  int i,j;
+  int ngp = getNumGaussPoints();
+
+  // evaluate at the gauss points and extrapolate to the nodes
+  double (*gpstrain)[9] = new double[getNumGaussPoints()][9];
+
+  for(i = 0; i < ngp; i++) {
+
+    double point[3], weight;
+
+    StackVector dispVecnp(dispnp,ndofs); 
+
+    getGaussPointAndWeight(i, point, weight);
+
+    shapeF->getGradU(gradUnp, nodes, point, dispVecnp);
+
+    strainEvaluator->getE(enp, gradUnp);
+
+    if(avgnum == -1) {
+      copyTens(&enp, result[i]);
+    }
+    else {
+      copyTens(&enp, gpstrain[i]);
+    }
+  }
+
+  if(avgnum != -1) {
+    //TODO extrapolate from gauss points to nodes
+    //temporary fix implemented here is to return the average of all the gauss points for each node
+    double average[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    for(int i = 0; i < getNumGaussPoints(); i++)
+      for(int j = 0; j < 9; ++j)
+        average[j] += gpstrain[i][j];
+    for(int i = 0; i < 9; ++i)
+      average[i] /= getNumGaussPoints();
+    for(int i = 0; i < numNodes(); ++i)
+      for(int j = 0; j < 9; ++j)
+        result[i][j] = average[j];
+  }
+
+  delete [] gpstrain;
+}
+
+template <class TensorType>
+void
+GenGaussIntgElement<TensorType>::getVonMisesStrain(Node *nodes, double *dispnp, double *result,
+                                                   int avgnum)
+{
+  int ndofs = numDofs();
+  GenShapeFunction<TensorType> *shapeF = getShapeFunction();
+
+  // Obtain the strain function. It can be linear or non-linear
+  GenStrainEvaluator<TensorType> *strainEvaluator = getGenStrainEvaluator();
+
+  // Obtain the storage for gradU ( 3x3 )
+  typename TensorType::GradUTensor gradUnp;
+
+  typename TensorType::StressTensor enp;
+  
+  int i,j;
+  int ngp = getNumGaussPoints();
+
+  // evaluate at the gauss points and extrapolate to the nodes
+  double *gpstrain = new double[getNumGaussPoints()];
+
+  for(i = 0; i < ngp; i++) {
+
+    double point[3], weight, jacn, jacnp, tempnp;
+    StackVector dispVecnp(dispnp,ndofs); 
+
+    getGaussPointAndWeight(i, point, weight);
+
+    shapeF->getGradU(gradUnp, nodes, point, dispVecnp);
+
+    strainEvaluator->getE(enp, gradUnp);
+
+#ifdef USE_EIGEN3
+    Eigen::Matrix3d M;
+    copyTens(&enp, M);
+    // compute the deviatoric stress/strain tensor and it's second invariant
+    Eigen::Matrix3d dev = M - (M.trace()/3)*Eigen::Matrix3d::Identity();
+    double J2 = 0.5*(dev*dev).trace();
+    // compute the effective stress/strain
+    if(avgnum == -1) result[i] = sqrt(3*J2); else gpstrain[i] = sqrt(3*J2);
+#else
+    if(avgnum == -1) result[i] = 0; else gpstrain[i] = 0;
+#endif
+  }
+
+  if(avgnum != -1) {
+    //TODO extrapolate from gauss points to nodes
+    //temporary fix implemented here is to return the average of all the gauss points for each node
+    double average = 0;
+    for(int i = 0; i < getNumGaussPoints(); i++)
+      average += gpstrain[i];
+    average /= getNumGaussPoints();
+    for(int i = 0; i < numNodes(); ++i)
+      result[i] = average;
+  }
+
+  delete [] gpstrain;
+}
 
 template <class TensorType>
 void

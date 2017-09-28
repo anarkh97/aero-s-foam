@@ -27,6 +27,9 @@
 #include <Problems.d/ModalBase.h>
 
 extern ModeData modeData; 
+extern ModeData modeDataIDis;
+extern ModeData modeDataIVel;
+extern ModeData modeDataMode;
 extern int verboseFlag;
 
 void
@@ -38,7 +41,8 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, const 
 
  // ... SET INITIAL VELOCITY
  if(numIVelModal) {
-   filePrint(stderr, " ... Compute initial velocity from given modal basis (v0=X.y0) ... \n");
+   filePrint(stderr, " ... Compute initial velocity from given modal basis ... \n");
+   ModeData &modeData = (sinfo.ivel_modal_id == -1) ? ::modeData : modeDataIVel;
    modeData.addMultY(numIVelModal, iVelModal, v_n, c_dsa);
  }
  for(int i = 0; i < numIVel; ++i) {
@@ -55,7 +59,8 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, const 
    // ... OR IF WE ARE USING GEOMETRIC PRE-STRESS (GEPS)
    if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1) { // note: always use global num to do this check
      if(numIDisModal) {
-       filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0) ... \n");
+       filePrint(stderr, " ... Compute initial displacement from given modal basis ... \n");
+       ModeData &modeData = (sinfo.idis_modal_id == -1) ? ::modeData : modeDataIDis;
        modeData.addMultY(numIDisModal, iDisModal, d_n, c_dsa);
      }
      for(int i = 0; i < numIDis; ++i) {
@@ -319,7 +324,7 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
   int iscollocated;
   double tFluid = flExchanger->getFluidLoad(tmpF, tIndex, t,
                                             alphaf, iscollocated, geomState);
-  if(verboseFlag) filePrint(stderr, " ... [E] Received fluid load        ...\n");
+  if(verboseFlag) filePrint(stderr, " ... [E] Received fluid load norm is %e ...\n", tmpF.norm());
 
   if(sinfo.aeroFlag == 20) {
     if(prevFrc.lastTIndex >= 0)
@@ -365,46 +370,6 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
                              sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
   }
 
-  getTimers().receiveFluidTime += getTime();
-}
-
-void
-Domain::buildAeroelasticForceSensitivity(Vector& aero_fSen, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState)
-{
-  // ... COMPUTE AEROELASTIC FORCE 
-  getTimers().receiveFluidTime -= getTime();
-
-  // ... Temporary variable for inter(extra)polated force
-  double *tmpFmem = new double[numUncon()];
-  StackVector tmpF(tmpFmem, numUncon());
-  tmpF.zero();
-
-  int iscollocated;
-  double tFluid = flExchanger->getFluidLoadSensitivity(tmpF, tIndex, t,
-                                                       alphaf, iscollocated, geomState);
-
-  if(sinfo.aeroFlag == 20) {
-    if(prevFrc.lastTIndex >= 0)
-      aero_fSen.linC(0.5,tmpF,0.5,prevFrc.lastFluidLoad);
-    else
-      aero_fSen = tmpF;
-  }
-  else {
-    if(iscollocated == 0) {
-      if(prevFrc.lastTIndex >= 0) {
-        tmpF *= (1/gamma);
-        tmpF.linAdd(((gamma-1.0)/gamma), prevFrc.lastFluidLoad);
-      }
-    }
-
-    double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
-    aero_fSen.linC(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
-  }
-  prevFrc.lastFluidLoad = tmpF;
-  prevFrc.lastFluidTime = tFluid;
-  prevFrc.lastTIndex = tIndex;
-
-  delete [] tmpFmem;
   getTimers().receiveFluidTime += getTime();
 }
 
@@ -911,6 +876,13 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         case OutputInfo::Jacobian:
         case OutputInfo::RobData:
         case OutputInfo::SampleMesh:
+        case OutputInfo::ModalDsp:
+        case OutputInfo::ModalExF:
+        case OutputInfo::ModalMass:
+        case OutputInfo::ModalStiffness:
+        case OutputInfo::ModalDamping:
+        case OutputInfo::ModalDynamicMatrix:
+        case OutputInfo::ModalMatrices:
           break;
 
         default:

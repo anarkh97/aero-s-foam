@@ -24,6 +24,11 @@
 #include <cstddef>
 #include <numeric>
 
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#include <Eigen/Sparse>
+#endif
+
 extern GeoSource * geoSource;
 extern int verboseFlag;
 
@@ -131,7 +136,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
 
      std::string fileName = BasisFileId(fileInfo_, BasisId::STATE, BasisId::POD, j);
      if(solInfo().useMassNormalizedBasis) {
-       fileName.append(".normalized");
+       fileName.append(".massorthonormalized");
      }
      BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
      if(solInfo().localBasisSize[j] <=0 || solInfo().localBasisSize[j] > projectionBasisInput.size())
@@ -169,9 +174,9 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
     std::string fileName = BasisFileId(fileInfo_, BasisId::STATE, BasisId::POD, j);
     if(solInfo().useMassNormalizedBasis) {
       if(j==0) filePrint(stderr, " ... Using Mass-normalized Basis    ...\n");
-      fileName.append(".normalized");
+      fileName.append(".massorthonormalized");
     }
-    filePrint(stderr," ... Reading %.22s ...\n",fileName.c_str());
+    filePrint(stderr," ... Reading %s ...\n",fileName.c_str());
     BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
 
 
@@ -198,7 +203,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
     for(int j = 0 ; j < solInfo().readInDualROB.size(); j++) {
       // Load dual projection basis    
       std::string fileName = BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::POD,j);
-      filePrint(stderr,"... Reading %s ...\n",fileName.c_str());
+      filePrint(stderr," ... Reading %s ...\n",fileName.c_str());
       BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
       const int dualProjectionSubspaceSize = locDualBasisVec[j] ?
                                              std::min(locDualBasisVec[j], dualProjectionBasisInput.size()) :
@@ -719,6 +724,21 @@ PodProjectionNonLinDynamic::preProcess() {
       if(numNeumanModal) delete [] nbcModal;
     }
   }
+
+  if(!domain->solInfo().useMassNormalizedBasis) {
+#ifdef USE_EIGEN3
+    if(domain->solInfo().modalDIMASS) {
+      filePrint(stderr, " ... Reading Reduced Mass Matrix    ...\n");
+      std::ifstream matrixin(domain->solInfo().reducedMassFile);
+      int n = solver_->projectionBasis().vectorCount();
+      VtMV.resize(n,n);
+      for(int i=0; i<n; ++i)
+        for(int j=0; j<n; ++j)
+          matrixin >>VtMV(i,j);
+      matrixin.close();
+    }
+#endif
+  }
 }
 
 const PodProjectionSolver *
@@ -980,8 +1000,10 @@ PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &v
   if(domain->solInfo().useMassNormalizedBasis && C == 0) {
     if(domain->solInfo().order == 1)
       rhs = -1.0*inc_displacement;
-    else
-      rhs = -(1-alpham)/(1-alphaf)*inc_displacement + dt*(1-alpham)*velocity + dt*dt*((1-alpham)/2-beta)*acceleration;
+    else {
+      if(domain->solInfo().quasistatic) rhs = 0.;
+      else rhs = -(1-alpham)/(1-alphaf)*inc_displacement + dt*(1-alpham)*velocity + dt*dt*((1-alpham)/2-beta)*acceleration;
+    }
   }
 #ifdef USE_EIGEN3
   else if(!domain->solInfo().useMassNormalizedBasis && domain->solInfo().modalDIMASS && C == 0) {
@@ -1037,7 +1059,6 @@ PodProjectionNonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, V
 
   const GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
   projectionBasis.expand(velocity, velocity_Big);
-
   NonLinDynamic::formRHSinitializer(fext_Big, velocity_Big, elementInternalForce, *geomState_Big, rhs_Big, refState_Big);
 
   projectionBasis.reduce(rhs_Big, rhs);
@@ -1142,7 +1163,7 @@ PodProjectionNonLinDynamic::initLocalBasis(Vector &q0)
     int oldLBI = localBasisId;
     localBasisId = selectLocalBasis(q0);
     if(oldLBI != localBasisId) 
-      std::cout << " selecting Basis " << localBasisId << std::endl;
+      std::cerr << " selecting local basis " << localBasisId << "               " << std::endl;
     GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
     int blockCols = domain->solInfo().localBasisSize[localBasisId];
     int startCol = std::accumulate(domain->solInfo().localBasisSize.begin(), domain->solInfo().localBasisSize.begin()+localBasisId, 0);
@@ -1180,7 +1201,7 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
     geomState_Big->update(*refState_Big, dq_Big, 2); 
 
     if(j != localBasisId) { // if a new local basis has been selected, update the things
-      std::cout << "selecting local basis " << j << std::endl;
+      std::cerr << "\r selecting local basis " << j << "               " << std::endl;
       Vector vel_Big(NonLinDynamic::solVecInfo()),
              acc_Big(NonLinDynamic::solVecInfo());
 
@@ -1206,8 +1227,8 @@ PodProjectionNonLinDynamic::setLocalBasis(ModalGeomState *refState, ModalGeomSta
       }
 
       if(VtV.size() == 0) {
-        reduceDisp(vel_Big, vel);
-        reduceDisp(acc_Big, acc);
+        vel = 0.; reduceDisp(vel_Big, vel);
+        acc = 0.; reduceDisp(acc_Big, acc);
       } else {
         // using precomputed Vi^T*Vj (or Vi^T*M*Vj for M-orthogonal local bases)
         projectLocalBases(localBasisId, j, vel);
@@ -1346,7 +1367,6 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
     }
   }
 #endif
-
   return residual.norm();
 }
 

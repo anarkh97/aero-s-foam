@@ -411,7 +411,7 @@ TwoNodeTrussF::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
         break;
       }
 
-      case 1:
+      case 1: case 3:
       { 
         double xl[3][3];
         double xg[3][3] = {{1.0,0.0,0.0},{0.0,1.0,0.0},{0.0,0.0,1.0}};

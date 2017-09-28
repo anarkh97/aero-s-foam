@@ -1020,6 +1020,18 @@ GenDistrVector<Scalar>::operator+=(GenDistrVector<Scalar> &x)
 
 template<class Scalar>
 GenDistrVector<Scalar> &
+GenDistrVector<Scalar>::operator+=(const GenDistrVector<Scalar> &x)
+{
+ if(x.len != len) {
+  fprintf(stderr, "Length error in +=\n");
+ }
+ GenVecOp<Scalar> assign_plus(&GenVecOp<Scalar>::assign_plus,this, const_cast<GenDistrVector<Scalar>* >(&x));
+ threadManager->execParal(nT, &assign_plus);
+ return *this;
+}
+
+template<class Scalar>
+GenDistrVector<Scalar> &
 GenDistrVector<Scalar>::operator-=(GenDistrVector<Scalar> &x)
 {
  if(x.len != len) {

@@ -375,6 +375,56 @@ GenFullM<Scalar>::operator*(GenFullM<Scalar> &m)
 }
 
 template<class Scalar> 
+GenFullM<Scalar>
+GenFullM<Scalar>::operator*=(GenFullM<Scalar> &m)
+{
+ if(ncolumn != m.nrow) {
+   std::cerr << " *** ERROR in GenFullM<Scalar>::operator*=(GenFullM<Scalar> &m), ncolumn != m.nrow \n";
+   return GenFullM<Scalar>(1,1) ; //error
+ }
+ if(m.ncolumn != ncolumn) {
+   std::cerr << " *** ERROR in GenFullM<Scalar>::operator*=(GenFullM<Scalar> &m), m.ncolumn != ncolumn \n";
+   return GenFullM<Scalar>(1,1) ; //error
+ }
+ GenFullM<Scalar> res(nrow,m.ncolumn) ;
+ int i,j,k;
+ for(i = 0 ; i < nrow ; ++i)
+  for(j=0; j < m.ncolumn ; ++j) {
+    res[i][j] = 0.0;
+    for(k = 0;  k < ncolumn; ++k)
+      res[i][j] += (*this)[i][k] * m[k][j];
+   }
+
+ *this = res;
+ return (*this);
+}
+
+template<class Scalar> 
+GenFullM<Scalar>
+GenFullM<Scalar>::operator^=(GenFullM<Scalar> &m)
+{
+ if(nrow != m.nrow) {
+   std::cerr << " *** ERROR in GenFullM<Scalar>::operator^=(GenFullM<Scalar> &m), nrow != m.nrow \n";
+   return GenFullM<Scalar>(1,1) ; //error
+ }
+ if(m.ncolumn != nrow) {
+   std::cerr << " *** ERROR in GenFullM<Scalar>::operator^=(GenFullM<Scalar> &m), m.ncolumn != nrow \n";
+   return GenFullM<Scalar>(1,1) ; //error
+ }
+ GenFullM<Scalar> res(nrow,ncolumn);
+ int i,j,k;
+ for(j=0; j < ncolumn ; ++j) 
+   for(i = 0 ; i < nrow ; ++i) {
+    res[i][j] = 0.0;
+    for(k = 0;  k < nrow; ++k)
+      res[i][j] += m[i][k] * (*this)[k][j];
+   }
+
+ *this = res;
+ return (*this);
+}
+
+template<class Scalar> 
 GenVector<Scalar>
 GenFullM<Scalar>::operator*(GenVector<Scalar> &x)
 {

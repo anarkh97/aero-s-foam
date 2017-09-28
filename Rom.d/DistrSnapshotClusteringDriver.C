@@ -57,7 +57,7 @@ void readIntoSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<DO
         if (skipCounter >= skipFactor) {
           double *vecBuffer = solver.matrixColBuffer(solverCol);
           GenStackDistVector<double> vec(vectorSize, vecBuffer);
-          solver.addTimeStamp(solverCol,curTimeStamp);
+          solver.setColTimeStamp(solverCol,curTimeStamp);
 
           if(DOFS_PER_NODE == 1) {
             converter.vector(inputBuffer, vec);
@@ -99,7 +99,7 @@ void writeOutofSolver(DistrSnapshotClusteringSolver &solver, DistrNodeDofBuffer<
     // loop over each snapshot in current cluster
     for (int iVec = 0; iVec < clusterDim; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.clusterColBuffer(i,iVec));
-      double timeStampBuffer = solver.getClusterColTimeStamps(i,iVec);
+      double timeStampBuffer = solver.getClusterColTimeStamp(i,iVec);
       const GenStackDistVector<double> vec(vectorSize, vecBuffer);
       if(DOFS_PER_NODE == 1)
         converter.paddedNodeDof6(vec, outputBuffer);
@@ -180,7 +180,7 @@ DistrSnapshotClusteringDriver::solve() {
   std::vector<int> basisStateOffset;
   DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
   readIntoSolver<6>(solver, inputBuffer, nodeCount, converter, distrInfo, BasisId::STATE, BasisId::SNAPSHOTS,
-                 domain->solInfo().snapfiPodRom.size(), solverCol, basisStateOffset, domain->solInfo().skipPodRom); // read in snapshots
+                    domain->solInfo().snapfiPodRom.size(), solverCol, basisStateOffset, domain->solInfo().skipPodRom); // read in snapshots
 
   filePrint(stderr, " ... Partitioning snapshots into %d clusters ...\n", numClusters);
   solver.solverTypeIs(domain->solInfo().solverTypeCluster);
@@ -189,7 +189,7 @@ DistrSnapshotClusteringDriver::solve() {
 
   DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
   writeOutofSolver<6>(solver, outputBuffer, nodeCount, converter, distrInfo, BasisId::STATE, BasisId::SNAPSHOTS,
-                   numClusters, basisStateOffset, comm_);
+                      numClusters, basisStateOffset, comm_);
 
   if(!domain_->solInfo().velocPodRomFile.empty()) {
     solverCol = 0;

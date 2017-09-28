@@ -5,6 +5,7 @@
 #include <Utils.d/SensitivityInfo.h>
 #include <Solvers.d/SolverCntl.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/OutputInfo.h>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -28,9 +29,13 @@ const double defaultTemp = -10000000.0;
 
 struct AdaptiveSweepParams {
 public:
+     AdaptiveSweepParams() {
+       ctolf = tol1f = 0.0;
+     }
      int maxP,minRHS,maxRHS,deltaRHS,numS;
      double w1,w2,atol;
-     bool dgp_flag;
+     int dgp_flag;
+     double ctolf, tol1f;
 };
 
 struct SweepParams {
@@ -50,7 +55,7 @@ public:
                   alphaD = 0.0; betaD = 0.0;
    }
    int nFreqSweepRHS;
-   enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, QRGalProjection };
+   enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, WCAWEGalProjection };
    AdaptiveSweepParams adaptSweep;
    bool isAdaptSweep;
    int freqSweepMethod;
@@ -63,6 +68,17 @@ public:
 // different impedance sections
    double alphaD;
    double betaD;
+};
+
+struct ModalParams {
+public:
+  enum Type { Undefined=0, Eigen, Mnorm, Inorm, Noneg } type;
+  ModalParams() {}
+  ModalParams(Type type, std::string fileName, int numvec = 0, double tolerance = 0.)
+    : type(type), fileName(fileName), numvec(numvec), tolerance(tolerance) {}
+  std::string fileName;
+  int numvec;
+  double tolerance;
 };
 
 struct SolverInfo {
@@ -92,11 +108,13 @@ struct SolverInfo {
    float ATDROBalpha;
    float ATDROBbeta;
    int aeroFlag;
+   int printNumber;
    bool dyna3d_compat;
    int aeroheatFlag;
    int thermoeFlag;
    int thermohFlag;
    int modeDecompFlag;
+   int mode_modal_id;
    int isCollocated;
    double alphas[2];
    double alphat[2];
@@ -142,7 +160,9 @@ struct SolverInfo {
                                // (0.0 = Use default value: pitaTimeGridRatio^2, -1.0 = Deactivated)
    bool pitaJumpMagnOutput;    // Enables the output of the relative magnitude of the jumps
 
-   bool modal;          // true iff system is to be solved in modal coordinates
+   bool modal;                 // true iff system is to be solved in modal coordinates
+   std::vector<int> modal_id;
+   std::vector<int> contact_modal_id;
    bool acoustic;       // true iff system is to be solved for acoustic time domain
    bool modifiedWaveEquation; // true if solving using the modified wave equation
    double modifiedWaveEquationCoef; // value for the coefficient (theoretically 12.0)
@@ -180,6 +200,7 @@ struct SolverInfo {
    double epsilon1;
    double epsilon2;
    double qsMaxvel;     // final relaxation parameter in quasi-static alg.
+   double qsMaxvelSen;  // final relaxation parameter in quasi-static sensitivity alg.
    double delta;        // translation factor from time index to real time for quasistatics
    int nRestart;        // how many time steps per restart
    int steadyFlag;      // quasi-transient steady state simulation
@@ -234,7 +255,6 @@ struct SolverInfo {
 
 
    // Rigid Body Mode parameters
-   double trbm2;        // algebraic rbm tolerance used for sparse/skyline when GRBM is activated
    double tolsvd;       // singular value decomposition tolerance
    int rbmflg;          // 0 = algebraic rbm, 1 = geometric rbm
    std::set<int> rbmFilters; // selective rbm filtering for linear dynamics problems
@@ -293,6 +313,12 @@ struct SolverInfo {
    bool ffi_debug;
    double mortar_scaling;
    int mortar_integration_rule;
+   double andes_clr;
+   double andes_cqr;
+   double andes_betab;
+   double andes_alpha;
+   double andes_betam;
+   int nlmembrane_pressure_type; // 0 (default): area computed using current configuration, 1: area computed using undeformed configuration
    bool tdenforceFlag;
 
    bool lagrangeMult;
@@ -326,7 +352,9 @@ struct SolverInfo {
    std::vector<std::string> readInDualROB; 
    std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
    std::vector<std::string> readInLocalBasesCent;
-   std::vector<std::string> readInModes;
+   std::map<OutputInfo::Type,int> adjointMap;
+   std::map<int,ModalParams> readInModes;
+   std::vector<std::string> readInAdjointROB;
    const char * SVDoutput;
    const char * reducedMeshFile;
    const char * readInShapeSen;
@@ -353,7 +381,9 @@ struct SolverInfo {
    bool residvectPodRom;
    bool jacobvectPodRom;
    bool readmodeCalled;
-   bool modalCalled;
+   bool modalCalled; // true if modal idisp, modal ivel or modal damping are used
+   int  idis_modal_id;
+   int  ivel_modal_id;
    bool modalLMPC;
    bool modalDIMASS;
    const char * reducedMassFile;
@@ -367,7 +397,9 @@ struct SolverInfo {
    int  svdBlockSize;
    bool clusterSubspaceAngle;
    int clustering;
-   int  solverTypeCluster; // 0: Random, 1: K-means 2: Sparse Supspace Clustering
+   int rowClustering;
+   int solverTypeCluster; // 0: Random, 1: K-means 2: Sparse Supspace Clustering
+   bool hotstartSample;
    int use_nmf;
    int nmfNumROBDim;
    int nmfDelROBDim;
@@ -377,6 +409,9 @@ struct SolverInfo {
    double nmfTol;
    int nmfPqnNumInnerIter;
    double nmfPqnAlpha;
+   double nmfcAlpha;
+   double nmfcBeta; 
+   double nmfcGamma; 
    bool DEIMBasisPod;
    bool UDEIMBasisPod;
    bool ConstraintBasisPod;
@@ -394,11 +429,12 @@ struct SolverInfo {
    bool galerkinPodRom;
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
-   int  maxSizePodRom;
+   int maxSizePodRom;
    double romEnergy;
    std::vector<int> localBasisSize;
    std::vector<int> localDualBasisSize;
    int  maxSizeDualBasis;
+   std::vector<int> maxSizeAdjointBasis;
    int  maxDeimBasisSize;
    bool selectFullNode;
    bool selectFullElem;
@@ -431,10 +467,13 @@ struct SolverInfo {
    int  orthogPodRom;
    int  numRODFile;
    int  romresidType;
+   bool robcSolve;
    double tolPodRom;
    bool useMassNormalizedBasis;
+   bool useConstantMassForces; 
    bool useMassOrthogonalProjection;
    bool performMassNormalization;
+   bool stackedElementSampling;
    bool ConwepOnOff;
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
@@ -453,8 +492,10 @@ struct SolverInfo {
                        //          off-diagonal entries of lumped mass matrices which are block-diagonal are dropped.
                        // note #3: for block-diagonal lumping, consistent mass matrices are still diagonally lumped
                        //          but lumped mass matrices which are block-diagonal remain so.
+   int numberOfRomCPUs; // number of cpus to cooperate on solving reduced system of equations
    bool printMatLab;
    const char * printMatLabFile;
+   bool printMatLabExit;
 
    bool elementDeletion;
    std::map<int,double> deleteElements; // elements to be deleted at specific time or times (specified in input file)
@@ -470,6 +511,7 @@ struct SolverInfo {
    int scpkNP;  // Scalapack column processor grid size
 
    bool useMassAugmentation; // adjust lumped mass matrix for shell element type 15 to increase stability time-step
+   bool quasistatic;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -524,6 +566,7 @@ struct SolverInfo {
                   sensitivityTol = 1.0e-5; 
                   ratioSensitivityTol = 1.0; 
                   qsMaxvel = 1.0;
+                  qsMaxvelSen = 1.0;
                   qsBeta = 1.0;
                   delta = 0.0;
                   no_secondary = false;
@@ -537,6 +580,7 @@ struct SolverInfo {
                   ATDROBbeta = 0.0;
 
                   aeroFlag = -1;
+                  printNumber = 50;
                   dyna3d_compat = false;
                   aeroheatFlag = -1;
                   thermoeFlag = -1;
@@ -544,6 +588,7 @@ struct SolverInfo {
                   thermalLoadFlag = 0;
                   radiationFlag = 0;
                   modeDecompFlag = 0;
+                  mode_modal_id = -1;
                   hzemFlag = 0;
                   hzemFilterFlag = 0;
                   slzemFlag = 0;
@@ -669,6 +714,7 @@ struct SolverInfo {
                   jacobvectPodRom    = false;
                   readmodeCalled     = false;
                   modalCalled        = false;
+                  idis_modal_id = ivel_modal_id = -1;
                   modalLMPC          = false;
                   modalDIMASS        = false;
                   reducedMassFile    = "";
@@ -692,7 +738,9 @@ struct SolverInfo {
                   svdBlockSize       = 64;
 		  clusterSubspaceAngle = false;
                   clustering         = 0;
+                  rowClustering      = 0;
                   solverTypeCluster  = 1; // K-means
+                  hotstartSample     = false;
                   use_nmf            = 0;
                   nmfNumROBDim       = 1;
                   nmfDelROBDim       = 10;
@@ -702,6 +750,9 @@ struct SolverInfo {
                   nmfTol             = 1e-6;
                   nmfPqnNumInnerIter = 2;
                   nmfPqnAlpha        = 0.4;
+                  nmfcAlpha          = 0.0;
+                  nmfcBeta           = 0.0;
+                  nmfcGamma          = 0.0;
                   ksParameter        = 50;
                   ksMax              = 1.0e5;
                   samplingPodRom     = false;
@@ -717,7 +768,7 @@ struct SolverInfo {
                   selectFullElem     = false;
                   forcePodSize       = 0;
                   constraintPodSize  = 0;
-                  normalize          = 1;
+                  normalize          = 0;
                   subtractRefPodRom  = false;
                   useScalingSpnnls   = true;
                   useCenterSpnnls    = false;
@@ -744,10 +795,13 @@ struct SolverInfo {
                   orthogPodRom       = 1;
                   numRODFile         = 0;
                   romresidType       = 0;
+                  robcSolve          = true;
                   tolPodRom          = 1.0e-6;
-                  useMassNormalizedBasis = true;
+                  useMassNormalizedBasis      = true;
+                  useConstantMassForces       = false;
                   useMassOrthogonalProjection = false;
-                  performMassNormalization = false;
+                  performMassNormalization    = false;
+                  stackedElementSampling      = false; 
                   ConwepOnOff        = false;
                   basicDofCoords     = true;
                   basicPosCoords     = true;
@@ -760,6 +814,10 @@ struct SolverInfo {
                   yLMPCFactor        = 1.0;
                   zLMPCFactor        = 1.0;
                   inertiaLumping     = 0;
+                  numberOfRomCPUs    = 1;  
+                  printMatLab        = false;
+                  printMatLabFile    = "";
+                  printMatLabExit    = false;
                   elementDeletion    = false;
                   piecewise_contact  = true;
                   npMax              = 0;  // 0 => reduced mesh size is not limited
@@ -768,6 +826,7 @@ struct SolverInfo {
                   scpkMP             = 0;  // 0 => Scalapack LH solver will use default processor grid 
                   scpkNP             = 0;  // 0 => Scalapack LH solver will use default processor grid
                   useMassAugmentation = true;
+                  quasistatic        = false;
                   piecewise = false;
                   freeplay = false;
                   piecewise_dlambda = 1.0;
@@ -799,8 +858,8 @@ struct SolverInfo {
    void setThermoh(int alg)
       { thermohFlag = alg; }
 
-   void setModeDecomp(int alg)
-      { modeDecompFlag = alg; }
+   void setModeDecomp(int alg, int modal_id = -1)
+      { modeDecompFlag = alg; mode_modal_id = modal_id; }
 
    // SET CONDITION NUMBER TOLERANCE
    void setCondNumTol(double tolerance, int maxit) { condNumTolerance = tolerance; condNumMaxit = maxit; }
@@ -880,6 +939,7 @@ struct SolverInfo {
      switch(probType) {
        case(Top) : 
        case(Decomp) :
+       case(PodRomOffline) :
          break;
        case(NonLinStatic) : 
        case(NonLinDynam) :
@@ -1022,25 +1082,12 @@ struct SolverInfo {
              || (probType == MatNonLinStatic) || (probType == ArcLength));
    }
 
-   bool keepModalInitialConditions() {
-     if(galerkinPodRom) {
-       // for nonlinear ROMs, keep the modal ivel and non-modal ivel separate
-       // only if the basis used to define the initial conditions is the same
-       // as the ROB.
-       for(int i = 0; i<readInROBorModes.size(); ++i){
-         std::string rob(readInROBorModes[i]);
-         if(useMassNormalizedBasis) rob.append(".normalized");
-         std::string icb(readInModes[i]);
-         if(!(rob.compare(icb) == 0))// if files are different, compute modal IC's for all
-          return false;
-          
-       }
-       return true;// otherwise keep supplied modal ivel 
-     }
-     else {
-       // for linear ROMs, keep the modal ivel and non-modal ivel separate
-       return modal;
-     }
+   bool keepModalInitialDisplacements() {
+     return (!modal_id.empty() && (idis_modal_id == -1 || idis_modal_id == modal_id.front()));
+   }
+
+   bool keepModalInitialVelocities() {
+     return (!modal_id.empty() && (ivel_modal_id == -1 || ivel_modal_id == modal_id.front()));
    }
 
    int classifySolver();

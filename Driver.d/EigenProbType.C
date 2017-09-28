@@ -106,6 +106,7 @@ EigenSolver< EigOps, VecType, VecSet,
 
  // build, factor matrix in buildEigOps
  probDesc->buildEigOps( *eM );
+ if(solInfo.printMatLabExit) return;
 
  // ... get the number of rigid body modes
  // if GRBM is not specified, or if a shift is specified, or if the solver is skyline/sparse/feti then get rbms from solver
@@ -285,6 +286,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
 
   //... Setup
   this->setUp();
+  if(solInfo.printMatLabExit) return; // just compute and print M and K
   if(this->origSubSize == 0) return; // just compute and print the rigid body modes
 
   //... Initialize
@@ -726,6 +728,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
 
  // ... Set up
  this->setUp();
+ if(solInfo.printMatLabExit) return; // just compute and print M and K
  if(this->origSubSize == 0) return; // just compute and print the rigid body modes
 
  // ... Initialize
@@ -1154,6 +1157,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
 
   //... Set up
   this->setUp();
+  if (solInfo.printMatLabExit) return; // just compute and print M and K
   if (this->origSubSize == 0) return; // just compute and print the rigid body modes
 
   filePrint(stderr, " ... Implicitly Restarted Arnoldi Method using Arpack ...\n");

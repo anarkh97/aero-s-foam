@@ -1348,7 +1348,7 @@ GeomState::pull_back(Vector &v)
 
       mat_mult_vec( ns[inode].R, vec, result, 1 ); // result = R^T*vec
 
-      if(cd) cd->transformVector6(result);
+      if(cd) cd->transformVector3(result);
 
       if( loc[inode][3] >= 0 ) v[loc[inode][3]] = result[0];
       if( loc[inode][4] >= 0 ) v[loc[inode][4]] = result[1];
@@ -1574,13 +1574,16 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
   int i;
   for(i=0; i<numDirichlet; ++i) {
     int nodeNumber = dbc[i].nnum;
-    std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
-    if(it == dth.end()) {
-      std::vector<double> v(3);
-      v[0] = ns[nodeNumber].theta[0];
-      v[1] = ns[nodeNumber].theta[1];
-      v[2] = ns[nodeNumber].theta[2];
-      dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+    int dofNumber = dbc[i].dofnum;
+    if(nodeNumber < ns.size() && dofNumber < 6) {
+      std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
+      if(it == dth.end()) {
+        std::vector<double> v(3);
+        v[0] = ns[nodeNumber].theta[0];
+        v[1] = ns[nodeNumber].theta[1];
+        v[2] = ns[nodeNumber].theta[2];
+        dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+      }
     }
   }
 
@@ -1588,6 +1591,7 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
 
     int nodeNumber = dbc[i].nnum;
     int dofNumber  = dbc[i].dofnum;
+    if(nodeNumber >= ns.size() || dofNumber >= 6) continue;
 
     // we multiply the total prescribed value by delta which
     // is a parameter prescribed by the user in the input file
@@ -2323,6 +2327,29 @@ void GeomState::getGlobalRot(double R[3][3])
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       R[i][j] = gRot[i][j];
+}
+
+void GeomState::transformCoords(double xScaleFactor, double yScaleFactor, double zScaleFactor)
+{
+  for(int i = 0; i < numnodes; ++i) {
+    if(X0 && (*X0)[i]) {
+      (*X0)[i]->x *= xScaleFactor;
+      (*X0)[i]->y *= yScaleFactor;
+      (*X0)[i]->z *= zScaleFactor;
+    }
+  }
+}
+
+void
+GeomState::setNewCoords(const Vector &X)
+{
+  for(int i = 0; i < numnodes; ++i) {
+    if(X0 && (*X0)[i]) {
+      (*X0)[i]->x = X[6*i+0];
+      (*X0)[i]->y = X[6*i+1];
+      (*X0)[i]->z = X[6*i+2];
+    }
+  }
 }
 
 double

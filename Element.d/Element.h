@@ -331,7 +331,7 @@ public:
         Node *& operator[] (int i);
 
         int nnz();
-        NFrameData * dofFrame(int i);
+        NFrameData * dofFrame(int i) const;
 };
 
 
@@ -409,6 +409,7 @@ class Element {
                                       double *coefs, double *frame);
         virtual double * setCompositeData2(int _type, int nlays, double *lData,
                                            double *coefs, CoordSet &cs, double theta);
+        virtual void getCFrame(CoordSet& cs, double cFrame[3][3]) const;
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
         virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1);
@@ -464,11 +465,11 @@ class Element {
         virtual void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                               double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
-        virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, 
+        virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *, 
                                                         CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                         double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
-        virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, 
+        virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, GenFullM<DComplex> *,
                                                         CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                                         double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 

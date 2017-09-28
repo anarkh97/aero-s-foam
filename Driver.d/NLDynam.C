@@ -127,7 +127,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     if(matrixTimers) matrixTimers->assemble += getTime();
   }
 
-  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic)
+  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic && !solInfo().quasistatic)
     getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, false, corotators, cel);
 }
 
@@ -207,7 +207,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
     getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, NULL, false);
   }
 
-  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic) {
+  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic && !solInfo().quasistatic) {
     getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);
   }
 }

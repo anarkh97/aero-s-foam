@@ -38,7 +38,7 @@ struct DistrSnapshotNonLinDynamicDetail : private DistrSnapshotNonLinDynamic {
     int nodeCount() const { return geoSource->getNumGlobNodes(); }
 
     explicit RawImpl(DecDomain *);
-  
+
   private:
     typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
     
@@ -92,32 +92,46 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::RawImpl(DecDomain *decDomain) :
   dsvarSkip_(0)
 {
   if(decDomain->getDomain()->solInfo().statevectPodRom){
+
     stateSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::STATE, BasisId::SNAPSHOTS), nodeCount(),
-                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom,
-                 (geoSource->getCheckFileInfo()->lastRestartFile != 0));}
-  if(decDomain->getDomain()->solInfo().velocvectPodRom){
+                     snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom,
+                     (geoSource->getCheckFileInfo()->lastRestartFile != 0));
+
+  }
+  if(decDomain->getDomain()->solInfo().velocvectPodRom){ 
+
     velocSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::VELOCITY, BasisId::SNAPSHOTS), nodeCount(),
-                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom,
-                 (geoSource->getCheckFileInfo()->lastRestartFile != 0));}
-  if(decDomain->getDomain()->solInfo().accelvectPodRom){
+                     snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom,
+                     (geoSource->getCheckFileInfo()->lastRestartFile != 0));
+
+  }
+  if(decDomain->getDomain()->solInfo().accelvectPodRom){ 
+
     accelSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::ACCELERATION, BasisId::SNAPSHOTS), nodeCount(),
-                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom,
-                 (geoSource->getCheckFileInfo()->lastRestartFile != 0));}
+                     snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom,
+                     (geoSource->getCheckFileInfo()->lastRestartFile != 0));
+
+  }
   if(decDomain->getDomain()->solInfo().dsvPodRom){
     if(decDomain->getDomain()->solInfo().solvercntl->type == 2) {
+
       mpcMasterMapping_ = new DistrMpcMasterMapping(SubDomIt(decDomain->getAllSubDomains()), SubDomIt(decDomain->getAllSubDomains()
                                                     + decDomain->getNumSub()));
-      dualSnapBuffer_ = new DistrNodeDof1Buffer(mpcMasterMapping_->masterNodeBegin(), mpcMasterMapping_->masterNodeEnd());
-    }
-    else {
+      dualSnapBuffer_   = new DistrNodeDof1Buffer(mpcMasterMapping_->masterNodeBegin(), mpcMasterMapping_->masterNodeEnd());
+
+    } else {
+
       dualMasterMapping_ = new DistrMasterMapping(SubDomIt(decDomain->getAllSubDomains()), SubDomIt(decDomain->getAllSubDomains()
                                                   + decDomain->getNumSub()), true);
-      mpcOffset_ = decDomain->getDomain()->numNode()-decDomain->getDomain()->getNumCTC();
-      dualSnapBuffer_ = new DistrNodeDof1Buffer(dualMasterMapping_->masterNodeBegin(), dualMasterMapping_->masterNodeEnd(), mpcOffset_);
+      mpcOffset_         = decDomain->getDomain()->numNode()-decDomain->getDomain()->getNumCTC();
+      dualSnapBuffer_    = new DistrNodeDof1Buffer(dualMasterMapping_->masterNodeBegin(), dualMasterMapping_->masterNodeEnd(), mpcOffset_);
+
     }
+
     dsvarSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::SNAPSHOTS), decDomain->getDomain()->getNumCTC(),
-                 dualSnapBuffer_->globalNodeIndexBegin(), dualSnapBuffer_->globalNodeIndexEnd(), structCom, 
-                 (geoSource->getCheckFileInfo()->lastRestartFile != 0), 1);}
+                     dualSnapBuffer_->globalNodeIndexBegin(), dualSnapBuffer_->globalNodeIndexEnd(), structCom, 
+                     (geoSource->getCheckFileInfo()->lastRestartFile != 0), 1);
+  }
 }
 
 void
@@ -207,7 +221,7 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::dsvarSnapshotAdd(const DistrGeomState
     if(decDomain_->getDomain()->solInfo().solvercntl->type == 2) { // FETI-DP with "multipliers" constraint method
     DistrMasterMapping::SubMasterMappingIt mappingIt = mpcMasterMapping_->begin();
     for (int iSub = 0; iSub < subDomCount; ++iSub) {
-      const GeomState &subSnap = *snap[iSub];
+      const GeomState     &subSnap = *snap[iSub];
       const MasterMapping &mapping = *mappingIt++;
 
       std::vector<double> lambda;
@@ -226,7 +240,7 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::dsvarSnapshotAdd(const DistrGeomState
     else { // Multi-domain MUMPS with "augmented" constraint method
     DistrMasterMapping::SubMasterMappingIt mappingIt = dualMasterMapping_->begin();
     for (int iSub = 0; iSub < subDomCount; ++iSub) {
-      const GeomState &subSnap = *snap[iSub];
+      const GeomState     &subSnap = *snap[iSub];
       const MasterMapping &mapping = *mappingIt++;
 
       typedef MasterMapping::IndexPairIterator IndexPairIt;
@@ -244,6 +258,30 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::dsvarSnapshotAdd(const DistrGeomState
     dsvarSnapFile_->stateAdd(*dualSnapBuffer_, timeStamp_);
     dsvarSkip_ = 0;
   }
+  const int subDomCount = snap.getNumSub();
+  int numMu = 0; 
+  for (int iSub = 0; iSub < subDomCount; ++iSub) {
+    numMu += snap.mu[iSub].size();
+  }
+  //int numProc = structCom->numCPUs();
+/*  int myID    = structCom->myID();
+  //numMu = structCom->globalSum(numMu);
+  for (int iSub = 0; iSub < subDomCount; ++iSub) {// loop through each subDomain
+    if(snap.mu[iSub].size() > 0) {                // check if subDomain is empty
+      //for(int proc = 0; proc < numProc; ++proc){  // loop through each process
+        //if(proc == myID){ // serial write to file
+          if(myID == 0 && iSub == 0) { 
+            fprintf(muSnapFile,"   %1.8e %d \n", timeStamp_, numMu);  // master proc writes time stamp
+            for(std::map<std::pair<int,int>, double>::iterator it = snap.mu[iSub].begin(); it != snap.mu[iSub].end(); ++it){ // loop through multipliers
+//              fprintf(stderr," %d %d %d %1.8e \n", myID, it->first.first, it->first.second, it->second);
+                fprintf(muSnapFile," %d %d %1.8e \n", it->first.first, it->first.second, it->second);
+            }
+          }
+        //}
+        //structCom->sync();
+     // } 
+    }
+  }*/
 }
 
 DistrSnapshotNonLinDynamic::DistrSnapshotNonLinDynamic(Domain *domain) :
@@ -254,7 +292,8 @@ DistrSnapshotNonLinDynamic::DistrSnapshotNonLinDynamic(Domain *domain) :
 void
 DistrSnapshotNonLinDynamic::preProcess() {
   MDNLDynamic::preProcess();
-  impl_.reset(new DistrSnapshotNonLinDynamicDetail::RawImpl(this->getDecDomain()));
+  if(!impl_.get()) 
+    impl_.reset(new DistrSnapshotNonLinDynamicDetail::RawImpl(this->getDecDomain()));
 }
 
 void

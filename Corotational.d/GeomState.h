@@ -152,6 +152,8 @@ class GeomState {
      int getNumRotationDof(int inode) const;
 
      CoordSet* getCoordSet() { return X0; }
+     void transformCoords(double xScaleFactor, double yScaleFactor, double zScaleFactor);
+     void setNewCoords(const Vector &X);
 };
 
 inline int

@@ -19,9 +19,14 @@
 
 Eigen::VectorXd
 nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnorm,
-      long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime)
+      long int &info, double maxsze, int &maxEle, double maxite, double reltol, bool verbose, bool scaling, bool center, bool reverse, double &dtime, std::vector<long int> &hotIndices)
 {
   using namespace Eigen;
+
+  std::vector<long int> indices;
+
+  // if doing a hot start, pass in indice set of pre-selected elements and compute weights for new target
+  bool hotStart = false;
 
   const long int m = b.rows();
   const long int maxvec = (maxEle > 0) ? std::min(m,(long int)maxEle) : std::min(m, (long int)(maxsze*A.cols()));
@@ -38,7 +43,12 @@ nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnor
   Matrix<double,Dynamic,Dynamic,ColMajor> BD(A.rows(),maxvec);
   B.setZero(); D.setZero(); BD.setZero(); GD.setZero();
   long int k = 0;
-  std::vector<long int> indices;
+  int sizeHS = 0;
+  if(hotIndices.size() > 0) {
+    hotStart = true;
+    sizeHS = hotIndices.size();
+  }
+    
   std::vector<long int> nld_indices;
 
   //center covariates and target so that the mean is 0
@@ -54,8 +64,13 @@ nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnor
   dtime      = 0; // time spent in downdates
   int iter   = 0; // number of iterations
   int downIt = 0; // number of downdates
-  while(true) {
 
+  if(hotStart) {
+    std::cout << " ... Computing Hot Start Quantities ... " << std::endl;
+  }
+
+  while(true) {   // primary loop
+    long int i; 
     if(verbose) {
       std::cout << "Iteration = " << std::setw(9) << iter << "    "
                 << "Downdate = " << std::setw(9) << downIt << "    "
@@ -69,17 +84,27 @@ nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnor
     if((rnorm <= abstol && maxEle == 0) || k+nld_indices.size() == maxvec ) {maxEle = k; break;}
     if(iter >= maxit) { maxEle = k; info = 3; break; }
 
-    g = S.asDiagonal()*(A.transpose()*r); // gradient
-    long int i;
-    h = g; for(long int j=0; j<k; ++j) h[indices[j]] = -std::numeric_limits<double>::max(); // make sure the index has not already been selected
-    for(long int j=0; j<nld_indices.size(); ++j) h[nld_indices[j]] = -std::numeric_limits<double>::max(); // also make sure near linear dependent indices are not selected
-    double gi = h.maxCoeff(&i);
-    if(gi <= 0) {maxEle = k; break;}
+    if(hotStart) { // if starting with an initial element set, onl multiply appropriate column
+      g.setZero();
+      for(int prek = 0; prek < k+1; ++prek){
+        g(hotIndices[prek]) = S(hotIndices[prek])*A.col(hotIndices[prek]).transpose()*r;
+      }
+      i  = hotIndices[k]; 
+      if(k >= sizeHS){
+        hotStart = false;
+        std::cout << " ... Hot Start Complete ... " << std::endl;
+      }
+    } else {
+      g = S.asDiagonal()*(A.transpose()*r); // gradient
+      h = g; for(long int j=0; j<k; ++j) h[indices[j]] = -std::numeric_limits<double>::max(); // make sure the index has not already been selected
+      for(long int j=0; j<nld_indices.size(); ++j) h[nld_indices[j]] = -std::numeric_limits<double>::max(); // also make sure near linear dependent indices are not selected
+      double gi = h.maxCoeff(&i);
+      if(gi <= 0) {maxEle = k; break;}
+    }
     B.col(k) = S[i]*A.col(i);
     indices.push_back(i);
     // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
     GD.row(k).head(k) = B.col(k).transpose()*BD.leftCols(k);
-
     for(long int j=0; j<k+1; ++j) g_[j] = g[indices[j]];
     Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k);
     d.head(k+1) = g_.head(k+1) - D.topLeftCorner(k+1,k).triangularView<Upper>()*(DtGDinv.head(k).asDiagonal()*(GD.topLeftCorner(k+1,k).transpose()*g_.head(k+1))); // direction
@@ -92,9 +117,10 @@ nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnor
     y.head(k+1) = x_.head(k+1) + a[k]*d.head(k+1); // candidate solution
     r -= a[k]*c; // residual
     k++;
-    while(true) {
+    while(true) { // secondary loop
       iter++;
-      if(y.head(k).minCoeff() < 0) {
+      if(y.head(k).minCoeff() < 0) { // check if constraints are violated
+        std::vector<long int>::iterator fol;
         dtime -= getTime();  
         downIt++;
         // compute maximum feasible step length in the direction (y-x_) and corresponding index in the active set, i
@@ -102,7 +128,12 @@ nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnor
         double alpha = t.head(k).minCoeff(&i);
 
         // remove index i from the active set
-        std::vector<long int>::iterator fol = indices.erase(indices.begin()+i);
+        fol = indices.erase(indices.begin()+i);
+
+        if(hotStart) {
+          sizeHS--;
+          hotIndices.erase(hotIndices.begin()+i);
+        }
 
         // update x_ (note: this is used only when there are two or more consecutive downdate iterations)
         for(int j=0; j<i; ++j) x_[j] += alpha*(y[j]-x_[j]);
@@ -119,9 +150,8 @@ nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnor
           r = b - BD.leftCols(k)*a.head(k);
         else 
           r = r + BD.block(0,i,m,indices.size()-i+1)*a.segment(i,indices.size()-i+1);
-
+ 
         g_.head(k) = B.leftCols(k).transpose()*r;
-
 
         std::vector<long int> indicesMap;
         MatrixXd GDcopy;
@@ -179,6 +209,9 @@ nncgp(Eigen::Ref<Eigen::MatrixXd> A, Eigen::Ref<Eigen::VectorXd> b, double& rnor
 
   dtime /= 1000.0;
   if(verbose) std::cout.flush();
+
+  hotIndices.clear();
+  hotIndices = indices;
 
   VectorXd x = VectorXd::Zero(A.cols());
   for(long int j=0; j<k; ++j) x[indices[j]] = S[indices[j]]*x_[j];

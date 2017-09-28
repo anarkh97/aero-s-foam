@@ -161,8 +161,8 @@ MultiDomDynPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
   for(int i = 0; i < decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
 
   SensorBasis = fullBasis;
-  SensorBasis->makeSparseBasis2(nodeVector, all_cdsa);
 
+  SensorBasis->makeSparseBasis2(nodeVector, all_cdsa);
   // allocate space for containers to hold sensor values
   if(DispSensor) {
     DispSensorValues = new GenDistrVector<double>(SensorBasis->vectorInfo());
@@ -414,7 +414,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
     for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob) {
       FileNameInfo fileInfo;
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
-      fileName.append(".normalized");
+      fileName.append(".massorthonormalized");
       DistrBasisInputFile BasisFile(fileName);
       int locSize = domain->solInfo().localBasisSize[rob] ?
                     std::min(domain->solInfo().localBasisSize[rob], BasisFile.stateCount()) :
@@ -432,7 +432,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
 
     typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
     DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
-                                   SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
+                                    SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
     DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
 
     // this loop reads in vectors and stores them in a single Distributed Basis structure
@@ -440,7 +440,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
     for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob){
       FileNameInfo fileInfo; 
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
-      fileName.append(".normalized");
+      fileName.append(".massorthonormalized");
       DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
       if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
 
@@ -526,6 +526,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   a_n        = new DistrVector(MultiDomainDynam::solVecInfo());
   v_p        = new DistrVector(MultiDomainDynam::solVecInfo());
   tempVec    = new DistrVector(MultiDomainDynam::solVecInfo());
+  ctc_f      = new DistrVector(MultiDomainDynam::solVecInfo());
   dummyState = new SysState<DistrVector>(*d_n, *v_n, *a_n, *v_p);
   times      = new StaticTimers;}
 
@@ -680,6 +681,8 @@ DistrExplicitPodProjectionNonLinDynamicBase::setLocalBasis(DistrVector &q, Distr
         normalizedBasis_.expand(q,  q_Big);
         normalizedBasis_.expand(qd, qd_Big); // make sure velocities are projected
 
+        Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > qMap(q.data(), q.size());
+
         //zero out generalized coordinates
         q.zero();
         qd.zero();
@@ -687,7 +690,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::setLocalBasis(DistrVector &q, Distr
         // reduced coordinates have already been projected into embedding space with previous basis
         // now project tham back on to the new subspace with updated basis
         normalizedBasis_.localBasisIs(startCol,blockCols);
-        reduceDisp(q_Big,  q); // d_n has already been updated, regardless of rotational degrees of freedom
+        reduceDisp(q_Big,  q);  // d_n has already been updated, regardless of rotational degrees of freedom
         reduceDisp(qd_Big, qd);
       } else {
         normalizedBasis_.localBasisIs(startCol,blockCols);
@@ -727,7 +730,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::reduceDisp(DistrVector &d, DistrVec
 {
   DistrVector Md(MultiDomainDynam::solVecInfo());
   dynMat->M->mult(d, Md);
-  normalizedBasis_.reduce(Md, dr);
+  normalizedBasis_.reduce(Md, dr, false);
 }
 
 void 
@@ -813,6 +816,19 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
     normalizedBasis_.addLocalPart(cnst_f,f);
     MultiDomainDynam::computeExtForce2( *dummyState, *fExt, *cnst_fBig, tIndex, t, aero_fBig, gamma, alphaf);
   }
+}
+
+void
+DistrExplicitPodProjectionNonLinDynamicBase::getContactForce(DistrVector &d, DistrVector &dinc, DistrVector &ctc_r, double t_n_p, double dt, double dt_old) {
+
+  // first expand state increment into high dimensional container
+  // could be optimized to expand only components on contact surfaces
+  normalizedBasis_.expand(dinc, *tempVec);
+  // next call masked function to compute contact force in embedding space
+  MultiDomainDynam::getContactForce(*d_n, *tempVec, *ctc_f, t_n_p, dt, dt_old); 
+  // then project contact force onto reduced subspace
+  normalizedBasis_.sparseVecReduce(*ctc_f, ctc_r);
+
 }
 
 MDDynamMat *

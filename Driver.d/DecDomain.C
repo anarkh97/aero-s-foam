@@ -24,6 +24,7 @@
 #include <Solvers.d/MultiDomainRbm.h>
 #include <Driver.d/SysState.h>
 #include <Rom.d/BlockCyclicMap.h>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 #ifdef USE_MPI
 #include <Comm.d/Communicator.h>
 #endif
@@ -223,13 +224,9 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   // create each subdomain's interface lists
   int iSub, jSub, subJ, iNode;
   int totConnect;
-//  int *nConnect = new int[subToNode->csize()];
-//  int *flag = new int[subToNode->csize()];
   int *nConnect = new int[numNESub];
   int *flag = new int[numNESub];
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
-//     flag[iSub] = -1;
-//     nConnect[iSub] = 0;
     if(subToNode->num(iSub)) {
       flag[NESubMap[iSub]] = -1;
       nConnect[NESubMap[iSub]] = 0;
@@ -240,7 +237,7 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   totConnect = 0;
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) { // loop over the nodes
-      auto thisNode = (*subToNode)[iSub][iNode];
+      typename ConnectivityType2::IndexType thisNode = (*subToNode)[iSub][iNode];
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[thisNode] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(thisNode); ++jSub) {
         // loop over the subdomains connected to this node
@@ -266,9 +263,6 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
     }
   }
 
-//  int **nodeCount = new int*[subToNode->csize()];
-//  int **connectedDomain = new int*[subToNode->csize()];
-//  int **remoteID = new int*[subToNode->csize()];
   int **nodeCount = new int*[numNESub];
   int **connectedDomain = new int*[numNESub];
   int **remoteID = new int*[numNESub];
@@ -286,14 +280,12 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
     }
   }
 
-//  int *whichLocal  = new int[subToNode->csize()];
-//  int *whichRemote = new int[subToNode->csize()];
   int *whichLocal  = new int[numNESub];
   int *whichRemote = new int[numNESub];
 
   for(iSub=0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) {
-      auto nd = (*subToNode)[iSub][iNode];
+      typename ConnectivityType2::IndexType nd = (*subToNode)[iSub][iNode];
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[nd] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];
@@ -321,7 +313,6 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   }
 
   // allocate memory for interface node lists
-//  Connectivity **interfNode = new Connectivity *[subToNode->csize()];
   Connectivity **interfNode = new Connectivity *[numNESub];
   for(iSub=0; iSub < subToNode->csize(); ++iSub)
     if(subToNode->num(iSub))
@@ -337,7 +328,7 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
 
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) {
-      auto nd = (*subToNode)[iSub][iNode];
+      typename ConnectivityType2::IndexType nd = (*subToNode)[iSub][iNode];
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[nd] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];
@@ -348,8 +339,6 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
             if(!neighbWithSelf) whichLocal[NESubMap[subJ]] = nConnect[NESubMap[iSub]]++;
             else whichLocal[NESubMap[subJ]] = nConnect[NESubMap[iSub]];
             whichRemote[NESubMap[subJ]] = nConnect[NESubMap[subJ]]++;
-            //(*interfNode[iSub])[whichLocal[subJ]][0] = nd;
-            //(*interfNode[subJ])[whichRemote[subJ]][0] = nd;
             (*interfNode[NESubMap[iSub]])[whichLocal[NESubMap[subJ]]][0] = (glSubToLocal[iSub] >= 0) ? subDomain[glSubToLocal[iSub]]->globalToLocal(nd) : nd;
             (*interfNode[NESubMap[subJ]])[whichRemote[NESubMap[subJ]]][0] = (glSubToLocal[subJ] >= 0) ? subDomain[glSubToLocal[subJ]]->globalToLocal(nd) : nd;
 
@@ -358,12 +347,10 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
           }
           else {
             int il = nodeCount[NESubMap[iSub]][whichLocal[NESubMap[subJ]]]++;
-            //(*interfNode[iSub])[whichLocal[subJ]][il] = nd;
             (*interfNode[NESubMap[iSub]])[whichLocal[NESubMap[subJ]]][il] = (glSubToLocal[iSub] >= 0) ? subDomain[glSubToLocal[iSub]]->globalToLocal(nd) : nd;
 
             if(!neighbWithSelf) {
               int jl = nodeCount[NESubMap[subJ]][whichRemote[NESubMap[subJ]]]++;
-              //(*interfNode[subJ])[whichRemote[subJ]][jl] = nd;
               (*interfNode[NESubMap[subJ]])[whichRemote[NESubMap[subJ]]][jl] = (glSubToLocal[subJ] >= 0) ? subDomain[glSubToLocal[subJ]]->globalToLocal(nd) : nd;
             }
           }
@@ -403,10 +390,8 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   delete [] nConnect;
   delete [] interfNode;
 
-  //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberSharedNodes);
   stopTimerMemory(mt.makeConnectivity, mt.memoryConnect);
 }
-
 
 template<class Scalar>
 void
@@ -506,10 +491,9 @@ void
 GenDecDomain<Scalar>::makeSubToSubEtc()
 {
   if(soweredInput) {
-//    subToSub = geoSource->getSubToSub();
 #ifdef OLD_CLUSTER
     subToNode = geoSource->getSubToNode();
-    subToNode->sortTargets(); // PJSA 11-16-2006
+    subToNode->sortTargets();
 
     mt.memoryNodeToSub -= memoryUsed();
     nodeToSub = subToNode->reverse();
@@ -525,7 +509,6 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
 #else
     geoSource->setNumNodes(nodeToSub->csize());
 #endif
-    //geoSource->computeClusterInfo(localSubToGl[0]);
   }
   else {
     mt.memoryElemToNode -= memoryUsed();
@@ -570,7 +553,6 @@ void
 GenDecDomain<Scalar>::makeSubDomains() 
 {
   makeSubDMaps();
-  ///makeSubToSubEtc();
   subDomain = new GenSubDomain<Scalar> *[numSub];
 
   startTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
@@ -715,7 +697,7 @@ GenDecDomain<Scalar>::preProcess()
    if(soweredInput) geoSource->getBinaryDecomp(); else
 #endif
    subToElem = geoSource->getDecomposition();
-//   subToElem->sortTargets(); // JAT 021915 // PJSA 11-16-2006
+   //subToElem->sortTargets(); // JAT 021915 // PJSA 11-16-2006
  }
 
  makeSubToSubEtc();
@@ -930,7 +912,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     if(domain->solInfo().doEigSweep) x = outEigCount++; 
   }
   else time = eigV;
-  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
+  if (domain->solInfo().loadcases.size() > 0 && !domain->solInfo().doFreqSweep) time = domain->solInfo().loadcases.front();
 
   // open output files
   if(x == domain->solInfo().initialTimeIndex && firstOutput) geoSource->openOutputFiles();
@@ -958,6 +940,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::Acceleration:
           if(distState) getPrimalVector(i, mergedAcc, numNodes, 3, time);
           break;
+        case OutputInfo::EigenPair6:
         case OutputInfo::Disp6DOF:
           getPrimalVector(i, mergedDis, numNodes, 6, time);
           break;
@@ -1273,6 +1256,13 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::Jacobian:
         case OutputInfo::RobData:
         case OutputInfo::SampleMesh:
+        case OutputInfo::ModalDsp:
+        case OutputInfo::ModalExF:
+        case OutputInfo::ModalMass:
+        case OutputInfo::ModalStiffness:
+        case OutputInfo::ModalDamping:
+        case OutputInfo::ModalDynamicMatrix:
+        case OutputInfo::ModalMatrices:
           break;
         default:
           filePrint(stderr," *** WARNING: Output case %d not implemented \n", i);
@@ -2636,6 +2626,7 @@ GenDecDomain<Scalar>::makeCorners()
 {
   if(!(domain->solInfo().solvercntl->type == 2 && domain->solInfo().solvercntl->fetiInfo.version == FetiInfo::fetidp)) return;
   if(verboseFlag) filePrint(stderr, " ... Selecting the Corners          ...\n");
+
   FSCommPattern<int> cpat(communicator, cpuToSub, myCPU, FSCommPattern<int>::CopyOnSend);
   for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(&cpat);
   cpat.finalize();
@@ -3743,12 +3734,11 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
        }
      } break;
 #endif
-     case 13 : {
-       for(int i = 0; i < numSub; ++i) {
-         dgt.dynMats[i] = 0;
-         dgt.spMats[i] = 0;
-       }
+#ifdef USE_EIGEN3
+     case 13 : { // eisgal for implicit POD with parallel assembly and serial direct inversion
+       // do nothing
      } break;
+#endif
      default :
        filePrint(stderr, " *** ERROR: subtype %d not supported here in GenDecDomain::buildOps\n", domain->solInfo().solvercntl->subtype);
        exit(-1);
@@ -3850,13 +3840,27 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 // RT end
  switch(domain->solInfo().solvercntl->type) {
    case 0 : { // direct
-     if(dgt.dynMats[0]) {
-       dgt.dynMats[0]->unify(communicator);
-       res.dynMat = dynamic_cast<GenParallelSolver<Scalar>* >(dgt.dynMats[0]);
-       if(factor) res.dynMat->refactor();
+     if(domain->solInfo().solvercntl->subtype == 13) { // if ROM, dont need dgt.dynMats, keep dgt.spMats for V^T*K*V, factor after pod basis has been buffered
+       if(!(res.spMat  = new GenSubDOp<Scalar>(numSub, dgt.spMats)))
+         throw std::runtime_error("subdomain matrices did not bind");
+       res.spMat->zeroAll();
+#ifdef USE_EIGEN3
+       res.dynMat = 
+           new Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> >
+              (domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), 
+               numSub, dgt.spMats, !domain->solInfo().unsym(), 1e-6, 
+               domain->solInfo().numberOfRomCPUs);
+#endif
+       delete [] dgt.dynMats;
+     } else { // else mumps
+       if(dgt.dynMats[0]) {
+         dgt.dynMats[0]->unify(communicator);
+         res.dynMat = dynamic_cast<GenParallelSolver<Scalar>* >(dgt.dynMats[0]);
+       }
+       delete [] dgt.dynMats;
+       delete [] dgt.spMats;
      }
-     delete [] dgt.dynMats;
-     delete [] dgt.spMats;
+     if(factor) res.dynMat->refactor();
    } break;
    case 1 : { // iterative
      switch(domain->solInfo().solvercntl->iterType) {
@@ -3908,6 +3912,41 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
  if(res.dynMat) res.dynMat->refactor(); // do anything that needs to be done after zeroing and assembling the matrices
 }
 
+
+template<>
+inline void
+GenDecDomain<double>::rebuildOps(GenMDDynamMat<double> &res, double coeM, double coeC, double coeK, 
+                                 FullSquareMatrix **kelArray, FullSquareMatrix **melArray, FullSquareMatrix **celArray)
+{
+ if(domain->solInfo().galerkinPodRom && domain->solInfo().newmarkBeta != 0) {
+#ifdef USE_EIGEN3
+
+   // rebuild the dynamic stiffness matrix
+   if (domain->solInfo().useMassNormalizedBasis || domain->solInfo().modalDIMASS)
+     execParal7R(numSub, this, &GenDecDomain<double>::subRebuildOps, res, 0.0, coeC, coeK, kelArray, melArray, celArray);
+   else 
+     execParal7R(numSub, this, &GenDecDomain<double>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
+
+   // every process now has the reduced dynamic stiffness matrix, add it to the the galerkin solver
+   if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().modalDIMASS)
+     dynamic_cast<Rom::GenEiSparseGalerkinProjectionSolver<double,GenDistrVector,GenParallelSolver<double> > *>(res.sysSolver)->addReducedMass(coeM);
+
+#endif
+ } else {
+   if(res.dynMat) res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
+
+   execParal7R(numSub, this, &GenDecDomain<double>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
+
+   if(domain->solInfo().solvercntl->type == 0 && res.dynMat) {
+     GenSolver<double> *dynmat = dynamic_cast<GenSolver<double>*>(res.dynMat);
+     if(!verboseFlag) dynmat->setPrintNullity(false);
+     dynmat->unify(communicator);
+   }
+ }
+
+ if(res.dynMat) res.dynMat->refactor(); // do anything that needs to be done after zeroing and assembling the matrices
+}
+
 template<class Scalar>
 void
 GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK, 
@@ -3919,11 +3958,11 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
    allOps.K = new GenMultiSparse<Scalar>((res.K) ? (*res.K)[iSub] : 0, subDomain[iSub]->KiiSparse,
                                          subDomain[iSub]->Kbb, subDomain[iSub]->Kib);
   else
-   allOps.K = (res.K) ? (*res.K)[iSub] : 0;
-  if(res.C)    allOps.C = (*res.C)[iSub];
+    allOps.K = (res.K) ? (*res.K)[iSub] : 0;
+  if(res.C)    allOps.C   = (*res.C)[iSub];
   if(res.Cuc)  allOps.Cuc = (*res.Cuc)[iSub];
   if(res.Ccc)  allOps.Ccc = (*res.Ccc)[iSub];
-  if(res.M)    allOps.M = (*res.M)[iSub];
+  if(res.M)    allOps.M   = (*res.M)[iSub];
   if(res.Muc)  allOps.Muc = (*res.Muc)[iSub];
   if(res.Mcc)  allOps.Mcc = (*res.Mcc)[iSub];
   if(res.Kuc)  allOps.Kuc = (*res.Kuc)[iSub];
@@ -3969,13 +4008,23 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   allOps.zero();
 
   if(domain->solInfo().solvercntl->type == 0) {
-    GenSparseMatrix<Scalar> *spmat = (res.dynMat) ? dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat) : NULL;
-    if(iSub == 0 && spmat) spmat->zeroAll();
+    if(domain->solInfo().solvercntl->subtype == 13) { // if performing reduced order model, point to subdomain matrices and pass these to makeSparseOps
+#ifdef USE_EIGEN3
+      GenSparseMatrix<Scalar> *spmat = 
+      dynamic_cast<Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> > *>(res.dynMat)->getSpMat(iSub);
+      dynamic_cast<Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> > *>(res.dynMat)->zeroAll();
+      subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
+                                                     (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
+#endif
+    } else {
+      GenSparseMatrix<Scalar> *spmat = (res.dynMat) ? dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat) : NULL;
+      if(iSub == 0 && spmat) spmat->zeroAll();
 #if defined(_OPENMP)
     #pragma omp barrier
 #endif
-    subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
-                                                    (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
+      subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
+                                                     (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
+    }
   }
   else if(domain->solInfo().solvercntl->type == 3) {
     GenSparseMatrix<Scalar> *spmat = (res.dynMat) ? dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat) : NULL;

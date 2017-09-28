@@ -60,7 +60,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   FILE *f = fopen(clusName,"r");
   if (f) {
     int numCLUS;
-    fscanf(f,"%d",&numCLUS);
+    int r1 = fscanf(f,"%d",&numCLUS);
     fprintf(stderr, " ... Reading Cluster Map from file %s, numCLUS = %d ... \n", clusName, numCLUS);
     if(numCLUS != nClus) {
       fprintf(stderr, " *** ERROR: CLUSMAP file is for %d clusters\n", numCLUS);
@@ -72,9 +72,9 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
     int i, j, k = 0, m, n;
     clusp[0] = k;
     for(i = 0; i < nClus; i++) {
-      fscanf(f,"%d",&n);
+      int r2 = fscanf(f,"%d",&n);
       for(j = 0; j < n; j++) {
-	fscanf(f,"%d",&m);
+	int r3 = fscanf(f,"%d",&m);
         if (m > nSubFile) nSubFile = m;
 	if(k == nSub) {
 	  fprintf(stderr, " *** ERROR: CLUSMAP file has too many subdomains\n");

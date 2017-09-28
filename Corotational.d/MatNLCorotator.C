@@ -325,6 +325,7 @@ MatNLCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &curStat
   // Store all Stress or all Strain as defined by strInd
   if(strInd == 0) {
     double *statenp_tmp = new double[ele->numStates()];
+    for(int i=0; i<ele->numStates(); ++i) statenp_tmp[i] = statenp[i];
     Vector elemNodeTemps(ele->numNodes());
     double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0;
     curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);

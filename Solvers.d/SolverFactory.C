@@ -142,8 +142,8 @@ GenSolverFactory<Scalar>::createDistSolver(Connectivity *con, EqNumberer *eqnum,
 {
   //std::cerr << "2. creating solver: type = " << cntl.type << ", subtype = " << cntl.subtype << ", name = " << name << std::endl;
   int neq       = eqnum->size();
-  int myCPU = com->cpuNum();
-  int numCPUs = com->size();
+  int myCPU = (com) ? com->cpuNum() : 0;
+  int numCPUs = (com) ? com->size() : 1;
   int neqPerCPU = neq/numCPUs;
   int remainder = neq%numCPUs;
   int firstAlpha = myCPU * neqPerCPU + ((myCPU < remainder) ? myCPU : remainder);

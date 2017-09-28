@@ -4,6 +4,12 @@
 
 #include <iostream>
 #include <vector>
+#include <cstdio>
+
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#endif
 
 extern "C" {
   void _FORTRAN(spnnls)(double *a, const long int *mda, const long int *m, const long int *n,
@@ -23,7 +29,10 @@ NonnegativeMatrixFactorization::NonnegativeMatrixFactorization(int maxBasisDimen
   method_(method),
   matrixBuffer_(0),
   robBuffer_(0),
-  maxIter_(100)
+  maxIter_(100),
+  nmfcAlpha(0.0),
+  nmfcBeta(0.0),
+  nmfcGamma(0.0)
 {}
 
 void
@@ -48,6 +57,21 @@ NonnegativeMatrixFactorization::maxIterIs(int maxIter) {
 void
 NonnegativeMatrixFactorization::toleranceIs(double tol) {
   tol_ = tol;
+}
+
+void
+NonnegativeMatrixFactorization::nmfcAlphaIs(double alp) {
+  nmfcAlpha = alp;
+}
+
+void
+NonnegativeMatrixFactorization::nmfcBetaIs(double bet) {
+  nmfcBeta = bet;
+}
+
+void
+NonnegativeMatrixFactorization::nmfcGammaIs(double gam) {
+  nmfcGamma = gam;
 }
 
 void
@@ -82,13 +106,19 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
   int m = rows.size();
   int n = cols.size();
   const int &k = basisDimension_;
+  std::cerr << "Factoring data into " << k << " nonnegative columns " << std::endl;
   Eigen::MatrixXd A(m,n);
+  int npi = 0;
   for(int i=0; i<m; ++i){
     for(int j=0; j<n; ++j){
-      A(i,j) = -X(rows[i],cols[j]); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
+      double elem = X(rows[i],cols[j]);
+      if(elem > 0)
+        npi += 1;
+      A(i,j) = abs(elem); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
     }
   }
-
+  if(npi > 0)
+    std::cout << "Warning: there are " << npi << " negative elements in the data set." << std::endl;
   
 
   Eigen::MatrixXd W(m,k), H(k,n);
@@ -156,6 +186,91 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
       }
       // normalize vectors in W
       for (int i=0; i<k; ++i) W.col(i).normalize();
+    } break;
+    case 4 : { // Alternating direction algorithm for Nonnegative matrix completion,  Xu, Yin, Wen, Zhang
+      // initialize working arrays
+      std::cout << "... Nonnegative Matrix Completion ..." << std::endl;
+      W.setZero(); H = Eigen::MatrixXd::Random(k,n);
+      Eigen::MatrixXd U(m,k), V(k,n); U.setZero(); V.setZero();
+      Eigen::MatrixXd Lambda(m,k), Pi(k,n); Lambda.setZero(); Pi.setZero();
+      Eigen::MatrixXd Z = A; 
+     
+      // set solver coefficients 
+      double alpha = (nmfcAlpha > 1e-16) ? nmfcAlpha : Z.lpNorm<Eigen::Infinity>();
+      double beta  = (nmfcBeta  > 1e-16) ? nmfcBeta  : Z.lpNorm<Eigen::Infinity>();
+      double gamma = (nmfcGamma > 1e-16) ? nmfcGamma : 1.618;
+   
+      fprintf(stderr,"... α =% 3.2e, β =%3.2e, γ= %3.2e ...\n", alpha, beta, gamma);
+
+      Eigen::MatrixXd rhs1; rhs1.resize(m,k); rhs1.setZero();
+      Eigen::MatrixXd rhs2; rhs2.resize(k,n); rhs2.setZero();
+      Eigen::MatrixXd lhs;  lhs.resize(k,k);  lhs.setZero();
+
+      double nrmX = A.norm();
+      //begin nonnegative matrix completion
+      for (int i = 0; i < maxIter_; ++i) {
+ 
+        // fist update W
+        rhs1 = Z*H.transpose() + alpha*U - Lambda;
+        lhs  = H*H.transpose() + alpha*Eigen::MatrixXd::Identity(k,k);
+  
+        W.transpose() = lhs.selfadjointView<Eigen::Lower>().llt().solve(rhs1.transpose());
+
+        // then update H
+        rhs2 = W.transpose()*Z + beta*V - Pi;
+        lhs  = W.transpose()*W + beta*Eigen::MatrixXd::Identity(k,k);
+
+        H = lhs.selfadjointView<Eigen::Lower>().llt().solve(rhs2);
+
+        // compute current approximation
+        Z = W*H;
+
+        // update constraints
+        U = W + (1/alpha)*Lambda;
+        V = H + (1/beta)*Pi;
+
+        double stpcrt = 0.0;
+        // enforce equality of non-zero components
+        for(int col = 0; col < n; ++col){
+          for(int row = 0; row < m; ++row) {
+            if(A(row,col) > 1e-16){
+              stpcrt += pow(A(row,col) - Z(row,col),2.0);
+              Z(row,col) = A(row,col);
+            }
+          }
+        }
+
+        // threshold constraints 
+        for(int col = 0; col < k; ++col){
+          for(int row = 0; row < m; ++row) {
+            if(U(row,col) < 0.)
+              U(row,col) = 0.;
+          }
+        } 
+
+        for(int col = 0; col < n; ++col){
+          for(int row = 0; row < k; ++row) {
+            if(V(row,col) < 0.)
+              V(row,col) = 0.;
+          }
+        }
+
+        // update Lagrange multipliers
+        Lambda += gamma*alpha*(W - U);
+        Pi     += gamma*beta*(H - V);
+
+        fprintf(stderr,"\r Iteration: %d, Norm(P(W*H - X))/norm(X) %3.2e, Stopping tolerance: %3.2e", i, sqrt(stpcrt)/nrmX, tol_);
+
+        if((sqrt(stpcrt) < tol_*nrmX) || (i > maxIter_)){
+          if(sqrt(stpcrt) <tol_*nrmX)
+            fprintf(stderr,"Stopping criteria reached\n");
+          if(i > maxIter_)
+            fprintf(stderr,"Maximum iteration exceeded\n");
+          break;
+        }
+
+      }
+      fprintf(stderr,"\n"); 
     } break;
   }
 

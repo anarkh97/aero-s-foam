@@ -260,7 +260,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
 #ifdef USE_MPI
         GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], new Communicator(MPI_COMM_SELF));
 #else
-        GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], NULL)
+        GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], NULL);
 #endif
         decSubDomain->preProcess();
         GenMDDynamMat<Scalar> ops;
@@ -291,6 +291,10 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
         spp[isub] = (GenSparseMatrix<Scalar>*) dm;
         sps[isub] = (GenSolver<Scalar>*) dm;
       }
+    }
+    else if(domain->solInfo().solvercntl->type == -1) {
+      dynMats[isub] = 0;
+      spMats[isub] = 0;
     }
 
     if(domain->solInfo().solvercntl->type == 2 && domain->solInfo().getFetiInfo().version == FetiInfo::fetidp) {

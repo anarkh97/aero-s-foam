@@ -786,6 +786,9 @@ class GenSubDomain : public BaseSub
   void multMCoupled1(Scalar *localrhs, GenStackVector<Scalar> **u, int k,
                      FSCommPattern<Scalar> *wiPat);
   void multMCoupled2(Scalar *localrhs, FSCommPattern<Scalar> *wiPat);
+  void multWCAWE(Scalar *localrhs, GenStackVector<Scalar> **u,
+                 Scalar *pU, Scalar *pb, int maxRHS, int iRHS);
+
   void pade(GenStackVector<Scalar> *sol,  GenStackVector<Scalar> **u, double *h, double x);
   void setRebuildPade(bool _rebuildPade) { rebuildPade = _rebuildPade; }
 

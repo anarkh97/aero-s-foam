@@ -2,6 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
+#include <Eigen/Dense>
 
 extern int quietFlag;
 
@@ -303,7 +304,7 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
 
         if(temp != Ta) {
 
-           epsilonT = (temp-Ta)*invT*alpha;
+           epsilonT = (temp-Ta)*invT.transpose().inverse()*alpha;
            N += C * epsilonT * (zsup - zinf);
 
            if(couple) M += C.transpose() * epsilonT * (zsup * zsup - zinf * zinf) * .5;
@@ -481,9 +482,10 @@ ShellMaterialTypes2And3<doublereal>
 // .....[C'] = [invT] * [C] * [invT]^t 
 
       invT = this->andesinvt(eframe, aframe, thetaf);
-      C = invT * C * invT.transpose();
+      /*C = invT * C * invT.transpose();
 
-      sigma = C*(epsilon - (temp-Ta)*invT*alpha);
+      sigma = C*(epsilon - (temp-Ta)*invT.transpose().inverse()*alpha);*/
+      sigma = invT*C*(invT.transpose()*epsilon - (temp-Ta)*alpha);
       break;
     }
 }

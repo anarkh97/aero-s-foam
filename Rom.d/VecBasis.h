@@ -42,6 +42,7 @@ public:
 
   // Individual vector size (and compatibility aliases)
   int vectorSize() const { return Traits::length(vectorInfo_); }
+  int globalVectorSize() const { return vectors_[0].size();}
   int size()       const { return vectorSize(); }
  
   Scalar *data()    const { return buffer_; }

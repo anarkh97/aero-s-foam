@@ -99,6 +99,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
 	float *weight;      // weights of pointer (or 0)
        
  public:
+        typedef int IndexType;
 	int getNumTarget() {return numtarget; }
 	int * getTarget() {return target; }
 	int * getPointer() {return pointer; }

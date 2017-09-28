@@ -47,6 +47,29 @@ void DiagonalMatrix::reSolve(Vector &rhs){
     rhs[i] *= d[i];
 }
 
+#ifdef USE_EIGEN3
+void DenseMatrix::mult(Vector &v, Vector &Av) {
+
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > vMap(v.data(), v.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > AvMap(Av.data(), Av.size());
+
+  AvMap = denseMat*vMap; 
+
+}
+
+void DenseMatrix::invertDiag() {
+  // reusing invertDiag to avoid proliferation of virtual functions
+  // compute cholesky factorization for use in reSolve function
+  llt_.compute(denseMat);
+}
+
+void DenseMatrix::reSolve(Vector &rhs) {
+
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > rhsMap(rhs.data(), rhs.size());
+  llt_.solveInPlace(rhsMap);
+}
+#endif
+
 //------------------------------------------------------------------------------
 //******************************************************************************
 //------------------------------------------------------------------------------
@@ -105,7 +128,6 @@ void ModalBase::preProcessBase(){
 void ModalBase::populateRBModes(){
 
   // compute the rigid body modes
-//  Rbm *rbm = domain->constructAllRbm();
   Rbm *rbm = domain->constructRbm();
   numRBM   = rbm->numRBM();
   modesRB  = new Vector[numRBM];
@@ -120,7 +142,8 @@ void ModalBase::populateRBModes(){
 void ModalBase::populateFlexModes(double scale, bool readAll){
 /*PRE: preProcessBase has been called
        scale has default value of 1.0; readAll has default value of 0
-       the modes in modeData are : mode^T.M.mode = identity
+       the modes in modeData are : mode^T.M.mode = identity if type
+       is eigen or Mnorm, dense otherwise
  POST: populate modesFl with data from modeData multiplied by scale
        populate freqs with the circular frequency of each flexible mode
  NOTE: if readAll, then also include in modesFL those modes with zero frequency
@@ -135,9 +158,12 @@ void ModalBase::populateFlexModes(double scale, bool readAll){
     if( readAll || (modeData.frequencies[iMode] != 0.0) )
       ++numFlex;
   }
+
+  // allocate space for modal basis and eigenfrequencies
   modesFl = new Vector[numFlex];
   freqs   = new double[numFlex];
 
+  // load scaled modal data
   int iModeFl = 0, iNode, dof;
   for(iMode = 0; iMode < numModes; ++iMode){
     if( readAll || (modeData.frequencies[iMode] != 0.0) ){
@@ -148,7 +174,7 @@ void ModalBase::populateFlexModes(double scale, bool readAll){
       for(iNode = 0; iNode < numNodes; ++iNode){
 
         dof = domain->getCDSA()->locate(iNode, DofSet::Xdisp);
-        if(dof >= 0)   modesFl[iModeFl][dof] = scale*modeData.modes[iMode][iNode][0];
+        if(dof >= 0) modesFl[iModeFl][dof] = scale*modeData.modes[iMode][iNode][0];
 
         dof = domain->getCDSA()->locate(iNode, DofSet::Ydisp);
         if(dof >= 0) modesFl[iModeFl][dof] = scale*modeData.modes[iMode][iNode][1];
@@ -240,28 +266,44 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
 
     // superimpose the non-modal initial velocity and/or displacement
     if(domain->numInitVelocity() > 0 || ((domain->numInitDisp() > 0 || domain->numInitDisp6() > 0) && sinfo.zeroInitialDisp == 0)) {
+      // check if basis is mass-normalized or not
+      ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()];
+      bool massNormalizedBasis = (modalParams.type == ModalParams::Eigen || modalParams.type == ModalParams::Mnorm ||
+                                  modalParams.type == ModalParams::Undefined);
+
       double **tPhiM = new double*[numFlex+numRBM];
-      for(int i = 0; i < numFlex+numRBM; ++i)
-        tPhiM[i] = new double[domain->numdof()];
+      if(massNormalizedBasis) {
+        for(int i = 0; i < numFlex+numRBM; ++i)
+          tPhiM[i] = new double[domain->numdof()];
 
-      // construct and assemble full mass matrix
-      AllOps<double> allOps;
-      allOps.M = domain->constructDBSparseMatrix<double>();
-      domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
+        // construct and assemble full mass matrix
+        AllOps<double> allOps;
+        allOps.M = domain->constructDBSparseMatrix<double>();
+        domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
 
-      // taking advantage of symmetry of M and computing M*Phi_i instead of transpose(Phi_i)*M
-      for(int i = 0 ; i<numRBM; ++i)
-        allOps.M->mult(modesRB[i].data(), tPhiM[i]);
-      for(int i = 0 ; i<numFlex; ++i)
-        allOps.M->mult(modesFl[i].data(), tPhiM[numRBM+i]);
-      delete allOps.M;
+        // taking advantage of symmetry of M and computing M*Phi_i instead of transpose(Phi_i)*M
+        for(int i = 0 ; i<numRBM; ++i)
+          allOps.M->mult(modesRB[i].data(), tPhiM[i]);
+        for(int i = 0 ; i<numFlex; ++i)
+          allOps.M->mult(modesFl[i].data(), tPhiM[numRBM+i]);
+        delete allOps.M;
+      }
+      else {
+        for(int i = 0 ; i<numRBM; ++i)
+          tPhiM[i] = modesRB[i].data();
+        for(int i = 0 ; i<numFlex; ++i)
+          tPhiM[numRBM+i] = modesFl[i].data();
+      }
 
       if(domain->numInitVelocity() > 0) {
         filePrint(stderr, " ... Compute initial velocity in generalized coordinate system ... \n");
         Vector fullVel(domain->numdof(), 0.0);
-        for(int j = 0; j <  domain->numInitVelocity(); ++j) {
+        for(int j = 0; j < domain->numInitVelocity(); ++j) {
           int k = domain->getCDSA()->locate(domain->getInitVelocity()[j].nnum, 1 << domain->getInitVelocity()[j].dofnum);
           if(k > -1) fullVel[k] = domain->getInitVelocity()[j].val;
+        }
+        for(int i = 0; i < numConstr; ++i){
+          fullVel[cDofIdx[i]] = 0; // just in case an initial velocity is given for a constrained node
         }
         for(int j = 0; j < vel.size(); ++j)
           for(int k = 0; k < fullVel.size(); ++k)
@@ -292,8 +334,10 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
         }
       }
 
-      for(int i = 0; i < numFlex+numRBM; ++i)
-        delete [] tPhiM[i];
+      if(massNormalizedBasis) {
+        for(int i = 0; i < numFlex+numRBM; ++i)
+          delete [] tPhiM[i];
+      }
       delete [] tPhiM;
     }
 
@@ -303,7 +347,7 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
 
 //------------------------------------------------------------------------------
 
-void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex){
+void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex, ModalOps &ops){
 /*PRE:
  POST:
 */
@@ -324,6 +368,7 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex){
 
       w = oinfo[i].width;
       p = oinfo[i].precision;
+      ModalParams &modalParams = domain->solInfo().readInModes[domain->solInfo().modal_id.front()];
 
       switch(oinfo[i].type){
 
@@ -346,6 +391,95 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex){
           fprintf(oinfo[i].filptr, "\n");
           fflush(oinfo[i].filptr);
           break;
+
+        case OutputInfo::ModalMatrices:
+        case OutputInfo::ModalMass:
+          if(time == 0) {
+            fprintf(oinfo[i].filptr, "* Mr: Reduced mass matrix\n");
+            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode){
+                switch(modalParams.type) {
+                  case ModalParams::Undefined :
+                  case ModalParams::Eigen : {
+                    fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.M->diag(iMode) : 0.);
+                  } break;
+                  case ModalParams::Mnorm : {
+                    fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.M->diag(iMode) : 0.);
+                  } break;  
+                  case ModalParams::Inorm : {
+                    fprintf(oinfo[i].filptr, "% *.*E", w, p, (*ops.M)[iMode+numModes*jMode]);
+                  } break;
+                  default :
+                    break;
+                }
+              }
+              fprintf(oinfo[i].filptr, "\n");
+            }
+          }
+          if(oinfo[i].type != OutputInfo::ModalMatrices) break;
+
+        case OutputInfo::ModalStiffness:
+          if(time == 0) {
+            fprintf(oinfo[i].filptr, "* Kr: Reduced stiffness matrix\n");
+            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode) {
+                switch(modalParams.type) {
+                  case ModalParams::Undefined :
+                  case ModalParams::Eigen : {
+                    fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.K->diag(iMode) : 0.);
+                  } break; 
+                  default : {
+                    fprintf(oinfo[i].filptr, "% *.*E", w, p, (*ops.K)[iMode+numModes*jMode]);
+                  } break; 
+                }
+              }
+              fprintf(oinfo[i].filptr, "\n");
+            }
+          }
+          if(oinfo[i].type != OutputInfo::ModalMatrices) break;
+
+        case OutputInfo::ModalDamping:
+          if(time == 0) {
+            fprintf(oinfo[i].filptr, "* Dr: Reduced damping matrix\n");
+            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode){
+                switch(modalParams.type) {
+                  case ModalParams::Undefined :
+                  case ModalParams::Eigen : {
+                    fprintf(oinfo[i].filptr, "% *.*E", w, p, (ops.C && iMode==jMode) ? ops.C->diag(iMode) : 0.);
+                  } break; 
+                  default: {
+                    fprintf(oinfo[i].filptr, "% *.*E", w, p, (ops.C) ? (*ops.C)[iMode+numModes*jMode] : 0.);
+                  } break;
+                }
+              }
+              fprintf(oinfo[i].filptr, "\n");
+            }
+          }
+          break;
+
+          case OutputInfo::ModalDynamicMatrix:
+          if(time == 0) {
+            fprintf(oinfo[i].filptr, "%d %d\n", numFlex, numFlex);
+            for(iMode = 0; iMode < numFlex; ++iMode){
+              for(int jMode = 0; jMode < numFlex; ++jMode){
+                switch(modalParams.type) {
+                  case ModalParams::Undefined :
+                  case ModalParams::Eigen : {
+                    fprintf(oinfo[i].filptr, "% *.*E", w, p, (iMode==jMode) ? ops.dynMat->diag(iMode) : 0.);
+                  } break;
+                  default: {
+                    fprintf(oinfo[i].filptr, "% *.*E", w, p, (*ops.dynMat)[iMode+numModes*jMode]);
+                  } break;
+                }
+              }
+              fprintf(oinfo[i].filptr, "\n");
+            }
+          }
+          break;          
 
         default:
           break;

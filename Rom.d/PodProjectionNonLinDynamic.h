@@ -8,14 +8,16 @@
 #include <Rom.d/ModalGeomState.h>
 #include <Corotational.d/GeomState.h>
 #include "VecBasis.h"
+#include "PodProjectionSolver.h"
 
 #include <memory>
 
 namespace Rom {
 
-template <typename Scalar> class GenPodProjectionSolver;
+//template <typename Scalar, template<typename> class GenVecType> class GenPodProjectionSolver;
 template <int> class VecNodeDofConversion;
 typedef VecNodeDofConversion<6> VecNodeDof6Conversion;
+typedef GenModalGeomState<Vector> ModalGeomState; 
 
 class SDDynamPodPostProcessor : public SDDynamPostProcessor
 {
@@ -105,6 +107,9 @@ public:
   void readLocalBasesCent(const VecNodeDof6Conversion &vecNodeDof6Conversion);
   void readLocalBasesAuxi();
   void projectLocalBases(int i, int j, Vector &q);
+
+  void postProcessNLSA(ModalGeomState *, ModalGeomState *) {}
+  void sensitivityAnalysis(ModalGeomState *, ModalGeomState *) {}
 
 protected:
   class Impl;

@@ -987,7 +987,11 @@ GenFetiDPSolver<Scalar>::makeKcc()
         }
       }
   
+#ifdef USE_MPI
       Communicator *structCom = new Communicator(this->fetiCom->getComm());
+#else
+      Communicator *structCom = NULL;
+#endif
       GenDecDomain<Scalar> *decCoarseDomain = new GenDecDomain<Scalar>(coarseDomain, structCom, false);
 
       Connectivity *elemToNode; // JAT 220216

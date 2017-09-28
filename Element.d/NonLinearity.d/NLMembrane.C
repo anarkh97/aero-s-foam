@@ -1,11 +1,16 @@
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
+#include <Parser.d/AuxDefs.h>
 #include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Math.d/matrix.h>
 #include <Math.d/TTensor.h>
 #include <Corotational.d/utilities.h>
 #include <Corotational.d/GeomState.h>
+#include <Utils.d/SolverInfo.h>
+#include <cmath>
+
+extern SolverInfo &solInfo;
 
 template <int n>
 void
@@ -449,6 +454,11 @@ NLMembrane::setCompositeData(int, int, double *, double *coefs, double *frame)
   cCoefs = coefs;
   cFrame = frame;
   if(material) { // anisotropic material
+    if(useDefaultMaterial) { // switch from LinearPlaneStress to PlaneStressLinear (which supports COEF)
+      delete material;
+      material = new PlaneStressMat<ElaLinIsoMat>(prop->rho, prop->E, prop->nu, prop->eh);
+      material->setTDProps(prop->ymtt, prop->ctett);
+    }
     double C[6][6], alpha[6];
     // transform local constitutive matrix to global frame
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
@@ -456,6 +466,76 @@ NLMembrane::setCompositeData(int, int, double *, double *coefs, double *frame)
     // transform local coefficients of thermal expansion to global frame
     rotateVector(cCoefs+36, cFrame, alpha);
     material->setThermalExpansionCoef(alpha);
+  }
+}
+
+double *
+NLMembrane::setCompositeData2(int type, int nlays, double *lData,
+                              double *coefs, CoordSet &cs, double theta)
+{
+  // cframe is not pre-defined but calculated from nodal coordinates and angle theta
+  // theta is the angle in degrees between node1-node2 and the material x axis
+
+  // compute cFrame
+  cFrame = new double[9];
+
+  Node &nd1 = cs.getNode(n[0]);
+  Node &nd2 = cs.getNode(n[1]);
+  Node &nd3 = cs.getNode(n[2]);
+
+  double ab[3], ac[3], x[3], y[3], z[3];
+  ab[0] = nd2.x - nd1.x; ab[1] = nd2.y - nd1.y; ab[2] = nd2.z - nd1.z;
+  ac[0] = nd3.x - nd1.x; ac[1] = nd3.y - nd1.y; ac[2] = nd3.z - nd1.z;
+  // x = AB
+  x[0] = ab[0]; x[1] = ab[1]; x[2] = ab[2];
+  // z = AB cross AC
+  z[0] = ab[1]*ac[2]-ab[2]*ac[1];
+  z[1] = ab[2]*ac[0]-ab[0]*ac[2];
+  z[2] = ab[0]*ac[1]-ab[1]*ac[0];
+  // y = z cross x
+  y[0] = z[1]*x[2]-z[2]*x[1];
+  y[1] = z[2]*x[0]-z[0]*x[2];
+  y[2] = z[0]*x[1]-z[1]*x[0];
+  // rotate x and y about z
+  theta *= M_PI/180.; // convert to radians
+  double c = cos(theta), s = sin(theta);
+
+  // use Rodrigues' Rotation Formula to rotation x and y about z by an angle theta
+  double R[3][3];
+  normalize(x); normalize(y); normalize(z); double wx = z[0], wy = z[1], wz = z[2];
+  R[0][0] = c + wx*wx*(1-c);
+  R[0][1] = wx*wy*(1-c)-wz*s;
+  R[0][2] = wy*s+wx*wz*(1-c);
+  R[1][0] = wz*s+wx*wy*(1-c);
+  R[1][1] = c+wy*wy*(1-c);
+  R[1][2] = -wx*s+wy*wz*(1-c);
+  R[2][0] = -wy*s+wx*wz*(1-c);
+  R[2][1] = wx*s+wy*wz*(1-c);
+  R[2][2] = c+wz*wz*(1-c);
+
+  cFrame[0] = R[0][0]*x[0] + R[0][1]*x[1] + R[0][2]*x[2];
+  cFrame[1] = R[1][0]*x[0] + R[1][1]*x[1] + R[1][2]*x[2];
+  cFrame[2] = R[2][0]*x[0] + R[2][1]*x[1] + R[2][2]*x[2];
+  cFrame[3] = R[0][0]*y[0] + R[0][1]*y[1] + R[0][2]*y[2];
+  cFrame[4] = R[1][0]*y[0] + R[1][1]*y[1] + R[1][2]*y[2];
+  cFrame[5] = R[2][0]*y[0] + R[2][1]*y[1] + R[2][2]*y[2];
+  cFrame[6] = z[0];
+  cFrame[7] = z[1];
+  cFrame[8] = z[2];
+
+  setCompositeData(type, nlays, lData, coefs, cFrame);
+  return cFrame;
+}
+
+void
+NLMembrane::getCFrame(CoordSet &cs, double cFrame[3][3]) const
+{
+  if(NLMembrane::cFrame) {
+    fprintf(stderr," *** WARNING: NLMembrane::getCFrame is not implemented\n");
+  }
+  else {
+    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
+    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
   }
 }
 
@@ -494,42 +574,40 @@ NLMembrane::computePressureForce(CoordSet& cs, Vector& force,
     gs[3*i+2] = (*geomState)[n[i]].z;
   }
 
-//#define USE_FORCE_PER_REFERENCE_AREA
-#ifdef USE_FORCE_PER_REFERENCE_AREA
-  double d0[2][3] = { { nodes[1].x-nodes[0].x,
-                        nodes[1].y-nodes[0].y,
-                        nodes[1].z-nodes[0].z },
-                      { nodes[2].x-nodes[0].x,
-                        nodes[2].y-nodes[0].y,
-                        nodes[2].z-nodes[0].z },
-                    };
-  double n0[3];
-  n0[0] = d0[0][1]*d0[1][2] - d0[0][2]*d0[1][1];
-  n0[1] = d0[0][2]*d0[1][0] - d0[0][0]*d0[1][2];
-  n0[2] = d0[0][0]*d0[1][1] - d0[0][1]*d0[1][0];
-  double A0 = 0.5*sqrt(n0[0]*n0[0]+n0[1]*n0[1]+n0[2]*n0[2]);
-#endif
-
   double d[2][3] = { { nodes[1].x+gs[3]-nodes[0].x-gs[0], 
                        nodes[1].y+gs[4]-nodes[0].y-gs[1],
                        nodes[1].z+gs[5]-nodes[0].z-gs[2] },
                      { nodes[2].x+gs[6]-nodes[0].x-gs[0], 
                        nodes[2].y+gs[7]-nodes[0].y-gs[1],
                        nodes[2].z+gs[8]-nodes[0].z-gs[2] },
-		   };
+                   };
   double n[3];
   n[0] = d[0][1]*d[1][2] - d[0][2]*d[1][1];
   n[1] = d[0][2]*d[1][0] - d[0][0]*d[1][2];
   n[2] = d[0][0]*d[1][1] - d[0][1]*d[1][0];
   double p = getPressure()->val;
-#ifdef USE_FORCE_PER_REFERENCE_AREA
-  double A = 0.5*sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
-  for(int i = 0; i < 3; ++i)
-    force[i] = force[i+3] = force[i+6] = 1.0/6.0*p*n[i]*A0/A;
-#else
-  for(int i = 0; i < 3; ++i)
-    force[i] = force[i+3] = force[i+6] = 1.0/6.0*p*n[i];
-#endif
+
+  if(solInfo.nlmembrane_pressure_type == 1) { // area computed using reference/undeformed configuration
+    double d0[2][3] = { { nodes[1].x-nodes[0].x,
+                          nodes[1].y-nodes[0].y,
+                          nodes[1].z-nodes[0].z },
+                        { nodes[2].x-nodes[0].x,
+                          nodes[2].y-nodes[0].y,
+                          nodes[2].z-nodes[0].z },
+                      };
+    double n0[3];
+    n0[0] = d0[0][1]*d0[1][2] - d0[0][2]*d0[1][1];
+    n0[1] = d0[0][2]*d0[1][0] - d0[0][0]*d0[1][2];
+    n0[2] = d0[0][0]*d0[1][1] - d0[0][1]*d0[1][0];
+    double A0 = 0.5*sqrt(n0[0]*n0[0]+n0[1]*n0[1]+n0[2]*n0[2]);
+    double A = 0.5*sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
+    for(int i = 0; i < 3; ++i)
+      force[i] = force[i+3] = force[i+6] = 1.0/6.0*p*n[i]*A0/A;
+  }
+  else { // area computed using current/deformed configuration
+    for(int i = 0; i < 3; ++i)
+      force[i] = force[i+3] = force[i+6] = 1.0/6.0*p*n[i];
+  }
 }
 
 #include <Corotational.d/PhantomCorotator.h>
@@ -538,7 +616,26 @@ Corotator*
 NLMembrane::getCorotator(CoordSet &, double *, int , int)
 {
   if(prop == NULL) return new PhantomCorotator();
-  else return new MatNLCorotator(this, false);
+  else {
+    if(useDefaultMaterial) {
+      delete material;
+      if(cCoefs) {
+        material = new PlaneStressMat<StVenantKirchhoffMat>(prop->rho, prop->E, prop->nu, prop->eh);
+        double C[6][6], alpha[6];
+        // transform local constitutive matrix to global frame
+        rotateConstitutiveMatrix(cCoefs, cFrame, C);
+        material->setTangentMaterial(C);
+        // transform local coefficients of thermal expansion to global frame
+        rotateVector(cCoefs+36, cFrame, alpha);
+        material->setThermalExpansionCoef(alpha);
+      }
+      else {
+        material = new StVenantKirchhoffMat2D(prop);
+      }
+      material->setTDProps(prop->ymtt, prop->ctett);
+    }
+    return new MatNLCorotator(this, false);
+  }
 }
 
 FullSquareMatrix

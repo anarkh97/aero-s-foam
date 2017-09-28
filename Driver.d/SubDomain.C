@@ -6,7 +6,7 @@
 #endif 
 #include <cmath>
 #include <Utils.d/dbg_alloca.h>
-
+#include <set>
 #include <climits> //--- UH
 
 #include <Element.d/Element.h>
@@ -2270,6 +2270,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
   if(elemToNode==0) elemToNode = new Connectivity(&packedEset);
 
   // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
+  // avgnum = 3 --> only include elements whose nodes are in the ouputGroup in averaging
   int avgnum = oinfo[fileNumber].averageFlg;
 
   // ylayer and zlayer are needed when calculating the axial stress/strain in a beam element
@@ -2285,7 +2286,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
   int k;
   int surface = oinfo[fileNumber].surface;
 
-  int iele;
+  int iele, iNode;
   GenVector<Scalar> *elstress = new GenVector<Scalar>(maxNumNodes);
   GenVector<double> *elweight = new GenVector<double>(maxNumNodes);
   GenVector<Scalar> *elDisp = new GenVector<Scalar>(maxNumDOFs);
@@ -2302,12 +2303,24 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
         (avgnum == 2 && packedEset[iele]->getElementType() == 7) ||
         (avgnum == 2 && packedEset[iele]->getElementType() == 1)) continue;
 
+    int NodesPerElement = packedEset[iele]->numNodes();
+    packedEset[iele]->nodes(nodeNumbers);
+
+    // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+    if (avgnum == 3) {
+      int groupId = oinfo[fileNumber].groupNumber;
+      if (groupId > 0) {
+        std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+        std::set<int>::iterator it;
+        for (iNode = 0; iNode < NodesPerElement; ++iNode)
+          if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+        if(it == groupNodes.end()) continue;
+      }
+    }
+
     elstress->zero();
     elweight->zero();
     elDisp->zero();
-
-    int NodesPerElement = packedEset[iele]->numNodes();
-    packedEset[iele]->nodes(nodeNumbers);
 
     if(!isFluid(iele)) {
 
@@ -2319,7 +2332,6 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
           (*elDisp)[k] = Bcx((*allDOFs)[iele][k]);
       }
 
-      int iNode;
       if(packedEset[iele]->getProperty()) {
         for(iNode=0; iNode<NodesPerElement; ++iNode) {
           if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
@@ -2402,6 +2414,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
   if(elemToNode==0) elemToNode = new Connectivity(&packedEset);
 
   // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
+  // avgnum = 3 --> only include elements whose nodes are in the ouputGroup in averaging
   int avgnum = oinfo[fileNumber].averageFlg;
 
   // ylayer and zlayer are needed when calculating the axial stress/strain in a beam element
@@ -2417,7 +2430,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
   int k;
   int surface = oinfo[fileNumber].surface;
 
-  int iele;
+  int iele, iNode;
   GenVector<Scalar> *elstress = new GenVector<Scalar>(maxNumNodes);
   GenVector<double> *elweight = new GenVector<double>(maxNumNodes);
   GenVector<Scalar> *elDisp = new GenVector<Scalar>(maxNumDOFs);
@@ -2436,16 +2449,27 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
         (avgnum == 2 && packedEset[iele]->getElementType() == 7) ||
         (avgnum == 2 && packedEset[iele]->getElementType() == 1)) continue;
 
+    int NodesPerElement = elemToNode->num(iele);
+    packedEset[iele]->nodes(nodeNumbers);
+
+    // Don't include elements with one or more nodes not in the group if nodalpartialgroup (avgnum = 3) is requested
+    if (avgnum == 3) {
+      int groupId = oinfo[fileNumber].groupNumber;
+      if (groupId > 0) {
+        std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+        std::set<int>::iterator it;
+        for (iNode = 0; iNode < NodesPerElement; ++iNode)
+          if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+        if(it == groupNodes.end()) continue;
+      }
+    }
+
     elstress->zero();
     elweight->zero();
     elDisp->zero();
 
     allCorot[iele]->extractDeformations(*gs, nodes, elDisp->data(), flag);
 
-    int NodesPerElement = elemToNode->num(iele);
-    packedEset[iele]->nodes(nodeNumbers);
-
-    int iNode;
     if(flag == 1 && packedEset[iele]->getProperty()) {
       for(iNode=0; iNode<NodesPerElement; ++iNode) {
         if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
@@ -6310,13 +6334,13 @@ GenSubDomain<Scalar>::addConstraintForces(std::map<std::pair<int,int>, double> &
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
 
   std::vector<double>::iterator it2 = lambda.begin();
-  for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) {
+  for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) { // loop over all MPCs
     int i = scomm->mpcNb(l);
     if(!mpcFlag[i]) continue;
-    if(mpc[i]->getSource() == mpc::ContactSurfaces) { // contact
-      std::map<std::pair<int,int>, double>::iterator it1 = mu.find(mpc[i]->id);
+    if(mpc[i]->getSource() == mpc::ContactSurfaces) { // check if contact constraint
+      std::map<std::pair<int,int>, double>::iterator it1 = mu.find(mpc[i]->id); // get multiplier value
       if(it1 != mu.end()) {
-        for(int j = 0; j < mpc[i]->nterms; ++j) {
+        for(int j = 0; j < mpc[i]->nterms; ++j) { // number of nterms associated with this multiplier
           int dof = c_dsa->locate(mpc[i]->terms[j].nnum, (1 << mpc[i]->terms[j].dofnum));
           if(dof < 0) continue;
           f[dof] += mpc[i]->terms[j].coef*it1->second;
@@ -6767,6 +6791,53 @@ GenSubDomain<Scalar>::multMCoupled2(Scalar *localrhs, FSCommPattern<Scalar> *wiP
       }
     }
   }
+}
+
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::multWCAWE(Scalar *localrhs, GenStackVector<Scalar> **u, Scalar *pU, Scalar *pb, int maxRHS, int iRHS)
+{
+  double omega2 = geoSource->shiftVal();
+  double omega = sqrt(omega2);
+
+  Scalar *localvec = (Scalar *) dbg_alloca(sizeof(Scalar)*c_dsa->size());
+
+//  pu = -Z{2}*W(:,ii-1); Z{2} = (-2.0*freqn * M+i*C)/1.0;
+  for(int i=0; i<c_dsa->size(); ++i) {
+    localvec[i] = 2.0*omega*(*u[iRHS-1])[i];
+  }
+  M->mult(localvec, localrhs);
+
+  if(C_deriv) {
+    if(C_deriv[0]) {
+      for(int i=0; i<c_dsa->size(); ++i) localvec[i] = -(*u[iRHS-1])[i];
+      C_deriv[0]->multAdd(localvec, localrhs);
+    }
+  }
+
+//  pu = pu + b{j+1}*PP(1,ii-j);
+  double factorial = 1.0;
+  for(int j=1;j<=iRHS;j++) {
+    factorial *= double(j);
+    for(int i=0; i<c_dsa->size(); ++i) localvec[i] = 0.0;
+    makeFreqSweepLoad(localvec, j, omega);  
+    for(int i=0; i<c_dsa->size(); ++i) 
+      localrhs[i] += pb[j-1]* localvec[i]/factorial;
+  }
+
+//  pu = pu - Z{j+1}*W(:,1:(ii-j))*PP(:,ii-j);
+//  assume j > 2 all 0 (not so for rubber), and for j=2: Z{3} = -M;
+  if (iRHS>1) for(int j=2;j<=2;j++) {
+    for(int i=0; i<c_dsa->size(); ++i) 
+      localvec[i] = 0.0;
+    for(int k=0;k<iRHS+1-j;k++) {
+      for(int i=0; i<c_dsa->size(); ++i) 
+        localvec[i] += pU[k+(j-1)*(iRHS+1)]* (*u[k])[i];
+    }
+    M->multAdd(localvec, localrhs);
+  }
+
 }
 
 template<class Scalar>

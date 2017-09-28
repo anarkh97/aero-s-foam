@@ -1494,13 +1494,13 @@ Connectivity::Connectivity(FILE *f, int n)
   int numalloc = numtarget;
   target = new int[numtarget];
 
-  fscanf(f,"%d",&size);
+  int r1 = fscanf(f,"%d",&size);
 
   pointer = new int[size+1];
 
   int k = 0, m;
   for (int i = 0; i < size; ++i) {
-    fscanf(f,"%d",&m);
+    int r2 = fscanf(f,"%d",&m);
     pointer[i] = k;
     if(n) {
       if(k + m > numtarget) {
@@ -1521,7 +1521,7 @@ Connectivity::Connectivity(FILE *f, int n)
       numtarget = k + m;
     }
     for (int j = 0; j < m; ++j) {
-      fscanf(f,"%d",target+k);
+      int r3 = fscanf(f,"%d",target+k);
       target[k++]--;
     }
   }

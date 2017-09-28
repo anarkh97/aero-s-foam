@@ -16,9 +16,13 @@
 #include <Timers.d/StaticTimers.h>
 #include <Control.d/ControlInterface.h>
 #include <Driver.d/ControlLawInfo.h>
+#include <Utils.d/ModeData.h>
 #include <Solvers.d/SolverFactory.h>
 
 typedef FSFullMatrix FullMatrix;
+
+extern ModeData modeDataMode;
+extern int verboseFlag;
 
 void
 SingleDomainTemp::tempprojector_prep(Rbm *rbms, SparseMatrix *M)
@@ -374,45 +378,69 @@ SingleDomainTemp::getModeDecompFlag()
 void
 SingleDomainTemp::modeDecompPreProcess(SparseMatrix *M)
 {
-// Read Eigenvectors from file EIGENMODES
-// ======================================
-    int eigsize;
+  SolverInfo &sinfo = domain->solInfo();
+  int eigsize;
+
+  if(sinfo.mode_modal_id < 0) {
+
+    // Read Eigenvectors from file EIGENMODES
+    // ======================================
 
     BinFileHandler modefile("EIGENMODES" ,"r");
     modefile.read(&maxmode, 1);
-    fprintf(stderr,"Number of Modes = %d\n", maxmode);
 
     modefile.read(&eigsize, 1);
-    fprintf(stderr,"Size of EigenVector = %d\n", eigsize);
 
     eigmodes = new double*[maxmode];
-    int i;
-    for (i=0; i<maxmode; ++i)
-     eigmodes[i] = new double[eigsize];
+    for (int i = 0; i<maxmode; ++i)
+      eigmodes[i] = new double[eigsize];
 
-// Check if the problem sizes are identical
+    // Check if the problem sizes are identical
 
     int numdof = solVecInfo();
 
     if (eigsize != numdof)
-      fprintf(stderr, "... ERROR !! EigenVector and Problem sizes differ... ");
-      fflush(stderr);
+      fprintf(stderr, " *** ERROR: EigenVector and problem sizes differ ...\n");
 
-    for (i=0; i<maxmode; ++i)
+    for (int i = 0; i<maxmode; ++i)
       modefile.read(eigmodes[i], eigsize);
+  }
+  else {
 
-// Compute Transpose(Phi_i)*M once and for all
-// ===========================================
+    // Use vectors read from file specified with READMODE command
+    // ==========================================================
 
-   fprintf(stderr, "Preparing Transpose(Phi_i)*M\n");
+    maxmode = modeDataMode.numModes;
+    DofSetArray *cdsa = domain->getCDSA();
+    eigsize = cdsa->size();
+    eigmodes = new double*[maxmode];
+    for (int i = 0; i<maxmode; ++i) {
+      eigmodes[i] = new double[eigsize];
+      std::fill(eigmodes[i], eigmodes[i]+eigsize, 0.);
+      BCond y; y.nnum = i; y.val = 1.;
+      modeDataMode.addMultY(1, &y, eigmodes[i], cdsa);
+    }
+  }
 
-   tPhiM =  new double*[maxmode];
-     for (i=0; i<maxmode; ++i)
-       tPhiM[i] = new double[eigsize];
+  tPhiM = new double*[maxmode];
+    for (int i = 0; i<maxmode; ++i)
+      tPhiM[i] = new double[eigsize];
 
-   for (i = 0 ; i<maxmode; ++i)
-     M->mult(eigmodes[i], tPhiM[i]);  // taking advantage of symmetry of M and computing
-                                      //   M*Phi_i instead of transpose(Phi_i)*M
+  if(sinfo.mode_modal_id < 0 || sinfo.readInModes[sinfo.mode_modal_id].type != ModalParams::Inorm) {
+
+    // Compute Transpose(Phi_i)*M once and for all
+    // ===========================================
+
+    if(verboseFlag) filePrint(stderr, " ... Preparing Transpose(Phi_i)*M for %d modes ...\n", maxmode);
+
+    for (int i = 0; i<maxmode; ++i)
+      M->mult(eigmodes[i], tPhiM[i]);  // taking advantage of symmetry of M and computing
+                                       // M*Phi_i instead of transpose(Phi_i)*M
+  }
+  else {
+    for (int i = 0; i<maxmode; ++i)
+      std::copy(eigmodes[i], eigmodes[i]+eigsize, tPhiM[i]);
+  }
 }
 
 void

@@ -407,6 +407,7 @@ GenMultiDomainStatic<Scalar>::multM(int iSub, GenDistrVector<Scalar> *rhs, GenDi
   }
 }
 
+
 template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::multMCoupled1(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
@@ -425,6 +426,64 @@ GenMultiDomainStatic<Scalar>::multMCoupled2(int iSub, GenDistrVector<Scalar> *rh
 {
   GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
   sd->multMCoupled2(rhs->subData(sd->localSubNum()), decDomain->getWiCommPattern()); // TODO
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::getWCAWEFreqSweepRHS(GenDistrVector<Scalar> *rhs, 
+   GenDistrVector<Scalar> **wcawe_u, Scalar *pU, Scalar *pb,
+   int maxRHS, int iRHS)
+{
+  for(int i=0;i<decDomain->getNumSub();i++) {
+    decDomain->getSubDomain(i)->M = (*allOps.M)[i];
+    decDomain->getSubDomain(i)->Muc = (GenCuCSparse<Scalar> *)(*allOps.Muc)[i];
+    if (allOps.C) decDomain->getSubDomain(i)->C = (*allOps.C)[i];
+    if (allOps.C_deriv) {
+      decDomain->getSubDomain(i)->C_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      (decDomain->getSubDomain(i)->C_deriv)[0] = (*(allOps.C_deriv[0]))[i];
+      for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->C_deriv)[j] = 0;
+    }
+    if (allOps.Cuc_deriv) {
+      decDomain->getSubDomain(i)->Cuc_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      (decDomain->getSubDomain(i)->Cuc_deriv)[0] = (*(allOps.Cuc_deriv[0]))[i];
+      for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->Cuc_deriv)[j] = 0;
+    }
+    if (allOps.K_deriv) {
+      decDomain->getSubDomain(i)->K_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      for(int j=0;j<iRHS+1;j++) if ((*(allOps.K_deriv[j]))[i]!=0) {
+          (decDomain->getSubDomain(i)->K_deriv)[j] = (*(allOps.K_deriv[j]))[i];
+      }
+    }
+    if (allOps.Kuc_deriv) {
+      decDomain->getSubDomain(i)->Kuc_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      for(int j=0;j<iRHS+1;j++) if ((*(allOps.Kuc_deriv[j]))[i]!=0) 
+        (decDomain->getSubDomain(i)->Kuc_deriv)[j] = (*(allOps.Kuc_deriv[j]))[i];
+                                else
+        (decDomain->getSubDomain(i)->Kuc_deriv)[j] = 0;
+      
+    }
+  }
+  Timings &timers = solver->getTimers();
+  timedParal4P2(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multWCAWE, rhs, wcawe_u, pU, pb, maxRHS, iRHS);
+ 
+}
+
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::multWCAWE(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, Scalar *pU, Scalar *pb, int maxRHS, int iRHS)
+{
+  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
+  GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [iRHS+1];
+  for(int i=0; i<=iRHS; ++i)
+    sub_u[i]=
+      new  GenStackVector<Scalar>(u[i]->subData(iSub), u[i]->subLen(iSub));
+  sd->multWCAWE(rhs->subData(iSub), sub_u, pU,pb,maxRHS,iRHS); 
+  delete [] sub_u;
 }
 
 template<class Scalar>

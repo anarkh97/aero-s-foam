@@ -117,6 +117,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int computeZeroNormCol(std::vector<int> &container);
         void columnScaling(SCDoubleMatrix& colScale);
         void elementWiseInverse();
+        void elementWiseAbsoluteValue();
         void scaleColumnsByL2Norm(SCDoubleMatrix& colScale);
         bool isFeasible();
         void hessian(SCDoubleMatrix& A, int n=0, bool transpose=false);

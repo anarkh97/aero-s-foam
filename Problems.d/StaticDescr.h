@@ -80,6 +80,8 @@ class SingleDomainStatic : public SingleDomainBase
     void getRHSinpc(VectorType &);
     void setIWaveDir(int _i) { domain->iWaveDir = _i; }
     void getFreqSweepRHS(VectorType *rhs, VectorType **sol_prev, int iRHS);
+    void getWCAWEFreqSweepRHS(VectorType *rhs, VectorType **wcawe_u,
+                T *pU, T* pb, int maxRHS, int iRHS);
     void buildDeltaK(double w0, double w) {
       domain->template buildDeltaK<T>(w0, w, allOps.K_deriv[0],(allOps.Kuc_deriv)?allOps.Kuc_deriv[0]:0 );
     }

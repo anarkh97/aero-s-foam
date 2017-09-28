@@ -61,6 +61,14 @@ GenDistrDomain<Scalar>::~GenDistrDomain()
 
 template<class Scalar>
 void
+GenDistrDomain<Scalar>::clean()
+{
+  if(nodePat) { delete nodePat; nodePat = 0; }
+  GenDecDomain<Scalar>::clean();
+}
+
+template<class Scalar>
+void
 GenDistrDomain<Scalar>::initPostPro()
 {
   if(geoSource->getNumOutInfo()) {
@@ -222,7 +230,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
     if(domain->solInfo().doEigSweep) x = this->outEigCount++;
   }
   else time = eigV;
-  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
+  if (domain->solInfo().loadcases.size() > 0 && !domain->solInfo().doFreqSweep) time = domain->solInfo().loadcases.front();
 
 // RT - serialize the OUTPUT,  PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT
@@ -249,6 +257,13 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || 
          oinfo[iInfo].type == OutputInfo::Energies ||
          oinfo[iInfo].type == OutputInfo::Kirchhoff || 
+         oinfo[iInfo].type == OutputInfo::ModalDsp ||
+         oinfo[iInfo].type == OutputInfo::ModalExF ||
+         oinfo[iInfo].type == OutputInfo::ModalMass ||
+         oinfo[iInfo].type == OutputInfo::ModalStiffness ||
+         oinfo[iInfo].type == OutputInfo::ModalDamping ||
+         oinfo[iInfo].type == OutputInfo::ModalDynamicMatrix ||
+         oinfo[iInfo].type == OutputInfo::ModalMatrices ||
          oinfo[iInfo].type == OutputInfo::AeroForce) { 
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); } 
@@ -268,6 +283,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
          oinfo[iInfo].type != OutputInfo::Farfield && 
          oinfo[iInfo].type != OutputInfo::Energies &&
          oinfo[iInfo].type != OutputInfo::Kirchhoff && 
+         oinfo[iInfo].type != OutputInfo::ModalExF &&
+         oinfo[iInfo].type != OutputInfo::ModalMass &&
+         oinfo[iInfo].type != OutputInfo::ModalStiffness &&
+         oinfo[iInfo].type != OutputInfo::ModalDamping &&
+         oinfo[iInfo].type != OutputInfo::ModalDynamicMatrix &&
+         oinfo[iInfo].type != OutputInfo::ModalMatrices &&
          oinfo[iInfo].type != OutputInfo::AeroForce) {
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -340,6 +361,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Acceleration:
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 3, 0);
         break;
+      case OutputInfo::EigenPair6:
       case OutputInfo::Disp6DOF:
         getPrimal(disps, masterDisps, time, x, iOut, 6, 0);
         break;
@@ -668,6 +690,13 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Jacobian:
       case OutputInfo::RobData:
       case OutputInfo::SampleMesh:
+      case OutputInfo::ModalDsp:
+      case OutputInfo::ModalExF:
+      case OutputInfo::ModalMass:
+      case OutputInfo::ModalStiffness:
+      case OutputInfo::ModalDamping:
+      case OutputInfo::ModalDynamicMatrix:
+      case OutputInfo::ModalMatrices:
         break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented \n", iOut);

@@ -69,6 +69,9 @@ PositiveDualBasisDriver::solve() {
   solver.maxIterIs(domain->solInfo().nmfMaxIter);
   solver.toleranceIs(domain->solInfo().nmfTol);
   solver.numRandInitIs(domain->solInfo().nmfRandInit);
+  solver.nmfcAlphaIs(domain->solInfo().nmfcAlpha);
+  solver.nmfcBetaIs(domain->solInfo().nmfcBeta);
+  solver.nmfcGammaIs(domain->solInfo().nmfcGamma);
 
   std::vector<BasisId::Type> workload;
   workload.push_back(BasisId::DUALSTATE);

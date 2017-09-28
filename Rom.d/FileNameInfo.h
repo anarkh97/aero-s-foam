@@ -35,12 +35,18 @@ public:
     id_(type, level), name_(initName(info, index))
   {}
 
+  BasisFileId(const std::string &name, BasisId::Type type, BasisId::Level level) :
+    id_(type, level), name_(name)
+  {}
+
   BasisId id() const { return id_; }
   BasisId::Type type() const { return id_.type(); }
   BasisId::Level level() const { return id_.level(); }
 
   const std::string &name() const { return name_; }
   operator std::string() const { return name_; }
+
+  bool isBinary() const;
 
 private:
   std::string initName(const FileNameInfo &info, int index = 0) const { return info.basisFileName(id_, index); }

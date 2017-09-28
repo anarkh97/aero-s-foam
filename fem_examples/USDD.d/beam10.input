@@ -68,7 +68,7 @@ DISPLACEMENTS
 1 6 0.0
 *
 * This loads the control.so file into Aero-S to use
-* the USDF command and control the displacement at
+* the USDD command and control the displacement at
 * node 11 dof 1,2,3.
 *
 LOAD "./control.so"

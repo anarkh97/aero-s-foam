@@ -673,6 +673,12 @@ struct SolverInfo {
                   ffi_debug = false;
                   mortar_scaling = 1.0;
                   mortar_integration_rule = 6;
+                  andes_clr = 0;
+                  andes_cqr = 1;
+                  andes_betab = 1;
+                  andes_alpha = 1.5;
+                  andes_betam = .32;
+                  nlmembrane_pressure_type = 0;
                   tdenforceFlag = true;
 
                   lagrangeMult = true;

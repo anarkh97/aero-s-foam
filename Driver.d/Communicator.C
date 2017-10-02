@@ -12,6 +12,8 @@ FSCommunicator::globalSum(Type data)
   Type buff;
   MPI_Allreduce(&data, &buff, 1, CommTrace<Type>::MPIType, MPI_SUM, comm);
   return buff;
+#else
+  return data;
 #endif
 }
 
@@ -23,6 +25,8 @@ FSCommunicator::globalMax(Type data)
   Type buff;
   MPI_Allreduce(&data, &buff, 1, CommTrace<Type>::MPIType, MPI_MAX, comm);
   return buff;
+#else
+  return data;
 #endif
 }
 
@@ -33,6 +37,8 @@ Type FSCommunicator::globalMin(Type data)
   Type buff;
   MPI_Allreduce(&data, &buff, 1, CommTrace<Type>::MPIType, MPI_MIN, comm);
   return buff;
+#else
+  return data;
 #endif
 }
 

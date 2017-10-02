@@ -856,7 +856,7 @@ TRAIL [a-zA-Z]*
 
 "TRBM"[a-zA-Z]*                    { return TRBM; }
 
-"trbm"[a-zA-Z]*                    { return trbm; }
+"trbm"[a-zA-Z]*                    { return TRBMlc; }
 
 "GRBM"[a-zA-Z]*|"grbm"[a-zA-Z]*    { return GRBM; }
 

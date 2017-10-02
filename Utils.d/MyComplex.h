@@ -18,8 +18,8 @@ namespace ScalarTypes
  // inline double real(complex<double> a) { return a.real(); }
 
  inline complex<double> sqrt(complex<double> a) { 
-   register double r  = ::sqrt(std::abs(a));
-   register double th = arg(a)/2.;
+   double r  = ::sqrt(std::abs(a));
+   double th = arg(a)/2.;
    return complex<double>(r*cos(th), r*sin(th));
  }
  inline double sqrt(double a) { return ::sqrt(a); }

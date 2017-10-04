@@ -6,7 +6,7 @@
 #include <Feti.d/DistrVector.h>
 
 #ifdef USE_BOOST
-#include <boost/tr1/functional.hpp>
+#include <functional>
 #else
 //note: if the the standard c++ library doesn't have tr1 then
 //      you must configure with boost version 1.35 or later
@@ -21,7 +21,7 @@ template <typename Scalar>
 struct VecTraits<Scalar, GenDistrVector> {
   typedef GenDistrVector<Scalar> Type;
   typedef typename Type::InfoType InfoType;
-  typedef typename std::tr1::reference_wrapper<const DistrInfo> InternalInfoType;
+  typedef typename std::reference_wrapper<const DistrInfo> InternalInfoType;
   
   static InfoType defaultInfo() { return DEFAULT_DISTR_INFO; }
   static int length(InfoType info) { return info.len; }

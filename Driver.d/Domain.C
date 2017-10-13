@@ -1826,7 +1826,7 @@ Domain::getRenumbering()
          }
        }
 #else
-       if(count > sinfo.sparse_defblk) break;
+       if(count > sinfo.solvercntl->sparse_defblk) break;
 #endif
      }
      min_defblk += count;

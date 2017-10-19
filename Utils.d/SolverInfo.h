@@ -266,6 +266,7 @@ struct SolverInfo {
    int condNumMaxit;
 
    int massFlag;
+   std::string massFile;
    int filterFlags;
    int filterQ; // 0 = Q=M for statics/quasistatics, 1 = Q=I for statics/quasistatics
 

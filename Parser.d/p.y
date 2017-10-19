@@ -1133,6 +1133,9 @@ SloshInfo:
 MassInfo:
 	MASS NewLine
         { domain->solInfo().massFlag = 1; }
+        | MASS FNAME NewLine
+        { domain->solInfo().massFlag = 1;
+          domain->solInfo().massFile = std::string($2); }
 	;
 CondInfo:
 	CONDITION NewLine Float Integer NewLine

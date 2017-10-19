@@ -28,6 +28,10 @@
 #include <list>
 #include <numeric>
 #include <set>
+#include <fstream>
+#include <iomanip>
+#include <string>
+#include <limits>
 
 extern int verboseFlag;
 
@@ -471,6 +475,14 @@ Domain::computeStructureMass(bool printFlag)
     filePrint(stderr," Maximum y dimension = %f\n",ymax);
     filePrint(stderr," Maximum z dimension = %f\n",zmax);
     filePrint(stderr," --------------------------------------\n");
+  }
+
+  if(!sinfo.massFile.empty() && (!com || com->cpuNum() == 0)) {
+    std::ofstream fout(sinfo.massFile.c_str());
+    if(fout.is_open()) {
+      fout << std::setprecision(std::numeric_limits<double>::digits10 + 1) << totmas << std::endl;
+      fout.close();
+    }
   }
 
   return totmas;

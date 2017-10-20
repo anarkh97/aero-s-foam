@@ -841,6 +841,9 @@ int main(int argc, char** argv)
 #endif
  // 3. choose lumped mass (also pressure and gravity) and diagonal or block-diagonal "solver" for explicit dynamics 
  if(domain->solInfo().newmarkBeta == 0 || (domain->solInfo().svdPodRom && geoSource->getMRatio() == 0)) {
+   if((parallel_proc || domain_decomp) && (domain->solInfo().solvercntl->type != 2) && (domain->solInfo().solvercntl->type != 3)) {
+     domain->solInfo().solvercntl = new SolverCntl(default_cntl);
+   }
    if(domain->solInfo().inertiaLumping == 2) { // block-diagonal lumping
      domain->solInfo().solvercntl->subtype = 1;
      domain->solInfo().getFetiInfo().local_cntl->subtype = FetiInfo::sparse;

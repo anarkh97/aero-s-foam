@@ -217,7 +217,7 @@ GeoSource::~GeoSource()
   if(outputNodes) delete [] outputNodes;
   if(outNodeIndex) delete [] outNodeIndex;
   if(headLen) delete [] headLen;
-  if(subToClus) delete subToClus;
+  if(subToClus) delete [] subToClus;
   if(clusToSub) delete clusToSub;
   if(unsortedSubToElem) delete unsortedSubToElem;
   if(subToCPU) delete [] subToCPU;

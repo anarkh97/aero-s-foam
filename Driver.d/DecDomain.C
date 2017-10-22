@@ -33,8 +33,8 @@ extern Connectivity *procMpcToMpc;
 #include <Driver.d/SubDomainFactory.h>
 
 template<class Scalar>
-GenDecDomain<Scalar>::GenDecDomain(Domain *d, Communicator *structCom, bool _soweredInput)
- : mt(d->getTimers()), soweredInput(_soweredInput)
+GenDecDomain<Scalar>::GenDecDomain(Domain *d, Communicator *structCom, bool _soweredInput, bool _coarseLevel)
+ : mt(d->getTimers()), soweredInput(_soweredInput), coarseLevel(_coarseLevel)
 {
   domain = d;
   initialize(); 
@@ -745,12 +745,13 @@ GenDecDomain<Scalar>::preProcess()
  makeNodeInfo();
 
 #ifdef DISTRIBUTED
+ if(!coarseLevel) {
  geoSource->setNumNodalOutput();
  if(geoSource->getNumNodalOutput()) {
    for(int i=0; i<numSub; ++i)
      geoSource->distributeOutputNodesX(subDomain[i], (nodeToSub_copy) ? nodeToSub_copy : nodeToSub); // make sure each node always gets
                                                                                                      // assigned to the same subdomain.
- }
+ }}
 #endif
 
  // compute the number of unconstrained dofs for timing file and screen output

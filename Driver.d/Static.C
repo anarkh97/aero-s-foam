@@ -150,7 +150,7 @@ Domain::printStatistics(bool domain_decomp)
 }
 
 double
-Domain::computeStructureMass(bool printFlag)
+Domain::computeStructureMass(bool printFlag, int groupId)
 {
   // Compute total mass and mass center of gravity
   // Added calculation for moments of inertia
@@ -181,10 +181,20 @@ Domain::computeStructureMass(bool printFlag)
   int *nodeNumbers = new int[maxNumNodes];
 
   for(iele=0; iele < numele; ++iele) {
-    double elementMass = packedEset[iele]->getMass(nodes);
-    totmas += elementMass;
+
     int numNodesPerElement = packedEset[iele]->numNodes();
     packedEset[iele]->nodes(nodeNumbers);
+
+    if (groupId > 0) {
+      std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+      std::set<int>::iterator it;
+      for (int iNode = 0; iNode < numNodesPerElement; ++iNode)
+        if((it = groupNodes.find(nodeNumbers[iNode])) == groupNodes.end()) break;
+      if(it == groupNodes.end()) continue;
+    }
+
+    double elementMass = packedEset[iele]->getMass(nodes);
+    totmas += elementMass;
     int numRealNodes = 0;
     for(i=0; i<numNodesPerElement; ++i)
       if(nodes[nodeNumbers[i]]) numRealNodes++;
@@ -216,7 +226,7 @@ Domain::computeStructureMass(bool printFlag)
   delete [] nodeNumbers;
 
   // now add the mass from the fluid elements (these are in a different element set)
-  if(geoSource->numElemFluid() > 0) {
+  if(geoSource->numElemFluid() > 0 && !(groupId > 0)) {
     for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
       int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
       maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
@@ -277,6 +287,12 @@ Domain::computeStructureMass(bool printFlag)
   DMassData *current = firstDiMass;
   while(current != 0) {
     int n = current->node;
+
+    if (groupId > 0) {
+      std::set<int> &groupNodes = geoSource->getNodeGroup(groupId);
+      if(groupNodes.find(n) == groupNodes.end()) continue;
+    }
+
     // check if the node is in the model
     //if(nodes.exist(n)) {
       Node &node = nodes.getNode(n);
@@ -328,7 +344,9 @@ Domain::computeStructureMass(bool printFlag)
   Mx += totmas;
   My += totmas;
   Mz += totmas;
+  totmas = (Mx+My+Mz)/3.0;
 
+  if(!(groupId > 0)) { // when groupId is set, only the total mass is computed and printed to a file
   if(Mx != 0.0) xc /= Mx;
   if(My != 0.0) yc /= My;
   if(Mz != 0.0) zc /= Mz;
@@ -344,7 +362,6 @@ Domain::computeStructureMass(bool printFlag)
   Iyz += My*yc*zc;
   Izy += Mz*yc*zc;
 
-  totmas = (Mx+My+Mz)/3.0;
   if(printFlag) {
     if(Mx != My || Mx != Mz || My != Mz) {
       filePrint(stderr," Directional Mass\n");
@@ -475,14 +492,27 @@ Domain::computeStructureMass(bool printFlag)
     filePrint(stderr," Maximum y dimension = %f\n",ymax);
     filePrint(stderr," Maximum z dimension = %f\n",zmax);
     filePrint(stderr," --------------------------------------\n");
-  }
+  }}
 
   if(!sinfo.massFile.empty() && (!com || com->cpuNum() == 0)) {
-    std::ofstream fout(sinfo.massFile.c_str());
+    std::stringstream s;
+    s << sinfo.massFile;
+    if(groupId > 0) s << '.' << groupId;
+    std::ofstream fout(s.str().c_str());
     if(fout.is_open()) {
       fout << std::setprecision(std::numeric_limits<double>::digits10 + 1) << totmas << std::endl;
       fout.close();
     }
+  }
+  if(!sinfo.massFile.empty() && !(groupId > 0)) {
+    std::map<int, std::set<int> > &nodeGroups = geoSource->getNodeGroups();
+    for(std::map<int, std::set<int> >::iterator it = nodeGroups.begin(); it != nodeGroups.end(); ++it) {
+      if(it->first > 0) {
+        double groupMass = computeStructureMass(false, it->first);
+        filePrint(stderr, " Mass of group %d = %f\n", it->first, groupMass);
+      }
+    }
+    if(nodeGroups.size() > 0) filePrint(stderr," --------------------------------------\n");
   }
 
   return totmas;
@@ -2864,6 +2894,8 @@ Domain::transformStressStrain(FullM &mat, int iele, OutputInfo::FrameType oframe
         mat[k][4] = M(1,2);
         mat[k][5] = M(0,2);
       }
+#else
+      std::cerr << " *** WARNING: USE_EIGEN3 is not defined in Domain::transformStressStrain\n";
 #endif
     } break;
   }
@@ -2906,6 +2938,8 @@ Domain::transformStressStrain(FullMC &mat, int iele, OutputInfo::FrameType ofram
         mat[k][4] = M(1,2);
         mat[k][5] = M(0,2);
       }
+#else
+      std::cerr << " *** WARNING: USE_EIGEN3 is not defined in Domain::transformStressStrain\n";
 #endif
     } break;
   }

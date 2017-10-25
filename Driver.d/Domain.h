@@ -1095,7 +1095,7 @@ class Domain : public HData {
      void tempdynamOutput(int, double*, DynamMat&, Vector&, Vector&, Vector&,
                           Vector&);
 
-     double computeStructureMass(bool printFlag = true);
+     double computeStructureMass(bool printFlag = true, int groupId = 0);
      double computeFluidMass();
      double getStructureMass();
      int returnLocalDofNum(int, int);

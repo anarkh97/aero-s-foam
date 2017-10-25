@@ -675,6 +675,7 @@ public:
   void setAttributeGroup(int a, int g);
   void setNodeGroup(int nn, int id);
   std::set<int> & getNodeGroup(int id) { return nodeGroup[id]; }
+  std::map<int, std::set<int> > & getNodeGroups() { return nodeGroup; }
   void setSurfaceGroup(int sn, int id);
 
   // Sfem stuff

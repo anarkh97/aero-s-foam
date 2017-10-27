@@ -5740,10 +5740,10 @@ SvdOption:
   | REFSUBTRACT FNAME
   { domain->solInfo().subtractRefPodRom = true;
     domain->solInfo().readInLocalBasesCent.push_back(std::string($2)); }
-  | SNAPWEIGHT FloatList /* deprecated */
-  { for(int i=0; i<$2.nval; ++i) domain->solInfo().snapshotWeights.push_back($2.v[i]); }
-  | SNAPWEIGHT SWITCH FloatList
-  { if($2) for(int i=0; i<$3.nval; ++i) domain->solInfo().snapshotWeights.push_back($3.v[i]); }
+  | SNAPWEIGHT SWITCH
+  { domain->solInfo().flagss = $2; }
+  | SNAPWEIGHT SWITCH SWITCH
+  { domain->solInfo().flagss = $2; domain->solInfo().flagrs = $3; }
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; } 
   | SKIP Integer Integer

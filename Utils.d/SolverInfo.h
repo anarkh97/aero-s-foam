@@ -348,7 +348,7 @@ struct SolverInfo {
    int numSnap;
    std::vector<std::string> snapfiPodRom;
    std::vector<std::string> robfi;
-   std::vector<double> snapshotWeights;
+   bool flagss, flagrs;
    std::vector<std::string> readInROBorModes;
    std::vector<std::string> readInDualROB; 
    std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
@@ -699,6 +699,8 @@ struct SolverInfo {
                   constraint_hess_eps = 0;
 
                   numSnap            = 1;
+                  flagss             = false;
+                  flagrs             = true;
                   readInShapeSen     = "";
                   SVDoutput          = "pod.rob";
                   reducedMeshFile    = "";

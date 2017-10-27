@@ -93,24 +93,16 @@ void readIntoSolver(SvdOrthogonalization &solver, VecNodeDof6Conversion &convert
     if(fileType == BasisId::SNAPSHOTS) filePrint(stderr, " ... Reading in Snapshot file: %s ...\n", fileName.c_str());
     if(fileType == BasisId::ROB) filePrint(stderr, " ... Reading in ROB file: %s ...\n", fileName.c_str());
     int skip = 1;
+    std::vector<double> s; int firstCol = colCounter;
     for (int iCol = 0; iCol < input.size(); ++iCol) {
       if(skip == skipTime) {
         double *buffer = solver.matrixCol(colCounter);
         std::pair<double, double *> data;
-        if(fileType == BasisId::ROB){
-          data.second = buffer;
-          input >> data;
-        }
-        else input >> buffer;
+        data.second = buffer;
+        input >> data;
         assert(input);
+        s.push_back(data.first);
         colCounter++;
-        // Multiply by weighting factor if given in input file and/or singular values
-        for(int row = 0 ; row < vectorSize; row++) {
-          if(fileType == BasisId::ROB) data.second[row] *= data.first;
-          if(!domain->solInfo().snapshotWeights.empty()) {
-            buffer[row] *= domain->solInfo().snapshotWeights[i];
-          }
-        }
         if(geoSource->getMRatio() == 0 && domain->solInfo().normalize == 1) {
           fullMass->squareRootMult(buffer);
         }
@@ -127,6 +119,22 @@ void readIntoSolver(SvdOrthogonalization &solver, VecNodeDof6Conversion &convert
         input >> dummyBuffer;
         assert(input);
         ++skip;
+      }
+    }
+    // Multiply by weighting factor if specified in input file using sscali
+    if((fileType == BasisId::ROB && domain->solInfo().flagrs) || (fileType == BasisId::SNAPSHOTS && domain->solInfo().flagss)) {
+      for(int i = 0; i < s.size(); ++i) {
+        double weight;
+        if(fileType == BasisId::ROB) weight = s[i];
+        else if(s.size() > 1) {
+          if(i == 0) weight = std::sqrt(s[1]-s[0]);
+          else if(i == s.size()-1) weight = std::sqrt(s[s.size()-1]-s[s.size()-2]);
+          else weight = std::sqrt(((s[i]-s[i-1])+(s[i+1]-s[i]))/2);
+        }
+        double *buffer = solver.matrixCol(firstCol+i);
+        for(int row = 0; row < vectorSize; row++) {
+          buffer[row] *= weight;
+        }
       }
     }
   }

@@ -25,6 +25,8 @@ private:
 
   void buildDomainCdsa();
   void subMakeMass(int isub, SparseMatrix **subM);
+
+  void addContactElems(std::vector<int> &sampleElemIds, std::map<int, double> &weights);
 };
 
 } /* end namespace Rom */

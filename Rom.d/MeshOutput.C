@@ -161,10 +161,19 @@ std::ostream &
 operator<<(std::ostream &out, const ResizeArray<SurfaceEntity*>* source) {
   int numSurf = const_cast<ResizeArray<SurfaceEntity*>* >(source)->max_size();
 
-  int glEleNum = 2000; 
+  int glEleNum = 1; 
   for (int isurf = 0; isurf < numSurf; ++isurf) { // loop over each surface
-    out << "*\nSURFACETOPO " << (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetId() << "\n"; 
-    int numEle = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetnFaceElems(); 
+    // output surface number and thickness
+    int surfId = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetId();
+    out << "*\nSURFACETOPO " << surfId;
+    int divideBy = 1;
+    if ((*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetIsShellFace()){
+      out << " surface_thickness " << (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetShellThickness();
+      divideBy = 2;// specifying a surface thickness causes elements to be listed twice 
+    }
+    out << "\n";
+    // get number of elements in this face
+    int numEle = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetnFaceElems()/divideBy; 
     FaceElemSet * fEleSet = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetPtrFaceElemSet();
     int *glNodeNum = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetPtrGlNodeIds(); 
     for(int iEle = 0; iEle < numEle; ++iEle) { // loop over each element in that surface

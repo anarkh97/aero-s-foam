@@ -2557,19 +2557,30 @@ void GeoSource::getTextDecomp(bool sowering)
   stopTimerMemory(mt.readDecomp, mt.memoryDecomp);
 #ifdef DISTRIBUTED
   if(!binaryInput) {
-    subToClus = new int[numSub];
-    for(int i = 0; i < numSub; i++)
-      subToClus[i] = 0;
-    numClusters = 1;
-    int *ptr = new int[2];
-    int *target = new int[numSub];
-    for(int i = 0; i < numSub; i++)
-      target[i] = 0;
-    ptr[0] = 0;
-    ptr[1] = numSub;
-    clusToSub = new Connectivity(1,ptr,target);
-    numClusNodes = nGlobNodes;
-    numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+    if(conName) {
+      BinFileHandler connectivityFile(conName, "rb");
+      clusToSub = new Connectivity(connectivityFile, true);
+      Connectivity *subToClusConnect = clusToSub->reverse();
+      subToClus = new int[numSub];
+      for(int i = 0; i < numSub; i++) subToClus[i] = (*subToClusConnect)[i][0];
+      delete subToClusConnect;
+      numClusters = clusToSub->csize();
+    }
+    else {
+      subToClus = new int[numSub];
+      for(int i = 0; i < numSub; i++)
+        subToClus[i] = 0;
+      numClusters = 1;
+      int *ptr = new int[2];
+      int *target = new int[numSub];
+      for(int i = 0; i < numSub; i++)
+        target[i] = 0;
+      ptr[0] = 0;
+      ptr[1] = numSub;
+      clusToSub = new Connectivity(1,ptr,target);
+      numClusNodes = nGlobNodes;
+      numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+    }
   }
 #endif
 }
@@ -3332,7 +3343,7 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub)
 
       for(int locSub = 0; locSub < numLocSub; ++locSub) {
 
-        char fullDecName[32];
+        char fullDecName[128];
         sprintf(fullDecName, "%s1", decName); // only one cluster currently supported
         BinFileHandler decFile(fullDecName, "rb");
 
@@ -3400,7 +3411,7 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub)
         matchData[locSub] = new MatchData[numMatchData[locSub]];
         gapVec[locSub] = new double[numMatchData[locSub]][3];
         if(numMatchRanges) {
-          char fullMatchName[32];
+          char fullMatchName[128];
           sprintf(fullMatchName, "%s1", matchName); // only one cluster currently supported
           BinFileHandler matchFile(fullMatchName, "rb");
           readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem, myID);
@@ -4635,19 +4646,30 @@ GeoSource::getDecomposition()
     subToElem->renumberTargets(glToPckElems);  // required if gaps in element numbering
 
 #ifdef DISTRIBUTED
-    subToClus = new int[numSub];
-    for(int i = 0; i < numSub; i++)
-      subToClus[i] = 0;
-    numClusters = 1;
-    int *ptr = new int[2];
-    int *target = new int[numSub];
-    for(int i = 0; i < numSub; i++)
-      target[i] = 0;
-    ptr[0] = 0;
-    ptr[1] = numSub;
-    clusToSub = new Connectivity(1,ptr,target);
-    numClusNodes = nGlobNodes;
-    numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+    if(conName) {
+      BinFileHandler connectivityFile(conName, "rb");
+      clusToSub = new Connectivity(connectivityFile, true);
+      Connectivity *subToClusConnect = clusToSub->reverse();
+      subToClus = new int[numSub];
+      for(int i = 0; i < numSub; i++) subToClus[i] = (*subToClusConnect)[i][0];
+      delete subToClusConnect;
+      numClusters = clusToSub->csize();
+    }
+    else {
+      subToClus = new int[numSub];
+      for(int i = 0; i < numSub; i++)
+        subToClus[i] = 0;
+      numClusters = 1;
+      int *ptr = new int[2];
+      int *target = new int[numSub];
+      for(int i = 0; i < numSub; i++)
+        target[i] = 0;
+      ptr[0] = 0;
+      ptr[1] = numSub;
+      clusToSub = new Connectivity(1,ptr,target);
+      numClusNodes = nGlobNodes;
+      numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+    }
 #endif
   }
   if(matchName != NULL && !unsortedSubToElem) unsortedSubToElem = subToElem->copy();

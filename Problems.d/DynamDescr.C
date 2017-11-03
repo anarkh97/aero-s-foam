@@ -392,7 +392,6 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
       domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
                               inState.getPrevVeloc(), bcx, vcx, *geomState);
       domain->updateStates(geomState, *geomState, allCorot, domain->solInfo().initialTime);
-      geomState->setVelocityAndAcceleration(inState.getVeloc(), inState.getAccel());
     }
   }
   else if(geomState) {

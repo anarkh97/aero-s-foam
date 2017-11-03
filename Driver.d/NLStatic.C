@@ -2610,6 +2610,7 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n, Vector &a_n,
    if(fn >= 0) {
      int numElemStates = geomState->getTotalNumElemStates();
      double *buffer = new double[std::max(numElemStates, 12*numnodes)];
+     geomState->setVelocityAndAcceleration(v_n, a_n);
 
      int writeSize;
      writeSize = write(fn, &timeIndex, sizeof(int));

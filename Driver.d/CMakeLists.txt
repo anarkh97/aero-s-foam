@@ -10,4 +10,4 @@ BinaryOutput.C
 DomainPita.C
 GeoSourceInstance.C OpMakeInstance.C
 ControlLawInfo.C BinaryOutputInstance.C
-EFrameDataInstance.C)
+EFrameDataInstance.C CommunicatorCore.cpp)

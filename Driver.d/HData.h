@@ -109,10 +109,9 @@ class HData
      void addSBoundNodes();
      void addSBoundNode(int);
      void checkSommerTypeBC(Domain *domain, Connectivity *_elemToNode = 0, Connectivity *_nodeToElem = 0);
-     double sommerfeld(CoordSet& cs, int node1, int node2 );
-     int  nCDirichlet() { return numComplexDirichlet; }
-     int  numSommerfeld() { return numSommer; }
-     int  numSSN() { return numSommer + numScatter + numNeum + numWet; }
+     int  nCDirichlet() const { return numComplexDirichlet; }
+     int  numSommerfeld() const { return numSommer; }
+     int  numSSN() const { return numSommer + numScatter + numNeum + numWet; }
      void makeSommerConnectivities();
      // returns the curvature of the boundary for the Bayliss-Turkel bc
      void getCurvatures(Domain *dom);
@@ -180,8 +179,8 @@ class HData
 
      // Functions used by the implicit Dirichlet/Neumann boundary condition
      double *getWaveDirection() { return waveDirections + 3*iWaveDir;}
-     int getNumWaveDirections() { return numWaveDirections;}
-     int getImplicitFlag() { return implicitFlag; }
+     int getNumWaveDirections() const { return numWaveDirections;}
+     int getImplicitFlag() const { return implicitFlag; }
 
      // virtual void updateMatrices(SparseMatrix*,int*,FullSquareMatrix*,FullSquareMatrix*);
      virtual void addFSRHS(ComplexVector &force);

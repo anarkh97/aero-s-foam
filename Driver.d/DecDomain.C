@@ -2527,7 +2527,7 @@ GenDecDomain<Scalar>::ndVecInfo()
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::makeBasicDistrInfo(DistrInfo &info, int(Domain::*countFunc)()) {
+GenDecDomain<Scalar>::makeBasicDistrInfo(DistrInfo &info, int(Domain::*countFunc)() const) {
  info.domLen = new int[numSub];
  info.numDom = numSub;
  int totLen = 0;

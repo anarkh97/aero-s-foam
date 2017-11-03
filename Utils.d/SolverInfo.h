@@ -841,7 +841,7 @@ struct SolverInfo {
 
    void setDirectMPC(int mode) { mpcDirect = mode; }
    // Whether we are doing direct elimination for MPCs
-   int getDirectMPC() { return mpcDirect; }
+   int getDirectMPC() const { return mpcDirect; }
 
    // Set RbmFilter level
    void useRbmFilter(int rbmfil) { filterFlags = rbmfil; }
@@ -881,7 +881,8 @@ struct SolverInfo {
    int buckling;        // Buckling analysis flag
    void setGEPS() { gepsFlg  = 1; }
 
-   FetiInfo &getFetiInfo() { return solvercntl->fetiInfo; }
+    FetiInfo &getFetiInfo() { return solvercntl->fetiInfo; }
+    const FetiInfo &getFetiInfo() const { return solvercntl->fetiInfo; }
 
    // KHP: MOVE TO NonlinearInfo
    void setNewton(int n)     { NLInfo.updateK    = n; }

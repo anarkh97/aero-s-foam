@@ -744,7 +744,8 @@ class Domain : public HData {
      int getNumSensitivities() { return numSensitivity; }
 
      void setUpData(int topFlag);
-     SolverInfo  &solInfo() { return sinfo; }
+    SolverInfo  &solInfo() { return sinfo; }
+    const SolverInfo  &solInfo() const { return sinfo; }
      MatrixTimers &getTimers() { return *matrixTimers; }
      void setGravity(double ax, double ay, double az);
 
@@ -1200,34 +1201,34 @@ class Domain : public HData {
      void make_constrainedDSA(int fake);
 
      // returns the number of dof
-     int numdof()   { return dsa ? dsa->size() : -1; }
+     int numdof() const { return dsa ? dsa->size() : -1; }
 
      // returns the number of unconstrained dof
-     int numUncon() {
+     int numUncon() const {
        return c_dsa ? c_dsa->size() : dsa ? dsa->size() : 0;
      }
 
-     int coordVecSize() {
+     int coordVecSize() const {
        return dsa ? dsa->numNodes()*6 : 0;
      }
 
      // returns the number of unconstrained Fluid dof
-     int numUnconFluid() {
+     int numUnconFluid() const {
        return c_dsaFluid ? c_dsaFluid->size() : dsaFluid->size();
      }
      // returns a pointer to the dirichlet boundary condtions
      BCond* getDBC() { return dbc; }
 
      // returns the number of dirichlet bc
-     int  nDirichlet() { return numDirichlet; }
-     int  nDirichletFluid() { return numDirichletFluid; }
-     int  nDispDirichlet() { return numDispDirichlet; }
+     int  nDirichlet() const { return numDirichlet; }
+     int  nDirichletFluid() const { return numDirichletFluid; }
+     int  nDispDirichlet() const { return numDispDirichlet; }
      void setNumDispDirichlet(int n) { numDispDirichlet = n; }
 
      // returns the number of initial displacements
-     int numInitDisp()  { return numIDis;  }
-     int numInitDispModal() { return numIDisModal; }
-     int numInitDisp6() { return numIDis6; }
+     int numInitDisp() const { return numIDis;  }
+     int numInitDispModal() const { return numIDisModal; }
+     int numInitDisp6() const { return numIDis6; }
 
      // returns a pointer to the initial displacement boundary condtions
      BCond* getInitDisp()  { return iDis;  }
@@ -1235,38 +1236,38 @@ class Domain : public HData {
      BCond* getInitDisp6() { return iDis6; }
 
      // returns a pointer to the initial velocities
-     int    numInitVelocity() { return numIVel; }
+     int    numInitVelocity() const { return numIVel; }
      BCond* getInitVelocity() { return iVel; }
-     int    numInitVelocityModal() { return numIVelModal; }
+     int    numInitVelocityModal() const { return numIVelModal; }
      BCond* getInitVelocityModal() { return iVelModal; }
 
      // returns the number of neumann bc
-     int  nNeumann() { return numNeuman; }
-     int  nNeumannModal() { return numNeumanModal; }
+     int  nNeumann() const { return numNeuman; }
+     int  nNeumannModal() const { return numNeumanModal; }
 
      // returns a pointer to the neumann boundary condtions
      BCond* getNBC() { return nbc; }
      BCond* getNBCModal() { return nbcModal; }
 
      // returns the number of nodes
-     int  numNodes() { return (nodeToNode) ? nodeToNode->csize() : numnodes; }
-     int  numNode()  { return numnodes; }
+     int  numNodes() const { return (nodeToNode) ? nodeToNode->csize() : numnodes; }
+     int  numNode() const { return numnodes; }
      void setNumNodes(int n)  { numnodes = n; }  // includes virtual nodes
-     int  numGlobalNodes() { return numnodes; }
+     int  numGlobalNodes() const { return numnodes; }
 
      // returns the number of elements
-     int  numElements() { return numele; }
+     int  numElements() const { return numele; }
      void setNumElements(int n) { numele = n; }
      int addElem(int ele, int type, int nnd, int *nd)
         { packedEset.elemadd(ele, type, nnd, nd); return ele; }
 
      // returns the maximum possible number of elements for simulations in which the 
      // number elements may change from one load/time step to another
-     int maxNumElements() { return numele - contactSurfElems.size() + maxContactSurfElems; }
+     int maxNumElements() const { return numele - contactSurfElems.size() + maxContactSurfElems; }
 
      // returns the number of dofs
      void setNumDofs(int n) { numdofs = n; }
-     int  numDofs() { return numdofs; }
+     int  numDofs() const { return numdofs; }
 
      // returns the packed element set (allows element numbering gaps)
      Elemset& getElementSet() { return packedEset; }
@@ -1285,7 +1286,7 @@ class Domain : public HData {
      int  radiationFlag() { return sinfo.radiationFlag; }
 
      // returns the maximum number of dofs per element
-     int  maxNumDOF() { return maxNumDOFs; }
+     int  maxNumDOF() const { return maxNumDOFs; }
 
      // returns a pointer to the Connectivity allDOFs
      Connectivity *getAllDOFs() { return allDOFs; }

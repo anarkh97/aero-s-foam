@@ -1317,72 +1317,30 @@ int BaseSub::getBC(BCond *bc, int numBC, int *cl2LocNodeMap, BCond *&subBC)   {
 }
 
 void
-BaseSub::setNodeCommSize(FSCommPattern<int> *pt, int d)
+BaseSub::setNodeCommSize(FSCommStructure *pt, int d) const
 {
   for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
     pt->setLen(subNumber, scomm->subNums[iSub], scomm->sharedNodes->num(iSub)*d);
 }
 
 void
-BaseSub::setNodeCommSize(FSCommPattern<double> *pt, int d)
-{
-  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) 
-    pt->setLen(subNumber, scomm->subNums[iSub], scomm->sharedNodes->num(iSub)*d);
-}
-
-void
-BaseSub::setNodeCommSize(FSCommPattern<DComplex> *pt, int d)
-{
-  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
-    pt->setLen(subNumber, scomm->subNums[iSub], scomm->sharedNodes->num(iSub)*d);
-}
-
-void
-BaseSub::setDofCommSize(FSCommPattern<int> *pt)
+BaseSub::setDofCommSize(FSCommStructure *pt) const
 {
   for(int iSub = 0; iSub < scomm->numT(SComm::all); ++iSub)
     pt->setLen(subNumber, scomm->neighbT(SComm::all,iSub), scomm->lenT(SComm::all,iSub));
 }
 
 void
-BaseSub::setDofCommSize(FSCommPattern<double> *pt)
-{
-  for(int iSub = 0; iSub < scomm->numT(SComm::all); ++iSub)
-    pt->setLen(subNumber, scomm->neighbT(SComm::all,iSub), scomm->lenT(SComm::all,iSub));
-}
-
-void
-BaseSub::setDofCommSize(FSCommPattern<DComplex> *pt)
-{
-  for(int iSub = 0; iSub < scomm->numT(SComm::all); ++iSub)
-    pt->setLen(subNumber, scomm->neighbT(SComm::all,iSub), scomm->lenT(SComm::all,iSub));
-}
-
-void
-BaseSub::setDofPlusCommSize(FSCommPattern<double> *pt)
-{
-  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
-    pt->setLen(subNumber, scomm->subNums[iSub], scomm->sharedDOFsPlus->num(iSub));
-}
-
-void
-BaseSub::setDofPlusCommSize(FSCommPattern<DComplex> *pt)
+BaseSub::setDofPlusCommSize(FSCommStructure *pt) const
 {
   for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
     pt->setLen(subNumber, scomm->subNums[iSub], scomm->sharedDOFsPlus->num(iSub));
 }
 
 void 
-BaseSub::setRbmCommSize(int _numRBM, FSCommPattern<double> *pt)
+BaseSub::setRbmCommSize(int _numRBM, FSCommStructure *pt) const
 {
   for(int iSub = 0; iSub < scomm->numT(SComm::std); ++iSub)
-    pt->setLen(subNumber, scomm->neighbT(SComm::std,iSub), scomm->lenT(SComm::std,iSub)*_numRBM);
-}
-
-void
-BaseSub::setRbmCommSize(int _numRBM, FSCommPattern<DComplex> *pt)
-{
-  for(int iSub = 0; iSub < scomm->numT(SComm::all); ++iSub)
     pt->setLen(subNumber, scomm->neighbT(SComm::std,iSub), scomm->lenT(SComm::std,iSub)*_numRBM);
 }
 
@@ -1472,14 +1430,7 @@ void BaseSub::addNodeXYZ(double *centroid, double* nNodes)
 }
 
 void
-BaseSub::setCommSize(FSCommPattern<double> *pt, int size)
-{
-  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
-    pt->setLen(subNumber, scomm->subNums[iSub], size);
-}
-
-void
-BaseSub::setCommSize(FSCommPattern<int> *pt, int size)
+BaseSub::setCommSize(FSCommStructure *pt, int size) const
 {
   for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
     pt->setLen(subNumber, scomm->subNums[iSub], size);

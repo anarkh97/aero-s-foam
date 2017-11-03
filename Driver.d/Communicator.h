@@ -129,23 +129,19 @@ class Triplet {
 template <class T>
 class FSSubRecInfo {
   public:
-    T *data;
-    int len;
-    int leadDim;
-    int nvec;
-    bool isSend;
-    FSSubRecInfo() { 
-      data = 0; len = 0; leadDim = 0; nvec = 0; isSend = false; 
-    }
-    FSSubRecInfo(int _len, int _leadDim, int _nvec) {
-      data = 0; len = _len; leadDim = _leadDim; nvec = _nvec; isSend = true;
-    }
-    FSSubRecInfo(int _len, int _leadDim, int _nvec, bool _isSend) {
-      data = 0; len = _len; leadDim = _leadDim; nvec = _nvec; isSend = _isSend;
-    }
-    FSSubRecInfo(const FSSubRecInfo &c) {
-      data = c.data; len = c.len; leadDim = c.leadDim; nvec = c.nvec; isSend = c.isSend;
-    }
+	T *data = nullptr;
+	int len = 0;
+	int leadDim = 0;
+	int nvec = 0;
+	bool isSend = false;
+
+	FSSubRecInfo() = default;
+
+    FSSubRecInfo(int _len, int _leadDim, int _nvec) : len(_len), leadDim(_leadDim), nvec(_nvec), isSend(true) {}
+
+    FSSubRecInfo(int _len, int _leadDim, int _nvec, bool _isSend) : len(_len), leadDim(_leadDim), nvec(_nvec), isSend(_isSend) {}
+
+    FSSubRecInfo(const FSSubRecInfo &c) = default;
 
 };
 
@@ -153,53 +149,69 @@ typedef std::map<Triplet, int> MapType;
 typedef MapType::value_type ValuePair;
 typedef MapType::iterator MapIter;
 
-/*****************************************************************************
-   FSCommPattern represent a communication pattern. 
-     Communication is based on the model that a message from one
-     subdomain to another subdomain is made of a number of vectors.
-     Such vectors are stored in a matrix form. That matrix may have
-     larger columns than the actual message length. This allows a subdomain
-     to send different subparts of a given matrix to different subdomains.
+/** \brief Data describing a communication pattern with all neighbors.
+ *
+ */
+class FSCommStructure {
+public:
+	enum Mode { Share, CopyOnSend };
+	enum Symmetry { Sym, NonSym };
 
-   A communication patterns contains the following information:
-     - Length of a vector from one subdomain to its neighbors
-     - Number of vectors in each message
-     - Leading dimension of the matrix containing the vectors
- *****************************************************************************/
+	void makeSendAndRecvConnectivities();
+
+	void setLen(int glFrom, int glTo, int len, int leadDim = -1, int nvec = 1) {
+		setLength(glFrom, glTo, len, leadDim, nvec);
+	}
+protected:
+    FSCommunicator *communicator;  // PJSA
+    Mode mode;
+    Symmetry sym;
+    int myCPU;
+    int numChannels;
+    MapType channelMap;
+    Connectivity *subToCPU;
+    int numCPUs;
+    int *reverseChannel; // corresponding reverse channel
+    int *channelToCPU; // this CPU is marked as -1
+    int numNeighbCPUs;
+    int *neighbCPUs;
+    Connectivity *sendConnect;
+    Connectivity *recvConnect;
+    // Buffers for cross-memory communication on a cpu per cpu basis
+    int *crossSendLen, *crossRecvLen;
+
+	virtual void setLength(int glFrom, int glTo, int len, int leadDim, int nvec) = 0;
+
+};
+/** FSCommPattern represent a communication pattern.
+ *
+ * \details
+ *     Communication is based on the model that a message from one
+ *     subdomain to another subdomain is made of a number of vectors.
+ *     Such vectors are stored in a matrix form. That matrix may have
+ *     larger columns than the actual message length. This allows a subdomain
+ *     to send different subparts of a given matrix to different subdomains.
+ *
+ *   A communication patterns contains the following information:
+ *     - Length of a vector from one subdomain to its neighbors
+ *     - Number of vectors in each message
+ *     - Leading dimension of the matrix containing the vectors
+**/
 template <class T>
-class FSCommPattern {
-  public:
-     enum Mode { Share, CopyOnSend };
-     enum Symmetry { Sym, NonSym };
+class FSCommPattern: public FSCommStructure {
+
   protected:
-     FSCommunicator *communicator;  // PJSA
-     Mode mode;
-     Symmetry sym;
-     int myCPU;
-     int numChannels;
-     MapType channelMap;
      std::vector< FSSubRecInfo<T> > sRecInfo;
-     Connectivity *subToCPU;
-     int numCPUs;
-     int *reverseChannel; // corresponding reverse channel
-     int *channelToCPU; // this CPU is marked as -1
-     int numNeighbCPUs;
-     int *neighbCPUs;
-     Connectivity *sendConnect;
-     Connectivity *recvConnect;
      // Buffers for local copy-communication
      T *localDBuffer;
      // Buffers for cross-memory communication on a cpu per cpu basis
-     int *crossSendLen, *crossRecvLen;
      T **crossSendBuffer;
      T **crossRecvBuffer;
-     void makeSendAndRecvConnectivities();
 
   public:
      FSCommPattern(FSCommunicator *communicator, Connectivity *cpuToSub, int myCPU = 0, Mode = Share, Symmetry = Sym);
      // FSCommPattern() {};
      ~FSCommPattern();
-     void setLen(int glFrom, int glTo, int size, int lDim = -1, int nv = 1);
      void finalize(); // complete the internal setup
      FSSubRecInfo<T> recData(int glFrom, int glTo);
      void sendData(int glFrom, int glTo, T *);
@@ -213,6 +225,9 @@ class FSCommPattern {
      int *getChannelToCPU() { return channelToCPU; }
      MapType getChannelMap() { return channelMap; }
      Connectivity *getSubToCPU() { return subToCPU; }
+
+protected:
+	void setLength(int glFrom, int glTo, int len, int leadDim, int nvec) override;
 };
 
 
@@ -285,7 +300,7 @@ FSCommPattern<T>::FSCommPattern(FSCommPattern<TB> &cp, Mode _mode)
 
 template <class T>
 void
-FSCommPattern<T>::setLen(int glFrom, int glTo, int len, int leadDim, int nvec)
+FSCommPattern<T>::setLength(int glFrom, int glTo, int len, int leadDim, int nvec)
 {
   // serial function
 
@@ -495,86 +510,6 @@ FSCommPattern<T>::getSendBuffer(int glFrom, int glTo)
   if(mode == Share) // Check if we have a send buffer. If not, return NULL
     chObj.data = NULL;
   return chObj;
-}
-
-template <class T>
-void
-FSCommPattern<T>::makeSendAndRecvConnectivities()
-{
- int i;
- // First step, find all the neighboring CPUs
- int *glToLocCPU = new int[numCPUs];
- for(i = 0; i < numCPUs; ++i)
-   glToLocCPU[i] = -1;
-
- numNeighbCPUs = 0;
- for(i = 0; i < numChannels; ++i) {
-    int cpuID;
-    if((cpuID = channelToCPU[i]) >= 0) {
-      if(glToLocCPU[cpuID] < 0) glToLocCPU[cpuID] = numNeighbCPUs++;
-    }
- }
- neighbCPUs = new int[numNeighbCPUs];
- for(i = 0; i < numCPUs; ++i)
-   if(glToLocCPU[i] >= 0)
-     neighbCPUs[glToLocCPU[i]] = i;
-
- // Now count the send and receives (actually they should be the same for
- // a symmetric communication
- int *sendPtr = new int[numNeighbCPUs+1];
- int *recvPtr = new int[numNeighbCPUs+1];
- for(i = 0; i < numNeighbCPUs+1; ++i)
-   sendPtr[i] = recvPtr[i] = 0;
-
- MapIter iter = channelMap.begin();
- while(iter != channelMap.end()) {
-   Triplet key = (*iter).first;
-   int cpuID = key.cpuID;
-   if(cpuID >= 0) {
-     if((*subToCPU)[key.from][0] == myCPU) // send pair
-       sendPtr[glToLocCPU[cpuID]]++;
-     else // receive
-       recvPtr[glToLocCPU[cpuID]]++;
-   }
-   ++iter;
- }
-
- // Make the actual pointers (shifted for easy fill in)
- for(i = 0; i < numNeighbCPUs; ++i) {
-   recvPtr[i+1] += recvPtr[i];
-   sendPtr[i+1] += recvPtr[i];
- }
-
- int *sendTrgt = new int[sendPtr[numNeighbCPUs]];
- int *recvTrgt = new int[recvPtr[numNeighbCPUs]];
- // Final fill in
- iter = channelMap.begin();
- while(iter != channelMap.end()) {
-   Triplet key = (*iter).first;
-   int channelID = (*iter).second;
-   int cpuID = key.cpuID;
-   if(cpuID >= 0) {
-     if((*subToCPU)[key.from][0] == myCPU) {
-       sendPtr[glToLocCPU[cpuID]]--;
-       sendTrgt[sendPtr[glToLocCPU[cpuID]]] = channelID;
-     }
-     else { 
-       recvPtr[glToLocCPU[cpuID]]--;
-       recvTrgt[recvPtr[glToLocCPU[cpuID]]] = channelID;
-     }
-   }
-   ++iter;
- }
-
- sendConnect = new Connectivity(numNeighbCPUs, sendPtr, sendTrgt);
- recvConnect = new Connectivity(numNeighbCPUs, recvPtr, recvTrgt);
-
- delete [] glToLocCPU;
-// delete [] sendPtr; 
-// delete [] recvPtr;
-// delete [] sendTrgt;
-// delete [] sendPtr;
-
 }
 
 #ifdef _TEMPLATE_FIX_

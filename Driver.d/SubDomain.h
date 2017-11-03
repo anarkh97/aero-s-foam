@@ -184,7 +184,7 @@ class BaseSub : virtual public Domain
   int getGlobalNMax()         { return globalNMax; }
   int* makeBMaps(DofSetArray *dofsetarray=0);
   int* makeIMaps(DofSetArray *dofsetarray=0);
-  int subNum() const           { return subNumber; }
+  int subNum() const  { return subNumber; }
   int localSubNum() const      { return localSubNumber; }
   int localLen() const         { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
   ConstrainedDSA * getCCDSA()  { return (cc_dsa) ? cc_dsa : c_dsa; }
@@ -264,8 +264,7 @@ class BaseSub : virtual public Domain
   void addNodeXYZ(double *centroid, double* nNodes);
   void sendNeighbGrbmInfo(FSCommPattern<int> *pat);
   void receiveNeighbGrbmInfo(FSCommPattern<int> *pat);
-  void setCommSize(FSCommPattern<int> *pat, int size);
-  void setCommSize(FSCommPattern<double> *, int size);
+  void setCommSize(FSCommStructure *pat, int size) const;
   void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size);
   int numSPCs() { return c_dsa->getInvRCNmax(); }
   void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
@@ -299,20 +298,15 @@ class BaseSub : virtual public Domain
   bool* getMasterFlag() { return masterFlag; }
   const bool* getInternalMasterFlag();
  
- protected:
+protected:
   void computeInternalMasterFlag();
 
- public:
-  void setNodeCommSize(FSCommPattern<int> *, int d = 1);
-  void setNodeCommSize(FSCommPattern<double> *, int d = 1);
-  void setNodeCommSize(FSCommPattern<DComplex> *, int d = 1);
-  void setDofCommSize(FSCommPattern<int> *);
-  void setDofCommSize(FSCommPattern<double> *);
-  void setDofCommSize(FSCommPattern<DComplex> *);
-  void setDofPlusCommSize(FSCommPattern<double> *);
-  void setDofPlusCommSize(FSCommPattern<DComplex> *);
-  void setRbmCommSize(int numRBM, FSCommPattern<double> *);
-  void setRbmCommSize(int numRBM, FSCommPattern<DComplex> *);
+public:
+	void setNodeCommSize(FSCommStructure *, int d = 1) const ;
+	/// \copydoc
+	void setDofCommSize(FSCommStructure *) const;
+	void setDofPlusCommSize(FSCommStructure *) const;
+	void setRbmCommSize(int numRBM, FSCommStructure *) const;
 
   // for timing file
   double getSharedDofCount();
@@ -510,14 +504,14 @@ class GenSubDomain : public BaseSub
   void fetiBaseOp(Scalar *uc,GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec);
   void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta);
   void interfaceJump(Scalar *iterfData, FSCommPattern<Scalar> *vPat);
-  void sendInterf(Scalar *interfvec, FSCommPattern<Scalar> *vPat);
+  void sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const;
   void extractAndSendInterf(Scalar *subvec, FSCommPattern<Scalar> *pat);
   void assembleInterf(Scalar *subvec, FSCommPattern<Scalar> *pat);
   void splitInterf(Scalar *subvec);
   void assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat);
-  void getHalfInterf(Scalar *s, Scalar *t);
-  void getHalfInterf(Scalar *s, Scalar *t, Scalar *ss, Scalar *tt);
-  void scatterHalfInterf(Scalar *s, Scalar *loc);
+  void getHalfInterf(const Scalar *s, Scalar *t) const;
+  void getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const;
+  void scatterHalfInterf(const Scalar *s, Scalar *loc) const;
   void rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat);
   void renumberElements();
   void renumberElementsGlobal();

@@ -1120,7 +1120,7 @@ GenSubDomain<Scalar>::collectNode(Scalar (*subvec)[11], FSCommPattern<Scalar> *p
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::sendInterf(Scalar *interfvec, FSCommPattern<Scalar> *vPat)
+GenSubDomain<Scalar>::sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const
 {
   int iDof = 0;
   for(int i = 0; i < scomm->numT(SComm::all); ++i) {
@@ -1929,7 +1929,7 @@ GenSubDomain<Scalar>::factorKrr()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::getHalfInterf(Scalar *s, Scalar *t)
+GenSubDomain<Scalar>::getHalfInterf(const Scalar *s, Scalar *t) const
 {
   int iTg = 0;
   int i;
@@ -1939,7 +1939,7 @@ GenSubDomain<Scalar>::getHalfInterf(Scalar *s, Scalar *t)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::getHalfInterf(Scalar *s, Scalar *t, Scalar *ss, Scalar *tt)
+GenSubDomain<Scalar>::getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const
 {
   int iTg = 0;
   int i;
@@ -1952,7 +1952,7 @@ GenSubDomain<Scalar>::getHalfInterf(Scalar *s, Scalar *t, Scalar *ss, Scalar *tt
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::scatterHalfInterf(Scalar *s, Scalar *buffer)
+GenSubDomain<Scalar>::scatterHalfInterf(const Scalar *s, Scalar *buffer) const
 {
   // note: need to send s[iTg] of mpc master to all neighbors
   int iTg = 0;

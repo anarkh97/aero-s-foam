@@ -5,6 +5,7 @@
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/ControlLawInfo.h>
 #include <Feti.d/DistrVector.h>
+#include <Feti.d/FetiSub.h>
 #include <Corotational.d/Corotator.h>
 #include <Math.d/DistVector.h>
 #include <Utils.d/MyComplex.h>
@@ -53,35 +54,6 @@ class DistrComplexVector;
 template <class Scalar> class GenSparseMatrix;
 typedef GenSparseMatrix<double> SparseMatrix;
 template <class Scalar> class GenMpcSparse;
-
-/** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
-class FetiBaseSub {
-public:
-	/** \brief Obtain the number of neighbor subdomains. */
-	virtual int numNeighbors() const = 0;
-	/** \brief Obtain the size of the interface of this subdomain. */
-	virtual int interfLen() const = 0;
-	/** \brief Obtain the size of the half interface for which this subdomain is the master. */
-	virtual int halfInterfLen() const = 0;
-	/** \brief Obtain the index of this subdomain in the global system. */
-	virtual int subNum() const = 0;
-	/** \brief Set the communication size in the pattern.
-	 * TODO abstract FSCommPattern to isolate the scalar type.
-	 *
-	 * @param numRBM The number of RBMs for which the setup should be done.
-	 * @param pattern The pattern to adjust.
-	 */
-	virtual void setRbmCommSize(int numRBM, FSCommStructure *pattern) const = 0;
-	/** \brief Set the communication pattern from this subdomain to its neighbors for a RHS or solution vector. */
-	virtual void setDofCommSize(FSCommStructure *) const = 0;
-
-	virtual void setCommSize(FSCommStructure *pat, int size) const = 0;
-
-	virtual int localSubNum() const = 0;
-	virtual int localLen() const = 0;
-
-	virtual int getNumUnconn() const = 0;
-};
 
 class BaseSub : virtual public Domain , virtual public FetiBaseSub
 {
@@ -173,7 +145,7 @@ public:
 	double *neighbYmod, *neighbPrat, *neighbDens, *neighbThih, *neighbSspe;  // neighbor's values
 
 	int dofWeight(int i) { return weight[i]; }
-	int crnDofLen()            { return crnDofSize; }
+	int crnDofLen() const  { return crnDofSize; }
 	IntFullM* getC(int &crnDofSize, FSCommPattern<int> *sPat);
 	void showExchangeData();
 	void countCornerDofs(int *cWeight);
@@ -184,23 +156,23 @@ public:
 	void setOutputNodes(int, int *, int *);
 	int *getOutputNodes()       { return outputNodes; }
 	int *getOutIndex()          { return outIndex; }
-	int getNumNodalOutput()     { return numNodalOutput; }
+	int getNumNodalOutput() const { return numNodalOutput; }
 #endif
 	int getBC(BCond *, int, int *, BCond *&);
 	void setGlNodes(int *globalNodeNums) { glNums = globalNodeNums; }
 	int *getGlNodes()           { return glNums; }
 	int *getGlElems()           { return glElems; }
 	int *getGlMPCs()            { return localToGlobalMPC; }
-	int glToPackElem(int e)     { return (geoSource->glToPackElem(e) > globalEMax) ? -1 : glToLocalElem[geoSource->glToPackElem(e)]; }
+	int glToPackElem(int e) const { return (geoSource->glToPackElem(e) > globalEMax) ? -1 : glToLocalElem[geoSource->glToPackElem(e)]; }
 	int *getSensorDataMap()     { return locToGlSensorMap; }
 	int *getActuatorDataMap()   { return locToGlActuatorMap; }
 	int *getUserDispDataMap()   { return locToGlUserDispMap; }
 	int *getUserForceDataMap()  { return locToGlUserForceMap; }
 	int countElemNodes();
-	int numMPCs()               { return numMPC; }
-	int numMPCs_primal()        { return numMPC_primal; }
+	int numMPCs() const         { return numMPC; }
+	int numMPCs_primal() const  { return numMPC_primal; }
 	int globalNumNodes();
-	int numNodes()              { return numnodes; }
+	int numNodes() const        { return numnodes; }
 	int findProfileSize();
 	int renumberBC(int *);
 	void makeGlobalToLocalNodeMap();
@@ -215,7 +187,7 @@ public:
 	int* makeIMaps(DofSetArray *dofsetarray=0);
 	int subNum() const override  { return subNumber; }
 	int localSubNum() const override { return localSubNumber; }
-	int getNumUnconn() const override { return numUncon(); }
+	int getNumUncon() const override { return numUncon(); }
 	int localLen() const override { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
 	ConstrainedDSA * getCCDSA()  { return (cc_dsa) ? cc_dsa : c_dsa; }
 	int localRLen() const        { return cc_dsa->size(); }
@@ -242,12 +214,12 @@ public:
 	bool checkForColinearCrossPoints(int numCornerPoints, int *localCornerPoints);
 	void addCornerPoints(int *glCornerList);
 	int *getLocalCornerNodes()  { return cornerNodes; }
-	int numCorners()	      { return numCRN; }
+	int numCorners() const { return numCRN; }
 	int *getCornerNodes()       { return glCornerNodes; }
-	int numCornerDofs()	      { return numCRNdof; }
+	int numCornerDofs()	const { return numCRNdof; }
 	int numCoarseDofs();
-	int nCoarseDofs()           { return nCDofs; }
-	int numEdgeDofs(int i)      { return edgeDofSize[i]; }
+	int nCoarseDofs()  const { return nCDofs; }
+	int numEdgeDofs(int i) const { return edgeDofSize[i]; }
 
 	// variables and routines for parallel GRBM algorithm and floating bodies projection
 	// and MPCs (rixen method)
@@ -442,25 +414,6 @@ public:
 	Connectivity* precNodeToNode;
 #endif
 };
-
-/** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
-template <typename Scalar>
-class FetiSub : virtual public FetiBaseSub {
-public:
-	virtual void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const = 0;
-	virtual void getQtKQ(GenSolver<Scalar> *s) = 0;
-	virtual void getQtKQ(int iMPC, Scalar *QtKQ) = 0;
-	virtual Scalar getMpcRhs(int iMPC) const = 0;
-	virtual Scalar getMpcRhs_primal(int iMPC) const = 0;
-	// TODO Figure out how to make this const.
-	virtual void sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPat) = 0;
-	virtual void factorKii() = 0;
-	virtual void sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const = 0;
-	virtual void scatterHalfInterf(const Scalar *s, Scalar *loc) const = 0;
-	virtual void getHalfInterf(const Scalar *s, Scalar *t) const = 0;
-	virtual void getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const = 0;
-};
-
 
 template<class Scalar>
 class GenSubDomain : public BaseSub , public FetiSub<Scalar>

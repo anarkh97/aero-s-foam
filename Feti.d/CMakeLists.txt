@@ -4,7 +4,7 @@ ADD_LIBRARY(Feti
         FetiCore.C
         FetiOpCore.C
         NLFetiCore.C
-        CCtSolver.d/BlockCCt.C)
+        CCtSolver.d/BlockCCt.C FetiSub.h)
 
 SET(INC_DIR ..)
 

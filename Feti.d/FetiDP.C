@@ -80,7 +80,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
                   Connectivity *_mpcToCpu, Connectivity *_cpuToSub, Connectivity *_bodyToSub,
                   GenSolver<Scalar> **sysMatrices, GenSparseMatrix<Scalar> **sysSparse,
                   Rbm **, bool _rbmFlag, bool _geometricRbms, int _verboseFlag)
- : GenFetiSolver<Scalar>(_nsub, threadManager->numThr(), _verboseFlag), internalR(_nsub), internalC(_nsub), internalWI(_nsub) 
+ : GenFetiSolver<Scalar>(_nsub, _sd, threadManager->numThr(), _verboseFlag), internalR(_nsub), internalC(_nsub), internalWI(_nsub)
 {
  initialize();
 

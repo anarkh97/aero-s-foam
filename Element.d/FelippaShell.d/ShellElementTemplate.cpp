@@ -1492,18 +1492,16 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   doublereal temp;
 
   Eigen::Matrix<doublereal,9,3> Lb, Lm;
-  Eigen::Matrix<doublereal,3,9> Bb, Bm;
-  Eigen::Matrix<doublereal,3,3> eframe, gframe = Eigen::Matrix<doublereal,3,3>::Identity();
-  Eigen::Matrix<doublereal,18,18> de_disp_du;
+  Eigen::Matrix<doublereal,6,18> B;
+  Eigen::Matrix<doublereal,3,3> eframe;
   Eigen::Map<Eigen::Matrix<doublereal,3,18> > vmsWRTdisp(_vmsWRTdisp);
   Eigen::Matrix<doublereal,18,1> vd;
   Eigen::Map<Eigen::Matrix<doublereal,18,1> > v(_v);
-  Eigen::Matrix<doublereal,18,18> Eframe;
   Eigen::Matrix<doublereal,3,18> dsigmadu;
   Eigen::Matrix<doublereal,3,1> sigma, epsilon;
   Eigen::Matrix<doublereal,6,18> dUpsilondu;
   Eigen::Matrix<doublereal,6,1> Upsilon, Sigma;
-  Eigen::Matrix<doublereal, 6, 18> dSigmadu;
+  Eigen::Matrix<doublereal,6,18> dSigmadu;
   dSigmadu.setZero();
 
   // Some convenient definitions 
@@ -1511,6 +1509,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     e = Upsilon.head(3), chi = Upsilon.tail(3);
   Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1> >
     N = Sigma.head(3), M = Sigma.tail(3);
+  Eigen::Block< Eigen::Matrix<doublereal,6,18>,3,9 >
+    Bm = B.template topLeftCorner<3,9>(),     Bmb = B.template topRightCorner<3,9>(),
+    Bbm = B.template bottomLeftCorner<3,9>(), Bb = B.template bottomRightCorner<3,9>();
+  Bmb.setZero(); Bbm.setZero();
 
 // ==================================================================== 
 //                                                                      
@@ -1545,14 +1547,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....GET THE ELEMENT LEVEL FRAME
 
     andescrd(elm, X, Y, Z, eframe.data(), xlp, ylp, zlp, area);
-    Eigen::Matrix<doublereal,3,3> zeros;
-    zeros.setZero();
-    Eframe << eframe.transpose(), zeros, zeros, zeros, zeros, zeros,
-              zeros, eframe.transpose(), zeros, zeros, zeros, zeros, 
-              zeros, zeros, eframe.transpose(), zeros, zeros, zeros,  
-              zeros, zeros, zeros, eframe.transpose(), zeros, zeros,
-              zeros, zeros, zeros, zeros, eframe.transpose(), zeros, 
-              zeros, zeros, zeros, zeros, zeros, eframe.transpose(); 
 
 //     --------------------------------------------------- 
 //     STEP 2                                              
@@ -1579,19 +1573,12 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     for(i = 0; i < 18; i += 3)
         vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
 
-//     ----------------------------------------------------- 
-//     STEP 5                                                
-//     COMPUTE THE ELEMENTAL EXTENSION AND CURVATURE VECTORS 
-//     AND THEIR SENSITIVITIES                               
-//     ----------------------------------------------------- 
-
     Eigen::Matrix<int,18,1> indices;
     indices << 0, 1, 6, 7, 12, 13, 5, 11, 17, // M indices
                2, 3, 4, 8, 9, 10, 14, 15, 16; // B indices
     Eigen::PermutationMatrix<18,18,int> P(indices);
 
     vd = P.transpose()*vd;
-    de_disp_du = P.transpose()*Eframe;
 
 // .....COMPUTE THE Z- COORDINATE OF THE SELECTED SURFACE
 
@@ -1602,42 +1589,26 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal zeta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
+//     ----------------------------------------------------- 
+//     STEP 5                                                
+//     COMPUTE THE ELEMENTAL EXTENSION AND CURVATURE VECTORS 
+//     AND THEIR SENSITIVITIES                               
+//     ----------------------------------------------------- 
+
         if(sflg == 0) {
-// .....ELEMENTAL CURVATURE COMPUTATION
-
-            chi = (1./area)*Lb.transpose()*vd.tail(9);
-
-// .....ELEMENTAL EXTENSION COMPUTATION
-
-            e = (1./area)*Lm.transpose()*vd.head(9);
-
-// .....COMPUTE SENSITIVITY OF THE GENERALIZED STRAINS
-
-            Eigen::Matrix<doublereal,6,18> LB;
-            LB << (1./area)*Lm.transpose(), Eigen::Matrix<doublereal,3,9>::Zero(),
-                  Eigen::Matrix<doublereal,3,9>::Zero(), (1./area)*Lb.transpose();
-
-            dUpsilondu = LB*de_disp_du;
+            Bb = (1./area)*Lb.transpose();
+            Bm = (1./area)*Lm.transpose();
         }
         else {
-// .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
-
             Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
-            chi = Bb*vd.tail(9);
-
-// .....ELEMENTAL EXTENSION COMPUTATION (including now the higher order contribution)
-
             Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
-            e = Bm*vd.head(9);
-
-// .....COMPUTE SENSITIVITY OF THE GENERALIZED STRAINS
-
-            Eigen::Matrix<doublereal,6,18> LB;
-            LB << Bm, Eigen::Matrix<doublereal,3,9>::Zero(),
-                  Eigen::Matrix<doublereal,3,9>::Zero(), Bb;
-
-            dUpsilondu = LB*de_disp_du; 
         }
+
+        chi = Bb*vd.tail(9);
+        e = Bm*vd.head(9);
+
+        dUpsilondu = B*P.transpose();
+        for(int j=0; j<6; j+=3) for(int k=0; k<18; k+=3) dUpsilondu.template block<3,3>(j,k) *= eframe.transpose();
 
 // .....NODAL TEMPERATURE
         temp = (ndtemps) ? ndtemps[i] : nmat->GetAmbientTemperature();
@@ -1692,7 +1663,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CALCULATE DERIVATIVE OF VON MISES EQUIVALENT STRESS WRT NODAL DISPLACEMENTS
 
         doublereal vms = equivstr(sigma[0], sigma[1], 0, sigma[2]);
-        vmsWRTdisp.template block<1,18>(i,0) = equivstrSensitivityWRTdisp(vms, sigma[0], sigma[1], 0, sigma[2], dsigmadu);
+        vmsWRTdisp.row(i) = equivstrSensitivityWRTdisp(vms, sigma[0], sigma[1], 0, sigma[2], dsigmadu);
     }
 
 }
@@ -1969,10 +1940,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
         -1./3., -1./3., 0.;
     dsdu = D*dsigmadu;
 
-    return 3*dsxx/(2*vms)*dsdu.template block<1,18>(0,0) + 
-           3*dsyy/(2*vms)*dsdu.template block<1,18>(1,0) + 
-           3*dszz/(2*vms)*dsdu.template block<1,18>(2,0) + 
-           3*sxy/vms*dsigmadu.template block<1,18>(2,0);
+    return 3*dsxx/(2*vms)*dsdu.row(0) + 
+           3*dsyy/(2*vms)*dsdu.row(1) + 
+           3*dszz/(2*vms)*dsdu.row(2) + 
+           3*sxy/vms*dsigmadu.row(2);
 }
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>

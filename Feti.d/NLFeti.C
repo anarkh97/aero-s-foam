@@ -13,9 +13,6 @@
 #include <Math.d/IntFullM.h>
 #include <Math.d/SymFullMatrix.h>
 #include <Math.d/BigMatrix.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/Skyline.d/BlockSky.h>
-#include <Math.d/BLKSparseMatrix.h>
 #include <Timers.d/GetTime.h>
 
 extern int verboseFlag;
@@ -286,13 +283,9 @@ GenFetiSolver<Scalar>::reBuildGtG()
    // case of Feti 2 dynamic it does betaOffset as well
    paralApplyToAll(this->nsub,fetiOps,&GenFetiOp<Scalar>::reSetAlphaOffsets,eqNums->allOffsets());
 
-   // WARNING: This tolerance is currently hard wired for GtGSolver
-   double tolerance = 1.0E-12;
-   GtGSkyMatrix = new GenSkyMatrix<Scalar>(coarseConnect, eqNums, tolerance);
-
-   opControl->sparseGtG = GtGSkyMatrix;
+   GtGsolver = GenSolverFactory<Scalar>::getFactory()->createDistSolver(coarseConnect, eqNums, *fetiInfo->coarse_cntl, opControl->sparseGtG, this->fetiCom);
  } else
-   GtGSkyMatrix->zeroAll();
+    opControl->sparseGtG->zeroAll();
 
 
  if (isFeti2 && (isDynamic == 0)) {
@@ -308,10 +301,8 @@ GenFetiSolver<Scalar>::reBuildGtG()
  paralApplyToAll(this->nsub, fetiOps, &GenFetiOp<Scalar>::assembleGtQGs);
 
  this->times.pfactor -= getTime();
- GtGSkyMatrix->parallelFactor();
+ GtGsolver->parallelFactor();
  this->times.pfactor += getTime();
-
- GtGsolver = GtGSkyMatrix;
 
  this->times.coarse1 += getTime();
 }

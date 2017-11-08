@@ -7,6 +7,9 @@
 #include <vector>
 #include <Rom.d/EiGalerkinProjectionSolver.h>
 
+extern Communicator * structCom;
+extern GeoSource * geoSource;
+
 class Domain;
 template <class Scalar> class GenSubDomain;
 template <class Scalar> class GenParallelSolver;
@@ -78,6 +81,7 @@ class GenDecDomain
   int outEigCount;
 
   bool soweredInput;
+  bool coarseLevel;
 
   int sizeSfemStress;
   bool firstOutput; 
@@ -86,7 +90,7 @@ class GenDecDomain
   GenBasicAssembler<Scalar> *ba2;
 
  public:
-  GenDecDomain(Domain *d);
+  GenDecDomain(Domain *d, Communicator * = structCom, bool = geoSource->binaryInput, bool = false);
   virtual ~GenDecDomain();
 
   virtual void clean();
@@ -94,6 +98,9 @@ class GenDecDomain
 
   GenSubDomain<Scalar>** getAllSubDomains() { return subDomain; }
   GenSubDomain<Scalar>* getSubDomain(int isub) { return subDomain[isub]; }
+  void setElemToNode(Connectivity *_elemToNode) { elemToNode = _elemToNode; }
+  void setSubToElem(Connectivity *_subToElem) { subToElem = _subToElem; }
+  void setCPUMap(Connectivity *);
   Connectivity * getSubToSub() { return subToSub; }
   Connectivity * getElemToSub() { return elemToSub; }
   Connectivity * getElemToNode() { return elemToNode; }
@@ -159,7 +166,8 @@ class GenDecDomain
   void makeSubDomains();
   void renumberElements(int iSub);
   void createElemToNode();
-  void getSharedNodes();
+  template<class ConnectivityType1, class ConnectivityType2>
+  void getSharedNodes(ConnectivityType1 *, ConnectivityType2 *);
   void addBMPCs();
   void makeSubToSubEtc();
   void preProcessBCsEtc();

@@ -3,8 +3,9 @@
 
 #include <Utils.d/NonlinearInfo.h>
 #include <Utils.d/SensitivityInfo.h>
-#include <Feti.d/FetiInfo.h>
+#include <Solvers.d/SolverCntl.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/OutputInfo.h>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -21,6 +22,8 @@
 #else
  #include <limits>
 #endif
+
+extern SolverCntl default_cntl;
 
 const double defaultTemp = -10000000.0;
 
@@ -131,15 +134,9 @@ struct SolverInfo {
    double mppFactor;  // modal amplification factor for mpp command
 
    // Solver parameters
-   int type;     // 0 = direct, 1 = iterative, 2 = FETI, 3 = Block Diag
-   int subtype;  // subtype ... 9 is mumps  10 is diag
-   int iterType; // 0 = CG, 1 = GMRES, 2 = GCR, 4 = BCG, 5 = CR
-   int iterSubtype; // matrix storage
-   int precond;  // preconditioner 0 = none, 1 = jacobi
-   int maxit;    // maximum number of iterations
-   double tol;   // tolerance for convergence
+   static std::map<int,SolverCntl> solvercntls;
+   SolverCntl* solvercntl;
    int renum;    // renumbering scheme for skyline: 0 = none (default), 1 = sloan, 2 = RCM
-   int maxvecsize;  // for pcg # of krylov vectors to store default = 0
    bool lastIt;
 
    // Time Integration Algorithms
@@ -188,7 +185,7 @@ struct SolverInfo {
    double alphaTemp;
    double newmarkBeta;  // Newmark algorithm parameter (beta)
    double newmarkGamma; // Newmark algorithm parameter (gamma)
-   double newmarkAlphaF;  // Newmark algorithm parameter (alphaf)
+   double newmarkAlphaF; // Newmark algorithm parameter (alphaf)
    double newmarkAlphaM; // Newmark algorithm parameter (alpham)
    int stable;          // 0: do not compute the stability timestep for explicit dynamics
                         // 1: compute stability timestep for explicit dynamics but only use the computed value if 
@@ -203,6 +200,7 @@ struct SolverInfo {
    double epsilon1;
    double epsilon2;
    double qsMaxvel;     // final relaxation parameter in quasi-static alg.
+   double qsMaxvelSen;  // final relaxation parameter in quasi-static sensitivity alg.
    double delta;        // translation factor from time index to real time for quasistatics
    int nRestart;        // how many time steps per restart
    int steadyFlag;      // quasi-transient steady state simulation
@@ -257,8 +255,6 @@ struct SolverInfo {
 
 
    // Rigid Body Mode parameters
-   double trbm;         // algebraic rbm tolerance 
-   double trbm2;        // algebraic rbm tolerance used for sparse/skyline when GRBM is activated
    double tolsvd;       // singular value decomposition tolerance
    int rbmflg;          // 0 = algebraic rbm, 1 = geometric rbm
    std::set<int> rbmFilters; // selective rbm filtering for linear dynamics problems
@@ -270,31 +266,14 @@ struct SolverInfo {
    int condNumMaxit;
 
    int massFlag;
+   std::string massFile;
    int filterFlags;
    int filterQ; // 0 = Q=M for statics/quasistatics, 1 = Q=I for statics/quasistatics
 
    int zeroInitialDisp; // flag to set initial disp to zero
 
-   bool pivot;  // true if pivoting is to be used in spooles solver
-   int spooles_scale; // true if scaling is to be used in spooles solver
-   double spooles_tau;  // used when pivoting is enabled, all entries in L and U have magnitude
-                        // less than or equal to tau, default is 100.
-   double spooles_maxzeros; // see Solvers.d/Spooles.C for description
-   int spooles_maxsize, spooles_maxdomainsize, spooles_seed, spooles_msglvl; // see Solvers.d/Spooles.C for description
-   int spooles_renum; // renumbering scheme for spooles: 0 = best of ND and MS, 1 = MMD, 2 = MS, 3 = ND
-   int sparse_renum;  // renumbering scheme for BLKSparseMatrix: 0 = esmond MMD (default), 1 = metis ND
-   int sparse_maxsup, sparse_defblk;
-
-   double goldfarb_tol;
-
    // YC : sensitivity and optimization parameters
    bool sensitivity;
-
-   // map object for Mumps control CNTL and ICNTL matrices
-   std::map<int, int> mumps_icntl;
-   std::map<int, double> mumps_cntl;
-
-   bool localScaled, coarseScaled;
 
    int curSweepParam;
    std::map<int,SweepParams> sweepParams;
@@ -311,6 +290,7 @@ struct SolverInfo {
    bool isMatching;  // true if only one wet interface is given, otherwise false (default) 
    bool farfield; // true if farfield output requested
 
+   bool dmpc;
    bool dbccheck;
    int contact_mode;
    int contactsurface_mode;
@@ -319,9 +299,6 @@ struct SolverInfo {
    bool noninpc;
    bool inpc;
    int nsample;
-
-   std::map<int, int> debug_icntl;   // used for debugging
-   std::map<int, float> debug_cntl;  // used for debugging
 
    bool iacc_switch; // mech/acou: true --> compute consistent initial second time derivative ie, a^0 = M^{-1}(fext^0 - fint^0 - Cv^0) for a second order differential equation (ie mech/acou)
                      //            false --> a^0 = 0
@@ -371,12 +348,14 @@ struct SolverInfo {
    int numSnap;
    std::vector<std::string> snapfiPodRom;
    std::vector<std::string> robfi;
-   std::vector<double> snapshotWeights;
+   bool flagss, flagrs;
    std::vector<std::string> readInROBorModes;
    std::vector<std::string> readInDualROB; 
    std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
    std::vector<std::string> readInLocalBasesCent;
+   std::map<OutputInfo::Type,int> adjointMap;
    std::map<int,ModalParams> readInModes;
+   std::vector<std::string> readInAdjointROB;
    const char * SVDoutput;
    const char * reducedMeshFile;
    const char * readInShapeSen;
@@ -453,11 +432,12 @@ struct SolverInfo {
    bool galerkinPodRom;
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
-   int  maxSizePodRom;
+   int maxSizePodRom;
    double romEnergy;
    std::vector<int> localBasisSize;
    std::vector<int> localDualBasisSize;
    int  maxSizeDualBasis;
+   std::vector<int> maxSizeAdjointBasis;
    int  maxDeimBasisSize;
    bool selectFullNode;
    bool selectFullElem;
@@ -535,13 +515,12 @@ struct SolverInfo {
    int scpkNP;  // Scalapack column processor grid size
 
    bool useMassAugmentation; // adjust lumped mass matrix for shell element type 15 to increase stability time-step
+   bool quasistatic;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
                   filterQ = 1;
-                  type = 0;     
                   soltyp = -1;
-                  subtype = 0; // By default we use direct Skyline
                   renum = 0;
                   probType = SolverInfo::None;
                   alphaDamp = 0.0;
@@ -591,12 +570,10 @@ struct SolverInfo {
                   sensitivityTol = 1.0e-5; 
                   ratioSensitivityTol = 1.0; 
                   qsMaxvel = 1.0;
+                  qsMaxvelSen = 1.0;
                   qsBeta = 1.0;
                   delta = 0.0;
                   no_secondary = false;
-
-                  trbm = 1.0E-16;   // default zero pivot tolerance
-                  trbm2 = 1.0E-16;  // default zero pivot tolerance
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
                                   
@@ -644,42 +621,17 @@ struct SolverInfo {
                   grbm_use_lmpc = true;
                   buckling = 0;
 
-                  sparse_renum = 0;
-                  sparse_maxsup = 100;
-                  sparse_defblk = 10;
-                  pivot = false;
-                  spooles_scale = 0;
-                  spooles_tau = 100.;
-                  spooles_seed = 532196;
-                  spooles_maxsize = 64;
-                  spooles_maxdomainsize = 24;
-                  spooles_maxzeros = 0.04;
-                  spooles_msglvl = 0;
-                  spooles_renum = 0;
-                  goldfarb_tol = 1.0;
+                  solvercntl = &default_cntl;
+
                   explicitK = false;
                   qrfactorization = false;
                   eigenvaluename = "";
                   xmatrixname = "";
                   qmatrixname = "";
                   rmatrixname = "";
-                  localScaled = false;
-                  coarseScaled = false;
 
                   doFreqSweep = false;
                   doEigSweep = false;
-/*
-                  nFreqSweepRHS = 8;
-                  freqSweepMethod = Taylor;
-                  isAdaptSweep = false;
-                  padeL = 9;
-                  padeM = 10;
-                  padeN = 2;
-                  pade_pivot = false;
-                  pade_tol = 1.0e-16;
-                  pade_poles = false;
-                  pade_poles_sigmaL = 0.0; pade_poles_sigmaU = std::numeric_limits<double>::max();
-*/
                   modeFilterFlag = 0;
                   test_ulrich = false;
                   addedMass = 1;
@@ -688,6 +640,7 @@ struct SolverInfo {
                   isMatching = false; 
                   farfield = false;
 
+                  dmpc = false;
                   dbccheck = true;
                   contact_mode = 1;
                   contactsurface_mode = 1;
@@ -697,7 +650,6 @@ struct SolverInfo {
                   eigenSolverSubType = 0;
                   which = "";
                   arpack_mode = 3;
-                  // CBM: new stuff
                   lbound = 0.0;
                   ubound = 0.0;
                   nshifts = 0;
@@ -716,21 +668,6 @@ struct SolverInfo {
 
                   sloshing = 0;
                   HEV = 0;
-                  
-                  mumps_icntl[3] = 0; // supress diagnostic output
-                  //mumps_icntl[7] = 7; // renumbering, default = 7 (auto)
-                  //mumps_icntl[8] = 7; // scaling, default = 7 (auto)
-                  //mumps_cntl[1] = 0.01; // relative threshold for numerical pivoting (larger value may increase fill in but lead to more accurate factorization)
-
-                  for(int i=0; i<20; ++i) { debug_icntl[i] = 0; debug_cntl[i] = 0.0; }
-
-                  // iterative solver defaults
-                  precond = 0; 
-                  tol = 1.0e-8; 
-                  maxit = 1000;
-                  iterType = 0; 
-                  iterSubtype = 3; 
-                  maxvecsize = 0; 
 
                   iacc_switch = true;
                   zeroRot = false;
@@ -765,6 +702,8 @@ struct SolverInfo {
                   constraint_hess_eps = 0;
 
                   numSnap            = 1;
+                  flagss             = false;
+                  flagrs             = true;
                   readInShapeSen     = "";
                   SVDoutput          = "pod.rob";
                   reducedMeshFile    = "";
@@ -901,6 +840,7 @@ struct SolverInfo {
                   scpkMP             = 0;  // 0 => Scalapack LH solver will use default processor grid 
                   scpkNP             = 0;  // 0 => Scalapack LH solver will use default processor grid
                   useMassAugmentation = true;
+                  quasistatic        = false;
                   piecewise = false;
                   freeplay = false;
                   piecewise_dlambda = 1.0;
@@ -949,10 +889,7 @@ struct SolverInfo {
    int buckling;        // Buckling analysis flag
    void setGEPS() { gepsFlg  = 1; }
 
-   // This could be a pointer to a FetiInfo type
-   FetiInfo fetiInfo;
-
-   FetiInfo &getFetiInfo() { return fetiInfo; }
+   FetiInfo &getFetiInfo() { return solvercntl->fetiInfo; }
 
    // KHP: MOVE TO NonlinearInfo
    void setNewton(int n)     { NLInfo.updateK    = n; }
@@ -986,16 +923,16 @@ struct SolverInfo {
    }
    void setSparseRenum(int renumberid) { 
      switch(renumberid) {
-       case 3 : sparse_renum = 0; break; // esmond MMD
-       case 4 : sparse_renum = 1; break; // metis ND
+       case 3 : solvercntl->sparse_renum = 0; break; // esmond MMD
+       case 4 : solvercntl->sparse_renum = 1; break; // metis ND
      }
    }
    void setSpoolesRenum(int renumberid) {
      switch(renumberid) {
-       case 6 : spooles_renum = 0; break; // spooles best of ND and MS
-       case 3 : spooles_renum = 1; break; // spooles MMD
-       case 5 : spooles_renum = 2; break; // spooles MS
-       case 4 : spooles_renum = 3; break; // spooles ND
+       case 6 : solvercntl->spooles_renum = 0; break; // spooles best of ND and MS
+       case 3 : solvercntl->spooles_renum = 1; break; // spooles MMD
+       case 5 : solvercntl->spooles_renum = 2; break; // spooles MS
+       case 4 : solvercntl->spooles_renum = 3; break; // spooles ND
      }
    }
 
@@ -1003,10 +940,9 @@ struct SolverInfo {
    { 
      if((probType == Top) || (probType == Decomp)) return;
 
-     // PJSA 6-9-04: ignore STATIC keyword if different probType already defined
+     // ignore STATIC keyword if different probType already defined
      if((pbt == Static) && (probType != None)) return; 
 
-     // PJSA 4-2-08
      if((pbt == Dynamic) && (probType != None)) { setDynamicProbType(); return; }
 
      probType = pbt;
@@ -1117,23 +1053,13 @@ struct SolverInfo {
      tolJac = _tolJac; 
    }
 
-   // direct solver
-   void setSolver(int _substype) { type = 0; subtype = _substype;  }
-
-   // iterative solver
-   void setSolver(int _iterType, int _precond, double _tol=1.0e-8, int _maxit=1000,
-                  int _iterSubtype=3, int _maxvecsize=0)
-    { type = 1; precond = _precond; tol = _tol; maxit = _maxit; 
-      iterType = _iterType; iterSubtype = _iterSubtype; maxvecsize = _maxvecsize; 
-    }
-
    void setTrbm(double _tolzpv)
-    { trbm = _tolzpv; mumps_cntl[3] = trbm; }
+    { solvercntl->trbm = _tolzpv; solvercntl->mumps_cntl[3] = solvercntl->trbm; }
 
    void setGrbm(double _tolsvd, double _tolzpv)
-    { trbm2 = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; }
+    { solvercntl->trbm2 = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; }
    void setGrbm(double _tolzpv)
-    { trbm2 = _tolzpv; rbmflg = 1; }
+    { solvercntl->trbm2 = _tolzpv; rbmflg = 1; }
    void setGrbm() 
     { rbmflg = 1; }
 

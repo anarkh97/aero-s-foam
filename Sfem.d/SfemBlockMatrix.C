@@ -1,5 +1,7 @@
 #include <Sfem.d/cijk.h>
 
+extern Sfem *sfem;
+
 template<class Scalar>
 SfemBlockMatrix<Scalar>::SfemBlockMatrix(int in_L, int in_n, int in_P, int in_ndim, int output_order)
 {

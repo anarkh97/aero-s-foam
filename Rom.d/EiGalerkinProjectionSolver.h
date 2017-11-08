@@ -63,6 +63,7 @@ public:
   virtual void factor();
   virtual void refactor();
   virtual void solve(GenVecType<Scalar> &rhs, GenVecType<Scalar> &sol);
+  void fullSolutionIs(bool fullSolution) { fullSolution_ = fullSolution; }
   virtual void reSolve(GenVecType<Scalar> &rhs);
 
   // Reduced basis parameters
@@ -100,6 +101,7 @@ private:
   int  numSub; 
   bool selfadjoint_;
   bool Empirical;
+  bool fullSolution_;
   bool contact_;
   int  basisSize_,    dualBasisSize_; // global basis quantities
   int  startCol_,     blockCols_;     // local bases quantities

@@ -85,16 +85,7 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
  else setVerbose();
 
  matrixTimers = new MatrixTimers;
- senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
- aggregatedStress = new double;
- aggregatedStressDenom = new double;
- *aggregatedStress = 0; 
- *aggregatedStressDenom = 0;
- numThicknessGroups = thicknessGroups.size();
- numStressNodes = stressNodes.size();
- numDispNodes = dispNodes.size();
- numDispDofs = dispDofs.size();
-
+ initializeNumbers();
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
@@ -125,17 +116,8 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 
  if(verboseFlag == 0) setSilent();
  else setVerbose();
-
+ initializeNumbers();
  matrixTimers = new MatrixTimers;
- senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
- aggregatedStress = new double;
- aggregatedStressDenom = new double;
- *aggregatedStress = 0; 
- *aggregatedStressDenom = 0;
- numThicknessGroups = thicknessGroups.size();
- numStressNodes = stressNodes.size();
- numDispNodes = dispNodes.size();
- numDispDofs = dispDofs.size();
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
@@ -152,15 +134,7 @@ Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(ini
  else setVerbose();
 
  matrixTimers = new MatrixTimers;
- senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
- aggregatedStress = new double;
- aggregatedStressDenom = new double;
- *aggregatedStress = 0; 
- *aggregatedStressDenom = 0;
- numThicknessGroups = thicknessGroups.size();
- numStressNodes = stressNodes.size();
- numDispNodes = dispNodes.size();
- numDispDofs = dispDofs.size();
+ initializeNumbers();
 }
 
 void
@@ -219,6 +193,28 @@ Domain::makeAllDOFsFluid()
    int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
    maxNumNodesFluid = std::max(maxNumNodesFluid, numNodesPerElement);
  }
+}
+
+void
+Domain::makeThicknessGroupElementFlag()
+{
+  std::map<int, Group> &group = geoSource->group;
+  std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+  thgreleFlag = new bool[numele];
+  thpaIndex = new int[numele];
+
+  int iele;
+  for(iele=0; iele< numele; iele++) { thgreleFlag[iele] = false; thpaIndex[iele] = -1; }
+  for(int iparam = 0; iparam < thicknessGroups.size(); ++iparam) {
+    int groupIndex = thicknessGroups[iparam];
+    for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {
+      for(int eindex = 0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
+        iele = atoe[group[groupIndex].attributes[aindex]].elems[eindex];
+        thgreleFlag[iele] = true;
+        thpaIndex[iele] = iparam;
+      }
+    }
+  }
 }
 
 // This routine creates the array of boundary condition
@@ -500,7 +496,7 @@ void Domain::normalizeLMPC()
 void Domain::setPrimalLMPCs(int& numDual, int &numPrimal)
 {
  numDual = numLMPC; numPrimal = 0;
- if(solInfo().fetiInfo.mpcflag == 2) { // convert all dual mpcs (type 0) to primal
+ if(solInfo().solvercntl->fetiInfo.mpcflag == 2) { // convert all dual mpcs (type 0) to primal
    for(int i=0; i<numLMPC; i++)
      if(lmpc[i]->type == 0) {
        lmpc[i]->type = 3;
@@ -509,7 +505,7 @@ void Domain::setPrimalLMPCs(int& numDual, int &numPrimal)
      }
  }
 /*
- if(solInfo().fetiInfo.cmpc) { // convert corner bmpcs (type 2) to primal
+ if(solInfo().solvercntl->fetiInfo.cmpc) { // convert corner bmpcs (type 2) to primal
    if(cornerWeight) {
      for(int i=0; i<numLMPC; i++)
        if(lmpc[i]->type == 2) {
@@ -1023,7 +1019,8 @@ Domain::gravityFlag()
     return 0;
   }
   else {
-    return (gravityAcceleration ? 1: 0) || (domain->solInfo().soltyp == 2);
+//    return (gravityAcceleration ? 1: 0) || (domain->solInfo().soltyp == 2);
+    return (gravityAcceleration ? 1: 0); // 101416 JAT
   }
 }
 
@@ -1349,7 +1346,7 @@ Domain::setUpData(int topFlag)
   numele = geoSource->getElems(packedEset);
   numele = packedEset.last();
 
-  if(sinfo.type == 0) {
+  if(sinfo.solvercntl->type == 0) {
     if(numLMPC && domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc) {
       if(elemToNode == 0) elemToNode = new Connectivity(&packedEset);
       if(nodeToElem == 0) nodeToElem = elemToNode->reverse();
@@ -1753,7 +1750,7 @@ Domain::getRenumbering()
  // get number of nodes (actually, this is the maximum node number when there are gaps in the node numbering)
  numnodes = nodeToNode->csize();
 
- if(solInfo().type == 0 || solInfo().type == 1) makeNodeToNode_sommer(); // single domain solvers
+ if(solInfo().solvercntl->type == 0 || solInfo().solvercntl->type == 1) makeNodeToNode_sommer(); // single domain solvers
 
  // delete any previously allocated memory
  if(renumb.order) { delete [] renumb.order; renumb.order=0; }
@@ -1788,12 +1785,12 @@ Domain::getRenumbering()
      nodecount++;
    }
 
- if(domain->solInfo().rbmflg == 1 && renumb.numComp > 1 && sinfo.type == 0 && sinfo.subtype == 1) {
+ if(domain->solInfo().rbmflg == 1 && renumb.numComp > 1 && sinfo.solvercntl->type == 0 && sinfo.solvercntl->subtype == 1) {
    filePrint(stderr, "\x1B[31m *** WARNING: GRBM with sparse solver is not \n"
                           "     supported for multi-component models.  \x1B[0m\n");
  }
 
- if(renumb_nompc.order && renumb_nompc.numComp > 1 && sinfo.type == 0 && (sinfo.subtype == 0 || sinfo.subtype == 1)) {
+ if(renumb_nompc.order && renumb_nompc.numComp > 1 && sinfo.solvercntl->type == 0 && (sinfo.solvercntl->subtype == 0 || sinfo.solvercntl->subtype == 1)) {
    // altering the ordering for skyline or sparse with LMPCs due to requirements of GRBM
    DofSetArray *dsa = new DofSetArray(numnodes, packedEset, renumb.renum);
    ConstrainedDSA *c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc);
@@ -1815,7 +1812,7 @@ Domain::getRenumbering()
        count += c_dsa->weight(inode);
 #ifdef USE_EIGEN3
        if(dsa->weight(inode) == 6) check = false;
-       if(count > sinfo.sparse_defblk) {
+       if(count > sinfo.solvercntl->sparse_defblk) {
          if(!check) break;
          else {
            // check for co-linearity XXX this could/should be done even for case with no LMPCs
@@ -1829,13 +1826,13 @@ Domain::getRenumbering()
          }
        }
 #else
-       if(count > sinfo.sparse_defblk) break;
+       if(count > sinfo.solvercntl->sparse_defblk) break;
 #endif
      }
      min_defblk += count;
    }
    delete c_dsa; delete dsa;
-   sinfo.sparse_defblk = std::max(sinfo.sparse_defblk, min_defblk);
+   sinfo.solvercntl->sparse_defblk = std::max(sinfo.solvercntl->sparse_defblk, min_defblk);
  }
 
  //if(sinfo.renum > 0 && verboseFlag && renumb.numComp > 1)
@@ -2131,19 +2128,23 @@ Domain::getElementAttr(int fileNumber,int iAttr,double time) {
 
      int NodesPerElement = elemToNode->num(iele);
 
-     switch (iAttr) {
-     case YOUNG:
-       eleattr=packedEset[iele]->getProperty()->E;
-       break;
-     case MDENS:
-       eleattr=packedEset[iele]->getProperty()->rho;
-       break;
-     case THICK:
-       eleattr=packedEset[iele]->getProperty()->eh;
-       break;
-     default:
-       assert(0);
+     if (packedEset[iele]->getProperty()!=0) {
+       switch (iAttr) {
+       case YOUNG:
+         eleattr=packedEset[iele]->getProperty()->E;
+         break;
+       case MDENS:
+         eleattr=packedEset[iele]->getProperty()->rho;
+         break;
+       case THICK:
+         eleattr=packedEset[iele]->getProperty()->eh;
+         break;
+       default:
+         assert(0);
+       }
      }
+     else
+       eleattr = 0.0;
 
      for(k=0; k<NodesPerElement; ++k) {
        nodattr[(*elemToNode)[iele][k]]  += eleattr;
@@ -3267,7 +3268,18 @@ Domain::pressureFlag() { return geoSource->pressureFlag(); }
 // function that returns composite layer info
 LayInfo *Domain::getLayerInfo(int num) { return geoSource->getLayerInfo(num); }
 
-
+void
+Domain::initializeNumbers()
+{
+ numThicknessGroups = 0; numShapeVars = 0;  thgreleFlag = 0;  thpaIndex = 0;
+ senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ aggregatedStress = new double;
+ aggregatedStressDenom = new double;
+ *aggregatedStress = 0;
+ *aggregatedStressDenom = 0;
+ numStressNodes = stressNodes.size();
+ numDispNodes = dispNodes.size();
+}
 
 void
 Domain::initialize()
@@ -3306,7 +3318,10 @@ Domain::initialize()
  g_dsa = 0;
  numSensitivity = 0; senInfo = 0;
  runSAwAnalysis = false;   
- numThicknessGroups = 0; numShapeVars = 0;
+ aggregatedFlag = false;
+ aggregatedFileNumber = 0;
+ numSensitivityQuantityTypes = 0;
+ numTotalDispDofs = 0;
 }
 
 Domain::~Domain()
@@ -3380,6 +3395,8 @@ Domain::~Domain()
  if(g_dsa) delete g_dsa;
  if(senInfo) delete [] senInfo;
  if(aggregatedStress) delete aggregatedStress;
+ if(thgreleFlag) delete [] thgreleFlag;
+ if(thpaIndex) delete [] thpaIndex;
 }
 
 #include <Element.d/Helm.d/HelmElement.h>
@@ -3622,7 +3639,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
    // 1. select direction for initial cross product... use z unless normal is parallel or close to parallel to z axis, in which case use y
    double n[3] = { nx, ny, nz };
    double t1[3], t2[3];
-   if(!(nx < 0.1 && ny < 0.1) || solInfo().fetiInfo.spaceDimension == 2) { t2[0] = 0.0; t2[1] = 0.0; t2[2] = 1.0; }
+   if(!(nx < 0.1 && ny < 0.1) || solInfo().solvercntl->fetiInfo.spaceDimension == 2) { t2[0] = 0.0; t2[1] = 0.0; t2[2] = 1.0; }
    else if(!(nx < 0.1 && nz < 0.1)) { t2[0] = 0.0; t2[1] = 1.0; t2[2] = 0.0; }
    else { t2[0] = 1.0; t2[1] = 0.0; t2[2] = 0.0; }
    crossprod(n,t2,t1);
@@ -3636,7 +3653,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
                                     LMPCTerm *term2 = new LMPCTerm(n2, 2, -t1[2]); _TGT1->addterm(term2); }
    _TGT1->setSource(mpc::NodalContact);
    addLMPC(_TGT1,false);
-   if(solInfo().fetiInfo.spaceDimension == 3) {
+   if(solInfo().solvercntl->fetiInfo.spaceDimension == 3) {
      crossprod(n,t1,t2);
      normalize(t2);
      LMPCons *_TGT2 = new LMPCons(0, 0.0);
@@ -4344,39 +4361,58 @@ void Domain::updateRUBDAFT(StructProp* p, double omega) {
 void Domain::buildSensitivityInfo()
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
+  bool weight(false), aggregatedStressVMSensitivity(false), vonMisesStress(false), displacement(false), noAggregatedStressVM(true);
   int numOutInfo = geoSource->getNumOutInfo();
   for(int i=0; i<numOutInfo; ++i) {
     if(oinfo[i].type == OutputInfo::WeigThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;       addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;
+      addSensitivity(oinfo[i]);  weight = true;
     } else if (oinfo[i].type == OutputInfo::WeigShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;           addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;
+      addSensitivity(oinfo[i]);  weight = true;
     } else if (oinfo[i].type == OutputInfo::AGstThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTthickness;     addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTthickness;
+      addSensitivity(oinfo[i]);  aggregatedStressVMSensitivity = true;   aggregatedFileNumber = i;
     } else if (oinfo[i].type == OutputInfo::AGstShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTshape;         addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::AggregatedStressVMWRTshape;
+      addSensitivity(oinfo[i]);  aggregatedStressVMSensitivity = true;   aggregatedFileNumber = i;
     } else if (oinfo[i].type == OutputInfo::VMstThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;     addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;
+      addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;         addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;
+      addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstMach) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTmach;          addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTmach;
+      addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstAlpha) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTalpha;         addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTalpha;
+      addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::VMstBeta) {
-      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTbeta;          addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTbeta;
+      addSensitivity(oinfo[i]);  vonMisesStress = true;
     } else if (oinfo[i].type == OutputInfo::DispThic) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTthickness; addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTthickness;
+      addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispShap) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTshape;     addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTshape;
+      addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispMach) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTmach;      addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTmach;
+      addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispAlph) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTalpha;     addSensitivity(oinfo[i]);
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTalpha;
+      addSensitivity(oinfo[i]);  displacement = true;
     } else if (oinfo[i].type == OutputInfo::DispBeta) {
-      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTbeta;      addSensitivity(oinfo[i]);
-    }
-    numSensitivity++;
+      senInfo[numSensitivity].type = SensitivityInfo::DisplacementWRTbeta;
+      addSensitivity(oinfo[i]);  displacement = true;
+    } else if (oinfo[i].type == OutputInfo::AggrStVM) noAggregatedStressVM = false;
   }
+  if(aggregatedStressVMSensitivity) numSensitivityQuantityTypes++;
+  if(vonMisesStress) numSensitivityQuantityTypes++;
+  if(displacement) numSensitivityQuantityTypes++;
+  if(aggregatedStressVMSensitivity && noAggregatedStressVM) aggregatedFlag = true;
+
 }
 
 void Domain::addSensitivity(OutputInfo &oinfo) {
@@ -4385,4 +4421,5 @@ void Domain::addSensitivity(OutputInfo &oinfo) {
   if(oinfo.type != OutputInfo::WeigThic && oinfo.type != OutputInfo::WeigShap) {
     runSAwAnalysis = true;
   }
+  numSensitivity++;
 }

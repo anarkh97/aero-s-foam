@@ -148,7 +148,8 @@ Tetrahedral::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 }
 
 void
-Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                                CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                 double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
    if(strInd != 6) {
@@ -204,6 +205,8 @@ Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vect
       for(int j=0; j<4; ++j) 
         for(int k=0; k<6; ++k)
           dStdDisp[i][j] += dvmsdStress[j][k]*elStressSen[j][i][k];
+
+    if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }
 
 void
@@ -251,9 +254,6 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
   Simo::Jacobian<double,TetraElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
   dStressdx = dSdx(q, 0);
   dStdx.copy(dStressdx.data());
-#ifdef SENSITIVITY_DEBUG 
-  if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
-#endif
 
 #else
   std::cerr << " ... Error! Tetrahedral::getVonMisesNodalCoordinateSensitivity needs Eigen library.\n";

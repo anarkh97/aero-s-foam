@@ -15,6 +15,7 @@ class DofSetArray;
 class Connectivity;
 template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;
+class SolverCntl;
 
 #include <Math.d/SparseMatrix.h>
 #include <Utils.d/MyComplex.h> 
@@ -22,9 +23,10 @@ typedef GenFullM<double> FullM;
 
 template<class Scalar>
 class GenBLKSparseMatrix :
-        public SparseData, public GenSparseMatrix<Scalar>, public GenSolver<Scalar> {
-
+        public SparseData, public GenSparseMatrix<Scalar>, public GenSolver<Scalar>
+{
 protected:
+   SolverCntl& scntl;
 
    Scalar *unonz;
 
@@ -65,19 +67,18 @@ protected:
    int *ipcol;
    int *def;
 
-   int spRenum; // 0 = esmond, 1 = metis
    bool myRbm;
 
  public:
 
    // Stiffness matrix
    GenBLKSparseMatrix(Connectivity *, DofSetArray *, DofSetArray *,
-                      double tolerance, int spRenum = 0, Rbm *rbm = 0);
+                      double tolerance, SolverCntl& _scntl, Rbm *rbm = 0);
    // Kii
    GenBLKSparseMatrix(Connectivity *, DofSetArray *, int *dofmap,
-                      double tolerance, int spRenum = 0);
+                      double tolerance, SolverCntl& _scntl);
    // GtG, Kcc
-   GenBLKSparseMatrix(Connectivity *, EqNumberer *, double tolerance, int spRenum = 0, int ngrbm = 0);
+   GenBLKSparseMatrix(Connectivity *, EqNumberer *, double tolerance, SolverCntl& _scntl, int ngrbm = 0);
 
    virtual ~GenBLKSparseMatrix();
 
@@ -145,20 +146,14 @@ class WrapSparseMat : public GenBLKSparseMatrix<Scalar>
       Connectivity *cn;
       DofSetArray *dsa, *cdsa;
       double trbm;
+      SolverCntl& scntl;
       Rbm *rbm;
-      int spRenum;
-      CtorData(Connectivity *c, DofSetArray *d, DofSetArray *dc, double t, int sr, Rbm *r) {
-        cn = c;
-        dsa = d;
-        cdsa = dc;
-        trbm = t;
-        spRenum = sr;
-        rbm = r;
-      }
+      CtorData(Connectivity *c, DofSetArray *d, DofSetArray *dc, double t, SolverCntl& _scntl, Rbm *r)
+       : cn(c), dsa(d), cdsa(dc), trbm(t), scntl(_scntl), rbm(r) {} 
     };
 
     WrapSparseMat(CtorData &ctd) : GenBLKSparseMatrix<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa,
-        ctd.trbm, ctd.spRenum, ctd.rbm) {}
+        ctd.trbm, ctd.scntl, ctd.rbm) {}
 };
 
 typedef GenBLKSparseMatrix<double> BLKSparseMatrix;

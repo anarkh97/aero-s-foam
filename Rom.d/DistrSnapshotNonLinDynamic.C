@@ -119,7 +119,7 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::RawImpl(DecDomain *decDomain) :
 
   }
   if(decDomain->getDomain()->solInfo().dsvPodRom){
-    if(decDomain->getDomain()->solInfo().type == 2) {
+    if(decDomain->getDomain()->solInfo().solvercntl->type == 2) {
 
       mpcMasterMapping_ = new DistrMpcMasterMapping(SubDomIt(decDomain->getAllSubDomains()), SubDomIt(decDomain->getAllSubDomains()
                                                     + decDomain->getNumSub()));
@@ -258,7 +258,7 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::dsvarSnapshotAdd(const DistrGeomState
   ++dsvarSkip_;
   if(dsvarSnapFile_ && (dsvarSkip_ >= decDomain_->getDomain()->solInfo().skipDualStateVar)) {
     const int subDomCount = snap.getNumSub();
-    if(decDomain_->getDomain()->solInfo().type == 2) { // FETI-DP with "multipliers" constraint method
+    if(decDomain_->getDomain()->solInfo().solvercntl->type == 2) { // FETI-DP with "multipliers" constraint method
     DistrMasterMapping::SubMasterMappingIt mappingIt = mpcMasterMapping_->begin();
     for (int iSub = 0; iSub < subDomCount; ++iSub) {
       const GeomState     &subSnap = *snap[iSub];

@@ -465,11 +465,11 @@ class Element {
         virtual void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                               double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
-        virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, 
+        virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *, 
                                                         CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                         double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
-        virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, 
+        virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, GenFullM<DComplex> *,
                                                         CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                                         double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 

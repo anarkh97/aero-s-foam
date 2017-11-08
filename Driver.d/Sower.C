@@ -55,7 +55,43 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   for(int i = 0; i<nSub ; i++)
     sizes[i] = subToElem->num(i);
   
-  clusToSub = greedy(sTos,nToS,sToN,sizes,nSub,nClus); 
+  // read clusToSub from file if possible   JAT 021215
+  const char *clusName = "CLUSMAP";
+  FILE *f = fopen(clusName,"r");
+  if (f) {
+    int numCLUS;
+    int r1 = fscanf(f,"%d",&numCLUS);
+    fprintf(stderr, " ... Reading Cluster Map from file %s, numCLUS = %d ... \n", clusName, numCLUS);
+    if(numCLUS != nClus) {
+      fprintf(stderr, " *** ERROR: CLUSMAP file is for %d clusters\n", numCLUS);
+      exit(-1);
+    }
+    int *clusp = new int[nClus+2];
+    int *subs = new int[nSub+1];
+    int nSubFile = 0;
+    int i, j, k = 0, m, n;
+    clusp[0] = k;
+    for(i = 0; i < nClus; i++) {
+      int r2 = fscanf(f,"%d",&n);
+      for(j = 0; j < n; j++) {
+	int r3 = fscanf(f,"%d",&m);
+        if (m > nSubFile) nSubFile = m;
+	if(k == nSub) {
+	  fprintf(stderr, " *** ERROR: CLUSMAP file has too many subdomains\n");
+	  exit(-1);
+	}
+	subs[k++] = m-1;
+      }
+      clusp[i+1] = k;
+    }
+    fclose(f);
+    if(nSubFile != nSub) {
+      fprintf(stderr, " *** ERROR: CLUSMAP file is for %d subdomains\n", nSubFile);
+      exit(-1);
+    }
+    clusToSub = new Connectivity(nClus, clusp, subs);
+  } else
+    clusToSub = greedy(sTos,nToS,sToN,sizes,nSub,nClus); 
   //addParentToChildData<Elemset*,Connectivity*>(ELEMENTS,CLUSTER,0,&eset,clusToSub);
 
 #ifdef SOWER_DEBUG
@@ -64,17 +100,101 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
 #endif   
   // PJSA: write clusToSub file
   BinFileHandler file(subdomains_.c_str(), "w");
+#ifdef SOWER_DISTR
+  subToClus = clusToSub->reverse();
+  subToClus->write(file);
+  // PJSA: write subToElem & subToNode files for each cluster
+#ifdef OLD_CLUSTER
+  Connectivity *elemToClus = eTos->transcon(subToClus);
+  Connectivity *nodeToClus = nToS->transcon(subToClus);
+  bool *selectElem = new bool[elemToClus->csize()];
+  bool *selectNode = new bool[nodeToClus->csize()];
+  for(int i=0; i<nClus; ++i) {
+    std::ostringstream oss;
+    oss << decomposition_ << i+1;
+    BinFileHandler file2(oss.str().c_str(), "w");
+
+    for(int j=0; j<elemToClus->csize(); ++j) {
+      selectElem[j] = false;
+      for(int k=0; k<elemToClus->num(j); ++k)
+        if((*elemToClus)[j][k] == i) { selectElem[j] = true; break; }
+    }
+    Connectivity *elemToSub_i = eTos->subSection(selectElem);
+    Connectivity *subToElem_i = elemToSub_i->reverse();
+    subToElem_i->write(file2);
+    delete elemToSub_i;
+    delete subToElem_i;
+
+    for(int j=0; j<nodeToClus->csize(); ++j) {
+      selectNode[j] = false;
+      for(int k=0; k<nodeToClus->num(j); ++k)
+        if((*nodeToClus)[j][k] == i) { selectNode[j] = true; break; }
+    }
+    Connectivity *nodeToSub_i = nToS->subSection(selectNode);
+    Connectivity *subToNode_i = nodeToSub_i->reverse();
+    subToNode_i->write(file2);
+    delete nodeToSub_i;
+    delete subToNode_i;
+  }
+  delete subToClus;
+  delete elemToClus;
+  delete nodeToClus;
+  delete [] selectElem;
+  delete [] selectNode;
+#else
+  // new method: write enough to reconstruct implict (sparse) connectivities
+  double t1 = getTime();
+  int csize = std::max(eTos->csize(),nToS->csize());
+  int *allptr = new int[csize+1]; for(int i=0; i<csize+1; ++i) allptr[i]=i;
+  //Connectivity *clusToElem = clusToSub->transcon(subToElem);
+  Connectivity *clusToNode = clusToSub->transcon(sToN);
+  Connectivity *clusToSub2 = clusToNode->transcon(nToS);
+  for(int i=0; i<nClus; ++i) {
+    std::ostringstream oss;
+    oss << decomposition_ << i+1;
+    BinFileHandler file2(oss.str().c_str(), "w");
+    Connectivity *cnodeToNode = new Connectivity(clusToNode->num(i),allptr,(*clusToNode)[i],0);
+    Connectivity *cnodeToSub = cnodeToNode->transcon(nToS);
+    Connectivity *subToCnode = cnodeToSub->reverse();
+    Connectivity *subToNode_i = subToCnode->transcon(cnodeToNode);
+    Connectivity *csubToSub2 = new Connectivity(clusToSub2->num(i),allptr,(*clusToSub2)[i],0);
+    Connectivity *csubToNode = csubToSub2->transcon(subToNode_i);
+    csubToNode->sortTargets();
+    csubToSub2->write(file2);
+    csubToNode->writeg(file2);
+    cnodeToNode->writeg(file2);
+    cnodeToSub->write(file2);   
+    delete cnodeToNode;
+    delete cnodeToSub;
+    delete subToCnode;
+    delete subToNode_i;
+    delete csubToSub2;
+    delete csubToNode;
+  }
+  delete [] allptr;
+  //delete clusToElem;
+  delete clusToNode;
+  delete clusToSub2;
+  std::cerr << "elapsed time = " << (getTime()-t1)/1000 << std::endl;
+#endif
+#else
   writeSubFile(file);
   // PJSA: write subToElem & subToNode file (temporary fix, replace with distributed decomposition)
   BinFileHandler file2(decomposition_.c_str(), "w");
   subToElem->write(file2);
   sToN->write(file2);
+#endif
+
   // PJSA: write connectivity file
   BinFileHandler file3(connectivity_.c_str(), "w");
   clusToSub->write(file3);
-  Connectivity *subToSub = sToN->transcon(nToS);
+#ifdef SUBTOSUBINFILE
+  Connectivity *subToSub = sToN->transcon(nToS);  // JAT 110116
   subToSub->write(file3);
   delete subToSub;
+#else
+  file3.write(&nSub,1); // JAT 110116
+#endif
   int nGlobNodes = nToS->csize();
   file3.write(&nGlobNodes,1);
   int nGlobElems = eTos->csize();

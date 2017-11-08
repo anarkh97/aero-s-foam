@@ -217,7 +217,7 @@ GeoSource::~GeoSource()
   if(outputNodes) delete [] outputNodes;
   if(outNodeIndex) delete [] outNodeIndex;
   if(headLen) delete [] headLen;
-  if(subToClus) delete subToClus;
+  if(subToClus) delete [] subToClus;
   if(clusToSub) delete clusToSub;
   if(unsortedSubToElem) delete unsortedSubToElem;
   if(subToCPU) delete [] subToCPU;
@@ -2570,20 +2570,24 @@ void GeoSource::getTextDecomp(bool sowering)
     if(conName) {
       BinFileHandler connectivityFile(conName, "rb");
       clusToSub = new Connectivity(connectivityFile, true);
-      subToClus = clusToSub->reverse();
+      Connectivity *subToClusConnect = clusToSub->reverse();
+      subToClus = new int[numSub];
+      for(int i = 0; i < numSub; i++) subToClus[i] = (*subToClusConnect)[i][0];
+      delete subToClusConnect;
       numClusters = clusToSub->csize();
     }
     else {
-      int* ptr = new int[numSub+1];
-      int* target = new int[numSub];
-      ptr[0] = 0;
-      for(int i=0;i<numSub; i++){
-        ptr[i+1] = ptr[i]+1;
-        target[i] = 0;
-      }
-      subToClus = new Connectivity(numSub,ptr,target);
+      subToClus = new int[numSub];
+      for(int i = 0; i < numSub; i++)
+        subToClus[i] = 0;
       numClusters = 1;
-      clusToSub = subToClus->reverse();
+      int *ptr = new int[2];
+      int *target = new int[numSub];
+      for(int i = 0; i < numSub; i++)
+        target[i] = 0;
+      ptr[0] = 0;
+      ptr[1] = numSub;
+      clusToSub = new Connectivity(1,ptr,target);
       numClusNodes = nGlobNodes;
       numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
     }
@@ -2615,7 +2619,7 @@ void GeoSource::setNumNodalOutput()
 
 int GeoSource::setDirichlet(int _numDirichlet, BCond *_dbc)
 {
-  if(domain->solInfo().fetiInfo.dmpc) {
+  if(domain->solInfo().dmpc) {
     domain->addDirichletLMPCs(_numDirichlet, _dbc);
     return 0;
   }
@@ -3252,16 +3256,29 @@ void GeoSource::readMatchInfo(BinFileHandler &matchFile,
 
 //-------------------------------------------------------------------
 
-int GeoSource::getCPUMap(FILE *f, int numSub)
+int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub)
 {
+  int numSub = glNumSub;
+  if(subToSub)
+    numSub = subToSub->csize();
   int totSub = numSub;
   int numCPU;
   int *connect = new int[totSub];
 
+  if(!cpuToSub) {
 #ifdef DISTRIBUTED
-  if(f == 0) { // Trivial map
+    if(f == 0) { // Trivial map
 
-     numCPU = structCom->numCPUs();
+      numCPU = structCom->numCPUs();
+#ifdef USE_SCOTCH
+      if(subToSub) {
+	if(verboseFlag) filePrint(stderr, " ... Making CPU Map using SCOTCH, numCPU = %d ...\n", numCPU);
+	Connectivity *graph = subToSub->modifyAlt(); // scotch doesn't allow loops
+	cpuToSub = graph->SCOTCH_graphPart(numCPU);
+	delete graph;
+      } else
+#endif
+	{
      if(verboseFlag) filePrint(stderr, " ... Making Trivial CPU Map, numCPU = %d ... \n", numCPU);
      int *cx  = new int[numCPU+1];
      if(subToCPU) delete [] subToCPU;
@@ -3284,68 +3301,25 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
      cx[numCPU] = curSub;
      if(cpuToSub) delete cpuToSub;
      cpuToSub = new Connectivity(numCPU,cx,connect);
-     // cpuToSub->print();
-
-     Connectivity *subDomainToCPU = cpuToSub->reverse();
-     if(cpuToCPU) delete cpuToCPU;
-     cpuToCPU = cpuToSub->transcon(subDomainToCPU);
-     delete subDomainToCPU;
-  }
-  else {
+	}
+    } else {
 #endif
-  int error = fscanf(f,"%d",&numCPU);
-  filePrint(stderr, " ... Reading CPU Map from file %s, numCPU = %d ... \n", mapName, numCPU);
-  if (error == 0) {
+      cpuToSub = new Connectivity(f,totSub);
+      numCPU = cpuToSub->csize();
+      filePrint(stderr, " ... Reading CPU Map from file %s, numCPU = %d ... \n", mapName, numCPU);
 #ifdef DISTRIBUTED
-    filePrint(stderr," *** ERROR: First line of CPU Map file is incorrect.\n");
-    exit(-1);
-#endif
-  }
-
-#ifdef DISTRIBUTED
-  if(numCPU != structCom->numCPUs()) {
-    fprintf(stderr, " *** ERROR: CPUMAP file is for %d MPI processes\n", numCPU);
-    exit(-1);
-  }
-#endif
-
-  int *cx  = new int[numCPU+1];
-  subToCPU = new int[totSub];
-
-  int curSub = 0;
-  int icpu;
-  for (icpu = 0; icpu < numCPU; ++icpu) {
-    int nsub;
-    int n =fscanf(f,"%d",&nsub);
-    cx[icpu] = curSub;
-    if (curSub + nsub > totSub) {
-      fprintf(stderr, "Exiting\n");
-#ifdef USE_MPI
-      if (structCom->myID() == 0)
-#endif
-        fprintf(stderr," *** ERROR: This decomposition contains more subdomains"
-                       " than the Original mesh %d vs %d \n", curSub + nsub, totSub);
-      fflush(stderr);
-      exit(1);
+      if(numCPU != structCom->numCPUs()) {
+	fprintf(stderr, " *** ERROR: CPUMAP file is for %d MPI processes\n", numCPU);
+	exit(-1);
+      }
     }
-    int isub;
-    for (isub=0; isub < nsub; ++isub) {
-      int n =fscanf(f,"%d",connect+curSub);
-      connect[curSub] -= 1;
-      subToCPU[connect[curSub]] = icpu;
-      curSub++;
-    }
+#endif
   }
-  cx[numCPU] = curSub;
-  cpuToSub = new Connectivity(numCPU,cx,connect);
 
   Connectivity *subDomainToCPU = cpuToSub->reverse();
+  if(cpuToCPU) delete cpuToCPU;
   cpuToCPU = cpuToSub->transcon(subDomainToCPU);
   delete subDomainToCPU;
-
-#ifdef DISTRIBUTED
-  }
-#endif
 
   if(domain->solInfo().aeroFlag >= 0 || domain->solInfo().aeroheatFlag >= 0) {
     int numLocSub = 0;
@@ -3379,7 +3353,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
 
       for(int locSub = 0; locSub < numLocSub; ++locSub) {
 
-        char fullDecName[32];
+        char fullDecName[128];
         sprintf(fullDecName, "%s1", decName); // only one cluster currently supported
         BinFileHandler decFile(fullDecName, "rb");
 
@@ -3447,7 +3421,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         matchData[locSub] = new MatchData[numMatchData[locSub]];
         gapVec[locSub] = new double[numMatchData[locSub]][3];
         if(numMatchRanges) {
-          char fullMatchName[32];
+          char fullMatchName[128];
           sprintf(fullMatchName, "%s1", matchName); // only one cluster currently supported
           BinFileHandler matchFile(fullMatchName, "rb");
           readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem, myID);
@@ -4249,8 +4223,8 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  MultiFront mf(&baseSet, &nodes, bool(domain->getNumFSI()), fsglFlag);
 
  // Decompose and optimize the structure into subdomains
- if ( domain->solInfo().isCoupled && (domain->solInfo().type != 2 || 
-      (!domain->solInfo().isMatching && domain->solInfo().fetiInfo.fsi_corner != 0) ) )
+ if ( domain->solInfo().isCoupled && (domain->solInfo().solvercntl->type != 2 || 
+      (!domain->solInfo().isMatching && domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0) ) )
    optDec = mf.decompose(numSubdomains, bool(domain->getNumFSI()));
  else
    optDec = mf.decompose(numSubdomains);
@@ -4680,24 +4654,29 @@ GeoSource::getDecomposition()
     for(i=0; i<nElem; i++) connect[i] = optDec->eln[i];
     subToElem = new Connectivity(numSub,cx,connect);
     subToElem->renumberTargets(glToPckElems);  // required if gaps in element numbering
+
 #ifdef DISTRIBUTED
     if(conName) {
       BinFileHandler connectivityFile(conName, "rb");
       clusToSub = new Connectivity(connectivityFile, true);
-      subToClus = clusToSub->reverse();
+      Connectivity *subToClusConnect = clusToSub->reverse();
+      subToClus = new int[numSub];
+      for(int i = 0; i < numSub; i++) subToClus[i] = (*subToClusConnect)[i][0];
+      delete subToClusConnect;
       numClusters = clusToSub->csize();
     }
     else {
-      int* ptr = new int[numSub+1];
-      int* target = new int[numSub];
-      ptr[0] = 0;
-      for(int i=0;i<numSub; i++){
-        ptr[i+1] = ptr[i]+1;
-        target[i] = 0;
-      }
-      subToClus = new Connectivity(numSub,ptr,target);
+      subToClus = new int[numSub];
+      for(int i = 0; i < numSub; i++)
+        subToClus[i] = 0;
       numClusters = 1;
-      clusToSub = subToClus->reverse();
+      int *ptr = new int[2];
+      int *target = new int[numSub];
+      for(int i = 0; i < numSub; i++)
+        target[i] = 0;
+      ptr[0] = 0;
+      ptr[1] = numSub;
+      clusToSub = new Connectivity(1,ptr,target);
       numClusNodes = nGlobNodes;
       numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
     }
@@ -4710,12 +4689,64 @@ GeoSource::getDecomposition()
 void GeoSource::getBinaryDecomp()
 {
   if(!subToElem) {
+#ifdef SOWER_DISTR
+    int myID = structCom->myID();
+    std::ostringstream oss;
+
+    FILE *f = fopen(mapName,"r"); // JAT 080515
+    if(f == 0) {
+      filePrint(stderr, "*** ERROR: Cannot open CPU Map file %s\n", mapName);
+      exit(-1);
+    }
+    cpuToSub = new Connectivity(f,0);
+    fclose(f);
+    int numCPU = cpuToSub->csize();
+    if(numCPU != structCom->numCPUs()) {
+      fprintf(stderr, " *** ERROR: CPU Map file %s is for %d CPUs\n", mapName, numCPU);
+      exit(-1);
+    }
+
+    int firstSubInCPU = (*cpuToSub)[myID][0]; // JAT 080315
+    oss << decomposition_ << subToClus[firstSubInCPU]+1;
+    BinFileHandler fp(oss.str().c_str(), "rb");
+#else
     BinFileHandler fp(decomposition_.c_str(), "rb");
+#endif
+#ifdef OLD_CLUSTER
     subToElem = new Connectivity(fp);
+    if(!binaryOutput) {delete subToElem; subToElem = 0;} // JAT 021915
     subToNode = new Connectivity(fp);
 #ifdef SOWER_DEBUG
-    std::cerr << "*** subToElem, from decomposition binary file: \n"; subToElem->print();
-    std::cerr << "*** subToNode, from decomposition binary file: \n"; subToNode->print();
+    cerr << "*** subToElem, from decomposition binary file: \n"; subToElem->print();
+    cerr << "*** subToNode, from decomposition binary file: \n"; subToNode->print();
+#endif
+#else
+    ConnectivityT<int,int> *csubToSub2 = new ConnectivityT<int,int>(fp);
+    ConnectivityT<int,GlobalInt> *csubToNode = new ConnectivityT<int,GlobalInt>(fp);
+    ConnectivityT<int,GlobalInt> *cnodeToNode = new ConnectivityT<int,GlobalInt>(fp);
+    ConnectivityT<int,int> *cnodeToSub = new ConnectivityT<int,int>(fp);
+
+    std::map<int,int> glToLocSub2;
+    for(int j=0; j<csubToSub2->csize(); ++j) glToLocSub2.insert(std::pair<int,int>((*csubToSub2)[j][0], j));
+    std::map<GlobalInt,int> glToLocNode;
+    for(int j=0; j<cnodeToNode->csize(); ++j) glToLocNode.insert(std::pair<GlobalInt,int>((*cnodeToNode)[j][0], j));
+
+    SparsePairType1 *subnode = new SparsePairType1(glToLocSub2,csubToNode);
+    subToNode_sparse = new SparseConnectivityType1(subnode);
+
+    SparsePairType2 *nodesub = new SparsePairType2(glToLocNode,cnodeToSub);
+    nodeToSub_sparse = new SparseConnectivityType2(nodesub);
+
+#ifdef SOWER_DEBUG
+    for(int i=0; i<structCom->numCPUs(); ++i) {
+      if(i == structCom->myID()) {
+        //std::cerr << "subToElem_sparse = \n"; subToElem_sparse->print();
+        //std::cerr << "elemToSub_sparse = \n"; elemToSub_sparse->print();
+        std::cerr << "subToNode_sparse = \n"; subToNode_sparse->print();
+        std::cerr << "nodeToSub_sparse = \n"; nodeToSub_sparse->print();
+      }
+    }
+#endif
 #endif
   }
 }
@@ -4727,15 +4758,23 @@ void GeoSource::readGlobalBinaryData()
     BinFileHandler fp2(connectivity_.c_str(), "rb");
     clusToSub = new Connectivity(fp2);
     numClusters = clusToSub->csize();
-    subToClus = clusToSub->reverse();
+    subToClus = new int[clusToSub->getNumTarget()];
+    for(int k = 0; k < clusToSub->csize(); k++)
+      for(int i = 0; i < clusToSub->num(k); i++)
+        subToClus[(*clusToSub)[k][i]] = k;
+    int numSub;
+#ifdef SUBTOSUBINFILE
     subToSub = new Connectivity(fp2);
+    int numSub = subToSub->csize();
+#else
+    fp2.read(&numSub, 1);
+#endif
 #ifdef SOWER_DEBUG
     std::cerr << "*** subToClus, from connectivity binary file: \n"; subToClus->print();
     std::cerr << "*** subToSub, from connectivity binary file: \n"; subToSub->print();
 #endif
 
     // build global to cluster subdomain map
-    int numSub = subToSub->csize();
     gl2ClSubMap = new int[numSub];
     for(int iClus = 0; iClus < numClusters; iClus++)  {
       int clusNum = 0;
@@ -4787,7 +4826,7 @@ void GeoSource::readGlobalBinaryData()
 
 void GeoSource::computeClusterInfo(int glSub, Connectivity *_subToNode)
 {
-  int clusNum = (*subToClus)[glSub][0];
+  int clusNum = subToClus[glSub];
   Connectivity *clusToNode = (_subToNode) ? clusToSub->transcon(_subToNode)
                                           : clusToSub->transcon(subToNode);
   numClusNodes = clusToNode->num(clusNum);

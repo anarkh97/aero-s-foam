@@ -104,7 +104,7 @@ class Shell3CorotatorDefDispFunction : public VectorValuedFunction<18,18,Scalar,
 
       // transform element displacement vector from local to global coordinates
       for(int i = 0; i < 6; ++i) {
-         vld.template segment<3>(i*3 + 3) = t0n.transpose()*vld.template segment<3>(i*3 + 3);
+         vld.template segment<3>(i*3) = t0n.transpose()*vld.template segment<3>(i*3);
       }
 
       return vld;

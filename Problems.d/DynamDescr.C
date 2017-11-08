@@ -14,12 +14,10 @@
 #include <Math.d/EiSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/DiagMatrix.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
+#include <Solvers.d/SolverFactory.h>
 
 #include <Utils.d/dofset.h>
 #include <Solvers.d/Solver.h>
-#include <Solvers.d/Spooles.h>
-#include <Solvers.d/Mumps.h>
 #include <Element.d/State.h>
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
@@ -394,7 +392,6 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
       domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
                               inState.getPrevVeloc(), bcx, vcx, *geomState);
       domain->updateStates(geomState, *geomState, allCorot, domain->solInfo().initialTime);
-      geomState->setVelocityAndAcceleration(inState.getVeloc(), inState.getAccel());
     }
   }
   else if(geomState) {
@@ -682,7 +679,7 @@ SingleDomainDynamic::getAeroelasticForceSensitivity(int tIndex, double t,
                                                     Vector *aero_f, double gamma, double alphaf)
 {
   // get aeroelastic force sensitivity from fluid code
-  domain->buildAeroelasticForceSensitivity(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
+  domain->buildAeroelasticForce(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
 }
 
 void
@@ -703,7 +700,13 @@ SingleDomainDynamic::preProcessSA()
 void
 SingleDomainDynamic::postProcessSA(DynamMat *dMat, Vector &sol)
 {
-  domain->buildPostSensitivities<double>(dMat->dynMat, dMat->K, dMat->K, *allSens, sol, bcx, true);
+  domain->buildPostSensitivities<double>(dMat->dynMat, dMat->K, dMat->K, *allSens, &sol, bcx, true);
+}
+
+void
+SingleDomainDynamic::sensitivityPostProcessing(Vector *sol)
+{
+  domain->sensitivityPostProcessing(*allSens, sol, bcx);
 }
 
 void
@@ -812,35 +815,12 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  }
 
  // to compute a^0 = M^{-1}(f_ext^0-f_int^0-Cu^0)
- if(getTimeIntegration() != 1 && (domain->solInfo().newmarkBeta != 0.0 && domain->solInfo().iacc_switch) // not required for explicit
-    && !domain->solInfo().svdPodRom) { // also not required for basis ortho driver
-   switch(domain->solInfo().subtype) {
-     case 0 : {
-         GenSkyMatrix<double> *m = domain->constructSkyMatrix<double>(domain->getCDSA());
-         allOps.Msolver = m;
-         dMat->Msolver = m;
-       } break;
-     case 1 : default : {
-         GenBLKSparseMatrix<double> *m = domain->constructBLKSparseMatrix<double>(domain->getCDSA());
-         m->zeroAll();
-         allOps.Msolver = m;
-         dMat->Msolver = m;
-       } break;
-       case 8 : {
-         GenSpoolesSolver<double> *m = domain->constructSpooles<double>(domain->getCDSA());
-         allOps.Msolver = m;
-         dMat->Msolver = m;
-       } break;
-     case 9 : {
-#ifdef DISTRIBUTED
-         GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA(), (Rbm*) NULL, new FSCommunicator(structCom));
-#else
-         GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA());
-#endif
-         allOps.Msolver = m;
-         dMat->Msolver = m;
-       } break;
-   }
+ if(getTimeIntegration() != 1 && (domain->solInfo().newmarkBeta != 0.0 && domain->solInfo().iacc_switch)
+    && domain->solInfo().solvercntl->type == 0) { // not required for explicit
+   SparseMatrix *spp; Solver *prec; // XXX
+   SolverCntl *m_cntl = (domain->solInfo().solvercntl->type == 0) ? domain->solInfo().solvercntl : &default_cntl;
+   dMat->Msolver = GenSolverFactory<double>::getFactory()->createSolver(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), 
+                                                                        *m_cntl, allOps.Msolver, (Rbm*) NULL, spp, prec);
  }
  domain->getTimers().constructTime += getTime();
 
@@ -1341,7 +1321,7 @@ SingleDomainDynamic::sendNumParam(int numParam, int actvar, double steadyTol)
 }
 
 void 
-SingleDomainDynamic::getNumParam(bool &numParam)
+SingleDomainDynamic::getNumParam(int &numParam)
 {
   flExchanger->getNumParam(numParam);
 }

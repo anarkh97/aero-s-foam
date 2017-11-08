@@ -102,6 +102,7 @@ Compo3NodeShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
 {
   weight = 1.0;
+  if(strInd == -1) return;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);

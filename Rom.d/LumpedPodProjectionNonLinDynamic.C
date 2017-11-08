@@ -28,7 +28,8 @@ void
 LumpedPodProjectionNonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                                              Corotator **allCorot, FullSquareMatrix *kelArray,
                                                              Vector &residual, double lambda, double time, GeomState *refState,
-                                                             FullSquareMatrix *melArray, bool forceOnly) {
+                                                             FullSquareMatrix *_melArray, bool forceOnly) {
+  FullSquareMatrix *melArray = (domain->solInfo().quasistatic) ? (FullSquareMatrix*) NULL : _melArray;
   if(forceOnly) {
     domain->getWeightedInternalForceOnly(packedElementWeights_[localReducedMeshId_],
                                          geomState, elementInternalForce,

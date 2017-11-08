@@ -18,12 +18,8 @@ BasePCG<Scalar,AnyVector,AnyOperator,AnyProjector,AnyPreconditioner>
  // ... INITIALIZE SOL TO ZERO
  sol.zero(); 
 
-
  if(proj) {
    proj->newSystem();
-   // Old method
-   // int hasInit = proj->initialization(&f, &sol);
-   // New method
    proj->project(&f, &sol);
    int hasInit = 1;
    if(hasInit)
@@ -35,7 +31,7 @@ BasePCG<Scalar,AnyVector,AnyOperator,AnyProjector,AnyPreconditioner>
  }
 
  Scalar r0tr0 = res1*res1;
- if(verbose && printNumber > 0)
+ if(verbose)
    std::cerr << " ... Iteration #  0\t Two norm = " << sqrt(r0tr0) << "\t Rel. residual = 1.0" << std::endl;
  if(r0tr0 == 0.0) {
    return 0;
@@ -67,17 +63,16 @@ BasePCG<Scalar,AnyVector,AnyOperator,AnyProjector,AnyPreconditioner>
    // FIRST CHECK CONVERGENCE
    Scalar r1tr1 = res1*res1;
 
-   if(verbose && printNumber > 0 && (niter%printNumber == 0))
+   if(verbose)
      std::cerr << " ... Iteration #  " << niter << "\t Two norm = " << sqrt(r1tr1) << "\t Rel. residual = "  << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) << std::endl;
    if( ScalarTypes::norm(r1tr1) <= ScalarTypes::norm(r0tr0*tolpcg*tolpcg) || niter >= maxitr ) {
       Scalar twonr = sqrt(r1tr1);
-      //filePrint(stderr," ... Total # Iterations = %13d %14.5f s\n",niter,
-      //               (getTime() - t1)/1000.0);
       if(verbose) {
         std::cerr << " ...     Final Two norm = " << twonr << std::endl;
         std::cerr << " ...     Final residual = " << r1tr1 << std::endl;
         if(niter >= maxitr && ScalarTypes::norm(r1tr1) >= ScalarTypes::norm(r0tr0*tolpcg*tolpcg))
-          std::cerr << " ... Achieved a rel. residual of " << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) << " in " << niter << " iter." << std::endl;
+          std::cerr << " ... Achieved a rel. residual of " << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) 
+               << " in " << niter << " iter." << std::endl;
       }
       finalNorm     = r1tr1;
       numIterations = niter;

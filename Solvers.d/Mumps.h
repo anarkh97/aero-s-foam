@@ -12,6 +12,7 @@
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/MultiDomainSolver.h>
 #include <Utils.d/MyComplex.h>
+#include <Comm.d/Communicator.h>
 
 class EqNumberer;
 class ConstrainedDSA;
@@ -23,7 +24,6 @@ template <class Scalar> class GenVectorSet;
 typedef GenVectorSet<double> VectorSet;
 class Connectivity;
 class SolverCntl;
-
 class FSCommunicator;
 
 #ifdef USE_MUMPS
@@ -49,6 +49,7 @@ class MumpsId<complex<double> > {
 template<class Scalar>
 class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>, public SparseData, public MultiDomainSolver<Scalar> 
 {
+   SolverCntl& scntl;
    int 	neq;        // number of equations = id.n for Mumps
    Scalar *unonz;   // matrix of elements = id.a for mumps
    int nNonZero;    // number of non zero entries = id.nz for Mumps	
@@ -62,10 +63,14 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    bool host;
    Timings times;
 
+   bool mumpsCPU; // JAT 052214
+   Communicator *groupcomm; // JAT 072616
+
  public:
-   GenMumpsSolver(Connectivity *nToN, EqNumberer *dsa, int *map=0, FSCommunicator *_mpicomm = 0);
-   GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, FSCommunicator *_mpicomm = 0);
-   GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, int nsub, GenSubDomain<Scalar> **sd, FSCommunicator *_mpicomm = 0);
+   GenMumpsSolver(Connectivity *nToN, EqNumberer *dsa, SolverCntl& _scntl, int *map=0, FSCommunicator *_mpicomm = 0);
+   GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl, FSCommunicator *_mpicomm = 0);
+   GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, int nsub, GenSubDomain<Scalar> **sd,
+                  SolverCntl& _scntl, FSCommunicator *_mpicomm = 0);
 
    virtual ~GenMumpsSolver();
 
@@ -86,6 +91,8 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    void reSolve(int nRHS, Scalar **rhs);
    void reSolve(int nRHS, GenVector<Scalar> *rhs);
    void getNullSpace(Scalar *rbm);
+
+   void mult(const Scalar *rhs, Scalar *result);
 
    int dim() { return neq; }
    int neqs() { return neq; }
@@ -135,16 +142,13 @@ class WrapMumps : public GenMumpsSolver<Scalar>
       Connectivity *cn;
       DofSetArray *dsa;
       ConstrainedDSA *cdsa;
+      SolverCntl& scntl;
       FSCommunicator *com;
-      CtorData(Connectivity *c, DofSetArray *d, ConstrainedDSA *dc, FSCommunicator *_com) {
-        cn = c;
-        dsa = d;
-        cdsa = dc;
-        com = _com;
-      }
+      CtorData(Connectivity *c, DofSetArray *d, ConstrainedDSA *dc, SolverCntl& _scntl, FSCommunicator *_com)
+        : cn(c), dsa(d), cdsa(dc), scntl(_scntl), com(_com) {}
     };
 
-    WrapMumps(CtorData &ctd) : GenMumpsSolver<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa, ctd.com) {}
+    WrapMumps(CtorData &ctd) : GenMumpsSolver<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa, ctd.scntl, ctd.com) {}
 };
 
 

@@ -94,7 +94,7 @@ template \
 void \
 GenBLKSparseMatrix<Scalar>::init(); \
 template \
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity*, DofSetArray*, DofSetArray*, double, int, Rbm*); \
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity*, DofSetArray*, DofSetArray*, double, SolverCntl&, Rbm*); \
 template \
 void \
 GenBLKSparseMatrix<Scalar>::factor(); \
@@ -183,9 +183,9 @@ template \
 void \
 GenBLKSparseMatrix<Scalar>::getRBMs(VectorSet&); \
 template \
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity*, DofSetArray*, int*, double, int); \
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity*, DofSetArray*, int*, double, SolverCntl&); \
 template \
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity*, EqNumberer*, double, int, int); \
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity*, EqNumberer*, double, SolverCntl&, int); \
 template \
 void \
 GenBLKSparseMatrix<Scalar>::allocateMemory(); \

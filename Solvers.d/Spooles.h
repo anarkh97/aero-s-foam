@@ -25,6 +25,7 @@ typedef GenVector<double> Vector;
 template <class Scalar> class GenVectorSet;
 typedef GenVectorSet<double> VectorSet;
 class Connectivity;
+class SolverCntl;
 
 class FSCommunicator;
 
@@ -32,6 +33,7 @@ template<class Scalar>
 class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
                          public SparseData 
 {
+   SolverCntl& scntl;
    int neq;               // number of equations
    int *constrNum;        // constrained equation numbers
    Scalar *unonz;
@@ -61,9 +63,8 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
 #endif
 
  public:
-   //GenSpoolesSolver(Connectivity *nToN, DofSetArray *dsa, int *map=0);
-   GenSpoolesSolver(Connectivity *nToN, EqNumberer *dsa, int *map=0);
-   GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa);
+   GenSpoolesSolver(Connectivity *nToN, EqNumberer *dsa, SolverCntl& _scntl, int *map=0);
+   GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl);
 
    virtual void clean_up() {
      cleanUp();
@@ -122,15 +123,12 @@ class WrapSpooles : public GenSpoolesSolver<Scalar>
       Connectivity *cn;
       DofSetArray *dsa;
       ConstrainedDSA *cdsa;
-      Rbm *rbm;
-      CtorData(Connectivity *c, DofSetArray *d, ConstrainedDSA *dc) {
-        cn = c;
-        dsa = d;
-        cdsa = dc;
-      }
+      SolverCntl& scntl;
+      CtorData(Connectivity *c, DofSetArray *d, ConstrainedDSA *dc, SolverCntl& _scntl)
+       : cn(c), dsa(d), cdsa(dc), scntl(_scntl) {}
     };
 
-    WrapSpooles(CtorData &ctd) : GenSpoolesSolver<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa) {}
+    WrapSpooles(CtorData &ctd) : GenSpoolesSolver<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa, ctd.scntl) {}
 };
 
 typedef GenSpoolesSolver<double> SpoolesSolver;

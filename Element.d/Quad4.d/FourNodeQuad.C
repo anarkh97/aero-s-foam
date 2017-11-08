@@ -91,6 +91,7 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         // STRAINXY AND VONMISES STRESS
 
         weight = 1.0;
+        if(strInd == -1) return;
 
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
@@ -679,7 +680,7 @@ FourNodeQuad::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 void
-FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
 #ifdef USE_EIGEN3
@@ -734,18 +735,12 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   //Jacobian evaluation
   Eigen::Matrix<double,4,8> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) std::cerr << " ... senMethod is " << senMethod << std::endl;
-#endif
 
   if(senMethod == 1) { // via automatic differentiation
 #ifndef AEROS_NO_AD 
     Simo::Jacobian<double,FourNodeQuadStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
     dStressdDisp = dSdu(q, 0);
     dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
-#endif
 #else
   std::cerr << " ... Error: AEROS_NO_AD is defined in FourNodeQuad::getVonMisesDisplacementSensitivity\n";   exit(-1);
 #endif
@@ -770,9 +765,6 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
                 maxgus, maxstr, elm, numel, vmflg, 
                 strainFlg, tc, prop->Ta, ndtemps.data());
     dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
-#endif
   }
 
   if(senMethod == 2) { // via finite difference
@@ -791,12 +783,10 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       dStressdDisp(3,j) = dS[3];
     }
     dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << " ... dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
-#endif 
   }
 #else
   std::cerr << " ... ERROR! FourNodeQuad::getVonMisesDisplacementSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }

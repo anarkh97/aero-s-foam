@@ -29,8 +29,4 @@ class MultiDomainSolver : public GenParallelSolver<Scalar>
     void multLT(GenDistrVector<Scalar> &f, Scalar *f_g);
 };
 
-#ifdef _TEMPLATE_FIX_
-#include <Solvers.d/MultiDomainSolver.C>
-#endif
-
 #endif

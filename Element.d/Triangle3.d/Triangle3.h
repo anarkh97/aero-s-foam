@@ -33,7 +33,8 @@ public:
                                       double *ndTemps=0,
                                       double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
-        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                                CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                 double *ndTemps, int avgnum, double ylayer, double zlayer);
 
         virtual void     getAllStress(FullM &stress, Vector &weight, 

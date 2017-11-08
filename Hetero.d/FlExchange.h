@@ -112,7 +112,7 @@ class FlExchanger {
       void sendNewStructure(std::set<int> &newDeletedElements);
 
       void sendNumParam(int,int,double);
-      void getNumParam(bool&);
+      void getNumParam(int&);
       void sendRelativeResidual(double);
       int cmdCom(int);
       int cmdComHeat(int);
@@ -137,6 +137,5 @@ class FlExchanger {
 #define OPTRESMSG 9100
 #define NBPRESSDATAMAX 7
 #define FL_NEGOT 10000
-#define FLTOSTSEN 15000
 
 #endif

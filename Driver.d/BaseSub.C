@@ -160,7 +160,7 @@ BaseSub::makeCDSA()
 SubCornerHandler *
 BaseSub::getCornerHandler()
 {
-  bool noCorners = (solInfo().fetiInfo.corners == FetiInfo::noCorners) ? true : false; // PJSA 4-26-06
+  bool noCorners = (solInfo().solvercntl->fetiInfo.corners == FetiInfo::noCorners) ? true : false; // PJSA 4-26-06
   bool noKcw    = false;  //HB: for testing only ...
   SubCornerHandler *newCH;
 
@@ -169,7 +169,7 @@ BaseSub::getCornerHandler()
   // note: once properly tested this could also be used for dual mpcs and contact in non-coupled feti-dp
   // so corner selection algorithm would not have to check for virtual nodes
   Connectivity &sharedNodes = *(scomm->sharedNodes);
-  if((solInfo().isCoupled && solInfo().fetiInfo.fsi_corner == 0) || noCorners) { // JLchange
+  if((solInfo().isCoupled && solInfo().solvercntl->fetiInfo.fsi_corner == 0) || noCorners) { // JLchange
     int *ptr = new int[sharedNodes.csize()+1];
     int *target = new int[sharedNodes.numConnect()];
     ptr[0] = 0; int ntg = 0;
@@ -812,12 +812,12 @@ BaseSub::setCorners(int nCrn, int *cNum)
   for(i = 0; i < nCrn; ++i) { // JLchange
     int thisNode = cNum[i];
   
-    if(solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 0))
+    if(solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 0))
       if(wetInterfaceNodeMap[thisNode] != -1) continue; // skip wet interface nodes
 
     if((*c_dsa)[thisNode].contains(interestingDofs.list()) != 0) {
       // no wet interface corner dofs
-      if (!(solInfo().isCoupled) || (solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 0))) { 
+      if (!(solInfo().isCoupled) || (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 0))) { 
         numCRN++;
         int cdofs[9], dofs[9];//DofSet::max_known_nonL_dof
         c_dsa->number(thisNode, interestingDofs, cdofs);
@@ -826,7 +826,7 @@ BaseSub::setCorners(int nCrn, int *cNum)
           if(cdofs[iDof] >= 0) cornerMap[dofs[iDof]] = numCRNdof++;
       }
       // wet interface fluid corner dofs 
-      if(solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 1)) { 
+      if(solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 1)) { 
         if (!(onWetInterface(thisNode))) { 
           numCRN++;
           int cdofs[9], dofs[9];//DofSet::max_known_nonL_dof
@@ -845,7 +845,7 @@ BaseSub::setCorners(int nCrn, int *cNum)
         }
       }
       // wet interface fluid and structure dofs 
-      if(solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 2)) { 
+      if(solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 2)) { 
         numCRN++;
         int cdofs[9], dofs[9];//DofSet::max_known_nonL_dof
         c_dsa->number(thisNode, interestingDofs, cdofs);
@@ -854,7 +854,7 @@ BaseSub::setCorners(int nCrn, int *cNum)
           if(cdofs[iDof] >= 0) cornerMap[dofs[iDof]] = numCRNdof++;
       } 
       // wet interface fluid and a few structure dofs 
-      if(solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 3)) { 
+      if(solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 3)) { 
         if (!(onWetInterface(thisNode))) { 
           numCRN++;
           int cdofs[9], dofs[9];//DofSet::max_known_nonL_dof
@@ -906,13 +906,13 @@ BaseSub::setCorners(int nCrn, int *cNum)
     if(solInfo().isCoupled)
       if(wetInterfaceNodeMap[thisNode] != -1) continue; // skip wet interface nodes
     if((*c_dsa)[thisNode].contains(interestingDofs.list())!=0) {
-      if (!(solInfo().isCoupled) || (solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 0))) { 
+      if (!(solInfo().isCoupled) || (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 0))) { 
         cornerNodes[numCRN] = thisNode;
         isCornerNode[thisNode] = true;
         cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & interestingDofs );
         numCRN++;
       } 
-      if(solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 1)) { 
+      if(solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 1)) { 
         if (!(onWetInterface(thisNode))) { 
           cornerNodes[numCRN] = thisNode;
           isCornerNode[thisNode] = true;
@@ -926,13 +926,13 @@ BaseSub::setCorners(int nCrn, int *cNum)
           numCRN++;
         }
       }
-      if(solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 2)) { 
+      if(solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 2)) { 
         cornerNodes[numCRN] = thisNode;
         isCornerNode[thisNode] = true;
         cornerDofs[numCRN] = ( (*c_dsa)[thisNode] & interestingDofs );
         numCRN++;
       }
-      if(solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 3)) { 
+      if(solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 3)) { 
         if (!(onWetInterface(thisNode))) { 
           cornerNodes[numCRN] = thisNode;
           isCornerNode[thisNode] = true;
@@ -986,17 +986,17 @@ BaseSub::markWetInterface(int nWI, int *wiNum)
     if ((*c_dsa)[thisNode].contains(interestingDofs.list())) {
       wetInterfaceMark[thisNode] = true;
       // both fluid and structure wet interface corners 
-      if (solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 2) && 
+      if (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 2) && 
           (nodeToSub->num(wiNum[i]) > CornerWeightOne)) wetInterfaceCornerMark[thisNode] = true;
       // only fluid wet interface corners 
-      if (solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 1) &&
+      if (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 1) &&
           (*c_dsa)[thisNode].contains(DofSet::Helm)) 
         if (nodeToSub->num(wiNum[i]) > CornerWeightOne) { 
           wetInterfaceCornerMark[thisNode] = true;
           wetInterfaceFluidMark[thisNode] = true;
         }
       // fluid and a few structure wet interface corners 
-      if (solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner == 3)) { 
+      if (solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner == 3)) { 
         if ((*c_dsa)[thisNode].contains(DofSet::Helm))  
           if (nodeToSub->num(wiNum[i]) > CornerWeightOne) { 
             wetInterfaceCornerMark[thisNode] = true;
@@ -1041,7 +1041,7 @@ BaseSub::setWetInterface(int nWI, int *wiNum)
   numWInodes = 0;
   for(i=0; i<nWI; ++i) {
     int thisNode = glToLocalNode[wiNum[i]];
-    if(solInfo().isCoupled && solInfo().fetiInfo.fsi_corner == 0) {
+    if(solInfo().isCoupled && solInfo().solvercntl->fetiInfo.fsi_corner == 0) {
       DofSet interestingDofs;
       domain->getInterestingDofs(interestingDofs, wiNum[i]); // COUPLED DEBUG
       if((*c_dsa)[thisNode].contains(interestingDofs.list())!=0)
@@ -1049,7 +1049,7 @@ BaseSub::setWetInterface(int nWI, int *wiNum)
     }
   }
 
-  if ((numWInodes > 0) && solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner != 0))
+  if ((numWInodes > 0) && solInfo().isCoupled && (solInfo().solvercntl->fetiInfo.fsi_corner != 0))
     std::cout << " ERROR: no wetINterface nodes should exist. " << std::endl; 
 
   std::sort(myWetInterfaceNodes, myWetInterfaceNodes+numWInodes);
@@ -1939,7 +1939,7 @@ BaseSub::computeWaveNumbers()
   double omega2 = geoSource->shiftVal();
   double E, nu, rho, eh, di, beta4, kappaHelm;
 
-  if(solInfo().fetiInfo.waveMethod == FetiInfo::uniform) {
+  if(solInfo().solvercntl->fetiInfo.waveMethod == FetiInfo::uniform) {
     // this should only be used when there is one material property
     StructProp *sProps = packedEset[0]->getProperty();
     E = (*sProps).E;
@@ -1968,7 +1968,7 @@ BaseSub::computeWaveNumbers()
       k_s2 = k_s; // temp fix for isotropic subdomains
     }
   }
-  else if(solInfo().fetiInfo.waveMethod == FetiInfo::averageK) {
+  else if(solInfo().solvercntl->fetiInfo.waveMethod == FetiInfo::averageK) {
     k_f = k_p = k_s = k_s2 = 0.0;
     int fcount = 0, scount = 0;
     for(int i=0; i<numele; ++i) {
@@ -2359,7 +2359,7 @@ BaseSub::makeEdgeQ(FSCommPattern<double> *qPat)
 {
   int i;
   double pi = 3.141592653589793;
-  int spaceDim = solInfo().fetiInfo.spaceDimension; // whether problem is 1D, 2D or 3D
+  int spaceDim = solInfo().solvercntl->fetiInfo.spaceDimension; // whether problem is 1D, 2D or 3D
   if((spaceDim < 1) || (spaceDim > 3)) {
     std::cerr << " *** ERROR: spacedim = " << spacedim << std::endl;
     exit(-1);
@@ -2510,17 +2510,17 @@ BaseSub::makeEdgeQ(FSCommPattern<double> *qPat)
     // compute the wave numbers for EdgeWs augmentation
     double k_pSolid, k_sSolid, k_s2Solid, k_pShell, k_sShell, k_s2Shell;
     if(numDirec > 0) {
-      if(solInfo().fetiInfo.waveType == FetiInfo::uniform) {
+      if(solInfo().solvercntl->fetiInfo.waveType == FetiInfo::uniform) {
         k_pSolid = k_pShell = k_p;
         k_sSolid = k_sShell = k_s;
         k_s2Solid = k_s2Shell = k_s2; 
       }
-      if(solInfo().fetiInfo.waveType == FetiInfo::averageK) {
+      if(solInfo().solvercntl->fetiInfo.waveType == FetiInfo::averageK) {
         k_pSolid = k_pShell = neighbK_p[iSub];
         k_sSolid = k_sShell = neighbK_s[iSub];
         k_s2Solid = k_s2Shell = neighbK_s2[iSub]; 
       }
-      else if(solInfo().fetiInfo.waveType == FetiInfo::averageMat) {
+      else if(solInfo().solvercntl->fetiInfo.waveType == FetiInfo::averageMat) {
         double omega2 = geoSource->shiftVal();
         double lambda = (neighbPrat[iSub]*neighbYmod[iSub])/
                         (1.0+neighbPrat[iSub])/(1.0-2.0*neighbPrat[iSub]);
@@ -2626,7 +2626,7 @@ BaseSub::makeEdgeQ(FSCommPattern<double> *qPat)
 */
 
 void 
-BaseSub::GramSchmidt(double *Q, bool *isUsed, int numDofPerNode, int nQPerNeighb)
+BaseSub::GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation)
 {
   double rtol = solInfo().getFetiInfo().orthotol;
   double atol = solInfo().getFetiInfo().orthotol2;
@@ -2637,10 +2637,11 @@ BaseSub::GramSchmidt(double *Q, bool *isUsed, int numDofPerNode, int nQPerNeighb
   int numNeighb = sharedNodes.csize();
   int numInterfNodes = sharedNodes.numConnect();
 
-  DofSet desired;
-  if(numDofPerNode == 1) desired = DofSet::Helm;
-  else if(numDofPerNode == 3) desired = DofSet::XYZdisp;
-  else if(numDofPerNode == 6) desired = DofSet::XYZdisp | DofSet::XYZrot;
+  int numDofPerNode;
+  if((desired.contains(DofSet::Helm)) || (desired.contains(DofSet::Temp)))
+    numDofPerNode = 1;
+  else if((desired.contains(DofSet::XYZdisp)))
+    numDofPerNode = (desired.contains(DofSet::XYZrot))?6:3;
   else {
     std::cerr << " *** WARNING: numDofPerNode = 0 in BaseSub::GramSchmidt(...) sub " << subNumber << std::endl;
     return;
@@ -2673,8 +2674,12 @@ BaseSub::GramSchmidt(double *Q, bool *isUsed, int numDofPerNode, int nQPerNeighb
             for(m = 0; m < numDofPerNode; ++m)
               if((dxyz[m] >= 0) && (count[dxyz[m]] < 2))
                 vjt[numDofPerNode*l+m] = vj[numDofPerNode*l+m];
-              else
+              else {
+                // Edge modification for primal augmentation 082213 JAT
+		if(isPrimalAugmentation)
+		  vj[numDofPerNode*l+m] = 0.0;
                 vjt[numDofPerNode*l+m] = 0.0;
+	      }
           }
 
           double initNorm = vjt.norm();

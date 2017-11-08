@@ -78,7 +78,12 @@ operator<<(std::ostream &out, const FrameData &source) {
 std::ostream &
 operator<<(std::ostream &out, const std::pair<int,CoefData> &source) {
 
-  out << "COEF " << source.first + 1 << std::endl;
+  out << "COEF " << source.first + 1;
+  for(int j=0; j<6; ++j)
+    out << " " << source.second.c[6][j];
+  if (source.second.coefFlag)
+    out << " On";    
+  out << std::endl;
   for(int i=0; i<6; ++i)
     for(int j=0; j<6; ++j) {
       out << i+1 << " " << j+1 << " " << source.second.c[i][j];
@@ -161,12 +166,12 @@ operator<<(std::ostream &out, const ResizeArray<SurfaceEntity*>* source) {
     // output surface number and thickness
     int surfId = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetId();
     out << "*\nSURFACETOPO " << surfId;
-    int divideBy = 1; 
+    int divideBy = 1;
     if ((*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetIsShellFace()){
       out << " surface_thickness " << (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetShellThickness();
       divideBy = 2;// specifying a surface thickness causes elements to be listed twice 
     }
-    out << "\n"; 
+    out << "\n";
     // get number of elements in this face
     int numEle = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetnFaceElems()/divideBy; 
     FaceElemSet * fEleSet = (*const_cast<ResizeArray<SurfaceEntity*>* >(source))[isurf]->GetPtrFaceElemSet();

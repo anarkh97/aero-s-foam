@@ -180,6 +180,7 @@ copy_coef(const std::vector<Attrib> &attributes, std::map<int,CoefData> &coefdat
         for(int i=0; i<7; ++i)
           for(int j=0; j<6; ++j)
             coef.c[i][j] = geoSource->getCoefData(it->cmp_attr)->c[i][j];
+        coef.coefFlag = geoSource->getCoefData(it->cmp_attr)->coefFlag;
         coefdata[it->cmp_attr] = coef;
       }
     }

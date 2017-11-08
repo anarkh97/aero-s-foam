@@ -75,6 +75,8 @@ class Communicator
     template <class Type>
        RecInfo recFrom(int tag, Type *data, int len);
     template <class Type>
+       RecInfo recFrom(int cpu, int tag, Type *data, int len);
+    template <class Type>
        void allGather(Type *send_data, int send_count, Type *recv_data,
                       int recv_count);
     template <class Type>

@@ -152,7 +152,7 @@ GenMultiDomainEigen<Scalar>::printTimers(GenParallelSolver<double> *solver)
 
  //filePrint(stderr," ... Print Timers                   ... \n");
  
-   switch(domain->solInfo().fetiInfo.version) {
+   switch(domain->solInfo().solvercntl->fetiInfo.version) {
      default:
      case FetiInfo::feti1:
      case FetiInfo::feti2:

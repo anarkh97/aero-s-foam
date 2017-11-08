@@ -99,6 +99,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
 	float *weight;      // weights of pointer (or 0)
        
  public:
+        typedef int IndexType;
 	int getNumTarget() {return numtarget; }
 	int * getTarget() {return target; }
 	int * getPointer() {return pointer; }
@@ -120,13 +121,16 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         Connectivity(Elemset *);
         Connectivity(Elemset *, int, SommerElement**);
         Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
-        Connectivity(int _size, int *_count);
+        Connectivity(int _size, int *count);
+        Connectivity(int _size, int count);
 	Connectivity(BinFileHandler &, bool oldSower = false);
         Connectivity(FaceElemSet*, int size = 0);
 	Connectivity(int ns); //dec
+	Connectivity(FILE *f, int nElem); // JAT 100614
         Connectivity(Elemset *els, Connectivity *nodeToElem);
         Connectivity(const Connectivity&);
 	size_t write(BinFileHandler& f);
+	size_t writeg(BinFileHandler& f);
 	size_t read(FILE* f);
 
   	void countlink(int from, int to); //DEC
@@ -157,6 +161,8 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         void findPseudoDiam(int *n1, int *n2, int *mask=0);
         int  rootLS(int root, int *xls, int *ls, int &w, int *mask=0);
 
+long long memsize() {return ((long long)size + numtarget + 1)*sizeof(int);} 
+
         // Create a rooted level structure
         int *renumSloan(int *mask, int &firstNum, int *ren = 0);
         int *renumRCM(int *mask, int &firstNum, int *ren = 0);
@@ -182,6 +188,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
 
         bool isDiagonal(); // returns true if each target is only connected to itself
         Connectivity *modify();
+        Connectivity *modifyAlt();
         void combine(Connectivity *con2, int *&cmap, int *cmap2);  // adds con2 to this
         // adds all the entries in cmap (of size addSize)to each of the line in the current connectivity specified by entries in cmap
         // e.g. cmap = [2 3] and (*this)[2] = [1 2 4 5] (*this)[3] = [3 5], then (*this)[2] becomes [1 2 4 5 3]; (*this)[3] becomes [3 5 2]
@@ -192,7 +199,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         double estimateCost(EqNumberer *eqn, double &cost, double &bandwidth,
                             double coef=400, int unroll=1);
 
-        //template<typename A, class B> friend class BaseConnectivity;
+        Connectivity * SCOTCH_graphPart(int partnbr);
 };
 
 

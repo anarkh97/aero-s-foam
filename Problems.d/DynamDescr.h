@@ -155,6 +155,7 @@ class SingleDomainDynamic : public SingleDomainBase
     void preProcess();
     void preProcessSA();
     void postProcessSA(DynamMat *dMat, Vector &sol);
+    void sensitivityPostProcessing(Vector *sol);
     void processLastOutput();
     DynamMat * buildOps(double coeM, double coeC, double coeK);
     GenSolver<double> *getSolver();
@@ -191,7 +192,7 @@ class SingleDomainDynamic : public SingleDomainBase
     int aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
     int sendDisplacements(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
     void sendNumParam(int numParam, int actvar, double steadyTol);
-    void getNumParam(bool &numParam);
+    void getNumParam(int &numParam);
     void sendRelativeResidual(double relres);
     int cmdCom(int cmdFlag);
     int getAeroAlg();

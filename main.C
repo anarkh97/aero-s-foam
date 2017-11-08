@@ -67,7 +67,7 @@
   #include <Pita.d/LinearDriver.h>
 #endif
 #include <Comm.d/Communicator.h>
-
+#include <Solvers.d/SolverFactory.h>
 
 // .... for different problems and hardware
 void writeOptionsToScreen();
@@ -86,7 +86,11 @@ extern "C" int getopt (
              const char *optstring );
 #endif
 
-// .... global variables
+// .... global and static member variable initialization
+std::map<int,SolverCntl> SolverInfo::solvercntls = std::map<int,SolverCntl>();
+SolverCntl default_cntl;
+std::auto_ptr<GenSolverFactory<double> >   solverFactory(new GenSolverFactory<double>());
+std::auto_ptr<GenSolverFactory<DComplex> > solverFactoryC(new GenSolverFactory<DComplex>());;
 
 Domain *domain = new Domain();
 std::auto_ptr<ElementFactory> elemFact(new ElementFactory());
@@ -265,7 +269,7 @@ int main(int argc, char** argv)
  int topFlag    = -1;
  int numClusters = 1;
 
- bool callDec = false; // invoque Dec ? (-D or --call-dec)
+ bool callDec = false;
  bool exitAfterDec = false;
  bool callSower = false;
  bool exitAfterSower = false;
@@ -462,13 +466,15 @@ int main(int argc, char** argv)
       case 'v':
         verboseFlag = 1;
         domain->setVerbose();
-        domain->solInfo().fetiInfo.printNumber = atoi(optarg);
+        default_cntl.verbose = 1;
+        default_cntl.fetiInfo.printNumber = atoi(optarg);
         filePrint(stderr," ... Setting Verbose Output Mode    ... \n");
         break;
       case 'V':
         verboseFlag = 1;
         domain->setVerbose();
-        domain->solInfo().fetiInfo.printNumber = 10;
+        default_cntl.verbose = 1;
+        default_cntl.fetiInfo.printNumber = 10;
         filePrint(stderr," ... Setting Verbose Output Mode    ... \n");
         break;
       case 't':
@@ -495,10 +501,10 @@ int main(int argc, char** argv)
         domain->solInfo().setProbType(SolverInfo::Top);
         break;
       case 'p':
-        domain->solInfo().fetiInfo.primalFlag = 1;
+        default_cntl.fetiInfo.primalFlag = 1;
         break;
       case 'c':
-        contactPrintFlag = domain->solInfo().fetiInfo.contactPrintFlag = atoi(optarg);
+        contactPrintFlag = default_cntl.fetiInfo.contactPrintFlag = atoi(optarg);
         break;
       case 's':
         domain->solInfo().printNumber = atoi(optarg);
@@ -640,11 +646,13 @@ int main(int argc, char** argv)
      if(!domain->solInfo().samplingPodRom) {
        domain->solInfo().activatePodRom = true;
        domain->solInfo().galerkinPodRom = true;
+       if(!domain->solInfo().ROMPostProcess || (!domain->solInfo().readInAdjointROB.empty())) {
 #ifdef USE_EIGEN3
-       if(domain->solInfo().subtype != 12) domain->solInfo().subtype = 13;
+         if(domain->solInfo().solvercntl->subtype != 12) domain->solInfo().solvercntl->subtype = 13;
 #else
-       domain->solInfo().subtype = 12;
+         domain->solInfo().solvercntl->subtype = 12;
 #endif
+       }
      }
    }
    else if(!domain->solInfo().modal_id.empty() || domain->solInfo().readInModes.find(0) != domain->solInfo().readInModes.end()) {
@@ -761,11 +769,11 @@ int main(int argc, char** argv)
    geoSource->transformLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  }
 
- if(domain->solInfo().type != 2 && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && domain->solInfo().readInDualROB.empty()
+ if(domain->solInfo().solvercntl->type != 2 && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && domain->solInfo().readInDualROB.empty()
     && !domain->solInfo().samplingPodRom)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
- if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
+ if((domain->solInfo().solvercntl->type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
    geoSource->addFsiElements(domain->getNumFSI(), domain->getFSI());
 
  if(!geoSource->binaryInput) {
@@ -833,16 +841,19 @@ int main(int argc, char** argv)
 #endif
  // 3. choose lumped mass (also pressure and gravity) and diagonal or block-diagonal "solver" for explicit dynamics 
  if(domain->solInfo().newmarkBeta == 0 || (domain->solInfo().svdPodRom && geoSource->getMRatio() == 0)) {
+   if((parallel_proc || domain_decomp) && (domain->solInfo().solvercntl->type != 2) && (domain->solInfo().solvercntl->type != 3)) {
+     domain->solInfo().solvercntl = new SolverCntl(default_cntl);
+   }
    if(domain->solInfo().inertiaLumping == 2) { // block-diagonal lumping
-     domain->solInfo().subtype = 1;
-     domain->solInfo().getFetiInfo().solvertype = FetiInfo::sparse;
-     if(parallel_proc || domain_decomp) domain->solInfo().type = 2; // XXX type 3 could be upgraded to work for this case,
-                                                                    //     rather than using feti
+     domain->solInfo().solvercntl->subtype = 1;
+     domain->solInfo().getFetiInfo().local_cntl->subtype = FetiInfo::sparse;
+     if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 2; // XXX type 3 could be upgraded to work for this case,
+                                                                                //     rather than using feti
    }
    else {
-     domain->solInfo().subtype = 10;
-     domain->solInfo().getFetiInfo().solvertype = FetiInfo::diagonal;
-     if(parallel_proc || domain_decomp) domain->solInfo().type = 3;
+     domain->solInfo().solvercntl->subtype = 10;
+     domain->solInfo().getFetiInfo().local_cntl->subtype = FetiInfo::diagonal;
+     if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 3;
    }
 
    geoSource->setMRatio(0.0);
@@ -878,21 +889,20 @@ int main(int argc, char** argv)
    }
    else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
  }
- if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline
+ if(domain->solInfo().solvercntl->type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline
     && domain->solInfo().modal_id.empty())
-   filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
+   filePrint(stderr, solverTypeMessage[domain->solInfo().solvercntl->subtype]);
 
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
  //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested
  //   type == 0 && subtype == 9 (MUMPS) is a Domain Decomposition method only if a decomposition is provided or requested
- if(domain->solInfo().type == 2 || domain->solInfo().type == 3
-    || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
-    || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)
+ if(domain->solInfo().solvercntl->type == 2 || domain->solInfo().solvercntl->type == 3
+    || (domain->solInfo().solvercntl->type == 1 && domain->solInfo().solvercntl->iterType == 1 && domain_decomp)
+    || (domain->solInfo().solvercntl->type == 0 && domain->solInfo().solvercntl->subtype == 9 && domain_decomp)
     || (!domain->solInfo().modal_id.empty() && domain_decomp)
     || (domain->solInfo().svdPodRom && domain_decomp)
-    || (domain->solInfo().samplingPodRom && domain_decomp)
-    || domain->solInfo().ROMPostProcess) {
+    || (domain->solInfo().samplingPodRom && domain_decomp)) {
 
    if(parallel_proc) {
 #ifdef USE_MPI
@@ -1145,7 +1155,7 @@ int main(int argc, char** argv)
              nldynamic.postProcess();
            }
          }
-       } 
+       }
      } break;
      case SolverInfo::PodRomOffline: {
        Rom::DriverInterface *driver;
@@ -1477,6 +1487,10 @@ int main(int argc, char** argv)
              filePrint(stderr, " ... Singular Value Decomposition   ...\n");
              driver.reset(basisOrthoDriverNew(domain));
            }
+         }
+         else if (domain->solInfo().ROMPostProcess) {
+           filePrint(stderr, " ... Post-processing ROM Results    ...\n");
+           driver.reset(ROMPostProcessingDriverNew(domain));
          }
          else if (domain->solInfo().samplingPodRom) {
            if(domain->solInfo().computeConstraintSnap){

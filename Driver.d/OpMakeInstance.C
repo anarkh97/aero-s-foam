@@ -22,32 +22,8 @@ GenCuCSparse<Scalar> * \
 Domain::constructCCSparse<Scalar>(DofSetArray*);\
 \
 template \
-GenSkyMatrix<Scalar> * \
-Domain::constructSkyMatrix<Scalar>(DofSetArray*, Rbm*);\
-\
-template \
-GenBlockSky<Scalar> *\
-Domain::constructBlockSky<Scalar>(DofSetArray*);\
-\
-template \
 GenBLKSparseMatrix<Scalar> * \
 Domain::constructBLKSparseMatrix<Scalar>(DofSetArray*, Rbm*);\
-\
-template \
-GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > * \
-Domain::constructPCGSolver<Scalar>(GenSparseMatrix<Scalar>*, Rbm*);\
-\
-template \
-GenSpoolesSolver<Scalar> * \
-Domain::constructSpooles<Scalar>(ConstrainedDSA*);\
-\
-template \
-GenMumpsSolver<Scalar> * \
-Domain::constructMumps<Scalar>(ConstrainedDSA*, Rbm*, FSCommunicator*);\
-\
-template \
-Rom::GenGalerkinProjectionSolver<Scalar> * \
-Domain::constructGalerkinProjectionSolver<Scalar>();\
 \
 template \
 void \
@@ -57,7 +33,12 @@ template \
 void \
 Domain::buildPostSensitivities<Scalar>(GenSolver<Scalar>*, GenSparseMatrix<Scalar>*,\
                                        GenSparseMatrix<Scalar>*, AllSensitivities<Scalar>&,\
-                                       GenVector<Scalar>&, Scalar*, bool);\
+                                       GenVector<Scalar>*, Scalar*, bool, GeomState*, GeomState*, Corotator **, bool);\
+\
+template \
+void \
+Domain::buildNLPostSensitivities<Scalar>(GenSolver<Scalar>*, AllSensitivities<Scalar>&,\
+                                         GeomState*, GeomState*, Corotator **, bool);\
 \
 template \
 void \
@@ -199,7 +180,7 @@ Domain::processOutput<Scalar>(OutputInfo::Type&, GenVector<Scalar>&, Scalar*, in
 \
 template \
 void \
-Domain::sensitivityPostProcessing<Scalar>(AllSensitivities<Scalar>&);\
+Domain::sensitivityPostProcessing<Scalar>(AllSensitivities<Scalar>&, GenVector<Scalar>*, Scalar*, GeomState*, GeomState*, Corotator**);\
 \
 template \
 void \
@@ -310,20 +291,4 @@ template
 GenEiSparseMatrix<complex<double>,Eigen::SuperLU<Eigen::SparseMatrix<complex<double> > > > *
 Domain::constructEiSparseMatrix<complex<double>,Eigen::SuperLU<Eigen::SparseMatrix<complex<double> > > >(DofSetArray*, Connectivity*, bool);
 #endif
-
-template
-GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *
-Domain::constructGoldfarb<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(DofSetArray*, Connectivity*);
-
-template 
-GenEiSparseMatrix<complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> > * 
-Domain::constructGoldfarb<complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> >(DofSetArray*, Connectivity*);
-
-template
-Rom::GenEiSparseGalerkinProjectionSolver<double> *
-Domain::constructEiSparseGalerkinProjectionSolver<double>();
-
-template 
-Rom::GenEiSparseGalerkinProjectionSolver<complex<double> > *
-Domain::constructEiSparseGalerkinProjectionSolver<complex<double> >();
 #endif

@@ -5,9 +5,8 @@
 #include <Threads.d/Paral.h>
 #include <Driver.d/Domain.h>
 #include <Driver.d/Dynam.h>
+#include <Driver.d/DecDomain.h>
 #include <Driver.d/SubDomain.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/Skyline.d/BlockSky.h>
 #include <Paral.d/MDOp.h>
 #include <Timers.d/StaticTimers.h>
 #include <Math.d/Vector.h>
@@ -16,15 +15,11 @@
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/DiagMatrix.h>
 #include <Math.d/EiSparseMatrix.h>
-#include <Math.d/BLKSparseMatrix.h>
-#include <Solvers.d/Spooles.h>
-#include <Solvers.d/Mumps.h>
 #include <Timers.d/GetTime.h>
 #include <Control.d/ControlInterface.h>
 #include <Threads.d/PHelper.h>
 #include <Paral.d/GenMS.h>
-#include <Driver.d/GeoSource.h>
-#include <Utils.d/SolverInfo.h>
+#include <Solvers.d/SolverFactory.h>
 #ifdef DISTRIBUTED
 #include <Utils.d/DistHelper.h>
 #endif
@@ -39,8 +34,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
                                                double _cc, double _ck, Rbm **_rbms, FullSquareMatrix **_kelArray,
                                                double _alpha, double _beta, int _numSommer, int _solvertype,
                                                FSCommunicator *_com, FullSquareMatrix **_melArray,
-                                               FullSquareMatrix **_celArray, bool elemsetHasDamping,
-                                               MatrixTimers &_mt)
+                                               FullSquareMatrix **_celArray, MatrixTimers &_mt)
  : mt(_mt)
 {
   nsub = _nsub;
@@ -64,7 +58,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   Kuc_arubber_m = new GenSparseMatrix<Scalar> **[nsub];
   num_K_arubber = 0;
   K    = new GenSparseMatrix<Scalar> *[nsub];
-  if(solInfo.precond) {
+  if(domain->solInfo().solvercntl->precond) {
     spp = new GenSparseMatrix<Scalar> *[nsub];
     sps = new GenSolver<Scalar> *[nsub];
   }
@@ -85,7 +79,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   beta    = _beta;
   solvertype = _solvertype;
   com = _com;
-  makeC = (alpha != 0.0 || beta != 0.0 || (numSommer > 0) || elemsetHasDamping);
+  makeC = (alpha != 0.0 || beta != 0.0 || (numSommer > 0) || domain->getElementSet().hasDamping());
 // RT - 053013 - to enable multiple impedance section, build C_deriv whenever C
 //  makeC_deriv = (makeC && solInfo.doFreqSweep && solInfo.getSweepParams()->nFreqSweepRHS > 1);
   makeC_deriv = (makeC && solInfo.doFreqSweep);
@@ -239,9 +233,9 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   }
 
   // builds the datastructures for Kii, Kib, Kbb
-  if(solInfo.type == 2 && make_feti) { // FETI
+  if(domain->solInfo().solvercntl->type == 2 && make_feti) { // FETI
     if(sd[isub]->numMPCs() > 0)
-      sd[isub]->makeKbbMpc();  
+      sd[isub]->makeKbbMpc();
     else {
       sd[isub]->makeKbb(sd[isub]->getCCDSA());
     }
@@ -249,81 +243,36 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
 
   GenMultiSparse<Scalar> *allMats = 0;
   if(make_feti) {
-    if(solInfo.type == 2 || solInfo.type == 3) {
-      switch(solvertype) {
-        case 0 : {
-          GenSkyMatrix<Scalar> *skmat = sd[isub]->template constructSkyMatrix<Scalar>(sd[isub]->getCCDSA(), 0);
-          dynMats[isub] = skmat;
-          spMats[isub] = skmat;
-        } break;
-        default : case 1 : {
-          GenBLKSparseMatrix<Scalar> *bsmat = sd[isub]->template constructBLKSparseMatrix<Scalar>(sd[isub]->getCCDSA(), 0);
-          bsmat->zeroAll();
-          dynMats[isub] = bsmat;
-          spMats[isub]  = bsmat;
-        } break;
-        case 2 : {
-          GenBlockSky<Scalar> *skmat = sd[isub]->template constructBlockSky<Scalar>(sd[isub]->getCCDSA());
-          dynMats[isub] = skmat;
-          spMats[isub] = skmat;
-        } break;
-#ifdef USE_EIGEN3
-        case 3: {
-          GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *eism = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(sd[isub]->getCCDSA());
-          dynMats[isub] = eism;
-          spMats[isub] = eism;
-        } break;
-        case 4: {
-          GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *eism = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(sd[isub]->getCCDSA());
-          dynMats[isub] = eism;
-          spMats[isub] = eism;
-        } break;
-#ifdef EIGEN_CHOLMOD_SUPPORT
-        case 5: {
-          GenEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *eism = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(sd[isub]->getCCDSA());
-          dynMats[isub] = eism;
-          spMats[isub] = eism;
-        } break;
-#endif
-#ifdef EIGEN_UMFPACK_SUPPORT
-        case 6: {
-          GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > > *eism = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >(sd[isub]->getCCDSA(), sd[isub]->getNodeToNode(), false);
-          dynMats[isub] = eism;
-          spMats[isub] = eism;
-        } break;
-#endif
-#ifdef EIGEN_SUPERLU_SUPPORT
-        case 7: {
-          GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > > *eism = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > >(sd[isub]->getCCDSA(), sd[isub]->getNodeToNode(), false);
-          dynMats[isub] = eism;
-          spMats[isub] = eism;
-        } break;
-#endif
+    if(domain->solInfo().solvercntl->type == 2 || domain->solInfo().solvercntl->type == 3) {
+      // construct local solver for the subdomain
+      SolverCntl &local_cntl = *domain->solInfo().solvercntl->fetiInfo.local_cntl;
+      if(local_cntl.type == 0 || local_cntl.type == 1) { // local solver is direct or iterative
+        dynMats[isub] = GenSolverFactory<Scalar>::getFactory()->createSolver(sd[isub]->getNodeToNode(), sd[isub]->getDSA(), sd[isub]->getCCDSA(),
+                                                                             local_cntl, spMats[isub], (Rbm*) NULL, spp[isub], sps[isub]);
+      }
+      else if(local_cntl.type == 2) { // local solver is feti
+        std::cerr << "using FETI-DP solver for local problem\n";
+        BCond *corner_dbc = new BCond[3*sd[isub]->numCorners()];
+        for(int i = 0; i < sd[isub]->numCorners(); ++i)
+          for(int j = 0; j < 3; ++j)
+            corner_dbc[3*i+j].setData(sd[isub]->getLocalCornerNodes()[i], j, 0.0);
+        sd[isub]->setDirichlet(3*sd[isub]->numCorners(), corner_dbc);
+#ifdef USE_MPI
+        GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], new Communicator(MPI_COMM_SELF));
 #else
-       case 3: case 4: case 5: case 6: case 7:
-         std::cerr << " *** ERROR: Solver requires AERO-S configured with the Eigen library. Exiting...\n";
-         exit(-1);
+        GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], NULL);
 #endif
-        case 8 : {
-          GenSpoolesSolver<Scalar> *ssmat = sd[isub]->template constructSpooles<Scalar>(sd[isub]->getCCDSA());
-          dynMats[isub] = ssmat;
-          spMats[isub] = ssmat;
-        } break;
-        case 9 : {
-          GenMumpsSolver<Scalar> *msmat = sd[isub]->template constructMumps<Scalar>(sd[isub]->getCCDSA());
-          dynMats[isub] = msmat;
-          spMats[isub] = msmat;
-        } break;
-        case 10 : {
-          GenDiagMatrix<Scalar> *spm = new GenDiagMatrix<Scalar>(sd[isub]->getCCDSA()); 
-          dynMats[isub] = spm;
-          spMats[isub] = spm;
-        } break;
+        decSubDomain->preProcess();
+        GenMDDynamMat<Scalar> ops;
+        decSubDomain->buildOps(ops, 0.0, 0.0, 1.0);
+        exit(-1); // XXX this is not finished yet
+        //dynMats[isub] = ops.dynMat;
+        //((GenFetiDPSolver<Scalar> *) Krr)->initL(cc_dsa);
       }
     }
-    else if(solInfo.type == 1 || (solInfo.type == 0 && solInfo.subtype == 13)) {
+    else if(domain->solInfo().solvercntl->type == 1) {
       dynMats[isub] = 0;
-      switch(solInfo.iterSubtype) {
+      switch(domain->solInfo().solvercntl->iterSubtype) {
         case 2 :
           spMats[isub] = sd[isub]->template constructNBSparseMatrix<Scalar>();
           break;
@@ -337,24 +286,24 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
           break;
 #endif
       }
-      if(solInfo.precond == 1) {
+      if(domain->solInfo().solvercntl->precond == 1) {
         GenDiagMatrix<Scalar> *dm = new GenDiagMatrix<Scalar>(sd[isub]->getCDSA());
         spp[isub] = (GenSparseMatrix<Scalar>*) dm;
         sps[isub] = (GenSolver<Scalar>*) dm;
       }
     }
-    else if(solInfo.type == -1) {
+    else if(domain->solInfo().solvercntl->type == -1) {
       dynMats[isub] = 0;
       spMats[isub] = 0;
     }
 
-    if(solInfo.type == 2 && solInfo.getFetiInfo().version == FetiInfo::fetidp) {
+    if(domain->solInfo().solvercntl->type == 2 && domain->solInfo().getFetiInfo().version == FetiInfo::fetidp) {
       sd[isub]->constructKcc();
       sd[isub]->constructKrc();
     }
 
-    if(solInfo.type == 2) {
-      if(geoSource->isShifted() && solInfo.getFetiInfo().prectype == FetiInfo::nonshifted)
+    if(domain->solInfo().solvercntl->type == 2) {
+      if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted)
         allMats = new GenMultiSparse<Scalar>(spMats[isub], sd[isub]->Krc, sd[isub]->Kcc);
       else 
         allMats = new GenMultiSparse<Scalar>(spMats[isub], sd[isub]->KiiSparse, sd[isub]->Kbb,
@@ -391,7 +340,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   FullSquareMatrix *subKelArray = (kelArray) ? kelArray[isub] : 0;
   FullSquareMatrix *subMelArray = (melArray) ? melArray[isub] : 0;
   FullSquareMatrix *subCelArray = (celArray) ? celArray[isub] : 0;
-  if(solInfo.type == 2)
+  if(domain->solInfo().solvercntl->type == 2)
     sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, subKelArray, subMelArray, subCelArray);
   else
     sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spMats[isub], subKelArray, subMelArray, subCelArray);

@@ -11,6 +11,7 @@ SET(CMAKE_LIBRARY_PATH
     /home/avery/Codes/ARPACK
     /home/avery/Codes/MUMPS_4.10.0/lib
     /home/avery/Codes/SuperLU/SuperLU_4.3/lib
+    /home/avery/Codes/SuperLU/SuperLU_4.3/lib
     /home/avery/Codes/trilinos/trilinos-11.4.3-Obj_cmake/lib)
 SET(EXTRALIB_MPI /usr/lib/libmpif77.so
                  CACHE STRING "Extra MPI link parameters")

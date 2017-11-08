@@ -11,6 +11,8 @@ class SingleInfo;
 template <typename T> class SysState;
 struct Group;
 
+enum SensitivityQuantity { StressVM = 0, Displacement = 1, AggregatedStress = 2};
+
 template <class VecType,
           class ProblemDescriptor> 
 class NewmarkWorkVec {
@@ -103,6 +105,13 @@ private:
      void aeroSensitivityQuasistaticLoop(SysState<VecType>&, VecType&, DynOps& dynOps, 
                                          NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
                                          double, double, int =0);
+     void aeroAdjointSensitivityQuasistaticLoop(SysState<VecType>&, VecType&, DynOps& dynOps, 
+                                                NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
+                                                double, double, int =0);
+     void computeLambdaDisp(int,int);
+     void computeLambdaStressVM(int);
+     void computeLambdaAggregatedStressVM();
+     void computeLambdaFluidQuantity();
 
      int checkSteadyState(double time, double step, double criteria=-1.0);
 
@@ -131,6 +140,7 @@ private:
      
      SysState<VecType> * curState; 
 
+     VecType * lambda_nSen;
      VecType * d_nSen;
      VecType * v_nSen;
      VecType * a_nSen;

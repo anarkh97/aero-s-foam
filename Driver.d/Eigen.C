@@ -221,19 +221,6 @@ Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, i
          fprintf(stderr," %d\t%e\t%e\n",imode+1,eigenValues[imode], sqrt(eigenValues[imode])/(2.0*pi)*sqrt(gravitySloshing));
        else
          fprintf(stderr," %d\t%e\t%e\n",imode+1,eigenValues[imode], sqrt(eigenValues[imode])/(2.0*pi));
-#ifdef SENSITIVITY_DEBUG
-       if(eigenValues[imode] < 0) {
-         const char* output = "negeigenvalue";
-         std::ofstream out(output, std::ios::out);
-         if(!out) {
-           std::cerr << "Error: cannot open file" << output << std::endl;
-           exit(-1);
-         }
-         out << 1 << std::endl;
-         out.close();
-         exit(-1);
-       }
-#endif
      }
      fprintf(stderr," --------------------------------------\n");
    }

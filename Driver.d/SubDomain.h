@@ -140,8 +140,9 @@ class BaseSub : virtual public Domain
   DofSet **boundaryDOFs;	
   int nCDofs;
   int *neighbNumGRBMs;
-  int *edgeDofSize;       // number of edge dof per neighbor
-  int *edgeDofSizeTmp;  // XXXX
+  DofSet *edgeDofs;      // JAT 112113
+  int *edgeDofSize;      // number of edge dof per neighbor
+  int *edgeDofSizeTmp;   // XXXX
   double k_f, k_p, k_s, k_s2;  // wave numbers for FETI-DPH for this subdomain
   double *neighbK_p, *neighbK_s, *neighbK_s2, *neighbK_f;  // neighbors' wave numbers
   double Ymod, Prat, Dens, Thih, Sspe;  // Young's modulus, Poisson ration, density, thickness, speed of sound
@@ -337,7 +338,7 @@ class BaseSub : virtual public Domain
   void getOneDirection(double d, int i, int j, int k, int &nnum, int numWaves, double *wDir_x, double *wDir_y, double *wDir_z);
   void getOneDirection(double x, double y, double z, int &nnum, int numWaves, double *wDir_x, double *wDir_y, double *wDir_z);
   void getDirections13(int numDirec, double *wDir_x, double *wDir_y, double *wDir_z);
-  void GramSchmidt(double *Q, bool *isUsed, int numdofperNode, int nQPerNeighb);
+  void GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation);
   void averageMatProps();
   void sendMatProps(FSCommPattern<double> *matPat);
   void collectMatProps(FSCommPattern<double> *matPat);
@@ -461,6 +462,8 @@ class GenSubDomain : public BaseSub
   Scalar                    *QtKpBt;
   Scalar                    *locKpQ;
 
+  Scalar                    **Ave, **Eve; // 070213 JAT
+
   int *glBoundMap;
   int *glInternalMap;
  
@@ -469,6 +472,7 @@ class GenSubDomain : public BaseSub
 
  private:
   GenSolver<Scalar> *localCCtsolver;
+  GenSparseMatrix<Scalar> *localCCtsparse;
   Scalar *diagCCt;
   int lengthCCtData;
   int *CCtrow, *CCtcol;
@@ -594,6 +598,11 @@ class GenSubDomain : public BaseSub
   void clearTemporaries() { delete [] glToLocalNode; glToLocalNode = 0; }
   void initMpcScaling();
   void makeZstarAndR(double *centroid);  // makes Zstar and R
+  void makeKccDofsExp(ConstrainedDSA *cornerEqs, int augOffset,
+                      Connectivity *subToEdge, int mpcOffset, GlobalToLocalMap& nodeMap);
+  void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd, int augOffset,
+                      Connectivity *subToEdge);
+//  void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd);
   void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
   void assembleKccStar(GenSparseMatrix<Scalar> *KccStar);
   void deleteKcc();
@@ -632,7 +641,8 @@ class GenSubDomain : public BaseSub
   void getFw(Scalar *f, Scalar *fw);
   void mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda = 0);
   int numRBM() { return nGrbm; }
-  void makeEdgeVectorsPlus(bool isFluidSub = false);
+  void makeEdgeVectorsPlus(bool isFluidSub = false, bool isThermalSub = false,
+                           bool isUndefinedSub = false);
   void makeAverageEdgeVectors();
   void weightEdgeGs();
   void constructKcc();

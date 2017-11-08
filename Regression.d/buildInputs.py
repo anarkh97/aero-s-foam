@@ -424,7 +424,7 @@ def buildInputs(params):
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["tolfeti 1.0e-8\ncoarse_solver skyline\nglobal_cor_rbm_tol 1e-5\nconstraints multipliers\n*\nGRBM\n*","*","*","*"]
+        EXTRAS = ["tolfeti 1.0e-8\naux_coarse_solver solverhandle 1\nconstraints multipliers\n*\nSOLVERCNTL 1\nskyline\ntrbm 1e-5\n*\nGRBM\n*","*","*","*"]
 
       if(problem_type == "dsvm24"):
         OUTPUT = ["displacz"]

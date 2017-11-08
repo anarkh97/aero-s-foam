@@ -34,7 +34,7 @@ GenFetiDPSolver<Scalar>::computeProjectedDisplacement(GenDistrVector<Scalar> &u)
     GtGtilda->getNullSpace(zem);
     GenFullM<Scalar> X(zem, ngrbms, numGtGsing, 1);
     // build global RBMs 
-    if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners)
+    if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners)
       paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::buildGlobalRBMs, X, cornerToSub);
     else {
       // TODO: GenSubDomain::Rstar first needs to be filled from the nullspace of Kcc^*
@@ -75,7 +75,7 @@ GenFetiDPSolver<Scalar>::makeGtG()
   deleteG();
 
   // 1. make local G = Bbar * R
-  if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners)
+  if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners)
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeG);
   else {
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeTrbmG, kccrbms, KccSolver->numRBM(), KccSolver->neqs());
@@ -125,7 +125,7 @@ GenFetiDPSolver<Scalar>::makeGtG()
 
   // 5. check for singularities in GtGstar (representing global RBMs)
   //if(GtG->numRBM() > 0) 
-  //  filePrint(stderr, " ... GtG has %d singularities for tol %e ...\n", GtG->numRBM(), this->fetiInfo->grbm_tol);
+  //  filePrint(stderr, " ... GtG has %d singularities for tol %e ...\n", GtG->numRBM(), fetiInfo->grbm_tol);
 
   stopTimerMemory(this->times.coarse1, this->times.memoryGtG);
 }
@@ -138,7 +138,7 @@ GenFetiDPSolver<Scalar>::makeE(GenDistrVector<Scalar> &f)
   GenVector<Scalar> &e = this->wksp->ret_e();
   e.zero();
 
-  if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners) {
+  if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners) {
     execParal2R(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleE, e, f);
 #ifdef DISTRIBUTED
     this->fetiCom->globalSum(ngrbms, e.data());
@@ -230,7 +230,7 @@ GenFetiDPSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &globRBM)
       GtGtilda->getNullSpace(zem);
       GenFullM<Scalar> X(zem, ngrbms, numGtGsing, 1);
       // build global RBMs
-      if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners)
+      if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners)
         paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::buildGlobalRBMs, X, cornerToSub);
       else {
         // TODO: GenSubDomain::Rstar first needs to be filled from the nullspace of Kcc^*

@@ -67,9 +67,9 @@ GenSpoolesSolver<complex<double> >::add(FullSquareMatrixC &kel, int *dofs)
 
 #define SPOOLES_INSTANTIATION_HELPER(Scalar) \
 template \
-GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity*, EqNumberer*, int*); \
+GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity*, EqNumberer*, SolverCntl&, int*); \
 template \
-GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity*, DofSetArray*, ConstrainedDSA*); \
+GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, SolverCntl&); \
 template \
 void \
 GenSpoolesSolver<Scalar>::add(FullSquareMatrix&, int*); \

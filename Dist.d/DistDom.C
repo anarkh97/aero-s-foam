@@ -250,8 +250,8 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
   if((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0)) {
 #ifdef DISTRIBUTED
 
-    Connectivity *subToClus = geoSource->getSubToClus();
-    int clusterId = (*subToClus)[this->localSubToGl[0]][0];
+    int *subToClus = geoSource->getSubToClus();
+    int clusterId = subToClus[this->localSubToGl[0]];
     int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || 
@@ -1255,19 +1255,19 @@ GenDistrDomain<Scalar>::createMasterFlag()
       masterFlag[iSub][iNode] = clusNodes[iNode];
   }
 
-  Connectivity *subToClus = geoSource->getSubToClus();
+  int *subToClus = geoSource->getSubToClus();
   for(iSub = 0; iSub < this->numSub; iSub++) {
     // get connected subdomain information
     int *connDoms = this->subDomain[iSub]->getSComm()->subNums;
     int numConns = this->subDomain[iSub]->getSComm()->numNeighb;
 
     int thisGlSub = this->subDomain[iSub]->subNum();
-    int thisCluster = (subToClus) ? (*subToClus)[thisGlSub][0] : 0;
+    int thisCluster = subToClus ? subToClus[thisGlSub] : 0;
 
     // loop over connected subdomains in this cluster
     for(int jSub = 0; jSub < numConns; jSub++) {
       // set master flag if connected subdomain global number is smaller
-      if(connDoms[jSub] < thisGlSub && (subToClus == 0 || (*subToClus)[connDoms[jSub]][0] == thisCluster)) {
+      if(connDoms[jSub] < thisGlSub && (subToClus == 0 || subToClus[connDoms[jSub]] == thisCluster)) {
 
         // get shared nodes
         Connectivity *sharedNodes = this->subDomain[iSub]->getSComm()->sharedNodes;
@@ -1288,7 +1288,7 @@ void
 GenDistrDomain<Scalar>::createOutputOffsets() 
 {
   Connectivity *clusToSub = geoSource->getClusToSub();
-  Connectivity *subToClus = geoSource->getSubToClus();
+  int *subToClus = geoSource->getSubToClus();
   nodeOffsets = new int[this->numSub];
   elemNodeOffsets = new int[this->numSub];
   elemOffsets = new int[this->numSub];
@@ -1315,7 +1315,7 @@ GenDistrDomain<Scalar>::createOutputOffsets()
   // populate glOffsets w/this mpi's data
   for(iSub = 0; iSub < this->numSub; iSub++) {
     int glSub = this->subDomain[iSub]->subNum();
-    int clusNum = (*subToClus)[glSub][0];
+    int clusNum = subToClus[glSub];
     for(int jSub = 0; jSub < clusToSub->num(clusNum); jSub++)
       if(glSub == (*clusToSub)[clusNum][jSub]) {
         clNodeOffsets[clusNum][jSub] = numFlags[iSub];
@@ -1350,7 +1350,7 @@ GenDistrDomain<Scalar>::createOutputOffsets()
    
   for(iSub = 0; iSub < this->numSub; iSub++) {
     int glSub = this->subDomain[iSub]->subNum();
-    int clusNum = (*subToClus)[glSub][0];
+    int clusNum = subToClus[glSub];
     for(int jSub = 0; jSub < clusToSub->num(clusNum); jSub++)
       if(glSub == (*clusToSub)[clusNum][jSub]) {
         nodeOffsets[iSub] = clNodeOffsets[clusNum][jSub];
@@ -1521,8 +1521,8 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
   if((x == 0) || (outLimit > 0 && x%outLimit == 0)) {
 #ifdef DISTRIBUTED
 
-    Connectivity *subToClus = geoSource->getSubToClus();
-    int clusterId = (*subToClus)[this->localSubToGl[0]][0];
+    int *subToClus = geoSource->getSubToClus();
+    int clusterId = subToClus[this->localSubToGl[0]];
     int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce

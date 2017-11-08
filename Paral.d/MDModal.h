@@ -96,10 +96,10 @@ public:
   int aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
   int sendDisplacements(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
   void sendNumParam(int numParam, int actvar, double steadyTol) {}
-  void getNumParam(bool &numParam) {}
+  void getNumParam(int &numParam) {}
   void sendRelativeResidual(double relres) {}
   int cmdCom(int cmdFlag) { return -1; }
- 
+
   void a5TimeLoopCheck(int& parity, double& t, double dt);
   void a5StatusRevise(int parity, SysState<Vector>& curState, SysState<Vector>& bkState);
   int getAeroAlg() { return domain->solInfo().aeroFlag; }
@@ -114,6 +114,8 @@ public:
   int getAeroheatFlag() { return -1; }
 
   void solveAndUpdate(Vector &, Vector &, Vector &, double, double){ /* leave blank */ }
+
+  void sensitivityPostProcessing(Vector *){/*leave blank */}
 };
 
 #endif

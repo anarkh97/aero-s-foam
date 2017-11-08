@@ -1,6 +1,6 @@
 PROJECT (FEM)
 
-cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1  FATAL_ERROR)
 enable_language(Fortran)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
@@ -19,20 +19,22 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-literal-suffix")
 endif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
 
+set(CMAKE_CXX_STANDARD 14)
+
 if (${CMAKE_VERSION} VERSION_GREATER 2.8.3 OR ${CMAKE_VERSION} VERSION_EQUAL 2.8.3)
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" AND NOT WITH_CXX11 EQUAL 0)
     execute_process(
         COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
     if (GCC_VERSION VERSION_GREATER 4.7 OR GCC_VERSION VERSION_EQUAL 4.7)
         set(CHECK_CXX_FEATURES true)
-        set(CMAKE_CXX11_FLAGS "-std=c++11 -Wno-deprecated-declarations")
+        set(CMAKE_CXX11_FLAGS "-Wno-deprecated-declarations")
     endif ()
 elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel" AND NOT WITH_CXX11 EQUAL 0)
     execute_process(
         COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE ICC_VERSION)
     if (ICC_VERSION VERSION_GREATER 12.1 OR ICC_VERSION VERSION_EQUAL 12.1)
         set(CHECK_CXX_FEATURES true)
-        set(CMAKE_CXX11_FLAGS "-std=c++11 -wd1478")
+        set(CMAKE_CXX11_FLAGS "-wd1478")
         add_definitions(-DHACK_INTEL_COMPILER_ITS_CPP11)
     endif ()
 endif ()
@@ -42,7 +44,7 @@ if (CHECK_CXX_FEATURES)
   if (CXX11_FEATURE_LIST)
     MESSAGE("-- A compiler with one or more C++11 features found.")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX11_FLAGS}")
-    add_definitions(-DHAS_C99_TR1_CMATH) 
+    add_definitions(-DHAS_C99_TR1_CMATH)
     foreach(flag ${CXX11_FEATURE_LIST})
       add_definitions(-D${flag})
     endforeach()
@@ -250,7 +252,7 @@ IF(UNIX)
 # scalapack
     IF(MPI_FOUND AND NOT WITH_SCALAPACK EQUAL 0)
       # blacs is required for scalapack
-      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0 
+      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0
                    PATHS /usr/lib /usr/local/lib)
       FIND_LIBRARY(BLACS_Cinit_LIBRARY NAMES blacsCinit blacsCinit-openmpi blacsCinit_MPI-LINUX-0 blacsC
                    PATHS /usr/lib /usr/local/lib)
@@ -278,6 +280,17 @@ IF(UNIX)
 #        ENDIF(NOT WITH_MKL EQUAL 0)
       endif(BLACS_FOUND AND SCALAPACK_FOUND)
     ENDIF(MPI_FOUND AND NOT WITH_SCALAPACK EQUAL 0)
+
+# scotch
+    IF(NOT WITH_SCOTCH EQUAL 0)
+      find_package(Scotch)
+      IF(SCOTCH_LIBRARIES AND SCOTCH_INCLUDES)
+        MESSAGE("-- A library with SCOTCH API found.")
+        add_definitions(-DUSE_SCOTCH)
+        SET(EXTRALIBRARIES ${SCOTCH_LIBRARIES} ${EXTRALIBRARIES})
+        include_directories(${SCOTCH_INCLUDES})
+      ENDIF(SCOTCH_LIBRARIES AND SCOTCH_INCLUDES)
+    ENDIF(NOT WITH_SCOTCH EQUAL 0)
 
 # mumps
    IF(NOT WITH_MUMPS EQUAL 0)
@@ -319,7 +332,7 @@ IF(UNIX)
                        MUMPS_common_LIBRARY MUMPS_pord_LIBRARY)
       FIND_LIBRARY(MUMPS_dmumps_LIBRARY NAMES dmumps
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(MUMPS_zmumps_LIBRARY NAMES zmumps        
+      FIND_LIBRARY(MUMPS_zmumps_LIBRARY NAMES zmumps
                    PATHS /usr/lib /usr/local/lib)
       FIND_LIBRARY(MUMPS_common_LIBRARY NAMES mumps_common
                    PATHS /usr/lib /usr/local/lib)
@@ -390,10 +403,6 @@ ENDIF (MERCURIAL_EXECUTABLE)
 
 add_definitions(-D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DSOWER_SURFS -DMAP_MIN_MEMORY)
 
-IF(SENSITIVITY_DEBUG EQUAL 1)
-   add_definitions(-DSENSITIVITY_DEBUG)
-endif(SENSITIVITY_DEBUG EQUAL 1)
-
 IF(AEROS_NO_AD EQUAL 1)
    add_definitions(-DAEROS_NO_AD)
 endif(AEROS_NO_AD EQUAL 1)
@@ -426,7 +435,7 @@ add_subdirectory(Regression.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corotational Mortar Rom Math
-     Dec Threads linpa Sfem paral Problems Corotational Driver Hetero Timers Comm Material Util getopt)
+     Dec Threads linpa Sfem paral Problems solver Corotational Driver Hetero Timers Comm Material Util getopt)
 
 IF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
   add_subdirectory(Acme.d)
@@ -456,7 +465,7 @@ IF(CREATE_DSO)
        Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Util getopt Parser
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
    SET_TARGET_PROPERTIES(femlib
-                         PROPERTIES 
+                         PROPERTIES
                          ARCHIVE_OUTPUT_DIRECTORY ${LIBDIR}
                          RELEASE_OUTPUT_NAME libaeros
                          DEBUG_OUTPUT_NAME libaeros_debug
@@ -467,7 +476,7 @@ endif(CREATE_DSO)
 IF(NOT CREATE_DSO)
   add_executable(femexecutable  main.C HgIdentity.C)
 
-  SET_TARGET_PROPERTIES(femexecutable 
+  SET_TARGET_PROPERTIES(femexecutable
                         PROPERTIES
                         RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
                         RELEASE_OUTPUT_NAME aeros
@@ -552,7 +561,7 @@ set_target_properties(errorcodec1
 target_link_libraries(errorcodec1 Rom Util)
 
 IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release CACHE STRING 
+  SET(CMAKE_BUILD_TYPE Release CACHE STRING
       "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
@@ -595,7 +604,7 @@ ELSE(MPI_FOUND)
   IF(MUMPS_FOUND)
     MESSAGE("Mumps:                    YES")
   ELSE(MUMPS_FOUND)
-    MESSAGE("Mumps:                    NO ") 
+    MESSAGE("Mumps:                    NO ")
   ENDIF(MUMPS_FOUND)
   MESSAGE("Scalapack:                NO ")
 ENDIF(MPI_FOUND)
@@ -643,9 +652,9 @@ SET (COPY_FILES ${REG_SRC_DIR}/copy_files.pl ${REG_SRC_DIR} ${EXEC_DIR} )
 SET (TEST_SHORT ${EXEC_DIR}/dataComp.py -l short)
 SET (BUILD_SHORT ${EXEC_DIR}/buildInputs.py ALL)
 
-SET (TEST_DURATION_SHORT $ENV{TEST_DURATION_SHORT})  
+SET (TEST_DURATION_SHORT $ENV{TEST_DURATION_SHORT})
 
-ADD_CUSTOM_TARGET(test-short 
+ADD_CUSTOM_TARGET(test-short
 COMMAND ${COPY_FILES}
 COMMAND ${BUILD_SHORT}
 COMMAND ${TEST_SHORT}

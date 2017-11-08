@@ -118,22 +118,22 @@ StaticTimers::printStaticTimersFetiHAxi(MatrixTimers matrixTimer,
 
    fprintf(f,"         %s", precMessage[sInfo.getFetiInfo().precno]);
 
-   fprintf(f,"         %s", subSolverMessage[sInfo.getFetiInfo().solvertype]);
+   fprintf(f,"         %s", subSolverMessage[sInfo.getFetiInfo().local_cntl->subtype]);
    
    if (sInfo.getFetiInfo().precno)
-   fprintf(f,"         %s", precSolverMessage[sInfo.getFetiInfo().solvertype]);
+   fprintf(f,"         %s", precSolverMessage[sInfo.getFetiInfo().kii_cntl->subtype]);
 
    fprintf(f,"         Coarse Solver Selected            =        %s",
-              gtgSolverMessage[sInfo.getFetiInfo().gtgSolver]);
+              gtgSolverMessage[sInfo.getFetiInfo().coarse_cntl->subtype]);
  
    fprintf(f,"         Zero Pivot Tolerance for Local K  = %14.3e\n",
-             sInfo.trbm);
+             sInfo.solvercntl->trbm);
  
    fprintf(f,"         Total Size of QtFQ                = %14d\n",
              timers.numCRNs);
  
    fprintf(f,"         Zero Pivot Tolerance for QtFQ     = %14.3e\n",
-             sInfo.getFetiInfo().grbm_tol);
+             sInfo.getFetiInfo().coarse_cntl->trbm);
 
    fprintf(f,"         Number of Linearly Depend. Modes  = %14d\n",
              timers.numRBMs);
@@ -405,7 +405,7 @@ StaticTimers::printStaticTimersFetiHAxi(MatrixTimers matrixTimer,
  //      Output FETI Solver information          // 
  //////////////////////////////////////////////////
 
-   if (sInfo.type == 2) {
+   if (sInfo.solvercntl->type == 2) {
 
       fprintf(f,"\n");
 
@@ -448,10 +448,10 @@ StaticTimers::printStaticTimersFetiHAxi(MatrixTimers matrixTimer,
       fprintf(f,"7. Maximum dependencies in Coarse Pb.      = %14d "
               "\n\n", timers.numRBMs);
 
-      if (sInfo.getFetiInfo().solvertype == 0)
+      if (sInfo.getFetiInfo().local_cntl->subtype == 0)
          fprintf(f,"8. Total Memory Subdomain Skyline K        = %14.3f Mb\n\n",
                  16.0*totMemSky*byteToMb);
-      else if (sInfo.getFetiInfo().solvertype == 1)
+      else if (sInfo.getFetiInfo().local_cntl->subtype == 1)
              fprintf(f,"8. Total Memory Subdomain Sparse K         = %14.3f Mb"
                        "\n\n", 16.0*totMemSparse*byteToMb);
            else

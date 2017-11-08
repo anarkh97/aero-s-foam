@@ -129,7 +129,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
 
  double totalMatricesProcess = timers.assemble + timers.constructMatrices;
  double coarseTime   = timers.coarse1 + timers.coarse2;
- double localSolutionTime = (sInfo.type == 0) ? solveTime : timers.solve + timers.factor + coarseTime 
+ double localSolutionTime = (sInfo.solvercntl->type == 0) ? solveTime : timers.solve + timers.factor + coarseTime 
                                                             + timers.pfactor + timers.pfactor2 
                                                             - totalMatricesProcess;
  double solutionTimeMin = localSolutionTime;
@@ -264,7 +264,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  fprintf(f,"***********************************************************"
            "********************\n\n");
 
- if(sInfo.type == 0) {
+ if(sInfo.solvercntl->type == 0) {
    fprintf(f,"1. Mumps Sparse\n\n");
  }
  else {
@@ -272,13 +272,13 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
    fprintf(f,"         %s", precMessage[sInfo.getFetiInfo().precno]);
    fprintf(f,"         %s", scalingMessage[sInfo.getFetiInfo().scaling]);
    fprintf(f,"         %s", projectMessage[sInfo.getFetiInfo().nonLocalQ]);
-   fprintf(f,"         %s", subSolverMessage[sInfo.getFetiInfo().solvertype]);
-   fprintf(f,"         %s", precSolverMessage[sInfo.getFetiInfo().solvertype]);
+   fprintf(f,"         %s", subSolverMessage[sInfo.getFetiInfo().local_cntl->subtype]);
+   fprintf(f,"         %s", precSolverMessage[sInfo.getFetiInfo().kii_cntl->subtype]);
 
    if(sInfo.rbmflg == 0)
-     fprintf(f,"         %s %29e\n",rbmMessage[sInfo.rbmflg],sInfo.trbm);
+     fprintf(f,"         %s %29e\n",rbmMessage[sInfo.rbmflg],sInfo.solvercntl->trbm2);
    else
-     fprintf(f,"         %s%17e %e\n",rbmMessage[sInfo.rbmflg],sInfo.tolsvd,sInfo.trbm);
+     fprintf(f,"         %s%17e %e\n",rbmMessage[sInfo.rbmflg],sInfo.tolsvd,sInfo.solvercntl->trbm);
 
    fprintf(f,"         Maximum Number of Iterations      = %14d\n",
            sInfo.getFetiInfo().maxiter());
@@ -402,7 +402,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  if (f != 0) {
  fprintf(f,"\n5. Total Solver                        time: %14.5f s %14.3f Mb\n",
          solutionTimeMax/1000.0, totalSolverMemory*byteToMb);
- if(sInfo.type == 2) {
+ if(sInfo.solvercntl->type == 2) {
    fprintf(f,"         Factor Subdomain Matrices     time: %14.5f s %14.3f Mb\n\n",
            timers.factor/1000.0, totalMemFactor*byteToMb);
    fprintf(f,"         Total Building  Coarse Pbs.   time: %14.5f s %14.3f\n",
@@ -494,7 +494,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  }
 
  // Output FETI solver information
- if(sInfo.type == 2) {
+ if(sInfo.solvercntl->type == 2) {
 
    fprintf(f,"\n***********************************************************"
              "********************\n");
@@ -518,14 +518,14 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
            timers.numCRNs,timers.memoryPCtFPC*byteToMb);
  }
 
- //if(sInfo.getFetiInfo().solvertype == 0)
+ //if(sInfo.getFetiInfo().local_cntl->subtype == 0)
  //  fprintf(f,"Memory Skyline = %14.3f Mb\n", 8.0*totMemSky*byteToMb );
- //else if(sInfo.getFetiInfo().solvertype == 1)
+ //else if(sInfo.getFetiInfo().local_cntl->subtype == 1)
  //  fprintf(f,"Memory Sparse  = %14.3f Mb\n", 8.0*totMemSparse*byteToMb );
 
  if((domain->probType() == SolverInfo::NonLinStatic ||
      domain->probType() == SolverInfo::NonLinDynam  ||
-     domain->probType() == SolverInfo::ArcLength) && sInfo.type == 2) {
+     domain->probType() == SolverInfo::ArcLength) && sInfo.solvercntl->type == 2) {
 
    fprintf(f,"\n***********************************************************"
              "********************\n");
@@ -692,7 +692,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  filePrint(f,"5. Total Solver                       : %12.4f %12.4f %12.4f\n\n",
          solutionTimeMin/1000.0, solutionTimeAvg/1000.0, solutionTimeMax/1000.0);
 
- if(sInfo.type == 2) {
+ if(sInfo.solvercntl->type == 2) {
    filePrint(f,"         Factor Subdomain Matrices    : %12.4f %12.4f %12.4f\n\n",
              factorTimeMin/1000.0,factorTimeAvg/1000.0,factorTimeMax/1000.0);
 
@@ -833,7 +833,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  filePrint(f,"5. Total Solver                       : %12.4f %12.4f %12.4f\n\n",
          tot5Min*byteToMb, tot5Avg*byteToMb, tot5Max*byteToMb);
 
- if(sInfo.type == 2) {
+ if(sInfo.solvercntl->type == 2) {
    filePrint(f,"         Factor Subdomain Matrices    : %12.4f %12.4f %12.4f\n\n",
              factorMemoryMin*byteToMb, factorMemoryAvg*byteToMb,
              factorMemoryMax*byteToMb);

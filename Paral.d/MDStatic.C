@@ -69,8 +69,7 @@ GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
  if(domain->solInfo().filterFlags || domain->solInfo().modeFilterFlag)
    trProject(rhs);
 
- if(domain->solInfo().type == 1) allOps.spMat->getAssembler()->assemble(rhs); // XXXX
-
+ if(domain->solInfo().solvercntl->type == 1) allOps.spMat->getAssembler()->assemble(rhs); // XXXX
  times->formRhs += getTime();
 }
 
@@ -253,7 +252,7 @@ GenMultiDomainPostProcessor<Scalar>::staticOutput(GenDistrVector<Scalar> &sol, G
 
  if(printTimers) {
    //filePrint(stderr," ... Print Timers                   ... \n");
-   switch(domain->solInfo().fetiInfo.version) {
+   switch(domain->solInfo().solvercntl->fetiInfo.version) {
      default:
      case FetiInfo::feti1:
      case FetiInfo::feti2:

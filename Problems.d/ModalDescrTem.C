@@ -92,6 +92,15 @@ void ModalDescr<Scalar>::postProcessSA(ModalOps *,Vector &sol){
 //------------------------------------------------------------------------------
 
 template <class Scalar>
+void ModalDescr<Scalar>::sensitivityPostProcessing(Vector *sol){
+
+  filePrint(stderr," ... ModalDescr::sensitivityPostProcessing is not implemented\n"); 
+  exit(-1);
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
 void ModalDescr<Scalar>::getTimes(double &dt, double &tmax){
 
   dt   = domain->solInfo().getTimeStep();

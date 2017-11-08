@@ -37,6 +37,7 @@ public:
     {
       incDsp = q - stepState.q;
     }
+  void get_tot_displacement(VecType &totVec, bool rescaled = true) {}
   void midpoint_step_update(VecType &veloc_n, VecType &accel_n, double delta, GenModalGeomState &ss,
                             double beta, double gamma, double alphaf, double alpham,
                             bool zeroRot);

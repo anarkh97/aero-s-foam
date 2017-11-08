@@ -36,6 +36,7 @@ public:
   // Solution
   virtual void factor() = 0;
   virtual void reSolve(GenVecType<Scalar> &rhs) = 0;
+  virtual void fullSolutionIs(bool) = 0;
 
   // Reduced basis parameters
   virtual int basisSize() const = 0;
@@ -97,6 +98,10 @@ public:
   // Solution
   virtual void factor();
   virtual void reSolve(GenVector<Scalar> &rhs);
+  void fullSolutionIs(bool) {
+    std::cerr << "ERROR: GenDBSparsePodProjectionSolver::fullSolutionIs is not implemented\n";
+    exit(-1);
+  }
 
   // Reduced basis parameters
   int basisSize() const { return basisSize_; }

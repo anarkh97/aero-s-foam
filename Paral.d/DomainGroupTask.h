@@ -54,8 +54,7 @@ class GenDomainGroupTask : public TaskDescr {
    GenDomainGroupTask(int nsub, GenSubDomain<Scalar> **_sd, double, double, double,
                       Rbm **_rbms, FullSquareMatrix **_kelArray, double, double, 
                       int, int solvertype, FSCommunicator *, FullSquareMatrix **_melArray,
-                      FullSquareMatrix **_celArray, bool elemsetHasDamping,
-                      MatrixTimers &_mt);
+                      FullSquareMatrix **_celArray, MatrixTimers &_mt);
    virtual ~GenDomainGroupTask();
    void runFor(int isub, bool make_feti);
 };

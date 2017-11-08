@@ -14,6 +14,8 @@ using std::stable_sort;
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 
+#include <Utils.d/GlobalInt.h>
+
 //HB: for activating the optimization of renumByComponent without renumbering
 //    Currently, one has to use renumAlg = -1 when calling the renumByComponent method
 //    to use this optimization
@@ -204,6 +206,20 @@ size_t Connectivity::write(BinFileHandler& f)
   return 0;
 }
 
+size_t Connectivity::writeg(BinFileHandler& f)
+{
+  int _size = size+1;
+  f.write(&_size,1);
+  f.write(pointer,_size);
+  f.write(&numtarget,1);
+  GlobalInt *gtarget = new GlobalInt[numtarget];
+  for(int i = 0; i < numtarget; i++)
+    gtarget[i] = target[i];
+  f.write(gtarget,numtarget);
+  delete [] gtarget;
+  return 0;
+}
+
 Connectivity::Connectivity(int _size, int *_count)
 {
  removeable = 1;
@@ -215,6 +231,22 @@ Connectivity::Connectivity(int _size, int *_count)
     pointer[i+1] = pointer[i] + _count[i];
  numtarget = pointer[size];
  target = new int[numtarget];
+ weight = 0;
+}
+
+Connectivity::Connectivity(int _size, int count)
+{
+ removeable = 1;
+ size    = _size;
+ pointer = new int[size+1];
+ pointer[0] = 0;
+ int i;
+ for(i=0; i < _size; ++i)
+    pointer[i+1] = pointer[i] + count;
+ numtarget = pointer[size];
+ target = new int[numtarget];
+ for(int i=0; i < numtarget; ++i)
+    target[i] = i;
  weight = 0;
 }
 
@@ -1117,6 +1149,28 @@ Connectivity::modify()
   return new Connectivity(size, nptr, ntrg);
 }
 
+// this one is to remove connection with self
+Connectivity *
+Connectivity::modifyAlt()
+{
+  int i,j;
+  int count;
+  count = 0;
+  for(i = 0; i < size; ++i)
+    for(j = 0; j < num(i); ++j)
+      if((*this)[i][j] == i) count++;
+  int *ntrg = new int[numtarget-count];
+  int *nptr = new int[size+1];
+  count = 0;
+  for(i = 0; i < size; ++i) {
+    nptr[i] = count;
+    for(j = 0; j < num(i); ++j)
+      if((*this)[i][j] != i) ntrg[count++] = (*this)[i][j];
+  }
+  nptr[size] = count;
+  return new Connectivity(size, nptr, ntrg);
+}
+
 Connectivity *
 Connectivity::combineAll(int addSize, int* cmap)
 {
@@ -1431,3 +1485,45 @@ Connectivity::Connectivity(SommerElement  **els, int numSommer, int max)
   }
 }
 
+
+Connectivity::Connectivity(FILE *f, int n)
+{
+  removeable = 1;
+  weight = (float *) 0;
+  numtarget = n;
+  int numalloc = numtarget;
+  target = new int[numtarget];
+
+  int r1 = fscanf(f,"%d",&size);
+
+  pointer = new int[size+1];
+
+  int k = 0, m;
+  for (int i = 0; i < size; ++i) {
+    int r2 = fscanf(f,"%d",&m);
+    pointer[i] = k;
+    if(n) {
+      if(k + m > numtarget) {
+	fprintf(stderr," *** ERROR: Connectivity has too many connections\n");
+	exit(1);
+      }
+    } else {
+      if(k + m > numalloc) {
+	numalloc = (3*numalloc)/2;
+	if(k + m > numalloc)
+	  numalloc = k + m;
+	int *nt = new int[numalloc];
+	for (int j = 0; j < numtarget; j++)
+	  nt[j] = target[j];
+	delete [] target;
+	target = nt;
+      }
+      numtarget = k + m;
+    }
+    for (int j = 0; j < m; ++j) {
+      int r3 = fscanf(f,"%d",target+k);
+      target[k++]--;
+    }
+  }
+  pointer[size] = k;
+}

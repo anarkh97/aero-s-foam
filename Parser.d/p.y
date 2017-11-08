@@ -67,13 +67,14 @@
  OutputInfo oinfo;
  ConstraintOptions copt;
  BlastLoading::BlastData blastData;
+ SolverCntl* scntl;
  FreeplayProps freeplayProps;
  ModalParams::Type mpt;
 }
 
 %expect 6
 
-%token ACTUATORS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT 
+%token ACTUATORS ADJOINTBASIS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT 
 %token AUGMENT AUGMENTTYPE AUXILIARY AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU ALLOWMECHANISMS
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED ANDESCLR ANDESCQR ANDESBETAB ANDESALPHA ANDESBETAM AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
@@ -90,27 +91,27 @@
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HERMITIAN HESSIAN
-%token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL IMESH 
+%token IACC IDENTITY IDIS IDIS6 ILUDROPTOL IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL IMESH 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KEYLETTER KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LISRBM LMPC LOAD LOADCASE LOBPCG LOCALREDUCEDORDERBASES LOCALSOLVER LINESEARCH LUMPED
 %token KSPARAM KSMAX 
 %token MASS MASSAUGMENTATION MATERIALS MATLAB MAXITR MAXELEM MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
-%token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
-%token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLMEMPTYPE NLPREC NOCOARSE NODETOKEN NONINPC
+%token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MUMPSMINEQ MUMPSSTRIDE MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
+%token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NLMEMPTYPE NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
 %token SENSITIVITY SENSITIVITYMETHOD OUTPUT OUTPUT6 OUTPUTFRAME
-%token QSTATIC QLOAD
+%token QSTATIC QLOAD QUASISTATIC
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE PARAMETERS
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB printmatlab PRINTNUMBER PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE PARAMETERS
 %token RADIATION RBMFILTER RBMSET READMODE READSENSITIVITY REBUILD REVERSEORDER REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROBTYPE ROTVECOUTTYPE RESCALING RUBDAFT
-%token SCALING SCALINGTYPE SDETAFT SENSORS SOLVERTYPE SHIFT
-%token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
+%token SCALING SCALINGTYPE SDETAFT SENSORS SOLVERCNTL SOLVERHANDLE SOLVERTYPE SHIFT
+%token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK SPARSERENUM
 %token STATS STRESSID SUBSPACE SURFACE STR_THERM_OPTION SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT SENSITIVITYID
-%token TABLE TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOLSEN TOPFILE TOPOLOGY TRBM THERMOE THERMOH RATIOTOLSEN 
+%token TABLE TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOLSEN TOPFILE TOPOLOGY TRBM TRBMlc THERMOE THERMOH RATIOTOLSEN
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL CENTER POSELEM HOTSTART HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL NUMROMCPUS THICKNESSGROUPLIST
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
-%token VERSION WETCORNERS YMTT YSST YSSRT
+%token VERBOSE VERSION WETCORNERS YMTT YSST YSSRT
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
@@ -124,7 +125,7 @@
 %token SNAPFI VELSNAPFI ACCSNAPFI DSVSNAPFI MUVSNAPFI PODROB ROMENERGY TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI ROMRES SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG SCALEPOSCOORDS NODEPOSCOORDS MESHSCALEFACTOR PSEUDOGNAT PSEUDOGNATELEM USENMF USENMFC USEGREEDY USEPQN FILTERROWS
 %token VECTORNORM REBUILDFORCE REBUILDCONSTRAINT SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB CONSTRAINTROB DEIMINDICES UDEIMINDICES SVDFORCESNAP SVDCONSTRAINTSNAP
 %token USEMASSNORMALIZEDBASIS USECONSTANTMASS ONLINEMASSNORMALIZEBASIS STACKED
-%token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST DISPDOFLIST 
+%token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST RELAXATIONSEN 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 %token NPMAX BSSPLH PGSPLH
 
@@ -146,7 +147,7 @@
 %type <ival>     AEROTYPE ALPROC AlProc Attributes AUGMENTTYPE AVERAGED 
 %type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE ANGULAROUTTYPE ROTVECOUTTYPE
 %type <ival>     DAMPING ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
-%type <ival>     GTGSOLVER Integer IntConstant ITERTYPE LoadCase
+%type <ival>     Integer IntConstant ITERTYPE LoadCase
 %type <ival>     RBMSET RENUMBERID OPTCTV
 %type <mpt>      ROBTYPE
 %type <rprop>    RPROP
@@ -176,6 +177,7 @@
 %type <oinfo>    OutInfo
 %type <copt>     ConstraintOptionsData
 %type <blastData> ConwepData
+%type <scntl>    Solver SolverMethod Solvercntl
 %type <freeplayProps> FreeplayProps
 %%
 FinalizedData:
@@ -213,6 +215,7 @@ Component:
 	| UDeimBasis
 	| Materials
         | Statics
+        | Solvercntl
 	| Pressure
 	| Lumped
         {}
@@ -1130,6 +1133,9 @@ SloshInfo:
 MassInfo:
 	MASS NewLine
         { domain->solInfo().massFlag = 1; }
+        | MASS FNAME NewLine
+        { domain->solInfo().massFlag = 1;
+          domain->solInfo().massFile = std::string($2); }
 	;
 CondInfo:
 	CONDITION NewLine Float Integer NewLine
@@ -1184,6 +1190,8 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
+        | DynamInfo QUASISTATIC SWITCH NewLine
+        { domain->solInfo().quasistatic = bool($3); }
         ;
 Conwep:
         CONWEP NewLine ConwepData NewLine
@@ -1941,6 +1949,10 @@ Mode:
         { domain->solInfo().readInModes[0] = ModalParams(ModalParams::Undefined, $2, $3); }
 	| READMODE NewLine ReadModeInfo
 	| Mode ReadModeInfo
+        | Mode ADJOINTBASIS FNAME Integer STRESSID NewLine
+        { domain->solInfo().adjointMap[(OutputInfo::Type)$5] = domain->solInfo().readInAdjointROB.size();
+          domain->solInfo().readInAdjointROB.push_back($3);
+          domain->solInfo().maxSizeAdjointBasis.push_back($4); }
 	;
 IDisp:
         IDIS NewLine
@@ -3694,6 +3706,8 @@ Sensitivity:
           domain->solInfo().readInShapeSen = $3; }  
         | Sensitivity TOLSEN Float NewLine
         { domain->solInfo().sensitivityTol = $3; }
+        | Sensitivity RELAXATIONSEN Float NewLine
+        { domain->solInfo().qsMaxvelSen = $3; }
         | Sensitivity RATIOTOLSEN Float NewLine
         { domain->solInfo().ratioSensitivityTol = $3; }    
         | Sensitivity KSPARAM Float NewLine
@@ -3704,22 +3718,34 @@ Sensitivity:
         { } 
         | Sensitivity STRESSNODELIST StressNode NewLine
         { } 
-        | Sensitivity DISPNODELIST DispNode NewLine
+        | Sensitivity DISPNODELIST NewLine DispNode
         { } 
-        | Sensitivity DISPDOFLIST DispDof NewLine
-        { }
-  ;
-DispDof:
-        Integer 
-        { domain->setDispDofs($1); }
-        | DispDof Integer 
-        { domain->setDispDofs($2); }
   ;
 DispNode:
-        Integer 
-        { domain->setDispNodes($1); }
-        | DispNode Integer 
-        { domain->setDispNodes($2); }
+        Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1); }
+        | DispNode Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1); }
+        | Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1); }
+        | DispNode Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1); }
+        | Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1); }
+        | DispNode Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1); }
+        | Integer Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1, $5-1); }
+        | DispNode Integer Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1, $6-1); }
+        | Integer Integer Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1, $5-1, $6-1); }
+        | DispNode Integer Integer Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1, $6-1, $7-1); }
+        | Integer Integer Integer Integer Integer Integer Integer NewLine 
+        { domain->setDispNode($1-1, $2-1, $3-1, $4-1, $5-1, $6-1, $7-1); }
+        | DispNode Integer Integer Integer Integer Integer Integer Integer NewLine
+        { domain->setDispNode($2-1, $3-1, $4-1, $5-1, $6-1, $7-1, $8-1); }
   ;
 StressNode:
         Integer 
@@ -3737,7 +3763,7 @@ Statics:
         STATS NewLine
         { domain->solInfo().setProbType(SolverInfo::Static); }
         | Statics Solver
-        | Statics IterSolver
+        { domain->solInfo().solvercntl = $2; }
         | Statics CASES CasesList NewLine
         | Statics PIECEWISE NewLine
         { // activate piecewise constant configuration dependent external forces for a linear dynamic analysis
@@ -3749,6 +3775,24 @@ Statics:
           domain->solInfo().piecewise_dlambda = $3;
           domain->solInfo().piecewise_maxLambda = $4;
         }
+        | Statics COUPLEDSCALE Float NewLine
+        { domain->solInfo().coupled_scale = $3; }
+        | Statics TURKEL Integer NewLine
+        { domain->sommerfeldType = $3;
+          domain->curvatureFlag = 0; }
+        | Statics TURKEL Integer Float NewLine
+        { domain->sommerfeldType = $3;
+          domain->curvatureConst1 = $4;
+          domain->curvatureFlag = 1; }
+        | Statics TURKEL Integer Float Float NewLine
+        { domain->sommerfeldType = $3;
+          domain->curvatureConst1 = $4;
+          domain->curvatureConst2 = $5;
+          domain->curvatureFlag = 2; }
+        | Statics DMPC SWITCH NewLine
+        { domain->solInfo().dmpc = bool($3); }
+        | Statics MPCCHECK Integer NewLine
+        { domain->solInfo().dbccheck = bool($3); }
         ;
 CasesList:
         Integer
@@ -3756,560 +3800,549 @@ CasesList:
         | CasesList Integer
         { domain->solInfo().loadcases.push_back($2); }
         ;
-IterSolver:
-        ITERTYPE NewLine
-        { domain->solInfo().type = 1;
-          domain->solInfo().iterType = $1; }
-        | IterSolver PRECNO Integer NewLine
-        { domain->solInfo().precond = $3; }
-        | IterSolver MAXITR Integer NewLine
-        { domain->solInfo().maxit = $3; }
-        | IterSolver TOLPCG Float NewLine
-        { domain->solInfo().tol = $3; }
-        | IterSolver MAXORTHO Integer NewLine
-        { domain->solInfo().maxvecsize = $3; }
-        | IterSolver SUBTYPE Integer NewLine
-        { domain->solInfo().iterSubtype = $3; }
-        ;
-Solver:
+SolverMethod:
 	DIRECT NewLine
-        { domain->solInfo().setSolver(0); }
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 0;
+          $$->subtype = 0; }
 	| DIRECT Integer NewLine
-	{ domain->solInfo().setSolver($2); }
+	{ $$ = new SolverCntl(default_cntl);
+          $$->type = 0;
+          $$->subtype = $2; }
 	| SOLVERTYPE NewLine
-	{ domain->solInfo().setSolver($1); }
+	{ $$ = new SolverCntl(default_cntl);
+          $$->type = 0;
+          $$->subtype = $1; }
         | SOLVERTYPE PIVOT NewLine
-        { domain->solInfo().setSolver($1);
-          if($1 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
-          else domain->solInfo().pivot = true; }
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 0;
+          $$->subtype = $1;
+          $$->pivot = true; }
+        | SOLVERTYPE SCALED NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 0;
+          $$->subtype = $1;
+          $$->scaled = true; }
         | SOLVERTYPE UNSYMMETRIC NewLine
-        { domain->solInfo().setSolver($1);
-          domain->solInfo().getNLInfo().unsymmetric = true; }
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 0;
+          $$->subtype = $1;
+          $$->unsymmetric = true; }
+        | ITERTYPE NewLine
+        { $$ = new SolverCntl(default_cntl); 
+          $$->type = 1;
+          $$->iterType = $1; }
         | ITERTYPE Integer NewLine
-        { domain->solInfo().setSolver($1,$2); }
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 1;
+          $$->iterType = $1;
+          $$->precond = $2; }
         | ITERTYPE Integer Float NewLine
-        { domain->solInfo().setSolver($1,$2,$3); }   
-	| ITERTYPE Integer Float Integer NewLine
-	{ domain->solInfo().setSolver($1,$2,$3,$4); }
-	| ITERTYPE Integer Float Integer Integer NewLine
-	{ domain->solInfo().setSolver($1,$2,$3,$4,$5); }
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 1;
+          $$->iterType = $1;
+          $$->precond = $2;
+          $$->tol=$3; }   
+        | ITERTYPE Integer Float Integer NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 1;
+          $$->iterType = $1;
+          $$->precond = $2;
+          $$->tol = $3;
+          $$->maxit = $4; }
+        | ITERTYPE Integer Float Integer Integer NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 1;
+          $$->iterType = $1;
+          $$->precond = $2;
+          $$->tol = $3;
+          $$->maxit = $4;
+          $$->iterSubtype = $5; }
         | ITERTYPE Integer Float Integer Integer Integer NewLine
-        { domain->solInfo().setSolver($1,$2,$3,$4,$5,$6); }
-        | FETI Integer Float NewLine
-        { domain->solInfo().fetiInfo.maxit    = $2;
-          domain->solInfo().fetiInfo.tol      = $3;
-          domain->solInfo().fetiInfo.maxortho = $2;
-          domain->solInfo().type =(2); }
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 1;
+          $$->iterType = $1;
+          $$->precond = $2;
+          $$->tol = $3;
+          $$->maxit = $4;
+          $$->iterSubtype = $5;
+          $$->maxvecsize = $6; }
+        | FETI NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2; }
         | FETI Integer NewLine
-        { domain->solInfo().type =(2);
-          domain->solInfo().fetiInfo.version = (FetiInfo::Version) ($2-1); } 
-	| FETI DP NewLine
-	{ domain->solInfo().type =(2);
-          domain->solInfo().fetiInfo.corners = FetiInfo::allCorners6;
-          domain->solInfo().fetiInfo.version = FetiInfo::fetidp; }
-        | FETI DPH NewLine
-        { domain->solInfo().type =(2);
-          domain->solInfo().fetiInfo.corners = FetiInfo::allCorners6;
-          domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
-          domain->solInfo().fetiInfo.dph_flag = true; }
-        | FETI Integer FETI2TYPE NewLine
-        { domain->solInfo().type =(2);
-          domain->solInfo().fetiInfo.version = (FetiInfo::Version) ($2-1); 
-          domain->solInfo().fetiInfo.feti2version 
-                  = (FetiInfo::Feti2Version) $3; } 
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.version = (FetiInfo::Version) ($2-1); }
+        | FETI Integer Float NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.maxit = $2;
+          $$->fetiInfo.tol = $3;
+          $$->fetiInfo.maxortho = $2; }
         | FETI Integer Float Integer NewLine
-        { domain->solInfo().fetiInfo.maxit    = $2;
-          domain->solInfo().fetiInfo.tol      = $3;
-          domain->solInfo().fetiInfo.maxortho = $4;
-          domain->solInfo().type =(2); }
-	| FETI NewLine
-	{ domain->solInfo().type =(2); }
-	| BLOCKDIAG NewLine SOLVERTYPE NewLine
-	{ domain->solInfo().type = 3;
-          domain->solInfo().subtype = $3;
-          domain->solInfo().getFetiInfo().solvertype = (FetiInfo::Solvertype)($3);
-	}
-        | SPARSEMAXSUP Integer NewLine
-        { domain->solInfo().sparse_maxsup  = $2; }
-        | SPARSEDEFBLK Integer NewLine
-        { domain->solInfo().sparse_defblk  = $2; }
-        | SPOOLESTAU Float NewLine
-        { domain->solInfo().spooles_tau  = $2; }
-        | SPOOLESMAXSIZE Integer NewLine
-        { domain->solInfo().spooles_maxsize = $2; }
-        | SPOOLESMAXDOMAINSIZE Integer NewLine
-        { if($2 < 0) {
-            $2 = 24;
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.maxit = $2;
+          $$->fetiInfo.tol = $3;
+          $$->fetiInfo.maxortho = $4; }
+        | FETI Integer FETI2TYPE NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.version = (FetiInfo::Version) ($2-1);
+          $$->fetiInfo.feti2version = (FetiInfo::Feti2Version) $3; }
+	| FETI DP NewLine
+	{ $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.corners = FetiInfo::allCorners6;
+          $$->fetiInfo.version = FetiInfo::fetidp; }
+        | FETI DPH NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.corners = FetiInfo::allCorners6;
+          $$->fetiInfo.version = FetiInfo::fetidp;
+          $$->fetiInfo.dph_flag = true; }
+        | HFETI NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.scaling = FetiInfo::tscaling;
+          $$->fetiInfo.corners = FetiInfo::allCorners3;
+          $$->fetiInfo.version = FetiInfo::fetidp;
+          $$->fetiInfo.dph_flag = true;
+          $$->fetiInfo.augment = FetiInfo::Edges;
+          $$->fetiInfo.rbmType = FetiInfo::None;
+          $$->fetiInfo.nGs = 0; }
+        | HFETI Integer Float NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.maxit = $2;
+          $$->fetiInfo.tol = $3;
+          $$->fetiInfo.krylovtype = 1;
+          $$->fetiInfo.scaling = FetiInfo::tscaling;
+          $$->fetiInfo.corners = FetiInfo::allCorners6;
+          $$->fetiInfo.version = FetiInfo::fetidp;
+          $$->fetiInfo.dph_flag = true;
+          $$->fetiInfo.augment = FetiInfo::Edges;
+          $$->fetiInfo.rbmType = FetiInfo::None;
+          $$->fetiInfo.nGs = 0; }
+        | HFETI Integer Float Integer NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.maxit = $2;
+          $$->fetiInfo.tol = $3;
+          $$->fetiInfo.numcgm = $4;
+          $$->fetiInfo.krylovtype = 1;
+          $$->fetiInfo.scaling = FetiInfo::tscaling;
+          $$->fetiInfo.corners = FetiInfo::allCorners6;
+          $$->fetiInfo.version = FetiInfo::fetidp;
+          $$->fetiInfo.dph_flag = true;
+          $$->fetiInfo.augment = FetiInfo::Edges;
+          $$->fetiInfo.rbmType = FetiInfo::None;
+          $$->fetiInfo.nGs = 0; }
+        | HFETI Integer Float Integer Float NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.maxit = $2;
+          $$->fetiInfo.tol = $3;
+          $$->fetiInfo.numcgm = $4;
+          $$->fetiInfo.tolcgm = $5;
+          $$->fetiInfo.spaceDimension = 2;
+          $$->fetiInfo.krylovtype = 1;
+          $$->fetiInfo.scaling = FetiInfo::tscaling;
+          $$->fetiInfo.corners = FetiInfo::allCorners6;
+          $$->fetiInfo.version = FetiInfo::fetidp;
+          $$->fetiInfo.dph_flag = true;
+          $$->fetiInfo.augment = FetiInfo::Edges;
+          $$->fetiInfo.rbmType = FetiInfo::None;
+          $$->fetiInfo.nGs = 0; }
+        | HFETI Integer Float Integer Float Integer NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 2;
+          $$->fetiInfo.maxit = $2;
+          $$->fetiInfo.tol = $3;
+          $$->fetiInfo.numcgm = $4;
+          $$->fetiInfo.tolcgm = $5;
+          $$->fetiInfo.spaceDimension = $6;
+          $$->fetiInfo.krylovtype = 1;
+          $$->fetiInfo.scaling = FetiInfo::tscaling;
+          $$->fetiInfo.corners = FetiInfo::allCorners6;
+          $$->fetiInfo.version = FetiInfo::fetidp;
+          $$->fetiInfo.dph_flag = true;
+          $$->fetiInfo.augment = FetiInfo::Edges;
+          $$->fetiInfo.rbmType = FetiInfo::None;
+          $$->fetiInfo.nGs = 0; }
+        | BLOCKDIAG NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 3; }
+        | SOLVERHANDLE Integer NewLine
+        { $$ = &domain->solInfo().solvercntls[$2]; }
+        ;
+Solvercntl:
+        SOLVERCNTL Integer NewLine Solver
+        { $$ = &domain->solInfo().solvercntls[$2];
+          *$$ = *$4; }
+Solver:
+        SolverMethod
+        { $$ = $1; }
+        | Solver VERBOSE NewLine
+        { $$->verbose = 1; }
+        | Solver VERBOSE Integer NewLine
+        { $$->verbose = $3; }
+        | Solver PRINTNUMBER Integer NewLine
+        { $$->fetiInfo.printNumber = $3; }
+        | Solver TRBMlc Float NewLine
+        { $$->trbm = $3; }
+        | Solver SPARSERENUM Integer NewLine
+        { $$->sparse_renum = $3; }
+        | Solver SPARSEMAXSUP Integer NewLine
+        { $$->sparse_maxsup = $3; }
+        | Solver SPARSEDEFBLK Integer NewLine
+        { $$->sparse_defblk = $3; }
+        | Solver SPOOLESTAU Float NewLine
+        { $$->spooles_tau = $3; }
+        | Solver SPOOLESMAXSIZE Integer NewLine
+        { $$->spooles_maxsize = $3; }
+        | Solver SPOOLESMAXDOMAINSIZE Integer NewLine
+        { if($3 < 0) {
+            $3 = 24;
             fprintf(stderr," *** WARNING: spooles_maxdomainsize must be > 0,"
                            " using 24\n");
           }
-          domain->solInfo().spooles_maxdomainsize = $2; }
-        | SPOOLESSEED Integer NewLine
-        { domain->solInfo().spooles_seed = $2; }
-        | SPOOLESMAXZEROS Float NewLine
-        { if(($2 < 0.0) || ($2 > 1.0)) {
-            $2 = 0.04;
+          $$->spooles_maxdomainsize = $3; }
+        | Solver SPOOLESSEED Integer NewLine
+        { $$->spooles_seed = $3; }
+        | Solver SPOOLESMAXZEROS Float NewLine
+        { if(($3 < 0.0) || ($3 > 1.0)) {
+            $3 = 0.04;
             fprintf(stderr," *** WARNING: spooles_maxzeros outside acceptable limits (0..1),"
                            " using 0.04\n");
           }
-          domain->solInfo().spooles_maxzeros = $2; }
-        | SPOOLESMSGLVL Integer NewLine
-        { domain->solInfo().spooles_msglvl = $2; }
-        | SPOOLESPIVOT SWITCH NewLine
-        { domain->solInfo().pivot = bool($2); }
-        | SPOOLESSCALE Integer NewLine
-        { domain->solInfo().spooles_scale = $2; }
-        | SPOOLESRENUM Integer NewLine
-        { domain->solInfo().spooles_renum = $2; }
-	| MUMPSICNTL Integer Integer NewLine
-	{ domain->solInfo().mumps_icntl[$2] = $3; }
-	| MUMPSCNTL Integer Float NewLine
-	{ domain->solInfo().mumps_cntl[$2] = $3; }
-        | GOLDFARBTOL Float NewLine
-        { domain->solInfo().goldfarb_tol = $2; }
-	| Solver MAXITR Integer NewLine 
-	{ domain->solInfo().fetiInfo.maxit = $3; }
-        | DEBUGICNTL Integer Integer NewLine
-        { domain->solInfo().debug_icntl[$2] = $3; }
-        | DEBUGCNTL Integer Float NewLine
-        { domain->solInfo().debug_cntl[$2] = $3; }
-/* potential conflict/confusion with LUMPED for mass matrix etc.
-        | FETIPREC NewLine
-        { domain->solInfo().fetiInfo.precno = (FetiInfo::Preconditioner) $1; }
-*/
+          $$->spooles_maxzeros = $3; }
+        | Solver SPOOLESMSGLVL Integer NewLine
+        { $$->spooles_msglvl = $3; }
+        | Solver SPOOLESSCALE Integer NewLine
+        { $$->spooles_scale = $3; }
+        | Solver SPOOLESRENUM Integer NewLine
+        { $$->spooles_renum = $3; }
+	| Solver MUMPSICNTL Integer Integer NewLine
+	{ $$->mumps_icntl[$3] = $4; }
+	| Solver MUMPSCNTL Integer Float NewLine
+	{ $$->mumps_cntl[$3] = $4; }
+	| Solver MUMPSMINEQ Integer NewLine
+	{ $$->mumps_mineq = $3; }
+	| Solver MUMPSSTRIDE Integer NewLine
+	{ $$->mumps_stride = $3; }
+        | Solver GOLDFARBTOL Float NewLine
+        { $$->goldfarb_tol = $3; }
+        | Solver TOLPCG Float NewLine
+        { $$->tol = $3; }
+        | Solver SUBTYPE Integer NewLine
+        { $$->iterSubtype = $3; }
+        | Solver ILUDROPTOL Float NewLine
+        { $$->ilu_droptol = $3; }
+        | Solver MAXITR Integer NewLine
+        { $$->maxit = $3; 
+          $$->fetiInfo.maxit = $3; }
+        | Solver MAXORTHO Integer NewLine
+        { $$->maxvecsize = $3;
+          $$->fetiInfo.maxortho = $3; }
+        | Solver FETIPREC NewLine
+        { $$->fetiInfo.precno = (FetiInfo::Preconditioner) $2; }
 	| Solver PRECNO FETIPREC NewLine
-        { domain->solInfo().fetiInfo.precno = (FetiInfo::Preconditioner) $3; }
+        { $$->fetiInfo.precno = (FetiInfo::Preconditioner) $3; }
         | Solver PRECNO LUMPED NewLine
-        { domain->solInfo().fetiInfo.precno = FetiInfo::lumped; }
+        { $$->fetiInfo.precno = FetiInfo::lumped; }
         | Solver PRECNO Integer NewLine
-        { if(($3 < 0) || ($3 > 3)) { 
+        { $$->precond = $3;
+          if($$->type == 2 && (($3 < 0) || ($3 > 3))) { 
             $3 = 1;
             fprintf(stderr," *** WARNING: Incorrect Preconditioner selected, using lumped\n");
           }
-          domain->solInfo().fetiInfo.precno = (FetiInfo::Preconditioner) $3;
-	}
-        | PRECTYPE Integer NewLine
-        { if(($2 < 0) || ($2 > 1)) {
-            $2 = 0;
+          $$->fetiInfo.precno = (FetiInfo::Preconditioner) $3; }
+        | Solver PRECTYPE Integer NewLine
+        { if(($3 < 0) || ($3 > 1)) {
+            $3 = 0;
             fprintf(stderr," *** WARNING: Incorrect Preconditioner Type selected, using nonshifted\n");
           }
-          domain->solInfo().fetiInfo.prectype = (FetiInfo::PreconditionerType) $2;
-        }
-        | PRECTYPE PRECTYPEID NewLine
-        { if(($2 < 0) || ($2 > 1)) {
-            $2 = 0;
+          $$->fetiInfo.prectype = (FetiInfo::PreconditionerType) $3; }
+        | Solver PRECTYPE PRECTYPEID NewLine
+        { if(($3 < 0) || ($3 > 1)) {
+            $3 = 0;
             fprintf(stderr," *** WARNING: Incorrect Preconditioner Type selected, using nonshifted\n");
           }
-          domain->solInfo().fetiInfo.prectype = (FetiInfo::PreconditionerType) $2;
-        }
-        | TOLFETI Float NewLine
-  	{ domain->solInfo().fetiInfo.tol = $2; }
-        | TOLFETI Float Float NewLine
-        { domain->solInfo().fetiInfo.tol = $2; 
-          domain->solInfo().fetiInfo.absolute_tol = $3; }
-        | STAGTOL Float NewLine
-        { domain->solInfo().fetiInfo.stagnation_tol = $2; }
-        | STAGTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.stagnation_tol = $2;
-          domain->solInfo().fetiInfo.absolute_stagnation_tol = $3; }
-        | PTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.primal_proj_tol = $2;
-          domain->solInfo().fetiInfo.dual_proj_tol = $3; }
-        | PMAXIT Integer Integer NewLine
-        { domain->solInfo().fetiInfo.primal_plan_maxit = $2;
-          domain->solInfo().fetiInfo.dual_plan_maxit = $3; }
-        | PLANTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.primal_plan_tol = $2;
-          domain->solInfo().fetiInfo.dual_plan_tol = $3; }
-	| Solver MAXORTHO Integer NewLine
-	{ domain->solInfo().fetiInfo.maxortho = $3; }
-	| NOCOARSE NewLine
-	{ domain->solInfo().fetiInfo.noCoarse = 1; }
-	| PROJ Integer NewLine
-	{ if($2 == 1) 
-            domain->solInfo().fetiInfo.nonLocalQ = 0;
-          else if($2 == 2) {
-            domain->solInfo().fetiInfo.nonLocalQ = 1;
-            if(domain->solInfo().fetiInfo.version == FetiInfo::feti2) {
-              domain->solInfo().fetiInfo.nonLocalQ = 0;
+          $$->fetiInfo.prectype = (FetiInfo::PreconditionerType) $3; }
+        | Solver TOLFETI Float NewLine
+  	{ $$->fetiInfo.tol = $3; }
+        | Solver TOLFETI Float Float NewLine
+        { $$->fetiInfo.tol = $3; 
+          $$->fetiInfo.absolute_tol = $4; }
+        | Solver STAGTOL Float NewLine
+        { $$->fetiInfo.stagnation_tol = $3; }
+        | Solver STAGTOL Float Float NewLine
+        { $$->fetiInfo.stagnation_tol = $3;
+          $$->fetiInfo.absolute_stagnation_tol = $4; }
+        | Solver PTOL Float Float NewLine
+        { $$->fetiInfo.primal_proj_tol = $3;
+          $$->fetiInfo.dual_proj_tol = $4; }
+        | Solver PMAXIT Integer Integer NewLine
+        { $$->fetiInfo.primal_plan_maxit = $3;
+          $$->fetiInfo.dual_plan_maxit = $4; }
+        | Solver PLANTOL Float Float NewLine
+        { $$->fetiInfo.primal_plan_tol = $3;
+          $$->fetiInfo.dual_plan_tol = $4; }
+	| Solver NOCOARSE NewLine
+	{ $$->fetiInfo.noCoarse = 1; }
+	| Solver PROJ Integer NewLine
+	{ if($3 == 1) 
+            $$->fetiInfo.nonLocalQ = 0;
+          else if($3 == 2) {
+            $$->fetiInfo.nonLocalQ = 1;
+            if($$->fetiInfo.version == FetiInfo::feti2) {
+              $$->fetiInfo.nonLocalQ = 0;
               fprintf(stderr," *** WARNING: Basic projector is used"
                              " with FETI 2\n");
             }
-          } else if($2 == 3) {
-            domain->solInfo().fetiInfo.nonLocalQ = 1;
-            domain->solInfo().fetiInfo.nQ = 3;
-          } else if($2 == 4) {
-            domain->solInfo().fetiInfo.nonLocalQ = 1;
-            domain->solInfo().fetiInfo.nQ = 4;
+          } else if($3 == 3) {
+            $$->fetiInfo.nonLocalQ = 1;
+            $$->fetiInfo.nQ = 3;
+          } else if($3 == 4) {
+            $$->fetiInfo.nonLocalQ = 1;
+            $$->fetiInfo.nQ = 4;
           } else
             fprintf(stderr," *** WARNING: This projector does not exist,"
-                           " using basic projector\n");
-        }
-	| SCALING Integer NewLine
-	{ if(($2 < 0) || ($2 > 2)) $2 = 1; 
-          domain->solInfo().fetiInfo.scaling = (FetiInfo::Scaling) $2; }
-	| SCALING SCALINGTYPE NewLine
-	{ domain->solInfo().fetiInfo.scaling = (FetiInfo::Scaling) $2; }
-        | MPCSCALING Integer NewLine
-        { if(($2 < 0) || ($2 > 2)) $2 = 2;
-          domain->solInfo().fetiInfo.mpc_scaling = (FetiInfo::Scaling) $2; }
-        | MPCSCALING SCALINGTYPE NewLine
-        { domain->solInfo().fetiInfo.mpc_scaling = (FetiInfo::Scaling) $2; }
-        | FSISCALING Integer NewLine
-        { if(($2 < 0) || ($2 > 2)) $2 = 2;
-          domain->solInfo().fetiInfo.fsi_scaling = (FetiInfo::Scaling) $2; }
-        | FSISCALING SCALINGTYPE NewLine
-        { domain->solInfo().fetiInfo.fsi_scaling = (FetiInfo::Scaling) $2; }
-        | MPCELEMENT NewLine
-        { domain->solInfo().fetiInfo.mpc_element = true; }
-        | FSIELEMENT NewLine
-        { domain->solInfo().fetiInfo.fsi_element = true; }
-        | FSICORNER Integer NewLine
-        { domain->solInfo().fetiInfo.fsi_corner = $2; }
-        | NOLOCALFSISPLITING NewLine
-        { domain->solInfo().fetiInfo.splitLocalFsi = false; } 
-        | COUPLEDSCALE Float NewLine
-        { domain->solInfo().coupled_scale = $2; }
-        | WETCORNERS NewLine
-        { domain->solInfo().fetiInfo.wetcorners = true; }
-	| CORNER CORNERTYPE NewLine
-        { domain->solInfo().fetiInfo.corners = (FetiInfo::CornerType) $2; }
-        | CORNER CORNERTYPE Integer NewLine
-        { domain->solInfo().fetiInfo.corners = (FetiInfo::CornerType) $2; 
-          domain->solInfo().fetiInfo.pick_unsafe_corners = bool($3);
-        }
-        | CORNER AUGMENTTYPE NewLine
-        { if($2 == 0) {
-            domain->solInfo().fetiInfo.corners = FetiInfo::noCorners;
-            domain->solInfo().fetiInfo.pickAnyCorner = 0; 
-            domain->solInfo().fetiInfo.bmpc = true;
-            domain->solInfo().fetiInfo.pick_unsafe_corners = false;
-            domain->solInfo().fetiInfo.augment = FetiInfo::none;
-          }
-        }
-        | AUGMENT AUGMENTTYPE NewLine
-        {
-          if(domain->solInfo().fetiInfo.dph_flag && ($2 == 1)) {
+                           " using basic projector\n"); }
+	| Solver SCALING Integer NewLine
+	{ if(($3 < 0) || ($3 > 2)) $3 = 1; 
+          $$->fetiInfo.scaling = (FetiInfo::Scaling) $3; }
+	| Solver SCALING SCALINGTYPE NewLine
+	{ $$->fetiInfo.scaling = (FetiInfo::Scaling) $3; }
+        | Solver MPCSCALING Integer NewLine
+        { if(($3 < 0) || ($3 > 2)) $3 = 2;
+          $$->fetiInfo.mpc_scaling = (FetiInfo::Scaling) $3; }
+        | Solver MPCSCALING SCALINGTYPE NewLine
+        { $$->fetiInfo.mpc_scaling = (FetiInfo::Scaling) $3; }
+        | Solver FSISCALING Integer NewLine
+        { if(($3 < 0) || ($3 > 2)) $3 = 2;
+          $$->fetiInfo.fsi_scaling = (FetiInfo::Scaling) $3; }
+        | Solver FSISCALING SCALINGTYPE NewLine
+        { $$->fetiInfo.fsi_scaling = (FetiInfo::Scaling) $3; }
+        | Solver MPCELEMENT NewLine
+        { $$->fetiInfo.mpc_element = true; }
+        | Solver FSIELEMENT NewLine
+        { $$->fetiInfo.fsi_element = true; }
+        | Solver FSICORNER Integer NewLine
+        { $$->fetiInfo.fsi_corner = $3; }
+        | Solver NOLOCALFSISPLITING NewLine
+        { $$->fetiInfo.splitLocalFsi = false; } 
+        | Solver WETCORNERS NewLine
+        { $$->fetiInfo.wetcorners = true; }
+	| Solver CORNER CORNERTYPE NewLine
+        { $$->fetiInfo.corners = (FetiInfo::CornerType) $3; }
+        | Solver CORNER CORNERTYPE Integer NewLine
+        { $$->fetiInfo.corners = (FetiInfo::CornerType) $3; 
+          $$->fetiInfo.pick_unsafe_corners = bool($4); }
+        | Solver CORNER AUGMENTTYPE NewLine
+        { if($3 == 0) {
+            $$->fetiInfo.corners = FetiInfo::noCorners;
+            $$->fetiInfo.pickAnyCorner = 0; 
+            $$->fetiInfo.bmpc = true;
+            $$->fetiInfo.pick_unsafe_corners = false;
+            $$->fetiInfo.augment = FetiInfo::none;
+          } }
+        | Solver AUGMENT AUGMENTTYPE NewLine
+        { if($$->fetiInfo.dph_flag && ($3 == 1)) {
             std::cerr << "WARNING: Selected augment type is unsupported for FETI-DPH, set to EdgeGs \n";
-            domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
+            $$->fetiInfo.augment = FetiInfo::Edges;
           }
-          else domain->solInfo().fetiInfo.augment = (FetiInfo::AugmentType) $2;
+          else $$->fetiInfo.augment = (FetiInfo::AugmentType) $3;
 
-          if(domain->solInfo().fetiInfo.augment == FetiInfo::Edges) {
-            domain->solInfo().fetiInfo.rbmType = FetiInfo::translation;
-            domain->solInfo().fetiInfo.nGs = 3;
+          if($$->fetiInfo.augment == FetiInfo::Edges) {
+            $$->fetiInfo.rbmType = FetiInfo::translation;
+            $$->fetiInfo.nGs = 3;
           } 
-          else if(domain->solInfo().fetiInfo.augment == FetiInfo::WeightedEdges) {
-            domain->solInfo().fetiInfo.rbmType = FetiInfo::translation;
-            domain->solInfo().fetiInfo.nGs = 3;
+          else if($$->fetiInfo.augment == FetiInfo::WeightedEdges) {
+            $$->fetiInfo.rbmType = FetiInfo::translation;
+            $$->fetiInfo.nGs = 3;
           }
-          else if(domain->solInfo().fetiInfo.augment == FetiInfo::Gs) {
-            domain->solInfo().fetiInfo.rbmType = FetiInfo::all;
-            domain->solInfo().fetiInfo.nGs = 6;
-          }
-        }
-        | AUGMENT AUGMENTTYPE RBMSET NewLine
-        {
-          if(domain->solInfo().fetiInfo.dph_flag && ($2 == 1)) {
+          else if($$->fetiInfo.augment == FetiInfo::Gs) {
+            $$->fetiInfo.rbmType = FetiInfo::all;
+            $$->fetiInfo.nGs = 6;
+          } }
+        | Solver AUGMENT AUGMENTTYPE RBMSET NewLine
+        { if($$->fetiInfo.dph_flag && ($3 == 1)) {
             std::cerr << "WARNING: Selected augment type is unsupported for FETI-DPH, set to EdgeGs \n";
-            domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
+            $$->fetiInfo.augment = FetiInfo::Edges;
           }
-          else domain->solInfo().fetiInfo.augment = (FetiInfo::AugmentType) $2;
-          if(domain->solInfo().fetiInfo.dph_flag && ($3 > 2) && ($3 < 6)) {
+          else $$->fetiInfo.augment = (FetiInfo::AugmentType) $3;
+          if($$->fetiInfo.dph_flag && ($4 > 2) && ($4 < 6)) {
             std::cerr << "WARNING: Selected rbm type is unsupported for FETI-DPH, set to translation \n";
-            domain->solInfo().fetiInfo.rbmType = FetiInfo::translation;
+            $$->fetiInfo.rbmType = FetiInfo::translation;
           }
-          else domain->solInfo().fetiInfo.rbmType = (FetiInfo::RbmType) $3;
+          else $$->fetiInfo.rbmType = (FetiInfo::RbmType) $4;
 
-          if(domain->solInfo().fetiInfo.rbmType == FetiInfo::all)
-            domain->solInfo().fetiInfo.nGs = 6;
-          else if(domain->solInfo().fetiInfo.rbmType != FetiInfo::None)
-            domain->solInfo().fetiInfo.nGs = 3;
+          if($$->fetiInfo.rbmType == FetiInfo::all)
+            $$->fetiInfo.nGs = 6;
+          else if($$->fetiInfo.rbmType != FetiInfo::None)
+            $$->fetiInfo.nGs = 3; }
+        | Solver AUGMENT EDGEWS Integer NewLine
+        { $$->fetiInfo.numdir = $4; 
+          if($$->fetiInfo.augment == FetiInfo::none)
+            $$->fetiInfo.augment = FetiInfo::Edges; }
+        | Solver AUGMENT EDGEWS WAVETYPE Integer NewLine
+        { $$->fetiInfo.waveType = (FetiInfo::WaveType) $4;
+          $$->fetiInfo.numdir = $5; 
+          if($$->fetiInfo.augment == FetiInfo::none)
+            $$->fetiInfo.augment = FetiInfo::Edges; }
+        | Solver AUGMENT EDGEWS Integer WAVEMETHOD NewLine
+        { $$->fetiInfo.numdir = $4;
+          $$->fetiInfo.waveMethod = (FetiInfo::WaveMethod) $5;
+          if($$->fetiInfo.augment == FetiInfo::none)
+            $$->fetiInfo.augment = FetiInfo::Edges; }
+        | Solver AUGMENT EDGEWS WAVETYPE Integer WAVEMETHOD NewLine
+        { $$->fetiInfo.waveType = (FetiInfo::WaveType) $4;
+          $$->fetiInfo.waveMethod = (FetiInfo::WaveMethod) $6;
+          $$->fetiInfo.numdir = $5;
+          if($$->fetiInfo.augment == FetiInfo::none)
+            $$->fetiInfo.augment = FetiInfo::Edges; }
+        | Solver AUGMENT MPCTYPEID NewLine
+        { if ($3 == 2)
+           $$->fetiInfo.augmentimpl = FetiInfo::Primal;
         }
-        | AUGMENT EDGEWS Integer NewLine
-        { domain->solInfo().fetiInfo.numdir = $3; 
-          if(domain->solInfo().fetiInfo.augment == FetiInfo::none)
-            domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
-          /*geoSource->initShift();*/  }
-        | AUGMENT EDGEWS WAVETYPE Integer NewLine
-        { domain->solInfo().fetiInfo.waveType = (FetiInfo::WaveType) $3;
-          domain->solInfo().fetiInfo.numdir = $4; 
-          if(domain->solInfo().fetiInfo.augment == FetiInfo::none)
-            domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
-          /*geoSource->initShift();*/  }
-        | AUGMENT EDGEWS Integer WAVEMETHOD NewLine
-        { domain->solInfo().fetiInfo.numdir = $3;
-          domain->solInfo().fetiInfo.waveMethod = (FetiInfo::WaveMethod) $4;
-          if(domain->solInfo().fetiInfo.augment == FetiInfo::none)
-            domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
-          /*geoSource->initShift();*/  }
-        | AUGMENT EDGEWS WAVETYPE Integer WAVEMETHOD NewLine
-        { domain->solInfo().fetiInfo.waveType = (FetiInfo::WaveType) $3;
-          domain->solInfo().fetiInfo.waveMethod = (FetiInfo::WaveMethod) $5;
-          domain->solInfo().fetiInfo.numdir = $4;
-          if(domain->solInfo().fetiInfo.augment == FetiInfo::none)
-            domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
-          /*geoSource->initShift();*/  }
-	| ORTHOTOL Float NewLine
-	{ domain->solInfo().fetiInfo.orthotol = $2; }
-        | ORTHOTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.orthotol = $2; 
-          domain->solInfo().fetiInfo.orthotol2 = $3; }
-	| GLOBALTOL Float NewLine
-	{ domain->solInfo().fetiInfo.grbm_tol = $2; }
-        | GLOBALCRBMTOL Float NewLine
-	{ domain->solInfo().fetiInfo.crbm_tol = $2; }
-        | CCTTOL Float NewLine
-        { domain->solInfo().fetiInfo.cct_tol = $2; }
-        | REBUILDCCT SWITCH NewLine
-        { domain->solInfo().fetiInfo.rebuildcct = int($2); }
-        | UPROJ Integer NewLine
-        { domain->solInfo().fetiInfo.uproj = $2; }
-	| LOCALSOLVER SOLVERTYPE NewLine
-	{ domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) $2; }
-	| COARSESOLVER SOLVERTYPE NewLine
-	{ domain->solInfo().fetiInfo.gtgSolver  = (FetiInfo::Solvertype) $2; }
-        | AUXCOARSESOLVER SOLVERTYPE NewLine
-        { domain->solInfo().fetiInfo.auxCoarseSolver = (FetiInfo::Solvertype) $2; }
-        | CCTSOLVER SOLVERTYPE NewLine
-        { domain->solInfo().fetiInfo.cctSolver  = (FetiInfo::Solvertype) $2; }
-        | LOCALSOLVER SOLVERTYPE PIVOT NewLine
-        { domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) $2;
-          if($2 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
-          else domain->solInfo().pivot = true; } 
-        | LOCALSOLVER SOLVERTYPE SCALED NewLine
-        { domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) $2;
-          domain->solInfo().localScaled = true; }
-        | COARSESOLVER SOLVERTYPE PIVOT NewLine
-        { domain->solInfo().fetiInfo.gtgSolver  = (FetiInfo::Solvertype) $2; 
-          if($2 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
-          else domain->solInfo().pivot = true; }
-        | AUXCOARSESOLVER SOLVERTYPE PIVOT NewLine
-        { domain->solInfo().fetiInfo.auxCoarseSolver  = (FetiInfo::Solvertype) $2;
-          if($2 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
-          else domain->solInfo().pivot = true; }
-        | COARSESOLVER SOLVERTYPE SCALED NewLine
-        { domain->solInfo().fetiInfo.gtgSolver  = (FetiInfo::Solvertype) $2;
-          domain->solInfo().coarseScaled = true; }
-        | CCTSOLVER SOLVERTYPE PIVOT NewLine
-        { domain->solInfo().fetiInfo.cctSolver  = (FetiInfo::Solvertype) $2; 
-          if($2 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
-          else domain->solInfo().pivot = true; }
-        | CCTSOLVER SOLVERTYPE SCALED NewLine
-        { domain->solInfo().fetiInfo.cctSolver  = (FetiInfo::Solvertype) $2; 
-          if($2!=0) fprintf(stderr," *** WARNING: Scaling not supported for this CCt solver \n");
-          else domain->solInfo().fetiInfo.cctScaled = true; }
-	| VERSION Integer NewLine
-	{ 
-          if($2 == 1)
-            domain->solInfo().fetiInfo.version = FetiInfo::feti1; 
-          else if($2 == 2) {
-            domain->solInfo().fetiInfo.version = FetiInfo::feti2;
-            if(domain->solInfo().fetiInfo.nonLocalQ == 1) {
-              domain->solInfo().fetiInfo.nonLocalQ = 0;
-              domain->solInfo().fetiInfo.nQ = 0;
+	| Solver ORTHOTOL Float NewLine
+	{ $$->fetiInfo.orthotol = $3; }
+        | Solver ORTHOTOL Float Float NewLine
+        { $$->fetiInfo.orthotol = $3; 
+          $$->fetiInfo.orthotol2 = $4; }
+	| Solver GLOBALTOL Float NewLine
+	{ $$->fetiInfo.grbm_tol = $3; }
+        | Solver GLOBALCRBMTOL Float NewLine
+	{ $$->fetiInfo.crbm_tol = $3; }
+        | Solver CCTTOL Float NewLine
+        { $$->fetiInfo.cct_tol = $3; }
+        | Solver REBUILDCCT SWITCH NewLine
+        { $$->fetiInfo.rebuildcct = int($3); }
+        | Solver UPROJ Integer NewLine
+        { $$->fetiInfo.uproj = $3; }
+        | Solver printmatlab NewLine
+        { $$->fetiInfo.printMatLab = 1; }
+        | Solver printmatlab FNAME NewLine
+        { $$->printMatLab = 1;
+          $$->printMatLabFile = $3; }
+        | Solver LOCALSOLVER SolverMethod
+        { $$->fetiInfo.local_cntl = $$->fetiInfo.kii_cntl = $3; }
+        | Solver COARSESOLVER SolverMethod
+        { $$->fetiInfo.coarse_cntl = $3; }
+        | Solver AUXCOARSESOLVER SolverMethod
+        { $$->fetiInfo.auxcoarse_cntl = $3; }
+        | Solver CCTSOLVER SolverMethod
+        { $$->fetiInfo.cct_cntl = $3; }
+	| Solver VERSION Integer NewLine
+	{ if($3 == 1)
+            $$->fetiInfo.version = FetiInfo::feti1; 
+          else if($3 == 2) {
+            $$->fetiInfo.version = FetiInfo::feti2;
+            if($$->fetiInfo.nonLocalQ == 1) {
+              $$->fetiInfo.nonLocalQ = 0;
+              $$->fetiInfo.nQ = 0;
               fprintf(stderr," *** WARNING: Basic projector is used "
                              "with FETI 2\n");
             }
-          } else if($2 == 3) {
-            domain->solInfo().fetiInfo.version = FetiInfo::feti3;
-            if(domain->solInfo().fetiInfo.nonLocalQ == 1) {
-              domain->solInfo().fetiInfo.nonLocalQ = 0;
+          } else if($3 == 3) {
+            $$->fetiInfo.version = FetiInfo::feti3;
+            if($$->fetiInfo.nonLocalQ == 1) {
+              $$->fetiInfo.nonLocalQ = 0;
               fprintf(stderr," *** WARNING: Basic projector is used "
                              "with FETI 2\n");
             }
           } 
           else {
-            domain->solInfo().fetiInfo.version = FetiInfo::feti1;
+            $$->fetiInfo.version = FetiInfo::feti1;
 	    fprintf(stderr," *** WARNING: Version does not exist,"
                            " using FETI 1\n");
-          }
-	}
-	| GTGSOLVER NewLine
-	{ domain->solInfo().fetiInfo.gtgSolver  = (FetiInfo::Solvertype) $1; }
-        | GMRESRESIDUAL NewLine
-        { domain->solInfo().fetiInfo.gmresResidual = true; }
-        | GMRESRESIDUAL SWITCH NewLine
-        { domain->solInfo().fetiInfo.gmresResidual = bool($2); }
-        | PICKANYCORNER Integer NewLine
-        { domain->solInfo().fetiInfo.pickAnyCorner = $2; }
-/* deprecated
-        | FRONTAL NewLine
-	{ domain->solInfo().fetiInfo.solvertype = FetiInfo::frontal; }
-*/
-        | NLPREC NewLine
-        { domain->solInfo().fetiInfo.type = FetiInfo::nonlinear;
-          domain->solInfo().fetiInfo.nlPrecFlg = 1; 
-          domain->solInfo().setKrylov(); 
-        }
-	| NLPREC Integer NewLine
-        { domain->solInfo().fetiInfo.type = FetiInfo::nonlinear;
-	  domain->solInfo().fetiInfo.nlPrecFlg = $2;
-	  domain->solInfo().setKrylov();
-	}
-        | HFETI Integer Float NewLine
-        { domain->solInfo().fetiInfo.maxit = $2;
-          domain->solInfo().fetiInfo.tol = $3;
-          domain->solInfo().type =(2);
-          domain->solInfo().fetiInfo.krylovtype = 1;
-          domain->solInfo().fetiInfo.scaling = FetiInfo::tscaling;
-          domain->solInfo().fetiInfo.corners = FetiInfo::allCorners6;
-          domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
-          domain->solInfo().fetiInfo.dph_flag = true;
-          domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
-          domain->solInfo().fetiInfo.rbmType = FetiInfo::None;
-          domain->solInfo().fetiInfo.nGs = 0;
-        }
-        | HFETI Integer Float Integer NewLine
-        { domain->solInfo().fetiInfo.maxit = $2;
-          domain->solInfo().fetiInfo.tol = $3;
-          domain->solInfo().type =(2);
-          domain->solInfo().fetiInfo.numcgm = $4;
-          domain->solInfo().fetiInfo.krylovtype = 1;
-          domain->solInfo().fetiInfo.scaling = FetiInfo::tscaling;
-          domain->solInfo().fetiInfo.corners = FetiInfo::allCorners6;
-          domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
-          domain->solInfo().fetiInfo.dph_flag = true;
-          domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
-          domain->solInfo().fetiInfo.rbmType = FetiInfo::None;
-          domain->solInfo().fetiInfo.nGs = 0;
-        }
-        | HFETI Integer Float Integer Float NewLine
-        {
-          domain->solInfo().fetiInfo.maxit = $2;
-          domain->solInfo().fetiInfo.tol = $3;
-          domain->solInfo().type =(2);
-          domain->solInfo().fetiInfo.numcgm = $4;
-          domain->solInfo().fetiInfo.tolcgm = $5;
-          domain->solInfo().fetiInfo.spaceDimension = 2;
-          domain->solInfo().fetiInfo.krylovtype = 1;
-          domain->solInfo().fetiInfo.scaling = FetiInfo::tscaling;
-          domain->solInfo().fetiInfo.corners = FetiInfo::allCorners6;
-          domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
-          domain->solInfo().fetiInfo.dph_flag = true;
-          domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
-          domain->solInfo().fetiInfo.rbmType = FetiInfo::None;
-          domain->solInfo().fetiInfo.nGs = 0;
-        }
-        | HFETI Integer Float Integer Float Integer NewLine
-        { domain->solInfo().fetiInfo.maxit = $2;
-          domain->solInfo().fetiInfo.tol = $3;
-          domain->solInfo().type =(2);
-          domain->solInfo().fetiInfo.numcgm = $4;
-          domain->solInfo().fetiInfo.tolcgm = $5;
-          domain->solInfo().fetiInfo.spaceDimension = $6;
-          domain->solInfo().fetiInfo.krylovtype = 1;
-          domain->solInfo().fetiInfo.scaling = FetiInfo::tscaling;
-          domain->solInfo().fetiInfo.corners = FetiInfo::allCorners6;
-          domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
-          domain->solInfo().fetiInfo.dph_flag = true;
-          domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
-          domain->solInfo().fetiInfo.rbmType = FetiInfo::None;
-          domain->solInfo().fetiInfo.nGs = 0;
-        }
-        | HFETI NewLine
-        { domain->solInfo().type =(2); 
-          domain->solInfo().fetiInfo.scaling = FetiInfo::tscaling; 
-          domain->solInfo().fetiInfo.corners = FetiInfo::allCorners3;
-          domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
-          domain->solInfo().fetiInfo.dph_flag = true;
-          domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
-          domain->solInfo().fetiInfo.rbmType = FetiInfo::None;
-          domain->solInfo().fetiInfo.nGs = 0;
-        }
-        | NUMCGM Integer NewLine
-        { domain->solInfo().fetiInfo.numcgm = $2; }
-        | NUMCGM Integer Float NewLine
-        { domain->solInfo().fetiInfo.numcgm = $2;
-          domain->solInfo().fetiInfo.numcgm2 = $3; }
-        | TOLCGM Float NewLine
-        { domain->solInfo().fetiInfo.tolcgm = $2; }
-        | SPACEDIMENSION Integer NewLine
-        { domain->solInfo().fetiInfo.spaceDimension = $2; }
-        | KRYLOVTYPE Integer NewLine
-        { domain->solInfo().fetiInfo.krylovtype = $2; }
-        | KRYLOVTYPE ISOLVERTYPE NewLine
-        { domain->solInfo().fetiInfo.krylovtype =  $2; }
-        | INTERFACELUMPED NewLine
-        { domain->solInfo().fetiInfo.lumpedinterface = 1; }
-        | SAVEMEMCOARSE NewLine
-        { domain->solInfo().fetiInfo.saveMemCoarse = 1; }
-        | TURKEL Integer NewLine
-        {
-          domain->sommerfeldType = $2;
-          domain->curvatureFlag = 0;
-        }
-        | TURKEL Integer Float NewLine
-        {
-          domain->sommerfeldType = $2;
-          domain->curvatureConst1 = $3;
-          domain->curvatureFlag = 1;
-        }
-        | TURKEL Integer Float Float NewLine
-        {
-          domain->sommerfeldType = $2;
-          domain->curvatureConst1 = $3;
-          domain->curvatureConst2 = $4;
-          domain->curvatureFlag = 2;
-        }
-        | OUTERLOOP ITERTYPE NewLine
-        { domain->solInfo().fetiInfo.outerloop = (FetiInfo::OuterloopType) $2; }
-        | OUTERLOOP ITERTYPE HERMITIAN NewLine
-        { domain->solInfo().fetiInfo.outerloop = (FetiInfo::OuterloopType) $2;
-          domain->solInfo().fetiInfo.complex_hermitian = true; }
-        | MPCTYPE Integer NewLine
-        { domain->solInfo().fetiInfo.mpcflag = $2; }
-        | MPCTYPE MPCTYPEID NewLine
-        { domain->solInfo().fetiInfo.mpcflag = $2; }
-        | MPCPRECNO Integer NewLine
-        { domain->solInfo().fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $2; }
-        | MPCPRECNO MPCPRECNOID NewLine
-        { domain->solInfo().fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $2; }
-        | MPCPRECNO Integer MPCBLK_OVERLAP Integer NewLine
-        { domain->solInfo().fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $2;
-          domain->solInfo().fetiInfo.mpcBlkOverlap = $4; }
-        | MPCPRECNO MPCPRECNOID MPCBLK_OVERLAP Integer NewLine
-        { domain->solInfo().fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $2;
-          domain->solInfo().fetiInfo.mpcBlkOverlap = $4; }
-        | MPCPRECNO Integer Integer NewLine
-        { domain->solInfo().fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $2; 
-          domain->solInfo().fetiInfo.mpc_block = (FetiInfo::MpcBlock) $3; }
-        | MPCPRECNO MPCPRECNOID MPCBLOCKID NewLine
-        { domain->solInfo().fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $2;
-          domain->solInfo().fetiInfo.mpc_block = (FetiInfo::MpcBlock) $3; }
-        | MPCPRECNO Integer Integer MPCBLK_OVERLAP Integer NewLine
-        { domain->solInfo().fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $2;
-          domain->solInfo().fetiInfo.mpc_block = (FetiInfo::MpcBlock) $3; 
-          domain->solInfo().fetiInfo.mpcBlkOverlap = $5; }
-        | MPCPRECNO MPCPRECNOID MPCBLOCKID MPCBLK_OVERLAP Integer NewLine
-        { domain->solInfo().fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $2;
-          domain->solInfo().fetiInfo.mpc_block = (FetiInfo::MpcBlock) $3; 
-          domain->solInfo().fetiInfo.mpcBlkOverlap = $5; }
-        | MRHS Integer NewLine
-        { if($2 < 1) domain->solInfo().fetiInfo.useMRHS = false; }
-        | PROPORTIONING Float NewLine
-        { domain->solInfo().fetiInfo.gamma = $2; }
-        | LINESEARCH Integer Float NewLine
-        { domain->solInfo().fetiInfo.linesearch_maxit = $2;
-          domain->solInfo().fetiInfo.linesearch_tau = $3; }
-        | BMPC SWITCH NewLine
-        { domain->solInfo().fetiInfo.bmpc = bool($2); }
-        | DMPC SWITCH NewLine
-        { domain->solInfo().fetiInfo.dmpc = bool($2); }
-        | CMPC SWITCH NewLine
-        { domain->solInfo().fetiInfo.cmpc = bool($2); }
-        | CNORM SWITCH NewLine
-        { domain->solInfo().fetiInfo.c_normalize = bool($2); }
-        | MPCCHECK Integer NewLine
-        { domain->solInfo().dbccheck = bool($2); }
-	;
+          } }
+        | Solver GMRESRESIDUAL NewLine
+        { $$->fetiInfo.gmresResidual = true; }
+        | Solver GMRESRESIDUAL SWITCH NewLine
+        { $$->fetiInfo.gmresResidual = bool($3); }
+        | Solver PICKANYCORNER Integer NewLine
+        { $$->fetiInfo.pickAnyCorner = $3; }
+        | Solver NLPREC NewLine
+        { $$->fetiInfo.type = FetiInfo::nonlinear;
+          $$->fetiInfo.nlPrecFlg = 1; }
+	| Solver NLPREC Integer NewLine
+        { $$->fetiInfo.type = FetiInfo::nonlinear;
+	  $$->fetiInfo.nlPrecFlg = $3; }
+        | Solver NUMCGM Integer NewLine
+        { $$->fetiInfo.numcgm = $3; }
+        | Solver NUMCGM Integer Float NewLine
+        { $$->fetiInfo.numcgm = $3;
+          $$->fetiInfo.numcgm2 = $4; }
+        | Solver TOLCGM Float NewLine
+        { $$->fetiInfo.tolcgm = $3; }
+        | Solver SPACEDIMENSION Integer NewLine
+        { $$->fetiInfo.spaceDimension = $3; }
+        | Solver KRYLOVTYPE Integer NewLine
+        { $$->fetiInfo.krylovtype = $3; }
+        | Solver KRYLOVTYPE ISOLVERTYPE NewLine
+        { $$->fetiInfo.krylovtype = $3; }
+        | Solver INTERFACELUMPED NewLine
+        { $$->fetiInfo.lumpedinterface = 1; }
+        | Solver SAVEMEMCOARSE NewLine
+        { $$->fetiInfo.saveMemCoarse = 1; }
+        | Solver OUTERLOOP ITERTYPE NewLine
+        { $$->fetiInfo.outerloop = (FetiInfo::OuterloopType) $3; }
+        | Solver OUTERLOOP ITERTYPE HERMITIAN NewLine
+        { $$->fetiInfo.outerloop = (FetiInfo::OuterloopType) $3;
+          $$->fetiInfo.complex_hermitian = true; }
+        | Solver MPCTYPE Integer NewLine
+        { $$->fetiInfo.mpcflag = $3; }
+        | Solver MPCTYPE MPCTYPEID NewLine
+        { $$->fetiInfo.mpcflag = $3; }
+        | Solver MPCPRECNO Integer NewLine
+        { $$->fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $3; }
+        | Solver MPCPRECNO MPCPRECNOID NewLine
+        { $$->fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $3; }
+        | Solver MPCPRECNO Integer MPCBLK_OVERLAP Integer NewLine
+        { $$->fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $3;
+          $$->fetiInfo.mpcBlkOverlap = $5; }
+        | Solver MPCPRECNO MPCPRECNOID MPCBLK_OVERLAP Integer NewLine
+        { $$->fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $3;
+          $$->fetiInfo.mpcBlkOverlap = $5; }
+        | Solver MPCPRECNO Integer Integer NewLine
+        { $$->fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $3; 
+          $$->fetiInfo.mpc_block = (FetiInfo::MpcBlock) $4; }
+        | Solver MPCPRECNO MPCPRECNOID MPCBLOCKID NewLine
+        { $$->fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $3;
+          $$->fetiInfo.mpc_block = (FetiInfo::MpcBlock) $4; }
+        | Solver MPCPRECNO Integer Integer MPCBLK_OVERLAP Integer NewLine
+        { $$->fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $3;
+          $$->fetiInfo.mpc_block = (FetiInfo::MpcBlock) $4;
+          $$->fetiInfo.mpcBlkOverlap = $6; }
+        | Solver MPCPRECNO MPCPRECNOID MPCBLOCKID MPCBLK_OVERLAP Integer NewLine
+        { $$->fetiInfo.mpc_precno = (FetiInfo::MpcPreconditioner) $3;
+          $$->fetiInfo.mpc_block = (FetiInfo::MpcBlock) $4; 
+          $$->fetiInfo.mpcBlkOverlap = $6; }
+        | Solver MRHS Integer NewLine
+        { if($3 < 1) $$->fetiInfo.useMRHS = false; }
+        | Solver PROPORTIONING Float NewLine
+        { $$->fetiInfo.gamma = $3; }
+        | Solver LINESEARCH Integer Float NewLine
+        { $$->fetiInfo.linesearch_maxit = $3;
+          $$->fetiInfo.linesearch_tau = $4; }
+        | Solver BMPC SWITCH NewLine
+        { $$->fetiInfo.bmpc = bool($3); }
+        | Solver CMPC SWITCH NewLine
+        { $$->fetiInfo.cmpc = bool($3); }
+        | Solver CNORM SWITCH NewLine
+        { $$->fetiInfo.c_normalize = bool($3); }
+        ;
 OldHelmInfo:
         FACOUSTICS NewLine FAcousticData
 	;
 FAcousticData:
         Float NewLine
         {
-          /*domain->omega = $1;*/ geoSource->setOmega($1);
+          geoSource->setOmega($1);
           StructProp sp; 
           sp.kappaHelm = $1;
 //          domain->setWaveNumber($1);
@@ -4410,16 +4443,18 @@ HelmInfo:
 	  domain->solInfo().acoustic = true;
           if(domain->solInfo().probType != SolverInfo::HelmholtzDirSweep) domain->solInfo().setProbType(SolverInfo::Helmholtz);
         }
+/* shouldn't be here
         | FETIH NewLine
-        { domain->solInfo().type = (2); 
-          domain->solInfo().fetiInfo.scaling = FetiInfo::tscaling; 
-          domain->solInfo().fetiInfo.corners = FetiInfo::allCorners3;
-          domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
-          domain->solInfo().fetiInfo.dph_flag = true;
-          domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
-          domain->solInfo().fetiInfo.rbmType = FetiInfo::None;
-          domain->solInfo().fetiInfo.nGs = 0;
+        { domain->solInfo().solvercntl->type = (2); 
+          domain->solInfo().solvercntl->fetiInfo.scaling = FetiInfo::tscaling; 
+          domain->solInfo().solvercntl->fetiInfo.corners = FetiInfo::allCorners3;
+          domain->solInfo().solvercntl->fetiInfo.version = FetiInfo::fetidp;
+          domain->solInfo().solvercntl->fetiInfo.dph_flag = true;
+          domain->solInfo().solvercntl->fetiInfo.augment = FetiInfo::Edges;
+          domain->solInfo().solvercntl->fetiInfo.rbmType = FetiInfo::None;
+          domain->solInfo().solvercntl->fetiInfo.nGs = 0;
         }
+*/
         | BGTL Integer NewLine
         {
           domain->sommerfeldType = $2;
@@ -4530,7 +4565,7 @@ NLInfo:
             domain->solInfo().order = 1;
             domain->solInfo().probType = SolverInfo::NonLinDynam;
           }
-          domain->solInfo().fetiInfo.type = FetiInfo::nonlinear;
+          domain->solInfo().solvercntl->fetiInfo.type = FetiInfo::nonlinear;
           domain->solInfo().getNLInfo().setDefaults(); /* just in case PIECEWISE is used under statics */ }
         | NLInfo NEWTON NewLine
         {}
@@ -4623,20 +4658,20 @@ NewtonInfo:
         REBUILD Integer NewLine
         {
           domain->solInfo().setNewton($2); 
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear; 
+          domain->solInfo().solvercntl->fetiInfo.type  = FetiInfo::nonlinear; 
         }
         | REBUILD Integer Integer NewLine
         {
           domain->solInfo().setNewton($2);
           domain->solInfo().getNLInfo().stepUpdateK = $3;
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
+          domain->solInfo().solvercntl->fetiInfo.type  = FetiInfo::nonlinear;
         }
         | REBUILD Integer Integer Integer NewLine
         {
           domain->solInfo().setNewton($2);
           domain->solInfo().getNLInfo().stepUpdateK = $3;
           domain->solInfo().piecewise_contact = bool($4);
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
+          domain->solInfo().solvercntl->fetiInfo.type  = FetiInfo::nonlinear;
         }
 	;
 OrthoInfo:
@@ -5707,10 +5742,10 @@ SvdOption:
   | REFSUBTRACT FNAME
   { domain->solInfo().subtractRefPodRom = true;
     domain->solInfo().readInLocalBasesCent.push_back(std::string($2)); }
-  | SNAPWEIGHT FloatList /* deprecated */
-  { for(int i=0; i<$2.nval; ++i) domain->solInfo().snapshotWeights.push_back($2.v[i]); }
-  | SNAPWEIGHT SWITCH FloatList
-  { if($2) for(int i=0; i<$3.nval; ++i) domain->solInfo().snapshotWeights.push_back($3.v[i]); }
+  | SNAPWEIGHT SWITCH
+  { domain->solInfo().flagss = $2; }
+  | SNAPWEIGHT SWITCH SWITCH
+  { domain->solInfo().flagss = $2; domain->solInfo().flagrs = $3; }
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; } 
   | SKIP Integer Integer

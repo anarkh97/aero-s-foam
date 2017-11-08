@@ -48,6 +48,17 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // Set up nonlinear dynamics problem descriptor 
   probDesc->preProcess();
 
+#ifdef USE_EIGEN3
+  if(domain->solInfo().sensitivity) {
+    probDesc->preProcessSA();
+    if(!domain->runSAwAnalysis) {
+      AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
+      domain->sensitivityPostProcessing(*allSens);
+      return;
+    }
+  }
+#endif
+
   // Compute time integration values: dt, totalTime, maxStep
   probDesc->computeTimeInfo();
   probDesc->getNewmarkParameters(beta, gamma, alphaf, alpham);
@@ -163,7 +174,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   probDesc->getExternalForce(external_force, constantForce, -1, time, geomState, elementInternalForce, aeroForce, delta);
 
   // Solve for initial acceleration: a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
-  if(solInfo.iacc_switch && geoSource->getCheckFileInfo()->lastRestartFile == 0) {
+  if(solInfo.iacc_switch && geoSource->getCheckFileInfo()->lastRestartFile == 0 && !solInfo.quasistatic) {
     if(solInfo.order == 1) {
       if(verboseFlag) filePrint(stderr," ... Computing initial first time derivative of temperature ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, velocity_n);
@@ -402,6 +413,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   if(aeroAlg < 0 && printNumber < std::numeric_limits<int>::max())
     filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", time, dt); 
+
+  if(domain->solInfo().sensitivity) probDesc->sensitivityAnalysis(geomState, refState);
 
 #ifdef PRINT_TIMERS
   filePrint(stderr, " ... Total Loop Time = %.2e s   ...\n", s2/1000.0);

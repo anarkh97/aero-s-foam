@@ -22,6 +22,7 @@ class BlockCCtSolver : public CCtSolver<Scalar>
     int nMpcBlocksOnMyCPU;  // nb of blocks stored & solved on myCPU
     int *subMap;            // map from global subdomain index to subsWithMpcs index
     GenSolver<Scalar> **blockCCtsolver;// array[nMpcBlocks] of pointer on the BlockCCtsolver of myCPU
+    GenSparseMatrix<Scalar> **blockCCtsparse;
     SimpleNumberer **blockMpcEqNums;
     Connectivity *blockToMpc;
     Connectivity *blockToSub;

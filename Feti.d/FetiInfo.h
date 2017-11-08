@@ -10,23 +10,11 @@
 // precno     = 1       lumped
 // precno     = 2       dirichlet               (default)
 
-// Solver types for coarse problem: (GtG)x = b
-// other solvers not implemented yet.
-// gtgSolver  = 0       skyline
-// gtgSolver  = 1       sparse                  (default)
-// gtgSolver  = 2       blocksky
+// Solver type and parameters for coarse problem: FETI-1: GtG, FETI-DP: Kcc^* 
+// coarse_cntl
 
-// Solver types for Subdomain matrices
-// solvertype = 0       skyline
-// solvertype = 1       sparse                  (default)
-// solvertype = 2       blocksky
-// solvertype = 3       llt
-// solvertype = 4       ldlt
-// solvertype = 5       cholmod
-// solvertype = 7       superlu
-// solvertype = 8       spooles
-// solvertype = 9       mumps
-// solvertype = 10      diagonal
+// Solver type and parameters for subdomain local problem
+// local_cntl
 
 // Projector types:
 // nonLocalQ = 0	basic projector		(default)
@@ -45,7 +33,7 @@
 // noCoarse = 0		coarse problem used	(default)
 // noCoarse = 1		coarse problem not used
 
-// Global rigid body mode relative tolerance
+// Tolerance for coarse problem in FETI-1 and aux coarse problem in FETI-DP
 // grbm_tol = 1.0E-6 				(default)
 
 // Number of iterations to print the error
@@ -116,13 +104,8 @@
 // mpc_scaling = 1          kscaling (stiffness) 
 // mpc_scaling = 2          tscaling (topology) (default)
 
-// Solver types for CC^t matrices
-// cctSolver = 0       skyline
-// cctSolver = 1       sparse			(default)
-
-//HB: Scaling for CC^t solver (currently ONLY supported for skyline solver)
-// cctScaled = false    scaling OFF (default)
-// cctScaled = true     scaling ON
+// Solver type and parameters for CC^t matrices
+// cct_cntl
 
 //HB: overlap level for mortar block CC^t approximate solve 
 // mpcBlkOverlap = 0 (default)
@@ -141,6 +124,9 @@
 // orthotol  = 1.0E-02 (default)    relative tolerance value in orthogonalizing Q matrix
 // orthotol2 = 0.0     (default)    absolute tolerance value in orthogonalizing Q matrix
 
+class SolverCntl;
+extern SolverCntl default_cntl;
+
 class FetiInfo {
 
   public:
@@ -156,7 +142,7 @@ class FetiInfo {
     double absolute_stagnation_tol;
     double grbm_tol;
     double crbm_tol;
-    double cct_tol; // used to factorize CC^t in rixen mpc method
+    double cct_tol;
     int    uproj;
     int    maxortho;
     int    noCoarse;
@@ -179,7 +165,8 @@ class FetiInfo {
     enum MpcBlock { subBlock, topoBlock, mortarBlock } mpc_block;
     int mpcflag;
     enum Solvertype { skyline, sparse, blocksky, llt, ldlt, cholmod,
-         umfpack, superlu, spooles, mumps, diagonal, pcg } solvertype, gtgSolver, auxCoarseSolver, cctSolver;
+                      umfpack, superlu, spooles, mumps, diagonal, dbsgal, eisgal, goldfarb, splu, ssqr, spqr };
+    SolverCntl *local_cntl, *coarse_cntl, *auxcoarse_cntl, *cct_cntl, *kii_cntl;
     enum Scaling { noscaling=0, kscaling=1, tscaling=2 } scaling, mpc_scaling, fsi_scaling;
     enum Version { feti1, feti2, feti3, fetidp } version;
     bool rescalef; // if this is true then reassemble and apply scaling to f for every system, not just the first
@@ -190,6 +177,7 @@ class FetiInfo {
     enum CornerType { allCorners6, allCorners3, noEndCorners6,
                       noEndCorners3, interface3, interface6, ThreeD, noCorners } corners;
     enum AugmentType { none, Gs, Edges, WeightedEdges } augment;
+    enum AugmentImplementation { Constraint, Primal } augmentimpl; // JAT 08012013
     int isEdgeAugmentationOn() { 
       return (((augment == Edges) || (augment == WeightedEdges)) && ((nGs > 0) || (numdir > 0))) ? 1 : 0; 
     }
@@ -223,13 +211,13 @@ class FetiInfo {
     double orthotol, orthotol2; 
     bool dph_flag;
     int contactPrintFlag;
-    bool cctScaled;
+
     int rebuildcct;
     int rebuildSbb;
     bool geometric_gap;
     int mpcBlkOverlap; //0=no interaction, 1=1st order interactions, 2=1st & 2nd order interactions, etc.
     double gamma;
-    bool bmpc, dmpc, cmpc;
+    bool bmpc, cmpc;
     double linesearch_tau;
     int linesearch_maxit;
     bool c_normalize;
@@ -266,10 +254,7 @@ FetiInfo::FetiInfo()
   noCoarse    = 0;         // default use coarse problem
   precno      = dirichlet; // default use dirichlet preconditioner
   prectype    = nonshifted;// default use nonshifted preconditioner (only the sitffness part) //HB
-  solvertype  = sparse;    // default use sparse subdomain solver
-  gtgSolver   = sparse;    // default use sparse GtG solver for FETI1 and Kcc^* solver for FETI-DP
-  auxCoarseSolver = skyline; // use skyline GtG solver for FETI-DPC
-  cctSolver   = sparse;    // default use sparse CCt solver
+
   nonLocalQ   = 0;         // default basic projector
   nQ          = 0;
   scaling     = tscaling;  // default use t scaling
@@ -315,7 +300,7 @@ FetiInfo::FetiInfo()
   gamma = 1.0;
   linesearch_tau = 0.6667; 
   linesearch_maxit = 100;
-  cmpc = bmpc = dmpc = false;
+  cmpc = bmpc = false;
   c_normalize = false;
   
   // MPC information
@@ -323,7 +308,6 @@ FetiInfo::FetiInfo()
   mpc_block    = topoBlock;
   mpcflag      = 1;
   cct_tol      = 1.0e-16;
-  cctScaled    = false;      // XXXX no scaling used in the CCt solver (ONLY for skyline)
   mpcBlkOverlap= 0;         // zero/minimal overlap in mortar block CCt preconditionner
   rebuildcct   = 1; 
   rebuildSbb   = 0; 
@@ -346,6 +330,8 @@ FetiInfo::FetiInfo()
   dual_proj_tol = primal_proj_tol = 0.0;
   dual_plan_tol = primal_plan_tol = 0.0;
   dual_plan_maxit = primal_plan_maxit = 20;
+
+  local_cntl = coarse_cntl = auxcoarse_cntl = kii_cntl = cct_cntl = &default_cntl;
 }
 
 

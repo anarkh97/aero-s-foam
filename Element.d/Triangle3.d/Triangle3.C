@@ -60,6 +60,7 @@ Triangle3::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         // STRAINXY AND VONMISES STRESS
 
         weight = 1.0;
+        if(strInd == -1) return;
 
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
@@ -605,7 +606,8 @@ Triangle3::getTopNumber()
 }
 
 void
-Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                              CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                               double *ndTemps, int avgnum, double ylayer, double zlayer)
 { 
 #ifdef USE_EIGEN3
@@ -648,11 +650,9 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
               dStressdDisp.data(), 
               prop->E, prop->nu); 
   dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
-#endif
 #else
   std::cerr << " ... Error! Triangle3::getVonMisesDisplacementSensitivity needs Eigen library\n";
   exit(-1);
 #endif
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }

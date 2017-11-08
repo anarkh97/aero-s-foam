@@ -130,7 +130,7 @@ void ContactSequentialAllocator::Purge_Mem()
   PRECONDITION(initial_multiplier >= 0);
   PRECONDITION(bytes_free >= 0);
   
-  register char* tmp = first_block;
+  char* tmp = first_block;
   if (tmp)
   {
     // Set first_block to next block pointer.

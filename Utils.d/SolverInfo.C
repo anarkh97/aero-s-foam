@@ -14,9 +14,9 @@ SolverInfo::classifySolver()
   //     and constrained QPs.
   // -1: if the selected solver is not able to be classified
 
-  switch(type) {
+  switch(solvercntl->type) {
     case 0: { // direct solvers
-      switch(subtype) {
+      switch(solvercntl->subtype) {
         case 0: // skyline
           return 0;
         case 1: // sparse
@@ -43,13 +43,13 @@ SolverInfo::classifySolver()
 #endif
         case 8: // spooles
 #ifdef USE_SPOOLES
-          return (pivot) ? 1 : 0;
+          return (solvercntl->pivot) ? 1 : 0;
 #else
           return 0;
 #endif
         case 9: // mumps
 #ifdef USE_MUMPS
-          return (pivot) ? 1 : 0;
+          return (solvercntl->pivot) ? 1 : 0;
 #else
           return 0;
 #endif
@@ -86,7 +86,7 @@ SolverInfo::classifySolver()
       }
     } break;
     case 1 : { // iterative solvers
-      switch(iterType) {
+      switch(solvercntl->iterType) {
         case 0: // cg
           return 0;
         case 1: // gmres
@@ -98,7 +98,7 @@ SolverInfo::classifySolver()
       }
     } break;
     case 2 : { // FETI solvers
-      switch(fetiInfo.version) {
+      switch(solvercntl->fetiInfo.version) {
         case FetiInfo::feti1 :
           return 0;
         case FetiInfo::feti2 :

@@ -2,13 +2,11 @@
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
 #include <Driver.d/Domain.h>
-#include <Driver.d/GeoSource.h>
 #include <Hetero.d/FlExchange.h>
 #include <Driver.d/Dynam.h>
 
 #include <Math.d/FullMatrix.h>
 #include <Math.d/SparseMatrix.h>
-#include <Math.d/BLKSparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/DiagMatrix.h>
@@ -19,6 +17,7 @@
 #include <Control.d/ControlInterface.h>
 #include <Driver.d/ControlLawInfo.h>
 #include <Utils.d/ModeData.h>
+#include <Solvers.d/SolverFactory.h>
 
 typedef FSFullMatrix FullMatrix;
 
@@ -286,10 +285,10 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
      dMat.Msolver = m;
    }
    else {
-     BLKSparseMatrix *m = domain->constructBLKSparseMatrix<double>(domain->getCDSA());
-     m->zeroAll();
-     allOps.Msolver = m;
-     dMat.Msolver = m;
+     SparseMatrix *spp; Solver *prec; // XXX
+     SolverCntl *m_cntl = (domain->solInfo().solvercntl->type == 0) ? domain->solInfo().solvercntl : &default_cntl;
+     dMat.Msolver = GenSolverFactory<double>::getFactory()->createSolver(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(),
+                                                                         *m_cntl, allOps.Msolver, (Rbm*) NULL, spp, prec);
    }
  }
 

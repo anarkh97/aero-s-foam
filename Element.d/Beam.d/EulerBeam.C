@@ -891,7 +891,8 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    // Calculates the axial strain and stress for the beam element.
 
    weight = 1.0;
-        
+   if(strInd == -1) return;       
+ 
    Node &nd1 = cs.getNode(nn[0]);
    Node &nd2 = cs.getNode(nn[1]);
 
@@ -1086,7 +1087,8 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
 #ifdef USE_EIGEN3
 void
-EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                              CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                               double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
@@ -1151,9 +1153,8 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
                 eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->nu,
                 x, y, z, q.data(), prop->W, prop->Ta, ndTemps);
     dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
-#endif
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
+
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
 }
 #endif

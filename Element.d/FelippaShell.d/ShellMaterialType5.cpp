@@ -190,16 +190,55 @@ ShellMaterialType5<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 template<typename doublereal>
 void
-ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
-                                                                          doublereal *eframe, int gp)
+ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dSigmadu,
+                                                                          doublereal *_D, doublereal *eframe, int gp)
 {
-  for(int i=0; i<18; ++i) { GetConstitutiveResponse(dUpsilondu, dSigmadu, D, eframe, gp, Ta); dUpsilondu += 6; dSigmadu += 6; }
+  // Initialized data 
+  doublereal zero = 0.;
+
+  // Local variables 
+  Eigen::Map<Eigen::Matrix<doublereal,6,18> > dUpsilondu(_dUpsilondu), dSigmadu(_dSigmadu);
+  doublereal *data = (_D == NULL) ? new doublereal[36] : _D;
+  Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(data);
+  Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> > >
+    Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
+    Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
+  Eigen::Matrix<doublereal,3,3> invT;
+
+  doublereal  I = h*h*h/12;
+  doublereal  h2 = h*h;
+
+  invT = this->andesinvt(eframe, aframe, zero);
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING 
+
+  Db = invT * (coef.bottomRightCorner(3,3)*I) * invT.transpose();
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE
+
+  Dm = invT * (coef.topLeftCorner(3,3)*h) * invT.transpose();
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
+
+  Dbm = -invT * (coef.bottomLeftCorner(3,3)*h2) * invT.transpose();
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
+
+  Dmb = -invT * (coef.topRightCorner(3,3)*h2) * invT.transpose();
+
+// .....COMPUTE THE SENSITIVITY OF THE GENERALIZED "STRESSES" WRT DISPLACEMENT
+//
+  dSigmadu = D*dUpsilondu;
+
+
+  if(_D == NULL) delete [] data;
 }
 
 template<typename doublereal>
 void
-ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTthic(doublereal *_Upsilon, doublereal *_dSigmadh, doublereal *_dDdh,
-                                                                          doublereal *eframe, int gp, doublereal temp)
+ShellMaterialType5<doublereal>::GetConstitutiveResponseSensitivityWRTthic(doublereal *_Upsilon, doublereal *_dSigmadh, 
+                                                                          doublereal *_dDdh,  doublereal *eframe, int gp,
+                                                                          doublereal temp)
 {
   // Initialized data
   doublereal zero = 0.;

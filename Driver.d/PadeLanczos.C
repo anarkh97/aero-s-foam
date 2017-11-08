@@ -478,7 +478,7 @@ time -= getTime();
    }
 
    for(int i=0;i<nRHS;i++) {
-     if (domain->solInfo().type == 2) {
+     if (domain->solInfo().solvercntl->type == 2) {
        forceContinuity(*u[i]);
         if (verboseFlag) filePrint(stderr,"Forcing continuity %d.\n",i);
      }
@@ -1106,7 +1106,7 @@ rhstime -= getTime();
      allOps->sysSolver->solve(*f, *a);
 rhstime += getTime();
      if (dgpFlag) {
-       if (domain->solInfo().type == 2) {
+       if (domain->solInfo().solvercntl->type == 2) {
 //         filePrint(stderr,"Forcing continuity %d.\n",i);
          forceContinuity(*a);
        }
@@ -1841,7 +1841,7 @@ StaticSolver< Scalar, OpSolver, VecType,
          }
          rhstime += getTime();
          if (dgpFlag) {
-           if (domain->solInfo().type == 2) {
+           if (domain->solInfo().solvercntl->type == 2) {
              if (verboseFlag)
                filePrint(stderr,"Forcing continuity %d.\n",i);
              forceContinuity(*a);
@@ -2647,7 +2647,7 @@ StaticSolver< Scalar, OpSolver, VecType,
          solvecount++;
          rhstime += getTime();
          if (dgpFlag) {
-           if (domain->solInfo().type == 2) {
+           if (domain->solInfo().solvercntl->type == 2) {
              if (verboseFlag)
                filePrint(stderr,"Forcing continuity %d.\n",i);
              forceContinuity(*a);

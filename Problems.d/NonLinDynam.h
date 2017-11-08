@@ -3,6 +3,7 @@
 
 #include <Problems.d/SingleDomainBase.h>
 #include <Math.d/Vector.h>
+#include <Utils.d/OutputInfo.h>
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
 #endif
@@ -29,6 +30,8 @@ class ControlLawInfo;
 template <typename T> class GenFSFullMatrix;
 typedef GenFSFullMatrix<double> FSFullMatrix;
 class LinesearchInfo;
+struct SensitivityInfo;
+template<class Scalar> struct AllSensitivities;
 
 class NLDynamPostProcessor
 {
@@ -93,6 +96,7 @@ class NonLinDynamic : public NLDynamPostProcessor, public SingleDomainBase {
 
     ControlInterface *userSupFunc;
     ControlLawInfo *claw;
+    AllSensitivities<double> *allSens;
 
     void extractControlData(Vector& d_n, Vector& v_n, Vector& a_n,
                             double* ctrdis, double* ctrvel, double* ctracc);
@@ -179,6 +183,10 @@ class NonLinDynamic : public NLDynamPostProcessor, public SingleDomainBase {
     double getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce,
                             double midtime=-1, GeomState *refState = NULL, bool forceOnly = false);
 
+    AllSensitivities<double> *getAllSensitivities() { return allSens; }
+    SensitivityInfo *getSensitivityInfo();
+    int getNumSensitivities();
+
   private:
     // Overridable implementation of getStiffAndForce
     virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
@@ -217,9 +225,18 @@ class NonLinDynamic : public NLDynamPostProcessor, public SingleDomainBase {
     void resize(GeomState *refState, GeomState *geomState, GeomState *stepState, Vector *stateIncr,
                 Vector &v, Vector &a, Vector &vp, Vector &force) {} // XXX
 
+    void preProcessSA();
+    void postProcessSA(Vector &sol);
+
+    void postProcessNLSA(GeomState *, GeomState *);
+    void sensitivityAnalysis(GeomState *, GeomState *);
 private:
     virtual bool factorWhenBuilding() const;
     void clean();
+    void computeLambdaNLStressVM(int); 
+    void computeLambdaAggregatedStress();
+    void computeLambdaDisp(int , int);
+    void setUpPODSolver(OutputInfo::Type);
 };
 
 inline const NLDynamPostProcessor &

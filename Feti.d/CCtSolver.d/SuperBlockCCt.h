@@ -21,6 +21,7 @@ class SuperBlockCCtSolver : public CCtSolver<Scalar>
     int nMpcBlocks;         // total nb of blocks
     int nMpcBlocksOnMyCPU;
     GenSolver<Scalar> **blockCCtsolver;// array[nMpcBlocks] of pointer on the BlockCCtsolver of myCPU
+    GenSparseMatrix<Scalar> **blockCCtsparse;
     Connectivity *mpcToMpc;
     Connectivity *blockToMpc;
     Connectivity *blockToSub;

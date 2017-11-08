@@ -64,10 +64,11 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
 {
   protected:
     GenSubDomain<Scalar> **sd;
-    int nsub;
+    int nsub, glNumSub;
     FetiInfo *fetiInfo;
-    FSCommunicator *fetiCom; // PJSA
-    int myCPU, numCPUs; // PJSA
+    int verboseFlag;
+    FSCommunicator *fetiCom;
+    int myCPU, numCPUs;
     Connectivity *subToSub, *mpcToSub, *mpcToSub_primal;
     Connectivity *edgeToSub, *subToEdge;
     Connectivity *coarseConnect;  // first level coarse prob. connectivity
@@ -96,7 +97,6 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     TaskDescr **fetiTasks;
     GenFetiOp<Scalar> **fetiOps;
     GenFetiOpControler<Scalar> *opControl;
-    GenSkyMatrix<Scalar> *GtGSkyMatrix; // used for nonlinear rebuilding of GtG
     GenSolver<Scalar> *GtGsolver;
     GenBigMatrix<Scalar> *PCtFPC;
     GenFetiWorkSpace<Scalar> *wksp;
@@ -181,14 +181,14 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     void initialize();
 
   public:
-    GenFetiSolver() { initialize(); };
+    //GenFetiSolver() { initialize(); };
     GenFetiSolver(int nsub, GenSubDomain<Scalar> **, Connectivity *,
                   FetiInfo *finfo, FSCommunicator *fetiCom, int *glToLoc, 
                   Connectivity *mpcToSub, Connectivity *cpuToSub,
-                  GenSolver<Scalar> **sysMatrices=0, GenSparseMatrix<Scalar> **sysMat = 0, 
-                  Rbm **_rbms=0);
-    GenFetiSolver(int _nsub, int _numThreads) : internalDI(_nsub), 
-                  interface(_nsub), times(_numThreads,_nsub) { initialize(); }
+                  GenSolver<Scalar> **sysMatrices = 0, GenSparseMatrix<Scalar> **sysMat = 0, 
+                  Rbm **_rbms = 0, int verboseFlag = 0);
+    GenFetiSolver(int _nsub, int _numThreads, int _verboseFlag) : internalDI(_nsub), 
+                  interface(_nsub), times(_numThreads,_nsub), verboseFlag(_verboseFlag) { initialize(); }
     virtual ~GenFetiSolver();
 
     void sendDeltaF(int iSub, GenDistrVector<Scalar>& deltaF);
@@ -300,7 +300,7 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
 
     // For eigen problem 
     virtual int numRBM();
-    virtual void getRBMs(GenDistrVectorSet<Scalar> &); //CBM
+    virtual void getRBMs(GenDistrVectorSet<Scalar> &);
     virtual void getRBMs(Scalar *);
     void Ksolve(int iSub, GenStackDistVector<Scalar> &R);
 
@@ -311,7 +311,6 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     double getFNormSq(GenDistrVector<Scalar> &f);
 
     virtual void getLocalMpcForces(int iSub, double *mpcLambda) { };  // only implemented for DP
-    GenSolver<Scalar> * newSolver(int type, Connectivity *con, EqNumberer *nums, double tol, GenSparseMatrix<Scalar> *&sparse); // PJSA 2-23-2007
 
   protected:
     FSCommPattern<Scalar> *wiPat;
@@ -320,8 +319,13 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
 template<class Scalar>
 class GenFetiDPSolver : public GenFetiSolver<Scalar> 
 {
+    using GenFetiSolver<Scalar>::fetiInfo;
+    using GenFetiSolver<Scalar>::verboseFlag;
+
     DistrInfo internalR, internalC, internalWI;
-    GenSolver<Scalar>       *KccSolver;
+    DistrInfo *coarseInfo;
+    GenSolver<Scalar>         *KccSolver;
+    GenParallelSolver<Scalar> *KccParallelSolver;
     Scalar *kccrbms;
     GenSparseMatrix<Scalar> *KccSparse;
     int glNumCorners;
@@ -335,12 +339,12 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     bool proportional;
 
  public:
-    GenFetiDPSolver(int nsub, GenSubDomain<Scalar> **sd, Connectivity *subToSub,
+    GenFetiDPSolver(int nsub, int glNumSub, GenSubDomain<Scalar> **sd, Connectivity *subToSub,
                     FetiInfo *finfo, FSCommunicator *fetiCom, int *glToLoc, Connectivity *mpcToSub, Connectivity *mpcToSub_primal,
                     Connectivity *mpcToMpc, Connectivity *mpcToCpu, Connectivity *cpuToSub, 
                     Connectivity *bodyToSub = 0, GenSolver<Scalar> **sysMatrices = 0,
                     GenSparseMatrix<Scalar> **sysMat = 0, Rbm **rbms = 0, bool rbmFlag = 0,
-                    bool geometricRbms = true);
+                    bool geometricRbms = true, int verboseFlag = 0);
     virtual ~GenFetiDPSolver();
 
     //int ngrbm;
@@ -370,8 +374,8 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     void printSummary(int iter);
     double getFNormSq(GenDistrVector<Scalar> &f);
     void getRBMs(Scalar *);
-    void getRBMs(GenDistrVectorSet<Scalar> &); //CBM
-    void getGlobalRBM(int iSub, int &iRBM, GenDistrVector<Scalar> &R); //CBM
+    void getRBMs(GenDistrVectorSet<Scalar> &);
+    void getGlobalRBM(int iSub, int &iRBM, GenDistrVector<Scalar> &R);
     int numRBM();
     void clean_up();
     void subdomainSolve(int iSub, GenDistrVector<Scalar> &v1, GenDistrVector<Scalar> &v2,
@@ -630,5 +634,3 @@ struct BlockPair {
 #endif
 
 #endif
-
-

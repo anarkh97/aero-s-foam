@@ -205,6 +205,7 @@ Joint.d/PrismaticJointSpringCombo.C
 Joint.d/PinInSlotJointSpringCombo.C
 Joint.d/RevoluteJointSpringComboWithFreeplay.C
 Joint.d/PrismaticJointSpringComboWithFreeplay.C
+MatrixElement.d/MatrixElement.C
 Membrane.d/mass8.f
 Membrane.d/Membrane.C
 Membrane.d/sands19.f

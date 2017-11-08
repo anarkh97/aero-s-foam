@@ -108,6 +108,9 @@ public:
   void readLocalBasesAuxi();
   void projectLocalBases(int i, int j, Vector &q);
 
+  void postProcessNLSA(ModalGeomState *, ModalGeomState *) {}
+  void sensitivityAnalysis(ModalGeomState *, ModalGeomState *) {}
+
 protected:
   class Impl;
   GenPodProjectionSolver<double> *solver_;

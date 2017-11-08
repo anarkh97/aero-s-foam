@@ -907,7 +907,6 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
         delete [] ext;
         sd->updateStates((*geomState)[i],*((*geomState)[i]),allCorot[i],sd->solInfo().initialTime);
       }
-      geomState->setVelocityAndAcceleration(state.getVeloc(), state.getAccel());
     }
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
     domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
@@ -981,7 +980,7 @@ MultiDomainDynam::printTimers(MDDynamMat *dynOps, double timeLoop)
     domain->getTimers().formRhs += decDomain->getSubDomain(i)->getTimers().formRhs;
   }
 
-  if(domain->solInfo().type == 2 && domain->solInfo().fetiInfo.version == 3) {
+  if(domain->solInfo().solvercntl->type == 2 && domain->solInfo().solvercntl->fetiInfo.version == 3) {
     times->printFetiDPtimers(domain->getTimers(),
                              dynOps->dynMat->getSolutionTime(),
                              domain->solInfo() ,
@@ -999,7 +998,7 @@ MultiDomainDynam::printTimers(MDDynamMat *dynOps, double timeLoop)
  }
 
 /*
-   switch(domain->solInfo().fetiInfo.version) {
+   switch(domain->solInfo().solvercntl->fetiInfo.version) {
      default:
      case FetiInfo::feti1:
      case FetiInfo::feti2:
@@ -1891,6 +1890,13 @@ void
 MultiDomainDynam::postProcessSA(MDDynamMat*, DistrVector&)
 {
   filePrint(stderr," ... MultiDomainDynam::postProcessSA is not implemented\n");
+  exit(-1);
+}
+
+void
+MultiDomainDynam::sensitivityPostProcessing(DistrVector*)
+{
+  filePrint(stderr," ... MultiDomainDynam::sensitivityPostProcessing is not implemented\n");
   exit(-1);
 }
 

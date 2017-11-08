@@ -79,12 +79,14 @@ class SuperElement : public Element
     void getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                      Vector &elDisp, int strInd, int surface=0,
                      double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
-    void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                         double *, int avgnum, double ylayer, double zlayer);
-    void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+    void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                                         int surface, double *, int avgnum, double ylayer, double zlayer);
+    void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+                                            CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                             double *ndTemps, int avgnum, double ylayer, double zlayer);
-    void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                               double * = 0, int avgnum=1, double ylayer=0, double zlayer=0);
+    void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp,
+                                               int strInd, int surface, double * = 0, int avgnum=1, double ylayer=0,
+                                               double zlayer=0);
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                       Vector &elDisp, int strInd, int surface=0,
                       double *ndTemps=0);

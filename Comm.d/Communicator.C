@@ -158,6 +158,23 @@ Communicator::recFrom(int tag, Type *buffer, int len)
 }
 
 template <class Type>
+RecInfo
+Communicator::recFrom(int cpu, int tag, Type *buffer, int len)
+{
+#ifdef USE_MPI
+  RecInfo rInfo;
+  MPI_Status status;
+  MPI_Recv(buffer, len, 
+           CommTrace<Type>::MPIType, cpu, tag, comm, &status);
+  MPI_Get_count(&status, CommTrace<Type>::MPIType, &rInfo.len);
+  rInfo.cpu = status.MPI_SOURCE; 
+  return rInfo;
+#else
+  return *(new RecInfo);
+#endif
+}
+
+template <class Type>
 void
 Communicator::allGather(Type *send_data, int send_count, 
                         Type *recv_data, int recv_count)

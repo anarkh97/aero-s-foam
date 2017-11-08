@@ -91,7 +91,7 @@ GenSandiaDomain<Scalar>::setFetiInfo(FetiParams *params)
 {
   finfo = new FetiInfo();
   finfo->version = FetiInfo::fetidp;
-  domain->solInfo().type = 2;
+  domain->solInfo().solvercntl->type = 2;
   if(params->Verbose_flag() != 0) verboseFlag = 1;
   finfo->printNumber = (verboseFlag) ? 1 : -1;
   if((params->Verbose_flag() & (1 << 4)) != 0) finfo->contactPrintFlag = 3;
@@ -441,8 +441,8 @@ void
 GenSandiaDomain<Scalar>::setSolInfo(FetiParams *params)
 { 
   domain->solInfo().renum = 1;    // Sloan renumbering for skyline solvers
-  domain->solInfo().sparse_renum = 0;  // Esmond renumbering for sparse solvers
-  domain->solInfo().pivot = params->Pivoting(); // pivoting for spooles solvers
+  domain->solInfo().solvercntl->sparse_renum = 0;  // Esmond renumbering for sparse solvers
+  domain->solInfo().solvercntl->pivot = params->Pivoting(); // pivoting for spooles solvers
   domain->solInfo().getFetiInfo() = *finfo;
   delete finfo; finfo = &domain->solInfo().getFetiInfo(); // make sure we have pointer to the same object as domain->solInfo
   domain->solInfo().trbm   = params->Rbm_tol_mech();

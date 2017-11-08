@@ -220,6 +220,7 @@ private:
     void preProcess();
     void preProcessSA();
     void postProcessSA(MDDynamMat *, DistrVector &sol);
+    void sensitivityPostProcessing(DistrVector *sol);
     void processLastOutput();
     void printTimers(MDDynamMat *, double);
 
@@ -250,7 +251,7 @@ private:
     int aeroSensitivityPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
     int sendDisplacements(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
     void sendNumParam(int numParam, int actvar, double steadyTol) {}
-    void getNumParam(bool &numParam) {}
+    void getNumParam(int &numParam) {}
     void sendRelativeResidual(double relres) {}
     int cmdCom(int cmdFlag);
     int getAeroAlg();

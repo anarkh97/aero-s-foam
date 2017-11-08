@@ -92,6 +92,8 @@ TRAIL [a-zA-Z]*
 
 "DUALBASIS"|"dualbasis"            { return DUALBASIS; }
 
+"ADJOINTBASIS"|"adjointbasis"      { return ADJOINTBASIS; }
+
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
 
 "USE_CONSTANT_MASS_FORCES"|"use_constant_mass_forces" { return USECONSTANTMASS; }
@@ -481,6 +483,10 @@ TRAIL [a-zA-Z]*
 
 "rebuildcct"|"REBUILDCCT"          { return REBUILDCCT; }
 
+"solverc"[a-zA-Z]*|"SOLVERC"[a-zA-Z]* { return SOLVERCNTL; }
+
+"solverh"[a-zA-Z]*|"SOLVERH"[a-zA-Z]* { return SOLVERHANDLE; }
+
 "skyl"[a-zA-Z]*|"SKYL"[a-zA-Z]*    { yylval.ival = 0; return SOLVERTYPE; }
 
 "spar"[a-zA-Z]*|"SPAR"[a-zA-Z]*    { yylval.ival = 1; return SOLVERTYPE; }
@@ -509,15 +515,23 @@ TRAIL [a-zA-Z]*
 
 "purelydiag"[a-zA-Z]*|"PURELYDIAG"[a-zA-Z]* { yylval.ival = 10; return SOLVERTYPE; }
 
-"dbsgal"[a-zA-Z]*|"DBSGAL"[a-zA-Z]*    { yylval.ival = 12; return SOLVERTYPE; }
+"dbsgal"[a-zA-Z]*|"DBSGAL"[a-zA-Z]* { yylval.ival = 12; return SOLVERTYPE; }
 
-"eisgal"[a-zA-Z]*|"EISGAL"[a-zA-Z]*    { yylval.ival = 13; return SOLVERTYPE; }
+"eisgal"[a-zA-Z]*|"EISGAL"[a-zA-Z]* { yylval.ival = 13; return SOLVERTYPE; }
 
 "gold"[a-zA-Z]*|"GOLD"[a-zA-Z]*    { yylval.ival = 14; return SOLVERTYPE; }
 
-"mumps_icntl"|"MUMPS_ICNTL" { return MUMPSICNTL; }
+"verb"[a-zA-Z]*|"VERB"[a-zA-Z]*    { return VERBOSE; }
 
-"mumps_cntl"|"MUMPS_CNTL" { return MUMPSCNTL; }
+"print_number"                     { return PRINTNUMBER; }
+
+"mumps_icntl"|"MUMPS_ICNTL"        { return MUMPSICNTL; }
+
+"mumps_cntl"|"MUMPS_CNTL"          { return MUMPSCNTL; }
+
+"mumps_mineq"|"MUMPS_MINEQ"        { return MUMPSMINEQ; }
+
+"mumps_stride"|"MUMPS_STRIDE"      { return MUMPSSTRIDE; }
 
 "pivot"[a-zA-Z]*|"PIVOT"[a-zA-Z]*  { return PIVOT; }
 
@@ -533,25 +547,27 @@ TRAIL [a-zA-Z]*
 
 "spooles_maxzeros"|"SPOOLES_MAXZEROS" { return SPOOLESMAXZEROS; }
 
-"spooles_msglvl"|"SPOOLES_MSGLVL" { return SPOOLESMSGLVL; }
+"spooles_msglvl"|"SPOOLES_MSGLVL"  { return SPOOLESMSGLVL; }
 
-"spooles_scale"|"SPOOLES_SCALE" { return SPOOLESSCALE; }
+"spooles_scale"|"SPOOLES_SCALE"    { return SPOOLESSCALE; }
 
-"spooles_pivot"|"SPOOLES_PIVOT" { return SPOOLESPIVOT; }
-
-"spooles_renum"|"SPOOLES_RENUM" { return SPOOLESRENUM; }
+"spooles_renum"|"SPOOLES_RENUM"    { return SPOOLESRENUM; }
 
 "sparse_maxsup"|"SPARSE_MAXSUP"    { return SPARSEMAXSUP; }
 
 "sparse_defblk"|"SPARSE_DEFBLK"    { return SPARSEDEFBLK; }
 
+"sparse_renum"|"SPARSE_RENUM"      { return SPARSERENUM; }
+
 "goldfarb_tol"|"GOLDFARB_TOL"      { return GOLDFARBTOL; }
+
+"ilu_"[a-zA-Z]*|"ILU_"[a-zA-Z]*    { return ILUDROPTOL; }
 
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
 
 "tolf"[a-zA-Z]*|"TOLF"[a-zA-Z]     { return TOLFETI; }
 
-"stag"[a-zA-Z_]*|"STAG"[a-zA-Z_]*    { return STAGTOL; }
+"stag"[a-zA-Z_]*|"STAG"[a-zA-Z_]*  { return STAGTOL; }
 
 "global_rbm_tol"|"GLOBAL_RBM_TOL"  { return GLOBALTOL; }
 
@@ -567,9 +583,11 @@ TRAIL [a-zA-Z]*
 
 "USDD"[a-zA-Z]*|"usdd"[a-zA-Z]*    { return USERDEFINEDISP; }
 
-"printMat"[a-zA-Z]*|"printmat"[a-zA-Z]*|"PRINTMAT"[a-zA-Z]* { return PRINTMATLAB; }
+"PRINTMAT"[a-zA-Z]*                { return PRINTMATLAB; }
 
-"u_proj"[a-zA-Z]*|"U_PROJ"[a-zA-Z]*  { return UPROJ; }
+"printmat"[a-zA-Z]*                { return printmatlab; }
+
+"u_proj"[a-zA-Z]*|"U_PROJ"[a-zA-Z]* { return UPROJ; }
 
 "mpc_type"|"MPC_TYPE"              { return MPCTYPE; }
 
@@ -636,6 +654,8 @@ TRAIL [a-zA-Z]*
 
 "QSTA"[a-zA-Z]*|"qsta"[a-zA-Z]*    { return QSTATIC; }
 
+"QUASISTATIC"|"quasistatic"        { return QUASISTATIC; }
+
 "modal"|"MODAL"|"srom"|"SROM"      { return MODAL; }
 
 "contact"|"CONTACT"                { return CONTACT; }
@@ -652,7 +672,7 @@ TRAIL [a-zA-Z]*
 
 "tolb"[a-zA-Z]*|"TOLB"[a-zA-Z]*    { return TOLPCG; }
 
-"tolcr"|"TOLCR"    { return TOLPCG; }
+"tolcr"|"TOLCR"                    { return TOLPCG; }
 
 "tolg"[a-zA-Z]*|"TOLG"[a-zA-Z]*    { return TOLPCG; }
 
@@ -687,6 +707,8 @@ TRAIL [a-zA-Z]*
 "tolj"[a-zA-Z]*|"TOLJ"[a-zA-Z]*    { return TOLJAC; }
 
 "tolsen"[a-zA-Z]*|"TOLSEN"[a-zA-Z]* { return TOLSEN; }
+
+"relaxationsen"|"RELAXATIONSEN"    { return RELAXATIONSEN; }
 
 "ratiotolsen"|"RATIOTOLSEN"        { return RATIOTOLSEN; }
 
@@ -766,8 +788,6 @@ TRAIL [a-zA-Z]*
 
 "DINOLI"|"dinoli"                  { return DISPNODELIST; }
 
-"DIDOLI"|"didoli"                  { return DISPDOFLIST; }
-
 "addedmass"                        { return ADDEDMASS; }
 
 "SLOS"[a-zA-Z]*|"slos"[a-zA-Z]*    { return SLOSH; }
@@ -834,7 +854,9 @@ TRAIL [a-zA-Z]*
 
 "LAYMAT"|"laymat"                  { return LAYMAT; }
 
-"TRBM"[a-zA-Z]*|"trbm"[a-zA-Z]*    { return TRBM; }
+"TRBM"[a-zA-Z]*                    { return TRBM; }
+
+"trbm"[a-zA-Z]*                    { return TRBMlc; }
 
 "GRBM"[a-zA-Z]*|"grbm"[a-zA-Z]*    { return GRBM; }
 
@@ -912,10 +934,6 @@ TRAIL [a-zA-Z]*
 "esmo"[a-zA-Z]*|"ESMO"[a-zA-Z]*    { yylval.ival = 3; return RENUMBERID; }
 
 "meti"[a-zA-Z]*|"METI"[a-zA-Z]*    { yylval.ival = 4; return RENUMBERID; }
-
-"gtgs"[a-zA-Z]*|"GTGS"[a-zA-Z]*    { yylval.ival = FetiInfo::sparse; return GTGSOLVER; }
-
-"gtgp"[a-zA-Z]*|"GTGP"[a-zA-Z]*    { yylval.ival = FetiInfo::pcg;    return GTGSOLVER; }
 
 "corn"[a-zA-Z]*|"CORN"[a-zA-Z]*    { return CORNER; }
 

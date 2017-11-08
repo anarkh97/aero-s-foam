@@ -27,15 +27,14 @@
 #include <Rom.d/EiGalerkinProjectionSolver.h>
 #ifdef USE_MPI
 #include <Comm.d/Communicator.h>
-extern Communicator *structCom;
 #endif
 extern Connectivity *procMpcToMpc;
 
 #include <Driver.d/SubDomainFactory.h>
 
 template<class Scalar>
-GenDecDomain<Scalar>::GenDecDomain(Domain *d)
- : mt(d->getTimers())
+GenDecDomain<Scalar>::GenDecDomain(Domain *d, Communicator *structCom, bool _soweredInput, bool _coarseLevel)
+ : mt(d->getTimers()), soweredInput(_soweredInput), coarseLevel(_coarseLevel)
 {
   domain = d;
   initialize(); 
@@ -44,6 +43,7 @@ GenDecDomain<Scalar>::GenDecDomain(Domain *d)
 #else
   communicator = new FSCommunicator;
 #endif
+  myCPU = communicator->cpuNum();
 }
 
 template<class Scalar>
@@ -80,7 +80,6 @@ GenDecDomain<Scalar>::initialize()
   numPrimalMpc = 0;
   numDualMpc = 0;
   firstOutput = true;
-  soweredInput = false;
   internalInfo = 0;
   internalInfo2 = 0;
   masterSolVecInfo_ = 0;
@@ -199,10 +198,17 @@ void GenDecDomain<Scalar>::addBMPCs()
 }
 
 template<class Scalar>
-void GenDecDomain<Scalar>::getSharedNodes()
+template<class ConnectivityType1, class ConnectivityType2>
+void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, ConnectivityType2 *subToNode)
 {
   // Start timer
   startTimerMemory(mt.makeConnectivity, mt.memoryConnect);
+
+  map<int, int> NESubMap;
+  int numNESub = 0; 
+  for(int iSub = 0; iSub < subToNode->csize(); iSub++)
+    if(subToNode->num(iSub))
+      NESubMap[iSub] = numNESub++;
 
   // PJSA 9-1-04 for coupled_dph all the wet interface nodes need to be included in the sharedNodes list in SComm
   bool coupled_dph = false;
@@ -218,30 +224,36 @@ void GenDecDomain<Scalar>::getSharedNodes()
   // create each subdomain's interface lists
   int iSub, jSub, subJ, iNode;
   int totConnect;
-  int *nConnect = new int[subToNode->csize()];
-  int *flag = new int[subToNode->csize()];
+  int *nConnect = new int[numNESub];
+  int *flag = new int[numNESub];
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
-     flag[iSub] = -1;
-     nConnect[iSub] = 0;
+    if(subToNode->num(iSub)) {
+      flag[NESubMap[iSub]] = -1;
+      nConnect[NESubMap[iSub]] = 0;
+    }
   }
 
   // Count connectivity
   totConnect = 0;
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) { // loop over the nodes
-      int thisNode = (*subToNode)[iSub][iNode];
+      typename ConnectivityType2::IndexType thisNode = (*subToNode)[iSub][iNode];
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[thisNode] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(thisNode); ++jSub) {
         // loop over the subdomains connected to this node
         subJ = (*nodeToSub)[thisNode][jSub];
-        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().fetiInfo.fsi_corner == 0)) ? true : false;
+        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
         if((subJ > iSub) || neighbWithSelf) {
           // only deal with connection to highered numbered subdomains, guarantees symmetry of lists
-          if(flag[subJ] != iSub) {
-            flag[subJ] = iSub;
-            nConnect[iSub]++;
+	  if(!subToNode->num(subJ)) {
+	    filePrint(stderr, "reference to empty subdomain 1\n");
+	    exit(1);
+	  }
+          if(flag[NESubMap[subJ]] != iSub) {
+            flag[NESubMap[subJ]] = iSub;
+            nConnect[NESubMap[iSub]]++;
             if(!neighbWithSelf) {
-              nConnect[subJ]++;
+              nConnect[NESubMap[subJ]]++;
               totConnect += 2;
             }
             else totConnect += 1;
@@ -251,47 +263,49 @@ void GenDecDomain<Scalar>::getSharedNodes()
     }
   }
 
-  int **nodeCount = new int*[subToNode->csize()];
-  int **connectedDomain = new int*[subToNode->csize()];
-  int **remoteID = new int*[subToNode->csize()];
+  int **nodeCount = new int*[numNESub];
+  int **connectedDomain = new int*[numNESub];
+  int **remoteID = new int*[numNESub];
 
   // Allocate memory for list of connected subdomains
   // (de-allocated in ~SComm)
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
-    int size = nConnect[iSub];
-    connectedDomain[iSub] = new int[size];
-    remoteID[iSub] = new int[size];
-    nodeCount[iSub] = new int[size];
-    flag[iSub] = -1;
-    nConnect[iSub] = 0;
+    if(subToNode->num(iSub)) {
+      int size = nConnect[NESubMap[iSub]];
+      connectedDomain[NESubMap[iSub]] = new int[size];
+      remoteID[NESubMap[iSub]] = new int[size];
+      nodeCount[NESubMap[iSub]] = new int[size];
+      flag[NESubMap[iSub]] = -1;
+      nConnect[NESubMap[iSub]] = 0;
+    }
   }
 
-  int *whichLocal  = new int[subToNode->csize()];
-  int *whichRemote = new int[subToNode->csize()];
+  int *whichLocal  = new int[numNESub];
+  int *whichRemote = new int[numNESub];
 
   for(iSub=0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) {
-      int nd = (*subToNode)[iSub][iNode];
+      typename ConnectivityType2::IndexType nd = (*subToNode)[iSub][iNode];
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[nd] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];
-        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().fetiInfo.fsi_corner == 0)) ? true : false;
+        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
         if((subJ > iSub) || neighbWithSelf) {
-          if(flag[subJ] != iSub) { // attribute location for this sub
-            flag[subJ] = iSub;
-            connectedDomain[subJ][nConnect[subJ]] = iSub;
-            connectedDomain[iSub][nConnect[iSub]] = subJ;
-            remoteID[subJ][nConnect[subJ]] = nConnect[iSub];
-            remoteID[iSub][nConnect[iSub]] = nConnect[subJ];
-            if(!neighbWithSelf) whichLocal[subJ] = nConnect[iSub]++;
-            else whichLocal[subJ] = nConnect[iSub];
-            whichRemote[subJ] = nConnect[subJ]++;
-            nodeCount[iSub][whichLocal[subJ]] = 1;
-            nodeCount[subJ][whichRemote[subJ]] = 1;
+          if(flag[NESubMap[subJ]] != iSub) { // attribute location for this sub
+            flag[NESubMap[subJ]] = iSub;
+            connectedDomain[NESubMap[subJ]][nConnect[NESubMap[subJ]]] = iSub;
+            connectedDomain[NESubMap[iSub]][nConnect[NESubMap[iSub]]] = subJ;
+            remoteID[NESubMap[subJ]][nConnect[NESubMap[subJ]]] = nConnect[NESubMap[iSub]];
+            remoteID[NESubMap[iSub]][nConnect[NESubMap[iSub]]] = nConnect[NESubMap[subJ]];
+            if(!neighbWithSelf) whichLocal[NESubMap[subJ]] = nConnect[NESubMap[iSub]]++;
+            else whichLocal[NESubMap[subJ]] = nConnect[NESubMap[iSub]];
+            whichRemote[NESubMap[subJ]] = nConnect[NESubMap[subJ]]++;
+            nodeCount[NESubMap[iSub]][whichLocal[NESubMap[subJ]]] = 1;
+            nodeCount[NESubMap[subJ]][whichRemote[NESubMap[subJ]]] = 1;
           }
           else {
-            nodeCount[iSub][whichLocal[subJ]]++;
-            if(!neighbWithSelf) nodeCount[subJ][whichRemote[subJ]]++;
+            nodeCount[NESubMap[iSub]][whichLocal[NESubMap[subJ]]]++;
+            if(!neighbWithSelf) nodeCount[NESubMap[subJ]][whichRemote[NESubMap[subJ]]]++;
           }
         }
       }
@@ -299,40 +313,45 @@ void GenDecDomain<Scalar>::getSharedNodes()
   }
 
   // allocate memory for interface node lists
-  Connectivity **interfNode = new Connectivity *[subToNode->csize()];
+  Connectivity **interfNode = new Connectivity *[numNESub];
   for(iSub=0; iSub < subToNode->csize(); ++iSub)
-    interfNode[iSub] = new Connectivity(nConnect[iSub], nodeCount[iSub]);
+    if(subToNode->num(iSub))
+      interfNode[NESubMap[iSub]] = new Connectivity(nConnect[NESubMap[iSub]], nodeCount[NESubMap[iSub]]);
 
   // fill the lists
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
-     flag[iSub]     = -1;
-     nConnect[iSub] =  0;
+    if(subToNode->num(iSub)) {
+      flag[NESubMap[iSub]]     = -1;
+      nConnect[NESubMap[iSub]] =  0;
+    }
   }
 
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) {
-      int nd = (*subToNode)[iSub][iNode];
+      typename ConnectivityType2::IndexType nd = (*subToNode)[iSub][iNode];
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[nd] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];
-        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().fetiInfo.fsi_corner == 0)) ? true : false;
+        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
         if((subJ > iSub) || neighbWithSelf) {
-          if(flag[subJ] != iSub) { // attribute location for this sub
-            flag[subJ] = iSub;
-            if(!neighbWithSelf) whichLocal[subJ] = nConnect[iSub]++;
-            else whichLocal[subJ] = nConnect[iSub];
-            whichRemote[subJ] = nConnect[subJ]++;
-            (*interfNode[iSub])[whichLocal[subJ]][0] = nd;
-            (*interfNode[subJ])[whichRemote[subJ]][0] = nd;
-            nodeCount[iSub][whichLocal[subJ]]=1;
-            nodeCount[subJ][whichRemote[subJ]]=1;
+          if(flag[NESubMap[subJ]] != iSub) { // attribute location for this sub
+            flag[NESubMap[subJ]] = iSub;
+            if(!neighbWithSelf) whichLocal[NESubMap[subJ]] = nConnect[NESubMap[iSub]]++;
+            else whichLocal[NESubMap[subJ]] = nConnect[NESubMap[iSub]];
+            whichRemote[NESubMap[subJ]] = nConnect[NESubMap[subJ]]++;
+            (*interfNode[NESubMap[iSub]])[whichLocal[NESubMap[subJ]]][0] = (glSubToLocal[iSub] >= 0) ? subDomain[glSubToLocal[iSub]]->globalToLocal(nd) : nd;
+            (*interfNode[NESubMap[subJ]])[whichRemote[NESubMap[subJ]]][0] = (glSubToLocal[subJ] >= 0) ? subDomain[glSubToLocal[subJ]]->globalToLocal(nd) : nd;
+
+            nodeCount[NESubMap[iSub]][whichLocal[NESubMap[subJ]]]=1;
+            nodeCount[NESubMap[subJ]][whichRemote[NESubMap[subJ]]]=1;
           }
           else {
-            int il = nodeCount[iSub][whichLocal[subJ]]++;
-            (*interfNode[iSub])[whichLocal[subJ]][il] = nd;
+            int il = nodeCount[NESubMap[iSub]][whichLocal[NESubMap[subJ]]]++;
+            (*interfNode[NESubMap[iSub]])[whichLocal[NESubMap[subJ]]][il] = (glSubToLocal[iSub] >= 0) ? subDomain[glSubToLocal[iSub]]->globalToLocal(nd) : nd;
+
             if(!neighbWithSelf) {
-              int jl = nodeCount[subJ][whichRemote[subJ]]++;
-              (*interfNode[subJ])[whichRemote[subJ]][jl] = nd;
+              int jl = nodeCount[NESubMap[subJ]][whichRemote[NESubMap[subJ]]]++;
+              (*interfNode[NESubMap[subJ]])[whichRemote[NESubMap[subJ]]][jl] = (glSubToLocal[subJ] >= 0) ? subDomain[glSubToLocal[subJ]]->globalToLocal(nd) : nd;
             }
           }
         }
@@ -342,39 +361,34 @@ void GenDecDomain<Scalar>::getSharedNodes()
   delete [] flag;
   delete [] whichLocal;
   delete [] whichRemote;
-  for(iSub = 0; iSub < subToNode->csize(); ++iSub) delete [] nodeCount[iSub];
+  for(iSub = 0; iSub < numNESub; ++iSub)
+    delete [] nodeCount[iSub];
   delete [] nodeCount;
   delete [] wetInterfaceNodeMap;
 
   for(iSub = 0; iSub < numSub; ++iSub) {
     int subI = (localSubToGl) ? localSubToGl[iSub] : iSub;
-    GenSubDomain<Scalar> **subds = new GenSubDomain<Scalar> * [nConnect[subI]];
-    for(jSub = 0; jSub < nConnect[subI]; ++jSub) {
-       int subJ = glSubToLocal[connectedDomain[subI][jSub]];
+    if(!subToNode->num(subI)) {
+      filePrint(stderr, "reference to empty subdomain 2\n");
+      exit(1);
+    }
+    GenSubDomain<Scalar> **subds = new GenSubDomain<Scalar> * [nConnect[NESubMap[subI]]];
+    for(jSub = 0; jSub < nConnect[NESubMap[subI]]; ++jSub) {
+       int subJ = glSubToLocal[connectedDomain[NESubMap[subI]][jSub]];
        subds[jSub] = (subJ >= 0) ? subDomain[subJ] : NULL;
     }
-    SComm *sc = new SComm(nConnect[subI], connectedDomain[subI], subds,
-                          remoteID[subI], interfNode[subI]);
+    SComm *sc = new SComm(nConnect[NESubMap[subI]], connectedDomain[NESubMap[subI]], subds,
+                          remoteID[NESubMap[subI]], interfNode[NESubMap[subI]]);
     sc->locSubNum = iSub;
     sc->glSubToLocal = glSubToLocal;
     subDomain[iSub]->setSComm(sc);
     delete [] subds;
   }
 
-  for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
-    if(glSubToLocal[iSub] < 0) {
-      delete [] connectedDomain[iSub];
-      delete [] remoteID[iSub];
-      delete interfNode[iSub];
-    }
-  }
-
   delete [] remoteID;
   delete [] connectedDomain;
   delete [] nConnect;
   delete [] interfNode;
-
-  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberSharedNodes);
 
   stopTimerMemory(mt.makeConnectivity, mt.memoryConnect);
 }
@@ -421,7 +435,7 @@ GenDecDomain<Scalar>::preProcessMPCs()
 #endif
   }
 #endif
-  if(domain->solInfo().fetiInfo.bmpc || (domain->solInfo().type != 2 && 
+  if(domain->solInfo().solvercntl->fetiInfo.bmpc || (domain->solInfo().solvercntl->type != 2 && 
     (domain->solInfo().filterFlags || domain->solInfo().rbmflg))) addBMPCs();
   if(domain->getNumLMPC() > 0) {
     if(verboseFlag) filePrint(stderr, " ... Applying the MPCs              ...\n");
@@ -477,7 +491,7 @@ void
 GenDecDomain<Scalar>::makeSubToSubEtc()
 {
   if(soweredInput) {
-    subToSub = geoSource->getSubToSub();
+#ifdef OLD_CLUSTER
     subToNode = geoSource->getSubToNode();
     subToNode->sortTargets();
 
@@ -485,12 +499,20 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
     nodeToSub = subToNode->reverse();
     mt.memoryNodeToSub += memoryUsed();
 
+#endif
+#ifdef SOWER_DISTR
+#ifdef OLD_CLUSTER
+    geoSource->setNumNodes(communicator->globalMax(nodeToSub->csize()));
+#else
+    geoSource->setNumNodes(communicator->globalMax(geoSource->nodeToSub_sparse->csize())); 
+#endif
+#else
     geoSource->setNumNodes(nodeToSub->csize());
-    geoSource->computeClusterInfo(localSubToGl[0]);
+#endif
   }
   else {
     mt.memoryElemToNode -= memoryUsed();
-    elemToNode = new Connectivity(&domain->packedEset);
+    if(!elemToNode) elemToNode = new Connectivity(&domain->packedEset);
     mt.memoryElemToNode += memoryUsed();
 
     mt.memorySubToNode -= memoryUsed();
@@ -508,9 +530,9 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
     mt.memorySubToNode += memoryUsed();
 
 #ifdef USE_MPI
-    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0 || domain->solInfo().aeroFlag > -1 || geoSource->binaryOutput == 0) {
+    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().solvercntl->type == 0 || domain->solInfo().aeroFlag > -1 || geoSource->binaryOutput == 0) {
 #else
-    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0 || domain->solInfo().aeroFlag > -1) {
+    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().solvercntl->type == 0 || domain->solInfo().aeroFlag > -1) {
 #endif 
       // sommerfeld, scatter, wet, distributed neum PJSA 6/28/2010 multidomain mumps PJSA 12/01/2010 non-binary output for mpi
       mt.memoryNodeToElem -= memoryUsed();
@@ -522,8 +544,6 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
       mt.memoryElemToSub += memoryUsed();
       if(domain->numSSN() > 0) domain->checkSommerTypeBC(domain, elemToNode, domain->nodeToElem); // flip normals if necessary
     }
-
-    if(geoSource->getGlob()) geoSource->computeClusterInfo(localSubToGl[0], subToNode);
   }
 }
 
@@ -532,14 +552,16 @@ void
 GenDecDomain<Scalar>::makeSubDomains() 
 {
   makeSubDMaps();
-  makeSubToSubEtc();
+  if(!soweredInput && geoSource->getGlob()) geoSource->computeClusterInfo(localSubToGl[0], subToNode);
   subDomain = new GenSubDomain<Scalar> *[numSub];
 
   startTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
   if(soweredInput) {
-    for(int iSub = 0; iSub < this->numSub; iSub++) { 
-      subDomain[iSub] = geoSource->template readDistributedInputFiles<Scalar>(iSub, localSubToGl[iSub]);  
-    }
+#ifdef OLD_CLUSTER
+    geoSource->computeClusterInfo(localSubToGl[0]);
+#endif
+    for(int iSub = 0; iSub < this->numSub; iSub++)
+      subDomain[iSub] = geoSource->template readDistributedInputFiles<Scalar>(iSub, localSubToGl[iSub]);
 #ifdef SOWER_SURFS
     geoSource->readDistributedSurfs(localSubToGl[0]); //pass dummy sub number
 #endif
@@ -552,7 +574,7 @@ GenDecDomain<Scalar>::makeSubDomains()
     }
     paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberElements); 
   }
-  
+
   paralApply(numSub, subDomain, &BaseSub::makeDSA); 
   stopTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
 }
@@ -579,17 +601,18 @@ GenFetiSolver<Scalar> *
 GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 {
  FetiInfo *finfo = &domain->solInfo().getFetiInfo();
+ int verboseFlag = domain->solInfo().solvercntl->verbose;
  if(finfo->version == FetiInfo::fetidp) {
    bool rbmFlag = ((domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted());
    bool geometricRbms = (domain->solInfo().rbmflg && !domain->solInfo().isNonLin());
-   return new GenFetiDPSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
+   return new GenFetiDPSolver<Scalar>(numSub, globalNumSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
                                       mpcToSub_dual, mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
-                                      dgt.dynMats, dgt.spMats, dgt.rbms, rbmFlag, geometricRbms);
+                                      dgt.dynMats, dgt.spMats, dgt.rbms, rbmFlag, geometricRbms, verboseFlag);
  }
  else {
    return new GenFetiSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator,
                                     glSubToLocal, mpcToSub_dual, cpuToSub,
-                                    dgt.dynMats, dgt.spMats, dgt.rbms);
+                                    dgt.dynMats, dgt.spMats, dgt.rbms, verboseFlag);
  }
 }
 
@@ -609,7 +632,7 @@ GenDecDomain<Scalar>::getCPUMap()
 #ifdef DISTRIBUTED
   char *mapName = geoSource->getCpuMapFile(); 
   FILE *f = fopen(mapName,"r");
-  numCPU = geoSource->getCPUMap(f, globalNumSub);
+  numCPU = geoSource->getCPUMap(f, 0, globalNumSub);
   cpuToCPU = geoSource->getCpuTOCPU();
   if(f) fclose(f);
 #else
@@ -618,6 +641,14 @@ GenDecDomain<Scalar>::getCPUMap()
 #endif
   cpuToSub = geoSource->getCpuToSub();
   mt.memoryCPUMAP += memoryUsed();
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::setCPUMap(Connectivity *_cpuToSub)
+{
+  cpuToSub = _cpuToSub;
+  numCPU = cpuToSub->csize();
 }
 
 template<class Scalar>
@@ -645,7 +676,7 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::preProcess()
 {
- if(domain->solInfo().type == 0) { // Makes global renumbering, connectivities and dofsets
+ if(domain->solInfo().solvercntl->type == 0) { // Makes global renumbering, connectivities and dofsets
    domain->preProcessing();
 
    int numdof = domain->numdof();
@@ -658,14 +689,30 @@ GenDecDomain<Scalar>::preProcess()
    domain->make_constrainedDSA();
    domain->makeAllDOFs();
  }
- soweredInput = geoSource->binaryInput;
+ //soweredInput = geoSource->binaryInput;
 
- if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");
- subToElem = geoSource->getDecomposition();
- subToElem->sortTargets(); // PJSA 11-16-2006
- globalNumSub = subToElem->csize();
+ if(!subToElem) {
+   if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");
+#ifndef OLD_CLUSTER
+   if(soweredInput) geoSource->getBinaryDecomp(); else
+#endif
+   subToElem = geoSource->getDecomposition();
+   //subToElem->sortTargets(); // JAT 021915 // PJSA 11-16-2006
+ }
 
- getCPUMap();
+ makeSubToSubEtc();
+
+ if(subToSub) globalNumSub = subToSub->csize(); // JAT 021915 // JAT 021916
+#ifdef SOWER_DISTR
+ if(soweredInput)
+#ifdef OLD_CLUSTER
+   globalNumSub = communicator->globalMax(globalNumSub);
+#else
+   globalNumSub = communicator->globalMax(geoSource->subToNode_sparse->csize());
+#endif
+#endif
+
+ if(!cpuToSub) getCPUMap();
 
  if(verboseFlag) filePrint(stderr, " ... Making the Subdomains          ...\n");
  makeSubDomains();
@@ -674,7 +721,10 @@ GenDecDomain<Scalar>::preProcess()
 
  preProcessFSIs();// FLuid-Structure Interaction
 
- getSharedNodes();
+#ifndef OLD_CLUSTER
+ if(soweredInput) getSharedNodes(geoSource->nodeToSub_sparse, geoSource->subToNode_sparse); else
+#endif
+ getSharedNodes(nodeToSub, subToNode);
 
  makeCorners();// Corners for FETI-DP
 
@@ -695,12 +745,13 @@ GenDecDomain<Scalar>::preProcess()
  makeNodeInfo();
 
 #ifdef DISTRIBUTED
+ if(!coarseLevel) {
  geoSource->setNumNodalOutput();
  if(geoSource->getNumNodalOutput()) {
    for(int i=0; i<numSub; ++i)
      geoSource->distributeOutputNodesX(subDomain[i], (nodeToSub_copy) ? nodeToSub_copy : nodeToSub); // make sure each node always gets
                                                                                                      // assigned to the same subdomain.
- }
+ }}
 #endif
 
  // compute the number of unconstrained dofs for timing file and screen output
@@ -709,9 +760,9 @@ GenDecDomain<Scalar>::preProcess()
  domain->setNumDofs(toto.sqNorm()+domain->nDirichlet()+domain->nCDirichlet());
 
  // free up some memory
- if(domain->solInfo().type != 0 && domain->solInfo().aeroFlag < 0) {
+ if(domain->solInfo().solvercntl->type != 0 && domain->solInfo().aeroFlag < 0) {
    delete elemToSub; elemToSub = 0;
-   if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
+   //if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
  }
 }
 
@@ -2576,7 +2627,7 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::makeCorners()
 {
-  if(!(domain->solInfo().type == 2 && domain->solInfo().fetiInfo.version == FetiInfo::fetidp)) return;
+  if(!(domain->solInfo().solvercntl->type == 2 && domain->solInfo().solvercntl->fetiInfo.version == FetiInfo::fetidp)) return;
   if(verboseFlag) filePrint(stderr, " ... Selecting the Corners          ...\n");
 
   FSCommPattern<int> cpat(communicator, cpuToSub, myCPU, FSCommPattern<int>::CopyOnSend);
@@ -2629,7 +2680,7 @@ void GenDecDomain<Scalar>::distributeBCs()
     nNeumannPerSub[iSub] = 0;
   }
  
-  // get bc's from geoSource
+  // get bc's from domain
   BCond* dbc = 0;
   BCond* nbc = 0;
   BCond* cvbc = 0;
@@ -2637,11 +2688,11 @@ void GenDecDomain<Scalar>::distributeBCs()
   BCond* iDis6 = 0;
   BCond* iVel = 0;
 
-  int numDirichlet = geoSource->getDirichletBC(dbc);
-  int numNeuman    = geoSource->getNeumanBC(nbc);
-  int numIDis = domain->numInitDisp(); iDis = domain->getInitDisp();
-  int numIDis6     = geoSource->getIDis6(iDis6);
-  int numIVel = domain->numInitVelocity(); iVel = domain->getInitVelocity();
+  int numDirichlet = domain->nDirichlet();   dbc = domain->getDBC();
+  int numNeuman    = domain->nNeumann();     nbc = domain->getNBC();
+  int numIDis      = domain->numInitDisp();  iDis = domain->getInitDisp();
+  int numIDis6     = domain->numInitDisp6(); iDis6 = domain->getInitDisp6();
+  int numIVel   = domain->numInitVelocity(); iVel = domain->getInitVelocity();
 
   // Count the number of boundary conditions per subdomain
   int numDispDirichlet = 0; // number of displacement dirichlet BCs
@@ -3314,7 +3365,7 @@ GenDecDomain<Scalar>::makeMpcToMpc()
  
   delete [] flags;
   mpcToMpc = new Connectivity(size, np, ntg); // for all mpcs on this cpu
-  if(domain->solInfo().fetiInfo.bmpc) {
+  if(domain->solInfo().solvercntl->fetiInfo.bmpc) {
     Connectivity *mpcToMpc_mod = mpcToMpc->modify(); 
     delete mpcToMpc;
     mpcToMpc = mpcToMpc_mod;
@@ -3447,7 +3498,7 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
   for(i=0; i<numCPU; ++i) delete tmpMpcToMpc[i];
   delete [] tmpMpcToMpc;
 #ifdef USE_MUMPS
-  if(domain->solInfo().fetiInfo.cctSolver == FetiInfo::mumps && domain->solInfo().mumps_icntl[18] == 3) {
+  if(domain->solInfo().solvercntl->fetiInfo.cct_cntl->subtype == FetiInfo::mumps && domain->solInfo().solvercntl->fetiInfo.cct_cntl->mumps_icntl[18] == 3) {
     procMpcToMpc = _procMpcToMpc;
   } else
 #endif
@@ -3458,8 +3509,8 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
 template<class Scalar>
 void GenDecDomain<Scalar>::addFsiElements()
 {
- if ( domain->solInfo().isCoupled && domain->solInfo().type == 2 &&
-      domain->solInfo().isMatching && domain->solInfo().fetiInfo.fsi_corner != 0 ) {
+ if ( domain->solInfo().isCoupled && domain->solInfo().solvercntl->type == 2 &&
+      domain->solInfo().isMatching && domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0 ) {
    // JLchange: replace addSubFsiElem() such that fsi elements are added only to structure elements. 
    for (int i=0; i< domain->getNumFSI(); ++i) {
      LMPCons *thisGlFSI = domain->getFsi(i);
@@ -3551,7 +3602,7 @@ void GenDecDomain<Scalar>::distributeWetInterfaceNodes()
     }
   }
 
-  if ((domain->solInfo().isCoupled) && (domain->solInfo().fetiInfo.fsi_corner != 0)) { 
+  if ((domain->solInfo().isCoupled) && (domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0)) { 
     execParal(numSub, this, &GenDecDomain<Scalar>::markSubWetInterface,
               nWetInterfaceNodesPerSub, subWetInterfaceNodes);
   }  
@@ -3658,25 +3709,27 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 {
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
-                                domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
-                                communicator, melArray, celArray, domain->getElementSet().hasDamping(), mt);
+                                domain->numSommer, domain->solInfo().getFetiInfo().local_cntl->subtype,
+                                communicator, melArray, celArray, mt);
 
- if(domain->solInfo().type == 0) {
-   switch(domain->solInfo().subtype) {
+ if(domain->solInfo().solvercntl->type == 0) {
+   switch(domain->solInfo().solvercntl->subtype) {
 #ifdef USE_MUMPS
      case 9 : {
        GenMumpsSolver<Scalar> *msmat;
-       if(domain->solInfo().mumps_icntl[18] == 3) {
+       if(domain->solInfo().solvercntl->mumps_icntl[18] == 3) {
          Connectivity *subToCpu = cpuToSub->reverse();
          Connectivity *elemToCpu = elemToSub->transcon(subToCpu);
          Connectivity *nodeToNodeLocal = domain->getNodeToElem()->transcon(elemToNode, elemToCpu->getTarget(), communicator->cpuNum());
-         msmat = new GenMumpsSolver<Scalar>(nodeToNodeLocal, domain->getDSA(), domain->getCDSA(), numSub, subDomain, communicator);
+         msmat = new GenMumpsSolver<Scalar>(nodeToNodeLocal, domain->getDSA(), domain->getCDSA(), numSub, subDomain, 
+                                            *domain->solInfo().solvercntl, communicator);
          delete nodeToNodeLocal;
          delete elemToCpu;
          delete subToCpu;
        }
        else {
-         msmat = new GenMumpsSolver<Scalar>(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), numSub, subDomain, communicator);
+         msmat = new GenMumpsSolver<Scalar>(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), numSub, subDomain,
+                                            *domain->solInfo().solvercntl, communicator);
        }
        for(int i = 0; i < numSub; ++i) {
          dgt.dynMats[i] = dynamic_cast<GenSolver<Scalar>* >(msmat);
@@ -3690,7 +3743,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      } break;
 #endif
      default :
-       filePrint(stderr, " *** ERROR: subtype %d not supported here in GenDecDomain::buildOps\n", domain->solInfo().subtype);
+       filePrint(stderr, " *** ERROR: subtype %d not supported here in GenDecDomain::buildOps\n", domain->solInfo().solvercntl->subtype);
        exit(-1);
    }
  }
@@ -3699,7 +3752,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
  GenAssembler<Scalar> * assembler = 0;
- if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1 || domain->solInfo().type == 1) {
+ if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1 || domain->solInfo().solvercntl->type == 1) {
    assembler = getSolVecAssembler(); 
  }
 // RT0212
@@ -3788,9 +3841,9 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    if (dgt.Kuc_arubber_m) delete [] dgt.Kuc_arubber_m;
  }
 // RT end
- switch(domain->solInfo().type) {
+ switch(domain->solInfo().solvercntl->type) {
    case 0 : { // direct
-     if(domain->solInfo().subtype == 13) { // if ROM, dont need dgt.dynMats, keep dgt.spMats for V^T*K*V, factor after pod basis has been buffered
+     if(domain->solInfo().solvercntl->subtype == 13) { // if ROM, dont need dgt.dynMats, keep dgt.spMats for V^T*K*V, factor after pod basis has been buffered
        if(!(res.spMat  = new GenSubDOp<Scalar>(numSub, dgt.spMats)))
          throw std::runtime_error("subdomain matrices did not bind");
        res.spMat->zeroAll();
@@ -3813,22 +3866,22 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      if(factor) res.dynMat->refactor();
    } break;
    case 1 : { // iterative
-     switch(domain->solInfo().iterType) {
+     switch(domain->solInfo().solvercntl->iterType) {
        case 1: {
          if(myCPU == 0) std::cerr << " ... GMRES Solver is Selected       ... \n";
          res.spMat = new GenSubDOp<Scalar>(numSub, dgt.spMats, assembler);
-         if(domain->solInfo().precond == 1) res.prec = getDiagSolver(numSub, dgt.sd, dgt.sps);
+         if(domain->solInfo().solvercntl->precond == 1) res.prec = getDiagSolver(numSub, dgt.sd, dgt.sps);
          GmresSolver<Scalar, GenDistrVector<Scalar>, GenSubDOp<Scalar>, GenParallelSolver<Scalar>, GenParallelSolver<Scalar> > *gmresSolver
            = new GmresSolver<Scalar, GenDistrVector<Scalar>, GenSubDOp<Scalar>, GenParallelSolver<Scalar>, GenParallelSolver<Scalar> >
-             (domain->solInfo().maxit, domain->solInfo().tol, res.spMat, &GenSubDOp<Scalar>::mult, res.prec,
+             (domain->solInfo().solvercntl->maxit, domain->solInfo().solvercntl->tol, res.spMat, &GenSubDOp<Scalar>::mult, res.prec,
               &GenParallelSolver<Scalar>::solve, NULL, &GenParallelSolver<Scalar>::solve, communicator); 
-         if(domain->solInfo().maxvecsize > 0) gmresSolver->maxortho = domain->solInfo().maxvecsize;
+         if(domain->solInfo().solvercntl->maxvecsize > 0) gmresSolver->maxortho = domain->solInfo().solvercntl->maxvecsize;
          gmresSolver->verbose = verboseFlag;
-         gmresSolver->printNumber = domain->solInfo().fetiInfo.printNumber;
+         gmresSolver->printNumber = domain->solInfo().solvercntl->fetiInfo.printNumber;
          res.dynMat = gmresSolver;
        } break;
        default:
-         std::cerr << " *** ERROR: iterType " << domain->solInfo().iterType << " not supported here in GenDecDomain::buildOps\n";
+         std::cerr << " *** ERROR: iterType " << domain->solInfo().solvercntl->iterType << " not supported here in GenDecDomain::buildOps\n";
          exit(-1);
      }
    } break;
@@ -3847,14 +3900,14 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK,
+GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK, 
                                  FullSquareMatrix **kelArray, FullSquareMatrix **melArray, FullSquareMatrix **celArray)
 {
  if(res.dynMat) res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
- 
+
  execParal7R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
- if(domain->solInfo().type == 0 && res.dynMat) {
+ if(domain->solInfo().solvercntl->type == 0 && res.dynMat) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);
    if(!verboseFlag) dynmat->setPrintNullity(false);
    dynmat->unify(communicator);
@@ -3887,7 +3940,7 @@ GenDecDomain<double>::rebuildOps(GenMDDynamMat<double> &res, double coeM, double
 
    execParal7R(numSub, this, &GenDecDomain<double>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
-   if(domain->solInfo().type == 0 && res.dynMat) {
+   if(domain->solInfo().solvercntl->type == 0 && res.dynMat) {
      GenSolver<double> *dynmat = dynamic_cast<GenSolver<double>*>(res.dynMat);
      if(!verboseFlag) dynmat->setPrintNullity(false);
      dynmat->unify(communicator);
@@ -3957,8 +4010,8 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
 
   allOps.zero();
 
-  if(domain->solInfo().type == 0) {
-    if(domain->solInfo().subtype == 13) { // if performing reduced order model, point to subdomain matrices and pass these to makeSparseOps
+  if(domain->solInfo().solvercntl->type == 0) {
+    if(domain->solInfo().solvercntl->subtype == 13) { // if performing reduced order model, point to subdomain matrices and pass these to makeSparseOps
 #ifdef USE_EIGEN3
       GenSparseMatrix<Scalar> *spmat = 
       dynamic_cast<Rom::GenEiSparseGalerkinProjectionSolver<Scalar,GenDistrVector,GenParallelSolver<Scalar> > *>(res.dynMat)->getSpMat(iSub);
@@ -3976,7 +4029,7 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
                                                      (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
     }
   }
-  else if(domain->solInfo().type == 3) {
+  else if(domain->solInfo().solvercntl->type == 3) {
     GenSparseMatrix<Scalar> *spmat = (res.dynMat) ? dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat) : NULL;
     if(spmat) spmat->zeroAll();
     subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,

@@ -9,15 +9,10 @@
 #include <Element.d/Element.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/matrix.h>
-#include <Math.d/BLKSparseMatrix.h>
 #include <Solvers.d/Rbm.h>
 #include <Timers.d/GetTime.h>
-#include <Utils.d/SolverInfo.h>
-#ifdef DISTRIBUTED
-#include <Comm.d/Communicator.h>
-#endif
-
-extern SolverInfo &solInfo;
+#include <Solvers.d/SolverCntl.h>
+#include <Driver.d/Communicator.h>
 
 #define MIN_MEMORY
 
@@ -339,13 +334,12 @@ GenBLKSparseMatrix<Scalar>::init()
 template<class Scalar>
 GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa,
                                                DofSetArray *c_dsa, double _tol,
-                                               int _spRenum, Rbm *_rbm) :
- SparseData(_dsa,c_dsa,cn,1)
+                                               SolverCntl& _scntl, Rbm *_rbm) :
+ SparseData(_dsa,c_dsa,cn,1), scntl(_scntl)
 {
   init();
   rbm   = _rbm;
   tol   = _tol;
-  spRenum = _spRenum;
 
   // Geometric RBM
   if(rbm) ngrbm  = rbm->numRBM();
@@ -1191,26 +1185,24 @@ GenBLKSparseMatrix<Scalar>::getRBMs(VectorSet &rigidBodyModes)
 
 // Constructor Kii, FETI Subdomain preconditioner solver
 
-template<class Scalar>
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa,
-                                               int *glInternalMap, double _tol, int _spRenum) :
-  SparseData(_dsa, glInternalMap, cn, 1)
+template<class Scalar> 
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa, 
+                                               int *glInternalMap, double _tol, SolverCntl& _scntl) :
+  SparseData(_dsa, glInternalMap, cn, 1), scntl(_scntl)
 {
   init();
   tol    = _tol;
-  spRenum = _spRenum;
   allocateMemory();
 }
 
 // Constructor for GtG Solver (First level coarse problem solver in FETI)
 
 template<class Scalar>
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, EqNumberer *_dsa, double _tol, int _spRenum, int _ngrbm)
-  : SparseData(cn,_dsa,_tol)
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, EqNumberer *_dsa, double _tol, SolverCntl& _scntl, int _ngrbm)
+  : SparseData(cn,_dsa,_tol), scntl(_scntl)
 {
   init();
   tol    = _tol;
-  spRenum = _spRenum;
   ngrbm = _ngrbm;
   allocateMemory();
 }
@@ -1243,8 +1235,8 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   int i,j,k,iflag;
 
   // maxsup = maximum number of columns in each supernode (parameter)
-  int maxsup = solInfo.sparse_maxsup;  // default is 100, but may need larger maxsup for big subdomains
-                                       // set using sparse_maxsup parameter in fem input file
+  int maxsup = scntl.sparse_maxsup;  // default is 100, but may need larger maxsup for big subdomains
+                                     // set using sparse_maxsup parameter in fem input file
 
   adj = new int[nnza];
 
@@ -1285,8 +1277,8 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 // -------------------------------------------------------
 
   // iwsiz = 4 * numUncon;  // iwsiz should be the dimension of iwork (not changed)
-#ifdef USE_METIS
-  if(spRenum == 1) {
+#ifdef USE_METIS  
+  if(scntl.sparse_renum == 1) {
     int metis_options[8];
     for(i = 0; i < 8; i++) metis_options[i] = 0;
     int numflag = 1;
@@ -1312,7 +1304,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   // Rank deficiency information
   // defblk = size of last block to perform full pivoting on
   if(ngrbm > 0) {
-    defblk = min(numUncon-1,solInfo.sparse_defblk); // note: sparse_defblk default is 10
+    defblk = min(numUncon-1,scntl.sparse_defblk); // note: sparse_defblk default is 10
     // restore original numbering in defblk
     // note: perm maps from new index to original index and invp maps from original index to new index
     for(int i = numUncon-defblk; i < numUncon; ++i) {

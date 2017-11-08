@@ -88,6 +88,7 @@
 
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Element.d/MpcElement.d/FsiElement.h>
+#include <Element.d/MatrixElement.d/MatrixElement.h>
 
 #include <map>
 extern std::map<int,double> weightList;
@@ -233,6 +234,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
    Element *ele;
    switch(etype) 
    {
+     case 0:
+       ele = new (ba) MatrixElement(nnodes, n);
+       break;
      case 1:
        ele = new (ba) TwoNodeTruss(n);
        ele->setCategory(Element::Structural);

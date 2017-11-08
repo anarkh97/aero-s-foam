@@ -31,6 +31,7 @@ extern Rom::DriverInterface *deimConstraintSamplingDriverNew(Domain *);
 extern Rom::DriverInterface *constraintSamplingDriverNew(Domain *);
 extern Rom::DriverInterface *distrBasisOrthoDriverNew(Domain *);
 extern Rom::DriverInterface *elementSamplingDriverNew(Domain *);
+extern Rom::DriverInterface *ROMPostProcessingDriverNew(Domain *);
 extern Rom::DriverInterface *distrROMPostProcessingDriverNew(Domain *);
 extern Rom::DriverInterface *distrElementSamplingDriverNew(Domain *);
 extern Rom::DriverInterface *snapshotProjectionDriverNew(Domain *);

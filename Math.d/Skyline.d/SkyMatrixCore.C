@@ -38,7 +38,7 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
 
    // ... ALLOCATE MEMORY FOR S1 AND S2
    // int sizeS = (numUncon - kstop)*(numUncon - kstop);
-   int defblk = solInfo.sparse_defblk;
+   int defblk = solInfo.solvercntl->sparse_defblk;
    double *s1 = (double *) dbg_alloca((defblk+4)*(defblk+4)*sizeof(double));
    double *s2 = (double *) dbg_alloca((defblk+4)*(defblk+4)*sizeof(double));
 

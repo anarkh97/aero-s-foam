@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <numeric>
 #include <exception>
 
 typedef FSFullMatrix FullMatrix;
@@ -73,6 +74,8 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
      domain->InitializeStaticContactSearch(MortarHandler::CTC);
      updateCS = true;
   }
+  if(domain->solInfo().sensitivity) allSens = new AllSensitivities<double>;
+  else allSens = 0;
 }
 
 NonLinDynamic::~NonLinDynamic()
@@ -84,6 +87,7 @@ NonLinDynamic::~NonLinDynamic()
   if(clawDofs) delete [] clawDofs;
   delete times;
   if(reactions) delete reactions;
+  if(allSens) delete allSens;
 }
 
 void
@@ -416,7 +420,7 @@ NonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementI
                                           FullSquareMatrix *melArray, bool forceOnly) {
   if(forceOnly) {
     domain->getInternalForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
-                             (Vector*) NULL, melArray, celArray);
+                             (Vector*) NULL, (domain->solInfo().quasistatic ? (FullSquareMatrix*) NULL : melArray), celArray);
   }
   else {
     domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
@@ -593,9 +597,16 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      if(verboseFlag) filePrint(stderr, " ... Rebuilding Tangent Stiffness for Step %d Iteration %d ...\n", step, iteration);
      double beta, gamma, alphaf, alpham, dt = 2*localDelta;
      getNewmarkParameters(beta, gamma, alphaf, alpham);
-     Kcoef = (domain->solInfo().order == 1) ? dt*gamma : dt*dt*beta;
-     Ccoef = (domain->solInfo().order == 1) ? 0 : dt*gamma;
-     Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+     if(domain->solInfo().quasistatic) {
+       Mcoef = 0;
+       Kcoef = 1;
+       Ccoef = 0;
+     }
+     else {
+       Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+       Kcoef = (domain->solInfo().order == 1) ? dt*gamma : dt*dt*beta;
+       Ccoef = (domain->solInfo().order == 1) ? 0 : dt*gamma;
+     }
    }
 
    if(domain->solInfo().mpcDirect != 0) {
@@ -856,11 +867,11 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
   else {
     double beta, gamma, alphaf, alpham, dt = 2*localDelta;
     getNewmarkParameters(beta, gamma, alphaf, alpham);
-    // rhs = dt*dt*beta*residual - ((1-alpham)/(1-alphaf)*M+dt*gamma*C)*inc_displacement
-    //       + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
-    //       + (dt*dt*((1-alpham)/2-beta)*M - dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2*C)*acceleration
-    localTemp.linC(-(1-alpham)/(1-alphaf), inc_displacement, dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
-    M->mult(localTemp, rhs);
+    if(domain->solInfo().quasistatic) rhs = 0.;
+    else {
+      localTemp.linC(-(1-alpham)/(1-alphaf), inc_displacement, dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
+      M->mult(localTemp, rhs);
+    }
     if(C) {
       localTemp.linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
       C->multAdd(localTemp.data(), rhs.data());
@@ -878,6 +889,12 @@ NonLinDynamic::processLastOutput()  {
   domain->solInfo().lastIt = true;
   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++)
     oinfo[iOut].interval = 1;
+}
+
+void
+NonLinDynamic::preProcessSA()
+{
+  domain->buildPreSensitivities<double>(*allSens, bcx);
 }
 
 void
@@ -1319,4 +1336,273 @@ bool
 NonLinDynamic::getResizeFlag()
 {
   return (domain->GetnContactSurfacePairs() > 0);
+}
+
+void
+NonLinDynamic::postProcessSA(Vector &sol)
+{
+  domain->buildPostSensitivities<double>(solver, spm, K, *allSens, &sol, bcx, false);
+}
+
+void
+NonLinDynamic::postProcessNLSA(GeomState *refState, GeomState *geomState)
+{
+  domain->buildNLPostSensitivities<double>(solver, *allSens, refState, geomState, allCorot, true); 
+}
+
+SensitivityInfo*
+NonLinDynamic::getSensitivityInfo() { return domain->senInfo; }
+
+int
+NonLinDynamic::getNumSensitivities() { return domain->getNumSensitivities(); }
+
+void
+NonLinDynamic::sensitivityAnalysis(GeomState *geomState, GeomState *refState)
+{
+#ifdef USE_EIGEN3
+  filePrint(stderr, " ... starting nonlinear sensitivity analysis\n");
+  SensitivityInfo *senInfo = getSensitivityInfo();
+  int numShapeVars = domain->getNumShapeVars();
+  int numThicknessGroups = domain->getNumThicknessGroups();
+  int numStructQuantTypes = domain->getNumSensitivityQuantityTypes();
+  if(domain->solInfo().sensitivity) {
+    postProcessNLSA(refState, geomState);
+    AllSensitivities<double> *allSens = getAllSensitivities();
+    for(int isen = 0; isen < getNumSensitivities(); ++isen) {
+      switch (senInfo[isen].type) {
+
+        case SensitivityInfo::DisplacementWRTshape:
+ 
+          filePrint(stderr, " ... numShapeVars = %d              ...\n", numShapeVars);
+          if( numShapeVars > 0) {
+            if(domain->solInfo().sensitivityMethod == SolverInfo::Direct) {
+              if(!allSens->dispWRTshape) { 
+                allSens->dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+                Vector *rhsSen;
+                for(int ishap=0; ishap< numShapeVars; ++ishap) {
+                  allSens->dispWRTshape[ishap] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                  rhsSen = new Vector( solVecInfo() );
+                  rhsSen->copy(allSens->linearstaticWRTshape[ishap]->data());
+                  (*rhsSen) *= -1;
+                  getSolver()->reSolve(*rhsSen);
+                  *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                                  Eigen::Dynamic> >(rhsSen->data(),
+                                                                                                    domain->numUncon(),1);
+                  delete rhsSen;
+                }
+              }
+            }
+          }     
+          break;
+
+        case SensitivityInfo::DisplacementWRTthickness:
+
+          filePrint(stderr," ... numThicknessGroups = %d         ...\n", numThicknessGroups);
+          if( numThicknessGroups > 0 ) {  
+            if(domain->solInfo().sensitivityMethod == SolverInfo::Direct) {
+              if(!allSens->dispWRTthick) { 
+                allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+                Vector *rhsSen;
+                for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
+                  allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                  rhsSen = new Vector( solVecInfo() );
+                  rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
+                  (*rhsSen) *= -1; 
+                  getSolver()->reSolve(*rhsSen);
+                  *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                                   Eigen::Dynamic> >(rhsSen->data(),
+                                                                                                     domain->numUncon(),1);
+                  delete rhsSen;
+                }
+              }
+            } else if(domain->solInfo().sensitivityMethod == SolverInfo::Adjoint) { // Adjoint
+              int numDispNodes = domain->getNumDispNodes();
+              int numTotalDispDofs = domain->getTotalNumDispDofs();
+              if(!allSens->lambdaDisp) 
+                computeLambdaDisp(numDispNodes,numTotalDispDofs);
+              allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+              std::vector<DispNode> *dispNodes = domain->getDispNodes();
+              for(int iparam=0; iparam < numThicknessGroups; ++iparam) {
+                allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numTotalDispDofs,1);
+                allSens->dispWRTthick[iparam]->setZero();
+                int dispDofIndex = 0;
+                for(int inode=0; inode < numDispNodes; ++inode) {
+                  int numDispDofs = (*dispNodes)[inode].numdofs;
+                  for(int idof=0; idof < numDispDofs; ++idof) {
+                     (*allSens->dispWRTthick[iparam])(dispDofIndex,0) -= 
+                        allSens->lambdaDisp[dispDofIndex]->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
+                     dispDofIndex++;
+                  }
+                }
+              }
+            }
+          }
+          if (allSens->residual !=0 && allSens->dwrDisp==0) {
+            int numTotalDispDofs = domain->getTotalNumDispDofs();
+            allSens->dwrDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numTotalDispDofs);
+            for (int i=0; i<numTotalDispDofs; ++i) {
+              (*allSens->dwrDisp)[i] = allSens->lambdaDisp[i]->dot(*(allSens->residual));
+            }
+          }
+          break;
+
+        case SensitivityInfo::StressVMWRTthickness:
+
+          if( numThicknessGroups > 0 ) {
+            if(domain->solInfo().sensitivityMethod == SolverInfo::Direct) {
+              allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+              Vector *rhsSen;
+              for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
+                allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                rhsSen = new Vector( solVecInfo() );
+                rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
+                (*rhsSen) *= -1;
+                getSolver()->reSolve(*rhsSen);
+                *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                                 Eigen::Dynamic> >(rhsSen->data(),
+                                                                                                   domain->numUncon(),1);
+                allSens->vonMisesWRTthick->col(iparam) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTthick[iparam]);
+                delete rhsSen;
+              }
+            }
+            else if(domain->solInfo().sensitivityMethod == SolverInfo::Adjoint) {
+              int numStressNodes = domain->getNumStressNodes();
+              if(!allSens->lambdaStressVM) computeLambdaNLStressVM(numStressNodes);
+              for(int inode = 0; inode < numStressNodes; ++inode)
+                for(int iparam=0; iparam < numThicknessGroups; ++iparam)
+                  (*allSens->vonMisesWRTthick)(inode,iparam) -= 
+                      allSens->lambdaStressVM[inode]->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
+            }
+          }
+          if (allSens->residual !=0 && allSens->dwrStressVM==0) {
+            int numStressNodes = domain->getNumStressNodes(); 
+            allSens->dwrStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numStressNodes);
+            for (int i=0; i<numStressNodes; i++) {
+              (*allSens->dwrStressVM)[i] = allSens->lambdaStressVM[i]->dot(*(allSens->residual));
+            }
+          }
+          break;
+
+        case SensitivityInfo::AggregatedStressVMWRTthickness:
+          if( numThicknessGroups > 0 ) {
+            if(domain->solInfo().sensitivityMethod != SolverInfo::Adjoint) {
+              filePrint(stderr, " *** Error: aggregated stress sensitivity is not supported by direct sensitivity, exiting\n");
+              exit(-1);
+            }
+            if(!allSens->lambdaAggregatedStressVM) {
+              computeLambdaAggregatedStress();
+            }
+            for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
+              (*allSens->aggregatedVonMisesWRTthick)(iparam) -= 
+                  allSens->lambdaAggregatedStressVM->adjoint()*(allSens->linearstaticWRTthick[iparam]->col(0));
+            }
+          }
+         if (allSens->residual !=0 && allSens->dwrAggregatedStressVM == 0) {
+           allSens->dwrAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(1);
+           (*allSens->dwrAggregatedStressVM)[0] = allSens->lambdaAggregatedStressVM->dot(*(allSens->residual));
+          }
+          break;
+
+        default:
+          break; 
+      }
+    }
+    Vector *fullDispBuffer = new Vector(solVecInfo());
+    geomState->get_tot_displacement(*fullDispBuffer);
+    domain->sensitivityPostProcessing(*allSens, fullDispBuffer, bcx, geomState, refState, allCorot); 
+    delete fullDispBuffer;
+  }
+#endif
+}
+
+void
+NonLinDynamic::computeLambdaNLStressVM(int numStressNodes) 
+{
+  #ifdef USE_EIGEN3
+  AllSensitivities<double> *allSens = getAllSensitivities();
+  std::vector<int> *stressNodes = domain->getStressNodes();
+  allSens->lambdaStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>*[numStressNodes];
+  Vector *rhsSen;
+  setUpPODSolver(OutputInfo::VMstThic);
+  for(int inode = 0; inode < numStressNodes; ++inode) {
+    allSens->lambdaStressVM[inode] = new Eigen::Matrix<double, Eigen::Dynamic, 1>(domain->numUncon());
+    rhsSen = new Vector( solVecInfo() );
+    for(int i=0; i<domain->numUncon(); ++i) (*rhsSen)[i] = (*allSens->vonMisesWRTdisp)((*stressNodes)[inode],i);
+    getSolver()->reSolve(*rhsSen);
+    *allSens->lambdaStressVM[inode] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                      Eigen::Dynamic> >(rhsSen->data(),domain->numUncon(),1);
+    delete rhsSen;
+  }
+  #endif
+}
+
+void 
+NonLinDynamic::computeLambdaAggregatedStress()
+{
+  #ifdef USE_EIGEN3
+  AllSensitivities<double> *allSens = getAllSensitivities();
+  allSens->lambdaAggregatedStressVM = new Eigen::Matrix<double, Eigen::Dynamic, 1>(domain->numUncon());
+  Vector *rhsSen = new Vector( solVecInfo() );
+  setUpPODSolver(OutputInfo::AGstThic);
+
+  for(int i=0; i<domain->numUncon(); ++i) { (*rhsSen)[i] = (*allSens->aggregatedVonMisesWRTdisp)(i); }
+  getSolver()->reSolve(*rhsSen);
+  *allSens->lambdaAggregatedStressVM = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                       Eigen::Dynamic> >(rhsSen->data(),
+                                                                                         domain->numUncon(),1);
+  delete rhsSen;
+  #endif
+}
+
+void
+NonLinDynamic::computeLambdaDisp(int numDispNodes, int numTotalDispDofs)
+{
+  #ifdef USE_EIGEN3
+  AllSensitivities<double> *allSens = getAllSensitivities();
+  std::vector<DispNode> *dispNodes = domain->getDispNodes();
+  allSens->lambdaDisp = new Eigen::Matrix<double, Eigen::Dynamic, 1>*[numTotalDispDofs];
+  int dispDofIndex = 0;
+  Vector *rhsSen;
+
+  setUpPODSolver(OutputInfo::DispThic);
+  for(int inode = 0; inode < numDispNodes; ++inode) {
+    int node = (*dispNodes)[inode].nodeID, loc;
+    int numDispDofs = (*dispNodes)[inode].numdofs;
+    for(int idof = 0; idof<numDispDofs; ++idof) {
+      allSens->lambdaDisp[dispDofIndex] = new Eigen::Matrix<double, Eigen::Dynamic, 1>(domain->numUncon());
+      allSens->lambdaDisp[dispDofIndex]->setZero();
+      rhsSen = new Vector( solVecInfo() );
+      Vector lambdadisp(domain->numUncon(),0.0);
+      int dof = (*dispNodes)[inode].dofs[idof];
+      loc = domain->returnLocalDofNum(node, dof);
+      if (loc >= 0) { rhsSen->zero(); (*rhsSen)[loc] = 1.0; }
+      else continue;
+      getSolver()->reSolve(*rhsSen);
+      *allSens->lambdaDisp[dispDofIndex] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,
+                                                                           Eigen::Dynamic> >(rhsSen->data(),
+                                                                                             domain->numUncon(),1);
+      delete rhsSen;
+      dispDofIndex++;
+    }
+  }
+  #endif
+}
+
+void 
+NonLinDynamic::setUpPODSolver(OutputInfo::Type type) {
+  if(!domain->solInfo().readInAdjointROB.empty()) {
+    Rom::PodProjectionSolver* podSolver = dynamic_cast<Rom::PodProjectionSolver*>(solver);
+    if(podSolver) {
+      std::map<OutputInfo::Type,int>::iterator it = domain->solInfo().adjointMap.find(type);
+      if(it != domain->solInfo().adjointMap.end()) {
+        int adjointBasisId = it->second;
+        int blockCols = domain->solInfo().maxSizeAdjointBasis[adjointBasisId];
+        int startCol = std::accumulate(domain->solInfo().maxSizeAdjointBasis.begin(), 
+                                       domain->solInfo().maxSizeAdjointBasis.begin()+adjointBasisId, 0);
+        podSolver->setLocalBasis(startCol, blockCols);
+        podSolver->factor();
+      }
+      else { std::cerr << "ERROR: adjoint basis is not defined for " << type << " quantity of interest\n"; }
+    }
+  }
 }

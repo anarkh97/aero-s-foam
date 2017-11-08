@@ -246,12 +246,12 @@ GenMumpsSolver<double>::copyFromMumpsRHS(GenVector<double> *d, double *m, int le
 
 #define MUMPS_INSTANTIATION_HELPER(Scalar) \
 template \
-GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity*, EqNumberer*, int*, FSCommunicator*); \
+GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity*, EqNumberer*, SolverCntl&, int*, FSCommunicator *); \
 template \
-GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, FSCommunicator*); \
+GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, SolverCntl&, FSCommunicator*); \
 template \
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, int, \
-                                       GenSubDomain<Scalar>**, FSCommunicator*); \
+                                       GenSubDomain<Scalar>**, SolverCntl&, FSCommunicator*); \
 template \
 void \
 GenMumpsSolver<Scalar>::init(); \

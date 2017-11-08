@@ -12,12 +12,7 @@
 #include <Feti.d/GCROrthoSet.h>
 #include <Feti.d/CGOrthoSet.h>
 #include <Threads.d/PHelper.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/Skyline.d/DistSky.h>
-#include <Math.d/Skyline.d/BlockSky.h>
-#include <Math.d/Skyline.d/DistBlockSky.h>
 #include <Math.d/matrix.h>
-#include <Math.d/DistBLKSparse.h>
 #include <Math.d/EiSparseMatrix.h>
 #include <Solvers.d/Spooles.h>
 #include <Utils.d/linkfc.h>
@@ -26,14 +21,14 @@
 #include <Feti.d/CCtSolver.d/SuperBlockCCt.h>
 #include <Feti.d/CCtSolver.d/SubBlockCCt.h>
 #include <Driver.d/Mpc.h>
-#include <Math.d/BLKSparseMatrix.h>
 #include <Solvers.d/Rbm.h>
 #include <Timers.d/GetTime.h>
 #include <Math.d/VecSet.h>
 #include <Math.d/FullMatrix.h>
 #include <Utils.d/print_debug.h>
-
-extern int verboseFlag;
+#include <Solvers.d/SolverFactory.h>
+#include <Element.d/MatrixElement.d/MatrixElement.h>
+#include <Paral.d/MDDynam.h>
 
 extern "C" {
    void _FORTRAN(dsvdc)(double *, int &, int &, int&, double *,
@@ -79,13 +74,13 @@ inline double DABS(double x) { return (x>0.0) ? x : -x; }
 
 // New constructor for both shared and distributed memory
 template<class Scalar>
-GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
+GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<Scalar> **_sd,
                   Connectivity *_subToSub, FetiInfo *_fetiInfo, FSCommunicator *_fetiCom,
                   int *_glSubToLoc, Connectivity *_mpcToSub, Connectivity *_mpcToSub_primal, Connectivity *_mpcToMpc,
                   Connectivity *_mpcToCpu, Connectivity *_cpuToSub, Connectivity *_bodyToSub,
                   GenSolver<Scalar> **sysMatrices, GenSparseMatrix<Scalar> **sysSparse,
-                  Rbm **, bool _rbmFlag, bool _geometricRbms)
- : GenFetiSolver<Scalar>(_nsub, threadManager->numThr()), internalR(_nsub), internalC(_nsub), internalWI(_nsub) 
+                  Rbm **, bool _rbmFlag, bool _geometricRbms, int _verboseFlag)
+ : GenFetiSolver<Scalar>(_nsub, threadManager->numThr(), _verboseFlag), internalR(_nsub), internalC(_nsub), internalWI(_nsub) 
 {
  initialize();
 
@@ -98,16 +93,18 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
 #endif
 
  this->nsub       = _nsub;        // Number of subdomains
+ this->glNumSub   = _glNumSub;
  this->sd         = _sd;          // pointer to Array of all Subdomains
  this->subToSub   = _subToSub;    // subdomain to subdomain connectivity
+ //std::cerr << "this->nsub = " << this->nsub << ", this->subToSub =\n"; this->subToSub->print();
  this->mpcToSub   = _mpcToSub;    // MPC to subdomain connectivity
  this->glNumMpc = (this->mpcToSub) ? this->mpcToSub->csize() : 0;
  this->mpcToSub_primal = _mpcToSub_primal;
  this->glNumMpc_primal = (this->mpcToSub_primal) ? this->mpcToSub_primal->csize() : 0;
- mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (PJSA: used for CC^t preconditioner
+ mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (used for CC^t preconditioner)
  mpcToCpu   = _mpcToCpu;
  this->cpuToSub   = _cpuToSub;
- this->fetiInfo   = _fetiInfo;    // Feti solver information
+ fetiInfo   = _fetiInfo;    // Feti solver information
  this->fetiCom    = _fetiCom;
  this->glSubToLoc = _glSubToLoc;
 
@@ -128,9 +125,9 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  subToBody = bodyToSub->reverse();
 
  // Define FETI tolerance and maximum number of iterations
- double fetiTolerance = this->fetiInfo->tol;
+ double fetiTolerance = fetiInfo->tol;
  this->epsilon2 = fetiTolerance*fetiTolerance;
- this->maxiter  = this->fetiInfo->maxit;
+ this->maxiter  = fetiInfo->maxit;
 
  int iSub;
  // create this->vPat FSCommPattern object, used to send/receive a scalar vector (interfaceDOFs)
@@ -175,7 +172,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  this->internalDI.len  = tLocalLen;
  internalR.len = tLocalRLen;
 
- // PJSA: compute the masterFlags
+ // compute the masterFlags
  bool *interfaceMasterFlag = new bool[tInterfLen];
  this->interface.computeOffsets();
  for(iSub = 0; iSub < this->nsub; ++iSub) {
@@ -192,19 +189,19 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
 
  // Allocate space for reorthogonalization set
  this->times.memoryOSet -= memoryUsed();
- if((this->fetiInfo->outerloop == 0) || (this->fetiInfo->outerloop == 3))
-   this->oSetCG = (this->fetiInfo->maxortho > 0) ? new GenCGOrthoSet<Scalar>(this->halfSize, this->fetiInfo->maxortho, this->fetiCom) : 0;
- else if(this->fetiInfo->outerloop == 1)
-   this->oSetGMRES = new GenGMRESOrthoSet<Scalar>(this->halfSize, this->fetiInfo->maxortho, this->fetiCom);
+ if((fetiInfo->outerloop == 0) || (fetiInfo->outerloop == 3))
+   this->oSetCG = (fetiInfo->maxortho > 0) ? new GenCGOrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom) : 0;
+ else if(fetiInfo->outerloop == 1)
+   this->oSetGMRES = new GenGMRESOrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom);
  else
-   this->oSetGCR = new GenGCROrthoSet<Scalar>(this->halfSize, this->fetiInfo->maxortho, this->fetiCom);
+   this->oSetGCR = new GenGCROrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom);
  this->times.memoryOSet += memoryUsed();
 
  if(sysMatrices != 0) {
    for(iSub = 0; iSub < this->nsub; ++iSub) {
      this->sd[iSub]->Krr = sysMatrices[iSub];
      this->sd[iSub]->KrrSparse = sysSparse[iSub];
-     if(this->fetiInfo->printMatLab) {
+     if(fetiInfo->printMatLab) {
        std::stringstream filename;
        filename << "localmat" << this->sd[iSub]->subNum();
        this->sd[iSub]->KrrSparse->printSparse(filename.str());
@@ -216,7 +213,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  if(verboseFlag) filePrint(stderr," ... Build Edge Augmentation (Q)    ... \n");
  computeLocalWaveNumbers();
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::makeQ);  // build augmentation matrix
- if(this->fetiInfo->augment == FetiInfo::Gs) {
+ if(fetiInfo->augment == FetiInfo::Gs) {
    // exchange number of each neighbors rbms
    paralApply(this->nsub, this->sd, &BaseSub::sendNumNeighbGrbm, this->sPat);
    this->sPat->exchange();
@@ -224,24 +221,24 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  }
 
  // Compute stiffness scaling if required
- // HB: this also perform the LMPCs stiffness scaling/splitting for the primal method
+ // this also perform the LMPCs stiffness scaling/splitting for the primal method
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::initScaling);
- if((this->fetiInfo->scaling == FetiInfo::kscaling) || ((this->fetiInfo->mpc_scaling == FetiInfo::kscaling) && (this->glNumMpc_primal > 0)) 
-    || (this->fetiInfo->augment == FetiInfo::WeightedEdges)) {
+ if((fetiInfo->scaling == FetiInfo::kscaling) || ((fetiInfo->mpc_scaling == FetiInfo::kscaling) && (this->glNumMpc_primal > 0)) 
+    || (fetiInfo->augment == FetiInfo::WeightedEdges)) {
    execParal(this->nsub, this, &GenFetiSolver<Scalar>::sendScale);
    this->vPat->exchange();
    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::collectScaling, this->vPat);
  }
  if(domain->solInfo().isCoupled) 
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::scaleAndSplitKww); // HB
+   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::scaleAndSplitKww);
 
- if(this->fetiInfo->augment == FetiInfo::WeightedEdges)
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // PJSA: W*Q
+ if(fetiInfo->augment == FetiInfo::WeightedEdges)
+   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // W*Q
 
  // MPCs 
  mpcPrecon = false; 
  if(this->glNumMpc > 0) { 
-   if(this->fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
+   if(fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
      FSCommPattern<Scalar> *mpcDiagPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU, 
                                                                    FSCommPattern<Scalar>::CopyOnSend);
      for(iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setMpcDiagCommSize(mpcDiagPat);
@@ -252,15 +249,15 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
      delete mpcDiagPat;
    }
 
-   if(this->fetiInfo->c_normalize) normalizeC();
+   if(fetiInfo->c_normalize) normalizeC();
  
-   if(this->fetiInfo->mpc_precno == FetiInfo::diagCCt) {
+   if(fetiInfo->mpc_precno == FetiInfo::diagCCt) {
      // use W scaling for preconditioning mpcs, don't need to build & invert CC^t
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcScaling, this->vPat);
      this->vPat->exchange();  // neighboring subs mpc weights
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcScaling, this->vPat);
    }
-   else if(this->fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
+   else if(fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
      // used generalized proconditioner for mpcs, need to build and invert CC^t
      mpcPrecon = true;
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcScaling);
@@ -271,13 +268,13 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  // Factor matrices: K and Kii (if dirichlet preconditioner))
  if(verboseFlag) filePrint(stderr," ... Factor Subdomain Matrices      ... \n");
  startTimerMemory(this->times.factor, this->times.memoryFactor);
- if(this->fetiInfo->solvertype != FetiInfo::spooles && this->fetiInfo->solvertype != FetiInfo::mumps) // spooles/mumps factor is apparently not thread-safe
+ if(fetiInfo->local_cntl->subtype != FetiInfo::spooles && fetiInfo->local_cntl->subtype != FetiInfo::mumps) // spooles/mumps factor is apparently not thread-safe
    timedParal(this->times.factorMat, this->nsub, this, &GenFetiDPSolver<Scalar>::factorLocalMatrices);
  else 
    for(iSub=0; iSub<this->nsub; ++iSub) factorLocalMatrices(iSub);
  
  stopTimerMemory(this->times.factor, this->times.memoryFactor);
- if(this->fetiInfo->augment == FetiInfo::Gs) {
+ if(fetiInfo->augment == FetiInfo::Gs) {
    this->makeRbmPat();
    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::precondGrbm);
    // Get all the numbers of rigid body modes and dispatch RBMs to neighbors
@@ -293,7 +290,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  // build CC^t for preconditioning mpc residual if necessary
  // done earlier if(mpcPrecon) buildCCt();
 
- if(domain->solInfo().isCoupled) wetInterfaceComms();  // PJSA
+ if(domain->solInfo().isCoupled) wetInterfaceComms();
 
  int tLocalCLen = 0;
  for(iSub = 0; iSub < this->nsub; ++iSub) {
@@ -315,6 +312,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  // Allocate Distributed Vectors necessary for FETI solve loop
  this->times.memoryDV -= memoryUsed();
  int numC = (KccSolver) ? KccSolver->neqs() : 0;
+ if(KccParallelSolver) numC = coarseInfo->totLen();
  this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
  this->times.memoryDV += memoryUsed();
 
@@ -328,11 +326,11 @@ void
 GenFetiDPSolver<Scalar>::computeLocalWaveNumbers()
 {
   int iSub;
-  if(this->fetiInfo->numdir > 0) { // PJSA 1-15-08, support for multiple fluids 
-    if(this->fetiInfo->waveMethod == FetiInfo::uniform) {
+  if(fetiInfo->numdir > 0) { // support for multiple fluids 
+    if(fetiInfo->waveMethod == FetiInfo::uniform) {
       paralApply(this->nsub, this->sd, &BaseSub::computeWaveNumbers);
     }
-    else if(this->fetiInfo->waveMethod == FetiInfo::averageK) {
+    else if(fetiInfo->waveMethod == FetiInfo::averageK) {
       paralApply(this->nsub, this->sd, &BaseSub::computeWaveNumbers);
       // send/receive wave numbers for FETI-DPH EdgeWs augmentation
       FSCommPattern<double> *kPat = new FSCommPattern<double>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<double>::CopyOnSend);
@@ -365,25 +363,26 @@ GenFetiDPSolver<Scalar>::makeKcc()
  startTimerMemory(this->times.coarse1, this->times.memoryGtG);
 
  int i, iSub;
- int glNumSub = this->subToSub->csize();
+// int glNumSub = this->subToSub->csize();
+ if(verboseFlag) filePrint(stderr," ... Number of Subdomains    %5d  ...\n", this->glNumSub);
 
  // STEP 1. count number of corner nodes and make subToCorner connectivity
  Connectivity *subToCorner = 0;
  if(!cornerToSub) {
-   int *pointer = new int[glNumSub+1];
-   for(i=0; i<glNumSub+1; ++i) pointer[i] = 0;
+   int *pointer = new int[this->glNumSub+1];
+   for(i=0; i<this->glNumSub+1; ++i) pointer[i] = 0;
    for(iSub=0; iSub<this->nsub; ++iSub)
      pointer[this->sd[iSub]->subNum()] = this->sd[iSub]->numCorners();
 #ifdef DISTRIBUTED
-   this->fetiCom->globalSum(glNumSub, pointer);
+   this->fetiCom->globalSum(this->glNumSub, pointer);
 #endif
    int total = 0;
-   for(iSub=0; iSub < glNumSub; ++iSub) {
+   for(iSub=0; iSub < this->glNumSub; ++iSub) {
      int tmp = pointer[iSub];
      pointer[iSub] = total;
      total += tmp;
    }
-   pointer[glNumSub] = total;
+   pointer[this->glNumSub] = total;
 
    int *glCornerNodes = new int[total];
    for(i=0; i<total; ++i) glCornerNodes[i] = 0;
@@ -425,21 +424,36 @@ GenFetiDPSolver<Scalar>::makeKcc()
    this->fetiCom->globalSum(total, target);
 #endif
 
-   subToCorner = new Connectivity(glNumSub, pointer, target);
+   subToCorner = new Connectivity(this->glNumSub, pointer, target);
    cornerToSub = subToCorner->reverse();
  }
  else {
    subToCorner = cornerToSub->reverse();
  }
+ // filePrint(stderr,"subToCorner %d kb\n",(int)(subToCorner->memsize()/1024));
+ // filePrint(stderr,"cornerToSub %d kb\n",(int)(cornerToSub->memsize()/1024));
 
  // STEP 2. make subToCoarse connectivity (includes primal mpcs and augmentation) and coarseConnectivity
- Connectivity *coarseToSub = cornerToSub;
- mpcOffset = coarseToSub->csize();
- if(this->glNumMpc_primal > 0) {
-   coarseToSub = coarseToSub->merge(this->mpcToSub_primal);
- }
- augOffset = coarseToSub->csize();
- switch(this->fetiInfo->augment) {
+ Connectivity *coarseToSub = 0;
+ Connectivity *subToCoarse = 0;
+ Connectivity *coarseConnectivity = 0;
+ if(fetiInfo->coarse_cntl->type == 2) {
+   if(this->glNumMpc_primal > 0) {
+     filePrint(stderr, " *** ERROR: Mpc not supported with multi-level solver *** \n");
+     exit(-1);
+   }
+   augOffset = glNumCorners;
+   if((fetiInfo->augment == FetiInfo::WeightedEdges ||
+       fetiInfo->augment == FetiInfo::Edges) && !this->edgeToSub)
+     makeEdgeConnectivity();
+ } else {
+   coarseToSub = cornerToSub;
+   mpcOffset = coarseToSub->csize();
+   if(this->glNumMpc_primal > 0) {
+     coarseToSub = coarseToSub->merge(this->mpcToSub_primal);
+   }
+   augOffset = coarseToSub->csize();
+   switch(fetiInfo->augment) {
    case FetiInfo::Gs: {
      Connectivity *augcoarseToSub = coarseToSub->merge(this->subToSub);
      if(coarseToSub != cornerToSub) delete coarseToSub;
@@ -451,31 +465,39 @@ GenFetiDPSolver<Scalar>::makeKcc()
      Connectivity *augcoarseToSub = coarseToSub->merge(this->edgeToSub);
      if(coarseToSub != cornerToSub) delete coarseToSub;
      coarseToSub = augcoarseToSub;
+     // filePrint(stderr,"coarseToSub %d kb\n",(int)(coarseToSub->memsize()/1024));
    } break;
    default:
      break;
+   }
+   subToCoarse = (coarseToSub != cornerToSub) ? coarseToSub->reverse() : subToCorner;
+   // filePrint(stderr,"subToCoarse %d kb\n",(int)(subToCoarse->memsize()/1024));
+   coarseConnectivity = coarseToSub->transcon(subToCoarse);
+   // filePrint(stderr,"coarseConnectivity %d kb\n",(int)(coarseConnectivity->memsize()/1024));
  }
- Connectivity *subToCoarse = (coarseToSub != cornerToSub) ? coarseToSub->reverse() : subToCorner;
- Connectivity *coarseConnectivity = coarseToSub->transcon(subToCoarse);
 
  // STEP 3. make the coarse problem equation numberer
- int renumFlag = (this->fetiInfo->gtgSolver == FetiInfo::skyline || this->fetiInfo->gtgSolver == FetiInfo::blocksky) ? domain->solInfo().renum : 0;
- compStruct renumber = coarseConnectivity->renumByComponent(renumFlag);
- if(cornerEqs) delete cornerEqs; // PJSA
- cornerEqs = new DofSetArray(coarseConnectivity->csize(), renumber.renum, 1);
- delete [] renumber.xcomp;
+ int renumFlag = (fetiInfo->coarse_cntl->subtype == FetiInfo::skyline || fetiInfo->coarse_cntl->subtype == FetiInfo::blocksky) ? domain->solInfo().renum : 0;
+ if(cornerEqs) delete cornerEqs;
+ if(fetiInfo->coarse_cntl->type == 2) {
+   cornerEqs = 0;
+ } else {
+   compStruct renumber = coarseConnectivity->renumByComponent(renumFlag);
+   cornerEqs = new DofSetArray(coarseConnectivity->csize(), renumber.renum, 1);
+   delete [] renumber.xcomp;
+ }
 
 #if defined(USE_MUMPS) && defined(DISTRIBUTED)
- if(this->fetiInfo->gtgSolver == FetiInfo::mumps && domain->solInfo().mumps_icntl[18] == 3) { // matrix is distributed, use local graph for matrix structure
+ if(fetiInfo->coarse_cntl->subtype == FetiInfo::mumps && fetiInfo->coarse_cntl->mumps_icntl[18] == 3) { // matrix is distributed, use local graph for matrix structure
    delete coarseConnectivity;
    Connectivity *subToCPU = this->cpuToSub->reverse();
    coarseConnectivity = coarseToSub->transcon(subToCoarse, subToCPU->getTarget(), this->myCPU);
    delete subToCPU;
  }
 #endif
- if(coarseToSub != cornerToSub) delete coarseToSub;
- if(subToCoarse != subToCorner) delete subToCoarse;
- delete subToCorner;
+ if(coarseToSub && coarseToSub != cornerToSub) delete coarseToSub;
+ if(subToCoarse && subToCoarse != subToCorner) delete subToCoarse;
+ if(fetiInfo->coarse_cntl->type != 2) delete subToCorner;
 
  int *glCornerDofs = new int[glNumCorners];
  for(i = 0; i < glNumCorners; ++i) glCornerDofs[i] = 0;
@@ -483,32 +505,36 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #ifdef DISTRIBUTED
  this->fetiCom->globalMpiOp(glNumCorners, glCornerDofs, MPI_BOR); // MPI_BOR is an mpi bitwise or
 #endif
- for(i = 0; i < glNumCorners; ++i) cornerEqs->mark(i, glCornerDofs[i]);
- delete [] glCornerDofs;
+ if(fetiInfo->coarse_cntl->type != 2) {
+   for(i = 0; i < glNumCorners; ++i) cornerEqs->mark(i, glCornerDofs[i]);
+   delete [] glCornerDofs;
 
- if(this->glNumMpc_primal > 0) {
-   for(int iMPC=0; iMPC<this->glNumMpc_primal; ++iMPC)
-     cornerEqs->setWeight(mpcOffset+iMPC, 1);
-   this->times.numMPCs = this->glNumMpc_primal;
+   if(this->glNumMpc_primal > 0) {
+     for(int iMPC=0; iMPC<this->glNumMpc_primal; ++iMPC)
+       cornerEqs->setWeight(mpcOffset+iMPC, 1);
+     this->times.numMPCs = this->glNumMpc_primal;
+   }
  }
 
- if(this->fetiInfo->augment == FetiInfo::Gs) {
+ if(fetiInfo->augment == FetiInfo::Gs) {
    this->times.numRBMs = 0;
-   int *numRBMPerSub = new int[glNumSub];
-   for(iSub=0; iSub<glNumSub; ++iSub) numRBMPerSub[iSub] = 0;
+   int *numRBMPerSub = new int[this->glNumSub];
+   for(iSub=0; iSub<this->glNumSub; ++iSub) numRBMPerSub[iSub] = 0;
    for(iSub=0; iSub<this->nsub; ++iSub)
      numRBMPerSub[this->sd[iSub]->subNum()] = this->sd[iSub]->numRBM();
 #ifdef DISTRIBUTED
-   this->fetiCom->globalSum(glNumSub,numRBMPerSub);
+   this->fetiCom->globalSum(this->glNumSub,numRBMPerSub);
 #endif
-   for(iSub=0; iSub<glNumSub; ++iSub) {
-     cornerEqs->setWeight(augOffset+iSub, numRBMPerSub[iSub]);
-     this->times.numRBMs += numRBMPerSub[iSub];
+   if(fetiInfo->coarse_cntl->type != 2) {
+     for(iSub=0; iSub<this->glNumSub; ++iSub) {
+       cornerEqs->setWeight(augOffset+iSub, numRBMPerSub[iSub]);
+       this->times.numRBMs += numRBMPerSub[iSub];
+     }
    }
    delete [] numRBMPerSub;
  }
 
- if(this->fetiInfo->isEdgeAugmentationOn()) {
+ if(fetiInfo->isEdgeAugmentationOn()) {
    this->times.numEdges = 0;
    int *edgeWeights = new int[this->edgeToSub->csize()];
    for(i=0; i<this->edgeToSub->csize(); ++i) edgeWeights[i] = 0;
@@ -519,7 +545,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
      for(int jSub=0; jSub<numNeighbor; ++jSub) {
        int subJ = this->sd[iSub]->getSComm()->subNums[jSub];
        if(this->sd[iSub]->isEdgeNeighbor(jSub)) {
-         if(myNum < subJ) { // PJSA
+         if(myNum < subJ) {
            int nEdge = this->sd[iSub]->numEdgeDofs(jSub);
            edgeWeights[(*this->subToEdge)[this->sd[iSub]->subNum()][jEdgeN]] = nEdge;
          }
@@ -530,21 +556,25 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #ifdef DISTRIBUTED
    this->fetiCom->globalSum(this->edgeToSub->csize(), edgeWeights);
 #endif
-   for(int iEdge=0; iEdge<this->edgeToSub->csize(); ++iEdge) {
-     cornerEqs->setWeight(augOffset+iEdge, edgeWeights[iEdge]);
-     this->times.numEdges += edgeWeights[iEdge];
+   if(fetiInfo->coarse_cntl->type != 2) {
+     for(int iEdge=0; iEdge<this->edgeToSub->csize(); ++iEdge) {
+       cornerEqs->setWeight(augOffset+iEdge, edgeWeights[iEdge]);
+       this->times.numEdges += edgeWeights[iEdge];
+     }
    }
    delete [] edgeWeights;
  }
 
- cornerEqs->finish();
- this->times.numCRNs = cornerEqs->size();
+ if(fetiInfo->coarse_cntl->type != 2) {
+   cornerEqs->finish();
+   this->times.numCRNs = cornerEqs->size();
+ } else
+   this->times.numCRNs = 0;
 
  if(verboseFlag) {
    filePrint(stderr, " ... Size of Interface  %7d     ...\n", this->interface.len);
-   filePrint(stderr, " ... Size of Global Kcc %7d     ...\n", cornerEqs->size());
-   filePrint(stderr, " ... global_rbm_tol     = %9.3e ...\n", this->fetiInfo->grbm_tol);
-   filePrint(stderr, " ... global_cor_rbm_tol = %9.3e ...\n", this->fetiInfo->crbm_tol);
+   filePrint(stderr, " ... Size of Global Kcc %7d     ...\n", this->times.numCRNs);
+   filePrint(stderr, " ... global_rbm_tol     = %9.3e ...\n", fetiInfo->coarse_cntl->trbm);
  }
 
  // STEP 4. make the rigid body modes and condensed equation numberer
@@ -623,7 +653,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
  int ngrbm = 0;
  ngrbms = 0;
  if(rbmFlag && geometricRbms) {
-   if((this->fetiInfo->corners == FetiInfo::noCorners) && (this->glNumMpc_primal > 0)) {
+   if((fetiInfo->corners == FetiInfo::noCorners) && (this->glNumMpc_primal > 0)) {
      // subdomain ZEMs need to be projected or eliminated
      // I think adding the dofs of primal mpcs to the "c" dofs would resolve this issue
      filePrint(stderr, " *** ERROR: mpc_type 2 is not supported with no corners *** \n"); 
@@ -745,7 +775,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #else
    for(int i = 0; i < nGroups; ++i) groupProc[i] = this->myCPU;
 #endif
- 
+
    // now do svd on globalZstar for each group to get globalQ for each group
    ngrbm = 0;  // total of all groups
    FullM  **Qtranspose;
@@ -785,7 +815,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    for(int i = 0; i < nGroups1; ++i) delete Qtranspose[groups[i]];
    delete [] Qtranspose;
  }
- if(rbmFlag && !geometricRbms && this->fetiInfo->corners == FetiInfo::noCorners) {
+ if(rbmFlag && !geometricRbms && fetiInfo->corners == FetiInfo::noCorners) {
    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::useKrrNullspace);
    ngrbmGr = new int[nGroups];
    ngrbm = 0;
@@ -814,143 +844,272 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
  KccSparse = 0;
 
- if(cornerEqs->size() > 0) {
+//  if(cornerEqs->size() > 0) {
+ if(1) {
 
-   double tolerance = this->fetiInfo->crbm_tol;  // this is set in input file using global_cor_rbm_tol
-   GenBLKSparseMatrix<Scalar> *BLKMatrix = 0;
-   GenBlockSky<Scalar> *blockSky = 0;
-   GenSkyMatrix<Scalar> *sky = 0;
-#ifdef DISTRIBUTED
-   int firstAlpha,nRowAlpha;  
-   int neq       = cornerEqs->size(); 
-   int neqPerCPU = neq/this->numCPUs;
-   if(this->subToSub->csize() == this->numCPUs) {
-     int remainder = neq%this->numCPUs;
-     firstAlpha = this->myCPU * neqPerCPU +
-                  ((this->myCPU < remainder) ? this->myCPU : remainder);
-     nRowAlpha  = neqPerCPU + ((this->myCPU < remainder) ? 1 : 0);
-   }
-#endif
-   this->times.memoryGtGsky -= memoryUsed();
    // build coarse solver
-   switch(this->fetiInfo->gtgSolver) {
-     default:
-     case FetiInfo::skyline: {
-#ifdef DISTRIBUTED
-       if(this->subToSub->csize() == this->numCPUs && 
-          this->fetiInfo->type != FetiInfo::nonlinear &&
-          !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep) { // 1 subdomain per procesor
-         sky = new GenDistSky<Scalar>(coarseConnectivity, cornerEqs, tolerance, 
-                                      firstAlpha, nRowAlpha);     
-         this->times.memoryGtGDelete = 8*sky->size();
-       } else
-#endif 
-       // TODO: pass grbms...
-       sky = new GenSkyMatrix<Scalar>(coarseConnectivity, cornerEqs, tolerance, domain->solInfo().coarseScaled); 
-       KccSparse = sky;
-       KccSolver = sky;
-     }
-     break;
-     case FetiInfo::pcg:
-     case FetiInfo::blocksky: {
-#ifdef DISTRIBUTED
-       if(this->subToSub->csize() == this->numCPUs && 
-          this->fetiInfo->type != FetiInfo::nonlinear && 
-          !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep) {
-         blockSky = new GenDistBlockSky<Scalar>(coarseConnectivity, cornerEqs, tolerance,
-                                                firstAlpha, nRowAlpha);   
-         this->times.memoryGtGDelete = 8*blockSky->size();
-       } else
+
+   // EXPERIMENTAL CODE to use feti dp for the coarse problem
+   if(fetiInfo->coarse_cntl->type == 2) {
+      //cerr << "using FETI-DP solver for coarse problem\n";
+      Domain *coarseDomain = new Domain();
+      coarseDomain->solInfo().solvercntl = fetiInfo->coarse_cntl;
+      coarseDomain->setNumElements(subToCorner->csize());
+
+      Connectivity *decCoarse = this->cpuToSub;
+      char fn[65];
+      FILE *f;
+      sprintf(fn,"decomposition.%d",coarseDomain->numElements());
+      if ((f = fopen(fn,"r")) != NULL) {
+	if(verboseFlag) filePrint(stderr, " ... Reading Decomposition from file %s ...\n", fn);
+	decCoarse = new Connectivity(f,coarseDomain->numElements());
+	fclose(f);
+      }
+
+      Connectivity *elemToSubCoarse = decCoarse->reverse();
+      Connectivity *CPUMapCoarse = this->cpuToSub->transcon(elemToSubCoarse);
+      delete elemToSubCoarse;
+//      Connectivity *elemToCPUCoarse = CPUMapCoarse->reverse();
+//      elemToCPUCoarse->sortTargets();
+
+      int *pointer = new int[this->glNumSub+1];
+      for(i = 0; i < this->glNumSub+1; ++i)
+	pointer[i] = 0;
+
+      for(int i = 0; i < this->nsub; ++i) { 
+        int s = this->sd[i]->subNum();
+	int nc = subToCorner->num(s);
+        int n = nc;            
+	if (fetiInfo->augmentimpl == FetiInfo::Primal)
+	  for(int iNeighb = 0; iNeighb < this->sd[i]->numNeighbors(); ++iNeighb)
+	    if(this->sd[i]->isEdgeNeighbor(iNeighb) &&
+	       this->sd[i]->edgeDofs[iNeighb].count())
+	      n++;
+	int *elem = new int[n];
+	for(n = 0; n < nc; n++)
+	  elem[n] = (*subToCorner)[s][n];
+	if (fetiInfo->augmentimpl == FetiInfo::Primal) {
+	  int iEdgeN = 0;
+	  for(int iNeighb = 0; iNeighb < this->sd[i]->numNeighbors(); ++iNeighb) {
+	    if(this->sd[i]->isEdgeNeighbor(iNeighb)) {
+	      if(this->sd[i]->edgeDofs[iNeighb].count())
+		elem[n++] = augOffset + (*(this->subToEdge))[s][iEdgeN];
+	      iEdgeN++;
+	    }
+	  }
+	}
+//        coarseDomain->addElem(s, 0, subToCorner->num(s), (*subToCorner)[s]); // 0 is a "matrix" element
+	pointer[s] = n;
+	coarseDomain->addElem(s,0,n,elem);
+      }
+
+      if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
+      t5 -= getTime();
+      paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc); // create the local Kcc^*
+      t5 += getTime();
+      Elemset& elems = coarseDomain->getElementSet();
+      for(int i = 0; i < this->nsub; ++i) {
+        int s = this->sd[i]->subNum();
+        int n = pointer[s];
+	int nc = subToCorner->num(s);
+	DofSet *coarseDofs = new DofSet[n];
+	for(n = 0; n < nc; n++)
+	  coarseDofs[n] = this->sd[i]->cornerDofs[n];
+	if (fetiInfo->augmentimpl == FetiInfo::Primal) {
+	  for(int iNeighb = 0; iNeighb < this->sd[i]->numNeighbors(); ++iNeighb)
+	    if(this->sd[i]->isEdgeNeighbor(iNeighb) &&
+	       this->sd[i]->edgeDofs[iNeighb].count())
+	      coarseDofs[n++] = this->sd[i]->edgeDofs[iNeighb];
+	}
+	((MatrixElement*)elems[s])->setDofs(coarseDofs);
+        ((MatrixElement*)elems[s])->setStiffness(this->sd[i]->Kcc);
+//        ((MatrixElement*)elems[this->sd[i]->subNum()])->setDofs(this->sd[i]->cornerDofs);
+//        ((MatrixElement*)elems[this->sd[i]->subNum()])->setStiffness(this->sd[i]->Kcc);
+      }
+  
+      CoordSet& nodes = coarseDomain->getNodes();
+      double xyz[3];
+      for(int i = 0; i < this->nsub; i++) {
+        int s = this->sd[i]->subNum();
+	int numCorner = this->sd[i]->numCorners();
+	int *localCornerNodes = this->sd[i]->getLocalCornerNodes();
+	for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
+	  Node *node = this->sd[i]->getNodes()[localCornerNodes[iCorner]];
+	  int cornerNum = (*subToCorner)[s][iCorner];
+	  if (!nodes[cornerNum]) {
+	    xyz[0] = node->x; xyz[1] = node->y; xyz[2] = node->z;
+	    nodes.nodeadd(cornerNum, xyz);
+	  }
+	}
+	if (fetiInfo->augmentimpl == FetiInfo::Primal) { // 020314 JAT
+	  CoordSet &subnodes = this->sd[i]->getNodes();
+	  Connectivity &sharedNodes = *(this->sd[i]->getSComm()->sharedNodes);
+	  int iEdgeN = 0, edgeNum;
+	  for(int iNeighb = 0; iNeighb < this->sd[i]->numNeighbors(); ++iNeighb) {
+	    if(this->sd[i]->isEdgeNeighbor(iNeighb)) {
+	      edgeNum = augOffset + (*(this->subToEdge))[s][iEdgeN++];
+	      if (!nodes[edgeNum]) {
+		xyz[0] = xyz[1] = xyz[2] = 0.0;
+		for(int iNode = 0; iNode < sharedNodes.num(iNeighb); iNode++) {
+		  xyz[0] += subnodes[sharedNodes[iNeighb][iNode]]->x;
+		  xyz[1] += subnodes[sharedNodes[iNeighb][iNode]]->y;
+		  xyz[2] += subnodes[sharedNodes[iNeighb][iNode]]->z;
+		}
+		xyz[0] /= sharedNodes.num(iNeighb);
+		xyz[1] /= sharedNodes.num(iNeighb);
+		xyz[2] /= sharedNodes.num(iNeighb);
+		nodes.nodeadd(edgeNum, xyz);
+	      }
+	    }
+	  }
+	}
+      }
+      /*
+      double xyz[3] = { 0.0, 0.0, 0.0 };
+      for(int i = 0; i < cornerToSub->csize(); ++i) {
+        nodes.nodeadd(i, xyz);
+      }
+      */
+      coarseDomain->setNumNodes(cornerToSub->csize());
+
+      // The following loop set the node coordinates... They are needed for the corner maker
+      // note that the coordinates of any nodes which are not represented on this mpi process are not correct (zero)
+      // however, they shouldn't be needed in any case
+      for(int iSub = 0; iSub < this->nsub; ++iSub) {
+        int numCorner = this->sd[iSub]->numCorners();
+        int *localCornerNodes = this->sd[iSub]->getLocalCornerNodes();
+        for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
+          Node *node = this->sd[iSub]->getNodes()[localCornerNodes[iCorner]];
+          int cornerNum = (*subToCorner)[this->sd[iSub]->subNum()][iCorner];
+          nodes[cornerNum]->x = node->x;
+          nodes[cornerNum]->y = node->y;
+          nodes[cornerNum]->z = node->z;
+        }
+      }
+  
+#ifdef USE_MPI
+      Communicator *structCom = new Communicator(this->fetiCom->getComm());
+#else
+      Communicator *structCom = NULL;
 #endif
-       blockSky = new GenBlockSky<Scalar>(coarseConnectivity, cornerEqs, tolerance);  
-       blockSky->zeroAll();
-       KccSparse = blockSky;
-       KccSolver = blockSky;
-     }
-     break;
-     case FetiInfo::sparse: {
-       int sparse_ngrbms = (geometricRbms) ? ngrbms : 0; // TODO pass Rbm object, not just ngrbms
+      GenDecDomain<Scalar> *decCoarseDomain = new GenDecDomain<Scalar>(coarseDomain, structCom, false, true);
+
+      Connectivity *elemToNode; // JAT 220216
+      if (fetiInfo->augmentimpl == FetiInfo::Primal) { // JAT 041114
 #ifdef DISTRIBUTED
-       if(this->subToSub->csize() == this->numCPUs && 
-          this->fetiInfo->type != FetiInfo::nonlinear && 
-          !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep) {
-         BLKMatrix = new GenDistBLKSparse<Scalar>(coarseConnectivity, cornerEqs, 
-                                                  tolerance, firstAlpha, nRowAlpha);   
-         this->times.memoryGtGDelete = 8*BLKMatrix->size();
-       } else
+	this->fetiCom->globalSum(this->glNumSub, pointer);
 #endif
-       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnectivity, cornerEqs,
-                                                  tolerance, domain->solInfo().sparse_renum, sparse_ngrbms);
-       BLKMatrix->zeroAll();
-       KccSparse = BLKMatrix;
-       KccSolver = BLKMatrix;
-     }
-     break;
-#ifdef USE_EIGEN3
-     case FetiInfo::ldlt: {
-       GenEiSparseMatrix<Scalar, Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *cholsolver = new
-         GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(coarseConnectivity, cornerEqs);
-       KccSparse = cholsolver;
-       KccSolver = cholsolver;
-     }
-     break;
+	int total = 0;
+	for(int iSub = 0; iSub < this->glNumSub; ++iSub) {
+	  int tmp = pointer[iSub];
+	  pointer[iSub] = total;
+	  total += tmp;
+	}
+	pointer[this->glNumSub] = total;
+
+	int *target = new int[total];
+	for(int i = 0; i < total; i++) target[i] = 0;
+	for(int i = 0; i < this->nsub; i++) {
+	  int s = this->sd[i]->subNum();
+	  int nc = subToCorner->num(s);
+	  int n, k = pointer[s];
+	  for(n = 0; n < nc; n++)
+	    target[k+n] = (*subToCorner)[s][n];
+	  int iEdgeN = 0;
+	  for(int iNeighb = 0; iNeighb < this->sd[i]->numNeighbors(); ++iNeighb) {
+	    if(this->sd[i]->isEdgeNeighbor(iNeighb)) {
+	      if(this->sd[i]->edgeDofs[iNeighb].count())
+		target[k+n++] = augOffset + (*(this->subToEdge))[s][iEdgeN];
+	      iEdgeN++;
+	    }
+	  }
+	}
+#ifdef DISTRIBUTED
+	this->fetiCom->globalSum(total, target);
 #endif
-     case FetiInfo::spooles: {
-       GenSpoolesSolver<Scalar> *spsolver = new GenSpoolesSolver<Scalar>(coarseConnectivity, cornerEqs);
-       KccSparse = spsolver;
-       KccSolver = spsolver;
-     }
-     break;
-     case FetiInfo::mumps: {
-       GenMumpsSolver<Scalar> *mumpsolver = new GenMumpsSolver<Scalar>(coarseConnectivity, cornerEqs, (int *)0, this->fetiCom);
-       KccSparse = mumpsolver;
-       KccSolver = mumpsolver;
-     }
-     break;
+	elemToNode = new Connectivity(this->glNumSub, pointer, target);
+      } else
+	elemToNode = subToCorner;
+
+      decCoarseDomain->setElemToNode(elemToNode);
+      if (elemToNode == subToCorner)
+	elemToNode = 0;
+      decCoarseDomain->setSubToElem(decCoarse);
+      decCoarseDomain->setCPUMap(CPUMapCoarse);
+      decCoarseDomain->preProcess();
+      for(int i=0; i<decCoarseDomain->getNumSub(); ++i) decCoarseDomain->getSubDomain(i)->makeAllDOFs();
+      GenMDDynamMat<Scalar> ops;
+      if(verboseFlag) filePrint(stderr, " ... Factor Kcc solver              ...\n");
+      decCoarseDomain->buildOps(ops, 0.0, 0.0, 1.0);
+      coarseInfo = &(decCoarseDomain->solVecInfo());
+      KccParallelSolver = ops.dynMat;
+      //paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp, decCoarseDomain->getSubDomain(0)->getCDSA(),
+      //           augOffset, this->subToEdge, mpcOffset, decCoarseDomain->getSubDomain(0)->getGlobalToLocalNodeMap());
+      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2,
+		 decCoarseDomain->getNumSub(), decCoarseDomain->getAllSubDomains(),
+		 augOffset, this->subToEdge); // JAT 101816
+//      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2, decCoarseDomain->getNumSub(), 
+//                 decCoarseDomain->getAllSubDomains()); // PJSA 10/10/2014
    }
-   this->times.memoryGtGsky += memoryUsed();
+   else {
 
-   // assemble the coarse problem: Kcc^* -> Kcc - Krc^T Krr^-1 Krc
-   if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
-   t5 -= getTime();
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc); // create the local Kcc^*
-   t5 += getTime();
-
-   t0 -= getTime();
-   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofs, cornerEqs, augOffset, this->subToEdge, mpcOffset);
-   if(KccSparse) for(iSub = 0; iSub < this->nsub; ++iSub) this->sd[iSub]->assembleKccStar(KccSparse); // assemble local Kcc^* into global Kcc^*
-   t0 += getTime();
-
-   // Factor coarse solver
-   startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
+     this->times.memoryGtGsky -= memoryUsed();
+     int sparse_ngrbms = (geometricRbms) ? ngrbms : 0; // TODO pass Rbm object, not just ngrbms
 #ifdef DISTRIBUTED
-   if(verboseFlag) filePrint(stderr, " ... Unify Kcc                      ...\n");
-   KccSolver->unify(this->fetiCom);
+     if(this->subToSub->csize() == this->numCPUs && fetiInfo->type != FetiInfo::nonlinear &&
+        !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep && 
+        (fetiInfo->coarse_cntl->type == 0 && (fetiInfo->coarse_cntl->subtype == 0 || fetiInfo->coarse_cntl->subtype == 1)))
+       KccSolver = GenSolverFactory<Scalar>::getFactory()->createDistSolver(coarseConnectivity, cornerEqs, *fetiInfo->coarse_cntl,
+                                                                            KccSparse, this->fetiCom);
+     else
 #endif
-   if(this->fetiInfo->printMatLab) {
-     KccSparse->printSparse("coarsemat");
-   }
+       KccSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(coarseConnectivity, cornerEqs, *fetiInfo->coarse_cntl,
+                                                                        KccSparse, sparse_ngrbms, this->fetiCom);
 
-   if(verboseFlag) filePrint(stderr, " ... Factor Kcc solver              ...\n");
-   KccSolver->setPrintNullity(this->fetiInfo->contactPrintFlag && this->myCPU == 0);
-   KccSolver->parallelFactor();
-   stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
-
-   if(rbmFlag && geometricRbms && this->myCPU == 0) {
-     if(KccSolver->neqs() > 0 && KccSolver->numRBM() != ngrbms) {
-       std::cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ")" << std::endl
-            << "     does not match the number of Geometric RBMs (" << ngrbms << ")" << std::endl
-            << " *** try adjusting global_cor_rbm_tol or use TRBM method" << std::endl;
+     this->times.memoryGtGsky += memoryUsed();
+  
+     // assemble the coarse problem: Kcc^* -> Kcc - Krc^T Krr^-1 Krc
+     if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
+     t5 -= getTime();
+     paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc); // create the local Kcc^*
+     t5 += getTime();
+  
+     t0 -= getTime();
+     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofs, cornerEqs, augOffset, this->subToEdge, mpcOffset);
+     if(KccSparse) for(iSub = 0; iSub < this->nsub; ++iSub) this->sd[iSub]->assembleKccStar(KccSparse); // assemble local Kcc^* into global Kcc^*
+     t0 += getTime();
+  
+     // Factor coarse solver
+     startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
+#ifdef DISTRIBUTED
+     if(verboseFlag) filePrint(stderr, " ... Unify Kcc                      ...\n");
+     KccSolver->unify(this->fetiCom);
+#endif
+     if(fetiInfo->printMatLab) {
+       KccSparse->printSparse("coarsemat");
      }
-   } 
- 
-   if(rbmFlag && !geometricRbms && (ngrbms = KccSolver->numRBM()) > 0) {
-     kccrbms = new Scalar[KccSolver->neqs()*KccSolver->numRBM()];
-     KccSolver->getNullSpace(kccrbms);
-     if(this->fetiInfo->nullSpaceFilterTol > 0.0) {
-       for(int i= 0; i<KccSolver->numRBM(); ++i)
-         for(int j=0; j<KccSolver->neqs(); ++j)
-           if(ScalarTypes::norm(kccrbms[i*KccSolver->neqs()+j]) < this->fetiInfo->nullSpaceFilterTol) kccrbms[i*KccSolver->neqs()+j] = 0.0; // FILTER
+  
+     if(verboseFlag) filePrint(stderr, " ... Factor Kcc solver              ...\n");
+     KccSolver->setPrintNullity(fetiInfo->contactPrintFlag && this->myCPU == 0);
+     KccSolver->parallelFactor();
+     stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
+  
+     if(rbmFlag && geometricRbms && this->myCPU == 0) {
+       if(KccSolver->neqs() > 0 && KccSolver->numRBM() != ngrbms) {
+         std::cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ")" << std::endl
+                   << "     does not match the number of Geometric RBMs (" << ngrbms << ")" << std::endl
+                   << " *** try adjusting global_cor_rbm_tol or use TRBM method" << std::endl;
+       }
+     } 
+   
+     if(rbmFlag && !geometricRbms && (ngrbms = KccSolver->numRBM()) > 0) {
+       kccrbms = new Scalar[KccSolver->neqs()*KccSolver->numRBM()];
+       KccSolver->getNullSpace(kccrbms);
+       if(fetiInfo->nullSpaceFilterTol > 0.0) {
+         for(int i= 0; i<KccSolver->numRBM(); ++i)
+           for(int j=0; j<KccSolver->neqs(); ++j)
+             if(ScalarTypes::norm(kccrbms[i*KccSolver->neqs()+j]) < fetiInfo->nullSpaceFilterTol) kccrbms[i*KccSolver->neqs()+j] = 0.0; // FILTER
+       }
      }
    }
 
@@ -1036,7 +1195,7 @@ GenFetiDPSolver<Scalar>::updateActiveSet(GenDistrVector<Scalar> &v, int flag, do
     status_change2 = this->fetiCom->globalMax((int) status_change2);
 #endif
     if(status_change2 && ngrbms) rebuildGtGtilda();
-    if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << " ";
+    if(fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << " ";
     delete [] local_status_change;
     return status_change2;
   }
@@ -1072,7 +1231,7 @@ GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDi
   GenDistrVector<Scalar> &r_k = this->wksp->ret_r_copy();
 
   int i;
-  for(i = 0; i < this->fetiInfo->linesearch_maxit+1; ++i, ++nLinesearchIter) {
+  for(i = 0; i < fetiInfo->linesearch_maxit+1; ++i, ++nLinesearchIter) {
 
     // update lambda
     lambda.linAdd(nu,p);
@@ -1091,13 +1250,13 @@ GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDi
       Scalar pFp = p*Fp; 
       //if(ScalarTypes::lessThan(pFp, 0)) throw std::runtime_error("FETI operator is not positive semidefinite");
       Scalar delta_f = nu*nu/2.0*pFp + nu*rp;
-      if(this->fetiInfo->contactPrintFlag >= 2 && this->myCPU == 0)
+      if(fetiInfo->contactPrintFlag >= 2 && this->myCPU == 0)
         std::cerr << " linesearch: iteration = " << i << ", delta_f = " << delta_f << ", pFp = " << pFp << ", nu = " << nu << ", rp = " << rp << std::endl;
       if(ScalarTypes::lessThanEq(delta_f, 0)) break; // sequence is monotonic (note: check for gcr and gmres)
       else {
-        if(i < this->fetiInfo->linesearch_maxit) { 
+        if(i < fetiInfo->linesearch_maxit) { 
           restoreStep();
-          nu *= this->fetiInfo->linesearch_tau;
+          nu *= fetiInfo->linesearch_tau;
         }
         else {
           throw std::runtime_error("linesearch did not converge");
@@ -1137,13 +1296,13 @@ GenFetiDPSolver<Scalar>::solve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar>
 {
  if (verboseFlag) filePrint(stderr," ... Begin FETI-DP Solve            ...\n");
 
- switch(this->fetiInfo->outerloop) {
+ switch(fetiInfo->outerloop) {
    default:
    case 0:
        if(verboseFlag) {
          filePrint (stderr, " ... CG solver selected             ...\n\n");
        }
-       if(this->myCPU == 0 && typeid(Scalar)==typeid(DComplex) && !this->fetiInfo->complex_hermitian)
+       if(this->myCPU == 0 && typeid(Scalar)==typeid(DComplex) && !fetiInfo->complex_hermitian)
          std::cerr << " *** WARNING: CG is not valid for all complex symmetric matrices even if positive definite.\n"
               << " *** If your matrix is complex hermitian include \"outerloop CG hermitian\" under FETI in your input file.\n"
               << " *** Otherwise, \"outerloop GMRES\" or \"outerloop GCR\" are safer choices.\n";
@@ -1244,14 +1403,14 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
      bool stop = checkStoppingCriteria(iter, error, ff);
 
      // Print errors
-     if(verboseFlag && (stop || ((this->fetiInfo->numPrint() > 0) && (iter % this->fetiInfo->numPrint() == 0))))
+     if(verboseFlag && (stop || ((fetiInfo->numPrint() > 0) && (iter % fetiInfo->numPrint() == 0))))
        filePrint(stderr," %4d %23.6e %21.6e\n", iter, (ff == 0.0) ? sqrt(error) : sqrt(error/ff), sqrt(ww/ww0));
 
      // Exit CG iterations loop if one of the stopping criteria has been satisfied
      if(stop) break;
 
      // Krylov acceleration
-     if(this->fetiInfo->nlPrecFlg) this->nlPreCondition(w, z);
+     if(fetiInfo->nlPrecFlg) this->nlPreCondition(w, z);
 
      // Re-project: y = P * z
      project(z, y); 
@@ -1263,7 +1422,7 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
      localSolveAndJump(p, dur, duc, Fp);
 
      // Step length
-     if(!this->fetiInfo->complex_hermitian) // Note: CG by default uses the indefinite vector inner product i.e. x^y = x^T y
+     if(!fetiInfo->complex_hermitian) // Note: CG by default uses the indefinite vector inner product i.e. x^y = x^T y
       { pFp = p^Fp; nu = -(w^p)/pFp; }      // CG in this form can be used for complex symmetric matrices but is NOT valid for
      else                                   // all such matrices, so we don't recommed using it. Try GCR or GMRES instead!!!
       { pFp = p*Fp; nu = -((w*p) / pFp); }  // CG is valid for positive definite Hermitian matrices but to set this up you need 
@@ -1322,7 +1481,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
 
  double ff = extractForceVectors(f, fr, fc, fw);
 
- computeL0(lambda0, f); // PJSA 1-23-08
+ computeL0(lambda0, f);
 
  // Solve uc = Kcc^-1(  fc + Krr^-1 Krc^T lambda0) 
  //          = Kcc^-1(  fc )
@@ -1337,7 +1496,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
  // Precondition r, 
  double error = preCondition(r, z);  // z = F^-1 r
 
-// if((this->fetiInfo->numPrint() > 0) && (this->fetiInfo->numPrint() < 10))
+// if((fetiInfo->numPrint() > 0) && (fetiInfo->numPrint() < 10))
  if(verboseFlag)
    filePrint(stderr," Iteration  Relative Primal Error  Relative Preconditioned Dual Error\n");
 
@@ -1351,9 +1510,9 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
 
  this->initGMRES(z);
 
- bool primalresidual = this->fetiInfo->gmresResidual;
+ bool primalresidual = fetiInfo->gmresResidual;
  int J = 0;
- const int ReStep = this->fetiInfo->maxortho; // PJSA 1-23-08 (for restarted GMRES)
+ const int ReStep = fetiInfo->maxortho; // for restarted GMRES
 
  for(int iter = 0; true; ++iter) {
    // Arnoldi iteration (Algorithm see Saad SISC) 
@@ -1380,7 +1539,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
 
        bool isConverged = ((sqrt(error) < sqrt(this->epsilon2*ff)) || (J == this->maxiter-1));
 
-       if(verboseFlag && (isConverged || ((this->fetiInfo->numPrint() > 0) && (J % this->fetiInfo->numPrint() == 0))))
+       if(verboseFlag && (isConverged || ((fetiInfo->numPrint() > 0) && (J % fetiInfo->numPrint() == 0))))
          filePrint(stderr, "%4d %23.6e %23.6e\n", iter*ReStep+j,sqrt(error/ff),fabs(resGMRES)/sqrt(ff));
 
        // Determine convergence
@@ -1394,9 +1553,9 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
          this->times.iterations[this->numSystems-1].cpuTime = this->times.solve;
 
          t7 += getTime();
-         printSummary(iter*ReStep+j+1); // PJSA
+         printSummary(iter*ReStep+j+1);
 
-         *lambda += lambda0; // PJSA 1-23-08
+         *lambda += lambda0;
          ur += dur;
          uc += duc;
          ur += deltaU; // make solution compatible u += deltaU
@@ -1410,11 +1569,11 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
        }
      } 
      else 
-       if(verboseFlag && ((this->fetiInfo->numPrint() > 0) && (j % this->fetiInfo->numPrint() == 0)))
+       if(verboseFlag && ((fetiInfo->numPrint() > 0) && (j % fetiInfo->numPrint() == 0)))
          filePrint(stderr, "%4d %47.6e\n", iter*ReStep+j, fabs(resGMRES)/sqrt(ff));
    }
 
-   // PJSA 1-23-08 restart GMRES
+   // restart GMRES
    if(verboseFlag) filePrint(stderr, " *** Krylov Space Full - Restarting GMRES \n");
    if(!primalresidual) {
      this->GMRESSolution(*lambda);  // compute incremental solution lambda
@@ -1430,7 +1589,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
    *zzero = z;
 
    lambda0 += (*lambda);
-   primalresidual = this->fetiInfo->gmresResidual;  // primalresidual might not be reached after restart
+   primalresidual = fetiInfo->gmresResidual;  // primalresidual might not be reached after restart
 
    this->oSetGMRES->reInit(); // Reinitialize Krylov space and set z of last step as initial vector
    this->initGMRES(z);
@@ -1495,7 +1654,7 @@ GenFetiDPSolver<Scalar>::solveGCR(GenDistrVector<Scalar> &f, GenDistrVector<Scal
    bool stop = checkStoppingCriteria(iter, error, ff);
 
    // Print errors
-   if(verboseFlag && (stop || ((this->fetiInfo->numPrint() > 0) && (iter % this->fetiInfo->numPrint() == 0))))
+   if(verboseFlag && (stop || ((fetiInfo->numPrint() > 0) && (iter % fetiInfo->numPrint() == 0))))
      filePrint(stderr," %4d %23.6e %21.6e\n", iter, (ff == 0.0) ? sqrt(error) : sqrt(error/ff), sqrt(rr/rr0));
 
    // Exit CG iterations loop if one of the stopping criteria has been satisfied
@@ -1557,7 +1716,7 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
   }
 
   // Assemble and split fr and fw on subdomain interface (note: f for first system is already split by topological scaling)
-  if((this->numSystems == 0 && this->fetiInfo->scaling == FetiInfo::kscaling) || (this->numSystems > 0 && this->fetiInfo->rescalef)) {
+  if((this->numSystems == 0 && fetiInfo->scaling == FetiInfo::kscaling) || (this->numSystems > 0 && fetiInfo->rescalef)) {
     if(domain->solInfo().isCoupled) this->distributeForce(fr, fw);
     else this->distributeForce(fr);
   }
@@ -1566,18 +1725,25 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
 
   // extract fc from f
   getFc(f, fc);
+  double ffc;
+  if(KccParallelSolver) {
+    GenStackDistVector<Scalar> DistFc(*coarseInfo, fc.data());
+    ffc = DistFc.sqNorm();
+  }
+  else {
 #ifdef DISTRIBUTED
-  GenVector<Scalar> fc_copy(fc);
-  this->fetiCom->globalSum(fc_copy.size(), fc_copy.data());
-  double ffc = fc_copy.sqNorm();
+    GenVector<Scalar> fc_copy(fc);
+    this->fetiCom->globalSum(fc_copy.size(), fc_copy.data());
+    ffc = fc_copy.sqNorm();
 #else
-  double ffc = fc.sqNorm();
+    ffc = fc.sqNorm();
 #endif
+  }
 
   double ff = f.sqNorm();
 
   // print norms
-  if((this->fetiInfo->numPrint() > 0) && (this->fetiInfo->numPrint() < 10) && verboseFlag) {
+  if((fetiInfo->numPrint() > 0) && (fetiInfo->numPrint() < 10) && verboseFlag) {
     filePrint(stderr, " ... f*f   %e             ...\n", ff);
     filePrint(stderr, " ... fr*fr %e             ...\n", ffr);
     filePrint(stderr, " ... fc*fc %e             ...\n", ffc);
@@ -1628,7 +1794,7 @@ GenFetiDPSolver<Scalar>::printSummary(int iter)
     filePrint(stderr," Total Making Kcc    %12.4f s ...\n",this->times.coarse1/1000.0);
     filePrint(stderr," --------------------------------------\n");
     filePrint(stderr," Total Making FETI  %13.4f s ...\n",t6/1000.0);
-    filePrint(stderr," Total Solve RHS#   %13.4f s ...\n",t7/1000.0);  // PJSA 2-10-05
+    filePrint(stderr," Total Solve RHS#   %13.4f s ...\n",t7/1000.0);
   }
 }
 
@@ -1639,7 +1805,7 @@ GenFetiDPSolver<Scalar>::preCondition(GenDistrVector<Scalar> &v, GenDistrVector<
   // this function does dual mpc (CCt) preconditioning in addition to the usual feti preconditioning
   double error;
   if(mpcPrecon) {
-    if(globalFlagCtc && (dualStatusChange || primalStatusChange) && this->fetiInfo->rebuildcct && CCtsolver) rebuildCCt();
+    if(globalFlagCtc && (dualStatusChange || primalStatusChange) && fetiInfo->rebuildcct && CCtsolver) rebuildCCt();
     if(&Mv != &v) Mv = v; cctSolveMpc(Mv); // Mv = CCt^-1*v
     error = GenFetiSolver<Scalar>::preCondition(Mv, Mv, errorFlag); 
     cctSolveMpc(Mv); 
@@ -1654,7 +1820,7 @@ GenFetiDPSolver<Scalar>::mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Sca
                                        GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &lambda)
 {
   if(ngrbms) {
-    if(!geometricRbms && this->fetiInfo->corners != FetiInfo::noCorners) {
+    if(!geometricRbms && fetiInfo->corners != FetiInfo::noCorners) {
       GenVector<Scalar> &alpha = this->wksp->ret_alpha();
       for(int i= 0; i<KccSolver->numRBM(); ++i) 
         for(int j=0; j<KccSolver->neqs(); ++j) 
@@ -1665,12 +1831,12 @@ GenFetiDPSolver<Scalar>::mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Sca
 
   execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::mergeUr, ur, uc, u, lambda);
   if(ngrbms) { // add rigid body modes
-    if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners) {
+    if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners) {
       GenVector<Scalar> &alpha = this->wksp->ret_alpha(); // amplitudes of the rigid body modes
       execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::addRalpha, u, alpha);
     }
-    if(this->fetiInfo->uproj) computeProjectedDisplacement(u);
-    else filePrint(stderr, " ... Do not project the displacement ...\n"); //HB
+    if(fetiInfo->uproj) computeProjectedDisplacement(u);
+    else filePrint(stderr, " ... Do not project the displacement ...\n");
   }
 }
 
@@ -1694,7 +1860,7 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &fr, GenDistrV
 
  GenVector<Scalar> &FcStar(uc); 
 
- if(KccSolver) { 
+ if(KccSolver || KccParallelSolver) { 
    // Step 1: fc^*(s) = fc^(s) - (Krc^T Krr^-1)^(s) (fr^(s) - Br^(s)T lambda) - Bc^(s)tilde^T lambda
    t1 -= getTime();
    execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::makeFc, fr, lambda);
@@ -1705,15 +1871,25 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &fr, GenDistrV
    t2 -= getTime();
    assembleFcStar(FcStar);
    t2 += getTime();
+
+   if(KccParallelSolver) {
+     GenStackDistVector<Scalar> DistFcStar(*coarseInfo, FcStar.data());
+     // Step 3: Solve uc = Kcc^-1 FcStar
+     this->times.project -= getTime();
+     KccParallelSolver->reSolve(DistFcStar);
+     this->times.project += getTime();
+   }
+   else {
 #ifdef DISTRIBUTED
-   this->fetiCom->globalSum(FcStar.size(), FcStar.data());
+     this->fetiCom->globalSum(FcStar.size(), FcStar.data());
 #endif
 
-   // Step 3: Solve uc = Kcc^-1 FcStar
-   this->times.project -= getTime();
-   if(this->glNumMpc_primal > 0) execParal(this->mpcToSub_primal->csize(), this, &GenFetiDPSolver<Scalar>::addMpcRHS, FcStar.data()); 
-   KccSolver->reSolve(FcStar);  // now Fcstar is uc;
-   this->times.project += getTime();
+     // Step 3: Solve uc = Kcc^-1 FcStar
+     this->times.project -= getTime();
+     if(this->glNumMpc_primal > 0) execParal(this->mpcToSub_primal->csize(), this, &GenFetiDPSolver<Scalar>::addMpcRHS, FcStar.data()); 
+     KccSolver->reSolve(FcStar);  // now Fcstar is uc;
+     this->times.project += getTime();
+   }
  }
  else FcStar.zero();
 
@@ -1723,11 +1899,11 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &fr, GenDistrV
  execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::multKrc, fr2, FcStar);
 
  // Step 4:
- if(domain->solInfo().isCoupled && !this->fetiInfo->fsi_element) {
+ if(domain->solInfo().isCoupled && !fetiInfo->fsi_element) {
    timedParal5R(this->times.solveAndJump, this->nsub, this, &GenFetiDPSolver<Scalar>::subdomainSolveCoupled1,
                 ur, r, fr2, lambda, FcStar);
 
-   if (this->fetiInfo->fsi_corner == 0) this->wiPat->exchange();
+   if (fetiInfo->fsi_corner == 0) this->wiPat->exchange();
    
    timedParal6R(this->times.solveAndJump, this->nsub, this, &GenFetiDPSolver<Scalar>::subdomainSolveCoupled2,
                 ur, r, fr2, lambda, FcStar, fw);
@@ -1756,7 +1932,7 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVe
 
  GenVector<Scalar> &FcStar(duc);
  FcStar.zero();
- if(KccSolver) {
+ if(KccSolver || KccParallelSolver) {
    // Step 1: fc^(s) = - (Krc^T Krr^-1)^(s) ( Br^(s)T * p) + Bc^(s)T * p
    t1 -= getTime();
    execParal1R(this->nsub, this, &GenFetiDPSolver<Scalar>::makeFcB, p);
@@ -1766,14 +1942,24 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVe
    t2 -= getTime();
    assembleFcStar(FcStar);
    t2 += getTime();
+
+   if(KccParallelSolver) {
+     GenStackDistVector<Scalar> DistFcStar(*coarseInfo, FcStar.data());
+     // Step 3: Solve uc = Kcc^-1 FcStar
+     this->times.project -= getTime();
+     KccParallelSolver->reSolve(DistFcStar);
+     this->times.project += getTime();
+   }
+   else {
 #ifdef DISTRIBUTED
-   this->fetiCom->globalSum(FcStar.size(), FcStar.data());
+     this->fetiCom->globalSum(FcStar.size(), FcStar.data());
 #endif
 
-   // Step 3: Solve uc = Kcc^-1 FcStar
-   this->times.project -= getTime();
-   KccSolver->reSolve(FcStar);
-   this->times.project += getTime();
+     // Step 3: Solve uc = Kcc^-1 FcStar
+     this->times.project -= getTime();
+     KccSolver->reSolve(FcStar);
+     this->times.project += getTime();
+   }
  }
 
  // Step 3.5: fr2^(s) = - Krc^(s) uc^(s)
@@ -1786,11 +1972,11 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVe
  // CKT : Fp = B Krr^-1 [B^T p + Krc (-uc)] - Bc (-uc)
  // B contains both usual Br u = +- u and ctc restriction B u = +- u.n
  // Bc uc < > 0 if some corners nodes are in ctc. Then Bc uc = +- uc.n
- if(domain->solInfo().isCoupled && !this->fetiInfo->fsi_element) {
+ if(domain->solInfo().isCoupled && !fetiInfo->fsi_element) {
    timedParal5R(this->times.solveAndJump, this->nsub, this, &GenFetiDPSolver<Scalar>::subdomainSolveCoupled1,
                 dur, Fp, fr2, p, FcStar);
 
-   if (this->fetiInfo->fsi_corner == 0) this->wiPat->exchange();
+   if (fetiInfo->fsi_corner == 0) this->wiPat->exchange();
    timedParal5R(this->times.solveAndJump, this->nsub, this, &GenFetiDPSolver<Scalar>::subdomainSolveCoupled2,
                 dur, Fp, fr2, p, FcStar);
  }
@@ -1803,7 +1989,7 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVe
  Scalar ret = p*Fp;
 #ifdef DEBUG_FETI
  Scalar pHFp = ScalarTypes::conj(ret); // note: p*Fp = (Fp)^H p therefore p^H Fp = conj(p*Fp)
- if(this->myCPU == 0 && (this->fetiInfo->outerloop == FetiInfo::CG)
+ if(this->myCPU == 0 && (fetiInfo->outerloop == FetiInfo::CG)
     && (ScalarTypes::Real(pHFp) < 0.0 || fabs(ScalarTypes::Imag(pHFp)) > 1.0e-10))
    std::cerr << " *** WARNING: x^H F x = " << pHFp << ", must be positive and real for any x when F is Hermitian and positive definite. CG may not work \n";
 #endif
@@ -1857,20 +2043,20 @@ void
 GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
 { 
   int iSub;
-  int glNumSub = this->subToSub->csize();
+//  int glNumSub = this->subToSub->csize();
 
-  paralApply(this->nsub, this->sd, &BaseSub::findEdgeNeighbors);  // PJSA
+  paralApply(this->nsub, this->sd, &BaseSub::findEdgeNeighbors);
 
   // First count number of edges per subdomain
-  int *cx = new int[glNumSub+1];
-  int *cxx = new int[glNumSub+1];
-  for(iSub=0; iSub<glNumSub+1; ++iSub) { cx[iSub] = 0; cxx[iSub] = 0; }
+  int *cx = new int[this->glNumSub+1];
+  int *cxx = new int[this->glNumSub+1];
+  for(iSub=0; iSub<this->glNumSub+1; ++iSub) { cx[iSub] = 0; cxx[iSub] = 0; }
 
   // count edges in parallel
   execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::countEdges, cx);
 
 #ifdef DISTRIBUTED
-  this->fetiCom->globalSum(glNumSub+1, cx);
+  this->fetiCom->globalSum(this->glNumSub+1, cx);
 #endif
 
   // Sum each subdomain's edge count to compute total number of edges
@@ -1880,16 +2066,16 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
   int totalNumEdges = 0;
 #ifdef DISTRIBUTED
   int i;
-  int *numEdgesPerSub = new int[glNumSub];
-  for(iSub=0; iSub<glNumSub; ++iSub)
+  int *numEdgesPerSub = new int[this->glNumSub];
+  for(iSub=0; iSub<this->glNumSub; ++iSub)
     numEdgesPerSub[iSub] = 0;
 
   for(iSub=0; iSub<this->nsub; ++iSub)  
-    numEdgesPerSub[this->sd[iSub]->subNum()] = this->sd[iSub]->numEdgeNeighbors();  // PJSA: don't include virtual neighbors
+    numEdgesPerSub[this->sd[iSub]->subNum()] = this->sd[iSub]->numEdgeNeighbors();  // don't include virtual neighbors
 
-  this->fetiCom->globalSum(glNumSub, numEdgesPerSub);
+  this->fetiCom->globalSum(this->glNumSub, numEdgesPerSub);
 
-  for(iSub=0; iSub<glNumSub; ++iSub) {
+  for(iSub=0; iSub<this->glNumSub; ++iSub) {
     int tmp = numEdges;
     numEdges += cx[iSub];
     cx[iSub] = tmp;
@@ -1900,13 +2086,13 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
   // make sure I can delete this
   delete [] numEdgesPerSub;
 #else
-  for(iSub=0; iSub<glNumSub; ++iSub) {
+  for(iSub=0; iSub<this->glNumSub; ++iSub) {
     int tmp = numEdges;
     numEdges += cx[iSub];
     cx[iSub] = tmp;
 
     cxx[iSub] = totalNumEdges;
-    totalNumEdges += this->sd[iSub]->numEdgeNeighbors(); // PJSA: don't include virtual neighbors
+    totalNumEdges += this->sd[iSub]->numEdgeNeighbors(); // don't include virtual neighbors
   }
 #endif
   // Find total number of edges including duplicated ones.
@@ -1915,7 +2101,7 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
   // filePrint(stderr,"nE %d tnE %d\n",numEdges, totalNumEdges);
 
   int *connect = new int[totalNumEdges];
-  cxx[glNumSub] = totalNumEdges;
+  cxx[this->glNumSub] = totalNumEdges;
 
 #ifdef DISTRIBUTED
   for(i=0; i<totalNumEdges; ++i) connect[i] = -1;
@@ -1949,7 +2135,7 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
   }
   delete [] connect2;
 #endif
-  this->subToEdge = new Connectivity(glNumSub, cxx, connect);
+  this->subToEdge = new Connectivity(this->glNumSub, cxx, connect);
   // create the edge to subdomain connectivity
   this->edgeToSub = this->subToEdge->reverse();
 }
@@ -1967,7 +2153,7 @@ GenFetiDPSolver<Scalar>::countEdges(int iSub, int *edges)
   int numNeighbor = this->sd[iSub]->numNeighbors();
   for(j=0; j<numNeighbor; ++j) {
     int subI = this->sd[iSub]->getSComm()->subNums[j];
-    if(this->sd[iSub]->isEdgeNeighbor(j) && (myNum < subI))  // PJSA
+    if(this->sd[iSub]->isEdgeNeighbor(j) && (myNum < subI))
       edges[myNum] += 1;
   }
 }
@@ -1987,7 +2173,7 @@ GenFetiDPSolver<Scalar>::numberEdges(int iSub, int *eP, int *ep2, int* edges, FS
   for(jSub=0; jSub<numNeighbor; ++jSub) {
     int subJ = this->sd[iSub]->getSComm()->subNums[jSub];
     FSSubRecInfo<int> sInfo = this->sPat->getSendBuffer(myNum, subJ);
-    if(this->sd[iSub]->isEdgeNeighbor(jSub)) { // PJSA
+    if(this->sd[iSub]->isEdgeNeighbor(jSub)) {
       if(myNum < subJ) {
         edges[fP] = startI;
         startI++;
@@ -2011,7 +2197,7 @@ GenFetiDPSolver<Scalar>::receiveNeighbEdgeNums(int iSub, int *eP, int* edges, FS
   int numNeighbor = this->sd[iSub]->numNeighbors();
   int jEdgeN = 0;
   for(jSub=0; jSub<numNeighbor; ++jSub) {
-    if(this->sd[iSub]->isEdgeNeighbor(jSub)) { // PJSA
+    if(this->sd[iSub]->isEdgeNeighbor(jSub)) {
       FSSubRecInfo<int> rInfo = this->sPat->recData(this->sd[iSub]->getSComm()->subNums[jSub], myNum);
       int en =  rInfo.data[0];
       if(en >= 0) edges[eP[myNum]+jEdgeN] = en;
@@ -2172,7 +2358,7 @@ GenFetiDPSolver<Scalar>::singularValueDecomposition(FullM &A, FullM &U, int ncol
   int maxdim = std::max(nrow,ncol);
   double max_value = A.maxAbs();
 #ifdef FILERING
-  for(int i=0; i<A.numCol()*A.numRow(); i++) //HB
+  for(int i=0; i<A.numCol()*A.numRow(); i++)
     if(fabs((A.data())[i])<1.E-16*max_values+1.E-20) (A.data())[i] = 0.0;
 #endif
   double *w    = (double*) dbg_alloca(sizeof(double)* maxdim);
@@ -2208,8 +2394,8 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
   startTimerMemory(this->times.coarse1, this->times.memoryGtG);
 
   if(GtGtilda == NULL) {
-    GtGtilda = this->newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
-    GtGtilda->setPrintNullity(this->fetiInfo->contactPrintFlag && this->myCPU == 0);
+    GtGtilda = GenSolverFactory<Scalar>::getFactory()->createSolver(coarseConnectGtG, eqNumsGtG, *fetiInfo->auxcoarse_cntl, GtGsparse);
+    GtGtilda->setPrintNullity(fetiInfo->contactPrintFlag && this->myCPU == 0);
   } else
   GtGtilda->zeroAll();
   execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG);
@@ -2251,7 +2437,7 @@ template<class Scalar>
 void 
 GenFetiDPSolver<Scalar>::buildCCt()
 {
-  // PJSA: build CC^t for preconditioning mpc residual
+  // build CC^t for preconditioning mpc residual
   startTimerMemory(this->times.buildCCt, this->times.memoryBuildCCt);
   // find subs with mpcs
   mpcSubMap = new int[this->nsub];
@@ -2265,15 +2451,15 @@ GenFetiDPSolver<Scalar>::buildCCt()
     else mpcSubMap[i] = -1;
   }
 
-  switch(this->fetiInfo->mpc_precno) {
+  switch(fetiInfo->mpc_precno) {
     case (FetiInfo::globalCCt) :
       CCtsolver = new GlobalCCtSolver<Scalar>(mpcToMpc, mpcToCpu, numSubsWithMpcs, subsWithMpcs->data(), 
-                                              this->fetiInfo, this->fetiCom);
+                                              fetiInfo, this->fetiCom);
       break;
     case (FetiInfo::blockDiagCCt) : {
       Connectivity *blockToMpc = getBlockToMpc();
       CCtsolver = new BlockCCtSolver<Scalar>(blockToMpc, mpcToMpc, this->mpcToSub, mpcToCpu, this->numSubsWithMpcs, subsWithMpcs->data(),
-                                             mpcSubMap, this->fetiInfo, this->fetiCom);
+                                             mpcSubMap, fetiInfo, this->fetiCom);
       } break;
     case (FetiInfo::subBlockDiagCCt) :
       CCtsolver = new SubBlockCCtSolver<Scalar>(mpcToMpc, this->mpcToSub, numSubsWithMpcs, subsWithMpcs->data(), 
@@ -2281,13 +2467,13 @@ GenFetiDPSolver<Scalar>::buildCCt()
       break;
     case (FetiInfo::superBlockDiagCCt) : {
       Connectivity *blockToMpc = getBlockToMpc();
-      bool super_flag = (this->fetiInfo->mpc_block == FetiInfo::subBlock) ? false : true;
-      bool sub_flag = (this->fetiInfo->mpc_block == FetiInfo::mortarBlock) ? true : false;
+      bool super_flag = (fetiInfo->mpc_block == FetiInfo::subBlock) ? false : true;
+      bool sub_flag = (fetiInfo->mpc_block == FetiInfo::mortarBlock) ? true : false;
       CCtsolver = new SuperBlockCCtSolver<Scalar>(blockToMpc, mpcToMpc, this->mpcToSub, mpcToCpu, numSubsWithMpcs, subsWithMpcs->data(),
-                                                  this->fetiInfo, this->fetiCom, super_flag, sub_flag);
+                                                  fetiInfo, this->fetiCom, super_flag, sub_flag);
     } break;
     default :
-      std::cerr << " *** ERROR: don't know mpc_precno = " << this->fetiInfo->mpc_precno << std::endl;
+      std::cerr << " *** ERROR: don't know mpc_precno = " << fetiInfo->mpc_precno << std::endl;
       break;
   }
   CCtsolver->assemble();
@@ -2301,7 +2487,7 @@ GenFetiDPSolver<Scalar>::getBlockToMpc()
 {
  // return a decomposition of global mpcs into blocks for block solver
  Connectivity *blockToMpc;
- switch(this->fetiInfo->mpc_block) {
+ switch(fetiInfo->mpc_block) {
    case (FetiInfo::topoBlock) :
      {
        compStruct renumber = mpcToMpc->renumByComponent(-1);  // -1 = no renumbering (optimized implementation)
@@ -2366,7 +2552,7 @@ GenFetiDPSolver<Scalar>::getBlockToMpc()
 
  // block overlapping if requested
  if(blockToMpc->csize() > 1) {
-   int blockOverlapLevel = this->fetiInfo->mpcBlkOverlap;
+   int blockOverlapLevel = fetiInfo->mpcBlkOverlap;
    filePrint(stderr, " ... Block Overlap Level %d ... \n", blockOverlapLevel);
    for(int i = 0; i < blockOverlapLevel; ++i) {
      Connectivity *tmpBlockToMpc = blockToMpc->transcon(mpcToMpc);
@@ -2391,7 +2577,7 @@ template<class Scalar>
 void 
 GenFetiDPSolver<Scalar>::cctSolveMpc(GenDistrVector<Scalar> &v)
 {
-  // PJSA: this function is used when applying the generalized preconditioner
+  // this function is used when applying the generalized preconditioner
   // to the mpc part of the residual
   // computes:  v = (CC^t)^-1 v
   startTimerMemory(this->times.precond, this->times.memoryPrecond);
@@ -2424,7 +2610,7 @@ GenFetiDPSolver<Scalar>::~GenFetiDPSolver()
   if(CCtsolver) { delete CCtsolver; CCtsolver = 0; }
   if(subsWithMpcs)  { delete subsWithMpcs ; subsWithMpcs = 0; }
   if(mpcSubMap) { delete [] mpcSubMap; mpcSubMap = 0; }
-  // don't delete: this->sd, this->subToSub, this->mpcToSub, mpcToMpc, this->cpuToSub, this->fetiInfo, bodyToSub 
+  // don't delete: this->sd, this->subToSub, this->mpcToSub, mpcToMpc, this->cpuToSub, fetiInfo, bodyToSub 
   // interfPattern, this->glSubToLoc, mpcToCpu 
   if(mpcPat) { delete mpcPat; mpcPat = 0; }
   if(kccrbms) { delete [] kccrbms; kccrbms = 0; }
@@ -2461,7 +2647,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::initialize()
 {
-  KccSolver = 0; KccSparse = 0; glNumCorners = 0;
+  KccSolver = 0; KccParallelSolver = 0; KccSparse = 0; glNumCorners = 0;
   cornerToSub = 0; cornerEqs = 0;
   mpcOffset = 0;
   ngrbmGr = 0; nGroups = 0; nGroups1 = 0; groups = 0;
@@ -2526,7 +2712,7 @@ GenFetiDPSolver<Scalar>::reconstruct()
  
   if(domain->solInfo().isCoupled) domain->computeCoupledScaleFactors();
 
-  if(this->fetiInfo->isEdgeAugmentationOn() && this->fetiInfo->numdir > 0) { // augmentation depends on freq/k
+  if(fetiInfo->isEdgeAugmentationOn() && fetiInfo->numdir > 0) { // augmentation depends on freq/k
     // 2. reconstruct local Kcc etc. since size of Kcc may have changed
     startTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::constructKcc);
@@ -2535,7 +2721,7 @@ GenFetiDPSolver<Scalar>::reconstruct()
 
     // 3. rebuild augmentation Q
     if(verboseFlag) filePrint(stderr," ... Rebuild Edge Augmentation (Q)  ... \n");
-    if(this->fetiInfo->waveMethod != FetiInfo::averageMat) computeLocalWaveNumbers();
+    if(fetiInfo->waveMethod != FetiInfo::averageMat) computeLocalWaveNumbers();
     paralApplyToAll(this->nsub, this->sd, &BaseSub::zeroEdgeDofSize);
     paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::makeQ);  // rebuild augmentation matrix
   }
@@ -2549,23 +2735,23 @@ void
 GenFetiDPSolver<Scalar>::refactor()
 {
   // 4.  stiffness scaling && edge weighting -> check !!
-  if(this->fetiInfo->scaling == FetiInfo::kscaling) {
+  if(fetiInfo->scaling == FetiInfo::kscaling) {
     execParal(this->nsub, this, &GenFetiSolver<Scalar>::sendScale);
     this->vPat->exchange();
     paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::collectScaling, this->vPat);
   }
 
   if(domain->solInfo().isCoupled) {
-    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::reScaleAndReSplitKww); // HB
+    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::reScaleAndReSplitKww);
   }
 
-  if(this->fetiInfo->augment == FetiInfo::WeightedEdges)
-    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // PJSA: W*Q
+  if(fetiInfo->augment == FetiInfo::WeightedEdges)
+    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // W*Q
 
  // MPCs 
  mpcPrecon = false;
  if(this->glNumMpc > 0) {
-   if(this->fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
+   if(fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
      FSCommPattern<Scalar> *mpcDiagPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU,
                                                                    FSCommPattern<Scalar>::CopyOnSend);
      for(int iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setMpcDiagCommSize(mpcDiagPat);
@@ -2576,15 +2762,15 @@ GenFetiDPSolver<Scalar>::refactor()
      delete mpcDiagPat;
    }
 
-   if(this->fetiInfo->c_normalize) normalizeC();
+   if(fetiInfo->c_normalize) normalizeC();
 
-   if(this->fetiInfo->mpc_precno == FetiInfo::diagCCt) {
+   if(fetiInfo->mpc_precno == FetiInfo::diagCCt) {
      // use W scaling for preconditioning mpcs, don't need to build & invert CC^t
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcScaling, this->vPat);
      this->vPat->exchange();  // neighboring subs mpc weights
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcScaling, this->vPat);
    }
-   else if(this->fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
+   else if(fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
      // used generalized proconditioner for mpcs, need to build and invert CC^t
      mpcPrecon = true;
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcScaling);
@@ -2596,9 +2782,9 @@ GenFetiDPSolver<Scalar>::refactor()
   // 5. factor local matrices
   if(verboseFlag) filePrint(stderr," ... Factor Subdomain Matrices      ... \n");
   startTimerMemory(this->times.factor, this->times.memoryFactor);
-  if(this->fetiInfo->solvertype != FetiInfo::spooles && this->fetiInfo->solvertype != FetiInfo::mumps)
+  if(fetiInfo->local_cntl->subtype != FetiInfo::spooles && fetiInfo->local_cntl->subtype != FetiInfo::mumps)
     timedParal(this->times.factorMat, this->nsub, this, &GenFetiDPSolver<Scalar>::factorLocalMatrices);
-  else // PJSA: spooles and mumps are not thread safe
+  else // spooles and mumps are not thread safe
     for(int iSub=0; iSub<this->nsub; ++iSub) factorLocalMatrices(iSub);
   stopTimerMemory(this->times.factor, this->times.memoryFactor);
 
@@ -2702,7 +2888,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
   bool status_change = false;
 
   int i;
-  for(i = 0; i < this->fetiInfo->dual_plan_maxit+1; ++i) {
+  for(i = 0; i < fetiInfo->dual_plan_maxit+1; ++i) {
     // y = P_i*x
     projectActiveIneq(x, y);
 
@@ -2719,9 +2905,9 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
     // check stopping criteria
     if(i > 0) {
       double resnorm = (eflag && ngrbms) ? res.norm() : 0;
-      if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << "dual planing: iteration = " << i << ", residual = " << resnorm << std::endl;
-      if(/*resnorm <= this->fetiInfo->dual_proj_tol ||*/ !status_change) break;
-      else if(i == std::max(1,this->fetiInfo->dual_plan_maxit)) {
+      if(fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << "dual planing: iteration = " << i << ", residual = " << resnorm << std::endl;
+      if(/*resnorm <= fetiInfo->dual_proj_tol ||*/ !status_change) break;
+      else if(i == std::max(1,fetiInfo->dual_plan_maxit)) {
         if(this->myCPU == 0) std::cerr << "warning: dual planing did not converge after " << i << " iterations. Error = " << resnorm << std::endl;
         // note: if we break the loop here then y will not be feasible wrt the equality constraints (i.e. G^T*y != e)
         // if we don't break here then y will not be feasible wrt the inequality constraints
@@ -2737,13 +2923,13 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
 
     // update the active set
     if(eflag && globalFlagCtc)
-      status_change = updateActiveSet(x, 0, -this->fetiInfo->dual_plan_tol);
+      status_change = updateActiveSet(x, 0, -fetiInfo->dual_plan_tol);
   }
 
   if((dualStatusChange = (i > 1))) {
     nSubIterDual += (i-1);
     nStatChDual++;
-    if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << std::endl;
+    if(fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << std::endl;
   }
 
   stopTimerMemory(this->times.project, this->times.memoryProject1);
@@ -2770,7 +2956,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
   bool proportional = false;
 
   int i;
-  for(i = 0; i < this->fetiInfo->primal_plan_maxit+1; ++i) {
+  for(i = 0; i < fetiInfo->primal_plan_maxit+1; ++i) {
     // w = P_i*x
     projectActiveIneq(x, w);
 
@@ -2781,9 +2967,9 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
     // check stopping criteria
     if(i > 0) {
       double resnorm = (ngrbms) ? res.norm() : 0;
-      if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << "primal planing: iteration " << i << ", residual = " << resnorm << std::endl;
-      if(/*resnorm <= this->fetiInfo->primal_proj_tol ||*/ !status_change) break;
-      else if(i == std::max(1,this->fetiInfo->primal_plan_maxit)) {
+      if(fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << "primal planing: iteration " << i << ", residual = " << resnorm << std::endl;
+      if(/*resnorm <= fetiInfo->primal_proj_tol ||*/ !status_change) break;
+      else if(i == std::max(1,fetiInfo->primal_plan_maxit)) {
         if(this->myCPU == 0) std::cerr << "warning: primal planing did not converge after " << i << " iterations. " << std::endl;
         break;
       }
@@ -2799,16 +2985,16 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
     // update active set unless error is proportional
     if(globalFlagCtc) {
       execParal3R(this->nsub, this, &GenFetiDPSolver<Scalar>::split, x, gf, gc);
-      proportional = (i == 0 && (gc.norm() <= this->fetiInfo->gamma*gf.norm()));
+      proportional = (i == 0 && (gc.norm() <= fetiInfo->gamma*gf.norm()));
       if(!proportional)
-        status_change = updateActiveSet(x, 1, -this->fetiInfo->primal_plan_tol);
+        status_change = updateActiveSet(x, 1, -fetiInfo->primal_plan_tol);
     }
   }
 
   if((primalStatusChange = (i > 1))) {
     nSubIterPrimal += (i-1);
     nStatChPrimal++;
-    if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << std::endl;
+    if(fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << std::endl;
   }
 
   stopTimerMemory(this->times.project, this->times.memoryProject1);
@@ -2884,7 +3070,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
 {
  this->mpcToSub   = _mpcToSub;    // MPC to subdomain connectivity
  this->glNumMpc = (this->mpcToSub) ? this->mpcToSub->csize() : 0;
- mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (PJSA: used for CC^t preconditioner
+ mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (used for CC^t preconditioner)
  mpcToCpu   = _mpcToCpu;
  globalFlagCtc = domain->getNumCTC();
 #ifdef DISTRIBUTED
@@ -2923,7 +3109,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
  }
  this->interface.len = tInterfLen;
 
- // PJSA: compute the masterFlags
+ // compute the masterFlags
  bool *interfaceMasterFlag = new bool[tInterfLen];
  this->interface.recomputeOffsets();
  for(iSub = 0; iSub < this->nsub; ++iSub) {
@@ -2938,25 +3124,25 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
 
  // Allocate space for reorthogonalization set
  this->times.memoryOSet -= memoryUsed();
- if(this->fetiInfo->outerloop == 0) {
+ if(fetiInfo->outerloop == 0) {
    delete this->oSetCG;
-   this->oSetCG = (this->fetiInfo->maxortho > 0) ? new GenCGOrthoSet<Scalar>(this->halfSize, this->fetiInfo->maxortho, this->fetiCom) : 0;
+   this->oSetCG = (fetiInfo->maxortho > 0) ? new GenCGOrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom) : 0;
  }
- else if(this->fetiInfo->outerloop == 1) {
+ else if(fetiInfo->outerloop == 1) {
    delete this->oSetGMRES;
-   this->oSetGMRES = new GenGMRESOrthoSet<Scalar>(this->halfSize, this->fetiInfo->maxortho, this->fetiCom);
+   this->oSetGMRES = new GenGMRESOrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom);
  }
  else {
    delete this->oSetGCR;
-   this->oSetGCR = new GenGCROrthoSet<Scalar>(this->halfSize, this->fetiInfo->maxortho, this->fetiCom);
+   this->oSetGCR = new GenGCROrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom);
  }
  this->times.memoryOSet += memoryUsed();
 
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::rebuildKbb);
 
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::initScaling);
- if((this->fetiInfo->scaling == FetiInfo::kscaling) || ((this->fetiInfo->mpc_scaling == FetiInfo::kscaling) && (this->glNumMpc_primal > 0))
-    || (this->fetiInfo->augment == FetiInfo::WeightedEdges)) {
+ if((fetiInfo->scaling == FetiInfo::kscaling) || ((fetiInfo->mpc_scaling == FetiInfo::kscaling) && (this->glNumMpc_primal > 0))
+    || (fetiInfo->augment == FetiInfo::WeightedEdges)) {
    execParal(this->nsub, this, &GenFetiSolver<Scalar>::sendScale);
    this->vPat->exchange();
    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::collectScaling, this->vPat);
@@ -2964,7 +3150,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
 
  deleteCCt(); mpcPrecon = false;
  if(this->glNumMpc > 0) {
-   if(this->fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
+   if(fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
      FSCommPattern<Scalar> *mpcDiagPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU,
                                                                    FSCommPattern<Scalar>::CopyOnSend);
      for(iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setMpcDiagCommSize(mpcDiagPat);
@@ -2975,15 +3161,15 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
      delete mpcDiagPat;
    }
 
-   if(this->fetiInfo->c_normalize) normalizeC();
+   if(fetiInfo->c_normalize) normalizeC();
 
-   if(this->fetiInfo->mpc_precno == FetiInfo::diagCCt) {
+   if(fetiInfo->mpc_precno == FetiInfo::diagCCt) {
      // use W scaling for preconditioning mpcs, don't need to build & invert CC^t
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcScaling, this->vPat);
      this->vPat->exchange();  // neighboring subs mpc weights
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcScaling, this->vPat);
    }
-   else if(this->fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
+   else if(fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
      // used generalized proconditioner for mpcs, need to build and invert CC^t
      mpcPrecon = true;
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcScaling);
@@ -3024,13 +3210,13 @@ GenFetiDPSolver<Scalar>::checkStoppingCriteria(int iter, double error, double ff
   }
  
   // 2. check for convergence
-  if(sqrt(error) <= std::max(this->fetiInfo->tol*sqrt(ff), this->fetiInfo->absolute_tol)) {
+  if(sqrt(error) <= std::max(fetiInfo->tol*sqrt(ff), fetiInfo->absolute_tol)) {
     this->times.iterations[this->numSystems].stagnated = 0;
     return true;
   }
 
   // 3. check for stagnation
-  if(iter > 0 && (std::fabs(sqrt(error)-sqrt(lastError)) < std::max(this->fetiInfo->stagnation_tol*sqrt(lastError), this->fetiInfo->absolute_stagnation_tol))) {
+  if(iter > 0 && (std::fabs(sqrt(error)-sqrt(lastError)) < std::max(fetiInfo->stagnation_tol*sqrt(lastError), fetiInfo->absolute_stagnation_tol))) {
      this->times.iterations[this->numSystems].stagnated = 1;
      return true;
   }

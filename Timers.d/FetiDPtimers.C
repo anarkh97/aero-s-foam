@@ -10,7 +10,6 @@
 #include <Utils.d/Memory.h>
 #include <Comm.d/Communicator.h>
 #include <Utils.d/DistHelper.h>
-#include <Solvers.d/PCGSolver.h>
 #include <Driver.d/GeoSource.h>
 
 extern long totMemSparse;
@@ -382,7 +381,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
  filePrint(f,"5. Number of Multiple Point Constraints    = %14d\n\n", domain->getNumLMPC());
  filePrint(f,"6. Number of Output Files                  = %14d\n\n", geoSource->getNumOutInfo());
  filePrint(f,"7. Renumbering                             = %14s\n\n", renumMessage[sInfo.renum]);
- filePrint(f,"8. Sparse renumbering                      = %14s\n\n", sparseRenumMessage[sInfo.sparse_renum]);
+ filePrint(f,"8. Sparse renumbering                      = %14s\n\n", sparseRenumMessage[sInfo.solvercntl->sparse_renum]);
  if(domain->solInfo().doFreqSweep) {
    filePrint(f,"9. Number of Frequencies                   = %14d\n\n", domain->numFrequencies);
    filePrint(f,"10. Number of RHS solves                   = %14d\n\n", domain->solInfo().getSweepParams()->nFreqSweepRHS);
@@ -453,20 +452,20 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
 
  filePrint(f,"         %s", outerSolverMessage[sInfo.getFetiInfo().outerloop]);
 
- filePrint(f,"         %s", subSolverMessage[sInfo.getFetiInfo().solvertype]);
- filePrint(f,"         %s",precSolverMessage[sInfo.getFetiInfo().solvertype]);
- if((sInfo.getFetiInfo().gtgSolver==8)&&(sInfo.pivot))
+ filePrint(f,"         %s", subSolverMessage[sInfo.getFetiInfo().local_cntl->subtype]);
+ filePrint(f,"         %s", precSolverMessage[sInfo.getFetiInfo().local_cntl->subtype]);
+ if((sInfo.getFetiInfo().coarse_cntl->subtype==8)&&(sInfo.getFetiInfo().coarse_cntl->pivot))
    filePrint(f,"        %s%s",gtgType[sInfo.getFetiInfo().nonLocalQ],
-                         gtgSolverMessage[sInfo.getFetiInfo().gtgSolver+1]);
+                         gtgSolverMessage[sInfo.getFetiInfo().coarse_cntl->subtype+1]);
  else
    filePrint(f,"        %s%s",gtgType[sInfo.getFetiInfo().nonLocalQ],
-                           gtgSolverMessage[sInfo.getFetiInfo().gtgSolver]);
+                           gtgSolverMessage[sInfo.getFetiInfo().coarse_cntl->subtype]);
 
  if(sInfo.rbmflg == 0)
-   filePrint(f,"         %s %14.3e\n",rbmMessage[sInfo.rbmflg],sInfo.trbm);
+   filePrint(f,"         %s %14.3e\n",rbmMessage[sInfo.rbmflg],sInfo.solvercntl->trbm);
  else
    filePrint(f,"         %s%17e %e\n",rbmMessage[sInfo.rbmflg],
-                                    sInfo.tolsvd, sInfo.trbm);
+                                    sInfo.tolsvd, sInfo.solvercntl->trbm);
 
  filePrint(f,"         Maximum Number of Iterations      = %14d\n",
            sInfo.getFetiInfo().maxiter());
@@ -482,7 +481,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
    if(mpcflag == 1) {
      filePrint(f,"         %s", mpc_scalingMessage[sInfo.getFetiInfo().scaling-1]);
      filePrint(f,"         %s", mpcPrecnoMessage[sInfo.getFetiInfo().mpc_precno]);
-     filePrint(f,"         %s", mpcSolverMessage[sInfo.getFetiInfo().cctSolver]);
+     filePrint(f,"         %s", mpcSolverMessage[sInfo.getFetiInfo().cct_cntl->subtype]);
    }
    if(mpcflag == 2) {
      filePrint(f,"         %s", mpc_scalingMessage[sInfo.getFetiInfo().scaling-1]);
@@ -666,7 +665,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
  filePrint(f,"\nTOTAL SIMULATION (1+2+3+4+5+6)         time: %14.5f s %14.3f Mb\n",total/1000.0, totalMemSimulation*byteToMb);
 
  // Output FETI solver information
- if(sInfo.type == 2) {
+ if(sInfo.solvercntl->type == 2) {
    filePrint(f,"\n***********************************************************"
              "********************\n");
    if(domain->numContactPairs > 0)
@@ -715,10 +714,10 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
              timers.numEdges);
    }
 
-   if(sInfo.getFetiInfo().solvertype == 0)
+   if(sInfo.getFetiInfo().local_cntl->subtype == 0)
      filePrint(f,"7. Total Memory Subdomain Skyline K        = %14.3f Mb\n\n",
                8.0*totMemSky*byteToMb);
-   else if(sInfo.getFetiInfo().solvertype == 1)
+   else if(sInfo.getFetiInfo().local_cntl->subtype == 1)
      filePrint(f,"7. Total Memory Subdomain Sparse K         = %14.3f Mb\n\n",
                8.0*totMemSparse*byteToMb);
    else

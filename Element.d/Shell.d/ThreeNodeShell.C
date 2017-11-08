@@ -75,6 +75,7 @@ ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
                             double *ndTemps, double ylayer, double zlayer, int avgnum)
 {
 	weight = 1.0;
+  if(strInd == -1) return;
 
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
@@ -1025,7 +1026,7 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
 }
 
 void
-ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
+ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp, CoordSet &cs,
                                                    Vector &elDisp, int, int surface, double *ndTemps,
                                                    int avgnum, double, double)
 {
@@ -1050,6 +1051,7 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   Impl::andesvmsWRTdisp(glNum+1, prop->nu, x, y, z, elDisp.data(),
                         dStdDisp.getData(), 0, mat, surface, sflg,
                         ndTemps);
+  if(dDispDisp) dStdDisp ^= (*dDispDisp);
   delete mat;
 }
 #endif

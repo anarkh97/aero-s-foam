@@ -1000,8 +1000,10 @@ PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &v
   if(domain->solInfo().useMassNormalizedBasis && C == 0) {
     if(domain->solInfo().order == 1)
       rhs = -1.0*inc_displacement;
-    else
-      rhs = -(1-alpham)/(1-alphaf)*inc_displacement + dt*(1-alpham)*velocity + dt*dt*((1-alpham)/2-beta)*acceleration;
+    else {
+      if(domain->solInfo().quasistatic) rhs = 0.;
+      else rhs = -(1-alpham)/(1-alphaf)*inc_displacement + dt*(1-alpham)*velocity + dt*dt*((1-alpham)/2-beta)*acceleration;
+    }
   }
 #ifdef USE_EIGEN3
   else if(!domain->solInfo().useMassNormalizedBasis && domain->solInfo().modalDIMASS && C == 0) {

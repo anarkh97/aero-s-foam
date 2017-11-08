@@ -66,7 +66,7 @@ protected:
                         bool verboseFlag=true);
   void postProcessGlobal(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights, bool verboseFlag=true);
   void makePackedToInput(std::vector<int> &packedToInput);
-  void addContactElems(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights, std::vector<int> &packedToInput);
+  void addContactElems(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights);
   Domain *domain_;
 
   Corotator **corotators_;

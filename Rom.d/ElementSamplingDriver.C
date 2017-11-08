@@ -600,13 +600,13 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
     } 
     postProcessLocal(solution, packedToInput, j, sampleElemIds, weights[j]);
   }
-  addContactElems(sampleElemIds, weights, sampleElemIds);
+  addContactElems(sampleElemIds, weights);
   postProcessGlobal(sampleElemIds, weights);
 }
 
 template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights, std::vector<int> &packedToInput) {
+ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights) {
 
   // Add elements attached to Contact surfaces, needed for assigning mass to nodes in surface
   int numMC = domain->GetnMortarConds();
@@ -635,8 +635,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<in
             // loop through elements attached to node
             for(int j = 0; j < nodeToElem->num(glNode); ++j) {
               const int elemRank = (*nodeToElem)[glNode][j];
-              //const int elemRank = packedToInput[k];
-              //fprintf(stderr,"for node %d, element has rank = %d\n",glNode, elemRank);
               // check if element already in weighted set, if not, add to weights and reduced ElemIds; 
               if(std::find(sampleElemIds.begin(), sampleElemIds.end(), elemRank) == sampleElemIds.end()){
                 sampleElemIds.push_back(elemRank);

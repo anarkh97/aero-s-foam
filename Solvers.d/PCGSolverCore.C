@@ -11,7 +11,7 @@
 
 template<>
 void
-GenPCGSolver<double>::reSolve(GenVector<double>& rhs)
+GenPCGSolver<double>::reSolve(GenVector<double>& rhs) const
 {
   solveTime -= getTime();
   Vector sol(rhs.size());
@@ -137,7 +137,7 @@ GenPCGSolver<DComplex>::solve(ComplexVector &rhs, ComplexVector &solution)
 
 template<>
 void
-GenPCGSolver<double>::reSolve(double *rhs)
+GenPCGSolver<double>::reSolve(double *rhs) const
 {
   solveTime -= getTime();
   StackVector sol( rhs, A->dim() );
@@ -149,21 +149,21 @@ GenPCGSolver<double>::reSolve(double *rhs)
 
 template<>
 void
-GenPCGSolver<DComplex>::reSolve(DComplex *rhs)
+GenPCGSolver<DComplex>::reSolve(DComplex *rhs) const
 {
   fprintf(stderr, "GenPCGSolver<DComplex> is not implemented \n"); 
 }
 
 template<>
 void
-GenPCGSolver<DComplex>::reSolve(ComplexVector& rhs)
+GenPCGSolver<DComplex>::reSolve(ComplexVector& rhs) const
 {
   fprintf(stderr, "GenPCGSolver<DComplex> is not implemented \n"); 
 }
 
 template<>
 void
-GenPCGSolver<double>::reSolve(int nRHS, double **RHS)
+GenPCGSolver<double>::reSolve(int nRHS, double **RHS) const
 {
  solveTime -= getTime();
 
@@ -182,14 +182,14 @@ GenPCGSolver<double>::reSolve(int nRHS, double **RHS)
 
 template<>
 void
-GenPCGSolver<DComplex>::reSolve(int nRHS, DComplex **RHS)
+GenPCGSolver<DComplex>::reSolve(int nRHS, DComplex **RHS) const
 {
   fprintf(stderr, "GenPCGSolver<DComplex> is not implemented \n"); 
 }
 
 template<>
 void
-GenPCGSolver<double>::reSolve(int nRHS, Vector *RHS)
+GenPCGSolver<double>::reSolve(int nRHS, Vector *RHS) const
 {
  fprintf(stderr,"Begin pcg algorithm\n");
  solveTime -= getTime();
@@ -206,7 +206,7 @@ GenPCGSolver<double>::reSolve(int nRHS, Vector *RHS)
 
 template<>
 void
-GenPCGSolver<DComplex>::reSolve(int nRHS, ComplexVector *RHS)
+GenPCGSolver<DComplex>::reSolve(int nRHS, ComplexVector *RHS) const
 {
   fprintf(stderr, "GenPCGSolver<DComplex> is not implemented \n"); 
 }
@@ -255,14 +255,14 @@ GenPCGSolver<DComplex>::getRBMs(VectorSet& rigidBodyModes)
 
 template<>
 int
-GenPCGSolver<double>::neqs()
+GenPCGSolver<double>::neqs() const
 {
   return BasePCG<Vector,SparseMatrix,KrylovProjector,Preconditioner>::neqs();
 }
 
 template<>
 int
-GenPCGSolver<DComplex>::neqs()
+GenPCGSolver<DComplex>::neqs() const
 {
   fprintf(stderr, "GenPCGSolver<DComplex> is not implemented \n");
   return 0;

@@ -166,21 +166,21 @@ GenCuCSparse<Scalar>::doWeighting(int *weight)
 
 template<class Scalar>
 double
-GenCuCSparse<Scalar>::getMemoryUsed()
+GenCuCSparse<Scalar>::getMemoryUsed() const
 {
  return 8*xunonz[numConstrained]/(1024.0*1024.0);
 }
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+GenCuCSparse<Scalar>::multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
  multSubtract(rhs.data(),result.data());
 }
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multSubtract(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::multSubtract(const Scalar *rhs, Scalar *result) const
 {
  // mult multiplies a bc value vector by Kuc to
  // get an addition to the user-defined rhs vector.
@@ -198,14 +198,14 @@ GenCuCSparse<Scalar>::multSubtract(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+GenCuCSparse<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
  mult(rhs.data(),result.data());
 }
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::mult(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::mult(const Scalar *rhs, Scalar *result) const
 {
  for(int i=0; i<numRow(); ++i) result[i] = 0;
  int i, m, mstart, mstop;
@@ -220,7 +220,7 @@ GenCuCSparse<Scalar>::mult(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::transposeMult(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::transposeMult(const Scalar *rhs, Scalar *result) const
 {
  int i, m, mstart, mstop;
 
@@ -265,7 +265,7 @@ GenCuCSparse<Scalar>::add(FullSquareMatrix &kel, int *dofs)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multIdentity(Scalar **result)
+GenCuCSparse<Scalar>::multIdentity(Scalar **result) const
 {
  int dof,m;
  for(dof=0; dof<numConstrained; ++dof){
@@ -278,7 +278,7 @@ GenCuCSparse<Scalar>::multIdentity(Scalar **result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multIdentity(Scalar *result)
+GenCuCSparse<Scalar>::multIdentity(Scalar *result) const
 {
  int dof,m;
  for(dof=0; dof<numConstrained; ++dof){
@@ -291,7 +291,7 @@ GenCuCSparse<Scalar>::multIdentity(Scalar *result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multIdentity(Scalar **result, int start, int stop)
+GenCuCSparse<Scalar>::multIdentity(Scalar **result, int start, int stop) const
 {
  int dof,m;
  stop = (stop<0) ? numConstrained : stop;
@@ -312,7 +312,7 @@ GenCuCSparse<Scalar>::multIdentity(Scalar **result, int start, int stop)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multSub(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::multSub(const Scalar *rhs, Scalar *result) const
 {
   int i;
   for(i=0; i<numConstrained; ++i) {
@@ -326,7 +326,7 @@ GenCuCSparse<Scalar>::multSub(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::transposeMultSubtract(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::transposeMultSubtract(const Scalar *rhs, Scalar *result) const
 {
   int i;
   for(i=0; i<numConstrained; ++i) {
@@ -344,7 +344,7 @@ GenCuCSparse<Scalar>::transposeMultSubtract(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::transposeMultSubtractClaw(const Scalar *rhs, Scalar *result, int numUserDisp, int *clawdofs)  {
+GenCuCSparse<Scalar>::transposeMultSubtractClaw(const Scalar *rhs, Scalar *result, int numUserDisp, int *clawdofs) const {
 
   int i;
   for(i=0; i < numUserDisp; ++i) {
@@ -361,7 +361,7 @@ GenCuCSparse<Scalar>::transposeMultSubtractClaw(const Scalar *rhs, Scalar *resul
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multSub(int nRHS, Scalar **rhs, Scalar **result)
+GenCuCSparse<Scalar>::multSub(int nRHS, const Scalar **rhs, Scalar **result) const
 {
 
   int i,n=0;
@@ -396,7 +396,7 @@ GenCuCSparse<Scalar>::multSub(int nRHS, Scalar **rhs, Scalar **result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result) const
 {
   int i, m;
   for(i=0; i<numConstrained; ++i) {
@@ -411,7 +411,7 @@ GenCuCSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::transposeMultAdd(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::transposeMultAdd(const Scalar *rhs, Scalar *result) const
 {
   int i;
   for(i=0; i<numConstrained; ++i) {
@@ -466,7 +466,7 @@ GenCuCSparse<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
 
 template<class Scalar>
 long
-GenCuCSparse<Scalar>::size()
+GenCuCSparse<Scalar>::size() const
 {
   return ((xunonz) ? xunonz[numConstrained] : 0) ;
 }
@@ -517,7 +517,7 @@ GenCuCSparse<Scalar>::add(int dofi, int dofj, Scalar s)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multSubAdd(Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::multSubAdd(const Scalar *rhs, Scalar *result) const
 {
  int i, m, mstart, mstop;
 
@@ -534,7 +534,7 @@ GenCuCSparse<Scalar>::multSubAdd(Scalar *rhs, Scalar *result)
 // but i don't want to mess with them so I am writing my own versions to test & use
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multAddNew(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::multAddNew(const Scalar *rhs, Scalar *result) const
 {
  int i, m, mstart, mstop;
  for(i=0; i<numConstrained; ++i) {
@@ -548,7 +548,7 @@ GenCuCSparse<Scalar>::multAddNew(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::transposeMultNew(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::transposeMultNew(const Scalar *rhs, Scalar *result) const
 {
  int i, m, mstart, mstop;
  for(i = 0; i < numConstrained; i++) {
@@ -564,7 +564,7 @@ GenCuCSparse<Scalar>::transposeMultNew(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::transposeMultAddNew(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::transposeMultAddNew(const Scalar *rhs, Scalar *result) const
 {
  int i, m, mstart, mstop;
  for(i=0; i<numConstrained; ++i) {
@@ -577,7 +577,7 @@ GenCuCSparse<Scalar>::transposeMultAddNew(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::transposeMultSubNew(const Scalar *rhs, Scalar *result)
+GenCuCSparse<Scalar>::transposeMultSubNew(const Scalar *rhs, Scalar *result) const
 {
  int i, m, mstart, mstop;
  for(i=0; i<numConstrained; ++i) {
@@ -591,7 +591,7 @@ GenCuCSparse<Scalar>::transposeMultSubNew(const Scalar *rhs, Scalar *result)
 // y <- alpha.A.x + beta.y
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::mult(const Scalar *rhs, Scalar *result, Scalar alpha, Scalar beta)
+GenCuCSparse<Scalar>::mult(const Scalar *rhs, Scalar *result, Scalar alpha, Scalar beta) const
 {
  int i, m, mstart, mstop;
  if(beta!=1.0)
@@ -611,7 +611,7 @@ GenCuCSparse<Scalar>::mult(const Scalar *rhs, Scalar *result, Scalar alpha, Scal
 // y <- alpha.A^t.x + beta.y
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::trMult(const Scalar *rhs, Scalar *result, Scalar alpha, Scalar beta)
+GenCuCSparse<Scalar>::trMult(const Scalar *rhs, Scalar *result, Scalar alpha, Scalar beta) const
 {
  int i, m, mstart, mstop;
  if(beta!=1.0)

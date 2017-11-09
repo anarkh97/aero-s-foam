@@ -85,7 +85,7 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    void unify(FSCommunicator *);
    void factor();
 
-   void solve(Scalar *rhs, Scalar *solution);
+   void solve(const Scalar *rhs, Scalar *solution);
    void reSolve(Scalar *rhs);
    void reSolve(int nRHS, Scalar *rhs);
    void reSolve(int nRHS, Scalar **rhs);
@@ -94,10 +94,10 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
 
    void mult(const Scalar *rhs, Scalar *result);
 
-   int dim() { return neq; }
-   int neqs() { return neq; }
+   int dim() const { return neq; }
+   int neqs() const { return neq; }
    long size();
-   int numRBM() { return nrbm; }
+   int numRBM() const { return nrbm; }
    void getRBMs(Vector *rbms);
    void getRBMs(VectorSet& rbms);
    int* getPivnull_list();

@@ -67,8 +67,8 @@ public:
   GenDBSparsePodProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa);
 
   // Pure virtual function implementations
-  virtual long size();
-  virtual int neqs();
+  virtual long size() const;
+  virtual int neqs() const;
 
   // Local bases
   void setLocalBasis(int startCol, int blockCols) {
@@ -162,13 +162,13 @@ GenDBSparsePodProjectionSolver<Scalar>::GenDBSparsePodProjectionSolver(Connectiv
 
 template <typename Scalar>
 long
-GenDBSparsePodProjectionSolver<Scalar>::size() {
+GenDBSparsePodProjectionSolver<Scalar>::size() const {
   return GenDBSparseMatrix<Scalar>::size();
 }
 
 template <typename Scalar>
 int
-GenDBSparsePodProjectionSolver<Scalar>::neqs() {
+GenDBSparsePodProjectionSolver<Scalar>::neqs() const {
   return GenDBSparseMatrix<Scalar>::neqs();
 }
 

@@ -86,9 +86,9 @@ protected:
 	GenSolver<Scalar> *singleCoarseSolver;
 	double epsilon2;
 	int maxiter;
-	GenCGOrthoSet<Scalar> *oSetCG;
-	GenGMRESOrthoSet<Scalar> *oSetGMRES;
-	GenGCROrthoSet<Scalar> *oSetGCR;
+	mutable GenCGOrthoSet<Scalar> *oSetCG; // Workspace
+	mutable GenGMRESOrthoSet<Scalar> *oSetGMRES;
+	mutable GenGCROrthoSet<Scalar> *oSetGCR;
 	int numP;
 	int numrbms, halfSize; // number of  rbms, half interface size
 	int glNumRBM;
@@ -100,15 +100,15 @@ protected:
 	int crns; // sum of corner lambdas of all subdomains
 	TaskDescr **fetiTasks;
 	GenFetiOp<Scalar> **fetiOps;
-	GenFetiOpControler<Scalar> *opControl;
+	mutable GenFetiOpControler<Scalar> *opControl;
 	GenSolver<Scalar> *GtGsolver;
 	GenBigMatrix<Scalar> *PCtFPC;
 	GenFetiWorkSpace<Scalar> *wksp;
 	int QGisLocal;  // Whether or not QG is local
 	int isDynamic;  // Whether or not we are in dynamics
 	int isFeti2;    // Whether or not we are using FETI2
-	int numSystems; // Nonlinear additions
-	Timings times;
+	mutable int numSystems; // Nonlinear additions
+	mutable Timings times;
 	GenSymFullMatrix<Scalar> *GtQGs;
 	GenFullM<Scalar> *GtFCs;
 	Scalar *gtqglocal;
@@ -139,11 +139,11 @@ protected:
 	int  collectIntGlobalSum();
 	void subRgcMult(int i, int nThreads, GenVector<Scalar>* alpha, GenVector<Scalar>* result);
 	void subRgcTransMult(int i, int nThreads, GenVector<Scalar>* alpha, GenVector<Scalar>* result);
-	void fSend(int i,  GenDistrVector<Scalar> &);
-	void fScale(int i, GenDistrVector<Scalar> &);
+	void fSend(int i,  GenDistrVector<Scalar> &) const;
+	void fScale(int i, GenDistrVector<Scalar> &) const;
 	void fSplit(int iSub, GenDistrVector<Scalar> &force);
-	void fSendCoupled(int iSub, GenDistrVector<Scalar> &force, GenDistrVector<Scalar> &fw);
-	void fScaleCoupled(int iSub, GenDistrVector<Scalar> &force, GenDistrVector<Scalar> &fw);
+	void fSendCoupled(int iSub, GenDistrVector<Scalar> &force, GenDistrVector<Scalar> &fw) const;
+	void fScaleCoupled(int iSub, GenDistrVector<Scalar> &force, GenDistrVector<Scalar> &fw) const;
 
 	// Routines to create the single coarse problem
 	void makeGandFG();
@@ -156,7 +156,7 @@ protected:
 	Connectivity * makeSingleConnect(Connectivity *coarseConnect,
 	                                 Connectivity *coarseToSub,
 	                                 Connectivity *subToCoarse, int gOffset);
-	void singleCoarseSolve(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
+	void singleCoarseSolve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &u) const;
 	void setAllOffsets(int iSub, int gOffset);
 	void getSRMult(int iSub, GenDistrVector<Scalar> *r, GenDistrVector<Scalar> *lambda,
 	               Scalar *alpha);
@@ -164,10 +164,10 @@ protected:
 	void getSCtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv);
 	void getSQtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv);
 	void getFGMult(int iSub, GenDistrVector<Scalar> *r, Scalar *alpha);
-	void addG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv);
-	void addSG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv);
-	void addGs(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w, GenVector<Scalar> &);
-	void singlePr(GenDistrVector<Scalar> &y, GenDistrVector<Scalar> &p, GenVector<Scalar> &);
+	void addG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const;
+	void addSG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const;
+	void addGs(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w, GenVector<Scalar> &) const;
+	void singlePr(GenDistrVector<Scalar> &y, GenDistrVector<Scalar> &p, GenVector<Scalar> &) const;
 	void addMpcRhs(int iMPC, Scalar *singleC);
 	void preprocessMPCs(int iSub);
 	// corner preprocessing
@@ -196,26 +196,26 @@ public:
 	void sendScale(int isub);
 	void collectScale(int isub);
 	void getErrorEstimator(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &es);
-	void interfaceDiff(int iSub, GenDistrVector<Scalar> &v);
+	void interfaceDiff(int iSub, GenDistrVector<Scalar> &v) const;
 	void rebuildInterface(int iSub, GenDistrVector<Scalar> &v);
-	void multKbb(int iSub, GenDistrVector<Scalar>& v, GenDistrVector<Scalar> &interfvec,
-	             GenDistrVector<Scalar>& deltaU, GenDistrVector<Scalar> &deltaF, bool &errorFlag);
+	void multKbb(int iSub, const GenDistrVector<Scalar>& v, GenDistrVector<Scalar> &interfvec,
+	             GenDistrVector<Scalar>& deltaU, GenDistrVector<Scalar> &deltaF, bool &errorFlag) const;
 	void localSolve(int iSub, GenDistrVector<Scalar> &v1, GenDistrVector<Scalar> &v2,
-	                GenDistrVector<Scalar> &v3, GenDistrVector<Scalar> &v4);
+	                GenDistrVector<Scalar> &v3, GenDistrVector<Scalar> &v4) const;
 	void localSolve2(int iSub, GenDistrVector<Scalar> *v1, GenDistrVector<Scalar> *v2,
 	                 GenVector<Scalar> *beta, GenDistrVector<Scalar> *v3,
-	                 GenDistrVector<Scalar> *v4);
+	                 GenDistrVector<Scalar> *v4) const;
 	void interfSend(int iSub, GenDistrVector<Scalar> &dv1);
 	//void interfDiff(int iSub, GenDistrVector<Scalar> &dv1);
-	void interfDiffAndDot(int iSub, GenDistrVector<Scalar> &dv1, GenDistrVector<Scalar> &dv2);
+	void interfDiffAndDot(int iSub, GenDistrVector<Scalar> &dv1, GenDistrVector<Scalar> &dv2) const;
 	void getRMult(int iSub, GenDistrVector<Scalar> *localvec, Scalar *alpha);
 	void getGtMult(int iSub, GenDistrVector<Scalar> *localvec, Scalar *alpha);
 	void addRP(int iSub, GenDistrVector<Scalar> * localvec, Scalar *alpha);
 	void addRS(int iSub, GenDistrVector<Scalar> * localvec, Scalar *alpha);
-	virtual void solve(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
-	void distributeForce(GenDistrVector<Scalar> &force);
-	void distributeForce(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fw);
-	void reSolve(GenDistrVector<Scalar> &);
+	void solve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &x) override;
+	void distributeForce(GenDistrVector<Scalar> &force) const;
+	void distributeForce(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fw) const;
+	void reSolve(GenDistrVector<Scalar> &) override;
 	Timings& getTimers() { return times; }
 	void makeRbmPat();
 	void makeSingleIntPat();
@@ -226,36 +226,36 @@ public:
 	void reBuildMatrices(int isub, FullSquareMatrix **kel);
 	void reBuildErrorEstimator(GenFullSquareMatrix<Scalar> **kel);
 	void subdomainReBuild(int isub, FullSquareMatrix **kel, DistrGeomState *gs);
-	int nlPreCondition(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
-	double getSolutionTime() { return times.solve; }
+	int nlPreCondition(const GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &Pr) const;
+	double getSolutionTime() override { return times.solve; }
 	void reSendInterfaceRBM(int iSub);
 	void reGetNeighbQGs(int iSub);
 	void reMakeLocalFcoarse();
 	void reGetNeighbFC(int iSub);
 	void reComputeFiBC(int iSub);
-	void makeCompatible(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &deltaU);
+	void makeCompatible(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &deltaU) const;
 	Scalar localSolveAndJump(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &,
-	                         GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
+	                         GenDistrVector<Scalar> &, GenDistrVector<Scalar> &) const;
 	Scalar localSolveAndJump(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &,
 	                         GenVector<Scalar> &, GenDistrVector<Scalar> &,
-	                         GenDistrVector<Scalar> &);
-	void project(GenDistrVector<Scalar> &, GenVector<Scalar> &, GenDistrVector<Scalar> &, int isDirect = 1);
-	void tProject(GenDistrVector<Scalar> &, GenVector<Scalar> &, GenDistrVector<Scalar> &, int isDirect = 1);
+	                         GenDistrVector<Scalar> &) const;
+	void project(GenDistrVector<Scalar> &, GenVector<Scalar> &, GenDistrVector<Scalar> &, int isDirect = 1) const;
+	void tProject(GenDistrVector<Scalar> &, GenVector<Scalar> &, GenDistrVector<Scalar> &, int isDirect = 1) const;
 	void computeDynamL0(GenDistrVector<Scalar> &, GenVector<Scalar> &,
-	                    GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
-	void computeL0(GenDistrVector<Scalar> &, GenVector<Scalar> &, GenDistrVector<Scalar> &);
+	                    GenDistrVector<Scalar> &, GenDistrVector<Scalar> &) const;
+	void computeL0(GenDistrVector<Scalar> &, GenVector<Scalar> &, GenDistrVector<Scalar> &) const;
 	void computeL0(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &, GenDistrVector<Scalar> &,
-	               GenVector<Scalar> &, GenDistrVector<Scalar> &);
-	void addR(GenDistrVector<Scalar> &, GenVector<Scalar> &);
-	void addRSingle(GenDistrVector<Scalar> &, GenVector<Scalar> &);
-	void outputPrimalResidual(int iter, GenDistrVector<Scalar> &deltaF);
+	               GenVector<Scalar> &, GenDistrVector<Scalar> &) const;
+	void addR(GenDistrVector<Scalar> &, GenVector<Scalar> &) const;
+	void addRSingle(GenDistrVector<Scalar> &, GenVector<Scalar> &) const;
+	void outputPrimalResidual(int iter, GenDistrVector<Scalar> &deltaF) const;
 
 	// preconditioner returns the error estimator
-	double preCondition(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Pv, bool errorFlag = true);
+	double preCondition(const GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Pv, bool errorFlag = true) const;
 
 	void resetOrthoSet();
-	void orthoAddCG(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &Fp, Scalar pFp);
-	void orthogonalize(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
+	void orthoAddCG(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &Fp, Scalar pFp) const;
+	void orthogonalize(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &) const;
 
 	// GMRES functions
 	void initGMRES(GenDistrVector<Scalar> &p);
@@ -268,7 +268,13 @@ public:
 	                      GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &Fp);
 	void orthoAddGCR(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &Fp, Scalar FpFp);
 
-	int predict(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
+	/** \brief Create a guess for lambda0.
+	 *
+	 * @param r RHS for which a guess is desired.
+	 * @param lambda0 The best guess lambda.
+	 * @return Whether a prediction was made.
+	 */
+	bool predict(const GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &lambda0) const;
 
 	DistrInfo &interfInfo() { return interface; }
 	DistrInfo &localInfo()  { return internalDI; }
@@ -277,37 +283,37 @@ public:
 
 	void updateFeti2lambda(GenDistrVector<Scalar> &, GenDistrVector<Scalar>&,
 	                       GenDistrVector<Scalar> &,
-	                       GenVector<Scalar>&, GenVector<Scalar>&);
+	                       GenVector<Scalar>&, GenVector<Scalar>&) const;
 	void updateFeti2y(GenDistrVector<Scalar> &, GenDistrVector<Scalar>&,
-	                  GenVector<Scalar>&, GenVector<Scalar>&);
-	void computeRgcTransMult(GenVector<Scalar>&, GenVector<Scalar>&);
-	void computeRgcMult(GenVector<Scalar>&, GenVector<Scalar>&);
-	void updateFeti2Vector(GenDistrVector<Scalar> &, GenVector<Scalar>&, GenVector<Scalar>&);
+	                  GenVector<Scalar>&, GenVector<Scalar>&) const;
+	void computeRgcTransMult(GenVector<Scalar>&, GenVector<Scalar>&) const;
+	void computeRgcMult(GenVector<Scalar>& beta, GenVector<Scalar>& result) const;
+	void updateFeti2Vector(GenDistrVector<Scalar> &, GenVector<Scalar>&, GenVector<Scalar>&) const;
 
 	void addAllFcoarse(GenFullM<Scalar> &);
 	void finishRgc(int, int);
 
-	void getCtMult(GenDistrVector<Scalar> &w, GenVector<Scalar> &gamma);
+	void getCtMult(GenDistrVector<Scalar> &w, GenVector<Scalar> &gamma) const;
 
-	void scatterHalfInterface(int iSub, Scalar *v1, GenDistrVector<Scalar> *v2);
-	void gatherHalfInterface(int iSub, GenDistrVector<Scalar> *v1,
-	                         GenDistrVector<Scalar> *v2,
-	                         Scalar *v3, Scalar *v4);
+	void scatterHalfInterface(int iSub, Scalar *v1, GenDistrVector<Scalar> *v2) const;
+	void gatherHalfInterface(int iSub, const GenDistrVector<Scalar> *v1,
+	                         const GenDistrVector<Scalar> *v2,
+	                         Scalar *v3, Scalar *v4) const;
 
-	void setAndStoreInfo(int iter, double finalPrimal2, double finalDual2 );
+	void setAndStoreInfo(int iter, double finalPrimal2, double finalDual2 ) const;
 	void findProfileSizes(int iSub, int *subSizes);
 
 	// For eigen problem
-	virtual int numRBM();
+	virtual int numRBM() override;
 	virtual void getRBMs(GenDistrVectorSet<Scalar> &);
 	virtual void getRBMs(Scalar *);
 	void Ksolve(int iSub, GenStackDistVector<Scalar> &R);
 
-	int halfOffset(int iSub)      { return fetiOps[iSub]->halfOffset; }
-	int numNeighbor(int iSub);
+	int halfOffset(int iSub) const { return fetiOps[iSub]->halfOffset; }
+	int numNeighbor(int iSub) const;
 	Scalar *interfaceBuffer(int iSub) { return fetiOps[iSub]->interfBuff; }
 	virtual void clean_up();
-	double getFNormSq(GenDistrVector<Scalar> &f);
+	double getFNormSq(GenDistrVector<Scalar> &f) override;
 
 	virtual void getLocalMpcForces(int iSub, double *mpcLambda) { };  // only implemented for DP
 
@@ -354,23 +360,33 @@ public:
 	void makeKcc();
 	void deleteKcc() { /* not implemented */ };
 	void setSysMatrices(GenSolver<Scalar> **sysMatrices, GenSparseMatrix<Scalar> **sysMat) { /* not implemented */ };
-	void assembleFcStar(GenVector<Scalar> &FcStar);
+	void assembleFcStar(GenVector<Scalar> &FcStar) const;
 	void mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Scalar> &uc, GenDistrVector<Scalar> &u,
-	                   GenDistrVector<Scalar> &lambda);
+	                   GenDistrVector<Scalar> &lambda) const;
 	void mergeUr(int iSub, GenDistrVector<Scalar> &ur, GenVector<Scalar> &uc, GenDistrVector<Scalar> &u,
-	             GenDistrVector<Scalar> &lambda);
-	void multKrc(int iSub, GenDistrVector<Scalar> &fr, GenVector<Scalar> &uc);
-	void extractFr(int iSub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fr);
-	void extractFc(int iSub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fc);
-	void extractFw(int iSub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fw);
-	void getFc(GenDistrVector<Scalar> &f, GenVector<Scalar> &fc);
+	             GenDistrVector<Scalar> &lambda) const;
+	/** \brief Compute \f$ f_r = K_{rc} u_c \f$ for subdomain iSub */
+	void multKrc(int iSub, GenDistrVector<Scalar> &fr, const GenVector<Scalar> &uc) const;
+	void extractFr(int iSub, const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fr) const;
+	void extractFc(int iSub, const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fc) const;
+	void extractFw(int iSub, const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fw) const;
+	void getFc(const GenDistrVector<Scalar> &f, GenVector<Scalar> &fc) const;
 	void makeEdgeConnectivity();
-	void countEdges(int iSub, int *edges);
+	void countEdges(int iSub, int *edges) const;
 	void numberEdges(int iSub, int *eP, int *ep2, int *edges, FSCommPattern<int> *sPat);
 	void receiveNeighbEdgeNums(int iSub, int *eP, int *edges, FSCommPattern<int> *sPat);
 	void factorLocalMatrices(int isub);
-	double extractForceVectors(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fr, GenVector<Scalar> &fc, GenDistrVector<Scalar> &fw);
-	void printSummary(int iter);
+	/** \brief Extract vector, modifies f.
+	 *
+	 * @param f
+	 * @param fr
+	 * @param fc
+	 * @param fw
+	 * @return
+	 */
+	double extractForceVectors(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fr,
+	                           GenVector<Scalar> &fc, GenDistrVector<Scalar> &fw) const;
+	void printSummary(int iter) const;
 	double getFNormSq(GenDistrVector<Scalar> &f);
 	void getRBMs(Scalar *);
 	void getRBMs(GenDistrVectorSet<Scalar> &);
@@ -379,44 +395,46 @@ public:
 	void clean_up();
 	void subdomainSolve(int iSub, GenDistrVector<Scalar> &v1, GenDistrVector<Scalar> &v2,
 	                    GenDistrVector<Scalar> &v3, GenDistrVector<Scalar> &v4,
-	                    GenVector<Scalar> &v5);
+	                    GenVector<Scalar> &v5) const;
 	void subdomainSolveCoupled1(int iSub, GenDistrVector<Scalar> &v1, GenDistrVector<Scalar> &v2,
 	                            GenDistrVector<Scalar> &v3, GenDistrVector<Scalar> &v4,
-	                            GenVector<Scalar> &v5);
+	                            GenVector<Scalar> &v5) const;
 	void subdomainSolveCoupled2(int iSub, GenDistrVector<Scalar> &v1, GenDistrVector<Scalar> &v2,
 	                            GenDistrVector<Scalar> &v3, GenDistrVector<Scalar> &v4,
-	                            GenVector<Scalar> &v5, GenDistrVector<Scalar> &fw);
-	void subdomainSolveCoupled2(int iSub, GenDistrVector<Scalar> &v1, GenDistrVector<Scalar> &v2,
+	                            GenVector<Scalar> &v5, GenDistrVector<Scalar> &fw) const;
+	void subdomainSolveCoupled2b(int iSub, GenDistrVector<Scalar> &v1, GenDistrVector<Scalar> &v2,
 	                            GenDistrVector<Scalar> &v3, GenDistrVector<Scalar> &v4,
-	                            GenVector<Scalar> &v5);
+	                            GenVector<Scalar> &v5) const;
 	void localSolveAndJump(GenDistrVector<Scalar> &fr, GenDistrVector<Scalar> &lambda,
 	                       GenDistrVector<Scalar> &ur, GenVector<Scalar> &fc,
 	                       GenVector<Scalar> &uc, GenDistrVector<Scalar> &r,
-	                       GenDistrVector<Scalar> &fw);
+	                       GenDistrVector<Scalar> &fw) const;
 	Scalar localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &dur,
-	                         GenVector<Scalar> &duc, GenDistrVector<Scalar> &Fp);
-	void solve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u);
-	void solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u);
-	void solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u);
-	void solveGCR(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u);
-	double preCondition(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Pv, bool errorFlag = true);
+	                         GenVector<Scalar> &duc, GenDistrVector<Scalar> &Fp) const;
+	void solve(const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u);
+	void solveCG(const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u);
+	void solveGMRES(const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u);
+	void solveGCR(const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u);
+	double preCondition(const GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Pv, bool errorFlag = true) const;
 
 	void subtractMpcRhs(int iSub, GenDistrVector<Scalar> &dv1);
 	bool updateActiveSet(GenDistrVector<Scalar> &v, int flag, double tol = 0.0);
 	void subUpdateActiveSet(int iSub, GenDistrVector<Scalar> &v, double tol, int flag, bool *statusChange);
 	void subRecvMpcStatus(int iSub, FSCommPattern<int> *mpcPat, int flag, bool *statusChange);
 
-	void projectActiveIneq(GenDistrVector<Scalar> &x, GenDistrVector<Scalar> &y);
-	void subProjectActiveIneq(int iSub, GenDistrVector<Scalar> &v);
+	void projectActiveIneq(const GenDistrVector<Scalar> &x, GenDistrVector<Scalar> &y) const;
+	void subProjectActiveIneq(int iSub, GenDistrVector<Scalar> &v) const;
 	void split(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_f, GenDistrVector<Scalar> &v_c);
-	void update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &Fp,
-	            GenDistrVector<Scalar> &ur, GenDistrVector<Scalar> &dur, GenVector<Scalar> &uc, GenVector<Scalar> &duc);
-	void saveStep();
-	void restoreStep();
+	void update(Scalar nu, GenDistrVector<Scalar> &lambda,
+	            GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &Fp,
+	            GenDistrVector<Scalar> &ur, GenDistrVector<Scalar> &dur,
+	            GenVector<Scalar> &uc, GenVector<Scalar> &duc) const;
+	void saveStep() const;
+	void restoreStep() const;
 
 private:
 	bool globalFlagCtc;
-	double t7;
+	mutable double t7;
 	int *ngrbmGr;
 	int nGroups, nGroups1;
 	int *groups;
@@ -424,9 +442,10 @@ private:
 	GenSolver<Scalar> *GtGtilda;
 	GenSparseMatrix<Scalar> *GtGsparse;
 	Connectivity *subToBody;
-	int nSubIterDual, nSubIterPrimal, nMatVecProd, nRebuildGtG, nRebuildCCt;
-	int nLinesearch, nLinesearchIter, nStatChDual, nStatChPrimal;
-	bool dualStatusChange, primalStatusChange, stepLengthChange;
+	/// Statistic variables.
+	mutable int nSubIterDual, nSubIterPrimal, nMatVecProd, nRebuildGtG, nRebuildCCt;
+	mutable int nLinesearch, nLinesearchIter, nStatChDual, nStatChPrimal;
+	mutable bool dualStatusChange, primalStatusChange, stepLengthChange;
 	int ngrbms;
 	Connectivity *coarseConnectGtG;
 	SimpleNumberer *eqNumsGtG;
@@ -441,7 +460,7 @@ private:
 	int *mpcSubMap;
 	void singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow, int &rank, double tol, FullM *V = 0);
 	FSCommPattern<int> *mpcPat;
-	double lastError;
+	mutable double lastError;
 
 	// Contact functions
 public:
@@ -450,26 +469,26 @@ public:
 	void trMultC(GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f);
 	void multC(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu);
 private:
-	void makeE(GenDistrVector<Scalar> &f);
+	void makeE(GenDistrVector<Scalar> &f) const; // Modifies the workspace.
 	void assembleE(int iGroup, GenVector<Scalar> &e, GenDistrVector<Scalar> &f);
 	void assembleGtG(int iGroup);
 	void rebuildGtGtilda();
-	void computeL0(GenDistrVector<Scalar> &lambda0, GenDistrVector<Scalar> &f);
+	void computeL0(GenDistrVector<Scalar> &lambda0, GenDistrVector<Scalar> &f) const;
 	void normalizeC();
 	void subTrMultC(int iSub, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f);
 	void subMultC(int iSub, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu);
 	double computeFNorm();
-	void project(GenDistrVector<Scalar> &z, GenDistrVector<Scalar> &y, int eflag = 0);
-	double tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w);
-	void multG(GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, double beta);
-	void subMultG(int iSub, GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha);
-	void trMultG(GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, double beta);
-	void subTrMultG(int iGroup, GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha);
-	void addRalpha(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &alpha);
-	void computeProjectedDisplacement(GenDistrVector<Scalar> &u);
-	void addRstar_gT(int iGroup, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta);
-	void subtractRstar_g(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta);
-	bool checkStoppingCriteria(int iter, double error, double fnorm);
+	void project(GenDistrVector<Scalar> &z, GenDistrVector<Scalar> &y, int eflag = 0) const;
+	double tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w) const;
+	void multG(const GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, double beta) const;
+	void subMultG(int iSub, const GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha) const;
+	void trMultG(const GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, double beta) const;
+	void subTrMultG(int iGroup, const GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha) const;
+	void addRalpha(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &alpha) const;
+	void computeProjectedDisplacement(GenDistrVector<Scalar> &u) const;
+	void addRstar_gT(int iGroup, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta) const;
+	void subtractRstar_g(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta) const;
+	bool checkStoppingCriteria(int iter, double error, double fnorm) const;
 
 	// MPC & WI functions
 public:
@@ -477,7 +496,7 @@ public:
 	void rebuildCCt();
 	void deleteCCt() { if(CCtsolver) delete CCtsolver; CCtsolver = 0; }
 	Connectivity * getBlockToMpc();
-	void cctSolveMpc(GenDistrVector<Scalar> &v);
+	void cctSolveMpc(GenDistrVector<Scalar> &v) const;
 	void getLocalMpcForces(int iSub, double *mpcLambda);
 private:
 	void setBodyRBMoffset(int iSub, int *zColOffset);

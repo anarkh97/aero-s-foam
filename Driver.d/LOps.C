@@ -14,7 +14,7 @@ GenSubDomain<Scalar>::makeLocalToGlobalDofMap()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multAddLT(Scalar *localvec, Scalar *globalvec)
+GenSubDomain<Scalar>::multAddLT(const Scalar *localvec, Scalar *globalvec)
 {
   // globalvec += L^T * localvec
   if(!l2g) makeLocalToGlobalDofMap();
@@ -24,7 +24,7 @@ GenSubDomain<Scalar>::multAddLT(Scalar *localvec, Scalar *globalvec)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multAddLinv(Scalar *localvec, Scalar *globalvec)
+GenSubDomain<Scalar>::multAddLinv(const Scalar *localvec, Scalar *globalvec)
 {
   // globalvec += L^{-1} * localvec
   if(!l2g) makeLocalToGlobalDofMap();
@@ -34,7 +34,7 @@ GenSubDomain<Scalar>::multAddLinv(Scalar *localvec, Scalar *globalvec)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multLTinv(Scalar *globalvec, Scalar *localvec)
+GenSubDomain<Scalar>::multLTinv(const Scalar *globalvec, Scalar *localvec)
 {
   // localvec = L^{-T} * globalvec
   if(!l2g) makeLocalToGlobalDofMap();
@@ -44,7 +44,7 @@ GenSubDomain<Scalar>::multLTinv(Scalar *globalvec, Scalar *localvec)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multL(Scalar *globalvec, Scalar *localvec)
+GenSubDomain<Scalar>::multL(const Scalar *globalvec, Scalar *localvec)
 {
   // localvec = L * globalvec
   if(!l2g) makeLocalToGlobalDofMap();

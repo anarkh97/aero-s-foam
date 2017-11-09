@@ -8,8 +8,8 @@
 
 class VecOpComplex : public TaskDescr {
      DistrComplexVector *v1;
-     DistrComplexVector *v2;
-     DistrComplexVector *v3;
+     const DistrComplexVector *v2;
+     const DistrComplexVector *v3;
      DComplex *res;
      DComplex c;
      DComplex c1;
@@ -17,24 +17,24 @@ class VecOpComplex : public TaskDescr {
      void (VecOpComplex::*f)(int);
    public:
      VecOpComplex(void (VecOpComplex::*_f)(int),
-          DistrComplexVector *_v1, DistrComplexVector *_v2=0);
+          DistrComplexVector *_v1, const DistrComplexVector *_v2=0);
 
      VecOpComplex(void (VecOpComplex::*_f)(int), 
-          DistrComplexVector *_v1, DistrComplexVector *_v2, DComplex c);
+          DistrComplexVector *_v1, const DistrComplexVector *_v2, DComplex c);
 
      VecOpComplex(void (VecOpComplex::*_f)(int),
           DistrComplexVector *_v1, DComplex c);
 
      VecOpComplex(void (VecOpComplex::*_f)(int), 
-          DistrComplexVector *_v1, DistrComplexVector *_v2, DComplex *rc);
+          DistrComplexVector *_v1, const DistrComplexVector *_v2, DComplex *rc);
 
      VecOpComplex(void (VecOpComplex::*_f)(int),
-          DistrComplexVector *_v1, DistrComplexVector *_v2, DComplex c,  
-          DistrComplexVector *_v3);
+          DistrComplexVector *_v1, const DistrComplexVector *_v2, DComplex c,
+          const DistrComplexVector *_v3);
 
      VecOpComplex(void (VecOpComplex::*_f)(int),
-          DistrComplexVector *_v1, DComplex c1, DistrComplexVector *_v2, 
-          DComplex c2,  DistrComplexVector *_v3);
+          DistrComplexVector *_v1, DComplex c1, const DistrComplexVector *_v2,
+          DComplex c2,  const DistrComplexVector *_v3);
 
      void alloc(int);
      void dotR(int);
@@ -54,7 +54,7 @@ class VecOpComplex : public TaskDescr {
 
 
 VecOpComplex::VecOpComplex(void (VecOpComplex::*_f)(int), 
-              DistrComplexVector *_v1, DistrComplexVector *_v2)
+              DistrComplexVector *_v1, const DistrComplexVector *_v2)
 {
  f = _f;
  v1 = _v1;
@@ -63,7 +63,7 @@ VecOpComplex::VecOpComplex(void (VecOpComplex::*_f)(int),
 
 
 VecOpComplex::VecOpComplex(void (VecOpComplex::*_f)(int), 
-              DistrComplexVector *_v1, DistrComplexVector *_v2, DComplex _c)
+              DistrComplexVector *_v1, const DistrComplexVector *_v2, DComplex _c)
 {
  f = _f;
  v1 = _v1;
@@ -82,8 +82,8 @@ VecOpComplex::VecOpComplex(void (VecOpComplex::*_f)(int),
 
 
 VecOpComplex::VecOpComplex(void (VecOpComplex::*_f)(int), 
-              DistrComplexVector *_v1, DistrComplexVector *_v2,
-              DComplex _c, DistrComplexVector *_v3)
+              DistrComplexVector *_v1, const DistrComplexVector *_v2,
+              DComplex _c, const DistrComplexVector *_v3)
 {
  f = _f;
  v1 = _v1;
@@ -94,8 +94,8 @@ VecOpComplex::VecOpComplex(void (VecOpComplex::*_f)(int),
 
 
 VecOpComplex::VecOpComplex(void (VecOpComplex::*_f)(int), 
-              DistrComplexVector *_v1, DComplex _c1, DistrComplexVector *_v2, 
-              DComplex _c2, DistrComplexVector *_v3)
+              DistrComplexVector *_v1, DComplex _c1, const DistrComplexVector *_v2,
+              DComplex _c2, const DistrComplexVector *_v3)
 {
  f = _f;
  v1 = _v1;
@@ -107,7 +107,7 @@ VecOpComplex::VecOpComplex(void (VecOpComplex::*_f)(int),
 
 
 VecOpComplex::VecOpComplex(void (VecOpComplex::*_f)(int), 
-              DistrComplexVector *_v1, DistrComplexVector *_v2,
+              DistrComplexVector *_v1, const DistrComplexVector *_v2,
               DComplex *_r)
 {
  f = _f;
@@ -120,8 +120,8 @@ VecOpComplex::VecOpComplex(void (VecOpComplex::*_f)(int),
 void
 VecOpComplex::dotR(int threadNum)
 {
- DComplex *d1 = v1->threadData(threadNum);
- DComplex *d2 = v2->threadData(threadNum);
+ const DComplex *d1 = v1->threadData(threadNum);
+ const DComplex *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  DComplex r = DComplex(0.0, 0.0);
  for(int i = 0; i < len; ++i)
@@ -133,8 +133,8 @@ VecOpComplex::dotR(int threadNum)
 void
 VecOpComplex::dotC(int threadNum)
 {
- DComplex *d1 = v1->threadData(threadNum);
- DComplex *d2 = v2->threadData(threadNum);
+ const DComplex *d1 = v1->threadData(threadNum);
+ const DComplex *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  DComplex r = DComplex(0.0, 0.0);
  for(int i = 0; i < len; ++i)
@@ -147,7 +147,7 @@ void
 VecOpComplex::linAdd(int threadNum)
 {
  DComplex *d1 = v1->threadData(threadNum);
- DComplex *d2 = v2->threadData(threadNum);
+ const DComplex *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  for(int i = 0; i < len; ++i)
     d1[i] += c*d2[i];
@@ -158,8 +158,8 @@ void
 VecOpComplex::linAdd2(int threadNum)
 {
  DComplex *d1 = v1->threadData(threadNum);
- DComplex *d2 = v2->threadData(threadNum);
- DComplex *d3 = v3->threadData(threadNum);
+ const DComplex *d2 = v2->threadData(threadNum);
+ const DComplex *d3 = v3->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  for(int i = 0; i < len; ++i)
     d1[i] += c1*d2[i] + c2*d3[i];
@@ -170,8 +170,8 @@ void
 VecOpComplex::linC(int threadNum)
 {
  DComplex *d1 = v1->threadData(threadNum);
- DComplex *d2 = v2->threadData(threadNum);
- DComplex *d3 = v3->threadData(threadNum);
+ const DComplex *d2 = v2->threadData(threadNum);
+ const DComplex *d3 = v3->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  for(int i = 0; i < len; ++i)
     d1[i] = d2[i] + c*d3[i];
@@ -182,8 +182,8 @@ void
 VecOpComplex::linC2(int threadNum)
 {
  DComplex *d1 = v1->threadData(threadNum);
- DComplex *d2 = v2->threadData(threadNum);
- DComplex *d3 = v3->threadData(threadNum);
+ const DComplex *d2 = v2->threadData(threadNum);
+ const DComplex *d3 = v3->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  for(int i = 0; i < len; ++i)
     d1[i] = c1*d2[i] + c2*d3[i];
@@ -194,7 +194,7 @@ void
 VecOpComplex::assign(int threadNum)
 {
  DComplex *d1 = v1->threadData(threadNum);
- DComplex *d2 = v2->threadData(threadNum);
+ const DComplex *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  for(int i = 0; i < len; ++i)
     d1[i] = d2[i];
@@ -215,7 +215,7 @@ void
 VecOpComplex::assign_plus(int threadNum)
 {
  DComplex *d1 = v1->threadData(threadNum);
- DComplex *d2 = v2->threadData(threadNum);
+ const DComplex *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  for(int i = 0; i < len; ++i)
     d1[i] += d2[i];
@@ -226,7 +226,7 @@ void
 VecOpComplex::assign_minus(int threadNum)
 {
  DComplex *d1 = v1->threadData(threadNum);
- DComplex *d2 = v2->threadData(threadNum);
+ const DComplex *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  for(int i = 0; i < len; ++i)
     d1[i] -= d2[i];
@@ -420,7 +420,7 @@ DistrComplexVector::operator ^ (DistrComplexVector&x)
 #include <cstdio>
 
 DistrComplexVector &
-DistrComplexVector::operator=(DistrComplexVector &x)
+DistrComplexVector::operator=(const DistrComplexVector &x)
 {
  if(x.len != len) {
   fprintf(stderr, "Length error in = %d not equal to %d\n",x.len, len);
@@ -489,7 +489,7 @@ DistrComplexVector::linAdd(DComplex c1, DistrComplexVector&x, DComplex c2, Distr
 
 
 DistrComplexVector &
-DistrComplexVector::linC( DistrComplexVector &x, DComplex c, DistrComplexVector &y)
+DistrComplexVector::linC( const DistrComplexVector &x, DComplex c, const DistrComplexVector &y)
 {
  if(x.len != y.len) {
   fprintf(stderr, "Length error in linC\n");
@@ -501,7 +501,7 @@ DistrComplexVector::linC( DistrComplexVector &x, DComplex c, DistrComplexVector 
 
 
 DistrComplexVector &
-DistrComplexVector::linC( DComplex c1, DistrComplexVector &x, DComplex c2, DistrComplexVector &y)
+DistrComplexVector::linC( DComplex c1, const DistrComplexVector &x, DComplex c2, const DistrComplexVector &y)
 {
  if(x.len != y.len) {
   fprintf(stderr, "Length error in linC\n");

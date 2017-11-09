@@ -718,7 +718,7 @@ GenSubDomain<Scalar>::sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar>
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::fSend(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw)
+GenSubDomain<Scalar>::fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw) const
 {
   // Get the trace of the subdomain interfaces
   int iDof = 0;
@@ -903,7 +903,7 @@ GenSubDomain<Scalar>::collectMpcScaling(FSCommPattern<Scalar> *mpcPat)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec)
+GenSubDomain<Scalar>::fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const
 {
  // Add the interface vector (interfvec) contribution to localvec
  int iDof;
@@ -921,7 +921,7 @@ GenSubDomain<Scalar>::fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar 
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec)
+GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const
 {
  // localvec += Br^T * interfvec
  multAddBrT(interfvec, localvec);
@@ -990,7 +990,7 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
 template<class Scalar>
 void
 GenSubDomain<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec,
-                                         FSCommPattern<Scalar> *wiPat)
+                                         FSCommPattern<Scalar> *wiPat) const
 {
  // localvec += Br^T * interfvec
  multAddBrT(interfvec, localvec, localw);
@@ -1024,7 +1024,7 @@ GenSubDomain<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec,
 template<class Scalar>
 void
 GenSubDomain<Scalar>::fetiBaseOpCoupled2(Scalar *uc, Scalar *localvec, Scalar *interfvec,
-                                         FSCommPattern<Scalar> *wiPat, Scalar *fw)
+                                         FSCommPattern<Scalar> *wiPat, Scalar *fw) const
 {
  // coupled_dph
  if(numWIdof) {
@@ -1059,7 +1059,7 @@ GenSubDomain<Scalar>::fetiBaseOpCoupled2(Scalar *uc, Scalar *localvec, Scalar *i
 template<class Scalar>
 void
 GenSubDomain<Scalar>::fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec,
-                                 Scalar *beta)
+                                 Scalar *beta) const
 
 {
  // multiply Q*beta to get the MPC force contribution
@@ -1133,7 +1133,7 @@ GenSubDomain<Scalar>::sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> 
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::extractAndSendInterf(Scalar *subvec, FSCommPattern<Scalar> *pat)
+GenSubDomain<Scalar>::extractAndSendInterf(const Scalar *subvec, FSCommPattern<Scalar> *pat) const
 {
   for(int i = 0; i < scomm->numNeighb; ++i) {
     FSSubRecInfo<Scalar> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[i]);
@@ -1145,7 +1145,7 @@ GenSubDomain<Scalar>::extractAndSendInterf(Scalar *subvec, FSCommPattern<Scalar>
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::assembleInterf(Scalar *subvec, FSCommPattern<Scalar> *pat)
+GenSubDomain<Scalar>::assembleInterf(Scalar *subvec, FSCommPattern<Scalar> *pat) const
 {
   for(int i = 0; i < scomm->numNeighb; ++i) {
     FSSubRecInfo<Scalar> rInfo = pat->recData(scomm->subNums[i], subNumber);
@@ -1157,7 +1157,7 @@ GenSubDomain<Scalar>::assembleInterf(Scalar *subvec, FSCommPattern<Scalar> *pat)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::splitInterf(Scalar *subvec)
+GenSubDomain<Scalar>::splitInterf(Scalar *subvec) const
 {
  Scalar *interfF = (Scalar *)alloca(scomm->sharedDOFsPlus->numConnect()*sizeof(Scalar));
  for(int iDof = 0; iDof < scomm->sharedDOFsPlus->numConnect(); ++iDof)
@@ -1169,7 +1169,7 @@ GenSubDomain<Scalar>::splitInterf(Scalar *subvec)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat)
+GenSubDomain<Scalar>::assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat) const
 {
   for(int i = 0; i < numUncon(); ++i) subvec[i] = 1.0/subvec[i];
   for(int i = 0; i < scomm->numNeighb; ++i) {
@@ -1183,7 +1183,7 @@ GenSubDomain<Scalar>::assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar>
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::sendDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat)
+GenSubDomain<Scalar>::sendDeltaF(const Scalar *deltaF, FSCommPattern<Scalar> *vPat)
 {
   int iDof = 0;
   for(int i = 0; i < scomm->numT(SComm::all); ++i) {
@@ -1262,7 +1262,7 @@ GenSubDomain<Scalar>::collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> 
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vPat)
+GenSubDomain<Scalar>::interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vPat) const
 {
   int i, iSub, iDof;
   int offset = 0;
@@ -1678,7 +1678,7 @@ GenSubDomain<Scalar>::makeKbbMpc()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multKbb(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag)
+GenSubDomain<Scalar>::multKbb(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag)
 {
  // KHP and DJR: 3-26-98
  // multKbb has been modified to compute subdomain primal residual using
@@ -1760,7 +1760,7 @@ GenSubDomain<Scalar>::multKbb(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *del
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multKbbCoupled(Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag)
+GenSubDomain<Scalar>::multKbbCoupled(const Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag)
 {
  // modified version of multKbb for coupled_dph with primal wet interface dofs
  // included in Kii. Currently preconditioner is un-coupled, ie fluid-structure interaction
@@ -1821,7 +1821,7 @@ GenSubDomain<Scalar>::multKbbCoupled(Scalar *u, Scalar *Pu, Scalar *deltaF, bool
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multDiagKbb(Scalar *u, Scalar *Pu) const
+GenSubDomain<Scalar>::multDiagKbb(const Scalar *u, Scalar *Pu) const
 {
  // KHP: 02-02-99
  // boundMap    = from boundary number to subdomain number
@@ -2000,7 +2000,7 @@ GenSubDomain<Scalar>::scatterHalfInterf(const Scalar *s, Scalar *buffer) const
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat)
+GenSubDomain<Scalar>::rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat) const
 {
   int iSub, i;
   int iOff = 0;
@@ -3094,9 +3094,13 @@ GenSubDomain<Scalar>::reMultKcc()
  delete [] thirdpointer;
 }
 
+/**
+* @param[out] fr Force on remainder DOFs.
+* @param[in] uc  Corner displacements.
+*/
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multKrc(Scalar *fr, Scalar *uc)
+GenSubDomain<Scalar>::multKrc(Scalar *fr, const Scalar *uc) const
 {
  int numCDofs = Src->numCol();
  Scalar *ucLocal = (Scalar *) dbg_alloca(sizeof(Scalar)*numCDofs);
@@ -3112,7 +3116,7 @@ GenSubDomain<Scalar>::multKrc(Scalar *fr, Scalar *uc)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda)
+GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda) const
 {
  int i, iDof, k;
 
@@ -3269,7 +3273,7 @@ GenSubDomain<Scalar>::multFcB(Scalar *p)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::getFc(Scalar *f, Scalar *Fc)
+GenSubDomain<Scalar>::getFc(const Scalar *f, Scalar *Fc) const
 {
   int i, j;
   int dNum[DofSet::max_known_dof];
@@ -3309,7 +3313,7 @@ GenSubDomain<Scalar>::getFc(Scalar *f, Scalar *Fc)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::getFw(Scalar *f, Scalar *fw)
+GenSubDomain<Scalar>::getFw(const Scalar *f, Scalar *fw) const
 {
  if(numWIdof) {
   int i,j;
@@ -3328,7 +3332,7 @@ GenSubDomain<Scalar>::getFw(Scalar *f, Scalar *fw)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::getFr(Scalar *f, Scalar *fr)
+GenSubDomain<Scalar>::getFr(const Scalar *f, Scalar *fr) const
 {
   int i,iNode;
   int rDofs[DofSet::max_known_dof];
@@ -3887,7 +3891,7 @@ GenSubDomain<Scalar>::deleteKcc()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multKbbMpc(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag)
+GenSubDomain<Scalar>::multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag)
 {
   // KHP and DJR: 3-26-98
   // multKbb has been modified to compute subdomain primal residual using
@@ -4471,7 +4475,7 @@ GenSubDomain<Scalar>::cleanMpcData()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *deltaU, Scalar *localw)
+GenSubDomain<Scalar>::applyBtransposeAndScaling(const Scalar *u, Scalar *v, Scalar *deltaU, Scalar *localw) const
 {
   int i, iDof, k;
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
@@ -4511,7 +4515,7 @@ GenSubDomain<Scalar>::applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *de
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::applyScalingAndB(Scalar *res, Scalar *Pu, Scalar *localw)
+GenSubDomain<Scalar>::applyScalingAndB(const Scalar *res, Scalar *Pu, Scalar *localw) const
 {
   int i, iDof, k;
 

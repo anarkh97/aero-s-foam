@@ -21,7 +21,7 @@ MultiDomainSolver<Scalar>::reSolve(GenDistrVector<Scalar> &solution)
 
 template<class Scalar>
 void
-MultiDomainSolver<Scalar>::solve(GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &solution)
+MultiDomainSolver<Scalar>::solve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &solution)
 {
   Scalar *f_g = new Scalar[neq];
   Scalar *u_g = new Scalar[neq];
@@ -53,7 +53,7 @@ MultiDomainSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
 
 template<class Scalar>
 void
-MultiDomainSolver<Scalar>::multLTinv(Scalar *f_g, GenDistrVector<Scalar> &f)
+MultiDomainSolver<Scalar>::multLTinv(Scalar *f_g, GenDistrVector<Scalar> &f) const
 {
   // f = L^{-T}*f_g = L*(L^T*L)^{-1}*f_g
   for(int i = 0; i < nsub; ++i) sd[i]->multLTinv(f_g, f.subData(i));
@@ -61,7 +61,7 @@ MultiDomainSolver<Scalar>::multLTinv(Scalar *f_g, GenDistrVector<Scalar> &f)
 
 template<class Scalar>
 void
-MultiDomainSolver<Scalar>::multL(Scalar *u_g, GenDistrVector<Scalar> &u)
+MultiDomainSolver<Scalar>::multL(Scalar *u_g, GenDistrVector<Scalar> &u) const
 {
   // u = L*u_g
   for(int i = 0; i < nsub; ++i) sd[i]->multL(u_g, u.subData(i));
@@ -69,7 +69,7 @@ MultiDomainSolver<Scalar>::multL(Scalar *u_g, GenDistrVector<Scalar> &u)
 
 template<class Scalar>
 void
-MultiDomainSolver<Scalar>::multLinv(GenDistrVector<Scalar> &u, Scalar *u_g)
+MultiDomainSolver<Scalar>::multLinv(GenDistrVector<Scalar> &u, Scalar *u_g) const
 {
   // u_g = L^{-1}*u = (L^T*L)^{-1}*L^T*u
   for(int i = 0; i < neq; ++i) u_g[i] = 0;
@@ -81,7 +81,7 @@ MultiDomainSolver<Scalar>::multLinv(GenDistrVector<Scalar> &u, Scalar *u_g)
 
 template<class Scalar>
 void
-MultiDomainSolver<Scalar>::multLT(GenDistrVector<Scalar> &f, Scalar *f_g)
+MultiDomainSolver<Scalar>::multLT(const GenDistrVector<Scalar> &f, Scalar *f_g) const
 {
   // f_g = L^T*f
   for(int i = 0; i < neq; ++i) f_g[i] = 0;

@@ -39,6 +39,9 @@ public:
 	virtual int localLen() const = 0;
 
 	virtual int getNumUncon() const = 0;
+	/* missing:
+	 * splitInterf
+	 */
 };
 
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
@@ -57,6 +60,32 @@ public:
 	virtual void scatterHalfInterf(const Scalar *s, Scalar *loc) const = 0;
 	virtual void getHalfInterf(const Scalar *s, Scalar *t) const = 0;
 	virtual void getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const = 0;
+	/** \brief Basic FETI operation.
+	 * \details Computes localvec = K-1 (localvec -B interfvec)
+	 * then    interfvec = B^T localvec and sends local data to neighbors
+	 *
+	 * @param s
+	 * @param localvec
+	 * @param interfvec
+	 */
+	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const = 0;
+	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const = 0;
+	// Missing:
+	/*
+	 * void interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vPat) const
+	 * void getSRMult
+	 * void multQt
+	 * void multQtKBt
+	 * void computeMasterFlag
+	 * void getMasterFlag
+	 * void fSend
+	 * void fScale
+	 * void rebuildInterf
+	 * void interfaceJump
+	 * void multKbb*
+	 * void sendDeltaF
+	 * void collectAndDotDeltaF
+	 * */
 };
 
 

@@ -26,7 +26,7 @@ private:
   virtual void resetSolver(int vCount, int vSize);
   virtual void assembleAndFactorReducedSystem(double Mcoef);
   virtual double getReducedRhsNorm() const;
-  virtual void solveReducedSystem(GenVector<Scalar> &);
+  virtual void solveReducedSystem(GenVector<Scalar> &) override;
  
   // Implementation 
   void performFactor();
@@ -80,7 +80,8 @@ template <typename Scalar>
 void
 GenGalerkinProjectionSolver<Scalar>::solveReducedSystem(GenVector<Scalar> &rhs) {
   if(pivotFlag_) {
-    if(!ipiv_) ipiv_ = new int[reducedMatrix_.dim()];
+    if(!ipiv_)
+      throw std::runtime_error("You cannot have pivoting if you did not compute it.");
     ldlt_solve_upper(reducedMatrix_, rhs.data(), ipiv_);
   }
   else
@@ -92,7 +93,8 @@ void
 GenGalerkinProjectionSolver<Scalar>::performFactor() {
 
   if(pivotFlag_) {
-    if(!ipiv_) ipiv_ = new int[reducedMatrix_.dim()];
+    if(!ipiv_)
+      throw std::runtime_error("You cannot have pivoting if you did not compute it.");
     ldlt_factor_upper(reducedMatrix_, ipiv_);
   }
   else {

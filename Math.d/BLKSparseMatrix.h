@@ -55,7 +55,7 @@ protected:
    int *perm;
    int *invp;
 
-   double solveTime;
+   mutable double solveTime;
    double tol;
    
    Rbm *rbm;   // pointer to rigid body modes
@@ -84,54 +84,54 @@ protected:
 
    void allocateMemory();
 
-   Scalar  diag(int dof) const;
-   Scalar  &diag(int dof);
-   void    unify(FSCommunicator *communicator);
+   Scalar  diag(int dof) const override;
+   Scalar  &diag(int dof) override;
+   void    unify(FSCommunicator *communicator) override;
    void    addBoeing(int nlines, const int *Kai, const int *Kaj,
-                     const double *nz, int *map, Scalar multiplier);
-   void    add(FullSquareMatrix &, int *dofs);
-   void    add(FullSquareMatrixC &, int *dofs);
+                     const double *nz, int *map, Scalar multiplier) override;
+   void    add(FullSquareMatrix &, int *dofs) override;
+   void    add(FullSquareMatrixC &, int *dofs) override;
    void    add(FullM &knd, int fRow, int fCol);
-   void    add(GenAssembledFullM<Scalar> &kel, int *dofs);
-   void    add(int row_dof, int col_dof, Scalar s) { addone(s, row_dof, col_dof); }
-   void    addone(Scalar d, int dofi, int dofj);
-   void    add(Scalar *_lnz);
-   Scalar  getone(int row, int col);
-   void    zeroAll();
-   void    clean_up();
-   int     dim()  { return numUncon; }
-   int     neqs() { return numUncon; }
+   void    add(GenAssembledFullM<Scalar> &kel, int *dofs) override;
+   void    add(int row_dof, int col_dof, Scalar s) override { addone(s, row_dof, col_dof); }
+   void    addone(Scalar d, int dofi, int dofj) override;
+   void    add(Scalar *_lnz) override;
+   Scalar  getone(int row, int col) override;
+   void    zeroAll() override;
+   void    clean_up() override;
+   int     dim() const override { return numUncon; }
+   int     neqs() const override { return numUncon; }
    void    printAll();
-   void    print();
-   Scalar* getData() { return lnz; }
+   void    print() override;
+   Scalar* getData() override { return lnz; }
 
-   void    factor();
+   void    factor() override;
 
-   void    solve(Scalar *rhs, Scalar *solution);
-   void    solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution );
+   void    solve(const Scalar *rhs, Scalar *solution) override;
+   void    solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution) override;
 
-   void    reSolve(Scalar *rhs);
-   void    reSolve(GenVector<Scalar> &rhs);
+   void    reSolve(Scalar *rhs) override;
+   void    reSolve(GenVector<Scalar> &rhs) override;
 
-   void    reSolve(int nRHS, Scalar **RHS);
-   void    reSolve(int nRHS, GenVector<Scalar> * RHS);
+   void    reSolve(int nRHS, Scalar **RHS) override;
+   void    reSolve(int nRHS, GenVector<Scalar> * RHS) override;
 
-   void    reSolve(GenFullM<Scalar> *);
+   void    reSolve(GenFullM<Scalar> *) override;
 
-   double getMemoryUsed();
-   long size() { return (numUncon) ? xlnz[numUncon] : 0; }
+   double getMemoryUsed() const override;
+   long size() const override { return (numUncon) ? xlnz[numUncon] : 0; }
 
-   void    getRBMs(double *);
-   void    getRBMs(Vector *);
-   void    getRBMs(VectorSet &);
-   int     numRBM();
+   void    getRBMs(double *) override;
+   void    getRBMs(Vector *) override;
+   void    getRBMs(VectorSet &) override;
+   int     numRBM() override;
 
-   void    addDiscreteMass(int dof, Scalar mass);
-   void    addImaginary(FullSquareMatrix &kel, int *dofs);
-   double getSolutionTime() { return solveTime; }
+   void    addDiscreteMass(int dof, Scalar mass) override;
+   void    addImaginary(FullSquareMatrix &kel, int *dofs) override;
+   double getSolutionTime() override { return solveTime; }
 
-   void mult(const Scalar *rhs, Scalar *result);
-   void getNullSpace(Scalar *ns);
+   void mult(const Scalar *rhs, Scalar *result) const override;
+   void getNullSpace(Scalar *ns) override;
 
  private:
    void init();

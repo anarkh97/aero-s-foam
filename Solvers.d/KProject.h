@@ -23,7 +23,7 @@ public:
    // Constructor
    KrylovProjector(int numDof, int maxDim);
 
-   void project(AnyVector *resid, AnyVector *precResid);
+   void project(const AnyVector *resid, AnyVector *precResid);
    int  initialization(AnyVector *rhs, AnyVector *x0);
 
    int  addDirection(const AnyVector &w, const AnyVector &Kw, Scalar dotProd);

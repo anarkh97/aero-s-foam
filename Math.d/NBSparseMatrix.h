@@ -28,24 +28,24 @@ class GenNBSparseMatrix : public GenSparseMatrix<Scalar>
    GenNBSparseMatrix(Connectivity *con, ConstrainedDSA *c_dsa);
    virtual ~GenNBSparseMatrix();   
  
-   void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result ); // Matrix-Vector multiply
-   void mult(const Scalar *rhs, Scalar *result );   // Matrix-Vector multiply
-   void multAdd(const Scalar *rhs, Scalar *result);
+   void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result ) const override; // Matrix-Vector multiply
+   void mult(const Scalar *rhs, Scalar *result ) const override;   // Matrix-Vector multiply
+   void multAdd(const Scalar *rhs, Scalar *result) const override;
    Scalar diag(int n) const;                 // returns diagonal values of matrix
-   Scalar &diag(int n);                 // returns diagonal values of matrix
-   void add(FullSquareMatrix &m, int *dofs);
-   void add(FullSquareMatrixC &m, int *dofs);
-   void addImaginary(FullSquareMatrix &m, int *dofs);
-   void zeroAll();
+   Scalar &diag(int n) override;                 // returns diagonal values of matrix
+   void add(FullSquareMatrix &m, int *dofs) override;
+   void add(FullSquareMatrixC &m, int *dofs) override;
+   void addImaginary(FullSquareMatrix &m, int *dofs) override;
+   void zeroAll() override;
 
    // returns number of unconstrained dof
-   int  dim() { return dsa->size(); }
-   int  neqs() { return dsa->size(); }
+   int  dim() const override { return dsa->size(); }
+   int  neqs() const override { return dsa->size(); }
 
    // returns a pointer to a diagonal matrix of node i
-   GenFullM<Scalar>* getDiagMatrix(int i);
-   int*   getFirstDof() { return firstDof; }
-   int    numNodes() {return numnodes; }
+   GenFullM<Scalar>* getDiagMatrix(int i) override;
+   int*   getFirstDof() override { return firstDof; }
+   int    numNodes() override {return numnodes; }
 };
 
 typedef GenNBSparseMatrix<double> NBSparseMatrix;

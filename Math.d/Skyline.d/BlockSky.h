@@ -62,35 +62,35 @@ class GenBlockSky : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>
      GenBlockSky(Connectivity *nodeToNode, DofSetArray *dsa, double tol, 
               int *glInternalMap);
      virtual ~GenBlockSky();
-     void factor();
-     void unify(FSCommunicator *communicator);
-     void parallelFactor();
-     void solve(Scalar *rhs, Scalar *solution);
-     void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution );
-     void reSolve(Scalar *f);
-     void reSolve(GenVector<Scalar> &f);
-     void reSolve(int numRHS, Scalar **RHS);
+     void factor() override;
+     void unify(FSCommunicator *communicator) override;
+     void parallelFactor() override;
+     void solve(const Scalar *rhs, Scalar *solution) override;
+     void solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution ) override;
+     void reSolve(Scalar *f) override;
+     void reSolve(GenVector<Scalar> &f) override;
+     void reSolve(int numRHS, Scalar **RHS) override;
      // assembly
-     void add(FullSquareMatrix &, int *dofs);
-     void add(FullSquareMatrixC &, int *dofs);
-     void addImaginary(FullSquareMatrix &kel, int *dofs);
+     void add(FullSquareMatrix &, int *dofs) override;
+     void add(FullSquareMatrixC &, int *dofs) override;
+     void addImaginary(FullSquareMatrix &kel, int *dofs) override;
      void add(AssembledFullM &, int *dofs);
      void add(GenAssembledFullM<complex<double> > &, int *dofs);
      void add(FullM &, int rowStart, int colStart);
-     void add(int row_dof, int col_dof, Scalar s);
-     void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
-     void addDiscreteMass(int dof, Scalar dmass);
+     void add(int row_dof, int col_dof, Scalar s) override;
+     void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier) override;
+     void addDiscreteMass(int dof, Scalar dmass) override;
 
      void print(FILE * = stderr);
-     int neqs() { return neq; }
-     double getSolutionTime() { return 0.0; }
-     long size() { return dlp[neq-1]; }
-     Scalar diag(int i) const { return skyA[dlp[i]]; }  // Jing Li's problem
-     Scalar &diag(int i) { return skyA[dlp[i]]; }  // Jing Li's problem
-     void zeroAll();
-     void clean_up();
-     int dim()    { return neq;  }
-     int numRBM() { return nzem; }
+     int neqs() const override { return neq; }
+     double getSolutionTime() override { return 0.0; }
+     long size() const override { return dlp[neq-1]; }
+     Scalar diag(int i) const override { return skyA[dlp[i]]; }  // Jing Li's problem
+     Scalar &diag(int i) override { return skyA[dlp[i]]; }  // Jing Li's problem
+     void zeroAll() override;
+     void clean_up() override;
+     int dim() const override { return neq;  }
+     int numRBM() override { return nzem; }
      int* getSingularities() { return sing; }
    private:
      void initialize();

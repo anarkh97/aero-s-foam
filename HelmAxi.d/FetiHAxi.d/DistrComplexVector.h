@@ -29,7 +29,7 @@ class DistrComplexVector {
     DComplex operator ^ (DistrComplexVector&);
     DComplex norm();
 
-    DistrComplexVector &operator=(DistrComplexVector &);
+    DistrComplexVector &operator=(const DistrComplexVector &);
     DistrComplexVector &operator*=(DComplex c);
     DistrComplexVector &operator^=(DComplex c);
     DistrComplexVector &operator+=(DistrComplexVector &);
@@ -37,10 +37,12 @@ class DistrComplexVector {
     DistrComplexVector &linAdd(DComplex, DistrComplexVector&);
     DistrComplexVector &linAdd(DComplex, DistrComplexVector&, 
                                DComplex, DistrComplexVector&);
-    DistrComplexVector &linC(DistrComplexVector & , DComplex , 
-                             DistrComplexVector & );
-    DistrComplexVector &linC(DComplex, DistrComplexVector & , 
-                             DComplex , DistrComplexVector & );
+	/** \brief this = x + beta y. */
+    DistrComplexVector &linC(const DistrComplexVector & x, DComplex beta,
+                             const DistrComplexVector & y);
+	/** \brief this = alpha x + beta y. */
+	DistrComplexVector &linC(DComplex alpha, const DistrComplexVector & x,
+                             DComplex beta, const DistrComplexVector & y);
 
     DistrComplexVector &copy(DistrComplexVector &);
 
@@ -49,7 +51,8 @@ class DistrComplexVector {
     DComplex *subData(int i)    { return subV[i]; }
     int subLen(int i)           { return subVLen[i]; }
     int threadLen(int i)        { return thLen[i]; }
-    DComplex *threadData(int i) { return thV[i]; }
+	DComplex *threadData(int i) { return thV[i]; }
+	const DComplex *threadData(int i) const { return thV[i]; }
     DComplex ident();
     void print();
     void printAll();

@@ -104,12 +104,12 @@ GenEiSparseGalerkinProjectionSolver<complex<double> >
 template
 void
 GenEiSparseGalerkinProjectionSolver<double>
-::solve(GenVector<double>&, GenVector<double>&);
+::solve(const GenVector<double>&, GenVector<double>&);
 
 template
 void
 GenEiSparseGalerkinProjectionSolver<complex<double> >
-::solve(GenVector<complex<double> >&, GenVector<complex<double> >&);
+::solve(const GenVector<complex<double> >&, GenVector<complex<double> >&);
 
 template
 double

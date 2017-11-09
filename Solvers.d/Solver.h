@@ -25,9 +25,9 @@ class FSCommunicator;
 template<class Scalar> 
 class GenSolver {
   protected:
-    Timings times;
-    double solveTime; // to store solution time
-    double memUsed;
+    mutable Timings times;
+    mutable double solveTime; // to store solution time
+    mutable double memUsed;
     bool print_nullity;
   public:
     GenSolver() { solveTime = 0.0; memUsed = 0.0; print_nullity = true; }
@@ -36,33 +36,34 @@ class GenSolver {
     // Rbm functions
     virtual int numRBM();
 
+    int numRBM() const { return const_cast<GenSolver *>(this)->numRBM(); }// TODO Make base const.
+
     // Functions to return the rigid body modes
     virtual void getRBMs(double *rbms);
     virtual void getRBMs(Vector *rbms);
     virtual void getRBMs(VectorSet &rbms);
 
     // Get number of equations
-    virtual int neqs()=0;
-    virtual int dim();
+    virtual int neqs() const =0;
+    virtual int dim() const;
 
     // Solve functions take two arguments, returning the result in the second
-    virtual void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution);
-    virtual void solve(Scalar *rhs, Scalar *solution);
-    virtual void solve(GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &solution)
+    virtual void solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution);
+    virtual void solve(const Scalar *rhs, Scalar *solution);
+    virtual void solve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &solution)
              {std::cerr << "GenSolver::solve(GenDistrVector<Scalar> NOT implemented" << std::endl; } 
-    virtual void solve(DistrBlockVector<Scalar> &rhs, DistrBlockVector<Scalar> &solution)
+    virtual void solve(const DistrBlockVector<Scalar> &rhs, DistrBlockVector<Scalar> &solution)
              {std::cerr << "GenSolver::solve(DistrBlockVector<Scalar> NOT implemented" << std::endl; } 
 
     // reSolve functions overwrite the rhs vector with the solution
-    virtual void reSolve(Scalar *rhs); 
-    // virtual void reSolve(GenVector<Scalar> &rhs);      
+    virtual void reSolve(Scalar *rhs);
     virtual void reSolve(Vector &rhs);
     virtual void reSolve(ComplexVector &rhs);
 
     // Multiple rhs reSolve functions
-    virtual void reSolve(int nRHS, Scalar **rhs);  
+    virtual void reSolve(int nRHS, Scalar **rhs);
     virtual void reSolve(int nRHS, Scalar  *rhs);
-    virtual void reSolve(int nRHS, GenVector<Scalar> *rhs);  
+    virtual void reSolve(int nRHS, GenVector<Scalar> *rhs);
     virtual void reSolve(GenFullM<Scalar> *);
 
     // Forward substitution for 1 rhs
@@ -92,9 +93,9 @@ class GenSolver {
     Timings& getTimers() { return times; }
 
     // function to return memory used
-    virtual double getMemoryUsed() { return memUsed; }
+    virtual double getMemoryUsed() const { return memUsed; }
 
-    virtual long size()   = 0;
+    virtual long size() const = 0;
     virtual void clean_up();
 
     // Thuan added functions
@@ -121,7 +122,7 @@ class GenSolver {
 
     void setPrintNullity(bool _p) { print_nullity = _p; }
 
-    virtual void apply(GenVector<Scalar> &rhs, GenVector<Scalar> &solution) { solve(rhs, solution); }
+    virtual void apply(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution) { solve(rhs, solution); }
     virtual double getResidualNorm(const GenVector<Scalar> &v) { return v.norm(); }
 };
 

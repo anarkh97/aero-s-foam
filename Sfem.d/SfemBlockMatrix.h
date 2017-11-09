@@ -33,7 +33,7 @@ class SfemBlockMatrix {
   GenSolver<Scalar>* getMeanSolver();
   Scalar* getBlockScalarMultipliers();
   int getBlockSize() {return n;}
-  int neqs() {return n*P;}
+  int neqs() const {return n*P;}
 };
 
 #ifdef _TEMPLATE_FIX_

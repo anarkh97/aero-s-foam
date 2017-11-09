@@ -375,7 +375,7 @@ GenEiSparseGalerkinProjectionSolver<double,GenDistrVector,GenParallelSolver<doub
 
 template <typename Scalar, template<typename> class GenVecType, class BaseSolver>
 Eigen::Matrix<Scalar, Eigen::Dynamic, 1>
-GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::blockJacobi(Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > &b) {
+GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::blockJacobi(Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > &b) const {
 #ifdef USE_MPI
   // x is the right hand side. Initial guess is the zero vector 
   //compute stopping citeria
@@ -494,7 +494,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::reSolve(GenVe
 
 template <typename Scalar, template<typename> class GenVecType, class BaseSolver>
 void
-GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::solve(GenVecType<Scalar> &rhs, GenVecType<Scalar> &sol)
+GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::solve(const GenVecType<Scalar> &rhs, GenVecType<Scalar> &sol)
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data()+startCol_, blockCols_), x(sol.data()+startCol_, blockCols_);
   sol.zero();

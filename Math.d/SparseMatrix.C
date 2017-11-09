@@ -12,7 +12,7 @@ GenSparseMatrix<Scalar>::clean_up()
 
 template<class Scalar> 
 double
-GenSparseMatrix<Scalar>::getMemoryUsed()
+GenSparseMatrix<Scalar>::getMemoryUsed() const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::getMemoryUsed() not implemented\n");
  return 0;
@@ -20,7 +20,7 @@ GenSparseMatrix<Scalar>::getMemoryUsed()
 
 template<class Scalar> 
 int
-GenSparseMatrix<Scalar>::numRow()
+GenSparseMatrix<Scalar>::numRow() const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::numRow() not implemented\n");
  return 0;
@@ -28,7 +28,7 @@ GenSparseMatrix<Scalar>::numRow()
 
 template<class Scalar> 
 int
-GenSparseMatrix<Scalar>::numCol()
+GenSparseMatrix<Scalar>::numCol() const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::numCol() not implemented\n");
  return 0;
@@ -36,7 +36,7 @@ GenSparseMatrix<Scalar>::numCol()
 
 template<class Scalar>
 double
-GenSparseMatrix<Scalar>::norm()
+GenSparseMatrix<Scalar>::norm() const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::norm() not implemented\n");
  return 1.0;
@@ -129,49 +129,49 @@ GenSparseMatrix<Scalar>::add(int dofi, int dofj, Scalar s)
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+GenSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) not implemented\n");
 }
 
 template<class Scalar>
 void
-GenSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result) 
+GenSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result)  const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
+GenSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::multAdd(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+GenSparseMatrix<Scalar>::multAdd(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::multAdd(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
+GenSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+GenSparseMatrix<Scalar>::multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::multSubtract(const Scalar *rhs, Scalar *result)
+GenSparseMatrix<Scalar>::multSubtract(const Scalar *rhs, Scalar *result) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::multSubtract(const Scalar *rhs, Scalar *result) not implemented\n");
 }
@@ -192,77 +192,77 @@ GenSparseMatrix<Scalar>::inverseSquareRootMult(Scalar *result)
 
 template<class Scalar>
 void 
-GenSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result)
+GenSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::transposeMult((const GenVector<Scalar> &, GenVector<Scalar> &) not implemented\n");
 }
 
 template<class Scalar>
 void
-GenSparseMatrix<Scalar>::transposeMult(const Scalar *, Scalar *)
+GenSparseMatrix<Scalar>::transposeMult(const Scalar *, Scalar *) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::transposeMult(const Scalar *, Scalar *) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::transposeMultAdd(const Scalar *, Scalar *)
+GenSparseMatrix<Scalar>::transposeMultAdd(const Scalar *, Scalar *) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::transposeMultAdd(const Scalar *, Scalar *) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::transposeMultSubtract(const Scalar *, Scalar *)
+GenSparseMatrix<Scalar>::transposeMultSubtract(const Scalar *, Scalar *) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::transposeMultSubtract(const Scalar *, Scalar *) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::transposeMultSubtractClaw(const Scalar *, Scalar *, int, int *)
+GenSparseMatrix<Scalar>::transposeMultSubtractClaw(const Scalar *, Scalar *, int, int *) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::transposeMultSubtractClaw(const Scalar *, Scalar *, int, int *) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::multSub(const Scalar *, Scalar *r)
+GenSparseMatrix<Scalar>::multSub(const Scalar *, Scalar *r) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::multSub(const Scalar *, Scalar *) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::multSub(int, Scalar **, Scalar **)
+GenSparseMatrix<Scalar>::multSub(int, const Scalar **, Scalar **) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::multSub(int, Scalar **, Scalar **) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::multDiag(const Scalar *, Scalar *)
+GenSparseMatrix<Scalar>::multDiag(const Scalar *, Scalar *) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::multDiag(const Scalar *, Scalar *) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::multIdentity(Scalar *)
+GenSparseMatrix<Scalar>::multIdentity(Scalar *) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::multIdentity(Scalar *) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::multIdentity(Scalar **)
+GenSparseMatrix<Scalar>::multIdentity(Scalar **) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::multIdentity(Scalar **) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::multIdentity(Scalar **v, int start, int stop)
+GenSparseMatrix<Scalar>::multIdentity(Scalar **v, int start, int stop) const
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::multIdentity(Scalar **v, int start, int stop) not implemented\n");
 }

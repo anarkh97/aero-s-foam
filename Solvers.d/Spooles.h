@@ -66,7 +66,7 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    GenSpoolesSolver(Connectivity *nToN, EqNumberer *dsa, SolverCntl& _scntl, int *map=0);
    GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl);
 
-   virtual void clean_up() {
+   virtual void clean_up() override {
      cleanUp();
      if(unonz) { delete [] unonz; unonz = 0; }
      if(scale) { delete [] scale; scale = 0; }
@@ -74,40 +74,40 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
 
    virtual ~GenSpoolesSolver();
 
-   void add(FullSquareMatrix &, int *dofs);
-   void addImaginary(FullSquareMatrix &, int *dofs);
-   void add(FullSquareMatrixC&, int *dofs); // RT addded to support PML, DGM
+   void add(FullSquareMatrix &, int *dofs) override;
+   void addImaginary(FullSquareMatrix &, int *dofs) override;
+   void add(FullSquareMatrixC&, int *dofs) override; // RT addded to support PML, DGM
    void add(GenFullM<Scalar> &, int *dofs);
-   void add(GenFullM<Scalar> &, int, int);
-   void add(GenAssembledFullM<Scalar> &, int *);
-   void addDiscreteMass(int dof, Scalar);
-   void add(int dofi, int dofj, Scalar d); //HB: add upper part only 
-   void addone(Scalar d, int dofi, int dofj) { add(dofi, dofj, d); }
+   void add(GenFullM<Scalar> &, int, int) override;
+   void add(GenAssembledFullM<Scalar> &, int *) override;
+   void addDiscreteMass(int dof, Scalar) override;
+   void add(int dofi, int dofj, Scalar d) override; //HB: add upper part only
+   void addone(Scalar d, int dofi, int dofj) override { add(dofi, dofj, d); }
    //void addBoeing(int nlines, const int *Kai, const int *Kaj,
    //               const double *nz, int *map, Scalar multiplier);
 
-   void unify(FSCommunicator *);
-   void parallelFactor();
-   void factor();
+   void unify(FSCommunicator *) override;
+   void parallelFactor() override;
+   void factor() override;
    void allFactor(bool fctIsParal);
 
-   void reSolve(Scalar *rhs);
-   void solve(Scalar *rhs, Scalar *solution);
+   void reSolve(Scalar *rhs) override;
+   void solve(const Scalar *rhs, Scalar *solution) override;
    
-   void print();
-   int dim()  { return neq;      }
-   int neqs() { return neq; }
-   double getMemoryUsed();
-   long size();
-   Scalar  diag(int dof) const;
-   Scalar &diag(int dof);
+   void print() override;
+   int dim() const override { return neq;      }
+   int neqs() const override { return neq; }
+   double getMemoryUsed() const override;
+   long size() const override;
+   Scalar  diag(int dof) const override;
+   Scalar &diag(int dof) override;
 
-   void    zeroAll();
+   void    zeroAll() override;
    void    cleanUp();
-   double  getSolutionTime()  { return 0.0; }
+   double  getSolutionTime() override { return 0.0; }
    double  getConstructTime() { return 0.0; }
 
-   int numRBM() { return 0; } // note: spooles should not be used for singular matrices.
+   int numRBM() override { return 0; } // note: spooles should not be used for singular matrices.
  
  private:
    void init();

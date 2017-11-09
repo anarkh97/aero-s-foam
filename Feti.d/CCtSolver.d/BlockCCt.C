@@ -480,7 +480,7 @@ BlockCCtSolver<Scalar>::deleteBlockCCtsolver(int iBlock)
 
 template<class Scalar>
 void
-BlockCCtSolver<Scalar>::initBlockMpcResidual(int iBlock)
+BlockCCtSolver<Scalar>::initBlockMpcResidual(int iBlock) const
 {
 #ifdef DISTRIBUTED
   if(mpcv[iBlock])
@@ -490,7 +490,7 @@ BlockCCtSolver<Scalar>::initBlockMpcResidual(int iBlock)
 
 template<class Scalar>
 void
-BlockCCtSolver<Scalar>::extractBlockMpcResidual(int iBlock, GenDistrVector<Scalar> &v)
+BlockCCtSolver<Scalar>::extractBlockMpcResidual(int iBlock, GenDistrVector<Scalar> &v) const
 {
   int i;
 #ifdef DISTRIBUTED
@@ -545,7 +545,7 @@ BlockCCtSolver<Scalar>::recBlockMpcResidualBeforeSolve(int iBlock)
 
 template<class Scalar>
 void
-BlockCCtSolver<Scalar>::solveBlockCCt(int iBlock, GenDistrVector<Scalar> &v)
+BlockCCtSolver<Scalar>::solveBlockCCt(int iBlock, GenDistrVector<Scalar> &v) const
 {
 #ifdef DISTRIBUTED
   // apply weighting to mpc residual to accounts for values that have been added more than once in globalSum

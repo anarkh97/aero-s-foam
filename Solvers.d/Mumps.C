@@ -477,7 +477,7 @@ GenMumpsSolver<Scalar>::getPivnull_list()
 
 template<class Scalar>
 void
-GenMumpsSolver<Scalar>::solve(Scalar *rhs, Scalar *solution)
+GenMumpsSolver<Scalar>::solve(const Scalar *rhs, Scalar *solution)
 {
   if(numUncon == 0) return;
   this->solveTime -= getTime();

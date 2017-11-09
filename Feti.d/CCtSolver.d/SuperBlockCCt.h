@@ -82,11 +82,11 @@ class SuperBlockCCtSolver : public CCtSolver<Scalar>
     void deleteBlockCCtsolver();
     void deleteOneBlockCCtsolver(int IBlock, int *gBlockIdArray);
     void deleteMpcVector();
-    void initBlockMpcResidual();
-    void solveBlockCCt(GenDistrVector<Scalar> &v);
-    void extractBlockMpcResidual(GenDistrVector<Scalar> &v);
+    void initBlockMpcResidual() const;
+    void solveBlockCCt(GenDistrVector<Scalar> &v) const;
+    void extractBlockMpcResidual(GenDistrVector<Scalar> &v) const;
     void insertBlockMpcResidual(int iSub, GenDistrVector<Scalar> &v);
-    void initOneBlockMpcResidual(int IBlock);
+    void initOneBlockMpcResidual(int IBlock) const;
     void solveOneBlockCCt(int IBlock, GenDistrVector<Scalar> &v);
     void extractOneBlockMpcResidual(int IBlock, GenDistrVector<Scalar> &v);
     void sendOneBlockCCtsolver(int IBlock);

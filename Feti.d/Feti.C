@@ -247,12 +247,12 @@ template<class Scalar>
 void
 GenFetiSolver<Scalar>::sendScale(int iSub)
 {
-	sd[iSub]->sendDiag(fetiOps[iSub]->KasSparse, vPat);
+	subdomains[iSub]->sendDiag(fetiOps[iSub]->KasSparse, vPat);
 }
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::distributeForce(GenDistrVector<Scalar> &f)
+GenFetiSolver<Scalar>::distributeForce(GenDistrVector<Scalar> &f) const
 {
 	execParal1R(nsub, this, &GenFetiSolver<Scalar>::fSend,  f);
 	vPat->exchange();
@@ -261,31 +261,31 @@ GenFetiSolver<Scalar>::distributeForce(GenDistrVector<Scalar> &f)
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::fSend(int iSub, GenDistrVector<Scalar> &force)
+GenFetiSolver<Scalar>::fSend(int iSub, GenDistrVector<Scalar> &force) const
 {
 	sd[iSub]->fSend(force.subData(subdomains[iSub]->localSubNum()), vPat);
 }
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::fScale(int iSub, GenDistrVector<Scalar> &force)
+GenFetiSolver<Scalar>::fScale(int iSub, GenDistrVector<Scalar> &force) const
 {
 	sd[iSub]->fScale(force.subData(subdomains[iSub]->localSubNum()), vPat);
 }
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::distributeForce(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fw)
+GenFetiSolver<Scalar>::distributeForce(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fw) const
 {
-	execParal2R(nsub, this, &GenFetiSolver<Scalar>::fSendCoupled,  f, fw);
+	execParal(nsub, this, &GenFetiSolver<Scalar>::fSendCoupled,  f, fw);
 	vPat->exchange();
-	execParal2R(nsub, this, &GenFetiSolver<Scalar>::fScaleCoupled, f, fw);
+	execParal(nsub, this, &GenFetiSolver<Scalar>::fScaleCoupled, f, fw);
 }
 
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::fSendCoupled(int iSub, GenDistrVector<Scalar> &force,
-                                    GenDistrVector<Scalar> &fw)
+                                    GenDistrVector<Scalar> &fw) const
 {
 	sd[iSub]->fSend(force.subData(subdomains[iSub]->localSubNum()), vPat,
 	                fw.subData(subdomains[iSub]->localSubNum()));
@@ -294,7 +294,7 @@ GenFetiSolver<Scalar>::fSendCoupled(int iSub, GenDistrVector<Scalar> &force,
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::fScaleCoupled(int iSub, GenDistrVector<Scalar> &force,
-                                     GenDistrVector<Scalar> &fw)
+                                     GenDistrVector<Scalar> &fw) const
 {
 	sd[iSub]->fScale(force.subData(subdomains[iSub]->localSubNum()), vPat,
 	                 fw.subData(subdomains[iSub]->localSubNum()));
@@ -602,7 +602,7 @@ GenFetiSolver<Scalar>::makeGtG()
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::orthoAddCG(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &Fp, Scalar pFp)
+GenFetiSolver<Scalar>::orthoAddCG(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &Fp, Scalar pFp) const
 {
 	if(fetiInfo->maxortho <= 0) return;
 #ifdef DISTRIBUTED
@@ -645,7 +645,7 @@ GenFetiSolver<Scalar>::orthoAddCG(GenDistrVector<Scalar> &p, GenDistrVector<Scal
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::project(GenDistrVector<Scalar> &r, GenVector<Scalar> &alpha,
-                               GenDistrVector<Scalar> &pr,int isDirect)
+                               GenDistrVector<Scalar> &pr,int isDirect) const
 {
 	if(isDynamic && isDirect) {
 		tProject(r, alpha, pr, 0);
@@ -705,7 +705,7 @@ GenFetiSolver<Scalar>::project(GenDistrVector<Scalar> &r, GenVector<Scalar> &alp
 	times.projection.addOverAll(0, getTime() - initTime);
 
 	if(QGisLocal == 0 || (isFeti2 && crns > 0 && isDynamic)) {
-		timedParal1R(times.projection, nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, pr);
+		timedParal(times.projection, nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, pr);
 	}
 
 	if((QGisLocal == 0) || (isFeti2 && isDynamic)) {
@@ -720,7 +720,7 @@ GenFetiSolver<Scalar>::project(GenDistrVector<Scalar> &r, GenVector<Scalar> &alp
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenVector<Scalar> &alpha,
-                                GenDistrVector<Scalar> &pr, int isDirect)
+                                GenDistrVector<Scalar> &pr, int isDirect) const
 {
 	if(isDynamic && isDirect) {
 		project(r,alpha,pr, 0);
@@ -790,7 +790,7 @@ GenFetiSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenVector<Scalar> &al
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::computeDynamL0(GenDistrVector<Scalar> &f, GenVector<Scalar> &alpha,
-                                      GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &u)
+                                      GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &u) const
 {
 	lambda.zero();
 
@@ -842,7 +842,7 @@ GenFetiSolver<Scalar>::computeDynamL0(GenDistrVector<Scalar> &f, GenVector<Scala
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::computeL0(GenDistrVector<Scalar> &f, GenVector<Scalar> &alpha,
-                                 GenDistrVector<Scalar> &lambda)
+                                 GenDistrVector<Scalar> &lambda) const
 {
 	// compute initial lambda to begin FETI iterations
 
@@ -887,7 +887,7 @@ GenFetiSolver<Scalar>::computeL0(GenDistrVector<Scalar> &f, GenVector<Scalar> &a
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::addR(GenDistrVector<Scalar> &v, GenVector<Scalar> &alpha)
+GenFetiSolver<Scalar>::addR(GenDistrVector<Scalar> &v, GenVector<Scalar> &alpha) const
 {
 	times.addR -= getTime();
 	execParal(nsub, this, &GenFetiSolver<Scalar>::addRP, &v, alpha.data());
@@ -896,7 +896,7 @@ GenFetiSolver<Scalar>::addR(GenDistrVector<Scalar> &v, GenVector<Scalar> &alpha)
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::orthogonalize(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &p)
+GenFetiSolver<Scalar>::orthogonalize(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &p) const
 {
 	times.reOrtho -= getTime();
 
@@ -964,8 +964,8 @@ GenFetiSolver<Scalar>::resetOrthoSet()
 }
 
 template<class Scalar>
-int
-GenFetiSolver<Scalar>::predict(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &lambda0)
+bool
+GenFetiSolver<Scalar>::predict(const GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &lambda0) const
 {
 	// KHP: NOTE, check this for when we want to rebuild the tangent
 	//      stiffness matrix at every other nonlinear iteration. This may
@@ -975,11 +975,11 @@ GenFetiSolver<Scalar>::predict(GenDistrVector<Scalar> &r, GenDistrVector<Scalar>
 	//      multiple rhs technique.
 
 	if(fetiInfo->maxortho <= 0 || oSetCG->numDir() == 0) { // No available prediction
-		return 0;
+		return false;
 	}
 	else if(!fetiInfo->useMRHS) {
 		oSetCG->reset();
-		return 0;
+		return false;
 	}
 	else {
 		if(verboseFlag) filePrint(stderr," Current orthoset contains %d Krylov vectors\n",oSetCG->numDir());
@@ -993,7 +993,7 @@ GenFetiSolver<Scalar>::predict(GenDistrVector<Scalar> &r, GenDistrVector<Scalar>
 		vPat->exchange();
 		execParal1R(nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, lambda0);
 
-		return 1; // Prediction available
+		return true; // Prediction available
 	}
 }
 
@@ -1001,7 +1001,7 @@ GenFetiSolver<Scalar>::predict(GenDistrVector<Scalar> &r, GenDistrVector<Scalar>
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::setAndStoreInfo(int iter, double finalPrimal2,
-                                       double finalDual2 )
+                                       double finalDual2 ) const
 {
 	times.iterations[numSystems].numFetiIter = iter;
 	times.iterations[numSystems].finalPrimal = (finalPrimal2 == 0.0) ? 0.0 : sqrt(finalPrimal2);
@@ -1020,8 +1020,10 @@ GenFetiSolver<Scalar>::setAndStoreInfo(int iter, double finalPrimal2,
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::solve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u)
+GenFetiSolver<Scalar>::solve(const GenDistrVector<Scalar> &_f, GenDistrVector<Scalar> &u)
 {
+	// We copy the right hand side because we're going to modify it.
+	GenDistrVector<Scalar> f(_f);
 	// Re-distribute applied forces if we are using k-scaling
 	if(fetiInfo->scaling == FetiInfo::kscaling) {
 		distributeForce(f);
@@ -1095,7 +1097,7 @@ GenFetiSolver<Scalar>::solve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &
 
 	// For multi-solve cases (dynamics & nonlinear problems where
 	// tangent stiffness matrix is not rebuilt)
-	int hasPred = predict(r, lambda0);
+	bool hasPred = predict(r, lambda0);
 	if(hasPred) {
 		localSolveAndJump(f, lambda0, u, r);
 	}
@@ -1293,7 +1295,7 @@ GenFetiSolver<Scalar>::solve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &
 // Code to output Primal Residual to a file for display purposes.
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::outputPrimalResidual(int iter, GenDistrVector<Scalar> &deltaF)
+GenFetiSolver<Scalar>::outputPrimalResidual(int iter, GenDistrVector<Scalar> &deltaF) const
 {
 	double normDeltaF = deltaF.norm();
 	deltaF.linC( deltaF, (1.0/normDeltaF) );
@@ -1302,7 +1304,7 @@ GenFetiSolver<Scalar>::outputPrimalResidual(int iter, GenDistrVector<Scalar> &de
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::makeCompatible(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &deltaU)
+GenFetiSolver<Scalar>::makeCompatible(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &deltaU) const
 {
 	// u += deltaU 
 	u.linAdd( deltaU );
@@ -1311,14 +1313,14 @@ GenFetiSolver<Scalar>::makeCompatible(GenDistrVector<Scalar> &u, GenDistrVector<
 template<class Scalar>
 Scalar
 GenFetiSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &ifrc, GenDistrVector<Scalar> &bf,
-                                         GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &lambda)
+                                         GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &lambda) const
 {
 	startTimerMemory(times.sAndJ, times.memorySAndJ);
 
-	timedParal4R(times.solveAndJump, nsub, this, &GenFetiSolver<Scalar>::localSolve, u,
-	             lambda, ifrc, bf);
+	timedParal(times.solveAndJump, nsub, this, &GenFetiSolver<Scalar>::localSolve, u,
+	           lambda, ifrc, bf);
 	vPat->exchange();
-	timedParal2R(times.solveAndJump, nsub, this, &GenFetiSolver<Scalar>::interfDiffAndDot,
+	timedParal(times.solveAndJump, nsub, this, &GenFetiSolver<Scalar>::interfDiffAndDot,
 	             bf, lambda);
 
 	// Sum each subdomains dot product contribution
@@ -1345,17 +1347,17 @@ GenFetiSolver<Scalar>::rebuildInterface(int iSub, GenDistrVector<Scalar> &v)
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::interfaceDiff(int iSub, GenDistrVector<Scalar> &v)
+GenFetiSolver<Scalar>::interfaceDiff(int iSub, GenDistrVector<Scalar> &v) const
 {
 	sd[iSub]->interfaceJump(v.subData(subdomains[iSub]->localSubNum()), vPat);
 }
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::multKbb(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &interfvec,
-                               GenDistrVector<Scalar> &deltaU, GenDistrVector<Scalar> &deltaF, bool &errorFlag)
+GenFetiSolver<Scalar>::multKbb(int iSub, const GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &interfvec,
+                               GenDistrVector<Scalar> &deltaU, GenDistrVector<Scalar> &deltaF, bool &errorFlag) const
 {
-	Scalar *v1              =         v.subData(subdomains[iSub]->localSubNum());
+	const Scalar *v1        =         v.subData(subdomains[iSub]->localSubNum());
 	Scalar *interfaceVector = interfvec.subData(subdomains[iSub]->localSubNum());
 	Scalar *subDeltaU       =    deltaU.subData(subdomains[iSub]->localSubNum());
 	Scalar *subDeltaF       = deltaF.subData(subdomains[iSub]->localSubNum());
@@ -1368,12 +1370,12 @@ GenFetiSolver<Scalar>::multKbb(int iSub, GenDistrVector<Scalar> &v, GenDistrVect
 	else
 		sd[iSub]->multKbb(v1, interfaceVector, subDeltaU, subDeltaF, errorFlag);
 
-	sd[iSub]->sendInterf(interfaceVector, vPat);
+	subdomains[iSub]->sendInterf(interfaceVector, vPat);
 }
 
 template<class Scalar>
 double
-GenFetiSolver<Scalar>::preCondition(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Pv, bool errorFlag)
+GenFetiSolver<Scalar>::preCondition(const GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Pv, bool errorFlag) const
 {
 	startTimerMemory(times.precond, times.memoryPrecond);
 
@@ -1383,10 +1385,10 @@ GenFetiSolver<Scalar>::preCondition(GenDistrVector<Scalar> &v, GenDistrVector<Sc
 	double primalResidual = 0.0;
 
 	// Compute preconditioner
-	timedParal5R(times.preconditioner, nsub, this, &GenFetiSolver<Scalar>::multKbb, v,
+	timedParal(times.preconditioner, nsub, this, &GenFetiSolver<Scalar>::multKbb, v,
 	             Pv, deltaU, deltaF, errorFlag);
 	vPat->exchange();
-	timedParal1R(times.preconditioner,nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, Pv);
+	timedParal(times.preconditioner,nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, Pv);
 
 	if(errorFlag) {
 		// Send deltaF through subdomain buffer
@@ -1438,7 +1440,7 @@ GenFetiSolver<Scalar>::normDeltaF(int iSub, double *subDots, GenDistrVector<Scal
 
 template<class Scalar>
 int
-GenFetiSolver<Scalar>::nlPreCondition(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &pr)
+GenFetiSolver<Scalar>::nlPreCondition(const GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &pr) const
 {
 	if(fetiInfo->maxortho <= 0 || oSetCG->numOrthoSets() == 1) return 0; // no preconditioner available
 	startTimerMemory(times.nlPreCond, times.memoryNlPreCond);
@@ -1671,7 +1673,7 @@ GenFetiWorkSpace<Scalar>::~GenFetiWorkSpace()
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getCtMult(GenDistrVector<Scalar> &w, GenVector<Scalar> &gamma)
+GenFetiSolver<Scalar>::getCtMult(GenDistrVector<Scalar> &w, GenVector<Scalar> &gamma) const
 {
 	opControl->vec2 = gamma.data();
 	opControl->dv1  = &w;
@@ -1697,7 +1699,7 @@ template<class Scalar>
 void
 GenFetiSolver<Scalar>::updateFeti2lambda(GenDistrVector<Scalar> &w, GenDistrVector<Scalar> &r,
                                          GenDistrVector<Scalar> &lambda0, GenVector<Scalar> &beta,
-                                         GenVector<Scalar> &alpha)
+                                         GenVector<Scalar> &alpha) const
 {
 	// beta = C^t w
 	getCtMult(w, beta);
@@ -1752,7 +1754,7 @@ GenFetiSolver<Scalar>::updateFeti2lambda(GenDistrVector<Scalar> &w, GenDistrVect
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::updateFeti2y(GenDistrVector<Scalar> &y, GenDistrVector<Scalar> &w,
-                                    GenVector<Scalar> &beta, GenVector<Scalar> &alpha)
+                                    GenVector<Scalar> &beta, GenVector<Scalar> &alpha) const
 {
 	startTimerMemory(times.project2, times.memoryProject2);
 
@@ -1821,7 +1823,7 @@ GenFetiSolver<Scalar>::subRgcTransMult(int i, int nThreads, GenVector<Scalar>* a
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::computeRgcTransMult(GenVector<Scalar> &alpha,
-                                           GenVector<Scalar> &result)
+                                           GenVector<Scalar> &result) const
 {
 	// compute result =  Rgc^t * alpha
 	execParal(threadManager->numThr(), this, &GenFetiSolver<Scalar>::subRgcTransMult,
@@ -1848,7 +1850,7 @@ GenFetiSolver<Scalar>::subRgcMult(int i, int nThreads, GenVector<Scalar>* alpha,
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::computeRgcMult(GenVector<Scalar> &beta,
-                                      GenVector<Scalar> &result)
+                                      GenVector<Scalar> &result) const
 {
 	execParal(threadManager->numThr(), this, &GenFetiSolver<Scalar>::subRgcMult,
 	          threadManager->numThr(), &beta, &result);
@@ -1859,7 +1861,7 @@ GenFetiSolver<Scalar>::computeRgcMult(GenVector<Scalar> &beta,
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::updateFeti2Vector(GenDistrVector<Scalar> &v, GenVector<Scalar> &beta,
-                                         GenVector<Scalar> &alpha)
+                                         GenVector<Scalar> &alpha) const
 {
 	beta *= -1.0;
 
@@ -1940,11 +1942,11 @@ GenFetiSolver<Scalar>::addAllFcoarse(GenFullM<Scalar> & mat)
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::gatherHalfInterface(int iSub, GenDistrVector<Scalar> *v1, GenDistrVector<Scalar> *v2,
-                                           Scalar *v3, Scalar *v4)
+GenFetiSolver<Scalar>::gatherHalfInterface(int iSub, const GenDistrVector<Scalar> *v1, const GenDistrVector<Scalar> *v2,
+                                           Scalar *v3, Scalar *v4) const
 {
-	Scalar *vec1 = v1->subData(subdomains[iSub]->localSubNum());
-	Scalar *vec2 = (v2) ? v2->subData(subdomains[iSub]->localSubNum()) : 0;
+	const Scalar *vec1 = v1->subData(subdomains[iSub]->localSubNum());
+	const Scalar *vec2 = (v2) ? v2->subData(subdomains[iSub]->localSubNum()) : 0;
 
 	Scalar *vec3 = v3 + halfOffset(iSub);
 	Scalar *vec4 = v4 + halfOffset(iSub);
@@ -1957,7 +1959,7 @@ GenFetiSolver<Scalar>::gatherHalfInterface(int iSub, GenDistrVector<Scalar> *v1,
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::scatterHalfInterface(int iSub, Scalar *v1, GenDistrVector<Scalar>* v2)
+GenFetiSolver<Scalar>::scatterHalfInterface(int iSub, Scalar *v1, GenDistrVector<Scalar>* v2) const
 {
 	Scalar *vec1 = v1 + halfOffset(iSub);
 	Scalar *vec2 = v2->subData(subdomains[iSub]->localSubNum());
@@ -2009,7 +2011,7 @@ GenFetiSolver<Scalar>::factorMatrices(int iSub)
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::localSolve(int iSub, GenDistrVector<Scalar> &v1, GenDistrVector<Scalar> &v2,
-                                  GenDistrVector<Scalar> &v3, GenDistrVector<Scalar> &v4)
+                                  GenDistrVector<Scalar> &v3, GenDistrVector<Scalar> &v4) const
 {
 	int sn = subdomains[iSub]->localSubNum();
 
@@ -2025,9 +2027,9 @@ GenFetiSolver<Scalar>::localSolve(int iSub, GenDistrVector<Scalar> &v1, GenDistr
 	for(i = 0; i < subdomains[iSub]->interfLen(); ++i)
 		interfvec[i] = interfsrc[i];
 
-	sd[iSub]->fetiBaseOp(fetiOps[iSub]->solver, localvec, interfvec);
+	subdomains[iSub]->fetiBaseOp(fetiOps[iSub]->solver, localvec, interfvec);
 
-	sd[iSub]->sendInterf(interfvec, vPat);
+	subdomains[iSub]->sendInterf(interfvec, vPat);
 }
 
 template<class Scalar>
@@ -2035,12 +2037,12 @@ void
 GenFetiSolver<Scalar>::interfSend(int iSub, GenDistrVector<Scalar> &dv1)
 {
 	Scalar *interfvec = dv1.subData(subdomains[iSub]->localSubNum());
-	sd[iSub]->sendInterf(interfvec, vPat);
+	subdomains[iSub]->sendInterf(interfvec, vPat);
 }
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::interfDiffAndDot(int iSub, GenDistrVector<Scalar> &dv1, GenDistrVector<Scalar> &dv2)
+GenFetiSolver<Scalar>::interfDiffAndDot(int iSub, GenDistrVector<Scalar> &dv1, GenDistrVector<Scalar> &dv2) const
 {
 	// Difference
 	Scalar *interfvec = dv2.subData(subdomains[iSub]->localSubNum());
@@ -2050,7 +2052,7 @@ GenFetiSolver<Scalar>::interfDiffAndDot(int iSub, GenDistrVector<Scalar> &dv1, G
 	fetiOps[iSub]->res = 0.0;
 	Scalar *v1 = dv1.subData(subdomains[iSub]->localSubNum());
 
-	int iLen = sd[iSub]->interfLen();
+	int iLen = subdomains[iSub]->interfLen();
 	int i;
 	bool *masterFlag = dv1.subMasterFlag(iSub);
 	for(i = 0; i < iLen; ++i) {
@@ -2163,7 +2165,7 @@ GenFetiSolver<Scalar>::clean_up()
 }
 
 template<class Scalar>
-int GenFetiSolver<Scalar>::numNeighbor(int iSub)
+int GenFetiSolver<Scalar>::numNeighbor(int iSub) const
 { return sd[iSub]->getSComm()->numNeighb; }
 
 template<class Scalar>
@@ -2537,7 +2539,7 @@ template<class Scalar>
 void
 GenFetiSolver<Scalar>::computeL0(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &r,
                                  GenDistrVector<Scalar> &u, GenVector<Scalar> &alpha,
-                                 GenDistrVector<Scalar> &lambda)
+                                 GenDistrVector<Scalar> &lambda) const
 {
 	// note: r = B K^+ f
 #ifdef DISTRIBUTED
@@ -2585,12 +2587,12 @@ GenFetiSolver<Scalar>::addMpcRhs(int iMPC, Scalar *sv)
 	int myNum = (*mpcToSub)[iMPC][0];
 #endif
 	if(myNum >= 0)
-		gamma[0] += sd[myNum]->getMpcRhs(iMPC);
+		gamma[0] += subdomains[myNum]->getMpcRhs(iMPC);
 }
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::singlePr(GenDistrVector<Scalar> &y, GenDistrVector<Scalar> &p, GenVector<Scalar> &alpha)
+GenFetiSolver<Scalar>::singlePr(GenDistrVector<Scalar> &y, GenDistrVector<Scalar> &p, GenVector<Scalar> &alpha) const
 {
 	startTimerMemory(times.project, times.memoryProject1);
 
@@ -2624,7 +2626,7 @@ GenFetiSolver<Scalar>::singlePr(GenDistrVector<Scalar> &y, GenDistrVector<Scalar
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::addGs(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w, GenVector<Scalar> &alpha)
+GenFetiSolver<Scalar>::addGs(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w, GenVector<Scalar> &alpha) const
 {
 	Scalar *singleC = alpha.data();
 	w = r;
@@ -2757,7 +2759,7 @@ GenFetiSolver<Scalar>::getGtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::addG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv)
+GenFetiSolver<Scalar>::addG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const
 {
 	Scalar *lvec  = r->subData(iSub);
 	Scalar *locGs = opControl->cset[iSub].locGs;
@@ -2793,7 +2795,7 @@ GenFetiSolver<Scalar>::addG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv)
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::addSG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv)
+GenFetiSolver<Scalar>::addSG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const
 {
 	Scalar *lvec  = r->subData(iSub);
 	Scalar *locGs = opControl->cset[iSub].locGs;
@@ -2852,7 +2854,7 @@ GenFetiSolver<Scalar>::getFGMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv
 #endif
 		int myID = sd[iSub]->scomm->remoteId[jSub];
 		Scalar *ovec = r->subData(neighbN);
-		gSize = sd[neighbN]->interfLen();
+		gSize = subdomains[neighbN]->interfLen();
 		if(numRBM > 0)
 			Tgemv('T', gSize, numRBM, -1.0,
 			      opControl->cset[neighbN].neighbQGs[myID], gSize,
@@ -2909,7 +2911,7 @@ GenFetiSolver<Scalar>::getFCMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::addRSingle(GenDistrVector<Scalar> &v, GenVector<Scalar> &alpha)
+GenFetiSolver<Scalar>::addRSingle(GenDistrVector<Scalar> &v, GenVector<Scalar> &alpha) const
 {
 
 	times.addR -= getTime();
@@ -2919,10 +2921,10 @@ GenFetiSolver<Scalar>::addRSingle(GenDistrVector<Scalar> &v, GenVector<Scalar> &
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::singleCoarseSolve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u)
+GenFetiSolver<Scalar>::singleCoarseSolve(const GenDistrVector<Scalar> &_f, GenDistrVector<Scalar> &u) const
 {
 	times.solve -= getTime();
-
+	GenDistrVector<Scalar> f{_f};
 	// K H P: temporary fix for MPCs
 	// resetOrthoSet();
 
@@ -2978,7 +2980,7 @@ GenFetiSolver<Scalar>::singleCoarseSolve(GenDistrVector<Scalar> &f, GenDistrVect
 	addGs(r, w, beta);
 
 	// For multi-solve cases 
-	int hasPred = predict(w,lambda0);
+	bool hasPred = predict(w,lambda0);
 	if(hasPred) {
 		// singlePr(lambda0, Fp, beta);
 		localSolveAndJump(f, lambda0, u, r);
@@ -3166,7 +3168,7 @@ GenFetiSolver<Scalar>::preProcessCorners()
 template<class Scalar>
 Scalar
 GenFetiSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &ifrc, GenDistrVector<Scalar> &bf,
-                                         GenVector<Scalar> &beta, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &lambda)
+                                         GenVector<Scalar> &beta, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &lambda) const
 {
 	startTimerMemory(times.sAndJ, times.memorySAndJ);
 
@@ -3174,7 +3176,7 @@ GenFetiSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &ifrc, GenDistrV
 	timedParal(times.solveAndJump, nsub, this, &GenFetiSolver<Scalar>::localSolve2, &u,
 	           &lambda, &beta, &ifrc, &bf);
 	vPat->exchange();
-	timedParal2R(times.solveAndJump, nsub, this, &GenFetiSolver<Scalar>::interfDiffAndDot,
+	timedParal(times.solveAndJump, nsub, this, &GenFetiSolver<Scalar>::interfDiffAndDot,
 	             bf, lambda);
 
 	// Sum each subdomains dot product contribution
@@ -3195,7 +3197,7 @@ GenFetiSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &ifrc, GenDistrV
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::localSolve2(int iSub, GenDistrVector<Scalar> *v1, GenDistrVector<Scalar> *v2,
-                                   GenVector<Scalar> *beta, GenDistrVector<Scalar> *v3, GenDistrVector<Scalar> *v4)
+                                   GenVector<Scalar> *beta, GenDistrVector<Scalar> *v3, GenDistrVector<Scalar> *v4) const
 {
 	GenSubDomain<Scalar> *subd = sd[iSub];
 
@@ -3215,9 +3217,9 @@ GenFetiSolver<Scalar>::localSolve2(int iSub, GenDistrVector<Scalar> *v1, GenDist
 
 	Scalar *gamma = beta->data() + eqNums->firstdof(mOffset);
 
-	sd[iSub]->fetiBaseOp(fetiOps[iSub]->solver, localvec, interfvec, gamma);
+	subdomains[iSub]->fetiBaseOp(fetiOps[iSub]->solver, localvec, interfvec, gamma);
 
-	sd[iSub]->sendInterf(interfvec, vPat);
+	subdomains[iSub]->sendInterf(interfvec, vPat);
 }
 
 template<class Scalar>
@@ -3536,7 +3538,7 @@ GenFetiSolver<Scalar>::makeRbmPat()
 	if(!rbmPat) {
 		rbmPat = new FSCommPattern<Scalar>(fetiCom, cpuToSub, myCPU, FSCommPattern<Scalar>::CopyOnSend,
 		                                   FSCommPattern<Scalar>::NonSym);
-		for(int iSub=0; iSub<nsub; ++iSub) sd[iSub]->setRbmCommSize(fetiOps[iSub]->numRBM, rbmPat);
+		for(int iSub=0; iSub<nsub; ++iSub) subdomains[iSub]->setRbmCommSize(fetiOps[iSub]->numRBM, rbmPat);
 		rbmPat->finalize();
 	}
 }

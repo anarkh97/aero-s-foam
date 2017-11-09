@@ -54,12 +54,12 @@ void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::reSolve(AnyVector &rhs)
 {
-  initPrec();
-  this->solveTime -= getTime(); this->memUsed -= memoryUsed();
-  AnyVector sol(rhs.size());
-  this->doSolve(rhs,sol);
-  rhs = sol;
-  this->solveTime += getTime(); this->memUsed += memoryUsed();
+    const_cast<GenPCGSolver<Scalar, AnyVector, AnyOperator> *>(this)->initPrec();
+    this->solveTime -= getTime(); this->memUsed -= memoryUsed();
+    AnyVector sol(rhs.size());
+    this->doSolve(rhs,sol);
+    rhs = sol;
+    this->solveTime += getTime(); this->memUsed += memoryUsed();
 }
 
 template<class Scalar,
@@ -67,7 +67,7 @@ template<class Scalar,
          class AnyOperator>
 void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
-::solve(Scalar *rhs, Scalar *solution) 
+::solve(const Scalar *rhs, Scalar *solution)
 {
  std::cerr << "GenPCGSolver::solve(Scalar *rhs, Scalar *solution) is not implemented\n";
 /*
@@ -85,13 +85,13 @@ template<class Scalar,
          class AnyOperator>
 void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
-::solve(AnyVector &rhs, AnyVector &solution)
+::solve(const AnyVector &rhs, AnyVector &solution)
 {
- initPrec();
- this->solveTime -= getTime(); this->memUsed -= memoryUsed();
- this->doSolve(rhs,solution);
- this->solveTime += getTime(); this->memUsed += memoryUsed();
- this->times.precond = this->prec->time; 
+    const_cast<GenPCGSolver<Scalar, AnyVector, AnyOperator> *>(this)->initPrec();
+    this->solveTime -= getTime(); this->memUsed -= memoryUsed();
+    this->doSolve(rhs,solution);
+    this->solveTime += getTime(); this->memUsed += memoryUsed();
+    this->times.precond = this->prec->time;
 }
 
 template<class Scalar,
@@ -101,7 +101,7 @@ void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::reSolve(Scalar *rhs)
 {
-  std::cerr << "GenPCGSolver::reSolve(Scalar *rhs) is not implemented\n";
+  std::cerr << "GenPCGSolver::reSolve(Scalar *rhs) const is not implemented\n";
 /*
   this->solveTime -= getTime(); this->memUsed -= memoryUsed();
   AnyVector sol(rhs, this->A->dim());
@@ -118,7 +118,7 @@ void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::reSolve(int nRHS, Scalar **RHS)
 {
- std::cerr << "GenPCGSolver::reSolve(int nRHS, Scalar **RHS) is not implemented\n";
+ std::cerr << "GenPCGSolver::reSolve(int nRHS, Scalar **RHS) const is not implemented\n";
 /*
  this->solveTime -= getTime(); this->memUsed -= memoryUsed();
  int i,n;
@@ -140,22 +140,22 @@ void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::reSolve(int nRHS, AnyVector *RHS)
 {
- initPrec();
- this->solveTime -= getTime(); this->memUsed -= memoryUsed();
- AnyVector sol(RHS[0].size());
- for(int n=0; n<nRHS; ++n) {
-   sol = RHS[n];
-   this->doSolve(RHS[n],sol);
-   RHS[n] = sol;
- }
- this->solveTime += getTime(); this->memUsed += memoryUsed();
+    const_cast<GenPCGSolver<Scalar, AnyVector, AnyOperator> *>(this)->initPrec();
+    this->solveTime -= getTime(); this->memUsed -= memoryUsed();
+    AnyVector sol(RHS[0].size());
+    for(int n=0; n<nRHS; ++n) {
+        sol = RHS[n];
+        this->doSolve(RHS[n],sol);
+        RHS[n] = sol;
+    }
+    this->solveTime += getTime(); this->memUsed += memoryUsed();
 }
 
 template<class Scalar,
          class AnyVector,
          class AnyOperator>
 int
-GenPCGSolver<Scalar, AnyVector, AnyOperator>::neqs()
+GenPCGSolver<Scalar, AnyVector, AnyOperator>::neqs() const
 {
   return BasePCG<Scalar,AnyVector,AnyOperator,KrylovProjector<Scalar,AnyVector>,Preconditioner<AnyVector> >::neqs();
 }

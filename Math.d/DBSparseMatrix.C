@@ -6,19 +6,19 @@
 #include <Driver.d/Communicator.h>
 
 extern "C"      {
-void    _FORTRAN(micspsmvp)(int&, double*, int*, int*, const double*, double*);
-void    _FORTRAN(sptmv)(double*, int*, int*, int&, double*, double*);
-void    _FORTRAN(cspsmvp)(int&, complex<double> *, int*, int*, const complex<double> *,
+void    _FORTRAN(micspsmvp)(const int&, const double*, const int*, const int*, const double*, double*);
+void    _FORTRAN(sptmv)(const double*, const int*, const int*, const int&, const double*, double*);
+void    _FORTRAN(cspsmvp)(const int&, const complex<double> *, const int*, const int*, const complex<double> *,
                           complex<double> *);
-void    _FORTRAN(cdspsmvp)(int&, double*, int*, int*, const complex<double>*, complex<double>*);
+void    _FORTRAN(cdspsmvp)(const int&, const double*, const int*, const int*, const complex<double>*, complex<double>*);
 }
 
-inline void Tcspsmvp(int& a, double* b, int* c, int* d, const double* e, double* f)
+inline void Tcspsmvp(const int& a, const double* b, const int* c, const int* d, const double* e, double* f)
 {
 _FORTRAN(micspsmvp)(a,b,c,d,e,f);
 }
 
-inline void Tcspsmvp(int& a, complex<double> * b, int* c, int* d, const complex<double> * e,
+inline void Tcspsmvp(const int& a, const complex<double> * b, const int* c, const int* d, const complex<double> * e,
                      complex<double> * f)
 {
 _FORTRAN(cspsmvp)(a,b,c,d,e,f);
@@ -260,14 +260,14 @@ GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, EqNumberer *eqNum
 
 template<class Scalar>
 double
-GenDBSparseMatrix<Scalar>::getMemoryUsed()
+GenDBSparseMatrix<Scalar>::getMemoryUsed() const
 {
  return 8.0*xunonz[numUncon]/(1024.0*1024.0);
 }
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
+GenDBSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) const
 {
  int nn = numUncon;
  Tcspsmvp(nn, unonz, xunonz, rowu, rhs, result);
@@ -275,14 +275,14 @@ GenDBSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result)
+GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result) const
 {
   Tcspsmvp(numUncon, unonz, xunonz, rowu, rhs.data(), result);
 }
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+GenDBSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
   // PJSA 11/2/09 (same as mult since this class is for symmetric matrices)
   mult(rhs, result);
@@ -290,14 +290,14 @@ GenDBSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> &rhs, GenVector
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::transposeMult(const Scalar * rhs, Scalar * result)
+GenDBSparseMatrix<Scalar>::transposeMult(const Scalar * rhs, Scalar * result) const
 {
    mult(rhs,result);
 }
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
+GenDBSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result) const
 {
  int nn = numUncon;
  Scalar *tmp = (Scalar *) dbg_alloca(sizeof(Scalar)*nn);
@@ -308,7 +308,7 @@ GenDBSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
  Tcspsmvp(numUncon, unonz, xunonz, rowu, rhs.data(), result.data());
 }
@@ -400,14 +400,14 @@ GenDBSparseMatrix<Scalar>::addDiscreteMass(int dof, Scalar dmass)
 
 template<class Scalar>
 long
-GenDBSparseMatrix<Scalar>::size()
+GenDBSparseMatrix<Scalar>::size() const
 {
  return (numUncon) ? xunonz[numUncon] : 0;
 }
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::multDiag(const Scalar *x, Scalar *b)
+GenDBSparseMatrix<Scalar>::multDiag(const Scalar *x, Scalar *b) const
 {
   int i;
   for(i=0; i<numUncon; ++i) {
@@ -418,7 +418,7 @@ GenDBSparseMatrix<Scalar>::multDiag(const Scalar *x, Scalar *b)
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::multDiag(int numRHS, const Scalar **x, Scalar **b)
+GenDBSparseMatrix<Scalar>::multDiag(int numRHS, const Scalar **x, Scalar **b) const
 {
   int i;
   int n = 0;

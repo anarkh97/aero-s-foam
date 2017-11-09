@@ -104,7 +104,7 @@ KrylovProjector<Scalar,AnyVector>::newKrylov()
 
 template<class Scalar, class AnyVector>
 void
-KrylovProjector<Scalar,AnyVector>::project(AnyVector *resid, AnyVector *precResid)
+KrylovProjector<Scalar,AnyVector>::project(const AnyVector *resid, AnyVector *precResid)
 {
  // For the first system, there are no stored directions
  if(numSystem == 1) return;

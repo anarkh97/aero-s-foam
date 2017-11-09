@@ -1,5 +1,12 @@
 #include <Timers.d/GetTime.h>
 
+namespace {
+template <typename TA, typename TB>
+auto lose_const_cast(const TB *t) { return static_cast<TA>(const_cast<TB *>(t)); }
+template <typename TA, typename TB>
+auto lose_const_cast(TA *t) { return static_cast<TB>(t); }
+}
+
 template <class TA, class TB>
 class ZeroArgExecuter : public TaskDescr {
     TA *target;
@@ -56,12 +63,29 @@ class OneArgExecuter : public TaskDescr {
     OneArgExecuter(TA *t, void (TB::*_f)(int, TC), TC _c) : target(t), c(_c) { f = _f;}
     void runFor(int);
 };
-
 template <class TA, class TB, class TC>
 void
 OneArgExecuter<TA, TB, TC>::runFor(int i)
 {
- TB *tg = static_cast<TB *>(target);
+ TB *tg = lose_const_cast<TB *>(target);
+ (tg->*f)(i, c);
+}
+
+template <class TA, class TB, class TC>
+class OneArgConstExecuter : public TaskDescr {
+	TA *target;
+	void (TB::*f)(int, TC) const;
+	TC c;
+public:
+	OneArgConstExecuter(TA *t, void (TB::*_f)(int, TC) const, TC _c) : target(t), c(_c) { f = _f;}
+	void runFor(int);
+};
+
+template <class TA, class TB, class TC>
+void
+OneArgConstExecuter<TA, TB, TC>::runFor(int i)
+{
+ const TB *tg = static_cast<const TB *>(target);
  (tg->*f)(i, c);
 }
 
@@ -101,11 +125,23 @@ void timedParal(DistTimer &timer, int n,
  timer.addOverAll( threadManager->memoryUsed()-initMem, getTime()-initTime );
 }
 
+template <typename FType>
+void execParal(int n, const FType &ftor) {
+
+}
+
 template <class TA, class TB, class TC>
 void execParal1R(int n, TA *target, void (TB::*f)(int, TC&), TC &c)
 {
  OneArgExecuter<TA,TB,TC&> oe(target,f,c);
  threadManager->execParal(n, &oe);
+}
+
+template <class TA, class TB, class TC, typename TD>
+void execParal1R(int n, TA *target, void (TB::*f)(int, TC&) const, TD &c)
+{
+	OneArgConstExecuter<TA,TB,TC&> oe(target,f,c);
+	threadManager->execParal(n, &oe);
 }
 
 template <class TA, class TB, class TC>
@@ -142,12 +178,36 @@ class TwoArgExecuter : public TaskDescr {
     void runFor(int);
 };
 
+
 template <class TA, class TB, class TC, class TD>
 void
 TwoArgExecuter<TA, TB, TC, TD>::runFor(int i)
 {
- TB *tg = static_cast<TB *>(target);
+ TB *tg = lose_const_cast<TB *>(target);
  (tg->*f)(i, c, d);
+}
+
+template <typename FType>
+class FunctorExecuter : public TaskDescr {
+public:
+	FunctorExecuter(const FType &ft) : fctor(ft) {}
+
+	FunctorExecuter(const FunctorExecuter &) = default;
+
+	void runFor(int) override;
+private:
+	const FType &fctor; //!< The functor to execute.
+};
+
+template <typename FType>
+void
+FunctorExecuter<FType>::runFor(int i) {
+	fctor(i);
+}
+
+template <typename FType>
+auto makeExecuter(const FType &ftor) {
+	return FunctorExecuter<FType>{ftor};
 }
 
 template <class TA, class TB, class TC, class TD>
@@ -156,6 +216,14 @@ void execParal(int n, TA *target, void (TB::*f)(int, TC, TD), TC c, TD d)
  TwoArgExecuter<TA,TB,TC,TD> oe(target,f,c,d);
  threadManager->execParal(n, &oe);
 }
+
+template <typename TA, typename TB, typename ... FArgs, typename ... Args>
+void execParal(int n, TA *target, void (TB::*f)(int, FArgs ... fa) const, Args &&...args)
+{
+	auto call =[&](int i) { (static_cast<const TB *>(target)->*f)(i, std::forward<Args>(args)...); };
+	auto fe = makeExecuter(call);
+	threadManager->execParal(n, &fe);
+};
 
 template <class TA, class TB, class TC, class TD>
 void timedParal(DistTimer &timer, int n,
@@ -251,7 +319,7 @@ template <class TA, class TB, class TC, class TD, class TE>
 void
 ThreeArgExecuter<TA,TB,TC,TD, TE>::runFor(int i)
 {
- TB *tg = static_cast<TB *>(target);
+ TB *tg = lose_const_cast<TB *>(target);
  (tg->*f)(i, c, d, e);
 }
 
@@ -629,6 +697,18 @@ void timedParal(DistTimer &timer, int n, TA *target,
  threadManager->execTimedParal(timer, n, &fe);
  timer.addOverAll( threadManager->memoryUsed()-initMem, getTime()-initTime );
 }
+
+
+template <typename TA, typename TB, typename ... FArgs, typename ... Args, typename X = typename std::enable_if<sizeof...(FArgs) == sizeof...(Args)>::type>
+void timedParal(DistTimer &timer, int n, TA *target, void (TB::*f)(int, FArgs ... fa) const, Args &&...args)
+{
+	auto call =[&](int i) { (static_cast<const TB *>(target)->*f)(i, std::forward<Args>(args)...); };
+	auto fe = makeExecuter(call);
+	double initTime = getTime();
+	long initMem  = threadManager->memoryUsed();
+	threadManager->execTimedParal(timer, n, &fe);
+	timer.addOverAll( threadManager->memoryUsed()-initMem, getTime()-initTime );
+};
 
 template <class TA, class TB, class TC, class TD, class TE, class TF, class TG>
 class SixArgExecuter: public TaskDescr {

@@ -23,8 +23,8 @@ public:
         FullRectMatrix operator *= (double v);
 
 	double *operator[] (int row);
-        int numRow() { return sizem; }
-        int numCol() { return sizen; }
+        int numRow() const { return sizem; }
+        int numCol() const { return sizen; }
 	void zero();
 
         double* data() { return value; }

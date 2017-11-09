@@ -86,7 +86,7 @@ GenDBSparseMatrix<DComplex>::transposeMult(const ComplexVector &rhs, ComplexVect
 
 template<>
 void
-GenDBSparseMatrix<double>::multcomplex(const DComplex *rhs, DComplex *result)
+GenDBSparseMatrix<double>::multcomplex(const DComplex *rhs, DComplex *result) const
 {
  int nn = numUncon;
   _FORTRAN(cdspsmvp)(nn, unonz, xunonz, rowu, rhs, result );
@@ -94,104 +94,10 @@ GenDBSparseMatrix<double>::multcomplex(const DComplex *rhs, DComplex *result)
 
 template<>
 void
-GenDBSparseMatrix<DComplex>::multcomplex(const DComplex *rhs, DComplex *result)
+GenDBSparseMatrix<DComplex>::multcomplex(const DComplex *rhs, DComplex *result) const
 {
   mult(rhs, result);
 }
 
-#define DBSPARSE_INSTANTIATION_HELPER(Scalar) \
-template \
-GenDBSparseMatrix<Scalar>::~GenDBSparseMatrix(); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::clean_up(); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::zeroAll(); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::print(); \
-template \
-void \
-GenDBSparseMatrix<Scalar>::print(char*); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::print1(int, FILE*); \
-template \
-GenFullM<Scalar> * \
-GenDBSparseMatrix<Scalar>::getFullMatrix(); \
-template \
-void \
-GenDBSparseMatrix<Scalar>::add(int, int, Scalar); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::add(FullSquareMatrix&, int*); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::add(GenFullM<Scalar>&, int, int); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::addBoeing(int, const int*, const int*, const double*, int*, Scalar); \
-template  \
-GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity*, DofSetArray*, int*); \
-template  \
-GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity*, DofSetArray*, ConstrainedDSA*); \
-template  \
-GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity*, EqNumberer*); \
-template  \
-double \
-GenDBSparseMatrix<Scalar>::getMemoryUsed(); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::mult(const Scalar*, Scalar*); \
-template \
-void \
-GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar>&, Scalar*);  \
-template \
-void \
-GenDBSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar>&, GenVector<Scalar>&); \
-template \
-void \
-GenDBSparseMatrix<Scalar>::transposeMult(const Scalar*, Scalar*); \
-template \
-void \
-GenDBSparseMatrix<Scalar>::multAdd(const Scalar*, Scalar*); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar>&, GenVector<Scalar>&); \
-template  \
-Scalar \
-GenDBSparseMatrix<Scalar>::diag(int) const; \
-template  \
-Scalar & \
-GenDBSparseMatrix<Scalar>::diag(int); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::makeIdentity(); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::invertDiag(); \
-template \
-void \
-GenDBSparseMatrix<Scalar>::addDiscreteMass(int, Scalar); \
-template  \
-long \
-GenDBSparseMatrix<Scalar>::size(); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::multDiag(const Scalar*, Scalar*); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::multDiag(int, const Scalar**, Scalar**); \
-template  \
-void \
-GenDBSparseMatrix<Scalar>::unify(FSCommunicator*); \
-template \
-void \
-GenDBSparseMatrix<Scalar>::symmetricScaling(); \
-template \
-void \
-GenDBSparseMatrix<Scalar>::applyScaling(Scalar*);
-
-DBSPARSE_INSTANTIATION_HELPER(double);
-DBSPARSE_INSTANTIATION_HELPER(complex<double>);
+template class GenDBSparseMatrix<double>;
+template class GenDBSparseMatrix<complex<double>>;

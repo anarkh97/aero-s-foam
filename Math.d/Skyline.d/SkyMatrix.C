@@ -36,35 +36,35 @@ void _FORTRAN(svbu4gmb)(double*,int*,int*,const double*,double*,double*,double*,
 		          double*,int&,double*,double*,int&,int*);
 
 // forward/backward routine for 1 to 8 rhs vectors (nonsingular skymatrix)
-void _FORTRAN(forbackr1nscf)(double*,int*,double*,int &);
-void _FORTRAN(forbackr2ns)(double*,int*,double*,double*,int &);
-void _FORTRAN(forbackr3ns)(double*,int*,double*,double*,double*,int &);
-void _FORTRAN(forbackr4ns)(double*,int*,double*,double*,double*,double*,int &);
-void _FORTRAN(forbackr5ns)(double*,int*,double*,double*,double*,
-                                        double*,double*,int &);
-void _FORTRAN(forbackr6ns)(double*,int*,double*,double*,double*,
-                                        double*,double*,double*,int &);
-void _FORTRAN(forbackr7ns)(double*,int*,double*,double*,double*,
+void _FORTRAN(forbackr1nscf)(const double*,const int*,double*, const int &);
+void _FORTRAN(forbackr2ns)(const double*,const int*,double*,double*,const int &);
+void _FORTRAN(forbackr3ns)(const double*,const int*,double*,double*,double*,const int &);
+void _FORTRAN(forbackr4ns)(const double*,const int*,double*,double*,double*,double*,const int &);
+void _FORTRAN(forbackr5ns)(const double*,const int*,double*,double*,double*,
+                                        double*,double*,const int &);
+void _FORTRAN(forbackr6ns)(const double*,const int*,double*,double*,double*,
+                                        double*,double*,double*,const int &);
+void _FORTRAN(forbackr7ns)(const double*,const int*,double*,double*,double*,
                                         double*,double*,double*,
-                                        double*,int &);
-void _FORTRAN(forbackr8ns)(double*,int*,double*,double*,double*,
+                                        double*,const int &);
+void _FORTRAN(forbackr8ns)(const double*,const int*,double*,double*,double*,
                                         double*,double*,double*,
-                                        double*,double*,int &);
+                                        double*,double*,const int &);
 
 // forward/backward routine for 1 to 8 rhs vectors
-void _FORTRAN(forbackr1cf)(double*,int*,double*,int *, int &);
-void _FORTRAN(forbackr2)(double*,int*,double*,double*,int *, int &);
-void _FORTRAN(forbackr3)(double*,int*,double*,double*,double*,int *, int &);
-void _FORTRAN(forbackr)(double*,int*,double*,double*,double*,double*,
-                        int *, int &);
-void _FORTRAN(forbackr5)(double*,int*,double*,double*,double*,double*,
-                         double*, int *, int &);
-void _FORTRAN(forbackr6)(double*,int*,double*,double*,double*,double*,
-                         double*, double*,int *, int &);
-void _FORTRAN(forbackr7)(double*,int*,double*,double*,double*,double*,
-                         double*, double*, double*,int *, int &);
-void _FORTRAN(forbackr8)(double*,int*,double*,double*,double*,double*,
-                         double*, double*, double*, double*,int *, int &);
+void _FORTRAN(forbackr1cf)(const double*, const int*,double*,const int *, const int &);
+void _FORTRAN(forbackr2)(const double*,const int*,double*,double*,const int *, const int &);
+void _FORTRAN(forbackr3)(const double*,const int*,double*,double*,double*, const int *, const int &);
+void _FORTRAN(forbackr) (const double*,const int*,double*,double*,double*,double*,
+                        const int *, const int &);
+void _FORTRAN(forbackr5)(const double*,const int*,double*,double*,double*,double*,
+                         double*, const int *, const int &);
+void _FORTRAN(forbackr6)(const double*,const int*,double*,double*,double*,double*,
+                         double*, double*,const int *, const int &);
+void _FORTRAN(forbackr7)(const double*,const int*,double*,double*,double*,double*,
+                         double*, double*, double*,const int *, const int &);
+void _FORTRAN(forbackr8)(const double*,const int*,double*,double*,double*,double*,
+                         double*, double*, double*, double*,const int *, const int &);
 
 // forward routine for 1 rhs vector (nonsingular skymatrix)
 void _FORTRAN(forr1ns)(double*,int*,double*,int &);
@@ -90,12 +90,12 @@ void _FORTRAN(pfactc)(DComplex*,int*,int*,const DComplex*,DComplex*,int*,
                       void *, void *);
 
 // forward/backward routine for 1 to 4 rhs vectors
-void _FORTRAN(forbackc1)(DComplex*,int*,DComplex*,int *, int &);
-void _FORTRAN(forbackc2)(DComplex*,int*,DComplex*,DComplex*,int *, int &);
-void _FORTRAN(forbackc3)(DComplex*,int*,DComplex*,DComplex*,DComplex*,
-                        int *, int &);
-void _FORTRAN(forbackc4)(DComplex*,int*,DComplex*,DComplex*,DComplex*,
-                         DComplex*,int *, int &);
+void _FORTRAN(forbackc1)(const DComplex*,const int*,DComplex*,const int *, const int &);
+void _FORTRAN(forbackc2)(const DComplex*,const int*,DComplex*,DComplex*,const int *,const int &);
+void _FORTRAN(forbackc3)(const DComplex*,const int*,DComplex*,DComplex*,DComplex*,
+                        const int *, const int &);
+void _FORTRAN(forbackc4)(const DComplex*,const int*,DComplex*,DComplex*,DComplex*,
+                         DComplex*,const int *, const int &);
 }
 
 // *** TEMPLATE FUNCTIONS ***
@@ -115,81 +115,81 @@ inline void Tpfact(DComplex *a, int *b, int *c, const DComplex *d, DComplex *e,
                    int &m, int &n, void *o, void *p)
 { _FORTRAN(pfactc)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p); }
 
-inline void Tforback1(double *a, int *b, double *c1, int *d, int &e, int nzem = 0)
+inline void Tforback1(const double *a, const int *b, double *c1, const int *d, const int &e, int nzem = 0)
 {
   if(nzem) _FORTRAN(forbackr1cf)(a,b,c1,d,e);
   else _FORTRAN(forbackr1nscf)(a,b,c1,e);
 }
-inline void Tforback1(DComplex *a, int *b, DComplex *c1, int *d, int &e, int nzem = 0)
+inline void Tforback1(DComplex *a, const int *b, DComplex *c1, const int *d, const int &e, int nzem = 0)
 { _FORTRAN(forbackc1)(a,b,c1,d,e); }
 
-inline void Tforback2(double *a, int *b, double *c1, double *c2, int *d, int &e, int nzem = 0)
+inline void Tforback2(double *a, const int *b, double *c1, double *c2, const int *d, const int &e, const int nzem = 0)
 {
   if(nzem) _FORTRAN(forbackr2)(a,b,c1,c2,d,e);
   else _FORTRAN(forbackr2ns)(a,b,c1,c2,e);
 }
-inline void Tforback2(DComplex *a, int *b, DComplex *c1, DComplex *c2, int *d, int &e, int nzem = 0)
+inline void Tforback2(DComplex *a, const int *b, DComplex *c1, DComplex *c2, const int *d, const int &e, const int nzem = 0)
 { _FORTRAN(forbackc2)(a,b,c1,c2,d,e); }
 
-inline void Tforback3(double *a, int *b, double *c1, double *c2, double *c3,
-                      int *d, int &e, int nzem = 0)
+inline void Tforback3(double *a, const int *b, double *c1, double *c2, double *c3,
+                      const int *d, const int &e, const int nzem = 0)
 {
   if(nzem) _FORTRAN(forbackr3)(a,b,c1,c2,c3,d,e);
   else _FORTRAN(forbackr3ns)(a,b,c1,c2,c3,e);
 }
-inline void Tforback3(DComplex *a, int *b, DComplex *c1, DComplex *c2, DComplex *c3,
-                      int *d, int &e, int nzem = 0)
+inline void Tforback3(DComplex *a, const int *b, DComplex *c1, DComplex *c2, DComplex *c3,
+                      const int *d, const int &e, const int nzem = 0)
 { _FORTRAN(forbackc3)(a,b,c1,c2,c3,d,e); }
 
-inline void Tforback4(double *a, int *b, double *c1, double *c2, double *c3, double *c4,
-                      int *d, int &e, int nzem = 0)
+inline void Tforback4(double *a, const int *b, double *c1, double *c2, double *c3, double *c4,
+                      const int *d, const int &e, const int nzem = 0)
 {
   if(nzem) _FORTRAN(forbackr)(a,b,c1,c2,c3,c4,d,e);
   else _FORTRAN(forbackr4ns)(a,b,c1,c2,c3,c4,e);
 }
-inline void Tforback4(DComplex *a, int *b, DComplex *c1, DComplex *c2, DComplex *c3, DComplex *c4,
-                      int *d, int &e, int nzem = 0)
+inline void Tforback4(DComplex *a, const int *b, DComplex *c1, DComplex *c2, DComplex *c3, DComplex *c4,
+                      const int *d, const int &e, const int nzem = 0)
 { _FORTRAN(forbackc4)(a,b,c1,c2,c3,c4,d,e); }
 
-inline void Tforback5(double *a, int *b, double *c1, double *c2, double *c3, double *c4,
-                      double *c5, int *d, int &e, int nzem = 0)
+inline void Tforback5(double *a, const int *b, double *c1, double *c2, double *c3, double *c4,
+                      double *c5, const int *d, const int &e, const int nzem = 0)
 {
   if(nzem) _FORTRAN(forbackr5)(a,b,c1,c2,c3,c4,c5,d,e);
   else _FORTRAN(forbackr5ns)(a,b,c1,c2,c3,c4,c5,e);
 }
-inline void Tforback5(DComplex *a, int *b, DComplex *c1, DComplex *c2, DComplex *c3, DComplex *c4,
-                      DComplex *c5, int *d, int &e, int nzem = 0)
+inline void Tforback5(DComplex *a, const int *b, DComplex *c1, DComplex *c2, DComplex *c3, DComplex *c4,
+                      DComplex *c5, const int *d, const int &e, const int nzem = 0)
 { fprintf(stderr, "forbackc5 not implemented"); }
 
-inline void Tforback6(double *a, int *b, double *c1, double *c2, double *c3, double *c4,
-                      double *c5, double *c6, int *d, int &e, int nzem = 0)
+inline void Tforback6(double *a, const int *b, double *c1, double *c2, double *c3, double *c4,
+                      double *c5, double *c6, const int *d, const int &e, const int nzem = 0)
 {
   if(nzem) _FORTRAN(forbackr6)(a,b,c1,c2,c3,c4,c5,c6,d,e);
   else _FORTRAN(forbackr6ns)(a,b,c1,c2,c3,c4,c5,c6,e);
 }
-inline void Tforback6(DComplex *a, int *b, DComplex *c1, DComplex *c2, DComplex *c3, DComplex *c4,
-                      DComplex *c5, DComplex *c6, int *d, int &e, int nzem = 0)
+inline void Tforback6(DComplex *a, const int *b, DComplex *c1, DComplex *c2, DComplex *c3, DComplex *c4,
+                      DComplex *c5, DComplex *c6, const int *d, const int &e, const int nzem = 0)
 { fprintf(stderr, "forbackc6 not implemented"); }
 
-inline void Tforback7(double *a, int *b, double *c1, double *c2, double *c3, double *c4,
-                      double *c5, double *c6, double *c7, int *d, int &e, int nzem = 0)
+inline void Tforback7(double *a, const int *b, double *c1, double *c2, double *c3, double *c4,
+                      double *c5, double *c6, double *c7, const int *d, const int &e, const int nzem = 0)
 {
   if(nzem) _FORTRAN(forbackr7)(a,b,c1,c2,c3,c4,c5,c6,c7,d,e);
   else _FORTRAN(forbackr7ns)(a,b,c1,c2,c3,c4,c5,c6,c7,e);
 }
-inline void Tforback7(DComplex *a, int *b, DComplex *c1, DComplex *c2, DComplex *c3, DComplex *c4,
-                      DComplex *c5, DComplex *c6, DComplex *c7, int *d, int &e, int nzem = 0)
+inline void Tforback7(DComplex *a, const int *b, DComplex *c1, DComplex *c2, DComplex *c3, DComplex *c4,
+                      DComplex *c5, DComplex *c6, DComplex *c7, const int *d, const int &e, const int nzem = 0)
 { fprintf(stderr, "forbackc7 not implemented"); }
 
-inline void Tforback8(double *a, int *b, double *c1, double *c2, double *c3, double *c4,
-                      double *c5, double *c6, double *c7, double *c8, int *d, int &e, int nzem = 0)
+inline void Tforback8(double *a, const int *b, double *c1, double *c2, double *c3, double *c4,
+                      double *c5, double *c6, double *c7, double *c8, const int *d, const int &e, const int nzem = 0)
 {
   if(nzem) _FORTRAN(forbackr8)(a,b,c1,c2,c3,c4,c5,c6,c7,c8,d,e);
   else _FORTRAN(forbackr8ns)(a,b,c1,c2,c3,c4,c5,c6,c7,c8,e);
 }
-inline void Tforback8(DComplex *a, int *b, DComplex *c1, DComplex *c2, DComplex *c3, DComplex *c4,
-                      DComplex *c5, DComplex *c6, DComplex *c7, DComplex *c8, int *d, int &e,
-                      int nzem = 0)
+inline void Tforback8(DComplex *a, const int *b, DComplex *c1, DComplex *c2, DComplex *c3, DComplex *c4,
+                      DComplex *c5, DComplex *c6, DComplex *c7, DComplex *c8, const int *d, const int &e,
+                      const int nzem = 0)
 { fprintf(stderr, "forbackc8 not implemented"); }
 
 inline void Tfor1(double *a, int *b, double *c1, int *d, int &e, int nzem = 0)
@@ -449,7 +449,7 @@ GenSkyMatrix<Scalar>::printConstructTime()
 
 template<class Scalar>
 void
-GenSkyMatrix<Scalar>::mult(const GenVector<Scalar> &, GenVector<Scalar> &)
+GenSkyMatrix<Scalar>::mult(const GenVector<Scalar> &, GenVector<Scalar> &) const
 {
   fprintf(stderr,"This shouldn't be called--SkyMatrix::mult\n");
 
@@ -464,7 +464,7 @@ GenSkyMatrix<Scalar>::mult(const GenVector<Scalar> &, GenVector<Scalar> &)
 
 template<class Scalar>
 void
-GenSkyMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
+GenSkyMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) const
 {
   // local objects
   int i, j, istr, iend, index;
@@ -626,7 +626,7 @@ GenSkyMatrix<Scalar>::parallelFactor()
 
 template<class Scalar>
 void
-GenSkyMatrix<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
+GenSkyMatrix<Scalar>::solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
 {
    solution = rhs;
    reSolve(solution.data());
@@ -634,7 +634,7 @@ GenSkyMatrix<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
 
 template<class Scalar>
 void
-GenSkyMatrix<Scalar>::solve(Scalar *rhs, Scalar *solution)
+GenSkyMatrix<Scalar>::solve(const Scalar *rhs, Scalar *solution)
 {
    int i;
    for(i=0; i<dim(); ++i)
@@ -1190,7 +1190,7 @@ GenSkyMatrix<Scalar>::symmetricScaling()
 
 template<class Scalar>
 void
-GenSkyMatrix<Scalar>::applyScaling(Scalar *vector)
+GenSkyMatrix<Scalar>::applyScaling(Scalar *vector) const
 {
  if(isScaled) {
    int i;
@@ -1202,7 +1202,7 @@ GenSkyMatrix<Scalar>::applyScaling(Scalar *vector)
 //HB: compute the root-mean-square bandwidth
 template<class Scalar>
 double
-GenSkyMatrix<Scalar>::rmsBandwidth()
+GenSkyMatrix<Scalar>::rmsBandwidth() const
 {
   if(numUncon == 0) return 0.0;
 

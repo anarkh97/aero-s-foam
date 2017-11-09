@@ -10,7 +10,7 @@ ComplexSolver::numRBM()
 }
 
 void
-ComplexSolver::reSolve(FullMC *) {
+ComplexSolver::reSolve(FullMC *) const {
 
  fprintf(stderr,"Selected reSolve does not support FullMC matrix input.\n");
 
@@ -18,7 +18,7 @@ ComplexSolver::reSolve(FullMC *) {
 
 
 void
-ComplexSolver::reSolve(int nRHS, DComplex **RHS)
+ComplexSolver::reSolve(int nRHS, DComplex **RHS) const
 {
  // nRHS = number of rhs
  int i;
@@ -27,14 +27,14 @@ ComplexSolver::reSolve(int nRHS, DComplex **RHS)
 }
 
 void
-ComplexSolver::reSolve(int nRHS, DComplex *RHS) {
+ComplexSolver::reSolve(int nRHS, DComplex *RHS) const {
 
  fprintf(stderr,"Selected reSolve does not support DComplex* input.\n");
 
 }
 
 void
-ComplexSolver::reSolve(int nRHS, ComplexVector *RHS)
+ComplexSolver::reSolve(int nRHS, ComplexVector *RHS) const
 {
  int i;
  for (i = 0; i < nRHS; ++i)
@@ -42,13 +42,13 @@ ComplexSolver::reSolve(int nRHS, ComplexVector *RHS)
 }
 
 void
-ComplexSolver::reSolve(ComplexVector &v)
+ComplexSolver::reSolve(ComplexVector &v) const
 {
  reSolve(v.data());
 }
 
 void
-ComplexSolver::reSolve(DComplex*)
+ComplexSolver::reSolve(DComplex*) const
 {
  fprintf(stderr,"Selected reSolve does not support complex.\n");
 }

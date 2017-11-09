@@ -29,8 +29,8 @@ class BasePCG {
     int maxitr;
     int verbose;
 
-    Scalar finalNorm;
-    int numIterations;
+    mutable Scalar finalNorm;
+    mutable int numIterations;
 
   public:
     BasePCG(int _maxitr, double _tolpcg, int _verbose,
@@ -44,8 +44,8 @@ class BasePCG {
     BasePCG() { };
     ~BasePCG() { if(A) delete A; if(proj) delete proj; if(prec) delete prec;};
     AnyOperator * getOperator() { return A; }
-    int neqs() { return A->neqs(); }
-    int doSolve(AnyVector& rhs, AnyVector& sol);
+    int neqs() const { return A->neqs(); }
+    int doSolve(const AnyVector& rhs, AnyVector& sol);
 };
 
 #ifdef _TEMPLATE_FIX_

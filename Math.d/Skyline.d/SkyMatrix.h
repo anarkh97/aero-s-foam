@@ -57,17 +57,17 @@ template<class Scalar>
 class GenSkyMatrix : public SkyData, public GenSparseMatrix<Scalar>, public GenSolver<Scalar>
 {
 protected:
-   Scalar *skyA;        // Sky array
-   int isScaled;        // whether to scale the matrix or not.
-   Scalar *scale;       // vector to store the matrix scaling
-   bool wasScaled;      // HB: indicate if the scaling has already been applied before
-                        //     getting in Factor/parallelFactor method
+   Scalar *skyA = nullptr;  // Sky array
+   int isScaled = false;    // whether to scale the matrix or not.
+   Scalar *scale = nullptr; // vector to store the matrix scaling
+   bool wasScaled = false; // HB: indicate if the scaling has already been applied before
+                            //     getting in Factor/parallelFactor method
    // Timing data members
-   double solveTime;
-   double constructTime;
+   mutable double solveTime = 0.0;
+   double constructTime = 0.0;
  public:
    // Constructors
-   GenSkyMatrix() { this->skyZ = 0; }
+   GenSkyMatrix() = default;
    GenSkyMatrix(Connectivity *cn, EqNumberer *dsa, double trbm, int *bc);
    GenSkyMatrix(Connectivity *cn, EqNumberer *dsa, double trbm, int isScaled=0);
    GenSkyMatrix(Connectivity *cn, DofSetArray *, double trbm, Rbm *rigid=0);
@@ -79,64 +79,64 @@ protected:
    virtual ~GenSkyMatrix();
 
    // returns memory used in megabytes
-   double getMemoryUsed() { return 8*dlp[numUncon-1]/(1024.0*1024.0); }
-   long size() { return (numUncon) ? dlp[numUncon - 1] : 0; }
-   Scalar* getData() { return skyA; }
+   double getMemoryUsed() const override { return 8*dlp[numUncon-1]/(1024.0*1024.0); }
+   long size() const override { return (numUncon) ? dlp[numUncon - 1] : 0; }
+   Scalar* getData() override { return skyA; }
 
-   void mult(const GenVector<Scalar> &, GenVector<Scalar> &);
-   void mult(const Scalar *rhs, Scalar *result);
-   Scalar diag(int) const;                           // returns diagonal entry
-   Scalar &diag(int);
+   void mult(const GenVector<Scalar> &, GenVector<Scalar> &) const override;
+   void mult(const Scalar *rhs, Scalar *result) const override;
+   Scalar diag(int) const override;                           // returns diagonal entry
+   Scalar &diag(int) override;
 
    // assembly
-   void add(FullSquareMatrix &, int *dofs);
-   void add(FullSquareMatrixC &, int *dofs);
-   void addImaginary(FullSquareMatrix &, int *dofs);
-   void add(GenAssembledFullM<Scalar> &kel, int *dofs);
-   void add(GenFullM<Scalar> &, int rowStart, int colStart);
-   void addone(Scalar d, int dofi, int dofj);
-   void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
-   void add(Scalar *_skyA);
+   void add(FullSquareMatrix &, int *dofs) override;
+   void add(FullSquareMatrixC &, int *dofs) override;
+   void addImaginary(FullSquareMatrix &, int *dofs) override;
+   void add(GenAssembledFullM<Scalar> &kel, int *dofs) override;
+   void add(GenFullM<Scalar> &, int rowStart, int colStart) override;
+   void addone(Scalar d, int dofi, int dofj) override;
+   void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier) override;
+   void add(Scalar *_skyA) override;
    void addPoint(Scalar, int, int);
 
    void Factor();
    void Factor(Rbm *rigid);
-   void factor();
+   void factor() override;
    // Parallel factorization. It's used for Coarse problems only
-   virtual void parallelFactor();
+   virtual void parallelFactor() override;
 
-   void solve(Scalar *rhs, Scalar *solution);
-   void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution);
+   void solve(const Scalar *rhs, Scalar *solution) override;
+   void solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution) override;
 
-   void reSolve(GenVector<Scalar> &rhs);
-   void reSolve(Scalar *rhs);
-   void reSolve(int numRHS, Scalar **RHS);
-   void reSolve(int numRHS, GenVector<Scalar> *RHS);
-   void reSolve(int numRHS, Scalar *RHS);
-   void reSolve(GenFullM<Scalar> *mat);
+   void reSolve(GenVector<Scalar> &rhs) override;
+   void reSolve(Scalar *rhs) override;
+   void reSolve(int numRHS, Scalar **RHS) override;
+   void reSolve(int numRHS, GenVector<Scalar> *RHS) override;
+   void reSolve(int numRHS, Scalar *RHS) override;
+   void reSolve(GenFullM<Scalar> *mat) override;
 
-   void forward(GenVector<Scalar> &rhs);
-   void backward(GenVector<Scalar> &rhs);
+   void forward(GenVector<Scalar> &rhs) override;
+   void backward(GenVector<Scalar> &rhs) override;
 
-   void unify(FSCommunicator *communicator);
+   void unify(FSCommunicator *communicator) override;
 
    GenVector<Scalar>* getNullSpace();   // retrieve ZERO ENERGY MODES
-   void getNullSpace(Scalar *rbm);      // retrieve ZERO ENERGY MODES
+   void getNullSpace(Scalar *rbm) override;      // retrieve ZERO ENERGY MODES
 
-   int  numRBM() { return nzem; } // retrieve the number of rigid body modes
-   void getRBMs(double *);         // retrieve the rigid body modes
-   void getRBMs(Vector* vs);       // retrieve the rigid body modes
-   void getRBMs(VectorSet& vs);    // retrieve the rigid body modes
+   int  numRBM() const { return nzem; } // retrieve the number of rigid body modes
+   void getRBMs(double *) override;         // retrieve the rigid body modes
+   void getRBMs(Vector* vs) override;       // retrieve the rigid body modes
+   void getRBMs(VectorSet& vs) override;    // retrieve the rigid body modes
 
-   void addDiscreteMass(int cdof, Scalar diMass);
-   void add(int row_dof, int col_dof, Scalar s) { addone(s, row_dof, col_dof); }
-   void zeroAll();
-   int  dim()  { return numUncon; }
-   int  neqs() { return numUncon; }
+   void addDiscreteMass(int cdof, Scalar diMass) override;
+   void add(int row_dof, int col_dof, Scalar s) override { addone(s, row_dof, col_dof); }
+   void zeroAll() override;
+   int  dim() const override { return numUncon; }
+   int  neqs()const override { return numUncon; }
    void allMult(Scalar x); // multiply the whole skyline matrix by x
 
    // Timing functions
-   double getSolutionTime()  { return solveTime; }
+   double getSolutionTime() override { return solveTime; }
 
    void printMemory();
    void printConstructTime();
@@ -146,17 +146,17 @@ protected:
    void printMatlab(char *fileName);
    void printDiagonals();
 
-   void clean_up();
+   void clean_up() override;
 
-   Scalar getone(int row, int col);
+   Scalar getone(int row, int col) override;
 
-   void applyScaling(Scalar *vector);
+   void applyScaling(Scalar *vector) const;
    void symmetricScaling();
    bool IsScaled() { return (isScaled)? true : false; }
    void setIsScaled(int _isScaled) { isScaled = _isScaled; }
 
    //HB
-   double rmsBandwidth();
+   double rmsBandwidth() const;
 
 #if defined(sgi) && ! defined(_OPENMP)
    void pfact(int, int, barrier_t *, Scalar *);

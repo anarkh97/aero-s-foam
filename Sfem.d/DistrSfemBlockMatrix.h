@@ -32,9 +32,11 @@ class DistrBlockVector {
       blocknorms = new double[inf.nblocks];
     }
 
-    GenDistrVector<Scalar>** getv() {return v;}
+	GenDistrVector<Scalar>** getv() {return v;}
+	GenDistrVector<Scalar>** const getv() const {return v;}
 
     GenDistrVector<Scalar>&  getBlock(int iblock) { return *(v[iblock]); }
+    const GenDistrVector<Scalar>&  getBlock(int iblock) const { return *(v[iblock]); }
 //    GenDistrVector<Scalar>&  getBlock(int iblock, int junk) { return *(v[iblock]); } // YYY remove later
     DistrBlockInfo info() { return inf; }
 
@@ -43,15 +45,14 @@ class DistrBlockVector {
 
     ~DistrBlockVector(); 
 
-    int size(); // YYY how to const ? like the next line
-//    int size() const { return len; }  
+    int size() const;
     void zero();
     Scalar operator[](int i) const { int n = inf.blockinfo[0].len; return (*(v[i/n]))[i%n]; } 
     Scalar & operator[](int i) { int n = inf.blockinfo[0].len; return (*(v[i/n]))[i%n]; }
     Scalar operator * (DistrBlockVector &);
     double norm(); 
     double sqNorm(); 
-    DistrBlockVector& operator=(DistrBlockVector<Scalar> &);
+    DistrBlockVector& operator=(const DistrBlockVector<Scalar> &);
     DistrBlockVector& operator=(Scalar c);
     DistrBlockVector& operator*=(Scalar c);
     DistrBlockVector& operator+=(DistrBlockVector<Scalar> &);
@@ -59,9 +60,9 @@ class DistrBlockVector {
     DistrBlockVector& linAdd(DistrBlockVector<Scalar> &);
     DistrBlockVector& linAdd(Scalar, DistrBlockVector<Scalar> &);
     DistrBlockVector& linAdd(Scalar, DistrBlockVector<Scalar> &, Scalar, DistrBlockVector<Scalar> &);
-    DistrBlockVector& linC(DistrBlockVector<Scalar> &, Scalar);
-    DistrBlockVector& linC(DistrBlockVector<Scalar> &, Scalar, DistrBlockVector<Scalar> &);
-    DistrBlockVector& linC(Scalar, DistrBlockVector<Scalar> &, Scalar, DistrBlockVector<Scalar> &);
+    DistrBlockVector& linC(const DistrBlockVector<Scalar> &, Scalar);
+    DistrBlockVector& linC(const DistrBlockVector<Scalar> &, Scalar, const DistrBlockVector<Scalar> &);
+    DistrBlockVector& linC(Scalar, const DistrBlockVector<Scalar> &, Scalar, const DistrBlockVector<Scalar> &);
     DistrBlockVector& swap(DistrBlockVector<Scalar> &);
     Scalar sum();
    
@@ -103,7 +104,7 @@ class DistrSfemBlockMatrix {
     void matvec_sfem_block(DistrBlockVector<Scalar> &u);
     void mult(DistrBlockVector<Scalar> &u, DistrBlockVector<Scalar> &ku);
     DistrBlockInfo &dim(); 
-    int neqs() {return n*P;} //  in some cases like dim()
+    int neqs() const {return n*P;} //  in some cases like dim()
     Scalar diag(int i) {Scalar r =0.0; std::cerr <<"DistrSfemBlockMatrix::diag not implemented" << std::endl; return r;}
     int* getFirstDof();
     int numNodes();

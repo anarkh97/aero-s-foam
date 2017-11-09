@@ -25,7 +25,7 @@ class GenMpcSparse : public GenSparseMatrix<Scalar>
                  int *_wetInterfaceMap, int mpcOffset);
     virtual ~GenMpcSparse();
 
-    double getMemoryUsed();
+    double getMemoryUsed() const override;
 
     void add(const double *const *kel, int *dofs, int kndof);
     void add(FullSquareMatrix &mel, int *dofs);
@@ -34,20 +34,20 @@ class GenMpcSparse : public GenSparseMatrix<Scalar>
 
     void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
 
-    void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
-    void mult(const Scalar *rhs, Scalar *result);
+    void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const override ;
+    void mult(const Scalar *rhs, Scalar *result) const override;
     
-    void multIdentity(int dof, Scalar *result);
-    void multIdentity(Scalar **result);
-    void multIdentity(Scalar *result);
-    void multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
-    void multSubtract(const Scalar *rhs, Scalar *result);
+    void multIdentity(int dof, Scalar *result) const;
+    void multIdentity(Scalar **result) const override;
+    void multIdentity(Scalar *result) const override;
+    void multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const override;
+    void multSubtract(const Scalar *rhs, Scalar *result) const override;
 
     void zeroAll();
-    int  dim()    { return 0; }
-    int  neqs()    { return 0; }
-    int  numRow() { return NumRow; }
-    int  numCol() { return NumCol; }
+    int  dim() const override { return 0; }
+    int  neqs() const override { return 0; }
+    int  numRow() const override { return NumRow; }
+    int  numCol() const override { return NumCol; }
 
     Scalar diag(int) const { throw "GenMpcSparse::diag - 1 - should never be called"; }
     Scalar &diag(int) { throw "GenMpcSparse::diag - 2 - should never be called"; }
@@ -55,14 +55,14 @@ class GenMpcSparse : public GenSparseMatrix<Scalar>
     void print(FILE *file=stderr, const char* msg="A");
     void negate();
 
-    void multSub(const Scalar *rhs, Scalar *result);
-    void multSub(int numRHS, Scalar **rhs, Scalar **result);
-    void multSubWI(const Scalar *rhs, Scalar *result);
-    void transposeMultAdd(const Scalar *rhs, Scalar *result);
-    void multAdd(const Scalar *rhs, Scalar *result);
-    void transposeMultSubtract(const Scalar *rhs, Scalar *result);
-    void transposeMultSubtractWI(const Scalar *rhs, Scalar *wi_result);
-    void transposeMult(const Scalar *rhs, Scalar *result);
+    void multSub(const Scalar *rhs, Scalar *result) const;
+    void multSub(int numRHS, Scalar **rhs, Scalar **result) const;
+    void multSubWI(const Scalar *rhs, Scalar *result) const;
+    void transposeMultAdd(const Scalar *rhs, Scalar *result) const;
+    void multAdd(const Scalar *rhs, Scalar *result) const;
+    void transposeMultSubtract(const Scalar *rhs, Scalar *result) const;
+    void transposeMultSubtractWI(const Scalar *rhs, Scalar *wi_result) const;
+    void transposeMult(const Scalar *rhs, Scalar *result) const;
 
   private:
     GenMpcSparse<Scalar>& operator = (const GenMpcSparse<Scalar> &);

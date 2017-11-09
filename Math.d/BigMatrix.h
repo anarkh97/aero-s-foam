@@ -38,7 +38,7 @@ class GenBigMatrix : public GenFullM<Scalar> {
    virtual ~GenBigMatrix();
    Scalar *data() { return this->v; }
    void parallelFactor();
-   void reSolve(Scalar *rhs);
+   void reSolve(Scalar *rhs) const;
    Scalar *operator[](int i);
 };
 

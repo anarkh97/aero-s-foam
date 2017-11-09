@@ -1479,7 +1479,7 @@ FetiSolver::preProcessCorners()
 
 double
 FetiSolver::localSolveAndJump(DistrVector &ifrc, DistrVector &bf,
-                            Vector &beta, DistrVector &u, DistrVector &lambda)
+                            Vector &beta, DistrVector &u, DistrVector &lambda) const
 {
  startTimerMemory(times.sAndJ, times.memorySAndJ);
 

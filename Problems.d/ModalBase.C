@@ -39,7 +39,7 @@ void DiagonalMatrix::invertDiag(){
 
 //------------------------------------------------------------------------------
 
-void DiagonalMatrix::reSolve(Vector &rhs){
+void DiagonalMatrix::reSolve(Vector &rhs) {
 /*PRE: d is populated with the inverse of A
  POST: returns solution to Ax = rhs; rhs is over-written with x
 */

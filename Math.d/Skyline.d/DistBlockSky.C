@@ -80,7 +80,7 @@ GenDistBlockSky<Scalar>::parallelFactor()
 
 template<class Scalar>
 void
-GenDistBlockSky<Scalar>::reSolve(Scalar *rhs)
+GenDistBlockSky<Scalar>::reSolve(Scalar *rhs) const
 {
  Scalar *partialSum = (Scalar *)dbg_alloca(sizeof(Scalar)*numRows);
 
@@ -102,7 +102,7 @@ GenDistBlockSky<Scalar>::reSolve(Scalar *rhs)
 
 template<class Scalar>
 void
-GenDistBlockSky<Scalar>::reSolve(GenVector<Scalar> &rhs)
+GenDistBlockSky<Scalar>::reSolve(GenVector<Scalar> &rhs) const
 {
  Scalar *partialSum = (Scalar *)dbg_alloca(sizeof(Scalar)*numRows);
 

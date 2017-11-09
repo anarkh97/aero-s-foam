@@ -1,6 +1,6 @@
 template<class Scalar> 
 void
-GenFetiDPSolver<Scalar>::addRstar_gT(int iGroup, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta)
+GenFetiDPSolver<Scalar>::addRstar_gT(int iGroup, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta) const
 {
 #ifdef DISTRIBUTED
   for(int i=0; i<this->nsub; ++i) {
@@ -18,14 +18,14 @@ GenFetiDPSolver<Scalar>::addRstar_gT(int iGroup, GenDistrVector<Scalar> &u, GenV
 
 template<class Scalar> 
 void
-GenFetiDPSolver<Scalar>::subtractRstar_g(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta)
+GenFetiDPSolver<Scalar>::subtractRstar_g(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta) const
 {
   this->sd[iSub]->subtractRstar_g(u.subData(this->sd[iSub]->localSubNum()), beta);
 }
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::computeProjectedDisplacement(GenDistrVector<Scalar> &u)
+GenFetiDPSolver<Scalar>::computeProjectedDisplacement(GenDistrVector<Scalar> &u) const
 {
   int numGtGsing = (GtGtilda) ? GtGtilda->numRBM() : 0;
   if(numGtGsing > 0) {
@@ -44,7 +44,7 @@ GenFetiDPSolver<Scalar>::computeProjectedDisplacement(GenDistrVector<Scalar> &u)
 
     GenVector<Scalar> beta(numGtGsing, 0.0);
     // 1. compute beta = Rstar_g^t * u
-    execParal2R(nGroups1, this, &GenFetiDPSolver<Scalar>::addRstar_gT, u, beta);
+    execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::addRstar_gT, u, beta);
 #ifdef DISTRIBUTED
     this->fetiCom->globalSum(numGtGsing, beta.data());
 #endif
@@ -60,7 +60,7 @@ GenFetiDPSolver<Scalar>::computeProjectedDisplacement(GenDistrVector<Scalar> &u)
     // 3. compute beta = (Rstar_g^t Rstar_g)^(-1) * beta
     RtR.reSolve(beta.getData());
     // 4. compute u = u - Rstar_g * beta
-    execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::subtractRstar_g, u, beta);
+    execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subtractRstar_g, u, beta);
   }
 }
 
@@ -132,7 +132,7 @@ GenFetiDPSolver<Scalar>::makeGtG()
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::makeE(GenDistrVector<Scalar> &f)
+GenFetiDPSolver<Scalar>::makeE(GenDistrVector<Scalar> &f) const
 {
   // Compute e = R^t * f
   GenVector<Scalar> &e = this->wksp->ret_e();
@@ -178,7 +178,7 @@ GenFetiDPSolver<Scalar>::assembleE(int iGroup, GenVector<Scalar> &e, GenDistrVec
 
 template<class Scalar> 
 void 
-GenFetiDPSolver<Scalar>::addRalpha(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &alpha)
+GenFetiDPSolver<Scalar>::addRalpha(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &alpha) const
 {
   this->sd[iSub]->addRalpha(u.subData(this->sd[iSub]->localSubNum()), alpha);
 }
@@ -208,9 +208,9 @@ GenFetiDPSolver<Scalar>::getRBMs(Scalar *globRBM)
       GenStackDistVector<Scalar> v(this->internalDI, globRBM+iRBM*this->internalDI.len);
       GenStackVector<Scalar> vc(nc, R+iRBM*nc);
       vr.zero();
-      execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::multKrc, vr, (GenVector<Scalar> &)(vc));
+      execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::multKrc, vr, (GenVector<Scalar> &)(vc));
       execParal1R(this->nsub, this, &GenFetiDPSolver<Scalar>::KrrReSolve, vr);
-      execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::mergeUr, vr, (GenVector<Scalar> &)(vc), 
+      execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::mergeUr, vr, (GenVector<Scalar> &)(vc),
                   (GenDistrVector<Scalar> &)(v), (GenDistrVector<Scalar> &)(v));  // last argument is a dummy
     }
     delete [] R;
@@ -256,9 +256,9 @@ GenFetiDPSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &globRBM)
     for(iRBM=0; iRBM<nr; ++iRBM) {
       GenStackVector<Scalar> vc(nc, R+iRBM*nc);
       vr.zero();
-      execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::multKrc, vr, (GenVector<Scalar> &)(vc));
+      execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::multKrc, vr, (GenVector<Scalar> &)(vc));
       execParal1R(this->nsub, this, &GenFetiDPSolver<Scalar>::KrrReSolve, vr);
-      execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::mergeUr, vr, (GenVector<Scalar> &)(vc),
+      execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::mergeUr, vr, (GenVector<Scalar> &)(vc),
                   globRBM[iRBM],globRBM[iRBM]); // last argument is a dummy
     }
     if(R) delete [] R;

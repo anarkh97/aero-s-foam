@@ -601,7 +601,7 @@ SuperBlockCCtSolver<Scalar>::factorSparseBigBlockCCtsolver(int i)
 
 template<class Scalar>
 void
-SuperBlockCCtSolver<Scalar>::initBlockMpcResidual()
+SuperBlockCCtSolver<Scalar>::initBlockMpcResidual() const
 {
   //int nBlks = nExtMpcBlocksOnMyCPU;
   execParal(nExtMpcBlocksOnMyCPU, this, &SuperBlockCCtSolver<Scalar>::initOneBlockMpcResidual);
@@ -609,7 +609,7 @@ SuperBlockCCtSolver<Scalar>::initBlockMpcResidual()
 
 template<class Scalar>
 void
-SuperBlockCCtSolver<Scalar>::initOneBlockMpcResidual(int IBlock)
+SuperBlockCCtSolver<Scalar>::initOneBlockMpcResidual(int IBlock) const
 {
   int iBlock = myCPUExtBlockIdArray[IBlock];
   mpcv[iBlock]->zeroAll();
@@ -617,9 +617,9 @@ SuperBlockCCtSolver<Scalar>::initOneBlockMpcResidual(int IBlock)
 
 template<class Scalar>
 void
-SuperBlockCCtSolver<Scalar>::extractBlockMpcResidual(GenDistrVector<Scalar> &v)
+SuperBlockCCtSolver<Scalar>::extractBlockMpcResidual(GenDistrVector<Scalar> &v) const
 {
-  execParal1R(nLocAssBlocksOnMyCPU, this, &SuperBlockCCtSolver<Scalar>::extractOneBlockMpcResidual, v);
+  execParal(nLocAssBlocksOnMyCPU, this, &SuperBlockCCtSolver<Scalar>::extractOneBlockMpcResidual, v);
 }
 
 template<class Scalar>
@@ -690,7 +690,7 @@ SuperBlockCCtSolver<Scalar>::recOneBlockMpcResidualBeforeSolve(int IBlock)
 
 template<class Scalar>
 void
-SuperBlockCCtSolver<Scalar>::solveBlockCCt( GenDistrVector<Scalar> &v)
+SuperBlockCCtSolver<Scalar>::solveBlockCCt( GenDistrVector<Scalar> &v) const
 {
   execParal1R(nMpcBlocksOnMyCPU, this, &SuperBlockCCtSolver<Scalar>::solveOneBlockCCt, v);
 }

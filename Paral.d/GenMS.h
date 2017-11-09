@@ -25,15 +25,15 @@ class GenMultiSparse : public GenSparseMatrix<Scalar>
    
    ~GenMultiSparse() {};
     
-   void add(FullSquareMatrix & kel, int *dofs);
-   void add(FullSquareMatrixC & kel, int *dofs);
-   void addImaginary(FullSquareMatrix & kel, int *dofs);
-   void addDiscreteMass(int dof, Scalar mass);
-   Scalar diag(int i) const { return K->diag(i); }
-   Scalar &diag(int i) { return K->diag(i); }
-   int dim() { return K->dim() ; }
-   int neqs() { return K->neqs() ; }
-   void zeroAll();
+   void add(FullSquareMatrix & kel, int *dofs) override;
+   void add(FullSquareMatrixC & kel, int *dofs) override;
+   void addImaginary(FullSquareMatrix & kel, int *dofs) override;
+   void addDiscreteMass(int dof, Scalar mass) override;
+   Scalar diag(int i) const override { return K->diag(i); }
+   Scalar &diag(int i) override { return K->diag(i); }
+   int dim() const override { return K->dim() ; }
+   int neqs() const override { return K->neqs() ; }
+   void zeroAll() override;
 };
 
 template<class Scalar>

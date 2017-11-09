@@ -54,63 +54,63 @@ void _FORTRAN(zblkldl)(int& nsuper, int* xsuper, int *pnode, int* xlindx,
                       int& iwsize, int* iwork, int& rwsize, complex<double> *rwork,
                       int& iflag);
 
-void _FORTRAN(blkslv)(int &nsuper, int* xsuper, int* xlindx, int *lindx,
-                      int* xlnz,
-                      double *lnx, int& defblk, int& numZEM, int& lbdef,
-                      int* def, int* iprow, int* ipcol, int* perm, int* invp,
-                      double *rhs, double *sol, double *temp);
+void _FORTRAN(blkslv)(const int &nsuper, const int* xsuper, const int* xlindx, const int *lindx,
+                      const int* xlnz,
+                      const double *lnx, const int& defblk, const int& numZEM, const int& lbdef,
+                      const int* def, const int* iprow, const int* ipcol, const int* perm, const int* invp,
+                      const double *rhs, double *sol, double *temp);
 
-void _FORTRAN(zblkslv)(int &nsuper, int* xsuper, int* xlindx, int *lindx,
-                      int* xlnz,
-                      complex<double> *lnx, int& defblk, int& numZEM, int& lbdef,
-                      int* def, int* iprow, int* ipcol, int* perm, int* invp,
-                      complex<double> *rhs, complex<double> *sol, complex<double> *temp);
+void _FORTRAN(zblkslv)(const int &nsuper, const int* xsuper, const int* xlindx, const int *lindx,
+                      const int* xlnz,
+                      const complex<double> *lnx, const int& defblk, const int& numZEM, const int& lbdef,
+                      const int* def, const int* iprow, const int* ipcol, const int* perm, const int* invp,
+                      const complex<double> *rhs, complex<double> *sol, complex<double> *temp);
 
-void _FORTRAN(zblkslv2)(int &nsuper, int* xsuper, int* xlindx, int *lindx,
-                      int* xlnz,
-                      DComplex *lnx, int& defblk, int& numZEM, int& lbdef,
-                      int* def, int* iprow, int* ipcol, int* perm, int* invp,
-                      DComplex *r1, DComplex *r2,
+void _FORTRAN(zblkslv2)(const int &nsuper, const int* xsuper, const int* xlindx, const int *lindx,
+                      const int* xlnz,
+                      const DComplex *lnx, const int& defblk, const int& numZEM, const int& lbdef,
+                      const int* def, const int* iprow, const int* ipcol, const int* perm, const int* invp,
+                      const DComplex *r1, const DComplex *r2,
                       DComplex *s1, DComplex *s2,
                       DComplex *t1, DComplex *t2);
 
-void _FORTRAN(zblkslv3)(int &nsuper, int* xsuper, int* xlindx, int *lindx,
-                      int* xlnz,
-                      DComplex *lnx, int& defblk, int& numZEM, int& lbdef,
-                      int* def, int* iprow, int* ipcol, int* perm, int* invp,
-                      DComplex *r1, DComplex *r2, DComplex *r3,
+void _FORTRAN(zblkslv3)(const int &nsuper, const int* xsuper, const int* xlindx, const int *lindx,
+                      const int* xlnz,
+                      const DComplex *lnx, const int& defblk, const int& numZEM, const int& lbdef,
+                      const int* def, const int* iprow, const int* ipcol, const int* perm, const int* invp,
+                      const DComplex *r1, const DComplex *r2, const DComplex *r3,
                       DComplex *s1, DComplex *s2, DComplex *s3,
                       DComplex *t1, DComplex *t2, DComplex *t3);
 
-void _FORTRAN(zblkslv4)(int &nsuper, int* xsuper, int* xlindx, int *lindx,
-                      int* xlnz,
-                      DComplex *lnx, int& defblk, int& numZEM, int& lbdef,
-                      int* def, int* iprow, int* ipcol, int* perm, int* invp,
-                      DComplex *r1, DComplex *r2, DComplex *r3, DComplex *r4,
+void _FORTRAN(zblkslv4)(const int &nsuper, const int* xsuper, const int* xlindx, const int *lindx,
+                      const int* xlnz,
+                      const DComplex *lnx, const int& defblk, const int& numZEM, const int& lbdef,
+                      const int* def, const int* iprow, const int* ipcol, const int* perm, const int* invp,
+                      const DComplex *r1, const DComplex *r2, const DComplex *r3, const DComplex *r4,
                       DComplex *s1, DComplex *s2, DComplex *s3, DComplex *s4,
                       DComplex *t1, DComplex *t2, DComplex *t3, DComplex *t4);
 
-void _FORTRAN(blkslv2)(int &nsuper, int* xsuper, int* xlindx, int *lindx,
-                      int* xlnz,
-                      double *lnx, int& defblk, int& numZEM, int& lbdef,
-                      int* def, int* iprow, int* ipcol, int* perm, int* invp,
-                      double *r1, double *r2,
+void _FORTRAN(blkslv2)(const int &nsuper, const int* xsuper, const int* xlindx, const int *lindx,
+                      const int* xlnz,
+                      const double *lnx, const int& defblk, const int& numZEM, const int& lbdef,
+                      const int* def, const int* iprow, const int* ipcol, const int* perm, const int* invp,
+                      const double *r1, const double *r2,
                       double *s1, double *s2,
                       double *t1, double *t2);
 
-void _FORTRAN(blkslv3)(int &nsuper, int* xsuper, int* xlindx, int *lindx,
-                      int* xlnz,
-                      double *lnx, int& defblk, int& numZEM, int& lbdef,
-                      int* def, int* iprow, int* ipcol, int* perm, int* invp,
-                      double *r1, double *r2, double *r3,
+void _FORTRAN(blkslv3)(const int &nsuper, const int* xsuper, const int* xlindx, const int *lindx,
+                      const int* xlnz,
+                      const double *lnx, const int& defblk, const int& numZEM, const int& lbdef,
+                      const int* def, const int* iprow, const int* ipcol, const int* perm, const int* invp,
+                      const double *r1, const double *r2, const double *r3,
                       double *s1, double *s2, double *s3,
                       double *t1, double *t2, double *t3);
 
-void _FORTRAN(blkslv4)(int &nsuper, int* xsuper, int* xlindx, int *lindx,
-                      int* xlnz,
-                      double *lnx, int& defblk, int& numZEM, int& lbdef,
-                      int* def, int* iprow, int* ipcol, int* perm, int* invp,
-                      double *r1, double *r2, double *r3, double *r4,
+void _FORTRAN(blkslv4)(const int &nsuper, const int* xsuper, const int* xlindx, const int *lindx,
+                      const int* xlnz,
+                      const double *lnx, const int& defblk, const int& numZEM, const int& lbdef,
+                      const int* def, const int* iprow, const int* ipcol, const int* perm, const int* invp,
+                      const double *r1, const double *r2, const double *r3, const double *r4,
                       double *s1, double *s2, double *s3, double *s4,
                       double *t1, double *t2, double *t3, double *t4);
 
@@ -142,27 +142,27 @@ void _FORTRAN(addone)(int &rowidx, int &colidx, double &value,
                       int *lindx,  int *xlnz,   double *lnz, int *invsuper);
 */
 
-void _FORTRAN(blkslvp)(int &nsuper, int* xsuper, int* xlindx, int *lindx, int* xlnz,
-                      double *lnx, int& defblk, int& numZEM, int& lbdef,
-                      int* def, int* iprow, int* ipcol, int* perm, int* invp,
-                      int &nrhs, double *rhs, int &ldr, double *sol, double *temp);
+void _FORTRAN(blkslvp)(const int &nsuper, const int* xsuper, const int* xlindx, const int *lindx, const int* xlnz,
+                      const double *lnx, const int& defblk, const int& numZEM, const int& lbdef,
+                      const int* def, const int* iprow, const int* ipcol, const int* perm, const int* invp,
+                      const int &nrhs, const double *rhs, const int &ldr, double *sol, double *temp);
 
-void _FORTRAN(zblkslvp)(int &nsuper, int* xsuper, int* xlindx, int *lindx, int* xlnz,
-                      DComplex *lnx, int& defblk, int& numZEM, int& lbdef,
-                      int* def, int* iprow, int* ipcol, int* perm, int* invp,
-                      int &nrhs, DComplex *rhs, int &ldr, DComplex *sol, DComplex *temp);
+void _FORTRAN(zblkslvp)(const int &nsuper, const int* xsuper, const int* xlindx, const int *lindx, const int* xlnz,
+                      const DComplex *lnx, const int& defblk, const int& numZEM, const int& lbdef,
+                      const int* def, const int* iprow, const int* ipcol, const int* perm, const int* invp,
+                      const int &nrhs, const DComplex *rhs, const int &ldr, DComplex *sol, DComplex *temp);
 }
 
-inline void Tblkslvp(int &a, int* b, int* c, int *d, int* e,
-                      DComplex *f, int& g, int& h, int& i,
-                      int* j, int* k, int* l, int* m, int* n,
-                      int &o, DComplex *p, int &q, DComplex *r, DComplex *s)
+inline void Tblkslvp(const int &a, const int* b, const int* c, const int *d, const int* e,
+                      const DComplex *f, const int& g, const int& h, const int& i,
+                      const int* j, const int* k, const int* l, const int* m, const int* n,
+                      const int &o, const DComplex *p, const int &q, DComplex *r, DComplex *s)
 { _FORTRAN(zblkslvp)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s); }
 
-inline void Tblkslvp(int &a, int* b, int* c, int *d, int* e,
-                     double *f, int& g, int& h, int& i,
-                     int* j, int* k, int* l, int* m, int* n,
-                     int &o, double *p, int &q, double *r, double *s)
+inline void Tblkslvp(const int &a, const int* b, const int* c, const int *d, const int* e,
+                     const double *f, const int& g, const int& h, const int& i,
+                     const int* j, const int* k, const int* l, const int* m, const int* n,
+                     const int &o, const double *p, const int &q, double *r, double *s)
 { _FORTRAN(blkslvp)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s); }
 
 inline void Tblkldl(int& a, int* b, int *c, int* d,
@@ -184,77 +184,77 @@ inline void Tblkldl(int& a, int* b, int *c, int* d,
 _FORTRAN(zblkldl)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v);
 }
 
-inline void Tblkslv(int &a, int* b, int* c, int *d, int* e,
-                    double *f, int& g, int& h, int& i,
-                    int* j, int* k, int* l, int* m, int* n,
-                    double *o, double *p, double *q)
+inline void Tblkslv(const int &a, const int* b, const int* c, const int *d, const int* e,
+                    const double *f, const int& g, const int& h, const int& i,
+                    const int* j, const int* k, const int* l, const int* m, const int* n,
+                    const double *o, double *p, double *q)
 {
 _FORTRAN(blkslv)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q);
 }
 
-inline void Tblkslv(int &a, int* b, int* c, int *d, int* e,
-                    complex<double> *f, int& g, int& h, int& i,
-                    int* j, int* k, int* l, int* m, int* n,
-                    complex<double> *o, complex<double> *p, complex<double> *q)
+inline void Tblkslv(const int &a, const int* b, const int* c, const int *d, const int* e,
+                    const complex<double> *f, const int& g, const int& h, const int& i,
+                    const int* j, const int* k, const int* l, const int* m, const int* n,
+                    const complex<double> *o, complex<double> *p, complex<double> *q)
 {
 _FORTRAN(zblkslv)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q);
 }
 
 
-inline void Tblkslv2(int &a, int* b, int* c, int *d, int* e,
-                    complex<double> *f, int& g, int& h, int& i,
-                    int* j, int* k, int* l, int* m, int* n,
-                    DComplex *o1, DComplex *o2,
+inline void Tblkslv2(const int &a, const int* b, const int* c, const int *d, const int* e,
+                    const complex<double> *f, const int& g, const int& h, const int& i,
+                    const int* j, const int* k, const int* l, const int* m, const int* n,
+                    const DComplex *o1, const DComplex *o2,
                     DComplex *p1, DComplex *p2,
                     DComplex *q1, DComplex *q2)
 {
 _FORTRAN(zblkslv2)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o1,o2,p1,p2,q1,q2);
 }
 
-inline void Tblkslv3(int &a, int* b, int* c, int *d, int* e,
-                    complex<double> *f, int& g, int& h, int& i,
-                    int* j, int* k, int* l, int* m, int* n,
-                    DComplex *o1, DComplex *o2, DComplex *o3,
+inline void Tblkslv3(const int &a, const int* b, const int* c, const int *d, const int* e,
+                    const complex<double> *f, const int& g, const int& h, const int& i,
+                    const int* j, const int* k, const int* l, const int* m, const int* n,
+                    const DComplex *o1, const DComplex *o2, const DComplex *o3,
                     DComplex *p1, DComplex *p2, DComplex *p3,
                     DComplex *q1, DComplex *q2, DComplex *q3)
 {
 _FORTRAN(zblkslv3)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o1,o2,o3,p1,p2,p3,q1,q2,q3);
 }
 
-inline void Tblkslv4(int &a, int* b, int* c, int *d, int* e,
-                    complex<double> *f, int& g, int& h, int& i,
-                    int* j, int* k, int* l, int* m, int* n,
-                    DComplex *o1, DComplex *o2, DComplex *o3, DComplex *o4,
+inline void Tblkslv4(const int &a, const int* b, const int* c, const int *d, const int* e,
+                    const complex<double> *f, const int& g, const int& h, const int& i,
+                    const int* j, const int* k, const int* l, const int* m, const int* n,
+                    const DComplex *o1, const DComplex *o2, const DComplex *o3, const DComplex *o4,
                     DComplex *p1, DComplex *p2, DComplex *p3, DComplex *p4,
                     DComplex *q1, DComplex *q2, DComplex *q3, DComplex *q4)
 {
 _FORTRAN(zblkslv4)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o1,o2,o3,o4,p1,p2,p3,p4,q1,q2,q3,q4);
 }
 
-inline void Tblkslv2(int &a, int* b, int* c, int *d, int* e,
-                    double *f, int& g, int& h, int& i,
-                    int* j, int* k, int* l, int* m, int* n,
-                    double *o1, double *o2,
+inline void Tblkslv2(const int &a, const int* b, const int* c, const int *d, const int* e,
+                    const double *f, const int& g, const int& h, const int& i,
+                    const int* j, const int* k, const int* l, const int* m, const int* n,
+                    const double *o1, const double *o2,
                     double *p1, double *p2,
                     double *q1, double *q2)
 {
 _FORTRAN(blkslv2)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o1,o2,p1,p2,q1,q2);
 }
 
-inline void Tblkslv3(int &a, int* b, int* c, int *d, int* e,
-                    double *f, int& g, int& h, int& i,
-                    int* j, int* k, int* l, int* m, int* n,
-                    double *o1, double *o2, double *o3,
+inline void Tblkslv3(const int &a, const int* b, const int* c, const int *d, const int* e,
+                    const double *f, const int& g, const int& h, const int& i,
+                    const int* j, const int* k, const int* l, const int* m, const int* n,
+                    const double *o1, const double *o2, const double *o3,
                     double *p1, double *p2, double *p3,
                     double *q1, double *q2, double *q3)
 {
 _FORTRAN(blkslv3)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o1,o2,o3,p1,p2,p3,q1,q2,q3);
 }
 
-inline void Tblkslv4(int &a, int* b, int* c, int *d, int* e,
-                    double *f, int& g, int& h, int& i,
-                    int* j, int* k, int* l, int* m, int* n,
-                    double *o1, double *o2, double *o3, double *o4,
+inline void Tblkslv4(const int &a, const int* b, const int* c, const int *d, const int* e,
+                    const double *f, const int& g, const int& h, const int& i,
+                    const int* j, const int* k, const int* l, const int* m, const int* n,
+                    const double *o1, const double *o2, const double *o3, const double *o4,
                     double *p1, double *p2, double *p3, double *p4,
                     double *q1, double *q2, double *q3, double *q4)
 {
@@ -500,7 +500,7 @@ GenBLKSparseMatrix<Scalar>::getNullSpace(Scalar *ns)
 
 template<class Scalar>
 double
-GenBLKSparseMatrix<Scalar>::getMemoryUsed()
+GenBLKSparseMatrix<Scalar>::getMemoryUsed() const
 {
  // Figure this out later!
  return 0.0;
@@ -508,7 +508,7 @@ GenBLKSparseMatrix<Scalar>::getMemoryUsed()
 
 template<class Scalar>
 void
-GenBLKSparseMatrix<Scalar>::solve(Scalar *rhs, Scalar *solution)
+GenBLKSparseMatrix<Scalar>::solve(const Scalar *rhs, Scalar *solution)
 {
  solveTime -= getTime();
 
@@ -539,9 +539,9 @@ GenBLKSparseMatrix<Scalar>::solve(Scalar *rhs, Scalar *solution)
 
 template<class Scalar>
 void
-GenBLKSparseMatrix<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
+GenBLKSparseMatrix<Scalar>::solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
 {
- solve(rhs.data(), solution.data());
+ solve((const Scalar *)rhs.data(), solution.data());
 }
 
 template<class Scalar>
@@ -1005,7 +1005,7 @@ GenBLKSparseMatrix<Scalar>::addone(Scalar d, int dofi, int dofj)
 
 template<class Scalar>
 void
-GenBLKSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
+GenBLKSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) const
 {
   std::cerr << " *** WARNING: GenBLKSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) is not implemented \n";
 }

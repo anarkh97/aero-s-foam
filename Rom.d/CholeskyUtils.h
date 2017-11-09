@@ -58,12 +58,12 @@ ldlt_factor_lower(GenFullSquareMatrix<Scalar> &, int*);
 // Solves the factorized linear system using the upper triangular part
 template <typename Scalar>
 const Scalar *
-ldlt_solve_upper(const GenFullSquareMatrix<Scalar> &, Scalar *, int*);
+ldlt_solve_upper(const GenFullSquareMatrix<Scalar> &, Scalar *, const int*);
 
 // Solves the factorized linear system using the lower triangular part
 template <typename Scalar>
 const Scalar *
-ldlt_solve_lower(const GenFullSquareMatrix<Scalar> &, Scalar *, int*);
+ldlt_solve_lower(const GenFullSquareMatrix<Scalar> &, Scalar *, const int*);
 
 
 } // end namespace Rom

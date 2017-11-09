@@ -52,7 +52,7 @@ class GenSubDOp {
        GenSparseMatrix<Scalar> * operator[](int i) const { return sops[i]; }
        GenSparseMatrix<Scalar> *& operator[](int i) { return sops[i]; }
        int getNumSub() { return numSub; }
-       int neqs() { return 0; } // TODO
+       int neqs() const { return 0; } // TODO
 };
 
 template<class Scalar>

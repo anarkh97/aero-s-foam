@@ -197,11 +197,11 @@ class MappedAssembledSolver : public BaseSolver, public Map
     void reSolve(int nRHS, Scalar  *rhs) { for(int i=0; i<nRHS; ++i) reSolve(rhs + i*Map::numMappedEqs); }
     void reSolve(int nRHS, GenVector<Scalar> *rhs) { for(int i=0; i<nRHS; ++i) reSolve(rhs[i].data()); }
 
-    void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution) { 
+    void solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution) {
       solution = rhs;
       reSolve(solution.data());
     }
-    void solve(Scalar *rhs, Scalar *solution) {
+    void solve(const Scalar *rhs, Scalar *solution) {
       std::cerr << "MappedAssembledSolver::solve(Scalar *, Scalar *) is not implemented\n";
     }
 

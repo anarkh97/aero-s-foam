@@ -4,9 +4,10 @@
 
 template<>
 void
-GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(double* _rhs, double* _sol)
+GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(const double* _rhs, double* _sol)
 {
-  Eigen::Map<VectorXd> rhs(_rhs,n+p+m), sol(_sol,n+p+m);
+  Eigen::Map<const VectorXd> rhs(_rhs,n+p+m);
+  Eigen::Map<VectorXd> sol(_sol,n+p+m);
 
   VectorXd g0(n), ce0(p), ci0(m);
   for(int i = 0; i < neqs(); ++i) {
@@ -33,7 +34,7 @@ GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(double* _rhs, doub
 
 template<>
 void
-GoldfarbIdnaniQpSolver<WrapEiSparseMat<complex<double> >,complex<double> >::solve(complex<double>*, complex<double>*)
+GoldfarbIdnaniQpSolver<WrapEiSparseMat<complex<double> >,complex<double> >::solve(const complex<double>*, complex<double>*)
 {
   std::cerr << "GoldfarbIdnaniQpSolver not implemented for complex\n";
 }

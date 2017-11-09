@@ -1,6 +1,6 @@
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multAddBrT(Scalar *interfvec, Scalar *localvec, Scalar *uw)
+GenSubDomain<Scalar>::multAddBrT(const Scalar *interfvec, Scalar *localvec, Scalar *uw) const
 {
   // localvec += Br^T * interfvec
   int i, iDof, k;
@@ -36,7 +36,7 @@ GenSubDomain<Scalar>::multAddBrT(Scalar *interfvec, Scalar *localvec, Scalar *uw
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multBr(Scalar *localvec, Scalar *interfvec, Scalar *uc, Scalar *uw)
+GenSubDomain<Scalar>::multBr(const Scalar *localvec, Scalar *interfvec, Scalar *uc, Scalar *uw) const
 {
  // interfvec = Br * localvec
  int iDof, k;
@@ -74,7 +74,7 @@ GenSubDomain<Scalar>::multBr(Scalar *localvec, Scalar *interfvec, Scalar *uc, Sc
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multAddCT(Scalar *interfvec, Scalar *localvec)
+GenSubDomain<Scalar>::multAddCT(const Scalar *interfvec, Scalar *localvec) const
 {
   // localvec += C^T * interfvec
   bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
@@ -96,7 +96,7 @@ GenSubDomain<Scalar>::multAddCT(Scalar *interfvec, Scalar *localvec)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multC(Scalar *localvec, Scalar *interfvec)
+GenSubDomain<Scalar>::multC(const Scalar *localvec, Scalar *interfvec) const
 {
   // interfvec = C * localvec
   for(int i = 0; i < scomm->lenT(SComm::mpc); i++) {

@@ -172,7 +172,7 @@ ldlt_factor_lower(GenFullSquareMatrix<double> &m, int *ipiv) {
 
 template <>
 const double *
-ldlt_solve_upper(const GenFullSquareMatrix<double> &m, double *v, int *ipiv) {
+ldlt_solve_upper(const GenFullSquareMatrix<double> &m, double *v, const int *ipiv) {
   const int basisDim = m.dim();
   const int INT_ONE = 1;
   
@@ -188,7 +188,7 @@ ldlt_solve_upper(const GenFullSquareMatrix<double> &m, double *v, int *ipiv) {
 
 template <>
 const double *
-ldlt_solve_lower(const GenFullSquareMatrix<double> &m, double *v, int *ipiv) {
+ldlt_solve_lower(const GenFullSquareMatrix<double> &m, double *v, const int *ipiv) {
   const int basisDim = m.dim();
   const int INT_ONE = 1;
   
@@ -254,13 +254,13 @@ ldlt_factor_lower(GenFullSquareMatrix<complex<double> > &, int*) {
 
 template <>
 const complex<double> *
-ldlt_solve_upper(const GenFullSquareMatrix<complex<double> > &, complex<double> *, int*) {
+ldlt_solve_upper(const GenFullSquareMatrix<complex<double> > &, complex<double> *, const int*) {
   throw std::logic_error("Not implemented");
 }
 
 template <>
 const complex<double> *
-ldlt_solve_lower(const GenFullSquareMatrix<complex<double> > &, complex<double> *, int*) {
+ldlt_solve_lower(const GenFullSquareMatrix<complex<double> > &, complex<double> *, const int*) {
   throw std::logic_error("Not implemented");
 }
 

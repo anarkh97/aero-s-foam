@@ -81,11 +81,11 @@ class GenDistrVector {
     int num() const { return numDom; }
     Scalar &operator[](int i) { return v[i]; }
     Scalar operator[](int i) const { return v[i]; } 
-    Scalar operator * (GenDistrVector &);
-    Scalar operator ^ (GenDistrVector &);
+    Scalar operator*(const GenDistrVector &) const;
+    Scalar operator^(const GenDistrVector &) const;
     double norm();
     double infNorm();
-    double sqNorm() { return ScalarTypes::norm((*this) * (*this)); }
+    double sqNorm() const { return ScalarTypes::norm((*this) * (*this)); }
     GenDistrVector &operator=(const GenDistrVector<Scalar> &);
     GenDistrVector &operator=(Scalar c);
     GenDistrVector &operator*=(Scalar c);
@@ -99,10 +99,10 @@ class GenDistrVector {
     GenDistrVector &linAdd_inv(Scalar, GenDistrVector<Scalar> &);
     GenDistrVector &linAdd(Scalar, GenPartialDistrVector<Scalar> &);
     GenDistrVector &linAdd(Scalar, GenDistrVector<Scalar> &, Scalar, GenDistrVector<Scalar> &);
-    GenDistrVector &linC(GenDistrVector<Scalar> &, Scalar);
-    GenDistrVector &linC(GenDistrVector<Scalar> &, Scalar, GenDistrVector<Scalar> &);
-    GenDistrVector &linC(Scalar, GenDistrVector<Scalar> &, Scalar, GenDistrVector<Scalar> &);
-    GenDistrVector &linC(Scalar, GenDistrVector<Scalar> &, Scalar, GenDistrVector<Scalar> &, Scalar, GenDistrVector<Scalar> &);
+    GenDistrVector &linC(const GenDistrVector<Scalar> &, Scalar);
+    GenDistrVector &linC(const GenDistrVector<Scalar> &, Scalar, const GenDistrVector<Scalar> &);
+    GenDistrVector &linC(Scalar, const GenDistrVector<Scalar> &, Scalar, const GenDistrVector<Scalar> &);
+    GenDistrVector &linC(Scalar, const GenDistrVector<Scalar> &, Scalar, const GenDistrVector<Scalar> &, Scalar, const GenDistrVector<Scalar> &);
     GenDistrVector &swap(GenDistrVector<Scalar> &);
     template <class T>
       GenDistrVector &operator=(const Expr<T,Scalar> &);
@@ -125,12 +125,14 @@ class GenDistrVector {
     void negate();
     Scalar *data() const      { return v;          }
     Scalar *subData(int i)    { return subV[i];    }
-    int subLen(int i)         { return subVLen[i]; }
-    int subOffset(int i)      { return subVOffset[i]; }
-    int numThreads() const    { return nT; }
-    int threadLen(int i)      { return thLen[i];   }
-    int threadOffset(int i)   { return thOffset[i]; }
+    const Scalar *subData(int i) const { return subV[i];    }
+    int subLen(int i) const     { return subVLen[i]; }
+    int subOffset(int i) const  { return subVOffset[i]; }
+    int numThreads() const      { return nT; }
+    int threadLen(int i) const  { return thLen[i];   }
+    int threadOffset(int i) const { return thOffset[i]; }
     Scalar *threadData(int i) { return thV[i];     }
+	const Scalar *threadData(int i) const { return thV[i]; }
     bool *threadMasterFlag(int i) { return masterFlag +thOffset[i]; }
     bool *subMasterFlag(int i) { return masterFlag +subVOffset[i]; }
     Scalar ident();
@@ -177,7 +179,7 @@ class GenPartialDistrVector : public GenDistrVector<Scalar> {
         : GenDistrVector<Scalar>(dinfo) { this->partial = new Scalar[this->numDom]; for(int i=0; i<this->numDom; ++i) this->partial[i] = 1.0; }
      virtual ~GenPartialDistrVector() { delete [] this->partial; }
 
-     Scalar operator * (GenDistrVector<Scalar> &);
+     Scalar operator * (const GenDistrVector<Scalar> &) const;
      void computePartial();
      Scalar getPartial(int iSub) { return this->partial[iSub]; }
 };

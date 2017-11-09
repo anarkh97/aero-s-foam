@@ -32,7 +32,7 @@ class BlockCCtSolver : public CCtSolver<Scalar>
                                    //    lmpc CCt contribution to it
     Connectivity *blockToCpu;
     Connectivity *cpuToBlock;
-    std::vector<GenVector<Scalar> *> mpcv;
+    mutable std::vector<GenVector<Scalar> *> mpcv; // This make this solver non re-entrant.
     FSCommPattern<Scalar> *blockCCtPat;
     FSCommPattern<Scalar> *mpcvPat1, *mpcvPat2;
     int myCPU, numCPUs;
@@ -42,7 +42,7 @@ class BlockCCtSolver : public CCtSolver<Scalar>
     void createBlockCCtsolver(int iBlock);
     void deleteBlockCCtsolver(int iBlock);
     void assembleBlockCCtsolver(int i);
-    void initBlockMpcResidual(int iBlock);
+    void initBlockMpcResidual(int iBlock) const; // Modifies mutable mpcv
     void makeBlockCCtCommPattern();
     void setBlockCCtCommSize(int iBlock);
     void sendBlockCCtsolver(int iBlock);
@@ -54,8 +54,8 @@ class BlockCCtSolver : public CCtSolver<Scalar>
     void distributeMpcBlocks();
     void factorBlockCCtsolver(int iBlock);
     void extractSolveAndInsertBlockMpcResidual(GenDistrVector<Scalar> &v);
-    void solveBlockCCt(int iBlock, GenDistrVector<Scalar> &v);
-    void extractBlockMpcResidual(int iBlock, GenDistrVector<Scalar> &v);
+    void solveBlockCCt(int iBlock, GenDistrVector<Scalar> &v) const;
+    void extractBlockMpcResidual(int iBlock, GenDistrVector<Scalar> &v) const;
     void insertBlockMpcResidual(int i, GenDistrVector<Scalar> &v);
     void zeroBlockCCtsolver(int i);
 };

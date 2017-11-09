@@ -47,50 +47,50 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    SolverClass& getEigenSolver() { return solver; }
 
    // GenSparseMatrix assembly
-   void add(FullSquareMatrix &, int *dofs);
+   void add(FullSquareMatrix &, int *dofs) override;
    void addCoef(int, int, Scalar);
-   void add(GenAssembledFullM<Scalar> &, int *);
-   void addImaginary(FullSquareMatrix &, int *dofs);
-   void add(FullSquareMatrixC &, int *dofs); 
+   void add(GenAssembledFullM<Scalar> &, int *) override;
+   void addImaginary(FullSquareMatrix &, int *dofs) override;
+   void add(FullSquareMatrixC &, int *dofs) override;
 
    // GenSparseMatrix matrix-vector multiplications
-   void mult(const GenVector<Scalar> &, GenVector<Scalar> &);
-   void mult(const GenVector<Scalar> &rhs, Scalar *result);
-   void mult(const Scalar *, Scalar *);
-   void multAdd(const Scalar *, Scalar *);
-   void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result);
-   void transposeMult(const Scalar *, Scalar *);
-   void upperMult(Scalar* result);
-   void backward(Scalar* result);
+   void mult(const GenVector<Scalar> &, GenVector<Scalar> &) const override;
+   void mult(const GenVector<Scalar> &rhs, Scalar *result) const override;
+   void mult(const Scalar *, Scalar *) const override;
+   void multAdd(const Scalar *, Scalar *) const override;
+   void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result) const override;
+   void transposeMult(const Scalar *, Scalar *) const override;
+   void upperMult(Scalar* result) override;
+   void backward(Scalar* result) override;
 
    // GenSparseMatrix miscellaneous
-   void zeroAll();
-   int dim() { return numUncon; }
-   double getMemoryUsed();
-   int numRow() { return numUncon; }
-   int numCol() { return numUncon; }
-   Scalar diag(int dof) const;
-   Scalar &diag(int dof);
+   void zeroAll() override;
+   int dim() const override { return numUncon; }
+   double getMemoryUsed() const override;
+   int numRow() const override { return numUncon; }
+   int numCol() const override { return numUncon; }
+   Scalar diag(int dof) const override;
+   Scalar &diag(int dof) override;
 
    // GenSolver factor
-   void factor();
+   void factor() override;
 
    // GenSolver solve
-   void solve(Scalar *rhs, Scalar *solution);
-   void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution );
-   void reSolve(Scalar *rhs);
-   void reSolve(GenVector<Scalar> &rhs);
+   void solve(const Scalar *rhs, Scalar *solution) override;
+   void solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution ) override;
+   void reSolve(Scalar *rhs) override ;
+   void reSolve(GenVector<Scalar> &rhs) override;
 /* TODO
    void reSolve(int nRHS, Scalar **RHS);
    void reSolve(int nRHS, GenVector<Scalar> * RHS);
    void reSolve(GenFullM<Scalar> *);
 */
    // GenSolver miscellaneous
-   int  neqs() { return numUncon; }
-   long size();
-   void unify(FSCommunicator *communicator);
-   void print();
-   void printSparse(const std::string& filename);
+   int  neqs() const override { return numUncon; }
+   long size() const override;
+   void unify(FSCommunicator *communicator) override;
+   void print() override;
+   void printSparse(const std::string& filename) override;
 };
 
 

@@ -10,7 +10,7 @@ class GenBCGSolver : public GenSolver<Scalar> {
    AnyPreconditioner *P;
    double tolerance;
    int maxiter;
-   double solveTime;
+   mutable double solveTime;
  public:
    int printNumber, verbose;
 
@@ -18,11 +18,11 @@ class GenBCGSolver : public GenSolver<Scalar> {
      { maxiter = _maxit; tolerance = _tol; A = _A; P = __P; solveTime = 0;
        printNumber = 1; verbose = 1; }
    ~GenBCGSolver() {};
-   int neqs() { return A->neqs(); }
-   void solve(AnyVector &, AnyVector &);
-   void reSolve(AnyVector &rhs) { AnyVector rhs_copy(rhs); solve(rhs_copy, rhs); }
+   int neqs() const override { return A->neqs(); }
+   void solve(const AnyVector &, AnyVector &) override;
+   void reSolve(AnyVector &rhs) override { AnyVector rhs_copy(rhs); solve(rhs_copy, rhs); }
    double getSolutionTime() { return solveTime; }
-   long size() { return 0; }
+   long size() const override { return 0; }
    void factor() {}
 };
 

@@ -14,46 +14,46 @@
 template<class Scalar>
 class GenVecOp : public TaskDescr 
 {
-     GenDistrVector<Scalar> *v1;
-     GenDistrVector<Scalar> *v2;
-     GenDistrVector<Scalar> *v3;
-     GenDistrVector<Scalar> *v4;
-     Scalar *res;
-     Scalar c;
-     Scalar c1;
-     Scalar c2;
-     Scalar c3;
-     void (GenVecOp<Scalar>::*f)(int);
+	GenDistrVector<Scalar> *v1;
+	const GenDistrVector<Scalar> *v2;
+	const GenDistrVector<Scalar> *v3;
+	const GenDistrVector<Scalar> *v4;
+	Scalar *res;
+	Scalar c;
+	Scalar c1;
+	Scalar c2;
+	Scalar c3;
+	void (GenVecOp<Scalar>::*f)(int);
 
    public:
      GenVecOp(void (GenVecOp<Scalar>::*_f)(int),
-          GenDistrVector<Scalar> *_v1, GenDistrVector<Scalar> *_v2=0);
+          GenDistrVector<Scalar> *_v1, const GenDistrVector<Scalar> *_v2=0);
 
      GenVecOp(void (GenVecOp<Scalar>::*_f)(int),
           GenDistrVector<Scalar> *_v1, Scalar *rc);
 
      GenVecOp(void (GenVecOp<Scalar>::*_f)(int), 
-          GenDistrVector<Scalar> *_v1, GenDistrVector<Scalar> *_v2, Scalar c);
+          GenDistrVector<Scalar> *_v1, const GenDistrVector<Scalar> *_v2, Scalar c);
 
      GenVecOp(void (GenVecOp<Scalar>::*_f)(int), 
           GenDistrVector<Scalar> *_v1, Scalar c);
 
      GenVecOp(void (GenVecOp<Scalar>::*_f)(int), 
-          GenDistrVector<Scalar> *_v1, GenDistrVector<Scalar> *_v2, Scalar *rc);
+          GenDistrVector<Scalar> *_v1, const GenDistrVector<Scalar> *_v2, Scalar *rc);
 
 
      GenVecOp(void (GenVecOp<Scalar>::*_f)(int),
-          GenDistrVector<Scalar> *_v1, GenDistrVector<Scalar> *_v2, Scalar c,  
-          GenDistrVector<Scalar> *_v3);
+          GenDistrVector<Scalar> *_v1, const GenDistrVector<Scalar> *_v2, Scalar c,
+          const GenDistrVector<Scalar> *_v3);
 
      GenVecOp(void (GenVecOp<Scalar>::*_f)(int),
-          GenDistrVector<Scalar> *_v1, Scalar c1, GenDistrVector<Scalar> *_v2, 
-                            Scalar c2, GenDistrVector<Scalar> *_v3);
+          GenDistrVector<Scalar> *_v1, Scalar c1, const GenDistrVector<Scalar> *_v2,
+                            Scalar c2, const GenDistrVector<Scalar> *_v3);
 
      GenVecOp(void (GenVecOp<Scalar>::*_f)(int),
-          GenDistrVector<Scalar> *_v1, Scalar c1, GenDistrVector<Scalar> *_v2,
-                            Scalar c2, GenDistrVector<Scalar> *_v3, Scalar c3,
-                            GenDistrVector<Scalar> *_v4);
+          GenDistrVector<Scalar> *_v1, Scalar c1, const GenDistrVector<Scalar> *_v2,
+                            Scalar c2, const GenDistrVector<Scalar> *_v3, Scalar c3,
+                            const GenDistrVector<Scalar> *_v4);
 
      void alloc(int);
      void dot(int);
@@ -87,7 +87,7 @@ class GenVecOp : public TaskDescr
 
 template<class Scalar>
 GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), 
-                           GenDistrVector<Scalar> *_v1, GenDistrVector<Scalar> *_v2)
+                           GenDistrVector<Scalar> *_v1, const GenDistrVector<Scalar> *_v2)
 {
  f  = _f;
  v1 = _v1;
@@ -105,7 +105,7 @@ GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int),
 
 template<class Scalar>
 GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), 
-                           GenDistrVector<Scalar> *_v1, GenDistrVector<Scalar> *_v2, Scalar _c)
+                           GenDistrVector<Scalar> *_v1, const GenDistrVector<Scalar> *_v2, Scalar _c)
 {
  f  = _f;
  v1 = _v1;
@@ -124,7 +124,7 @@ GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), GenDistrVector<Sca
 
 template<class Scalar>
 GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), GenDistrVector<Scalar> *_v1, 
-                           GenDistrVector<Scalar> *_v2, Scalar _c, GenDistrVector<Scalar> *_v3)
+                           const GenDistrVector<Scalar> *_v2, Scalar _c, const GenDistrVector<Scalar> *_v3)
 {
  f  = _f;
  v1 = _v1;
@@ -135,8 +135,8 @@ GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), GenDistrVector<Sca
 
 template<class Scalar>
 GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), GenDistrVector<Scalar> *_v1, 
-                           Scalar _c1, GenDistrVector<Scalar> *_v2, 
-                           Scalar _c2, GenDistrVector<Scalar> *_v3)   
+                           Scalar _c1, const GenDistrVector<Scalar> *_v2,
+                           Scalar _c2, const GenDistrVector<Scalar> *_v3)
 {
  f  = _f;
  v1 = _v1;
@@ -148,9 +148,9 @@ GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), GenDistrVector<Sca
 
 template<class Scalar>
 GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), GenDistrVector<Scalar> *_v1,
-                           Scalar _c1, GenDistrVector<Scalar> *_v2,
-                           Scalar _c2, GenDistrVector<Scalar> *_v3,
-                           Scalar _c3, GenDistrVector<Scalar> *_v4)
+                           Scalar _c1, const GenDistrVector<Scalar> *_v2,
+                           Scalar _c2, const GenDistrVector<Scalar> *_v3,
+                           Scalar _c3, const GenDistrVector<Scalar> *_v4)
 {
  f  = _f;
  v1 = _v1;
@@ -164,7 +164,7 @@ GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), GenDistrVector<Sca
 
 template<class Scalar>
 GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), GenDistrVector<Scalar> *_v1, 
-                           GenDistrVector<Scalar> *_v2, Scalar *_r)
+                           const GenDistrVector<Scalar> *_v2, Scalar *_r)
 {
  f   = _f;
  v1  = _v1;
@@ -231,7 +231,7 @@ void
 GenVecOp<Scalar>::dot(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  bool *masterFlag = v1->threadMasterFlag(threadNum);
  Scalar r = 0;
@@ -296,8 +296,8 @@ template<class Scalar>
 void
 GenVecOp<Scalar>::tdot(int threadNum)
 {
- Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d1 = v1->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  bool *masterFlag = v1->threadMasterFlag(threadNum);
  Scalar r = 0;
@@ -314,7 +314,7 @@ void
 GenVecOp<Scalar>::linAdd(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i)
@@ -326,7 +326,7 @@ void
 GenVecOp<Scalar>::linAdd_inv(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i)
@@ -339,7 +339,7 @@ GenVecOp<Scalar>::linAdd_partial(int subNum)
 {
  if(v2->getPartial(subNum) == 0.0) return;
  Scalar *d1 = v1->subData(subNum);
- Scalar *d2 = v2->subData(subNum);
+ const Scalar *d2 = v2->subData(subNum);
  for(int i = 0; i < v1->subLen(subNum); ++i) d1[i] += c*d2[i];
 }
 
@@ -348,7 +348,7 @@ void
 GenVecOp<Scalar>::linAdd1(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i)
@@ -360,8 +360,8 @@ void
 GenVecOp<Scalar>::linAdd2(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
- Scalar *d3 = v3->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d3 = v3->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i)
@@ -373,8 +373,8 @@ void
 GenVecOp<Scalar>::linC(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
- Scalar *d3 = v3->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d3 = v3->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i)
@@ -386,7 +386,7 @@ void
 GenVecOp<Scalar>::linC1(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
 
  int len = v1->threadLen(threadNum);
 
@@ -400,8 +400,8 @@ void
 GenVecOp<Scalar>::linC2(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
- Scalar *d3 = v3->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d3 = v3->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i)
@@ -413,9 +413,9 @@ void
 GenVecOp<Scalar>::linC3(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
- Scalar *d3 = v3->threadData(threadNum);
- Scalar *d4 = v4->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d3 = v3->threadData(threadNum);
+ const Scalar *d4 = v4->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i)
@@ -427,7 +427,7 @@ void
 GenVecOp<Scalar>::assign(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i)
@@ -439,7 +439,7 @@ void
 GenVecOp<Scalar>::assign_special(int subNum)
 {
  Scalar *d1 = v1->subData(subNum);
- Scalar *d2 = v2->subData(subNum);
+ const Scalar *d2 = v2->subData(subNum);
  int len1 = v1->subLen(subNum);
  int len2 = v2->subLen(subNum);
  int minlen = std::min(len1,len2);
@@ -455,7 +455,7 @@ void
 GenVecOp<Scalar>::swap(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ Scalar *d2 = const_cast<Scalar *>(v2->threadData(threadNum));
  int len = v1->threadLen(threadNum);
  Scalar tmp;
  int i;
@@ -508,7 +508,7 @@ void
 GenVecOp<Scalar>::assign_plus(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i)
@@ -520,7 +520,7 @@ void
 GenVecOp<Scalar>::assign_minus(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i)
@@ -532,7 +532,7 @@ void
 GenVecOp<Scalar>::assign_divide(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
  int len = v1->threadLen(threadNum);
  int i;
  for(i = 0; i < len; ++i) {
@@ -853,7 +853,7 @@ GenPartialDistrVector<Scalar>::computePartial()
 
 template<class Scalar>
 Scalar
-GenPartialDistrVector<Scalar>::operator * (GenDistrVector<Scalar> &x)
+GenPartialDistrVector<Scalar>::operator*(const GenDistrVector<Scalar> &x) const
 {
  // partial dot product
  Scalar *p = (Scalar *) alloca(sizeof(Scalar)*this->numDom);
@@ -884,12 +884,20 @@ double GenDistrVector<Scalar>::infNorm()
  return res;
 }
 
+namespace {
+template <typename T>
+auto lose_const(const T *t) { return const_cast<T *>(t); }
+template <typename T>
+auto lose_const(T *t) { return t; }
+}
+
 template<class Scalar>
 Scalar
-GenDistrVector<Scalar>::operator * (GenDistrVector<Scalar> &x)
+GenDistrVector<Scalar>::operator*(const GenDistrVector<Scalar> &x) const
 {
  Scalar *partial = (Scalar *) dbg_alloca(sizeof(Scalar)*numDom);
- GenVecOp<Scalar> dotAll(&GenVecOp<Scalar>::dot, this, &x, partial);
+ GenVecOp<Scalar> dotAll(&GenVecOp<Scalar>::dot,
+                         lose_const(this), lose_const(&x), partial);
 #ifdef DETERMINISTIC
  threadManager->execParal(numDom, &dotAll);
 #else
@@ -942,10 +950,12 @@ dot_ignore_master_flag(const GenDistrVector<Scalar> &v1, const GenDistrVector<Sc
 
 template<class Scalar>
 Scalar
-GenDistrVector<Scalar>::operator ^ (GenDistrVector<Scalar> &x)
+GenDistrVector<Scalar>::operator^(const GenDistrVector<Scalar> &x) const
 {
  Scalar *partial = (Scalar *) dbg_alloca(sizeof(Scalar)*numDom);
- GenVecOp<Scalar> dotAll(&GenVecOp<Scalar>::tdot, this, &x, partial);
+ GenVecOp<Scalar> dotAll(&GenVecOp<Scalar>::tdot,
+                         const_cast<GenDistrVector<Scalar>*>(this),
+                         const_cast<GenDistrVector<Scalar>*>(&x), partial);
 #ifdef DETERMINISTIC
  threadManager->execParal(numDom, &dotAll);
 #else
@@ -1125,7 +1135,7 @@ GenDistrVector<Scalar>::linAdd(Scalar c1, GenDistrVector<Scalar> &x, Scalar c2,
 
 template<class Scalar>
 GenDistrVector<Scalar> &
-GenDistrVector<Scalar>::linC(GenDistrVector<Scalar> &x, Scalar c, GenDistrVector<Scalar> &y)
+GenDistrVector<Scalar>::linC(const GenDistrVector<Scalar> &x, Scalar c, const GenDistrVector<Scalar> &y)
 {
  if(x.len != y.len) {
   fprintf(stderr, "Length error in linC\n");
@@ -1137,7 +1147,7 @@ GenDistrVector<Scalar>::linC(GenDistrVector<Scalar> &x, Scalar c, GenDistrVector
 
 template<class Scalar>
 GenDistrVector<Scalar> &
-GenDistrVector<Scalar>::linC(GenDistrVector<Scalar> &v, Scalar c)
+GenDistrVector<Scalar>::linC(const GenDistrVector<Scalar> &v, Scalar c)
 {
  if(*inf != v.info()) {
    resize(v.info());
@@ -1149,8 +1159,8 @@ GenDistrVector<Scalar>::linC(GenDistrVector<Scalar> &v, Scalar c)
 
 template<class Scalar>
 GenDistrVector<Scalar> &
-GenDistrVector<Scalar>::linC( Scalar c1, GenDistrVector<Scalar> &x, 
-                              Scalar c2, GenDistrVector<Scalar> &y)
+GenDistrVector<Scalar>::linC( Scalar c1, const GenDistrVector<Scalar> &x,
+                              Scalar c2, const GenDistrVector<Scalar> &y)
 {
  GenVecOp<Scalar> linC2(&GenVecOp<Scalar>::linC2, this, c1, &x, c2, &y);
  threadManager->execParal(nT, &linC2);
@@ -1159,9 +1169,9 @@ GenDistrVector<Scalar>::linC( Scalar c1, GenDistrVector<Scalar> &x,
 
 template<class Scalar>
 GenDistrVector<Scalar> &
-GenDistrVector<Scalar>::linC( Scalar c1, GenDistrVector<Scalar> &x,
-                              Scalar c2, GenDistrVector<Scalar> &y,
-                              Scalar c3, GenDistrVector<Scalar> &z)
+GenDistrVector<Scalar>::linC( Scalar c1, const GenDistrVector<Scalar> &x,
+                              Scalar c2, const GenDistrVector<Scalar> &y,
+                              Scalar c3, const GenDistrVector<Scalar> &z)
 {
  GenVecOp<Scalar> linC3(&GenVecOp<Scalar>::linC3, this, c1, &x, c2, &y, c3, &z);
  threadManager->execParal(nT, &linC3);

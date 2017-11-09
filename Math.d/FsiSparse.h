@@ -36,8 +36,11 @@ class GenFsiSparse {
    void scale(double cscale_factor);
    void split(GlobalToLocalMap& local_map, Scalar *weight);
    Scalar csum(GlobalToLocalMap& local_map, int widof);
-   void multAdd(const Scalar *rhs, Scalar *result,GlobalToLocalMap& local_map, GlobalToLocalMap& neighb_map, bool fluidOnly = false);
-   void multAdd(const Scalar *rhs, Scalar *result,GlobalToLocalMap& local_map, bool fluidOnly = false);
+   void multAdd(const Scalar *rhs, Scalar *result,
+                const GlobalToLocalMap& local_map,
+                const GlobalToLocalMap& neighb_map, bool fluidOnly = false) const;
+   void multAdd(const Scalar *rhs, Scalar *result,
+                const GlobalToLocalMap& local_map, bool fluidOnly = false) const;
    void initialize();
 #ifdef HB_COUPLED_PRECOND
    int getNumFsi() { return(numFSI); } 
@@ -179,7 +182,9 @@ GenFsiSparse<Scalar>::~GenFsiSparse()
 
 template<class Scalar>
 void
-GenFsiSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result, GlobalToLocalMap& local_map, GlobalToLocalMap& neighb_map, bool fluidOnly)
+GenFsiSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result,
+                              const GlobalToLocalMap& local_map,
+                              const GlobalToLocalMap& neighb_map, bool fluidOnly) const
 {
   // fsi is a local array of fluid-structure interaction objects containing all interactions that involve either a 
   //   fluid or structure node in this subdomain
@@ -211,7 +216,7 @@ GenFsiSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result, GlobalToLocalMa
 
 template<class Scalar>
 void
-GenFsiSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result, GlobalToLocalMap& local_map,bool fluidOnly)
+GenFsiSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result, const GlobalToLocalMap& local_map,bool fluidOnly) const
 {
   // fsi is a local array of fluid-structure interaction objects containing all interactions that involve either a
   //   fluid or structure node in this subdomain

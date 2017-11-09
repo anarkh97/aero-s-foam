@@ -24,59 +24,59 @@ class GenCuCSparse : public SparseData, public GenSparseMatrix<Scalar> {
     GenCuCSparse(int, int, int *, int *, Scalar*);
     virtual ~GenCuCSparse();
 
-    double getMemoryUsed();
+    double getMemoryUsed() const override;
 
-    void add(FullSquareMatrix &mel, int *dofs);
-    void addImaginary(FullSquareMatrix &kel, int *dofs);
-    void add(FullSquareMatrixC &mel, int *dofs);
+    void add(FullSquareMatrix &mel, int *dofs) override;
+    void addImaginary(FullSquareMatrix &kel, int *dofs) override;
+    void add(FullSquareMatrixC &mel, int *dofs) override;
     void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
-    void addDiscreteMass(int dof, Scalar dimass);
-    void add(int row_dof, int col_dof, Scalar s);
+    void addDiscreteMass(int dof, Scalar dimass) override;
+    void add(int row_dof, int col_dof, Scalar s) override;
 
-    void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
-    void mult(const Scalar *rhs, Scalar *result);
+    void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const override;
+    void mult(const Scalar *rhs, Scalar *result) const override;
 
-    void multIdentity(Scalar **result);
-    void multIdentity(Scalar *result);
-    void multIdentity(Scalar **v, int start, int stop);
+    void multIdentity(Scalar **result) const override;
+    void multIdentity(Scalar *result) const override;
+    void multIdentity(Scalar **v, int start, int stop) const override;
 
-    void multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
-    void multSubtract(const Scalar *rhs, Scalar *result);
+    void multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const override;
+    void multSubtract(const Scalar *rhs, Scalar *result) const override;
 
-    void multSubAdd(Scalar *rhs, Scalar *result);
+    void multSubAdd(const Scalar *rhs, Scalar *result) const;
 
-    Scalar diag(int) const { throw "GenCuCSparse::diag - 1 - should never be called"; }
-    Scalar &diag(int) { throw "GenCuCSparse::diag - 2 - should never be called"; }
-    void zeroAll();
-    int  dim()    { return numConstrained; }
-    int  neqs()   { return numConstrained; }
-    int  numRow() { return neq-numConstrained; }
-    int  numCol() { return numConstrained; }
-    void print();
-    long size();
+    Scalar diag(int) const override { throw "GenCuCSparse::diag - 1 - should never be called"; }
+    Scalar &diag(int) override { throw "GenCuCSparse::diag - 2 - should never be called"; }
+    void zeroAll() override;
+    int  dim() const override { return numConstrained; }
+    int  neqs() const override { return numConstrained; }
+    int  numRow() const override { return neq-numConstrained; }
+    int  numCol() const override { return numConstrained; }
+    void print() override;
+    long size() const;
 
     void negate();
-    void clean_up();
+    void clean_up() override;
 
-    void multSub(const Scalar *rhs, Scalar *result);
-    void multSub(int numRHS, Scalar **rhs, Scalar **result);
-    void transposeMultAdd(const Scalar *rhs,Scalar *result);
-    void multAdd(const Scalar *rhs,Scalar *result);
-    void transposeMultSubtract(const Scalar *rhs,Scalar *result);
+    void multSub(const Scalar *rhs, Scalar *result) const override;
+    void multSub(int numRHS, const Scalar **rhs, Scalar **result) const override;
+    void transposeMultAdd(const Scalar *rhs,Scalar *result) const override;
+    void multAdd(const Scalar *rhs,Scalar *result) const override;
+    void transposeMultSubtract(const Scalar *rhs,Scalar *result) const override;
     void transposeMultSubtractClaw(const Scalar *rhs,Scalar *result, int ncl,
-                                   int *clawfDofs);
-    void transposeMult(const Scalar *rhs,Scalar *result);
+                                   int *clawfDofs) const override;
+    void transposeMult(const Scalar *rhs,Scalar *result) const override;
 
     void doWeighting(Scalar *weight);  // PJSA 4-3-03
     void doWeighting(int *weight);
 
-    void multAddNew(const Scalar *rhs, Scalar *result);
-    void transposeMultNew(const Scalar *rhs, Scalar *result);
-    void transposeMultAddNew(const Scalar *rhs, Scalar *result);
-    void transposeMultSubNew(const Scalar *rhs, Scalar *result);
+    void multAddNew(const Scalar *rhs, Scalar *result) const;
+    void transposeMultNew(const Scalar *rhs, Scalar *result) const;
+    void transposeMultAddNew(const Scalar *rhs, Scalar *result) const;
+    void transposeMultSubNew(const Scalar *rhs, Scalar *result) const;
 
-    void  mult(  const Scalar *rhs, Scalar *result, Scalar alpha, Scalar beta); //HB 12/15/04
-    void  trMult(const Scalar *rhs, Scalar *result, Scalar alpha, Scalar beta); //HB 12/15/04
+    void  mult(  const Scalar *rhs, Scalar *result, Scalar alpha, Scalar beta) const; //HB 12/15/04
+    void  trMult(const Scalar *rhs, Scalar *result, Scalar alpha, Scalar beta) const; //HB 12/15/04
 };
 
 typedef GenCuCSparse<double> CuCSparse;

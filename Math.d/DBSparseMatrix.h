@@ -22,48 +22,50 @@ class GenDBSparseMatrix : public SparseData, public GenSparseMatrix<Scalar> {
    GenDBSparseMatrix(Connectivity *, EqNumberer *);
    virtual ~GenDBSparseMatrix();
 
-   void mult(const GenVector<Scalar> &, GenVector<Scalar> & ); //matrix-vector multiply
-   void mult(const GenVector<Scalar> &rhs, Scalar *result); 
-   void mult(const Scalar *, Scalar *); // matrix-vector multiply
-   void multAdd(const Scalar *, Scalar *); // matrix-vector multiply
-   void multcomplex(const DComplex *, DComplex *);  // matrix-complex vector multiply
+   void mult(const GenVector<Scalar> &, GenVector<Scalar> & ) const override; //matrix-vector multiply
+   void mult(const GenVector<Scalar> &rhs, Scalar *result) const override;
+   void mult(const Scalar *, Scalar *) const override; // matrix-vector multiply
+   void multAdd(const Scalar *, Scalar *) const override; // matrix-vector multiply
+   void multcomplex(const DComplex *, DComplex *) const;  // matrix-complex vector multiply
 
-   void multDiag(const Scalar *x, Scalar *b);
-   void multDiag(int numRHS, const Scalar **x, Scalar **b);
+   void multDiag(const Scalar *x, Scalar *b) const override;
+   void multDiag(int numRHS, const Scalar **x, Scalar **b) const;
 
-   double getMemoryUsed();
+   double getMemoryUsed() const override;
 
-   void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result);
-   void transposeMult(const Scalar *, Scalar *);
-   Scalar diag(int dof) const;      // returns diagonal value of row dof in matrix
-   Scalar &diag(int dof);
-   void add(FullSquareMatrix &, int *dofs);
-   void add(FullSquareMatrixC &, int *dofs);
-   void addImaginary(FullSquareMatrix &, int *dofs);
-   void add(GenFullM<Scalar> &knd, int fRow, int fCol);
+   void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result) const override;
+   void transposeMult(const Scalar *, Scalar *) const override;
+   Scalar diag(int dof) const override;      // returns diagonal value of row dof in matrix
+   Scalar &diag(int dof) override;
+   void add(FullSquareMatrix &, int *dofs) override;
+   void add(FullSquareMatrixC &, int *dofs) override;
+   void addImaginary(FullSquareMatrix &, int *dofs) override;
+   void add(GenFullM<Scalar> &knd, int fRow, int fCol) override;
    void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
-   void addDiscreteMass(int dof, Scalar diMass);
-   void add(int, int, Scalar);
-   void zeroAll();
+   void addDiscreteMass(int dof, Scalar diMass) override;
+   void add(int, int, Scalar) override;
+   void zeroAll() override;
    void makeIdentity();
-   int  dim() { return numUncon; }
-   int  neqs() { return numUncon; }
-   int  numRow() { return numUncon; }
-   long size();
+   int  dim() const override { return numUncon; }
+   int  neqs() const override { return numUncon; }
+   int  numRow() const { return numUncon; }
+   long size() const;
    void print(char *fileName);
-   void print();
+   void print() override;
    void print1(int dof,FILE *fid);
-   void invertDiag();
+   void invertDiag() override;
    void deleteMemory() {delete [] unonz; unonz=0; }
    void unify(FSCommunicator *communicator);
-   void clean_up();   
+   void clean_up() override;
    int  begin(int i)  { return xunonz[i]; }
    int  end(int i)    { return xunonz[i+1]; }
    void symmetricScaling();
    void applyScaling(Scalar *v);
-   GenFullM<Scalar> *getFullMatrix();
-   int*   getFirstDof() { std::cerr << "int*  GenDBSparseMatrix::getFirstDof() called" << std::endl; firstdof = new int[1]; firstdof[0]=0; return firstdof; }
-   int getBlockSize() {std::cerr << "dim() = " << dim() << std::endl; return dim();}
+   GenFullM<Scalar> *getFullMatrix() override;
+   int*   getFirstDof() override
+   { std::cerr << "int*  GenDBSparseMatrix::getFirstDof() called" << std::endl; firstdof = new int[1]; firstdof[0]=0; return firstdof; }
+   int getBlockSize() override
+   {std::cerr << "dim() = " << dim() << std::endl; return dim();}
 };
 
 typedef GenDBSparseMatrix<double> DBSparseMatrix;

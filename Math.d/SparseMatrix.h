@@ -38,12 +38,12 @@ class GenSparseMatrix {
         Scalar* scalarfactors;
    public:       
         virtual void zeroAll() = 0;
-        virtual int  dim() = 0;
-        virtual double norm();
+        virtual int dim() const = 0;
+        virtual double norm() const;
         virtual void clean_up();
-        virtual double getMemoryUsed();
-        virtual int  numRow();
-        virtual int  numCol();
+        virtual double getMemoryUsed() const;
+        virtual int  numRow() const;
+        virtual int  numCol() const;
         virtual Scalar diag(int dof) const = 0;
         virtual Scalar &diag(int dof) = 0;
         virtual void invertDiag();
@@ -57,24 +57,24 @@ class GenSparseMatrix {
         virtual void addDiscreteMass(int dof, Scalar mass);
         virtual void add(int row_dof, int col_dof, Scalar s);
 
-        virtual void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
-        virtual void mult(const GenVector<Scalar> &rhs, Scalar *result); 
-        virtual void mult(const Scalar *rhs, Scalar *result);
-        virtual void multAdd(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
-        virtual void multAdd(const Scalar *rhs, Scalar *result);
-        virtual void multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
-        virtual void multSubtract(const Scalar *rhs, Scalar *result);
-        virtual void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result);
-        virtual void transposeMult(const Scalar *, Scalar *);
-        virtual void transposeMultAdd(const Scalar *, Scalar *);
-        virtual void transposeMultSubtract(const Scalar *, Scalar *);
-        virtual void transposeMultSubtractClaw(const Scalar *, Scalar *, int, int *);
-        virtual void multSub(const Scalar *, Scalar *);
-        virtual void multSub(int, Scalar **, Scalar **);
-        virtual void multDiag(const Scalar *, Scalar *);
-        virtual void multIdentity(Scalar *);
-        virtual void multIdentity(Scalar **);
-        virtual void multIdentity(Scalar **v, int start, int stop);
+        virtual void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const;
+        virtual void mult(const GenVector<Scalar> &rhs, Scalar *result) const;
+        virtual void mult(const Scalar *rhs, Scalar *result) const;
+        virtual void multAdd(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const;
+        virtual void multAdd(const Scalar *rhs, Scalar *result) const;
+        virtual void multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const;
+        virtual void multSubtract(const Scalar *rhs, Scalar *result) const;
+        virtual void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result) const;
+        virtual void transposeMult(const Scalar *, Scalar *) const;
+        virtual void transposeMultAdd(const Scalar *, Scalar *) const;
+        virtual void transposeMultSubtract(const Scalar *, Scalar *) const;
+        virtual void transposeMultSubtractClaw(const Scalar *, Scalar *, int, int *) const;
+        virtual void multSub(const Scalar *, Scalar *) const;
+        virtual void multSub(int, const Scalar **, Scalar **) const;
+        virtual void multDiag(const Scalar *, Scalar *) const;
+        virtual void multIdentity(Scalar *) const;
+        virtual void multIdentity(Scalar **) const;
+        virtual void multIdentity(Scalar **v, int start, int stop) const;
         virtual void squareRootMult(Scalar * result);
         virtual void inverseSquareRootMult(Scalar * result);
         virtual GenFullM<Scalar> * getFullMatrix();
@@ -86,7 +86,7 @@ class GenSparseMatrix {
         virtual void setMeanSolver(GenSolver<Scalar> *prc);
         virtual GenSolver<Scalar>* getMeanSolver();
         virtual int getBlockSize();
-        virtual int  neqs() = 0; 
+        virtual int  neqs() const = 0;
         virtual void print();
 
         void mult(DistrBlockVector<double>&, DistrBlockVector<double>&) { }; // hack to get code to compile

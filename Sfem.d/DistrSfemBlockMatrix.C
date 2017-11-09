@@ -9,7 +9,7 @@ DistrBlockVector<Scalar>::~DistrBlockVector()
 
 
 template<class Scalar>
-int DistrBlockVector<Scalar>::size()
+int DistrBlockVector<Scalar>::size() const
 {
  int curlen=0;
 /* DistrInfo dinfo;                  
@@ -59,7 +59,7 @@ Scalar DistrBlockVector<Scalar>::operator * (DistrBlockVector<Scalar> &x)
 
 
 template<class Scalar>
-DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::operator=(DistrBlockVector<Scalar> &x)
+DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::operator=(const DistrBlockVector<Scalar> &x)
 {
  if(this->size() != x.size()) std::cerr << "Dimensions don't match in = operation " << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) *(v[i])= *(x.getv()[i]);
@@ -129,7 +129,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linAdd(Scalar c1, DistrBloc
 
 
 template<class Scalar>
-DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(DistrBlockVector<Scalar> &x, Scalar c)
+DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(const DistrBlockVector<Scalar> &x, Scalar c)
 {
  if(size() != x.size()) std::cerr << "Dimensions don't match in linC" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) v[i]->linC(c,x.getBlock(i));
@@ -138,7 +138,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(DistrBlockVector<Scala
 
 
 template<class Scalar>
-DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(DistrBlockVector<Scalar> &x, Scalar c, DistrBlockVector<Scalar> &y)
+DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(const DistrBlockVector<Scalar> &x, Scalar c, const DistrBlockVector<Scalar> &y)
 {
  if(x.size() != y.size()) std::cerr << "Dimensions don't match in linC" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) v[i]->linC(x.getBlock(i),c,y.getBlock(i)); 
@@ -147,7 +147,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(DistrBlockVector<Scala
 
 
 template<class Scalar>
-DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(Scalar c1, DistrBlockVector<Scalar> &x, Scalar c2, DistrBlockVector<Scalar> &y)
+DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(Scalar c1, const DistrBlockVector<Scalar> &x, Scalar c2, const DistrBlockVector<Scalar> &y)
 {
  if(x.size() != y.size()) std::cerr << "Dimensions don't match in linC" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) v[i]->linC(c1,x.getBlock(i),c2,y.getBlock(i)); 

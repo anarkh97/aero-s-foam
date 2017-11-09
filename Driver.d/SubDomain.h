@@ -420,10 +420,10 @@ class GenSubDomain : public BaseSub , public FetiSub<Scalar>
 {
 private:
 	Scalar *kweight; // stiffness weights (i.e. sum of Kii for all subd sharing that dof)
-	Scalar *deltaFmpc;
+	mutable Scalar *deltaFmpc;
 	int *cornerWeight;
-	void applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *deltaU = 0, Scalar *localw = 0);
-	void applyScalingAndB(Scalar *res, Scalar *Pu, Scalar *localw = 0);
+	void applyBtransposeAndScaling(const Scalar *u, Scalar *v, Scalar *deltaU = 0, Scalar *localw = 0) const;
+	void applyScalingAndB(const Scalar *res, Scalar *Pu, Scalar *localw = 0) const;
 	void initialize();
 
 protected:
@@ -449,7 +449,7 @@ public:
 	GenSparseMatrix<Scalar>   *MPCsparse;
 	GenDBSparseMatrix<Scalar> *Kbb;    // for preconditioning
 	Corotator           	    **corotators;
-	Scalar 		    *fcstar;
+	mutable Scalar 		    *fcstar; // TODO Move this out!
 	Scalar                    *QtKpBt;
 
 	Scalar                    **Ave, **Eve; // 070213 JAT
@@ -457,7 +457,7 @@ public:
 	int *glBoundMap;
 	int *glInternalMap;
 
-	SubLMPCons<Scalar> **mpc; // multiple point constraints
+	mutable SubLMPCons<Scalar> **mpc; // multiple point constraints
 	SubLMPCons<Scalar> **mpc_primal;
 
 private:
@@ -468,8 +468,8 @@ private:
 	int *CCtrow, *CCtcol;
 	Scalar* CCtval;
 	Scalar *bcx_scalar;
-	int *mpcStatus;
-	bool *mpcStatus1, *mpcStatus2;
+	mutable int *mpcStatus;
+	mutable bool *mpcStatus1, *mpcStatus2;
 
 	// templated RBMs
 	GenFullM<Scalar> Rstar;
@@ -502,19 +502,19 @@ public:
 	void addDMass(int glNum, int dof, double m);
 	// computes localvec = K-1 (localvec -B interfvec)
 	// then    interfvec = B^T localvec and sends local data to neighbors
-	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec);
-	void fetiBaseOp(Scalar *uc,GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec);
-	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta);
-	void interfaceJump(Scalar *iterfData, FSCommPattern<Scalar> *vPat);
+	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const override;
+	void fetiBaseOp(Scalar *uc,GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const;
+	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const override;
+	void interfaceJump(Scalar *iterfData, FSCommPattern<Scalar> *vPat) const;
 	void sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const override;
-	void extractAndSendInterf(Scalar *subvec, FSCommPattern<Scalar> *pat);
-	void assembleInterf(Scalar *subvec, FSCommPattern<Scalar> *pat);
-	void splitInterf(Scalar *subvec);
-	void assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat);
+	void extractAndSendInterf(const Scalar *subvec, FSCommPattern<Scalar> *pat) const;
+	void assembleInterf(Scalar *subvec, FSCommPattern<Scalar> *pat) const;
+	void splitInterf(Scalar *subvec) const;
+	void assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat) const;
 	void getHalfInterf(const Scalar *s, Scalar *t) const override;
 	void getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const override;
 	void scatterHalfInterf(const Scalar *s, Scalar *loc) const override;
-	void rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat);
+	void rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat) const;
 	void renumberElements();
 	void renumberElementsGlobal();
 	void renumberSharedNodes();
@@ -532,15 +532,15 @@ public:
 	void getSRMult(const Scalar *lvec, const Scalar *lbvec, int nRBM, const double *locRBMs, Scalar *alpha) const;
 	void sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
 	void receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
-	void sendDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
+	void sendDeltaF(const Scalar *deltaF, FSCommPattern<Scalar> *vPat);
 	double collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
 	void makeKbbMpc();
 	void rebuildKbb();
 	void makeKbb(DofSetArray *dofsetarray=0);
 	void factorKii() override;
 	void factorKrr();
-	void multKbb(Scalar *, Scalar *, Scalar * = 0, Scalar * = 0, bool errorFlag = true);
-	void multDiagKbb(Scalar *, Scalar *) const;
+	void multKbb(const Scalar *u, Scalar *Pu, Scalar *delta_u = 0, Scalar * delta_f= 0, bool errorFlag = true);
+	void multDiagKbb(const Scalar *u, Scalar *Pu) const;
 	void multFi(GenSolver<Scalar> *s, Scalar *, Scalar *);
 	void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const override;
 	void assembleLocalComplexEls(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *smat = 0);
@@ -578,7 +578,7 @@ public:
 	void initScaling();
 	void sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPat) override;
 	void collectScaling(FSCommPattern<Scalar> *vPat);
-	void fSend(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
+	void fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0) const;
 	void fScale(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
 	void fSplit(Scalar *locF);
 	void updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda);
@@ -596,7 +596,7 @@ public:
 	void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
 	void assembleKccStar(GenSparseMatrix<Scalar> *KccStar);
 	void deleteKcc();
-	void multKbbMpc(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
+	void multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
 	void normalizeCstep1(Scalar *cnorm);
 	void normalizeCstep2(Scalar *cnorm);
 	void getQtKQ(GenSolver<Scalar> *s) override;
@@ -622,15 +622,16 @@ public:
 	void assembleMpcIntoKcc();
 	void multKcc();
 	void reMultKcc();
-	void multKrc(Scalar *fr, Scalar *uc);
-	void multfc(Scalar *fr, Scalar *bf);
+	/** \brief Compute \f$ f_r = K_{rc} u_c \f$. */
+	void multKrc(Scalar *fr, const Scalar *uc) const;
+	void multfc(Scalar *fr, Scalar *bf) const;
 	void multFcB(Scalar *bf);
 	Scalar *getfc() { return fcstar; }
-	void getFr(Scalar *f, Scalar *fr);
-	void getFc(Scalar *f, Scalar *fc);
-	void getFw(Scalar *f, Scalar *fw);
+	void getFr(const Scalar *f, Scalar *fr) const;
+	void getFc(const Scalar *f, Scalar *fc) const;
+	void getFw(const Scalar *f, Scalar *fw) const;
 	void mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda = 0);
-	int numRBM() { return nGrbm; }
+	int numRBM() const { return nGrbm; }
 	void makeEdgeVectorsPlus(bool isFluidSub = false, bool isThermalSub = false,
 	                         bool isUndefinedSub = false);
 	void makeAverageEdgeVectors();
@@ -742,10 +743,10 @@ public:
 	void setWICommSize(FSCommPattern<Scalar> *wiPat);
 	void setCSCommSize(FSCommPattern<Scalar> *csPat);
 	void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec,
-	                        FSCommPattern<Scalar> *wiPat);
+	                        FSCommPattern<Scalar> *wiPat) const;
 	void fetiBaseOpCoupled2(Scalar *uc, Scalar *localvec, Scalar *interfvec,
-	                        FSCommPattern<Scalar> *wiPat, Scalar *fw = 0);
-	void multKbbCoupled(Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag = true);
+	                        FSCommPattern<Scalar> *wiPat, Scalar *fw = 0) const;
+	void multKbbCoupled(const Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag = true);
 	void scaleAndSplitKww();
 	void reScaleAndReSplitKww();
 	void addSommer(SommerElement *ele); // XDEBUG
@@ -787,10 +788,10 @@ public:
 	void setRebuildPade(bool _rebuildPade) { rebuildPade = _rebuildPade; }
 
 	// new B operators
-	void multAddBrT(Scalar *interfvec, Scalar *localvec, Scalar *uw = 0);
-	void multBr(Scalar *localvec, Scalar *interfvec, Scalar *uc = 0, Scalar *uw = 0);
-	void multAddCT(Scalar *interfvec, Scalar *localvec);
-	void multC(Scalar *localvec, Scalar *interfvec);
+	void multAddBrT(const Scalar *interfvec, Scalar *localvec, Scalar *uw = 0) const;
+	void multBr(const Scalar *localvec, Scalar *interfvec, Scalar *uc = 0, Scalar *uw = 0) const;
+	void multAddCT(const Scalar *interfvec, Scalar *localvec) const;
+	void multC(const Scalar *localvec, Scalar *interfvec) const;
 
 	// templated R and G functions
 	// note #1: we use feti to solve global domain problem: min 1/2 u_g^T*K_g*u_g - u_g^T*f_g subj. to C_g*u_g <= g
@@ -808,10 +809,10 @@ public:
 	void makeLocalRstar(FullM **Qtranspose); // this is used by decomposed domain GRBM algorithm
 	void useKrrNullspace();
 	// R matrix-vector multiplication
-	void addRalpha(Scalar *u, GenVector<Scalar> &alpha);  // u += R_g*alpha
-	void addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *alpha, Scalar *ur); // u += R_g*alpha
-	void assembleE(GenVector<Scalar> &e, Scalar *f); // e = R^T*f
-	void assembleTrbmE(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *e, Scalar *fr); // e = R^T*f
+	void addRalpha(Scalar *u, GenVector<Scalar> &alpha) const;  // u += R_g*alpha
+	void addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *alpha, Scalar *ur) const; // u += R_g*alpha
+	void assembleE(GenVector<Scalar> &e, Scalar *f) const; // e = R^T*f
+	void assembleTrbmE(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *e, Scalar *fr) const; // e = R^T*f
 
 	// G matrix construction and destruction
 	void makeG();
@@ -823,26 +824,26 @@ public:
 	void zeroG();
 	void deleteG();
 	// G matrix-vector multiplication
-	void multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha);  // y = alpha*G*x
-	void trMultG(Scalar *x, GenVector<Scalar> &y, Scalar alpha); // y = alpha*G^T*x
+	void multG(const GenVector<Scalar> &x, Scalar *y, Scalar alpha) const;  // y = alpha*G*x
+	void trMultG(const Scalar *x, GenVector<Scalar> &y, Scalar alpha) const; // y = alpha*G^T*x
 	// (G^T*G) matrix assembly
 	void assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver);
 
 	// R_g matrix construction and access
 	void buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, Connectivity *cornerToSub); // use null space of (G^T*P_H*G) ... trbm method !!!
-	void getGlobalRBM(int iRBM, Scalar *Rvec);
+	void getGlobalRBM(int iRBM, Scalar *Rvec) const;
 	// R_g matrix-vector multiplication
-	void subtractRstar_g(Scalar *u, GenVector<Scalar> &beta); // u -= R_g*beta
-	void addRstar_gT(Scalar *u, GenVector<Scalar> &beta); // u += R_g*beta
+	void subtractRstar_g(Scalar *u, GenVector<Scalar> &beta) const; // u -= R_g*beta
+	void addRstar_gT(Scalar *u, GenVector<Scalar> &beta) const; // u += R_g*beta
 	// (R_g^T*R_g) matrix assembly
 	void assembleRtR(GenFullM<Scalar> &RtRu);
 
 	int *l2g;
 	void makeLocalToGlobalDofMap();
-	void multAddLT(Scalar *localvec, Scalar *globalvec);
-	void multAddLinv(Scalar *localvec, Scalar *globalvec);
-	void multLTinv(Scalar *globalvec, Scalar *localvec);
-	void multL(Scalar *globalvec, Scalar *localvec);
+	void multAddLT(const Scalar *localvec, Scalar *globalvec);
+	void multAddLinv(const Scalar *localvec, Scalar *globalvec);
+	void multLTinv(const Scalar *globalvec, Scalar *localvec);
+	void multL(const Scalar *globalvec, Scalar *localvec);
 
 };
 

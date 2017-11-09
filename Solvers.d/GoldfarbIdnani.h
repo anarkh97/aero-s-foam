@@ -94,17 +94,17 @@ public:
     CI.setZero();
     BaseSolver::zeroAll();
   }
-  int  dim() { return n+p+m; }
+  int dim() const { return n+p+m; }
 
-  void solve(Scalar* rhs, Scalar* sol); 
-  void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &sol) {
+  void solve(const Scalar* rhs, Scalar* sol);
+  void solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &sol) {
     solve(rhs.data(), sol.data());
   }
-  int neqs() { return n+p+m; }
+  int neqs() const { return n+p+m; }
   void factor() { 
     BaseSolver::factor();
   }
-  void reSolve(Scalar *rhs) {  
+  void reSolve(Scalar *rhs) {
     Scalar *rhs_copy = new Scalar[neqs()];
     for(int i=0; i<neqs(); ++i) rhs_copy[i] = rhs[i];
     solve(rhs_copy, rhs);
@@ -119,19 +119,19 @@ public:
 
 template<>
 void
-GoldfarbIdnaniQpSolver<WrapSparseMat<double>,double>::solve(double*, double*);
+GoldfarbIdnaniQpSolver<WrapSparseMat<double>,double>::solve(const double*, double*);
 
 template<>
 void
-GoldfarbIdnaniQpSolver<WrapSparseMat<complex<double> >,complex<double> >::solve(complex<double>*, complex<double>*);
+GoldfarbIdnaniQpSolver<WrapSparseMat<complex<double> >,complex<double> >::solve(const complex<double>*, complex<double>*);
 
 template<>
 void
-GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(double*, double*);
+GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(const double*, double*);
 
 template<>
 void
-GoldfarbIdnaniQpSolver<WrapEiSparseMat<complex<double> >,complex<double> >::solve(complex<double>*, complex<double>*);
+GoldfarbIdnaniQpSolver<WrapEiSparseMat<complex<double> >,complex<double> >::solve(const complex<double>*, complex<double>*);
 #endif
 
 #endif

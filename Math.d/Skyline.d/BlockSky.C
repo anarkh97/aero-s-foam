@@ -788,7 +788,7 @@ GenBlockSky<Scalar>::addBoeing(int nlines, const int *Kai, const int *Kaj,
 
 template<class Scalar>
 void
-GenBlockSky<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
+GenBlockSky<Scalar>::solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
 {
    solution = rhs;
 
@@ -797,7 +797,7 @@ GenBlockSky<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
 
 template<class Scalar>
 void
-GenBlockSky<Scalar>::solve(Scalar *rhs, Scalar *solution)
+GenBlockSky<Scalar>::solve(const Scalar *rhs, Scalar *solution)
 {
    int i;
    for(i=0; i<dim(); ++i)

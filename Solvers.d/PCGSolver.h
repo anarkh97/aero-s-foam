@@ -34,8 +34,8 @@ public:
   virtual ~GenPCGSolver() { /* nothing to delete */ };
 
   // ... Linear solution functions
-  void solve(Scalar* rhs, Scalar* solution); 
-  void solve(AnyVector &rhs, AnyVector &solution); 
+  void solve(const Scalar* rhs, Scalar* solution);
+  void solve(const AnyVector &rhs, AnyVector &solution);
 
   // ... Linear solution functions that overwrite the rhs vector
   void reSolve(Scalar* rhs);  
@@ -45,8 +45,8 @@ public:
   void reSolve(int nRHS, Scalar **RHS);  
   void reSolve(int nRHS, AnyVector *RHS);
 
-  long size() { return 0; }
-  int neqs(); 
+  long size() const { return 0; }
+  int neqs() const;
 
   void factor() { };
   void initPrec();

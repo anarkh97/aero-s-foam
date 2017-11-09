@@ -20,7 +20,7 @@ namespace Rom {
 template <typename Scalar>
 class GenDistrGalerkinProjectionSolver : public GenParallelSolver<Scalar> {
 public:
-  virtual void solve(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
+  virtual void solve(const GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
   virtual void reSolve(GenDistrVector<Scalar> &);
  
   virtual int numRBM() { return 0; }
@@ -63,7 +63,7 @@ GenDistrGalerkinProjectionSolver<Scalar>::~GenDistrGalerkinProjectionSolver() {
 
 template <typename Scalar>
 void
-GenDistrGalerkinProjectionSolver<Scalar>::solve(GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &result) {
+GenDistrGalerkinProjectionSolver<Scalar>::solve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &result) {
   result = rhs;
 }
 

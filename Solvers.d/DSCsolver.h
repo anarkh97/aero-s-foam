@@ -37,30 +37,30 @@ class DSCsolver :
    DSCsolver(Connectivity *cn, EqNumberer *eqNums, int sch_number);
    virtual ~DSCsolver();
 
-   void    add(FullSquareMatrix &knd, int *dofs) {};
-   void    add(FullM &knd, int fRow, int fCol);
-   void    zeroAll();
+   void    add(FullSquareMatrix &knd, int *dofs) override {};
+   void    add(FullM &knd, int fRow, int fCol) override;
+   void    zeroAll() override;
 
-   void    factor();
+   void    factor() override;
 
-   void    reSolve(double *rhs);
-   void    reSolve(Vector &rhs);
+   void    reSolve(double *rhs) override;
+   void    reSolve(Vector &rhs) override;
 
-   void    reSolve(int nRHS, double **RHS);
-   void    reSolve(int nRHS, Vector * RHS);
-   void    unify(FSCommunicator *communicator);
-   void    print();
+   void    reSolve(int nRHS, double **RHS) override;
+   void    reSolve(int nRHS, Vector * RHS) override;
+   void    unify(FSCommunicator *communicator) override;
+   void    print() override;
 
-   int     dim()            { return numUncon;  }
-   int     neqs()           { return numUncon;  }
-   double getSolutionTime() { return solveTime; }
+   int     dim()  const override { return numUncon;  }
+   int     neqs() const override { return numUncon;  }
+   double getSolutionTime() override { return solveTime; }
 
    // Functions that need to be written
-   int numRBM() { return -1; }
+   int numRBM() override { return -1; }
 
    // Functions not needed
-   double    diag(int) const { return 1.0; }
-   double &diag(int) { throw "Crazy programmers\n"; }
+   double    diag(int) const override { return 1.0; }
+   double &diag(int) override { throw "Crazy programmers\n"; }
    long size()    { return 0; }
 };
 

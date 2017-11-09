@@ -105,13 +105,13 @@ template \
 GenNBSparseMatrix<Scalar>::~GenNBSparseMatrix(); \
 template \
 void \
-GenNBSparseMatrix<Scalar>::mult(const Scalar*, Scalar*); \
+GenNBSparseMatrix<Scalar>::mult(const Scalar*, Scalar*) const; \
 template \
 void \
-GenNBSparseMatrix<Scalar>::multAdd(const Scalar*, Scalar*); \
+GenNBSparseMatrix<Scalar>::multAdd(const Scalar*, Scalar*) const; \
 template \
 void \
-GenNBSparseMatrix<Scalar>::mult(const GenVector<Scalar>&, GenVector<Scalar>&); \
+GenNBSparseMatrix<Scalar>::mult(const GenVector<Scalar>&, GenVector<Scalar>&) const; \
 template \
 Scalar \
 GenNBSparseMatrix<Scalar>::diag(int dof) const; \

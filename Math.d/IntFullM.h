@@ -16,8 +16,8 @@ class IntFullM {
 
    void zero();
 
-   int numRow() { return nrow;    }
-   int numCol() { return ncolumn; }
+   int numRow() const { return nrow;    }
+   int numCol() const { return ncolumn; }
 
    int *operator[](int i);
 

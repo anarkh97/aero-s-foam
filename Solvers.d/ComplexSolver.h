@@ -13,8 +13,8 @@ class ComplexSolver {
 
   public:
 
-    virtual int neqs()=0;
-    virtual int dim()=0;
+    virtual int neqs() const = 0;
+    virtual int dim() const = 0;
 
     virtual int numRBM();
 
@@ -23,13 +23,13 @@ class ComplexSolver {
     virtual void solve(ComplexVector &rhs, ComplexVector &solution);
 
     // reSolve functions overwriting the rhs vector with the solution
-    virtual void reSolve(DComplex *rhs);    
-    virtual void reSolve(ComplexVector &v);      
+    virtual void reSolve(DComplex *rhs);
+    virtual void reSolve(ComplexVector &v);
 
     // Multiple rhs reSolve functions
-    virtual void reSolve(int nRHS, DComplex **);  
-    virtual void reSolve(int nRHS, DComplex *);  
-    virtual void reSolve(int nRHS, ComplexVector *);  
+    virtual void reSolve(int nRHS, DComplex **);
+    virtual void reSolve(int nRHS, DComplex *);
+    virtual void reSolve(int nRHS, ComplexVector *);
     virtual void reSolve(FullMC *);
 
     virtual void factor();

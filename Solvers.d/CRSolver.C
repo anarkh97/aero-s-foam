@@ -8,7 +8,7 @@
 
 template<class Scalar, class AnyVector, class AnyOperator, class AnyPreconditioner>
 void
-GenCRSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector &rhs, AnyVector &sol)
+GenCRSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(const AnyVector &rhs, AnyVector &sol)
 {
  solveTime -= getTime();
  AnyVector r(rhs);

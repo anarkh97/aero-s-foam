@@ -183,14 +183,14 @@ GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrixC &kel, int *dofs)
 
 template<typename Scalar, typename SolverClass> 
 double
-GenEiSparseMatrix<Scalar,SolverClass>::getMemoryUsed()
+GenEiSparseMatrix<Scalar,SolverClass>::getMemoryUsed() const
 {
   return sizeof(Scalar)*nnz/(1024.0*1024.0);
 }
 
 template<typename Scalar, typename SolverClass> 
 void
-GenEiSparseMatrix<Scalar,SolverClass>::mult(const Scalar *_rhs, Scalar *_result)
+GenEiSparseMatrix<Scalar,SolverClass>::mult(const Scalar *_rhs, Scalar *_result) const
 {
   Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > result(_result,numUncon,1);
@@ -202,7 +202,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::mult(const Scalar *_rhs, Scalar *_result)
 
 template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar,SolverClass>::mult(const GenVector<Scalar> &_rhs, Scalar *_result) 
+GenEiSparseMatrix<Scalar,SolverClass>::mult(const GenVector<Scalar> &_rhs, Scalar *_result) const
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), result(_result,numUncon,1);
   if(selfadjoint)
@@ -213,7 +213,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::mult(const GenVector<Scalar> &_rhs, Scala
 
 template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const GenVector<Scalar> &_rhs, GenVector<Scalar> &_result)
+GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const GenVector<Scalar> &_rhs, GenVector<Scalar> &_result) const
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), result(_result.data(),numUncon,1);
   if(selfadjoint)
@@ -224,7 +224,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const GenVector<Scalar> &_r
 
 template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const Scalar *_rhs, Scalar *_result)
+GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const Scalar *_rhs, Scalar *_result) const
 {
   Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > result(_result,numUncon,1);
@@ -236,7 +236,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const Scalar *_rhs, Scalar 
 
 template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar,SolverClass>::multAdd(const Scalar *_rhs, Scalar *_result)
+GenEiSparseMatrix<Scalar,SolverClass>::multAdd(const Scalar *_rhs, Scalar *_result) const
 {
   Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > result(_result,numUncon,1);
@@ -248,7 +248,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::multAdd(const Scalar *_rhs, Scalar *_resu
 
 template<typename Scalar, typename SolverClass> 
 void
-GenEiSparseMatrix<Scalar,SolverClass>::mult(const GenVector<Scalar> &_rhs, GenVector<Scalar> &_result)
+GenEiSparseMatrix<Scalar,SolverClass>::mult(const GenVector<Scalar> &_rhs, GenVector<Scalar> &_result) const
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), result(_result.data(),numUncon,1);
   if(selfadjoint)
@@ -276,7 +276,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::diag( int dof )
 
 template<typename Scalar, typename SolverClass> 
 long
-GenEiSparseMatrix<Scalar,SolverClass>::size()
+GenEiSparseMatrix<Scalar,SolverClass>::size() const
 {
   return (numUncon) ? nnz : 0;
 }
@@ -314,24 +314,26 @@ GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<d
 
 template<typename Scalar, typename SolverClass>
 void 
-GenEiSparseMatrix<Scalar,SolverClass>::solve(Scalar *_rhs, Scalar *_solution)
+GenEiSparseMatrix<Scalar,SolverClass>::solve(const Scalar *_rhs, Scalar *_solution)
 {
-  this->solveTime -= getTime();
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1), solution(_solution,numUncon,1);
-  solution = solver.solve(rhs);
-  if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
-  this->solveTime += getTime();
+	this->solveTime -= getTime();
+	Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
+	Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > solution(_solution,numUncon,1);
+	solution = solver.solve(rhs);
+	if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
+	this->solveTime += getTime();
 }
 
 template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar,SolverClass>::solve(GenVector<Scalar> &_rhs, GenVector<Scalar> &_solution)
+GenEiSparseMatrix<Scalar,SolverClass>::solve(const GenVector<Scalar> &_rhs, GenVector<Scalar> &_solution)
 {
-  this->solveTime -= getTime();
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), solution(_solution.data(),numUncon,1);
-  solution = solver.solve(rhs);
-  if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
-  this->solveTime += getTime();
+	this->solveTime -= getTime();
+	Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1);
+	Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > solution(_solution.data(),numUncon,1);
+	solution = solver.solve(rhs);
+	if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
+	this->solveTime += getTime();
 }
 
 template<typename Scalar, typename SolverClass>

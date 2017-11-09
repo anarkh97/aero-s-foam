@@ -121,7 +121,7 @@ GenSolver<Scalar>::reBuild(FullSquareMatrix *, FullSquareMatrix *, Scalar)
 
 template<class Scalar>
 int
-GenSolver<Scalar>::dim()
+GenSolver<Scalar>::dim() const
 {
  fprintf(stderr,"Selected Solver does not support dim() function\n");
  return 0;
@@ -158,14 +158,14 @@ GenSolver<Scalar>::getRBMs(VectorSet &)
 
 template<class Scalar> 
 void
-GenSolver<Scalar>::solve(GenVector<Scalar>  &rhs, GenVector<Scalar>  &sol)
+GenSolver<Scalar>::solve(const GenVector<Scalar>  &rhs, GenVector<Scalar>  &sol)
 {
  solve(rhs.data(), sol.data());
 }
 
 template<class Scalar> 
 void
-GenSolver<Scalar>::solve(Scalar *, Scalar *)
+GenSolver<Scalar>::solve(const Scalar *, Scalar *)
 {
  fprintf(stderr,"Selected Solver does not support solve(Scalar*, Scalar*) function\n");
 }

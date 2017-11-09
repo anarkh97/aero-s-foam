@@ -49,7 +49,7 @@ class GCRCOp : public TaskDescr {
     void multAdd();
     void multFAdd();
 
-    void run();
+    void run() override;
 	void runFor(int) override { throw "Illegal operation called on GCRCOp"; }
 };
 #endif

@@ -619,7 +619,7 @@ GenSpoolesSolver<Scalar>::reSolve(Scalar *rhs)
 
 template<class Scalar>
 void
-GenSpoolesSolver<Scalar>::solve(Scalar *_rhs, Scalar *solution)
+GenSpoolesSolver<Scalar>::solve(const Scalar *_rhs, Scalar *solution)
 {
   this->solveTime -= getTime();
 #ifdef USE_SPOOLES
@@ -696,7 +696,7 @@ for(i=0;i<neq;i++) solution[i] = 0;
 
 template<class Scalar>
 double
-GenSpoolesSolver<Scalar>::getMemoryUsed(void)
+GenSpoolesSolver<Scalar>::getMemoryUsed(void) const
 {
   return 0;
 }
@@ -719,7 +719,7 @@ GenSpoolesSolver<Scalar>::print()
 
 template<class Scalar>
 long
-GenSpoolesSolver<Scalar>::size()
+GenSpoolesSolver<Scalar>::size() const
 {
   return _size;
 }

@@ -17,14 +17,14 @@ class DiagParallelSolver : public GenParallelSolver<Scalar>
     int nSub;
     GenSubDomain<Scalar> **sd;
     GenSolver<Scalar> **solver;
-    FSCommPattern<Scalar> *vPat;
-    Timings times;
+    mutable FSCommPattern<Scalar> *vPat;
+    mutable Timings times;
     
     void dispatchInterface(int iSub);
     void assembleDiag(int iSub);
-    void dispatchForce(int iSub, GenDistrVector<Scalar> &);
-    void assembleForce(int iSub, GenDistrVector<Scalar> &);
-    void subReSolve(int iSub, GenDistrVector<Scalar>&);
+    void dispatchForce(int iSub, const GenDistrVector<Scalar> &) const;
+    void assembleForce(int iSub, GenDistrVector<Scalar> &) const;
+    void subReSolve(int iSub, GenDistrVector<Scalar>&) const;
     void subSquareRootMult(int iSub, GenDistrVector<Scalar> &v);
     void subInverseSquareRootMult(int iSub, GenDistrVector<Scalar> &v);
   public:
@@ -36,12 +36,12 @@ class DiagParallelSolver : public GenParallelSolver<Scalar>
     void squareRootMult(GenDistrVector<Scalar> &);
     void inverseSquareRootMult(GenDistrVector<Scalar> &);
     double getSolutionTime() { return times.solve; }
-    void solve(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
+    void solve(const GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
     Timings& getTimers() { return times; }
 };
 
 template<class Scalar>
-DiagParallelSolver<Scalar>::DiagParallelSolver(int _nSub, GenSubDomain<Scalar> **_sd, 
+DiagParallelSolver<Scalar>::DiagParallelSolver(int _nSub, GenSubDomain<Scalar> **_sd,
       GenSolver<Scalar> **_sol, Connectivity *cpuToSub, FSCommunicator *com)
 {
  nSub = _nSub;
@@ -66,7 +66,8 @@ void
 DiagParallelSolver<Scalar>::reSolve(GenDistrVector<Scalar> &rhsSol)
 {
   times.solve -= getTime();
-  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::dispatchForce, rhsSol);
+//  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::dispatchForce, rhsSol);
+    threadManager->callParal(nSub, [this, &rhsSol](int s) { dispatchForce(s, rhsSol); });
   this->vPat->exchange();
   execParal1R(nSub, this, &DiagParallelSolver<Scalar>::assembleForce, rhsSol);
 
@@ -90,7 +91,7 @@ DiagParallelSolver<Scalar>::inverseSquareRootMult(GenDistrVector<Scalar> &rhsSol
 
 template<class Scalar>
 void
-DiagParallelSolver<Scalar>::solve(GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &solution)
+DiagParallelSolver<Scalar>::solve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &solution)
 {
   times.solve -= getTime();
   solution=rhs;
@@ -141,15 +142,15 @@ DiagParallelSolver<Scalar>::assembleDiag(int iSub)
 
 template<class Scalar>
 void
-DiagParallelSolver<Scalar>::dispatchForce(int iSub, GenDistrVector<Scalar> &v)
+DiagParallelSolver<Scalar>::dispatchForce(int iSub, const GenDistrVector<Scalar> &v) const
 {
-  Scalar *subV = v.subData(iSub);
+  const Scalar *subV = v.subData(iSub);
   sd[iSub]->extractAndSendInterf(subV, vPat);
 }
 
 template<class Scalar>
 void
-DiagParallelSolver<Scalar>::assembleForce(int iSub, GenDistrVector<Scalar> &v)
+DiagParallelSolver<Scalar>::assembleForce(int iSub, GenDistrVector<Scalar> &v) const
 {
   Scalar *subV = v.subData(iSub);
   sd[iSub]->assembleInterf(subV, vPat);
@@ -157,7 +158,7 @@ DiagParallelSolver<Scalar>::assembleForce(int iSub, GenDistrVector<Scalar> &v)
 
 template<class Scalar>
 void
-DiagParallelSolver<Scalar>::subReSolve(int iSub, GenDistrVector<Scalar> &v)
+DiagParallelSolver<Scalar>::subReSolve(int iSub, GenDistrVector<Scalar> &v) const
 {
   solver[iSub]->reSolve(v.subData(iSub));
 }

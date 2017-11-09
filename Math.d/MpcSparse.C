@@ -63,35 +63,35 @@ GenMpcSparse<Scalar>::print(FILE *file,const char*)
 
 template<class Scalar>
 double
-GenMpcSparse<Scalar>::getMemoryUsed()
+GenMpcSparse<Scalar>::getMemoryUsed() const
 {
   return 0.0;
 }
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::multSubtract(const GenVector<Scalar> &, GenVector<Scalar> &)
+GenMpcSparse<Scalar>::multSubtract(const GenVector<Scalar> &, GenVector<Scalar> &) const
 {
   fprintf(stderr,"GenMpcSparse<Scalar> does not support multSubtract(const GenVector<Scalar> &, GenVector<Scalar> &) \n");
 }
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::multSubtract(const Scalar *, Scalar *)
+GenMpcSparse<Scalar>::multSubtract(const Scalar *, Scalar *) const
 {
   fprintf(stderr,"GenMpcSparse<Scalar> does not support multSubtract(const Scalar *, Scalar *) \n");
 }
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+GenMpcSparse<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
   mult(rhs.data(),result.data() );
 }
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::mult(const Scalar *rhs, Scalar *result)
+GenMpcSparse<Scalar>::mult(const Scalar *rhs, Scalar *result) const
 {
   int i,iMPC;
   for(iMPC=0; iMPC<NumCol; ++iMPC) {
@@ -106,7 +106,7 @@ GenMpcSparse<Scalar>::mult(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::multIdentity(int iMPC, Scalar *result)
+GenMpcSparse<Scalar>::multIdentity(int iMPC, Scalar *result) const
 {
   int i;
   for(i=0; i<mpc[iMPC]->nterms; ++i) {
@@ -118,7 +118,7 @@ GenMpcSparse<Scalar>::multIdentity(int iMPC, Scalar *result)
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::multIdentity(Scalar **result)
+GenMpcSparse<Scalar>::multIdentity(Scalar **result) const
 {
   int i,iMPC;
   for(iMPC=0; iMPC<NumCol; ++iMPC) {
@@ -132,7 +132,7 @@ GenMpcSparse<Scalar>::multIdentity(Scalar **result)
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::multIdentity(Scalar *)
+GenMpcSparse<Scalar>::multIdentity(Scalar *) const
 {
   fprintf(stderr,"GenMpcSparse<Scalar> does not support multIdentity(double*)\n");
 }
@@ -144,7 +144,7 @@ GenMpcSparse<Scalar>::multIdentity(Scalar *)
 //
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::multSub(const Scalar *rhs, Scalar *result)
+GenMpcSparse<Scalar>::multSub(const Scalar *rhs, Scalar *result) const
 {
   int i,iMPC;
   for(iMPC=0; iMPC<NumCol; ++iMPC) {
@@ -158,7 +158,7 @@ GenMpcSparse<Scalar>::multSub(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::multSubWI(const Scalar *wi_rhs, Scalar *result)
+GenMpcSparse<Scalar>::multSubWI(const Scalar *wi_rhs, Scalar *result) const
 {
   // PJSA: for wet interface / mpc interaction
   int i,iMPC;
@@ -173,7 +173,7 @@ GenMpcSparse<Scalar>::multSubWI(const Scalar *wi_rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::transposeMultSubtract(const Scalar *rhs, Scalar *result)
+GenMpcSparse<Scalar>::transposeMultSubtract(const Scalar *rhs, Scalar *result) const
 {
   int i,iMPC;
   for(iMPC=0; iMPC<NumCol; ++iMPC) {
@@ -187,7 +187,7 @@ GenMpcSparse<Scalar>::transposeMultSubtract(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::transposeMultSubtractWI(const Scalar *rhs, Scalar *wi_result)
+GenMpcSparse<Scalar>::transposeMultSubtractWI(const Scalar *rhs, Scalar *wi_result) const
 {
   // PJSA: for wet interface / mpc interaction
   int i,iMPC;
@@ -202,21 +202,21 @@ GenMpcSparse<Scalar>::transposeMultSubtractWI(const Scalar *rhs, Scalar *wi_resu
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::transposeMult(const Scalar *, Scalar *)
+GenMpcSparse<Scalar>::transposeMult(const Scalar *, Scalar *) const
 {
   fprintf(stderr,"GenMpcSparse<Scalar> does not support transposeMult(const Scalar *, Scalar *)\n");
 }
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::multSub(int, Scalar **, Scalar **)
+GenMpcSparse<Scalar>::multSub(int, Scalar **, Scalar **) const
 {
   fprintf(stderr,"GenMpcSparse<Scalar> does not support multSub(int nRHS, Scalar **, Scalar **)\n");
 }
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
+GenMpcSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result) const
 {
   int i,iMPC;
   for(iMPC=0; iMPC<NumCol; ++iMPC) {
@@ -231,7 +231,7 @@ GenMpcSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::transposeMultAdd(const Scalar *rhs, Scalar *result)
+GenMpcSparse<Scalar>::transposeMultAdd(const Scalar *rhs, Scalar *result) const
 {
    int i,iMPC;
    for(iMPC=0; iMPC<NumCol; ++iMPC) {

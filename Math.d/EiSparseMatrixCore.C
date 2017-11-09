@@ -26,7 +26,7 @@ GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<d
 
 template<>
 void
-GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSolve(double* _rhs)
+GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSolve(double* _rhs) const
 {
   // umfpack does not support in-place solve
   solveTime -= getTime();
@@ -40,7 +40,7 @@ GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSol
 
 template<>
 void
-GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<double> > > >::reSolve(complex<double>* _rhs)
+GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<double> > > >::reSolve(complex<double>* _rhs) const
 {
   // umfpack does not support in-place solve
   solveTime -= getTime();
@@ -54,7 +54,7 @@ GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<d
 
 template<>
 void
-GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSolve(GenVector<double> &_rhs)
+GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSolve(GenVector<double> &_rhs) const
 {
   // umfpack does not support in-place solve
   solveTime -= getTime();
@@ -68,7 +68,7 @@ GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSol
 
 template<>
 void
-GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<double> > > >::reSolve(GenVector<complex<double> > &_rhs)
+GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<double> > > >::reSolve(GenVector<complex<double> > &_rhs) const
 {
   // umfpack does not support in-place solve
   solveTime -= getTime();

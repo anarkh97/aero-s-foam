@@ -10,7 +10,7 @@ template <class Scalar, class AnyVector, class AnyOperator,
 	  class AnyProjector, class AnyPreconditioner >
 int
 BasePCG<Scalar,AnyVector,AnyOperator,AnyProjector,AnyPreconditioner>
-::doSolve(AnyVector& f, AnyVector& sol)
+::doSolve(const AnyVector& f, AnyVector& sol)
 {
  double t1 = getTime();
  res1.zero();

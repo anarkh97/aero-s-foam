@@ -12,8 +12,8 @@ class GenParallelSolver {
     virtual ~GenParallelSolver() = 0;
 
     virtual void reSolve(GenDistrVector<Scalar> &) = 0;
-    virtual double getSolutionTime() = 0;
-    virtual void solve(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &) = 0;
+    virtual double getSolutionTime() = 0; // TODO Make const
+    virtual void solve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &) = 0;
     virtual void squareRootMult(GenDistrVector<Scalar> &) {
       std::cerr << "GenParallelSolver::squareRootMult(GenDistrVector<Scalar> &) is not implemented\n"; }
     virtual void inverseSquareRootMult(GenDistrVector<Scalar> &) {

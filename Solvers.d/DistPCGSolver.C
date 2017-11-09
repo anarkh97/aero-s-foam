@@ -76,7 +76,7 @@ GenDistPCGSolver<Scalar,AnyVector,AnyOperator>::factor()
 
 template<class Scalar, class AnyVector, class AnyOperator>
 void
-GenDistPCGSolver<Scalar,AnyVector,AnyOperator>::reSolve(Scalar *rhs)
+GenDistPCGSolver<Scalar,AnyVector,AnyOperator>::reSolve(Scalar *rhs) const
 {
  Scalar *partialSum = (Scalar *)dbg_alloca(sizeof(Scalar)*numRows);
 

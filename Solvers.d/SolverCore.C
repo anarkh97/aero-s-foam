@@ -11,7 +11,7 @@ template<>
 void
 GenSolver<double>::reSolve(ComplexVector &v)
 {
-  fprintf(stderr, "WARNING: GenSolver<double>::reSolve(ComplexVector &v) not implemented \n");
+  fprintf(stderr, "WARNING: GenSolver<double>::reSolve(ComplexVector &v) const not implemented \n");
 }
 
 template<>
@@ -25,6 +25,6 @@ template<>
 void
 GenSolver<DComplex>::reSolve(Vector &v)
 {
-  fprintf(stderr, "WARNING: GenSolver<DComplex>::reSolve(Vector &v) not implemented \n");
+  fprintf(stderr, "WARNING: GenSolver<DComplex>::reSolve(Vector &v) const not implemented \n");
 }
 

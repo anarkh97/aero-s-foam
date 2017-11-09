@@ -112,7 +112,7 @@ GenNBSparseMatrix<Scalar>::~GenNBSparseMatrix()
 
 template<class Scalar>
 void
-GenNBSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
+GenNBSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) const
 {
    int im = 0;
    int i,j,k,l;
@@ -137,7 +137,7 @@ GenNBSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenNBSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
+GenNBSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result) const
 {
    int im = 0;
    int i,j,k,l;
@@ -158,7 +158,7 @@ GenNBSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
 
 template<class Scalar>
 void
-GenNBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+GenNBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
    int im = 0;
    int i,j,k,l;

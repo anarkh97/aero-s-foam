@@ -1,6 +1,7 @@
 #ifndef _PARAL_H_
 #define _PARAL_H_
 
+#include <functional>
 #if defined(sgi) &&  !defined(_OPENMP)
 #include <ulocks.h>
 #endif
@@ -11,16 +12,16 @@
 
 class ThreadLock {
 #if defined(sgi) &&  !defined(_OPENMP)
-      ulock_t lockV;
+	ulock_t lockV;
 #endif
 #if defined(_OPENMP)
-     omp_lock_t lockV;
+	omp_lock_t lockV;
 #endif
-   public:
-      ThreadLock();
-      ~ThreadLock();
-      void lock();
-      void unlock();
+public:
+	ThreadLock();
+	~ThreadLock();
+	void lock();
+	void unlock();
 };
 
 /***************************************************************************
@@ -30,7 +31,7 @@ class ThreadLock {
  ***************************************************************************/
 
 class TaskDescr {
-   public:
+public:
 	virtual void run() {};
 	virtual void runFor(int) = 0;
 };
@@ -39,19 +40,19 @@ class ThreadManager;
 class DistTimer;
 
 class OneSproc {
-   OneSproc *next;
-   TaskDescr **allTasks;
-   int numTasks;
-   int step;
+	OneSproc *next;
+	TaskDescr **allTasks;
+	int numTasks;
+	int step;
 #if defined(sgi) &&  !defined(_OPENMP)
-   usema_t *wait;
+	usema_t *wait;
    usema_t *done;
 #endif
-   ThreadManager *tman;
-   int myNum;
+	ThreadManager *tman;
+	int myNum;
 
-   static void run(void *);
-   friend class ThreadManager;
+	static void run(void *);
+	friend class ThreadManager;
 };
 
 /***************************************************************************
@@ -67,36 +68,50 @@ class OneSproc {
  ***************************************************************************/
 class ThreadManager {
 	int numThreads;		// Number of threads
-        int single;
+	int single;
 	OneSproc *firstProc; 	// List of threads
-        OneSproc *allProc;
+	OneSproc *allProc;
 #if defined(sgi) &&  !defined(_OPENMP)
-        ulock_t sprocListLock;
+	ulock_t sprocListLock;
         usema_t *readyProc;
         usema_t *allDone;
 #endif
-        DistTimer *timer;
-   protected:
+	DistTimer *timer;
+protected:
 	static void threadStart(void *);
-        void dispatch(TaskDescr *task);
-   public:
+	void dispatch(TaskDescr *task);
+public:
 	ThreadManager(int);	// Create a Manager with n threads
 	~ThreadManager();
 	void execTasks(int, TaskDescr **); // run the n given Tasks
-        void execTasks(int, TaskDescr *);
-        void execParal(int, TaskDescr **);
-        void execParal(int, TaskDescr *);
-        void execTimedParal(DistTimer &, int, TaskDescr **);
-        void execTimedParal(DistTimer &, int, TaskDescr *);
-        void memUsage();
-        void memRequests();
-        long getLocalMem();
+	void execTasks(int, TaskDescr *);
+	void execParal(int, TaskDescr **);
+	void execParal(int, TaskDescr *);
+	void execTimedParal(DistTimer &, int, TaskDescr **);
+	void execTimedParal(DistTimer &, int, TaskDescr *);
+
+	/** \brief Call in parallel a function with one integer argument. */
+	template <typename Ftor>
+	void callParal(int nObjects, const Ftor &f) {
+		struct TD : public TaskDescr {
+			const Ftor &f;
+			TD(const Ftor &f) : f(f) {}
+			void run(){}
+			void runFor(int i) { f(i); }
+		};
+		TD td{f};
+		execParal(nObjects, &td);
+	}
+
+	void memUsage();
+	void memRequests();
+	long getLocalMem();
 	long memoryUsed();
-        int numThr() { return numThreads; }
+	int numThr() { return numThreads; }
 #if defined(sgi) &&  !defined(_OPENMP)
-        barrier_t *getBarrier();
+	barrier_t *getBarrier();
 #endif
-        friend class OneSproc;
+	friend class OneSproc;
 };
 
 extern ThreadManager *threadManager;

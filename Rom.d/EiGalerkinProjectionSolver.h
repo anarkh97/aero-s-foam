@@ -60,7 +60,7 @@ public:
   // Solution
   virtual void factor();
   virtual void refactor();
-  virtual void solve(GenVecType<Scalar> &rhs, GenVecType<Scalar> &sol);
+  virtual void solve(const GenVecType<Scalar> &rhs, GenVecType<Scalar> &sol);
   void fullSolutionIs(bool fullSolution) { fullSolution_ = fullSolution; }
   virtual void reSolve(GenVecType<Scalar> &rhs);
 
@@ -107,19 +107,21 @@ private:
   Scalar c1_; // trace of reducedConstraintMatrix_
   GenVecBasis<Scalar,GenVecType> *projectionBasis_, *dualProjectionBasis_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> reducedMatrix_, reducedConstraintMatrix_;
-  Eigen::Matrix<Scalar,Eigen::Dynamic,1> reducedConstraintRhs_, reducedConstraintRhs0_, reducedConstraintForce_, VtMV;
+  Eigen::Matrix<Scalar,Eigen::Dynamic,1> reducedConstraintRhs_, reducedConstraintRhs0_, VtMV;
+	// It looks like a temporary only. Should not be here. It make the code non-re-entrant.
+	mutable Eigen::Matrix<Scalar,Eigen::Dynamic,1> reducedConstraintForce_;
   Eigen::LLT<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>, Eigen::Lower> llt_;
   Eigen::PartialPivLU<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > lu_;
   
   // member variables for parallel block Jacobi solver
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> blockJacobi(Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > &b);
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> x0;
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> blockJacobi(Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > &b) const;
+  mutable Eigen::Matrix<Scalar, Eigen::Dynamic, 1> x0; // TODO FIX THIS! Horrible! see useX0 as well.
   int  startq;        // starting position in reduced matrix
   int  endq;          // ending position in reduced matrix
   int  qsize;         // size of diagonal block element
   int  myID;          // container for my MPI process id
   int  grpSize;       // number of processors in block Jacobi group
-  bool useX0;         // use initial guess
+  mutable bool useX0;         // use initial guess
   std::vector<int> recvcounts; // block size for each process
   std::vector<int> displs;     // offset for each process
 #ifdef USE_MPI

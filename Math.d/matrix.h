@@ -79,9 +79,9 @@ class GenFullM {
    GenFullM<Scalar> Invert(double tol=1.0e-6); // invert using gaussian elimination with full pivoting
    GenFullM<Scalar> transpose();
 
-   int dim()    { return nrow;    }
-   int numRow() { return nrow;    }
-   int numCol() { return ncolumn; }
+   int dim() const { return nrow;    }
+   int numRow() const { return nrow;    }
+   int numCol() const { return ncolumn; }
    int getNdef() { return ndef; }
 
    Scalar *operator[](int i) const;

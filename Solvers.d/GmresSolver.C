@@ -5,8 +5,8 @@
 template<class Scalar, class AnyVector, class AnyOperator, class LeftPreconditioner, class RightPreconditioner>
 GmresSolver<Scalar, AnyVector, AnyOperator, LeftPreconditioner, RightPreconditioner>::GmresSolver(
   int _maxit, double _tol, AnyOperator *_op, void (AnyOperator::*_matvec)(AnyVector &, AnyVector &),
-  LeftPreconditioner *_leftprec, void (LeftPreconditioner::*_applyLeft)(AnyVector &, AnyVector &),
-  RightPreconditioner *_rightprec, void (RightPreconditioner::*_applyRight)(AnyVector &, AnyVector &),
+  LeftPreconditioner *_leftprec, void (LeftPreconditioner::*_applyLeft)(const AnyVector &, AnyVector &),
+  RightPreconditioner *_rightprec, void (RightPreconditioner::*_applyRight)(const AnyVector &, AnyVector &),
   FSCommunicator *_com)
  : maxit(_maxit), tol(_tol), op(_op), matvec(_matvec), leftprec(_leftprec), applyLeft(_applyLeft), 
    rightprec(_rightprec), applyRight(_applyRight), oSetGMRES(NULL),

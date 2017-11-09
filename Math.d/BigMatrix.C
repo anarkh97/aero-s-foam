@@ -206,7 +206,7 @@ GenBigMatrix<Scalar>::subReSolve(int iThread, int numThreads, Scalar *rhs)
 
 template<class Scalar>
 void
-GenBigMatrix<Scalar>::reSolve(Scalar *rhs)
+GenBigMatrix<Scalar>::reSolve(Scalar *rhs) const
 {
  int numThreads = threadManager->numThr();
  execParal(numThreads, this, &GenBigMatrix<Scalar>::subReSolve, numThreads, rhs);

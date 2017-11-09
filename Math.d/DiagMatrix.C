@@ -98,7 +98,7 @@ GenDiagMatrix<Scalar>::add(GenAssembledFullM<Scalar> &, int *)
 
 template<class Scalar>
 void
-GenDiagMatrix<Scalar>::solve(Scalar *rhs, Scalar *sol)
+GenDiagMatrix<Scalar>::solve(const Scalar *rhs, Scalar *sol)
 {
   this->solveTime -= getTime();
   for(int i=0; i<neq; ++i)
@@ -130,14 +130,14 @@ GenDiagMatrix<Scalar>::print()
 
 template<class Scalar>
 void
-GenDiagMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+GenDiagMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
   mult(rhs.data(), result.data());
 }
 
 template<class Scalar>
 void
-GenDiagMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
+GenDiagMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) const
 {
  for (int i = 0 ; i < neq ; i++)
    result[i] = v[i]*rhs[i];

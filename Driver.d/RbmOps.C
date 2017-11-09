@@ -55,7 +55,7 @@ GenSubDomain<Scalar>::useKrrNullspace()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::addRalpha(Scalar *u, GenVector<Scalar> &alpha)
+GenSubDomain<Scalar>::addRalpha(Scalar *u, GenVector<Scalar> &alpha) const
 {
   int i, j;
   for(i=0; i<Rstar.numRow(); ++i)
@@ -65,7 +65,7 @@ GenSubDomain<Scalar>::addRalpha(Scalar *u, GenVector<Scalar> &alpha)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *alpha, Scalar *ur)
+GenSubDomain<Scalar>::addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *alpha, Scalar *ur) const
 {
   int numCDofs = (Src) ? Src->numCol() : 0;
   Scalar *localc = (Scalar *) dbg_alloca(sizeof(Scalar)*numCDofs);
@@ -90,7 +90,7 @@ GenSubDomain<Scalar>::addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Sca
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::assembleE(GenVector<Scalar> &e, Scalar *f)
+GenSubDomain<Scalar>::assembleE(GenVector<Scalar> &e, Scalar *f) const
 {
   if(numGroupRBM > 0) {
     GenVector<Scalar> local_e(numGroupRBM, 0.0);
@@ -102,7 +102,7 @@ GenSubDomain<Scalar>::assembleE(GenVector<Scalar> &e, Scalar *f)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::assembleTrbmE(Scalar *rbms, int nrbms, int size, Scalar *e, Scalar *fr)
+GenSubDomain<Scalar>::assembleTrbmE(Scalar *rbms, int nrbms, int size, Scalar *e, Scalar *fr) const
 {
   int numCDofs = (Src) ? Src->numCol() : 0;
   Scalar *localc = (Scalar *) dbg_alloca(sizeof(Scalar)*numCDofs);
@@ -311,7 +311,7 @@ void GenSubDomain<Scalar>::deleteG()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha)
+GenSubDomain<Scalar>::multG(const GenVector<Scalar> &x, Scalar *y, Scalar alpha) const
 {
   // y += alpha * G * x
   Scalar *mpcvec = new Scalar[numMPC];
@@ -335,7 +335,7 @@ GenSubDomain<Scalar>::multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha)
 
 template<class Scalar>
 void 
-GenSubDomain<Scalar>::trMultG(Scalar *x, GenVector<Scalar> &y, Scalar alpha)
+GenSubDomain<Scalar>::trMultG(const Scalar *x, GenVector<Scalar> &y, Scalar alpha) const
 {
   // compute y += alpha * G^t * x
   bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
@@ -452,28 +452,30 @@ GenSubDomain<Scalar>::buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, Connectivity *c
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::getGlobalRBM(int iRBM, Scalar *Rvec)
+GenSubDomain<Scalar>::getGlobalRBM(int iRBM, Scalar *Rvec) const
 {
   if(numGlobalRBMs > 0) 
-    for(int iRow=0; iRow<Rstar_g.numRow(); ++iRow) Rvec[iRow] = Rstar_g[iRow][iRBM];
+    for(int iRow=0; iRow<Rstar_g.numRow(); ++iRow)
+	    Rvec[iRow] = Rstar_g[iRow][iRBM];
 }
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::subtractRstar_g(Scalar *u, GenVector<Scalar> &beta)
+GenSubDomain<Scalar>::subtractRstar_g(Scalar *u, GenVector<Scalar> &beta) const
 {
-  int i;
-  if(numGlobalRBMs > 0) {
-    // compute u = u - Rstar_g * beta  (second part of displacement projection)
-    GenVector<Scalar> tmpu(Rstar_g.numRow());
-    tmpu = Rstar_g * beta;
-    for(i=0; i<Rstar_g.numRow(); ++i) u[i] = u[i] - tmpu[i];
-  }
+	int i;
+	if(numGlobalRBMs > 0) {
+		// compute u = u - Rstar_g * beta  (second part of displacement projection)
+		GenVector<Scalar> tmpu(Rstar_g.numRow());
+		tmpu = Rstar_g * beta;
+		for(i=0; i<Rstar_g.numRow(); ++i)
+			u[i] = u[i] - tmpu[i];
+	}
 }
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::addRstar_gT(Scalar *u, GenVector<Scalar> &beta)
+GenSubDomain<Scalar>::addRstar_gT(Scalar *u, GenVector<Scalar> &beta) const
 {
   if(numGlobalRBMs > 0) {
     // compute beta += Rstar_g^t * u  (first part of displacement projection)

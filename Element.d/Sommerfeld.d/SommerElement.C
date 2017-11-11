@@ -173,6 +173,7 @@ SommerElement::findEle (Connectivity *nodeToElem, int *eleTouch,
   for (i=0; i<nNodes; i++) {
     for (iele=0; iele < nodeToElem->num(nn[i]); iele++) {
       int eleNum = (*nodeToElem)[nn[i]][iele];
+      if(iele > 0 && eleNum == (*nodeToElem)[nn[i]][iele-1]) continue;
       if(eset) {
         if ((*eset)[eleNum]->isSommerElement()) continue;
         if ((*eset)[eleNum]->isFsiElement()) continue;

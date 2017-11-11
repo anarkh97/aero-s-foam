@@ -6339,27 +6339,28 @@ GenSubDomain<Scalar>::dualConstraintProjection(std::vector<std::map<int,double> 
     bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
     for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
     // get subvector for target and dual vector  k
-    std::map<int,double> &muVec = W[startCol+k];
+    std::map<int,double> &basisVec = W[startCol+k];
     StackVector target(CtW[k].subData(localSubNumber), CtW[k].subLen(localSubNumber)); target.zero();
     for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) { // loop over all MPCs
       int i = scomm->mpcNb(l);
       if(!mpcFlag[i]) continue;
       if(mpc[i]->getSource() == mpc::ContactSurfaces) { // check if contact constraint
         // get slave node from mpc and extract corresponding row from dual basis
-        std::map<int, double>::iterator it1 = muVec.find(mpc[i]->id.second); // get multiplier value
-        // get multiplier slot associated with this slave node
-        double muVal = it1->second;
-//        fprintf(stderr,"slave Node: %d, muVal %3.2e, rhs: %3.2e\n",sNode, muVal, mpc[i]->rhs);
+        std::map<int, double>::iterator it1 = basisVec.find(mpc[i]->id.second); // get correct row of dual basis
+        // if, the node is in this vector, get multiplier slot associated with this slave node, othewise skip to next one
+        if(it1 == basisVec.end()){ continue;}
+        double rowVal = it1->second;
+        //fprintf(stderr,"slave Node: %d, rowVal %3.2e, rhs: %3.2e\n",mpc[i]->id.second, rowVal, mpc[i]->rhs);
         int sNode = mpc[i]->id.second; //global node id
         const int pnId = globalToLocal(sNode);
         if(pnId > 0) {
-          WtRhs(k) += mpc[i]->rhs*muVal;
+          WtRhs(k) += mpc[i]->rhs*rowVal;
         }
         for(int j = 0; j < mpc[i]->nterms; ++j) { // number of nterms associated with this multiplier
           int dof = c_dsa->locate(mpc[i]->terms[j].nnum, (1 << mpc[i]->terms[j].dofnum));
-//          fprintf(stderr,"mpc[%d]->terms[%d].nnum: %d, .dofnum: %d , dof: %d\n",i,j,mpc[i]->terms[j].nnum, mpc[i]->terms[j].dofnum,dof);
+          //fprintf(stderr,"mpc[%d]->terms[%d].nnum: %d, .dofnum: %d , dof: %d\n",i,j,mpc[i]->terms[j].nnum, mpc[i]->terms[j].dofnum,dof);
           if(dof < 0) continue;
-          target[dof] += mpc[i]->terms[j].coef*muVal;
+          target[dof] += mpc[i]->terms[j].coef*rowVal;
         }
       }
       mpcFlag[i] = false;

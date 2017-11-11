@@ -550,6 +550,8 @@ DistrPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geomState
       int startDualCol = 0; int blockDualCols = 0; 
       solver_->getLocalDualBasisInfo(startDualCol, blockDualCols); 
 
+      fprintf(stderr,"s: %d, b: %d\n",startDualCol, blockDualCols);
+
       // allocate space for projection of constraints and their rhs onto dual basis
       DistrVecBasis CtW(blockDualCols, decDomain->masterSolVecInfo());
       Eigen::Matrix<double,Eigen::Dynamic,1> WtRhs(blockDualCols); WtRhs.setZero();
@@ -570,6 +572,9 @@ DistrPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geomState
         projectionBasis_.sparseVecReduce(CtW[i],buffer.data()); // force through specialized tempalate function
         WtCV.row(i).array() = buffer.array();
       }
+
+      std::cout << "||WtRhs|| = " << WtRhs.norm() << std::endl;
+      std::cout << "||WtCV|| = " << WtCV.norm() << std::endl;
      
       // send to solver
       double dt = domain->solInfo().getTimeStep(), beta = domain->solInfo().newmarkBeta;

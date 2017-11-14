@@ -12,33 +12,8 @@
 #include <iostream>
 #include <Utils.d/linkfc.h>
 #include <Math.d/Vector.h>
+#include <Math.d/BLAS.h>
 
-extern "C" {
-
-  void _FORTRAN(dgemm)(const char &, const char &, const int &,const int &,
-                       const int &, const double &, double *, const int &,
-                       double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(zgemm)(const char &, const char &, const int &,const int &,
-                       const int &, const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *,
-                       const int &);
-
-  void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                       const double &, const double *, const int &,
-                       const double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(zgemv)(const char &, const int &,const int &,
-                       const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *, const int &);
-
-  void _FORTRAN(dgesv)(const int &, const int &, double *, const int &, int *, double *,
-                       const int &, int &);
-
-  void _FORTRAN(zgesv)(const int &, const int &, complex<double> *, const int &, int *, complex<double> *,
-                       const int &, int &);
-
-}
 
 inline void Tgesv(const int &a, const int &b, double *c, const int &d, int *e, double *f,
                   const int &g, int &h)

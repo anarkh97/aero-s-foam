@@ -81,8 +81,4 @@ class CGOrthoOp : public GenOrthoOp<Scalar>
     Scalar* getAllD()   { return locAllD; }
 };
 
-#ifdef _TEMPLATE_FIX_
- #include <Feti.d/CGOrthoSet.C>
-#endif
-
 #endif

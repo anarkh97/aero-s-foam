@@ -1,5 +1,11 @@
 #include <Utils.d/Memory.h>
 #include <iostream>
+#include <Driver.d/Communicator.h>
+#include <Feti.d/CGOrthoSet.h>
+#include <Math.d/BLAS.h>
+#include <Timers.d/GetTime.h>
+#include <Timers.d/DistTimer.h>
+
 
 #ifndef _TGEMV__
 #define _TGEMV__
@@ -11,8 +17,8 @@ inline void Tgemv(const char &a, const int &b, const int &c,
 }
 
 inline void Tgemv(const char &a, const int &b, const int &c,
-                  const complex<double> &d, complex<double> *e, const int &f,
-                  complex<double> *g, const int &h, const complex<double> &i, complex<double> *j, const int &k)
+                  const std::complex<double> &d, std::complex<double> *e, const int &f,
+                  std::complex<double> *g, const int &h, const std::complex<double> &i, std::complex<double> *j, const int &k)
 {
  _FORTRAN(zgemv)(a,b,c,d,e,f,g,h,i,j,k);
 }
@@ -73,18 +79,18 @@ GenCGOrthoSet<Scalar>::clean_up()
 {
  if(allPFiP) {
    delete [] allPFiP;
-   allPFiP=0;
+   allPFiP=nullptr;
  }
  if(kindex) {
    delete [] kindex;
-   kindex=0;
+   kindex= nullptr;
  }
  operation = &CGOrthoOp<Scalar>::clean_up;
  threadManager->execParal(this->numTasks, this->oos);
 
  if(this->oos) {
    delete [] this->oos;
-   this->oos=0;
+   this->oos=nullptr;
  }
 }
 
@@ -691,3 +697,14 @@ CGOrthoOp<Scalar>::~CGOrthoOp()
  // don't delete locAllFiP or locAllD (these point inside this->locAllP)
 }
 
+template
+class GenCGOrthoSet<double>;
+
+template
+class CGOrthoOp<double>;
+
+template
+class GenCGOrthoSet<std::complex<double>>;
+
+template
+class CGOrthoOp<std::complex<double>>;

@@ -630,7 +630,7 @@ DofSetArray::setWeight(int node, int w)
 }
 
 int 
-DofSetArray::getWeight(int node)
+DofSetArray::getWeight(int node) const
 {
  return node_num_dofs[node];
 }
@@ -868,7 +868,7 @@ DofSetArray::locate(int node, int ds) const
 }
 
 int
-DofSetArray::number(int node, DofSet ds, int *p)
+DofSetArray::number(int node, DofSet ds, int *p) const
 {
  if(node >= numnodes) return 0;
  int nn = dofs[node].number(ds,p);

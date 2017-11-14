@@ -162,7 +162,7 @@ class DofSetArray : public EqNumberer {
 
     // locate a dof for a given node
     int locate(int node, int dof) const;
-    int number(int node, DofSet, int *);
+    int number(int node, DofSet, int *) const;
 
     // Mark dofs for a node
     void mark(int node, int dof);
@@ -170,19 +170,20 @@ class DofSetArray : public EqNumberer {
 
     // Return the DofSet of a node
     DofSet &operator [](int i) { return dofs[i]; }
+    const DofSet &operator [](int i) const { return dofs[i]; }
 
-    int getRCN(int dof)   { return rowcolnum[dof]; }
-    int invRCN(int dof)   { return invrowcol[dof]; }
+    int getRCN(int dof) const { return rowcolnum[dof]; }
+    int invRCN(int dof) const { return invrowcol[dof]; }
 
-    int* getUnconstrNum() { return rowcolnum; }
-    int* getConstrndNum() { return invrowcol; }
+    int* getUnconstrNum() const { return rowcolnum; }
+    int* getConstrndNum() const { return invrowcol; }
 
     int* makeDofTypeArray(); // creates and returns dofType array
                              // 0 = translational, 1 = rotational
     int* getDofTypeArray() { return dofType; }
 
     void setWeight(int n, int w); 
-    int getWeight(int n);
+    int getWeight(int n) const;
     void finish() { makeModifiedOffset(); }
     friend class ConstrainedDSA;
     void clean_up();

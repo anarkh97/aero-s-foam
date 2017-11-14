@@ -95,7 +95,7 @@ void
 MDNLDynamic::updatePrescribedDisplacement(DistrGeomState *geomState)
 {
   times->timePresc -= getTime();
-  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdatePrescribedDisplacement, *geomState);
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::subUpdatePrescribedDisplacement, *geomState);
   times->timePresc += getTime();
 }
 
@@ -190,7 +190,7 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
       userSupFunc->usd_disp(midtime-localDelta, userDefineDispLast, userDefineVel, userDefineAcc);
 
       // update state
-      execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, &geomState, userDefineDisp,
+      execParal(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, &geomState, userDefineDisp,
                   userDefineVel, userDefineAcc);
 
       // get delta disps
@@ -199,7 +199,7 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
 
       // update force residual with KUC
       if(Kuc) 
-        execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subKucTransposeMultSubtractClaw, residual, userDefineDisp);
+        execParal(decDomain->getNumSub(), this, &MDNLDynamic::subKucTransposeMultSubtractClaw, residual, userDefineDisp);
 
       delete [] userDefineDisp; delete [] userDefineDispLast; delete [] userDefineVel; delete [] userDefineAcc;
     }
@@ -354,7 +354,7 @@ void
 MDNLDynamic::initializeParameters(int step, DistrGeomState *geomState)
 {
   if(step == 1 || domain->solInfo().reinit_lm) {
-    execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeMultipliers, *geomState);
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeMultipliers, *geomState);
   }
   execParal(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeParameters);
   domain->initializeParameters();
@@ -375,7 +375,7 @@ MDNLDynamic::subInitializeParameters(int isub)
 void
 MDNLDynamic::updateParameters(DistrGeomState *geomState)
 {
-  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateMultipliers, *geomState);
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateMultipliers, *geomState);
   execParal(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateParameters);
   domain->updateParameters();
 }
@@ -537,7 +537,7 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
         userDefineAcc[i] = 0;
       }
       userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
-      execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, &geomState, userDefineDisp,
+      execParal(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, &geomState, userDefineDisp,
                   userDefineVel, userDefineAcc);
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
@@ -558,7 +558,7 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
     if(fetiSolver) decDomain->setConstraintGap(&geomState, refState, fetiSolver, t);
   }
 
-  execParal6R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
               residual, elementInternalForce, t, refState, forceOnly);
 
   times->buildStiffAndForce += getTime();
@@ -851,7 +851,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
   double dt = 2*localDelta;
   double t0 = domain->solInfo().initialTime;
   double tm = (t == t0) ? t0 : t + dt*(alphaf-alpham);
-  execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subGetExternalForce,
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::subGetExternalForce,
               f, constantForce, t, tm);
 
   // add the USDF and ACTUATOR forces
@@ -1074,7 +1074,7 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
       userDefineAcc[i] = 0;
     }
     userSupFunc->usd_disp(time,userDefineDisp,userDefineVel,userDefineAcc);
-    execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp,
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp,
                 userDefineVel, userDefineAcc);
     paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp,
                userDefineVel, userDefineAcc, true);
@@ -1094,12 +1094,12 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
       delete [] ext;
     }
 #else
-    execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subWriteRestartFile, time, index, vel_n, acc_n, *geomState);
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::subWriteRestartFile, time, index, vel_n, acc_n, *geomState);
 #endif
   }
 
   if(domain->reactionsReqd(time, index+1)) {
-    execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subGetReactionForce, *geomState, *refState, vel_n, acc_n, time);
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::subGetReactionForce, *geomState, *refState, vel_n, acc_n, time);
   }
 
   DistrVector d_n(decDomain->solVecInfo()); d_n.zero();
@@ -1211,7 +1211,7 @@ MDNLDynamic::getResidualNorm(DistrVector &r, DistrGeomState &geomState, double)
 {
  //returns: sqrt( (r+c^T*lambda)**2 + pos_part(gap)**2 )
  DistrVector w(r);
- execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::addConstraintForces, w, geomState); // w = r + C^T*lambda
+ execParal(decDomain->getNumSub(), this, &MDNLDynamic::addConstraintForces, w, geomState); // w = r + C^T*lambda
                   // note C = grad(gap) has already been updated in getStiffAndForce.
  return sqrt(solver->getFNormSq(w));
 }
@@ -1235,7 +1235,7 @@ MDNLDynamic::getConstraintMultipliers(DistrGeomState& geomState)
   // this function extracts the constraint multipliers from the subdomains,
   // where they are stored at the send of the feti solver's solve function
   // and stores them in geomState 
-  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subGetConstraintMultipliers, geomState);
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::subGetConstraintMultipliers, geomState);
 }
 
 void
@@ -1271,14 +1271,14 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
           userDefineAcc[i] = 0;
         }
         userSupFunc->usd_disp(time, userDefineDisp, userDefineVel, userDefineAcc);
-        execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp,
+        execParal(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp,
                     userDefineVel, userDefineAcc);
        delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
       } 
     }
 
     DistrVector d_n(decDomain->solVecInfo()); d_n.zero();
-    execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subDynamCommToFluid, d_n, geomState, bkGeomState, parity, aeroAlg);
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::subDynamCommToFluid, d_n, geomState, bkGeomState, parity, aeroAlg);
     if(!parity && aeroAlg == 5) {
       velocity.linC(0.5, velocity, 0.5, bkVelocity);
       vp.linC(0.5, vp, 0.5, bkVp);
@@ -1294,7 +1294,7 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
 
   if(domain->solInfo().aeroheatFlag >= 0) {
     DistrVector d_n(decDomain->solVecInfo()); d_n.zero();
-    execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subDynamCommToFluidAeroheat, d_n, geomState);
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::subDynamCommToFluidAeroheat, d_n, geomState);
 
     SysState<DistrVector> tempState(d_n, velocity, vp);
 
@@ -1431,7 +1431,7 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
       delete [] ext;
     }
 #else
-    execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subReadRestartFile, d_n, v_n, a_n, v_p, geomState);
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::subReadRestartFile, d_n, v_n, a_n, v_p, geomState);
 #endif
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
     domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
@@ -1457,7 +1457,7 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
           userDefineAcc[i] = 0;
         }
         userSupFunc->usd_disp(domain->solInfo().initialTime, userDefineDisp, userDefineVel, userDefineAcc);
-        execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, &geomState, userDefineDisp,
+        execParal(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, &geomState, userDefineDisp,
                     userDefineVel, userDefineAcc);
        delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
       }
@@ -1938,7 +1938,7 @@ void
 MDNLDynamic::updateStates(DistrGeomState *refState, DistrGeomState& geomState, double time)
 {
   if(domain->solInfo().piecewise_contact) updateCS = true;
-  execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateStates, refState, &geomState, time);
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateStates, refState, &geomState, time);
 }
 
 void

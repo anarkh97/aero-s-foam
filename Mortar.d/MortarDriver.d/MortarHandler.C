@@ -1000,7 +1000,7 @@ MortarHandler::CreateFFIPolygon()
   filePrint(stderr,"   * Compute FFI contributions to the shape fct products\n"); 
 #endif
 #ifdef HB_THREAD_FFI_M_N
-  execParal2R(nFFI, this, &MortarHandler::ComputeOneFFIMandN, cs, CtcPolygons);
+  execParal(nFFI, this, &MortarHandler::ComputeOneFFIMandN, cs, CtcPolygons);
 #else
   for(int i=0; i<nFFI; ++i) ComputeOneFFIMandN(i, cs, CtcPolygons);
 #endif
@@ -1016,7 +1016,7 @@ MortarHandler::CreateFFIPolygon()
 #endif
   NodalMortars.assign(nActiveSlaveNodes, NodalMortarShapeFct());
 #ifdef HB_THREAD_NODALMORTAR
-  execParal2R(nActiveSlaveNodes, this, &MortarHandler::MakeOneNodalMortarLMPC, CtcPolygons, Dual);
+  execParal(nActiveSlaveNodes, this, &MortarHandler::MakeOneNodalMortarLMPC, CtcPolygons, Dual);
 #else
   for(int i=0; i<nActiveSlaveNodes; ++i) MakeOneNodalMortarLMPC(i, CtcPolygons, Dual);
 #endif

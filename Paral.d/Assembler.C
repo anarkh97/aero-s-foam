@@ -16,7 +16,7 @@ GenBasicAssembler<Scalar>::assemble(GenDistrVector<Scalar> &v, int flag)
 {
   execParal(numSub, this, &GenBasicAssembler<Scalar>::sendSubVec, v);
   pat->exchange();
-  execParal2R(numSub, this, &GenBasicAssembler<Scalar>::assembleSubVec, v, flag);
+  execParal(numSub, this, &GenBasicAssembler<Scalar>::assembleSubVec, v, flag);
 }
 
 template<class Scalar>

@@ -139,7 +139,7 @@ GenFetiDPSolver<Scalar>::makeE(GenDistrVector<Scalar> &f) const
   e.zero();
 
   if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners) {
-    execParal2R(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleE, e, f);
+    execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleE, e, f);
 #ifdef DISTRIBUTED
     this->fetiCom->globalSum(ngrbms, e.data());
 #endif
@@ -160,7 +160,7 @@ GenFetiDPSolver<Scalar>::makeE(GenDistrVector<Scalar> &f) const
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::assembleE(int iGroup, GenVector<Scalar> &e, GenDistrVector<Scalar> &f)
+GenFetiDPSolver<Scalar>::assembleE(int iGroup, GenVector<Scalar> &e, GenDistrVector<Scalar> &f) const
 {
 #ifdef DISTRIBUTED
   for(int i = 0; i < this->nsub; ++i) {
@@ -194,7 +194,7 @@ GenFetiDPSolver<Scalar>::getRBMs(Scalar *globRBM)
     for(iRBM = 0; iRBM < nRBM; ++iRBM) {
       GenStackDistVector<Scalar> R(this->internalDI, globRBM+iRBM*(this->internalDI.len));
       R.zero();
-      execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::getGlobalRBM, iRBM, (GenDistrVector<Scalar> &)(R));
+      execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::getGlobalRBM, iRBM, (GenDistrVector<Scalar> &)(R));
     }
   }
   else if(KccSolver) {
@@ -209,7 +209,7 @@ GenFetiDPSolver<Scalar>::getRBMs(Scalar *globRBM)
       GenStackVector<Scalar> vc(nc, R+iRBM*nc);
       vr.zero();
       execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::multKrc, vr, (GenVector<Scalar> &)(vc));
-      execParal1R(this->nsub, this, &GenFetiDPSolver<Scalar>::KrrReSolve, vr);
+      execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::KrrReSolve, vr);
       execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::mergeUr, vr, (GenVector<Scalar> &)(vc),
                   (GenDistrVector<Scalar> &)(v), (GenDistrVector<Scalar> &)(v));  // last argument is a dummy
     }
@@ -243,7 +243,7 @@ GenFetiDPSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &globRBM)
     int nRBM = numRBM();
     int iRBM;
     for(iRBM = 0; iRBM < nRBM; ++iRBM) {
-      execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::getGlobalRBM, iRBM, globRBM[iRBM]);
+      execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::getGlobalRBM, iRBM, globRBM[iRBM]);
     }
   }
   else if(KccSolver) {
@@ -257,7 +257,7 @@ GenFetiDPSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &globRBM)
       GenStackVector<Scalar> vc(nc, R+iRBM*nc);
       vr.zero();
       execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::multKrc, vr, (GenVector<Scalar> &)(vc));
-      execParal1R(this->nsub, this, &GenFetiDPSolver<Scalar>::KrrReSolve, vr);
+      execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::KrrReSolve, vr);
       execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::mergeUr, vr, (GenVector<Scalar> &)(vc),
                   globRBM[iRBM],globRBM[iRBM]); // last argument is a dummy
     }
@@ -276,7 +276,7 @@ GenFetiDPSolver<Scalar>::getGlobalRBM(int iSub, int &iRBM, GenDistrVector<Scalar
 template<class Scalar>
 inline void
 GenFetiDPSolver<Scalar>::split(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_f,
-                               GenDistrVector<Scalar> &v_c)
+                               GenDistrVector<Scalar> &v_c) const
 {
   this->sd[iSub]->split(v.subData(this->sd[iSub]->localSubNum()), v_f.subData(this->sd[iSub]->localSubNum()),
                         v_c.subData(this->sd[iSub]->localSubNum()));

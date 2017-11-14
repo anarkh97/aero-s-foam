@@ -41,7 +41,7 @@ GlobalCCtSolver<Scalar>::assemble()
   bool new_global_cct = false;
   if(new_global_cct && (this->numSubsWithMpcs > 1)) { 
     // each sub (with LMPCs) compute its own contributions to the global CCt matrix
-    execParal1R(this->numSubsWithMpcs, this, &GlobalCCtSolver<Scalar>::computeSubContributionToGlobalCCt, mpcEqNums);
+    execParal(this->numSubsWithMpcs, this, &GlobalCCtSolver<Scalar>::computeSubContributionToGlobalCCt, mpcEqNums);
     // assemble the global CCt matrix (i.e. add the sub's contributions)
     for(int i=0; i<this->numSubsWithMpcs; ++i)
       this->subsWithMpcs[i]->assembleGlobalCCtsolver(CCtsolver);
@@ -81,7 +81,7 @@ GlobalCCtSolver<Scalar>::reSolve(GenDistrVector<Scalar> &v)
   // computes:  v = (CC^t)^-1 v
   // Step 1. extract mpc part of the residual
   GenVector<Scalar> mpcv1(this->glNumMpc, 0.0);
-  execParal2R(this->numSubsWithMpcs, this, &GlobalCCtSolver<Scalar>::extractMpcResidual, v, mpcv1);
+  execParal(this->numSubsWithMpcs, this, &GlobalCCtSolver<Scalar>::extractMpcResidual, v, mpcv1);
 #ifdef DISTRIBUTED
   this->fetiCom->globalSum(this->glNumMpc, mpcv1.data());
   for(int i=0; i<this->glNumMpc; ++i)
@@ -91,7 +91,7 @@ GlobalCCtSolver<Scalar>::reSolve(GenDistrVector<Scalar> &v)
   // Step 2. solve mpcv1 = (CC^t)^-1 mpcv1
   CCtsolver->reSolve(mpcv1);
   // Step 3. insert new mpcv1 back into v
-  execParal2R(this->numSubsWithMpcs, this, &GlobalCCtSolver<Scalar>::insertMpcResidual, v, mpcv1);
+  execParal(this->numSubsWithMpcs, this, &GlobalCCtSolver<Scalar>::insertMpcResidual, v, mpcv1);
 }
 
 template<class Scalar>

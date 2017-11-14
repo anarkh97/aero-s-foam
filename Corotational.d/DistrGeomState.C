@@ -133,7 +133,7 @@ DistrGeomState::midpoint_step_update(DistrVector &veloc_n, DistrVector &accel_n,
                                      double &delta, DistrGeomState &ss,
                                      double beta, double gamma, double alphaf, double alpham, bool zeroRot)
 {
- execParal9R(numSub,this,&DistrGeomState::subStep_update,veloc_n,accel_n,delta,ss,beta,gamma,alphaf,alpham,zeroRot);
+ execParal(numSub,this,&DistrGeomState::subStep_update,veloc_n,accel_n,delta,ss,beta,gamma,alphaf,alpham,zeroRot);
 }
 
 void
@@ -146,7 +146,7 @@ DistrGeomState::subInc_get(int isub,DistrVector &inc_vec, DistrGeomState &ss, bo
 void
 DistrGeomState::get_inc_displacement(DistrVector &inc_vec, DistrGeomState &ss, bool zeroRot)
 {
- execParal3R(numSub,this,&DistrGeomState::subInc_get, inc_vec, ss, zeroRot);
+ execParal(numSub,this,&DistrGeomState::subInc_get, inc_vec, ss, zeroRot);
 }
 
 void
@@ -159,7 +159,7 @@ DistrGeomState::subPushForward(int isub, DistrVector &f)
 void
 DistrGeomState::push_forward(DistrVector &f)
 {
- execParal1R(numSub, this, &DistrGeomState::subPushForward, f);
+ execParal(numSub, this, &DistrGeomState::subPushForward, f);
 }
 
 void
@@ -172,7 +172,7 @@ DistrGeomState::subPullBack(int isub, DistrVector &f)
 void
 DistrGeomState::pull_back(DistrVector &f)
 {
- execParal1R(numSub, this, &DistrGeomState::subPullBack, f);
+ execParal(numSub, this, &DistrGeomState::subPullBack, f);
 }
 
 void
@@ -185,7 +185,7 @@ DistrGeomState::subTransform(int isub, DistrVector &f, int type, bool unscaled)
 void
 DistrGeomState::transform(DistrVector &f, int type, bool unscaled)
 {
- execParal3R(numSub, this, &DistrGeomState::subTransform, f, type, unscaled);
+ execParal(numSub, this, &DistrGeomState::subTransform, f, type, unscaled);
 }
 
 
@@ -199,7 +199,7 @@ DistrGeomState::subTot_get(int isub, DistrVector &tot_vec, bool rescaled)
 void
 DistrGeomState::get_tot_displacement(DistrVector &tot_vec, bool rescaled)
 {
- execParal2R(numSub, this, &DistrGeomState::subTot_get, tot_vec, rescaled);
+	execParal(numSub, this, &DistrGeomState::subTot_get, tot_vec, rescaled);
 }
 
 void
@@ -214,7 +214,7 @@ DistrGeomState::subInterp(int isub, double &alpha, DistrGeomState &u,
 void
 DistrGeomState::interp(double alpha, DistrGeomState &u, DistrGeomState &un)
 {
-  execParal3R(numSub, this, &DistrGeomState::subInterp, alpha, u, un);
+  execParal(numSub, this, &DistrGeomState::subInterp, alpha, u, un);
 }
 
 void
@@ -228,55 +228,55 @@ DistrGeomState::subDiff(int isub, DistrGeomState &unp, DistrVector &un)
 void
 DistrGeomState::diff(DistrGeomState &unp, DistrVector &un)
 {
-  execParal2R(numSub, this, &DistrGeomState::subDiff, unp, un);
+  execParal(numSub, this, &DistrGeomState::subDiff, unp, un);
 }
 
 void
 DistrGeomState::update(DistrVector &v, int SO3param)
 {
-  execParal2R(numSub, this, &DistrGeomState::subUpdate, v, SO3param);
+  execParal(numSub, this, &DistrGeomState::subUpdate, v, SO3param);
 }
 
 void
 DistrGeomState::update(DistrGeomState &ref, DistrVector &v, int SO3param)
 {
-  execParal3R(numSub, this, &DistrGeomState::subUpdateRef, ref, v, SO3param);
+  execParal(numSub, this, &DistrGeomState::subUpdateRef, ref, v, SO3param);
 }
 
 void
 DistrGeomState::explicitUpdate(GenDecDomain<double> *decDomain, DistrVector &v)
 {
-  execParal2R(numSub, this, &DistrGeomState::subExplicitUpdate, v, decDomain);
+  execParal(numSub, this, &DistrGeomState::subExplicitUpdate, v, decDomain);
 }
 
 void
 DistrGeomState::setVelocity(DistrVector &v, int SO3param)
 {
-  execParal2R(numSub, this, &DistrGeomState::subSetVelocity, v, SO3param);
+  execParal(numSub, this, &DistrGeomState::subSetVelocity, v, SO3param);
 }
 
 void
 DistrGeomState::setAcceleration(DistrVector &a, int SO3param)
 {
-  execParal2R(numSub, this, &DistrGeomState::subSetAcceleration, a, SO3param);
+  execParal(numSub, this, &DistrGeomState::subSetAcceleration, a, SO3param);
 }
 
 void
 DistrGeomState::setVelocityAndAcceleration(DistrVector &v, DistrVector &a)
 {
-  execParal2R(numSub, this, &DistrGeomState::subSetVelocityAndAcceleration, v, a);
+  execParal(numSub, this, &DistrGeomState::subSetVelocityAndAcceleration, v, a);
 }
 
 void
 DistrGeomState::setNodalTemperatures(DistrVector &temps)
 {
-  execParal1R(numSub, this, &DistrGeomState::subSetNodalTemperatures, temps);
+  execParal(numSub, this, &DistrGeomState::subSetNodalTemperatures, temps);
 }
 
 DistrGeomState &
 DistrGeomState::operator=(DistrGeomState &unp)
 {
-  execParal1R(numSub, this, &DistrGeomState::subCopy, unp);
+  execParal(numSub, this, &DistrGeomState::subCopy, unp);
   return *this;
 }
 
@@ -315,7 +315,7 @@ DistrGeomState::getHaveRot()
 void
 DistrGeomState::resize(DecDomain* domain, std::map<std::pair<int,int>,double> *mu)
 {
-  execParal1R(numSub, this, &DistrGeomState::subResize, domain);
+  execParal(numSub, this, &DistrGeomState::subResize, domain);
   if(mu) setMultipliers(*mu);
   domain->exchangeInterfaceGeomState(this);
 }
@@ -357,7 +357,7 @@ DistrGeomState::getMultipliers(std::map<std::pair<int,int>,double> &mu)
 void
 DistrGeomState::setMultipliers(std::map<std::pair<int,int>,double> &mu)
 {
-  execParal1R(numSub, this, &DistrGeomState::subSetMultipliers, mu);
+  execParal(numSub, this, &DistrGeomState::subSetMultipliers, mu);
 }
 
 void

@@ -122,7 +122,7 @@ MultiDomainTemp::getQuasiStaticParameters(double &maxVel, double &qsbeta)
 void
 MultiDomainTemp::tempInitState(TempState<DistrVector> &inState)
 {
-  execParal1R(decDomain->getNumSub(), this, &MultiDomainTemp::subTempInitState, inState);
+  execParal(decDomain->getNumSub(), this, &MultiDomainTemp::subTempInitState, inState);
 }
 
 void
@@ -138,7 +138,7 @@ MultiDomainTemp::subTempInitState(int isub, TempState<DistrVector> &inState)
 void
 MultiDomainTemp::computeExtForce(DistrVector &ext_f, double t, int tIndex, DistrVector &prev_f)
 {
-  execParal4R(decDomain->getNumSub(), this, &MultiDomainTemp::subComputeExtForce, ext_f, t, tIndex, prev_f);
+  execParal(decDomain->getNumSub(), this, &MultiDomainTemp::subComputeExtForce, ext_f, t, tIndex, prev_f);
 
   // apply projector ONLY for Dynamics, hzemFilterFlag is set to zero
   // in the beginning for quasistatic
@@ -244,7 +244,7 @@ void
 MultiDomainTemp::getInternalForce(DistrVector& d, DistrVector& f)
 {
   if(domain->solInfo().isNonLin()) geomState->explicitUpdate(decDomain, d);
-  execParal2R(decDomain->getNumSub(), this, &MultiDomainTemp::subGetInternalForce, d, f);
+  execParal(decDomain->getNumSub(), this, &MultiDomainTemp::subGetInternalForce, d, f);
 }
 
 void

@@ -122,7 +122,7 @@ GenMultiDomainInpcStatic<Scalar>::preProcess()
      times->formRhs -= getTime();
      rhs_inpc = new GenDistrVector<Scalar>(info.blockinfo[0]);
      //feti_solver->makeStaticLoad(*rhs_inpc);
-     execParal2R(decDomain->getNumSub(), this, &GenMultiDomainInpcStatic<Scalar>::subGetRHS, *rhs_inpc, mdMat.Kuc);
+     execParal(decDomain->getNumSub(), this, &GenMultiDomainInpcStatic<Scalar>::subGetRHS, *rhs_inpc, mdMat.Kuc);
      mdMat.K->getAssembler()->assemble(*rhs_inpc);
      times->formRhs += getTime();
    }

@@ -72,24 +72,6 @@ OneArgExecuter<TA, TB, TC>::runFor(int i)
 }
 
 template <class TA, class TB, class TC>
-class OneArgConstExecuter : public TaskDescr {
-	TA *target;
-	void (TB::*f)(int, TC) const;
-	TC c;
-public:
-	OneArgConstExecuter(TA *t, void (TB::*_f)(int, TC) const, TC _c) : target(t), c(_c) { f = _f;}
-	void runFor(int);
-};
-
-template <class TA, class TB, class TC>
-void
-OneArgConstExecuter<TA, TB, TC>::runFor(int i)
-{
- const TB *tg = static_cast<const TB *>(target);
- (tg->*f)(i, c);
-}
-
-template <class TA, class TB, class TC>
 void execParal(int n, TA *target, void (TB::*f)(int, TC), TC c)
 {
  OneArgExecuter<TA,TB,TC> oe(target,f,c);
@@ -137,12 +119,6 @@ void execParal1R(int n, TA *target, void (TB::*f)(int, TC&), TC &c)
  threadManager->execParal(n, &oe);
 }
 
-template <class TA, class TB, class TC, typename TD>
-void execParal1R(int n, TA *target, void (TB::*f)(int, TC&) const, TD &c)
-{
-	OneArgConstExecuter<TA,TB,TC&> oe(target,f,c);
-	threadManager->execParal(n, &oe);
-}
 
 template <class TA, class TB, class TC>
 void execParal1R(int n, TA *target, void (TB::*f)(int, TC*), TC *c)
@@ -225,6 +201,14 @@ void execParal(int n, TA *target, void (TB::*f)(int, FArgs ... fa) const, Args &
 	threadManager->execParal(n, &fe);
 };
 
+template <typename TA, typename TB, typename ... FArgs, typename ... Args>
+void execParal(int n, TA *target, void (TB::*f)(int, FArgs ... fa), Args &&...args)
+{
+	auto call =[&](int i) { (static_cast<TB *>(target)->*f)(i, std::forward<Args>(args)...); };
+	auto fe = makeExecuter(call);
+	threadManager->execParal(n, &fe);
+};
+
 template <class TA, class TB, class TC, class TD>
 void timedParal(DistTimer &timer, int n,
                 TA *target, void (TB::*f)(int, TC, TD), TC c, TD d)
@@ -234,34 +218,6 @@ void timedParal(DistTimer &timer, int n,
  long initMem  = threadManager->memoryUsed();
  threadManager->execTimedParal(timer, n, &oe);
  timer.addOverAll( threadManager->memoryUsed()-initMem, getTime()-initTime );
-}
-
-template <class TA, class TB, class TC, class TD>
-void execParal2R(int n, TA *target, void (TB::*f)(int, TC&, TD&), TC &c, TD &d)
-{
- TwoArgExecuter<TA,TB,TC&,TD&> oe(target,f,c,d);
- threadManager->execParal(n, &oe);
-}
-
-template <class TA, class TB, class TC, class TD>
-void execParal2R(int n, TA *target, void (TB::*f)(int, TC&, TD*), TC &c, TD *d)
-{
- TwoArgExecuter<TA,TB,TC&,TD*> oe(target,f,c,d);
- threadManager->execParal(n, &oe);
-}
-
-template <class TA, class TB, class TC, class TD>
-void execParal2R(int n, TA *target, void (TB::*f)(int, TC&, TD), TC &c, TD d)
-{
- TwoArgExecuter<TA,TB,TC&,TD> oe(target,f,c,d);
- threadManager->execParal(n, &oe);
-}
-
-template <class TA, class TB, class TC, class TD>
-void execParal2R(int n, TA *target, void (TB::*f)(int, TC*, TD*), TC *c, TD *d)
-{
- TwoArgExecuter<TA,TB,TC*,TD*> oe(target,f,c,d);
- threadManager->execParal(n, &oe);
 }
 
 template <class TA, class TB, class TC, class TD>

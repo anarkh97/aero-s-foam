@@ -62,10 +62,10 @@ DistrExplicitUDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, D
   
   DistrVector uFint(unassembledInfo,0);
 
-  execParal3R(decDomain->getNumSub(),this,&DistrExplicitUDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly, uFint,t,tIndex);
+  execParal(decDomain->getNumSub(),this,&DistrExplicitUDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly, uFint,t,tIndex);
 
   if(!domain->solInfo().reduceFollower) 
-    execParal3R(decDomain->getNumSub(),this,&DistrExplicitUDEIMPodProjectionNonLinDynamic::subGetFollowerForceOnly,*fExt,t,tIndex);
+    execParal(decDomain->getNumSub(),this,&DistrExplicitUDEIMPodProjectionNonLinDynamic::subGetFollowerForceOnly,*fExt,t,tIndex);
 
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     GenMDDynamMat<double> ops;
@@ -173,7 +173,7 @@ DistrExplicitUDEIMPodProjectionNonLinDynamic::buildReducedLinearOperator() {
       DistrVector columnOfKtimesV(MultiDomainDynam::solVecInfo());
       columnOfKtimesV = 0;
       //K*V
-      execParal2R(decDomain->getNumSub(),this,&DistrExplicitUDEIMPodProjectionNonLinDynamic::subGetKtimesU, normalizedBasis_[column],columnOfKtimesV); 
+      execParal(decDomain->getNumSub(),this,&DistrExplicitUDEIMPodProjectionNonLinDynamic::subGetKtimesU, normalizedBasis_[column],columnOfKtimesV); 
       //V^T*(K*V)
       normalizedBasis_.reduce(columnOfKtimesV,ReducedStiffness[column]);
     } 

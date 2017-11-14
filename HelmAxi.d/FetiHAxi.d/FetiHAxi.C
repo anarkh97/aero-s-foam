@@ -689,21 +689,21 @@ FetiHAxiSolver::computePtd(DistrComplexVector &r, DistrComplexVector&f) {
 
  int nP = (nsub>numModes) ? nsub : 2*numModes+1;
 
- execParal1R(nP, this, &FetiHAxiSolver::multQtBK, f);
+ execParal(nP, this, &FetiHAxiSolver::multQtBK, f);
 
  execParal(totalFourier, this, &FetiHAxiSolver::assembleCoarseVector);
 
  execParal(totalFourier, this, &FetiHAxiSolver::solveCoarsePb);
 
- execParal1R(nP, this, &FetiHAxiSolver::subtractQw,f);
+ execParal(nP, this, &FetiHAxiSolver::subtractQw,f);
 
  startTimerMemory(times.sAndJ, times.memorySAndJ);
  timedParal2R(times.solveAndJump, nP, this, &FetiHAxiSolver::multBK, r, f);
  stopTimerMemory(times.sAndJ, times.memorySAndJ);
 
  for (Fourier=0; Fourier<totalFourier; ++Fourier) {
-   execParal2R(nsub, this, &FetiHAxiSolver::sendInterf, r, Fourier);
-   execParal2R(nsub, this, &FetiHAxiSolver::InterfDiff, r, Fourier);
+   execParal(nsub, this, &FetiHAxiSolver::sendInterf, r, Fourier);
+   execParal(nsub, this, &FetiHAxiSolver::InterfDiff, r, Fourier);
  }
 
 }
@@ -942,7 +942,7 @@ FetiHAxiSolver::applyFP(DistrComplexVector &z,DistrComplexVector &Fz) {
  
  int nP = (nsub>numModes) ? nsub : 2*numModes+1;
 
- execParal1R(nP, this, &FetiHAxiSolver::multTransposeBKQ, z);
+ execParal(nP, this, &FetiHAxiSolver::multTransposeBKQ, z);
 
  execParal(totalFourier, this, &FetiHAxiSolver::assembleCoarseVector);
 
@@ -954,8 +954,8 @@ FetiHAxiSolver::applyFP(DistrComplexVector &z,DistrComplexVector &Fz) {
  stopTimerMemory(times.sAndJ, times.memorySAndJ);
 
  for (Fourier=0; Fourier<totalFourier; ++Fourier) {
-    execParal2R(nsub, this, &FetiHAxiSolver::sendInterf, Fz, Fourier);
-    execParal2R(nsub, this, &FetiHAxiSolver::InterfDiff, Fz, Fourier);
+    execParal(nsub, this, &FetiHAxiSolver::sendInterf, Fz, Fourier);
+    execParal(nsub, this, &FetiHAxiSolver::InterfDiff, Fz, Fourier);
  }
 
 }
@@ -1130,17 +1130,17 @@ FetiHAxiSolver::recoverU(DistrComplexVector &f,
  int totalFourier = 2*numModes+1;
  int nP = (nsub>numModes) ? nsub : 2*numModes+1;
 
- execParal2R(nP, this, &FetiHAxiSolver::subtractBt, z, f);
+ execParal(nP, this, &FetiHAxiSolver::subtractBt, z, f);
 
- execParal1R(nP, this, &FetiHAxiSolver::multQtBK, f);
+ execParal(nP, this, &FetiHAxiSolver::multQtBK, f);
 
  execParal(totalFourier, this, &FetiHAxiSolver::assembleCoarseVector);
 
  execParal(totalFourier, this, &FetiHAxiSolver::solveCoarsePb);
 
- execParal1R(nP, this, &FetiHAxiSolver::subtractQw,f);
+ execParal(nP, this, &FetiHAxiSolver::subtractQw,f);
 
- execParal2R(nP, this, &FetiHAxiSolver::localSolution, f, u);
+ execParal(nP, this, &FetiHAxiSolver::localSolution, f, u);
 
 }
 

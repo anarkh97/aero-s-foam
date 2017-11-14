@@ -323,7 +323,7 @@ MultiDomainRbm<Scalar>::computeRbms()
 
     // 4. create, assemble and factorize GtG
     GenSkyMatrix<Scalar> *GtGtilda = new GenSkyMatrix<Scalar>(coarseConnectGtG, eqNumsGtG, tolgrb);
-    execParal3R(nGroups1, this, &MultiDomainRbm<Scalar>::assembleGtG, groups, groupToSub, 
+    execParal(nGroups1, this, &MultiDomainRbm<Scalar>::assembleGtG, groups, groupToSub, 
                 static_cast<GenSparseMatrix<Scalar> *>(GtGtilda));
 #ifdef DISTRIBUTED
     GtGtilda->unify(com);
@@ -399,7 +399,7 @@ MultiDomainRbm<Scalar>::getRBMs(GenDistrVectorSet<Scalar>& rigidBodyModes)
 {
   int nsub = decDomain->getNumSub();
   for(int i = 0; i < numRBM(); ++i) {
-    execParal2R(nsub, this, &MultiDomainRbm<Scalar>::getGlobalRBM, i, rigidBodyModes[i]);
+    execParal(nsub, this, &MultiDomainRbm<Scalar>::getGlobalRBM, i, rigidBodyModes[i]);
   }
 }
 
@@ -411,7 +411,7 @@ MultiDomainRbm<Scalar>::getRBMs(GenDistrVectorSet<Scalar>& rigidBodyModes, std::
   for(std::set<int>::iterator it = rbmFilters.begin(); it != rbmFilters.end(); ++it) {
     int iMode = *it;
     if(iMode < numRBM()) {
-      execParal2R(nsub, this, &MultiDomainRbm<Scalar>::getGlobalRBM, iMode, rigidBodyModes[i]);
+      execParal(nsub, this, &MultiDomainRbm<Scalar>::getGlobalRBM, iMode, rigidBodyModes[i]);
       i++;
     }
   }

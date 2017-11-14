@@ -800,12 +800,12 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::scaleDisp(GenDistrVector<Scalar> &u, double alpha)
 {
-  execParal2R(numSub, this, &GenDecDomain<Scalar>::scaleSubDisp, u, alpha);
+  execParal(numSub, this, &GenDecDomain<Scalar>::scaleSubDisp_2, u, alpha);
 }
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::scaleSubDisp(int iSub, GenDistrVector<Scalar> &u, double alpha)
+GenDecDomain<Scalar>::scaleSubDisp_2(int iSub, GenDistrVector<Scalar> &u, double alpha) const
 {
   subDomain[iSub]->scaleDisp(u.subData(iSub), alpha);
 }
@@ -2241,7 +2241,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
        getStressStrain(geomState, allCorot, i, EQPLSTRN, x, refState);
        break;
      case OutputInfo::Energies:
-       getEnergies(geomState, extF, allCorot, i, x, distState, dynOps, aeroF);
+       getEnergies_b(geomState, extF, allCorot, i, x, distState, dynOps, aeroF);
        break;
      case OutputInfo::DissipatedEnergy:
        getDissipatedEnergy(geomState, allCorot, i, x);
@@ -3902,7 +3902,7 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 {
  if(res.dynMat) res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
 
- execParal7R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
+ execParal(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
  if(domain->solInfo().solvercntl->type == 0 && res.dynMat) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);
@@ -3923,9 +3923,9 @@ GenDecDomain<double>::rebuildOps(GenMDDynamMat<double> &res, double coeM, double
 
    // rebuild the dynamic stiffness matrix
    if (domain->solInfo().useMassNormalizedBasis || domain->solInfo().modalDIMASS)
-     execParal7R(numSub, this, &GenDecDomain<double>::subRebuildOps, res, 0.0, coeC, coeK, kelArray, melArray, celArray);
+     execParal(numSub, this, &GenDecDomain<double>::subRebuildOps, res, 0.0, coeC, coeK, kelArray, melArray, celArray);
    else 
-     execParal7R(numSub, this, &GenDecDomain<double>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
+     execParal(numSub, this, &GenDecDomain<double>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
    // every process now has the reduced dynamic stiffness matrix, add it to the the galerkin solver
    if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().modalDIMASS)
@@ -3935,7 +3935,7 @@ GenDecDomain<double>::rebuildOps(GenMDDynamMat<double> &res, double coeM, double
  } else {
    if(res.dynMat) res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
 
-   execParal7R(numSub, this, &GenDecDomain<double>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
+   execParal(numSub, this, &GenDecDomain<double>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
    if(domain->solInfo().solvercntl->type == 0 && res.dynMat) {
      GenSolver<double> *dynmat = dynamic_cast<GenSolver<double>*>(res.dynMat);
@@ -4143,13 +4143,13 @@ void GenDecDomain<Scalar>::setConstraintGap(DistrGeomState *geomState, DistrGeom
     GenDistrVector<Scalar> u(fetiSolver->localInfo());
     geomState->get_tot_displacement(u);
     ((GenFetiDPSolver<Scalar> *)fetiSolver)->multC(u, cu); // cu = C*u
-    execParal3R(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu, t, 0);
+    execParal(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu, t, 0);
     if(domain->GetnContactSurfacePairs() && domain->solInfo().piecewise_contact) {
       GenDistrVector<Scalar> u0(fetiSolver->localInfo());
       refState->get_tot_displacement(u0);
       u -= u0;
       ((GenFetiDPSolver<Scalar> *)fetiSolver)->multC(u, cu);
-      execParal3R(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu, t, 1);
+      execParal(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu, t, 1);
     }
   }
 }
@@ -4218,7 +4218,7 @@ void GenDecDomain<Scalar>::getEnergies(GenDistrVector<Scalar> &disp, GenDistrVec
   double Wext = 0.0, Waero = 0.0, Wdmp = 0.0, Wela = 0.0, Wkin = 0.0, error = 0.0;
   if(domain->solInfo().isDynam()) {
     double *subW = new double[6*numSub];
-    execParal7R(numSub, this, &GenDecDomain<Scalar>::subGetEnergies, disp, extF, time, distState, dynOps, aeroF, subW);
+    execParal(numSub, this, &GenDecDomain<Scalar>::subGetEnergies, disp, extF, time, distState, dynOps, aeroF, subW);
 
     for(int i=0; i<numSub; ++i) {
       Wext  += subW[6*i  ];
@@ -4250,14 +4250,14 @@ void GenDecDomain<Scalar>::getEnergies(GenDistrVector<Scalar> &disp, GenDistrVec
 }
 
 template<class Scalar>
-void GenDecDomain<Scalar>::getEnergies(DistrGeomState *geomState, GenDistrVector<Scalar> &extF,
+void GenDecDomain<Scalar>::getEnergies_b(DistrGeomState *geomState, GenDistrVector<Scalar> &extF,
                                        Corotator ***allCorot, int fileNumber, double time,
                                        SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
                                        GenDistrVector<Scalar> *aeroF)
 {
   double Wext = 0.0, Waero = 0.0, Wdmp = 0.0, Wela = 0.0, Wkin = 0.0, Wdis = 0.0, error = 0.0;
   double *subW = new double[7*numSub];
-  execParal8R(numSub, this, &GenDecDomain<Scalar>::subGetEnergies, geomState, extF, allCorot, time,
+  execParal(numSub, this, &GenDecDomain<Scalar>::subGetEnergies_b, geomState, extF, allCorot, time,
               distState, dynOps, aeroF, subW);
 
   for(int i=0; i<numSub; ++i) {
@@ -4314,7 +4314,7 @@ inline void GenDecDomain<complex<double> >::subGetEnergies(int iSub, GenDistrVec
 }
 
 template<>
-inline void GenDecDomain<double>::subGetEnergies(int iSub, DistrGeomState *geomState, GenDistrVector<double> &extF,
+inline void GenDecDomain<double>::subGetEnergies_b(int iSub, DistrGeomState *geomState, GenDistrVector<double> &extF,
                                                  Corotator ***allCorot, double time, SysState<GenDistrVector<double> > *distState,
                                                  GenMDDynamMat<double> *dynOps, GenDistrVector<double> *aeroF, double *subW)
 {
@@ -4332,7 +4332,7 @@ inline void GenDecDomain<double>::subGetEnergies(int iSub, DistrGeomState *geomS
 }
 
 template<>
-inline void GenDecDomain<complex<double> >::subGetEnergies(int iSub, DistrGeomState *, GenDistrVector<complex<double> > &,
+inline void GenDecDomain<complex<double> >::subGetEnergies_b(int iSub, DistrGeomState *, GenDistrVector<complex<double> > &,
                                                                 Corotator ***, double, SysState<GenDistrVector<complex<double> > > *,
                                                                 GenMDDynamMat<complex<double> > *, GenDistrVector<complex<double> > *, double *subW)
 {
@@ -4344,7 +4344,7 @@ void GenDecDomain<Scalar>::getDissipatedEnergy(DistrGeomState *geomState, Corota
                                                int fileNumber, double time)
 {
   double *subD = new double[numSub];
-  execParal3R(numSub, this, &GenDecDomain<Scalar>::subGetDissipatedEnergy, geomState, allCorot, subD);
+  execParal(numSub, this, &GenDecDomain<Scalar>::subGetDissipatedEnergy, geomState, allCorot, subD);
   double D = 0;
   for(int i=0; i<numSub; ++i) D += subD[i];
 #ifdef DISTRIBUTED
@@ -4371,9 +4371,9 @@ GenDecDomain<Scalar>::exchangeInterfaceGeomState(DistrGeomState *geomState)
   for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(geomStatePat, len);
   geomStatePat->finalize();
 
-  execParal2R(numSub, this, &GenDecDomain<Scalar>::dispatchInterfaceGeomState, geomStatePat, geomState);
+  execParal(numSub, this, &GenDecDomain<Scalar>::dispatchInterfaceGeomState, geomStatePat, geomState);
   geomStatePat->exchange();
-  execParal2R(numSub, this, &GenDecDomain<Scalar>::collectInterfaceGeomState, geomStatePat, geomState);
+  execParal(numSub, this, &GenDecDomain<Scalar>::collectInterfaceGeomState, geomStatePat, geomState);
 
   delete geomStatePat;
 }
@@ -4436,9 +4436,9 @@ GenDecDomain<Scalar>::assembleNodalInertiaTensors(FullSquareMatrix **melArray)
   for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(pat, 9);
   pat->finalize();
 
-  execParal2R(numSub, this, &GenDecDomain<Scalar>::dispatchInterfaceNodalInertiaTensors, pat, melArray);
+  execParal(numSub, this, &GenDecDomain<Scalar>::dispatchInterfaceNodalInertiaTensors, pat, melArray);
   pat->exchange();
-  execParal1R(numSub, this, &GenDecDomain<Scalar>::collectInterfaceNodalInertiaTensors, pat);
+  execParal(numSub, this, &GenDecDomain<Scalar>::collectInterfaceNodalInertiaTensors, pat);
 
   delete pat;
 }

@@ -254,9 +254,9 @@ template<class Scalar>
 void
 GenFetiSolver<Scalar>::distributeForce(GenDistrVector<Scalar> &f) const
 {
-	execParal1R(nsub, this, &GenFetiSolver<Scalar>::fSend,  f);
+	execParal(nsub, this, &GenFetiSolver<Scalar>::fSend,  f);
 	vPat->exchange();
-	execParal1R(nsub, this, &GenFetiSolver<Scalar>::fScale, f);
+	execParal(nsub, this, &GenFetiSolver<Scalar>::fScale, f);
 }
 
 template<class Scalar>
@@ -879,7 +879,7 @@ GenFetiSolver<Scalar>::computeL0(GenDistrVector<Scalar> &f, GenVector<Scalar> &a
 
 		if(QGisLocal == 0) {
 			vPat->exchange();
-			execParal1R(nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, lambda);
+			execParal(nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, lambda);
 		}
 	} else
 		lambda.zero();
@@ -1730,7 +1730,7 @@ GenFetiSolver<Scalar>::updateFeti2lambda(GenDistrVector<Scalar> &w, GenDistrVect
 	threadManager->execParal(nsub,fetiTasks);
 	vPat->exchange();
 
-	execParal1R(nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, wrk1);
+	execParal(nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, wrk1);
 
 	wrk2.zero();
 
@@ -1741,7 +1741,7 @@ GenFetiSolver<Scalar>::updateFeti2lambda(GenDistrVector<Scalar> &w, GenDistrVect
 	threadManager->execParal(nsub,fetiTasks);
 	vPat->exchange();
 
-	execParal1R(nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, wrk2);
+	execParal(nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, wrk2);
 
 	r += wrk1;
 	r += wrk2;
@@ -2034,7 +2034,7 @@ GenFetiSolver<Scalar>::localSolve(int iSub, GenDistrVector<Scalar> &v1, GenDistr
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::interfSend(int iSub, GenDistrVector<Scalar> &dv1)
+GenFetiSolver<Scalar>::interfSend(int iSub, GenDistrVector<Scalar> &dv1) const
 {
 	Scalar *interfvec = dv1.subData(subdomains[iSub]->localSubNum());
 	subdomains[iSub]->sendInterf(interfvec, vPat);

@@ -1177,7 +1177,7 @@ GenFetiDPSolver<Scalar>::updateActiveSet(GenDistrVector<Scalar> &v, int flag, do
   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus2);
 
   bool *local_status_change = new bool[this->nsub];
-  execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::subUpdateActiveSet, v, tol, flag, local_status_change);
+  execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subUpdateActiveSet, v, tol, flag, local_status_change);
   bool status_change1 = false;
   for(int i=0; i<this->nsub; ++i) if(local_status_change[i]) { status_change1 = true; break; }
 #ifdef DISTRIBUTED
@@ -1188,7 +1188,7 @@ GenFetiDPSolver<Scalar>::updateActiveSet(GenDistrVector<Scalar> &v, int flag, do
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcStatus, mpcPat, flag);
     mpcPat->exchange();
     //paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::recvMpcStatus, mpcPat, flag);
-    execParal3R(this->nsub, this, &GenFetiDPSolver<Scalar>::subRecvMpcStatus, mpcPat, flag, local_status_change);
+    execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subRecvMpcStatus, mpcPat, flag, local_status_change);
     bool status_change2 = false;
     for(int i=0; i<this->nsub; ++i) if(local_status_change[i]) { status_change2 = true; break; }
 #ifdef DISTRIBUTED
@@ -1707,7 +1707,7 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
   GenDistrVector<Scalar> *f_copy = 0;
   if(domain->solInfo().inpc) {
      f_copy = new GenDistrVector<Scalar>(f);
-     execParal1R(this->nsub, this, &GenFetiDPSolver<Scalar>::fSplit, f);
+     execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::fSplit, f);
   }
 
   // extract fr from f
@@ -1870,7 +1870,7 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &fr, GenDistrV
  if(KccSolver || KccParallelSolver) { 
    // Step 1: fc^*(s) = fc^(s) - (Krc^T Krr^-1)^(s) (fr^(s) - Br^(s)T lambda) - Bc^(s)tilde^T lambda
    t1 -= getTime();
-   execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::makeFc, fr, lambda);
+   execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::makeFc, fr, lambda);
    FcStar = fc;
    t1 += getTime();
 
@@ -1942,7 +1942,7 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVe
  if(KccSolver || KccParallelSolver) {
    // Step 1: fc^(s) = - (Krc^T Krr^-1)^(s) ( Br^(s)T * p) + Bc^(s)T * p
    t1 -= getTime();
-   execParal1R(this->nsub, this, &GenFetiDPSolver<Scalar>::makeFcB, p);
+   execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::makeFcB, p);
    t1 += getTime();
 
    // Step 2: Assemble fc^(s) into FcStar
@@ -2032,7 +2032,7 @@ GenFetiDPSolver<Scalar>::multKrc(int iSub, GenDistrVector<Scalar> &fr, const Gen
 template<class Scalar> 
 void
 GenFetiDPSolver<Scalar>::makeFc(int iSub, GenDistrVector<Scalar> &fr, /*GenVector<Scalar> &fc,*/ 
-                                GenDistrVector<Scalar> &lambda)
+                                GenDistrVector<Scalar> &lambda) const
 {
   this->sd[iSub]->multfc(fr.subData(this->sd[iSub]->localSubNum()), /*fc.data(),*/
                          lambda.subData(this->sd[iSub]->localSubNum()));
@@ -2823,7 +2823,7 @@ void
 GenFetiDPSolver<Scalar>::projectActiveIneq(const GenDistrVector<Scalar> &x, GenDistrVector<Scalar> &y) const
 {
   if(&x != &y) y = x;
-  execParal1R(this->nsub, this, &GenFetiDPSolver<Scalar>::subProjectActiveIneq, y);
+  execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subProjectActiveIneq, y);
 }
 
 template<class Scalar>
@@ -2992,7 +2992,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
 
 		// update active set unless error is proportional
 		if(globalFlagCtc) {
-			execParal3R(this->nsub, this, &GenFetiDPSolver<Scalar>::split, x, gf, gc);
+			execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::split, x, gf, gc);
 			proportional = (i == 0 && (gc.norm() <= fetiInfo->gamma*gf.norm()));
 			if(!proportional)
 				status_change =
@@ -3043,7 +3043,7 @@ GenFetiDPSolver<Scalar>::trMultC(GenDistrVector<Scalar> &lambda, GenDistrVector<
 {
   // compute f = C^T*lambda
   f.zero();
-  execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::subTrMultC, lambda, f);
+  execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subTrMultC, lambda, f);
 }
 
 template<class Scalar>
@@ -3059,16 +3059,16 @@ GenFetiDPSolver<Scalar>::multC(GenDistrVector<Scalar> &u, GenDistrVector<Scalar>
 {
   // compute cu = C*u
   cu.zero();
-  execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::subMultC, u, cu);
+  execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subMultC, u, cu);
 
-  execParal1R(this->nsub, this, &GenFetiSolver<Scalar>::interfSend, cu);
+  execParal(this->nsub, this, &GenFetiSolver<Scalar>::interfSend, cu);
   this->vPat->exchange();
-  execParal1R(this->nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, cu);
+  execParal(this->nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, cu);
 }
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::subMultC(int iSub, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu)
+GenFetiDPSolver<Scalar>::subMultC(int iSub, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu) const
 {
   this->sd[iSub]->multC(u.subData(this->sd[iSub]->localSubNum()), cu.subData(this->sd[iSub]->localSubNum()));
 }

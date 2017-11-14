@@ -215,7 +215,7 @@ class GenDecDomain
   void getEnergies(GenDistrVector<Scalar> &disp, GenDistrVector<Scalar> &extF, int fileNumber, double time,
                    SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
                    GenDistrVector<Scalar> *aeroF);
-  void getEnergies(DistrGeomState *geomState, GenDistrVector<Scalar> &extF, Corotator ***allCorot, int fileNumber,
+  void getEnergies_b(DistrGeomState *geomState, GenDistrVector<Scalar> &extF, Corotator ***allCorot, int fileNumber,
                    double time, SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
                    GenDistrVector<Scalar> *aeroF);
   void getDissipatedEnergy(DistrGeomState *geomState, Corotator ***allCorot, int fileNumber, double time);
@@ -250,11 +250,11 @@ class GenDecDomain
                           int numNodes, int dof, double time);
   void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u);
   void scaleInvSubDisp(int iSub, GenDistrVector<Scalar> &u);
-  void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u, double alpha);
+  void scaleSubDisp_2(int iSub, GenDistrVector<Scalar> &u, double alpha) const;
   void subGetEnergies(int iSub, GenDistrVector<Scalar> &disp, GenDistrVector<Scalar> &extF, double time,
                       SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
                       GenDistrVector<Scalar> *aeroF, double *subW);
-  void subGetEnergies(int iSub, DistrGeomState *geomState, GenDistrVector<Scalar> &extF,
+  void subGetEnergies_b(int iSub, DistrGeomState *geomState, GenDistrVector<Scalar> &extF,
                       Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
                       GenMDDynamMat<Scalar> *dynOps, GenDistrVector<Scalar> *aeroF, double *subW);
   void subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, double *subD);

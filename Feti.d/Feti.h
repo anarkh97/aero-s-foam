@@ -205,7 +205,7 @@ public:
 	void localSolve2(int iSub, GenDistrVector<Scalar> *v1, GenDistrVector<Scalar> *v2,
 	                 GenVector<Scalar> *beta, GenDistrVector<Scalar> *v3,
 	                 GenDistrVector<Scalar> *v4) const;
-	void interfSend(int iSub, GenDistrVector<Scalar> &dv1);
+	void interfSend(int iSub, GenDistrVector<Scalar> &dv1) const;
 	//void interfDiff(int iSub, GenDistrVector<Scalar> &dv1);
 	void interfDiffAndDot(int iSub, GenDistrVector<Scalar> &dv1, GenDistrVector<Scalar> &dv2) const;
 	void getRMult(int iSub, GenDistrVector<Scalar> *localvec, Scalar *alpha);
@@ -354,7 +354,7 @@ public:
 
 	//int ngrbm;
 	void makeKbb(int iSub);
-	void makeFc(int iSub, GenDistrVector<Scalar> &fr, GenDistrVector<Scalar> &lambda);
+	void makeFc(int iSub, GenDistrVector<Scalar> &fr, GenDistrVector<Scalar> &lambda) const;
 	void makeFcB(int iSub, GenDistrVector<Scalar> &bf);
 	void KrrReSolve(int iSub, GenDistrVector<Scalar> &ur);
 	void makeKcc();
@@ -424,7 +424,7 @@ public:
 
 	void projectActiveIneq(const GenDistrVector<Scalar> &x, GenDistrVector<Scalar> &y) const;
 	void subProjectActiveIneq(int iSub, GenDistrVector<Scalar> &v) const;
-	void split(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_f, GenDistrVector<Scalar> &v_c);
+	void split(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_f, GenDistrVector<Scalar> &v_c) const;
 	void update(Scalar nu, GenDistrVector<Scalar> &lambda,
 	            GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &Fp,
 	            GenDistrVector<Scalar> &ur, GenDistrVector<Scalar> &dur,
@@ -470,13 +470,13 @@ public:
 	void multC(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu);
 private:
 	void makeE(GenDistrVector<Scalar> &f) const; // Modifies the workspace.
-	void assembleE(int iGroup, GenVector<Scalar> &e, GenDistrVector<Scalar> &f);
+	void assembleE(int iGroup, GenVector<Scalar> &e, GenDistrVector<Scalar> &f) const;
 	void assembleGtG(int iGroup);
 	void rebuildGtGtilda();
 	void computeL0(GenDistrVector<Scalar> &lambda0, GenDistrVector<Scalar> &f) const;
 	void normalizeC();
 	void subTrMultC(int iSub, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f);
-	void subMultC(int iSub, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu);
+	void subMultC(int iSub, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu) const;
 	double computeFNorm();
 	void project(GenDistrVector<Scalar> &z, GenDistrVector<Scalar> &y, int eflag = 0) const;
 	double tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w) const;

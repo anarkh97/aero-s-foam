@@ -160,13 +160,13 @@ void
 BlockCCtSolver<Scalar>::reSolve(GenDistrVector<Scalar> &v)
 {
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::initBlockMpcResidual);
-  execParal1R(nMpcBlocks, this, &BlockCCtSolver<Scalar>::extractBlockMpcResidual, v);
+  execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::extractBlockMpcResidual, v);
 #ifdef DISTRIBUTED
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::sendBlockMpcResidualBeforeSolve);
   mpcvPat1->exchange();
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::recBlockMpcResidualBeforeSolve);
 #endif
-  execParal1R(nMpcBlocks, this, &BlockCCtSolver<Scalar>::solveBlockCCt, v);
+  execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::solveBlockCCt, v);
 #ifdef DISTRIBUTED
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::sendBlockMpcResidualAfterSolve);
   mpcvPat2->exchange();

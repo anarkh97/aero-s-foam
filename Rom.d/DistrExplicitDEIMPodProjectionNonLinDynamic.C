@@ -44,10 +44,10 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::preProcess() {
 void
 DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
 
-  execParal3R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,*fInt,t,tIndex);
+  execParal(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,*fInt,t,tIndex);
 
   if(!domain->solInfo().reduceFollower) 
-    execParal3R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetFollowerForceOnly,*fExt,t,tIndex);
+    execParal(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetFollowerForceOnly,*fExt,t,tIndex);
 
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     GenMDDynamMat<double> ops;
@@ -148,7 +148,7 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::buildInterpolationBasis() {
  
  std::vector< std::vector<std::pair<int,int> > > maskedIndicesBuf;
  maskedIndicesBuf.resize(decDomain->getNumSub());
- execParal1R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildInterpolationBasis, maskedIndicesBuf); 
+ execParal(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildInterpolationBasis, maskedIndicesBuf); 
  
  filePrint(stderr," ... Compressing Interpolation Basis ...\n");
  DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
@@ -181,7 +181,7 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::buildReducedLinearOperator() {
       DistrVector columnOfKtimesV(MultiDomainDynam::solVecInfo());
       columnOfKtimesV = 0;
       //K*V
-      execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU, normalizedBasis_[column],columnOfKtimesV); 
+      execParal(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU, normalizedBasis_[column],columnOfKtimesV); 
       //V^T*(K*V)
       normalizedBasis_.reduce(columnOfKtimesV,ReducedStiffness[column]);
     } 
@@ -193,7 +193,7 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::buildReducedLinearOperator() {
  for( int column = 0; column != normalizedBasis_.numVectors(); ++column){
    DistrVector columnOfKtimesV(MultiDomainDynam::solVecInfo());
    columnOfKtimesV = 0;
-   execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU, deimBasis_[column],columnOfKtimesV);
+   execParal(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU, deimBasis_[column],columnOfKtimesV);
    deimBasis_.reduce(columnOfKtimesV,DEIMReducedStiffness[column]);
  }
 

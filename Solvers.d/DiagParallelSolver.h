@@ -69,9 +69,9 @@ DiagParallelSolver<Scalar>::reSolve(GenDistrVector<Scalar> &rhsSol)
 //  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::dispatchForce, rhsSol);
     threadManager->callParal(nSub, [this, &rhsSol](int s) { dispatchForce(s, rhsSol); });
   this->vPat->exchange();
-  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::assembleForce, rhsSol);
+  execParal(nSub, this, &DiagParallelSolver<Scalar>::assembleForce, rhsSol);
 
-  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::subReSolve, rhsSol);
+  execParal(nSub, this, &DiagParallelSolver<Scalar>::subReSolve, rhsSol);
   times.solve += getTime();
 }
 
@@ -95,11 +95,11 @@ DiagParallelSolver<Scalar>::solve(const GenDistrVector<Scalar> &rhs, GenDistrVec
 {
   times.solve -= getTime();
   solution=rhs;
-  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::dispatchForce, solution);
+  execParal(nSub, this, &DiagParallelSolver<Scalar>::dispatchForce, solution);
   this->vPat->exchange();
-  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::assembleForce, solution);
+  execParal(nSub, this, &DiagParallelSolver<Scalar>::assembleForce, solution);
 
-  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::subReSolve, solution);
+  execParal(nSub, this, &DiagParallelSolver<Scalar>::subReSolve, solution);
   times.solve += getTime();
 }
 

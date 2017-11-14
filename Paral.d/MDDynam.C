@@ -202,7 +202,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
     paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC,
                userDefineDisp, userDefineVel, userDefineAcc, false);
     if(domain->solInfo().ROMPostProcess) {
-      execParal4R(decDomain->getNumSub(), this, &MultiDomDynPostProcessor::subUpdateGeomStateUSDD, userDefineDisp,
+      execParal(decDomain->getNumSub(), this, &MultiDomDynPostProcessor::subUpdateGeomStateUSDD, userDefineDisp,
                   geomState, userDefineVel, userDefineAcc);
     }
     delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
@@ -622,7 +622,7 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
     else {
       DistrVector d_n_p(decDomain->solVecInfo());
       d_n_p = d_n + dinc;
-      execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, d_n_p, predictedState);
+      execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, d_n_p, predictedState);
     }
     times->updateSurfsTime += getTime();
 
@@ -636,7 +636,7 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
         userDefineAcc[i] = 0;
       }
       userSupFunc->usd_disp(t_n_p, userDefineDisp, userDefineVel, userDefineAcc);
-      execParal4R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, predictedState,
+      execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, predictedState,
                   userDefineVel, userDefineAcc);
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
@@ -710,9 +710,9 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   // have already been updated in updateDisplacement
   if(sinfo.isNonLin() || domain->tdenforceFlag()) {
     if(!sinfo.isNonLin()) {
-      execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, distState.getDisp(), geomState);
+      execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, distState.getDisp(), geomState);
     }
-    execParal4R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, geomState,
+    execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, geomState,
                 userDefineVel, userDefineAcc);
   }
 
@@ -1132,11 +1132,11 @@ void
 MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex)
 {
   if(domain->solInfo().isNonLin()) {
-    execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
+    execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
   }
   else {
     f.zero();
-    execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetKtimesU, d, f);
+    execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subGetKtimesU, d, f);
   }
 
   if(domain->solInfo().timeIntegration == 1) decDomain->getSolVecAssembler()->assemble(f); // quasistatic only
@@ -1145,7 +1145,7 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
 void
 MultiDomainDynam::getFollowerForce(DistrVector &f, double t, int tIndex)
 {
-  execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetFollowerForce, f, t, tIndex);
+  execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subGetFollowerForce, f, t, tIndex);
 }
 
 void
@@ -1519,7 +1519,7 @@ MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, Dist
       }
       userSupFunc->usd_disp(time, userDefineDisp, userDefineVel, userDefineAcc);
       // update usrDefDisps, usrDefVels
-      execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateUsrDefDispsAndVels, userDefineDisp,
+      execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateUsrDefDispsAndVels, userDefineDisp,
                   userDefineVel);
       delete [] userDefineDisp;
       delete [] userDefineVel;
@@ -1862,7 +1862,7 @@ MultiDomainDynam::subGetGravityForce(int isub, DistrVector &f)
 void
 MultiDomainDynam::getUnamplifiedExtForce(DistrVector &f, int loadcaseid)
 {
-  execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetUnamplifiedExtForce, f, loadcaseid);
+  execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subGetUnamplifiedExtForce, f, loadcaseid);
 }
 
 void
@@ -1932,7 +1932,7 @@ MultiDomainDynam::solveAndUpdate(DistrVector &force, DistrVector &dinc, DistrVec
   dinc *= relaxFac;
   geomState->update(dinc);
   if(numElemStates != 0) {
-    execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateStates, refState, geomState, time);
+    execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateStates, refState, geomState, time);
   }
 
   geomState->get_tot_displacement(d, false);

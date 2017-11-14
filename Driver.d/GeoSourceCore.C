@@ -4383,7 +4383,7 @@ GeoSource::modifyDecomposition(int maxEleCopy)
              maxEle, optDec->nsub);
 
  if(subToElem) { delete subToElem; subToElem = 0; }
- if(subToClus) { delete subToClus; subToClus = 0; }
+ if(subToClus) { delete [] subToClus; subToClus = 0; }
  if(clusToSub) { delete clusToSub; clusToSub = 0; }
  if(unsortedSubToElem) { delete unsortedSubToElem; unsortedSubToElem = 0; }
 }

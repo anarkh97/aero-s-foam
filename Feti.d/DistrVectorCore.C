@@ -3,12 +3,12 @@
 void
 DistrInfo::initialize()
 {
-  domLen = 0;
-  subLen = 0; 
-  subOffset = 0;
-  threadOffset = 0; 
-  threadLen = 0;
-  masterFlag = 0;
+  domLen = nullptr;
+  subLen = nullptr;
+  subOffset = nullptr;
+  threadOffset = nullptr;
+  threadLen = nullptr;
+  masterFlag = nullptr;
 }
 
 DistrInfo::DistrInfo(int ns)
@@ -20,11 +20,11 @@ DistrInfo::DistrInfo(int ns)
 
 DistrInfo::~DistrInfo()
 {
-  if(domLen) { delete [] domLen; domLen = 0; }  // union with subLen
-  if(masterFlag) { delete [] masterFlag; masterFlag = 0; }
-  if(subOffset) { delete [] subOffset; subOffset = 0; }
-  if(threadOffset) { delete [] threadOffset; threadOffset = 0; }
-  if(threadLen) { delete [] threadLen; threadLen = 0; }
+	delete [] domLen;
+	delete [] masterFlag;
+	delete [] subOffset;
+	delete [] threadOffset;
+	delete [] threadLen;
 }
 
 void DistrInfo::setMasterFlag()
@@ -68,9 +68,9 @@ DistrInfo::computeOffsets()
 void
 DistrInfo::recomputeOffsets()
 {
-  if(subOffset) { delete [] subOffset; subOffset = 0; }
-  if(threadOffset) { delete [] threadOffset; threadOffset = 0; }
-  if(threadLen) { delete [] threadLen; threadLen = 0; }
+  if(subOffset) { delete [] subOffset; subOffset = nullptr; }
+  if(threadOffset) { delete [] threadOffset; threadOffset = nullptr; }
+  if(threadLen) { delete [] threadLen; threadLen = nullptr; }
 
   computeOffsets();
 }

@@ -19,16 +19,15 @@
 
 
 #include "ContactEnfModel.h"
-#include "ContactTopology.h"
 
 ContactEnfModel::
 ContactEnfModel( int ID, ContactEnforcement::Enforcement_Model_Types Type,
 		 ContactTopology* Topology ) 
-  : errors(NULL), topology( Topology ), id(ID), type(Type), 
+  : errors(nullptr), topology( Topology ), id(ID), type(Type), 
     number_of_nodes(-1), 
-    physical_face_normals_0( NULL ), physical_face_normals_1( NULL ),
-    node_state_data_0( NULL ), node_state_data_1( NULL ),
-    interaction_state_data_0( NULL ), interaction_state_data_1( NULL )
+    physical_face_normals_0(nullptr), physical_face_normals_1(nullptr),
+    node_state_data_0( nullptr ), node_state_data_1(nullptr),
+    interaction_state_data_0(nullptr), interaction_state_data_1( nullptr )
 {
   std::memset(message,0,81);
 }
@@ -36,23 +35,23 @@ ContactEnfModel( int ID, ContactEnforcement::Enforcement_Model_Types Type,
 ContactEnfModel::
 ContactEnfModel( ContactEnforcement::Enforcement_Model_Types Type,
 		 ContactTopology* Topology ) 
-  : errors(NULL), topology( Topology ), id(-1), type(Type), 
+  : errors(nullptr), topology( Topology ), id(-1), type(Type), 
     number_of_nodes(Topology->Number_of_Nodes()), 
-    physical_face_normals_0( NULL ), physical_face_normals_1( NULL ),
-    node_state_data_0( NULL ), node_state_data_1( NULL ),
-    interaction_state_data_0( NULL ), interaction_state_data_1( NULL )
+    physical_face_normals_0( nullptr ), physical_face_normals_1( nullptr ),
+    node_state_data_0( nullptr ), node_state_data_1( nullptr ),
+    interaction_state_data_0( nullptr ), interaction_state_data_1( nullptr )
 {
   std::memset(message,0,81);
 }
 
 ContactEnfModel::~ContactEnfModel()
 {
-  if( physical_face_normals_0 ) delete [] physical_face_normals_0;
-  if( physical_face_normals_1 ) delete [] physical_face_normals_1;
-  if( node_state_data_0 ) delete [] node_state_data_0;
-  if( node_state_data_1 ) delete [] node_state_data_1;
-  if( interaction_state_data_0 ) delete [] interaction_state_data_0;
-  if( interaction_state_data_1 ) delete [] interaction_state_data_1;
+  delete [] physical_face_normals_0;
+  delete [] physical_face_normals_1;
+  delete [] node_state_data_0;
+  delete [] node_state_data_1;
+  delete [] interaction_state_data_0;
+  delete [] interaction_state_data_1;
 }
 
 ContactSearch::ContactErrorCode

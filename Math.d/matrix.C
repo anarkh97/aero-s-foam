@@ -891,7 +891,7 @@ GenFullM<Scalar>::subtract(GenFullM<Scalar> &mat, int fRow, int fCol)
 #ifndef _TGEMM__
 #define _TGEMM__
 inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
-                  const int &e, const double &f, double *g, const int &h,
+                  const int &e, const double &f, const double *g, const int &h,
                   double *i, const int &j, const double &k, double *l,
                   const int &m)
 {
@@ -899,7 +899,7 @@ inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
 }
 
 inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
-                  const int &e, const complex<double> &f, complex<double> *g, const int &h,
+                  const int &e, const complex<double> &f, const complex<double> *g, const int &h,
                   complex<double> *i, const int &j, const complex<double> &k, complex<double> *l,
                   const int &m)
 {

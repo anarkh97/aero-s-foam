@@ -631,12 +631,12 @@ SnapshotNonLinDynamicDetail::isvSnapImpl::handleJacobianSnapshot()
 
 SnapshotNonLinDynamic::SnapshotNonLinDynamic(Domain *domain) :
   NonLinDynamic(domain),
-  stateImpl_(NULL),
-  internalStateImpl_(NULL),
-  velocImpl_(NULL),
-  accelImpl_(NULL),
-  resImpl_(NULL),
-  jacImpl_(NULL)
+  stateImpl_(nullptr),
+  internalStateImpl_(nullptr),
+  velocImpl_(nullptr),
+  accelImpl_(nullptr),
+  resImpl_(nullptr),
+  jacImpl_(nullptr)
 {}
 
 void

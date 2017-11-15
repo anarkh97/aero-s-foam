@@ -35,8 +35,8 @@ class GenSolverFactory
 
 };
 
-extern std::auto_ptr<GenSolverFactory<double> >   solverFactory;
-extern std::auto_ptr<GenSolverFactory<DComplex> > solverFactoryC;
+extern std::unique_ptr<GenSolverFactory<double> >   solverFactory;
+extern std::unique_ptr<GenSolverFactory<DComplex> > solverFactoryC;
 
 #ifdef _TEMPLATE_FIX_
   #include <Solvers.d/SolverFactory.C>

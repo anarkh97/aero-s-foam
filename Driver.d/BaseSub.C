@@ -1553,6 +1553,14 @@ BaseSub::printUnsafeFaces()
     if(!faceIsSafe[i]) std::cerr << "sub " << subNumber << ", face " << i << " is unsafe\n";
 }
 
+int BaseSub::getLocalMPCIndex(int globalMpcIndex) const {
+  return globalToLocalMPC[globalMpcIndex];
+}
+
+int BaseSub::getGlobalMPCIndex(int localMpcIndex) const {
+  return localToGlobalMPC[localMpcIndex];
+}
+
 void BaseSub::makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc)
 {
   // PJSA: make a different localMpcToGlobalMpc that includes connections inside neighbors

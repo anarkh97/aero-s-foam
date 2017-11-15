@@ -89,13 +89,13 @@ extern "C" int getopt (
 // .... global and static member variable initialization
 std::map<int,SolverCntl> SolverInfo::solvercntls = std::map<int,SolverCntl>();
 SolverCntl default_cntl;
-std::auto_ptr<GenSolverFactory<double> >   solverFactory(new GenSolverFactory<double>());
-std::auto_ptr<GenSolverFactory<DComplex> > solverFactoryC(new GenSolverFactory<DComplex>());;
+std::unique_ptr<GenSolverFactory<double> >   solverFactory(new GenSolverFactory<double>());
+std::unique_ptr<GenSolverFactory<DComplex> > solverFactoryC(new GenSolverFactory<DComplex>());;
 
 Domain *domain = new Domain();
-std::auto_ptr<ElementFactory> elemFact(new ElementFactory());
-std::auto_ptr<GenSubDomainFactory<double> >   subDomainFactory(new GenSubDomainFactory<double>());
-std::auto_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomainFactory<DComplex>());;
+std::unique_ptr<ElementFactory> elemFact(new ElementFactory());
+std::unique_ptr<GenSubDomainFactory<double> >   subDomainFactory(new GenSubDomainFactory<double>());
+std::unique_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomainFactory<DComplex>());;
 
 SolverInfo &solInfo = domain->solInfo();
 
@@ -309,39 +309,39 @@ int main(int argc, char** argv)
  // getopt_long
  int option_index = 0; // will hold index for long options
  static struct option long_options[] = {
-   {"with-dec", 0, 0, 1000},
-   {"dec", 0, 0, 1000},
-   {"exit", 0, 0, 1002},
-   {"deter", 0, 0, 1005},
-   {"trivial", 0, 0, 1007},
-   {"allow-mechanisms", 0, 0, 1008},
-   {"use-weight-from", 1, 0, 1004},
-   {"threads-number", 1, 0, 'n'},
-   {"decomposition-filename", 1, 0, 'd'},
-   {"nsub", 1, 0, 1001},
-   {"subdomains-number", 1, 0, 1001},
-   {"processors-number", 1, 0, 1003},
-   {"output-topdomdec", 0, 0, 't'},
-   {"output-topdomdec-asymetric-mesh", 1, 0, 'r'},
-   {"output-primal", 1, 0, 'p'},
-   {"contact-status-verbose", 1, 0, 'c'},
-   {"screen-output-interval-in-time-loop", 1, 0, 's'},
-   {"output-topdomdec-gaps-renumbered-sequentially", 0, 0, 'T'},
-   {"output-topdomdec-element-equals-materials-number", 0, 0, 'm'},
-   {"output-topdomdec-element-equals-materials-numberc-gaps-renumbered-sequentially", 0, 0, 'M'},
-   {"output-match", 0, 0, 'P'},
-   {"output-memory-estimate", 0, 0, 'e'},
-   {"mem", 0, 0, 'e'},
-   {"output-weights", 0, 0, 'w'},
-   {"load", 0, 0, 'w'},
-   {"verbose", 1, 0, 'v'},
-   {"with-sower", 0, 0, 1010},
-   {"sower", 0, 0, 1010},
-   {"prefix", 1, 0, 1011},
-   {"nclus", 1, 0, 1012},
-   {"debug", 0, 0, 1006},
-   {"quiet", 0, 0, 'q'},
-   {0, 0, 0, 0}
+   {"with-dec", 0, nullptr, 1000},
+   {"dec", 0, nullptr, 1000},
+   {"exit", 0, nullptr, 1002},
+   {"deter", 0, nullptr, 1005},
+   {"trivial", 0, nullptr, 1007},
+   {"allow-mechanisms", 0, nullptr, 1008},
+   {"use-weight-from", 1, nullptr, 1004},
+   {"threads-number", 1, nullptr, 'n'},
+   {"decomposition-filename", 1, nullptr, 'd'},
+   {"nsub", 1, nullptr, 1001},
+   {"subdomains-number", 1, nullptr, 1001},
+   {"processors-number", 1, nullptr, 1003},
+   {"output-topdomdec", 0, nullptr, 't'},
+   {"output-topdomdec-asymetric-mesh", 1, nullptr, 'r'},
+   {"output-primal", 1, nullptr, 'p'},
+   {"contact-status-verbose", 1, nullptr, 'c'},
+   {"screen-output-interval-in-time-loop", 1, nullptr, 's'},
+   {"output-topdomdec-gaps-renumbered-sequentially", 0, nullptr, 'T'},
+   {"output-topdomdec-element-equals-materials-number", 0, nullptr, 'm'},
+   {"output-topdomdec-element-equals-materials-numberc-gaps-renumbered-sequentially", 0, nullptr, 'M'},
+   {"output-match", 0, nullptr, 'P'},
+   {"output-memory-estimate", 0, nullptr, 'e'},
+   {"mem", 0, nullptr, 'e'},
+   {"output-weights", 0, nullptr, 'w'},
+   {"load", 0, nullptr, 'w'},
+   {"verbose", 1, nullptr, 'v'},
+   {"with-sower", 0, nullptr, 1010},
+   {"sower", 0, nullptr, 1010},
+   {"prefix", 1, nullptr, 1011},
+   {"nclus", 1, nullptr, 1012},
+   {"debug", 0, nullptr, 1006},
+   {"quiet", 0, nullptr, 'q'},
+   {0, 0, nullptr, 0}
  };
  // end getopt_long
 
@@ -1475,7 +1475,7 @@ int main(int argc, char** argv)
        break;
      case SolverInfo::PodRomOffline:
        {
-         std::auto_ptr<Rom::DriverInterface> driver;
+         std::unique_ptr<Rom::DriverInterface> driver;
          if (domain->solInfo().svdPodRom) {
            if(domain->solInfo().use_nmf) {
              filePrint(stderr, " ... Nonneg. Matrix Factorization   ...\n");

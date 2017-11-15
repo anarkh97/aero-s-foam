@@ -180,7 +180,7 @@ extern std::map<int,double> fieldWeightList;
 #include <numeric>
 
 extern SolverInfo &solInfo;
-extern std::auto_ptr<ElementFactory> elemFact;
+extern std::unique_ptr<ElementFactory> elemFact;
 
 struct weight_add {
   double operator()(double x, const std::pair<int, double>& y) {

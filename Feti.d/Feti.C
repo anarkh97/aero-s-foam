@@ -2746,11 +2746,11 @@ GenFetiSolver<Scalar>::getQtKpBMult(int iMpc, GenDistrVector<Scalar> *r, Scalar 
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getGtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const
+GenFetiSolver<Scalar>::getGtMult(int iSub, const GenDistrVector<Scalar> *r, Scalar *sv) const
 {
 	int numRBM = opControl->cset[iSub].numGs;
 	if(numRBM==0) return;
-	Scalar *lvec  = r->subData(iSub);
+	const Scalar *lvec  = r->subData(iSub);
 	Scalar *locGs = opControl->cset[iSub].locGs;
 	Scalar *alpha = sv + eqNums->firstdof(subdomains[iSub]->subNum());
 

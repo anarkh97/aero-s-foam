@@ -69,7 +69,7 @@ CheckNonLinDynamic::Impl::lastStateSnapIs(const GeomState &state) {
 
 CheckNonLinDynamic::CheckNonLinDynamic(Domain *domain) :
   NonLinDynamic(domain),
-  impl_(NULL)
+  impl_(nullptr)
 {}
 
 CheckNonLinDynamic::~CheckNonLinDynamic() {

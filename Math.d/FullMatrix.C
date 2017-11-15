@@ -31,7 +31,7 @@ inline void Tgesv(const int &a, const int &b, complex<double> *c, const int &d, 
 #define _TGEMM__
 inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
                   const int &e, const double &f, double *g, const int &h,
-                  double *i, const int &j, const double &k, double *l,
+                  const double *i, const int &j, const double &k, double *l,
                   const int &m)
 {
  _FORTRAN(dgemm)(a,b,c,d,e,f,g,h,i,j,k,l,m);
@@ -39,7 +39,7 @@ inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
 
 inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
                   const int &e, const complex<double> &f, complex<double> *g, const int &h,
-                  complex<double> *i, const int &j, const complex<double> &k, complex<double> *l,
+                  const complex<double> *i, const int &j, const complex<double> &k, complex<double> *l,
                   const int &m)
 {
  _FORTRAN(zgemm)(a,b,c,d,e,f,g,h,i,j,k,l,m);
@@ -57,7 +57,7 @@ inline void Tgemv(const char &a, const int &b, const int &c,
 
 inline void Tgemv(const char &a, const int &b, const int &c,
                   const complex<double> &d, const complex<double> *e, const int &f,
-                  complex<double> *g, const int &h, const complex<double> &i, complex<double> *j, const int &k)
+                  const complex<double> *g, const int &h, const complex<double> &i, complex<double> *j, const int &k)
 {
  _FORTRAN(zgemv)(a,b,c,d,e,f,g,h,i,j,k);
 }

@@ -23,9 +23,9 @@ private:
   int *ipiv_;
  
   // Overriden 
-  virtual void resetSolver(int vCount, int vSize);
-  virtual void assembleAndFactorReducedSystem(double Mcoef);
-  virtual double getReducedRhsNorm() const;
+  virtual void resetSolver(int vCount, int vSize) override;
+  virtual void assembleAndFactorReducedSystem(double Mcoef) override;
+  virtual double getReducedRhsNorm() const override;
   virtual void solveReducedSystem(GenVector<Scalar> &) override;
  
   // Implementation 

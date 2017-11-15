@@ -105,7 +105,7 @@ private:
 
 DistrExplicitPodProjectionNonLinDynamic::DistrExplicitPodProjectionNonLinDynamic(Domain *domain) :
   DistrExplicitPodProjectionNonLinDynamicBase(domain),
-  snapshotHandler_(NULL)
+  snapshotHandler_(nullptr)
 {}
 
 DistrExplicitPodProjectionNonLinDynamic::~DistrExplicitPodProjectionNonLinDynamic() {

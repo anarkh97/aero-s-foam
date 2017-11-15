@@ -45,7 +45,7 @@ private:
     binFile_.reset(new BinaryResultOutputFile(fileName, NODAL_DATA_FLAG, DESC, globalNodeCount, dofs_per_node, localOffset, localIdxBegin, localIdxEnd, VERSION, restart));
   }
 
-  std::auto_ptr<BinaryResultOutputFile> binFile_;
+  std::unique_ptr<BinaryResultOutputFile> binFile_;
 
   // Disallow copy and assigment
   DistrBasisOutputFile(const DistrBasisOutputFile &);
@@ -83,7 +83,7 @@ asserting_distr_exclusive_partial_sum(Scalar v, Communicator *comm, Scalar2 sum)
 template <typename IdxIt>
 DistrBasisOutputFile::DistrBasisOutputFile(const std::string &fileName, int globalNodeCount, IdxIt localIdxBegin, IdxIt localIdxEnd, Communicator *comm, bool restart,
                                            int dofs_per_node) :
-  binFile_(NULL)
+  binFile_(nullptr)
 {
   const int localOffset = asserting_distr_exclusive_partial_sum(std::distance(localIdxBegin, localIdxEnd), comm, globalNodeCount);
   if (localOffset == 0) {

@@ -83,7 +83,7 @@ BasisOrthoDriver::BasisOrthoDriver(Domain *domain) :
 //Non-member functions
 //====================
 void readIntoSolver(SvdOrthogonalization &solver, VecNodeDof6Conversion &converter, BasisId::Level fileType,
-                    int numEntries, int vectorSize, std::auto_ptr<VectorTransform<double*> > &transform, BasisId::Type type,
+                    int numEntries, int vectorSize, std::unique_ptr<VectorTransform<double*> > &transform, BasisId::Type type,
                     int &colCounter, GenSparseMatrix<double> *fullMass, GenSolver<double> *fullMassSolver, int skipTime=1)
 {
   FileNameInfo fileInfo; 
@@ -176,7 +176,7 @@ BasisOrthoDriver::solve() {
     centIn >> centroid->data();
   }
   typedef VectorTransform<double *> VecTrans;
-  std::auto_ptr<VecTrans> transform(domain->solInfo().subtractRefPodRom ?
+  std::unique_ptr<VecTrans> transform(domain->solInfo().subtractRefPodRom ?
                                     static_cast<VecTrans *>(new RefSubtraction<double *>(*centroid)) :
                                     static_cast<VecTrans *>(new NoOp<double *>));
 

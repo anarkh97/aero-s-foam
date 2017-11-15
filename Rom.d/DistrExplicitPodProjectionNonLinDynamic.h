@@ -46,7 +46,7 @@ protected:
 
 private:
   friend class SnapshotHandler;
-  std::auto_ptr<SnapshotHandler> snapshotHandler_;
+  std::unique_ptr<SnapshotHandler> snapshotHandler_;
 };
 
 inline

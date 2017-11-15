@@ -29,7 +29,7 @@ class GenSubDomainFactory
   static GenSubDomainFactory* getFactory();
 };
 
-extern std::auto_ptr<GenSubDomainFactory<double> >   subDomainFactory;
-extern std::auto_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC;
+extern std::unique_ptr<GenSubDomainFactory<double> >   subDomainFactory;
+extern std::unique_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC;
 
 #endif

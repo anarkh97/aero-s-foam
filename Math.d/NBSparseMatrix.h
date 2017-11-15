@@ -31,7 +31,7 @@ class GenNBSparseMatrix : public GenSparseMatrix<Scalar>
    void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result ) const override; // Matrix-Vector multiply
    void mult(const Scalar *rhs, Scalar *result ) const override;   // Matrix-Vector multiply
    void multAdd(const Scalar *rhs, Scalar *result) const override;
-   Scalar diag(int n) const;                 // returns diagonal values of matrix
+   Scalar diag(int n) const override;                 // returns diagonal values of matrix
    Scalar &diag(int n) override;                 // returns diagonal values of matrix
    void add(FullSquareMatrix &m, int *dofs) override;
    void add(FullSquareMatrixC &m, int *dofs) override;

@@ -210,14 +210,14 @@ public:
 	//void interfDiff(int iSub, GenDistrVector<Scalar> &dv1);
 	void interfDiffAndDot(int iSub, GenDistrVector<Scalar> &dv1, GenDistrVector<Scalar> &dv2) const;
 	void getRMult(int iSub, GenDistrVector<Scalar> *localvec, Scalar *alpha) const;
-	void getGtMult(int iSub, GenDistrVector<Scalar> *localvec, Scalar *alpha) const;
+	void getGtMult(int iSub, const GenDistrVector<Scalar> *localvec, Scalar *alpha) const;
 	void addRP(int iSub, GenDistrVector<Scalar> * localvec, Scalar *alpha) const;
 	void addRS(int iSub, GenDistrVector<Scalar> * localvec, Scalar *alpha) const;
 	void solve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &x) override;
 	void distributeForce(GenDistrVector<Scalar> &force) const;
 	void distributeForce(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fw) const;
 	void reSolve(GenDistrVector<Scalar> &) override;
-	Timings& getTimers() { return times; }
+	Timings& getTimers() override { return times; }
 	void makeRbmPat();
 	void makeSingleIntPat();
 
@@ -305,9 +305,9 @@ public:
 	void findProfileSizes(int iSub, int *subSizes);
 
 	// For eigen problem
-	virtual int numRBM() override;
-	virtual void getRBMs(GenDistrVectorSet<Scalar> &);
-	virtual void getRBMs(Scalar *);
+	int numRBM() override;
+	void getRBMs(GenDistrVectorSet<Scalar> &);
+	void getRBMs(Scalar *);
 	void Ksolve(int iSub, GenStackDistVector<Scalar> &R);
 
 	int halfOffset(int iSub) const { return fetiOps[iSub]->halfOffset; }
@@ -648,7 +648,6 @@ struct BlockPair {
 #ifdef DISTRIBUTED
 #include <Dist.d/DistFeti.C>
 #endif
-#include <Feti.d/FetiDPCore.C>
 #endif
 
 #endif

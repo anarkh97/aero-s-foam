@@ -4032,8 +4032,8 @@ GenSubDomain<Scalar>::getQtKQ(int glMPCnum, Scalar *QtKQ)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multQtKBt(int glMPCnum, Scalar *G, Scalar *QtKBtG,
-                                Scalar alpha, Scalar beta)
+GenSubDomain<Scalar>::multQtKBt(int glMPCnum, const Scalar *G, Scalar *QtKBtG,
+                                Scalar alpha, Scalar beta) const
 {
  int iMPC = globalToLocalMPC[glMPCnum];
  // QtKBtG = QtKBt*G
@@ -4043,7 +4043,7 @@ GenSubDomain<Scalar>::multQtKBt(int glMPCnum, Scalar *G, Scalar *QtKBtG,
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multQt(int glMPCnum, Scalar *V, int numV, Scalar *QtV)
+GenSubDomain<Scalar>::multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const
 {
  int numDofs = localLen();
  int iMPC = globalToLocalMPC[glMPCnum];
@@ -4053,7 +4053,7 @@ GenSubDomain<Scalar>::multQt(int glMPCnum, Scalar *V, int numV, Scalar *QtV)
      int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
                               (1 << mpc[iMPC]->terms[i].dofnum));
      if(dof < 0) continue;
-     Scalar *beta = V+n*numDofs;
+     const Scalar *beta = V+n*numDofs;
      QtV[n] += mpc[iMPC]->terms[i].coef * beta[dof];
    }
  }
@@ -4061,7 +4061,7 @@ GenSubDomain<Scalar>::multQt(int glMPCnum, Scalar *V, int numV, Scalar *QtV)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multQt(int glMPCnum, Scalar *beta, Scalar *result)
+GenSubDomain<Scalar>::multQt(int glMPCnum, const Scalar *beta, Scalar *result) const
 {
  int iMPC = globalToLocalMPC[glMPCnum];
  int i;

@@ -59,7 +59,7 @@ protected:
     PhaseIterator & operator=(const PhaseIterator & other) { pimpl_.reset(other.pimpl_->clone()); return *this; }
 
   private:
-    std::auto_ptr<PhaseIteratorImpl> pimpl_;
+    std::unique_ptr<PhaseIteratorImpl> pimpl_;
   };
 
   class HtsPhaseIteratorImpl : public PhaseIteratorImpl {

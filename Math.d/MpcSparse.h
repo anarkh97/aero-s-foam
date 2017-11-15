@@ -49,20 +49,20 @@ class GenMpcSparse : public GenSparseMatrix<Scalar>
     int  numRow() const override { return NumRow; }
     int  numCol() const override { return NumCol; }
 
-    Scalar diag(int) const { throw "GenMpcSparse::diag - 1 - should never be called"; }
-    Scalar &diag(int) { throw "GenMpcSparse::diag - 2 - should never be called"; }
+    Scalar diag(int) const override { throw "GenMpcSparse::diag - 1 - should never be called"; }
+    Scalar &diag(int) override { throw "GenMpcSparse::diag - 2 - should never be called"; }
     long size() const { return 0; }
     void print(FILE *file=stderr, const char* msg="A");
     void negate();
 
-    void multSub(const Scalar *rhs, Scalar *result) const;
+    void multSub(const Scalar *rhs, Scalar *result) const override;
     void multSub(int numRHS, Scalar **rhs, Scalar **result) const;
     void multSubWI(const Scalar *rhs, Scalar *result) const;
-    void transposeMultAdd(const Scalar *rhs, Scalar *result) const;
-    void multAdd(const Scalar *rhs, Scalar *result) const;
-    void transposeMultSubtract(const Scalar *rhs, Scalar *result) const;
+    void transposeMultAdd(const Scalar *rhs, Scalar *result) const override;
+    void multAdd(const Scalar *rhs, Scalar *result) const override;
+    void transposeMultSubtract(const Scalar *rhs, Scalar *result) const override;
     void transposeMultSubtractWI(const Scalar *rhs, Scalar *wi_result) const;
-    void transposeMult(const Scalar *rhs, Scalar *result) const;
+    void transposeMult(const Scalar *rhs, Scalar *result) const override;
 
   private:
     GenMpcSparse<Scalar>& operator = (const GenMpcSparse<Scalar> &);

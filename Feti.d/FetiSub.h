@@ -4,7 +4,7 @@
 
 #ifndef FEM_FETUSUB_H
 #define FEM_FETUSUB_H
-class FSCommStrucure;
+class FSCommStructure;
 template <typename Scalar>
 class FSCommPattern;
 template <typename Scalar>
@@ -39,6 +39,14 @@ public:
 	virtual int localLen() const = 0;
 
 	virtual int getNumUncon() const = 0;
+
+	/// \brief Obtain the number of MPC constraints.
+	virtual int numMPCs() const = 0;
+
+	virtual int getLocalMPCIndex(int globalMpcIndex) const = 0;
+
+	virtual int getGlobalMPCIndex(int localMpcIndex) const = 0;
+
 	/* missing:
 	 * splitInterf
 	 */
@@ -70,6 +78,10 @@ public:
 	 */
 	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const = 0;
 	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const = 0;
+	virtual void multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const = 0;
+	virtual void multQtKBt(int glNumMPC, const Scalar *G, Scalar *QtKBtG, Scalar alpha=1.0, Scalar beta=1.0) const = 0;
+
+	virtual const Scalar *getQtKpBt() const = 0;
 	// Missing:
 	/*
 	 * void interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vPat) const

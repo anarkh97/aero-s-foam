@@ -9,6 +9,7 @@
 #include <Math.d/IntFullM.h>
 #include <Math.d/SymFullMatrix.h>
 #include <Solvers.d/Rbm.h>
+#include "CoarseSet.h"
 
 #ifndef _TGEMM__
 #define _TGEMM__
@@ -82,7 +83,7 @@ GenCoarseSet<Scalar>::edgeSize(int i)
 
 template<class Scalar>
 void
-GenCoarseSet<Scalar>::getGtMult(Scalar *vec, Scalar *alpha)
+GenCoarseSet<Scalar>::getGtMult(const Scalar *vec, Scalar *alpha) const
 {
  if(gSize > 0)
  Tgemv('T',gSize, numGs, 1.0, locGs, gSize, vec, 1, 0.0, alpha, 1);
@@ -90,7 +91,7 @@ GenCoarseSet<Scalar>::getGtMult(Scalar *vec, Scalar *alpha)
 
 template<class Scalar>
 void
-GenCoarseSet<Scalar>::getGtQMult(Scalar *vec, Scalar *alpha)
+GenCoarseSet<Scalar>::getGtQMult(const Scalar *vec, Scalar *alpha) const
 {
  if(gSize > 0)
  Tgemv('T',gSize, numGs, 1.0, locQGs, gSize, vec, 1, 0.0, alpha, 1);
@@ -98,7 +99,7 @@ GenCoarseSet<Scalar>::getGtQMult(Scalar *vec, Scalar *alpha)
 
 template<class Scalar>
 void
-GenCoarseSet<Scalar>::subAlphaGtQ(int iSub, Scalar *vec, Scalar *alpha)
+GenCoarseSet<Scalar>::subAlphaGtQ(int iSub, const Scalar *vec, Scalar *alpha) const
 {
  if(gSize > 0)
  Tgemv('T',gSize, neighbNumRBMs[iSub], -1.0, neighbQGs[iSub], gSize,
@@ -107,7 +108,7 @@ GenCoarseSet<Scalar>::subAlphaGtQ(int iSub, Scalar *vec, Scalar *alpha)
 
 template<class Scalar>
 void
-GenCoarseSet<Scalar>::getGtQMult(int iSub, Scalar *vec, Scalar *alpha)
+GenCoarseSet<Scalar>::getGtQMult(int iSub, const Scalar *vec, Scalar *alpha) const
 {
  if(gSize > 0)
  Tgemv('T',gSize, neighbNumRBMs[iSub], 1.0, neighbQGs[iSub], gSize, 
@@ -116,7 +117,7 @@ GenCoarseSet<Scalar>::getGtQMult(int iSub, Scalar *vec, Scalar *alpha)
 
 template<class Scalar>
 void
-GenCoarseSet<Scalar>::getGtFMult(Scalar *vec, Scalar *alpha)
+GenCoarseSet<Scalar>::getGtFMult(const Scalar *vec, Scalar *alpha) const
 {
  if(gSize > 0)
  Tgemv('T',gSize, numGs, 1.0, locFGs, gSize, vec, 1, 0.0, alpha, 1);
@@ -124,7 +125,7 @@ GenCoarseSet<Scalar>::getGtFMult(Scalar *vec, Scalar *alpha)
 
 template<class Scalar>
 void
-GenCoarseSet<Scalar>::getGtFMult(int iSub, Scalar *vec, Scalar *alpha)
+GenCoarseSet<Scalar>::getGtFMult(int iSub, const Scalar *vec, Scalar *alpha) const
 {
  if(gSize > 0)
  Tgemv('T',gSize, neighbNumRBMs[iSub], +1.0, neighbQGs[iSub], gSize,
@@ -307,7 +308,7 @@ GenCoarseSet<Scalar>::subAlphaNeighbFG(int sub, Scalar *vec, Scalar *alpha)
 
 template<class Scalar>
 void
-GenCoarseSet<Scalar>::getCtFMult(Scalar *vec, Scalar *beta)
+GenCoarseSet<Scalar>::getCtFMult(const Scalar *vec, Scalar *beta) const
 {
  if(numBCs > 0 && gSize > 0)
  Tgemv('T', gSize, numBCs, -1, locFBCs, gSize, vec, 1, 0, beta, 1);
@@ -317,7 +318,7 @@ GenCoarseSet<Scalar>::getCtFMult(Scalar *vec, Scalar *beta)
 
 template<class Scalar>
 void
-GenCoarseSet<Scalar>::getCtMult(Scalar *vec, Scalar *beta)
+GenCoarseSet<Scalar>::getCtMult(const Scalar *vec, Scalar *beta) const
 {
  int i;
  for (i=0; i< numBCs; i++) {
@@ -329,7 +330,7 @@ GenCoarseSet<Scalar>::getCtMult(Scalar *vec, Scalar *beta)
 
 template<class Scalar>
 void
-GenCoarseSet<Scalar>::getCtFMult(int iSub, Scalar *vec, Scalar *beta)
+GenCoarseSet<Scalar>::getCtFMult(int iSub, const Scalar *vec, Scalar *beta) const
 {
  int nCright = neighbCSubIndex[iSub+1] - neighbCSubIndex[iSub];
  if(nCright > 0 && gSize > 0)
@@ -1152,5 +1153,5 @@ GenCoarseSet<Scalar>::reComputeNeighbFBCs(GenSubDomain<Scalar> *sd, GenSolver<Sc
  }
 }
 
-
-
+template class GenCoarseSet<double>;
+template class GenCoarseSet<std::complex<double>>;

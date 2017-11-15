@@ -650,18 +650,18 @@ PodProjectionNonLinDynamicDetail::jacSnapImpl::handleJacobianSnapshot() {
 
 PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
   NonLinDynamic(d),
-  impl_(NULL),
-  sttImpl_(NULL),
-  velImpl_(NULL),
-  accImpl_(NULL),
-  resImpl_(NULL),
-  jacImpl_(NULL),
-  podPostPro(NULL),
-  d0_Big(NULL),
-  v0_Big(NULL),
-  geomState_Big(NULL),
-  refState_Big(NULL),
-  solver_(NULL),
+  impl_(nullptr),
+  sttImpl_(nullptr),
+  velImpl_(nullptr),
+  accImpl_(nullptr),
+  resImpl_(nullptr),
+  jacImpl_(nullptr),
+  podPostPro(nullptr),
+  d0_Big(nullptr),
+  v0_Big(nullptr),
+  geomState_Big(nullptr),
+  refState_Big(nullptr),
+  solver_(nullptr),
   localBasisId(0)
 {}
 
@@ -1386,7 +1386,7 @@ PodProjectionNonLinDynamic::dynamCommToFluid(ModalGeomState *geomState, ModalGeo
          bkVelocity_Big(NonLinDynamic::solVecInfo()),
          vp_Big(NonLinDynamic::solVecInfo()),
          bkVp_Big(NonLinDynamic::solVecInfo());
-  GeomState *bkGeomState_Big = NULL;
+  GeomState *bkGeomState_Big = nullptr;
   const GenVecBasis<double> &projectionBasis = solver_->projectionBasis();
   projectionBasis.expand(velocity, velocity_Big);
   projectionBasis.expand(bkVelocity, bkVelocity_Big);

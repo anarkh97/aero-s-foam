@@ -17,12 +17,12 @@ protected:
    GenCRSolver(int _maxit, double _tol, AnyOperator* _A, AnyPreconditioner* __P = 0)
      { maxiter = _maxit; tolerance = _tol; A = _A; P = __P; solveTime = 0;
        printNumber = 1; verbose = 1; }
-   void solve(const AnyVector&, AnyVector&);
-   void reSolve(AnyVector &rhs) { AnyVector rhs_copy(rhs); solve(rhs_copy, rhs); }
+   void solve(const AnyVector&, AnyVector&) override;
+   void reSolve(AnyVector &rhs) override { AnyVector rhs_copy(rhs); solve(rhs_copy, rhs); }
    int neqs() const override { return A->neqs(); }
-   double getSolutionTime() { return solveTime; }
+   double getSolutionTime() override { return solveTime; }
    long size() const override { return 0; }
-   void factor() {}
+   void factor() override {}
 };
 
 #ifdef _TEMPLATE_FIX_

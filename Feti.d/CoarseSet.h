@@ -2,6 +2,7 @@
 #define _COARSESET_H_
 
 #include <Utils.d/dofset.h>
+#include <Feti.d/FetiSub.h>
 
 template <class Scalar> class GenFullM;
 template <class Scalar> class GenSymFullMatrix;
@@ -14,7 +15,7 @@ template <class Scalar> class FSCommPattern;
 template<class Scalar>
 class GenCoarseSet {
  public:
-   GenSubDomain<Scalar> *sd;
+   FetiSub<Scalar> *sd;
    int myNum;
    int numGs;
    Scalar *locGs;
@@ -78,16 +79,16 @@ class GenCoarseSet {
                       EqNumberer* eqNumber, int cOffset, int gOffset, int mOffset,
                       double *locR, GenSolver<Scalar> *s);
 
-   void getGtMult(Scalar *vec, Scalar *alpha);
-   void getGtQMult(Scalar *vec, Scalar *alpha);
-   void getGtQMult(int iSub, Scalar *vec, Scalar *alpha);
-   void getGtFMult(Scalar *vec, Scalar *alpha);
-   void getGtFMult(int iSub, Scalar *vec, Scalar *alpha);
+   void getGtMult(const Scalar *vec, Scalar *alpha) const;
+   void getGtQMult(const Scalar *vec, Scalar *alpha) const;
+   void getGtQMult(int iSub, const Scalar *vec, Scalar *alpha) const;
+   void getGtFMult(const Scalar *vec, Scalar *alpha) const;
+   void getGtFMult(int iSub, const Scalar *vec, Scalar *alpha) const;
    void addLocAlphaG(Scalar *vec, Scalar *alpha);
    void subLocAlphaG(Scalar *vec, Scalar *alpha);
    void subLocAlphaQG(Scalar *vec, Scalar *alpha);
    void subLocAlphaFG(Scalar *vec, Scalar *alpha);
-   void subAlphaGtQ(int, Scalar *vec, Scalar *alpha);
+   void subAlphaGtQ(int, const Scalar *vec, Scalar *alpha) const;
    void subAlphaNeighbQG(int, Scalar *vec, Scalar *alpha);
    void subAlphaNeighbFG(int, Scalar *vec, Scalar *alpha);
    void subNuNeighbFC(Scalar *vec, Scalar *alpha, int *);
@@ -101,9 +102,9 @@ class GenCoarseSet {
    void subLocNuFC(Scalar *vec, Scalar *nu);
    void subNuNeighbC(Scalar *vec, Scalar *nu, int *offsets);
 
-   void getCtMult(Scalar *vec, Scalar *beta);
-   void getCtFMult(Scalar *vec, Scalar *beta);
-   void getCtFMult(int iSub, Scalar *vec, Scalar *beta);
+   void getCtMult(const Scalar *vec, Scalar *beta) const;
+   void getCtFMult(const Scalar *vec, Scalar *beta) const;
+   void getCtFMult(int iSub, const Scalar *vec, Scalar *beta) const;
 
    int offset(int);
    Scalar *subG(int iSub)  { return locGs  + offset(iSub); }
@@ -121,10 +122,6 @@ class GenCoarseSet {
 };
 
 typedef GenCoarseSet<double> CoarseSet;
-
-#ifdef _TEMPLATE_FIX_
-  #include <Feti.d/CoarseSet.C>
-#endif
 
 #endif
 

@@ -1,11 +1,12 @@
 ADD_LIBRARY(Feti
         CoarseSetCore.C
+        CoarseSet.C
+        CoarseSet.h
         CGOrthoSet.C CGOrthoSet.h
         DistrVectorCore.C
         FetiCore.C
         FetiOpCore.C
         FetiDP.C
-        FetiDPCore.C
         NLFetiCore.C
         CCtSolver.d/BlockCCt.C
         FetiSub.h)

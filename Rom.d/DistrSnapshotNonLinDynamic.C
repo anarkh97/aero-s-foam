@@ -286,7 +286,7 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::dsvarSnapshotAdd(const DistrGeomState
 
 DistrSnapshotNonLinDynamic::DistrSnapshotNonLinDynamic(Domain *domain) :
   MDNLDynamic(domain),
-  impl_(NULL)
+  impl_(nullptr)
 {}
 
 void

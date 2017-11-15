@@ -66,12 +66,12 @@ private:
 
 
 //  BasisType outputBasisType_;
-  std::auto_ptr<Impl> stateImpl_; 
-  std::auto_ptr<Impl> internalStateImpl_;
-  std::auto_ptr<Impl> velocImpl_;
-  std::auto_ptr<Impl> accelImpl_;
-  std::auto_ptr<Impl> resImpl_;
-  std::auto_ptr<Impl> jacImpl_;
+  std::unique_ptr<Impl> stateImpl_;
+  std::unique_ptr<Impl> internalStateImpl_;
+  std::unique_ptr<Impl> velocImpl_;
+  std::unique_ptr<Impl> accelImpl_;
+  std::unique_ptr<Impl> resImpl_;
+  std::unique_ptr<Impl> jacImpl_;
 
   friend class Updater;
 };

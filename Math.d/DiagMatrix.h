@@ -25,10 +25,10 @@ class GenDiagMatrix : public GenSparseMatrix<Scalar>, public GenSolver<Scalar>
      int    dim() const override { return neq; }
 
      int neqs() const override { return neq; }
-     int numCol() const { return neq; }
+     int numCol() const override { return neq; }
      double getSolutionTime() override { return 0;}//JFD to be done
      long size() const override { return neq*sizeof(Scalar); }
-     void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
+     void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier) override;
      void solve(const Scalar *rhs, Scalar *sol) override;
      Scalar diag(int d) const override;
      Scalar &diag(int d) override;

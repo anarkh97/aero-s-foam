@@ -28,7 +28,7 @@ private:
   void handleStateSnap(const GeomState &state);
  
   class Impl;
-  std::auto_ptr<Impl> impl_; 
+  std::unique_ptr<Impl> impl_;
 
   friend class Updater;
 };

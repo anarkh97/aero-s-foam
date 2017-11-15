@@ -8,8 +8,8 @@ Communicator *fluidCom;
 
 // Dummy declaration for a global domain, to get an executable.
 Domain *domain;
-std::auto_ptr<GenSubDomainFactory<double> >   subDomainFactory(new GenSubDomainFactory<double>());
-std::auto_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomainFactory<DComplex>());;
+std::unique_ptr<GenSubDomainFactory<double> >   subDomainFactory(new GenSubDomainFactory<double>());
+std::unique_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomainFactory<DComplex>());;
 
 // Dummy declaration for a global geoSource
 GeoSource *geoSource;

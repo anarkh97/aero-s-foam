@@ -48,7 +48,7 @@ class GenDBSparseMatrix : public SparseData, public GenSparseMatrix<Scalar> {
    void makeIdentity();
    int  dim() const override { return numUncon; }
    int  neqs() const override { return numUncon; }
-   int  numRow() const { return numUncon; }
+   int  numRow() const override { return numUncon; }
    long size() const;
    void print(char *fileName);
    void print() override;

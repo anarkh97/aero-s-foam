@@ -139,12 +139,12 @@ private:
   void reduceDisp(Vector &d, Vector &dr) const;
 
 protected:
-  std::auto_ptr<Impl> impl_;
-  std::auto_ptr<Impl> sttImpl_;
-  std::auto_ptr<Impl> velImpl_;
-  std::auto_ptr<Impl> accImpl_;
-  std::auto_ptr<Impl> resImpl_;
-  std::auto_ptr<Impl> jacImpl_;
+  std::unique_ptr<Impl> impl_;
+  std::unique_ptr<Impl> sttImpl_;
+  std::unique_ptr<Impl> velImpl_;
+  std::unique_ptr<Impl> accImpl_;
+  std::unique_ptr<Impl> resImpl_;
+  std::unique_ptr<Impl> jacImpl_;
   
 private:
   friend class Updater;

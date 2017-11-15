@@ -169,7 +169,7 @@ public:
 	int *getUserDispDataMap()   { return locToGlUserDispMap; }
 	int *getUserForceDataMap()  { return locToGlUserForceMap; }
 	int countElemNodes();
-	int numMPCs() const         { return numMPC; }
+	int numMPCs() const override { return numMPC; }
 	int numMPCs_primal() const  { return numMPC_primal; }
 	int globalNumNodes();
 	int numNodes() const        { return numnodes; }
@@ -257,6 +257,10 @@ protected:
 	int *mpclast;
 
 public:
+	/// \copydoc
+	int getLocalMPCIndex(int globalMpcIndex) const override;
+	/// \copydoc
+	int getGlobalMPCIndex(int localMpcIndex) const override;
 	void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
 	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
 	void setGlCrnGroup(int *_gcg) { glCrnGroup = _gcg; }
@@ -601,11 +605,13 @@ public:
 	void normalizeCstep2(Scalar *cnorm);
 	void getQtKQ(GenSolver<Scalar> *s) override;
 	void getQtKQ(int iMPC, Scalar *QtKQ) override;
-	void multQt(int glMPCnum, Scalar *V, int numV, Scalar *QtV);
-	void multQt(int glMPCnum, Scalar *x, Scalar *result);
-	void multQtKBt(int glNumMPC, Scalar *G, Scalar *QtKBtG, Scalar alpha=1.0, Scalar beta=1.0);
+	void multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const override;
+	void multQt(int glMPCnum, const Scalar *x, Scalar *result) const;
+	void multQtKBt(int glNumMPC, const Scalar *G, Scalar *QtKBtG, Scalar alpha=1.0, Scalar beta=1.0) const override;
 	void gatherDOFList(FSCommPattern<int> *pat);
 	void gatherDOFListPlus(FSCommPattern<int> *pat);
+
+	const Scalar *getQtKpBt() const override { return QtKpBt; }
 
 	friend class GenDistrDomain<Scalar>;
 	friend class GenDecDomain<Scalar>;

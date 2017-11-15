@@ -1,10 +1,13 @@
+#include <complex>
 #include <Feti.d/CoarseSet.h>
+#include <Math.d/matrix.h>
+#include <Math.d/SparseMatrix.h>
 
 template<>
 void
-GenCoarseSet<DComplex>::addMPCContrib(int iMPC, GenSparseMatrix<DComplex> *coarseMat,
+GenCoarseSet<std::complex<double>>::addMPCContrib(int iMPC, GenSparseMatrix<std::complex<double>> *coarseMat,
                 EqNumberer* eqNumber, int cOffset, int gOffset, int mpcOffset,
-                double *locR, GenSolver<DComplex> *s)
+                double *locR, GenSolver<std::complex<double>> *s)
 {
   int numMPCs = sd->numMPCs();
   if(numMPCs > 0) 
@@ -63,7 +66,7 @@ GenCoarseSet<double>::addMPCContrib(int iMPC, GenSparseMatrix<double> *coarseMat
            eqNumber->firstdof(mpcOffset-iMPC)+sd->localToGlobalMPC[jMPC], myMPCRow);
 #endif
 		coarseMat->add(qtkq,
-		               eqNumber->firstdof(mpcOffset-iMPC)+sd->localToGlobalMPC[jMPC],
+		               eqNumber->firstdof(mpcOffset-iMPC)+sd->getGlobalMPCIndex(jMPC),
 		               myMPCRow);
 	}
 
@@ -71,7 +74,7 @@ GenCoarseSet<double>::addMPCContrib(int iMPC, GenSparseMatrix<double> *coarseMat
 	if(numGs > 0) {
 		GenStackFullM<double> GtBKQ(numGs,1,stackMem);
 		GtBKQ.zero(); // NOTE: Never remove this!
-		getGtMult(sd->QtKpBt+sd->globalToLocalMPC[iMPC]*sd->interfLen(), GtBKQ.data());
+		getGtMult(sd->getQtKpBt()+sd->getLocalMPCIndex(iMPC)*sd->interfLen(), GtBKQ.data());
 #ifdef DEBUG_MPC
 		GtBKQ.print("--- GtBKQ ---","GtBKQ");
    fprintf(stderr,"GtBKQ: Where am I adding this %d %d\n",myFGcol, myMPCRow);
@@ -86,7 +89,7 @@ GenCoarseSet<double>::addMPCContrib(int iMPC, GenSparseMatrix<double> *coarseMat
 		GenStackFullM<double> GtBKQ(nGleft, 1, stackMem);
 		if(neighbNumRBMs[jSub] > 0 ) {
 			Tgemm('T', 'N', 1, nGleft, subSize(jSub), -1.0,
-			      sd->QtKpBt+subOffset[jSub]+sd->globalToLocalMPC[iMPC]*sd->interfLen()
+			      sd->getQtKpBt()+subOffset[jSub]+sd->getLocalMPCIndex(iMPC)*sd->interfLen()
 				,gSize, neighbGs[jSub], leadingDimGs[jSub],
 				  0.0, GtBKQ.data(), 1);
 #ifdef DEBUG_MPC
@@ -99,7 +102,7 @@ GenCoarseSet<double>::addMPCContrib(int iMPC, GenSparseMatrix<double> *coarseMat
 	// add QtKBtC
 	if(numBCs > 0) {
 		GenStackFullM<double> CtBKQ(numBCs, 1, stackMem);
-		getCtMult(sd->QtKpBt+sd->globalToLocalMPC[iMPC]*sd->interfLen(), CtBKQ.data());
+		getCtMult(sd->getQtKpBt()+sd->getLocalMPCIndex(iMPC)*sd->interfLen(), CtBKQ.data());
 		int i;
 		for(i=0; i<numBCs; ++i)
 			CtBKQ[i][0] = -CtBKQ[i][0];
@@ -121,10 +124,10 @@ GenCoarseSet<double>::addMPCContrib(int iMPC, GenSparseMatrix<double> *coarseMat
 			int leftFCcol = eqNumber->firstdof(neighbs[jSub]+cOffset) +
 			            neighbCs[neighbCSubIndex[jSub]][1];
 			GenStackFullM<double> CtBKQ(nCleft, 1, stackMem);
-			double *BKQ = sd->QtKpBt;
+			const double *BKQ = sd->getQtKpBt();
 			int i;
 			for(i = 0; i < nCleft; ++i)
-				CtBKQ[i][0] = -cornerSign*BKQ[sd->globalToLocalMPC[iMPC]*gSize + leftCs[i][0] ];
+				CtBKQ[i][0] = -cornerSign*BKQ[sd->getLocalMPCIndex(iMPC)*gSize + leftCs[i][0] ];
 			coarseMat->add(CtBKQ, leftFCcol, myMPCRow);
 		}
 	}

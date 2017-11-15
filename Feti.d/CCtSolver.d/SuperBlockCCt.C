@@ -191,7 +191,7 @@ SuperBlockCCtSolver<Scalar>::reSolve(GenDistrVector<Scalar> &v)
   mpcvPat2->exchange();
   recBlockMpcResidualAfterSolve();
 #endif
-  execParal1R(this->numSubsWithMpcs, this, &SuperBlockCCtSolver<Scalar>::insertBlockMpcResidual, v);
+  execParal(this->numSubsWithMpcs, this, &SuperBlockCCtSolver<Scalar>::insertBlockMpcResidual, v);
 }
 
 template<class Scalar>
@@ -624,7 +624,7 @@ SuperBlockCCtSolver<Scalar>::extractBlockMpcResidual(GenDistrVector<Scalar> &v) 
 
 template<class Scalar>
 void
-SuperBlockCCtSolver<Scalar>::extractOneBlockMpcResidual(int IBlock, GenDistrVector<Scalar> &v)
+SuperBlockCCtSolver<Scalar>::extractOneBlockMpcResidual(int IBlock, GenDistrVector<Scalar> &v) const
 {
   int iBlock = (*myCPUToLocAssBlocks)[IBlock];
   for(int i=0;i<LlIdLocAssBlkToMySubs->num(IBlock);i++) {
@@ -692,12 +692,12 @@ template<class Scalar>
 void
 SuperBlockCCtSolver<Scalar>::solveBlockCCt( GenDistrVector<Scalar> &v) const
 {
-  execParal1R(nMpcBlocksOnMyCPU, this, &SuperBlockCCtSolver<Scalar>::solveOneBlockCCt, v);
+  execParal(nMpcBlocksOnMyCPU, this, &SuperBlockCCtSolver<Scalar>::solveOneBlockCCt, v);
 }
 
 template<class Scalar>
 void
-SuperBlockCCtSolver<Scalar>::solveOneBlockCCt(int IBlock, GenDistrVector<Scalar> &v)
+SuperBlockCCtSolver<Scalar>::solveOneBlockCCt(int IBlock, GenDistrVector<Scalar> &v) const
 {
   int iBlk = IBlock;
   int iBlock = (*cpuToBlock)[myCPU][iBlk];
@@ -941,7 +941,7 @@ void
 SuperBlockCCtSolver<Scalar>::deleteBlockMpcEqNums()
 {
   if(blockMpcEqNums){
-    execParal1R(nExtMpcBlocksOnMyCPU, this, &SuperBlockCCtSolver<Scalar>::deleteOneBlockMpcEqNums, myCPUExtBlockIdArray);
+    execParal(nExtMpcBlocksOnMyCPU, this, &SuperBlockCCtSolver<Scalar>::deleteOneBlockMpcEqNums, myCPUExtBlockIdArray);
     delete [] blockMpcEqNums; blockMpcEqNums = 0; 
   }
 }

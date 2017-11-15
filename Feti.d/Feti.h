@@ -1,5 +1,6 @@
 #ifndef _FETI_H_
 #define _FETI_H_
+#include <iostream>
 
 #include <Feti.d/DistrVector.h>
 #include <Threads.d/Paral.h>
@@ -13,7 +14,7 @@
 #include <Utils.d/dbg_alloca.h>
 #include <Feti.d/DistrVectorSet.h>
 #include <Solvers.d/ParallelSolver.h>
-#include <iostream>
+#include <Feti.d/CCtSolver.d/CCtSolver.h>
 
 template <class Scalar> class GenFetiOp;
 typedef GenFetiOp<double> FetiOp;
@@ -131,17 +132,17 @@ protected:
 	                            GenDistrVector<Scalar> *dv);
 	void getNonLocalGtQMult(int subI, int subJ);
 	void getGtQMult(int iSub, Scalar *, GenDistrVector<Scalar> *);
-	void getFCMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv);
+	void getFCMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const;
 	void reBuildGtG();
 	void makePCtFPC();
 	void reBuildPCtFPC();
 	void makelocalFcoarse();
 	int  collectIntGlobalSum();
-	void subRgcMult(int i, int nThreads, GenVector<Scalar>* alpha, GenVector<Scalar>* result);
-	void subRgcTransMult(int i, int nThreads, GenVector<Scalar>* alpha, GenVector<Scalar>* result);
+	void subRgcMult(int i, int nThreads, GenVector<Scalar>* alpha, GenVector<Scalar>* result) const;
+	void subRgcTransMult(int i, int nThreads, GenVector<Scalar>* alpha, GenVector<Scalar>* result) const;
 	void fSend(int i,  GenDistrVector<Scalar> &) const;
 	void fScale(int i, GenDistrVector<Scalar> &) const;
-	void fSplit(int iSub, GenDistrVector<Scalar> &force);
+	void fSplit(int iSub, GenDistrVector<Scalar> &force) const;
 	void fSendCoupled(int iSub, GenDistrVector<Scalar> &force, GenDistrVector<Scalar> &fw) const;
 	void fScaleCoupled(int iSub, GenDistrVector<Scalar> &force, GenDistrVector<Scalar> &fw) const;
 
@@ -159,22 +160,22 @@ protected:
 	void singleCoarseSolve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &u) const;
 	void setAllOffsets(int iSub, int gOffset);
 	void getSRMult(int iSub, GenDistrVector<Scalar> *r, GenDistrVector<Scalar> *lambda,
-	               Scalar *alpha);
-	void getSGtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *alpha);
-	void getSCtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv);
-	void getSQtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv);
-	void getFGMult(int iSub, GenDistrVector<Scalar> *r, Scalar *alpha);
+	               Scalar *alpha) const;
+	void getSGtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *alpha) const;
+	void getSCtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const;
+	void getSQtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const;
+	void getFGMult(int iSub, GenDistrVector<Scalar> *r, Scalar *alpha) const;
 	void addG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const;
 	void addSG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const;
 	void addGs(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w, GenVector<Scalar> &) const;
 	void singlePr(GenDistrVector<Scalar> &y, GenDistrVector<Scalar> &p, GenVector<Scalar> &) const;
-	void addMpcRhs(int iMPC, Scalar *singleC);
+	void addMpcRhs(int iMPC, Scalar *singleC) const;
 	void preprocessMPCs(int iSub);
 	// corner preprocessing
 	void preProcessCorners();
 
-	void addC(int iSub, GenDistrVector<Scalar> *lambda, Scalar *sv);
-	void getQtKpBMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv);
+	void addC(int iSub, GenDistrVector<Scalar> *lambda, Scalar *sv) const;
+	void getQtKpBMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const;
 	void getNeighbFGs(int iSub);
 
 private:
@@ -190,14 +191,14 @@ public:
 	GenFetiSolver(int _nsub, GenSubDomain<Scalar> **subs, int _numThreads, int _verboseFlag);
 	virtual ~GenFetiSolver();
 
-	void sendDeltaF(int iSub, GenDistrVector<Scalar>& deltaF);
-	void normDeltaF(int iSub, double * subDots, GenDistrVector<Scalar>* deltaF);
+	void sendDeltaF(int iSub, GenDistrVector<Scalar>& deltaF) const;
+	void normDeltaF(int iSub, double * subDots, GenDistrVector<Scalar>* deltaF) const;
 	void factorMatrices(int isub);
 	void sendScale(int isub);
 	void collectScale(int isub);
 	void getErrorEstimator(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &es);
 	void interfaceDiff(int iSub, GenDistrVector<Scalar> &v) const;
-	void rebuildInterface(int iSub, GenDistrVector<Scalar> &v);
+	void rebuildInterface(int iSub, GenDistrVector<Scalar> &v) const;
 	void multKbb(int iSub, const GenDistrVector<Scalar>& v, GenDistrVector<Scalar> &interfvec,
 	             GenDistrVector<Scalar>& deltaU, GenDistrVector<Scalar> &deltaF, bool &errorFlag) const;
 	void localSolve(int iSub, GenDistrVector<Scalar> &v1, GenDistrVector<Scalar> &v2,
@@ -208,10 +209,10 @@ public:
 	void interfSend(int iSub, GenDistrVector<Scalar> &dv1) const;
 	//void interfDiff(int iSub, GenDistrVector<Scalar> &dv1);
 	void interfDiffAndDot(int iSub, GenDistrVector<Scalar> &dv1, GenDistrVector<Scalar> &dv2) const;
-	void getRMult(int iSub, GenDistrVector<Scalar> *localvec, Scalar *alpha);
-	void getGtMult(int iSub, GenDistrVector<Scalar> *localvec, Scalar *alpha);
-	void addRP(int iSub, GenDistrVector<Scalar> * localvec, Scalar *alpha);
-	void addRS(int iSub, GenDistrVector<Scalar> * localvec, Scalar *alpha);
+	void getRMult(int iSub, GenDistrVector<Scalar> *localvec, Scalar *alpha) const;
+	void getGtMult(int iSub, GenDistrVector<Scalar> *localvec, Scalar *alpha) const;
+	void addRP(int iSub, GenDistrVector<Scalar> * localvec, Scalar *alpha) const;
+	void addRS(int iSub, GenDistrVector<Scalar> * localvec, Scalar *alpha) const;
 	void solve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &x) override;
 	void distributeForce(GenDistrVector<Scalar> &force) const;
 	void distributeForce(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fw) const;
@@ -355,7 +356,7 @@ public:
 	//int ngrbm;
 	void makeKbb(int iSub);
 	void makeFc(int iSub, GenDistrVector<Scalar> &fr, GenDistrVector<Scalar> &lambda) const;
-	void makeFcB(int iSub, GenDistrVector<Scalar> &bf);
+	void makeFcB(int iSub, GenDistrVector<Scalar> &bf) const;
 	void KrrReSolve(int iSub, GenDistrVector<Scalar> &ur);
 	void makeKcc();
 	void deleteKcc() { /* not implemented */ };
@@ -417,7 +418,7 @@ public:
 	void solveGCR(const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u);
 	double preCondition(const GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Pv, bool errorFlag = true) const;
 
-	void subtractMpcRhs(int iSub, GenDistrVector<Scalar> &dv1);
+	void subtractMpcRhs(int iSub, GenDistrVector<Scalar> &dv1) const;
 	bool updateActiveSet(GenDistrVector<Scalar> &v, int flag, double tol = 0.0);
 	void subUpdateActiveSet(int iSub, GenDistrVector<Scalar> &v, double tol, int flag, bool *statusChange);
 	void subRecvMpcStatus(int iSub, FSCommPattern<int> *mpcPat, int flag, bool *statusChange);
@@ -500,7 +501,7 @@ public:
 	void getLocalMpcForces(int iSub, double *mpcLambda);
 private:
 	void setBodyRBMoffset(int iSub, int *zColOffset);
-	void addMpcRHS(int iMPC, Scalar *singleC);
+	void addMpcRHS(int iMPC, Scalar *singleC) const;
 	void wetInterfaceComms();  // coupled_dph
 	void computeLocalWaveNumbers();
 public:
@@ -643,7 +644,6 @@ struct BlockPair {
 
 #ifdef _TEMPLATE_FIX_
 #include <Feti.d/Feti.C>
-#include <Feti.d/FetiDP.C>
 #include <Feti.d/NLFeti.C>
 #ifdef DISTRIBUTED
 #include <Dist.d/DistFeti.C>

@@ -60,10 +60,10 @@ template<class Scalar>
 void
 SubBlockCCtSolver<Scalar>::reSolve(GenDistrVector<Scalar> &v)
 {
-  execParal1R(this->numSubsWithMpcs, this, &SubBlockCCtSolver<Scalar>::solveLocalCCt, v);
-  execParal1R(this->numSubsWithMpcs, this, &SubBlockCCtSolver<Scalar>::sendMpcInterfaceVec, v);
+  execParal(this->numSubsWithMpcs, this, &SubBlockCCtSolver<Scalar>::solveLocalCCt, v);
+  execParal(this->numSubsWithMpcs, this, &SubBlockCCtSolver<Scalar>::sendMpcInterfaceVec, v);
   mpcvPat->exchange();
-  execParal1R(this->numSubsWithMpcs, this, &SubBlockCCtSolver<Scalar>::combineMpcInterfaceVec, v);
+  execParal(this->numSubsWithMpcs, this, &SubBlockCCtSolver<Scalar>::combineMpcInterfaceVec, v);
 }
 
 template<class Scalar>

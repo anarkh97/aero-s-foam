@@ -333,7 +333,7 @@ MultiDomDynPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOp
                    VelProjected = true;
                  }
                }
-               execParal4R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *AccSensorValues, &oinfo[iOut], &t, 2);
+               execParal(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *AccSensorValues, &oinfo[iOut], &t, 2);
              }
            }
            break;
@@ -351,7 +351,7 @@ MultiDomDynPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOp
                  SensorBasis->expand2(distState.getDisp(), *DispSensorValues);
                  DispProjected = true;
                }
-               execParal4R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *DispSensorValues, &oinfo[iOut], &t, 0);
+               execParal(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *DispSensorValues, &oinfo[iOut], &t, 0);
              }
            }
            break;
@@ -376,7 +376,7 @@ MultiDomDynPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOp
                    DispProjected = true;
                  }
                }
-               execParal4R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *VelSensorValues, &oinfo[iOut], &t, 1);
+               execParal(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *VelSensorValues, &oinfo[iOut], &t, 1);
              }
            }
            break;

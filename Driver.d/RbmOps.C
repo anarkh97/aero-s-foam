@@ -284,7 +284,7 @@ void GenSubDomain<Scalar>::zeroG()
 {
   if(G) {
     for(int i=0; i<scomm->numT(SComm::mpc); ++i)
-      if(G[i]) delete G[i]->zero();
+      if(G[i]) G[i]->zero();
   }
   if(neighbG) {
     for(int i=0; i<scomm->numT(SComm::mpc); ++i)

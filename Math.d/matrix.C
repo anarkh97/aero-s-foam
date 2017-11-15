@@ -7,6 +7,7 @@
 #include <Math.d/Vector.h>
 #include <Threads.d/PHelper.h>
 #include <Utils.d/linkfc.h>
+#include "BLAS.h"
 
 #ifdef TFLOP
 #include <bsd.h>
@@ -17,14 +18,6 @@
 #endif
 
 extern "C" {
-  // BLAS level three real Matrix-VectorProduct
-  void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                const double &, const double *, const int &,
-                const double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(zgemv)(const char &, const int &,const int &,
-                       const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *, const int &);
   // triangular factorization of a real general matrix using Gaussian elimination with complete pivoting  
   void _FORTRAN(dgecp)(const int &, double *, const int &, const double &, const int &, int &, int *, int *, int &);
   void _FORTRAN(zgecp)(const int &, complex<double> *, const int &, const double &, const int &, int &, int *, int *, int &);
@@ -893,16 +886,6 @@ GenFullM<Scalar>::subtract(GenFullM<Scalar> &mat, int fRow, int fCol)
       (*this)[fRow+irow][fCol+icol] -= mat[irow][icol];
       }
   }
-}
-
-extern "C" {
-  void _FORTRAN(dgemm)(const char &, const char &, const int &,const int &,
-                const int &, const double &, double *, const int &,
-                double *, const int &, const double &, double *, const int &);
-  void _FORTRAN(zgemm)(const char &, const char &, const int &,const int &,
-                       const int &, const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *,
-                       const int &);
 }
 
 #ifndef _TGEMM__

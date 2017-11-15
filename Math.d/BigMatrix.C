@@ -13,8 +13,8 @@
 // BLAS level three real Matrix Product
 
 extern "C" {
-  void _FORTRAN(dsisl)(double *, const int &, const int &, int *, double *);
-  void _FORTRAN(dsifa)(double *, const int &, const int &, int *, int &);
+  void _FORTRAN(dsisl)(const double *, const int &, const int &, int *, double *);
+  void _FORTRAN(dsifa)(const double *, const int &, const int &, int *, int &);
 }
 
 
@@ -154,7 +154,7 @@ GenBigMatrix<Scalar>::parallelFactor()
 
 template<class Scalar>
 void
-GenBigMatrix<Scalar>::subForward(int iBlock, int iThread, int numThreads, Scalar *rhs)
+GenBigMatrix<Scalar>::subForward(int iBlock, int iThread, int numThreads, Scalar *rhs) const
 {
  int rem = iBlock%numThreads;
  int myBlock = iBlock-rem+iThread;
@@ -168,7 +168,7 @@ GenBigMatrix<Scalar>::subForward(int iBlock, int iThread, int numThreads, Scalar
 
 template<class Scalar>
 void
-GenBigMatrix<Scalar>::subBackward(int iBlock, int iThread, int numThreads, Scalar *rhs)
+GenBigMatrix<Scalar>::subBackward(int iBlock, int iThread, int numThreads, Scalar *rhs) const
 {
  int rem = iBlock%numThreads;
  int myBlock = iBlock-rem+iThread;
@@ -181,7 +181,7 @@ GenBigMatrix<Scalar>::subBackward(int iBlock, int iThread, int numThreads, Scala
 
 template<class Scalar>
 void
-GenBigMatrix<Scalar>::subReSolve(int iThread, int numThreads, Scalar *rhs)
+GenBigMatrix<Scalar>::subReSolve(int iThread, int numThreads, Scalar *rhs) const
 {
  int iBlock;
  for(iBlock = 0; iBlock < numBlocks; ++iBlock) {

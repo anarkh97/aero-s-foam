@@ -56,7 +56,7 @@ inline void Tgemv(const char &a, const int &b, const int &c,
 }
 
 inline void Tgemv(const char &a, const int &b, const int &c,
-                  const complex<double> &d, complex<double> *e, const int &f,
+                  const complex<double> &d, const complex<double> *e, const int &f,
                   complex<double> *g, const int &h, const complex<double> &i, complex<double> *j, const int &k)
 {
  _FORTRAN(zgemv)(a,b,c,d,e,f,g,h,i,j,k);

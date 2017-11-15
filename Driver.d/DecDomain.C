@@ -1381,7 +1381,7 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::computeSubdStress(int iSub, GenDistrVector<Scalar> *globStress, 
                                         GenDistrVector<Scalar> *globWeight, GenDistrVector<Scalar> *u, 
-                                        int fileNumber, int Findex)
+                                        int fileNumber, int Findex) const
 {
   GenStackVector<Scalar> gstress(globStress->subData(iSub),globStress->subLen(iSub));
   GenStackVector<Scalar> gweight(globWeight->subData(iSub),globWeight->subLen(iSub));
@@ -1391,7 +1391,7 @@ GenDecDomain<Scalar>::computeSubdStress(int iSub, GenDistrVector<Scalar> *globSt
 
 template<class Scalar>
 void GenDecDomain<Scalar>::computeSubdElemStress(int iSub, Scalar *glElemStress,
-                                                 GenDistrVector<Scalar> *u, int fileNumber, int Findex) 
+                                                 GenDistrVector<Scalar> *u, int fileNumber, int Findex)  const
 {
   Scalar *locStress = new Scalar[subDomain[iSub]->countElemNodes()];
   subDomain[iSub]->computeStressStrain(fileNumber, u->subData(iSub),
@@ -1402,10 +1402,10 @@ void GenDecDomain<Scalar>::computeSubdElemStress(int iSub, Scalar *glElemStress,
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::computeSubdStress(int iSub, GenDistrVector<Scalar> *globStress,
+GenDecDomain<Scalar>::computeSubdStress_NL(int iSub, GenDistrVector<Scalar> *globStress,
                                         GenDistrVector<Scalar> *globWeight, DistrGeomState *u, 
                                         Corotator ***allCorot, int *fileNumber, int *Findex,
-                                        DistrGeomState *refState)
+                                        DistrGeomState *refState) const
 {
   // Non-linear version of computeSubdStress
   GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
@@ -1415,10 +1415,10 @@ GenDecDomain<Scalar>::computeSubdStress(int iSub, GenDistrVector<Scalar> *globSt
 }
 
 template<class Scalar>
-void GenDecDomain<Scalar>::computeSubdElemStress(int iSub, Scalar *glElemStress,
+void GenDecDomain<Scalar>::computeSubdElemStress_NL(int iSub, Scalar *glElemStress,
                                                  DistrGeomState *u, Corotator ***allCorot, 
                                                  int fileNumber, int Findex,
-                                                 DistrGeomState *refState)
+                                                 DistrGeomState *refState) const
 {
   // Non-linear version of computeSubdElemStress
   Scalar *locStress = new Scalar[subDomain[iSub]->countElemNodes()];
@@ -1432,12 +1432,12 @@ void GenDecDomain<Scalar>::computeSubdElemStress(int iSub, Scalar *glElemStress,
 template<class Scalar>
 void GenDecDomain<Scalar>::getElementStressStrain(DistrGeomState *gs, Corotator ***allCorot, 
                                                   int fileNumber, int Findex, double time,
-                                                  DistrGeomState *refState)
+                                                  DistrGeomState *refState) const
 {
   // Non-linear version of getElementStressStrain
   int numElemNodes = elemToNode->numConnect();
   Scalar *globStress = new Scalar[numElemNodes];
-  execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdElemStress,
+  execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdElemStress_NL,
             globStress, gs, allCorot, fileNumber, Findex, refState);
   geoSource->outputElemStress(fileNumber, globStress, elemToNode->csize(),
                               elemToNode->ptr(), time);
@@ -1467,7 +1467,7 @@ GenDecDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCorot,
 
  // each subdomain computes its stress vector
  if(Findex != 16) {
-   execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
+   execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress_NL,
              stress, weight, gs, allCorot, &fileNumber, &Findex, refState);
  }
 
@@ -1682,7 +1682,7 @@ GenDecDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allCor
     stress->zero();
     weight->zero();
     // each subdomain computes its stress vector
-    execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
+    execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress_NL,
              stress, weight, gs, allCorot, &fileNumber, &Findex, refState);
     Scalar *globalStress = new Scalar[numNodes]; 
     Scalar *globalWeight = new Scalar[numNodes];
@@ -1857,7 +1857,7 @@ GenDecDomain<Scalar>::getElementPrincipalStress(DistrGeomState *gs, Corotator **
     Findex = strDir[str_loop];
 
     // each subdomain computes its stress vector
-    execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdElemStress,
+    execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdElemStress_NL,
               globAllStress[str_loop], gs, allCorot, fileNumber, Findex, refState);
   }
 
@@ -3746,7 +3746,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  }
 
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
- execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
+ execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runForWB, make_feti);
 
  GenAssembler<Scalar> * assembler = 0;
  if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1 || domain->solInfo().solvercntl->type == 1) {

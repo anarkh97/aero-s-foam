@@ -172,7 +172,7 @@ BlockCCtSolver<Scalar>::reSolve(GenDistrVector<Scalar> &v)
   mpcvPat2->exchange();
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::recBlockMpcResidualAfterSolve);
 #endif
-  execParal1R(this->numSubsWithMpcs, this, &BlockCCtSolver<Scalar>::insertBlockMpcResidual, v);
+  execParal(this->numSubsWithMpcs, this, &BlockCCtSolver<Scalar>::insertBlockMpcResidual, v);
 }
 
 

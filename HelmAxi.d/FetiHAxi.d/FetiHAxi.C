@@ -494,7 +494,7 @@ FetiHAxiSolver::makeStaticLoad(DistrComplexVector &f) {
  fprintf(stderr," ... Building the Force             ...\n");
  f.zero();
  int nP = (nsub>numModes) ? nsub : 2*numModes+1; 
- timedParal1R(times.buildRhs,nP,this,
+ timedParal(times.buildRhs,nP,this,
                &FetiHAxiSolver::makeLocalStaticLoad,f);
 
 }
@@ -698,7 +698,7 @@ FetiHAxiSolver::computePtd(DistrComplexVector &r, DistrComplexVector&f) {
  execParal(nP, this, &FetiHAxiSolver::subtractQw,f);
 
  startTimerMemory(times.sAndJ, times.memorySAndJ);
- timedParal2R(times.solveAndJump, nP, this, &FetiHAxiSolver::multBK, r, f);
+ timedParal(times.solveAndJump, nP, this, &FetiHAxiSolver::multBK, r, f);
  stopTimerMemory(times.sAndJ, times.memorySAndJ);
 
  for (Fourier=0; Fourier<totalFourier; ++Fourier) {
@@ -854,16 +854,16 @@ FetiHAxiSolver::preCondition(DistrComplexVector &r,
 // Compute the error estimator
 
  int nP = (nsub>numModes) ? nsub : 2*numModes+1;
- timedParal4R(times.preconditioner, nP, this, &FetiHAxiSolver::multKbb, 
+ timedParal(times.preconditioner, nP, this, &FetiHAxiSolver::multKbb, 
               r, Mr, *deltaU, *deltaF);
 
  int Fourier;
  int totalFourier = 2*numModes+1;
 
  for (Fourier=0; Fourier<totalFourier; ++Fourier) {
-    timedParal2R(times.preconditioner,nsub,this,&FetiHAxiSolver::sendInterf,
+    timedParal(times.preconditioner,nsub,this,&FetiHAxiSolver::sendInterf,
                  Mr, Fourier);
-    timedParal2R(times.preconditioner,nsub,this,&FetiHAxiSolver::InterfDiff, 
+    timedParal(times.preconditioner,nsub,this,&FetiHAxiSolver::InterfDiff, 
                  Mr, Fourier);
  }
 
@@ -949,7 +949,7 @@ FetiHAxiSolver::applyFP(DistrComplexVector &z,DistrComplexVector &Fz) {
  execParal(totalFourier, this, &FetiHAxiSolver::solveCoarsePb);
 
  startTimerMemory(times.sAndJ, times.memorySAndJ);
- timedParal2R(times.solveAndJump, nP, this, &FetiHAxiSolver::finishFPz,
+ timedParal(times.solveAndJump, nP, this, &FetiHAxiSolver::finishFPz,
               z, Fz);
  stopTimerMemory(times.sAndJ, times.memorySAndJ);
 
@@ -1033,14 +1033,14 @@ FetiHAxiSolver::orthogonalize(DistrComplexVector &r, DistrComplexVector &Fr,
    for (Fourier=0; Fourier<totalFourier; ++Fourier) {
      timedParal(times.orthogonalize,nsub,this,
                &FetiHAxiSolver::scatterHalfInterface, hOp, &p, &Fourier);
-     timedParal2R(times.orthogonalize,nsub, this, 
+     timedParal(times.orthogonalize,nsub, this, 
                  &FetiHAxiSolver::rebuildInterface, p, Fourier);
    }
 
    for (Fourier=0; Fourier<totalFourier; ++Fourier) {
      timedParal(times.orthogonalize, nsub, this,
                &FetiHAxiSolver::scatterHalfInterface, hOFp, &Fp, &Fourier);
-     timedParal2R(times.orthogonalize, nsub, this, 
+     timedParal(times.orthogonalize, nsub, this, 
                  &FetiHAxiSolver::rebuildInterface, Fp, Fourier);
    }
  

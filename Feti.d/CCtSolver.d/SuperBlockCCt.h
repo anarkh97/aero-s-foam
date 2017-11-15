@@ -87,8 +87,8 @@ class SuperBlockCCtSolver : public CCtSolver<Scalar>
     void extractBlockMpcResidual(GenDistrVector<Scalar> &v) const;
     void insertBlockMpcResidual(int iSub, GenDistrVector<Scalar> &v);
     void initOneBlockMpcResidual(int IBlock) const;
-    void solveOneBlockCCt(int IBlock, GenDistrVector<Scalar> &v);
-    void extractOneBlockMpcResidual(int IBlock, GenDistrVector<Scalar> &v);
+    void solveOneBlockCCt(int IBlock, GenDistrVector<Scalar> &v) const; // Non const objects pointed to by members
+    void extractOneBlockMpcResidual(int IBlock, GenDistrVector<Scalar> &v) const; // Non const objects pointed to by members
     void sendOneBlockCCtsolver(int IBlock);
     void recOneBlockCCtsolver(int IBlock);
     void sendBlockMpcResidualBeforeSolve();

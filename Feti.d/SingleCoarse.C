@@ -1487,7 +1487,7 @@ FetiSolver::localSolveAndJump(DistrVector &ifrc, DistrVector &bf,
  timedParal(times.solveAndJump, nsub, this, &FetiSolver::localSolve2, &u,
               &lambda, &beta, &ifrc, &bf);
  vPat->exchange();
- timedParal2R(times.solveAndJump, nsub, this, &FetiSolver::interfDiffAndDot,
+ timedParal(times.solveAndJump, nsub, this, &FetiSolver::interfDiffAndDot,
               bf, lambda);
 
  // Sum each subdomains dot product contribution

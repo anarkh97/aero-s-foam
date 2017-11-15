@@ -4,6 +4,8 @@ ADD_LIBRARY(Feti
         DistrVectorCore.C
         FetiCore.C
         FetiOpCore.C
+        FetiDP.C
+        FetiDPCore.C
         NLFetiCore.C
         CCtSolver.d/BlockCCt.C
         FetiSub.h)

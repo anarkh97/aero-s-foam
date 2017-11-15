@@ -11,7 +11,7 @@ template \
 GenDomainGroupTask<Scalar>::~GenDomainGroupTask(); \
 template \
 void \
-GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti); \
+GenDomainGroupTask<Scalar>::runForWB(int isub, bool make_feti); \
 
 DGTASK_INSTANTIATION_HELPER(double);
-DGTASK_INSTANTIATION_HELPER(complex<double>);
+DGTASK_INSTANTIATION_HELPER(std::complex<double>);

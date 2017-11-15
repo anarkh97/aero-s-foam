@@ -47,7 +47,7 @@ MDNLStatic::getResidualNorm(DistrVector &r, DistrGeomState &geomState)
 {
  // XXXX should also include constraint error i.e. pos_part<gap>
  DistrVector w(r);
- execParal1R(decDomain->getNumSub(), this, &MDNLStatic::addConstraintForces, w); // w = r + C^T*lambda
+ execParal(decDomain->getNumSub(), this, &MDNLStatic::addConstraintForces, w); // w = r + C^T*lambda
                   // note C = grad(gap) has already been updated in getStiffAndForce.
                   // XXXX need to make sure lambda_i is correctly mapped to C_i. I think this is done
                   // correctly only for the case of one contactsurfaces pair
@@ -174,7 +174,7 @@ void
 MDNLStatic::initializeParameters(int step, DistrGeomState *geomState)
 {
   if(step == 1 || domain->solInfo().reinit_lm) {
-    execParal1R(decDomain->getNumSub(), this, &MDNLStatic::subInitializeMultipliers, *geomState);
+    execParal(decDomain->getNumSub(), this, &MDNLStatic::subInitializeMultipliers, *geomState);
   }
   execParal(decDomain->getNumSub(), this, &MDNLStatic::subInitializeParameters);
   domain->initializeParameters();
@@ -195,7 +195,7 @@ MDNLStatic::subInitializeParameters(int isub)
 void
 MDNLStatic::updateParameters(DistrGeomState *geomState)
 {
-  execParal1R(decDomain->getNumSub(), this, &MDNLStatic::subUpdateMultipliers, *geomState);
+  execParal(decDomain->getNumSub(), this, &MDNLStatic::subUpdateMultipliers, *geomState);
   execParal(decDomain->getNumSub(), this, &MDNLStatic::subUpdateParameters);
   domain->updateParameters();
 }
@@ -340,7 +340,7 @@ MDNLStatic::getStiffAndForce(DistrGeomState& geomState,
  // set the gap for the linear constraints
  if(fetiSolver) decDomain->setConstraintGap(&geomState, refState, fetiSolver, _lambda);
 
- execParal6R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
+ execParal(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
              residual, elementInternalForce, _lambda, refState, forceOnly);
 
  times->buildStiffAndForce += getTime();
@@ -367,7 +367,7 @@ void
 MDNLStatic::updatePrescribedDisplacement(DistrGeomState *geomState, double)
 {
  times->timePresc -= getTime();
- execParal1R(decDomain->getNumSub(),this,&MDNLStatic::updatePrescribedDisp,*geomState);
+ execParal(decDomain->getNumSub(),this,&MDNLStatic::updatePrescribedDisp,*geomState);
  times->timePresc += getTime();
 }
 
@@ -511,7 +511,7 @@ MDNLStatic::getRHS(DistrVector& rhs)
 {
   // ... BUILD THE RHS FORCE (not including follower forces and internal force)
   times->formRhs -= getTime();
-  execParal1R(decDomain->getNumSub(), this, &MDNLStatic::subGetRHS, rhs);
+  execParal(decDomain->getNumSub(), this, &MDNLStatic::subGetRHS, rhs);
   times->formRhs += getTime(); 
 }
 
@@ -613,7 +613,7 @@ void
 MDNLStatic::updateStates(DistrGeomState *refState, DistrGeomState& geomState, double lambda)
 {
   if(domain->solInfo().piecewise_contact) updateCS = true;
-  execParal3R(decDomain->getNumSub(), this, &MDNLStatic::subUpdateStates, refState, &geomState, lambda);
+  execParal(decDomain->getNumSub(), this, &MDNLStatic::subUpdateStates, refState, &geomState, lambda);
 }
 
 void

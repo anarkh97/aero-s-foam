@@ -439,20 +439,7 @@ void _FORTRAN(zgetrs) (const char & trans, const int &n, const int &nrhs,
                             ComplexD *b, const int &ldb, int &info);
 }
 
-extern "C" {
-void _FORTRAN(zgemv)(const char &trans, const int &m, const int &n,
-                          const ComplexD &lapha, ComplexD *a, const int &lda,
-                          ComplexD *x, const int &incx,
-                          const ComplexD &beta, ComplexD *y, const int &incy);
-}
 
-extern "C" {
-void _FORTRAN(zgemm)(const char &transa, const char &transb,
-                            const int &m,const int &n, const int &k,
-                           const ComplexD &alpha, ComplexD *a, const int &lda,
-                           ComplexD *b, const int &ldb,
-                           const ComplexD &beta, ComplexD *c, const int &ldc);
-}
 
 //#define RT_USE_ALLOCA
 #define LAFVERSION 1

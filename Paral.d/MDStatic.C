@@ -63,7 +63,7 @@ GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
    filePrint(stderr," ... Building the Force             ...\n");
 
  times->formRhs -= getTime();
- execParal1R(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::subGetRHS, rhs);
+ execParal(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::subGetRHS, rhs);
 
  // rbm or eigen mode projector 
  if(domain->solInfo().filterFlags || domain->solInfo().modeFilterFlag)
@@ -384,11 +384,11 @@ GenMultiDomainStatic<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs,
 
   Timings &timers = solver->getTimers();
   if(domain->solInfo().isCoupled && domain->solInfo().getFetiInfo().fsi_corner == 0) {
-    timedParal3(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multMCoupled1, rhs, sol_prev, iRHS);
+    timedParal(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multMCoupled1, rhs, sol_prev, iRHS);
     decDomain->getWiCommPattern()->exchange();
     timedParal(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multMCoupled2, rhs);
   }
-  else timedParal3(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multM, rhs, sol_prev, iRHS);
+  else timedParal(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multM, rhs, sol_prev, iRHS);
 }
 
 template<class Scalar>
@@ -468,7 +468,7 @@ GenMultiDomainStatic<Scalar>::getWCAWEFreqSweepRHS(GenDistrVector<Scalar> *rhs,
     }
   }
   Timings &timers = solver->getTimers();
-  timedParal4P2(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multWCAWE, rhs, wcawe_u, pU, pb, maxRHS, iRHS);
+  timedParal(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multWCAWE, rhs, wcawe_u, pU, pb, maxRHS, iRHS);
  
 }
 
@@ -496,7 +496,7 @@ GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs, double omega,
   GenDistrVector<Scalar> *tmp = new GenDistrVector<Scalar>(solVecInfo());
   double o[2] = { omega, deltaomega };
 // RT: 4/30/09 - should be timed
-  execParal3R(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::makeSubdomainStaticLoadGalPr, rhs, *tmp, o);
+  execParal(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::makeSubdomainStaticLoadGalPr, rhs, *tmp, o);
 }
 
 template<class Scalar>

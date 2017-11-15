@@ -415,7 +415,7 @@ DistrElementSamplingDriver::solve()
     SubDOp *M = NULL;
     if(reduce_idis || reduce_ivel) {
       SparseMatrix **subM = new SparseMatrix * [decDomain->getNumSub()];
-      execParal1R(decDomain->getNumSub(), this, &DistrElementSamplingDriver::subMakeMass, subM);
+      execParal(decDomain->getNumSub(), this, &DistrElementSamplingDriver::subMakeMass, subM);
       M = new SubDOp(decDomain->getNumSub(), subM);
     }
     if(reduce_idis) {

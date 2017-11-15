@@ -405,17 +405,7 @@ GenFullSquareMatrix<Scalar>::invert(GenFullSquareMatrix<Scalar> GFSM)
 */
 
 #include <Utils.d/linkfc.h>
-// BLAS prototypes
-extern "C" {
-  // BLAS level three real Matrix-VectorProduct
-  extern void _FORTRAN(dgemv)(const char &, const int &,const int &,
-			      const double &, const double *, const int &,
-			      const double *, const int &, const double &, double *, const int &);
-
-  extern void _FORTRAN(zgemv)(const char &, const int &,const int &,
-			      const DComplex &, DComplex *, const int &,
-			      DComplex *, const int &, const DComplex &, DComplex *, const int &);
-}
+#include "BLAS.h"
 
 template<> template<>
 inline void GenFullSquareMatrix<DComplex>::multiply(GenVector<DComplex>& a, GenVector<DComplex>& b, double c, GenFullSquareMatrix<DComplex>::TransposeFlag transposed)

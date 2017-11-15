@@ -26,12 +26,13 @@ class GenBigMatrix : public GenFullM<Scalar> {
    void lineToColumnCopy(int iThread,int numThreads,int iBlock);
    void rankUpdate(int iThread, int numThreads, int iBlock);
    void symCopy(Scalar *, Scalar *, int, int);
-   void subReSolve(int iThread, int numThreads, Scalar *rhs);
-   void subForward(int iBlock, int, int, Scalar *rhs);
-   void subBackward(int iBlock, int, int, Scalar *rhs);
-   void diagSolve(int, int, int, Scalar *rhs);
-   Scalar *block(int,int);
-   int blockSize(int);
+	void subReSolve(int iThread, int numThreads, Scalar *rhs) const;
+	void subForward(int iBlock, int, int, Scalar *rhs) const;
+	void subBackward(int iBlock, int, int, Scalar *rhs) const;
+	void diagSolve(int, int, int, Scalar *rhs) const;
+	Scalar *block(int,int);
+	const Scalar *block(int,int) const;
+	int blockSize(int) const;
   
   public:
    GenBigMatrix(int size);
@@ -53,12 +54,19 @@ template<class Scalar>
 inline Scalar *
 GenBigMatrix<Scalar>::block(int i, int j)
 {
- return this->v+blockIndex[i]*size + blockIndex[j];
+	return this->v+blockIndex[i]*size + blockIndex[j];
+}
+
+template<class Scalar>
+inline const Scalar *
+GenBigMatrix<Scalar>::block(int i, int j) const
+{
+	return this->v+blockIndex[i]*size + blockIndex[j];
 }
 
 template<class Scalar>
 inline int
-GenBigMatrix<Scalar>::blockSize(int i)
+GenBigMatrix<Scalar>::blockSize(int i) const
 {
  return blockIndex[i+1]-blockIndex[i];
 }

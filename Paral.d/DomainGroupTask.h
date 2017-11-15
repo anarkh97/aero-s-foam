@@ -57,7 +57,7 @@ class GenDomainGroupTask : public TaskDescr {
                       FullSquareMatrix **_celArray, MatrixTimers &_mt);
    virtual ~GenDomainGroupTask();
    void runFor(int) override { throw "Illegal operation called on GenDomainGroupTask"; }
-   void runFor(int isub, bool make_feti);
+   void runForWB(int isub, bool make_feti);
 };
 
 typedef GenDomainGroupTask<double> DomainGroupTask;

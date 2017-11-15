@@ -96,7 +96,7 @@ GenDomainGroupTask<Scalar>::~GenDomainGroupTask()
 
 template<class Scalar> 
 void
-GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti) 
+GenDomainGroupTask<Scalar>::runForWB(int isub, bool make_feti)
 {
   mt.constructTime -= getTime();
   DofSetArray     *dsa = sd[isub]->getDSA();

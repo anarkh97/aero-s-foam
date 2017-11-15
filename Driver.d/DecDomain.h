@@ -231,16 +231,16 @@ class GenDecDomain
   void computeSubdElemForce(int iSub, Scalar *globForce,
                             GenDistrVector<Scalar> *u, int fileNumber, int Findex);
   void computeSubdStress(int, GenDistrVector<Scalar>*, GenDistrVector<Scalar>*,
-                         GenDistrVector<Scalar>*, int, int);
-  void computeSubdElemStress(int, Scalar *, GenDistrVector<Scalar> *, int, int);
-  void computeSubdStress(int iSub, GenDistrVector<Scalar> *globStress,
+                         GenDistrVector<Scalar>*, int, int) const;
+  void computeSubdElemStress(int, Scalar *, GenDistrVector<Scalar> *, int, int) const;
+  void computeSubdStress_NL(int iSub, GenDistrVector<Scalar> *globStress,
                          GenDistrVector<Scalar> *globWeight, DistrGeomState *u,
-                         Corotator ***allCorot, int *, int *Findex, DistrGeomState *refState);
+                         Corotator ***allCorot, int *, int *Findex, DistrGeomState *refState) const;
   void getElementStressStrain(DistrGeomState *gs, Corotator ***allCorot,
-                              int fileNumber, int Findex, double time, DistrGeomState *refState);
-  void computeSubdElemStress(int iSub, Scalar *glElemStress,
+                              int fileNumber, int Findex, double time, DistrGeomState *refState) const;
+  void computeSubdElemStress_NL(int iSub, Scalar *glElemStress,
                              DistrGeomState *u, Corotator ***allCorot,
-                             int fileNumber, int Findex, DistrGeomState *refState);
+                             int fileNumber, int Findex, DistrGeomState *refState) const;
   void outputPrimal(GenDistrVector<Scalar>& primal, int iter);
   void getPrimalVector(int fileNumber, Scalar (*xyz)[11], int numNodes,
                        int ndof, double time);//DofSet::max_known_nonL_dof

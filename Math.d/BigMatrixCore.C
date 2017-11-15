@@ -4,8 +4,8 @@
 // BLAS level three real Matrix Product
 
 extern "C" {
-  void _FORTRAN(dsisl)(double *, const int &, const int &, int *, double *);
-  void _FORTRAN(dsifa)(double *, const int &, const int &, int *, int &);
+  void _FORTRAN(dsisl)(const double *, const int &, const int &, int *, double *);
+  void _FORTRAN(dsifa)(const double *, const int &, const int &, int *, int &);
 }
 
 
@@ -55,7 +55,7 @@ GenBigMatrix<DComplex>::factorDiagonal(int iThread, int numThreads, int iBlock)
 
 template<>
 void
-GenBigMatrix<double>::diagSolve(int iBlock, int iThread, int numThreads, double *rhs)
+GenBigMatrix<double>::diagSolve(int iBlock, int iThread, int numThreads, double *rhs) const
 {
  if(iThread == 0)
  _FORTRAN(dsisl)(block(iBlock,iBlock), size, blockSize(iBlock),
@@ -64,7 +64,7 @@ GenBigMatrix<double>::diagSolve(int iBlock, int iThread, int numThreads, double 
 
 template<>
 void
-GenBigMatrix<DComplex>::diagSolve(int iBlock, int iThread, int numThreads, DComplex *rhs)
+GenBigMatrix<DComplex>::diagSolve(int iBlock, int iThread, int numThreads, DComplex *rhs) const
 {
  fprintf(stderr, "GenBigMatrix<DComplex>::diagSolve(int iBlock, int iThread, int numThreads, DComplex *rhs) not implemented \n");
 }

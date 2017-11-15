@@ -2,14 +2,14 @@
 
 template<>
 void
-GenFetiSolver<DComplex>::getRMult(int iSub, GenDistrVector<DComplex> *localvec, DComplex *alpha)
+GenFetiSolver<DComplex>::getRMult(int iSub, GenDistrVector<DComplex> *localvec, DComplex *alpha) const
 {
   fprintf(stderr, "WARNING: GenFetiSolver<DComplex>::getRMult(...) not implemented \n");
 }
 
 template<>
 void
-GenFetiSolver<double>::getRMult(int iSub, GenDistrVector<double> *localvec, double *alpha)
+GenFetiSolver<double>::getRMult(int iSub, GenDistrVector<double> *localvec, double *alpha) const
 {
  double *lvec = localvec->subData(sd[iSub]->localSubNum());
  double *lAlpha = alpha + fetiOps[iSub]->alphaOffset[0];
@@ -25,14 +25,14 @@ GenFetiSolver<double>::getRMult(int iSub, GenDistrVector<double> *localvec, doub
 
 template<>
 void
-GenFetiSolver<DComplex>::addRP(int iSub, GenDistrVector<DComplex> *vec1, DComplex *vec2)
+GenFetiSolver<DComplex>::addRP(int iSub, GenDistrVector<DComplex> *vec1, DComplex *vec2) const
 {
   fprintf(stderr, "WARNING: GenFetiSolver<DComplex>::addRP(...) not implemented \n");
 }
 
 template<>
 void
-GenFetiSolver<double>::addRP(int iSub, GenDistrVector<double> *vec1, double *vec2)
+GenFetiSolver<double>::addRP(int iSub, GenDistrVector<double> *vec1, double *vec2) const
 {
  double *localvec = vec1->subData(sd[iSub]->localSubNum());
  double *alpha    = vec2 + fetiOps[iSub]->alphaOffset[0];
@@ -102,14 +102,14 @@ GenFetiSolver<double>::getRBMs(GenDistrVectorSet<double> &globRBM)
 
 template<>
 void
-GenFetiSolver<DComplex>::addRS(int iSub, GenDistrVector<DComplex> *vec1, DComplex *vec2)
+GenFetiSolver<DComplex>::addRS(int iSub, GenDistrVector<DComplex> *vec1, DComplex *vec2) const
 {
  fprintf(stderr, "WARNING: GenFetiSolver<DComplex>::addRS(...) not implemented \n");
 }
 
 template<>
 void
-GenFetiSolver<double>::addRS(int iSub, GenDistrVector<double> *vec1, double *vec2)
+GenFetiSolver<double>::addRS(int iSub, GenDistrVector<double> *vec1, double *vec2) const
 {
  double *localvec = vec1->subData(iSub);
  double *alpha    = vec2 + eqNums->firstdof(sd[iSub]->subNum() + gOffset);

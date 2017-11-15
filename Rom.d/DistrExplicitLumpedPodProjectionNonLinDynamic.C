@@ -41,13 +41,13 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::updateState(double dt_n_h, DistrV
   temp1 = dt_n_h*v_n_h;
   d_n->zero();
   normalizedBasis_.expand( temp1, *d_n);
-  execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subUpdateWeightedNodesOnly,*d_n);
+  execParal(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subUpdateWeightedNodesOnly,*d_n);
   normalizedBasis_.addLocalPart(temp1,d_n1);
 
   if(haveRot) {
     v_n->zero();
     normalizedBasis_.expand(v_n_h, *v_n);
-    execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subSetVelocityWeightedNodesOnly,*v_n);
+    execParal(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subSetVelocityWeightedNodesOnly,*v_n);
   }
 }
 
@@ -67,7 +67,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::setLocalReducedMesh(int j) {
 void
 DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
 
-  execParal3R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,*fInt,t,tIndex);
+  execParal(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,*fInt,t,tIndex);
 
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     GenMDDynamMat<double> ops;

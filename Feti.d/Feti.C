@@ -24,6 +24,8 @@
 #include <Feti.d/FetiOpControler.h>
 #include <Feti.d/FetiInfo.h>
 #include <Feti.d/CoarseSet.h>
+#include <Feti.d/GMRESOrthoSet.h>
+#include <Feti.d/GCROrthoSet.h>
 #include <Corotational.d/DistrGeomState.h>
 #include <Solvers.d/SolverFactory.h>
 class GeomState;
@@ -302,7 +304,7 @@ GenFetiSolver<Scalar>::fScaleCoupled(int iSub, GenDistrVector<Scalar> &force,
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::fSplit(int iSub, GenDistrVector<Scalar> &force)
+GenFetiSolver<Scalar>::fSplit(int iSub, GenDistrVector<Scalar> &force) const
 {
 	sd[iSub]->splitInterf(force.subData(subdomains[iSub]->localSubNum()));
 }
@@ -625,13 +627,13 @@ GenFetiSolver<Scalar>::orthoAddCG(GenDistrVector<Scalar> &p, GenDistrVector<Scal
  GenDistrVector<Scalar> p_copy(p); p_copy.zero();
  timedParal(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::scatterHalfInterface, hp, &p_copy);
  vPat->exchange();
- timedParal1R(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, p_copy);
+ timedParal(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, p_copy);
  std::cerr << "p - rebuilt p: ";
  for(int i=0; i<p.size(); ++i) std::cerr << p.data()[i] - p_copy.data()[i] << " "; std::cerr << std::endl;
  GenDistrVector<Scalar> Fp_copy(Fp); Fp_copy.zero();
  timedParal(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::scatterHalfInterface, hFp, &Fp_copy);
  vPat->exchange();
- timedParal1R(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, Fp_copy);
+ timedParal(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, Fp_copy);
  std::cerr << "Fp - rebuilt Fp: ";
  for(int i=0; i<Fp.size(); ++i) std::cerr << Fp.data()[i] - Fp_copy.data()[i] << " "; std::cerr << std::endl;
 */
@@ -915,7 +917,7 @@ GenFetiSolver<Scalar>::orthogonalize(GenDistrVector<Scalar> &r, GenDistrVector<S
     GenDistrVector<Scalar> r_copy(r); r_copy.zero();
     timedParal(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::scatterHalfInterface, hp, &r_copy);
     vPat->exchange();
-    timedParal1R(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, r_copy);
+    timedParal(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, r_copy);
     std::cerr << "r - rebuilt r: ";
     for(int i=0; i<r.size(); ++i) std::cerr << r.data()[i] - r_copy.data()[i] << " "; std::cerr << std::endl;
 */
@@ -924,7 +926,7 @@ GenFetiSolver<Scalar>::orthogonalize(GenDistrVector<Scalar> &r, GenDistrVector<S
 		timedParal(times.orthogonalize, nsub, this,
 		           &GenFetiSolver<Scalar>::scatterHalfInterface, hOp, &p);
 		vPat->exchange();
-		timedParal1R(times.orthogonalize, nsub, this,
+		timedParal(times.orthogonalize, nsub, this,
 		             &GenFetiSolver<Scalar>::rebuildInterface, p);
 	}
 
@@ -991,7 +993,7 @@ GenFetiSolver<Scalar>::predict(const GenDistrVector<Scalar> &r, GenDistrVector<S
 		oSetCG->predict(hp, hOp);
 		execParal(nsub, this, &GenFetiSolver<Scalar>::scatterHalfInterface, hOp, &lambda0);
 		vPat->exchange();
-		execParal1R(nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, lambda0);
+		execParal(nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, lambda0);
 
 		return true; // Prediction available
 	}
@@ -1340,7 +1342,7 @@ GenFetiSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &ifrc, GenDistrV
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::rebuildInterface(int iSub, GenDistrVector<Scalar> &v)
+GenFetiSolver<Scalar>::rebuildInterface(int iSub, GenDistrVector<Scalar> &v) const
 {
 	sd[iSub]->rebuildInterf(v.subData(subdomains[iSub]->localSubNum()), vPat);
 }
@@ -1392,7 +1394,7 @@ GenFetiSolver<Scalar>::preCondition(const GenDistrVector<Scalar> &v, GenDistrVec
 
 	if(errorFlag) {
 		// Send deltaF through subdomain buffer
-		timedParal1R(times.preconditioner, nsub, this, &GenFetiSolver<Scalar>::sendDeltaF, deltaF);
+		timedParal(times.preconditioner, nsub, this, &GenFetiSolver<Scalar>::sendDeltaF, deltaF);
 		vPat->exchange();
 
 		double *subDots = (double *) dbg_alloca(sizeof(double)*nsub);
@@ -1424,7 +1426,7 @@ GenFetiSolver<Scalar>::preCondition(const GenDistrVector<Scalar> &v, GenDistrVec
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::sendDeltaF(int iSub, GenDistrVector<Scalar> &deltaF)
+GenFetiSolver<Scalar>::sendDeltaF(int iSub, GenDistrVector<Scalar> &deltaF) const
 {
 	// parallel implementation of sending each subdomain's deltaF
 	sd[iSub]->sendDeltaF(deltaF.subData(iSub), vPat);
@@ -1432,7 +1434,7 @@ GenFetiSolver<Scalar>::sendDeltaF(int iSub, GenDistrVector<Scalar> &deltaF)
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::normDeltaF(int iSub, double *subDots, GenDistrVector<Scalar> *deltaF)
+GenFetiSolver<Scalar>::normDeltaF(int iSub, double *subDots, GenDistrVector<Scalar> *deltaF) const
 {
 	// parallel implementation of computing true norm of deltaF for each subdomain
 	subDots[iSub] = sd[iSub]->collectAndDotDeltaF(deltaF->subData(iSub), vPat);
@@ -1452,7 +1454,7 @@ GenFetiSolver<Scalar>::nlPreCondition(const GenDistrVector<Scalar> &r, GenDistrV
 	oSetCG->precondition(hp, hpr);
 	execParal(nsub, this, &GenFetiSolver<Scalar>::scatterHalfInterface, hpr, &pr);
 	vPat->exchange();
-	execParal1R(nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, pr);
+	execParal(nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, pr);
 	stopTimerMemory(times.nlPreCond, times.memoryNlPreCond);
 
 	return 1; // preconditioner available
@@ -1805,7 +1807,7 @@ GenFetiSolver<Scalar>::updateFeti2y(GenDistrVector<Scalar> &y, GenDistrVector<Sc
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::subRgcTransMult(int i, int nThreads, GenVector<Scalar>* alpha,
-                                       GenVector<Scalar>* result)
+                                       GenVector<Scalar>* result) const
 {
 	int dd = crns/nThreads;
 	int remainder = crns%nThreads;
@@ -1833,7 +1835,7 @@ GenFetiSolver<Scalar>::computeRgcTransMult(GenVector<Scalar> &alpha,
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::subRgcMult(int i, int nThreads, GenVector<Scalar>* alpha,
-                                  GenVector<Scalar>* result)
+                                  GenVector<Scalar>* result) const
 {
 	int dd = numrbms/nThreads;
 	int remainder = numrbms%nThreads;
@@ -2064,20 +2066,20 @@ GenFetiSolver<Scalar>::interfDiffAndDot(int iSub, GenDistrVector<Scalar> &dv1, G
 template<>
 void
 GenFetiSolver<DComplex>::getRMult(int iSub, GenDistrVector<DComplex> *localvec,
-                                  DComplex *alpha);
+                                  DComplex *alpha) const;
 template<>
 void
 GenFetiSolver<double>::getRMult(int iSub, GenDistrVector<double> *localvec,
-                                double *alpha);
+                                double *alpha) const;
 
 template<>
 void
 GenFetiSolver<DComplex>::addRP(int iSub, GenDistrVector<DComplex> *vec1,
-                               DComplex *vec2);
+                               DComplex *vec2) const;
 template<>
 void
 GenFetiSolver<double>::addRP(int iSub, GenDistrVector<double> *vec1, double
-*vec2);
+*vec2) const;
 
 template<class Scalar>
 void
@@ -2578,7 +2580,7 @@ GenFetiSolver<Scalar>::computeL0(GenDistrVector<Scalar> &f, GenDistrVector<Scala
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::addMpcRhs(int iMPC, Scalar *sv)
+GenFetiSolver<Scalar>::addMpcRhs(int iMPC, Scalar *sv) const
 {
 	Scalar *gamma = sv + eqNums->firstdof(mOffset+iMPC);
 #ifdef DISTRIBUTED
@@ -2636,7 +2638,7 @@ GenFetiSolver<Scalar>::addGs(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getSRMult(int iSub, GenDistrVector<Scalar> *r, GenDistrVector<Scalar> *lambda, Scalar *sv)
+GenFetiSolver<Scalar>::getSRMult(int iSub, GenDistrVector<Scalar> *r, GenDistrVector<Scalar> *lambda, Scalar *sv) const
 {
 	int nRBM = fetiOps[iSub]->numRBM;
 
@@ -2652,7 +2654,7 @@ GenFetiSolver<Scalar>::getSRMult(int iSub, GenDistrVector<Scalar> *r, GenDistrVe
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::addC(int iSub, GenDistrVector<Scalar> *lambda, Scalar *sv)
+GenFetiSolver<Scalar>::addC(int iSub, GenDistrVector<Scalar> *lambda, Scalar *sv) const
 {
 	Scalar *localvec = lambda->subData(iSub);
 	int cOffset      = subToSub->csize();
@@ -2662,7 +2664,7 @@ GenFetiSolver<Scalar>::addC(int iSub, GenDistrVector<Scalar> *lambda, Scalar *sv
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getSGtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv)
+GenFetiSolver<Scalar>::getSGtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const
 {
 	int numRBM = opControl->cset[iSub].numGs;
 	if(numRBM==0) return;
@@ -2678,7 +2680,7 @@ GenFetiSolver<Scalar>::getSGtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *s
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getSCtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv)
+GenFetiSolver<Scalar>::getSCtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const
 {
 	int cOffset = subToSub->csize();
 	Scalar *lvec = r->subData(iSub);
@@ -2693,7 +2695,7 @@ GenFetiSolver<Scalar>::getSCtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *s
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getSQtMult(int iMpc, GenDistrVector<Scalar> *u, Scalar *sv)
+GenFetiSolver<Scalar>::getSQtMult(int iMpc, GenDistrVector<Scalar> *u, Scalar *sv) const
 {
 	int numSubAttached = mpcToSub->num(iMpc);
 	int iSub;
@@ -2718,7 +2720,7 @@ GenFetiSolver<Scalar>::getSQtMult(int iMpc, GenDistrVector<Scalar> *u, Scalar *s
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getQtKpBMult(int iMpc, GenDistrVector<Scalar> *r, Scalar *sv)
+GenFetiSolver<Scalar>::getQtKpBMult(int iMpc, GenDistrVector<Scalar> *r, Scalar *sv) const
 {
 	// Q^t K^+ B^t r
 	int numSubAttached = mpcToSub->num(iMpc);
@@ -2744,7 +2746,7 @@ GenFetiSolver<Scalar>::getQtKpBMult(int iMpc, GenDistrVector<Scalar> *r, Scalar 
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getGtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv)
+GenFetiSolver<Scalar>::getGtMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const
 {
 	int numRBM = opControl->cset[iSub].numGs;
 	if(numRBM==0) return;
@@ -2829,7 +2831,7 @@ GenFetiSolver<Scalar>::addSG(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) co
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getFGMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv)
+GenFetiSolver<Scalar>::getFGMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const
 {
 	Scalar *lvec = r->subData(iSub);
 	Scalar *locFGs = opControl->cset[iSub].locFGs;
@@ -2871,7 +2873,7 @@ GenFetiSolver<Scalar>::getFGMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getFCMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv)
+GenFetiSolver<Scalar>::getFCMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const
 {
 	int cOffset = subToSub->csize();
 	Scalar *lvec = r->subData(iSub);
@@ -3364,7 +3366,7 @@ GenFetiSolver<Scalar>::initGMRES(GenDistrVector<Scalar> &p)
 	timedParal(times.orthogonalize, nsub, this,
 	           &GenFetiSolver<Scalar>::scatterHalfInterface, hp, &p);
 	vPat->exchange();
-	timedParal1R(times.orthogonalize, nsub, this,
+	timedParal(times.orthogonalize, nsub, this,
 	             &GenFetiSolver<Scalar>::rebuildInterface, p);
 }
 
@@ -3386,7 +3388,7 @@ GenFetiSolver<Scalar>::orthoAddGMRES(GenDistrVector<Scalar> &p,GenDistrVector<Sc
 	timedParal(times.orthogonalize, nsub, this,
 	           &GenFetiSolver<Scalar>::scatterHalfInterface, hp, &p);
 	vPat->exchange();
-	timedParal1R(times.orthogonalize, nsub, this,
+	timedParal(times.orthogonalize, nsub, this,
 	             &GenFetiSolver<Scalar>::rebuildInterface, p);
 
 	return r2;
@@ -3403,7 +3405,7 @@ GenFetiSolver<Scalar>::GMRESSolution(GenDistrVector<Scalar> &p)
 	timedParal(times.orthogonalize, nsub, this,
 	           &GenFetiSolver<Scalar>::scatterHalfInterface, hp, &p);
 	vPat->exchange();
-	timedParal1R(times.orthogonalize, nsub, this,
+	timedParal(times.orthogonalize, nsub, this,
 	             &GenFetiSolver<Scalar>::rebuildInterface, p);
 }
 
@@ -3477,7 +3479,7 @@ GenFetiSolver<Scalar>::predictGCR(GenDistrVector<Scalar> &r, GenDistrVector<Scal
 
 		execParal(nsub, this, &GenFetiSolver<Scalar>::scatterHalfInterface, hOp, &lambda0);
 		vPat->exchange();
-		execParal1R(nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, lambda0);
+		execParal(nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, lambda0);
 		return 1;
 	}
 }
@@ -3505,13 +3507,13 @@ GenFetiSolver<Scalar>::orthogonalizeGCR(GenDistrVector<Scalar> &r, GenDistrVecto
 		timedParal(times.orthogonalize, nsub, this,
 		           &GenFetiSolver<Scalar>::scatterHalfInterface, hOp, &p);
 		vPat->exchange();
-		timedParal1R(times.orthogonalize, nsub, this,
+		timedParal(times.orthogonalize, nsub, this,
 		             &GenFetiSolver<Scalar>::rebuildInterface, p);
 
 		timedParal(times.orthogonalize, nsub, this,
 		           &GenFetiSolver<Scalar>::scatterHalfInterface, hOpF, &Fp);
 		vPat->exchange();
-		timedParal1R(times.orthogonalize, nsub, this,
+		timedParal(times.orthogonalize, nsub, this,
 		             &GenFetiSolver<Scalar>::rebuildInterface, Fp);
 	}
 	times.reOrtho += getTime();

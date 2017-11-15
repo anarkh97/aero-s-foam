@@ -402,7 +402,7 @@ FetiHAxiSolver::computePtd(DistrComplexVector &rl, DistrComplexVector &f,
            &muVector);
 
  startTimerMemory(times.sAndJ, times.memorySAndJ);
- timedParal2R(times.solveAndJump, nP, this, &FetiHAxiSolver::multBK, rl, f);
+ timedParal(times.solveAndJump, nP, this, &FetiHAxiSolver::multBK, rl, f);
  stopTimerMemory(times.sAndJ, times.memorySAndJ);
 
  for (Fourier=0; Fourier<totalFourier; ++Fourier) {
@@ -584,7 +584,7 @@ FetiHAxiSolver::applyFPMPC(DistrComplexVector &zl, DistrComplexVector &Fzl,
  // Final treatment for the residual on lambda
 
  startTimerMemory(times.sAndJ, times.memorySAndJ);
- timedParal4R(times.solveAndJump, nP, this, &FetiHAxiSolver::finishFzl,
+ timedParal(times.solveAndJump, nP, this, &FetiHAxiSolver::finishFzl,
               zl, muVector, lambdaVec, Fzl); 
  stopTimerMemory(times.sAndJ, times.memorySAndJ);
 

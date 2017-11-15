@@ -65,7 +65,7 @@ DistrLumpedPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geo
       if(fetiSolver) decDomain->setConstraintGap(geomState_Big, refState_Big, fetiSolver, t);
     }
 
-    execParal6R(decDomain->getNumSub(), this, &DistrLumpedPodProjectionNonLinDynamic::subGetStiffAndForce, *geomState_Big, residual_Big, elementInternalForce, t, refState_Big, forceOnly);
+    execParal(decDomain->getNumSub(), this, &DistrLumpedPodProjectionNonLinDynamic::subGetStiffAndForce, *geomState_Big, residual_Big, elementInternalForce, t, refState_Big, forceOnly);
 
     projectionBasis.sparseVecReduce(residual_Big, r);
     residual += r;
@@ -149,7 +149,7 @@ DistrLumpedPodProjectionNonLinDynamic::updateStates(DistrModalGeomState *refStat
     }
 
     if(geomState_Big->getTotalNumElemStates() > 0)
-      execParal3R(decDomain->getNumSub(), this, &DistrLumpedPodProjectionNonLinDynamic::subUpdateStates, refState_Big, geomState_Big, time);
+      execParal(decDomain->getNumSub(), this, &DistrLumpedPodProjectionNonLinDynamic::subUpdateStates, refState_Big, geomState_Big, time);
 
     *refState_Big = *geomState_Big;
   }

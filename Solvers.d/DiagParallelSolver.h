@@ -66,7 +66,7 @@ void
 DiagParallelSolver<Scalar>::reSolve(GenDistrVector<Scalar> &rhsSol)
 {
   times.solve -= getTime();
-//  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::dispatchForce, rhsSol);
+//  execParal(nSub, this, &DiagParallelSolver<Scalar>::dispatchForce, rhsSol);
     threadManager->callParal(nSub, [this, &rhsSol](int s) { dispatchForce(s, rhsSol); });
   this->vPat->exchange();
   execParal(nSub, this, &DiagParallelSolver<Scalar>::assembleForce, rhsSol);
@@ -79,14 +79,14 @@ template<class Scalar>
 void
 DiagParallelSolver<Scalar>::squareRootMult(GenDistrVector<Scalar> &rhsSol)
 {
-  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::subSquareRootMult, rhsSol);
+  execParal(nSub, this, &DiagParallelSolver<Scalar>::subSquareRootMult, rhsSol);
 }
 
 template<class Scalar>
 void
 DiagParallelSolver<Scalar>::inverseSquareRootMult(GenDistrVector<Scalar> &rhsSol)
 {
-  execParal1R(nSub, this, &DiagParallelSolver<Scalar>::subInverseSquareRootMult, rhsSol);
+  execParal(nSub, this, &DiagParallelSolver<Scalar>::subInverseSquareRootMult, rhsSol);
 }
 
 template<class Scalar>

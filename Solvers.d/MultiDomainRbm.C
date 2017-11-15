@@ -1,5 +1,6 @@
 #include <Driver.d/DecDomain.h>
 #include <algorithm>
+#include <Math.d/BLAS.h>
 
 template<class Scalar>
 MultiDomainRbm<Scalar>::MultiDomainRbm(GenDecDomain<Scalar> *_decDomain, double _tolgrb)
@@ -425,6 +426,9 @@ MultiDomainRbm<Scalar>::getGlobalRBM(int iSub, int &iRBM, GenDistrVector<Scalar>
   Scalar *localRvec = R.subData(sd->localSubNum());
   sd->getGlobalRBM(iRBM, localRvec);
 }
+
+
+
 
 template<class Scalar>
 void

@@ -1,1 +1,1 @@
-ADD_LIBRARY(Threads Paral.C)
+ADD_LIBRARY(Threads Paral.C PHelper.h)

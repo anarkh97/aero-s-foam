@@ -1,5 +1,6 @@
 #include <Driver.d/Communicator.h>
 #include <Driver.d/SubDomain.h>
+#include <Solvers.d/MultiDomainSolver.h>
 
 template<class Scalar>
 void

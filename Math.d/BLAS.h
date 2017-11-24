@@ -62,4 +62,21 @@ inline void Tsvdc(std::complex<double> *a, int &b, int &c, int&d, std::complex<d
 {
   _FORTRAN(zsvdc)(a,b,c,d,e,f,g,h,i,j,k,l,m);
 }
+
+#ifndef _TGEMV__
+#define _TGEMV__
+inline void Tgemv(const char &a, const int &b, const int &c,
+                  const double &d, const double *e, const int &f,
+                  const double *g, const int &h, const double &i, double *j, const int &k)
+{
+  _FORTRAN(dgemv)(a,b,c,d,e,f,g,h,i,j,k);
+}
+inline void Tgemv(const char &a, const int &b, const int &c,
+                  const std::complex<double> &d, const std::complex<double> *e, const int &f,
+                  const std::complex<double> *g, const int &h, const std::complex<double> &i, std::complex<double> *j, const int &k)
+{
+  _FORTRAN(zgemv)(a,b,c,d,e,f,g,h,i,j,k);
+}
+#endif
+
 #endif //FEM_BLAS_H

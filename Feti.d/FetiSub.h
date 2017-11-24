@@ -53,10 +53,14 @@ public:
 
 	/// \brief Obtain the number of MPC constraints.
 	virtual int numMPCs() const = 0;
+
+	virtual int numMPCs_primal() const = 0;
 	/// \brief Obtain the number of coarse dofs. This method computes a cached value.
 	virtual int numCoarseDofs() = 0;
 	/// \brief Obtain the number of corner nodes.
 	virtual int numCorners() const = 0;
+
+	virtual const int *getLocalCornerNodes() const = 0;
 
 	virtual int numWetInterfaceDofs() const = 0;
 
@@ -66,6 +70,10 @@ public:
 
 	/* missing:
 	 * splitInterf
+	 * setMpcNeighbCommSize
+	 * setGCommSize
+	 * assembleTrbmE
+	 * assembleE
 	 */
 };
 
@@ -94,26 +102,37 @@ public:
 	 * @param interfvec
 	 */
 	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const = 0;
+	virtual void fetiBaseOp(Scalar *uc,GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const = 0;
 	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const = 0;
 	virtual void multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const = 0;
 	virtual void multQtKBt(int glNumMPC, const Scalar *G, Scalar *QtKBtG, Scalar alpha=1.0, Scalar beta=1.0) const = 0;
-
+	virtual int numRBM() const = 0;
 	virtual const Scalar *getQtKpBt() const = 0;
 	// Missing:
 	/*
-	 * void interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vPat) const
-	 * void getSRMult
-	 * void multQt
-	 * void multQtKBt
-	 * void computeMasterFlag
-	 * void getMasterFlag
-	 * void fSend
-	 * void fScale
-	 * void rebuildInterf
-	 * void interfaceJump
-	 * void multKbb*
-	 * void sendDeltaF
-	 * void collectAndDotDeltaF
+	 * split
+	 * addRstar_gT
+	 * subtractRstar_g
+	 * addRalpha
+	 getfc
+	 multKrc
+	 multfc
+	 multFcB
+	 multG
+	 multAddCT
+	 trMultG
+	 fetiBaseOpCoupled1
+	 fetiBaseOpCoupled2
+	 getMpcError
+	 subtractMpcRhs
+	 getLocalMpcForces
+	 getMpcRhs_primal
+	 setBodyRBMoffset
+	 getGlobalRBM
+	 setWI...
+	 projectActivIneq
+	 normalizeCstep1
+	 assembleRtR
 	 * */
 };
 

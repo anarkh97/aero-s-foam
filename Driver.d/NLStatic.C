@@ -18,8 +18,10 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/pstress.h>
 #include <Corotational.d/GeomState.h>
+#include <Corotational.d/TemperatureState.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
+#include <Math.d/CuCSparse.h>
 #include <Control.d/ControlInterface.h>
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>

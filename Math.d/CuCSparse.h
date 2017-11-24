@@ -8,8 +8,8 @@ class ControlLawInfo;
 
 class LMPCons;
 
-// Constrained to Unconstrained Sparse Matrix (For a rectangular matrix
-// that needs to be stored in sparse format)
+/**\brief Constrained to Unconstrained Sparse Matrix.
+ * \details This is a rectangular matrix that needs to be stored in sparse format) */
 template<class Scalar>
 class GenCuCSparse : public SparseData, public GenSparseMatrix<Scalar> {
     Scalar *Kuc;

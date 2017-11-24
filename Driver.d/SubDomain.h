@@ -160,14 +160,14 @@ public:
 #endif
 	int getBC(BCond *, int, int *, BCond *&);
 	void setGlNodes(int *globalNodeNums) { glNums = globalNodeNums; }
-	int *getGlNodes()           { return glNums; }
-	int *getGlElems()           { return glElems; }
-	int *getGlMPCs()            { return localToGlobalMPC; }
+	const int *getGlNodes() const { return glNums; }
+	int *getGlElems() const    { return glElems; }
+	int *getGlMPCs()  const     { return localToGlobalMPC; }
 	int glToPackElem(int e) const { return (geoSource->glToPackElem(e) > globalEMax) ? -1 : glToLocalElem[geoSource->glToPackElem(e)]; }
-	int *getSensorDataMap()     { return locToGlSensorMap; }
-	int *getActuatorDataMap()   { return locToGlActuatorMap; }
-	int *getUserDispDataMap()   { return locToGlUserDispMap; }
-	int *getUserForceDataMap()  { return locToGlUserForceMap; }
+	int *getSensorDataMap() const { return locToGlSensorMap; }
+	int *getActuatorDataMap() const { return locToGlActuatorMap; }
+	int *getUserDispDataMap() const { return locToGlUserDispMap; }
+	int *getUserForceDataMap() const { return locToGlUserForceMap; }
 	int countElemNodes();
 	int numMPCs() const override { return numMPC; }
 	int numMPCs_primal() const  { return numMPC_primal; }
@@ -213,7 +213,7 @@ public:
 
 	bool checkForColinearCrossPoints(int numCornerPoints, int *localCornerPoints);
 	void addCornerPoints(int *glCornerList);
-	int *getLocalCornerNodes()  { return cornerNodes; }
+	const int *getLocalCornerNodes() const { return cornerNodes; }
 	int numCorners() const override { return numCRN; }
 	int *getCornerNodes()       { return glCornerNodes; }
 	int numCornerDofs()	const { return numCRNdof; }
@@ -534,7 +534,6 @@ public:
 	void sendNode(Scalar (*subvec)[11], FSCommPattern<Scalar> *pat);
 	void collectNode(Scalar (*subvec)[11], FSCommPattern<Scalar> *pat);
 
-	void expandRBM(Scalar *localR, VectorSet &globalR);
 	void getSRMult(const Scalar *lvec, const Scalar *lbvec, int nRBM, const double *locRBMs, Scalar *alpha) const;
 	void sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
 	void receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
@@ -591,7 +590,6 @@ public:
 	void updatePrescribedDisp(GeomState *geomState);
 	Scalar displacementNorm(Scalar *displacement);
 	void firstAssemble(GenSparseMatrix<Scalar> *K);
-	void clearTemporaries() { delete [] glToLocalNode; glToLocalNode = 0; }
 	void initMpcScaling();
 	void makeZstarAndR(double *centroid);  // makes Zstar and R
 	void makeKccDofsExp(ConstrainedDSA *cornerEqs, int augOffset,
@@ -855,7 +853,6 @@ public:
 
 typedef GenSubDomain<double> SubDomain;
 #ifdef _TEMPLATE_FIX_
-#include <Driver.d/SubDomain.C>
 #include <Driver.d/BOps.C>
 #include <Driver.d/RbmOps.C>
 #include <Driver.d/LOps.C>

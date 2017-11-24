@@ -10,10 +10,12 @@
 #include <Element.d/Helm.d/HelmElement.h>
 #include <algorithm>
 #include <iostream>
+#include <Corotational.d/utilities.h>
 
 extern int verboseFlag;
 extern int isFeti3;
 extern Domain * domain;
+extern int salinasFlag;
 
 using std::list;
 

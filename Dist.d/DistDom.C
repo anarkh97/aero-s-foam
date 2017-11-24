@@ -1249,7 +1249,7 @@ GenDistrDomain<Scalar>::createMasterFlag()
     numFlags[iSub] = numNodes;
 
     // initialize master flag for each subdomain
-    int *clusNodes = this->subDomain[iSub]->getGlNodes();
+    const int *clusNodes = this->subDomain[iSub]->getGlNodes();
     for (int iNode = 0; iNode < numNodes; iNode++)
       masterFlag[iSub][iNode] = clusNodes[iNode];
   }

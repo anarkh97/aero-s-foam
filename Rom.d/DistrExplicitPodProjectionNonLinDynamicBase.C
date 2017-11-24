@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <Corotational.d/utilities.h>
 
 extern Communicator *structCom;
 

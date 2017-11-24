@@ -1,6 +1,8 @@
 #ifndef _FETIHAXISOLVER_H_
 #define _FETIHAXISOLVER_H_
 
+#include <Math.d/Skyline.d/SkyMatrix.h>
+
 class MDAxiData;
 class FetiInfo;
 class Connectivity;

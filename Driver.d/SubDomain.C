@@ -23,6 +23,7 @@
 #include <Math.d/MpcSparse.h>
 #include <Corotational.d/TemperatureState.h>
 #include <Solvers.d/SolverFactory.h>
+#include <Driver.d/SubDomain.h>
 
 //#define DEBUG_MPC
 
@@ -376,7 +377,7 @@ void GenSubDomain<Scalar>::addUserForce(Scalar *extForce, Scalar *usrDefForce)
   for(i = 0; i < claw->numUserForce; ++i)  {
     int dof = c_dsa->locate(claw->userForce[i].nnum,1<<claw->userForce[i].dofnum);
     if (dof > -1)
-      extForce[dof] += usrDefForce[locToGlUserForceMap[i]]/weight[dof];
+      extForce[dof] += usrDefForce[locToGlUserForceMap[i]]/static_cast<double>(weight[dof]);
   }
 }
 
@@ -387,7 +388,7 @@ void GenSubDomain<Scalar>::addCtrl(Scalar *force, Scalar *ctrfrc)
   for(i = 0; i < claw->numActuator; ++i) {
     int dof = c_dsa->locate(claw->actuator[i].nnum,1 << claw->actuator[i].dofnum);
     if(dof > -1)
-      force[dof] += ctrfrc[locToGlActuatorMap[i]]/weight[dof];
+      force[dof] += ctrfrc[locToGlActuatorMap[i]]/static_cast<double>(weight[dof]);
   }
 }
 
@@ -421,19 +422,20 @@ void GenSubDomain<Scalar>::mergeElemStress(Scalar *locStress, Scalar *globStress
 
 inline double square(double x) { return x*x; }
 
-template<class Scalar>
+//template<class Scalar>
+template <>
 void
-GenSubDomain<Scalar>::mergePrimalError(Scalar* error, Scalar* primal)
+GenSubDomain<double>::mergePrimalError(double* error, double* primal)
 {
   for(int inode=0; inode<numnodes; ++inode) {
-    Scalar nd   = 0.0;
-    Scalar totP = 0.0;
+    double nd   = 0.0;
+    double totP = 0.0;
     int xLoc = c_dsa->locate(inode, DofSet::Xdisp);
-    if(xLoc >= 0) { totP += square(primal[xLoc]/weight[xLoc]); nd += 1.0 ; }
+    if(xLoc >= 0) { totP += square(primal[xLoc]/static_cast<double>(weight[xLoc])); nd += 1.0 ; }
     int yLoc = c_dsa->locate(inode, DofSet::Ydisp);
-    if(yLoc >= 0) { totP += square(primal[yLoc]/weight[yLoc]); nd += 1.0 ; }
+    if(yLoc >= 0) { totP += square(primal[yLoc]/static_cast<double>(weight[yLoc])); nd += 1.0 ; }
     int zLoc = c_dsa->locate(inode, DofSet::Zdisp);
-    if(zLoc >= 0) { totP += square(primal[zLoc]/weight[zLoc]); nd += 1.0 ; }
+    if(zLoc >= 0) { totP += square(primal[zLoc]/static_cast<double>(weight[zLoc])); nd += 1.0 ; }
     if(nd != 0) totP = sqrt(totP/nd);
     error[glNums[inode]] += totP;
   }
@@ -1559,25 +1561,6 @@ GenSubDomain<Scalar>::receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat)
  }
 }
 
-template<class Scalar>
-void
-GenSubDomain<Scalar>::expandRBM(Scalar *localR, VectorSet &globalR)
-{
- int globalNumRBM = globalR.numVec();
- for(int iRBM=0; iRBM<globalNumRBM; ++iRBM)
-   for(int inode=0; inode<numnodes; ++inode) {
-     int xdof = c_dsa->locate(inode, DofSet::Xdisp);
-     int ydof = c_dsa->locate(inode, DofSet::Ydisp);
-     int zdof = c_dsa->locate(inode, DofSet::Zdisp);
-     Scalar w1 = weight[xdof];
-     Scalar w2 = weight[ydof];
-     Scalar w3 = weight[zdof];
-     globalR[iRBM][6*glNums[inode]+0] = localR[xdof+iRBM*localLen()]/w1;
-     globalR[iRBM][6*glNums[inode]+1] = localR[ydof+iRBM*localLen()]/w2;
-     globalR[iRBM][6*glNums[inode]+2] = localR[zdof+iRBM*localLen()]/w3;
-   }
-}
-
 template<>
 void
 GenSubDomain<DComplex>::getSRMult(const DComplex *lvec, const DComplex *interfvec, int nRBM,
@@ -2678,9 +2661,9 @@ GenSubDomain<Scalar>::mergeDistributedReactions(Scalar (*mergedF)[11], Scalar *s
 }
 
 
-template<class Scalar>
+template<>
 void
-GenSubDomain<Scalar>::updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda)
+GenSubDomain<double>::updatePrescribedDisp(GeomState *geomState, double deltaLambda)
 {
   if(numDirichlet > 0)
     geomState->updatePrescribedDisplacement(dbc, numDirichlet, deltaLambda);
@@ -7037,3 +7020,5 @@ GenSubDomain<Scalar>::addSommer(SommerElement *ele)
   { ele->renum(glToLocalNode); packedEset.elemadd(numele++,ele); }
 }
 
+template class GenSubDomain<double>;
+template class GenSubDomain<std::complex<double>>;

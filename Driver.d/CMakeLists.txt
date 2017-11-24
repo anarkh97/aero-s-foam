@@ -10,4 +10,5 @@ BinaryOutput.C
 DomainPita.C
 GeoSourceInstance.C OpMakeInstance.C
 ControlLawInfo.C BinaryOutputInstance.C
-EFrameDataInstance.C CommunicatorCore.cpp)
+EFrameDataInstance.C CommunicatorCore.cpp
+        SubDomain.C)

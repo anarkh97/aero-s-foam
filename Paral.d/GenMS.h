@@ -1,6 +1,8 @@
 #ifndef _GEN_M_S_H_
 #define _GEN_M_S_H_
 
+#include<Math.d/CuCSparse.h>
+
 template<class Scalar>
 class GenMultiSparse : public GenSparseMatrix<Scalar> 
 {

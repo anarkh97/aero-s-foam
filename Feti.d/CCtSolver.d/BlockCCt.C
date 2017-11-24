@@ -10,6 +10,8 @@ class FSCommunicator;
 #include <Solvers.d/Solver.h>
 #include <Math.d/SparseMatrix.h>
 #include<Feti.d/CCtSolver.d/BlockCCt.h>
+#include <Utils.d/DistHelper.h>
+#include <Solvers.d/SolverFactory.h>
 
 template<class Scalar>
 BlockCCtSolver<Scalar>::BlockCCtSolver(Connectivity *_blockToMpc, Connectivity *mpcToMpc, Connectivity *mpcToSub, 

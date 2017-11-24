@@ -3400,6 +3400,7 @@ Domain::~Domain()
 }
 
 #include <Element.d/Helm.d/HelmElement.h>
+#include <Corotational.d/utilities.h>
 
 int
 Domain::isFluidElement(int i)

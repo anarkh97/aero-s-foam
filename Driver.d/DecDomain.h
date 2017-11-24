@@ -1,6 +1,7 @@
 #ifndef _DEC_DOMAIN_H_
 #define _DEC_DOMAIN_H_
 
+#include <memory>
 #include <Feti.d/DistrVector.h>
 #include <Feti.d/DistrVectorSet.h>
 #include <Paral.d/SubDOp.h>
@@ -33,7 +34,7 @@ template<class Scalar>
 class GenDecDomain 
 {
  public:
-  Connectivity *mpcToSub_dual;
+	std::unique_ptr<Connectivity> mpcToSub_dual;
   Connectivity *mpcToMpc;
   Connectivity *mpcToCpu;
  protected:
@@ -115,8 +116,8 @@ class GenDecDomain
   int getNumSub() { return numSub; }
   int getGlobalNumSub() { return globalNumSub; }
   int getNumCPU() { return numCPU; }
-  Connectivity *getCpuToSub() { return cpuToSub; }
-  Connectivity *getMpcToSub() { return mpcToSub_dual; }
+  Connectivity *getCpuToSub() const { return cpuToSub; }
+  const Connectivity &getMpcToSub() const { return *mpcToSub_dual; }
   Connectivity *getMpcToSub_primal() { return mpcToSub_primal; }
   virtual void preProcess();
   virtual void postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f, double eigV = 0.0,

@@ -110,17 +110,17 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
  int iSub;
  // create this->vPat FSCommPattern object, used to send/receive a scalar vector (interfaceDOFs)
  this->vPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<Scalar>::CopyOnSend);
- for(iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setDofCommSize(this->vPat);
+ for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setDofCommSize(this->vPat);
  this->vPat->finalize();
 
  // create this->sPat FSCommPattern objects, used to send/receive a single integer
  this->sPat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
- for(iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setCommSize(this->sPat, 1);
+ for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setCommSize(this->sPat, 1);
  this->sPat->finalize();
 
  if(globalFlagCtc) {
    mpcPat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
-   for(iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setMpcCommSize(mpcPat);
+   for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcCommSize(mpcPat);
    mpcPat->finalize();
  }
 
@@ -135,13 +135,13 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
  this->halfSize = 0;
  for(iSub = 0; iSub < this->nsub; ++iSub) {
    this->fetiOps[iSub] = new GenFetiOp<Scalar>;
-   this->interface.domLen[iSub] = this->sd[iSub]->interfLen();
-   this->internalDI.domLen[iSub]  = this->sd[iSub]->numUncon();
-   internalR.domLen[iSub] = this->sd[iSub]->localRLen();
+   this->interface.domLen[iSub] = this->subdomains[iSub]->interfLen();
+   this->internalDI.domLen[iSub]  = this->subdomains[iSub]->getNumUncon();
+   internalR.domLen[iSub] = this->subdomains[iSub]->localRLen();
 
-   this->sd[iSub]->computeMasterFlag(this->mpcToSub);
+   this->subdomains[iSub]->computeMasterFlag(*this->mpcToSub);
    this->fetiOps[iSub]->setHalfOffset(this->halfSize);
-   this->halfSize      += this->sd[iSub]->halfInterfLen();
+   this->halfSize      += this->subdomains[iSub]->halfInterfLen();
    tInterfLen    += this->interface.domLen[iSub];
    tLocalLen     += this->internalDI.domLen[iSub];
    tLocalRLen    += internalR.domLen[iSub];
@@ -154,7 +154,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
  bool *interfaceMasterFlag = new bool[tInterfLen];
  this->interface.computeOffsets();
  for(iSub = 0; iSub < this->nsub; ++iSub) {
-   bool *subMasterFlag = this->sd[iSub]->getMasterFlag();
+   const bool *subMasterFlag = this->subdomains[iSub]->getMasterFlag();
    int subOffset = this->interface.subOffset[iSub];
    int j;
    for(j=0; j<this->interface.domLen[iSub]; ++j)
@@ -181,7 +181,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
      this->sd[iSub]->KrrSparse = sysSparse[iSub];
      if(fetiInfo->printMatLab) {
        std::stringstream filename;
-       filename << "localmat" << this->sd[iSub]->subNum();
+       filename << "localmat" << this->subdomains[iSub]->subNum();
        this->sd[iSub]->KrrSparse->printSparse(filename.str());
      }
      this->fetiOps[iSub]->setSysMatrix(this->sd[iSub]->Krr, sysSparse[iSub]);
@@ -219,7 +219,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
    if(fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
      FSCommPattern<Scalar> *mpcDiagPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU, 
                                                                    FSCommPattern<Scalar>::CopyOnSend);
-     for(iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setMpcDiagCommSize(mpcDiagPat);
+     for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcDiagCommSize(mpcDiagPat);
      mpcDiagPat->finalize();
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcDiag, mpcDiagPat);
      mpcDiagPat->exchange();
@@ -272,7 +272,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 
  int tLocalCLen = 0;
  for(iSub = 0; iSub < this->nsub; ++iSub) {
-   internalC.domLen[iSub] = this->sd[iSub]->numCoarseDofs();
+   internalC.domLen[iSub] = this->subdomains[iSub]->numCoarseDofs();
    tLocalCLen += internalC.domLen[iSub];
  }
  internalC.len = tLocalCLen;
@@ -280,7 +280,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
  if(domain->solInfo().isCoupled) {
    int tLocalWILen = 0;
    for(iSub = 0; iSub < this->nsub; ++iSub) {
-     internalWI.domLen[iSub] = this->sd[iSub]->numWetInterfaceDofs();
+     internalWI.domLen[iSub] = this->subdomains[iSub]->numWetInterfaceDofs();
      tLocalWILen += internalWI.domLen[iSub];
    }
    internalWI.len = tLocalWILen;
@@ -312,7 +312,7 @@ GenFetiDPSolver<Scalar>::computeLocalWaveNumbers()
       paralApply(this->nsub, this->sd, &BaseSub::computeWaveNumbers);
       // send/receive wave numbers for FETI-DPH EdgeWs augmentation
       FSCommPattern<double> *kPat = new FSCommPattern<double>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<double>::CopyOnSend);
-      for(iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setCommSize(kPat, 4);
+      for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setCommSize(kPat, 4);
       kPat->finalize();
       paralApply(this->nsub, this->sd, &BaseSub::sendWaveNumbers, kPat);
       kPat->exchange();
@@ -323,7 +323,7 @@ GenFetiDPSolver<Scalar>::computeLocalWaveNumbers()
       paralApply(this->nsub, this->sd, &BaseSub::averageMatProps);
       // send/receive neighb material properties for FETI-DPH EdgeWs augmentation
       FSCommPattern<double> *matPat = new FSCommPattern<double>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<double>::CopyOnSend);
-      for(iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setCommSize(matPat, 5);
+      for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setCommSize(matPat, 5);
       matPat->finalize();
       paralApply(this->nsub, this->sd, &BaseSub::sendMatProps, matPat);
       matPat->exchange();
@@ -350,7 +350,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    int *pointer = new int[this->glNumSub+1];
    for(i=0; i<this->glNumSub+1; ++i) pointer[i] = 0;
    for(iSub=0; iSub<this->nsub; ++iSub)
-     pointer[this->sd[iSub]->subNum()] = this->sd[iSub]->numCorners();
+     pointer[this->subdomains[iSub]->subNum()] = this->subdomains[iSub]->numCorners();
 #ifdef DISTRIBUTED
    this->fetiCom->globalSum(this->glNumSub, pointer);
 #endif
@@ -365,8 +365,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
    int *glCornerNodes = new int[total];
    for(i=0; i<total; ++i) glCornerNodes[i] = 0;
    for(iSub=0; iSub<this->nsub; ++iSub) {
-     int numCorner = this->sd[iSub]->numCorners();
-     int *localCornerNodes = this->sd[iSub]->getLocalCornerNodes();
+     int numCorner = this->subdomains[iSub]->numCorners();
+     const int *localCornerNodes = this->sd[iSub]->getLocalCornerNodes();
      int *glN = this->sd[iSub]->getGlNodes();
      for(int iCorner=0; iCorner<numCorner; ++iCorner)
        glCornerNodes[pointer[this->sd[iSub]->subNum()]+iCorner] = glN[localCornerNodes[iCorner]];
@@ -3089,7 +3089,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
  for(iSub = 0; iSub < this->nsub; ++iSub) {
    this->interface.domLen[iSub] = this->sd[iSub]->interfLen();
 
-   this->sd[iSub]->computeMasterFlag(this->mpcToSub);
+   this->sd[iSub]->computeMasterFlag(*this->mpcToSub);
    this->fetiOps[iSub]->setHalfOffset(this->halfSize);
    this->halfSize      += this->sd[iSub]->halfInterfLen();
    tInterfLen    += this->interface.domLen[iSub];

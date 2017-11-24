@@ -12,6 +12,8 @@ class GenSolver;
 template <typename Scalar>
 class GenSparseMatrix;
 
+class Connectivity;
+
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
 class FetiBaseSub {
 public:
@@ -35,13 +37,28 @@ public:
 
 	virtual void setCommSize(FSCommStructure *pat, int size) const = 0;
 
+	virtual void setMpcCommSize(FSCommStructure *mpcPat) const = 0;
+
+	virtual void setMpcDiagCommSize(FSCommStructure *mpcDiagPat) const = 0;
+
 	virtual int localSubNum() const = 0;
 	virtual int localLen() const = 0;
+	virtual int localRLen() const = 0;
 
 	virtual int getNumUncon() const = 0;
 
+	/** \brief Make the subdomain determine its master flag, i.e. whether it is the primary holder of a variable. */
+	virtual void computeMasterFlag(const Connectivity &mpcToSub)  = 0;
+	virtual const bool* getMasterFlag() const = 0;
+
 	/// \brief Obtain the number of MPC constraints.
 	virtual int numMPCs() const = 0;
+	/// \brief Obtain the number of coarse dofs. This method computes a cached value.
+	virtual int numCoarseDofs() = 0;
+	/// \brief Obtain the number of corner nodes.
+	virtual int numCorners() const = 0;
+
+	virtual int numWetInterfaceDofs() const = 0;
 
 	virtual int getLocalMPCIndex(int globalMpcIndex) const = 0;
 

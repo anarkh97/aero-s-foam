@@ -56,8 +56,9 @@ public :
     Connectivity* altReverse(float *w = 0);
     template <class B, class AB>
     Connectivity* transcon(BaseConnectivity<B,AB>* tc) const;
+
     template <class B, class AB>
-    Connectivity* altTranscon(BaseConnectivity<B,AB>* tc);
+    Connectivity* altTranscon(const BaseConnectivity<B,AB>& tc) const;
     template <class B, class AB>
     Connectivity* transcon(BaseConnectivity<B,AB>* tc, int *, int);
 
@@ -147,6 +148,7 @@ public:
     void setRemoveable(int _removeable) { removeable = _removeable; }
     const int *operator[](int i) const;
     int *operator[](int i);
+    /// \brief Obtain the number of source nodes.
     int csize() const;
     int numConnect() const; // Total number of connections
     int num(int) const;
@@ -504,7 +506,7 @@ BaseConnectivity<A,Accessor>::altReverse(float * w)
 
 template<typename A, class Accessor>
 template<class B, class AB>
-Connectivity* BaseConnectivity<A,Accessor>::altTranscon(BaseConnectivity<B,AB>* tc)
+Connectivity* BaseConnectivity<A,Accessor>::altTranscon(const BaseConnectivity<B,AB>& tc) const
 {
     // PJSA 12-12-05 this version of transcon doesn't include connections with self unless entirely internal
     int i,j,k;
@@ -513,9 +515,9 @@ Connectivity* BaseConnectivity<A,Accessor>::altTranscon(BaseConnectivity<B,AB>* 
     int tgmax=-1;
 
     int size = csize(); //Accessor<A>::getSize(static_cast<A*>(this));
-    for(i = 0; i < tc->csize(); ++i)
-        for(j = 0; j < tc->num(i); ++j)
-            tgmax = std::max(tgmax, (*tc)[i][j]);
+    for(i = 0; i < tc.csize(); ++i)
+        for(j = 0; j < tc.num(i); ++j)
+            tgmax = std::max(tgmax, tc[i][j]);
     tgmax++; // Important adjustment
 
     // Now we can size the array that flags if a target has been visited
@@ -531,10 +533,10 @@ Connectivity* BaseConnectivity<A,Accessor>::altTranscon(BaseConnectivity<B,AB>* 
         auto tg = (*this)[i]; //Accessor<A>::getData(static_cast<A*>(this), i);
         for(j = 0; j < nTg; ++j) {
             int intermed = tg[j];
-            for(k = 0; k < tc->num(intermed); ++k) {
-                if(((*tc)[intermed][k] == i) && (tc->num(intermed) != 1)) continue;
-                if(flags[(*tc)[intermed][k]] != i) {
-                    flags[(*tc)[intermed][k]] = i;
+            for(k = 0; k < tc.num(intermed); ++k) {
+                if((tc[intermed][k] == i) && (tc.num(intermed) != 1)) continue;
+                if(flags[tc[intermed][k]] != i) {
+                    flags[tc[intermed][k]] = i;
                     cp ++;
                 }
             }
@@ -552,11 +554,11 @@ Connectivity* BaseConnectivity<A,Accessor>::altTranscon(BaseConnectivity<B,AB>* 
         auto tg = (*this)[i]; //Accessor<A>::getData(static_cast<A*>(this), i);
         for(j = 0; j < nTg; ++j) {
             int intermed = tg[j];
-            for (k = 0; k < tc->num(intermed); ++k) {
-                if(((*tc)[intermed][k] == i) && (tc->num(intermed) != 1)) continue;
-                if(flags[(*tc)[intermed][k]] != i) {
-                    flags[(*tc)[intermed][k]] = i;
-                    ntg[cp] = (*tc)[intermed][k];
+            for (k = 0; k < tc.num(intermed); ++k) {
+                if((tc[intermed][k] == i) && (tc.num(intermed) != 1)) continue;
+                if(flags[tc[intermed][k]] != i) {
+                    flags[tc[intermed][k]] = i;
+                    ntg[cp] = tc[intermed][k];
                     cp ++;
                 }
             }

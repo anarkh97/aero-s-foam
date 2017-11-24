@@ -190,7 +190,7 @@ public:
 	int getNumUncon() const override { return numUncon(); }
 	int localLen() const override { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
 	ConstrainedDSA * getCCDSA()  { return (cc_dsa) ? cc_dsa : c_dsa; }
-	int localRLen() const        { return cc_dsa->size(); }
+	int localRLen() const override { return cc_dsa->size(); }
 	void sendNumNeighbGrbm(FSCommPattern<int> *pat);
 	void recvNumNeighbGrbm(FSCommPattern<int> *pat);
 	void deleteLocalRBMs() { if(rigidBodyModes) delete rigidBodyModesG; rigidBodyModesG = 0; }
@@ -206,7 +206,7 @@ public:
 	void addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol);
 	void makeLocalToGroupMPC(Connectivity *groupToMPC);
 	void findEdgeNeighbors();
-	void makeMpcInterface(Connectivity *subToMpc, Connectivity *lmpcToSub,
+	void makeMpcInterface(Connectivity *subToMpc, const Connectivity &lmpcToSub,
 	                      Connectivity *subToSub_mpc);
 	void makeFsiInterface(Connectivity *subToFsi, Connectivity *fsiToSub,
 	                      Connectivity *subToSub_fsi);
@@ -214,7 +214,7 @@ public:
 	bool checkForColinearCrossPoints(int numCornerPoints, int *localCornerPoints);
 	void addCornerPoints(int *glCornerList);
 	int *getLocalCornerNodes()  { return cornerNodes; }
-	int numCorners() const { return numCRN; }
+	int numCorners() const override { return numCRN; }
 	int *getCornerNodes()       { return glCornerNodes; }
 	int numCornerDofs()	const { return numCRNdof; }
 	int numCoarseDofs();
@@ -300,8 +300,9 @@ public:
 	void setPairsNbTotal(int pairsNbTotal);
 	int interfLen() const override; //<! \brief Total length for the local interface
 	int halfInterfLen() const override; //<! \brief Length of the "half interface"
-	void computeMasterFlag(Connectivity *mpcToSub);
+	void computeMasterFlag(const Connectivity &mpcToSub) override;
 	bool* getMasterFlag() { return masterFlag; }
+	const bool* getMasterFlag() const override { return masterFlag; }
 	const bool* getInternalMasterFlag();
 
 protected:
@@ -313,6 +314,7 @@ public:
 	void setDofCommSize(FSCommStructure *) const override;
 	void setDofPlusCommSize(FSCommStructure *) const;
 	void setRbmCommSize(int numRBM, FSCommStructure *) const override;
+	void setMpcCommSize(FSCommStructure *mpcPat) const override;
 
 	// for timing file
 	double getSharedDofCount();
@@ -407,7 +409,7 @@ public:
 	void makeDSA();
 	void makeCDSA();
 	void makeCCDSA();
-	int numWetInterfaceDofs() { return numWIdof; }
+	int numWetInterfaceDofs() const { return numWIdof; }
 	GlobalToLocalMap& getGlToLocalWImap() { return glToLocalWImap; }
 	GlobalToLocalMap& getNeighbGlToLocalWImap(int i) { return neighbGlToLocalWImap[i]; }
 	void zeroEdgeDofSize();
@@ -681,7 +683,7 @@ public:
 	void factorLocalCCtsolver();
 	void zeroLocalCCtsolver();
 	void deleteLocalCCtsolver() { if(localCCtsolver) delete localCCtsolver; }
-	void setMpcDiagCommSize(FSCommPattern<Scalar> *mpcDiagPat);
+	void setMpcDiagCommSize(FSCommStructure *mpcDiagPat) const override;
 	void sendMpcDiag(FSCommPattern<Scalar> *mpcDiagPat);
 	void collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat);
 
@@ -692,12 +694,10 @@ public:
 	                             SimpleNumberer *blockMpcEqNums);
 	void insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, Connectivity *mpcToBlock,
 	                            SimpleNumberer **blockMpcEqNums);
-	void setMpcCommSize(FSCommPattern<Scalar> *mpcPat);
 	void sendMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec);
 	void combineMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec);
 	void sendMpcScaling(FSCommPattern<Scalar> *mpcPat);
 	void collectMpcScaling(FSCommPattern<Scalar> *mpcPat);
-	void setMpcCommSize(FSCommPattern<int> *mpcPat);
 	void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
 	void recvMpcStatus(FSCommPattern<int> *mpcPat, int flag, bool &statusChange);
 	void printMpcStatus();
@@ -836,7 +836,7 @@ public:
 	void assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver);
 
 	// R_g matrix construction and access
-	void buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, Connectivity *cornerToSub); // use null space of (G^T*P_H*G) ... trbm method !!!
+	void buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, const Connectivity *cornerToSub); // use null space of (G^T*P_H*G) ... trbm method !!!
 	void getGlobalRBM(int iRBM, Scalar *Rvec) const;
 	// R_g matrix-vector multiplication
 	void subtractRstar_g(Scalar *u, GenVector<Scalar> &beta) const; // u -= R_g*beta

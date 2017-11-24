@@ -56,7 +56,6 @@ GenDecDomain<Scalar>::initialize()
   nodeToSub  = 0;
   nodeToSub_copy = 0;
   subToSub   = 0;
-  mpcToSub_dual = 0;
   mpcToSub_primal = 0;
   mpcToMpc   = 0;
   cpuToSub   = 0;
@@ -100,7 +99,6 @@ GenDecDomain<Scalar>::~GenDecDomain()
   if(nodeToSub) { delete nodeToSub; nodeToSub = 0; }
   if(nodeToSub_copy) { delete nodeToSub_copy; nodeToSub_copy = 0; }
   if(subToSub) { delete subToSub; subToSub = 0; }
-  if(mpcToSub_dual) { delete mpcToSub_dual; mpcToSub_dual = 0; }
   if(mpcToSub_primal) { delete mpcToSub_primal; mpcToSub_primal = 0; }
   if(mpcToMpc) { delete mpcToMpc; mpcToMpc = 0; }
   if(subDomain) {
@@ -461,7 +459,7 @@ void
 GenDecDomain<Scalar>::deleteMPCs()
 {
   paralApply(numSub, subDomain, &GenSubDomain<Scalar>::deleteMPCs);
-  if(mpcToSub_dual) { delete mpcToSub_dual; mpcToSub_dual = 0; }
+  mpcToSub_dual.reset(nullptr);
   if(mpcToMpc) { delete mpcToMpc; mpcToMpc = 0; }
   if(mpcToCpu) { delete mpcToCpu; mpcToCpu = 0; }
   numDualMpc = 0;
@@ -606,12 +604,12 @@ GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
    bool rbmFlag = ((domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted());
    bool geometricRbms = (domain->solInfo().rbmflg && !domain->solInfo().isNonLin());
    return new GenFetiDPSolver<Scalar>(numSub, globalNumSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
-                                      mpcToSub_dual, mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
+                                      mpcToSub_dual.get(), mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
                                       dgt.dynMats, dgt.spMats, dgt.rbms, rbmFlag, geometricRbms, verboseFlag);
  }
  else {
    return new GenFetiSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator,
-                                    glSubToLocal, mpcToSub_dual, cpuToSub,
+                                    glSubToLocal, mpcToSub_dual.get(), cpuToSub,
                                     dgt.dynMats, dgt.spMats, dgt.rbms, verboseFlag);
  }
 }
@@ -3291,13 +3289,13 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::getSharedMPCs()
 {
-  if(numDualMpc) {
-    Connectivity *subToMpc = mpcToSub_dual->altReverse(); // reverse without reordering
-    Connectivity *subToSub_mpc = subToMpc->altTranscon(mpcToSub_dual); // remove connection with self unless pure internal
-    paralApply(numSub, subDomain, &BaseSub::makeMpcInterface, subToMpc, mpcToSub_dual, subToSub_mpc);
-    delete subToMpc;
-    delete subToSub_mpc;
-  }
+	if(numDualMpc) {
+		Connectivity *subToMpc = mpcToSub_dual->altReverse(); // reverse without reordering
+		Connectivity *subToSub_mpc = subToMpc->altTranscon(*mpcToSub_dual); // remove connection with self unless pure internal
+		paralApply(numSub, subDomain, &BaseSub::makeMpcInterface, subToMpc, *mpcToSub_dual, subToSub_mpc);
+		delete subToMpc;
+		delete subToSub_mpc;
+	}
 }
 
 template<class Scalar>
@@ -3663,10 +3661,8 @@ GenDecDomain<Scalar>::makeMpcToSub()
     communicator->globalSum(total, target);
 #endif
 
-    Connectivity *subToMpc = new Connectivity(globalNumSub, pointer, target);
-    if(mpcToSub_dual) delete mpcToSub_dual;
-    mpcToSub_dual = subToMpc->reverse();
-    delete subToMpc;
+    auto subToMpc = std::make_unique<Connectivity>(globalNumSub, pointer, target);
+    mpcToSub_dual.reset(subToMpc->reverse());
   }
   if(numPrimalMpc) {
     int *pointer = new int[globalNumSub+1];

@@ -297,7 +297,7 @@ MDNLStatic::updateContactSurfaces(DistrGeomState& geomState, DistrGeomState *ref
     domain->ExpComputeMortarLMPC(MortarHandler::CTC);
     domain->CreateMortarToMPC();
     decDomain->reProcessMPCs();
-    fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+    fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual.get(), decDomain->mpcToMpc, decDomain->mpcToCpu);
   }
   else {
     clean();

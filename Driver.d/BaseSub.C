@@ -233,7 +233,7 @@ BaseSub::interfLen() const
 }
 
 void
-BaseSub::computeMasterFlag(Connectivity *mpcToSub)
+BaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 {
   // PJSA: 12-13-02  masterFlag to be used in dot product and orthogonalization
   // allows for mpcs or wet interface dofs connecting 1 or > 2 subs
@@ -294,7 +294,7 @@ BaseSub::computeMasterFlag(Connectivity *mpcToSub)
         case 2: { // mpc
           int locMpcNb = -1 - bdof;
           int glMpcNb = localToGlobalMPC[locMpcNb];
-          if(subNumber == (*mpcToSub)[glMpcNb][0]) {
+          if(subNumber == mpcToSub[glMpcNb][0]) {
             mpcMaster[locMpcNb] = true; // PJSA
             if(mpcFlag[locMpcNb]) { // only need one master for each MPC
               masterFlag[nbdofs++] = true;
@@ -1342,6 +1342,16 @@ BaseSub::setRbmCommSize(int _numRBM, FSCommStructure *pt) const
 {
   for(int iSub = 0; iSub < scomm->numT(SComm::std); ++iSub)
     pt->setLen(subNumber, scomm->neighbT(SComm::std,iSub), scomm->lenT(SComm::std,iSub)*_numRBM);
+}
+
+void
+BaseSub::setMpcCommSize(FSCommStructure *mpcPat) const
+{
+	for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
+		int neighb = scomm->neighbT(SComm::mpc,i);
+		int len = (subNumber != neighb) ? scomm->lenT(SComm::mpc,i) : 0;
+		mpcPat->setLen(subNumber, neighb, len);
+	}
 }
 
 void BaseSub::setControlData(ControlLawInfo *_claw, int *sensorMap,
@@ -3009,7 +3019,7 @@ BaseSub::makeGlobalToLocalElemMap()
 
 
 void
-BaseSub::makeMpcInterface(Connectivity *subToMpc, Connectivity *lmpcToSub,
+BaseSub::makeMpcInterface(Connectivity *subToMpc, const Connectivity &lmpcToSub,
                           Connectivity *subToSub_mpc)
 {
   int i,j,k;
@@ -3023,9 +3033,9 @@ BaseSub::makeMpcInterface(Connectivity *subToMpc, Connectivity *lmpcToSub,
   int numtarget = 0;
   for(i = 0; i < subToMpc->num(subNumber); ++i) {
     int iMPC = (*subToMpc)[subNumber][i];
-    for(j = 0; j < lmpcToSub->num(iMPC); ++j) {
-      int jSub = (*lmpcToSub)[iMPC][j];
-      if( (jSub != subNumber) || (lmpcToSub->num(iMPC) == 1) ) {
+    for(j = 0; j < lmpcToSub.num(iMPC); ++j) {
+      int jSub = lmpcToSub[iMPC][j];
+      if( (jSub != subNumber) || (lmpcToSub.num(iMPC) == 1) ) {
         int jMpcNeighb = subToSub_mpc->cOffset(subNumber, jSub);
         mpcNeighbSize[jMpcNeighb] += 1;
         numtarget++;
@@ -3041,9 +3051,9 @@ BaseSub::makeMpcInterface(Connectivity *subToMpc, Connectivity *lmpcToSub,
   for(i = 0; i < subToMpc->num(subNumber); ++i) {
     int iMPC = (*subToMpc)[subNumber][i];
     int locMpc = globalToLocalMPC[iMPC];
-    for(j = 0; j < lmpcToSub->num(iMPC); ++j) {
-      int jSub = (*lmpcToSub)[iMPC][j];
-      if( (jSub != subNumber) || (lmpcToSub->num(iMPC) == 1) ) {
+    for(j = 0; j < lmpcToSub.num(iMPC); ++j) {
+      int jSub = lmpcToSub[iMPC][j];
+      if( (jSub != subNumber) || (lmpcToSub.num(iMPC) == 1) ) {
         int jMpcNeighb = subToSub_mpc->cOffset(subNumber, jSub);
         int t = pointer[jMpcNeighb] + mpcNeighbSize[jMpcNeighb];
         target[t] = locMpc;

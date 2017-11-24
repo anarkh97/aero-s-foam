@@ -306,9 +306,9 @@ MultiDomainRbm<Scalar>::computeRbms()
 
     // 3. build coarse connectivity and equation numberer
     Connectivity *coarseConnectGtG;
-    Connectivity *mpcToSub = decDomain->getMpcToSub();
-    if(mpcToSub) {
-      Connectivity *mpcToBody = mpcToSub->transcon(subToGroup);
+    const Connectivity &mpcToSub = decDomain->getMpcToSub();
+    if(mpcToSub.csize() > 0) {
+      Connectivity *mpcToBody = mpcToSub.transcon(subToGroup);
       Connectivity *bodyToMpc = mpcToBody->reverse();
       Connectivity *bodyToBody_mpc = bodyToMpc->transcon(mpcToBody);
       coarseConnectGtG = bodyToBody_mpc->modify();

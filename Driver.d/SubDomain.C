@@ -4277,16 +4277,6 @@ GenSubDomain<Scalar>::insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **m
   }
 }
 
-template<class Scalar>
-void
-GenSubDomain<Scalar>::setMpcCommSize(FSCommPattern<Scalar> *mpcPat)
-{
-  for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-    int neighb = scomm->neighbT(SComm::mpc,i);
-    int len = (subNumber != neighb) ? scomm->lenT(SComm::mpc,i) : 0;
-    mpcPat->setLen(subNumber, neighb, len);
-  }
-}
 
 template<class Scalar>
 void
@@ -4335,17 +4325,6 @@ GenSubDomain<Scalar>::combineMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scal
      }
    }
  }
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::setMpcCommSize(FSCommPattern<int> *mpcPat)
-{
-  for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-    int neighb = scomm->neighbT(SComm::mpc,i);
-    int len = (subNumber != neighb) ? scomm->lenT(SComm::mpc,i) : 0;
-    mpcPat->setLen(subNumber, neighb, len);
-  }
 }
 
 template<class Scalar>
@@ -5627,7 +5606,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::setMpcDiagCommSize(FSCommPattern<Scalar> *mpcDiagPat)
+GenSubDomain<Scalar>::setMpcDiagCommSize(FSCommStructure *mpcDiagPat) const
 {
   for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
     int neighb = scomm->neighbT(SComm::mpc,i);

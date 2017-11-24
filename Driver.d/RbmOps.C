@@ -388,7 +388,7 @@ GenSubDomain<Scalar>::assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, Connectivity *cornerToSub)
+GenSubDomain<Scalar>::buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, const Connectivity *cornerToSub)
 {
   int i,j,k;
   if(numGroupRBM == 0) numGlobalRBMs = 0;

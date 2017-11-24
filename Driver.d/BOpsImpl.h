@@ -1,3 +1,5 @@
+#include "SubDomain.h"
+
 template<class Scalar>
 void
 GenSubDomain<Scalar>::multAddBrT(const Scalar *interfvec, Scalar *localvec, Scalar *uw) const

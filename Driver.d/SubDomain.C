@@ -7020,5 +7020,9 @@ GenSubDomain<Scalar>::addSommer(SommerElement *ele)
   { ele->renum(glToLocalNode); packedEset.elemadd(numele++,ele); }
 }
 
+#include "LOpsImpl.h"
+#include "BOpsImpl.h"
+#include "RbmOpsImpl.h"
+
 template class GenSubDomain<double>;
 template class GenSubDomain<std::complex<double>>;

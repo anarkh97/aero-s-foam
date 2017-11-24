@@ -852,10 +852,6 @@ public:
 };
 
 typedef GenSubDomain<double> SubDomain;
-#ifdef _TEMPLATE_FIX_
-#include <Driver.d/BOps.C>
-#include <Driver.d/RbmOps.C>
-#include <Driver.d/LOps.C>
-#endif
+
 
 #endif

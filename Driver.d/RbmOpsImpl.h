@@ -1,4 +1,5 @@
 // ****************************************************************************************************
+#include "SubDomain.h"
 #include <Math.d/SparseSet.h>
 
 template<class Scalar>
@@ -11,7 +12,7 @@ GenSubDomain<Scalar>::makeZstarAndR(double *centroid)
 }
 
 template<> 
-inline void
+void
 GenSubDomain<double>::makeLocalRstar(FullM **Qtranspose) 
 {
   FullM &R = rigidBodyModesG->R;
@@ -26,7 +27,7 @@ GenSubDomain<double>::makeLocalRstar(FullM **Qtranspose)
 }
 
 template<>
-inline void
+void
 GenSubDomain<DComplex>::makeLocalRstar(FullM **Qtranspose)
 {
   std::cerr << "GenSubDomain<DComplex>::makeLocalRstar(FullM **Qtranspose) is not implemented\n";

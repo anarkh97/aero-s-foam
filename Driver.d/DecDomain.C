@@ -691,14 +691,14 @@ GenDecDomain<Scalar>::preProcess()
  }
  //soweredInput = geoSource->binaryInput;
 
- if(!subToElem) {
+// if(!subToElem) {
    if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");
 #ifndef OLD_CLUSTER
    if(soweredInput) geoSource->getBinaryDecomp(); else
 #endif
    subToElem = geoSource->getDecomposition();
    //subToElem->sortTargets(); // JAT 021915 // PJSA 11-16-2006
- }
+// }
 
  makeSubToSubEtc();
 

@@ -3,6 +3,7 @@
 #include <Dist.d/DistDom.h>
 #include <Driver.d/Domain.h>
 #include <Driver.d/Dynam.h>
+#include <Driver.d/SysState.h>
 #include <Math.d/SparseMatrix.h>
 
 MultiDomainTemp::MultiDomainTemp(Domain *d)

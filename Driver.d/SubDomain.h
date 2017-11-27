@@ -440,20 +440,20 @@ protected:
 public:
 	GenSparseSet<Scalar>      *Src;
 	GenSparseSet<Scalar>      *Qrc;
-	GenSolver<Scalar>         *Krr;
+	std::unique_ptr<GenSolver<Scalar>> Krr;
 	GenSparseMatrix<Scalar>   *KrrSparse;
 	Scalar                    **BKrrKrc;
-	GenAssembledFullM<Scalar> *Kcc;
-	GenCuCSparse<Scalar>      *Krc;
-	GenCuCSparse<Scalar>      *Grc;
+	std::unique_ptr<GenAssembledFullM<Scalar>> Kcc;
+	std::unique_ptr<GenCuCSparse<Scalar>>      Krc;
+	std::unique_ptr<GenCuCSparse<Scalar>>      Grc;
 	Scalar                    *rbms;
 	Scalar                    *interfaceRBMs;
 	GenFullM<Scalar>          *qtkq;
-	GenSparseMatrix<Scalar>   *KiiSparse;
+	std::unique_ptr<GenSparseMatrix<Scalar>> KiiSparse;
 	GenSolver<Scalar>         *KiiSolver;
-	GenCuCSparse<Scalar>      *Kib;
+	std::unique_ptr<GenCuCSparse<Scalar> >     Kib;
 	GenSparseMatrix<Scalar>   *MPCsparse;
-	GenDBSparseMatrix<Scalar> *Kbb;    // for preconditioning
+	std::unique_ptr<GenDBSparseMatrix<Scalar>> Kbb;    // for preconditioning
 	Corotator           	    **corotators;
 	mutable Scalar 		    *fcstar; // TODO Move this out!
 	Scalar                    *QtKpBt;
@@ -618,11 +618,8 @@ public:
 	friend class GenFetiOp<Scalar>;
 	friend class GenFetiSolver<Scalar>;
 
-	GenAssembledFullM<Scalar> *getKcc() { return Kcc; }
 	void makeQ();
 	void precondGrbm();
-	void orthoWithOrigR(Scalar *origV, Scalar *V, int numV, int length);
-	void ortho(Scalar *vectors, int numVectors, int length);
 	DofSet* getCornerDofs() { return cornerDofs; }
 	void setMpcSparseMatrix();
 	void assembleMpcIntoKcc();

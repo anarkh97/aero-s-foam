@@ -6,6 +6,7 @@
 #include <Utils.d/BlockAlloc.h>
 #include <Paral.d/DomainGroupTask.h>
 #include <Paral.d/Assembler.h>
+#include <Driver.d/DecDomainImpl.h>
 
 template<>
 double
@@ -212,3 +213,5 @@ GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp, bool d
  }
 }
 
+template class GenDecDomain<double>;
+template class GenDecDomain<std::complex<double>>;

@@ -9,6 +9,7 @@
 #endif
 #include <Driver.d/SysState.h>
 #include <Utils.d/DistHelper.h>
+#include <Solvers.d/MultiDomainRbm.h>
 
 extern ModeData modeData;
 

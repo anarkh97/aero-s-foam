@@ -11,6 +11,9 @@
 #include <cstddef>
 
 #include <sys/time.h>
+#include <Utils.d/DistHelper.h>
+#include <Corotational.d/DistrGeomState.h>
+
 
 extern GeoSource *geoSource;
 

@@ -22,7 +22,14 @@
 #include <Hetero.d/DistFlExchange.h>
 #include <Utils.d/ModeData.h>
 #include <Control.d/ControlInterface.h>
+#include <Corotational.d/DistrGeomState.h>
+#include <Solvers.d/ParallelSolver.h>
+#include <Feti.d/Feti.h>
+#include <Paral.d/MDDynam.h>
+#include <Solvers.d/MultiDomainRbm.h>
+#include <Driver.d/SysState.h>
 
+extern int verboseFlag;
 extern ModeData modeData;
 
 // ***************************************************************

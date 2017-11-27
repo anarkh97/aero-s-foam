@@ -20,6 +20,8 @@
 #include <Feti.d/Feti.h>
 #include <Utils.d/ModeData.h>
 #include <Utils.d/DistHelper.h>
+#include <Driver.d/SysState.h>
+#include <Solvers.d/MultiDomainRbm.h>
 
 extern ModeData modeData;
 

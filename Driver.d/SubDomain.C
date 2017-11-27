@@ -421,11 +421,11 @@ void GenSubDomain<Scalar>::mergeElemStress(Scalar *locStress, Scalar *globStress
 }
 
 inline double square(double x) { return x*x; }
+inline double square(std::complex<double> x) { return x.real()*x.real()+x.imag()*x.imag(); }
 
-//template<class Scalar>
-template <>
+template<class Scalar>
 void
-GenSubDomain<double>::mergePrimalError(double* error, double* primal)
+GenSubDomain<Scalar>::mergePrimalError(Scalar* error, Scalar* primal)
 {
   for(int inode=0; inode<numnodes; ++inode) {
     double nd   = 0.0;
@@ -1348,8 +1348,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::constructKcc()
 {
-  if(Kcc) delete Kcc;
-  Kcc = new GenAssembledFullM<Scalar>(numCRNdof, cornerMap);
+  Kcc = std::make_unique<GenAssembledFullM<Scalar>>(numCRNdof, cornerMap);
   memK += numCRNdof*numCRNdof;
 }
 
@@ -1359,8 +1358,8 @@ GenSubDomain<Scalar>::constructKrc()
 {
  Src = new GenSparseSet<Scalar>();
  if(numCRNdof) {
-   Krc = new GenCuCSparse<Scalar>(nodeToNode, dsa, cornerMap, cc_dsa->getUnconstrNum());
-   Src->addSparseMatrix(Krc);
+   Krc = std::make_unique<GenCuCSparse<Scalar>>(nodeToNode, dsa, cornerMap, cc_dsa->getUnconstrNum());
+   Src->addSparseMatrix(Krc.get());
  }
  setMpcSparseMatrix();
 }
@@ -1433,11 +1432,10 @@ GenSubDomain<Scalar>::scaleAndSplitKww()
    fprintf(stderr," ... Assemble localFsi into Kii in sub %2d\n",subNumber);
    if(solInfo().getFetiInfo().splitLocalFsi) {
      neighbKww->splitLocalFsi(glToLocalWImap, wweight);
-     neighbKww->addLocalFsiToMatrix(KiiSparse, dsa, glToLocalNode);
+     neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
    } else {
      fprintf(stderr," ... No local Fsi spliting in sub %2d\n",subNumber);
-     neighbKww->addLocalFsiToMatrix(KiiSparse, dsa, glToLocalNode, kSumWI);
-     //neighbKww->addLocalFsiToMatrix(KiiSparse, dsa, glToLocalNode); // for test
+     neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode, kSumWI);
    }
  }
 #endif
@@ -1460,7 +1458,7 @@ GenSubDomain<Scalar>::reScaleAndReSplitKww()
 #ifdef HB_COUPLED_PRECOND
  if(solInfo().isCoupled & isMixedSub & neighbKww!=0) {
    fprintf(stderr," ... Assemble localFsi into Kii in sub %2d\n",subNumber);
-   if(KiiSparse) neighbKww->addLocalFsiToMatrix(KiiSparse, dsa, glToLocalNode);
+   if(KiiSparse) neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
  }
 #endif
  prev_cscale_factor = cscale_factor;
@@ -1539,8 +1537,8 @@ void
 GenSubDomain<Scalar>::sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat)
 {
  // Sub-Domain based augmented preconditioner for DP
- Grc = new GenCuCSparse<Scalar>(scomm->lenT(SComm::std), scomm->boundDofsT(SComm::std), nGrbm, interfaceRBMs);
- Src->addSparseMatrix(Grc);
+ Grc = std::make_unique<GenCuCSparse<Scalar>>(scomm->lenT(SComm::std), scomm->boundDofsT(SComm::std), nGrbm, interfaceRBMs);
+ Src->addSparseMatrix(Grc.get());
 
  sendInterfRBMs(nGrbm, interfaceRBMs, rbmPat);
 }
@@ -1575,53 +1573,58 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
 {
-  if(glBoundMap) delete [] glBoundMap;
-  glBoundMap = makeBMaps(dof_set_array);
-  if(glInternalMap) delete [] glInternalMap;
-  glInternalMap = makeIMaps(dof_set_array);
+	if(glBoundMap) delete [] glBoundMap;
+	glBoundMap = makeBMaps(dof_set_array);
+	if(glInternalMap) delete [] glInternalMap;
+	glInternalMap = makeIMaps(dof_set_array);
 
-  Kbb = new GenDBSparseMatrix<Scalar>(nodeToNode, dsa, glBoundMap);
-  if(Kbb) memPrec += Kbb->size();
-  // KHP: 3-26-98 Modified this code to always construct Kib
+	Kbb = std::make_unique<GenDBSparseMatrix<Scalar>>(nodeToNode, dsa, glBoundMap);
+	memPrec += Kbb->size();
+	// KHP: 3-26-98 Modified this code to always construct Kib
 
-  if(internalLen > 0) {
+	if(internalLen > 0) {
 #ifdef HB_COUPLED_PRECOND
-    if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
+		if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
        Kib = new GenCuCSparse<Scalar>(precNodeToNode, dsa, glBoundMap, glInternalMap);
     else
 #endif
-    Kib = new GenCuCSparse<Scalar>(nodeToNode, dsa, glBoundMap, glInternalMap);
-    memPrec += Kib->size();
-    Kib->zeroAll();
-  }
-  else Kib = 0;
+		Kib = std::make_unique<GenCuCSparse<Scalar>>(nodeToNode, dsa, glBoundMap, glInternalMap);
+		memPrec += Kib->size();
+		Kib->zeroAll();
+	}
+	else Kib = 0;
 
-  if((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) && (internalLen > 0)) {
+	if((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) && (internalLen > 0)) {
 #ifdef HB_COUPLED_PRECOND
-    if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
-      KiiSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(precNodeToNode, dsa, glInternalMap, *sinfo.solvercntl->fetiInfo.kii_cntl, KiiSparse);
+		if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
+      KiiSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(precNodeToNode, dsa, glInternalMap, *sinfo.solvercntl->fetiInfo.kii_cntl, KiiSparse.get());
     else
 #endif
-      KiiSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(nodeToNode, dsa, glInternalMap, *sinfo.solvercntl->fetiInfo.kii_cntl, KiiSparse);
+		auto solverAndMat =GenSolverFactory<Scalar>::getFactory()->createSolver(nodeToNode, dsa,
+		                                                                        glInternalMap,
+		                                                                        *sinfo.solvercntl->fetiInfo.kii_cntl);
 
-    KiiSolver->setPrintNullity(false);
-    // Find approximate preconditioner size
-    memPrec += KiiSolver->size();
-  }
-  else {
-    KiiSparse = 0;
-    KiiSolver = 0;
-  }
+		KiiSolver = std::move(solverAndMat.solver);
+		KiiSparse = std::move(solverAndMat.sparseMatrix);
+
+		KiiSolver->setPrintNullity(false);
+		// Find approximate preconditioner size
+		memPrec += KiiSolver->size();
+	}
+	else {
+		KiiSparse.reset(nullptr);
+		KiiSolver = 0;
+	}
 }
 
 template<class Scalar>
 void
 GenSubDomain<Scalar>::rebuildKbb()
 {
-  if(Kbb) delete Kbb;
-  if(KiiSparse) delete KiiSparse;
-  if(Kib) delete Kib;
-  if(numMPC) makeKbbMpc(); else makeKbb(getCCDSA());
+	Kbb.reset();
+	KiiSparse.reset();
+	Kib.reset();
+	if(numMPC) makeKbbMpc(); else makeKbb(getCCDSA());
 /*
   GenSparseMatrix<Scalar> *Kas = 0;
   GenSolver<Scalar> *smat = 0;
@@ -2743,10 +2746,9 @@ GenSubDomain<Scalar>::multKcc()
 {
  // resize Kcc if necessary to add space for "primal" mpcs and augmentation
  if(Src->numCol() != Kcc->dim()) {
-   GenAssembledFullM<Scalar> *Kcc_copy = Kcc;
-   Kcc = new GenAssembledFullM<Scalar>(Src->numCol(), cornerMap);
+   std::unique_ptr<GenAssembledFullM<Scalar>> Kcc_copy = std::move(Kcc);
+   Kcc = std::make_unique<GenAssembledFullM<Scalar>>(Src->numCol(), cornerMap);
    for(int i=0; i<numCRNdof; ++i) for(int j=0; j<numCRNdof; ++j) (*Kcc)[i][j] = (*Kcc_copy)[i][j];
-   delete Kcc_copy;
  }
 
  // add in MPC coefficient contributions for Kcc^(s).
@@ -2881,12 +2883,12 @@ GenSubDomain<Scalar>::multKcc()
 	 }
      }
 
-     Grc = new GenCuCSparse<Scalar>(nAve, numEquations, KACount, KAList, KACoefs);
+     Grc = std::make_unique<GenCuCSparse<Scalar>>(nAve, numEquations, KACount, KAList, KACoefs);
 
      if (Src->num() == 2)
-       Src->setSparseMatrix(1,Grc);
+       Src->setSparseMatrix(1,Grc.get());
      else if (Src->num() == 1 && nCor == 0)
-       Src->setSparseMatrix(0,Grc);
+       Src->setSparseMatrix(0,Grc.get());
      else {
        fprintf(stderr, "unsupported number of blocks in Src\n");
        exit(1);
@@ -3137,7 +3139,7 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda) const
  if(Ave) {
    int i, k, nAve, nCor;
    int numEquations = Krr->neqs();
-   nCor = Krc?Krc->numCol():0;
+   nCor = Krc ? Krc->numCol() : 0;
    nAve = Src->numCol() - nCor;
 #ifdef NOTBLAS
    Scalar s;
@@ -3161,7 +3163,7 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda) const
  if(Ave) {
    int i, k, nAve, nCor;
    int numEquations = Krr->neqs();
-   nCor = Krc?Krc->numCol():0;
+   nCor = Krc ? Krc->numCol():0;
    nAve = Src->numCol() - nCor;
 #ifdef NOTBLAS
    Scalar s;
@@ -3283,7 +3285,7 @@ GenSubDomain<Scalar>::getFc(const Scalar *f, Scalar *Fc) const
 
     int nAve, nCor, k;
     Scalar s;
-    nCor = Krc?Krc->numCol():0;
+    nCor = Krc ? Krc->numCol() : 0;
     nAve = Src->numCol() - nCor;
     for(i=0; i<nAve; ++i) {
       s = 0.0;
@@ -3332,7 +3334,7 @@ GenSubDomain<Scalar>::getFr(const Scalar *f, Scalar *fr) const
 
   if(Ave) { // Averages to zero 072513 JAT 
     int i, k, nAve, nCor;
-    nCor = Krc?Krc->numCol():0;
+    nCor = Krc ? Krc->numCol() : 0;
     nAve = Src->numCol() - nCor;
     int numEquations = Krr->neqs();
 #ifdef NOTBLAS
@@ -3384,7 +3386,7 @@ GenSubDomain<Scalar>::mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda)
  // Primal augmentation 030314 JAT
  if(Ave) {
    int nCor, nAve;
-   nCor = Krc?Krc->numCol():0;
+   nCor = Krc?Krc->numCol() : 0;
    nAve = Src->numCol() - nCor;
    for(iNode = 0; iNode < numnodes; ++iNode) {
      DofSet thisDofSet = (*cc_dsa)[iNode];
@@ -3639,10 +3641,10 @@ GenSubDomain<Scalar>::makeAverageEdgeVectors()
 
    if(used) nE++;
    }
-   Grc = new GenCuCSparse<Scalar>(numR*nE, cc_dsa->size(),
+   Grc = std::make_unique<GenCuCSparse<Scalar>>(numR*nE, cc_dsa->size(),
                                   xyzCount, xyzList, xyzCoefs);
    // Src->setSparseMatrices(1, Grc);
-   Src->addSparseMatrix(Grc);
+   Src->addSparseMatrix(Grc.get());
    delete [] xyzCount;
 }
 
@@ -3654,36 +3656,6 @@ template<>
 void
 GenSubDomain<double>::precondGrbm();
 
-template<class Scalar>
-void
-GenSubDomain<Scalar>::orthoWithOrigR(Scalar *origV, Scalar *V, int numV, int length)
-{
-  int i,j;
-  for(j=0; j<numV; ++j) {
-    GenStackVector<Scalar> v1(origV+j*length,length);
-    for(i=0; i<numV; ++i) {
-      GenStackVector<Scalar> v2(V+i*length,length);
-      Scalar s = v1*v2;
-      v2 -= s*v1; // Vector -= operation
-    }
-  }
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::ortho(Scalar *vectors, int numVectors, int length)
-{
-  int i,j;
-  for(j=0; j<numVectors; ++j) {
-    GenStackVector<Scalar> v1(vectors+j*length,length);
-    for(i=0; i<j; ++i) {
-      GenStackVector<Scalar> v2(vectors+i*length,length);
-      Scalar s = v1*v2;
-      v1 -= s*v2; // Vector -= operation
-    }
-    v1 *= 1.0/v1.norm();
-  }
-}
 
 template<class Scalar>
 void GenSubDomain<Scalar>::initMpcScaling()
@@ -3869,7 +3841,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::deleteKcc()
 {
-  delete Kcc; Kcc = 0;
+   Kcc.reset(nullptr);
 }
 
 template<class Scalar>
@@ -4625,8 +4597,8 @@ GenSubDomain<Scalar>::initialize()
 {
   kweight = 0; deltaFmpc = 0; scaling = 0; 
   rigidBodyModes = 0; rigidBodyModesG = 0;
-  Src = 0; Krr = 0; KrrSparse = 0; BKrrKrc = 0; Kcc = 0; Krc = 0;
-  Grc = 0; rbms = 0; interfaceRBMs = 0; qtkq = 0; KiiSparse = 0;
+  Src = 0; Krr = 0; KrrSparse = 0; BKrrKrc = 0;
+  rbms = 0; interfaceRBMs = 0; qtkq = 0;
   KiiSolver = 0; Kib = 0; MPCsparse = 0; Kbb = 0; corotators = 0;
   fcstar = 0; QtKpBt = 0; glInternalMap = 0; glBoundMap = 0;
   mpcForces = 0; mpc = 0; mpc_primal = 0; localCCtsolver = 0; localCCtsparse = 0; diagCCt = 0;
@@ -4655,24 +4627,17 @@ GenSubDomain<Scalar>::initialize()
 template<class Scalar>
 GenSubDomain<Scalar>::~GenSubDomain()
 {
-  if(KiiSparse) { delete KiiSparse; KiiSparse = 0; KiiSolver = 0; }
-  if(Krr) { delete Krr; Krr = 0; KrrSparse = 0; }
-  if(Kbb) { delete Kbb; Kbb = 0; }
   if(scaling) { delete [] scaling; scaling = 0; }
   if(kweight) { delete [] kweight; kweight = 0; }
-  if(Kcc) { delete Kcc; Kcc = 0; }
   if(fcstar) { delete [] fcstar; fcstar = 0; }
-  if(Kib) { delete Kib; Kib = 0; }
   if(deltaFmpc) { delete [] deltaFmpc; deltaFmpc = 0; }
   if(BKrrKrc) {
     if(BKrrKrc[0]) { delete [] BKrrKrc[0]; BKrrKrc[0] = 0; }
     delete [] BKrrKrc; BKrrKrc = 0;
   }
   if(interfaceRBMs) { delete [] interfaceRBMs; interfaceRBMs = 0; }
-  if(Grc) { delete Grc; Grc = 0; }
   if(QtKpBt) { delete [] QtKpBt; QtKpBt = 0; }
   if(qtkq) { delete qtkq; qtkq = 0; }
-  if(Krc) { delete Krc; Krc = 0; }
   if(rigidBodyModes) { delete rigidBodyModes; rigidBodyModes = 0; }
   if(rigidBodyModesG) { delete rigidBodyModesG; rigidBodyModesG = 0; }
   if(Src) { delete Src; Src = 0; }
@@ -5526,14 +5491,14 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 
   if(numdofperNode == 1) {
     if(isFluidSub)
-      Grc = new GenCuCSparse<Scalar>(total, cc_dsa->size(), HelmCount, HelmList, HelmCoefs);
+      Grc = std::make_unique<GenCuCSparse<Scalar>>(total, cc_dsa->size(), HelmCount, HelmList, HelmCoefs);
     else
-      Grc = new GenCuCSparse<Scalar>(total, cc_dsa->size(), TempCount, TempList, TempCoefs);
+      Grc = std::make_unique<GenCuCSparse<Scalar>>(total, cc_dsa->size(), TempCount, TempList, TempCoefs);
     delete [] xyzList;
     delete [] xyzCoefs;
   }
   else {
-    Grc = new GenCuCSparse<Scalar>(total, cc_dsa->size(), xyzCount, xyzList, xyzCoefs);
+    Grc = std::make_unique<GenCuCSparse<Scalar>>(total, cc_dsa->size(), xyzCount, xyzList, xyzCoefs);
     delete [] HelmList;
     delete [] HelmCoefs;
     delete [] TempList;
@@ -5542,9 +5507,9 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 
   int ii = (isFluidSub || isThermalSub) ? 1 : 0;
   if(edgeQindex[ii] == -1)
-    edgeQindex[ii] = Src->addSparseMatrix(Grc);  // store index for possible rebuild (multiple LHS freq sweep)
+    edgeQindex[ii] = Src->addSparseMatrix(Grc.get());  // store index for possible rebuild (multiple LHS freq sweep)
   else
-     Src->setSparseMatrix(edgeQindex[ii], Grc);
+     Src->setSparseMatrix(edgeQindex[ii], Grc.get());
 
   for(i=0; i<scomm->numNeighb; ++i) edgeDofSize[i] += edgeDofSizeTmp[i];
 

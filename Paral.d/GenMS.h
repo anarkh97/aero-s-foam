@@ -3,6 +3,7 @@
 
 #include<Math.d/CuCSparse.h>
 
+/** \brief Set of non owning pointers to matrices that are part of the coarse problem */
 template<class Scalar>
 class GenMultiSparse : public GenSparseMatrix<Scalar> 
 {

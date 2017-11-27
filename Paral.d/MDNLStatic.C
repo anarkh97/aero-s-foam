@@ -13,6 +13,12 @@
 #include <Math.d/Vector.h>
 #include <Utils.d/DistHelper.h>
 #include <Paral.d/MDStatic.h>
+#include <Corotational.d/DistrGeomState.h>
+#include <Solvers.d/ParallelSolver.h>
+#include <Feti.d/Feti.h>
+#include <Paral.d/MDDynam.h>
+#include <Solvers.d/MultiDomainRbm.h>
+
 #ifdef DISTRIBUTED
 #include <Dist.d/DistDom.h>
 #endif
@@ -223,6 +229,8 @@ MDNLStatic::checkConstraintViolation(double &err, DistrGeomState *gs)
 #endif
   return (err <= domain->solInfo().penalty_tol);
 }
+
+extern int verboseFlag;
 
 int
 MDNLStatic::checkConvergence(int iter, double normDv, double normRes)

@@ -19,6 +19,7 @@
 
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
+#include <Driver.d/SysState.h>
 
 #include <cstddef>
 #include <memory>

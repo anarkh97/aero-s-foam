@@ -304,17 +304,17 @@ GenDomainGroupTask<Scalar>::runForWB(int isub, bool make_feti)
 
     if(domain->solInfo().solvercntl->type == 2) {
       if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted)
-        allMats = new GenMultiSparse<Scalar>(spMats[isub], sd[isub]->Krc, sd[isub]->Kcc);
+        allMats = new GenMultiSparse<Scalar>(spMats[isub], sd[isub]->Krc.get(), sd[isub]->Kcc.get());
       else 
-        allMats = new GenMultiSparse<Scalar>(spMats[isub], sd[isub]->KiiSparse, sd[isub]->Kbb,
-                                             sd[isub]->Kib, sd[isub]->Krc, sd[isub]->Kcc);
+        allMats = new GenMultiSparse<Scalar>(spMats[isub], sd[isub]->KiiSparse.get(), sd[isub]->Kbb.get(),
+                                             sd[isub]->Kib.get(), sd[isub]->Krc.get(), sd[isub]->Kcc.get());
     }
   }
 
   AllOps<Scalar> allOps;
 
   if(geoSource->isShifted() && solInfo.getFetiInfo().prectype == FetiInfo::nonshifted)
-    allOps.K = new GenMultiSparse<Scalar>(K[isub], sd[isub]->KiiSparse, sd[isub]->Kbb, sd[isub]->Kib);
+    allOps.K = new GenMultiSparse<Scalar>(K[isub], sd[isub]->KiiSparse.get(), sd[isub]->Kbb.get(), sd[isub]->Kib.get());
   else
     allOps.K = K[isub];
   allOps.C = C[isub]; 
@@ -347,3 +347,6 @@ GenDomainGroupTask<Scalar>::runForWB(int isub, bool make_feti)
 
   if(allMats) delete allMats;
 }
+
+template class GenDomainGroupTask<double>;
+template class GenDomainGroupTask<std::complex<double>>;

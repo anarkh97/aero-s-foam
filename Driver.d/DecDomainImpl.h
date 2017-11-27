@@ -598,20 +598,24 @@ template<class Scalar>
 GenFetiSolver<Scalar> *
 GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 {
- FetiInfo *finfo = &domain->solInfo().getFetiInfo();
- int verboseFlag = domain->solInfo().solvercntl->verbose;
- if(finfo->version == FetiInfo::fetidp) {
-   bool rbmFlag = ((domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted());
-   bool geometricRbms = (domain->solInfo().rbmflg && !domain->solInfo().isNonLin());
-   return new GenFetiDPSolver<Scalar>(numSub, globalNumSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
-                                      mpcToSub_dual.get(), mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
-                                      dgt.dynMats, dgt.spMats, dgt.rbms, rbmFlag, geometricRbms, verboseFlag);
- }
- else {
-   return new GenFetiSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator,
-                                    glSubToLocal, mpcToSub_dual.get(), cpuToSub,
-                                    dgt.dynMats, dgt.spMats, dgt.rbms, verboseFlag);
- }
+	FetiInfo *finfo = &domain->solInfo().getFetiInfo();
+	int verboseFlag = domain->solInfo().solvercntl->verbose;
+	if(finfo->version == FetiInfo::fetidp) {
+		bool rbmFlag = ((domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted());
+		bool geometricRbms = (domain->solInfo().rbmflg && !domain->solInfo().isNonLin());
+		std::vector<std::unique_ptr<GenSolver<Scalar>>> dynMats;
+		dynMats.reserve(numSub);
+		for(int i = 0; i < numSub; ++i)
+			dynMats.emplace_back(dgt.dynMats[i]);
+		return new GenFetiDPSolver<Scalar>(numSub, globalNumSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
+		                                   mpcToSub_dual.get(), mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
+		                                   std::move(dynMats), dgt.spMats, dgt.rbms, rbmFlag, geometricRbms, verboseFlag);
+	}
+	else {
+		return new GenFetiSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator,
+		                                 glSubToLocal, mpcToSub_dual.get(), cpuToSub,
+		                                 dgt.dynMats, dgt.spMats, dgt.rbms, verboseFlag);
+	}
 }
 
 template<class Scalar>
@@ -3910,7 +3914,7 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 
 
 template<>
-inline void
+void
 GenDecDomain<double>::rebuildOps(GenMDDynamMat<double> &res, double coeM, double coeC, double coeK, 
                                  FullSquareMatrix **kelArray, FullSquareMatrix **melArray, FullSquareMatrix **celArray)
 {
@@ -3951,8 +3955,8 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   AllOps<Scalar> allOps;
 
   if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted)
-   allOps.K = new GenMultiSparse<Scalar>((res.K) ? (*res.K)[iSub] : 0, subDomain[iSub]->KiiSparse,
-                                         subDomain[iSub]->Kbb, subDomain[iSub]->Kib);
+   allOps.K = new GenMultiSparse<Scalar>((res.K) ? (*res.K)[iSub] : 0, subDomain[iSub]->KiiSparse.get(),
+                                         subDomain[iSub]->Kbb.get(), subDomain[iSub]->Kib.get());
   else
     allOps.K = (res.K) ? (*res.K)[iSub] : 0;
   if(res.C)    allOps.C   = (*res.C)[iSub];
@@ -4031,10 +4035,10 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   else {
     GenMultiSparse<Scalar> *allMats;
     if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted)
-      allMats = new GenMultiSparse<Scalar>(subDomain[iSub]->KrrSparse, subDomain[iSub]->Krc, subDomain[iSub]->Kcc);
+      allMats = new GenMultiSparse<Scalar>(subDomain[iSub]->KrrSparse, subDomain[iSub]->Krc.get(), subDomain[iSub]->Kcc.get());
     else 
-      allMats = new GenMultiSparse<Scalar>(subDomain[iSub]->KrrSparse, subDomain[iSub]->KiiSparse, subDomain[iSub]->Kbb,
-                                           subDomain[iSub]->Kib, subDomain[iSub]->Krc, subDomain[iSub]->Kcc);
+      allMats = new GenMultiSparse<Scalar>(subDomain[iSub]->KrrSparse, subDomain[iSub]->KiiSparse.get(), subDomain[iSub]->Kbb.get(),
+                                           subDomain[iSub]->Kib.get(), subDomain[iSub]->Krc.get(), subDomain[iSub]->Kcc.get());
     allMats->zeroAll();
     subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, (kelArray) ? kelArray[iSub] : 0, 
                                                     (melArray) ? melArray[iSub] : 0);
@@ -4129,6 +4133,12 @@ void GenDecDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double time)
   return;
 }
 
+template <>
+void GenDecDomain<std::complex<double>>::setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState,
+                                            GenFetiSolver<std::complex<double>> *fetiSolver, double t) {
+	throw "MLX Calling an unimplemented GenDecDomain<std::complex<double>>::setConstraintGap(...)";
+}
+
 template<class Scalar>
 void GenDecDomain<Scalar>::setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState,
                                             GenFetiSolver<Scalar> *fetiSolver, double t)
@@ -4148,6 +4158,13 @@ void GenDecDomain<Scalar>::setConstraintGap(DistrGeomState *geomState, DistrGeom
       execParal(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu, t, 1);
     }
   }
+}
+
+template<>
+void
+GenDecDomain<std::complex<double>>::extractPosition(int iSub, DistrGeomState &geomState, GenDistrVector<std::complex<double>> &x)
+{
+	throw "MLX Unimplemented extractPosition.";
 }
 
 template<class Scalar>

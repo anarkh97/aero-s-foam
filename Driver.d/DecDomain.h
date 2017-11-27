@@ -279,8 +279,4 @@ class GenDecDomain
   GenBasicAssembler<Scalar> * solVecAssemblerNew();
 };
 
-#ifdef _TEMPLATE_FIX_
-  #include <Driver.d/DecDomain.C>
-#endif
-
 #endif

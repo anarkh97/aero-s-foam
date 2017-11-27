@@ -348,7 +348,7 @@ public:
 	GenFetiDPSolver(int nsub, int glNumSub, GenSubDomain<Scalar> **sd, Connectivity *subToSub,
 	                FetiInfo *finfo, FSCommunicator *fetiCom, int *glToLoc, Connectivity *mpcToSub, Connectivity *mpcToSub_primal,
 	                Connectivity *mpcToMpc, Connectivity *mpcToCpu, Connectivity *cpuToSub,
-	                Connectivity *bodyToSub = 0, GenSolver<Scalar> **sysMatrices = 0,
+	                Connectivity *bodyToSub = 0, std::vector<std::unique_ptr<GenSolver<Scalar>>> sysMatrices = {},
 	                GenSparseMatrix<Scalar> **sysMat = 0, Rbm **rbms = 0, bool rbmFlag = 0,
 	                bool geometricRbms = true, int verboseFlag = 0);
 	virtual ~GenFetiDPSolver();

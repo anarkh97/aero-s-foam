@@ -366,111 +366,104 @@ GenSolverFactory<Scalar>::createSolver(Connectivity *con, DofSetArray *dsa, Cons
     } break;
 
   }
-  //solver->mpicomm = com; // XXXX
   return solver;
 }
 
 template<class Scalar>
-GenSolver<Scalar> *
-GenSolverFactory<Scalar>::createSolver(Connectivity *con, DofSetArray *dsa, int *rCN, SolverCntl& cntl, GenSparseMatrix<Scalar> *&sparse, std::string name) const
+SolverAndMatrix<Scalar>
+GenSolverFactory<Scalar>::createSolver(Connectivity *con, DofSetArray *dsa, int *rCN, SolverCntl& cntl,
+                                       std::string name) const
 {
-  //std::cerr << "4. creating solver: type = " << cntl.type << ", subtype = " << cntl.subtype << ", name = " << name << std::endl;
-  GenSolver<Scalar> *solver = 0;
-  switch(cntl.type) {
+	//std::cerr << "4. creating solver: type = " << cntl.type << ", subtype = " << cntl.subtype << ", name = " << name << std::endl;
+	std::unique_ptr<GenSparseMatrix<Scalar>> sparse;
+	GenSolver<Scalar> *solver;
+	switch(cntl.type) {
 
-    case 0: { // direct solver
-      switch(cntl.subtype) {
-        case 0: {
-          GenSkyMatrix<Scalar> *s = new GenSkyMatrix<Scalar>(con, dsa, cntl.trbm, rCN, (int)0);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
-        case 1: {
-          GenBLKSparseMatrix<Scalar> *s = new GenBLKSparseMatrix<Scalar>(con, dsa, rCN, cntl.trbm, cntl);
-          s->zeroAll();
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+		case 0: { // direct solver
+			switch(cntl.subtype) {
+				case 0: {
+					auto s = std::make_unique<GenSkyMatrix<Scalar>>(con, dsa, cntl.trbm, rCN, (int)0);
+					solver = static_cast<GenSolver<Scalar> *>(s.get());
+					sparse = std::move(s);
+				} break;
+				case 1: {
+					auto s = std::make_unique<GenBLKSparseMatrix<Scalar>>(con, dsa, rCN, cntl.trbm, cntl);
+					s->zeroAll();
+					solver = static_cast<GenSolver<Scalar> *>(s.get());
+					sparse = std::move(s);
+				} break;
 #ifdef USE_EIGEN3
-        case 3: {
-          GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(con, dsa, rCN, true);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
-        case 4: {
-          GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(con, dsa, rCN, true);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 3: {
+					auto s = std::make_unique<GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper>>>(con, dsa, rCN, true);
+					solver = static_cast<GenSolver<Scalar> *>(s.get());
+					sparse = std::move(s);
+				} break;
+				case 4: {
+					auto s = std::make_unique<GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper>>>(con, dsa, rCN, true);
+					solver = static_cast<GenSolver<Scalar> *>(s.get());
+					sparse = std::move(s);
+				} break;
 #ifdef EIGEN_CHOLMOD_SUPPORT
-        case 5: {
-          GenEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(con, dsa, rCN, true);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
+				case 5: {
+          auto s = std::make_unique<GenEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >>(con, dsa, rCN, true);
+                    solver = static_cast<GenSolver<Scalar> *>(s.get());
+          sparse = std::move(s);
         } break;
 #endif
 #ifdef EIGEN_UMFPACK_SUPPORT
-        case 6: {
-          GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >(con, dsa, rCN, false);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
+				case 6: {
+          auto s = std::make_unique<GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar>>>>(con, dsa, rCN, false);
+                    solver = static_cast<GenSolver<Scalar> *>(s.get());
+          sparse = std::move(s);
         } break;
 #endif
 #ifdef EIGEN_SUPERLU_SUPPORT
-        case 7: {
-          GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > >(con, dsa, rCN, false);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
+				case 7: {
+          auto s = std::make_unique<GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > >>(con, dsa, rCN, false);
+                    solver = static_cast<GenSolver<Scalar> *>(s.get());
+          sparse = std::move(s);
         } break;
 #endif
 #endif
 #ifdef USE_SPOOLES
-        case 8: {
-          GenSpoolesSolver<Scalar> *s = new GenSpoolesSolver<Scalar>(con, dsa, cntl, rCN);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
+				case 8: {
+          auto s = std::make_unique<GenSpoolesSolver<Scalar>>(con, dsa, cntl, rCN);
+                    solver = static_cast<GenSolver<Scalar> *>(s.get());
+          sparse = std::move(s);
         } break;
 #endif
 #ifdef USE_MUMPS
-        case 9: {
-          GenMumpsSolver<Scalar> *s = new GenMumpsSolver<Scalar>(con, dsa, cntl, rCN);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
+				case 9: {
+          auto s = std::make_unique<GenMumpsSolver<Scalar>>(con, dsa, cntl, rCN);
+                    solver = static_cast<GenSolver<Scalar> *>(s.get());
+          sparse = std::move(s);
         }
         break;
 #endif
 #ifdef USE_EIGEN3
 #ifdef EIGEN_SPARSELU_SUPPORT
-        case 15: {
-          GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(con, dsa, rCN, false);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 15: {
+          auto s = std::make_unique<GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >>(con, dsa, rCN, false);
+                  solver = static_cast<GenSolver<Scalar> *>(s.get());
+          sparse = std::move(s);
+          } break;
 #endif
 #ifdef EIGEN_SPQR_SUPPORT
-        case 16: {
-          GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >(con, dsa, rCN, false);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
+				case 16: {
+          auto s = std::make_unique<GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >>(con, dsa, rCN, false);
+          solver = static_cast<GenSolver<Scalar> *>(s.get());
+          sparse = std::move(s);
         } break;
 #endif
-        case 17: {
-          GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(con, dsa, rCN, false);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 17: {
+					auto s = std::make_unique<GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >>(con, dsa, rCN, false);
+					solver = static_cast<GenSolver<Scalar> *>(s.get());
+					sparse = std::move(s);
+				} break;
 #endif
-      }
-    } break;
+			}
+		} break;
 
-  }
-  return solver;
+	}
+	return { solver, std::move(sparse) };
 }

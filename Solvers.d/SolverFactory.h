@@ -13,6 +13,12 @@ class ConstrainedDSA;
 template <class Scalar> class GenSparseMatrix;
 class FSCommunicator;
 
+template <typename Scalar>
+struct SolverAndMatrix {
+	GenSolver<Scalar> *solver;
+	std::unique_ptr<GenSparseMatrix<Scalar>> sparseMatrix;
+};
+
 template<class Scalar>
 class GenSolverFactory
 {
@@ -27,9 +33,9 @@ class GenSolverFactory
   // used for global solvers and feti local solvers: direct or iterative solver
   virtual GenSolver<Scalar>* createSolver(Connectivity *con, DofSetArray *dsa, ConstrainedDSA *cdsa, SolverCntl&, GenSparseMatrix<Scalar> *&sparse, Rbm *rbm,
                                           GenSparseMatrix<Scalar> *&spp, GenSolver<Scalar> *&prec, FSCommunicator *com = 0, std::string name = "") const;
-  // used for feti Kii solver: sequential direct solver only
-  virtual GenSolver<Scalar>* createSolver(Connectivity *con, DofSetArray *dsa, int *map, SolverCntl&, GenSparseMatrix<Scalar> *&sparse, 
-                                          std::string name = "") const;
+	// used for feti Kii solver: sequential direct solver only
+	virtual SolverAndMatrix<Scalar> createSolver(Connectivity *con, DofSetArray *dsa, int *map, SolverCntl&,
+	                                             std::string name = "") const;
 
   static GenSolverFactory* getFactory();
 

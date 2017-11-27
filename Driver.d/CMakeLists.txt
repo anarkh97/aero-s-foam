@@ -11,6 +11,8 @@ DomainPita.C
 GeoSourceInstance.C OpMakeInstance.C
 ControlLawInfo.C BinaryOutputInstance.C
 EFrameDataInstance.C CommunicatorCore.cpp
+        DecDomain.h
+        DecDomainImpl.h
         LOpsImpl.h
         BOpsImpl.h
         RbmOpsImpl.h

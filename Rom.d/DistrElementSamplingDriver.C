@@ -18,6 +18,7 @@
 #include "BasisFileStream.h"
 #include "VecBasisFile.h"
 #include "BasisOps.h"
+#include <Driver.d/SysState.h>
 
 #include <Utils.d/DistHelper.h>
 

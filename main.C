@@ -68,6 +68,7 @@
 #endif
 #include <Comm.d/Communicator.h>
 #include <Solvers.d/SolverFactory.h>
+#include <Driver.d/SubDomainFactory.h>
 
 // .... for different problems and hardware
 void writeOptionsToScreen();

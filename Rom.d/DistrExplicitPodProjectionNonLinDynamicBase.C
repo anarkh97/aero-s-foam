@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <limits>
 #include <Corotational.d/utilities.h>
+#include <Corotational.d/DistrGeomState.h>
+#include <Driver.d/SysState.h>
 
 extern Communicator *structCom;
 

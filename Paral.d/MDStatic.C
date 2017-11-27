@@ -11,6 +11,7 @@
 #include <Utils.d/DistHelper.h>
 #include <Utils.d/Memory.h>
 #include <Driver.d/GeoSource.h>
+#include <Solvers.d/MultiDomainRbm.h>
 
 #ifdef DISTRIBUTED
 #include <Dist.d/DistDom.h>

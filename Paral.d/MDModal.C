@@ -9,6 +9,7 @@
 #include <Driver.d/SysState.h>
 #include <Utils.d/DistHelper.h>
 #include <Math.d/EiSparseMatrix.h>
+#include "MDDynam.h"
 
 class DenseMatrix;
 extern Communicator *structCom;

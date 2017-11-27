@@ -1,6 +1,9 @@
 #include <Driver.d/DecDomain.h>
 #include <algorithm>
 #include <Math.d/BLAS.h>
+#include <Utils.d/DistHelper.h>
+
+extern int verboseFlag;
 
 template<class Scalar>
 MultiDomainRbm<Scalar>::MultiDomainRbm(GenDecDomain<Scalar> *_decDomain, double _tolgrb)

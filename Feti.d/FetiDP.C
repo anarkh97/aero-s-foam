@@ -53,11 +53,13 @@ inline double DABS(double x) { return (x>0.0) ? x : -x; }
 // New constructor for both shared and distributed memory
 template<class Scalar>
 GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<Scalar> **_sd,
-                  Connectivity *_subToSub, FetiInfo *_fetiInfo, FSCommunicator *_fetiCom,
-                  int *_glSubToLoc, Connectivity *_mpcToSub, Connectivity *_mpcToSub_primal, Connectivity *_mpcToMpc,
-                  Connectivity *_mpcToCpu, Connectivity *_cpuToSub, Connectivity *_bodyToSub,
-                  GenSolver<Scalar> **sysMatrices, GenSparseMatrix<Scalar> **sysSparse,
-                  Rbm **, bool _rbmFlag, bool _geometricRbms, int _verboseFlag)
+                                         Connectivity *_subToSub, FetiInfo *_fetiInfo, FSCommunicator *_fetiCom,
+                                         int *_glSubToLoc, Connectivity *_mpcToSub, Connectivity *_mpcToSub_primal,
+                                         Connectivity *_mpcToMpc,
+                                         Connectivity *_mpcToCpu, Connectivity *_cpuToSub, Connectivity *_bodyToSub,
+                                         std::vector<std::unique_ptr<GenSolver<Scalar>>> sysMatrices,
+                                         GenSparseMatrix<Scalar> **sysSparse,
+                                         Rbm **, bool _rbmFlag, bool _geometricRbms, int _verboseFlag)
  : GenFetiSolver<Scalar>(_nsub, _sd, threadManager->numThr(), _verboseFlag), internalR(_nsub), internalC(_nsub), internalWI(_nsub)
 {
  initialize();
@@ -175,16 +177,16 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
    this->oSetGCR = new GenGCROrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom);
  this->times.memoryOSet += memoryUsed();
 
- if(sysMatrices != 0) {
+ if(sysMatrices.size() != 0) {
    for(iSub = 0; iSub < this->nsub; ++iSub) {
-     this->sd[iSub]->Krr = sysMatrices[iSub];
+     this->sd[iSub]->Krr = std::move(sysMatrices[iSub]);
      this->sd[iSub]->KrrSparse = sysSparse[iSub];
      if(fetiInfo->printMatLab) {
        std::stringstream filename;
        filename << "localmat" << this->subdomains[iSub]->subNum();
        this->sd[iSub]->KrrSparse->printSparse(filename.str());
      }
-     this->fetiOps[iSub]->setSysMatrix(this->sd[iSub]->Krr, sysSparse[iSub]);
+     this->fetiOps[iSub]->setSysMatrix(this->sd[iSub]->Krr.get(), sysSparse[iSub]);
    }
  }
 
@@ -900,7 +902,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	      coarseDofs[n++] = this->sd[i]->edgeDofs[iNeighb];
 	}
 	((MatrixElement*)elems[s])->setDofs(coarseDofs);
-        ((MatrixElement*)elems[s])->setStiffness(this->sd[i]->Kcc);
+        ((MatrixElement*)elems[s])->setStiffness(this->sd[i]->Kcc.get());
       }
   
       CoordSet& nodes = coarseDomain->getNodes();
@@ -2193,7 +2195,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::factorLocalMatrices(int iSub)
 {
-  GenSolver<Scalar> *K = this->sd[iSub]->Krr;
+  auto &K = this->sd[iSub]->Krr;
   if(K) {
     K->setPrintNullity(false);
     K->factor(); 
@@ -2229,7 +2231,7 @@ GenFetiDPSolver<Scalar>::subdomainSolve(int iSub, GenDistrVector<Scalar> &v1,
   for(i = 0; i < interfaceLen; ++i) 
      interfvec[i] = interfsrc[i];
 
-  this->subdomains[iSub]->fetiBaseOp(uc, this->sd[iSub]->Krr, localvec, interfvec);
+  this->subdomains[iSub]->fetiBaseOp(uc, this->sd[iSub]->Krr.get(), localvec, interfvec);
   
   this->subdomains[iSub]->sendInterf(interfvec, this->vPat);
 }
@@ -2257,7 +2259,7 @@ GenFetiDPSolver<Scalar>::subdomainSolveCoupled1(int iSub, GenDistrVector<Scalar>
   for(i = 0; i < interfaceLen; ++i)
      interfvec[i] = interfsrc[i];
 
-  this->sd[iSub]->fetiBaseOpCoupled1(this->sd[iSub]->Krr, localvec, interfvec, this->wiPat);
+  this->sd[iSub]->fetiBaseOpCoupled1(this->sd[iSub]->Krr.get(), localvec, interfvec, this->wiPat);
 }
 
 template<class Scalar>

@@ -81,26 +81,28 @@ public:
   double tolerance;
 };
 
+/** \brief Solver parameters. */
 struct SolverInfo {
 
- private:
-   double dt;           // time step value
-   double dtemp;        // thermal time step value
+private:
+	double dt = 0.0;    //!< \brief Time step value.
+	double dtemp = 0.0; //!< \brief Thermal time step value.
 
- public:
-   // Problem Type parameters
-   enum { Static, Dynamic, Modal, NonLinStatic, NonLinDynam, 
-          ArcLength, ConditionNumber, TempDynamic, Top,
-          AxiHelm, MatNonLinStatic, MatNonLinDynam,
-          Helmholtz, HelmholtzFreqSweep, HelmholtzDirSweep, HelmholtzMF, HelmholtzSO,
-          Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
-          None }; // note to developers: if you add a new entry in ths enum then
-                  // you should also modify problemTypeMessage in Driver.d/Static.C
-   enum SensitivityMethod { Direct, Adjoint }; 
+public:
+	/// \brief Problem Type enum.
+	enum { Static, Dynamic, Modal, NonLinStatic, NonLinDynam,
+		ArcLength, ConditionNumber, TempDynamic, Top,
+		AxiHelm, MatNonLinStatic, MatNonLinDynam,
+		Helmholtz, HelmholtzFreqSweep, HelmholtzDirSweep, HelmholtzMF, HelmholtzSO,
+		Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
+		None }; // note to developers: if you add a new entry in ths enum then
+	// you should also modify problemTypeMessage in Driver.d/Static.C
+	enum SensitivityMethod { Direct, Adjoint };
 
-   SensitivityMethod sensitivityMethod;
-   int probType;
-   int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...
+	SensitivityMethod sensitivityMethod = SolverInfo::Direct;
+	int probType = SolverInfo::None;
+	/// \brief Type of system to solve. From CONTROL statement: 1 = statics, 2 = heat conduction, etc...
+	int soltyp = -1;
 
    float ATDARBFlag;
    float ATDDNBVal;
@@ -131,57 +133,56 @@ struct SolverInfo {
    int slzemFlag; // Flag for zero energy mode
    int slzemFilterFlag; // Flag for zero energy mode filter
 
-   double mppFactor;  // modal amplification factor for mpp command
+	double mppFactor = 1.0;  //!< \brief Modal amplification factor for mpp command.
 
    // Solver parameters
    static std::map<int,SolverCntl> solvercntls;
    SolverCntl* solvercntl;
-   int renum;    // renumbering scheme for skyline: 0 = none (default), 1 = sloan, 2 = RCM
-   bool lastIt;
+	/// \brief Renumbering scheme for skyline: 0 = none (default), 1 = sloan, 2 = RCM.
+	int renum = 0;
+	bool lastIt = false;
 
    // Time Integration Algorithms
    enum { Newmark, Qstatic };
 
-   // Parameters for PITA
-   bool activatePita;                // Enables PITA (both linear and nonlinear problems)
-   bool mdPita;                // Enables time-space parallelism (linear problem only)
-   bool pitaNoForce;           // Enables NoForce optimization (linear problem only)
-   int pitaTimeGridRatio;      // Coarse/fine time-grid ratio (always required)  
-   int pitaMainIterMax;        // Maximum number of main iterations (always required)
-   int pitaProcessWorkloadMax; // Maximum number of active time-slices on each CPU (always required)
-   //int numSpaceMPIProc;      // Number of CPUs in the space domain (only when time-space parallelism is enabled)
-   int pitaGlobalBasisImprovement;    // 1 (default) = Seeds only, 2 = Seeds and propagated seeds (nonlinear problem only)
-   int pitaLocalBasisImprovement;     // 0 (default) = Global only, 1 = Local increments only (nonlinear problem only)
-   bool pitaRemoteCoarse;      // Coarse grid integrator on dedicated CPU 
-   double pitaProjTol;         // Tolerance used to build the projector
-   bool pitaTimeReversible;    // true if PITA exploits the time-reversibility of the problem
-   bool pitaReadInitSeed;      // true if PITA uses provided initial seed information
-   double pitaJumpCvgRatio;    // Accumulated jump-based convergence criterion
-                               // (0.0 = Use default value: pitaTimeGridRatio^2, -1.0 = Deactivated)
-   bool pitaJumpMagnOutput;    // Enables the output of the relative magnitude of the jumps
+	// Parameters for PITA
+	bool activatePita = false;  //!< \brief Enables PITA (both linear and nonlinear problems).
+	bool mdPita = false;        //!< \brief Enables time-space parallelism (linear problem only).
+	bool pitaNoForce = false;   //!< \brief Enables NoForce optimization (linear problem only).
+	int pitaTimeGridRatio = 1;      //!< \brief Coarse/fine time-grid ratio (always required).
+	int pitaMainIterMax = 0;        //!< \brief Maximum number of main iterations (always required).
+	int pitaProcessWorkloadMax = 1; //!< \brief Maximum number of active time-slices on each CPU (always required).
+	int pitaGlobalBasisImprovement = 1;  //<! \brief 1 (default) = Seeds only, 2 = Seeds and propagated seeds (nonlinear problem only)
+	int pitaLocalBasisImprovement = 0;   //<! \brief 0 (default) = Global only, 1 = Local increments only (nonlinear problem only)
+	bool pitaRemoteCoarse = false;      //!< \brief Coarse grid integrator on dedicated CPU
+	double pitaProjTol = 1.0e-6;         //!< \brief Tolerance used to build the projector
+	bool pitaTimeReversible = false;    //!< \brief true if PITA exploits the time-reversibility of the problem
+	bool pitaReadInitSeed = false;      //!< \brief true if PITA uses provided initial seed information
+	/// \brief Accumulated jump-based convergence criterion.
+	/// (0.0 = Use default value: pitaTimeGridRatio^2, -1.0 = Deactivated)
+	double pitaJumpCvgRatio = -1.0;
+	bool pitaJumpMagnOutput = false;    //!< \brief Enables the output of the relative magnitude of the jumps
 
-   bool modal;                 // true iff system is to be solved in modal coordinates
+	bool modal = false;         //!< \brief True iff system is to be solved in modal coordinates.
    std::vector<int> modal_id;
    std::vector<int> contact_modal_id;
-   bool acoustic;       // true iff system is to be solved for acoustic time domain
-   bool modifiedWaveEquation; // true if solving using the modified wave equation
-   double modifiedWaveEquationCoef; // value for the coefficient (theoretically 12.0)
-   int order;           // used for dynamics... 1: first order (heat), 2: second order (mech, acoustics)
-   int timeIntegration; // type of time integration scheme
-   int initialTimeIndex;// initial time index (either 0 or from restart)
-   double initialTime;  // initial time (either 0.0 or from restart)
-   double initExtForceNorm;  // initial Force Norm (for restarting qstatics)
-   double tmax;         // maximum time
-   double t_AeroF;
-   bool stop_AeroF, stop_AeroS;
-/* these are now private, use getTimeStep and setTimeStep functions to access
-   double dt;           // time step value
-   double dtemp;        // thermal time step value
-*/
-   double alphaDamp;    // Rayleigh Mass damping coefficient 
-   double betaDamp;     // Rayleigh Stiffness damping coefficient
-   double etaDamp;      // Structural stiffness damping coefficient
-   int mtypeDamp;       // type of damping moments (0 = axial, 2 = follower)
+	bool acoustic = false;       //!< \brief true iff system is to be solved for acoustic time domain
+	bool modifiedWaveEquation = false; //!< \brief true if solving using the modified wave equation
+	double modifiedWaveEquationCoef = 12.0; //!< \brief value for the coefficient (theoretically 12.0)
+   int order;           //!< \brief used for dynamics... 1: first order (heat), 2: second order (mech, acoustics)
+   int timeIntegration; //!< \brief type of time integration scheme
+   int initialTimeIndex;//!< \brief initial time index (either 0 or from restart)
+   double initialTime;  //!< \brief initial time (either 0.0 or from restart)
+   double initExtForceNorm; //!< \brief initial Force Norm (for restarting qstatics)
+	double tmax = 0.0;       //!< \brief maximum time
+	double t_AeroF = 0.0;
+	bool stop_AeroF = false;
+	bool stop_AeroS = false;
+
+	double alphaDamp = 0.0;    //!< \brief Rayleigh Mass damping coefficient.
+	double betaDamp = 0.0;     //!< \brief Rayleigh Stiffness damping coefficient.
+	double etaDamp = 0.0;      //!< \brief Structural stiffness damping coefficient.
+	int mtypeDamp = 2;       //!< \brief Type of damping moments (0 = axial, 2 = follower).
    double alphaTemp;
    double newmarkBeta;  // Newmark algorithm parameter (beta)
    double newmarkGamma; // Newmark algorithm parameter (gamma)
@@ -266,13 +267,14 @@ struct SolverInfo {
    int condNumMaxit;
 
    int massFlag;
-   int filterFlags;
-   int filterQ; // 0 = Q=M for statics/quasistatics, 1 = Q=I for statics/quasistatics
+	int filterFlags = 0;
+	/// \brief Filter selection parameter.  0 = Q=M for statics/quasistatics, 1 = Q=I for statics/quasistatics.
+	int filterQ = 1;
 
    int zeroInitialDisp; // flag to set initial disp to zero
 
-   // YC : sensitivity and optimization parameters
-   bool sensitivity;
+	/// \brief YC : sensitivity and optimization parameters.
+	bool sensitivity = false;
 
    int curSweepParam;
    std::map<int,SweepParams> sweepParams;
@@ -504,60 +506,17 @@ struct SolverInfo {
    bool freeplay;
    double piecewise_dlambda, piecewise_maxLambda;
 
-   int npMax;   // Max number of elements in the reduced mesh for the ScalaPack LH parse solver.
-   int scpkMB;  // Scalapack row block size
-   int scpkNB;  // Scalapack column block size
-   int scpkMP;  // Scalapack row processor grid size
-   int scpkNP;  // Scalapack column processor grid size
+   int npMax;   //!< \brief Max number of elements in the reduced mesh for the ScalaPack LH parse solver.
+   int scpkMB;  //!< \brief Scalapack row block size.
+   int scpkNB;  //!< \brief Scalapack column block size.
+   int scpkMP;  //!< \brief Scalapack row processor grid size.
+   int scpkNP;  //!< \brief Scalapack column processor grid size.
 
    bool useMassAugmentation; // adjust lumped mass matrix for shell element type 15 to increase stability time-step
    bool quasistatic;
 
    // Constructor
-   SolverInfo() { filterFlags = 0;
-                  filterQ = 1;
-                  soltyp = -1;
-                  renum = 0;
-                  probType = SolverInfo::None;
-                  alphaDamp = 0.0;
-                  betaDamp = 0.0;
-                  etaDamp = 0.0;
-                  mtypeDamp = 2;
-                  modal = false;
-                  lastIt = false;
-                  mppFactor = 1.0;
-                  sensitivityMethod = SolverInfo::Direct;
- 
-                  // Parameters for sensitivity
-                  sensitivity = false;
-                 
-                  // Parameters for PITA 
-                  activatePita = false;
-                  mdPita = false;
-                  pitaNoForce = false;
-                  pitaTimeGridRatio = 1;
-                  pitaMainIterMax = 0;
-                  pitaProcessWorkloadMax = 1;
-                  //numSpaceMPIProc = 1;
-                  pitaGlobalBasisImprovement = 1;
-                  pitaLocalBasisImprovement = 0;
-                  pitaRemoteCoarse = false;
-                  pitaProjTol = 1.0e-6;
-                  pitaTimeReversible = false;
-                  pitaReadInitSeed = false;
-                  pitaJumpCvgRatio = -1.0;
-                  pitaJumpMagnOutput = false;
-
-                  acoustic = false;
-                  modifiedWaveEquation = false;
-                  modifiedWaveEquationCoef = 12.0;
-
-                  tmax = 0.0; 
-                  t_AeroF = 0.0;
-                  stop_AeroF = false;
-                  stop_AeroS = false;
-                  dt = 0.0;
-                  dtemp = 0.0;
+   SolverInfo() {
 
                   steadyFlag = 0;
                   steadyMin = 1;

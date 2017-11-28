@@ -5,23 +5,7 @@
 extern Communicator *structCom;
 
 #include <Utils.d/linkfc.h>
-
-#ifndef _TGEMV__
-#define _TGEMV__
-inline void Tgemv(const char &a, const int &b, const int &c,
-                  const double &d, double *e, const int &f,
-                  double *g, const int &h, const double &i, double *j, const int &k)
-{
- _FORTRAN(dgemv)(a,b,c,d,e,f,g,h,i,j,k);
-}
-
-inline void Tgemv(const char &a, const int &b, const int &c,
-                  const complex<double> &d, complex<double> *e, const int &f,
-                  complex<double> *g, const int &h, const complex<double> &i, complex<double> *j, const int &k)
-{
- _FORTRAN(zgemv)(a,b,c,d,e,f,g,h,i,j,k);
-}
-#endif
+#include <Math.d/BLAS.h>
 
 template<class Scalar>
 GenDistSky<Scalar>::~GenDistSky()

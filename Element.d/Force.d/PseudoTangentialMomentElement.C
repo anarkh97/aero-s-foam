@@ -1,5 +1,7 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Force.d/PseudoTangentialMomentElement.h>
+#include <Element.d/Force.d/PotentialFunctionElementImpl.h>
+#include <Corotational.d/GeomState.h>
 
 const DofSet PseudoTangentialMomentElement::NODALDOFS[1] = { DofSet::XYZrot };
 

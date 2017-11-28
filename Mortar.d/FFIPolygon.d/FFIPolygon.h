@@ -11,6 +11,7 @@
 
 // FEM
 #include <Math.d/matrix.h>
+#include <Math.d/Vector.h>
 #include <Mortar.d/FFIPolygon.d/TriFacet.h>
 
 template <class Scalar> class GenVector;

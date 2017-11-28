@@ -4,6 +4,7 @@
 #include <Driver.d/Mpc.h>
 #include <Math.d/matrix.h>
 #include <iostream>
+#include <Math.d/FullSquareMatrix.h>
 
 SuperElement::SuperElement(bool _localFlag)
  : eset(0), dsa(0), superCorotator(0), nInternalNodes(0), css(0),

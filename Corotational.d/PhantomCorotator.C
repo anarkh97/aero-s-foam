@@ -1,6 +1,7 @@
 #include <Corotational.d/PhantomCorotator.h>
 #include <Math.d/Vector.h>
 #include <Math.d/matrix.h>
+#include <Math.d/FullSquareMatrix.h>
 
 void
 PhantomCorotator::getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &k, double *, double, double)

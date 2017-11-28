@@ -6,6 +6,8 @@
 
 #include <Element.d/Element.h>
 #include <Math.d/matrix.h>
+#include <Math.d/Vector.h>
+#include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/pstress.h>
 
 void

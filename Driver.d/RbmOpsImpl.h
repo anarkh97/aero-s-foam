@@ -42,16 +42,14 @@ GenSubDomain<Scalar>::useKrrNullspace()
   int nzem = Krr->numRBM();
   Rstar.setNewSize(neq, nzem);
   if(nzem > 0) {
-    GenVector<Scalar> *zem = new GenVector<Scalar>[nzem];
-    Scalar *rbmv = new Scalar[neq*nzem];
-    Krr->getNullSpace(rbmv);
+    std::vector<Scalar> rbmv(neq*nzem);
+    Krr->getNullSpace(rbmv.data());
 
     // Copy rigid body modes (rbm) into Rstar
     for(int m=0; m<nzem; ++m) {
       for(int i=0; i<neq; ++i)
         Rstar[i][m] = rbmv[i+m*neq];
     }
-    delete [] rbmv;
   }
 }
 

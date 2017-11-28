@@ -377,13 +377,13 @@ public:
 	void numberEdges(int iSub, int *eP, int *ep2, int *edges, FSCommPattern<int> *sPat);
 	void receiveNeighbEdgeNums(int iSub, int *eP, int *edges, FSCommPattern<int> *sPat);
 	void factorLocalMatrices(int isub);
-	/** \brief Extract vector, modifies f.
+	/** \brief Extract the components of f into corner, remainder and ?, modifies f.
 	 *
-	 * @param f
-	 * @param fr
-	 * @param fc
+	 * @param[inout] f
+	 * @param[out] fr Remainder nodes components of the force vector.
+	 * @param fc Corner nodes components of the force vector.
 	 * @param fw
-	 * @return
+	 * @return \f$ \| f \|^2 if it is not zero, 1.0 otherwise.
 	 */
 	double extractForceVectors(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fr,
 	                           GenVector<Scalar> &fc, GenDistrVector<Scalar> &fw) const;

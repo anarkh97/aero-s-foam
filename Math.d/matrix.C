@@ -8,6 +8,7 @@
 #include <Threads.d/PHelper.h>
 #include <Utils.d/linkfc.h>
 #include "BLAS.h"
+#include "matrix.h"
 
 #ifdef TFLOP
 #include <bsd.h>
@@ -497,7 +498,8 @@ template<class Scalar>
 GenFullM<Scalar>
 GenFullM<Scalar>::operator%(const GenFullM<Scalar> &m) const
 {
- if(ncolumn != m.ncolumn) return FullM(1,1) ; //error
+ if(ncolumn != m.ncolumn)
+		 throw "Incompatible matrix sizes in operator^.";
  GenFullM<Scalar> res(nrow,m.nrow) ;
  int i,j,k;
  for(i=0; i<nrow; ++i)
@@ -513,7 +515,8 @@ template<class Scalar>
 GenFullM<Scalar>
 GenFullM<Scalar>::operator^(const GenFullM<Scalar> &m) const
 {
- if(nrow != m.nrow) return FullM(1,1) ; //error
+ if(nrow != m.nrow)
+	 throw "Incompatible matrix sizes in operator^.";
 
  GenFullM<Scalar> res(ncolumn,m.ncolumn) ;
  int i,j,k;
@@ -683,13 +686,14 @@ template<class Scalar>
 double
 GenFullM<Scalar>::max()
 {
- double max = (v) ? sqNorm((*this)[0][0]) : 0.0;
- int i,j;
- for(i = 0; i<nrow; ++i)
-   for(j = 0; j<ncolumn; ++j)
-     if( sqNorm( (*this)[i][j] ) > max) max = sqNorm( (*this)[i][j] );
+	using ScalarTypes::sqNorm;
+	double max = (v) ? sqNorm((*this)[0][0]) : 0.0;
+	int i,j;
+	for(i = 0; i<nrow; ++i)
+		for(j = 0; j<ncolumn; ++j)
+			if( sqNorm( (*this)[i][j] ) > max) max = sqNorm( (*this)[i][j] );
 
- return max;
+	return max;
 }
 
 inline double scalarAbs(double d) { return fabs(d); }
@@ -699,7 +703,7 @@ template<class Scalar>
 double
 GenFullM<Scalar>::maxAbs()
 {
- Scalar max = 0.0;
+ double max = 0.0;
  int i,j;
  for(i = 0; i<nrow; ++i)
    for(j = 0; j<ncolumn; ++j) 
@@ -1099,3 +1103,8 @@ GenFullM<Scalar>::Column(int col) const {
  return vector;
 
 }
+
+template class GenFullM<double>;
+template class GenFullM<std::complex<double>>;
+template class GenAssembledFullM<double>;
+template class GenAssembledFullM<std::complex<double>>;

@@ -100,9 +100,32 @@ GenFullSquareMatrix<Scalar>::operator[](int row) const
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
 typedef GenFullSquareMatrix<DComplex> FullSquareMatrixC;
 
-#ifdef _TEMPLATE_FIX_
-#include <Math.d/FullSquareMatrix.C>
-#endif
+template<class Scalar> template<class Scalar1, class Scalar2, class Scalar3>
+void GenFullSquareMatrix<Scalar>::multiply(GenVector<Scalar1>& a, GenVector<Scalar2>& b, Scalar3 c, typename GenFullSquareMatrix<Scalar>::TransposeFlag transposed)
+{
+	// multiply  b += c * matrix * a
+	// Warning: no check for correct dimensions
+	Scalar1* ap = a.data();
+	Scalar2* bp = b.data();
+	if (transposed == NORMAL) {
+		for(int i=0;i<size;i++)
+		{
+			for(int j=0;j<size;j++)
+			{
+				bp[i] += c*(value+size*i)[j]*ap[j];
+			}
+		}
+	} else {
+		for(int i=0;i<size;i++)
+		{
+			for(int j=0;j<size;j++)
+			{
+				bp[j] += c*(value+size*i)[j]*ap[i];
+			}
+		}
+	}
+	return;
+}
 
 #endif
 

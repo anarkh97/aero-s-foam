@@ -8,6 +8,8 @@
 #include <Element.d/Function.d/utilities.hpp>
 #include <unsupported/Eigen/NumericalDiff>
 #include <Math.d/matrix.h>
+#include <Math.d/Vector.h>
+#include <Math.d/FullSquareMatrix.h>
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
 PotentialFunctionElement<ScalarValuedFunctionTemplate>

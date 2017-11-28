@@ -1,5 +1,6 @@
 #include <Corotational.d/SuperCorotator.h>
 #include <Math.d/matrix.h>
+#include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dbg_alloca.h>
 
 SuperCorotator::SuperCorotator(SuperElement *_superElem)

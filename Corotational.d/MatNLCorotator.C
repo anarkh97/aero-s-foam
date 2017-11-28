@@ -3,6 +3,7 @@
 #include <Corotational.d/GeomState.h>
 #include <Math.d/matrix.h>
 #include <Math.d/Vector.h>
+#include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/pstress.h>
 
 MatNLCorotator::MatNLCorotator(MatNLElement *_ele, bool _own)

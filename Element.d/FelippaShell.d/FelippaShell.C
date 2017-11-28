@@ -20,6 +20,7 @@
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
+#include <Math.d/BLAS.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Utils.d/dofset.h>

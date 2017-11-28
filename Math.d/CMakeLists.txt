@@ -1,11 +1,14 @@
 ADD_LIBRARY(Math spsmvp.f
-       sptmv.f cspsmvp.f cdspsmvp.f
-       IntFullM.C
-       SparseData.C
-       matrixFull.C BigMatrixCore.C BLKSparseMatrixCore.C 
-       CuCSparseCore.C DBSparseMatrixCore.C 
-       FullRectMatrix.C NBSparseMatrixCore.C TTensor.C
-       EiSparseMatrixCore.C
+        sptmv.f cspsmvp.f cdspsmvp.f
+        matrix.C matrix.h
+        FullSquareMatrix.h FullSquareMatrix.C
+        FullRectMatrix.C
+        IntFullM.C
+        SparseData.C
+        matrixFull.C BigMatrixCore.C BLKSparseMatrixCore.C
+        CuCSparseCore.C DBSparseMatrixCore.C
+        FullRectMatrix.C NBSparseMatrixCore.C TTensor.C
+        EiSparseMatrixCore.C
         SparseMatrix.h
 Skyline.d/forbackr7.f
 Skyline.d/BlockSkyCore.C  Skyline.d/forbackr7ns.f

@@ -231,9 +231,4 @@ typedef GenAssembledFullM<double> AssembledFullM;
 typedef GenFullM<DComplex> FullMC;
 typedef GenAssembledFullM<DComplex> AssembledFullMC;
 
-#ifdef _TEMPLATE_FIX_
-#include <Math.d/matrix.C>
-#endif
-
-
 #endif

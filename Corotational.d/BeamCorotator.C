@@ -1,5 +1,6 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
+#include <Math.d/BLAS.h>
 #include <Element.d/Element.h>
 #include <Corotational.d/BeamCorotator.h>
 #include <Corotational.d/GeomState.h>

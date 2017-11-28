@@ -12,6 +12,7 @@
 #include <Mortar.d/FFIPolygon.d/TriFacet.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Utils.d/dbg_alloca.h>
+#include <Math.d/Vector.h>
 
 // External routines
 extern void getGaussPtOnTriangle(int, int, double&, double&, double&, double&);

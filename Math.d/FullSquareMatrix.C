@@ -21,6 +21,7 @@ inline void Tdsyev(const char &a, const char &b, const int &c,
 
 */
 #include <Utils.d/MyComplex.h>
+#include <vector>
 
 template<class Scalar>
 GenFullSquareMatrix<Scalar>::GenFullSquareMatrix()
@@ -132,45 +133,45 @@ GenFullSquareMatrix<Scalar>::reSize(int newSize)
   myval = 1;
 }
 
-template<class Scalar>
-GenFullSquareMatrix<Scalar>
-GenFullSquareMatrix<Scalar>::operator + (const GenFullSquareMatrix<Scalar> &M2)
-{
-  GenFullSquareMatrix<Scalar> res(size);
-  for(int i = 0; i < length; ++i)
-    res.setData(i, value[i] + M2.value[i]);
-  return res;
-}
-
-template<class Scalar>
-GenFullSquareMatrix<Scalar>
-GenFullSquareMatrix<Scalar>::operator - (const GenFullSquareMatrix<Scalar> &M2)
-{
-  GenFullSquareMatrix<Scalar> res(size);
-  for(int i = 0; i < length; ++i)
-    res.setData(i, value[i] - M2.value[i]);
-  return res;
-}
-
-template<class Scalar>
-GenFullSquareMatrix<Scalar>
-GenFullSquareMatrix<Scalar>::operator * (Scalar s)
-{
-  GenFullSquareMatrix<Scalar> res(size);
-  for(int i = 0; i < length; ++i)
-    res.setData(i, s*value[i]);
-  return res;
-}
-
-template<class Scalar>
-GenFullSquareMatrix<Scalar>
-GenFullSquareMatrix<Scalar>::operator / (Scalar s)
-{
-  GenFullSquareMatrix<Scalar> res(size);
-  for(int i = 0; i < length; ++i)
-    res.setData(i, value[i]/s);
-  return res;
-}
+//template<class Scalar>
+//GenFullSquareMatrix<Scalar>
+//GenFullSquareMatrix<Scalar>::operator + (const GenFullSquareMatrix<Scalar> &M2)
+//{
+//  GenFullSquareMatrix<Scalar> res(size);
+//  for(int i = 0; i < length; ++i)
+//    res.setData(i, value[i] + M2.value[i]);
+//  return res;
+//}
+//
+//template<class Scalar>
+//GenFullSquareMatrix<Scalar>
+//GenFullSquareMatrix<Scalar>::operator - (const GenFullSquareMatrix<Scalar> &M2)
+//{
+//  GenFullSquareMatrix<Scalar> res(size);
+//  for(int i = 0; i < length; ++i)
+//    res.setData(i, value[i] - M2.value[i]);
+//  return res;
+//}
+//
+//template<class Scalar>
+//GenFullSquareMatrix<Scalar>
+//GenFullSquareMatrix<Scalar>::operator * (Scalar s)
+//{
+//  GenFullSquareMatrix<Scalar> res(size);
+//  for(int i = 0; i < length; ++i)
+//    res.setData(i, s*value[i]);
+//  return res;
+//}
+//
+//template<class Scalar>
+//GenFullSquareMatrix<Scalar>
+//GenFullSquareMatrix<Scalar>::operator / (Scalar s)
+//{
+//  GenFullSquareMatrix<Scalar> res(size);
+//  for(int i = 0; i < length; ++i)
+//    res.setData(i, value[i]/s);
+//  return res;
+//}
 
 template<class Scalar>
 GenFullSquareMatrix<Scalar> &
@@ -350,33 +351,31 @@ GenFullSquareMatrix<Scalar>::multiply(GenFullSquareMatrix<Scalar> &res, double d
     res.value[i] = value[i] * d;
 }
 
-template<class Scalar>
+template<>
 void
-GenFullSquareMatrix<Scalar>::eigenVals(Scalar* eigenV)
+GenFullSquareMatrix<double>::eigenVals(double* eigenV)
 {
-  //Scalar work[6*size];
-  Scalar *copyValue = new Scalar[size*size];
-  for (int i = 0 ; i < size*size ; i++) copyValue[i] = value[i];
-  //use the lapack routine dsyev
-  char a = 'N';//'N' for eigenVlaues alone and 'V' for eigenvalues + eigenvectors
-  char b = 'U';//store upper triangle
-  int c = size;//order of the matrix
-  double *d = copyValue;
-  int e = size;
-  double *f = eigenV;
-  double *g = new Scalar[6*size];
-  int h = 6*size;
-  int i = 0;
+	//Scalar work[6*size];
+	std::vector<double> copyValue{ value, value+size*size };
+	//use the lapack routine dsyev
+	char a = 'N';//'N' for eigenVlaues alone and 'V' for eigenvalues + eigenvectors
+	char b = 'U';//store upper triangle
+	int c = size;//order of the matrix
+	double *d = copyValue.data();
+	int e = size;
+	double *f = eigenV;
+	double *g = new double[6*size];
+	int h = 6*size;
+	int i = 0;
 //  _FORTRAN(dsyev)(a, b, c, d, e, f, g, h, i);
-  //other function can be used: zheev for complex or dsyevr & zheevr for faster methods
-  Tdsyev(a, b, c, d, e, f, g, h, i);
-  delete[] g;
-  delete[] copyValue;
+	//other function can be used: zheev for complex or dsyevr & zheevr for faster methods
+	Tdsyev(a, b, c, d, e, f, g, h, i);
+	delete[] g;
 }
 
-template<class Scalar>
+template<>
 void
-GenFullSquareMatrix<Scalar>::eigenV(Scalar* eigenV)
+GenFullSquareMatrix<double>::eigenV(double* eigenV)
 {
   // value will change to store the eigenvectors
   //use the lapack routine dsyev
@@ -386,7 +385,7 @@ GenFullSquareMatrix<Scalar>::eigenV(Scalar* eigenV)
   double *d = value;
   int e = size;
   double *f = eigenV;
-  double *g = new Scalar[6*size];
+  double *g = new double[6*size];
   int h = 6*size;
   int i = 0;
 //  _FORTRAN(dsyev)(a, b, c, d, e, f, g, h, i);
@@ -459,33 +458,6 @@ inline void GenFullSquareMatrix<double>::multiply(GenVector<double>& a, GenVecto
   assert(0);
 }
 
-template<class Scalar> template<class Scalar1, class Scalar2, class Scalar3>
-void GenFullSquareMatrix<Scalar>::multiply(GenVector<Scalar1>& a, GenVector<Scalar2>& b, Scalar3 c, typename GenFullSquareMatrix<Scalar>::TransposeFlag transposed)
-{
-  // multiply  b += c * matrix * a
-  // Warning: no check for correct dimensions
-  Scalar1* ap = a.data();
-  Scalar2* bp = b.data();
-  if (transposed == NORMAL) {
-    for(int i=0;i<size;i++)
-    {
-      for(int j=0;j<size;j++)
-      {
-        bp[i] += c*(value+size*i)[j]*ap[j];
-      }
-    }
-  } else {
-    for(int i=0;i<size;i++)
-    {
-      for(int j=0;j<size;j++)
-      {
-        bp[j] += c*(value+size*i)[j]*ap[i];
-      }
-    }
-  }
-  return;
-}
-
 template <typename Scalar>
 inline
 void
@@ -509,3 +481,6 @@ GenFullSquareMatrix<Scalar>::linAdd(const Scalar &coef, const GenFullSquareMatri
     this->value[i] += coef * other.value[i];
   }
 }
+
+template class GenFullSquareMatrix<double>;
+template class GenFullSquareMatrix<std::complex<double>>;

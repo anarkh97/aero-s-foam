@@ -4,6 +4,7 @@
 #include <Math.d/Vector.h>
 #include <Driver.d/Communicator.h>
 #include <unsupported/Eigen/SparseExtra>
+#include <Timers.d/GetTime.h>
 
 template<typename Scalar, typename SolverClass>
 GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa, int *rCN, bool _selfadjoint)

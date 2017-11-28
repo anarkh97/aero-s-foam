@@ -6,6 +6,8 @@
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
 #include <Math.d/matrix.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Math.d/Vector.h>
 
 template<template <typename S> class VectorValuedFunctionTemplate>
 ForceFunctionElement<VectorValuedFunctionTemplate>

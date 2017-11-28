@@ -36,7 +36,7 @@ class ForceFunctionElement : public BoundaryElement
 };
 
 #ifdef _TEMPLATE_FIX_
-  #include <Element.d/Force.d/ForceFunctionElement.C>
+  #include <Element.d/Force.d/ForceFunctionElementImpl.h>
 #endif
 
 #endif

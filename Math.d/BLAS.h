@@ -62,7 +62,24 @@ inline void Tsvdc(std::complex<double> *a, int &b, int &c, int&d, std::complex<d
 {
   _FORTRAN(zsvdc)(a,b,c,d,e,f,g,h,i,j,k,l,m);
 }
+#ifndef _TGEMM__
+#define _TGEMM__
+inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
+                  const int &e, const double &f, const double *g, const int &h,
+                  const double *i, const int &j, const double &k, double *l,
+                  const int &m)
+{
+  _FORTRAN(dgemm)(a,b,c,d,e,f,g,h,i,j,k,l,m);
+}
 
+inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
+                  const int &e, const std::complex<double> &f, const std::complex<double> *g, const int &h,
+                  const std::complex<double> *i, const int &j, const std::complex<double> &k, std::complex<double> *l,
+                  const int &m)
+{
+  _FORTRAN(zgemm)(a,b,c,d,e,f,g,h,i,j,k,l,m);
+}
+#endif
 #ifndef _TGEMV__
 #define _TGEMV__
 inline void Tgemv(const char &a, const int &b, const int &c,

@@ -2,6 +2,7 @@
 #include <Feti.d/CoarseSet.h>
 #include <Math.d/matrix.h>
 #include <Math.d/SparseMatrix.h>
+#include <Math.d/BLAS.h>
 
 template<>
 void

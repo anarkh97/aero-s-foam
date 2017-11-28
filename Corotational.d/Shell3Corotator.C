@@ -9,6 +9,7 @@
 #include <Element.d/Element.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
+#include <Math.d/BLAS.h>
 #include <Utils.d/linkfc.h>
 #ifdef USE_EIGEN3
 #include <Element.d/Function.d/Corotator.d/Shell3CorotatorDefDispFunction.h>

@@ -34,8 +34,4 @@ class PotentialFunctionElement : public BoundaryElement
                           CoordSet& c0, GeomState *c1 = NULL, GeomState *refState = NULL);
 };
 
-#ifdef _TEMPLATE_FIX_
-  #include <Element.d/Force.d/PotentialFunctionElement.C>
-#endif
-
 #endif

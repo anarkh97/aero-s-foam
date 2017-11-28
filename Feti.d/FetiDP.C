@@ -1681,12 +1681,12 @@ double
 GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fr,
                                              GenVector<Scalar> &fc, GenDistrVector<Scalar> &fw) const
 {
-  // distribute force  for sfem inpc
-  GenDistrVector<Scalar> *f_copy = 0;
-  if(domain->solInfo().inpc) {
-     f_copy = new GenDistrVector<Scalar>(f);
-     execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::fSplit, f);
-  }
+	// distribute force  for sfem inpc
+	std::unique_ptr<GenDistrVector<Scalar>> f_copy;
+	if(domain->solInfo().inpc) {
+		f_copy = std::make_unique<GenDistrVector<Scalar>>(f);
+		execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::fSplit, f);
+	}
 
   // extract fr from f
   fr.zero();
@@ -1736,12 +1736,7 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
   
   if(domain->solInfo().inpc) f = (*f_copy);
 
-// RT 05/08/2010: bug in the g++ compiler
-  if(ff == 0.0) {
-     //filePrint(stderr, " *** WARNING: norm of rhs = 0 \n");
-     return 1.0;
-  }
-  else return ff;
+  return ff == 0.0 ? 1.0 : ff;
 }
 
 template<class Scalar>

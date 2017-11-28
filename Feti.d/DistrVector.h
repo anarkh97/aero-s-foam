@@ -6,6 +6,8 @@
 #include <Driver.d/Communicator.h>
 #include <Utils.d/MyComplex.h>
 
+#include <Eigen/Dense>
+
 struct DistrInfo {
 
    int len;
@@ -48,9 +50,14 @@ struct DistrInfo {
 
 template<class Scalar> class GenPartialDistrVector;
 
+template <typename Scalar>
+using VecRef = Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, 1>>;
+template <typename Scalar>
+using ConstVecRef = Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>>;
+
 template<class Scalar>
 class GenDistrVector {
-  protected:
+protected:
     bool myMemory;
     int len;		// entire length of the vector
     int numDom;		// number of domains
@@ -64,7 +71,7 @@ class GenDistrVector {
     bool infoFlag;
     DistrInfo const * inf;
     Scalar *partial;
-  public:
+public:
     GenDistrVector() : myMemory(false), len(0), numDom(0), v(NULL), subV(NULL), subVLen(NULL), nT(0),
                        thLen(NULL), thV(NULL), subVOffset(NULL), thOffset(NULL), masterFlag(NULL),
                        infoFlag(false), inf(new DistrInfo), partial(NULL) {}
@@ -121,7 +128,10 @@ class GenDistrVector {
     void setn(int _n) {};      
     GenDistrVector<Scalar>&  getBlock(int iblock) { std::cerr << "GenDistrVector::getBlock not implemented" << std::endl; 
                                                     return *(new GenDistrVector<Scalar>()); }
-
+	///\brief Obtain a view to the part of the vector for one subdomain.
+	VecRef<Scalar> subVec(int iSub) { return VecRef<Scalar>{subData(iSub), subLen(iSub), 1}; }
+	///\copydoc
+	ConstVecRef<Scalar> subVec(int iSub) const { return ConstVecRef<Scalar>{subData(iSub), subLen(iSub), 1}; }
     void negate();
     Scalar *data() const      { return v;          }
     Scalar *subData(int i)    { return subV[i];    }

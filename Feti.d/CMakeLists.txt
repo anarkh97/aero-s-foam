@@ -7,6 +7,7 @@ ADD_LIBRARY(Feti
         FetiCore.C
         FetiOpCore.C
         FetiDP.C
+        Feti.h
         NLFetiCore.C
         CCtSolver.d/BlockCCt.C
         FetiSub.h)

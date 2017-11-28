@@ -46,7 +46,7 @@ DofSet::print(char* msg)
 }
 
 int
-DofSet::count()
+DofSet::count() const
 {
   int cdof = flags;
   int num = 0;
@@ -545,7 +545,8 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd, int *bc)
 
 // New constructor for Experimental version of FETI
 ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcond,
-                               int numCornerNodes, int *cornerNodes, DofSet *cornerDofs,
+                               int numCornerNodes, const std::vector<int> &cornerNodes,
+                               const std::vector<DofSet> &cornerDofs,
                                int ncbc, ComplexBCond *cbcond, int numWetInterfaceNodes,
                                int *wetInterfaceNodes, DofSet *wetInterfaceDofs)
 {

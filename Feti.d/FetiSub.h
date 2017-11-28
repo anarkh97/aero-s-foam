@@ -4,6 +4,8 @@
 
 #ifndef FEM_FETUSUB_H
 #define FEM_FETUSUB_H
+#include <vector>
+
 class FSCommStructure;
 template <typename Scalar>
 class FSCommPattern;
@@ -60,7 +62,7 @@ public:
 	/// \brief Obtain the number of corner nodes.
 	virtual int numCorners() const = 0;
 
-	virtual const int *getLocalCornerNodes() const = 0;
+	const std::vector<int> &getLocalCornerNodes() const { return cornerNodes; };
 
 	virtual int numWetInterfaceDofs() const = 0;
 
@@ -75,6 +77,9 @@ public:
 	 * assembleTrbmE
 	 * assembleE
 	 */
+protected:
+	/// \brief Corner nodes in local numbering.
+	std::vector<int> cornerNodes;
 };
 
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */

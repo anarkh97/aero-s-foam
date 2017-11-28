@@ -121,11 +121,9 @@ public:
 
 	int *cornerMap;
 	int *cornerEqNums; // unique equation numbers for subdomain corner dofs
-	int *localCornerList;
-	DofSet *cornerDofs;
-	int *cornerNodes;   // corner node in local numbering
-	bool *isCornerNode;   // true for node which is a corner node; false otherwise
-	int *glCornerNodes; // corner nodes in global numbering
+	std::vector<DofSet> cornerDofs;
+	std::vector<bool> isCornerNode;   // true for node which is a corner node; false otherwise
+	std::vector<int> glCornerNodes; // corner nodes in global numbering
 	int *glCrnGroup;    // group of each corner node (global numbering)
 	int nGrbm;
 	int numCRN;
@@ -213,9 +211,9 @@ public:
 
 	bool checkForColinearCrossPoints(int numCornerPoints, int *localCornerPoints);
 	void addCornerPoints(int *glCornerList);
-	const int *getLocalCornerNodes() const { return cornerNodes; }
 	int numCorners() const override { return numCRN; }
-	int *getCornerNodes()       { return glCornerNodes; }
+	const std::vector<int> &getCornerNodes() const { return glCornerNodes; }
+	std::vector<int> &getCornerNodes() { return glCornerNodes; }
 	int numCornerDofs()	const { return numCRNdof; }
 	int numCoarseDofs();
 	int nCoarseDofs()  const { return nCDofs; }
@@ -421,6 +419,15 @@ public:
 #endif
 };
 
+template <typename Scalar>
+struct FetiMatrices {
+	std::unique_ptr<GenAssembledFullM<Scalar>> Kcc;
+	std::unique_ptr<GenCuCSparse<Scalar>>      Krc;
+	std::unique_ptr<GenCuCSparse<Scalar>>      Grc;
+	std::unique_ptr<GenSolver<Scalar>> Krr;
+	GenSparseMatrix<Scalar>   *KrrSparse; //!< \brief Alias to Krr.
+};
+
 template<class Scalar>
 class GenSubDomain : public BaseSub , public FetiSub<Scalar>
 {
@@ -439,7 +446,6 @@ protected:
 
 public:
 	GenSparseSet<Scalar>      *Src;
-	GenSparseSet<Scalar>      *Qrc;
 	std::unique_ptr<GenSolver<Scalar>> Krr;
 	GenSparseMatrix<Scalar>   *KrrSparse;
 	Scalar                    **BKrrKrc;
@@ -543,7 +549,6 @@ public:
 	void rebuildKbb();
 	void makeKbb(DofSetArray *dofsetarray=0);
 	void factorKii() override;
-	void factorKrr();
 	void multKbb(const Scalar *u, Scalar *Pu, Scalar *delta_u = 0, Scalar * delta_f= 0, bool errorFlag = true);
 	void multDiagKbb(const Scalar *u, Scalar *Pu) const;
 	void multFi(GenSolver<Scalar> *s, Scalar *, Scalar *);
@@ -620,7 +625,6 @@ public:
 
 	void makeQ();
 	void precondGrbm();
-	DofSet* getCornerDofs() { return cornerDofs; }
 	void setMpcSparseMatrix();
 	void assembleMpcIntoKcc();
 	void multKcc();

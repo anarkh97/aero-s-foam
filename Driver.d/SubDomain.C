@@ -1908,13 +1908,6 @@ GenSubDomain<Scalar>::factorKii()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::factorKrr()
-{
-  if(Krr) Krr->factor();
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::getHalfInterf(const Scalar *s, Scalar *t) const
 {
   int iTg = 0;
@@ -4083,8 +4076,8 @@ GenSubDomain<Scalar>::clean_up()
 
  if(cornerMap) { delete [] cornerMap; cornerMap = 0; }
  if(cornerEqNums) { delete [] cornerEqNums; cornerEqNums = 0; }
- if(cornerNodes) { delete [] cornerNodes; cornerNodes = 0; }
- if(glCornerNodes) { delete [] glCornerNodes; glCornerNodes = 0; }
+ cornerNodes.clear();
+ glCornerNodes.clear();
  if(ccToC) { delete [] ccToC; ccToC = 0; }
  if(fcstar) { delete [] fcstar; fcstar = 0; }
  if(dsa) dsa->clean_up();

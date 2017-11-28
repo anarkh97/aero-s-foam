@@ -223,8 +223,10 @@ BaseSub::makeCCDSA()
  }
 
   // store global corner Node numbers
- glCornerNodes = new int[numCRN];
- for(int i=0; i<numCRN; ++i) glCornerNodes[i] = glNums[cornerNodes[i]];
+  glCornerNodes.clear();
+  glCornerNodes.reserve(numCRN);
+  for(auto localNode: cornerNodes)
+    glCornerNodes.push_back(glNums[localNode]);
 }
 
 int
@@ -884,14 +886,12 @@ BaseSub::setCorners(int nCrn, int *cNum)
     }
   }
 
-  // list of corner nodes and a dofset associated with it
-  cornerNodes = new int[numCRN];
-  cornerDofs  = new DofSet[numCRN];
-  // Create a variable at the beginning to be DofSet::XYZrot, XYZrot, Temp
+	// list of corner nodes and a dofset associated with it
+	cornerNodes.resize(numCRN);
+	cornerDofs.resize(numCRN);
+	// Create a variable at the beginning to be DofSet::XYZrot, XYZrot, Temp
 
-  isCornerNode = new bool[numnodes];
-  for (i=0; i<numnodes; ++i)  
-    isCornerNode[i] = false;
+	isCornerNode.assign(numnodes, false);
 
   numCRN = 0;
   for(i = 0; i < nCrn; ++i) {
@@ -1741,8 +1741,7 @@ BaseSub::initialize()
   boundLen = 0; internalLen = 0; crnDofSize = 0;
   memK = 0; memPrec = 0; numMPC = 0; numMPC_primal = 0; localToGlobalMPC = 0; 
   cornerMap = 0; cornerEqNums = 0; 
-  localCornerList = 0; cornerDofs = 0; cornerNodes = 0; glCornerNodes = 0;
-  glCrnGroup = 0; nGrbm = 0; numCRN = 0; numCRNdof = 0; 
+  glCrnGroup = 0; nGrbm = 0; numCRN = 0; numCRNdof = 0;
   cc_dsa = 0; ccToC = 0; cToCC = 0; boundaryDOFs = 0; nCDofs = -1;
   edgeDofSize = 0; localMpcToMpc = 0; localMpcToGlobalMpc = 0;
   faceIsSafe = 0;
@@ -1771,7 +1770,6 @@ BaseSub::initialize()
   mpclast = 0;
   edgeDofSizeTmp = 0; isMixedSub = false;
   internalMasterFlag = 0;
-  isCornerNode = 0;
 //  glToLocalElem = 0;
   //comm = 0;
 }
@@ -1781,12 +1779,9 @@ BaseSub::~BaseSub()
   if(ccToC) { delete [] ccToC; ccToC = 0; }
   if(crnPerNeighb) { delete [] crnPerNeighb; crnPerNeighb = 0; }
   if(cornerMap) { delete [] cornerMap; cornerMap = 0; }
-  if(cornerNodes) { delete [] cornerNodes; cornerNodes = 0; }
-  if(cornerDofs) { delete [] cornerDofs; cornerDofs = 0; }
   if(cornerEqNums) { delete [] cornerEqNums; cornerEqNums = 0; }
   if(cc_dsa) { delete cc_dsa; cc_dsa = 0; }
   if(cToCC) { delete [] cToCC; cToCC = 0; }
-  if(glCornerNodes) { delete [] glCornerNodes; glCornerNodes = 0; }
 
   if(masterFlag) { delete [] masterFlag; masterFlag = 0; }
   if(boundMap) { delete [] boundMap; boundMap = 0; }
@@ -1855,7 +1850,6 @@ BaseSub::~BaseSub()
   if(internalMasterFlag) { delete [] internalMasterFlag; internalMasterFlag = 0; }
   // don't delete subToSub_fsi;
   // don't delete fsiNeighb;
-  if(isCornerNode) { delete [] isCornerNode; isCornerNode = 0; } // HB 
   if(locToGlSensorMap) { delete [] locToGlSensorMap; locToGlSensorMap = 0; }
   if(locToGlActuatorMap) { delete [] locToGlActuatorMap; locToGlActuatorMap = 0; }
   if(locToGlUserDispMap) { delete [] locToGlUserDispMap; locToGlUserDispMap = 0; }

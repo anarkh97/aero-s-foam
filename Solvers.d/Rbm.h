@@ -63,17 +63,17 @@ public:
       compStruct &components, int numMPC, ResizeArray<LMPCons *> &mpc, IntFullM *fm = 0);
   Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
       double _tolgrb, double *centroid,
-      int *cornerNodes, int numCRN, int numCRNdof, DofSet *cornerDofs,
+      const std::vector<int> &cornerNodes, int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
       int numMPC, SubLMPCons<double> **mpc);
   Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
       double _tolgrb, double *centroid,
-      int *cornerNodes, int numCRN, int numCRNdof, DofSet *cornerDofs,
+      const std::vector<int> &cornerNodes, int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
       int numMPC, SubLMPCons<DComplex> **mpc) 
     { std::cerr << "Rbm(...) not implemented for complex LMPCs \n"; }
   ~Rbm();
   
-  void computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
-                   int numCRN, int numCRNdof, DofSet *cornerDofs,
+  void computeRbms(CoordSet &cs, double *centroid, const std::vector<int> &cornerNodes,
+                   int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
                    int numMPC, SubLMPCons<double> **mpc);
  
   void reBuildGeometricRbms(GeomState *gs);

@@ -244,7 +244,7 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
 // works for 1 component only
 Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
          double _tolgrb, double *centroid,
-         int *cornerNodes, int numCRN, int numCRNdof, DofSet *cornerDofs,
+         const std::vector<int> &cornerNodes, int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
          int numMPC, SubLMPCons<double> **mpc) 
 {
  init();
@@ -257,8 +257,8 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
 }
 
 void
-Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
-                 int numCRN, int numCRNdof, DofSet *cornerDofs, 
+Rbm::computeRbms(CoordSet &cs, double *centroid, const std::vector<int> &cornerNodes,
+                 int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
                  int numMPC, SubLMPCons<double> **mpc)
 {
   int i,j,k;

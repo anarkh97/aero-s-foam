@@ -84,8 +84,8 @@ class DofSet {
       return contains(Xrot | Yrot | Zrot);
     }
 
-    // counts the number dofs marked in this node
-    int count();
+    /// \brief Count the number dofs marked in this node.
+    int count() const;
 
     int number(DofSet, int *); // This routine complements the previous
                   // one, numbering all the DOFs in the first argument
@@ -94,11 +94,11 @@ class DofSet {
     // i.e. result is undefined for composites such as XYZrot and XYZdisp
     int locate(int dof) const;
 
-    int list() { return flags; }
+    int list() const { return flags; }
 
-    DofSet operator & (DofSet d) { return DofSet(flags & d.flags); }
-    DofSet operator | (DofSet d) { return DofSet(flags | d.flags); }
-    DofSet operator ^ (DofSet d) { return DofSet(flags ^ d.flags); }
+    DofSet operator & (DofSet d) const { return DofSet(flags & d.flags); }
+    DofSet operator | (DofSet d) const { return DofSet(flags | d.flags); }
+    DofSet operator ^ (DofSet d) const { return DofSet(flags ^ d.flags); }
     DofSet & operator &=(const DofSet &d) { flags &= d.flags; return *this; } //HB
     void print(char* msg=0); //HB
 };
@@ -219,7 +219,7 @@ class ConstrainedDSA : public DofSetArray {
                    ComplexBCond *bcd, int nbcd, int *bc);
 
     ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcond,
-                   int numCornerNodes, int *cornerNodes, DofSet *cornerDofs,
+                   int numCornerNodes, const std::vector<int> &cornerNodes, const std::vector<DofSet> &cornerDofs,
                    int ncbc = 0, ComplexBCond *cbcond = 0, int numWetInterfaceNodes = 0,
                    int *wetInterfaceNodes = 0, DofSet *wetInterfaceDofs = 0);
 

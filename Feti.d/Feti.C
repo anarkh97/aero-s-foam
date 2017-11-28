@@ -309,7 +309,7 @@ GenFetiSolver<Scalar>::fSplit(int iSub, GenDistrVector<Scalar> &force) const
 	sd[iSub]->splitInterf(force.subData(subdomains[iSub]->localSubNum()));
 }
 
-// Forming and factorization of the projected coarse grid FETI
+/** Forming and factorization of the projected coarse grid FETI
 // matrix : (P C)^t  F_I (P C)
 //
 // since (P C) = C - G (G^t G)^-1 G^t C 
@@ -317,7 +317,7 @@ GenFetiSolver<Scalar>::fSplit(int iSub, GenDistrVector<Scalar> &force) const
 // where Rgc = = -(G^t G)^-1 G^t C
 //
 // the matrix becomes (C + G  Rgc)^t F (C + G  Rgc).
-//  = C'F C + Rgc'G'FC + C'F G Rgc + Rgc'G'F G Rgc
+//  = C'F C + Rgc'G'FC + C'F G Rgc + Rgc'G'F G Rgc */
 
 template<class Scalar>
 void

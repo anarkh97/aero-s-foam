@@ -368,7 +368,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    for(i=0; i<total; ++i) glCornerNodes[i] = 0;
    for(iSub=0; iSub<this->nsub; ++iSub) {
      int numCorner = this->subdomains[iSub]->numCorners();
-     const int *localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
+     const auto &localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
      const int *glN = this->sd[iSub]->getGlNodes();
      for(int iCorner=0; iCorner<numCorner; ++iCorner)
        glCornerNodes[pointer[this->sd[iSub]->subNum()]+iCorner] = glN[localCornerNodes[iCorner]];
@@ -391,14 +391,14 @@ GenFetiDPSolver<Scalar>::makeKcc()
    int *target = new int[total];
    for(i=0; i<total; ++i) target[i] = 0;
    for(iSub=0; iSub<this->nsub; ++iSub) {
-     int numCorner    = this->subdomains[iSub]->numCorners();
-     int *cornerNodes = this->sd[iSub]->getCornerNodes();
-     const int *localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
-     const int *glN = this->sd[iSub]->getGlNodes();
-     for(int iCorner=0; iCorner<numCorner; ++iCorner) {
-        cornerNodes[iCorner] = glCornerMap[glN[localCornerNodes[iCorner]]];
-        target[iCorner+pointer[this->subdomains[iSub]->subNum()]] = cornerNodes[iCorner];
-     }
+	   int numCorner    = this->subdomains[iSub]->numCorners();
+	   auto &cornerNodes = this->sd[iSub]->getCornerNodes();
+	   const auto &localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
+	   const int *glN = this->sd[iSub]->getGlNodes();
+	   for(int iCorner=0; iCorner<numCorner; ++iCorner) {
+		   cornerNodes[iCorner] = glCornerMap[glN[localCornerNodes[iCorner]]];
+		   target[iCorner+pointer[this->subdomains[iSub]->subNum()]] = cornerNodes[iCorner];
+	   }
    }
 #ifdef DISTRIBUTED
    this->fetiCom->globalSum(total, target);
@@ -910,7 +910,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
       for(int i = 0; i < this->nsub; i++) {
         int s = this->subdomains[i]->subNum();
 	int numCorner = this->subdomains[i]->numCorners();
-	const int *localCornerNodes = this->subdomains[i]->getLocalCornerNodes();
+	const auto &localCornerNodes = this->subdomains[i]->getLocalCornerNodes();
 	for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
 	  Node *node = this->sd[i]->getNodes()[localCornerNodes[iCorner]];
 	  int cornerNum = (*subToCorner)[s][iCorner];
@@ -955,7 +955,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
       // however, they shouldn't be needed in any case
       for(int iSub = 0; iSub < this->nsub; ++iSub) {
         int numCorner = this->subdomains[iSub]->numCorners();
-        const int *localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
+        const auto &localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
         for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
           Node *node = this->sd[iSub]->getNodes()[localCornerNodes[iCorner]];
           int cornerNum = (*subToCorner)[this->subdomains[iSub]->subNum()][iCorner];

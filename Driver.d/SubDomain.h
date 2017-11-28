@@ -163,9 +163,7 @@ public:
 	int *getGlMPCs()  const     { return localToGlobalMPC; }
 	int glToPackElem(int e) const { return (geoSource->glToPackElem(e) > globalEMax) ? -1 : glToLocalElem[geoSource->glToPackElem(e)]; }
 	int *getSensorDataMap() const { return locToGlSensorMap; }
-	int *getActuatorDataMap() const { return locToGlActuatorMap; }
 	int *getUserDispDataMap() const { return locToGlUserDispMap; }
-	int *getUserForceDataMap() const { return locToGlUserForceMap; }
 	int countElemNodes();
 	int numMPCs() const override { return numMPC; }
 	int numMPCs_primal() const  { return numMPC_primal; }
@@ -270,17 +268,10 @@ public:
 	void receiveNeighbGrbmInfo(FSCommPattern<int> *pat);
 	void setCommSize(FSCommStructure *pat, int size) const override;
 	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size);
-	int numSPCs() { return c_dsa->getInvRCNmax(); }
 	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
-	void initializeFaceSafety();
-	void locateUnsafeFaces();
-	void sendFaceSafetyInfo(FSCommPattern<int> *sPat);
-	void receiveFaceSafetyInfo(FSCommPattern<int> *sPat);
-	void printUnsafeFaces();
 
 protected:
 	int bodyRBMoffset;
-	void computeInterfaceCardinality(int *nodeweight);
 
 public:
 	void setCorners(int nCorners, int *crnList);
@@ -295,7 +286,6 @@ public:
 	int numNeighbors() const override { return scomm->numNeighb;}
 	int numEdgeNeighbors() const { return scomm->numEdgeNeighb; }
 	bool isEdgeNeighbor(int neighb) const { return scomm->isEdgeNeighb[neighb]; }
-	void setPairsNbTotal(int pairsNbTotal);
 	int interfLen() const override; //<! \brief Total length for the local interface
 	int halfInterfLen() const override; //<! \brief Length of the "half interface"
 	void computeMasterFlag(const Connectivity &mpcToSub) override;
@@ -357,13 +347,6 @@ public:
 	void setDnb(std::list<SommerElement *> *_list);
 	void setScat(std::list<SommerElement *> *_list);
 	void setArb(std::list<SommerElement *> *_list);
-//  void updateKappa() { kappa = domain->getWaveNumber(); }
-//  void updateKappaAndScalings() { kappa = domain->getWaveNumber();
-//                       coupledScaling = domain->coupledScaling;
-//                       cscale_factor  = domain->cscale_factor;
-//                       cscale_factor2 = domain->cscale_factor2;
-//  }
-
 	// coupled_dph
 protected:
 	bool *wetInterfaceMark;

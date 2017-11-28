@@ -754,21 +754,6 @@ int BaseSub::factorial(int n)
   int i, product = 1;
   for(i = 2; i <= n; ++i) product = product * i;
   return product;
-} 
-
-void
-BaseSub::computeInterfaceCardinality(int *nodeweight)
-{
- Connectivity &sharedNodes = *(scomm->sharedNodes);
- int numNeighb = sharedNodes.csize();
-
- int iNode,iSub;
- for(iNode = 0; iNode < numnodes; iNode++)
-   nodeweight[iNode] = 0;
-
- for(iSub = 0; iSub < numNeighb; ++iSub)
-    for(iNode = 0; iNode < sharedNodes.num(iSub); ++iNode)
-       nodeweight[sharedNodes[iSub][iNode]]++;
 }
 
 void
@@ -1481,88 +1466,6 @@ BaseSub::receiveNeighbGrbmInfo(FSCommPattern<int> *pat)
     neighbNumGroupGrbm[i] = rInfo.data[0];
     neighbGroupGrbmOffset[i] = rInfo.data[1];
   }
-}
-
-// PJSA 10-18-02
-// the following 4 functions are used to determine whether or not the augmentation
-// on each face may be the source of a singularity in Kcc^*.  If a face is classified as
-// "safe" then its augmented dof will definitely be non-singular.  If a face is classified
-// as "unsafe" then it is possible (but not certain) that its augmented dof will be 
-// singular.  We can then do an svd on the "unsafe" dof to locate & eliminate the singularities
-// so that we can use the Spooles solver for cases with linear MPCs
-void
-BaseSub::initializeFaceSafety() 
-{
-  int numFaces = scomm->numNeighb;
-  faceIsSafe = new bool[numFaces];  // faceIsSafe is a class variable
-  int i;
-  // initalize all faces to be unsafe
-  for(i=0; i<numFaces; ++i) faceIsSafe[i] = false;  
-}
-
-void
-BaseSub::locateUnsafeFaces()
-{
-  int i,j;
-  int maxNodeNum = 0;
-  for(i=0; i<scomm->sharedNodes->numConnect(); ++i)
-    if(scomm->sharedNodes->getTargetValue(i) > maxNodeNum)
-      maxNodeNum = scomm->sharedNodes->getTargetValue(i);
-  int *faceCounter = new int[maxNodeNum+1];
-  int numFaces = scomm->numNeighb;
-  bool foundNewSafe;
-  int count=0;
-
-  do {
-    foundNewSafe = false;
-    for(i=0; i<(maxNodeNum+1); ++i) faceCounter[i] = 0;
-    for(i=0; i<numFaces; ++i) {
-      int numFaceNodes = scomm->sharedNodes->num(i);
-      for(j=0; j<numFaceNodes; ++j) {
-        int node = (*scomm->sharedNodes)[i][j];  
-        if(!faceIsSafe[i]) faceCounter[node] += 1;
-      }  
-    }
-    for(i=0; i<numFaces; ++i) {
-      int numFaceNodes = scomm->sharedNodes->num(i);
-      for(j=0; j<numFaceNodes; ++j) {
-        int node = (*scomm->sharedNodes)[i][j];
-        if(faceCounter[node] == 1) {
-          faceIsSafe[i] = true;
-          foundNewSafe = true;
-          continue;
-        }
-      }
-    }
-    count++;
-  } while(foundNewSafe);
-//  return foundNewSafe;
-}
-
-
-void
-BaseSub::sendFaceSafetyInfo(FSCommPattern<int> *sPat)
-{
-  for(int i = 0; i < scomm->numNeighb; ++i) {
-    FSSubRecInfo<int> sInfo = sPat->getSendBuffer(subNumber, scomm->subNums[i]);
-    sInfo.data[0] = faceIsSafe[i];
-  }
-}
-
-void
-BaseSub::receiveFaceSafetyInfo(FSCommPattern<int> *sPat)
-{
-  for(int i = 0; i < scomm->numNeighb; ++i) {
-    FSSubRecInfo<int> rInfo = sPat->recData(scomm->subNums[i], subNumber);
-    faceIsSafe[i] = (faceIsSafe[i] || rInfo.data[0]);
-  }
-}
-
-void 
-BaseSub::printUnsafeFaces()
-{
-  for(int i=0; i<scomm->numNeighb; ++i) 
-    if(!faceIsSafe[i]) std::cerr << "sub " << subNumber << ", face " << i << " is unsafe\n";
 }
 
 int BaseSub::getLocalMPCIndex(int globalMpcIndex) const {

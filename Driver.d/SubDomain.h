@@ -429,8 +429,6 @@ protected:
 
 public:
 	GenSparseSet<Scalar>      *Src;
-	std::unique_ptr<GenSolver<Scalar>> Krr;
-	GenSparseMatrix<Scalar>   *KrrSparse;
 	Scalar                    **BKrrKrc;
 	std::unique_ptr<GenAssembledFullM<Scalar>> Kcc;
 	std::unique_ptr<GenCuCSparse<Scalar>>      Krc;

@@ -38,12 +38,12 @@ void
 GenSubDomain<Scalar>::useKrrNullspace()
 {
   // EXPERMENTAL... use alaebraic null space of Krr with no corners
-  int neq = Krr->neqs();
-  int nzem = Krr->numRBM();
+  int neq = this->Krr->neqs();
+  int nzem = this->Krr->numRBM();
   Rstar.setNewSize(neq, nzem);
   if(nzem > 0) {
     std::vector<Scalar> rbmv(neq*nzem);
-    Krr->getNullSpace(rbmv.data());
+    this->Krr->getNullSpace(rbmv.data());
 
     // Copy rigid body modes (rbm) into Rstar
     for(int m=0; m<nzem; ++m) {
@@ -80,7 +80,7 @@ GenSubDomain<Scalar>::addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Sca
 
     for(int i = 0; i < localLen(); ++i) localr[i] = 0.0;
     if(Src) Src->transposeMultAdd(localc, localr);
-    if(Krr) Krr->reSolve(localr);
+    if(this->Krr) this->Krr->reSolve(localr);
 
     for(int i = 0; i < localLen(); ++i) ur[i] -= localr[i];
   }
@@ -110,7 +110,7 @@ GenSubDomain<Scalar>::assembleTrbmE(Scalar *rbms, int nrbms, int size, Scalar *e
 
   Scalar *localr = new Scalar[localLen()];
   for(int i = 0; i < localLen(); ++i) localr[i] = -fr[i];
-  if(Krr) Krr->reSolve(localr);
+  if(this->Krr) this->Krr->reSolve(localr);
   if(Src) Src->multAdd(localr, localc); // localc = - (Krr^-1 Krc)^T fr
   delete [] localr;
 
@@ -205,7 +205,7 @@ GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
     // G = (-Br^(s)Krr^{-1}Krc + Bc)Lcc Nc
     for(int i=0; i<localLen(); ++i) localr[i] = 0.0;
     if(Src) Src->transposeMultSubtract(localc, localr);
-    if(Krr) Krr->reSolve(localr);
+    if(this->Krr) this->Krr->reSolve(localr);
     for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
       for(int j = 0; j < scomm->lenT(SComm::mpc,i); ++j) {
         int locMpcNb = scomm->mpcNb(i,j);

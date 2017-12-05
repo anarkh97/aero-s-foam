@@ -25,6 +25,7 @@ ADD_LIBRARY( Rom
   DistrExplicitDEIMPodProjectionNonLinDynamic.C
   DistrExplicitUDEIMPodProjectionNonLinDynamic.C
   DistrROMPostProcessingDriver.C
+        DistrMasterMapping.h
   DistrNodeDof6Buffer.C
   DistrNonnegativeMatrixFactorization.C
   DistrSnapshotClusteringDriver.C

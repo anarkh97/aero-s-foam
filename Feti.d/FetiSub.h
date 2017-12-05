@@ -139,6 +139,8 @@ public:
 	 normalizeCstep1
 	 assembleRtR
 	 * */
+	std::unique_ptr<GenSolver<Scalar>> Krr;
+	GenSparseMatrix<Scalar>   *KrrSparse = nullptr; //!< Alias to Krr.
 };
 
 

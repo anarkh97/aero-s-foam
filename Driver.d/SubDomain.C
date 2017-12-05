@@ -936,7 +936,7 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
  // Primal augmentation 072513 JAT 
  if(Ave) {
    int i, k, nAve, nCor;
-   int numEquations = Krr->neqs();
+   int numEquations = this->Krr->neqs();
    nCor = Krc?Krc->numCol():0;
    nAve = Src->numCol() - nCor;
 #ifdef NOTBLAS
@@ -961,7 +961,7 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
  // Extra orthogonaliztion for stability  072216 JAT
  if(Ave) {
    int i, k, nAve, nCor;
-   int numEquations = Krr->neqs();
+   int numEquations = this->Krr->neqs();
    nCor = Krc?Krc->numCol():0;
    nAve = Src->numCol() - nCor;
 #ifdef NOTBLAS
@@ -2748,7 +2748,7 @@ GenSubDomain<Scalar>::multKcc()
  if(numMPC_primal > 0)
    assembleMpcIntoKcc();
 
- if(Krr == 0) return;
+ if(this->Krr == 0) return;
 
  // Kcc* -> Kcc - Krc^T Krr^-1 Krc
 
@@ -2759,7 +2759,7 @@ GenSubDomain<Scalar>::multKcc()
  Scalar **iDisp = new Scalar *[nRHS];
  Scalar *firstpointer = new Scalar [nRHS*nRHS];
 
- int numEquations = Krr->neqs();
+ int numEquations = this->Krr->neqs();
  if(BKrrKrc) {
    if(BKrrKrc[0]) { delete [] BKrrKrc[0]; BKrrKrc[0] = 0; }
    delete [] BKrrKrc; BKrrKrc = 0;
@@ -2815,7 +2815,7 @@ GenSubDomain<Scalar>::multKcc()
      for(i=0; i<nAve; ++i)
        for(j=0; j<numEquations; ++j)
          Eve[i][j] = Ave[i][j];
-     Krr->reSolve(nAve, Eve);
+     this->Krr->reSolve(nAve, Eve);
      pAKA = AKA.data();
 #ifdef NOTBLAS
      for(i=0; i<nAve; ++i)
@@ -2847,7 +2847,7 @@ GenSubDomain<Scalar>::multKcc()
          (*Kcc)[j][nCor+i] = s;
        }
      for(i=0; i<nAve; ++i) {
-       KrrSparse->mult(Ave[i],Kve[i]);
+       this->KrrSparse->mult(Ave[i],Kve[i]);
        for(j=0; j<nAve; ++j) {
          s = 0.0;
          for(k=0; k<numEquations; ++k)
@@ -2915,7 +2915,7 @@ GenSubDomain<Scalar>::multKcc()
  }
 
  // KrrKrc <- Krr^-1 Krc
- if(Krr) Krr->reSolve(nRHS, KrrKrc); // this can be expensive when nRHS is large eg for coupled 
+ if(this->Krr) this->Krr->reSolve(nRHS, KrrKrc); // this can be expensive when nRHS is large eg for coupled 
 
  // -Krc^T KrrKrc
  for(iRHS=0; iRHS < nRHS; ++iRHS)
@@ -2984,7 +2984,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::reMultKcc()
 {
- if(Krr == 0) return;
+ if(this->Krr == 0) return;
 
  // Kcc* -> Kcc - Krc^T Krr^-1 Krc
 
@@ -2998,7 +2998,7 @@ GenSubDomain<Scalar>::reMultKcc()
    exit(1);
  }
 
- int numEquations = Krr->neqs();
+ int numEquations = this->Krr->neqs();
  if(BKrrKrc) {
    if(BKrrKrc[0]) { delete [] BKrrKrc[0]; BKrrKrc[0] = 0; }
    delete [] BKrrKrc; BKrrKrc = 0;
@@ -3020,7 +3020,7 @@ GenSubDomain<Scalar>::reMultKcc()
  if(Src) Src->multIdentity(KrrKrc);
 
  // KrrKrc <- Krr^-1 Krc
- if(Krr) Krr->reSolve(nRHS, KrrKrc); // this can be expensive when nRHS is large eg for coupled freq sweep
+ if(this->Krr) this->Krr->reSolve(nRHS, KrrKrc); // this can be expensive when nRHS is large eg for coupled freq sweep
 
  int k;
  for(iRHS = 0; iRHS < nRHS; ++iRHS) {
@@ -3131,7 +3131,7 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda) const
  // Primal augmentation 072513 JAT 
  if(Ave) {
    int i, k, nAve, nCor;
-   int numEquations = Krr->neqs();
+   int numEquations = this->Krr->neqs();
    nCor = Krc ? Krc->numCol() : 0;
    nAve = Src->numCol() - nCor;
 #ifdef NOTBLAS
@@ -3150,12 +3150,12 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda) const
 #endif
  }
 
- if(Krr) Krr->reSolve(force);
+ if(this->Krr) this->Krr->reSolve(force);
 
  // Extra orthogonaliztion for stability  072216 JAT
  if(Ave) {
    int i, k, nAve, nCor;
-   int numEquations = Krr->neqs();
+   int numEquations = this->Krr->neqs();
    nCor = Krc ? Krc->numCol():0;
    nAve = Src->numCol() - nCor;
 #ifdef NOTBLAS
@@ -3263,7 +3263,7 @@ GenSubDomain<Scalar>::getFc(const Scalar *f, Scalar *Fc) const
   }
 
   if(Ave) { // Average corners 072513 JAT 
-    int i, iNode, numEquations = Krr->neqs();
+    int i, iNode, numEquations = this->Krr->neqs();
     int rDofs[DofSet::max_known_dof];
     int oDofs[DofSet::max_known_dof];
     Scalar fr[numEquations];
@@ -3329,7 +3329,7 @@ GenSubDomain<Scalar>::getFr(const Scalar *f, Scalar *fr) const
     int i, k, nAve, nCor;
     nCor = Krc ? Krc->numCol() : 0;
     nAve = Src->numCol() - nCor;
-    int numEquations = Krr->neqs();
+    int numEquations = this->Krr->neqs();
 #ifdef NOTBLAS
     Scalar s;
     for(i=0; i<nAve; ++i) {
@@ -4056,9 +4056,9 @@ GenSubDomain<Scalar>::clean_up()
    m1 += memoryUsed();
  }
 
- if(Krr) {
+ if(this->Krr) {
    m1 = -memoryUsed();
-   Krr->clean_up();
+   this->Krr->clean_up();
    m1 += memoryUsed();
  }
 
@@ -4590,7 +4590,7 @@ GenSubDomain<Scalar>::initialize()
 {
   kweight = 0; deltaFmpc = 0; scaling = 0; 
   rigidBodyModes = 0; rigidBodyModesG = 0;
-  Src = 0; Krr = 0; KrrSparse = 0; BKrrKrc = 0;
+  Src = 0; BKrrKrc = 0;
   rbms = 0; interfaceRBMs = 0; qtkq = 0;
   KiiSolver = 0; Kib = 0; MPCsparse = 0; Kbb = 0; corotators = 0;
   fcstar = 0; QtKpBt = 0; glInternalMap = 0; glBoundMap = 0;

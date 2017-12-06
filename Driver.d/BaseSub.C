@@ -3048,10 +3048,3 @@ BaseSub::mergeInterfaces()
   totalInterfSize = scomm->totalInterfSize();
 }
 
-void
-BaseSub::markCornerDofs(int *glCornerDofs)
-{
-  for(int i=0; i<numCRN; ++i)
-    glCornerDofs[glCornerNodes[i]] |= cornerDofs[i].list();
-}
-

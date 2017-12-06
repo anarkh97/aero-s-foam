@@ -392,9 +392,9 @@ GenFetiDPSolver<Scalar>::makeKcc()
    for(i=0; i<total; ++i) target[i] = 0;
    for(iSub=0; iSub<this->nsub; ++iSub) {
 	   int numCorner    = this->subdomains[iSub]->numCorners();
-	   auto &cornerNodes = this->sd[iSub]->getCornerNodes();
+	   auto &cornerNodes = this->subdomains[iSub]->getCornerNodes();
 	   const auto &localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
-	   const int *glN = this->sd[iSub]->getGlNodes();
+	   const int *glN = this->subdomains[iSub]->getGlNodes();
 	   for(int iCorner=0; iCorner<numCorner; ++iCorner) {
 		   cornerNodes[iCorner] = glCornerMap[glN[localCornerNodes[iCorner]]];
 		   target[iCorner+pointer[this->subdomains[iSub]->subNum()]] = cornerNodes[iCorner];
@@ -481,7 +481,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
  int *glCornerDofs = new int[glNumCorners];
  for(i = 0; i < glNumCorners; ++i) glCornerDofs[i] = 0;
- for(iSub = 0; iSub < this->nsub; ++iSub) this->sd[iSub]->markCornerDofs(glCornerDofs);
+ for(iSub = 0; iSub < this->nsub; ++iSub) this->subdomains[iSub]->markCornerDofs(glCornerDofs);
 #ifdef DISTRIBUTED
  this->fetiCom->globalMpiOp(glNumCorners, glCornerDofs, MPI_BOR); // MPI_BOR is an mpi bitwise or
 #endif
@@ -802,7 +802,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    for(int i = 0; i < nGroups; ++i) ngrbmGr[i] = 0;
    for(int iSub = 0; iSub < this->nsub; ++iSub) {
      int subGroup = (*subToGroup)[this->subdomains[iSub]->subNum()][0];
-     ngrbmGr[subGroup] = this->sd[iSub]->Krr->numRBM();
+     ngrbmGr[subGroup] = this->subdomains[iSub]->Krr->numRBM();
      ngrbm += ngrbmGr[subGroup];
    }
 #ifdef DISTRIBUTED
@@ -862,8 +862,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
         int n = nc;            
 	if (fetiInfo->augmentimpl == FetiInfo::Primal)
 	  for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb)
-	    if(this->sd[i]->isEdgeNeighbor(iNeighb) &&
-	       this->sd[i]->edgeDofs[iNeighb].count())
+	    if(this->subdomains[i]->isEdgeNeighbor(iNeighb) &&
+	       this->subdomains[i]->edgeDofs[iNeighb].count())
 	      n++;
 	int *elem = new int[n];
 	for(n = 0; n < nc; n++)
@@ -871,8 +871,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	if (fetiInfo->augmentimpl == FetiInfo::Primal) {
 	  int iEdgeN = 0;
 	  for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb) {
-	    if(this->sd[i]->isEdgeNeighbor(iNeighb)) {
-	      if(this->sd[i]->edgeDofs[iNeighb].count())
+	    if(this->subdomains[i]->isEdgeNeighbor(iNeighb)) {
+	      if(this->subdomains[i]->edgeDofs[iNeighb].count())
 		elem[n++] = augOffset + (*(this->subToEdge))[s][iEdgeN];
 	      iEdgeN++;
 	    }
@@ -897,7 +897,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	  coarseDofs[n] = this->subdomains[i]->cornerDofs[n];
 	if (fetiInfo->augmentimpl == FetiInfo::Primal) {
 	  for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb)
-	    if(this->sd[i]->isEdgeNeighbor(iNeighb) &&
+	    if(this->subdomains[i]->isEdgeNeighbor(iNeighb) &&
 	       this->subdomains[i]->edgeDofs[iNeighb].count())
 	      coarseDofs[n++] = this->subdomains[i]->edgeDofs[iNeighb];
 	}
@@ -924,7 +924,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	  Connectivity &sharedNodes = *(this->sd[i]->getSComm()->sharedNodes);
 	  int iEdgeN = 0, edgeNum;
 	  for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb) {
-	    if(this->sd[i]->isEdgeNeighbor(iNeighb)) {
+	    if(this->subdomains[i]->isEdgeNeighbor(iNeighb)) {
 	      edgeNum = augOffset + (*(this->subToEdge))[s][iEdgeN++];
 	      if (!nodes[edgeNum]) {
 		xyz[0] = xyz[1] = xyz[2] = 0.0;
@@ -995,7 +995,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	    target[k+n] = (*subToCorner)[s][n];
 	  int iEdgeN = 0;
 	  for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb) {
-	    if(this->sd[i]->isEdgeNeighbor(iNeighb)) {
+	    if(this->subdomains[i]->isEdgeNeighbor(iNeighb)) {
 	      if(this->subdomains[i]->edgeDofs[iNeighb].count())
 		target[k+n++] = augOffset + (*(this->subToEdge))[s][iEdgeN];
 	      iEdgeN++;
@@ -1107,23 +1107,9 @@ GenFetiDPSolver<Scalar>::KrrReSolve(int iSub, GenDistrVector<Scalar> &ur)
 
 template<class Scalar> 
 void
-GenFetiDPSolver<Scalar>::extractFr(int iSub, const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fr) const
-{
- this->sd[iSub]->getFr(f.subData(iSub), fr.subData(iSub));
-}
-
-template<class Scalar> 
-void
 GenFetiDPSolver<Scalar>::extractFc(int iSub, const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fc) const
 {
  this->sd[iSub]->getFc(f.subData(iSub), fc.subData(iSub));
-}
-
-template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::extractFw(int iSub, const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fw) const
-{
- this->sd[iSub]->getFw(f.subData(iSub), fw.subData(iSub));
 }
 
 template<class Scalar> 
@@ -1688,55 +1674,56 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
 		execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::fSplit, f);
 	}
 
-  // extract fr from f
-  fr.zero();
-  execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::extractFr, f, fr);
+	// extract fr and fw from f
+	auto perSubExtract = [&, isCoupled = domain->solInfo().isCoupled](int iSub) {
+		fr.subVec(iSub).setZero();
+		this->sd[iSub]->getFr(f.subData(iSub), fr.subData(iSub));
+		if(isCoupled) {
+			fw.subVec(iSub).setZero();
+			this->sd[iSub]->getFw(f.subData(iSub), fw.subData(iSub));
+		}
+	};
+	threadManager->callParal(this->nsub, perSubExtract);
 
-  // extract fw from f
-  if(domain->solInfo().isCoupled) {
-    fw.zero();
-    execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::extractFw, f, fw);
-  }
+	// Assemble and split fr and fw on subdomain interface (note: f for first system is already split by topological scaling)
+	if((this->numSystems == 0 && fetiInfo->scaling == FetiInfo::kscaling) || (this->numSystems > 0 && fetiInfo->rescalef)) {
+		if(domain->solInfo().isCoupled) this->distributeForce(fr, fw);
+		else this->distributeForce(fr);
+	}
+	double ffr = fr.sqNorm();
+	double ffw = (domain->solInfo().isCoupled) ? fw.sqNorm() : 0.0;
 
-  // Assemble and split fr and fw on subdomain interface (note: f for first system is already split by topological scaling)
-  if((this->numSystems == 0 && fetiInfo->scaling == FetiInfo::kscaling) || (this->numSystems > 0 && fetiInfo->rescalef)) {
-    if(domain->solInfo().isCoupled) this->distributeForce(fr, fw);
-    else this->distributeForce(fr);
-  }
-  double ffr = fr.sqNorm();
-  double ffw = (domain->solInfo().isCoupled) ? fw.sqNorm() : 0.0;
-
-  // extract fc from f
-  getFc(f, fc);
-  double ffc;
-  if(KccParallelSolver) {
-    GenStackDistVector<Scalar> DistFc(*coarseInfo, fc.data());
-    ffc = DistFc.sqNorm();
-  }
-  else {
+	// extract fc from f
+	getFc(f, fc);
+	double ffc;
+	if(KccParallelSolver) {
+		GenStackDistVector<Scalar> DistFc(*coarseInfo, fc.data());
+		ffc = DistFc.sqNorm();
+	}
+	else {
 #ifdef DISTRIBUTED
-    GenVector<Scalar> fc_copy(fc);
+		GenVector<Scalar> fc_copy(fc);
     this->fetiCom->globalSum(fc_copy.size(), fc_copy.data());
     ffc = fc_copy.sqNorm();
 #else
-    ffc = fc.sqNorm();
+		ffc = fc.sqNorm();
 #endif
-  }
+	}
 
-  double ff = f.sqNorm();
+	double ff = f.sqNorm();
 
-  // print norms
-  if((fetiInfo->numPrint() > 0) && (fetiInfo->numPrint() < 10) && verboseFlag) {
-    filePrint(stderr, " ... f*f   %e             ...\n", ff);
-    filePrint(stderr, " ... fr*fr %e             ...\n", ffr);
-    filePrint(stderr, " ... fc*fc %e             ...\n", ffc);
-    if(domain->solInfo().isCoupled)
-      filePrint(stderr, " ... fw*fw %e             ...\n", ffw);
-  }
-  
-  if(domain->solInfo().inpc) f = (*f_copy);
+	// print norms
+	if((fetiInfo->numPrint() > 0) && (fetiInfo->numPrint() < 10) && verboseFlag) {
+		filePrint(stderr, " ... f*f   %e             ...\n", ff);
+		filePrint(stderr, " ... fr*fr %e             ...\n", ffr);
+		filePrint(stderr, " ... fc*fc %e             ...\n", ffc);
+		if(domain->solInfo().isCoupled)
+			filePrint(stderr, " ... fw*fw %e             ...\n", ffw);
+	}
 
-  return ff == 0.0 ? 1.0 : ff;
+	if(domain->solInfo().inpc) f = (*f_copy);
+
+	return ff == 0.0 ? 1.0 : ff;
 }
 
 template<class Scalar>
@@ -2271,7 +2258,7 @@ GenFetiDPSolver<Scalar>::subdomainSolveCoupled2(int iSub, GenDistrVector<Scalar>
   Scalar *uc        = v5.data();
   Scalar *localfw   = fw.subData(sn);
 
-  this->sd[iSub]->fetiBaseOpCoupled2(uc, localvec, interfvec, this->wiPat, localfw);
+  this->subdomains[iSub]->fetiBaseOpCoupled2(uc, localvec, interfvec, this->wiPat, localfw);
   this->subdomains[iSub]->sendInterf(interfvec, this->vPat);
 }
 
@@ -2288,7 +2275,7 @@ GenFetiDPSolver<Scalar>::subdomainSolveCoupled2b(int iSub, GenDistrVector<Scalar
   Scalar *uc        = v5.data();
   Scalar *localfw   = 0;
 
-  this->sd[iSub]->fetiBaseOpCoupled2(uc, localvec, interfvec, this->wiPat, localfw);
+  this->subdomains[iSub]->fetiBaseOpCoupled2(uc, localvec, interfvec, this->wiPat, localfw);
   this->subdomains[iSub]->sendInterf(interfvec, this->vPat);
 }
 
@@ -2302,24 +2289,28 @@ template<class Scalar>
 double
 GenFetiDPSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
 {
-  // this is used by nonlinear analysis, need to assemble force residual on subdomain interface for error norm
-  GenDistrVector<Scalar> &fr = this->wksp->ret_fr();
-  fr.zero();
-  execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::extractFr, f, fr);
-  this->distributeForce(fr);
-  GenVector<Scalar> &fc  = this->wksp->ret_fc();
-  getFc(f, fc);
+	// this is used by nonlinear analysis, need to assemble force residual on subdomain interface for error norm
+	GenDistrVector<Scalar> &fr = this->wksp->ret_fr();
+	// extract fr from f
+	auto perSubExtract = [&](int iSub) {
+		fr.subVec(iSub).setZero();
+		this->sd[iSub]->getFr(f.subData(iSub), fr.subData(iSub));
+	};
+	threadManager->callParal(this->nsub, perSubExtract);
+	this->distributeForce(fr);
+	GenVector<Scalar> &fc  = this->wksp->ret_fc();
+	getFc(f, fc);
 #ifdef DISTRIBUTED
-  this->fetiCom->globalSum(fc.size(), fc.data());
+	this->fetiCom->globalSum(fc.size(), fc.data());
 #endif
-  double mpcerr = 0.0;
+	double mpcerr = 0.0;
 
-  for(int i=0; i<this->nsub; ++i) mpcerr += this->sd[i]->getMpcError();
+	for(int i=0; i<this->nsub; ++i) mpcerr += this->sd[i]->getMpcError();
 #ifdef DISTRIBUTED
-  mpcerr = this->fetiCom->globalSum(mpcerr);
+	mpcerr = this->fetiCom->globalSum(mpcerr);
 #endif
 
-  return (fr.sqNorm() + fc.sqNorm() + mpcerr);
+	return (fr.sqNorm() + fc.sqNorm() + mpcerr);
 }
 
 template<class Scalar> 

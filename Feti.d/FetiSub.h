@@ -15,8 +15,8 @@ template <typename Scalar>
 class GenSparseMatrix;
 
 class Connectivity;
-
 class CoordSet;
+class DofSet;
 
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
 class FetiBaseSub {
@@ -84,6 +84,7 @@ public:
 
 	const std::vector<int> &getCornerNodes() const { return glCornerNodes; }
 	std::vector<int> &getCornerNodes() { return glCornerNodes; }
+	void markCornerDofs(int *glCornerDofs) const;
 	/* missing:
 	 * splitInterf
 	 * setMpcNeighbCommSize
@@ -99,6 +100,8 @@ protected:
 	std::vector<int> cornerNodes;
 	std::vector<bool> isCornerNode;   // true for node which is a corner node; false otherwise
 	std::vector<int> glCornerNodes; // corner nodes in global numbering
+	int numCRN;
+	int numCRNdof;
 };
 
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
@@ -128,6 +131,10 @@ public:
 	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const = 0;
 	virtual void fetiBaseOp(Scalar *uc,GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const = 0;
 	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const = 0;
+	virtual void fetiBaseOpCoupled2(const Scalar *uc, const Scalar *localvec, Scalar *interfvec,
+	                                FSCommPattern<Scalar> *wiPat, const Scalar *fw = nullptr) const = 0;
+	virtual void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, const Scalar *interfvec,
+	                                FSCommPattern<Scalar> *wiPat) const = 0;
 	virtual void multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const = 0;
 	virtual void multQtKBt(int glNumMPC, const Scalar *G, Scalar *QtKBtG, Scalar alpha=1.0, Scalar beta=1.0) const = 0;
 	virtual int numRBM() const = 0;
@@ -146,8 +153,6 @@ public:
 	 multG
 	 multAddCT
 	 trMultG
-	 fetiBaseOpCoupled1
-	 fetiBaseOpCoupled2
 	 getMpcError
 	 subtractMpcRhs
 	 getLocalMpcForces
@@ -164,6 +169,5 @@ public:
 	/// \brief Sparse view of the solver. Typically used to fill the matrix before calling factor.
 	GenSparseMatrix<Scalar>   *KrrSparse = nullptr; //!< Alias to Krr.
 };
-
 
 #endif //FEM_FETUSUB_H

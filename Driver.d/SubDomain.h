@@ -124,8 +124,6 @@ public:
 
 	int *glCrnGroup;    // group of each corner node (global numbering)
 	int nGrbm;
-	int numCRN;
-	int numCRNdof;
 	ConstrainedDSA *cc_dsa;
 	int *ccToC; // from cc_dsa to c_dsa
 	int *cToCC; // from c_dsa to cc_dsa
@@ -391,7 +389,6 @@ public:
 	GlobalToLocalMap& getNeighbGlToLocalWImap(int i) { return neighbGlToLocalWImap[i]; }
 	void zeroEdgeDofSize();
 	void mergeInterfaces();
-	void markCornerDofs(int *glCornerDofs);
 
 #ifdef HB_COUPLED_PRECOND
 	Connectivity* precNodeToNode;
@@ -726,10 +723,10 @@ public:
 	void constructKcw();
 	void setWICommSize(FSCommPattern<Scalar> *wiPat);
 	void setCSCommSize(FSCommPattern<Scalar> *csPat);
-	void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec,
-	                        FSCommPattern<Scalar> *wiPat) const;
-	void fetiBaseOpCoupled2(Scalar *uc, Scalar *localvec, Scalar *interfvec,
-	                        FSCommPattern<Scalar> *wiPat, Scalar *fw = 0) const;
+	void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, const Scalar *interfvec,
+	                        FSCommPattern<Scalar> *wiPat) const override;
+	void fetiBaseOpCoupled2(const Scalar *uc, const Scalar *localvec, Scalar *interfvec,
+	                        FSCommPattern<Scalar> *wiPat, const Scalar *fw = nullptr) const override;
 	void multKbbCoupled(const Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag = true);
 	void scaleAndSplitKww();
 	void reScaleAndReSplitKww();
@@ -773,7 +770,7 @@ public:
 
 	// new B operators
 	void multAddBrT(const Scalar *interfvec, Scalar *localvec, Scalar *uw = 0) const;
-	void multBr(const Scalar *localvec, Scalar *interfvec, Scalar *uc = 0, Scalar *uw = 0) const;
+	void multBr(const Scalar *localvec, Scalar *interfvec, const Scalar *uc = 0, const Scalar *uw = 0) const;
 	void multAddCT(const Scalar *interfvec, Scalar *localvec) const;
 	void multC(const Scalar *localvec, Scalar *interfvec) const;
 

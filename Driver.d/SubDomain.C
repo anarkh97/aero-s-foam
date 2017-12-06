@@ -991,7 +991,7 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec,
+GenSubDomain<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, const Scalar *interfvec,
                                          FSCommPattern<Scalar> *wiPat) const
 {
  // localvec += Br^T * interfvec
@@ -1025,8 +1025,8 @@ GenSubDomain<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec,
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::fetiBaseOpCoupled2(Scalar *uc, Scalar *localvec, Scalar *interfvec,
-                                         FSCommPattern<Scalar> *wiPat, Scalar *fw) const
+GenSubDomain<Scalar>::fetiBaseOpCoupled2(const Scalar *uc, const Scalar *localvec, Scalar *interfvec,
+                                         FSCommPattern<Scalar> *wiPat, const Scalar *fw) const
 {
  // coupled_dph
  if(numWIdof) {

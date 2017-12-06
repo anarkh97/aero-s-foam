@@ -38,7 +38,7 @@ GenSubDomain<Scalar>::multAddBrT(const Scalar *interfvec, Scalar *localvec, Scal
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multBr(const Scalar *localvec, Scalar *interfvec, Scalar *uc, Scalar *uw) const
+GenSubDomain<Scalar>::multBr(const Scalar *localvec, Scalar *interfvec, const Scalar *uc, const Scalar *uw) const
 {
  // interfvec = Br * localvec
  int iDof, k;

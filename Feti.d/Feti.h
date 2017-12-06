@@ -368,9 +368,7 @@ public:
 	             GenDistrVector<Scalar> &lambda) const;
 	/** \brief Compute \f$ f_r = K_{rc} u_c \f$ for subdomain iSub */
 	void multKrc(int iSub, GenDistrVector<Scalar> &fr, const GenVector<Scalar> &uc) const;
-	void extractFr(int iSub, const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fr) const;
 	void extractFc(int iSub, const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fc) const;
-	void extractFw(int iSub, const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fw) const;
 	void getFc(const GenDistrVector<Scalar> &f, GenVector<Scalar> &fc) const;
 	void makeEdgeConnectivity();
 	void countEdges(int iSub, int *edges) const;

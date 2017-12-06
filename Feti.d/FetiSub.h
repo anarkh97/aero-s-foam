@@ -13,6 +13,10 @@ template <typename Scalar>
 class GenSolver;
 template <typename Scalar>
 class GenSparseMatrix;
+template <typename Scalar>
+class GenAssembledFullM;
+template <typename Scalar>
+class GenCuCSparse;
 
 class Connectivity;
 class CoordSet;
@@ -168,6 +172,9 @@ public:
 	std::unique_ptr<GenSolver<Scalar>> Krr;
 	/// \brief Sparse view of the solver. Typically used to fill the matrix before calling factor.
 	GenSparseMatrix<Scalar>   *KrrSparse = nullptr; //!< Alias to Krr.
+	std::unique_ptr<GenAssembledFullM<Scalar>> Kcc;
+	std::unique_ptr<GenCuCSparse<Scalar>>      Krc;
+	std::unique_ptr<GenCuCSparse<Scalar>>      Grc;
 };
 
 #endif //FEM_FETUSUB_H

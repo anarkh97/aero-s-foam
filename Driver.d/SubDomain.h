@@ -407,9 +407,7 @@ protected:
 public:
 	GenSparseSet<Scalar>      *Src;
 	Scalar                    **BKrrKrc;
-	std::unique_ptr<GenAssembledFullM<Scalar>> Kcc;
-	std::unique_ptr<GenCuCSparse<Scalar>>      Krc;
-	std::unique_ptr<GenCuCSparse<Scalar>>      Grc;
+
 	Scalar                    *rbms;
 	Scalar                    *interfaceRBMs;
 	GenFullM<Scalar>          *qtkq;

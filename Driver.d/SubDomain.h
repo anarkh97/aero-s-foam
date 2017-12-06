@@ -121,9 +121,7 @@ public:
 
 	int *cornerMap;
 	int *cornerEqNums; // unique equation numbers for subdomain corner dofs
-	std::vector<DofSet> cornerDofs;
-	std::vector<bool> isCornerNode;   // true for node which is a corner node; false otherwise
-	std::vector<int> glCornerNodes; // corner nodes in global numbering
+
 	int *glCrnGroup;    // group of each corner node (global numbering)
 	int nGrbm;
 	int numCRN;
@@ -134,7 +132,6 @@ public:
 	DofSet **boundaryDOFs;
 	int nCDofs;
 	int *neighbNumGRBMs;
-	DofSet *edgeDofs;      // JAT 112113
 	int *edgeDofSize;      // number of edge dof per neighbor
 	int *edgeDofSizeTmp;   // XXXX
 	double k_f, k_p, k_s, k_s2;  // wave numbers for FETI-DPH for this subdomain
@@ -210,8 +207,7 @@ public:
 	bool checkForColinearCrossPoints(int numCornerPoints, int *localCornerPoints);
 	void addCornerPoints(int *glCornerList);
 	int numCorners() const override { return numCRN; }
-	const std::vector<int> &getCornerNodes() const { return glCornerNodes; }
-	std::vector<int> &getCornerNodes() { return glCornerNodes; }
+
 	int numCornerDofs()	const { return numCRNdof; }
 	int numCoarseDofs();
 	int nCoarseDofs()  const { return nCDofs; }
@@ -267,7 +263,7 @@ public:
 	void sendNeighbGrbmInfo(FSCommPattern<int> *pat);
 	void receiveNeighbGrbmInfo(FSCommPattern<int> *pat);
 	void setCommSize(FSCommStructure *pat, int size) const override;
-	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size);
+	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const;
 	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
 
 protected:
@@ -648,7 +644,7 @@ public:
 	void deleteMPCs();
 
 	void projectActiveIneq(Scalar *v);
-	void split(Scalar *v, Scalar *v_f, Scalar *v_c);
+	void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const override;
 	void bmpcQualify(std::vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
 	void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);
 	void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, SimpleNumberer *mpcEqNums);
@@ -699,6 +695,8 @@ public:
 	void updateMpcRhs(Scalar *interfvec);
 	double getMpcError();
 	bool* getMpcMaster() { return mpcMaster; }
+
+	const CoordSet &getNodeSet() const override { return getNodes(); }
 
 protected:
 	double *mpcForces;
@@ -803,8 +801,7 @@ public:
 	// G matrix construction and destruction
 	void makeG();
 	void makeTrbmG(Scalar *rbms, int nrbms, int glNumCDofs);
-	void assembleGlobalG(GenFullM<Scalar> *globalG);
-	void setGCommSize(FSCommPattern<Scalar> *pat);
+	void setGCommSize(FSCommStructure *pat) const override;
 	void sendG(FSCommPattern<Scalar> *rbmPat);
 	void receiveG(FSCommPattern<Scalar> *rbmPat);
 	void zeroG();

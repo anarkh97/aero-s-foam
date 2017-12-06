@@ -1,3 +1,4 @@
+#include <complex>
 #include <Driver.d/Communicator.h>
 #include <Driver.d/SubDomain.h>
 #include <Solvers.d/MultiDomainSolver.h>
@@ -92,3 +93,5 @@ MultiDomainSolver<Scalar>::multLT(const GenDistrVector<Scalar> &f, Scalar *f_g) 
 #endif
 }
 
+template class MultiDomainSolver<double>;
+template class MultiDomainSolver<std::complex<double>>;

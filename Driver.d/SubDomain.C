@@ -6869,7 +6869,7 @@ GenSubDomain<Scalar>::projectActiveIneq(Scalar *v)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::split(Scalar *v, Scalar *v_f, Scalar *v_c)
+GenSubDomain<Scalar>::split(const Scalar *v, Scalar *v_f, Scalar *v_c) const
 {
   // split v into free (v_f) and chopped (v_c) components
   for(int i = 0; i<totalInterfSize; ++i) { v_f[i] = v[i]; v_c[i] = 0.0; }

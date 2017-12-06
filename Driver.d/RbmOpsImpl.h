@@ -227,28 +227,7 @@ GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::assembleGlobalG(GenFullM<Scalar> *globalG)
-{
-  bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
-  for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
-  if(numGroupRBM > 0) {
-    for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-      for(int j = 0; j < scomm->lenT(SComm::mpc,i); ++j) {
-        int locMpcNb = scomm->mpcNb(i,j);
-        if(mpcFlag[locMpcNb]) {
-          int glMpcNb = localToGlobalMPC[locMpcNb];
-          for(int iRbm = 0; iRbm < numGroupRBM; ++iRbm)
-            (*globalG)[glMpcNb][groupRBMoffset+iRbm] += (*G[i])[j][iRbm];
-          mpcFlag[locMpcNb] = false;
-        }
-      }
-    }
-  }
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::setGCommSize(FSCommPattern<Scalar> *pat)
+GenSubDomain<Scalar>::setGCommSize(FSCommStructure *pat) const
 {
   for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
     int nRow = G[i]->numRow();

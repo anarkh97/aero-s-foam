@@ -16,6 +16,8 @@ class GenSparseMatrix;
 
 class Connectivity;
 
+class CoordSet;
+
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
 class FetiBaseSub {
 public:
@@ -43,9 +45,15 @@ public:
 
 	virtual void setMpcDiagCommSize(FSCommStructure *mpcDiagPat) const = 0;
 
+	virtual void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const = 0;
+
+	virtual void setGCommSize(FSCommStructure *pat) const = 0;
+
 	virtual int localSubNum() const = 0;
 	virtual int localLen() const = 0;
 	virtual int localRLen() const = 0;
+
+	virtual const int *getGlNodes() const = 0;
 
 	virtual int getNumUncon() const = 0;
 
@@ -70,6 +78,12 @@ public:
 
 	virtual int getGlobalMPCIndex(int localMpcIndex) const = 0;
 
+	virtual const CoordSet& getNodeSet() const = 0;
+
+	virtual bool isEdgeNeighbor(int neighb) const = 0;
+
+	const std::vector<int> &getCornerNodes() const { return glCornerNodes; }
+	std::vector<int> &getCornerNodes() { return glCornerNodes; }
 	/* missing:
 	 * splitInterf
 	 * setMpcNeighbCommSize
@@ -77,9 +91,14 @@ public:
 	 * assembleTrbmE
 	 * assembleE
 	 */
+	std::vector<DofSet> cornerDofs;
+	DofSet *edgeDofs;      // JAT 112113
+
 protected:
 	/// \brief Corner nodes in local numbering.
 	std::vector<int> cornerNodes;
+	std::vector<bool> isCornerNode;   // true for node which is a corner node; false otherwise
+	std::vector<int> glCornerNodes; // corner nodes in global numbering
 };
 
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
@@ -113,6 +132,7 @@ public:
 	virtual void multQtKBt(int glNumMPC, const Scalar *G, Scalar *QtKBtG, Scalar alpha=1.0, Scalar beta=1.0) const = 0;
 	virtual int numRBM() const = 0;
 	virtual const Scalar *getQtKpBt() const = 0;
+	virtual void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const = 0;
 	// Missing:
 	/*
 	 * split
@@ -139,7 +159,9 @@ public:
 	 normalizeCstep1
 	 assembleRtR
 	 * */
+	/// \brief Solver for the remainder DOFs.
 	std::unique_ptr<GenSolver<Scalar>> Krr;
+	/// \brief Sparse view of the solver. Typically used to fill the matrix before calling factor.
 	GenSparseMatrix<Scalar>   *KrrSparse = nullptr; //!< Alias to Krr.
 };
 

@@ -1434,7 +1434,7 @@ BaseSub::setCommSize(FSCommStructure *pt, int size) const
 }
 
 void
-BaseSub::setMpcNeighbCommSize(FSCommPattern<int> *pt, int size)
+BaseSub::setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const
 {
   for(int iSub = 0; iSub < scomm->numT(SComm::mpc); ++iSub)
     pt->setLen(subNumber, scomm->neighbT(SComm::mpc,iSub), size);

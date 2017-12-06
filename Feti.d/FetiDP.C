@@ -179,14 +179,14 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 
  if(sysMatrices.size() != 0) {
    for(iSub = 0; iSub < this->nsub; ++iSub) {
-     this->sd[iSub]->Krr = std::move(sysMatrices[iSub]);
-     this->sd[iSub]->KrrSparse = sysSparse[iSub];
+     this->subdomains[iSub]->Krr = std::move(sysMatrices[iSub]);
+     this->subdomains[iSub]->KrrSparse = sysSparse[iSub];
      if(fetiInfo->printMatLab) {
        std::stringstream filename;
        filename << "localmat" << this->subdomains[iSub]->subNum();
-       this->sd[iSub]->KrrSparse->printSparse(filename.str());
+       this->subdomains[iSub]->KrrSparse->printSparse(filename.str());
      }
-     this->fetiOps[iSub]->setSysMatrix(this->sd[iSub]->Krr.get(), sysSparse[iSub]);
+     this->fetiOps[iSub]->setSysMatrix(this->subdomains[iSub]->Krr.get(), sysSparse[iSub]);
    }
  }
 
@@ -369,9 +369,9 @@ GenFetiDPSolver<Scalar>::makeKcc()
    for(iSub=0; iSub<this->nsub; ++iSub) {
      int numCorner = this->subdomains[iSub]->numCorners();
      const auto &localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
-     const int *glN = this->sd[iSub]->getGlNodes();
+     const int *glN = this->subdomains[iSub]->getGlNodes();
      for(int iCorner=0; iCorner<numCorner; ++iCorner)
-       glCornerNodes[pointer[this->sd[iSub]->subNum()]+iCorner] = glN[localCornerNodes[iCorner]];
+       glCornerNodes[pointer[this->subdomains[iSub]->subNum()]+iCorner] = glN[localCornerNodes[iCorner]];
    }
 #ifdef DISTRIBUTED
    this->fetiCom->globalSum(total, glCornerNodes);
@@ -524,7 +524,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
      int jEdgeN = 0;
      for(int jSub=0; jSub<numNeighbor; ++jSub) {
        int subJ = this->sd[iSub]->getSComm()->subNums[jSub];
-       if(this->sd[iSub]->isEdgeNeighbor(jSub)) {
+       if(this->subdomains[iSub]->isEdgeNeighbor(jSub)) {
          if(myNum < subJ) {
            int nEdge = this->sd[iSub]->numEdgeDofs(jSub);
            edgeWeights[(*this->subToEdge)[this->subdomains[iSub]->subNum()][jEdgeN]] = nEdge;
@@ -894,12 +894,12 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	int nc = subToCorner->num(s);
 	DofSet *coarseDofs = new DofSet[n];
 	for(n = 0; n < nc; n++)
-	  coarseDofs[n] = this->sd[i]->cornerDofs[n];
+	  coarseDofs[n] = this->subdomains[i]->cornerDofs[n];
 	if (fetiInfo->augmentimpl == FetiInfo::Primal) {
 	  for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb)
 	    if(this->sd[i]->isEdgeNeighbor(iNeighb) &&
-	       this->sd[i]->edgeDofs[iNeighb].count())
-	      coarseDofs[n++] = this->sd[i]->edgeDofs[iNeighb];
+	       this->subdomains[i]->edgeDofs[iNeighb].count())
+	      coarseDofs[n++] = this->subdomains[i]->edgeDofs[iNeighb];
 	}
 	((MatrixElement*)elems[s])->setDofs(coarseDofs);
         ((MatrixElement*)elems[s])->setStiffness(this->sd[i]->Kcc.get());
@@ -912,7 +912,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	int numCorner = this->subdomains[i]->numCorners();
 	const auto &localCornerNodes = this->subdomains[i]->getLocalCornerNodes();
 	for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
-	  Node *node = this->sd[i]->getNodes()[localCornerNodes[iCorner]];
+	  const Node *node = this->subdomains[i]->getNodeSet()[localCornerNodes[iCorner]];
 	  int cornerNum = (*subToCorner)[s][iCorner];
 	  if (!nodes[cornerNum]) {
 	    xyz[0] = node->x; xyz[1] = node->y; xyz[2] = node->z;
@@ -920,7 +920,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	  }
 	}
 	if (fetiInfo->augmentimpl == FetiInfo::Primal) { // 020314 JAT
-	  CoordSet &subnodes = this->sd[i]->getNodes();
+	  const CoordSet &subnodes = this->subdomains[i]->getNodeSet();
 	  Connectivity &sharedNodes = *(this->sd[i]->getSComm()->sharedNodes);
 	  int iEdgeN = 0, edgeNum;
 	  for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb) {
@@ -957,7 +957,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
         int numCorner = this->subdomains[iSub]->numCorners();
         const auto &localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
         for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
-          Node *node = this->sd[iSub]->getNodes()[localCornerNodes[iCorner]];
+          const Node *node = this->subdomains[iSub]->getNodeSet()[localCornerNodes[iCorner]];
           int cornerNum = (*subToCorner)[this->subdomains[iSub]->subNum()][iCorner];
           nodes[cornerNum]->x = node->x;
           nodes[cornerNum]->y = node->y;
@@ -996,7 +996,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	  int iEdgeN = 0;
 	  for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb) {
 	    if(this->sd[i]->isEdgeNeighbor(iNeighb)) {
-	      if(this->sd[i]->edgeDofs[iNeighb].count())
+	      if(this->subdomains[i]->edgeDofs[iNeighb].count())
 		target[k+n++] = augOffset + (*(this->subToEdge))[s][iEdgeN];
 	      iEdgeN++;
 	    }
@@ -1102,7 +1102,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::KrrReSolve(int iSub, GenDistrVector<Scalar> &ur)
 {
- this->sd[iSub]->Krr->reSolve(ur.subData(iSub));
+ this->subdomains[iSub]->Krr->reSolve(ur.subData(iSub));
 }
 
 template<class Scalar> 
@@ -2133,7 +2133,7 @@ GenFetiDPSolver<Scalar>::countEdges(int iSub, int *edges) const
   int numNeighbor = this->subdomains[iSub]->numNeighbors();
   for(j=0; j<numNeighbor; ++j) {
     int subI = this->sd[iSub]->getSComm()->subNums[j];
-    if(this->sd[iSub]->isEdgeNeighbor(j) && (myNum < subI))
+    if(this->subdomains[iSub]->isEdgeNeighbor(j) && (myNum < subI))
       edges[myNum] += 1;
   }
 }
@@ -2153,7 +2153,7 @@ GenFetiDPSolver<Scalar>::numberEdges(int iSub, int *eP, int *ep2, int* edges, FS
   for(jSub=0; jSub<numNeighbor; ++jSub) {
     int subJ = this->sd[iSub]->getSComm()->subNums[jSub];
     FSSubRecInfo<int> sInfo = this->sPat->getSendBuffer(myNum, subJ);
-    if(this->sd[iSub]->isEdgeNeighbor(jSub)) {
+    if(this->subdomains[iSub]->isEdgeNeighbor(jSub)) {
       if(myNum < subJ) {
         edges[fP] = startI;
         startI++;
@@ -2177,7 +2177,7 @@ GenFetiDPSolver<Scalar>::receiveNeighbEdgeNums(int iSub, int *eP, int* edges, FS
   int numNeighbor = this->subdomains[iSub]->numNeighbors();
   int jEdgeN = 0;
   for(jSub=0; jSub<numNeighbor; ++jSub) {
-    if(this->sd[iSub]->isEdgeNeighbor(jSub)) {
+    if(this->subdomains[iSub]->isEdgeNeighbor(jSub)) {
       FSSubRecInfo<int> rInfo = this->sPat->recData(this->sd[iSub]->getSComm()->subNums[jSub], myNum);
       int en =  rInfo.data[0];
       if(en >= 0) edges[eP[myNum]+jEdgeN] = en;
@@ -2190,7 +2190,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::factorLocalMatrices(int iSub)
 {
-  auto &K = this->sd[iSub]->Krr;
+  auto &K = this->subdomains[iSub]->Krr;
   if(K) {
     K->setPrintNullity(false);
     K->factor(); 
@@ -2226,7 +2226,7 @@ GenFetiDPSolver<Scalar>::subdomainSolve(int iSub, GenDistrVector<Scalar> &v1,
   for(i = 0; i < interfaceLen; ++i) 
      interfvec[i] = interfsrc[i];
 
-  this->subdomains[iSub]->fetiBaseOp(uc, this->sd[iSub]->Krr.get(), localvec, interfvec);
+  this->subdomains[iSub]->fetiBaseOp(uc, this->subdomains[iSub]->Krr.get(), localvec, interfvec);
   
   this->subdomains[iSub]->sendInterf(interfvec, this->vPat);
 }
@@ -2254,7 +2254,7 @@ GenFetiDPSolver<Scalar>::subdomainSolveCoupled1(int iSub, GenDistrVector<Scalar>
   for(i = 0; i < interfaceLen; ++i)
      interfvec[i] = interfsrc[i];
 
-  this->sd[iSub]->fetiBaseOpCoupled1(this->sd[iSub]->Krr.get(), localvec, interfvec, this->wiPat);
+  this->sd[iSub]->fetiBaseOpCoupled1(this->subdomains[iSub]->Krr.get(), localvec, interfvec, this->wiPat);
 }
 
 template<class Scalar>
@@ -3310,7 +3310,7 @@ GenFetiDPSolver<Scalar>::makeGtG()
 
 	// 2. exchange G's between neighboring subdomains
 	FSCommPattern<int> *sPat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
-	for(int i = 0; i < this->nsub; ++i) this->sd[i]->setMpcNeighbCommSize(sPat, 2);
+	for(int i = 0; i < this->nsub; ++i) this->subdomains[i]->setMpcNeighbCommSize(sPat, 2);
 	sPat->finalize();
 	paralApply(this->nsub, this->sd, &BaseSub::sendNeighbGrbmInfo, sPat);
 	sPat->exchange();  // neighboring subs number of group RBMs and offset
@@ -3319,7 +3319,7 @@ GenFetiDPSolver<Scalar>::makeGtG()
 	// create bodyRbmPat FSCommPattern object, used to send/receive G matrix
 	FSCommPattern<Scalar> *gPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU,
 	                                                        FSCommPattern<Scalar>::CopyOnSend, FSCommPattern<Scalar>::NonSym);
-	for(int i = 0; i < this->nsub; ++i) this->sd[i]->setGCommSize(gPat);
+	for(int i = 0; i < this->nsub; ++i) this->subdomains[i]->setGCommSize(gPat);
 	gPat->finalize();
 	paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendG, gPat);
 	gPat->exchange();
@@ -3501,7 +3501,7 @@ inline void
 GenFetiDPSolver<Scalar>::split(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_f,
                                GenDistrVector<Scalar> &v_c) const
 {
-	this->sd[iSub]->split(v.subData(this->subdomains[iSub]->localSubNum()), v_f.subData(this->subdomains[iSub]->localSubNum()),
+	this->subdomains[iSub]->split(v.subData(this->subdomains[iSub]->localSubNum()), v_f.subData(this->subdomains[iSub]->localSubNum()),
 	                      v_c.subData(this->subdomains[iSub]->localSubNum()));
 }
 

@@ -1,13 +1,13 @@
 ADD_LIBRARY(solver
-DSCsolver.C
-MumpsCore.C
-Rbm.C
-MappedAssembledSolver.C
-SolverCore.C
-SpoolesCore.C
-GoldfarbIdnani.C
-SolverFactoryCore.C
-MultiDomainSolverInstance.C)
+        DSCsolver.C
+        MumpsCore.C
+        Rbm.C
+        MappedAssembledSolver.C
+        SolverCore.C
+        SpoolesCore.C
+        GoldfarbIdnani.C
+        SolverFactoryCore.C
+        MultiDomainSolver.h MultiDomainSolver.C)
 
 #SET(INC_DIR ..)
 

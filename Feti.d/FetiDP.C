@@ -2786,31 +2786,21 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::projectActiveIneq(const GenDistrVector<Scalar> &x, GenDistrVector<Scalar> &y) const
 {
-  if(&x != &y) y = x;
-  execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subProjectActiveIneq, y);
-}
-
-template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::subProjectActiveIneq(int iSub, GenDistrVector<Scalar> &y) const
-{
-  this->sd[iSub]->projectActiveIneq(y.subData(this->subdomains[iSub]->localSubNum()));
+	if(&x != &y) y = x;
+	threadManager->callParal(this->nsub, [&](int iSub) {
+		this->sd[iSub]->projectActiveIneq(y.subData(this->subdomains[iSub]->localSubNum()));
+	});
 }
 
 template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::multG(const GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, double beta) const
 {
-  // y = alpha*G*x + beta*y
-  if(beta == 0) y.zero(); else y *= beta;
-  execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subMultG, x, y, alpha); // y += alpha*G*x
-}
-
-template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::subMultG(int iSub, const GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha) const
-{
-  this->sd[iSub]->multG(x, y.subData(this->subdomains[iSub]->localSubNum()), alpha); 
+	// y = alpha*G*x + beta*y
+	if(beta == 0) y.zero(); else y *= beta;
+	threadManager->callParal(this->nsub, [&](int iSub) {
+		this->sd[iSub]->multG(x, y.subData(this->subdomains[iSub]->localSubNum()), alpha);
+	});
 }
 
 template<class Scalar>

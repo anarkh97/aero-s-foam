@@ -422,7 +422,6 @@ public:
 	void subRecvMpcStatus(int iSub, FSCommPattern<int> *mpcPat, int flag, bool *statusChange);
 
 	void projectActiveIneq(const GenDistrVector<Scalar> &x, GenDistrVector<Scalar> &y) const;
-	void subProjectActiveIneq(int iSub, GenDistrVector<Scalar> &v) const;
 	void split(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_f, GenDistrVector<Scalar> &v_c) const;
 	void update(Scalar nu, GenDistrVector<Scalar> &lambda,
 	            GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &Fp,
@@ -480,7 +479,6 @@ private:
 	void project(GenDistrVector<Scalar> &z, GenDistrVector<Scalar> &y, int eflag = 0) const;
 	double tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w) const;
 	void multG(const GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, double beta) const;
-	void subMultG(int iSub, const GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha) const;
 	void trMultG(const GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, double beta) const;
 	void subTrMultG(int iGroup, const GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha) const;
 	void addRalpha(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &alpha) const;

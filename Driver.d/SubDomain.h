@@ -388,14 +388,6 @@ public:
 #endif
 };
 
-template <typename Scalar>
-struct FetiMatrices {
-	std::unique_ptr<GenAssembledFullM<Scalar>> Kcc;
-	std::unique_ptr<GenCuCSparse<Scalar>>      Krc;
-	std::unique_ptr<GenCuCSparse<Scalar>>      Grc;
-	std::unique_ptr<GenSolver<Scalar>> Krr;
-	GenSparseMatrix<Scalar>   *KrrSparse; //!< \brief Alias to Krr.
-};
 
 template<class Scalar>
 class GenSubDomain : public BaseSub , public FetiSub<Scalar>

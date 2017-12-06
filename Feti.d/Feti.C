@@ -153,7 +153,7 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
 	bool *interfaceMasterFlag = new bool[tInterfLen];
 	interface.computeOffsets();
 	for(iSub = 0; iSub < nsub; ++iSub) {
-		bool *subMasterFlag = sd[iSub]->getMasterFlag();
+		const bool *subMasterFlag = sd[iSub]->getMasterFlag();
 		int subOffset = interface.subOffset[iSub];
 		int j;
 		for(j=0; j<interface.domLen[iSub]; ++j)

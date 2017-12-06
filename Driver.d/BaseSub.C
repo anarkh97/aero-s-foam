@@ -22,7 +22,6 @@ using std::list;
 BaseSub::BaseSub() 
  : Domain()
 { 
-  initialize(); 
 }
 
 BaseSub::BaseSub(Domain &dom, int sn, Connectivity &con, Connectivity &nds, int gn) 
@@ -31,7 +30,6 @@ BaseSub::BaseSub(Domain &dom, int sn, Connectivity &con, Connectivity &nds, int 
   subNumber = gn;
   localSubNumber = sn;
   sinfo = dom.solInfo();
-  initialize();
   initHelm(dom);
 
   glNumNodes = dom.numNode();
@@ -47,7 +45,6 @@ BaseSub::BaseSub(Domain &dom, int sn, int nNodes, int *nds, int nElems, int *ele
   subNumber = gn;
   localSubNumber = sn;
   sinfo = dom.solInfo();
-  initialize();
   initHelm(dom);
 
   glNumNodes = nNodes;
@@ -63,7 +60,6 @@ BaseSub::BaseSub(Domain &dom, int sn, CoordSet* _nodes, Elemset* _elems, int *gl
   subNumber      = gn;
   localSubNumber = sn;  
   sinfo = dom.solInfo();
-  initialize();
   initHelm(dom);
 
   glNumNodes = _nodes->size();
@@ -747,13 +743,6 @@ BaseSub::checkForColinearCrossPoints(int numCornerPoints,
  }
 
  return answer;
-}
-
-int BaseSub::factorial(int n)
-{
-  int i, product = 1;
-  for(i = 2; i <= n; ++i) product = product * i;
-  return product;
 }
 
 void
@@ -1630,51 +1619,6 @@ int
 BaseSub::globalNumNodes()
 {
   return geoSource->getNumGlobNodes();
-}
-
-void
-BaseSub::initialize()
-{
-  scomm = 0;
- // glToLocalNode = 0;
-  glNums = 0; glElems = 0; weight = 0;
-  bcx = 0; bcxC = 0; vcx = 0; acx = 0; locToGlSensorMap = 0; locToGlActuatorMap = 0; 
-  locToGlUserDispMap = 0; locToGlUserForceMap = 0; boundMap = 0; 
-  dualToBoundary = 0; internalMap = 0; crnPerNeighb = 0; 
-  boundLen = 0; internalLen = 0; crnDofSize = 0;
-  memK = 0; memPrec = 0; numMPC = 0; numMPC_primal = 0; localToGlobalMPC = 0; 
-  cornerMap = 0; cornerEqNums = 0; 
-  glCrnGroup = 0; nGrbm = 0; numCRN = 0; numCRNdof = 0;
-  cc_dsa = 0; ccToC = 0; cToCC = 0; boundaryDOFs = 0; nCDofs = -1;
-  edgeDofSize = 0; localMpcToMpc = 0; localMpcToGlobalMpc = 0;
-  faceIsSafe = 0;
-  group = 0; numGroupRBM = 0; groupRBMoffset = 0;
-  neighbNumGroupGrbm = 0; neighbGroupGrbmOffset = 0;
-  numGlobalRBMs = 0; neighbNumGRBMs = 0;
-  localToGroupMPC = 0; localToBlockMPC = 0; boundDofFlag = 0; masterFlag = 0; 
-  mpcMaster = 0; mpcToDof = 0; invBoundMap = 0;
-  localMpcToBlock = 0; localMpcToBlockMpc = 0; mpcToBoundDof = 0;
-  localLambda = 0; bodyRBMoffset = 0; 
-  blockToLocalMpc = 0;
-#ifdef DISTRIBUTED
-  numNodalOutput = 0; outputNodes = 0; outIndex = 0;
-#endif
-  k_p = 0.0; k_s = 0.0; k_s2 = 0.0; k_f = 0.0;
-  neighbK_p = 0; neighbK_s = 0; neighbK_s2 = 0; neighbK_f = 0;
-  Ymod = 0.0; Prat = 0.0; Dens = 0.0; Thih = 0.0; Sspe = 0.0;
-  neighbYmod = 0; neighbPrat = 0; neighbDens = 0;  neighbThih = 0; neighbSspe = 0;
-  numWIdof = 0; wetInterfaceMap = 0; numWInodes = 0; wetInterfaceNodes = 0; // coupled_dph
-  wetInterfaceMark = 0; wetInterfaceFluidMark = 0; wetInterfaceStructureMark = 0; wetInterfaceCornerMark = 0;
-  wetInterfaceDofs = 0; wetInterfaceNodeMap = 0; 
-  numNeighbWIdof = 0; 
-  drySharedNodes = 0; wiMaster = 0; neighbGlToLocalWImap = 0;
-  haveAverageMatProps = false; wiInternalMap = 0;
-  edgeQindex[0] = edgeQindex[1] = -1;
-  mpclast = 0;
-  edgeDofSizeTmp = 0; isMixedSub = false;
-  internalMasterFlag = 0;
-//  glToLocalElem = 0;
-  //comm = 0;
 }
 
 BaseSub::~BaseSub()
@@ -2615,7 +2559,6 @@ BaseSub::averageMatProps()
     if(numShellElems > 0) Thih = sumEh/numShellElems;
   }
    
-  haveAverageMatProps = true;
 }
 
 void
@@ -2810,7 +2753,7 @@ BaseSub::setArb(list<SommerElement *> *_list)
 }
 
 void
-BaseSub::setWIoneCommSize(FSCommPattern<int> *pat)
+BaseSub::setWIoneCommSize(FSCommPattern<int> *pat) const
 {
   for(int i = 0; i < scomm->numT(SComm::fsi); ++i)
     if(subNumber != scomm->neighbT(SComm::fsi,i))
@@ -2818,7 +2761,7 @@ BaseSub::setWIoneCommSize(FSCommPattern<int> *pat)
 }
 
 void
-BaseSub::sendNumWIdof(FSCommPattern<int> *pat)
+BaseSub::sendNumWIdof(FSCommPattern<int> *pat) const
 {
   for(int i = 0; i < scomm->numT(SComm::fsi); ++i) {
     if(subNumber != scomm->neighbT(SComm::fsi,i)) {

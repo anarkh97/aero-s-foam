@@ -58,47 +58,45 @@ template <class Scalar> class GenMpcSparse;
 class BaseSub : virtual public Domain , virtual public FetiBaseSub
 {
 protected:
-	SComm *scomm;
+	SComm *scomm = nullptr;
 	int subNumber;
 	int localSubNumber; // relevant when running in distributed
-// RT: 030813
-//  int *glToLocalNode;
-//  int *glToLocalElem;
+
 	GlobalToLocalMap glToLocalNode;
 	GlobalToLocalMap glToLocalElem;
-	int *glNums;
-	int *glElems;
+	int *glNums = nullptr;
+	int *glElems = nullptr;
 	int glNumNodes;
-	int *weight; // DOF weights (i.e. number of subd sharing that dof)
-	int *weightPlus;
-	double *bcx;
-	DComplex *bcxC; // FETI-H
-	double *vcx, *acx;
-	int *locToGlSensorMap;
-	int *locToGlActuatorMap;
-	int *locToGlUserDispMap;
-	int *locToGlUserForceMap;
-	int boundLen;
-	int *boundMap;
-	int *dualToBoundary;
-	int internalLen;
-	int *internalMap;
-	int crnDofSize;
-	int *crnPerNeighb;
-	long memK;       // memory necessary to store K(s)
-	long memPrec;    // memory necessary to store Preconditioner
+	int *weight = nullptr; // DOF weights (i.e. number of subd sharing that dof)
+	int *weightPlus = nullptr;
+	double *bcx = nullptr;
+	DComplex *bcxC = nullptr; // FETI-H
+	double *vcx = nullptr, *acx = nullptr;
+	int *locToGlSensorMap = nullptr;
+	int *locToGlActuatorMap = nullptr;
+	int *locToGlUserDispMap = nullptr;
+	int *locToGlUserForceMap = nullptr;
+	int boundLen = 0;
+	int *boundMap = nullptr;
+	int *dualToBoundary = nullptr;
+	int internalLen = 0;
+	int *internalMap = nullptr;
+	int crnDofSize = 0;
+	int *crnPerNeighb = nullptr;
+	long memK = 0;       // memory necessary to store K(s)
+	long memPrec = 0;    // memory necessary to store Preconditioner
 #ifdef DISTRIBUTED
 	// for distributed output of single nodes
-    int numNodalOutput;
-    int *outputNodes;
-    int *outIndex;
+    int numNodalOutput = 0;
+    int *outputNodes = nullptr;
+    int *outIndex = nullptr;
 #endif
 	int globalNMax;  // highest global node number of all the nodes in this subdomain
 	int globalEMax;  // highest global element number of all the elements in this subdomain
 	int totalInterfSize;
-	const int *allBoundDofs;
-	Rbm *rigidBodyModes;
-	Rbm *rigidBodyModesG;
+	const int *allBoundDofs = nullptr;
+	Rbm *rigidBodyModes = nullptr;
+	Rbm *rigidBodyModesG = nullptr;
 
 public:
 	BaseSub();
@@ -110,32 +108,32 @@ public:
 	virtual ~BaseSub();
 
 	// Multiple Point Constraint (MPC) Data
-	int numMPC;             // number of local Multi-Point Constraints
-	int *localToGlobalMPC;  // local to global MPC numbering
+	int numMPC = 0;             // number of local Multi-Point Constraints
+	int *localToGlobalMPC = nullptr;  // local to global MPC numbering
 	GlobalToLocalMap globalToLocalMPC; // alternative data structure for global to local MPC numbering
 	// not a pointer so don't have to de-reference before using [] operator
 
-	int numMPC_primal;
-	int *localToGlobalMPC_primal;
+	int numMPC_primal = 0;
+	int *localToGlobalMPC_primal = nullptr;
 	GlobalToLocalMap globalToLocalMPC_primal;
 
-	int *cornerMap;
-	int *cornerEqNums; // unique equation numbers for subdomain corner dofs
+	int *cornerMap = nullptr;
+	int *cornerEqNums = nullptr; // unique equation numbers for subdomain corner dofs
 
-	int *glCrnGroup;    // group of each corner node (global numbering)
-	int nGrbm;
-	ConstrainedDSA *cc_dsa;
-	int *ccToC; // from cc_dsa to c_dsa
-	int *cToCC; // from c_dsa to cc_dsa
-	DofSet **boundaryDOFs;
-	int nCDofs;
-	int *neighbNumGRBMs;
-	int *edgeDofSize;      // number of edge dof per neighbor
-	int *edgeDofSizeTmp;   // XXXX
-	double k_f, k_p, k_s, k_s2;  // wave numbers for FETI-DPH for this subdomain
-	double *neighbK_p, *neighbK_s, *neighbK_s2, *neighbK_f;  // neighbors' wave numbers
-	double Ymod, Prat, Dens, Thih, Sspe;  // Young's modulus, Poisson ration, density, thickness, speed of sound
-	double *neighbYmod, *neighbPrat, *neighbDens, *neighbThih, *neighbSspe;  // neighbor's values
+//	int *glCrnGroup;    // group of each corner node (global numbering)
+	int nGrbm = 0;
+	ConstrainedDSA *cc_dsa = nullptr;
+	int *ccToC = nullptr; // from cc_dsa to c_dsa
+	int *cToCC = nullptr; // from c_dsa to cc_dsa
+	DofSet **boundaryDOFs = nullptr;
+	int nCDofs = -1;
+	int *neighbNumGRBMs = nullptr;
+	int *edgeDofSize = nullptr;      // number of edge dof per neighbor
+	int *edgeDofSizeTmp = nullptr;   // XXXX
+	double k_f = 0.0, k_p = 0.0, k_s = 0.0, k_s2 = 0.0;  // wave numbers for FETI-DPH for this subdomain
+	double *neighbK_p = nullptr, *neighbK_s = nullptr, *neighbK_s2 = nullptr, *neighbK_f = nullptr;  // neighbors' wave numbers
+	double Ymod, Prat = 0.0, Dens = 0.0, Thih = 0.0, Sspe = 0.0;  // Young's modulus, Poisson ration, density, thickness, speed of sound
+	double *neighbYmod = nullptr, *neighbPrat = nullptr, *neighbDens = nullptr, *neighbThih = nullptr, *neighbSspe = nullptr;  // neighbor's values
 
 	int dofWeight(int i) { return weight[i]; }
 	int crnDofLen() const  { return crnDofSize; }
@@ -214,37 +212,35 @@ public:
 	// variables and routines for parallel GRBM algorithm and floating bodies projection
 	// and MPCs (rixen method)
 public:
-	int group;
+	int group = 0;
 protected:
-	int numGroupRBM, groupRBMoffset;
-	int *neighbGroup;
-	int *neighbNumGroupGrbm;
-	int *neighbGroupGrbmOffset;
-	int numGlobalRBMs;
+	int numGroupRBM = 0, groupRBMoffset = 0;
+	int *neighbNumGroupGrbm = nullptr;
+	int *neighbGroupGrbmOffset = nullptr;
+	int numGlobalRBMs = 0;
 
 protected:
-	Connectivity *localMpcToMpc;
-	Connectivity *localMpcToGlobalMpc;
-	bool *faceIsSafe;
-	int *localToGroupMPC, *localToBlockMPC;
-	int *boundDofFlag;  // boundDofFlag[i] = 0 -> perfect interface dof  (not contact or mpc)
+	Connectivity *localMpcToMpc = nullptr;
+	Connectivity *localMpcToGlobalMpc = nullptr;
+	bool *faceIsSafe = nullptr;
+	int *localToGroupMPC = nullptr;
+	int *boundDofFlag = nullptr;  // boundDofFlag[i] = 0 -> perfect interface dof  (not contact or mpc)
 	// boundDofFlag[i] = 1 -> node-to-node contact interface dof
 	// boundDofFlag[i] = 2 -> mpc dof, only used for rixen method, domain->mpcflag = 1
 	// note: boundDofFlag[i] > 2 can be used for future extensions, eg mortar contact
-	bool *masterFlag; // masterFlag[i] = true if this sub is the "master" of allBoundDofs[i]
-	bool *internalMasterFlag;
-	int masterFlagCount;
-	int factorial(int n); // computes n!
-	bool *mpcMaster;  // mpcMaster[i] = true if this subd contains masterdof for mpc i
-	Connectivity *mpcToDof;
-	Connectivity *localMpcToBlock;
-	Connectivity *blockToLocalMpc;
-	Connectivity *blockToBlockMpc;
-	Connectivity *localMpcToBlockMpc;
-	Connectivity *mpcToBoundDof;
-	double *localLambda;  // used for contact pressure output
-	int *invBoundMap;
-	int *mpclast;
+	bool *masterFlag = nullptr; // masterFlag[i] = true if this sub is the "master" of allBoundDofs[i]
+	bool *internalMasterFlag = nullptr;
+	int masterFlagCount = 0;
+	bool *mpcMaster = nullptr;  // mpcMaster[i] = true if this subd contains masterdof for mpc i
+	Connectivity *mpcToDof = nullptr;
+	Connectivity *localMpcToBlock = nullptr;
+	Connectivity *blockToLocalMpc = nullptr;
+	Connectivity *blockToBlockMpc = nullptr;
+	Connectivity *localMpcToBlockMpc = nullptr;
+	Connectivity *mpcToBoundDof = nullptr;
+	double *localLambda = nullptr;  // used for contact pressure output
+	int *invBoundMap = nullptr;
+	int *mpclast = nullptr;
 
 public:
 	/// \copydoc
@@ -253,7 +249,6 @@ public:
 	int getGlobalMPCIndex(int localMpcIndex) const override;
 	void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
 	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
-	void setGlCrnGroup(int *_gcg) { glCrnGroup = _gcg; }
 	void setGroup(Connectivity *subToGroup) { group = (*subToGroup)[subNumber][0]; }
 	void setNumGroupRBM(int *ngrbmGr);
 	void getNumGroupRBM(int *ngrbmGr);
@@ -261,7 +256,7 @@ public:
 	void sendNeighbGrbmInfo(FSCommPattern<int> *pat);
 	void receiveNeighbGrbmInfo(FSCommPattern<int> *pat);
 	void setCommSize(FSCommStructure *pat, int size) const override;
-	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const;
+	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const override;
 	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
 
 protected:
@@ -304,7 +299,6 @@ public:
 	void setBodyRBMoffset(int _boff) { bodyRBMoffset = _boff; }
 	SubCornerHandler *getCornerHandler();
 
-	void initialize();
 	void initHelm(Domain &dom);
 
 	// DPH functions
@@ -343,28 +337,27 @@ public:
 	void setArb(std::list<SommerElement *> *_list);
 	// coupled_dph
 protected:
-	bool *wetInterfaceMark;
-	bool *wetInterfaceFluidMark;
-	bool *wetInterfaceStructureMark;
-	bool *wetInterfaceCornerMark;
-	int numWIdof;  // number of dofs on the wet interface (both fluid and structure)
-	int numWInodes;  // number of nodes on the wet interface (both fluid and structure)
-	int *wetInterfaceMap;  // dof map
-	int *wetInterfaceNodeMap;
-	int *wetInterfaceNodes;
-	int *wDofToNode; //HB
-	DofSet *wetInterfaceDofs;
-	int *numNeighbWIdof;
-	Connectivity *drySharedNodes;
-	bool *wiMaster;
+	bool *wetInterfaceMark = nullptr;
+	bool *wetInterfaceFluidMark = nullptr;
+	bool *wetInterfaceStructureMark = nullptr;
+	bool *wetInterfaceCornerMark = nullptr;
+	int numWIdof = 0;  // number of dofs on the wet interface (both fluid and structure)
+	int numWInodes = 0;  // number of nodes on the wet interface (both fluid and structure)
+	int *wetInterfaceMap = nullptr;  // dof map
+	int *wetInterfaceNodeMap = nullptr;
+	int *wetInterfaceNodes = nullptr;
+	int *wDofToNode = nullptr; //HB
+	DofSet *wetInterfaceDofs = nullptr;
+	int *numNeighbWIdof = nullptr;
+	Connectivity *drySharedNodes = nullptr;
+	bool *wiMaster = nullptr;
 	GlobalToLocalMap glToLocalWImap;
-	GlobalToLocalMap *neighbGlToLocalWImap;
+	GlobalToLocalMap *neighbGlToLocalWImap = nullptr;
 	int numFsiNeighb;
-	int *fsiNeighb;
-	bool haveAverageMatProps;
-	int *wiInternalMap;
-	bool isMixedSub;
-	int edgeQindex[2];
+	int *fsiNeighb = nullptr;
+	int *wiInternalMap = nullptr;
+	bool isMixedSub = false;
+	int edgeQindex[2] = {-1, -1};
 	double prev_cscale_factor;
 public:
 	Connectivity *nodeToSub;
@@ -375,8 +368,8 @@ public:
 	bool onWetInterfaceStructure(int iNode) { return wetInterfaceStructureMark[iNode]; }
 	bool isWetInterfaceCorner(int iNode) { return wetInterfaceCornerMark[iNode]; }
 	void setWetInterface(int nWI, int *wiNum);
-	void setWIoneCommSize(FSCommPattern<int> *pat);
-	void sendNumWIdof(FSCommPattern<int> *sPat);
+	void setWIoneCommSize(FSCommPattern<int> *pat) const;
+	void sendNumWIdof(FSCommPattern<int> *sPat) const;
 	void recvNumWIdof(FSCommPattern<int> *sPat);
 	void setWImapCommSize(FSCommPattern<int> *pat);
 	void sendWImap(FSCommPattern<int> *pat);
@@ -418,7 +411,6 @@ private:
 protected:
 	Scalar *scaling;
 	void sendDOFList(FSCommPattern<int> *pat); // Send to neighbors the list of DOFs on the shared nodes
-	GenSkyMatrix<Scalar> * makeSkyK(Connectivity &nton, Scalar trbm);
 
 public:
 	GenSparseSet<Scalar>      *Src;

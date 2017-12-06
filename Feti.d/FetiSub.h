@@ -100,8 +100,8 @@ protected:
 	std::vector<int> cornerNodes;
 	std::vector<bool> isCornerNode;   // true for node which is a corner node; false otherwise
 	std::vector<int> glCornerNodes; // corner nodes in global numbering
-	int numCRN;
-	int numCRNdof;
+	int numCRN = 0;
+	int numCRNdof = 0;
 };
 
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */

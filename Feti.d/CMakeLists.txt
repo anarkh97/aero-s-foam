@@ -10,7 +10,7 @@ ADD_LIBRARY(Feti
         Feti.h
         NLFetiCore.C
         CCtSolver.d/BlockCCt.C
-        FetiSub.h)
+        FetiSub.h FETISolver.cpp FETISolver.h)
 
 SET(INC_DIR ..)
 

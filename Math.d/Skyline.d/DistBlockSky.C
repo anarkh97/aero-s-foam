@@ -7,16 +7,6 @@ extern SysCom *scom;
 
 #include <Utils.d/linkfc.h>
 
-extern "C" {
-  void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                       const double &, double *, const int &,
-                       double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(zgemv)(const char &, const int &,const int &,
-                       const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *, const int &);
-}
-
 #ifndef _TGEMV__
 #define _TGEMV__
 inline void Tgemv(const char &a, const int &b, const int &c,
@@ -80,7 +70,7 @@ GenDistBlockSky<Scalar>::parallelFactor()
 
 template<class Scalar>
 void
-GenDistBlockSky<Scalar>::reSolve(Scalar *rhs) const
+GenDistBlockSky<Scalar>::reSolve(Scalar *rhs)
 {
  Scalar *partialSum = (Scalar *)dbg_alloca(sizeof(Scalar)*numRows);
 
@@ -102,7 +92,7 @@ GenDistBlockSky<Scalar>::reSolve(Scalar *rhs) const
 
 template<class Scalar>
 void
-GenDistBlockSky<Scalar>::reSolve(GenVector<Scalar> &rhs) const
+GenDistBlockSky<Scalar>::reSolve(GenVector<Scalar> &rhs)
 {
  Scalar *partialSum = (Scalar *)dbg_alloca(sizeof(Scalar)*numRows);
 

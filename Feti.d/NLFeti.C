@@ -308,23 +308,23 @@ GenFetiSolver<Scalar>::reBuildGtG()
 }
 
 
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::reGetNeighbQGs(int iSub)
-{
- if(QGisLocal == 0) {
-   if(fetiOps[iSub]->rbm)
-     fetiOps[iSub]->control->cset[this->sd[iSub]->subNum()].reGetNeighbQGs(
-           fetiOps[iSub]->control->cset, this->sd[iSub], 0, rbmPat, fetiOps[iSub]->solver);
- } else {
-   if (isFeti2)
-     fetiOps[iSub]->control->cset[this->sd[iSub]->subNum()].reGetNeighbQGs(
-           fetiOps[iSub]->control->cset, this->sd[iSub], 0, rbmPat, fetiOps[iSub]->solver);
-   else
-     fetiOps[iSub]->control->cset[this->sd[iSub]->subNum()].reGetNeighbGs(
-                    fetiOps[iSub]->control->cset, rbmPat, this->sd[iSub]);
- }
-}
+//template<class Scalar>
+//void
+//GenFetiSolver<Scalar>::reGetNeighbQGs(int iSub)
+//{
+// if(QGisLocal == 0) {
+//   if(fetiOps[iSub]->rbm)
+//     fetiOps[iSub]->control->cset[this->sd[iSub]->subNum()].reGetNeighbQGs(
+//           fetiOps[iSub]->control->cset, this->sd[iSub], 0, rbmPat, fetiOps[iSub]->solver);
+// } else {
+//   if (isFeti2)
+//     fetiOps[iSub]->control->cset[this->sd[iSub]->subNum()].reGetNeighbQGs(
+//           fetiOps[iSub]->control->cset, this->sd[iSub], 0, rbmPat, fetiOps[iSub]->solver);
+//   else
+//     fetiOps[iSub]->control->cset[this->sd[iSub]->subNum()].reGetNeighbGs(
+//                    fetiOps[iSub]->control->cset, rbmPat, this->sd[iSub]);
+// }
+//}
 
 // [C G]^t F [C G]
 // Very similar to  G^t Q G

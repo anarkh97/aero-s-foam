@@ -129,6 +129,7 @@ protected:
 	int numCRNdof = 0;
 	std::vector<int> edgeDofSize;      //<! \brief Number of edge DOF per neighbor.
 	std::vector<int> cornerEqNums; //<! \brief unique equation numbers for subdomain corner dofs
+public:
 	int group = 0;
 
 };

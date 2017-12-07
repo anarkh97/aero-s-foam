@@ -22,10 +22,6 @@ class GlobalCCtSolver : public CCtSolver<Scalar>
     void extractMpcResidual(int iSub, GenDistrVector<Scalar> &v, GenVector<Scalar> &mpcv1);
     void insertMpcResidual(int iSub, GenDistrVector<Scalar> &v, GenVector<Scalar> &mpcv1);
 };
-
-#ifdef _TEMPLATE_FIX_
-  #include <Feti.d/CCtSolver.d/GlobalCCt.C>
-#endif
                                                                                                                                               
 #endif
 

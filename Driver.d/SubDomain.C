@@ -6292,7 +6292,7 @@ GenSubDomain<Scalar>::addNodalData(FSCommPattern<Scalar> *pat, DistVec<Scalar1> 
 }
 
 template<> template<>
-inline void
+void
 GenSubDomain<DComplex>::dispatchNodalData(FSCommPattern<DComplex> *pat, DistVec<double> *vec)
 {
   double *v = vec->subData(localSubNumber);
@@ -6304,7 +6304,7 @@ GenSubDomain<DComplex>::dispatchNodalData(FSCommPattern<DComplex> *pat, DistVec<
 }
 
 template<> template<>
-inline void
+void
 GenSubDomain<DComplex>::addNodalData(FSCommPattern<DComplex> *pat, DistVec<double> *vec)
 {
   double *v = vec->subData(localSubNumber);
@@ -6955,3 +6955,23 @@ GenSubDomain<Scalar>::addSommer(SommerElement *ele)
 
 template class GenSubDomain<double>;
 template class GenSubDomain<std::complex<double>>;
+
+template
+void
+GenSubDomain<std::complex<double>>::addNodalData<std::complex<double>>(FSCommPattern<std::complex<double>>*, NewVec::DistVec<std::complex<double>>*);
+
+template
+void
+GenSubDomain<std::complex<double>>::dispatchNodalData<std::complex<double>>(FSCommPattern<std::complex<double>> *pat, DistVec<std::complex<double>> *vec);
+
+template
+void
+GenSubDomain<std::complex<double>>::dispatchNodalData<double>(FSCommPattern<std::complex<double>> *pat, DistVec<double> *vec);
+
+template
+void
+GenSubDomain<double>::dispatchNodalData<double>(FSCommPattern<double> *pat, DistVec<double> *vec);
+
+template
+void
+GenSubDomain<double>::addNodalData<double>(FSCommPattern<double>*, NewVec::DistVec<double>*);

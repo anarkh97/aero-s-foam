@@ -4,6 +4,7 @@
 #include <Driver.d/Domain.h>
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
+#include <Solvers.d/PCGSolver.h>
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
 #include <Math.d/CuCSparse.h>

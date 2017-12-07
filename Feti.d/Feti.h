@@ -120,18 +120,18 @@ protected:
 	void makeGtG();
 	void makeDistGtG(int *glSubToLocal);
 	void assembleDistGtQGs(int i, int *);
-	bool isLowestLocalNeighbor(int subI, int subJ);
+	bool isLowestLocalNeighbor(int subI, int subJ) const;
 	void addNonLocalGtQG(int subI, int subJ);
 	void addNonLocalGContrib(int subI, int subJ);
 	void addNonLocalCContrib(int subI, int subJ);
 	void getNonLocalGtQMult(int myNum, int neighbN, Scalar *va,
-	                        GenDistrVector<Scalar> *dv);
+	                        GenDistrVector<Scalar> *dv) const;
 	void getNonLocalFCtMult(int myNum, int neighbN, Scalar *va,
-	                        GenDistrVector<Scalar> *dv);
+	                        GenDistrVector<Scalar> *dv) const;
 	void getNonLocalSubAlphaGtQ(int subI, int subJ, Scalar *va,
-	                            GenDistrVector<Scalar> *dv);
+	                            GenDistrVector<Scalar> *dv) const;
 	void getNonLocalGtQMult(int subI, int subJ);
-	void getGtQMult(int iSub, Scalar *, GenDistrVector<Scalar> *);
+	void getGtQMult(int iSub, Scalar *, GenDistrVector<Scalar> *) const;
 	void getFCMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const;
 	void reBuildGtG();
 	void makePCtFPC();
@@ -639,8 +639,6 @@ struct BlockPair {
 };
 
 #ifdef _TEMPLATE_FIX_
-#include <Feti.d/Feti.C>
-#include <Feti.d/NLFeti.C>
 #ifdef DISTRIBUTED
 #include <Dist.d/DistFeti.C>
 #endif

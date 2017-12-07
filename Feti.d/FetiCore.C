@@ -1,4 +1,5 @@
 #include <Feti.d/Feti.h>
+#include "FetiOp.h"
 
 template<>
 void

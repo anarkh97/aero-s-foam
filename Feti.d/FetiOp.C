@@ -14,6 +14,7 @@
 
 #include <Feti.d/FetiOpControler.h>
 #include <Feti.d/CoarseSet.h>
+#include "FetiOp.h"
 
 template<class Scalar> 
 GenFetiOp<Scalar>::GenFetiOp(GenSubDomain<Scalar>* lsd, GenFetiOpControler<Scalar>* fopc, 
@@ -626,3 +627,7 @@ GenFetiOp<Scalar>::subAlphaFG()
  sd->sendInterf(localvec, vPat);
 }
 
+template
+class GenFetiOp<double>;
+template
+class GenFetiOp<std::complex<double>>;

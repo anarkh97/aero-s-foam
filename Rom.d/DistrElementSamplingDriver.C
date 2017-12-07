@@ -28,6 +28,7 @@
 #include <iostream>
 
 extern GeoSource *geoSource;
+extern int verboseFlag;
 
 namespace Rom {
 

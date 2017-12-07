@@ -1,4 +1,7 @@
 #include <Feti.d/Feti.h>
+#include <Feti.d/FetiOp.h>
+#include <Feti.d/FetiOpControler.h>
+#include "CoarseSet.h"
 
 template<>
 void

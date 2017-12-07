@@ -21,6 +21,7 @@
 #include <Feti.d/CCtSolver.d/BlockCCt.h>
 #include <Feti.d/CCtSolver.d/SuperBlockCCt.h>
 #include <Feti.d/CCtSolver.d/SubBlockCCt.h>
+#include <Feti.d/FetiOp.h>
 #include <Driver.d/Mpc.h>
 #include <Solvers.d/Rbm.h>
 #include <Timers.d/GetTime.h>

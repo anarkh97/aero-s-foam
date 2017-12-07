@@ -9,10 +9,12 @@
 #include <Utils.d/DistHelper.h>
 #include <Utils.d/pstress.h>
 #include <Driver.d/SubDomain.h>
+#include <Driver.d/SysState.h>
 #include <Paral.d/MDDynam.h>
 #include <Driver.d/GeoSource.h>
 #include <Paral.d/SubDOp.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
+#include <Corotational.d/DistrGeomState.h>
 
 extern FILE *debugFile;
 
@@ -1703,7 +1705,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         getStressStrain(geomState, allCorot, time, x, iOut, EQPLSTRN, refState);
         break;
       case OutputInfo::Energies:
-        this->getEnergies(geomState, extF, allCorot, iOut, time, distState, dynOps, aeroF);
+        this->getEnergies_b(geomState, extF, allCorot, iOut, time, distState, dynOps, aeroF);
         break;
       case OutputInfo::DissipatedEnergy:
         this->getDissipatedEnergy(geomState, allCorot, iOut, time);

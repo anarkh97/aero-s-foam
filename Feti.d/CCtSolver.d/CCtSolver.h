@@ -1,6 +1,14 @@
 #ifndef _CCTSOLVER_H_
 #define _CCTSOLVER_H_
 
+template <typename Scalar>
+class GenDistrVector;
+template <typename Scalar>
+class GenSubDomain;
+
+class FSCommunicator;
+class Connectivity;
+
 template<class Scalar>
 class CCtSolver
 {

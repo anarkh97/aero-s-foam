@@ -1,12 +1,13 @@
 #include <Feti.d/Feti.h>
 #include <Feti.d/FetiOp.h>
-
+#include "FetiOpControler.h"
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
 #else
  #include <climits>
 #endif
 #include <float.h>
+#include "CoarseSet.h"
 
 template<>
 void

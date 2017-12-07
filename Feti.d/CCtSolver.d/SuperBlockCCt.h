@@ -2,7 +2,12 @@
 #define _NEWBLOCKCCT_H_
 
 #include <Feti.d/CCtSolver.d/CCtSolver.h>
+#include <Solvers.d/Solver.h>
+#include <Math.d/SparseMatrix.h>
+#include <Utils.d/Connectivity.h>
+#include <Driver.d/Communicator.h>
 
+class FetiInfo;
 template<class Scalar> 
 class SuperBlockCCtSolver : public CCtSolver<Scalar>
 {
@@ -101,9 +106,5 @@ class SuperBlockCCtSolver : public CCtSolver<Scalar>
     void recOneBlockMpcResidualAfterSolve(int IBlock);
     void makeBlkToCpuSharedMpcsMap();
 };
-
-#ifdef _TEMPLATE_FIX_
-  #include<Feti.d/CCtSolver.d/SuperBlockCCt.C>
-#endif
 
 #endif

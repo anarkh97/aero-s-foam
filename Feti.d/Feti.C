@@ -3230,7 +3230,7 @@ int
 #else
 bool
 #endif
-GenFetiSolver<Scalar>::isLowestLocalNeighbor(int subI, int subJ)
+GenFetiSolver<Scalar>::isLowestLocalNeighbor(int subI, int subJ) const
 {
 	int kSub;
 	// First find if this subdomain (subI) is the lowest numbered subdomain
@@ -3298,7 +3298,7 @@ GenFetiSolver<Scalar>::addNonLocalCContrib(int subI, int subJ)
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::getNonLocalSubAlphaGtQ(int subI, int subJ, Scalar *va,
-                                              GenDistrVector<Scalar> *dv)
+                                              GenDistrVector<Scalar> *dv) const
 {
 	if(isLowestLocalNeighbor(subI,subJ) == false) return;
 
@@ -3322,7 +3322,7 @@ GenFetiSolver<Scalar>::getNonLocalSubAlphaGtQ(int subI, int subJ, Scalar *va,
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::getNonLocalFCtMult(int subI, int subJ, Scalar *va,
-                                          GenDistrVector<Scalar> *dv)
+                                          GenDistrVector<Scalar> *dv) const
 {
 	if(isLowestLocalNeighbor(subI,subJ) == false) return;
 
@@ -3544,3 +3544,9 @@ GenFetiSolver<Scalar>::makeRbmPat()
 		rbmPat->finalize();
 	}
 }
+template class GenFetiSolver<std::complex<double>>;
+#include <Feti.d/NLFeti.C>
+
+template class GenFetiSolver<double>;
+template class GenFetiWorkSpace<double>;
+template class GenFetiWorkSpace<std::complex<double>>;

@@ -262,7 +262,7 @@ GenFetiSolver<Scalar>::addNonLocalGtQG(int subI, int subJ)
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getNonLocalGtQMult(int subI, int subJ, Scalar *va, GenDistrVector<Scalar> *dv)
+GenFetiSolver<Scalar>::getNonLocalGtQMult(int subI, int subJ, Scalar *va, GenDistrVector<Scalar> *dv) const
 {
  // using bool type to determine lowest local neighbor
  if(isLowestLocalNeighbor(subI,subJ) == false) return;
@@ -311,7 +311,7 @@ GenFetiSolver<Scalar>::assembleDistGtQGs(int myNum, int *glToLoc)
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::getGtQMult(int myNum, Scalar *va, GenDistrVector<Scalar> *dv)
+GenFetiSolver<Scalar>::getGtQMult(int myNum, Scalar *va, GenDistrVector<Scalar> *dv) const
 {
  Scalar *localvec = dv->subData(myNum);
  Scalar *alpha = va + fetiOps[myNum]->alphaOffset[0];

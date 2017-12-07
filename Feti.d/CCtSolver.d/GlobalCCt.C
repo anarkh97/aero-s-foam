@@ -1,6 +1,12 @@
+#include <Driver.d/Domain.h>
+#include <Driver.d/SubDomain.h>
+#include <Utils.d/DistHelper.h>
+#include <Solvers.d/SolverFactory.h>
+#include "GlobalCCt.h"
 
 extern Domain * domain;
 extern Connectivity * procMpcToMpc;
+extern int verboseFlag;
 
 template<class Scalar>
 GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_mpcToCpu, int _numSubsWithMpcs, 
@@ -117,4 +123,5 @@ GlobalCCtSolver<Scalar>::insertMpcResidual(int iSub, GenDistrVector<Scalar> &v, 
   this->subsWithMpcs[iSub]->insertMpcResidual(subv, mpcv1, mpcEqNums);
 }
 
-
+template class GlobalCCtSolver<double>;
+template class GlobalCCtSolver<std::complex<double>>;

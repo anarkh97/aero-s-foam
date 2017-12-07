@@ -1,6 +1,12 @@
 #include <set>
 #include <list>
 
+#include "SuperBlockCCt.h"
+#include <Driver.d/SubDomain.h>
+#include <Utils.d/DistHelper.h>
+#include <Feti.d/Feti.h>
+#include <Solvers.d/SolverFactory.h>
+
 extern Domain * domain;
 
 template<class Scalar>
@@ -1106,3 +1112,5 @@ SuperBlockCCtSolver<Scalar>::estimateBlockCost(double *blockCost, double *blockB
    return totalCost;
 }
 
+template class SuperBlockCCtSolver<double>;
+template class SuperBlockCCtSolver<std::complex<double>>;

@@ -28,6 +28,7 @@
 #include <Driver.d/SysState.h>
 
 extern Communicator *structCom;
+extern int verboseFlag;
 
 namespace Rom {
 

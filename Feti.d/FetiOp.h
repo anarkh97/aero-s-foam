@@ -98,10 +98,6 @@ class GenFetiOp : public TaskDescr
 
 typedef GenFetiOp<double> FetiOp;
 
-#ifdef _TEMPLATE_FIX_
-  #include <Feti.d/FetiOp.C>
-#endif
-
 #endif
 
 

@@ -61,245 +61,244 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
                                          std::vector<std::unique_ptr<GenSolver<Scalar>>> sysMatrices,
                                          GenSparseMatrix<Scalar> **sysSparse,
                                          Rbm **, bool _rbmFlag, bool _geometricRbms, int _verboseFlag)
- : GenFetiSolver<Scalar>(_nsub, _sd, threadManager->numThr(), _verboseFlag), internalR(_nsub), internalC(_nsub), internalWI(_nsub)
+	: GenFetiSolver<Scalar>(_nsub, _sd, threadManager->numThr(), _verboseFlag), internalR(_nsub), internalC(_nsub), internalWI(_nsub)
 {
- initialize();
 
- // Compute memory used by FETI Solver
- t6 -= getTime();
+	// Compute memory used by FETI Solver
+	t6 -= getTime();
 #ifdef DISTRIBUTED
- this->times.memoryFETI = -threadManager->memoryUsed();
+	this->times.memoryFETI = -threadManager->memoryUsed();
 #else
- this->times.memoryFETI -= memoryUsed();
+	this->times.memoryFETI -= memoryUsed();
 #endif
 
- this->nsub       = _nsub;        // Number of subdomains
- this->glNumSub   = _glNumSub;
- this->sd         = _sd;          // pointer to Array of all Subdomains
- this->subToSub   = _subToSub;    // subdomain to subdomain connectivity
- //std::cerr << "this->nsub = " << this->nsub << ", this->subToSub =\n"; this->subToSub->print();
- this->mpcToSub   = _mpcToSub;    // MPC to subdomain connectivity
- this->glNumMpc = (this->mpcToSub) ? this->mpcToSub->csize() : 0;
- this->mpcToSub_primal = _mpcToSub_primal;
- this->glNumMpc_primal = (this->mpcToSub_primal) ? this->mpcToSub_primal->csize() : 0;
- mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (used for CC^t preconditioner)
- mpcToCpu   = _mpcToCpu;
- this->cpuToSub   = _cpuToSub;
- fetiInfo   = _fetiInfo;    // Feti solver information
- this->fetiCom    = _fetiCom;
- this->glSubToLoc = _glSubToLoc;
+	this->nsub       = _nsub;        // Number of subdomains
+	this->glNumSub   = _glNumSub;
+	this->sd         = _sd;          // pointer to Array of all Subdomains
+	this->subToSub   = _subToSub;    // subdomain to subdomain connectivity
+	//std::cerr << "this->nsub = " << this->nsub << ", this->subToSub =\n"; this->subToSub->print();
+	this->mpcToSub   = _mpcToSub;    // MPC to subdomain connectivity
+	this->glNumMpc = (this->mpcToSub) ? this->mpcToSub->csize() : 0;
+	this->mpcToSub_primal = _mpcToSub_primal;
+	this->glNumMpc_primal = (this->mpcToSub_primal) ? this->mpcToSub_primal->csize() : 0;
+	mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (used for CC^t preconditioner)
+	mpcToCpu   = _mpcToCpu;
+	this->cpuToSub   = _cpuToSub;
+	fetiInfo   = _fetiInfo;    // Feti solver information
+	this->fetiCom    = _fetiCom;
+	this->glSubToLoc = _glSubToLoc;
 
-  globalFlagCtc = domain->getNumCTC();
+	globalFlagCtc = domain->getNumCTC();
 #ifdef DISTRIBUTED
-  globalFlagCtc = this->fetiCom->globalMax((int) globalFlagCtc);
+	globalFlagCtc = this->fetiCom->globalMax((int) globalFlagCtc);
 #endif
 
- rbmFlag = _rbmFlag; // if this is true then check for singularities in Kcc^* and each Krr^{(s)}
-                     // and deal with the rigid body modes using projection method
- geometricRbms = _geometricRbms; // if this is true then use geometric method
-                                 // to compute the rigid body modes of Kcc^* and Krr^{(s)}
-                                 // when rbmFlag is true, otherwise use algebraic null space   
+	rbmFlag = _rbmFlag; // if this is true then check for singularities in Kcc^* and each Krr^{(s)}
+	// and deal with the rigid body modes using projection method
+	geometricRbms = _geometricRbms; // if this is true then use geometric method
+	// to compute the rigid body modes of Kcc^* and Krr^{(s)}
+	// when rbmFlag is true, otherwise use algebraic null space
 
- this->myCPU = this->fetiCom->cpuNum();
- this->numCPUs = this->fetiCom->size();
- bodyToSub = _bodyToSub;
- subToBody = bodyToSub->reverse();
+	this->myCPU = this->fetiCom->cpuNum();
+	this->numCPUs = this->fetiCom->size();
+	bodyToSub = _bodyToSub;
+	subToBody = bodyToSub->reverse();
 
- // Define FETI tolerance and maximum number of iterations
- double fetiTolerance = fetiInfo->tol;
- this->epsilon2 = fetiTolerance*fetiTolerance;
- this->maxiter  = fetiInfo->maxit;
+	// Define FETI tolerance and maximum number of iterations
+	double fetiTolerance = fetiInfo->tol;
+	this->epsilon2 = fetiTolerance*fetiTolerance;
+	this->maxiter  = fetiInfo->maxit;
 
- int iSub;
- // create this->vPat FSCommPattern object, used to send/receive a scalar vector (interfaceDOFs)
- this->vPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<Scalar>::CopyOnSend);
- for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setDofCommSize(this->vPat);
- this->vPat->finalize();
+	int iSub;
+	// create this->vPat FSCommPattern object, used to send/receive a scalar vector (interfaceDOFs)
+	this->vPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<Scalar>::CopyOnSend);
+	for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setDofCommSize(this->vPat);
+	this->vPat->finalize();
 
- // create this->sPat FSCommPattern objects, used to send/receive a single integer
- this->sPat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
- for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setCommSize(this->sPat, 1);
- this->sPat->finalize();
+	// create this->sPat FSCommPattern objects, used to send/receive a single integer
+	this->sPat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
+	for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setCommSize(this->sPat, 1);
+	this->sPat->finalize();
 
- if(globalFlagCtc) {
-   mpcPat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
-   for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcCommSize(mpcPat);
-   mpcPat->finalize();
- }
+	if(globalFlagCtc) {
+		mpcPat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
+		for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcCommSize(mpcPat);
+		mpcPat->finalize();
+	}
 
- // Classes to organize parallel execution of tasks
- this->fetiOps   = new GenFetiOp<Scalar> *[this->nsub];
+	// Classes to organize parallel execution of tasks
+	this->fetiOps   = new GenFetiOp<Scalar> *[this->nsub];
 
- // Compute total this->interface length, total internal length
- // and total half this->interface length
- int tInterfLen    = 0;
- int tLocalLen     = 0;
- int tLocalRLen    = 0;
- this->halfSize = 0;
- for(iSub = 0; iSub < this->nsub; ++iSub) {
-   this->fetiOps[iSub] = new GenFetiOp<Scalar>;
-   this->interface.domLen[iSub] = this->subdomains[iSub]->interfLen();
-   this->internalDI.domLen[iSub]  = this->subdomains[iSub]->getNumUncon();
-   internalR.domLen[iSub] = this->subdomains[iSub]->localRLen();
+	// Compute total this->interface length, total internal length
+	// and total half this->interface length
+	int tInterfLen    = 0;
+	int tLocalLen     = 0;
+	int tLocalRLen    = 0;
+	this->halfSize = 0;
+	for(iSub = 0; iSub < this->nsub; ++iSub) {
+		this->fetiOps[iSub] = new GenFetiOp<Scalar>;
+		this->interface.domLen[iSub] = this->subdomains[iSub]->interfLen();
+		this->internalDI.domLen[iSub]  = this->subdomains[iSub]->getNumUncon();
+		internalR.domLen[iSub] = this->subdomains[iSub]->localRLen();
 
-   this->subdomains[iSub]->computeMasterFlag(*this->mpcToSub);
-   this->fetiOps[iSub]->setHalfOffset(this->halfSize);
-   this->halfSize      += this->subdomains[iSub]->halfInterfLen();
-   tInterfLen    += this->interface.domLen[iSub];
-   tLocalLen     += this->internalDI.domLen[iSub];
-   tLocalRLen    += internalR.domLen[iSub];
- }
- this->interface.len = tInterfLen;
- this->internalDI.len  = tLocalLen;
- internalR.len = tLocalRLen;
+		this->subdomains[iSub]->computeMasterFlag(*this->mpcToSub);
+		this->fetiOps[iSub]->setHalfOffset(this->halfSize);
+		this->halfSize      += this->subdomains[iSub]->halfInterfLen();
+		tInterfLen    += this->interface.domLen[iSub];
+		tLocalLen     += this->internalDI.domLen[iSub];
+		tLocalRLen    += internalR.domLen[iSub];
+	}
+	this->interface.len = tInterfLen;
+	this->internalDI.len  = tLocalLen;
+	internalR.len = tLocalRLen;
 
- // compute the masterFlags
- bool *interfaceMasterFlag = new bool[tInterfLen];
- this->interface.computeOffsets();
- for(iSub = 0; iSub < this->nsub; ++iSub) {
-   const bool *subMasterFlag = this->subdomains[iSub]->getMasterFlag();
-   int subOffset = this->interface.subOffset[iSub];
-   int j;
-   for(j=0; j<this->interface.domLen[iSub]; ++j)
-     interfaceMasterFlag[subOffset+j] = subMasterFlag[j];
- }
- this->interface.setMasterFlag(interfaceMasterFlag);
- this->internalDI.setMasterFlag();
- internalR.setMasterFlag();
- // don't delete interfaceMasterFlag
+	// compute the masterFlags
+	bool *interfaceMasterFlag = new bool[tInterfLen];
+	this->interface.computeOffsets();
+	for(iSub = 0; iSub < this->nsub; ++iSub) {
+		const bool *subMasterFlag = this->subdomains[iSub]->getMasterFlag();
+		int subOffset = this->interface.subOffset[iSub];
+		int j;
+		for(j=0; j<this->interface.domLen[iSub]; ++j)
+			interfaceMasterFlag[subOffset+j] = subMasterFlag[j];
+	}
+	this->interface.setMasterFlag(interfaceMasterFlag);
+	this->internalDI.setMasterFlag();
+	internalR.setMasterFlag();
+	// don't delete interfaceMasterFlag
 
- // Allocate space for reorthogonalization set
- this->times.memoryOSet -= memoryUsed();
- if((fetiInfo->outerloop == 0) || (fetiInfo->outerloop == 3))
-   this->oSetCG = (fetiInfo->maxortho > 0) ? new GenCGOrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom) : 0;
- else if(fetiInfo->outerloop == 1)
-   this->oSetGMRES = new GenGMRESOrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom);
- else
-   this->oSetGCR = new GenGCROrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom);
- this->times.memoryOSet += memoryUsed();
+	// Allocate space for reorthogonalization set
+	this->times.memoryOSet -= memoryUsed();
+	if((fetiInfo->outerloop == 0) || (fetiInfo->outerloop == 3))
+		this->oSetCG = (fetiInfo->maxortho > 0) ? new GenCGOrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom) : 0;
+	else if(fetiInfo->outerloop == 1)
+		this->oSetGMRES = new GenGMRESOrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom);
+	else
+		this->oSetGCR = new GenGCROrthoSet<Scalar>(this->halfSize, fetiInfo->maxortho, this->fetiCom);
+	this->times.memoryOSet += memoryUsed();
 
- if(sysMatrices.size() != 0) {
-   for(iSub = 0; iSub < this->nsub; ++iSub) {
-     this->subdomains[iSub]->Krr = std::move(sysMatrices[iSub]);
-     this->subdomains[iSub]->KrrSparse = sysSparse[iSub];
-     if(fetiInfo->printMatLab) {
-       std::stringstream filename;
-       filename << "localmat" << this->subdomains[iSub]->subNum();
-       this->subdomains[iSub]->KrrSparse->printSparse(filename.str());
-     }
-     this->fetiOps[iSub]->setSysMatrix(this->subdomains[iSub]->Krr.get(), sysSparse[iSub]);
-   }
- }
+	if(sysMatrices.size() != 0) {
+		for(iSub = 0; iSub < this->nsub; ++iSub) {
+			this->subdomains[iSub]->Krr = std::move(sysMatrices[iSub]);
+			this->subdomains[iSub]->KrrSparse = sysSparse[iSub];
+			if(fetiInfo->printMatLab) {
+				std::stringstream filename;
+				filename << "localmat" << this->subdomains[iSub]->subNum();
+				this->subdomains[iSub]->KrrSparse->printSparse(filename.str());
+			}
+			this->fetiOps[iSub]->setSysMatrix(this->subdomains[iSub]->Krr.get(), sysSparse[iSub]);
+		}
+	}
 
- if(verboseFlag) filePrint(stderr," ... Build Edge Augmentation (Q)    ... \n");
- computeLocalWaveNumbers();
- paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::makeQ);  // build augmentation matrix
- if(fetiInfo->augment == FetiInfo::Gs) {
-   // exchange number of each neighbors rbms
-   paralApply(this->nsub, this->sd, &BaseSub::sendNumNeighbGrbm, this->sPat);
-   this->sPat->exchange();
-   paralApply(this->nsub, this->sd, &BaseSub::recvNumNeighbGrbm, this->sPat);
- }
+	if(verboseFlag) filePrint(stderr," ... Build Edge Augmentation (Q)    ... \n");
+	computeLocalWaveNumbers();
+	paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::makeQ);  // build augmentation matrix
+	if(fetiInfo->augment == FetiInfo::Gs) {
+		// exchange number of each neighbors rbms
+		paralApply(this->nsub, this->sd, &BaseSub::sendNumNeighbGrbm, this->sPat);
+		this->sPat->exchange();
+		paralApply(this->nsub, this->sd, &BaseSub::recvNumNeighbGrbm, this->sPat);
+	}
 
- // Compute stiffness scaling if required
- // this also perform the LMPCs stiffness scaling/splitting for the primal method
- paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::initScaling);
- if((fetiInfo->scaling == FetiInfo::kscaling) || ((fetiInfo->mpc_scaling == FetiInfo::kscaling) && (this->glNumMpc_primal > 0)) 
-    || (fetiInfo->augment == FetiInfo::WeightedEdges)) {
-   execParal(this->nsub, this, &GenFetiSolver<Scalar>::sendScale);
-   this->vPat->exchange();
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::collectScaling, this->vPat);
- }
- if(domain->solInfo().isCoupled) 
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::scaleAndSplitKww);
+	// Compute stiffness scaling if required
+	// this also perform the LMPCs stiffness scaling/splitting for the primal method
+	paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::initScaling);
+	if((fetiInfo->scaling == FetiInfo::kscaling) || ((fetiInfo->mpc_scaling == FetiInfo::kscaling) && (this->glNumMpc_primal > 0))
+	   || (fetiInfo->augment == FetiInfo::WeightedEdges)) {
+		execParal(this->nsub, this, &GenFetiSolver<Scalar>::sendScale);
+		this->vPat->exchange();
+		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::collectScaling, this->vPat);
+	}
+	if(domain->solInfo().isCoupled)
+		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::scaleAndSplitKww);
 
- if(fetiInfo->augment == FetiInfo::WeightedEdges)
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // W*Q
+	if(fetiInfo->augment == FetiInfo::WeightedEdges)
+		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // W*Q
 
- // MPCs 
- mpcPrecon = false; 
- if(this->glNumMpc > 0) { 
-   if(fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
-     FSCommPattern<Scalar> *mpcDiagPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU, 
-                                                                   FSCommPattern<Scalar>::CopyOnSend);
-     for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcDiagCommSize(mpcDiagPat);
-     mpcDiagPat->finalize();
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcDiag, mpcDiagPat);
-     mpcDiagPat->exchange();
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcDiag, mpcDiagPat);
-     delete mpcDiagPat;
-   }
+	// MPCs
+	mpcPrecon = false;
+	if(this->glNumMpc > 0) {
+		if(fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
+			FSCommPattern<Scalar> *mpcDiagPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU,
+			                                                              FSCommPattern<Scalar>::CopyOnSend);
+			for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcDiagCommSize(mpcDiagPat);
+			mpcDiagPat->finalize();
+			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcDiag, mpcDiagPat);
+			mpcDiagPat->exchange();
+			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcDiag, mpcDiagPat);
+			delete mpcDiagPat;
+		}
 
-   if(fetiInfo->c_normalize) normalizeC();
- 
-   if(fetiInfo->mpc_precno == FetiInfo::diagCCt) {
-     // use W scaling for preconditioning mpcs, don't need to build & invert CC^t
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcScaling, this->vPat);
-     this->vPat->exchange();  // neighboring subs mpc weights
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcScaling, this->vPat);
-   }
-   else if(fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
-     // used generalized proconditioner for mpcs, need to build and invert CC^t
-     mpcPrecon = true;
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcScaling);
-     buildCCt();
-   }
- }
+		if(fetiInfo->c_normalize) normalizeC();
 
- // Factor matrices: K and Kii (if dirichlet preconditioner))
- if(verboseFlag) filePrint(stderr," ... Factor Subdomain Matrices      ... \n");
- startTimerMemory(this->times.factor, this->times.memoryFactor);
- if(fetiInfo->local_cntl->subtype != FetiInfo::spooles && fetiInfo->local_cntl->subtype != FetiInfo::mumps) // spooles/mumps factor is apparently not thread-safe
-   timedParal(this->times.factorMat, this->nsub, this, &GenFetiDPSolver<Scalar>::factorLocalMatrices);
- else 
-   for(iSub=0; iSub<this->nsub; ++iSub) factorLocalMatrices(iSub);
- 
- stopTimerMemory(this->times.factor, this->times.memoryFactor);
- if(fetiInfo->augment == FetiInfo::Gs) {
-   this->makeRbmPat();
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::precondGrbm);
-   // Get all the numbers of rigid body modes and dispatch RBMs to neighbors
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::sendInterfaceGrbm, this->rbmPat);
-   this->rbmPat->exchange();
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::receiveInterfaceGrbm, this->rbmPat);
- }
+		if(fetiInfo->mpc_precno == FetiInfo::diagCCt) {
+			// use W scaling for preconditioning mpcs, don't need to build & invert CC^t
+			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcScaling, this->vPat);
+			this->vPat->exchange();  // neighboring subs mpc weights
+			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcScaling, this->vPat);
+		}
+		else if(fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
+			// used generalized proconditioner for mpcs, need to build and invert CC^t
+			mpcPrecon = true;
+			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcScaling);
+			buildCCt();
+		}
+	}
 
- // Make coarse problems (Kcc^* and GtG)
- makeKcc();
- if(ngrbms) makeGtG();  // currently G = C^T*R (ie restriction of R to mpc interface)
+	// Factor matrices: K and Kii (if dirichlet preconditioner))
+	if(verboseFlag) filePrint(stderr," ... Factor Subdomain Matrices      ... \n");
+	startTimerMemory(this->times.factor, this->times.memoryFactor);
+	if(fetiInfo->local_cntl->subtype != FetiInfo::spooles && fetiInfo->local_cntl->subtype != FetiInfo::mumps) // spooles/mumps factor is apparently not thread-safe
+		timedParal(this->times.factorMat, this->nsub, this, &GenFetiDPSolver<Scalar>::factorLocalMatrices);
+	else
+		for(iSub=0; iSub<this->nsub; ++iSub) factorLocalMatrices(iSub);
 
- // build CC^t for preconditioning mpc residual if necessary
- // done earlier if(mpcPrecon) buildCCt();
+	stopTimerMemory(this->times.factor, this->times.memoryFactor);
+	if(fetiInfo->augment == FetiInfo::Gs) {
+		this->makeRbmPat();
+		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::precondGrbm);
+		// Get all the numbers of rigid body modes and dispatch RBMs to neighbors
+		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::sendInterfaceGrbm, this->rbmPat);
+		this->rbmPat->exchange();
+		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::receiveInterfaceGrbm, this->rbmPat);
+	}
 
- if(domain->solInfo().isCoupled) wetInterfaceComms();
+	// Make coarse problems (Kcc^* and GtG)
+	makeKcc();
+	if(ngrbms) makeGtG();  // currently G = C^T*R (ie restriction of R to mpc interface)
 
- int tLocalCLen = 0;
- for(iSub = 0; iSub < this->nsub; ++iSub) {
-   internalC.domLen[iSub] = this->subdomains[iSub]->numCoarseDofs();
-   tLocalCLen += internalC.domLen[iSub];
- }
- internalC.len = tLocalCLen;
+	// build CC^t for preconditioning mpc residual if necessary
+	// done earlier if(mpcPrecon) buildCCt();
 
- if(domain->solInfo().isCoupled) {
-   int tLocalWILen = 0;
-   for(iSub = 0; iSub < this->nsub; ++iSub) {
-     internalWI.domLen[iSub] = this->subdomains[iSub]->numWetInterfaceDofs();
-     tLocalWILen += internalWI.domLen[iSub];
-   }
-   internalWI.len = tLocalWILen;
-   internalWI.setMasterFlag();
- }
+	if(domain->solInfo().isCoupled) wetInterfaceComms();
 
- // Allocate Distributed Vectors necessary for FETI solve loop
- this->times.memoryDV -= memoryUsed();
- int numC = (KccSolver) ? KccSolver->neqs() : 0;
- if(KccParallelSolver) numC = coarseInfo->totLen();
- this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
- this->times.memoryDV += memoryUsed();
+	int tLocalCLen = 0;
+	for(iSub = 0; iSub < this->nsub; ++iSub) {
+		internalC.domLen[iSub] = this->subdomains[iSub]->numCoarseDofs();
+		tLocalCLen += internalC.domLen[iSub];
+	}
+	internalC.len = tLocalCLen;
 
- paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcStatus);
+	if(domain->solInfo().isCoupled) {
+		int tLocalWILen = 0;
+		for(iSub = 0; iSub < this->nsub; ++iSub) {
+			internalWI.domLen[iSub] = this->subdomains[iSub]->numWetInterfaceDofs();
+			tLocalWILen += internalWI.domLen[iSub];
+		}
+		internalWI.len = tLocalWILen;
+		internalWI.setMasterFlag();
+	}
 
- t6 += getTime();
+	// Allocate Distributed Vectors necessary for FETI solve loop
+	this->times.memoryDV -= memoryUsed();
+	int numC = (KccSolver) ? KccSolver->neqs() : 0;
+	if(KccParallelSolver) numC = coarseInfo->totLen();
+	this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
+	this->times.memoryDV += memoryUsed();
+
+	paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcStatus);
+
+	t6 += getTime();
 }
 
 template<class Scalar>
@@ -2620,25 +2619,6 @@ GenFetiDPSolver<Scalar>::setBodyRBMoffset(int iSub, int *zColOffset)
 {
   int subBody = (*subToBody)[this->subdomains[iSub]->subNum()][0];
   this->sd[iSub]->setBodyRBMoffset(zColOffset[subBody]);
-}
-
-template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::initialize()
-{
-  KccSolver = 0; KccParallelSolver = 0; KccSparse = 0; glNumCorners = 0;
-  cornerToSub = 0; cornerEqs = 0;
-  mpcOffset = 0;
-  ngrbmGr = 0; nGroups = 0; nGroups1 = 0; groups = 0;
-  groupToSub = 0; bodyToSub = 0; subToBody = 0; subToGroup = 0;
-  GtGtilda = 0; coarseConnectGtG = 0; eqNumsGtG = 0;
-  ngrbms = 0;
-  mpcToMpc = 0; CCtsolver = 0; 
-  subsWithMpcs = 0; numSubsWithMpcs = 0; mpcSubMap = 0;
-  dualStatusChange = primalStatusChange = stepLengthChange = false;
-  nMatVecProd = nRebuildGtG = nRebuildCCt = nLinesearch = nLinesearchIter = nSubIterDual = nSubIterPrimal = nStatChDual = nStatChPrimal = 0;
-  mpcPat = 0;
-  kccrbms = 0;
 }
 
 template<class Scalar>

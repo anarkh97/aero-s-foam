@@ -75,7 +75,6 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
                                      GenSolver<Scalar> **sysMatrices, GenSparseMatrix<Scalar> **sysSparse, Rbm **_rbms, int _verboseFlag) :
 	subdomains(_sd, _sd+_nsub), internalDI(_nsub), interface(_nsub), times(threadManager->numThr(), _nsub), verboseFlag(_verboseFlag)
 {
-	initialize(); // Initialize pointers and variables
 
 	// Compute memory used by FETI Solver
 	times.memoryFETI -= memoryUsed();
@@ -235,7 +234,7 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
 template <class Scalar>
 GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **subs, int _numThreads, int _verboseFlag)
 	: subdomains(subs, subs+_nsub), internalDI(_nsub),
-	  interface(_nsub), times(_numThreads,_nsub), verboseFlag(_verboseFlag) { initialize(); }
+	  interface(_nsub), times(_numThreads,_nsub), verboseFlag(_verboseFlag) { }
 
 template<class Scalar>
 double
@@ -3407,25 +3406,6 @@ GenFetiSolver<Scalar>::GMRESSolution(GenDistrVector<Scalar> &p)
 	vPat->exchange();
 	timedParal(times.orthogonalize, nsub, this,
 	             &GenFetiSolver<Scalar>::rebuildInterface, p);
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::initialize()
-{
-	sd = 0; fetiInfo = 0; subToSub = 0; mpcToSub = 0;
-	edgeToSub = 0; subToEdge = 0; coarseConnect = 0;
-	renum = 0; eqNums = 0; PFcNums = 0;
-	singleCoarse = 0; singleCoarseSolver = 0;
-	oSetCG = 0; oSetGMRES = 0; oSetGCR = 0; glSubToLoc = 0;
-	fetiTasks = 0; fetiOps = 0; opControl = 0;
-	GtGsolver = 0; PCtFPC = 0; wksp = 0;
-	GtQGs = 0; GtFCs = 0; gtqglocal = 0;
-	numNodes = 0; glNumRBM = 0; numrbms = 0; //numP = 0;
-	nsub = 0; numSystems = 0; crns = 0;
-	vPat = 0; rbmPat = 0; sPat = 0;
-	cpuToSub = 0; wiPat = 0;
-	glNumMpc = 0; glNumMpc_primal = 0;
 }
 
 template<class Scalar>

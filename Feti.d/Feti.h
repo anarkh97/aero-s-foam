@@ -68,54 +68,54 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
 {
 protected:
 	std::vector<FetiSub<Scalar> *> subdomains;
-	GenSubDomain<Scalar> **sd;
-	int nsub, glNumSub;
-	FetiInfo *fetiInfo;
+	GenSubDomain<Scalar> **sd = nullptr;
+	int nsub = 0, glNumSub = 0;
+	FetiInfo *fetiInfo = nullptr;
 	int verboseFlag;
-	FSCommunicator *fetiCom;
+	FSCommunicator *fetiCom = nullptr;
 	int myCPU, numCPUs;
-	Connectivity *subToSub, *mpcToSub, *mpcToSub_primal;
-	Connectivity *edgeToSub, *subToEdge;
-	Connectivity *coarseConnect;  // first level coarse prob. connectivity
-	compStruct *renum;
+	Connectivity *subToSub = nullptr, *mpcToSub = nullptr, *mpcToSub_primal = nullptr;
+	Connectivity *edgeToSub = nullptr, *subToEdge = nullptr;
+	Connectivity *coarseConnect = nullptr;  // first level coarse prob. connectivity
+	compStruct *renum = nullptr;
 	compStruct renumber;
-	SimpleNumberer *eqNums;
-	SimpleNumberer *PFcNums;
+	SimpleNumberer *eqNums = nullptr;
+	SimpleNumberer *PFcNums = nullptr;
 	int gOffset;
 	int mOffset;
-	GenSparseMatrix<Scalar> *singleCoarse;
-	GenSolver<Scalar> *singleCoarseSolver;
+	GenSparseMatrix<Scalar> *singleCoarse = nullptr;
+	GenSolver<Scalar> *singleCoarseSolver = nullptr;
 	double epsilon2;
 	int maxiter;
-	mutable GenCGOrthoSet<Scalar> *oSetCG; // Workspace
-	mutable GenGMRESOrthoSet<Scalar> *oSetGMRES;
-	mutable GenGCROrthoSet<Scalar> *oSetGCR;
+	mutable GenCGOrthoSet<Scalar> *oSetCG = nullptr; // Workspace
+	mutable GenGMRESOrthoSet<Scalar> *oSetGMRES = nullptr;
+	mutable GenGCROrthoSet<Scalar> *oSetGCR = nullptr;
 	int numP;
-	int numrbms, halfSize; // number of  rbms, half interface size
-	int glNumRBM;
+	int numrbms = 0, halfSize = 0; // number of  rbms, half interface size
+	int glNumRBM = 0;
 	DistrInfo internalDI, interface;
-	FSCommPattern<Scalar> *vPat;
-	FSCommPattern<Scalar> *rbmPat;
-	FSCommPattern<int> *sPat;
-	int *glSubToLoc;
-	int crns; // sum of corner lambdas of all subdomains
-	TaskDescr **fetiTasks;
-	GenFetiOp<Scalar> **fetiOps;
-	mutable GenFetiOpControler<Scalar> *opControl;
-	GenSolver<Scalar> *GtGsolver;
-	GenBigMatrix<Scalar> *PCtFPC;
-	GenFetiWorkSpace<Scalar> *wksp;
+	FSCommPattern<Scalar> *vPat = nullptr;
+	FSCommPattern<Scalar> *rbmPat = nullptr;
+	FSCommPattern<int> *sPat = nullptr;
+	int *glSubToLoc = nullptr;
+	int crns = 0; // sum of corner lambdas of all subdomains
+	TaskDescr **fetiTasks = nullptr;
+	GenFetiOp<Scalar> **fetiOps = nullptr;
+	mutable GenFetiOpControler<Scalar> *opControl = nullptr;
+	GenSolver<Scalar> *GtGsolver = nullptr;
+	GenBigMatrix<Scalar> *PCtFPC = nullptr;
+	GenFetiWorkSpace<Scalar> *wksp = nullptr;
 	int QGisLocal;  // Whether or not QG is local
 	int isDynamic;  // Whether or not we are in dynamics
 	int isFeti2;    // Whether or not we are using FETI2
-	mutable int numSystems; // Nonlinear additions
+	mutable int numSystems = 0; // Nonlinear additions
 	mutable Timings times;
-	GenSymFullMatrix<Scalar> *GtQGs;
-	GenFullM<Scalar> *GtFCs;
-	Scalar *gtqglocal;
-	int numNodes;
-	Connectivity *cpuToSub;
-	int glNumMpc, glNumMpc_primal;
+	GenSymFullMatrix<Scalar> *GtQGs = nullptr;
+	GenFullM<Scalar> *GtFCs = nullptr;
+	Scalar *gtqglocal = nullptr;
+	int numNodes = 0;
+	Connectivity *cpuToSub = nullptr;
+	int glNumMpc = 0, glNumMpc_primal = 0;
 
 	void makeGtG();
 	void makeDistGtG(int *glSubToLocal);
@@ -178,11 +178,7 @@ protected:
 	void getQtKpBMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv) const;
 	void getNeighbFGs(int iSub);
 
-private:
-	void initialize();
-
 public:
-	//GenFetiSolver() { initialize(); };
 	GenFetiSolver(int nsub, GenSubDomain<Scalar> **, Connectivity *,
 	              FetiInfo *finfo, FSCommunicator *fetiCom, int *glToLoc,
 	              Connectivity *mpcToSub, Connectivity *cpuToSub,
@@ -319,7 +315,7 @@ public:
 	virtual void getLocalMpcForces(int iSub, double *mpcLambda) { };  // only implemented for DP
 
 protected:
-	FSCommPattern<Scalar> *wiPat;
+	FSCommPattern<Scalar> *wiPat = nullptr;
 };
 
 template<class Scalar>
@@ -329,16 +325,15 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
 	using GenFetiSolver<Scalar>::verboseFlag;
 
 	DistrInfo internalR, internalC, internalWI;
-	DistrInfo *coarseInfo;
-	GenSolver<Scalar>         *KccSolver;
-	GenParallelSolver<Scalar> *KccParallelSolver;
-	Scalar *kccrbms;
-	GenSparseMatrix<Scalar> *KccSparse;
-	int glNumCorners;
-	Connectivity *cornerToSub;
-	DofSetArray *cornerEqs;
-	int mpcOffset, augOffset; // mpc equation offset for coarse grid
-	void initialize();
+	DistrInfo *coarseInfo = nullptr;
+	GenSolver<Scalar>         *KccSolver = nullptr;
+	GenParallelSolver<Scalar> *KccParallelSolver = nullptr;
+	Scalar *kccrbms = nullptr;
+	GenSparseMatrix<Scalar> *KccSparse = nullptr;
+	int glNumCorners = 0;
+	Connectivity *cornerToSub = nullptr;
+	DofSetArray *cornerEqs = nullptr;
+	int mpcOffset = 0, augOffset = 0; // mpc equation offset for coarse grid
 	bool rbmFlag;
 	bool geometricRbms;
 	enum StepType { CG, PROPORTIONING, EXPANSION };
@@ -433,31 +428,30 @@ public:
 private:
 	bool globalFlagCtc;
 	mutable double t7;
-	int *ngrbmGr;
-	int nGroups, nGroups1;
-	int *groups;
-	Connectivity *groupToSub, *bodyToSub, *subToGroup;
-	GenSolver<Scalar> *GtGtilda;
-	GenSparseMatrix<Scalar> *GtGsparse;
-	Connectivity *subToBody;
+	int *ngrbmGr = nullptr;
+	int nGroups = 0, nGroups1 = 0;
+	int *groups = nullptr;
+	Connectivity *groupToSub = nullptr, *bodyToSub = nullptr, *subToGroup = nullptr;
+	GenSolver<Scalar> *GtGtilda = nullptr;
+	GenSparseMatrix<Scalar> *GtGsparse = nullptr;
+	Connectivity *subToBody = nullptr;
 	/// Statistic variables.
-	mutable int nSubIterDual, nSubIterPrimal, nMatVecProd, nRebuildGtG, nRebuildCCt;
-	mutable int nLinesearch, nLinesearchIter, nStatChDual, nStatChPrimal;
-	mutable bool dualStatusChange, primalStatusChange, stepLengthChange;
-	int ngrbms;
-	Connectivity *coarseConnectGtG;
-	SimpleNumberer *eqNumsGtG;
-	Connectivity *mpcToMpc;
-	CCtSolver<Scalar> *CCtsolver;
+	mutable int nSubIterDual = 0, nSubIterPrimal = 0, nMatVecProd = 0, nRebuildGtG = 0, nRebuildCCt = 0;
+	mutable int nLinesearch = 0, nLinesearchIter = 0, nStatChDual = 0, nStatChPrimal = 0;
+	mutable bool dualStatusChange = false, primalStatusChange = false, stepLengthChange = false;
+	int ngrbms = 0;
+	Connectivity *coarseConnectGtG = nullptr;
+	SimpleNumberer *eqNumsGtG = nullptr;
+	Connectivity *mpcToMpc = nullptr;
+	CCtSolver<Scalar> *CCtsolver = nullptr;
 	bool mpcPrecon;  // mpc preconditioner flag, true = use generalized preconditioner with CCt
 	// false = use scaling method (diagonal CCt) or no preconditioning
-	SimpleNumberer *mpcEqNums;
-	Connectivity *mpcToCpu;
-	ResizeArray<GenSubDomain<Scalar> *> *subsWithMpcs;
-	int numSubsWithMpcs;
-	int *mpcSubMap;
+	Connectivity *mpcToCpu = nullptr;
+	ResizeArray<GenSubDomain<Scalar> *> *subsWithMpcs = nullptr;
+	int numSubsWithMpcs = 0;
+	int *mpcSubMap = nullptr;
 	void singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow, int &rank, double tol, FullM *V = 0);
-	FSCommPattern<int> *mpcPat;
+	FSCommPattern<int> *mpcPat = nullptr;
 	mutable double lastError;
 
 	// Contact functions

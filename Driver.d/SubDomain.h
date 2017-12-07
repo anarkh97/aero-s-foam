@@ -540,7 +540,6 @@ public:
 	                     Connectivity *subToEdge);
 //  void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd);
 	void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
-	void assembleKccStar(GenSparseMatrix<Scalar> *KccStar);
 	void deleteKcc();
 	void multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
 	void normalizeCstep1(Scalar *cnorm);

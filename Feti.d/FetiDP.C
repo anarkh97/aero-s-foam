@@ -640,35 +640,41 @@ GenFetiDPSolver<Scalar>::makeKcc()
      filePrint(stderr, " *** ERROR: mpc_type 2 is not supported with no corners *** \n"); 
      exit(-1);
    }
-   if(verboseFlag) filePrint(stderr, " ... Computing multi-body GRBMs     ...\n");
-   // calculate the centroid of each group
-   double *centroid = new double[nGroups*3];   // pseudo centroid of each group
-   double *nNodes = new double[nGroups];       // number of nodes in each group;
-   for(int i = 0; i < nGroups; ++i) {
-     nNodes[i] = 0.0;
-     for(int j = 0; j < 3; ++j) centroid[3*i+j] = 0.0;
-   }
-   for(int i = 0; i < this->nsub; ++i) this->sd[i]->addNodeXYZ(centroid, nNodes);  // groups could be done in parallel
+	 if(verboseFlag) filePrint(stderr, " ... Computing multi-body GRBMs     ...\n");
+	 // calculate the centroid of each group
+	 std::vector<double> centroid(nGroups*3);   // pseudo centroid of each group
+	 std::vector<double> nNodes(nGroups);       // number of nodes in each group;
+	 for(int i = 0; i < nGroups; ++i) {
+		 nNodes[i] = 0.0;
+		 for(int j = 0; j < 3; ++j) centroid[3*i+j] = 0.0;
+	 }
+
+	 // groups could be done in parallel
+	 for(int i = 0; i < this->nsub; ++i) {
+		 auto csum = this->subdomains[i]->getNodeSet().computeSums();
+		 for (int j = 0; j < 3; ++j)
+			 centroid[this->subdomains[i]->group*3+j] = csum.first[j];
+		 nNodes[this->subdomains[i]->group] += csum.second;
+	 }
+
 #ifdef DISTRIBUTED
-   this->fetiCom->globalSum(nGroups, nNodes);
-   this->fetiCom->globalSum(nGroups*3, centroid);
+	 this->fetiCom->globalSum(nGroups, nNodes.data());
+	 this->fetiCom->globalSum(nGroups*3, centroid.data());
 #endif
-   for(int i = 0; i < nGroups; ++i) {
-     if(nNodes[i] > 0) 
-       for(int j = 0; j < 3; ++j) 
-         centroid[3*i+j] = centroid[3*i+j]/nNodes[i];
-   }
-   // note: this centroid calculation assumes nodes are equally spaced, and also
-   // interface nodes from a group split over more than one interface are used more than once.
-   // however, the objective is only to find a point inside the group to be used as 
-   // a reference for the geometric rbm calculation.  it is not necessary to use the exact
-   // geometric centroid.
-   delete [] nNodes;
- 
-   // make Zstar and R matrices for each subdomain
-   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeZstarAndR, centroid);
-   delete [] centroid;
- 
+	 for(int i = 0; i < nGroups; ++i) {
+		 if(nNodes[i] > 0)
+			 for(int j = 0; j < 3; ++j)
+				 centroid[3*i+j] = centroid[3*i+j]/nNodes[i];
+	 }
+	 // note: this centroid calculation assumes nodes are equally spaced, and also
+	 // interface nodes from a group split over more than one interface are used more than once.
+	 // however, the objective is only to find a point inside the group to be used as
+	 // a reference for the geometric rbm calculation.  it is not necessary to use the exact
+	 // geometric centroid.
+
+	 // make Zstar and R matrices for each subdomain
+   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeZstarAndR, centroid.data());
+
    Connectivity *groupToMpc = 0;
    if(this->glNumMpc_primal > 0) {
      Connectivity *subToMpc = this->mpcToSub_primal->reverse();
@@ -1053,7 +1059,10 @@ GenFetiDPSolver<Scalar>::makeKcc()
   
      t0 -= getTime();
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofs, cornerEqs, augOffset, this->subToEdge, mpcOffset);
-     if(KccSparse) for(iSub = 0; iSub < this->nsub; ++iSub) this->sd[iSub]->assembleKccStar(KccSparse); // assemble local Kcc^* into global Kcc^*
+     if(KccSparse)
+	     for (const auto &subdomain : this->subdomains)
+		     KccSparse->add(*subdomain->Kcc, subdomain->getCornerEqNums().data());
+
      t0 += getTime();
   
      // Factor coarse solver

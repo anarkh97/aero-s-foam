@@ -130,7 +130,7 @@ CoordSet::size() const
   return last;
 }
 
-int CoordSet::nnz()
+int CoordSet::nnz() const
 {
   int ret = 0;
   for(int i = 0; i < nmax; ++i)
@@ -146,4 +146,16 @@ CoordSet::dofFrame(int i) const
   int cd;
   if(i < nmax && nodes[i] && (cd = nodes[i]->cd) > 0) return &(geoSource->getNFrames()[cd]);
   else return NULL;
+}
+
+std::pair<Eigen::Matrix<double, 3, 1>, int> CoordSet::computeSums() const {
+    using V3D = Eigen::Matrix<double, 3, 1>;
+    V3D coordSum{0.0, 0.0, 0.0};
+    int count = 0;
+    for(int i = 0; i < nmax; ++i)
+        if(nodes[i]) {
+            ++count;
+            coordSum += V3D{nodes[i]->x, nodes[i]->y, nodes[i]->z};
+        }
+    return {coordSum, count};
 }

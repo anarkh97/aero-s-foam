@@ -13,6 +13,7 @@
 #include <complex>
 #include <set>
 #include <map>
+#include <Eigen/Dense>
 
 class Corotator;
 class State;
@@ -273,24 +274,24 @@ typedef std::map<int, StructProp, std::less<int>, block_allocator<std::pair<cons
 // ****************************************************************
 
 class Node {
-  public:
+public:
 	// Constructors
-        Node() {}
-        Node(double *xyz, int _cp=0, int _cd=0) { x = xyz[0]; y = xyz[1]; z = xyz[2]; cp = _cp, cd = _cd; }
-        Node(const Node &node) { x = node.x; y = node.y; z = node.z; cp = node.cp; cd = node.cd; }
+	Node() {}
+	Node(double *xyz, int _cp=0, int _cd=0) { x = xyz[0]; y = xyz[1]; z = xyz[2]; cp = _cp, cd = _cd; }
+	Node(const Node &node) = default;
 	~Node() {};
 	double distance2(const Node& node) const
-	   { return (node.x-x)*(node.x-x)+(node.y-y)*(node.y-y)+(node.z-z)*(node.z-z); }
-        double distance(const Node &node) const { return sqrt(distance2(node)); }
+	{ return (node.x-x)*(node.x-x)+(node.y-y)*(node.y-y)+(node.z-z)*(node.z-z); }
+	double distance(const Node &node) const { return sqrt(distance2(node)); }
 
 	// Coordinates
 	double 	x;
 	double 	y;
 	double 	z;
 
-        // Frames
-        int cp;
-        int cd;
+	// Frames
+	int cp;
+	int cd;
 };
 
 // ****************************************************************
@@ -303,35 +304,46 @@ class Node {
 // ****************************************************************
 
 class CoordSet {
-        int nmax;
-        int last;
+	int nmax;
+	int last;
 	Node **nodes;
-        BlockAlloc ba;
-        
+	BlockAlloc ba;
+
 public:
-        // Constructors
-        CoordSet(int = 256);
-        CoordSet(const CoordSet&);
+	// Constructors
+	CoordSet(int = 256);
+	CoordSet(const CoordSet&);
 
-        // Destructor
-        ~CoordSet();
+	// Destructor
+	~CoordSet();
 
-        // Assignment operator
-        CoordSet & operator = (const CoordSet & other);
+	// Assignment operator
+	CoordSet & operator = (const CoordSet & other);
 
-	// Member functions
-        int size() const;
-        void  nodeadd(int n, double*xyz, int cp=0, int cd=0);
-        void  nodeadd(int n, Node &node);
+	/// \brief Obtain the highest node number plus 1.
+	int size() const;
+	/** \brief Insert a new node to the set.
+	 *
+	 * @param n Node index.
+	 * @param xyz 3D coordinates of the node to add.
+	 * @param cp Frame index.
+	 * @param cd Frame index
+	 */
+	void  nodeadd(int n, double*xyz, int cp=0, int cd=0);
+	/// \brief Inset a new node.
+	void  nodeadd(int n, Node &node);
 	Node &getNode(int n);
-        void getCoordinates(int *nn, int numNodes,
-                            double *xx, double *yy, double *zz);
+	void getCoordinates(int *nn, int numNodes,
+	                    double *xx, double *yy, double *zz);
 
-        Node * operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
-        Node *& operator[] (int i);
+	Node * operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
+	Node *& operator[] (int i);
 
-        int nnz();
-        NFrameData * dofFrame(int i) const;
+	/// \brief Count the actual number of defined nodes, skipping over gaps in numbering.
+	int nnz() const;
+
+	std::pair<Eigen::Matrix<double,3,1>, int> computeSums() const;
+	NFrameData * dofFrame(int i) const;
 };
 
 

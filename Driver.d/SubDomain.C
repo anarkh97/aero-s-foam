@@ -3798,13 +3798,6 @@ GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::assembleKccStar(GenSparseMatrix<Scalar> *KccStar)
-{
-  KccStar->add(*this->Kcc, cornerEqNums.data());
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::deleteKcc()
 {
    this->Kcc.reset(nullptr);

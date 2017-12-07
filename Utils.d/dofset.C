@@ -95,7 +95,6 @@ DofSet::number(DofSet r, int *list)
 //for DEC
 DofSetArray::DofSetArray(int nnode, int *dofsPerNode, int *renumtable)
 {
- initialize();
  numnodes = nnode;
  dofs = new DofSet[numnodes];
  myDofs = true;
@@ -117,7 +116,6 @@ DofSetArray::DofSetArray(int nnode, int *dofsPerNode, int *renumtable)
 
 DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
 {
- initialize();
  rowcolnum=invrowcol=dofType=0;
  myMap = _myMap;
  numnodes = nnode;
@@ -138,7 +136,6 @@ DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
 DofSetArray::DofSetArray(Element *ele)
 {
  // make a DofSetArray for one element, using the element's local node numbering
- initialize();
  myMap = 0;
  numnodes = ele->numNodes();
  dofs = new DofSet[numnodes];
@@ -181,7 +178,6 @@ DofSetArray::clean_up()
 
 DofSetArray::DofSetArray(int nnode, int *renumtable, int _myMap)
 {
- initialize();
  rowcolnum=invrowcol=dofType=0;
  myMap = _myMap;
  numnodes = nnode;

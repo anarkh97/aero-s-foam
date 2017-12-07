@@ -339,7 +339,7 @@ FetiHAxiSolver::makeCoarse() {
  for (i=0; i<nsub; ++i) {
     int Neighbors = mdAxi[i]->getSComm()->numNeighb;
     for (j=0; j<Neighbors; ++j)
-       coarseEqs->setWeight((*subToEdge)[i][j], mdAxi[i]->edgeDofSize[j]);
+       coarseEqs->setWeight((*subToEdge)[i][j], mdAxi[i]->numEdgeDofs(j));
  }
 
  coarseEqs->finish();

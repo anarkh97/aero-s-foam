@@ -887,7 +887,7 @@ MDAxiData::prepareCoarseData(DofSet ***allBoundary, int *counterInterf,
  int *nonZeroEdges = new int[scomm->numNeighb];
 
  Connectivity &sharedNodes = *(scomm->sharedNodes);
- edgeDofSize = new int[scomm->numNeighb];
+ edgeDofSize.resize(scomm->numNeighb);
 
  // 1. Count number of edge dofs
  int iSub, iNode;

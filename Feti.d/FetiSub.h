@@ -5,6 +5,9 @@
 #ifndef FEM_FETUSUB_H
 #define FEM_FETUSUB_H
 #include <vector>
+#include <Eigen/Dense>
+
+#include <Driver.d/SComm.h>
 
 class FSCommStructure;
 template <typename Scalar>
@@ -25,8 +28,6 @@ class DofSet;
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
 class FetiBaseSub {
 public:
-	/** \brief Obtain the number of neighbor subdomains. */
-	virtual int numNeighbors() const = 0;
 	/** \brief Obtain the size of the interface of this subdomain. */
 	virtual int interfLen() const = 0;
 	/** \brief Obtain the size of the half interface for which this subdomain is the master. */
@@ -89,6 +90,9 @@ public:
 	const std::vector<int> &getCornerNodes() const { return glCornerNodes; }
 	std::vector<int> &getCornerNodes() { return glCornerNodes; }
 	void markCornerDofs(int *glCornerDofs) const;
+
+	int numEdgeDofs(int i) const { return edgeDofSize[i]; }
+
 	/* missing:
 	 * splitInterf
 	 * setMpcNeighbCommSize
@@ -99,13 +103,42 @@ public:
 	std::vector<DofSet> cornerDofs;
 	DofSet *edgeDofs;      // JAT 112113
 
+	SComm *scomm = nullptr;
+
+	auto getCornerEqNums() const { return cornerEqNums; }
+	int getGroup() const { return group; }
+
+	SComm *getSComm() { return scomm; }
+	void setSComm(SComm *sc);
+	void setSendData(int neighb, void *data)
+	{ scomm->setExchangeData(neighb, data); }
+	void *getExchangeData(int neighbID) // Communication mechanism
+	{ return scomm->getExchangeData(neighbID); }
+	void *getExchangePointer(int neighbID) // Communication mechanism
+	{ return scomm->exchangeData[neighbID]; }
+	/** \brief Obtain the number of neighbor subdomains. */
+	int numNeighbors() const { return scomm->numNeighb;}
+	int numEdgeNeighbors() const { return scomm->numEdgeNeighb; }
+
 protected:
 	/// \brief Corner nodes in local numbering.
 	std::vector<int> cornerNodes;
-	std::vector<bool> isCornerNode;   // true for node which is a corner node; false otherwise
-	std::vector<int> glCornerNodes; // corner nodes in global numbering
+	std::vector<bool> isCornerNode;   //<! \brief True for node which is a corner node; false otherwise.
+	std::vector<int> glCornerNodes; //!< \brief Corner nodes in global numbering.
 	int numCRN = 0;
 	int numCRNdof = 0;
+	std::vector<int> edgeDofSize;      //<! \brief Number of edge DOF per neighbor.
+	std::vector<int> cornerEqNums; //<! \brief unique equation numbers for subdomain corner dofs
+	int group = 0;
+
+};
+
+template <typename Scalar>
+class _AVMatrix : public Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> {
+public:
+	_AVMatrix() {}
+	const Scalar *operator[](int i) const { return &(*this)(0, i); }
+	Scalar *operator[](int i) { return &(*this)(0, i); }
 };
 
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
@@ -175,6 +208,9 @@ public:
 	std::unique_ptr<GenAssembledFullM<Scalar>> Kcc;
 	std::unique_ptr<GenCuCSparse<Scalar>>      Krc;
 	std::unique_ptr<GenCuCSparse<Scalar>>      Grc;
+	_AVMatrix<Scalar> Ave;
+	_AVMatrix<Scalar> Eve;
+
 };
 
 #endif //FEM_FETUSUB_H

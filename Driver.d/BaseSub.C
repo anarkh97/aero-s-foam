@@ -103,11 +103,6 @@ BaseSub::initHelm(Domain &dom)
   //if(isMixedSub) filePrint(stderr," -> sub %d is a mixed fluid/structure subdomain\n",subNumber); //HB
 }
 
-void
-BaseSub::setSComm(SComm *sc)
-{
-  scomm = sc;
-}
 
 void
 BaseSub::makeDSA()
@@ -1626,7 +1621,6 @@ BaseSub::~BaseSub()
   if(ccToC) { delete [] ccToC; ccToC = 0; }
   if(crnPerNeighb) { delete [] crnPerNeighb; crnPerNeighb = 0; }
   if(cornerMap) { delete [] cornerMap; cornerMap = 0; }
-  if(cornerEqNums) { delete [] cornerEqNums; cornerEqNums = 0; }
   if(cc_dsa) { delete cc_dsa; cc_dsa = 0; }
   if(cToCC) { delete [] cToCC; cToCC = 0; }
 
@@ -1637,7 +1631,6 @@ BaseSub::~BaseSub()
   if(boundDofFlag) { delete [] boundDofFlag; boundDofFlag = 0; }
   if(weight) { delete [] weight; weight = 0; }  // ***
   if(neighbNumGRBMs) { delete [] neighbNumGRBMs; neighbNumGRBMs = 0; }
-  if(edgeDofSize) { delete [] edgeDofSize; edgeDofSize = 0; }
   if(edgeDofSizeTmp) { delete [] edgeDofSizeTmp; edgeDofSizeTmp = 0; }//HB can we delete it just after getKccDofs?
 //  if(glToLocalNode) { delete [] glToLocalNode; glToLocalNode = 0; }
   if(bcx) { delete [] bcx; bcx = 0; }
@@ -2147,287 +2140,6 @@ BaseSub::getDirections13(int numDirec, double *wDir_x, double *wDir_y, double *w
   }
 }
 
-/*
-void
-BaseSub::setQCommSize(FSCommPattern<double> *qPat)
-{
-  int iSub;
-  for(iSub = 0; iSub < scomm->numNeighb; ++iSub) 
-    qPat->setLen(subNumber, scomm->subNums[iSub], edgeDofSize[iSub]);
-}
-
-PJSA: experimental code, to replace 1st 1/2 of makeEdgeVectors and makeEdgeVectorsPlus
-void 
-BaseSub::makeEdgeQ(FSCommPattern<double> *qPat)
-{
-  int i;
-  double pi = 3.141592653589793;
-  int spaceDim = solInfo().solvercntl->fetiInfo.spaceDimension; // whether problem is 1D, 2D or 3D
-  if((spaceDim < 1) || (spaceDim > 3)) {
-    std::cerr << " *** ERROR: spacedim = " << spacedim << std::endl;
-    exit(-1);
-  }
-
-  // Step 0. compute number of EdgeGs directions
-  int numR;
-  DofSet desired;
-  int nrot[4] = { 0, 0, 1, 3 };
-  switch(solInfo().getFetiInfo().rbmType) { // cease reliance on nGs
-    case FetiInfo::translation :
-      numR = spaceDim;
-      desired = DofSet::XYZdisp; // FIX for 1d & 2d
-      break;
-    case FetiInfo::rotation :
-      numR = nrot[spaceDim];
-      desired = DofSet::XYZrot; // FIX for 1d & 2d 
-      break;
-    case FetiInfo::all :
-      numR = spaceDim + nrot[spaceDim];
-      desired = DofSet::XYZrot && DofSet::XYZdisp; // FIX for 1d & 2d
-      break;
-    case FetiInfo::pressure :
-      numR = 1;
-      desired = DofSet::Helm;
-      break;
-    case FetiInfo::temperature :
-      numR = 1;
-      desired = DofSet::Temp;
-      break;
-    case FetiInfo::None :
-    default :
-      numR = 0;
-      break;
-  }
-
-  // Step 1. compute EdgeWs wave directions
-  int numDirec = solInfo().getFetiInfo().numdir;    // Number of wave directions 
-  int numWaves;                                     // Number of long and trans waves
-  int numCS;                                        // Choose cos or/and sin mode
-  double *wDir_x = 0, *wDir_y = 0, *wDir_z = 0;     // To store the directions of the long and transverse waves
-  int numDofPerNode;
-
-  if(numDirec == 0) {  // set parameters for EdgeGs augmentaion only (i.e. no waves)
-    numCS = 0;
-    numWaves = 0;   
-  }
-  else {
-    numCS = 2;
-    numWaves = solInfo().isAcousticHelm() ? 1 : spaceDim;
-    wDir = new double * [spaceDim];
-    if(spaceDim == 1) {
-      numDirec = 1; // there is no point having more than one direction for 1D
-      wDir[0] = new double[1];
-      wDir[0][i] = 1.0; 
-    }
-    else if(spaceDim == 2) {
-      wDir[0] = new double[numWaves*numDirec];
-      wDir[1] = new double[numWaves*numDirec];
-      for(i = 0; i < numDirec; i++) {
-        double theta = (pi*i)/(numDirec);
-        wDir[0][i*numWaves] = cos(theta);
-        wDir[1][i*numWaves] = sin(theta);
-        if(numWaves == 2) {  // transverse wave
-          wDir[0][i*numWaves+1] = -sin(theta);
-          wDir[1][i*numWaves+1] = cos(theta);
-      }
-    }
-    else if(spaceDim == 3) {
-      // wDir_x, wDir_y and wDir_z are allocated inside getDirections
-      getDirections(numDirec, wDir_x, wDir_y, wDir_z); 
-    }
-    else {
-      std::cerr << " *** ERROR: spacedim " << spacedim << " is not implemented \n";
-      exit(-1);
-    }
-  }
-
-  Connectivity &sharedNodes = *(scomm->sharedNodes);
-  edgeDofSize = new int[scomm->numNeighb]; // number of augmentation degree of freedom per edge
-  int numInterfNodes = sharedNodes.numConnect();
-
-  int lQ = (numR + numDirec*numWaves*numCS)*numDofPerNode*numInterfNodes;
-  double *Q = new double[lQ];
-  for(i = 0; i < lQ; ++i) Q[i] = 0;
-
-  int nQPerNeighb = numR + numDirec*numWaves*numCS;
-  bool *isUsed = new bool[nQPerNeighb*scomm->numNeighb];
-  for(i = 0; i < nQPerNeighb*scomm->numNeighb; ++i) isUsed[i] = true;
-
-  // 1. first count number of edge dofs
-  int iSub, iNode;
-  DofSet *found = new DofSet[scomm->numNeighb];
-  int nbdofs = 0;
-  for(iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-    int nhelm = 0;
-    int nx = 0, ny = 0, nz = 0;
-    for(iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-      int ndofs = boundaryDOFs[iSub][iNode].count();
-      nbdofs += ndofs;
-
-      if(desired.containsAnyRot()) {
-        if(boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) nx++;
-        if(boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) ny++;
-        if(boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) nz++;
-      }
-
-      found[iSub] |= boundaryDOFs[iSub][iNode] & desired;
-    }
-
-    // Check if we should add rotation for problems that do not
-    // define rotational degrees of freedom
-    if(desired.contains(DofSet::Xrot)) {
-      // if ny+nz is bigger than 2 (at least 3) there is no danger in putting a Xrot
-      if(ny + nz > 2) found[iSub] |= DofSet::Xrot;
-    }
-    if(desired.contains(DofSet::Yrot)) {
-      // if nx+nz is bigger than 2 (at least 3) there is no danger in putting a Yrot 
-      if(nx + nz > 2) found[iSub] |= DofSet::Yrot;
-    }
-    if(desired.contains(DofSet::Zrot)) {
-      // if nx+ny is bigger than 2 (at least 3) there is no danger in putting a Zrot
-      if(nx + ny > 2) found[iSub] |= DofSet::Zrot;
-    }
-  }
-
-  int lQ = nbdofs * nQPerNeighb;
-  double *Q = new double[lQ];
-  for(i = 0; i < lQ; ++i) Q[i] = 0;
-
-  // Form Q matrix
-  int offset = 0;
-  for(iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-
-    // Find the center of the edge/face for EdgeGs augmentation
-    double xc = 0, yc = 0, zc = 0;
-    if(numR > 0) {
-      for(iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-        xc += nodes[sharedNodes[iSub][iNode]]->x;
-        yc += nodes[sharedNodes[iSub][iNode]]->y;
-        zc += nodes[sharedNodes[iSub][iNode]]->z;
-      }
-      xc /= sharedNodes.num(iSub);
-      yc /= sharedNodes.num(iSub);
-      zc /= sharedNodes.num(iSub);
-    }
-
-    // compute the wave numbers for EdgeWs augmentation
-    double k_pSolid, k_sSolid, k_s2Solid, k_pShell, k_sShell, k_s2Shell;
-    if(numDirec > 0) {
-      if(solInfo().solvercntl->fetiInfo.waveType == FetiInfo::uniform) {
-        k_pSolid = k_pShell = k_p;
-        k_sSolid = k_sShell = k_s;
-        k_s2Solid = k_s2Shell = k_s2; 
-      }
-      if(solInfo().solvercntl->fetiInfo.waveType == FetiInfo::averageK) {
-        k_pSolid = k_pShell = neighbK_p[iSub];
-        k_sSolid = k_sShell = neighbK_s[iSub];
-        k_s2Solid = k_s2Shell = neighbK_s2[iSub]; 
-      }
-      else if(solInfo().solvercntl->fetiInfo.waveType == FetiInfo::averageMat) {
-        double omega2 = geoSource->shiftVal();
-        double lambda = (neighbPrat[iSub]*neighbYmod[iSub])/
-                        (1.0+neighbPrat[iSub])/(1.0-2.0*neighbPrat[iSub]);
-        double mu = neighbYmod[iSub]/2.0/(1.0+neighbPrat[iSub]);
-        k_pSolid = sqrt(omega2 * neighbDens[iSub])/sqrt(lambda + 2*mu);
-        k_sSolid = sqrt(omega2 * neighbDens[iSub])/sqrt(mu);
-        k_s2Solid = k_sSolid; 
-        double di = neighbYmod[iSub]*neighbThih[iSub]*neighbThih[iSub]*neighbThih[iSub]/
-                    (12.0*(1.0-neighbPrat[iSub]*neighbPrat[iSub]));
-        double beta4 = omega2*neighbDens[iSub]*neighbThih[iSub]/di;
-        k_pShell = sqrt(sqrt(beta4));
-        k_sShell = k_pShell;
-        k_s2Shell = k_sShell; 
-    }
-
-    for(iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-      DofSet nodedofs = boundaryDOFs[iSub][iNode];
-      offset += nodedofs.count();
-
-      double x = nodes[sharedNodes[iSub][iNode]]->x;
-      double y = nodes[sharedNodes[iSub][iNode]]->y;
-      double z = nodes[sharedNodes[iSub][iNode]]->z;
-
-      // EdgeGs augmentation
-      if(numR > 0) {
-        if(nodedofs.contains(DofSet::Helm))
-          Q[offset + 0] = 1.0;
-        if(nodedofs.contains(DofSet::Xdisp)) {
-          Q[offset + 0] = 1.0;
-          if(found[iSub].contains(DofSet::Yrot)) {
-            Q[offset + 4*nbdofs + 0] = (z-zc);
-          }
-          if(found[iSub].contains(DofSet::Zrot)) {
-            Q[offset + 5*nbdofs + 0] = -(y-yc);
-          }
-        }
-        if(nodedofs.contains(DofSet::Ydisp)) {
-          Q[offset + 1*nbdofs + 1] = 1.0;
-          if(found[iSub].contains(DofSet::Xrot)) {
-            Q[offset + 3*nbdofs + 1] = -(z-zc);
-          }
-          if(found[iSub].contains(DofSet::Zrot)) {
-            Q[offset + 5*nbdofs + 0] = -(y-yc);
-          }
-        }
-        if(nodedofs.contains(DofSet::Zdisp)) {
-          Q[offset + 2*nbdofs + 2] = 1.0;
-          if(found[iSub].contains(DofSet::Xrot) ) {
-            Q[offset + 3*nbdofs + 2] = (y-yc);
-          }
-          if(found[iSub].contains(DofSet::Yrot) ) {
-            Q[offset + 4*nbdofs + 2] = -(x-xc);
-          }
-        }
-        if((nodedofs.contains(DofSet::Xrot)) && found[iSub].contains(DofSet::Xrot)) 
-          Q[offset + 3*nbdofs + 3] = 1.0;
-        if((nodedofs.contains(DofSet::Yrot)) && found[iSub].contains(DofSet::Yrot)) 
-          Q[offset + 4*nbdofs + 4] = 1.0;
-        if((nodedofs.contains(DofSet::Zrot)) && found[iSub].contains(DofSet::Zrot)) 
-          Q[offset + 5*nbdofs + 5] = 1.0;
-      }
-
-      // EdgeWs augmentation
-      if(numDirec > 0) { 
-        spaceDim = (spaceDim > 3) ? 3 : spaceDim;  // make sure spaceDim is never greater than 3
-        numWaves = (numWaves > 3) ? 3 : numWaves;  // make sure numWaves is never greater than 3
-        numCS = (numCS > 2) ? 2 : numCS;           // make sure numCS is never greater than 2
-        double xyz[3] = { x, y, z };
-        for(int iDir=0; iDir<numDirec; iDir++) {
-          double ddotx = 0.0;
-          for(int iDim=0; iDim < spaceDim; ++iDim) ddotx += wDir[iDim][numWaves*iDir]*xyz[iDim];
-          double k[3];
-          if(nodedofs.contains(DofSet::Helm)) {
-            k[0] = kappa;
-            k[1] = k[2] = 0.0;
-          }
-          else if(nodedofs.containsAnyRot()) {
-            k[0] = k_pShell;
-            k[1] = k_sShell;
-            k[2] = k_s2Shell;
-          }
-          else {
-            k[0] = k_pSolid;
-            k[1] = k_sSolid;
-            k[2] = k_s2Solid;
-          }
-          for(int iW=0; iW<numWaves; iW++) {
-            double csVal[2] = { cos(k[iW] * ddotx), sin(k[iW] * ddotx) };
-            for(int iCS=0; iCS<numCS; iCS++) {
-              int waveOffset = offset + (numR + iDir*numWaves*numCS+numCS*iW+iCS)*nbdofs;
-              if(nodedofs.contains(DofSet::Helm)) Q[waveOffset+0] = csVal[iCS];
-              else if(nodedofs.containsAllDisp(spaceDim)) {
-                for(int iDim=0; iDim < spaceDim; ++iDim) 
-                  Q[waveOffset+iDim] = csVal[iCS]*wDir[iDim][iDir*numWaves+iW];
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-*/
-
 void 
 BaseSub::GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation)
 {
@@ -2821,7 +2533,7 @@ BaseSub::isFluid(int i)
 void
 BaseSub::zeroEdgeDofSize()
 {
-  if(edgeDofSize) {
+  if(edgeDofSize.size() != 0) {
     for(int i=0; i<scomm->numNeighb; ++i) edgeDofSize[i] = 0;
     nCDofs = -1;
   }

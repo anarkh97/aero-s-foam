@@ -523,10 +523,10 @@ GenFetiDPSolver<Scalar>::makeKcc()
      int myNum = this->subdomains[iSub]->subNum();
      int jEdgeN = 0;
      for(int jSub=0; jSub<numNeighbor; ++jSub) {
-       int subJ = this->sd[iSub]->getSComm()->subNums[jSub];
+       int subJ = this->subdomains[iSub]->getSComm()->subNums[jSub];
        if(this->subdomains[iSub]->isEdgeNeighbor(jSub)) {
          if(myNum < subJ) {
-           int nEdge = this->sd[iSub]->numEdgeDofs(jSub);
+           int nEdge = this->subdomains[iSub]->numEdgeDofs(jSub);
            edgeWeights[(*this->subToEdge)[this->subdomains[iSub]->subNum()][jEdgeN]] = nEdge;
          }
          jEdgeN++;
@@ -902,7 +902,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	      coarseDofs[n++] = this->subdomains[i]->edgeDofs[iNeighb];
 	}
 	((MatrixElement*)elems[s])->setDofs(coarseDofs);
-        ((MatrixElement*)elems[s])->setStiffness(this->sd[i]->Kcc.get());
+        ((MatrixElement*)elems[s])->setStiffness(this->subdomains[i]->Kcc.get());
       }
   
       CoordSet& nodes = coarseDomain->getNodes();
@@ -921,7 +921,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	}
 	if (fetiInfo->augmentimpl == FetiInfo::Primal) { // 020314 JAT
 	  const CoordSet &subnodes = this->subdomains[i]->getNodeSet();
-	  Connectivity &sharedNodes = *(this->sd[i]->getSComm()->sharedNodes);
+	  Connectivity &sharedNodes = *(this->subdomains[i]->getSComm()->sharedNodes);
 	  int iEdgeN = 0, edgeNum;
 	  for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb) {
 	    if(this->subdomains[i]->isEdgeNeighbor(iNeighb)) {
@@ -1021,8 +1021,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
       decCoarseDomain->buildOps(ops, 0.0, 0.0, 1.0);
       coarseInfo = &(decCoarseDomain->solVecInfo());
       KccParallelSolver = ops.dynMat;
-      //paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp, decCoarseDomain->getSubDomain(0)->getCDSA(),
-      //           augOffset, this->subToEdge, mpcOffset, decCoarseDomain->getSubDomain(0)->getGlobalToLocalNodeMap());
       paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2,
 		 decCoarseDomain->getNumSub(), decCoarseDomain->getAllSubDomains(),
 		 augOffset, this->subToEdge); // JAT 101816
@@ -1124,7 +1122,7 @@ GenFetiDPSolver<Scalar>::getFc(const GenDistrVector<Scalar> &f, GenVector<Scalar
  // Assemble fc (force at the corners)
  fc.zero();
  for(int iSub=0; iSub<this->nsub; ++iSub) {
-    int *subdCDofs = this->sd[iSub]->cornerEqNums;
+    const auto &subdCDofs = this->subdomains[iSub]->getCornerEqNums();
     Scalar *subFc = distFc.subData(iSub);
     for(int iDof = 0; iDof < this->subdomains[iSub]->numCoarseDofs(); ++iDof)
       if(subdCDofs[iDof] > -1)
@@ -1972,7 +1970,7 @@ GenFetiDPSolver<Scalar>::assembleFcStar(GenVector<Scalar> &FcStar) const
  int i, iSub;
  for(iSub = 0; iSub < this->nsub; ++iSub) {
    int numCornerDofs = this->subdomains[iSub]->numCoarseDofs();
-   int *dofs = this->sd[iSub]->cornerEqNums;
+   const auto &dofs = this->subdomains[iSub]->getCornerEqNums();
    Scalar *fc = this->sd[iSub]->getfc();  // returns sub fcstar, not condensed
    for(i = 0; i < numCornerDofs; ++i) {  // assemble global condensed fcstar
      if(dofs[i] != -1) {
@@ -2059,7 +2057,7 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
     cx[iSub] = tmp;
 
     cxx[iSub] = totalNumEdges;
-    totalNumEdges += this->sd[iSub]->numEdgeNeighbors(); // don't include virtual neighbors
+    totalNumEdges += this->subdomains[iSub]->numEdgeNeighbors(); // don't include virtual neighbors
   }
 #endif
   // Find total number of edges including duplicated ones.
@@ -2119,7 +2117,7 @@ GenFetiDPSolver<Scalar>::countEdges(int iSub, int *edges) const
   int j;
   int numNeighbor = this->subdomains[iSub]->numNeighbors();
   for(j=0; j<numNeighbor; ++j) {
-    int subI = this->sd[iSub]->getSComm()->subNums[j];
+    int subI = this->subdomains[iSub]->getSComm()->subNums[j];
     if(this->subdomains[iSub]->isEdgeNeighbor(j) && (myNum < subI))
       edges[myNum] += 1;
   }
@@ -2138,7 +2136,7 @@ GenFetiDPSolver<Scalar>::numberEdges(int iSub, int *eP, int *ep2, int* edges, FS
   int jSub;
   int numNeighbor = this->subdomains[iSub]->numNeighbors();
   for(jSub=0; jSub<numNeighbor; ++jSub) {
-    int subJ = this->sd[iSub]->getSComm()->subNums[jSub];
+    int subJ = this->subdomains[iSub]->getSComm()->subNums[jSub];
     FSSubRecInfo<int> sInfo = this->sPat->getSendBuffer(myNum, subJ);
     if(this->subdomains[iSub]->isEdgeNeighbor(jSub)) {
       if(myNum < subJ) {
@@ -2165,7 +2163,7 @@ GenFetiDPSolver<Scalar>::receiveNeighbEdgeNums(int iSub, int *eP, int* edges, FS
   int jEdgeN = 0;
   for(jSub=0; jSub<numNeighbor; ++jSub) {
     if(this->subdomains[iSub]->isEdgeNeighbor(jSub)) {
-      FSSubRecInfo<int> rInfo = this->sPat->recData(this->sd[iSub]->getSComm()->subNums[jSub], myNum);
+      FSSubRecInfo<int> rInfo = this->sPat->recData(this->subdomains[iSub]->getSComm()->subNums[jSub], myNum);
       int en =  rInfo.data[0];
       if(en >= 0) edges[eP[myNum]+jEdgeN] = en;
       jEdgeN++;
@@ -2392,7 +2390,7 @@ GenFetiDPSolver<Scalar>::assembleGtG(int iGroup)
   int i;
 #ifdef DISTRIBUTED
   for(i = 0; i < this->nsub; ++i) {
-    if(this->sd[i]->group == groups[iGroup]) 
+    if(this->subdomains[i]->getGroup() == groups[iGroup])
       this->sd[i]->assembleGtGsolver(GtGsparse);
   }
 #else
@@ -2823,8 +2821,8 @@ GenFetiDPSolver<Scalar>::subTrMultG(int iGroup, const GenDistrVector<Scalar> &x,
 {
 #ifdef DISTRIBUTED
   for(int i=0; i<this->nsub; ++i) {
-    if(this->sd[i]->group == groups[iGroup])
-      this->sd[i]->trMultG(x.subData(this->sd[i]->localSubNum()), y, alpha); 
+    if(this->subdomains[i]->getGroup() == groups[iGroup])
+      this->sd[i]->trMultG(x.subData(this->subdomains[i]->localSubNum()), y, alpha);
   }
 #else
   auto grsubs = (*groupToSub)[iGroup];
@@ -3208,7 +3206,7 @@ GenFetiDPSolver<Scalar>::addRstar_gT(int iGroup, GenDistrVector<Scalar> &u, GenV
 {
 #ifdef DISTRIBUTED
 	for(int i=0; i<this->nsub; ++i) {
-    if(this->sd[i]->group == groups[iGroup])
+    if(this->subdomains[i]->getGroup() == groups[iGroup])
       this->sd[i]->addRstar_gT(u.subData(this->subdomains[i]->localSubNum()), beta);
   }
 #else
@@ -3368,7 +3366,7 @@ GenFetiDPSolver<Scalar>::assembleE(int iGroup, GenVector<Scalar> &e, GenDistrVec
 {
 #ifdef DISTRIBUTED
 	for(int i = 0; i < this->nsub; ++i) {
-    if(this->sd[i]->group == groups[iGroup])
+    if(this->subdomains[i]->getGroup() == groups[iGroup])
       this->sd[i]->assembleE(e, f.subData(this->subdomains[i]->localSubNum()));
   }
 #else

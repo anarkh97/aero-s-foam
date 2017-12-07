@@ -58,7 +58,6 @@ template <class Scalar> class GenMpcSparse;
 class BaseSub : virtual public Domain , virtual public FetiBaseSub
 {
 protected:
-	SComm *scomm = nullptr;
 	int subNumber;
 	int localSubNumber; // relevant when running in distributed
 
@@ -118,7 +117,6 @@ public:
 	GlobalToLocalMap globalToLocalMPC_primal;
 
 	int *cornerMap = nullptr;
-	int *cornerEqNums = nullptr; // unique equation numbers for subdomain corner dofs
 
 //	int *glCrnGroup;    // group of each corner node (global numbering)
 	int nGrbm = 0;
@@ -128,7 +126,6 @@ public:
 	DofSet **boundaryDOFs = nullptr;
 	int nCDofs = -1;
 	int *neighbNumGRBMs = nullptr;
-	int *edgeDofSize = nullptr;      // number of edge dof per neighbor
 	int *edgeDofSizeTmp = nullptr;   // XXXX
 	double k_f = 0.0, k_p = 0.0, k_s = 0.0, k_s2 = 0.0;  // wave numbers for FETI-DPH for this subdomain
 	double *neighbK_p = nullptr, *neighbK_s = nullptr, *neighbK_s2 = nullptr, *neighbK_f = nullptr;  // neighbors' wave numbers
@@ -207,12 +204,9 @@ public:
 	int numCornerDofs()	const { return numCRNdof; }
 	int numCoarseDofs();
 	int nCoarseDofs()  const { return nCDofs; }
-	int numEdgeDofs(int i) const { return edgeDofSize[i]; }
 
 	// variables and routines for parallel GRBM algorithm and floating bodies projection
 	// and MPCs (rixen method)
-public:
-	int group = 0;
 protected:
 	int numGroupRBM = 0, groupRBMoffset = 0;
 	int *neighbNumGroupGrbm = nullptr;
@@ -249,7 +243,7 @@ public:
 	int getGlobalMPCIndex(int localMpcIndex) const override;
 	void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
 	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
-	void setGroup(Connectivity *subToGroup) { group = (*subToGroup)[subNumber][0]; }
+	void setGroup(Connectivity *subToGroup) { this->group = (*subToGroup)[subNumber][0]; }
 	void setNumGroupRBM(int *ngrbmGr);
 	void getNumGroupRBM(int *ngrbmGr);
 	void addNodeXYZ(double *centroid, double* nNodes);
@@ -264,16 +258,7 @@ protected:
 
 public:
 	void setCorners(int nCorners, int *crnList);
-	SComm *getSComm() { return scomm; }
-	void setSComm(SComm *sc);
-	void setSendData(int neighb, void *data)
-	{ scomm->setExchangeData(neighb, data); }
-	void *getExchangeData(int neighbID) // Communication mechanism
-	{ return scomm->getExchangeData(neighbID); }
-	void *getExchangePointer(int neighbID) // Communication mechanism
-	{ return scomm->exchangeData[neighbID]; }
-	int numNeighbors() const override { return scomm->numNeighb;}
-	int numEdgeNeighbors() const { return scomm->numEdgeNeighb; }
+
 	bool isEdgeNeighbor(int neighb) const { return scomm->isEdgeNeighb[neighb]; }
 	int interfLen() const override; //<! \brief Total length for the local interface
 	int halfInterfLen() const override; //<! \brief Length of the "half interface"
@@ -405,7 +390,7 @@ protected:
 	void sendDOFList(FSCommPattern<int> *pat); // Send to neighbors the list of DOFs on the shared nodes
 
 public:
-	GenSparseSet<Scalar>      *Src;
+	std::unique_ptr<GenSparseSet<Scalar>> Src;
 	Scalar                    **BKrrKrc;
 
 	Scalar                    *rbms;
@@ -419,8 +404,6 @@ public:
 	Corotator           	    **corotators;
 	mutable Scalar 		    *fcstar; // TODO Move this out!
 	Scalar                    *QtKpBt;
-
-	Scalar                    **Ave, **Eve; // 070213 JAT
 
 	int *glBoundMap;
 	int *glInternalMap;
@@ -553,8 +536,6 @@ public:
 	void firstAssemble(GenSparseMatrix<Scalar> *K);
 	void initMpcScaling();
 	void makeZstarAndR(double *centroid);  // makes Zstar and R
-	void makeKccDofsExp(ConstrainedDSA *cornerEqs, int augOffset,
-	                    Connectivity *subToEdge, int mpcOffset, GlobalToLocalMap& nodeMap);
 	void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd, int augOffset,
 	                     Connectivity *subToEdge);
 //  void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd);

@@ -139,7 +139,7 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
 		interface.domLen[iSub] = subdomains[iSub]->interfLen();
 		internalDI.domLen[iSub]  = subdomains[iSub]->getNumUncon();
 
-		sd[iSub]->computeMasterFlag(*mpcToSub);
+		subdomains[iSub]->computeMasterFlag(*mpcToSub);
 		fetiOps[iSub]->setHalfOffset(halfInterfLen);
 		halfInterfLen += subdomains[iSub]->halfInterfLen();
 		tInterfLen    += subdomains[iSub]->interfLen();
@@ -153,7 +153,7 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
 	bool *interfaceMasterFlag = new bool[tInterfLen];
 	interface.computeOffsets();
 	for(iSub = 0; iSub < nsub; ++iSub) {
-		const bool *subMasterFlag = sd[iSub]->getMasterFlag();
+		const bool *subMasterFlag = subdomains[iSub]->getMasterFlag();
 		int subOffset = interface.subOffset[iSub];
 		int j;
 		for(j=0; j<interface.domLen[iSub]; ++j)

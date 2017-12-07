@@ -930,7 +930,7 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
 
 
  // Primal augmentation 072513 JAT 
- if(Ave) {
+ if(this->Ave.cols() > 0) {
    int i, k, nAve, nCor;
    int numEquations = this->Krr->neqs();
    nCor = this->Krc?this->Krc->numCol():0;
@@ -940,14 +940,14 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
    for(i=0; i<nAve; ++i) {
      s = 0.0;
      for(k=0; k<numEquations; ++k)
-       s += Eve[i][k]*localvec[k];
+       s += this->Eve[i][k]*localvec[k];
      for(k=0; k<numEquations; ++k)
-       localvec[k] -= s*Ave[i][k];
+       localvec[k] -= s*this->Ave[i][k];
    }
 #else
    Scalar v[nAve];
-   Tgemv('T', numEquations, nAve, 1.0, Eve[0], numEquations, localvec, 1, 0.0, v, 1);
-   Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, localvec, 1);
+   Tgemv('T', numEquations, nAve, 1.0, this->Eve[0], numEquations, localvec, 1, 0.0, v, 1);
+   Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, localvec, 1);
 #endif
  }
 
@@ -955,7 +955,7 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
  if(s) s->reSolve(localvec);
 
  // Extra orthogonaliztion for stability  072216 JAT
- if(Ave) {
+ if(this->Ave.cols() > 0) {
    int i, k, nAve, nCor;
    int numEquations = this->Krr->neqs();
    nCor = this->Krc?this->Krc->numCol():0;
@@ -965,14 +965,14 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
    for(i=0; i<nAve; ++i) {
      s = 0.0;
      for(k=0; k<numEquations; ++k)
-       s += Ave[i][k]*localvec[k];
+       s += this->Ave[i][k]*localvec[k];
      for(k=0; k<numEquations; ++k)
-       localvec[k] -= s*Ave[i][k];
+       localvec[k] -= s*this->Ave[i][k];
    }
 #else
    Scalar v[nAve];
-   Tgemv('T', numEquations, nAve, 1.0, Ave[0], numEquations, localvec, 1, 0.0, v, 1);
-   Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, localvec, 1);
+   Tgemv('T', numEquations, nAve, 1.0, this->Ave[0], numEquations, localvec, 1, 0.0, v, 1);
+   Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, localvec, 1);
 #endif
  }
 
@@ -1352,7 +1352,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::constructKrc()
 {
- Src = new GenSparseSet<Scalar>();
+ Src = std::make_unique<GenSparseSet<Scalar>>();
  if(numCRNdof) {
    this->Krc = std::make_unique<GenCuCSparse<Scalar>>(nodeToNode, dsa, cornerMap, cc_dsa->getUnconstrNum());
    Src->addSparseMatrix(this->Krc.get());
@@ -2785,70 +2785,66 @@ GenSubDomain<Scalar>::multKcc()
    nAve = Src->numCol() - nCor;
    if (nAve) {
      int i, j, k, nz;
-     Scalar *pAve = new Scalar [nAve*numEquations];
-     Scalar *pEve = new Scalar [nAve*numEquations];
      Scalar *pKve = new Scalar [nAve*numEquations];
      Scalar *pv = new Scalar [nAve];
      GenFullM<Scalar> AKA(nAve);
      Scalar s, *pAKA;
      Scalar **Kve = new Scalar *[nAve];
-     Ave = new Scalar *[nAve];
-     Eve = new Scalar *[nAve];
+	   this->Ave.resize(numEquations, nAve);
      for(i=0; i<nAve; ++i) {
-       Ave[i] = pAve + i*numEquations;
-       Eve[i] = pEve + i*numEquations;
        Kve[i] = pKve + i*numEquations;
      }
      for(i=0; i<nAve; ++i) {
        s = 0.0;
        for(j=0; j<numEquations; ++j) {
-	 Ave[i][j] = KrrKrc[nCor+i][j];
-	 s += Ave[i][j]*Ave[i][j];
+	 this->Ave[i][j] = KrrKrc[nCor+i][j];
+	 s += this->Ave[i][j]*this->Ave[i][j];
        }
        s = 1.0/sqrt(s);
        for(j=0; j<numEquations; ++j)
-         Ave[i][j] *= s;
+         this->Ave[i][j] *= s;
      }
-     for(i=0; i<nAve; ++i)
-       for(j=0; j<numEquations; ++j)
-         Eve[i][j] = Ave[i][j];
-     this->Krr->reSolve(nAve, Eve);
+     for(i=0; i<nAve; ++i) {
+	     for (j = 0; j < numEquations; ++j)
+		     this->Eve[i][j] = this->Ave[i][j];
+	     this->Krr->reSolve(nAve, this->Eve[i]);
+     }
      pAKA = AKA.data();
 #ifdef NOTBLAS
      for(i=0; i<nAve; ++i)
        for(j=0; j<nAve; ++j) {
          s = 0.0;
          for(k=0; k<numEquations; ++k)
-	   s += Eve[i][k]*Ave[j][k];
+	   s += this->Eve[i][k]*this->Ave[j][k];
 	 pAKA[i+nAve*j] = s;
        }
 #else
-     Tgemm('T', 'N', nAve, nAve, numEquations, 1.0, Eve[0], numEquations,
-           Ave[0], numEquations, 0.0, pAKA, nAve);
+     Tgemm('T', 'N', nAve, nAve, numEquations, 1.0, this->Eve[0], numEquations,
+           this->Ave[0], numEquations, 0.0, pAKA, nAve);
 #endif
      AKA.factor();
      for(j=0; j<numEquations; ++j) {
        for(i=0; i<nAve; ++i)
-	 pv[i] = Eve[i][j];
+	 pv[i] = this->Eve[i][j];
        AKA.reSolve(pv);
        for(i=0; i<nAve; ++i)
-	 Eve[i][j] = pv[i];
+	 this->Eve[i][j] = pv[i];
      }
 
      for(i=0; i<nAve; ++i)
        for(j=0; j<nCor; ++j) {
          s = 0.0;
          for(k=0; k<numEquations; ++k)
-	   s += KrrKrc[j][k]*Ave[i][k];
+	   s += KrrKrc[j][k]*this->Ave[i][k];
 	 (*this->Kcc)[nCor+i][j] = s;
          (*this->Kcc)[j][nCor+i] = s;
        }
      for(i=0; i<nAve; ++i) {
-       this->KrrSparse->mult(Ave[i],Kve[i]);
+       this->KrrSparse->mult(this->Ave[i],Kve[i]);
        for(j=0; j<nAve; ++j) {
          s = 0.0;
          for(k=0; k<numEquations; ++k)
-	   s += Kve[i][k]*Ave[j][k];
+	   s += Kve[i][k]*this->Ave[j][k];
 	 (*this->Kcc)[nCor+i][nCor+j] = s;
        }
      }
@@ -2897,15 +2893,15 @@ GenSubDomain<Scalar>::multKcc()
        for(j=0; j<nRHS; j++) {
 	 s = 0.0;
 	 for(k=0; k<numEquations; ++k)
-	   s += Eve[i][k]*KrrKrc[j][k];
+	   s += this->Eve[i][k]*KrrKrc[j][k];
 	 for(k=0; k<numEquations; ++k)
-	   KrrKrc[j][k] -= s*Ave[i][k];
+	   KrrKrc[j][k] -= s*this->Ave[i][k];
        }
 #else
      Scalar v[nAve];
      for(j=0; j<nRHS; j++) {
-       Tgemv('T', numEquations, nAve, 1.0, Eve[0], numEquations, KrrKrc[j], 1, 0.0, v, 1);
-       Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, KrrKrc[j], 1);
+       Tgemv('T', numEquations, nAve, 1.0, this->Eve[0], numEquations, KrrKrc[j], 1, 0.0, v, 1);
+       Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, KrrKrc[j], 1);
      }
 #endif
    }
@@ -2990,7 +2986,7 @@ GenSubDomain<Scalar>::reMultKcc()
 
  int nRHS = Src->numCol();
 
- if(Ave) { // JAT
+ if(this->Ave.cols() > 0) { // JAT
    fprintf(stderr,"reMultKcc not implemented for primal augmentation\n");
    exit(1);
  }
@@ -3126,7 +3122,7 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda) const
  if(numWIdof) Krw->multAddNew(localw, force);  // coupled_dph: force += Krw * uw
 
  // Primal augmentation 072513 JAT 
- if(Ave) {
+ if(this->Ave.cols() > 0) {
    int i, k, nAve, nCor;
    int numEquations = this->Krr->neqs();
    nCor = this->Krc ? this->Krc->numCol() : 0;
@@ -3136,21 +3132,21 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda) const
    for(i=0; i<nAve; ++i) {
      s = 0.0;
      for(k=0; k<numEquations; ++k)
-       s += Eve[i][k]*force[k];
+       s += this->Eve[i][k]*force[k];
      for(k=0; k<numEquations; ++k)
-       force[k] -= s*Ave[i][k];
+       force[k] -= s*this->Ave[i][k];
    }
 #else
    Scalar v[nAve];
-   Tgemv('T', numEquations, nAve, 1.0, Eve[0], numEquations, force, 1, 0.0, v, 1);
-   Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, force, 1);
+   Tgemv('T', numEquations, nAve, 1.0, this->Eve[0], numEquations, force, 1, 0.0, v, 1);
+   Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, force, 1);
 #endif
  }
 
  if(this->Krr) this->Krr->reSolve(force);
 
  // Extra orthogonaliztion for stability  072216 JAT
- if(Ave) {
+ if(this->Ave.cols() > 0) {
    int i, k, nAve, nCor;
    int numEquations = this->Krr->neqs();
    nCor = this->Krc ? this->Krc->numCol():0;
@@ -3160,14 +3156,14 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda) const
    for(i=0; i<nAve; ++i) {
      s = 0.0;
      for(k=0; k<numEquations; ++k)
-       s += Ave[i][k]*force[k];
+       s += this->Ave[i][k]*force[k];
      for(k=0; k<numEquations; ++k)
-       force[k] -= s*Ave[i][k];
+       force[k] -= s*this->Ave[i][k];
    }
 #else
    Scalar v[nAve];
-   Tgemv('T', numEquations, nAve, 1.0, Ave[0], numEquations, force, 1, 0.0, v, 1);
-   Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, force, 1);
+   Tgemv('T', numEquations, nAve, 1.0, this->Ave[0], numEquations, force, 1, 0.0, v, 1);
+   Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, force, 1);
 #endif
  }
 
@@ -3259,7 +3255,7 @@ GenSubDomain<Scalar>::getFc(const Scalar *f, Scalar *Fc) const
     iOff += nd;
   }
 
-  if(Ave) { // Average corners 072513 JAT 
+  if(this->Ave.cols() > 0) { // Average corners 072513 JAT
     int i, iNode, numEquations = this->Krr->neqs();
     int rDofs[DofSet::max_known_dof];
     int oDofs[DofSet::max_known_dof];
@@ -3280,7 +3276,7 @@ GenSubDomain<Scalar>::getFc(const Scalar *f, Scalar *Fc) const
     for(i=0; i<nAve; ++i) {
       s = 0.0;
       for(k=0; k<numEquations; ++k)
-        s += Ave[i][k]*fr[k];
+        s += this->Ave[i][k]*fr[k];
       Fc[nCor+i] = s;
     }
   }
@@ -3322,7 +3318,7 @@ GenSubDomain<Scalar>::getFr(const Scalar *f, Scalar *fr) const
     }
   }
 
-  if(Ave) { // Averages to zero 072513 JAT 
+  if(this->Ave.cols() > 0) { // Averages to zero 072513 JAT
     int i, k, nAve, nCor;
     nCor = this->Krc ? this->Krc->numCol() : 0;
     nAve = Src->numCol() - nCor;
@@ -3332,14 +3328,14 @@ GenSubDomain<Scalar>::getFr(const Scalar *f, Scalar *fr) const
     for(i=0; i<nAve; ++i) {
       s = 0.0;
       for(k=0; k<numEquations; ++k)
-        s += Ave[i][k]*fr[k];
+        s += this->Ave[i][k]*fr[k];
       for(k=0; k<numEquations; ++k)
-        fr[k] -= s*Ave[i][k];
+        fr[k] -= s*this->Ave[i][k];
     }
 #else
    Scalar v[nAve];
-   Tgemv('T', numEquations, nAve, 1.0, Ave[0], numEquations, fr, 1, 0.0, v, 1);
-   Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, fr, 1);
+   Tgemv('T', numEquations, nAve, 1.0, this->Ave[0], numEquations, fr, 1, 0.0, v, 1);
+   Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, fr, 1);
 #endif
   }
 }
@@ -3374,7 +3370,7 @@ GenSubDomain<Scalar>::mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda)
  }
 
  // Primal augmentation 030314 JAT
- if(Ave) {
+ if(this->Ave.cols() > 0) {
    int nCor, nAve;
    nCor = this->Krc?this->Krc->numCol() : 0;
    nAve = Src->numCol() - nCor;
@@ -3385,7 +3381,7 @@ GenSubDomain<Scalar>::mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda)
      cc_dsa->number(iNode, thisDofSet, rDofs);
      for(i = 0; i < nd; ++i)
        for(j = 0; j < nAve; ++j)
-	 u[oDofs[i]] += Ave[j][rDofs[i]]*uc[cornerEqNums[nCor+j]];
+	 u[oDofs[i]] += this->Ave[j][rDofs[i]]*uc[cornerEqNums[nCor+j]];
    }
  }
 
@@ -3498,7 +3494,7 @@ GenSubDomain<Scalar>::makeAverageEdgeVectors()
      int totalLengthGrc=0;
 
      Connectivity &sharedNodes = *(scomm->sharedNodes);
-     edgeDofSize = new int[scomm->numNeighb];
+     edgeDofSize.resize(scomm->numNeighb);
 
      // 1. first count number of edge dofs
      int iSub, iNode, nE=0;
@@ -3691,30 +3687,11 @@ void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, d
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::makeKccDofsExp(ConstrainedDSA *cornerEqs, int augOffset,
-                                     Connectivity *subToEdge, int mpcOffset, GlobalToLocalMap& nodeMap)
-{
-  int numC = numCoarseDofs();
-  if(cornerEqNums) delete [] cornerEqNums;
-  cornerEqNums = new int[numC];
-
-  // numbers the corner equations 
-  int offset = 0;
-  for(int i=0; i<numCRN; ++i) {
-    offset += cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(), cornerEqNums+offset);          
-  }
-  //std::cerr << "here in GenSubDomain<Scalar>::makeKccDofsExp, cornerEqNums = ";
-  //for(int i=0; i<numC; ++i) std::cerr << cornerEqNums[i] << " "; std::cerr << std::endl;
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd,
 				      int augOffset, Connectivity *subToEdge)
 {
   int numC = numCoarseDofs();
-  if(cornerEqNums) delete [] cornerEqNums;
-  cornerEqNums = new int[numC];
+  cornerEqNums.resize(numC);
 
   // numbers the corner equations 
   int offset = 0;
@@ -3724,7 +3701,7 @@ GenSubDomain<Scalar>::makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd,
       GlobalToLocalMap& nodeMap = sd[j]->getGlobalToLocalNode();
       ConstrainedDSA *cornerEqs = sd[j]->getCDSA();
       if(nodeMap[glCornerNodes[i]] > -1) {
-         int count = cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(), cornerEqNums+offset);
+         int count = cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(), cornerEqNums.data()+offset);
          for(int k=0; k<count; ++k) cornerEqNums[offset+k] += offset2;
          offset += count;
          break;
@@ -3764,13 +3741,12 @@ GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
                                   Connectivity *subToEdge, int mpcOffset)
 {
   int numC = numCoarseDofs();
-  if(cornerEqNums) delete [] cornerEqNums;
-  cornerEqNums = new int[numC];
+  cornerEqNums.resize(numC);
 
   // numbers the corner equations
   int offset = 0;
   for(int i=0; i<numCRN; ++i)
-    offset += cornerEqs->number(glCornerNodes[i], cornerDofs[i].list(), cornerEqNums+offset);
+    offset += cornerEqs->number(glCornerNodes[i], cornerDofs[i].list(), cornerEqNums.data()+offset);
 
   // number the mpc equations
   for(int i = 0; i < numMPC_primal; ++i) {
@@ -3824,7 +3800,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::assembleKccStar(GenSparseMatrix<Scalar> *KccStar)
 {
-  KccStar->add(*this->Kcc, cornerEqNums);
+  KccStar->add(*this->Kcc, cornerEqNums.data());
 }
 
 template<class Scalar>
@@ -4072,9 +4048,9 @@ GenSubDomain<Scalar>::clean_up()
  }
 
  if(cornerMap) { delete [] cornerMap; cornerMap = 0; }
- if(cornerEqNums) { delete [] cornerEqNums; cornerEqNums = 0; }
- cornerNodes.clear();
- glCornerNodes.clear();
+	cornerEqNums.clear();
+	cornerNodes.clear();
+	glCornerNodes.clear();
  if(ccToC) { delete [] ccToC; ccToC = 0; }
  if(fcstar) { delete [] fcstar; fcstar = 0; }
  if(dsa) dsa->clean_up();
@@ -4587,7 +4563,7 @@ GenSubDomain<Scalar>::initialize()
 {
   kweight = 0; deltaFmpc = 0; scaling = 0; 
   rigidBodyModes = 0; rigidBodyModesG = 0;
-  Src = 0; BKrrKrc = 0;
+  BKrrKrc = 0;
   rbms = 0; interfaceRBMs = 0; qtkq = 0;
   KiiSolver = 0; Kib = 0; MPCsparse = 0; Kbb = 0; corotators = 0;
   fcstar = 0; QtKpBt = 0; glInternalMap = 0; glBoundMap = 0;
@@ -4611,7 +4587,6 @@ GenSubDomain<Scalar>::initialize()
   G = 0; neighbG = 0;
   sharedRstar_g = 0; tmpRstar_g = 0;
   l2g = 0;
-  Ave = 0; Eve = 0; // 070213 JAT
 }
 
 template<class Scalar>
@@ -4630,7 +4605,6 @@ GenSubDomain<Scalar>::~GenSubDomain()
   if(qtkq) { delete qtkq; qtkq = 0; }
   if(rigidBodyModes) { delete rigidBodyModes; rigidBodyModes = 0; }
   if(rigidBodyModesG) { delete rigidBodyModesG; rigidBodyModesG = 0; }
-  if(Src) { delete Src; Src = 0; }
   if(MPCsparse) { delete MPCsparse; MPCsparse = 0; }
   if(glInternalMap) { delete [] glInternalMap; glInternalMap = 0; }
   if(glBoundMap) { delete [] glBoundMap; glBoundMap = 0; }
@@ -4822,8 +4796,8 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
   }
 
   // edgeDofSize: number of augmentation degree of freedom per edge
-  if(!edgeDofSize) {
-    edgeDofSize = new int[scomm->numNeighb];
+  if(edgeDofSize.size() == 0) {
+    edgeDofSize.resize(scomm->numNeighb);
     for(i=0; i<scomm->numNeighb; ++i) edgeDofSize[i] = 0;
   }
   if(!edgeDofSizeTmp) edgeDofSizeTmp = new int[scomm->numNeighb];

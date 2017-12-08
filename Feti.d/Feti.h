@@ -500,6 +500,9 @@ public:
 	void reconstructMPCs(Connectivity *_mpcToSub, Connectivity *_mpcToMpc, Connectivity *_mpcToCpu);
 	void zeroG();
 	void deleteG();
+
+	/** \brief Build the corner to subdomain connectivity into the member variable and return subToCorner. */
+	Connectivity *makeCornerToSub();
 };
 
 

@@ -2690,13 +2690,13 @@ GenSubDomain<Scalar>::setMpcSparseMatrix()
 {
  // should always be the second term added to Src
  if(numMPC_primal > 0) {
-   MPCsparse = new GenMpcSparse<Scalar>(numMPC_primal, mpc_primal, cc_dsa);
+   MPCsparse = new GenMpcSparse<Scalar>(numMPC_primal, mpc_primal, cc_dsa.get());
    Src->addSparseMatrix(MPCsparse);
 
    // to take into account wet interface / mpc interaction
    if(numWIdof) {
      int mpcOffset = numCRNdof;
-     Kcw_mpc = new GenMpcSparse<Scalar>(numMPC_primal, mpc_primal, cc_dsa, dsa, wetInterfaceMap, mpcOffset);
+     Kcw_mpc = new GenMpcSparse<Scalar>(numMPC_primal, mpc_primal, cc_dsa.get(), dsa, wetInterfaceMap, mpcOffset);
    }
  }
 }
@@ -4044,7 +4044,6 @@ GenSubDomain<Scalar>::clean_up()
 	cornerEqNums.clear();
 	cornerNodes.clear();
 	glCornerNodes.clear();
- if(ccToC) { delete [] ccToC; ccToC = 0; }
  if(fcstar) { delete [] fcstar; fcstar = 0; }
  if(dsa) dsa->clean_up();
  if(c_dsa) c_dsa->clean_up();

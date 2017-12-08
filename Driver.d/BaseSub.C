@@ -191,14 +191,14 @@ void
 BaseSub::makeCCDSA()
 {
  // dof set array with boundary conditions and corner node boundary conditions
- cc_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc, numCRN, cornerNodes, cornerDofs,
+ cc_dsa = std::make_unique<ConstrainedDSA>(*dsa, numDirichlet, dbc, numCRN, cornerNodes, cornerDofs,
                              numComplexDirichlet, cdbc, numWInodes, wetInterfaceNodes,
                              wetInterfaceDofs);  // modified for coupled_dph
                                                  // (without the wet interface dofs)
 
  // Map from cc_dsa numbering to c_dsa numbering and vice versa
- ccToC = new int[cc_dsa->size()];
- cToCC = new int[c_dsa->size()];
+ ccToC.resize(cc_dsa->size());
+ cToCC.resize(c_dsa->size());
  for(int i = 0; i < cc_dsa->size(); ++i) ccToC[i] = -1;
  for(int i = 0; i < c_dsa->size(); ++i) cToCC[i] = -1;
 
@@ -353,7 +353,7 @@ BaseSub::recvNumNeighbGrbm(FSCommPattern<int> *pat)
 }
 
 int*
-BaseSub::makeBMaps(DofSetArray *dof_set_array) 
+BaseSub::makeBMaps(const DofSetArray *dof_set_array)
 {
 // Build the variables boundLen, boundMap[], dualToBoundary[]
 // dof_set_array is c_dsa for FETI-DPC or cc_dsa for FETI-DP
@@ -415,7 +415,7 @@ BaseSub::makeBMaps(DofSetArray *dof_set_array)
 
 
 int*
-BaseSub::makeIMaps(DofSetArray *dof_set_array) 
+BaseSub::makeIMaps(const DofSetArray *dof_set_array)
 {
   // Build the variables internalLen, internalMap[]
   int iDof;
@@ -1618,11 +1618,8 @@ BaseSub::globalNumNodes()
 
 BaseSub::~BaseSub()
 {
-  if(ccToC) { delete [] ccToC; ccToC = 0; }
   if(crnPerNeighb) { delete [] crnPerNeighb; crnPerNeighb = 0; }
   if(cornerMap) { delete [] cornerMap; cornerMap = 0; }
-  if(cc_dsa) { delete cc_dsa; cc_dsa = 0; }
-  if(cToCC) { delete [] cToCC; cToCC = 0; }
 
   if(masterFlag) { delete [] masterFlag; masterFlag = 0; }
   if(boundMap) { delete [] boundMap; boundMap = 0; }

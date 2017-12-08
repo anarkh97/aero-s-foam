@@ -120,9 +120,6 @@ public:
 
 //	int *glCrnGroup;    // group of each corner node (global numbering)
 	int nGrbm = 0;
-	ConstrainedDSA *cc_dsa = nullptr;
-	int *ccToC = nullptr; // from cc_dsa to c_dsa
-	int *cToCC = nullptr; // from c_dsa to cc_dsa
 	DofSet **boundaryDOFs = nullptr;
 	int nCDofs = -1;
 	int *neighbNumGRBMs = nullptr;
@@ -169,13 +166,13 @@ public:
 	int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }
 	int localToGlobalElem(int i) { return glElems[i]; }
 	int getGlobalNMax()         { return globalNMax; }
-	int* makeBMaps(DofSetArray *dofsetarray=0);
-	int* makeIMaps(DofSetArray *dofsetarray=0);
+	int* makeBMaps(const DofSetArray *dofsetarray=0);
+	int* makeIMaps(const DofSetArray *dofsetarray=0);
 	int subNum() const override  { return subNumber; }
 	int localSubNum() const override { return localSubNumber; }
 	int getNumUncon() const override { return numUncon(); }
 	int localLen() const override { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
-	ConstrainedDSA * getCCDSA()  { return (cc_dsa) ? cc_dsa : c_dsa; }
+	ConstrainedDSA * getCCDSA()  { return (cc_dsa) ? cc_dsa.get() : c_dsa; }
 	int localRLen() const override { return cc_dsa->size(); }
 	void sendNumNeighbGrbm(FSCommPattern<int> *pat);
 	void recvNumNeighbGrbm(FSCommPattern<int> *pat);

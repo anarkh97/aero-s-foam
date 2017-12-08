@@ -14,14 +14,14 @@ class GenMpcSparse : public GenSparseMatrix<Scalar>
     SubLMPCons<Scalar> **mpc;
     int NumRow;
     int NumCol;
-    DofSetArray *dsa;
-    DofSetArray *DSA; 
+    const DofSetArray *dsa;
+    const DofSetArray *DSA;
     int *wetInterfaceMap;
     int mpcOffset;
    
   public:
-    GenMpcSparse(int numMPC, SubLMPCons<Scalar> **_mpc, DofSetArray *_dsa);
-    GenMpcSparse(int numMPC, SubLMPCons<Scalar> **_mpc, DofSetArray *_dsa, DofSetArray *_DSA, 
+    GenMpcSparse(int numMPC, SubLMPCons<Scalar> **_mpc, const DofSetArray *_dsa);
+    GenMpcSparse(int numMPC, SubLMPCons<Scalar> **_mpc, const DofSetArray *_dsa, const DofSetArray *_DSA,
                  int *_wetInterfaceMap, int mpcOffset);
     virtual ~GenMpcSparse();
 

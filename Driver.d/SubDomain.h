@@ -564,7 +564,7 @@ public:
 	void reMultKcc();
 	/** \brief Compute \f$ f_r = K_{rc} u_c \f$. */
 	void multKrc(Scalar *fr, const Scalar *uc) const;
-	void multfc(Scalar *fr, Scalar *bf) const;
+	void multfc(const VectorView<Scalar> &fr, const VectorView<Scalar> &bf) const;
 	void multFcB(Scalar *bf);
 	Scalar *getfc() { return fcstar; }
 	void getFr(const Scalar *f, Scalar *fr) const;

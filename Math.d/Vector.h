@@ -26,6 +26,56 @@ class SingleInfo {
 
 };
 
+template<class Scalar>
+class GenVector;
+
+template <class Scalar, int c, int r>
+struct __MType {
+	using type = Eigen::Map<Eigen::Matrix<Scalar, c, r>>;
+};
+
+template <class Scalar, int c, int r>
+struct __MType<const Scalar, c, r> {
+	using type = Eigen::Map<const Eigen::Matrix<Scalar, c, r>>;
+};
+
+/** \brief Vector view of a piece of memory. Equipped with Eigen-provided vector operations.
+ *
+ * @tparam Scalar Scalar type of the elements.
+ */
+template <class Scalar>
+class VectorView : public __MType<Scalar, Eigen::Dynamic, 1>::type {
+	struct NS {};
+	template <typename X>
+		struct NC {
+			using type = NS;
+		};
+	template <typename X>
+		struct NC<const X> {
+			using type = X;
+		};
+public:
+	using NC_t = typename NC<Scalar>::type;
+
+	using MapType = typename __MType<Scalar, Eigen::Dynamic, 1>::type;
+
+	using MapType::MapType;
+
+	/** \brief Constructor to build a constant view from a non-constant view. */
+	VectorView(const VectorView<NC_t> &v) : MapType(v.data(), v.rows()) {}
+	/** \brief Constructor from an Eigen vector. */
+	VectorView(Eigen::Matrix<Scalar, Eigen::Dynamic, 1> &v) : MapType(v.data(), v.rows()) {}
+	/** \brief Constructor valid only for building a constant view from a non const Eigen matrix. */
+	VectorView(const Eigen::Matrix<NC_t, Eigen::Dynamic, 1> &v) : MapType(v.data(), v.rows()) {}
+	/** \brief Constructor from a GenVector. */
+	VectorView(GenVector<Scalar> &v);
+	/** \brief Constructor valid only for building a constant view from a non const Gen Vector. */
+	VectorView(GenVector<NC_t> &v);
+
+	using MapType::operator=;
+};
+
+
 // StackVector should be the base class without a destructor and
 // Vector derived from it
 template<class Scalar>
@@ -152,6 +202,15 @@ class GenVector {
   int isnnz(int i) {return 1;}
 };
 
+template<class Scalar>
+VectorView<Scalar>::VectorView(GenVector<Scalar> &v) :  VectorView<Scalar>::MapType{v.data(), v.size()} {
+}
+
+
+template<class Scalar>
+VectorView<Scalar>::VectorView(GenVector<typename VectorView<Scalar>::NC_t> &v) :
+	VectorView<Scalar>::MapType{v.data(), v.size()} {
+}
 
 template<class Scalar>
 double norm(const GenVector<Scalar> &v) { return v.norm(); }

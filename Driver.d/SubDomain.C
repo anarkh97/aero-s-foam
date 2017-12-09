@@ -925,64 +925,30 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const
 {
- // localvec += Br^T * interfvec
- multAddBrT(interfvec, localvec);
+	Scalar v[this->Ave.cols()];
+	VectorView<Scalar> t(v, this->Ave.cols(), 1);
+	VectorView<Scalar> l(localvec, this->Ave.rows(), 1);
 
+	// localvec += Br^T * interfvec
+	multAddBrT(interfvec, localvec);
 
- // Primal augmentation 072513 JAT 
- if(this->Ave.cols() > 0) {
-   int i, k, nAve, nCor;
-   int numEquations = this->Krr->neqs();
-   nCor = this->Krc?this->Krc->numCol():0;
-   nAve = Src->numCol() - nCor;
-#ifdef NOTBLAS
-   Scalar s;
-   for(i=0; i<nAve; ++i) {
-     s = 0.0;
-     for(k=0; k<numEquations; ++k)
-       s += this->Eve[i][k]*localvec[k];
-     for(k=0; k<numEquations; ++k)
-       localvec[k] -= s*this->Ave[i][k];
-   }
-#else
-   Scalar v[nAve];
-   Tgemv('T', numEquations, nAve, 1.0, this->Eve[0], numEquations, localvec, 1, 0.0, v, 1);
-   Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, localvec, 1);
-#endif
- }
+	// Primal augmentation 072513 JAT
+	if(this->Ave.cols() > 0) {
+		t = this->Eve.transpose() * l;
+		l.noalias() -= this->Ave * t;
+	}
 
- // localvec = Krr^-1 * localvec
- if(s) s->reSolve(localvec);
+	// localvec = Krr^-1 * localvec
+	if(s) s->reSolve(localvec);
 
- // Extra orthogonaliztion for stability  072216 JAT
- if(this->Ave.cols() > 0) {
-   int i, k, nAve, nCor;
-   int numEquations = this->Krr->neqs();
-   nCor = this->Krc?this->Krc->numCol():0;
-   nAve = Src->numCol() - nCor;
-#ifdef NOTBLAS
-   Scalar s;
-   for(i=0; i<nAve; ++i) {
-     s = 0.0;
-     for(k=0; k<numEquations; ++k)
-       s += this->Ave[i][k]*localvec[k];
-     for(k=0; k<numEquations; ++k)
-       localvec[k] -= s*this->Ave[i][k];
-   }
-#else
-   Scalar v[nAve];
-   Tgemv('T', numEquations, nAve, 1.0, this->Ave[0], numEquations, localvec, 1, 0.0, v, 1);
-   Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, localvec, 1);
-#endif
- }
+	// Extra orthogonaliztion for stability  072216 JAT
+	if(this->Ave.cols() > 0) {
+		t = this->Ave.transpose() * l;
+		l.noalias() -= this->Ave * t;
+	}
 
- // interfvec = Br * localvec
- multBr(localvec, interfvec, uc);
-
- //inorm = 0.0; for(int i=0; i<interfLen(); ++i) inorm += interfvec[i]*interfvec[i];
- //lnorm = 0.0; for(int i=0; i<localRLen(); ++i) lnorm += localvec[i]*localvec[i];
- //std::cerr << ", after: inorm = " << inorm << ", lnorm = " << lnorm << std::endl;
- //if(subNumber == 7) { std::cerr << "interfvec = "; for(int i=0; i<interfLen(); ++i) std::cerr << interfvec[i] << " "; std::cerr << std::endl; }
+	// interfvec = Br * localvec
+	multBr(localvec, interfvec, uc);
 }
 
 template<class Scalar>
@@ -2734,84 +2700,84 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::multKcc()
 {
- // resize Kcc if necessary to add space for "primal" mpcs and augmentation
- if(Src->numCol() != this->Kcc->dim()) {
-   std::unique_ptr<GenAssembledFullM<Scalar>> Kcc_copy = std::move(this->Kcc);
-   this->Kcc = std::make_unique<GenAssembledFullM<Scalar>>(Src->numCol(), cornerMap);
-   for(int i=0; i<numCRNdof; ++i) for(int j=0; j<numCRNdof; ++j) (*this->Kcc)[i][j] = (*Kcc_copy)[i][j];
- }
+	// resize Kcc if necessary to add space for "primal" mpcs and augmentation
+	if(Src->numCol() != this->Kcc->dim()) {
+		std::unique_ptr<GenAssembledFullM<Scalar>> Kcc_copy = std::move(this->Kcc);
+		this->Kcc = std::make_unique<GenAssembledFullM<Scalar>>(Src->numCol(), cornerMap);
+		for(int i=0; i<numCRNdof; ++i) for(int j=0; j<numCRNdof; ++j) (*this->Kcc)[i][j] = (*Kcc_copy)[i][j];
+	}
 
- // add in MPC coefficient contributions for Kcc^(s).
- if(numMPC_primal > 0)
-   assembleMpcIntoKcc();
+	// add in MPC coefficient contributions for Kcc^(s).
+	if(numMPC_primal > 0)
+		assembleMpcIntoKcc();
 
- if(this->Krr == 0) return;
+	if(this->Krr == 0) return;
 
- // Kcc* -> Kcc - Krc^T Krr^-1 Krc
+	// Kcc* -> Kcc - Krc^T Krr^-1 Krc
 
- // first, perform Krc I = iDisp
- // which extracts the correct rhs vectors for the forward/backwards
+	// first, perform Krc I = iDisp
+	// which extracts the correct rhs vectors for the forward/backwards
 
- int nRHS = Src->numCol();
- Scalar **iDisp = new Scalar *[nRHS];
- Scalar *firstpointer = new Scalar [nRHS*nRHS];
+	int nRHS = Src->numCol();
+	Scalar **iDisp = new Scalar *[nRHS];
+	Scalar *firstpointer = new Scalar [nRHS*nRHS];
 
- int numEquations = this->Krr->neqs();
- if(BKrrKrc) {
-   if(BKrrKrc[0]) { delete [] BKrrKrc[0]; BKrrKrc[0] = 0; }
-   delete [] BKrrKrc; BKrrKrc = 0;
- }
- BKrrKrc = (nRHS > 0) ? new Scalar *[nRHS] : 0;
- Scalar *secondpointer = new Scalar [nRHS*totalInterfSize];
- Scalar *thirdpointer = new Scalar [nRHS*numEquations];
- Scalar **KrrKrc = (Scalar **) dbg_alloca(nRHS*sizeof(Scalar *));
- //if(nRHS*numEquations == 0)
- //  fprintf(stderr, "We have a zero size %d %d %d\n",numEquations,totalInterfSize,nRHS);
+	int numEquations = this->Krr->neqs();
+	if(BKrrKrc) {
+		if(BKrrKrc[0]) { delete [] BKrrKrc[0]; BKrrKrc[0] = 0; }
+		delete [] BKrrKrc; BKrrKrc = 0;
+	}
+	BKrrKrc = (nRHS > 0) ? new Scalar *[nRHS] : 0;
+	Scalar *secondpointer = new Scalar [nRHS*totalInterfSize];
+	Scalar *thirdpointer = new Scalar [nRHS*numEquations];
+	Scalar **KrrKrc = (Scalar **) dbg_alloca(nRHS*sizeof(Scalar *));
+	//if(nRHS*numEquations == 0)
+	//  fprintf(stderr, "We have a zero size %d %d %d\n",numEquations,totalInterfSize,nRHS);
 
- int iRHS, iDof;
- for(iRHS=0; iRHS < nRHS; ++iRHS) {
-   iDisp[iRHS]  = firstpointer  + iRHS*nRHS;
-   BKrrKrc[iRHS] = secondpointer+iRHS*totalInterfSize;
-   KrrKrc[iRHS] = thirdpointer + iRHS*numEquations;
-   for(iDof=0; iDof<numEquations; ++iDof)
-     KrrKrc[iRHS][iDof] = 0.0;
- }
- if(Src) Src->multIdentity(KrrKrc);
+	int iRHS, iDof;
+	for(iRHS=0; iRHS < nRHS; ++iRHS) {
+		iDisp[iRHS]  = firstpointer  + iRHS*nRHS;
+		BKrrKrc[iRHS] = secondpointer+iRHS*totalInterfSize;
+		KrrKrc[iRHS] = thirdpointer + iRHS*numEquations;
+		for(iDof=0; iDof<numEquations; ++iDof)
+			KrrKrc[iRHS][iDof] = 0.0;
+	}
+	if(Src) Src->multIdentity(KrrKrc);
 
- // 070213 JAT
- if(Src && (solInfo().getFetiInfo().augmentimpl == FetiInfo::Primal)) {
-   int nAve, nCor;
-   nCor = this->Krc?this->Krc->numCol():0;
-   nAve = Src->numCol() - nCor;
-   if (nAve) {
-     int i, j, k, nz;
-     Scalar *pKve = new Scalar [nAve*numEquations];
-     Scalar *pv = new Scalar [nAve];
-     GenFullM<Scalar> AKA(nAve);
-     Scalar s, *pAKA;
-     Scalar **Kve = new Scalar *[nAve];
-	   this->Ave.resize(numEquations, nAve);
-     for(i=0; i<nAve; ++i) {
-       Kve[i] = pKve + i*numEquations;
-     }
-     for(i=0; i<nAve; ++i) {
-       s = 0.0;
-       for(j=0; j<numEquations; ++j) {
-	 this->Ave[i][j] = KrrKrc[nCor+i][j];
-	 s += this->Ave[i][j]*this->Ave[i][j];
-       }
-       s = 1.0/sqrt(s);
-       for(j=0; j<numEquations; ++j)
-         this->Ave[i][j] *= s;
-     }
-     for(i=0; i<nAve; ++i) {
-	     for (j = 0; j < numEquations; ++j)
-		     this->Eve[i][j] = this->Ave[i][j];
-	     this->Krr->reSolve(nAve, this->Eve[i]);
-     }
-     pAKA = AKA.data();
+	// 070213 JAT
+	if(Src && (solInfo().getFetiInfo().augmentimpl == FetiInfo::Primal)) {
+		int nAve, nCor;
+		nCor = this->Krc?this->Krc->numCol():0;
+		nAve = Src->numCol() - nCor;
+		if (nAve) {
+			int i, j, k, nz;
+			Scalar *pKve = new Scalar [nAve*numEquations];
+			Scalar *pv = new Scalar [nAve];
+			GenFullM<Scalar> AKA(nAve);
+			Scalar s, *pAKA;
+			Scalar **Kve = new Scalar *[nAve];
+			this->Ave.resize(numEquations, nAve);
+			for(i=0; i<nAve; ++i) {
+				Kve[i] = pKve + i*numEquations;
+			}
+			for(i=0; i<nAve; ++i) {
+				s = 0.0;
+				for(j=0; j<numEquations; ++j) {
+					this->Ave[i][j] = KrrKrc[nCor+i][j];
+					s += this->Ave[i][j]*this->Ave[i][j];
+				}
+				s = 1.0/sqrt(s);
+				for(j=0; j<numEquations; ++j)
+					this->Ave[i][j] *= s;
+			}
+			for(i=0; i<nAve; ++i) {
+				for (j = 0; j < numEquations; ++j)
+					this->Eve[i][j] = this->Ave[i][j];
+				this->Krr->reSolve(nAve, this->Eve[i]);
+			}
+			pAKA = AKA.data();
 #ifdef NOTBLAS
-     for(i=0; i<nAve; ++i)
+			for(i=0; i<nAve; ++i)
        for(j=0; j<nAve; ++j) {
          s = 0.0;
          for(k=0; k<numEquations; ++k)
@@ -2819,92 +2785,84 @@ GenSubDomain<Scalar>::multKcc()
 	 pAKA[i+nAve*j] = s;
        }
 #else
-     Tgemm('T', 'N', nAve, nAve, numEquations, 1.0, this->Eve[0], numEquations,
-           this->Ave[0], numEquations, 0.0, pAKA, nAve);
+			Tgemm('T', 'N', nAve, nAve, numEquations, 1.0, this->Eve[0], numEquations,
+			      this->Ave[0], numEquations, 0.0, pAKA, nAve);
 #endif
-     AKA.factor();
-     for(j=0; j<numEquations; ++j) {
-       for(i=0; i<nAve; ++i)
-	 pv[i] = this->Eve[i][j];
-       AKA.reSolve(pv);
-       for(i=0; i<nAve; ++i)
-	 this->Eve[i][j] = pv[i];
-     }
+			AKA.factor();
+			for(j=0; j<numEquations; ++j) {
+				for(i=0; i<nAve; ++i)
+					pv[i] = this->Eve[i][j];
+				AKA.reSolve(pv);
+				for(i=0; i<nAve; ++i)
+					this->Eve[i][j] = pv[i];
+			}
 
-     for(i=0; i<nAve; ++i)
-       for(j=0; j<nCor; ++j) {
-         s = 0.0;
-         for(k=0; k<numEquations; ++k)
-	   s += KrrKrc[j][k]*this->Ave[i][k];
-	 (*this->Kcc)[nCor+i][j] = s;
-         (*this->Kcc)[j][nCor+i] = s;
-       }
-     for(i=0; i<nAve; ++i) {
-       this->KrrSparse->mult(this->Ave[i],Kve[i]);
-       for(j=0; j<nAve; ++j) {
-         s = 0.0;
-         for(k=0; k<numEquations; ++k)
-	   s += Kve[i][k]*this->Ave[j][k];
-	 (*this->Kcc)[nCor+i][nCor+j] = s;
-       }
-     }
+			for(i=0; i<nAve; ++i)
+				for(j=0; j<nCor; ++j) {
+					s = 0.0;
+					for(k=0; k<numEquations; ++k)
+						s += KrrKrc[j][k]*this->Ave[i][k];
+					(*this->Kcc)[nCor+i][j] = s;
+					(*this->Kcc)[j][nCor+i] = s;
+				}
+			for(i=0; i<nAve; ++i) {
+				this->KrrSparse->mult(this->Ave[i],Kve[i]);
+				for(j=0; j<nAve; ++j) {
+					s = 0.0;
+					for(k=0; k<numEquations; ++k)
+						s += Kve[i][k]*this->Ave[j][k];
+					(*this->Kcc)[nCor+i][nCor+j] = s;
+				}
+			}
 
-     nz = 0;
-     for(i=0; i<nAve; ++i)
-       for(k=0; k<numEquations; ++k)
-	 if(std::abs(Kve[i][k])>0.0) nz++;
+			nz = 0;
+			for(i=0; i<nAve; ++i)
+				for(k=0; k<numEquations; ++k)
+					if(std::abs(Kve[i][k])>0.0) nz++;
 
-     int *KACount = new int[nAve];
-     int *KAList = new int[nz];
-     Scalar *KACoefs = new Scalar[nz];
-     nz = 0;
-     for(i=0; i<nAve; ++i) {
-       KACount[i] = 0;
-       for(k=0; k<numEquations; ++k)
-	 if(std::abs(Kve[i][k])>0.0) {
-	   KACount[i]++;
-	   KAList[nz] = k;
-	   KACoefs[nz] = Kve[i][k];
-	   nz++;
-	 }
-     }
+			int *KACount = new int[nAve];
+			int *KAList = new int[nz];
+			Scalar *KACoefs = new Scalar[nz];
+			nz = 0;
+			for(i=0; i<nAve; ++i) {
+				KACount[i] = 0;
+				for(k=0; k<numEquations; ++k)
+					if(std::abs(Kve[i][k])>0.0) {
+						KACount[i]++;
+						KAList[nz] = k;
+						KACoefs[nz] = Kve[i][k];
+						nz++;
+					}
+			}
 
-     this->Grc = std::make_unique<GenCuCSparse<Scalar>>(nAve, numEquations, KACount, KAList, KACoefs);
+			this->Grc = std::make_unique<GenCuCSparse<Scalar>>(nAve, numEquations, KACount, KAList, KACoefs);
 
-     if (Src->num() == 2)
-       Src->setSparseMatrix(1,this->Grc.get());
-     else if (Src->num() == 1 && nCor == 0)
-       Src->setSparseMatrix(0,this->Grc.get());
-     else {
-       fprintf(stderr, "unsupported number of blocks in Src\n");
-       exit(1);
-     }
+			if (Src->num() == 2)
+				Src->setSparseMatrix(1,this->Grc.get());
+			else if (Src->num() == 1 && nCor == 0)
+				Src->setSparseMatrix(0,this->Grc.get());
+			else {
+				fprintf(stderr, "unsupported number of blocks in Src\n");
+				exit(1);
+			}
 
-     delete [] KACount;
+			delete [] KACount;
 
-     for(i=0; i<nRHS; ++i)
-       for(j=0; j<numEquations; ++j)
-	 KrrKrc[i][j] = 0.0;
+			for(i=0; i<nRHS; ++i)
+				for(j=0; j<numEquations; ++j)
+					KrrKrc[i][j] = 0.0;
 
-     Src->multIdentity(KrrKrc);
+			Src->multIdentity(KrrKrc);
 
-#ifdef NOTBLAS
-     for(i=0; i<nAve; ++i)
-       for(j=0; j<nRHS; j++) {
-	 s = 0.0;
-	 for(k=0; k<numEquations; ++k)
-	   s += this->Eve[i][k]*KrrKrc[j][k];
-	 for(k=0; k<numEquations; ++k)
-	   KrrKrc[j][k] -= s*this->Ave[i][k];
-       }
-#else
-     Scalar v[nAve];
-     for(j=0; j<nRHS; j++) {
-       Tgemv('T', numEquations, nAve, 1.0, this->Eve[0], numEquations, KrrKrc[j], 1, 0.0, v, 1);
-       Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, KrrKrc[j], 1);
-     }
-#endif
-   }
+			Scalar vt[nAve];
+			VectorView<Scalar> v{vt, nAve};
+			for(j=0; j<nRHS; j++) {
+				v = this->Eve * VectorView<Scalar>{ KrrKrc[j], numEquations };
+				VectorView<Scalar>{ KrrKrc[j], numEquations } -= this->Ave * v;
+//       Tgemv('T', numEquations, nAve, 1.0, this->Eve[0], numEquations, KrrKrc[j], 1, 0.0, v, 1);
+//       Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, KrrKrc[j], 1);
+			}
+		}
  }
 
  // KrrKrc <- Krr^-1 Krc
@@ -3087,116 +3045,84 @@ GenSubDomain<Scalar>::multKrc(Scalar *fr, const Scalar *uc) const
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda) const
+GenSubDomain<Scalar>::multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const VectorView<Scalar> &lambda) const
 {
- int i, iDof, k;
+	Scalar v[this->Ave.cols()];
+	VectorView<Scalar> t(v, this->Ave.cols(), 1);
+	Eigen::Matrix<Scalar, Eigen::Dynamic,1> force(localLen());
 
- Scalar *force = new Scalar[localLen()];
- for(iDof = 0; iDof < localLen(); ++iDof) force[iDof] = -fr[iDof];
+	force = -fr;
 
- //add the lambda contribution to fr, ie: -fr + Br^(s)^T lambda
- bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
- for(i = 0; i < numMPC; ++i) mpcFlag[i] = true;
- for(iDof = 0; iDof < totalInterfSize; ++iDof) {
-   switch(boundDofFlag[iDof]) {
-     case 0:
-       force[allBoundDofs[iDof]] -= lambda[iDof];
-       break;
-     case 1:  // wet interface
-       localw[-1-allBoundDofs[iDof]] = lambda[iDof];
-       break;
-     case 2: { // dual mpc or contact
-       int locMpcNb = -1-allBoundDofs[iDof];
-       if(mpcFlag[locMpcNb]) {
-         SubLMPCons<Scalar> *m = mpc[locMpcNb];
-         for(k = 0; k < m->nterms; k++) {
-           int ccdof = (m->terms)[k].ccdof;
-           if(ccdof >= 0) force[ccdof] -= lambda[iDof] * (m->terms)[k].coef;
-         }
-         mpcFlag[locMpcNb] = false;
-       }
-     } break;
-   }
- }
+	//add the lambda contribution to fr, ie: -fr + Br^(s)^T lambda
+	bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
+	for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+	for(int iDof = 0; iDof < totalInterfSize; ++iDof) {
+		switch(boundDofFlag[iDof]) {
+			case 0:
+				force[allBoundDofs[iDof]] -= lambda[iDof];
+				break;
+			case 1:  // wet interface
+				localw[-1-allBoundDofs[iDof]] = lambda[iDof];
+				break;
+			case 2: { // dual mpc or contact
+				int locMpcNb = -1-allBoundDofs[iDof];
+				if(mpcFlag[locMpcNb]) {
+					SubLMPCons<Scalar> *m = mpc[locMpcNb];
+					for(int k = 0; k < m->nterms; k++) {
+						int ccdof = (m->terms)[k].ccdof;
+						if(ccdof >= 0) force[ccdof] -= lambda[iDof] * (m->terms)[k].coef;
+					}
+					mpcFlag[locMpcNb] = false;
+				}
+			} break;
+		}
+	}
 
- if(numWIdof) Krw->multAddNew(localw, force);  // coupled_dph: force += Krw * uw
+	if(numWIdof) Krw->multAddNew(localw, force.data());  // coupled_dph: force += Krw * uw
 
- // Primal augmentation 072513 JAT 
- if(this->Ave.cols() > 0) {
-   int i, k, nAve, nCor;
-   int numEquations = this->Krr->neqs();
-   nCor = this->Krc ? this->Krc->numCol() : 0;
-   nAve = Src->numCol() - nCor;
-#ifdef NOTBLAS
-   Scalar s;
-   for(i=0; i<nAve; ++i) {
-     s = 0.0;
-     for(k=0; k<numEquations; ++k)
-       s += this->Eve[i][k]*force[k];
-     for(k=0; k<numEquations; ++k)
-       force[k] -= s*this->Ave[i][k];
-   }
-#else
-   Scalar v[nAve];
-   Tgemv('T', numEquations, nAve, 1.0, this->Eve[0], numEquations, force, 1, 0.0, v, 1);
-   Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, force, 1);
-#endif
- }
+	// Primal augmentation 072513 JAT
+	if(this->Ave.cols() > 0) {
+		t = this->Eve.transpose() * force;
+		force.noalias() -= this->Ave * t;
+	}
 
- if(this->Krr) this->Krr->reSolve(force);
+	if(this->Krr) this->Krr->solveInPlace(force);
 
- // Extra orthogonaliztion for stability  072216 JAT
- if(this->Ave.cols() > 0) {
-   int i, k, nAve, nCor;
-   int numEquations = this->Krr->neqs();
-   nCor = this->Krc ? this->Krc->numCol():0;
-   nAve = Src->numCol() - nCor;
-#ifdef NOTBLAS
-   Scalar s;
-   for(i=0; i<nAve; ++i) {
-     s = 0.0;
-     for(k=0; k<numEquations; ++k)
-       s += this->Ave[i][k]*force[k];
-     for(k=0; k<numEquations; ++k)
-       force[k] -= s*this->Ave[i][k];
-   }
-#else
-   Scalar v[nAve];
-   Tgemv('T', numEquations, nAve, 1.0, this->Ave[0], numEquations, force, 1, 0.0, v, 1);
-   Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, force, 1);
-#endif
- }
+	// Extra orthogonaliztion for stability  072216 JAT
+	if(this->Ave.cols() > 0) {
+		t = this->Ave.transpose() * force;
+		force.noalias() -= this->Ave * t;
+	}
 
- // re-initialization required for mpc/contact
- if(fcstar) delete [] fcstar;  fcstar = new Scalar[Src->numCol()];
- for(i=0; i<Src->numCol(); ++i) fcstar[i] = 0.0;
+	// re-initialization required for mpc/contact
+	if(fcstar) delete [] fcstar;  fcstar = new Scalar[Src->numCol()];
+	for(int i=0; i<Src->numCol(); ++i) fcstar[i] = 0.0;
 
- // fcstar = - (Krr^-1 Krc)^T fr
- //        = - Krc^T (Krr^-1 fr)
- //        = Src force
- if(Src) Src->multAdd(force, fcstar);
- delete [] force;
+	// fcstar = - (Krr^-1 Krc)^T fr
+	//        = - Krc^T (Krr^-1 fr)
+	//        = Src force
+	if(Src) Src->multAdd(force.data(), fcstar);
 
- // for coupled_dph add fcstar -= Kcw Bw uw
- if(numWIdof) {
-   if(Kcw) Kcw->mult(localw, fcstar, -1.0, 1.0);
-   if(Kcw_mpc) Kcw_mpc->multSubWI(localw, fcstar);
- }
+	// for coupled_dph add fcstar -= Kcw Bw uw
+	if(numWIdof) {
+		if(Kcw) Kcw->mult(localw, fcstar, -1.0, 1.0);
+		if(Kcw_mpc) Kcw_mpc->multSubWI(localw, fcstar);
+	}
 
- // add Bc^(s)^T lambda
- for(i = 0; i < numMPC; ++i) mpcFlag[i] = true;
- for(i = 0; i < scomm->lenT(SComm::mpc); ++i) {
-   int locMpcNb = scomm->mpcNb(i);
-   if(mpcFlag[locMpcNb]) {
-     SubLMPCons<Scalar> *m = mpc[locMpcNb];
-     for(k = 0; k < m->nterms; k++) {
-       int dof = (m->terms)[k].dof;
-       if((dof >= 0) && (cornerMap[dof] >= 0))
-         fcstar[cornerMap[dof]] += lambda[scomm->mapT(SComm::mpc,i)] * (m->terms)[k].coef;
-     }
-     mpcFlag[locMpcNb] = false;
-   }
- }
+	// add Bc^(s)^T lambda
+	for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+	for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+		int locMpcNb = scomm->mpcNb(i);
+		if(mpcFlag[locMpcNb]) {
+			SubLMPCons<Scalar> *m = mpc[locMpcNb];
+			for(int k = 0; k < m->nterms; k++) {
+				int dof = (m->terms)[k].dof;
+				if((dof >= 0) && (cornerMap[dof] >= 0))
+					fcstar[cornerMap[dof]] += lambda[scomm->mapT(SComm::mpc,i)] * (m->terms)[k].coef;
+			}
+			mpcFlag[locMpcNb] = false;
+		}
+	}
 }
 
 template<class Scalar>
@@ -3305,39 +3231,26 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::getFr(const Scalar *f, Scalar *fr) const
 {
-  int i,iNode;
-  int rDofs[DofSet::max_known_dof];
-  int oDofs[DofSet::max_known_dof];
-  for(iNode = 0; iNode < numnodes; ++iNode) {
-    DofSet thisDofSet = (*cc_dsa)[iNode];
-    int nd = thisDofSet.count();
-    c_dsa->number(iNode, thisDofSet, oDofs);
-    cc_dsa->number(iNode, thisDofSet, rDofs);
-    for(i = 0; i < nd; ++i) {
-      fr[rDofs[i]] = f[oDofs[i]];
-    }
-  }
+	Scalar v[this->Ave.cols()];
+	VectorView<Scalar> t(v, this->Ave.cols(), 1);
+	VectorView<Scalar> l(fr, this->Ave.rows(), 1);
 
-  if(this->Ave.cols() > 0) { // Averages to zero 072513 JAT
-    int i, k, nAve, nCor;
-    nCor = this->Krc ? this->Krc->numCol() : 0;
-    nAve = Src->numCol() - nCor;
-    int numEquations = this->Krr->neqs();
-#ifdef NOTBLAS
-    Scalar s;
-    for(i=0; i<nAve; ++i) {
-      s = 0.0;
-      for(k=0; k<numEquations; ++k)
-        s += this->Ave[i][k]*fr[k];
-      for(k=0; k<numEquations; ++k)
-        fr[k] -= s*this->Ave[i][k];
-    }
-#else
-   Scalar v[nAve];
-   Tgemv('T', numEquations, nAve, 1.0, this->Ave[0], numEquations, fr, 1, 0.0, v, 1);
-   Tgemv('N', numEquations, nAve, -1.0, this->Ave[0], numEquations, v, 1, 1.0, fr, 1);
-#endif
-  }
+	int rDofs[DofSet::max_known_dof];
+	int oDofs[DofSet::max_known_dof];
+	for(int iNode = 0; iNode < numnodes; ++iNode) {
+		DofSet thisDofSet = (*cc_dsa)[iNode];
+		int nd = thisDofSet.count();
+		c_dsa->number(iNode, thisDofSet, oDofs);
+		cc_dsa->number(iNode, thisDofSet, rDofs);
+		for(int i = 0; i < nd; ++i) {
+			fr[rDofs[i]] = f[oDofs[i]];
+		}
+	}
+
+	if(this->Ave.cols() > 0) { // Averages to zero 072513 JAT
+		t = this->Ave.transpose() * l;
+		l.noalias() -= this->Ave * t;
+	}
 }
 
 template<class Scalar>

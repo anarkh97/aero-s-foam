@@ -1,4 +1,5 @@
 ADD_LIBRARY(solver
+        Solver.h
         DSCsolver.C
         MumpsCore.C
         Rbm.C

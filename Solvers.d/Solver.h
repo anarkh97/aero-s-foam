@@ -5,6 +5,7 @@
 #include <Utils.d/MyComplex.h>
 #include <iostream>
 #include <Timers.d/Timing.h>
+#include <Math.d/Vector.h>
 
 template <class Scalar> class GenVector;
 template <class Scalar> class GenDistrVector;
@@ -59,6 +60,12 @@ class GenSolver {
     virtual void reSolve(Scalar *rhs);
     virtual void reSolve(Vector &rhs);
     virtual void reSolve(ComplexVector &rhs);
+
+	/** \brief Solve the system of equation Ax = b in place.
+	 *
+	 * @param b [inout] The right hand side in input and the solution in output.
+	 */
+	void solveInPlace(VectorView<Scalar> b) { reSolve(b.data()); }
 
     // Multiple rhs reSolve functions
     virtual void reSolve(int nRHS, Scalar **rhs);

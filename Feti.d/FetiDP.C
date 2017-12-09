@@ -2012,8 +2012,8 @@ void
 GenFetiDPSolver<Scalar>::makeFc(int iSub, GenDistrVector<Scalar> &fr, /*GenVector<Scalar> &fc,*/ 
                                 GenDistrVector<Scalar> &lambda) const
 {
-  this->sd[iSub]->multfc(fr.subData(this->subdomains[iSub]->localSubNum()), /*fc.data(),*/
-                         lambda.subData(this->subdomains[iSub]->localSubNum()));
+  this->sd[iSub]->multfc(fr.subVec(this->subdomains[iSub]->localSubNum()), /*fc.data(),*/
+                         lambda.subVec(this->subdomains[iSub]->localSubNum()));
 }
 
 template<class Scalar> 

@@ -10,6 +10,11 @@ ADD_LIBRARY(Math spsmvp.f
         FullRectMatrix.C NBSparseMatrixCore.C TTensor.C
         EiSparseMatrixCore.C
         SparseMatrix.h
+        CuCSparse.h
+        BLKSparseMatrix.h
+        DistVector.h
+        DiagMatrix.h
+        Vector.h
 Skyline.d/forbackr7.f
 Skyline.d/BlockSkyCore.C  Skyline.d/forbackr7ns.f
 Skyline.d/forbackr8.f

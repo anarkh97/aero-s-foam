@@ -8,6 +8,8 @@
 
 #include <Eigen/Dense>
 
+#include <Math.d/Vector.h>
+
 struct DistrInfo {
 
    int len;
@@ -129,9 +131,9 @@ public:
     GenDistrVector<Scalar>&  getBlock(int iblock) { std::cerr << "GenDistrVector::getBlock not implemented" << std::endl; 
                                                     return *(new GenDistrVector<Scalar>()); }
 	///\brief Obtain a view to the part of the vector for one subdomain.
-	VecRef<Scalar> subVec(int iSub) { return VecRef<Scalar>{subData(iSub), subLen(iSub), 1}; }
+	VectorView<Scalar> subVec(int iSub) { return VectorView<Scalar>{subData(iSub), subLen(iSub), 1}; }
 	///\copydoc
-	ConstVecRef<Scalar> subVec(int iSub) const { return ConstVecRef<Scalar>{subData(iSub), subLen(iSub), 1}; }
+	VectorView<const Scalar> subVec(int iSub) const { return VectorView<const Scalar>{subData(iSub), subLen(iSub), 1}; }
     void negate();
     Scalar *data() const      { return v;          }
     Scalar *subData(int i)    { return subV[i];    }

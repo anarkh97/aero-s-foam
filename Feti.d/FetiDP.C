@@ -1273,48 +1273,48 @@ GenFetiDPSolver<Scalar>::restoreStep() const
 	  const_cast<GenFetiDPSolver<Scalar> *>(this)->rebuildGtGtilda();
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::solve(const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u)
 {
- if (verboseFlag) filePrint(stderr," ... Begin FETI-DP Solve            ...\n");
+	if (verboseFlag) filePrint(stderr," ... Begin FETI-DP Solve            ...\n");
 
- switch(fetiInfo->outerloop) {
-   default:
-   case 0:
-       if(verboseFlag) {
-         filePrint (stderr, " ... CG solver selected             ...\n\n");
-       }
-       if(this->myCPU == 0 && typeid(Scalar)==typeid(DComplex) && !fetiInfo->complex_hermitian)
-         std::cerr << " *** WARNING: CG is not valid for all complex symmetric matrices even if positive definite.\n"
-              << " *** If your matrix is complex hermitian include \"outerloop CG hermitian\" under FETI in your input file.\n"
-              << " *** Otherwise, \"outerloop GMRES\" or \"outerloop GCR\" are safer choices.\n";
-       if(verboseFlag) {
-         filePrint (stderr, "----------------------------------------------\n");
-         filePrint (stderr, "          Iterations loop monitoring          \n");
-         filePrint (stderr, "----------------------------------------------\n");
-       }
-       solveCG(f, u);
-       break;
-   case 1:
-       if(verboseFlag) {
-         filePrint (stderr, " ... GMRES solver selected          ...\n");
-         filePrint (stderr, "----------------------------------------------\n");
-         filePrint (stderr, "          Iterations loop monitoring          \n");
-         filePrint (stderr, "----------------------------------------------\n");
-       }
-       solveGMRES(f, u);
-       break;
-   case 2:
-       if(verboseFlag) {
-         filePrint (stderr, " ... GCR solver selected            ...\n\n");
-         filePrint (stderr, "----------------------------------------------\n");
-         filePrint (stderr, "          Iterations loop monitoring          \n");
-         filePrint (stderr, "----------------------------------------------\n");
-       }
-       solveGCR(f, u);
-       break;
- }
+	switch(fetiInfo->outerloop) {
+		default:
+		case FetiInfo::OuterloopType::CG:
+			if(verboseFlag) {
+				filePrint (stderr, " ... CG solver selected             ...\n\n");
+			}
+			if(this->myCPU == 0 && typeid(Scalar)==typeid(DComplex) && !fetiInfo->complex_hermitian)
+				std::cerr << " *** WARNING: CG is not valid for all complex symmetric matrices even if positive definite.\n"
+				          << " *** If your matrix is complex hermitian include \"outerloop CG hermitian\" under FETI in your input file.\n"
+				          << " *** Otherwise, \"outerloop GMRES\" or \"outerloop GCR\" are safer choices.\n";
+			if(verboseFlag) {
+				filePrint (stderr, "----------------------------------------------\n");
+				filePrint (stderr, "          Iterations loop monitoring          \n");
+				filePrint (stderr, "----------------------------------------------\n");
+			}
+			solveCG(f, u);
+			break;
+		case FetiInfo::OuterloopType::GMRES:
+			if(verboseFlag) {
+				filePrint (stderr, " ... GMRES solver selected          ...\n");
+				filePrint (stderr, "----------------------------------------------\n");
+				filePrint (stderr, "          Iterations loop monitoring          \n");
+				filePrint (stderr, "----------------------------------------------\n");
+			}
+			solveGMRES(f, u);
+			break;
+		case FetiInfo::OuterloopType::GCR:
+			if(verboseFlag) {
+				filePrint (stderr, " ... GCR solver selected            ...\n\n");
+				filePrint (stderr, "----------------------------------------------\n");
+				filePrint (stderr, "          Iterations loop monitoring          \n");
+				filePrint (stderr, "----------------------------------------------\n");
+			}
+			solveGCR(f, u);
+			break;
+	}
 }
 
 template<class Scalar> 

@@ -1984,15 +1984,15 @@ GenFetiSolver<Scalar>::factorMatrices(int iSub)
 		// Geometric rigid body modes
 		fop->numRBM = fop->rbm->numRBM();
 		if(fop->numRBM > 0) {
-			fop->locRBMs = new double[fop->numRBM * subdomains[iSub]->localLen()];
-			fop->rbm->getRBMs(fop->locRBMs);
+			fop->locRBMs.resize(fop->numRBM * subdomains[iSub]->localLen());
+			fop->rbm->getRBMs(fop->locRBMs.data());
 		}
 	} else {
 		// Algebraic rigid body modes
 		fop->numRBM = fop->K->numRBM();
 		if(fop->numRBM > 0) {
-			fop->locRBMs = new double[fop->numRBM * subdomains[iSub]->localLen()];
-			fop->K->getRBMs(fop->locRBMs);
+			fop->locRBMs.resize(fop->numRBM * subdomains[iSub]->localLen());
+			fop->K->getRBMs(fop->locRBMs.data());
 		}
 #ifndef SALINAS_FETI
 		if(fetiInfo->numPrint() > 0 && verboseFlag)
@@ -2529,7 +2529,7 @@ GenFetiSolver<Scalar>::singleCoarseAssembleMPCs(int iMPC)
 		opControl->cset[myNum].addMPCContrib(iMPC,
 		                                     singleCoarse, eqNums, cOffset, gOffset,
 		                                     mOffset+iMPC,
-		                                     fetiOps[myNum]->locRBMs,
+		                                     fetiOps[myNum]->locRBMs.data(),
 		                                     fetiOps[myNum]->solver);
 	}
 
@@ -2646,7 +2646,7 @@ GenFetiSolver<Scalar>::getSRMult(int iSub, GenDistrVector<Scalar> *r, GenDistrVe
 	// alpha = R*lvec
 	Scalar *lvec = r->subData(iSub);
 	Scalar *lbvec = lambda->subData(iSub);
-	double *locRBMs = fetiOps[iSub]->locRBMs;
+	auto locRBMs = fetiOps[iSub]->locRBMs.data();
 	Scalar *alpha = sv + eqNums->firstdof(subdomains[iSub]->subNum()+gOffset);
 	sd[iSub]->getSRMult(lvec, lbvec, nRBM, locRBMs, alpha);
 }

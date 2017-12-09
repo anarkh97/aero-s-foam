@@ -16,7 +16,7 @@ GenFetiSolver<double>::getRMult(int iSub, GenDistrVector<double> *localvec, doub
  double *lAlpha = alpha + fetiOps[iSub]->alphaOffset[0];
 
  int numRBM = fetiOps[iSub]->numRBM;
- double *locRBMs = fetiOps[iSub]->locRBMs;
+ const double *locRBMs = fetiOps[iSub]->locRBMs.data();
 
  if(numRBM > 0)
  Tgemv('T',sd[iSub]->localLen(), numRBM, 1.0, locRBMs,
@@ -40,7 +40,7 @@ GenFetiSolver<double>::addRP(int iSub, GenDistrVector<double> *vec1, double *vec
 
  if(fetiOps[iSub]->numRBM > 0 && sd[iSub]->localLen() > 0)
    Tgemv('N', sd[iSub]->localLen(),fetiOps[iSub]->numRBM, 
-         -1.0, fetiOps[iSub]->locRBMs, sd[iSub]->localLen(),
+         -1.0, fetiOps[iSub]->locRBMs.data(), sd[iSub]->localLen(),
          alpha, 1, 1.0, localvec, 1);
 }
 
@@ -118,6 +118,6 @@ GenFetiSolver<double>::addRS(int iSub, GenDistrVector<double> *vec1, double *vec
  int n = fetiOps[iSub]->numRBM;
  // localvec = R*alpha
  if(n > 0)
- Tgemv('N', m, n, 1.0, fetiOps[iSub]->locRBMs, m,
+ Tgemv('N', m, n, 1.0, fetiOps[iSub]->locRBMs.data(), m,
                  alpha, 1, 1.0, localvec, 1);
 }

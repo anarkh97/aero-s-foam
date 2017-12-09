@@ -130,8 +130,8 @@ protected:
 	std::vector<int> edgeDofSize;      //<! \brief Number of edge DOF per neighbor.
 	std::vector<int> cornerEqNums; //<! \brief unique equation numbers for subdomain corner dofs
 	std::unique_ptr<ConstrainedDSA> cc_dsa = nullptr;
-	std::vector<int> ccToC; //!< from cc_dsa to c_dsa
-	std::vector<int> cToCC; //!< from c_dsa to cc_dsa
+	std::vector<int> ccToC; //!< Mapping from cc_dsa to c_dsa
+	std::vector<int> cToCC; //!< Mapping from c_dsa to cc_dsa
 public:
 	int group = 0;
 

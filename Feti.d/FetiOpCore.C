@@ -22,15 +22,15 @@ GenFetiOp<double>::sendInterfRBM(FSCommPattern<double> *rbmPat)
 {
  int isUsual = 1;
 
- locInterfRBMs = new double[numRBM*sd->interfLen()];
+ locInterfRBMs.resize(numRBM*sd->interfLen());
 
  // sd->sendRBMs(numRBM, locRBMs, locInterfRBMs);
- sd->extractInterfRBMs(numRBM, locRBMs, locInterfRBMs);
- sd->sendInterfRBMs(numRBM, locInterfRBMs, rbmPat);
+ sd->extractInterfRBMs(numRBM, locRBMs.data(), locInterfRBMs.data());
+ sd->sendInterfRBMs(numRBM, locInterfRBMs.data(), rbmPat);
 
  GenCoarseSet<double> &thisSet = control->cset[sd->localSubNum()];
  thisSet.numGs = numRBM;
- thisSet.locGs = locInterfRBMs;
+ thisSet.locGs = locInterfRBMs.data();
 
  if(QGisLocal == 0) { // If there is a Q
    int i;
@@ -53,7 +53,7 @@ GenFetiOp<double>::sendInterfRBM(FSCommPattern<double> *rbmPat)
    }
  }
  else if(isUsual)
-   control->cset[sd->localSubNum()].locQGs = locInterfRBMs;// no preconditioning
+   control->cset[sd->localSubNum()].locQGs = locInterfRBMs.data();// no preconditioning
  else {
    DofSetArray *dsa = sd->c_dsa;
    int numDofs = dsa->size();

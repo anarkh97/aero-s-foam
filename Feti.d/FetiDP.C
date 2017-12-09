@@ -219,14 +219,13 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 	mpcPrecon = false;
 	if(this->glNumMpc > 0) {
 		if(fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
-			FSCommPattern<Scalar> *mpcDiagPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU,
+			auto mpcDiagPat = std::make_unique<FSCommPattern<Scalar>>(this->fetiCom, this->cpuToSub, this->myCPU,
 			                                                              FSCommPattern<Scalar>::CopyOnSend);
-			for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcDiagCommSize(mpcDiagPat);
+			for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcDiagCommSize(mpcDiagPat.get());
 			mpcDiagPat->finalize();
-			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcDiag, mpcDiagPat);
+			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcDiag, mpcDiagPat.get());
 			mpcDiagPat->exchange();
-			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcDiag, mpcDiagPat);
-			delete mpcDiagPat;
+			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcDiag, mpcDiagPat.get());
 		}
 
 		if(fetiInfo->c_normalize) normalizeC();

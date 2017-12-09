@@ -13,37 +13,37 @@ template<class Scalar>
 class GenFetiOp : public TaskDescr 
 {
    protected:
-    GenSubDomain<Scalar> *sd;
-    GenSolver<Scalar> *solver;
-    GenSolver<Scalar> *K;
-    GenSparseMatrix<Scalar> *KasSparse;
-    Rbm *rbm; // For dynamics only and nonlinear
+    GenSubDomain<Scalar> *sd = nullptr;
+    GenSolver<Scalar> *solver = nullptr;
+    GenSolver<Scalar> *K = nullptr;
+    GenSparseMatrix<Scalar> *KasSparse = nullptr;
+    Rbm *rbm = nullptr; // For dynamics only and nonlinear
     int numNeighb;
     int halfOffset;
-    int *alphaOffset;
-    int *betaOffset;
+    std::vector<int> alphaOffset;
+	std::vector<int> betaOffset;
     int isFeti2, isDynamic;
 
-    int numRBM;            // total number of RBMs
-    double *locRBMs;       // local RBMs for the whole domain
-    double *locInterfRBMs; // local RBMs on the interface in local linear form
+    int numRBM = 0;            // total number of RBMs
+    std::vector<double> locRBMs ;       // local RBMs for the whole domain
+    std::vector<double> locInterfRBMs ; // local RBMs on the interface in local linear form
                            // The modes are consecutive in the array
 
-    int *neighbNumRBMs;
-    double **neighbRBMs;
+    std::vector<int> neighbNumRBMs;
+//    double **neighbRBMs = nullptr;
 
     int crnDofSize;        // number of additional lagrange multipliers
-    IntFullM *BClocal;
+    IntFullM *BClocal = nullptr;
 
-    GenFetiOpControler<Scalar> *control;
+    GenFetiOpControler<Scalar> *control = nullptr;
 
     int QGisLocal;  // Wether or not QG is local
 
-    Scalar *interfBuff;
-    FSCommPattern<Scalar> *vPat;
+    Scalar *interfBuff = nullptr;
+    FSCommPattern<Scalar> *vPat = nullptr;
 
    public:
-    GenFetiOp() { init(); }
+    GenFetiOp() {}
     GenFetiOp(GenSubDomain<Scalar> *, GenFetiOpControler<Scalar> *, 
               int, int, FSCommPattern<Scalar> *, Rbm * =0);
     virtual ~GenFetiOp();
@@ -92,8 +92,6 @@ class GenFetiOp : public TaskDescr
     double res;
     friend class GenFetiSolver<Scalar>;
 
-  private:
-    void init();
 };
 
 typedef GenFetiOp<double> FetiOp;

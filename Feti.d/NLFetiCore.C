@@ -16,13 +16,13 @@ GenFetiSolver<double>::reSendInterfaceRBM(int iSub)
 {
  // sd[iSub]->sendRBMs(fetiOps[iSub]->numRBM, fetiOps[iSub]->locRBMs, 
  //                    fetiOps[iSub]->locInterfRBMs);
- sd[iSub]->extractInterfRBMs(fetiOps[iSub]->numRBM, fetiOps[iSub]->locRBMs,
-                             fetiOps[iSub]->locInterfRBMs);
+ sd[iSub]->extractInterfRBMs(fetiOps[iSub]->numRBM, fetiOps[iSub]->locRBMs.data(),
+                             fetiOps[iSub]->locInterfRBMs.data());
 
  GenCoarseSet<double> &thisSet = fetiOps[iSub]->control->cset[sd[iSub]->subNum()];
 
  thisSet.numGs = fetiOps[iSub]->numRBM;
- thisSet.locGs = fetiOps[iSub]->locInterfRBMs;
+ thisSet.locGs = fetiOps[iSub]->locInterfRBMs.data();
 
  if(QGisLocal == 0) { // If there is a Q
    if(fetiOps[iSub]->rbm) {  // In the dynamic case, Q is Fi
@@ -37,7 +37,7 @@ GenFetiSolver<double>::reSendInterfaceRBM(int iSub)
  } 
  else {
    fetiOps[iSub]->control->cset[sd[iSub]->subNum()].locQGs 
-         = fetiOps[iSub]->locInterfRBMs; // no preconditioning
+         = fetiOps[iSub]->locInterfRBMs.data(); // no preconditioning
  }
 
  if(isFeti2 && (isDynamic == 0)) {

@@ -138,14 +138,14 @@ GenFetiSolver<Scalar>::subdomainReBuild(int iSub, FullSquareMatrix **kel,
     // Geometric rigid body mode method
     fetiOps[iSub]->numRBM = fetiOps[iSub]->rbm->numRBM();
     if(fetiOps[iSub]->numRBM > 0) {
-      fetiOps[iSub]->rbm->getRBMs(fetiOps[iSub]->locRBMs);
+      fetiOps[iSub]->rbm->getRBMs(fetiOps[iSub]->locRBMs.data());
     }
   } 
   else {
     // Tolerance rigid body mode method
     fetiOps[iSub]->numRBM = fetiOps[iSub]->K->numRBM();
     if(fetiOps[iSub]->numRBM > 0) {
-       fetiOps[iSub]->K->getRBMs(fetiOps[iSub]->locRBMs);
+       fetiOps[iSub]->K->getRBMs(fetiOps[iSub]->locRBMs.data());
     }
   }
 }

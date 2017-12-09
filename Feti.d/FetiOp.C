@@ -20,7 +20,6 @@ template<class Scalar>
 GenFetiOp<Scalar>::GenFetiOp(GenSubDomain<Scalar>* lsd, GenFetiOpControler<Scalar>* fopc, 
                              int _isFeti2, int _isDynam, FSCommPattern<Scalar> *_vPat, Rbm *_rbm) 
 {
- init();
  control    = fopc;
  sd         = lsd;	// local subdomain
  numNeighb  = sd->getSComm()->numNeighb;
@@ -29,53 +28,30 @@ GenFetiOp<Scalar>::GenFetiOp(GenSubDomain<Scalar>* lsd, GenFetiOpControler<Scala
  isFeti2    = _isFeti2;
  isDynamic  = _isDynam;
  crnDofSize = 0;
- neighbNumRBMs = 0;
  vPat = _vPat;
-}
-
-template<class Scalar>
-void
-GenFetiOp<Scalar>::init()
-{
-  sd = 0; solver = 0; K = 0; KasSparse = 0; rbm = 0; alphaOffset = 0;
-  betaOffset = 0; locRBMs = 0; locInterfRBMs = 0; neighbNumRBMs = 0;
-  neighbRBMs = 0; BClocal = 0; control = nullptr; interfBuff = 0; vPat = 0;
 }
 
 template<class Scalar>
 GenFetiOp<Scalar>::~GenFetiOp()
 {
- if(neighbNumRBMs) { delete [] neighbNumRBMs; neighbNumRBMs = 0; }
- if(alphaOffset) { delete [] alphaOffset; alphaOffset = 0; }
- if(betaOffset) { delete [] betaOffset; betaOffset = 0; }
- if(locInterfRBMs) { delete [] locInterfRBMs; locInterfRBMs = 0; }
  if(interfBuff) { delete [] interfBuff; interfBuff = 0; }
- if(locRBMs) { delete [] locRBMs; locRBMs = 0; }
- // don't delete control, rbm, sd, K, KasSparse, BClocal, solver, vPat 
+ // don't delete control, rbm, sd, K, KasSparse, BClocal, solver, vPat
 }
 
 template<class Scalar> 
 void
 GenFetiOp<Scalar>::clean_up()
 {
- if(K) K->clean_up();
- if(locRBMs) {
-   delete [] locRBMs;
-   locRBMs = 0;
- }
- if(neighbNumRBMs) {
-   delete [] neighbNumRBMs;
-   neighbNumRBMs  = 0;
- }
- if(locInterfRBMs) {
-   delete [] locInterfRBMs;
-   locInterfRBMs = 0;
- }
- if(interfBuff) {
-   delete [] interfBuff;
-   interfBuff=0;
- }
- if(control->cset) control->cset->clean_up();
+	if(K) K->clean_up();
+	locRBMs.clear();
+	neighbNumRBMs.clear();
+
+	locInterfRBMs.clear();
+	if(interfBuff) {
+		delete [] interfBuff;
+		interfBuff=0;
+	}
+	if(control->cset) control->cset->clean_up();
 }
 
 template<class Scalar> 
@@ -123,14 +99,14 @@ template<class Scalar>
 void
 GenFetiOp<Scalar>::getNumNeighbRBM(FSCommPattern<int> *sPat)
 {
- neighbNumRBMs = new int[numNeighb];
+ neighbNumRBMs.resize(numNeighb);
  // get Number of RBMs for each neighbor
  int iSub;
  for(iSub = 0; iSub < numNeighb; ++iSub) {
    FSSubRecInfo<int> rInfo = sPat->recData(sd->getSComm()->subNums[iSub], sd->subNum());
    neighbNumRBMs[iSub] = rInfo.data[0];
  }
- control->cset[sd->localSubNum()].neighbNumRBMs = neighbNumRBMs;
+ control->cset[sd->localSubNum()].neighbNumRBMs = neighbNumRBMs.data();
 }
 
 template<class Scalar> 
@@ -204,46 +180,42 @@ template<class Scalar>
 void
 GenFetiOp<Scalar>::reSetAlphaOffsets(int *v)
 {
- SComm *scomm =  sd->getSComm();
+	SComm *scomm =  sd->getSComm();
 
- alphaOffset[0] = v[sd->subNum()];
+	alphaOffset[0] = v[sd->subNum()];
 
- int iSub;
- for(iSub = 0; iSub < scomm->numNeighb; ++iSub)
-   alphaOffset[iSub+1] = v[scomm->subNums[iSub]];
+	for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
+		alphaOffset[iSub+1] = v[scomm->subNums[iSub]];
 
- // ML if in Feti2 dynamic, setup the Nus
- if(isFeti2 && isDynamic) {
+	// ML if in Feti2 dynamic, setup the Nus
+	if(isFeti2 && isDynamic) {
 
-    betaOffset[0] = v[sd->subNum()]+numRBM;
+		betaOffset[0] = v[sd->subNum()]+numRBM;
 
-    int iSub;
-    for(iSub = 0; iSub < scomm->numNeighb; ++iSub)
-      betaOffset[iSub+1] = v[scomm->subNums[iSub]]+neighbNumRBMs[iSub];
- }
+		for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
+			betaOffset[iSub+1] = v[scomm->subNums[iSub]]+neighbNumRBMs[iSub];
+	}
 }
 
 template<class Scalar> 
 void
 GenFetiOp<Scalar>::setAlphaOffsets(int *v)
 {
- SComm *scomm =  sd->getSComm();
- alphaOffset = new int[scomm->numNeighb+1];
- alphaOffset[0] = v[sd->subNum()];
+	SComm *scomm =  sd->getSComm();
+	alphaOffset.resize(scomm->numNeighb+1);
+	alphaOffset[0] = v[sd->subNum()];
 
- int iSub;
- for(iSub = 0; iSub < scomm->numNeighb; ++iSub)
-   alphaOffset[iSub+1] = v[scomm->subNums[iSub]];
+	for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
+		alphaOffset[iSub+1] = v[scomm->subNums[iSub]];
 
 // ML if in Feti2 dynamic, setup the Nus
- if(isFeti2 && isDynamic) {
-    betaOffset = new int[scomm->numNeighb+1];
-    betaOffset[0] = v[sd->subNum()]+numRBM;
-    int iSub;
-    for(iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-      betaOffset[iSub+1] = v[scomm->subNums[iSub]]+neighbNumRBMs[iSub];
-    }
- }
+	if(isFeti2 && isDynamic) {
+		betaOffset.resize(scomm->numNeighb+1);
+		betaOffset[0] = v[sd->subNum()]+numRBM;
+		for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+			betaOffset[iSub+1] = v[scomm->subNums[iSub]]+neighbNumRBMs[iSub];
+		}
+	}
 }
 
 template<class Scalar> 
@@ -284,7 +256,7 @@ GenFetiOp<Scalar>::subNuC()
 
  control->cset[myNum].subLocNuC(localvec, nu);
 
- control->cset[myNum].subNuNeighbC(localvec, control->vec2,betaOffset+1);
+ control->cset[myNum].subNuNeighbC(localvec, control->vec2,betaOffset.data()+1);
 }
 
 template<class Scalar> 
@@ -547,17 +519,16 @@ GenFetiOp<Scalar>::assembleCtFCs()
                       sd->scomm->remoteId[iSub]+1, control->PFcNums);
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenFetiOp<Scalar>::setBetaOffsets(int *v)
 {
- SComm *scomm =  sd->getSComm();
- betaOffset = new int[scomm->numNeighb+1];
- betaOffset[0] = v[sd->subNum()];
- int iSub;
- for(iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-   betaOffset[iSub+1] = v[scomm->subNums[iSub]];
- }
+	SComm *scomm =  sd->getSComm();
+	betaOffset.resize(scomm->numNeighb+1);
+	betaOffset[0] = v[sd->subNum()];
+	for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+		betaOffset[iSub+1] = v[scomm->subNums[iSub]];
+	}
 }
 
 template<class Scalar> 
@@ -589,20 +560,20 @@ GenFetiOp<Scalar>::getCtMult()
 }
 
 // vec = vec - FC nu
-template<class Scalar> 
+template<class Scalar>
 void
 GenFetiOp<Scalar>::subNuFC()
 {
- int myNum = sd->subNum();
+	int myNum = sd->subNum();
 
- Scalar *beta     = control->vec2 + betaOffset[0];
- Scalar *localvec = control->dv1->subData(sd->subNum());
+	Scalar *beta     = control->vec2 + betaOffset[0];
+	Scalar *localvec = control->dv1->subData(sd->subNum());
 
- control->cset[sd->subNum()].subLocNuFC(localvec, beta);
+	control->cset[sd->subNum()].subLocNuFC(localvec, beta);
 
- control->cset[myNum].subNuNeighbFC(localvec, control->vec2, betaOffset+1);
- // sd->sendInterf(localvec, interfBuff);
- sd->sendInterf(localvec, vPat);
+	control->cset[myNum].subNuNeighbFC(localvec, control->vec2, betaOffset.data()+1);
+	// sd->sendInterf(localvec, interfBuff);
+	sd->sendInterf(localvec, vPat);
 }
 
 // vec = vec - FG alpha

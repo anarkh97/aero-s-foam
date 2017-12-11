@@ -7,6 +7,7 @@
 #include <vector>
 #include <Eigen/Dense>
 
+#include <Utils.d/GlobalToLocalMap.h>
 #include <Driver.d/SComm.h>
 
 class FSCommStructure;
@@ -20,14 +21,21 @@ template <typename Scalar>
 class GenAssembledFullM;
 template <typename Scalar>
 class GenCuCSparse;
+template <typename Scalar>
+class SubLMPCons;
+template <typename Scalar>
+class GenSparseSet;
 
 class Connectivity;
 class CoordSet;
 class DofSet;
+class FetiInfo;
 
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
 class FetiBaseSub {
 public:
+	/// \brief Obtain the solver settings. TODO Get rid of this. Why should the subdomain data know all the solver details?
+	virtual const FetiInfo &getFetiInfo() const = 0;
 	/** \brief Obtain the size of the interface of this subdomain. */
 	virtual int interfLen() const = 0;
 	/** \brief Obtain the size of the half interface for which this subdomain is the master. */
@@ -120,7 +128,11 @@ public:
 	int numNeighbors() const { return scomm->numNeighb;}
 	int numEdgeNeighbors() const { return scomm->numEdgeNeighb; }
 
+	bool* getMpcMaster() const { return mpcMaster; }
+
 protected:
+	int totalInterfSize;
+	const int *allBoundDofs = nullptr;
 	/// \brief Corner nodes in local numbering.
 	std::vector<int> cornerNodes;
 	std::vector<bool> isCornerNode;   //<! \brief True for node which is a corner node; false otherwise.
@@ -132,9 +144,44 @@ protected:
 	std::unique_ptr<ConstrainedDSA> cc_dsa;
 	std::vector<int> ccToC; //!< Mapping from cc_dsa to c_dsa
 	std::vector<int> cToCC; //!< Mapping from c_dsa to cc_dsa
+
+	std::vector<int> weightPlus; ///!< \brief DOF weights (i.e. number of subd sharing that dof) including corner DOFs.
+
+	// MPC related data
+	Connectivity *localMpcToMpc = nullptr;
+	Connectivity *localMpcToGlobalMpc = nullptr;
+	bool *faceIsSafe = nullptr;
+	int *localToGroupMPC = nullptr;
+	int *boundDofFlag = nullptr;  // boundDofFlag[i] = 0 -> perfect interface dof  (not contact or mpc)
+	// boundDofFlag[i] = 1 -> node-to-node contact interface dof
+	// boundDofFlag[i] = 2 -> mpc dof, only used for rixen method, domain->mpcflag = 1
+	// note: boundDofFlag[i] > 2 can be used for future extensions, eg mortar contact
+	bool *masterFlag = nullptr; // masterFlag[i] = true if this sub is the "master" of allBoundDofs[i]
+	bool *internalMasterFlag = nullptr;
+	int masterFlagCount = 0;
+	bool *mpcMaster = nullptr;  // mpcMaster[i] = true if this subd contains masterdof for mpc i
+	Connectivity *mpcToDof = nullptr;
+	Connectivity *localMpcToBlock = nullptr;
+	Connectivity *blockToLocalMpc = nullptr;
+	Connectivity *blockToBlockMpc = nullptr;
+	Connectivity *localMpcToBlockMpc = nullptr;
+	Connectivity *mpcToBoundDof = nullptr;
+	double *localLambda = nullptr;  // used for contact pressure output
+	int *invBoundMap = nullptr;
+	int *mpclast = nullptr;
 public:
 	int group = 0;
+	// Multiple Point Constraint (MPC) Data
+	int numMPC = 0;             // number of local Multi-Point Constraints
+	int *localToGlobalMPC = nullptr;  // local to global MPC numbering
+	GlobalToLocalMap globalToLocalMPC; // alternative data structure for global to local MPC numbering
+	// not a pointer so don't have to de-reference before using [] operator
 
+	int numMPC_primal = 0;
+	int *localToGlobalMPC_primal = nullptr;
+	GlobalToLocalMap globalToLocalMPC_primal;
+
+	int *cornerMap = nullptr;
 };
 
 template <typename Scalar>
@@ -181,6 +228,10 @@ public:
 	virtual int numRBM() const = 0;
 	virtual const Scalar *getQtKpBt() const = 0;
 	virtual void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const = 0;
+
+	void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray
+	void makeLocalMpcToMpc();
+	void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);
 	// Missing:
 	/*
 	 * split
@@ -205,6 +256,12 @@ public:
 	 normalizeCstep1
 	 assembleRtR
 	 * */
+
+	void subtractMpcRhs(Scalar *interfvec);
+
+	double getMpcError() const;
+	void applyMpcSplitting();
+
 	/// \brief Solver for the remainder DOFs.
 	std::unique_ptr<GenSolver<Scalar>> Krr;
 	/// \brief Sparse view of the solver. Typically used to fill the matrix before calling factor.
@@ -214,6 +271,13 @@ public:
 	std::unique_ptr<GenCuCSparse<Scalar>>      Grc;
 	_AVMatrix<Scalar> Ave;
 	_AVMatrix<Scalar> Eve;
+
+public:
+	// MPC related data
+	mutable std::vector<std::unique_ptr<SubLMPCons<Scalar>>> mpc; // multiple point constraints
+	std::vector<std::unique_ptr<SubLMPCons<Scalar>>> mpc_primal;
+	std::unique_ptr<GenSparseSet<Scalar>> Src;
+	Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> BKrrKrc;
 
 };
 

@@ -8,7 +8,7 @@ GenSubDomain<Scalar>::makeZstarAndR(double *centroid)
 {
   rigidBodyModesG = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd,
                             centroid+3*group, cornerNodes, numCRN, numCRNdof, cornerDofs,
-                            numMPC_primal, (SubLMPCons<Scalar> **) mpc_primal);
+                            numMPC_primal, this->mpc_primal);
 }
 
 template<> 
@@ -67,6 +67,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *alpha, Scalar *ur) const
 {
+	auto &Src = this->Src;
   int numCDofs = (Src) ? Src->numCol() : 0;
   Scalar *localc = (Scalar *) dbg_alloca(sizeof(Scalar)*numCDofs);
   Scalar *localr = new Scalar[localLen()];
@@ -104,6 +105,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::assembleTrbmE(Scalar *rbms, int nrbms, int size, Scalar *e, Scalar *fr) const
 {
+	auto &Src = this->Src;
   int numCDofs = (Src) ? Src->numCol() : 0;
   Scalar *localc = (Scalar *) dbg_alloca(sizeof(Scalar)*numCDofs);
   for(int i=0; i<numCDofs; ++i) localc[i] = 0.0;
@@ -128,6 +130,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::makeG()
 {
+	auto &mpc = this->mpc;
   // make G for each potential contact/mpc neighbour
   G = new GenFullM<Scalar> * [scomm->numT(SComm::mpc)];
   neighbG = new GenFullM<Scalar> * [scomm->numT(SComm::mpc)];
@@ -138,7 +141,7 @@ GenSubDomain<Scalar>::makeG()
       G[i]->zero();
       for(int j = 0; j < scomm->lenT(SComm::mpc,i); ++j) {  // loop through potential contact/mpc nodes
         int locMpcNb = scomm->mpcNb(i,j);
-        SubLMPCons<Scalar> *m = mpc[locMpcNb];
+        const auto &m = mpc[locMpcNb];
         for(int k = 0; k < m->nterms; k++) {
           int cDof = (m->terms)[k].cdof;
           if(cDof > -1) {
@@ -155,6 +158,8 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
 {
+	auto &Src = this->Src;
+	auto &mpc = this->mpc;
   // rbms is the null space of the global Kcc^* matrix
   // nrbm is the nullity of the global Kcc^* matrix
   // size is the number of rows and columns of the global Kcc^* matrix
@@ -209,7 +214,7 @@ GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
     for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
       for(int j = 0; j < scomm->lenT(SComm::mpc,i); ++j) {
         int locMpcNb = scomm->mpcNb(i,j);
-        SubLMPCons<Scalar> *m = mpc[locMpcNb];
+        const auto &m = mpc[locMpcNb];
         for(int k = 0; k < m->nterms; k++) {
           int cc_dof = (m->terms)[k].ccdof;
           if(cc_dof >= 0) (*G[i])[j][iRbm] += localr[cc_dof]*(m->terms)[k].coef;
@@ -336,6 +341,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver)
 {
+	auto &mpc = this->mpc;
   if(numGroupRBM == 0) return;
   bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;

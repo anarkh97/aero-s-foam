@@ -6,23 +6,24 @@
 #include <Driver.d/Mpc.h>
 
 template<class Scalar>
-GenMpcSparse<Scalar>::GenMpcSparse(int numMPC, SubLMPCons<Scalar> **_mpc, const DofSetArray *_dsa)
+GenMpcSparse<Scalar>::GenMpcSparse(int numMPC, const std::vector<std::unique_ptr<SubLMPCons<Scalar> > > &_mpc,
+                                   const DofSetArray *_dsa) :
+	mpc(_mpc),
+	NumCol(numMPC),
+	NumRow(_dsa->size()),
+	dsa(_dsa)
 {
-  NumCol = numMPC; // number of columns equals the number of mpcs
-  NumRow = _dsa->size();
-  mpc    = _mpc;
-  dsa    = _dsa;
 }
 
 template<class Scalar>
-GenMpcSparse<Scalar>::GenMpcSparse(int numMPC, SubLMPCons<Scalar> **_mpc, const DofSetArray *_dsa,
-                                   const DofSetArray *_DSA, int *_wetInterfaceMap, int _mpcOffset)
+GenMpcSparse<Scalar>::GenMpcSparse(int numMPC, const std::vector<std::unique_ptr<SubLMPCons<Scalar> > > &_mpc, const DofSetArray *_dsa,
+                                   const DofSetArray *_DSA, int *_wetInterfaceMap, int _mpcOffset) :
+	mpc(_mpc),
+	NumCol(numMPC),
+	NumRow(_dsa->size()),
+	dsa(_dsa)
 {
   // PJSA 10-19-04 for wet interface / mpc interaction
-  NumCol = numMPC; // number of columns equals the number of mpcs
-  NumRow = _dsa->size();
-  mpc    = _mpc;
-  dsa    = _dsa;
   DSA    = _DSA;
   wetInterfaceMap = _wetInterfaceMap;
   mpcOffset = _mpcOffset;

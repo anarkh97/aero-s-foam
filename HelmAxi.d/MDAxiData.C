@@ -425,7 +425,7 @@ MDAxiData::gatherDOFList(DofSet ***allBoundary)
 // Now count the number of subdomains touching one DOF
   int iDof;
   int ndof = c_dsa->size();
-  weight = new int[ndof];
+  weight.resize(ndof);
   for (iDof = 0; iDof < ndof; ++iDof)
      weight[iDof] = 1;
   for (iDof = 0; iDof < nbdofs; ++iDof)

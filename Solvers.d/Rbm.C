@@ -245,7 +245,7 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
 Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
          double _tolgrb, double *centroid,
          const std::vector<int> &cornerNodes, int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
-         int numMPC, SubLMPCons<double> **mpc) 
+         int numMPC, const std::vector<std::unique_ptr<SubLMPCons<double> > > &mpc)
 {
  init();
  myMemory = 1;
@@ -259,7 +259,7 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
 void
 Rbm::computeRbms(CoordSet &cs, double *centroid, const std::vector<int> &cornerNodes,
                  int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
-                 int numMPC, SubLMPCons<double> **mpc)
+                 int numMPC, const std::vector<std::unique_ptr<SubLMPCons<double> > > &mpc)
 {
   int i,j,k;
 

@@ -1626,7 +1626,6 @@ BaseSub::~BaseSub()
   if(dualToBoundary) { delete [] dualToBoundary; dualToBoundary = 0; }
   if(internalMap) { delete [] internalMap; internalMap = 0; }
   if(boundDofFlag) { delete [] boundDofFlag; boundDofFlag = 0; }
-  if(weight) { delete [] weight; weight = 0; }  // ***
   if(neighbNumGRBMs) { delete [] neighbNumGRBMs; neighbNumGRBMs = 0; }
   if(edgeDofSizeTmp) { delete [] edgeDofSizeTmp; edgeDofSizeTmp = 0; }//HB can we delete it just after getKccDofs?
 //  if(glToLocalNode) { delete [] glToLocalNode; glToLocalNode = 0; }

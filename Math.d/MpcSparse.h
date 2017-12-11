@@ -11,7 +11,7 @@
 template<class Scalar>
 class GenMpcSparse : public GenSparseMatrix<Scalar> 
 {
-    SubLMPCons<Scalar> **mpc;
+	const std::vector<std::unique_ptr<SubLMPCons<Scalar> > > &mpc;
     int NumRow;
     int NumCol;
     const DofSetArray *dsa;
@@ -20,8 +20,8 @@ class GenMpcSparse : public GenSparseMatrix<Scalar>
     int mpcOffset;
    
   public:
-    GenMpcSparse(int numMPC, SubLMPCons<Scalar> **_mpc, const DofSetArray *_dsa);
-    GenMpcSparse(int numMPC, SubLMPCons<Scalar> **_mpc, const DofSetArray *_dsa, const DofSetArray *_DSA,
+    GenMpcSparse(int numMPC, const std::vector<std::unique_ptr<SubLMPCons<Scalar> > > &_mpc, const DofSetArray *_dsa);
+    GenMpcSparse(int numMPC, const std::vector<std::unique_ptr<SubLMPCons<Scalar> > > &_mpc, const DofSetArray *_dsa, const DofSetArray *_DSA,
                  int *_wetInterfaceMap, int mpcOffset);
     virtual ~GenMpcSparse();
 

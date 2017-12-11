@@ -66,8 +66,7 @@ protected:
 	int *glNums = nullptr;
 	int *glElems = nullptr;
 	int glNumNodes;
-	int *weight = nullptr; // DOF weights (i.e. number of subd sharing that dof)
-	int *weightPlus = nullptr;
+	std::vector<int> weight; ///!< \brief DOF weights (i.e. number of subd sharing that dof).
 	double *bcx = nullptr;
 	DComplex *bcxC = nullptr; // FETI-H
 	double *vcx = nullptr, *acx = nullptr;
@@ -92,8 +91,7 @@ protected:
 #endif
 	int globalNMax;  // highest global node number of all the nodes in this subdomain
 	int globalEMax;  // highest global element number of all the elements in this subdomain
-	int totalInterfSize;
-	const int *allBoundDofs = nullptr;
+
 	Rbm *rigidBodyModes = nullptr;
 	Rbm *rigidBodyModesG = nullptr;
 
@@ -106,17 +104,7 @@ public:
 	        int *glElemNums, int gn); // PJSA: for new sower
 	virtual ~BaseSub();
 
-	// Multiple Point Constraint (MPC) Data
-	int numMPC = 0;             // number of local Multi-Point Constraints
-	int *localToGlobalMPC = nullptr;  // local to global MPC numbering
-	GlobalToLocalMap globalToLocalMPC; // alternative data structure for global to local MPC numbering
-	// not a pointer so don't have to de-reference before using [] operator
-
-	int numMPC_primal = 0;
-	int *localToGlobalMPC_primal = nullptr;
-	GlobalToLocalMap globalToLocalMPC_primal;
-
-	int *cornerMap = nullptr;
+	const FetiInfo &getFetiInfo() const override { return solInfo().getFetiInfo(); }
 
 //	int *glCrnGroup;    // group of each corner node (global numbering)
 	int nGrbm = 0;
@@ -209,29 +197,6 @@ protected:
 	int *neighbNumGroupGrbm = nullptr;
 	int *neighbGroupGrbmOffset = nullptr;
 	int numGlobalRBMs = 0;
-
-protected:
-	Connectivity *localMpcToMpc = nullptr;
-	Connectivity *localMpcToGlobalMpc = nullptr;
-	bool *faceIsSafe = nullptr;
-	int *localToGroupMPC = nullptr;
-	int *boundDofFlag = nullptr;  // boundDofFlag[i] = 0 -> perfect interface dof  (not contact or mpc)
-	// boundDofFlag[i] = 1 -> node-to-node contact interface dof
-	// boundDofFlag[i] = 2 -> mpc dof, only used for rixen method, domain->mpcflag = 1
-	// note: boundDofFlag[i] > 2 can be used for future extensions, eg mortar contact
-	bool *masterFlag = nullptr; // masterFlag[i] = true if this sub is the "master" of allBoundDofs[i]
-	bool *internalMasterFlag = nullptr;
-	int masterFlagCount = 0;
-	bool *mpcMaster = nullptr;  // mpcMaster[i] = true if this subd contains masterdof for mpc i
-	Connectivity *mpcToDof = nullptr;
-	Connectivity *localMpcToBlock = nullptr;
-	Connectivity *blockToLocalMpc = nullptr;
-	Connectivity *blockToBlockMpc = nullptr;
-	Connectivity *localMpcToBlockMpc = nullptr;
-	Connectivity *mpcToBoundDof = nullptr;
-	double *localLambda = nullptr;  // used for contact pressure output
-	int *invBoundMap = nullptr;
-	int *mpclast = nullptr;
 
 public:
 	/// \copydoc
@@ -387,8 +352,6 @@ protected:
 	void sendDOFList(FSCommPattern<int> *pat); // Send to neighbors the list of DOFs on the shared nodes
 
 public:
-	std::unique_ptr<GenSparseSet<Scalar>> Src;
-	Scalar                    **BKrrKrc;
 
 	Scalar                    *rbms;
 	Scalar                    *interfaceRBMs;
@@ -404,9 +367,6 @@ public:
 
 	int *glBoundMap;
 	int *glInternalMap;
-
-	mutable SubLMPCons<Scalar> **mpc; // multiple point constraints
-	SubLMPCons<Scalar> **mpc_primal;
 
 private:
 	GenSolver<Scalar> *localCCtsolver;
@@ -595,8 +555,6 @@ public:
 	void addConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
 	void addCConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &fc, double s);
 	void locateMpcDofs();
-	void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray
-	void makeLocalMpcToMpc();
 	void deleteMPCs();
 
 	void projectActiveIneq(Scalar *v);
@@ -639,7 +597,6 @@ public:
 	void saveMpcStatus1();
 	void saveMpcStatus2();
 	void cleanMpcData();
-	void subtractMpcRhs(Scalar *interfvec);
 	void setLocalLambda(Scalar *localLambda);
 	void computeContactPressure(Scalar *globStress, Scalar *globWeight);
 	void computeLocalContactPressure(Scalar *stress, Scalar *weight);
@@ -649,8 +606,6 @@ public:
 	void getLocalMultipliers(std::vector<double> &lambda);
 	void setMpcRhs(Scalar *interfvec, double t, int flag);
 	void updateMpcRhs(Scalar *interfvec);
-	double getMpcError();
-	bool* getMpcMaster() { return mpcMaster; }
 
 	const CoordSet &getNodeSet() const override { return getNodes(); }
 

@@ -3,110 +3,89 @@
 #include <iostream>
 
 #ifdef MAP_MIN_MEMORY
-GlobalToLocalMap::GlobalToLocalMap() : globalToLocalArray()
-{
-   min = max = 0;
+
+GlobalToLocalMap::GlobalToLocalMap() : globalToLocalArray() {
 }
 
-GlobalToLocalMap::GlobalToLocalMap(int localSize, int *localToGlobalArray)
-{
-  initialize(localSize, localToGlobalArray);
+GlobalToLocalMap::GlobalToLocalMap(int localSize, int *localToGlobalArray) {
+	initialize(localSize, localToGlobalArray);
 }
 
-GlobalToLocalMap::~GlobalToLocalMap()
-{
-  if(~globalToLocalArray.empty()) globalToLocalArray.clear();
-  min = max = 0;
+GlobalToLocalMap::~GlobalToLocalMap() {
 }
 
 void
-GlobalToLocalMap::initialize(int localSize, int *localToGlobalArray)
-{
-  if(~globalToLocalArray.empty()) globalToLocalArray.clear();
-  if(localSize<=0) { min = max = 0; return; }
-  min = max = localToGlobalArray[0];
-  if(min<0) { min = max = 0; }
-  for(int i=0; i<localSize; ++i){
-    if(localToGlobalArray[i]<0) continue; //HB: skip <0 values (for instance, -1 used as flag)
-    if(localToGlobalArray[i] < min) min = localToGlobalArray[i];
-    if(localToGlobalArray[i] > max) max = localToGlobalArray[i];
-    globalToLocalArray[localToGlobalArray[i]] = i;
-  }
-}
-
-int
-GlobalToLocalMap::operator[](int glNum) const
-{
-	if((glNum < min) || (glNum > max)) return -1;
-	else {
-		auto I = globalToLocalArray.find(glNum);
-		if(I!=globalToLocalArray.end())
-			return I->second;
-		else return -1;
+GlobalToLocalMap::initialize(int localSize, int *localToGlobalArray) {
+	if (~globalToLocalArray.empty()) globalToLocalArray.clear();
+	for (int i = 0; i < localSize; ++i) {
+		if (localToGlobalArray[i] < 0) continue; //HB: skip <0 values (for instance, -1 used as flag)
+		globalToLocalArray[localToGlobalArray[i]] = i;
 	}
 }
 
+int
+GlobalToLocalMap::operator[](int glNum) const {
+	auto I = globalToLocalArray.find(glNum);
+	if (I != globalToLocalArray.end())
+		return I->second;
+	else return -1;
+}
+
 void
-GlobalToLocalMap::print(bool skip)
-{
-  std::cerr << "GlobalToLocalMap of size "<<size()<<": ";
-  std::map<int,int>::iterator I = globalToLocalArray.begin();
-  while(I!=globalToLocalArray.end()){
-    std::cerr <<"("<<(*I).first<<","<<(*I).second<<") ; ";
-    I++;
-  }
-  std::cerr << std::endl;
+GlobalToLocalMap::print(bool skip) {
+	std::cerr << "GlobalToLocalMap of size " << size() << ": ";
+	std::map<int, int>::iterator I = globalToLocalArray.begin();
+	while (I != globalToLocalArray.end()) {
+		std::cerr << "(" << (*I).first << "," << (*I).second << ") ; ";
+		I++;
+	}
+	std::cerr << std::endl;
 }
 
 int
-GlobalToLocalMap::size()
-{
-  return globalToLocalArray.size();
+GlobalToLocalMap::size() {
+	return globalToLocalArray.size();
 }
 
 int
-GlobalToLocalMap::numKeys()
-{
-  return size();
-} 
-
-template<class Scalar>
-void
-GlobalToLocalMap::setCommSize(FSCommPattern<Scalar> *pat, int localID, int remoteID)
-{
-  pat->setLen(localID, remoteID, 2*size()+3);
+GlobalToLocalMap::numKeys() {
+	return size();
 }
 
 template<class Scalar>
 void
-GlobalToLocalMap::pack(FSCommPattern<Scalar> *pat, int localID, int remoteID)
-{
-  FSSubRecInfo<Scalar> sInfo = pat->getSendBuffer(localID, remoteID);
-  int l = size();
-  sInfo.data[0] = min;
-  sInfo.data[1] = max;
-  sInfo.data[2] = l;
-  int i = 0;
-  std::map<int,int>::iterator I = globalToLocalArray.begin();
-  while(I!=globalToLocalArray.end()){
-    sInfo.data[i+3]   = (*I).first; 
-    sInfo.data[i+l+3] = (*I).second; 
-    I++; i++;
-  }
+GlobalToLocalMap::setCommSize(FSCommPattern<Scalar> *pat, int localID, int remoteID) {
+	pat->setLen(localID, remoteID, 2 * size() + 3);
 }
 
 template<class Scalar>
 void
-GlobalToLocalMap::unpack(FSCommPattern<Scalar> *pat, int remoteID, int localID)
-{
-  if(~globalToLocalArray.empty()) globalToLocalArray.clear();
-  FSSubRecInfo<Scalar> rInfo = pat->recData(remoteID, localID);
-  min = rInfo.data[0];
-  max = rInfo.data[1];
-  int l = rInfo.data[2];
-  for(int i=0; i<l; i++)
-    globalToLocalArray[rInfo.data[i+3]] = rInfo.data[i+l+3];
+GlobalToLocalMap::pack(FSCommPattern<Scalar> *pat, int localID, int remoteID) {
+	FSSubRecInfo<Scalar> sInfo = pat->getSendBuffer(localID, remoteID);
+	int l = size();
+	sInfo.data[0] = 0;
+	sInfo.data[1] = 0;
+	sInfo.data[2] = l;
+	int i = 0;
+	std::map<int, int>::iterator I = globalToLocalArray.begin();
+	while (I != globalToLocalArray.end()) {
+		sInfo.data[i + 3] = (*I).first;
+		sInfo.data[i + l + 3] = (*I).second;
+		I++;
+		i++;
+	}
 }
+
+template<class Scalar>
+void
+GlobalToLocalMap::unpack(FSCommPattern<Scalar> *pat, int remoteID, int localID) {
+	if (~globalToLocalArray.empty()) globalToLocalArray.clear();
+	FSSubRecInfo<Scalar> rInfo = pat->recData(remoteID, localID);
+	int l = rInfo.data[2];
+	for (int i = 0; i < l; i++)
+		globalToLocalArray[rInfo.data[i + 3]] = rInfo.data[i + l + 3];
+}
+
 #else
 GlobalToLocalMap::GlobalToLocalMap()
 {
@@ -134,20 +113,20 @@ GlobalToLocalMap::initialize(int localSize, int *localToGlobalArray)
   min = max = localToGlobalArray[0];
   if(min<0) { min = max = 0; }
   for(int i=0; i<localSize; ++i) {
-    if(localToGlobalArray[i]<0) continue; //HB: skip <0 values (for instance, -1 used as flag)
-    if(localToGlobalArray[i] < min) min = localToGlobalArray[i];
-    if(localToGlobalArray[i] > max) max = localToGlobalArray[i];
+	if(localToGlobalArray[i]<0) continue; //HB: skip <0 values (for instance, -1 used as flag)
+	if(localToGlobalArray[i] < min) min = localToGlobalArray[i];
+	if(localToGlobalArray[i] > max) max = localToGlobalArray[i];
   }
   if(min<0)
-    std::cerr<<" ### PB in GlobalToLocalMap::initialize(...): min ("<<min<<") < 0"<<std::endl;
+	std::cerr<<" ### PB in GlobalToLocalMap::initialize(...): min ("<<min<<") < 0"<<std::endl;
   globalToLocalArray = new int[max-min+1];
   for(int i=0; i < (max-min+1); ++i) globalToLocalArray[i] = -1;
   nKeys = 0;
   for(int i=0; i<localSize; ++i)
-    if(localToGlobalArray[i]>=0) { 
-      globalToLocalArray[localToGlobalArray[i]-min] = i;
-      nKeys++;
-    }
+	if(localToGlobalArray[i]>=0) {
+	  globalToLocalArray[localToGlobalArray[i]-min] = i;
+	  nKeys++;
+	}
 }
 
 int
@@ -162,8 +141,8 @@ GlobalToLocalMap::print(bool skip)
 {
   std::cerr << "GlobalToLocalMap of size "<<max-min+1<<": ";
   for(int i=min; i<=max; ++i){
-    if(skip && (*this)[i]<0) continue;
-    std::cerr <<"("<<i<<","<<(*this)[i]<<") ; ";
+	if(skip && (*this)[i]<0) continue;
+	std::cerr <<"("<<i<<","<<(*this)[i]<<") ; ";
   }
   std::cerr << std::endl;
 }

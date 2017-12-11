@@ -2323,7 +2323,7 @@ GenFetiDPSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
 #endif
 	double mpcerr = 0.0;
 
-	for(int i=0; i<this->nsub; ++i) mpcerr += this->sd[i]->getMpcError();
+	for(int i=0; i<this->nsub; ++i) mpcerr += this->subdomains[i]->getMpcError();
 #ifdef DISTRIBUTED
 	mpcerr = this->fetiCom->globalSum(mpcerr);
 #endif

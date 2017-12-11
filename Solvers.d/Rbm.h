@@ -64,17 +64,17 @@ public:
   Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
       double _tolgrb, double *centroid,
       const std::vector<int> &cornerNodes, int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
-      int numMPC, SubLMPCons<double> **mpc);
+      int numMPC, const std::vector<std::unique_ptr<SubLMPCons<double> > > &mpc);
   Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
       double _tolgrb, double *centroid,
       const std::vector<int> &cornerNodes, int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
-      int numMPC, SubLMPCons<DComplex> **mpc) 
+      int numMPC, const std::vector<std::unique_ptr<SubLMPCons<DComplex> > > &mpc)
     { std::cerr << "Rbm(...) not implemented for complex LMPCs \n"; }
   ~Rbm();
   
   void computeRbms(CoordSet &cs, double *centroid, const std::vector<int> &cornerNodes,
                    int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
-                   int numMPC, SubLMPCons<double> **mpc);
+                   int numMPC, const std::vector<std::unique_ptr<SubLMPCons<double> > >&mpc);
  
   void reBuildGeometricRbms(GeomState *gs);
   void initialize(int nComponents, int *numCol, int numUncon);

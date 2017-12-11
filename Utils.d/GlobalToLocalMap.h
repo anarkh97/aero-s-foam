@@ -26,7 +26,6 @@ class CommunicatableObject
 
 class GlobalToLocalMap : public CommunicatableObject
 {
-#ifdef MAP_MIN_MEMORY
   // HB: encapsulate a STL map<int,int>
   // I kept the min & max to optimized the operator[]; but maybe there already is
   // something similar in the find(...) method of the STL map.
@@ -35,14 +34,8 @@ class GlobalToLocalMap : public CommunicatableObject
   // we may use a simple integer array to store globalToLocalArray as in this case the map
   // is merely permutation.
   private:
-    int min, max; 
     std::map<int,int> globalToLocalArray;
-#else
-  private:
-    int *globalToLocalArray;
-    int min, max;
-    int nKeys;
-#endif  
+
   public:  
     GlobalToLocalMap();
     GlobalToLocalMap(int localSize, int *localToGlobalArray);

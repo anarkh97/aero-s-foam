@@ -3304,7 +3304,7 @@ GenSubDomain<Scalar>::getFc(Scalar *f, Scalar *Fc)
     int i, iNode, numEquations = Krr->neqs();
     int rDofs[DofSet::max_known_dof];
     int oDofs[DofSet::max_known_dof];
-    Scalar fr[numEquations];
+    Scalar *fr = new Scalar[numEquations];
     for(iNode = 0; iNode < numnodes; ++iNode) {
       DofSet thisDofSet = (*cc_dsa)[iNode];
       int nd = thisDofSet.count();
@@ -3324,6 +3324,7 @@ GenSubDomain<Scalar>::getFc(Scalar *f, Scalar *Fc)
         s += Ave[i][k]*fr[k];
       Fc[nCor+i] = s;
     }
+    delete [] fr;
   }
 }
 

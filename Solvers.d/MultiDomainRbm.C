@@ -1,6 +1,7 @@
 #include <Driver.d/DecDomain.h>
 #include <algorithm>
 #include <Math.d/BLAS.h>
+#include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Utils.d/DistHelper.h>
 
 extern int verboseFlag;

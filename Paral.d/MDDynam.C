@@ -16,12 +16,11 @@
 #endif
 #include <Driver.d/DecDomain.h>
 #include <Hetero.d/DistFlExchange.h>
-#include <Utils.d/SolverInfo.h>
 #include <Feti.d/Feti.h>
 #include <Utils.d/ModeData.h>
-#include <Utils.d/DistHelper.h>
 #include <Driver.d/SysState.h>
 #include <Solvers.d/MultiDomainRbm.h>
+#include <Corotational.d/DistrGeomState.h>
 
 extern ModeData modeData;
 

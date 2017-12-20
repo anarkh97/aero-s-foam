@@ -1,5 +1,7 @@
 #include <Feti.d/Feti.h>
+#include <Math.d/BLAS.h>
 #include "FetiOp.h"
+#include <Driver.d/SubDomain.h>
 
 template<>
 void

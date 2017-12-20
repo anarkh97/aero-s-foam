@@ -7,7 +7,7 @@
  #include <climits>
 #endif
 #include <float.h>
-#include "CoarseSet.h"
+#include <Driver.d/SubDomain.h>
 
 template<>
 void

@@ -478,8 +478,6 @@ public:
 	void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
 	void deleteKcc();
 	void multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
-	void normalizeCstep1(Scalar *cnorm);
-	void normalizeCstep2(Scalar *cnorm);
 	void getQtKQ(GenSolver<Scalar> *s) override;
 	void getQtKQ(int iMPC, Scalar *QtKQ) override;
 	void multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const override;
@@ -504,7 +502,6 @@ public:
 	void multfc(const VectorView<Scalar> &fr, const VectorView<Scalar> &bf) const;
 	void multFcB(Scalar *bf);
 	Scalar *getfc() { return fcstar; }
-	void getFc(const Scalar *f, Scalar *fc) const;
 	void getFw(const Scalar *f, Scalar *fw) const;
 	void mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda = 0);
 	int numRBM() const { return nGrbm; }
@@ -531,7 +528,6 @@ public:
 	void locateMpcDofs();
 	void deleteMPCs();
 
-	void projectActiveIneq(Scalar *v);
 	void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const override;
 	void bmpcQualify(std::vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
 	void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);

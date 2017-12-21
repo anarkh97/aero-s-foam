@@ -282,6 +282,7 @@ public:
 	void deleteG();
 
 	void getFr(const Scalar *f, Scalar *fr) const;
+	void getFc(const Scalar *f, Scalar *fc) const;
 
 	// G matrix-vector multiplication
 	void multG(const GenVector<Scalar> &x, Scalar *y, Scalar alpha) const;  // y = alpha*G*x
@@ -317,6 +318,10 @@ public:
 
 	void addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *alpha, Scalar *ur) const; // u += R_g*alpha
 	void assembleTrbmE(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *e, Scalar *fr) const; // e = R^T*f
+
+	void projectActiveIneq(Scalar *v) const;
+	void normalizeCstep1(Scalar *cnorm);
+	void normalizeCstep2(Scalar *cnorm);
 	// Missing:
 	/*
 	 * split

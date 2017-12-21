@@ -9,6 +9,7 @@
 #include <Utils.d/dbg_alloca.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/SparseSet.h>
+#include <Math.d/CuCSparse.h>
 #include <Solvers.d/Solver.h>
 
 void
@@ -706,6 +707,70 @@ FetiSub<Scalar>::getFr(const Scalar *f, Scalar *fr) const {
 		t = Ave.transpose() * l;
 		l.noalias() -= Ave * t;
 	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::getFc(const Scalar *f, Scalar *Fc) const {
+	int i, j;
+	int dNum[DofSet::max_known_dof];
+	int iOff = 0;
+	const auto &c_dsa = get_c_dsa();
+	for (i = 0; i < numCRN; ++i) {
+		int nd = c_dsa->number(cornerNodes[i], cornerDofs[i], dNum);
+		for (j = 0; j < nd; ++j) Fc[iOff + j] = f[dNum[j]];
+		iOff += nd;
+	}
+
+	if (this->Ave.cols() > 0) { // Average corners 072513 JAT
+		int numEquations = this->Krr->neqs();
+		Scalar fr[numEquations];
+		for(int dof = 0; dof < ccToC.size(); ++dof)
+			fr[dof] = f[ccToC[dof]];
+
+		int nAve, nCor, k;
+		Scalar s;
+		nCor = this->Krc ? this->Krc->numCol() : 0;
+		nAve = Src->numCol() - nCor;
+		for (int i = 0; i < nAve; ++i) {
+			s = 0.0;
+			for (int k = 0; k < numEquations; ++k)
+				s += this->Ave[i][k] * fr[k];
+			Fc[nCor + i] = s;
+		}
+	}
+}
+
+
+template<class Scalar>
+void
+FetiSub<Scalar>::projectActiveIneq(Scalar *v) const {
+	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+		int locMpcNb = scomm->mpcNb(i);
+		if (mpc[locMpcNb]->type == 1 && mpc[locMpcNb]->active)
+			v[scomm->mapT(SComm::mpc, i)] = 0.0;
+	}
+}
+
+
+// ref: Dostal, Horak and Stefanica (IMACS 2005) "A scalable FETI-DP algorithm for coercive variational inequalities"
+// every row of C matrix should have a unit norm to improve the condition number of the Feti operator
+template<class Scalar>
+void
+FetiSub<Scalar>::normalizeCstep1(Scalar *cnorm) {
+	auto &mpc = this->mpc;
+	for (int i = 0; i < numMPC; ++i)
+		for (int j = 0; j < mpc[i]->nterms; ++j)
+			cnorm[localToGlobalMPC[i]] += mpc[i]->terms[j].coef * mpc[i]->terms[j].coef;
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::normalizeCstep2(Scalar *cnorm) {
+	auto &mpc = this->mpc;
+	for (int i = 0; i < numMPC; ++i)
+		for (int j = 0; j < mpc[i]->nterms; ++j)
+			mpc[i]->terms[j].coef /= cnorm[localToGlobalMPC[i]];
 }
 
 template class FetiSub<double>;

@@ -1127,7 +1127,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::extractFc(int iSub, const GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &fc) const
 {
- this->sd[iSub]->getFc(f.subData(iSub), fc.subData(iSub));
+ this->subdomains[iSub]->getFc(f.subData(iSub), fc.subData(iSub));
 }
 
 template<class Scalar> 
@@ -2621,7 +2621,7 @@ GenFetiDPSolver<Scalar>::addMpcRHS(int iMPC, Scalar *fcstar) const
  int dof = cornerEqs->firstdof(mpcOffset+iMPC);
  int myNum = this->glSubToLoc[(*this->mpcToSub_primal)[iMPC][0]];
  if(myNum >= 0)
-   fcstar[dof] += this->sd[myNum]->getMpcRhs_primal(iMPC);
+   fcstar[dof] += this->subdomains[myNum]->getMpcRhs_primal(iMPC);
 }
 
 template<class Scalar>
@@ -2787,7 +2787,7 @@ GenFetiDPSolver<Scalar>::projectActiveIneq(const GenDistrVector<Scalar> &x, GenD
 {
 	if(&x != &y) y = x;
 	threadManager->callParal(this->nsub, [&](int iSub) {
-		this->sd[iSub]->projectActiveIneq(y.subData(this->subdomains[iSub]->localSubNum()));
+		this->subdomains[iSub]->projectActiveIneq(y.subData(this->subdomains[iSub]->localSubNum()));
 	});
 }
 
@@ -2982,12 +2982,12 @@ void
 GenFetiDPSolver<Scalar>::normalizeC()
 {
   GenVector<Scalar> cnorm(this->glNumMpc, 0.0);
-  for(int i=0; i<this->nsub; ++i) this->sd[i]->normalizeCstep1(cnorm.data());
+  for(int i=0; i<this->nsub; ++i) this->subdomains[i]->normalizeCstep1(cnorm.data());
 #ifdef DISTRIBUTED
   this->fetiCom->globalSum(this->glNumMpc, cnorm.data());
 #endif
   for(int i=0; i<this->glNumMpc; ++i) cnorm[i] = ScalarTypes::sqrt(cnorm[i]);
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::normalizeCstep2, cnorm.data());
+  paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::normalizeCstep2, cnorm.data());
 }
 
 template<class Scalar>

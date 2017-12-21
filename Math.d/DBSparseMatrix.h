@@ -37,10 +37,10 @@ class GenDBSparseMatrix : public SparseData, public GenSparseMatrix<Scalar> {
    void transposeMult(const Scalar *, Scalar *) const override;
    Scalar diag(int dof) const override;      // returns diagonal value of row dof in matrix
    Scalar &diag(int dof) override;
-   void add(FullSquareMatrix &, int *dofs) override;
-   void add(FullSquareMatrixC &, int *dofs) override;
-   void addImaginary(FullSquareMatrix &, int *dofs) override;
-   void add(GenFullM<Scalar> &knd, int fRow, int fCol) override;
+   void add(const FullSquareMatrix &, const int *dofs) override;
+   void add(const FullSquareMatrixC &, const int *dofs) override;
+   void addImaginary(const FullSquareMatrix &, const int *dofs) override;
+   void add(const GenFullM<Scalar> &knd, int fRow, int fCol) override;
    void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
    void addDiscreteMass(int dof, Scalar diMass) override;
    void add(int, int, Scalar) override;

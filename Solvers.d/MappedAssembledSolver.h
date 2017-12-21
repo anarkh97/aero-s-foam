@@ -46,7 +46,7 @@ class CoordinateMap
     DOFMap *eqMaps;
 
     template <class Scalar, class MatrixType >
-    MatrixType map(MatrixType &mat, int *dofs, ResizeArray<int> &mappedDofs,
+    MatrixType map(const MatrixType &mat, const int *dofs, ResizeArray<int> &mappedDofs,
                    ResizeArray<Scalar> &m) {
       // TODO this function is not thread safe
       // Create the set of DOFs that are used.
@@ -145,7 +145,7 @@ class MappedAssembledSolver : public BaseSolver, public Map
     ~MappedAssembledSolver() {}
 
     // Note: None of the add routines are thread safe
-    void add(FullSquareMatrix &mat, int *dofs) {
+    void add(const FullSquareMatrix &mat, const int *dofs) {
       FullSquareMatrix m = Map::map(mat, dofs, mappedDofs, dd);
       m.setMyval(0);
       BaseSolver::add(m, mappedDofs.data());
@@ -156,26 +156,26 @@ class MappedAssembledSolver : public BaseSolver, public Map
     }                                       // TODO consider just building Kcc/Kuc and then making f inside solve
                                             //      this would be better for the linear case if just the rhs is changing
                                             //      with time, but the element matrices are the same
-    void addImaginary(FullSquareMatrix &mat, int *dofs) {
+    void addImaginary(const FullSquareMatrix &mat, const int *dofs) {
       FullSquareMatrix m = Map::map(mat, dofs, mappedDofs, dd);
       BaseSolver::addImaginary(m, mappedDofs.data());
     }
 
-    void add(FullSquareMatrixC &mat, int *dofs) {
+    void add(const FullSquareMatrixC &mat, const int *dofs) {
       FullSquareMatrixC m = Map::map(mat, dofs, mappedDofs, dz);
       BaseSolver::add(m, mappedDofs.data());
     }
 
-    void add(GenFullM<Scalar> &mat, int *dofs) {
+    void add(const GenFullM<Scalar> &mat, const int *dofs) {
       GenFullM<Scalar> m = Map::map(mat, dofs, mappedDofs, dz);
       BaseSolver::add(m, mappedDofs.data());
     }
 
-    void add(GenFullM<Scalar> &mat, int fi, int fj) {
-      std::cerr << "MappedAssembledSolver::add(GenFullM<Scalar>&, int, int) is not implemented\n";
+    void add(const GenFullM<Scalar> &mat, int fi, int fj) {
+      std::cerr << "MappedAssembledSolver::add(const GenFullM<Scalar>&, int, int) is not implemented\n";
     }
 
-    void add(GenAssembledFullM<Scalar> &mat, int *dofs) {
+    void add(const GenAssembledFullM<Scalar> &mat, const int *dofs) {
       std::cerr << "MappedAssembledSolver::add(GenAssembledFullM<Scalar>&, int*) is not implemented\n";
     }
 

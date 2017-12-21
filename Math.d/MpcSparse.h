@@ -27,12 +27,12 @@ class GenMpcSparse : public GenSparseMatrix<Scalar>
 
     double getMemoryUsed() const override;
 
-    void add(const double *const *kel, int *dofs, int kndof);
-    void add(FullSquareMatrix &mel, int *dofs);
-    void add(FullM&, int, int);
-    void add(GenAssembledFullM<Scalar> &, int*);
+    void add(const double *const *kel, const int *dofs, int kndof);
+    void add(const FullSquareMatrix &mel, const int *dofs);
+    void add(const FullM&, int, int);
+    void add(const GenAssembledFullM<Scalar> &, const int*);
 
-    void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
+    void addBoeing(int, const int *, const int *, const double *, const int *, Scalar multiplier);
 
     void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const override ;
     void mult(const Scalar *rhs, Scalar *result) const override;

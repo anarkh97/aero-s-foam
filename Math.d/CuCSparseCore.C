@@ -2,7 +2,7 @@
 
 template<>
 void
-GenCuCSparse<complex<double> >::add(FullSquareMatrixC &kel, int *dofs)
+GenCuCSparse<complex<double> >::add(const FullSquareMatrixC &kel, const int *dofs)
 {
  int i, j, m, ri;
  int kndof = kel.dim();
@@ -22,14 +22,14 @@ GenCuCSparse<complex<double> >::add(FullSquareMatrixC &kel, int *dofs)
 
 template<>
 void
-GenCuCSparse<double>::add(FullSquareMatrixC &kel, int *dofs)
+GenCuCSparse<double>::add(const FullSquareMatrixC &kel, const int *dofs)
 {
   fprintf(stderr, "GenCuCSparse<double> cannot add FullSquareMatrixC \n");
 }
 
 template<>
 void
-GenCuCSparse<complex<double> >::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenCuCSparse<complex<double> >::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
  int i, j, m, ri;
  int kndof = kel.dim();
@@ -50,7 +50,7 @@ GenCuCSparse<complex<double> >::addImaginary(FullSquareMatrix &kel, int *dofs)
 
 template<>
 void
-GenCuCSparse<double>::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenCuCSparse<double>::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   fprintf(stderr, "GenCuCSparse<double> cannot addImaginary\n");
 }

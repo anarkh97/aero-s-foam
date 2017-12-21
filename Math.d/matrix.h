@@ -39,7 +39,7 @@ class GenFullM {
 
    // constructors
    GenFullM();               // Creates an empty matrix
-   GenFullM(int nr);         // Creates an NxN matrix
+   explicit GenFullM(int nr);         // Creates an NxN matrix
    GenFullM(int nr, int nc); // Creates an NxM matrix
    GenFullM(int nr, int nc, Scalar init_val); // Creates an NxM matrix initialized a[i][j] = init_val
    GenFullM(const GenFullM<Scalar> &m, int nr, int sr, int nc, int sc);
@@ -104,9 +104,9 @@ class GenFullM {
    void ReSolve(Scalar *d); // resolve using factorization by gaussian elimination with full pivoting
    void zero();
    void clean_up();
-   void add(GenFullM<Scalar>&, int, int);
+   void add(const GenFullM<Scalar>&, int, int);
    void add(GenVector<Scalar>&, int, int);
-   void add(GenFullM<Scalar>&, int *);
+   void add(const GenFullM<Scalar>&, int *);
    void addrows(GenFullM<Scalar>&, int *);
    void subtract(GenFullM<Scalar>&, int, int);
    void negate();
@@ -184,9 +184,9 @@ class GenAssembledFullM : public GenFullM<Scalar>
    GenAssembledFullM(int nr, int *rMap);
    GenAssembledFullM(int nr, int *rMap, int nc, int *cMap);
    ~GenAssembledFullM() { clean_up(); };
-   void add(FullSquareMatrix &kel, int *dofs);
-   void add(FullSquareMatrixC &kel, int *dofs);
-   void addImaginary(FullSquareMatrix &kel, int *dofs);
+   void add(const FullSquareMatrix &kel, const int *dofs);
+   void add(const FullSquareMatrixC &kel, const int *dofs);
+   void addImaginary(const FullSquareMatrix &kel, const int *dofs);
    void add(Scalar **matrix);
    void addDiscreteMass(int dof, Scalar dmass);
    void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);

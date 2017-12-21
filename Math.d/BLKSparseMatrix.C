@@ -768,7 +768,7 @@ GenBLKSparseMatrix<Scalar>::unify(FSCommunicator *communicator)
 
 template<class Scalar>
 void
-GenBLKSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
+GenBLKSparseMatrix<Scalar>::add(const FullSquareMatrix &kel, const int *dofs)
 {
  if(numUncon == 0) return;
 
@@ -802,7 +802,7 @@ GenBLKSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
 
 template<class Scalar>
 void
-GenBLKSparseMatrix<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
+GenBLKSparseMatrix<Scalar>::add(const GenAssembledFullM<Scalar> &kel, const int *dofs)
 {
  if(numUncon == 0) return;
 
@@ -840,7 +840,7 @@ GenBLKSparseMatrix<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
 
 template<class Scalar>
 void
-GenBLKSparseMatrix<Scalar>::add(FullM &knd, int fRow, int fCol)
+GenBLKSparseMatrix<Scalar>::add(const FullM &knd, int fRow, int fCol)
 {
   int offset, k, p1, position, csuper,fstcol, lxbeg, lxend;
   int iCol, iRow;
@@ -885,7 +885,7 @@ GenBLKSparseMatrix<Scalar>::add(Scalar *_lnz)
 template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
-                                      const double *nz, int *map, Scalar multiplier)
+                                      const double *nz, const int *map, Scalar multiplier)
 {
  int i, j, k, offset, p1,position,csuper,fstcol,lxbeg,lxend;
 

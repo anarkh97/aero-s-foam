@@ -3,7 +3,7 @@
 
 template<>
 void
-GenBlockSky<complex<double> >::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenBlockSky<complex<double> >::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
  // Construct stiffness matrix K (skyA)
 
@@ -30,14 +30,14 @@ GenBlockSky<complex<double> >::addImaginary(FullSquareMatrix &kel, int *dofs)
 template<>
 void
 GenBlockSky<double>
-   ::addImaginary(FullSquareMatrix &kel, int *dofs)
+   ::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   fprintf(stderr, "GenBlockSky<double> cannot addImaginary\n");
 }
 
 template<>
 void
-GenBlockSky<complex<double> >::add(FullSquareMatrixC &kel, int *dofs)
+GenBlockSky<complex<double> >::add(const FullSquareMatrixC &kel, const int *dofs)
 {
  // Construct stiffness matrix K (skyA)
 
@@ -64,16 +64,16 @@ GenBlockSky<complex<double> >::add(FullSquareMatrixC &kel, int *dofs)
 template<>
 void
 GenBlockSky<double>
-   ::add(FullSquareMatrixC &kel, int *dofs)
+   ::add(const FullSquareMatrixC &kel, const int *dofs)
 {
   fprintf(stderr, "GenBlockSky<double> cannot add FullSquareMatrixC\n");
 }
 
 template<>
 void
-GenBlockSky<double>::add(GenAssembledFullM<complex<double> > &kel, int *dofs)
+GenBlockSky<double>::add(const GenAssembledFullM<complex<double> > &kel, const int *dofs)
 {
- fprintf(stderr, "ERROR: add(GenAssembledFullM<complex<double> > &, int*) is being called"
+ fprintf(stderr, "ERROR: add(const GenAssembledFullM<complex<double> > &, int*) is being called"
                  "on an inappropriate matrix\n");
 }
 

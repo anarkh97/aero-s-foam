@@ -738,23 +738,23 @@ GenFullM<Scalar>::clean_up()
 
 template<>
 void
-GenAssembledFullM<complex<double> >::addImaginary(FullSquareMatrix &mat, int *dofs);
+GenAssembledFullM<complex<double> >::addImaginary(const FullSquareMatrix &mat, const int *dofs);
 
 template<>
 void
-GenAssembledFullM<double>::addImaginary(FullSquareMatrix &kel, int *dofs);
+GenAssembledFullM<double>::addImaginary(const FullSquareMatrix &kel, const int *dofs);
 
 template<>
 void
-GenAssembledFullM<complex<double> >::add(FullSquareMatrixC &mat, int *dofs);
+GenAssembledFullM<complex<double> >::add(const FullSquareMatrixC &mat, const int *dofs);
 
 template<>
 void
-GenAssembledFullM<double>::add(FullSquareMatrixC &kel, int *dofs);
+GenAssembledFullM<double>::add(const FullSquareMatrixC &kel, const int *dofs);
 
 template<class Scalar> 
 void
-GenAssembledFullM<Scalar>::add(FullSquareMatrix &mat, int *dofs)
+GenAssembledFullM<Scalar>::add(const FullSquareMatrix &mat, const int *dofs)
 {
  int kndof = mat.dim();
  int i,j,ri,cj;
@@ -816,7 +816,7 @@ GenAssembledFullM<Scalar>::addBoeing(int nlines, const int *Kai, const int *Kaj,
 
 template<class Scalar> 
 void
-GenFullM<Scalar>::add(GenFullM<Scalar> &mat, int fRow, int fCol)
+GenFullM<Scalar>::add(const GenFullM<Scalar> &mat, int fRow, int fCol)
 {
   int mrow = mat.numRow();
   int mcol = mat.numCol();
@@ -847,11 +847,11 @@ GenFullM<Scalar>::addrows(GenFullM<Scalar> &mat, int *rows)
 
 template<class Scalar>
 void
-GenFullM<Scalar>::add(GenFullM<Scalar> &mat, int *rc)
+GenFullM<Scalar>::add(const GenFullM<Scalar> &mat, int *rc)
 {
   int mrow = mat.numRow();
   int mcol = mat.numCol();
-  if(mrow != mcol) { std::cerr << " *** ERROR in GenFullM<Scalar>::add(GenFullM<Scalar> &mat, int *rc) \n"; return; }
+  if(mrow != mcol) { std::cerr << " *** ERROR in GenFullM<Scalar>::add(const GenFullM<Scalar> &mat, int *rc) \n"; return; }
 
   int icol,irow;
   for(icol = 0; icol < mcol; ++icol) {

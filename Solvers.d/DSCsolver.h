@@ -37,8 +37,8 @@ class DSCsolver :
    DSCsolver(Connectivity *cn, EqNumberer *eqNums, int sch_number);
    virtual ~DSCsolver();
 
-   void    add(FullSquareMatrix &knd, int *dofs) override {};
-   void    add(FullM &knd, int fRow, int fCol) override;
+   void    add(const FullSquareMatrix &knd, const int *dofs) override {};
+   void    add(const FullM &knd, int fRow, int fCol) override;
    void    zeroAll() override;
 
    void    factor() override;

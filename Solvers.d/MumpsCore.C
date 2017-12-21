@@ -2,14 +2,14 @@
 
 template<>
 void
-GenMumpsSolver<double>::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenMumpsSolver<double>::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   fprintf(stderr, "GenMumpsSolver<double> cannot addImaginary\n");
 }
 
 template<>
 void
-GenMumpsSolver<complex<double> >::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenMumpsSolver<complex<double> >::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   int i, j, m, mstart, mstop;
   int kndof = kel.dim();                       // Dimension of element stiff.
@@ -35,14 +35,14 @@ GenMumpsSolver<complex<double> >::addImaginary(FullSquareMatrix &kel, int *dofs)
 
 template<>
 void
-GenMumpsSolver<double>::add(FullSquareMatrixC &kel, int *dofs)
+GenMumpsSolver<double>::add(const FullSquareMatrixC &kel, const int *dofs)
 {
-  fprintf(stderr, "GenMumpsSolver<double>::add(FullSquareMatrixC &kel, int *dofs is not implemented\n");
+  fprintf(stderr, "GenMumpsSolver<double>::add(const FullSquareMatrixC &kel, int *dofs is not implemented\n");
 }
 
 template<>
 void
-GenMumpsSolver<complex<double> >::add(FullSquareMatrixC &kel, int *dofs)
+GenMumpsSolver<complex<double> >::add(const FullSquareMatrixC &kel, const int *dofs)
 {
   int i, j, m, mstart, mstop;
   int kndof = kel.dim();                       // Dimension of element stiff.

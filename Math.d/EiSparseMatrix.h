@@ -47,11 +47,11 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    SolverClass& getEigenSolver() { return solver; }
 
    // GenSparseMatrix assembly
-   void add(FullSquareMatrix &, int *dofs) override;
+   void add(const FullSquareMatrix &, const int *dofs) override;
    void addCoef(int, int, Scalar);
-   void add(GenAssembledFullM<Scalar> &, int *) override;
-   void addImaginary(FullSquareMatrix &, int *dofs) override;
-   void add(FullSquareMatrixC &, int *dofs) override;
+   void add(const GenAssembledFullM<Scalar> &, const int *) override;
+   void addImaginary(const FullSquareMatrix &, const int *dofs) override;
+   void add(const FullSquareMatrixC &, const int *dofs) override;
 
    // GenSparseMatrix matrix-vector multiplications
    void mult(const GenVector<Scalar> &, GenVector<Scalar> &) const override;

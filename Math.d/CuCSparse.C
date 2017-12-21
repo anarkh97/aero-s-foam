@@ -245,7 +245,7 @@ GenCuCSparse<Scalar>::transposeMult(const Scalar *rhs, Scalar *result) const
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::add(FullSquareMatrix &kel, int *dofs)
+GenCuCSparse<Scalar>::add(const FullSquareMatrix &kel, const int *dofs)
 {
  int i, j, m, ri;
  int kndof = kel.dim();

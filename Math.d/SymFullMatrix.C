@@ -44,7 +44,7 @@ GenSymFullMatrix<Scalar>::zero()
 
 template<class Scalar>
 void
-GenSymFullMatrix<Scalar>::add(GenFullM<Scalar> &mat, int fRow, int fCol)
+GenSymFullMatrix<Scalar>::add(const GenFullM<Scalar> &mat, int fRow, int fCol)
 {
   int nrow = mat.numRow();
   int ncol = mat.numCol();

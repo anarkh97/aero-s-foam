@@ -989,7 +989,7 @@ GenSkyMatrix<Scalar>::diag(int dof)
 
 template<class Scalar>
 void
-GenSkyMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
+GenSkyMatrix<Scalar>::add(const FullSquareMatrix &kel, const int *dofs)
 {
 // Construct stiffness matrix K (skyA)
 
@@ -1054,7 +1054,7 @@ GenSkyMatrix<Scalar>::addData(int nData, int* dofi, int* dofj, Scalar* d)
 
 template<class Scalar>
 void
-GenSkyMatrix<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
+GenSkyMatrix<Scalar>::add(const GenAssembledFullM<Scalar> &kel, const int *dofs)
 {
  int i, j, ri, rj;
  int kndof = kel.dim();                  // Element stiffness dimension
@@ -1070,7 +1070,7 @@ GenSkyMatrix<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
 
 template<class Scalar>
 void
-GenSkyMatrix<Scalar>::add(GenFullM<Scalar> &knd, int fRow, int fCol)
+GenSkyMatrix<Scalar>::add(const GenFullM<Scalar> &knd, int fRow, int fCol)
 {
   int nrow = knd.numRow(); // number of rows
   int ncol = knd.numCol(); // number of columns
@@ -1143,7 +1143,7 @@ GenSkyMatrix<Scalar>::unify(FSCommunicator *communicator)
 template<class Scalar>
 void
 GenSkyMatrix<Scalar>::addBoeing(int nlines, const int *Kai, const int *Kaj,
-                                const double *nz, int *map, Scalar multiplier)
+                                const double *nz, const int *map, Scalar multiplier)
 {
  if(numUncon==0) return;
  int i, j;

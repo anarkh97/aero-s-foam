@@ -74,12 +74,12 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
 
    virtual ~GenSpoolesSolver();
 
-   void add(FullSquareMatrix &, int *dofs) override;
-   void addImaginary(FullSquareMatrix &, int *dofs) override;
-   void add(FullSquareMatrixC&, int *dofs) override; // RT addded to support PML, DGM
-   void add(GenFullM<Scalar> &, int *dofs);
-   void add(GenFullM<Scalar> &, int, int) override;
-   void add(GenAssembledFullM<Scalar> &, int *) override;
+   void add(const FullSquareMatrix &, const int *dofs) override;
+   void addImaginary(const FullSquareMatrix &, const int *dofs) override;
+   void add(const FullSquareMatrixC&, const int *dofs) override; // RT addded to support PML, DGM
+   void add(const GenFullM<Scalar> &, const int *dofs);
+   void add(const GenFullM<Scalar> &, int, int) override;
+   void add(const GenAssembledFullM<Scalar> &, const int *) override;
    void addDiscreteMass(int dof, Scalar) override;
    void add(int dofi, int dofj, Scalar d) override; //HB: add upper part only
    void addone(Scalar d, int dofi, int dofj) override { add(dofi, dofj, d); }

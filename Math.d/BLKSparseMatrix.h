@@ -88,11 +88,11 @@ protected:
    Scalar  &diag(int dof) override;
    void    unify(FSCommunicator *communicator) override;
    void    addBoeing(int nlines, const int *Kai, const int *Kaj,
-                     const double *nz, int *map, Scalar multiplier) override;
-   void    add(FullSquareMatrix &, int *dofs) override;
-   void    add(FullSquareMatrixC &, int *dofs) override;
-   void    add(FullM &knd, int fRow, int fCol);
-   void    add(GenAssembledFullM<Scalar> &kel, int *dofs) override;
+                     const double *nz, const int *map, Scalar multiplier) override;
+   void    add(const FullSquareMatrix &, const int *dofs) override;
+   void    add(const FullSquareMatrixC &, const int *dofs) override;
+   void    add(const FullM &knd, int fRow, int fCol);
+   void    add(const GenAssembledFullM<Scalar> &kel, const int *dofs) override;
    void    add(int row_dof, int col_dof, Scalar s) override { addone(s, row_dof, col_dof); }
    void    addone(Scalar d, int dofi, int dofj) override;
    void    add(Scalar *_lnz) override;
@@ -127,7 +127,7 @@ protected:
    int     numRBM() override;
 
    void    addDiscreteMass(int dof, Scalar mass) override;
-   void    addImaginary(FullSquareMatrix &kel, int *dofs) override;
+   void    addImaginary(const FullSquareMatrix &kel, const int *dofs) override;
    double getSolutionTime() override { return solveTime; }
 
    void mult(const Scalar *rhs, Scalar *result) const override;

@@ -3,7 +3,7 @@
 
 template<>
 void
-GenDBSparseMatrix<complex<double> >::add(FullSquareMatrixC &kel, int *dofs)
+GenDBSparseMatrix<complex<double> >::add(const FullSquareMatrixC &kel, const int *dofs)
 {
  int i, j, m;
  int kndof = kel.dim();                 // Dimension of element stiffness.
@@ -29,14 +29,14 @@ GenDBSparseMatrix<complex<double> >::add(FullSquareMatrixC &kel, int *dofs)
 
 template<>
 void
-GenDBSparseMatrix<double>::add(FullSquareMatrixC &kel, int *dofs)
+GenDBSparseMatrix<double>::add(const FullSquareMatrixC &kel, const int *dofs)
 {
  fprintf(stderr, "Error: adding complex to real matrix\n");
 }
 
 template<>
 void
-GenDBSparseMatrix<complex<double> >::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenDBSparseMatrix<complex<double> >::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
  int i, j, m;
  int kndof = kel.dim();                 // Dimension of element stiffness.
@@ -63,7 +63,7 @@ GenDBSparseMatrix<complex<double> >::addImaginary(FullSquareMatrix &kel, int *do
 template<>
 void
 GenDBSparseMatrix<double>
-   ::addImaginary(FullSquareMatrix &kel, int *dofs)
+   ::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   fprintf(stderr, "GenDBSparseMatrix<double> cannot addImaginary\n");
 }

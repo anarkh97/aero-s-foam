@@ -134,7 +134,7 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa
 
 template<class Scalar>
 void
-GenSpoolesSolver<Scalar>::add(FullSquareMatrix &kel, int *dofs)
+GenSpoolesSolver<Scalar>::add(const FullSquareMatrix &kel, const int *dofs)
 {
   int i, j, m, mstart, mstop;
   int kndof = kel.dim();                       // Dimension of element stiff.
@@ -217,7 +217,7 @@ GenSpoolesSolver<Scalar>::add(int dofi, int dofj, Scalar d)
 
 template<class Scalar>
 void
-GenSpoolesSolver<Scalar>::add(GenFullM<Scalar> &kel, int *dofs)
+GenSpoolesSolver<Scalar>::add(const GenFullM<Scalar> &kel, const int *dofs)
 {
   int i, j, m, mstart, mstop;
   int kndof = kel.dim();                       // Dimension of element stiff.
@@ -244,7 +244,7 @@ GenSpoolesSolver<Scalar>::add(GenFullM<Scalar> &kel, int *dofs)
 
 template<class Scalar>
 void
-GenSpoolesSolver<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
+GenSpoolesSolver<Scalar>::add(const GenAssembledFullM<Scalar> &kel, const int *dofs)
 {
   // this function is used to assemble Kcc and requires dofs to be in constrained numbering
   int i, j, m, mstart, mstop, ri, rj;
@@ -268,7 +268,7 @@ GenSpoolesSolver<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
 
 template<class Scalar>
 void
-GenSpoolesSolver<Scalar>::add(GenFullM<Scalar> &knd, int fi, int fj)
+GenSpoolesSolver<Scalar>::add(const GenFullM<Scalar> &knd, int fi, int fj)
 {
   // XXX this needs to work for a rectangular matrix also
   int i, j, m, mstart, mstop, ri, rj;

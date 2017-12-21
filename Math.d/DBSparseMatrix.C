@@ -123,7 +123,7 @@ GenDBSparseMatrix<Scalar>::add(int idof, int jdof, Scalar s)
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
+GenDBSparseMatrix<Scalar>::add(const FullSquareMatrix &kel, const int *dofs)
 {
  int i, j, m;
  int kndof = kel.dim();                           // Dimension of element stiffness.
@@ -148,7 +148,7 @@ GenDBSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
 
 template<class Scalar>
 void
-GenDBSparseMatrix<Scalar>::add(GenFullM<Scalar> &knd, int fRow, int fCol)
+GenDBSparseMatrix<Scalar>::add(const GenFullM<Scalar> &knd, int fRow, int fCol)
 {
  int i, j, m;
 

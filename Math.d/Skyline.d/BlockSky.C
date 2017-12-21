@@ -681,7 +681,7 @@ GenBlockSky<Scalar>::pFactor(int myid, int numThreads,
 
 template<class Scalar>
 void
-GenBlockSky<Scalar>::add(FullSquareMatrix &kel, int *dofs)
+GenBlockSky<Scalar>::add(const FullSquareMatrix &kel, const int *dofs)
 {
  // Construct stiffness matrix K (skyA)
 
@@ -718,7 +718,7 @@ GenBlockSky<Scalar>::add(int row_dof, int col_dof, Scalar s) {
 
 template<class Scalar>
 void
-GenBlockSky<Scalar>::add(AssembledFullM &kel, int *dofs)
+GenBlockSky<Scalar>::add(const AssembledFullM &kel, const int *dofs)
 {
  int i, j, ri, rj;
  int kndof = kel.dim();                   // Element stiffness dimension
@@ -734,7 +734,7 @@ GenBlockSky<Scalar>::add(AssembledFullM &kel, int *dofs)
 
 template<class Scalar>
 void
-GenBlockSky<Scalar>::add(GenAssembledFullM<complex<double> > &kel, int *dofs)
+GenBlockSky<Scalar>::add(const GenAssembledFullM<complex<double> > &kel, const int *dofs)
 {
  int i, j, ri, rj;
  int kndof = kel.dim();                     // Element stiffness dimension
@@ -750,7 +750,7 @@ GenBlockSky<Scalar>::add(GenAssembledFullM<complex<double> > &kel, int *dofs)
 
 template<class Scalar>
 void
-GenBlockSky<Scalar>::add(FullM &knd, int fRow, int fCol)
+GenBlockSky<Scalar>::add(const FullM &knd, int fRow, int fCol)
 {
   int nrow = knd.numRow(); // number of rows
   int ncol = knd.numCol(); // number of columns
@@ -768,7 +768,7 @@ GenBlockSky<Scalar>::add(FullM &knd, int fRow, int fCol)
 template<class Scalar>
 void
 GenBlockSky<Scalar>::addBoeing(int nlines, const int *Kai, const int *Kaj,
-                               const double *nz, int *map, Scalar multiplier)
+                               const double *nz, const int *map, Scalar multiplier)
 {
  int i, j;
  for(i = 0; i < nlines; ++i) {

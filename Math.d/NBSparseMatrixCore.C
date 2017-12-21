@@ -3,7 +3,7 @@
 
 template<>
 void
-GenNBSparseMatrix<DComplex>::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenNBSparseMatrix<DComplex>::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
  int i, j, dof;
 
@@ -40,14 +40,14 @@ GenNBSparseMatrix<DComplex>::addImaginary(FullSquareMatrix &kel, int *dofs)
 template<>
 void
 GenNBSparseMatrix<double>
-   ::addImaginary(FullSquareMatrix &kel, int *dofs)
+   ::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   fprintf(stderr, "GenNBSparseMatrix<double> cannot addImaginary\n");
 }
 
 template<>
 void
-GenNBSparseMatrix<DComplex>::add(FullSquareMatrixC &kel, int *dofs)
+GenNBSparseMatrix<DComplex>::add(const FullSquareMatrixC &kel, const int *dofs)
 {
  int i, j, dof;
 
@@ -84,7 +84,7 @@ GenNBSparseMatrix<DComplex>::add(FullSquareMatrixC &kel, int *dofs)
 template<>
 void
 GenNBSparseMatrix<double>
-   ::add(FullSquareMatrixC &kel, int *dofs)
+   ::add(const FullSquareMatrixC &kel, const int *dofs)
 {
   fprintf(stderr, "GenNBSparseMatrix<double> cannot add FullSquareMatrixC\n");
 }
@@ -98,7 +98,7 @@ void \
 GenNBSparseMatrix<Scalar>::zeroAll(); \
 template \
 void \
-GenNBSparseMatrix<Scalar>::add(FullSquareMatrix&, int*); \
+GenNBSparseMatrix<Scalar>::add(const FullSquareMatrix&, const int*); \
 template \
 GenNBSparseMatrix<Scalar>::GenNBSparseMatrix(Connectivity*, ConstrainedDSA*); \
 template \

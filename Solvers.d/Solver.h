@@ -107,16 +107,16 @@ class GenSolver {
 
     // Thuan added functions
     virtual void zeroAll()  { fprintf(stderr, " ... This solver has no zeroAll()\n"); }
-    virtual void add(FullSquareMatrix &, int *) 
-            { fprintf(stderr, " ... This solver has no add(FullSquareMatrix &, int *)\n"); }
-    virtual void addImaginary(FullSquareMatrix &, int *)
-            { fprintf(stderr, " ... This solver has no addImaginary(FullSquareMatrix &, int *)\n"); }
-    virtual void add(FullSquareMatrixC &kel, int *dofs) // RT added to support PML, DGM
-            { fprintf(stderr, " ... This solver has no add(FullSquareMatrixC &kel, int *dofs)\n"); }
+    virtual void add(const FullSquareMatrix &, const int *)
+            { fprintf(stderr, " ... This solver has no add(const FullSquareMatrix &, const int *)\n"); }
+    virtual void addImaginary(const FullSquareMatrix &, const int *)
+            { fprintf(stderr, " ... This solver has no addImaginary(const FullSquareMatrix &, int *)\n"); }
+    virtual void add(const FullSquareMatrixC &kel, const int *dofs) // RT added to support PML, DGM
+            { fprintf(stderr, " ... This solver has no add(const FullSquareMatrixC &kel, int *dofs)\n"); }
       
     virtual Connectivity *getAllDofs()  
             { fprintf(stderr, " ... This solver has no getAllDofs()\n"); return 0; }
-    virtual void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
+    virtual void addBoeing(int, const int *, const int *, const double *, const int *, Scalar multiplier);
     virtual void addone(Scalar d, int dofi, int dofj);
     virtual Scalar getone(int dofi, int dofj);
     virtual void unify(FSCommunicator *communicator);

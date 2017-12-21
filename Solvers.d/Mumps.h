@@ -74,11 +74,11 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
 
    virtual ~GenMumpsSolver();
 
-   void add(FullSquareMatrix &, int *dofs);
-   void addImaginary(FullSquareMatrix &, int *dofs);
-   void add(FullSquareMatrixC&, int *dofs);
-   void add(GenFullM<Scalar> &, int, int);
-   void add(GenAssembledFullM<Scalar> &, int *);
+   void add(const FullSquareMatrix &, const int *dofs);
+   void addImaginary(const FullSquareMatrix &, const int *dofs);
+   void add(const FullSquareMatrixC&, const int *dofs);
+   void add(const GenFullM<Scalar> &, int, int);
+   void add(const GenAssembledFullM<Scalar> &, const int *);
    void addDiscreteMass(int dof, Scalar);
    void addone(Scalar d, int dofi, int dofj) { GenSparseMatrix<Scalar>::add(dofi, dofj, d); }
 

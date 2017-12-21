@@ -60,30 +60,30 @@ GenSparseMatrix<Scalar>::printSparse(const std::string& filename)
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::addImaginary(FullSquareMatrix &, int *dofs)
+GenSparseMatrix<Scalar>::addImaginary(const FullSquareMatrix &, const int *dofs)
 {
- fprintf(stderr,"GenSparseMatrix<Scalar>::addImaginary(FullSquareMatrix &, int *dofs) not implemented\n");
+ fprintf(stderr,"GenSparseMatrix<Scalar>::addImaginary(const FullSquareMatrix &, int *dofs) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::add(FullSquareMatrixC &, int *dofs)
+GenSparseMatrix<Scalar>::add(const FullSquareMatrixC &, const int *dofs)
 {
- fprintf(stderr,"GenSparseMatrix<Scalar>::add(FullSquareMatrixC &, int *dofs) not implemented\n");
+ fprintf(stderr,"GenSparseMatrix<Scalar>::add(const FullSquareMatrixC &, int *dofs) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::add(GenFullM<Scalar> &knd, int fRow, int fCol)
+GenSparseMatrix<Scalar>::add(const GenFullM<Scalar> &knd, int fRow, int fCol)
 {
- fprintf(stderr,"GenSparseMatrix<Scalar>::add(GenFullM<Scalar> &knd, int fRow, int fCol) not implemented\n");
+ fprintf(stderr,"GenSparseMatrix<Scalar>::add(const GenFullM<Scalar> &knd, int fRow, int fCol) not implemented\n");
 }
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::add(GenAssembledFullM<Scalar> &knd, int *dofs)
+GenSparseMatrix<Scalar>::add(const GenAssembledFullM<Scalar> &knd, const int *dofs)
 {
- fprintf(stderr,"GenSparseMatrix<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs) not implemented\n");
+ fprintf(stderr,"GenSparseMatrix<Scalar>::add(const GenAssembledFullM<Scalar> &kel, int *dofs) not implemented\n");
 }
 
 template<class Scalar> 

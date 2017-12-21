@@ -89,7 +89,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::printSparse(const std::string& filename)
 
 template<typename Scalar, typename SolverClass> 
 void
-GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrix &kel, int *dofs)
+GenEiSparseMatrix<Scalar,SolverClass>::add(const FullSquareMatrix &kel, const int *dofs)
 {
   int k,l;
   for(int i = 0; i < kel.dim(); ++i) {
@@ -121,7 +121,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::addCoef(int k, int l, Scalar val)
 
 template<class Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar,SolverClass>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
+GenEiSparseMatrix<Scalar,SolverClass>::add(const GenAssembledFullM<Scalar> &kel, const int *dofs)
 {
   // this function is used to assemble Kcc and requires dofs to be in constrained numbering
   int i, j, m, mstart, mstop, ri, rj;
@@ -144,7 +144,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::add(GenAssembledFullM<Scalar> &kel, int *
 
 template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar,SolverClass>::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenEiSparseMatrix<Scalar,SolverClass>::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   int k,l;
   for(int i = 0; i < kel.dim(); ++i) {
@@ -164,7 +164,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::addImaginary(FullSquareMatrix &kel, int *
 
 template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrixC &kel, int *dofs)
+GenEiSparseMatrix<Scalar,SolverClass>::add(const FullSquareMatrixC &kel, const int *dofs)
 {
   int k,l;
   for(int i = 0; i < kel.dim(); ++i) {

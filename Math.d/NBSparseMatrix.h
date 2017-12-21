@@ -33,9 +33,9 @@ class GenNBSparseMatrix : public GenSparseMatrix<Scalar>
    void multAdd(const Scalar *rhs, Scalar *result) const override;
    Scalar diag(int n) const override;                 // returns diagonal values of matrix
    Scalar &diag(int n) override;                 // returns diagonal values of matrix
-   void add(FullSquareMatrix &m, int *dofs) override;
-   void add(FullSquareMatrixC &m, int *dofs) override;
-   void addImaginary(FullSquareMatrix &m, int *dofs) override;
+   void add(const FullSquareMatrix &m, const int *dofs) override;
+   void add(const FullSquareMatrixC &m, const int *dofs) override;
+   void addImaginary(const FullSquareMatrix &m, const int *dofs) override;
    void zeroAll() override;
 
    // returns number of unconstrained dof

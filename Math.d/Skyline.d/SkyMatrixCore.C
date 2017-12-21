@@ -168,7 +168,7 @@ GenSkyMatrix<DComplex>::diag(int dof) const
 
 template<>
 void
-GenSkyMatrix<DComplex>::addImaginary(FullSquareMatrix &ks, int *dofs)
+GenSkyMatrix<DComplex>::addImaginary(const FullSquareMatrix &ks, const int *dofs)
 {
 // Construct stiffness matrix K (skyA)
  int i, j, k;
@@ -186,14 +186,14 @@ GenSkyMatrix<DComplex>::addImaginary(FullSquareMatrix &ks, int *dofs)
 
 template<>
 void
-GenSkyMatrix<double>::addImaginary(FullSquareMatrix &ks, int *dofs)
+GenSkyMatrix<double>::addImaginary(const FullSquareMatrix &ks, const int *dofs)
 {
   fprintf(stderr, "GenSkyMatrix<double>::addImaginary(...) is not implemented \n");
 }
 
 template<>
 void
-GenSkyMatrix<DComplex>::add(FullSquareMatrixC &kel, int *dofs)
+GenSkyMatrix<DComplex>::add(const FullSquareMatrixC &kel, const int *dofs)
 {
 // Construct stiffness matrix K (skyA)
  int i, j, ri, rj;
@@ -211,9 +211,9 @@ GenSkyMatrix<DComplex>::add(FullSquareMatrixC &kel, int *dofs)
 
 template<>
 void
-GenSkyMatrix<double>::add(FullSquareMatrixC &kel, int *dofs)
+GenSkyMatrix<double>::add(const FullSquareMatrixC &kel, const int *dofs)
 {
-  fprintf(stderr, "GenSkyMatrix<double>::add(FullSquareMatrixC &kel, int *dofs) is not implemented \n");
+  fprintf(stderr, "GenSkyMatrix<double>::add(const FullSquareMatrixC &kel, const int *dofs) is not implemented \n");
 }
 
 template<>

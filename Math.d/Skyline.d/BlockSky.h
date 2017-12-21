@@ -71,14 +71,14 @@ class GenBlockSky : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>
      void reSolve(GenVector<Scalar> &f) override;
      void reSolve(int numRHS, Scalar **RHS) override;
      // assembly
-     void add(FullSquareMatrix &, int *dofs) override;
-     void add(FullSquareMatrixC &, int *dofs) override;
-     void addImaginary(FullSquareMatrix &kel, int *dofs) override;
-     void add(AssembledFullM &, int *dofs);
-     void add(GenAssembledFullM<complex<double> > &, int *dofs);
-     void add(FullM &, int rowStart, int colStart);
+     void add(const FullSquareMatrix &, const int *dofs) override;
+     void add(const FullSquareMatrixC &, const int *dofs) override;
+     void addImaginary(const FullSquareMatrix &kel, const int *dofs) override;
+     void add(const AssembledFullM &, const int *dofs);
+     void add(const GenAssembledFullM<complex<double> > &, const int *dofs);
+     void add(const FullM &, int rowStart, int colStart);
      void add(int row_dof, int col_dof, Scalar s) override;
-     void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier) override;
+     void addBoeing(int, const int *, const int *, const double *, const int *, Scalar multiplier) override;
      void addDiscreteMass(int dof, Scalar dmass) override;
 
      void print(FILE * = stderr);

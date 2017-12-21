@@ -280,7 +280,7 @@ MultiDomainRbm<Scalar>::computeRbms()
     com->globalSum(nGroups, ngrbmGr);
 #endif
     paralApply(nsub, sd, &BaseSub::setNumGroupRBM, ngrbmGr);
-    paralApply(nsub, sd, &BaseSub::deleteLocalRBMs);
+    paralApply(nsub, sd, &FetiSub<Scalar>::deleteLocalRBMs);
   }
 
   // end new code ********************************************************

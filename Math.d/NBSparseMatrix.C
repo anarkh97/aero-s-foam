@@ -32,7 +32,7 @@ GenNBSparseMatrix<Scalar>::zeroAll()
 
 template<class Scalar>
 void
-GenNBSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
+GenNBSparseMatrix<Scalar>::add(const FullSquareMatrix &kel, const int *dofs)
 {
  int i, j, dof;
 

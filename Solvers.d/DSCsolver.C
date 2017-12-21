@@ -86,7 +86,7 @@ DSCsolver::print()
 
 // matrix assembly routine i.e. to fill the matrix A
 void
-DSCsolver::add(FullM &knd, int fRow, int fCol)
+DSCsolver::add(const FullM &knd, int fRow, int fCol)
 {
  int i, j, m;
 

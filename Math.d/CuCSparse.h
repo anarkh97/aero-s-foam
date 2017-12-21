@@ -26,9 +26,9 @@ class GenCuCSparse : public SparseData, public GenSparseMatrix<Scalar> {
 
     double getMemoryUsed() const override;
 
-    void add(FullSquareMatrix &mel, int *dofs) override;
-    void addImaginary(FullSquareMatrix &kel, int *dofs) override;
-    void add(FullSquareMatrixC &mel, int *dofs) override;
+    void add(const FullSquareMatrix &mel, const int *dofs) override;
+    void addImaginary(const FullSquareMatrix &kel, const int *dofs) override;
+    void add(const FullSquareMatrixC &mel, const int *dofs) override;
     void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
     void addDiscreteMass(int dof, Scalar dimass) override;
     void add(int row_dof, int col_dof, Scalar s) override;

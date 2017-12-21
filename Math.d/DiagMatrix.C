@@ -21,7 +21,7 @@ GenDiagMatrix<Scalar>::~GenDiagMatrix()
 template<class Scalar>
 void
 GenDiagMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj, 
-                                 const double *nz, int *map, Scalar multiplier)
+                                 const double *nz, const int *map, Scalar multiplier)
 {
   if(neq == 0) return;
   int i, j;
@@ -58,7 +58,7 @@ GenDiagMatrix<Scalar>::diag(int i)
 
 template<class Scalar>
 void
-GenDiagMatrix<Scalar>::add(FullSquareMatrix &Mat, int *map)
+GenDiagMatrix<Scalar>::add(const FullSquareMatrix &Mat, const int *map)
 {
   // local objects
   int MatSize, i, dofI;
@@ -84,16 +84,16 @@ GenDiagMatrix<Scalar>::add(FullSquareMatrix &Mat, int *map)
 
 template<class Scalar>
 void
-GenDiagMatrix<Scalar>::add(GenFullM<Scalar> &, int, int)
+GenDiagMatrix<Scalar>::add(const GenFullM<Scalar> &, int, int)
 {
-  fprintf(stderr,"WARNING: GenDiagMatrix<Scalar>::add(GenFullM<Scalar> &, int , int) is not implemented\n");
+  fprintf(stderr,"WARNING: GenDiagMatrix<Scalar>::add(const GenFullM<Scalar> &, int , int) is not implemented\n");
 }
 
 template<class Scalar>
 void
-GenDiagMatrix<Scalar>::add(GenAssembledFullM<Scalar> &, int *)
+GenDiagMatrix<Scalar>::add(const GenAssembledFullM<Scalar> &, const int *dofs)
 {
-  fprintf(stderr,"WARNING: GenDiagMatrix<Scalar>::add(GenAssembledFullM<Scalar> &, int *) is not implemented\n");
+  fprintf(stderr,"WARNING: GenDiagMatrix<Scalar>::add(const GenAssembledFullM<Scalar> &, const int *dofs) is not implemented\n");
 }
 
 template<class Scalar>

@@ -3,7 +3,7 @@
 template<> 
 void
 GenBLKSparseMatrix<complex<double> >
-   ::addImaginary(FullSquareMatrix &kel, int *dofs)
+   ::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
  int i, j, k, rowi, colj, offset, p1, position, csuper, fstcol, lxbeg, lxend;
 
@@ -37,7 +37,7 @@ GenBLKSparseMatrix<complex<double> >
 template<> 
 void
 GenBLKSparseMatrix<complex<double> >
-   ::add(FullSquareMatrixC &kel, int *dofs)
+   ::add(const FullSquareMatrixC &kel, const int *dofs)
 {
 
  int i, j, k, rowi, colj, offset, p1, position, csuper, fstcol, lxbeg, lxend;
@@ -74,7 +74,7 @@ GenBLKSparseMatrix<complex<double> >
 template<> 
 void
 GenBLKSparseMatrix<double>
-   ::addImaginary(FullSquareMatrix &kel, int *dofs)
+   ::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   fprintf(stderr, "GenBLKSparseMatrix<double> cannot addImaginary\n");
 }
@@ -82,7 +82,7 @@ GenBLKSparseMatrix<double>
 template<> 
 void
 GenBLKSparseMatrix<double>
-   ::add(FullSquareMatrixC &kel, int *dofs)
+   ::add(const FullSquareMatrixC &kel, const int *dofs)
 {
   fprintf(stderr, "GenBLKSparseMatrix<double> cannot add FullSquareMatrixC\n");
 }

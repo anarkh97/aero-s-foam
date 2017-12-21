@@ -28,9 +28,9 @@ class GenMultiSparse : public GenSparseMatrix<Scalar>
    
    ~GenMultiSparse() {};
     
-   void add(FullSquareMatrix & kel, int *dofs) override;
-   void add(FullSquareMatrixC & kel, int *dofs) override;
-   void addImaginary(FullSquareMatrix & kel, int *dofs) override;
+   void add(const FullSquareMatrix & kel, const int *dofs) override;
+   void add(const FullSquareMatrixC & kel, const int *dofs) override;
+   void addImaginary(const FullSquareMatrix & kel, const int *dofs) override;
    void addDiscreteMass(int dof, Scalar mass) override;
    Scalar diag(int i) const override { return K->diag(i); }
    Scalar &diag(int i) override { return K->diag(i); }
@@ -53,7 +53,7 @@ GenMultiSparse<Scalar>::zeroAll()
 
 template<class Scalar>
 void
-GenMultiSparse<Scalar>::add(FullSquareMatrix & kel, int *dofs) 
+GenMultiSparse<Scalar>::add(const FullSquareMatrix & kel, const int *dofs)
 {
  if(K)     K->add(kel, dofs);
  if(Krc) Krc->add(kel, dofs);
@@ -66,7 +66,7 @@ GenMultiSparse<Scalar>::add(FullSquareMatrix & kel, int *dofs)
 
 template<class Scalar>
 void
-GenMultiSparse<Scalar>::add(FullSquareMatrixC & kel, int *dofs) 
+GenMultiSparse<Scalar>::add(const FullSquareMatrixC & kel, const int *dofs)
 {
  if(K)     K->add(kel, dofs);
  if(Krc) Krc->add(kel, dofs);
@@ -78,7 +78,7 @@ GenMultiSparse<Scalar>::add(FullSquareMatrixC & kel, int *dofs)
 
 template<class Scalar>
 void
-GenMultiSparse<Scalar>::addImaginary(FullSquareMatrix & kel, int *dofs) 
+GenMultiSparse<Scalar>::addImaginary(const FullSquareMatrix & kel, const int *dofs)
 {
  if(K)     K->addImaginary(kel, dofs);
  if(Krc) Krc->addImaginary(kel, dofs);

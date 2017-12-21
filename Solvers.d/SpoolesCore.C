@@ -2,7 +2,7 @@
 
 template<>
 void
-GenSpoolesSolver<double>::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenSpoolesSolver<double>::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   fprintf(stderr, "GenSpoolesSolver<double> cannot addImaginary\n");
 }
@@ -10,7 +10,7 @@ GenSpoolesSolver<double>::addImaginary(FullSquareMatrix &kel, int *dofs)
 template<>
 void
 GenSpoolesSolver<complex<double> >
-   ::addImaginary(FullSquareMatrix &kel, int *dofs)
+   ::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   int i, j, m, mstart, mstop;
   int kndof = kel.dim();                       // Dimension of element stiff.
@@ -36,14 +36,14 @@ GenSpoolesSolver<complex<double> >
 
 template<>
 void
-GenSpoolesSolver<double>::add(FullSquareMatrixC &kel, int *dofs)
+GenSpoolesSolver<double>::add(const FullSquareMatrixC &kel, const int *dofs)
 {
-  fprintf(stderr,"GenSpoolesSolver<double>::add(FullSquareMatrixC &kel, int *dofs) is not implemented.\n");
+  fprintf(stderr,"GenSpoolesSolver<double>::add(const FullSquareMatrixC &kel, const int *dofs) is not implemented.\n");
 }
 
 template<>
 void
-GenSpoolesSolver<complex<double> >::add(FullSquareMatrixC &kel, int *dofs)
+GenSpoolesSolver<complex<double> >::add(const FullSquareMatrixC &kel, const int *dofs)
 {
   int i, j, m, mstart, mstop;
   int kndof = kel.dim();                       // Dimension of element stiff.

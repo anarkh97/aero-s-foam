@@ -246,35 +246,35 @@ GenMpcSparse<Scalar>::transposeMultAdd(const Scalar *rhs, Scalar *result) const
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::addBoeing(int, const int *, const int *, const double *, int *, Scalar)
+GenMpcSparse<Scalar>::addBoeing(int, const int *, const int *, const double *, const int *, Scalar)
 {
   fprintf(stderr,"GenMpcSparse<Scalar> does not support addBoeing(...) \n");
 }
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::add(FullSquareMatrix&, int*)
+GenMpcSparse<Scalar>::add(const FullSquareMatrix&, const int*)
 {
   fprintf(stderr,"GenMpcSparse<Scalar> does not support add(FullSquareMatrix&, int *)\n");
 }
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::add(const double *const *, int *, int)
+GenMpcSparse<Scalar>::add(const double *const *, const int *, int)
 {
   fprintf(stderr,"GenMpcSparse<Scalar> does not support add(const double *const *, int *, int)\n");
 }
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::add(FullM&, int, int)
+GenMpcSparse<Scalar>::add(const FullM&, int, int)
 {
   fprintf(stderr,"GenMpcSparse<Scalar> does not support add(FullM&, int, int)\n");
 }
 
 template<class Scalar>
 void
-GenMpcSparse<Scalar>::add(GenAssembledFullM<Scalar>&, int*)
+GenMpcSparse<Scalar>::add(const GenAssembledFullM<Scalar>&, const int*)
 {
   fprintf(stderr,"GenMpcSparse<Scalar> does not support add(GenAssembledFullM<Scalar>&, int*)\n");
 }

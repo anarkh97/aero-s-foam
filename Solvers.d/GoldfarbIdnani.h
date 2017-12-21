@@ -60,7 +60,7 @@ public:
      delete [] doftype;
      delete [] dofmap;
   }
-  void add(FullSquareMatrix &kel, int *dofs) {
+  void add(const FullSquareMatrix &kel, const int *dofs) {
     int I,J;
     for(int i = 0; i < kel.numRow(); ++i ) {
       if((I = unconstrNum[dofs[i]]) < 0 || doftype[I] != 0) continue;

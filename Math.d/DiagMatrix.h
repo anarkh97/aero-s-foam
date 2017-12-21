@@ -16,9 +16,9 @@ class GenDiagMatrix : public GenSparseMatrix<Scalar>, public GenSolver<Scalar>
      GenDiagMatrix(DofSetArray *_dsa);
      virtual ~GenDiagMatrix();
 
-     void   add(FullSquareMatrix &, int *) override;
-     void   add(GenFullM<Scalar> &knd, int fRow, int fCol) override;
-     void   add(GenAssembledFullM<Scalar> &kel, int *dofs) override;
+     void   add(const FullSquareMatrix &, const int *) override;
+     void   add(const GenFullM<Scalar> &knd, int fRow, int fCol) override;
+     void   add(const GenAssembledFullM<Scalar> &kel, const int *dofs) override;
      void   addDiscreteMass(int dof, Scalar mass) override;
 
      void   zeroAll() override { for(int i=0; i<neq; ++i) v[i] = 0.0; }
@@ -28,7 +28,7 @@ class GenDiagMatrix : public GenSparseMatrix<Scalar>, public GenSolver<Scalar>
      int numCol() const override { return neq; }
      double getSolutionTime() override { return 0;}//JFD to be done
      long size() const override { return neq*sizeof(Scalar); }
-     void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier) override;
+     void addBoeing(int, const int *, const int *, const double *, const int *, Scalar multiplier) override;
      void solve(const Scalar *rhs, Scalar *sol) override;
      Scalar diag(int d) const override;
      Scalar &diag(int d) override;

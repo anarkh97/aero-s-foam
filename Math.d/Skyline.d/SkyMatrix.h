@@ -89,13 +89,13 @@ protected:
    Scalar &diag(int) override;
 
    // assembly
-   void add(FullSquareMatrix &, int *dofs) override;
-   void add(FullSquareMatrixC &, int *dofs) override;
-   void addImaginary(FullSquareMatrix &, int *dofs) override;
-   void add(GenAssembledFullM<Scalar> &kel, int *dofs) override;
-   void add(GenFullM<Scalar> &, int rowStart, int colStart) override;
+   void add(const FullSquareMatrix &, const int *dofs) override;
+   void add(const FullSquareMatrixC &, const int *dofs) override;
+   void addImaginary(const FullSquareMatrix &, const int *dofs) override;
+   void add(const GenAssembledFullM<Scalar> &kel, const int *dofs) override;
+   void add(const GenFullM<Scalar> &, int rowStart, int colStart) override;
    void addone(Scalar d, int dofi, int dofj) override;
-   void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier) override;
+   void addBoeing(int, const int *, const int *, const double *, const int *, Scalar multiplier) override;
    void add(Scalar *_skyA) override;
    void addPoint(Scalar, int, int);
 

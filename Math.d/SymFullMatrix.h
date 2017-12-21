@@ -26,7 +26,7 @@ public :
   Scalar *data() { return v; }
   const Scalar *data() const { return v; }
 
-  void add(GenFullM<Scalar>&, int, int);
+  void add(const GenFullM<Scalar>&, int, int);
   void print() const;
 
 protected:

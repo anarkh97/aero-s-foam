@@ -202,7 +202,7 @@ GenMumpsSolver<Scalar>::zeroAll()
 
 template<class Scalar>
 void
-GenMumpsSolver<Scalar>::add(FullSquareMatrix &kel, int *dofs)
+GenMumpsSolver<Scalar>::add(const FullSquareMatrix &kel, const int *dofs)
 {
   int i, j, m, mstart, mstop;
   int kndof = kel.dim();                       // Dimension of element stiff.
@@ -226,7 +226,7 @@ GenMumpsSolver<Scalar>::add(FullSquareMatrix &kel, int *dofs)
 
 template<class Scalar>
 void
-GenMumpsSolver<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
+GenMumpsSolver<Scalar>::add(const GenAssembledFullM<Scalar> &kel, const int *dofs)
 {
   // this function is used to assemble Kcc and requires dofs to be in constrained numbering
   int i, j, m, mstart, mstop, ri, rj;
@@ -249,7 +249,7 @@ GenMumpsSolver<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
 
 template<class Scalar>
 void
-GenMumpsSolver<Scalar>::add(GenFullM<Scalar> &kel, int fi, int fj)
+GenMumpsSolver<Scalar>::add(const GenFullM<Scalar> &kel, int fi, int fj)
 {
   int i, j, m, mstart, mstop;
   for(i = 0; i < kel.numRow(); ++i) {      // Loop over rows.

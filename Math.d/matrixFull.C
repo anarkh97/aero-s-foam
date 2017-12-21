@@ -2,7 +2,7 @@
 #include <Math.d/FullSquareMatrix.h>
 template<>
 void
-GenAssembledFullM<std::complex<double> >::addImaginary(FullSquareMatrix &mat, int *dofs)
+GenAssembledFullM<std::complex<double> >::addImaginary(const FullSquareMatrix &mat, const int *dofs)
 {
  int kndof = mat.dim();
  int i,j,ri,cj;
@@ -19,14 +19,14 @@ GenAssembledFullM<std::complex<double> >::addImaginary(FullSquareMatrix &mat, in
 
 template<>
 void
-GenAssembledFullM<double>::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenAssembledFullM<double>::addImaginary(const FullSquareMatrix &kel, const int *dofs)
 {
   fprintf(stderr, "GenAssembledFullM<double> cannot addImaginary\n");
 }
 
 template<>
 void
-GenAssembledFullM<std::complex<double> >::add(FullSquareMatrixC &mat, int *dofs)
+GenAssembledFullM<std::complex<double> >::add(const FullSquareMatrixC &mat, const int *dofs)
 {
  int kndof = mat.dim();
  int i,j,ri,cj;
@@ -43,7 +43,7 @@ GenAssembledFullM<std::complex<double> >::add(FullSquareMatrixC &mat, int *dofs)
 
 template<>
 void
-GenAssembledFullM<double>::add(FullSquareMatrixC &kel, int *dofs)
+GenAssembledFullM<double>::add(const FullSquareMatrixC &kel, const int *dofs)
 {
   fprintf(stderr, "GenAssembledFullM<double> cannot add FullSquareMatrixC\n");
 }

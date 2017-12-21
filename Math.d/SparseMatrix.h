@@ -49,11 +49,11 @@ class GenSparseMatrix {
         virtual void invertDiag();
         virtual void printSparse(const std::string& filename);
 
-        virtual void add(FullSquareMatrix &, int *dofs) = 0;
-        virtual void addImaginary(FullSquareMatrix &, int *dofs);
-        virtual void add(FullSquareMatrixC &, int *dofs);
-        virtual void add(GenFullM<Scalar> &knd, int fRow, int fCol);
-        virtual void add(GenAssembledFullM<Scalar> &kel, int *dofs);
+        virtual void add(const FullSquareMatrix &, const int *dofs) = 0;
+        virtual void addImaginary(const FullSquareMatrix &, const int *dofs);
+        virtual void add(const FullSquareMatrixC &, const int *dofs);
+        virtual void add(const GenFullM<Scalar> &knd, int fRow, int fCol);
+        virtual void add(const GenAssembledFullM<Scalar> &kel, const int *dofs);
         virtual void addDiscreteMass(int dof, Scalar mass);
         virtual void add(int row_dof, int col_dof, Scalar s);
 

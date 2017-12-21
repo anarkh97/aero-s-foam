@@ -204,7 +204,7 @@ GenSolver<Scalar>::clean_up()
 
 template<class Scalar> 
 void 
-GenSolver<Scalar>::addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier)
+GenSolver<Scalar>::addBoeing(int, const int *, const int *, const double *, const int *, Scalar multiplier)
 {
  fprintf(stderr,"Selected Solver does not support addBoeing function\n");
 }

@@ -1352,23 +1352,6 @@ int BaseSub::countElemNodes()  {
   return numElemNodes;
 }
 
-void 
-BaseSub::addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset)
-{
-  FullM *Zstar = rigidBodyModesG->Zstar;
-  globalZstar->add(*Zstar, zRow, zColOffset);
-  zRow += Zstar->numRow();
-}
-
-void
-BaseSub::addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol)
-{
-  FullM *Zmpc = rigidBodyModesG->Zmpc;
-  for(int i=0; i<numMPC_primal; ++i)
-    for(int j=0; j<numCol; ++j)
-      (*globalZstar)[startRow+localToGroupMPC[i]][startCol+j] += (*Zmpc)[i][j];  
-}
-
 void BaseSub::makeLocalToGroupMPC(Connectivity *groupToMPC)
 {
   // PJSA: new version for multi-body mpc compatability

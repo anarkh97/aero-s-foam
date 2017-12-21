@@ -682,10 +682,10 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			int subBody = (*subToBody)[this->subdomains[iSub]->subNum()][0];
 			int subGroup = (*subToGroup)[this->subdomains[iSub]->subNum()][0];
 			if(this->subdomains[iSub]->zRowDim() > 0)
-				this->sd[iSub]->addSPCsToGlobalZstar(globalZstar[subGroup], zRow[subGroup], zColOffset[subBody]);
+				this->subdomains[iSub]->addSPCsToGlobalZstar(globalZstar[subGroup], zRow[subGroup], zColOffset[subBody]);
 			if(this->subdomains[iSub]->numMPCs_primal() > 0) {
 				int startRow = zRowDim[subGroup] - groupToMpc->num(subGroup);
-				this->sd[iSub]->addMPCsToGlobalZstar(globalZstar[subGroup], startRow, zColOffset[subBody], zColDim1);
+				this->subdomains[iSub]->addMPCsToGlobalZstar(globalZstar[subGroup], startRow, zColOffset[subBody], zColDim1);
 			}
 		}
 		if(this->glNumMpc_primal > 0) execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::setBodyRBMoffset, zColOffset);
@@ -1698,7 +1698,7 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
 		this->subdomains[iSub]->getFr(f.subData(iSub), fr.subData(iSub));
 		if(isCoupled) {
 			fw.subVec(iSub).setZero();
-			this->sd[iSub]->getFw(f.subData(iSub), fw.subData(iSub));
+			this->subdomains[iSub]->getFw(f.subData(iSub), fw.subData(iSub));
 		}
 	};
 	threadManager->callParal(this->nsub, perSubExtract);
@@ -1991,7 +1991,7 @@ GenFetiDPSolver<Scalar>::assembleFcStar(GenVector<Scalar> &FcStar) const
  for(iSub = 0; iSub < this->nsub; ++iSub) {
    int numCornerDofs = this->subdomains[iSub]->numCoarseDofs();
    const auto &dofs = this->subdomains[iSub]->getCornerEqNums();
-   Scalar *fc = this->sd[iSub]->getfc();  // returns sub fcstar, not condensed
+   const auto&fc = this->sd[iSub]->getfc();  // returns sub fcstar, not condensed
    for(i = 0; i < numCornerDofs; ++i) {  // assemble global condensed fcstar
      if(dofs[i] != -1) {
        FcStar[dofs[i]] += fc[i];

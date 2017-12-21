@@ -167,8 +167,6 @@ public:
 	void putNumMPC_primal(int *ptr) { ptr[subNumber] = numMPC_primal; }
 	void putLocalToGlobalMPC_primal(int *ptr, int *tg) { for(int i=0; i<numMPC_primal; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC_primal[i]; }
 
-
-	void addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol);
 	void makeLocalToGroupMPC(Connectivity *groupToMPC);
 	void findEdgeNeighbors();
 	void makeMpcInterface(Connectivity *subToMpc, const Connectivity &lmpcToSub,
@@ -202,7 +200,6 @@ public:
 	void receiveNeighbGrbmInfo(FSCommPattern<int> *pat);
 	void setCommSize(FSCommStructure *pat, int size) const override;
 	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const override;
-	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
 
 public:
 	void setCorners(int nCorners, int *crnList);
@@ -347,7 +344,7 @@ public:
 	GenSparseMatrix<Scalar>   *MPCsparse;
 	std::unique_ptr<GenDBSparseMatrix<Scalar>> Kbb;    // for preconditioning
 	Corotator           	    **corotators;
-	mutable Scalar 		    *fcstar; // TODO Move this out!
+	mutable std::vector<Scalar> fcstar; // TODO Move this out!
 	Scalar                    *QtKpBt;
 
 	int *glBoundMap;
@@ -501,8 +498,8 @@ public:
 	void reMultKcc();
 	void multfc(const VectorView<Scalar> &fr, const VectorView<Scalar> &bf) const;
 	void multFcB(Scalar *bf);
-	Scalar *getfc() { return fcstar; }
-	void getFw(const Scalar *f, Scalar *fw) const;
+	const std::vector<Scalar> &getfc() const { return fcstar; }
+	void getFw(const Scalar *f, Scalar *fw) const override;
 	void mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda = 0);
 	int numRBM() const { return nGrbm; }
 	void makeEdgeVectorsPlus(bool isFluidSub = false, bool isThermalSub = false,

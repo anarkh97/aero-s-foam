@@ -141,6 +141,10 @@ public:
 
 	virtual ConstrainedDSA *get_c_dsa() const = 0;
 	virtual const std::vector<int> &getWeights() const = 0;
+
+	void addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol);
+	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
+
 protected:
 	int totalInterfSize;
 	const int *allBoundDofs = nullptr;
@@ -283,7 +287,7 @@ public:
 
 	void getFr(const Scalar *f, Scalar *fr) const;
 	void getFc(const Scalar *f, Scalar *fc) const;
-
+	virtual void getFw(const Scalar *f, Scalar *fw) const;
 	// G matrix-vector multiplication
 	void multG(const GenVector<Scalar> &x, Scalar *y, Scalar alpha) const;  // y = alpha*G*x
 	void trMultG(const Scalar *x, GenVector<Scalar> &y, Scalar alpha) const; // y = alpha*G^T*x

@@ -3037,19 +3037,17 @@ GenSubDomain<Scalar>::multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const
 	}
 
 	// re-initialization required for mpc/contact
-	if (fcstar) delete[] fcstar;
-	fcstar = new Scalar[Src->numCol()];
-	for (int i = 0; i < Src->numCol(); ++i) fcstar[i] = 0.0;
+	fcstar.assign(Src->numCol(), 0.0);
 
 	// fcstar = - (Krr^-1 Krc)^T fr
 	//        = - Krc^T (Krr^-1 fr)
 	//        = Src force
-	if (Src) Src->multAdd(force.data(), fcstar);
+	if (Src) Src->multAdd(force.data(), fcstar.data());
 
 	// for coupled_dph add fcstar -= Kcw Bw uw
 	if (numWIdof) {
-		if (Kcw) Kcw->mult(localw, fcstar, -1.0, 1.0);
-		if (Kcw_mpc) Kcw_mpc->multSubWI(localw, fcstar);
+		if (Kcw) Kcw->mult(localw, fcstar.data(), -1.0, 1.0);
+		if (Kcw_mpc) Kcw_mpc->multSubWI(localw, fcstar.data());
 	}
 
 	// add Bc^(s)^T lambda
@@ -3086,15 +3084,15 @@ GenSubDomain<Scalar>::multFcB(Scalar *p) {
 	//        = - Acr p
 	// TODO Change to fully use Eigen.
 	GenStackFullM<Scalar> Acr(Src->numCol(), totalInterfSize, BKrrKrc.data());
-	if (!fcstar) fcstar = new Scalar[Src->numCol()];
-	Acr.mult(p, fcstar, -1.0, 0.0);
+	fcstar.resize(Src->numCol());
+	Acr.mult(p, fcstar.data(), -1.0, 0.0);
 
 	// for coupled_dph add fcstar += Kcw Bw uw
 	if (numWIdof) {
 		for (i = 0; i < scomm->lenT(SComm::wet); ++i)
 			localw[scomm->wetDofNb(i)] = p[scomm->mapT(SComm::wet, i)];
-		if (Kcw) Kcw->mult(localw, fcstar, -1.0, 1.0);
-		if (Kcw_mpc) Kcw_mpc->multSubWI(localw, fcstar);
+		if (Kcw) Kcw->mult(localw, fcstar.data(), -1.0, 1.0);
+		if (Kcw_mpc) Kcw_mpc->multSubWI(localw, fcstar.data());
 	}
 
 	// fcstar += Bc^(s)^T p
@@ -3140,15 +3138,6 @@ GenSubDomain<Scalar>::mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda)
 	int i, iNode;
 	int rDofs[DofSet::max_known_dof];
 	int oDofs[DofSet::max_known_dof];
-//	for (iNode = 0; iNode < numnodes; ++iNode) {
-//		DofSet thisDofSet = (*cc_dsa)[iNode];
-//		int nd = thisDofSet.count();
-//		c_dsa->number(iNode, thisDofSet, oDofs);
-//		cc_dsa->number(iNode, thisDofSet, rDofs);
-//		for (i = 0; i < nd; ++i) {
-//			u[oDofs[i]] = ur[rDofs[i]];
-//		}
-//	}
 	for(int dof = 0; dof < ccToC.size(); ++dof)
 		u[ccToC[dof]] = ur[dof];
 
@@ -3845,10 +3834,7 @@ GenSubDomain<Scalar>::clean_up() {
 	cornerEqNums.clear();
 	cornerNodes.clear();
 	glCornerNodes.clear();
-	if (fcstar) {
-		delete[] fcstar;
-		fcstar = 0;
-	}
+	fcstar.clear();
 	if (dsa) dsa->clean_up();
 	if (c_dsa) c_dsa->clean_up();
 	if (cc_dsa) cc_dsa->clean_up();
@@ -4356,7 +4342,6 @@ GenSubDomain<Scalar>::initialize() {
 	MPCsparse = 0;
 	Kbb = 0;
 	corotators = 0;
-	fcstar = 0;
 	QtKpBt = 0;
 	glInternalMap = 0;
 	glBoundMap = 0;
@@ -4414,10 +4399,6 @@ GenSubDomain<Scalar>::~GenSubDomain() {
 	if (kweight) {
 		delete[] kweight;
 		kweight = 0;
-	}
-	if (fcstar) {
-		delete[] fcstar;
-		fcstar = 0;
 	}
 	if (deltaFmpc) {
 		delete[] deltaFmpc;

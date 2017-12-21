@@ -26,6 +26,24 @@ FetiBaseSub::setSComm(SComm *sc)
 	scomm = sc;
 }
 
+
+void
+FetiBaseSub::addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol)
+{
+	FullM *Zmpc = rigidBodyModesG->Zmpc;
+	for(int i=0; i<numMPC_primal; ++i)
+		for(int j=0; j<numCol; ++j)
+			(*globalZstar)[startRow+localToGroupMPC[i]][startCol+j] += (*Zmpc)[i][j];
+}
+
+void
+FetiBaseSub::addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset)
+{
+	FullM *Zstar = rigidBodyModesG->Zstar;
+	globalZstar->add(*Zstar, zRow, zColOffset);
+	zRow += Zstar->numRow();
+}
+
 template<typename Scalar>
 double FetiSub<Scalar>::getMpcError() const {
 	double ret = 0;
@@ -771,6 +789,11 @@ FetiSub<Scalar>::normalizeCstep2(Scalar *cnorm) {
 	for (int i = 0; i < numMPC; ++i)
 		for (int j = 0; j < mpc[i]->nterms; ++j)
 			mpc[i]->terms[j].coef /= cnorm[localToGlobalMPC[i]];
+}
+
+template<typename Scalar>
+void FetiSub<Scalar>::getFw(const Scalar *f, Scalar *fw) const {
+	// By default we have no wet interface treatment.
 }
 
 template class FetiSub<double>;

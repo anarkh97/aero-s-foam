@@ -2983,26 +2983,6 @@ GenSubDomain<Scalar>::reMultKcc() {
 	delete[] thirdpointer;
 }
 
-/**
-* @param[out] fr Force on remainder DOFs.
-* @param[in] uc  Corner displacements.
-*/
-template<class Scalar>
-void
-GenSubDomain<Scalar>::multKrc(Scalar *fr, const Scalar *uc) const {
-	const auto &Src = this->Src;
-	int numCDofs = Src->numCol();
-	Scalar *ucLocal = (Scalar *) dbg_alloca(sizeof(Scalar) * numCDofs);
-
-	for (int i = 0; i < numCDofs; ++i) {
-		if (cornerEqNums[i] > -1) ucLocal[i] = uc[cornerEqNums[i]];
-		else ucLocal[i] = 0.0;
-	}
-
-	// Perform fr = fr - Krc uc
-	if (Src) Src->transposeMultSubtract(ucLocal, fr);
-}
-
 template<class Scalar>
 void
 GenSubDomain<Scalar>::multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const VectorView<Scalar> &lambda) const {
@@ -3194,44 +3174,22 @@ GenSubDomain<Scalar>::getFw(const Scalar *f, Scalar *fw) const {
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::getFr(const Scalar *f, Scalar *fr) const {
-	Scalar v[this->Ave.cols()];
-	VectorView<Scalar> t(v, this->Ave.cols(), 1);
-	VectorView<Scalar> l(fr, this->Ave.rows(), 1);
-
-	int rDofs[DofSet::max_known_dof];
-	int oDofs[DofSet::max_known_dof];
-	for (int iNode = 0; iNode < numnodes; ++iNode) {
-		DofSet thisDofSet = (*cc_dsa)[iNode];
-		int nd = thisDofSet.count();
-		c_dsa->number(iNode, thisDofSet, oDofs);
-		cc_dsa->number(iNode, thisDofSet, rDofs);
-		for (int i = 0; i < nd; ++i) {
-			fr[rDofs[i]] = f[oDofs[i]];
-		}
-	}
-
-	if (this->Ave.cols() > 0) { // Averages to zero 072513 JAT
-		t = this->Ave.transpose() * l;
-		l.noalias() -= this->Ave * t;
-	}
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda) {
 	int i, iNode;
 	int rDofs[DofSet::max_known_dof];
 	int oDofs[DofSet::max_known_dof];
-	for (iNode = 0; iNode < numnodes; ++iNode) {
-		DofSet thisDofSet = (*cc_dsa)[iNode];
-		int nd = thisDofSet.count();
-		c_dsa->number(iNode, thisDofSet, oDofs);
-		cc_dsa->number(iNode, thisDofSet, rDofs);
-		for (i = 0; i < nd; ++i) {
-			u[oDofs[i]] = ur[rDofs[i]];
-		}
-	}
+//	for (iNode = 0; iNode < numnodes; ++iNode) {
+//		DofSet thisDofSet = (*cc_dsa)[iNode];
+//		int nd = thisDofSet.count();
+//		c_dsa->number(iNode, thisDofSet, oDofs);
+//		cc_dsa->number(iNode, thisDofSet, rDofs);
+//		for (i = 0; i < nd; ++i) {
+//			u[oDofs[i]] = ur[rDofs[i]];
+//		}
+//	}
+	for(int dof = 0; dof < ccToC.size(); ++dof)
+		u[ccToC[dof]] = ur[dof];
+
 	int j;
 	int iOff = 0;
 	for (i = 0; i < numCRN; ++i) {
@@ -3286,7 +3244,7 @@ GenSubDomain<Scalar>::makeQ() {
 		default:
 			break;
 		case FetiInfo::Gs: {
-			nGrbm = std::min(rigidBodyModes->numRBM(), solInfo().getFetiInfo().nGs);
+			nGrbm = std::min(this->rigidBodyModes->numRBM(), solInfo().getFetiInfo().nGs);
 			int iLen = scomm->lenT(SComm::std);
 			interfaceRBMs = new Scalar[nGrbm * iLen];
 			rbms = new Scalar[nGrbm * iLen];
@@ -3298,9 +3256,9 @@ GenSubDomain<Scalar>::makeQ() {
 				else
 					boundToCDSA[i] = -1;
 			int offset = 0;
-			if ((rigidBodyModes->numRBM() == 6) && (solInfo().getFetiInfo().rbmType == FetiInfo::rotation))
+			if ((this->rigidBodyModes->numRBM() == 6) && (solInfo().getFetiInfo().rbmType == FetiInfo::rotation))
 				offset = 3;
-			rigidBodyModes->getRBMs(interfaceRBMs, iLen, boundToCDSA, nGrbm, offset);
+			this->rigidBodyModes->getRBMs(interfaceRBMs, iLen, boundToCDSA, nGrbm, offset);
 		}
 			break;
 		case FetiInfo::WeightedEdges:
@@ -4390,26 +4348,6 @@ GenSubDomain<Scalar>::computeLocalContactPressure(Scalar *stress, Scalar *weight
 	}
 }
 
-template<class Scalar>
-void
-GenSubDomain<Scalar>::getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
-                                        int mpcOffset, GenVector<Scalar> &uc) {
-// XXXX needs some work to map both dual and primal into single mpcLambda array
-	if (numMPC > 0 && numMPC_primal > 0) std::cerr << "unsupported feature in GenSubDomain::getLocalMpcForces \n";
-	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) { // dual mpcs
-		int locMpcNb = scomm->mpcNb(i);
-		if (localLambda) mpcLambda[locMpcNb] = localLambda[scomm->mapT(SComm::mpc, i)];
-		else mpcLambda[locMpcNb] = 0;
-	}
-	for (int i = 0; i < numMPC_primal; ++i) {
-		int glMpcNb = localToGlobalMPC_primal[i];
-		int dof = cornerEqs->firstdof(mpcOffset + glMpcNb);
-		mpcLambda[i] = -ScalarTypes::Real(uc[dof]);
-	}
-	if (salinasFlag)
-		for (int i = 0; i < numMPC + numMPC_primal; ++i)
-			mpcLambda[i] = -mpcLambda[i];  // different sign convention
-}
 
 template<class Scalar>
 void
@@ -4448,8 +4386,6 @@ GenSubDomain<Scalar>::initialize() {
 	kweight = 0;
 	deltaFmpc = 0;
 	scaling = 0;
-	rigidBodyModes = 0;
-	rigidBodyModesG = 0;
 	rbms = 0;
 	interfaceRBMs = 0;
 	qtkq = 0;
@@ -4504,10 +4440,6 @@ GenSubDomain<Scalar>::initialize() {
 	mpcStatus = 0;
 	mpcStatus1 = 0;
 	mpcStatus2 = 0;
-	G = 0;
-	neighbG = 0;
-	sharedRstar_g = 0;
-	tmpRstar_g = 0;
 	l2g = 0;
 }
 
@@ -4541,14 +4473,6 @@ GenSubDomain<Scalar>::~GenSubDomain() {
 	if (qtkq) {
 		delete qtkq;
 		qtkq = 0;
-	}
-	if (rigidBodyModes) {
-		delete rigidBodyModes;
-		rigidBodyModes = 0;
-	}
-	if (rigidBodyModesG) {
-		delete rigidBodyModesG;
-		rigidBodyModesG = 0;
 	}
 	if (MPCsparse) {
 		delete MPCsparse;
@@ -4689,33 +4613,6 @@ GenSubDomain<Scalar>::~GenSubDomain() {
 		mpcStatus2 = 0;
 	}
 
-	if (sharedRstar_g) {
-		delete sharedRstar_g;
-		sharedRstar_g = 0;
-	}
-	if (tmpRstar_g) {
-		delete tmpRstar_g;
-		tmpRstar_g = 0;
-	}
-	int numPCN = scomm->numT(SComm::mpc);
-	if (G) {
-		for (int i = 0; i < numPCN; ++i)
-			if (G[i]) {
-				delete G[i];
-				G[i] = 0;
-			}
-		delete[] G;
-		G = 0;
-	}
-	if (neighbG) {
-		for (int i = 0; i < numPCN; ++i)
-			if (neighbG[i]) {
-				delete neighbG[i];
-				neighbG[i] = 0;
-			}
-		delete[] neighbG;
-		neighbG = 0;
-	}
 	if (l2g) delete[] l2g;
 }
 
@@ -4727,7 +4624,7 @@ GenSubDomain<Scalar>::deleteMPCs() {
 		delete[] localToGlobalMPC;
 		localToGlobalMPC = 0;
 	}
-	deleteG();
+	this->deleteG();
 	numMPC = 0;
 	scomm->deleteTypeSpecificList(SComm::mpc);
 
@@ -5709,20 +5606,6 @@ GenSubDomain<Scalar>::collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat) {
    for(iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC]->print();
 #endif
 	}
-}
-
-template<class Scalar>
-Scalar
-GenSubDomain<Scalar>::getMpcRhs(int glMPCnum) const {
-	auto &mpc = this->mpc;
-	return mpc[globalToLocalMPC[glMPCnum]]->rhs;
-}
-
-template<class Scalar>
-Scalar
-GenSubDomain<Scalar>::getMpcRhs_primal(int glMPCnum) const {
-	auto &mpc_primal = this->mpc_primal;
-	return mpc_primal[globalToLocalMPC_primal[glMPCnum]]->rhs;
 }
 
 template<class Scalar>

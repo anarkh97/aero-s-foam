@@ -7,12 +7,18 @@
 #include <vector>
 #include <Eigen/Dense>
 
+#include <Math.d/matrix.h>
 #include <Utils.d/GlobalToLocalMap.h>
 #include <Driver.d/SComm.h>
+#include <Solvers.d/Rbm.h>
 
 class FSCommStructure;
 template <typename Scalar>
 class FSCommPattern;
+template <typename Scalar>
+class GenVector;
+template <typename Scalar>
+class GenFullM;
 template <typename Scalar>
 class GenSolver;
 template <typename Scalar>
@@ -30,6 +36,7 @@ class Connectivity;
 class CoordSet;
 class DofSet;
 class FetiInfo;
+
 
 /** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
 class FetiBaseSub {
@@ -113,7 +120,7 @@ public:
 
 	SComm *scomm = nullptr;
 
-	auto getCornerEqNums() const { return cornerEqNums; }
+	const auto &getCornerEqNums() const { return cornerEqNums; }
 	int getGroup() const { return group; }
 
 	SComm *getSComm() { return scomm; }
@@ -129,7 +136,11 @@ public:
 	int numEdgeNeighbors() const { return scomm->numEdgeNeighb; }
 
 	bool* getMpcMaster() const { return mpcMaster; }
+	// Multiple Point Constraint (MPC) functions
+	int getNumMpc() const       { return numMPC; }
 
+	virtual ConstrainedDSA *get_c_dsa() const = 0;
+	virtual const std::vector<int> &getWeights() const = 0;
 protected:
 	int totalInterfSize;
 	const int *allBoundDofs = nullptr;
@@ -142,8 +153,8 @@ protected:
 	std::vector<int> edgeDofSize;      //<! \brief Number of edge DOF per neighbor.
 	std::vector<int> cornerEqNums; //<! \brief unique equation numbers for subdomain corner dofs
 	std::unique_ptr<ConstrainedDSA> cc_dsa;
-	std::vector<int> ccToC; //!< Mapping from cc_dsa to c_dsa
-	std::vector<int> cToCC; //!< Mapping from c_dsa to cc_dsa
+	std::vector<int> ccToC; //!< Mapping from cc_dsa to c_dsa. All indices are >= 0
+	std::vector<int> cToCC; //!< Mapping from c_dsa to cc_dsa. Indices for corner DOFs are < 0.
 
 	std::vector<int> weightPlus; ///!< \brief DOF weights (i.e. number of subd sharing that dof) including corner DOFs.
 
@@ -182,6 +193,17 @@ public:
 	GlobalToLocalMap globalToLocalMPC_primal;
 
 	int *cornerMap = nullptr;
+
+	// variables and routines for parallel GRBM algorithm and floating bodies projection
+	// and MPCs (rixen method)
+protected:
+	int numGroupRBM = 0, groupRBMoffset = 0;
+	int *neighbNumGroupGrbm = nullptr;
+	int *neighbGroupGrbmOffset = nullptr;
+	int numGlobalRBMs = 0;
+
+	std::unique_ptr<Rbm> rigidBodyModesG;
+
 };
 
 template <typename Scalar>
@@ -199,8 +221,8 @@ public:
 	virtual void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const = 0;
 	virtual void getQtKQ(GenSolver<Scalar> *s) = 0;
 	virtual void getQtKQ(int iMPC, Scalar *QtKQ) = 0;
-	virtual Scalar getMpcRhs(int iMPC) const = 0;
-	virtual Scalar getMpcRhs_primal(int iMPC) const = 0;
+	Scalar getMpcRhs(int iMPC) const;
+	Scalar getMpcRhs_primal(int iMPC) const;
 	// TODO Figure out how to make this const.
 	virtual void sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPat) = 0;
 	virtual void factorKii() = 0;
@@ -232,6 +254,69 @@ public:
 	void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray
 	void makeLocalMpcToMpc();
 	void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);
+
+	// (G^T*G) matrix assembly
+	void assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver);
+	void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
+	                       int mpcOffset, GenVector<Scalar> &uc);
+	void useKrrNullspace();
+	// R matrix construction and access
+	void makeLocalRstar(FullM **Qtranspose); // this is used by decomposed domain GRBM algorithm
+	// R matrix-vector multiplication
+	void addRalpha(Scalar *u, GenVector<Scalar> &alpha) const;  // u += R_g*alpha
+
+	int zColDim() { return rigidBodyModesG->Zstar->numCol(); }
+	int zRowDim() { return rigidBodyModesG->Zstar->numRow(); }
+
+	void deleteLocalRBMs() { rigidBodyModesG.reset(nullptr); }
+	void setBodyRBMoffset(int _boff) { bodyRBMoffset = _boff; }
+	void assembleE(GenVector<Scalar> &e, Scalar *f) const; // e = R^T*f
+	// G matrix construction and destruction
+	void makeG();
+	void makeTrbmG(Scalar *rbms, int nrbms, int glNumCDofs);
+
+	void setGCommSize(FSCommStructure *pat) const override;
+	void sendG(FSCommPattern<Scalar> *rbmPat);
+	void receiveG(FSCommPattern<Scalar> *rbmPat);
+	void zeroG();
+	void deleteG();
+
+	void getFr(const Scalar *f, Scalar *fr) const;
+
+	// G matrix-vector multiplication
+	void multG(const GenVector<Scalar> &x, Scalar *y, Scalar alpha) const;  // y = alpha*G*x
+	void trMultG(const Scalar *x, GenVector<Scalar> &y, Scalar alpha) const; // y = alpha*G^T*x
+
+
+	// R_g matrix construction and access
+	void buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, const Connectivity *cornerToSub); // use null space of (G^T*P_H*G) ... trbm method !!!
+	void getGlobalRBM(int iRBM, Scalar *Rvec) const;
+	// R_g matrix-vector multiplication
+	void subtractRstar_g(Scalar *u, GenVector<Scalar> &beta) const; // u -= R_g*beta
+	void addRstar_gT(Scalar *u, GenVector<Scalar> &beta) const; // u += R_g*beta
+	// (R_g^T*R_g) matrix assembly
+	void assembleRtR(GenFullM<Scalar> &RtRu);
+
+	void multAddCT(const Scalar *interfvec, Scalar *localvec) const;
+	void multC(const Scalar *localvec, Scalar *interfvec) const;
+
+	/** \brief Compute \f$ f_r = K_{rc} u_c \f$. */
+	void multKrc(Scalar *fr, const Scalar *uc) const;
+
+	// templated R and G functions
+	// note #1: we use feti to solve global domain problem: min 1/2 u_g^T*K_g*u_g - u_g^T*f_g subj. to C_g*u_g <= g
+	//          by solving an equivalent decomposed domain problem: min 1/2 u^T*K*u - u^T*f subj to B*u = 0, C*u <= g
+	// the columns of R_g span the left null space of [ K_g & C_gtilda^T // C_gtilda & 0 ] ... C_gtilda = gtilda are the active constraints
+	// the columns of R span the left null space of K
+	// G = [B^T C^T]^T*R
+	// e = R^T*f
+	// note #2: the null space of a matrix must be templated (i.e. it is real if the matrix is real or complex if the matrix is complex)
+	// note #3: the geometric rigid body modes (GRBMs) or heat zero energy modes (HZEMs) can be used to construct the null space SOMETIMES, NOT ALWAYS !!!!
+	// note #4: the GRBMs are not always computed correctly when there are mechanisms
+	// note #5: the GRBMs/HZEMs are always real
+
+	void addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *alpha, Scalar *ur) const; // u += R_g*alpha
+	void assembleTrbmE(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *e, Scalar *fr) const; // e = R^T*f
 	// Missing:
 	/*
 	 * split
@@ -278,7 +363,17 @@ public:
 	std::vector<std::unique_ptr<SubLMPCons<Scalar>>> mpc_primal;
 	std::unique_ptr<GenSparseSet<Scalar>> Src;
 	Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> BKrrKrc;
+protected:
+	// templated RBMs
+	GenFullM<Scalar> Rstar;
+	GenFullM<Scalar> Rstar_g;
+	std::unique_ptr<GenFullM<Scalar>> sharedRstar_g;
+	std::unique_ptr<GenFullM<Scalar>> tmpRstar_g;
+	std::vector<std::unique_ptr<GenFullM<Scalar>>> G;
+	std::vector<std::unique_ptr<GenFullM<Scalar>>> neighbG;
 
+	int bodyRBMoffset;
+	std::unique_ptr<Rbm> rigidBodyModes;
 };
 
 #endif //FEM_FETUSUB_H

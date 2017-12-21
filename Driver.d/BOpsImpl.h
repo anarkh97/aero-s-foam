@@ -76,42 +76,4 @@ GenSubDomain<Scalar>::multBr(const Scalar *localvec, Scalar *interfvec, const Sc
 	}
 }
 
-template<class Scalar>
-void
-GenSubDomain<Scalar>::multAddCT(const Scalar *interfvec, Scalar *localvec) const {
-	auto &mpc = this->mpc;
-	// localvec += C^T * interfvec
-	bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool) * numMPC);
-	for (int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
-
-	for (int i = 0; i < scomm->lenT(SComm::mpc); i++) {
-		int locMpcNb = scomm->mpcNb(i);
-		if (mpcFlag[locMpcNb]) {
-			const auto &m = mpc[locMpcNb];
-			int iDof = scomm->mapT(SComm::mpc, i);
-			for (int k = 0; k < m->nterms; k++) {
-				int c_dof = (m->terms)[k].cdof;
-				if (c_dof >= 0) localvec[c_dof] += interfvec[iDof] * (m->terms)[k].coef;
-			}
-			mpcFlag[locMpcNb] = false;
-		}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::multC(const Scalar *localvec, Scalar *interfvec) const {
-	auto &mpc = this->mpc;
-	// interfvec = C * localvec
-	for (int i = 0; i < scomm->lenT(SComm::mpc); i++) {
-		int locMpcNb = scomm->mpcNb(i);
-		const auto &m = mpc[locMpcNb];
-		int iDof = scomm->mapT(SComm::mpc, i);
-		interfvec[iDof] = 0;
-		for (int k = 0; k < m->nterms; k++) {
-			int c_dof = (m->terms)[k].cdof;
-			if (c_dof >= 0) interfvec[iDof] += localvec[c_dof] * (m->terms)[k].coef;
-		}
-	}
-}
 

@@ -197,10 +197,8 @@ BaseSub::makeCCDSA()
                                                  // (without the wet interface dofs)
 
  // Map from cc_dsa numbering to c_dsa numbering and vice versa
- ccToC.resize(cc_dsa->size());
- cToCC.resize(c_dsa->size());
- for(int i = 0; i < cc_dsa->size(); ++i) ccToC[i] = -1;
- for(int i = 0; i < c_dsa->size(); ++i) cToCC[i] = -1;
+ ccToC.assign(cc_dsa->size(), -1);
+ cToCC.assign(c_dsa->size(), -1);
 
  for(int i = 0; i < numnodes; ++i) {
    int c_dofs[DofSet::max_known_dof];

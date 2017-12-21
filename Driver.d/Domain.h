@@ -1468,8 +1468,8 @@ public:
 	void getInterestingDofs(DofSet &ret, int glNode);
 
 	double** getCMatrix();
-	void multC(const Vector&, Vector&);
-	void trMultC(const Vector&, Vector&);
+	void multCV(const Vector&, Vector&);
+	void trMultCV(const Vector&, Vector&);
 
 	ControlLawInfo* getClaw() { return  claw;}
 

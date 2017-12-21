@@ -736,7 +736,7 @@ double ** Domain::getCMatrix()
 }
 
 void
-Domain::trMultC(const Vector& x, Vector& y)
+Domain::trMultCV(const Vector& x, Vector& y)
 {
 /*
   // computes y = C^T*x
@@ -768,7 +768,7 @@ Domain::trMultC(const Vector& x, Vector& y)
 }
 
 void
-Domain::multC(const Vector& x, Vector& y)
+Domain::multCV(const Vector& x, Vector& y)
 {
 /*
   // computes y = C*x

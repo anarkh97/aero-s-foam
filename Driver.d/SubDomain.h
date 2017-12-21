@@ -92,8 +92,6 @@ protected:
 	int globalNMax;  // highest global node number of all the nodes in this subdomain
 	int globalEMax;  // highest global element number of all the elements in this subdomain
 
-	Rbm *rigidBodyModes = nullptr;
-	Rbm *rigidBodyModesG = nullptr;
 
 public:
 	BaseSub();
@@ -164,16 +162,12 @@ public:
 	int localRLen() const override { return cc_dsa->size(); }
 	void sendNumNeighbGrbm(FSCommPattern<int> *pat);
 	void recvNumNeighbGrbm(FSCommPattern<int> *pat);
-	void deleteLocalRBMs() { if(rigidBodyModes) delete rigidBodyModesG; rigidBodyModesG = 0; }
 	void putNumMPC(int *ptr) { ptr[subNumber] = numMPC; }
 	void putLocalToGlobalMPC(int *ptr, int *tg) { for(int i=0; i<numMPC; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC[i]; }
 	void putNumMPC_primal(int *ptr) { ptr[subNumber] = numMPC_primal; }
 	void putLocalToGlobalMPC_primal(int *ptr, int *tg) { for(int i=0; i<numMPC_primal; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC_primal[i]; }
 
-	// Multiple Point Constraint (MPC) functions
-	int getNumMpc() const       { return numMPC; }
-	int zColDim() { return rigidBodyModesG->Zstar->numCol(); }
-	int zRowDim() { return rigidBodyModesG->Zstar->numRow(); }
+
 	void addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol);
 	void makeLocalToGroupMPC(Connectivity *groupToMPC);
 	void findEdgeNeighbors();
@@ -190,13 +184,8 @@ public:
 	int numCoarseDofs();
 	int nCoarseDofs()  const { return nCDofs; }
 
-	// variables and routines for parallel GRBM algorithm and floating bodies projection
-	// and MPCs (rixen method)
-protected:
-	int numGroupRBM = 0, groupRBMoffset = 0;
-	int *neighbNumGroupGrbm = nullptr;
-	int *neighbGroupGrbmOffset = nullptr;
-	int numGlobalRBMs = 0;
+	ConstrainedDSA *get_c_dsa() const { return c_dsa; }
+	const std::vector<int> &getWeights() const { return weight; }
 
 public:
 	/// \copydoc
@@ -214,9 +203,6 @@ public:
 	void setCommSize(FSCommStructure *pat, int size) const override;
 	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const override;
 	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
-
-protected:
-	int bodyRBMoffset;
 
 public:
 	void setCorners(int nCorners, int *crnList);
@@ -243,7 +229,6 @@ public:
 	// for timing file
 	double getSharedDofCount();
 	int getTotalDofCount();
-	void setBodyRBMoffset(int _boff) { bodyRBMoffset = _boff; }
 	SubCornerHandler *getCornerHandler();
 
 	void initHelm(Domain &dom);
@@ -379,13 +364,7 @@ private:
 	mutable int *mpcStatus;
 	mutable bool *mpcStatus1, *mpcStatus2;
 
-	// templated RBMs
-	GenFullM<Scalar> Rstar;
-	GenFullM<Scalar> Rstar_g;
-	GenFullM<Scalar> *sharedRstar_g;
-	GenFullM<Scalar> *tmpRstar_g;
-	GenFullM<Scalar> **G;
-	GenFullM<Scalar> **neighbG;
+
 
 public:
 	GenSubDomain(int, int);
@@ -522,12 +501,9 @@ public:
 	void assembleMpcIntoKcc();
 	void multKcc();
 	void reMultKcc();
-	/** \brief Compute \f$ f_r = K_{rc} u_c \f$. */
-	void multKrc(Scalar *fr, const Scalar *uc) const;
 	void multfc(const VectorView<Scalar> &fr, const VectorView<Scalar> &bf) const;
 	void multFcB(Scalar *bf);
 	Scalar *getfc() { return fcstar; }
-	void getFr(const Scalar *f, Scalar *fr) const;
 	void getFc(const Scalar *f, Scalar *fc) const;
 	void getFw(const Scalar *f, Scalar *fw) const;
 	void mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda = 0);
@@ -549,8 +525,6 @@ public:
 	void applyDmassSplitting();
 	void applyForceSplitting();
 	void applyMpcSplitting();
-	Scalar getMpcRhs(int iMPC) const override;
-	Scalar getMpcRhs_primal(int iMPC) const override;
 	void constraintProduct(int num_vect, const double* R[], Scalar** V, int trans);
 	void addConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
 	void addCConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &fc, double s);
@@ -600,8 +574,7 @@ public:
 	void setLocalLambda(Scalar *localLambda);
 	void computeContactPressure(Scalar *globStress, Scalar *globWeight);
 	void computeLocalContactPressure(Scalar *stress, Scalar *weight);
-	void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
-	                       int mpcOffset, GenVector<Scalar> &uc);
+
 	void getConstraintMultipliers(std::map<std::pair<int,int>,double> &mu, std::vector<double> &lambda);
 	void getLocalMultipliers(std::vector<double> &lambda);
 	void setMpcRhs(Scalar *interfvec, double t, int flag);
@@ -685,52 +658,6 @@ public:
 	// new B operators
 	void multAddBrT(const Scalar *interfvec, Scalar *localvec, Scalar *uw = 0) const;
 	void multBr(const Scalar *localvec, Scalar *interfvec, const Scalar *uc = 0, const Scalar *uw = 0) const;
-	void multAddCT(const Scalar *interfvec, Scalar *localvec) const;
-	void multC(const Scalar *localvec, Scalar *interfvec) const;
-
-	// templated R and G functions
-	// note #1: we use feti to solve global domain problem: min 1/2 u_g^T*K_g*u_g - u_g^T*f_g subj. to C_g*u_g <= g
-	//          by solving an equivalent decomposed domain problem: min 1/2 u^T*K*u - u^T*f subj to B*u = 0, C*u <= g
-	// the columns of R_g span the left null space of [ K_g & C_gtilda^T // C_gtilda & 0 ] ... C_gtilda = gtilda are the active constraints
-	// the columns of R span the left null space of K
-	// G = [B^T C^T]^T*R
-	// e = R^T*f
-	// note #2: the null space of a matrix must be templated (i.e. it is real if the matrix is real or complex if the matrix is complex)
-	// note #3: the geometric rigid body modes (GRBMs) or heat zero energy modes (HZEMs) can be used to construct the null space SOMETIMES, NOT ALWAYS !!!!
-	// note #4: the GRBMs are not always computed correctly when there are mechanisms
-	// note #5: the GRBMs/HZEMs are always real
-
-	// R matrix construction and access
-	void makeLocalRstar(FullM **Qtranspose); // this is used by decomposed domain GRBM algorithm
-	void useKrrNullspace();
-	// R matrix-vector multiplication
-	void addRalpha(Scalar *u, GenVector<Scalar> &alpha) const;  // u += R_g*alpha
-	void addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *alpha, Scalar *ur) const; // u += R_g*alpha
-	void assembleE(GenVector<Scalar> &e, Scalar *f) const; // e = R^T*f
-	void assembleTrbmE(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *e, Scalar *fr) const; // e = R^T*f
-
-	// G matrix construction and destruction
-	void makeG();
-	void makeTrbmG(Scalar *rbms, int nrbms, int glNumCDofs);
-	void setGCommSize(FSCommStructure *pat) const override;
-	void sendG(FSCommPattern<Scalar> *rbmPat);
-	void receiveG(FSCommPattern<Scalar> *rbmPat);
-	void zeroG();
-	void deleteG();
-	// G matrix-vector multiplication
-	void multG(const GenVector<Scalar> &x, Scalar *y, Scalar alpha) const;  // y = alpha*G*x
-	void trMultG(const Scalar *x, GenVector<Scalar> &y, Scalar alpha) const; // y = alpha*G^T*x
-	// (G^T*G) matrix assembly
-	void assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver);
-
-	// R_g matrix construction and access
-	void buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, const Connectivity *cornerToSub); // use null space of (G^T*P_H*G) ... trbm method !!!
-	void getGlobalRBM(int iRBM, Scalar *Rvec) const;
-	// R_g matrix-vector multiplication
-	void subtractRstar_g(Scalar *u, GenVector<Scalar> &beta) const; // u -= R_g*beta
-	void addRstar_gT(Scalar *u, GenVector<Scalar> &beta) const; // u += R_g*beta
-	// (R_g^T*R_g) matrix assembly
-	void assembleRtR(GenFullM<Scalar> &RtRu);
 
 	int *l2g;
 	void makeLocalToGlobalDofMap();

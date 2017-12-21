@@ -630,7 +630,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		int *zRowDim = new int[nGroups];
 		int *zColDim = new int[nGroups];
 		int *zColOffset = new int[nBodies];
-		int zColDim1 = (this->sd && this->nsub > 0) ? this->sd[0]->zColDim() : 0;  // (6 for 3D, 3 for 2D)
+		int zColDim1 = (this->sd && this->nsub > 0) ? this->subdomains[0]->zColDim() : 0;  // (6 for 3D, 3 for 2D)
 #ifdef DISTRIBUTED
 		zColDim1 = this->fetiCom->globalMax(zColDim1);  // enforce it to be the same
 #endif
@@ -652,7 +652,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		}
 		for(int iSub = 0; iSub < this->nsub; ++iSub) {
 			int subGroup = (*subToGroup)[this->subdomains[iSub]->subNum()][0];
-			zRowDim[subGroup] += this->sd[iSub]->zRowDim();
+			zRowDim[subGroup] += this->subdomains[iSub]->zRowDim();
 		}
 		if(this->glNumMpc_primal > 0) {
 			for(int i = 0; i < nGroups; ++i) zRowDim[i] += groupToMpc->num(i);
@@ -681,9 +681,9 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		for(int iSub = 0; iSub < this->nsub; ++iSub) {
 			int subBody = (*subToBody)[this->subdomains[iSub]->subNum()][0];
 			int subGroup = (*subToGroup)[this->subdomains[iSub]->subNum()][0];
-			if(this->sd[iSub]->zRowDim() > 0)
+			if(this->subdomains[iSub]->zRowDim() > 0)
 				this->sd[iSub]->addSPCsToGlobalZstar(globalZstar[subGroup], zRow[subGroup], zColOffset[subBody]);
-			if(this->sd[iSub]->numMPCs_primal() > 0) {
+			if(this->subdomains[iSub]->numMPCs_primal() > 0) {
 				int startRow = zRowDim[subGroup] - groupToMpc->num(subGroup);
 				this->sd[iSub]->addMPCsToGlobalZstar(globalZstar[subGroup], startRow, zColOffset[subBody], zColDim1);
 			}
@@ -765,7 +765,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		this->fetiCom->globalSum(nGroups, ngrbmGr);
 #endif
 		paralApply(this->nsub, this->sd, &BaseSub::setNumGroupRBM, ngrbmGr);
-		paralApply(this->nsub, this->sd, &BaseSub::deleteLocalRBMs);
+		paralApply(this->nsub, this->sd, &FetiSub<Scalar>::deleteLocalRBMs);
 	}
 
 	// end new code ********************************************************
@@ -1695,7 +1695,7 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
 	// extract fr and fw from f
 	auto perSubExtract = [&, isCoupled = domain->solInfo().isCoupled](int iSub) {
 		fr.subVec(iSub).setZero();
-		this->sd[iSub]->getFr(f.subData(iSub), fr.subData(iSub));
+		this->subdomains[iSub]->getFr(f.subData(iSub), fr.subData(iSub));
 		if(isCoupled) {
 			fw.subVec(iSub).setZero();
 			this->sd[iSub]->getFw(f.subData(iSub), fw.subData(iSub));
@@ -1810,7 +1810,7 @@ GenFetiDPSolver<Scalar>::mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Sca
         for(int j=0; j<KccSolver->neqs(); ++j) 
           uc[j] += alpha[i]*kccrbms[i*KccSolver->neqs()+j];
       for(int i=0; i<this->nsub;++i)
-	      this->sd[i]->addTrbmRalpha(kccrbms, KccSolver->numRBM(), KccSolver->neqs(), alpha.data(), ur.subData(i));
+	      this->subdomains[i]->addTrbmRalpha(kccrbms, KccSolver->numRBM(), KccSolver->neqs(), alpha.data(), ur.subData(i));
     }
   }
 
@@ -2004,7 +2004,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::multKrc(int iSub, GenDistrVector<Scalar> &fr, const GenVector<Scalar> &uc) const
 {
-  this->sd[iSub]->multKrc(fr.subData(iSub), uc.data());
+  this->subdomains[iSub]->multKrc(fr.subData(iSub), uc.data());
 }
 
 template<class Scalar> 
@@ -2259,7 +2259,7 @@ GenFetiDPSolver<Scalar>::subdomainSolveCoupled1(int iSub, GenDistrVector<Scalar>
   for(i = 0; i < interfaceLen; ++i)
      interfvec[i] = interfsrc[i];
 
-  this->sd[iSub]->fetiBaseOpCoupled1(this->subdomains[iSub]->Krr.get(), localvec, interfvec, this->wiPat);
+  this->subdomains[iSub]->fetiBaseOpCoupled1(this->subdomains[iSub]->Krr.get(), localvec, interfvec, this->wiPat);
 }
 
 template<class Scalar>
@@ -2312,7 +2312,7 @@ GenFetiDPSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
 	// extract fr from f
 	auto perSubExtract = [&](int iSub) {
 		fr.subVec(iSub).setZero();
-		this->sd[iSub]->getFr(f.subData(iSub), fr.subData(iSub));
+		this->subdomains[iSub]->getFr(f.subData(iSub), fr.subData(iSub));
 	};
 	threadManager->callParal(this->nsub, perSubExtract);
 	this->distributeForce(fr);
@@ -2335,7 +2335,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::subtractMpcRhs(int iSub, GenDistrVector<Scalar> &dv1) const
 {
-  this->sd[iSub]->subtractMpcRhs(dv1.subData(this->subdomains[iSub]->localSubNum()));
+  this->subdomains[iSub]->subtractMpcRhs(dv1.subData(this->subdomains[iSub]->localSubNum()));
 }
 
 template<class Scalar> 
@@ -2411,13 +2411,13 @@ GenFetiDPSolver<Scalar>::assembleGtG(int iGroup)
 #ifdef DISTRIBUTED
   for(i = 0; i < this->nsub; ++i) {
     if(this->subdomains[i]->getGroup() == groups[iGroup])
-      this->sd[i]->assembleGtGsolver(GtGsparse);
+      this->subdomains[i]->assembleGtGsolver(GtGsparse);
   }
 #else
   auto grsubs = (*groupToSub)[iGroup];
   for(i = 0; i < groupToSub->num(iGroup); ++i) {
     int iSub = grsubs[i];
-    this->sd[iSub]->assembleGtGsolver(GtGsparse);
+    this->subdomains[iSub]->assembleGtGsolver(GtGsparse);
   }
 #endif
 }
@@ -2433,7 +2433,7 @@ GenFetiDPSolver<Scalar>::buildCCt()
   subsWithMpcs = new ResizeArray<GenSubDomain<Scalar> *>(0);
   numSubsWithMpcs = 0;
   for(int i=0; i<this->nsub; ++i) {
-    if(this->sd[i]->numMPC > 0) {
+    if(this->subdomains[i]->numMPC > 0) {
       mpcSubMap[i] = numSubsWithMpcs;
       (*subsWithMpcs)[numSubsWithMpcs++] = this->sd[i];
     }
@@ -2611,7 +2611,7 @@ GenFetiDPSolver<Scalar>::getLocalMpcForces(int iSub, double *mpcLambda)
 {
   // mpcLambda is the local MPC forces for subdomain iSub (required for salinas)
   GenVector<Scalar> &uc = this->wksp->ret_uc();
-  this->sd[iSub]->getLocalMpcForces(mpcLambda, cornerEqs, mpcOffset, uc);
+  this->subdomains[iSub]->getLocalMpcForces(mpcLambda, cornerEqs, mpcOffset, uc);
 }
 
 template<class Scalar>
@@ -2629,7 +2629,7 @@ void
 GenFetiDPSolver<Scalar>::setBodyRBMoffset(int iSub, int *zColOffset)
 {
   int subBody = (*subToBody)[this->subdomains[iSub]->subNum()][0];
-  this->sd[iSub]->setBodyRBMoffset(zColOffset[subBody]);
+  this->subdomains[iSub]->setBodyRBMoffset(zColOffset[subBody]);
 }
 
 template<class Scalar>
@@ -2798,7 +2798,7 @@ GenFetiDPSolver<Scalar>::multG(const GenVector<Scalar> &x, GenDistrVector<Scalar
 	// y = alpha*G*x + beta*y
 	if(beta == 0) y.zero(); else y *= beta;
 	threadManager->callParal(this->nsub, [&](int iSub) {
-		this->sd[iSub]->multG(x, y.subData(this->subdomains[iSub]->localSubNum()), alpha);
+		this->subdomains[iSub]->multG(x, y.subData(this->subdomains[iSub]->localSubNum()), alpha);
 	});
 }
 
@@ -2823,13 +2823,13 @@ GenFetiDPSolver<Scalar>::subTrMultG(int iGroup, const GenDistrVector<Scalar> &x,
 #ifdef DISTRIBUTED
   for(int i=0; i<this->nsub; ++i) {
     if(this->subdomains[i]->getGroup() == groups[iGroup])
-      this->sd[i]->trMultG(x.subData(this->subdomains[i]->localSubNum()), y, alpha);
+      this->subdomains[i]->trMultG(x.subData(this->subdomains[i]->localSubNum()), y, alpha);
   }
 #else
   auto grsubs = (*groupToSub)[iGroup];
   for(int i = 0; i < groupToSub->num(iGroup); ++i) {
     int iSub = grsubs[i];
-    this->sd[iSub]->trMultG(x.subData(this->subdomains[iSub]->localSubNum()), y, alpha); 
+    this->subdomains[iSub]->trMultG(x.subData(this->subdomains[iSub]->localSubNum()), y, alpha);
   }
 #endif
 }
@@ -3003,7 +3003,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::subTrMultC(int iSub, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f)
 { 
-  this->sd[iSub]->multAddCT(lambda.subData(this->subdomains[iSub]->localSubNum()), f.subData(this->subdomains[iSub]->localSubNum())); 
+  this->subdomains[iSub]->multAddCT(lambda.subData(this->subdomains[iSub]->localSubNum()), f.subData(this->subdomains[iSub]->localSubNum()));
 }
 
 template<class Scalar>
@@ -3023,7 +3023,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::subMultC(int iSub, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu) const
 {
-  this->sd[iSub]->multC(u.subData(this->subdomains[iSub]->localSubNum()), cu.subData(this->subdomains[iSub]->localSubNum()));
+  this->subdomains[iSub]->multC(u.subData(this->subdomains[iSub]->localSubNum()), cu.subData(this->subdomains[iSub]->localSubNum()));
 }
 
 template<class Scalar>
@@ -3208,13 +3208,13 @@ GenFetiDPSolver<Scalar>::addRstar_gT(int iGroup, GenDistrVector<Scalar> &u, GenV
 #ifdef DISTRIBUTED
 	for(int i=0; i<this->nsub; ++i) {
     if(this->subdomains[i]->getGroup() == groups[iGroup])
-      this->sd[i]->addRstar_gT(u.subData(this->subdomains[i]->localSubNum()), beta);
+      this->subdomains[i]->addRstar_gT(u.subData(this->subdomains[i]->localSubNum()), beta);
   }
 #else
 	auto grsubs = (*groupToSub)[iGroup];
 	for(int i = 0; i < groupToSub->num(iGroup); ++i) {
 		int iSub = grsubs[i];
-		this->sd[iSub]->addRstar_gT(u.subData(this->subdomains[iSub]->localSubNum()), beta);
+		this->subdomains[iSub]->addRstar_gT(u.subData(this->subdomains[iSub]->localSubNum()), beta);
 	}
 #endif
 }
@@ -3223,7 +3223,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::subtractRstar_g(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta) const
 {
-	this->sd[iSub]->subtractRstar_g(u.subData(this->subdomains[iSub]->localSubNum()), beta);
+	this->subdomains[iSub]->subtractRstar_g(u.subData(this->subdomains[iSub]->localSubNum()), beta);
 }
 
 template<class Scalar>
@@ -3254,7 +3254,7 @@ GenFetiDPSolver<Scalar>::computeProjectedDisplacement(GenDistrVector<Scalar> &u)
 		// build RtR
 		GenFullM<Scalar> RtR(numGtGsing, numGtGsing);
 		RtR.zero();
-		for(int i=0; i<this->nsub; ++i) this->sd[i]->assembleRtR(RtR); // can't be done in parallel
+		for(int i=0; i<this->nsub; ++i) this->subdomains[i]->assembleRtR(RtR); // can't be done in parallel
 #ifdef DISTRIBUTED
 		this->fetiCom->globalSum(numGtGsing*numGtGsing, RtR.getData());
 #endif
@@ -3351,7 +3351,7 @@ GenFetiDPSolver<Scalar>::makeE(GenDistrVector<Scalar> &f) const
 		GenVector<Scalar> &fc = this->wksp->ret_fc();
 		GenDistrVector<Scalar> &fr = this->wksp->ret_fr();
 		for(int i = 0; i < this->nsub; ++i)
-			this->sd[i]->assembleTrbmE(kccrbms, KccSolver->numRBM(), KccSolver->neqs(), e.data(), fr.subData(this->subdomains[i]->localSubNum()));
+			this->subdomains[i]->assembleTrbmE(kccrbms, KccSolver->numRBM(), KccSolver->neqs(), e.data(), fr.subData(this->subdomains[i]->localSubNum()));
 		for(int i = 0; i < KccSolver->numRBM(); ++i)
 			for(int j = 0; j < KccSolver->neqs(); ++j)
 				e[i] += fc[j]*kccrbms[i*KccSolver->neqs()+j];
@@ -3368,13 +3368,13 @@ GenFetiDPSolver<Scalar>::assembleE(int iGroup, GenVector<Scalar> &e, GenDistrVec
 #ifdef DISTRIBUTED
 	for(int i = 0; i < this->nsub; ++i) {
     if(this->subdomains[i]->getGroup() == groups[iGroup])
-      this->sd[i]->assembleE(e, f.subData(this->subdomains[i]->localSubNum()));
+      this->subdomains[i]->assembleE(e, f.subData(this->subdomains[i]->localSubNum()));
   }
 #else
 	auto grsubs = (*groupToSub)[iGroup];
 	for(int i = 0; i < groupToSub->num(iGroup); ++i) {
 		int iSub = grsubs[i];
-		this->sd[iSub]->assembleE(e, f.subData(this->subdomains[iSub]->localSubNum()));
+		this->subdomains[iSub]->assembleE(e, f.subData(this->subdomains[iSub]->localSubNum()));
 	}
 #endif
 }
@@ -3383,7 +3383,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::addRalpha(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &alpha) const
 {
-	this->sd[iSub]->addRalpha(u.subData(this->subdomains[iSub]->localSubNum()), alpha);
+	this->subdomains[iSub]->addRalpha(u.subData(this->subdomains[iSub]->localSubNum()), alpha);
 }
 
 template<class Scalar>
@@ -3473,7 +3473,7 @@ void
 GenFetiDPSolver<Scalar>::getGlobalRBM(int iSub, int &iRBM, GenDistrVector<Scalar> &R)
 {
 	Scalar *localRvec = R.subData(this->subdomains[iSub]->localSubNum());
-	this->sd[iSub]->getGlobalRBM(iRBM, localRvec);
+	this->subdomains[iSub]->getGlobalRBM(iRBM, localRvec);
 }
 
 template<class Scalar>

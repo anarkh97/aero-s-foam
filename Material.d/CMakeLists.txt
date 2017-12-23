@@ -4,3 +4,4 @@ ADD_LIBRARY(Material Material.cpp LinearElasticMaterial.cpp
             KorkolisKyriakidesPlaneStressMaterial.cpp
             KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.cpp 
             KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2.cpp)
+TARGET_LINK_LIBRARIES(Material Eigen3::Eigen)

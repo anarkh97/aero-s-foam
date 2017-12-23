@@ -33,6 +33,7 @@ triggaussq.f
 FetiHAxi.d/DistrComplexVector.C     FetiHAxi.d/GCRC.C    FetiHAxi.d/GMRESDCV.C
 FetiHAxi.d/DistrComplexVectorSet.C  FetiHAxi.d/GCRDCV.C  FetiHAxi.d/MPCSolver.C
 FetiHAxi.d/FetiHAxi.C               FetiHAxi.d/GMRESC.C)
+TARGET_LINK_LIBRARIES(HelmAxi Eigen3::Eigen)
 
 SET(INC_DIR ..)
 

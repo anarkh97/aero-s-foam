@@ -23,6 +23,7 @@ ADD_LIBRARY(Corotational  Corotator.C
        MatNLCorotator.C inc_rotvector.C
        tran_veloc.C tran_accel.C tran_rvec.C)
 
+TARGET_LINK_LIBRARIES(Corotational Eigen3::Eigen)
 
 SET(INC_DIR ..)
 

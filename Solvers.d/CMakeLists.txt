@@ -9,6 +9,7 @@ ADD_LIBRARY(solver
         GoldfarbIdnani.C
         SolverFactoryCore.C
         MultiDomainSolver.h MultiDomainSolver.C)
+TARGET_LINK_LIBRARIES(solver Eigen3::Eigen)
 
 #SET(INC_DIR ..)
 

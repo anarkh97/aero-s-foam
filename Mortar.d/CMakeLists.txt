@@ -30,3 +30,4 @@ ADD_LIBRARY(Mortar  FaceElement.d/FaceElemSet.C
 	MortarElement.d/CreateMortarElement.C
 	Divers.d/Divers.C
 	NodalMortarShapeFct.d/NodalMortarShapeFct.C)
+TARGET_LINK_LIBRARIES(Mortar Eigen3::Eigen)

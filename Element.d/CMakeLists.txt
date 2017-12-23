@@ -398,6 +398,9 @@ DEM.d/DEMLE2d.C
 DEM.d/DEMLE3d.C
 )
 
+TARGET_LINK_LIBRARIES(Elem Eigen3::Eigen)
+
+
 # Make sure we don't compile the following:
 SET_SOURCE_FILES_PROPERTIES(NonLinearity.d/PronyViscoElastic.C PROPERTIES HEADER_FILE_ONLY TRUE)
 

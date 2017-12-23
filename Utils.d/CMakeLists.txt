@@ -17,3 +17,4 @@ SolverInfo.C
 GlobalToLocalMap.C
 Conwep.d/BlastLoading.C
 Scotch.C)
+TARGET_LINK_LIBRARIES(Util Eigen3::Eigen)

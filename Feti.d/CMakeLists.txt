@@ -24,6 +24,8 @@ ADD_LIBRARY(Feti
         CCtSolver.d/SuperBlockCCt.C
         FetiSub.h FETISolver.cpp FETISolver.h FetiSub.cpp)
 
+TARGET_LINK_LIBRARIES(Feti Eigen3::Eigen)
+
 SET(INC_DIR ..)
 
 INCLUDE_DIRECTORIES( ${INC_DIR} )

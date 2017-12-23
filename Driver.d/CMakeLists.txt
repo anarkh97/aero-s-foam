@@ -17,3 +17,4 @@ EFrameDataInstance.C CommunicatorCore.cpp
         BOpsImpl.h
         RbmOpsImpl.h
         SubDomain.C)
+TARGET_LINK_LIBRARIES(Driver Eigen3::Eigen)

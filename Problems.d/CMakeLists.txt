@@ -7,3 +7,4 @@ add_library (Problems EigenDescr.C
        TempDescr.C   
        ModalBase.C   
        DEMProblem.C)
+TARGET_LINK_LIBRARIES(Problems Eigen3::Eigen)

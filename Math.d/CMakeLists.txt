@@ -68,3 +68,4 @@ SCMatrix.d/fpdlapv2.f        SCMatrix.d/fpslapv2.f    SCMatrix.d/ilasrt2.f
 SCMatrix.d/SCBaseMatrix.C
 SCMatrix.d/SCIntMatrix.C
 SCMatrix.d/SCDoubleMatrix.C BLAS.h)
+TARGET_LINK_LIBRARIES(Math Eigen3::Eigen)

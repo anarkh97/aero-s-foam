@@ -90,3 +90,4 @@ ADD_LIBRARY( Rom
   NmfSolvers.d/ScalaPQN.d/Nmf.C
   NmfSolvers.d/ScalaPQN.d/nmfsolve.C
 )
+TARGET_LINK_LIBRARIES(Rom Eigen3::Eigen)

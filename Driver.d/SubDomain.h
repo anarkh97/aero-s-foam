@@ -270,17 +270,11 @@ protected:
 	bool *wetInterfaceFluidMark = nullptr;
 	bool *wetInterfaceStructureMark = nullptr;
 	bool *wetInterfaceCornerMark = nullptr;
-	int numWIdof = 0;  // number of dofs on the wet interface (both fluid and structure)
-	int numWInodes = 0;  // number of nodes on the wet interface (both fluid and structure)
-	int *wetInterfaceMap = nullptr;  // dof map
-	int *wetInterfaceNodeMap = nullptr;
-	int *wetInterfaceNodes = nullptr;
+
 	int *wDofToNode = nullptr; //HB
 	DofSet *wetInterfaceDofs = nullptr;
-	int *numNeighbWIdof = nullptr;
 	Connectivity *drySharedNodes = nullptr;
 	bool *wiMaster = nullptr;
-	GlobalToLocalMap glToLocalWImap;
 	GlobalToLocalMap *neighbGlToLocalWImap = nullptr;
 	int numFsiNeighb;
 	int *fsiNeighb = nullptr;
@@ -288,6 +282,7 @@ protected:
 	bool isMixedSub = false;
 	int edgeQindex[2] = {-1, -1};
 	double prev_cscale_factor;
+
 public:
 	Connectivity *nodeToSub;
 	void setnodeToSubConnectivity(Connectivity *nTsubConn) { nodeToSub = nTsubConn; }
@@ -297,10 +292,8 @@ public:
 	bool onWetInterfaceStructure(int iNode) { return wetInterfaceStructureMark[iNode]; }
 	bool isWetInterfaceCorner(int iNode) { return wetInterfaceCornerMark[iNode]; }
 	void setWetInterface(int nWI, int *wiNum);
-	void setWIoneCommSize(FSCommPattern<int> *pat) const;
 	void sendNumWIdof(FSCommPattern<int> *sPat) const;
 	void recvNumWIdof(FSCommPattern<int> *sPat);
-	void setWImapCommSize(FSCommPattern<int> *pat);
 	void sendWImap(FSCommPattern<int> *pat);
 	void recvWImap(FSCommPattern<int> *pat);
 	void makeDSA();
@@ -344,7 +337,6 @@ public:
 	GenSparseMatrix<Scalar>   *MPCsparse;
 	std::unique_ptr<GenDBSparseMatrix<Scalar>> Kbb;    // for preconditioning
 	Corotator           	    **corotators;
-	mutable std::vector<Scalar> fcstar; // TODO Move this out!
 	Scalar                    *QtKpBt;
 
 	int *glBoundMap;
@@ -358,8 +350,7 @@ private:
 	int *CCtrow, *CCtcol;
 	Scalar* CCtval;
 	Scalar *bcx_scalar;
-	mutable int *mpcStatus;
-	mutable bool *mpcStatus1, *mpcStatus2;
+
 
 
 
@@ -493,14 +484,7 @@ public:
 	void makeQ();
 	void precondGrbm();
 	void setMpcSparseMatrix();
-	void assembleMpcIntoKcc();
-	void multKcc();
-	void reMultKcc();
-	void multfc(const VectorView<Scalar> &fr, const VectorView<Scalar> &bf) const;
-	void multFcB(Scalar *bf);
-	const std::vector<Scalar> &getfc() const { return fcstar; }
 	void getFw(const Scalar *f, Scalar *fw) const override;
-	void mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda = 0);
 	int numRBM() const { return nGrbm; }
 	void makeEdgeVectorsPlus(bool isFluidSub = false, bool isThermalSub = false,
 	                         bool isUndefinedSub = false);
@@ -527,7 +511,6 @@ public:
 
 	void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const override;
 	void bmpcQualify(std::vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
-	void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);
 	void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, SimpleNumberer *mpcEqNums);
 	void computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNums); //HB: only compute the subdomain contribution to global CCt
 	void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver); //HB: add the subdomain contributions to global CCt
@@ -556,7 +539,6 @@ public:
 	void sendMpcScaling(FSCommPattern<Scalar> *mpcPat);
 	void collectMpcScaling(FSCommPattern<Scalar> *mpcPat);
 	void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
-	void recvMpcStatus(FSCommPattern<int> *mpcPat, int flag, bool &statusChange);
 	void printMpcStatus();
 	void initMpcStatus();
 	void saveMpcStatus();
@@ -564,7 +546,6 @@ public:
 	void saveMpcStatus1();
 	void saveMpcStatus2();
 	void cleanMpcData();
-	void setLocalLambda(Scalar *localLambda);
 	void computeContactPressure(Scalar *globStress, Scalar *globWeight);
 	void computeLocalContactPressure(Scalar *stress, Scalar *weight);
 
@@ -578,19 +559,13 @@ public:
 protected:
 	double *mpcForces;
 
-	// coupled_dph
-	GenDBSparseMatrix<Scalar> *Kww;
-	GenCuCSparse<Scalar>      *Kcw;
-	GenMpcSparse<Scalar> *Kcw_mpc;
-	GenCuCSparse<Scalar> *Krw;
+
 	GenFsiSparse<Scalar> *neighbKww;
-	Scalar *localw;
-	Scalar *localw_copy;
+	mutable std::vector<Scalar> localw_copy;
 	Scalar Bcx(int i);
 	void makeBcx_scalar();
 	Scalar *deltaFwi;
-	bool isWetInterfaceNode(int n) { return (wetInterfaceNodeMap) ? (wetInterfaceNodeMap[n] > -1) : false; }
-	bool isWetInterfaceDof(int d) { return (wetInterfaceMap) ? (wetInterfaceMap[d] > -1) : false; }
+	bool isWetInterfaceNode(int n) { return (wetInterfaceNodeMap.size() > 0) ? (wetInterfaceNodeMap[n] > -1) : false; }
 	Scalar *wweight;
 #ifdef HB_COUPLED_PRECOND
 	Scalar* kSumWI;
@@ -598,11 +573,8 @@ protected:
 
 public:
 	void addSingleFsi(LMPCons *localFsi);
-	void constructKrw();
 	void constructKww();
 	void constructKcw();
-	void setWICommSize(FSCommPattern<Scalar> *wiPat);
-	void setCSCommSize(FSCommPattern<Scalar> *csPat);
 	void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, const Scalar *interfvec,
 	                        FSCommPattern<Scalar> *wiPat) const override;
 	void fetiBaseOpCoupled2(const Scalar *uc, const Scalar *localvec, Scalar *interfvec,

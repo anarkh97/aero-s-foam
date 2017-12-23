@@ -11,6 +11,7 @@
 #include <Math.d/SparseSet.h>
 #include <Math.d/CuCSparse.h>
 #include <Solvers.d/Solver.h>
+#include <Math.d/BLAS.h>
 
 void
 FetiBaseSub::markCornerDofs(int *glCornerDofs) const
@@ -43,6 +44,31 @@ FetiBaseSub::addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset)
 	globalZstar->add(*Zstar, zRow, zColOffset);
 	zRow += Zstar->numRow();
 }
+
+
+void
+FetiBaseSub::setWIoneCommSize(FSCommStructure *pat) const
+{
+	for(int i = 0; i < scomm->numT(SComm::fsi); ++i)
+		if(subNum() != scomm->neighbT(SComm::fsi,i))
+			pat->setLen(subNum(), scomm->neighbT(SComm::fsi,i), 1);
+}
+
+void
+FetiBaseSub::setWICommSize(FSCommStructure *pat) {
+	for (int i = 0; i < scomm->numT(SComm::fsi); ++i)
+		pat->setLen(subNum(), scomm->neighbT(SComm::fsi, i), numNeighbWIdof[i]);
+}
+
+void
+FetiBaseSub::setWImapCommSize(FSCommPattern<int> *pat)
+{
+	for(int i = 0; i < scomm->numT(SComm::fsi); ++i)
+		if(subNum() != scomm->neighbT(SComm::fsi,i))
+			glToLocalWImap.setCommSize(pat, subNum(), scomm->neighbT(SComm::fsi,i));
+}
+
+
 
 template<typename Scalar>
 double FetiSub<Scalar>::getMpcError() const {
@@ -740,7 +766,7 @@ FetiSub<Scalar>::getFc(const Scalar *f, Scalar *Fc) const {
 		iOff += nd;
 	}
 
-	if (this->Ave.cols() > 0) { // Average corners 072513 JAT
+	if (Ave.cols() > 0) { // Average corners 072513 JAT
 		int numEquations = this->Krr->neqs();
 		Scalar fr[numEquations];
 		for(int dof = 0; dof < ccToC.size(); ++dof)
@@ -753,7 +779,7 @@ FetiSub<Scalar>::getFc(const Scalar *f, Scalar *Fc) const {
 		for (int i = 0; i < nAve; ++i) {
 			s = 0.0;
 			for (int k = 0; k < numEquations; ++k)
-				s += this->Ave[i][k] * fr[k];
+				s += Ave[i][k] * fr[k];
 			Fc[nCor + i] = s;
 		}
 	}
@@ -794,6 +820,537 @@ FetiSub<Scalar>::normalizeCstep2(Scalar *cnorm) {
 template<typename Scalar>
 void FetiSub<Scalar>::getFw(const Scalar *f, Scalar *fw) const {
 	// By default we have no wet interface treatment.
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::recvMpcStatus(FSCommPattern<int> *mpcPat, int flag, bool &statusChange) {
+	auto &mpc = this->mpc;
+	// this function is to make sure that the status of an mpc is the same in all subdomains which share it
+	// needed to due to possible roundoff error
+	// if flag == 1 then make dual constraint not active in all subdomains if not active in at least one (use in proportioning step)
+	// if flag == 0 then make dual constraint active in all subdomains if it is active in at least one (use in expansion step)
+	// if flag == -1 use mpc master status in all subdomains
+	// note: could use SComm::ieq list
+	int i, j;
+	bool *tmpStatus = (bool *) alloca(sizeof(bool) * numMPC);
+	for (int i = 0; i < numMPC; ++i) tmpStatus[i] = !mpc[i]->active;
+	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
+		int neighb = scomm->neighbT(SComm::mpc, i);
+		if (subNum() != neighb) {
+			FSSubRecInfo<int> rInfo = mpcPat->recData(neighb, subNum());
+			for (j = 0; j < scomm->lenT(SComm::mpc, i); ++j) {
+				int locMpcNb = scomm->mpcNb(i, j);
+				if (flag == -1) tmpStatus[locMpcNb] = (rInfo.data[j] > -1) ? bool(rInfo.data[j]) : tmpStatus[locMpcNb];
+				else // XXXX
+					tmpStatus[locMpcNb] = (flag == 1) ? (tmpStatus[locMpcNb] || bool(rInfo.data[j])) : (
+							tmpStatus[locMpcNb] && bool(rInfo.data[j]));
+			}
+		}
+	}
+
+	bool print_debug = false;
+	statusChange = false;
+	for (i = 0; i < numMPC; ++i) {
+		if (getFetiInfo().contactPrintFlag && mpcMaster[i]) {
+			if (!mpc[i]->active && !tmpStatus[i]) {
+				std::cerr << "-";
+				if (print_debug)
+					std::cerr << " recvMpcStatus: sub = " << subNum() << ", mpc = " << localToGlobalMPC[i]
+					          << std::endl;
+			}
+			else if (mpc[i]->active && tmpStatus[i]) {
+				std::cerr << "+";
+				if (print_debug)
+					std::cerr << " recvMpcStatus: sub = " << subNum() << ", mpc = " << localToGlobalMPC[i]
+					          << std::endl;
+			}
+		}
+		mpc[i]->active = !tmpStatus[i];
+		if (mpcStatus2[i] == mpc[i]->active) statusChange = true;
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange) {
+	// flag = 0 : dual planing
+	// flag = 1 : primal planing
+	int *chgstatus = (int *) alloca(numMPC * sizeof(int));
+	for (int i = 0; i < numMPC; ++i) chgstatus[i] = -1;  // set to 0 to remove, 1 to add
+
+	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+		int locMpcNb = scomm->mpcNb(i);
+		if (mpc[locMpcNb]->type == 1) { // inequality constraint requiring planing
+
+			if (flag == 0) { // dual planing
+				if (mpcStatus1[locMpcNb] ==
+				    1) { // active set expansion only: if constraint was initially active then it will not change status
+					// if active and lambda < 0 then remove from active set
+					if (mpc[locMpcNb]->active && ScalarTypes::lessThan(v[scomm->mapT(SComm::mpc, i)], tol))
+						chgstatus[locMpcNb] = 1;
+					// if not active and lambda >= 0 then add to the active set
+					if (!mpc[locMpcNb]->active &&
+					    ScalarTypes::greaterThanEq(v[scomm->mapT(SComm::mpc, i)], tol))
+						chgstatus[locMpcNb] = 0;
+				}
+			} else { // primal planing
+				if (mpcStatus1[locMpcNb] ==
+				    0) { // active set contraction only: if constraint was initially inactive then it will not change status
+					// if not active and w <= 0 then add to active set
+					if (!mpc[locMpcNb]->active && ScalarTypes::lessThanEq(v[scomm->mapT(SComm::mpc, i)], tol))
+						chgstatus[locMpcNb] = 0;
+					// if active and w > 0 then remove from the active set
+					if (mpc[locMpcNb]->active && ScalarTypes::greaterThan(v[scomm->mapT(SComm::mpc, i)], tol))
+						chgstatus[locMpcNb] = 1;
+				}
+			}
+
+		}
+	}
+
+	statusChange = false;
+	for (int i = 0; i < numMPC; ++i) {
+		if (chgstatus[i] > -1) {
+			statusChange = true;
+			mpc[i]->active = !bool(chgstatus[i]);
+			if (getFetiInfo().contactPrintFlag && mpcMaster[i]) {
+				if (chgstatus[i] == 0)
+					std::cerr << "-";
+				else std::cerr << "+";
+			}
+		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda) {
+	int i, iNode;
+	int rDofs[DofSet::max_known_dof];
+	int oDofs[DofSet::max_known_dof];
+	for(int dof = 0; dof < ccToC.size(); ++dof)
+		u[ccToC[dof]] = ur[dof];
+
+	int j;
+	int iOff = 0;
+	for (i = 0; i < numCRN; ++i) {
+		int nd = get_c_dsa()->number(cornerNodes[i], cornerDofs[i], oDofs);
+		for (j = 0; j < nd; ++j) {
+			if (cornerEqNums[iOff + j] > -1)
+				u[oDofs[j]] = uc[cornerEqNums[iOff + j]];
+			else
+				u[oDofs[j]] = 0.0;
+		}
+		iOff += nd;
+	}
+
+	// Primal augmentation 030314 JAT
+	if(Ave.cols() > 0) {
+		int nCor = this->Krc?this->Krc->numCol() : 0;
+		int nAve = Ave.cols();
+		for(int i = 0; i < ccToC.size(); ++i)
+			for(int j = 0; j < nAve; ++j)
+				u[ccToC[i]] = Ave[j][i]*uc[cornerEqNums[nCor+j]];
+	}
+
+	// extract uw
+	Scalar *uw = (Scalar *) dbg_alloca(numWIdof * sizeof(Scalar));
+	for (i = 0; i < scomm->lenT(SComm::wet); ++i)
+		uw[scomm->wetDofNb(i)] = lambda[scomm->mapT(SComm::wet, i)];
+
+//	for (i = 0; i < numWInodes; ++i) {
+//		DofSet thisDofSet = wetInterfaceDofs[i]; // (*c_dsa)[wetInterfaceNodes[i]];
+//		int nd = thisDofSet.count();
+//		dsa->number(wetInterfaceNodes[i], thisDofSet, rDofs);
+//		c_dsa->number(wetInterfaceNodes[i], thisDofSet, oDofs);
+//		for (j = 0; j < nd; ++j) {
+//			u[oDofs[j]] = uw[wetInterfaceMap[rDofs[j]]];
+//		}
+//	}
+	if(numWInodes != 0)
+		throw "Wet interface is not supported anymore. Work on the above lines if you want it.";
+
+	// keep a local copy of the lagrange multipliers
+	setLocalLambda(lambda);
+}
+
+
+template<class Scalar>
+void
+FetiSub<Scalar>::setLocalLambda(Scalar *_localLambda) {
+	if (localLambda) delete[] localLambda;
+	localLambda = new double[totalInterfSize];
+	for (int i = 0; i < totalInterfSize; ++i) localLambda[i] = ScalarTypes::Real(_localLambda[i]);
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const VectorView<Scalar> &lambda) const {
+	Scalar v[Ave.cols()];
+	VectorView<Scalar> t(v, Ave.cols(), 1);
+	Eigen::Matrix<Scalar, Eigen::Dynamic, 1> force(localLen());
+
+	force = -fr;
+
+	//add the lambda contribution to fr, ie: -fr + Br^(s)^T lambda
+	bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool) * numMPC);
+	for (int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+	for (int iDof = 0; iDof < totalInterfSize; ++iDof) {
+		switch (boundDofFlag[iDof]) {
+			case 0:
+				force[allBoundDofs[iDof]] -= lambda[iDof];
+				break;
+			case 1:  // wet interface
+				localw[-1 - allBoundDofs[iDof]] = lambda[iDof];
+				break;
+			case 2: { // dual mpc or contact
+				int locMpcNb = -1 - allBoundDofs[iDof];
+				if (mpcFlag[locMpcNb]) {
+					const auto &m = mpc[locMpcNb];
+					for (int k = 0; k < m->nterms; k++) {
+						int ccdof = (m->terms)[k].ccdof;
+						if (ccdof >= 0) force[ccdof] -= lambda[iDof] * (m->terms)[k].coef;
+					}
+					mpcFlag[locMpcNb] = false;
+				}
+			}
+				break;
+		}
+	}
+
+	if (numWIdof) Krw->multAddNew(localw.data(), force.data());  // coupled_dph: force += Krw * uw
+
+	// Primal augmentation 072513 JAT
+	if (Ave.cols() > 0) {
+		t = this->Eve.transpose() * force;
+		force.noalias() -= Ave * t;
+	}
+
+	if (this->Krr) this->Krr->solveInPlace(force);
+
+	// Extra orthogonaliztion for stability  072216 JAT
+	if (Ave.cols() > 0) {
+		t = Ave.transpose() * force;
+		force.noalias() -= Ave * t;
+	}
+
+	// re-initialization required for mpc/contact
+	fcstar.assign(Src->numCol(), 0.0);
+
+	// fcstar = - (Krr^-1 Krc)^T fr
+	//        = - Krc^T (Krr^-1 fr)
+	//        = Src force
+	if (Src) Src->multAdd(force.data(), fcstar.data());
+
+	// for coupled_dph add fcstar -= Kcw Bw uw
+	if (numWIdof) {
+		if (Kcw) Kcw->mult(localw.data(), fcstar.data(), -1.0, 1.0);
+		if (Kcw_mpc) Kcw_mpc->multSubWI(localw.data(), fcstar.data());
+	}
+
+	// add Bc^(s)^T lambda
+	for (int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+		int locMpcNb = scomm->mpcNb(i);
+		if (mpcFlag[locMpcNb]) {
+			const auto &m = mpc[locMpcNb];
+			for (int k = 0; k < m->nterms; k++) {
+				int dof = (m->terms)[k].dof;
+				if ((dof >= 0) && (cornerMap[dof] >= 0))
+					fcstar[cornerMap[dof]] += lambda[scomm->mapT(SComm::mpc, i)] * (m->terms)[k].coef;
+			}
+			mpcFlag[locMpcNb] = false;
+		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::multFcB(Scalar *p) {
+	int i, k;
+	if (Src->numCol() == 0) return;
+	if ((totalInterfSize == 0) || (localLen() == 0)) {
+		for (i = 0; i < Src->numCol(); ++i) fcstar[i] = 0.0;
+		return;
+	}
+
+	// fcstar = - (Krr^-1 Krc)^T p
+	//        = - Krc^T Krr^-1 p
+	//        = - Acr p
+	// TODO Change to fully use Eigen.
+	GenStackFullM<Scalar> Acr(Src->numCol(), totalInterfSize, BKrrKrc.data());
+	fcstar.resize(Src->numCol());
+	Acr.mult(p, fcstar.data(), -1.0, 0.0);
+
+	// for coupled_dph add fcstar += Kcw Bw uw
+	if (numWIdof) {
+		for (i = 0; i < scomm->lenT(SComm::wet); ++i)
+			localw[scomm->wetDofNb(i)] = p[scomm->mapT(SComm::wet, i)];
+		if (Kcw) Kcw->mult(localw.data(), fcstar.data(), -1.0, 1.0);
+		if (Kcw_mpc) Kcw_mpc->multSubWI(localw.data(), fcstar.data());
+	}
+
+	// fcstar += Bc^(s)^T p
+	bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool) * numMPC);
+	for (i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+	for (i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+		int locMpcNb = scomm->mpcNb(i);
+		if (mpcFlag[locMpcNb]) {
+			const auto &m = mpc[locMpcNb];
+			for (k = 0; k < m->nterms; k++) {
+				int dof = (m->terms)[k].dof;
+				if ((dof >= 0) && (cornerMap[dof] >= 0))
+					fcstar[cornerMap[dof]] += p[scomm->mapT(SComm::mpc, i)] * (m->terms)[k].coef;
+			}
+			mpcFlag[locMpcNb] = false;
+		}
+	}
+}
+
+
+template<class Scalar>
+void
+FetiSub<Scalar>::multKcc() {
+	auto &BKrrKrc = this->BKrrKrc;
+	auto &Krw = this->Krw;
+	auto &localw = this->localw;
+	// resize Kcc if necessary to add space for "primal" mpcs and augmentation
+	if (this->Src->numCol() != this->Kcc->dim()) {
+		std::unique_ptr<GenAssembledFullM<Scalar>> Kcc_copy = std::move(this->Kcc);
+		this->Kcc = std::make_unique<GenAssembledFullM<Scalar>>(this->Src->numCol(), cornerMap);
+		for (int i = 0; i < numCRNdof; ++i) for (int j = 0; j < numCRNdof; ++j) (*this->Kcc)[i][j] = (*Kcc_copy)[i][j];
+	}
+
+
+	// add in MPC coefficient contributions for Kcc^(s).
+	if (numMPC_primal > 0)
+		assembleMpcIntoKcc();
+
+	if (this->Krr == 0) return;
+
+	// Kcc* -> Kcc - Krc^T Krr^-1 Krc
+
+	// first, perform Krc I = iDisp
+	// which extracts the correct rhs vectors for the forward/backwards
+
+	int nRHS = this->Src->numCol();
+	Scalar **iDisp = new Scalar *[nRHS];
+	Scalar *firstpointer = new Scalar[nRHS * nRHS];
+
+	int numEquations = this->Krr->neqs();
+	BKrrKrc.resize(totalInterfSize, nRHS);
+	Scalar *thirdpointer = new Scalar[nRHS * numEquations];
+	Scalar **KrrKrc = (Scalar **) dbg_alloca(nRHS * sizeof(Scalar *));
+	//if(nRHS*numEquations == 0)
+	//  fprintf(stderr, "We have a zero size %d %d %d\n",numEquations,totalInterfSize,nRHS);
+
+	int iRHS, iDof;
+	for (iRHS = 0; iRHS < nRHS; ++iRHS) {
+		iDisp[iRHS] = firstpointer + iRHS * nRHS;
+		KrrKrc[iRHS] = thirdpointer + iRHS * numEquations;
+		for (iDof = 0; iDof < numEquations; ++iDof)
+			KrrKrc[iRHS][iDof] = 0.0;
+	}
+	if (this->Src) this->Src->multIdentity(KrrKrc);
+
+	// 070213 JAT
+	if (this->Src && (getFetiInfo().augmentimpl == FetiInfo::Primal)) {
+		int nAve, nCor;
+		nCor = this->Krc ? this->Krc->numCol() : 0;
+		nAve = this->Src->numCol() - nCor;
+		if (nAve) {
+			int i, j, k, nz;
+			Scalar *pKve = new Scalar[nAve * numEquations];
+			Scalar *pv = new Scalar[nAve];
+			GenFullM<Scalar> AKA(nAve);
+			Scalar s, *pAKA;
+			Scalar **Kve = new Scalar *[nAve];
+			this->Ave.resize(numEquations, nAve);
+			for (i = 0; i < nAve; ++i) {
+				Kve[i] = pKve + i * numEquations;
+			}
+			for (i = 0; i < nAve; ++i) {
+				s = 0.0;
+				for (j = 0; j < numEquations; ++j) {
+					this->Ave[i][j] = KrrKrc[nCor + i][j];
+					s += this->Ave[i][j] * this->Ave[i][j];
+				}
+				s = 1.0 / sqrt(s);
+				for (j = 0; j < numEquations; ++j)
+					this->Ave[i][j] *= s;
+			}
+			for (i = 0; i < nAve; ++i) {
+				for (j = 0; j < numEquations; ++j)
+					this->Eve[i][j] = this->Ave[i][j];
+				this->Krr->reSolve(nAve, this->Eve[i]);
+			}
+			pAKA = AKA.data();
+
+			Tgemm('T', 'N', nAve, nAve, numEquations, 1.0, this->Eve[0], numEquations,
+			      this->Ave[0], numEquations, 0.0, pAKA, nAve);
+
+			AKA.factor();
+			for (j = 0; j < numEquations; ++j) {
+				for (i = 0; i < nAve; ++i)
+					pv[i] = this->Eve[i][j];
+				AKA.reSolve(pv);
+				for (i = 0; i < nAve; ++i)
+					this->Eve[i][j] = pv[i];
+			}
+
+			for (i = 0; i < nAve; ++i)
+				for (j = 0; j < nCor; ++j) {
+					s = 0.0;
+					for (k = 0; k < numEquations; ++k)
+						s += KrrKrc[j][k] * this->Ave[i][k];
+					(*this->Kcc)[nCor + i][j] = s;
+					(*this->Kcc)[j][nCor + i] = s;
+				}
+			for (i = 0; i < nAve; ++i) {
+				this->KrrSparse->mult(this->Ave[i], Kve[i]);
+				for (j = 0; j < nAve; ++j) {
+					s = 0.0;
+					for (k = 0; k < numEquations; ++k)
+						s += Kve[i][k] * this->Ave[j][k];
+					(*this->Kcc)[nCor + i][nCor + j] = s;
+				}
+			}
+
+			nz = 0;
+			for (i = 0; i < nAve; ++i)
+				for (k = 0; k < numEquations; ++k)
+					if (std::abs(Kve[i][k]) > 0.0) nz++;
+
+			int *KACount = new int[nAve];
+			int *KAList = new int[nz];
+			Scalar *KACoefs = new Scalar[nz];
+			nz = 0;
+			for (i = 0; i < nAve; ++i) {
+				KACount[i] = 0;
+				for (k = 0; k < numEquations; ++k)
+					if (std::abs(Kve[i][k]) > 0.0) {
+						KACount[i]++;
+						KAList[nz] = k;
+						KACoefs[nz] = Kve[i][k];
+						nz++;
+					}
+			}
+
+			this->Grc = std::make_unique<GenCuCSparse<Scalar>>(nAve, numEquations, KACount, KAList, KACoefs);
+
+			if (this->Src->num() == 2)
+				this->Src->setSparseMatrix(1, this->Grc.get());
+			else if (this->Src->num() == 1 && nCor == 0)
+				this->Src->setSparseMatrix(0, this->Grc.get());
+			else {
+				fprintf(stderr, "unsupported number of blocks in Src\n");
+				exit(1);
+			}
+
+			delete[] KACount;
+
+			for (i = 0; i < nRHS; ++i)
+				for (j = 0; j < numEquations; ++j)
+					KrrKrc[i][j] = 0.0;
+
+			this->Src->multIdentity(KrrKrc);
+
+			Scalar vt[nAve];
+			VectorView<Scalar> v{vt, nAve};
+			for (j = 0; j < nRHS; j++) {
+				v = this->Eve * VectorView<Scalar>{KrrKrc[j], numEquations};
+				VectorView<Scalar>{KrrKrc[j], numEquations} -= this->Ave * v;
+			}
+		}
+	}
+
+	// KrrKrc <- Krr^-1 Krc
+	if (this->Krr) this->Krr->reSolve(nRHS, KrrKrc); // this can be expensive when nRHS is large eg for coupled
+
+	// -Krc^T KrrKrc
+	for (iRHS = 0; iRHS < nRHS; ++iRHS)
+		for (iDof = 0; iDof < nRHS; ++iDof)
+			iDisp[iRHS][iDof] = 0.0;
+
+	// Multiple RHS version of multSub: iDisp <- -Krc^T KrrKrc
+	if (this->Src) this->Src->multSub(nRHS, KrrKrc, iDisp);
+
+	if (this->Kcc) this->Kcc->add(iDisp);
+
+	delete[] iDisp;
+	delete[] firstpointer;
+	auto &mpc = this->mpc;
+
+	int k;
+	for (iRHS = 0; iRHS < nRHS; ++iRHS) {
+		bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool) * numMPC);
+		for (int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+		bool *wiFlag = (bool *) dbg_alloca(sizeof(bool) * numWIdof);
+		for (int i = 0; i < numWIdof; ++i) wiFlag[i] = true;
+
+		if (Krw) Krw->transposeMultNew(KrrKrc[iRHS], localw.data());
+
+		for (iDof = 0; iDof < totalInterfSize; iDof++) {
+			switch (boundDofFlag[iDof]) {
+				case 0:
+					BKrrKrc(iDof, iRHS) = KrrKrc[iRHS][allBoundDofs[iDof]];
+					break;
+				case 1: { // wet interface
+					int windex = -1 - allBoundDofs[iDof];
+					if (wiFlag[windex]) {
+						BKrrKrc(iDof, iRHS) = -localw[-1 - allBoundDofs[iDof]];
+						wiFlag[windex] = false;
+					} else BKrrKrc(iDof, iRHS) = 0.0;
+				}
+					break;
+				case 2: { // dual mpc
+					int locMpcNb = -1 - allBoundDofs[iDof];
+					const auto &m = mpc[locMpcNb];
+					BKrrKrc(iDof, iRHS) = 0.0;
+					if (mpcFlag[locMpcNb]) {
+						for (k = 0; k < m->nterms; k++) {
+							int cc_dof = (m->terms)[k].ccdof;
+							if (cc_dof >= 0) BKrrKrc(iDof, iRHS) += KrrKrc[iRHS][cc_dof] * (m->terms)[k].coef;
+						}
+						mpcFlag[locMpcNb] = false;
+					}
+				}
+					break;
+			}
+		}
+	}
+	delete[] thirdpointer;
+}
+
+
+template<class Scalar>
+void
+FetiSub<Scalar>::assembleMpcIntoKcc() {
+	// compute mpcOffset for my Subdomain
+	int mpcOffset = numCRNdof;
+
+	int i, iMPC;
+	for (iMPC = 0; iMPC < numMPC_primal; ++iMPC) {
+		for (i = 0; i < mpc_primal[iMPC]->nterms; ++i) {
+			int d = mpc_primal[iMPC]->terms[i].dof;
+			int dof = mpc_primal[iMPC]->terms[i].ccdof;
+			if ((dof < 0) && (d >= 0) && !isWetInterfaceDof(d)) {
+				int column = cornerMap[d];
+				int row = mpcOffset + iMPC;
+				if (row > this->Kcc->dim())
+					std::cout << " *** ERROR: Dimension Error Row = " << row << " > " << this->Kcc->dim() << std::endl;
+				if (column > this->Kcc->dim())
+					std::cout << " *** ERROR: Dimension Error Col = " << column << " > " << this->Kcc->dim()
+					          << std::endl;
+				// i.e. an mpc touches a corner node that also has DBCs
+				if (column >= 0) {
+					(*this->Kcc)[row][column] += mpc_primal[iMPC]->terms[i].coef;
+					(*this->Kcc)[column][row] += mpc_primal[iMPC]->terms[i].coef;
+				}
+			}
+		}
+	}
 }
 
 template class FetiSub<double>;

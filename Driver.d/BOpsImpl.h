@@ -34,7 +34,7 @@ GenSubDomain<Scalar>::multAddBrT(const Scalar *interfvec, Scalar *localvec, Scal
 	}
 
 	// coupled_dph: localvec -= Krw * uw
-	if (Krw) Krw->multAddNew(uw, localvec);
+	if (this->Krw) this->Krw->multAddNew(uw, localvec);
 }
 
 template<class Scalar>

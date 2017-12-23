@@ -833,7 +833,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
 			if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
 			t5 -= getTime();
-			paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc); // create the local Kcc^*
+			paralApplyToAll(this->nsub, this->sd, &FetiSub<Scalar>::multKcc); // create the local Kcc^*
 			t5 += getTime();
 			Elemset& elems = coarseDomain->getElementSet();
 			for(int i = 0; i < this->nsub; ++i) {
@@ -995,7 +995,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			// assemble the coarse problem: Kcc^* -> Kcc - Krc^T Krr^-1 Krc
 			if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
 			t5 -= getTime();
-			paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc); // create the local Kcc^*
+			paralApplyToAll(this->nsub, this->sd, &FetiSub<Scalar>::multKcc); // create the local Kcc^*
 			t5 += getTime();
 
 			t0 -= getTime();
@@ -1191,14 +1191,14 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::subUpdateActiveSet(int iSub, GenDistrVector<Scalar> &lambda, double tol, int flag, bool *statusChange)
 {
-  this->sd[iSub]->updateActiveSet(lambda.subData(this->subdomains[iSub]->localSubNum()), tol, flag, statusChange[iSub]);
+  this->subdomains[iSub]->updateActiveSet(lambda.subData(this->subdomains[iSub]->localSubNum()), tol, flag, statusChange[iSub]);
 }
 
 template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::subRecvMpcStatus(int iSub, FSCommPattern<int> *mpcPat, int flag, bool *statusChange)
 {
-  this->sd[iSub]->recvMpcStatus(mpcPat, flag, statusChange[iSub]);
+  this->subdomains[iSub]->recvMpcStatus(mpcPat, flag, statusChange[iSub]);
 }
 
 template<class Scalar>
@@ -1830,7 +1830,7 @@ void
 GenFetiDPSolver<Scalar>::mergeUr(int iSub, GenDistrVector<Scalar> &ur, GenVector<Scalar> &uc, 
                                  GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &lambda) const
 {
-  this->sd[iSub]->mergeUr(ur.subData(iSub), uc.data(), u.subData(iSub), lambda.subData(iSub));
+  this->subdomains[iSub]->mergeUr(ur.subData(iSub), uc.data(), u.subData(iSub), lambda.subData(iSub));
 }
 
 template<class Scalar> 
@@ -1991,7 +1991,7 @@ GenFetiDPSolver<Scalar>::assembleFcStar(GenVector<Scalar> &FcStar) const
  for(iSub = 0; iSub < this->nsub; ++iSub) {
    int numCornerDofs = this->subdomains[iSub]->numCoarseDofs();
    const auto &dofs = this->subdomains[iSub]->getCornerEqNums();
-   const auto&fc = this->sd[iSub]->getfc();  // returns sub fcstar, not condensed
+   const auto&fc = this->subdomains[iSub]->getfc();  // returns sub fcstar, not condensed
    for(i = 0; i < numCornerDofs; ++i) {  // assemble global condensed fcstar
      if(dofs[i] != -1) {
        FcStar[dofs[i]] += fc[i];
@@ -2012,7 +2012,7 @@ void
 GenFetiDPSolver<Scalar>::makeFc(int iSub, GenDistrVector<Scalar> &fr, /*GenVector<Scalar> &fc,*/ 
                                 GenDistrVector<Scalar> &lambda) const
 {
-  this->sd[iSub]->multfc(fr.subVec(this->subdomains[iSub]->localSubNum()), /*fc.data(),*/
+  this->subdomains[iSub]->multfc(fr.subVec(this->subdomains[iSub]->localSubNum()), /*fc.data(),*/
                          lambda.subVec(this->subdomains[iSub]->localSubNum()));
 }
 
@@ -2020,7 +2020,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::makeFcB(int iSub, GenDistrVector<Scalar> &p) const
 {
-  this->sd[iSub]->multFcB(p.subData(this->subdomains[iSub]->localSubNum()));
+  this->subdomains[iSub]->multFcB(p.subData(this->subdomains[iSub]->localSubNum()));
 }
 
 template<class Scalar> 
@@ -2649,7 +2649,7 @@ GenFetiDPSolver<Scalar>::wetInterfaceComms()
 {
   // send and receive numWIdof
   FSCommPattern<int> *wiOnePat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
-  for(int iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setWIoneCommSize(wiOnePat);
+  for(int iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setWIoneCommSize(wiOnePat);
   wiOnePat->finalize();
   paralApply(this->nsub, this->sd, &BaseSub::sendNumWIdof, wiOnePat);
   wiOnePat->exchange();
@@ -2659,7 +2659,7 @@ GenFetiDPSolver<Scalar>::wetInterfaceComms()
   // send and receive glToLocalWImaps
   FSCommPattern<int> *wiMapPat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend,
                                                         FSCommPattern<int>::NonSym);
-  for(int iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setWImapCommSize(wiMapPat);
+  for(int iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setWImapCommSize(wiMapPat);
   wiMapPat->finalize();
   paralApply(this->nsub, this->sd, &BaseSub::sendWImap, wiMapPat);
   wiMapPat->exchange();
@@ -2669,7 +2669,7 @@ GenFetiDPSolver<Scalar>::wetInterfaceComms()
   // create this->wiPat FSCommPattern object, used to send/receive wet this->interface interaction vectors
   this->wiPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<Scalar>::CopyOnSend,
                                     FSCommPattern<Scalar>::NonSym);
-  for(int iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setWICommSize(this->wiPat);
+  for(int iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setWICommSize(this->wiPat);
   this->wiPat->finalize();
 }
 
@@ -3145,20 +3145,6 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
 
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::cleanMpcData);
 
-/*
- if(cornerEqs->size() > 0) 
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::reMultKcc);
-
- //paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::cleanMpcData);
-
- if(ngrbms) makeGtG();  // currently G = C^T*R (ie restriction of R to mpc interface)
-
- delete this->wksp;
- this->times.memoryDV -= memoryUsed();
- int numC = (KccSolver) ? KccSolver->neqs() : 0;
- this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
- this->times.memoryDV += memoryUsed();
-*/
 }
 
 template<class Scalar>

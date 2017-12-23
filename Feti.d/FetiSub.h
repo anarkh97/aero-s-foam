@@ -11,6 +11,8 @@
 #include <Utils.d/GlobalToLocalMap.h>
 #include <Driver.d/SComm.h>
 #include <Solvers.d/Rbm.h>
+#include <Math.d/MpcSparse.h>
+#include <Math.d/DBSparseMatrix.h>
 
 class FSCommStructure;
 template <typename Scalar>
@@ -145,6 +147,11 @@ public:
 	void addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol);
 	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
 
+	void setWIoneCommSize(FSCommStructure *pat) const;
+	void setWICommSize(FSCommStructure *wiPat);
+	void setWImapCommSize(FSCommPattern<int> *pat);
+	bool isWetInterfaceDof(int d) const { return (wetInterfaceMap.size() > 0) ? (wetInterfaceMap[d] > -1) : false; }
+
 protected:
 	int totalInterfSize;
 	const int *allBoundDofs = nullptr;
@@ -184,6 +191,9 @@ protected:
 	double *localLambda = nullptr;  // used for contact pressure output
 	int *invBoundMap = nullptr;
 	int *mpclast = nullptr;
+
+	mutable int *mpcStatus;
+	mutable bool *mpcStatus1, *mpcStatus2;
 public:
 	int group = 0;
 	// Multiple Point Constraint (MPC) Data
@@ -207,6 +217,14 @@ protected:
 	int numGlobalRBMs = 0;
 
 	std::unique_ptr<Rbm> rigidBodyModesG;
+
+	int numWIdof = 0;  // number of dofs on the wet interface (both fluid and structure)
+	int numWInodes = 0;  // number of nodes on the wet interface (both fluid and structure)
+	std::vector<int> wetInterfaceMap;  // dof map
+	std::vector<int> wetInterfaceNodeMap;
+	std::vector<int> wetInterfaceNodes;
+	std::vector<int> numNeighbWIdof;
+	GlobalToLocalMap glToLocalWImap;
 
 };
 
@@ -308,6 +326,10 @@ public:
 	/** \brief Compute \f$ f_r = K_{rc} u_c \f$. */
 	void multKrc(Scalar *fr, const Scalar *uc) const;
 
+	void multKcc();
+
+	void assembleMpcIntoKcc();
+
 	// templated R and G functions
 	// note #1: we use feti to solve global domain problem: min 1/2 u_g^T*K_g*u_g - u_g^T*f_g subj. to C_g*u_g <= g
 	//          by solving an equivalent decomposed domain problem: min 1/2 u^T*K*u - u^T*f subj to B*u = 0, C*u <= g
@@ -326,35 +348,20 @@ public:
 	void projectActiveIneq(Scalar *v) const;
 	void normalizeCstep1(Scalar *cnorm);
 	void normalizeCstep2(Scalar *cnorm);
-	// Missing:
-	/*
-	 * split
-	 * addRstar_gT
-	 * subtractRstar_g
-	 * addRalpha
-	 getfc
-	 multKrc
-	 multfc
-	 multFcB
-	 multG
-	 multAddCT
-	 trMultG
-	 getMpcError
-	 subtractMpcRhs
-	 getLocalMpcForces
-	 getMpcRhs_primal
-	 setBodyRBMoffset
-	 getGlobalRBM
-	 setWI...
-	 projectActivIneq
-	 normalizeCstep1
-	 assembleRtR
-	 * */
+	void recvMpcStatus(FSCommPattern<int> *mpcPat, int flag, bool &statusChange);
+
+	void mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda);
+
+	void multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const VectorView<Scalar> &lambda) const;
+	void multFcB(Scalar *bf);
 
 	void subtractMpcRhs(Scalar *interfvec);
 
+	void setLocalLambda(Scalar *_localLambda);
 	double getMpcError() const;
 	void applyMpcSplitting();
+
+	const std::vector<Scalar> &getfc() const { return fcstar; }
 
 	/// \brief Solver for the remainder DOFs.
 	std::unique_ptr<GenSolver<Scalar>> Krr;
@@ -383,6 +390,17 @@ protected:
 
 	int bodyRBMoffset;
 	std::unique_ptr<Rbm> rigidBodyModes;
+
+	mutable std::vector<Scalar> fcstar; // TODO Move this out!
+
+	// coupled_dph
+	std::unique_ptr<GenDBSparseMatrix<Scalar>> Kww;
+	std::unique_ptr<GenCuCSparse<Scalar>>      Kcw;
+	std::unique_ptr<GenMpcSparse<Scalar>> Kcw_mpc;
+	std::unique_ptr<GenCuCSparse<Scalar>> Krw;
+	mutable std::vector<Scalar> localw;
+
+
 };
 
 #endif //FEM_FETUSUB_H

@@ -169,7 +169,7 @@ BaseSub::getCornerHandler()
               break;
             }
         if(!ok || (nodeij>=numnodes) || noCorners) continue; //HB
-        if((wetInterfaceNodeMap) && (wetInterfaceNodeMap[nodeij] == -1)) {
+        if((wetInterfaceNodeMap.size() > 0) && (wetInterfaceNodeMap[nodeij] == -1)) {
           ptr[i+1]++;
           target[ntg++] = nodeij;
         }
@@ -192,7 +192,7 @@ BaseSub::makeCCDSA()
 {
  // dof set array with boundary conditions and corner node boundary conditions
  cc_dsa = std::make_unique<ConstrainedDSA>(*dsa, numDirichlet, dbc, numCRN, cornerNodes, cornerDofs,
-                             numComplexDirichlet, cdbc, numWInodes, wetInterfaceNodes,
+                             numComplexDirichlet, cdbc, numWInodes, wetInterfaceNodes.data(),
                              wetInterfaceDofs);  // modified for coupled_dph
                                                  // (without the wet interface dofs)
 
@@ -990,11 +990,9 @@ BaseSub::setWetInterface(int nWI, int *wiNum)
   numWInodes = 0;  // physical # of wet interface nodes in this subdomain
 
   int numdofs = dsa->size();
-  wetInterfaceMap = new int[numdofs];
-  for(i = 0; i < numdofs; ++i) wetInterfaceMap[i] = -1;
+  wetInterfaceMap.assign(numdofs, -1);
   int numnodes = dsa->numNodes();
-  wetInterfaceNodeMap = new int[numnodes];
-  for(i=0; i<numnodes; ++i) wetInterfaceNodeMap[i] = -1;
+  wetInterfaceNodeMap .assign(numnodes, -1);
 
   // list of wet interface nodes 
   int* myWetInterfaceNodes = new int[numnodes]; //HB: numdofs is an upper bound (or use a STL vect<int>)
@@ -1020,7 +1018,7 @@ BaseSub::setWetInterface(int nWI, int *wiNum)
   numWIdof = 0;
   DofSet sevenDofs;
   sevenDofs.mark(DofSet::XYZdisp | DofSet::XYZrot | DofSet::Helm);
-  wetInterfaceNodes = new int[numWInodes];
+  wetInterfaceNodes .resize(numWInodes);
   wetInterfaceDofs  = new DofSet[numWInodes];  
   for(i = 0; i < numWInodes; i++) {
     int thisNode = myWetInterfaceNodes[i];
@@ -1646,11 +1644,7 @@ BaseSub::~BaseSub()
 
   if(localLambda) { delete [] localLambda; localLambda = 0; }
 
-  if(wetInterfaceMap) { delete [] wetInterfaceMap; wetInterfaceMap = 0; }
-  if(wetInterfaceNodes) { delete [] wetInterfaceNodes; wetInterfaceNodes = 0; }
   if(wetInterfaceDofs) { delete [] wetInterfaceDofs; wetInterfaceDofs = 0; }
-  if(wetInterfaceNodeMap) { delete [] wetInterfaceNodeMap; wetInterfaceNodeMap = 0; }
-  if(numNeighbWIdof) { delete [] numNeighbWIdof; numNeighbWIdof = 0; }
   if(neighbGlToLocalWImap) { delete [] neighbGlToLocalWImap; neighbGlToLocalWImap = 0; }
   if(wetInterfaceMark) { delete [] wetInterfaceMark; wetInterfaceMark = 0; }
   if(wetInterfaceFluidMark) { delete [] wetInterfaceFluidMark; wetInterfaceFluidMark = 0; }
@@ -2442,14 +2436,6 @@ BaseSub::setArb(list<SommerElement *> *_list)
 }
 
 void
-BaseSub::setWIoneCommSize(FSCommPattern<int> *pat) const
-{
-  for(int i = 0; i < scomm->numT(SComm::fsi); ++i)
-    if(subNumber != scomm->neighbT(SComm::fsi,i))
-      pat->setLen(subNumber, scomm->neighbT(SComm::fsi,i), 1);
-}
-
-void
 BaseSub::sendNumWIdof(FSCommPattern<int> *pat) const
 {
   for(int i = 0; i < scomm->numT(SComm::fsi); ++i) {
@@ -2463,7 +2449,7 @@ BaseSub::sendNumWIdof(FSCommPattern<int> *pat) const
 void
 BaseSub::recvNumWIdof(FSCommPattern<int> *pat)
 {
-  numNeighbWIdof = new int[scomm->numT(SComm::fsi)];
+  numNeighbWIdof.resize(scomm->numT(SComm::fsi));
   for(int i = 0; i < scomm->numT(SComm::fsi); ++i) {
     if(subNumber != scomm->neighbT(SComm::fsi,i)) {
       FSSubRecInfo<int> rInfo = pat->recData(scomm->neighbT(SComm::fsi,i), subNumber);
@@ -2471,14 +2457,6 @@ BaseSub::recvNumWIdof(FSCommPattern<int> *pat)
     }
     else numNeighbWIdof[i] = 0;
   }
-}
-
-void
-BaseSub::setWImapCommSize(FSCommPattern<int> *pat)
-{
-  for(int i = 0; i < scomm->numT(SComm::fsi); ++i)
-    if(subNumber != scomm->neighbT(SComm::fsi,i))
-      glToLocalWImap.setCommSize(pat, subNumber, scomm->neighbT(SComm::fsi,i));  
 }
 
 void

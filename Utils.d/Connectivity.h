@@ -122,7 +122,7 @@ public:
 		  }*/
     Connectivity() { size = 0; numtarget = 0; pointer = 0; target = 0; weight = 0; removeable = 1; }
     template <class A> Connectivity(SetAccess<A> &sa);
-    Connectivity(Elemset *);
+    Connectivity(const Elemset &);
     Connectivity(Elemset *, int, SommerElement**);
     Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
     Connectivity(int _size, int *count);
@@ -131,7 +131,7 @@ public:
     Connectivity(FaceElemSet*, int size = 0);
     Connectivity(int ns); //dec
     Connectivity(FILE *f, int nElem); // JAT 100614
-    Connectivity(Elemset *els, Connectivity *nodeToElem);
+    Connectivity(const Elemset &els, Connectivity *nodeToElem);
     Connectivity(const Connectivity&);
     size_t write(BinFileHandler& f);
     size_t writeg(BinFileHandler& f);

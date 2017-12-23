@@ -510,7 +510,7 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
   }
   else {
     mt.memoryElemToNode -= memoryUsed();
-    if(!elemToNode) elemToNode = new Connectivity(&domain->packedEset);
+    if(!elemToNode) elemToNode = new Connectivity(domain->packedEset);
     mt.memoryElemToNode += memoryUsed();
 
     mt.memorySubToNode -= memoryUsed();

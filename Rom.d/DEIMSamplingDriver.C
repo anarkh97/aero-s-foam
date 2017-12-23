@@ -424,7 +424,7 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
   }
  
   // Determine mapping between elements and nodes
-  std::unique_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
+  std::unique_ptr<Connectivity> elemToNode(new Connectivity(inputElemSet));
   std::unique_ptr<Connectivity> nodeToElem(elemToNode->reverse());
  
 

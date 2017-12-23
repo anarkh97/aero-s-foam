@@ -2081,7 +2081,7 @@ GenSubDomain<Scalar>::renumberMPCs() {
 template<class Scalar>
 void
 GenSubDomain<Scalar>::computeElementForce(int fileNumber, Scalar *u, int forceIndex, Scalar *elemForce) {
-	if (elemToNode == 0) elemToNode = new Connectivity(&packedEset);
+	if (elemToNode == 0) elemToNode = new Connectivity(packedEset);
 	if (elDisp == 0) elDisp = new Vector(maxNumDOFs, 0.0);
 	double *nodalTemperatures = getNodalTemperatures();
 	int *nodeNumbers = new int[maxNumNodes];
@@ -2160,7 +2160,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
                                           Scalar *u, int stressIndex,
                                           Scalar *glStress, Scalar *glWeight) {
 	OutputInfo *oinfo = geoSource->getOutputInfo();
-	if (elemToNode == 0) elemToNode = new Connectivity(&packedEset);
+	if (elemToNode == 0) elemToNode = new Connectivity(packedEset);
 
 	// avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
 	// avgnum = 3 --> only include elements whose nodes are in the ouputGroup in averaging
@@ -2303,7 +2303,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
                                           GeomState *refState) {
 	OutputInfo *oinfo = geoSource->getOutputInfo();
 
-	if (elemToNode == 0) elemToNode = new Connectivity(&packedEset);
+	if (elemToNode == 0) elemToNode = new Connectivity(packedEset);
 
 	// avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
 	// avgnum = 3 --> only include elements whose nodes are in the ouputGroup in averaging

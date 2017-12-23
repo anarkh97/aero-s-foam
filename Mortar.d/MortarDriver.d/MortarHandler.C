@@ -2929,7 +2929,7 @@ MortarHandler::make_kinematic_partitioning(int numSub, SubDomain **sd)
 
   for(int s = 0; s < numSub; ++s) {
     Elemset &packedEset =  sd[s]->getElementSet();
-    Connectivity *elemToNode = new Connectivity(&packedEset);
+    Connectivity *elemToNode = new Connectivity(packedEset);
     Connectivity *nodeToElem = elemToNode->reverse();
     int inode = 0;
     for(int i = 0; i<PtrSlaveEntity->GetnVertices(); ++i, ++inode) {

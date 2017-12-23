@@ -33,7 +33,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   std::cerr << " ** subdomains to subdomains connectivity : " << std::endl;
   sTos->print();
 #endif   
-  Connectivity* eToN = new Connectivity(&eset);
+  Connectivity* eToN = new Connectivity(eset);
 #ifdef SOWER_DEBUG
   std::cerr << " ** elements to nodes connectivity : " << std::endl;
   eToN->print();

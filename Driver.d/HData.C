@@ -2289,7 +2289,7 @@ HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_
  int *eleTouch = new int[totEle];
  int *eleCount = new int[totEle];
 
- Connectivity *packedElemToNode = (_elemToNode) ? _elemToNode : new Connectivity(&dom->packedEset);
+ Connectivity *packedElemToNode = (_elemToNode) ? _elemToNode : new Connectivity(dom->packedEset);
  Connectivity *nodeToPackedElem = (_nodeToElem) ? _nodeToElem : packedElemToNode->reverse();
 // int pos = 0, neg = 0;
  int i;

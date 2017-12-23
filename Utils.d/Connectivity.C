@@ -31,20 +31,20 @@ Connectivity::Connectivity(int _size, int *_pointer, int *_target, int _removeab
  weight    = _weight;
 }
 
-Connectivity::Connectivity(Elemset *els)
+Connectivity::Connectivity(const Elemset &els)
 {
  removeable = 1;
  int i;
  weight = (float *) 0;
 
- size = els->last();
+ size = els.last();
 
  // Find out the number of targets we will have
  pointer = new int[size+1] ;
  int pp = 0;
  for(i=0; i < size; ++i) {
    pointer[i] = pp;
-   pp += (*els)[i] ? (*els)[i]->numNodes() : 0;
+   pp += els[i] ? els[i]->numNodes() : 0;
  }
  pointer[size] = pp;
  numtarget = pp;
@@ -54,28 +54,28 @@ Connectivity::Connectivity(Elemset *els)
 
  // Fill it in
  for(i=0; i < size; ++i) {
-   if((*els)[i]) (*els)[i]->nodes(target+pointer[i]);
+   if(els[i]) els[i]->nodes(target+pointer[i]);
  }
 }
 
-Connectivity::Connectivity(Elemset *els, Connectivity *nodeToElem)
+Connectivity::Connectivity(const Elemset &els, Connectivity *nodeToElem)
 {
  removeable = 1;
  int i;
  weight = (float *) 0;
 
- size = els->last();
+ size = els.last();
 
  // locate any nodes that are not connected to rigid or flexible elements
  std::set<int> mpcnodes;
  for(i=0; i < size; ++i) {
-   Element *ele = (*els)[i];
+   Element *ele = els[i];
    if(ele->isMpcElement() && !ele->isRigidElement()) {
-     int *nodes = (*els)[i]->nodes();
+     int *nodes = els[i]->nodes();
      for(int j=0; j<ele->numNodes()-ele->numInternalNodes(); ++j) {
        bool connected = false;
        for(int k=0; k<nodeToElem->num(nodes[j]); ++k) {
-         Element *kele = (*els)[(*nodeToElem)[nodes[j]][k]];
+         Element *kele = els[(*nodeToElem)[nodes[j]][k]];
          if(kele->isRigidElement() || !kele->isMpcElement()) {
            connected = true;
            break;
@@ -94,7 +94,7 @@ Connectivity::Connectivity(Elemset *els, Connectivity *nodeToElem)
  int pp = 0;
  for(i = 0; i < size-mpcnodes.size(); ++i) {
    pointer[i] = pp;
-   Element *ele = (*els)[i];
+   Element *ele = els[i];
    if(ele)  {
      if(ele->isRigidElement() || !ele->isMpcElement()) {
        pp += ele->numNodes();
@@ -114,7 +114,7 @@ Connectivity::Connectivity(Elemset *els, Connectivity *nodeToElem)
 
  // Fill it in
  for(i = 0; i < size-mpcnodes.size(); ++i) {
-   Element *ele = (*els)[i];
+   Element *ele = els[i];
    if(ele) {
      if(ele->isRigidElement() || !ele->isMpcElement()) {
        ele->nodes(target+pointer[i]);
@@ -142,7 +142,7 @@ Connectivity::Connectivity(Elemset*els, int numSom, SommerElement **som)
   target = new int[numSom];
 
   int nE = els->last();
-  Connectivity *eToN = new Connectivity(els);
+  Connectivity *eToN = new Connectivity(*els);
   Connectivity *nToE = eToN->reverse();
   int *eleCount = new int[nE];
   int nno, no, el, nei;

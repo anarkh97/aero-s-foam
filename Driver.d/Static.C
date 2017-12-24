@@ -742,10 +742,10 @@ Domain::preProcessing()
  // ... CONSTRUCT DOMAIN ELEMENT TO NODE CONNECTIVITY
  matrixTimers->makeConnectivity -= getTime();
  if(elemToNode) delete elemToNode;
- elemToNode = new Connectivity(packedEset);
+ elemToNode = new Connectivity(packedEset.asSet());
  if(sinfo.HEV) {
    if(elemToNodeFluid) delete elemToNodeFluid;
-   elemToNodeFluid = new Connectivity(*geoSource->getPackedEsetFluid());
+   elemToNodeFluid = new Connectivity(geoSource->getPackedEsetFluid()->asSet());
  }
  matrixTimers->makeConnectivity += getTime();
 
@@ -1024,7 +1024,7 @@ Domain::makeTopFile(int topFlag)
 
  // ... CONSTRUCT DOMAIN ELEMENT TO NODE CONNECTIVITY
  long m1 = - memoryUsed();
- elemToNode = new Connectivity( packedEset );
+ elemToNode = new Connectivity( packedEset.asSet() );
  m1 += memoryUsed();
 
  // ... CONSTRUCT DOF SET ARRAY
@@ -1317,7 +1317,7 @@ Domain::makeAxiTopFile(int topFlag, int numSlices) {
 
  // ... CONSTRUCT DOMAIN ELEMENT TO NODE CONNECTIVITY
  long m1 = - memoryUsed();
- elemToNode = new Connectivity( packedEset );
+ elemToNode = new Connectivity( packedEset.asSet() );
  nodeToElem = elemToNode->reverse();
  nodeToNode = nodeToElem->transcon(elemToNode);
  m1 += memoryUsed();
@@ -1391,7 +1391,7 @@ Domain::setsizeSfemStress(int fileNumber)
   if(avgnum == 1)  sizeSfemStress = geoSource->numNode();  // node-based output
   else if(avgnum == 0) {  // element-based output
    sizeSfemStress = 0;
-   Connectivity *elemToNode = new Connectivity(*domain->getEset());
+   Connectivity *elemToNode = new Connectivity(domain->getEset()->asSet());
    int numele = geoSource->getNumAttributes();  // number of elements; another option domain->numElements();
    for(int iele=0; iele<numele; ++iele)   {
 //     std::cerr << "number of nodes in this element  = " << elemToNode->num(iele) << std::endl;

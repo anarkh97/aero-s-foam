@@ -474,7 +474,7 @@ DistrElementSamplingDriver::solve()
 
     // Output the reduced mesh
     Elemset &inputElemSet = *(geoSource->getElemSet());
-    std::unique_ptr<Connectivity> elemToNode(new Connectivity(inputElemSet));
+    std::unique_ptr<Connectivity> elemToNode(new Connectivity(inputElemSet.asSet()));
     const MeshRenumbering meshRenumbering(reducedelemIds.begin(), reducedelemIds.end(), *elemToNode, verboseFlag);
     const MeshDesc reducedMesh(domain, geoSource, meshRenumbering, weightsMap); 
     outputMeshFile(fileInfo, reducedMesh, podBasis.vectorCount());

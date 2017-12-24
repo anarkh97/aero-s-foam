@@ -2929,8 +2929,8 @@ MortarHandler::make_kinematic_partitioning(int numSub, SubDomain **sd)
 
   for(int s = 0; s < numSub; ++s) {
     Elemset &packedEset =  sd[s]->getElementSet();
-    Connectivity *elemToNode = new Connectivity(packedEset);
-    Connectivity *nodeToElem = elemToNode->reverse();
+    Connectivity elemToNode(packedEset.asSet());
+    Connectivity *nodeToElem = elemToNode.reverse();
     int inode = 0;
     for(int i = 0; i<PtrSlaveEntity->GetnVertices(); ++i, ++inode) {
       int glNode = PtrSlaveEntity->GetGlVertexId(i);
@@ -2961,7 +2961,6 @@ MortarHandler::make_kinematic_partitioning(int numSub, SubDomain **sd)
       }
     }
     delete nodeToElem; 
-    delete elemToNode;
   }
 
 #ifdef DISTRIBUTED

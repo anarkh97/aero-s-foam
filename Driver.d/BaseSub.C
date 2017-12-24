@@ -107,7 +107,7 @@ BaseSub::initHelm(Domain &dom)
 void
 BaseSub::makeDSA()
 {
-  elemToNode = new Connectivity(packedEset); // used in getRenumbering()
+  elemToNode = new Connectivity(packedEset.asSet()); // used in getRenumbering()
   Renumber rnum = getRenumbering();
   dsa = new DofSetArray(numnodes, packedEset, rnum.renumb);
   delete elemToNode; elemToNode = 0;

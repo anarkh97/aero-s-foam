@@ -145,15 +145,15 @@ class SetAccess<std::pair<Elemset, DofSet> >
     DofSet ds;
   public:
     SetAccess(Elemset &eset, DofSet dofset) : els(eset), ds(dofset) {}
-    int size() {
+    int size() const {
       return els.last();
     }
-    int numNodes(int i) {
+    int numNodes(int i) const {
       if(els[i] == 0)
         return 0;
       return els[i]->numNodes() - els[i]->numInternalNodes();
     }
-    void getNodes(int i, int *nd) {
+    void getNodes(int i, int *nd) const {
       if(els[i]) {
         int *p = new int[els[i]->numNodes()];
         els[i]->nodes(p);

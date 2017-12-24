@@ -275,7 +275,7 @@ MDAxiData::getInterface(PolygonSet ***allPs) {
    map[i] = -1;
 
  if (elemToNode == 0)
-      elemToNode = new Connectivity(packedEset);
+      elemToNode = new Connectivity(packedEset.asSet());
 
  if (nodeToElem == 0)
       nodeToElem = elemToNode->reverse();
@@ -349,7 +349,7 @@ MDAxiData::sendDOFList()
 
  // First make our own dsa and c_dsa
  if (elemToNode==0)
-   elemToNode = new Connectivity(packedEset);
+   elemToNode = new Connectivity(packedEset.asSet());
 
  // This routines creates the connectivities nodeToElem, nodeToNode
  Renumber rnum = getRenumbering();

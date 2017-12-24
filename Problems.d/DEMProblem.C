@@ -263,9 +263,9 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
  }
 
 // Create nodal connectivity underlying the dof set
- Connectivity *ele2Node = new Connectivity(d->getElementSet());
- Connectivity *node2Ele = ele2Node->reverse();
- Connectivity *node2Node = node2Ele->transcon(ele2Node);
+ Connectivity ele2Node(d->getElementSet().asSet());
+ Connectivity *node2Ele = ele2Node.reverse();
+ Connectivity *node2Node = node2Ele->transcon(&ele2Node);
 
 // Create dof set 
  DofSetArray* dsa = new DofSetArray(node2Node->csize(), d->getElementSet());
@@ -497,7 +497,6 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
  delete[] scaling;
  delete[] nodalSol;
  delete node2Node;
- delete ele2Node;
  delete K;
  delete allDOFs;
  delete dsa;

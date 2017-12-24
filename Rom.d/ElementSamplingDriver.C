@@ -621,7 +621,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<in
     }
 
     Elemset &inputElemSet = *(geoSource->getElemSet());
-    std::unique_ptr<Connectivity> elemToNode(new Connectivity(inputElemSet));
+    std::unique_ptr<Connectivity> elemToNode(new Connectivity(inputElemSet.asSet()));
     Connectivity *nodeToElem = elemToNode->reverse();
 
     //Second: loop over list of surfaces to extract elements attached to surface nodes 
@@ -840,7 +840,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
 
   // output the reduced mesh
   Elemset &inputElemSet = *(geoSource->getElemSet());
-  std::unique_ptr<Connectivity> elemToNode(new Connectivity(inputElemSet));
+  std::unique_ptr<Connectivity> elemToNode(new Connectivity(inputElemSet.asSet()));
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
   if(domain_->solInfo().localBasisSize.size() <= 1)

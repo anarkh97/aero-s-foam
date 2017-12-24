@@ -36,30 +36,30 @@ Connectivity::Connectivity(int _size, int *_pointer, int *_target, int _removeab
 		weight.assign(_weight, _weight+_pointer[_size]);
 }
 
-Connectivity::Connectivity(const Elemset &els)
-{
-	int i;
-
-	size = els.last();
-
-	// Find out the number of targets we will have
-	pointer.resize(size+1) ;
-	int pp = 0;
-	for(i=0; i < size; ++i) {
-		pointer[i] = pp;
-		pp += els[i] ? els[i]->numNodes() : 0;
-	}
-	pointer[size] = pp;
-	numtarget = pp;
-
-	// Create the target array
-	target.resize(pp);
-
-	// Fill it in
-	for(i=0; i < size; ++i) {
-		if(els[i]) els[i]->nodes(target.data()+pointer[i]);
-	}
-}
+//Connectivity::Connectivity(const Elemset &els)
+//{
+//	int i;
+//
+//	size = els.last();
+//
+//	// Find out the number of targets we will have
+//	pointer.resize(size+1) ;
+//	int pp = 0;
+//	for(i=0; i < size; ++i) {
+//		pointer[i] = pp;
+//		pp += els[i] ? els[i]->numNodes() : 0;
+//	}
+//	pointer[size] = pp;
+//	numtarget = pp;
+//
+//	// Create the target array
+//	target.resize(pp);
+//
+//	// Fill it in
+//	for(i=0; i < size; ++i) {
+//		if(els[i]) els[i]->nodes(target.data()+pointer[i]);
+//	}
+//}
 
 Connectivity::Connectivity(const Elemset &els, Connectivity *nodeToElem)
 {
@@ -141,7 +141,7 @@ Connectivity::Connectivity(Elemset*els, int numSom, SommerElement **som)
 	target.resize(numSom);
 
 	int nE = els->last();
-	Connectivity *eToN = new Connectivity(*els);
+	Connectivity *eToN = new Connectivity(els->asSet());
 	Connectivity *nToE = eToN->reverse();
 	int *eleCount = new int[nE];
 	int nno, no, el, nei;
@@ -1449,8 +1449,8 @@ Connectivity::Connectivity(FILE *f, int n)
 }
 
 Connectivity::Connectivity(int _size, std::vector<int> _pointer, std::vector<int> _target,
-                           std::vector<float> _weight) : size(size),
+                           std::vector<float> _weight) : size(_size), numtarget(_target.size()),
                                                          pointer(std::move(_pointer)),
-                                                         target(std::move(target)), weight(std::move(weight)){
+                                                         target(std::move(_target)), weight(std::move(_weight)){
 
 }

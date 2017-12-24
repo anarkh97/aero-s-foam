@@ -1348,7 +1348,7 @@ Domain::setUpData(int topFlag)
 
   if(sinfo.solvercntl->type == 0) {
     if(numLMPC && domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc) {
-      if(elemToNode == 0) elemToNode = new Connectivity(packedEset);
+      if(elemToNode == 0) elemToNode = new Connectivity(packedEset.asSet());
       if(nodeToElem == 0) nodeToElem = elemToNode->reverse();
       Connectivity *elemToNode_tmp = new Connectivity(packedEset, nodeToElem);
       Connectivity *nodeToElem_tmp = elemToNode_tmp->reverse();
@@ -2466,7 +2466,7 @@ Connectivity *
 Domain::getNodeToNode() {
  if(nodeToNode) return nodeToNode;
  if(elemToNode == 0)
-   elemToNode = new Connectivity(packedEset);
+   elemToNode = new Connectivity(packedEset.asSet());
  if(nodeToElem == 0)
    nodeToElem = elemToNode->reverse();
  nodeToNode = nodeToElem->transcon(elemToNode);

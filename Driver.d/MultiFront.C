@@ -227,7 +227,7 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFla
  elems = eset;
  fsGlued_eset = 0;
  nds = cs;
- eToN = new Connectivity(*eset);
+ eToN = new Connectivity(eset->asSet());
  nToE = eToN->reverse();
  numEle = elems->size();
  if(verboseFlag) filePrint(stderr, " ... Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());
@@ -308,7 +308,7 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFla
    delete[] tags;
    elems = fsGlued_eset;
    delete eToN;
-   eToN = new Connectivity(*elems);
+   eToN = new Connectivity(elems->asSet());
    delete nToE;
    nToE = eToN->reverse();
    numEle = elems->last();
@@ -398,7 +398,7 @@ MultiFront::redoConnect()
  int i;
  delete nToE;
  delete eToN;
- eToN = new Connectivity(*elems);
+ eToN = new Connectivity(elems->asSet());
  nToE = eToN->reverse();
  numEle = elems->size();
  if(verboseFlag) filePrint(stderr, " ... Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());

@@ -121,12 +121,17 @@ public:
 
 		  }*/
 	Connectivity() { size = 0; numtarget = 0; }
-	template <class A> Connectivity(SetAccess<A> &sa);
-	Connectivity(const Elemset &);
+	/** \brief Constructor for any object that is equipped with the methods of a set.
+	 *
+	 * @tparam A A type sastisfying the notion of a set.
+	 * @param sa The set.
+	 */
+	template <class A>
+	Connectivity(const SetAccess<A> &sa);
 	Connectivity(Elemset *, int, SommerElement**);
 	Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
 	Connectivity(int _size, std::vector<int> _pointer, std::vector<int> _target,
-		             std::vector<float> _weight);
+		             std::vector<float> _weight = std::vector<float>{});
 	Connectivity(int _size, int *count);
 	Connectivity(int _size, int count);
 	Connectivity(BinFileHandler &, bool oldSower = false);
@@ -351,11 +356,10 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc)
 	tgmax++; // Important adjustment
 
 	// Now we can size the array that flags if a target has been visited
-	int *flags = new int[tgmax];
-	for(i = 0; i < tgmax; ++i) flags[i] = -1;
+	std::vector<int>flags(tgmax, -1);
 
 	// Compute the new pointers
-	int *np = new int[size+1];
+	std::vector<int> np(size+1);
 	int cp = 0;
 	for(i = 0; i < size; ++i) {
 		np[i] = cp;
@@ -373,9 +377,8 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc)
 	np[size] = cp;
 
 	// Now allocate and fill the new target
-	for(i = 0; i < tgmax; ++i)
-		flags[i] = -1;
-	int *ntg = new int[cp];
+	flags.assign(tgmax, -1);
+	std::vector<int> ntg(cp);
 	cp = 0;
 	for(i = 0; i < size; ++i) {
 		int nTg = num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
@@ -390,8 +393,7 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc)
 				}
 		}
 	}
-	delete [] flags;
-	return new Connectivity(size, np, ntg);
+	return new Connectivity(size, std::move(np), std::move(ntg));
 }
 
 template<typename A, class Accessor>
@@ -412,8 +414,7 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc,
 	tgmax++; // Important adjustment
 
 	// Now we can size the array that flags if a target has been visited
-	int *flags = new int[tgmax];
-	for(i = 0; i < tgmax; ++i) flags[i] = -1;
+	std::vector<int>flags(tgmax, -1);
 
 	// Compute the new pointers
 	int *np = new int[size+1];
@@ -435,8 +436,7 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc,
 	np[size] = cp;
 
 	// Now allocate and fill the new target
-	for(i = 0; i < tgmax; ++i)
-		flags[i] = -1;
+	flags.assign(tgmax, -1);
 	int *ntg = new int[cp];
 	cp = 0;
 	for(i = 0; i < size; ++i) {
@@ -453,7 +453,6 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc,
 				}
 		}
 	}
-	delete [] flags;
 	Connectivity *res = new Connectivity(size, np, ntg);
 	return res;
 }
@@ -523,11 +522,11 @@ Connectivity* BaseConnectivity<A,Accessor>::altTranscon(const BaseConnectivity<B
 	tgmax++; // Important adjustment
 
 	// Now we can size the array that flags if a target has been visited
-	int *flags = new int[tgmax];
+	std::vector<int> flags(tgmax);
 	for(i = 0; i < tgmax; ++i) flags[i] = -1;
 
 	// Compute the new pointers
-	int *np = new int[size+1];
+	std::vector<int> np(size+1);
 	int cp = 0;
 	for(i = 0; i < size; ++i) {
 		np[i] = cp;
@@ -549,7 +548,7 @@ Connectivity* BaseConnectivity<A,Accessor>::altTranscon(const BaseConnectivity<B
 	// Now allocate and fill the new target
 	for(i = 0; i < tgmax; ++i)
 		flags[i] = -1;
-	int *ntg = new int[cp];
+	std::vector<int> ntg(cp);
 	cp = 0;
 	for(i = 0; i < size; ++i) {
 		int nTg = num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
@@ -566,13 +565,13 @@ Connectivity* BaseConnectivity<A,Accessor>::altTranscon(const BaseConnectivity<B
 			}
 		}
 	}
-	delete [] flags;
+
 	Connectivity *res = new Connectivity(size, np, ntg);
 	return res;
 }
 
 template <class A>
-Connectivity::Connectivity(SetAccess<A> &sa)
+Connectivity::Connectivity(const SetAccess<A> &sa)
 {
 	int i;
 

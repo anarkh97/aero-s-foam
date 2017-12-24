@@ -178,7 +178,7 @@ MDAxiDesc::makeSubD() {
  startTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
  
  mt.memoryElemToNode -= memoryUsed(); 
- Connectivity *tc = new Connectivity(*domain->getEset());
+ Connectivity *tc = new Connectivity(domain->getEset()->asSet());
  mt.memoryElemToNode += memoryUsed();
 
  mt.memorySubToNode -= memoryUsed();

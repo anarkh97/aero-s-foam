@@ -571,7 +571,7 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
   }
 
   // Determine mapping between elements and nodes
-  std::unique_ptr<Connectivity> elemToNode(new Connectivity(*geoSource->getElemSet()));
+  std::unique_ptr<Connectivity> elemToNode(new Connectivity(geoSource->getElemSet()->asSet()));
 
   //fill element container with all packed elements 
   std::vector<int> packedToInput(elementCount());

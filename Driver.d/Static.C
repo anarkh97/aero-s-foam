@@ -1660,7 +1660,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
 
     // PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
     if(avgnum == 0) {
-      int offset[2];
+      std::vector<int> offset(2);
       offset[0] = 0;
       offset[1] = packedEset[iele]->numTopNodes(); //HB 06-25-05: avoid the internal nodes for MpcElement
 
@@ -1895,7 +1895,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
 
     // PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
     if(avgnum == 0) {
-      int offset[2];
+      std::vector<int> offset(2);
       offset[0] = 0;
       offset[1] = packedEset[iele]->numTopNodes(); //HB 06-25-05: avoid the internal nodes for MpcElement
 

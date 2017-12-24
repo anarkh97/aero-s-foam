@@ -3979,7 +3979,7 @@ ControlInterface* GeoSource::getUserSuppliedFunction()
 //--------------------------------------------------------------------
 
 void GeoSource::outputElemStress(int fileNum, double *stressData,
-                                 int numOutElems, int *offsets, double time)
+                                 int numOutElems, const std::vector<int> &offsets, double time)
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -4002,7 +4002,7 @@ void GeoSource::outputElemStress(int fileNum, double *stressData,
 }
 
 void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
-                                 int numOutElems, int *offsets, double time)
+                                 int numOutElems, const std::vector<int> &offsets, double time)
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;

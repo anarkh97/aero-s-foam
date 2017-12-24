@@ -1509,7 +1509,7 @@ void BaseSub::setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockTo
       // HB & PJSA: to deal with possible overlapping (a local lmpc can belong to several blocks)
       blockToBlockMpc = blockToLocalMpc->copy();
       // over-write the target array
-      int *array = blockToBlockMpc->tgt();  
+      auto &array = blockToBlockMpc->tgt();
       count = 0;
       for(int iblk=0; iblk<blockToLocalMpc->csize(); ++iblk) {
         for(i=0; i<blockToLocalMpc->num(iblk); ++i) {

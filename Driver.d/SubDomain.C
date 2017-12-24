@@ -401,8 +401,8 @@ GenSubDomain<Scalar>::mergeStress(Scalar *locStress, Scalar *locWeight,
 
 template<class Scalar>
 void GenSubDomain<Scalar>::mergeElemStress(Scalar *locStress, Scalar *globStress, Connectivity *glElemToNode) {
-	int *glOffset = glElemToNode->ptr();
-	int *locOffset = elemToNode->ptr();
+	const auto &glOffset = glElemToNode->ptr();
+	const auto &locOffset = elemToNode->ptr();
 	for (int iElem = 0; iElem < numele; iElem++) {
 		for (int iNode = 0; iNode < packedEset[iElem]->numNodes(); iNode++) {
 			int glOff = glOffset[glElems[iElem]] + iNode;
@@ -1977,7 +1977,7 @@ GenSubDomain<Scalar>::renumberElementsGlobal() {
 template<class Scalar>
 void
 GenSubDomain<Scalar>::renumberSharedNodes() {
-	int *allC = scomm->sharedNodes->tgt();
+	auto &allC = scomm->sharedNodes->tgt();
 	for (int i = 0; i < scomm->sharedNodes->numConnect(); ++i) {
 		int gi = allC[i];
 		//if(globalToLocal(gi) < 0) std::cerr << "error in GenSubDomain::renumberSharedNodes() \n";

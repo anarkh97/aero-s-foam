@@ -99,10 +99,10 @@ IF(UNIX)
 # zoltan
     IF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
       FIND_PATH(ZOLTAN_INCLUDE_PATH Zoltan_config.h
-                PATHS /usr/include /usr/local/include)
+                PATHS /usr/include /usr/local/include /usr/include/trilinos)
       FIND_PATH(ZOLTAN_SRC_PATH zz/zz_const.h
                 PATHS /usr/include /usr/local/include)
-      FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan
+      FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan trilinos_zoltan
                    PATHS /usr/lib /usr/local/lib)
       IF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_SRC_PATH AND ZOLTAN_LIBRARY)
         MESSAGE("-- A library with Zoltan API found.")
@@ -222,7 +222,8 @@ IF(UNIX)
 
 # sacado
     IF(NOT WITH_SACADO EQUAL 0)
-      FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp )
+      FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp
+                PATHS /usr/include /usr/local/include /usr/include/trilinos)
       IF(SACADO_INCLUDE_PATH)
         set(SACADO_FOUND TRUE)
         MESSAGE("-- A library with SACADO API found. ")

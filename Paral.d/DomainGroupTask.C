@@ -258,7 +258,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
             corner_dbc[3*i+j].setData(sd[isub]->getLocalCornerNodes()[i], j, 0.0);
         sd[isub]->setDirichlet(3*sd[isub]->numCorners(), corner_dbc);
 #ifdef USE_MPI
-        GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], new Communicator(MPI_COMM_SELF));
+        GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], new Communicator(MPI_COMM_SELF, stderr));
 #else
         GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], NULL);
 #endif

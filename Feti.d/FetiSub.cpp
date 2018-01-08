@@ -69,6 +69,61 @@ FetiBaseSub::setWImapCommSize(FSCommPattern<int> *pat)
 }
 
 
+void FetiBaseSub::setNumGroupRBM(int *ngrbmGr)
+{
+	groupRBMoffset = 0;
+	for(int i=0; i<group; ++i) groupRBMoffset += ngrbmGr[i];
+	numGroupRBM = ngrbmGr[group];
+}
+
+void FetiBaseSub::getNumGroupRBM(int *ngrbmGr)
+{
+	//cerr << "in getNumGroupRBM " << subNumber << " " << group << " " << numGroupRBM << std::endl;
+	ngrbmGr[group] = numGroupRBM;
+}
+
+void
+FetiBaseSub::sendNumWIdof(FSCommPattern<int> *pat) const
+{
+	for(int i = 0; i < scomm->numT(SComm::fsi); ++i) {
+		if(subNum() != scomm->neighbT(SComm::fsi,i)) {
+			FSSubRecInfo<int> sInfo = pat->getSendBuffer(subNum(), scomm->neighbT(SComm::fsi,i));
+			sInfo.data[0] = numWIdof;
+		}
+	}
+}
+
+void
+FetiBaseSub::recvNumWIdof(FSCommPattern<int> *pat)
+{
+	numNeighbWIdof.resize(scomm->numT(SComm::fsi));
+	for(int i = 0; i < scomm->numT(SComm::fsi); ++i) {
+		if(subNum() != scomm->neighbT(SComm::fsi,i)) {
+			FSSubRecInfo<int> rInfo = pat->recData(scomm->neighbT(SComm::fsi,i), subNum());
+			numNeighbWIdof[i] = rInfo.data[0];
+		}
+		else numNeighbWIdof[i] = 0;
+	}
+}
+
+void
+FetiBaseSub::sendWImap(FSCommPattern<int> *pat)
+{
+	for(int i=0; i< scomm->numT(SComm::fsi); ++i)
+		if(subNum() != scomm->neighbT(SComm::fsi,i))
+			glToLocalWImap.pack(pat,subNum(), scomm->neighbT(SComm::fsi,i));
+}
+
+void
+FetiBaseSub::recvWImap(FSCommPattern<int> *pat)
+{
+	if(neighbGlToLocalWImap) delete [] neighbGlToLocalWImap;
+	neighbGlToLocalWImap = new GlobalToLocalMap[scomm->numT(SComm::fsi)];
+	for(int i=0; i<scomm->numT(SComm::fsi); ++i)
+		if(subNum() != scomm->neighbT(SComm::fsi,i))
+			neighbGlToLocalWImap[i].unpack(pat, scomm->neighbT(SComm::fsi,i), subNum());
+}
+
 
 template<typename Scalar>
 double FetiSub<Scalar>::getMpcError() const {
@@ -1350,6 +1405,76 @@ FetiSub<Scalar>::assembleMpcIntoKcc() {
 				}
 			}
 		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::constructKcc() {
+	Kcc = std::make_unique<GenAssembledFullM<Scalar>>(numCRNdof, cornerMap);
+//	memK += numCRNdof * numCRNdof; // TODO Move/duplicate memory use variable ???
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::initMpcStatus() {
+	for (int i = 0; i < numMPC; ++i) {
+		mpc[i]->active = false;
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::saveMpcStatus() {
+	// this saves the status before first update iteration so it can be reset if nonmonotic
+	if (!mpcStatus) mpcStatus = new int[numMPC];
+	for (int i = 0; i < numMPC; ++i) {
+		mpcStatus[i] = int(!mpc[i]->active);
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::restoreMpcStatus() {
+	for (int i = 0; i < numMPC; ++i) {
+		if (getFetiInfo().contactPrintFlag && mpcMaster[i]) {
+			if (!mpc[i]->active && !mpcStatus[i]) std::cerr << "-";
+			else if (mpc[i]->active && mpcStatus[i]) std::cerr << "+";
+		}
+		mpc[i]->active = bool(!mpcStatus[i]);
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::saveMpcStatus1() const {
+	auto &mpc = this->mpc;
+	if (!mpcStatus1) mpcStatus1 = new bool[numMPC];
+	for (int i = 0; i < numMPC; ++i) mpcStatus1[i] = !mpc[i]->active;
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::saveMpcStatus2() {
+	auto &mpc = this->mpc;
+	if (!mpcStatus2) mpcStatus2 = new bool[numMPC];
+	for (int i = 0; i < numMPC; ++i) mpcStatus2[i] = !mpc[i]->active;
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::cleanMpcData() {
+	if (mpcStatus) {
+		delete[] mpcStatus;
+		mpcStatus = 0;
+	}
+	if (mpcStatus1) {
+		delete[] mpcStatus1;
+		mpcStatus1 = 0;
+	}
+	if (mpcStatus2) {
+		delete[] mpcStatus2;
+		mpcStatus2 = 0;
 	}
 }
 

@@ -63,13 +63,12 @@ Connectivity::Connectivity(int _size, int *_pointer, int *_target, int _removeab
 
 Connectivity::Connectivity(const Elemset &els, Connectivity *nodeToElem)
 {
-	int i;
 
 	size = els.last();
 
 	// locate any nodes that are not connected to rigid or flexible elements
 	std::set<int> mpcnodes;
-	for(i=0; i < size; ++i) {
+	for(int i=0; i < size; ++i) {
 		Element *ele = els[i];
 		if(ele->isMpcElement() && !ele->isRigidElement()) {
 			int *nodes = els[i]->nodes();
@@ -93,7 +92,7 @@ Connectivity::Connectivity(const Elemset &els, Connectivity *nodeToElem)
 	// Find out the number of targets we will have
 	pointer.resize(size+1);
 	int pp = 0;
-	for(i = 0; i < size-mpcnodes.size(); ++i) {
+	for(int i = 0; i < size-mpcnodes.size(); ++i) {
 		pointer[i] = pp;
 		Element *ele = els[i];
 		if(ele)  {
@@ -102,7 +101,7 @@ Connectivity::Connectivity(const Elemset &els, Connectivity *nodeToElem)
 			}
 		}
 	}
-	for(i=size-mpcnodes.size(); i < size; ++i) {
+	for(auto i=size-mpcnodes.size(); i < size; ++i) {
 		pointer[i] = pp;
 		pp++;
 	}
@@ -114,7 +113,7 @@ Connectivity::Connectivity(const Elemset &els, Connectivity *nodeToElem)
 	target.resize(pp);
 
 	// Fill it in
-	for(i = 0; i < size-mpcnodes.size(); ++i) {
+	for(int i = 0; i < size-mpcnodes.size(); ++i) {
 		Element *ele = els[i];
 		if(ele) {
 			if(ele->isRigidElement() || !ele->isMpcElement()) {
@@ -122,8 +121,9 @@ Connectivity::Connectivity(const Elemset &els, Connectivity *nodeToElem)
 			}
 		}
 	}
-	for(std::set<int>::iterator it = mpcnodes.begin(); it != mpcnodes.end(); it++) {
-		target[pointer[i++]] = *it;
+	auto i = size-mpcnodes.size();
+	for (auto mpcnode : mpcnodes) {
+		target[pointer[i++]] = mpcnode;
 	}
 }
 

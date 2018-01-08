@@ -739,12 +739,12 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		delete [] globalZstar;
 
 		// make local Rstar
-		paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeLocalRstar, Qtranspose);
+		paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::makeLocalRstar, Qtranspose);
 		for(int i = 0; i < nGroups1; ++i) delete Qtranspose[groups[i]];
 		delete [] Qtranspose;
 	}
 	if(rbmFlag && !geometricRbms && fetiInfo->corners == FetiInfo::noCorners) {
-		paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::useKrrNullspace);
+		paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::useKrrNullspace);
 		ngrbmGr = new int[nGroups];
 		ngrbm = 0;
 		for(int i = 0; i < nGroups; ++i) ngrbmGr[i] = 0;
@@ -764,8 +764,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #ifdef DISTRIBUTED
 		this->fetiCom->globalSum(nGroups, ngrbmGr);
 #endif
-		paralApply(this->nsub, this->sd, &BaseSub::setNumGroupRBM, ngrbmGr);
-		paralApply(this->nsub, this->sd, &FetiSub<Scalar>::deleteLocalRBMs);
+		paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::setNumGroupRBM, ngrbmGr);
+		paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::deleteLocalRBMs);
 	}
 
 	// end new code ********************************************************
@@ -833,7 +833,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
 			if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
 			t5 -= getTime();
-			paralApplyToAll(this->nsub, this->sd, &FetiSub<Scalar>::multKcc); // create the local Kcc^*
+			paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::multKcc); // create the local Kcc^*
 			t5 += getTime();
 			Elemset& elems = coarseDomain->getElementSet();
 			for(int i = 0; i < this->nsub; ++i) {
@@ -995,7 +995,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			// assemble the coarse problem: Kcc^* -> Kcc - Krc^T Krr^-1 Krc
 			if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
 			t5 -= getTime();
-			paralApplyToAll(this->nsub, this->sd, &FetiSub<Scalar>::multKcc); // create the local Kcc^*
+			paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::multKcc); // create the local Kcc^*
 			t5 += getTime();
 
 			t0 -= getTime();
@@ -2651,9 +2651,9 @@ GenFetiDPSolver<Scalar>::wetInterfaceComms()
   FSCommPattern<int> *wiOnePat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
   for(int iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setWIoneCommSize(wiOnePat);
   wiOnePat->finalize();
-  paralApply(this->nsub, this->sd, &BaseSub::sendNumWIdof, wiOnePat);
+  paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::sendNumWIdof, wiOnePat);
   wiOnePat->exchange();
-  paralApply(this->nsub, this->sd, &BaseSub::recvNumWIdof, wiOnePat);
+  paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::recvNumWIdof, wiOnePat);
   delete wiOnePat;
 
   // send and receive glToLocalWImaps
@@ -2661,9 +2661,9 @@ GenFetiDPSolver<Scalar>::wetInterfaceComms()
                                                         FSCommPattern<int>::NonSym);
   for(int iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setWImapCommSize(wiMapPat);
   wiMapPat->finalize();
-  paralApply(this->nsub, this->sd, &BaseSub::sendWImap, wiMapPat);
+  paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::sendWImap, wiMapPat);
   wiMapPat->exchange();
-  paralApply(this->nsub, this->sd, &BaseSub::recvWImap, wiMapPat);
+  paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::recvWImap, wiMapPat);
   delete wiMapPat;
 
   // create this->wiPat FSCommPattern object, used to send/receive wet this->interface interaction vectors
@@ -2685,7 +2685,7 @@ GenFetiDPSolver<Scalar>::reconstruct()
   if(fetiInfo->isEdgeAugmentationOn() && fetiInfo->numdir > 0) { // augmentation depends on freq/k
     // 2. reconstruct local Kcc etc. since size of Kcc may have changed
     startTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
-    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::constructKcc);
+    paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::constructKcc);
     if(domain->solInfo().isCoupled)  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::constructKcw);
     stopTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
 
@@ -2778,7 +2778,7 @@ GenFetiDPSolver<Scalar>::refactor()
   }
   internalC.len = tLocalCLen;
 
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcStatus);
+  paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::initMpcStatus);
 }
 
 template<class Scalar>
@@ -2842,7 +2842,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
   // if eflag is true this function computes y as the projection of z on to the feasible subset in which all active constraints remain active
   // if eflag is false this function computes y as the projection of z on to the tangent subspace
 
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus1);
+  paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::saveMpcStatus1);
 
   GenDistrVector<Scalar> x(z);
   bool status_change = false;
@@ -2906,7 +2906,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
   // computes w as the projection of r on to the tangent subspace
   // note: this function also computes alpha which is stored in the feti workspace
 
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus1);
+  paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::saveMpcStatus1);
 
   GenDistrVector<Scalar> x(r);
   GenVector<Scalar> &alpha = this->wksp->ret_alpha();

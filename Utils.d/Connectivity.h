@@ -105,21 +105,7 @@ public:
 	int getNumTarget() const {return numtarget; }
 	int * getTarget() {return target.data(); }
 	const int * getTarget() const {return target.data(); }
-//    int * getPointer() {return pointer; }
 	const int * getPointer() const {return pointer.data(); }
-	/*	void displayRelationships(void)
-	  {
-		for(int i = 0; i< size; i++)
-		  {
-		int bot = pointer[i];
-		int top = pointer[i+1]-bot;
-		cout << "element " << i << " voisins : ";
-		for(int j = bot; j < top; j++)
-		  cout << target[j] << "," ;
-		cout << endl;
-		  }
-
-		  }*/
 	Connectivity() { size = 0; numtarget = 0; }
 	/** \brief Constructor for any object that is equipped with the methods of a set.
 	 *
@@ -138,6 +124,11 @@ public:
 	Connectivity(FaceElemSet*, int size = 0);
 	Connectivity(int ns); //dec
 	Connectivity(FILE *f, int nElem); // JAT 100614
+	/** \brief Construct a connectivity accounting for Lagrange multipliers.
+	 *
+	 * @param els
+	 * @param nodeToElem
+	 */
 	Connectivity(const Elemset &els, Connectivity *nodeToElem);
 	Connectivity(const Connectivity&) = default;
 	size_t write(BinFileHandler& f);
@@ -178,13 +169,10 @@ public:
 	// Create a rooted level structure
 	int *renumSloan(int *mask, int &firstNum, int *ren = 0);
 	int *renumRCM(int *mask, int &firstNum, int *ren = 0);
-	int *renumSloan();
 	compStruct renumByComponent(int);
 	void print(FILE * = stderr, int node=-1);
 	int findMaxDist(int *);
 	int findProfileSize(EqNumberer *eqNumber, int unroll=1);
-	int findProfileSizes(EqNumberer *eqNumber, compStruct &, long *,
-	                     int unroll=1);
 	const std::vector<int> &ptr() const { return pointer; }
 	auto &tgt() { return target; }
 	auto &tgt() const { return target; }

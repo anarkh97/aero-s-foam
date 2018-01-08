@@ -805,25 +805,6 @@ GenSubDomain<Scalar>::collectScaling(FSCommPattern<Scalar> *vPat) {
 		offset += scomm->lenT(SComm::all, iSub);
 	}
 
-	// LMPCs coeff stiffness scaling/splitting for the primal method
-/* XXXX kscaling currently not supported for primal mpcs
- if(solInfo().getFetiInfo().mpc_scaling == FetiInfo::kscaling) {
-   for(int iMPC = 0; iMPC < numMPC_primal; iMPC++){
-     for(int k = 0; k < mpc_primal[iMPC]->nterms; k++){
-       int ccdof = (mpc_primal[iMPC]->terms)[k].ccdof;
-       if(ccdof>=locLen) fprintf(stderr, "Strange: cdof (%d) >= locLen (%d)\n", ccdof, locLen);
-       else if(ccdof >= 0) // rdof
-         (mpc_primal[iMPC]->terms)[k].coef *= kweight[ccdof]/(kweight[ccdof]+kSum[ccdof]);
-       else if(wetInterfaceMap) {
-         int dof = (mpc_primal[iMPC]->terms)[k].dof;
-         if((dof > 0) && (wetInterfaceMap[dof] > 0)) // wdof
-           mpc_primal[iMPC]->terms[k].coef /= ScalarTypes::Real(wweight[wetInterfaceMap[dof]]);
-       }
-       // note corner dofs are always split with tscaling - see gatherDOFList
-     }
-   }
- }
-*/
 	if (solInfo().getFetiInfo().augment == FetiInfo::WeightedEdges) {
 		for (iDof = 0; iDof < locLen; ++iDof)
 			kweight[iDof] += kSum[iDof];
@@ -1307,13 +1288,6 @@ void GenSubDomain<Scalar>::extractControlData(Scalar *disp, Scalar *vel,
 			}
 		}
 	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::constructKcc() {
-	this->Kcc = std::make_unique<GenAssembledFullM<Scalar>>(numCRNdof, cornerMap);
-	memK += numCRNdof * numCRNdof;
 }
 
 template<class Scalar>
@@ -3520,71 +3494,6 @@ GenSubDomain<Scalar>::printMpcStatus() {
 		if (mpc[i]->type == 1) {
 			std::cerr << (mpc[i]->active ? 'o' : 'x');
 		}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::initMpcStatus() {
-	for (int i = 0; i < numMPC; ++i) {
-		this->mpc[i]->active = false;
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::saveMpcStatus() {
-	auto &mpc = this->mpc;
-	// this saves the status before first update iteration so it can be reset if nonmonotic
-	if (!mpcStatus) mpcStatus = new int[numMPC];
-	for (int i = 0; i < numMPC; ++i) {
-		mpcStatus[i] = int(!mpc[i]->active);
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::restoreMpcStatus() {
-	auto &mpc = this->mpc;
-	for (int i = 0; i < numMPC; ++i) {
-		if (solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) {
-			if (!mpc[i]->active && !mpcStatus[i]) std::cerr << "-";
-			else if (mpc[i]->active && mpcStatus[i]) std::cerr << "+";
-		}
-		mpc[i]->active = bool(!mpcStatus[i]);
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::saveMpcStatus1() {
-	auto &mpc = this->mpc;
-	if (!mpcStatus1) mpcStatus1 = new bool[numMPC];
-	for (int i = 0; i < numMPC; ++i) mpcStatus1[i] = !mpc[i]->active;
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::saveMpcStatus2() {
-	auto &mpc = this->mpc;
-	if (!mpcStatus2) mpcStatus2 = new bool[numMPC];
-	for (int i = 0; i < numMPC; ++i) mpcStatus2[i] = !mpc[i]->active;
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::cleanMpcData() {
-	if (mpcStatus) {
-		delete[] mpcStatus;
-		mpcStatus = 0;
-	}
-	if (mpcStatus1) {
-		delete[] mpcStatus1;
-		mpcStatus1 = 0;
-	}
-	if (mpcStatus2) {
-		delete[] mpcStatus2;
-		mpcStatus2 = 0;
 	}
 }
 

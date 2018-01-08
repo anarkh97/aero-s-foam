@@ -1365,19 +1365,6 @@ void BaseSub::makeLocalToGroupMPC(Connectivity *groupToMPC)
   }
 }
 
-void BaseSub::setNumGroupRBM(int *ngrbmGr) 
-{  
-  groupRBMoffset = 0;
-  for(int i=0; i<group; ++i) groupRBMoffset += ngrbmGr[i];
-  numGroupRBM = ngrbmGr[group];
-}
-
-void BaseSub::getNumGroupRBM(int *ngrbmGr)
-{
-  //cerr << "in getNumGroupRBM " << subNumber << " " << group << " " << numGroupRBM << std::endl;
-  ngrbmGr[group] = numGroupRBM;
-}
-
 void BaseSub::addNodeXYZ(double *centroid, double* nNodes)
 {
   for(int i=0; i<nodes.size(); ++i) {
@@ -2433,48 +2420,6 @@ BaseSub::setArb(list<SommerElement *> *_list)
     numele++;
     (*it)->dom = this;
   }
-}
-
-void
-BaseSub::sendNumWIdof(FSCommPattern<int> *pat) const
-{
-  for(int i = 0; i < scomm->numT(SComm::fsi); ++i) {
-    if(subNumber != scomm->neighbT(SComm::fsi,i)) {
-      FSSubRecInfo<int> sInfo = pat->getSendBuffer(subNumber, scomm->neighbT(SComm::fsi,i));
-      sInfo.data[0] = numWIdof;
-    }
-  }
-}
-
-void
-BaseSub::recvNumWIdof(FSCommPattern<int> *pat)
-{
-  numNeighbWIdof.resize(scomm->numT(SComm::fsi));
-  for(int i = 0; i < scomm->numT(SComm::fsi); ++i) {
-    if(subNumber != scomm->neighbT(SComm::fsi,i)) {
-      FSSubRecInfo<int> rInfo = pat->recData(scomm->neighbT(SComm::fsi,i), subNumber);
-      numNeighbWIdof[i] = rInfo.data[0];
-    }
-    else numNeighbWIdof[i] = 0;
-  }
-}
-
-void
-BaseSub::sendWImap(FSCommPattern<int> *pat)
-{
-  for(int i=0; i< scomm->numT(SComm::fsi); ++i) 
-    if(subNumber != scomm->neighbT(SComm::fsi,i)) 
-      glToLocalWImap.pack(pat,subNumber, scomm->neighbT(SComm::fsi,i));
-}
-
-void
-BaseSub::recvWImap(FSCommPattern<int> *pat)
-{
-  if(neighbGlToLocalWImap) delete [] neighbGlToLocalWImap; 
-  neighbGlToLocalWImap = new GlobalToLocalMap[scomm->numT(SComm::fsi)];
-  for(int i=0; i<scomm->numT(SComm::fsi); ++i) 
-    if(subNumber != scomm->neighbT(SComm::fsi,i)) 
-      neighbGlToLocalWImap[i].unpack(pat, scomm->neighbT(SComm::fsi,i), subNumber);
 }
 
 int

@@ -192,9 +192,6 @@ public:
 	int getGlobalMPCIndex(int localMpcIndex) const override;
 	void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
 	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
-	void setGroup(Connectivity *subToGroup) { this->group = (*subToGroup)[subNumber][0]; }
-	void setNumGroupRBM(int *ngrbmGr);
-	void getNumGroupRBM(int *ngrbmGr);
 	void addNodeXYZ(double *centroid, double* nNodes);
 	void sendNeighbGrbmInfo(FSCommPattern<int> *pat);
 	void receiveNeighbGrbmInfo(FSCommPattern<int> *pat);
@@ -275,7 +272,6 @@ protected:
 	DofSet *wetInterfaceDofs = nullptr;
 	Connectivity *drySharedNodes = nullptr;
 	bool *wiMaster = nullptr;
-	GlobalToLocalMap *neighbGlToLocalWImap = nullptr;
 	int numFsiNeighb;
 	int *fsiNeighb = nullptr;
 	int *wiInternalMap = nullptr;
@@ -292,16 +288,10 @@ public:
 	bool onWetInterfaceStructure(int iNode) { return wetInterfaceStructureMark[iNode]; }
 	bool isWetInterfaceCorner(int iNode) { return wetInterfaceCornerMark[iNode]; }
 	void setWetInterface(int nWI, int *wiNum);
-	void sendNumWIdof(FSCommPattern<int> *sPat) const;
-	void recvNumWIdof(FSCommPattern<int> *sPat);
-	void sendWImap(FSCommPattern<int> *pat);
-	void recvWImap(FSCommPattern<int> *pat);
 	void makeDSA();
 	void makeCDSA();
 	void makeCCDSA();
 	int numWetInterfaceDofs() const { return numWIdof; }
-	GlobalToLocalMap& getGlToLocalWImap() { return glToLocalWImap; }
-	GlobalToLocalMap& getNeighbGlToLocalWImap(int i) { return neighbGlToLocalWImap[i]; }
 	void zeroEdgeDofSize();
 	void mergeInterfaces();
 
@@ -490,7 +480,6 @@ public:
 	                         bool isUndefinedSub = false);
 	void makeAverageEdgeVectors();
 	void weightEdgeGs();
-	void constructKcc();
 	void constructKrc();
 	void initSrc();
 	void clean_up();
@@ -540,12 +529,6 @@ public:
 	void collectMpcScaling(FSCommPattern<Scalar> *mpcPat);
 	void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
 	void printMpcStatus();
-	void initMpcStatus();
-	void saveMpcStatus();
-	void restoreMpcStatus();
-	void saveMpcStatus1();
-	void saveMpcStatus2();
-	void cleanMpcData();
 	void computeContactPressure(Scalar *globStress, Scalar *globWeight);
 	void computeLocalContactPressure(Scalar *stress, Scalar *weight);
 

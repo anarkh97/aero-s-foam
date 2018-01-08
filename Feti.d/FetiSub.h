@@ -195,6 +195,10 @@ protected:
 	mutable int *mpcStatus;
 	mutable bool *mpcStatus1, *mpcStatus2;
 public:
+	void setGroup(Connectivity *subToGroup) { this->group = (*subToGroup)[subNum()][0]; }
+	void setNumGroupRBM(int *ngrbmGr);
+	void getNumGroupRBM(int *ngrbmGr);
+
 	int group = 0;
 	// Multiple Point Constraint (MPC) Data
 	int numMPC = 0;             // number of local Multi-Point Constraints
@@ -207,6 +211,11 @@ public:
 	GlobalToLocalMap globalToLocalMPC_primal;
 
 	int *cornerMap = nullptr;
+
+	void sendNumWIdof(FSCommPattern<int> *sPat) const;
+	void recvNumWIdof(FSCommPattern<int> *sPat);
+	void sendWImap(FSCommPattern<int> *pat);
+	void recvWImap(FSCommPattern<int> *pat);
 
 	// variables and routines for parallel GRBM algorithm and floating bodies projection
 	// and MPCs (rixen method)
@@ -225,6 +234,8 @@ protected:
 	std::vector<int> wetInterfaceNodes;
 	std::vector<int> numNeighbWIdof;
 	GlobalToLocalMap glToLocalWImap;
+
+	GlobalToLocalMap *neighbGlToLocalWImap = nullptr;
 
 };
 
@@ -360,6 +371,15 @@ public:
 	void setLocalLambda(Scalar *_localLambda);
 	double getMpcError() const;
 	void applyMpcSplitting();
+
+	void initMpcStatus();
+	void saveMpcStatus();
+	void restoreMpcStatus();
+	void saveMpcStatus1() const; // const is a lie but we have mutable.
+	void saveMpcStatus2();
+	void cleanMpcData();
+
+	void constructKcc();
 
 	const std::vector<Scalar> &getfc() const { return fcstar; }
 

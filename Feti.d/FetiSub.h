@@ -212,14 +212,22 @@ public:
 
 	int *cornerMap = nullptr;
 
+	void sendNumNeighbGrbm(FSCommPattern<int> *pat);
+	void recvNumNeighbGrbm(FSCommPattern<int> *pat);
+
 	void sendNumWIdof(FSCommPattern<int> *sPat) const;
 	void recvNumWIdof(FSCommPattern<int> *sPat);
 	void sendWImap(FSCommPattern<int> *pat);
 	void recvWImap(FSCommPattern<int> *pat);
 
+	void sendNeighbGrbmInfo(FSCommPattern<int> *pat);
+	void receiveNeighbGrbmInfo(FSCommPattern<int> *pat);
 	// variables and routines for parallel GRBM algorithm and floating bodies projection
 	// and MPCs (rixen method)
 protected:
+	int nGrbm = 0;
+	int *neighbNumGRBMs = nullptr;
+
 	int numGroupRBM = 0, groupRBMoffset = 0;
 	int *neighbNumGroupGrbm = nullptr;
 	int *neighbGroupGrbmOffset = nullptr;

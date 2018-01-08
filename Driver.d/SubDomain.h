@@ -105,10 +105,8 @@ public:
 	const FetiInfo &getFetiInfo() const override { return solInfo().getFetiInfo(); }
 
 //	int *glCrnGroup;    // group of each corner node (global numbering)
-	int nGrbm = 0;
 	DofSet **boundaryDOFs = nullptr;
 	int nCDofs = -1;
-	int *neighbNumGRBMs = nullptr;
 	int *edgeDofSizeTmp = nullptr;   // XXXX
 	double k_f = 0.0, k_p = 0.0, k_s = 0.0, k_s2 = 0.0;  // wave numbers for FETI-DPH for this subdomain
 	double *neighbK_p = nullptr, *neighbK_s = nullptr, *neighbK_s2 = nullptr, *neighbK_f = nullptr;  // neighbors' wave numbers
@@ -160,8 +158,6 @@ public:
 	int localLen() const override { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
 	ConstrainedDSA * getCCDSA()  { return (cc_dsa) ? cc_dsa.get() : c_dsa; }
 	int localRLen() const override { return cc_dsa->size(); }
-	void sendNumNeighbGrbm(FSCommPattern<int> *pat);
-	void recvNumNeighbGrbm(FSCommPattern<int> *pat);
 	void putNumMPC(int *ptr) { ptr[subNumber] = numMPC; }
 	void putLocalToGlobalMPC(int *ptr, int *tg) { for(int i=0; i<numMPC; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC[i]; }
 	void putNumMPC_primal(int *ptr) { ptr[subNumber] = numMPC_primal; }
@@ -193,8 +189,6 @@ public:
 	void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
 	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
 	void addNodeXYZ(double *centroid, double* nNodes);
-	void sendNeighbGrbmInfo(FSCommPattern<int> *pat);
-	void receiveNeighbGrbmInfo(FSCommPattern<int> *pat);
 	void setCommSize(FSCommStructure *pat, int size) const override;
 	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const override;
 

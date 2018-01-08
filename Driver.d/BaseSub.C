@@ -328,28 +328,6 @@ BaseSub::computeInternalMasterFlag()
   }
 }
 
-
-void
-BaseSub::sendNumNeighbGrbm(FSCommPattern<int> *pat)
-{
-  // send Number of RBMs for each neighbor, used for augmentation
-  for(int i = 0; i < scomm->numT(SComm::std); ++i) {
-    FSSubRecInfo<int> sInfo = pat->getSendBuffer(subNumber, scomm->neighbT(SComm::std,i));
-    sInfo.data[0] = nGrbm;
-  }
-}
-
-void
-BaseSub::recvNumNeighbGrbm(FSCommPattern<int> *pat)
-{
-  neighbNumGRBMs = new int[scomm->numT(SComm::std)];
-  // get Number of RBMs for each neighbor, used for augmentation
-  for(int i = 0; i < scomm->numT(SComm::std); ++i) {
-    FSSubRecInfo<int> rInfo = pat->recData(scomm->neighbT(SComm::std,i), subNumber);
-    neighbNumGRBMs[i] = rInfo.data[0];
-  }
-}
-
 int*
 BaseSub::makeBMaps(const DofSetArray *dof_set_array)
 {
@@ -1388,34 +1366,6 @@ BaseSub::setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const
 {
   for(int iSub = 0; iSub < scomm->numT(SComm::mpc); ++iSub)
     pt->setLen(subNumber, scomm->neighbT(SComm::mpc,iSub), size);
-}
-
-void
-BaseSub::sendNeighbGrbmInfo(FSCommPattern<int> *pat)
-{
-  // send number of group GRBMs and the group GRBM offset to each potential contact neighbor
-  for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-    int neighb = scomm->neighbT(SComm::mpc, i);
-    FSSubRecInfo<int> sInfo = pat->getSendBuffer(subNumber, neighb);
-    sInfo.data[0] = numGroupRBM;
-    sInfo.data[1] = groupRBMoffset;
-  }
-}
-
-void
-BaseSub::receiveNeighbGrbmInfo(FSCommPattern<int> *pat)
-{
-  if(neighbNumGroupGrbm) delete [] neighbNumGroupGrbm;
-  neighbNumGroupGrbm = new int[scomm->numT(SComm::mpc)];
-  if(neighbGroupGrbmOffset) delete [] neighbGroupGrbmOffset;
-  neighbGroupGrbmOffset = new int[scomm->numT(SComm::mpc)];
-  // get number of group GRBMs and the group GRBM offset for each potential contact neighbor
-  for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-    int neighb = scomm->neighbT(SComm::mpc, i);
-    FSSubRecInfo<int> rInfo = pat->recData(neighb, subNumber);
-    neighbNumGroupGrbm[i] = rInfo.data[0];
-    neighbGroupGrbmOffset[i] = rInfo.data[1];
-  }
 }
 
 int BaseSub::getLocalMPCIndex(int globalMpcIndex) const {

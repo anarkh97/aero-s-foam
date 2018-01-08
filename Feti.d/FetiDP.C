@@ -3030,6 +3030,8 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *_mpcToMpc, Connectivity *_mpcToCpu)
 {
+#ifdef AS_LIBRARY
+#else
  this->mpcToSub   = _mpcToSub;    // MPC to subdomain connectivity
  this->glNumMpc = (this->mpcToSub) ? this->mpcToSub->csize() : 0;
  mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (used for CC^t preconditioner)
@@ -3144,7 +3146,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
  }
 
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::cleanMpcData);
-
+#endif  // As_LIBRARY
 }
 
 template<class Scalar>
@@ -3177,14 +3179,14 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::zeroG()
 {
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::zeroG);
+  paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::zeroG);
 }
 
 template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::deleteG()
 {
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::deleteG);
+  paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::deleteG);
 }
 
 template<class Scalar>
@@ -3224,7 +3226,7 @@ GenFetiDPSolver<Scalar>::computeProjectedDisplacement(GenDistrVector<Scalar> &u)
 		GenFullM<Scalar> X(zem, ngrbms, numGtGsing, 1);
 		// build global RBMs
 		if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners)
-			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::buildGlobalRBMs, X, cornerToSub);
+			paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::buildGlobalRBMs, X, cornerToSub);
 		else {
 			// TODO: GenSubDomain::Rstar first needs to be filled from the nullspace of Kcc^*
 			std::cerr << " *** WARNING: FetiDPSolver::computeProjectedDisplacement requires GRBM or \"corners none\"\n";
@@ -3265,10 +3267,10 @@ GenFetiDPSolver<Scalar>::makeGtG()
 
 	// 1. make local G = Bbar * R
 	if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners)
-		paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeG);
+		paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::makeG);
 	else {
-		paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeTrbmG, kccrbms, KccSolver->numRBM(), KccSolver->neqs());
-		paralApply(this->nsub, this->sd, &BaseSub::getNumGroupRBM, ngrbmGr);
+		paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::makeTrbmG, kccrbms, KccSolver->numRBM(), KccSolver->neqs());
+		paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::getNumGroupRBM, ngrbmGr);
 #ifdef DISTRIBUTED
 		this->fetiCom->globalMax(nGroups, ngrbmGr);
 #endif
@@ -3278,18 +3280,18 @@ GenFetiDPSolver<Scalar>::makeGtG()
 	FSCommPattern<int> *sPat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
 	for(int i = 0; i < this->nsub; ++i) this->subdomains[i]->setMpcNeighbCommSize(sPat, 2);
 	sPat->finalize();
-	paralApply(this->nsub, this->sd, &BaseSub::sendNeighbGrbmInfo, sPat);
+	paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::sendNeighbGrbmInfo, sPat);
 	sPat->exchange();  // neighboring subs number of group RBMs and offset
-	paralApply(this->nsub, this->sd, &BaseSub::receiveNeighbGrbmInfo, sPat);
+	paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::receiveNeighbGrbmInfo, sPat);
 	delete sPat;
 	// create bodyRbmPat FSCommPattern object, used to send/receive G matrix
 	FSCommPattern<Scalar> *gPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU,
 	                                                        FSCommPattern<Scalar>::CopyOnSend, FSCommPattern<Scalar>::NonSym);
 	for(int i = 0; i < this->nsub; ++i) this->subdomains[i]->setGCommSize(gPat);
 	gPat->finalize();
-	paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendG, gPat);
+	paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::sendG, gPat);
 	gPat->exchange();
-	paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::receiveG, gPat);
+	paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::receiveG, gPat);
 	delete gPat;
 
 	// 3. build coarse connectivity and equation numberer
@@ -3420,7 +3422,7 @@ GenFetiDPSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &globRBM)
 			GenFullM<Scalar> X(zem, ngrbms, numGtGsing, 1);
 			// build global RBMs
 			if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners)
-				paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::buildGlobalRBMs, X, cornerToSub);
+				paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::buildGlobalRBMs, X, cornerToSub);
 			else {
 				// TODO: GenSubDomain::Rstar first needs to be filled from the nullspace of Kcc^*
 				std::cerr << " *** WARNING: FetiDPSolver::getRBMs requires GRBM or \"corners none\"\n";

@@ -61,7 +61,6 @@ protected:
 	int subNumber;
 	int localSubNumber; // relevant when running in distributed
 
-	GlobalToLocalMap glToLocalNode;
 	GlobalToLocalMap glToLocalElem;
 	int *glNums = nullptr;
 	int *glElems = nullptr;
@@ -145,7 +144,6 @@ public:
 	void makeGlobalToLocalNodeMap();
 	void makeGlobalToLocalElemMap();
 	int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }
-	GlobalToLocalMap &getGlobalToLocalNode() { return glToLocalNode; }
 	int localToGlobal(int i)    { return glNums[i]; }
 	int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }
 	int localToGlobalElem(int i) { return glElems[i]; }
@@ -163,7 +161,6 @@ public:
 	void putNumMPC_primal(int *ptr) { ptr[subNumber] = numMPC_primal; }
 	void putLocalToGlobalMPC_primal(int *ptr, int *tg) { for(int i=0; i<numMPC_primal; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC_primal[i]; }
 
-	void makeLocalToGroupMPC(Connectivity *groupToMPC);
 	void findEdgeNeighbors();
 	void makeMpcInterface(Connectivity *subToMpc, const Connectivity &lmpcToSub,
 	                      Connectivity *subToSub_mpc);

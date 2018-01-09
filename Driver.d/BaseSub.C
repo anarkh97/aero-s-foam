@@ -1328,21 +1328,6 @@ int BaseSub::countElemNodes()  {
   return numElemNodes;
 }
 
-void BaseSub::makeLocalToGroupMPC(Connectivity *groupToMPC)
-{
-  // PJSA: new version for multi-body mpc compatability
-  int i;
-  if(numMPC_primal > 0) {
-    localToGroupMPC = new int[numMPC_primal];
-    int groupOffset = groupToMPC->offset(group);
-    for(i=0; i<groupToMPC->num(group); ++i) {
-      int glMpcID = groupToMPC->getTargetValue(groupOffset+i);
-      int localMpcID = globalToLocalMPC_primal[glMpcID];
-      if(localMpcID > -1) localToGroupMPC[localMpcID] = i;
-    }
-  }
-}
-
 void BaseSub::addNodeXYZ(double *centroid, double* nNodes)
 {
   for(int i=0; i<nodes.size(); ++i) {

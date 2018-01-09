@@ -195,9 +195,9 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 	paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::makeQ);  // build augmentation matrix
 	if(fetiInfo->augment == FetiInfo::Gs) {
 		// exchange number of each neighbors rbms
-		paralApply(this->nsub, this->sd, &BaseSub::sendNumNeighbGrbm, this->sPat);
+		paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::sendNumNeighbGrbm, this->sPat);
 		this->sPat->exchange();
-		paralApply(this->nsub, this->sd, &BaseSub::recvNumNeighbGrbm, this->sPat);
+		paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::recvNumNeighbGrbm, this->sPat);
 	}
 
 	// Compute stiffness scaling if required
@@ -295,7 +295,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 	this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
 	this->times.memoryDV += memoryUsed();
 
-	paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcStatus);
+	paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::initMpcStatus);
 
 	t6 += getTime();
 }
@@ -547,7 +547,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	}
 
 	// tell each subDomain what group it is in and find groups on each processor
-	paralApply(this->nsub, this->sd, &BaseSub::setGroup, subToGroup);
+	paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::setGroup, subToGroup);
 	if(groups) delete [] groups;
 	groups = new int[nGroups];  // groups represented on this processor
 #ifdef DISTRIBUTED
@@ -620,7 +620,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		if(this->glNumMpc_primal > 0) {
 			Connectivity *subToMpc = this->mpcToSub_primal->reverse();
 			groupToMpc = groupToSub->transcon(subToMpc);
-			paralApply(this->nsub, this->sd, &BaseSub::makeLocalToGroupMPC, groupToMpc);
+			paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::makeLocalToGroupMPC, groupToMpc);
 			delete subToMpc;
 		}
 
@@ -969,10 +969,11 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			decCoarseDomain->buildOps(ops, 0.0, 0.0, 1.0);
 			coarseInfo = &(decCoarseDomain->solVecInfo());
 			KccParallelSolver = ops.dynMat;
-			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2,
-			           decCoarseDomain->getNumSub(), decCoarseDomain->getAllSubDomains(),
+			paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::makeKccDofsExp2,
+			           decCoarseDomain->getNumSub(),
+			           reinterpret_cast<FetiBaseSub **>(decCoarseDomain->getAllSubDomains()),
 			           augOffset, this->subToEdge); // JAT 101816
-//      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2, decCoarseDomain->getNumSub(), 
+//      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2, decCoarseDomain->getNumSub(),
 //                 decCoarseDomain->getAllSubDomains()); // PJSA 10/10/2014
 		}
 		else {

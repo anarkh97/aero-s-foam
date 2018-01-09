@@ -198,6 +198,9 @@ public:
 	void setGroup(Connectivity *subToGroup) { this->group = (*subToGroup)[subNum()][0]; }
 	void setNumGroupRBM(int *ngrbmGr);
 	void getNumGroupRBM(int *ngrbmGr);
+	void makeLocalToGroupMPC(Connectivity *groupToMPC);
+
+	GlobalToLocalMap &getGlobalToLocalNode() { return glToLocalNode; }
 
 	int group = 0;
 	// Multiple Point Constraint (MPC) Data
@@ -245,6 +248,7 @@ protected:
 
 	GlobalToLocalMap *neighbGlToLocalWImap = nullptr;
 
+	GlobalToLocalMap glToLocalNode; // This seems to be for coarse problem only.
 };
 
 template <typename Scalar>
@@ -388,6 +392,9 @@ public:
 	void cleanMpcData();
 
 	void constructKcc();
+
+	void makeKccDofsExp2(int nsub, FetiBaseSub **sd, int augOffset,
+	                     Connectivity *subToEdge);
 
 	const std::vector<Scalar> &getfc() const { return fcstar; }
 

@@ -27,12 +27,6 @@ class CommunicatableObject
 class GlobalToLocalMap : public CommunicatableObject
 {
   // HB: encapsulate a STL map<int,int>
-  // I kept the min & max to optimized the operator[]; but maybe there already is
-  // something similar in the find(...) method of the STL map.
-  // A few optimizations can be done for the case where max-min+1 = size(): we just need
-  // to send size()+3 data instead of 2.size()+3 data. If more, max-min+1 = size() AND min=0,
-  // we may use a simple integer array to store globalToLocalArray as in this case the map
-  // is merely permutation.
   private:
     std::map<int,int> globalToLocalArray;
 

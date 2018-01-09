@@ -175,6 +175,21 @@ FetiBaseSub::recvNumNeighbGrbm(FSCommPattern<int> *pat)
 	}
 }
 
+void FetiBaseSub::makeLocalToGroupMPC(Connectivity *groupToMPC)
+{
+	// PJSA: new version for multi-body mpc compatability
+	int i;
+	if(numMPC_primal > 0) {
+		localToGroupMPC = new int[numMPC_primal];
+		int groupOffset = groupToMPC->offset(group);
+		for(i=0; i<groupToMPC->num(group); ++i) {
+			int glMpcID = groupToMPC->getTargetValue(groupOffset+i);
+			int localMpcID = globalToLocalMPC_primal[glMpcID];
+			if(localMpcID > -1) localToGroupMPC[localMpcID] = i;
+		}
+	}
+}
+
 template<typename Scalar>
 double FetiSub<Scalar>::getMpcError() const {
 	double ret = 0;
@@ -1525,6 +1540,56 @@ FetiSub<Scalar>::cleanMpcData() {
 	if (mpcStatus2) {
 		delete[] mpcStatus2;
 		mpcStatus2 = 0;
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::makeKccDofsExp2(int nsub, FetiBaseSub **sd,
+                                 int augOffset, Connectivity *subToEdge) {
+	int numC = numCoarseDofs();
+	cornerEqNums.resize(numC);
+
+	// numbers the corner equations
+	int offset = 0;
+	for (int i = 0; i < numCRN; ++i) {
+		int offset2 = 0;
+		for (int j = 0; j < nsub; ++j) {
+			auto &nodeMap = sd[j]->getGlobalToLocalNode();
+			ConstrainedDSA *cornerEqs = sd[j]->get_c_dsa();
+			if (nodeMap[glCornerNodes[i]] > -1) {
+				int count = cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(),
+				                              cornerEqNums.data() + offset);
+				for (int k = 0; k < count; ++k) cornerEqNums[offset + k] += offset2;
+				offset += count;
+				break;
+			}
+			offset2 += cornerEqs->size();
+		}
+	}
+
+	if (getFetiInfo().augmentimpl == FetiInfo::Primal) {
+		int iEdgeN = 0;
+		for (int iNeighb = 0; iNeighb < scomm->numNeighb; ++iNeighb) {
+			if (scomm->isEdgeNeighb[iNeighb]) {
+				int k = augOffset + (*subToEdge)[subNum()][iEdgeN];
+				int offset2 = 0;
+				for (int iSub = 0; iSub < nsub; ++iSub) {
+					GlobalToLocalMap &nodeMap = sd[iSub]->getGlobalToLocalNode();
+					ConstrainedDSA *cornerEqs = sd[iSub]->get_c_dsa();
+					if (nodeMap[k] > -1) {
+						int fDof = cornerEqs->firstdof(nodeMap[k]);
+						int count = edgeDofSize[iNeighb];
+						for (int k = 0; k < count; ++k)
+							cornerEqNums[offset + k] = fDof + k + offset2;
+						offset += count;
+						break;
+					}
+					offset2 += cornerEqs->size();
+				}
+				iEdgeN++;
+			}
+		}
 	}
 }
 

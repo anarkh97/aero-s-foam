@@ -2903,56 +2903,6 @@ void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, d
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd,
-                                      int augOffset, Connectivity *subToEdge) {
-	int numC = numCoarseDofs();
-	cornerEqNums.resize(numC);
-
-	// numbers the corner equations
-	int offset = 0;
-	for (int i = 0; i < numCRN; ++i) {
-		int offset2 = 0;
-		for (int j = 0; j < nsub; ++j) {
-			GlobalToLocalMap &nodeMap = sd[j]->getGlobalToLocalNode();
-			ConstrainedDSA *cornerEqs = sd[j]->getCDSA();
-			if (nodeMap[glCornerNodes[i]] > -1) {
-				int count = cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(),
-				                              cornerEqNums.data() + offset);
-				for (int k = 0; k < count; ++k) cornerEqNums[offset + k] += offset2;
-				offset += count;
-				break;
-			}
-			offset2 += cornerEqs->size();
-		}
-	}
-
-	if (solInfo().getFetiInfo().augmentimpl == FetiInfo::Primal) {
-		int iEdgeN = 0;
-		for (int iNeighb = 0; iNeighb < scomm->numNeighb; ++iNeighb) {
-			if (scomm->isEdgeNeighb[iNeighb]) {
-				int k = augOffset + (*subToEdge)[subNumber][iEdgeN];
-				int offset2 = 0;
-				for (int iSub = 0; iSub < nsub; ++iSub) {
-					GlobalToLocalMap &nodeMap = sd[iSub]->getGlobalToLocalNode();
-					ConstrainedDSA *cornerEqs = sd[iSub]->getCDSA();
-					if (nodeMap[k] > -1) {
-						int fDof = cornerEqs->firstdof(nodeMap[k]);
-						int count = edgeDofSize[iNeighb];
-						for (int k = 0; k < count; ++k)
-							cornerEqNums[offset + k] = fDof + k + offset2;
-						offset += count;
-						break;
-					}
-					offset2 += cornerEqs->size();
-				}
-				iEdgeN++;
-			}
-		}
-	}
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
                                   Connectivity *subToEdge, int mpcOffset) {
 	int numC = numCoarseDofs();

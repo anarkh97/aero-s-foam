@@ -1,11 +1,21 @@
 #include <Driver.d/SComm.h>
 #include <Driver.d/SubDomain.h>
 
+SComm::SComm(int nN, int *subIds, int *ids, Connectivity *con) : exchangeData(nN, nullptr)
+{
+	numNeighb = nN;
+	subNums = subIds;
+	remoteId = ids;
+	sharedNodes = con;
+	for(int i=0; i<numNeighb; ++i) exchangeData[i] = 0;  // PJSA
+
+	// type specific lists
+	numDofType = 8;
+}
+
 SComm::~SComm()
 {
-  if(exchangeData) { delete [] exchangeData; exchangeData=0; }
   //if(sharedDOFs) { delete sharedDOFs; sharedDOFs=0; }
-  if(neighb) { delete [] neighb; neighb = 0; }
   if(sharedNodes) { delete sharedNodes; sharedNodes = 0; }
   if(subNums/* && !salinasFlag*/) { delete [] subNums; subNums = 0; }
   if(remoteId) { delete [] remoteId; remoteId = 0; }
@@ -42,7 +52,7 @@ SComm::getExchangeData(int iSub)
   std::cerr << " *** ERROR: SComm::getExchangeData is not implemented for distributed memory \n";
   return 0;
 #else
-  return neighb[iSub]->getExchangePointer(remoteId[iSub]);
+	throw std::logic_error("Support was removed for getting exchange data when neighb was removed.");
 #endif
 }
 

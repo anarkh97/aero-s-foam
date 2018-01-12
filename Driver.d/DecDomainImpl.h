@@ -375,7 +375,7 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
        int subJ = glSubToLocal[connectedDomain[NESubMap[subI]][jSub]];
        subds[jSub] = (subJ >= 0) ? subDomain[subJ] : NULL;
     }
-    SComm *sc = new SComm(nConnect[NESubMap[subI]], connectedDomain[NESubMap[subI]], subds,
+    SComm *sc = new SComm(nConnect[NESubMap[subI]], connectedDomain[NESubMap[subI]],
                           remoteID[NESubMap[subI]], interfNode[NESubMap[subI]]);
     sc->locSubNum = iSub;
     sc->glSubToLocal = glSubToLocal;

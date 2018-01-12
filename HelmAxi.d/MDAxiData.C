@@ -775,7 +775,7 @@ MDAxiData::addInterface(int *SubSign, int m1, int m2) {
 
  for (iInter = 0; iInter < numNeighb; ++iInter) {
 
-   if (SubSign[scomm->getNeighb<DComplex>(iInter)->subNum()] != InterfSign) {
+   if (SubSign[scomm->neighborIndex(iInter)] != InterfSign) {
 
       for (i=InterfaceIndex[iInter]; i<InterfaceIndex[iInter+1]; i++) {
 

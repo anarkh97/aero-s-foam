@@ -394,7 +394,7 @@ MDAxiDesc::getDomainConnect() {
     for(jSub=0; jSub < nConnect[iSub]; ++jSub)
        subds[jSub] = localData[ connectedDomain[iSub][jSub] ];
 
-    SComm *sc = new SComm(nConnect[iSub], connectedDomain[iSub], subds,
+    SComm *sc = new SComm(nConnect[iSub], connectedDomain[iSub],
                          remoteID[iSub], interfNode[iSub]);
 
     localData[iSub]->setSComm(sc);

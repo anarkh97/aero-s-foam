@@ -348,14 +348,10 @@ public:
 	                bool geometricRbms = true, int verboseFlag = 0);
 	virtual ~GenFetiDPSolver();
 
-	//int ngrbm;
-	void makeKbb(int iSub);
 	void makeFc(int iSub, GenDistrVector<Scalar> &fr, GenDistrVector<Scalar> &lambda) const;
 	void makeFcB(int iSub, GenDistrVector<Scalar> &bf) const;
 	void KrrReSolve(int iSub, GenDistrVector<Scalar> &ur);
 	void makeKcc();
-	void deleteKcc() { /* not implemented */ };
-	void setSysMatrices(GenSolver<Scalar> **sysMatrices, GenSparseMatrix<Scalar> **sysMat) { /* not implemented */ };
 	void assembleFcStar(GenVector<Scalar> &FcStar) const;
 	void mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Scalar> &uc, GenDistrVector<Scalar> &u,
 	                   GenDistrVector<Scalar> &lambda) const;

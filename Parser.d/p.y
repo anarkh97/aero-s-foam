@@ -55,9 +55,6 @@
  LayerData ldata;
  LayInfo *linfo;
  CoefData coefdata;
- ComplexFDBC complexFDBC;
- ComplexFNBC complexFNBC;
- AxiMPC axiMPC;
  DoubleList dlist;
  StringList slist;
  SurfaceEntity* SurfObj;

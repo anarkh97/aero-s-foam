@@ -17,7 +17,6 @@
 #include <Element.d/FelippaShell.d/FelippaShellX2.h>
 #include <Element.d/Truss.d/TwoNodeTruss.h>
 #include <Element.d/Truss.d/TwoNodeTrussF.h>
-#include <HelmAxi.d/HelmAxiQuad.h>
 #include <Driver.d/MultiFront.h>
 #include <Element.d/Shell.d/FourNodeShell.h>
 
@@ -71,9 +70,6 @@
 #include <Element.d/Helm.d/HelmSpectralIsoParamQuad.h>
 
 #include <Element.d/Shell.d/Therm3NoShell.h>
-#include <HelmAxi.d/HelmAxiTri.h>
-#include <HelmAxi.d/HelmAxiQuad8.h>
-#include <HelmAxi.d/HelmAxiTri6.h>
 
 #include <Element.d/Brick32.d/Brick32.h>
 #include <Element.d/Penta15.d/Penta15.h>
@@ -392,12 +388,6 @@ BelytschkoTsayShell::examine(int sub, MultiFront *mf)
   return examineQuad4(sub, mf, nn);
 }
 
-PrioInfo
-HelmAxiQuad::examine(int sub, MultiFront *mf)
-{
-  return examineQuad4(sub, mf, nn);
-}
-
 /*
 PrioInfo Therm4NoShell::examine(int sub, MultiFront *mf)
 {
@@ -568,11 +558,6 @@ Therm3NoShell::examine(int sub, MultiFront *mf)
 }
 */
 
-PrioInfo
-HelmAxiTri::examine(int sub, MultiFront *mf)
-{
-  return examineTri3(sub, mf, nn);
-}
 
 PrioInfo
 ThermTriangle::examine(int sub, MultiFront *mf)
@@ -637,13 +622,6 @@ examineTri6(int sub, MultiFront *mf, int *nn)
 }
 
 PrioInfo 
-HelmAxiTri6::examine(int sub, MultiFront *mf)
-{
-  return examineTri6(sub, mf, nn);
-}
-
-
-PrioInfo 
 examineQuad8(int sub, MultiFront *mf, int *nn)
 {
  // NEW & UNTESTED
@@ -676,12 +654,6 @@ examineQuad8(int sub, MultiFront *mf, int *nn)
  // Compiler bug workaround
  res.isReady = true;
  return res;
-}
-
-PrioInfo
-HelmAxiQuad8::examine(int sub, MultiFront *mf)
-{
-  return examineQuad8(sub, mf, nn);
 }
 
 PrioInfo 

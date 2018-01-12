@@ -21,16 +21,6 @@
 #include <Element.d/Sommerfeld.d/TriangleSommerBC.h>
 #include <Element.d/Sommerfeld.d/QuadSommerBC.h>
 
-#ifndef TFLOP
-#include <HelmAxi.d/FourierHelmBCs.h>
-#endif
-
-#include <HelmAxi.d/ScatterData.h>
-#include <HelmAxi.d/LineAxiSommer.h>
-#include <HelmAxi.d/MPCData.h>
-#include <HelmAxi.d/LineAxiSommer.h>
-#include <HelmAxi.d/Line2AxiSommer.h>
-
 #include <Parser.d/DecInit.h>
 
 class Domain;

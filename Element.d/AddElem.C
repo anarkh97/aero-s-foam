@@ -81,11 +81,6 @@
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Element.d/Shell.d/ConnectedTri.h>
 
-#include <HelmAxi.d/HelmAxiQuad.h>
-#include <HelmAxi.d/HelmAxiTri.h>
-#include <HelmAxi.d/HelmAxiQuad8.h>
-#include <HelmAxi.d/HelmAxiTri6.h>
-
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Element.d/MpcElement.d/FsiElement.h>
 #include <Element.d/MatrixElement.d/MatrixElement.h>

@@ -1307,7 +1307,6 @@ public:
 	FlExchanger * getFileExchanger() { return flExchanger; }
 	void makeNodeTable(int topFlag);
 	void makeTopFile(int topFlag);
-	void makeAxiTopFile(int topFlag,int numSlices);
 
 	template<class Scalar> friend class GenDecDomain;
 	template<class Scalar> friend class GenDistrDomain;

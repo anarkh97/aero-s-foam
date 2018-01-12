@@ -8,7 +8,6 @@
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/matrix.h>
 #include <Element.d/Element.h>
-#include <HelmAxi.d/AxiHElem.h>
 #include <Solvers.d/Rbm.h>
 #include <Solvers.d/Solver.h>
 #include <Utils.d/Connectivity.h>
@@ -1301,86 +1300,6 @@ Domain::makeTopFile(int topFlag)
  long m3 = memoryUsed();
  fprintf(stderr," ... Total Memory         = %13.3f Mb\n",m3/(1024.0*1024.0));
 }
-
-void
-Domain::makeAxiTopFile(int topFlag, int numSlices) {
-
- double pi=4*atan(1.0);
- double angle;
- int j, inode, iele;
- //int maxNode = numdof();
-
- fprintf(stderr," ... Memory Used so far    %14.3f Mb\n",
-                 memoryUsed()/(1024.0*1024.0));
-
- fprintf(stderr,"%s",topMes[topFlag]);
-
- // ... CONSTRUCT DOMAIN ELEMENT TO NODE CONNECTIVITY
- long m1 = - memoryUsed();
- elemToNode = new Connectivity( packedEset.asSet() );
- nodeToElem = elemToNode->reverse();
- nodeToNode = nodeToElem->transcon(elemToNode);
- m1 += memoryUsed();
-
- // ... CONSTRUCT DOF SET ARRAY
- long m2 = - memoryUsed();
- dsa = new DofSetArray( numNodes(), packedEset );
- m2 += memoryUsed();
-
- fprintf(stderr," ... Elem. to Node Connectivity %9.3f Mb\n",
-         m1/(1024.0*1024.0));
- fprintf(stderr," ... DOF set array              %9.3f Mb\n",
-         m2/(1024.0*1024.0));
-
- // ... WRITE INPUT FILE FOR TOP/DOMDEC
- ControlInfo *cinfo = geoSource->getCheckFileInfo();
- cinfo->checkfileptr = openFile(cinfo->checkfile, ".top");
-
- //fprintf(stderr," ... Total Memory         = %13.3f Mb\n",
- //               memoryUsed()/(1024.0*1024.0));
-
- // ... WRITE NODE COORDINATES
- fprintf(cinfo->checkfileptr,"Nodes %s\n",cinfo->nodeSetName);
- int exactNumNodes = 0;
- for (j=0; j<numSlices; ++j) {
-
-   angle = j*2*pi/numSlices;
-
-   for(inode=0; inode<numNodes(); ++inode) {
-      Node &nd = nodes.getNode(inode);
-      if (nodes[inode] == 0) continue;
-      exactNumNodes += 1;
-      double x = nd.x*cos(angle);
-      double y = nd.x*sin(angle);
-      double z = nd.y;
-      fprintf(cinfo->checkfileptr,"%d\t % 14.6f\t% 14.6f\t % 14.6f\n",
-                              exactNumNodes,x,y,z);
-   }
- }
- // ... WRITE ELEMENT CONNECTIVITY
- if (numele > 0)
-   fprintf(cinfo->checkfileptr,"Elements %s using %s\n",
-           cinfo->elemSetName,cinfo->nodeSetName);
- int exactNumEle=0;
-
- for (iele=0; iele<numele; ++iele) {
-   AxiHElement *elem = dynamic_cast<AxiHElement *>(packedEset[iele]);
-   if (elem == 0)  {
-     int one=1;
-     fprintf(stderr,"Element chosen non axisymmetric for TOP file. Aborting \n");
-     exit(one);
-   }
-   if (topFlag == 5)
-       elem->buildMesh2D(exactNumEle,cinfo->checkfileptr,numdof(),numSlices);
-   if (topFlag == 6)
-       elem->buildMesh3D(exactNumEle,cinfo->checkfileptr,numdof(),numSlices);
- }
-
- // Compute Total memory requested for constructing the TOP/DOMDEC file
- long m3 = memoryUsed();
-  fprintf(stderr," ... Total Memory         = %13.3f Mb\n",m3/(1024.0*1024.0));
-}
-
 
 void
 Domain::setsizeSfemStress(int fileNumber)

@@ -411,7 +411,6 @@ add_subdirectory(Driver.d)
 add_subdirectory(Comm.d)
 add_subdirectory(Corotational.d)
 add_subdirectory(Dec.d)
-add_subdirectory(HelmAxi.d)
 add_subdirectory(Solvers.d)
 add_subdirectory(Utils.d)
 add_subdirectory(Parser.d)
@@ -430,7 +429,7 @@ add_subdirectory(Rom.d)
 add_subdirectory(Regression.d)
 
 SET(ALLLIBS Parser
-     Driver Elem Feti HelmAxi solver Corotational Mortar Rom Math
+     Driver Elem Feti solver Corotational Mortar Rom Math
      Dec Threads linpa Sfem paral Problems solver Corotational Driver Hetero Timers Comm Material Util getopt)
 
 IF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
@@ -457,7 +456,7 @@ IF(CREATE_DSO)
    ADD_LIBRARY(femlib main.C HgIdentity.C)
    # ADD_LIBRARY(femlib EXCLUDE_FROM_ALL main.C HgIdentity.C)
    target_link_libraries(femlib Parser
-       Driver Elem Feti HelmAxi solver Corotational Mortar Rom Math
+       Driver Elem Feti solver Corotational Mortar Rom Math
        Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Util getopt Parser
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
    SET_TARGET_PROPERTIES(femlib

@@ -9,8 +9,6 @@ HelmAxiTri6.C
 HelmAxiTri.C
 Line2AxiSommer.C
 LineAxiSommer.C
-MDAxiData.C
-MDAxiDesc.C
 MPCData.C
 quad8aximas.f
 quad8axistif1.f
@@ -29,10 +27,7 @@ tri6axistif1.f
 tri6axistif2.f
 trig3shape.f
 trig6shape.f
-triggaussq.f 
-FetiHAxi.d/DistrComplexVector.C     FetiHAxi.d/GCRC.C    FetiHAxi.d/GMRESDCV.C
-FetiHAxi.d/DistrComplexVectorSet.C  FetiHAxi.d/GCRDCV.C  FetiHAxi.d/MPCSolver.C
-FetiHAxi.d/FetiHAxi.C               FetiHAxi.d/GMRESC.C)
+triggaussq.f )
 TARGET_LINK_LIBRARIES(HelmAxi Eigen3::Eigen)
 
 SET(INC_DIR ..)

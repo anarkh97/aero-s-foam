@@ -305,18 +305,6 @@ TRAIL [a-zA-Z]*
 
 "PIEC"[a-zA-Z]*|"piec"[a-zA-Z]*    { return PIECEWISE; }
 
-"AXIHDIR"|"axihdir"                { return AXIHDIR; }
-
-"AXIHNEU"|"axihneu"                { return AXIHNEU; }
-
-"AXINUMMODES"|"axinummodes"        { return AXINUMMODES; }
-
-"AXINUMSLICES"|"axinumslices"      { return AXINUMSLICES; }
-
-"AXIHSOMMER"|"axihsommer"          { return AXIHSOMMER; }
-
-"AXIMPC"|"aximpc"                  { return AXIMPC; }
-
 "ELSCATT"[a-zA-Z]*|"elscatt"[a-zA-Z]* { return ELSCATTERER; }
 
 "FFP"|"ffp"                        {return FFP; }

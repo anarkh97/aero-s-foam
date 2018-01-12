@@ -705,50 +705,6 @@ include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE     := HelmAxiLib
-LOCAL_CPP_FEATURES := rtti exceptions
-LOCAL_CPPFLAGS   := -D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DMORTAR_LOCALNUMBERING -DSOWER_SURFS -DMAP_MIN_MEMORY -DUSE_ACME -DCONTACT_NO_MPI -DCONTACT_NO_EXODUS_OUTPUT -DCONTACT_DEBUG_PRINT_LEVEL=0 -DUSE_EIGEN3 -DUSE_EIGEN3_AUTODIFF -DEIGEN_QUATERNIONBASE_PLUGIN=\"Element.d/MpcElement.d/QuaternionBasePlugin.h\" -D__LINUX -fpermissive -fPIC
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/.. $(LOCAL_PATH)/../Acme.d/search $(LOCAL_PATH)/../Acme.d/enforcement $(LOCAL_PATH)/../../eigen
-LOCAL_SRC_FILES  := ../HelmAxi.d/coefFourier.C \
-	../HelmAxi.d/FourierDescrip.C \
-	../HelmAxi.d/FourierHelmBCs.C \
-	../HelmAxi.d/FourierProbTyp.C \
-	../HelmAxi.d/HelmAxiQuad8.C \
-	../HelmAxi.d/HelmAxiQuad.C \
-	../HelmAxi.d/HelmAxiTri6.C \
-	../HelmAxi.d/HelmAxiTri.C \
-	../HelmAxi.d/Line2AxiSommer.C \
-	../HelmAxi.d/LineAxiSommer.C \
-	../HelmAxi.d/MDAxiData.C \
-	../HelmAxi.d/MDAxiDesc.C \
-	../HelmAxi.d/MPCData.C \
-	../HelmAxi.d/quad8aximas.f \
-	../HelmAxi.d/quad8axistif1.f \
-	../HelmAxi.d/quad8axistif2.f \
-	../HelmAxi.d/quad8shape.f \
-	../HelmAxi.d/quadaximas.f \
-	../HelmAxi.d/quadaxistif1.f \
-	../HelmAxi.d/quadaxistif2.f \
-	../HelmAxi.d/ScatterData.C \
-	../HelmAxi.d/StaticTimersFetiHAxi.C \
-	../HelmAxi.d/tri3aximas.f \
-	../HelmAxi.d/tri3axistif1.f \
-	../HelmAxi.d/tri3axistif2.f \
-	../HelmAxi.d/tri6aximas.f \
-	../HelmAxi.d/tri6axistif1.f \
-	../HelmAxi.d/tri6axistif2.f \
-	../HelmAxi.d/trig3shape.f \
-	../HelmAxi.d/trig6shape.f \
-	../HelmAxi.d/triggaussq.f \
-	../HelmAxi.d/FetiHAxi.d/DistrComplexVector.C \
-	../HelmAxi.d/FetiHAxi.d/GCRC.C \
-	../HelmAxi.d/FetiHAxi.d/GMRESDCV.C \
-	../HelmAxi.d/FetiHAxi.d/DistrComplexVectorSet.C \
-	../HelmAxi.d/FetiHAxi.d/GCRDCV.C \
-	../HelmAxi.d/FetiHAxi.d/MPCSolver.C \
-	../HelmAxi.d/FetiHAxi.d/FetiHAxi.C \
-	../HelmAxi.d/FetiHAxi.d/GMRESC.C
-
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)

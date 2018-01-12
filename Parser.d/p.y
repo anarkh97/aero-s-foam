@@ -76,7 +76,7 @@
 
 %token ACTUATORS ADJOINTBASIS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE ARUBBERMAT 
 %token AUGMENT AUGMENTTYPE AUXILIARY AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU ALLOWMECHANISMS
-%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED ANDESCLR ANDESCQR ANDESBETAB ANDESALPHA ANDESBETAM AUGMENTED
+%token AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED ANDESCLR ANDESCQR ANDESBETAB ANDESALPHA ANDESBETAM AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION CONTACT
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
@@ -129,9 +129,6 @@
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 %token NPMAX BSSPLH PGSPLH
 
-%type <complexFDBC> AxiHD
-%type <complexFNBC> AxiHN
-%type <axiMPC>   AxiLmpc
 %type <bclist>   BCDataList IDisp6 TBCDataList PBCDataList AtdDirScatterer AtdNeuScatterer IDisp6Pita IVel6Pita
 %type <bclist>   DirichletBC NeumanBC TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
 %type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem 
@@ -319,12 +316,6 @@ Component:
         { if(domain->setComplexDirichlet($1->n,$1->d) < 0) return -1; }
         | IComplexDirichletBC
         | IComplexDirichletBCSweep
-        | AxiHDir
-        | AxiHNeu
-        | AxiNumModes
-        | AxiNumSlices
-        | AxiHSommer
-        | AxiMPC
         | BinarySpec
         | AtdDirScatterer
         { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; }
@@ -1858,77 +1849,6 @@ FarFieldPatternDirs:
            domain->setFFP($2);
         }
         ;
-AxiHDir:
-        AXIHDIR NewLine Float Float NewLine Float Float Float NewLine
-        { if(fourHelmBC == 0) fourHelmBC = new FourierHelmBCs();
-          fourHelmBC->setConst(DComplex($3,$4));
-          fourHelmBC->setDir($6, $7, $8);
-        }
-        | AxiHDir AxiHD
-        { fourHelmBC->addDirichlet($2); }
-	;
-AxiHD:
-        Integer NewLine
-        { $$ = FDBC($1-1); }
-	;
-AxiHNeu:
-        AXIHNEU NewLine Float Float NewLine Float Float Float NewLine
-        { if(fourHelmBC == 0) fourHelmBC = new FourierHelmBCs();
-          fourHelmBC->setConst(DComplex($3,$4));
-          fourHelmBC->setDir($6, $7, $8);
-        }
-        | AxiHNeu AxiHN
-        { fourHelmBC->addNeuman($2); }
-	;
-AxiHN:
-        Integer Integer NewLine
-        { $$ = FNBC($1-1, $2-1); }
-        | Integer Integer Integer NewLine
-        { $$ = FNBC($1-1, $2-1, $3-1); }
-	;
-AxiNumModes:
-        AXINUMMODES Integer NewLine
-        {
-          if(fourHelmBC == 0) fourHelmBC = new FourierHelmBCs();
-          fourHelmBC->setModes($2);
-          domain->solInfo().setProbType(SolverInfo::AxiHelm);
-        }
-	;
-AxiNumSlices:
-        AXINUMSLICES Integer NewLine
-        {
-          if(fourHelmBC == 0) fourHelmBC = new FourierHelmBCs();
-          fourHelmBC->setSlices($2);
-        }
-	;
-AxiHSommer:
-        AXIHSOMMER NewLine Integer NewLine Float Float NewLine
-        { if(fourHelmBC == 0) fourHelmBC = new FourierHelmBCs();
-          fourHelmBC->setSomType($3);
-          fourHelmBC->setSurf($5, $6);
-        }
-        | AxiHSommer AxiHSData
-	;
-AxiHSData:
-        Integer Integer NewLine
-        { fourHelmBC->addSommer(new LineAxiSommer($1-1, $2-1)); }
-        | Integer Integer Integer NewLine
-        { fourHelmBC->addSommer(new Line2AxiSommer($1-1, $2-1, $3-1)); }
-	;
-AxiMPC:
-        AXIMPC NewLine
-        { if( globalMPCs== NULL) globalMPCs = new MPCData(); }
-        | AxiMPC AxiLmpc
-        { globalMPCs->addMPC($2); }
-	;
-AxiLmpc:
-        Integer Float Float Integer NewLine
-        { $$ = MPC($1-1, $2, $3, $4, DComplex(1.0,0.0), 0.0, 0.0, 0.0); }
-        | Integer Float Float Integer Float Float NewLine
-        { $$ = MPC($1-1, $2, $3, $4, DComplex($5,$6) , 0.0, 0.0, 0.0); }
-        | Integer Float Float Integer Float Float Float Float Float NewLine
-        { $$ = MPC($1-1, $2, $3, $4, DComplex($5,$6) , $7, $8, $9); }
-	;
 ReadModeInfo:
 	Integer EIGEN FNAME Integer NewLine
         { domain->solInfo().readInModes[$1] = ModalParams(ModalParams::Eigen, $3, $4); }

@@ -33,10 +33,6 @@
 #include <Paral.d/MDNLDynam.h>
 #include <Paral.d/MDTemp.h>
 #include <Paral.d/MDModal.h>
-#include <HelmAxi.d/FourierDescrip.h>
-#include <HelmAxi.d/FourierProbTyp.h>
-#include <HelmAxi.d/FourierHelmBCs.h>
-#include <HelmAxi.d/MDAxiDesc.h>
 #include <Driver.d/GeoSource.h>
 #include <Dec.d/dec.h>
 #include <Parser.d/DecInit.h>
@@ -822,7 +818,7 @@ int main(int argc, char** argv)
  // Make TOPDOM/DEC input file and exit from fem
  if(topFlag >= 0) {
    if(topFlag == 5 || topFlag == 6)
-	 domain->makeAxiTopFile(topFlag,fourHelmBC->numSlices);
+	   fprintf(stderr," ... Using removed HelmAXI commands.\n");
    else if(domain->probType() == SolverInfo::Top) {
 	 fprintf(stderr," ... Memory to Parse       %14.3f Mb\n",
 			 times.memoryParse/oneMegaByte);
@@ -988,11 +984,6 @@ int main(int argc, char** argv)
 			 }
 		   }
 		   eigenSolver->solve();
-	   }
-	   break;
-	 case SolverInfo::AxiHelm: {
-		 MDAxiDesc fDescr(domain, fourHelmBC, globalMPCs, globalScatter);
-		 fDescr.solve();
 	   }
 	   break;
 	 case SolverInfo::Static: {
@@ -1468,13 +1459,6 @@ int main(int argc, char** argv)
 		 double mass = domain->computeStructureMass();
 		 fprintf(stderr," ... Structure mass = %13.7g ...\n",mass);
 	 domain->makeTopFile(topFlag);
-	   }
-	   break;
-	 case SolverInfo::AxiHelm:
-	   {
-		 FourierStatic fDescr(domain, fourHelmBC);
-		 FourierSolver fSolver(&fDescr);
-		 fSolver.solve();
 	   }
 	   break;
 	 case SolverInfo::PodRomOffline:

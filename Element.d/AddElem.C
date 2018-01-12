@@ -288,16 +288,11 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele->setCategory(Element::Structural);
        break;
      case 15: case 1515:
-#ifdef USE_EIGEN3
        if(nnodes == 3 || (nnodes == 4 && n[2] == n[3]))
          ele = new (ba) FelippaShell(n);
        else 
          ele = new (ba) FelippaShellX2(n);
        ele->setCategory(Element::Structural);
-#else
-       std::cerr << " *** ERROR: Element type 15 requires AERO-S configured with the Eigen library. Exiting...\n";
-       exit(-1);
-#endif 
        break;
      case 16:
        if(nnodes == 3) {
@@ -432,27 +427,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) QuadRadiation(n);
        ele->setCategory(Element::Thermal);
        break;
-     case 59:
-       ele = new (ba) HelmAxiTri6(n);
-       ele->setCategory(Element::Acoustic);
-       break;
-     case 60:
-       ele = new (ba) HelmAxiQuad(n);
-       ele->setCategory(Element::Acoustic);
-       break;
-     case 61:
-       ele = new (ba) HelmAxiTri(n);
-       ele->setCategory(Element::Acoustic);
-       break;
-     case 62:
-       ele = new (ba) HelmAxiQuad8(n);
-       ele->setCategory(Element::Acoustic);
-       break;
      case 63:
        ele = new (ba) HelmLagQuadGal(nnodes,n);
        ele->setCategory(Element::Acoustic);
        break;
-#ifdef USE_EIGEN3
      case 65:
        ele = new (ba) RigidTwoNodeTrussWithMass(n);
        ele->setCategory(Element::Structural);
@@ -481,12 +459,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) RigidSolid(nnodes,n);
        ele->setCategory(Element::Structural);
        break;
-#endif
      case 72:
        ele = new (ba) Brick20(n);
        ele->setCategory(Element::Structural);
        break;
-#ifdef USE_EIGEN3
      case 73:
        ele = new (ba) RigidThreeNodeShell(n);
        ele->setCategory(Element::Structural);
@@ -511,7 +487,6 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) PointPlaneDistanceConstraintElement(n);
        ele->setCategory(Element::Structural);
        break;
-#endif
      case 80:
        ele = new (ba) ConnectedTri(n);
        ele->setCategory(Element::Structural);
@@ -631,12 +606,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) HelmSpectralIsoParamHexa(nnodes,n);
        ele->setCategory(Element::Acoustic);
        break;
-#ifdef USE_EIGEN3
      case 106:
        ele = new (ba) RigidBeamWithMass(n,1);
        ele->setCategory(Element::Structural);
        break;
-#endif
      case 108:
        ele = new (ba) HelmSpectralIsoParamQuad(nnodes,n);
        ele->setCategory(Element::Acoustic);
@@ -649,7 +622,6 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) TwoNodeTrussF(n);
        ele->setCategory(Element::Structural);
        break;
-#ifdef USE_EIGEN3
      case 113:
        ele = new (ba) RotationBlockerConstraint(n, 2, 1);
        ele->setCategory(Element::Structural);
@@ -866,7 +838,6 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) PointVariPlaneSegmentDistanceConstraintElement(n);
        ele->setCategory(Element::Structural);
        break;
-#endif
      case 128:
        ele = new (ba) NLMembrane4(n);
        ele->setCategory(Element::Structural);

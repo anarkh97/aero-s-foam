@@ -610,7 +610,7 @@ PolygonSet::getAxiSommerElem(int *map, SommerElement **se) {
 SommerElement *
 PolyLine2::getAxiElem(int *map)
 {
- return new LineAxiSommer(map[n[0]], map[n[1]]);
+    throw std::logic_error("Axi Helm is not supported anymore");
 }
 
 PolyLine2::PolyLine2(int n1, int n2)

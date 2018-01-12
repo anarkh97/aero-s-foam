@@ -57,6 +57,8 @@ public :
 	Connectivity* altReverse(float *w = 0);
 	template <class B, class AB>
 	Connectivity* transcon(BaseConnectivity<B,AB>* tc) const;
+	template <class B, class AB>
+	Connectivity transcon(const BaseConnectivity<B,AB>& tc) const;
 
 	template <class B, class AB>
 	Connectivity* altTranscon(const BaseConnectivity<B,AB>& tc) const;
@@ -131,6 +133,7 @@ public:
 	 */
 	Connectivity(const Elemset &els, Connectivity *nodeToElem);
 	Connectivity(const Connectivity&) = default;
+	Connectivity(Connectivity &&) = default;
 	size_t write(BinFileHandler& f);
 	size_t writeg(BinFileHandler& f);
 	size_t read(FILE* f);
@@ -189,6 +192,8 @@ public:
 
 	bool isDiagonal() const; // returns true if each target is only connected to itself
 	Connectivity *modify();
+	/// \brief Create a similar connectivity with a self connection for nodes that did not have one.
+	Connectivity withSelfConnection() const;
 	Connectivity *modifyAlt();
 	void combine(Connectivity *con2, int *&cmap, int *cmap2);  // adds con2 to this
 	// adds all the entries in cmap (of size addSize)to each of the line in the current connectivity specified by entries in cmap
@@ -382,6 +387,64 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc)
 		}
 	}
 	return new Connectivity(size, std::move(np), std::move(ntg));
+}
+
+// Important NOTE: transcon cannot be called with the tc == this if tc is
+// an Implicit Connectivity!!!
+template<typename A, class Accessor>
+template<class B, class AB>
+Connectivity BaseConnectivity<A,Accessor>::transcon(const BaseConnectivity<B,AB>& tc) const
+{
+	int i,j,k;
+
+	// First find the biggest target so we can size arrays correctly
+	int tgmax=-1;
+
+	int size = csize(); //Accessor<A>::getSize(static_cast<A*>(this));
+	for(i = 0; i < tc.csize(); ++i)
+		for(j = 0; j < tc.num(i); ++j)
+			tgmax = std::max(tgmax, tc[i][j]);
+	tgmax++; // Important adjustment
+
+	// Now we can size the array that flags if a target has been visited
+	std::vector<int>flags(tgmax, -1);
+
+	// Compute the new pointers
+	std::vector<int> np(size+1);
+	int cp = 0;
+	for(i = 0; i < size; ++i) {
+		np[i] = cp;
+		int nTg =  num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
+		auto tg = (*this)[i]; //Accessor<A>::getData(static_cast<A*>(this), i);
+		for(j = 0; j < nTg; ++j) {
+			int intermed = tg[j];
+			for(k = 0; k < tc.num(intermed); ++k)
+				if(flags[tc[intermed][k]] != i) {
+					flags[tc[intermed][k]] = i;
+					cp ++;
+				}
+		}
+	}
+	np[size] = cp;
+
+	// Now allocate and fill the new target
+	flags.assign(tgmax, -1);
+	std::vector<int> ntg(cp);
+	cp = 0;
+	for(i = 0; i < size; ++i) {
+		int nTg = num(i); //Accessor<A>::getNum(static_cast<A*>(this), i);
+		auto tg = (*this)[i]; //Accessor<A>::getData(static_cast<A*>(this), i);
+		for(j = 0; j < nTg; ++j) {
+			int intermed = tg[j];
+			for (k = 0; k < tc.num(intermed); ++k)
+				if(flags[tc[intermed][k]] != i) {
+					flags[tc[intermed][k]] = i;
+					ntg[cp] = tc[intermed][k];
+					cp ++;
+				}
+		}
+	}
+	return { size, std::move(np), std::move(ntg) };
 }
 
 template<typename A, class Accessor>

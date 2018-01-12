@@ -128,4 +128,4 @@ search/Zoltan_Interface.C
 SET(INC_DIR ..)
 
 INCLUDE_DIRECTORIES( ${INC_DIR} )
-
+TARGET_LINK_LIBRARIES(Acme Eigen3::Eigen)

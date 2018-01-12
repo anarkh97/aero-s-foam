@@ -67,5 +67,7 @@ SCMatrix.d/fpdlapiv.f        SCMatrix.d/fpslapiv.f
 SCMatrix.d/fpdlapv2.f        SCMatrix.d/fpslapv2.f    SCMatrix.d/ilasrt2.f
 SCMatrix.d/SCBaseMatrix.C
 SCMatrix.d/SCIntMatrix.C
-SCMatrix.d/SCDoubleMatrix.C BLAS.h)
+SCMatrix.d/SCDoubleMatrix.C BLAS.h
+        Blockwise/BlockDiagonalMatrix.cpp Blockwise/BlockDiagonalMatrix.h
+        Blockwise/BlockProduct.cpp Blockwise/BlockProduct.h )
 TARGET_LINK_LIBRARIES(Math Eigen3::Eigen)

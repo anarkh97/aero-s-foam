@@ -1063,7 +1063,7 @@ Connectivity::trim(Connectivity *marker)
 				ntrg[count++] = (*this)[i][j];
 	}
 	nptr[size] = count;
-	return new Connectivity(size, nptr, ntrg, std::vector<float>());
+	return new Connectivity(size, std::move(nptr), std::move(ntrg), std::vector<float>());
 }
 
 // PJSA: modify a connectivity to insert connection between each target and itself 
@@ -1089,6 +1089,27 @@ Connectivity::modify()
 	}
 	nptr[size] = count;
 	return new Connectivity(size, nptr, ntrg);
+}
+
+Connectivity
+Connectivity::withSelfConnection() const
+{
+	auto ntrg = std::vector<int>{};
+	auto nptr = std::vector<int>{};
+	ntrg.reserve(size+target.size());
+	nptr.reserve(pointer.size());
+	for(int i = 0; i < size; ++i) {
+		nptr.push_back(ntrg.size());
+		bool hasSelf = false;
+		for(int j = pointer[i]; j < pointer[j+1]; ++j) {
+			hasSelf |= target[j] == i;
+			ntrg.push_back(target[j]);
+		}
+		if(!hasSelf)
+			ntrg.push_back(i);
+	}
+	nptr.push_back(ntrg.size());
+	return { size, std::move(nptr), std::move(ntrg) };
 }
 
 // this one is to remove connection with self

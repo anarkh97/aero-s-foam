@@ -1,9 +1,9 @@
 PROJECT (FEM)
 
-cmake_minimum_required(VERSION 3.1  FATAL_ERROR)
+cmake_minimum_required(VERSION 3.5  FATAL_ERROR)
 enable_language(Fortran)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake" "/usr/local/include/eigen3/cmake/")
 
 # pjsa trying to build statically linked executable
 #set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic

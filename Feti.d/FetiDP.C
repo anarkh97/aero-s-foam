@@ -61,7 +61,8 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
                                          std::vector<std::unique_ptr<GenSolver<Scalar>>> sysMatrices,
                                          GenSparseMatrix<Scalar> **sysSparse,
                                          Rbm **, bool _rbmFlag, bool _geometricRbms, int _verboseFlag)
-	: GenFetiSolver<Scalar>(_nsub, _sd, threadManager->numThr(), _verboseFlag), internalR(_nsub), internalC(_nsub), internalWI(_nsub)
+	: GenFetiSolver<Scalar>(_nsub, _sd, threadManager->numThr(), _verboseFlag),
+	  internalR(_nsub), internalC(_nsub), internalWI(_nsub)
 {
 
 	// Compute memory used by FETI Solver
@@ -510,11 +511,11 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		// Find out which bodies are connected together by mpcs
 		// a collection of inter-connected bodies is referred to as a group
 		Connectivity *subToMpc = this->mpcToSub_primal->reverse();
-		Connectivity *bodyToMpc = bodyToSub->transcon(subToMpc);
-		Connectivity *mpcToBody = bodyToMpc->reverse();
-		Connectivity *bodyToBodyTmp = bodyToMpc->transcon(mpcToBody);
-		Connectivity *bodyToBody = bodyToBodyTmp->modify();
-		compStruct renumber = bodyToBody->renumByComponent(1);  // 1 = sloan renumbering
+		Connectivity bodyToMpc = bodyToSub->transcon(*subToMpc);
+		Connectivity *mpcToBody = bodyToMpc.reverse();
+		Connectivity bodyToBodyTmp = bodyToMpc.transcon(*mpcToBody);
+		Connectivity bodyToBody = bodyToBodyTmp.withSelfConnection();
+		compStruct renumber = bodyToBody.renumByComponent(1);  // 1 = sloan renumbering
 		nGroups = renumber.numComp;
 		if(nGroups < nBodies) { // at least one multi-body group exists
 			mbgflag = true;
@@ -535,10 +536,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		if(renumber.xcomp) delete [] renumber.xcomp;
 		if(renumber.renum) delete [] renumber.renum;
 		delete subToMpc;
-		delete bodyToMpc;
 		delete mpcToBody;
-		delete bodyToBodyTmp;
-		delete bodyToBody;
 	}
 	if(!mbgflag) { // one body per group
 		groupToSub = bodyToSub;
@@ -626,10 +624,10 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
 		// assemble global Zstar matrix for each body
 		FullM **globalZstar = new FullM * [nGroups];
-		int *zRow = new int[nGroups];
-		int *zRowDim = new int[nGroups];
-		int *zColDim = new int[nGroups];
-		int *zColOffset = new int[nBodies];
+		std::vector<int> zRow(nGroups);
+		std::vector<int> zRowDim(nGroups);
+		std::vector<int> zColDim(nGroups);
+		std::vector<int> zColOffset(nBodies);
 		int zColDim1 = (this->sd && this->nsub > 0) ? this->subdomains[0]->zColDim() : 0;  // (6 for 3D, 3 for 2D)
 #ifdef DISTRIBUTED
 		zColDim1 = this->fetiCom->globalMax(zColDim1);  // enforce it to be the same
@@ -687,12 +685,14 @@ GenFetiDPSolver<Scalar>::makeKcc()
 				int startRow = zRowDim[subGroup] - groupToMpc->num(subGroup);
 				this->subdomains[iSub]->addMPCsToGlobalZstar(globalZstar[subGroup], startRow, zColOffset[subBody], zColDim1);
 			}
+			if(this->glNumMpc_primal > 0) {
+				int subBody = (*subToBody)[this->subdomains[iSub]->subNum()][0];
+				this->subdomains[iSub]->setBodyRBMoffset(zColOffset[subBody]);
+			}
 		}
-		if(this->glNumMpc_primal > 0) execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::setBodyRBMoffset, zColOffset);
-		delete [] zColOffset;
 		if(groupToMpc) delete groupToMpc;
 
-		int *groupProc = new int[nGroups];
+		std::vector<int> groupProc(nGroups);
 #ifdef DISTRIBUTED
 		for(int i = 0; i < nGroups; ++i) {
 			this->fetiCom->globalSum(zRowDim[i]*zColDim[i], globalZstar[i]->data());
@@ -731,10 +731,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
 		if(verboseFlag) filePrint(stderr, " ... total number of GRBMs = %5d  ...\n", ngrbms);
 
-		delete [] groupProc;
-		delete [] zRow;
-		delete [] zRowDim;
-		delete [] zColDim;
 		for(int i = 0; i < nGroups; ++i) delete globalZstar[i];
 		delete [] globalZstar;
 
@@ -813,7 +809,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 						if(this->subdomains[i]->isEdgeNeighbor(iNeighb) &&
 						   this->subdomains[i]->edgeDofs[iNeighb].count())
 							n++;
-				int *elem = new int[n];
+				std::vector<int> elem(n);
 				for(n = 0; n < nc; n++)
 					elem[n] = (*subToCorner)[s][n];
 				if (fetiInfo->augmentimpl == FetiInfo::Primal) {
@@ -828,7 +824,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 				}
 //        coarseDomain->addElem(s, 0, subToCorner->num(s), (*subToCorner)[s]); // 0 is a "matrix" element
 				pointer[s] = n;
-				coarseDomain->addElem(s,0,n,elem);
+				coarseDomain->addElem(s,0,n,elem.data());
 			}
 
 			if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
@@ -2623,14 +2619,6 @@ GenFetiDPSolver<Scalar>::addMpcRHS(int iMPC, Scalar *fcstar) const
  int myNum = this->glSubToLoc[(*this->mpcToSub_primal)[iMPC][0]];
  if(myNum >= 0)
    fcstar[dof] += this->subdomains[myNum]->getMpcRhs_primal(iMPC);
-}
-
-template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::setBodyRBMoffset(int iSub, int *zColOffset)
-{
-  int subBody = (*subToBody)[this->subdomains[iSub]->subNum()][0];
-  this->subdomains[iSub]->setBodyRBMoffset(zColOffset[subBody]);
 }
 
 template<class Scalar>

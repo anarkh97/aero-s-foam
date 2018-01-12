@@ -490,7 +490,6 @@ public:
 	void cctSolveMpc(GenDistrVector<Scalar> &v) const;
 	void getLocalMpcForces(int iSub, double *mpcLambda);
 private:
-	void setBodyRBMoffset(int iSub, int *zColOffset);
 	void addMpcRHS(int iMPC, Scalar *singleC) const;
 	void wetInterfaceComms();  // coupled_dph
 	void computeLocalWaveNumbers();

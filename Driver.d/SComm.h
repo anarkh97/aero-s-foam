@@ -13,10 +13,12 @@ template<class Scalar> class GenSubDomain;
 class SComm
 {
  public:
-  int locSubNum;     // when running in distributed mode
-  int *glSubToLocal; // mapping for distributed mode
+  int locSubNum;     //!< when running in distributed mode
+  int *glSubToLocal; //!< mapping for distributed mode
 
-  BaseSub **neighb;  // pointers to neighbors
+protected:
+  BaseSub **neighb;  //!< pointers to neighbors --- Not really used
+public:
   int *remoteId;     // id of this subdomain in the corresponding neighbor
   int numNeighb;     // Number of neighbors with shared nodes
   int *subNums;      // identification numbers of neighbors with shared nodes
@@ -41,6 +43,8 @@ class SComm
     GenSubDomain<Scalar> *getNeighb(int i) {
       return static_cast<GenSubDomain<Scalar> *>(neighb[i]);
     }
+
+	int neighborIndex(int i) const { return subNums[i]; }
 
   bool isLocal(int iSub);  // PJSA 6-3-04
 
@@ -96,16 +100,16 @@ class SComm
   const int* neighbsT(DofType type) const { return SubNums[type]; }
 
   // standard (boundary) dofs helper functions
-  int stdDofNb(int i) { return boundDofT(std,i); }
-  int stdDofNb(int i, int j) { return boundDofT(std,i,j); }
+  int stdDofNb(int i) const { return boundDofT(std,i); }
+  int stdDofNb(int i, int j) const { return boundDofT(std,i,j); }
 
   // mpc helper functions
-  int mpcNb(int i) { return boundDofT(mpc,i); }
-  int mpcNb(int i, int j) { return boundDofT(mpc,i,j); }
+  int mpcNb(int i) const { return boundDofT(mpc,i); }
+  int mpcNb(int i, int j) const { return boundDofT(mpc,i,j); }
 
   // wet interface helper functions
-  int wetDofNb(int i) { return boundDofT(wet,i); }
-  int wetDofNb(int i, int j) { return boundDofT(wet,i,j); }
+  int wetDofNb(int i) const { return boundDofT(wet,i); }
+  int wetDofNb(int i, int j) const { return boundDofT(wet,i,j); }
 
   // all helper function
   const int *allBoundDofs() const {  return (SharedDOFs[all]->numConnect() > 0) ? (*SharedDOFs[all])[0] : 0; }

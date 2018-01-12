@@ -6,6 +6,7 @@
 #define FEM_FETUSUB_H
 #include <vector>
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 #include <Math.d/matrix.h>
 #include <Utils.d/GlobalToLocalMap.h>
@@ -296,6 +297,9 @@ public:
 	virtual const Scalar *getQtKpBt() const = 0;
 	virtual void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const = 0;
 
+	/// \brief Generate the B matrices for the problem
+	void makeBs();
+
 	void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray
 	void makeLocalMpcToMpc();
 	void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);
@@ -435,7 +439,8 @@ protected:
 	std::unique_ptr<GenCuCSparse<Scalar>> Krw;
 	mutable std::vector<Scalar> localw;
 
-
+	Eigen::SparseMatrix<double> B, Bw;
+	Eigen::SparseMatrix<Scalar> Bm, Bc;
 };
 
 #endif //FEM_FETUSUB_H

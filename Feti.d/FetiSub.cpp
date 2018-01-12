@@ -2,6 +2,7 @@
 // Created by Michel Lesoinne on 12/6/17.
 //
 #include <complex>
+#include <Eigen/Sparse>
 #include <Utils.d/dofset.h>
 #include "FetiSub.h"
 #include <Driver.d/Mpc.h>
@@ -188,6 +189,59 @@ void FetiBaseSub::makeLocalToGroupMPC(Connectivity *groupToMPC)
 			if(localMpcID > -1) localToGroupMPC[localMpcID] = i;
 		}
 	}
+}
+
+template <typename Scalar>
+void FetiSub<Scalar>::makeBs() {
+	std::vector<Eigen::Triplet<double>> b;
+	std::vector<Eigen::Triplet<double>> bw;
+	std::vector<Eigen::Triplet<Scalar>> bm;
+	std::vector<Eigen::Triplet<Scalar>> bc;
+	std::vector<bool> mpcFlag(numMPC, true);
+	for (int iDof = 0; iDof < totalInterfSize; ++iDof) {
+		switch (boundDofFlag[iDof]) {
+			case 0: // note B is used with a - sign.
+				b.emplace_back(allBoundDofs[iDof], iDof, 1.0);
+				break;
+			case 1:  // wet interface Note Bw is used with a + sign
+				bw.emplace_back(-1 - allBoundDofs[iDof], iDof, 1.0);
+				break;
+			case 2: { // dual mpc or contact. Note Bm is used with a - sign.
+				int locMpcNb = -1 - allBoundDofs[iDof];
+				if (mpcFlag[locMpcNb]) {
+					const auto &m = mpc[locMpcNb];
+					for (int k = 0; k < m->nterms; k++) {
+						int ccdof = (m->terms)[k].ccdof;
+						bm.emplace_back(ccdof, iDof, (m->terms)[k].coef);
+					}
+					mpcFlag[locMpcNb] = false;
+				}
+			}
+				break;
+		}
+	}
+	B.resize(localLen(), totalInterfSize);
+	B.setFromTriplets(b.begin(), b.end());
+	Bw.resize(numWIdof, totalInterfSize);
+	Bw.setFromTriplets(bw.begin(), bw.end());
+	Bm.resize(localLen(), totalInterfSize);
+	Bm.setFromTriplets(bm.begin(), bm.end());
+
+	mpcFlag.assign(numMPC, true);
+	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+		int locMpcNb = scomm->mpcNb(i);
+		if (mpcFlag[locMpcNb]) {
+			const auto &m = mpc[locMpcNb];
+			for (int k = 0; k < m->nterms; k++) {
+				int dof = (m->terms)[k].dof;
+				if ((dof >= 0) && (cornerMap[dof] >= 0))
+					bc.emplace_back(cornerMap[dof], scomm->mapT(SComm::mpc, i), (m->terms)[k].coef);
+			}
+			mpcFlag[locMpcNb] = false;
+		}
+	}
+	Bc.resize(Src->numCol(), totalInterfSize);
+	Bc.setFromTriplets(bc.begin(), bc.end());
 }
 
 template<typename Scalar>
@@ -1112,32 +1166,9 @@ FetiSub<Scalar>::multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const Vect
 	Eigen::Matrix<Scalar, Eigen::Dynamic, 1> force(localLen());
 
 	force = -fr;
+	force -= B*lambda;
+	force -= Bm*lambda;
 
-	//add the lambda contribution to fr, ie: -fr + Br^(s)^T lambda
-	bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool) * numMPC);
-	for (int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
-	for (int iDof = 0; iDof < totalInterfSize; ++iDof) {
-		switch (boundDofFlag[iDof]) {
-			case 0:
-				force[allBoundDofs[iDof]] -= lambda[iDof];
-				break;
-			case 1:  // wet interface
-				localw[-1 - allBoundDofs[iDof]] = lambda[iDof];
-				break;
-			case 2: { // dual mpc or contact
-				int locMpcNb = -1 - allBoundDofs[iDof];
-				if (mpcFlag[locMpcNb]) {
-					const auto &m = mpc[locMpcNb];
-					for (int k = 0; k < m->nterms; k++) {
-						int ccdof = (m->terms)[k].ccdof;
-						if (ccdof >= 0) force[ccdof] -= lambda[iDof] * (m->terms)[k].coef;
-					}
-					mpcFlag[locMpcNb] = false;
-				}
-			}
-				break;
-		}
-	}
 
 	if (numWIdof) Krw->multAddNew(localw.data(), force.data());  // coupled_dph: force += Krw * uw
 
@@ -1169,20 +1200,9 @@ FetiSub<Scalar>::multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const Vect
 		if (Kcw_mpc) Kcw_mpc->multSubWI(localw.data(), fcstar.data());
 	}
 
+	VectorView<Scalar> fcs(fcstar.data(), fcstar.size());
 	// add Bc^(s)^T lambda
-	for (int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
-	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
-		int locMpcNb = scomm->mpcNb(i);
-		if (mpcFlag[locMpcNb]) {
-			const auto &m = mpc[locMpcNb];
-			for (int k = 0; k < m->nterms; k++) {
-				int dof = (m->terms)[k].dof;
-				if ((dof >= 0) && (cornerMap[dof] >= 0))
-					fcstar[cornerMap[dof]] += lambda[scomm->mapT(SComm::mpc, i)] * (m->terms)[k].coef;
-			}
-			mpcFlag[locMpcNb] = false;
-		}
-	}
+	fcs += Bc*lambda;
 }
 
 template<class Scalar>

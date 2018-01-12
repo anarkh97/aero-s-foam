@@ -296,6 +296,8 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 	this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
 	this->times.memoryDV += memoryUsed();
 
+	threadManager->callParal(this->nsub, [this](int iSub) { this->subdomains[iSub]->makeBs(); });
+
 	paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::initMpcStatus);
 
 	t6 += getTime();

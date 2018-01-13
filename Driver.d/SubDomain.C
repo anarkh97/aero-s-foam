@@ -914,104 +914,6 @@ GenSubDomain<Scalar>::fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar 
 
 }
 
-template<class Scalar>
-void
-GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const {
-	Scalar v[this->Ave.cols()];
-	VectorView<Scalar> t(v, this->Ave.cols(), 1);
-	VectorView<Scalar> l(localvec, this->Ave.rows(), 1);
-
-	// localvec += Br^T * interfvec
-	multAddBrT(interfvec, localvec);
-
-	// Primal augmentation 072513 JAT
-	if (this->Ave.cols() > 0) {
-		t = this->Eve.transpose() * l;
-		l.noalias() -= this->Ave * t;
-	}
-
-	// localvec = Krr^-1 * localvec
-	if (s) s->reSolve(localvec);
-
-	// Extra orthogonaliztion for stability  072216 JAT
-	if (this->Ave.cols() > 0) {
-		t = this->Ave.transpose() * l;
-		l.noalias() -= this->Ave * t;
-	}
-
-	// interfvec = Br * localvec
-	multBr(localvec, interfvec, uc);
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, const Scalar *interfvec,
-                                         FSCommPattern<Scalar> *wiPat) const {
-	auto &localw = this->localw;
-	// localvec += Br^T * interfvec
-	multAddBrT(interfvec, localvec, localw.data());
-
-	// solve for localvec
-	if (s) s->reSolve(localvec);
-
-	if (numWIdof) {
-		int i, j;
-		// compute Kww uw for this subdomain
-		for (i = 0; i < numWIdof; ++i) localw_copy[i] = 0.0;
-		this->Kww->mult(localw.data(), localw_copy.data());  // localw_copy = - Kww * uw
-
-// JLchange
-// Fsi elements are already added to Kww, communication via neighborKww is no longer needed
-		// compute Kww uw to send to neighbors
-		if (solInfo().solvercntl->fetiInfo.fsi_corner == 0)
-			for (i = 0; i < scomm->numT(SComm::fsi); ++i) {
-				if (subNumber != scomm->neighbT(SComm::fsi, i)) {
-					FSSubRecInfo<Scalar> sInfo = wiPat->getSendBuffer(subNumber, scomm->neighbT(SComm::fsi, i));
-					for (j = 0; j < numNeighbWIdof[i]; ++j) sInfo.data[j] = 0.0;
-					neighbKww->multAdd(localw.data(), sInfo.data, glToLocalWImap, neighbGlToLocalWImap[i]);
-				} else {
-					neighbKww->multAdd(localw.data(), localw_copy.data(), glToLocalWImap);
-				}
-			}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::fetiBaseOpCoupled2(const Scalar *uc, const Scalar *localvec, Scalar *interfvec,
-                                         FSCommPattern<Scalar> *wiPat, const Scalar *fw) const {
-	// coupled_dph
-	if (numWIdof) {
-		int i, j;
-		auto &Krw = this->Krw;
-		auto &Kcw = this->Kcw;
-		auto &Kcw_mpc = this->Kcw_mpc;
-
-// JLchange
-// Fsi elements are already added to Kww, communication via neighborKww is no longer needed
-		if (solInfo().solvercntl->fetiInfo.fsi_corner == 0)
-			for (i = 0; i < scomm->numT(SComm::fsi); ++i) {
-				if (subNumber != scomm->neighbT(SComm::fsi, i)) {
-					FSSubRecInfo<Scalar> rInfo = wiPat->recData(scomm->neighbT(SComm::fsi, i), subNumber);
-					for (j = 0; j < numWIdof; ++j) localw_copy[j] += rInfo.data[j] / wweight[j];
-				}
-			}
-
-		if (Krw) Krw->transposeMultSubNew(localvec, localw_copy.data()); // localw_copy -= Krw^T * localvec
-		int numCDofs = nCoarseDofs();
-		Scalar *ucLocal = (Scalar *) dbg_alloca(sizeof(Scalar) * numCDofs);
-		for (i = 0; i < numCDofs; ++i) {
-			if (cornerEqNums[i] > -1) ucLocal[i] = uc[cornerEqNums[i]];
-			else ucLocal[i] = 0.0;
-		}
-		if (Kcw) Kcw->trMult(ucLocal, localw_copy.data(), -1.0, 1.0);  // localw_copy -= Kcw^T Bc uc
-		if (Kcw_mpc) Kcw_mpc->transposeMultSubtractWI(ucLocal, localw_copy.data());
-		if (fw) for (i = 0; i < numWIdof; ++i) localw_copy[i] += fw[i];  // localw_copy += fw
-	}
-
-	// interfvec = Br * localvec
-	multBr(localvec, interfvec, uc, localw_copy.data());
-}
 
 template<class Scalar>
 void
@@ -1306,23 +1208,23 @@ void
 GenSubDomain<Scalar>::constructKww() {
 	if (numWIdof) {
 		this->localw.resize(numWIdof);
-		localw_copy.resize(numWIdof);
+		this->localw_copy.resize(numWIdof);
 		this->Kww = std::make_unique<GenDBSparseMatrix<Scalar>>(nodeToNode, dsa, wetInterfaceMap.data());
 		this->Kww->zeroAll();
 		memK += (this->Kww) ? this->Kww->size() : 0;
 		memK += (this->Krw) ? this->Krw->size() : 0;
 	}
 
-	if (!neighbKww && numWIdof)
-		neighbKww = new GenFsiSparse<Scalar>(domain->getFSI(), domain->getNumFSI(), glToLocalWImap);
+	if (!this->neighbKww && numWIdof)
+		this->neighbKww = std::make_unique<GenFsiSparse<Scalar>>(domain->getFSI(), domain->getNumFSI(), glToLocalWImap);
 
 #ifdef HB_COUPLED_PRECOND
-																															if(isMixedSub & neighbKww!=0) {
+	if(isMixedSub & this->neighbKww!=0) {
     double time0, time1  =0;
     time0 = -getTime();
     // extract the "local" fsi from neighbKww (i.e. the fsi between subdomain nodes/dofs)
     fprintf(stderr," ... Create localFsiToNodes connectivity in sub %2d\n",subNumber);
-    Connectivity* localFsiToNodes = neighbKww->makeLocalFsiToNodes(glToLocalWImap, glToLocalNode, &globalNMax); //need to use globalNMax ???
+    Connectivity* localFsiToNodes = this->neighbKww->makeLocalFsiToNodes(glToLocalWImap, glToLocalNode, &globalNMax); //need to use globalNMax ???
     double dt0 = (time0 + getTime())/1000.;
     // create a precNodeToNode for preconditioner
     // -> create an "extended" elemToNode by merging "std" elemToNode with FsiToNode
@@ -1349,21 +1251,21 @@ GenSubDomain<Scalar>::constructKww() {
 template<class Scalar>
 void
 GenSubDomain<Scalar>::scaleAndSplitKww() {
-	if (neighbKww != 0)
-		neighbKww->scale(cscale_factor);
+	if (this->neighbKww != 0)
+		this->neighbKww->scale(cscale_factor);
 
-	if (neighbKww != 0)
-		neighbKww->split(glToLocalWImap, wweight);
+	if (this->neighbKww != 0)
+		this->neighbKww->split(glToLocalWImap, wweight);
 
 #ifdef HB_COUPLED_PRECOND
-																															if(solInfo().isCoupled & isMixedSub & neighbKww!=0 & KiiSparse!=0) {
+	if(solInfo().isCoupled & isMixedSub & this->neighbKww!=0 & KiiSparse!=0) {
    fprintf(stderr," ... Assemble localFsi into Kii in sub %2d\n",subNumber);
    if(solInfo().getFetiInfo().splitLocalFsi) {
-     neighbKww->splitLocalFsi(glToLocalWImap, wweight);
-     neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
+     this->neighbKww->splitLocalFsi(glToLocalWImap, wweight);
+     this->neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
    } else {
      fprintf(stderr," ... No local Fsi spliting in sub %2d\n",subNumber);
-     neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode, kSumWI);
+     this->neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode, kSumWI);
    }
  }
 #endif
@@ -1375,17 +1277,17 @@ void
 GenSubDomain<Scalar>::reScaleAndReSplitKww() {
 	double rescale_factor = cscale_factor / prev_cscale_factor;
 
-	if (neighbKww != 0)
-		neighbKww->scale(rescale_factor);
+	if (this->neighbKww != 0)
+		this->neighbKww->scale(rescale_factor);
 
-	if (neighbKww != 0)
+	if (this->neighbKww != 0)
 		if (solInfo().getFetiInfo().fsi_scaling == FetiInfo::kscaling)
-			neighbKww->split(glToLocalWImap, wweight);
+			this->neighbKww->split(glToLocalWImap, wweight);
 
 #ifdef HB_COUPLED_PRECOND
-																															if(solInfo().isCoupled & isMixedSub & neighbKww!=0) {
+	if(solInfo().isCoupled & isMixedSub & this->neighbKww!=0) {
    fprintf(stderr," ... Assemble localFsi into Kii in sub %2d\n",subNumber);
-   if(KiiSparse) neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
+   if(KiiSparse) this->neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
  }
 #endif
 	prev_cscale_factor = cscale_factor;
@@ -1505,7 +1407,7 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array) {
 
 	if (internalLen > 0) {
 #ifdef HB_COUPLED_PRECOND
-																																if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
+		if(solInfo().isCoupled & isMixedSub & this->neighbKww!=0)
        Kib = new GenCuCSparse<Scalar>(precNodeToNode, dsa, glBoundMap, glInternalMap);
     else
 #endif
@@ -1516,7 +1418,7 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array) {
 
 	if ((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) && (internalLen > 0)) {
 #ifdef HB_COUPLED_PRECOND
-																																if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
+		if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
       KiiSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(precNodeToNode, dsa, glInternalMap, *sinfo.solvercntl->fetiInfo.kii_cntl, KiiSparse.get());
     else
 #endif
@@ -3619,7 +3521,6 @@ GenSubDomain<Scalar>::initialize() {
 	localCCtsolver = 0;
 	localCCtsparse = 0;
 	diagCCt = 0;
-	neighbKww = 0;
 	deltaFwi = 0;
 	M = 0;
 	Muc = 0;
@@ -3693,10 +3594,6 @@ GenSubDomain<Scalar>::~GenSubDomain() {
 	}
 	if (deltaFwi) {
 		delete[] deltaFwi;
-	}
-	if (neighbKww) {
-		delete neighbKww;
-		neighbKww = 0;
 	}
 	if (wweight) {
 		delete[] wweight;
@@ -5680,7 +5577,7 @@ GenSubDomain<Scalar>::multMCoupled1(Scalar *localrhs, GenStackVector<Scalar> **u
 
 	if (numWIdof) {
 		int i, j;
-		for (i = 0; i < numWIdof; ++i) { localw[i] = localw_copy[i] = 0; }
+		for (i = 0; i < numWIdof; ++i) { localw[i] = this->localw_copy[i] = 0; }
 
 		for (i = 0; i < numWInodes; ++i) {
 			//DofSet thisDofSet = wetInterfaceDofs[i]^DofSet(DofSet::Helm);
@@ -5699,9 +5596,9 @@ GenSubDomain<Scalar>::multMCoupled1(Scalar *localrhs, GenStackVector<Scalar> **u
 			if (subNumber != scomm->neighbT(SComm::fsi, i)) {
 				FSSubRecInfo<Scalar> sInfo = wiPat->getSendBuffer(subNumber, scomm->neighbT(SComm::fsi, i));
 				for (j = 0; j < numNeighbWIdof[i]; ++j) sInfo.data[j] = 0.0;
-				neighbKww->multAdd(localw.data(), sInfo.data, glToLocalWImap, neighbGlToLocalWImap[i], true);
+				this->neighbKww->multAdd(localw.data(), sInfo.data, glToLocalWImap, neighbGlToLocalWImap[i], true);
 			} else {
-				neighbKww->multAdd(localw.data(), localw_copy.data(), glToLocalWImap, true);
+				this->neighbKww->multAdd(localw.data(), this->localw_copy.data(), glToLocalWImap, true);
 			}
 		}
 	}
@@ -5729,7 +5626,7 @@ GenSubDomain<Scalar>::multMCoupled2(Scalar *localrhs, FSCommPattern<Scalar> *wiP
 		for (i = 0; i < scomm->numT(SComm::fsi); ++i) {
 			if (subNumber != scomm->neighbT(SComm::fsi, i)) {
 				FSSubRecInfo<Scalar> rInfo = wiPat->recData(scomm->neighbT(SComm::fsi, i), subNumber);
-				for (j = 0; j < numWIdof; ++j) localw_copy[j] += rInfo.data[j] / wweight[j];
+				for (j = 0; j < numWIdof; ++j) this->localw_copy[j] += rInfo.data[j] / wweight[j];
 			}
 		}
 
@@ -5742,7 +5639,7 @@ GenSubDomain<Scalar>::multMCoupled2(Scalar *localrhs, FSCommPattern<Scalar> *wiP
 				int thisNode = wetInterfaceNodes[i];
 				int cdof = c_dsa->locate(thisNode, DofSet::Helm);
 				int dof = dsa->locate(thisNode, DofSet::Helm);
-				localrhs[cdof] -= localw_copy[wetInterfaceMap[dof]] / omega2;
+				localrhs[cdof] -= this->localw_copy[wetInterfaceMap[dof]] / omega2;
 			}
 		}
 	}
@@ -5966,7 +5863,6 @@ GenSubDomain<Scalar>::addSommer(SommerElement *ele) {
 }
 
 #include "LOpsImpl.h"
-#include "BOpsImpl.h"
 #include "RbmOpsImpl.h"
 
 template

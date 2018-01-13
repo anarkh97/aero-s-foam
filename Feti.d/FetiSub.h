@@ -14,6 +14,7 @@
 #include <Solvers.d/Rbm.h>
 #include <Math.d/MpcSparse.h>
 #include <Math.d/DBSparseMatrix.h>
+#include <Math.d/FsiSparse.h>
 
 class FSCommStructure;
 template <typename Scalar>
@@ -285,12 +286,12 @@ public:
 	 * @param interfvec
 	 */
 	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const = 0;
-	virtual void fetiBaseOp(Scalar *uc,GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const = 0;
+	void fetiBaseOp(Scalar *uc,GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const;
 	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const = 0;
-	virtual void fetiBaseOpCoupled2(const Scalar *uc, const Scalar *localvec, Scalar *interfvec,
-	                                FSCommPattern<Scalar> *wiPat, const Scalar *fw = nullptr) const = 0;
-	virtual void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, const Scalar *interfvec,
-	                                FSCommPattern<Scalar> *wiPat) const = 0;
+	void fetiBaseOpCoupled2(const Scalar *uc, const Scalar *localvec, Scalar *interfvec,
+	                        FSCommPattern<Scalar> *wiPat, const Scalar *fw = nullptr) const;
+	void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, const Scalar *interfvec,
+	                                FSCommPattern<Scalar> *wiPat) const;
 	virtual void multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const = 0;
 	virtual void multQtKBt(int glNumMPC, const Scalar *G, Scalar *QtKBtG, Scalar alpha=1.0, Scalar beta=1.0) const = 0;
 	virtual int numRBM() const = 0;
@@ -346,6 +347,10 @@ public:
 	void addRstar_gT(Scalar *u, GenVector<Scalar> &beta) const; // u += R_g*beta
 	// (R_g^T*R_g) matrix assembly
 	void assembleRtR(GenFullM<Scalar> &RtRu);
+
+	// new B operators
+	void multBr(const Scalar *localvec, Scalar *interfvec, const Scalar *uc = 0, const Scalar *uw = 0) const;
+	void multAddBrT(const Scalar *interfvec, Scalar *localvec, Scalar *uw = nullptr) const;
 
 	void multAddCT(const Scalar *interfvec, Scalar *localvec) const;
 	void multC(const Scalar *localvec, Scalar *interfvec) const;
@@ -432,6 +437,8 @@ protected:
 
 	mutable std::vector<Scalar> fcstar; // TODO Move this out!
 
+	std::unique_ptr<GenFsiSparse<Scalar>> neighbKww;
+	mutable std::vector<Scalar> localw_copy;
 	// coupled_dph
 	std::unique_ptr<GenDBSparseMatrix<Scalar>> Kww;
 	std::unique_ptr<GenCuCSparse<Scalar>>      Kcw;

@@ -1207,6 +1207,133 @@ FetiSub<Scalar>::multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const Vect
 
 template<class Scalar>
 void
+FetiSub<Scalar>::multAddBrT(const Scalar *interfvec, Scalar *localvec, Scalar *uw) const {
+	VectorView<Scalar> locF(localvec, localLen());
+	VectorView<const Scalar> lambda(interfvec, totalInterfSize);
+	VectorView<Scalar> w(uw, numWIdof);
+	locF += B*lambda;
+	w -= Bw*lambda;
+	locF += Bm*lambda;
+
+	// coupled_dph: localvec -= Krw * uw
+	if (Krw) Krw->multAddNew(uw, localvec);
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::multBr(const Scalar *localvec, Scalar *interfvec, const Scalar *_uc, const Scalar *uw) const {
+	VectorView<const Scalar> loc_u(localvec, localLen());
+	VectorView<Scalar> u_interf(interfvec, totalInterfSize);
+	VectorView<const Scalar> w(uw, numWIdof);
+	VectorView<const Scalar> uc(_uc, Src->numCol());
+
+	u_interf = B.transpose()*loc_u;
+	u_interf -= Bw.transpose()*w;
+	u_interf += Bc.transpose()*uc;
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const {
+	Scalar v[this->Ave.cols()];
+	VectorView<Scalar> t(v, this->Ave.cols(), 1);
+	VectorView<Scalar> l(localvec, this->Ave.rows(), 1);
+
+	// localvec += Br^T * interfvec
+	multAddBrT(interfvec, localvec);
+
+	// Primal augmentation 072513 JAT
+	if (this->Ave.cols() > 0) {
+		t = this->Eve.transpose() * l;
+		l.noalias() -= this->Ave * t;
+	}
+
+	// localvec = Krr^-1 * localvec
+	if (s) s->reSolve(localvec);
+
+	// Extra orthogonaliztion for stability  072216 JAT
+	if (this->Ave.cols() > 0) {
+		t = this->Ave.transpose() * l;
+		l.noalias() -= this->Ave * t;
+	}
+
+	// interfvec = Br * localvec
+	multBr(localvec, interfvec, uc);
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, const Scalar *interfvec,
+                                         FSCommPattern<Scalar> *wiPat) const {
+	auto &localw = this->localw;
+	// localvec += Br^T * interfvec
+	multAddBrT(interfvec, localvec, localw.data());
+
+	// solve for localvec
+	if (s) s->reSolve(localvec);
+
+	if (numWIdof) {
+		int i, j;
+		// compute Kww uw for this subdomain
+		for (i = 0; i < numWIdof; ++i) localw_copy[i] = 0.0;
+		this->Kww->mult(localw.data(), localw_copy.data());  // localw_copy = - Kww * uw
+
+		// compute Kww uw to send to neighbors
+//		if (getFetiInfo().fsi_corner == 0)
+		// TODO Bring this back with wweight
+		if(false)
+			for (i = 0; i < scomm->numT(SComm::fsi); ++i) {
+				if (subNum() != scomm->neighbT(SComm::fsi, i)) {
+					FSSubRecInfo<Scalar> sInfo = wiPat->getSendBuffer(subNum(), scomm->neighbT(SComm::fsi, i));
+					for (j = 0; j < numNeighbWIdof[i]; ++j) sInfo.data[j] = 0.0;
+					neighbKww->multAdd(localw.data(), sInfo.data, glToLocalWImap, neighbGlToLocalWImap[i]);
+				} else {
+					neighbKww->multAdd(localw.data(), localw_copy.data(), glToLocalWImap);
+				}
+			}
+	}
+}
+
+
+template<class Scalar>
+void
+FetiSub<Scalar>::fetiBaseOpCoupled2(const Scalar *uc, const Scalar *localvec, Scalar *interfvec,
+                                         FSCommPattern<Scalar> *wiPat, const Scalar *fw) const {
+	// coupled_dph
+	if (numWIdof) {
+		int i, j;
+		auto &Krw = this->Krw;
+		auto &Kcw = this->Kcw;
+		auto &Kcw_mpc = this->Kcw_mpc;
+
+
+//		// TODO Bring this back with wweight
+//		if (getFetiInfo().fsi_corner == 0)
+//			for (i = 0; i < scomm->numT(SComm::fsi); ++i) {
+//				if (subNum() != scomm->neighbT(SComm::fsi, i)) {
+//					FSSubRecInfo<Scalar> rInfo = wiPat->recData(scomm->neighbT(SComm::fsi, i), subNum());
+//					for (j = 0; j < numWIdof; ++j) localw_copy[j] += rInfo.data[j] / wweight[j];
+//				}
+//			}
+
+		if (Krw) Krw->transposeMultSubNew(localvec, localw_copy.data()); // localw_copy -= Krw^T * localvec
+		int numCDofs = Src->numCol();
+		Scalar *ucLocal = (Scalar *) dbg_alloca(sizeof(Scalar) * numCDofs);
+		for (i = 0; i < numCDofs; ++i) {
+			if (cornerEqNums[i] > -1) ucLocal[i] = uc[cornerEqNums[i]];
+			else ucLocal[i] = 0.0;
+		}
+		if (Kcw) Kcw->trMult(ucLocal, localw_copy.data(), -1.0, 1.0);  // localw_copy -= Kcw^T Bc uc
+		if (Kcw_mpc) Kcw_mpc->transposeMultSubtractWI(ucLocal, localw_copy.data());
+		if (fw) for (i = 0; i < numWIdof; ++i) localw_copy[i] += fw[i];  // localw_copy += fw
+	}
+
+	// interfvec = Br * localvec
+	multBr(localvec, interfvec, uc, localw_copy.data());
+}
+
+template<class Scalar>
+void
 FetiSub<Scalar>::multFcB(Scalar *p) {
 	int i, k;
 	if (Src->numCol() == 0) return;

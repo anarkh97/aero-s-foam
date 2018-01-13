@@ -83,10 +83,10 @@ protected:
 public:
 	ThreadManager(int);	// Create a Manager with n threads
 	~ThreadManager();
-	void execTasks(int, TaskDescr **); // run the n given Tasks
-	void execTasks(int, TaskDescr *);
-	void execParal(int, TaskDescr **);
-	void execParal(int, TaskDescr *);
+	void execTasks(int, TaskDescr **td); //!< run the n given Tasks td[i]->run()
+	void execTasks(int, TaskDescr *td); //!< run for i in [0, n) td->runFor(i);
+	void execParal(int, TaskDescr **td);
+	void execParal(int, TaskDescr *td);
 	void execTimedParal(DistTimer &, int, TaskDescr **);
 	void execTimedParal(DistTimer &, int, TaskDescr *);
 

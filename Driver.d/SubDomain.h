@@ -359,7 +359,6 @@ public:
 	// computes localvec = K-1 (localvec -B interfvec)
 	// then    interfvec = B^T localvec and sends local data to neighbors
 	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const override;
-	void fetiBaseOp(Scalar *uc,GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const;
 	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const override;
 	void interfaceJump(Scalar *iterfData, FSCommPattern<Scalar> *vPat) const;
 	void sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const override;
@@ -533,9 +532,6 @@ public:
 protected:
 	double *mpcForces;
 
-
-	GenFsiSparse<Scalar> *neighbKww;
-	mutable std::vector<Scalar> localw_copy;
 	Scalar Bcx(int i);
 	void makeBcx_scalar();
 	Scalar *deltaFwi;
@@ -549,10 +545,6 @@ public:
 	void addSingleFsi(LMPCons *localFsi);
 	void constructKww();
 	void constructKcw();
-	void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, const Scalar *interfvec,
-	                        FSCommPattern<Scalar> *wiPat) const override;
-	void fetiBaseOpCoupled2(const Scalar *uc, const Scalar *localvec, Scalar *interfvec,
-	                        FSCommPattern<Scalar> *wiPat, const Scalar *fw = nullptr) const override;
 	void multKbbCoupled(const Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag = true);
 	void scaleAndSplitKww();
 	void reScaleAndReSplitKww();
@@ -593,10 +585,6 @@ public:
 
 	void pade(GenStackVector<Scalar> *sol,  GenStackVector<Scalar> **u, double *h, double x);
 	void setRebuildPade(bool _rebuildPade) { rebuildPade = _rebuildPade; }
-
-	// new B operators
-	void multAddBrT(const Scalar *interfvec, Scalar *localvec, Scalar *uw = 0) const;
-	void multBr(const Scalar *localvec, Scalar *interfvec, const Scalar *uc = 0, const Scalar *uw = 0) const;
 
 	int *l2g;
 	void makeLocalToGlobalDofMap();

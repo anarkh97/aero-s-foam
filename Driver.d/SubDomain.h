@@ -99,9 +99,8 @@ public:
 	const FetiInfo &getFetiInfo() const override { return solInfo().getFetiInfo(); }
 
 //	int *glCrnGroup;    // group of each corner node (global numbering)
-	DofSet **boundaryDOFs = nullptr;
+	std::vector<std::vector<DofSet>> boundaryDOFs;
 	int nCDofs = -1;
-	int *edgeDofSizeTmp = nullptr;   // XXXX
 	double k_f = 0.0, k_p = 0.0, k_s = 0.0, k_s2 = 0.0;  // wave numbers for FETI-DPH for this subdomain
 	double *neighbK_p = nullptr, *neighbK_s = nullptr, *neighbK_s2 = nullptr, *neighbK_f = nullptr;  // neighbors' wave numbers
 	double Ymod, Prat = 0.0, Dens = 0.0, Thih = 0.0, Sspe = 0.0;  // Young's modulus, Poisson ration, density, thickness, speed of sound
@@ -260,7 +259,6 @@ protected:
 	bool *wiMaster = nullptr;
 	int numFsiNeighb;
 	int *fsiNeighb = nullptr;
-	bool isMixedSub = false;
 	int edgeQindex[2] = {-1, -1};
 	double prev_cscale_factor;
 
@@ -417,8 +415,6 @@ public:
 	void makeZstarAndR(double *centroid);  // makes Zstar and R
 	void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd, int augOffset,
 	                     Connectivity *subToEdge);
-//  void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd);
-	void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
 	void deleteKcc();
 	void multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
 	void getQtKQ(GenSolver<Scalar> *s) override;

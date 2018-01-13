@@ -1522,18 +1522,11 @@ BaseSub::~BaseSub()
   if(dualToBoundary) { delete [] dualToBoundary; dualToBoundary = 0; }
   if(boundDofFlag) { delete [] boundDofFlag; boundDofFlag = 0; }
   if(neighbNumGRBMs) { delete [] neighbNumGRBMs; neighbNumGRBMs = 0; }
-  if(edgeDofSizeTmp) { delete [] edgeDofSizeTmp; edgeDofSizeTmp = 0; }//HB can we delete it just after getKccDofs?
-//  if(glToLocalNode) { delete [] glToLocalNode; glToLocalNode = 0; }
   if(bcx) { delete [] bcx; bcx = 0; }
   if(bcxC) { delete [] bcxC; bcxC = 0; }
   if(vcx) { delete [] vcx; vcx = 0; }
   if(acx) { delete [] acx; acx = 0; }
   if(faceIsSafe) { delete [] faceIsSafe; faceIsSafe = 0; }
-  if(boundaryDOFs) {
-    for(int i=0; i<scomm->numNeighb; ++i) 
-      if(boundaryDOFs[i]) { delete [] boundaryDOFs[i]; boundaryDOFs[i] = 0; }
-    delete [] boundaryDOFs; boundaryDOFs = 0;
-  }
 
   if(neighbK_p) { delete [] neighbK_p; neighbK_p = 0; }
   if(neighbK_s) { delete [] neighbK_s; neighbK_s = 0; }

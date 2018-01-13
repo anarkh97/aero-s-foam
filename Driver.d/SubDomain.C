@@ -469,14 +469,14 @@ void
 GenSubDomain<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 	int iSub, iNode, i;
 	Connectivity &sharedNodes = *(scomm->sharedNodes); // contains both dry boundary nodes and wet interface nodes
-	boundaryDOFs = new DofSet *[scomm->numNeighb];
+	boundaryDOFs.resize(scomm->numNeighb);
 	int nbdofs = 0, nwdofs = 0;
 	int nbneighb = 0, nwneighb = 0;
 	bool isbneighb, iswneighb;
 	bool isCoupled = solInfo().isCoupled;
 	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
 		FSSubRecInfo<int> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
-		boundaryDOFs[iSub] = new DofSet[sharedNodes.num(iSub)];
+		boundaryDOFs[iSub].resize(sharedNodes.num(iSub));
 		isbneighb = false;
 		iswneighb = false;
 		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
@@ -2251,14 +2251,11 @@ GenSubDomain<Scalar>::makeAverageEdgeVectors() {
 	int iSub, iNode, nE = 0;
 	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
 		edgeDofSize[iSub] = 0;
-		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) { edgeDofSize[iSub] = numR; }
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) { edgeDofSize[iSub] = numR; }
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) { edgeDofSize[iSub] = numR; }
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) { edgeDofSize[iSub] = numR; }
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Yrot)) { edgeDofSize[iSub] = numR; }
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Zrot)) { edgeDofSize[iSub] = numR; }
-		}
+		if(std::find_if(boundaryDOFs[iSub].begin(), boundaryDOFs[iSub].end(),
+		                [](auto dofs) {
+			                return dofs.contains(DofSet::XYZdisp | DofSet::XYZrot);
+		                }) != boundaryDOFs[iSub].end())
+			edgeDofSize[iSub] = numR;
 		if (edgeDofSize[iSub] > 0) nE++;
 	}
 
@@ -2353,20 +2350,6 @@ GenSubDomain<Scalar>::makeAverageEdgeVectors() {
 					xyzCoefs[xrOffset++] = (middleNode == iNode) ? sign * 0.0 : 0.0;
 					used = 1;
 				}
-/*
-         if(boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) {
-           xyzList[xrOffset] = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Xrot);
-           xyzCoefs[xrOffset++] = sign; used=1;
-         }
-         if(boundaryDOFs[iSub][iNode].contains(DofSet::Yrot)) {
-           xyzList[xrOffset] = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Yrot);
-           xyzCoefs[xrOffset++] = sign; used=1;
-         }
-         if(boundaryDOFs[iSub][iNode].contains(DofSet::Zrot)) {
-           xyzList[xrOffset] = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Zrot);
-           xyzCoefs[xrOffset++] = sign; used=1;
-         }
-*/
 			}
 
 		}
@@ -2421,64 +2404,6 @@ void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, d
 				int dbc_dof = dbc[k].dofnum;
 				if ((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {
 					mpc[i]->rhs -= mpc[i]->terms[j].coef * dbc[k].val;
-				}
-			}
-		}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
-                                  Connectivity *subToEdge, int mpcOffset) {
-	int numC = numCoarseDofs();
-	cornerEqNums.resize(numC);
-
-	// numbers the corner equations
-	int offset = 0;
-	for (int i = 0; i < numCRN; ++i)
-		offset += cornerEqs->number(glCornerNodes[i], cornerDofs[i].list(), cornerEqNums.data() + offset);
-
-	// number the mpc equations
-	for (int i = 0; i < numMPC_primal; ++i) {
-		int fDof = cornerEqs->firstdof(mpcOffset + localToGlobalMPC_primal[i]);
-		cornerEqNums[offset++] = fDof;
-	}
-
-	// number the augmentation equations
-	if (solInfo().getFetiInfo().augment == FetiInfo::Gs) {
-		int fDof = cornerEqs->firstdof(augOffset + subNumber);
-		for (int i = 0; i < nGrbm; ++i)
-			cornerEqNums[offset++] = fDof + i;
-		for (int iNeighb = 0; iNeighb < scomm->numNeighb; ++iNeighb) {
-			int fDof = cornerEqs->firstdof(augOffset + scomm->subNums[iNeighb]);
-			for (int i = 0; i < neighbNumGRBMs[iNeighb]; ++i)
-				cornerEqNums[offset++] = fDof + i;
-		}
-	} else if (solInfo().getFetiInfo().isEdgeAugmentationOn()) {
-		int iEdgeN = 0;
-		for (int iNeighb = 0; iNeighb < scomm->numNeighb; ++iNeighb) {
-			if (scomm->isEdgeNeighb[iNeighb]) {
-				int fDof = cornerEqs->firstdof(augOffset + (*subToEdge)[subNumber][iEdgeN]);
-				if (isMixedSub) {
-					for (int i = 0; i < edgeDofSize[iNeighb] - edgeDofSizeTmp[iNeighb]; ++i)  // fluid
-						cornerEqNums[offset++] = fDof + i;
-				} else {
-					for (int i = 0; i < edgeDofSize[iNeighb]; ++i)
-						cornerEqNums[offset++] = fDof + i;
-				}
-				iEdgeN++;
-			}
-		}
-		iEdgeN = 0;
-		if (isMixedSub) {
-			for (int iNeighb = 0; iNeighb < scomm->numNeighb; ++iNeighb) {
-				if (scomm->isEdgeNeighb[iNeighb]) {
-					int fDof = cornerEqs->firstdof(augOffset + (*subToEdge)[subNumber][iEdgeN]) +
-					           edgeDofSize[iNeighb] - edgeDofSizeTmp[iNeighb];
-					for (int i = 0; i < edgeDofSizeTmp[iNeighb]; ++i)  // structure
-						cornerEqNums[offset++] = fDof + i;
-					iEdgeN++;
 				}
 			}
 		}
@@ -3327,7 +3252,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 		edgeDofSize.resize(scomm->numNeighb);
 		for (i = 0; i < scomm->numNeighb; ++i) edgeDofSize[i] = 0;
 	}
-	if (!edgeDofSizeTmp) edgeDofSizeTmp = new int[scomm->numNeighb];
+	edgeDofSizeTmp.resize(scomm->numNeighb);
 	// total: total number of augmentaions per sub
 	int total = 0;
 
@@ -3561,15 +3486,15 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 					sinValS = sin(k_s * ddotx);
 					sinValH = sin(k_pFluid * ddotx);
 					cosValH = cos(k_pFluid * ddotx);
-					double *cosVal = new double[numWaves];
-					double *sinVal = new double[numWaves];
+					double cosVal;
+					double sinVal;
 					for (int iW = 0; iW < numWaves; iW++) {
 						if (iW == 0) {
-							cosVal[iW] = cosValP;
-							sinVal[iW] = sinValP;
+							cosVal = cosValP;
+							sinVal = sinValP;
 						} else {
-							cosVal[iW] = cosValS;
-							sinVal[iW] = sinValS;
+							cosVal = cosValS;
+							sinVal = sinValS;
 						}
 						for (int iCS = 0; iCS < numCS; iCS++) {
 							int waveOffset =
@@ -3579,18 +3504,18 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 								else {
 									if (spaceDim == 3) {
 										Q[numdofperNode * (waveOffset + iNode) + 0] =
-											cosVal[iW] * wDir_x[iDir * numWaves + iW];
+											cosVal * wDir_x[iDir * numWaves + iW];
 										Q[numdofperNode * (waveOffset + iNode) + 1] =
-											cosVal[iW] * wDir_y[iDir * numWaves + iW];
+											cosVal * wDir_y[iDir * numWaves + iW];
 										Q[numdofperNode * (waveOffset + iNode) + 2] =
-											cosVal[iW] * wDir_z[iDir * numWaves + iW];
+											cosVal * wDir_z[iDir * numWaves + iW];
 									} else {
 										if (iW == 0) {
-											Q[numdofperNode * (waveOffset + iNode) + 0] = cosVal[iW] * d_x[iDir];
-											Q[numdofperNode * (waveOffset + iNode) + 1] = cosVal[iW] * d_y[iDir];
+											Q[numdofperNode * (waveOffset + iNode) + 0] = cosVal * d_x[iDir];
+											Q[numdofperNode * (waveOffset + iNode) + 1] = cosVal * d_y[iDir];
 										} else {
-											Q[numdofperNode * (waveOffset + iNode) + 0] = cosVal[iW] * t_x[iDir];
-											Q[numdofperNode * (waveOffset + iNode) + 1] = cosVal[iW] * t_y[iDir];
+											Q[numdofperNode * (waveOffset + iNode) + 0] = cosVal * t_x[iDir];
+											Q[numdofperNode * (waveOffset + iNode) + 1] = cosVal * t_y[iDir];
 										}
 									}
 								}
@@ -3600,26 +3525,24 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 								else {
 									if (spaceDim == 3) {
 										Q[numdofperNode * (waveOffset + iNode) + 0] =
-											sinVal[iW] * wDir_x[iDir * numWaves + iW];
+											sinVal * wDir_x[iDir * numWaves + iW];
 										Q[numdofperNode * (waveOffset + iNode) + 1] =
-											sinVal[iW] * wDir_y[iDir * numWaves + iW];
+											sinVal * wDir_y[iDir * numWaves + iW];
 										Q[numdofperNode * (waveOffset + iNode) + 2] =
-											sinVal[iW] * wDir_z[iDir * numWaves + iW];
+											sinVal * wDir_z[iDir * numWaves + iW];
 									} else {
 										if (iW == 0) {
-											Q[numdofperNode * (waveOffset + iNode) + 0] = sinVal[iW] * d_x[iDir];
-											Q[numdofperNode * (waveOffset + iNode) + 1] = sinVal[iW] * d_y[iDir];
+											Q[numdofperNode * (waveOffset + iNode) + 0] = sinVal * d_x[iDir];
+											Q[numdofperNode * (waveOffset + iNode) + 1] = sinVal * d_y[iDir];
 										} else {
-											Q[numdofperNode * (waveOffset + iNode) + 0] = sinVal[iW] * t_x[iDir];
-											Q[numdofperNode * (waveOffset + iNode) + 1] = sinVal[iW] * t_y[iDir];
+											Q[numdofperNode * (waveOffset + iNode) + 0] = sinVal * t_x[iDir];
+											Q[numdofperNode * (waveOffset + iNode) + 1] = sinVal * t_y[iDir];
 										}
 									}
 								}
 							}
 						}
 					}
-					delete[] cosVal;
-					delete[] sinVal;
 				}
 		}
 	}

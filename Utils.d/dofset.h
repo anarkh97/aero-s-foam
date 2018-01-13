@@ -56,10 +56,12 @@ public:
 	// tests if all the given dofs are present
 	int test(int dofs) { return (flags & dofs) == dofs; }
 
-	// see presence of at least one dof
-	bool contains(int dofs) { //fprintf(stderr,"In contains: ");
-		//fprintf(stderr,"flags = %d; ", flags);
-		//fprintf(stderr,"dofs = %d\n", dofs);
+	/** Check presence of at least one dof among a given set.
+	 *
+	 * @param dofs DOFs whose presence should be checked.
+	 * @return Whether any of the dofs are present.
+	 */
+	bool contains(int dofs) {
 		return (flags & dofs) != 0;
 	}
 

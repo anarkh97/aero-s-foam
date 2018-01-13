@@ -998,7 +998,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			t5 += getTime();
 
 			t0 -= getTime();
-			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofs, cornerEqs, augOffset, this->subToEdge, mpcOffset);
+			paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::makeKccDofs, cornerEqs, augOffset, this->subToEdge, mpcOffset);
 			if(KccSparse)
 				for (const auto &subdomain : this->subdomains)
 					KccSparse->add(*subdomain->Kcc, subdomain->getCornerEqNums().data());

@@ -21,7 +21,63 @@ FetiBaseSub::markCornerDofs(int *glCornerDofs) const
 		glCornerDofs[glCornerNodes[i]] |= cornerDofs[i].list();
 }
 
+//template<class Scalar>
+void
+FetiBaseSub::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
+                                  Connectivity *subToEdge, int mpcOffset) {
+	int numC = numCoarseDofs();
+	cornerEqNums.resize(numC);
 
+	// numbers the corner equations
+	int offset = 0;
+	for (int i = 0; i < numCRN; ++i)
+		offset += cornerEqs->number(glCornerNodes[i], cornerDofs[i].list(), cornerEqNums.data() + offset);
+
+	// number the mpc equations
+	for (int i = 0; i < numMPC_primal; ++i) {
+		int fDof = cornerEqs->firstdof(mpcOffset + localToGlobalMPC_primal[i]);
+		cornerEqNums[offset++] = fDof;
+	}
+
+	// number the augmentation equations
+	if (getFetiInfo().augment == FetiInfo::Gs) {
+		int fDof = cornerEqs->firstdof(augOffset + subNum());
+		for (int i = 0; i < nGrbm; ++i)
+			cornerEqNums[offset++] = fDof + i;
+		for (int iNeighb = 0; iNeighb < scomm->numNeighb; ++iNeighb) {
+			int fDof = cornerEqs->firstdof(augOffset + scomm->subNums[iNeighb]);
+			for (int i = 0; i < neighbNumGRBMs[iNeighb]; ++i)
+				cornerEqNums[offset++] = fDof + i;
+		}
+	} else if (getFetiInfo().isEdgeAugmentationOn()) {
+		int iEdgeN = 0;
+		for (int iNeighb = 0; iNeighb < scomm->numNeighb; ++iNeighb) {
+			if (scomm->isEdgeNeighb[iNeighb]) {
+				int fDof = cornerEqs->firstdof(augOffset + (*subToEdge)[subNum()][iEdgeN]);
+				if (isMixedSub) {
+					for (int i = 0; i < edgeDofSize[iNeighb] - edgeDofSizeTmp[iNeighb]; ++i)  // fluid
+						cornerEqNums[offset++] = fDof + i;
+				} else {
+					for (int i = 0; i < edgeDofSize[iNeighb]; ++i)
+						cornerEqNums[offset++] = fDof + i;
+				}
+				iEdgeN++;
+			}
+		}
+		iEdgeN = 0;
+		if (isMixedSub) {
+			for (int iNeighb = 0; iNeighb < scomm->numNeighb; ++iNeighb) {
+				if (scomm->isEdgeNeighb[iNeighb]) {
+					int fDof = cornerEqs->firstdof(augOffset + (*subToEdge)[subNum()][iEdgeN]) +
+					           edgeDofSize[iNeighb] - edgeDofSizeTmp[iNeighb];
+					for (int i = 0; i < edgeDofSizeTmp[iNeighb]; ++i)  // structure
+						cornerEqNums[offset++] = fDof + i;
+					iEdgeN++;
+				}
+			}
+		}
+	}
+}
 void
 FetiBaseSub::setSComm(SComm *sc)
 {

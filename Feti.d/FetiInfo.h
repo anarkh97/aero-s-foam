@@ -178,7 +178,7 @@ class FetiInfo {
                       noEndCorners3, interface3, interface6, ThreeD, noCorners } corners;
     enum AugmentType { none, Gs, Edges, WeightedEdges } augment;
     enum AugmentImplementation { Constraint, Primal } augmentimpl; // JAT 08012013
-    int isEdgeAugmentationOn() { 
+    int isEdgeAugmentationOn() const {
       return (((augment == Edges) || (augment == WeightedEdges)) && ((nGs > 0) || (numdir > 0))) ? 1 : 0; 
     }
     enum RbmType { translation, rotation, all,

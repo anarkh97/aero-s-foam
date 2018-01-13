@@ -107,6 +107,7 @@ public:
 	const std::vector<int> &getCornerNodes() const { return glCornerNodes; }
 	std::vector<int> &getCornerNodes() { return glCornerNodes; }
 	void markCornerDofs(int *glCornerDofs) const;
+	void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
 
 	int numEdgeDofs(int i) const { return edgeDofSize[i]; }
 
@@ -165,11 +166,13 @@ protected:
 	std::vector<int> glCornerNodes; //!< \brief Corner nodes in global numbering.
 	int numCRN = 0;
 	int numCRNdof = 0;
+	std::vector<int> edgeDofSizeTmp;   // XXXX
 	std::vector<int> edgeDofSize;      //<! \brief Number of edge DOF per neighbor.
 	std::vector<int> cornerEqNums; //<! \brief unique equation numbers for subdomain corner dofs
 	std::unique_ptr<ConstrainedDSA> cc_dsa;
 	std::vector<int> ccToC; //!< Mapping from cc_dsa to c_dsa. All indices are >= 0
 	std::vector<int> cToCC; //!< Mapping from c_dsa to cc_dsa. Indices for corner DOFs are < 0.
+	bool isMixedSub = false;
 
 	std::vector<int> weightPlus; ///!< \brief DOF weights (i.e. number of subd sharing that dof) including corner DOFs.
 

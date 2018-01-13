@@ -76,7 +76,7 @@ GenFetiOp<double>::sendInterfRBM(FSCommPattern<double> *rbmPat)
    thisSet.locQGs = new double[numRBM*sd->interfLen()];
    int interfaceLen = sd->interfLen();
    int i,j;
-   double *scale = sd->scaling;
+   const auto &scale = sd->scaling;
    double minScale = DBL_MAX, maxScale = DBL_MIN;
    for(i = 0; i < numRBM; ++i) {
      for(j=0; j< interfaceLen; ++j) {

@@ -555,10 +555,10 @@ GenSubDomain<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 	for (int i = 0; i < stdSharedDOFs->numConnect(); ++i)
 		weight[(*stdSharedDOFs)[0][i]] += 1;
 	if (numWIdof) {
-		wweight = new Scalar[numWIdof];
-		for (i = 0; i < numWIdof; ++i) wweight[i] = 0.0;
+		this->wweight.resize(numWIdof);
+		for (i = 0; i < numWIdof; ++i) this->wweight[i] = 0.0;
 		for (i = 0; i < scomm->lenT(SComm::wet); ++i)
-			wweight[scomm->boundDofT(SComm::wet, i)] += 1.0;
+			this->wweight[scomm->boundDofT(SComm::wet, i)] += 1.0;
 	}
 }
 
@@ -682,58 +682,6 @@ GenSubDomain<Scalar>::applyMpcSplitting() {
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::initScaling() {
-	int i;
-	if (scaling) delete[] scaling;
-	scaling = new Scalar[totalInterfSize];
-	for (i = 0; i < totalInterfSize; ++i) scaling[i] = Scalar(1.0);
-	if (solInfo().getFetiInfo().scaling == FetiInfo::tscaling)
-		for (i = 0; i < scomm->lenT(SComm::std); ++i)
-			scaling[scomm->mapT(SComm::std, i)] = 1.0 / weight[scomm->boundDofT(SComm::std, i)];
-
-	if (solInfo().getFetiInfo().fsi_scaling == FetiInfo::tscaling)
-		for (i = 0; i < scomm->lenT(SComm::wet); ++i)
-			scaling[scomm->mapT(SComm::wet, i)] = 1.0 / wweight[scomm->wetDofNb(i)];
-
-	if (solInfo().getFetiInfo().mpc_precno == FetiInfo::diagCCt)
-		for (i = 0; i < scomm->lenT(SComm::mpc); ++i)
-			scaling[scomm->mapT(SComm::mpc, i)] = 1.0;
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPat) {
-	int iDof = 0;
-	for (int i = 0; i < scomm->numT(SComm::all); ++i) {
-		FSSubRecInfo<Scalar> sInfo = vPat->getSendBuffer(subNumber, scomm->neighbT(SComm::all, i));
-		for (int j = 0; j < scomm->lenT(SComm::all, i); ++j) {
-			switch (boundDofFlag[iDof]) {
-				case 0:
-					scaling[iDof] = sInfo.data[j] = (s) ? s->diag(scomm->boundDofT(SComm::all, i, j)) : 1.0;
-					break;
-				case 1: // wet interface
-					scaling[iDof] = sInfo.data[j] = (this->Kww) ? this->Kww->diag(-1 - scomm->boundDofT(SComm::all, i, j)) : 1.0;
-					break;
-				case 2:  // dual mpc
-					scaling[iDof] = sInfo.data[j] = 1.0;
-					break;
-			}
-			iDof++;
-		}
-	}
-
-	int ndof = localLen();
-	// use the kweight array also for LMPCs stiffness scaling/splitting for the primal method
-	if ((solInfo().getFetiInfo().augment == FetiInfo::WeightedEdges) ||
-	    ((solInfo().getFetiInfo().mpc_scaling == FetiInfo::kscaling) && (numMPC_primal > 0))) {
-		kweight = new Scalar[ndof];  // used for WeightedEdges augmentation
-		for (iDof = 0; iDof < ndof; ++iDof)
-			kweight[iDof] = (s) ? s->diag(iDof) : 1.0;
-	}
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw) const {
 	// Get the trace of the subdomain interfaces
 	int iDof = 0;
@@ -752,150 +700,6 @@ GenSubDomain<Scalar>::fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Sca
 		}
 	}
 }
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::collectScaling(FSCommPattern<Scalar> *vPat) {
-	int offset = 0;
-	int locLen = localLen();
-	//Scalar *kSum = (Scalar *) dbg_alloca(sizeof(Scalar)*locLen);
-	Scalar *kSum = new Scalar[locLen];
-	for (int i = 0; i < locLen; ++i) kSum[i] = 0.0;
-#ifdef HB_COUPLED_PRECOND
-	kSumWI = new Scalar[numWIdof]; //stores the sum of the neighbourg stiffess otherwise 0.0 if not shared
-#else
-	Scalar *kSumWI = (Scalar *) dbg_alloca(numWIdof * sizeof(Scalar));
-#endif
-	bool *wflag = (bool *) dbg_alloca(numWIdof * sizeof(bool)); //HB: to avoid setting wweight multiple times
-	for (int i = 0; i < numWIdof; ++i) {
-		kSumWI[i] = 0.0;
-		wflag[i] = false;
-	}
-
-	int iSub, iDof;
-	for (iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
-		if (subNumber != scomm->neighbT(SComm::all, iSub)) {
-			FSSubRecInfo<Scalar> rInfo = vPat->recData(scomm->neighbT(SComm::all, iSub), subNumber);
-			for (iDof = 0; iDof < scomm->lenT(SComm::all, iSub); ++iDof) {
-				int bdof = scomm->boundDofT(SComm::all, iSub, iDof);
-				if (bdof >= 0)
-					kSum[bdof] += rInfo.data[iDof];
-				else if (boundDofFlag[offset + iDof] == 1)
-					kSumWI[-1 - bdof] += rInfo.data[iDof];
-			}
-		}
-		offset += scomm->lenT(SComm::all, iSub);
-	}
-
-	offset = 0;
-	for (iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
-		FSSubRecInfo<Scalar> rInfo = vPat->recData(scomm->neighbT(SComm::all, iSub), subNumber);
-		for (iDof = 0; iDof < scomm->lenT(SComm::all, iSub); ++iDof) {
-			int bdof = scomm->boundDofT(SComm::all, iSub, iDof);
-			if (bdof >= 0)
-				scaling[offset + iDof] = rInfo.data[iDof] / (scaling[offset + iDof] + kSum[bdof]);
-			else if (boundDofFlag[offset + iDof] == 1) {
-				scaling[offset + iDof] = scaling[offset + iDof] / (scaling[offset + iDof] + kSumWI[-1 - bdof]);
-				if ((solInfo().getFetiInfo().fsi_scaling == FetiInfo::kscaling) & !wflag[-1 - bdof]) {
-					wweight[-1 - bdof] = (1. / scaling[offset + iDof]) / wweight[-1 - bdof];
-					wflag[-1 - bdof] = true;
-				}
-			}
-		}
-		offset += scomm->lenT(SComm::all, iSub);
-	}
-
-	if (solInfo().getFetiInfo().augment == FetiInfo::WeightedEdges) {
-		for (iDof = 0; iDof < locLen; ++iDof)
-			kweight[iDof] += kSum[iDof];
-	}
-	delete[] kSum;
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::fScale(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw) {
-	bool *isShared = (bool *) dbg_alloca(sizeof(bool) * totalInterfSize);
-
-	int iDof, iSub;
-	int offset = 0;
-	for (iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
-		FSSubRecInfo<Scalar> rInfo = vPat->recData(scomm->neighbT(SComm::all, iSub), subNumber);
-		for (iDof = 0; iDof < scomm->lenT(SComm::all, iSub); ++iDof) {
-			int bdof = scomm->boundDofT(SComm::all, iSub, iDof);
-			if (bdof >= 0)
-				locF[bdof] += rInfo.data[iDof];
-			else if (boundDofFlag[offset + iDof] == 1) {
-				if (scomm->neighbT(SComm::all, iSub) != subNumber) { // wet interface
-					locFw[-1 - bdof] += rInfo.data[iDof];
-					isShared[offset + iDof] = true;
-				} else isShared[offset + iDof] = false;
-			}
-		}
-		offset += scomm->lenT(SComm::all, iSub);
-	}
-
-	Scalar *interfF = (Scalar *) dbg_alloca(sizeof(Scalar) * totalInterfSize);
-
-	// Get the trace of the subdomain interfaces
-	for (iDof = 0; iDof < totalInterfSize; ++iDof)
-		if (allBoundDofs[iDof] >= 0)
-			interfF[iDof] = locF[allBoundDofs[iDof]] * scaling[iDof];
-		else if ((boundDofFlag[iDof] == 1) && isShared[iDof]) // wet interface
-			interfF[iDof] = locFw[-1 - allBoundDofs[iDof]] * scaling[iDof];
-
-	for (iDof = 0; iDof < totalInterfSize; ++iDof)
-		if (allBoundDofs[iDof] >= 0)
-			locF[allBoundDofs[iDof]] -= interfF[iDof];
-		else if ((boundDofFlag[iDof] == 1) && isShared[iDof])  // wet interface
-			locFw[-1 - allBoundDofs[iDof]] -= interfF[iDof];
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::sendMpcScaling(FSCommPattern<Scalar> *mpcPat) {
-	auto &mpc = this->mpc;
-	int i, j;
-	diagCCt = new Scalar[numMPC]; // compute weights for mpcs also
-	for (i = 0; i < numMPC; ++i) {
-		diagCCt[i] = 0.0;
-		for (j = 0; j < mpc[i]->nterms; ++j)
-			diagCCt[i] += mpc[i]->terms[j].coef * mpc[i]->terms[j].coef / mpc[i]->k[j]; //HB: for mpc kscaling;
-	}
-
-	int neighb;
-	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
-		if (subNumber != (neighb = scomm->neighbT(SComm::mpc, i))) {
-			FSSubRecInfo<Scalar> sInfo = mpcPat->getSendBuffer(subNumber, neighb);
-			for (j = 0; j < scomm->lenT(SComm::mpc, i); ++j)
-				sInfo.data[j] = diagCCt[scomm->mpcNb(i, j)];
-		}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::collectMpcScaling(FSCommPattern<Scalar> *mpcPat) {
-	int i, j;
-	Scalar *mpcSum = (Scalar *) dbg_alloca(sizeof(Scalar) * numMPC);
-	for (i = 0; i < numMPC; ++i) mpcSum[i] = 0.0;
-	int neighb;
-	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
-		if (subNumber != (neighb = scomm->neighbT(SComm::mpc, i))) {
-			FSSubRecInfo<Scalar> rInfo = mpcPat->recData(neighb, subNumber);
-			for (j = 0; j < scomm->lenT(SComm::mpc, i); ++j)
-				mpcSum[scomm->mpcNb(i, j)] += rInfo.data[j];
-		}
-	}
-	for (i = 0; i < scomm->lenT(SComm::mpc); ++i) {
-		int locMpcNb = scomm->mpcNb(i);
-		if (diagCCt[locMpcNb] + mpcSum[locMpcNb] != 0.0)
-			scaling[scomm->mapT(SComm::mpc, i)] /= (diagCCt[locMpcNb] + mpcSum[locMpcNb]);
-	}
-	delete[] diagCCt;
-	diagCCt = 0;
-}
-
 
 template<class Scalar>
 void
@@ -1036,6 +840,7 @@ GenSubDomain<Scalar>::assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar>
 template<class Scalar>
 void
 GenSubDomain<Scalar>::sendDeltaF(const Scalar *deltaF, FSCommPattern<Scalar> *vPat) {
+	auto &deltaFmpc = this->deltaFmpc;
 	int iDof = 0;
 	for (int i = 0; i < scomm->numT(SComm::all); ++i) {
 		FSSubRecInfo<Scalar> sInfo = vPat->getSendBuffer(subNumber, scomm->neighbT(SComm::all, i));
@@ -1049,7 +854,7 @@ GenSubDomain<Scalar>::sendDeltaF(const Scalar *deltaF, FSCommPattern<Scalar> *vP
 					break;
 				case 1: {  // wet interface
 					int windex = -1 - bdof;
-					sInfo.data[j] = deltaFwi[windex];
+					sInfo.data[j] = this->deltaFwi[windex];
 				}
 					break;
 				case 2: {  // dual mpc or contact
@@ -1068,6 +873,8 @@ double
 GenSubDomain<Scalar>::collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat) {
 	// if there are more than 2 subdomains sharing a mpc define the norm
 	// as (f1 - f2 - f3)^2 = f1^2 + f2^2 + f3^2 - 2f1f2 - 2f1f3 + 2f2f3 --> currently implemented
+	auto &deltaFmpc = this->deltaFmpc;
+
 	Scalar dot = 0;
 	int i, iSub, jDof;
 
@@ -1082,7 +889,7 @@ GenSubDomain<Scalar>::collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> 
 		dot += deltaFmpc[i] * ScalarTypes::conj(deltaFmpc[i]);
 
 	for (i = 0; i < numWIdof; ++i) //HB ... to be checked ...
-		dot += deltaFwi[i] * ScalarTypes::conj(deltaFwi[i]) / wweight[i];
+		dot += this->deltaFwi[i] * ScalarTypes::conj(this->deltaFwi[i]) / this->wweight[i];
 
 	int nbdofs = 0;
 	for (iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
@@ -1255,13 +1062,13 @@ GenSubDomain<Scalar>::scaleAndSplitKww() {
 		this->neighbKww->scale(cscale_factor);
 
 	if (this->neighbKww != 0)
-		this->neighbKww->split(glToLocalWImap, wweight);
+		this->neighbKww->split(glToLocalWImap, this->wweight.data());
 
 #ifdef HB_COUPLED_PRECOND
 	if(solInfo().isCoupled & isMixedSub & this->neighbKww!=0 & KiiSparse!=0) {
    fprintf(stderr," ... Assemble localFsi into Kii in sub %2d\n",subNumber);
    if(solInfo().getFetiInfo().splitLocalFsi) {
-     this->neighbKww->splitLocalFsi(glToLocalWImap, wweight);
+     this->neighbKww->splitLocalFsi(glToLocalWImap, this->wweight);
      this->neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
    } else {
      fprintf(stderr," ... No local Fsi spliting in sub %2d\n",subNumber);
@@ -1282,7 +1089,7 @@ GenSubDomain<Scalar>::reScaleAndReSplitKww() {
 
 	if (this->neighbKww != 0)
 		if (solInfo().getFetiInfo().fsi_scaling == FetiInfo::kscaling)
-			this->neighbKww->split(glToLocalWImap, wweight);
+			this->neighbKww->split(glToLocalWImap, this->wweight.data());
 
 #ifdef HB_COUPLED_PRECOND
 	if(solInfo().isCoupled & isMixedSub & this->neighbKww!=0) {
@@ -1396,13 +1203,16 @@ GenSubDomain<double>::getSRMult(const double *lvec, const double *interfvec, int
 template<class Scalar>
 void
 GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array) {
+	auto &Kib = this->Kib;
+	auto &KiiSparse = this->KiiSparse;
+	auto &KiiSolver = this->KiiSolver;
 	if (glBoundMap) delete[] glBoundMap;
 	glBoundMap = makeBMaps(dof_set_array);
 	if (glInternalMap) delete[] glInternalMap;
 	glInternalMap = makeIMaps(dof_set_array);
 
-	Kbb = std::make_unique<GenDBSparseMatrix<Scalar>>(nodeToNode, dsa, glBoundMap);
-	memPrec += Kbb->size();
+	this->Kbb = std::make_unique<GenDBSparseMatrix<Scalar>>(nodeToNode, dsa, glBoundMap);
+	memPrec += this->Kbb->size();
 	// KHP: 3-26-98 Modified this code to always construct Kib
 
 	if (internalLen > 0) {
@@ -1441,9 +1251,9 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array) {
 template<class Scalar>
 void
 GenSubDomain<Scalar>::rebuildKbb() {
-	Kbb.reset();
-	KiiSparse.reset();
-	Kib.reset();
+	this->Kbb.reset();
+	this->KiiSparse.reset();
+	this->Kib.reset();
 	if (numMPC) makeKbbMpc(); else makeKbb(getCCDSA());
 /*
   GenSparseMatrix<Scalar> *Kas = 0;
@@ -1476,178 +1286,6 @@ GenSubDomain<Scalar>::makeKbbMpc() {
 	makeKbb(c_dsa);
 	// recover
 	std::swap(weight, weight_mpc);
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::multKbb(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag) {
-	// KHP and DJR: 3-26-98
-	// multKbb has been modified to compute subdomain primal residual using
-	// deltaF (in addition to deltaU which is the displacement correction
-	// and of course the lumped or dirichlet preconditioning)
-
-	// If we are computing lumped preconditioner, we compute deltaFi using Kib
-	// but deltaUi is equal to zero. For the dirichlet preconditioner, deltaUi
-	// is computed but deltaFi is set equal to zero.
-
-	// deltaFi = internal primal residual
-	// deltaUi = internal displacement correction
-
-	// boundMap    = from boundary number to subdomain number
-	// internalMap = from internal number to subdomain number
-	// invBoundMap  = from all subdomain dof to a unique boundary number
-	// invInternalMap  =  from all subdomain dof to a unique internal number
-	// allBoundDofs = indices of B, from lambda numbering to numbering of entire
-	//                subdomain
-
-	// dualToBoundary = from lambda numbering directly to boundary numbering
-
-	// Kii = works only on the numbering of the internal dofs
-	// Kbb = works only on the numbering of the boundary dofs
-	// Kib = operates on the boundary numbering and returns with internal numbering
-
-	Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar) * boundLen);
-	Scalar *res = (Scalar *) dbg_alloca(sizeof(Scalar) * boundLen);
-
-	int iDof;
-	for (iDof = 0; iDof < boundLen; ++iDof) {
-		v[iDof] = res[iDof] = 0.0;
-	}
-	// Karim added the following lines. I Don't think they are necessary XML
-	if (deltaF && deltaU)
-		for (iDof = 0; iDof < localLen(); ++iDof)
-			deltaU[iDof] = deltaF[iDof] = 0;
-
-	for (iDof = 0; iDof < totalInterfSize; ++iDof) {
-		v[dualToBoundary[iDof]] += u[iDof] * scaling[iDof];
-		if (deltaU)
-			deltaU[allBoundDofs[iDof]] = -v[dualToBoundary[iDof]];
-	}
-
-	Kbb->mult(v, res);
-
-	Scalar *iDisp = 0; // only allocate if necessary and don't use alloca (too big)
-
-	if ((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) || deltaF) {
-		iDisp = new Scalar[internalLen];
-		for (iDof = 0; iDof < internalLen; ++iDof) iDisp[iDof] = 0.0;
-		if (Kib) Kib->transposeMultAdd(v, iDisp);
-	}
-
-	if (solInfo().getFetiInfo().precno == FetiInfo::dirichlet) {
-		if (KiiSolver) KiiSolver->reSolve(iDisp);
-		if (Kib) Kib->multSub(iDisp, res);
-		if (deltaU)
-			for (iDof = 0; iDof < internalLen; ++iDof)
-				deltaU[internalMap[iDof]] = iDisp[iDof];
-	} else {
-		if (deltaF)
-			for (iDof = 0; iDof < internalLen; ++iDof) {
-				deltaF[internalMap[iDof]] = iDisp[iDof];
-			}
-	}
-	if (iDisp) delete[] iDisp;
-
-	if (deltaF) {
-		for (iDof = 0; iDof < boundLen; ++iDof)
-			deltaF[boundMap[iDof]] = res[iDof];
-	}
-
-	// Return preconditioned u
-	for (iDof = 0; iDof < totalInterfSize; ++iDof)
-		Pu[iDof] = res[dualToBoundary[iDof]] * scaling[iDof];
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::multKbbCoupled(const Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag) {
-	// modified version of multKbb for coupled_dph with primal wet interface dofs
-	// included in Kii. Currently preconditioner is un-coupled, ie fluid-structure interaction
-	// is ignored in the Kii solve.
-
-	auto &localw = this->localw;
-	Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar) * boundLen);
-	Scalar *res = (Scalar *) dbg_alloca(sizeof(Scalar) * boundLen);
-	if (!deltaFwi) deltaFwi = new Scalar[numWIdof];
-
-	int i, iDof;
-	for (iDof = 0; iDof < boundLen; ++iDof) { v[iDof] = res[iDof] = 0.0; }
-	for (iDof = 0; iDof < localLen(); ++iDof) deltaF[iDof] = 0;
-	for (i = 0; i < numWIdof; ++i) localw[i] = 0;
-
-	for (iDof = 0; iDof < totalInterfSize; ++iDof) {
-		if (allBoundDofs[iDof] >= 0)
-			v[dualToBoundary[iDof]] += u[iDof] * scaling[iDof];
-		else if (boundDofFlag[iDof] == 1) { // wet interface
-			int windex = -1 - allBoundDofs[iDof];
-#ifdef HB_COUPLED_PRECOND
-			localw[windex] = (solInfo().getFetiInfo().splitLocalFsi) ? -u[iDof]*scaling[iDof] : -u[iDof];
-#else
-			localw[windex] = -u[iDof] * scaling[iDof];
-#endif
-			if (solInfo().getFetiInfo().precno == FetiInfo::noPrec)
-				localw[windex] = u[iDof];
-			deltaFwi[windex] = -u[iDof];
-		}
-	}
-
-	Kbb->mult(v, res);
-
-	Scalar *iDisp = (Scalar *) dbg_alloca(sizeof(Scalar) * internalLen);
-	for (iDof = 0; iDof < internalLen; ++iDof) iDisp[iDof] = 0.0;
-	for (i = 0; i < numWIdof; ++i) iDisp[wiInternalMap[i]] = localw[i]; // coupled_dph
-	if (Kib) Kib->transposeMultAdd(v, iDisp);
-
-	if (solInfo().getFetiInfo().precno == FetiInfo::dirichlet) {
-		if (KiiSolver) KiiSolver->reSolve(iDisp);
-		for (i = 0; i < numWIdof; ++i) localw[i] = -iDisp[wiInternalMap[i]];
-		if (Kib) Kib->multSub(iDisp, res);
-	} else {
-		for (iDof = 0; iDof < internalLen; ++iDof)
-			if (internalMap[iDof] > 0) deltaF[internalMap[iDof]] = iDisp[iDof]; // not including wet interface in deltaF
-	}
-
-	for (iDof = 0; iDof < boundLen; ++iDof) { deltaF[boundMap[iDof]] = res[iDof]; }
-
-	// Return preconditioned u
-	for (iDof = 0; iDof < totalInterfSize; ++iDof) {
-		if (allBoundDofs[iDof] >= 0)
-			Pu[iDof] = res[dualToBoundary[iDof]] * scaling[iDof];
-		else if (boundDofFlag[iDof] == 1)
-			Pu[iDof] = localw[-1 - allBoundDofs[iDof]] * scaling[iDof];
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::multDiagKbb(const Scalar *u, Scalar *Pu) const {
-	// KHP: 02-02-99
-	// boundMap    = from boundary number to subdomain number
-	// internalMap = from internal number to subdomain number
-	// invBoundMap =  from all subdomain dof to a unique boundary number
-	// allBoundDofs = indices of B, from lambda numbering to numbering of entire
-	//                subdomain
-	// invBoundMap[allBoundDofs[iDof]] = from lambda numbering directly to
-	//                                   boundary numbering
-	// Kbb = works only on the numbering of the boundary dofs
-
-	Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar) * boundLen);
-	Scalar *res = (Scalar *) dbg_alloca(sizeof(Scalar) * boundLen);
-
-	// XML Karim noted that his does not work for contact...
-
-	int iDof;
-	for (iDof = 0; iDof < boundLen; ++iDof)
-		v[iDof] = res[iDof] = 0.0;
-
-	for (iDof = 0; iDof < totalInterfSize; ++iDof)
-		v[dualToBoundary[iDof]] += u[iDof] * scaling[iDof];
-
-	// Perform diagonal multiplication
-	Kbb->multDiag(v, res);
-
-	for (iDof = 0; iDof < totalInterfSize; ++iDof)
-		Pu[iDof] = res[dualToBoundary[iDof]] * scaling[iDof];
 }
 
 template<class Scalar>
@@ -1707,12 +1345,6 @@ GenSubDomain<Scalar>::multFi(GenSolver<Scalar> *s, Scalar *u, Scalar *Fiu) {
 	for (iDof = 0; iDof < totalInterfSize; ++iDof)
 		Fiu[iDof] = iDisp[allBoundDofs[iDof]];
 
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::factorKii() {
-	if (KiiSolver) KiiSolver->factor();
 }
 
 template<class Scalar>
@@ -2323,22 +1955,22 @@ GenSubDomain<Scalar>::reBuildKbb(FullSquareMatrix *kel) {
 	// Zero sparse matrices
 	if (this->Kcc) this->Kcc->zero();
 	if (this->Krc) this->Krc->zeroAll();
-	if (Kbb) Kbb->zeroAll();
-	if (Kib) Kib->zeroAll();
-	if (KiiSparse) KiiSparse->zeroAll();
+	if (this->Kbb) this->Kbb->zeroAll();
+	if (this->Kib) this->Kib->zeroAll();
+	if (this->KiiSparse) this->KiiSparse->zeroAll();
 
 	// Assemble new subdomain sparse matrices
 	int iele;
 	for (iele = 0; iele < numele; ++iele) {
 		if (this->Kcc) this->Kcc->add(kel[iele], (*allDOFs)[iele]);
 		if (this->Krc) this->Krc->add(kel[iele], (*allDOFs)[iele]);
-		if (Kbb) Kbb->add(kel[iele], (*allDOFs)[iele]);
-		if (Kib) Kib->add(kel[iele], (*allDOFs)[iele]);
-		if (KiiSparse) KiiSparse->add(kel[iele], (*allDOFs)[iele]);
+		if (this->Kbb) this->Kbb->add(kel[iele], (*allDOFs)[iele]);
+		if (this->Kib) this->Kib->add(kel[iele], (*allDOFs)[iele]);
+		if (this->KiiSparse) this->KiiSparse->add(kel[iele], (*allDOFs)[iele]);
 	}
 
 	// Factor Kii if necessary (used for dirichlet preconditioner)
-	if (KiiSolver) KiiSolver->factor();
+	if (this->KiiSolver) this->KiiSolver->factor();
 }
 
 template<class Scalar>
@@ -2589,7 +2221,7 @@ GenSubDomain<Scalar>::weightEdgeGs() {
 	if (solInfo().getFetiInfo().scaling == FetiInfo::tscaling)
 		this->Grc->doWeighting(weight.data());
 	else if (solInfo().getFetiInfo().scaling == FetiInfo::kscaling)
-		this->Grc->doWeighting(kweight);
+		this->Grc->doWeighting(this->kweight.data());
 }
 
 // I've changed this routine to compute the following Q vectors:
@@ -2761,14 +2393,6 @@ template<>
 void
 GenSubDomain<double>::precondGrbm();
 
-
-template<class Scalar>
-void GenSubDomain<Scalar>::initMpcScaling() {
-	// sets scaling = 1.0 for all mpc virtual dofs, for use with generalized preconditioner
-	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i)
-		scaling[scomm->mapT(SComm::mpc, i)] = 1.0;
-}
-
 template<class Scalar>
 void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, double *usrDefAcc, bool nlflag) {
 	auto &mpc = this->mpc;
@@ -2893,10 +2517,12 @@ GenSubDomain<Scalar>::multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Sc
 	// Kib operates on the boundary numbering and returns with internal numbering
 
 	auto &localw = this->localw;
+	auto &Kib = this->Kib;
+	auto &KiiSolver = this->KiiSolver;
 
 	Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar) * boundLen);
 	Scalar *res = (Scalar *) dbg_alloca(sizeof(Scalar) * boundLen);
-	if (!deltaFwi) deltaFwi = new Scalar[numWIdof]; // coupled_dph
+	this->deltaFwi.resize(numWIdof); // coupled_dph
 
 	int i, iDof;
 	for (iDof = 0; iDof < boundLen; ++iDof) v[iDof] = res[iDof] = 0.0;
@@ -2906,12 +2532,12 @@ GenSubDomain<Scalar>::multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Sc
 	}
 	for (i = 0; i < numWIdof; ++i) localw[i] = 0;
 
-	applyBtransposeAndScaling(u, v, deltaU, localw.data());
+	this->applyBtransposeAndScaling(u, v, deltaU, localw.data());
 
 	//Scalar norm = 0; for(i=0; i<boundLen; ++i) norm += v[i]*v[i]; std::cerr << "1. norm = " << sqrt(norm) << std::endl;
 	if ((solInfo().getFetiInfo().precno == FetiInfo::lumped) ||
 	    (solInfo().getFetiInfo().precno == FetiInfo::dirichlet) || errorFlag)
-		Kbb->mult(v, res);  // res = Kbb * v
+		this->Kbb->mult(v, res);  // res = this->Kbb * v
 	//norm = 0; for(i=0; i<boundLen; ++i) norm += res[i]*res[i]; std::cerr << "2. norm = " << sqrt(norm) << std::endl;
 
 	if ((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) || errorFlag) {
@@ -2949,7 +2575,7 @@ GenSubDomain<Scalar>::multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Sc
 	}
 
 	// Return preconditioned u
-	applyScalingAndB(res, Pu, localw.data());
+	this->applyScalingAndB(res, Pu, localw.data());
 }
 
 template<class Scalar>
@@ -3054,10 +2680,7 @@ void
 GenSubDomain<Scalar>::clean_up() {
 	for (int i = 0; i < numele; ++i) packedEset[i]->renum(glNums);
 	weight.clear();
-	if (scaling) {
-		delete[] scaling;
-		scaling = 0;
-	}
+
 	if (bcx) {
 		delete[] bcx;
 		bcx = 0;
@@ -3070,36 +2693,28 @@ GenSubDomain<Scalar>::clean_up() {
 		delete[] acx;
 		acx = 0;
 	}
-	if (boundMap) {
-		delete[] boundMap;
-		boundMap = 0;
-	}
 	if (dualToBoundary) {
 		delete[] dualToBoundary;
 		dualToBoundary = 0;
 	}
-	if (internalMap) {
-		delete[] internalMap;
-		internalMap = 0;
-	}
 
 	long m1 = 0;
 
-	if (Kbb) {
+	if (this->Kbb) {
 		m1 = -memoryUsed();
-		Kbb->clean_up();
+		this->Kbb->clean_up();
 		m1 += memoryUsed();
 	}
 
-	if (Kib) {
+	if (this->Kib) {
 		m1 = -memoryUsed();
-		Kib->clean_up();
+		this->Kib->clean_up();
 		m1 += memoryUsed();
 	}
 
-	if (KiiSparse) {
+	if (this->KiiSparse) {
 		m1 = -memoryUsed();
-		KiiSparse->clean_up();
+		this->KiiSparse->clean_up();
 		m1 += memoryUsed();
 	}
 
@@ -3351,92 +2966,6 @@ GenSubDomain<Scalar>::printMpcStatus() {
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::applyBtransposeAndScaling(const Scalar *u, Scalar *v, Scalar *deltaU, Scalar *localw) const {
-	auto &mpc = this->mpc;
-	int i, iDof, k;
-	bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool) * numMPC);
-	for (i = 0; i < numMPC; ++i) mpcFlag[i] = true;
-
-	for (iDof = 0; iDof < totalInterfSize; ++iDof) {
-		switch (boundDofFlag[iDof]) {
-			case 0:
-				v[dualToBoundary[iDof]] += u[iDof] * scaling[iDof];
-				if (deltaU) deltaU[allBoundDofs[iDof]] = -v[dualToBoundary[iDof]];
-				break;
-			case 1: { // wet interface
-				int windex = -1 - allBoundDofs[iDof];
-				localw[windex] = u[iDof] * scaling[iDof];
-				deltaFwi[windex] = u[iDof];
-			}
-				break;
-			case 2: { // dual mpc
-				int locMpcNb = -1 - allBoundDofs[iDof];
-				if (mpcFlag[locMpcNb]) {
-					const auto &m = mpc[locMpcNb];
-					if (!mpc[locMpcNb]->active) {
-						for (k = 0; k < m->nterms; k++) {
-							int cdof = (m->terms)[k].cdof;
-							if (cdof >= 0) { // mpc dof that exists
-								Scalar coef =
-									(m->terms)[k].coef / m->k[k]; // 1/m->k[k] = A, see generalized preconditioner
-								if (invBoundMap[cdof] < 0)
-									std::cerr << "error here in GenSubDomain<Scalar>::applyBtransposeAndScaling\n";
-								v[invBoundMap[cdof]] += u[iDof] * coef * scaling[iDof];
-							}
-						}
-					}
-					mpcFlag[locMpcNb] = false;
-				}
-			}
-				break;
-		}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::applyScalingAndB(const Scalar *res, Scalar *Pu, Scalar *localw) const {
-	auto &mpc = this->mpc;
-
-	if (numMPC && !deltaFmpc)
-		deltaFmpc = new Scalar[numMPC]; // only need to allocate 1st time (unless numMPC changes)
-	bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool) * numMPC);
-	for (int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
-
-	// Return preconditioned u
-	for (int iDof = 0; iDof < totalInterfSize; ++iDof) {
-		switch (boundDofFlag[iDof]) {
-			case 0:
-				Pu[iDof] = res[dualToBoundary[iDof]] * scaling[iDof];
-				break;
-			case 1: // wet interface
-				Pu[iDof] = localw[-1 - allBoundDofs[iDof]] * scaling[iDof];
-				break;
-			case 2: { // dual mpc or contact
-				int locMpcNb = -1 - allBoundDofs[iDof];
-				const auto &m = mpc[locMpcNb];
-				Pu[iDof] = 0.0;
-				if (mpcFlag[locMpcNb]) deltaFmpc[locMpcNb] = 0.0;
-				if (!mpc[locMpcNb]->active) {
-					for (int k = 0; k < m->nterms; k++) {
-						int cdof = (m->terms)[k].cdof;
-						if (cdof > -1) { // mpc dof that exists
-							Scalar coef = (m->terms)[k].coef;
-							Pu[iDof] += res[invBoundMap[cdof]] * coef * scaling[iDof] /
-							            m->k[k]; // 1/m->k[k] = A, see generalized preconditioner
-							if (mpcFlag[locMpcNb]) deltaFmpc[locMpcNb] += res[invBoundMap[cdof]] * coef;
-						}
-					}
-				}
-				mpcFlag[locMpcNb] = false;
-			}
-				break;
-		}
-	}
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::computeContactPressure(Scalar *globStress, Scalar *globWeight) {
 	auto &mpc = this->mpc;
 	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
@@ -3503,16 +3032,10 @@ GenSubDomain<Scalar>::getLocalMultipliers(std::vector<double> &lambda) {
 template<class Scalar>
 void
 GenSubDomain<Scalar>::initialize() {
-	kweight = 0;
-	deltaFmpc = 0;
-	scaling = 0;
 	rbms = 0;
 	interfaceRBMs = 0;
 	qtkq = 0;
-	KiiSolver = 0;
-	Kib = 0;
 	MPCsparse = 0;
-	Kbb = 0;
 	corotators = 0;
 	QtKpBt = 0;
 	glInternalMap = 0;
@@ -3520,11 +3043,8 @@ GenSubDomain<Scalar>::initialize() {
 	mpcForces = 0;
 	localCCtsolver = 0;
 	localCCtsparse = 0;
-	diagCCt = 0;
-	deltaFwi = 0;
 	M = 0;
 	Muc = 0;
-	wweight = 0;
 	lengthCCtData = 0;
 	CCtrow = 0;
 	CCtcol = 0;
@@ -3558,15 +3078,6 @@ GenSubDomain<Scalar>::initialize() {
 
 template<class Scalar>
 GenSubDomain<Scalar>::~GenSubDomain() {
-	if (scaling) {
-		delete[] scaling;
-	}
-	if (kweight) {
-		delete[] kweight;
-	}
-	if (deltaFmpc) {
-		delete[] deltaFmpc;
-	}
 
 	if (interfaceRBMs) {
 		delete[] interfaceRBMs;
@@ -3588,15 +3099,6 @@ GenSubDomain<Scalar>::~GenSubDomain() {
 	}
 	if (mpcForces) {
 		delete[] mpcForces;
-	}
-	if (diagCCt) {
-		delete[] diagCCt;
-	}
-	if (deltaFwi) {
-		delete[] deltaFwi;
-	}
-	if (wweight) {
-		delete[] wweight;
 	}
 	if (M) {
 		delete M;
@@ -3706,15 +3208,6 @@ GenSubDomain<Scalar>::deleteMPCs() {
 	if (mpcStatus2) {
 		delete[] mpcStatus2;
 		mpcStatus2 = 0;
-	}
-	if (deltaFmpc) {
-		delete[] deltaFmpc;
-		deltaFmpc = 0;
-	}
-	//if(mpcForces) { delete [] mpcForces; mpcForces = 0; }
-	if (diagCCt) {
-		delete[] diagCCt;
-		diagCCt = 0;
 	}
 	if (mpcMaster) {
 		delete[] mpcMaster;
@@ -4571,107 +4064,6 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 	delete[] xyzCount;
 //  delete [] edgeDofs;
 	if (Q) delete[] Q;
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::setMpcDiagCommSize(FSCommStructure *mpcDiagPat) const {
-	for (int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-		int neighb = scomm->neighbT(SComm::mpc, i);
-		int len = 0;
-		if (subNumber != neighb) {
-			for (int j = 0; j < scomm->lenT(SComm::mpc, i); ++j)
-				len += this->mpc[scomm->mpcNb(i, j)]->gsize;
-		}
-		mpcDiagPat->setLen(subNumber, neighb, len);
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::sendMpcDiag(FSCommPattern<Scalar> *mpcDiagPat) {
-	auto &mpc = this->mpc;
-	for (int i = 0; i < numMPC; ++i) mpc[i]->initKsum();
-
-	// Get the trace of the subdomain interfaces
-	int iNeighb, iDof, j;
-	for (iNeighb = 0; iNeighb < scomm->numT(SComm::mpc); ++iNeighb) {
-		int neighb = scomm->neighbT(SComm::mpc, iNeighb);
-		FSSubRecInfo<Scalar> sInfo = mpcDiagPat->getSendBuffer(subNumber, neighb);
-		int nOff = 0;
-		for (iDof = 0; iDof < scomm->lenT(SComm::mpc, iNeighb); ++iDof) {
-			int locMpcNb = scomm->mpcNb(iNeighb, iDof);
-			if (subNumber != neighb)
-				for (j = 0; j < mpc[locMpcNb]->gsize; ++j) sInfo.data[nOff + j] = 0.0;
-			for (j = 0; j < mpc[locMpcNb]->nterms; ++j) {
-				int c_dof = mpc[locMpcNb]->terms[j].cdof;
-				if (c_dof > -1) {
-					int b_dof = invBoundMap[c_dof];
-					mpc[locMpcNb]->k[j] = (Kbb) ? Kbb->diag(b_dof) : 1.0;
-					if (ScalarTypes::norm(mpc[locMpcNb]->k[j]) < 1.0e-12)
-						std::cerr << " *** WARNING: Kbb diagonal < 1.0e-12 \n";
-					if (subNumber != neighb)
-						sInfo.data[nOff + mpc[locMpcNb]->gi[j]] = mpc[locMpcNb]->k[j];
-					mpc[locMpcNb]->ksum[j] = mpc[locMpcNb]->k[j];
-				} else {
-					if (subNumber != neighb)
-						sInfo.data[nOff + mpc[locMpcNb]->gi[j]] = 0.0;
-					mpc[locMpcNb]->k[j] = 0.0;
-					mpc[locMpcNb]->ksum[j] = 0.0;
-				}
-			}
-			nOff += mpc[locMpcNb]->gsize;
-		}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat) {
-	auto &mpc = this->mpc;
-	int iNeighb, iDof, j;
-	// 1) gets & sum the stiffness contribution from neighbourg subds
-	for (iNeighb = 0; iNeighb < scomm->numT(SComm::mpc); ++iNeighb) {
-		// ksum already contains its own contribution (i.e. initialized in sendMpcDiag)
-		// -> loop only on neighboring subds
-		int neighb = scomm->neighbT(SComm::mpc, iNeighb);
-		if (subNumber != neighb) {
-			FSSubRecInfo<Scalar> rInfo = mpcDiagPat->recData(neighb, subNumber);
-			int nOff = 0;
-			for (iDof = 0; iDof < scomm->lenT(SComm::mpc, iNeighb); ++iDof) {
-				int locMpcNb = scomm->mpcNb(iNeighb, iDof);
-				for (j = 0; j < mpc[locMpcNb]->nterms; ++j) {
-					mpc[locMpcNb]->ksum[j] += rInfo.data[nOff + mpc[locMpcNb]->gi[j]];
-				}
-				nOff += mpc[locMpcNb]->gsize;
-			}
-		}
-	}
-
-	// 2) adjust dual mpcs using subdomain multiplicity
-	//    c(i) -> c(i).k(i,i)/sum[k(j,j)]
-	if (solInfo().getFetiInfo().mpc_scaling == FetiInfo::kscaling) {
-		int iMPC, i;
-#ifdef DEBUG_MPC
-																																std::cerr << "before k scaling: \n";
-   for(iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC]->print();
-#endif
-		for (iMPC = 0; iMPC < numMPC; ++iMPC) {
-			if (mpc[iMPC]->type == 2) continue; // bmpc
-			for (i = 0; i < mpc[iMPC]->nterms; ++i) {
-				if (ScalarTypes::norm(mpc[iMPC]->ksum[i]) < 1.0e-12) {
-					//std::cerr << " *** WARNING: ksum = " << mpc[iMPC]->ksum[i] << ", cdof = " << mpc[iMPC]->terms[i].cdof << ", coef = " << mpc[iMPC]->terms[i].coef << std::endl;
-					mpc[iMPC]->ksum[i] = 1.0;
-					mpc[iMPC]->k[i] = 1.0;
-				}
-				mpc[iMPC]->terms[i].coef *= (mpc[iMPC]->k[i] / mpc[iMPC]->ksum[i]);
-			}
-		}
-#ifdef DEBUG_MPC
-																																std::cerr << "after k scaling: \n";
-   for(iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC]->print();
-#endif
-	}
 }
 
 template<class Scalar>
@@ -5626,7 +5018,7 @@ GenSubDomain<Scalar>::multMCoupled2(Scalar *localrhs, FSCommPattern<Scalar> *wiP
 		for (i = 0; i < scomm->numT(SComm::fsi); ++i) {
 			if (subNumber != scomm->neighbT(SComm::fsi, i)) {
 				FSSubRecInfo<Scalar> rInfo = wiPat->recData(scomm->neighbT(SComm::fsi, i), subNumber);
-				for (j = 0; j < numWIdof; ++j) this->localw_copy[j] += rInfo.data[j] / wweight[j];
+				for (j = 0; j < numWIdof; ++j) this->localw_copy[j] += rInfo.data[j] / this->wweight[j];
 			}
 		}
 

@@ -337,16 +337,13 @@ BaseSub::makeBMaps(const DofSetArray *dof_set_array)
   int iDof;
 
   int lLen = (dof_set_array==0) ? localLen() : dof_set_array->size();
-  //int *invBoundMap = new int[lLen];
-  if(invBoundMap) delete [] invBoundMap;
-  invBoundMap = new int[lLen];
+  invBoundMap.resize(lLen);
 
   boundLen = 0;
   for(iDof = 0; iDof < lLen; ++iDof)
     invBoundMap[iDof] = (weight[iDof] > 1) ? boundLen++ : -1 ;
 
-  if(boundMap) delete [] boundMap;
-  boundMap = new int[boundLen];
+  boundMap.resize(boundLen);
   boundLen = 0;
   for(iDof = 0; iDof < lLen; ++iDof)
     if(weight[iDof] > 1) boundMap[boundLen++] = iDof;
@@ -383,7 +380,7 @@ BaseSub::makeBMaps(const DofSetArray *dof_set_array)
         dualToBoundary[iDof] = invBoundMap[allBoundDofs[iDof]];
       }
     }
-    delete [] invBoundMap; invBoundMap = 0;
+    invBoundMap.clear();
   }
 
   return glBoundMap;
@@ -401,9 +398,8 @@ BaseSub::makeIMaps(const DofSetArray *dof_set_array)
 
   internalLen = numWIdof;
   for(iDof = 0; iDof < lLen; ++iDof) if(weight[iDof] == 1) internalLen++; //add ir dofs
-  if(internalMap) delete [] internalMap;
-  internalMap = new int[internalLen];
-  if(numWIdof) wiInternalMap = new int[numWIdof];
+  internalMap.resize(internalLen);
+  if(numWIdof) wiInternalMap.resize(numWIdof);
   internalLen = 0;
   for(iDof = 0; iDof < gLen; ++iDof) {
     int dofI = dof_set_array->getRCN(iDof);
@@ -1523,9 +1519,7 @@ BaseSub::~BaseSub()
   if(cornerMap) { delete [] cornerMap; cornerMap = 0; }
 
   if(masterFlag) { delete [] masterFlag; masterFlag = 0; }
-  if(boundMap) { delete [] boundMap; boundMap = 0; }
   if(dualToBoundary) { delete [] dualToBoundary; dualToBoundary = 0; }
-  if(internalMap) { delete [] internalMap; internalMap = 0; }
   if(boundDofFlag) { delete [] boundDofFlag; boundDofFlag = 0; }
   if(neighbNumGRBMs) { delete [] neighbNumGRBMs; neighbNumGRBMs = 0; }
   if(edgeDofSizeTmp) { delete [] edgeDofSizeTmp; edgeDofSizeTmp = 0; }//HB can we delete it just after getKccDofs?
@@ -1575,9 +1569,7 @@ BaseSub::~BaseSub()
   /*if(wweight) { delete [] wweight; wweight = 0; }*/
   if(drySharedNodes) { delete drySharedNodes; drySharedNodes = 0; }
   if(wiMaster) { delete [] wiMaster; wiMaster = 0; }
-  if(wiInternalMap) { delete [] wiInternalMap; wiInternalMap = 0; }
-  if(invBoundMap) { delete [] invBoundMap; invBoundMap = 0; }
-  if(mpclast) { delete [] mpclast; mpclast = 0; } 
+  if(mpclast) { delete [] mpclast; mpclast = 0; }
 
   if(scomm) { delete scomm; scomm = 0; }
   if(internalMasterFlag) { delete [] internalMasterFlag; internalMasterFlag = 0; }
@@ -2531,10 +2523,11 @@ BaseSub::makeFsiInterface(Connectivity *subToFsi, Connectivity *fsiToSub,
 void
 BaseSub::mergeInterfaces()
 {
-  // mpc list should already have been set before now
-  if(boundDofFlag) delete [] boundDofFlag;
-  boundDofFlag = scomm->mergeTypeSpecificLists(); // merge types 0, 1 and 2 (std, wet and mpc)
-  allBoundDofs = scomm->allBoundDofs(); // PJSA 7-29-05
-  totalInterfSize = scomm->totalInterfSize();
+	// mpc list should already have been set before now
+	if(boundDofFlag) delete [] boundDofFlag;
+	boundDofFlag = scomm->mergeTypeSpecificLists(); // merge types 0, 1 and 2 (std, wet and mpc)
+	auto abd = scomm->allBoundDofs();
+	totalInterfSize = scomm->totalInterfSize();
+	allBoundDofs.assign(abd, abd+totalInterfSize);
 }
 

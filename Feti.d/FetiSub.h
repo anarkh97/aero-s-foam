@@ -67,8 +67,6 @@ public:
 
 	virtual void setMpcCommSize(FSCommStructure *mpcPat) const = 0;
 
-	virtual void setMpcDiagCommSize(FSCommStructure *mpcDiagPat) const = 0;
-
 	virtual void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const = 0;
 
 	virtual void setGCommSize(FSCommStructure *pat) const = 0;
@@ -155,8 +153,12 @@ public:
 	bool isWetInterfaceDof(int d) const { return (wetInterfaceMap.size() > 0) ? (wetInterfaceMap[d] > -1) : false; }
 
 protected:
+	int boundLen = 0;
+	int internalLen = 0;
 	int totalInterfSize;
-	const int *allBoundDofs = nullptr;
+	std::vector<int> allBoundDofs;
+	std::vector<int> boundMap;
+	std::vector<int> internalMap;
 	/// \brief Corner nodes in local numbering.
 	std::vector<int> cornerNodes;
 	std::vector<bool> isCornerNode;   //<! \brief True for node which is a corner node; false otherwise.
@@ -191,7 +193,7 @@ protected:
 	Connectivity *localMpcToBlockMpc = nullptr;
 	Connectivity *mpcToBoundDof = nullptr;
 	double *localLambda = nullptr;  // used for contact pressure output
-	int *invBoundMap = nullptr;
+	std::vector<int> invBoundMap;
 	int *mpclast = nullptr;
 
 	mutable int *mpcStatus;
@@ -237,6 +239,7 @@ protected:
 	int *neighbNumGroupGrbm = nullptr;
 	int *neighbGroupGrbmOffset = nullptr;
 	int numGlobalRBMs = 0;
+	int *dualToBoundary = nullptr;
 
 	std::unique_ptr<Rbm> rigidBodyModesG;
 
@@ -246,6 +249,8 @@ protected:
 	std::vector<int> wetInterfaceNodeMap;
 	std::vector<int> wetInterfaceNodes;
 	std::vector<int> numNeighbWIdof;
+	std::vector<int> wiInternalMap;
+
 	GlobalToLocalMap glToLocalWImap;
 
 	GlobalToLocalMap *neighbGlToLocalWImap = nullptr;
@@ -256,7 +261,8 @@ protected:
 template <typename Scalar>
 class _AVMatrix : public Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> {
 public:
-	_AVMatrix() {}
+	_AVMatrix() = default;
+
 	const Scalar *operator[](int i) const { return &(*this)(0, i); }
 	Scalar *operator[](int i) { return &(*this)(0, i); }
 };
@@ -271,8 +277,8 @@ public:
 	Scalar getMpcRhs(int iMPC) const;
 	Scalar getMpcRhs_primal(int iMPC) const;
 	// TODO Figure out how to make this const.
-	virtual void sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPat) = 0;
-	virtual void factorKii() = 0;
+	void sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPat);
+	void factorKii();
 	virtual void sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const = 0;
 	virtual void scatterHalfInterf(const Scalar *s, Scalar *loc) const = 0;
 	virtual void getHalfInterf(const Scalar *s, Scalar *t) const = 0;
@@ -359,7 +365,22 @@ public:
 	void multKrc(Scalar *fr, const Scalar *uc) const;
 
 	void multKcc();
+	void multKbb(const Scalar *u, Scalar *Pu, Scalar *delta_u = 0, Scalar * delta_f= 0, bool errorFlag = true);
+	void multKbbCoupled(const Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag = true);
+	void multDiagKbb(const Scalar *u, Scalar *Pu) const;
 
+	void collectScaling(FSCommPattern<Scalar> *vPat);
+	void fScale(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
+	void initMpcScaling();
+	void initScaling();
+
+	void applyBtransposeAndScaling(const Scalar *u, Scalar *v, Scalar *deltaU = 0, Scalar *localw = 0) const;
+	void applyScalingAndB(const Scalar *res, Scalar *Pu, Scalar *localw = 0) const;
+	void setMpcDiagCommSize(FSCommStructure *mpcDiagPat) const;
+	void sendMpcDiag(FSCommPattern<Scalar> *mpcDiagPat);
+	void collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat);
+	void sendMpcScaling(FSCommPattern<Scalar> *mpcPat);
+	void collectMpcScaling(FSCommPattern<Scalar> *mpcPat);
 	void assembleMpcIntoKcc();
 
 	// templated R and G functions
@@ -411,6 +432,9 @@ public:
 	std::unique_ptr<GenSolver<Scalar>> Krr;
 	/// \brief Sparse view of the solver. Typically used to fill the matrix before calling factor.
 	GenSparseMatrix<Scalar>   *KrrSparse = nullptr; //!< Alias to Krr.
+	std::unique_ptr<GenSparseMatrix<Scalar>> KiiSparse;
+	GenSolver<Scalar>         *KiiSolver = nullptr;
+	std::unique_ptr<GenCuCSparse<Scalar> >     Kib;
 	std::unique_ptr<GenAssembledFullM<Scalar>> Kcc;
 	std::unique_ptr<GenCuCSparse<Scalar>>      Krc;
 	std::unique_ptr<GenCuCSparse<Scalar>>      Grc;
@@ -423,7 +447,16 @@ public:
 	std::vector<std::unique_ptr<SubLMPCons<Scalar>>> mpc_primal;
 	std::unique_ptr<GenSparseSet<Scalar>> Src;
 	Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> BKrrKrc;
+	std::unique_ptr<GenDBSparseMatrix<Scalar>> Kbb;    //!< Boundary to boundary stiffness matrix.
+
+	GenVector<Scalar> diagCCt;
 protected:
+	GenVector<Scalar> scaling;
+	mutable GenVector<Scalar> deltaFmpc;
+	GenVector<Scalar> deltaFwi;
+	GenVector<Scalar> wweight;
+	GenVector<Scalar> kweight; //!< stiffness weights (i.e. sum of Kii for all subd sharing that dof)
+
 	// templated RBMs
 	GenFullM<Scalar> Rstar;
 	GenFullM<Scalar> Rstar_g;
@@ -432,7 +465,7 @@ protected:
 	std::vector<std::unique_ptr<GenFullM<Scalar>>> G;
 	std::vector<std::unique_ptr<GenFullM<Scalar>>> neighbG;
 
-	int bodyRBMoffset;
+	int bodyRBMoffset = 0;
 	std::unique_ptr<Rbm> rigidBodyModes;
 
 	mutable std::vector<Scalar> fcstar; // TODO Move this out!

@@ -203,12 +203,12 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 
 	// Compute stiffness scaling if required
 	// this also perform the LMPCs stiffness scaling/splitting for the primal method
-	paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::initScaling);
+	paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::initScaling);
 	if((fetiInfo->scaling == FetiInfo::kscaling) || ((fetiInfo->mpc_scaling == FetiInfo::kscaling) && (this->glNumMpc_primal > 0))
 	   || (fetiInfo->augment == FetiInfo::WeightedEdges)) {
 		execParal(this->nsub, this, &GenFetiSolver<Scalar>::sendScale);
 		this->vPat->exchange();
-		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::collectScaling, this->vPat);
+		paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::collectScaling, this->vPat);
 	}
 	if(domain->solInfo().isCoupled)
 		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::scaleAndSplitKww);
@@ -224,23 +224,23 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 			                                                              FSCommPattern<Scalar>::CopyOnSend);
 			for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcDiagCommSize(mpcDiagPat.get());
 			mpcDiagPat->finalize();
-			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcDiag, mpcDiagPat.get());
+			paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::sendMpcDiag, mpcDiagPat.get());
 			mpcDiagPat->exchange();
-			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcDiag, mpcDiagPat.get());
+			paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::collectMpcDiag, mpcDiagPat.get());
 		}
 
 		if(fetiInfo->c_normalize) normalizeC();
 
 		if(fetiInfo->mpc_precno == FetiInfo::diagCCt) {
 			// use W scaling for preconditioning mpcs, don't need to build & invert CC^t
-			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcScaling, this->vPat);
+			paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::sendMpcScaling, this->vPat);
 			this->vPat->exchange();  // neighboring subs mpc weights
-			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcScaling, this->vPat);
+			paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::collectMpcScaling, this->vPat);
 		}
 		else if(fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
 			// used generalized proconditioner for mpcs, need to build and invert CC^t
 			mpcPrecon = true;
-			paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcScaling);
+			paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::initMpcScaling);
 			buildCCt();
 		}
 	}
@@ -2699,7 +2699,7 @@ GenFetiDPSolver<Scalar>::refactor()
   if(fetiInfo->scaling == FetiInfo::kscaling) {
     execParal(this->nsub, this, &GenFetiSolver<Scalar>::sendScale);
     this->vPat->exchange();
-    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::collectScaling, this->vPat);
+    paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::collectScaling, this->vPat);
   }
 
   if(domain->solInfo().isCoupled) {
@@ -2717,9 +2717,9 @@ GenFetiDPSolver<Scalar>::refactor()
                                                                    FSCommPattern<Scalar>::CopyOnSend);
      for(int iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcDiagCommSize(mpcDiagPat);
      mpcDiagPat->finalize();
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcDiag, mpcDiagPat);
+     paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::sendMpcDiag, mpcDiagPat);
      mpcDiagPat->exchange();
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcDiag, mpcDiagPat);
+     paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::collectMpcDiag, mpcDiagPat);
      delete mpcDiagPat;
    }
 
@@ -2727,14 +2727,14 @@ GenFetiDPSolver<Scalar>::refactor()
 
    if(fetiInfo->mpc_precno == FetiInfo::diagCCt) {
      // use W scaling for preconditioning mpcs, don't need to build & invert CC^t
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcScaling, this->vPat);
+     paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::sendMpcScaling, this->vPat);
      this->vPat->exchange();  // neighboring subs mpc weights
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcScaling, this->vPat);
+     paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::collectMpcScaling, this->vPat);
    }
    else if(fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
      // used generalized proconditioner for mpcs, need to build and invert CC^t
      mpcPrecon = true;
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcScaling);
+     paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::initMpcScaling);
      deleteCCt();
      buildCCt();
    }
@@ -3095,12 +3095,12 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
 
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::rebuildKbb);
 
- paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::initScaling);
+ paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::initScaling);
  if((fetiInfo->scaling == FetiInfo::kscaling) || ((fetiInfo->mpc_scaling == FetiInfo::kscaling) && (this->glNumMpc_primal > 0))
     || (fetiInfo->augment == FetiInfo::WeightedEdges)) {
    execParal(this->nsub, this, &GenFetiSolver<Scalar>::sendScale);
    this->vPat->exchange();
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::collectScaling, this->vPat);
+   paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::collectScaling, this->vPat);
  }
 
  deleteCCt(); mpcPrecon = false;
@@ -3110,9 +3110,9 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
                                                                    FSCommPattern<Scalar>::CopyOnSend);
      for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setMpcDiagCommSize(mpcDiagPat);
      mpcDiagPat->finalize();
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcDiag, mpcDiagPat);
+     paralApply(this->nsub, this->sd, &FetiSub<Scalar>::sendMpcDiag, mpcDiagPat);
      mpcDiagPat->exchange();
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcDiag, mpcDiagPat);
+     paralApply(this->nsub, this->sd, &FetiSub<Scalar>::collectMpcDiag, mpcDiagPat);
      delete mpcDiagPat;
    }
 
@@ -3120,14 +3120,14 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
 
    if(fetiInfo->mpc_precno == FetiInfo::diagCCt) {
      // use W scaling for preconditioning mpcs, don't need to build & invert CC^t
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcScaling, this->vPat);
+     paralApply(this->nsub, this->sd, &FetiSub<Scalar>::sendMpcScaling, this->vPat);
      this->vPat->exchange();  // neighboring subs mpc weights
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcScaling, this->vPat);
+     paralApply(this->nsub, this->sd, &FetiSub<Scalar>::collectMpcScaling, this->vPat);
    }
    else if(fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
      // used generalized proconditioner for mpcs, need to build and invert CC^t
      mpcPrecon = true;
-     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcScaling);
+     paralApply(this->nsub, this->sd, &FetiSub<Scalar>::initMpcScaling);
 /* this is called in refactor
      buildCCt();
 */
@@ -3136,7 +3136,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
    if(mpcSubMap) { delete [] mpcSubMap; mpcSubMap = 0; }
  }
 
- paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::cleanMpcData);
+ paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::cleanMpcData);
 #endif  // As_LIBRARY
 }
 

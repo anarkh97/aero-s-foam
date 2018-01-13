@@ -73,11 +73,6 @@ protected:
 	int *locToGlActuatorMap = nullptr;
 	int *locToGlUserDispMap = nullptr;
 	int *locToGlUserForceMap = nullptr;
-	int boundLen = 0;
-	int *boundMap = nullptr;
-	int *dualToBoundary = nullptr;
-	int internalLen = 0;
-	int *internalMap = nullptr;
 	int crnDofSize = 0;
 	int *crnPerNeighb = nullptr;
 	long memK = 0;       // memory necessary to store K(s)
@@ -265,7 +260,6 @@ protected:
 	bool *wiMaster = nullptr;
 	int numFsiNeighb;
 	int *fsiNeighb = nullptr;
-	int *wiInternalMap = nullptr;
 	bool isMixedSub = false;
 	int edgeQindex[2] = {-1, -1};
 	double prev_cscale_factor;
@@ -296,15 +290,10 @@ template<class Scalar>
 class GenSubDomain : public BaseSub , public FetiSub<Scalar>
 {
 private:
-	Scalar *kweight; // stiffness weights (i.e. sum of Kii for all subd sharing that dof)
-	mutable Scalar *deltaFmpc;
 	int *cornerWeight;
-	void applyBtransposeAndScaling(const Scalar *u, Scalar *v, Scalar *deltaU = 0, Scalar *localw = 0) const;
-	void applyScalingAndB(const Scalar *res, Scalar *Pu, Scalar *localw = 0) const;
 	void initialize();
 
 protected:
-	Scalar *scaling;
 	void sendDOFList(FSCommPattern<int> *pat); // Send to neighbors the list of DOFs on the shared nodes
 
 public:
@@ -312,11 +301,7 @@ public:
 	Scalar                    *rbms;
 	Scalar                    *interfaceRBMs;
 	GenFullM<Scalar>          *qtkq;
-	std::unique_ptr<GenSparseMatrix<Scalar>> KiiSparse;
-	GenSolver<Scalar>         *KiiSolver;
-	std::unique_ptr<GenCuCSparse<Scalar> >     Kib;
 	GenSparseMatrix<Scalar>   *MPCsparse;
-	std::unique_ptr<GenDBSparseMatrix<Scalar>> Kbb;    // for preconditioning
 	Corotator           	    **corotators;
 	Scalar                    *QtKpBt;
 
@@ -326,7 +311,6 @@ public:
 private:
 	GenSolver<Scalar> *localCCtsolver;
 	GenSparseMatrix<Scalar> *localCCtsparse;
-	Scalar *diagCCt;
 	int lengthCCtData;
 	int *CCtrow, *CCtcol;
 	Scalar* CCtval;
@@ -391,9 +375,6 @@ public:
 	void makeKbbMpc();
 	void rebuildKbb();
 	void makeKbb(DofSetArray *dofsetarray=0);
-	void factorKii() override;
-	void multKbb(const Scalar *u, Scalar *Pu, Scalar *delta_u = 0, Scalar * delta_f= 0, bool errorFlag = true);
-	void multDiagKbb(const Scalar *u, Scalar *Pu) const;
 	void multFi(GenSolver<Scalar> *s, Scalar *, Scalar *);
 	void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const override;
 	void assembleLocalComplexEls(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *smat = 0);
@@ -428,17 +409,11 @@ public:
 	                         Scalar *stress, Scalar *weight = 0);
 	void computeStressStrain(GeomState *gs, Corotator **allCorot,
 	                         int, int Findex, Scalar *glStress, Scalar *glWeight = 0, GeomState *refState = NULL);
-	void initScaling();
-	void sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPat) override;
-	void collectScaling(FSCommPattern<Scalar> *vPat);
 	void fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0) const;
-	void fScale(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
-	void fSplit(Scalar *locF);
 	void updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda);
 	void updatePrescribedDisp(GeomState *geomState);
 	Scalar displacementNorm(Scalar *displacement);
 	void firstAssemble(GenSparseMatrix<Scalar> *K);
-	void initMpcScaling();
 	void makeZstarAndR(double *centroid);  // makes Zstar and R
 	void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd, int augOffset,
 	                     Connectivity *subToEdge);
@@ -502,9 +477,6 @@ public:
 	void factorLocalCCtsolver();
 	void zeroLocalCCtsolver();
 	void deleteLocalCCtsolver() { if(localCCtsolver) delete localCCtsolver; }
-	void setMpcDiagCommSize(FSCommStructure *mpcDiagPat) const override;
-	void sendMpcDiag(FSCommPattern<Scalar> *mpcDiagPat);
-	void collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat);
 
 	void extractMpcResidual(Scalar *subv, GenVector<Scalar> &mpcv, SimpleNumberer *mpcEqNums);
 	void insertMpcResidual(Scalar *subv, GenVector<Scalar> &mpcv, SimpleNumberer *mpcEqNums);
@@ -515,8 +487,6 @@ public:
 	                            SimpleNumberer **blockMpcEqNums);
 	void sendMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec);
 	void combineMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec);
-	void sendMpcScaling(FSCommPattern<Scalar> *mpcPat);
-	void collectMpcScaling(FSCommPattern<Scalar> *mpcPat);
 	void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
 	void printMpcStatus();
 	void computeContactPressure(Scalar *globStress, Scalar *globWeight);
@@ -534,9 +504,7 @@ protected:
 
 	Scalar Bcx(int i);
 	void makeBcx_scalar();
-	Scalar *deltaFwi;
 	bool isWetInterfaceNode(int n) { return (wetInterfaceNodeMap.size() > 0) ? (wetInterfaceNodeMap[n] > -1) : false; }
-	Scalar *wweight;
 #ifdef HB_COUPLED_PRECOND
 	Scalar* kSumWI;
 #endif
@@ -545,7 +513,6 @@ public:
 	void addSingleFsi(LMPCons *localFsi);
 	void constructKww();
 	void constructKcw();
-	void multKbbCoupled(const Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag = true);
 	void scaleAndSplitKww();
 	void reScaleAndReSplitKww();
 	void addSommer(SommerElement *ele); // XDEBUG

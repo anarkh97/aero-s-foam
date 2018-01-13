@@ -231,11 +231,11 @@ GenVector<Scalar>::GenVector(int l)           // Constructor
 template<class Scalar>
 inline
 void
-GenVector<Scalar>::initialize(int l)
+GenVector<Scalar>::initialize(int length)
 {
    clean_up();
    myMemory = true;
-   len = l;
+   len = length;
    d = new Scalar[len];
 }
 

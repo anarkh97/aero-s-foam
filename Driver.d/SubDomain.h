@@ -99,12 +99,7 @@ public:
 	const FetiInfo &getFetiInfo() const override { return solInfo().getFetiInfo(); }
 
 //	int *glCrnGroup;    // group of each corner node (global numbering)
-	std::vector<std::vector<DofSet>> boundaryDOFs;
 	int nCDofs = -1;
-	double k_f = 0.0, k_p = 0.0, k_s = 0.0, k_s2 = 0.0;  // wave numbers for FETI-DPH for this subdomain
-	double *neighbK_p = nullptr, *neighbK_s = nullptr, *neighbK_s2 = nullptr, *neighbK_f = nullptr;  // neighbors' wave numbers
-	double Ymod, Prat = 0.0, Dens = 0.0, Thih = 0.0, Sspe = 0.0;  // Young's modulus, Poisson ration, density, thickness, speed of sound
-	double *neighbYmod = nullptr, *neighbPrat = nullptr, *neighbDens = nullptr, *neighbThih = nullptr, *neighbSspe = nullptr;  // neighbor's values
 
 	int dofWeight(int i) { return weight[i]; }
 	int crnDofLen() const  { return crnDofSize; }
@@ -171,7 +166,7 @@ public:
 
 	ConstrainedDSA *get_c_dsa() const { return c_dsa; }
 	const std::vector<int> &getWeights() const { return weight; }
-
+	double getShiftVal() const { return geoSource->shiftVal(); }
 public:
 	/// \copydoc
 	int getLocalMPCIndex(int globalMpcIndex) const override;
@@ -218,11 +213,6 @@ public:
 	void computeWaveNumbers();
 	void sendWaveNumbers(FSCommPattern<double> *kPat);
 	void collectWaveNumbers(FSCommPattern<double> *kPat);
-	void getDirections(int numDirec, int numWaves, double *&wDir_x, double *&wDir_y, double *&wDir_z);
-	void getOneDirection(double d, int i, int j, int k, int &nnum, int numWaves, double *wDir_x, double *wDir_y, double *wDir_z);
-	void getOneDirection(double x, double y, double z, int &nnum, int numWaves, double *wDir_x, double *wDir_y, double *wDir_z);
-	void getDirections13(int numDirec, double *wDir_x, double *wDir_y, double *wDir_z);
-	void GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation);
 	void averageMatProps();
 	void sendMatProps(FSCommPattern<double> *matPat);
 	void collectMatProps(FSCommPattern<double> *matPat);
@@ -259,7 +249,6 @@ protected:
 	bool *wiMaster = nullptr;
 	int numFsiNeighb;
 	int *fsiNeighb = nullptr;
-	int edgeQindex[2] = {-1, -1};
 	double prev_cscale_factor;
 
 public:
@@ -437,8 +426,6 @@ public:
 	void setMpcSparseMatrix();
 	void getFw(const Scalar *f, Scalar *fw) const override;
 	int numRBM() const { return nGrbm; }
-	void makeEdgeVectorsPlus(bool isFluidSub = false, bool isThermalSub = false,
-	                         bool isUndefinedSub = false);
 	void makeAverageEdgeVectors();
 	void weightEdgeGs();
 	void constructKrc();

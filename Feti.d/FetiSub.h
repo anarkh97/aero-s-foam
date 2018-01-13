@@ -104,6 +104,8 @@ public:
 
 	virtual bool isEdgeNeighbor(int neighb) const = 0;
 
+	virtual double getShiftVal() const = 0;
+
 	const std::vector<int> &getCornerNodes() const { return glCornerNodes; }
 	std::vector<int> &getCornerNodes() { return glCornerNodes; }
 	void markCornerDofs(int *glCornerDofs) const;
@@ -152,6 +154,7 @@ public:
 	void setWICommSize(FSCommStructure *wiPat);
 	void setWImapCommSize(FSCommPattern<int> *pat);
 	bool isWetInterfaceDof(int d) const { return (wetInterfaceMap.size() > 0) ? (wetInterfaceMap[d] > -1) : false; }
+	void GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation);
 
 protected:
 	int boundLen = 0;
@@ -166,6 +169,7 @@ protected:
 	std::vector<int> glCornerNodes; //!< \brief Corner nodes in global numbering.
 	int numCRN = 0;
 	int numCRNdof = 0;
+	std::vector<std::vector<DofSet>> boundaryDOFs;
 	std::vector<int> edgeDofSizeTmp;   // XXXX
 	std::vector<int> edgeDofSize;      //<! \brief Number of edge DOF per neighbor.
 	std::vector<int> cornerEqNums; //<! \brief unique equation numbers for subdomain corner dofs
@@ -259,6 +263,15 @@ protected:
 	GlobalToLocalMap *neighbGlToLocalWImap = nullptr;
 
 	GlobalToLocalMap glToLocalNode; // This seems to be for coarse problem only.
+
+	/// \brief store indices for possible rebuild (multiple LHS freq sweep)
+	int edgeQindex[2] = {-1, -1};
+
+	double k_f = 0.0, k_p = 0.0, k_s = 0.0, k_s2 = 0.0;  // wave numbers for FETI-DPH for this subdomain
+	double *neighbK_p = nullptr, *neighbK_s = nullptr, *neighbK_s2 = nullptr, *neighbK_f = nullptr;  // neighbors' wave numbers
+	double Ymod, Prat = 0.0, Dens = 0.0, Thih = 0.0, Sspe = 0.0;  // Young's modulus, Poisson ration, density, thickness, speed of sound
+	double *neighbYmod = nullptr, *neighbPrat = nullptr, *neighbDens = nullptr, *neighbThih = nullptr, *neighbSspe = nullptr;  // neighbor's values
+
 };
 
 template <typename Scalar>
@@ -386,6 +399,8 @@ public:
 	void collectMpcScaling(FSCommPattern<Scalar> *mpcPat);
 	void assembleMpcIntoKcc();
 
+	void makeEdgeVectorsPlus(bool isFluidSub = false, bool isThermalSub = false,
+	                         bool isUndefinedSub = false);
 	// templated R and G functions
 	// note #1: we use feti to solve global domain problem: min 1/2 u_g^T*K_g*u_g - u_g^T*f_g subj. to C_g*u_g <= g
 	//          by solving an equivalent decomposed domain problem: min 1/2 u^T*K*u - u^T*f subj to B*u = 0, C*u <= g

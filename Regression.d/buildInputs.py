@@ -43,7 +43,7 @@ def buildInputs(params):
     os.chdir("Regression.d")  
 
   ploc = -1
-  bpath = re.compile("\-c")
+  bpath = re.compile("^\-c")
   i = 0
   copyInputs = 0
 

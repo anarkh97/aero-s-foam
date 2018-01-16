@@ -169,6 +169,8 @@ TRAIL [a-zA-Z]*
 
 "allowmechanisms"|"ALLOWMECHANISMS" { return ALLOWMECHANISMS; }
 
+"use_scotch"|"USE_SCOTCH"          { return USESCOTCH; }
+
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
 
 "global"|"GLOBAL"                  { return GLOBAL; }

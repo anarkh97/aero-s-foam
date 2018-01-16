@@ -121,6 +121,7 @@ bool trivialFlag=false;
 bool randomShuffle=false;
 bool fsglFlag=false;
 bool allowMechanisms=false;
+bool useScotch=false;
 
 int verboseFlag = 0;
 int contactPrintFlag = 0;
@@ -315,6 +316,7 @@ int main(int argc, char** argv)
    {"deter", 0, 0, 1005},
    {"trivial", 0, 0, 1007},
    {"allow-mechanisms", 0, 0, 1008},
+   {"use-scotch", 0, 0, 1009},
    {"use-weight-from", 1, 0, 1004},
    {"threads-number", 1, 0, 'n'},
    {"decomposition-filename", 1, 0, 'd'},
@@ -347,7 +349,7 @@ int main(int argc, char** argv)
 
  filePrint(stderr,"\n --------- R U N  PARAMETERS ----------\n");
  FILE * weightFile;
- while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:q",long_options, &option_index)) != -1)
+ while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:q", long_options, &option_index)) != -1)
       switch (c) {
       case 1000 :  // call dec from FEM
 	callDec = true;
@@ -420,6 +422,9 @@ int main(int argc, char** argv)
         break;
       case 1008 :
         allowMechanisms = true;
+        break;
+      case 1009 :
+        useScotch = true;
         break;
       case 1010 :
 	callSower = true;

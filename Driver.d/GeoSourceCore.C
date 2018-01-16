@@ -49,6 +49,7 @@ extern bool weightOutFlag;
 extern bool trivialFlag;
 extern bool randomShuffle;
 extern bool allowMechanisms;
+extern bool useScotch;
 extern int verboseFlag;
 #ifndef SALINAS
 extern Sfem *sfem;
@@ -4187,6 +4188,29 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    if(verboseFlag)
      filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",
                maxEle, optDec->nsub);
+ }
+ else if(useScotch) {
+#ifdef USE_SCOTCH
+   if(verboseFlag) filePrint(stderr, " ... Decomposing mesh using SCOTCH  ...\n");
+   Connectivity elemToNode(&elemSet);
+   Connectivity *nodeToElem = elemToNode.reverse();
+   Connectivity *elemToElem = elemToNode.transcon(nodeToElem);
+   Connectivity *graph = elemToElem->modifyAlt(); // scotch doesn't allow loops
+   Connectivity *subToElem = graph->SCOTCH_graphPart(numSubdomains);
+   optDec = new Decomposition(numSubdomains, subToElem->getPointer(), subToElem->getTarget());
+   subToElem->setRemoveable(0);
+   delete subToElem;
+   delete graph;
+   delete elemToElem;
+   delete nodeToElem;
+
+   if(verboseFlag)
+     filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",
+               maxEle, optDec->nsub);
+#else
+   std::cerr << " *** WARNING: USE_SCOTCH is not defined in GeoSource::simpleDecomposition\n";
+   exit(-1);
+#endif
  }
  else {
 

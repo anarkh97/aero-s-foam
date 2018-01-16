@@ -569,9 +569,14 @@ NLMembrane::computePressureForce(CoordSet& cs, Vector& force,
   double gs[9];
   for(int i = 0; i < 3; ++i) { 
     nodes[i] = *cs[n[i]];
-    gs[3*i  ] = (*geomState)[n[i]].x;
-    gs[3*i+1] = (*geomState)[n[i]].y;
-    gs[3*i+2] = (*geomState)[n[i]].z;
+    if(geomState) {
+      gs[3*i  ] = (*geomState)[n[i]].x;
+      gs[3*i+1] = (*geomState)[n[i]].y;
+      gs[3*i+2] = (*geomState)[n[i]].z;
+    }
+    else {
+      gs[3*i] = gs[3*i+1] = gs[3*i+2] = 0;
+    }
   }
 
   double d[2][3] = { { nodes[1].x+gs[3]-nodes[0].x-gs[0], 

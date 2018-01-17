@@ -372,7 +372,7 @@ void GenSubDomain<Scalar>::addUserForce(Scalar *extForce, Scalar *usrDefForce) {
 	for (i = 0; i < claw->numUserForce; ++i) {
 		int dof = c_dsa->locate(claw->userForce[i].nnum, 1 << claw->userForce[i].dofnum);
 		if (dof > -1)
-			extForce[dof] += usrDefForce[locToGlUserForceMap[i]] / static_cast<double>(weight[dof]);
+			extForce[dof] += usrDefForce[locToGlUserForceMap[i]] / static_cast<double>(dofWeight(dof));
 	}
 }
 
@@ -382,7 +382,7 @@ void GenSubDomain<Scalar>::addCtrl(Scalar *force, Scalar *ctrfrc) {
 	for (i = 0; i < claw->numActuator; ++i) {
 		int dof = c_dsa->locate(claw->actuator[i].nnum, 1 << claw->actuator[i].dofnum);
 		if (dof > -1)
-			force[dof] += ctrfrc[locToGlActuatorMap[i]] / static_cast<double>(weight[dof]);
+			force[dof] += ctrfrc[locToGlActuatorMap[i]] / static_cast<double>(dofWeight(dof));
 	}
 }
 
@@ -424,17 +424,17 @@ GenSubDomain<Scalar>::mergePrimalError(Scalar *error, Scalar *primal) {
 		double totP = 0.0;
 		int xLoc = c_dsa->locate(inode, DofSet::Xdisp);
 		if (xLoc >= 0) {
-			totP += square(primal[xLoc] / static_cast<double>(weight[xLoc]));
+			totP += square(primal[xLoc] / static_cast<double>(dofWeight(xLoc)));
 			nd += 1.0;
 		}
 		int yLoc = c_dsa->locate(inode, DofSet::Ydisp);
 		if (yLoc >= 0) {
-			totP += square(primal[yLoc] / static_cast<double>(weight[yLoc]));
+			totP += square(primal[yLoc] / static_cast<double>(dofWeight(yLoc)));
 			nd += 1.0;
 		}
 		int zLoc = c_dsa->locate(inode, DofSet::Zdisp);
 		if (zLoc >= 0) {
-			totP += square(primal[zLoc] / static_cast<double>(weight[zLoc]));
+			totP += square(primal[zLoc] / static_cast<double>(dofWeight(zLoc)));
 			nd += 1.0;
 		}
 		if (nd != 0) totP = sqrt(totP / nd);
@@ -450,7 +450,7 @@ GenSubDomain<Scalar>::addDMass(int glNum, int dof, double v) {
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::sendDOFList(FSCommPattern<int> *pat) {
+GenSubDomain<Scalar>::sendDOFList(FSCommPattern<int> *pat) const {
 	Connectivity &sharedNodes = *(scomm->sharedNodes);
 	for (int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
 		FSSubRecInfo<int> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[iSub]);
@@ -550,6 +550,7 @@ GenSubDomain<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 	scomm->setTypeSpecificList(SComm::wet, wetNeighbs, wetSharedDOFs);
 
 	int ndof = localLen();
+	auto &weight = getWeights();
 	weight.resize(ndof);
 	for (int i = 0; i < ndof; ++i) weight[i] = 1;
 	for (int i = 0; i < stdSharedDOFs->numConnect(); ++i)
@@ -1121,75 +1122,6 @@ GenSubDomain<Scalar>::addSingleFsi(LMPCons *localFsi) {
 #endif
 }
 
-template<class Scalar>
-void
-GenSubDomain<Scalar>::extractInterfRBMs(int numRBM, Scalar *locRBMs, Scalar *locInterfRBMs) {
-	int iDof, iRBM;
-	int locLen = localLen();
-
-	// locInterfRBMs are ordered by rbm
-	for (iRBM = 0; iRBM < numRBM; ++iRBM) {
-		int off = iRBM * scomm->numT(SComm::std);
-		int locOff = iRBM * locLen;
-		for (iDof = 0; iDof < scomm->numT(SComm::std); ++iDof)
-			locInterfRBMs[off + iDof] = locRBMs[locOff + scomm->boundDofT(SComm::std, iDof)];
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::sendInterfRBMs(int numRBM, Scalar *locInterfRBMs, FSCommPattern<Scalar> *rbmPat) {
-	// locInterfRBMs are ordered by-RBM, need to convert to by-neighbor ordering
-	for (int iSub = 0; iSub < scomm->numT(SComm::std); ++iSub) {
-		FSSubRecInfo<Scalar> sInfo = rbmPat->getSendBuffer(subNumber, scomm->neighbT(SComm::std, iSub));
-		int off = 0;
-		for (int iRBM = 0; iRBM < nGrbm; ++iRBM) {
-			int locOff = iRBM * totalInterfSize + scomm->offsetT(SComm::std, iSub);
-			for (int iDof = 0; iDof < scomm->lenT(SComm::std, iSub); ++iDof) {
-				sInfo.data[off + iDof] = interfaceRBMs[locOff + iDof];
-			}
-			off += scomm->lenT(SComm::std, iSub);
-		}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::recvInterfRBMs(int iNeighb, int numNeighbRBM, Scalar *neighbInterfRBMs,
-                                     FSCommPattern<Scalar> *rbmPat) {
-	// this is for just one neighbor
-	FSSubRecInfo<Scalar> rInfo = rbmPat->recData(scomm->neighbT(SComm::std, iNeighb), subNumber);
-	int len = scomm->lenT(SComm::std, iNeighb) * numNeighbRBM;
-	for (int j = 0; j < len; ++j) neighbInterfRBMs[j] = rInfo.data[j];
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat) {
-	// Sub-Domain based augmented preconditioner for DP
-	this->Grc = std::make_unique<GenCuCSparse<Scalar>>(scomm->lenT(SComm::std), scomm->boundDofsT(SComm::std), nGrbm,
-	                                                   interfaceRBMs);
-	this->Src->addSparseMatrix(this->Grc.get());
-
-	sendInterfRBMs(nGrbm, interfaceRBMs, rbmPat);
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat) {
-	// Sub-Domain based augmented preconditioner for DP
-	for (int iNeighb = 0; iNeighb < scomm->numT(SComm::std); ++iNeighb) {
-		int leadingDimGs = getSComm()->lenT(SComm::std, iNeighb);
-		Scalar *neighbGs = new Scalar[leadingDimGs * neighbNumGRBMs[iNeighb]];
-		recvInterfRBMs(iNeighb, neighbNumGRBMs[iNeighb], neighbGs, rbmPat);
-		// TODO FIX THIS LEAK! Src does not own the pointers. In other cases they are owned by FetiSub.
-		GenCuCSparse<Scalar> *Grc = new GenCuCSparse<Scalar>(leadingDimGs, scomm->boundDofsT(SComm::std, iNeighb),
-		                                                     neighbNumGRBMs[iNeighb], neighbGs, leadingDimGs);
-		Grc->negate();
-		this->Src->addSparseMatrix(Grc);
-	}
-}
-
 template<>
 void
 GenSubDomain<DComplex>::getSRMult(const DComplex *lvec, const DComplex *interfvec, int nRBM,
@@ -1250,27 +1182,11 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array) {
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::rebuildKbb() {
-	this->Kbb.reset();
-	this->KiiSparse.reset();
-	this->Kib.reset();
-	if (numMPC) makeKbbMpc(); else makeKbb(getCCDSA());
-/*
-  GenSparseMatrix<Scalar> *Kas = 0;
-  GenSolver<Scalar> *smat = 0;
-  assemble(Kas,smat,true);
-  factorKii();
-*/
-}
-
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::makeKbbMpc() {
 	auto &mpc = this->mpc;
 	// make the mpc dofs be boundary dofs
 	std::vector<int> weight_mpc(c_dsa->size(), 0);
-	for (int i = 0; i < cc_dsa->size(); ++i) weight_mpc[ccToC[i]] = weight[i];
+	for (int i = 0; i < cc_dsa->size(); ++i) weight_mpc[ccToC[i]] = dofWeight(i);
 
 	for (int i = 0; i < numMPC; i++) {
 		const auto &m = mpc[i];
@@ -1282,10 +1198,10 @@ GenSubDomain<Scalar>::makeKbbMpc() {
 	}
 
 	// construct the mapping and the matrices
-	std::swap(weight, weight_mpc);
+	std::swap(getWeights(), weight_mpc);
 	makeKbb(c_dsa);
 	// recover
-	std::swap(weight, weight_mpc);
+	std::swap(getWeights(), weight_mpc);
 }
 
 template<class Scalar>
@@ -2162,212 +2078,6 @@ GenSubDomain<Scalar>::getFw(const Scalar *f, Scalar *fw) const {
 	}
 }
 
-template<class Scalar>
-void
-GenSubDomain<Scalar>::makeQ() {
-	switch (solInfo().getFetiInfo().augment) {
-		default:
-			break;
-		case FetiInfo::Gs: {
-			nGrbm = std::min(this->rigidBodyModes->numRBM(), solInfo().getFetiInfo().nGs);
-			int iLen = scomm->lenT(SComm::std);
-			interfaceRBMs = new Scalar[nGrbm * iLen];
-			rbms = new Scalar[nGrbm * iLen];
-			int *boundToCDSA = (int *) dbg_alloca(sizeof(int) * iLen);
-			int i;
-			for (i = 0; i < iLen; ++i)
-				if (scomm->boundDofT(SComm::std, i) >= 0)
-					boundToCDSA[i] = ccToC[scomm->boundDofT(SComm::std, i)];
-				else
-					boundToCDSA[i] = -1;
-			int offset = 0;
-			if ((this->rigidBodyModes->numRBM() == 6) && (solInfo().getFetiInfo().rbmType == FetiInfo::rotation))
-				offset = 3;
-			this->rigidBodyModes->getRBMs(interfaceRBMs, iLen, boundToCDSA, nGrbm, offset);
-		}
-			break;
-		case FetiInfo::WeightedEdges:
-		case FetiInfo::Edges: {
-			switch (solInfo().getFetiInfo().rbmType) {
-				default:
-				case FetiInfo::translation:
-				case FetiInfo::rotation:
-				case FetiInfo::all:
-				case FetiInfo::None:
-					if (isMixedSub) {
-						this->makeEdgeVectorsPlus(true); // build augmentation for fluid dofs
-						this->makeEdgeVectorsPlus(false);  // build augmentation for structure dofs
-					} else {
-						this->makeEdgeVectorsPlus(isFluid(0),
-						                    packedEset[0]->getCategory() == Element::Thermal,
-						                    packedEset[0]->getCategory() == Element::Undefined);
-					}
-					break;
-				case FetiInfo::averageTran:
-				case FetiInfo::averageRot:
-				case FetiInfo::averageAll:
-					makeAverageEdgeVectors();
-					break;
-			}
-		}
-			break;
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::weightEdgeGs() {
-	// for WeightedEdge augmentation
-	if (solInfo().getFetiInfo().scaling == FetiInfo::tscaling)
-		this->Grc->doWeighting(weight.data());
-	else if (solInfo().getFetiInfo().scaling == FetiInfo::kscaling)
-		this->Grc->doWeighting(this->kweight.data());
-}
-
-// I've changed this routine to compute the following Q vectors:
-//
-// averageTran = [Qx + Qy]  i.e. [ 1 1 0 ]^T at a node
-// averageRot  = [Qy + Qz]  i.e. [ 0 1 1 ]^T at a node
-// averageAll  = computes both of these Q vectors
-//
-// These 2 vectors are better than [Qx Qy Qz] together, which seems too
-// "weak" of a constraint to help the convergence very much. Maybe there
-// are other "stronger" vectors that will help more.
-//
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::makeAverageEdgeVectors() {
-	int i;
-	int numR = 1;
-	if (solInfo().getFetiInfo().rbmType == FetiInfo::averageAll)
-		numR = 2;
-	int totalLengthGrc = 0;
-
-	Connectivity &sharedNodes = *(scomm->sharedNodes);
-	edgeDofSize.resize(scomm->numNeighb);
-
-	// 1. first count number of edge dofs
-	int iSub, iNode, nE = 0;
-	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-		edgeDofSize[iSub] = 0;
-		if(std::find_if(boundaryDOFs[iSub].begin(), boundaryDOFs[iSub].end(),
-		                [](auto dofs) {
-			                return dofs.contains(DofSet::XYZdisp | DofSet::XYZrot);
-		                }) != boundaryDOFs[iSub].end())
-			edgeDofSize[iSub] = numR;
-		if (edgeDofSize[iSub] > 0) nE++;
-	}
-
-	int *xyzCount = new int[nE * numR];
-	for (i = 0; i < numR * nE; ++i)
-		xyzCount[i] = 0;
-
-	nE = 0;
-	int nDof = 0;
-	if (numR > 1) nDof = 1;
-
-	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-		if (edgeDofSize[iSub] == 0) continue;
-		int xCount = 0, yCount = 0, zCount = 0, xrCount = 0, yrCount = 0, zrCount = 0;
-		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) xCount++;
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) yCount++;
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) zCount++;
-			if (solInfo().getFetiInfo().rbmType == FetiInfo::averageRot || (numR > 1)) {
-				if (boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) xrCount++;
-				if (boundaryDOFs[iSub][iNode].contains(DofSet::Yrot)) yrCount++;
-				if (boundaryDOFs[iSub][iNode].contains(DofSet::Zrot)) zrCount++;
-			}
-		}
-		int edgeLength = 0;
-		if (solInfo().getFetiInfo().rbmType == FetiInfo::averageTran || (numR > 1)) {
-			xyzCount[numR * nE + 0] = xCount + yCount + zCount;
-			edgeLength += xCount + yCount + zCount;
-		}
-		if (solInfo().getFetiInfo().rbmType == FetiInfo::averageRot || (numR > 1)) {
-			// KHP
-			//xyzCount[numR*nE+nDof]  = xrCount + yrCount + zrCount;
-			//edgeLength             += xrCount + yrCount + zrCount;
-			xyzCount[numR * nE + nDof] = xCount + yCount + zCount;
-			edgeLength += xCount + yCount + zCount;
-		}
-		totalLengthGrc += edgeLength;
-
-		nE++;
-	}
-
-// --------------------------------------------------------
-	int *xyzList = new int[totalLengthGrc];
-	Scalar *xyzCoefs = new Scalar[totalLengthGrc];
-	int xOffset = 0;
-	int xrOffset = 0;
-	nE = 0;
-	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-		if (edgeDofSize[iSub] == 0) continue;
-		if (numR > 1) {
-			xrOffset = xOffset + xyzCount[numR * nE + 0];
-		}
-		Scalar sign = (scomm->subNums[iSub] < subNumber) ? 1.0 : -1.0;
-		int used = 0;
-		int middleNode = sharedNodes.num(iSub) / 2;
-		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) {
-				int xDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Xdisp);
-				xyzList[xOffset] = xDof;
-				xyzCoefs[xOffset++] = (middleNode == iNode) ? sign * 1.0 : 0.0;
-				used = 1;
-			}
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) {
-				int yDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Ydisp);
-				xyzList[xOffset] = yDof;
-				xyzCoefs[xOffset++] = (middleNode == iNode) ? sign * 0.0 : 0.0;
-				used = 1;
-			}
-			if (boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) {
-				int zDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Zdisp);
-				xyzList[xOffset] = zDof;
-				xyzCoefs[xOffset++] = (middleNode == iNode) ? sign * 1.0 : 0.0;
-				used = 1;
-			}
-
-			if (solInfo().getFetiInfo().rbmType == FetiInfo::averageRot || (numR > 1)) {
-				if (boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) {
-					int xDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Xdisp);
-					xyzList[xrOffset] = xDof;
-					xyzCoefs[xrOffset++] = (middleNode == iNode) ? sign * 1.0 : 0.0;
-					used = 1;
-				}
-				if (boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) {
-					int yDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Ydisp);
-					xyzList[xrOffset] = yDof;
-					xyzCoefs[xrOffset++] = (middleNode == iNode) ? sign * 1.0 : 0.0;
-					used = 1;
-				}
-				if (boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) {
-					int zDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Zdisp);
-					xyzList[xrOffset] = zDof;
-					xyzCoefs[xrOffset++] = (middleNode == iNode) ? sign * 0.0 : 0.0;
-					used = 1;
-				}
-			}
-
-		}
-		int off = 0;
-		if (numR > 1)
-			off += xyzCount[numR * nE + 1];
-
-		xOffset += off;
-
-		if (used) nE++;
-	}
-	this->Grc = std::make_unique<GenCuCSparse<Scalar>>(numR * nE, cc_dsa->size(),
-	                                                   xyzCount, xyzList, xyzCoefs);
-	// Src->setSparseMatrices(1, Grc);
-	this->Src->addSparseMatrix(this->Grc.get());
-	delete[] xyzCount;
-}
-
 template<>
 void
 GenSubDomain<DComplex>::precondGrbm();
@@ -2604,7 +2314,6 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::clean_up() {
 	for (int i = 0; i < numele; ++i) packedEset[i]->renum(glNums);
-	weight.clear();
 
 	if (bcx) {
 		delete[] bcx;
@@ -2957,8 +2666,6 @@ GenSubDomain<Scalar>::getLocalMultipliers(std::vector<double> &lambda) {
 template<class Scalar>
 void
 GenSubDomain<Scalar>::initialize() {
-	rbms = 0;
-	interfaceRBMs = 0;
 	qtkq = 0;
 	MPCsparse = 0;
 	corotators = 0;
@@ -3004,9 +2711,6 @@ GenSubDomain<Scalar>::initialize() {
 template<class Scalar>
 GenSubDomain<Scalar>::~GenSubDomain() {
 
-	if (interfaceRBMs) {
-		delete[] interfaceRBMs;
-	}
 	if (QtKpBt) {
 		delete[] QtKpBt;
 	}

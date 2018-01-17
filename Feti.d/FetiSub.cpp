@@ -14,6 +14,12 @@
 #include <Solvers.d/Solver.h>
 #include <Math.d/BLAS.h>
 
+
+ConstrainedDSA *FetiBaseSub::getCCDSA() const {
+	return cc_dsa ? cc_dsa.get() : get_c_dsa();
+}
+
+
 void
 FetiBaseSub::markCornerDofs(int *glCornerDofs) const
 {
@@ -1913,7 +1919,7 @@ FetiSub<Scalar>::multKbbCoupled(const Scalar *u, Scalar *Pu, Scalar *deltaF, boo
 		else if (boundDofFlag[iDof] == 1) { // wet interface
 			int windex = -1 - allBoundDofs[iDof];
 #ifdef HB_COUPLED_PRECOND
-			localw[windex] = (solInfo().getFetiInfo().splitLocalFsi) ? -u[iDof]*scaling[iDof] : -u[iDof];
+			localw[windex] = (getFetiInfo().splitLocalFsi) ? -u[iDof]*scaling[iDof] : -u[iDof];
 #else
 			localw[windex] = -u[iDof] * scaling[iDof];
 #endif
@@ -2572,10 +2578,210 @@ getDirections(int numDirec, int numWaves, double *&wDir_x, double *&wDir_y, doub
 
 template<class Scalar>
 void
+FetiSub<Scalar>::makeQ() {
+	switch (getFetiInfo().augment) {
+		default:
+			break;
+		case FetiInfo::Gs: {
+			nGrbm = std::min(this->rigidBodyModes->numRBM(), getFetiInfo().nGs);
+			int iLen = scomm->lenT(SComm::std);
+			interfaceRBMs.resize(nGrbm * iLen);
+			rbms.resize(nGrbm * iLen);
+			int *boundToCDSA = (int *) dbg_alloca(sizeof(int) * iLen);
+			int i;
+			for (i = 0; i < iLen; ++i)
+				if (scomm->boundDofT(SComm::std, i) >= 0)
+					boundToCDSA[i] = ccToC[scomm->boundDofT(SComm::std, i)];
+				else
+					boundToCDSA[i] = -1;
+			int offset = 0;
+			if ((this->rigidBodyModes->numRBM() == 6) && (getFetiInfo().rbmType == FetiInfo::rotation))
+				offset = 3;
+			this->rigidBodyModes->getRBMs(interfaceRBMs.data(), iLen, boundToCDSA, nGrbm, offset);
+		}
+			break;
+		case FetiInfo::WeightedEdges:
+		case FetiInfo::Edges: {
+			switch (getFetiInfo().rbmType) {
+				default:
+				case FetiInfo::translation:
+				case FetiInfo::rotation:
+				case FetiInfo::all:
+				case FetiInfo::None:
+					if (isMixedSub) {
+						this->makeEdgeVectorsPlus(true); // build augmentation for fluid dofs
+						this->makeEdgeVectorsPlus(false);  // build augmentation for structure dofs
+					} else {
+						// TODO Make this in an alternative way, i.e. constructor of the solver???
+						std::cerr << "Warning: Not checking for thermal or Helmholtz correctly" << std::endl;
+						bool isThermalSub = false; // Was packedEset[0]->getCategory() == Element::Thermal
+						bool isUndefinedSub = false; // Was packedEset[0]->getCategory() == Element::Undefined)
+						bool isHelmholtz = false; // Was isFluid(0)
+						this->makeEdgeVectorsPlus(isHelmholtz,
+						                          isThermalSub,
+						                          isUndefinedSub);
+					}
+					break;
+				case FetiInfo::averageTran:
+				case FetiInfo::averageRot:
+				case FetiInfo::averageAll:
+					makeAverageEdgeVectors();
+					break;
+			}
+		}
+			break;
+	}
+}
+
+// I've changed this routine to compute the following Q vectors:
+//
+// averageTran = [Qx + Qy]  i.e. [ 1 1 0 ]^T at a node
+// averageRot  = [Qy + Qz]  i.e. [ 0 1 1 ]^T at a node
+// averageAll  = computes both of these Q vectors
+//
+// These 2 vectors are better than [Qx Qy Qz] together, which seems too
+// "weak" of a constraint to help the convergence very much. Maybe there
+// are other "stronger" vectors that will help more.
+//
+template<class Scalar>
+void
+FetiSub<Scalar>::makeAverageEdgeVectors() {
+	int i;
+	int numR = 1;
+	if (getFetiInfo().rbmType == FetiInfo::averageAll)
+		numR = 2;
+	int totalLengthGrc = 0;
+
+	Connectivity &sharedNodes = *(scomm->sharedNodes);
+	edgeDofSize.resize(scomm->numNeighb);
+
+	// 1. first count number of edge dofs
+	int iSub, iNode, nE = 0;
+	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+		edgeDofSize[iSub] = 0;
+		if(std::find_if(boundaryDOFs[iSub].begin(), boundaryDOFs[iSub].end(),
+		                [](auto dofs) {
+			                return dofs.contains(DofSet::XYZdisp | DofSet::XYZrot);
+		                }) != boundaryDOFs[iSub].end())
+			edgeDofSize[iSub] = numR;
+		if (edgeDofSize[iSub] > 0) nE++;
+	}
+
+	int *xyzCount = new int[nE * numR];
+	for (i = 0; i < numR * nE; ++i)
+		xyzCount[i] = 0;
+
+	nE = 0;
+	int nDof = 0;
+	if (numR > 1) nDof = 1;
+
+	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+		if (edgeDofSize[iSub] == 0) continue;
+		int xCount = 0, yCount = 0, zCount = 0, xrCount = 0, yrCount = 0, zrCount = 0;
+		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
+			if (boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) xCount++;
+			if (boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) yCount++;
+			if (boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) zCount++;
+			if (getFetiInfo().rbmType == FetiInfo::averageRot || (numR > 1)) {
+				if (boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) xrCount++;
+				if (boundaryDOFs[iSub][iNode].contains(DofSet::Yrot)) yrCount++;
+				if (boundaryDOFs[iSub][iNode].contains(DofSet::Zrot)) zrCount++;
+			}
+		}
+		int edgeLength = 0;
+		if (getFetiInfo().rbmType == FetiInfo::averageTran || (numR > 1)) {
+			xyzCount[numR * nE + 0] = xCount + yCount + zCount;
+			edgeLength += xCount + yCount + zCount;
+		}
+		if (getFetiInfo().rbmType == FetiInfo::averageRot || (numR > 1)) {
+			// KHP
+			//xyzCount[numR*nE+nDof]  = xrCount + yrCount + zrCount;
+			//edgeLength             += xrCount + yrCount + zrCount;
+			xyzCount[numR * nE + nDof] = xCount + yCount + zCount;
+			edgeLength += xCount + yCount + zCount;
+		}
+		totalLengthGrc += edgeLength;
+
+		nE++;
+	}
+
+// --------------------------------------------------------
+	int *xyzList = new int[totalLengthGrc];
+	Scalar *xyzCoefs = new Scalar[totalLengthGrc];
+	int xOffset = 0;
+	int xrOffset = 0;
+	nE = 0;
+	for (iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+		if (edgeDofSize[iSub] == 0) continue;
+		if (numR > 1) {
+			xrOffset = xOffset + xyzCount[numR * nE + 0];
+		}
+		Scalar sign = (scomm->subNums[iSub] < subNum()) ? 1.0 : -1.0;
+		int used = 0;
+		int middleNode = sharedNodes.num(iSub) / 2;
+		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
+			if (boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) {
+				int xDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Xdisp);
+				xyzList[xOffset] = xDof;
+				xyzCoefs[xOffset++] = (middleNode == iNode) ? sign * 1.0 : 0.0;
+				used = 1;
+			}
+			if (boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) {
+				int yDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Ydisp);
+				xyzList[xOffset] = yDof;
+				xyzCoefs[xOffset++] = (middleNode == iNode) ? sign * 0.0 : 0.0;
+				used = 1;
+			}
+			if (boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) {
+				int zDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Zdisp);
+				xyzList[xOffset] = zDof;
+				xyzCoefs[xOffset++] = (middleNode == iNode) ? sign * 1.0 : 0.0;
+				used = 1;
+			}
+
+			if (getFetiInfo().rbmType == FetiInfo::averageRot || (numR > 1)) {
+				if (boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) {
+					int xDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Xdisp);
+					xyzList[xrOffset] = xDof;
+					xyzCoefs[xrOffset++] = (middleNode == iNode) ? sign * 1.0 : 0.0;
+					used = 1;
+				}
+				if (boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) {
+					int yDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Ydisp);
+					xyzList[xrOffset] = yDof;
+					xyzCoefs[xrOffset++] = (middleNode == iNode) ? sign * 1.0 : 0.0;
+					used = 1;
+				}
+				if (boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) {
+					int zDof = cc_dsa->locate(sharedNodes[iSub][iNode], DofSet::Zdisp);
+					xyzList[xrOffset] = zDof;
+					xyzCoefs[xrOffset++] = (middleNode == iNode) ? sign * 0.0 : 0.0;
+					used = 1;
+				}
+			}
+
+		}
+		int off = 0;
+		if (numR > 1)
+			off += xyzCount[numR * nE + 1];
+
+		xOffset += off;
+
+		if (used) nE++;
+	}
+	this->Grc = std::make_unique<GenCuCSparse<Scalar>>(numR * nE, cc_dsa->size(),
+	                                                   xyzCount, xyzList, xyzCoefs);
+	// Src->setSparseMatrices(1, Grc);
+	this->Src->addSparseMatrix(this->Grc.get());
+	delete[] xyzCount;
+}
+
+template<class Scalar>
+void
 FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
                                           bool isUndefinedSub) {
 	int i, iSub, iNode;
-	//bool isCoupled = solInfo().isCoupled;
+	//bool isCoupled = isCoupled;
 	int spaceDim = getFetiInfo().spaceDimension;
 	// Number of directions in the coarse problem, choose from 0, 1, ..., 13
 	int numDirec = getFetiInfo().numdir;
@@ -3385,6 +3591,94 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 	if (Q) delete[] Q;
 }
 
+template<class Scalar>
+void
+FetiSub<Scalar>::extractInterfRBMs(int numRBM, Scalar *locRBMs, Scalar *locInterfRBMs) {
+	int iDof, iRBM;
+	int locLen = localLen();
+
+	// locInterfRBMs are ordered by rbm
+	for (iRBM = 0; iRBM < numRBM; ++iRBM) {
+		int off = iRBM * scomm->numT(SComm::std);
+		int locOff = iRBM * locLen;
+		for (iDof = 0; iDof < scomm->numT(SComm::std); ++iDof)
+			locInterfRBMs[off + iDof] = locRBMs[locOff + scomm->boundDofT(SComm::std, iDof)];
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::sendInterfRBMs(int numRBM, Scalar *locInterfRBMs, FSCommPattern<Scalar> *rbmPat) {
+	// locInterfRBMs are ordered by-RBM, need to convert to by-neighbor ordering
+	for (int iSub = 0; iSub < scomm->numT(SComm::std); ++iSub) {
+		FSSubRecInfo<Scalar> sInfo = rbmPat->getSendBuffer(subNum(), scomm->neighbT(SComm::std, iSub));
+		int off = 0;
+		for (int iRBM = 0; iRBM < nGrbm; ++iRBM) {
+			int locOff = iRBM * totalInterfSize + scomm->offsetT(SComm::std, iSub);
+			for (int iDof = 0; iDof < scomm->lenT(SComm::std, iSub); ++iDof) {
+				sInfo.data[off + iDof] = interfaceRBMs[locOff + iDof];
+			}
+			off += scomm->lenT(SComm::std, iSub);
+		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::recvInterfRBMs(int iNeighb, int numNeighbRBM, Scalar *neighbInterfRBMs,
+                                     FSCommPattern<Scalar> *rbmPat) {
+	// this is for just one neighbor
+	FSSubRecInfo<Scalar> rInfo = rbmPat->recData(scomm->neighbT(SComm::std, iNeighb), subNum());
+	int len = scomm->lenT(SComm::std, iNeighb) * numNeighbRBM;
+	for (int j = 0; j < len; ++j) neighbInterfRBMs[j] = rInfo.data[j];
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat) {
+	// Sub-Domain based augmented preconditioner for DP
+	this->Grc = std::make_unique<GenCuCSparse<Scalar>>(scomm->lenT(SComm::std), scomm->boundDofsT(SComm::std), nGrbm,
+	                                                   interfaceRBMs.data());
+	this->Src->addSparseMatrix(this->Grc.get());
+
+	sendInterfRBMs(nGrbm, interfaceRBMs.data(), rbmPat);
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat) {
+	// Sub-Domain based augmented preconditioner for DP
+	for (int iNeighb = 0; iNeighb < scomm->numT(SComm::std); ++iNeighb) {
+		int leadingDimGs = getSComm()->lenT(SComm::std, iNeighb);
+		Scalar *neighbGs = new Scalar[leadingDimGs * neighbNumGRBMs[iNeighb]];
+		recvInterfRBMs(iNeighb, neighbNumGRBMs[iNeighb], neighbGs, rbmPat);
+		// TODO FIX THIS LEAK! Src does not own the pointers. In other cases they are owned by FetiSub.
+		GenCuCSparse<Scalar> *Grc = new GenCuCSparse<Scalar>(leadingDimGs, scomm->boundDofsT(SComm::std, iNeighb),
+		                                                     neighbNumGRBMs[iNeighb], neighbGs, leadingDimGs);
+		Grc->negate();
+		this->Src->addSparseMatrix(Grc);
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::weightEdgeGs() {
+	// for WeightedEdge augmentation
+	if (getFetiInfo().scaling == FetiInfo::tscaling)
+		this->Grc->doWeighting(weight.data());
+	else if (getFetiInfo().scaling == FetiInfo::kscaling)
+		this->Grc->doWeighting(this->kweight.data());
+}
+
+
+template<class Scalar>
+void
+FetiSub<Scalar>::rebuildKbb() {
+	this->Kbb.reset();
+	this->KiiSparse.reset();
+	this->Kib.reset();
+	if (numMPC) makeKbbMpc(); else makeKbb(getCCDSA());
+}
 
 template class FetiSub<double>;
 template class FetiSub<std::complex<double>>;

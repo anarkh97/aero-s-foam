@@ -71,7 +71,6 @@ GenFetiOp<double>::sendInterfRBM(FSCommPattern<double> *rbmPat)
      if(idof >= 0) mask[idof] = 0;
    }
    
-   auto weight = sd->weight;
    auto allBoundDofs = (*sd->scomm->sharedDOFs)[0];
    thisSet.locQGs = new double[numRBM*sd->interfLen()];
    int interfaceLen = sd->interfLen();
@@ -81,7 +80,7 @@ GenFetiOp<double>::sendInterfRBM(FSCommPattern<double> *rbmPat)
    for(i = 0; i < numRBM; ++i) {
      for(j=0; j< interfaceLen; ++j) {
        thisSet.locQGs[i*interfaceLen+j] = mask[allBoundDofs[j]]*
-       locInterfRBMs[i*interfaceLen+j]/(weight[allBoundDofs[j]] -1);
+       locInterfRBMs[i*interfaceLen+j]/(sd->dofWeight(allBoundDofs[j]) -1);
        if(scale[j] > maxScale) maxScale = scale[j];
        if(scale[j] < minScale) minScale = scale[j];
      }

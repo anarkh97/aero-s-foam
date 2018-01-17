@@ -247,8 +247,9 @@ GenDomainGroupTask<Scalar>::runForWB(int isub, bool make_feti)
       // construct local solver for the subdomain
       SolverCntl &local_cntl = *domain->solInfo().solvercntl->fetiInfo.local_cntl;
       if(local_cntl.type == 0 || local_cntl.type == 1) { // local solver is direct or iterative
-        dynMats[isub] = GenSolverFactory<Scalar>::getFactory()->createSolver(sd[isub]->getNodeToNode(), sd[isub]->getDSA(), sd[isub]->getCCDSA(),
-                                                                             local_cntl, spMats[isub], (Rbm*) NULL, spp[isub], sps[isub]);
+        dynMats[isub] = GenSolverFactory<Scalar>::getFactory()
+		        ->createSolver(sd[isub]->getNodeToNode(), sd[isub]->getDSA(), sd[isub]->getCCDSA(),
+		                       local_cntl, spMats[isub], (Rbm*) NULL, spp[isub], sps[isub]);
       }
       else if(local_cntl.type == 2) { // local solver is feti
         std::cerr << "using FETI-DP solver for local problem\n";

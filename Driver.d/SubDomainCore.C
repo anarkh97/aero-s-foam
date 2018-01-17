@@ -194,7 +194,7 @@ GenSubDomain<double>::precondGrbm()
 
    for(j=0; j<=iRBM; ++j)
      { GenStackVector<double> Z(x+iRBM*iLen,iLen);
-       GenStackVector<double> Q(interfaceRBMs+j*iLen,iLen);
+       GenStackVector<double> Q(interfaceRBMs.data()+j*iLen,iLen);
        kappa[count++] = Z*Q; }
   }
   count = 0;
@@ -202,11 +202,11 @@ GenSubDomain<double>::precondGrbm()
 
    for(iDof = 0; iDof < iLen; ++iDof)
      x[iRBM*iLen+iDof] = interfaceRBMs[iRBM*iLen+iDof];
-   multKbb(x+iRBM*iLen,interfaceRBMs+iRBM*iLen);
+   multKbb(x+iRBM*iLen,interfaceRBMs.data()+iRBM*iLen);
 
    for(j=0; j<=iRBM; ++j)
       { GenStackVector<double> Z(x+iRBM*iLen,iLen);
-        GenStackVector<double> Q(interfaceRBMs+j*iLen,iLen);
+        GenStackVector<double> Q(interfaceRBMs.data()+j*iLen,iLen);
         mu[count++] = Z*Q;
       }
   
@@ -219,7 +219,7 @@ GenSubDomain<double>::precondGrbm()
  getJacobi(kappa, mu, xx, eval, 20, nGrbm, 1e-4);
 
  for(j = 0; j < nGrbm; ++j) {
-   GenStackVector<double> Q(interfaceRBMs+j*iLen,iLen);
+   GenStackVector<double> Q(interfaceRBMs.data()+j*iLen,iLen);
    Q.zero();
    for(i = 0; i < nGrbm; ++i) {
      GenStackVector<double> Z(x+i*iLen,iLen);

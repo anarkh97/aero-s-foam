@@ -29,7 +29,7 @@ GenSubDomain<Scalar>::multAddLinv(const Scalar *localvec, Scalar *globalvec)
   // globalvec += L^{-1} * localvec
   if(!l2g) makeLocalToGlobalDofMap();
   for(int i = 0; i < c_dsa->size(); ++i)
-    globalvec[l2g[i]] += localvec[i]/double(weight[i]);
+    globalvec[l2g[i]] += localvec[i]/double(dofWeight(i));
 }
 
 template<class Scalar>
@@ -39,7 +39,7 @@ GenSubDomain<Scalar>::multLTinv(const Scalar *globalvec, Scalar *localvec)
   // localvec = L^{-T} * globalvec
   if(!l2g) makeLocalToGlobalDofMap();
   for(int i = 0; i < c_dsa->size(); ++i)
-    localvec[i] = globalvec[l2g[i]]/double(weight[i]);
+    localvec[i] = globalvec[l2g[i]]/double(dofWeight(i));
 }
 
 template<class Scalar>

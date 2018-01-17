@@ -98,6 +98,7 @@ BaseSub::initHelm(Domain &dom)
       else nStruct++;
     }
     isMixedSub = (nFluid && nStruct) ? true : false;
+	  this->isCoupled = true;
   }
   if(solInfo().getFetiInfo().dph_flag && salinasFlag) isMixedSub = true; // assume salinas doesn't know
   //if(isMixedSub) filePrint(stderr," -> sub %d is a mixed fluid/structure subdomain\n",subNumber); //HB
@@ -193,7 +194,7 @@ BaseSub::makeCCDSA()
  // dof set array with boundary conditions and corner node boundary conditions
  cc_dsa = std::make_unique<ConstrainedDSA>(*dsa, numDirichlet, dbc, numCRN, cornerNodes, cornerDofs,
                              numComplexDirichlet, cdbc, numWInodes, wetInterfaceNodes.data(),
-                             wetInterfaceDofs);  // modified for coupled_dph
+                             wetInterfaceDofs.data());  // modified for coupled_dph
                                                  // (without the wet interface dofs)
 
  // Map from cc_dsa numbering to c_dsa numbering and vice versa
@@ -240,8 +241,8 @@ BaseSub::computeMasterFlag(const Connectivity &mpcToSub)
   bool *wiFlag = (bool *) dbg_alloca(sizeof(bool)*numWIdof);
   for(i=0; i<numWIdof; ++i) { wiFlag[i] = true; }
 
-  if(numWIdof && !wiMaster) { // build wiMaster
-    wiMaster = new bool[numWIdof];  // wiMaster[i] is true if this subdomain is the master of the wet interface dof i
+  if(numWIdof && wiMaster.size() == 0) { // build wiMaster
+    wiMaster.resize(numWIdof);  // wiMaster[i] is true if this subdomain is the master of the wet interface dof i
     for(i=0; i<numWIdof; ++i) wiMaster[i] = true; 
     for(i=0; i < scomm->numT(SComm::wet); ++i) {
       if(scomm->neighbT(SComm::wet, i) < subNumber) 
@@ -341,12 +342,12 @@ BaseSub::makeBMaps(const DofSetArray *dof_set_array)
 
   boundLen = 0;
   for(iDof = 0; iDof < lLen; ++iDof)
-    invBoundMap[iDof] = (weight[iDof] > 1) ? boundLen++ : -1 ;
+    invBoundMap[iDof] = (dofWeight(iDof) > 1) ? boundLen++ : -1 ;
 
   boundMap.resize(boundLen);
   boundLen = 0;
   for(iDof = 0; iDof < lLen; ++iDof)
-    if(weight[iDof] > 1) boundMap[boundLen++] = iDof;
+    if(dofWeight(iDof) > 1) boundMap[boundLen++] = iDof;
 
   int gLen = dsa->size();
   int *glBoundMap = new int[gLen];
@@ -397,13 +398,13 @@ BaseSub::makeIMaps(const DofSetArray *dof_set_array)
   int *glInternalMap = new int[gLen];
 
   internalLen = numWIdof;
-  for(iDof = 0; iDof < lLen; ++iDof) if(weight[iDof] == 1) internalLen++; //add ir dofs
+  for(iDof = 0; iDof < lLen; ++iDof) if(dofWeight(iDof) == 1) internalLen++; //add ir dofs
   internalMap.resize(internalLen);
   if(numWIdof) wiInternalMap.resize(numWIdof);
   internalLen = 0;
   for(iDof = 0; iDof < gLen; ++iDof) {
     int dofI = dof_set_array->getRCN(iDof);
-    if((dofI > -1) && (weight[dofI] == 1)) { // regular ir dof
+    if((dofI > -1) && (dofWeight(dofI) == 1)) { // regular ir dof
       internalMap[internalLen] = dofI;
       glInternalMap[iDof] = internalLen++;
     }
@@ -898,10 +899,10 @@ BaseSub::markWetInterface(int nWI, int *wiNum)
   int i;
   int numnodes = dsa->numNodes();
 
-  wetInterfaceMark = new bool[numnodes];
-  wetInterfaceFluidMark = new bool[numnodes];
-  wetInterfaceStructureMark = new bool[numnodes];
-  wetInterfaceCornerMark = new bool[numnodes];
+  wetInterfaceMark.resize(numnodes);
+  wetInterfaceFluidMark.resize(numnodes);
+  wetInterfaceStructureMark.resize(numnodes);
+  wetInterfaceCornerMark.resize(numnodes);
   for(i = 0; i < numnodes; ++i) {
     wetInterfaceMark[i] = false;
     wetInterfaceFluidMark[i] = false;
@@ -992,8 +993,8 @@ BaseSub::setWetInterface(int nWI, int *wiNum)
   numWIdof = 0;
   DofSet sevenDofs;
   sevenDofs.mark(DofSet::XYZdisp | DofSet::XYZrot | DofSet::Helm);
-  wetInterfaceNodes .resize(numWInodes);
-  wetInterfaceDofs  = new DofSet[numWInodes];  
+  wetInterfaceNodes.resize(numWInodes);
+  wetInterfaceDofs.resize(numWInodes);
   for(i = 0; i < numWInodes; i++) {
     int thisNode = myWetInterfaceNodes[i];
     DofSet interestingDofs;
@@ -1473,7 +1474,7 @@ double BaseSub::getSharedDofCount()
   for(i = 0; i < totalInterfSize; ++i) {
     int cc_dof = allBoundDofs[i];
     if(cc_dof >= 0) { // don't count mpc or contact virtual nodes
-      count += 1.0/weight[cc_dof];
+      count += 1.0/dofWeight(cc_dof);
     }
   }
   return count;
@@ -1553,15 +1554,9 @@ BaseSub::~BaseSub()
 
   if(localLambda) { delete [] localLambda; localLambda = 0; }
 
-  if(wetInterfaceDofs) { delete [] wetInterfaceDofs; wetInterfaceDofs = 0; }
   if(neighbGlToLocalWImap) { delete [] neighbGlToLocalWImap; neighbGlToLocalWImap = 0; }
-  if(wetInterfaceMark) { delete [] wetInterfaceMark; wetInterfaceMark = 0; }
-  if(wetInterfaceFluidMark) { delete [] wetInterfaceFluidMark; wetInterfaceFluidMark = 0; }
-  if(wetInterfaceStructureMark) { delete [] wetInterfaceStructureMark; wetInterfaceStructureMark = 0; }
-  if(wetInterfaceCornerMark) { delete [] wetInterfaceCornerMark; wetInterfaceCornerMark = 0; }
   /*if(wweight) { delete [] wweight; wweight = 0; }*/
   if(drySharedNodes) { delete drySharedNodes; drySharedNodes = 0; }
-  if(wiMaster) { delete [] wiMaster; wiMaster = 0; }
   if(mpclast) { delete [] mpclast; mpclast = 0; }
 
   if(scomm) { delete scomm; scomm = 0; }

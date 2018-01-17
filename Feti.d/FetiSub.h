@@ -113,6 +113,9 @@ public:
 
 	int numEdgeDofs(int i) const { return edgeDofSize[i]; }
 
+	const std::vector<int> &getWeights() const { return weight; }
+	std::vector<int> &getWeights() { return weight; }
+	int dofWeight(int i) const { return weight[i]; }
 	/* missing:
 	 * splitInterf
 	 * setMpcNeighbCommSize
@@ -145,7 +148,7 @@ public:
 	int getNumMpc() const       { return numMPC; }
 
 	virtual ConstrainedDSA *get_c_dsa() const = 0;
-	virtual const std::vector<int> &getWeights() const = 0;
+	ConstrainedDSA *getCCDSA() const;
 
 	void addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol);
 	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
@@ -157,6 +160,7 @@ public:
 	void GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation);
 
 protected:
+	bool isCoupled = false; // TODO Ensure this is set or derived from some other info.
 	int boundLen = 0;
 	int internalLen = 0;
 	int totalInterfSize;
@@ -178,6 +182,7 @@ protected:
 	std::vector<int> cToCC; //!< Mapping from c_dsa to cc_dsa. Indices for corner DOFs are < 0.
 	bool isMixedSub = false;
 
+	std::vector<int> weight; ///!< \brief DOF weights (i.e. number of subd sharing that dof).
 	std::vector<int> weightPlus; ///!< \brief DOF weights (i.e. number of subd sharing that dof) including corner DOFs.
 
 	// MPC related data
@@ -236,6 +241,9 @@ public:
 
 	void sendNeighbGrbmInfo(FSCommPattern<int> *pat);
 	void receiveNeighbGrbmInfo(FSCommPattern<int> *pat);
+
+	bool isWetInterfaceNode(int n) const { return (wetInterfaceNodeMap.size() > 0) ? (wetInterfaceNodeMap[n] > -1) : false; }
+
 	// variables and routines for parallel GRBM algorithm and floating bodies projection
 	// and MPCs (rixen method)
 protected:
@@ -257,6 +265,7 @@ protected:
 	std::vector<int> wetInterfaceNodes;
 	std::vector<int> numNeighbWIdof;
 	std::vector<int> wiInternalMap;
+	std::vector<DofSet> wetInterfaceDofs;
 
 	GlobalToLocalMap glToLocalWImap;
 
@@ -370,6 +379,10 @@ public:
 	// (R_g^T*R_g) matrix assembly
 	void assembleRtR(GenFullM<Scalar> &RtRu);
 
+	virtual void makeKbbMpc() = 0;
+	virtual void makeKbb(DofSetArray *dofsetarray=0) = 0;
+	void rebuildKbb();
+
 	// new B operators
 	void multBr(const Scalar *localvec, Scalar *interfvec, const Scalar *uc = 0, const Scalar *uw = 0) const;
 	void multAddBrT(const Scalar *interfvec, Scalar *localvec, Scalar *uw = nullptr) const;
@@ -389,6 +402,8 @@ public:
 	void fScale(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
 	void initMpcScaling();
 	void initScaling();
+	void weightEdgeGs();
+	void makeQ();
 
 	void applyBtransposeAndScaling(const Scalar *u, Scalar *v, Scalar *deltaU = 0, Scalar *localw = 0) const;
 	void applyScalingAndB(const Scalar *res, Scalar *Pu, Scalar *localw = 0) const;
@@ -401,6 +416,12 @@ public:
 
 	void makeEdgeVectorsPlus(bool isFluidSub = false, bool isThermalSub = false,
 	                         bool isUndefinedSub = false);
+	void makeAverageEdgeVectors();
+	void extractInterfRBMs(int numRBM, Scalar *locRBMs, Scalar *locInterfRBMs);
+	void sendInterfRBMs(int numRBM, Scalar *locInterfRBMs, FSCommPattern<Scalar> *rbmPat);
+	void recvInterfRBMs(int iNeighb, int numNeighbRBM, Scalar *neighbInterfRBMs, FSCommPattern<Scalar> *rbmPat);
+	void sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
+	void receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
 	// templated R and G functions
 	// note #1: we use feti to solve global domain problem: min 1/2 u_g^T*K_g*u_g - u_g^T*f_g subj. to C_g*u_g <= g
 	//          by solving an equivalent decomposed domain problem: min 1/2 u^T*K*u - u^T*f subj to B*u = 0, C*u <= g
@@ -460,6 +481,8 @@ public:
 	_AVMatrix<Scalar> Eve;
 
 public:
+	std::vector<Scalar> rbms;
+	std::vector<Scalar> interfaceRBMs;
 	// MPC related data
 	mutable std::vector<std::unique_ptr<SubLMPCons<Scalar>>> mpc; // multiple point constraints
 	std::vector<std::unique_ptr<SubLMPCons<Scalar>>> mpc_primal;
@@ -499,6 +522,7 @@ protected:
 
 	Eigen::SparseMatrix<double> B, Bw;
 	Eigen::SparseMatrix<Scalar> Bm, Bc;
+
 };
 
 #endif //FEM_FETUSUB_H

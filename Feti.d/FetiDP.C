@@ -193,7 +193,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 
 	if(verboseFlag) filePrint(stderr," ... Build Edge Augmentation (Q)    ... \n");
 	computeLocalWaveNumbers();
-	paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::makeQ);  // build augmentation matrix
+	paralApplyToAll(this->nsub, this->subdomains, &FetiSub<Scalar>::makeQ);  // build augmentation matrix
 	if(fetiInfo->augment == FetiInfo::Gs) {
 		// exchange number of each neighbors rbms
 		paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::sendNumNeighbGrbm, this->sPat);
@@ -214,7 +214,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::scaleAndSplitKww);
 
 	if(fetiInfo->augment == FetiInfo::WeightedEdges)
-		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // W*Q
+		paralApplyToAll(this->subdomains, &FetiSub<Scalar>::weightEdgeGs); // W*Q
 
 	// MPCs
 	mpcPrecon = false;
@@ -3093,7 +3093,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
  }
  this->times.memoryOSet += memoryUsed();
 
- paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::rebuildKbb);
+ paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::rebuildKbb);
 
  paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::initScaling);
  if((fetiInfo->scaling == FetiInfo::kscaling) || ((fetiInfo->mpc_scaling == FetiInfo::kscaling) && (this->glNumMpc_primal > 0))

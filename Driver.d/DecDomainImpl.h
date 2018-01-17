@@ -3601,7 +3601,7 @@ void GenDecDomain<Scalar>::distributeWetInterfaceNodes()
     }
   }
 
-  if ((domain->solInfo().isCoupled) && (domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0)) { 
+  if ((domain->solInfo().isCoupled) && (domain->solInfo().getFetiInfo().fsi_corner != 0)) {
     execParal(numSub, this, &GenDecDomain<Scalar>::markSubWetInterface,
               nWetInterfaceNodesPerSub, subWetInterfaceNodes);
   }  

@@ -1,6 +1,7 @@
 #ifndef _PHELPER_H_
 #define _PHELPER_H_
 
+#include <vector>
 #include <Timers.d/GetTime.h>
 #include <Threads.d/Paral.h>
 #include <Timers.d/DistTimer.h>
@@ -130,4 +131,24 @@ void paralApplyToAll(int n, A **target, void(B::*fct)(Args ...) const,PassedArgs
 	paralApply(n, target, fct, pargs...);
 };
 
+
+template <typename A, typename B, typename ... Args, typename ... PassedArgs>
+void paralApplyToAll(int n, std::vector<A*> &target, void(B::*fct)(Args ...),PassedArgs ...pargs) {
+	paralApply(n, target.data(), fct, pargs...);
+};
+
+template <typename A, typename B, typename ... Args, typename ... PassedArgs>
+void paralApplyToAll(int n, std::vector<A*> &target, void(B::*fct)(Args ...) const,PassedArgs ...pargs) {
+	paralApply(n, target.data(), fct, pargs...);
+};
+
+template <typename A, typename B, typename ... Args, typename ... PassedArgs>
+void paralApplyToAll(std::vector<A*> &target, void(B::*fct)(Args ...),PassedArgs ...pargs) {
+	paralApply(static_cast<int>(target.size()), target.data(), fct, pargs...);
+};
+
+template <typename A, typename B, typename ... Args, typename ... PassedArgs>
+void paralApplyToAll(std::vector<A*> &target, void(B::*fct)(Args ...) const,PassedArgs ...pargs) {
+	paralApply(static_cast<int>(target.size()), target.data(), fct, pargs...);
+};
 #endif

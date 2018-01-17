@@ -65,7 +65,6 @@ protected:
 	int *glNums = nullptr;
 	int *glElems = nullptr;
 	int glNumNodes;
-	std::vector<int> weight; ///!< \brief DOF weights (i.e. number of subd sharing that dof).
 	double *bcx = nullptr;
 	DComplex *bcxC = nullptr; // FETI-H
 	double *vcx = nullptr, *acx = nullptr;
@@ -101,7 +100,6 @@ public:
 //	int *glCrnGroup;    // group of each corner node (global numbering)
 	int nCDofs = -1;
 
-	int dofWeight(int i) { return weight[i]; }
 	int crnDofLen() const  { return crnDofSize; }
 	IntFullM* getC(int &crnDofSize, FSCommPattern<int> *sPat);
 	void showExchangeData();
@@ -143,7 +141,6 @@ public:
 	int localSubNum() const override { return localSubNumber; }
 	int getNumUncon() const override { return numUncon(); }
 	int localLen() const override { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
-	ConstrainedDSA * getCCDSA()  { return (cc_dsa) ? cc_dsa.get() : c_dsa; }
 	int localRLen() const override { return cc_dsa->size(); }
 	void putNumMPC(int *ptr) { ptr[subNumber] = numMPC; }
 	void putLocalToGlobalMPC(int *ptr, int *tg) { for(int i=0; i<numMPC; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC[i]; }
@@ -165,7 +162,6 @@ public:
 	int nCoarseDofs()  const { return nCDofs; }
 
 	ConstrainedDSA *get_c_dsa() const { return c_dsa; }
-	const std::vector<int> &getWeights() const { return weight; }
 	double getShiftVal() const { return geoSource->shiftVal(); }
 public:
 	/// \copydoc
@@ -238,15 +234,14 @@ public:
 	void setArb(std::list<SommerElement *> *_list);
 	// coupled_dph
 protected:
-	bool *wetInterfaceMark = nullptr;
-	bool *wetInterfaceFluidMark = nullptr;
-	bool *wetInterfaceStructureMark = nullptr;
-	bool *wetInterfaceCornerMark = nullptr;
+	std::vector<bool> wetInterfaceMark;
+	std::vector<bool> wetInterfaceFluidMark;
+	std::vector<bool> wetInterfaceStructureMark;
+	std::vector<bool> wetInterfaceCornerMark;
 
 	int *wDofToNode = nullptr; //HB
-	DofSet *wetInterfaceDofs = nullptr;
 	Connectivity *drySharedNodes = nullptr;
-	bool *wiMaster = nullptr;
+	std::vector<bool> wiMaster;
 	int numFsiNeighb;
 	int *fsiNeighb = nullptr;
 	double prev_cscale_factor;
@@ -281,12 +276,11 @@ private:
 	void initialize();
 
 protected:
-	void sendDOFList(FSCommPattern<int> *pat); // Send to neighbors the list of DOFs on the shared nodes
+	/// \brief Send to neighbors the list of DOFs on the shared nodes
+	void sendDOFList(FSCommPattern<int> *pat) const;
 
 public:
 
-	Scalar                    *rbms;
-	Scalar                    *interfaceRBMs;
 	GenFullM<Scalar>          *qtkq;
 	GenSparseMatrix<Scalar>   *MPCsparse;
 	Corotator           	    **corotators;
@@ -348,19 +342,13 @@ public:
 	void renumberBCsEtc();
 	void renumberControlLaw();
 	void renumberMPCs();
-	void extractInterfRBMs(int numRBM, Scalar *locRBMs, Scalar *locInterfRBMs);
-	void sendInterfRBMs(int numRBM, Scalar *locInterfRBMs, FSCommPattern<Scalar> *rbmPat);
-	void recvInterfRBMs(int iNeighb, int numNeighbRBM, Scalar *neighbInterfRBMs, FSCommPattern<Scalar> *rbmPat);
 	void sendNode(Scalar (*subvec)[11], FSCommPattern<Scalar> *pat);
 	void collectNode(Scalar (*subvec)[11], FSCommPattern<Scalar> *pat);
 
 	void getSRMult(const Scalar *lvec, const Scalar *lbvec, int nRBM, const double *locRBMs, Scalar *alpha) const;
-	void sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
-	void receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
 	void sendDeltaF(const Scalar *deltaF, FSCommPattern<Scalar> *vPat);
 	double collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
 	void makeKbbMpc();
-	void rebuildKbb();
 	void makeKbb(DofSetArray *dofsetarray=0);
 	void multFi(GenSolver<Scalar> *s, Scalar *, Scalar *);
 	void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const override;
@@ -421,13 +409,10 @@ public:
 	friend class GenFetiOp<Scalar>;
 	friend class GenFetiSolver<Scalar>;
 
-	void makeQ();
 	void precondGrbm();
 	void setMpcSparseMatrix();
 	void getFw(const Scalar *f, Scalar *fw) const override;
 	int numRBM() const { return nGrbm; }
-	void makeAverageEdgeVectors();
-	void weightEdgeGs();
 	void constructKrc();
 	void initSrc();
 	void clean_up();
@@ -487,7 +472,6 @@ protected:
 
 	Scalar Bcx(int i);
 	void makeBcx_scalar();
-	bool isWetInterfaceNode(int n) { return (wetInterfaceNodeMap.size() > 0) ? (wetInterfaceNodeMap[n] > -1) : false; }
 #ifdef HB_COUPLED_PRECOND
 	Scalar* kSumWI;
 #endif

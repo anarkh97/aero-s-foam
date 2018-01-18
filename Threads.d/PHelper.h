@@ -102,6 +102,25 @@ void paralApply(int n, A * const *target, void(B::*fct)(Args ...) const,PassedAr
 	threadManager->execParal(n, &fe);
 };
 
+
+template <typename A, typename B, typename ... Args, typename ... PassedArgs>
+void paralApply(const std::vector<A*> &target, void(B::*fct)(Args ...),PassedArgs &&...pargs) {
+	auto call =[&](int i) { (
+			static_cast<B *>(target[i])->*fct)(thread_details::DirectOrIndexed<Args, PassedArgs>::subEval(std::forward<PassedArgs>(pargs), i)...);
+	};
+	auto fe = makeExecuter(call);
+	threadManager->execParal(target.size(), &fe);
+};
+
+template <typename A, typename B, typename ... Args, typename ... PassedArgs>
+void paralApply(const std::vector<A*> &target, void(B::*fct)(Args ...) const,PassedArgs &&...pargs) {
+	auto call =[&](int i) { (
+			static_cast<B *>(target[i])->*fct)(thread_details::DirectOrIndexed<Args, PassedArgs>::subEval(std::forward<PassedArgs>(pargs), i)...);
+	};
+	auto fe = makeExecuter(call);
+	threadManager->execParal(target.size(), &fe);
+};
+
 template <typename A, typename B, typename ... Args, typename ... PassedArgs>
 void paralApplyToAll(int n, A *target, void(B::*fct)(Args ...),PassedArgs ...pargs) {
 	auto call =[&](int i) {

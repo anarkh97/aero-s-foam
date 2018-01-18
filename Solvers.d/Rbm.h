@@ -34,9 +34,9 @@ class Rbm
   double **xyzRot;              // xyz location about which rotation modes are calculated
   int      nComponents;		// number of components
   int      numUncon; 		// # of unconstrained dofs
-  ConstrainedDSA* c_dsa;
-  DofSetArray*   dsa;
-  compStruct*   comp;
+  const ConstrainedDSA* c_dsa;
+  const DofSetArray*   dsa;
+  const compStruct*   comp;
   IntFullM *cornerModes;
   ComplexVector *cgrbm;  // complex grbm, temporary fix to avoid templating class
 
@@ -53,44 +53,45 @@ public:
   FullM *Rc;
   FullM *Zmpc;
 
-  Rbm() { init(); }
-  Rbm(Vector *zem, int numrbm, int numUncon, int myMemory = 0); 
-  Rbm(ComplexVector *zem, int numrbm, int numUncon, int myMemory = 0); 
-  Rbm(DofSetArray *dsa, ConstrainedDSA *c_dsa);
-  Rbm(DofSetArray *dsa, ConstrainedDSA *c_dsa, CoordSet &cs, double tolgrb,
-      compStruct &components, IntFullM *fm = 0);
-  Rbm(DofSetArray *dsa, ConstrainedDSA *c_dsa, CoordSet &cs, double tolgrb,
-      compStruct &components, int numMPC, ResizeArray<LMPCons *> &mpc, IntFullM *fm = 0);
-  Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
-      double _tolgrb, double *centroid,
-      const std::vector<int> &cornerNodes, int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
-      int numMPC, const std::vector<std::unique_ptr<SubLMPCons<double> > > &mpc);
-  Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
-      double _tolgrb, double *centroid,
-      const std::vector<int> &cornerNodes, int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
-      int numMPC, const std::vector<std::unique_ptr<SubLMPCons<DComplex> > > &mpc)
-    { std::cerr << "Rbm(...) not implemented for complex LMPCs \n"; }
-  ~Rbm();
+	Rbm() { init(); }
+	Rbm(Vector *zem, int numrbm, int numUncon, int myMemory = 0);
+	Rbm(ComplexVector *zem, int numrbm, int numUncon, int myMemory = 0);
+	Rbm(DofSetArray *dsa, ConstrainedDSA *c_dsa);
+	Rbm(DofSetArray *dsa, ConstrainedDSA *c_dsa, const CoordSet &cs, double tolgrb,
+	    compStruct &components, IntFullM *fm = 0);
+	Rbm(DofSetArray *dsa, const ConstrainedDSA *c_dsa, const CoordSet &cs, double tolgrb,
+	    const compStruct &components, int numMPC, ResizeArray<LMPCons *> &mpc, IntFullM *fm = 0);
+	Rbm(const DofSetArray *_dsa, const ConstrainedDSA *_c_dsa, const CoordSet &cs,
+	    double _tolgrb, double *centroid,
+	    const std::vector<int> &cornerNodes, int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
+	    int numMPC, const std::vector<std::unique_ptr<SubLMPCons<double> > > &mpc);
+	Rbm(const DofSetArray *_dsa, const ConstrainedDSA *_c_dsa, const CoordSet &cs,
+	    double _tolgrb, double *centroid,
+	    const std::vector<int> &cornerNodes, int numCRN, int numCRNdof,
+	    const std::vector<DofSet> &cornerDofs, int numMPC,
+	    const std::vector<std::unique_ptr<SubLMPCons<DComplex> > > &mpc)
+	{ std::cerr << "Rbm(...) not implemented for complex LMPCs \n"; }
+	~Rbm();
   
-  void computeRbms(CoordSet &cs, double *centroid, const std::vector<int> &cornerNodes,
+  void computeRbms(const CoordSet &cs, double *centroid, const std::vector<int> &cornerNodes,
                    int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
                    int numMPC, const std::vector<std::unique_ptr<SubLMPCons<double> > >&mpc);
  
   void reBuildGeometricRbms(GeomState *gs);
   void initialize(int nComponents, int *numCol, int numUncon);
-  void computeRbms(CoordSet& cs);
-  void computeRbms(CoordSet& cs,  int numMPC, ResizeArray<LMPCons *> &mpc);
+  void computeRbms(const CoordSet &cs);
+  void computeRbms(const CoordSet& cs,  int numMPC, ResizeArray<LMPCons *> &mpc);
   void clean_up();
 
-  int numRBM()           { return ngrbm;               }
-  int numRBM(int num)    { return nRbmPerComp[num];    }
-  int numComponents()    { return nComponents;         }
-  int firstDof(int num)  { return firstDofOfComp[num]; }
-  int numDof(int num)    { return numDofPerComp[num];  }
-  int numDof()           { return numUncon;            }
-  void getxyzRot(int num, double* ans) {
-    ans[0] = xyzRot[num][0]; ans[1] = xyzRot[num][1]; ans[2] = xyzRot[num][2];
-  }
+	int numRBM() const          { return ngrbm;               }
+	int numRBM(int num) const   { return nRbmPerComp[num];    }
+	int numComponents() const   { return nComponents;         }
+	int firstDof(int num) const { return firstDofOfComp[num]; }
+	int numDof(int num) const   { return numDofPerComp[num];  }
+	int numDof() const          { return numUncon;            }
+	void getxyzRot(int num, double* ans) {
+		ans[0] = xyzRot[num][0]; ans[1] = xyzRot[num][1]; ans[2] = xyzRot[num][2];
+	}
   Vector getGrbm(int i) { return grbm[i]; }
   void setGrbm(Vector *_grbm) { grbm = _grbm; }
   void print();

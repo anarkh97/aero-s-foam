@@ -112,6 +112,18 @@ CoordSet::getNode(int i)
  return *nodes[i];
 }
 
+const Node &
+CoordSet::getNode(int i) const
+{
+    // KHPXXX: check if the node actually exists before returning
+    //         a reference to it!
+    if(nodes[i]==0) {
+        fprintf(stderr,"*** ERROR: Node %d does not exist! Exiting ...\n",i+1);
+        exit(-1);
+    }
+    return *nodes[i];
+}
+
 void
 CoordSet::getCoordinates(int *nn, int numNodes, 
                          double *xx, double *yy, double *zz)

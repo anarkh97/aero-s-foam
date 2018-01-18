@@ -144,10 +144,10 @@ public:
 	int numNodes() const { return numnodes; }
 
 	// Return the first dof of a node
-	int firstdof(int node) { return (node_num_dofs[node] > 0) ? node_offset[node] : -1; }
+	int firstdof(int node) const { return (node_num_dofs[node] > 0) ? node_offset[node] : -1; }
 
 	// Return the weight of a node (its number of dofs)
-	int weight(int n) { return node_num_dofs[n]; }
+	int weight(int n) const { return node_num_dofs[n]; }
 
 	int *allWeights() { return node_num_dofs; }
 

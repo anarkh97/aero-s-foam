@@ -124,7 +124,7 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa)
   }
 }
 
-Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs, 
+Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, const CoordSet &cs,
          double _tolgrb, compStruct &_comp, IntFullM *_fm)
     : U(6,6)
 {
@@ -186,8 +186,8 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
 }
 
 // Direct Sky/Sparse or Eigen solver with LMPCs
-Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
-         double _tolgrb, compStruct &_comp, int numMPC, 
+Rbm::Rbm(DofSetArray *_dsa, const ConstrainedDSA *_c_dsa, const CoordSet &cs,
+         double _tolgrb, const compStruct &_comp, int numMPC,
          ResizeArray<LMPCons *> &mpc, IntFullM *_fm)
     : U(6*_comp.numComp)
 {
@@ -242,7 +242,7 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
 
 // new constructor to be called by SubDomain::makeZstarAndR()
 // works for 1 component only
-Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
+Rbm::Rbm(const DofSetArray *_dsa, const ConstrainedDSA *_c_dsa, const CoordSet &cs,
          double _tolgrb, double *centroid,
          const std::vector<int> &cornerNodes, int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
          int numMPC, const std::vector<std::unique_ptr<SubLMPCons<double> > > &mpc)
@@ -257,7 +257,7 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
 }
 
 void
-Rbm::computeRbms(CoordSet &cs, double *centroid, const std::vector<int> &cornerNodes,
+Rbm::computeRbms(const CoordSet &cs, double *centroid, const std::vector<int> &cornerNodes,
                  int numCRN, int numCRNdof, const std::vector<DofSet> &cornerDofs,
                  int numMPC, const std::vector<std::unique_ptr<SubLMPCons<double> > > &mpc)
 {
@@ -291,7 +291,7 @@ Rbm::computeRbms(CoordSet &cs, double *centroid, const std::vector<int> &cornerN
   // build R matrix containing geometric rbms (includes constrained but not inactive dofs)
   // and Z = E^t * R
   for(i=0; i<cs.size(); ++i) {
-    Node &nd = cs.getNode(i);
+    auto &nd = cs.getNode(i);
     double x = (nd.x - centroid[0]); 
     double y = (nd.y - centroid[1]); 
     double z = (nd.z - centroid[2]); 
@@ -378,7 +378,7 @@ Rbm::computeRbms(CoordSet &cs, double *centroid, const std::vector<int> &cornerN
 }
 
 void
-Rbm::computeRbms(CoordSet& cs)
+Rbm::computeRbms(const CoordSet &cs)
 {
   int debug = 0;
   int rank  = 0;
@@ -411,7 +411,7 @@ Rbm::computeRbms(CoordSet& cs)
 
      if(cs[inode] == 0) continue;
 
-     Node &nd = cs.getNode(inode);
+     auto &nd = cs.getNode(inode);
 
      if(setzero) { // make sure that node0 exists before trying to access its coordinates
        if(domain->solInfo().grbm_ref.empty() /*|| nComponents > 1*/) {
@@ -492,7 +492,6 @@ Rbm::computeRbms(CoordSet& cs)
        }
      }
      else {
-#ifdef USE_EIGEN3
        Eigen::Matrix<double,6,6> Ri;
        Ri << 1, 0, 0,  0,  z, -y,
              0, 1, 0, -z,  0,  x,
@@ -521,9 +520,6 @@ Rbm::computeRbms(CoordSet& cs)
          for(int j=0; j<6; ++j) R[yrot][j] = Ri(4,j);
        if(zrot >= 0)
          for(int j=0; j<6; ++j) R[zrot][j] = Ri(5,j);
-#else
-       std::cerr << "USE_EIGEN3 is not defined here in Rbm::computeRbms\n";
-#endif
      }
    }
 
@@ -718,7 +714,7 @@ Rbm::computeRbms(CoordSet& cs)
 }
 
 void
-Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
+Rbm::computeRbms(const CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
 {
  int debug = 0;
  int rank  = 0;
@@ -752,7 +748,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
  //fprintf(stderr," ... Use global cg as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]); 
 #else // use first node as reference pt for the rotations
  if(domain->solInfo().grbm_ref.empty()) {
-   Node &nd = cs.getNode(comp->order[comp->xcomp[0]]);
+   auto &nd = cs.getNode(comp->order[comp->xcomp[0]]);
    xyzRot[0][0] = nd.x; xyzRot[0][1] = nd.y; xyzRot[0][2] = nd.z;
    fprintf(stderr," ... Using first node of first component as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]);
  }
@@ -772,7 +768,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
      if(dsa->firstdof(inode) == -1) continue;
      if(cs[inode] == 0) continue;
 
-     Node &nd = cs.getNode(inode);
+     auto &nd = cs.getNode(inode);
      
      double x = nd.x - xyzRot[0][0]; // use same reference pt for all the components
      double y = nd.y - xyzRot[0][1];

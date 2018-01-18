@@ -161,6 +161,7 @@ public:
 	int numCoarseDofs();
 	int nCoarseDofs()  const { return nCDofs; }
 
+	DofSetArray *getDsa() const { return dsa; }
 	ConstrainedDSA *get_c_dsa() const { return c_dsa; }
 	double getShiftVal() const { return geoSource->shiftVal(); }
 public:
@@ -244,7 +245,6 @@ protected:
 	std::vector<bool> wiMaster;
 	int numFsiNeighb;
 	int *fsiNeighb = nullptr;
-	double prev_cscale_factor;
 
 public:
 	Connectivity *nodeToSub;
@@ -389,7 +389,6 @@ public:
 	void updatePrescribedDisp(GeomState *geomState);
 	Scalar displacementNorm(Scalar *displacement);
 	void firstAssemble(GenSparseMatrix<Scalar> *K);
-	void makeZstarAndR(double *centroid);  // makes Zstar and R
 	void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd, int augOffset,
 	                     Connectivity *subToEdge);
 	void deleteKcc();
@@ -455,7 +454,6 @@ public:
 	                            SimpleNumberer **blockMpcEqNums);
 	void sendMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec);
 	void combineMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec);
-	void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
 	void printMpcStatus();
 	void computeContactPressure(Scalar *globStress, Scalar *globWeight);
 	void computeLocalContactPressure(Scalar *stress, Scalar *weight);
@@ -480,7 +478,6 @@ public:
 	void addSingleFsi(LMPCons *localFsi);
 	void constructKww();
 	void constructKcw();
-	void scaleAndSplitKww();
 	void reScaleAndReSplitKww();
 	void addSommer(SommerElement *ele); // XDEBUG
 

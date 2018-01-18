@@ -147,6 +147,7 @@ public:
 	// Multiple Point Constraint (MPC) functions
 	int getNumMpc() const       { return numMPC; }
 
+	virtual DofSetArray *getDsa() const = 0;
 	virtual ConstrainedDSA *get_c_dsa() const = 0;
 	ConstrainedDSA *getCCDSA() const;
 
@@ -275,6 +276,8 @@ protected:
 
 	/// \brief store indices for possible rebuild (multiple LHS freq sweep)
 	int edgeQindex[2] = {-1, -1};
+
+	double prev_cscale_factor;
 
 	double k_f = 0.0, k_p = 0.0, k_s = 0.0, k_s2 = 0.0;  // wave numbers for FETI-DPH for this subdomain
 	double *neighbK_p = nullptr, *neighbK_s = nullptr, *neighbK_s2 = nullptr, *neighbK_f = nullptr;  // neighbors' wave numbers
@@ -447,6 +450,7 @@ public:
 	void multfc(const VectorView<Scalar> &fr, /*Scalar *fc,*/ const VectorView<Scalar> &lambda) const;
 	void multFcB(Scalar *bf);
 
+	void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
 	void subtractMpcRhs(Scalar *interfvec);
 
 	void setLocalLambda(Scalar *_localLambda);
@@ -461,6 +465,11 @@ public:
 	void cleanMpcData();
 
 	void constructKcc();
+//	void constructKcw();
+	void scaleAndSplitKww();
+	void precondGrbm();
+
+	void makeZstarAndR(double *centroid);  // makes Zstar and R
 
 	void makeKccDofsExp2(int nsub, FetiBaseSub **sd, int augOffset,
 	                     Connectivity *subToEdge);
@@ -523,6 +532,7 @@ protected:
 	Eigen::SparseMatrix<double> B, Bw;
 	Eigen::SparseMatrix<Scalar> Bm, Bc;
 
+	double tolsvd = 1e-10; // TODO get the value from the input.
 };
 
 #endif //FEM_FETUSUB_H

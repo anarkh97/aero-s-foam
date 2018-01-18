@@ -14,6 +14,5 @@ EFrameDataInstance.C CommunicatorCore.cpp
         DecDomain.h
         DecDomainImpl.h
         LOpsImpl.h
-        RbmOpsImpl.h
         SubDomain.C)
 TARGET_LINK_LIBRARIES(Driver Eigen3::Eigen)

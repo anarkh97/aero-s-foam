@@ -211,7 +211,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 		paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::collectScaling, this->vPat);
 	}
 	if(domain->solInfo().isCoupled)
-		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::scaleAndSplitKww);
+		paralApplyToAll(this->subdomains, &FetiSub<Scalar>::scaleAndSplitKww);
 
 	if(fetiInfo->augment == FetiInfo::WeightedEdges)
 		paralApplyToAll(this->subdomains, &FetiSub<Scalar>::weightEdgeGs); // W*Q
@@ -256,11 +256,11 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
 	stopTimerMemory(this->times.factor, this->times.memoryFactor);
 	if(fetiInfo->augment == FetiInfo::Gs) {
 		this->makeRbmPat();
-		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::precondGrbm);
+		paralApplyToAll(this->subdomains, &FetiSub<Scalar>::precondGrbm);
 		// Get all the numbers of rigid body modes and dispatch RBMs to neighbors
-		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::sendInterfaceGrbm, this->rbmPat);
+		paralApplyToAll(this->subdomains, &FetiSub<Scalar>::sendInterfaceGrbm, this->rbmPat);
 		this->rbmPat->exchange();
-		paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::receiveInterfaceGrbm, this->rbmPat);
+		paralApplyToAll(this->subdomains, &FetiSub<Scalar>::receiveInterfaceGrbm, this->rbmPat);
 	}
 
 	// Make coarse problems (Kcc^* and GtG)
@@ -614,7 +614,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		// geometric centroid.
 
 		// make Zstar and R matrices for each subdomain
-		paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeZstarAndR, centroid.data());
+		paralApply(this->subdomains, &FetiSub<Scalar>::makeZstarAndR, centroid.data());
 
 		Connectivity *groupToMpc = 0;
 		if(this->glNumMpc_primal > 0) {
@@ -971,8 +971,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			           decCoarseDomain->getNumSub(),
 			           reinterpret_cast<FetiBaseSub **>(decCoarseDomain->getAllSubDomains()),
 			           augOffset, this->subToEdge); // JAT 101816
-//      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2, decCoarseDomain->getNumSub(),
-//                 decCoarseDomain->getAllSubDomains()); // PJSA 10/10/2014
 		}
 		else {
 
@@ -1155,7 +1153,7 @@ GenFetiDPSolver<Scalar>::updateActiveSet(GenDistrVector<Scalar> &v, int flag, do
 {
   // flag = 0 dual planing
   // flag = 1 primal planing
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus2);
+  paralApply(this->nsub, this->sd, &FetiSub<Scalar>::saveMpcStatus2);
 
   bool *local_status_change = new bool[this->nsub];
   execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subUpdateActiveSet, v, tol, flag, local_status_change);
@@ -1166,9 +1164,8 @@ GenFetiDPSolver<Scalar>::updateActiveSet(GenDistrVector<Scalar> &v, int flag, do
 #endif
 
   if(status_change1) {
-    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcStatus, mpcPat, flag);
+    paralApply(this->subdomains, &FetiSub<Scalar>::sendMpcStatus, mpcPat, flag);
     mpcPat->exchange();
-    //paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::recvMpcStatus, mpcPat, flag);
     execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subRecvMpcStatus, mpcPat, flag, local_status_change);
     bool status_change2 = false;
     for(int i=0; i<this->nsub; ++i) if(local_status_change[i]) { status_change2 = true; break; }
@@ -1259,7 +1256,7 @@ void
 GenFetiDPSolver<Scalar>::saveStep() const
 {
   this->wksp->save();
-  if(globalFlagCtc) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus);
+  if(globalFlagCtc) paralApply(this->subdomains, &FetiSub<Scalar>::saveMpcStatus);
 }
 
 template<class Scalar>
@@ -1267,7 +1264,7 @@ void
 GenFetiDPSolver<Scalar>::restoreStep() const
 {
   this->wksp->restore();
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::restoreMpcStatus);
+  paralApply(this->subdomains, &FetiSub<Scalar>::restoreMpcStatus);
   if(ngrbms)
 	  const_cast<GenFetiDPSolver<Scalar> *>(this)->rebuildGtGtilda();
 }
@@ -2684,7 +2681,7 @@ GenFetiDPSolver<Scalar>::reconstruct()
     if(verboseFlag) filePrint(stderr," ... Rebuild Edge Augmentation (Q)  ... \n");
     if(fetiInfo->waveMethod != FetiInfo::averageMat) computeLocalWaveNumbers();
     paralApplyToAll(this->nsub, this->sd, &BaseSub::zeroEdgeDofSize);
-    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::makeQ);  // rebuild augmentation matrix
+    paralApplyToAll(this->subdomains, &FetiSub<Scalar>::makeQ);  // rebuild augmentation matrix
   }
 
   geometricRbms = 0;
@@ -2707,7 +2704,7 @@ GenFetiDPSolver<Scalar>::refactor()
   }
 
   if(fetiInfo->augment == FetiInfo::WeightedEdges)
-    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // W*Q
+    paralApplyToAll(this->subdomains, &FetiSub<Scalar>::weightEdgeGs); // W*Q
 
  // MPCs 
  mpcPrecon = false;

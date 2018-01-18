@@ -333,6 +333,7 @@ public:
 	/// \brief Inset a new node.
 	void  nodeadd(int n, Node &node);
 	Node &getNode(int n);
+	const Node &getNode(int n) const;
 	void getCoordinates(int *nn, int numNodes,
 	                    double *xx, double *yy, double *zz);
 

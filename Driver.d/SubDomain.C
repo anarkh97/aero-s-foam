@@ -1058,30 +1058,6 @@ GenSubDomain<Scalar>::constructKww() {
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::scaleAndSplitKww() {
-	if (this->neighbKww != 0)
-		this->neighbKww->scale(cscale_factor);
-
-	if (this->neighbKww != 0)
-		this->neighbKww->split(glToLocalWImap, this->wweight.data());
-
-#ifdef HB_COUPLED_PRECOND
-	if(solInfo().isCoupled & isMixedSub & this->neighbKww!=0 & KiiSparse!=0) {
-   fprintf(stderr," ... Assemble localFsi into Kii in sub %2d\n",subNumber);
-   if(solInfo().getFetiInfo().splitLocalFsi) {
-     this->neighbKww->splitLocalFsi(glToLocalWImap, this->wweight);
-     this->neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
-   } else {
-     fprintf(stderr," ... No local Fsi spliting in sub %2d\n",subNumber);
-     this->neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode, kSumWI);
-   }
- }
-#endif
-	prev_cscale_factor = cscale_factor;
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::reScaleAndReSplitKww() {
 	double rescale_factor = cscale_factor / prev_cscale_factor;
 
@@ -2078,14 +2054,6 @@ GenSubDomain<Scalar>::getFw(const Scalar *f, Scalar *fw) const {
 	}
 }
 
-template<>
-void
-GenSubDomain<DComplex>::precondGrbm();
-
-template<>
-void
-GenSubDomain<double>::precondGrbm();
-
 template<class Scalar>
 void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, double *usrDefAcc, bool nlflag) {
 	auto &mpc = this->mpc;
@@ -2562,26 +2530,6 @@ GenSubDomain<Scalar>::combineMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scal
 			for (j = 0; j < scomm->lenT(SComm::mpc, i); ++j) {
 				int locMpcNb = scomm->mpcNb(i, j);
 				interfvec[scomm->mapT(SComm::mpc, i, j)] = mpcCombo[locMpcNb] / double(mpcCount[locMpcNb]);
-			}
-		}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::sendMpcStatus(FSCommPattern<int> *mpcPat, int flag) {
-	auto &mpc = this->mpc;
-	// if flag = -1 only send status of mpcMaster otherwise send -1
-	// note: could use SComm::ieq list
-	for (int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-		int neighb = scomm->neighbT(SComm::mpc, i);
-		if (subNumber != neighb) {
-			FSSubRecInfo<int> sInfo = mpcPat->getSendBuffer(subNumber, neighb);
-			for (int j = 0; j < scomm->lenT(SComm::mpc, i); ++j) {
-				int locMpcNb = scomm->mpcNb(i, j);
-				if (flag == -1) sInfo.data[j] = (this->mpcMaster[locMpcNb]) ? int(!mpc[locMpcNb]->active) : -1;
-				else
-					sInfo.data[j] = int(!mpc[locMpcNb]->active);
 			}
 		}
 	}
@@ -4055,7 +4003,6 @@ GenSubDomain<Scalar>::addSommer(SommerElement *ele) {
 }
 
 #include "LOpsImpl.h"
-#include "RbmOpsImpl.h"
 
 template
 class GenSubDomain<double>;

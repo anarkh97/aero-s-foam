@@ -9,27 +9,28 @@ extern Connectivity * procMpcToMpc;
 extern int verboseFlag;
 
 template<class Scalar>
-GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_mpcToCpu, int _numSubsWithMpcs, 
-                                         GenSubDomain<Scalar> **_subsWithMpcs, FetiInfo *finfo, FSCommunicator *_fetiCom)
+GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_mpcToCpu, int _numSubsWithMpcs,
+                                         std::vector<FetiSub<Scalar> *> subsWithMpcs,
+                                         FetiInfo *finfo, FSCommunicator *_fetiCom) :
+		CCtSolver<Scalar>(std::move(subsWithMpcs))
 {
-  if(verboseFlag) filePrint(stderr, " ... Build CCt solver               ...\n");
-  this->mpcToCpu = _mpcToCpu;
-  this->numSubsWithMpcs = _numSubsWithMpcs;
-  this->subsWithMpcs = _subsWithMpcs;
-  this->fetiCom = _fetiCom;
-  this->glNumMpc = mpcToMpc->csize();
-  if(finfo->cct_cntl->subtype == 0) { // use sloan renumbering for skyline
-    compStruct renumber = mpcToMpc->renumByComponent(1);
-    mpcEqNums = new SimpleNumberer(this->glNumMpc, renumber.renum, 1);
-    delete [] renumber.xcomp;
-  }
-  else {
-    mpcEqNums = new SimpleNumberer(this->glNumMpc);
-  }
-  for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
-  mpcEqNums->makeOffset();
-  CCtsolver = GenSolverFactory<Scalar>::getFactory()->createSolver(mpcToMpc, mpcEqNums, *finfo->cct_cntl, CCtsparse, 0, this->fetiCom);
-  CCtsolver->setPrintNullity(false);
+	if(verboseFlag) filePrint(stderr, " ... Build CCt solver               ...\n");
+	this->mpcToCpu = _mpcToCpu;
+	this->numSubsWithMpcs = _numSubsWithMpcs;
+	this->fetiCom = _fetiCom;
+	this->glNumMpc = mpcToMpc->csize();
+	if(finfo->cct_cntl->subtype == 0) { // use sloan renumbering for skyline
+		compStruct renumber = mpcToMpc->renumByComponent(1);
+		mpcEqNums = new SimpleNumberer(this->glNumMpc, renumber.renum, 1);
+		delete [] renumber.xcomp;
+	}
+	else {
+		mpcEqNums = new SimpleNumberer(this->glNumMpc);
+	}
+	for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
+	mpcEqNums->makeOffset();
+	CCtsolver = GenSolverFactory<Scalar>::getFactory()->createSolver(mpcToMpc, mpcEqNums, *finfo->cct_cntl, CCtsparse, 0, this->fetiCom);
+	CCtsolver->setPrintNullity(false);
 }
 
 template<class Scalar>

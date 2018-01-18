@@ -1,6 +1,9 @@
 //
 // Created by Michel Lesoinne on 12/6/17.
 //
+#include <Driver.d/SubDomain.h>
+#include <Solvers.d/SolverFactory.h>
+#include <Element.d/Element.h>
 #include <complex>
 #include <Eigen/Sparse>
 #include <Utils.d/dofset.h>
@@ -90,6 +93,122 @@ void
 FetiBaseSub::setSComm(SComm *sc)
 {
 	scomm = sc;
+}
+
+
+void FetiBaseSub::setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc)
+{
+	if(numMPC > 0) {
+		int i, j;
+
+		int *ptr = new int[numMPC+1]; for(i=0; i<=numMPC; ++i) ptr[i] = i;
+		int *tgt = new int[numMPC]; for(i=0; i<numMPC; ++i) tgt[i] = localToGlobalMPC[i];
+		Connectivity *localToGlobalMpc = new Connectivity(numMPC, ptr, tgt);
+		localMpcToBlock = localToGlobalMpc->transcon(mpcToBlock);
+		delete localToGlobalMpc;
+
+		int *target = new int[localMpcToBlock->numConnect()];
+		int *pointer = new int[numMPC+1];
+		int count = 0;
+		for(i=0; i<numMPC; ++i) {
+			pointer[i] = count;
+			int gi = localToGlobalMPC[i];
+			for(j=0; j<localMpcToBlock->num(i); ++j) {
+				int jBlock = (*localMpcToBlock)[i][j];
+				target[count++] = blockToMpc->cOffset(jBlock, gi);
+			}
+		}
+		pointer[numMPC] = count;
+		localMpcToBlockMpc = new Connectivity(numMPC, pointer, target);
+
+		// HB & PJSA: for assembleBlockCCtsolver & extractBlockMpcResidual
+		blockToLocalMpc = localMpcToBlock->reverse();
+
+		if(localMpcToBlock->isDiagonal()) { // <=> a local lmpc belong to only ONE block
+			blockToBlockMpc = blockToLocalMpc->transcon(localMpcToBlockMpc);
+		} else {
+			// HB & PJSA: to deal with possible overlapping (a local lmpc can belong to several blocks)
+			blockToBlockMpc = blockToLocalMpc->copy();
+			// over-write the target array
+			auto &array = blockToBlockMpc->tgt();
+			count = 0;
+			for(int iblk=0; iblk<blockToLocalMpc->csize(); ++iblk) {
+				for(i=0; i<blockToLocalMpc->num(iblk); ++i) {
+					int j = (*blockToLocalMpc)[iblk][i];
+					int jb= localMpcToBlock->cOffset(j,iblk);
+					array[count++] = (*localMpcToBlockMpc)[j][jb];
+				}
+			}
+		}
+
+		int size = totalInterfSize;
+		int *point = new int[size + 1];
+		ResizeArray<int> *targ = new ResizeArray<int>(0, numMPC);
+		count = 0;
+		for(i=0; i<size; ++i) {
+			point[i] = count;
+			if(boundDofFlag[i] == 2) {
+				int li = -1 - scomm->boundDofT(SComm::all,i);
+				(*targ)[count++] = li;
+			}
+		}
+		point[size] = count;
+		Connectivity *boundDofToMpc = new Connectivity(size, point, targ->data(false));
+		mpcToBoundDof = boundDofToMpc->reverse();
+		delete boundDofToMpc;
+		delete targ;
+	}
+	else {
+		localMpcToBlock    = 0;
+		localMpcToBlockMpc = 0;
+		mpcToBoundDof      = 0;
+		blockToLocalMpc    = 0;
+		blockToBlockMpc    = 0;
+	}
+}
+
+int FetiBaseSub::getLocalMPCIndex(int globalMpcIndex) const {
+	return globalToLocalMPC[globalMpcIndex];
+}
+
+int FetiBaseSub::getGlobalMPCIndex(int localMpcIndex) const {
+	return localToGlobalMPC[localMpcIndex];
+}
+
+void FetiBaseSub::makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc)
+{
+	// PJSA: make a different localMpcToGlobalMpc that includes connections inside neighbors
+	int i, j;
+	int size = numMPC;
+	// step 1: find size of target
+	int numtarget = 0;
+	for(i=0; i<size; i++) {
+		int gi = localToGlobalMPC[i];
+		for(j=0; j<mpcToMpc->num(gi); ++j) {
+			int gj = (*mpcToMpc)[gi][j];
+			if(globalToLocalMPC[gj] > -1) numtarget++;
+		}
+	}
+	// step 2: fill target
+	int *pointer = new int[size+1];
+	int *target  = new int[numtarget];
+	int count = 0;
+	for(i=0; i<size; i++) {
+		pointer[i] = count;
+		int gi = localToGlobalMPC[i];
+		for(j=0; j<mpcToMpc->num(gi); ++j) {
+			int gj = (*mpcToMpc)[gi][j];
+			int lj = globalToLocalMPC[gj];
+			if(lj > -1) {
+				target[count] = lj;
+				count++;
+			}
+		}
+	}
+	pointer[i] = numtarget;
+
+	// step 3: construct localMpcToGlobalMpc connectivity
+	localMpcToGlobalMpc = new Connectivity(size, pointer, target);
 }
 
 void
@@ -237,7 +356,7 @@ void FetiBaseSub::setNumGroupRBM(int *ngrbmGr)
 
 void FetiBaseSub::getNumGroupRBM(int *ngrbmGr)
 {
-	//cerr << "in getNumGroupRBM " << subNumber << " " << group << " " << numGroupRBM << std::endl;
+	//cerr << "in getNumGroupRBM " << subNum() << " " << group << " " << numGroupRBM << std::endl;
 	ngrbmGr[group] = numGroupRBM;
 }
 
@@ -1993,15 +2112,15 @@ FetiSub<Scalar>::constructKcc() {
 //	memK += numCRNdof * numCRNdof; // TODO Move/duplicate memory use variable ???
 }
 
-//template<class Scalar>
-//void
-//FetiSub<Scalar>::constructKcw() {
-//	if (numWIdof && nCoarseDofs()) {
-//		Kcw = std::make_unique<GenCuCSparse<Scalar>>(nodeToNode, getDsa(), wetInterfaceMap.data(), cornerMap);
-//		Kcw->zeroAll();
+template<class Scalar>
+void
+FetiSub<Scalar>::constructKcw() {
+	if (numWIdof && numCoarseDofs()) {
+		Kcw = std::make_unique<GenCuCSparse<Scalar>>(getNodeToNode(), getDsa(), wetInterfaceMap.data(), cornerMap);
+		Kcw->zeroAll();
 //		memK += (Kcw) ? Kcw->size() : 0;
-//	}
-//}
+	}
+}
 
 template<class Scalar>
 void
@@ -2260,7 +2379,7 @@ FetiSub<Scalar>::applyBtransposeAndScaling(const Scalar *u, Scalar *v, Scalar *d
 								Scalar coef =
 										(m->terms)[k].coef / m->k[k]; // 1/m->k[k] = A, see generalized preconditioner
 								if (invBoundMap[cdof] < 0)
-									std::cerr << "error here in GenSubDomain<Scalar>::applyBtransposeAndScaling\n";
+									std::cerr << "error here in FetiSub<Scalar>::applyBtransposeAndScaling\n";
 								v[invBoundMap[cdof]] += u[iDof] * coef * scaling[iDof];
 							}
 						}
@@ -3716,27 +3835,47 @@ FetiSub<Scalar>::rebuildKbb() {
 template<class Scalar>
 void
 FetiSub<Scalar>::scaleAndSplitKww() {
-	if (this->neighbKww != 0)
-		this->neighbKww->scale(HData::cscale_factor);
+	if (neighbKww != 0)
+		neighbKww->scale(HData::cscale_factor);
 
-	if (this->neighbKww != 0)
-		this->neighbKww->split(glToLocalWImap, this->wweight.data());
+	if (neighbKww != 0)
+		neighbKww->split(glToLocalWImap, this->wweight.data());
 
 #ifdef HB_COUPLED_PRECOND
 	if(solInfo().isCoupled & isMixedSub & this->neighbKww!=0 & KiiSparse!=0) {
-   fprintf(stderr," ... Assemble localFsi into Kii in sub %2d\n",subNumber);
+   fprintf(stderr," ... Assemble localFsi into Kii in sub %2d\n",subNum());
    if(solInfo().getFetiInfo().splitLocalFsi) {
-     this->neighbKww->splitLocalFsi(glToLocalWImap, this->wweight);
-     this->neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
+     neighbKww->splitLocalFsi(glToLocalWImap, this->wweight);
+     neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
    } else {
-     fprintf(stderr," ... No local Fsi spliting in sub %2d\n",subNumber);
-     this->neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode, kSumWI);
+     fprintf(stderr," ... No local Fsi spliting in sub %2d\n",subNum());
+     neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode, kSumWI);
    }
  }
 #endif
 	prev_cscale_factor = HData::cscale_factor;
 }
 
+template<class Scalar>
+void
+FetiSub<Scalar>::reScaleAndReSplitKww() {
+	double rescale_factor = HData::cscale_factor / prev_cscale_factor;
+
+	if (this->neighbKww != 0)
+		this->neighbKww->scale(rescale_factor);
+
+	if (this->neighbKww != 0)
+		if (getFetiInfo().fsi_scaling == FetiInfo::kscaling)
+			this->neighbKww->split(glToLocalWImap, this->wweight.data());
+
+#ifdef HB_COUPLED_PRECOND
+	if(solInfo().isCoupled & isMixedSub & this->neighbKww!=0) {
+   fprintf(stderr," ... Assemble localFsi into Kii in sub %2d\n",subNum());
+   if(KiiSparse) this->neighbKww->addLocalFsiToMatrix(KiiSparse.get(), dsa, glToLocalNode);
+ }
+#endif
+	prev_cscale_factor = HData::cscale_factor;
+}
 
 template<class Scalar>
 void
@@ -3755,7 +3894,7 @@ template<>
 void
 FetiSub<DComplex>::precondGrbm()
 {
-	fprintf(stderr, " *** WARNING: GenSubDomain<DComplex>::precondGrbm() not implemented \n");
+	fprintf(stderr, " *** WARNING: FetiSub<DComplex>::precondGrbm() not implemented \n");
 }
 
 template<>
@@ -3934,6 +4073,453 @@ FetiSub<double>::precondGrbm()
 		for(iDof=0; iDof<iLen; ++iDof)
 			interfaceRBMs[iRBM*iLen+iDof] =
 					y[boundDofs[iDof]+iRBM*locLen];
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, SimpleNumberer *mpcEqNums) {
+	auto &mpc = this->mpc;
+
+	int i, j, k, l;
+	for (i = 0; i < numMPC; ++i) {
+		Scalar dotii = 0.0;
+		int gi = localToGlobalMPC[i];
+		int renum_gi = mpcEqNums->firstdof(gi);
+		if (mpc[i]->active) {
+			CCtsolver->addone(1.0, renum_gi, renum_gi);
+			continue;
+		} // trick to prevent singularities in CCt when rebuit for contact
+		for (k = 0; k < mpc[i]->nterms; ++k) {
+			int dof = (mpc[i]->terms)[k].cdof;
+			if (dof >= 0)
+				dotii += mpc[i]->terms[k].coef * mpc[i]->terms[k].coef / mpc[i]->k[k]; // for mpc kscaling
+		}
+		CCtsolver->addone(dotii, renum_gi, renum_gi);
+		for (j = 0; j < localMpcToMpc->num(i); ++j) {
+			Scalar dotij = 0.0;
+			int lj = (*localMpcToMpc)[i][j];
+			if (mpc[lj]->active) continue;
+			int gj = localToGlobalMPC[lj];
+			int renum_gj = mpcEqNums->firstdof(gj);
+			if (renum_gj > renum_gi) {  // work with upper symmetric half
+				// now find matching dof/s
+				for (k = 0; k < mpc[i]->nterms; ++k) {
+					int dofk = (mpc[i]->terms)[k].cdof;
+					if (dofk >= 0) {
+						for (l = 0; l < mpc[lj]->nterms; ++l) {
+							int dofl = (mpc[lj]->terms)[l].cdof;
+							if (dofk == dofl) {
+								dotij +=
+										mpc[i]->terms[k].coef * mpc[lj]->terms[l].coef / mpc[lj]->k[l]; // for mpc kscaling
+							}
+						}
+					}
+				}
+				CCtsolver->addone(dotij, renum_gi, renum_gj);
+			}
+		}
+	}
+}
+
+// HB: this method add/assemble the locally stored contributions into the global CCt matrix.
+//     MUST be called SEQUENTIALLY to avoid writting concurrently at the same memory location.
+template<class Scalar>
+void
+FetiSub<Scalar>::assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver) {
+	for (int i = 0; i < lengthCCtData; i++)
+		CCtsolver->addone(CCtval[i], CCtrow[i], CCtcol[i]);
+
+	CCtrow.clear();
+	CCtcol.clear();
+	CCtval.clear();
+	lengthCCtData = 0;
+}
+
+
+template<class Scalar>
+void
+FetiSub<Scalar>::constructLocalCCtsolver() {
+	// Step 1. initialize solver object
+	SimpleNumberer *mpcEqNums = new SimpleNumberer(numMPC);
+	for (int i = 0; i < numMPC; ++i) mpcEqNums->setWeight(i, 1);
+	mpcEqNums->makeOffset();
+	localCCtsolver.reset(GenSolverFactory<Scalar>::getFactory()->createSolver(localMpcToGlobalMpc, mpcEqNums,
+	                                                                          *getFetiInfo().cct_cntl,
+	                                                                          localCCtsparse));
+}
+
+
+//HB: attempt to improve parallel efficiency of assembling the global CCt matrix
+//    This method ONLY compute the subdomain contributions to the global CCt matrix,
+//    and store them (values and their respective row & col position in the global CCt matrix)
+//    LOCALLY. Thus this method can be executed CONCURRENTLY.
+//    The assembling in the global CCt matrix is done SEQUENTIALLY (see method below this one).
+template<class Scalar>
+void
+FetiSub<Scalar>::computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNums) {
+
+	int i, j, k, l;
+	// Step 1. Determine the size of the array & allocate array
+	lengthCCtData = 0;
+	// this is an upper estimate of the required array size
+	// -> nearly 2x the required size
+
+	// this is the exact required array size
+	for (i = 0; i < numMPC; ++i) {
+		if (mpc[i]->active) continue;
+		int gi = localToGlobalMPC[i];
+		int renum_gi = mpcEqNums->firstdof(gi);
+		lengthCCtData++; //diagonal term
+		for (j = 0; j < localMpcToMpc->num(i); ++j) {
+			int lj = (*localMpcToMpc)[i][j];
+			if (mpc[lj]->active) continue;
+			int gj = localToGlobalMPC[lj];
+			int renum_gj = mpcEqNums->firstdof(gj);
+			if (renum_gj > renum_gi)   // work with upper symmetric half
+				lengthCCtData++;
+		}
+	}
+	CCtrow.resize(lengthCCtData);
+	CCtcol.resize(lengthCCtData);
+	CCtval.resize(lengthCCtData);
+
+	// Step 2. Fill the array
+	lengthCCtData = 0; // use it as counter (at the end, it should be the exact number of contributions)
+	for (i = 0; i < numMPC; ++i) {
+		if (mpc[i]->active) continue;
+		Scalar dotii = 0.0;
+		int gi = localToGlobalMPC[i];
+		int renum_gi = mpcEqNums->firstdof(gi);
+		for (k = 0; k < mpc[i]->nterms; ++k) {
+			int dof = (mpc[i]->terms)[k].cdof;
+			if (dof >= 0)
+				dotii += mpc[i]->terms[k].coef * mpc[i]->terms[k].coef / mpc[i]->k[k]; // for mpc kscaling
+		}
+		CCtrow[lengthCCtData] = renum_gi;
+		CCtcol[lengthCCtData] = renum_gi;
+		CCtval[lengthCCtData] = dotii;
+		lengthCCtData++;
+		for (j = 0; j < localMpcToMpc->num(i); ++j) {
+			Scalar dotij = 0.0;
+			int lj = (*localMpcToMpc)[i][j];
+			if (mpc[lj]->active) continue;
+			int gj = localToGlobalMPC[lj];
+			int renum_gj = mpcEqNums->firstdof(gj);
+			if (renum_gj > renum_gi) {  // work with upper symmetric half
+				// now find matching dof/s
+				for (k = 0; k < mpc[i]->nterms; ++k) {
+					int dofk = (mpc[i]->terms)[k].cdof;
+					if (dofk >= 0) {
+						for (l = 0; l < mpc[lj]->nterms; ++l) {
+							int dofl = (mpc[lj]->terms)[l].cdof;
+							if (dofk == dofl) {
+								dotij +=
+										mpc[i]->terms[k].coef * mpc[lj]->terms[l].coef / mpc[lj]->k[l]; // for mpc kscaling
+							}
+						}
+					}
+				}
+				CCtrow[lengthCCtData] = renum_gi;
+				CCtcol[lengthCCtData] = renum_gj;
+				CCtval[lengthCCtData] = dotij;
+				lengthCCtData++;
+			}
+		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::solveLocalCCt(Scalar *subv) {
+	// used for block diagonal CCt preconditioner for MPCs
+	if (numMPC > 0) {
+		int i;
+
+		// Step 1: extract the mpc residual components from subv and inserts them in a local vector (mpcv)
+		GenVector<Scalar> mpcv(numMPC, 0.0);
+		for (i = 0; i < scomm->lenT(SComm::mpc); ++i)
+			mpcv[scomm->mpcNb(i)] = subv[scomm->mapT(SComm::mpc, i)];
+
+		// Step 2: solve CCt^-1 * mpcv
+		localCCtsolver->reSolve(mpcv);
+
+		// Step 3: redistribute mpcv to the interface vector subv
+		for (i = 0; i < scomm->lenT(SComm::mpc); ++i)
+			subv[scomm->mapT(SComm::mpc, i)] = mpcv[scomm->mpcNb(i)];
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::assembleLocalCCtsolver() {
+	auto &mpc = this->mpc;
+	// Step 2. add local mpc CC^t terms to solver
+	int i, j, k, l;
+	for (i = 0; i < numMPC; ++i) {
+		if (mpc[i]->active) continue;
+		Scalar dotii = 0.0;
+		for (k = 0; k < mpc[i]->nterms; ++k) {
+			int dof = (mpc[i]->terms)[k].cdof;
+			if (dof >= 0)
+				dotii += mpc[i]->terms[k].coef * mpc[i]->terms[k].coef / mpc[i]->k[k]; // for mpc kscaling;
+		}
+		localCCtsolver->addone(dotii, i, i);
+		for (j = 0; j < localMpcToMpc->num(i); ++j) {
+			Scalar dotij = 0.0;
+			int lj = (*localMpcToMpc)[i][j];
+			if (mpc[lj]->active) continue;
+			if (lj > i) { // work with upper symmetric half only
+				// now find matching dof/s
+				for (k = 0; k < mpc[i]->nterms; ++k) {
+					int dofk = (mpc[i]->terms)[k].cdof;
+					if (dofk >= 0) {
+						for (l = 0; l < mpc[lj]->nterms; ++l) {
+							int dofl = (mpc[lj]->terms)[l].cdof;
+							if (dofk == dofl) {
+								dotij +=
+										mpc[i]->terms[k].coef * mpc[lj]->terms[l].coef / mpc[lj]->k[l]; // for mpc kscaling
+								//HB: can probably be optimized by assuming that no dupplicate term (i.e. dof) exist in a lmpc
+								//    so that we can stop the l loop (break) when dofk == dofl ?? The non dupplicate assumption
+								//    is or can be enforced in a preprocess step
+							}
+						}
+					}
+				}
+				localCCtsolver->addone(dotij, i, lj);
+			}
+		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::setCCtCommSize(FSCommPattern<Scalar> *cctPat) {
+	// note: this is an upper bound, the required length will be less
+	for (int i = 0; i < scomm->numT(SComm::mpc); ++i)
+		cctPat->setLen(subNum(), scomm->neighbT(SComm::mpc, i), localMpcToGlobalMpc->numConnect());
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub) {
+	int i, j, k;
+	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
+		int neighb = scomm->neighbT(SComm::mpc, i);
+		if (subNum() != neighb) {
+			int count = 0;
+			FSSubRecInfo<Scalar> sInfo = cctPat->getSendBuffer(subNum(), neighb);
+			for (j = 0; j < numMPC; ++j) {
+				int gj = localToGlobalMPC[j];
+				if (mpcToSub->offset(gj, neighb) > -1) {
+					sInfo.data[count++] = localCCtsolver->getone(j, j);
+					for (k = j + 1; k < numMPC; ++k) {
+						int gk = localToGlobalMPC[k];
+						if ((mpcToSub->offset(gk, neighb) > -1) && (localMpcToGlobalMpc->offset(j, k) > -1)) {
+							sInfo.data[count] = localCCtsolver->getone(j, k);
+							count++;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub) {
+	int i, j, k;
+	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
+		int neighb = scomm->neighbT(SComm::mpc, i);
+		if (subNum() != neighb) {
+			int count = 0;
+			FSSubRecInfo<Scalar> rInfo = cctPat->recData(neighb, subNum());
+			for (j = 0; j < numMPC; ++j) {
+				int gj = localToGlobalMPC[j];
+				if (mpcToSub->offset(gj, neighb) > -1) {
+					localCCtsolver->addone(rInfo.data[count++], j, j);
+					for (k = j + 1; k < numMPC; ++k) {
+						int gk = localToGlobalMPC[k];
+						if ((mpcToSub->offset(gk, neighb) > -1) && (localMpcToGlobalMpc->offset(j, k) > -1)) {
+							localCCtsolver->addone(rInfo.data[count], j, k);
+							count++;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::factorLocalCCtsolver() {
+	localCCtsolver->factor();
+	int numCCtSing = localCCtsolver->numRBM();
+	if (numCCtSing > 0)
+		std::cerr << "sub = " << subNum() << ", Number of singularities in CCt = "
+		          << numCCtSing << std::endl;
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::zeroLocalCCtsolver() {
+	localCCtsolver->zeroAll();
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::assembleBlockCCtsolver(int iBlock, GenSolver<Scalar> *CCtsolver, SimpleNumberer *blockMpcEqNums) {
+	auto &mpc = this->mpc;
+	// optimize by looping ONLY over the lmpc eqs contributed to this iBlock
+	// Make sure that the input block (global) Id iBlock is in the range of blocks this subdomain
+	// contributes to
+	int i, j, k, l, p;
+	for (p = 0; p < blockToLocalMpc->num(iBlock); ++p) {
+		i = (*blockToLocalMpc)[iBlock][p];
+		if (mpc[i]->active) continue;
+		int bi = (*blockToBlockMpc)[iBlock][p];
+		int renum_bi = blockMpcEqNums->firstdof(bi);
+		Scalar dotii = 0.0;
+		for (k = 0; k < mpc[i]->nterms; ++k) {
+			int dof = (mpc[i]->terms)[k].cdof;
+			if (dof >= 0)
+				dotii += mpc[i]->terms[k].coef * mpc[i]->terms[k].coef / mpc[i]->k[k]; // for mpc kscaling;
+		}
+		CCtsolver->addone(dotii, renum_bi, renum_bi);
+		for (j = 0; j < localMpcToMpc->num(i); ++j) {
+			int lj = (*localMpcToMpc)[i][j];
+			if (mpc[lj]->active) continue;
+			int jb = localMpcToBlock->cOffset(lj, iBlock);
+			if (jb > -1) {
+				int bj = (*localMpcToBlockMpc)[lj][jb];
+				int renum_bj = blockMpcEqNums->firstdof(bj);
+				if (renum_bj > renum_bi) { // work with upper symmetric part only
+					Scalar dotij = 0.0;
+					// now find matching dof/s
+					for (k = 0; k < mpc[i]->nterms; ++k) {
+						int dofk = (mpc[i]->terms)[k].cdof;
+						if (dofk >= 0) {
+							for (l = 0; l < mpc[lj]->nterms; ++l) {
+								int dofl = (mpc[lj]->terms)[l].cdof;
+								if (dofk == dofl)
+									dotij += mpc[i]->terms[k].coef * mpc[lj]->terms[l].coef /
+									         mpc[lj]->k[l]; // for mpc kscaling;
+							}
+						}
+					}
+					CCtsolver->addone(dotij, renum_bi, renum_bj);
+				}
+			}
+		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::extractMpcResidual(Scalar *subv, GenVector<Scalar> &mpcv, SimpleNumberer *mpcEqNums) {
+	// extracts the mpc residual components from subv and inserts them in global vector (mpcv)
+	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+		int locMpcNb = scomm->mpcNb(i);
+		mpcv[mpcEqNums->firstdof(localToGlobalMPC[locMpcNb])] = subv[scomm->mapT(SComm::mpc, i)];
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::insertMpcResidual(Scalar *subv, GenVector<Scalar> &mpcv, SimpleNumberer *mpcEqNums) {
+	// extracts the mpc residual components from mpcv and inserts them in the interface vector subv
+	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+		int locMpcNb = scomm->mpcNb(i);
+		subv[scomm->mapT(SComm::mpc, i)] = mpcv[mpcEqNums->firstdof(localToGlobalMPC[locMpcNb])];
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::extractBlockMpcResidual(int block, Scalar *subv, GenVector<Scalar> *mpcv,
+                                              SimpleNumberer *blockMpcEqNums) {
+	// extracts the mpc residual components from subv and inserts them in global vector (mpcv)
+	// modified to loop only over the subdomain lmpcs belonging to block
+	// Make sure that the input block (global) Id is in the range of blocks Id that have contribution
+	// from this subdomain
+	int i, j;
+	for (j = 0; j < blockToLocalMpc->num(block); ++j) {
+		i = (*blockToLocalMpc)[block][j];
+		int iDof = (*mpcToBoundDof)[i][0];
+		int bij = (*blockToBlockMpc)[block][j];
+		(*mpcv)[blockMpcEqNums->firstdof(bij)] = subv[iDof];
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, Connectivity *mpcToBlock,
+                                             SimpleNumberer **blockMpcEqNums) {
+	// extracts the mpc residual components from mpcv and inserts them in the interface vector subv
+	int i, j, k;
+	for (i = 0; i < numMPC; ++i) {
+		int iDof = (*mpcToBoundDof)[i][0];
+		int gi = localToGlobalMPC[i];
+		double w = double(mpcToBlock->num(gi));
+		subv[iDof] = 0.0;
+		for (j = 0; j < localMpcToBlock->num(i); ++j) {
+			int jBlock = (*localMpcToBlock)[i][j];
+			int bij = (*localMpcToBlockMpc)[i][j];
+			subv[iDof] += (*mpcv[jBlock])[blockMpcEqNums[jBlock]->firstdof(bij)] / w;
+		}
+		for (k = 1; k < mpcToBoundDof->num(i); ++k) {
+			int kDof = (*mpcToBoundDof)[i][k];
+			subv[kDof] = subv[(*mpcToBoundDof)[i][0]];
+		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::sendMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec) {
+	for (int i = 0; i < scomm->numT(SComm::mpc); ++i) {
+		int neighb = scomm->neighbT(SComm::mpc, i);
+		if (subNum() != neighb) {
+			FSSubRecInfo<Scalar> sInfo = mpcPat->getSendBuffer(subNum(), neighb);
+			for (int j = 0; j < scomm->lenT(SComm::mpc, i); ++j)
+				sInfo.data[j] = interfvec[scomm->mapT(SComm::mpc, i, j)];
+		}
+	}
+}
+
+template<class Scalar>
+void
+FetiSub<Scalar>::combineMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec) {
+	// this function combines the interfvec values corresponding to mpcs
+	// that are shared between subdomains. Used with approximated blockDiag and diag CCt preconditioners
+	int i, j;
+	Scalar *mpcCombo = (Scalar *) dbg_alloca(sizeof(Scalar) * numMPC);
+	int *mpcCount = (int *) dbg_alloca(sizeof(int) * numMPC);
+	for (i = 0; i < numMPC; ++i) mpcCount[i] = 1;
+	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
+		int neighb = scomm->neighbT(SComm::mpc, i);
+		if (subNum() != neighb) {
+			FSSubRecInfo<Scalar> rInfo = mpcPat->recData(neighb, subNum());
+			for (j = 0; j < scomm->lenT(SComm::mpc, i); ++j) {
+				int locMpcNb = scomm->mpcNb(i, j);
+				if (mpcCount[locMpcNb] == 1)
+					mpcCombo[locMpcNb] = interfvec[scomm->mapT(SComm::mpc, i, j)];
+				mpcCount[locMpcNb]++;
+				mpcCombo[locMpcNb] += rInfo.data[j];
+			}
+		}
+	}
+	// now add mpcCombo to interfvec
+	for (i = 0; i < scomm->numT(SComm::mpc); ++i) {
+		int neighb = scomm->neighbT(SComm::mpc, i);
+		if (subNum() != neighb) {
+			for (j = 0; j < scomm->lenT(SComm::mpc, i); ++j) {
+				int locMpcNb = scomm->mpcNb(i, j);
+				interfvec[scomm->mapT(SComm::mpc, i, j)] = mpcCombo[locMpcNb] / double(mpcCount[locMpcNb]);
+			}
+		}
 	}
 }
 

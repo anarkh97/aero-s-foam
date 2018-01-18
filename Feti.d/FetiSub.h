@@ -15,6 +15,8 @@
 #include <Math.d/MpcSparse.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/FsiSparse.h>
+#include <Driver.d/Domain.h>
+#include <Feti.d/FetiSub.h>
 
 class FSCommStructure;
 template <typename Scalar>
@@ -96,15 +98,13 @@ public:
 
 	virtual int numWetInterfaceDofs() const = 0;
 
-	virtual int getLocalMPCIndex(int globalMpcIndex) const = 0;
-
-	virtual int getGlobalMPCIndex(int localMpcIndex) const = 0;
-
 	virtual const CoordSet& getNodeSet() const = 0;
 
 	virtual bool isEdgeNeighbor(int neighb) const = 0;
 
 	virtual double getShiftVal() const = 0;
+
+	virtual Connectivity *getNodeToNode() const = 0;
 
 	const std::vector<int> &getCornerNodes() const { return glCornerNodes; }
 	std::vector<int> &getCornerNodes() { return glCornerNodes; }
@@ -151,6 +151,12 @@ public:
 	virtual ConstrainedDSA *get_c_dsa() const = 0;
 	ConstrainedDSA *getCCDSA() const;
 
+	/// \copydoc
+	int getLocalMPCIndex(int globalMpcIndex) const;
+	/// \copydoc
+	int getGlobalMPCIndex(int localMpcIndex) const;
+	void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
+
 	void addMPCsToGlobalZstar(FullM *globalZstar, int startRow, int startCol, int numCol);
 	void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
 
@@ -159,6 +165,8 @@ public:
 	void setWImapCommSize(FSCommPattern<int> *pat);
 	bool isWetInterfaceDof(int d) const { return (wetInterfaceMap.size() > 0) ? (wetInterfaceMap[d] > -1) : false; }
 	void GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation);
+
+	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
 
 protected:
 	bool isCoupled = false; // TODO Ensure this is set or derived from some other info.
@@ -452,7 +460,12 @@ public:
 
 	void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
 	void subtractMpcRhs(Scalar *interfvec);
-
+	void insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, Connectivity *mpcToBlock,
+	                            SimpleNumberer **blockMpcEqNums);
+	void extractBlockMpcResidual(int block, Scalar *subv, GenVector<Scalar> *mpcv,
+	                             SimpleNumberer *blockMpcEqNums);
+	void sendMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec);
+	void combineMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec);
 	void setLocalLambda(Scalar *_localLambda);
 	double getMpcError() const;
 	void applyMpcSplitting();
@@ -465,8 +478,9 @@ public:
 	void cleanMpcData();
 
 	void constructKcc();
-//	void constructKcw();
+	void constructKcw();
 	void scaleAndSplitKww();
+	void reScaleAndReSplitKww();
 	void precondGrbm();
 
 	void makeZstarAndR(double *centroid);  // makes Zstar and R
@@ -489,6 +503,23 @@ public:
 	_AVMatrix<Scalar> Ave;
 	_AVMatrix<Scalar> Eve;
 
+	void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver); //HB: add the subdomain contributions to global CCt
+	void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, SimpleNumberer *mpcEqNums);
+	void computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNums); //HB: only compute the subdomain contribution to global CCt
+	void constructLocalCCtsolver();
+	void deleteLocalCCtsolver() { localCCtsolver.reset(); }
+	void solveLocalCCt(Scalar *subv);
+	void assembleBlockCCtsolver(int iBlock, GenSolver<Scalar> *CCtsolver, SimpleNumberer *blockMpcEqNums);
+	void assembleLocalCCtsolver();
+	void setCCtCommSize(FSCommPattern<Scalar> *cctPat);
+	void sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub);
+	void recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub);
+	void factorLocalCCtsolver();
+	void zeroLocalCCtsolver();
+
+	void extractMpcResidual(Scalar *subv, GenVector<Scalar> &mpcv, SimpleNumberer *mpcEqNums);
+	void insertMpcResidual(Scalar *subv, GenVector<Scalar> &mpcv, SimpleNumberer *mpcEqNums);
+
 public:
 	std::vector<Scalar> rbms;
 	std::vector<Scalar> interfaceRBMs;
@@ -500,6 +531,12 @@ public:
 	std::unique_ptr<GenDBSparseMatrix<Scalar>> Kbb;    //!< Boundary to boundary stiffness matrix.
 
 	GenVector<Scalar> diagCCt;
+protected:
+	std::unique_ptr<GenSolver<Scalar>> localCCtsolver;
+	GenSparseMatrix<Scalar> *localCCtsparse; // Alias to localCCtsolver.
+	int lengthCCtData = 0;
+	std::vector<int> CCtrow, CCtcol;
+	std::vector<Scalar> CCtval;
 protected:
 	GenVector<Scalar> scaling;
 	mutable GenVector<Scalar> deltaFmpc;

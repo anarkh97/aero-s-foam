@@ -126,6 +126,7 @@ public:
 	int numMPCs_primal() const  { return numMPC_primal; }
 	int globalNumNodes();
 	int numNodes() const        { return numnodes; }
+	Connectivity *getNodeToNode() const override { return nodeToNode; }
 	int findProfileSize();
 	int renumberBC(int *);
 	void makeGlobalToLocalNodeMap();
@@ -165,12 +166,7 @@ public:
 	ConstrainedDSA *get_c_dsa() const { return c_dsa; }
 	double getShiftVal() const { return geoSource->shiftVal(); }
 public:
-	/// \copydoc
-	int getLocalMPCIndex(int globalMpcIndex) const override;
-	/// \copydoc
-	int getGlobalMPCIndex(int localMpcIndex) const override;
-	void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
-	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
+
 	void addNodeXYZ(double *centroid, double* nNodes);
 	void setCommSize(FSCommStructure *pat, int size) const override;
 	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const override;
@@ -288,17 +284,7 @@ public:
 
 	int *glBoundMap;
 	int *glInternalMap;
-
-private:
-	GenSolver<Scalar> *localCCtsolver;
-	GenSparseMatrix<Scalar> *localCCtsparse;
-	int lengthCCtData;
-	int *CCtrow, *CCtcol;
-	Scalar* CCtval;
 	Scalar *bcx_scalar;
-
-
-
 
 public:
 	GenSubDomain(int, int);
@@ -432,28 +418,7 @@ public:
 
 	void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const override;
 	void bmpcQualify(std::vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
-	void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, SimpleNumberer *mpcEqNums);
-	void computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNums); //HB: only compute the subdomain contribution to global CCt
-	void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver); //HB: add the subdomain contributions to global CCt
-	void assembleBlockCCtsolver(int iBlock, GenSolver<Scalar> *CCtsolver, SimpleNumberer *blockMpcEqNums);
-	void constructLocalCCtsolver();
-	void assembleLocalCCtsolver();
-	void setCCtCommSize(FSCommPattern<Scalar> *cctPat);
-	void sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub);
-	void recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connectivity *mpcToSub);
-	void factorLocalCCtsolver();
-	void zeroLocalCCtsolver();
-	void deleteLocalCCtsolver() { if(localCCtsolver) delete localCCtsolver; }
-
-	void extractMpcResidual(Scalar *subv, GenVector<Scalar> &mpcv, SimpleNumberer *mpcEqNums);
-	void insertMpcResidual(Scalar *subv, GenVector<Scalar> &mpcv, SimpleNumberer *mpcEqNums);
-	void solveLocalCCt(Scalar *subv);
-	void extractBlockMpcResidual(int block, Scalar *subv, GenVector<Scalar> *mpcv,
-	                             SimpleNumberer *blockMpcEqNums);
-	void insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, Connectivity *mpcToBlock,
-	                            SimpleNumberer **blockMpcEqNums);
-	void sendMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec);
-	void combineMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec);
+	
 	void printMpcStatus();
 	void computeContactPressure(Scalar *globStress, Scalar *globWeight);
 	void computeLocalContactPressure(Scalar *stress, Scalar *weight);
@@ -476,9 +441,6 @@ protected:
 
 public:
 	void addSingleFsi(LMPCons *localFsi);
-	void constructKww();
-	void constructKcw();
-	void reScaleAndReSplitKww();
 	void addSommer(SommerElement *ele); // XDEBUG
 
 	// frequency sweep

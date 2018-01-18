@@ -15,15 +15,16 @@ class FSCommunicator;
 
 template<class Scalar>
 BlockCCtSolver<Scalar>::BlockCCtSolver(Connectivity *_blockToMpc, Connectivity *mpcToMpc, Connectivity *mpcToSub, 
-                                       Connectivity *_mpcToCpu, int _numSubsWithMpcs, GenSubDomain<Scalar> **_subsWithMpcs,
+                                       Connectivity *_mpcToCpu, int _numSubsWithMpcs,
+                                       std::vector<FetiSub<Scalar> *> subsWithMpcs,
                                        int *_subMap, FetiInfo *_finfo, FSCommunicator *_fetiCom)
+		: CCtSolver<Scalar>(std::move(subsWithMpcs))
 {
   filePrint(stderr," ... Building block CC^t for preconditioning MPCs ...\n");
   blockToMpc = _blockToMpc;
   nMpcBlocks = blockToMpc->csize();
   this->mpcToCpu = _mpcToCpu;
   this->numSubsWithMpcs = _numSubsWithMpcs;
-  this->subsWithMpcs = _subsWithMpcs;
   subMap = _subMap;
   this->fetiCom = _fetiCom;
   this->glNumMpc = mpcToMpc->csize();
@@ -67,7 +68,7 @@ BlockCCtSolver<Scalar>::BlockCCtSolver(Connectivity *_blockToMpc, Connectivity *
   // Step 3. make blockToSub and localMpcToBlock connectivities
   mpcToBlock = blockToMpc->reverse();
   blockToSub = blockToMpc->transcon(mpcToSub);
-  paralApply(this->numSubsWithMpcs, this->subsWithMpcs, &BaseSub::setLocalMpcToBlock, mpcToBlock, blockToMpc);
+  paralApply(this->subsWithMpcs, &FetiBaseSub::setLocalMpcToBlock, mpcToBlock, blockToMpc);
                                     
   // Step 4. make blockToCpu and cpuToBlock connectivities
 #ifdef DISTRIBUTED

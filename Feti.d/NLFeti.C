@@ -41,7 +41,7 @@ GenFetiSolver<Scalar>::reBuild(FullSquareMatrix **kel, DistrGeomState &geomState
 
  // Rebuild FETI preconditioner when requested
  // KHP: temperary change to check preconditioner effects
- // rebuild preconditioner until a certain newton iteration 
+ // rebuild preconditioner until a certain newton iteration
  // if( iter < this->fetiInfo->nPrecond() ) {
  // if( (iter % this->fetiInfo->nPrecond()) == 0) {
 

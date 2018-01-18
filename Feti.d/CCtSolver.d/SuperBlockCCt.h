@@ -13,7 +13,7 @@ class SuperBlockCCtSolver : public CCtSolver<Scalar>
 {
   public:
     SuperBlockCCtSolver(Connectivity *blockToMpc, Connectivity *mpcToMpc, Connectivity *mpcToSub, 
-                      Connectivity *mpcToCpu, int numSubsWithMpcs, GenSubDomain<Scalar> **subsWithMpcs,
+                      Connectivity *mpcToCpu, int numSubsWithMpcs, std::vector<FetiSub<Scalar> *> subsWithMpcs,
                       FetiInfo *finfo, FSCommunicator *fetiCom, bool super_flag = true, bool sub_flag = false);
     ~SuperBlockCCtSolver();
     void reSolve(GenDistrVector<Scalar> &v);

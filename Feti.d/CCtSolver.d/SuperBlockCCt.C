@@ -2,6 +2,7 @@
 #include <list>
 
 #include "SuperBlockCCt.h"
+#include "Feti.d/FetiSub.h"
 #include <Driver.d/SubDomain.h>
 #include <Utils.d/DistHelper.h>
 #include <Feti.d/Feti.h>
@@ -11,8 +12,10 @@ extern Domain * domain;
 
 template<class Scalar>
 SuperBlockCCtSolver<Scalar>::SuperBlockCCtSolver(Connectivity *_blockToMpc, Connectivity *_mpcToMpc, Connectivity *mpcToSub, 
-                                                 Connectivity *_mpcToCpu, int _numSubsWithMpcs, GenSubDomain<Scalar> **_subsWithMpcs,
+                                                 Connectivity *_mpcToCpu, int _numSubsWithMpcs,
+                                                 std::vector<FetiSub<Scalar> *> subsWithMpcs,
                                                  FetiInfo *_finfo, FSCommunicator *_fetiCom, bool super_flag, bool sub_flag)
+        : CCtSolver<Scalar>(std::move(subsWithMpcs))
 {
   filePrint(stderr," ... Building block CC^t for preconditioning MPCs ...\n");
   initialize();
@@ -21,7 +24,6 @@ SuperBlockCCtSolver<Scalar>::SuperBlockCCtSolver(Connectivity *_blockToMpc, Conn
   mpcToMpc = _mpcToMpc;
   this->mpcToCpu = _mpcToCpu;
   this->numSubsWithMpcs = _numSubsWithMpcs;
-  this->subsWithMpcs = _subsWithMpcs;
   this->fetiCom = _fetiCom;
   this->glNumMpc = mpcToMpc->csize();
   myCPU = this->fetiCom->cpuNum();
@@ -110,7 +112,7 @@ SuperBlockCCtSolver<Scalar>::initialize()
   blockCCtsparse = 0;
   this->glNumMpc = 0; this->mpcToCpu = 0; blockToMpc = 0; blockToSub = 0; mpcToBlock = 0;
   blockMpcToMpc = 0; blockToMpcCpu = 0; blockToCpu = 0; cpuToBlock = 0;
-  mpcv = 0; this->subsWithMpcs = 0; this->numSubsWithMpcs = 0;
+  mpcv = 0; this->numSubsWithMpcs = 0;
   nBigBlocksperMPI       = 0;
   nSmallBlocksperMPI     = 0;
   MPITosuperBlock        = 0;
@@ -470,7 +472,7 @@ SuperBlockCCtSolver<Scalar>::createSuperBlockCCt(Connectivity *mpcToSub)
   // Step 2. make blockToSub and localMpcToBlock connectivities
   // ------------------------------------------------------------
   blockToSub = blockToMpc->transcon(mpcToSub);
-  paralApply(this->numSubsWithMpcs, this->subsWithMpcs, &BaseSub::setLocalMpcToBlock, mpcToBlock, blockToMpc);
+  paralApply(this->subsWithMpcs, &FetiBaseSub::setLocalMpcToBlock, mpcToBlock, blockToMpc);
                                           
   // make block local Id to my subs (subs on my CPU) connectivity
   // -> ONLY for those blocks that myCPU has a lmpc CCt contribution to

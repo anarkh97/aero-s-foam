@@ -8,7 +8,7 @@ class SubBlockCCtSolver : public CCtSolver<Scalar>
 {
   public:
     SubBlockCCtSolver(Connectivity *mpcToMpc, Connectivity *mpcToSub, 
-                      int numSubsWithMpcs, GenSubDomain<Scalar> **subsWithMpcs,
+                      int numSubsWithMpcs, std::vector<FetiSub<Scalar> *> subsWithMpcs,
                       FSCommunicator *fetiCom, Connectivity *cpuToSub);
     ~SubBlockCCtSolver();
     void reSolve(GenDistrVector<Scalar> &v);

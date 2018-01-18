@@ -2438,23 +2438,25 @@ GenFetiDPSolver<Scalar>::buildCCt()
 
   switch(fetiInfo->mpc_precno) {
     case (FetiInfo::globalCCt) :
-      CCtsolver = new GlobalCCtSolver<Scalar>(mpcToMpc, mpcToCpu, numSubsWithMpcs, subsWithMpcs->data(), 
+      CCtsolver = new GlobalCCtSolver<Scalar>(mpcToMpc, mpcToCpu, numSubsWithMpcs, this->subdomains,
                                               fetiInfo, this->fetiCom);
       break;
     case (FetiInfo::blockDiagCCt) : {
       Connectivity *blockToMpc = getBlockToMpc();
-      CCtsolver = new BlockCCtSolver<Scalar>(blockToMpc, mpcToMpc, this->mpcToSub, mpcToCpu, this->numSubsWithMpcs, subsWithMpcs->data(),
+      CCtsolver = new BlockCCtSolver<Scalar>(blockToMpc, mpcToMpc, this->mpcToSub, mpcToCpu, this->numSubsWithMpcs,
+                                             this->subdomains,
                                              mpcSubMap, fetiInfo, this->fetiCom);
       } break;
     case (FetiInfo::subBlockDiagCCt) :
-      CCtsolver = new SubBlockCCtSolver<Scalar>(mpcToMpc, this->mpcToSub, numSubsWithMpcs, subsWithMpcs->data(), 
+      CCtsolver = new SubBlockCCtSolver<Scalar>(mpcToMpc, this->mpcToSub, numSubsWithMpcs, this->subdomains,
                                                 this->fetiCom, this->cpuToSub);
       break;
     case (FetiInfo::superBlockDiagCCt) : {
       Connectivity *blockToMpc = getBlockToMpc();
       bool super_flag = (fetiInfo->mpc_block == FetiInfo::subBlock) ? false : true;
       bool sub_flag = (fetiInfo->mpc_block == FetiInfo::mortarBlock) ? true : false;
-      CCtsolver = new SuperBlockCCtSolver<Scalar>(blockToMpc, mpcToMpc, this->mpcToSub, mpcToCpu, numSubsWithMpcs, subsWithMpcs->data(),
+      CCtsolver = new SuperBlockCCtSolver<Scalar>(blockToMpc, mpcToMpc, this->mpcToSub, mpcToCpu, numSubsWithMpcs,
+                                                  this->subdomains,
                                                   fetiInfo, this->fetiCom, super_flag, sub_flag);
     } break;
     default :
@@ -2674,7 +2676,7 @@ GenFetiDPSolver<Scalar>::reconstruct()
     // 2. reconstruct local Kcc etc. since size of Kcc may have changed
     startTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
     paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::constructKcc);
-    if(domain->solInfo().isCoupled)  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::constructKcw);
+    if(domain->solInfo().isCoupled)  paralApply(this->subdomains, &FetiSub<Scalar>::constructKcw);
     stopTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
 
     // 3. rebuild augmentation Q
@@ -2700,7 +2702,7 @@ GenFetiDPSolver<Scalar>::refactor()
   }
 
   if(domain->solInfo().isCoupled) {
-    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::reScaleAndReSplitKww);
+    paralApplyToAll(this->subdomains, &FetiSub<Scalar>::reScaleAndReSplitKww);
   }
 
   if(fetiInfo->augment == FetiInfo::WeightedEdges)
@@ -3216,7 +3218,7 @@ GenFetiDPSolver<Scalar>::computeProjectedDisplacement(GenDistrVector<Scalar> &u)
 		if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners)
 			paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::buildGlobalRBMs, X, cornerToSub);
 		else {
-			// TODO: GenSubDomain::Rstar first needs to be filled from the nullspace of Kcc^*
+			// TODO: FetiSub<Scalar>::Rstar first needs to be filled from the nullspace of Kcc^*
 			std::cerr << " *** WARNING: FetiDPSolver::computeProjectedDisplacement requires GRBM or \"corners none\"\n";
 			return;
 		}
@@ -3412,7 +3414,7 @@ GenFetiDPSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &globRBM)
 			if(geometricRbms || fetiInfo->corners == FetiInfo::noCorners)
 				paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::buildGlobalRBMs, X, cornerToSub);
 			else {
-				// TODO: GenSubDomain::Rstar first needs to be filled from the nullspace of Kcc^*
+				// TODO: FetiSub<Scalar>::Rstar first needs to be filled from the nullspace of Kcc^*
 				std::cerr << " *** WARNING: FetiDPSolver::getRBMs requires GRBM or \"corners none\"\n";
 				globRBM.zero();
 				return;

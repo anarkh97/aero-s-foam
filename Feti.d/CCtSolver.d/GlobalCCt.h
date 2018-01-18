@@ -3,12 +3,13 @@
 
 #include <Feti.d/CCtSolver.d/CCtSolver.h>
 
+
 template<class Scalar>
 class GlobalCCtSolver : public CCtSolver<Scalar>
 {
   public:
     GlobalCCtSolver(Connectivity *_mpcToMpc, Connectivity *_mpcToCpu, int _numSubsWithMpcs,
-                    GenSubDomain<Scalar> **_subsWithMpcs, FetiInfo *finfo, FSCommunicator *_fetiCom);
+                    std::vector<FetiSub<Scalar> *> _subsWithMpcs, FetiInfo *finfo, FSCommunicator *_fetiCom);
     ~GlobalCCtSolver();
     void reSolve(GenDistrVector<Scalar> &v);
     void zeroAll();

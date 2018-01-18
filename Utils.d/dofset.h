@@ -2,6 +2,7 @@
 #define _DOFSET_H_
 
 #include <iostream>
+#include <vector>
 
 class DofSet {
 protected:

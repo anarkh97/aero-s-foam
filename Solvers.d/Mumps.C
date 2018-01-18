@@ -624,7 +624,7 @@ GenMumpsSolver<Scalar>::print()
 
 template<class Scalar>
 long int
-GenMumpsSolver<Scalar>::size()
+GenMumpsSolver<Scalar>::size() const
 {
   if(!mumpsCPU) return 0; // JAT 052314
 #ifdef USE_MUMPS

@@ -91,7 +91,7 @@ GenMumpsSolver<double>::copyToMumpsLHS(double *&m, double *&d, int len)
 
 template<>
 void
-GenMumpsSolver<DComplex>::copyToMumpsRHS(mumps_double_complex *&m, DComplex *d, int len)
+GenMumpsSolver<DComplex>::copyToMumpsRHS(mumps_double_complex *&m, const DComplex *d, int len)
 {
   m = new mumps_double_complex[len];
   for(int i=0; i<len; ++i) {
@@ -113,7 +113,7 @@ GenMumpsSolver<DComplex>::copyFromMumpsRHS(DComplex *d, mumps_double_complex *m,
 
 template<>
 void
-GenMumpsSolver<double>::copyToMumpsRHS(double *&m, double *d, int len)
+GenMumpsSolver<double>::copyToMumpsRHS(double *&m, const double *d, int len)
 {
   m = new double[len];
   for(int i=0; i<len; ++i) m[i] = d[i];
@@ -187,7 +187,7 @@ GenMumpsSolver<double>::copyFromMumpsRHS(double **d, double *m, int len, int nRH
 
 template<>
 void
-GenMumpsSolver<DComplex>::copyToMumpsRHS(mumps_double_complex *&m, GenVector<DComplex> *d, int len, int nRHS)
+GenMumpsSolver<DComplex>::copyToMumpsRHS(mumps_double_complex *&m, const GenVector<DComplex> *d, int len, int nRHS)
 {
   m = new mumps_double_complex[len*nRHS];
   int I = 0;
@@ -217,7 +217,7 @@ GenMumpsSolver<DComplex>::copyFromMumpsRHS(GenVector<DComplex> *d, mumps_double_
 
 template<>
 void
-GenMumpsSolver<double>::copyToMumpsRHS(double *&m, GenVector<double> *d, int len, int nRHS)
+GenMumpsSolver<double>::copyToMumpsRHS(double *&m, const GenVector<double> *d, int len, int nRHS)
 {
   m = new double[len*nRHS];
   int I = 0;

@@ -96,7 +96,7 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
 
    int dim() const { return neq; }
    int neqs() const { return neq; }
-   long size();
+   long size() const;
    int numRBM() const { return nrbm; }
    void getRBMs(Vector *rbms);
    void getRBMs(VectorSet& rbms);
@@ -119,16 +119,16 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
 #ifdef USE_MUMPS
    void copyToMumpsLHS(mumps_double_complex *&m, DComplex *&d, int len);
    void copyToMumpsLHS(double *&m, double *&d, int len);
-   void copyToMumpsRHS(mumps_double_complex *&m, DComplex *d, int len);
-   void copyToMumpsRHS(double *&m, double *d, int len);
+   void copyToMumpsRHS(mumps_double_complex *&m, const DComplex *d, int len);
+   void copyToMumpsRHS(double *&m, const double *d, int len);
    void copyFromMumpsRHS(DComplex *d, mumps_double_complex *m, int len);
    void copyFromMumpsRHS(double *d, double *m, int len);
    void copyToMumpsRHS(mumps_double_complex *&m, DComplex **d, int len, int nRHS);
    void copyToMumpsRHS(double *&m, double **d, int len, int nRHS);
    void copyFromMumpsRHS(DComplex **d, mumps_double_complex *m, int len, int nRHS);
    void copyFromMumpsRHS(double **d, double *m, int len, int nRHS);
-   void copyToMumpsRHS(mumps_double_complex *&m, GenVector<DComplex> *d, int len, int nRHS);
-   void copyToMumpsRHS(double *&m, GenVector<double> *d, int len, int nRHS);
+   void copyToMumpsRHS(mumps_double_complex *&m, const GenVector<DComplex> *d, int len, int nRHS);
+   void copyToMumpsRHS(double *&m, const GenVector<double> *d, int len, int nRHS);
    void copyFromMumpsRHS(GenVector<DComplex> *d, mumps_double_complex *m, int len, int nRHS);
    void copyFromMumpsRHS(GenVector<double> *d, double *m, int len, int nRHS);
 #endif

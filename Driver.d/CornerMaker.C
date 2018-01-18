@@ -20,6 +20,10 @@ void crossprod(double [3], double [3], double [3]);
 
 double magnitude(double[3]);
 
+double magnitude(double v[3]) {
+  return (v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+}
+
 // variable used to select corner nodes for the 2D-case
 DofSet XYDofs = DofSet::Xdisp | DofSet::Ydisp;
 

@@ -22,6 +22,7 @@
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
 #include <Paral.d/DomainGroupTask.h>
 #include <Solvers.d/MultiDomainRbm.h>
+#include <Solvers.d/Mumps.h>
 #include <Driver.d/SysState.h>
 #include <Rom.d/BlockCyclicMap.h>
 #include <Rom.d/EiGalerkinProjectionSolver.h>

@@ -122,8 +122,8 @@ private:
   int  myID;          // container for my MPI process id
   int  grpSize;       // number of processors in block Jacobi group
   mutable bool useX0;         // use initial guess
-  std::vector<int> recvcounts; // block size for each process
-  std::vector<int> displs;     // offset for each process
+  mutable std::vector<int> recvcounts; // block size for each process
+  mutable std::vector<int> displs;     // offset for each process
 #ifdef USE_MPI
   MPI_Comm JacobiComm; 
 #endif

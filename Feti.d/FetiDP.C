@@ -665,7 +665,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			int iGroup = groups[i];
 			for(int j = this->myCPU+1; j < this->numCPUs; ++j) zRowOffset[iGroup*this->numCPUs +j] = zRowDim[iGroup];
 		}
-		this->fetiCom->globalSum(nGroups, zRowDim);
+		this->fetiCom->globalSum(nGroups, zRowDim.data());
 		this->fetiCom->globalSum(this->numCPUs*nGroups, zRowOffset);
 		for(int i = 0; i < nGroups; ++i) zRow[i] = zRowOffset[i*this->numCPUs + this->myCPU];
 		delete [] zRowOffset;

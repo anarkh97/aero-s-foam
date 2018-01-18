@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <Utils.d/dbg_alloca.h>
+#include <stdexcept>
 #include <sys/types.h>
 
 #ifndef WINDOWS
@@ -3525,8 +3526,9 @@ GenFetiSolver<Scalar>::makeRbmPat()
 	}
 }
 template class GenFetiSolver<std::complex<double>>;
+template <>
+void GenFetiSolver<std::complex<double>>::reComputeFiBC(int) { throw std::logic_error("reComputeFiBC does not exist for complex"); }
 #include <Feti.d/NLFeti.C>
-
 template class GenFetiSolver<double>;
 template class GenFetiWorkSpace<double>;
 template class GenFetiWorkSpace<std::complex<double>>;

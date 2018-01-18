@@ -683,27 +683,6 @@ GenSubDomain<Scalar>::applyMpcSplitting() {
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw) const {
-	// Get the trace of the subdomain interfaces
-	int iDof = 0;
-	for (int i = 0; i < scomm->numT(SComm::all); ++i) {
-		FSSubRecInfo<Scalar> sInfo = vPat->getSendBuffer(subNumber, scomm->neighbT(SComm::all, i));
-		for (int j = 0; j < scomm->lenT(SComm::all, i); ++j) {
-			int bdof = scomm->boundDofT(SComm::all, i, j);
-			switch (boundDofFlag[iDof++]) {
-				case 0:
-					sInfo.data[j] = locF[bdof];
-					break;
-				case 1: // wet interface
-					sInfo.data[j] = locFw[-1 - bdof];
-					break;
-			}
-		}
-	}
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const {
 	// Add the interface vector (interfvec) contribution to localvec
 	int iDof;
@@ -815,18 +794,6 @@ GenSubDomain<Scalar>::assembleInterf(Scalar *subvec, FSCommPattern<Scalar> *pat)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::splitInterf(Scalar *subvec) const {
-	Scalar *interfF = (Scalar *) alloca(scomm->sharedDOFsPlus->numConnect() * sizeof(Scalar));
-	for (int iDof = 0; iDof < scomm->sharedDOFsPlus->numConnect(); ++iDof)
-		interfF[iDof] =
-			subvec[(*scomm->sharedDOFsPlus)[0][iDof]] / double(weightPlus[(*scomm->sharedDOFsPlus)[0][iDof]]);
-
-	for (int iDof = 0; iDof < scomm->sharedDOFsPlus->numConnect(); ++iDof)
-		subvec[(*scomm->sharedDOFsPlus)[0][iDof]] -= interfF[iDof];
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat) const {
 	for (int i = 0; i < numUncon(); ++i) subvec[i] = 1.0 / subvec[i];
 	for (int i = 0; i < scomm->numNeighb; ++i) {
@@ -917,65 +884,6 @@ GenSubDomain<Scalar>::collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> 
 		}
 	}
 	return ScalarTypes::Real(dot);
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vPat) const {
-	int i, iSub, iDof;
-	int offset = 0;
-
-	Scalar *mpcJump = (numMPC) ? new Scalar[numMPC] : 0;
-	bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool) * numMPC);
-	for (i = 0; i < numMPC; ++i) mpcFlag[i] = true;
-
-	Scalar *wiJump = (Scalar *) dbg_alloca(sizeof(Scalar) * numWIdof);
-	bool *wiFlag = (bool *) dbg_alloca(sizeof(bool) * numWIdof);
-	for (i = 0; i < numWIdof; ++i) wiFlag[i] = true;
-
-	for (iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
-		FSSubRecInfo<Scalar> rInfo = vPat->recData(scomm->neighbT(SComm::all, iSub), subNumber);
-		for (iDof = 0; iDof < scomm->lenT(SComm::all, iSub); ++iDof) {
-			int bdof = scomm->boundDofT(SComm::all, iSub, iDof);
-			switch (boundDofFlag[offset + iDof]) {
-				case 0:
-					interfvec[offset + iDof] -= rInfo.data[iDof];
-					break;
-				case 1: { // wet interface
-					int windex = -1 - bdof;
-					if (wiFlag[windex]) {
-						wiJump[windex] = interfvec[offset + iDof];
-						wiFlag[windex] = false;
-					}
-					if (subNumber != scomm->neighbT(SComm::all, iSub)) {
-						wiJump[windex] += rInfo.data[iDof];
-					}
-				}
-					break;
-				case 2: {  // dual mpc
-					int locMpcNb = -1 - bdof;
-					if (mpcFlag[locMpcNb]) {  // do this 1st time only
-						mpcJump[locMpcNb] = interfvec[offset + iDof];
-						mpcFlag[locMpcNb] = false;
-					}
-					if (subNumber != scomm->neighbT(SComm::all, iSub))
-						mpcJump[locMpcNb] += rInfo.data[iDof];
-				}
-					break;
-			}
-		}
-		offset += scomm->lenT(SComm::all, iSub);
-	}
-
-	// add mpcJump to interfvec
-	for (i = 0; i < scomm->lenT(SComm::mpc); ++i) {
-		interfvec[scomm->mapT(SComm::mpc, i)] = mpcJump[scomm->mpcNb(i)];
-	}
-	// add wiJump to interfvec
-	for (i = 0; i < scomm->lenT(SComm::wet); ++i) {
-		interfvec[scomm->mapT(SComm::wet, i)] = wiJump[scomm->wetDofNb(i)];
-	}
-	if (mpcJump) delete[] mpcJump;
 }
 
 template<class Scalar>
@@ -1161,123 +1069,6 @@ GenSubDomain<Scalar>::multFi(GenSolver<Scalar> *s, Scalar *u, Scalar *Fiu) {
 		Fiu[iDof] = iDisp[allBoundDofs[iDof]];
 
 }
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::getHalfInterf(const Scalar *s, Scalar *t) const {
-	int iTg = 0;
-	int i;
-	for (i = 0; i < totalInterfSize; ++i)
-		if (masterFlag[i]) t[iTg++] = s[i];
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const {
-	int iTg = 0;
-	int i;
-	for (i = 0; i < totalInterfSize; ++i)
-		if (masterFlag[i]) {
-			t[iTg] = s[i];
-			tt[iTg++] = ss[i];
-		}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::scatterHalfInterf(const Scalar *s, Scalar *buffer) const {
-	// note: need to send s[iTg] of mpc master to all neighbors
-	int iTg = 0;
-	int i;
-
-	Scalar *mpcbuff = (Scalar *) dbg_alloca(numMPC * sizeof(Scalar));
-	Scalar *wibuff = (Scalar *) dbg_alloca(numWIdof * sizeof(Scalar));
-
-	// note: if numMPC changes (salinas) need to delete [] mpcMaster
-	for (i = 0; i < totalInterfSize; ++i) {
-		if (masterFlag[i]) {
-			switch (boundDofFlag[i]) {
-				case 0:
-					iTg++;
-					break;
-				case 1: { // wet interface
-					int windex = -1 - allBoundDofs[i];
-					wibuff[windex] = s[iTg++];
-				}
-					break;
-				case 2: { // dual mpc
-					int locMpcNb = -1 - allBoundDofs[i];
-					mpcbuff[locMpcNb] = s[iTg++];
-				}
-					break;
-			}
-		}
-	}
-
-	iTg = 0;
-	for (i = 0; i < totalInterfSize; ++i) {
-		if (masterFlag[i]) buffer[i] = s[iTg++];
-		else {
-			switch (boundDofFlag[i]) {
-				case 1: { // wet interface
-					int windex = -1 - allBoundDofs[i];
-					buffer[i] = (wiMaster[windex]) ? wibuff[windex] : 0.0;
-				}
-					break;
-				case 2: { // dual mpc
-					int locMpcNb = -1 - allBoundDofs[i];
-					buffer[i] = (mpcMaster[locMpcNb]) ? mpcbuff[locMpcNb] : 0.0;
-				}
-					break;
-			}
-		}
-	}
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat) const {
-	int iSub, i;
-	int iOff = 0;
-	Scalar *mpcv = (Scalar *) dbg_alloca(sizeof(Scalar) * numMPC);
-	for (i = 0; i < numMPC; ++i) mpcv[i] = 0.0;
-	Scalar *wiv = (Scalar *) dbg_alloca(numWIdof * sizeof(Scalar));
-	for (i = 0; i < numWIdof; ++i) wiv[i] = 0.0;
-
-	for (iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
-		FSSubRecInfo<Scalar> rInfo = vPat->recData(scomm->neighbT(SComm::all, iSub), subNumber);
-		for (i = 0; i < scomm->lenT(SComm::all, iSub); ++i) {
-			int bdof = scomm->boundDofT(SComm::all, iSub, i);
-			switch (boundDofFlag[iOff + i]) {
-				case 0:
-					if (!masterFlag[iOff + i]) v[iOff + i] = -rInfo.data[i];
-					break;
-				case 1: { // wet interface
-					int windex = -1 - bdof;
-					if (!masterFlag[iOff + i]) {
-						if (rInfo.data[i] != 0.0) wiv[windex] = rInfo.data[i];
-					} else wiv[windex] = v[i + iOff];
-				}
-					break;
-				case 2: { // dual mpc
-					int locMpcNb = -1 - bdof;
-					if (!masterFlag[iOff + i]) {
-						if (rInfo.data[i] != 0.0) mpcv[locMpcNb] = rInfo.data[i];
-					} else mpcv[locMpcNb] = v[i + iOff];
-				}
-					break;
-			}
-		}
-		iOff += scomm->lenT(SComm::all, iSub);
-	}
-
-	for (i = 0; i < scomm->lenT(SComm::mpc); ++i)
-		v[scomm->mapT(SComm::mpc, i)] = mpcv[scomm->mpcNb(i)];
-
-	for (i = 0; i < scomm->lenT(SComm::wet); ++i)
-		v[scomm->mapT(SComm::wet, i)] = wiv[scomm->wetDofNb(i)];
-}
-
 
 template<class Scalar>
 void
@@ -2015,93 +1806,6 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::deleteKcc() {
 	this->Kcc.reset(nullptr);
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag) {
-	// KHP and DJR: 3-26-98
-	// multKbb has been modified to compute subdomain primal residual using
-	// deltaF (in addition to deltaU which is the displacement correction
-	// and of course the lumped or dirichlet preconditioning)
-
-	// If we are computing lumped preconditioner, we compute deltaFi using Kib
-	// but deltaUi is equal to zero. For the dirichlet preconditioner, deltaUi
-	// is computed but deltaFi is set equal to zero.
-
-	// deltaFi = internal primal residual
-	// deltaUi = internal displacement correction
-	// boundMap = from boundary number to subdomain number
-	// internalMap = from internal number to subdomain number
-	// invBoundMap = from all subdomain dof to a unique boundary number
-	// invInternalMap =  from all subdomain dof to a unique internal number
-	// allBoundDofs = indices of B, from lambda numbering to numbering of entire subdomain
-	// dualToBoundary = from lambda numbering directly to boundary numbering
-
-	// Kii works only on the numbering of the internal dofs
-	// Kbb works only on the numbering of the boundary dofs
-	// Kib operates on the boundary numbering and returns with internal numbering
-
-	auto &localw = this->localw;
-	auto &Kib = this->Kib;
-	auto &KiiSolver = this->KiiSolver;
-
-	Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar) * boundLen);
-	Scalar *res = (Scalar *) dbg_alloca(sizeof(Scalar) * boundLen);
-	this->deltaFwi.resize(numWIdof); // coupled_dph
-
-	int i, iDof;
-	for (iDof = 0; iDof < boundLen; ++iDof) v[iDof] = res[iDof] = 0.0;
-	for (iDof = 0; iDof < localLen(); ++iDof) {
-		if (deltaU) deltaU[iDof] = 0.0;
-		if (deltaF) deltaF[iDof] = 0.0;
-	}
-	for (i = 0; i < numWIdof; ++i) localw[i] = 0;
-
-	this->applyBtransposeAndScaling(u, v, deltaU, localw.data());
-
-	//Scalar norm = 0; for(i=0; i<boundLen; ++i) norm += v[i]*v[i]; std::cerr << "1. norm = " << sqrt(norm) << std::endl;
-	if ((solInfo().getFetiInfo().precno == FetiInfo::lumped) ||
-	    (solInfo().getFetiInfo().precno == FetiInfo::dirichlet) || errorFlag)
-		this->Kbb->mult(v, res);  // res = this->Kbb * v
-	//norm = 0; for(i=0; i<boundLen; ++i) norm += res[i]*res[i]; std::cerr << "2. norm = " << sqrt(norm) << std::endl;
-
-	if ((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) || errorFlag) {
-		Scalar *iDisp = new Scalar[internalLen];
-		for (iDof = 0; iDof < internalLen; ++iDof) iDisp[iDof] = 0.0;
-		for (i = 0; i < numWIdof; ++i) iDisp[wiInternalMap[i]] = localw[i]; // coupled_dph
-		if (Kib) Kib->transposeMultAdd(v, iDisp); // iDisp += Kib^T * v
-
-		if (solInfo().getFetiInfo().precno == FetiInfo::dirichlet) {
-			//norm = 0; for(i=0; i<internalLen; ++i) norm += iDisp[i]*iDisp[i]; std::cerr << "3. norm = " << sqrt(norm) << std::endl;
-			if (KiiSolver) KiiSolver->reSolve(iDisp);
-			//norm = 0; for(i=0; i<internalLen; ++i) norm += iDisp[i]*iDisp[i]; std::cerr << "4. norm = " << sqrt(norm) << std::endl;
-			for (i = 0; i < numWIdof; ++i) localw[i] = iDisp[wiInternalMap[i]]; // coupled_dph
-			if (Kib) Kib->multSub(iDisp, res); // res -= Kib*iDisp
-		} else if (deltaF) { // improves estimate of error
-			for (iDof = 0; iDof < internalLen; ++iDof) {
-				if (internalMap[iDof] > -1) {
-					int ccDof = cToCC[internalMap[iDof]];
-					if (ccDof > -1) deltaF[ccDof] = iDisp[iDof];
-				}
-			}
-		}
-		delete[] iDisp;
-
-		if (deltaF) {
-			for (iDof = 0; iDof < totalInterfSize; ++iDof)
-				if (allBoundDofs[iDof] >= 0) { // deltaF of ctc and mpc nodes computed in applyScalingAndB below
-					deltaF[allBoundDofs[iDof]] = res[dualToBoundary[iDof]];
-				}
-		}
-	}
-
-	if (solInfo().getFetiInfo().precno == FetiInfo::identity) {
-		for (iDof = 0; iDof < boundLen; ++iDof) res[iDof] = v[iDof];
-	}
-
-	// Return preconditioned u
-	this->applyScalingAndB(res, Pu, localw.data());
 }
 
 template<class Scalar>

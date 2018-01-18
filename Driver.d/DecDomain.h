@@ -15,6 +15,7 @@ class Domain;
 template <class Scalar> class GenSubDomain;
 template <class Scalar> class GenParallelSolver;
 template <class Scalar> class GenFetiSolver;
+template <class Scalar> class FetiBaseClass;
 template <class Scalar> class GenDomainGroupTask;
 template <class V> class SysState;
 template <class Scalar> class DiagParallelSolver;
@@ -107,7 +108,7 @@ class GenDecDomain
   Connectivity * getNodeToSub() { return nodeToSub; }
   Connectivity * getGroupToSub() { return grToSub; }
   int *getGlSubToLocal() { return glSubToLocal; }
-  GenFetiSolver<Scalar> *getFetiSolver(GenDomainGroupTask<Scalar> &);
+  GenParallelSolver<Scalar> * getFetiSolver(GenDomainGroupTask<Scalar> &);
   void buildOps(GenMDDynamMat<Scalar>&, double, double, double, Rbm **rbm = 0, FullSquareMatrix **kelArray = 0,
                 bool make_feti = true, FullSquareMatrix **melArray = 0, FullSquareMatrix **celArray = 0, bool factor = true);
   DiagParallelSolver<Scalar> *getDiagSolver(int nSub, GenSubDomain<Scalar> **, GenSolver<Scalar> **);
@@ -155,7 +156,8 @@ class GenDecDomain
   double computeStabilityTimeStep(GenMDDynamMat<Scalar>&);
   void extractSubDomainMPCs(int iSub);
   void reProcessMPCs();
-  void setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState, GenFetiSolver<Scalar> *fetisolver, double _lambda);
+    void setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState, GenFetiSolver<Scalar> *fetisolver, double _lambda);
+    void setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState, FetiBaseClass<Scalar> *fetisolver, double _lambda);
   FSCommPattern<Scalar> * getWiCommPattern();
   GenAssembler<Scalar> * getSolVecAssembler();
   void exchangeInterfaceGeomState(DistrGeomState *geomState);

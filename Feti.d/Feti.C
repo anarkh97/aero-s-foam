@@ -264,14 +264,14 @@ template<class Scalar>
 void
 GenFetiSolver<Scalar>::fSend(int iSub, GenDistrVector<Scalar> &force) const
 {
-	sd[iSub]->fSend(force.subData(subdomains[iSub]->localSubNum()), vPat);
+	subdomains[iSub]->fSend(force.subData(subdomains[iSub]->localSubNum()), vPat);
 }
 
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::fScale(int iSub, GenDistrVector<Scalar> &force) const
 {
-	sd[iSub]->fScale(force.subData(subdomains[iSub]->localSubNum()), vPat);
+	subdomains[iSub]->fScale(force.subData(subdomains[iSub]->localSubNum()), vPat);
 }
 
 template<class Scalar>
@@ -1428,7 +1428,7 @@ void
 GenFetiSolver<Scalar>::sendDeltaF(int iSub, GenDistrVector<Scalar> &deltaF) const
 {
 	// parallel implementation of sending each subdomain's deltaF
-	sd[iSub]->sendDeltaF(deltaF.subData(iSub), vPat);
+	subdomains[iSub]->sendDeltaF(deltaF.subData(iSub), vPat);
 }
 
 template<class Scalar>
@@ -1436,7 +1436,7 @@ void
 GenFetiSolver<Scalar>::normDeltaF(int iSub, double *subDots, GenDistrVector<Scalar> *deltaF) const
 {
 	// parallel implementation of computing true norm of deltaF for each subdomain
-	subDots[iSub] = sd[iSub]->collectAndDotDeltaF(deltaF->subData(iSub), vPat);
+	subDots[iSub] = subdomains[iSub]->collectAndDotDeltaF(deltaF->subData(iSub), vPat);
 }
 
 template<class Scalar>

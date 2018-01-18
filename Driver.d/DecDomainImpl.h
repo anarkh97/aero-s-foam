@@ -595,7 +595,7 @@ GenDecDomain<Scalar>::distributeDiscreteMass()
 }
 
 template<class Scalar>
-GenFetiSolver<Scalar> *
+GenParallelSolver<Scalar> *
 GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 {
 	FetiInfo *finfo = &domain->solInfo().getFetiInfo();
@@ -607,7 +607,8 @@ GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 		dynMats.reserve(numSub);
 		for(int i = 0; i < numSub; ++i)
 			dynMats.emplace_back(dgt.dynMats[i]);
-		return new GenFetiDPSolver<Scalar>(numSub, globalNumSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
+       return
+		 new GenFetiDPSolver<Scalar>(numSub, globalNumSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
 		                                   mpcToSub_dual.get(), mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
 		                                   std::move(dynMats), dgt.spMats, dgt.rbms, rbmFlag, geometricRbms, verboseFlag);
 	}
@@ -4158,6 +4159,34 @@ void GenDecDomain<Scalar>::setConstraintGap(DistrGeomState *geomState, DistrGeom
       execParal(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu, t, 1);
     }
   }
+}
+
+
+template <>
+void GenDecDomain<std::complex<double>>::setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState,
+                                                          FetiBaseClass<std::complex<double>> *fetiSolver, double t) {
+	throw "MLX Calling an unimplemented GenDecDomain<std::complex<double>>::setConstraintGap(...)";
+}
+
+template<class Scalar>
+void GenDecDomain<Scalar>::setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState,
+                                            FetiBaseClass<Scalar> *fetiSolver, double t)
+{
+	// note: for nonlinear statics t is pseudo time (i.e. load factor)
+	if(numDualMpc) {
+		GenDistrVector<Scalar> cu(fetiSolver->interfInfo());
+		GenDistrVector<Scalar> u(fetiSolver->localInfo());
+		geomState->get_tot_displacement(u);
+		((GenFetiDPSolver<Scalar> *)fetiSolver)->multC(u, cu); // cu = C*u
+		execParal(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu, t, 0);
+		if(domain->GetnContactSurfacePairs() && domain->solInfo().piecewise_contact) {
+			GenDistrVector<Scalar> u0(fetiSolver->localInfo());
+			refState->get_tot_displacement(u0);
+			u -= u0;
+			((GenFetiDPSolver<Scalar> *)fetiSolver)->multC(u, cu);
+			execParal(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu, t, 1);
+		}
+	}
 }
 
 template<>

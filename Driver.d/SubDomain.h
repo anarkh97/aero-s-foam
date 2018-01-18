@@ -97,9 +97,6 @@ public:
 
 	const FetiInfo &getFetiInfo() const override { return solInfo().getFetiInfo(); }
 
-//	int *glCrnGroup;    // group of each corner node (global numbering)
-	int nCDofs = -1;
-
 	int crnDofLen() const  { return crnDofSize; }
 	IntFullM* getC(int &crnDofSize, FSCommPattern<int> *sPat);
 	void showExchangeData();
@@ -148,7 +145,6 @@ public:
 	void putNumMPC_primal(int *ptr) { ptr[subNumber] = numMPC_primal; }
 	void putLocalToGlobalMPC_primal(int *ptr, int *tg) { for(int i=0; i<numMPC_primal; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC_primal[i]; }
 
-	void findEdgeNeighbors();
 	void makeMpcInterface(Connectivity *subToMpc, const Connectivity &lmpcToSub,
 	                      Connectivity *subToSub_mpc);
 	void makeFsiInterface(Connectivity *subToFsi, Connectivity *fsiToSub,
@@ -178,12 +174,7 @@ public:
 	int interfLen() const override; //<! \brief Total length for the local interface
 	int halfInterfLen() const override; //<! \brief Length of the "half interface"
 	void computeMasterFlag(const Connectivity &mpcToSub) override;
-	bool* getMasterFlag() { return masterFlag; }
-	const bool* getMasterFlag() const override { return masterFlag; }
 	const bool* getInternalMasterFlag();
-
-protected:
-	void computeInternalMasterFlag();
 
 public:
 	void setNodeCommSize(FSCommStructure *, int d = 1) const ;
@@ -234,7 +225,6 @@ protected:
 
 	int *wDofToNode = nullptr; //HB
 	Connectivity *drySharedNodes = nullptr;
-	std::vector<bool> wiMaster;
 	int numFsiNeighb;
 	int *fsiNeighb = nullptr;
 
@@ -251,7 +241,6 @@ public:
 	void makeCDSA();
 	void makeCCDSA();
 	int numWetInterfaceDofs() const { return numWIdof; }
-	void zeroEdgeDofSize();
 	void mergeInterfaces();
 
 #ifdef HB_COUPLED_PRECOND
@@ -307,16 +296,10 @@ public:
 	// then    interfvec = B^T localvec and sends local data to neighbors
 	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const override;
 	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const override;
-	void interfaceJump(Scalar *iterfData, FSCommPattern<Scalar> *vPat) const;
 	void sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const override;
 	void extractAndSendInterf(const Scalar *subvec, FSCommPattern<Scalar> *pat) const;
 	void assembleInterf(Scalar *subvec, FSCommPattern<Scalar> *pat) const;
-	void splitInterf(Scalar *subvec) const;
 	void assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat) const;
-	void getHalfInterf(const Scalar *s, Scalar *t) const override;
-	void getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const override;
-	void scatterHalfInterf(const Scalar *s, Scalar *loc) const override;
-	void rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat) const;
 	void renumberElements();
 	void renumberElementsGlobal();
 	void renumberSharedNodes();
@@ -366,7 +349,6 @@ public:
 	                         Scalar *stress, Scalar *weight = 0);
 	void computeStressStrain(GeomState *gs, Corotator **allCorot,
 	                         int, int Findex, Scalar *glStress, Scalar *glWeight = 0, GeomState *refState = NULL);
-	void fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0) const;
 	void updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda);
 	void updatePrescribedDisp(GeomState *geomState);
 	Scalar displacementNorm(Scalar *displacement);
@@ -374,7 +356,6 @@ public:
 	void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd, int augOffset,
 	                     Connectivity *subToEdge);
 	void deleteKcc();
-	void multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
 	void getQtKQ(GenSolver<Scalar> *s) override;
 	void getQtKQ(int iMPC, Scalar *QtKQ) override;
 	void multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const override;

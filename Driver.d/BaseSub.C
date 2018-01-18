@@ -243,14 +243,14 @@ BaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 
   if(numWIdof && wiMaster.size() == 0) { // build wiMaster
     wiMaster.resize(numWIdof);  // wiMaster[i] is true if this subdomain is the master of the wet interface dof i
-    for(i=0; i<numWIdof; ++i) wiMaster[i] = true; 
+    for(i=0; i<numWIdof; ++i) wiMaster[i] = true;
     for(i=0; i < scomm->numT(SComm::wet); ++i) {
-      if(scomm->neighbT(SComm::wet, i) < subNumber) 
+      if(scomm->neighbT(SComm::wet, i) < subNumber)
         // set wiMaster false if this isn't the lowest numbered subdomain sharing the wet interface dof
-        for(j=0; j < scomm->lenT(SComm::wet, i); ++j) 
+        for(j=0; j < scomm->lenT(SComm::wet, i); ++j)
           wiMaster[scomm->wetDofNb(i, j)] = false;
     }
-  } 
+  }
 
   if(numMPC && !mpcMaster) { // PJSA moved here from SubDomain::scatterHalfInterf
     mpcMaster = new bool[numMPC];  // only allocate & init 1st time, dual mpcs only
@@ -262,7 +262,7 @@ BaseSub::computeMasterFlag(const Connectivity &mpcToSub)
   for(iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
     if(scomm->neighbT(SComm::all,iSub) < subNumber) rank = 0; else rank = 1;
     int count = 0;
-    for(j=0; j<scomm->lenT(SComm::all,iSub); ++j) { 
+    for(j=0; j<scomm->lenT(SComm::all,iSub); ++j) {
       int bdof = scomm->boundDofT(SComm::all,iSub,j);
       switch(boundDofFlag[nbdofs]) {
         case 0: {
@@ -311,22 +311,6 @@ BaseSub::getInternalMasterFlag()
     computeInternalMasterFlag();
   }
   return internalMasterFlag;
-}
-
-void
-BaseSub::computeInternalMasterFlag()
-{
-  const int dofCount = c_dsa->size();
-  internalMasterFlag = new bool[dofCount];
-  std::fill_n(internalMasterFlag, dofCount, true);
-
-  for(int i = 0; i < scomm->numNeighb; ++i) {
-    if(subNumber > scomm->subNums[i]) {
-      for(int j = 0; j < scomm->sharedDOFsPlus->num(i); ++j) {
-        internalMasterFlag[(*scomm->sharedDOFsPlus)[i][j]] = false;
-      }
-    }
-  }
 }
 
 int*
@@ -1460,24 +1444,6 @@ BaseSub::~BaseSub()
 }
 
 void
-BaseSub::findEdgeNeighbors()
-{
-  int count = 0;
-  bool *isEdgeNeighb = new bool[scomm->numNeighb];  // deleted in ~SComm()
-  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-    isEdgeNeighb[iSub] = false;
-    for(int j=0; j<scomm->sharedNodes->num(iSub); ++j) {
-      if(boundaryDOFs[iSub][j].count() > 0) {
-        isEdgeNeighb[iSub] = true;
-        count++;
-        break;
-      }
-    }
-  }
-  scomm->setEdgeNeighb(count, isEdgeNeighb); 
-}
-
-void
 BaseSub::setWaveNumbers(double *waveNumbers)
 {
   // this is used by salinas, not fem
@@ -1774,15 +1740,6 @@ BaseSub::isFluid(int i)
   HelmElement *he = dynamic_cast<HelmElement *>(packedEset[i]);
   if(he==0) return 0; // non-Helmholtz element found
   else return he->isFluid();
-}
-
-void
-BaseSub::zeroEdgeDofSize()
-{
-  if(edgeDofSize.size() != 0) {
-    for(int i=0; i<scomm->numNeighb; ++i) edgeDofSize[i] = 0;
-    nCDofs = -1;
-  }
 }
 
 void

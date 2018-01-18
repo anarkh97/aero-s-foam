@@ -4,6 +4,23 @@
 
 #include "FetiSub.h"
 
+
+void
+FetiBaseSub::computeInternalMasterFlag()
+{
+	const int dofCount = get_c_dsa()->size();
+	internalMasterFlag = new bool[dofCount];
+	std::fill_n(internalMasterFlag, dofCount, true);
+
+	for(int i = 0; i < scomm->numNeighb; ++i) {
+		if(subNum() > scomm->subNums[i]) {
+			for(int j = 0; j < scomm->sharedDOFsPlus->num(i); ++j) {
+				internalMasterFlag[(*scomm->sharedDOFsPlus)[i][j]] = false;
+			}
+		}
+	}
+}
+
 void
 FetiBaseSub::sendMatProps(FSCommPattern<double> *matPat)
 {
@@ -62,4 +79,31 @@ FetiBaseSub::collectWaveNumbers(FSCommPattern<double> *kPat)
     neighbK_s2[i] = (k_s2 + rInfo.data[2])/2.0;
     neighbK_f[i] = (k_f + rInfo.data[3])/2.0;
   }
+}
+
+void
+FetiBaseSub::findEdgeNeighbors()
+{
+	int count = 0;
+	bool *isEdgeNeighb = new bool[scomm->numNeighb];  // deleted in ~SComm()
+	for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+		isEdgeNeighb[iSub] = false;
+		for(int j=0; j<scomm->sharedNodes->num(iSub); ++j) {
+			if(boundaryDOFs[iSub][j].count() > 0) {
+				isEdgeNeighb[iSub] = true;
+				count++;
+				break;
+			}
+		}
+	}
+	scomm->setEdgeNeighb(count, isEdgeNeighb);
+}
+
+void
+FetiBaseSub::zeroEdgeDofSize()
+{
+	if(edgeDofSize.size() != 0) {
+		for(int i=0; i<scomm->numNeighb; ++i) edgeDofSize[i] = 0;
+		nCDofs = -1;
+	}
 }

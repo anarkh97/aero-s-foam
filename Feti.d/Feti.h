@@ -15,6 +15,7 @@
 #include <Feti.d/DistrVectorSet.h>
 #include <Solvers.d/ParallelSolver.h>
 #include <Feti.d/CCtSolver.d/CCtSolver.h>
+#include <Feti.d/FetiBaseClass.h>
 
 template <class Scalar> class GenFetiOp;
 typedef GenFetiOp<double> FetiOp;
@@ -318,11 +319,12 @@ protected:
 	FSCommPattern<Scalar> *wiPat = nullptr;
 };
 
+
 template<class Scalar>
-class GenFetiDPSolver : public GenFetiSolver<Scalar>
+class GenFetiDPSolver : public FetiBaseClass<Scalar>
 {
-	using GenFetiSolver<Scalar>::fetiInfo;
-	using GenFetiSolver<Scalar>::verboseFlag;
+	using FetiBaseClass<Scalar>::fetiInfo;
+	using FetiBaseClass<Scalar>::verboseFlag;
 
 	DistrInfo internalR, internalC, internalWI;
 	DistrInfo *coarseInfo = nullptr;
@@ -443,7 +445,6 @@ private:
 	bool mpcPrecon;  // mpc preconditioner flag, true = use generalized preconditioner with CCt
 	// false = use scaling method (diagonal CCt) or no preconditioning
 	Connectivity *mpcToCpu = nullptr;
-	ResizeArray<GenSubDomain<Scalar> *> *subsWithMpcs = nullptr;
 	int numSubsWithMpcs = 0;
 	int *mpcSubMap = nullptr;
 	void singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow, int &rank, double tol, FullM *V = 0);
@@ -498,105 +499,6 @@ public:
 
 	/** \brief Build the corner to subdomain connectivity into the member variable and return subToCorner. */
 	Connectivity *makeCornerToSub();
-};
-
-
-// Class FetiWorkSpace is used to allocate and 
-// organize Distributed Vectors for FETI.
-template<class Scalar>
-class GenFetiWorkSpace
-{
-	GenDistrVector<Scalar> *r;
-	GenDistrVector<Scalar> *lambda;
-	GenDistrVector<Scalar> *w;
-	GenDistrVector<Scalar> *y;
-	GenDistrVector<Scalar> *z;
-	GenDistrVector<Scalar> *p;
-	GenDistrVector<Scalar> *pr;
-	GenDistrVector<Scalar> *Fp;
-	GenDistrVector<Scalar> *du;
-	GenDistrVector<Scalar> *uzero;
-	GenDistrVector<Scalar> *fr;
-	GenDistrVector<Scalar> *fr2;
-	GenDistrVector<Scalar> *ur;
-	GenDistrVector<Scalar> *fw;
-	GenDistrVector<Scalar> *wrk1;
-	GenDistrVector<Scalar> *wrk2;
-	GenDistrVector<Scalar> *deltaU;
-	GenDistrVector<Scalar> *deltaF;
-
-	// Extra Distributed Vectors for Nonlinear (not used for feti-dp)
-	GenDistrVector<Scalar> *zz;
-	GenDistrVector<Scalar> *rCompare;
-	GenDistrVector<Scalar> *uu;
-
-	// Added Vectors
-	GenVector<Scalar> *alpha;
-	GenVector<Scalar> *beta;
-	GenVector<Scalar> *gamma;
-	GenVector<Scalar> *working;
-	GenVector<Scalar> *fc;
-	GenVector<Scalar> *uc;
-	GenVector<Scalar> *duc;
-	GenVector<Scalar> *e;
-
-	// Contact
-	GenDistrVector<Scalar> *lambda_copy;
-	GenDistrVector<Scalar> *p_copy;
-	GenDistrVector<Scalar> *r_copy;
-	GenDistrVector<Scalar> *Fp_copy;
-	GenDistrVector<Scalar> *du_copy;
-	GenVector<Scalar> *uc_copy;
-	GenVector<Scalar> *duc_copy;
-	GenDistrVector<Scalar> *gc;
-	GenDistrVector<Scalar> *gf;
-
-public:
-	GenFetiWorkSpace(DistrInfo& interface, DistrInfo& local, int isNonlinear,
-	                 int numrbms, int numcrns);
-	GenFetiWorkSpace(DistrInfo& interface, DistrInfo& local, DistrInfo& wet, int ngrbms, int numC, bool contact);
-	~GenFetiWorkSpace();
-
-	GenDistrVector<Scalar>& ret_r()       { return *r; }
-	GenDistrVector<Scalar>& ret_lambda()  { return *lambda; }
-	GenDistrVector<Scalar>& ret_w()       { return *w; }
-	GenDistrVector<Scalar>& ret_y()       { return *y; }
-	GenDistrVector<Scalar>& ret_z()       { return *z; }
-	GenDistrVector<Scalar>& ret_p()       { return *p; }
-	GenDistrVector<Scalar>& ret_pr()      { return *pr; }
-	GenDistrVector<Scalar>& ret_Fp()      { return *Fp; }
-	//GenDistrVector<Scalar>& ret_Fr()      { return *Fr; }
-	GenDistrVector<Scalar>& ret_du()      { return *du; }
-	GenDistrVector<Scalar>& ret_uzero()   { return *uzero; }
-	GenDistrVector<Scalar>& ret_wrk1()    { return *wrk1; }
-	GenDistrVector<Scalar>& ret_wrk2()    { return *wrk2; }
-	GenDistrVector<Scalar>& ret_deltaU()  { return *deltaU; }
-	GenDistrVector<Scalar>& ret_deltaF()  { return *deltaF; }
-	GenDistrVector<Scalar>& ret_fr()      { return *fr;  }
-	GenDistrVector<Scalar>& ret_fr2()     { return *fr2; }
-	GenDistrVector<Scalar>& ret_ur()      { return *ur;  }
-	GenDistrVector<Scalar>& ret_fw()      { return *fw;  }
-	GenDistrVector<Scalar>& ret_zz()      { return *zz; }
-	GenDistrVector<Scalar>& ret_rCompare(){ return *rCompare; }
-	GenDistrVector<Scalar>& ret_uu()      { return *uu; }
-	GenDistrVector<Scalar>& ret_lambda_copy() { return *lambda_copy; }
-	GenDistrVector<Scalar>& ret_p_copy()  { return *p_copy; }
-	GenDistrVector<Scalar>& ret_r_copy()  { return *r_copy; }
-	GenDistrVector<Scalar>& ret_gc()      { return *gc; }
-	GenDistrVector<Scalar>& ret_gf()      { return *gf; }
-	GenVector<Scalar>& ret_alpha()        { return *alpha; }
-	GenVector<Scalar>& ret_beta()         { return *beta;  }
-	GenVector<Scalar>& ret_gamma()        { return *gamma; }
-	GenVector<Scalar>& ret_working()      { return *working; }
-	GenVector<Scalar>& ret_fc()           { return *fc;  }
-	GenVector<Scalar>& ret_uc()           { return *uc; }
-	GenVector<Scalar>& ret_duc()          { return *duc; }
-	GenVector<Scalar>& ret_e()            { return *e; }
-	// extra functions for contact
-	void save();
-	void restore();
-	void clean_up();
-	void zeroPointers();
 };
 
 typedef GenFetiSolver<double> FetiSolver;

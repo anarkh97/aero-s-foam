@@ -5,6 +5,7 @@
 
 template <class Scalar> class GenFetiOpControler;
 template <class Scalar> class GenFetiSolver;
+template <class Scalar> class FetiBaseClass;
 class IntFullM;
 template <class Scalar> class GenSubDomain;
 template <class Scalar> class GenSparseMatrix;
@@ -90,7 +91,8 @@ class GenFetiOp : public TaskDescr
 
     void setglobalSum(void *);
     double res;
-    friend class GenFetiSolver<Scalar>;
+	friend class GenFetiSolver<Scalar>;
+	friend class FetiBaseClass<Scalar>;
 
 };
 

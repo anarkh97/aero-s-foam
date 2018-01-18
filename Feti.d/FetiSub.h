@@ -83,7 +83,6 @@ public:
 
 	/** \brief Make the subdomain determine its master flag, i.e. whether it is the primary holder of a variable. */
 	virtual void computeMasterFlag(const Connectivity &mpcToSub)  = 0;
-	virtual const bool* getMasterFlag() const = 0;
 
 	/// \brief Obtain the number of MPC constraints.
 	virtual int numMPCs() const = 0;
@@ -103,6 +102,10 @@ public:
 	virtual bool isEdgeNeighbor(int neighb) const = 0;
 
 	virtual double getShiftVal() const = 0;
+
+	void computeInternalMasterFlag();
+	bool* getMasterFlag() { return masterFlag; }
+	const bool* getMasterFlag() const { return masterFlag; }
 
 	virtual Connectivity *getNodeToNode() const = 0;
 
@@ -167,6 +170,8 @@ public:
 	void GramSchmidt(double *Q, bool *isUsed, DofSet desired, int nQPerNeighb, bool isPrimalAugmentation);
 
 	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
+	void findEdgeNeighbors();
+	void zeroEdgeDofSize();
 
 	virtual void computeWaveNumbers() = 0;
 	void sendWaveNumbers(FSCommPattern<double> *kPat);
@@ -222,6 +227,7 @@ protected:
 	double *localLambda = nullptr;  // used for contact pressure output
 	std::vector<int> invBoundMap;
 	int *mpclast = nullptr;
+	int nCDofs = -1; // TODO Clean this up
 
 	mutable int *mpcStatus;
 	mutable bool *mpcStatus1, *mpcStatus2;
@@ -281,6 +287,7 @@ protected:
 	std::vector<int> numNeighbWIdof;
 	std::vector<int> wiInternalMap;
 	std::vector<DofSet> wetInterfaceDofs;
+	std::vector<bool> wiMaster;
 
 	GlobalToLocalMap glToLocalWImap;
 
@@ -313,6 +320,7 @@ public:
 template <typename Scalar>
 class FetiSub : virtual public FetiBaseSub {
 public:
+	double densProjCoefficient(int dof) { return 1.0; } // Defined as virtual in SubDomain, but never defined otherwise.
 	virtual void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const = 0;
 	virtual void getQtKQ(GenSolver<Scalar> *s) = 0;
 	virtual void getQtKQ(int iMPC, Scalar *QtKQ) = 0;
@@ -322,9 +330,15 @@ public:
 	void sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPat);
 	void factorKii();
 	virtual void sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const = 0;
-	virtual void scatterHalfInterf(const Scalar *s, Scalar *loc) const = 0;
-	virtual void getHalfInterf(const Scalar *s, Scalar *t) const = 0;
-	virtual void getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const = 0;
+	virtual void scatterHalfInterf(const Scalar *s, Scalar *loc) const;
+	virtual void getHalfInterf(const Scalar *s, Scalar *t) const;
+	virtual void getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const;
+	void interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vPat) const;
+	void rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat) const;
+	void fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0) const;
+	void splitInterf(Scalar *subvec) const;
+	void sendDeltaF(const Scalar *deltaF, FSCommPattern<Scalar> *vPat);
+	double collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
 	/** \brief Basic FETI operation.
 	 * \details Computes localvec = K-1 (localvec -B interfvec)
 	 * then    interfvec = B^T localvec and sends local data to neighbors
@@ -412,6 +426,7 @@ public:
 
 	void multKcc();
 	void multKbb(const Scalar *u, Scalar *Pu, Scalar *delta_u = 0, Scalar * delta_f= 0, bool errorFlag = true);
+	void multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
 	void multKbbCoupled(const Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag = true);
 	void multDiagKbb(const Scalar *u, Scalar *Pu) const;
 

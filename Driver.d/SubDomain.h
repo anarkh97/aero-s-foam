@@ -203,12 +203,8 @@ public:
 	// DPH functions
 	int isFluid(int i=0);
 	void setWaveNumbers(double *waveNumbers);
-	void computeWaveNumbers();
-	void sendWaveNumbers(FSCommPattern<double> *kPat);
-	void collectWaveNumbers(FSCommPattern<double> *kPat);
-	void averageMatProps();
-	void sendMatProps(FSCommPattern<double> *matPat);
-	void collectMatProps(FSCommPattern<double> *matPat);
+	void computeWaveNumbers() override;
+	void averageMatProps() override;
 
 	void setDirichletBC(std::list<BCond *> *_list);
 	void setNeumanBC(std::list<BCond *> *_list);
@@ -418,7 +414,7 @@ public:
 
 	void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const override;
 	void bmpcQualify(std::vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
-	
+
 	void printMpcStatus();
 	void computeContactPressure(Scalar *globStress, Scalar *globWeight);
 	void computeLocalContactPressure(Scalar *stress, Scalar *weight);

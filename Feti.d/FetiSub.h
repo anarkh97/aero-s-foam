@@ -168,6 +168,12 @@ public:
 
 	void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
 
+	virtual void computeWaveNumbers() = 0;
+	void sendWaveNumbers(FSCommPattern<double> *kPat);
+	void collectWaveNumbers(FSCommPattern<double> *kPat);
+	virtual void averageMatProps() = 0;
+	void sendMatProps(FSCommPattern<double> *matPat);
+	void collectMatProps(FSCommPattern<double> *matPat);
 protected:
 	bool isCoupled = false; // TODO Ensure this is set or derived from some other info.
 	int boundLen = 0;

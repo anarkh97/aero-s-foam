@@ -310,28 +310,28 @@ GenFetiDPSolver<Scalar>::computeLocalWaveNumbers()
   int iSub;
   if(fetiInfo->numdir > 0) { // support for multiple fluids 
     if(fetiInfo->waveMethod == FetiInfo::uniform) {
-      paralApply(this->nsub, this->sd, &BaseSub::computeWaveNumbers);
+      paralApply(this->subdomains, &FetiBaseSub::computeWaveNumbers);
     }
     else if(fetiInfo->waveMethod == FetiInfo::averageK) {
-      paralApply(this->nsub, this->sd, &BaseSub::computeWaveNumbers);
+      paralApply(this->subdomains, &FetiBaseSub::computeWaveNumbers);
       // send/receive wave numbers for FETI-DPH EdgeWs augmentation
       FSCommPattern<double> *kPat = new FSCommPattern<double>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<double>::CopyOnSend);
       for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setCommSize(kPat, 4);
       kPat->finalize();
-      paralApply(this->nsub, this->sd, &BaseSub::sendWaveNumbers, kPat);
+      paralApply(this->subdomains, &FetiBaseSub::sendWaveNumbers, kPat);
       kPat->exchange();
-      paralApply(this->nsub, this->sd, &BaseSub::collectWaveNumbers,kPat);
+      paralApply(this->subdomains, &FetiBaseSub::collectWaveNumbers,kPat);
       delete kPat;
     }
     else {
-      paralApply(this->nsub, this->sd, &BaseSub::averageMatProps);
+      paralApply(this->subdomains, &FetiBaseSub::averageMatProps);
       // send/receive neighb material properties for FETI-DPH EdgeWs augmentation
       FSCommPattern<double> *matPat = new FSCommPattern<double>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<double>::CopyOnSend);
       for(iSub=0; iSub<this->nsub; ++iSub) this->subdomains[iSub]->setCommSize(matPat, 5);
       matPat->finalize();
-      paralApply(this->nsub, this->sd, &BaseSub::sendMatProps, matPat);
+      paralApply(this->subdomains, &FetiBaseSub::sendMatProps, matPat);
       matPat->exchange();
-      paralApply(this->nsub, this->sd, &BaseSub::collectMatProps, matPat);
+      paralApply(this->subdomains, &FetiBaseSub::collectMatProps, matPat);
       delete matPat;
     }
   }

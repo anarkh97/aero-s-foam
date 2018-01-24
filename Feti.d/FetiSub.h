@@ -50,9 +50,9 @@ public:
 	/// \brief Obtain the solver settings. TODO Get rid of this. Why should the subdomain data know all the solver details?
 	virtual const FetiInfo &getFetiInfo() const = 0;
 	/** \brief Obtain the size of the interface of this subdomain. */
-	virtual int interfLen() const = 0;
+	int interfLen() const;
 	/** \brief Obtain the size of the half interface for which this subdomain is the master. */
-	virtual int halfInterfLen() const = 0;
+	int halfInterfLen() const;
 	/** \brief Obtain the index of this subdomain in the global system. */
 	virtual int subNum() const = 0;
 	/** \brief Set the communication size in the pattern.
@@ -61,16 +61,17 @@ public:
 	 * @param numRBM The number of RBMs for which the setup should be done.
 	 * @param pattern The pattern to adjust.
 	 */
-	virtual void setRbmCommSize(int numRBM, FSCommStructure *pattern) const = 0;
+	void setRbmCommSize(int numRBM, FSCommStructure *pattern) const;
 	/** \brief Set the communication pattern from this subdomain to its neighbors for a RHS or solution vector. */
-	virtual void setDofCommSize(FSCommStructure *) const = 0;
+	void setDofCommSize(FSCommStructure *) const;
 
-	virtual void setCommSize(FSCommStructure *pat, int size) const = 0;
+	void setCommSize(FSCommStructure *pat, int size) const;
 
-	virtual void setMpcCommSize(FSCommStructure *mpcPat) const = 0;
+	void setMpcCommSize(FSCommStructure *mpcPat) const;
 
-	virtual void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const = 0;
+	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const;
 
+	// Pure virtual defined in FetiSub<Scalar>.
 	virtual void setGCommSize(FSCommStructure *pat) const = 0;
 
 	virtual int localSubNum() const = 0;
@@ -82,24 +83,25 @@ public:
 	virtual int getNumUncon() const = 0;
 
 	/** \brief Make the subdomain determine its master flag, i.e. whether it is the primary holder of a variable. */
-	virtual void computeMasterFlag(const Connectivity &mpcToSub)  = 0;
+	void computeMasterFlag(const Connectivity &mpcToSub);
 
 	/// \brief Obtain the number of MPC constraints.
-	virtual int numMPCs() const = 0;
-
-	virtual int numMPCs_primal() const = 0;
+	int numMPCs() const  { return numMPC; }
+	int numMPCs_primal() const  { return numMPC_primal; }
 	/// \brief Obtain the number of coarse dofs. This method computes a cached value.
-	virtual int numCoarseDofs() = 0;
+	int numCoarseDofs();
+
+	int numCornerDofs()	const { return numCRNdof; }
 	/// \brief Obtain the number of corner nodes.
-	virtual int numCorners() const = 0;
+	int numCorners() const  { return numCRN; }
 
 	const std::vector<int> &getLocalCornerNodes() const { return cornerNodes; };
 
-	virtual int numWetInterfaceDofs() const = 0;
+	int numWetInterfaceDofs() const { return numWIdof; }
 
 	virtual const CoordSet& getNodeSet() const = 0;
 
-	virtual bool isEdgeNeighbor(int neighb) const = 0;
+	bool isEdgeNeighbor(int neighb) const { return scomm->isEdgeNeighb[neighb]; }
 
 	virtual double getShiftVal() const = 0;
 
@@ -305,6 +307,8 @@ protected:
 	double Ymod, Prat = 0.0, Dens = 0.0, Thih = 0.0, Sspe = 0.0;  // Young's modulus, Poisson ration, density, thickness, speed of sound
 	double *neighbYmod = nullptr, *neighbPrat = nullptr, *neighbDens = nullptr, *neighbThih = nullptr, *neighbSspe = nullptr;  // neighbor's values
 
+	long memK = 0;       //!< memory necessary to store K(s)
+	long memPrec = 0;    //!< memory necessary to store Preconditioner
 };
 
 template <typename Scalar>
@@ -321,18 +325,18 @@ template <typename Scalar>
 class FetiSub : virtual public FetiBaseSub {
 public:
 	double densProjCoefficient(int dof) { return 1.0; } // Defined as virtual in SubDomain, but never defined otherwise.
-	virtual void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const = 0;
-	virtual void getQtKQ(GenSolver<Scalar> *s) = 0;
-	virtual void getQtKQ(int iMPC, Scalar *QtKQ) = 0;
+	void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const;
+	void getQtKQ(GenSolver<Scalar> *s);
+	void getQtKQ(int iMPC, Scalar *QtKQ);
 	Scalar getMpcRhs(int iMPC) const;
 	Scalar getMpcRhs_primal(int iMPC) const;
 	// TODO Figure out how to make this const.
 	void sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPat);
 	void factorKii();
-	virtual void sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const = 0;
-	virtual void scatterHalfInterf(const Scalar *s, Scalar *loc) const;
-	virtual void getHalfInterf(const Scalar *s, Scalar *t) const;
-	virtual void getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const;
+	void sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const;
+	void scatterHalfInterf(const Scalar *s, Scalar *loc) const;
+	void getHalfInterf(const Scalar *s, Scalar *t) const;
+	void getHalfInterf(const Scalar *s, Scalar *t, const Scalar *ss, Scalar *tt) const;
 	void interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vPat) const;
 	void rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat) const;
 	void fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0) const;
@@ -347,18 +351,19 @@ public:
 	 * @param localvec
 	 * @param interfvec
 	 */
-	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const = 0;
+	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const;
 	void fetiBaseOp(Scalar *uc,GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const;
-	virtual void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const = 0;
+	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const;
 	void fetiBaseOpCoupled2(const Scalar *uc, const Scalar *localvec, Scalar *interfvec,
 	                        FSCommPattern<Scalar> *wiPat, const Scalar *fw = nullptr) const;
 	void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, const Scalar *interfvec,
 	                                FSCommPattern<Scalar> *wiPat) const;
-	virtual void multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const = 0;
-	virtual void multQtKBt(int glNumMPC, const Scalar *G, Scalar *QtKBtG, Scalar alpha=1.0, Scalar beta=1.0) const = 0;
-	virtual int numRBM() const = 0;
-	virtual const Scalar *getQtKpBt() const = 0;
-	virtual void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const = 0;
+	void multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const ;
+	void multQtKBt(int glNumMPC, const Scalar *G, Scalar *QtKBtG, Scalar alpha=1.0, Scalar beta=1.0) const;
+	/// \brief Retrieve the number of RBMs.
+	int numRBM() const { return nGrbm; }
+	const Scalar *getQtKpBt() const { return QtKpBt.data(); };
+	void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const;
 
 	/// \brief Generate the B matrices for the problem
 	void makeBs();
@@ -395,7 +400,7 @@ public:
 
 	void getFr(const Scalar *f, Scalar *fr) const;
 	void getFc(const Scalar *f, Scalar *fc) const;
-	virtual void getFw(const Scalar *f, Scalar *fw) const;
+	void getFw(const Scalar *f, Scalar *fw) const;
 	// G matrix-vector multiplication
 	void multG(const GenVector<Scalar> &x, Scalar *y, Scalar alpha) const;  // y = alpha*G*x
 	void trMultG(const Scalar *x, GenVector<Scalar> &y, Scalar alpha) const; // y = alpha*G^T*x
@@ -552,6 +557,9 @@ public:
 	std::unique_ptr<GenDBSparseMatrix<Scalar>> Kbb;    //!< Boundary to boundary stiffness matrix.
 
 	GenVector<Scalar> diagCCt;
+
+	std::unique_ptr<GenFullM<Scalar>> qtkq;
+	std::vector<Scalar> QtKpBt;
 protected:
 	std::unique_ptr<GenSolver<Scalar>> localCCtsolver;
 	GenSparseMatrix<Scalar> *localCCtsparse; // Alias to localCCtsolver.

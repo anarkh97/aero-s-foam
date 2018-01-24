@@ -683,53 +683,6 @@ GenSubDomain<Scalar>::applyMpcSplitting() {
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const {
-	// Add the interface vector (interfvec) contribution to localvec
-	int iDof;
-	for (iDof = 0; iDof < totalInterfSize; ++iDof)
-		localvec[allBoundDofs[iDof]] += interfvec[iDof];
-
-	// solve for localvec
-	if (s) s->reSolve(localvec);
-
-	// redistribute the solution to the interface
-	for (iDof = 0; iDof < totalInterfSize; ++iDof)
-		interfvec[iDof] = localvec[allBoundDofs[iDof]];
-
-}
-
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec,
-                                 Scalar *beta) const {
-	auto &mpc = this->mpc;
-	// multiply Q*beta to get the MPC force contribution
-	if (numMPC > 0) {
-		int i, iMPC;
-		for (iMPC = 0; iMPC < numMPC; ++iMPC)
-			for (i = 0; i < mpc[iMPC]->nterms; ++i) {
-				int cdof = mpc[iMPC]->terms[i].cdof;
-				if (cdof < 0) continue;
-				localvec[cdof] += mpc[iMPC]->terms[i].coef * beta[localToGlobalMPC[iMPC]];
-			}
-	}
-
-	// Add the interface vector (interfvec) contribution to localvec
-	int iDof;
-	for (iDof = 0; iDof < totalInterfSize; ++iDof)
-		localvec[allBoundDofs[iDof]] += interfvec[iDof];
-
-	// solve for localvec
-	if (s) s->reSolve(localvec);
-
-	// redistribute the solution to the interface
-	for (iDof = 0; iDof < totalInterfSize; ++iDof)
-		interfvec[iDof] = localvec[allBoundDofs[iDof]];
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::sendNode(Scalar (*subvec)[11], FSCommPattern<Scalar> *pat) {
 	for (int i = 0; i < scomm->numNeighb; ++i) {
 		FSSubRecInfo<Scalar> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[i]);
@@ -753,19 +706,6 @@ GenSubDomain<Scalar>::collectNode(Scalar (*subvec)[11], FSCommPattern<Scalar> *p
 		for (int j = 0; j < scomm->sharedNodes->num(i); ++j) {
 			int n = (*(scomm->sharedNodes))[i][j];
 			for (int k = 0; k < 11; ++k) subvec[n][k] = MAXABS(subvec[n][k], rInfo.data[11 * j + k]);
-		}
-	}
-}
-
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const {
-	int iDof = 0;
-	for (int i = 0; i < scomm->numT(SComm::all); ++i) {
-		FSSubRecInfo<Scalar> sInfo = vPat->getSendBuffer(subNumber, scomm->neighbT(SComm::all, i));
-		for (int j = 0; j < scomm->lenT(SComm::all, i); ++j) {
-			sInfo.data[j] = interfvec[iDof++];
 		}
 	}
 }
@@ -1009,41 +949,6 @@ GenSubDomain<Scalar>::makeKbbMpc() {
 	makeKbb(c_dsa);
 	// recover
 	std::swap(getWeights(), weight_mpc);
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::multMFi(GenSolver<Scalar> *s, Scalar *u, Scalar *Fiu, int nRHS) const {
-	// multMFi is never called in DP. Otherwise it will crash in contact
-	int iRHS, iDof;
-	int ndof = localLen();
-
-	Scalar **iDisp = new Scalar *[nRHS];
-	Scalar *firstpointer = new Scalar[nRHS * ndof];
-
-	for (iRHS = 0; iRHS < nRHS; iRHS++) {
-		iDisp[iRHS] = firstpointer + iRHS * ndof;
-		for (iDof = 0; iDof < ndof; ++iDof)
-			iDisp[iRHS][iDof] = 0.0;
-	}
-
-	// Add the interfvec contribution to localvec
-	for (iRHS = 0; iRHS < nRHS; iRHS++) {
-		for (iDof = 0; iDof < totalInterfSize; ++iDof)
-			iDisp[iRHS][allBoundDofs[iDof]] += u[iDof + iRHS * totalInterfSize];
-	}
-
-	// solve for localvec
-	if (s) s->reSolve(nRHS, iDisp);
-
-	// redistribute the solution to the interface
-	for (iRHS = 0; iRHS < nRHS; iRHS++) {
-		for (iDof = 0; iDof < totalInterfSize; ++iDof)
-			Fiu[iDof + iRHS * totalInterfSize] = iDisp[iRHS][allBoundDofs[iDof]];
-	}
-
-	delete[] firstpointer;
-	delete[] iDisp;
 }
 
 template<class Scalar>
@@ -1751,24 +1656,6 @@ GenSubDomain<Scalar>::setMpcSparseMatrix() {
 }
 
 template<class Scalar>
-void
-GenSubDomain<Scalar>::getFw(const Scalar *f, Scalar *fw) const {
-	if (numWIdof) {
-		int i, j;
-		int dofs[DofSet::max_known_dof];
-		int cdofs[DofSet::max_known_dof];
-		for (i = 0; i < numWInodes; ++i) {
-			DofSet thisDofSet = wetInterfaceDofs[i];
-			int nd = thisDofSet.count();
-			dsa->number(wetInterfaceNodes[i], thisDofSet, dofs);
-			c_dsa->number(wetInterfaceNodes[i], thisDofSet, cdofs);
-			for (j = 0; j < nd; ++j)
-				fw[wetInterfaceMap[dofs[j]]] = f[cdofs[j]];
-		}
-	}
-}
-
-template<class Scalar>
 void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, double *usrDefAcc, bool nlflag) {
 	auto &mpc = this->mpc;
 	// modify boundary condition values for output purposes
@@ -1806,90 +1693,6 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::deleteKcc() {
 	this->Kcc.reset(nullptr);
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::getQtKQ(GenSolver<Scalar> *s) {
-	auto &mpc = this->mpc;
-	if (numMPC == 0) return;
-
-	int numDOFs = localLen();
-	std::vector<Scalar> locKpQ(numMPC *numDOFs,
-	0.0);
-
-	// loop over mpc structure and fill coefficients
-	for (int iMPC = 0; iMPC < numMPC; ++iMPC) {
-		for (int i = 0; i < mpc[iMPC]->nterms; ++i) {
-			int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
-			                        (1 << mpc[iMPC]->terms[i].dofnum));
-			if (dof >= 0) {
-				locKpQ[dof + iMPC * numDOFs] = mpc[iMPC]->terms[i].coef;
-			}
-		}
-	}
-
-	for (int iMPC = 0; iMPC < numMPC; ++iMPC)
-		if (s) s->reSolve(locKpQ.data() + iMPC * numDOFs);
-
-	QtKpBt = new Scalar[numMPC * totalInterfSize];
-
-	for (int i = 0; i < numMPC * totalInterfSize; ++i)
-		QtKpBt[i] = 0.0;
-
-	for (int i = 0; i < numMPC; ++i)
-		for (int j = 0; j < totalInterfSize; ++j)
-			QtKpBt[j + i * totalInterfSize] = locKpQ[allBoundDofs[j] + i * numDOFs];
-
-	qtkq = new GenFullM<Scalar>(numMPC, numMPC);
-	qtkq->zero();
-
-	for (int iMPC = 0; iMPC < numMPC; ++iMPC)
-		for (int jMPC = 0; jMPC < numMPC; ++jMPC)
-			for (int i = 0; i < mpc[iMPC]->nterms; ++i) {
-				int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
-				                        (1 << mpc[iMPC]->terms[i].dofnum));
-				if (dof < 0) continue;
-
-				(*qtkq)[iMPC][jMPC] += mpc[iMPC]->terms[i].coef * locKpQ[dof + jMPC * numDOFs];
-			}
-
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::getQtKQ(int glMPCnum, Scalar *QtKQ) {
-	int thisMPC = globalToLocalMPC[glMPCnum];
-	int iMPC;
-	for (iMPC = 0; iMPC < numMPC; ++iMPC)
-		QtKQ[iMPC] = (*qtkq)[thisMPC][iMPC];
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::multQtKBt(int glMPCnum, const Scalar *G, Scalar *QtKBtG,
-                                Scalar alpha, Scalar beta) const {
-	int iMPC = globalToLocalMPC[glMPCnum];
-	// QtKBtG = QtKBt*G
-	Tgemv('T', totalInterfSize, 1, alpha, QtKpBt + iMPC * totalInterfSize,
-	      totalInterfSize, G, 1, beta, QtKBtG, 1);
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const {
-	auto &mpc = this->mpc;
-	int numDofs = localLen();
-	int iMPC = globalToLocalMPC[glMPCnum];
-	for (int n = 0; n < numV; ++n) {
-		for (int i = 0; i < mpc[iMPC]->nterms; ++i) {
-			int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
-			                        (1 << mpc[iMPC]->terms[i].dofnum));
-			if (dof < 0) continue;
-			const Scalar *beta = V + n * numDofs;
-			QtV[n] += mpc[iMPC]->terms[i].coef * beta[dof];
-		}
-	}
 }
 
 template<class Scalar>
@@ -2112,10 +1915,8 @@ GenSubDomain<Scalar>::getLocalMultipliers(std::vector<double> &lambda) {
 template<class Scalar>
 void
 GenSubDomain<Scalar>::initialize() {
-	qtkq = 0;
 	MPCsparse = 0;
 	corotators = 0;
-	QtKpBt = 0;
 	glInternalMap = 0;
 	glBoundMap = 0;
 	mpcForces = 0;
@@ -2151,12 +1952,6 @@ GenSubDomain<Scalar>::initialize() {
 template<class Scalar>
 GenSubDomain<Scalar>::~GenSubDomain() {
 
-	if (QtKpBt) {
-		delete[] QtKpBt;
-	}
-	if (qtkq) {
-		delete qtkq;
-	}
 	if (MPCsparse) {
 		delete MPCsparse;
 	}
@@ -3052,25 +2847,6 @@ GenSubDomain<Scalar>::pade(GenStackVector<Scalar> *sol, GenStackVector<Scalar> *
 	for (i = 0; i < ia; ++i) P->linAdd(pow(x, i), *a[i]);
 	for (i = 0; i < ib; ++i) Q->linAdd(pow(x, i), *b[i]);
 	for (j = 0; j < sol->size(); ++j) (*sol)[j] = (*P)[j] / (*Q)[j];
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::split(const Scalar *v, Scalar *v_f, Scalar *v_c) const {
-	auto &mpc = this->mpc;
-	// split v into free (v_f) and chopped (v_c) components
-	for (int i = 0; i < totalInterfSize; ++i) {
-		v_f[i] = v[i];
-		v_c[i] = 0.0;
-	}
-	for (int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
-		int locMpcNb = scomm->mpcNb(i);
-		if (mpc[locMpcNb]->type == 1 && mpc[locMpcNb]->active) {
-			int iDof = scomm->mapT(SComm::mpc, i);
-			if (ScalarTypes::greaterThan(v[iDof], 0.0)) v_c[iDof] = v[iDof];
-			v_f[iDof] = 0.0;
-		}
-	}
 }
 
 template<class Scalar>

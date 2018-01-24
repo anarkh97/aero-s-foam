@@ -219,91 +219,6 @@ BaseSub::makeCCDSA()
     glCornerNodes.push_back(glNums[localNode]);
 }
 
-int
-BaseSub::interfLen() const
-{
-  // Total length for the local interface
-  return totalInterfSize;
-}
-
-void
-BaseSub::computeMasterFlag(const Connectivity &mpcToSub)
-{
-  // PJSA: 12-13-02  masterFlag to be used in dot product and orthogonalization
-  // allows for mpcs or wet interface dofs connecting 1 or > 2 subs
-  if(masterFlag) delete [] masterFlag;
-  masterFlag = new bool[totalInterfSize];
-  int rank, iSub, i, j;
-
-  bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
-  for(i=0; i<numMPC; ++i) mpcFlag[i] = true;
-
-  bool *wiFlag = (bool *) dbg_alloca(sizeof(bool)*numWIdof);
-  for(i=0; i<numWIdof; ++i) { wiFlag[i] = true; }
-
-  if(numWIdof && wiMaster.size() == 0) { // build wiMaster
-    wiMaster.resize(numWIdof);  // wiMaster[i] is true if this subdomain is the master of the wet interface dof i
-    for(i=0; i<numWIdof; ++i) wiMaster[i] = true;
-    for(i=0; i < scomm->numT(SComm::wet); ++i) {
-      if(scomm->neighbT(SComm::wet, i) < subNumber)
-        // set wiMaster false if this isn't the lowest numbered subdomain sharing the wet interface dof
-        for(j=0; j < scomm->lenT(SComm::wet, i); ++j)
-          wiMaster[scomm->wetDofNb(i, j)] = false;
-    }
-  }
-
-  if(numMPC && !mpcMaster) { // PJSA moved here from SubDomain::scatterHalfInterf
-    mpcMaster = new bool[numMPC];  // only allocate & init 1st time, dual mpcs only
-    for(i=0; i<numMPC; ++i) mpcMaster[i] = false;
-  }
-
-  int nbdofs = 0;
-  masterFlagCount = 0;
-  for(iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
-    if(scomm->neighbT(SComm::all,iSub) < subNumber) rank = 0; else rank = 1;
-    int count = 0;
-    for(j=0; j<scomm->lenT(SComm::all,iSub); ++j) {
-      int bdof = scomm->boundDofT(SComm::all,iSub,j);
-      switch(boundDofFlag[nbdofs]) {
-        case 0: {
-          if((count % 2) == rank) {
-            masterFlag[nbdofs++] = true;
-            masterFlagCount++;
-          }
-          else masterFlag[nbdofs++] = false;
-          count++;
-        } break;
-        case 1: { // wet interface
-          int windex = -1 - bdof;
-          if(wiMaster[windex]) {
-            if(wiFlag[windex]) { // only need one master for each WI dof
-              masterFlag[nbdofs++] = true;
-              masterFlagCount++;
-              wiFlag[windex] = false;
-            }
-            else masterFlag[nbdofs++] = false;
-          }
-          else masterFlag[nbdofs++] = false;
-        } break;
-        case 2: { // mpc
-          int locMpcNb = -1 - bdof;
-          int glMpcNb = localToGlobalMPC[locMpcNb];
-          if(subNumber == mpcToSub[glMpcNb][0]) {
-            mpcMaster[locMpcNb] = true; // PJSA
-            if(mpcFlag[locMpcNb]) { // only need one master for each MPC
-              masterFlag[nbdofs++] = true;
-              masterFlagCount++;
-              mpcFlag[locMpcNb] = false;
-            }
-            else masterFlag[nbdofs++] = false;
-          }
-          else masterFlag[nbdofs++] = false;
-        } break;
-      }
-    }
-  }
-}
-
 const bool *
 BaseSub::getInternalMasterFlag()
 {
@@ -401,12 +316,6 @@ BaseSub::makeIMaps(const DofSetArray *dof_set_array)
   }
 
   return glInternalMap;
-}
-
-int
-BaseSub::halfInterfLen() const
-{
-  return masterFlagCount;
 }
 
 //  BClocal. Mathmatically, the size of BClocal should be
@@ -1250,34 +1159,10 @@ BaseSub::setNodeCommSize(FSCommStructure *pt, int d) const
 }
 
 void
-BaseSub::setDofCommSize(FSCommStructure *pt) const
-{
-  for(int iSub = 0; iSub < scomm->numT(SComm::all); ++iSub)
-    pt->setLen(subNumber, scomm->neighbT(SComm::all,iSub), scomm->lenT(SComm::all,iSub));
-}
-
-void
 BaseSub::setDofPlusCommSize(FSCommStructure *pt) const
 {
   for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
     pt->setLen(subNumber, scomm->subNums[iSub], scomm->sharedDOFsPlus->num(iSub));
-}
-
-void 
-BaseSub::setRbmCommSize(int _numRBM, FSCommStructure *pt) const
-{
-  for(int iSub = 0; iSub < scomm->numT(SComm::std); ++iSub)
-    pt->setLen(subNumber, scomm->neighbT(SComm::std,iSub), scomm->lenT(SComm::std,iSub)*_numRBM);
-}
-
-void
-BaseSub::setMpcCommSize(FSCommStructure *mpcPat) const
-{
-	for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-		int neighb = scomm->neighbT(SComm::mpc,i);
-		int len = (subNumber != neighb) ? scomm->lenT(SComm::mpc,i) : 0;
-		mpcPat->setLen(subNumber, neighb, len);
-	}
 }
 
 void BaseSub::setControlData(ControlLawInfo *_claw, int *sensorMap,
@@ -1320,20 +1205,6 @@ void BaseSub::addNodeXYZ(double *centroid, double* nNodes)
   }
 }
 
-void
-BaseSub::setCommSize(FSCommStructure *pt, int size) const
-{
-  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
-    pt->setLen(subNumber, scomm->subNums[iSub], size);
-}
-
-void
-BaseSub::setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const
-{
-  for(int iSub = 0; iSub < scomm->numT(SComm::mpc); ++iSub)
-    pt->setLen(subNumber, scomm->neighbT(SComm::mpc,iSub), size);
-}
-
 double BaseSub::getSharedDofCount() 
 {
   // PJSA 7-29-03: this function is used to compute the total number of DOFs
@@ -1354,27 +1225,6 @@ int BaseSub::getTotalDofCount()
   // PJSA 7-29-03: this function is used to compute the total number of DOFs
   // in the domain (required only for timing file)
   return dsa->size();
-}
-
-int
-BaseSub::numCoarseDofs()
-{
- if(nCDofs == -1) {
-   nCDofs = numCornerDofs();
-   if(solInfo().getFetiInfo().augment == FetiInfo::Gs) {
-     nCDofs += nGrbm;
-     for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
-      nCDofs += neighbNumGRBMs[iSub];
-     }
-   }
-
-   if(solInfo().getFetiInfo().isEdgeAugmentationOn()) {
-     for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
-       nCDofs += edgeDofSize[iSub];
-   }
-   nCDofs += numMPC_primal; // MPC MODIFICATION: add the number of mpc equations
- }
- return nCDofs;
 }
 
 int

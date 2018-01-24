@@ -74,8 +74,6 @@ protected:
 	int *locToGlUserForceMap = nullptr;
 	int crnDofSize = 0;
 	int *crnPerNeighb = nullptr;
-	long memK = 0;       // memory necessary to store K(s)
-	long memPrec = 0;    // memory necessary to store Preconditioner
 #ifdef DISTRIBUTED
 	// for distributed output of single nodes
     int numNodalOutput = 0;
@@ -112,15 +110,13 @@ public:
 #endif
 	int getBC(BCond *, int, int *, BCond *&);
 	void setGlNodes(int *globalNodeNums) { glNums = globalNodeNums; }
-	const int *getGlNodes() const { return glNums; }
+	const int *getGlNodes() const override { return glNums; }
 	int *getGlElems() const    { return glElems; }
 	int *getGlMPCs()  const     { return localToGlobalMPC; }
 	int glToPackElem(int e) const { return (geoSource->glToPackElem(e) > globalEMax) ? -1 : glToLocalElem[geoSource->glToPackElem(e)]; }
 	int *getSensorDataMap() const { return locToGlSensorMap; }
 	int *getUserDispDataMap() const { return locToGlUserDispMap; }
 	int countElemNodes();
-	int numMPCs() const override { return numMPC; }
-	int numMPCs_primal() const  { return numMPC_primal; }
 	int globalNumNodes();
 	int numNodes() const        { return numnodes; }
 	Connectivity *getNodeToNode() const override { return nodeToNode; }
@@ -152,37 +148,22 @@ public:
 
 	bool checkForColinearCrossPoints(int numCornerPoints, int *localCornerPoints);
 	void addCornerPoints(int *glCornerList);
-	int numCorners() const override { return numCRN; }
 
-	int numCornerDofs()	const { return numCRNdof; }
-	int numCoarseDofs();
-	int nCoarseDofs()  const { return nCDofs; }
-
-	DofSetArray *getDsa() const { return dsa; }
-	ConstrainedDSA *get_c_dsa() const { return c_dsa; }
-	double getShiftVal() const { return geoSource->shiftVal(); }
+	DofSetArray *getDsa() const override { return dsa; }
+	ConstrainedDSA *get_c_dsa() const override { return c_dsa; }
+	double getShiftVal() const override { return geoSource->shiftVal(); }
 public:
 
 	void addNodeXYZ(double *centroid, double* nNodes);
-	void setCommSize(FSCommStructure *pat, int size) const override;
-	void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const override;
 
 public:
 	void setCorners(int nCorners, int *crnList);
 
-	bool isEdgeNeighbor(int neighb) const { return scomm->isEdgeNeighb[neighb]; }
-	int interfLen() const override; //<! \brief Total length for the local interface
-	int halfInterfLen() const override; //<! \brief Length of the "half interface"
-	void computeMasterFlag(const Connectivity &mpcToSub) override;
 	const bool* getInternalMasterFlag();
 
 public:
 	void setNodeCommSize(FSCommStructure *, int d = 1) const ;
-	/// \copydoc
-	void setDofCommSize(FSCommStructure *) const override;
 	void setDofPlusCommSize(FSCommStructure *) const;
-	void setRbmCommSize(int numRBM, FSCommStructure *) const override;
-	void setMpcCommSize(FSCommStructure *mpcPat) const override;
 
 	// for timing file
 	double getSharedDofCount();
@@ -240,7 +221,6 @@ public:
 	void makeDSA();
 	void makeCDSA();
 	void makeCCDSA();
-	int numWetInterfaceDofs() const { return numWIdof; }
 	void mergeInterfaces();
 
 #ifdef HB_COUPLED_PRECOND
@@ -262,10 +242,8 @@ protected:
 
 public:
 
-	GenFullM<Scalar>          *qtkq;
 	GenSparseMatrix<Scalar>   *MPCsparse;
 	Corotator           	    **corotators;
-	Scalar                    *QtKpBt;
 
 	int *glBoundMap;
 	int *glInternalMap;
@@ -292,11 +270,7 @@ public:
 	void setUserDefBC(double *, double *, double *, bool nlflag);
 	void reBuildKbb(FullSquareMatrix *kel);
 	void addDMass(int glNum, int dof, double m);
-	// computes localvec = K-1 (localvec -B interfvec)
-	// then    interfvec = B^T localvec and sends local data to neighbors
-	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec) const override;
-	void fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, Scalar *beta) const override;
-	void sendInterf(const Scalar *interfvec, FSCommPattern<Scalar> *vPat) const override;
+
 	void extractAndSendInterf(const Scalar *subvec, FSCommPattern<Scalar> *pat) const;
 	void assembleInterf(Scalar *subvec, FSCommPattern<Scalar> *pat) const;
 	void assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat) const;
@@ -313,10 +287,9 @@ public:
 	void getSRMult(const Scalar *lvec, const Scalar *lbvec, int nRBM, const double *locRBMs, Scalar *alpha) const;
 	void sendDeltaF(const Scalar *deltaF, FSCommPattern<Scalar> *vPat);
 	double collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
-	void makeKbbMpc();
-	void makeKbb(DofSetArray *dofsetarray=0);
+	void makeKbbMpc() override;
+	void makeKbb(DofSetArray *dofsetarray=0) override;
 	void multFi(GenSolver<Scalar> *s, Scalar *, Scalar *);
-	void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const override;
 	void assembleLocalComplexEls(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *smat = 0);
 	void mergePrimalError(Scalar* error, Scalar* primal);
 	void mergeStress(Scalar *stress, Scalar *weight,
@@ -356,15 +329,9 @@ public:
 	void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd, int augOffset,
 	                     Connectivity *subToEdge);
 	void deleteKcc();
-	void getQtKQ(GenSolver<Scalar> *s) override;
-	void getQtKQ(int iMPC, Scalar *QtKQ) override;
-	void multQt(int glMPCnum, const Scalar *V, int numV, Scalar *QtV) const override;
 	void multQt(int glMPCnum, const Scalar *x, Scalar *result) const;
-	void multQtKBt(int glNumMPC, const Scalar *G, Scalar *QtKBtG, Scalar alpha=1.0, Scalar beta=1.0) const override;
 	void gatherDOFList(FSCommPattern<int> *pat);
 	void gatherDOFListPlus(FSCommPattern<int> *pat);
-
-	const Scalar *getQtKpBt() const override { return QtKpBt; }
 
 	friend class GenDistrDomain<Scalar>;
 	friend class GenDecDomain<Scalar>;
@@ -373,8 +340,6 @@ public:
 
 	void precondGrbm();
 	void setMpcSparseMatrix();
-	void getFw(const Scalar *f, Scalar *fw) const override;
-	int numRBM() const { return nGrbm; }
 	void constructKrc();
 	void initSrc();
 	void clean_up();
@@ -393,7 +358,6 @@ public:
 	void locateMpcDofs();
 	void deleteMPCs();
 
-	void split(const Scalar *v, Scalar *v_f, Scalar *v_c) const override;
 	void bmpcQualify(std::vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
 
 	void printMpcStatus();

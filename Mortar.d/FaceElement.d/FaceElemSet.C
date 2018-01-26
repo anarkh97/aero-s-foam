@@ -22,7 +22,7 @@
 
 // Last returns the true last defined element
 int 
-FaceElemSet::last()
+FaceElemSet::last() const
 {
  int last = size();
  while(--last >= 0)

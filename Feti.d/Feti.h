@@ -342,7 +342,7 @@ class GenFetiDPSolver : public FetiBaseClass<Scalar>
 	bool proportional;
 
 public:
-	GenFetiDPSolver(int nsub, int glNumSub, GenSubDomain<Scalar> **sd, Connectivity *subToSub,
+	GenFetiDPSolver(int nsub, int glNumSub, std::vector<FetiSub<Scalar>*> subdomains, Connectivity *subToSub,
 	                FetiInfo *finfo, FSCommunicator *fetiCom, int *glToLoc, Connectivity *mpcToSub, Connectivity *mpcToSub_primal,
 	                Connectivity *mpcToMpc, Connectivity *mpcToCpu, Connectivity *cpuToSub,
 	                Connectivity *bodyToSub = 0, std::vector<std::unique_ptr<GenSolver<Scalar>>> sysMatrices = {},

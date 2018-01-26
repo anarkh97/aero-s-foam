@@ -52,7 +52,7 @@ FlExchanger::FlExchanger(CoordSet &_cs, Elemset &_eset, SurfaceEntity *_surface,
     // original surface topology.
     surface = new SurfaceEntity(*_surface);
     int nElems = (surface->GetIsShellFace() && domain->tdenforceFlag()) ? surface->nFaceElements()/2 : surface->nFaceElements();
-    faceElemToNode = new Connectivity(surface->GetPtrFaceElemSet(), nElems);
+    faceElemToNode = new Connectivity(SetAccess<FaceElemSet>{*surface->GetPtrFaceElemSet(), nElems});
     nodeToFaceElem = faceElemToNode->reverse();
   }
   else {

@@ -153,7 +153,7 @@ class SetAccess<std::pair<Elemset, DofSet> >
         return 0;
       return els[i]->numNodes() - els[i]->numInternalNodes();
     }
-    void getNodes(int i, int *nd) const {
+    void nodes(int i, int *nd) const {
       if(els[i]) {
         int *p = new int[els[i]->numNodes()];
         els[i]->nodes(p);

@@ -142,13 +142,13 @@ FaceQuad9::GetQuad4Nodes(int *p, std::map<int,int>& renumTable)
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------
 int
-FaceQuad9::nNodes() { return 9; }
+FaceQuad9::nNodes() const { return 9; }
 
 int
-FaceQuad9::GetNode(int i) { return Nodes[i]; }
+FaceQuad9::GetNode(int i) const { return Nodes[i]; }
 
 void
-FaceQuad9::GetNodes(int *p, int* renumTable)
+FaceQuad9::GetNodes(int *p, int* renumTable) const
 {
   if(renumTable) {
     p[0] = renumTable[Nodes[0]];
@@ -174,7 +174,7 @@ FaceQuad9::GetNodes(int *p, int* renumTable)
 }
 
 void
-FaceQuad9::GetNodes(int *p, std::map<int,int>& renumTable)
+FaceQuad9::GetNodes(int *p, std::map<int,int>& renumTable) const
 {
   p[0] = renumTable[Nodes[0]];
   p[1] = renumTable[Nodes[1]];
@@ -188,7 +188,7 @@ FaceQuad9::GetNodes(int *p, std::map<int,int>& renumTable)
 }
 
 int 
-FaceQuad9::GetNodeIndex(int gNode)
+FaceQuad9::GetNodeIndex(int gNode) const
 {
   int i;
   bool found = false; 

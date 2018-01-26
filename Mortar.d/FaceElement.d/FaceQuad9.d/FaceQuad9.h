@@ -46,11 +46,11 @@ class FaceQuad9: public FaceElement {
         void GetQuad4Nodes(int*, std::map<int,int>& renumTable);
 
         // -> implementation of pure virtual methods
-        int  nNodes();
-        void GetNodes(int*, int* renumTable);
-        void GetNodes(int*, std::map<int,int>& renumTable);
-        int  GetNode(int);
-        int  GetNodeIndex(int);
+        int  nNodes() const override;
+        void GetNodes(int*, int* renumTable) const override;
+        void GetNodes(int*, std::map<int,int>& renumTable) const override;
+        int GetNode(int) const const override;
+        int GetNodeIndex(int) const const override;
 
         int GetFaceElemType();
 #ifdef USE_ACME

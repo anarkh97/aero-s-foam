@@ -36,7 +36,7 @@ class FaceElemSet {
     //~FaceElemSet() { ba.~BlockAlloc(); deleteElems(); }
     ~FaceElemSet() { deleteElems(); }
     int size() const { return emax; }
-    int last();
+    int last() const;
     int numPhantoms()  { return nPhantoms; }
     FaceElement *operator[] (int i) const { return elem[i]; }
     void elemadd(int num, FaceElement *);

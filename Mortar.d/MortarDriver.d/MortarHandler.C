@@ -919,13 +919,13 @@ MortarHandler::CreateFFIPolygon()
     ActiveSlaveElemSet.elemadd(i, (*SlaveElemSet)[IndexActiveSlaveFaces[i]]); 
     IndexActiveSlaveFacesToActiveSlaveElemSetMap[IndexActiveSlaveFaces[i]] = i;
   }  
-  Connectivity ActiveSlaveElemToNode(&ActiveSlaveElemSet);
+  Connectivity ActiveSlaveElemToNode(SetAccess<FaceElemSet>{ActiveSlaveElemSet});
   ActiveSlaveNodeToElem = ActiveSlaveElemToNode.reverse();
 
   for(int i=0; i<int(IndexActiveMasterFaces.size()); ++i) {
     ActiveMasterElemSet.elemadd(i, (*MasterElemSet)[IndexActiveMasterFaces[i]]); 
   }
-  Connectivity ActiveMasterElemToNode(&ActiveMasterElemSet);
+  Connectivity ActiveMasterElemToNode(SetAccess<FaceElemSet>{ActiveMasterElemSet});
   ActiveMasterNodeToElem = ActiveMasterElemToNode.reverse();
 
   ActiveSlaveNodes.clear();

@@ -46,13 +46,13 @@ class FaceQuad8: public FaceElement {
         void GetQuad4Nodes(int*, std::map<int,int>& renumTable);
 
         // -> implementation of pure virtual methods
-        int  nNodes();
-        void GetNodes(int*, int* renumTable);
-        void GetNodes(int*, std::map<int,int>& renumTable);
-        int  GetNode(int);
-        int  GetNodeIndex(int);
+        int  nNodes() const override;
+        void GetNodes(int*, int* renumTable) const override;
+        void GetNodes(int*, std::map<int,int>& renumTable) const override;
+        int  GetNode(int) const override;
+        int  GetNodeIndex(int) const override;
 
-        int GetFaceElemType();
+        int GetFaceElemType() override;
 #ifdef USE_ACME
         ContactSearch::ContactFace_Type GetACMEFaceElemType();
 #else
@@ -60,10 +60,10 @@ class FaceQuad8: public FaceElement {
 #endif
         // -> pure virtual method for dealing with quadratic face element
         //    (see FaceElement.h for more details)
-        int  nVertices();
-        int  GetVertex(int);
-        void GetVertices(int*, int* renumTable);
-        void GetVertices(int*, std::map<int,int>& renumTable);
+        int  nVertices() override;
+        int  GetVertex(int) override;
+        void GetVertices(int*, int* renumTable) override;
+        void GetVertices(int*, std::map<int,int>& renumTable) override;
 
 #ifdef USE_ACME
         ContactSearch::ContactFace_Type GetACMEFFIFaceElemType();

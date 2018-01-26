@@ -608,8 +608,8 @@ GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 		dynMats.reserve(numSub);
 		for(int i = 0; i < numSub; ++i)
 			dynMats.emplace_back(dgt.dynMats[i]);
-       return
-		 new GenFetiDPSolver<Scalar>(numSub, globalNumSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
+		return new GenFetiDPSolver<Scalar>(numSub, globalNumSub, {subDomain, subDomain+numSub},
+		                                   subToSub, finfo, communicator, glSubToLocal,
 		                                   mpcToSub_dual.get(), mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
 		                                   std::move(dynMats), dgt.spMats, dgt.rbms, rbmFlag, geometricRbms, verboseFlag);
 	}

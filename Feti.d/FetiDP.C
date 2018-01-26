@@ -53,7 +53,7 @@ inline double DABS(double x) { return (x>0.0) ? x : -x; }
 
 // New constructor for both shared and distributed memory
 template<class Scalar>
-GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<Scalar> **_sd,
+GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, std::vector<FetiSub<Scalar>*> subdomains,
                                          Connectivity *_subToSub, FetiInfo *_fetiInfo, FSCommunicator *_fetiCom,
                                          int *_glSubToLoc, Connectivity *_mpcToSub, Connectivity *_mpcToSub_primal,
                                          Connectivity *_mpcToMpc,
@@ -61,7 +61,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
                                          std::vector<std::unique_ptr<GenSolver<Scalar>>> sysMatrices,
                                          GenSparseMatrix<Scalar> **sysSparse,
                                          Rbm **, bool _rbmFlag, bool _geometricRbms, int _verboseFlag)
-	: FetiBaseClass<Scalar>({_sd, _sd+_nsub}, threadManager->numThr(), _verboseFlag),
+	: FetiBaseClass<Scalar>(std::move(subdomains), threadManager->numThr(), _verboseFlag),
 	  internalR(_nsub), internalC(_nsub), internalWI(_nsub)
 {
 

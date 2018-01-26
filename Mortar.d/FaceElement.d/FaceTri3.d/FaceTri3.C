@@ -86,13 +86,13 @@ FaceTri3::Renumber(std::map<int,int>& OldToNewNodeIds)
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------
 int
-FaceTri3::nNodes() { return 3; }
+FaceTri3::nNodes() const { return 3; }
 
 int
-FaceTri3::GetNode(int i) { return Nodes[i]; }
+FaceTri3::GetNode(int i) const { return Nodes[i]; }
 
 void
-FaceTri3::GetNodes(int *p, int* renumTable)
+FaceTri3::GetNodes(int *p, int* renumTable) const
 {
   if(renumTable) {
     p[0] = renumTable[Nodes[0]];
@@ -106,7 +106,7 @@ FaceTri3::GetNodes(int *p, int* renumTable)
 }
 
 void
-FaceTri3::GetNodes(int *p, std::map<int,int>& renumTable)
+FaceTri3::GetNodes(int *p, std::map<int,int>& renumTable) const
 {
   p[0] = renumTable[Nodes[0]];
   p[1] = renumTable[Nodes[1]];
@@ -114,7 +114,7 @@ FaceTri3::GetNodes(int *p, std::map<int,int>& renumTable)
 }
 
 int 
-FaceTri3::GetNodeIndex(int gNode)
+FaceTri3::GetNodeIndex(int gNode) const
 {
   int i;
   bool found = false; 

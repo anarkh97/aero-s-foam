@@ -51,12 +51,12 @@ class FaceElement {
         // Get and set methods
         // ~~~~~~~~~~~
 	// -> pure interface methods
-	virtual int nNodes()=0;    
-        virtual void GetNodes(int*, int* renumTable=0)=0;
-        virtual void GetNodes(int*, std::map<int,int>& renumTable)=0;
-        virtual int GetNode(int)=0;
+        virtual int nNodes() const = 0;
+        virtual void GetNodes(int*, int* renumTable=0) const = 0;
+        virtual void GetNodes(int*, std::map<int,int>& renumTable) const = 0;
+        virtual int GetNode(int) const = 0;
 
-        virtual int GetNodeIndex(int)=0;
+        virtual int GetNodeIndex(int) const =0;
 	virtual int GetFaceElemType()=0;
         
         // -> for the case of quadratic elements which are NOT 
@@ -170,5 +170,10 @@ class FaceElement {
                     int *eleCount, int myNum, int *fnId);
 
 };
+
+inline
+int getNumNodes(const FaceElement &e) { return e.nNodes(); }
+inline
+void getNodes(const FaceElement &t, int *nd) { return t.GetNodes(nd); }
 #endif
 

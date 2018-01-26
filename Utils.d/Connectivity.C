@@ -240,31 +240,6 @@ Connectivity::Connectivity(int _size, int count)
 		target[i] = i;
 }
 
-Connectivity::Connectivity(FaceElemSet* els, int _size)
-{
-	int i;
-
-	size = (_size == 0) ? els->last() : _size;
-
-	// Find out the number of targets we will have
-	pointer.resize(size+1);
-	int pp = 0;
-	for(i=0; i < size; ++i) {
-		pointer[i] = pp;
-		pp += (*els)[i] ? (*els)[i]->nNodes() : 0;
-	}
-	pointer[size] = pp;
-	numtarget = pp;
-
-	// Create the target array
-	target.resize(pp);
-
-	// Fill it in
-	for(i=0; i < size; ++i) {
-		if((*els)[i]) (*els)[i]->GetNodes(target.data()+pointer[i]);
-	}
-}
-
 Connectivity::~Connectivity() {}
 
 int

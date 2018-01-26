@@ -703,7 +703,7 @@ public:
 	SetAccess(const Elemset &set) : set(set) {}
 	int size() const { return set.last(); }; //<! returns the number of members of the set
 	int numNodes(int i) const { return (set[i] ? set[i]->numNodes() : 0); } //<! returns the number of targets for member i
-	void getNodes(int i, int *nd) const { if(set[i]) set[i]->nodes(nd); }; //<! copies into nd the targets for member i
+	void nodes(int i, int *nd) const { if(set[i]) set[i]->nodes(nd); }; //<! copies into nd the targets for member i
 private:
 	const Elemset& set;
 };

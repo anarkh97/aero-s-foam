@@ -280,7 +280,7 @@ class SetAccess<LMPCons>
     int numNodes(int i) const {
       return lmpc[i]->nterms;
     }
-    void getNodes(int i, int *nd) const {
+    void nodes(int i, int *nd) const {
       for(int j = 0; j < lmpc[i]->nterms; ++j)
         nd[j] = dofID[std::pair<int,int>(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum)];
     }

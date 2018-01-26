@@ -84,13 +84,23 @@ public :
 	}
 };
 
+template <typename T>
+int getNumNodes(const T &t) { return t.numNodes(); }
+template <typename T>
+void getNodes(const T &t, int *nd) { return t.nodes(nd); }
+
 /** Class to access a set of element's individual connections */
 template <class A>
 class SetAccess {
 public:
-	int size() const; //<! returns the number of members of the set
-	int numNodes(int i) const; //<! returns the number of targets for member i
-	void getNodes(int i, int *nd) const; //<! copies into nd the targets for member i
+	SetAccess(const A &set) : sz(set.last()), set(set) {}
+	SetAccess(const A &set, int sz) : sz(sz), set(set) {}
+	int size() const { return sz; }; //<! returns the number of members of the set
+	int numNodes(int i) const { return (set[i] ? getNumNodes(*set[i]) : 0); } //<! returns the number of targets for member i
+	void nodes(int i, int *nd) const { if(set[i]) getNodes(*set[i], nd); }; //<! copies into nd the targets for member i
+private:
+	int sz;
+	const A &set;
 };
 
 class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectivity> >
@@ -123,7 +133,6 @@ public:
 	Connectivity(int _size, int *count);
 	Connectivity(int _size, int count);
 	Connectivity(BinFileHandler &, bool oldSower = false);
-	Connectivity(FaceElemSet*, int size = 0);
 	Connectivity(int ns); //dec
 	Connectivity(FILE *f, int nElem); // JAT 100614
 	/** \brief Construct a connectivity accounting for Lagrange multipliers.
@@ -643,7 +652,7 @@ Connectivity::Connectivity(const SetAccess<A> &sa)
 
 	// Fill it in
 	for(i=0; i < size; ++i) {
-		sa.getNodes(i, target.data()+pointer[i]);
+		sa.nodes(i, target.data()+pointer[i]);
 	}
 }
 #endif

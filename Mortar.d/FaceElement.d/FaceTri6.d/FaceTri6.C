@@ -123,13 +123,13 @@ FaceTri6::GetTri3Nodes(int *p, std::map<int,int>& renumTable)
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------
 int
-FaceTri6::nNodes() { return 6; }
+FaceTri6::nNodes() const { return 6; }
 
 int
-FaceTri6::GetNode(int i) { return Nodes[i]; }
+FaceTri6::GetNode(int i) const { return Nodes[i]; }
 
 void
-FaceTri6::GetNodes(int *p, int* renumTable)
+FaceTri6::GetNodes(int *p, int* renumTable) const
 {
   if(renumTable) {
     p[0] = renumTable[Nodes[0]];
@@ -149,7 +149,7 @@ FaceTri6::GetNodes(int *p, int* renumTable)
 }
 
 void
-FaceTri6::GetNodes(int *p, std::map<int,int>& renumTable)
+FaceTri6::GetNodes(int *p, std::map<int,int>& renumTable) const
 {
   p[0] = renumTable[Nodes[0]];
   p[1] = renumTable[Nodes[1]];
@@ -160,7 +160,7 @@ FaceTri6::GetNodes(int *p, std::map<int,int>& renumTable)
 }
 
 int 
-FaceTri6::GetNodeIndex(int gNode)
+FaceTri6::GetNodeIndex(int gNode) const
 {
   int i;
   bool found = false; 

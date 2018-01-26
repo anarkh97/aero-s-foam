@@ -2859,7 +2859,7 @@ void Domain::UpdateSurfaceTopology(int numSub, SubDomain **sd)
   if(!nodeToFaceElem) {
     nodeToFaceElem = new Connectivity * [nSurfEntity];
     for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
-      Connectivity faceElemToNode(SurfEntities[iSurf]->GetPtrFaceElemSet());
+      Connectivity faceElemToNode(SetAccess<FaceElemSet>{*SurfEntities[iSurf]->GetPtrFaceElemSet()});
       nodeToFaceElem[iSurf] = faceElemToNode.reverse();
     }
   }

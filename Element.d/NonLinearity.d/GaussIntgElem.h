@@ -71,6 +71,7 @@ class GenGaussIntgElement : public MatNLElement
     virtual GenShapeFunction<TensorTypes> *getShapeFunction() = 0;
     virtual GenStrainEvaluator<TensorTypes> *getGenStrainEvaluator() = 0;
     virtual NLMaterial *getMaterial() = 0;
+    virtual NLMaterial *getLinearMaterial() = 0;
 
    public:
     void getStiffAndForce(Node *nodes, double *disp,
@@ -123,11 +124,11 @@ GenGaussIntgElement<TensorTypes>::stiffness(CoordSet& cs, double *k, int)
 
   GenShapeFunction<TensorTypes> *shapeF = getShapeFunction();
 
-  // Obtain the strain function. It can be linear or non-linear
-  GenStrainEvaluator<TensorTypes> *strainEvaluator = getGenStrainEvaluator();
-
   // Obtain the material model
-  NLMaterial *material = getMaterial();
+  NLMaterial *material = getLinearMaterial();
+
+  // Obtain the linear strain function
+  GenStrainEvaluator<TensorTypes> *strainEvaluator = material->getGenStrainEvaluator();
 
   // Obtain the storage for gradU ( 3xndim )
   typename TensorTypes::GradUTensor gradU;

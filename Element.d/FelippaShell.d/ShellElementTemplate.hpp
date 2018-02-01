@@ -100,11 +100,11 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
     andesfrm(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *aframe,
              doublereal *cframe);
 
-  private:
     static void
     andescrd(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *rot,
              doublereal *xlp, doublereal *ylp, doublereal *zlp, doublereal &area);
 
+  private:
     static doublereal
     equivstr(doublereal sxx, doublereal syy, doublereal szz, doublereal sxy);
 

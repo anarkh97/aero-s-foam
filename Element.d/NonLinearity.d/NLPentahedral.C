@@ -32,7 +32,7 @@ const double SolidElementTemplate<Wedge26LagrangePolynomialShapeFunction,26,18>
 template<>
 void
 SolidElementTemplate<Wedge6LagrangePolynomialShapeFunction,6,6>
-::getGaussPointAndWeight(int n, double *point, double &weight)
+::getGaussPointAndWeight(int n, double *point, double &weight) const
 {
   double weight3d6[6] = { 0.1666666666666667, 0.1666666666666667, 0.1666666666666667,
                           0.1666666666666667, 0.1666666666666667, 0.1666666666666667 };
@@ -52,7 +52,7 @@ SolidElementTemplate<Wedge6LagrangePolynomialShapeFunction,6,6>
 template<>
 void
 SolidElementTemplate<Wedge15LagrangePolynomialShapeFunction,15,9>
-::getGaussPointAndWeight(int n, double *point, double &weight)
+::getGaussPointAndWeight(int n, double *point, double &weight) const
 {
   double weight3d8[9] = { 0.092592592592593,0.092592592592593,0.092592592592593,
                           0.148148148148148,0.148148148148148,0.148148148148148,
@@ -77,7 +77,7 @@ SolidElementTemplate<Wedge15LagrangePolynomialShapeFunction,15,9>
 template<>
 void
 SolidElementTemplate<Wedge26LagrangePolynomialShapeFunction,26,18>
-::getGaussPointAndWeight(int n, double *point, double &weight)
+::getGaussPointAndWeight(int n, double *point, double &weight) const
 {
   double gauss3d9[18][3] = {
      { 0.166666666666667, 0.166666666666667, -0.774596669241483 },

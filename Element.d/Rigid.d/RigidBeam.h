@@ -39,7 +39,7 @@ class RigidBeamWithMass : public SuperElement
 
     void buildFrame(CoordSet&);
     void setProp(StructProp *p, bool _myProp) override;
-    int getMassType() { return 0; } // lumped
+    int getMassType() const override { return 0; } // lumped
     double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, GeomState *gs,
                                     double stable_tol, int stable_maxit);
 

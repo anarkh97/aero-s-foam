@@ -20,7 +20,9 @@ DotType2ConstraintElement::~DotType2ConstraintElement()
 }
 
 void
-DotType2ConstraintElement::getConstants(CoordSet& cs, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,1,1>& iconst, GeomState *gs)
+DotType2ConstraintElement::getConstants(const CoordSet & cs,
+                                        Eigen::Array<double,7,1>& sconst, Eigen::Array<int,1,1>& iconst,
+                                        const GeomState *gs) const
 {
   // gs is the current configuration for eulerian description of rotations
   // if gs == NULL the current configuration is identical to ihe undeformed configuration
@@ -31,7 +33,7 @@ DotType2ConstraintElement::getConstants(CoordSet& cs, Eigen::Array<double,7,1>& 
     iconst << ieqtype;
   }
   else {
-    Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > C0(&DotType2ConstraintElement::C0[0][0]),
+    Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > C0(&DotType2ConstraintElement::C0[0][0]),
                                                            R1(&(*gs)[nn[0]].R[0][0]);
 
     Eigen::Matrix<double,1,3> b0 = C0.row(axis)*R1.transpose();

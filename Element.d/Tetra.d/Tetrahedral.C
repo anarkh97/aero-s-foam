@@ -232,10 +232,10 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
   }
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
-  Node &nd4 = cs.getNode(nn[3]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
+  auto &nd4 = cs.getNode(nn[3]);
 
   Eigen::Array<double,14,1> dconst;
   dconst.segment<12>(0) = Eigen::Map<Eigen::Matrix<double,12,1> >(elDisp.data()).segment(0,12); // displacements
@@ -410,7 +410,7 @@ Tetrahedral::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, dou
 }
 
 double
-Tetrahedral::getMass(CoordSet& cs)
+Tetrahedral::getMass(const CoordSet& cs) const
 {
   double x[4], y[4], z[4]; 
   cs.getCoordinates(nn, numNodes(), x, y, z);
@@ -625,7 +625,7 @@ Tetrahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 FullSquareMatrix
-Tetrahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
+Tetrahedral::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   const int nnodes = 4;
   const int ndofs = 12;
@@ -730,7 +730,7 @@ Tetrahedral::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx,
 //HB (04/15/05)  new implementation of the Tetra4 stiffness matrix to deal
 //               with anisotropic constitutive matrix
 FullSquareMatrix
-Tetrahedral::stiffness(CoordSet &cs, double *d, int flg)
+Tetrahedral::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   const int nnodes = 4;
   const int ndofs = 12;

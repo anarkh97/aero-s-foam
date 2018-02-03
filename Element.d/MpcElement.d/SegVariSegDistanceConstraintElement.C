@@ -7,7 +7,9 @@ SegVariSegDistanceConstraintElement::SegVariSegDistanceConstraintElement(int* _n
 }
 
 void
-SegVariSegDistanceConstraintElement::getConstants(CoordSet& cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst, GeomState*)
+SegVariSegDistanceConstraintElement::getConstants(const CoordSet & cs,
+                                                  Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst,
+                                                  const GeomState*) const
 {
   // note: StructProps::relop = -1 --> f(x) <= 0
   //                          = 0  --> f(x) = 0

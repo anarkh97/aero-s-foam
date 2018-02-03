@@ -16,8 +16,8 @@ class RotnSprlink : public Element
     void renum(int *) override;
         void renum(EleRenumMap&) override;
 
-    FullSquareMatrix stiffness(CoordSet& cs, double* kel, int flg = 1);
-    FullSquareMatrix massMatrix(CoordSet& cs, double* mel, int cmflg = 1);
+    FullSquareMatrix stiffness(const CoordSet& cs, double* kel, int flg = 1) const;
+    FullSquareMatrix massMatrix(const CoordSet& cs, double* mel, int cmflg = 1) const;
 
     void markDofs(DofSetArray&);
     int* dofs(DofSetArray&, int* = 0);

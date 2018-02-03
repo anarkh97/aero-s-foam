@@ -15,9 +15,9 @@ public:
 	void renum(int *) override;
         void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet&, double *d, int flag=1);
-        FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
-        double           getMass(CoordSet&);
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flag=1) const;
+        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const;
+        double           getMass(const CoordSet&) const;
 
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);

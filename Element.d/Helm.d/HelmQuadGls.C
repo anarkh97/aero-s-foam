@@ -46,7 +46,7 @@ HelmQuadGls::renum(EleRenumMap& table)
 }
 
 FullSquareMatrix
-HelmQuadGls::massMatrix(CoordSet &cs, double *d, int cmflg)
+HelmQuadGls::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
         Node nd1 = cs.getNode(nn[0]);
         Node nd2 = cs.getNode(nn[1]);
@@ -81,7 +81,7 @@ HelmQuadGls::massMatrix(CoordSet &cs, double *d, int cmflg)
 
 
 FullSquareMatrix
-HelmQuadGls::stiffness(CoordSet &cs, double *Ks, int flg)
+HelmQuadGls::stiffness(const CoordSet &cs, double *Ks, int flg) const
 {
         Node nd1 = cs.getNode(nn[0]);
         Node nd2 = cs.getNode(nn[1]);

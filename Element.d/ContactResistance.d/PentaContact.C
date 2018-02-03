@@ -51,13 +51,13 @@ PentaContact::renum(EleRenumMap& table)
 }
 
 double
-PentaContact::getMass(CoordSet&)
+PentaContact::getMass(const CoordSet&) const
 {
  return 0.0;
 }
 
 FullSquareMatrix
-PentaContact::massMatrix(CoordSet &cs, double *d, int cmflg)
+PentaContact::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
 
         FullSquareMatrix mass(6,d);
@@ -66,15 +66,15 @@ PentaContact::massMatrix(CoordSet &cs, double *d, int cmflg)
 }
 
 FullSquareMatrix
-PentaContact::stiffness(CoordSet &cs, double *Kcv, int flg)
+PentaContact::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
  
         int i;
         int j;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3];
         double area;

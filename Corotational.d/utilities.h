@@ -17,8 +17,8 @@ void   mat_to_vec( double[3][3], double[3]);
 void   mat_to_quat( double[3][3], double[4]);
 void   trans_fsl( double force[], double *stiff[],
                double t0n[3][3], int num_nodes );
-void   pseudorot_var( double rvec[3], double varmat[3][3] );
-void   pseudorot_2var( double r[3], double f[3], double scndvar[3][3]);
+void   pseudorot_var(const double rvec[3], double varmat[3][3] );
+void   pseudorot_2var(const double r[3], const double f[3], double scndvar[3][3]);
 void   leftmult_rotvar(int  num_nodes, int itrans, double  rotvar[][3][3]
                                               , FullSquareMatrix &stiff );
 void   rightmult_rotvar(int  num_nodes, int itran, double  rotvar[][3][3],

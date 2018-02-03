@@ -32,7 +32,7 @@ extern LinearStrain linearStrain;
 extern GreenLagrangeStrain greenLagrangeStrain;
 
 StrainEvaluator *
-NLHexahedral::getStrainEvaluator()
+NLHexahedral::getStrainEvaluator() const
 {
   // note: for this element the default strain evaluator (returned by NLMaterial::getStrainEvaluator) will not be used
   if(linearKinematics)
@@ -44,7 +44,7 @@ NLHexahedral::getStrainEvaluator()
 template<>
 void
 SolidElementTemplate<Hex8LagrangePolynomialShapeFunction,8,8>
-::getGaussPointAndWeight(int n, double *point, double &weight)
+::getGaussPointAndWeight(int n, double *point, double &weight) const
 {
   int i, j, k;
   i = n%2;
@@ -71,7 +71,7 @@ SolidElementTemplate<Hex8LagrangePolynomialShapeFunction,8,8>
 template<>
 void
 SolidElementTemplate<Hex20LagrangePolynomialShapeFunction,20,27>
-::getGaussPointAndWeight(int n, double *point, double &weight)
+::getGaussPointAndWeight(int n, double *point, double &weight) const
 {
   int i, j, k;
   i = n%3;
@@ -101,7 +101,7 @@ SolidElementTemplate<Hex20LagrangePolynomialShapeFunction,20,27>
 template<>
 void
 SolidElementTemplate<Hex32LagrangePolynomialShapeFunction,32,64>
-::getGaussPointAndWeight(int n, double *point, double &weight)
+::getGaussPointAndWeight(int n, double *point, double &weight) const
 {
   int i, j, k;
   i = n%4;

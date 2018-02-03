@@ -99,13 +99,13 @@ void ThermIsoParamHexa::markDofs(DofSetArray &dsa) {
 }
 
 
-double ThermIsoParamHexa::getMass(CoordSet&) {
+double ThermIsoParamHexa::getMass(const CoordSet&) const {
  fprintf(stderr,"ThermIsoParamHexa::getMass not implemented.\n");
  return 0.0;
 }
 
 
-FullSquareMatrix ThermIsoParamHexa::massMatrix(CoordSet &cs, double *K, int fl) {
+FullSquareMatrix ThermIsoParamHexa::massMatrix(const CoordSet &cs, double *K, int fl) const {
 
  IsoParamUtils ipu(order);
  int orderc = ipu.getorderc();
@@ -149,7 +149,7 @@ FullSquareMatrix ThermIsoParamHexa::massMatrix(CoordSet &cs, double *K, int fl) 
 }
 
 
-FullSquareMatrix ThermIsoParamHexa::stiffness(CoordSet &cs, double *K, int flg ) {
+FullSquareMatrix ThermIsoParamHexa::stiffness(const CoordSet &cs, double *K, int flg ) const {
  IsoParamUtils ipu(order);
  int orderc = ipu.getorderc();
  double *xyz=(double*)dbg_alloca(sizeof(double)*3*orderc);

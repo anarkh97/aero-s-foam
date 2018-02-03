@@ -22,7 +22,7 @@ public:
 
 	int *dofs(DofSetArray &, int *p = 0);
 
-	virtual Line2SommerBC *clone();
+	virtual Line2SommerBC *clone() override;
 
 	FullSquareMatrix sommerMatrix(CoordSet &, double *) const override;
 
@@ -30,7 +30,7 @@ public:
 
 	ComplexD ffpCoef(double k) { return exp(ComplexD(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k); }
 
-	void getNormal(CoordSet &, double [3]);
+	void getNormal(const CoordSet &, double [3]) const override;
 
 	void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd) override;
 };

@@ -30,9 +30,9 @@ public:
 	void renum(int *table) override;
 	void renum(EleRenumMap&) override;
 
-	FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1) override;
+	FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const override;
 	FullSquareMatrix imagStiffness(CoordSet&, double *kel, int flg=1);
-	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg) override;
+	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
 
 	void markDofs(DofSetArray &) override;
 	int* dofs(DofSetArray &, int *p) override;

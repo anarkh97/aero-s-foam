@@ -50,12 +50,12 @@ TetraBulk::renum(EleRenumMap& table)
 }
 
 double
-TetraBulk::getMass(CoordSet &cs)
+TetraBulk::getMass(const CoordSet &cs) const
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], z[4];
 
@@ -88,7 +88,7 @@ TetraBulk::getMass(CoordSet &cs)
 }
 
 FullSquareMatrix
-TetraBulk::massMatrix(CoordSet &cs, double *d, int cmflg)
+TetraBulk::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
 
         FullSquareMatrix mass(3,d);
@@ -103,15 +103,15 @@ TetraBulk::massMatrix(CoordSet &cs, double *d, int cmflg)
 }
 
 FullSquareMatrix
-TetraBulk::stiffness(CoordSet &cs, double *Kcv, int flg)
+TetraBulk::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
 
   // ... Need the area of the tetrahedral's triangular base, which is on the surface of the cavity
   // ... Base = node 2, 3, 4
 
-        Node &nd1 = cs.getNode(nn[1]);
-        Node &nd2 = cs.getNode(nn[2]);
-        Node &nd3 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[1]);
+        auto &nd2 = cs.getNode(nn[2]);
+        auto &nd3 = cs.getNode(nn[3]);
 
         double x[3], y[3], z[3];
         double area;

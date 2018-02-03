@@ -12,13 +12,13 @@ class MooneyRivlinMat : public NLMaterial
   public:
     MooneyRivlinMat(double _rho, double _mu1, double _mu2, double _kappa);
 
-    int getNumStates() { return 0; }
+    int getNumStates() const override { return 0; }
 
-    void getStress(Tensor *stress, Tensor &strain, double*, double temp);
+    void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
-    void getElasticity(Tensor *tm) {};
+    void getElasticity(Tensor *tm) const {};
 
     void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {};
 
@@ -26,17 +26,17 @@ class MooneyRivlinMat : public NLMaterial
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double temp,
-                   Tensor *cache, double dt=0);
+                   Tensor *cache, double dt=0) const override;
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double temp,
-                   Tensor *cache, double dt=0);
+                   Tensor *cache, double dt=0) const override;
 
     void initStates(double *) {};
 
     double getDensity() { return rho; }
 
-    StrainEvaluator * getStrainEvaluator();
+    StrainEvaluator * getStrainEvaluator() const override;
 
     double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
 

@@ -25,7 +25,7 @@ public:
 
 	int *dofs(DofSetArray &, int *p = 0);
 
-	virtual IsoParamTriLineSommer *clone();
+	virtual IsoParamTriLineSommer *clone() override;
 
 	int *wetDofs(DofSetArray &, int *p = 0);
 
@@ -48,7 +48,7 @@ public:
 
 	ComplexD ffpCoef(double k) { return exp(ComplexD(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k); }
 
-	void getNormal(CoordSet &, double [3]);
+	void getNormal(const CoordSet &, double [3]) const override;
 
 	void markDofs(DofSetArray &) override;
 };

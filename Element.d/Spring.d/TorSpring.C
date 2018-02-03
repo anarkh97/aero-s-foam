@@ -34,7 +34,7 @@ TorSpring::renum(EleRenumMap& table)
 }
 
 FullSquareMatrix
-TorSpring::massMatrix(CoordSet &,double *mel,int cmflg)
+TorSpring::massMatrix(const CoordSet &,double *mel,int cmflg) const
 {
         FullSquareMatrix elementMassMatrix(3,mel);
 
@@ -45,7 +45,7 @@ TorSpring::massMatrix(CoordSet &,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-TorSpring::stiffness(CoordSet &, double *d, int flg)
+TorSpring::stiffness(const CoordSet &, double *d, int flg) const
 {
         double sc1 = prop->A;
         double sc2 = prop->E;

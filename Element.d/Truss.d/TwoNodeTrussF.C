@@ -67,8 +67,8 @@ TwoNodeTrussF::getIntrnForce(Vector& elForce, CoordSet& cs,
           return;
         }
 
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
 	double dx = nd2.x - nd1.x;
 	double dy = nd2.y - nd1.y;
@@ -111,10 +111,10 @@ TwoNodeTrussF::getIntrnForce(Vector& elForce, CoordSet& cs,
 }
 
 double
-TwoNodeTrussF::getMass(CoordSet& cs)
+TwoNodeTrussF::getMass(const CoordSet& cs) const
 {
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
         double x[2], y[2], z[2];
 
@@ -152,7 +152,7 @@ TwoNodeTrussF::getGravityForce(CoordSet& cs, double *gravityAcceleration, Vector
 }
 
 FullSquareMatrix
-TwoNodeTrussF::massMatrix(CoordSet &cs, double *mel, int cmflg)
+TwoNodeTrussF::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
         double mass = getMass(cs);
         double massPerNode = 0.5*mass;
@@ -171,10 +171,10 @@ TwoNodeTrussF::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-TwoNodeTrussF::stiffness(CoordSet &cs, double *k, int flg)
+TwoNodeTrussF::stiffness(const CoordSet &cs, double *k, int flg) const
 {
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
         double x[2], y[2], z[2];
 
@@ -297,8 +297,8 @@ TwoNodeTrussF::getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &elementThe
   double dx,dy,dz,length;
   int i, j;
  
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
 
   x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;	
@@ -352,8 +352,8 @@ TwoNodeTrussF::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
 
    weight = 1.0;
 
-   Node &nd1 = cs.getNode( nn[0] );
-   Node &nd2 = cs.getNode( nn[1] );
+   auto &nd1 = cs.getNode( nn[0] );
+   auto &nd2 = cs.getNode( nn[1] );
 
    double dx = nd2.x - nd1.x;
    double dy = nd2.y - nd1.y;
@@ -475,8 +475,8 @@ void
 TwoNodeTrussF::buildBarFrame(CoordSet& cs, double xg[3][3], double xl[3][3])
 {
 
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
         xl[0][0] = nd2.x - nd1.x;
         xl[0][1] = nd2.y - nd1.y;

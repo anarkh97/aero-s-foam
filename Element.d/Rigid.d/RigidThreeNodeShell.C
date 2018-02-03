@@ -30,7 +30,7 @@ RigidThreeNodeShell::RigidThreeNodeShell(int *_nn)
 }
 
 FullSquareMatrix
-RigidThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
+RigidThreeNodeShell::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
         if(prop == NULL || prop->rho == 0 || prop->eh == 0) {
            FullSquareMatrix ret(numDofs(),mel);
@@ -38,9 +38,9 @@ RigidThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
            return ret;
         }
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3], h[3];
         double *gravityAcceleration = NULL, *grvfor = NULL, totmas = 0.0;
@@ -68,13 +68,13 @@ RigidThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 double
-RigidThreeNodeShell::getMass(CoordSet& cs)
+RigidThreeNodeShell::getMass(const CoordSet& cs) const
 {
         if (prop == NULL || prop->rho == 0 || prop->eh == 0) return 0.0;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
 
@@ -129,9 +129,9 @@ RigidThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
         else {
 
-          Node &nd1 = cs.getNode(nn[0]);
-          Node &nd2 = cs.getNode(nn[1]);
-          Node &nd3 = cs.getNode(nn[2]);
+          auto &nd1 = cs.getNode(nn[0]);
+          auto &nd2 = cs.getNode(nn[1]);
+          auto &nd3 = cs.getNode(nn[2]);
           double x[3], y[3], z[3];
           x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
           x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
@@ -293,9 +293,9 @@ RigidThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
      }
 
      // Compute area of shell
-     Node &nd1 = cs.getNode(nn[0]);
-     Node &nd2 = cs.getNode(nn[1]);
-     Node &nd3 = cs.getNode(nn[2]);
+     auto &nd1 = cs.getNode(nn[0]);
+     auto &nd2 = cs.getNode(nn[1]);
+     auto &nd3 = cs.getNode(nn[2]);
 
      double r1[3], r2[3], r3[3], v1[3], v2[3], normal[3];
 

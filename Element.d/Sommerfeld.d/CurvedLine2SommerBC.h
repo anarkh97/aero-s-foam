@@ -22,7 +22,7 @@ public:
 
 	int *dofs(DofSetArray &, int *p = 0);
 
-	virtual CurvedLine2SommerBC *clone();
+	virtual CurvedLine2SommerBC *clone() override;
 
 	void neumVector(CoordSet &, ComplexVector &,
 	                double, double, double, double, int pflag = 0);
@@ -33,7 +33,7 @@ public:
 
 	ComplexD ffpCoef(double k) { return exp(ComplexD(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k); }
 
-	void getNormal(CoordSet &, double [3]);
+	void getNormal(const CoordSet &, double [3]) const override;
 };
 
 #endif

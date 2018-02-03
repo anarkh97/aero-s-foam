@@ -16,9 +16,9 @@ public:
 	void renum(int *) override;
         void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-        double getMass(CoordSet&);
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const;
+        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+        double getMass(const CoordSet&) const;
         double getMassThicknessSensitivity(CoordSet&);
 
         void             getGravityForce(CoordSet&,double *gravity, Vector& f, int gravflg,
@@ -50,7 +50,7 @@ public:
 	int getTopNumber() override;
 	bool hasRot() {return true;}
 
-        int getMassType() { return 0; } // lumped only
+        int getMassType() const override { return 0; } // lumped only
 };
 #endif
 

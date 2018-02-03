@@ -69,13 +69,13 @@ DiscreteMass6Dof::markDofs(DofSetArray &dsa)
 }
 
 double
-DiscreteMass6Dof::getMass(CoordSet& cs)
+DiscreteMass6Dof::getMass(const CoordSet& cs) const
 {
   return prop->rho;
 }
 
 FullSquareMatrix
-DiscreteMass6Dof::massMatrix(CoordSet &cs, double *mdata, int cmflg)
+DiscreteMass6Dof::massMatrix(const CoordSet &cs, double *mdata, int cmflg) const
 {
   // ref: "Rigid Body Dynamics of Mechanisms 1 Theoretical Basis" by Hubert Hahn, Section 4.2.4.1
   double m = prop->rho;
@@ -113,7 +113,7 @@ DiscreteMass6Dof::massMatrix(CoordSet &cs, double *mdata, int cmflg)
 }
 
 FullSquareMatrix
-DiscreteMass6Dof::stiffness(CoordSet &cs, double *k, int flg)
+DiscreteMass6Dof::stiffness(const CoordSet &cs, double *k, int flg) const
 {
   FullSquareMatrix ret(6,k);
   ret.zero();

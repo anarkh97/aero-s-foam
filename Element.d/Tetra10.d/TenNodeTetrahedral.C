@@ -252,7 +252,7 @@ TenNodeTetrahedral::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
 }
 
 double
-TenNodeTetrahedral::getMass(CoordSet& cs)
+TenNodeTetrahedral::getMass(const CoordSet& cs) const
 {
   double x[10], y[10], z[10];
   cs.getCoordinates(nn, numNodes(), x, y, z);
@@ -390,7 +390,7 @@ TenNodeTetrahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 FullSquareMatrix
-TenNodeTetrahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
+TenNodeTetrahedral::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   const int nnodes = 10;
   const int ndofs = 30;
@@ -434,7 +434,7 @@ TenNodeTetrahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
 //HB (06/19/05)  new implementation of the Tetra4 stiffness matrix to deal
 //               with anisotropic constitutive matrix
 FullSquareMatrix
-TenNodeTetrahedral::stiffness(CoordSet &cs, double *d, int flg)
+TenNodeTetrahedral::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   const int nnodes = 10;
   const int ndofs = 30;

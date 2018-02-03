@@ -50,7 +50,7 @@ PronyViscoElastic<Material, tensor_policy>::clone() const
 
 template<typename Material, class tensor_policy>
 int
-PronyViscoElastic<Material, tensor_policy>::getNumStates()
+PronyViscoElastic<Material, tensor_policy>::getNumStates() const
 {
   std::size_t s = tensor_policy::stride;
 
@@ -86,7 +86,7 @@ PronyViscoElastic<Material, tensor_policy>::getStress(Tensor *_stress, Tensor &_
 template<typename Material, class tensor_policy>
 void
 PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor *_tm, Tensor &en, Tensor &enp,
-                                                      double *staten, double *statenp, double temp, Tensor *cache, double dt)
+                                                      double *staten, double *statenp, double temp, Tensor *cache, double dt) const
 {
   // _stress - constainer for stress tensor that is updated by calling integrate
   // _tm     - elasticity tensor (derivative of stress tensor)
@@ -154,7 +154,7 @@ PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor *_
 template<typename Material, class tensor_policy>
 void
 PronyViscoElastic<Material, tensor_policy>::integrate(Tensor *_stress, Tensor &en, Tensor &enp,
-                                                      double *staten, double *statenp, double temp, Tensor *cache, double dt)
+                                                      double *staten, double *statenp, double temp, Tensor *cache, double dt) const
 {
   // compute hyperelastic response
   Material::integrate(_stress, en, enp, staten, statenp, temp, cache, dt);

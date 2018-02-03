@@ -27,13 +27,13 @@ public:
 
 	int *dofs(DofSetArray &, int *p = 0);
 
-	virtual SpectralIsoParamQuadSommer *clone();
+	virtual SpectralIsoParamQuadSommer *clone() override;
 
 	int *wetDofs(DofSetArray &, int *p = 0);
 
 	int *solidDofs(DofSetArray &, int *p = 0);
 
-	void flipNormal();
+	void flipNormal() override;
 
 	void neumVector(CoordSet &, ComplexVector &,
 	                double, double, double, double);
@@ -54,7 +54,7 @@ public:
 
 	ComplexD ffpCoef(double k) { return ComplexD(0.25 / M_PI, 0.0); }
 
-	void getNormal(CoordSet &, double [3]);
+	void getNormal(const CoordSet &, double [3]) const override;
 
 	void markDofs(DofSetArray &) override;
 };

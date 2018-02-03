@@ -51,7 +51,7 @@ public:
  virtual int nEnrichmentDofs() const override { return ndir; }
  int nGeomNodes() const override { return o*o*o; }
  int nFaces() const override { return 6; }
- virtual int nFaceCorners(int fi) { return 4; }
+ int nFaceCorners(int fi) const override { return 4; }
  virtual int *faceCorners(int fi) { 
    int *fc = new int[4];
    int osq = o*o;

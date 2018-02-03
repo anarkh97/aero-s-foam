@@ -37,11 +37,11 @@ BarSloshFS::renum(EleRenumMap& table)
 }
 
 FullSquareMatrix
-BarSloshFS::massMatrix(CoordSet &cs, double *Ms, int cmflg)
+BarSloshFS::massMatrix(const CoordSet &cs, double *Ms, int cmflg) const
 {
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
 
         int i;
         double x[2], y[2], MassMat[4];
@@ -71,7 +71,7 @@ BarSloshFS::massMatrix(CoordSet &cs, double *Ms, int cmflg)
 }
 
 FullSquareMatrix
-BarSloshFS::stiffness(CoordSet &cs, double *kel, int flg)
+BarSloshFS::stiffness(const CoordSet &cs, double *kel, int flg) const
 {
 
         FullSquareMatrix k_e(2,kel);

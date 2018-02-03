@@ -334,8 +334,8 @@ public:
 	void  nodeadd(int n, Node &node);
 	Node &getNode(int n);
 	const Node &getNode(int n) const;
-	void getCoordinates(int *nn, int numNodes,
-	                    double *xx, double *yy, double *zz);
+	void getCoordinates(const int *nn, int numNodes,
+	                    double *xx, double *yy, double *zz) const;
 
 	Node * operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
 	Node *& operator[] (int i);
@@ -382,14 +382,15 @@ protected:
 	StructProp *prop;	// structural properties for this element
 	bool myProp;
 	int glNum, subNum, stateOffset;
-	std::vector<double> factors;
-	void lumpMatrix(FullSquareMatrix&);
+	mutable std::vector<double> factors; // TODO Get rid of this! Element should not contain problem dependent data.
+	void lumpMatrix(FullSquareMatrix&) const;
 public:
 	Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; category = Undefined; includeStressNodes = false; };
 	virtual ~Element() { if(myProp && prop) delete prop; }
+	const StructProp * getProperty() const { return prop; }
 	StructProp * getProperty() { return prop; }
 
-	virtual Element *clone() { return 0; }
+	virtual Element *clone() { return nullptr; }
 	virtual void renum(int *)=0;
 	virtual void renum(EleRenumMap& m)=0;
 
@@ -410,7 +411,7 @@ public:
 	virtual std::vector<double> getPreLoad() { return std::vector<double>(0); }
 
 	virtual void setGlNum(int gn, int sn=0) { glNum = gn; subNum = sn; }
-	int getGlNum() { return glNum; }
+	int getGlNum() const { return glNum; }
 
 	// By default, an element has no frame
 	virtual void setFrame(EFrame *) {}
@@ -424,20 +425,20 @@ public:
 	                                   double *coefs, CoordSet &cs, double theta);
 	virtual void getCFrame(CoordSet& cs, double cFrame[3][3]) const;
 
-	virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
+	virtual FullSquareMatrix stiffness(const CoordSet& cs,double *k,int flg=1) const;
 	virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1);
 	virtual void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
-	virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
+	virtual FullSquareMatrix massMatrix(const CoordSet& cs,double *m,int cmflg=1) const;
 	virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
-	FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
-	virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d);
-	virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d);
+	FullSquareMatrix massMatrix(const CoordSet& cs, double* m, double mratio) const;
+	virtual FullSquareMatrixC stiffness(const CoordSet&, complex<double> *d) const;
+	virtual FullSquareMatrixC massMatrix(const CoordSet&, complex<double> *d) const;
 	virtual void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n,
 	                                    double omega);
 
 	virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
 
-	virtual double getMass(CoordSet&) { return 0; }
+	virtual double getMass(const CoordSet&) const { return 0; }
 	virtual double getMassThicknessSensitivity(CoordSet&) { return 0; }
 	virtual double weight(CoordSet&, double *);
 	virtual double getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration);
@@ -590,7 +591,7 @@ public:
 
 	virtual bool hasDamping() { return false; }
 	bool isFluidElement();
-	virtual bool isSommerElement() { return false; }
+	virtual bool isSommerElement() const { return false; }
 	virtual bool isRadiationElement() { return false; }
 	virtual bool isSloshingElement() { return false; }
 	virtual bool isMpcElement() { return false; }
@@ -619,7 +620,7 @@ public:
 
 	virtual bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isFsiElement()); }
 	virtual bool isConstraintElementIeq() { return (isMpcElement() && prop->relop != 0); }
-	virtual bool isFreeplayElement() { return false; }
+	virtual bool isFreeplayElement() const { return false; }
 	virtual bool isPhantomElement() { return (!(prop || isConstraintElement() || isSommerElement())); }
 	bool doesIncludeStressNodes() { return includeStressNodes; }
 	void setIncludeStressNodes(bool isIn) { includeStressNodes = isIn; }
@@ -641,7 +642,7 @@ public:
 	bool isDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
 	bool isSDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->etaDamp != 0.0 )) : false; }
 
-	virtual int getMassType() { return 1; }  // 0: lumped, 1: consistent, 2: both
+	virtual int getMassType() const { return 1; }  // 0: lumped, 1: consistent, 2: both
 	// notes: (a) if getMassType returns 0 then lumped gravity force will always be used for dynamics
 	//        (b) is getMassType returns 1 then lumping is done using diagonal scaling if required (default)
 	virtual void writeHistory(int) {}

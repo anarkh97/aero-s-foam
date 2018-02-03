@@ -12,14 +12,14 @@ MaterialWrapper<Material>::MaterialWrapper(Material *_mat)
 
 template<typename Material>
 int
-MaterialWrapper<Material>::getNumStates()
+MaterialWrapper<Material>::getNumStates() const
 {
   return 0;
 }
 
 template<>
 inline int
-MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getNumStates()
+MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getNumStates() const
 {
   return 19;
 }
@@ -250,7 +250,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStressAn
 template<typename Material>
 void 
 MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                     double *, double *statenp, double, Tensor *, double)
+                                     double *, double *statenp, double, Tensor *, double) const
 {
   Tensor_d0s4 *tm = static_cast<Tensor_d0s4 *>(_tm);
   Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
@@ -281,7 +281,7 @@ MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Ten
 template<typename Material>
 void
 MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                                     double *, double *statenp, double, Tensor *, double)
+                                     double *, double *statenp, double, Tensor *, double) const
 {
   Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
   Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
@@ -305,7 +305,7 @@ template<>
 inline void 
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
                                                                     double *staten, double *statenp, double,
-                                                                    Tensor *, double dt)
+                                                                    Tensor *, double dt) const
 {
   // clone material for thread-safety reasons
   IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
@@ -363,7 +363,7 @@ template<>
 inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
                                                                                double *staten, double *statenp, double,
-                                                                               Tensor *, double)
+                                                                               Tensor *, double) const
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
 }
@@ -372,7 +372,7 @@ template<>
 inline void 
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
                                                                     double *staten, double *statenp, double,
-                                                                    Tensor *, double dt)
+                                                                    Tensor *, double dt) const
 {
   // clone material for thread-safety reasons
   IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
@@ -422,7 +422,7 @@ template<>
 inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
                                                                                double *staten, double *statenp, double,
-                                                                               Tensor *, double)
+                                                                               Tensor *, double) const
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
 }
@@ -459,7 +459,7 @@ extern DeformationGradient deformationGradient;
 
 template<typename Material>
 StrainEvaluator *
-MaterialWrapper<Material>::getStrainEvaluator() 
+MaterialWrapper<Material>::getStrainEvaluator() const
 {
   return &deformationGradient;
 }

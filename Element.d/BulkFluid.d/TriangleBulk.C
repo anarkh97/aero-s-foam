@@ -42,13 +42,13 @@ TriangleBulk::renum(EleRenumMap& table)
 }
 
 double
-TriangleBulk::getMass(CoordSet &cs)
+TriangleBulk::getMass(const CoordSet &cs) const
 {
         double mass = 0;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3];
         double area;
@@ -67,7 +67,7 @@ TriangleBulk::getMass(CoordSet &cs)
 }
 
 FullSquareMatrix
-TriangleBulk::massMatrix(CoordSet &cs, double *d, int cmflg)
+TriangleBulk::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
 
         FullSquareMatrix mass(3,d);
@@ -81,13 +81,13 @@ TriangleBulk::massMatrix(CoordSet &cs, double *d, int cmflg)
 }
 
 FullSquareMatrix
-TriangleBulk::stiffness(CoordSet &cs, double *Kcv, int flg)
+TriangleBulk::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
 
 // ... Compute length of the interface
 
-        Node &nd2 = cs.getNode( nn[1] );
-        Node &nd3 = cs.getNode( nn[2] );
+        auto &nd2 = cs.getNode( nn[1] );
+        auto &nd3 = cs.getNode( nn[2] );
 
         double xi[2], yi[2], zi[2];
 

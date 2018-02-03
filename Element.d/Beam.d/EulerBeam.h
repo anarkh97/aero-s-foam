@@ -27,9 +27,9 @@ public:
 	const EFrame *getFrame() const override { return elemframe; }
 	void buildFrame(CoordSet&) override;
 
-	FullSquareMatrix stiffness(CoordSet&, double *kel,int flg) override;
-	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg) override;
-	double getMass(CoordSet& cs) override;
+	FullSquareMatrix stiffness(const CoordSet&, double *kel,int flg) const override;
+	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
+	double getMass(const CoordSet& cs) const override;
 	void   getGravityForce(CoordSet&, double *g, Vector &f, int gravflg,
 	                       GeomState *gs) override;
 	void   getIntrnForce(Vector& elForce, CoordSet& cs,
@@ -70,13 +70,13 @@ public:
 	PrioInfo examine(int sub, MultiFront *) override;
 	bool hasRot() override { return true; }
 
-	int getMassType() override { return 2; } // both consistent and lumped
+	int getMassType() const override { return 2; } // both consistent and lumped
 
 private:
 
-	void    getLength(CoordSet&, double &length);
+	double  getLength(const CoordSet&) const;
 	void    updTransMatrix(CoordSet&, GeomState *gs, double t[3][3], double &len, double weight = 0.5);
-	void    offsetAxis(FullSquareMatrix& mat);
+	void    offsetAxis(FullSquareMatrix& mat) const;
 
 };
 #endif

@@ -30,7 +30,7 @@ SimoPlasticMat::SimoPlasticMat(double _rho, double _E, double _nu,
 }
 
 int
-SimoPlasticMat::getNumStates()
+SimoPlasticMat::getNumStates() const
 {
   // the internal variables are : the plastic Green-Lagrange strain tensor Cp-I (6 doubles),
   // the center of the yield surface in principal deviatoric stress space (3 doubles),
@@ -45,7 +45,7 @@ SimoPlasticMat::getStress(Tensor *stress, Tensor &strain, double *state, double 
 }
 
 void 
-SimoPlasticMat::getElasticity(Tensor *_tm)
+SimoPlasticMat::getElasticity(Tensor *_tm) const
 {
   std::cerr << "WARNING: SimoPlasticMat::getElasticity is not implemented\n";
 }
@@ -71,7 +71,7 @@ SimoPlasticMat::updateStates(Tensor &en, Tensor &enp, double *state, double temp
 void
 SimoPlasticMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp,
                           double *staten, double *statenp, double temp,
-                          Tensor *_cache, double dt)
+                          Tensor *_cache, double dt) const
 {
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Array3d> epsetrialnp(&static_cast<Tensor_d0s2_Ss12_diag &>(_enp)[0]);
@@ -188,7 +188,7 @@ SimoPlasticMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_e
 void
 SimoPlasticMat::integrate(Tensor *_stress, Tensor &, Tensor  &_enp,
                           double *staten, double *statenp, double temp,
-                          Tensor *_cache, double dt)
+                          Tensor *_cache, double dt) const
 {
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Array3d> epsetrialnp(&static_cast<Tensor_d0s2_Ss12_diag &>(_enp)[0]);
@@ -300,7 +300,7 @@ SimoPlasticMat::initStates(double *st)
 extern ElasticLogarithmicPrincipalStretches elasticLogarithmicPrincipalStretches;
 
 StrainEvaluator *
-SimoPlasticMat::getStrainEvaluator()
+SimoPlasticMat::getStrainEvaluator() const
 {
   return &elasticLogarithmicPrincipalStretches;
 } 

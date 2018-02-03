@@ -272,7 +272,7 @@ TriangleSommerBC::getSize(CoordSet &cs) {
 
 
 void
-TriangleSommerBC::getNormal(CoordSet &cs, double normal[3]) {
+TriangleSommerBC::getNormal(const CoordSet &cs, double normal[3]) const {
 
 	Node nd1 = cs.getNode(nn[0]);
 	Node nd2 = cs.getNode(nn[1]);
@@ -654,7 +654,7 @@ void TriangleSommerBC::sphereBT2(CoordSet &cs, double r, double k, ComplexD *d) 
 	for (i = 0; i < 9; i++) d[i] /= rho;
 }
 
-void TriangleSommerBC::GaussCoordinates(int Ngp, double *uPg, double *vPg, double *weight) {
+void TriangleSommerBC::GaussCoordinates(int Ngp, double *uPg, double *vPg, double *weight) const {
 	if (Ngp == 4) {
 		uPg[0] = 0.333333333333333;
 		vPg[0] = 0.33333333333333;
@@ -844,7 +844,7 @@ void TriangleSommerBC::markDofs(DofSetArray &dsa) {
 	}
 }
 
-void TriangleSommerBC::SurfaceRefinement(int nNo, double *x, double *y, double *z, double *xx, double *yy, double *zz) {
+void TriangleSommerBC::SurfaceRefinement(int nNo, double *x, double *y, double *z, double *xx, double *yy, double *zz) const {
 	int ttnNo = 2 * nNo;
 	int i;
 	//fprintf(stderr,"  QuadSommer.C - refined interpolation for surfacic quad\n");
@@ -1209,7 +1209,7 @@ TriangleSommerBC::surfStiffMatrix(CoordSet &cs, double *d)
 */
 
 FullSquareMatrix
-TriangleSommerBC::HSommerMatrix(CoordSet &cs, double *d) {
+TriangleSommerBC::HSommerMatrix(const CoordSet &cs, double *d) const {
 	int i, j, k;
 	int nNo = numNodes();
 	int ttnNo = 2 * nNo;

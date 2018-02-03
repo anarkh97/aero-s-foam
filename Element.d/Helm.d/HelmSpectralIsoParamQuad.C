@@ -79,13 +79,13 @@ void HelmSpectralIsoParamQuad::markDofs(DofSetArray &dsa) {
 }
 
 
-double HelmSpectralIsoParamQuad::getMass(CoordSet&) {
+double HelmSpectralIsoParamQuad::getMass(const CoordSet&) const {
  fprintf(stderr,"HelmSpectralIsoParamQuad::getMass not implemented.\n");
  return 0.0;
 }
 
 
-FullSquareMatrix HelmSpectralIsoParamQuad::massMatrix(CoordSet &cs, double *K, int fl) {
+FullSquareMatrix HelmSpectralIsoParamQuad::massMatrix(const CoordSet &cs, double *K, int fl) const {
 
  IsoParamUtils2d ipu(order);
  int ordersq = ipu.getordersq();
@@ -104,7 +104,7 @@ FullSquareMatrix HelmSpectralIsoParamQuad::massMatrix(CoordSet &cs, double *K, i
 }
 
 
-FullSquareMatrix HelmSpectralIsoParamQuad::stiffness(CoordSet &cs, double *K, int flg ) {
+FullSquareMatrix HelmSpectralIsoParamQuad::stiffness(const CoordSet &cs, double *K, int flg ) const {
  IsoParamUtils2d ipu(order);
  int ordersq = ipu.getordersq();
  double *xyz=(double*)alloca(sizeof(double)*3*ordersq);

@@ -56,9 +56,9 @@ Membrane::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         weight = 1.0;
         if(strInd == -1) return;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3], h[3];
 
@@ -102,9 +102,9 @@ Membrane::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
 {
         weight = 1.0;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3], h[3];
 
@@ -153,13 +153,13 @@ Membrane::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
 }
 
 double
-Membrane::getMass(CoordSet& cs)
+Membrane::getMass(const CoordSet& cs) const
 {
         if (prop == NULL) return 0.0;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
 
@@ -203,9 +203,9 @@ Membrane::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         // Consistent
         else {
           int i;
-          Node &nd1 = cs.getNode(nn[0]);
-          Node &nd2 = cs.getNode(nn[1]);
-          Node &nd3 = cs.getNode(nn[2]);
+          auto &nd1 = cs.getNode(nn[0]);
+          auto &nd2 = cs.getNode(nn[1]);
+          auto &nd3 = cs.getNode(nn[2]);
           double x[3], y[3], z[3], localg[3];
           double T1[3],T2[3],T3[3];
 
@@ -270,11 +270,11 @@ Membrane::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 FullSquareMatrix
-Membrane::massMatrix(CoordSet &cs,double *mel,int cmflg)
+Membrane::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3];
 
@@ -319,11 +319,11 @@ Membrane::massMatrix(CoordSet &cs,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-Membrane::stiffness(CoordSet &cs, double *d, int flg)
+Membrane::stiffness(const CoordSet &cs, double *d, int flg) const
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3], h[3];
 
@@ -467,9 +467,9 @@ Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStif
     return;
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -494,9 +494,9 @@ Membrane::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, Co
     return;
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -522,9 +522,9 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
 {
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -549,9 +549,9 @@ Membrane::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector 
 {
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -574,9 +574,9 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
 {
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 

@@ -17,130 +17,131 @@ HEVibTetra::HEVibTetra(int* nodenums)
 Element *
 HEVibTetra::clone()
 {
- return new HEVibTetra(*this);
+	return new HEVibTetra(*this);
 }
 
 void
 HEVibTetra::renum(int *table)
 {
-  nn[0] = table[nn[0]];
-  nn[1] = table[nn[1]];
-  nn[2] = table[nn[2]];
-  nn[3] = table[nn[3]];
+	nn[0] = table[nn[0]];
+	nn[1] = table[nn[1]];
+	nn[2] = table[nn[2]];
+	nn[3] = table[nn[3]];
 }
 
 void
 HEVibTetra::renum(EleRenumMap& table)
 {
-  nn[0] = table[nn[0]];
-  nn[1] = table[nn[1]];
-  nn[2] = table[nn[2]];
-  nn[3] = table[nn[3]];
+	nn[0] = table[nn[0]];
+	nn[1] = table[nn[1]];
+	nn[2] = table[nn[2]];
+	nn[3] = table[nn[3]];
 }
 
 double
-HEVibTetra::getMass(CoordSet& cs)
+HEVibTetra::getMass(const CoordSet& cs) const
 {
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
-  Node &nd4 = cs.getNode(nn[3]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
+	auto &nd4 = cs.getNode(nn[3]);
 
-  Vector r1(3), r2(3), r3(3), r4(3);
+	Vector r1(3), r2(3), r3(3), r4(3);
 
-  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
-  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
-  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
-  r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = nd4.z;
+	r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+	r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+	r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+	r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = nd4.z;
 
-  Vector v1(3), v2(3), v3(3), v4(3);
+	Vector v1(3), v2(3), v3(3), v4(3);
 
-  v1 = r2 - r1;
-  v2 = r3 - r1;
-  v3 = r4 - r1;
+	v1 = r2 - r1;
+	v2 = r3 - r1;
+	v3 = r4 - r1;
 
-  v4 = v2.cross(v3);
-  double volume = fabs(v1*v4) / 6.0;
+	v4 = v2.cross(v3);
+	double volume = fabs(v1*v4) / 6.0;
 
-  double mass = volume*prop->rho;
+	double mass = volume*prop->rho;
 
-  return mass;
+	return mass;
 }
 
 FullSquareMatrix
-HEVibTetra::massMatrix(CoordSet &cs,double *mel,int cmflg)
+HEVibTetra::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
 
-  // Element mass
-  FullSquareMatrix ma(4,mel);
+	// Element mass
+	FullSquareMatrix ma(4,mel);
 
-  ma.zero();
+	ma.zero();
 
-  return ma;
+	return ma;
 }
 
 FullSquareMatrix
-HEVibTetra::stiffness(CoordSet &cs, double *d, int flg)
+HEVibTetra::stiffness(const CoordSet &cs, double *d, int flg) const
 {
-        // Calculate the ELEMENT stiffness matrix here:
+	// Calculate the ELEMENT stiffness matrix here:
 
 	// Element stiffness
-	FullSquareMatrix sm(4,d); 
+	FullSquareMatrix sm(4,d);
 
-	computeMetrics(cs);
+	double gN[4][3];
+	double dOmega = computeMetrics(cs, gN);
 
 	// Get the TETRAHEDRA stiffness matrix
-        double TetraStiff[4][4];
-	buildTetraStiff(TetraStiff);
+	double TetraStiff[4][4];
+	buildTetraStiff(TetraStiff, gN, dOmega);
 
-        // Here get conductivity coefficient
-        double rho = prop->rho; 
+	// Here get conductivity coefficient
+	double rho = prop->rho;
 
 	int i,j;
-        //right now the code assembles "F" as mass matrix instead of "-F" in the block formulation
-        for (i=0;i<4;i++)
-          for (j=0;j<4;j++) {
-            sm[i][j] = rho*TetraStiff[i][j];
-          }
+	//right now the code assembles "F" as mass matrix instead of "-F" in the block formulation
+	for (i=0;i<4;i++)
+		for (j=0;j<4;j++) {
+			sm[i][j] = rho*TetraStiff[i][j];
+		}
 
-        //sm.print();
-        //cout<<endl;
+	//sm.print();
+	//cout<<endl;
 
-        return sm;
+	return sm;
 }
 
 int
 HEVibTetra::numNodes() const
 {
- 	return 4;
+	return 4;
 }
 
 int*
 HEVibTetra::nodes(int *p) const
 {
- 	if(p == 0) p = new int[4];
- 	p[0] = nn[0];
- 	p[1] = nn[1];
- 	p[2] = nn[2];
- 	p[3] = nn[3];
+	if(p == 0) p = new int[4];
+	p[0] = nn[0];
+	p[1] = nn[1];
+	p[2] = nn[2];
+	p[3] = nn[3];
 	return p;
 }
 
 int
 HEVibTetra::numDofs() const
 {
- 	return 4;
+	return 4;
 }
 
 int*
 HEVibTetra::dofs(DofSetArray &dsa, int *p)
 {
- 	if(p == 0) p = new int[4];
+	if(p == 0) p = new int[4];
 
-        p[0] = dsa.locate(nn[0],DofSet::Potential);
-        p[1] = dsa.locate(nn[1],DofSet::Potential);
-        p[2] = dsa.locate(nn[2],DofSet::Potential);
-        p[3] = dsa.locate(nn[3],DofSet::Potential);
+	p[0] = dsa.locate(nn[0],DofSet::Potential);
+	p[1] = dsa.locate(nn[1],DofSet::Potential);
+	p[2] = dsa.locate(nn[2],DofSet::Potential);
+	p[3] = dsa.locate(nn[3],DofSet::Potential);
 
 	return p;
 }
@@ -149,35 +150,39 @@ void
 HEVibTetra::markDofs(DofSetArray &dsa)
 {
 
- 	dsa.mark(nn[0],DofSet::Potential);
- 	dsa.mark(nn[1],DofSet::Potential);
- 	dsa.mark(nn[2],DofSet::Potential);
- 	dsa.mark(nn[3],DofSet::Potential);
+	dsa.mark(nn[0],DofSet::Potential);
+	dsa.mark(nn[1],DofSet::Potential);
+	dsa.mark(nn[2],DofSet::Potential);
+	dsa.mark(nn[3],DofSet::Potential);
 }
 
 
-void
-HEVibTetra::computeMetrics(CoordSet& cs)
+double
+HEVibTetra::computeMetrics(const CoordSet &cs, double gN[4][3]) const
 {
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
+	auto &nd4 = cs.getNode(nn[3]);
 
 	double x[4], y[4], z[4];
 
-        // Nodes coordinates
+	// Nodes coordinates
 
-	x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z; 
+	x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
 	x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
 	x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 	x[3] = nd4.x; y[3] = nd4.y; z[3] = nd4.z;
 
 	// Jacobian
 
-	J[0][0] = x[1]-x[0]; J[0][1] = x[2]-x[0]; J[0][2] = x[3]-x[0];	
-	J[1][0] = y[1]-y[0]; J[1][1] = y[2]-y[0]; J[1][2] = y[3]-y[0];	
+	double J[3][3];
+	double Jinv[3][3];
+	double dOmega;
+
+	J[0][0] = x[1]-x[0]; J[0][1] = x[2]-x[0]; J[0][2] = x[3]-x[0];
+	J[1][0] = y[1]-y[0]; J[1][1] = y[2]-y[0]; J[1][2] = y[3]-y[0];
 	J[2][0] = z[1]-z[0]; J[2][1] = z[2]-z[0]; J[2][2] = z[3]-z[0];
 
 	double a,b,c,d,e,f,g,h,i;
@@ -188,7 +193,7 @@ HEVibTetra::computeMetrics(CoordSet& cs)
 
 	// dOmega = determinant(J)
 
-        dOmega = a*e*i - a*f*h - d*b*i + d*c*h + g*b*f - g*c*e;
+	dOmega = a*e*i - a*f*h - d*b*i + d*c*h + g*b*f - g*c*e;
 
 	// compute Jinv = J^-1; Jinv[i][j] =  dxi_i/dx_j
 	// Note: Maple was used here
@@ -203,7 +208,7 @@ HEVibTetra::computeMetrics(CoordSet& cs)
 	t14 = c*g;
 	t17 = 1/dOmega;
 
-        Jinv[0][0] = (e*i-f*h)*t17;
+	Jinv[0][0] = (e*i-f*h)*t17;
 	Jinv[0][1] = (c*h-b*i)*t17;
 	Jinv[0][2] = (b*f-c*e)*t17;
 	Jinv[1][0] = (f*g-d*i)*t17;
@@ -213,9 +218,9 @@ HEVibTetra::computeMetrics(CoordSet& cs)
 	Jinv[2][1] = (t12-a*h)*t17;
 	Jinv[2][2] = (t4-t8)*t17;
 
-        a = Jinv[0][0]; b = Jinv[0][1]; c = Jinv[0][2];
-        d = Jinv[1][0]; e = Jinv[1][1]; f = Jinv[1][2];
-        g = Jinv[2][0]; h = Jinv[2][1]; i = Jinv[2][2];
+	a = Jinv[0][0]; b = Jinv[0][1]; c = Jinv[0][2];
+	d = Jinv[1][0]; e = Jinv[1][1]; f = Jinv[1][2];
+	g = Jinv[2][0]; h = Jinv[2][1]; i = Jinv[2][2];
 
 /*      int m,n,p;
         FullSquareMatrix eyetest(3,0);
@@ -233,9 +238,9 @@ HEVibTetra::computeMetrics(CoordSet& cs)
         cout<<endl;
 */
 	// Shape function gradients 
-        // Note: 1st index = shape function #
+	// Note: 1st index = shape function #
 	//       2nd index = direction (0=x, 1=y, 2=z) 
- 
+
 	gN[0][0] = -(a+d+g);
 	gN[0][1] = -(b+e+h);
 	gN[0][2] = -(c+f+i);
@@ -255,27 +260,27 @@ HEVibTetra::computeMetrics(CoordSet& cs)
 
 
 void
-HEVibTetra::buildTetraStiff(double TetraStiff[4][4])
+HEVibTetra::buildTetraStiff(double TetraStiff[4][4], double gN[4][3], double dOmega) const
 {
 	int i,j,k;
 	double dot;
 
 	// This is the stiffness matrix for the tetrahedra
 
-        double v = volume();
-        //cout << "Volume = " << v << endl;
+	double v = volume(dOmega);
+	//cout << "Volume = " << v << endl;
 	for (i=0;i<4;i++)
-	  for (j=0;j<4;j++) {
-	    dot = 0.0;
-	    for (k=0;k<3;k++)
-	      dot += gN[i][k]*gN[j][k];
-	    TetraStiff[i][j] = v*dot;
-	  }
+		for (j=0;j<4;j++) {
+			dot = 0.0;
+			for (k=0;k<3;k++)
+				dot += gN[i][k]*gN[j][k];
+			TetraStiff[i][j] = v*dot;
+		}
 }
 
 int
 HEVibTetra::getTopNumber()
 {
-  return 150;//5;
+	return 150;//5;
 }
 

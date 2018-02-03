@@ -484,7 +484,7 @@ Triangle6SommerBC::getLocalCoordinates(CoordSet &cs, double xx[6], double yy[6],
 
 
 void
-Triangle6SommerBC::getNormal(CoordSet &cs, double normal[3]) {
+Triangle6SommerBC::getNormal(const CoordSet &cs, double normal[3]) const {
 
 	Node nd1 = cs.getNode(nn[0]);
 	Node nd2 = cs.getNode(nn[1]);
@@ -933,7 +933,7 @@ void Triangle6SommerBC::markDofs(DofSetArray &dsa) {
 	dsa.mark(nn[5], DofSet::Helm);
 }
 /*
-FullSquareMatrix Triangle6SommerBC::massMatrix(CoordSet &cs,double *d,int cmflg)
+FullSquareMatrix Triangle6SommerBC::massMatrix(const CoordSet &cs,double *d,int cmflg) const
 {
 fprintf(stderr,"massMatrix of a Triangle6SommerBC asked\n");
         Node nd1 = cs.getNode(nn[0]);
@@ -959,7 +959,7 @@ fprintf(stderr,"massMatrix of a Triangle6SommerBC asked\n");
         return ret;
 }
 
-FullSquareMatrix Triangle6SommerBC::stiffness(CoordSet &cs, double *Ks, int flg)
+FullSquareMatrix Triangle6SommerBC::stiffness(const CoordSet &cs, double *Ks, int flg) const
 {
 fprintf(stderr,"stifness of a Traingle6SommerBC asked\n");
         Node nd1 = cs.getNode(nn[0]);

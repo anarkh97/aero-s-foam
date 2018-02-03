@@ -167,9 +167,9 @@ FelippaShell::getVonMisesImpl(Vector &stress, Vector &weight, CoordSet &cs,
     } 
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -235,9 +235,9 @@ FelippaShell::getAllStressImpl(FullM &stress, Vector &weight, CoordSet &cs,
 {
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -302,7 +302,7 @@ FelippaShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 double
-FelippaShell::getMass(CoordSet &cs)
+FelippaShell::getMass(const CoordSet &cs) const
 { 
   if(prop == NULL) return 0.0;
 
@@ -319,7 +319,7 @@ FelippaShell::getMass(CoordSet &cs)
 }
 
 FullSquareMatrix
-FelippaShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
+FelippaShell::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   if(prop == NULL) {
     FullSquareMatrix ret(18,mel);
@@ -408,9 +408,9 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
   // compute cFrame
   cFrame = new double[9];
                                                                                                         
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
  
   double ab[3], ac[3], x[3], y[3], z[3];
   ab[0] = nd2.x - nd1.x; ab[1] = nd2.y - nd1.y; ab[2] = nd2.z - nd1.z;
@@ -494,9 +494,9 @@ void
 FelippaShell::getCFrame(CoordSet &cs, double cFrame[3][3]) const
 {
   if(FelippaShell::cFrame) {
-    Node &nd1 = cs.getNode(nn[0]);
-    Node &nd2 = cs.getNode(nn[1]);
-    Node &nd3 = cs.getNode(nn[2]);
+    auto &nd1 = cs.getNode(nn[0]);
+    auto &nd2 = cs.getNode(nn[1]);
+    auto &nd3 = cs.getNode(nn[2]);
 
     double x[3], y[3], z[3];
 
@@ -592,7 +592,7 @@ FelippaShell::numStates()
 }
 
 FullSquareMatrix
-FelippaShell::stiffness(CoordSet &cs, double *d, int flg)
+FelippaShell::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   if(prop == NULL) {
     FullSquareMatrix ret(18,d);
@@ -600,9 +600,9 @@ FelippaShell::stiffness(CoordSet &cs, double *d, int flg)
     return ret;
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -1126,9 +1126,9 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
   }
 
   // Compute area of shell
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double r1[3], r2[3], r3[3], v1[3], v2[3], normal[3];
 
@@ -1305,9 +1305,9 @@ FelippaShell::getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalFo
     return;
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -1442,9 +1442,9 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
           "*** STOP ALL TREATMENTS RIGHT HERE                                ***\n");
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -1465,9 +1465,9 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
     return;
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -1501,9 +1501,9 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
 
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -1523,9 +1523,9 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 {
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -1547,9 +1547,9 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
 {
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 

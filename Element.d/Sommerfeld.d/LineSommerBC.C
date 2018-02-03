@@ -210,7 +210,7 @@ LineSommerBC::getSize(CoordSet &cs) {
 
 
 void
-LineSommerBC::getNormal(CoordSet &cs, double normal[3]) {
+LineSommerBC::getNormal(const CoordSet &cs, double normal[3]) const {
 	Node nd1 = cs.getNode(nn[0]);
 	Node nd2 = cs.getNode(nn[1]);
 

@@ -86,8 +86,8 @@ TimoshenkoBeam::renum(EleRenumMap &table) {
 void
 TimoshenkoBeam::buildFrame(CoordSet &cs) {
 	// store initial orientation of beam
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	iniOr = new double[3];
 
@@ -136,7 +136,7 @@ TimoshenkoBeam::buildFrame(CoordSet &cs) {
 		}
 		return;
 	} else {
-		Node &nd3 = cs.getNode(nn[2]);
+		auto &nd3 = cs.getNode(nn[2]);
 
 		delete[] elemframe;
 		elemframe = new EFrame[1];
@@ -159,8 +159,8 @@ TimoshenkoBeam::buildFrame(CoordSet &cs) {
 void
 TimoshenkoBeam::getIntrnForce(Vector &elForce, CoordSet &cs,
                               double *elDisp, int forceIndex, double *ndTemps) {
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -197,13 +197,13 @@ TimoshenkoBeam::getIntrnForce(Vector &elForce, CoordSet &cs,
 }
 
 double
-TimoshenkoBeam::getMass(CoordSet &cs) {
+TimoshenkoBeam::getMass(const CoordSet &cs) const {
 	// Check for phantom element, which has no mass
 	if (prop == NULL)
 		return 0;
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -234,8 +234,8 @@ TimoshenkoBeam::getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx)
 		exit(-1);
 	}
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -338,8 +338,8 @@ TimoshenkoBeam::getGravityForce(CoordSet &cs, double *gravityAcceleration,
 
 	} else {
 
-		Node &nd1 = cs.getNode(nn[0]);
-		Node &nd2 = cs.getNode(nn[1]);
+		auto &nd1 = cs.getNode(nn[0]);
+		auto &nd2 = cs.getNode(nn[1]);
 
 		double x[2], y[2], z[2];
 
@@ -413,7 +413,7 @@ TimoshenkoBeam::getGravityForce(CoordSet &cs, double *gravityAcceleration,
 }
 
 FullSquareMatrix
-TimoshenkoBeam::massMatrix(CoordSet &cs, double *mel, int cmflg) {
+TimoshenkoBeam::massMatrix(const CoordSet &cs, double *mel, int cmflg) const {
 	// Check for phantom element, which has no mass
 	if (prop == NULL) {
 		FullSquareMatrix ret(12, mel);
@@ -421,8 +421,8 @@ TimoshenkoBeam::massMatrix(CoordSet &cs, double *mel, int cmflg) {
 		return ret;
 	}
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -458,8 +458,8 @@ TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
 	// Check for phantom element, which has no stiffness
 	if (prop == NULL) return;
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	Eigen::Array<double, 18, 1> dconst;
 	Eigen::Array<int, 0, 1> iconst;
@@ -505,7 +505,7 @@ TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
 }
 
 FullSquareMatrix
-TimoshenkoBeam::stiffness(CoordSet &cs, double *d, int flg) {
+TimoshenkoBeam::stiffness(const CoordSet &cs, double *d, int flg) const {
 	// Check for phantom element, which has no stiffness
 	if (prop == NULL) {
 		FullSquareMatrix ret(12, d);
@@ -513,8 +513,8 @@ TimoshenkoBeam::stiffness(CoordSet &cs, double *d, int flg) {
 		return ret;
 	}
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -632,8 +632,8 @@ TimoshenkoBeam::computePressureForce(CoordSet &cs, Vector &elPressureForce,
 		normal2[2] = (*elemframe)[2][2];
 
 		// Get length of Beam
-		Node &nd1 = cs.getNode(nn[0]);
-		Node &nd2 = cs.getNode(nn[1]);
+		auto &nd1 = cs.getNode(nn[0]);
+		auto &nd2 = cs.getNode(nn[1]);
 
 		double x[2], y[2], z[2];
 
@@ -754,8 +754,8 @@ TimoshenkoBeam::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 	weight = 1.0;
 	if (strInd == -1) return;
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -974,8 +974,8 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 	weight = 1;
 	// scalar parameters
 	Eigen::Array<double, 28, 1> dconst;
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -1064,8 +1064,8 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
 	weight = 1;
 	// scalar parameters
 	Eigen::Array<double, 34, 1> dconst;
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 

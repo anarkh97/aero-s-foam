@@ -35,25 +35,25 @@ class ElasPlasKinHardMat : public NLMaterial
        { rho = _rho; E = _E; nu = _nu; Ep = _Ep; sigE = _sigE; theta = _theta; Tref = _Tref; alpha = _alpha; epsF = _epsF;
          tol = _tol; yssrtid = _yssrtid; ysst = NULL; yssrt = NULL; }
 
-    void getStress(Tensor *stress, Tensor &strain, double *, double temp);
+    void getStress(Tensor *stress, Tensor &strain, double *, double temp) override;
 
-    void getTangentMaterial(Tensor *tm, Tensor &strain, double *, double temp);
+    void getTangentMaterial(Tensor *tm, Tensor &strain, double *, double temp) override;
 
-    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double *, double temp);
+    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double *, double temp) override;
 
-    void getElasticity(Tensor *tm);
+    void getElasticity(Tensor *tm) const override;
 
     void updateStates(Tensor &en, Tensor &enp, double *state, double temp);
 
-    int getNumStates() { return 13; } // the internal variables are : the plastic strain (6 doubles),
+    int getNumStates() const override { return 13; } // the internal variables are : the plastic strain (6 doubles),
                                       // the center of the yield surface in sigma space (6 doubles),
                                       // and the equivalent plastic strain (1 double)
 
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const override;
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const override;
 
     void initStates(double *);
 
@@ -61,7 +61,7 @@ class ElasPlasKinHardMat : public NLMaterial
 
     double getReferenceTemperature() { return Tref; }
 
-    StrainEvaluator * getStrainEvaluator();
+    StrainEvaluator * getStrainEvaluator() const override;
 
     double getEquivPlasticStrain(double *statenp) { return statenp[12]; }
 
@@ -69,7 +69,7 @@ class ElasPlasKinHardMat : public NLMaterial
 
     bool getPlasticStrain(double *statenp, Tensor *plasticstrain);
 
-    double getDamage(double *statenp) { return (statenp[12] >= epsF) ? 1 : 0; }
+    double getDamage(double *statenp) const override { return (statenp[12] >= epsF) ? 1 : 0; }
 
     double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp = 0.0);
 
@@ -77,7 +77,7 @@ class ElasPlasKinHardMat : public NLMaterial
 
     void print(std::ostream &out) const;
 
-    void print2(std::ostream &out) const;
+    void print2(std::ostream &out) const override;
 
     void setSDProps(MFTTData *_ysst) { if(sigE < 0 && _ysst && _ysst->getID() == -int(sigE)) ysst = _ysst; }
 

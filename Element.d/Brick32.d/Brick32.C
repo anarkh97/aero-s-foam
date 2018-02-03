@@ -278,7 +278,7 @@ Brick32::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
 }
 
 double
-Brick32::getMass(CoordSet& cs)
+Brick32::getMass(const CoordSet& cs) const
 {
   const int nnodes = 32;
   double x[32], y[32], z[32];
@@ -433,7 +433,7 @@ Brick32::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 FullSquareMatrix
-Brick32::massMatrix(CoordSet &cs, double *mel, int cmflg)
+Brick32::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   const int nnodes = 32;
   const int ndofs = 96;
@@ -481,7 +481,7 @@ Brick32::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-Brick32::stiffness(CoordSet &cs, double *d, int flg)
+Brick32::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   const int nnodes = 32;
   const int ndofs = 96;

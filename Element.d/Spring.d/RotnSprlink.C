@@ -39,7 +39,7 @@ RotnSprlink::renum(EleRenumMap& table)
 }
 
 FullSquareMatrix
-RotnSprlink::massMatrix(CoordSet&, double* mel, int cmflg)
+RotnSprlink::massMatrix(const CoordSet&, double* mel, int cmflg) const
 {
   FullSquareMatrix elementMassMatrix(numDofs(), mel);
 
@@ -49,7 +49,7 @@ RotnSprlink::massMatrix(CoordSet&, double* mel, int cmflg)
 }
 
 FullSquareMatrix
-RotnSprlink::stiffness(CoordSet&, double* d, int flg)
+RotnSprlink::stiffness(const CoordSet&, double* d, int flg) const
 {
   _FORTRAN(mstf22)((double*)d, prop->A, prop->E, prop->nu, prop->rho,
                    prop->c, prop->k, prop->eh, prop->P,

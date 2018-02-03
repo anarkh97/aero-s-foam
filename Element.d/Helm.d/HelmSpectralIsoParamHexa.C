@@ -107,13 +107,13 @@ void HelmSpectralIsoParamHexa::addFaces(PolygonSet *pset) {
 }
 
 
-double HelmSpectralIsoParamHexa::getMass(CoordSet&) {
+double HelmSpectralIsoParamHexa::getMass(const CoordSet&) const {
  fprintf(stderr,"HelmSpectralIsoParamHexa::getMass not implemented.\n");
  return 0.0;
 }
 
 
-FullSquareMatrix HelmSpectralIsoParamHexa::massMatrix(CoordSet &cs, double *K, int fl) {
+FullSquareMatrix HelmSpectralIsoParamHexa::massMatrix(const CoordSet &cs, double *K, int fl) const {
 
  IsoParamUtils ipu(order);
  int orderc = ipu.getorderc();
@@ -132,7 +132,7 @@ FullSquareMatrix HelmSpectralIsoParamHexa::massMatrix(CoordSet &cs, double *K, i
 }
 
 
-FullSquareMatrix HelmSpectralIsoParamHexa::stiffness(CoordSet &cs, double *K, int flg ) {
+FullSquareMatrix HelmSpectralIsoParamHexa::stiffness(const CoordSet &cs, double *K, int flg ) const {
  IsoParamUtils ipu(order);
  int orderc = ipu.getorderc();
  double *xyz=(double*)alloca(sizeof(double)*3*orderc);

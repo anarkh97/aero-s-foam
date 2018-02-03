@@ -96,13 +96,13 @@ void HelmIsoParamTri::markDofs(DofSetArray &dsa) {
 }
 
 
-double HelmIsoParamTri::getMass(CoordSet&) {
+double HelmIsoParamTri::getMass(const CoordSet&) const {
  fprintf(stderr,"HelmIsoParamTri::getMass not implemented.\n");
  return 0.0;
 }
 
 
-FullSquareMatrix HelmIsoParamTri::massMatrix(CoordSet &cs, double *K, int fl) {
+FullSquareMatrix HelmIsoParamTri::massMatrix(const CoordSet &cs, double *K, int fl) const {
 
  IsoParamUtils2dTri ipu(order);
  int ordersq = ipu.getordersq();
@@ -123,7 +123,7 @@ FullSquareMatrix HelmIsoParamTri::massMatrix(CoordSet &cs, double *K, int fl) {
 }
 
 
-FullSquareMatrix HelmIsoParamTri::stiffness(CoordSet &cs, double *K, int flg ) {
+FullSquareMatrix HelmIsoParamTri::stiffness(const CoordSet &cs, double *K, int flg ) const {
  IsoParamUtils2dTri ipu(order);
  int ordersq = ipu.getordersq();
  double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
@@ -143,8 +143,8 @@ FullSquareMatrix HelmIsoParamTri::stiffness(CoordSet &cs, double *K, int flg ) {
 }
 
 
-FullSquareMatrixC HelmIsoParamTri::massMatrix(CoordSet &cs,
-                                               complex<double> *K) {
+FullSquareMatrixC HelmIsoParamTri::massMatrix(const CoordSet &cs,
+                                               complex<double> *K) const {
 
  IsoParamUtils2dTri ipu(order);
  int ordersq = ipu.getordersq();
@@ -179,8 +179,8 @@ FullSquareMatrixC HelmIsoParamTri::massMatrix(CoordSet &cs,
 }
 
 
-FullSquareMatrixC HelmIsoParamTri::stiffness(CoordSet &cs,
-                                              complex<double> *K) {
+FullSquareMatrixC HelmIsoParamTri::stiffness(const CoordSet &cs,
+                                              complex<double> *K) const {
 
  IsoParamUtils2dTri ipu(order);
  int ordersq = ipu.getordersq();

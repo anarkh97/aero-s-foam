@@ -46,13 +46,13 @@ QuadRadiation::renum(EleRenumMap& table)
 }
 
 double
-QuadRadiation::getMass(CoordSet&)
+QuadRadiation::getMass(const CoordSet&) const
 {
  return 0.0;
 }
 
 FullSquareMatrix
-QuadRadiation::massMatrix(CoordSet &cs, double *d, int cmflg)
+QuadRadiation::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
 
         FullSquareMatrix mass(4,d);
@@ -61,7 +61,7 @@ QuadRadiation::massMatrix(CoordSet &cs, double *d, int cmflg)
 }
 
 FullSquareMatrix
-QuadRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
+QuadRadiation::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
 
 // ... Compute Radiative matrix

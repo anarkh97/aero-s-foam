@@ -62,9 +62,9 @@ Triangle3::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         weight = 1.0;
         if(strInd == -1) return;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3];
 
@@ -205,9 +205,9 @@ Triangle3::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
 
  	weight = 1.0;
 
-	Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+	auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3];
 
@@ -363,11 +363,11 @@ Triangle3::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
 }
 
 double
-Triangle3::getMass(CoordSet& cs)
+Triangle3::getMass(const CoordSet& cs) const
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3];
 
@@ -391,9 +391,9 @@ Triangle3::getMass(CoordSet& cs)
 double
 Triangle3::getMassThicknessSensitivity(CoordSet& cs)
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3];
 
@@ -445,7 +445,7 @@ Triangle3::getGravityForceThicknessSensitivity(CoordSet& cs,double *gravityAccel
 }
 
 FullSquareMatrix
-Triangle3::massMatrix(CoordSet &cs,double *mel,int cmflg)
+Triangle3::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
 	double mass = getMass(cs);
 	double massPerNode = mass/3.0;
@@ -462,11 +462,11 @@ Triangle3::massMatrix(CoordSet &cs,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-Triangle3::stiffness(CoordSet &cs, double *d, int flg)
+Triangle3::stiffness(const CoordSet &cs, double *d, int flg) const
 {
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
 
 	double x[3], y[3];
 	x[0] = nd1.x; y[0] = nd1.y; 
@@ -622,9 +622,9 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
   weight = 1;
   // scalar parameters
   Eigen::Array<double,8,1> dconst;
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
   
   double x[3], y[3];
   

@@ -204,14 +204,14 @@ void DEMInterfaceElement::markDofs(DofSetArray &dsa) {
 }
 
 
-FullSquareMatrix DEMElement::massMatrix(CoordSet &cs, double *K, int fl) {
+FullSquareMatrix DEMElement::massMatrix(const CoordSet &cs, double *K, int fl) const {
  fprintf(stderr,"DEMElement::massMatrix not implemented.\n");
  FullSquareMatrix ret(0,K);
  return ret;
 }
 
 
-FullSquareMatrix DEMElement::stiffness(CoordSet &cs, double *K, int flg ) {
+FullSquareMatrix DEMElement::stiffness(const CoordSet &cs, double *K, int flg ) const {
  fprintf(stderr,"DEMElement::massMatrix not implemented.\n");
  FullSquareMatrix ret(0,K);
  return ret;

@@ -22,11 +22,11 @@ class Tetrahedral: public Element,
     void renum(int *) override;
     void renum(EleRenumMap&) override;
 
-    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
+    FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const;
     void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
-    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
+    FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
     void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
-    double getMass(CoordSet& cs);
+    double getMass(const CoordSet& cs) const;
     void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);

@@ -9,7 +9,9 @@ class PointVariPlaneSegmentDistanceConstraintElement : public ConstraintFunction
   public:
     PointVariPlaneSegmentDistanceConstraintElement(int* _nn); 
   protected:
-    void getConstants(CoordSet& cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst, GeomState* = NULL);
+    void getConstants(const CoordSet & cs,
+                      Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst,
+                      const GeomState* = nullptr) const override;
 };
 
 #endif

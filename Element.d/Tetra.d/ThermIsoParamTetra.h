@@ -12,9 +12,9 @@ class ThermIsoParamTetra: public Element {
 public:
 	ThermIsoParamTetra(int,int*);
 
-        FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
-        double getMass(CoordSet&);
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const;
+        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const;
+        double getMass(const CoordSet&) const;
 
 	Element *clone() override;
 	void renum(int *) override;

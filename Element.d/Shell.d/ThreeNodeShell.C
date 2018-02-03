@@ -77,9 +77,9 @@ ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 	weight = 1.0;
   if(strInd == -1) return;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3], h[3];
 
@@ -130,9 +130,9 @@ ThreeNodeShell::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
 {
         weight = 1.0;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3], h[3];
 
@@ -188,13 +188,13 @@ ThreeNodeShell::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
 }
 
 double
-ThreeNodeShell::getMass(CoordSet& cs)
+ThreeNodeShell::getMass(const CoordSet& cs) const
 {
         if (prop == NULL) return 0.0;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
 
@@ -244,9 +244,9 @@ ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
         else {
 
-          Node &nd1 = cs.getNode(nn[0]);
-          Node &nd2 = cs.getNode(nn[1]);
-          Node &nd3 = cs.getNode(nn[2]);
+          auto &nd1 = cs.getNode(nn[0]);
+          auto &nd2 = cs.getNode(nn[1]);
+          auto &nd3 = cs.getNode(nn[2]);
           double x[3], y[3], z[3];
           x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
           x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
@@ -339,7 +339,7 @@ ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 FullSquareMatrix
-ThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
+ThreeNodeShell::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
         // Check for phantom element, which has no mass
         if(prop == NULL) {
@@ -348,9 +348,9 @@ ThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
            return ret;
         }
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3], h[3];
         double *gravityAcceleration = NULL, *grvfor = NULL, totmas = 0.0;
@@ -374,7 +374,7 @@ ThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
+ThreeNodeShell::stiffness(const CoordSet &cs, double *d, int flg) const
 {
         // Check for phantom element, which has no stiffness
         if (prop == NULL) {
@@ -383,9 +383,9 @@ ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
            return ret;
         }
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3], h[3];
 
@@ -620,9 +620,9 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
      }
 
      // Compute area of shell
-     Node &nd1 = cs.getNode(nn[0]);
-     Node &nd2 = cs.getNode(nn[1]);
-     Node &nd3 = cs.getNode(nn[2]);
+     auto &nd1 = cs.getNode(nn[0]);
+     auto &nd2 = cs.getNode(nn[1]);
+     auto &nd3 = cs.getNode(nn[2]);
 
      double r1[3], r2[3], r3[3], v1[3], v2[3], normal[3];
 
@@ -829,9 +829,9 @@ ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
    meant -= Tref;
 
    // Compute Node's coordinates
-   Node &nd1 = cs.getNode(nn[0]);
-   Node &nd2 = cs.getNode(nn[1]);
-   Node &nd3 = cs.getNode(nn[2]);
+   auto &nd1 = cs.getNode(nn[0]);
+   auto &nd2 = cs.getNode(nn[1]);
+   auto &nd3 = cs.getNode(nn[2]);
       
    x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
    x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
@@ -925,9 +925,9 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
     return;
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -952,9 +952,9 @@ ThreeNodeShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
     return;
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -980,9 +980,9 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
 {
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -1007,9 +1007,9 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
 {
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -1032,9 +1032,9 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 {
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3];
 
@@ -1055,6 +1055,6 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   delete mat;
 }
 
-int ThreeNodeShell::getMassType() { return 0; }
+int ThreeNodeShell::getMassType() const { return 0; }
 
 #endif

@@ -47,7 +47,7 @@ public:
 
 	bool hasRot() override;
 
-	FullSquareMatrix stiffness(CoordSet&, double*, int = 1) override;
+	FullSquareMatrix stiffness(const CoordSet&, double*, int = 1) const override;
 
 	void getGravityForce(CoordSet&, double*, Vector& f, int, GeomState*) override;
 
@@ -61,7 +61,7 @@ public:
 	double getElementEnergy(GeomState&, CoordSet&) override;
 
 	virtual void update(GeomState*, GeomState&, CoordSet&, double);
-	virtual void getHessian(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double);
+	virtual void getHessian(const GeomState*, const GeomState&, const CoordSet&, FullSquareMatrix&, double) const;
 	virtual double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 	virtual double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
@@ -86,6 +86,6 @@ public:
 	enum FunctionType { LINEAR=0, QUADRATIC, NONLINEAR };
 	virtual FunctionType functionType() { return NONLINEAR; }
 
-	bool isFreeplayElement() override { return type == 1 && prop->penalty != 0; }
+	bool isFreeplayElement() const override { return type == 1 && prop->penalty != 0; }
 };
 #endif

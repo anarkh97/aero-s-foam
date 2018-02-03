@@ -14,11 +14,11 @@ public:
 	Element *clone() override;
 	void renum(int *) override;
 	void renum(EleRenumMap&) override;
-	FullSquareMatrix stiffness(CoordSet&,double *kel, int flg) override;
+	FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg) const override;
 	void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs) override;
-	int getMassType() override { return 2; } // both consistent and lumped
-	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg) override;
-	double getMass(CoordSet&) override;
+	int getMassType() const override { return 2; } // both consistent and lumped
+	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
+	double getMass(const CoordSet&) const override;
 	void getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx);
 	void getLengthNodalCoordinateSensitivity(CoordSet &cs, Vector &dLengthdx);
 	void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration) override;

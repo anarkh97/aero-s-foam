@@ -20,7 +20,8 @@ class DotType1ConstraintElement : public ConstraintFunctionElement<Simo::DotType
     double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
   protected:
-    void getConstants(CoordSet&, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs = NULL);
+    void getConstants(const CoordSet &, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&,
+                      const GeomState *gs = NULL) const;
 };
 
 #endif

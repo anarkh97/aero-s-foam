@@ -69,7 +69,7 @@ public:
 	virtual int nEnrichmentDofs() const = 0;
 	virtual int nGeomNodes() const = 0;
 	virtual int nFaces() const =0;
-	virtual int nFaceCorners(int fi)=0;
+	virtual int nFaceCorners(int fi) const =0;
 	virtual int * faceCorners(int fi)=0;
 	int nLagrangeDofs() const;
 	virtual void createM(complex<double>*)=0;
@@ -187,8 +187,8 @@ public:
 		       ( nLagrangeDofs() );
 	}
 	virtual int* nodes(int * = 0) const override;
-	virtual FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
-	virtual FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
+	virtual FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const;
+	virtual FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const;
 
 // Interface
 	virtual double getOmega() { return geoSource->omega(); }

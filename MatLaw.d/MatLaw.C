@@ -148,7 +148,7 @@ MatLaw::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
 extern LinearStrain linearStrain;
 
 StrainEvaluator *
-MatLaw::getStrainEvaluator()
+MatLaw::getStrainEvaluator() const
 {
   return &linearStrain;
 }

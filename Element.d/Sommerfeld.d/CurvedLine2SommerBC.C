@@ -206,7 +206,7 @@ CurvedLine2SommerBC::turkelMatrix(CoordSet &cs, double *d) const {
 
 
 void
-CurvedLine2SommerBC::getNormal(CoordSet &cs, double normal[3]) {
+CurvedLine2SommerBC::getNormal(const CoordSet &cs, double normal[3]) const {
 	Node nd1 = cs.getNode(nn[0]);
 	Node nd2 = cs.getNode(nn[2]);
 

@@ -34,7 +34,7 @@ class MixedFiniteElement : public BoundaryElement
     void setMaterial(NLMaterial *_mat);
     bool isSafe() { return true; }
 
-    FullSquareMatrix stiffness(CoordSet&, double*, int = 1);
+    FullSquareMatrix stiffness(const CoordSet&, double*, int = 1) const;
     void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void getHessian(GeomState *refState, GeomState *c1, CoordSet& c0, Eigen::Matrix<double,
@@ -51,12 +51,12 @@ class MixedFiniteElement : public BoundaryElement
     virtual int getQuadratureOrder() = 0;
 
   private:
-    void getConstants(CoordSet &cs, Eigen::Array<typename ScalarValuedFunctionTemplate<double>::ScalarConstantType,
+    void getConstants(const CoordSet &cs, Eigen::Array<typename ScalarValuedFunctionTemplate<double>::ScalarConstantType,
                       ScalarValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> &sconst,
                       Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> &iconst,
-                      GeomState *gs = NULL);
-    void getInputs(Eigen::Matrix<double,ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q, 
-                   CoordSet& c0, GeomState *c1 = NULL);
+                      const GeomState *gs = nullptr) const;
+    void getInputs(Eigen::Matrix<double,ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q,
+                   const CoordSet& c0, const GeomState *c1 = nullptr) const;
 };
 
 #ifdef _TEMPLATE_FIX_

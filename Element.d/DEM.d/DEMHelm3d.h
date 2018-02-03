@@ -124,7 +124,7 @@ public:
  HexDGMElement3d(int _n, int* nodenums);
  int nGeomNodes() const override { return o*o*o; }
  int nFaces() const override { return 6; }
- virtual int nFaceCorners(int fi) { return 4; }
+ int nFaceCorners(int fi) const override { return 4; }
  virtual int *faceCornerI(int fi);
  virtual void externalNormal(double *xyz, int faceindex, double *n);
  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
@@ -139,7 +139,7 @@ public:
  TetraDGMElement3d(int _n, int* nodenums);
  int nGeomNodes() const override { return (o*(o+1)*(o+2))/6; }
  int nFaces() const override { return 4; }
- virtual int nFaceCorners(int fi) { return 3; }
+ int nFaceCorners(int fi) const override { return 3; }
  virtual int *faceCornerI(int fi);
  virtual void externalNormal(double *xyz, int faceindex, double *n);
  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
@@ -154,7 +154,7 @@ public:
  PrismDGMElement3d(int _n, int* nodenums);
  int nGeomNodes() const override { return o*(o*(o+1))/2; }
  int nFaces() const override { return 5; }
- virtual int nFaceCorners(int fi) { return (fi<3)?3:4; }
+ int nFaceCorners(int fi) const override { return (fi<3)?3:4; }
  virtual int *faceCornerI(int fi);
  virtual void externalNormal(double *xyz, int faceindex, double *n);
  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
@@ -169,7 +169,7 @@ public:
  PyramidDGMElement3d(int _n, int* nodenums);
  int nGeomNodes() const override { return 5; }
  int nFaces() const override { return 5; }
- virtual int nFaceCorners(int fi) { return (fi<2)?4:3; }
+ int nFaceCorners(int fi) const override { return (fi<2)?4:3; }
  virtual int *faceCornerI(int fi);
  virtual void externalNormal(double *xyz, int faceindex, double *n);
  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);

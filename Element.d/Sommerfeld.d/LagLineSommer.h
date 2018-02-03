@@ -23,7 +23,7 @@ public:
 
 	int *dofs(DofSetArray &, int *p = 0);
 
-	virtual LagLineSommer *clone();
+	virtual LagLineSommer *clone() override;
 
 	void neumVector(CoordSet &, ComplexVector &,
 	                double, double, double, double);
@@ -34,7 +34,7 @@ public:
 
 	ComplexD ffpCoef(double k) { return exp(ComplexD(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k); }
 
-	void getNormal(CoordSet &, double [3]);
+	void getNormal(const CoordSet &, double [3]) const override;
 };
 
 #endif

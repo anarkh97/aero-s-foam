@@ -66,7 +66,7 @@ SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::setMateria
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 int
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getNumGaussPoints()
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getNumGaussPoints() const
 {
   return NumIntgPts;
 }
@@ -77,7 +77,7 @@ SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::shapeFunct
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 ShapeFunction *
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getShapeFunction()
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getShapeFunction() const
 {
   return const_cast<AutoShapeFunction<ShapeFunctionTemplate,NumberOfNodes>* >(&shapeFunction);
 }
@@ -88,14 +88,14 @@ extern DeformationGradient deformationGradient;
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 StrainEvaluator *
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getStrainEvaluator()
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getStrainEvaluator() const const
 {
   return material->getStrainEvaluator();
 }
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 NLMaterial *
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getMaterial()
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getMaterial() const
 {
   return material;
 }

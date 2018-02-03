@@ -34,10 +34,10 @@ Therm2NodeBar::renum(EleRenumMap& table)
 }
 
 double
-Therm2NodeBar::getMass(CoordSet& cs)
+Therm2NodeBar::getMass(const CoordSet& cs) const
 {
-	Node &nd1 = cs.getNode( nn[0] );
-	Node &nd2 = cs.getNode( nn[1] );
+	auto &nd1 = cs.getNode( nn[0] );
+	auto &nd2 = cs.getNode( nn[1] );
 
 	double x[2], y[2], z[2];
 
@@ -55,7 +55,7 @@ Therm2NodeBar::getMass(CoordSet& cs)
 }
 
 FullSquareMatrix
-Therm2NodeBar::massMatrix(CoordSet &cs, double *mel, int cmflg)
+Therm2NodeBar::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
 	double mass = getMass(cs);
 	double massPerNode = 0.5*mass;
@@ -75,10 +75,10 @@ Therm2NodeBar::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-Therm2NodeBar::stiffness(CoordSet &cs, double *Ks, int flg)
+Therm2NodeBar::stiffness(const CoordSet &cs, double *Ks, int flg) const
 {
-	Node &nd1 = cs.getNode( nn[0] );
-	Node &nd2 = cs.getNode( nn[1] );
+	auto &nd1 = cs.getNode( nn[0] );
+	auto &nd2 = cs.getNode( nn[1] );
 
 	double x[2], y[2], z[2];
 
@@ -112,8 +112,8 @@ void
 Therm2NodeBar::getGravityForce(CoordSet& cs, double *, Vector &force, int, GeomState *)
 {
 	// compute body source term (not gravity force)
-	Node &nd1 = cs.getNode( nn[0] );
-	Node &nd2 = cs.getNode( nn[1] );
+	auto &nd1 = cs.getNode( nn[0] );
+	auto &nd2 = cs.getNode( nn[1] );
 
 	double x[2], y[2], z[2];
 
@@ -212,8 +212,8 @@ Therm2NodeBar::trussHeatFluxes(double &trussflux, CoordSet &cs, Vector& elTemp,
 // Heat flu per area
 	// trussflux must be a referenced parameter!!!
 
-	Node &nd1 = cs.getNode( nn[0] );
-	Node &nd2 = cs.getNode( nn[1] );
+	auto &nd1 = cs.getNode( nn[0] );
+	auto &nd2 = cs.getNode( nn[1] );
 
 	double x[2], y[2], z[2];
 

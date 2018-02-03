@@ -15,10 +15,10 @@ public:
         void renum(int *) override;
         void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet&,double *mel, int cmflg=1);
+        FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const;
+        FullSquareMatrix massMatrix(const CoordSet&,double *mel, int cmflg=1) const;
         bool             isSloshingElement() { return true; }
-        double           getMass(CoordSet& cs);
+        double           getMass(const CoordSet& cs) const;
         void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
          int numDofs() const override;
@@ -32,15 +32,10 @@ public:
         };
 
 private:
-        double J[3][3];
-        double Jinv[3][3];
-        double dOmega;
-        double gN[4][3];
 
-        double volume() {return dOmega/6.0;} 
-        void   computeMetrics(CoordSet&);
-        void   buildTetraMass(double m[4][4]);
-        void   buildTetraStiff(double m[4][4]);
+        double volume(double dOmega) const {return dOmega/6.0;}
+        double computeMetrics(const CoordSet &, double gN[4][3]) const;
+        void buildTetraStiff(double m[4][4], double gN[4][3], double dOmega) const;
         
 };
 

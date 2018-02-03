@@ -9,34 +9,34 @@ class GeomState;
 template<template <typename S> class VectorValuedFunctionTemplate>
 class ForceFunctionElement : public BoundaryElement
 {
-  public:
+public:
     ForceFunctionElement(int, DofSet, int*);
     ForceFunctionElement(int, DofSet*, int*);
     ForceFunctionElement(int, DofSet*, DofSet*, int*);
 
-    FullSquareMatrix stiffness(CoordSet&, double*, int = 1);
+    FullSquareMatrix stiffness(const CoordSet&, double*, int = 1) const;
     void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void getInternalForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState *gs = 0, int cflg = 0, double t = 0.0);
-  private:
-    void getJacobian(GeomState *refState, GeomState &c1, CoordSet& c0, FullM& B, double t);
+private:
+    void getJacobian(const GeomState *refState, const GeomState &c1, const CoordSet& c0, FullM& B, double t) const;
 
-  protected:
-    virtual void getConstants(CoordSet&,
+protected:
+    virtual void getConstants(const CoordSet&,
                               Eigen::Array<typename VectorValuedFunctionTemplate<double>::ScalarConstantType,
-                                           VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> &sconst,
+                                      VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> &sconst,
                               Eigen::Array<int,
-                                           VectorValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> &iconst,
-                              GeomState* = NULL, double = 0) {}
+                                      VectorValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> &iconst,
+                              const GeomState* = nullptr, double = 0) const {}
 
-   virtual void getInputs(Eigen::Matrix<double,VectorValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q, 
-                          CoordSet& c0, GeomState *c1 = NULL, GeomState *refState = NULL);
+    virtual void getInputs(Eigen::Matrix<double,VectorValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q,
+                           const CoordSet& c0, const GeomState *c1 = nullptr, const GeomState *refState = nullptr) const;
 };
 
 #ifdef _TEMPLATE_FIX_
-  #include <Element.d/Force.d/ForceFunctionElementImpl.h>
+#include <Element.d/Force.d/ForceFunctionElementImpl.h>
 #endif
 
 #endif

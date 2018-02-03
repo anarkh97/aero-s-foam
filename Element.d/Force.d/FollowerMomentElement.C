@@ -27,8 +27,8 @@ FollowerMomentElement::setFrame(EFrame *elemframe)
 }
 
 void
-FollowerMomentElement::getConstants(CoordSet& cs, Eigen::Array<double,12,1>& sconst, Eigen::Array<int,0,1>&,
-                                    GeomState* gs, double t)
+FollowerMomentElement::getConstants(const CoordSet& cs, Eigen::Array<double,12,1>& sconst, Eigen::Array<int,0,1>&,
+                                    const GeomState* gs, double t) const
 {
   Eigen::Vector3d M;
   if(!C0) {

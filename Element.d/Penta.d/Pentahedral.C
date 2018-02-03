@@ -233,7 +233,7 @@ Pentahedral::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
 }
 
 double
-Pentahedral::getMass(CoordSet& cs)
+Pentahedral::getMass(const CoordSet& cs) const
 {
   const int nnodes = 6;
   double X[6], Y[6], Z[6];
@@ -406,7 +406,7 @@ Pentahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 FullSquareMatrix
-Pentahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
+Pentahedral::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   const int nnodes = 6;
   const int ndofs = 18;
@@ -460,7 +460,7 @@ Pentahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
 //HB (04/15/05)  new implementation of the Penta6 stiffness matrix to deal
 //               with anisotropic constitutive matrix
 FullSquareMatrix
-Pentahedral::stiffness(CoordSet &cs,double *d, int flg)
+Pentahedral::stiffness(const CoordSet &cs,double *d, int flg) const
 {
   const int nnodes = 6;
 

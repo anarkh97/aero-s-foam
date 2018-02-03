@@ -492,7 +492,7 @@ FullSquareMatrix IsoParamTriSommer::turkelMatrix(CoordSet &cs, double *d) const 
 }
 
 
-void IsoParamTriSommer::getNormal(CoordSet &cs, double normal[3]) {
+void IsoParamTriSommer::getNormal(const CoordSet &cs, double normal[3]) const {
 
 	IsoParamUtilsTetra ipu(order);
 	int ordersq = ipu.getordersq();

@@ -14,13 +14,13 @@ class ElaLinIsoMat2D : public NLMaterial
      ElaLinIsoMat2D(StructProp *p);
      ElaLinIsoMat2D(double _rho, double _E, double _nu, double _t, double _Tref, double _alpha);
 
-     int getNumStates() { return 0; }
+     int getNumStates() const override { return 0; }
 
-     void getStress(Tensor *stress, Tensor &strain, double*, double temp);
+     void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
      void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
-     void getElasticity(Tensor *tm) {};
+     void getElasticity(Tensor *tm) const {};
 
      void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {};
 
@@ -28,11 +28,11 @@ class ElaLinIsoMat2D : public NLMaterial
      
      void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                     double *staten, double *statenp, double temp,
-                    Tensor *cache, double dt=0);
+                    Tensor *cache, double dt=0) const override;
 
      void integrate(Tensor *stress, Tensor &en, Tensor &enp,
                     double *staten, double *statenp, double temp,
-                    Tensor *cache, double dt=0);
+                    Tensor *cache, double dt=0) const override;
 
      void initStates(double *) {};
 
@@ -40,7 +40,7 @@ class ElaLinIsoMat2D : public NLMaterial
 
      double getDensity() { return rho; }
 
-     double getThickness() { return t; }
+     double getThickness() const override { return t; }
 
      double getReferenceTemperature() { return Tref; }
 };

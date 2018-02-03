@@ -16,7 +16,7 @@ const double SolidElementTemplate<Tet10LagrangePolynomialShapeFunction,10,15>
 template<>
 void
 SolidElementTemplate<Tet4LagrangePolynomialShapeFunction,4,1>
-::getGaussPointAndWeight(int n, double *point, double &weight)
+::getGaussPointAndWeight(int n, double *point, double &weight) const
 {
   // 1 point (degree 1) useful for TET4 stiffness 
   double w_save[1] = {
@@ -33,7 +33,7 @@ SolidElementTemplate<Tet4LagrangePolynomialShapeFunction,4,1>
 template<>
 void
 SolidElementTemplate<Tet10LagrangePolynomialShapeFunction,10,4>
-::getGaussPointAndWeight(int n, double *point, double &weight)
+::getGaussPointAndWeight(int n, double *point, double &weight) const
 {
   // 4 point (degree 2) useful for TET4 mass and TET10 stiffness
   double w_save[4] = {
@@ -56,7 +56,7 @@ SolidElementTemplate<Tet10LagrangePolynomialShapeFunction,10,4>
 template<>
 void
 SolidElementTemplate<Tet10LagrangePolynomialShapeFunction,10,15>
-::getGaussPointAndWeight(int n, double *point, double &weight)
+::getGaussPointAndWeight(int n, double *point, double &weight) const
 {
   double w_save[15] = {
     0.071937083779018620010,

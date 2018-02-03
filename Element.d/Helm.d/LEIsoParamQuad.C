@@ -79,7 +79,7 @@ void LEIsoParamQuad::markDofs(DofSetArray &dsa) {
 }
 
 
-double LEIsoParamQuad::getMass(CoordSet &cs) {
+double LEIsoParamQuad::getMass(const CoordSet &cs) const {
  IsoParamUtils2d ipu(order);
  int ordersq = ipu.getordersq();
  double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
@@ -110,7 +110,7 @@ double LEIsoParamQuad::getMassThicknessSensitivity(CoordSet &cs) {
 }
 
 
-FullSquareMatrix LEIsoParamQuad::massMatrix(CoordSet &cs, double *K, int fl) {
+FullSquareMatrix LEIsoParamQuad::massMatrix(const CoordSet &cs, double *K, int fl) const {
 
  IsoParamUtils2d ipu(order);
  int ordersq = ipu.getordersq();
@@ -129,7 +129,7 @@ FullSquareMatrix LEIsoParamQuad::massMatrix(CoordSet &cs, double *K, int fl) {
 }
 
 
-FullSquareMatrix LEIsoParamQuad::stiffness(CoordSet &cs, double *K, int flg ) {
+FullSquareMatrix LEIsoParamQuad::stiffness(const CoordSet &cs, double *K, int flg ) const {
  IsoParamUtils2d ipu(order);
  int ordersq = ipu.getordersq();
  double *xyz=(double*)alloca(sizeof(double)*3*ordersq);

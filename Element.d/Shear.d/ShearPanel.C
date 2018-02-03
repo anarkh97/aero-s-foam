@@ -74,10 +74,10 @@ ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
  	weight = 1.0;
   if(strInd == -1) return;
 
-	Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+	auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], z[4];
 
@@ -145,10 +145,10 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
    }
    weight = 1.0;
 
-   Node &nd1 = cs.getNode(nn[0]);
-   Node &nd2 = cs.getNode(nn[1]);
-   Node &nd3 = cs.getNode(nn[2]);
-   Node &nd4 = cs.getNode(nn[3]);
+   auto &nd1 = cs.getNode(nn[0]);
+   auto &nd2 = cs.getNode(nn[1]);
+   auto &nd3 = cs.getNode(nn[2]);
+   auto &nd4 = cs.getNode(nn[3]);
 
    double vmssig;
 
@@ -189,10 +189,10 @@ ShearPanel::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
 {
  	weight = 1.0;
 
-	Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+	auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], z[4];
 
@@ -256,12 +256,12 @@ ShearPanel::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
 }
 
 double
-ShearPanel::getMass(CoordSet& cs)
+ShearPanel::getMass(const CoordSet& cs) const
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], z[4];
 
@@ -290,10 +290,10 @@ ShearPanel::getMass(CoordSet& cs)
 double
 ShearPanel::getMassThicknessSensitivity(CoordSet& cs)
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], z[4];
 
@@ -350,10 +350,10 @@ ShearPanel::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 
         int i;
         int numgauss = 2;
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], z[4];
         double xl[4], yl[4];
@@ -481,10 +481,10 @@ ShearPanel::getGravityForceThicknessSensitivity(CoordSet& cs,double *gravityAcce
 
         int i;
         int numgauss = 2;
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], z[4];
         double xl[4], yl[4];
@@ -582,12 +582,12 @@ ShearPanel::getGravityForceThicknessSensitivity(CoordSet& cs,double *gravityAcce
 }
 
 FullSquareMatrix
-ShearPanel::massMatrix(CoordSet &cs,double *mel,int cmflg)
+ShearPanel::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], z[4];
 
@@ -614,12 +614,12 @@ ShearPanel::massMatrix(CoordSet &cs,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-ShearPanel::stiffness(CoordSet &cs, double *d, int flg)
+ShearPanel::stiffness(const CoordSet &cs, double *d, int flg) const
 {
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
-	Node &nd4 = cs.getNode(nn[3]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
+	auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], z[4];
 

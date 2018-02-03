@@ -81,11 +81,11 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     PressureBCond *pbc;
 
   protected:
-    int getNumGaussPoints();
-    void getGaussPointAndWeight(int i, double *point, double &weight);
-    GenShapeFunction< TwoDTensorTypes<9> > *getShapeFunction();
-    GenStrainEvaluator<TwoDTensorTypes<9> > *getGenStrainEvaluator();
-    NLMaterial *getMaterial();
+    int getNumGaussPoints() const;
+    void getGaussPointAndWeight(int i, double *point, double &weight) const;
+    GenShapeFunction< TwoDTensorTypes<9> > *getShapeFunction() const;
+    GenStrainEvaluator<TwoDTensorTypes<9> > *getGenStrainEvaluator() const;
+    const NLMaterial *getMaterial() const;
 
   public:
     NLMembrane(int *nd);
@@ -112,14 +112,14 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
 
     Corotator* getCorotator(CoordSet &, double *, int , int) override;
     int getTopNumber() override { return 104; }
-    FullSquareMatrix  stiffness(CoordSet& cs, double *k, int flg=1) override;
+    FullSquareMatrix  stiffness(const CoordSet& cs, double *k, int flg=1) const override;
 #ifdef USE_EIGEN3
-    int getMassType() override { return 2; } // both consistent and lumped
+    int getMassType() const override { return 2; } // both consistent and lumped
 #else
-    int getMassType() { return 0; } // lumped only
+    int getMassType() const override { return 0; } // lumped only
 #endif
-    FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg) override;
-    double getMass(CoordSet&) override;
+    FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg) const override;
+    double getMass(const CoordSet&) const override;
     void getGravityForce(CoordSet& cs, double *gravityAcceleration,
                          Vector& gravityForce, int gravflg, GeomState *geomState) override;
     void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,

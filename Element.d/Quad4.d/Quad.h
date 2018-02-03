@@ -15,9 +15,9 @@ public:
 	void renum(int *) override;
         void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet&, double *d, int flg = 1);
-        FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-        double           getMass(CoordSet&);
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg = 1) const;
+        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+        double           getMass(const CoordSet&) const;
 
         virtual void     getVonMises (Vector &stress, Vector &weight, 
                                       CoordSet &cs, Vector &elDisp,
@@ -35,7 +35,7 @@ public:
 
 	int getTopNumber() override;
 
-        int getMassType() { return 0; } // lumped only
+        int getMassType() const override { return 0; } // lumped only
 };
 #endif
 

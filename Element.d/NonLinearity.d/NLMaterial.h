@@ -19,11 +19,11 @@ class NLMaterial
 
      virtual ~NLMaterial() {}
 
-     virtual int getNumStates() = 0;  
+     virtual int getNumStates() const = 0;
 
      virtual void getTangentMaterial(Tensor *tm, Tensor &strain, double *state, double temp) = 0;
 
-     virtual void getElasticity(Tensor *tm) = 0;
+     virtual void getElasticity(Tensor *tm) const = 0;
 
      virtual void getStress(Tensor *stress, Tensor &strain, double *state, double temp) = 0; // returns conjugate stress
 
@@ -33,17 +33,17 @@ class NLMaterial
 
      virtual void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                             double *staten, double *statenp, double temp,
-                            Tensor *cache, double dt=0) = 0;
+                            Tensor *cache, double dt=0) const = 0;
 
      virtual void integrate(Tensor *stress, Tensor &en, Tensor &enp,
                             double *staten, double *statenp, double temp,
-                            Tensor *cache, double dt=0) = 0;
+                            Tensor *cache, double dt=0) const = 0;
 
      virtual void initStates(double *) = 0;
 
      virtual double getDensity() { return 0; }
 
-     virtual StrainEvaluator * getStrainEvaluator() { return NULL; } // return default strain evaluator 
+     virtual StrainEvaluator * getStrainEvaluator() const { return NULL; } // return default strain evaluator
 
      virtual GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator() { return NULL; }
 
@@ -53,7 +53,7 @@ class NLMaterial
 
      virtual bool getPlasticStrain(double *statenp, Tensor *plasticstrain) { return false; }
 
-     virtual double getDamage(double *statenp) { return 0; }
+     virtual double getDamage(double *statenp) const { return 0; }
 
      virtual double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp) {
        std::cerr << "material law does not implement getStrainEnergyDensity function\n";
@@ -62,7 +62,7 @@ class NLMaterial
 
      virtual double getDissipatedEnergy(double *statenp) { return 0; }
 
-     virtual double getThickness() { return 0; }
+     virtual double getThickness() const { return 0; }
 
      virtual double getReferenceTemperature() { return 0; }
 

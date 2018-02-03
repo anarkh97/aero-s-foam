@@ -93,10 +93,10 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         weight = 1.0;
         if(strInd == -1) return;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], c[9];
 
@@ -170,10 +170,10 @@ FourNodeQuad::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
 
         weight = 1.0;
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], c[9];
 
@@ -252,12 +252,12 @@ FourNodeQuad::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
 }
 
 double
-FourNodeQuad::getMass(CoordSet& cs)
+FourNodeQuad::getMass(const CoordSet& cs) const
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         Vector r1(3), r2(3), r3(3), r4(3);
 
@@ -284,10 +284,10 @@ FourNodeQuad::getMass(CoordSet& cs)
 double
 FourNodeQuad::getMassSensitivityWRTthickness(CoordSet& cs)
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         Vector r1(3), r2(3), r3(3), r4(3);
 
@@ -368,10 +368,10 @@ FourNodeQuad::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 
     int i;
     int numgauss = 2;
-    Node &nd1 = cs.getNode(nn[0]);
-    Node &nd2 = cs.getNode(nn[1]);
-    Node &nd3 = cs.getNode(nn[2]);
-    Node &nd4 = cs.getNode(nn[3]);
+    auto &nd1 = cs.getNode(nn[0]);
+    auto &nd2 = cs.getNode(nn[1]);
+    auto &nd3 = cs.getNode(nn[2]);
+    auto &nd4 = cs.getNode(nn[3]);
 
     double x[4], y[4];
     x[0] = nd1.x; y[0] = nd1.y;
@@ -437,10 +437,10 @@ FourNodeQuad::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
 
     int i;
     int numgauss = 2;
-    Node &nd1 = cs.getNode(nn[0]);
-    Node &nd2 = cs.getNode(nn[1]);
-    Node &nd3 = cs.getNode(nn[2]);
-    Node &nd4 = cs.getNode(nn[3]);
+    auto &nd1 = cs.getNode(nn[0]);
+    auto &nd2 = cs.getNode(nn[1]);
+    auto &nd3 = cs.getNode(nn[2]);
+    auto &nd4 = cs.getNode(nn[3]);
 
     double x[4], y[4];
     x[0] = nd1.x; y[0] = nd1.y;
@@ -481,12 +481,12 @@ FourNodeQuad::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
 }
 
 FullSquareMatrix
-FourNodeQuad::massMatrix(CoordSet &cs,double *mel,int cmflg)
+FourNodeQuad::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], h[4];
 
@@ -515,12 +515,12 @@ FourNodeQuad::massMatrix(CoordSet &cs,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-FourNodeQuad::stiffness(CoordSet &cs, double *d, int flg)
+FourNodeQuad::stiffness(const CoordSet &cs, double *d, int flg) const
 {
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
-	Node &nd4 = cs.getNode(nn[3]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
+	auto &nd4 = cs.getNode(nn[3]);
 
 	double c[9];
 
@@ -639,10 +639,10 @@ FourNodeQuad::getThermalForce(CoordSet &cs, Vector &ndTemps,
 // The matrix C[8x4] is computed in quad2d.f
 // Called from Dynam.C, since it is a time-dependant RHS force.
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         double x[4], y[4], elC[4][8];
 // BE CAREFUL!!! Fortran=(8,4)--> C++ = (4X8)
@@ -695,10 +695,10 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   weight = 1;
   // scalar parameters
   Eigen::Array<double,17,1> dconst;
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
-  Node &nd4 = cs.getNode(nn[3]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
+  auto &nd4 = cs.getNode(nn[3]);
 
   double x[4], y[4];
 

@@ -12,13 +12,13 @@ RigidTwoNodeTrussWithMass::RigidTwoNodeTrussWithMass(int* _nn)
 }
 
 double
-RigidTwoNodeTrussWithMass::getMass(CoordSet& cs)
+RigidTwoNodeTrussWithMass::getMass(const CoordSet& cs) const
 {
   if(prop == NULL || prop->rho == 0 || prop->A == 0)
     return 0;
 
-  Node &nd1 = cs.getNode( nn[0] );
-  Node &nd2 = cs.getNode( nn[1] );
+  auto &nd1 = cs.getNode( nn[0] );
+  auto &nd2 = cs.getNode( nn[1] );
 
   double x[2], y[2], z[2];
 
@@ -59,7 +59,7 @@ RigidTwoNodeTrussWithMass::getGravityForce(CoordSet& cs, double *gravityAccelera
 }
 
 FullSquareMatrix
-RigidTwoNodeTrussWithMass::massMatrix(CoordSet &cs, double *mel, int cmflg)
+RigidTwoNodeTrussWithMass::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   FullSquareMatrix elementMassMatrix(6, mel);
   elementMassMatrix.zero();

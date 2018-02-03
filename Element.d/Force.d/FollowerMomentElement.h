@@ -11,15 +11,15 @@ class FollowerMomentElement : public ForceFunctionElement<Simo::FollowerMomentFo
   public:
     static const DofSet NODALINPUTDOFS[1];
     static const DofSet NODALOUTPUTDOFS[1];
-    FollowerMomentElement(int* _nn); 
+    FollowerMomentElement(int* _nn);
     ~FollowerMomentElement();
 
     void setFrame(EFrame *);
-    bool hasRot() { return true; }
+    bool hasRot() override { return true; }
 
   protected:
-    void getConstants(CoordSet& cs, Eigen::Array<double,12,1>& sconst, Eigen::Array<int,0,1>&,
-                      GeomState* = NULL, double = 0);
+    void getConstants(const CoordSet& cs, Eigen::Array<double,12,1>& sconst, Eigen::Array<int,0,1>&,
+                      const GeomState* = nullptr, double = 0) const override;
 };
 
 #endif

@@ -83,12 +83,12 @@ Quad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
 }
 
 double
-Quad::getMass(CoordSet& cs)
+Quad::getMass(const CoordSet& cs) const
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
 
         Vector r1(3), r2(3), r3(3), r4(3);
 
@@ -112,7 +112,7 @@ Quad::getMass(CoordSet& cs)
 }
 
 FullSquareMatrix
-Quad::massMatrix(CoordSet &cs,double *mel,int cmflg)
+Quad::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
 
         double *x = (double *) dbg_alloca(sizeof(double)*numnod);
@@ -147,7 +147,7 @@ Quad::massMatrix(CoordSet &cs,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-Quad::stiffness(CoordSet &cs, double *d, int flg)
+Quad::stiffness(const CoordSet &cs, double *d, int flg) const
 {
 	double *x = (double *) dbg_alloca(sizeof(double)*numnod);
 	double *y = (double *) dbg_alloca(sizeof(double)*numnod);

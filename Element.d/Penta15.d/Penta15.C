@@ -257,7 +257,7 @@ Penta15::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
 }
 
 double
-Penta15::getMass(CoordSet& cs)
+Penta15::getMass(const CoordSet& cs) const
 {
   const int nnodes = 15;
   double X[15], Y[15], Z[15];
@@ -385,7 +385,7 @@ Penta15::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 FullSquareMatrix
-Penta15::massMatrix(CoordSet &cs, double *mel, int cmflg)
+Penta15::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   const int nnodes = 15;
   const int ndofs = 45;
@@ -422,7 +422,7 @@ Penta15::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-Penta15::stiffness(CoordSet &cs, double *d, int flg)
+Penta15::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   const int nnodes = 15;
   const int ndofs = 45;

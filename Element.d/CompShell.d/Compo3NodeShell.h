@@ -25,8 +25,8 @@ public:
 	void renum(int *) override;
         void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg) override;
-        FullSquareMatrix massMatrix(CoordSet& cs,double *mel,int cmflg=1);
+        FullSquareMatrix stiffness(const CoordSet& cs, double *d, int flg) const override;
+        FullSquareMatrix massMatrix(const CoordSet& cs,double *mel,int cmflg=1) const;
 
         void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
 	                     GeomState *gs);
@@ -53,7 +53,7 @@ public:
         int numNodes() const;
         int* nodes(int * = 0) const override;
         Corotator *getCorotator(CoordSet &, double *,int,int);
-        double getMass(CoordSet &);
+        double getMass(const CoordSet &) const;
         double getMassThicknessSensitivity(CoordSet &);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
@@ -83,7 +83,7 @@ public:
 
 	bool hasRot() { return true; }
 
-        int getMassType() { return 0; } // lumped only
+        int getMassType() const override { return 0; } // lumped only
 
 };
 #endif

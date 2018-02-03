@@ -98,13 +98,13 @@ void LEIsoParamTetra::markDofs(DofSetArray &dsa) {
 }
 
 
-double LEIsoParamTetra::getMass(CoordSet&) {
+double LEIsoParamTetra::getMass(const CoordSet&) const {
  fprintf(stderr,"LEIsoParamTetra::getMass not implemented.\n");
  return 0.0;
 }
 
 
-FullSquareMatrix LEIsoParamTetra::massMatrix(CoordSet &cs, double *K, int fl) {
+FullSquareMatrix LEIsoParamTetra::massMatrix(const CoordSet &cs, double *K, int fl) const {
 
  IsoParamUtilsTetra ipu(order);
  int orderc = ipu.getorderc();
@@ -123,7 +123,7 @@ FullSquareMatrix LEIsoParamTetra::massMatrix(CoordSet &cs, double *K, int fl) {
 }
 
 
-FullSquareMatrix LEIsoParamTetra::stiffness(CoordSet &cs, double *K, int flg ) {
+FullSquareMatrix LEIsoParamTetra::stiffness(const CoordSet &cs, double *K, int flg ) const {
 
  IsoParamUtilsTetra ipu(order);
  int orderc = ipu.getorderc();

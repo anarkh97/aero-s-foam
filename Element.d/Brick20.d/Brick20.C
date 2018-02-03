@@ -236,7 +236,7 @@ Brick20::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
 }
 
 double
-Brick20::getMass(CoordSet& cs)
+Brick20::getMass(const CoordSet& cs) const
 {
   const int nnodes = 20;
   double x[20], y[20], z[20];
@@ -390,7 +390,7 @@ Brick20::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 FullSquareMatrix
-Brick20::massMatrix(CoordSet &cs, double *mel, int cmflg)
+Brick20::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   const int nnodes = 20;
   const int ndofs = 60;
@@ -437,7 +437,7 @@ Brick20::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-Brick20::stiffness(CoordSet &cs, double *d, int flg)
+Brick20::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   const int nnodes = 20;
   const int ndofs = 60;

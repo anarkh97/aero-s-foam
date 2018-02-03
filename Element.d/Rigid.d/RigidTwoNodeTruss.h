@@ -22,9 +22,9 @@ class RigidTwoNodeTrussWithMass : public ConstantDistanceConstraint
     bool isSafe() { return false; }
     PrioInfo examine(int sub, MultiFront*);
 
-    int getMassType() { return 2; } // both consistent and lumped
-    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-    double getMass(CoordSet&);
+    int getMassType() const override { return 2; } // both consistent and lumped
+    FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+    double getMass(const CoordSet&) const;
     void getGravityForce(CoordSet&, double *g, Vector& f, int gravflg,
                          GeomState *gs);
 };

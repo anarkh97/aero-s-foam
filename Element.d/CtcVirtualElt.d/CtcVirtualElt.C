@@ -89,7 +89,7 @@ CtcVirtualElt::getTopNumber()
 
 
 FullSquareMatrix
-CtcVirtualElt::massMatrix(CoordSet &cs, double *mel, int flg) // should never be called
+CtcVirtualElt::massMatrix(const CoordSet &cs, double *mel, int flg) const // should never be called
   // The virtual elt has no structural property -> not in packedEltSet
   // Hence, it is in dsa,c_dsa ... but not in connectivity tab allDofs (built from packedEltSet) of Krr
 {
@@ -101,7 +101,7 @@ CtcVirtualElt::massMatrix(CoordSet &cs, double *mel, int flg) // should never be
 }
 
 FullSquareMatrix
-CtcVirtualElt::stiffness(CoordSet &cs,double *k, int flg) // should never be called
+CtcVirtualElt::stiffness(const CoordSet &cs,double *k, int flg) const // should never be called
 {
   cout << "No stiffness Matrix for virtual elements " << endl;
   exit (-1);
@@ -114,7 +114,7 @@ CtcVirtualElt::stiffness(CoordSet &cs,double *k, int flg) // should never be cal
 
 
 //double
-//CtcVirtualElt::getMass(CoordSet& cs)
+//CtcVirtualElt::getMass(const CoordSet& cs) const
 //{
 //  mass=0;
 //  return mass;

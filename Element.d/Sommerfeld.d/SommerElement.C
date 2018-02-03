@@ -306,7 +306,7 @@ FullSquareMatrix SommerElement::surfStiffMatrix(CoordSet &cs)
 }
 */
 
-FullSquareMatrix SommerElement::HSommerMatrix(CoordSet &cs) {
+FullSquareMatrix SommerElement::HSommerMatrix(const CoordSet &cs) const {
 	int nd = numDofs();
 	return HSommerMatrix(cs, new double[nd * nd]);
 }
@@ -362,7 +362,7 @@ FullSquareMatrix SommerElement::surfStiffMatrix(CoordSet &cs, double *d) {
 }
 */
 
-FullSquareMatrix SommerElement::HSommerMatrix(CoordSet &cs, double *d) {
+FullSquareMatrix SommerElement::HSommerMatrix(const CoordSet &cs, double *d) const {
 
 	fprintf(stderr, "SommerElement::HSommerMatrix should not be called.\n");
 	fprintf(stderr, "Note that if the ABC is a flat surface, ATDARB==0.0 is equivalent to ATDARB=1.0\n");
@@ -848,12 +848,12 @@ SommerElement::ffpCoef(double k) {
 }
 
 void
-SommerElement::getNormal(CoordSet &, double[3]) {
+SommerElement::getNormal(const CoordSet &, double[3]) const {
 	fprintf(stderr, " *** WARNING: SommerElement::getNormal not implemented\n");
 }
 
 
-int SommerElement::ludcmp(FullSquareMatrix A, int n, int *indx)// LU decomposition
+int SommerElement::ludcmp(FullSquareMatrix A, int n, int *indx) const// LU decomposition
 //form "Numerical recipes in C", cambridge
 {
 	int i, imax, j, k;
@@ -906,7 +906,7 @@ int SommerElement::ludcmp(FullSquareMatrix A, int n, int *indx)// LU decompositi
 	return 0;
 }
 
-void SommerElement::lubksb(FullSquareMatrix A, int n, int *indx, double *b)//LU factorisation
+void SommerElement::lubksb(FullSquareMatrix A, int n, int *indx, double *b) const//LU factorisation
 //form "Numerical recipes in C", cambridge
 {
 	int i, ii = 0, ip, j;
@@ -928,7 +928,7 @@ void SommerElement::lubksb(FullSquareMatrix A, int n, int *indx, double *b)//LU 
 	}
 }
 
-void SommerElement::invert(FullSquareMatrix A, FullSquareMatrix B) {
+void SommerElement::invert(FullSquareMatrix A, FullSquareMatrix B) const {
 	int n = A.dim();
 	//copy A in Acopy
 	double *valA = new double[n * n];
@@ -965,7 +965,7 @@ SommerElement::markDofs(DofSetArray &dsa) {
 }
 
 FullSquareMatrix
-SommerElement::massMatrix(CoordSet &cs, double *d, int cmflg) {
+SommerElement::massMatrix(const CoordSet &cs, double *d, int cmflg) const {
 	//This function calls subfunctions and assembles the matrix using the submatrixes produced.
 	double numD = dom->solInfo().ATDARBFlag;
 	if (numD == 1.5) {
@@ -1002,7 +1002,7 @@ SommerElement::massMatrix(CoordSet &cs, double *d, int cmflg) {
 	return FullSquareMatrix(0);
 }
 
-FullSquareMatrix SommerElement::stiffness(CoordSet &cs, double *Ks, int flg) {
+FullSquareMatrix SommerElement::stiffness(const CoordSet &cs, double *Ks, int flg) const {
 	double numD = dom->solInfo().ATDARBFlag;
 	int nNo = numNodes();
 	if (numD == 1.5) {

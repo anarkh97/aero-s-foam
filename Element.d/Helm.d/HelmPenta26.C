@@ -58,14 +58,14 @@ HelmPenta26::renum(EleRenumMap& table)
 }
 
 double
-HelmPenta26::getMass(CoordSet& cs)
+HelmPenta26::getMass(const CoordSet& cs) const
 {
   fprintf(stderr," *** WARNING: HelmPenta26::getMass NOT implemented. Return zero mass.\n");
   return(0.0);
 }
 
 FullSquareMatrix
-HelmPenta26::massMatrix(CoordSet &cs,double *d,int cmflg)
+HelmPenta26::massMatrix(const CoordSet &cs,double *d,int cmflg) const
 {
   int status = 0;
   const int nnodes  = 26;
@@ -151,7 +151,7 @@ HelmPenta26::massMatrix(CoordSet &cs,double *d,int cmflg)
 }
 
 FullSquareMatrix
-HelmPenta26::stiffness(CoordSet &cs, double *d, int flg)
+HelmPenta26::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   int status = 0;
   const int nnodes  = 26;

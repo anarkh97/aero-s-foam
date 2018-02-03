@@ -27,83 +27,84 @@ TetraHelmGLS::TetraHelmGLS(int* nodenums)
 Element *
 TetraHelmGLS::clone()
 {
- return new TetraHelmGLS(*this);
+	return new TetraHelmGLS(*this);
 }
 
 void
 TetraHelmGLS::renum(int *table)
 {
-  nn[0] = table[nn[0]];
-  nn[1] = table[nn[1]];
-  nn[2] = table[nn[2]];
-  nn[3] = table[nn[3]];
+	nn[0] = table[nn[0]];
+	nn[1] = table[nn[1]];
+	nn[2] = table[nn[2]];
+	nn[3] = table[nn[3]];
 }
 
 void
 TetraHelmGLS::renum(EleRenumMap& table)
 {
-  nn[0] = table[nn[0]];
-  nn[1] = table[nn[1]];
-  nn[2] = table[nn[2]];
-  nn[3] = table[nn[3]];
+	nn[0] = table[nn[0]];
+	nn[1] = table[nn[1]];
+	nn[2] = table[nn[2]];
+	nn[3] = table[nn[3]];
 }
 
 int
 TetraHelmGLS::getTopNumber()
 {
-  return 140;//5;
+	return 140;//5;
 }
 
 
 double
-TetraHelmGLS::getMass(CoordSet& cs)
+TetraHelmGLS::getMass(const CoordSet& cs) const
 {
-  return 0.0;
+	return 0.0;
 }
 
 FullSquareMatrix
-TetraHelmGLS::massMatrix(CoordSet &cs,double *mel,int cmflg)
+TetraHelmGLS::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
-        FullSquareMatrix sm(4,mel);
+	FullSquareMatrix sm(4,mel);
+	double gN[4][3];
+	double dOmega = computeMetrics(cs, gN);
 
-        computeMetrics(cs);
+	double TetraMass[4][4];
+	buildTetraMass(TetraMass, dOmega);
 
-        double TetraMass[4][4];
-        buildTetraMass(TetraMass);
+	int i, j;
+	for (i=0;i<4;i++) for(j=0;j<4;j++)
+			sm[i][j] = TetraMass[i][j];
 
-        int i, j;
-        for (i=0;i<4;i++) for(j=0;j<4;j++)
-          sm[i][j] = TetraMass[i][j];
+	double kappa = prop ->kappaHelm;
+	double h = 0.0;
+	for(i=0;i<4;i++) for(j=0;j<4;j++) h += TetraMass[i][j];
+	h = pow(6*h*sqrt(2.0),1.0/3.0);
+	double tauksq = 1.0 - 8.0/(kappa*h*kappa*h)*
+	                      (1.0-cos(sqrt(3.0)/2.0*kappa*h))/(2+cos(sqrt(3.0)/2.0*kappa*h));
+	coef = (-kappa*kappa+kappa*kappa*tauksq);
 
-        double kappa = prop ->kappaHelm;
-        double h = 0.0;
-        for(i=0;i<4;i++) for(j=0;j<4;j++) h += TetraMass[i][j];
-        h = pow(6*h*sqrt(2.0),1.0/3.0);
-        double tauksq = 1.0 - 8.0/(kappa*h*kappa*h)*
-                        (1.0-cos(sqrt(3.0)/2.0*kappa*h))/(2+cos(sqrt(3.0)/2.0*kappa*h));
-        coef = (-kappa*kappa+kappa*kappa*tauksq);
-
-        sm /= getProperty()->rho;
-        return sm;
+	sm /= getProperty()->rho;
+	return sm;
 }
 
 
 FullSquareMatrix
-TetraHelmGLS::stiffness(CoordSet &cs, double *Ks, int flg )
+TetraHelmGLS::stiffness(const CoordSet &cs, double *Ks, int flg ) const
 {
-        FullSquareMatrix sm(4,Ks);
+	FullSquareMatrix sm(4,Ks);
 
-        computeMetrics(cs);
+	double gN[4][3];
+	double dOmega = computeMetrics(cs, gN);
 
-        double TetraStiff[4][4];
-        buildTetraStiff(TetraStiff);
+	double TetraStiff[4][4];
+	buildTetraStiff(TetraStiff, gN, dOmega);
 
-        int i,j;
-        for (i=0;i<4;i++) for(j=0;j<4;j++)
-          sm[i][j] = TetraStiff[i][j];
+	int i,j;
+	for (i=0;i<4;i++) for(j=0;j<4;j++)
+			sm[i][j] = TetraStiff[i][j];
 
-        sm /= getProperty()->rho;
-        return sm;
+	sm /= getProperty()->rho;
+	return sm;
 }
 
 
@@ -112,138 +113,72 @@ FullSquareMatrix
 TetraHelmGLS::acousticm(CoordSet &cs, double *d)
 {
 	// Element stiffness
-	FullSquareMatrix sm(4,d); 
+	FullSquareMatrix sm(4,d);
 
 	// Volume of the tetrahedra:
 	//double V = volume();
 
-	computeMetrics(cs);
+	double gN[4][3];
+	double dOmega = computeMetrics(cs, gN);
 
-	// Get the TETRAHEDRA stiffness matrix
 	double TetraStiff[4][4];
-	buildTetraStiff(TetraStiff);
+	buildTetraStiff(TetraStiff, gN, dOmega);
 
 	// Get the TETRAHEDRA mass matrix	
 	double TetraMass[4][4];
-	buildTetraMass(TetraMass);
+	buildTetraMass(TetraMass, dOmega);
 
-        // Get the wave number 
+	// Get the wave number
 	double kappa = prop -> kappaHelm;
 
-/*
-//RT: The following implementation is due to Antonini
+	double h = 0.0;
+	int i,j;
+	for(i=0;i<4;i++) for(j=0;j<4;j++) h += TetraMass[i][j];
+	h = pow(6*h*sqrt(2.0),1.0/3.0);
 
-        Node nd1 = cs.getNode(nn[0]);
-        Node nd2 = cs.getNode(nn[1]);
-        Node nd3 = cs.getNode(nn[2]);
-        Node nd4 = cs.getNode(nn[3]);
+	double tauksq = 1.0 - 8.0/(kappa*h*kappa*h)*
+	                      (1.0-cos(sqrt(3.0)/2.0*kappa*h))/(2+cos(sqrt(3.0)/2.0*kappa*h));
 
-        double x[4], y[4], z[4];
+	coef = (-kappa*kappa+kappa*kappa*tauksq);
+	for (i=0;i<4;i++) for(j=0;j<4;j++)
+			sm[i][j] = TetraStiff[i][j] + coef*TetraMass[i][j];
 
-        // Nodes coordinates (need for the GLS parameters)
-        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-        x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
-        x[3] = nd4.x; y[3] = nd4.y; z[3] = nd4.z;
-
-        double kk = kappa*kappa;
-
-        // GLS parameters
-
-	// Define the element diameter as the mean of the distance 
-	// between the nodes and the centroid
-
-        double xc, yc, zc; // Centroid coordinates
-        xc = (x[0]+x[1]+x[2]+x[3])/4.0;
-        yc = (y[0]+y[1]+y[2]+y[3])/4.0;
-        zc = (z[0]+z[1]+z[2]+z[3])/4.0;
-
-	double dist[4]; // Distance to centroid
-
-	int i,j;	
-	for (i=0;i<4;i++)
-	  dist[i] = sqrt( (xc-x[i])*(xc-x[i]) + (yc-y[i])*(yc-y[i]) + (zc-z[i])*(zc-z[i]) );
-
-        double h_ele = (dist[0] + dist[1] + dist[2] + dist[3] )/4.0; 
-
-	// Next commented out to be substituted by the new definition of tau
-        #if 0
-        double csgls = cos(kappa*h_ele);
-        double alphagls = 0.5*(1.0-csgls)/(2.0+csgls);
-        double alphah = h_ele*h_ele*kk/12.0;
-        double tau = -1.0/(kk) * (1.0-alphagls/alphah);
-
-        for (i=0;i<4;i++)
-          for (j=0;j<4;j++) {
-            sm[i][j] = TetraStiff[i][j] + (1.0+kk*tau)*kk*TetraMass[i][j];
-          }
-        #endif
-
-        // Thompson and Pinsky tau definition
-        double alpha = 0.3926990875; // pi/4 = 22.5 degrees
-        double h = h_ele;
-        double k = kappa;
-        double eps1 = k*h*cos(alpha);
-        double eps2 = k*h*sin(alpha);
-        double a0 = 1/(k*k);
-        double a1 = 6/(k*k*h*h);
-        double a2 = 4-cos(eps1)-cos(eps2)-2*cos(eps1)*cos(eps2);
-        double a3 = (2+cos(eps1))*(2+cos(eps2));
-        double tau = (1-a1*a2/a3);
-
-        for (i=0;i<4;i++)
-          for (j=0;j<4;j++) {
-            sm[i][j] = TetraStiff[i][j] + (1.0-tau)*kk*TetraMass[i][j];
-          }
-*/
-   double h = 0.0;
-   int i,j;
-   for(i=0;i<4;i++) for(j=0;j<4;j++) h += TetraMass[i][j];
-   h = pow(6*h*sqrt(2.0),1.0/3.0);
-
-   double tauksq = 1.0 - 8.0/(kappa*h*kappa*h)*
-               (1.0-cos(sqrt(3.0)/2.0*kappa*h))/(2+cos(sqrt(3.0)/2.0*kappa*h));
-
-   coef = (-kappa*kappa+kappa*kappa*tauksq);
-   for (i=0;i<4;i++) for(j=0;j<4;j++)
-      sm[i][j] = TetraStiff[i][j] + coef*TetraMass[i][j];
-
-   sm /= getProperty()->rho;
-   return sm;
+	sm /= getProperty()->rho;
+	return sm;
 }
 
 int
 TetraHelmGLS::numNodes() const
 {
- 	return 4;
+	return 4;
 }
 
 int*
 TetraHelmGLS::nodes(int *p) const
 {
- 	if(p == 0) p = new int[4];
- 	p[0] = nn[0];
- 	p[1] = nn[1];
- 	p[2] = nn[2];
- 	p[3] = nn[3];
+	if(p == 0) p = new int[4];
+	p[0] = nn[0];
+	p[1] = nn[1];
+	p[2] = nn[2];
+	p[3] = nn[3];
 	return p;
 }
 
 int
 TetraHelmGLS::numDofs() const
 {
- 	return 4;
+	return 4;
 }
 
 int*
 TetraHelmGLS::dofs(DofSetArray &dsa, int *p)
 {
- 	if(p == 0) p = new int[4];
+	if(p == 0) p = new int[4];
 
-        dsa.number(nn[0],DofSet::Helm,p);
-        dsa.number(nn[1],DofSet::Helm,p+1);
-        dsa.number(nn[2],DofSet::Helm,p+2);
-        dsa.number(nn[3],DofSet::Helm,p+3);
+	dsa.number(nn[0],DofSet::Helm,p);
+	dsa.number(nn[1],DofSet::Helm,p+1);
+	dsa.number(nn[2],DofSet::Helm,p+2);
+	dsa.number(nn[3],DofSet::Helm,p+3);
 
 	return p;
 }
@@ -252,10 +187,10 @@ void
 TetraHelmGLS::markDofs(DofSetArray &dsa)
 {
 
- 	dsa.mark(nn[0],DofSet::Helm);
- 	dsa.mark(nn[1],DofSet::Helm);
- 	dsa.mark(nn[2],DofSet::Helm);
- 	dsa.mark(nn[3],DofSet::Helm);
+	dsa.mark(nn[0],DofSet::Helm);
+	dsa.mark(nn[1],DofSet::Helm);
+	dsa.mark(nn[2],DofSet::Helm);
+	dsa.mark(nn[3],DofSet::Helm);
 }
 
 
@@ -280,26 +215,28 @@ TetraHelmGLS::volume(CoordSet &cs)
 }
 */
 
-void
-TetraHelmGLS::computeMetrics(CoordSet& cs)
+double
+TetraHelmGLS::computeMetrics(const CoordSet &cs, double gN[4][3]) const
 {
 
-        Node nd1 = cs.getNode(nn[0]);
-        Node nd2 = cs.getNode(nn[1]);
-        Node nd3 = cs.getNode(nn[2]);
-        Node nd4 = cs.getNode(nn[3]);
+	Node nd1 = cs.getNode(nn[0]);
+	Node nd2 = cs.getNode(nn[1]);
+	Node nd3 = cs.getNode(nn[2]);
+	Node nd4 = cs.getNode(nn[3]);
 
 	double x[4], y[4], z[4];
 
-        // Nodes coordinates
-	x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z; 
+	// Nodes coordinates
+	x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
 	x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
 	x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 	x[3] = nd4.x; y[3] = nd4.y; z[3] = nd4.z;
-
+	double J[3][3];
+	double Jinv[3][3];
+	double dOmega;
 	// Jacobian
-	J[0][0] = x[1]-x[0]; J[0][1] = x[2]-x[0]; J[0][2] = x[3]-x[0];	
-	J[1][0] = y[1]-y[0]; J[1][1] = y[2]-y[0]; J[1][2] = y[3]-y[0];	
+	J[0][0] = x[1]-x[0]; J[0][1] = x[2]-x[0]; J[0][2] = x[3]-x[0];
+	J[1][0] = y[1]-y[0]; J[1][1] = y[2]-y[0]; J[1][2] = y[3]-y[0];
 	J[2][0] = z[1]-z[0]; J[2][1] = z[2]-z[0]; J[2][2] = z[3]-z[0];
 
 	double a,b,c,d,e,f,g,h,i;
@@ -332,15 +269,15 @@ TetraHelmGLS::computeMetrics(CoordSet& cs)
 	Jinv[2][1] = (a*h-t12)*t17;
 	Jinv[2][2] = -(t4-t8)*t17;
 
-        a = Jinv[0][0]; b = Jinv[0][1]; c = Jinv[0][2];
-        d = Jinv[1][0]; e = Jinv[1][1]; f = Jinv[1][2];
-        g = Jinv[2][0]; h = Jinv[2][1]; i = Jinv[2][2];
+	a = Jinv[0][0]; b = Jinv[0][1]; c = Jinv[0][2];
+	d = Jinv[1][0]; e = Jinv[1][1]; f = Jinv[1][2];
+	g = Jinv[2][0]; h = Jinv[2][1]; i = Jinv[2][2];
 
 
 	// Shape function gradients 
-        // Note: 1st index = shape function #
+	// Note: 1st index = shape function #
 	//       2nd index = direction (0=x, 1=y, 2=z) 
- 
+
 	gN[0][0] = -(a+b+c);
 	gN[0][1] = -(d+e+f);
 	gN[0][2] = -(g+h+i);
@@ -357,45 +294,46 @@ TetraHelmGLS::computeMetrics(CoordSet& cs)
 	gN[3][1] = f;
 	gN[3][2] = i;
 
+	return dOmega;
 }
 
 
 void
-TetraHelmGLS::buildTetraStiff(double TetraStiff[4][4])
+TetraHelmGLS::buildTetraStiff(double TetraStiff[4][4], double gN[4][3], double dOmega) const
 {
 	int i,j,k;
 	double dot;
 
-	double V = volume();
+	double V = volume(dOmega);
 
 	// This is the stiffness matrix for the tetrahedra
 
 	for (i=0;i<4;i++)
-	  for (j=0;j<4;j++) {
-	    dot = 0.0;
-	    for (k=0;k<3;k++)
-	      dot += gN[i][k]*gN[j][k];
-	    TetraStiff[i][j] = dot*V;
-	  }
-	
+		for (j=0;j<4;j++) {
+			dot = 0.0;
+			for (k=0;k<3;k++)
+				dot += gN[i][k]*gN[j][k];
+			TetraStiff[i][j] = dot*V;
+		}
+
 }
 
 void
-TetraHelmGLS::buildTetraMass(double TetraMass[4][4])
+TetraHelmGLS::buildTetraMass(double TetraMass[4][4], double dOmega) const
 {
 
-        // Volume of the tetrahedra:
-        double V = volume();
+	// Volume of the tetrahedra:
+	double V = volume(dOmega);
 
-        // Exact integration using Maple or Tetrahedra formulas
-        double diag_mass=V/10.0, off_diag_mass=V/20.0;
+	// Exact integration using Maple or Tetrahedra formulas
+	double diag_mass=V/10.0, off_diag_mass=V/20.0;
 
-        int i, j;
-        for (i=0;i<4;i++)
-          for (j=0;j<4;j++) {
-            TetraMass[i][j] = off_diag_mass;
-            TetraMass[i][i] = diag_mass;
-          }
+	int i, j;
+	for (i=0;i<4;i++)
+		for (j=0;j<4;j++) {
+			TetraMass[i][j] = off_diag_mass;
+			TetraMass[i][i] = diag_mass;
+		}
 
 }
 
@@ -405,7 +343,7 @@ TetraHelmGLS::buildTetraMass(double TetraMass[4][4])
 void
 TetraHelmGLS::addFaces(PolygonSet *pset)
 {
-        fprintf(stderr,"TetraHelmGLS::addFaces not implemented.\n");
+	fprintf(stderr,"TetraHelmGLS::addFaces not implemented.\n");
 /*
         pset->addTri(this,nn[0], nn[1], nn[2]);
         pset->addTri(this,nn[0], nn[1], nn[3]);
@@ -415,13 +353,13 @@ TetraHelmGLS::addFaces(PolygonSet *pset)
 }
 
 int TetraHelmGLS::getDecFace(int iFace, int *fn) {
- switch(iFace) {
-  case 0: fn[0] = nn[0];  fn[1] = nn[2]; fn[2] = nn[1]; break;
-  case 1: fn[0] = nn[0];  fn[1] = nn[1]; fn[2] = nn[3]; break;
-  case 2: fn[0] = nn[0];  fn[1] = nn[3]; fn[2] = nn[2]; break;
-  default:
-  case 3: fn[0] = nn[2];  fn[1] = nn[3]; fn[2] = nn[1]; break;
-  }
-  return 3;
+	switch(iFace) {
+		case 0: fn[0] = nn[0];  fn[1] = nn[2]; fn[2] = nn[1]; break;
+		case 1: fn[0] = nn[0];  fn[1] = nn[1]; fn[2] = nn[3]; break;
+		case 2: fn[0] = nn[0];  fn[1] = nn[3]; fn[2] = nn[2]; break;
+		default:
+		case 3: fn[0] = nn[2];  fn[1] = nn[3]; fn[2] = nn[1]; break;
+	}
+	return 3;
 }
 

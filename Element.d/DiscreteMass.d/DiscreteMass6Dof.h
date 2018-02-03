@@ -29,10 +29,10 @@ class DiscreteMass6Dof : public Element, public Corotator
     bool hasRot() { return true; }
     int getTopNumber() override { return 506; }
 
-    FullSquareMatrix stiffness(CoordSet&,double *kel, int flg=1);
-    int getMassType() { return 0; } // lumped only
-    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-    double getMass(CoordSet&);
+    FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg=1) const;
+    int getMassType() const override { return 0; } // lumped only
+    FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+    double getMass(const CoordSet&) const;
     void getGravityForce(CoordSet&, double *g, Vector &f, int gravflg, GeomState *gs=0);
     void computePressureForce(CoordSet&, Vector& elPressureForce, GeomState *, int, double);
 

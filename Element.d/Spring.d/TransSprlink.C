@@ -39,7 +39,7 @@ TransSprlink::renum(EleRenumMap& table)
 }
 
 FullSquareMatrix
-TransSprlink::massMatrix(CoordSet &, double *mel, int cmflg)
+TransSprlink::massMatrix(const CoordSet &, double *mel, int cmflg) const
 {
   FullSquareMatrix elementMassMatrix(numDofs(), mel);
 
@@ -49,7 +49,7 @@ TransSprlink::massMatrix(CoordSet &, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-TransSprlink::stiffness(CoordSet &, double *d, int flg)
+TransSprlink::stiffness(const CoordSet &, double *d, int flg) const
 {
   double karray[6*6];
 

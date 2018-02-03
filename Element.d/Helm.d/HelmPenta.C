@@ -57,13 +57,13 @@ HelmPenta::renum(EleRenumMap& table)
 }
 
 double
-HelmPenta::getMass(CoordSet& cs)
+HelmPenta::getMass(const CoordSet& cs) const
 {
  return 0.0;
 }
 
 FullSquareMatrix
-HelmPenta::massMatrix(CoordSet &cs,double *d,int cmflg)
+HelmPenta::massMatrix(const CoordSet &cs,double *d,int cmflg) const
 {
   int status = 0;
   const int nnodes= 6;	
@@ -117,7 +117,7 @@ HelmPenta::massMatrix(CoordSet &cs,double *d,int cmflg)
 }
                                                                                                                                         
 FullSquareMatrix
-HelmPenta::stiffness(CoordSet &cs, double *d, int flg)
+HelmPenta::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   int status = 0;
   const int nnodes= 6;	

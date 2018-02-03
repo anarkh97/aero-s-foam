@@ -13,7 +13,8 @@ class SegmentSegmentDistanceConstraintElement : public ConstraintFunctionElement
     void setFrame(EFrame *);
 
   protected:
-    void getConstants(CoordSet& cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst, GeomState* = NULL);
+    void getConstants(const CoordSet & cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst,
+                      const GeomState* = nullptr) const;
 };
 
 #endif

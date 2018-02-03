@@ -88,7 +88,7 @@ MooneyRivlinMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tenso
 
 void 
 MooneyRivlinMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
-                           double *, double *, double, Tensor *, double)
+                           double *, double *, double, Tensor *, double) const
 {
   Tensor_d0s2_Ss12 &strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
 
@@ -167,7 +167,7 @@ MooneyRivlinMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_stra
 
 void
 MooneyRivlinMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
-                           double *, double *, double, Tensor *, double)
+                           double *, double *, double, Tensor *, double) const
 {
   Tensor_d0s2_Ss12 &strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
 
@@ -237,7 +237,7 @@ MooneyRivlinMat::getMaterialConstants(std::vector<double> &c)
 extern GreenLagrangeStrain greenLagrangeStrain;
 
 StrainEvaluator *
-MooneyRivlinMat::getStrainEvaluator()
+MooneyRivlinMat::getStrainEvaluator() const
 {
   return &greenLagrangeStrain;
 }

@@ -19,9 +19,9 @@ class Penta26: public Element
     void renum(int *) override;
     void renum(EleRenumMap&) override;
 
-    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-    double getMass(CoordSet& cs);
+    FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const;
+    FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+    double getMass(const CoordSet& cs) const;
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
     void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs=0);

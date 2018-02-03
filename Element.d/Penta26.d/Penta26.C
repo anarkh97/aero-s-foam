@@ -283,7 +283,7 @@ Penta26::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
 }
 
 double
-Penta26::getMass(CoordSet& cs)
+Penta26::getMass(const CoordSet& cs) const
 {
   const int nnodes = 26;
   double X[26], Y[26], Z[26];
@@ -411,7 +411,7 @@ Penta26::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 FullSquareMatrix
-Penta26::massMatrix(CoordSet &cs,double *mel,int cmflg)
+Penta26::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
   const int nnodes = 26;
   const int ndofs = 78;
@@ -447,7 +447,7 @@ Penta26::massMatrix(CoordSet &cs,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-Penta26::stiffness(CoordSet &cs, double *d, int flg)
+Penta26::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   const int nnodes = 26;
   const int ndofs = 78;

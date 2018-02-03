@@ -31,12 +31,12 @@ public:
 	FullSquareMatrix refinedSommerMatrix(CoordSet &, double *) override;
 
 	//FullSquareMatrix surfStiffMatrix(CoordSet&, double *);
-	FullSquareMatrix HSommerMatrix(CoordSet &, double *) override;
+	FullSquareMatrix HSommerMatrix(const CoordSet &cs, double *d) const override;
 	//FullSquareMatrix HKSommerMatrix(CoordSet&, double *);
 
 	ComplexD ffpCoef(double k) override { return {0.25 / M_PI, 0.0}; }
 
-	void getNormal(CoordSet &, double[3]) override;
+	void getNormal(const CoordSet &, double[3]) const override;
 
 	void markDofs(DofSetArray &) override;
 
@@ -45,9 +45,9 @@ public:
 private:
 	void getLocalCoordinates(CoordSet &, double xx[4], double yy[4], double zz[4]) const;
 
-	void SurfaceRefinement(int nNo, double *x, double *y, double *z, double *xx, double *yy, double *zz);
+	void SurfaceRefinement(int nNo, double *x, double *y, double *z, double *xx, double *yy, double *zz) const;
 
-	void GaussCoordinates(int Ngp, double *Pg, double *weight);
+	void GaussCoordinates(int Ngp, double *Pg, double *weight) const;
 };
 
 #endif

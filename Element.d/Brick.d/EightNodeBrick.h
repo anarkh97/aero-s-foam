@@ -23,11 +23,11 @@ class EightNodeBrick: virtual public Element
     void renum(int *) override;
     void renum(EleRenumMap&) override;
 
-    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
+    FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const;
+    FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
     void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
 
-    double getMass(CoordSet& cs);
+    double getMass(const CoordSet& cs) const;
     double weight(CoordSet&, double *, int);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);

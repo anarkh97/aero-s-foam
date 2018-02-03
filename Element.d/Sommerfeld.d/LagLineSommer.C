@@ -202,7 +202,7 @@ FullSquareMatrix LagLineSommer::turkelMatrix(CoordSet &cs, double *d) const {
 }
 
 
-void LagLineSommer::getNormal(CoordSet &cs, double normal[3]) {
+void LagLineSommer::getNormal(const CoordSet &cs, double normal[3]) const {
 	Node nd1 = cs.getNode(nn[0]);
 	Node nd2 = cs.getNode(nn[order - 1]);
 

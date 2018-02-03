@@ -580,7 +580,7 @@ FullSquareMatrixC IsoParamQuadSommer::sommer2Matrix(CoordSet &cs,
 }
 
 
-void IsoParamQuadSommer::getNormal(CoordSet &cs, double normal[3]) {
+void IsoParamQuadSommer::getNormal(const CoordSet &cs, double normal[3]) const {
 
 	int corner[4] = {1 - 1, order - 1, order * order - 1, order * order - 1 - (order - 1)};
 	double x[4], y[4], z[4];

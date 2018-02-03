@@ -288,7 +288,7 @@ FullSquareMatrixC IsoParamLineSommer::sommer2Matrix(CoordSet &cs,
 }
 
 
-void IsoParamLineSommer::getNormal(CoordSet &cs, double normal[3]) {
+void IsoParamLineSommer::getNormal(const CoordSet &cs, double normal[3]) const {
 	Node nd1 = cs.getNode(nn[0]);
 	Node nd2 = cs.getNode(nn[order - 1]);
 

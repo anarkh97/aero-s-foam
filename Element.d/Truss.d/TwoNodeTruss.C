@@ -75,8 +75,8 @@ TwoNodeTruss::getIntrnForce(Vector& elForce, CoordSet& cs,
           return;
         }
 
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
 	double dx = nd2.x - nd1.x;
 	double dy = nd2.y - nd1.y;
@@ -119,12 +119,12 @@ TwoNodeTruss::getIntrnForce(Vector& elForce, CoordSet& cs,
 }
 
 double
-TwoNodeTruss::getMass(CoordSet& cs)
+TwoNodeTruss::getMass(const CoordSet& cs) const
 {
         using std::sqrt;
 
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
         double x[2], y[2], z[2];
 
@@ -151,8 +151,8 @@ TwoNodeTruss::getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx)
           exit(-1);
         }
 
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
         double x[2], y[2], z[2];
 
@@ -183,8 +183,8 @@ TwoNodeTruss::getLengthNodalCoordinateSensitivity(CoordSet &cs, Vector &dLengthd
           exit(-1);
         }
 
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
         double x[2], y[2], z[2];
 
@@ -288,7 +288,7 @@ TwoNodeTruss::getGravityForce(CoordSet& cs, double *gravityAcceleration, Vector 
 }
 
 FullSquareMatrix
-TwoNodeTruss::massMatrix(CoordSet &cs, double *mel, int cmflg)
+TwoNodeTruss::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
         FullSquareMatrix elementMassMatrix(6, mel);
         elementMassMatrix.zero();
@@ -323,8 +323,8 @@ void
 TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
 {
 #ifdef USE_EIGEN3
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
         Eigen::Array<double,3,1> dconst;
         Eigen::Array<int,0,1> iconst;
@@ -345,12 +345,12 @@ TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
 }
 
 FullSquareMatrix
-TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
+TwoNodeTruss::stiffness(const CoordSet &cs, double *k, int flg) const
 {
         using std::sqrt;
 
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
         double x[2], y[2], z[2];
 
@@ -468,8 +468,8 @@ TwoNodeTruss::getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &elementTher
   double dx,dy,dz,length;
   int i, j;
  
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
 
   x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;	
@@ -524,8 +524,8 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
    weight = 1.0;
    if(strInd == -1) return;
 
-   Node &nd1 = cs.getNode( nn[0] );
-   Node &nd2 = cs.getNode( nn[1] );
+   auto &nd1 = cs.getNode( nn[0] );
+   auto &nd2 = cs.getNode( nn[1] );
 
    double dx = nd2.x - nd1.x;
    double dy = nd2.y - nd1.y;
@@ -687,8 +687,8 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   }
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
 
   double dx = nd2.x - nd1.x;
   double dy = nd2.y - nd1.y;
@@ -783,8 +783,8 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   }
   weight = 1.0;
 
-  Node &nd1 = cs.getNode( nn[0] );
-  Node &nd2 = cs.getNode( nn[1] );
+  auto &nd1 = cs.getNode( nn[0] );
+  auto &nd2 = cs.getNode( nn[1] );
 
   double dx = nd2.x - nd1.x;
   double dy = nd2.y - nd1.y;
@@ -867,8 +867,8 @@ void
 TwoNodeTruss::buildBarFrame(CoordSet& cs, double xg[3][3], double xl[3][3])
 {
 
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
         xl[0][0] = nd2.x - nd1.x;
         xl[0][1] = nd2.y - nd1.y;

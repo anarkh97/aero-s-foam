@@ -94,13 +94,13 @@ void LEIsoParamHexa::markDofs(DofSetArray &dsa) {
 }
 
 
-double LEIsoParamHexa::getMass(CoordSet&) {
+double LEIsoParamHexa::getMass(const CoordSet&) const {
  fprintf(stderr,"LEIsoParamHexa::getMass not implemented.\n");
  return 0.0;
 }
 
 
-FullSquareMatrix LEIsoParamHexa::massMatrix(CoordSet &cs, double *K, int fl) {
+FullSquareMatrix LEIsoParamHexa::massMatrix(const CoordSet &cs, double *K, int fl) const {
 
  IsoParamUtils ipu(order);
  int orderc = ipu.getorderc();
@@ -120,7 +120,7 @@ FullSquareMatrix LEIsoParamHexa::massMatrix(CoordSet &cs, double *K, int fl) {
 }
 
 
-FullSquareMatrix LEIsoParamHexa::stiffness(CoordSet &cs, double *K, int flg ) {
+FullSquareMatrix LEIsoParamHexa::stiffness(const CoordSet &cs, double *K, int flg ) const {
  IsoParamUtils ipu(order);
  int orderc = ipu.getorderc();
  double *xyz=(double*)alloca(sizeof(double)*3*orderc);

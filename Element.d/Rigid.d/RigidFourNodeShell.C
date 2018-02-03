@@ -29,14 +29,14 @@ RigidFourNodeShell::RigidFourNodeShell(int *_nn)
 }
 
 double
-RigidFourNodeShell::getMass(CoordSet& cs)
+RigidFourNodeShell::getMass(const CoordSet& cs) const
 {
   if (prop == NULL || prop->rho == 0 || prop->eh == 0) return 0.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
-  Node &nd4 = cs.getNode(nn[3]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
+  auto &nd4 = cs.getNode(nn[3]);
 
   Vector r1(3), r2(3), r3(3), r4(3);
 
@@ -80,7 +80,7 @@ RigidFourNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 FullSquareMatrix
-RigidFourNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
+RigidFourNodeShell::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   int nndof = 6, ndime = 3;
   FullSquareMatrix ret(numDofs(), mel);

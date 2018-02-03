@@ -25,11 +25,11 @@ public:
 
 	int *dofs(DofSetArray &, int *p = 0);
 
-	virtual IsoParamLineSommer *clone();
+	virtual IsoParamLineSommer *clone() override;
 
-	virtual int nFaceCorners() { return 2; }
+	virtual int nFaceCorners() const override { return 2; }
 
-	virtual int *faceCorners() {
+	virtual int *faceCorners() const override {
 		int *fc = new int[2];
 		fc[0] = nn[0];
 		fc[1] = nn[order - 1];
@@ -60,7 +60,7 @@ public:
 
 	ComplexD ffpCoef(double k) { return exp(ComplexD(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k); }
 
-	void getNormal(CoordSet &, double [3]);
+	void getNormal(const CoordSet &, double [3]) const override;
 
 	void markDofs(DofSetArray &) override;
 

@@ -18,8 +18,8 @@ class FollowerForceElement : public ForceFunctionElement<Simo::FollowerForceFunc
     bool hasRot() { return true; }
 
   protected:
-    void getConstants(CoordSet& cs, Eigen::Array<double,12,1>& sconst, Eigen::Array<int,0,1>&,
-                      GeomState* = NULL, double = 0);
+    void getConstants(const CoordSet& cs, Eigen::Array<double,12,1>& sconst, Eigen::Array<int,0,1>&,
+                      const GeomState* = nullptr, double = 0) const override;
 };
 
 #endif

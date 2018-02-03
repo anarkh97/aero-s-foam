@@ -39,7 +39,7 @@ ElasPlasKinHardMat<e>::getStress(Tensor *stress, Tensor &strain, double *state, 
 
 template<int e>
 void 
-ElasPlasKinHardMat<e>::getElasticity(Tensor *_tm)
+ElasPlasKinHardMat<e>::getElasticity(Tensor *_tm) const
 {
   Tensor_d0s4_Ss12s34 &tm = static_cast<Tensor_d0s4_Ss12s34 &>(*_tm);
   tm.setZero();
@@ -85,7 +85,7 @@ ElasPlasKinHardMat<e>::updateStates(Tensor &en, Tensor &enp, double *state, doub
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp,
-                                 double *staten, double *statenp, double temp, Tensor *, double dt)
+                                 double *staten, double *statenp, double temp, Tensor *, double dt) const
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -236,7 +236,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
-                                 double *staten, double *statenp, double temp, Tensor *, double dt)
+                                 double *staten, double *statenp, double temp, Tensor *, double dt) const
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -389,7 +389,7 @@ extern LogarithmicStrain logarithmicStrain;
 
 template<int e>
 StrainEvaluator *
-ElasPlasKinHardMat<e>::getStrainEvaluator()
+ElasPlasKinHardMat<e>::getStrainEvaluator() const
 {
   switch(e) {
     case 0: return &linearStrain; break;

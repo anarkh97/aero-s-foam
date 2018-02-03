@@ -46,17 +46,17 @@ class PronyViscoElastic : public Material
     PronyViscoElastic(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
                       double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
 
-    int getNumStates();
+    int getNumStates() const;
 
     void initStates(double *);
 
-    void getStress(Tensor *stress, Tensor &strain, double*, double temp);
+    void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const;
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const;
 
     void print(std::ostream &out) const;
 

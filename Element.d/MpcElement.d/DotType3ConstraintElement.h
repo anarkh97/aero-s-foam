@@ -6,22 +6,23 @@
 
 class DotType3ConstraintElement : public ConstraintFunctionElement<Simo::DotType3ConstraintFunction>
 {
-  protected:
-    double (*C0)[3]; // initial frame (axes stored row-wise)
-    int axis;
-    double d0;
+protected:
+	double (*C0)[3]; // initial frame (axes stored row-wise)
+	int axis;
+	double d0;
 
-  public:
-    DotType3ConstraintElement(int*, int);
-    ~DotType3ConstraintElement();
-    void setFrame(EFrame *);
-    void buildFrame(CoordSet&);
-    void setConstantTerm(double _d0) { d0 = _d0; }
-    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
-    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+public:
+	DotType3ConstraintElement(int*, int);
+	~DotType3ConstraintElement();
+	void setFrame(EFrame *);
+	void buildFrame(CoordSet&);
+	void setConstantTerm(double _d0) { d0 = _d0; }
+	double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+	double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
-  protected:
-    void getConstants(CoordSet& cs, Eigen::Array<double,10,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs = NULL);
+protected:
+	void getConstants(const CoordSet & cs, Eigen::Array<double,10,1>& sconst, Eigen::Array<int,0,1>&,
+	                  const GeomState *gs = nullptr) const;
 };
 
 #endif

@@ -62,7 +62,7 @@ FsiElement::renum(EleRenumMap& table)
 
 
 FullSquareMatrix
-FsiElement::massMatrix(CoordSet &cs, double *mel, int cmflg)
+FsiElement::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   FullSquareMatrix ret(ndofs,mel);
   ret.zero();
@@ -78,7 +78,7 @@ FsiElement::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-FsiElement::stiffness(CoordSet &cs, double *k, int flg)
+FsiElement::stiffness(const CoordSet &cs, double *k, int flg) const
 {
   FullSquareMatrix ret(ndofs,k);
   ret.zero();

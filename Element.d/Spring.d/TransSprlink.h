@@ -16,8 +16,8 @@ class TransSprlink : virtual public Element
     void renum(int *) override;
 	void renum(EleRenumMap&) override;
 
-    FullSquareMatrix stiffness(CoordSet& cs, double* d, int flg = 1) override;
-    FullSquareMatrix massMatrix(CoordSet& cs, double* mel, int cmflg=1) override;
+    FullSquareMatrix stiffness(const CoordSet& cs, double* d, int flg = 1) const override;
+    FullSquareMatrix massMatrix(const CoordSet& cs, double* mel, int cmflg=1) const override;
 
     void markDofs(DofSetArray&) override;
     int* dofs(DofSetArray&, int*) override;

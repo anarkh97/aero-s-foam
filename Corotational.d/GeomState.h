@@ -45,7 +45,7 @@ class GeomState {
      std::vector<std::vector<int> > loc; // dof location array
      double refCG[3];   // reference CG
      double gRot[3][3]; // Global Rotation Matrix
-     CoordSet *X0;
+     const CoordSet *X0;
      std::vector<int> flag; // signifies if node is connected to element
      int numelems;
      std::vector<ElemState> es;
@@ -56,7 +56,7 @@ class GeomState {
    public:
      // Default Constructor
      GeomState();
-     GeomState(CoordSet &cs);
+     GeomState(const CoordSet &cs);
 
      // Constructor
      GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems = 0, double *ndTemps = 0);
@@ -151,7 +151,7 @@ class GeomState {
      bool getHaveRot() const { return haveRot; }
      int getNumRotationDof(int inode) const;
 
-     CoordSet* getCoordSet() { return X0; }
+     const CoordSet* getCoordSet() { return X0; }
      void transformCoords(double xScaleFactor, double yScaleFactor, double zScaleFactor);
      void setNewCoords(const Vector &X);
 };

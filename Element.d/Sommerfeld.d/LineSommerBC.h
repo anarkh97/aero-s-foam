@@ -43,7 +43,7 @@ public:
 		return exp(complex<double>(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k);
 	}
 
-	void getNormal(CoordSet &, double [3]) override;
+	void getNormal(const CoordSet &, double [3]) const override;
 
 	double getSize(CoordSet &) override;
 

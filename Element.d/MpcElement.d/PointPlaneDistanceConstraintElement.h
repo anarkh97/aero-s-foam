@@ -6,15 +6,16 @@
 
 class PointPlaneDistanceConstraintElement : public ConstraintFunctionElement<Simo::PointPlaneDistanceConstraintFunction>
 {
-    double x1[3], x2[3], x3[3]; // coordinates of the 3 points defining the plane
+	double x1[3], x2[3], x3[3]; // coordinates of the 3 points defining the plane
 
-  public:
-    PointPlaneDistanceConstraintElement(int* _nn); 
-    void setFrame(EFrame *);
-    FunctionType functionType() { return LINEAR; }
+public:
+	PointPlaneDistanceConstraintElement(int* _nn);
+	void setFrame(EFrame *);
+	FunctionType functionType() { return LINEAR; }
 
-  protected:
-    void getConstants(CoordSet& cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst, GeomState* = NULL);
+protected:
+	void getConstants(const CoordSet & cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst,
+	                  const GeomState* = nullptr) const override;
 };
 
 #endif

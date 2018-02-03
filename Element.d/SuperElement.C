@@ -166,7 +166,7 @@ SuperElement::renum(EleRenumMap& table)
 }
 
 FullSquareMatrix 
-SuperElement::stiffness(CoordSet &cs, double *karray, int flg)
+SuperElement::stiffness(const CoordSet &cs, double *karray, int flg) const
 {
   FullSquareMatrix ret(numDofs(), karray);
   ret.zero();
@@ -205,7 +205,7 @@ SuperElement::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
 }
 
 FullSquareMatrix 
-SuperElement::massMatrix(CoordSet &cs, double *marray, int cmflg)
+SuperElement::massMatrix(const CoordSet &cs, double *marray, int cmflg) const
 {
   FullSquareMatrix ret(numDofs(), marray);
   ret.zero();
@@ -218,7 +218,7 @@ SuperElement::massMatrix(CoordSet &cs, double *marray, int cmflg)
 }
 
 double 
-SuperElement::getMass(CoordSet &cs)
+SuperElement::getMass(const CoordSet &cs) const
 {
   double ret = 0.0;
   for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->getMass(cs);
@@ -829,7 +829,7 @@ SuperElement::isConstraintElement()
 }
 
 bool
-SuperElement::isFreeplayElement()
+SuperElement::isFreeplayElement() const
 {
   // return true if one of the sub elements is a freeplay element
   for(int i = 0; i < nSubElems; ++i)
@@ -838,7 +838,7 @@ SuperElement::isFreeplayElement()
 }
 
 int
-SuperElement::getMassType()
+SuperElement::getMassType() const
 {
   return subElems[0]->getMassType();
 }

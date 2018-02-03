@@ -42,29 +42,27 @@ public:
 
 	virtual int *nodes(int * = 0) const;
 
-	virtual int numDofs() const =0;
-
 	virtual int numWetDofs();
 
 	virtual int numSolidDofs();
 
-	virtual int dim() const;
+	int dim() const override;
 
 	virtual int *wetDofs(DofSetArray &, int *p = 0);
 
 	virtual int *solidDofs(DofSetArray &, int *p = 0);
 
-	virtual void markDofs(DofSetArray &) override;
+	void markDofs(DofSetArray &) override;
 
-	virtual void renum(int *) override;
+	void renum(int *) override;
 
-	virtual void renum(EleRenumMap &);
+	void renum(EleRenumMap &) override;
 
-	virtual SommerElement *clone() override;
+	SommerElement *clone() override;
 
-	virtual int nFaceCorners() { return 0; }
+	virtual int nFaceCorners() const { return 0; }
 
-	virtual int *faceCorners() { return 0; }
+	virtual int *faceCorners() const { return nullptr; }
 
 	virtual void flipNormal();
 
@@ -92,8 +90,7 @@ public:
 
 	virtual FullSquareMatrix refinedSommerMatrix(CoordSet &);
 
-	//virtual FullSquareMatrix surfStiffMatrix(CoordSet&);
-	virtual FullSquareMatrix HSommerMatrix(CoordSet &);
+	FullSquareMatrix HSommerMatrix(const CoordSet &) const;
 
 	//virtual FullSquareMatrix HKSommerMatrix(CoordSet&);
 	virtual FullSquareMatrix interfMatrixConsistent(CoordSet &);
@@ -117,7 +114,7 @@ public:
 	virtual FullSquareMatrix refinedSommerMatrix(CoordSet &, double *);
 
 	//virtual FullSquareMatrix surfStiffMatrix(CoordSet&, double *);
-	virtual FullSquareMatrix HSommerMatrix(CoordSet &, double *);
+	virtual FullSquareMatrix HSommerMatrix(const CoordSet &cs, double *d) const;
 
 	//virtual FullSquareMatrix HKSommerMatrix(CoordSet&, double *);
 	virtual FullSquareMatrix interfMatrixConsistent(CoordSet &, double *);
@@ -175,7 +172,7 @@ public:
 
 	virtual ComplexD ffpCoef(double k);
 
-	virtual void getNormal(CoordSet &, double[3]);
+	virtual void getNormal(const CoordSet &, double[3]) const;
 
 	virtual double getSize(CoordSet &);
 
@@ -183,20 +180,21 @@ public:
 
 	virtual FullSquareMatrixC turkelMatrix(CoordSet &, double, int, DComplex *);
 
-	bool isSommerElement() override { return true; }
+	bool isSommerElement() const override { return true; }
 
 	bool isPhantomElement() override { return false; }
 
-	FullSquareMatrix stiffness(CoordSet &, double *d, int flg = 1) override;
+	FullSquareMatrix stiffness(const CoordSet &, double *d, int flg = 1) const override;
 
-	FullSquareMatrix massMatrix(CoordSet &, double *mel, int cmflg = 1) override;
+	FullSquareMatrix massMatrix(const CoordSet &, double *mel, int cmflg = 1) const override;
 
 	FullSquareMatrix dampingMatrix(CoordSet &, double *cel, int cmflg = 1) override;
 	//virtual FullSquareMatrix imStiffness(CoordSet&, double *d, int flg = 1);
 
-	virtual int ludcmp(FullSquareMatrix A, int n, int *indx);// LU decomposition
-	virtual void lubksb(FullSquareMatrix A, int n, int *indx, double *b);//LU factorisation
-	virtual void invert(FullSquareMatrix A, FullSquareMatrix B);
+	// TODO Get rid of this here!!! Pure math functions on arguments have nothing to do here.
+	int ludcmp(FullSquareMatrix A, int n, int *indx) const;// LU decomposition
+	void lubksb(FullSquareMatrix A, int n, int *indx, double *b) const;//LU factorisation
+	void invert(FullSquareMatrix A, FullSquareMatrix B) const;
 
 	int getAdjElementIndex() { return iEle; }
 

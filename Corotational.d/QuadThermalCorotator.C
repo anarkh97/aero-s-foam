@@ -56,10 +56,10 @@ QuadThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
  double T1[3], T2[3], T3[3], V[3];
 
  // Get original coordinates of quad's nodes
- Node &nd1 = cs.getNode(n1);
- Node &nd2 = cs.getNode(n2);
- Node &nd3 = cs.getNode(n3);
- Node &nd4 = cs.getNode(n4);
+ auto &nd1 = cs.getNode(n1);
+ auto &nd2 = cs.getNode(n2);
+ auto &nd3 = cs.getNode(n3);
+ auto &nd4 = cs.getNode(n4);
     
  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
@@ -170,10 +170,10 @@ QuadThermalCorotator::getInternalForce(GeomState &ts, CoordSet &cs,
  double T1[3], T2[3], T3[3], V[3];
 
  // Get original coordinates of quad's nodes
- Node &nd1 = cs.getNode(n1);
- Node &nd2 = cs.getNode(n2);
- Node &nd3 = cs.getNode(n3);
- Node &nd4 = cs.getNode(n4);
+ auto &nd1 = cs.getNode(n1);
+ auto &nd2 = cs.getNode(n2);
+ auto &nd3 = cs.getNode(n3);
+ auto &nd4 = cs.getNode(n4);
     
  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;

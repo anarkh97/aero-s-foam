@@ -34,7 +34,7 @@ LinSpring::renum(EleRenumMap& table)
 }
 
 FullSquareMatrix
-LinSpring::massMatrix(CoordSet &,double *mel,int cmflg)
+LinSpring::massMatrix(const CoordSet &,double *mel,int cmflg) const
 {
         FullSquareMatrix elementMassMatrix(3,mel);
 
@@ -45,7 +45,7 @@ LinSpring::massMatrix(CoordSet &,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-LinSpring::stiffness(CoordSet &, double *d, int flg)
+LinSpring::stiffness(const CoordSet &, double *d, int flg) const
 {
         double sc1 = prop->A;
         double sc2 = prop->E;

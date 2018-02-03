@@ -49,12 +49,12 @@ HEVibQuadGal::renum(EleRenumMap& table)
 }
 
 double
-HEVibQuadGal::getMass(CoordSet& cs)
+HEVibQuadGal::getMass(const CoordSet& cs) const
 {
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
-  Node &nd4 = cs.getNode(nn[3]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
+  auto &nd4 = cs.getNode(nn[3]);
 
   Vector r1(3), r2(3), r3(3), r4(3);
 
@@ -79,7 +79,7 @@ HEVibQuadGal::getMass(CoordSet& cs)
 }
 
 FullSquareMatrix
-HEVibQuadGal::massMatrix(CoordSet &cs, double *d, int cmflg)
+HEVibQuadGal::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
         FullSquareMatrix mass(4,d);
         
@@ -88,13 +88,13 @@ HEVibQuadGal::massMatrix(CoordSet &cs, double *d, int cmflg)
 }
 
 FullSquareMatrix
-HEVibQuadGal::stiffness(CoordSet &cs,double *Ks, int)
+HEVibQuadGal::stiffness(const CoordSet &cs,double *Ks, int) const
 {
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
-	Node &nd4 = cs.getNode(nn[3]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
+	auto &nd4 = cs.getNode(nn[3]);
 
         int i;
 	double x[4], y[4], Kstiff[16];
@@ -238,10 +238,10 @@ HEVibQuadGal::computeHEVibDisp(Vector& fluidDispHEVib, CoordSet &cs, Vector& elP
       return;
    }
  
-   Node &nd1 = cs.getNode(nn[0]);
-   Node &nd2 = cs.getNode(nn[1]);
-   Node &nd3 = cs.getNode(nn[2]);
-   Node &nd4 = cs.getNode(nn[3]);
+   auto &nd1 = cs.getNode(nn[0]);
+   auto &nd2 = cs.getNode(nn[1]);
+   auto &nd3 = cs.getNode(nn[2]);
+   auto &nd4 = cs.getNode(nn[3]);
 
    double x[4], y[4];
 

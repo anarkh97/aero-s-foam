@@ -461,7 +461,7 @@ MatNLCorotator::getDissipatedEnergy(GeomState &curState, CoordSet &C0)
 }
 
 int
-MatNLCorotator::getNumGaussPoints()
+MatNLCorotator::getNumGaussPoints() const
 {
   return ele->getNumGaussPoints();
 }

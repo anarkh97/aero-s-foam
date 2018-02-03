@@ -54,15 +54,15 @@ PentaBulk::renum(EleRenumMap& table)
 }
 
 double
-PentaBulk::getMass(CoordSet &cs)
+PentaBulk::getMass(const CoordSet &cs) const
 {
         // The node 1 is at the top of the pyramid, nodes 2-3-4-5 form the base.
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
-        Node &nd5 = cs.getNode(nn[4]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
+        auto &nd5 = cs.getNode(nn[4]);
         
         double x[5], y[5], z[5];
 
@@ -113,7 +113,7 @@ PentaBulk::getMass(CoordSet &cs)
 }
 
 FullSquareMatrix
-PentaBulk::massMatrix(CoordSet &cs, double *d, int cmflg)
+PentaBulk::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
 
         FullSquareMatrix massMatrix(5,d);
@@ -128,7 +128,7 @@ PentaBulk::massMatrix(CoordSet &cs, double *d, int cmflg)
 }
 
 FullSquareMatrix
-PentaBulk::stiffness(CoordSet &cs, double *Kcv, int flg)
+PentaBulk::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
 
         double x[5], y[5], z[5];
@@ -139,11 +139,11 @@ PentaBulk::stiffness(CoordSet &cs, double *Kcv, int flg)
 
   // Get original coordinates of base's nodes
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
-        Node &nd5 = cs.getNode(nn[4]);        
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
+        auto &nd4 = cs.getNode(nn[3]);
+        auto &nd5 = cs.getNode(nn[4]);
 
         x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
         x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;

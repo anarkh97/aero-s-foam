@@ -44,13 +44,13 @@ void HelmLagQuadGal::renum(EleRenumMap& table) {
 }
 
 
-double HelmLagQuadGal::getMass(CoordSet&) {
+double HelmLagQuadGal::getMass(const CoordSet&) const {
  fprintf(stderr,"HelmLagQuadGal::massMatrix not implemented.\n");
  return 0.0;
 }
 
 
-FullSquareMatrix HelmLagQuadGal::massMatrix(CoordSet &cs, double *K, int cmflg) 
+FullSquareMatrix HelmLagQuadGal::massMatrix(const CoordSet &cs, double *K, int cmflg) const
 {
  int ordersq = order*order;
 
@@ -116,7 +116,7 @@ FullSquareMatrix HelmLagQuadGal::massMatrix(CoordSet &cs, double *K, int cmflg)
 }
 
 
-FullSquareMatrix HelmLagQuadGal::stiffness(CoordSet &cs, double *K, int flg ) 
+FullSquareMatrix HelmLagQuadGal::stiffness(const CoordSet &cs, double *K, int flg ) const
 {
  int ordersq = order*order;
 
@@ -182,7 +182,7 @@ FullSquareMatrix HelmLagQuadGal::stiffness(CoordSet &cs, double *K, int flg )
 }
 
 
-void HelmLagQuadGal::shapeFunctions(double xi, double eta, double *N) {
+void HelmLagQuadGal::shapeFunctions(double xi, double eta, double *N) const {
  int i,j;
  long double *xx = (long double*)dbg_alloca(sizeof(long double)*order*order);
  long double *x = (long double*)dbg_alloca(sizeof(long double)*order);

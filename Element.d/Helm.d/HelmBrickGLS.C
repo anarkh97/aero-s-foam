@@ -55,7 +55,7 @@ HelmBrickGLS::renum(EleRenumMap& table)
 }
 
 double
-HelmBrickGLS::getMass(CoordSet& cs)
+HelmBrickGLS::getMass(const CoordSet& cs) const
 {
 
  return 0.0;
@@ -63,7 +63,7 @@ HelmBrickGLS::getMass(CoordSet& cs)
 }
 
 FullSquareMatrix
-HelmBrickGLS::massMatrix(CoordSet &cs,double *d,int cmflg)
+HelmBrickGLS::massMatrix(const CoordSet &cs,double *d,int cmflg) const
 {
      Node nd1 = cs.getNode(nn[0]);
      Node nd2 = cs.getNode(nn[1]);
@@ -113,7 +113,7 @@ HelmBrickGLS::massMatrix(CoordSet &cs,double *d,int cmflg)
 
 
 FullSquareMatrix
-HelmBrickGLS::stiffness(CoordSet &cs, double *Ks, int flg )
+HelmBrickGLS::stiffness(const CoordSet &cs, double *Ks, int flg ) const
 {
         Node nd1 = cs.getNode(nn[0]);
         Node nd2 = cs.getNode(nn[1]);

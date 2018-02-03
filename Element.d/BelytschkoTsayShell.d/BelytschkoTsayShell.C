@@ -28,10 +28,10 @@ using std::vector;
 extern SolverInfo &solInfo;
 extern int verboseFlag;
 extern "C" {
-  void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
-  void _FORTRAN(getgq1d)(int&, double*, double*);
-  void _FORTRAN(elemaslbt)(int&, double*, double*, double*, double*);
-  void _FORTRAN(elemaslbt2)(int&, double*, double*, double*, double*);
+  void _FORTRAN(getgqsize)(const int&, const int&, const int*, int*, int*);
+  void _FORTRAN(getgq1d)(const int&, double*, double*);
+  void _FORTRAN(elemaslbt)(const int&, double*, double*, double*, double*);
+  void _FORTRAN(elemaslbt2)(const int&, double*, double*, double*, double*);
 
   void _FORTRAN(getlocbvecbt)(double*, double*);
   void _FORTRAN(getbmat1pt)(double*, double&, double*);
@@ -358,14 +358,14 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 }
 
 double
-BelytschkoTsayShell::getMass(CoordSet& cs)
+BelytschkoTsayShell::getMass(const CoordSet& cs) const
 {
   if (prop == NULL) return 0.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
-  Node &nd4 = cs.getNode(nn[3]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
+  auto &nd4 = cs.getNode(nn[3]);
 
   Vector r1(3), r2(3), r3(3), r4(3);
 
@@ -396,10 +396,10 @@ BelytschkoTsayShell::getMassThicknessSensitivity(CoordSet& cs)
 {
   if (prop == NULL) return 0.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
-  Node &nd4 = cs.getNode(nn[3]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
+  auto &nd4 = cs.getNode(nn[3]);
 
   Vector r1(3), r2(3), r3(3), r4(3);
 
@@ -461,7 +461,7 @@ BelytschkoTsayShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *g
 }
 
 FullSquareMatrix
-BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
+BelytschkoTsayShell::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   FullSquareMatrix ret(nnode*nndof, mel);
   ret.zero();
@@ -492,7 +492,7 @@ BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-BelytschkoTsayShell::stiffness(CoordSet &cs, double *d, int flg)
+BelytschkoTsayShell::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   FullSquareMatrix ret(nnode*nndof, d);
   ret.zero();

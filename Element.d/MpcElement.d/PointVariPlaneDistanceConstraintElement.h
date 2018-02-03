@@ -6,11 +6,12 @@
 
 class PointVariPlaneDistanceConstraintElement : public ConstraintFunctionElement<Simo::PointVariPlaneDistanceConstraintFunction>
 {
-  public:
-    PointVariPlaneDistanceConstraintElement(int* _nn); 
+public:
+	PointVariPlaneDistanceConstraintElement(int* _nn);
 
-  protected:
-    void getConstants(CoordSet& cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst, GeomState* = NULL);
+protected:
+	void getConstants(const CoordSet & cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst,
+	                  const GeomState* = nullptr) const;
 };
 
 #endif

@@ -45,7 +45,7 @@ RigidEightNodeBrick::RigidEightNodeBrick(int *_nn)
 }
 
 double
-RigidEightNodeBrick::getMass(CoordSet& cs)
+RigidEightNodeBrick::getMass(const CoordSet& cs) const
 {
   if(prop == NULL || prop->rho == 0) return 0.0;
 
@@ -134,7 +134,7 @@ RigidEightNodeBrick::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 FullSquareMatrix
-RigidEightNodeBrick::massMatrix(CoordSet &cs, double *mel, int cmflg)
+RigidEightNodeBrick::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   const int nnodes= 8;
   const int ndofs = 24;

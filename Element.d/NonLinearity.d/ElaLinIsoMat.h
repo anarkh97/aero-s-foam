@@ -29,13 +29,13 @@ class ElaLinIsoMat : public NLMaterial
     ElaLinIsoMat(double _rho, double C[6][6], double _Tref, double _alphas[6]);
     ~ElaLinIsoMat();
 
-    int getNumStates() { return 0; }
+    int getNumStates() const override { return 0; }
 
-    void getStress(Tensor *stress, Tensor &strain, double*, double temp);
+    void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
-    void getElasticity(Tensor *tm) {};
+    void getElasticity(Tensor *tm) const {};
 
     void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {};
 
@@ -43,11 +43,11 @@ class ElaLinIsoMat : public NLMaterial
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double temp,
-                   Tensor *cache, double dt=0);
+                   Tensor *cache, double dt=0) const override;
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double temp,
-                   Tensor *cache, double dt=0);
+                   Tensor *cache, double dt=0) const override;
 
     void initStates(double *){};
 
@@ -55,7 +55,7 @@ class ElaLinIsoMat : public NLMaterial
 
     double getReferenceTemperature() { return Tref; }
 
-    StrainEvaluator * getStrainEvaluator();
+    StrainEvaluator * getStrainEvaluator() const override;
 
     double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
 
@@ -85,7 +85,7 @@ class StVenantKirchhoffMat : public ElaLinIsoMat
     StVenantKirchhoffMat(double rho, double E, double nu, double Tref, double alpha) : ElaLinIsoMat(rho, E, nu, Tref, alpha) {}
     StVenantKirchhoffMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
 
-    StrainEvaluator * getStrainEvaluator();
+    StrainEvaluator * getStrainEvaluator() const override;
     void print(std::ostream &out) const {
       out << "StVenantKirchhoff " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }
@@ -101,7 +101,7 @@ class HenckyMat : public ElaLinIsoMat
     HenckyMat(double rho, double E, double nu, double Tref, double alpha) : ElaLinIsoMat(rho, E, nu, Tref, alpha) {}
     HenckyMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
 
-    StrainEvaluator * getStrainEvaluator();
+    StrainEvaluator * getStrainEvaluator() const override;
     void print(std::ostream &out) const {
       out << "HenckyElastic " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }

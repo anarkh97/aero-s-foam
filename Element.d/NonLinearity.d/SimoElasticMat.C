@@ -51,7 +51,7 @@ SimoElasticMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor
 
 void 
 SimoElasticMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
-                          double *, double *, double, Tensor *, double)
+                          double *, double *, double, Tensor *, double) const
 {
   Tensor_d0s2_Ss12_diag &eps = static_cast<Tensor_d0s2_Ss12_diag &>(_strain);
   Tensor_d0s2_Ss12_diag &beta = static_cast<Tensor_d0s2_Ss12_diag &>(*_stress);
@@ -70,7 +70,7 @@ SimoElasticMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strai
 
 void
 SimoElasticMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
-                          double *, double *, double, Tensor *, double)
+                          double *, double *, double, Tensor *, double) const
 {
   Tensor_d0s2_Ss12_diag &eps = static_cast<Tensor_d0s2_Ss12_diag &>(_strain);
   Tensor_d0s2_Ss12_diag &beta = static_cast<Tensor_d0s2_Ss12_diag &>(*_stress);
@@ -112,7 +112,7 @@ SimoElasticMat::getMaterialConstants(std::vector<double> &c)
 extern LogarithmicPrincipalStretches logarithmicPrincipalStretches;
 
 StrainEvaluator *
-SimoElasticMat::getStrainEvaluator()
+SimoElasticMat::getStrainEvaluator() const
 {
   return &logarithmicPrincipalStretches;
 }

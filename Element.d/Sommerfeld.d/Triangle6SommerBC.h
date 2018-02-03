@@ -22,32 +22,32 @@ public:
 
 	int dim() const override { return 3; }
 
-	int *dofs(DofSetArray &, int *p = 0);
+	int *dofs(DofSetArray &, int *p) override;
 
-	void flipNormal();
+	void flipNormal() override;
 
-	virtual Triangle6SommerBC *clone();
+	Triangle6SommerBC *clone() override;
 
 	FullSquareMatrix sommerMatrix(CoordSet &, double *) const override;
 
-	void sommerMatrixEllipsoid(CoordSet &cs, double kappa, double H[3], double K[3], ComplexD *d);
+	void sommerMatrixEllipsoid(CoordSet &cs, double kappa, double H[3], double K[3], ComplexD *d) override;
 
 	FullSquareMatrix turkelMatrix(CoordSet &, double *) const override;
 
-	ComplexD ffpCoef(double k) { return ComplexD(0.25 / M_PI, 0.0); }
+	ComplexD ffpCoef(double k) override { return {0.25 / M_PI, 0.0}; }
 
-	void getNormal(CoordSet &, double[3]);
+	void getNormal(const CoordSet &, double[3]) const override;
 
 	void BT2(CoordSet &cs, double *e, double *f, double *g,
-	         double (*tau1)[3], double (*tau2)[3], double k, ComplexD *d);
+	         double (*tau1)[3], double (*tau2)[3], double k, ComplexD *d) override;
 
-	void sphereBT2(CoordSet &cs, double r, double k, ComplexD *d);
+	void sphereBT2(CoordSet &cs, double r, double k, ComplexD *d) override;
 
-	void ellipsoidBT2(CoordSet &cs, double a, double b, double k, ComplexD *d);
+	void ellipsoidBT2(CoordSet &cs, double a, double b, double k, ComplexD *d) override;
 
 	void markDofs(DofSetArray &) override;
-//        FullSquareMatrix  stiffness(CoordSet&, double *d, int flg = 1);
-//        FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
+//        FullSquareMatrix  stiffness(const CoordSet&, double *d, int flg = 1) const;
+//        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
 //        int* nodes(int * = 0) const override;
 
 //        bool isSommerElement() { return true; }

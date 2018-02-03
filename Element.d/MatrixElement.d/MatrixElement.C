@@ -42,7 +42,7 @@ MatrixElement::setStiffness(GenAssembledFullM<complex<double> > *k)
 }
 
 FullSquareMatrix
-MatrixElement::stiffness(CoordSet &cs, double *d, int flg)
+MatrixElement::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   FullSquareMatrix K(ndofs,d);
   for(int i=0; i<ndofs; ++i)

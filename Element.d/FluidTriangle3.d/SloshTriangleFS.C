@@ -38,11 +38,11 @@ SloshTriangleFS::renum(EleRenumMap& table)
 
 
 double
-SloshTriangleFS::getArea(CoordSet& cs)
+SloshTriangleFS::getArea(const CoordSet& cs) const
 {
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   Vector r1(3), r2(3), r3(3);
 
@@ -63,7 +63,7 @@ SloshTriangleFS::getArea(CoordSet& cs)
 }
 
 FullSquareMatrix
-SloshTriangleFS::massMatrix(CoordSet &cs,double *mel,int cmflg)
+SloshTriangleFS::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
 	double area = getArea(cs);
 
@@ -94,7 +94,7 @@ SloshTriangleFS::massMatrix(CoordSet &cs,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-SloshTriangleFS::stiffness(CoordSet &cs, double *d, int flg)
+SloshTriangleFS::stiffness(const CoordSet &cs, double *d, int flg) const
 {
         FullSquareMatrix K(3,d);
 

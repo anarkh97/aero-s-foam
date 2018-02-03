@@ -17,9 +17,9 @@ public:
 	void renum(int *) override;
 	void renum(EleRenumMap&) override;
 
-	FullSquareMatrix stiffness(CoordSet&, double *d, int flg) override;
-	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg) override;
-	double           getMass(CoordSet&) override;
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg) const override;
+	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
+	double           getMass(const CoordSet&) const override;
 	double getMassSensitivityWRTthickness(CoordSet&);
 	double weight(CoordSet&, double *) override;
 	double weightDerivativeWRTthickness(CoordSet&, double *, int=1);

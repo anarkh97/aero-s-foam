@@ -14,9 +14,9 @@ class RigidThreeNodeShell : public SuperElement
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront *mf) override;
 
-    int getMassType() { return 0; }
-    FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
-    double           getMass(CoordSet& cs);
+    int getMassType() const override { return 0; }
+    FullSquareMatrix massMatrix(const CoordSet&, double* mel, int cmflg = 1) const;
+    double           getMass(const CoordSet& cs) const;
     void             getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
                                      GeomState *gs);
 

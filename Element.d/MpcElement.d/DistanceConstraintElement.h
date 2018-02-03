@@ -13,7 +13,8 @@ class DistanceConstraintElement : public ConstraintFunctionElement<Simo::Distanc
 
   protected:
     double f0;
-    void getConstants(CoordSet& cs, Eigen::Array<double,4,1>& sconst, Eigen::Array<int,0,1>&, GeomState* = NULL);
+    void getConstants(const CoordSet & cs, Eigen::Array<double,4,1>& sconst, Eigen::Array<int,0,1>&,
+                      const GeomState* = nullptr) const;
 };
 
 #endif

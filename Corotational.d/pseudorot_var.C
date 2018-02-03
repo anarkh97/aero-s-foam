@@ -1,7 +1,7 @@
 #include <cmath>
 #include <Corotational.d/utilities.h>
 
-void pseudorot_var( double rvec[3], double varmat[3][3] )
+void pseudorot_var(const double rvec[3], double varmat[3][3] )
 /******************************************************************
  *
  *  Purpose: Compute the variation of a rotation pseudo vector r with

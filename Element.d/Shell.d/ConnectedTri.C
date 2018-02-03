@@ -66,7 +66,7 @@ ConnectedTri::numDofs() const
 }
 
 FullSquareMatrix
-ConnectedTri::massMatrix(CoordSet &cs,double *mel,int cmflg)
+ConnectedTri::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
            FullSquareMatrix ret(6,mel);
 
@@ -76,7 +76,7 @@ ConnectedTri::massMatrix(CoordSet &cs,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-ConnectedTri::stiffness(CoordSet &cs,double *d,int cmflg)
+ConnectedTri::stiffness(const CoordSet &cs,double *d,int cmflg) const
 {
            FullSquareMatrix ret(6,d);
 

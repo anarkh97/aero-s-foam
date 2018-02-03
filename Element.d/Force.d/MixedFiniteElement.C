@@ -73,10 +73,10 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
 template<template <typename S> class ScalarValuedFunctionTemplate>
 void
 MixedFiniteElement<ScalarValuedFunctionTemplate>
-::getConstants(CoordSet &cs, Eigen::Array<typename ScalarValuedFunctionTemplate<double>::ScalarConstantType,
+::getConstants(const CoordSet &cs, Eigen::Array<typename ScalarValuedFunctionTemplate<double>::ScalarConstantType,
                ScalarValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> &sconst,
                Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> &iconst,
-               GeomState* gs)
+               const GeomState* gs) const
 {
   // nodal coordinates in reference configuration
   const int nNode = ScalarValuedFunctionTemplate<double>::NumberOfNodes;
@@ -126,7 +126,7 @@ template<template <typename S> class ScalarValuedFunctionTemplate>
 void
 MixedFiniteElement<ScalarValuedFunctionTemplate>
 ::getInputs(Eigen::Matrix<double,ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q,
-            CoordSet& c0, GeomState *curState)
+            const CoordSet& c0, const GeomState *curState) const
 {
   // prepare the function inputs, which is the increment in the nodal values of the three fields
   // w.r.t. the reference state.
@@ -162,7 +162,7 @@ MixedFiniteElement<ScalarValuedFunctionTemplate>
 template<template <typename S> class ScalarValuedFunctionTemplate>
 FullSquareMatrix
 MixedFiniteElement<ScalarValuedFunctionTemplate>
-::stiffness(CoordSet& c0, double* karray, int)
+::stiffness(const CoordSet& c0, double* karray, int) const
 {
   // evaluate the Hessian (second partial derivatives w.r.t. the spatial variables)
   FullSquareMatrix K(numDofs(), karray);

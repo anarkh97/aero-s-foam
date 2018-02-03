@@ -262,7 +262,7 @@ EightNodeBrick::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
 }
 
 double
-EightNodeBrick::getMass(CoordSet& cs)
+EightNodeBrick::getMass(const CoordSet& cs) const
 {
   const int nnodes = 8;
   const int numgauss = 2;
@@ -429,7 +429,7 @@ EightNodeBrick::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 FullSquareMatrix
-EightNodeBrick::massMatrix(CoordSet &cs, double *mel, int cmflg)
+EightNodeBrick::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   const int nnodes = 8;
   const int ndofs = 24;
@@ -477,7 +477,7 @@ EightNodeBrick::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-EightNodeBrick::stiffness(CoordSet &cs, double *d, int flg)
+EightNodeBrick::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   const int nnodes = 8;
   const int ndofs = 24;

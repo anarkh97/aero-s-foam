@@ -15,19 +15,19 @@ template <class TT> class GenStrainEvaluator;
 class GaussIntgElement : public MatNLElement
 {
   protected:
-    virtual int getNumGaussPoints() = 0;
-    virtual void getGaussPointAndWeight(int, double *, double &) = 0;
+    virtual int getNumGaussPoints() const = 0;
+    virtual void getGaussPointAndWeight(int, double *, double &) const = 0;
     virtual void getLocalNodalCoords(int, double *) = 0;
-    virtual ShapeFunction *getShapeFunction() = 0;
-    virtual StrainEvaluator *getStrainEvaluator() = 0;
-    virtual NLMaterial *getMaterial() = 0;
+    virtual ShapeFunction *getShapeFunction() const = 0;
+    virtual StrainEvaluator *getStrainEvaluator() const = 0;
+    virtual NLMaterial *getMaterial() const = 0;
 
   public:
     void getStiffAndForce(Node *nodes, double *disp,
                           double *state, FullSquareMatrix &kTan,
                           double *force);
-    FullSquareMatrix stiffness(CoordSet& cs, double *k, int flg=1);
-    FullSquareMatrix massMatrix(CoordSet& cs, double *m, int flg=1);
+    FullSquareMatrix stiffness(const CoordSet& cs, double *k, int flg=1) const;
+    FullSquareMatrix massMatrix(const CoordSet& cs, double *m, int flg=1) const;
     void updateStates(Node *node, double *state, double *un, double *unp, double *temps, double dt=0);
     void integrate(Node *nodes, double *dispn, double *staten,
                    double *dispnp, double *statenp,
@@ -66,18 +66,18 @@ class GenGaussIntgElement : public MatNLElement
 {
   protected:
     std::vector<double> preload;
-    virtual int getNumGaussPoints() = 0;
-    virtual void getGaussPointAndWeight(int, double *, double &) = 0;
-    virtual GenShapeFunction<TensorTypes> *getShapeFunction() = 0;
-    virtual GenStrainEvaluator<TensorTypes> *getGenStrainEvaluator() = 0;
-    virtual NLMaterial *getMaterial() = 0;
+    virtual int getNumGaussPoints() const = 0;
+    virtual void getGaussPointAndWeight(int, double *, double &) const = 0;
+    virtual GenShapeFunction<TensorTypes> *getShapeFunction() const = 0;
+    virtual GenStrainEvaluator<TensorTypes> *getGenStrainEvaluator() const = 0;
+    virtual const NLMaterial *getMaterial() const = 0;
 
    public:
     void getStiffAndForce(Node *nodes, double *disp,
                           double *state, FullSquareMatrix &kTan,
                           double *force);
-    FullSquareMatrix  stiffness(CoordSet& cs, double *k, int flg=1);
-    FullSquareMatrix massMatrix(CoordSet& cs, double *m, int flg=1);
+    FullSquareMatrix  stiffness(const CoordSet& cs, double *k, int flg=1) const;
+    FullSquareMatrix massMatrix(const CoordSet& cs, double *m, int flg=1) const;
     void updateStates(Node *node, double *state, double *un, double *unp, double *temps, double dt=0);
     void integrate(Node *nodes, double *dispn, double *staten,
                    double *dispnp, double *statenp,
@@ -87,7 +87,7 @@ class GenGaussIntgElement : public MatNLElement
                    double *force, double dt, double *temps);
     int numStates() {
       int ngp = getNumGaussPoints();
-      NLMaterial *mat = getMaterial();
+      auto *mat = getMaterial();
       int nst = (mat) ? mat->getNumStates() : 0;
       return nst*ngp;
     }
@@ -105,7 +105,7 @@ class GenGaussIntgElement : public MatNLElement
 
 template <class TensorTypes>
 FullSquareMatrix  
-GenGaussIntgElement<TensorTypes>::stiffness(CoordSet& cs, double *k, int)
+GenGaussIntgElement<TensorTypes>::stiffness(const CoordSet& cs, double *k, int) const
 {
   int i;
   FullSquareMatrix kTan(numDofs(), k);
@@ -127,7 +127,7 @@ GenGaussIntgElement<TensorTypes>::stiffness(CoordSet& cs, double *k, int)
   GenStrainEvaluator<TensorTypes> *strainEvaluator = getGenStrainEvaluator();
 
   // Obtain the material model
-  NLMaterial *material = getMaterial();
+  auto *material = getMaterial();
 
   // Obtain the storage for gradU ( 3xndim )
   typename TensorTypes::GradUTensor gradU;
@@ -186,7 +186,7 @@ GenGaussIntgElement<TensorTypes>::stiffness(CoordSet& cs, double *k, int)
 
 template <class TensorType>
 FullSquareMatrix  
-GenGaussIntgElement<TensorType>::massMatrix(CoordSet&, double *m, int)
+GenGaussIntgElement<TensorType>::massMatrix(const CoordSet&, double *m, int) const
 {
   return FullSquareMatrix(numDofs(), m);
 }
@@ -205,7 +205,7 @@ GenGaussIntgElement<TensorType>::getStiffAndForce(Node *nodes, double *disp,
   GenStrainEvaluator<TensorType> *strainEvaluator = getGenStrainEvaluator();
 
   // Obtain the material model
-  NLMaterial *material = getMaterial();
+  const NLMaterial *material = getMaterial();
 
   // Obtain the storage for gradU ( 3x3 )
   typename TensorType::GradUTensor gradU;
@@ -400,7 +400,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
   GenStrainEvaluator<TensorType> *strainEvaluator = getGenStrainEvaluator();
 
   // Obtain the material model
-  NLMaterial *material = getMaterial();
+  const NLMaterial *material = getMaterial();
 
   // Obtain the storage for gradU ( 3x3 )
   typename TensorType::GradUTensor gradUn;
@@ -502,7 +502,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
   GenStrainEvaluator<TensorType> *strainEvaluator = getGenStrainEvaluator();
 
   // Obtain the material model
-  NLMaterial *material = getMaterial();
+  const NLMaterial *material = getMaterial();
 
   // Obtain the storage for gradU ( 3x3 )
   typename TensorType::GradUTensor gradUn;
@@ -574,12 +574,12 @@ template <class TensorType>
 void
 GenGaussIntgElement<TensorType>::initStates(double *st)
 {
-  NLMaterial *material = getMaterial();
+  auto *material = getMaterial();
   int ninterns = material->getNumStates();
   int ngp = getNumGaussPoints();
  
   for(int i = 0; i < ngp; ++i)
-    material->initStates(st+i*ninterns);
+    const_cast<NLMaterial *>(material)->initStates(st+i*ninterns);
 }
 
 inline void
@@ -735,7 +735,7 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
   GenStrainEvaluator<TensorType> *strainEvaluator = getGenStrainEvaluator();
 
   // Obtain the material model
-  NLMaterial *material = getMaterial();
+  const NLMaterial *material = getMaterial();
 
   // Obtain the storage for gradU ( 3x3 )
   typename TensorType::GradUTensor gradUn;
@@ -839,7 +839,7 @@ GenGaussIntgElement<TensorType>::getVonMisesStress(Node *nodes, double *dispn, d
   GenStrainEvaluator<TensorType> *strainEvaluator = getGenStrainEvaluator();
 
   // Obtain the material model
-  NLMaterial *material = getMaterial();
+  const NLMaterial *material = getMaterial();
 
   // Obtain the storage for gradU ( 3x3 )
   typename TensorType::GradUTensor gradUn;
@@ -935,7 +935,7 @@ template <class TensorType>
 bool
 GenGaussIntgElement<TensorType>::checkFailure(double *statenp)
 {
-  NLMaterial *material = getMaterial();
+  const NLMaterial *material = getMaterial();
   for(int i = 0; i < getNumGaussPoints(); i++) {
     if(material->getDamage(statenp + i*material->getNumStates()) < 1) return false;
   }

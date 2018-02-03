@@ -7,21 +7,21 @@ class HelmLagQuadGal: public HelmElement, public Element {
 
 	int order;
 	int *nn;
-	void shapeFunctions(double xi, double eta, double *N);
+	void shapeFunctions(double xi, double eta, double *N) const;
 	HelmLagQuadGal(const HelmLagQuadGal& e);
 
 public:
 	HelmLagQuadGal(int,int*);
 
-	FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
-	FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
-	FullSquareMatrix acousticm(CoordSet&, double *d);
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg) const override;
+	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg) const override;
+	FullSquareMatrix acousticm(CoordSet&, double *d)override;
 	void wErrors(CoordSet&,
 	             double *l2e, double *h1e, double *l2, double *h1,
-	             ComplexD *u, double kappa, double *waveDir);
-	double           getMass(CoordSet&);
+	             ComplexD *u, double kappa, double *waveDir) override;
+	double           getMass(const CoordSet&) const override;
 	void edgeShapeFunctions(int n1, int n2, int *ng,
-	                        double **gw, double **N);
+	                        double **gw, double **N) override;
 
 	Element *clone() override;
 	void renum(int *) override;

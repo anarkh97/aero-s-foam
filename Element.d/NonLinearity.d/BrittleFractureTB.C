@@ -11,7 +11,7 @@ BrittleFractureTB<BaseMaterial>::clone() const
 
 template<typename BaseMaterial>
 int
-BrittleFractureTB<BaseMaterial>::getNumStates()
+BrittleFractureTB<BaseMaterial>::getNumStates() const
 {
   const int i = BaseMaterial::getNumStates();
   return i+1;
@@ -46,7 +46,7 @@ BrittleFractureTB<BaseMaterial>::getStress(Tensor *stress, Tensor &strain, doubl
 template<typename BaseMaterial>
 void 
 BrittleFractureTB<BaseMaterial>::integrate(Tensor *_stress, Tensor *tm, Tensor &en, Tensor &enp,
-                                           double *staten, double *statenp, double temp, Tensor *cache, double dt)
+                                           double *staten, double *statenp, double temp, Tensor *cache, double dt) const
 {
   double tol = std::numeric_limits<double>::epsilon();
   const int i = BaseMaterial::getNumStates();
@@ -88,7 +88,7 @@ BrittleFractureTB<BaseMaterial>::integrate(Tensor *_stress, Tensor *tm, Tensor &
 template<typename BaseMaterial>
 void
 BrittleFractureTB<BaseMaterial>::integrate(Tensor *_stress, Tensor &en, Tensor &enp,
-                                           double *staten, double *statenp, double temp, Tensor *cache, double dt)
+                                           double *staten, double *statenp, double temp, Tensor *cache, double dt) const
 {
   double tol = std::numeric_limits<double>::epsilon();
   const int i = BaseMaterial::getNumStates();
@@ -127,7 +127,7 @@ BrittleFractureTB<BaseMaterial>::integrate(Tensor *_stress, Tensor &en, Tensor &
 
 template<typename BaseMaterial>
 double
-BrittleFractureTB<BaseMaterial>::getDamage(double *statenp)
+BrittleFractureTB<BaseMaterial>::getDamage(double *statenp) const
 {
   double tol = std::numeric_limits<double>::epsilon();
   const int i = BaseMaterial::getNumStates();

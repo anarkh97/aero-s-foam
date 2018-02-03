@@ -11,44 +11,44 @@ class StrainEvaluator;
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes>
 class AutoShapeFunction : public ShapeFunction
 {
-  public:
-    AutoShapeFunction() : ShapeFunction(3*NumberOfNodes) {}
-    void getLocalDerivatives(Tensor *localDerivatives, double xi[3]);
-    void getValues(Tensor *val, double xi[3]) {}
-    Tensor *getValInstance() { return 0; }
-    double interpolateScalar(double *_q, double _xi[3]);
+public:
+	AutoShapeFunction() : ShapeFunction(3*NumberOfNodes) {}
+	void getLocalDerivatives(Tensor *localDerivatives, double xi[3]);
+	void getValues(Tensor *val, double xi[3]) {}
+	Tensor *getValInstance() { return 0; }
+	double interpolateScalar(double *_q, double _xi[3]);
 };
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 class SolidElementTemplate : public GaussIntgElement
 {
-  private:
-    static const double nodeRefCoords[NumberOfNodes][3];
-    static const AutoShapeFunction<ShapeFunctionTemplate,NumberOfNodes> shapeFunction;
+private:
+	static const double nodeRefCoords[NumberOfNodes][3];
+	static const AutoShapeFunction<ShapeFunctionTemplate,NumberOfNodes> shapeFunction;
 
-  protected:
-    int n[NumberOfNodes];
-    NLMaterial *material;
+protected:
+	int n[NumberOfNodes];
+	NLMaterial *material;
 
-    int getNumGaussPoints();
-    void getGaussPointAndWeight(int i, double *point, double &weight);
-    void getLocalNodalCoords(int i, double *coords);
-    ShapeFunction *getShapeFunction();
-    StrainEvaluator *getStrainEvaluator();
-    NLMaterial *getMaterial();
-    void getNodeRefCoords(double (*nodeRefCoords)[3]);
+	int getNumGaussPoints() const override;
+	void getGaussPointAndWeight(int i, double *point, double &weight) const override;
+	void getLocalNodalCoords(int i, double *coords) override;
+	ShapeFunction *getShapeFunction() const override;
+	StrainEvaluator *getStrainEvaluator() const override;
+	NLMaterial *getMaterial() const override;
+	void getNodeRefCoords(double (*nodeRefCoords)[3]);
 
-  public:
-    enum { numGaussPoints = NumIntgPts };
-    SolidElementTemplate(int *nd);
-    int numNodes() const override;
-     int numDofs() const override;
-    void renum(int *) override;
-    void renum(EleRenumMap&) override;
-    void markDofs(DofSetArray &) override;
-    int* dofs(DofSetArray &, int *p) override;
-    int* nodes(int * = 0) const override;
-    void setMaterial(NLMaterial *) override;
+public:
+	enum { numGaussPoints = NumIntgPts };
+	SolidElementTemplate(int *nd);
+	int numNodes() const override;
+	int numDofs() const override;
+	void renum(int *) override;
+	void renum(EleRenumMap&) override;
+	void markDofs(DofSetArray &) override;
+	int* dofs(DofSetArray &, int *p) override;
+	int* nodes(int * = 0) const override;
+	void setMaterial(NLMaterial *) override;
 };
 
 #ifdef _TEMPLATE_FIX_

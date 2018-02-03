@@ -22,10 +22,10 @@ public:
 	void renum(int *) override;
 	void renum(EleRenumMap&) override;
 
-	FullSquareMatrix stiffness(CoordSet&, double *kel, int flg) override;
-	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg) override;
+	FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg) const override;
+	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
 	void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega) override;
-	double getMass(CoordSet& cs) override;
+	double getMass(const CoordSet& cs) const override;
 
 	void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs) override;
 	void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs) override;

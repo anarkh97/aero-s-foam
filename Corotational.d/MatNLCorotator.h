@@ -47,7 +47,7 @@ class MatNLCorotator : public Corotator {
      double getElementEnergy(GeomState &, CoordSet &);
      double getDissipatedEnergy(GeomState &geomState, CoordSet &cs);
 
-     int getNumGaussPoints();
+     int getNumGaussPoints() const;
 };
 
 #endif

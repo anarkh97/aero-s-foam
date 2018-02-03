@@ -26,7 +26,7 @@ class ConstraintFunctionElement : public MpcElement
     void buildFrame(CoordSet&);
     void setProp(StructProp *p, bool _myProp) override;
     void update(GeomState*, GeomState&, CoordSet&, double) override;
-    void getHessian(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double);
+    void getHessian(const GeomState*, const GeomState&, const CoordSet&, FullSquareMatrix&, double) const override;
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState *gs = 0, int cflg = 0, double t = 0.0);
     double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
@@ -35,15 +35,15 @@ class ConstraintFunctionElement : public MpcElement
     FunctionType functionType() { return NONLINEAR; }
 
   protected:
-    virtual void getConstants(CoordSet&,
+    virtual void getConstants(const CoordSet&,
                               Eigen::Array<typename ConstraintFunctionTemplate<double>::ScalarConstantType,
                                            ConstraintFunctionTemplate<double>::NumberOfScalarConstants, 1> &sconst,
                               Eigen::Array<int,
                                            ConstraintFunctionTemplate<double>::NumberOfIntegerConstants, 1> &iconst,
-                              GeomState* = NULL) {}
+                              const GeomState* = nullptr) const {}
 
-   virtual void getInputs(Eigen::Matrix<double,ConstraintFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q, 
-                          CoordSet& c0, GeomState *c1 = NULL, GeomState *refState = NULL);
+   virtual void getInputs(Eigen::Matrix<double,ConstraintFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q,
+                          const CoordSet& c0, const GeomState *c1 = NULL, const GeomState *refState = NULL) const;
 };
 
 #ifdef _TEMPLATE_FIX_

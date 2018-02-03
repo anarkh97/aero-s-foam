@@ -61,23 +61,23 @@ class BrittleFractureTB : public BaseMaterial
                       double p10, double p11, double p12, double p13, double p14, double p15, double p16, double _maxprs, double _exponent, double _Kf)
      : BaseMaterial(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15,p16), maxprs(_maxprs), exponent(_exponent), Kf(_Kf) {}
 
-    int getNumStates();
+    int getNumStates() const override;
 
-    void initStates(double *);
+    void initStates(double *) override;
 
-    void getStress(Tensor *stress, Tensor &strain, double*, double temp);
+    void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt) const override;
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0);
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt) const override;
 
-    double getDamage(double *statenp);
+    double getDamage(double *statenp) const override;
 
-    void print2(std::ostream &out) const;
+    void print2(std::ostream &out) const override;
 
-    NLMaterial * clone() const;
+    NLMaterial * clone() const override;
 };
 
 #ifdef _TEMPLATE_FIX_

@@ -45,13 +45,13 @@ TriangleRadiation::renum(EleRenumMap& table)
 }
 
 double
-TriangleRadiation::getMass(CoordSet&)
+TriangleRadiation::getMass(const CoordSet&) const
 {
  return 0.0;
 }
 
 FullSquareMatrix
-TriangleRadiation::massMatrix(CoordSet &cs, double *d, int cmflg)
+TriangleRadiation::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
 
         FullSquareMatrix mass(3,d);
@@ -60,7 +60,7 @@ TriangleRadiation::massMatrix(CoordSet &cs, double *d, int cmflg)
 }
 
 FullSquareMatrix
-TriangleRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
+TriangleRadiation::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
 
 // ... Compute Radiative matrix
@@ -83,9 +83,9 @@ TriangleRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
 Corotator *
 TriangleRadiation::getCorotator(CoordSet &cs, double* kel, int, int)
 {
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3];
         double area;

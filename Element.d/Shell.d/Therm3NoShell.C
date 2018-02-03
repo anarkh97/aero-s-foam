@@ -48,18 +48,18 @@ Therm3NoShell::renum(EleRenumMap& table)
 }
 
 double
-Therm3NoShell::getMass(CoordSet& cs)
+Therm3NoShell::getMass(const CoordSet& cs) const
 {
         return 0.0;
 }
 
 FullSquareMatrix
-Therm3NoShell::massMatrix(CoordSet &cs, double *mel,int cmflg)
+Therm3NoShell::massMatrix(const CoordSet &cs, double *mel,int cmflg) const
 {
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
+        auto &nd1 = cs.getNode(nn[0]);
+        auto &nd2 = cs.getNode(nn[1]);
+        auto &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3], area;
         double xl[3], yl[3];
@@ -89,12 +89,12 @@ Therm3NoShell::massMatrix(CoordSet &cs, double *mel,int cmflg)
 }
 
 FullSquareMatrix
-Therm3NoShell::stiffness(CoordSet &cs, double *d, int flg)
+Therm3NoShell::stiffness(const CoordSet &cs, double *d, int flg) const
 {
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
 
 	double x[3], y[3], z[3];
 	double xl[3], yl[3], area;
@@ -153,9 +153,9 @@ void
 Therm3NoShell::getGravityForce(CoordSet& cs, double *, Vector &force, int, GeomState *)
 {
         // compute body source term (not gravity force)
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
-        Node &nd3 = cs.getNode( nn[2] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
+        auto &nd3 = cs.getNode( nn[2] );
 
         double x[3], y[3], z[3];
         double xl[3], yl[3], area;

@@ -60,9 +60,9 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     void renum(int *) override;
     void renum(EleRenumMap&) override;
 
-    FullSquareMatrix stiffness(CoordSet&, double* d, int flg = 1);
-    FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
-    double getMass(CoordSet& cs);
+    FullSquareMatrix stiffness(const CoordSet&, double* d, int flg = 1) const;
+    FullSquareMatrix massMatrix(const CoordSet&, double* mel, int cmflg = 1) const;
+    double getMass(const CoordSet& cs) const;
     double getMassThicknessSensitivity(CoordSet& cs);
     
     void getGravityForce(CoordSet&, double* gravity, Vector&, int gravflg,
@@ -100,7 +100,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
                                         
     bool isShell() { return true; }
 
-    int getMassType() { return 0; } // lumped only
+    int getMassType() const override { return 0; } // lumped only
 
     bool hasRot() { return true; }
 

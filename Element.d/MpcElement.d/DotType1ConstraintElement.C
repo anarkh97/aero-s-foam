@@ -18,16 +18,17 @@ DotType1ConstraintElement::~DotType1ConstraintElement()
 }
 
 void
-DotType1ConstraintElement::getConstants(CoordSet&, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs)
+DotType1ConstraintElement::getConstants(const CoordSet &, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&,
+                                        const GeomState *gs) const
 {
   // gs is the current configuration for eulerian description of rotations
-  // if gs == NULL the current configuration is identical to ihe undeformed configuration
-  if(gs == NULL) {
-    Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > C0(&DotType1ConstraintElement::C0[0][0]);
+  // if gs == nullptr the current configuration is identical to ihe undeformed configuration
+  if(gs == nullptr) {
+    Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > C0(&DotType1ConstraintElement::C0[0][0]);
     sconst << C0(axis1,0), C0(axis1,1), C0(axis1,2), C0(axis2,0), C0(axis2,1), C0(axis2,2), d0;
   }
   else {
-    Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > C0(&DotType1ConstraintElement::C0[0][0]),
+    Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > C0(&DotType1ConstraintElement::C0[0][0]),
                                                            R1(&(*gs)[nn[0]].R[0][0]),
                                                            R2(&(*gs)[nn[1]].R[0][0]);
     // rotate specified axes to their position in the specified (either reference or current) configuration

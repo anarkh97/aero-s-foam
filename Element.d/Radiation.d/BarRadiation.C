@@ -38,13 +38,13 @@ BarRadiation::renum(EleRenumMap& table)
 }
 
 double
-BarRadiation::getMass(CoordSet& cs)
+BarRadiation::getMass(const CoordSet& cs) const
 {
         return 0.0;
 }
 
 FullSquareMatrix
-BarRadiation::massMatrix(CoordSet &cs, double *mel, int cmflg)
+BarRadiation::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
 
         FullSquareMatrix elementMassMatrix(2,mel);
@@ -56,7 +56,7 @@ BarRadiation::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-BarRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
+BarRadiation::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
 
 //... Construct radiative matrix ...

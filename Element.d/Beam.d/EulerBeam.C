@@ -52,8 +52,8 @@ EulerBeam::EulerBeam(int *nodenums) {
 
 void
 EulerBeam::buildFrame(CoordSet &cs) {
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 	if (nn[2] < 0) {
 		if (elemframe != 0) {
 			EFrame &theFrame = *elemframe;
@@ -93,7 +93,7 @@ EulerBeam::buildFrame(CoordSet &cs) {
 		}
 		return;
 	} else {
-		Node &nd3 = cs.getNode(nn[2]);
+		auto &nd3 = cs.getNode(nn[2]);
 
 		elemframe = new EFrame[1];
 		EFrame &theFrame = *elemframe;
@@ -130,8 +130,8 @@ EulerBeam::renum(EleRenumMap &table) {
 void
 EulerBeam::getIntrnForce(Vector &elForce, CoordSet &cs,
                          double *elDisp, int forceIndex, double *ndTemps) {
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -169,14 +169,14 @@ EulerBeam::getIntrnForce(Vector &elForce, CoordSet &cs,
 }
 
 double
-EulerBeam::getMass(CoordSet &cs) {
+EulerBeam::getMass(const CoordSet &cs) const {
 	// Check for phantom element, which has no mass
 	if (prop == NULL)
 		return 0;
 
 	double length;
 
-	getLength(cs, length);
+	length = getLength(cs);
 
 	double mass = length * (prop->rho) * (prop->A);
 	return mass;
@@ -196,7 +196,7 @@ EulerBeam::getGravityForce(CoordSet &cs, double *gravityAcceleration,
 		updTransMatrix(cs, geomState, t0n, length);
 
 	} else {
-		getLength(cs, length);
+		length = getLength(cs);
 
 		for (int i = 0; i < 3; ++i) {
 			for (int j = 0; j < 3; ++j) {
@@ -253,7 +253,7 @@ EulerBeam::getGravityForce(CoordSet &cs, double *gravityAcceleration,
 }
 
 FullSquareMatrix
-EulerBeam::massMatrix(CoordSet &cs, double *mel, int cmflg) {
+EulerBeam::massMatrix(const CoordSet &cs, double *mel, int cmflg) const {
 	// Check for phantom element, which has no mass
 	if (prop == NULL) {
 		FullSquareMatrix ret(12, mel);
@@ -261,8 +261,8 @@ EulerBeam::massMatrix(CoordSet &cs, double *mel, int cmflg) {
 		return ret;
 	}
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -303,7 +303,7 @@ EulerBeam::massMatrix(CoordSet &cs, double *mel, int cmflg) {
 }
 
 FullSquareMatrix
-EulerBeam::stiffness(CoordSet &cs, double *d, int flg) {
+EulerBeam::stiffness(const CoordSet &cs, double *d, int flg) const {
 	// Check for phantom element, which has no stiffness
 	if (prop == NULL) {
 		FullSquareMatrix ret(12, d);
@@ -311,8 +311,8 @@ EulerBeam::stiffness(CoordSet &cs, double *d, int flg) {
 		return ret;
 	}
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -439,7 +439,7 @@ EulerBeam::computePressureForce(CoordSet &cs, Vector &elPressureForce,
 		normal2[0] = (*elemframe)[2][0];
 		normal2[1] = (*elemframe)[2][1];
 		normal2[2] = (*elemframe)[2][2];
-		getLength(cs, length);
+		length = getLength(cs);
 	}
 	double pressureForce = 0.5 * pbc->val * length;
 	px = pressureForce * normal[0];
@@ -576,7 +576,7 @@ EulerBeam::computeDisp(CoordSet &cs,
 	if (geomState) {//large deformation compute current beam frame
 		updTransMatrix(cs, geomState, t0n, L, gp[0]);
 	} else {// small deformation, use original beam frame as current beam frame
-		getLength(cs, L);
+		L = getLength(cs);
 		for (i = 0; i < 3; ++i) {
 			for (j = 0; j < 3; ++j) {
 				t0n[i][j] = (*elemframe)[i][j];
@@ -654,7 +654,7 @@ EulerBeam::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
 	if (geomState) {
 		updTransMatrix(cs, geomState, t0n, L, gp[0]);
 	} else {
-		getLength(cs, L);
+		L = getLength(cs);
 		for (i = 0; i < 3; ++i) {
 			for (j = 0; j < 3; ++j) {
 				t0n[i][j] = (*elemframe)[i][j];
@@ -822,31 +822,17 @@ EulerBeam::updTransMatrix(CoordSet &cs, GeomState *geomState, double t0n[3][3], 
 	normalize(t0n[2]);
 }
 
-void
-EulerBeam::getLength(CoordSet &cs, double &length) {
+double
+EulerBeam::getLength(const CoordSet &cs) const {
 // Returns length of element
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
-	double x[2], y[2], z[2];
-
-	x[0] = nd1.x;
-	y[0] = nd1.y;
-	z[0] = nd1.z;
-	x[1] = nd2.x;
-	y[1] = nd2.y;
-	z[1] = nd2.z;
-
-	double dx = x[1] - x[0];
-	double dy = y[1] - y[0];
-	double dz = z[1] - z[0];
-
-	length = sqrt(dx * dx + dy * dy + dz * dz);
-
+	return nd1.distance(nd2);
 }
 
-void EulerBeam::offsetAxis(FullSquareMatrix &mat) {
+void EulerBeam::offsetAxis(FullSquareMatrix &mat) const {
 	double cross[3][3] = {
 			{0.0,        -offset[2], offset[1]},
 			{offset[2],  0.0,        -offset[0]},
@@ -889,8 +875,8 @@ EulerBeam::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 	weight = 1.0;
 	if (strInd == -1) return;
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 
@@ -1106,8 +1092,8 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 	weight = 1;
 	// scalar parameters
 	Eigen::Array<double, 25, 1> dconst;
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
 
 	double x[2], y[2], z[2];
 

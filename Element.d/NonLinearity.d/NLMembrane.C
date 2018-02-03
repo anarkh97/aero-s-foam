@@ -342,14 +342,14 @@ NLMembrane::~NLMembrane()
 }
 
 int
-NLMembrane::getNumGaussPoints()
+NLMembrane::getNumGaussPoints() const
 {
   return 1;
   //return 3;
 }
 
 void
-NLMembrane::getGaussPointAndWeight(int n, double *point, double &weight)
+NLMembrane::getGaussPointAndWeight(int n, double *point, double &weight) const
 {
   const double third = 1.0/3.0;
   point[0] = third;
@@ -414,19 +414,19 @@ LinearStrain2D<9> linStrain2D;
 GLStrain2D<9> glStrain2D;
 
 GenStrainEvaluator<TwoDTensorTypes<9> > *
-NLMembrane::getGenStrainEvaluator()
+NLMembrane::getGenStrainEvaluator() const
 {
   return material->getGenStrainEvaluator();
 }
 
-NLMaterial *
-NLMembrane::getMaterial()
+const NLMaterial *
+NLMembrane::getMaterial() const
 {
   return material;
 }
 
 GenShapeFunction< TwoDTensorTypes<9> > *
-NLMembrane::getShapeFunction()
+NLMembrane::getShapeFunction() const
 {
  return &shpFct;
 }
@@ -479,9 +479,9 @@ NLMembrane::setCompositeData2(int type, int nlays, double *lData,
   // compute cFrame
   cFrame = new double[9];
 
-  Node &nd1 = cs.getNode(n[0]);
-  Node &nd2 = cs.getNode(n[1]);
-  Node &nd3 = cs.getNode(n[2]);
+  auto &nd1 = cs.getNode(n[0]);
+  auto &nd2 = cs.getNode(n[1]);
+  auto &nd3 = cs.getNode(n[2]);
 
   double ab[3], ac[3], x[3], y[3], z[3];
   ab[0] = nd2.x - nd1.x; ab[1] = nd2.y - nd1.y; ab[2] = nd2.z - nd1.z;
@@ -639,7 +639,7 @@ NLMembrane::getCorotator(CoordSet &, double *, int , int)
 }
 
 FullSquareMatrix
-NLMembrane::stiffness(CoordSet& cs, double *k, int flg)
+NLMembrane::stiffness(const CoordSet& cs, double *k, int flg) const
 {
   if(prop == NULL) { 
     FullSquareMatrix ret(9,k);
@@ -656,7 +656,7 @@ NLMembrane::stiffness(CoordSet& cs, double *k, int flg)
 #endif
 
 FullSquareMatrix
-NLMembrane::massMatrix(CoordSet &cs, double *mel, int cmflg)
+NLMembrane::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   FullSquareMatrix ret(9,mel);
   if(prop == NULL) { ret.zero(); return ret; }
@@ -694,13 +694,13 @@ NLMembrane::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 double
-NLMembrane::getMass(CoordSet& cs)
+NLMembrane::getMass(const CoordSet& cs) const
 {
   if(prop == NULL) return 0;
 
-  Node &nd1 = cs.getNode(n[0]);
-  Node &nd2 = cs.getNode(n[1]);
-  Node &nd3 = cs.getNode(n[2]);
+  auto &nd1 = cs.getNode(n[0]);
+  auto &nd2 = cs.getNode(n[1]);
+  auto &nd3 = cs.getNode(n[2]);
 
   double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
 

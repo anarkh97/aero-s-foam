@@ -1,7 +1,7 @@
 #include <cmath>
 #include <Corotational.d/utilities.h>
 
-void pseudorot_2var( double r[3], double f[3], double scndvar[3][3])
+void pseudorot_2var(const double r[3], const double f[3], double scndvar[3][3])
 /******************************************************************
  *
  *  Purpose: Compute the variation of a contraction between

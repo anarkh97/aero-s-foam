@@ -14,14 +14,14 @@
 template<template <typename S> class ScalarValuedFunctionTemplate>
 PotentialFunctionElement<ScalarValuedFunctionTemplate>
 ::PotentialFunctionElement(int _nNodes, DofSet nodalDofs, int* _nn)
- : BoundaryElement(_nNodes, nodalDofs, _nn)
+		: BoundaryElement(_nNodes, nodalDofs, _nn)
 {
 }
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
 PotentialFunctionElement<ScalarValuedFunctionTemplate>
 ::PotentialFunctionElement(int _nNodes, DofSet *nodalDofs, int* _nn)
- : BoundaryElement(_nNodes, nodalDofs, _nn)
+		: BoundaryElement(_nNodes, nodalDofs, _nn)
 {
 }
 
@@ -29,31 +29,31 @@ template<template <typename S> class ScalarValuedFunctionTemplate>
 void
 PotentialFunctionElement<ScalarValuedFunctionTemplate>
 ::getInputs(Eigen::Matrix<double,ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q,
-            CoordSet& c0, GeomState *curState, GeomState *refState)
+            const CoordSet& c0, const GeomState *curState, const GeomState *refState) const
 {
-  // prepare the constraint function inputs
-  if(curState == NULL) { // in this case the function will be evaluated in the undeformed configuration
-    q.setZero();
-  }
-  else {
-    for (int k = 0; k < inputs.size(); k++) {
-      int i = inputs[k];
-      switch(terms[i].dofnum) {
-        case 0 :
-          q[k] = (*curState)[terms[i].nnum].x - c0[terms[i].nnum]->x;
-          break;
-        case 1 :
-          q[k] = (*curState)[terms[i].nnum].y - c0[terms[i].nnum]->y;
-          break;
-        case 2 :
-          q[k] = (*curState)[terms[i].nnum].z - c0[terms[i].nnum]->z;
-          break;
-        case 3 : case 4 : case 5 : {
-          q[k] = 0;
-        } break;
-      }
-    }
-  }
+	// prepare the constraint function inputs
+	if(curState == NULL) { // in this case the function will be evaluated in the undeformed configuration
+		q.setZero();
+	}
+	else {
+		for (int k = 0; k < inputs.size(); k++) {
+			int i = inputs[k];
+			switch(terms[i].dofnum) {
+				case 0 :
+					q[k] = (*curState)[terms[i].nnum].x - c0[terms[i].nnum]->x;
+					break;
+				case 1 :
+					q[k] = (*curState)[terms[i].nnum].y - c0[terms[i].nnum]->y;
+					break;
+				case 2 :
+					q[k] = (*curState)[terms[i].nnum].z - c0[terms[i].nnum]->z;
+					break;
+				case 3 : case 4 : case 5 : {
+					q[k] = 0;
+				} break;
+			}
+		}
+	}
 }
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
@@ -61,32 +61,32 @@ void
 PotentialFunctionElement<ScalarValuedFunctionTemplate>::computePressureForce(CoordSet& c0, Vector& F,
                                                                              GeomState *c1, int, double t)
 {
-  // instantiate the function gradient object
-  Eigen::Array<double, ScalarValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
-  Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst, (GeomState*)NULL, t);
-  Simo::Jacobian<double,ScalarValuedFunctionTemplate> f(sconst,iconst);
+	// instantiate the function gradient object
+	Eigen::Array<double, ScalarValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
+	Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
+	getConstants(c0, sconst, iconst, nullptr, t);
+	Simo::Jacobian<double,ScalarValuedFunctionTemplate> f(sconst,iconst);
 
-  // prepare the function inputs
-  const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
-  Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, c1, NULL);
+	// prepare the function inputs
+	const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
+	Eigen::Matrix<double,N,1> q;
+	getInputs(q, c0, c1, NULL);
 
-  // evaluate the function and store values terms
-  Eigen::Map<Eigen::Matrix<double,N,1> > fval(F.data());
-  fval = f(q,t);
+	// evaluate the function and store values terms
+	Eigen::Map<Eigen::Matrix<double,N,1> > fval(F.data());
+	fval = f(q,t);
 }
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
 FullSquareMatrix
-PotentialFunctionElement<ScalarValuedFunctionTemplate>::stiffness(CoordSet& c0, double* karray, int)
+PotentialFunctionElement<ScalarValuedFunctionTemplate>::stiffness(const CoordSet& c0, double* karray, int) const
 {
-  // evaluate the hessian (second partial derivatives w.r.t. the spatial variables)
-  FullSquareMatrix K(numDofs(), karray);
-  GeomState c1(c0);
-  getHessian(NULL, c1, c0, K, 0);
+	// evaluate the hessian (second partial derivatives w.r.t. the spatial variables)
+	FullSquareMatrix K(numDofs(), karray);
+	GeomState c1(c0);
+	getHessian(NULL, c1, c0, K, 0);
 
-  return K;
+	return K;
 }
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
@@ -94,20 +94,20 @@ void
 PotentialFunctionElement<ScalarValuedFunctionTemplate>::getInternalForce(GeomState *refState, GeomState& c1, CoordSet& c0, FullSquareMatrix&,
                                                                          double* F, double, double t)
 {
-  // instantiate the function gradient object
-  Eigen::Array<double, ScalarValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
-  Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst, &c1, t);
-  Simo::Jacobian<double,ScalarValuedFunctionTemplate> f(sconst,iconst);
+	// instantiate the function gradient object
+	Eigen::Array<double, ScalarValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
+	Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
+	getConstants(c0, sconst, iconst, &c1, t);
+	Simo::Jacobian<double,ScalarValuedFunctionTemplate> f(sconst,iconst);
 
-  // prepare the function inputs
-  const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
-  Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, &c1, refState);
+	// prepare the function inputs
+	const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
+	Eigen::Matrix<double,N,1> q;
+	getInputs(q, c0, &c1, refState);
 
-  // evaluate the function and store values terms
-  Eigen::Map<Eigen::Matrix<double,N,1> > fval(F);
-  fval = f(q,t);
+	// evaluate the function and store values terms
+	Eigen::Map<Eigen::Matrix<double,N,1> > fval(F);
+	fval = f(q,t);
 }
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
@@ -116,62 +116,64 @@ PotentialFunctionElement<ScalarValuedFunctionTemplate>::getStiffAndForce(GeomSta
                                                                          double* F, double dt, double t)
 
 {
-  getStiffAndForce((GeomState*)NULL, c1, c0, Ktan, F, dt, t);
+	getStiffAndForce((GeomState*)NULL, c1, c0, Ktan, F, dt, t);
 }
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
-void 
+void
 PotentialFunctionElement<ScalarValuedFunctionTemplate>::getStiffAndForce(GeomState *refState, GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan,
                                                                          double* F, double, double t)
 
 {
-  // instantiate the function object
-  Eigen::Array<double, ScalarValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
-  Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst, &c1, t);
-  Simo::Jacobian<double,ScalarValuedFunctionTemplate> f(sconst,iconst);
+	// instantiate the function object
+	Eigen::Array<double, ScalarValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
+	Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
+	getConstants(c0, sconst, iconst, &c1, t);
+	Simo::Jacobian<double,ScalarValuedFunctionTemplate> f(sconst,iconst);
 
-  // prepare the function inputs
-  const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
-  Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, &c1, refState);
+	// prepare the function inputs
+	const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
+	Eigen::Matrix<double,N,1> q;
+	getInputs(q, c0, &c1, refState);
 
-  // evaluate the function (debug only)
-  //ScalarValuedFunctionTemplate<double> V(sconst,iconst);
-  //std::cerr << "V = " << V(q,t) << std::endl;
+	// evaluate the function (debug only)
+	//ScalarValuedFunctionTemplate<double> V(sconst,iconst);
+	//std::cerr << "V = " << V(q,t) << std::endl;
 
-  // evaluate the gradient of the function and store values terms
-  Eigen::Map<Eigen::Matrix<double,N,1> > fval(F);
-  fval = f(q,t);
+	// evaluate the gradient of the function and store values terms
+	Eigen::Map<Eigen::Matrix<double,N,1> > fval(F);
+	fval = f(q,t);
 
-  // evaluate the hessian (second partial derivatives w.r.t. the spatial variables)
-  getHessian(refState, c1, c0, Ktan, t);
+	// evaluate the hessian (second partial derivatives w.r.t. the spatial variables)
+	getHessian(refState, c1, c0, Ktan, t);
 }
 
 template<template <typename S> class ScalarValuedFunctionTemplate>
-void 
-PotentialFunctionElement<ScalarValuedFunctionTemplate>::getHessian(GeomState *refState, GeomState &c1, CoordSet& c0, FullSquareMatrix& B, double t) 
+void
+PotentialFunctionElement<ScalarValuedFunctionTemplate>::getHessian(const GeomState *refState, const GeomState &c1,
+                                                                   const CoordSet &c0,
+                                                                   FullSquareMatrix &B, double t) const
 {
-  // instantiate the function hessian object
-  Eigen::Array<double, ScalarValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
-  Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst, &c1, t);
-  Simo::Hessian<double,ScalarValuedFunctionTemplate> d2fdq2(sconst,iconst);
+	// instantiate the function hessian object
+	Eigen::Array<double, ScalarValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
+	Eigen::Array<int, ScalarValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
+	getConstants(c0, sconst, iconst, &c1, t);
+	Simo::Hessian<double,ScalarValuedFunctionTemplate> d2fdq2(sconst,iconst);
 
-  // prepare the function inputs
-  const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
-  Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, &c1, refState);
+	// prepare the function inputs
+	const int N = ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
+	Eigen::Matrix<double,N,1> q;
+	getInputs(q, c0, &c1, refState);
 
-  // evaluate the hessian 
-  Eigen::Map<Eigen::Matrix<double,N,N,Eigen::RowMajor> > H(const_cast<double*>(B.data()));
-  H = d2fdq2(q, t);
-  //std::cerr << "here are the eigenvalues of H: " << H.eigenvalues().transpose() << std::endl;
-  //Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,N,N> > es(H);
-  //std::cerr << "here are the eigenvalues of H: " << es.eigenvalues().transpose() << std::endl;
+	// evaluate the hessian
+	Eigen::Map<Eigen::Matrix<double,N,N,Eigen::RowMajor> > H(const_cast<double*>(B.data()));
+	H = d2fdq2(q, t);
+	//std::cerr << "here are the eigenvalues of H: " << H.eigenvalues().transpose() << std::endl;
+	//Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,N,N> > es(H);
+	//std::cerr << "here are the eigenvalues of H: " << es.eigenvalues().transpose() << std::endl;
 
 #ifdef TOTO
-  Eigen::Matrix<double,N,N> H;
+	Eigen::Matrix<double,N,N> H;
   int flag = prop->constraint_hess;
   switch (flag) {
    

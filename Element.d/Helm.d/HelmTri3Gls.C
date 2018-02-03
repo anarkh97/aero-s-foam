@@ -36,7 +36,7 @@ HelmTri3Gls::renum(EleRenumMap& table)
 }
 
 double
-HelmTri3Gls::getMass(CoordSet& cs)
+HelmTri3Gls::getMass(const CoordSet& cs) const
 {
         Node nd1 = cs.getNode(nn[0]);
         Node nd2 = cs.getNode(nn[1]);
@@ -60,7 +60,7 @@ HelmTri3Gls::getMass(CoordSet& cs)
 
 
 FullSquareMatrix
-HelmTri3Gls::massMatrix(CoordSet &cs,double *mel, int cmflg)
+HelmTri3Gls::massMatrix(const CoordSet &cs,double *mel, int cmflg) const
 {
         Node nd1 = cs.getNode(nn[0]);
         Node nd2 = cs.getNode(nn[1]);
@@ -106,7 +106,7 @@ HelmTri3Gls::massMatrix(CoordSet &cs,double *mel, int cmflg)
 
 
 FullSquareMatrix
-HelmTri3Gls::stiffness(CoordSet &cs, double *Ks, int flg)
+HelmTri3Gls::stiffness(const CoordSet &cs, double *Ks, int flg) const
 {
         Node nd1 = cs.getNode(nn[0]);
         Node nd2 = cs.getNode(nn[1]);

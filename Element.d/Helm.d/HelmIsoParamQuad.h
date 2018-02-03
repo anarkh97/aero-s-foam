@@ -15,11 +15,11 @@ class HelmIsoParamQuad: public HelmElement, public Element {
 public:
 	HelmIsoParamQuad(int,int*);
 
-        FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
-        FullSquareMatrixC stiffness(CoordSet&, complex<double> *d);
-        FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d);
-        double getMass(CoordSet&);
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const;
+        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const;
+        FullSquareMatrixC stiffness(const CoordSet&, complex<double> *d) const;
+        FullSquareMatrixC massMatrix(const CoordSet&, complex<double> *d) const;
+        double getMass(const CoordSet&) const;
 
 	Element *clone() override;
 	void renum(int *) override;

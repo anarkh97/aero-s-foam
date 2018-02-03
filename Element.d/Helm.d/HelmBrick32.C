@@ -59,14 +59,14 @@ HelmBrick32::renum(EleRenumMap& table)
 }
 
 double
-HelmBrick32::getMass(CoordSet& cs)
+HelmBrick32::getMass(const CoordSet& cs) const
 {
   fprintf(stderr," *** WARNING: HelmBrick32::getMass NOT implemented. Return zero mass.\n");
   return(0.0);
 }
 
 FullSquareMatrix
-HelmBrick32::massMatrix(CoordSet &cs,double *d,int cmflg)
+HelmBrick32::massMatrix(const CoordSet &cs,double *d,int cmflg) const
 {
   //int status = 0;
   const int nnodes  = 32;
@@ -120,7 +120,7 @@ HelmBrick32::massMatrix(CoordSet &cs,double *d,int cmflg)
 
 
 FullSquareMatrix
-HelmBrick32::stiffness(CoordSet &cs, double *d, int flg)
+HelmBrick32::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   //int status = 0;
   const int nnodes  = 32;

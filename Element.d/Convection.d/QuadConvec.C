@@ -47,13 +47,13 @@ QuadConvec::renum(EleRenumMap& table)
 }
 
 double
-QuadConvec::getMass(CoordSet&)
+QuadConvec::getMass(const CoordSet&) const
 {
  return 0.0;
 }
 
 FullSquareMatrix
-QuadConvec::massMatrix(CoordSet &cs, double *d, int cmflg)
+QuadConvec::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
 
         FullSquareMatrix mass(4,d);
@@ -62,13 +62,13 @@ QuadConvec::massMatrix(CoordSet &cs, double *d, int cmflg)
 }
 
 FullSquareMatrix
-QuadConvec::stiffness(CoordSet &cs, double *Kcv, int flg)
+QuadConvec::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
-	Node &nd4 = cs.getNode(nn[3]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
+	auto &nd4 = cs.getNode(nn[3]);
 
         int i;
 	double x[4], y[4], z[4], Ke[16];

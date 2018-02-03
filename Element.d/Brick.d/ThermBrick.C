@@ -56,7 +56,7 @@ ThermBrick::renum(EleRenumMap& table)
 }
 
 double
-ThermBrick::getMass(CoordSet& cs)
+ThermBrick::getMass(const CoordSet& cs) const
 {
 
  return 0.0;
@@ -64,16 +64,16 @@ ThermBrick::getMass(CoordSet& cs)
 }
 
 FullSquareMatrix
-ThermBrick::massMatrix(CoordSet &cs,double *d,int cmflg)
+ThermBrick::massMatrix(const CoordSet &cs,double *d,int cmflg) const
 {
-     Node &nd1 = cs.getNode(nn[0]);
-     Node &nd2 = cs.getNode(nn[1]);
-     Node &nd3 = cs.getNode(nn[2]);
-     Node &nd4 = cs.getNode(nn[3]);
-     Node &nd5 = cs.getNode(nn[4]);
-     Node &nd6 = cs.getNode(nn[5]);
-     Node &nd7 = cs.getNode(nn[6]);
-     Node &nd8 = cs.getNode(nn[7]);
+     auto &nd1 = cs.getNode(nn[0]);
+     auto &nd2 = cs.getNode(nn[1]);
+     auto &nd3 = cs.getNode(nn[2]);
+     auto &nd4 = cs.getNode(nn[3]);
+     auto &nd5 = cs.getNode(nn[4]);
+     auto &nd6 = cs.getNode(nn[5]);
+     auto &nd7 = cs.getNode(nn[6]);
+     auto &nd8 = cs.getNode(nn[7]);
 
      double x[8], y[8], z[8], mm[64];
 
@@ -107,16 +107,16 @@ ThermBrick::massMatrix(CoordSet &cs,double *d,int cmflg)
 
 
 FullSquareMatrix
-ThermBrick::stiffness(CoordSet &cs, double *Ks, int flg)
+ThermBrick::stiffness(const CoordSet &cs, double *Ks, int flg) const
 {
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
-	Node &nd4 = cs.getNode(nn[3]);
-	Node &nd5 = cs.getNode(nn[4]);
-	Node &nd6 = cs.getNode(nn[5]);
-	Node &nd7 = cs.getNode(nn[6]);
-	Node &nd8 = cs.getNode(nn[7]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
+	auto &nd4 = cs.getNode(nn[3]);
+	auto &nd5 = cs.getNode(nn[4]);
+	auto &nd6 = cs.getNode(nn[5]);
+	auto &nd7 = cs.getNode(nn[6]);
+	auto &nd8 = cs.getNode(nn[7]);
 
 	double x[8], y[8], z[8];
 

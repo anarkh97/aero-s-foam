@@ -25,7 +25,7 @@ protected:
 	int *nn; // all the node numbers
 	bool localFlag;
 
-	FullSquareMatrix stiffness(CoordSet& cs, double *k, int flg=1) override;
+	FullSquareMatrix stiffness(const CoordSet& cs, double *k, int flg=1) const override;
 public:
 	explicit SuperElement(bool = false);
 
@@ -58,11 +58,11 @@ public:
 	                               double *coefs, CoordSet &cs, double theta) override;
 	void setMaterial(NLMaterial *) override;
 
-	FullSquareMatrix massMatrix(CoordSet& cs, double *m, int cmflg=1) override;
+	FullSquareMatrix massMatrix(const CoordSet& cs, double *m, int cmflg=1) const override;
 	void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg=1) override;
 	void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs) override;
 
-	double getMass(CoordSet&) override;
+	double getMass(const CoordSet&) const override;
 	double getMassThicknessSensitivity(CoordSet&) override;
 	double weight(CoordSet&, double *) override;
 	double getWeightThicknessSensitivity(CoordSet&, double *) override;
@@ -121,9 +121,9 @@ public:
 	bool isMpcElement() override;
 	//bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false);
 	bool isConstraintElement() override;
-	bool isFreeplayElement() override;
+	bool isFreeplayElement() const override;
 
-	int getMassType() override;
+	int getMassType() const override;
 	int getNumMPCs() override;
 	LMPCons** getMPCs() override;
 	void makeAllDOFs();

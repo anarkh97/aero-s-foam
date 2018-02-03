@@ -12,8 +12,8 @@ class RigidEightNodeBrick : public SuperElement
     bool isSafe() { return true; }
     PrioInfo examine(int sub, MultiFront*);
 
-    FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
-    double getMass(CoordSet& cs);
+    FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg=1) const;
+    double getMass(const CoordSet& cs) const;
     void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
                          GeomState *gs);
 };

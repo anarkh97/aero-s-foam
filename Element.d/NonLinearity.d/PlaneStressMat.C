@@ -122,7 +122,7 @@ PlaneStressMat<BaseMaterial>::clone() const
 
 template<typename BaseMaterial>
 int
-PlaneStressMat<BaseMaterial>::getNumStates()
+PlaneStressMat<BaseMaterial>::getNumStates() const
 {
   return BaseMaterial::getNumStates()+3;
 }
@@ -147,7 +147,7 @@ template<typename BaseMaterial>
 void 
 PlaneStressMat<BaseMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
                                         double *staten, double *statenp, double temp,
-                                        Tensor *cache, double dt)
+                                        Tensor *cache, double dt) const
 {
 #ifdef USE_EIGEN3
   // Reference:
@@ -214,7 +214,7 @@ template<typename BaseMaterial>
 void
 PlaneStressMat<BaseMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
                                         double *staten, double *statenp, double temp,
-                                        Tensor *cache, double dt)
+                                        Tensor *cache, double dt) const
 {
 #ifdef USE_EIGEN3
   // Reference:

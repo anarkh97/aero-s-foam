@@ -26,8 +26,8 @@ PseudoTangentialMomentElement::setFrame(EFrame *elemframe)
 }
 
 void
-PseudoTangentialMomentElement::getConstants(CoordSet& cs, Eigen::Array<double,16,1>& sconst, Eigen::Array<int,0,1>&, GeomState* gs,
-                                            double t)
+PseudoTangentialMomentElement::getConstants(const CoordSet& cs, Eigen::Array<double,16,1>& sconst, Eigen::Array<int,0,1>&, const GeomState* gs,
+                                            double t) const
 {
   if(!C0) { std::cerr << "ERROR: Element 149 (pseudo tangential moment) requires an EFRAME\n"; exit(-1); }
 

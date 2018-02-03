@@ -149,7 +149,7 @@ GeomState::GeomState() : ns(0), numnodes(0), numnodesFixed(0), loc(0), X0(&empty
 {
 }
 
-GeomState::GeomState(CoordSet &cs) : X0(&cs), numelems(0), haveRot(false)
+GeomState::GeomState(const CoordSet &cs) : X0(&cs), numelems(0), haveRot(false)
 {
   numnodes = numnodesFixed = cs.size(); // Number of nodes
   ns.resize(numnodes);

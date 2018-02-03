@@ -16,13 +16,13 @@ class OgdenMat : public NLMaterial
     template<int _m, int _n>
     OgdenMat(double _rho, double (&_mu)[_m], double (&_alpha)[_m], double (&_K)[_n]);
 
-    int getNumStates() { return 0; }
+    int getNumStates() const override { return 0; }
 
-    void getStress(Tensor *stress, Tensor &strain, double*, double temp);
+    void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
-    void getElasticity(Tensor *tm) {};
+    void getElasticity(Tensor *tm) const {};
 
     void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {};
 
@@ -30,17 +30,17 @@ class OgdenMat : public NLMaterial
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double temp,
-                   Tensor *cache, double dt=0);
+                   Tensor *cache, double dt=0) const override;
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double temp,
-                   Tensor *cache, double dt=0);
+                   Tensor *cache, double dt=0) const override;
 
     void initStates(double *) {};
 
     double getDensity() { return rho; }
 
-    StrainEvaluator * getStrainEvaluator();
+    StrainEvaluator * getStrainEvaluator() const override;
 
     double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
 

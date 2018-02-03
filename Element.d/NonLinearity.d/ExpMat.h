@@ -50,7 +50,7 @@ class ExpMat : public NLMaterial
         yssrt = NULL;
       }
 
-    int getNumStates() { return 0; }
+    int getNumStates() const override { return 0; }
 
     void getStress(Tensor *stress, Tensor &strain, double*, double)
       { std::cerr << "ExpMat::getStress is not implemented\n"; }
@@ -58,7 +58,7 @@ class ExpMat : public NLMaterial
     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double)
       { std::cerr << "ExpMat::getTangentMaterial is not implemented\n"; }
 
-    void getElasticity(Tensor *tm)
+    void getElasticity(Tensor *tm) const
       { std::cerr << "ExpMat::getElasticity is not implemented\n"; }
 
     void updateStates(Tensor &en, Tensor &enp, double *state, double) {}
@@ -67,18 +67,18 @@ class ExpMat : public NLMaterial
       { std::cerr << "ExpMat::getStressAndTangentMaterial is not implemented\n"; }
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double, Tensor *cache, double=0)
+                   double *staten, double *statenp, double, Tensor *cache, double=0) const override
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double, Tensor *cache, double=0)
+                   double *staten, double *statenp, double, Tensor *cache, double=0) const override
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
     void initStates(double *) {}
 
     double getDensity() { return ematpro[2]; } 
 
-    StrainEvaluator * getStrainEvaluator()
+    StrainEvaluator * getStrainEvaluator() const override
       { std::cerr << "ExpMat::getStrainEvaluator is not implemented\n"; return NULL; }
 
     void print(std::ostream &out) const {

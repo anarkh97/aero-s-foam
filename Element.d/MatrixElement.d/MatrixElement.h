@@ -32,7 +32,7 @@ class MatrixElement : public Element
     int* dofs(DofSetArray &, int *p) override;
     int* nodes(int *) const override;
 
-    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg) override;
+    FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg) const override;
     FullSquareMatrix imagStiffness(CoordSet&, double *kel, int flg=1);
 
     int  numDofs() const { return ndofs; }

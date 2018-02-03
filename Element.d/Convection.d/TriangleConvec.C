@@ -39,13 +39,13 @@ TriangleConvec::renum(EleRenumMap& table)
 }
 
 double
-TriangleConvec::getMass(CoordSet&)
+TriangleConvec::getMass(const CoordSet&) const
 {
  return 0.0;
 }
 
 FullSquareMatrix
-TriangleConvec::massMatrix(CoordSet &cs, double *d, int cmflg)
+TriangleConvec::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
 
         FullSquareMatrix mass(3,d);
@@ -54,12 +54,12 @@ TriangleConvec::massMatrix(CoordSet &cs, double *d, int cmflg)
 }
 
 FullSquareMatrix
-TriangleConvec::stiffness(CoordSet &cs, double *Kcv, int flg)
+TriangleConvec::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
 
 	double x[3], y[3], z[3];
         double area;

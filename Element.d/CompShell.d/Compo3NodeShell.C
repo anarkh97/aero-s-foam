@@ -104,9 +104,9 @@ Compo3NodeShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   weight = 1.0;
   if(strInd == -1) return;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3], h[3];
 
@@ -183,9 +183,9 @@ Compo3NodeShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
 {
   weight = 1.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3], h[3];
 
@@ -277,9 +277,9 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
     return;
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3], h[3], ElementMassMatrix[18][18];
 
@@ -410,13 +410,13 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 double
-Compo3NodeShell::getMass(CoordSet &cs)
+Compo3NodeShell::getMass(const CoordSet &cs) const
 { 
   if(prop == NULL) return 0.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3], h[3], ElementMassMatrix[18][18];
   double *gravityAcceleration=NULL, *grvfor=NULL;
@@ -446,9 +446,9 @@ Compo3NodeShell::getMassThicknessSensitivity(CoordSet &cs)
 { 
   if(prop == NULL) return 0.0;
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3], h[3], ElementMassMatrix[18][18];
   double *gravityAcceleration=NULL, *grvfor=NULL;
@@ -474,7 +474,7 @@ Compo3NodeShell::getMassThicknessSensitivity(CoordSet &cs)
 }
 
 FullSquareMatrix
-Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
+Compo3NodeShell::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
   if(prop == NULL) {
     FullSquareMatrix ret(18,mel);
@@ -482,9 +482,9 @@ Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
     return ret;
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3], h[3];
 
@@ -565,9 +565,9 @@ Compo3NodeShell::setCompositeData2(int _type, int nlays, double *lData,
  // compute cFrame
  cFrame = new double[9];
                                                                                                         
- Node &nd1 = cs.getNode(nn[0]);
- Node &nd2 = cs.getNode(nn[1]);
- Node &nd3 = cs.getNode(nn[2]);
+ auto &nd1 = cs.getNode(nn[0]);
+ auto &nd2 = cs.getNode(nn[1]);
+ auto &nd3 = cs.getNode(nn[2]);
  
  double ab[3], ac[3], x[3], y[3], z[3];
  ab[0] = nd2.x - nd1.x; ab[1] = nd2.y - nd1.y; ab[2] = nd2.z - nd1.z;
@@ -623,7 +623,7 @@ Compo3NodeShell::getCFrame(CoordSet &cs, double cFrame[3][3]) const
 }
 
 FullSquareMatrix
-Compo3NodeShell::stiffness(CoordSet &cs, double *d, int flg)
+Compo3NodeShell::stiffness(const CoordSet &cs, double *d, int flg) const
 {
   if(prop == NULL) {
     FullSquareMatrix ret(18,d);
@@ -631,9 +631,9 @@ Compo3NodeShell::stiffness(CoordSet &cs, double *d, int flg)
     return ret;
   }
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   double x[3], y[3], z[3], h[3];
 
@@ -780,9 +780,9 @@ Compo3NodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
      }
 
      // Compute area of shell
-     Node &nd1 = cs.getNode(nn[0]);
-     Node &nd2 = cs.getNode(nn[1]);
-     Node &nd3 = cs.getNode(nn[2]);
+     auto &nd1 = cs.getNode(nn[0]);
+     auto &nd2 = cs.getNode(nn[1]);
+     auto &nd3 = cs.getNode(nn[2]);
 
      double r1[3], r2[3], r3[3], v1[3], v2[3], normal[3];
 
@@ -956,9 +956,9 @@ Compo3NodeShell::getMidPoint(CoordSet &cs)
 { 
   double * midPoint = new double[3];
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
 
   midPoint[0] = ( nd1.x + nd2.x + nd3.x ) / 3.0; 
   midPoint[1] = ( nd1.y + nd2.y + nd3.y ) / 3.0; 
@@ -1038,9 +1038,9 @@ Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
   }
  
   // Compute Node's coordinates
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
   
   x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;

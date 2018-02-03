@@ -71,13 +71,13 @@ void
 SandiaElem::renum(int *) { /* not implemented */ }
 
 FullSquareMatrix
-SandiaElem::stiffness(CoordSet&cs, double *d, int f) 
+SandiaElem::stiffness(const CoordSet&cs, double *d, int f) const
 {
   return proxy->stiffness(cs,d,f);
 }
 
 FullSquareMatrix
-SandiaElem::massMatrix(CoordSet&, double *,int) 
+SandiaElem::massMatrix(const CoordSet&, double *,int) const
 {
   return FullSquareMatrix(1);
 }

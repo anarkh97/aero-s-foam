@@ -35,13 +35,13 @@ public:
 
 	void buildFrame(CoordSet &) override;
 
-	FullSquareMatrix stiffness(CoordSet &cs, double *kel, int flg);
+	FullSquareMatrix stiffness(const CoordSet &cs, double *kel, int flg) const;
 
-	FullSquareMatrix massMatrix(CoordSet &cs, double *mel, int cmflg);
+	FullSquareMatrix massMatrix(const CoordSet &cs, double *mel, int cmflg) const;
 
 	void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
 
-	double getMass(CoordSet &cs);
+	double getMass(const CoordSet &cs) const;
 
 	void getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx);
 
@@ -104,7 +104,7 @@ public:
 
 #endif
 
-	int getMassType() override { return 0; } // lumped only
+	int getMassType() const override { return 0; } // lumped only
 private:
 	TimoshenkoBeam(const TimoshenkoBeam &);
 

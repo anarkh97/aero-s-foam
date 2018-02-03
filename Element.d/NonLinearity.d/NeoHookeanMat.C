@@ -87,7 +87,7 @@ NeoHookeanMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor 
 
 void 
 NeoHookeanMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain,
-                         double *, double *, double, Tensor *, double)
+                         double *, double *, double, Tensor *, double) const
 {
   Tensor_d0s2_Ss12 &strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
 
@@ -165,7 +165,7 @@ NeoHookeanMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_strain
 
 void
 NeoHookeanMat::integrate(Tensor *_stress, Tensor &, Tensor &_strain,
-                         double *, double *, double, Tensor *, double)
+                         double *, double *, double, Tensor *, double) const
 {
   Tensor_d0s2_Ss12 &strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
 
@@ -235,7 +235,7 @@ NeoHookeanMat::getMaterialConstants(std::vector<double> &c)
 extern GreenLagrangeStrain greenLagrangeStrain;
 
 StrainEvaluator *
-NeoHookeanMat::getStrainEvaluator()
+NeoHookeanMat::getStrainEvaluator() const
 {
   return &greenLagrangeStrain;
 }

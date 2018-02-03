@@ -93,13 +93,13 @@ void ThermIsoParamTetra::markDofs(DofSetArray &dsa) {
 }
 
 
-double ThermIsoParamTetra::getMass(CoordSet&) {
+double ThermIsoParamTetra::getMass(const CoordSet&) const {
  fprintf(stderr,"ThermIsoParamTetra::getMass not implemented.\n");
  return 0.0;
 }
 
 
-FullSquareMatrix ThermIsoParamTetra::stiffness(CoordSet &cs, double *K, int flg ) {
+FullSquareMatrix ThermIsoParamTetra::stiffness(const CoordSet &cs, double *K, int flg ) const {
 
  IsoParamUtilsTetra ipu(order);
  int orderc = ipu.getorderc();
@@ -121,8 +121,8 @@ FullSquareMatrix ThermIsoParamTetra::stiffness(CoordSet &cs, double *K, int flg 
 }
 
 
-FullSquareMatrix ThermIsoParamTetra::massMatrix(CoordSet &cs,
-                                               double *K, int cmflg) {
+FullSquareMatrix ThermIsoParamTetra::massMatrix(const CoordSet &cs,
+                                               double *K, int cmflg) const {
 
  IsoParamUtilsTetra ipu(order);
  int orderc = ipu.getorderc();

@@ -34,7 +34,7 @@ template<template <typename S> class VectorValuedFunctionTemplate>
 void
 ForceFunctionElement<VectorValuedFunctionTemplate>
 ::getInputs(Eigen::Matrix<double,VectorValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q,
-            CoordSet& c0, GeomState *curState, GeomState *refState)
+            const CoordSet& c0, const GeomState *curState, const GeomState *refState) const
 {
   // prepare the constraint function inputs
   if(curState == NULL) {
@@ -70,7 +70,7 @@ ForceFunctionElement<VectorValuedFunctionTemplate>::computePressureForce(CoordSe
   // instantiate the function object
   Eigen::Array<double, VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
   Eigen::Array<int, VectorValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst, (GeomState*)NULL, t);
+  getConstants(c0, sconst, iconst, nullptr, t);
   VectorValuedFunctionTemplate<double> f(sconst,iconst);
 
   // prepare the function inputs
@@ -93,7 +93,7 @@ ForceFunctionElement<VectorValuedFunctionTemplate>::computePressureForce(CoordSe
 
 template<template <typename S> class VectorValuedFunctionTemplate>
 FullSquareMatrix
-ForceFunctionElement<VectorValuedFunctionTemplate>::stiffness(CoordSet& c0, double* karray, int)
+ForceFunctionElement<VectorValuedFunctionTemplate>::stiffness(const CoordSet& c0, double* karray, int) const
 {
   // instantiate the function object
   Eigen::Array<double, VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
@@ -205,7 +205,7 @@ ForceFunctionElement<VectorValuedFunctionTemplate>::getStiffAndForce(GeomState *
 
 template<template <typename S> class VectorValuedFunctionTemplate>
 void 
-ForceFunctionElement<VectorValuedFunctionTemplate>::getJacobian(GeomState *refState, GeomState &c1, CoordSet& c0, FullM& B, double t) 
+ForceFunctionElement<VectorValuedFunctionTemplate>::getJacobian(const GeomState *refState, const GeomState &c1, const CoordSet& c0, FullM& B, double t) const
 {
   // instantiate the function object
   Eigen::Array<double, VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;

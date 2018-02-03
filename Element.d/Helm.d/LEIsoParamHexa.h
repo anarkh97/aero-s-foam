@@ -15,10 +15,10 @@ class LEIsoParamHexa: public Element {
 public:
 	LEIsoParamHexa(int,int*);
 
-        FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const;
+        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const;
         void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
-        double getMass(CoordSet&);
+        double getMass(const CoordSet&) const;
         void   getGravityForce(CoordSet&,double *gravity,Vector &force,
                                        int gravflg, GeomState *gs=0);
 

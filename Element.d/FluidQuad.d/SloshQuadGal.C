@@ -48,12 +48,12 @@ SloshQuadGal::renum(EleRenumMap& table)
 }
 
 double
-SloshQuadGal::getMass(CoordSet& cs)
+SloshQuadGal::getMass(const CoordSet& cs) const
 {
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
-  Node &nd4 = cs.getNode(nn[3]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
+  auto &nd3 = cs.getNode(nn[2]);
+  auto &nd4 = cs.getNode(nn[3]);
 
   Vector r1(3), r2(3), r3(3), r4(3);
 
@@ -78,7 +78,7 @@ SloshQuadGal::getMass(CoordSet& cs)
 }
 
 FullSquareMatrix
-SloshQuadGal::massMatrix(CoordSet &cs, double *d, int cmflg)
+SloshQuadGal::massMatrix(const CoordSet &cs, double *d, int cmflg) const
 {
         FullSquareMatrix mass(4,d);
         
@@ -87,13 +87,13 @@ SloshQuadGal::massMatrix(CoordSet &cs, double *d, int cmflg)
 }
 
 FullSquareMatrix
-SloshQuadGal::stiffness(CoordSet &cs,double *Ks, int)
+SloshQuadGal::stiffness(const CoordSet &cs,double *Ks, int) const
 {
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
-	Node &nd4 = cs.getNode(nn[3]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
+	auto &nd4 = cs.getNode(nn[3]);
 
         int i;
 	double x[4], y[4], Kstiff[16];
@@ -187,10 +187,10 @@ SloshQuadGal::computeSloshDisp(Vector& fluidDispSlosh, CoordSet &cs, Vector& elP
       return;
    }
  
-   Node &nd1 = cs.getNode(nn[0]);
-   Node &nd2 = cs.getNode(nn[1]);
-   Node &nd3 = cs.getNode(nn[2]);
-   Node &nd4 = cs.getNode(nn[3]);
+   auto &nd1 = cs.getNode(nn[0]);
+   auto &nd2 = cs.getNode(nn[1]);
+   auto &nd3 = cs.getNode(nn[2]);
+   auto &nd4 = cs.getNode(nn[3]);
 
    double x[4], y[4];
 
@@ -237,10 +237,10 @@ SloshQuadGal::computeSloshDispAll(Vector& fluidDispSlosh, CoordSet &cs, Vector& 
 //      return;
 //   }
  
-   Node &nd1 = cs.getNode(nn[0]);
-   Node &nd2 = cs.getNode(nn[1]);
-   Node &nd3 = cs.getNode(nn[2]);
-   Node &nd4 = cs.getNode(nn[3]);
+   auto &nd1 = cs.getNode(nn[0]);
+   auto &nd2 = cs.getNode(nn[1]);
+   auto &nd3 = cs.getNode(nn[2]);
+   auto &nd4 = cs.getNode(nn[3]);
 
    double x[4], y[4];
 

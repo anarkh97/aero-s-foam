@@ -39,8 +39,8 @@ RigidBeam::RigidBeam(int* _nn, int _variant)
 void
 RigidBeam::buildFrame(CoordSet& cs)
 {
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]); 
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
   getLength(cs, length);
   if(elemframe != 0) {
     if(length == 0) {
@@ -120,8 +120,8 @@ RigidBeam::getLength(CoordSet& cs, double &length)
 {
   // Returns length of element
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
 
   double x[2], y[2], z[2];
 
@@ -170,8 +170,8 @@ RigidBeamWithMass::RigidBeamWithMass(int* _nn, int _variant)
 void
 RigidBeamWithMass::buildFrame(CoordSet& cs)
 {
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]); 
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
   getLength(cs, length);
   if(elemframe != 0) {
     if(length == 0) {
@@ -286,8 +286,8 @@ RigidBeamWithMass::getLength(CoordSet& cs, double &length)
 {
   // Returns length of element
 
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
+  auto &nd1 = cs.getNode(nn[0]);
+  auto &nd2 = cs.getNode(nn[1]);
 
   double x[2], y[2], z[2];
 

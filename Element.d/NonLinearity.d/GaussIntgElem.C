@@ -10,7 +10,7 @@
 #endif
 
 FullSquareMatrix  
-GaussIntgElement::stiffness(CoordSet& cs, double *k, int)
+GaussIntgElement::stiffness(const CoordSet& cs, double *k, int) const
 {
   int i;
   FullSquareMatrix kTan(numDofs(), k);
@@ -96,7 +96,7 @@ GaussIntgElement::stiffness(CoordSet& cs, double *k, int)
 }
 
 FullSquareMatrix  
-GaussIntgElement::massMatrix(CoordSet& cs, double* k, int)
+GaussIntgElement::massMatrix(const CoordSet& cs, double* k, int) const
 {
   FullSquareMatrix m(numDofs(), k);
   std::cerr << "GaussIntgElement::massMatrix not implemented\n"; exit(-1);

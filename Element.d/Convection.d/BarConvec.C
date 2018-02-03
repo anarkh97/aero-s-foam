@@ -33,13 +33,13 @@ BarConvec::renum(EleRenumMap& table)
 }
 
 double
-BarConvec::getMass(CoordSet& cs)
+BarConvec::getMass(const CoordSet& cs) const
 {
         return 0.0;
 }
 
 FullSquareMatrix
-BarConvec::massMatrix(CoordSet &cs, double *mel, int cmflg)
+BarConvec::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
 
         FullSquareMatrix elementMassMatrix(2,mel);
@@ -52,13 +52,13 @@ BarConvec::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-BarConvec::stiffness(CoordSet &cs, double *Kcv, int flg)
+BarConvec::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
 // This is the additional matrix when convection is present.
 // It is added into the conductance matrix.
 
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
 
         double x[2], y[2], z[2];
 

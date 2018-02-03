@@ -223,7 +223,7 @@ QuadSommerBC::getLocalCoordinates(CoordSet &cs, double xx[4], double yy[4], doub
 
 
 void
-QuadSommerBC::getNormal(CoordSet &cs, double normal[3]) {
+QuadSommerBC::getNormal(const CoordSet &cs, double normal[3]) const {
 	double x[4], y[4], z[4];
 
 	Node nd1 = cs.getNode(nn[0]);
@@ -259,7 +259,7 @@ QuadSommerBC::getNormal(CoordSet &cs, double normal[3]) {
 	normal[2] = nz / l;
 }
 
-void QuadSommerBC::GaussCoordinates(int Ngp, double *Pg, double *weight) {
+void QuadSommerBC::GaussCoordinates(int Ngp, double *Pg, double *weight) const {
 	if (Ngp == 2) {
 		Pg[0] = -0.5773502691;
 		Pg[1] = 0.5773502691;
@@ -358,7 +358,7 @@ QuadSommerBC::markDofs(DofSetArray &dsa) {
 	}
 }
 
-void QuadSommerBC::SurfaceRefinement(int nNo, double *x, double *y, double *z, double *xx, double *yy, double *zz) {
+void QuadSommerBC::SurfaceRefinement(int nNo, double *x, double *y, double *z, double *xx, double *yy, double *zz) const {
 	int ttnNo = 2 * nNo;
 	int i;
 	//fprintf(stderr,"  QuadSommer.C - refined interpolation for surfacic quad\n");
@@ -726,7 +726,7 @@ QuadSommerBC::surfStiffMatrix(CoordSet &cs, double *d)
 */
 
 FullSquareMatrix
-QuadSommerBC::HSommerMatrix(CoordSet &cs, double *d) {
+QuadSommerBC::HSommerMatrix(const CoordSet &cs, double *d) const {
 	int i, j, k;
 	int nNo = numNodes();
 	int ttnNo = 2 * nNo;

@@ -22,9 +22,9 @@ public:
 	void renum(int *) override;
 	void renum(EleRenumMap&) override;
 
-	FullSquareMatrix stiffness(CoordSet&, double *d, int flg) override;
-	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg) override;
-	double getMass(CoordSet& cs) override;
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg) const override;
+	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
+	double getMass(const CoordSet& cs) const override;
 	void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg,
 	                     GeomState *gs) override;
 	void getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
@@ -64,7 +64,7 @@ public:
 
 	bool isShell() override { return true; }
 
-	int getMassType() override; // lumped only
+	int getMassType() const override; // lumped only
 
 	// DEC
 	bool hasRot() override {return true;}

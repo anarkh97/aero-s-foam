@@ -10,8 +10,6 @@ using std::stable_sort;
 #include <Utils.d/resize_array.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/Element.h>
-#include <Mortar.d/FaceElement.d/FaceElemSet.h>
-#include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 
 #include <Utils.d/GlobalInt.h>

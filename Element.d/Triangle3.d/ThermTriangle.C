@@ -39,12 +39,12 @@ ThermTriangle::renum(EleRenumMap& table)
 
 
 double
-ThermTriangle::getMass(CoordSet& cs)
+ThermTriangle::getMass(const CoordSet& cs) const
 {
 
-     Node &nd1 = cs.getNode(nn[0]);
-     Node &nd2 = cs.getNode(nn[1]);
-     Node &nd3 = cs.getNode(nn[2]);
+     auto &nd1 = cs.getNode(nn[0]);
+     auto &nd2 = cs.getNode(nn[1]);
+     auto &nd3 = cs.getNode(nn[2]);
 
      double x[3], y[3];
      x[0] = nd1.x; y[0] = nd1.y;
@@ -66,7 +66,7 @@ ThermTriangle::getMass(CoordSet& cs)
 }
 
 FullSquareMatrix
-ThermTriangle::massMatrix(CoordSet &cs,double *mel,int cmflg)
+ThermTriangle::massMatrix(const CoordSet &cs,double *mel,int cmflg) const
 {
 	double mass = getMass(cs);
 	double massPerNode = mass/3.0;
@@ -85,11 +85,11 @@ ThermTriangle::massMatrix(CoordSet &cs,double *mel,int cmflg)
 }
 
 FullSquareMatrix
-ThermTriangle::stiffness(CoordSet &cs, double *d, int flg)
+ThermTriangle::stiffness(const CoordSet &cs, double *d, int flg) const
 {
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
+	auto &nd1 = cs.getNode(nn[0]);
+	auto &nd2 = cs.getNode(nn[1]);
+	auto &nd3 = cs.getNode(nn[2]);
 
 	double x[3], y[3];
 	x[0] = nd1.x; y[0] = nd1.y; 

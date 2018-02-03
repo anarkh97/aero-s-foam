@@ -40,13 +40,13 @@ QuadContact::renum(EleRenumMap& table)
 }
 
 double
-QuadContact::getMass(CoordSet& cs)
+QuadContact::getMass(const CoordSet& cs) const
 {
         return 0.0;
 }
 
 FullSquareMatrix
-QuadContact::massMatrix(CoordSet &cs, double *mel, int cmflg)
+QuadContact::massMatrix(const CoordSet &cs, double *mel, int cmflg) const
 {
 
         FullSquareMatrix elementMassMatrix(4,mel);
@@ -58,15 +58,15 @@ QuadContact::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 FullSquareMatrix
-QuadContact::stiffness(CoordSet &cs, double *Kcv, int flg)
+QuadContact::stiffness(const CoordSet &cs, double *Kcv, int flg) const
 {
 // This is the additional matrix when thermal contact at an interface is present.
 // It is added into the conductance matrix.
 
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
-        Node &nd3 = cs.getNode( nn[2] );
-        Node &nd4 = cs.getNode( nn[3] );
+        auto &nd1 = cs.getNode( nn[0] );
+        auto &nd2 = cs.getNode( nn[1] );
+        auto &nd3 = cs.getNode( nn[2] );
+        auto &nd4 = cs.getNode( nn[3] );
 
         double x[4], y[4], z[4];
 

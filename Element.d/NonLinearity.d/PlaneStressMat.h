@@ -35,9 +35,9 @@ class PlaneStressMat : public BaseMaterial
      PlaneStressMat(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8, double p9, double p10,
                     double p11, double p12, double p13, double p14, double p15, double p16, double t);
 
-     int getNumStates() const;
+     int getNumStates() const override;
 
-     void initStates(double *);
+     void initStates(double *) override;
 
      void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
@@ -49,11 +49,11 @@ class PlaneStressMat : public BaseMaterial
                     double *staten, double *statenp, double temp,
                     Tensor *cache, double dt=0) const override;
 
-     void print(std::ostream &out) const;
+     void print(std::ostream &out) const override;
 
-     NLMaterial * clone() const;
+     NLMaterial * clone() const override;
 
-     GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();
+     GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator() override;
 
      double getThickness() const override { return t; }
 };

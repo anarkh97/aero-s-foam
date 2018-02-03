@@ -1,5 +1,9 @@
 #include <Element.d/NonLinearity.d/PlaneStressMat.h>
+#include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
+#include <Element.d/NonLinearity.d/BrittleFractureTB.h>
 #include <Element.d/NonLinearity.d/NLMembrane.h>
+#include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
+#include <Element.d/NonLinearity.d/PronyViscoElastic.h>
 #include <Math.d/TTensor.h>
 #include <Utils.d/NodeSpaceArray.h>
 

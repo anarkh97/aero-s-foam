@@ -3,19 +3,6 @@
 
 #include <Element.d/Element.h>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
-#include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
-#include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
-#include <Element.d/NonLinearity.d/2DMat.h>
-#include <Element.d/NonLinearity.d/ExpMat.h>
-#include <Element.d/NonLinearity.d/MaterialWrapper.h>
-#include <Element.d/NonLinearity.d/PronyViscoElastic.h>
-#include <Element.d/NonLinearity.d/OgdenMat.h>
-#include <Element.d/NonLinearity.d/SimoElasticMat.h>
-#include <Element.d/NonLinearity.d/SimoPlasticMat.h>
-#include <Element.d/NonLinearity.d/NeoHookeanMat.h>
-#include <Element.d/NonLinearity.d/MooneyRivlinMat.h>
-#include <Element.d/NonLinearity.d/BrittleFractureTB.h>
-#include <Element.d/NonLinearity.d/PlaneStressMat.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 #include <Element.d/Sommerfeld.d/LineSommerBC.h>
 #include <Element.d/Sommerfeld.d/TriangleSommerBC.h>

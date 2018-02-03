@@ -46,21 +46,21 @@ class PronyViscoElastic : public Material
     PronyViscoElastic(double p1, double p2, double p3, double p4, double p5, double p6, double p7, double p8,
                       double ginf, double g1, double tau1, double g2, double tau2, double g3, double tau3);
 
-    int getNumStates() const;
+    int getNumStates() const override;
 
-    void initStates(double *);
+    void initStates(double *) override;
 
     void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const;
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const override;
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const;
+                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const override;
 
-    void print(std::ostream &out) const;
+    void print(std::ostream &out) const override;
 
-    NLMaterial * clone() const;
+    NLMaterial * clone() const override;
 
   private:
     double ginf;

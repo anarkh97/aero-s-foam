@@ -3,12 +3,14 @@
 #include <Element.d/NonLinearity.d/2DMat.h>
 #include <Parser.d/AuxDefs.h>
 #include <Element.d/Utils.d/SolidElemUtils.h>
+#include <Element.d/NonLinearity.d/PlaneStressMat.h>
 #include <Math.d/matrix.h>
 #include <Math.d/TTensor.h>
 #include <Corotational.d/utilities.h>
 #include <Corotational.d/GeomState.h>
 #include <Utils.d/SolverInfo.h>
 #include <cmath>
+#include "ElaLinIsoMat.h"
 
 extern SolverInfo &solInfo;
 

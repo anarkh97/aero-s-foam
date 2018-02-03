@@ -1,13 +1,9 @@
 #ifndef _SCOMM_H_
 #define _SCOMM_H_
 
-#include <iostream>
-#include <Utils.d/MyComplex.h>
 #include <Utils.d/Connectivity.h>
 
 class Connectivity;
-class BaseSub;
-template<class Scalar> class GenSubDomain;
 
 /// \brief Subdomain Communication class.
 class SComm
@@ -61,11 +57,7 @@ public:
 	void setNumDofType(int _numDofType) { numDofType = _numDofType; }
 	// function to make type-specific lists from *sharedDOFs combined list using boundDofFlag
 	//void makeTypeSpecificLists(int *boundDofFlag);
-	void print(DofType t) {
-		std::cerr << "NumNeighb = " << NumNeighb[t] << std::endl;
-		std::cerr << "SubNums = "; for(int i=0; i<NumNeighb[t]; ++i) std::cerr << SubNums[t][i] << " "; std::cerr << std::endl;
-		std::cerr << "SharedDOFs = \n"; SharedDOFs[t]->print();
-	}
+	void print(DofType t);
 	Connectivity *getTypeSpecificList(DofType type) { return SharedDOFs[type]; }
 
 	// function to set any one individual type-specific list

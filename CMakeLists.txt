@@ -416,6 +416,8 @@ add_subdirectory(Material.d)
 add_subdirectory(Rom.d)
 add_subdirectory(Regression.d)
 
+add_subdirectory(FetiLib)
+
 SET(ALLLIBS Parser
      Driver Elem Feti solver Corotational Mortar Rom Math
      Dec Threads linpa Sfem paral Problems solver Corotational Driver Hetero Timers Comm Material Util getopt)

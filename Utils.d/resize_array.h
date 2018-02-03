@@ -11,7 +11,8 @@ template <class Type> class ResizeArray {
  public:
    ResizeArray(Type i, int ini_size=16);
    ~ResizeArray();
-   Type &operator[] (int i);
+    Type &operator[] (int i);
+    const Type &operator[](int i) const { return d[i]; }
    void resize(int ns);
    int max_size() { return csize; }
    Type *operator + (int i); //dangerous operator to use with caution.

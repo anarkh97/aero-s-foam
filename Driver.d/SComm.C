@@ -1,5 +1,5 @@
+#include <iostream>
 #include <Driver.d/SComm.h>
-#include <Driver.d/SubDomain.h>
 
 SComm::SComm(int nN, int *subIds, int *ids, Connectivity *con) : exchangeData(nN, nullptr)
 {
@@ -164,4 +164,10 @@ SComm::setTypeMap(DofType t, int *map)
 {
   if(TypeMap[t]) delete [] TypeMap[t];
   TypeMap[t] = map;
+}
+
+void SComm::print(DofType t) {
+  std::cerr << "NumNeighb = " << NumNeighb[t] << std::endl;
+  std::cerr << "SubNums = "; for(int i=0; i<NumNeighb[t]; ++i) std::cerr << SubNums[t][i] << " "; std::cerr << std::endl;
+  std::cerr << "SharedDOFs = \n"; SharedDOFs[t]->print();
 }

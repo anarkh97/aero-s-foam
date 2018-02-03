@@ -16,10 +16,10 @@ class Tetra10HelmGal: public HelmElement, public Element {
 public:
 	Tetra10HelmGal(int*);
 
-	Element *clone();
+	Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
         FullSquareMatrix stiffness(CoordSet&, double *kel, int flg);
         FullSquareMatrix acousticm(CoordSet&, double *kel);
@@ -31,15 +31,15 @@ public:
 
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
+        int             numNodes() const override;
+        int * nodes(int *) const override;
 
 	void            addFaces(PolygonSet *pset);
 private:
         void            computedxdxi(CoordSet &cs, int nint, double (*derivatives)[10][3], Matrix33 *dxdxi, double *det);
-	PrioInfo examine(int sub, MultiFront *);
-	int getTopNumber() {return (142);}
+	PrioInfo examine(int sub, MultiFront *) override;
+	int getTopNumber() override {return (142);}
 };
 #endif

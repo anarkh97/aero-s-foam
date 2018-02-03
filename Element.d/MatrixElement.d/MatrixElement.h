@@ -18,25 +18,25 @@ class MatrixElement : public Element
 
   public:
     MatrixElement(int _nnodes, int *_nn);
-    virtual ~MatrixElement();
+	~MatrixElement() override;
 
-    Element* clone();
+    Element* clone() override;
 
     void setDofs(DofSet *d);
     void setStiffness(GenAssembledFullM<double> *k);
     void setStiffness(GenAssembledFullM<complex<double> > *k);
 
-    void renum(int *table);
-    void renum(EleRenumMap& m);
-    void markDofs(DofSetArray &);
-    int* dofs(DofSetArray &, int *p=0);
-    int* nodes(int * = 0);
+    void renum(int *table) override;
+    void renum(EleRenumMap& m) override;
+    void markDofs(DofSetArray &) override;
+    int* dofs(DofSetArray &, int *p) override;
+    int* nodes(int *) const override;
 
-    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
+    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg) override;
     FullSquareMatrix imagStiffness(CoordSet&, double *kel, int flg=1);
 
-    int  numDofs() { return ndofs; }
-    int  numNodes() { return nnodes; }
+    int  numDofs() const { return ndofs; }
+    int  numNodes() const { return nnodes; }
 
 };
 #endif

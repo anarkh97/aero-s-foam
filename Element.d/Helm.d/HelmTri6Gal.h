@@ -11,10 +11,10 @@ class HelmTri6Gal: public HelmElement, public Element {
 public:
 	HelmTri6Gal(int*);
 
-	Element *clone();
+	Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
         FullSquareMatrix acousticm(CoordSet&, double *d);
@@ -24,10 +24,10 @@ public:
 
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
+        int             numNodes() const override;
+        int * nodes(int *) const override;
 
 	void            addFaces(PolygonSet *pset);
 
@@ -35,7 +35,7 @@ public:
                           Matrix22 *dxdxi, double *det);
         void getNormalDeriv(CoordSet&,ComplexD *uel, int ns, int *s, ComplexD*,
                             double kappa, double *waveDir);
-	int getTopNumber() {return 138;}
+	int getTopNumber() override {return 138;}
 };
 #endif
 

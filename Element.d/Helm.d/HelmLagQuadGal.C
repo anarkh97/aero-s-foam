@@ -483,7 +483,7 @@ void HelmLagQuadGal::edgeShapeFunctions(int n1, int n2, int *ng,
 }
 
 
-int* HelmLagQuadGal::nodes(int *p) {
+int* HelmLagQuadGal::nodes(int *p) const {
 
  if(p == 0) p = new int[order*order];
  int i;

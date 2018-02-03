@@ -61,7 +61,7 @@ void LEIsoParamTri::renum(EleRenumMap& table) {
 }
 
 
-int* LEIsoParamTri::nodes(int *p) {
+int* LEIsoParamTri::nodes(int *p) const {
 
  int ordersq = (order*(order+1))/2;
  if(p == 0) p = new int[ordersq];
@@ -160,7 +160,7 @@ FullSquareMatrix LEIsoParamTri::stiffness(CoordSet &cs, double *K, int flg ) {
 extern bool useFull;
 
 int
-LEIsoParamTri::numNodes() {
+LEIsoParamTri::numNodes() const {
   if(useFull)
     return (order*(order+1))/2;
   else

@@ -9,7 +9,7 @@ class FourNodeShell : public SuperElement
     FourNodeShell(int *nodenums);
 
     Element* clone();
-    int  getTopNumber();
+    int getTopNumber() override;
     bool isShell() { return true; }
 
     int nDecFaces() { return 1;}
@@ -21,7 +21,7 @@ class FourNodeShell : public SuperElement
     void computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs=0);
     void getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF, double *res, GeomState *gs=0);
     bool hasRot() { return true; }
-    PrioInfo examine(int sub, MultiFront *mf);
+    PrioInfo examine(int sub, MultiFront *mf) override;
 
 };
 

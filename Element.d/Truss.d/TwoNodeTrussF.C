@@ -230,13 +230,13 @@ TwoNodeTrussF::stiffness(CoordSet &cs, double *k, int flg)
 }
 
 int
-TwoNodeTrussF::numNodes()
+TwoNodeTrussF::numNodes() const
 {
         return 2;
 }
 
 int *
-TwoNodeTrussF::nodes(int *p)
+TwoNodeTrussF::nodes(int *p) const
 {
         if(p == 0) p = new int[2];
         p[0] = nn[0];
@@ -245,7 +245,7 @@ TwoNodeTrussF::nodes(int *p)
 }
 
 int
-TwoNodeTrussF::numDofs()
+TwoNodeTrussF::numDofs() const
 {
         return 6;
 }

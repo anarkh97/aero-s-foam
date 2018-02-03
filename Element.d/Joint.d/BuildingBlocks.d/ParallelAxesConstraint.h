@@ -11,7 +11,7 @@ class ParallelAxesConstraint : public SuperElement
 {
   public:
     ParallelAxesConstraint(int*, int=0);
-    int getTopNumber();
+    int getTopNumber() override;
     bool hasRot() { return true; }
 };
 

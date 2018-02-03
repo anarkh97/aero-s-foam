@@ -507,13 +507,13 @@ BelytschkoTsayShell::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-BelytschkoTsayShell::numNodes()
+BelytschkoTsayShell::numNodes() const
 {
   return nnode;
 }
 
 int*
-BelytschkoTsayShell::nodes(int *p)
+BelytschkoTsayShell::nodes(int *p) const
 {
    if(p == 0) p = new int[nnode];
 
@@ -524,7 +524,7 @@ BelytschkoTsayShell::nodes(int *p)
 }
 
 int
-BelytschkoTsayShell::numDofs()
+BelytschkoTsayShell::numDofs() const
 {
   return nndof*nnode;
 }

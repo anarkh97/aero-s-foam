@@ -10,81 +10,82 @@ class DofSet;
 
 class MpcElement : public Element, public Corotator, public LMPCons
 {
-  protected:
-    int nNodes;              // number of nodes (not including "internal node")
-    int *nn;                 // node numbers
-    // for direct elimination / coordinate split / state space  set prop->lagrangeMult to false and prop->penalty to 0
-    // for lagrange multipliers method set prop->lagrangeMult to true and prop->penalty to 0
-    // for penalty method set prop->lagrangeMult to false and prop->penalty to some large number
-    // for augmented lagrangian method set prop->lagrangeMult to true and prop->penalty to some large number
-    std::map<int,std::vector<int> > rotation_indices;
-    std::map<int,std::vector<double> > rotation_coefs;
+protected:
+	int nNodes;              // number of nodes (not including "internal node")
+	int *nn;                 // node numbers
+	// for direct elimination / coordinate split / state space  set prop->lagrangeMult to false and prop->penalty to 0
+	// for lagrange multipliers method set prop->lagrangeMult to true and prop->penalty to 0
+	// for penalty method set prop->lagrangeMult to false and prop->penalty to some large number
+	// for augmented lagrangian method set prop->lagrangeMult to true and prop->penalty to some large number
+	std::map<int,std::vector<int> > rotation_indices;
+	std::map<int,std::vector<double> > rotation_coefs;
 
-    void addTerms(DofSet);
-    void addTerms(DofSet*);
+	void addTerms(DofSet);
+	void addTerms(DofSet*);
 
-  public:
-    MpcElement(int, DofSet, int*);
-    MpcElement(int, DofSet*, int*);
-    MpcElement(LMPCons *mpc, bool nlflag);
-   ~MpcElement();
+public:
+	MpcElement(int, DofSet, int*);
+	MpcElement(int, DofSet*, int*);
+	MpcElement(LMPCons *mpc, bool nlflag);
+	~MpcElement() override;
 
-    int getNumMPCs();
-    LMPCons** getMPCs();
+	int getNumMPCs() override;
+	LMPCons** getMPCs() override;
 
-    void renum(int*);
-    void renum(EleRenumMap&);
+	void renum(int*) override;
+	void renum(EleRenumMap&) override;
 
-    int numNodes();
-    int* nodes(int* = 0);
+	int numNodes() const override;
+	int* nodes(int*) const override;
 
-    int numInternalNodes();
-    void setInternalNodes(int*);
+	int numInternalNodes() override;
+	void setInternalNodes(int*) override;
 
-    int numDofs();
-    int* dofs(DofSetArray&, int* = 0);
-    void markDofs(DofSetArray&);
+	 int numDofs() const override;
+	int* dofs(DofSetArray&, int*) override;
+	void markDofs(DofSetArray&) override;
 
-    bool hasRot();
+	bool hasRot() override;
 
-    FullSquareMatrix stiffness(CoordSet&, double*, int = 1);
+	FullSquareMatrix stiffness(CoordSet&, double*, int = 1) override;
 
-    void getGravityForce(CoordSet&, double*, Vector& f, int, GeomState* = 0);
+	void getGravityForce(CoordSet&, double*, Vector& f, int, GeomState*) override;
 
-    bool isMpcElement() { return true; }
+	bool isMpcElement() override { return true; }
 
-    Corotator* getCorotator(CoordSet&, double*, int, int);
-    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
-    void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
-    void getInternalForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
-    void getResidualCorrection(GeomState& c1, double* r);
-    double getElementEnergy(GeomState&, CoordSet&);
+	Corotator* getCorotator(CoordSet&, double*, int, int) override;
+	void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
+	void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
+	void getInternalForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
+	void getResidualCorrection(GeomState& c1, double* r) override;
+	double getElementEnergy(GeomState&, CoordSet&) override;
 
-    virtual void update(GeomState*, GeomState&, CoordSet&, double);
-    virtual void getHessian(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double);
-    virtual double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
-    virtual double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+	virtual void update(GeomState*, GeomState&, CoordSet&, double);
+	virtual void getHessian(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double);
+	virtual double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+	virtual double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
-    PrioInfo examine(int sub, MultiFront *mf);
-    bool isSafe() { return false; }
+	PrioInfo examine(int sub, MultiFront *mf) override;
+	bool isSafe() override { return false; }
 
-    void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState *gs = 0, int cflg = 0, double t = 0);
-    int getTopNumber() { return 101; }
+	void computePressureForce(CoordSet&, Vector& elPressureForce,
+	                          GeomState *gs, int cflg, double t) override;
+	int getTopNumber() override { return 101; }
 
-    void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
-                             int &nlflag) { nlflag = 2; }
+	void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
+	                         int &nlflag) override { nlflag = 2; }
 
-    void getNLVonMises(Vector&, Vector&, GeomState&, CoordSet&, int);
-    void getNLAllStress(FullM&, Vector&, GeomState&, CoordSet&, int);
+	void getNLVonMises(Vector&, Vector&, GeomState&, CoordSet&, int);
+	void getNLAllStress(FullM&, Vector&, GeomState&, CoordSet&, int);
 
-    void initMultipliers(GeomState& c1);
-    void updateMultipliers(GeomState& c1);
-    double getError(GeomState& c1);
+	void initMultipliers(GeomState& c1) override;
+	void updateMultipliers(GeomState& c1) override;
 
-    enum FunctionType { LINEAR=0, QUADRATIC, NONLINEAR };
-    virtual FunctionType functionType() { return NONLINEAR; }
+	double getError(GeomState& c1) override;
 
-    bool isFreeplayElement() { return type == 1 && prop->penalty != 0; }
+	enum FunctionType { LINEAR=0, QUADRATIC, NONLINEAR };
+	virtual FunctionType functionType() { return NONLINEAR; }
+
+	bool isFreeplayElement() override { return type == 1 && prop->penalty != 0; }
 };
 #endif

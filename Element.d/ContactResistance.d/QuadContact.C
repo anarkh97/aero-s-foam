@@ -110,13 +110,13 @@ QuadContact::stiffness(CoordSet &cs, double *Kcv, int flg)
 
 
 int
-QuadContact::numNodes()
+QuadContact::numNodes() const
 {
         return 4;
 }
 
 int*
-QuadContact::nodes(int *p)
+QuadContact::nodes(int *p) const
 {
         if(p == 0) p = new int[4];
         p[0] = nn[0];
@@ -127,7 +127,7 @@ QuadContact::nodes(int *p)
 }
 
 int
-QuadContact::numDofs()
+QuadContact::numDofs() const
 {
         return 4;
 }

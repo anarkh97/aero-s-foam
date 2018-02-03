@@ -546,13 +546,13 @@ FourNodeQuad::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-FourNodeQuad::numNodes()
+FourNodeQuad::numNodes() const
 {
  	return 4;
 }
 
 int*
-FourNodeQuad::nodes(int *p)
+FourNodeQuad::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -563,7 +563,7 @@ FourNodeQuad::nodes(int *p)
 }
 
 int
-FourNodeQuad::numDofs()
+FourNodeQuad::numDofs() const
 {
  	return 8;
 }

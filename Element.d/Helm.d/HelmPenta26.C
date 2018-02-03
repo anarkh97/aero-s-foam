@@ -252,16 +252,16 @@ HelmPenta26::acousticm(CoordSet &cs, double *d)
 }
 
 int
-HelmPenta26::numNodes(){ 
+HelmPenta26::numNodes() const {
   if(useFull)
     return(26); 
   else
     return(8);
 }
-int HelmPenta26::numDofs(){ return(26); }
+int HelmPenta26::numDofs() const { return(26); }
 
 int*
-HelmPenta26::nodes(int *p)
+HelmPenta26::nodes(int *p) const
 {
   if(useFull)
     {

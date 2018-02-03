@@ -79,7 +79,7 @@ class GenSparseMatrix {
         virtual void inverseSquareRootMult(Scalar * result);
         virtual GenFullM<Scalar> * getFullMatrix();
         virtual int* getFirstDof();
-        virtual int numNodes();
+        virtual int numNodes() const;
         virtual GenFullM<Scalar>* getDiagMatrix(int i);
         virtual ~GenSparseMatrix() = 0;
         virtual Scalar* getBlockScalarMultipliers();

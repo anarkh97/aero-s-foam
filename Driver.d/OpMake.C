@@ -2463,21 +2463,14 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
      ComplexD **bt2nMatrix = 0;
      int *dofs = sommer[i]->dofs(*dsa);
      int *dofs_mdds = dofs;
-    if(mdds_flag) {
-       int *localnums = sommer[i]->nodes();
-//       int *glnums = new int[sommer[i]->numNodes()];
-       int *nn = sommer[i]->getNodes();
-       for(int j=0; j<sommer[i]->numNodes(); ++j) {
-          int glnum = subCast->localToGlobal(localnums[j]);
-          nn[j] = glnum; 
-       }
-//       sommer[i]->renum(glnums);
-       dofs_mdds = sommer[i]->dofs(*domain->getDSA());
-//       sommer[i]->renum(localnums);
-       for(int j=0; j<sommer[i]->numNodes(); ++j) nn[j] = localnums[j];
-       delete [] localnums;
-//       delete [] glnums;
-     }
+	   if(mdds_flag) {
+		   // TODO Get rid of this horror!!! Why do we go to global????
+		   int *glnums = const_cast<int *>(subCast->getGlNodes());
+		   sommer[i]->renum(glnums);
+		   dofs_mdds = sommer[i]->dofs(*domain->getDSA());
+
+		   sommer[i]->renum(subCast->getGlobalToLocalNode());
+	   }
      FullSquareMatrix ms = sommer[i]->sommerMatrix(nodes,v);
      FullSquareMatrix mm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
      double kappa = sommer[i]->el->getProperty()->kappaHelm; // PJSA 1-15-2008

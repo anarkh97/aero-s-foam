@@ -41,16 +41,16 @@ public:
  int o;
  DGMLE3d(int _o, int* nodenums);
  virtual int defaultLMType() { return 251; }
- virtual bool dgmFlag() { return true; }
- virtual bool condensedFlag() {
+ bool dgmFlag() const override { return true; }
+ bool condensedFlag() const override  {
    for(int i=0;i<nFaces();i++) if (bc[i]==3) return false;
    return true;
  }
  virtual bool storeMatricesFlag() { return true; }
- virtual int nPolynomialDofs() { return 0; }
- virtual int nEnrichmentDofs() { return ndir; }
- virtual int nGeomNodes() { return o*o*o; }
- virtual int nFaces() { return 6; }
+ int nPolynomialDofs() const  { return 0; }
+ virtual int nEnrichmentDofs() const override { return ndir; }
+ int nGeomNodes() const override { return o*o*o; }
+ int nFaces() const override { return 6; }
  virtual int nFaceCorners(int fi) { return 4; }
  virtual int *faceCorners(int fi) { 
    int *fc = new int[4];
@@ -128,8 +128,8 @@ public:
 class DEMLE3d: public DGMLE3d {
 public:
  DEMLE3d(int _o, int* nodenums);
- virtual bool dgmFlag() { return false; }
- virtual int nPolynomialDofs() { return 3*o*o*o; }
+ bool dgmFlag() const override { return false; }
+ int nPolynomialDofs() const  { return 3*o*o*o; }
 
  virtual void createM(complex<double>*);
  virtual void createRHS(complex<double>*);

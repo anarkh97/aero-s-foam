@@ -485,7 +485,7 @@ Penta26::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-Penta26::numNodes()
+Penta26::numNodes() const
 { 
   if(useFull)
     return 26; 
@@ -494,7 +494,7 @@ Penta26::numNodes()
 }
 
 int
-Penta26::numDofs()
+Penta26::numDofs() const
 {
   return 78;
 }
@@ -512,7 +512,7 @@ Penta26::numTopNodes()
 }
 
 int*
-Penta26::nodes(int *p)
+Penta26::nodes(int *p) const
 {
   if(useFull) {
     if(!p) p = new int[26];

@@ -71,19 +71,19 @@ public:
  int o;
  DGMHelm2d(int _o, int* nodenums);
  virtual int defaultLMType() { return 1; }
- virtual bool dgmFlag() { return true; }
- virtual bool condensedFlag() {
+ bool dgmFlag() const override { return true; }
+ bool condensedFlag() const override  {
    for(int i=0;i<nFaces();i++) if (bc[i]==3) return false;
 // return false;
    return true;
  }
-// virtual bool condensedFlag() { return false; }
+// bool condensedFlag() const override  { return false; }
  virtual bool storeMatricesFlag() { return true; }
 // virtual bool storeMatricesFlag() { return false; }
- virtual int nPolynomialDofs() { return 0; }
- virtual int nEnrichmentDofs() { return ndir; }
- virtual int nGeomNodes() { return (o>0)?o*o:((-o)*(-o+1))/2; }
- virtual int nFaces() { return (o>0)?4:3; }
+ int nPolynomialDofs() const  { return 0; }
+ virtual int nEnrichmentDofs() const override { return ndir; }
+ int nGeomNodes() const override { return (o>0)?o*o:((-o)*(-o+1))/2; }
+ int nFaces() const override { return (o>0)?4:3; }
  virtual int nFaceCorners(int fi) { return 2; }
  virtual int *faceCorners(int fi) { 
    int *fc = new int[2];
@@ -173,8 +173,8 @@ public:
 class DEMHelm2d: public DGMHelm2d {
 public:
  DEMHelm2d(int _o, int* nodenums);
- virtual bool dgmFlag() { return false; }
- virtual int nPolynomialDofs() { return (o>0)?o*o:((-o)*(-o+1))/2; }
+ bool dgmFlag() const override { return false; }
+ int nPolynomialDofs() const  { return (o>0)?o*o:((-o)*(-o+1))/2; }
 
  virtual void createM(complex<double>*);
  virtual void interfMatrix(int fi, DEMElement*,complex<double>*);

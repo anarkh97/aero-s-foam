@@ -181,7 +181,7 @@ HelmTri6Gal::acousticm(CoordSet &cs,double *K)
 }
 
 int
-HelmTri6Gal::numNodes()
+HelmTri6Gal::numNodes() const
 {
   if(useFull)
     return 6;
@@ -190,7 +190,7 @@ HelmTri6Gal::numNodes()
 }
 
 int*
-HelmTri6Gal::nodes(int *p)
+HelmTri6Gal::nodes(int *p) const
 {
   if(useFull)
     {
@@ -215,7 +215,7 @@ HelmTri6Gal::nodes(int *p)
 }
 
 int
-HelmTri6Gal::numDofs()
+HelmTri6Gal::numDofs() const
 {
  	return 6;
 }

@@ -188,13 +188,13 @@ HelmQuadGls::acousticm(CoordSet &cs,double *K)
 }
 
 int
-HelmQuadGls::numNodes()
+HelmQuadGls::numNodes() const
 {
  	return 4;
 }
 
 int*
-HelmQuadGls::nodes(int *p)
+HelmQuadGls::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -205,7 +205,7 @@ HelmQuadGls::nodes(int *p)
 }
 
 int
-HelmQuadGls::numDofs()
+HelmQuadGls::numDofs() const
 {
  	return 4;
 }

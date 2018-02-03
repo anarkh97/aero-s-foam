@@ -67,10 +67,10 @@ HData::HData() : sommer(0), scatter(0), neum(0), wet(0), sBoundNodes(0)
   scaElemToNode = 0;
   scaNodeToElem = 0;
   scaToEl = 0;
- 
+
   numComplexLMPC = 0;
 //  kappa = 0.0;
- 
+
   frequencies = 0;
   coarse_frequencies = 0;
   isCoarseGridSolve = true;
@@ -105,8 +105,8 @@ HData::setComplexNeuman(int _numComplexNeuman, ComplexBCond * _cnbc)
   return 0;
 }
 
-void 
-HData::addFSRHS(ComplexVector &force) 
+void
+HData::addFSRHS(ComplexVector &force)
 {
   fprintf(stderr,"HData::addFSRHS should never be called.\n");
 }
@@ -118,7 +118,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
  if (implicitFlag && (numComplexDirichlet>0)) {
    ComplexBCond *newcdbc = new ComplexBCond[numComplexDirichlet * numWaveDirections];
 
-   for (iDir=0; iDir< numWaveDirections; iDir++) 
+   for (iDir=0; iDir< numWaveDirections; iDir++)
      for (i = 0; i< numComplexDirichlet; i++) newcdbc[iDir * numComplexDirichlet + i] = cdbc[i];
    cdbc = newcdbc;
  }
@@ -135,7 +135,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
    for(i=0; i<dom->numdof(); ++i) {
      bcxC[i] = ComplexD(0.0, 0.0);
    }
-    
+
    // Set the real Neumann boundary conditions
    for(i=0; i<dom->numNeuman; ++i) {
      int dof  = dom->dsa->locate(dom->nbc[i].nnum, 1 << dom->nbc[i].dofnum);
@@ -146,7 +146,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      bc[dof] = BCLOAD;
      bcxC[dof] = ComplexD(dom->nbc[i].val, 0.0);
    }
-  
+
    // Set the real Dirichlet boundary conditions
    for(i=0; i<dom->numDirichlet; ++i) {
      int dof  = dom->dsa->locate(dom->dbc[i].nnum, 1 << dom->dbc[i].dofnum);
@@ -157,7 +157,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      bc[dof] = BCFIXED;
      bcxC[dof] = ComplexD(dom->dbc[i].val, 0.0);
    }
-    
+
    // Set the Complex Neuman boundary conditions
    for(i=0; i<numComplexNeuman; ++i) {
      int dof  = dom->dsa->locate(cnbc[i].nnum, 1 << cnbc[i].dofnum);
@@ -168,7 +168,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      bc[dof] = BCLOAD;
      bcxC[dof] = ComplexD(cnbc[i].reval, cnbc[i].imval);
    }
-    
+
     // Set the Complex Dirichlet boundary condtions
    double kappa = 0.0;
    if (numComplexDirichlet>0 && implicitFlag )
@@ -177,23 +177,23 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      int dof  = dom->dsa->locate(cdbc[i].nnum, 1 << cdbc[i].dofnum);
      if(dof < 0) continue;
      if(bc[dof] == BCFIXED && iDir==0) {
-       //fprintf(stderr,"WARNING: check input, found repeated HDISP (node %d, dof %d)\n",cdbc[i].nnum,cdbc[i].dofnum);   
+       //fprintf(stderr,"WARNING: check input, found repeated HDISP (node %d, dof %d)\n",cdbc[i].nnum,cdbc[i].dofnum);
      }
      if (implicitFlag) {
        Node nd = dom->nodes.getNode(cdbc[i].nnum);
        double x = nd.x;
        double y = nd.y;
        double z = nd.z;
-   
+
        double e1 = x*waveDirections[iDir*3+0];
        double e2 = y*waveDirections[iDir*3+1];
        double e3 = z*waveDirections[iDir*3+2];
-  
+
        ComplexD cc = -exp( DComplex(0.0, kappa*(e1+e2+e3)) );
-   
+
        cdbc[i + numComplexDirichlet * iDir].reval =  real(cc);
        cdbc[i + numComplexDirichlet * iDir].imval =  imag(cc);
-        
+
        bc[dof] = BCFIXED;
        bcxC[dof] = cc;
      }
@@ -223,7 +223,7 @@ HData::addSBoundNodes()
 
 void
 HData::makeKss(Domain* dom)
-{ 
+{
  Kss = 0;
  int cLen = dom->dsa->size();
  int iDof;
@@ -277,20 +277,18 @@ HData::getCurvatures(Domain *dom )
    }
  }
  else {
- 
+
    int (*sommerNodeToNode)[2] = new int[dom->numnodes][2];
    int i;
    for(i=0; i<dom->numnodes; i++) {
      sommerNodeToNode[i][0] = -1;
      sommerNodeToNode[i][1] = -1;
    }
- 
+
    curvatures = new double[numSommer];
- 
-   int *nds;
- 
+
    for(i=0; i<numSommer; i++) {
-     nds = sommer[i]->getNodes();
+     auto nds = sommer[i]->getNodes();
      int numElNodes = sommer[i]->numNodes();
      int first = nds[0];
      int last = nds[numElNodes-1];
@@ -303,27 +301,27 @@ HData::getCurvatures(Domain *dom )
      else
        sommerNodeToNode[last][1] = first;
    }
- 
+
    // Actual calculation of the curvatures
    // first node by node
    double *curvNodes =  new double[dom->numnodes];
    int *lastNodeFlag = new int[dom->numnodes];
    int iNode;
    for(iNode=0; iNode<dom->numnodes; iNode++) {
-  
-     int nn[2]; 
+
+     int nn[2];
      lastNodeFlag[iNode]=0;
      double curv;
      double x0, x1, x2, y0, y1, y2;
-   
+
      // Current node
      Node nd0 = dom->nodes.getNode(iNode);
      x0 = nd0.x; y0 = nd0.y;
-   
+
      // Its neighbors
      nn[0] = sommerNodeToNode[iNode][0];
      nn[1] = sommerNodeToNode[iNode][1];
-   
+
      // Check for connections accross subdomains
      if (nn[0] != -1) {
        Node nd1 = dom->nodes.getNode(nn[0]);
@@ -337,7 +335,7 @@ HData::getCurvatures(Domain *dom )
      }
      else
        lastNodeFlag[iNode] = 1;
-   
+
      if(lastNodeFlag[iNode]) {
        curv = 0.0;
      }
@@ -345,23 +343,23 @@ HData::getCurvatures(Domain *dom )
        double l1 = sqrt((x1-x0)*(x1-x0)+(y1-y0)*(y1-y0));
        double l2 = sqrt((x2-x0)*(x2-x0)+(y2-y0)*(y2-y0));
        double l3 = sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
-       double area = 0.25 * 
+       double area = 0.25 *
           sqrt(fabs((l1+l2+l3)*(l1+l2-l3)*(l1+l3-l2)*(l2+l3-l1)));
        curv = 4.0*fabs(area)/(l1*l2*l3);
      }
      curvNodes[iNode] = curv;
    }
-   
+
    // Now average element wise
    for (i=0; i<numSommer; i++) {
-     nds = sommer[i]->getNodes();
+     auto nds = sommer[i]->getNodes();
      int numElNodes = sommer[i]->numNodes();
      int first = nds[0];
      int last = nds[numElNodes-1];
      if ((curvNodes[first] == 0.0) && (lastNodeFlag[first]))
        curvatures[i] = curvNodes[last];
      else if ((curvNodes[last] == 0.0) && (lastNodeFlag[last]))
-       curvatures[i] = curvNodes[first]; 
+       curvatures[i] = curvNodes[first];
      else curvatures[i] = (curvNodes[first]+curvNodes[last])/2.0;
    }
  }
@@ -651,8 +649,8 @@ HData::getCurvatures3D(Domain *dom)
           n = somNodeToNode->num(iNode) - 1;
           // A = AN'*AN
           for(i=0;i<3;i++) for(j=0;j<3;j++) A[i][j] = 0.0;
-          for(i=0;i<3;i++) 
-            for(j=0;j<3;j++) 
+          for(i=0;i<3;i++)
+            for(j=0;j<3;j++)
               for(k=0;k<n;k++)
                 A[i][j] += AN[k][i]*AN[k][j];
 
@@ -701,7 +699,7 @@ HData::getCurvatures3D(Domain *dom)
             ff += B[1][i]*f[i];
             gg += B[2][i]*f[i];
           }
-		
+
           curvatures_e[iCurvNode-1] = -ee;
           curvatures_f[iCurvNode-1] = -ff;
           curvatures_g[iCurvNode-1] = -gg;
@@ -726,10 +724,10 @@ HData::getCurvatures3D(Domain *dom)
         Node nd = dom->nodes.getNode(iNode);
         double x, y, z;
         x = nd.x; y = nd.y; z = nd.z;
-  
+
         double b=curvatureConst1, a=curvatureConst2;
         double sinasq = x*x/b/b;
-  
+
         double k1 = b/a/sqrt(a*a*sinasq+b*b-b*b*sinasq);
         double k2 = a*b/pow(a*a*sinasq+b*b-b*b*sinasq,1.5);
         curvaturesH[iCurvNode-1] = 0.5*(k1+k2);
@@ -870,7 +868,7 @@ HData::getCurvatures3Daccurate( Domain *dom )
             curvatures_e[iCurvNode-1] = 0.0;
             curvatures_f[iCurvNode-1] = 0.0;
             curvatures_g[iCurvNode-1] = 0.0;
-	  }	
+	  }
           else {
             double l = sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
             if (l == 0) l=1.0;
@@ -1010,7 +1008,7 @@ HData::getCurvatures3Daccurate( Domain *dom )
               l = sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
               if (l == 0) l=1.0;
               normal[0] /= l; normal[1] /= l; normal[2] /= l;
-              getTau(normal,tau1,tau2);    
+              getTau(normal,tau1,tau2);
               for (iSomNode=0; iSomNode<numNeighbours-1; iSomNode++) {//change of basis
                 double x1, y1, z1;
                 x1 = newCoords[iSomNode][0]; y1 = newCoords[iSomNode][1]; z1 = newCoords[iSomNode][2];
@@ -1144,10 +1142,10 @@ HData::getCurvatures3Daccurate( Domain *dom )
             curvatures_normal[iCurvNode-1][0] = normal[0];
             curvatures_normal[iCurvNode-1][1] = normal[1];
             curvatures_normal[iCurvNode-1][2] = normal[2];
-            
-            delete [] newCoords; 
+
+            delete [] newCoords;
             //PJSA for(int i=0;i<unknown;i++) delete [] A2[i];
-            delete [] A2; 
+            delete [] A2;
             delete [] f2;
             delete [] vectemp2;
             for(int i=0;i<numNeighbours-1;i++) { delete [] AN[i]; delete [] AN2[i]; }
@@ -1401,33 +1399,33 @@ HData::getCurvatures3Daccurate( Domain *dom )
           if (unknown==3)
             curvaturesLapH[nn3]=-((4*z[2]*z[0]+2*z[3]*z[1])*((1+z[1]*z[1])*h[0]-z[0]*z[1]*h[1]) +
               (2*z[3]*z[0]+4*z[4]*z[1])*(-z[0]*z[1]*h[0]+(1+z[0]*z[0])*h[1])) /
-             (2*(1+z[0]*z[0]+z[1]*z[1])*(1+z[0]*z[0]+z[1]*z[1])) + 
+             (2*(1+z[0]*z[0]+z[1]*z[1])*(1+z[0]*z[0]+z[1]*z[1])) +
             (2*z[3]*z[1]*h[0]+(1+z[1]*z[1])*h[2]-(z[3]*z[0]+2*z[2]*z[1])*h[1] -
               (2*z[4]*z[0]+z[3]*z[1])*h[0]+2*z[3]*z[0]*h[1]+(1+z[0]*z[0])*h[2]) /
              (1+z[0]*z[0]+z[1]*z[1]);
           else if (unknown==4)
             curvaturesLapH[nn3]=-((4*z[2]*z[0]+2*z[3]*z[1])*((1+z[1]*z[1])*h[0]-z[0]*z[1]*h[1]) +
               (2*z[3]*z[0]+4*z[4]*z[1])*(-z[0]*z[1]*h[0]+(1+z[0]*z[0])*h[1])) /
-             (2*(1+z[0]*z[0]+z[1]*z[1])*(1+z[0]*z[0]+z[1]*z[1])) + 
+             (2*(1+z[0]*z[0]+z[1]*z[1])*(1+z[0]*z[0]+z[1]*z[1])) +
             (2*z[3]*z[1]*h[0]+(1+z[1]*z[1])*h[2]-(z[3]*z[0]+2*z[2]*z[1])*h[1] -
               (2*z[4]*z[0]+z[3]*z[1])*h[0]+2*z[3]*z[0]*h[1]+(1+z[0]*z[0])*h[3]) /
              (1+z[0]*z[0]+z[1]*z[1]);
           else {
             curvaturesLapH[nn3]=-((4*z[2]*z[0]+2*z[3]*z[1])*((1+z[1]*z[1])*h[0]-z[0]*z[1]*h[1]) +
               (2*z[3]*z[0]+4*z[4]*z[1])*(-z[0]*z[1]*h[0]+(1+z[0]*z[0])*h[1])) /
-             (2*(1+z[0]*z[0]+z[1]*z[1])*(1+z[0]*z[0]+z[1]*z[1])) + 
+             (2*(1+z[0]*z[0]+z[1]*z[1])*(1+z[0]*z[0]+z[1]*z[1])) +
             (2*z[3]*z[1]*h[0]+(1+z[1]*z[1])*h[2]-(z[3]*z[0]+2*z[2]*z[1])*h[1]-2*z[0]*z[1]*h[3] -
               (2*z[4]*z[0]+z[3]*z[1])*h[0]+2*z[3]*z[0]*h[1]+(1+z[0]*z[0])*h[4]) /
              (1+z[0]*z[0]+z[1]*z[1]);
           }
-          delete [] newCoords; 
+          delete [] newCoords;
           //PJSA delete [] delta2; 
           //PJSA for(i=0; i<unknown; i++)
           //PJSA   delete [] A[i];
-          delete [] A; 
+          delete [] A;
           delete [] z;
           delete [] h;
-          delete [] vectemp; 
+          delete [] vectemp;
           for(i=0;i<numNeighbours-1;i++) delete [] AN[i];
           delete [] AN;
         }
@@ -1435,7 +1433,7 @@ HData::getCurvatures3Daccurate( Domain *dom )
           //set the value to 0
           curvaturesLapH[nn3] = 0.0;
         }
-      } 
+      }
     }
     for (iNode=0; iNode<somNodeToElem->csize(); iNode++) {
       if (somNodeToElem->num(iNode) > 0) {
@@ -1525,7 +1523,7 @@ HData::outputFFP(ComplexVector& sol, int iInfo)
 // RT new style
  if (oinfo[iInfo].type == OutputInfo::Farfield
      && numFFPDirections==0) {
-   
+
    OutputInfo *oinfo = geoSource->getOutputInfo();
    int dim= scatter[0]->dim();
    int nsint = oinfo[iInfo].interval;
@@ -1535,13 +1533,13 @@ HData::outputFFP(ComplexVector& sol, int iInfo)
    DComplex ffpCoef;
    if(dim!=3) ffpCoef = exp(DComplex(0.0,M_PI/4.0))/sqrt(8.0*M_PI*geoSource->kappa())*geoSource->global_average_rhof;
    else ffpCoef = DComplex(0.25/M_PI, 0.0)*geoSource->global_average_rhof;
-  
+
    DComplex *p = new DComplex[numPhi*nsint];
    for(i=0;i<numPhi*nsint;i++) p[i] = complex<double>(0.0,0.0);
-  
+
    double (*vectorDir)[3] = new double[numPhi*nsint][3];
    int numSample = 0;
-  
+
    for(i=0; i<numPhi; ++i) {
      double phi = (numPhi==1) ? 0 : M_PI*(-0.5+((double) i)/(numPhi-1.0));
      for (j=0; j<nsint; ++j) {
@@ -1551,7 +1549,7 @@ HData::outputFFP(ComplexVector& sol, int iInfo)
        numSample += 1;
      }
    }
-  
+
    ffp(domain, numSample, p, vectorDir, sol.data(), true);
 
    // OUTPUT result in FILE
@@ -1643,7 +1641,7 @@ HData::outputFFP(ComplexVector& sol, int iInfo)
      scatter[iele]->ffp(domain->nodes,numEvalDirLoc,evalDirLoc,uel,ffp,direction);
    }
    for(i=0;i<numEvalDirLoc;i++) {
-     fprintf(oinfo[iInfo].filptr,"%e %e %e   %e %e\n", 
+     fprintf(oinfo[iInfo].filptr,"%e %e %e   %e %e\n",
        evalDirLoc[i*3+0],evalDirLoc[i*3+1],evalDirLoc[i*3+2],
        real(ffp[i]),imag(ffp[i]));
    }
@@ -1654,32 +1652,32 @@ HData::outputFFP(ComplexVector& sol, int iInfo)
 void
 HData::addSommer(SommerElement *ele)
 {
- ele->dom = domain; 
+ ele->dom = domain;
  sommer[numSommer++] = ele;
 }
 
 void
 HData::addWet(SommerElement *ele)
 {
- ele->dom = domain; 
+ ele->dom = domain;
  wet[numWet++] = ele;
 }
 
 void
 HData::addScatter(SommerElement *ele)
 {
- ele->dom = domain; 
+ ele->dom = domain;
  scatter[numScatter++] = ele;
 }
 
 void
 HData::addNeum(SommerElement *ele)
 {
- ele->dom = domain; 
+ ele->dom = domain;
  neum[numNeum++] = ele;
 }
 
-void HData::setFFP(int _nffp) 
+void HData::setFFP(int _nffp)
 {
  nffp = _nffp;
 }
@@ -1690,8 +1688,8 @@ HData::addSBoundNode(int nd)
  sBoundNodes[numSBoundNodes++] = nd;
 }
 
-void 
-HData::setFFP(int _nffp, int _limitffp) 
+void
+HData::setFFP(int _nffp, int _limitffp)
 {
  nffp = _nffp;
  limitffp = _limitffp;
@@ -1714,7 +1712,7 @@ HData::setKirchhoffLocations(double x, double y, double z)
 }
 
 void
-HData::setFFPDirections(double d1, double d2, double d3) 
+HData::setFFPDirections(double d1, double d2, double d3)
 {
   if (numFFPDirections%100 == 0) {
      int i;
@@ -1735,7 +1733,7 @@ HData::setFFPDirections(double d1, double d2, double d3)
 }
 
 void
-HData::setWaveDirections(int numDir, double d1, double d2) 
+HData::setWaveDirections(int numDir, double d1, double d2)
 {
   if (numDir < 2) numDir = 2;
   int i;
@@ -1750,7 +1748,7 @@ HData::setWaveDirections(int numDir, double d1, double d2)
 }
 
 void
-HData::setWaveDirections(int iDir, double d1, double d2, double d3) 
+HData::setWaveDirections(int iDir, double d1, double d2, double d3)
 {
   double d = sqrt(d1*d1 + d2*d2 + d3*d3);
   if (pointSourceFlag) d = 1.0;
@@ -2071,8 +2069,8 @@ HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int *n, P
    }
 }
 
-void 
-HData::inithScatter(int m, int n) 
+void
+HData::inithScatter(int m, int n)
 {
   ihScatter = 0;
   lenhScatter = m;
@@ -2080,8 +2078,8 @@ HData::inithScatter(int m, int n)
   hScatter = new double[m*n][3];
 }
 
-void 
-HData::addhScatter(int n, double *d) 
+void
+HData::addhScatter(int n, double *d)
 {
   int i;
   if (n/3 != numhScatter) fprintf(stderr,"Error in HData::addhScatter.\n");
@@ -2089,16 +2087,16 @@ HData::addhScatter(int n, double *d)
     hScatter[lenhScatter*i+ihScatter][0] = d[3*i];
     hScatter[lenhScatter*i+ihScatter][1] = d[3*i+1];
     hScatter[lenhScatter*i+ihScatter][2] = d[3*i+2];
-  } 
+  }
   ihScatter++;
 }
 
-void 
+void
 HData::ffp(Domain *dom, int ndir, DComplex *ffp, double (*dir)[3], ComplexD *u, bool direction)
 {
   if(dom->numFFPDirections > 0 || !direction) {
     complex<double> *c;
-    if(dom->numDirichlet+numComplexDirichlet > 0) 
+    if(dom->numDirichlet+numComplexDirichlet > 0)
       c = (complex<double> *) alloca((dom->numDirichlet+numComplexDirichlet)*sizeof(complex<double>));
     for(int iDof = 0; iDof < dom->numDirichlet+numComplexDirichlet; ++iDof) c[iDof] = 0.0;
     int i;
@@ -2118,7 +2116,7 @@ HData::ffp(Domain *dom, int ndir, DComplex *ffp, double (*dir)[3], ComplexD *u, 
     ComplexD * uel = (ComplexD*) alloca(dom->maxNumDOFs*sizeof(ComplexD));
     int *nds = (int*) alloca(dom->maxNumDOFs*sizeof(int));
     int *dofs = (int*) alloca(dom->maxNumDOFs*sizeof(int));
- 
+
     for(int iele = 0; iele < numScatter; ++iele) {
       int numEleDofs = scatter[iele]->el->numDofs();
       scatter[iele]->el->nodes(nds);
@@ -2131,31 +2129,31 @@ HData::ffp(Domain *dom, int ndir, DComplex *ffp, double (*dir)[3], ComplexD *u, 
         else fprintf(stderr,"Error in HData:outputFFP\n");
       }
 // RT 03142013: someone messed up the logic above which now requires this
-      if (!direction) scatter[iele]->ffp(dom->nodes,ndir,(double*)dir,uel,ffp,direction); 
-      else 
+      if (!direction) scatter[iele]->ffp(dom->nodes,ndir,(double*)dir,uel,ffp,direction);
+      else
         scatter[iele]->ffp(dom->nodes,dom->numFFPDirections,(double*)dir,uel,ffp,direction);
     }
   }
   else {
     int i;
     for(i = 0; i < ndir; i++) ffp[i] = DComplex(0.0,0.0);
- 
+
     double *trace = new double[dom->dsa->size()];
     for(i = 0; i < dom->dsa->size(); i++ ) trace[i] = 0.0;
- 
+
     for(i = 0; i < numSBoundNodes; i++) {
       int ndNum = sBoundNodes[i];
       int dof = dom->dsa->locate(ndNum,DofSet::Helm);
       if(dof > -1) // PJSA
         trace[dof] = 1.0;
     }
- 
+
     DComplex *c;
     if(dom->numDirichlet+numComplexDirichlet > 0) {
       c = (DComplex *) alloca((dom->numDirichlet+numComplexDirichlet)*sizeof(DComplex));
       for(int iDof = 0; iDof < dom->numDirichlet+numComplexDirichlet; ++iDof)
         c[iDof] = DComplex (0.0, 0.0);
-   
+
       for(i = 0; i < dom->numDirichlet; ++i) {
         int dof2 = dom->dsa->locate(dom->dbc[i].nnum,(1 << dom->dbc[i].dofnum));
         dof2 = dom->c_dsa->invRCN(dof2);
@@ -2169,7 +2167,7 @@ HData::ffp(Domain *dom, int ndir, DComplex *ffp, double (*dir)[3], ComplexD *u, 
           c[dof2] = DComplex(cdbcMRHS[i].reval, cdbcMRHS[i].imval);
       }
     }
- 
+
     int sBoundLen = 0;
     for(i = dom->dsa->size()-1; i >= 0; i--)
       if(sBoundMap[i] != -1) {
@@ -2177,40 +2175,40 @@ HData::ffp(Domain *dom, int ndir, DComplex *ffp, double (*dir)[3], ComplexD *u, 
         break;
       }
     if(sBoundLen==0) return;
- 
+
     int *invSBoundMap = new int[sBoundLen];
     for(i=0; i < dom->dsa->size(); i++) {
       if(sBoundMap[i] != -1) invSBoundMap[sBoundMap[i]] = i;
     }
- 
+
     DComplex *expPart = (DComplex*) alloca(sBoundLen*sizeof(DComplex));
     DComplex *uPart = (DComplex*) alloca(sBoundLen*sizeof(DComplex));
     DComplex *res1 = (DComplex*) alloca(sBoundLen*sizeof(DComplex));
     DComplex *res2 = (DComplex*) alloca(sBoundLen*sizeof(DComplex));
- 
+
     for(i = 0; i < sBoundLen; i++) {
-      if(dom->c_dsa->getRCN(invSBoundMap[i]) >= 0) 
+      if(dom->c_dsa->getRCN(invSBoundMap[i]) >= 0)
         uPart[i] = coupledScaling*u[dom->c_dsa->getRCN(invSBoundMap[i])];
       else
         uPart[i] = c[dom->c_dsa->invRCN(invSBoundMap[i])];
     }
- 
+
     int *sBoundNodeMap = new int[sBoundLen];
     for(i = 0; i < dom->numNodes(); i++) {
       int dof = dom->dsa->locate(i,DofSet::Helm);
       int sDof = (dof > -1) ? sBoundMap[dof] : -1; // PJSA
       if (sDof>=0) sBoundNodeMap[sDof] = i;
     }
- 
+
     for(i = 0; i < sBoundLen; i++) res1[i] = DComplex(0.0,0.0);
     Kss->multcomplex(uPart,res1);
- 
+
     for(int iDir = 0; iDir < ndir; iDir++) {
       double kDir[3];
       double kappa = geoSource->kappa();
-      kDir[0] = -kappa*dir[iDir][0]; 
-      kDir[1] = -kappa*dir[iDir][1]; 
-      kDir[2] = -kappa*dir[iDir][2]; 
+      kDir[0] = -kappa*dir[iDir][0];
+      kDir[1] = -kappa*dir[iDir][1];
+      kDir[2] = -kappa*dir[iDir][2];
       for(i = 0; i < sBoundLen; i++) {
         Node nd = dom->nodes.getNode(sBoundNodeMap[i]);
         expPart[i] = exp(DComplex(0.0, kDir[0]*nd.x + kDir[1]*nd.y + kDir[2]*nd.z ));
@@ -2226,7 +2224,7 @@ HData::ffp(Domain *dom, int ndir, DComplex *ffp, double (*dir)[3], ComplexD *u, 
 }
 
 template<class Scalar>
-void 
+void
 HData::wError(Domain *dom, double *l2err, double *h1err, double *l2, double *h1, Scalar *u)
 {
  Scalar *c = (Scalar *)
@@ -2281,8 +2279,8 @@ HData::wError(Domain *dom, double *l2err, double *h1err, double *l2, double *h1,
 }
 
 
-void 
-HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_nodeToElem) 
+void
+HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_nodeToElem)
 {
  if(sommerChecked) return;
  int totEle = dom->numElements();
@@ -2315,7 +2313,7 @@ HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_
    int s = neum[iSEle]->findAndSetEle(dom->nodes,dom->packedEset,
 //                                      nodeToPackedElem, eleTouch, eleCount, iSEle,2);
                                       nodeToPackedElem, eleTouch, eleCount, iSEle);
-   if (s>0) { 
+   if (s>0) {
 //     if(verboseFlag) fprintf(stderr,"Flipping %d of neum.\n",iSEle);
 //     pos++;
      neum[iSEle]->flipNormal();
@@ -2471,7 +2469,7 @@ HData::addFrequencies(double w_i, int n_fine)
   numFrequencies = frequencies->size() + coarse_frequencies->size();
 }
 
-void 
+void
 HData::addFrequency(double _w)
 {
   // for multiple frequency sweep analysis, add single freq to list

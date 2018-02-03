@@ -90,7 +90,7 @@ SandiaElem::dofs(DofSetArray &ds, int *p)
 }
 
 int
-SandiaElem::numDofs()
+SandiaElem::numDofs() const
 {
   int tot = 0;
   for(int i=0; i < nnodes; ++i)

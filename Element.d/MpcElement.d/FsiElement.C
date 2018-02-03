@@ -108,7 +108,7 @@ FsiElement::imagStiffness(CoordSet &cs, double *k, int flg)
 }
 
 int *
-FsiElement::nodes(int *p)
+FsiElement::nodes(int *p) const
 {
   if(p == 0) p = new int[nnodes];
   int i;

@@ -66,7 +66,7 @@ void HelmIsoParamTetra::renum(EleRenumMap& table) {
 }
 
 
-int* HelmIsoParamTetra::nodes(int *p) {
+int* HelmIsoParamTetra::nodes(int *p) const {
 
  IsoParamUtilsTetra ipu(order);
  int orderc = ipu.getorderc();
@@ -242,7 +242,7 @@ FullSquareMatrixC HelmIsoParamTetra::stiffness(CoordSet &cs,
 extern bool useFull;
 
 int
-HelmIsoParamTetra::numNodes() {
+HelmIsoParamTetra::numNodes() const {
   //Not tested -JF
   if(useFull)
     return (order*(order+1)*(order+2))/6;

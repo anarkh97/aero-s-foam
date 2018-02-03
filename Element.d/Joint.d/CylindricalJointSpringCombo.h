@@ -7,7 +7,7 @@ class CylindricalJointSpringCombo : public SuperElement
 {
   public:
     CylindricalJointSpringCombo(int*);
-    int getTopNumber();
+    int getTopNumber() override;
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront*);
 };

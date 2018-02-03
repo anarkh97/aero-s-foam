@@ -169,7 +169,7 @@ class FaceTri3: public FaceElement {
         // -> implementation of pure virtual fcts
         void print();
 
-        int numDofs() {return 9;}
+        int numDofs() const {return 9;}
         int* dofs(DofSetArray &dsa, int *p, int *fnId); 
         void computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, GeomState*, int *fnId); 
         void getFlLoad(const InterpPoint &ip, double *flF, double *resF); 

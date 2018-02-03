@@ -119,13 +119,13 @@ TriangleBulk::stiffness(CoordSet &cs, double *Kcv, int flg)
 }
 
 int
-TriangleBulk::numNodes()
+TriangleBulk::numNodes() const
 {
         return 3;
 }
 
 int*
-TriangleBulk::nodes(int *p)
+TriangleBulk::nodes(int *p) const
 {
         if(p == 0) p = new int[3];
         p[0] = nn[0];
@@ -135,7 +135,7 @@ TriangleBulk::nodes(int *p)
 }
 
 int
-TriangleBulk::numDofs()
+TriangleBulk::numDofs() const
 {
         return 3;
 }

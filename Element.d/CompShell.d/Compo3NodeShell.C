@@ -661,13 +661,13 @@ Compo3NodeShell::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-Compo3NodeShell::numNodes()
+Compo3NodeShell::numNodes() const
 {
   return 3;
 }
 
 int*
-Compo3NodeShell::nodes(int *p)
+Compo3NodeShell::nodes(int *p) const
 {
   if(p == 0) p = new int[3];
   p[0] = nn[0];
@@ -677,7 +677,7 @@ Compo3NodeShell::nodes(int *p)
 }
 
 int
-Compo3NodeShell::numDofs()
+Compo3NodeShell::numDofs() const
 {
   return 18;
 }

@@ -27,7 +27,7 @@ class SfemBlockMatrix {
   BlockInfo & dim(); 
   Scalar diag(int i);
   int* getFirstDof();
-  int numNodes();
+  int numNodes() const;
   GenFullM<Scalar>* getDiagMatrix(int i);
   void setMeanSolver(GenSolver<Scalar> *prc);
   GenSolver<Scalar>* getMeanSolver();

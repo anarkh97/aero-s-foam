@@ -11,13 +11,13 @@ class RigidBeam : public SuperElement
     double length;
   public:
     RigidBeam(int*, int=0);
-    int getTopNumber() { return 106; }
-    bool isRigidElement() { return true; }
-    bool hasRot() { return true; }
-    bool isSafe() { return true; }
-    PrioInfo examine(int sub, MultiFront*);
+    int getTopNumber() override { return 106; }
+    bool isRigidElement() override { return true; }
+    bool hasRot() override { return true; }
+    bool isSafe() override { return true; }
+    PrioInfo examine(int sub, MultiFront*) override;
 
-    void buildFrame(CoordSet&);
+    void buildFrame(CoordSet&) override;
 
   private:
     void getLength(CoordSet&, double &length);
@@ -31,14 +31,14 @@ class RigidBeamWithMass : public SuperElement
     double length;
   public:
     RigidBeamWithMass(int*, int=0);
-    int getTopNumber() { return 106; }
+    int getTopNumber() override { return 106; }
     bool isRigidElement() { return true; }
     bool hasRot() { return true; }
     bool isSafe() { return true; }
     PrioInfo examine(int sub, MultiFront*);
 
     void buildFrame(CoordSet&);
-    void setProp(StructProp *p, bool _myProp = false);
+    void setProp(StructProp *p, bool _myProp) override;
     int getMassType() { return 0; } // lumped
     double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, GeomState *gs,
                                     double stable_tol, int stable_maxit);

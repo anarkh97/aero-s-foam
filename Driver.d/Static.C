@@ -881,8 +881,8 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
        curMass = curMass->next;
      }
    }
-   int m_dimasses = dimasses.size();
-   for(int i=0; i<m_dimasses; ++i) {
+
+   for(int i=0; i<dimasses.size(); ++i) {
      int jele = dimasses.front();
      dimasses.pop_front();
 
@@ -901,8 +901,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
  if (phantoms.size() > 0) {
      fprintf(cinfo->checkfileptr,"Elements %s_phantom using %s\n",
 	     cinfo->elemSetName, cinfo->nodeSetName);
-     int m_phantoms = phantoms.size();
-     for(int i=0; i<m_phantoms; ++i){
+     for(int i=0; i<phantoms.size(); ++i){
        iele = phantoms.front();
        phantoms.pop_front();
 
@@ -1394,7 +1393,7 @@ Domain::computeNormalizedVonMisesStress(Vector &sol, double *bcx, int surface, V
     }
   }
 
-  for(int k = 0; k < numNodes(); ++k)  {
+  for(int k = 0; k <numNodes(); ++k)  {
     if(weight[k] == 0.0)
       stress[k] = 0.0;
     else {
@@ -1408,7 +1407,7 @@ Domain::computeNormalizedVonMisesStress(Vector &sol, double *bcx, int surface, V
 void
 Domain::scaleToTrueVonMisesStress(Vector &stress)
 {
-  for(int k = 0; k < numNodes(); ++k) {
+  for(int k = 0; k <numNodes(); ++k) {
     stress[k] *= (*aggregatedStress);
   }
 }
@@ -3456,7 +3455,7 @@ Domain::computeStressVMWRTthicknessDirectSensitivity(int sindex, AllSensitivitie
 
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
       // average vonMisesWRTthick vector
-      for(int inode = 0; inode < numNodes(); ++inode)  {
+      for(int inode = 0; inode <numNodes(); ++inode)  {
         if(stressWeight(inode, 0) == 0.0)
           (*allSens.vonMisesWRTthick)(inode, iparam) = 0.0;
         else

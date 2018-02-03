@@ -1335,29 +1335,29 @@ Connectivity::estimateCost(EqNumberer *eqn, double &cost, double &bandwidth, dou
 }
 
 
-Connectivity::Connectivity(SommerElement  **els, int numSommer)
-{
-	int i;
-
-	size = numSommer;
-
-	// Find out the number of targets we will have
-	pointer.resize(size+1);
-	int pp = 0;
-	for(i=0; i < size; ++i) {
-		pointer[i] = pp;
-		pp += els[i] ? els[i]->numNodes() : 0;
-	}
-	pointer[size] = pp;
-	numtarget = pp;
-
-	// Create the target array
-	target.resize(pp);
-
-	// Fill it in
-	for(i=0; i < size; ++i)
-		if( els[i]) els[i]->nodes(target.data()+pointer[i]);
-}
+//Connectivity::Connectivity(SommerElement  **els, int numSommer)
+//{
+//	int i;
+//
+//	size = numSommer;
+//
+//	// Find out the number of targets we will have
+//	pointer.resize(size+1);
+//	int pp = 0;
+//	for(i=0; i < size; ++i) {
+//		pointer[i] = pp;
+//		pp += els[i] ? els[i]->numNodes() : 0;
+//	}
+//	pointer[size] = pp;
+//	numtarget = pp;
+//
+//	// Create the target array
+//	target.resize(pp);
+//
+//	// Fill it in
+//	for(i=0; i < size; ++i)
+//		if( els[i]) els[i]->nodes(target.data()+pointer[i]);
+//}
 
 Connectivity::Connectivity(SommerElement  **els, int numSommer, int max)
 {

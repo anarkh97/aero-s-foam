@@ -75,13 +75,13 @@ TransSprlink::stiffness(CoordSet &, double *d, int flg)
 }
 
 int
-TransSprlink::numNodes()
+TransSprlink::numNodes() const
 {
   return 2;
 }
 
 int *
-TransSprlink::nodes(int* p)
+TransSprlink::nodes(int* p) const
 {
   if(p == 0) p = new int[2];
   p[0] = nn[0];
@@ -90,7 +90,7 @@ TransSprlink::nodes(int* p)
 }
 
 int
-TransSprlink::numDofs()
+TransSprlink::numDofs() const
 {
   return 6;
 }

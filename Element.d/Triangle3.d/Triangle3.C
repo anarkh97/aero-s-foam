@@ -560,13 +560,13 @@ Triangle3::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-Triangle3::numNodes()
+Triangle3::numNodes() const
 {
  	return 3;
 }
 
 int*
-Triangle3::nodes(int *p)
+Triangle3::nodes(int *p) const
 {
  	if(p == 0) p = new int[3];
  	p[0] = nn[0];
@@ -576,7 +576,7 @@ Triangle3::nodes(int *p)
 }
 
 int
-Triangle3::numDofs()
+Triangle3::numDofs() const
 {
  	return 6;
 }

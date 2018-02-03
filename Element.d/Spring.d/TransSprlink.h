@@ -9,28 +9,28 @@ class TransSprlink : virtual public Element
 
   public:
 
-    TransSprlink(int*);
+	explicit TransSprlink(int*);
 
-    Element *clone();
+    Element *clone() override;
 
-    void renum(int *);
-        void renum(EleRenumMap&);
+    void renum(int *) override;
+	void renum(EleRenumMap&) override;
 
-    FullSquareMatrix stiffness(CoordSet& cs, double* d, int flg = 1);
-    FullSquareMatrix massMatrix(CoordSet& cs, double* mel, int cmflg=1);
+    FullSquareMatrix stiffness(CoordSet& cs, double* d, int flg = 1) override;
+    FullSquareMatrix massMatrix(CoordSet& cs, double* mel, int cmflg=1) override;
 
-    void markDofs(DofSetArray&);
-    int* dofs(DofSetArray&, int* = 0);
-    int numDofs();
+    void markDofs(DofSetArray&) override;
+    int* dofs(DofSetArray&, int*) override;
+    int numDofs() const override;
 
-    int numNodes();
-    int* nodes(int* = 0);
-    Corotator* getCorotator(CoordSet&, double*, int, int);
+    int numNodes() const override;
+    int* nodes(int*) const override;
+    Corotator* getCorotator(CoordSet&, double*, int, int) override;
 
-    int getTopNumber();
-    bool isSafe() { return false; }
-    bool isSpring() { return true; }
-    PrioInfo examine(int sub, MultiFront*);
+    int getTopNumber() override;
+    bool isSafe() override { return false; }
+    bool isSpring() override { return true; }
+    PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

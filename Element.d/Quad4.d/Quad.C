@@ -178,13 +178,13 @@ Quad::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-Quad::numNodes()
+Quad::numNodes() const
 {
  	return numnod;
 }
 
 int*
-Quad::nodes(int *p)
+Quad::nodes(int *p) const
 {
  	if(p == 0) p = new int[numnod];
 	int i;
@@ -194,7 +194,7 @@ Quad::nodes(int *p)
 }
 
 int
-Quad::numDofs()
+Quad::numDofs() const
 {
  	return (numnod*2);
 }

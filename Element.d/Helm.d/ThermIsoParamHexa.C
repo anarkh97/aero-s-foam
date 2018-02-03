@@ -55,7 +55,7 @@ void ThermIsoParamHexa::renum(EleRenumMap& table) {
 
 extern bool useFull;
 
-int* ThermIsoParamHexa::nodes(int *p) {
+int* ThermIsoParamHexa::nodes(int *p) const {
 if(useFull) {
 //cerr << "order = " << order << endl;//JF
  int orderc = order*order*order;
@@ -173,7 +173,7 @@ FullSquareMatrix ThermIsoParamHexa::stiffness(CoordSet &cs, double *K, int flg )
 extern bool useFull;
 
 int
-ThermIsoParamHexa::numNodes() {
+ThermIsoParamHexa::numNodes() const {
   if(useFull)
     return order*order*order;
   else

@@ -7,7 +7,7 @@ class PrismaticDriver : public SuperElement
 {
   public:
     PrismaticDriver(int*);
-    int getTopNumber();
+    int getTopNumber() override;
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront*);
 };

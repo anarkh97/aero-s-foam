@@ -394,7 +394,7 @@ int* DistrSfemBlockMatrix<Scalar>::getFirstDof()
 
 
 template<class Scalar>
-int DistrSfemBlockMatrix<Scalar>::numNodes()
+int DistrSfemBlockMatrix<Scalar>::numNodes() const
 {
  return P;
 }

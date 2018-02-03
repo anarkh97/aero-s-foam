@@ -509,7 +509,7 @@ void Brick20::aRubberStiffnessDerivs(CoordSet & cs, complex<double> *d,
 
 
 int
-Brick20::numNodes()
+Brick20::numNodes() const
 { 
   if(true/*useFull*/)
     return 20; 
@@ -518,7 +518,7 @@ Brick20::numNodes()
 }
 
 int
-Brick20::numDofs()
+Brick20::numDofs() const
 {
   return 60;
 }
@@ -530,7 +530,7 @@ Brick20::getTopNumber()
 }
 
 int*
-Brick20::nodes(int *p)
+Brick20::nodes(int *p) const
 {
   if(true/*useFull*/) {
     if(!p) p = new int[20];

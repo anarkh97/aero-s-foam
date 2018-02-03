@@ -261,13 +261,13 @@ HelmTri3Gal::acousticm(CoordSet &cs,double *d)
 }
 
 int
-HelmTri3Gal::numNodes()
+HelmTri3Gal::numNodes() const
 {
  	return 3;
 }
 
 int*
-HelmTri3Gal::nodes(int *p)
+HelmTri3Gal::nodes(int *p) const
 {
  	if(p == 0) p = new int[3];
  	p[0] = nn[0];
@@ -277,7 +277,7 @@ HelmTri3Gal::nodes(int *p)
 }
 
 int
-HelmTri3Gal::numDofs()
+HelmTri3Gal::numDofs() const
 {
  	return 3;
 }

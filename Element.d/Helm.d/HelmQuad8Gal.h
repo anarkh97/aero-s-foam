@@ -9,10 +9,10 @@ class HelmQuad8Gal: public HelmElement, public Element {
 public:
 	HelmQuad8Gal(int*);
 
-	Element *clone();
+	Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
         FullSquareMatrix acousticm(CoordSet&, double *d);
@@ -21,11 +21,11 @@ public:
 
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-	int getTopNumber() { return(132); }
+        int numNodes() const override;
+        int * nodes(int *) const override;
+	int getTopNumber() override { return(132); }
 	void		addFaces(PolygonSet *pset);
 
 };

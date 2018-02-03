@@ -82,13 +82,13 @@ BarSloshFS::stiffness(CoordSet &cs, double *kel, int flg)
 }
 
 int
-BarSloshFS::numNodes()
+BarSloshFS::numNodes() const
 {
         return 2;
 }
 
 int *
-BarSloshFS::nodes(int *p)
+BarSloshFS::nodes(int *p) const
 {
         if(p == 0) p = new int[2];
         p[0] = nn[0];
@@ -97,7 +97,7 @@ BarSloshFS::nodes(int *p)
 }
 
 int
-BarSloshFS::numDofs()
+BarSloshFS::numDofs() const
 {
         return 2;
 }

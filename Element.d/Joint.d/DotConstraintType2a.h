@@ -8,7 +8,7 @@ class DotConstraintType2a : public DotType2ConstraintElement
   public:
     DotConstraintType2a(int*, int);
     void buildFrame(CoordSet& cs);
-    void update(GeomState*, GeomState&, CoordSet&, double);
+    void update(GeomState*, GeomState&, CoordSet&, double) override;
     double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
     double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
     void computePressureForce(CoordSet&, Vector& elPressureForce,

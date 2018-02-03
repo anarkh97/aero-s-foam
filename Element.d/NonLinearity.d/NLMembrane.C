@@ -390,7 +390,7 @@ NLMembrane::renum(EleRenumMap& table)
 }
 
 int*
-NLMembrane::nodes(int *nd)
+NLMembrane::nodes(int *nd) const
 {
   if(nd == 0) nd = new int[3];
   nd[0] = n[0];

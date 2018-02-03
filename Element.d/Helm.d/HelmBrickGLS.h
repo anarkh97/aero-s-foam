@@ -11,10 +11,10 @@ class HelmBrickGLS: public HelmElement, public Element {
 public:
 	HelmBrickGLS(int*);
 
-        Element *clone();
+        Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
 	FullSquareMatrix  stiffness(CoordSet&, double *d, int flg=1);
 	FullSquareMatrix  acousticm(CoordSet&, double *d);
@@ -24,18 +24,18 @@ public:
 
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
+        int numNodes() const override;
+        int * nodes(int *) const override;
 
 	void            addFaces(PolygonSet *pset);
 
-	int		 getTopNumber();
+	int getTopNumber() override;
 
         virtual double helmCoef() { return coef; }
 
-        PrioInfo examine(int sub, MultiFront *mf);
+        PrioInfo examine(int sub, MultiFront *mf) override;
         int nDecFaces() { return 6;}
         int getDecFace(int iFace, int *fn);
 };

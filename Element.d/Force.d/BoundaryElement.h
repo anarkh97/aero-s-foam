@@ -29,12 +29,12 @@ class BoundaryElement : public Element, public Corotator
    ~BoundaryElement();
 
     void renum(int*);
-    void renum(EleRenumMap&);
+    void renum(EleRenumMap&) override;
 
-    int numNodes();
-    int* nodes(int* = 0);
+    int numNodes() const override;
+    int *nodes(int *) const override;
 
-    int numDofs();
+     int numDofs() const override;
     int* dofs(DofSetArray&, int* = 0);
     void markDofs(DofSetArray&);
 
@@ -43,7 +43,7 @@ class BoundaryElement : public Element, public Corotator
 
     bool isSafe() { return false; }
 
-    int getTopNumber() { return 101; }
+    int getTopNumber() override { return 101; }
 
     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
                              int &nlflag) { nlflag = 2; }

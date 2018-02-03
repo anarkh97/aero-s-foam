@@ -10,85 +10,85 @@ class Shell3Corotator;
 class ThreeNodeShell : public Element
 {
 protected:
-        int nn[3];
-        double w;
-        Shell3Corotator *corot;
-        PressureBCond *pbc;
+	int nn[3];
+	double w;
+	Shell3Corotator *corot;
+	PressureBCond *pbc;
 public:
-        ThreeNodeShell(int*, double _w=3);
+	explicit ThreeNodeShell(int*, double _w=3);
 
-        Element *clone();
+	Element *clone() override;
 
-        void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+	void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-        double getMass(CoordSet& cs);
-        void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg,
-                             GeomState *gs);
-        void getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
-                         Vector& elDisp, int strInd, int surface=0,
-                         double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
-        void getAllStress(FullM& stress, Vector& weight, CoordSet& cs,
-                          Vector& elDisp, int strInd, int surface=0,
-                          double *ndTemps=0);
+	FullSquareMatrix stiffness(CoordSet&, double *d, int flg) override;
+	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg) override;
+	double getMass(CoordSet& cs) override;
+	void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg,
+	                     GeomState *gs) override;
+	void getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
+	                 Vector& elDisp, int strInd, int surface,
+	                 double *ndTemps, double ylayer, double zlayer, int avgnum) override;
+	void getAllStress(FullM& stress, Vector& weight, CoordSet& cs,
+	                  Vector& elDisp, int strInd, int surface,
+	                  double *ndTemps) override;
 
-        void markDofs(DofSetArray &);
-        int* dofs(DofSetArray &, int *p=0);
-        int numDofs();
+	void markDofs(DofSetArray &) override;
+	int* dofs(DofSetArray &, int *p) override;
+	int numDofs() const override;
 
-        int numNodes();
-        int* nodes(int * = 0);
-        Corotator *getCorotator(CoordSet &, double *, int , int);
+	int numNodes() const override ;
+	int* nodes(int *) const override;
+	Corotator *getCorotator(CoordSet &, double *, int , int) override;
 
-        void computeDisp(CoordSet&, State &, const InterpPoint &,
-                         double*, GeomState *gs);
-        void printInfo(CoordSet&, State &, double[2]);
-        void getFlLoad(CoordSet &, const InterpPoint &,
-                       double *flF, double *resF, GeomState *gs=0);
+	void computeDisp(CoordSet&, State &, const InterpPoint &,
+	                 double*, GeomState *gs) override;
+	void printInfo(CoordSet&, State &, double[2]);
+	void getFlLoad(CoordSet &, const InterpPoint &,
+	               double *flF, double *resF, GeomState *gs) override;
 
-        int getTopNumber();
-        int nDecFaces() { return 1;}
-        int getDecFace(int iFace, int *fn) { for(int i=0; i<3; i++) fn[i] = nn[i]; return 3; }
+	int getTopNumber() override;
+	int nDecFaces() override { return 1;}
+	int getDecFace(int iFace, int *fn) override { for(int i; i<3; i++) fn[i] = nn[i]; return 3; }
 
-        int getFace(int iFace, int *fn) { return getDecFace(iFace,fn); }
+	int getFace(int iFace, int *fn) override { return getDecFace(iFace,fn); }
 
-        void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
-        PressureBCond* getPressure() { return pbc; }
-        void computePressureForce(CoordSet&, Vector& elPressureForce,
-                                  GeomState *gs = 0, int cflg = 0, double t = 0 );
+	void setPressure(PressureBCond *_pbc) override { pbc = _pbc; }
+	PressureBCond* getPressure() override { return pbc; }
+	void computePressureForce(CoordSet&, Vector& elPressureForce,
+	                          GeomState *gs, int cflg, double t) override;
 
-        void getThermalForce(CoordSet& cs, Vector& ndTemps,Vector &elThermalForce, 
-                             int glfag, GeomState *gs=0);
+	void getThermalForce(CoordSet& cs, Vector& ndTemps,Vector &elThermalForce,
+	                     int glfag, GeomState *gs) override;
 
-        bool isShell() { return true; }
+	bool isShell() override { return true; }
 
-        int getMassType() { return 0; } // lumped only
+	int getMassType() override; // lumped only
 
-        // DEC
-        bool hasRot() {return true;}
-        PrioInfo examine(int sub, MultiFront *mf);
+	// DEC
+	bool hasRot() override {return true;}
+	PrioInfo examine(int sub, MultiFront *mf) override;
 
 #ifdef USE_EIGEN3
-        // NEW STRUCTOPT 
-        double getMassThicknessSensitivity(CoordSet& cs);
-        void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet&, double *gravityAcceleration);
-        void getGravityForceThicknessSensitivity(CoordSet&, double *gravity, Vector&, int gravflg,
-                                                 GeomState *gs = 0);
-        void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration, 
-                                                       GenFullM<double> &dGfdx, int gravflg, GeomState *gs = 0);
-        void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg = 1);
-        void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
-        void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs,
-                                                   Vector &elDisp, int strInd, int surface,
-                                                   double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
-        void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp,
-                                             int strInd, int surface, double *ndTemps = 0, int avgnum = 1,
-                                             double ylayer = 0, double zlayer = 0);
-        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *, CoordSet &cs,
-                                                Vector &elDisp, int strInd, int surface, 
-                                                double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+	// NEW STRUCTOPT 
+	double getMassThicknessSensitivity(CoordSet& cs) override;
+	void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet&, double *gravityAcceleration) override;
+	void getGravityForceThicknessSensitivity(CoordSet&, double *gravity, Vector&, int gravflg,
+	                                         GeomState *gs) override;
+	void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+	                                               GenFullM<double> &dGfdx, int gravflg, GeomState *gs) override;
+	void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg) override;
+	void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs) override;
+	void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs,
+	                                           Vector &elDisp, int strInd, int surface,
+	                                           double *ndTemps, int avgnum, double ylayer, double zlayer) override;
+	void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp,
+	                                     int strInd, int surface, double *ndTemps, int avgnum,
+	                                     double ylayer, double zlayer) override;
+	void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *, CoordSet &cs,
+	                                        Vector &elDisp, int strInd, int surface,
+	                                        double *ndTemps, int avgnum, double ylayer, double zlayer) override;
 #endif
 };
 #endif

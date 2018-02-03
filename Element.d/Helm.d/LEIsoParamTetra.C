@@ -67,7 +67,7 @@ void LEIsoParamTetra::renum(EleRenumMap& table) {
 }
 
 
-int* LEIsoParamTetra::nodes(int *p) {
+int* LEIsoParamTetra::nodes(int *p) const {
 
  IsoParamUtilsTetra ipu(order);
  int orderc = ipu.getorderc();
@@ -174,7 +174,7 @@ void LEIsoParamTetra::aRubberStiffnessDerivs(CoordSet& cs,
 extern bool useFull;
 
 int
-LEIsoParamTetra::numNodes() {
+LEIsoParamTetra::numNodes() const {
   //Not tested -JF
   if(useFull)
     return (order*(order+1)*(order+2))/6;

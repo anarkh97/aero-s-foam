@@ -10,7 +10,6 @@ class Elemset;
 class EqNumberer;
 class BinFileHandler;
 class SommerElement;
-class FaceElemSet;
 
 // component data structure
 struct compStruct {
@@ -87,7 +86,7 @@ public :
 template <typename T>
 int getNumNodes(const T &t) { return t.numNodes(); }
 template <typename T>
-void getNodes(const T &t, int *nd) { return t.nodes(nd); }
+auto getNodes(const T &t, int *nd) { return t.nodes(nd); }
 
 /** Class to access a set of element's individual connections */
 template <class A>
@@ -126,6 +125,9 @@ public:
 	 */
 	template <class A>
 	Connectivity(const SetAccess<A> &sa);
+	/** \brief Build a connectivity which is a map from SommerElement to the actual (single) element to which
+	 * the sommerElement is attached. TODO Get rid of this. The result is a one to one map. Not a connectivity.
+	 */
 	Connectivity(Elemset *, int, SommerElement**);
 	Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
 	Connectivity(int _size, std::vector<int> _pointer, std::vector<int> _target,
@@ -150,7 +152,7 @@ public:
 	void countlink(int from, int to); //DEC
 	void addlink(int from, int to); //DEC
 
-	Connectivity(SommerElement  **, int);
+//	Connectivity(SommerElement  **, int);
 	Connectivity(SommerElement  **, int, int);
 
 	virtual ~Connectivity();

@@ -10,10 +10,10 @@ public:
 
 	BarConvec(int*);
 
-        Element *clone();
+        Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
         FullSquareMatrix stiffness(CoordSet&,double *kel, int flg=1);
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
@@ -21,11 +21,11 @@ public:
 
         void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-	PrioInfo examine(int sub, MultiFront *);
-	int 		getTopNumber();
+        int             numNodes() const override;
+        int*             nodes(int * = 0) const;
+	PrioInfo examine(int sub, MultiFront *) override;
+	int getTopNumber() override;
 };
 #endif

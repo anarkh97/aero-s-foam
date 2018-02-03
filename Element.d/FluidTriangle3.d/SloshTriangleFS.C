@@ -104,13 +104,13 @@ SloshTriangleFS::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-SloshTriangleFS::numNodes()
+SloshTriangleFS::numNodes() const
 {
  	return 3;
 }
 
 int*
-SloshTriangleFS::nodes(int *p)
+SloshTriangleFS::nodes(int *p) const
 {
  	if(p == 0) p = new int[3];
  	p[0] = nn[0];
@@ -120,7 +120,7 @@ SloshTriangleFS::nodes(int *p)
 }
 
 int
-SloshTriangleFS::numDofs()
+SloshTriangleFS::numDofs() const
 {
  	return 3;
 }

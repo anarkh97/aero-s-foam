@@ -41,13 +41,13 @@ CtcVirtualElt::renum(EleRenumMap& table)
 }
 
 int
-CtcVirtualElt::numNodes()
+CtcVirtualElt::numNodes() const
 {
         return 2;
 }
 
 int *
-CtcVirtualElt::nodes(int *p)
+CtcVirtualElt::nodes(int *p) const
 {
         if(p == 0) p = new int[2];
         p[0] = nn[0];
@@ -56,7 +56,7 @@ CtcVirtualElt::nodes(int *p)
 }
 
 int
-CtcVirtualElt::numDofs()
+CtcVirtualElt::numDofs() const
 {
   return 1;
 }

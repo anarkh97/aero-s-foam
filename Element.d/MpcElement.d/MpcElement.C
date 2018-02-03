@@ -159,7 +159,7 @@ MpcElement::setInternalNodes(int* in)
 }
 
 int
-MpcElement::numNodes()
+MpcElement::numNodes() const
 {
   return (prop->lagrangeMult) ? nNodes+1 : nNodes;
 }
@@ -209,7 +209,7 @@ MpcElement::renum(EleRenumMap& table)
 }
 
 int*
-MpcElement::nodes(int* p)
+MpcElement::nodes(int* p) const
 {
   if(p == 0) p = new int[numNodes()];
   for(int i = 0; i < numNodes(); ++i) p[i] = nn[i];
@@ -217,7 +217,7 @@ MpcElement::nodes(int* p)
 }
 
 int
-MpcElement::numDofs()
+MpcElement::numDofs() const
 {
   // note: augmented lagrangian does NOT have a degree of freedom for the lagrange multiplier
   return (prop->lagrangeMult && prop->penalty == 0) ? nterms+1 : nterms;

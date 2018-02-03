@@ -9,23 +9,23 @@ class QuadContact: public virtual Element {
 public:
         QuadContact(int*);
 
-        Element *clone();
+        Element *clone() override;
 
-        void renum(int *);
-        void renum(EleRenumMap&);
+        void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet& cs,double *d, int cmflg=1);
+        FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg) override;
+        FullSquareMatrix massMatrix(CoordSet& cs,double *d, int cmflg) override;
         double           getMass(CoordSet&);
 
         void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-        int              getTopNumber();
-        PrioInfo examine(int sub, MultiFront *);
+        int numNodes() const override;
+        int * nodes(int *) const override;
+        int getTopNumber() override;
+        PrioInfo examine(int sub, MultiFront *) override;
 };
 
 #endif

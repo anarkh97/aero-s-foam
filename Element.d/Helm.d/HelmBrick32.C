@@ -199,7 +199,7 @@ HelmBrick32::acousticm(CoordSet &cs, double *d)
 }
 
 int
-HelmBrick32::numNodes() { 
+HelmBrick32::numNodes() const {
   if(useFull)
     return(32); 
   else
@@ -207,10 +207,10 @@ HelmBrick32::numNodes() {
 }
 
 int
-HelmBrick32::numDofs() { return(32); }
+HelmBrick32::numDofs() const { return(32); }
 
 int*
-HelmBrick32::nodes(int *p)
+HelmBrick32::nodes(int *p) const
 {
   if(useFull)
     {

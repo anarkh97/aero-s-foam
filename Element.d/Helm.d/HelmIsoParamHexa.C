@@ -55,7 +55,7 @@ void HelmIsoParamHexa::renum(EleRenumMap& table) {
 
 extern bool useFull;
 
-int* HelmIsoParamHexa::nodes(int *p) {
+int* HelmIsoParamHexa::nodes(int *p) const {
 if(useFull) {
 //cerr << "order = " << order << endl;//JF
  int orderc = order*order*order;
@@ -269,7 +269,7 @@ FullSquareMatrixC HelmIsoParamHexa::stiffness(CoordSet &cs,
 extern bool useFull;
 
 int
-HelmIsoParamHexa::numNodes() {
+HelmIsoParamHexa::numNodes() const {
   if(useFull)
     return order*order*order;
   else

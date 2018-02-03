@@ -347,13 +347,13 @@ Membrane::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-Membrane::numNodes()
+Membrane::numNodes() const
 {
          return 3;
 }
 
 int*
-Membrane::nodes(int *p)
+Membrane::nodes(int *p) const
 {
          if(p == 0) p = new int[3];
          p[0] = nn[0];
@@ -363,7 +363,7 @@ Membrane::nodes(int *p)
 }
 
 int
-Membrane::numDofs()
+Membrane::numDofs() const
 {
          return 18;
 }

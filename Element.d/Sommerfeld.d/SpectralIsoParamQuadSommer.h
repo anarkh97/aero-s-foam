@@ -1,48 +1,62 @@
 #ifndef _SPECTRALISOPARAMQUADSOMMER_H_
-#define _SPECTRALISOPARAMQUADSOMMER_H_ 
+#define _SPECTRALISOPARAMQUADSOMMER_H_
 
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 
-class SpectralIsoParamQuadSommer: public SommerElement {
+class SpectralIsoParamQuadSommer : public SommerElement {
 
 	int *nn;
-        int order;
+	int order;
 public:
-	SpectralIsoParamQuadSommer(int, int*, Element *_el = 0, int eType = 10);
+	SpectralIsoParamQuadSommer(int, int *, Element *_el = 0, int eType = 10);
 
-        int numNodes() {return order*order;}
-        int getNode(int nd) { return nn[nd]; }
-	int* getNodes() { return nn; }
-        int numDofs() { return order*order; }
-        int numSolidDofs() { return 3*order*order; }
-        int numWetDofs() { return 4*order*order; }
-        int dim() { return 3; }
-        int* dofs(DofSetArray &, int *p=0);
-        virtual SpectralIsoParamQuadSommer* clone();
+	int numNodes() const override { return order * order; }
 
-        int* wetDofs(DofSetArray &, int *p=0);
-        int* solidDofs(DofSetArray &, int *p=0);
+	int getNode(int nd) const override { return nn[nd]; }
 
-        void flipNormal();
+	const int *getNodes() const override { return nn; }
+	int *getNodes() override { return nn; }
 
-        void neumVector(CoordSet&,ComplexVector&,
-                                double,double,double,double);
-        void neumVectorDeriv(CoordSet& cs, ComplexVector& cv, double k,
-                                    double dx, double dy, double dz, int n);
+	int numDofs() const { return order * order; }
 
-        FullSquareMatrix sommerMatrix(CoordSet&, double *);
-        //GenStackFSFullMatrix<double> wetInterfaceMatrix(CoordSet &cs,
-        //                                                double *d);
-        virtual void ffp(CoordSet &cs, int numFFP, double *dirFFP,
-                         complex<double> *sol, complex<double> *ffpv);
+	int numSolidDofs() { return 3 * order * order; }
 
-        FullSquareMatrixC sommer2Matrix(CoordSet&, complex<double> *);
-        FullSquareMatrix turkelMatrix(CoordSet&, double *);
+	int numWetDofs() { return 4 * order * order; }
 
-        ComplexD ffpCoef(double k) { return ComplexD(0.25/M_PI, 0.0); }
+	int dim() const override { return 3; }
 
-	void getNormal(CoordSet&, double [3]);
+	int *dofs(DofSetArray &, int *p = 0);
 
-        void markDofs(DofSetArray &);
+	virtual SpectralIsoParamQuadSommer *clone();
+
+	int *wetDofs(DofSetArray &, int *p = 0);
+
+	int *solidDofs(DofSetArray &, int *p = 0);
+
+	void flipNormal();
+
+	void neumVector(CoordSet &, ComplexVector &,
+	                double, double, double, double);
+
+	void neumVectorDeriv(CoordSet &cs, ComplexVector &cv, double k,
+	                     double dx, double dy, double dz, int n);
+
+	FullSquareMatrix sommerMatrix(CoordSet &, double *) const override;
+
+	//GenStackFSFullMatrix<double> wetInterfaceMatrix(CoordSet &cs,
+	//                                                double *d);
+	virtual void ffp(CoordSet &cs, int numFFP, double *dirFFP,
+	                 complex<double> *sol, complex<double> *ffpv);
+
+	FullSquareMatrixC sommer2Matrix(CoordSet &, complex<double> *);
+
+	FullSquareMatrix turkelMatrix(CoordSet &, double *) const override;
+
+	ComplexD ffpCoef(double k) { return ComplexD(0.25 / M_PI, 0.0); }
+
+	void getNormal(CoordSet &, double [3]);
+
+	void markDofs(DofSetArray &) override;
 };
+
 #endif

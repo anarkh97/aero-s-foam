@@ -10,21 +10,21 @@ class HEVibTetra: public Element {
 public:
 	HEVibTetra(int*);
 
-	Element *clone();
+	Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
         FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
         FullSquareMatrix massMatrix(CoordSet&,double *mel, int cmflg=1);
 	double           getMass(CoordSet& cs);
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-        int 		 getTopNumber();
+        int             numNodes() const override;
+        int * nodes(int *) const override;
+        int getTopNumber() override;
 
         bool             isHEVFluidElement()  { return true; }
 

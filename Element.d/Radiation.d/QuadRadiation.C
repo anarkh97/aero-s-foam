@@ -101,13 +101,13 @@ QuadRadiation::getCorotator(CoordSet &cs, double* kel, int, int)
 
 
 int 
-QuadRadiation::numNodes()
+QuadRadiation::numNodes() const
 {
         return 4;
 }
 
 int*
-QuadRadiation::nodes(int *p)
+QuadRadiation::nodes(int *p) const
 {
         if(p == 0) p = new int[4];
         p[0] = nn[0];
@@ -118,7 +118,7 @@ QuadRadiation::nodes(int *p)
 }
 
 int
-QuadRadiation::numDofs()
+QuadRadiation::numDofs() const
 {
         return 4;
 }

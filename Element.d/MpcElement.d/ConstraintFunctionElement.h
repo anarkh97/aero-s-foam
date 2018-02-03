@@ -24,8 +24,8 @@ class ConstraintFunctionElement : public MpcElement
     ConstraintFunctionElement(int, DofSet*, int*, int);
 
     void buildFrame(CoordSet&);
-    void setProp(StructProp *p, bool _myProp = false);
-    void update(GeomState*, GeomState&, CoordSet&, double);
+    void setProp(StructProp *p, bool _myProp) override;
+    void update(GeomState*, GeomState&, CoordSet&, double) override;
     void getHessian(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double);
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState *gs = 0, int cflg = 0, double t = 0.0);

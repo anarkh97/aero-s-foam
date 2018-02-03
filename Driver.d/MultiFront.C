@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <Utils.d/dbg_alloca.h>
 #include <cmath>
-#include <Timers.d/GetTime.h> 
+#include <Timers.d/GetTime.h>
 #include <Utils.d/Memory.h>
 #include <Utils.d/DistHelper.h>
 
@@ -29,51 +29,51 @@ class DecGluedElement: public Element {
        Element *e1, *e2;
 public:
        int ie1, ie2;
-        DecGluedElement(Element *_e1, int _ie1, Element *_e2, int _ie2) { 
+        DecGluedElement(Element *_e1, int _ie1, Element *_e2, int _ie2) {
           e1 = _e1; ie1 = _ie1; e2 = _e2; ie2 = _ie2;
           int* n1 = e1->nodes();
           int* n2 = e2->nodes();
-          nn = new int[e1->numNodes()+e2->numNodes()]; 
+          nn = new int[e1->numNodes()+e2->numNodes()];
           int c=0;
-          for(int i=0;i<e1->numNodes();i++) nn[c++] = n1[i]; 
-          for(int i=0;i<e2->numNodes();i++) nn[c++] = n2[i]; 
+          for(int i=0;i<e1->numNodes();i++) nn[c++] = n1[i];
+          for(int i=0;i<e2->numNodes();i++) nn[c++] = n2[i];
           delete[] n1;
           delete[] n2;
           std::sort(nn,nn+e1->numNodes()+e2->numNodes());
           int *p = std::unique(nn,nn+e1->numNodes()+e2->numNodes());
-          numN = p-nn;
+          numN = static_cast<int>(p - nn);
         }
-        ~DecGluedElement() { delete[] nn; } 
-        void renum(int *) {
+        ~DecGluedElement() override { delete[] nn; }
+        void renum(int *) override {
           fprintf(stderr,"DecGluedElement::renum not implemented\n");
         }
-        void renum(EleRenumMap&) {
+        void renum(EleRenumMap&) override {
           fprintf(stderr,"DecGluedElement::renum not implemented\n");
         }
-        int* dofs(DofSetArray &, int *p=0) {
+        int* dofs(DofSetArray &, int *p) override {
           fprintf(stderr,"DecGluedElement::dofs not implemented\n");
           return 0;
         }
-        void markDofs(DofSetArray &) { 
+        void markDofs(DofSetArray &) override {
           fprintf(stderr,"DecGluedElement::markDofs not implemented\n");
         }
-        int numDofs() {
+        int numDofs() const override{
           fprintf(stderr,"DecGluedElement::numDofs not implemented\n");
           return 0;
         }
-        int numNodes() {
+        int numNodes() const override {
            return numN;
         }
-        int* nodes(int *p = 0) {
+        int* nodes(int *p) const override {
           if(p == 0) p = new int[numN];
           for(int i=0;i<numN;i++) p[i] = nn[i];
           return p;
         }
-        PrioInfo examine(int sub, MultiFront *mf) {
+        PrioInfo examine(int sub, MultiFront *mf) override {
           PrioInfo p1 = e1->examine(sub,mf);
           PrioInfo p2 = e2->examine(sub,mf);
           PrioInfo res;
-          if (p1.isReady || p2.isReady) res.isReady = true;
+          res.isReady = (p1.isReady || p2.isReady);
           if(!res.isReady) return res;
           if (p1.isReady && p2.isReady) {
             res.priority = (p1.priority < p2.priority)? p1.priority:p2.priority;
@@ -175,7 +175,7 @@ BoundList::~BoundList()
 }
 
 void
-BoundList::add(int x) 
+BoundList::add(int x)
 {
   listIndex[x] = nObj;
   list[nObj] = x;
@@ -183,7 +183,7 @@ BoundList::add(int x)
 }
 
 void
-BoundList::remove(int x) 
+BoundList::remove(int x)
 {
   if(listIndex[x] < 0) return;
   listIndex[ list[nObj-1] ] = listIndex[x];
@@ -193,7 +193,7 @@ BoundList::remove(int x)
 }
 
 // The simulated anealing rule 
-class SARule 
+class SARule
 {
   double ee[1000];
  public:
@@ -238,7 +238,7 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFla
  if (have_fsi) {
    for(int iEle = 0; iEle < numEle; ++iEle)
    if ((*elems)[iEle] && (*elems)[iEle]->isFsiElement()) {
-     reallyHaveFSI = true; 
+     reallyHaveFSI = true;
      break;
    }
  }
@@ -253,7 +253,7 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFla
      tags[iEle] = -1;
      if ((*elems)[iEle]) fsGlued_eset->elemadd(iEle,(*elems)[iEle]);
    }
-  
+
    for(int iEle = 0; iEle < numEle; ++iEle) {
      if ( (*elems)[iEle] && (*elems)[iEle]->nDecFaces()>0 ) {
        int eventTag = getEventTag();
@@ -269,12 +269,12 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFla
              if ( (isF2 && !isF) || (isF && !isF2) ) {
                for(int iFace=0; iFace<(*elems)[iEle]->nDecFaces();iFace++) {
                  int nn[64];
-                 int nFaceN = (*elems)[iEle]->getDecFace(iFace,nn); 
+                 int nFaceN = (*elems)[iEle]->getDecFace(iFace,nn);
                  std::sort(nn,nn+nFaceN);
                  for(int iFace2=0; iFace2<(*elems)[thisElem]->nDecFaces();
                    iFace2++) {
                    int nn2[64];
-                   int nFaceN2 = (*elems)[thisElem]->getDecFace(iFace2,nn2); 
+                   int nFaceN2 = (*elems)[thisElem]->getDecFace(iFace2,nn2);
                    if (nFaceN!=nFaceN2) break;
                    std::sort(nn2,nn2+nFaceN2);
                    bool isEqual = true;
@@ -342,33 +342,33 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFla
 
 
 
- 
+
 // JLchange: determine which elements are connected with a fsi node 
  isFsiConnected   = new bool[numEle];
- for(iEle = 0; iEle < numEle; ++iEle) 
-   if((*elems)[iEle]) isFsiConnected[iEle] = false; 
- if (have_fsi) { 
-   for(iEle = 0; iEle < numEle; ++iEle)  
+ for(iEle = 0; iEle < numEle; ++iEle)
+   if((*elems)[iEle]) isFsiConnected[iEle] = false;
+ if (have_fsi) {
+   for(iEle = 0; iEle < numEle; ++iEle)
    if ((*elems)[iEle] && (*elems)[iEle]->isFsiElement()) {
-     int fluidNode = (*elems)[iEle]->fsiFluidNode(); 
-     int strutNode = (*elems)[iEle]->fsiStrutNode(); 
-     for(int iele = 0; iele < nToE->num(fluidNode); ++iele) { 
+     int fluidNode = (*elems)[iEle]->fsiFluidNode();
+     int strutNode = (*elems)[iEle]->fsiStrutNode();
+     for(int iele = 0; iele < nToE->num(fluidNode); ++iele) {
        int thisElem = (*nToE)[fluidNode][iele];
-       if ((*elems)[thisElem]) isFsiConnected[thisElem] = true; 
-     } 
-     for(int iele = 0; iele < nToE->num(strutNode); ++iele) { 
+       if ((*elems)[thisElem]) isFsiConnected[thisElem] = true;
+     }
+     for(int iele = 0; iele < nToE->num(strutNode); ++iele) {
        int thisElem = (*nToE)[strutNode][iele];
-       if ((*elems)[thisElem]) isFsiConnected[thisElem] = true; 
-     } 
+       if ((*elems)[thisElem]) isFsiConnected[thisElem] = true;
+     }
    }
 
-   // Add one such isFsiConnected element to the pop.InfList, so the decomposition will start 
-   // from this element. 
-   for(iEle = 0; iEle < numEle; ++iEle)  
-   if ((*elems)[iEle] && isFsiConnected[iEle]) { 
-     prio.addInfinity(iEle); 
-     break; 
-   } 
+   // Add one such isFsiConnected element to the pop.InfList, so the decomposition will start
+   // from this element.
+   for(iEle = 0; iEle < numEle; ++iEle)
+   if ((*elems)[iEle] && isFsiConnected[iEle]) {
+     prio.addInfinity(iEle);
+     break;
+   }
  }
 
 }
@@ -420,7 +420,7 @@ MultiFront::updateElement(int cur_elem, int sub, int elem)
  // don't do anything if this element is not ready
 // JLchange 
 // if(ePrio.isReady == 0) return;
- if ((ePrio.isReady == 0) && !(isFsiConnected[elem])) return;  
+ if ((ePrio.isReady == 0) && !(isFsiConnected[elem])) return;
  // look if this element is in the priority list
 #ifdef NOTMPL
  // does this element have infinite priority?
@@ -434,7 +434,7 @@ MultiFront::updateElement(int cur_elem, int sub, int elem)
 // JLchange:
 // prio.add(elem);
 
- if (isFsiConnected[elem]) prio.addInfinity(elem); 
+ if (isFsiConnected[elem]) prio.addInfinity(elem);
  else prio.add(elem);
 #else
  PrioState newState;
@@ -469,7 +469,7 @@ MultiFront::addNodesToSub(int cur_elem, int sub, int numNewNodes, int *newNodes)
  int iElem, iNode;
 
  int eventTag = getEventTag();
- for(iNode = 0; iNode < numNewNodes; ++iNode) 
+ for(iNode = 0; iNode < numNewNodes; ++iNode)
    for(iElem = 0; iElem < nToE->num(newNodes[iNode]); ++iElem) {
      int elem = (*nToE)[newNodes[iNode]][iElem];
      if(flag[ elem ] != eventTag && assignedSubD[elem] < 0)
@@ -485,10 +485,10 @@ MultiFront::removeBoundNode(int node)
    int replNode = boundNode[ boundIndex[node] ] = boundNode[ --numBoundNodes ];
    // Note no check on the following line is necessary as the only possible
    // problem is if numBoundNodes goes down to zero and in that case
-   // this line has no effect  
+   // this line has no effect
    boundIndex[ replNode ] = boundIndex[ node ];
    boundIndex[node] = -1;
- } 
+ }
 }
 
 void
@@ -578,7 +578,7 @@ MultiFront::decompose(int numSub, bool have_fsi)
  // First compute the total weight
  double totWeight = 0;
  for(iElem = 0; iElem < numEle; ++iElem)
-   if((*elems)[iElem]) 
+   if((*elems)[iElem])
      totWeight += (*elems)[iElem]->weight();
  double remWeight = totWeight;
  double avgWeight = totWeight/numSub;
@@ -611,14 +611,14 @@ MultiFront::decompose(int numSub, bool have_fsi)
 // JLchange: add the following lines, such that if prio.infList is not empty then pop one element out 
 // and use it to start forming the new subdomain 
    // loop to find an unassigned element from the prio.InfList
-   if (have_fsi) 
-     while (!(prio.empty())) { 
+   if (have_fsi)
+     while (!(prio.empty())) {
        int elem = prio.pop();
-       if (assignedSubD[elem] < 0) { 
-         startElem = elem; 
-         break; 
+       if (assignedSubD[elem] < 0) {
+         startElem = elem;
+         break;
        }
-     } 
+     }
 
    for(iNode = 0; iNode < numBoundNodes; ++iNode)
      if(nodeMask[boundNode[iNode]] > 0 && nodeMask[boundNode[iNode]] < minDeg) {
@@ -656,7 +656,7 @@ MultiFront::decompose(int numSub, bool have_fsi)
      if(iElem == nToE->num(minNode)) {
        break;
 	     }
-   } 
+   }
    prio.clear();
    count = 0;
    // add it to this subdomain and remove it from the lists
@@ -711,8 +711,8 @@ subdomain, from a fsi node/element in the current priority list.
      if(assignedSubD[infElem] < 0) {
        double thisElemWeight = (*elems)[infElem]->weight();
        addElemToSub(iSub, infElem);
-       curWeight += thisElemWeight; 
-       remWeight -= thisElemWeight; 
+       curWeight += thisElemWeight;
+       remWeight -= thisElemWeight;
      }
    }
 
@@ -728,7 +728,7 @@ subdomain, from a fsi node/element in the current priority list.
  dec->nsub = iSub;
  dec->pele = new int[dec->nsub+1];
  dec->eln = new int[numEle];
- 
+
  numSub = iSub;
  for(iSub = 0; iSub <= numSub; ++iSub)
   dec->pele[iSub] = 0;
@@ -753,7 +753,7 @@ subdomain, from a fsi node/element in the current priority list.
 
  // filePrint(stderr," ... Generated Initial Mesh Decomposition In %14.5f sec and %14.3f Mb ...\n",
  //           (getTime() - t1)/1000.0, (memoryUsed() - m1)/(1024.0*1024.0));
- 
+
  // Now apply improvements to the decomposition
  if(verboseFlag) filePrint(stderr, " ...     Initial Number of Subdomains = %d ...\n", dec->nsub);
  dec = improveDec(dec, 0.2);
@@ -767,64 +767,64 @@ subdomain, from a fsi node/element in the current priority list.
    dec = optimize(dec);
 
    if(verboseFlag) filePrint(stderr," ...     Updated Number of Subdomains = %d ...\n", dec->nsub);
-   // filePrint(stderr," ... Optimized Initial Mesh Decomposition In %14.5f sec and %14.3f Mb\n", 
+   // filePrint(stderr," ... Optimized Initial Mesh Decomposition In %14.5f sec and %14.3f Mb\n",
    //           (getTime() - t1)/1000.0, (memoryUsed() - m1)/(1024.0*1024.0));
-     
+
    if(verboseFlag) filePrint(stderr," ... Checking Components            ...\n");
    t1 = getTime();
    m1 = memoryUsed();
    dec = checkComponents(dec);
 
    if(verboseFlag) filePrint(stderr, " ...     Updated Number of Subdomains = %d ...\n", dec->nsub);
-   // filePrint(stderr," ... Checked Optimized Mesh Decomposition In %14.5f sec and %14.3f Mb\n", 
+   // filePrint(stderr," ... Checked Optimized Mesh Decomposition In %14.5f sec and %14.3f Mb\n",
    //           (getTime() - t1)/1000.0,(memoryUsed() - m1)/(1024.0*1024.0));
-     
+
    if(verboseFlag) filePrint(stderr," ... Re-tying Subdomains            ...\n");
    t1 = getTime();
    m1 = memoryUsed();
    rebuildInfo(dec);
-   
+
    dec = improveDec(dec,0.1);
    rebuildInfo(dec);
-   // filePrint(stderr," ... Re-tied Checked Mesh Decomposition In %14.5f sec and %14.3f Mb\n", 
+   // filePrint(stderr," ... Re-tied Checked Mesh Decomposition In %14.5f sec and %14.3f Mb\n",
    // (getTime() - t1)/1000.0,(memoryUsed() - m1)/(1024.0*1024.0));
  }
-  
+
 // JLchange: 
  // Update fsi elements such that each fsi element is connected to a structural element in a subdomain
- if (have_fsi) { 
+ if (have_fsi) {
    dec = updateFsiConnection(dec);
-   dec = eliminateEmpty(dec); 
+   dec = eliminateEmpty(dec);
    rebuildInfo(dec);
 // dec = removeFsiElements(dec); // PJSA 7-31-06
- } 
+ }
 
  // filePrint(stderr," ... Total Time for Mesh Decomposition Is %14.5f sec and %14.3f Mb\n",
  //          (getTime() - tDec)/1000.0, (memoryUsed()-mDec)/(1024.0*1024.0));
 
 
  if (fsGluedCounter>0) {
-  
+
    Decomposition *origDec = dec;
    dec = new Decomposition;
    dec->nsub = origDec->nsub;
    dec->pele = new int[dec->nsub+1];
    dec->eln = new int[numEle-fsGluedCounter];
-   
+
    for(iSub = 0; iSub <= dec->nsub; ++iSub)
      dec->pele[iSub] = 0;
-  
+
    for(iSub = 0; iSub < dec->nsub; ++iSub) {
      for(int i = origDec->pele[iSub]; i< origDec->pele[iSub+1]; i++) {
        dec->pele[iSub+1]++;
        if (origDec->eln[i] >= numEle-fsGluedCounter) dec->pele[iSub+1]++;
      }
    }
-  
+
    for(iSub = 0; iSub < dec->nsub; ++iSub) {
      dec->pele[iSub+1] += dec->pele[iSub];
    }
-  
+
    for(iSub = 0; iSub < dec->nsub; ++iSub) {
      int c = dec->pele[iSub];
      for(int i = origDec->pele[iSub]; i< origDec->pele[iSub+1]; i++) {
@@ -841,10 +841,10 @@ subdomain, from a fsi node/element in the current priority list.
        }
      }
    }
-  
+
    delete origDec;
  }
- if (fsGluedCounter>-1) { 
+ if (fsGluedCounter>-1) {
 // RT: Where to delete elems = fsGlued_eset;
   delete fsGlued_eset;
  }
@@ -858,7 +858,7 @@ MultiFront::weight(int sub, int node)
  int ip;
  for(ip = nToE->offset(node); ip < nToE->offset(node+1); ++ip) {
    if(nw[ip].subd == sub) return nw[ip].weight;
-   if(nw[ip].subd < 0) { 
+   if(nw[ip].subd < 0) {
       return 0;
    }
  }
@@ -945,31 +945,31 @@ MultiFront::improveDec(Decomposition *origDec, double coef)
  bool hasRemap = false;
  int *subRemap = new int[origDec->nsub];
  int *subMask = new int[origDec->nsub];
- for(iSub = 0; iSub < origDec->nsub; ++iSub) 
+ for(iSub = 0; iSub < origDec->nsub; ++iSub)
    {
      subMask[iSub] = -1;
      subRemap[iSub] = iSub; // initialize the remap to identity
    }
  int *subList = new int[origDec->nsub];
  int totSubs = 0;
- 
+
  for(iSub = 0; iSub < origDec->nsub; ++iSub)
-   if(subWeight[iSub] < threshhold) 
+   if(subWeight[iSub] < threshhold)
      {
        // We try to find the best subto reattach this subdomain
        // first locate all the subdomains that touch this one
        int nCandidate = 0;
-       for(iEle = 0; iEle < origDec->num(iSub); ++iEle) 
+       for(iEle = 0; iEle < origDec->num(iSub); ++iEle)
 	 {
 	   int ele = (*origDec)[iSub][iEle];
-	   for(iNode = 0; iNode < eToN->num(ele); ++iNode) 
+	   for(iNode = 0; iNode < eToN->num(ele); ++iNode)
 	     {
 	       int node = (*eToN)[ele][iNode];
 	       int ip;
 	       int initP = nToE->offset(node);
 	       int finalP = initP+nSubPerNode[node];
 	       for(ip = initP; ip < finalP; ++ip) {
-		 if(nw[ip].subd != iSub && subMask[nw[ip].subd] != iSub) 
+		 if(nw[ip].subd != iSub && subMask[nw[ip].subd] != iSub)
 		   {
 		     subMask[nw[ip].subd] = iSub;
 		     subList[nCandidate++] = nw[ip].subd;
@@ -979,34 +979,34 @@ MultiFront::improveDec(Decomposition *origDec, double coef)
 	 }
        int bestCandidate = iSub;
        int bestPrio = 0;
-       for(jSub = 0; jSub < nCandidate; ++jSub) 
+       for(jSub = 0; jSub < nCandidate; ++jSub)
 	 {
 	   int curPrio = 0;
 	   // make sure we remap to a lower number!!
-	   for(iEle = 0; iEle < origDec->num(iSub); ++iEle) 
+	   for(iEle = 0; iEle < origDec->num(iSub); ++iEle)
 	     {
 	       int ele = (*origDec)[iSub][iEle];
 	       // check if this element provides a bond to the considered subdomain
-	       if((*elems)[ele]->examine(subList[jSub], this).isReady) 
+	       if((*elems)[ele]->examine(subList[jSub], this).isReady)
 		 {
 		   curPrio++;
-		 } 
+		 }
 	     }
-	   if(curPrio > bestPrio) 
+	   if(curPrio > bestPrio)
 	     {
 	       bestPrio = curPrio;
 	       bestCandidate = subList[jSub];
 	     }
 	 }
-       if(bestCandidate != iSub) 
+       if(bestCandidate != iSub)
 	 {
 	   hasRemap = true;
 	   subRemap[iSub] = subRemap[bestCandidate];
 	   totSubs--;
-	 } 
+	 }
      }
- 
- if(hasRemap) 
+
+ if(hasRemap)
    {
      int *finalRemap = new int[origDec->nsub];
      bool *isInspected = new bool[origDec->nsub];
@@ -1021,8 +1021,8 @@ MultiFront::improveDec(Decomposition *origDec, double coef)
 	 // check if this subdomain has already been inspected below
 	 if(isInspected[iSub])
 	   continue;
-	 
-	 if(subRemap[iSub] == iSub) 
+
+	 if(subRemap[iSub] == iSub)
 	   {
 	     finalRemap[iSub] = totSubs++;
 	     isInspected[iSub] = true;
@@ -1057,11 +1057,11 @@ MultiFront::improveDec(Decomposition *origDec, double coef)
    for(iSub = 0; iSub < totSubs; ++iSub)
      subP[iSub+1] += subP[iSub];
    int *elL = new int[subP[totSubs]];
-   for(iSub = 0; iSub < origDec->nsub; ++iSub) 
+   for(iSub = 0; iSub < origDec->nsub; ++iSub)
      {
        int mps = subRemap[iSub];
        for(iEle = 0; iEle < origDec->num(iSub); ++iEle)
-	 elL[--subP[mps]] = (*origDec)[iSub][iEle];    
+	 elL[--subP[mps]] = (*origDec)[iSub][iEle];
    }
    delete [] origRemap;
    delete origDec;
@@ -1101,7 +1101,7 @@ MultiFront::rebuildInfo(Decomposition *dec)
 
  for(iNode = 0; iNode < nToE->csize(); ++iNode) {
    for(iEle = 0; iEle < nToE->num(iNode); ++iEle)
-      if(assignedSubD[ (*nToE)[iNode][iEle] ] != 
+      if(assignedSubD[ (*nToE)[iNode][iEle] ] !=
                        assignedSubD[ (*nToE)[iNode][0] ]) {
          addBoundNode(iNode);
          break;
@@ -1112,33 +1112,33 @@ MultiFront::rebuildInfo(Decomposition *dec)
 Decomposition *
 MultiFront::updateFsiConnection(Decomposition *origDec)
 {
- int iEle, iele, iSub; 
+ int iEle, iele, iSub;
  int numSub = origDec->nsub;
 
- for(iEle = 0; iEle < numEle; ++iEle)  
+ for(iEle = 0; iEle < numEle; ++iEle)
    if ((*elems)[iEle] && (*elems)[iEle]->isFsiElement()) {
-     // Fid the structral node attached to this Fsi element 
-     //int fluidNode = (*elems)[iEle]->fsiFluidNode(); 
-     int strutNode = (*elems)[iEle]->fsiStrutNode(); 
-     // find if the structure node is in a structral element inside this assigned subdomain 
+     // Fid the structral node attached to this Fsi element
+     //int fluidNode = (*elems)[iEle]->fsiFluidNode();
+     int strutNode = (*elems)[iEle]->fsiStrutNode();
+     // find if the structure node is in a structral element inside this assigned subdomain
      int thisSub = assignedSubD[iEle];
-     int targetSub; 
-     bool strutEleFound = false; 
-     for(iele = 0; iele < nToE->num(strutNode); ++iele) { 
+     int targetSub;
+     bool strutEleFound = false;
+     for(iele = 0; iele < nToE->num(strutNode); ++iele) {
        int thisElem = (*nToE)[strutNode][iele];
-       if (!((*elems)[thisElem]->isFsiElement())) { 
-         targetSub = assignedSubD[thisElem]; 
-         if (thisSub == targetSub) strutEleFound = true; 
+       if (!((*elems)[thisElem]->isFsiElement())) {
+         targetSub = assignedSubD[thisElem];
+         if (thisSub == targetSub) strutEleFound = true;
        }
-     } 
-     if (strutEleFound == false)  
-       assignedSubD[iEle] = targetSub; 
+     }
+     if (strutEleFound == false)
+       assignedSubD[iEle] = targetSub;
    }
 
  for(iSub = 0; iSub <= numSub; ++iSub)
    origDec->pele[iSub] = 0;
  for(iEle = 0; iEle < numEle; ++iEle)
-   if((*elems)[iEle]) { 
+   if((*elems)[iEle]) {
      if(assignedSubD[iEle] < 0) {
        std::cerr << "Element " << iEle+1 << "Is not assigned. it will not be in"
                "the decomposition\n";
@@ -1152,7 +1152,7 @@ MultiFront::updateFsiConnection(Decomposition *origDec)
 
  for(iEle = 0; iEle < numEle; ++iEle)
    if((*elems)[iEle]) {
-     if(assignedSubD[iEle] < 0) 
+     if(assignedSubD[iEle] < 0)
        continue;
      origDec->eln[ --origDec->pele[assignedSubD[iEle]] ] = iEle;
    }
@@ -1163,18 +1163,18 @@ MultiFront::updateFsiConnection(Decomposition *origDec)
 Decomposition *
 MultiFront::eliminateEmpty(Decomposition *origDec)
 {
- int iEle, iSub; 
+ int iEle, iSub;
  int numSub = origDec->nsub;
- int realNumSub = 0; 
- for(int iSub = 0; iSub < numSub; ++iSub) 
-   if (origDec->num(iSub) > 0) realNumSub++; 
+ int realNumSub = 0;
+ for(int iSub = 0; iSub < numSub; ++iSub)
+   if (origDec->num(iSub) > 0) realNumSub++;
 
- if (realNumSub == numSub) return origDec; 
- else { 
+ if (realNumSub == numSub) return origDec;
+ else {
    int *subP = new int[realNumSub+1];
    for(iSub = 0; iSub < realNumSub+1; iSub++)
      subP[iSub] = 0;
-   int index = 0; 
+   int index = 0;
    for (iSub = 0; iSub < origDec->nsub; ++iSub)
      if (origDec->num(iSub) > 0) subP[++index] = origDec->num(iSub);
    for(iSub = 0; iSub < realNumSub; ++iSub)
@@ -1201,7 +1201,7 @@ MultiFront::removeFsiElements(Decomposition *dec)
  int nsubs = 0;
  int *ptr = new int[dec->nsub+1];
  int *list = new int[numEle];
- 
+
  ptr[0] = 0;
  int total = 0;
  for(int iSub = 0; iSub < dec->nsub; ++iSub) {
@@ -1215,7 +1215,7 @@ MultiFront::removeFsiElements(Decomposition *dec)
    }
    if(count>0) {
      nsubs++;
-     ptr[nsubs] = ptr[nsubs-1]+count; 
+     ptr[nsubs] = ptr[nsubs-1]+count;
    }
  }
  delete dec;
@@ -1284,7 +1284,7 @@ MultiFront::checkComponents(Decomposition *dec)
    for(iEle = 0; iEle < dec->num(iSub); ++iEle)
      if(assignedSubD[(*dec)[iSub][iEle] ] < 0) {
        int startElem = (*dec)[iSub][iEle];
-       if((*elems)[ startElem ]->isStart() == false) continue; 
+       if((*elems)[ startElem ]->isStart() == false) continue;
        prio.clear();
 #ifndef NOTMPL
        lastPrio.clear();
@@ -1301,7 +1301,7 @@ MultiFront::checkComponents(Decomposition *dec)
          lastPrio.erase(elem);
          prio.erase(it);
          if(oldSub[elem] == iSub && assignedSubD[elem] < 0)
-           addElemToSub(cSub, elem); 
+           addElemToSub(cSub, elem);
 #endif
        }
        cSub++;
@@ -1319,7 +1319,7 @@ MultiFront::checkComponents(Decomposition *dec)
    for(iEle = 0; iEle < numEle; ++iEle)
      if((*elems)[iEle]) {
        if(assignedSubD[iEle] < 0) {
-          std::cerr << "Element " << iEle+1 << "Is not assigned." 
+          std::cerr << "Element " << iEle+1 << "Is not assigned."
                  "it will not be in the decomposition\n" ;
          continue;
        }
@@ -1336,7 +1336,7 @@ MultiFront::checkComponents(Decomposition *dec)
          if(assignedSubD[iEle] < 0) continue;
          dec->eln[ --dec->pele[assignedSubD[iEle]] ] = iEle;
        }
- } 
+ }
  delete [] oldSub;
  return dec;
 }
@@ -1381,16 +1381,16 @@ MultiFront::optimize(Decomposition *origDec)
  // balCost cannot be zero, because it starts with a one, so it can
  // only be zero if there are no subdomains
  double balCoef = oc1*1.0/balCost;
- 
+
  //fprintf(stderr, "Balance cost: %e, numBoundNodes %d\n", balCost, numBoundNodes);
-   
+
  // Compute the cost function and normalize it
  // if no boundary nodes are found, we cannot improve the decomposition
  if(numBoundNodes == 0) { delete [] nBNode; return origDec; }
  boundCoef = oc3/numBoundNodes;
  arInfo =  new ARInfo[numSub];
  double arCost = buildARInfo(origDec);
- // a zero arCost can truly only happen if each subdomain is a single element 
+ // a zero arCost can truly only happen if each subdomain is a single element
  if(arCost == 0) arCoef = oc2;
  else arCoef = oc2/arCost;
 
@@ -1429,7 +1429,7 @@ MultiFront::optimize(Decomposition *origDec)
  // Iterate through the boundary elements to try to flip them to another
  // subdomain.
  int nIter = 80*boundList.size();
- int idleCount = 0; 
+ int idleCount = 0;
  // adjust the starting temperature to go toward zero when the number
  // of boundary elements increases
  double coef = double(nIter)/1e7;
@@ -1442,7 +1442,7 @@ MultiFront::optimize(Decomposition *origDec)
  if(tChange > 150000 || nosa ) {
    if(verboseFlag) filePrint(stderr, " ...     Using a Deterministic Scheme ...\n");
    T = 0.0;
- } 
+ }
  else {
    if(verboseFlag) filePrint(stderr, " ...     Using a Simulated Annealing Scheme ...\n");
    srand48(45302172); // will make sure that XPost's decomposer and fem's dec agree ! Thomas
@@ -1458,8 +1458,8 @@ MultiFront::optimize(Decomposition *origDec)
    ARInfo resAR;
    int oldSub = assignedSubD[elem];
    // avoid obtaining an empty subdomain
-   if(elemPerSub[oldSub] == 1) continue; 
-    
+   if(elemPerSub[oldSub] == 1) continue;
+
    ARInfo curAR = arInfo[oldSub];
    int newSub;
    double dc = findBestDelta(elem, newSub, resAR, curAR);
@@ -1537,7 +1537,7 @@ MultiFront::optimize(Decomposition *origDec)
 
  for(iEle = 0; iEle < numEle; ++iEle)
    if((*elems)[iEle]) {
-     if(assignedSubD[iEle] < 0) 
+     if(assignedSubD[iEle] < 0)
        continue;
      origDec->eln[ --origDec->pele[assignedSubD[iEle]] ] = iEle;
    }
@@ -1547,7 +1547,7 @@ MultiFront::optimize(Decomposition *origDec)
  return origDec;
 }
 
-double 
+double
 MultiFront::add(ARInfo &ari, int elem)
 {
  double cCost = (ari.nxs + ari.nys + ari.nzs -
@@ -1598,7 +1598,7 @@ MultiFront::findBestDelta(int elem, int &bestSub, ARInfo &resAR, ARInfo &curAR)
  double leaveCostDiff = 0;
  int curSub = assignedSubD[elem];
 // curAR = arInfo[curSub];
- double minDiff =-10000000;   
+ double minDiff =-10000000;
  bestSub = -1;
  deltaBound = 0.0;
  deltaAR = 0.0;
@@ -1635,7 +1635,7 @@ MultiFront::findBestDelta(int elem, int &bestSub, ARInfo &resAR, ARInfo &curAR)
          // check if this subdomain can accept this element
          if((*elems)[elem]->examine(candidate, this).isReady == false) {
             continue;
-         } 
+         }
 
          ARInfo candARI = arInfo[candidate];
          double addDiff = 0;
@@ -1644,7 +1644,7 @@ MultiFront::findBestDelta(int elem, int &bestSub, ARInfo &resAR, ARInfo &curAR)
            if(weight(candidate, nodeJ) == 0) {
               if(nToE->num(nodeJ) > 1) { // there are other subdomains touching
                 addDiff += boundCoef;  // this node
-                addBound += boundCoef;  
+                addBound += boundCoef;
               }
 #ifdef NODEBASEDARCOST
               double tmp;
@@ -1667,8 +1667,8 @@ MultiFront::findBestDelta(int elem, int &bestSub, ARInfo &resAR, ARInfo &curAR)
    }
  }
 
- deltaBound += minBound; 
- deltaAR += minAR; 
+ deltaBound += minBound;
+ deltaAR += minAR;
  if(minDiff == -10000000) return leaveCostDiff; else // PJSA DEBUG
  return leaveCostDiff + minDiff;
 }
@@ -1711,18 +1711,18 @@ MultiFront::memEstimate(Decomposition *dec, int dofsPerNode, double memory[5],
     ccount[iSub] = 0;
     subMask[iSub] = -1;
   }
-  for(iSub = 0; iSub < dec->nsub; ++iSub) 
+  for(iSub = 0; iSub < dec->nsub; ++iSub)
     {
-      for(iEle = 0; iEle < dec->num(iSub); ++iEle) 
+      for(iEle = 0; iEle < dec->num(iSub); ++iEle)
 	{
 	int elem = (*dec)[iSub][iEle];
-	for(iNode = 0; iNode < eToN->num(elem); ++iNode) 
+	for(iNode = 0; iNode < eToN->num(elem); ++iNode)
 	  {
 	  int node = (*eToN)[elem][iNode];
 	  for(int ip = nToE->offset(node); ip < nToE->offset(node+1)
-		&& nw[ip].subd < 0; ++ip) 
+		&& nw[ip].subd < 0; ++ip)
 	    {
-	    if(subMask[ nw[ip].subd ] != iSub) 
+	    if(subMask[ nw[ip].subd ] != iSub)
 	      {
               subMask[ nw[ip].subd ] = iSub;
               ccount[iSub] ++;
@@ -1733,24 +1733,24 @@ MultiFront::memEstimate(Decomposition *dec, int dofsPerNode, double memory[5],
     }
    // pass two
   ccount[dec->nsub] = 0;
-  for(iSub = 0; iSub < dec->nsub; ++iSub) 
+  for(iSub = 0; iSub < dec->nsub; ++iSub)
     {
       ccount[iSub+1] += ccount[iSub];
       subMask[iSub] = -1;
     }
   int *subPtr = new int[ccount[dec->nsub]];
-  for(iSub = 0; iSub < dec->nsub; ++iSub) 
+  for(iSub = 0; iSub < dec->nsub; ++iSub)
     {
-      for(iEle = 0; iEle < dec->num(iSub); ++iEle) 
+      for(iEle = 0; iEle < dec->num(iSub); ++iEle)
 	{
 	  int elem = (*dec)[iSub][iEle];
-	  for(iNode = 0; iNode < eToN->num(elem); ++iNode) 
+	  for(iNode = 0; iNode < eToN->num(elem); ++iNode)
 	    {
 	      int node = (*eToN)[elem][iNode];
 	      for(int ip = nToE->offset(node); ip < nToE->offset(node+1)
-		    && nw[ip].subd < 0; ++ip) 
+		    && nw[ip].subd < 0; ++ip)
 		{
-		  if(subMask[ nw[ip].subd ] != iSub) 
+		  if(subMask[ nw[ip].subd ] != iSub)
 		    {
 		      subMask[ nw[ip].subd ] = iSub;
 		      subPtr[--ccount[iSub]] = nw[ip].subd;
@@ -1763,15 +1763,15 @@ MultiFront::memEstimate(Decomposition *dec, int dofsPerNode, double memory[5],
   compStruct subRenum = subToSub->renumByComponent(1);
   //int profileSize = subToSub->findProfileSize(subRenum.renum);
   int profileSize = 0;
-  
+
   memory[3] = dofsPerNode*dofsPerNode*sizeof(double)*profileSize
     +sizeof(int)*(subToSub->numConnect() + dec->nsub);
   cost += memory[3];
-  
+
   int *nodeMap = new int[numNodes];
   int *locToGl = new int[numNodes];
   int *locDofsPerNode = new int[numNodes];
-  for(iSub = 0; iSub < dec->nsub; ++iSub) 
+  for(iSub = 0; iSub < dec->nsub; ++iSub)
     {
       int kbbSize = 0;
       int ndRenum = 0;
@@ -1784,14 +1784,14 @@ MultiFront::memEstimate(Decomposition *dec, int dofsPerNode, double memory[5],
       }
       int *target = new int[nNd];
       int tgIndex = 0;
-  for(iEle = 0; iEle < dec->num(iSub); ++iEle) 
+  for(iEle = 0; iEle < dec->num(iSub); ++iEle)
 	{
 	  int elem = (*dec)[iSub][iEle];
-	  for(iNode = 0; iNode < eToN->num(elem); ++iNode) 
+	  for(iNode = 0; iNode < eToN->num(elem); ++iNode)
 	    {
 	      int node = (*eToN)[elem][iNode];
 	      if(node < 0) fprintf(stderr, " *** ERROR: node < 0\n");
-	      if(nodeMask[node] != iSub) 
+	      if(nodeMask[node] != iSub)
 		{
 		  nodeMask[node] = iSub;
 		  locToGl[ndRenum] = node;
@@ -1806,17 +1806,17 @@ MultiFront::memEstimate(Decomposition *dec, int dofsPerNode, double memory[5],
       Connectivity *nToE = eToN.reverse();
       Connectivity *nToN = nToE->transcon(&eToN);
     // Find Kbb cost:
-      for(iNode = 0; iNode <ndRenum; ++iNode) 
+      for(iNode = 0; iNode <ndRenum; ++iNode)
 	{
 		int nodeI = locToGl[iNode];
 		if(numSubForNode(nodeI) == 1) continue;
-			for(jNode = 0; jNode < nToN->num(iNode); ++jNode) 
+			for(jNode = 0; jNode < nToN->num(iNode); ++jNode)
 			{
 	  			int nodeJ = locToGl[(*nToN)[iNode][jNode]];
 				  if(numSubForNode(nodeJ) > 1) kbbSize++;
 			}
       	}
-	
+
       memory[1] += (sizeof(double)+sizeof(int))*kbbSize*dofsPerNode*dofsPerNode;
       cost+=(sizeof(double)+sizeof(int))*kbbSize*dofsPerNode*dofsPerNode;
 
@@ -1824,9 +1824,9 @@ MultiFront::memEstimate(Decomposition *dec, int dofsPerNode, double memory[5],
 
       DofSetArray dsa(ndRenum, locDofsPerNode, renum.renum);
       //int profileSize = nToN->findProfileSize(renum.renum);
-		
+
       long profileSize = nToN->findProfileSize(&dsa);
-    
+
       memSize[iSub] = 8.0*profileSize/(1024*1024);
       if(minSize < 0 || memSize[iSub] < minSize)
 	minSize = memSize[iSub];
@@ -1865,7 +1865,7 @@ MultiFront::memEstimate(Decomposition *dec, int dofsPerNode, double memory[5],
   // nomre_sous_domaine  min  ave  max  max/ave
   double aveMem = totSize/dec->nsub;
   fprintf(memFile, "# Num_Sub   Min_Mem   Ave_Mem   Max_Mem   LBF_Mem = Max_Mem/Ave_Mem\n");
-  fprintf(memFile, "# %d  %f %f %f %f\n", dec->nsub, minSize, 
+  fprintf(memFile, "# %d  %f %f %f %f\n", dec->nsub, minSize,
        aveMem, maxSize, maxSize/aveMem);
   for(iSub = 0; iSub < dec->nsub; ++iSub)
     fprintf(memFile, "%f\n", memSize[iSub]);
@@ -1892,14 +1892,14 @@ MultiFront::bestSubFor(int nNd, int *nd)
     if(nToE->num(nd[iNode]) > 0)
       return assignedSubD[ (*nToE)[nd[iNode]][0] ];
   return -1;
-} 
+}
 
 double
 MultiFront::computeBalCost(Decomposition *dec)
 {
  int iEle,iSub, numSub = dec->nsub;
  double totWeight = 0.0;
- for(iSub = 0; iSub < numSub; ++iSub) 
+ for(iSub = 0; iSub < numSub; ++iSub)
    for(iEle = 0; iEle < dec->num(iSub); ++iEle)
      totWeight += (*elems)[ (*dec)[iSub][iEle] ]->weight();
  avgWeight = totWeight/numSub;

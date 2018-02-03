@@ -74,7 +74,7 @@ void DEMInterfaceElement::renum(EleRenumMap& table) {
 }
 
 
-int* DEMElement::nodes(int *p) {
+int* DEMElement::nodes(int *p) const {
 
  if (p == 0) p = new int[numNodes()];
  int i,ii=0;
@@ -92,7 +92,7 @@ int* DEMElement::nodes(int *p) {
 }
 
 
-int* DEMInterfaceElement::nodes(int *p) {
+int* DEMInterfaceElement::nodes(int *p) const {
 
  if (p == 0) p = new int[numNodes()];
 
@@ -288,7 +288,7 @@ void DEMElement::nodalSolution(CoordSet &cs, complex<double> *sol,
 #endif
 
 
-int DEMCoreElement::nLagrangeDofs() {
+int DEMCoreElement::nLagrangeDofs() const {
 
  int nl = 0;
  for(int i=0;i<nFaces();i++)

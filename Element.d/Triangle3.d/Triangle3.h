@@ -10,49 +10,49 @@ class Triangle3: public Element,
 
 	int nn[3];
 public:
-	Triangle3(int*);
+	explicit Triangle3(int*);
 
-	Element *clone();
+	Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+	void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg = 1);
-        FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
-        double           getMass(CoordSet&);
-        double getMassThicknessSensitivity(CoordSet&);
+	FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg = 1) override;
+	FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1) override;
+	double           getMass(CoordSet&) override;
+	double getMassThicknessSensitivity(CoordSet&) override;
 
-        void             getGravityForce(CoordSet&,double *gravity, Vector& f, int gravflg,
-	                                       GeomState *gs);
-        void getGravityForceThicknessSensitivity(CoordSet&,double *gravity, Vector& f, int gravflg,
-                                                 GeomState *gs);
+	void getGravityForce(CoordSet&,double *gravity, Vector& f, int gravflg,
+	                                 GeomState *gs) override;
+	void getGravityForceThicknessSensitivity(CoordSet&,double *gravity, Vector& f, int gravflg,
+	                                         GeomState *gs) override;
 
-        virtual void     getVonMises (Vector &stress, Vector &weight, 
-                                      CoordSet &cs, Vector &elDisp, 
-                                      int strInd, int surface=0,
-                                      double *ndTemps=0,
-                                      double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+	void getVonMises (Vector &stress, Vector &weight,
+	                              CoordSet &cs, Vector &elDisp,
+	                              int strInd, int surface,
+	                              double *ndTemps,
+	                              double ylayer, double zlayer, int avgnum) override;
 
-        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
-                                                CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                double *ndTemps, int avgnum, double ylayer, double zlayer);
+	void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *dDispDisp,
+	                                        CoordSet &cs, Vector &elDisp, int strInd, int surface,
+	                                        double *ndTemps, int avgnum, double ylayer, double zlayer) override;
 
-        virtual void     getAllStress(FullM &stress, Vector &weight, 
-                                      CoordSet &cs, Vector &elDisp, 
-                                      int strInd, int surface=0,
-                                      double *ndTemps=0);
+	void getAllStress(FullM &stress, Vector &weight,
+	                  CoordSet &cs, Vector &elDisp,
+	                  int strInd, int surface,
+	                  double *ndTemps) override;
 
-	void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+	void markDofs(DofSetArray &) override;
+	int* dofs(DofSetArray &, int *p) override;
+	int  numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
+	int numNodes() const override;
+	int* nodes(int *) const override;
 
-	int getTopNumber();
-	
+	int getTopNumber() override;
+
 	// Routines for the decomposer
-        PrioInfo examine(int sub, MultiFront *);
+	PrioInfo examine(int sub, MultiFront *) override;
 
 };
 #endif

@@ -1,11 +1,12 @@
 #ifdef USE_EIGEN3
+
 #include <Element.d/Beam.d/BeamElementTemplate.cpp>
 
 
 template
-void 
+void
 BeamElementTemplate<double>
-::sands6(double area, double e, int elm, 
+::sands6(double area, double e, int elm,
          double *_stress, int maxsze, int maxgus, int maxstr,
          double *_eframe,
          double ix, double iy, double iz,

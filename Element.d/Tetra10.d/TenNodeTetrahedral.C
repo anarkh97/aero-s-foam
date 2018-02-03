@@ -540,14 +540,14 @@ TenNodeTetrahedral::aRubberStiffnessDerivs(CoordSet & cs, complex<double> *d,
 }
 
 int
-TenNodeTetrahedral::numNodes()
+TenNodeTetrahedral::numNodes() const
 {
   if(useFull) return 10;
   return 4;
 }
 
 int
-TenNodeTetrahedral::numDofs()
+TenNodeTetrahedral::numDofs() const
 {
   return 30;
 }
@@ -559,7 +559,7 @@ TenNodeTetrahedral::getTopNumber()
 }
 
 int*
-TenNodeTetrahedral::nodes(int *p)
+TenNodeTetrahedral::nodes(int *p) const
 {
   if(useFull) {
     if(!p) p = new int[10];

@@ -41,14 +41,14 @@ class SolidElementTemplate : public GaussIntgElement
   public:
     enum { numGaussPoints = NumIntgPts };
     SolidElementTemplate(int *nd);
-    int numNodes();
-    int numDofs();
-    void renum(int *);
-    void renum(EleRenumMap&);
-    void markDofs(DofSetArray &);
-    int* dofs(DofSetArray &, int *p=0);
-    int* nodes(int * = 0);
-    void setMaterial(NLMaterial *);
+    int numNodes() const override;
+     int numDofs() const override;
+    void renum(int *) override;
+    void renum(EleRenumMap&) override;
+    void markDofs(DofSetArray &) override;
+    int* dofs(DofSetArray &, int *p) override;
+    int* nodes(int * = 0) const override;
+    void setMaterial(NLMaterial *) override;
 };
 
 #ifdef _TEMPLATE_FIX_

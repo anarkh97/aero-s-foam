@@ -213,13 +213,13 @@ TetraHelmGLS::acousticm(CoordSet &cs, double *d)
 }
 
 int
-TetraHelmGLS::numNodes()
+TetraHelmGLS::numNodes() const
 {
  	return 4;
 }
 
 int*
-TetraHelmGLS::nodes(int *p)
+TetraHelmGLS::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -230,7 +230,7 @@ TetraHelmGLS::nodes(int *p)
 }
 
 int
-TetraHelmGLS::numDofs()
+TetraHelmGLS::numDofs() const
 {
  	return 4;
 }

@@ -47,7 +47,7 @@ DiscreteMass6Dof::renum(EleRenumMap& table)
 }
 
 int*
-DiscreteMass6Dof::nodes(int* p)
+DiscreteMass6Dof::nodes(int* p) const
 {
   if(p == 0) p = new int[1];
   p[0] = nn[0];

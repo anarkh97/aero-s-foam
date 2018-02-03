@@ -51,7 +51,7 @@ void HelmSpectralIsoParamQuad::renum(EleRenumMap& table) {
 }
 
 
-int* HelmSpectralIsoParamQuad::nodes(int *p) {
+int* HelmSpectralIsoParamQuad::nodes(int *p) const {
 
  int ordersq = order*order;
  if(p == 0) p = new int[ordersq];
@@ -125,7 +125,7 @@ FullSquareMatrix HelmSpectralIsoParamQuad::stiffness(CoordSet &cs, double *K, in
 extern bool useFull;
 
 int
-HelmSpectralIsoParamQuad::numNodes() {
+HelmSpectralIsoParamQuad::numNodes() const {
   if(useFull)
     return order*order;
   else

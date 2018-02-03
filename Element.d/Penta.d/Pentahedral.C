@@ -512,13 +512,13 @@ Pentahedral::stiffness(CoordSet &cs,double *d, int flg)
 }
 
 int
-Pentahedral::numNodes()
+Pentahedral::numNodes() const
 {
   return 6;
 }
 
 int
-Pentahedral::numDofs()
+Pentahedral::numDofs() const
 {
   return 18;
 }
@@ -530,7 +530,7 @@ Pentahedral::getTopNumber()
 }
 
 int*
-Pentahedral::nodes(int *p)
+Pentahedral::nodes(int *p) const
 {
   if(!p) p = new int[numNodes()];
   p[0] = nn[0];

@@ -279,13 +279,13 @@ fprintf(stderr,"ssss %f\n",h);
 }
 
 int
-HelmTri3Gls::numNodes()
+HelmTri3Gls::numNodes() const
 {
  	return 3;
 }
 
 int*
-HelmTri3Gls::nodes(int *p)
+HelmTri3Gls::nodes(int *p) const
 {
  	if(p == 0) p = new int[3];
  	p[0] = nn[0];
@@ -295,7 +295,7 @@ HelmTri3Gls::nodes(int *p)
 }
 
 int
-HelmTri3Gls::numDofs()
+HelmTri3Gls::numDofs() const
 {
  	return 3;
 }

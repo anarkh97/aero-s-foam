@@ -10,10 +10,10 @@ class Membrane : public Element
 public:
         Membrane(int*);
 
-        Element *clone();
+        Element *clone() override;
 
-        void renum(int *);
-        void renum(EleRenumMap&);
+        void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
@@ -27,17 +27,17 @@ public:
                           Vector& elDisp, int strInd, int surface=0,
                           double *ndTemps=0);
 
-        void markDofs(DofSetArray &);
-        int* dofs(DofSetArray &, int *p=0);
-        int numDofs();
+        void markDofs(DofSetArray &) override;
+        int* dofs(DofSetArray &, int *p) override;
+         int numDofs() const override;
 
-        int numNodes();
-        int* nodes(int * = 0);
-        int getTopNumber();
+        int numNodes() const;
+        int* nodes(int * = 0) const;
+        int getTopNumber() override;
         Corotator* getCorotator(CoordSet &cs, double *kel, int fitAlg, int);
 
         // Routines for the decomposer
-        PrioInfo examine(int sub, MultiFront *);
+        PrioInfo examine(int sub, MultiFront *) override;
 
         // Miscellaneous
         bool hasRot() { return true; }

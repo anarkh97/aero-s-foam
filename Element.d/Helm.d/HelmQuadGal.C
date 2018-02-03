@@ -168,13 +168,13 @@ HelmQuadGal::getHelmForce(CoordSet& cs, ComplexVector &vc, ComplexVector &force)
 
 
 int
-HelmQuadGal::numNodes()
+HelmQuadGal::numNodes() const
 {
  	return 4;
 }
 
 int*
-HelmQuadGal::nodes(int *p)
+HelmQuadGal::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -185,7 +185,7 @@ HelmQuadGal::nodes(int *p)
 }
 
 int
-HelmQuadGal::numDofs()
+HelmQuadGal::numDofs() const
 {
  	return 4;
 }

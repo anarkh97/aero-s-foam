@@ -148,13 +148,13 @@ ThermBrick::stiffness(CoordSet &cs, double *Ks, int flg)
 }
 
 int
-ThermBrick::numNodes()
+ThermBrick::numNodes() const
 {
  	return 8;
 }
 
 int*
-ThermBrick::nodes(int *p)
+ThermBrick::nodes(int *p) const
 {
  	if(p == 0) p = new int[8];
  	p[0] = nn[0];
@@ -169,7 +169,7 @@ ThermBrick::nodes(int *p)
 }
 
 int
-ThermBrick::numDofs()
+ThermBrick::numDofs() const
 {
  	return 8;
 }

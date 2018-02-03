@@ -45,7 +45,7 @@ class GenNBSparseMatrix : public GenSparseMatrix<Scalar>
    // returns a pointer to a diagonal matrix of node i
    GenFullM<Scalar>* getDiagMatrix(int i) override;
    int*   getFirstDof() override { return firstDof; }
-   int    numNodes() override {return numnodes; }
+   int    numNodes() const override {return numnodes; }
 };
 
 typedef GenNBSparseMatrix<double> NBSparseMatrix;

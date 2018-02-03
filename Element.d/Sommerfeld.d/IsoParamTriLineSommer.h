@@ -1,42 +1,56 @@
 #ifndef _ISOPARAMTRILINESOMMER_H_
-#define _ISOPARAMTRILINESOMMER_H_ 
+#define _ISOPARAMTRILINESOMMER_H_
 
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 
-class IsoParamTriLineSommer: public SommerElement {
+class IsoParamTriLineSommer : public SommerElement {
 
 	int *nn;
-        int order;
+	int order;
 public:
-	IsoParamTriLineSommer(int, int*, Element *_el = 0);
+	IsoParamTriLineSommer(int, int *, Element *_el = 0);
 
-        int numNodes() {return order;}
-        int getNode(int nd) { return nn[nd]; }
-	int* getNodes() { return nn; }
-        int numDofs() { return order; }
-        int numWetDofs() { return 3*order; }
-        int dim() { return 2; }
-        int* dofs(DofSetArray &, int *p=0);
-        virtual IsoParamTriLineSommer* clone();
+	int numNodes() const override { return order; }
 
-        int* wetDofs(DofSetArray &, int *p=0);
+	int getNode(int nd) const override { return nn[nd]; }
 
-        void neumVector(CoordSet&,ComplexVector&,
-                                double,double,double,double,int pflag=0);
-        void wetInterfaceVector(CoordSet&,ComplexVector&,
-                                double,double,double,double,int,int);
+	const int *getNodes() const override { return nn; }
+	int *getNodes() override { return nn; }
 
-        FullSquareMatrix sommerMatrix(CoordSet&, double *);
-        GenStackFSFullMatrix<double> wetInterfaceMatrix(CoordSet &cs,
-                                                        double *d);
-        void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
-        FullSquareMatrixC sommer2Matrix(CoordSet&, complex<double> *);
-        FullSquareMatrix turkelMatrix(CoordSet&, double *);
+	int numDofs() const { return order; }
 
-        ComplexD ffpCoef(double k) { return exp(ComplexD(0.0,M_PI/4.0))/sqrt(8.0*M_PI*k); }
+	int numWetDofs() { return 3 * order; }
 
-	void getNormal(CoordSet&, double [3]);
+	int dim() const override { return 2; }
 
-        void markDofs(DofSetArray &);
+	int *dofs(DofSetArray &, int *p = 0);
+
+	virtual IsoParamTriLineSommer *clone();
+
+	int *wetDofs(DofSetArray &, int *p = 0);
+
+	void neumVector(CoordSet &, ComplexVector &,
+	                double, double, double, double, int pflag = 0);
+
+	void wetInterfaceVector(CoordSet &, ComplexVector &,
+	                        double, double, double, double, int, int);
+
+	FullSquareMatrix sommerMatrix(CoordSet &, double *) const override;
+
+	GenStackFSFullMatrix<double> wetInterfaceMatrix(CoordSet &cs,
+	                                                double *d);
+
+	void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
+
+	FullSquareMatrixC sommer2Matrix(CoordSet &, complex<double> *);
+
+	FullSquareMatrix turkelMatrix(CoordSet &, double *) const override;
+
+	ComplexD ffpCoef(double k) { return exp(ComplexD(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k); }
+
+	void getNormal(CoordSet &, double [3]);
+
+	void markDofs(DofSetArray &) override;
 };
+
 #endif

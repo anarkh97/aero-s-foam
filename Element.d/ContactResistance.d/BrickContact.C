@@ -164,13 +164,13 @@ BrickContact::stiffness(CoordSet &cs, double *Ks, int flg)
 }
 
 int
-BrickContact::numNodes()
+BrickContact::numNodes() const
 {
  	return 8;
 }
 
 int*
-BrickContact::nodes(int *p)
+BrickContact::nodes(int *p) const
 {
  	if(p == 0) p = new int[8];
  	p[0] = nn[0];
@@ -185,7 +185,7 @@ BrickContact::nodes(int *p)
 }
 
 int
-BrickContact::numDofs()
+BrickContact::numDofs() const
 {
  	return 8;
 }

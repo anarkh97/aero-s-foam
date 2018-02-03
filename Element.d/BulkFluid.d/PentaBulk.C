@@ -281,13 +281,13 @@ PentaBulk::stiffness(CoordSet &cs, double *Kcv, int flg)
 }
 
 int
-PentaBulk::numNodes()
+PentaBulk::numNodes() const
 {
         return 5;
 }
 
 int*
-PentaBulk::nodes(int *p)
+PentaBulk::nodes(int *p) const
 {
         if(p == 0) p = new int[5];
         p[0] = nn[0];
@@ -299,7 +299,7 @@ PentaBulk::nodes(int *p)
 }
 
 int
-PentaBulk::numDofs()
+PentaBulk::numDofs() const
 {
         return 5;
 }

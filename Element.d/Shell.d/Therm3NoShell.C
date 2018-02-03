@@ -181,13 +181,13 @@ Therm3NoShell::getGravityForce(CoordSet& cs, double *, Vector &force, int, GeomS
 }
 
 int
-Therm3NoShell::numNodes()
+Therm3NoShell::numNodes() const
 {
  	return 3;
 }
 
 int*
-Therm3NoShell::nodes(int *p)
+Therm3NoShell::nodes(int *p) const
 {
  	if(p == 0) p = new int[3];
  	p[0] = nn[0];
@@ -197,7 +197,7 @@ Therm3NoShell::nodes(int *p)
 }
 
 int
-Therm3NoShell::numDofs()
+Therm3NoShell::numDofs() const
 {
  	return 3;
 }

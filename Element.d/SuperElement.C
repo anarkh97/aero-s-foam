@@ -654,19 +654,19 @@ SuperElement::dofs(DofSetArray &dsa, int *p)
 }
 
 int 
-SuperElement::numDofs()
+SuperElement::numDofs() const
 {
   return ndofs;
 }
 
 int 
-SuperElement::numNodes()
+SuperElement::numNodes() const
 {
   return nnodes + nInternalNodes;
 }
 
 int* 
-SuperElement::nodes(int *p)
+SuperElement::nodes(int *p) const
 {
   if(p == 0) p = new int[numNodes()];
   for(int i = 0; i < numNodes(); ++i) p[i] = nn[i];
@@ -757,7 +757,7 @@ SuperElement::getCompositeLayer()
 }
 
 int
-SuperElement::dim()
+SuperElement::dim() const
 {
   int ret = 0;
   for(int i = 0; i < nSubElems; ++i) 

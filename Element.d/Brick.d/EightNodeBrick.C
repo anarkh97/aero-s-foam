@@ -542,13 +542,13 @@ void EightNodeBrick::aRubberStiffnessDerivs(CoordSet & cs, complex<double> *d,
 }
 
 int
-EightNodeBrick::numNodes()
+EightNodeBrick::numNodes() const
 {
   return 8;
 }
 
 int
-EightNodeBrick::numDofs()
+EightNodeBrick::numDofs() const
 {
   return 24;
 }
@@ -560,7 +560,7 @@ EightNodeBrick::getTopNumber()
 }
 
 int*
-EightNodeBrick::nodes(int *p)
+EightNodeBrick::nodes(int *p) const
 {
   if(!p) p = new int[numNodes()];
   p[0] = nn[0];

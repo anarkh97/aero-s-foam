@@ -128,13 +128,13 @@ Therm3DQuad::stiffness(CoordSet &cs, double *Ks, int flg)
 }
 
 int
-Therm3DQuad::numNodes()
+Therm3DQuad::numNodes() const
 {
  	return 4;
 }
 
 int*
-Therm3DQuad::nodes(int *p)
+Therm3DQuad::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -145,7 +145,7 @@ Therm3DQuad::nodes(int *p)
 }
 
 int
-Therm3DQuad::numDofs()
+Therm3DQuad::numDofs() const
 {
   return 4; 
 }

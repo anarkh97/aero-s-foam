@@ -78,13 +78,13 @@ BarRadiation::getCorotator(CoordSet &cs, double* kel, int, int)
 }
 
 int
-BarRadiation::numNodes()
+BarRadiation::numNodes() const
 {
         return 2;
 }
 
 int *
-BarRadiation::nodes(int *p)
+BarRadiation::nodes(int *p) const
 {
         if(p == 0) p = new int[2];
         p[0] = nn[0];
@@ -93,7 +93,7 @@ BarRadiation::nodes(int *p)
 }
 
 int
-BarRadiation::numDofs()
+BarRadiation::numDofs() const
 {
         return 2;
 }

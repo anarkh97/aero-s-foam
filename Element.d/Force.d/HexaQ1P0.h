@@ -20,8 +20,8 @@ class HexaQ1P0 : public MixedFiniteElement<HexaQ1P0ThreeFieldStrainEnergyFunctio
     static const DofSet NODALDOFS[8];
     HexaQ1P0(int* _nn);
 
-    int getTopNumber();
-    PrioInfo examine(int sub, MultiFront *mf);
+    int getTopNumber() override;
+    PrioInfo examine(int sub, MultiFront *mf) override;
     int getQuadratureOrder(); 
 };
 #endif

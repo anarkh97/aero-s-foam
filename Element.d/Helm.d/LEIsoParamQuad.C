@@ -51,7 +51,7 @@ void LEIsoParamQuad::renum(EleRenumMap& table) {
 }
 
 
-int* LEIsoParamQuad::nodes(int *p) {
+int* LEIsoParamQuad::nodes(int *p) const {
 
  int ordersq = order*order;
  if(p == 0) p = new int[ordersq];
@@ -150,7 +150,7 @@ FullSquareMatrix LEIsoParamQuad::stiffness(CoordSet &cs, double *K, int flg ) {
 extern bool useFull;
 
 int
-LEIsoParamQuad::numNodes() {
+LEIsoParamQuad::numNodes() const {
   if(useFull)
     return order*order;
   else

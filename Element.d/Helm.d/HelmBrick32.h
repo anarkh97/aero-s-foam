@@ -16,10 +16,10 @@ class HelmBrick32: public HelmElement, public Element {
 public:
 	HelmBrick32(int*);
 
-        Element *clone();
+        Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
 	FullSquareMatrix  stiffness(CoordSet&, double *d, int flg = 1);
 	FullSquareMatrix  acousticm(CoordSet&, double *d);
@@ -28,17 +28,17 @@ public:
 
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
+        int             numNodes() const override;
+        int * nodes(int *) const override;
 
 	void            addFaces(PolygonSet *pset);
 
-        int getTopNumber();
+        int getTopNumber() override;
         int numTopNodes();
 
-        PrioInfo examine(int sub, MultiFront *mf);
+        PrioInfo examine(int sub, MultiFront *mf) override;
 };
 #endif
 

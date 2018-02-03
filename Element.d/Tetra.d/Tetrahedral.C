@@ -837,13 +837,13 @@ void Tetrahedral::aRubberStiffnessDerivs(CoordSet & cs, complex<double> *d,
 }
 
 int
-Tetrahedral::numNodes()
+Tetrahedral::numNodes() const
 {
   return 4;
 }
 
 int
-Tetrahedral::numDofs()
+Tetrahedral::numDofs() const
 {
   return 12;
 }
@@ -855,7 +855,7 @@ Tetrahedral::getTopNumber()
 }
 
 int*
-Tetrahedral::nodes(int *p)
+Tetrahedral::nodes(int *p) const
 {
   if(!p) p = new int[numNodes()];
   p[0] = nn[0];

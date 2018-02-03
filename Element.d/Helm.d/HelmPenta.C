@@ -191,10 +191,10 @@ HelmPenta::acousticm(CoordSet &cs, double *d)
 }
 
 int
-HelmPenta::numNodes(){ return(6); }
+HelmPenta::numNodes() const {return(6); }
 
 int*
-HelmPenta::nodes(int *p)
+HelmPenta::nodes(int *p) const
 {
   if(!p) { p = new int[6]; }
   p[0] = nn[0];
@@ -208,7 +208,7 @@ HelmPenta::nodes(int *p)
 }
 
 int
-HelmPenta::numDofs(){ return(6); }
+HelmPenta::numDofs() const { return(6); }
 
 int*
 HelmPenta::dofs(DofSetArray &dsa, int *p)

@@ -21,19 +21,19 @@ public:
         FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d);
         double getMass(CoordSet&);
 
-	Element *clone();
-	void renum(int *);
-        void renum(EleRenumMap&);
-	void markDofs(DofSetArray &);
-	int getTopNumber() {return 195;}
+	Element *clone() override;
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
+	void markDofs(DofSetArray &) override;
+	int getTopNumber() override {return 195;}
 	int numTopNodes() {return order*order*order;}
-        int* dofs(DofSetArray &, int *p=0);
-        int numDofs() { return order*order*order; }
-        int numNodes();
-        int* nodes(int * = 0);
-	void addFaces(PolygonSet *pset);
+        int* dofs(DofSetArray &, int *p) override;
+        int numDofs() const { return order*order*order; }
+        int numNodes() const override;
+        int* nodes(int * = 0) const override;
+	void addFaces(PolygonSet *pset) override;
 
-        PrioInfo examine(int sub, MultiFront *mf);
+        PrioInfo examine(int sub, MultiFront *mf) override;
         int nDecFaces() { return 6;}
         int getDecFace(int iFace, int *fn);
 };

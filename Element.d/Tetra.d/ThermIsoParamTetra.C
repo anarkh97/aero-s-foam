@@ -62,7 +62,7 @@ void ThermIsoParamTetra::renum(EleRenumMap& table) {
 }
 
 
-int* ThermIsoParamTetra::nodes(int *p) {
+int* ThermIsoParamTetra::nodes(int *p) const {
 
  IsoParamUtilsTetra ipu(order);
  int orderc = ipu.getorderc();
@@ -147,7 +147,7 @@ FullSquareMatrix ThermIsoParamTetra::massMatrix(CoordSet &cs,
 
 extern bool useFull;
 
-int ThermIsoParamTetra::numNodes() {
+int ThermIsoParamTetra::numNodes() const {
   //Not tested -JF
   if(useFull)
     return (order*(order+1)*(order+2))/6;

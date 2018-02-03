@@ -5,6 +5,6 @@
 #include <Element.d/Function.d/QuadratureRule.h>
 #include <Mortar.d/FaceElement.d/FaceQuad4.d/FaceQuad4.h>
 
-typedef PressureElement<FaceQuad4,GaussLegendre2d,2,3> QuadPressureBC;
+typedef PressureElement<FaceQuad4, GaussLegendre2d, 2, 3> QuadPressureBC;
 
 #endif

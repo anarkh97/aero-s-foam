@@ -14,9 +14,9 @@ class SandiaElem : public Element
   FullSquareMatrix massMatrix(CoordSet&, double *, int = 1);
   void markDofs(DofSetArray &dsa);
   int* dofs(DofSetArray &dsa, int *p=0);
-  int numDofs();
-  int numNodes();
-  int* nodes(int * = 0);
+   int numDofs() const override;
+  int numNodes() const override;
+  int* nodes(int * = 0) const override;
   bool isSafe();
   bool isRotMidSideNode(int iNode);
 };

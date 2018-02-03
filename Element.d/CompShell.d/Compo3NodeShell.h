@@ -20,12 +20,12 @@ class Compo3NodeShell : public Element {
 public:
 	Compo3NodeShell(int*);
 
-	Element *clone();
+	Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg=1);
+        FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg) override;
         FullSquareMatrix massMatrix(CoordSet& cs,double *mel,int cmflg=1);
 
         void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
@@ -45,13 +45,13 @@ public:
                                    double *coefs, CoordSet &cs, double theta);
         void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
 
-        void markDofs(DofSetArray &);
-        int* dofs(DofSetArray &, int *p=0);
-        int  numDofs();
-        int  getTopNumber();
+        void markDofs(DofSetArray &) override;
+        int* dofs(DofSetArray &, int *p) override;
+         int numDofs() const override;
+        int getTopNumber() override;
 
-        int  numNodes();
-        int* nodes(int * = 0);
+        int numNodes() const;
+        int* nodes(int * = 0) const override;
         Corotator *getCorotator(CoordSet &, double *,int,int);
         double getMass(CoordSet &);
         double getMassThicknessSensitivity(CoordSet &);
@@ -75,7 +75,7 @@ public:
         virtual double * getCompositeFrame()      { return cFrame;  }
 
         // Routines for the decomposer
-        PrioInfo examine(int sub, MultiFront *);
+        PrioInfo examine(int sub, MultiFront *) override;
         int nDecFaces() { return 1; }
         int getDecFace(int iFace, int *fn) { for(int i=0; i<3; i++) fn[i] = nn[i]; return 3; }
 

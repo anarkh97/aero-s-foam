@@ -191,7 +191,7 @@ FullSquareMatrix Tetra10HelmGal::acousticm(CoordSet &cs, double *d)
 }
 
 
-int Tetra10HelmGal::numNodes() {
+int Tetra10HelmGal::numNodes() const {
   if(useFull)
     return 10;
   else
@@ -199,7 +199,7 @@ int Tetra10HelmGal::numNodes() {
 }
 
 
-int* Tetra10HelmGal::nodes(int *p) {
+int* Tetra10HelmGal::nodes(int *p) const {
   if(useFull)
     {
       if(p == 0) p = new int[10];
@@ -221,7 +221,7 @@ int* Tetra10HelmGal::nodes(int *p) {
 }
 
 
-int Tetra10HelmGal::numDofs() {
+int Tetra10HelmGal::numDofs() const {
  return 10;
 }
 

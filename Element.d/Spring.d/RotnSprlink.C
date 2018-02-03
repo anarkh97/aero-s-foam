@@ -61,13 +61,13 @@ RotnSprlink::stiffness(CoordSet&, double* d, int flg)
 }
 
 int
-RotnSprlink::numNodes()
+RotnSprlink::numNodes() const
 {
   return 2;
 }
 
 int *
-RotnSprlink::nodes(int *p)
+RotnSprlink::nodes(int *p) const
 {
   if(p == 0) p = new int[2];
   p[0] = nn[0];
@@ -76,7 +76,7 @@ RotnSprlink::nodes(int *p)
 }
 
 int
-RotnSprlink::numDofs()
+RotnSprlink::numDofs() const
 {
   return 6;
 }

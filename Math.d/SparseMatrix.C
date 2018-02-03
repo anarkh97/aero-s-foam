@@ -286,7 +286,7 @@ int* GenSparseMatrix<Scalar>::getFirstDof()
 }
 
 template<class Scalar>
-int GenSparseMatrix<Scalar>::numNodes()
+int GenSparseMatrix<Scalar>::numNodes() const
 {
   return 1;
 }

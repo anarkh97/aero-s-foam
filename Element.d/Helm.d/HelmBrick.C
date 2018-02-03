@@ -181,13 +181,13 @@ HelmBrick::acousticm(CoordSet &cs, double *Ks)
 }
 
 int
-HelmBrick::numNodes()
+HelmBrick::numNodes() const
 {
  	return 8;
 }
 
 int*
-HelmBrick::nodes(int *p)
+HelmBrick::nodes(int *p) const
 {
  	if(p == 0) p = new int[8];
  	p[0] = nn[0];
@@ -202,7 +202,7 @@ HelmBrick::nodes(int *p)
 }
 
 int
-HelmBrick::numDofs()
+HelmBrick::numDofs() const
 {
  	return 8;
 }

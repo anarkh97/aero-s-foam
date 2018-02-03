@@ -92,13 +92,13 @@ TriangleConvec::stiffness(CoordSet &cs, double *Kcv, int flg)
 }
 
 int
-TriangleConvec::numNodes()
+TriangleConvec::numNodes() const
 {
  	return 3;
 }
 
 int*
-TriangleConvec::nodes(int *p)
+TriangleConvec::nodes(int *p) const
 {
  	if(p == 0) p = new int[3];
  	p[0] = nn[0];
@@ -108,7 +108,7 @@ TriangleConvec::nodes(int *p)
 }
 
 int
-TriangleConvec::numDofs()
+TriangleConvec::numDofs() const
 {
  	return 3;
 }

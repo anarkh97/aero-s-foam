@@ -12,7 +12,7 @@ class ConstantDistanceConstraint : public DistanceConstraintElement
   public:
     ConstantDistanceConstraint(int*, int=0);
     void buildFrame(CoordSet&);
-    int getTopNumber();
+    int getTopNumber() override;
 };
 
 #endif

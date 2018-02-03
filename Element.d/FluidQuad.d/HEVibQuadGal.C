@@ -126,13 +126,13 @@ HEVibQuadGal::stiffness(CoordSet &cs,double *Ks, int)
 }
 
 int
-HEVibQuadGal::numNodes()
+HEVibQuadGal::numNodes() const
 {
  	return 4;
 }
 
 int*
-HEVibQuadGal::nodes(int *p)
+HEVibQuadGal::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -143,7 +143,7 @@ HEVibQuadGal::nodes(int *p)
 }
 
 int
-HEVibQuadGal::numDofs()
+HEVibQuadGal::numDofs() const
 {
  	return 4;
 }

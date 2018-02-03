@@ -97,7 +97,7 @@ int* MatrixElement::dofs(DofSetArray &dsa, int *p)
   return(p);
 }
 
-int* MatrixElement::nodes(int *p)
+int* MatrixElement::nodes(int *p) const
 {
   if(!p) p = new int[nnodes];
   for(int i=0; i<nnodes; ++i) p[i] = nn[i];

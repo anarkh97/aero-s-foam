@@ -51,7 +51,7 @@ void HelmSpectralIsoParamHexa::renum(EleRenumMap& table) {
 
 extern bool useFull;
 
-int* HelmSpectralIsoParamHexa::nodes(int *p) {
+int* HelmSpectralIsoParamHexa::nodes(int *p) const {
 if(useFull) {
 //cerr << "order = " << order << endl;//JF
  int orderc = order*order*order;
@@ -152,7 +152,7 @@ FullSquareMatrix HelmSpectralIsoParamHexa::stiffness(CoordSet &cs, double *K, in
 extern bool useFull;
 
 int
-HelmSpectralIsoParamHexa::numNodes() {
+HelmSpectralIsoParamHexa::numNodes() const {
   if(useFull)
     return order*order*order;
   else

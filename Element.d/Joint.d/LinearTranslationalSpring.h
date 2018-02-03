@@ -13,7 +13,7 @@ class LinearTranslationalSpring : public ConstantDistanceConstraint
 {
   public:
     LinearTranslationalSpring(int*, int=0);
-    void setProp(StructProp *p, bool _myProp = false);
+    void setProp(StructProp *p, bool _myProp) override;
 
     bool isSpring() { return true; }
 };

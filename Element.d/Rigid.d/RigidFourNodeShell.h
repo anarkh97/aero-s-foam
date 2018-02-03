@@ -15,10 +15,10 @@ class RigidFourNodeShell : public SuperElement
 
   public:
     RigidFourNodeShell(int*);
-    int getTopNumber() { return 188; }
+    int getTopNumber() override { return 188; }
     bool isRigidElement() { return true; }
     bool hasRot() { return true; }
-    PrioInfo examine(int sub, MultiFront *mf);
+    PrioInfo examine(int sub, MultiFront *mf) override;
 
     int getMassType() { return 0; }
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);

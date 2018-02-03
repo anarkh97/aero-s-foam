@@ -7,7 +7,7 @@ class RigidSpring : public SuperElement
 {
   public:
     RigidSpring(int*);
-    int getTopNumber();
+    int getTopNumber() override;
     bool isRigidElement() { return true; }
     bool isSpring() { return true; }
     bool hasRot() { return true; }

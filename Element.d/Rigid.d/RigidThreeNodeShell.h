@@ -9,10 +9,10 @@ class RigidThreeNodeShell : public SuperElement
 
   public:
     RigidThreeNodeShell(int*);
-    int getTopNumber() { return 108; }
+    int getTopNumber() override { return 108; }
     bool isRigidElement() { return true; }
     bool hasRot() { return true; }
-    PrioInfo examine(int sub, MultiFront *mf);
+    PrioInfo examine(int sub, MultiFront *mf) override;
 
     int getMassType() { return 0; }
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);

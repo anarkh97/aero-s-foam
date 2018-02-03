@@ -74,13 +74,13 @@ TorSpring::stiffness(CoordSet &, double *d, int flg)
 }
 
 int
-TorSpring::numNodes()
+TorSpring::numNodes() const
 {
         return 1;
 }
 
 int *
-TorSpring::nodes(int *p)
+TorSpring::nodes(int *p) const
 {
         if(p == 0) p = new int[1];
         p[0] = nn[0];
@@ -88,7 +88,7 @@ TorSpring::nodes(int *p)
 }
 
 int
-TorSpring::numDofs()
+TorSpring::numDofs() const
 {
         return 3;
 }

@@ -20,14 +20,14 @@ class DiscreteMass6Dof : public Element, public Corotator
 
     void setFrame(EFrame *elemframe);
     void renum(int*);
-    void renum(EleRenumMap&);
-    int numNodes() { return 1; }
-    int* nodes(int* = 0);
-    int numDofs() { return 6; }
+    void renum(EleRenumMap&) override;
+    int numNodes() const override { return 1; }
+    int *nodes(int *) const override;
+    int numDofs() const { return 6; }
     int* dofs(DofSetArray&, int* = 0);
     void markDofs(DofSetArray&);
     bool hasRot() { return true; }
-    int getTopNumber() { return 506; }
+    int getTopNumber() override { return 506; }
 
     FullSquareMatrix stiffness(CoordSet&,double *kel, int flg=1);
     int getMassType() { return 0; } // lumped only

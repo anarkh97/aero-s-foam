@@ -109,7 +109,7 @@ BoundaryElement::~BoundaryElement()
 }
 
 int
-BoundaryElement::numNodes()
+BoundaryElement::numNodes() const
 {
   return nNodes;
 }
@@ -135,7 +135,7 @@ BoundaryElement::renum(EleRenumMap& table)
 }
 
 int*
-BoundaryElement::nodes(int* p)
+BoundaryElement::nodes(int* p) const
 {
   if(p == 0) p = new int[numNodes()];
   for(int i = 0; i < numNodes(); ++i) p[i] = nn[i];
@@ -143,7 +143,7 @@ BoundaryElement::nodes(int* p)
 }
 
 int
-BoundaryElement::numDofs()
+BoundaryElement::numDofs() const
 {
   return nterms;
 }

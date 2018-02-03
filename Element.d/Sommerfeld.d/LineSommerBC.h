@@ -1,5 +1,5 @@
 #ifndef _LINESOMMERBC_H_
-#define _LINESOMMERBC_H_ 
+#define _LINESOMMERBC_H_
 
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 
@@ -7,34 +7,47 @@
 #include <cmath>
 #endif
 
-class LineSommerBC: public SommerElement {
+class LineSommerBC : public SommerElement {
 
-	 int nn[2];
+	int nn[2];
 public:
-	 LineSommerBC(int, int, Element *_el = 0, int etype = 1);
+	LineSommerBC(int, int, Element *_el = 0, int etype = 1);
 
-         int numNodes() {return 2;}
-         int getNode(int nd) { return nn[nd]; }
-	 int* getNodes() { return nn; }
-         int* dofs(DofSetArray &, int *p=0);
-         int numDofs() { return 2; }
-         int dim() { return 2; }
-         virtual LineSommerBC* clone();
+	int numNodes() const override { return 2; }
 
-         FullSquareMatrix sommerMatrix(CoordSet&, double *);
-         FullSquareMatrix turkelMatrix(CoordSet&, double *);
+	int getNode(int nd) const override { return nn[nd]; }
 
-         void sommerVector(CoordSet&, ComplexVector&, ComplexVector&);
-         void btVector(CoordSet&, ComplexVector&, ComplexVector&);
+	const int *getNodes() const override { return nn; }
+	int *getNodes() override { return nn; }
 
-         void ffpDir(int, ComplexD*, CoordSet&,ComplexD*,ComplexD*,
-                     double,double(*)[3],double*);
-         ComplexD ffpCoef(double k) { 
-           return exp(complex<double>(0.0,M_PI/4.0))/sqrt(8.0*M_PI*k); }
+	int *dofs(DofSetArray &, int *p) override;
 
-	 void getNormal(CoordSet&, double [3]);
-	 double getSize(CoordSet&);
+	int numDofs() const override { return 2; }
 
-         void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
+	int dim() const override { return 2; }
+
+	LineSommerBC *clone() override;
+
+	FullSquareMatrix sommerMatrix(CoordSet &, double *) const override;
+
+	FullSquareMatrix turkelMatrix(CoordSet &, double *) const override;
+
+	void sommerVector(CoordSet &, ComplexVector &, ComplexVector &) override;
+
+	void btVector(CoordSet &, ComplexVector &, ComplexVector &) override;
+
+	void ffpDir(int, ComplexD *, CoordSet &, ComplexD *, ComplexD *,
+	            double, double(*)[3], double *) override;
+
+	ComplexD ffpCoef(double k) override {
+		return exp(complex<double>(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k);
+	}
+
+	void getNormal(CoordSet &, double [3]) override;
+
+	double getSize(CoordSet &) override;
+
+	void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd) override;
 };
+
 #endif

@@ -119,14 +119,14 @@ SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getLocalNo
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 int
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::numNodes()
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::numNodes() const
 {
   return NumberOfNodes;
 }
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 int 
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::numDofs()
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::numDofs() const
 {
   return NumberOfNodes*3;
 }
@@ -166,7 +166,7 @@ SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::dofs(DofSe
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 int*
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::nodes(int *p)
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::nodes(int *p) const
 {
   if(p == 0) p = new int[NumberOfNodes];
   for(int i = 0; i < NumberOfNodes; ++i)

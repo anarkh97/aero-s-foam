@@ -460,7 +460,7 @@ Penta15::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-Penta15::numNodes()
+Penta15::numNodes() const
 { 
   if(useFull)
     return 15; 
@@ -469,7 +469,7 @@ Penta15::numNodes()
 }
 
 int
-Penta15::numDofs()
+Penta15::numDofs() const
 {
   return 45;
 }
@@ -489,7 +489,7 @@ Penta15::numTopNodes()
 }
 
 int*
-Penta15::nodes(int *p)
+Penta15::nodes(int *p) const
 {
   if(useFull) {
     if(!p) p = new int[15];

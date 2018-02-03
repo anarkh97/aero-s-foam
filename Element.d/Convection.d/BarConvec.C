@@ -97,13 +97,13 @@ BarConvec::stiffness(CoordSet &cs, double *Kcv, int flg)
 }
 
 int
-BarConvec::numNodes()
+BarConvec::numNodes() const
 {
         return 2;
 }
 
 int *
-BarConvec::nodes(int *p)
+BarConvec::nodes(int *p) const
 {
         if(p == 0) p = new int[2];
         p[0] = nn[0];
@@ -112,7 +112,7 @@ BarConvec::nodes(int *p)
 }
 
 int
-BarConvec::numDofs()
+BarConvec::numDofs() const
 {
         return 2;
 }

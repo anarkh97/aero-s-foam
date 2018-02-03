@@ -54,7 +54,7 @@ void LEIsoParamHexa::renum(EleRenumMap& table) {
 
 extern bool useFull;
 
-int* LEIsoParamHexa::nodes(int *p) {
+int* LEIsoParamHexa::nodes(int *p) const {
 if (useFull) {
 
  int orderc = order*order*order;
@@ -191,7 +191,7 @@ void   LEIsoParamHexa::getGravityForce(CoordSet &cs,double *gravity,
 extern bool useFull;
 
 int
-LEIsoParamHexa::numNodes() {
+LEIsoParamHexa::numNodes() const {
   if(useFull)
     return order*order*order;
   else

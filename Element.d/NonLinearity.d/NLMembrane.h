@@ -90,47 +90,47 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
   public:
     NLMembrane(int *nd);
     ~NLMembrane();
-    void setPreLoad(std::vector<double> &_preload) { preload = _preload; }
-    std::vector<double> getPreLoad() { return preload; }
-    int numNodes() { return 3; }
-    int numDofs() { return 9; }
-    void renum(int *);
-    void renum(EleRenumMap&);
-    void markDofs(DofSetArray &);
-    int* dofs(DofSetArray &, int *p=0);
-    int* nodes(int * = 0);
+    void setPreLoad(std::vector<double> &_preload) override { preload = _preload; }
+    std::vector<double> getPreLoad() override { return preload; }
+    int numNodes() const override { return 3; }
+    int numDofs() const override { return 9; }
+    void renum(int *) override;
+    void renum(EleRenumMap&) override;
+    void markDofs(DofSetArray &) override;
+    int* dofs(DofSetArray &, int *p=0) override;
+    int* nodes(int * = 0) const override;
     void updateStates(Node *nodes, double *states, double *un, double *unp) {}
-    void setProp(StructProp *p, bool _myProp = false);
-    void setCompositeData(int, int, double *, double *coefs, double *frame);
-    double* setCompositeData2(int, int, double *, double *coefs, CoordSet &cs, double theta);
-    void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
-    void setMaterial(NLMaterial *);
-    void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
-    PressureBCond* getPressure() { return pbc; }
+    void setProp(StructProp *p, bool _myProp) override;
+    void setCompositeData(int, int, double *, double *coefs, double *frame) override;
+    double* setCompositeData2(int, int, double *, double *coefs, CoordSet &cs, double theta) override;
+    void getCFrame(CoordSet &cs, double cFrame[3][3]) const override;
+    void setMaterial(NLMaterial *) override;
+    void setPressure(PressureBCond *_pbc) override { pbc = _pbc; }
+    PressureBCond* getPressure() override { return pbc; }
     void computePressureForce(CoordSet &cs, Vector& elPressureForce,
-                              GeomState *gs=0, int cflg = 0, double t = 0);
+                              GeomState *gs, int cflg, double t) override;
 
-    Corotator* getCorotator(CoordSet &, double *, int , int);
-    int getTopNumber() { return 104; }
-    FullSquareMatrix  stiffness(CoordSet& cs, double *k, int flg=1);
+    Corotator* getCorotator(CoordSet &, double *, int , int) override;
+    int getTopNumber() override { return 104; }
+    FullSquareMatrix  stiffness(CoordSet& cs, double *k, int flg=1) override;
 #ifdef USE_EIGEN3
-    int getMassType() { return 2; } // both consistent and lumped
+    int getMassType() override { return 2; } // both consistent and lumped
 #else
     int getMassType() { return 0; } // lumped only
 #endif
-    FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
-    double getMass(CoordSet&);
+    FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg) override;
+    double getMass(CoordSet&) override;
     void getGravityForce(CoordSet& cs, double *gravityAcceleration,
-                         Vector& gravityForce, int gravflg, GeomState *geomState);
+                         Vector& gravityForce, int gravflg, GeomState *geomState) override;
     void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-                     int surface=0, double *ndTemps=0, double ylayer=0, double zlayer=0, int avgnum=0);
+                     int surface, double *ndTemps, double ylayer, double zlayer, int avgnum) override;
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-                      int surface=0, double *ndTemps=0);
+                      int surface, double *ndTemps) override;
 
-    void computeDisp(CoordSet &cs, State &state, const InterpPoint &, double *res, GeomState *gs);
-    void getFlLoad(CoordSet &, const InterpPoint &,  double *flF, double *resF, GeomState *gs=0);
+    void computeDisp(CoordSet &cs, State &state, const InterpPoint &, double *res, GeomState *gs) override;
+    void getFlLoad(CoordSet &, const InterpPoint &,  double *flF, double *resF, GeomState *gs) override;
 
-    PrioInfo examine(int sub, MultiFront *mf);
+    PrioInfo examine(int sub, MultiFront *mf) override;
 };
 
 #include <Element.d/SuperElement.h>
@@ -138,11 +138,11 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
 class NLMembrane4 : public SuperElement
 {
   public:
-    NLMembrane4(int *nodenums);
-    int  getTopNumber();
-    void computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs=0);
-    void getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF, double *res, GeomState *gs=0);
-    PrioInfo examine(int sub, MultiFront *mf);
+    explicit NLMembrane4(int *nodenums);
+    int  getTopNumber() override;
+    void computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs) override;
+    void getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF, double *res, GeomState *gs) override;
+    PrioInfo examine(int sub, MultiFront *mf) override;
 };
 
 #endif

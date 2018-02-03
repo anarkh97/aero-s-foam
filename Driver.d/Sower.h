@@ -856,7 +856,7 @@ class SommerDataIO
 	SommerElement* so = (data->second)[index];
         int elType = so->getElementType();//not sure it works....
         int numN = so->numNodes();
-        int* nodes = so->getNodes();
+        auto nodes = so->getNodes();
 	file.write(&curObjID, 1);
         file.write(&elType, 1);
         file.write(&numN, 1);

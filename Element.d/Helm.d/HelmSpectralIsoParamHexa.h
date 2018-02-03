@@ -8,31 +8,31 @@ using std::complex;
 
 class HelmSpectralIsoParamHexa: public HelmElement, public Element {
 
-        int order;
+	int order;
 	int *nn;
-        HelmSpectralIsoParamHexa(const HelmSpectralIsoParamHexa& e);
+	HelmSpectralIsoParamHexa(const HelmSpectralIsoParamHexa& e);
 
 public:
 	HelmSpectralIsoParamHexa(int,int*);
-        ~HelmSpectralIsoParamHexa() { delete [] nn; }
+	~HelmSpectralIsoParamHexa() { delete [] nn; }
 
-        FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
-        double getMass(CoordSet&);
+	FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
+	FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
+	double getMass(CoordSet&);
 
-	Element *clone();
-	void renum(int *);
-        void renum(EleRenumMap&);
-	void markDofs(DofSetArray &);
-	int getTopNumber() {return 195;}
+	Element *clone() override;
+	void renum(int *) override;
+	void renum(EleRenumMap&) override;
+	void markDofs(DofSetArray &) override;
+	int getTopNumber() override {return 195;}
 	int numTopNodes() {return order*order*order;}
-        int* dofs(DofSetArray &, int *p=0);
-        int numDofs() { return order*order*order; }
-        int numNodes();
-        int* nodes(int * = 0);
-	void addFaces(PolygonSet *pset);
+	int* dofs(DofSetArray &, int *p) override;
+	int numDofs() const { return order*order*order; }
+	int numNodes() const;
+	int* nodes(int * = 0) const override;
+	void addFaces(PolygonSet *pset) override;
 
-        PrioInfo examine(int sub, MultiFront *mf);
+	PrioInfo examine(int sub, MultiFront *mf) override;
 
 };
 #endif

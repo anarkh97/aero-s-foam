@@ -11,7 +11,7 @@ class PinInSlotJoint : public SuperElement
 {
   public:
     PinInSlotJoint(int*);
-    int getTopNumber();
+    int getTopNumber() override;
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront*);
 };

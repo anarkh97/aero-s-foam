@@ -11,7 +11,7 @@ ConnectedTri::ConnectedTri(int *n)
 }
 
 int
-ConnectedTri::numNodes()
+ConnectedTri::numNodes() const
 { 
   return 4;
 }
@@ -35,7 +35,7 @@ ConnectedTri::renum(EleRenumMap& table)
 }
 
 int *
-ConnectedTri::nodes(int *p)
+ConnectedTri::nodes(int *p) const
 { 
   if(p == 0) p = new int[4];
   for(int i = 0; i < 4; ++i)
@@ -60,7 +60,7 @@ ConnectedTri::dofs(DofSetArray &dsa, int *p)
 }
 
 int
-ConnectedTri::numDofs()
+ConnectedTri::numDofs() const
 { 
   return 6;
 }

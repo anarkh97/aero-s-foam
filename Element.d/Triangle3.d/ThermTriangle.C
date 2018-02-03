@@ -129,13 +129,13 @@ ThermTriangle::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-ThermTriangle::numNodes()
+ThermTriangle::numNodes() const
 {
  	return 3;
 }
 
 int*
-ThermTriangle::nodes(int *p)
+ThermTriangle::nodes(int *p) const
 {
  	if(p == 0) p = new int[3];
  	p[0] = nn[0];
@@ -145,7 +145,7 @@ ThermTriangle::nodes(int *p)
 }
 
 int
-ThermTriangle::numDofs()
+ThermTriangle::numDofs() const
 {
  	return 3;
 }

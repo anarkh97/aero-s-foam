@@ -162,7 +162,7 @@ int* SfemBlockMatrix<Scalar>::getFirstDof()
 
 
 template<class Scalar>
-int SfemBlockMatrix<Scalar>::numNodes()
+int SfemBlockMatrix<Scalar>::numNodes() const
 {
  return P;
 }

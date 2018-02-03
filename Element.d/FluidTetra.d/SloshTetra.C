@@ -109,13 +109,13 @@ SloshTetra::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-SloshTetra::numNodes()
+SloshTetra::numNodes() const
 {
  	return 4;
 }
 
 int*
-SloshTetra::nodes(int *p)
+SloshTetra::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -126,7 +126,7 @@ SloshTetra::nodes(int *p)
 }
 
 int
-SloshTetra::numDofs()
+SloshTetra::numDofs() const
 {
  	return 4;
 }

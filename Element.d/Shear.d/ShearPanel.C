@@ -646,13 +646,13 @@ ShearPanel::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-ShearPanel::numNodes()
+ShearPanel::numNodes() const
 {
  	return 4;
 }
 
 int*
-ShearPanel::nodes(int *p)
+ShearPanel::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -663,7 +663,7 @@ ShearPanel::nodes(int *p)
 }
 
 int
-ShearPanel::numDofs()
+ShearPanel::numDofs() const
 {
  	return 12;
 }

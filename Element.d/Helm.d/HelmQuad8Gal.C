@@ -182,7 +182,7 @@ HelmQuad8Gal::acousticm(CoordSet &cs,double *K)
 extern bool useFull;
 
 int
-HelmQuad8Gal::numNodes()
+HelmQuad8Gal::numNodes() const
 {
   if(useFull)
  	return 8;
@@ -191,7 +191,7 @@ HelmQuad8Gal::numNodes()
 }
 
 int*
-HelmQuad8Gal::nodes(int *p)
+HelmQuad8Gal::nodes(int *p) const
 {
   if(useFull)
     {
@@ -218,7 +218,7 @@ HelmQuad8Gal::nodes(int *p)
 }
 
 int
-HelmQuad8Gal::numDofs()
+HelmQuad8Gal::numDofs() const
 {
  	return 8;
 }

@@ -22,12 +22,12 @@ public:
 	FelippaShell(int*);
         ~FelippaShell();
 
-	Element *clone();
+	Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg=1);
+        FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg) override;
 
         FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
 
@@ -49,16 +49,16 @@ public:
         double * setCompositeData2(int _type, int nlays, double *lData,
                                    double *coefs, CoordSet &cs, double theta);
         void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
-        void setMaterial(NLMaterial *);
+        void setMaterial(NLMaterial *) override;
         int numStates();
 
-	void markDofs(DofSetArray &);
-        int* dofs(DofSetArray &, int *p=0);
-        int  numDofs();
-	int  getTopNumber();
+	void markDofs(DofSetArray &) override;
+        int* dofs(DofSetArray &, int *p) override;
+         int numDofs() const override;
+	int getTopNumber() override;
 
-        int  numNodes();
-        int* nodes(int * = 0);
+        int numNodes() const override;
+        int* nodes(int * = 0) const override;
         double getMass(CoordSet &);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
@@ -92,7 +92,7 @@ public:
                             int measure = -1);
 
         // Routines for the decomposer
-        PrioInfo examine(int sub, MultiFront *);
+        PrioInfo examine(int sub, MultiFront *) override;
         int nDecFaces() { return 1; }
         int getDecFace(int iFace, int *fn) { for(int i=0; i<3; i++) fn[i] = nn[i]; return 3; }
 

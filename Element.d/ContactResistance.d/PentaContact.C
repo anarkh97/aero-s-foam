@@ -115,13 +115,13 @@ PentaContact::stiffness(CoordSet &cs, double *Kcv, int flg)
 
 
 int
-PentaContact::numNodes()
+PentaContact::numNodes() const
 {
         return 6;
 }
 
 int*
-PentaContact::nodes(int *p)
+PentaContact::nodes(int *p) const
 {
         if(p == 0) p = new int[6];
         p[0] = nn[0];
@@ -134,7 +134,7 @@ PentaContact::nodes(int *p)
 }
 
 int
-PentaContact::numDofs()
+PentaContact::numDofs() const
 {
         return 6;
 }

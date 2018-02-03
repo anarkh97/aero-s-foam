@@ -9,7 +9,7 @@ class Compo4NodeShell : public SuperElement
     Compo4NodeShell(int *nodenums);
 
     Element* clone();
-    int  getTopNumber();
+    int getTopNumber() override;
     bool isShell() { return true; }
 
     // aero functions
@@ -18,7 +18,7 @@ class Compo4NodeShell : public SuperElement
     bool hasRot() { return true; }
 
     // Routines for the decomposer
-    PrioInfo examine(int sub, MultiFront *);
+    PrioInfo examine(int sub, MultiFront *) override;
     int nDecFaces() { return 1; }
     int getDecFace(int iFace, int *fn) { for(int i=0; i<4; i++) fn[i] = nn[i]; return 4; }
 

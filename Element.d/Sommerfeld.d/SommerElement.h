@@ -12,137 +12,195 @@
 #include <Driver.d/Mpc.h>
 
 class Domain;
+
 class GeomState;
 
 class SommerElement : public Element {
 
 private:
-        SommerElement(const SommerElement &);
+	SommerElement(const SommerElement &);
 
 protected:
-       static bool first; //HB for debugging coupled pb
+	static bool first; //HB for debugging coupled pb
 
 public:
 	Element *el;//Adjacent 3D element
-        int iEle;   // and it's index in the CoordSet
+	int iEle;   // and it's index in the CoordSet
 	Element *el2;
-        Domain *dom;
-        complex<double> soundSpeed; // for wet scattering rhs
-        SommerElement(Element* _el=0, Domain* _dom=0) { el = _el; dom = _dom; 
-                                                        el2 = 0; iEle = -1; } //HB
-        virtual int numNodes()=0;
-	virtual int getNode(int);
-	virtual int* getNodes();
-        virtual int* nodes(int * = 0);
-        virtual int numDofs()=0;
-        virtual int numWetDofs();
-        virtual int numSolidDofs();
-        virtual int dim();
-        virtual int* dofs(DofSetArray &, int *p=0)=0;
-        virtual int* wetDofs(DofSetArray &, int *p=0);
-        virtual int* solidDofs(DofSetArray &, int *p=0);
-        virtual void markDofs(DofSetArray &);
-	virtual void renum(int *);
-        virtual void renum(EleRenumMap&);
-        virtual SommerElement* clone();
+	Domain *dom;
+	complex<double> soundSpeed; // for wet scattering rhs
+	SommerElement(Element *_el = 0, Domain *_dom = 0) {
+		el = _el;
+		dom = _dom;
+		el2 = 0;
+		iEle = -1;
+	} //HB
+	virtual int getNode(int) const = 0;
 
-        virtual int nFaceCorners() { return 0; }
-        virtual int* faceCorners() { return 0; }
+	virtual const int *getNodes() const = 0;
+	virtual int *getNodes() = 0;
 
-        virtual void flipNormal();
-        virtual void checkAndSetNormal(CoordSet& cs);
-        virtual void center(CoordSet& cs, double* c);
-        virtual void findBothEle (Connectivity *nodeToElem, int *eleTouch,
-                             int *eleCount, int myNum, Elemset* eset, int *ie);
-        virtual int findAndSetBothEle (CoordSet& cs, Elemset &eset,
-             Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum);
+	virtual int *nodes(int * = 0) const;
 
-	virtual int findEle(Connectivity *nodeToEle, int *eleTouch, 
-                            int *eleCount, int myNum, Elemset* eset=0,
-                            int it = 0);
-        virtual int findAndSetEle(CoordSet& cs,Elemset &eset,
-             Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
-             int it = 0);
+	virtual int numDofs() const =0;
 
-        virtual FullSquareMatrix sommerMatrix(CoordSet&);
-        virtual FullSquareMatrix turkelMatrix(CoordSet&);
+	virtual int numWetDofs();
 
-        virtual FullSquareMatrix refinedSommerMatrix(CoordSet&);
-        //virtual FullSquareMatrix surfStiffMatrix(CoordSet&);
-        virtual FullSquareMatrix HSommerMatrix(CoordSet&);
-        //virtual FullSquareMatrix HKSommerMatrix(CoordSet&);
-        virtual FullSquareMatrix interfMatrixConsistent(CoordSet&);
-        virtual FullSquareMatrix interfMatrixLumped(CoordSet&);
-        virtual FullSquareMatrix sommerMatrix(CoordSet&, double *)=0;
-        virtual GenStackFSFullMatrix<double> wetInterfaceMatrix(CoordSet&,
-                                                                double*);
-        virtual void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
-        virtual void ffp(CoordSet &cs, int numFFP, double *dirFFP,
-                         complex<double> *sol, complex<double> *ffpv, bool direction = true);
+	virtual int numSolidDofs();
 
-        virtual FullRectMatrix transferMatrix(CoordSet&, double *);
-        virtual FullSquareMatrix turkelMatrix(CoordSet&, double *);
-        virtual FullSquareMatrix refinedSommerMatrix(CoordSet&, double *);
-        //virtual FullSquareMatrix surfStiffMatrix(CoordSet&, double *);
-        virtual FullSquareMatrix HSommerMatrix(CoordSet&, double *);
-        //virtual FullSquareMatrix HKSommerMatrix(CoordSet&, double *);
-        virtual FullSquareMatrix interfMatrixConsistent(CoordSet&, double *);
-        virtual FullSquareMatrix interfMatrixLumped(CoordSet&, double *);
-	virtual void BT2(CoordSet& cs, double *e, double *f, double *g,
-                     double (*tau1)[3], double (*tau2)[3], double k, ComplexD *d);
-        virtual void BT2n(CoordSet& cs, double *e, double *f, double *g,
-                     double (*tau1)[3], double (*tau2)[3], double k, ComplexD *d, int n);
-        virtual void sphereBT2(CoordSet& cs, double r, double k, ComplexD *d);
-        virtual void ellipsoidBT2(CoordSet& cs, double a, double b, double k, ComplexD *d);
-        virtual void sommerMatrixEllipsoid(CoordSet &cs, double kappa, double H[3] , double K[3], ComplexD *d);
+	virtual int dim() const;
 
-        virtual void neumVector(CoordSet&, Vector&, int pflag = 0, GeomState* = 0, double t = 0);
-        virtual void neumVectorJacobian(CoordSet&, FullSquareMatrix&, int pflag = 0, GeomState* = 0, double t = 0);
-        virtual void neumVector(CoordSet&,ComplexVector&,
-                                double,double,double,double, int pflag=0);
+	virtual int *wetDofs(DofSetArray &, int *p = 0);
+
+	virtual int *solidDofs(DofSetArray &, int *p = 0);
+
+	virtual void markDofs(DofSetArray &) override;
+
+	virtual void renum(int *) override;
+
+	virtual void renum(EleRenumMap &);
+
+	virtual SommerElement *clone() override;
+
+	virtual int nFaceCorners() { return 0; }
+
+	virtual int *faceCorners() { return 0; }
+
+	virtual void flipNormal();
+
+	virtual void checkAndSetNormal(CoordSet &cs);
+
+	virtual void center(CoordSet &cs, double *c);
+
+	virtual void findBothEle(Connectivity *nodeToElem, int *eleTouch,
+	                         int *eleCount, int myNum, Elemset *eset, int *ie);
+
+	virtual int findAndSetBothEle(CoordSet &cs, Elemset &eset,
+	                              Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum);
+
+	virtual int findEle(Connectivity *nodeToEle, int *eleTouch,
+	                    int *eleCount, int myNum, Elemset *eset = 0,
+	                    int it = 0);
+
+	virtual int findAndSetEle(CoordSet &cs, Elemset &eset,
+	                          Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
+	                          int it = 0);
+
+	virtual FullSquareMatrix sommerMatrix(CoordSet &) const;
+
+	virtual FullSquareMatrix turkelMatrix(CoordSet &) const;
+
+	virtual FullSquareMatrix refinedSommerMatrix(CoordSet &);
+
+	//virtual FullSquareMatrix surfStiffMatrix(CoordSet&);
+	virtual FullSquareMatrix HSommerMatrix(CoordSet &);
+
+	//virtual FullSquareMatrix HKSommerMatrix(CoordSet&);
+	virtual FullSquareMatrix interfMatrixConsistent(CoordSet &);
+
+	virtual FullSquareMatrix interfMatrixLumped(CoordSet &);
+
+	virtual FullSquareMatrix sommerMatrix(CoordSet &, double *) const =0;
+
+	virtual GenStackFSFullMatrix<double> wetInterfaceMatrix(CoordSet &,
+	                                                        double *);
+
+	virtual void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
+
+	virtual void ffp(CoordSet &cs, int numFFP, double *dirFFP,
+	                 complex<double> *sol, complex<double> *ffpv, bool direction = true);
+
+	virtual FullRectMatrix transferMatrix(CoordSet &, double *);
+
+	virtual FullSquareMatrix turkelMatrix(CoordSet &, double *) const;
+
+	virtual FullSquareMatrix refinedSommerMatrix(CoordSet &, double *);
+
+	//virtual FullSquareMatrix surfStiffMatrix(CoordSet&, double *);
+	virtual FullSquareMatrix HSommerMatrix(CoordSet &, double *);
+
+	//virtual FullSquareMatrix HKSommerMatrix(CoordSet&, double *);
+	virtual FullSquareMatrix interfMatrixConsistent(CoordSet &, double *);
+
+	virtual FullSquareMatrix interfMatrixLumped(CoordSet &, double *);
+
+	virtual void BT2(CoordSet &cs, double *e, double *f, double *g,
+	                 double (*tau1)[3], double (*tau2)[3], double k, ComplexD *d);
+
+	virtual void BT2n(CoordSet &cs, double *e, double *f, double *g,
+	                  double (*tau1)[3], double (*tau2)[3], double k, ComplexD *d, int n);
+
+	virtual void sphereBT2(CoordSet &cs, double r, double k, ComplexD *d);
+
+	virtual void ellipsoidBT2(CoordSet &cs, double a, double b, double k, ComplexD *d);
+
+	virtual void sommerMatrixEllipsoid(CoordSet &cs, double kappa, double H[3], double K[3], ComplexD *d);
+
+	virtual void neumVector(CoordSet &, Vector &, int pflag = 0, GeomState * = 0, double t = 0);
+
+	virtual void neumVectorJacobian(CoordSet &, FullSquareMatrix &, int pflag = 0, GeomState * = 0, double t = 0);
+
+	virtual void neumVector(CoordSet &, ComplexVector &,
+	                        double, double, double, double, int pflag = 0);
+
 // RT: obsolete? and I need it for something else
 //        virtual void neumVector(CoordSet&,ComplexVector&,
 //                                double,double,double,double,int);
-        virtual void neumVectorDeriv(CoordSet&,ComplexVector&,
-                                     double,double,double,double,int,
-                                     int pflag = 0);
-        virtual void wetInterfaceVector(CoordSet&,ComplexVector&,
-                                double,double,double,double,int,int);
-        virtual void wetInterfaceVector(CoordSet&,ComplexVector&,
-                                complex<double> (*)[3],complex<double>*);
-        virtual void wetInterfaceVectorDeriv(CoordSet&,ComplexVector&,
-                                complex<double> (*)[3],complex<double>*,
-                                complex<double>*, int);
-        virtual void sommerVector(CoordSet&, ComplexVector&, ComplexVector&);
-        virtual void btVector(CoordSet&, ComplexVector&, ComplexVector&);
+	virtual void neumVectorDeriv(CoordSet &, ComplexVector &,
+	                             double, double, double, double, int,
+	                             int pflag = 0);
 
-        virtual void ffpNeum(int, ComplexD*, CoordSet&,ComplexD*,
-                             double,double(*)[3],double*);
-        virtual void ffpDir(int, ComplexD*, CoordSet&,ComplexD*,ComplexD*,
-                            double,double(*)[3],double*);
-        virtual void ffpDir(int, ComplexD*, CoordSet&,ComplexD*,
-                            double,double(*)[3],double*);
-        virtual ComplexD ffpCoef(double k); 
+	virtual void wetInterfaceVector(CoordSet &, ComplexVector &,
+	                                double, double, double, double, int, int);
 
-	virtual void getNormal(CoordSet&, double[3]);
-	virtual double getSize(CoordSet&);
+	virtual void wetInterfaceVector(CoordSet &, ComplexVector &,
+	                                complex<double> (*)[3], complex<double> *);
 
-        virtual FullSquareMatrixC turkelMatrix(CoordSet&, double, int);
-        virtual FullSquareMatrixC turkelMatrix(CoordSet&, double, int, DComplex *);
-        virtual bool isSommerElement() { return true; }
-        virtual bool isPhantomElement() { return false; }
+	virtual void wetInterfaceVectorDeriv(CoordSet &, ComplexVector &,
+	                                     complex<double> (*)[3], complex<double> *,
+	                                     complex<double> *, int);
 
-        virtual FullSquareMatrix stiffness(CoordSet&, double *d, int flg = 1);
-        virtual FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-        virtual FullSquareMatrix dampingMatrix(CoordSet&, double *cel, int cmflg=1);
-        //virtual FullSquareMatrix imStiffness(CoordSet&, double *d, int flg = 1);
+	virtual void sommerVector(CoordSet &, ComplexVector &, ComplexVector &);
 
-        virtual int ludcmp(FullSquareMatrix A, int n, int *indx);// LU decomposition
-        virtual void lubksb (FullSquareMatrix A, int n, int *indx,double *b);//LU factorisation
-        virtual void invert (FullSquareMatrix A, FullSquareMatrix B);
+	virtual void btVector(CoordSet &, ComplexVector &, ComplexVector &);
 
-        int getAdjElementIndex() { return iEle; }
-        void setAdjElementIndex(int _iEle) { iEle = _iEle; }
+	virtual void ffpNeum(int, ComplexD *, CoordSet &, ComplexD *,
+	                     double, double(*)[3], double *);
+
+	virtual void ffpDir(int, ComplexD *, CoordSet &, ComplexD *, ComplexD *,
+	                    double, double(*)[3], double *);
+
+	virtual void ffpDir(int, ComplexD *, CoordSet &, ComplexD *,
+	                    double, double(*)[3], double *);
+
+	virtual ComplexD ffpCoef(double k);
+
+	virtual void getNormal(CoordSet &, double[3]);
+
+	virtual double getSize(CoordSet &);
+
+	virtual FullSquareMatrixC turkelMatrix(CoordSet &, double, int);
+
+	virtual FullSquareMatrixC turkelMatrix(CoordSet &, double, int, DComplex *);
+
+	bool isSommerElement() override { return true; }
+
+	bool isPhantomElement() override { return false; }
+
+	FullSquareMatrix stiffness(CoordSet &, double *d, int flg = 1) override;
+
+	FullSquareMatrix massMatrix(CoordSet &, double *mel, int cmflg = 1) override;
+
+	FullSquareMatrix dampingMatrix(CoordSet &, double *cel, int cmflg = 1) override;
+	//virtual FullSquareMatrix imStiffness(CoordSet&, double *d, int flg = 1);
+
+	virtual int ludcmp(FullSquareMatrix A, int n, int *indx);// LU decomposition
+	virtual void lubksb(FullSquareMatrix A, int n, int *indx, double *b);//LU factorisation
+	virtual void invert(FullSquareMatrix A, FullSquareMatrix B);
+
+	int getAdjElementIndex() { return iEle; }
+
+	void setAdjElementIndex(int _iEle) { iEle = _iEle; }
 };
 
 #endif

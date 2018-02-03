@@ -107,7 +107,7 @@ class DistrSfemBlockMatrix {
     int neqs() const {return n*P;} //  in some cases like dim()
     Scalar diag(int i) {Scalar r =0.0; std::cerr <<"DistrSfemBlockMatrix::diag not implemented" << std::endl; return r;}
     int* getFirstDof();
-    int numNodes();
+    int numNodes() const;
     GenFullM<Scalar>* getDiagMatrix(int i);
     void setMeanSolver(GenFetiSolver<Scalar> *prc);
     GenFetiSolver<Scalar>* getMeanSolver();

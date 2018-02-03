@@ -20,16 +20,16 @@ public:
         void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
         double getMass(CoordSet&);
 
-	Element *clone();
-	void renum(int *);
-        void renum(EleRenumMap&);
-	void markDofs(DofSetArray &);
-        int* dofs(DofSetArray &, int *p=0);
-        int numDofs() { return (order*(order+1)*(order+2))/2; }
-        int numNodes();
-        int* nodes(int * = 0);
+	Element *clone() override;
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
+	void markDofs(DofSetArray &) override;
+        int* dofs(DofSetArray &, int *p) override;
+        int numDofs() const { return (order*(order+1)*(order+2))/2; }
+        int numNodes() const override;
+        int* nodes(int * = 0) const override;
 
-        PrioInfo examine(int sub, MultiFront *mf);
+        PrioInfo examine(int sub, MultiFront *mf) override;
         int nDecFaces() { return 4;}
         int getDecFace(int iFace, int *fn);
 

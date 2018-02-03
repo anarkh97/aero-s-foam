@@ -152,13 +152,13 @@ TetraBulk::stiffness(CoordSet &cs, double *Kcv, int flg)
 }
 
 int
-TetraBulk::numNodes()
+TetraBulk::numNodes() const
 {
         return 4;
 }
 
 int*
-TetraBulk::nodes(int *p)
+TetraBulk::nodes(int *p) const
 {
         if(p == 0) p = new int[4];
         p[0] = nn[0];
@@ -169,7 +169,7 @@ TetraBulk::nodes(int *p)
 }
 
 int
-TetraBulk::numDofs()
+TetraBulk::numDofs() const
 {
         return 4;
 }

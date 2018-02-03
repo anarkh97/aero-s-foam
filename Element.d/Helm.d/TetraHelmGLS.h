@@ -10,10 +10,10 @@ class TetraHelmGLS: public HelmElement, public Element {
 public:
 	TetraHelmGLS(int*);
 
-	Element *clone();
+	Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
         FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
         FullSquareMatrix acousticm(CoordSet&, double *kel);
@@ -22,12 +22,12 @@ public:
 
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-	int getTopNumber();
-	PrioInfo examine(int sub, MultiFront *);
+        int             numNodes() const override;
+        int * nodes(int *) const override;
+	int getTopNumber() override;
+	PrioInfo examine(int sub, MultiFront *) override;
         int nDecFaces() { return 4;}
         int getDecFace(int iFace, int *fn);
 

@@ -167,12 +167,12 @@ FullSquareMatrix TetraHelmGal::acousticm(CoordSet &cs, double *d)
 }
 
 
-int TetraHelmGal::numNodes() {
+int TetraHelmGal::numNodes() const {
  return 4;
 }
 
 
-int* TetraHelmGal::nodes(int *p) {
+int* TetraHelmGal::nodes(int *p) const {
  if(p == 0) p = new int[4];
  p[0] = nn[0];
  p[1] = nn[1];
@@ -182,7 +182,7 @@ int* TetraHelmGal::nodes(int *p) {
 }
 
 
-int TetraHelmGal::numDofs() {
+int TetraHelmGal::numDofs() const {
  return 4;
 }
 

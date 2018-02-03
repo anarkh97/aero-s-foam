@@ -409,13 +409,13 @@ ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-ThreeNodeShell::numNodes()
+ThreeNodeShell::numNodes() const
 {
  	return 3;
 }
 
 int*
-ThreeNodeShell::nodes(int *p)
+ThreeNodeShell::nodes(int *p) const
 {
  	if(p == 0) p = new int[3];
  	p[0] = nn[0];
@@ -425,7 +425,7 @@ ThreeNodeShell::nodes(int *p)
 }
 
 int
-ThreeNodeShell::numDofs()
+ThreeNodeShell::numDofs() const
 {
  	return 18;
 }
@@ -1054,4 +1054,7 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   if(dDispDisp) dStdDisp ^= (*dDispDisp);
   delete mat;
 }
+
+int ThreeNodeShell::getMassType() { return 0; }
+
 #endif

@@ -81,15 +81,15 @@ public:
  int o;
  void init(int _nnodes, int* nodenums);
  virtual int defaultLMType() { return 51; }
- virtual bool dgmFlag() { return true; }
- virtual bool condensedFlag() {
+ bool dgmFlag() const override { return true; }
+ bool condensedFlag() const override  {
    for(int i=0;i<nFaces();i++) if (bc[i]==3) return false&&condensedF;
    return true&&condensedF;
  }
  virtual bool storeMatricesFlag() { return storeMatricesF; }
 // virtual bool storeMatricesFlag() { return false; }
- virtual int nPolynomialDofs() { return 0; }
- virtual int nEnrichmentDofs() { return ndir; }
+ int nPolynomialDofs() const  { return 0; }
+ virtual int nEnrichmentDofs() const override { return ndir; }
  virtual int *faceCornerI(int fi)=0; 
  virtual int *faceCorners(int fi) {
   int *ix = faceCornerI(fi);
@@ -122,8 +122,8 @@ public:
 class HexDGMElement3d: public DGMHelm3d {
 public:
  HexDGMElement3d(int _n, int* nodenums);
- virtual int nGeomNodes() { return o*o*o; }
- virtual int nFaces() { return 6; }
+ int nGeomNodes() const override { return o*o*o; }
+ int nFaces() const override { return 6; }
  virtual int nFaceCorners(int fi) { return 4; }
  virtual int *faceCornerI(int fi);
  virtual void externalNormal(double *xyz, int faceindex, double *n);
@@ -137,8 +137,8 @@ public:
 class TetraDGMElement3d: public DGMHelm3d {
 public:
  TetraDGMElement3d(int _n, int* nodenums);
- virtual int nGeomNodes() { return (o*(o+1)*(o+2))/6; }
- virtual int nFaces() { return 4; }
+ int nGeomNodes() const override { return (o*(o+1)*(o+2))/6; }
+ int nFaces() const override { return 4; }
  virtual int nFaceCorners(int fi) { return 3; }
  virtual int *faceCornerI(int fi);
  virtual void externalNormal(double *xyz, int faceindex, double *n);
@@ -152,8 +152,8 @@ public:
 class PrismDGMElement3d: public DGMHelm3d {
 public:
  PrismDGMElement3d(int _n, int* nodenums);
- virtual int nGeomNodes() { return o*(o*(o+1))/2; }
- virtual int nFaces() { return 5; }
+ int nGeomNodes() const override { return o*(o*(o+1))/2; }
+ int nFaces() const override { return 5; }
  virtual int nFaceCorners(int fi) { return (fi<3)?3:4; }
  virtual int *faceCornerI(int fi);
  virtual void externalNormal(double *xyz, int faceindex, double *n);
@@ -167,8 +167,8 @@ public:
 class PyramidDGMElement3d: public DGMHelm3d {
 public:
  PyramidDGMElement3d(int _n, int* nodenums);
- virtual int nGeomNodes() { return 5; }
- virtual int nFaces() { return 5; }
+ int nGeomNodes() const override { return 5; }
+ int nFaces() const override { return 5; }
  virtual int nFaceCorners(int fi) { return (fi<2)?4:3; }
  virtual int *faceCornerI(int fi);
  virtual void externalNormal(double *xyz, int faceindex, double *n);
@@ -277,8 +277,8 @@ class DEMHelm3d: public HexDGMElement3d {
 public:
  DEMHelm3d(int _o, int* nodenums);
  virtual int defaultLMType() { return 51; }
- virtual bool dgmFlag() { return false; }
- virtual int nPolynomialDofs() { return o*o*o; }
+ bool dgmFlag() const override { return false; }
+ int nPolynomialDofs() const  { return o*o*o; }
 
  virtual void createM(complex<double>*);
  virtual void interfMatrix(int fi, DEMElement*,complex<double>*);

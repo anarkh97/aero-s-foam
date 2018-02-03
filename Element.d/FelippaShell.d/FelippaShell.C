@@ -1015,13 +1015,13 @@ FelippaShell::getDissipatedEnergy(GeomState &, CoordSet &cs)
 }
 
 int
-FelippaShell::numNodes()
+FelippaShell::numNodes() const
 {
   return 3;
 }
 
 int*
-FelippaShell::nodes(int *p)
+FelippaShell::nodes(int *p) const
 {
   if(p == 0) p = new int[3];
   p[0] = nn[0];
@@ -1031,7 +1031,7 @@ FelippaShell::nodes(int *p)
 }
 
 int
-FelippaShell::numDofs()
+FelippaShell::numDofs() const
 {
   return 18;
 }

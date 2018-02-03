@@ -106,13 +106,13 @@ TriangleRadiation::getCorotator(CoordSet &cs, double* kel, int, int)
 
 
 int 
-TriangleRadiation::numNodes()
+TriangleRadiation::numNodes() const
 {
         return 3;
 }
 
 int*
-TriangleRadiation::nodes(int *p)
+TriangleRadiation::nodes(int *p) const
 {
         if(p == 0) p = new int[3];
         p[0] = nn[0];
@@ -122,7 +122,7 @@ TriangleRadiation::nodes(int *p)
 }
 
 int
-TriangleRadiation::numDofs()
+TriangleRadiation::numDofs() const
 {
         return 3;
 }

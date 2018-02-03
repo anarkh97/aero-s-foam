@@ -74,13 +74,13 @@ LinSpring::stiffness(CoordSet &, double *d, int flg)
 }
 
 int
-LinSpring::numNodes()
+LinSpring::numNodes() const
 {
         return 1;
 }
 
 int *
-LinSpring::nodes(int *p)
+LinSpring::nodes(int *p) const
 {
         if(p == 0) p = new int[1];
         p[0] = nn[0];
@@ -88,7 +88,7 @@ LinSpring::nodes(int *p)
 }
 
 int
-LinSpring::numDofs()
+LinSpring::numDofs() const
 {
         return 3;
 }

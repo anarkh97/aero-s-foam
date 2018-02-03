@@ -110,13 +110,13 @@ HEVibTetra::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-HEVibTetra::numNodes()
+HEVibTetra::numNodes() const
 {
  	return 4;
 }
 
 int*
-HEVibTetra::nodes(int *p)
+HEVibTetra::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -127,7 +127,7 @@ HEVibTetra::nodes(int *p)
 }
 
 int
-HEVibTetra::numDofs()
+HEVibTetra::numDofs() const
 {
  	return 4;
 }

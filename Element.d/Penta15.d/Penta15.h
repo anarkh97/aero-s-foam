@@ -14,10 +14,10 @@ class Penta15: public Element
     Penta15(int*);
     ~Penta15();
 
-    Element *clone();
+    Element *clone() override;
 
-    void renum(int *);
-    void renum(EleRenumMap&);
+    void renum(int *) override;
+    void renum(EleRenumMap&) override;
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
     FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
@@ -32,17 +32,17 @@ class Penta15: public Element
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                       int surface=0, double *ndTemps=0);
 
-    void markDofs(DofSetArray &);
-    int* dofs(DofSetArray &, int *p=0);
-    int numDofs();
+    void markDofs(DofSetArray &) override;
+    int* dofs(DofSetArray &, int *p) override;
+     int numDofs() const override;
 
-    int numNodes();
-    int* nodes(int * = 0);
+    int numNodes() const override;
+    int* nodes(int * = 0) const override;
 
-    int getTopNumber();
+    int getTopNumber() override;
     int numTopNodes();
 
-    PrioInfo examine(int sub, MultiFront *);
+    PrioInfo examine(int sub, MultiFront *) override;
     int nDecFaces() { return 5; }
     int getDecFace(int iFace, int *fn);
 
@@ -57,7 +57,7 @@ class Penta15: public Element
       }
     void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
 
-    void setMaterial(NLMaterial *);
+    void setMaterial(NLMaterial *) override;
     int numStates();
     void initStates(double *st);
     Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);

@@ -5,29 +5,29 @@
 
 class TorSpring : public Element {
 
-        int nn[1];
+	int nn[1];
 public:
 
-	TorSpring(int*);
+	explicit TorSpring(int*);
 
-	Element *clone();
+	Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+	void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(CoordSet& cs, double *kel, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
+	FullSquareMatrix stiffness(CoordSet& cs, double *kel, int flg=1) override;
+	FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1) override;
 
-        void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+	void markDofs(DofSetArray &) override;
+	int* dofs(DofSetArray &, int *p) override;
+	int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-	bool isSafe()    {return true;}
-	bool isSpring()  {return true;}
-	int getTopNumber(){return 111;}
-	PrioInfo examine(int sub, MultiFront *);
-        Corotator *getCorotator(CoordSet &, double*, int, int);
+	int  numNodes() const override;
+	int* nodes(int *) const override;
+	bool isSafe() override {return true;}
+	bool isSpring() override {return true;}
+	int getTopNumber() override {return 111;}
+	PrioInfo examine(int sub, MultiFront *) override;
+	Corotator *getCorotator(CoordSet &, double*, int, int) override;
 };
 #endif

@@ -8,45 +8,44 @@
 // class template to facilitate computation of the sensitivities of the stiffness w.r.t the nodal coordinates
 
 template<typename Scalar>
-class TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity : public MatrixValuedFunction<6,12,12,Scalar,18,0,double>
-{
-  public:
-    BeamElementTemplate<Scalar> ele;
-    Eigen::Array<Scalar,9,1> elemframe;
-    Scalar A, E, Ixx, Iyy, Izz, alphaY, alphaZ, c1, nu; // material properties
+class TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity
+		: public MatrixValuedFunction<6, 12, 12, Scalar, 18, 0, double> {
+public:
+	BeamElementTemplate<Scalar> ele;
+	Eigen::Array<Scalar, 9, 1> elemframe;
+	Scalar A, E, Ixx, Iyy, Izz, alphaY, alphaZ, c1, nu; // material properties
 
-  public:
-    TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity(const Eigen::Array<double,18,1>& sconst, const Eigen::Array<int,0,1>& iconst)
-    {
-      E = sconst[0];
-      A = sconst[1];
-      Ixx = sconst[2];
-      Iyy = sconst[3];
-      Izz = sconst[4];
-      alphaY = sconst[5];
-      alphaZ = sconst[6];
-      c1 = sconst[7];
-      nu = sconst[8];
-      elemframe[0] = sconst[9];
-      elemframe[1] = sconst[10];
-      elemframe[2] = sconst[11];
-      elemframe[3] = sconst[12];
-      elemframe[4] = sconst[13];
-      elemframe[5] = sconst[14];
-      elemframe[6] = sconst[15];
-      elemframe[7] = sconst[16];
-      elemframe[8] = sconst[17];
-    }
+public:
+	TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity(const Eigen::Array<double, 18, 1> &sconst,
+	                                                     const Eigen::Array<int, 0, 1> &iconst) {
+		E = sconst[0];
+		A = sconst[1];
+		Ixx = sconst[2];
+		Iyy = sconst[3];
+		Izz = sconst[4];
+		alphaY = sconst[5];
+		alphaZ = sconst[6];
+		c1 = sconst[7];
+		nu = sconst[8];
+		elemframe[0] = sconst[9];
+		elemframe[1] = sconst[10];
+		elemframe[2] = sconst[11];
+		elemframe[3] = sconst[12];
+		elemframe[4] = sconst[13];
+		elemframe[5] = sconst[14];
+		elemframe[6] = sconst[15];
+		elemframe[7] = sconst[16];
+		elemframe[8] = sconst[17];
+	}
 
-    Eigen::Matrix<Scalar,12,12> operator() (const Eigen::Matrix<Scalar,6,1>& q, Scalar)
-    {
-      // inputs:
-      // q = Nodal Coordinates
+	Eigen::Matrix<Scalar, 12, 12> operator()(const Eigen::Matrix<Scalar, 6, 1> &q, Scalar) {
+		// inputs:
+		// q = Nodal Coordinates
 
-      Eigen::Matrix<Scalar,2,1> globalx, globaly, globalz;
-      globalx << q[0], q[3];
-      globaly << q[1], q[4];
-      globalz << q[2], q[5];
+		Eigen::Matrix<Scalar, 2, 1> globalx, globaly, globalz;
+		globalx << q[0], q[3];
+		globaly << q[1], q[4];
+		globalz << q[2], q[5];
 /*
       std::cerr << "Area = " << A << std::endl;
       std::cerr << "E = " << E << std::endl;
@@ -64,19 +63,19 @@ class TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity : public MatrixValued
       std::cerr << "y = " << globaly[0] << " " << globaly[1]  << std::endl;
       std::cerr << "z = " << globalz[0] << " " << globalz[1]  << std::endl;
 */
-      Eigen::Matrix<Scalar,12,12> estiff;
-      ele.buildFrameInTemplate(globalx.data(), globaly.data(), globalz.data(), elemframe.data());
-      ele.modmstif7(estiff.data(), A, E, elemframe.data(),
-                    Ixx, Iyy, Izz, alphaY, alphaZ, c1,   
-                    nu, globalx.data(), globaly.data(), globalz.data(), 1);
+		Eigen::Matrix<Scalar, 12, 12> estiff;
+		ele.buildFrameInTemplate(globalx.data(), globaly.data(), globalz.data(), elemframe.data());
+		ele.modmstif7(estiff.data(), A, E, elemframe.data(),
+		              Ixx, Iyy, Izz, alphaY, alphaZ, c1,
+		              nu, globalx.data(), globaly.data(), globalz.data(), 1);
 
-      // return value:
+		// return value:
 
-      return estiff; 
-    }
+		return estiff;
+	}
 
-  public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 #endif

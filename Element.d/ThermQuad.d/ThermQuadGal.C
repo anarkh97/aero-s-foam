@@ -129,13 +129,13 @@ ThermQuadGal::stiffness(CoordSet &cs,double *Ks, int)
 }
 
 int
-ThermQuadGal::numNodes()
+ThermQuadGal::numNodes() const
 {
  	return 4;
 }
 
 int*
-ThermQuadGal::nodes(int *p)
+ThermQuadGal::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -146,7 +146,7 @@ ThermQuadGal::nodes(int *p)
 }
 
 int
-ThermQuadGal::numDofs()
+ThermQuadGal::numDofs() const
 {
  	return 4;
 }

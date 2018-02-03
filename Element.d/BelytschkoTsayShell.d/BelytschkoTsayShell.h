@@ -51,14 +51,14 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     BelytschkoTsayShell(int*);
     ~BelytschkoTsayShell();
 
-    void setProp(StructProp *p, bool _myProp = false);
-    void setMaterial(NLMaterial *);
+    void setProp(StructProp *p, bool _myProp) override;
+    void setMaterial(NLMaterial *) override;
     void setPressure(PressureBCond *_pbc);
     PressureBCond* getPressure();
-    Element *clone();
+    Element *clone() override;
 
-    void renum(int *);
-    void renum(EleRenumMap&);
+    void renum(int *) override;
+    void renum(EleRenumMap&) override;
 
     FullSquareMatrix stiffness(CoordSet&, double* d, int flg = 1);
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
@@ -76,22 +76,22 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
 
     void markDofs(DofSetArray&);
     int* dofs(DofSetArray&, int* p = 0);
-    int numDofs();
+     int numDofs() const override;
 
-    int numNodes();
-    int* nodes(int* = 0);
-    Corotator *getCorotator(CoordSet&, double*, int , int);
-    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
-    void getInternalForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
-    bool checkElementDeletion(GeomState &);
-    void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld, int &nlflag);
+    int numNodes() const override;
+    int *nodes(int *) const override;
+    Corotator *getCorotator(CoordSet&, double*, int , int) override;
+    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
+    void getInternalForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
+    bool checkElementDeletion(GeomState &) override;
+    void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld, int &nlflag) override;
 
     void computeDisp(CoordSet&, State&, const InterpPoint&, double*,
-                    GeomState*);
+                    GeomState*) override;
     void getFlLoad(CoordSet&, const InterpPoint&, double*, double *,
-                   GeomState* = 0);
+                   GeomState* = 0) override;
 
-    int getTopNumber();
+    int getTopNumber() override;
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState* gs = 0, int cflg = 0, double t = 0);
               

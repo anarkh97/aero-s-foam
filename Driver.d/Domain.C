@@ -3717,10 +3717,10 @@ void Domain::computeMatchingWetInterfaceLMPC() {
  //fprintf(stderr," ... In computeMatchingWetInterfaceLMPC(Domain.C), numWet is %d ...\n", numWet);
  //fprintf(stderr," ... wet[0] is %d ...\n", wet[0]);
 
- Connectivity *wetElemToNode = new Connectivity(&(wet[0]), numWet);
- Connectivity *nodeToWetElem = wetElemToNode->reverse();
+ Connectivity wetElemToNode(SetAccess<ResizeArray<SommerElement *> >{wet, numWet});
+ Connectivity *nodeToWetElem = wetElemToNode.reverse();
 
- Connectivity *nodeToNode = nodeToWetElem->transcon(wetElemToNode);
+ Connectivity nodeToNode = nodeToWetElem->transcon(wetElemToNode);
 
  //fprintf(stderr," ... Printing WetLMPC nodeToNode ...\n");
  //nodeToNode->print();
@@ -3755,9 +3755,7 @@ void Domain::computeMatchingWetInterfaceLMPC() {
 
  tWI += getTime();
  //fprintf(stderr,"Time to compute wet interface LMPCs: %f\n",tWI/1000.00);
- if(wetElemToNode) delete wetElemToNode; // HB: added to avoid memory leaks
  if(nodeToWetElem) delete nodeToWetElem; // HB: added to avoid memory leaks
- if(nodeToNode)    delete nodeToNode;    // HB: added to avoid memory leaks
 }
 
 int Domain::glToPackElem(int e)

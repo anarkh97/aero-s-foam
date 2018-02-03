@@ -10,8 +10,8 @@ class Therm4NoShell : public SuperElement
     Therm4NoShell(int *nodenums);
 
     Element* clone();
-    int  getTopNumber();
-    PrioInfo examine(int sub, MultiFront *);
+    int getTopNumber() override;
+    PrioInfo examine(int sub, MultiFront *) override;
     bool hasRot(){return true;}
     // aero functions
     void computeTemp(CoordSet &cs, State &state, double[2], double *res);

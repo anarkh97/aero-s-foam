@@ -99,13 +99,13 @@ QuadConvec::stiffness(CoordSet &cs, double *Kcv, int flg)
 }
 
 int
-QuadConvec::numNodes()
+QuadConvec::numNodes() const
 {
  	return 4;
 }
 
 int*
-QuadConvec::nodes(int *p)
+QuadConvec::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -116,7 +116,7 @@ QuadConvec::nodes(int *p)
 }
 
 int
-QuadConvec::numDofs()
+QuadConvec::numDofs() const
 {
  	return 4;
 }

@@ -23,19 +23,19 @@ public:
                                        int gravflg, GeomState *gs=0);
 
 
-	Element *clone();
-	void renum(int *);
-        void renum(EleRenumMap&);
+	Element *clone() override;
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
         
-	void markDofs(DofSetArray &);
-	int getTopNumber() {return 195;}
+	void markDofs(DofSetArray &) override;
+	int getTopNumber() override {return 195;}
 	int numTopNodes() {return order*order*order;}
-        int* dofs(DofSetArray &, int *p=0);
-        int numDofs() { return 3*order*order*order; }
-        int numNodes();
-        int* nodes(int * = 0);
+        int* dofs(DofSetArray &, int *p) override;
+        int numDofs() const { return 3*order*order*order; }
+        int numNodes() const override;
+        int* nodes(int * = 0) const override;
 
-        PrioInfo examine(int sub, MultiFront *mf);
+        PrioInfo examine(int sub, MultiFront *mf) override;
         int nDecFaces() { return 6;}
         int getDecFace(int iFace, int *fn);
 

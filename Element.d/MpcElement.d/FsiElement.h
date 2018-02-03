@@ -8,43 +8,43 @@ class LMPCons;
 
 class FsiElement : public Element
 {
-    int nnodes;  // number of nodes
-    int *nn;  // node numbers
-    int ndofs; // number of dofs
-    int *renumTable;
-    LMPCons *fsi;
+	int nnodes;  // number of nodes
+	int *nn;  // node numbers
+	int ndofs; // number of dofs
+	int *renumTable;
+	LMPCons *fsi;
 
-  public:
-    FsiElement(LMPCons *mpc);
-    virtual ~FsiElement()
-      { if(nn) delete [] nn;  if(renumTable) delete [] renumTable; };
+public:
+	explicit FsiElement(LMPCons *mpc);
 
-    void setProp(StructProp *p) { };
-    bool isFsiElement() { return true; }
-// JLchange: only valid for the case of one-one connection fsi 
-    int fsiFluidNode()  { return nn[nnodes-1]; }
-    int fsiStrutNode()  { return nn[0]; } 
+	~FsiElement() override { delete [] nn; delete [] renumTable; };
 
-    LMPCons* cons() { return fsi; }
+	void setProp(StructProp *p) { };
+	bool isFsiElement() override { return true; }
+// JLchange: only valid for the case of one-one connection fsi
+	int fsiFluidNode() override { return nn[nnodes-1]; }
+	int fsiStrutNode() override { return nn[0]; }
 
-    void renum(int *table);
-        void renum(EleRenumMap&);
+	LMPCons* cons() { return fsi; }
 
-    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix imagStiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
+	void renum(int *table) override;
+	void renum(EleRenumMap&) override;
 
-    void markDofs(DofSetArray &);
-    int* dofs(DofSetArray &, int *p=0);
-    int  numDofs() { return ndofs; }
-    int  numNodes() { return nnodes; }
-    int* nodes(int * = 0);
-    int  numInternalNodes() { return 0; }
+	FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1) override;
+	FullSquareMatrix imagStiffness(CoordSet&, double *kel, int flg=1);
+	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg) override;
 
-    int  getTopNumber() { return 502; }
-    int  numTopNodes() { return nnodes; }
+	void markDofs(DofSetArray &) override;
+	int* dofs(DofSetArray &, int *p) override;
+	int  numDofs() const override { return ndofs; }
+	int  numNodes() const override { return nnodes; }
+	int* nodes(int *) const override;
+	int  numInternalNodes() override { return 0; }
 
-    PrioInfo examine(int sub, MultiFront *mf);
+	int  getTopNumber() override { return 502; }
+	int  numTopNodes() override { return nnodes; }
+
+	PrioInfo examine(int sub, MultiFront *mf) override;
 // JLchange    bool isSafe() { return false; }
 };
 #endif

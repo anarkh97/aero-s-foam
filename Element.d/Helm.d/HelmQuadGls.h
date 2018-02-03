@@ -10,24 +10,24 @@ class HelmQuadGls: public HelmElement, public Element {
 public:
 	HelmQuadGls(int*);
 
-	Element *clone();
+	Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
         FullSquareMatrix  stiffness(CoordSet& cs, double *d, int flg=1);
         FullSquareMatrix  acousticm(CoordSet& cs, double *d);
-        FullSquareMatrix massMatrix(CoordSet& cs,double *d, int cmflg=1);
+        FullSquareMatrix massMatrix(CoordSet& cs,double *d, int cmflg) override;
 
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-	int getTopNumber();
+        int             numNodes() const override;
+        int * nodes(int *) const override;
+	int getTopNumber() override;
 
-	PrioInfo examine(int sub, MultiFront *);
+	PrioInfo examine(int sub, MultiFront *) override;
 
 	void            addFaces(PolygonSet *pset);
 

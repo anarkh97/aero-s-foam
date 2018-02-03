@@ -62,7 +62,7 @@ void HelmIsoParamTri::renum(EleRenumMap& table) {
 
 extern bool useFull;
 
-int* HelmIsoParamTri::nodes(int *p) {
+int* HelmIsoParamTri::nodes(int *p) const {
  int ordersq = (order*(order+1))/2;
  if(useFull) {
    if(p == 0) p = new int[ordersq];
@@ -216,7 +216,7 @@ FullSquareMatrixC HelmIsoParamTri::stiffness(CoordSet &cs,
 
 
 int
-HelmIsoParamTri::numNodes() {
+HelmIsoParamTri::numNodes() const {
   if(useFull)
     return (order*(order+1))/2;
   else

@@ -11,17 +11,17 @@ public:
 
 	CtcVirtualElt(int,int*);
 
-        Element *clone();
+        Element *clone() override;
 
-	void renum(int *);
-        void renum(EleRenumMap&);
-	void markDofs(DofSetArray &);
-	int* dofs(DofSetArray &, int *p=0);
-	int  numDofs();
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
+	void markDofs(DofSetArray &) override;
+	int* dofs(DofSetArray &, int *p) override;
+	 int numDofs() const override;
 	
-	int  numNodes();
-	int* nodes(int * = 0);
-	int  getTopNumber();
+	int numNodes() const override;
+	int* nodes(int * = 0) const override;
+	int getTopNumber() override;
 
 
 	FullSquareMatrix stiffness(CoordSet&,double *kel, int flg=1);

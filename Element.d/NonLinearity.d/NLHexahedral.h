@@ -17,7 +17,7 @@ class NLHexahedral : public SolidElementTemplate<Hex8LagrangePolynomialShapeFunc
   public:
     NLHexahedral(int *nd, bool isLinKin) : linearKinematics(isLinKin), SolidElementTemplate<Hex8LagrangePolynomialShapeFunction,8,8>(nd) {}
     StrainEvaluator* getStrainEvaluator();
-    int getTopNumber() { return 117; }
+    int getTopNumber() override { return 117; }
 };
 
 #endif

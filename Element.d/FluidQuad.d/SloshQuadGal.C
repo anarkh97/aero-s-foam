@@ -126,13 +126,13 @@ SloshQuadGal::stiffness(CoordSet &cs,double *Ks, int)
 }
 
 int
-SloshQuadGal::numNodes()
+SloshQuadGal::numNodes() const
 {
  	return 4;
 }
 
 int*
-SloshQuadGal::nodes(int *p)
+SloshQuadGal::nodes(int *p) const
 {
  	if(p == 0) p = new int[4];
  	p[0] = nn[0];
@@ -143,7 +143,7 @@ SloshQuadGal::nodes(int *p)
 }
 
 int
-SloshQuadGal::numDofs()
+SloshQuadGal::numDofs() const
 {
  	return 4;
 }

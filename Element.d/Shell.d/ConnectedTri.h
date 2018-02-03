@@ -9,25 +9,25 @@ class ConnectedTri : public Element {
 public:
 	ConnectedTri(int*);
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+	void renum(int *) override;
+        void renum(EleRenumMap&) override;
 
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
 
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+         int numDofs() const override;
 
-        int              numNodes();
-        int*             nodes(int * = 0);
+        int numNodes() const override;
+        int * nodes(int *) const override;
 
         void             computeDisp(CoordSet&, State &, const InterpPoint &,
                                      double*, GeomState *gs);
 	void		 getFlLoad(CoordSet &, const InterpPoint &,
                                    double *flF, double *resF, GeomState *gs=0);
-	PrioInfo examine(int sub, MultiFront *);
-	int getTopNumber();
+	PrioInfo examine(int sub, MultiFront *) override;
+	int getTopNumber() override;
 
 };
 

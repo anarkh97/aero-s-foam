@@ -43,7 +43,7 @@ int *IsoParamQuadSommer::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-int *IsoParamQuadSommer::solidDofs(DofSetArray &dsa, int *p) {
+int *IsoParamQuadSommer::solidDofs(DofSetArray &dsa, int *p) const {
 
 	if (p == 0) p = new int[3 * order * order];
 	int i;
@@ -52,7 +52,7 @@ int *IsoParamQuadSommer::solidDofs(DofSetArray &dsa, int *p) {
 }
 
 
-int *IsoParamQuadSommer::wetDofs(DofSetArray &dsa, int *p) {
+int *IsoParamQuadSommer::wetDofs(DofSetArray &dsa, int *p) const {
 
 	if (p == 0) p = new int[order * order * 4];
 	int i;

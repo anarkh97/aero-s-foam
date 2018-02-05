@@ -37,21 +37,21 @@ class Penta26: public Element
      int numDofs() const override;
 
     int numNodes() const override;
-    int* nodes(int * = 0) const override;
+    int* nodes(int *) const override;
 
     int getTopNumber() override;
-    int numTopNodes();
+    int numTopNodes() override;
 
     PrioInfo examine(int sub, MultiFront *) override;
-    int nDecFaces() { return 5; }
+    int nDecFaces() const override { return 5; }
     int getDecFace(int iFace, int *fn);
 
     int getFace(int iFace, int *fn);
 
-    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
+    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame) override
       { cCoefs = coefs; cFrame = frame; }
 
-    double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
+   double* setCompositeData2(int, int, double*, double*, CoordSet&, double) override
       { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
                "              for Penta26 el.\n"); return (double *) 0;
       }

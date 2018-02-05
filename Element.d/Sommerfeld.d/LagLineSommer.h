@@ -17,7 +17,7 @@ public:
 	const int *getNodes() const override { return nn; }
 	int *getNodes() override { return nn; }
 
-	int numDofs() const { return order; }
+	int numDofs() const override { return order; }
 
 	int dim() const override { return 2; }
 

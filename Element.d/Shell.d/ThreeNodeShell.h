@@ -49,7 +49,7 @@ public:
 	               double *flF, double *resF, GeomState *gs) override;
 
 	int getTopNumber() override;
-	int nDecFaces() override { return 1;}
+	int nDecFaces() const override { return 1;}
 	int getDecFace(int iFace, int *fn) override { for(int i; i<3; i++) fn[i] = nn[i]; return 3; }
 
 	int getFace(int iFace, int *fn) override { return getDecFace(iFace,fn); }
@@ -62,7 +62,7 @@ public:
 	void getThermalForce(CoordSet& cs, Vector& ndTemps,Vector &elThermalForce,
 	                     int glfag, GeomState *gs) override;
 
-	bool isShell() override { return true; }
+	bool isShell() const override { return true; }
 
 	int getMassType() const override; // lumped only
 

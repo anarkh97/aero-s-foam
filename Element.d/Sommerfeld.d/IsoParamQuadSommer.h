@@ -17,11 +17,11 @@ public:
 	const int *getNodes() const override { return nn; }
 	int *getNodes() override { return nn; }
 
-	int numDofs() const { return order * order; }
+	int numDofs() const override { return order * order; }
 
-	int numSolidDofs() { return 3 * order * order; }
+	int numSolidDofs() const override { return 3 * order * order; }
 
-	int numWetDofs() { return 4 * order * order; }
+	int numWetDofs() const override { return 4 * order * order; }
 
 	int dim() const override { return 3; }
 
@@ -41,9 +41,9 @@ public:
 	}
 
 
-	int *wetDofs(DofSetArray &, int *p = 0) override;
+	int *wetDofs(DofSetArray &, int *p = 0) const override;
 
-	int *solidDofs(DofSetArray &, int *p = 0) override;
+	int *solidDofs(DofSetArray &, int *p = 0) const override;
 
 	void flipNormal() override;
 

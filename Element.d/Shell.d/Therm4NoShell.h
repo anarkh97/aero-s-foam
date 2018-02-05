@@ -9,7 +9,7 @@ class Therm4NoShell : public SuperElement
   public:
     Therm4NoShell(int *nodenums);
 
-    Element* clone();
+    Element* clone() override;
     int getTopNumber() override;
     PrioInfo examine(int sub, MultiFront *) override;
     bool hasRot(){return true;}

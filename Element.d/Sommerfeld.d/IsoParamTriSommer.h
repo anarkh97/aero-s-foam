@@ -19,17 +19,17 @@ public:
 
 	int numDofs() const override { return (order * (order + 1)) / 2; }
 
-	int numSolidDofs() override { return 3 * (order * (order + 1)) / 2; }
+	int numSolidDofs() const override { return 3 * (order * (order + 1)) / 2; }
 
-	int numWetDofs() override { return 2 * (order * (order + 1)); }
+	int numWetDofs() const override { return 2 * (order * (order + 1)); }
 
 	int dim() const override { return 3; }
 
 	int *dofs(DofSetArray &, int *p) override;
 
-	int *wetDofs(DofSetArray &, int *p) override;
+	int *wetDofs(DofSetArray &, int *p) const override;
 
-	int *solidDofs(DofSetArray &, int *p) override;
+	int *solidDofs(DofSetArray &, int *p) const override;
 
 	IsoParamTriSommer *clone() override;
 

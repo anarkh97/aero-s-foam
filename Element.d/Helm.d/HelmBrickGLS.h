@@ -36,7 +36,7 @@ public:
 	virtual double helmCoef() { return coef; }
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
-	int nDecFaces() { return 6;}
+	int nDecFaces() const override { return 6;}
 	int getDecFace(int iFace, int *fn);
 };
 #endif

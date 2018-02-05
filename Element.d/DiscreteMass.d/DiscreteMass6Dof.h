@@ -23,7 +23,7 @@ class DiscreteMass6Dof : public Element, public Corotator
     void renum(EleRenumMap&) override;
     int numNodes() const override { return 1; }
     int *nodes(int *) const override;
-    int numDofs() const { return 6; }
+    int numDofs() const override { return 6; }
     int* dofs(DofSetArray&, int* = 0);
     void markDofs(DofSetArray&);
     bool hasRot() { return true; }

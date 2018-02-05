@@ -40,17 +40,17 @@ public:
 	virtual const int *getNodes() const = 0;
 	virtual int *getNodes() = 0;
 
-	virtual int *nodes(int * = 0) const;
+	int *nodes(int * = 0) const override;
 
-	virtual int numWetDofs();
+	virtual int numWetDofs() const;
 
-	virtual int numSolidDofs();
+	virtual int numSolidDofs() const;
 
 	int dim() const override;
 
-	virtual int *wetDofs(DofSetArray &, int *p = 0);
+	virtual int *wetDofs(DofSetArray &, int *p = 0) const;
 
-	virtual int *solidDofs(DofSetArray &, int *p = 0);
+	virtual int *solidDofs(DofSetArray &, int *p = 0) const;
 
 	void markDofs(DofSetArray &) override;
 

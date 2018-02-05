@@ -93,7 +93,7 @@ public:
 
         // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *) override;
-        int nDecFaces() { return 1; }
+        int nDecFaces() const override { return 1; }
         int getDecFace(int iFace, int *fn) { for(int i=0; i<3; i++) fn[i] = nn[i]; return 3; }
 
         // Miscellaneous

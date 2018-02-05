@@ -795,22 +795,22 @@ SommerElement::ffp(CoordSet &cs, int numFFP, double *dirFFP,
 	fprintf(stderr, " *** WARNING: Attempting to use SommerElement::ffp\n");
 }
 
-int SommerElement::numWetDofs() {
+int SommerElement::numWetDofs() const {
 	fprintf(stderr, " *** WARNING: Attempting to use SommerElement::numWetDofs\n");
 	return 0;
 }
 
-int SommerElement::numSolidDofs() {
+int SommerElement::numSolidDofs() const {
 	fprintf(stderr, " *** WARNING: Attempting to use SommerElement::numSolidDofs\n");
 	return 0;
 }
 
-int *SommerElement::wetDofs(DofSetArray &, int *p) {
+int *SommerElement::wetDofs(DofSetArray &, int *p) const {
 	fprintf(stderr, " *** WARNING: Attempting to use SommerElement::wetDofs\n");
 	return 0;
 }
 
-int *SommerElement::solidDofs(DofSetArray &, int *p) {
+int *SommerElement::solidDofs(DofSetArray &, int *p) const {
 	fprintf(stderr, " *** WARNING: Attempting to use SommerElement::solidDofs\n");
 	return 0;
 }

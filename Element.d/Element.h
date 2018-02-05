@@ -577,7 +577,7 @@ public:
 	void setTrueWeight(double trueWeight) { _trueWeight = trueWeight; }
 
 	void getCG(CoordSet &cset, double &xcg, double &ycg, double &zcg);
-	virtual int nDecFaces() { return 0; }
+	virtual int nDecFaces() const { return 0; }
 	virtual int getDecFace(int iFace, int *fn) { return 0; }
 	// END FROM DEC
 
@@ -616,7 +616,7 @@ public:
 		return prop ? (omega*omega)*prop->soundSpeed*prop->soundSpeed : 0;
 	}
 
-	virtual bool isShell() { return false; }
+	virtual bool isShell() const { return false; }
 
 	virtual bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isFsiElement()); }
 	virtual bool isConstraintElementIeq() { return (isMpcElement() && prop->relop != 0); }

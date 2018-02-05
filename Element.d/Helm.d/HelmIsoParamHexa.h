@@ -28,13 +28,13 @@ public:
 	int getTopNumber() override {return 195;}
 	int numTopNodes() {return order*order*order;}
         int* dofs(DofSetArray &, int *p) override;
-        int numDofs() const { return order*order*order; }
+        int numDofs() const override { return order*order*order; }
         int numNodes() const override;
         int* nodes(int * = 0) const override;
 	void addFaces(PolygonSet *pset) override;
 
         PrioInfo examine(int sub, MultiFront *mf) override;
-        int nDecFaces() { return 6;}
+        int nDecFaces() const override { return 6;}
         int getDecFace(int iFace, int *fn);
 };
 #endif

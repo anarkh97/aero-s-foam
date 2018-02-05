@@ -46,7 +46,7 @@ public:
 	int getTopNumber() override;
 
 	PrioInfo examine(int sub, MultiFront *) override;
-	int nDecFaces() override { return 4; }
+	int nDecFaces() const override { return 4; }
 	int getDecFace(int iFace, int *fn) override;
 
 	int getFace(int iFace, int *fn) override;

@@ -36,7 +36,7 @@ public:
 	void            addFaces(PolygonSet *pset);
 
         int getTopNumber() override;
-        int numTopNodes();
+        int numTopNodes() override;
 
         PrioInfo examine(int sub, MultiFront *mf) override;
 };

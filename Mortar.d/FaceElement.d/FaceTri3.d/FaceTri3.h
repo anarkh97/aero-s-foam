@@ -30,7 +30,7 @@ class FaceTri3: public FaceElement {
         // Constructors
         // ~~~~~~~~~~~~
         FaceTri3(int *);
-        FaceElement* clone();
+        FaceElement* clone() override;
 
         // Setup & update methods
         // ~~~~~~~~~~~~~~~~~~~~~~
@@ -169,7 +169,7 @@ class FaceTri3: public FaceElement {
         // -> implementation of pure virtual fcts
         void print();
 
-        int numDofs() const {return 9;}
+        int numDofs() const override {return 9;}
         int* dofs(DofSetArray &dsa, int *p, int *fnId); 
         void computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, GeomState*, int *fnId); 
         void getFlLoad(const InterpPoint &ip, double *flF, double *resF); 

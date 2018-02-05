@@ -17,9 +17,9 @@ public:
 	const int *getNodes() const override { return nn; }
 	int *getNodes() override { return nn; }
 
-	int numDofs() const { return order; }
+	int numDofs() const override { return order; }
 
-	int numWetDofs() { return 3 * order; }
+	int numWetDofs() const override { return 3 * order; }
 
 	int dim() const override { return 2; }
 
@@ -36,7 +36,7 @@ public:
 		return fc;
 	}
 
-	int *wetDofs(DofSetArray &, int *p = 0);
+	int *wetDofs(DofSetArray &, int *p = 0) const override;
 
 	void neumVector(CoordSet &, ComplexVector &,
 	                double, double, double, double, int pflag = 0);

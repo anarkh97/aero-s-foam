@@ -54,7 +54,7 @@ int *IsoParamTriSommer::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-int *IsoParamTriSommer::solidDofs(DofSetArray &dsa, int *p) {
+int *IsoParamTriSommer::solidDofs(DofSetArray &dsa, int *p) const {
 
 	IsoParamUtilsTetra ipu(order);
 	int ordersq = ipu.getordersq();
@@ -67,7 +67,7 @@ int *IsoParamTriSommer::solidDofs(DofSetArray &dsa, int *p) {
 }
 
 
-int *IsoParamTriSommer::wetDofs(DofSetArray &dsa, int *p) {
+int *IsoParamTriSommer::wetDofs(DofSetArray &dsa, int *p) const {
 
 	IsoParamUtilsTetra ipu(order);
 	int ordersq = ipu.getordersq();

@@ -46,15 +46,15 @@ class Brick32: public Element
     int getTopNumber() override;
 
     PrioInfo examine(int sub, MultiFront *) override;
-    int nDecFaces() { return 6; }
+    int nDecFaces() const override { return 6; }
     int getDecFace(int iFace, int *fn);
 
     int getFace(int iFace, int *fn);
 
-    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
+    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame) override
       { cCoefs = coefs; cFrame = frame; }
 
-    double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
+   double* setCompositeData2(int, int, double*, double*, CoordSet&, double) override
       { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
                 "              for Hexa32 el.\n"); return (double *) 0;
       }

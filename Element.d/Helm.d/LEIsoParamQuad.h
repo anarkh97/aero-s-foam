@@ -27,7 +27,7 @@ public:
 //	int getTopNumber() override {return 195;}
         int numTopNodes() {return order*order;}
         int* dofs(DofSetArray &, int *p) override;
-        int numDofs() const { return 2*order*order; }
+        int numDofs() const override { return 2*order*order; }
         int numNodes() const override;
         int* nodes(int * = 0) const override;
 

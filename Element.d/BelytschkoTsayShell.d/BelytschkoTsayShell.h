@@ -93,12 +93,12 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
 
     int getTopNumber() override;
     void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState* gs = 0, int cflg = 0, double t = 0);
+                              GeomState* gs = 0, int cflg = 0, double t = 0) override;
               
     void getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce, 
                          int glfag, GeomState* gs = 0);
                                         
-    bool isShell() { return true; }
+    bool isShell() const override { return true; }
 
     int getMassType() const override { return 0; } // lumped only
 

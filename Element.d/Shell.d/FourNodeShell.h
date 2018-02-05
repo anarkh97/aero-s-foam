@@ -8,11 +8,11 @@ class FourNodeShell : public SuperElement
   public:
     FourNodeShell(int *nodenums);
 
-    Element* clone();
+    Element* clone() override;
     int getTopNumber() override;
-    bool isShell() { return true; }
+    bool isShell() const override { return true; }
 
-    int nDecFaces() { return 1;}
+    int nDecFaces() const override { return 1;}
     int getDecFace(int iFace, int *fn) { for(int i=0; i<4; i++) fn[i] = nn[i]; return 4; }
 
     int getFace(int iFace, int *fn) { return getDecFace(iFace,fn); }

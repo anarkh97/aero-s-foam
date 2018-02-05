@@ -28,7 +28,7 @@ public:
 	int * nodes(int *) const override;
 	int getTopNumber() override;
 	PrioInfo examine(int sub, MultiFront *) override;
-	int nDecFaces() { return 4;}
+	int nDecFaces() const override { return 4;}
 	int getDecFace(int iFace, int *fn);
 
 	void            addFaces(PolygonSet *pset);

@@ -59,15 +59,15 @@ class Tetrahedral: public Element,
     int getTopNumber() override;
 
     PrioInfo examine(int sub, MultiFront *) override;
-    int nDecFaces() { return 4; }
+    int nDecFaces() const override { return 4; }
     int getDecFace(int iFace, int *fn);
 
     int getFace(int iFace, int *fn) { return getDecFace(iFace,fn); }
 
-    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
+    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame) override
       { cCoefs = coefs; cFrame = frame; }
 
-    double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
+   double* setCompositeData2(int, int, double*, double*, CoordSet&, double) override
       { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
                 "              for Tetrahedral el.\n"); return (double *) 0;
       }

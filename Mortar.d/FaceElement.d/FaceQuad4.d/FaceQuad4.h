@@ -30,7 +30,7 @@ class FaceQuad4: public FaceElement {
         // Constructors
         // ~~~~~~~~~~~~
         FaceQuad4(int *);
-        FaceElement* clone();
+        FaceElement* clone() override;
 
         // Setup & update methods
         // ~~~~~~~~~~~~~~~~~~~~~~
@@ -151,7 +151,7 @@ class FaceQuad4: public FaceElement {
         // -> implementation of pure virtual fcts
         void print();
 
-        int numDofs() const {return 12;}
+        int numDofs() const override {return 12;}
         int* dofs(DofSetArray &dsa, int *p, int *fnId); 
         void computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, GeomState*, int *fnId); 
         void getFlLoad(const InterpPoint &ip, double *flF, double *resF); 

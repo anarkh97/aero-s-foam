@@ -39,7 +39,7 @@ int *IsoParamLineSommer::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-int *IsoParamLineSommer::wetDofs(DofSetArray &dsa, int *p) {
+int *IsoParamLineSommer::wetDofs(DofSetArray &dsa, int *p) const {
 
 	if (p == 0) p = new int[order * 3];
 	int i;

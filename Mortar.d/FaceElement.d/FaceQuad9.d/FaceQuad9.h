@@ -30,7 +30,7 @@ class FaceQuad9: public FaceElement {
         // Constructors
         // ~~~~~~~~~~~~
         FaceQuad9(int *);
-        FaceElement* clone();
+        FaceElement* clone() override;
 
         // Setup & update methods
         // ~~~~~~~~~~~~~~~~~~~~~~

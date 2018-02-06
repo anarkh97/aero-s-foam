@@ -108,7 +108,7 @@ int* DEMInterfaceElement::nodes(int *p) const {
 }
 
 
-int* DEMElement::dofs(DofSetArray &dsa, int *p) {
+int* DEMElement::dofs(DofSetArray &dsa, int *p) const  {
 
  if (p == 0) p = new int[numDofs()];
  int ii=0;
@@ -136,7 +136,7 @@ int* DEMElement::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-int* DEMInterfaceElement::dofs(DofSetArray &dsa, int *p) {
+int* DEMInterfaceElement::dofs(DofSetArray &dsa, int *p) const  {
 
  if (p == 0) p = new int[numDofs()];
  int ii=0;
@@ -167,7 +167,7 @@ int* DEMInterfaceElement::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void DEMElement::markDofs(DofSetArray &dsa) {
+void DEMElement::markDofs(DofSetArray &dsa) const {
 
  if (!dgmFlag())
    for(int i=0;i<nGeomNodes();i++) { dsa.mark(nn[i],polyDofType());
@@ -188,7 +188,7 @@ void DEMElement::markDofs(DofSetArray &dsa) {
 }
 
 
-void DEMInterfaceElement::markDofs(DofSetArray &dsa) {
+void DEMInterfaceElement::markDofs(DofSetArray &dsa) const {
 
  if (!deme->dgmFlag())
    for(int i=0;i<deme->nGeomNodes();i++) dsa.mark(deme->nn[i],deme->polyDofType());

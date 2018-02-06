@@ -88,7 +88,7 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 int *
 PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
-::dofs(DofSetArray &dsa, int *p) {
+::dofs(DofSetArray &dsa, int *p) const  {
 	if (p == 0) p = new int[numDofs()];
 	for (int i = 0; i < nterms; i++)
 		dsa.number(terms[i].nnum, 1 << terms[i].dofnum, p + i);
@@ -98,7 +98,7 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 void
 PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
-::markDofs(DofSetArray &dsa) {
+::markDofs(DofSetArray &dsa) const {
 	for (int i = 0; i < nterms; i++)
 		dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);
 }

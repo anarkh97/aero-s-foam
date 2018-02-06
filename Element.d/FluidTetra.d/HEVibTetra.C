@@ -134,7 +134,7 @@ HEVibTetra::numDofs() const
 }
 
 int*
-HEVibTetra::dofs(DofSetArray &dsa, int *p)
+HEVibTetra::dofs(DofSetArray &dsa, int *p) const
 {
 	if(p == 0) p = new int[4];
 
@@ -147,7 +147,7 @@ HEVibTetra::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-HEVibTetra::markDofs(DofSetArray &dsa)
+HEVibTetra::markDofs(DofSetArray &dsa) const
 {
 
 	dsa.mark(nn[0],DofSet::Potential);

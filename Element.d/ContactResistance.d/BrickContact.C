@@ -191,7 +191,7 @@ BrickContact::numDofs() const
 }
 
 int*
-BrickContact::dofs(DofSetArray &dsa, int *p)
+BrickContact::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[8];
 
@@ -208,7 +208,7 @@ BrickContact::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-BrickContact::markDofs(DofSetArray &dsa)
+BrickContact::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 8, DofSet::Temp);
 }

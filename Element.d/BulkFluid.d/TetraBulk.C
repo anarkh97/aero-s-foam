@@ -175,7 +175,7 @@ TetraBulk::numDofs() const
 }
 
 int*
-TetraBulk::dofs(DofSetArray &dsa, int *p)
+TetraBulk::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[4];
 
@@ -188,7 +188,7 @@ TetraBulk::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-TetraBulk::markDofs(DofSetArray &dsa)
+TetraBulk::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 4, DofSet::Temp);
 }

@@ -52,7 +52,7 @@ public:
 
 	virtual int *solidDofs(DofSetArray &, int *p = 0) const;
 
-	void markDofs(DofSetArray &) override;
+	void markDofs(DofSetArray &) const override;
 
 	void renum(int *) override;
 

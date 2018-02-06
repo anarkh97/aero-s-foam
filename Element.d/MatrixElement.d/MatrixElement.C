@@ -78,13 +78,13 @@ MatrixElement::renum(EleRenumMap& m)
 }
 
 void 
-MatrixElement::markDofs(DofSetArray &dsa)
+MatrixElement::markDofs(DofSetArray &dsa) const
 {
   for(int i=0; i<nnodes;  ++i)
     dsa.mark(nn[i], alldofs[i].list());
 }
 
-int* MatrixElement::dofs(DofSetArray &dsa, int *p)
+int* MatrixElement::dofs(DofSetArray &dsa, int *p) const
 {
   if(!p) p = new int[ndofs];
   int offset = 0;

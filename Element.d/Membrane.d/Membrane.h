@@ -17,7 +17,7 @@ public:
 
         FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
         FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
-        double getMass(const CoordSet& cs) const;
+        double getMass(const CoordSet& cs) const override;
         void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg,
                              GeomState *gs);
         void getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
@@ -27,8 +27,8 @@ public:
                           Vector& elDisp, int strInd, int surface=0,
                           double *ndTemps=0);
 
-        void markDofs(DofSetArray &) override;
-        int* dofs(DofSetArray &, int *p) override;
+        void markDofs(DofSetArray &) const override;
+        int* dofs(DofSetArray &, int *p) const override;
          int numDofs() const override;
 
         int numNodes() const;
@@ -45,7 +45,7 @@ public:
 
 #ifdef USE_EIGEN3
         // NEW STRUCTOPT 
-        double getMassThicknessSensitivity(CoordSet& cs);
+        double getMassThicknessSensitivity(CoordSet& cs) override;
         void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet&, double *gravityAcceleration,
                                                 int senMethod = 1);
         void getGravityForceThicknessSensitivity(CoordSet&, double *gravity, int senMethod, Vector&, int gravflg,

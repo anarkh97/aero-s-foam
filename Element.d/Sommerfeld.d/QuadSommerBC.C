@@ -306,7 +306,7 @@ void QuadSommerBC::GaussCoordinates(int Ngp, double *Pg, double *weight) const {
 #include<Driver.d/Domain.h>
 
 int *
-QuadSommerBC::dofs(DofSetArray &dsa, int *p) {
+QuadSommerBC::dofs(DofSetArray &dsa, int *p) const  {
 	double numD = -2.0;
 	if (dom) numD = dom->solInfo().ATDARBFlag;
 	if (numD == 1.5) {
@@ -339,7 +339,7 @@ int QuadSommerBC::numDofs() const {
 }
 
 void
-QuadSommerBC::markDofs(DofSetArray &dsa) {
+QuadSommerBC::markDofs(DofSetArray &dsa) const {
 	double numD = (dom) ? dom->solInfo().ATDARBFlag : 0.0;
 	if (numD == 1.5) {
 		dsa.mark(nn[0], DofSet::Helm);

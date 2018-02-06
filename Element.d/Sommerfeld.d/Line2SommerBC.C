@@ -22,7 +22,7 @@ Line2SommerBC *Line2SommerBC::clone() {
 
 
 int *
-Line2SommerBC::dofs(DofSetArray &dsa, int *p) {
+Line2SommerBC::dofs(DofSetArray &dsa, int *p) const  {
 	if (p == 0) p = new int[3];
 
 	dsa.number(nn[0], DofSet::Helm, p);

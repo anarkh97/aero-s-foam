@@ -50,11 +50,11 @@ public:
         void renum(EleRenumMap&) override {
           fprintf(stderr,"DecGluedElement::renum not implemented\n");
         }
-        int* dofs(DofSetArray &, int *p) override {
+        int* dofs(DofSetArray &, int *p) const override {
           fprintf(stderr,"DecGluedElement::dofs not implemented\n");
           return 0;
         }
-        void markDofs(DofSetArray &) override {
+        void markDofs(DofSetArray &) const override {
           fprintf(stderr,"DecGluedElement::markDofs not implemented\n");
         }
         int numDofs() const override{

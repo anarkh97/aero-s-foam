@@ -24,8 +24,8 @@ class DEMLM {
 public:
 	DEMElement *e1,*e2;
 	int nOffset;
-	virtual int type()=0;
-	virtual int nDofs()=0;
+	virtual int type()const =0;
+	virtual int nDofs()const=0;
 	virtual void init()=0;
 	int setNodeOffset(int j) { nOffset = j; return(0); }
 	int getNodeOffset() { return nOffset; }
@@ -61,7 +61,7 @@ public:
 		if (demm.C) delete[] demm.C;
 		if (demm.f) delete[] demm.f;
 	}
-	virtual int defaultLMType()=0;
+	virtual int defaultLMType() const =0;
 	virtual bool condensedFlag() const =0;
 	virtual bool dgmFlag() const = 0;
 	virtual bool storeMatricesFlag()=0;
@@ -170,25 +170,26 @@ public:
 	                           complex<double>(*nodalSol)[8]);
 	complex<double> *forceVector;
 // Element functions 
-	virtual void renum(int *) override;
-	virtual void renum(EleRenumMap&) override;
-	virtual int numDofs() const override {
+	void renum(int *) override;
+	void renum(EleRenumMap&) override;
+	int numDofs() const override {
 		return ( (dgmFlag())?0:nPolynomialDofs() ) +
 		       ( (condensedFlag())?0:nEnrichmentDofs() ) +
 		       nLagrangeDofs() ;
 	}
-	virtual int polyDofType()=0;
-	virtual int polyDofsPerNode()=0;
-	virtual void markDofs(DofSetArray &) override;
-	virtual int* dofs(DofSetArray &, int *p) override;
-	virtual int numNodes() const override {
+	virtual int polyDofType() const = 0;
+	virtual int polyDofsPerNode() const = 0;
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p) const override;
+	int numNodes() const override {
 		return ( (dgmFlag())?0:nGeomNodes() ) +
 		       ( (condensedFlag())?0:nEnrichmentDofs() )+
 		       ( nLagrangeDofs() );
 	}
-	virtual int* nodes(int * = 0) const override;
-	virtual FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
-	virtual FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
+
+	int* nodes(int * = 0) const override;
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
+	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
 
 // Interface
 	virtual double getOmega() { return geoSource->omega(); }
@@ -231,9 +232,9 @@ public:
 	int numDofs() const override { return deme->numDofs()-deme->nLagrangeDofs()+
 	                                      deme2->numDofs()-deme2->nLagrangeDofs(); }
 
-	int* dofs(DofSetArray &, int *p) override;
+	int* dofs(DofSetArray &, int *p) const override;
 
-	void markDofs(DofSetArray &) override;
+	void markDofs(DofSetArray &) const override;
 	int numNodes() const override { return deme->numNodes()-deme->nLagrangeDofs()+
 				deme2->numNodes()-deme2->nLagrangeDofs(); }
 	virtual int* nodes(int *) const override;

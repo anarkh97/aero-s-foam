@@ -507,7 +507,7 @@ Penta15::nodes(int *p) const
 }
 
 int*
-Penta15::dofs(DofSetArray &dsa, int *p)
+Penta15::dofs(DofSetArray &dsa, int *p) const
 {
   if(!p) p = new int[45];
 
@@ -518,7 +518,7 @@ Penta15::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Penta15::markDofs(DofSetArray &dsa)
+Penta15::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, numNodes(), DofSet::XYZdisp);
 }

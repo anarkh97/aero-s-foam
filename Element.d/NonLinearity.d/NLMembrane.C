@@ -402,7 +402,7 @@ NLMembrane::nodes(int *nd) const
 }
 
 int *
-NLMembrane::dofs(DofSetArray &dsa, int*df)
+NLMembrane::dofs(DofSetArray &dsa, int*df) const
 {
   if(df == 0) df = new int[9];
   dsa.number(n[0], DofSet::XYZdisp, df);
@@ -434,7 +434,7 @@ NLMembrane::getShapeFunction() const
 }
 
 void
-NLMembrane::markDofs(DofSetArray &dsa)
+NLMembrane::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(n, 3, DofSet::XYZdisp);
 }

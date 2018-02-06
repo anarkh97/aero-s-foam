@@ -80,7 +80,7 @@ else {
 }
 
 
-int* ThermIsoParamHexa::dofs(DofSetArray &dsa, int *p) {
+int* ThermIsoParamHexa::dofs(DofSetArray &dsa, int *p) const  {
  int i;
  int orderc = order*order*order;
  if(p == 0) p = new int[orderc];
@@ -91,7 +91,7 @@ int* ThermIsoParamHexa::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void ThermIsoParamHexa::markDofs(DofSetArray &dsa) {
+void ThermIsoParamHexa::markDofs(DofSetArray &dsa) const {
 
  int i;
  int orderc = order*order*order;

@@ -376,7 +376,7 @@ FaceTri3::print()
 // -----------------------------------------------------------------------------------------------------
 //                                            FS COMMUNICATION (KW) 
 // -----------------------------------------------------------------------------------------------------
-int* FaceTri3::dofs(DofSetArray &dsa, int *p, int *fnId) 
+int* FaceTri3::dofs(DofSetArray &dsa, int *p, int *fnId) const
 {
   if(p == 0) p = new int[9];
   dsa.number(fnId[Nodes[0]], DofSet::XYZdisp, p);

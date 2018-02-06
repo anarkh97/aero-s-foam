@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <Math.d/DBSparseMatrix.h>
 #include <Utils.d/linkfc.h>
+#include <Utils.d/dbg_alloca.h>
 #include <Math.d/Vector.h>
 #include <Driver.d/Communicator.h>
 

@@ -42,8 +42,8 @@ public:
 	void setInternalNodes(int*) override;
 
 	 int numDofs() const override;
-	int* dofs(DofSetArray&, int*) override;
-	void markDofs(DofSetArray&) override;
+	int* dofs(DofSetArray&, int*) const override;
+	void markDofs(DofSetArray &dsa) const override;
 
 	bool hasRot() override;
 

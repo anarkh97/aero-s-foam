@@ -269,7 +269,7 @@ HelmBrickGLS::numDofs() const
 }
 
 int*
-HelmBrickGLS::dofs(DofSetArray &dsa, int *p)
+HelmBrickGLS::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[8];
 
@@ -286,7 +286,7 @@ HelmBrickGLS::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-HelmBrickGLS::markDofs(DofSetArray &dsa)
+HelmBrickGLS::markDofs(DofSetArray &dsa) const
 {
  	dsa.mark(nn[0],DofSet::Helm);
  	dsa.mark(nn[1],DofSet::Helm);

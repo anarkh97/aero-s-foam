@@ -29,7 +29,7 @@ public:
 
         FullSquareMatrix stiffness(const CoordSet& cs, double *d, int flg) const override;
 
-        FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg=1) const;
+        FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg=1) const override;
 
         void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg,
 	                     GeomState *gs);
@@ -52,8 +52,8 @@ public:
         void setMaterial(NLMaterial *) override;
         int numStates();
 
-	void markDofs(DofSetArray &) override;
-        int* dofs(DofSetArray &, int *p) override;
+	void markDofs(DofSetArray &) const override;
+        int* dofs(DofSetArray &, int *p) const override;
          int numDofs() const override;
 	int getTopNumber() override;
 
@@ -102,7 +102,7 @@ public:
         int getMassType() const override { return 0; } // lumped only
 
         // NEW STRUCTOPT 
-        double getMassThicknessSensitivity(CoordSet& cs);
+        double getMassThicknessSensitivity(CoordSet& cs) override;
         void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet&, double *gravityAcceleration);
         void getGravityForceThicknessSensitivity(CoordSet&, double *gravity, Vector&, int gravflg,
                                                  GeomState *gs = 0);

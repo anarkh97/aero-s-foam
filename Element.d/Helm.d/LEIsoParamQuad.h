@@ -23,10 +23,10 @@ public:
         Element *clone() override;
         void renum(int *) override;
         void renum(EleRenumMap&) override;
-        void markDofs(DofSetArray &) override;
+        void markDofs(DofSetArray &) const override;
 //	int getTopNumber() override {return 195;}
         int numTopNodes() {return order*order;}
-        int* dofs(DofSetArray &, int *p) override;
+        int* dofs(DofSetArray &, int *p) const override;
         int numDofs() const override { return 2*order*order; }
         int numNodes() const override;
         int* nodes(int * = 0) const override;

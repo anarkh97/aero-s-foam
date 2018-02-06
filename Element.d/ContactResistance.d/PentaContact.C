@@ -140,7 +140,7 @@ PentaContact::numDofs() const
 }
 
 int*
-PentaContact::dofs(DofSetArray &dsa, int *p)
+PentaContact::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[6];
 
@@ -155,7 +155,7 @@ PentaContact::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-PentaContact::markDofs(DofSetArray &dsa)
+PentaContact::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 6, DofSet::Temp);
 }

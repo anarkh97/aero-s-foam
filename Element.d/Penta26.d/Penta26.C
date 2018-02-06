@@ -530,7 +530,7 @@ Penta26::nodes(int *p) const
 }
 
 int*
-Penta26::dofs(DofSetArray &dsa, int *p)
+Penta26::dofs(DofSetArray &dsa, int *p) const
 {
   if(!p) p = new int[78];
 
@@ -541,7 +541,7 @@ Penta26::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Penta26::markDofs(DofSetArray &dsa)
+Penta26::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, numNodes(), DofSet::XYZdisp);
 }

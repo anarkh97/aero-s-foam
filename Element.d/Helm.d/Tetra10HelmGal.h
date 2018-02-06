@@ -27,10 +27,10 @@ public:
 	void getNormalDeriv(CoordSet&,ComplexD *uel, int ns, int *s, ComplexD*,
 	                    double kappa, double *waveDir);
 	FullSquareMatrix massMatrix(const CoordSet&,double *mel,int cmflg=1) const;
-	double getMass(const CoordSet& cs) const;
+	double getMass(const CoordSet& cs) const override;
 
-	void markDofs(DofSetArray &);
-	int* dofs(DofSetArray &, int *p=0);
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p=0) const override;
 	int numDofs() const override;
 
 	int             numNodes() const override;

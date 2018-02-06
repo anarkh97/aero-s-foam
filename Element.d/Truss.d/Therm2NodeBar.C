@@ -159,7 +159,7 @@ Therm2NodeBar::numDofs() const
 }
 
 int *
-Therm2NodeBar::dofs(DofSetArray &dsa, int *p)
+Therm2NodeBar::dofs(DofSetArray &dsa, int *p) const
 {
 	if(p == 0) p = new int[2];
 
@@ -170,7 +170,7 @@ Therm2NodeBar::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Therm2NodeBar::markDofs( DofSetArray &dsa )
+Therm2NodeBar::markDofs(DofSetArray& dsa) const
 {
 	dsa.mark( nn, 2, DofSet::Temp);
 }

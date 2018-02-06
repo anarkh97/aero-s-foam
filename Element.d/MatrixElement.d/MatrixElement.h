@@ -28,8 +28,8 @@ class MatrixElement : public Element
 
     void renum(int *table) override;
     void renum(EleRenumMap& m) override;
-    void markDofs(DofSetArray &) override;
-    int* dofs(DofSetArray &, int *p) override;
+    void markDofs(DofSetArray &) const override;
+    int* dofs(DofSetArray &, int *p) const override;
     int* nodes(int *) const override;
 
     FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg) const override;

@@ -149,7 +149,7 @@ HEVibQuadGal::numDofs() const
 }
 
 int*
-HEVibQuadGal::dofs(DofSetArray &dsa, int *p)
+HEVibQuadGal::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[4];
 
@@ -162,7 +162,7 @@ HEVibQuadGal::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-HEVibQuadGal::markDofs(DofSetArray &dsa)
+HEVibQuadGal::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 4, DofSet::Potential);
 }

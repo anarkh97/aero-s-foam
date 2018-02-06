@@ -26,7 +26,7 @@ LagLineSommer *LagLineSommer::clone() {
 }
 
 
-int *LagLineSommer::dofs(DofSetArray &dsa, int *p) {
+int *LagLineSommer::dofs(DofSetArray &dsa, int *p) const  {
 
 	if (p == 0) p = new int[order];
 	int i;

@@ -1037,7 +1037,7 @@ FelippaShell::numDofs() const
 }
 
 int*
-FelippaShell::dofs(DofSetArray &dsa, int *p)
+FelippaShell::dofs(DofSetArray &dsa, int *p) const
 {
   if(p == 0) p = new int[18];
 
@@ -1049,7 +1049,7 @@ FelippaShell::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-FelippaShell::markDofs(DofSetArray &dsa)
+FelippaShell::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot);
 }

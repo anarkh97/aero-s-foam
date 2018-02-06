@@ -36,8 +36,8 @@ public:
 	void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
 	                  int surface, double *ndTemps) override;
 
-	void markDofs(DofSetArray &) override;
-	int* dofs(DofSetArray &, int *p) override;
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	 int numDofs() const override;
 
 	int numNodes() const override;

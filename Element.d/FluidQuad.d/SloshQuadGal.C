@@ -149,7 +149,7 @@ SloshQuadGal::numDofs() const
 }
 
 int*
-SloshQuadGal::dofs(DofSetArray &dsa, int *p)
+SloshQuadGal::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[4];
 
@@ -162,7 +162,7 @@ SloshQuadGal::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-SloshQuadGal::markDofs(DofSetArray &dsa)
+SloshQuadGal::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 4, DofSet::Potential);
 }

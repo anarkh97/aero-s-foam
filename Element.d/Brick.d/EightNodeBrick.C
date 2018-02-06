@@ -575,7 +575,7 @@ EightNodeBrick::nodes(int *p) const
 }
 
 int*
-EightNodeBrick::dofs(DofSetArray &dsa, int *p)
+EightNodeBrick::dofs(DofSetArray &dsa, int *p) const
 {
   if(!p) p = new int[numDofs()];
 
@@ -592,7 +592,7 @@ EightNodeBrick::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-EightNodeBrick::markDofs(DofSetArray &dsa)
+EightNodeBrick::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, numNodes(), DofSet::XYZdisp);
 }

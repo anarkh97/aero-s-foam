@@ -171,7 +171,7 @@ TetraHelmGLS::numDofs() const
 }
 
 int*
-TetraHelmGLS::dofs(DofSetArray &dsa, int *p)
+TetraHelmGLS::dofs(DofSetArray &dsa, int *p) const
 {
 	if(p == 0) p = new int[4];
 
@@ -184,7 +184,7 @@ TetraHelmGLS::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-TetraHelmGLS::markDofs(DofSetArray &dsa)
+TetraHelmGLS::markDofs(DofSetArray &dsa) const
 {
 
 	dsa.mark(nn[0],DofSet::Helm);

@@ -20,9 +20,9 @@ public:
 
 	int dim() const override { return 3; }
 
-	int *dofs(DofSetArray &, int *p = 0) override;
+	int *dofs(DofSetArray &, int *p = 0) const override;
 
-	void markDofs(DofSetArray &) override;
+	void markDofs(DofSetArray &) const override;
 
 	TriangleSommerBC *clone() override;
 

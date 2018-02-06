@@ -5,27 +5,27 @@
 
 class PentaBulk: public virtual Element {
 
-        int nn[5];
+	int nn[5];
 public:
-        PentaBulk(int*);
+	explicit PentaBulk(int*);
 
-        Element *clone() override;
+	Element *clone() override;
 
-        void renum(int *) override;
-        void renum(EleRenumMap&) override;
+	void renum(int *) override;
+	void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(const CoordSet& cs, double *d, int flg) const override;
-        FullSquareMatrix massMatrix(const CoordSet& cs,double *d, int cmflg) const override;
-        double getMass(const CoordSet&) const;
+	FullSquareMatrix stiffness(const CoordSet& cs, double *d, int flg) const override;
+	FullSquareMatrix massMatrix(const CoordSet& cs,double *d, int cmflg) const override;
+	double getMass(const CoordSet&) const override;
 
-        void  markDofs(DofSetArray &);
-        int*  dofs(DofSetArray &, int *p=0);
-         int numDofs() const override;
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p) const override;
+	int numDofs() const override;
 
-        int numNodes() const override;
-        int * nodes(int *) const override;
-        int getTopNumber() override;
-        PrioInfo examine(int sub, MultiFront *) override;
+	int numNodes() const override;
+	int * nodes(int *) const override;
+	int getTopNumber() override;
+	PrioInfo examine(int sub, MultiFront *) override;
 };
 
 #endif

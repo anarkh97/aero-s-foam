@@ -211,7 +211,7 @@ HelmQuadGls::numDofs() const
 }
 
 int*
-HelmQuadGls::dofs(DofSetArray &dsa, int *p)
+HelmQuadGls::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[4];
 
@@ -225,7 +225,7 @@ HelmQuadGls::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-HelmQuadGls::markDofs(DofSetArray &dsa)
+HelmQuadGls::markDofs(DofSetArray &dsa) const
 {
  	dsa.mark(nn[0],DofSet::Helm);
  	dsa.mark(nn[1],DofSet::Helm);

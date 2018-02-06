@@ -17,10 +17,10 @@ public:
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg = 1) const;
 	FullSquareMatrix acousticm(CoordSet&, double *d);
         FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
-	double getMass(const CoordSet& cs) const;
+	double getMass(const CoordSet& cs) const override;
 
-	void markDofs(DofSetArray &) override;
-        int* dofs(DofSetArray &, int *p) override;
+	void markDofs(DofSetArray &) const override;
+        int* dofs(DofSetArray &, int *p) const override;
          int numDofs() const override;
 
         int numNodes() const override;

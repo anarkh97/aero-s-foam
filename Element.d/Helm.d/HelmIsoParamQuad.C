@@ -69,7 +69,7 @@ int* HelmIsoParamQuad::nodes(int *p) const {
 }
 
 
-int* HelmIsoParamQuad::dofs(DofSetArray &dsa, int *p) {
+int* HelmIsoParamQuad::dofs(DofSetArray &dsa, int *p) const  {
 
  int i;
  int ordersq = order*order;
@@ -79,7 +79,7 @@ int* HelmIsoParamQuad::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void HelmIsoParamQuad::markDofs(DofSetArray &dsa) {
+void HelmIsoParamQuad::markDofs(DofSetArray &dsa) const {
 
  int i;
  int ordersq = order*order;

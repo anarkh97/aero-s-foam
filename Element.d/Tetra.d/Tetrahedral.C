@@ -866,7 +866,7 @@ Tetrahedral::nodes(int *p) const
 }
 
 int*
-Tetrahedral::dofs(DofSetArray &dsa, int *p)
+Tetrahedral::dofs(DofSetArray &dsa, int *p) const
 {
   if(!p) p = new int[numDofs()];
 
@@ -879,7 +879,7 @@ Tetrahedral::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Tetrahedral::markDofs(DofSetArray &dsa)
+Tetrahedral::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, numNodes(), DofSet::XYZdisp);
 }

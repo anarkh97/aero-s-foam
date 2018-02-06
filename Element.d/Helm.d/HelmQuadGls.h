@@ -19,8 +19,8 @@ public:
 	FullSquareMatrix  acousticm(CoordSet& cs, double *d) override;
 	FullSquareMatrix massMatrix(const CoordSet& cs,double *d, int cmflg) const override;
 
-	void markDofs(DofSetArray &) override;
-	int* dofs(DofSetArray &, int *p=0) override;
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p=0) const override;
 	int numDofs() const override;
 
 	int numNodes() const override;

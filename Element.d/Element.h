@@ -520,8 +520,8 @@ public:
 	                           double*)  {}
 	virtual void   getFlFlux(double[2], double *, double *) {}
 
-	virtual void   markDofs(DofSetArray &)= 0;
-	virtual int*   dofs(DofSetArray &, int *p=0)=0;
+	virtual void   markDofs(DofSetArray &) const = 0;
+	virtual int*   dofs(DofSetArray &, int *p=0) const =0;
 	virtual int    numDofs() const =0;
 
 	virtual int    numNodes() const = 0;

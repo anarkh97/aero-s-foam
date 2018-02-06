@@ -170,7 +170,7 @@ class FaceTri3: public FaceElement {
         void print();
 
         int numDofs() const override {return 9;}
-        int* dofs(DofSetArray &dsa, int *p, int *fnId); 
+        int* dofs(DofSetArray &dsa, int *p, int *fnId) const override;
         void computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, GeomState*, int *fnId); 
         void getFlLoad(const InterpPoint &ip, double *flF, double *resF); 
 

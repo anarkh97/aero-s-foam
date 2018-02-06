@@ -203,7 +203,7 @@ Therm3NoShell::numDofs() const
 }
 
 int*
-Therm3NoShell::dofs(DofSetArray &dsa, int *p)
+Therm3NoShell::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[3];
 
@@ -215,7 +215,7 @@ Therm3NoShell::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Therm3NoShell::markDofs(DofSetArray &dsa)
+Therm3NoShell::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 3, DofSet::Temp);
 }

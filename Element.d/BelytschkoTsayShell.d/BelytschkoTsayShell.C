@@ -530,7 +530,7 @@ BelytschkoTsayShell::numDofs() const
 }
 
 int*
-BelytschkoTsayShell::dofs(DofSetArray &dsa, int *p)
+BelytschkoTsayShell::dofs(DofSetArray &dsa, int *p) const
 {
   if(p == 0) p = new int[nndof*nnode];
 
@@ -541,7 +541,7 @@ BelytschkoTsayShell::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-BelytschkoTsayShell::markDofs(DofSetArray &dsa)
+BelytschkoTsayShell::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, nnode,  DofSet::XYZdisp | DofSet::XYZrot);
 }

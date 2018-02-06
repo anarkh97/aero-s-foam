@@ -385,7 +385,7 @@ EulerBeam::numDofs() const {
 }
 
 int *
-EulerBeam::dofs(DofSetArray &dsa, int *p) {
+EulerBeam::dofs(DofSetArray &dsa, int *p) const  {
 	if (p == 0) p = new int[12];
 
 	dsa.number(nn[0], DofSet::XYZdisp | DofSet::XYZrot, p);
@@ -395,7 +395,7 @@ EulerBeam::dofs(DofSetArray &dsa, int *p) {
 }
 
 void
-EulerBeam::markDofs(DofSetArray &dsa) {
+EulerBeam::markDofs(DofSetArray &dsa) const {
 	dsa.mark(nn, 2, DofSet::XYZdisp | DofSet::XYZrot);
 }
 

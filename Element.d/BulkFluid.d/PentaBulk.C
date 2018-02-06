@@ -305,7 +305,7 @@ PentaBulk::numDofs() const
 }
 
 int*
-PentaBulk::dofs(DofSetArray &dsa, int *p)
+PentaBulk::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[5];
 
@@ -319,7 +319,7 @@ PentaBulk::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-PentaBulk::markDofs(DofSetArray &dsa)
+PentaBulk::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 5, DofSet::Temp);
 }

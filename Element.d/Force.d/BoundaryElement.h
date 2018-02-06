@@ -35,8 +35,8 @@ class BoundaryElement : public Element, public Corotator
     int *nodes(int *) const override;
 
      int numDofs() const override;
-    int* dofs(DofSetArray&, int* = 0);
-    void markDofs(DofSetArray&);
+    int* dofs(DofSetArray&, int* = 0) const override;
+    void markDofs(DofSetArray&) const override;
 
     Corotator* getCorotator(CoordSet&, double*, int, int);
     double getElementEnergy(GeomState&, CoordSet&) { return 0; }

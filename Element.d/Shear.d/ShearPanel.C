@@ -669,7 +669,7 @@ ShearPanel::numDofs() const
 }
 
 int*
-ShearPanel::dofs(DofSetArray &dsa, int *p)
+ShearPanel::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[numDofs()];
 
@@ -682,7 +682,7 @@ ShearPanel::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-ShearPanel::markDofs(DofSetArray &dsa)
+ShearPanel::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 4, DofSet::XYZdisp);
 }

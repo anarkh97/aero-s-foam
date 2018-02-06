@@ -98,8 +98,8 @@ public:
 	void computeTemp(CoordSet &cs, State &state, double[2], double *res) override;
 	void getFlFlux(double[2], double *flF, double *res) override;
 
-	void markDofs(DofSetArray &dsa) override;
-	int* dofs(DofSetArray &dsa, int *p=0) override;
+	void markDofs(DofSetArray &dsa) const override;
+	int* dofs(DofSetArray &dsa, int *p=0) const override;
 	int numDofs() const override;
 	int numNodes() const override;
 	int* nodes(int *p=0) const override;

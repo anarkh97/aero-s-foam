@@ -128,7 +128,7 @@ TriangleRadiation::numDofs() const
 }
 
 int*
-TriangleRadiation::dofs(DofSetArray &dsa, int *p)
+TriangleRadiation::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[3];
 
@@ -140,7 +140,7 @@ TriangleRadiation::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-TriangleRadiation::markDofs(DofSetArray &dsa)
+TriangleRadiation::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 3, DofSet::Temp);
 }

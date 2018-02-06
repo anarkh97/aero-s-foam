@@ -4,9 +4,6 @@
 #include <Element.d/Element.h>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
-#include <Element.d/Sommerfeld.d/LineSommerBC.h>
-#include <Element.d/Sommerfeld.d/TriangleSommerBC.h>
-#include <Element.d/Sommerfeld.d/QuadSommerBC.h>
 
 #include <Parser.d/DecInit.h>
 

@@ -14,7 +14,7 @@ CurvedLine2SommerBC::CurvedLine2SommerBC(int n1, int n2, int n3, Element *_el) {
 
 
 int *
-CurvedLine2SommerBC::dofs(DofSetArray &dsa, int *p) {
+CurvedLine2SommerBC::dofs(DofSetArray &dsa, int *p) const  {
 	if (p == 0) p = new int[3];
 
 	dsa.number(nn[0], DofSet::Helm, p);

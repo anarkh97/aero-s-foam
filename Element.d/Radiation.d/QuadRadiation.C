@@ -124,7 +124,7 @@ QuadRadiation::numDofs() const
 }
 
 int*
-QuadRadiation::dofs(DofSetArray &dsa, int *p)
+QuadRadiation::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[4];
 
@@ -137,7 +137,7 @@ QuadRadiation::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-QuadRadiation::markDofs(DofSetArray &dsa)
+QuadRadiation::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 4, DofSet::Temp);
 }

@@ -61,7 +61,7 @@ int* LEIsoParamQuad::nodes(int *p) const {
 }
 
 
-int* LEIsoParamQuad::dofs(DofSetArray &dsa, int *p) {
+int* LEIsoParamQuad::dofs(DofSetArray &dsa, int *p) const  {
 
  int i;
  int ordersq = order*order;
@@ -71,7 +71,7 @@ int* LEIsoParamQuad::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void LEIsoParamQuad::markDofs(DofSetArray &dsa) {
+void LEIsoParamQuad::markDofs(DofSetArray &dsa) const {
 
  int i;
  int ordersq = order*order;

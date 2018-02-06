@@ -848,7 +848,7 @@ DofSetArray::mark(int node, int ds)
 }
 
 void
-DofSetArray::mark(int *node, int numNodes, int ds)
+DofSetArray::mark(const int *node, int numNodes, int ds)
 {
  int iNode;
  for(iNode=0; iNode<numNodes; ++iNode)

@@ -3,34 +3,34 @@
 
 #include <Element.d/Element.h>
 
-class RotnSprlink : public Element 
+class RotnSprlink : public Element
 {
-    int nn[2];
+	int nn[2];
 
-  public:
+public:
 
-    RotnSprlink(int*);
+	RotnSprlink(int*);
 
-    Element *clone() override;
+	Element *clone() override;
 
-    void renum(int *) override;
-        void renum(EleRenumMap&) override;
+	void renum(int *) override;
+	void renum(EleRenumMap&) override;
 
-    FullSquareMatrix stiffness(const CoordSet& cs, double* kel, int flg = 1) const;
-    FullSquareMatrix massMatrix(const CoordSet& cs, double* mel, int cmflg = 1) const;
+	FullSquareMatrix stiffness(const CoordSet& cs, double* kel, int flg = 1) const;
+	FullSquareMatrix massMatrix(const CoordSet& cs, double* mel, int cmflg = 1) const;
 
-    void markDofs(DofSetArray&);
-    int* dofs(DofSetArray&, int* = 0);
-     int numDofs() const override;
+	void markDofs(DofSetArray&) const override;
+	int* dofs(DofSetArray&, int* = 0) const override;
+	int numDofs() const override;
 
-    int numNodes() const override;
-    int* nodes(int* = 0) const override;
-    Corotator* getCorotator(CoordSet&, double*, int, int);
+	int numNodes() const override;
+	int* nodes(int* = 0) const override;
+	Corotator* getCorotator(CoordSet&, double*, int, int);
 
-    int getTopNumber() override;
-    bool isSafe() const override { return false; }
-    bool isSpring() { return true; }
-    PrioInfo examine(int sub, MultiFront*);
-	
+	int getTopNumber() override;
+	bool isSafe() const override { return false; }
+	bool isSpring() { return true; }
+	PrioInfo examine(int sub, MultiFront*);
+
 };
 #endif

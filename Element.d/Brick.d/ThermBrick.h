@@ -9,22 +9,22 @@ class ThermBrick: public Element {
 public:
 	ThermBrick(int*);
 
-        Element *clone() override;
+	Element *clone() override;
 
 	void renum(int *) override;
-        void renum(EleRenumMap&) override;
+	void renum(EleRenumMap&) override;
 
-	FullSquareMatrix stiffness(const CoordSet& cs, double *d, int flg) const;
-        FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg=1) const;
+	FullSquareMatrix stiffness(const CoordSet& cs, double *d, int flg) const override;
+	FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg=1) const override;
 	double           getMass(const CoordSet& cs) const;
 
 
-	void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
-         int numDofs() const override;
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p=0) const override;
+	int numDofs() const override;
 
-        int             numNodes() const override;
-        int * nodes(int *) const override;
+	int numNodes() const override;
+	int* nodes(int *) const override;
 	int getTopNumber() override;
 	PrioInfo examine(int sub, MultiFront *) override;
 

@@ -119,7 +119,7 @@ FsiElement::nodes(int *p) const
 }
 
 int *
-FsiElement::dofs(DofSetArray &dsa, int *p)
+FsiElement::dofs(DofSetArray &dsa, int *p) const
 {
   if(p == 0) p = new int[ndofs];
 
@@ -137,7 +137,7 @@ FsiElement::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-FsiElement::markDofs(DofSetArray &dsa)
+FsiElement::markDofs(DofSetArray &dsa) const
 {
   int i;
   for(i = 0; i < fsi->nterms; i++) {

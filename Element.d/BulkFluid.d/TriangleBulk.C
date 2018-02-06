@@ -141,7 +141,7 @@ TriangleBulk::numDofs() const
 }
 
 int*
-TriangleBulk::dofs(DofSetArray &dsa, int *p)
+TriangleBulk::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[3];
 
@@ -153,7 +153,7 @@ TriangleBulk::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-TriangleBulk::markDofs(DofSetArray &dsa)
+TriangleBulk::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 3, DofSet::Temp);
 }

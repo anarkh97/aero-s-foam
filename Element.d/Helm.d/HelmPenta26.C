@@ -282,7 +282,7 @@ HelmPenta26::nodes(int *p) const
 }
 
 int*
-HelmPenta26::dofs(DofSetArray &dsa, int *p)
+HelmPenta26::dofs(DofSetArray &dsa, int *p) const
 {
   if(!p) p = new int[26];
   for(int i=0; i<26; i++)
@@ -292,7 +292,7 @@ HelmPenta26::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-HelmPenta26::markDofs(DofSetArray &dsa)
+HelmPenta26::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, numNodes(), DofSet::Helm);
 }

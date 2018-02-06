@@ -22,7 +22,7 @@ public:
 
 	int dim() const override { return 3; }
 
-	int *dofs(DofSetArray &, int *p) override;
+	int *dofs(DofSetArray &, int *p) const override;
 
 	void flipNormal() override;
 
@@ -45,7 +45,7 @@ public:
 
 	void ellipsoidBT2(CoordSet &cs, double a, double b, double k, ComplexD *d) override;
 
-	void markDofs(DofSetArray &) override;
+	void markDofs(DofSetArray &) const override;
 //        FullSquareMatrix  stiffness(const CoordSet&, double *d, int flg = 1) const;
 //        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
 //        int* nodes(int * = 0) const override;

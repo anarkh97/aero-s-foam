@@ -22,7 +22,7 @@ class RigidFourNodeShell : public SuperElement
 
     int getMassType() const override { return 0; }
     FullSquareMatrix massMatrix(const CoordSet&, double* mel, int cmflg = 1) const;
-    double getMass(const CoordSet& cs) const;
+    double getMass(const CoordSet& cs) const override;
     void getGravityForce(CoordSet&, double* gravity, Vector&, int gravflg,
                          GeomState *gs);
 

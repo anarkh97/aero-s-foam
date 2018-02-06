@@ -82,7 +82,7 @@ RotnSprlink::numDofs() const
 }
 
 int*
-RotnSprlink::dofs(DofSetArray& dsa, int* p)
+RotnSprlink::dofs(DofSetArray& dsa, int* p) const
 {
   int ndof = 0;
   if(p == 0) p = new int[numDofs()];
@@ -99,7 +99,7 @@ RotnSprlink::dofs(DofSetArray& dsa, int* p)
 }
 
 void
-RotnSprlink::markDofs(DofSetArray& dsa)
+RotnSprlink::markDofs(DofSetArray& dsa) const
 {
   dsa.mark(nn[0], DofSet::Xrot);
   dsa.mark(nn[1], DofSet::Xrot);

@@ -227,7 +227,7 @@ int Tetra10HelmGal::numDofs() const {
 }
 
 
-int* Tetra10HelmGal::dofs(DofSetArray &dsa, int *p) {
+int* Tetra10HelmGal::dofs(DofSetArray &dsa, int *p) const  {
 
 	if(p == 0) p = new int[10];
 
@@ -238,7 +238,7 @@ int* Tetra10HelmGal::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void Tetra10HelmGal::markDofs(DofSetArray &dsa) {
+void Tetra10HelmGal::markDofs(DofSetArray &dsa) const {
 
 	int i;
 	for(i=0;i<10;i++) dsa.mark(nn[i],DofSet::Helm);

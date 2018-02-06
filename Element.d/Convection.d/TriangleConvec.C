@@ -114,7 +114,7 @@ TriangleConvec::numDofs() const
 }
 
 int*
-TriangleConvec::dofs(DofSetArray &dsa, int *p)
+TriangleConvec::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[3];
 
@@ -126,7 +126,7 @@ TriangleConvec::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-TriangleConvec::markDofs(DofSetArray &dsa)
+TriangleConvec::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 3, DofSet::Temp);
 }

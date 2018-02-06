@@ -27,7 +27,7 @@ class EightNodeBrick: virtual public Element
     FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
     void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
 
-    double getMass(const CoordSet& cs) const;
+    double getMass(const CoordSet& cs) const override;
     double weight(CoordSet&, double *, int);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
@@ -39,8 +39,8 @@ class EightNodeBrick: virtual public Element
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                       int surface=0, double *ndTemps=0);
 
-    void markDofs(DofSetArray &) override;
-    int* dofs(DofSetArray &, int *p) override;
+    void markDofs(DofSetArray &) const override;
+    int* dofs(DofSetArray &, int *p) const override;
      int numDofs() const override;
 
     int numNodes() const override;

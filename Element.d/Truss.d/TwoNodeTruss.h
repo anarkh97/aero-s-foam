@@ -35,8 +35,8 @@ public:
 	                                        double *ndTemps, int avgnum, double ylayer, double zlayer) override;
 	void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
 	                                           double *ndTemps, int avgnum, double ylayer, double zlayer) override;
-	void markDofs(DofSetArray &) override;
-	int* dofs(DofSetArray &, int *p) override;
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
 	int numNodes() const override;
 	int* nodes(int *) const override;

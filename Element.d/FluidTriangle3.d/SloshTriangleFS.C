@@ -126,7 +126,7 @@ SloshTriangleFS::numDofs() const
 }
 
 int*
-SloshTriangleFS::dofs(DofSetArray &dsa, int *p)
+SloshTriangleFS::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[3];
 
@@ -138,7 +138,7 @@ SloshTriangleFS::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-SloshTriangleFS::markDofs(DofSetArray &dsa)
+SloshTriangleFS::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 3, DofSet::Potential);
 }

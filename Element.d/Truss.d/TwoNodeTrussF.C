@@ -251,7 +251,7 @@ TwoNodeTrussF::numDofs() const
 }
 
 int *
-TwoNodeTrussF::dofs(DofSetArray &dsa, int *p)
+TwoNodeTrussF::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[6];
 
@@ -262,7 +262,7 @@ TwoNodeTrussF::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-TwoNodeTrussF::markDofs( DofSetArray &dsa )
+TwoNodeTrussF::markDofs(DofSetArray& dsa) const
 {
         dsa.mark(nn, 2, DofSet::XYZdisp);
 }

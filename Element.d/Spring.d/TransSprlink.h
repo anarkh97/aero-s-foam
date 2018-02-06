@@ -19,8 +19,8 @@ class TransSprlink : virtual public Element
     FullSquareMatrix stiffness(const CoordSet& cs, double* d, int flg = 1) const override;
     FullSquareMatrix massMatrix(const CoordSet& cs, double* mel, int cmflg=1) const override;
 
-    void markDofs(DofSetArray&) override;
-    int* dofs(DofSetArray&, int*) override;
+    void markDofs(DofSetArray &dsa) const override;
+    int* dofs(DofSetArray&, int*) const override;
     int numDofs() const override;
 
     int numNodes() const override;

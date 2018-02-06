@@ -20,8 +20,8 @@ public:
         double getArea(const CoordSet&) const;
         bool isSloshingElement() { return true; }
 
-        void markDofs(DofSetArray &) override;
-        int* dofs(DofSetArray &, int *p=0) override;
+        void markDofs(DofSetArray &) const override;
+        int* dofs(DofSetArray &, int *p=0) const override;
          int numDofs() const override;
 
         int numNodes() const override;

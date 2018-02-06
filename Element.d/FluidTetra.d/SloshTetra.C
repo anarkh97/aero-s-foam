@@ -133,7 +133,7 @@ SloshTetra::numDofs() const
 }
 
 int*
-SloshTetra::dofs(DofSetArray &dsa, int *p)
+SloshTetra::dofs(DofSetArray &dsa, int *p) const
 {
 	if(p == 0) p = new int[4];
 
@@ -146,7 +146,7 @@ SloshTetra::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-SloshTetra::markDofs(DofSetArray &dsa)
+SloshTetra::markDofs(DofSetArray &dsa) const
 {
 
 	dsa.mark(nn[0],DofSet::Potential);

@@ -960,7 +960,7 @@ void SommerElement::invert(FullSquareMatrix A, FullSquareMatrix B) const {
 #include<Driver.d/Domain.h>
 
 void
-SommerElement::markDofs(DofSetArray &dsa) {
+SommerElement::markDofs(DofSetArray &dsa) const {
 	fprintf(stderr, "SommerElement::markDofs not implemented.\n");
 }
 

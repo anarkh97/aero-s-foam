@@ -211,7 +211,7 @@ int
 HelmPenta::numDofs() const { return(6); }
 
 int*
-HelmPenta::dofs(DofSetArray &dsa, int *p)
+HelmPenta::dofs(DofSetArray &dsa, int *p) const
 {
   p[0] = dsa.locate(nn[0],DofSet::Helm);
   p[1] = dsa.locate(nn[1],DofSet::Helm);
@@ -224,7 +224,7 @@ HelmPenta::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-HelmPenta::markDofs(DofSetArray &dsa)
+HelmPenta::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn[0],DofSet::Helm);
   dsa.mark(nn[1],DofSet::Helm);

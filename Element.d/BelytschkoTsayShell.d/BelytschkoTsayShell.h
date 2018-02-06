@@ -12,9 +12,9 @@ class ExpMat;
 
 class BelytschkoTsayShell : virtual public Element, public Corotator
 {
-  public:
+public:
     static double t1, t2, t3, t4, t5, t6, t7;
-  protected:
+protected:
     // TODO most of this should belong to element property (and therefore be shared to save memory)
     int nn[4];
     int optdmg; // damage model type (0 for no damage, 1 for lematire damage model, 2 for linear softening with scaling)
@@ -26,8 +26,8 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     double prmhgc[10]; // hourglass control parameters
     double prmdmp[10]; // damping control parameters
     int ngqpt[3]; // ngqpt[0] = gq rule for regular element
-                  // ngqpt[1] = gq rule for enriched element
-                  // ngqpt[2] = gq rule for through thickness
+    // ngqpt[1] = gq rule for enriched element
+    // ngqpt[2] = gq rule for through thickness
     int ngqpt4; // gq rule for bc or cohesive force integration
     int nndof;
     int ndime;
@@ -47,7 +47,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     ElastoPlasticPlaneStressMaterial **mat;
     PressureBCond *pbc;
 
-  public:
+public:
     BelytschkoTsayShell(int*);
     ~BelytschkoTsayShell();
 
@@ -60,23 +60,23 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     void renum(int *) override;
     void renum(EleRenumMap&) override;
 
-    FullSquareMatrix stiffness(const CoordSet&, double* d, int flg = 1) const;
-    FullSquareMatrix massMatrix(const CoordSet&, double* mel, int cmflg = 1) const;
-    double getMass(const CoordSet& cs) const;
-    double getMassThicknessSensitivity(CoordSet& cs);
-    
+    FullSquareMatrix stiffness(const CoordSet&, double* d, int flg) const override;
+    FullSquareMatrix massMatrix(const CoordSet&, double* mel, int cmflg) const override;
+    double getMass(const CoordSet& cs) const override;
+    double getMassThicknessSensitivity(CoordSet& cs) override;
+
     void getGravityForce(CoordSet&, double* gravity, Vector&, int gravflg,
                          GeomState *gs);
     void getGravityForceThicknessSensitivity(CoordSet&, double* gravity, Vector&, int gravflg,
                                              GeomState *gs);
-    void getVonMises(Vector& stress, Vector& weight, CoordSet& cs, 
+    void getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
                      Vector& elDisp,  int strInd, int surface = 0,
                      double *ndTemps = 0, double ylayer = 0.0,
                      double zlayer = 0.0, int avgnum = 0);
 
-    void markDofs(DofSetArray&);
-    int* dofs(DofSetArray&, int* p = 0);
-     int numDofs() const override;
+    void markDofs(DofSetArray&) const override;
+    int* dofs(DofSetArray&, int* p) const override;
+    int numDofs() const override;
 
     int numNodes() const override;
     int *nodes(int *) const override;
@@ -87,17 +87,17 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld, int &nlflag) override;
 
     void computeDisp(CoordSet&, State&, const InterpPoint&, double*,
-                    GeomState*) override;
+                     GeomState*) override;
     void getFlLoad(CoordSet&, const InterpPoint&, double*, double *,
                    GeomState* = 0) override;
 
     int getTopNumber() override;
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState* gs = 0, int cflg = 0, double t = 0) override;
-              
-    void getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce, 
+
+    void getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce,
                          int glfag, GeomState* gs = 0);
-                                        
+
     bool isShell() const override { return true; }
 
     int getMassType() const override { return 0; } // lumped only
@@ -109,11 +109,11 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     void writeHistory(int fn);
     void readHistory(int fn);
 
-    double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, 
+    double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs,
                                     GeomState *gs, double stable_tol, int stable_maxit);
 
-  private:
-    void Elefintbt1(double delt, double *ecord, double *edisp, double *evelo, 
+private:
+    void Elefintbt1(double delt, double *ecord, double *edisp, double *evelo,
                     double trac[3], double tmftval, double *efint);
 
 };

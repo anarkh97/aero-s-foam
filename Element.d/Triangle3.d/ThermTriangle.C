@@ -151,7 +151,7 @@ ThermTriangle::numDofs() const
 }
 
 int*
-ThermTriangle::dofs(DofSetArray &dsa, int *p)
+ThermTriangle::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[3];
 
@@ -163,7 +163,7 @@ ThermTriangle::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-ThermTriangle::markDofs(DofSetArray &dsa)
+ThermTriangle::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 3, DofSet::Temp);
 }

@@ -33,7 +33,7 @@ SpectralIsoParamQuadSommer *SpectralIsoParamQuadSommer::clone() {
 }
 
 
-int *SpectralIsoParamQuadSommer::dofs(DofSetArray &dsa, int *p) {
+int *SpectralIsoParamQuadSommer::dofs(DofSetArray &dsa, int *p) const  {
 
 	if (p == 0) p = new int[order * order];
 	int i;
@@ -187,6 +187,6 @@ void SpectralIsoParamQuadSommer::getNormal(const CoordSet &cs, double normal[3])
 
 
 void
-SpectralIsoParamQuadSommer::markDofs(DofSetArray &dsa) {
+SpectralIsoParamQuadSommer::markDofs(DofSetArray &dsa) const {
 	for (int i = 0; i < order * order; i++) dsa.mark(nn[i], DofSet::Helm);
 }

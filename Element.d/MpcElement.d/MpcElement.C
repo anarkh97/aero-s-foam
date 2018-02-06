@@ -224,7 +224,7 @@ MpcElement::numDofs() const
 }
 
 int *
-MpcElement::dofs(DofSetArray &dsa, int *p)
+MpcElement::dofs(DofSetArray &dsa, int *p) const
 {
 	if(p == 0) p = new int[numDofs()];
 	for(int i = 0; i < nterms; i++)
@@ -239,7 +239,7 @@ MpcElement::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-MpcElement::markDofs(DofSetArray &dsa)
+MpcElement::markDofs(DofSetArray &dsa) const
 {
 	for(int i = 0; i < nterms; i++)
 		dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);

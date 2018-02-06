@@ -638,7 +638,7 @@ Brick32::nodes(int *p) const
 }
 
 int*
-Brick32::dofs(DofSetArray &dsa, int *p)
+Brick32::dofs(DofSetArray &dsa, int *p) const
 {
   if(!p) p = new int[96];
 
@@ -649,7 +649,7 @@ Brick32::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Brick32::markDofs(DofSetArray &dsa)
+Brick32::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, numNodes(), DofSet::XYZdisp);
 }

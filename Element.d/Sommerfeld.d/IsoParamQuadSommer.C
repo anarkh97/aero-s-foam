@@ -34,7 +34,7 @@ IsoParamQuadSommer *IsoParamQuadSommer::clone() {
 }
 
 
-int *IsoParamQuadSommer::dofs(DofSetArray &dsa, int *p) {
+int *IsoParamQuadSommer::dofs(DofSetArray &dsa, int *p) const  {
 
 	if (p == 0) p = new int[order * order];
 	int i;
@@ -616,6 +616,6 @@ void IsoParamQuadSommer::getNormal(const CoordSet &cs, double normal[3]) const {
 
 
 void
-IsoParamQuadSommer::markDofs(DofSetArray &dsa) {
+IsoParamQuadSommer::markDofs(DofSetArray &dsa) const {
 	for (int i = 0; i < order * order; i++) dsa.mark(nn[i], DofSet::Helm);
 }

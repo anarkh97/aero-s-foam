@@ -78,7 +78,7 @@ int* LEIsoParamTetra::nodes(int *p) const {
 }
 
 
-int* LEIsoParamTetra::dofs(DofSetArray &dsa, int *p) {
+int* LEIsoParamTetra::dofs(DofSetArray &dsa, int *p) const  {
 
  int i;
  IsoParamUtilsTetra ipu(order);
@@ -89,7 +89,7 @@ int* LEIsoParamTetra::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void LEIsoParamTetra::markDofs(DofSetArray &dsa) {
+void LEIsoParamTetra::markDofs(DofSetArray &dsa) const {
 
  int i;
  IsoParamUtilsTetra ipu(order);

@@ -31,7 +31,7 @@ IsoParamTriLineSommer *IsoParamTriLineSommer::clone() {
 }
 
 
-int *IsoParamTriLineSommer::dofs(DofSetArray &dsa, int *p) {
+int *IsoParamTriLineSommer::dofs(DofSetArray &dsa, int *p) const  {
 
 	if (p == 0) p = new int[order];
 	int i;
@@ -278,6 +278,6 @@ void IsoParamTriLineSommer::getNormal(const CoordSet &cs, double normal[3]) cons
 
 
 void
-IsoParamTriLineSommer::markDofs(DofSetArray &dsa) {
+IsoParamTriLineSommer::markDofs(DofSetArray &dsa) const {
 	for (int i = 0; i < order; i++) dsa.mark(nn[i], DofSet::Helm);
 }

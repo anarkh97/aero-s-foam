@@ -25,7 +25,7 @@ public:
 
 	int dim() const override { return 3; }
 
-	int *dofs(DofSetArray &, int *p = 0);
+	int *dofs(DofSetArray &, int *p = 0) const override;
 
 	virtual SpectralIsoParamQuadSommer *clone() override;
 
@@ -56,7 +56,7 @@ public:
 
 	void getNormal(const CoordSet &, double [3]) const override;
 
-	void markDofs(DofSetArray &) override;
+	void markDofs(DofSetArray &) const override;
 };
 
 #endif

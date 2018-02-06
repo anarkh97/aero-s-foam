@@ -73,7 +73,7 @@ int* ThermIsoParamTetra::nodes(int *p) const {
 }
 
 
-int* ThermIsoParamTetra::dofs(DofSetArray &dsa, int *p) {
+int* ThermIsoParamTetra::dofs(DofSetArray &dsa, int *p) const  {
 
  int i;
  IsoParamUtilsTetra ipu(order);
@@ -84,7 +84,7 @@ int* ThermIsoParamTetra::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void ThermIsoParamTetra::markDofs(DofSetArray &dsa) {
+void ThermIsoParamTetra::markDofs(DofSetArray &dsa) const {
 
  int i;
  IsoParamUtilsTetra ipu(order);

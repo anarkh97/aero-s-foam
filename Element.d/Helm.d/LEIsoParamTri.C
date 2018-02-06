@@ -71,7 +71,7 @@ int* LEIsoParamTri::nodes(int *p) const {
 }
 
 
-int* LEIsoParamTri::dofs(DofSetArray &dsa, int *p) {
+int* LEIsoParamTri::dofs(DofSetArray &dsa, int *p) const  {
 
  int i;
  int ordersq = (order*(order+1))/2;
@@ -81,7 +81,7 @@ int* LEIsoParamTri::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void LEIsoParamTri::markDofs(DofSetArray &dsa) {
+void LEIsoParamTri::markDofs(DofSetArray &dsa) const {
 
  int i;
  int ordersq = (order*(order+1))/2;

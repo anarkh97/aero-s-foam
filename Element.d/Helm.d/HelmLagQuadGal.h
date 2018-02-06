@@ -26,8 +26,8 @@ public:
 	Element *clone() override;
 	void renum(int *) override;
 	void renum(EleRenumMap&) override;
-	void markDofs(DofSetArray &) override;
-	int* dofs(DofSetArray &, int *p) override;
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override { return order*order; }
 	int numNodes() const override { return order*order; }
 	int * nodes(int *) const override;

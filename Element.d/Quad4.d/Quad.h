@@ -26,8 +26,8 @@ public:
 				      double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
 
-	void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
+	void markDofs(DofSetArray &) const override;
+        int* dofs(DofSetArray &, int *p=0) const override;
          int numDofs() const override;
 
         int numNodes() const override;

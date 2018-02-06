@@ -44,13 +44,13 @@ ConnectedTri::nodes(int *p) const
 }
 
 void
-ConnectedTri::markDofs(DofSetArray &dsa)
+ConnectedTri::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn+3, 1,  DofSet::XYZdisp | DofSet::XYZrot);
 }
 
 int *
-ConnectedTri::dofs(DofSetArray &dsa, int *p)
+ConnectedTri::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[6];
 

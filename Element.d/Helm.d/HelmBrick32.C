@@ -231,7 +231,7 @@ HelmBrick32::nodes(int *p) const
 }
 
 int*
-HelmBrick32::dofs(DofSetArray &dsa, int *p)
+HelmBrick32::dofs(DofSetArray &dsa, int *p) const
 {
   if(!p) p = new int[32];
   for(int i=0; i<32; i++)
@@ -241,7 +241,7 @@ HelmBrick32::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-HelmBrick32::markDofs(DofSetArray &dsa)
+HelmBrick32::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, numNodes(), DofSet::Helm);
 }

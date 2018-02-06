@@ -20,7 +20,7 @@ public:
 	const int *getNodes() const override { return nn; }
 	int *getNodes() override { return nn; }
 
-	int *dofs(DofSetArray &, int *p) override;
+	int *dofs(DofSetArray &, int *p) const override;
 
 	int numDofs() const override { return 2; }
 

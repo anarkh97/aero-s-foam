@@ -122,7 +122,7 @@ QuadConvec::numDofs() const
 }
 
 int*
-QuadConvec::dofs(DofSetArray &dsa, int *p)
+QuadConvec::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[4];
 
@@ -135,7 +135,7 @@ QuadConvec::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-QuadConvec::markDofs(DofSetArray &dsa)
+QuadConvec::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 4, DofSet::Temp);
 }

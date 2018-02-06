@@ -96,8 +96,8 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     int numDofs() const override { return 9; }
     void renum(int *) override;
     void renum(EleRenumMap&) override;
-    void markDofs(DofSetArray &) override;
-    int* dofs(DofSetArray &, int *p=0) override;
+    void markDofs(DofSetArray &) const override;
+    int* dofs(DofSetArray &, int *p=0) const override;
     int* nodes(int * = 0) const override;
     void updateStates(Node *nodes, double *states, double *un, double *unp) {}
     void setProp(StructProp *p, bool _myProp) override;

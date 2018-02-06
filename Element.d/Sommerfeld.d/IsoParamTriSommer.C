@@ -43,7 +43,7 @@ IsoParamTriSommer *IsoParamTriSommer::clone() {
 }
 
 
-int *IsoParamTriSommer::dofs(DofSetArray &dsa, int *p) {
+int *IsoParamTriSommer::dofs(DofSetArray &dsa, int *p) const  {
 
 	IsoParamUtilsTetra ipu(order);
 	int ordersq = ipu.getordersq();
@@ -525,7 +525,7 @@ void IsoParamTriSommer::getNormal(const CoordSet &cs, double normal[3]) const {
 }
 
 void
-IsoParamTriSommer::markDofs(DofSetArray &dsa) {
+IsoParamTriSommer::markDofs(DofSetArray &dsa) const {
 	IsoParamUtilsTetra ipu(order);
 	int ordersq = ipu.getordersq();
 	for (int i = 0; i < ordersq; i++) dsa.mark(nn[i], DofSet::Helm);

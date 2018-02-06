@@ -369,7 +369,7 @@ Membrane::numDofs() const
 }
 
 int*
-Membrane::dofs(DofSetArray &dsa, int *p)
+Membrane::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[18];
 
@@ -381,7 +381,7 @@ Membrane::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Membrane::markDofs(DofSetArray &dsa)
+Membrane::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot);
 }

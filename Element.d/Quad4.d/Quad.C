@@ -200,7 +200,7 @@ Quad::numDofs() const
 }
 
 int*
-Quad::dofs(DofSetArray &dsa, int *p)
+Quad::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[2*numnod];
 
@@ -212,7 +212,7 @@ Quad::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Quad::markDofs(DofSetArray &dsa)
+Quad::markDofs(DofSetArray &dsa) const
 {
 	int i;
   for(i=0; i<numnod; ++i)

@@ -62,7 +62,7 @@ CtcVirtualElt::numDofs() const
 }
 
 int *
-CtcVirtualElt::dofs(DofSetArray &dsa, int *p)
+CtcVirtualElt::dofs(DofSetArray &dsa, int *p) const
 {
   if(p == 0) p = new int[1];
   dsa.number(nn[0],DofSet::Contact, p  ); // the first node is the virtual one
@@ -70,7 +70,7 @@ CtcVirtualElt::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-CtcVirtualElt::markDofs( DofSetArray &dsa )
+CtcVirtualElt::markDofs(DofSetArray& dsa) const
 {
   cout << "> Should not have internal ctc dofs " << endl;
   exit (-1);

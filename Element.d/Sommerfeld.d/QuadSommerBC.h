@@ -20,7 +20,7 @@ public:
 
 	int dim() const override { return 3; }
 
-	int *dofs(DofSetArray &, int *p) override;
+	int *dofs(DofSetArray &, int *p) const override;
 
 	QuadSommerBC *clone() override;
 
@@ -38,7 +38,7 @@ public:
 
 	void getNormal(const CoordSet &, double[3]) const override;
 
-	void markDofs(DofSetArray &) override;
+	void markDofs(DofSetArray &) const override;
 
 	void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd) override;
 

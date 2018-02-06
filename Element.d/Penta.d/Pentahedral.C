@@ -543,7 +543,7 @@ Pentahedral::nodes(int *p) const
 }
 
 int*
-Pentahedral::dofs(DofSetArray &dsa, int *p)
+Pentahedral::dofs(DofSetArray &dsa, int *p) const
 {
   if(!p) p = new int[numDofs()];
 
@@ -558,7 +558,7 @@ Pentahedral::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Pentahedral::markDofs(DofSetArray &dsa)
+Pentahedral::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, numNodes(), DofSet::XYZdisp);
 }

@@ -799,7 +799,7 @@ void TriangleSommerBC::GaussCoordinates(int Ngp, double *uPg, double *vPg, doubl
 #include<Driver.d/Domain.h>
 
 int *
-TriangleSommerBC::dofs(DofSetArray &dsa, int *p) {
+TriangleSommerBC::dofs(DofSetArray &dsa, int *p) const  {
 	double numD = -2.0;
 	if (dom) numD = dom->solInfo().ATDARBFlag;
 	if (numD == 1.5) {
@@ -828,7 +828,7 @@ int TriangleSommerBC::numDofs() const {
 		return 3;
 }
 
-void TriangleSommerBC::markDofs(DofSetArray &dsa) {
+void TriangleSommerBC::markDofs(DofSetArray &dsa) const {
 	double numD = (dom) ? dom->solInfo().ATDARBFlag : 0.0;
 	if (numD == 1.5) {
 		dsa.mark(nn[0], DofSet::Helm);

@@ -61,7 +61,7 @@ SandiaElem::nodes(int *nd)
 }
 
 void
-SandiaElem::markDofs(DofSetArray &dsa)
+SandiaElem::markDofs(DofSetArray &dsa) const
 {
   for(int i=0; i < nnodes; ++i) 
     dsa.mark(nds[i], int(flags[nds[i]]));
@@ -83,7 +83,7 @@ SandiaElem::massMatrix(const CoordSet&, double *,int) const
 }
 
 int*
-SandiaElem::dofs(DofSetArray &ds, int *p)
+SandiaElem::dofs(DofSetArray &ds, int p) const
 {
   p = proxy->dofs(ds,p);
   return p;

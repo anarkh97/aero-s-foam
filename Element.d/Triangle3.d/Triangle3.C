@@ -582,7 +582,7 @@ Triangle3::numDofs() const
 }
 
 int*
-Triangle3::dofs(DofSetArray &dsa, int *p)
+Triangle3::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[6];
 
@@ -594,7 +594,7 @@ Triangle3::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Triangle3::markDofs(DofSetArray &dsa)
+Triangle3::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, numNodes(), DofSet::Xdisp | DofSet::Ydisp);
 }

@@ -547,7 +547,7 @@ Brick20::nodes(int *p) const
 }
 
 int*
-Brick20::dofs(DofSetArray &dsa, int *p)
+Brick20::dofs(DofSetArray &dsa, int *p) const
 {
   if(!p) p = new int[60];
 
@@ -558,7 +558,7 @@ Brick20::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Brick20::markDofs(DofSetArray &dsa)
+Brick20::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, numNodes(), DofSet::XYZdisp);
 }

@@ -907,7 +907,7 @@ void Triangle6SommerBC::renum(int *table)
 //functions that depend on the order of the absorbing boundary condition
 
 int *
-Triangle6SommerBC::dofs(DofSetArray &dsa, int *p) {
+Triangle6SommerBC::dofs(DofSetArray &dsa, int *p) const  {
 	if (p == 0) p = new int[6];
 
 	dsa.number(nn[0], DofSet::Helm, p);
@@ -924,7 +924,7 @@ int Triangle6SommerBC::numDofs() const {
 	return 6;
 }
 
-void Triangle6SommerBC::markDofs(DofSetArray &dsa) {
+void Triangle6SommerBC::markDofs(DofSetArray &dsa) const {
 	dsa.mark(nn[0], DofSet::Helm);
 	dsa.mark(nn[1], DofSet::Helm);
 	dsa.mark(nn[2], DofSet::Helm);

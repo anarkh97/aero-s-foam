@@ -431,7 +431,7 @@ ThreeNodeShell::numDofs() const
 }
 
 int*
-ThreeNodeShell::dofs(DofSetArray &dsa, int *p)
+ThreeNodeShell::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[18];
 
@@ -443,7 +443,7 @@ ThreeNodeShell::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-ThreeNodeShell::markDofs(DofSetArray &dsa)
+ThreeNodeShell::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot);
 }

@@ -94,7 +94,7 @@ TorSpring::numDofs() const
 }
 
 int *
-TorSpring::dofs(DofSetArray &dsa, int *p)
+TorSpring::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[3];
       
@@ -104,7 +104,7 @@ TorSpring::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-TorSpring::markDofs( DofSetArray &dsa )
+TorSpring::markDofs(DofSetArray& dsa) const
 {
         dsa.mark( nn[0], DofSet::XYZrot );
 }

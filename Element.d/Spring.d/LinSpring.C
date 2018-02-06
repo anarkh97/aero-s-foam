@@ -94,7 +94,7 @@ LinSpring::numDofs() const
 }
 
 int *
-LinSpring::dofs(DofSetArray &dsa, int *p)
+LinSpring::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[3];
       
@@ -104,7 +104,7 @@ LinSpring::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-LinSpring::markDofs( DofSetArray &dsa )
+LinSpring::markDofs(DofSetArray& dsa) const
 {
         dsa.mark( nn[0], DofSet::XYZdisp );
 }

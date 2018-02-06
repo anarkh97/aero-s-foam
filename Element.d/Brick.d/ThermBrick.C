@@ -175,7 +175,7 @@ ThermBrick::numDofs() const
 }
 
 int*
-ThermBrick::dofs(DofSetArray &dsa, int *p)
+ThermBrick::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[8];
 
@@ -192,7 +192,7 @@ ThermBrick::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-ThermBrick::markDofs(DofSetArray &dsa)
+ThermBrick::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 8, DofSet::Temp);
 }

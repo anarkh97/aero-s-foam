@@ -55,7 +55,7 @@ DiscreteMass6Dof::nodes(int* p) const
 }
 
 int *
-DiscreteMass6Dof::dofs(DofSetArray &dsa, int *p)
+DiscreteMass6Dof::dofs(DofSetArray &dsa, int *p) const
 {
   if(p == 0) p = new int[6];
   dsa.number(nn[0], DofSet::XYZdisp | DofSet::XYZrot, p);
@@ -63,7 +63,7 @@ DiscreteMass6Dof::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-DiscreteMass6Dof::markDofs(DofSetArray &dsa)
+DiscreteMass6Dof::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, 1, DofSet::XYZdisp | DofSet::XYZrot);
 }

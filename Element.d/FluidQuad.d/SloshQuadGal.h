@@ -19,8 +19,8 @@ public:
         FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
         double           getMass(const CoordSet&) const;
 
-        void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
+        void markDofs(DofSetArray &) const override;
+        int* dofs(DofSetArray &, int *p=0) const override;
          int numDofs() const override;
 
         int numNodes() const override;

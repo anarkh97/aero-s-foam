@@ -26,7 +26,7 @@ class Tetrahedral: public Element,
     void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
     FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
     void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
-    double getMass(const CoordSet& cs) const;
+    double getMass(const CoordSet& cs) const override;
     void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
@@ -49,8 +49,8 @@ class Tetrahedral: public Element,
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                       int surface=0, double *ndTemps=0);
 
-    void markDofs(DofSetArray &) override;
-    int* dofs(DofSetArray &, int *p) override;
+    void markDofs(DofSetArray &) const override;
+    int* dofs(DofSetArray &, int *p) const override;
      int numDofs() const override;
 
     int numNodes() const override;

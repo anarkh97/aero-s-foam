@@ -151,7 +151,7 @@ Therm3DQuad::numDofs() const
 }
 
 int*
-Therm3DQuad::dofs(DofSetArray &dsa, int *p)
+Therm3DQuad::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[4];
 
@@ -164,7 +164,7 @@ Therm3DQuad::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Therm3DQuad::markDofs(DofSetArray &dsa)
+Therm3DQuad::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 4, DofSet::Temp);
 }

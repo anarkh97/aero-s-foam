@@ -149,14 +149,14 @@ SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::renum(EleR
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 void
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::markDofs(DofSetArray &dsa)
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(n, NumberOfNodes, DofSet::XYZdisp);
 }
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 int *
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::dofs(DofSetArray &dsa, int *p)
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::dofs(DofSetArray &dsa, int *p) const
 {
   if(p == 0) p = new int[3*NumberOfNodes];
   for(int i = 0; i < NumberOfNodes; ++i)

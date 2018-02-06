@@ -35,8 +35,8 @@ public:
 	void   getIntrnForce(Vector& elForce, CoordSet& cs,
 	                     double* elDisp,int forceIndex, double *ndTemps) override;
 
-	void   markDofs(DofSetArray &) override;
-	int*   dofs(DofSetArray &, int *p) override;
+	void   markDofs(DofSetArray &) const override;
+	int*   dofs(DofSetArray &, int *p) const override;
 	int    numDofs() const override;
 
 	int    numNodes() const override;

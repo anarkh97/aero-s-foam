@@ -683,7 +683,7 @@ Compo3NodeShell::numDofs() const
 }
 
 int*
-Compo3NodeShell::dofs(DofSetArray &dsa, int *p)
+Compo3NodeShell::dofs(DofSetArray &dsa, int *p) const
 {
   if(p == 0) p = new int[18];
 
@@ -695,7 +695,7 @@ Compo3NodeShell::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-Compo3NodeShell::markDofs(DofSetArray &dsa)
+Compo3NodeShell::markDofs(DofSetArray &dsa) const
 {
   dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot);
 }

@@ -96,7 +96,7 @@ TransSprlink::numDofs() const
 }
 
 int *
-TransSprlink::dofs(DofSetArray& dsa, int* p)
+TransSprlink::dofs(DofSetArray& dsa, int* p) const
 {
   int ndof = 0;
   if(p == 0) p = new int[numDofs()];
@@ -113,7 +113,7 @@ TransSprlink::dofs(DofSetArray& dsa, int* p)
 }
 
 void
-TransSprlink::markDofs(DofSetArray& dsa)
+TransSprlink::markDofs(DofSetArray& dsa) const
 {
   dsa.mark(nn[0], DofSet::Xdisp);
   dsa.mark(nn[1], DofSet::Xdisp);

@@ -77,7 +77,7 @@ int* HelmIsoParamTetra::nodes(int *p) const {
 }
 
 
-int* HelmIsoParamTetra::dofs(DofSetArray &dsa, int *p) {
+int* HelmIsoParamTetra::dofs(DofSetArray &dsa, int *p) const  {
 
  int i;
  IsoParamUtilsTetra ipu(order);
@@ -88,7 +88,7 @@ int* HelmIsoParamTetra::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void HelmIsoParamTetra::markDofs(DofSetArray &dsa) {
+void HelmIsoParamTetra::markDofs(DofSetArray &dsa) const {
 
  int i;
  IsoParamUtilsTetra ipu(order);

@@ -45,8 +45,8 @@ public:
 	int numDofs() const override;
 	void renum(int *) override;
 	void renum(EleRenumMap&) override;
-	void markDofs(DofSetArray &) override;
-	int* dofs(DofSetArray &, int *p) override;
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int* nodes(int * = 0) const override;
 	void setMaterial(NLMaterial *) override;
 };

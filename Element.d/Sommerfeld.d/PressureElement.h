@@ -38,9 +38,9 @@ public:
 
 	int numDofs() const override;
 
-	int *dofs(DofSetArray &, int * = 0) override;
+	int *dofs(DofSetArray &, int *) const override;
 
-	void markDofs(DofSetArray &) override;
+	void markDofs(DofSetArray &) const override;
 
 	int findAndSetEle(CoordSet &cs, Elemset &eset, Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
 	                  int it) override;

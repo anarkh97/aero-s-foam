@@ -283,7 +283,7 @@ HelmTri3Gal::numDofs() const
 }
 
 int*
-HelmTri3Gal::dofs(DofSetArray &dsa, int *p)
+HelmTri3Gal::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[3];
 
@@ -295,7 +295,7 @@ HelmTri3Gal::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-HelmTri3Gal::markDofs(DofSetArray &dsa)
+HelmTri3Gal::markDofs(DofSetArray &dsa) const
 {
  	dsa.mark(nn[0], DofSet::Helm);
  	dsa.mark(nn[1], DofSet::Helm);

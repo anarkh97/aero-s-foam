@@ -80,7 +80,7 @@ else {
 }
 
 
-int* HelmIsoParamHexa::dofs(DofSetArray &dsa, int *p) {
+int* HelmIsoParamHexa::dofs(DofSetArray &dsa, int *p) const  {
  int i;
  int orderc = order*order*order;
  if(p == 0) p = new int[orderc];
@@ -91,7 +91,7 @@ int* HelmIsoParamHexa::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void HelmIsoParamHexa::markDofs(DofSetArray &dsa) {
+void HelmIsoParamHexa::markDofs(DofSetArray &dsa) const {
 
  int i;
  int orderc = order*order*order;

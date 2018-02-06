@@ -76,7 +76,7 @@ if (useFull) {
 }
 
 
-int* LEIsoParamHexa::dofs(DofSetArray &dsa, int *p) {
+int* LEIsoParamHexa::dofs(DofSetArray &dsa, int *p) const  {
 
  int i;
  int orderc = order*order*order;
@@ -86,7 +86,7 @@ int* LEIsoParamHexa::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void LEIsoParamHexa::markDofs(DofSetArray &dsa) {
+void LEIsoParamHexa::markDofs(DofSetArray &dsa) const {
 
  int i;
  int orderc = order*order*order;

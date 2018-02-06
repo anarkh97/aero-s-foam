@@ -187,7 +187,7 @@ int TetraHelmGal::numDofs() const {
 }
 
 
-int* TetraHelmGal::dofs(DofSetArray &dsa, int *p) {
+int* TetraHelmGal::dofs(DofSetArray &dsa, int *p) const  {
     if(p == 0) p = new int[4];
 
     p[0] = dsa.locate(nn[0],DofSet::Helm);
@@ -199,7 +199,7 @@ int* TetraHelmGal::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void TetraHelmGal::markDofs(DofSetArray &dsa) {
+void TetraHelmGal::markDofs(DofSetArray &dsa) const {
 
     dsa.mark(nn[0],DofSet::Helm);
     dsa.mark(nn[1],DofSet::Helm);

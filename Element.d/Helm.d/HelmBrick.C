@@ -208,7 +208,7 @@ HelmBrick::numDofs() const
 }
 
 int*
-HelmBrick::dofs(DofSetArray &dsa, int *p)
+HelmBrick::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[8];
 
@@ -225,7 +225,7 @@ HelmBrick::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-HelmBrick::markDofs(DofSetArray &dsa)
+HelmBrick::markDofs(DofSetArray &dsa) const
 {
  	dsa.mark(nn[0],DofSet::Helm);
  	dsa.mark(nn[1],DofSet::Helm);

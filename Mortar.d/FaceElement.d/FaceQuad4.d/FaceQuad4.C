@@ -412,7 +412,7 @@ FaceQuad4::print()
 // -----------------------------------------------------------------------------------------------------
 //                                            FS COMMUNICATION
 // -----------------------------------------------------------------------------------------------------
-int* FaceQuad4::dofs(DofSetArray &dsa, int *p, int *fnId) 
+int* FaceQuad4::dofs(DofSetArray &dsa, int *p, int *fnId) const
 {
   if(p == 0) p = new int[12];
   dsa.number(fnId[Nodes[0]], DofSet::XYZdisp, p);

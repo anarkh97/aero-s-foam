@@ -5,6 +5,7 @@
 #include <Math.d/BLAS.h>
 #include <Timers.d/GetTime.h>
 #include <Timers.d/DistTimer.h>
+#include <Utils.d/dbg_alloca.h>
 
 
 #ifndef _TGEMV__

@@ -19,8 +19,8 @@ public:
         FullSquareMatrix massMatrix(const CoordSet& cs,double *d, int cmflg) const override;
         double           getMass(const CoordSet&) const;
 
-        void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
+        void markDofs(DofSetArray &) const override;
+        int* dofs(DofSetArray &, int *p=0) const override;
          int numDofs() const override;
 
 	Corotator* getCorotator(CoordSet &, double*, int, int);

@@ -103,7 +103,7 @@ BarSloshFS::numDofs() const
 }
 
 int *
-BarSloshFS::dofs(DofSetArray &dsa, int *p)
+BarSloshFS::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[2];
 
@@ -114,7 +114,7 @@ BarSloshFS::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-BarSloshFS::markDofs( DofSetArray &dsa )
+BarSloshFS::markDofs(DofSetArray& dsa) const
 {
         dsa.mark( nn, 2, DofSet::Potential);
 }

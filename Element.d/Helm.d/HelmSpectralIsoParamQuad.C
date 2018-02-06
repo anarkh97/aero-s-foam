@@ -61,7 +61,7 @@ int* HelmSpectralIsoParamQuad::nodes(int *p) const {
 }
 
 
-int* HelmSpectralIsoParamQuad::dofs(DofSetArray &dsa, int *p) {
+int* HelmSpectralIsoParamQuad::dofs(DofSetArray &dsa, int *p) const  {
 
  int i;
  int ordersq = order*order;
@@ -71,7 +71,7 @@ int* HelmSpectralIsoParamQuad::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void HelmSpectralIsoParamQuad::markDofs(DofSetArray &dsa) {
+void HelmSpectralIsoParamQuad::markDofs(DofSetArray &dsa) const {
 
  int i;
  int ordersq = order*order;

@@ -575,7 +575,7 @@ TimoshenkoBeam::numDofs() const {
 }
 
 int *
-TimoshenkoBeam::dofs(DofSetArray &dsa, int *p) {
+TimoshenkoBeam::dofs(DofSetArray &dsa, int *p) const  {
 
 	if (p == 0) p = new int[12];
 
@@ -586,7 +586,7 @@ TimoshenkoBeam::dofs(DofSetArray &dsa, int *p) {
 }
 
 void
-TimoshenkoBeam::markDofs(DofSetArray &dsa) {
+TimoshenkoBeam::markDofs(DofSetArray &dsa) const {
 	dsa.mark(nn, 2, DofSet::XYZdisp | DofSet::XYZrot);
 }
 

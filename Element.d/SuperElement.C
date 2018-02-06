@@ -632,14 +632,14 @@ SuperElement::getFlFlux(double gp[2], double *flF, double *tresF)
 }
 
 void
-SuperElement::markDofs(DofSetArray &dsa)
+SuperElement::markDofs(DofSetArray &dsa) const
 {
   for(int i = 0; i < nSubElems; ++i)
     subElems[i]->markDofs(dsa);
 }
 
 int*
-SuperElement::dofs(DofSetArray &dsa, int *p)
+SuperElement::dofs(DofSetArray &dsa, int *p) const
 {
   if(p == 0) p = new int[numDofs()];
   for(int i = 0; i < nSubElems; ++i) {

@@ -192,7 +192,7 @@ public:
 	// Mark dofs for a node
 	void mark(int node, int dof);
 
-	void mark(int *node, int numNode, int dof);
+	void mark(const int *node, int numNode, int dof);
 
 	// Return the DofSet of a node
 	DofSet &operator[](int i) { return dofs[i]; }

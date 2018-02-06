@@ -99,7 +99,7 @@ BarRadiation::numDofs() const
 }
 
 int *
-BarRadiation::dofs(DofSetArray &dsa, int *p)
+BarRadiation::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[2];
 
@@ -110,7 +110,7 @@ BarRadiation::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-BarRadiation::markDofs( DofSetArray &dsa )
+BarRadiation::markDofs(DofSetArray& dsa) const
 {
         dsa.mark( nn, 2, DofSet::Temp);
 }

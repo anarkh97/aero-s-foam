@@ -152,7 +152,7 @@ ThermQuadGal::numDofs() const
 }
 
 int*
-ThermQuadGal::dofs(DofSetArray &dsa, int *p)
+ThermQuadGal::dofs(DofSetArray &dsa, int *p) const
 {
  	if(p == 0) p = new int[4];
 
@@ -165,7 +165,7 @@ ThermQuadGal::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-ThermQuadGal::markDofs(DofSetArray &dsa)
+ThermQuadGal::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 4, DofSet::Temp);
 }

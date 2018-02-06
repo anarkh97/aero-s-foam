@@ -492,7 +492,7 @@ int* HelmLagQuadGal::nodes(int *p) const {
 }
 
 
-int* HelmLagQuadGal::dofs(DofSetArray &dsa, int *p) {
+int* HelmLagQuadGal::dofs(DofSetArray &dsa, int *p) const  {
 
  int i;
  if(p == 0) p = new int[order*order];
@@ -501,7 +501,7 @@ int* HelmLagQuadGal::dofs(DofSetArray &dsa, int *p) {
 }
 
 
-void HelmLagQuadGal::markDofs(DofSetArray &dsa) {
+void HelmLagQuadGal::markDofs(DofSetArray &dsa) const {
 
  int i;
  for(i=0;i<order*order;i++) dsa.mark(nn[i],DofSet::Helm);

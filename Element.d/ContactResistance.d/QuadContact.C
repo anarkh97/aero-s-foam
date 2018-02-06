@@ -133,7 +133,7 @@ QuadContact::numDofs() const
 }
 
 int*
-QuadContact::dofs(DofSetArray &dsa, int *p)
+QuadContact::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[4];
 
@@ -146,7 +146,7 @@ QuadContact::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-QuadContact::markDofs(DofSetArray &dsa)
+QuadContact::markDofs(DofSetArray &dsa) const
 {
         dsa.mark(nn, 4, DofSet::Temp);
 }

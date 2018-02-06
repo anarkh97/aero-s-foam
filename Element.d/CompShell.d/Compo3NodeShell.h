@@ -45,8 +45,8 @@ public:
                                    double *coefs, CoordSet &cs, double theta);
         void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
 
-        void markDofs(DofSetArray &) override;
-        int* dofs(DofSetArray &, int *p) override;
+        void markDofs(DofSetArray &) const override;
+        int* dofs(DofSetArray &, int *p) const override;
          int numDofs() const override;
         int getTopNumber() override;
 

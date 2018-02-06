@@ -18,8 +18,8 @@ public:
 	FullSquareMatrix stiffness(const CoordSet& cs, double *kel, int flg) const override;
 	FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg) const override;
 
-	void markDofs(DofSetArray &) override;
-	int* dofs(DofSetArray &, int *p) override;
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
 
 	int numNodes() const override;

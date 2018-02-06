@@ -118,7 +118,7 @@ BarConvec::numDofs() const
 }
 
 int *
-BarConvec::dofs(DofSetArray &dsa, int *p)
+BarConvec::dofs(DofSetArray &dsa, int *p) const
 {
         if(p == 0) p = new int[2];
 
@@ -129,7 +129,7 @@ BarConvec::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-BarConvec::markDofs( DofSetArray &dsa )
+BarConvec::markDofs(DofSetArray& dsa) const
 {
         dsa.mark( nn, 2, DofSet::Temp);
 }

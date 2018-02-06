@@ -149,7 +149,7 @@ BoundaryElement::numDofs() const
 }
 
 int *
-BoundaryElement::dofs(DofSetArray &dsa, int *p)
+BoundaryElement::dofs(DofSetArray &dsa, int *p) const
 {
   if(p == 0) p = new int[numDofs()];
   for(int i = 0; i < nterms; i++)
@@ -158,7 +158,7 @@ BoundaryElement::dofs(DofSetArray &dsa, int *p)
 }
 
 void
-BoundaryElement::markDofs(DofSetArray &dsa)
+BoundaryElement::markDofs(DofSetArray &dsa) const
 {
   for(int i = 0; i < nterms; i++)
     dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);

@@ -16,7 +16,7 @@ class RigidFourNodeShell : public SuperElement
   public:
     RigidFourNodeShell(int*);
     int getTopNumber() override { return 188; }
-    bool isRigidElement() { return true; }
+    bool isRigidElement() const override { return true; }
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront *mf) override;
 

@@ -772,7 +772,7 @@ SuperElement::addFaces(PolygonSet *pset)
 }
 
 bool 
-SuperElement::isSafe()
+SuperElement::isSafe() const
 {
   for(int i = 0; i < nSubElems; ++i) 
     if(!subElems[i]->isSafe()) return false;

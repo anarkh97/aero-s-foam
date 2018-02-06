@@ -41,7 +41,7 @@ class BoundaryElement : public Element, public Corotator
     Corotator* getCorotator(CoordSet&, double*, int, int);
     double getElementEnergy(GeomState&, CoordSet&) { return 0; }
 
-    bool isSafe() { return false; }
+    bool isSafe() const override { return false; }
 
     int getTopNumber() override { return 101; }
 

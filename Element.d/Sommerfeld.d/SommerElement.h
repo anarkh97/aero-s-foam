@@ -170,7 +170,7 @@ public:
 	virtual void ffpDir(int, ComplexD *, CoordSet &, ComplexD *,
 	                    double, double(*)[3], double *);
 
-	virtual ComplexD ffpCoef(double k);
+	virtual ComplexD ffpCoef(double k) const;
 
 	virtual void getNormal(const CoordSet &, double[3]) const;
 

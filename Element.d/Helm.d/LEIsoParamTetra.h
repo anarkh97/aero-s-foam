@@ -15,8 +15,8 @@ class LEIsoParamTetra: public Element {
 public:
 	LEIsoParamTetra(int,int*);
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const;
-        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const;
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
+        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
         void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
         double getMass(const CoordSet&) const;
 

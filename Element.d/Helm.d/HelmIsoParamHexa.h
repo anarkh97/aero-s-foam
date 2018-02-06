@@ -15,8 +15,8 @@ class HelmIsoParamHexa: public HelmElement, public Element {
 public:
 	HelmIsoParamHexa(int,int*);
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const;
-        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const;
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
+        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
         FullSquareMatrixC stiffness(const CoordSet&, complex<double> *d) const;
         FullSquareMatrixC massMatrix(const CoordSet&, complex<double> *d) const;
         double getMass(const CoordSet&) const;

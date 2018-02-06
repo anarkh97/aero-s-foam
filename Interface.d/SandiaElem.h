@@ -17,7 +17,7 @@ class SandiaElem : public Element
    int numDofs() const override;
   int numNodes() const override;
   int* nodes(int * = 0) const override;
-  bool isSafe();
+  bool isSafe() const;
   bool isRotMidSideNode(int iNode);
 };
 

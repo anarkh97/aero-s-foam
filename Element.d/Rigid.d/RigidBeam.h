@@ -12,9 +12,9 @@ class RigidBeam : public SuperElement
   public:
     RigidBeam(int*, int=0);
     int getTopNumber() override { return 106; }
-    bool isRigidElement() override { return true; }
+    bool isRigidElement() const override { return true; }
     bool hasRot() override { return true; }
-    bool isSafe() override { return true; }
+    bool isSafe() const override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;
 
     void buildFrame(CoordSet&) override;
@@ -32,9 +32,9 @@ class RigidBeamWithMass : public SuperElement
   public:
     RigidBeamWithMass(int*, int=0);
     int getTopNumber() override { return 106; }
-    bool isRigidElement() { return true; }
+    bool isRigidElement() const override { return true; }
     bool hasRot() { return true; }
-    bool isSafe() { return true; }
+    bool isSafe() const override { return true; }
     PrioInfo examine(int sub, MultiFront*);
 
     void buildFrame(CoordSet&);

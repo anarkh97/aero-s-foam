@@ -28,7 +28,7 @@ class RotnSprlink : public Element
     Corotator* getCorotator(CoordSet&, double*, int, int);
 
     int getTopNumber() override;
-    bool isSafe() { return false; }
+    bool isSafe() const override { return false; }
     bool isSpring() { return true; }
     PrioInfo examine(int sub, MultiFront*);
 	

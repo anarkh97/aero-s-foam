@@ -36,7 +36,7 @@ public:
                              GeomState *gs);
         void setPreLoad(std::vector<double> &load);
         std::vector<double> getPreLoad();
-	bool isSafe() { return false; }
+	bool isSafe() const override { return false; }
 	bool isStart() {return false; }
 
 private:

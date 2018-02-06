@@ -66,7 +66,7 @@ public:
 	virtual double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
-	bool isSafe() override { return false; }
+	bool isSafe() const override { return false; }
 
 	void computePressureForce(CoordSet&, Vector& elPressureForce,
 	                          GeomState *gs, int cflg, double t) override;

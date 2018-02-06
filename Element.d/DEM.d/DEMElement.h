@@ -187,8 +187,8 @@ public:
 		       ( nLagrangeDofs() );
 	}
 	virtual int* nodes(int * = 0) const override;
-	virtual FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const;
-	virtual FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const;
+	virtual FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
+	virtual FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
 
 // Interface
 	virtual double getOmega() { return geoSource->omega(); }

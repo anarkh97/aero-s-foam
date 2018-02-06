@@ -39,7 +39,7 @@ public:
 	void ffpDir(int, ComplexD *, CoordSet &, ComplexD *, ComplexD *,
 	            double, double(*)[3], double *) override;
 
-	ComplexD ffpCoef(double k) override {
+	ComplexD ffpCoef(double k) const override {
 		return exp(complex<double>(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k);
 	}
 

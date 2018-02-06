@@ -47,7 +47,7 @@ public:
 	                     GeomState *gs) override;
 	void setPreLoad(std::vector<double> &load) override;
 	std::vector<double> getPreLoad() override;
-	bool isSafe() override { return false; }
+	bool isSafe() const override { return false; }
 	bool isStart() override {return false; }
 #ifndef SALINAS
 	PrioInfo examine(int sub, MultiFront *) override;

@@ -8,8 +8,8 @@ class RigidTwoNodeTruss : public ConstantDistanceConstraint
   public:
     RigidTwoNodeTruss(int*);
     int getTopNumber() override { return 101; }
-    bool isRigidElement() { return true; }
-    bool isSafe() { return false; }
+    bool isRigidElement() const override { return true; }
+    bool isSafe() const override { return false; }
     PrioInfo examine(int sub, MultiFront*);
 };
 
@@ -18,8 +18,8 @@ class RigidTwoNodeTrussWithMass : public ConstantDistanceConstraint
   public:
     RigidTwoNodeTrussWithMass(int*);
     int getTopNumber() override { return 101; }
-    bool isRigidElement() { return true; }
-    bool isSafe() { return false; }
+    bool isRigidElement() const override { return true; }
+    bool isSafe() const override { return false; }
     PrioInfo examine(int sub, MultiFront*);
 
     int getMassType() const override { return 2; } // both consistent and lumped

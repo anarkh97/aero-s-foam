@@ -15,8 +15,8 @@ class HelmSpectralIsoParamQuad: public HelmElement, public Element {
 public:
 	HelmSpectralIsoParamQuad(int,int*);
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const;
-        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const;
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
+        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
         double getMass(const CoordSet&) const;
 
 	Element *clone() override;

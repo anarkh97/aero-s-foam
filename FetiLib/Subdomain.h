@@ -14,6 +14,7 @@ template <typename S>
 class Subdomain {
 public:
 	Subdomain(DOFInfo dofInfo, Eigen::SparseMatrix<S> K);
+	const DOFInfo &getDOFInfo() { return dofInfo; }
 private:
 	DOFInfo dofInfo;
 	Eigen::SparseMatrix<S> K;

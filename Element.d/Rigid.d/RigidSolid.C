@@ -112,7 +112,7 @@ RigidSolid::numTopNodes()
 }
 
 bool
-RigidSolid::isSafe()
+RigidSolid::isSafe() const
 {
   return (nnodes >= 4);
 }

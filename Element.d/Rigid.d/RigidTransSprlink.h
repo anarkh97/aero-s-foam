@@ -9,9 +9,9 @@ class RigidTransSprlink : public SuperElement
     RigidTransSprlink(int*);
     void setProp(StructProp*, bool = false);
     int getTopNumber() override { return 121; }
-    bool isSafe() { return false; }
+    bool isSafe() const override { return false; }
     bool isSpring() { return true; }
-    bool isRigidElement() { return true; }
+    bool isRigidElement() const override { return true; }
     PrioInfo examine(int sub, MultiFront*);
 };
 

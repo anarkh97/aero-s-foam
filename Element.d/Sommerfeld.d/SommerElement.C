@@ -842,7 +842,7 @@ SommerElement::dim() const {
 }
 
 ComplexD
-SommerElement::ffpCoef(double k) {
+SommerElement::ffpCoef(double k) const {
 	fprintf(stderr, " *** WARNING: SommerElement::ffpCoef not implemented\n");
 	return 0.0;
 }

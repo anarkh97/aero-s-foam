@@ -15,7 +15,7 @@ public:
         void renum(int *) override;
         void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const;
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
         FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
         double getMass(const CoordSet& cs) const;
         void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg,

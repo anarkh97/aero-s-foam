@@ -46,7 +46,7 @@ public:
 
 	FullSquareMatrix turkelMatrix(CoordSet &, double *) const override;
 
-	ComplexD ffpCoef(double k) { return exp(ComplexD(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k); }
+	ComplexD ffpCoef(double k) const override { return exp(ComplexD(0.0, M_PI / 4.0)) / sqrt(8.0 * M_PI * k); }
 
 	void getNormal(const CoordSet &, double [3]) const override;
 

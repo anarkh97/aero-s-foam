@@ -116,7 +116,7 @@ public:
 	void addFaces(PolygonSet *pset) override;
 	int numInternalNodes() override;
 	void setInternalNodes(int *in) override;
-	bool isSafe() override;
+	bool isSafe() const override;
 	bool isRotMidSideNode(int iNode) override;
 	bool isMpcElement() override;
 	//bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false);

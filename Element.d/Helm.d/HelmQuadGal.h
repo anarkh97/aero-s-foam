@@ -16,7 +16,7 @@ public:
 
         FullSquareMatrix stiffness(const CoordSet&, double *d, int flg = 1) const;
         FullSquareMatrix acousticm(CoordSet&, double *d);
-        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const;
+        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
         void getHelmForce(CoordSet&, ComplexVector &, ComplexVector &);
 
 

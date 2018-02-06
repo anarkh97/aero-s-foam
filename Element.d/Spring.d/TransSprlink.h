@@ -28,7 +28,7 @@ class TransSprlink : virtual public Element
     Corotator* getCorotator(CoordSet&, double*, int, int) override;
 
     int getTopNumber() override;
-    bool isSafe() override { return false; }
+    bool isSafe() const override { return false; }
     bool isSpring() override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;
 };

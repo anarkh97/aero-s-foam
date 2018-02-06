@@ -554,7 +554,7 @@ public:
 
 	virtual void setInternalNodes(int *) {}
 
-	virtual bool isSafe() { return true; }
+	virtual bool isSafe() const { return true; }
 
 	// from DEC
 	// TOP/DOMDEC Element Functions
@@ -600,7 +600,7 @@ public:
 	virtual int  fsiFluidNode() { return -1; }
 	virtual int  fsiStrutNode() { return -1; }
 	//virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false) { return false; }
-	virtual bool isRigidElement() { return false; }
+	virtual bool isRigidElement() const { return false; }
 	virtual int getNumMPCs() { return 0; }
 	virtual LMPCons** getMPCs() { return 0; }
 

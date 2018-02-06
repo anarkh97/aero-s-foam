@@ -9,7 +9,7 @@ class RigidSolid6Dof : public SuperElement
     RigidSolid6Dof(int, int*);
     int getTopNumber() override;
     int numTopNodes() override;
-    bool isRigidElement() { return true; }
+    bool isRigidElement() const override { return true; }
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront*);
 };

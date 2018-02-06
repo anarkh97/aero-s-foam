@@ -9,9 +9,9 @@ class RigidRotnSprlink : public SuperElement
     RigidRotnSprlink(int*);
     void setProp(StructProp*, bool = false);
     int getTopNumber() override { return 122; }
-    bool isSafe() { return false; }
+    bool isSafe() const override { return false; }
     bool isSpring() { return true; }
-    bool isRigidElement() { return true; }
+    bool isRigidElement() const override { return true; }
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront*);
 };

@@ -36,7 +36,7 @@ public:
 	FullSquareMatrix HSommerMatrix(const CoordSet &cs, double *d) const override;
 	//FullSquareMatrix HKSommerMatrix(CoordSet&, double *);
 
-	ComplexD ffpCoef(double k) override { return {0.25 / M_PI, 0.0}; }
+	ComplexD ffpCoef(double k) const override { return {0.25 / M_PI, 0.0}; }
 
 	void getNormal(const CoordSet &, double[3]) const override;
 

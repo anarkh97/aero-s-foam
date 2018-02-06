@@ -10,8 +10,8 @@ class RigidSolid : public SuperElement
     void buildFrame(CoordSet& cs);
     int getTopNumber() override;
     int numTopNodes() override;
-    bool isRigidElement() { return true; }
-    bool isSafe();
+    bool isRigidElement() const override { return true; }
+    bool isSafe() const override;
     PrioInfo examine(int sub, MultiFront*);
 };
 

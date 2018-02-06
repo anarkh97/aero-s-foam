@@ -32,7 +32,7 @@ class MixedFiniteElement : public BoundaryElement
     MixedFiniteElement(int, DofSet*, int*);
 
     void setMaterial(NLMaterial *_mat);
-    bool isSafe() { return true; }
+    bool isSafe() const override { return true; }
 
     FullSquareMatrix stiffness(const CoordSet&, double*, int = 1) const;
     void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);

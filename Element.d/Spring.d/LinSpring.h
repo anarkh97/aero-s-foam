@@ -24,7 +24,7 @@ public:
 
 	int numNodes() const override;
 	int * nodes(int *) const override;
-	bool isSafe() override {return true;}
+	bool isSafe() const override {return true;}
 	bool isSpring() override {return true;}
 	int getTopNumber() override {return 111;}
 	PrioInfo examine(int sub, MultiFront *) override;

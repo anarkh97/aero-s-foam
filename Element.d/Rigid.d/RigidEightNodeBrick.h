@@ -8,8 +8,8 @@ class RigidEightNodeBrick : public SuperElement
   public:
     RigidEightNodeBrick(int*);
     int getTopNumber() override { return 117; }
-    bool isRigidElement() { return true; }
-    bool isSafe() { return true; }
+    bool isRigidElement() const override { return true; }
+    bool isSafe() const override { return true; }
     PrioInfo examine(int sub, MultiFront*);
 
     FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg=1) const;

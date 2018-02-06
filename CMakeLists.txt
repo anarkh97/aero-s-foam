@@ -5,15 +5,24 @@ enable_language(Fortran)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake" "/usr/local/include/eigen3/cmake/")
 
-# pjsa trying to build statically linked executable
-#set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic
-#set(CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS)
-#set(CMAKE_SHARED_LIBRARY_C_FLAGS)         # remove -fPIC
-#set(CMAKE_SHARED_LIBRARY_CXX_FLAGS)
-#set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)    # remove -rdynamic
-#set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
-#SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-#SET(CMAKE_EXE_LINKER_FLAGS -static)
+# Conan approach
+if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    message("Using conan for most libraries (in build directory -- prefered method")
+    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    set(USE_CONAN true)
+    set(CONAN_BUILD_DIR ${CMAKE_BINARY_DIR})
+elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/build/conanbuildinfo.cmake) #Clion, with conanbuildinfo.cmake in build folder
+    message("Using in-source conan for most libraries")
+    include(${CMAKE_CURRENT_SOURCE_DIR}/build/conanbuildinfo.cmake)
+    set(USE_CONAN true)
+    set(CONAN_BUILD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build)
+else()
+    message("Using FindXXX to locate all libraries")
+endif()
+if(USE_CONAN)
+    set(MPI_C_COMPILER ${CONAN_BUILD_DIR}/bin/mpicc)
+    set(MPI_CXX_COMPILER ${CONAN_BUILD_DIR}/bin/mpic++)
+endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-literal-suffix")

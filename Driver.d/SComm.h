@@ -24,7 +24,7 @@ public:
 	Connectivity *sharedDOFs = nullptr;  //<! DOFs # shared (all of types 0, 1 and 2)
 	Connectivity *sharedDOFsPlus = nullptr; //<! also includes corner dofs
 
-	SComm(int numNeighb, int *subNums, int *remoteId = 0, Connectivity *sharedNodes = 0);
+	SComm(int numNeighb, int *subNums, int *remoteId, Connectivity *);
 	~SComm();
 
 	void setExchangeData(int iSub, void *data);

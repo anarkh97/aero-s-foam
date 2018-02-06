@@ -59,10 +59,13 @@ MPI_Datatype CommTrace<DComplex>::MPIType = MPI_DOUBLE_COMPLEX;
 static MPI_Request nullReq;
 static MPI_Status nullStat;
 
+CommunicatorHandle getWorldComm() {
+	return CommunicatorHandle(MPI_COMM_WORLD);
+}
 //------------------------------------------------------------------------------ 
 
 Communicator::Communicator(int _ncpu) 
-: pendReq(nullReq), reqStatus(nullStat), nPendReq(0)
+: pendReq(nullReq), reqStatus(nullStat), nPendReq(0), opaqueCommunicator(getWorldComm())
 {
   comm = MPI_COMM_WORLD;
   nPendReq = 0;
@@ -235,14 +238,14 @@ void Communicator::split(int color, int maxcolor, Communicator** c)
 }
 
 Communicator::Communicator(MPI_Comm c1, FILE *fp)
-  : pendReq(nullReq), reqStatus(nullStat)
+  : pendReq(nullReq), reqStatus(nullStat), opaqueCommunicator(c1)
 {
   comm = c1;
   nPendReq = 0;
 }
 
 Communicator::Communicator(const Communicator &c1)
-: pendReq(nullReq) , reqStatus(nullStat), nPendReq(0)
+: pendReq(nullReq) , reqStatus(nullStat), nPendReq(0), opaqueCommunicator(c1.opaqueCommunicator)
 {
   comm = c1.comm;
 #ifdef USE_MPI

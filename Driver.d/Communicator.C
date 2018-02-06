@@ -5,8 +5,8 @@
 #include <Comm.d/Communicator.h>
 
 template <class Type>
-Type 
-FSCommunicator::globalSum(Type data) 
+Type
+FSCommunicator::globalSum(Type data)
 {
 #ifdef USE_MPI
   Type buff;
@@ -18,8 +18,8 @@ FSCommunicator::globalSum(Type data)
 }
 
 template <class Type>
-Type 
-FSCommunicator::globalMax(Type data) 
+Type
+FSCommunicator::globalMax(Type data)
 {
 #ifdef USE_MPI
   Type buff;
@@ -31,7 +31,7 @@ FSCommunicator::globalMax(Type data)
 }
 
 template <class Type>
-Type FSCommunicator::globalMin(Type data) 
+Type FSCommunicator::globalMin(Type data)
 {
 #ifdef USE_MPI
   Type buff;
@@ -44,19 +44,19 @@ Type FSCommunicator::globalMin(Type data)
 
 template <class Type>
 void
-FSCommunicator::globalSum(int num, Type*data) 
+FSCommunicator::globalSum(int num, Type*data)
 {
 #ifdef USE_MPI
   Type *work;
   dbg_alloca(0);
 
-  //int segSize = (num > 65536) ? 65536 : num; 
+  //int segSize = (num > 65536) ? 65536 : num;
   int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
 
   if(segSize > 5000)
     work = new Type[segSize];
   else
-    work = (Type *)dbg_alloca(segSize*sizeof(Type)); 
+    work = (Type *)dbg_alloca(segSize*sizeof(Type));
 
   int offset;
   for(offset = 0; offset < num; offset +=segSize) {
@@ -78,15 +78,15 @@ FSCommunicator::globalMax(int num, Type*data)
 #ifdef USE_MPI
   Type *work;
   dbg_alloca(0);
- 
+
   //int segSize = (num > 65536) ? 65536 : num;
   int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
- 
+
   if(segSize > 5000)
     work = new Type[segSize];
   else
     work = (Type *)dbg_alloca(segSize*sizeof(Type));
- 
+
   int offset;
   for(offset = 0; offset < num; offset +=segSize) {
     int msgSize = (num-offset < segSize) ? num-offset : segSize;
@@ -107,15 +107,15 @@ FSCommunicator::globalMin(int num, Type*data)
 #ifdef USE_MPI
   Type *work;
   dbg_alloca(0);
- 
+
   //int segSize = (num > 65536) ? 65536 : num;
   int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
- 
+
   if(segSize > 5000)
     work = new Type[segSize];
   else
     work = (Type *)dbg_alloca(segSize*sizeof(Type));
- 
+
   int offset;
   for(offset = 0; offset < num; offset +=segSize) {
     int msgSize = (num-offset < segSize) ? num-offset : segSize;
@@ -180,10 +180,10 @@ FSCommunicator::recFrom(int tag, Type *buffer, int len)
   FSRecInfo rInfo;
 #ifdef USE_MPI
   MPI_Status status;
-  MPI_Recv(buffer, len, 
+  MPI_Recv(buffer, len,
            CommTrace<Type>::MPIType, MPI_ANY_SOURCE, tag, comm, &status);
   MPI_Get_count(&status, CommTrace<Type>::MPIType, &rInfo.len);
-  rInfo.cpu = status.MPI_SOURCE; 
+  rInfo.cpu = status.MPI_SOURCE;
 #else
   rInfo.len = 0;
   rInfo.cpu = 0;
@@ -193,11 +193,11 @@ FSCommunicator::recFrom(int tag, Type *buffer, int len)
 
 template <class Type>
 void
-FSCommunicator::allGather(Type *send_data, int send_count, 
+FSCommunicator::allGather(Type *send_data, int send_count,
                           Type *recv_data, int recv_count)
 {
 #ifdef USE_MPI
-  MPI_Allgather(send_data, send_count, CommTrace<Type>::MPIType, 
+  MPI_Allgather(send_data, send_count, CommTrace<Type>::MPIType,
                 recv_data, recv_count, CommTrace<Type>::MPIType, comm);
 #endif
 }
@@ -208,8 +208,8 @@ FSCommunicator::allGatherv(Type *send_data, int send_count,
                            Type *recv_data, int recv_counts[], int displacements[])
 {
 #ifdef USE_MPI
-  MPI_Allgatherv(send_data, send_count, CommTrace<Type>::MPIType, 
-                 recv_data, recv_counts, displacements, 
+  MPI_Allgatherv(send_data, send_count, CommTrace<Type>::MPIType,
+                 recv_data, recv_counts, displacements,
                  CommTrace<Type>::MPIType, comm);
 #endif
 }

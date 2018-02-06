@@ -55,8 +55,8 @@ CommunicatorHandle getWorldComm();
 class Communicator
 {
 public:
-	Communicator(MPI_Comm, FILE * = stderr);
-	Communicator(int _ncpu);
+	explicit Communicator(MPI_Comm, FILE * = stderr);
+	explicit Communicator(int _ncpu);
 	Communicator(const Communicator &);
 	template <class Type>
 	Type globalSum(Type);
@@ -135,125 +135,107 @@ template <class Type>
 Type
 Communicator::globalSum(Type data)
 {
-#ifdef USE_MPI
 	Type buff;
-  MPI_Allreduce(&data, &buff, 1, CommTrace<Type>::MPIType, MPI_SUM, comm);
-  return buff;
-#else
-	return data;
-#endif
+	opaqueCommunicator.allReduce(&data, &buff, 1, CommTypeTrait<Type>::typeHandle(), SumHandle);
+	return buff;
 }
 
 template <class Type>
 Type
 Communicator::globalMax(Type data)
 {
-#ifdef USE_MPI
 	Type buff;
-  MPI_Allreduce(&data, &buff, 1, CommTrace<Type>::MPIType, MPI_MAX, comm);
-  return buff;
-#else
-	return data;
-#endif
+	opaqueCommunicator.allReduce(&data, &buff, 1, CommTypeTrait<Type>::typeHandle(), MaxHandle);
+	return buff;
 }
 
 template <class Type>
 Type Communicator::globalMin(Type data)
 {
-#ifdef USE_MPI
 	Type buff;
-  MPI_Allreduce(&data, &buff, 1, CommTrace<Type>::MPIType, MPI_MIN, comm);
-  return buff;
-#else
-	return data;
-#endif
+	opaqueCommunicator.allReduce(&data, &buff, 1, CommTypeTrait<Type>::typeHandle(), MinHandle);
+	return buff;
 }
 
 template <class Type>
 void
 Communicator::globalSum(int num, Type*data)
 {
-#ifdef USE_MPI
+//	if(this->glNumCPU == 1)
+//		return;
 	Type *work;
-  dbg_alloca(0);
+	dbg_alloca(0);
 
-  //int segSize = (num > 65536) ? 65536 : num;
-  int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
+	//int segSize = (num > 65536) ? 65536 : num;
+	int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
 
-  if(segSize > 5000)
-    work = new Type[segSize];
-  else
-    work = (Type *)dbg_alloca(segSize*sizeof(Type));
+	if(segSize > 5000)
+		work = new Type[segSize];
+	else
+		work = (Type *)dbg_alloca(segSize*sizeof(Type));
 
-  int offset;
-  for(offset = 0; offset < num; offset +=segSize) {
-    int msgSize = (num-offset < segSize) ? num-offset : segSize;
-    MPI_Allreduce(data+offset, work, msgSize,
-                  CommTrace<Type>::MPIType, MPI_SUM, comm);
-    for(int i = 0; i < msgSize; ++i)
-      data[offset+i] = work[i];
-  }
-  if(segSize > 5000)
-    delete [] work;
-#endif
+	int offset;
+	for(offset = 0; offset < num; offset +=segSize) {
+		int msgSize = (num-offset < segSize) ? num-offset : segSize;
+		opaqueCommunicator.allReduce(data+offset, work, msgSize, CommTypeTrait<Type>::typeHandle(), SumHandle);
+		for(int i = 0; i < msgSize; ++i)
+			data[offset+i] = work[i];
+	}
+	if(segSize > 5000)
+		delete [] work;
 }
 
 template <class Type>
 void
 Communicator::globalMax(int num, Type*data)
 {
-#ifdef USE_MPI
 	Type *work;
-  dbg_alloca(0);
+	dbg_alloca(0);
 
-  //int segSize = (num > 65536) ? 65536 : num;
-  int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
+	//int segSize = (num > 65536) ? 65536 : num;
+	int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
 
-  if(segSize > 5000)
-    work = new Type[segSize];
-  else
-    work = (Type *)dbg_alloca(segSize*sizeof(Type));
+	if(segSize > 5000)
+		work = new Type[segSize];
+	else
+		work = (Type *)dbg_alloca(segSize*sizeof(Type));
 
-  int offset;
-  for(offset = 0; offset < num; offset +=segSize) {
-    int msgSize = (num-offset < segSize) ? num-offset : segSize;
-    MPI_Allreduce(data+offset, work, msgSize,
-                  CommTrace<Type>::MPIType, MPI_MAX, comm);
-    for(int i = 0; i < msgSize; ++i)
-      data[offset+i] = work[i];
-  }
-  if(segSize > 5000)
-    delete [] work;
-#endif
+	int offset;
+	for(offset = 0; offset < num; offset +=segSize) {
+		int msgSize = (num-offset < segSize) ? num-offset : segSize;
+		opaqueCommunicator.allReduce(data+offset, work, msgSize, CommTypeTrait<Type>::typeHandle(), MaxHandle);
+
+		for(int i = 0; i < msgSize; ++i)
+			data[offset+i] = work[i];
+	}
+	if(segSize > 5000)
+		delete [] work;
 }
 
 template <class Type>
 void
 Communicator::globalMin(int num, Type*data)
 {
-#ifdef USE_MPI
 	Type *work;
-  dbg_alloca(0);
+	dbg_alloca(0);
 
-  //int segSize = (num > 65536) ? 65536 : num;
-  int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
+	//int segSize = (num > 65536) ? 65536 : num;
+	int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
 
-  if(segSize > 5000)
-    work = new Type[segSize];
-  else
-    work = (Type *)dbg_alloca(segSize*sizeof(Type));
+	if(segSize > 5000)
+		work = new Type[segSize];
+	else
+		work = (Type *)dbg_alloca(segSize*sizeof(Type));
 
-  int offset;
-  for(offset = 0; offset < num; offset +=segSize) {
-    int msgSize = (num-offset < segSize) ? num-offset : segSize;
-    MPI_Allreduce(data+offset, work, msgSize,
-                  CommTrace<Type>::MPIType, MPI_MIN, comm);
-    for(int i = 0; i < msgSize; ++i)
-      data[offset+i] = work[i];
-  }
-  if(segSize > 5000)
-    delete [] work;
-#endif
+	int offset;
+	for(offset = 0; offset < num; offset +=segSize) {
+		int msgSize = (num-offset < segSize) ? num-offset : segSize;
+		opaqueCommunicator.allReduce(data+offset, work, msgSize, CommTypeTrait<Type>::typeHandle(), MinHandle);
+		for(int i = 0; i < msgSize; ++i)
+			data[offset+i] = work[i];
+	}
+	if(segSize > 5000)
+		delete [] work;
 }
 
 template <class Type>

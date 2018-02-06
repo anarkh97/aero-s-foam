@@ -75,19 +75,13 @@ Communicator::Communicator(int _ncpu)
 void
 Communicator::sync()
 {
-#ifdef USE_MPI
-  MPI_Barrier(comm);
-#endif
+	opaqueCommunicator.barrier();
 }
 
 int
 Communicator::myID()
 {
-  int id = 0;
-#ifdef USE_MPI
-  MPI_Comm_rank(comm, &id);
-#endif
-  return id;
+    return opaqueCommunicator.rank();
 }
 
 SysCom::SysCom(int &argc, char **&argv) 
@@ -124,11 +118,7 @@ SysCom::~SysCom()
 int
 Communicator::numCPUs()
 {
-  int id = 1;
-#ifdef USE_MPI
-  MPI_Comm_size(comm, &id);
-#endif
-  return id;
+	return opaqueCommunicator.comSize();
 }
 
 int CPairCompare(const void *a, const void *b)
@@ -238,43 +228,31 @@ void Communicator::split(int color, int maxcolor, Communicator** c)
 }
 
 Communicator::Communicator(MPI_Comm c1, FILE *fp)
-  : pendReq(nullReq), reqStatus(nullStat), opaqueCommunicator(c1)
+		: pendReq(nullReq), reqStatus(nullStat), opaqueCommunicator(c1)
 {
-  comm = c1;
-  nPendReq = 0;
+	comm = c1;
+	nPendReq = 0;
 }
 
 Communicator::Communicator(const Communicator &c1)
 : pendReq(nullReq) , reqStatus(nullStat), nPendReq(0), opaqueCommunicator(c1.opaqueCommunicator)
 {
-  comm = c1.comm;
-#ifdef USE_MPI
-  MPI_Comm_size(comm, &glNumCPU);
-#else
-  glNumCPU = 1;
-#endif
+	comm = c1.comm;
+	glNumCPU = opaqueCommunicator.comSize();
 }
 
 int
 Communicator::remoteSize()
 {
-  int numRemote = 0;
-#ifdef USE_MPI 
-  MPI_Comm_remote_size(comm, &numRemote);
-#endif
-  return numRemote;
+	return opaqueCommunicator.remoteSize();
 }
 
 bool Communicator::globalMax(bool b)
 {
-#ifdef USE_MPI
-  int buff;
-  int data = (b) ? 1 : 0;
-  MPI_Allreduce(&data, &buff, 1, CommTrace<int>::MPIType, MPI_MAX, comm);
-  return buff != 0;
-#else
-  return b;
-#endif
+	int buff;
+	int data = (b) ? 1 : 0;
+	opaqueCommunicator.allReduce(&data, &buff, 1, IntHandle, MaxHandle);
+	return buff != 0;
 }
 
 #ifdef NO_COMPLEX_MPI

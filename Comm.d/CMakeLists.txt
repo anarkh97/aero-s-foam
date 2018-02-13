@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5  FATAL_ERROR)
-ADD_LIBRARY(Comm OpaqueCommunicator.cpp OpaqueCommunicator.h OpaqueHandle.cpp OpaqueHandle.h)
+ADD_LIBRARY(Comm BaseCommunicator.cpp BaseCommunicator.h OpaqueHandle.cpp OpaqueHandle.h MPICompatTraits.h)
 #
 #SET(INC_DIR ..)
 #
@@ -10,3 +10,7 @@ TARGET_SOURCES(Comm
         Communicator.h
         )
 
+ADD_EXECUTABLE(comm_test CommTest.cpp)
+#TARGET_SOURCES(comm_test PUBLIC )
+
+TARGET_LINK_LIBRARIES(comm_test Comm ${MPI_LIBRARIES})

@@ -4,6 +4,7 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Comm.d/Communicator.h>
+#include "MPICompatTraits.h"
 
 #ifdef TFLOP
 #include "mpi.h"
@@ -59,9 +60,6 @@ MPI_Datatype CommTrace<DComplex>::MPIType = MPI_DOUBLE_COMPLEX;
 static MPI_Request nullReq;
 static MPI_Status nullStat;
 
-CommunicatorHandle getWorldComm() {
-	return CommunicatorHandle(MPI_COMM_WORLD);
-}
 //------------------------------------------------------------------------------ 
 
 Communicator::Communicator(int _ncpu) 
@@ -118,7 +116,7 @@ SysCom::~SysCom()
 int
 Communicator::numCPUs()
 {
-	return opaqueCommunicator.comSize();
+	return opaqueCommunicator.commSize();
 }
 
 int CPairCompare(const void *a, const void *b)
@@ -234,11 +232,19 @@ Communicator::Communicator(MPI_Comm c1, FILE *fp)
 	nPendReq = 0;
 }
 
+extern MPI_Comm mpi_comm(const OpaqueHandle &handle);
+
+Communicator::Communicator(const CommunicatorHandle &handle) :
+		pendReq(nullReq), reqStatus(nullStat), opaqueCommunicator(handle) {
+	comm = handle;
+	nPendReq = 0;
+}
+
 Communicator::Communicator(const Communicator &c1)
 : pendReq(nullReq) , reqStatus(nullStat), nPendReq(0), opaqueCommunicator(c1.opaqueCommunicator)
 {
 	comm = c1.comm;
-	glNumCPU = opaqueCommunicator.comSize();
+	glNumCPU = opaqueCommunicator.commSize();
 }
 
 int
@@ -251,7 +257,7 @@ bool Communicator::globalMax(bool b)
 {
 	int buff;
 	int data = (b) ? 1 : 0;
-	opaqueCommunicator.allReduce(&data, &buff, 1, IntHandle, MaxHandle);
+	opaqueCommunicator.allReduce(&data, &buff, 1, MaxHandle);
 	return buff != 0;
 }
 

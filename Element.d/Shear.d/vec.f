@@ -55,7 +55,7 @@ c
 c
 c***********************************************************************
       subroutine length(u,len)
-c     lenght of u
+c     length of u
 c
       real*8     u(3),len
       real*8     zero

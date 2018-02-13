@@ -36,9 +36,16 @@ class DPSImpl;
 template <typename O>
 using const_enforcing_unique_ptr = std::experimental::propagate_const<std::unique_ptr<O>>;
 
+/** \brief FETI-DP solver for doouble or complex. */
 template <typename T>
 class DPSolver {
+	/** \brief Constructor with an array of subdomains and a communicator.
+	 *
+	 * @param subdomains
+	 * @param communicator
+	 */
 	DPSolver(std::vector<Subdomain<T>> subdomains, Com communicator = default_com());
+
 	bool solve(Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> rhs,
 	           Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> solution);
 private:

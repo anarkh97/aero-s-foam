@@ -1932,7 +1932,7 @@ subroutine crsprdt3d(opt,avec,bvec, cvec)
   ! ====================================
   ! local variable
   ! ==============
-  real(8) :: lenght
+  real(8) :: length
   ! ====================================
 
   ! initialize

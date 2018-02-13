@@ -1,132 +1,46 @@
 #include <cstdlib>
-#include <Utils.d/linkfc.h>
 #include <Utils.d/dbg_alloca.h>
-#include <cstdio>
 #include <Comm.d/Communicator.h>
 
 template <class Type>
 Type
 FSCommunicator::globalSum(Type data)
 {
-#ifdef USE_MPI
-  Type buff;
-  MPI_Allreduce(&data, &buff, 1, CommTrace<Type>::MPIType, MPI_SUM, comm);
-  return buff;
-#else
-  return data;
-#endif
+	return communicator.globalSum(data);
 }
 
 template <class Type>
 Type
 FSCommunicator::globalMax(Type data)
 {
-#ifdef USE_MPI
-  Type buff;
-  MPI_Allreduce(&data, &buff, 1, CommTrace<Type>::MPIType, MPI_MAX, comm);
-  return buff;
-#else
-  return data;
-#endif
+	return communicator.globalMax(data);
 }
 
 template <class Type>
 Type FSCommunicator::globalMin(Type data)
 {
-#ifdef USE_MPI
-  Type buff;
-  MPI_Allreduce(&data, &buff, 1, CommTrace<Type>::MPIType, MPI_MIN, comm);
-  return buff;
-#else
-  return data;
-#endif
+	return communicator.globalMin(data);
 }
 
 template <class Type>
 void
 FSCommunicator::globalSum(int num, Type*data)
 {
-#ifdef USE_MPI
-  Type *work;
-  dbg_alloca(0);
-
-  //int segSize = (num > 65536) ? 65536 : num;
-  int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
-
-  if(segSize > 5000)
-    work = new Type[segSize];
-  else
-    work = (Type *)dbg_alloca(segSize*sizeof(Type));
-
-  int offset;
-  for(offset = 0; offset < num; offset +=segSize) {
-    int msgSize = (num-offset < segSize) ? num-offset : segSize;
-    MPI_Allreduce(data+offset, work, msgSize,
-                  CommTrace<Type>::MPIType, MPI_SUM, comm);
-    for(int i = 0; i < msgSize; ++i)
-      data[offset+i] = work[i];
-  }
-  if(segSize > 5000)
-    delete [] work;
-#endif
+	communicator.globalSum(num, data);
 }
 
 template <class Type>
 void
 FSCommunicator::globalMax(int num, Type*data)
 {
-#ifdef USE_MPI
-  Type *work;
-  dbg_alloca(0);
-
-  //int segSize = (num > 65536) ? 65536 : num;
-  int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
-
-  if(segSize > 5000)
-    work = new Type[segSize];
-  else
-    work = (Type *)dbg_alloca(segSize*sizeof(Type));
-
-  int offset;
-  for(offset = 0; offset < num; offset +=segSize) {
-    int msgSize = (num-offset < segSize) ? num-offset : segSize;
-    MPI_Allreduce(data+offset, work, msgSize,
-                  CommTrace<Type>::MPIType, MPI_MAX, comm);
-    for(int i = 0; i < msgSize; ++i)
-      data[offset+i] = work[i];
-  }
-  if(segSize > 5000)
-    delete [] work;
-#endif
+	communicator.globalMax(num, data);
 }
 
 template <class Type>
 void
 FSCommunicator::globalMin(int num, Type*data)
 {
-#ifdef USE_MPI
-  Type *work;
-  dbg_alloca(0);
-
-  //int segSize = (num > 65536) ? 65536 : num;
-  int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
-
-  if(segSize > 5000)
-    work = new Type[segSize];
-  else
-    work = (Type *)dbg_alloca(segSize*sizeof(Type));
-
-  int offset;
-  for(offset = 0; offset < num; offset +=segSize) {
-    int msgSize = (num-offset < segSize) ? num-offset : segSize;
-    MPI_Allreduce(data+offset, work, msgSize,
-                  CommTrace<Type>::MPIType, MPI_MIN, comm);
-    for(int i = 0; i < msgSize; ++i)
-      data[offset+i] = work[i];
-  }
-  if(segSize > 5000)
-    delete [] work;
-#endif
+	communicator.globalMin(num, data);
 }
 
 #ifdef USE_MPI
@@ -134,27 +48,27 @@ template <class Type>
 void
 FSCommunicator::globalMpiOp(int num, Type *data, MPI_Op mpi_op)
 {
-  Type *work;
-  dbg_alloca(0);
+	Type *work;
+	dbg_alloca(0);
 
-  //int segSize = (num > 65536) ? 65536 : num;
-  int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
+	//int segSize = (num > 65536) ? 65536 : num;
+	int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
 
-  if(segSize > 5000)
-    work = new Type[segSize];
-  else
-    work = (Type *)dbg_alloca(segSize*sizeof(Type));
+	if(segSize > 5000)
+		work = new Type[segSize];
+	else
+		work = (Type *)dbg_alloca(segSize*sizeof(Type));
 
-  int offset;
-  for(offset = 0; offset < num; offset +=segSize) {
-    int msgSize = (num-offset < segSize) ? num-offset : segSize;
-    MPI_Allreduce(data+offset, work, msgSize,
-                  CommTrace<Type>::MPIType, mpi_op, comm);
-    for(int i = 0; i < msgSize; ++i)
-      data[offset+i] = work[i];
-  }
-  if(segSize > 5000)
-    delete [] work;
+	int offset;
+	for(offset = 0; offset < num; offset +=segSize) {
+		int msgSize = (num-offset < segSize) ? num-offset : segSize;
+		MPI_Allreduce(data+offset, work, msgSize,
+		              CommTrace<Type>::MPIType, mpi_op, comm);
+		for(int i = 0; i < msgSize; ++i)
+			data[offset+i] = work[i];
+	}
+	if(segSize > 5000)
+		delete [] work;
 }
 #endif
 
@@ -162,33 +76,34 @@ template <class Type>
 void
 FSCommunicator::sendTo(int cpu, int tag, Type *buffer, int len)
 {
-#ifdef USE_MPI
-  MPI_Send(buffer, len, CommTrace<Type>::MPIType, cpu, tag, comm);
-/*
-  int thisReq = nPendReq++;
-  MPI_Request *req = pendReq+thisReq;
-  MPI_Isend(buffer, len, CommTrace<Type>::MPIType,
-            cpu, tag, comm, req);
-*/
-#endif
+	communicator.sendTo(cpu, tag, buffer, len);
+//#ifdef USE_MPI
+//	MPI_Send(buffer, len, CommTrace<Type>::MPIType, cpu, tag, comm);
+///*
+//  int thisReq = nPendReq++;
+//  MPI_Request *req = pendReq+thisReq;
+//  MPI_Isend(buffer, len, CommTrace<Type>::MPIType,
+//            cpu, tag, comm, req);
+//*/
+//#endif
 }
 
 template <class Type>
 FSRecInfo
 FSCommunicator::recFrom(int tag, Type *buffer, int len)
 {
-  FSRecInfo rInfo;
+	FSRecInfo rInfo;
 #ifdef USE_MPI
-  MPI_Status status;
-  MPI_Recv(buffer, len,
-           CommTrace<Type>::MPIType, MPI_ANY_SOURCE, tag, comm, &status);
-  MPI_Get_count(&status, CommTrace<Type>::MPIType, &rInfo.len);
-  rInfo.cpu = status.MPI_SOURCE;
+	MPI_Status status;
+	MPI_Recv(buffer, len,
+	         CommTrace<Type>::MPIType, MPI_ANY_SOURCE, tag, comm, &status);
+	MPI_Get_count(&status, CommTrace<Type>::MPIType, &rInfo.len);
+	rInfo.cpu = status.MPI_SOURCE;
 #else
-  rInfo.len = 0;
+	rInfo.len = 0;
   rInfo.cpu = 0;
 #endif
-  return rInfo;
+	return rInfo;
 }
 
 template <class Type>
@@ -197,8 +112,8 @@ FSCommunicator::allGather(Type *send_data, int send_count,
                           Type *recv_data, int recv_count)
 {
 #ifdef USE_MPI
-  MPI_Allgather(send_data, send_count, CommTrace<Type>::MPIType,
-                recv_data, recv_count, CommTrace<Type>::MPIType, comm);
+	MPI_Allgather(send_data, send_count, CommTrace<Type>::MPIType,
+	              recv_data, recv_count, CommTrace<Type>::MPIType, comm);
 #endif
 }
 
@@ -208,9 +123,9 @@ FSCommunicator::allGatherv(Type *send_data, int send_count,
                            Type *recv_data, int recv_counts[], int displacements[])
 {
 #ifdef USE_MPI
-  MPI_Allgatherv(send_data, send_count, CommTrace<Type>::MPIType,
-                 recv_data, recv_counts, displacements,
-                 CommTrace<Type>::MPIType, comm);
+	MPI_Allgatherv(send_data, send_count, CommTrace<Type>::MPIType,
+	               recv_data, recv_counts, displacements,
+	               CommTrace<Type>::MPIType, comm);
 #endif
 }
 
@@ -220,8 +135,8 @@ FSCommunicator::gather(Type *send_data, int send_count,
                        Type *recv_data, int recv_count, int root)
 {
 #ifdef USE_MPI
-  MPI_Gather(send_data, send_count, CommTrace<Type>::MPIType,
-             recv_data, recv_count, CommTrace<Type>::MPIType, root, comm);
+	MPI_Gather(send_data, send_count, CommTrace<Type>::MPIType,
+	           recv_data, recv_count, CommTrace<Type>::MPIType, root, comm);
 #endif
 }
 
@@ -231,9 +146,9 @@ FSCommunicator::gatherv(Type *send_data, int send_count,
                         Type *recv_data, int recv_counts[], int displacements[], int root)
 {
 #ifdef USE_MPI
-  MPI_Gatherv(send_data, send_count, CommTrace<Type>::MPIType,
-              recv_data, recv_counts, displacements,
-              CommTrace<Type>::MPIType, root, comm);
+	MPI_Gatherv(send_data, send_count, CommTrace<Type>::MPIType,
+	            recv_data, recv_counts, displacements,
+	            CommTrace<Type>::MPIType, root, comm);
 #endif
 }
 
@@ -244,24 +159,24 @@ void
 FSCommunicator::reduce(int num, Type* data, int root)
 {
 #ifdef USE_MPI
-  int maxSegSize = _MESSAGE_SIZE/sizeof(Type);
-  int segSize = (num > maxSegSize) ? maxSegSize : num;
-  Type *buffer;
+	int maxSegSize = _MESSAGE_SIZE/sizeof(Type);
+	int segSize = (num > maxSegSize) ? maxSegSize : num;
+	Type *buffer;
 
-  if(segSize > _MAX_ALLOCA_SIZE)
-    buffer = new Type[segSize];
-  else {
-    dbg_alloca(0);
-    buffer = (Type *)dbg_alloca(segSize*sizeof(Type));
-  }
+	if(segSize > _MAX_ALLOCA_SIZE)
+		buffer = new Type[segSize];
+	else {
+		dbg_alloca(0);
+		buffer = (Type *)dbg_alloca(segSize*sizeof(Type));
+	}
 
-  for(int offset = 0; offset < num; offset +=segSize) {
-    int count = (num-offset < segSize) ? num-offset : segSize;
-    MPI_Reduce(data+offset, buffer, count, CommTrace<Type>::MPIType, MPI_SUM, root, comm);
-    if(thisCPU == root) for(int i = 0; i < count; ++i) data[offset+i] = buffer[i];
-  }
-  if(segSize > _MAX_ALLOCA_SIZE)
-    delete [] buffer;
+	for(int offset = 0; offset < num; offset +=segSize) {
+		int count = (num-offset < segSize) ? num-offset : segSize;
+		MPI_Reduce(data+offset, buffer, count, CommTrace<Type>::MPIType, MPI_SUM, root, comm);
+		if(thisCPU == root) for(int i = 0; i < count; ++i) data[offset+i] = buffer[i];
+	}
+	if(segSize > _MAX_ALLOCA_SIZE)
+		delete [] buffer;
 #endif
 }
 
@@ -270,25 +185,25 @@ void
 FSCommunicator::broadcast(int num, Type* data, int root)
 {
 #ifdef USE_MPI
-  int maxSegSize = _MESSAGE_SIZE/sizeof(Type);
-  int segSize = (num > maxSegSize) ? maxSegSize : num;
-  Type *buffer;
+	int maxSegSize = _MESSAGE_SIZE/sizeof(Type);
+	int segSize = (num > maxSegSize) ? maxSegSize : num;
+	Type *buffer;
 
-  if(segSize > _MAX_ALLOCA_SIZE)
-    buffer = new Type[segSize];
-  else {
-    dbg_alloca(0);
-    buffer = (Type *)dbg_alloca(segSize*sizeof(Type));
-  }
+	if(segSize > _MAX_ALLOCA_SIZE)
+		buffer = new Type[segSize];
+	else {
+		dbg_alloca(0);
+		buffer = (Type *)dbg_alloca(segSize*sizeof(Type));
+	}
 
-  for(int offset = 0; offset < num; offset +=segSize) {
-    int count = (num-offset < segSize) ? num-offset : segSize;
-    if(thisCPU == root) for(int i = 0; i < count; i++) buffer[i] = data[offset+i];
-    MPI_Bcast(buffer, count, CommTrace<Type>::MPIType, root, comm);
-    if(thisCPU != root) for(int i = 0; i < count; ++i) data[offset+i] = buffer[i];
-  }
-  if(segSize > _MAX_ALLOCA_SIZE)
-    delete [] buffer;
+	for(int offset = 0; offset < num; offset +=segSize) {
+		int count = (num-offset < segSize) ? num-offset : segSize;
+		if(thisCPU == root) for(int i = 0; i < count; i++) buffer[i] = data[offset+i];
+		MPI_Bcast(buffer, count, CommTrace<Type>::MPIType, root, comm);
+		if(thisCPU != root) for(int i = 0; i < count; ++i) data[offset+i] = buffer[i];
+	}
+	if(segSize > _MAX_ALLOCA_SIZE)
+		delete [] buffer;
 #endif
 }
 

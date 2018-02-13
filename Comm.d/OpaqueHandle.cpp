@@ -5,9 +5,12 @@
 #include <mpi.h>
 #include <complex>
 #include "OpaqueHandle.h"
+#include "MPICompatTraits.h"
+
 OpHandle MaxHandle{MPI_MAX};
 OpHandle MinHandle{MPI_MIN};
 OpHandle SumHandle{MPI_SUM};
+OpHandle ProdHandle{MPI_PROD};
 TypeHandle IntHandle{MPI_INT};
 
 template <>

@@ -6,7 +6,7 @@
 #include <Utils.d/MyComplex.h>
 #include <Utils.d/dbg_alloca.h>
 #include "OpaqueHandle.h"
-#include "OpaqueCommunicator.h"
+#include "BaseCommunicator.h"
 
 class Connectivity;
 
@@ -57,6 +57,7 @@ class Communicator
 public:
 	explicit Communicator(MPI_Comm, FILE * = stderr);
 	explicit Communicator(int _ncpu);
+	explicit Communicator(const CommunicatorHandle &handle);
 	Communicator(const Communicator &);
 	template <class Type>
 	Type globalSum(Type);
@@ -71,6 +72,8 @@ public:
 	void globalMax(int, Type*);
 	template <class Type>
 	void globalMin(int, Type*);
+	template <class Type>
+	void blockingSendTo(int cpu, int tag, Type *data, int len);
 	template <class Type>
 	void sendTo(int cpu, int tag, Type *data, int len);
 	template <class Type>
@@ -112,7 +115,7 @@ private:
 	ResizeArray<MPI_Status> reqStatus;
 	int nPendReq;
 	int glNumCPU;
-	OpaqueCommunicator opaqueCommunicator;
+	BaseCommunicator opaqueCommunicator;
 };
 
 class SysCom : public Communicator
@@ -136,7 +139,7 @@ Type
 Communicator::globalSum(Type data)
 {
 	Type buff;
-	opaqueCommunicator.allReduce(&data, &buff, 1, CommTypeTrait<Type>::typeHandle(), SumHandle);
+	opaqueCommunicator.allReduce(&data, &buff, 1, SumHandle);
 	return buff;
 }
 
@@ -145,7 +148,7 @@ Type
 Communicator::globalMax(Type data)
 {
 	Type buff;
-	opaqueCommunicator.allReduce(&data, &buff, 1, CommTypeTrait<Type>::typeHandle(), MaxHandle);
+	opaqueCommunicator.allReduce(&data, &buff, 1, MaxHandle);
 	return buff;
 }
 
@@ -153,7 +156,7 @@ template <class Type>
 Type Communicator::globalMin(Type data)
 {
 	Type buff;
-	opaqueCommunicator.allReduce(&data, &buff, 1, CommTypeTrait<Type>::typeHandle(), MinHandle);
+	opaqueCommunicator.allReduce(&data, &buff, 1, MinHandle);
 	return buff;
 }
 
@@ -177,7 +180,7 @@ Communicator::globalSum(int num, Type*data)
 	int offset;
 	for(offset = 0; offset < num; offset +=segSize) {
 		int msgSize = (num-offset < segSize) ? num-offset : segSize;
-		opaqueCommunicator.allReduce(data+offset, work, msgSize, CommTypeTrait<Type>::typeHandle(), SumHandle);
+		opaqueCommunicator.allReduce(data+offset, work, msgSize, SumHandle);
 		for(int i = 0; i < msgSize; ++i)
 			data[offset+i] = work[i];
 	}
@@ -203,7 +206,7 @@ Communicator::globalMax(int num, Type*data)
 	int offset;
 	for(offset = 0; offset < num; offset +=segSize) {
 		int msgSize = (num-offset < segSize) ? num-offset : segSize;
-		opaqueCommunicator.allReduce(data+offset, work, msgSize, CommTypeTrait<Type>::typeHandle(), MaxHandle);
+		opaqueCommunicator.allReduce(data+offset, work, msgSize, MaxHandle);
 
 		for(int i = 0; i < msgSize; ++i)
 			data[offset+i] = work[i];
@@ -230,12 +233,19 @@ Communicator::globalMin(int num, Type*data)
 	int offset;
 	for(offset = 0; offset < num; offset +=segSize) {
 		int msgSize = (num-offset < segSize) ? num-offset : segSize;
-		opaqueCommunicator.allReduce(data+offset, work, msgSize, CommTypeTrait<Type>::typeHandle(), MinHandle);
+		opaqueCommunicator.allReduce(data+offset, work, msgSize, MinHandle);
 		for(int i = 0; i < msgSize; ++i)
 			data[offset+i] = work[i];
 	}
 	if(segSize > 5000)
 		delete [] work;
+}
+
+template <class Type>
+void
+Communicator::blockingSendTo(int cpu, int tag, Type *buffer, int len)
+{
+	opaqueCommunicator.blockingSend(buffer, len, cpu, tag);
 }
 
 template <class Type>

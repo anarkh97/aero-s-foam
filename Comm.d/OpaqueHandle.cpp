@@ -32,3 +32,5 @@ template <>
 TypeHandle CommTypeTrait<std::complex<double>>::typeHandle() {
 	return MPI_COMPLEX;
 }
+
+RankHandle RankHandle::Any{-1};

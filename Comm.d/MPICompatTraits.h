@@ -24,4 +24,10 @@ template <>
 struct CommTypeCompatibility<MPI_Op , HandleType::Op> {
 	static const bool isCompatible = true;
 };
+
+template <>
+struct CommTypeCompatibility<MPI_Request, HandleType::Request> {
+	static const bool isCompatible = true;
+};
+
 #endif //FEM_MPICOMPATTRAITS_H

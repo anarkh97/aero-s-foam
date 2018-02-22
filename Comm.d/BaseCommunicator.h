@@ -7,6 +7,7 @@
 
 
 #include <type_traits>
+#include <vector>
 #include <algorithm>
 #include "OpaqueHandle.h"
 
@@ -79,6 +80,10 @@ struct CommFunctions {
 	                   int remoteRank, int remoteOffset);
 	void (*get)(WinHandle handle, void *resultData, int count, TypeHandle datatype,
 	            int remoteRank, int remoteOffset);
+	ReqHandle (*i_send)(const void *buf, int count, TypeHandle datatype, RankHandle dest, int tag,
+	                      const CommunicatorHandle &comm);
+	ReqHandle (*i_receive)(void *buf, int count, TypeHandle datatype, RankHandle origin, int tag,
+	                        const CommunicatorHandle &comm);
 };
 
 struct Constants {
@@ -128,6 +133,69 @@ private:
 	friend class BaseCommunicator;
 	WinHandle winHandle;
 };
+
+struct RequestInfo {
+	int length;
+	int cancelled;
+	int origin;
+	int tag;
+	int error;
+};
+
+///** \brief A Type erased vector of POD types. */
+//class TEVector {
+//public:
+//	~TEVector() { delete [] d; }
+//
+//	size_t size() const { return numElem; }
+//
+//	template <typename T>
+//	T &push_back(const T &t) {
+//		// TODO Check we're not mixing types
+//		elemSize = sizeof(T);
+//		if(numElem+1 > capacity)
+//			realloc(numElem+1);
+//		return at(++numElem);
+//	}
+//
+//	template <typename T>
+//	T &at(size_t index) {
+//		return *(data<T>()+index);
+//	}
+//
+//	template <typename T>
+//	T *data() {
+//		return reinterpret_cast<T *>(d);
+//	}
+//private:
+//	unsigned char *d = nullptr;
+//	size_t capacity = 0;
+//	size_t numElem = 0;
+//	size_t elemSize = 0;
+//
+//	// TODO for non POD types, we need to have move/destructor methods.
+//	void realloc(size_t newSize);
+//};
+
+class RequestVector {
+public:
+	RequestVector();
+	~RequestVector();
+	void emplace_back(ReqHandle handle);
+
+
+	RequestInfo waitAny();
+	std::vector<RequestInfo> waitAll();
+private:
+	using vec_model = std::vector<RequestInfo>;
+	std::aligned_storage<sizeof(vec_model), alignof(vec_model)>::type requests;
+	std::vector<TypeHandle> types;
+
+	template <typename T>
+	std::vector<T> &getRequests();
+};
+
+
 
 class Window::LockGuard {
 	LockGuard(const Window &window, int remoteRank = -1) : window(window), remoteRank(remoteRank) {
@@ -193,7 +261,7 @@ public:
 	}
 
 	template <typename T>
-	void blockingSend(const void *sendbuf, int count,
+	void blockingSend(const T *sendbuf, int count,
 	                  int dest, int tag) const {
 		(*functions.blockingSend)(sendbuf, count, CommTypeTrait<T>::typeHandle(),
 		                          dest, tag, handle);
@@ -202,6 +270,26 @@ public:
 	template <typename T>
 	RecDetails blockingRec(int tag, T *buffer, int len) const {
 		return (*functions.blockingRec)(buffer, len, CommTypeTrait<T>::typeHandle(), tag, handle);
+	}
+
+	/** \brief Initiate a non-blocking send operation.
+	 *
+	 * @tparam T Type of data being sent
+	 * @param buffer Buffer in which the data being sent can be found.
+	 * @param count Number of elements to be sent.
+	 * @param destination Rank of the destination process.
+	 * @param tag Tag associated with the communcation.
+	 * @return A handle that can be used to check if the buffer can be modified.
+	 */
+	template <typename T>
+	ReqHandle nonBlockingSend(const T *buffer, int count, RankHandle destination, int tag) const {
+		return (*functions.i_send)(buffer, count, CommTypeTrait<T>::typeHandle(), destination, tag, handle);
+	}
+
+
+	template <typename T>
+	ReqHandle nonBlockingReceive(T *buffer, int bufferLength, RankHandle origin, int tag) const {
+		return (*functions.i_receive)(buffer, bufferLength, CommTypeTrait<T>::typeHandle(), origin, tag, handle);
 	}
 
 	template <typename T>

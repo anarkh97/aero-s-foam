@@ -16,7 +16,14 @@ enum class HandleType {
 	Communicator,
 	Window,
 	Type,
-	Op
+	Op,
+	Request
+};
+
+struct RankHandle {
+	static RankHandle Any;
+	RankHandle(int rank) : rank(rank) {}
+	int rank;
 };
 
 template <typename T, HandleType ht>
@@ -67,6 +74,10 @@ using CommunicatorHandle = OpaqueTypedHandle<HandleType::Communicator>;
 using TypeHandle = OpaqueTypedHandle<HandleType::Type>;
 using OpHandle = OpaqueTypedHandle<HandleType::Op>;
 using WinHandle = OpaqueTypedHandle<HandleType::Window>;
+struct ReqHandle {
+	OpaqueTypedHandle<HandleType::Request> request;
+	TypeHandle type;
+};
 
 extern OpHandle MaxHandle;
 extern OpHandle MinHandle;

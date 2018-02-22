@@ -148,6 +148,25 @@ void _get(WinHandle handle, void *destData, int count, TypeHandle datatype,
 	);
 }
 
+ReqHandle _i_send(const void *buf, int count, TypeHandle datatype, RankHandle dest, int tag,
+             const CommunicatorHandle &comm) {
+	MPI_Request request;
+	check(
+		MPI_Isend(buf, count, datatype, dest.rank, tag, comm, &request)
+	);
+	return { request, datatype };
+}
+
+ReqHandle _i_receive(void *buf, int count, TypeHandle datatype, RankHandle source, int tag,
+                      const CommunicatorHandle &comm) {
+	MPI_Request request;
+	int origin = source.rank  == RankHandle::Any.rank ? MPI_ANY_SOURCE : source.rank;
+	             check(
+			MPI_Irecv(buf, count, datatype, origin, tag, comm, &request)
+	);
+	return { request, datatype };
+}
+
 }
 
 com_details::CommFunctions getFunctionPointers() {
@@ -219,6 +238,9 @@ com_details::CommFunctions getFunctionPointers() {
 	result.accumulate = &_accumulate;
 	result.get = &_get;
 	result.put = &_put;
+	result.i_send = &_i_send;
+	result.i_receive = &_i_receive;
+
 	return result;
 }
 
@@ -233,6 +255,61 @@ Window BaseCommunicator::window(void *d, int nBytes, int disp_unit) const {
 template<>
 BaseCommunicator::BaseCommunicator(const MPI_Comm &c) : handle(c) {}
 
+template<typename T>
+std::vector<T> &RequestVector::getRequests() {
+	static_assert(sizeof(requests) >= sizeof(std::vector<T>), "This system requires some more work.");
+	return *reinterpret_cast<std::vector<T> *>(&requests);
+}
+
+void RequestVector::emplace_back(ReqHandle handle) {
+	getRequests<MPI_Request>().emplace_back(handle.request);
+	types.push_back(handle.type);
+}
+
+RequestInfo rInfoFrom(const MPI_Status &status, MPI_Datatype datatype) {
+	RequestInfo requestInfo;
+	MPI_Get_count(&status, datatype, &requestInfo.length);
+	requestInfo.tag = status.MPI_TAG;
+	requestInfo.origin = status.MPI_SOURCE;
+	requestInfo.error = status.MPI_ERROR != MPI_SUCCESS;
+	return requestInfo;
+}
+
+RequestInfo RequestVector::waitAny() {
+	MPI_Status status;
+	auto &requests = getRequests<MPI_Request>();
+	int index;
+	check(
+			MPI_Waitany(requests.size(), requests.data(),
+			            &index, &status)
+	);
+	if(status.MPI_ERROR != MPI_SUCCESS)
+		throw mpi_except(status.MPI_ERROR);
+	return rInfoFrom(status, this->types[index]);
+}
+
+std::vector<RequestInfo> RequestVector::waitAll() {
+	auto &requests = getRequests<MPI_Request>();
+	std::vector<MPI_Status> statuses(requests.size());
+	check(
+			MPI_Waitall(requests.size(), requests.data(), statuses.data())
+	);
+	std::vector<RequestInfo> result(requests.size());
+	for(int i = 0; i < requests.size(); ++i) {
+		if(statuses[i].MPI_ERROR != MPI_SUCCESS)
+			throw mpi_except(statuses[i].MPI_ERROR);
+		result[i] = rInfoFrom(statuses[i], types[i]);
+	}
+	return result;
+}
+
+RequestVector::RequestVector() {
+	new (&getRequests<MPI_Request>()) std::vector<MPI_Request>;
+}
+
+RequestVector::~RequestVector() {
+	getRequests<MPI_Request>().~vector();
+}
 
 CommunicatorHandle getWorldComm() {
 	return CommunicatorHandle(MPI_COMM_WORLD);
@@ -276,3 +353,4 @@ template struct CommTypeTrait<std::complex<double>>;
 
 }
 #endif
+

@@ -119,7 +119,7 @@ void testGlobals(const BaseCommunicator &communicator) {
 		result += communicator.globalSum(i);
 	auto t2 = now();
 	if(communicator.rank() == 0)
-		std::cout << "100 Global sum took: " << elapsed(t1,t2)*1e6 << "µs." << std::endl;
+		std::cout << "100 Global sum took: " << elapsed(t1,t2)*1e6 << "µs. Result is " << result << "." << std::endl;
 }
 
 
@@ -133,20 +133,26 @@ int main(int argc, char *argv[]) {
 		std::cout << "I was requiring " << required << " I got " << provided << std::endl;
 
 	testGlobals(comm);
-	int myData = 2*myRank;
+	int databank[4096];
+	int &myData = databank[0];
+	myData = 2*myRank;
 	int remData;
 	int operandData = myRank+3;
 
 	int myDest = (myRank+1)%commSize;
 
+	auto t0 = now();
 	{
-		auto window = comm.window(&myData, 1);
+		auto window = comm.window(&myData, 4096);
 
 		window.sharedLockAll();
 		window.fetchAndOp(ProdHandle, &operandData, &remData, myDest, 0);
 		window.unlockAll();
 
 	}
+	auto dt = elapsed(t0, now());
+	if(myRank == 0)
+		std::cout << "Time to do the work is " << dt*1e6 << "µs." << std::endl;
 	for(int i = 0; i < commSize; ++i) {
 		comm.barrier();
 		if(myRank == i)

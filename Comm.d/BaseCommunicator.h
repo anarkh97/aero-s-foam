@@ -59,10 +59,9 @@ struct CommFunctions {
 	 * @return
 	 */
 	WinHandle (*createWindow)(void *data, int size, int disp_unit, const CommunicatorHandle &);
+	void (*destroyWindow)(WinHandle handle);
 
 	void (*fence)(bool openOrClose, WinHandle handle);
-
-	void (*destroyWindow)(WinHandle handle);
 
 	void (*lock)(bool isShared, int remoteRank, WinHandle handle);
 	void (*unlock)(int remoteRank, WinHandle handle);
@@ -76,6 +75,10 @@ struct CommFunctions {
 	                   void *resData, int remoteRank, int remoteOffset);
 	void (*accumulate)(WinHandle handle, OpHandle op, const void *operand, int count, TypeHandle datatype,
 	                   int remoteRank, int remoteOffset);
+	void (*put)(WinHandle handle, const void *sourceData, int count, TypeHandle datatype,
+	                   int remoteRank, int remoteOffset);
+	void (*get)(WinHandle handle, void *resultData, int count, TypeHandle datatype,
+	            int remoteRank, int remoteOffset);
 };
 
 struct Constants {
@@ -92,7 +95,9 @@ public:
 	Window(Window &&w);
 	~Window();
 
+	/** \brief Fence operation opening the window to RMA communication. */
 	void open() const;
+	/** \brief Fence operation closing the window to RMA communication. */
 	void close() const;
 
 	void sharedLock(int remoteRank) const;
@@ -111,6 +116,12 @@ public:
 
 	template <typename T>
 	void accumulate(OpHandle op, const T *operand, int count, int remoteRank, int remoteOffset) const;
+
+	template <typename T>
+	void put(const T* source, int count, int remoteRank, int remoteOffset) const;
+
+	template <typename T>
+	void get(T *destMemory, int count, int remoteRank, int remoteOffset) const;
 private:
 	/// \brief Constructor of a window.
 	Window(WinHandle winHandle) : winHandle(winHandle) {}
@@ -304,6 +315,20 @@ template<typename T>
 void Window::accumulate(OpHandle op, const T *operand, int count,
                         int remoteRank, int remoteOffset) const {
 	(*BaseCommunicator::functions.accumulate)(winHandle, op, operand, count, CommTypeTrait<T>::typeHandle(),
+	                                          remoteRank, remoteOffset);
+}
+
+template<typename T>
+void Window::put(const T *source, int count,
+                        int remoteRank, int remoteOffset) const {
+	(*BaseCommunicator::functions.put)(winHandle, source, count, CommTypeTrait<T>::typeHandle(),
+	                                          remoteRank, remoteOffset);
+}
+
+template<typename T>
+void Window::get(T *operand, int count,
+                 int remoteRank, int remoteOffset) const {
+	(*BaseCommunicator::functions.get)(winHandle, operand, count, CommTypeTrait<T>::typeHandle(),
 	                                          remoteRank, remoteOffset);
 }
 

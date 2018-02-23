@@ -154,9 +154,9 @@ int main(int argc, char *argv[]) {
 		auto window = comm.window(&myData, 4096);
 
 		AutoTimer<"fetchAndOp"_hash> timer;
-		window.sharedLockAll();
+		window.open();
 		window.fetchAndOp(ProdHandle, &operandData, &remData, myDest, 0);
-		window.unlockAll();
+		window.close();
 	}
 	auto dt = elapsed(t0, now());
 	auto &faoData = AutoTimer<"fetchAndOp"_hash>::getData();

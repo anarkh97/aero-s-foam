@@ -304,7 +304,7 @@ std::vector<RequestInfo> RequestVector::waitAll() {
 }
 
 RequestVector::RequestVector() {
-	new (&getRequests<MPI_Request>()) std::vector<MPI_Request>;
+	new (&requests) std::vector<MPI_Request>;
 }
 
 RequestVector::~RequestVector() {

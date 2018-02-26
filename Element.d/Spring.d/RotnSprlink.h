@@ -30,7 +30,7 @@ public:
 	int getTopNumber() override;
 	bool isSafe() const override { return false; }
 	bool isSpring() { return true; }
-	PrioInfo examine(int sub, MultiFront*);
+	PrioInfo examine(int sub, MultiFront*) override;
 
 };
 #endif

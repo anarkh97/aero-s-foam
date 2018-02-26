@@ -8,8 +8,8 @@ class CylindricalJointSpringCombo : public SuperElement
   public:
     CylindricalJointSpringCombo(int*);
     int getTopNumber() override;
-    bool hasRot() { return true; }
-    PrioInfo examine(int sub, MultiFront*);
+    bool hasRot() const override { return true; }
+    PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

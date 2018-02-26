@@ -12,7 +12,7 @@ class Therm4NoShell : public SuperElement
     Element* clone() override;
     int getTopNumber() override;
     PrioInfo examine(int sub, MultiFront *) override;
-    bool hasRot(){return true;}
+    bool hasRot() const{return true;}
     // aero functions
     void computeTemp(CoordSet &cs, State &state, double[2], double *res);
     void getFlFlux(double[2], double *flF, double *res);

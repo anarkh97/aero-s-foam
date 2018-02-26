@@ -12,7 +12,7 @@ class ParallelAxesConstraint : public SuperElement
   public:
     ParallelAxesConstraint(int*, int=0);
     int getTopNumber() override;
-    bool hasRot() { return true; }
+    bool hasRot() const override { return true; }
 };
 
 #endif

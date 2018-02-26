@@ -10,8 +10,8 @@ class RigidSpring : public SuperElement
     int getTopNumber() override;
     bool isRigidElement() const override { return true; }
     bool isSpring() { return true; }
-    bool hasRot() { return true; }
-    PrioInfo examine(int sub, MultiFront*);
+    bool hasRot() const override { return true; }
+    PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

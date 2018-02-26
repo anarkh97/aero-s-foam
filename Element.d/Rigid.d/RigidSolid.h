@@ -12,7 +12,7 @@ class RigidSolid : public SuperElement
     int numTopNodes() override;
     bool isRigidElement() const override { return true; }
     bool isSafe() const override;
-    PrioInfo examine(int sub, MultiFront*);
+    PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

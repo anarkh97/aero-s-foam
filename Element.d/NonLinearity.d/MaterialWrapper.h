@@ -30,7 +30,7 @@ class MaterialWrapper : public NLMaterial
 
     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
-    void getElasticity(Tensor *tm) const {}
+    void getElasticity(Tensor *tm) const override {}
 
     void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {}
 

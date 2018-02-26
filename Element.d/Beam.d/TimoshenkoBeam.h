@@ -115,7 +115,7 @@ private:
 	// Routines for the decomposer
 	PrioInfo examine(int sub, MultiFront *) override;
 
-	bool hasRot() override { return true; }
+	bool hasRot() const override { return true; }
 };
 
 #endif

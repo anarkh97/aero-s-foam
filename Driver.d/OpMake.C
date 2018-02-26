@@ -1094,6 +1094,7 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
  if(matrixTimers) matrixTimers->memorySolve += memoryUsed();
 }
 
+
 template<class Scalar>
 void
 Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,

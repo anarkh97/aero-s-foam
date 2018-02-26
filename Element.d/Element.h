@@ -569,7 +569,7 @@ public:
 
 	virtual bool isMass() { return false; }
 
-	virtual bool hasRot() { return false; }
+	virtual bool hasRot() const { return false; }
 	virtual PrioInfo examine(int sub, MultiFront *mf);
 	virtual double weight() { return _weight; }
 	virtual double trueWeight() { return _trueWeight; }
@@ -645,7 +645,7 @@ public:
 	virtual int getMassType() const { return 1; }  // 0: lumped, 1: consistent, 2: both
 	// notes: (a) if getMassType returns 0 then lumped gravity force will always be used for dynamics
 	//        (b) is getMassType returns 1 then lumping is done using diagonal scaling if required (default)
-	virtual void writeHistory(int) {}
+	virtual void writeHistory(int) const {} // Only BelytschkoTsayShell overrides this method.
 	virtual void readHistory(int) {}
 	virtual int numStates() { return 0; }
 	virtual void initStates(double *) {}

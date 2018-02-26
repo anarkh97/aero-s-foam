@@ -102,15 +102,15 @@ public:
 
     int getMassType() const override { return 0; } // lumped only
 
-    bool hasRot() { return true; }
+    bool hasRot() const override { return true; }
 
-    PrioInfo examine(int sub, MultiFront* mf);
+    PrioInfo examine(int sub, MultiFront* mf) override;
 
-    void writeHistory(int fn);
+    void writeHistory(int fn) const override;
     void readHistory(int fn);
 
     double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs,
-                                    GeomState *gs, double stable_tol, int stable_maxit);
+                                    GeomState *gs, double stable_tol, int stable_maxit) override;
 
 private:
     void Elefintbt1(double delt, double *ecord, double *edisp, double *evelo,

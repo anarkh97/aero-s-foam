@@ -10,7 +10,7 @@ class RigidEightNodeBrick : public SuperElement
     int getTopNumber() override { return 117; }
     bool isRigidElement() const override { return true; }
     bool isSafe() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*);
+    PrioInfo examine(int sub, MultiFront*) override;
 
     FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg=1) const override;
     double getMass(const CoordSet& cs) const override;

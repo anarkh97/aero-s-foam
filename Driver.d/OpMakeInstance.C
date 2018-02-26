@@ -180,10 +180,6 @@ Domain::processOutput<Scalar>(OutputInfo::Type&, GenVector<Scalar>&, Scalar*, in
 \
 template \
 void \
-Domain::sensitivityPostProcessing<Scalar>(AllSensitivities<Scalar>&, GenVector<Scalar>*, Scalar*, GeomState*, GeomState*, Corotator**);\
-\
-template \
-void \
 Domain::postProcessing<Scalar>(GenVector<Scalar>&, Scalar*, GenVector<Scalar>&,\
                                int, int, double, double,\
                                GenSparseMatrix<Scalar>*, GenSparseMatrix<Scalar>*);\
@@ -208,8 +204,8 @@ Domain::computeExtForce4<Scalar>(GenVector<Scalar>&, const GenVector<Scalar>&,\
                                  double, GenSparseMatrix<Scalar>*, ControlInterface*,\
                                  GenSparseMatrix<Scalar>*, double, GenSparseMatrix<Scalar>*);\
 
-OPMAKE_INSTANTIATION_HELPER(double);
-OPMAKE_INSTANTIATION_HELPER(complex<double>);
+OPMAKE_INSTANTIATION_HELPER(double)
+OPMAKE_INSTANTIATION_HELPER(std::complex<double>)
 
 #ifdef USE_EIGEN3
 template
@@ -217,40 +213,40 @@ GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen:
 Domain::constructEiSparse<double>(DofSetArray*, Connectivity*, bool);
 
 template
-GenEiSparseMatrix<complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> > *
-Domain::constructEiSparse<complex<double> >(DofSetArray*, Connectivity*, bool);
+GenEiSparseMatrix<std::complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> > *
+Domain::constructEiSparse<std::complex<double> >(DofSetArray*, Connectivity*, bool);
 
 template
 GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *
 Domain::constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);
 
 template 
-GenEiSparseMatrix<complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> > * 
-Domain::constructEiSparseMatrix<complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);
+GenEiSparseMatrix<std::complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> > * 
+Domain::constructEiSparseMatrix<std::complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);
 
 template 
 GenEiSparseMatrix<double,Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>,Eigen::Upper> > * 
 Domain::constructEiSparseMatrix<double,Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);
 
 template
-GenEiSparseMatrix<complex<double>,Eigen::SimplicialLDLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> > *
-Domain::constructEiSparseMatrix<complex<double>,Eigen::SimplicialLDLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);
+GenEiSparseMatrix<std::complex<double>,Eigen::SimplicialLDLT<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> > *
+Domain::constructEiSparseMatrix<std::complex<double>,Eigen::SimplicialLDLT<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);
 
 template 
 GenEiSparseMatrix<double,Eigen::SparseLU<Eigen::SparseMatrix<double>,Eigen::COLAMDOrdering<int> > > * 
 Domain::constructEiSparseMatrix<double,Eigen::SparseLU<Eigen::SparseMatrix<double>,Eigen::COLAMDOrdering<int> > >(DofSetArray*, Connectivity*, bool);
 
 template
-GenEiSparseMatrix<complex<double>,Eigen::SparseLU<Eigen::SparseMatrix<complex<double> >,Eigen::COLAMDOrdering<int> > > *
-Domain::constructEiSparseMatrix<complex<double>,Eigen::SparseLU<Eigen::SparseMatrix<complex<double> >,Eigen::COLAMDOrdering<int> > >(DofSetArray*, Connectivity*, bool);
+GenEiSparseMatrix<std::complex<double>,Eigen::SparseLU<Eigen::SparseMatrix<std::complex<double> >,Eigen::COLAMDOrdering<int> > > *
+Domain::constructEiSparseMatrix<std::complex<double>,Eigen::SparseLU<Eigen::SparseMatrix<std::complex<double> >,Eigen::COLAMDOrdering<int> > >(DofSetArray*, Connectivity*, bool);
 
 template 
 GenEiSparseMatrix<double,Eigen::SparseQR<Eigen::SparseMatrix<double>,Eigen::COLAMDOrdering<int> > > * 
 Domain::constructEiSparseMatrix<double,Eigen::SparseQR<Eigen::SparseMatrix<double>,Eigen::COLAMDOrdering<int> > >(DofSetArray*, Connectivity*, bool);
 
 template
-GenEiSparseMatrix<complex<double>,Eigen::SparseQR<Eigen::SparseMatrix<complex<double> >,Eigen::COLAMDOrdering<int> > > *
-Domain::constructEiSparseMatrix<complex<double>,Eigen::SparseQR<Eigen::SparseMatrix<complex<double> >,Eigen::COLAMDOrdering<int> > >(DofSetArray*, Connectivity*, bool);
+GenEiSparseMatrix<std::complex<double>,Eigen::SparseQR<Eigen::SparseMatrix<std::complex<double> >,Eigen::COLAMDOrdering<int> > > *
+Domain::constructEiSparseMatrix<std::complex<double>,Eigen::SparseQR<Eigen::SparseMatrix<std::complex<double> >,Eigen::COLAMDOrdering<int> > >(DofSetArray*, Connectivity*, bool);
 
 #ifdef EIGEN_CHOLMOD_SUPPORT
 template 
@@ -258,8 +254,8 @@ GenEiSparseMatrix<double,Eigen::CholmodDecomposition<Eigen::SparseMatrix<double>
 Domain::constructEiSparseMatrix<double,Eigen::CholmodDecomposition<Eigen::SparseMatrix<double>,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);
 
 template
-GenEiSparseMatrix<complex<double>,Eigen::CholmodDecomposition<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> > *
-Domain::constructEiSparseMatrix<complex<double>,Eigen::CholmodDecomposition<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);
+GenEiSparseMatrix<std::complex<double>,Eigen::CholmodDecomposition<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> > *
+Domain::constructEiSparseMatrix<std::complex<double>,Eigen::CholmodDecomposition<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> >(DofSetArray*, Connectivity*, bool);
 #endif
 
 #ifdef EIGEN_UMFPACK_SUPPORT
@@ -268,8 +264,8 @@ GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > > *
 Domain::constructEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >(DofSetArray*, Connectivity*, bool);
 
 template
-GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<double> > > > *
-Domain::constructEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<double> > > >(DofSetArray*, Connectivity*, bool);
+GenEiSparseMatrix<std::complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<std::complex<double> > > > *
+Domain::constructEiSparseMatrix<std::complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<std::complex<double> > > >(DofSetArray*, Connectivity*, bool);
 #endif
 
 #ifdef EIGEN_SPQR_SUPPORT
@@ -278,8 +274,8 @@ GenEiSparseMatrix<double,Eigen::SPQR<Eigen::SparseMatrix<double> > > *
 Domain::constructEiSparseMatrix<double,Eigen::SPQR<Eigen::SparseMatrix<double> > >(DofSetArray*, Connectivity*, bool);
 
 template
-GenEiSparseMatrix<complex<double>,Eigen::SPQR<Eigen::SparseMatrix<complex<double> > > > *
-Domain::constructEiSparseMatrix<complex<double>,Eigen::SPQR<Eigen::SparseMatrix<complex<double> > > >(DofSetArray*, Connectivity*, bool);
+GenEiSparseMatrix<std::complex<double>,Eigen::SPQR<Eigen::SparseMatrix<std::complex<double> > > > *
+Domain::constructEiSparseMatrix<std::complex<double>,Eigen::SPQR<Eigen::SparseMatrix<std::complex<double> > > >(DofSetArray*, Connectivity*, bool);
 #endif
 
 #ifdef EIGEN_SUPERLU_SUPPORT
@@ -288,7 +284,7 @@ GenEiSparseMatrix<double,Eigen::SuperLU<Eigen::SparseMatrix<double> > > *
 Domain::constructEiSparseMatrix<double,Eigen::SuperLU<Eigen::SparseMatrix<double> > >(DofSetArray*, Connectivity*, bool);
 
 template
-GenEiSparseMatrix<complex<double>,Eigen::SuperLU<Eigen::SparseMatrix<complex<double> > > > *
-Domain::constructEiSparseMatrix<complex<double>,Eigen::SuperLU<Eigen::SparseMatrix<complex<double> > > >(DofSetArray*, Connectivity*, bool);
+GenEiSparseMatrix<std::complex<double>,Eigen::SuperLU<Eigen::SparseMatrix<std::complex<double> > > > *
+Domain::constructEiSparseMatrix<std::complex<double>,Eigen::SuperLU<Eigen::SparseMatrix<std::complex<double> > > >(DofSetArray*, Connectivity*, bool);
 #endif
 #endif

@@ -15,7 +15,7 @@ class FollowerForceElement : public ForceFunctionElement<Simo::FollowerForceFunc
     ~FollowerForceElement();
 
     void setFrame(EFrame *);
-    bool hasRot() { return true; }
+    bool hasRot() const override { return true; }
 
   protected:
     void getConstants(const CoordSet& cs, Eigen::Array<double,12,1>& sconst, Eigen::Array<int,0,1>&,

@@ -303,8 +303,8 @@ public:
 
 	// For eigen problem
 	int numRBM() override;
-	void getRBMs(GenDistrVectorSet<Scalar> &);
-	void getRBMs(Scalar *);
+	void getRBMs(GenDistrVectorSet<Scalar> &) override;
+	void getRBMs(Scalar *) override;
 	void Ksolve(int iSub, GenStackDistVector<Scalar> &R);
 
 	int halfOffset(int iSub) const { return fetiOps[iSub]->halfOffset; }

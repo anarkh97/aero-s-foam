@@ -13,7 +13,7 @@ class RigidBeam : public SuperElement
     RigidBeam(int*, int=0);
     int getTopNumber() override { return 106; }
     bool isRigidElement() const override { return true; }
-    bool hasRot() override { return true; }
+    bool hasRot() const override { return true; }
     bool isSafe() const override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;
 
@@ -33,15 +33,15 @@ class RigidBeamWithMass : public SuperElement
     RigidBeamWithMass(int*, int=0);
     int getTopNumber() override { return 106; }
     bool isRigidElement() const override { return true; }
-    bool hasRot() { return true; }
+    bool hasRot() const override { return true; }
     bool isSafe() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*);
+    PrioInfo examine(int sub, MultiFront*) override;
 
-    void buildFrame(CoordSet&);
+    void buildFrame(CoordSet&) override;
     void setProp(StructProp *p, bool _myProp) override;
     int getMassType() const override { return 0; } // lumped
     double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, GeomState *gs,
-                                    double stable_tol, int stable_maxit);
+                                    double stable_tol, int stable_maxit) override;
 
   private:
     void getLength(CoordSet&, double &length);

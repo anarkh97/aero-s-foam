@@ -58,12 +58,12 @@ class ExpMat : public NLMaterial
     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double)
       { std::cerr << "ExpMat::getTangentMaterial is not implemented\n"; }
 
-    void getElasticity(Tensor *tm) const
+    void getElasticity(Tensor *tm) const override
       { std::cerr << "ExpMat::getElasticity is not implemented\n"; }
 
     void updateStates(Tensor &en, Tensor &enp, double *state, double) {}
 
-    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double)
+    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double) override
       { std::cerr << "ExpMat::getStressAndTangentMaterial is not implemented\n"; }
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
@@ -74,14 +74,14 @@ class ExpMat : public NLMaterial
                    double *staten, double *statenp, double, Tensor *cache, double=0) const override
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
-    void initStates(double *) {}
+    void initStates(double *) override {}
 
-    double getDensity() { return ematpro[2]; } 
+    double getDensity() override { return ematpro[2]; }
 
     StrainEvaluator * getStrainEvaluator() const override
       { std::cerr << "ExpMat::getStrainEvaluator is not implemented\n"; return NULL; }
 
-    void print(std::ostream &out) const {
+    void print(std::ostream &out) const override {
       std::string type;
       switch (optctv) {
         case 1: type = "HypoElastic"; break;
@@ -97,8 +97,8 @@ class ExpMat : public NLMaterial
           << ematpro[18];
     }
 
-    void setSDProps(MFTTData *_ysst) { if(optctv == 5 && _ysst && _ysst->getID() == -int(ematpro[3])) ysst = _ysst; }
-    void setSRDProps(MFTTData *_yssrt) { if(optctv == 5 && yssrtid > 0 &&  _yssrt && _yssrt->getID() == yssrtid) yssrt = _yssrt; }
+    void setSDProps(MFTTData *_ysst) override { if(optctv == 5 && _ysst && _ysst->getID() == -int(ematpro[3])) ysst = _ysst; }
+    void setSRDProps(MFTTData *_yssrt) override { if(optctv == 5 && yssrtid > 0 &&  _yssrt && _yssrt->getID() == yssrtid) yssrt = _yssrt; }
 };
 
 #endif

@@ -67,7 +67,7 @@ public:
 	int getMassType() const override; // lumped only
 
 	// DEC
-	bool hasRot() override {return true;}
+	bool hasRot() const override {return true;}
 	PrioInfo examine(int sub, MultiFront *mf) override;
 
 #ifdef USE_EIGEN3

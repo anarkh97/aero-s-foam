@@ -26,7 +26,7 @@ class DiscreteMass6Dof : public Element, public Corotator
     int numDofs() const override { return 6; }
     int* dofs(DofSetArray&, int* = 0) const override;
     void markDofs(DofSetArray&) const override;
-    bool hasRot() { return true; }
+    bool hasRot() const override { return true; }
     int getTopNumber() override { return 506; }
 
     FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg=1) const;

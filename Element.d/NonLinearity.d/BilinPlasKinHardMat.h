@@ -57,7 +57,7 @@ class ElasPlasKinHardMat : public NLMaterial
 
     void initStates(double *);
 
-    double getDensity() { return rho; }
+    double getDensity() override { return rho; }
 
     double getReferenceTemperature() { return Tref; }
 

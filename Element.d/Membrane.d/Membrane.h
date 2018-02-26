@@ -40,7 +40,7 @@ public:
         PrioInfo examine(int sub, MultiFront *) override;
 
         // Miscellaneous
-        bool hasRot() { return true; }
+        bool hasRot() const override { return true; }
         int  getMassType() { return 0; } // lumped only
 
 #ifdef USE_EIGEN3

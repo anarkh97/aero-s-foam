@@ -12,7 +12,7 @@ class RigidTransSprlink : public SuperElement
     bool isSafe() const override { return false; }
     bool isSpring() { return true; }
     bool isRigidElement() const override { return true; }
-    PrioInfo examine(int sub, MultiFront*);
+    PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

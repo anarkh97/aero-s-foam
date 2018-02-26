@@ -11,7 +11,7 @@ class RigidThreeNodeShell : public SuperElement
     RigidThreeNodeShell(int*);
     int getTopNumber() override { return 108; }
     bool isRigidElement() const override { return true; }
-    bool hasRot() { return true; }
+    bool hasRot() const override { return true; }
     PrioInfo examine(int sub, MultiFront *mf) override;
 
     int getMassType() const override { return 0; }

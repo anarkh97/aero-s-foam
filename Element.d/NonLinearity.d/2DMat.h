@@ -20,7 +20,7 @@ class ElaLinIsoMat2D : public NLMaterial
 
      void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
-     void getElasticity(Tensor *tm) const {};
+     void getElasticity(Tensor *tm) const override {};
 
      void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {};
 
@@ -34,11 +34,11 @@ class ElaLinIsoMat2D : public NLMaterial
                     double *staten, double *statenp, double temp,
                     Tensor *cache, double dt=0) const override;
 
-     void initStates(double *) {};
+     void initStates(double *) override {};
 
      GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();
 
-     double getDensity() { return rho; }
+     double getDensity() override { return rho; }
 
      double getThickness() const override { return t; }
 

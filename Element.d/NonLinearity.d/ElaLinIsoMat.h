@@ -35,7 +35,7 @@ class ElaLinIsoMat : public NLMaterial
 
     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
-    void getElasticity(Tensor *tm) const {};
+    void getElasticity(Tensor *tm) const override {};
 
     void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {};
 
@@ -51,7 +51,7 @@ class ElaLinIsoMat : public NLMaterial
 
     void initStates(double *){};
 
-    double getDensity() { return rho; }
+    double getDensity() override { return rho; }
 
     double getReferenceTemperature() { return Tref; }
 
@@ -59,7 +59,7 @@ class ElaLinIsoMat : public NLMaterial
 
     double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
 
-    void print(std::ostream &out) const {
+    void print(std::ostream &out) const override {
       out << "Linear " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }
 
@@ -86,7 +86,7 @@ class StVenantKirchhoffMat : public ElaLinIsoMat
     StVenantKirchhoffMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
 
     StrainEvaluator * getStrainEvaluator() const override;
-    void print(std::ostream &out) const {
+    void print(std::ostream &out) const override {
       out << "StVenantKirchhoff " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }
     NLMaterial * clone() const;
@@ -102,7 +102,7 @@ class HenckyMat : public ElaLinIsoMat
     HenckyMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
 
     StrainEvaluator * getStrainEvaluator() const override;
-    void print(std::ostream &out) const {
+    void print(std::ostream &out) const override {
       out << "HenckyElastic " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }
     NLMaterial * clone() const;

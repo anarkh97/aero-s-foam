@@ -81,7 +81,7 @@ public:
 
         int getFace(int iFace, int *fn) { return getDecFace(iFace,fn); }
 
-	bool hasRot() { return true; }
+	bool hasRot() const override { return true; }
 
         int getMassType() const override { return 0; } // lumped only
 

@@ -48,7 +48,7 @@ public:
 	int * nodes(int *) const override;
 	PrioInfo examine(int sub, MultiFront *) override;
 	int getTopNumber() override;
-	bool hasRot() {return true;}
+	bool hasRot() const override {return true;}
 
 	int getMassType() const override { return 0; } // lumped only
 };

@@ -84,7 +84,7 @@ public:
           }
           return res;
         }
-//        bool hasRot() { return e1->hasRot() || e2->hasRot(); }
+//        bool hasRot() const override { return e1->hasRot() || e2->hasRot(); }
 
 };
 

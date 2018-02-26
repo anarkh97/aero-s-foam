@@ -20,7 +20,7 @@ class FourNodeShell : public SuperElement
     // aero functions
     void computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs=0);
     void getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF, double *res, GeomState *gs=0);
-    bool hasRot() { return true; }
+    bool hasRot() const override { return true; }
     PrioInfo examine(int sub, MultiFront *mf) override;
 
 };

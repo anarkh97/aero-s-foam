@@ -14,7 +14,7 @@ class NonlinearTranslationalSpring2 : public DotType3ConstraintElement
     void update(GeomState *refState, GeomState& gState, CoordSet& cs, double);
 
     bool isSpring() { return true; }
-    bool hasRot() { return true; }
+    bool hasRot() const override { return true; }
 };
 
 #endif

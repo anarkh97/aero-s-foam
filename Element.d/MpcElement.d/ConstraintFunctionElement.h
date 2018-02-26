@@ -23,14 +23,14 @@ class ConstraintFunctionElement : public MpcElement
     ConstraintFunctionElement(int, DofSet, int*, int);
     ConstraintFunctionElement(int, DofSet*, int*, int);
 
-    void buildFrame(CoordSet&);
+    void buildFrame(CoordSet&) override;
     void setProp(StructProp *p, bool _myProp) override;
     void update(GeomState*, GeomState&, CoordSet&, double) override;
     void getHessian(const GeomState*, const GeomState&, const CoordSet&, FullSquareMatrix&, double) const override;
     void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState *gs = 0, int cflg = 0, double t = 0.0);
-    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
-    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&s, double);
+                              GeomState *gs = 0, int cflg = 0, double t = 0.0) override;
+    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
+    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&s, double) override;
 
     FunctionType functionType() { return NONLINEAR; }
 

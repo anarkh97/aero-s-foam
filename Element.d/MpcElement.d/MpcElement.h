@@ -45,7 +45,7 @@ public:
 	int* dofs(DofSetArray&, int*) const override;
 	void markDofs(DofSetArray &dsa) const override;
 
-	bool hasRot() override;
+	bool hasRot() const override;
 
 	FullSquareMatrix stiffness(const CoordSet&, double*, int = 1) const override;
 

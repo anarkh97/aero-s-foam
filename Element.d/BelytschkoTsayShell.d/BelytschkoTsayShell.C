@@ -764,7 +764,7 @@ BelytschkoTsayShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
 #include <fcntl.h>
 
 void
-BelytschkoTsayShell::writeHistory(int fn)
+BelytschkoTsayShell::writeHistory(int fn) const
 {
   // ---------------------------------------------------------------
   // write history variables to file for restart

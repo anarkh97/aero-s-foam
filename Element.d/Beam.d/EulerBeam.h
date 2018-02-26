@@ -68,7 +68,7 @@ public:
 #endif
 	// Routines for the decomposer
 	PrioInfo examine(int sub, MultiFront *) override;
-	bool hasRot() override { return true; }
+	bool hasRot() const override { return true; }
 
 	int getMassType() const override { return 2; } // both consistent and lumped
 

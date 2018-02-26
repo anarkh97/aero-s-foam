@@ -252,7 +252,7 @@ MpcElement::markDofs(DofSetArray &dsa) const
 }
 
 bool
-MpcElement::hasRot()
+MpcElement::hasRot() const
 {
 	return (rotation_indices.size() > 0);
 }

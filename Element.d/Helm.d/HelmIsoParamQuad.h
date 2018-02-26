@@ -17,19 +17,19 @@ public:
 
         FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
         FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
-        FullSquareMatrixC stiffness(const CoordSet&, complex<double> *d) const;
-        FullSquareMatrixC massMatrix(const CoordSet&, complex<double> *d) const;
-        double getMass(const CoordSet&) const;
+        FullSquareMatrixC stiffness(const CoordSet&, complex<double> *d) const override;
+        FullSquareMatrixC massMatrix(const CoordSet&, complex<double> *d) const override;
+        double  getMass(const CoordSet& cs) const override;
 
 	Element *clone() override;
 	void renum(int *) override;
         void renum(EleRenumMap&) override;
 	void markDofs(DofSetArray &) const override;
 //	int getTopNumber() override {return 195;}
-	int numTopNodes() {return order*order;}
+	int numTopNodes() const override {return order*order;}
         int* dofs(DofSetArray &, int *p) const override;
         int numDofs() const override { return order*order; }
-        int numNodes() const;
+        int numNodes() const override;
         int* nodes(int * = 0) const override;
 
         PrioInfo examine(int sub, MultiFront *mf) override;

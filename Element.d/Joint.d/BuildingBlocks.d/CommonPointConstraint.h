@@ -9,10 +9,10 @@
 
 class CommonPointConstraint : public SuperElement
 {
-  public:
-    CommonPointConstraint(int*);
-    void buildFrame(CoordSet& cs);
-    int getTopNumber() override;
+public:
+	explicit CommonPointConstraint(int*);
+	void buildFrame(CoordSet& cs) override;
+	int getTopNumber() override;
 };
 
 #endif

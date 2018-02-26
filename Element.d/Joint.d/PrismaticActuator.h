@@ -6,8 +6,8 @@
 class PrismaticActuator : public SuperElement
 {
   public:
-    PrismaticActuator(int*);
-    void setProp(StructProp *p, bool myProp);
+	explicit PrismaticActuator(int*);
+    void setProp(StructProp *p, bool myProp) override;
     int getTopNumber() override;
     bool hasRot() const override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;

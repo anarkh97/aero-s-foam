@@ -506,7 +506,7 @@ Penta26::getTopNumber()
 }
 
 int
-Penta26::numTopNodes()
+Penta26::numTopNodes() const
 {
   return 26; 
 }

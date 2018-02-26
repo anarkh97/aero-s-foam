@@ -10,10 +10,10 @@ class NonlinearTranslationalSpring2 : public DotType3ConstraintElement
   public:
     NonlinearTranslationalSpring2(int*, int);
     void setProp(StructProp *p, bool _myProp) override;
-    void buildFrame(CoordSet&);
+    void buildFrame(CoordSet&) override;
     void update(GeomState *refState, GeomState& gState, CoordSet& cs, double);
 
-    bool isSpring() { return true; }
+    bool isSpring() const override { return true; }
     bool hasRot() const override { return true; }
 };
 

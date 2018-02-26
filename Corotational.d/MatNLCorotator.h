@@ -8,46 +8,46 @@ class NLMaterial;
 
 class MatNLCorotator : public Corotator {
 
-     MatNLElement *ele;
-     bool own;
+	MatNLElement *ele;
+	bool own;
 
-   public:
-     MatNLCorotator(MatNLElement *, bool own = true);
-     ~MatNLCorotator(); 
+public:
+	MatNLCorotator(MatNLElement *, bool own = true);
+	~MatNLCorotator() override;
 
-     void getStiffAndForce(GeomState &curState, CoordSet &cs,
-                           FullSquareMatrix &elk, double *f, double dt, double t)
-      { getStiffAndForce((GeomState *) NULL, curState, cs, elk, f, dt, t); }
+	void getStiffAndForce(GeomState &curState, CoordSet &cs,
+						  FullSquareMatrix &elk, double *f, double dt, double t) override
+	{ getStiffAndForce((GeomState *) nullptr, curState, cs, elk, f, dt, t); }
 
-     void getInternalForce(GeomState &curState, CoordSet &cs,
-                           FullSquareMatrix &elk, double *f, double dt, double t)
-      { getInternalForce((GeomState *) NULL, curState, cs, elk, f, dt, t); }
+	void getInternalForce(GeomState &curState, CoordSet &cs,
+						  FullSquareMatrix &elk, double *f, double dt, double t) override 
+	{ getInternalForce((GeomState *) nullptr, curState, cs, elk, f, dt, t); }
 
-     void getStiffAndForce(GeomState *refState, GeomState &curState, CoordSet &cs,
-                           FullSquareMatrix &elk, double *f, double dt, double t);
+	void getStiffAndForce(GeomState *refState, GeomState &curState, CoordSet &cs,
+						  FullSquareMatrix &elk, double *f, double dt, double t) override;
 
-     void getInternalForce(GeomState *refState, GeomState &curState, CoordSet &cs,
-                           FullSquareMatrix &elk, double *f, double dt, double t);
+	void getInternalForce(GeomState *refState, GeomState &curState, CoordSet &cs,
+						  FullSquareMatrix &elk, double *f, double dt, double t) override;
 
-     virtual void extractDeformations(GeomState &geomState, CoordSet &cs,
-                                     double *vld, int &nlflag);
+	void extractDeformations(GeomState &geomState, CoordSet &cs,
+									 double *vld, int &nlflag) override;
 
-     void getNLVonMises(Vector& stress, Vector& weight, GeomState &,
-                        GeomState *, CoordSet &, int strIndex, int surface = 0,
-                        double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
+	void getNLVonMises(Vector& stress, Vector& weight, GeomState &,
+					   GeomState *, CoordSet &, int strIndex, int surface,
+					   double ylayer, double zlayer, int avgnum, int measure) override;
 
-     void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState, 
-                         GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
-                         int measure = -1);
+	void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
+						GeomState *refState, CoordSet &c0, int strInd, int surface,
+						int measure) override;
 
-     void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt = 0);
+	void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt) override;
 
-     bool checkElementDeletion(GeomState &curState);
+	bool checkElementDeletion(GeomState &curState) override;
 
-     double getElementEnergy(GeomState &, CoordSet &);
-     double getDissipatedEnergy(GeomState &geomState, CoordSet &cs);
+	double getElementEnergy(GeomState &, CoordSet &) override;
+	double getDissipatedEnergy(GeomState &geomState, CoordSet &cs) override;
 
-     int getNumGaussPoints() const;
+	int getNumGaussPoints() const;
 };
 
 #endif

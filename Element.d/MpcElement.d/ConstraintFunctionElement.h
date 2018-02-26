@@ -32,7 +32,7 @@ class ConstraintFunctionElement : public MpcElement
     double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
     double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&s, double) override;
 
-    FunctionType functionType() { return NONLINEAR; }
+    FunctionType functionType() override { return NONLINEAR; }
 
   protected:
     virtual void getConstants(const CoordSet&,

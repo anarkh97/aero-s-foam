@@ -35,7 +35,7 @@ RigidSolid6Dof::getTopNumber()
 }
 
 int
-RigidSolid6Dof::numTopNodes()
+RigidSolid6Dof::numTopNodes() const
 {
   switch(nnodes) {
     case 4 : return 4; // 4-node tetra

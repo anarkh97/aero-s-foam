@@ -9,10 +9,10 @@
 
 class ConstantDistanceConstraint : public DistanceConstraintElement
 {
-  public:
-    ConstantDistanceConstraint(int*, int=0);
-    void buildFrame(CoordSet&);
-    int getTopNumber() override;
+public:
+	ConstantDistanceConstraint(int*, int=0);
+	void buildFrame(CoordSet&) override;
+	int getTopNumber() override;
 };
 
 #endif

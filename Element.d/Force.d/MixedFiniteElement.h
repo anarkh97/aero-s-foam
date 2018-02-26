@@ -34,9 +34,9 @@ class MixedFiniteElement : public BoundaryElement
     void setMaterial(NLMaterial *_mat);
     bool isSafe() const override { return true; }
 
-    FullSquareMatrix stiffness(const CoordSet&, double*, int = 1) const;
-    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
-    void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
+    FullSquareMatrix stiffness(const CoordSet&, double*, int = 1) const override;
+    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
+    void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
     void getHessian(GeomState *refState, GeomState *c1, CoordSet& c0, Eigen::Matrix<double,
                     ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,
                     ScalarValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates>& H, double t);
@@ -44,9 +44,9 @@ class MixedFiniteElement : public BoundaryElement
     int numStates() { return nIV+nLM; }
     void initStates(double *states) { for(int i=0; i<nIV+nLM; ++i) states[i] = 0; }
 
-    void initMultipliers(GeomState& c1);
-    double getError(GeomState& c1);
-    void updateMultipliers(GeomState& c1);
+    void initMultipliers(GeomState& c1) override;
+    double getError(GeomState& c1) override;
+    void updateMultipliers(GeomState& c1) override;
 
     virtual int getQuadratureOrder() = 0;
 

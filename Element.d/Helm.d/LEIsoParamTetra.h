@@ -17,8 +17,8 @@ public:
 
         FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
         FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
-        void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
-        double getMass(const CoordSet&) const;
+        void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega) override;
+        double  getMass(const CoordSet& cs) const override;
 
 	Element *clone() override;
 	void renum(int *) override;
@@ -31,7 +31,7 @@ public:
 
         PrioInfo examine(int sub, MultiFront *mf) override;
         int nDecFaces() const override { return 4;}
-        int getDecFace(int iFace, int *fn);
+        int getDecFace(int iFace, int *fn) override;
 
 };
 #endif

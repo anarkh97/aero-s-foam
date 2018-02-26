@@ -20,12 +20,12 @@ public:
 
 	int dim() const override { return 2; }
 
-	int *dofs(DofSetArray &, int *p = 0) const override;
+	int *dofs(DofSetArray &, int *p) const override;
 
-	virtual CurvedLine2SommerBC *clone() override;
+	CurvedLine2SommerBC *clone() override;
 
 	void neumVector(CoordSet &, ComplexVector &,
-	                double, double, double, double, int pflag = 0);
+	                double, double, double, double, int pflag) override;
 
 	FullSquareMatrix sommerMatrix(CoordSet &, double *) const override;
 

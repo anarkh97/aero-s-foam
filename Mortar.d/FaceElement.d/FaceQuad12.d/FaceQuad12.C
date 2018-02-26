@@ -390,7 +390,7 @@ FaceQuad12::IntegrateShapeFcts(double* ShapeIntg, CoordSet& cs, double rho, int 
 // LOCAL METHODS
 // -------------
 void
-FaceQuad12::printNodes()
+FaceQuad12::printNodes() const
 {
   filePrint(stderr,"   # Quad12 face el., nodes = ");
   for(int i=0; i<12; i++)
@@ -402,7 +402,7 @@ FaceQuad12::printNodes()
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------
 void
-FaceQuad12::print()
+FaceQuad12::print() const
 {
   printNodes();
 }

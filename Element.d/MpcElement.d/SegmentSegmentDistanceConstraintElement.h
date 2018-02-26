@@ -6,15 +6,15 @@
 
 class SegmentSegmentDistanceConstraintElement : public ConstraintFunctionElement<Simo::SegmentSegmentDistanceConstraintFunction>
 {
-    double x1[3], x2[3]; // coordinates of the 2 points defining the line
+	double x1[3], x2[3]; // coordinates of the 2 points defining the line
 
-  public:
-    SegmentSegmentDistanceConstraintElement(int* _nn); 
-    void setFrame(EFrame *);
+public:
+	SegmentSegmentDistanceConstraintElement(int* _nn);
+	void setFrame(EFrame *) override;
 
-  protected:
-    void getConstants(const CoordSet & cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst,
-                      const GeomState* = nullptr) const;
+protected:
+	void getConstants(const CoordSet & cs, Eigen::Array<double,17,1>& sconst, Eigen::Array<int,1,1>& iconst,
+					  const GeomState* = nullptr) const override;
 };
 
 #endif

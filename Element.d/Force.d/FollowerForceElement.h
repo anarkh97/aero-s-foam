@@ -6,20 +6,20 @@
 
 class FollowerForceElement : public ForceFunctionElement<Simo::FollowerForceFunction>
 {
-    Eigen::Matrix3d *C0; // initial frame (axes stored row-wise)
+	Eigen::Matrix3d *C0; // initial frame (axes stored row-wise)
 
-  public:
-    static const DofSet NODALINPUTDOFS[1];
-    static const DofSet NODALOUTPUTDOFS[1];
-    FollowerForceElement(int* _nn); 
-    ~FollowerForceElement();
+public:
+	static const DofSet NODALINPUTDOFS[1];
+	static const DofSet NODALOUTPUTDOFS[1];
+	explicit FollowerForceElement(int* _nn);
+	~FollowerForceElement() override;
 
-    void setFrame(EFrame *);
-    bool hasRot() const override { return true; }
+	void setFrame(EFrame *) override;
+	bool hasRot() const override { return true; }
 
-  protected:
-    void getConstants(const CoordSet& cs, Eigen::Array<double,12,1>& sconst, Eigen::Array<int,0,1>&,
-                      const GeomState* = nullptr, double = 0) const override;
+protected:
+	void getConstants(const CoordSet& cs, Eigen::Array<double,12,1>& sconst, Eigen::Array<int,0,1>&,
+					  const GeomState* = nullptr, double = 0) const override;
 };
 
 #endif

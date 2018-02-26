@@ -12,17 +12,17 @@
 
 class NonlinearTranslationalSpring : public DotType2ConstraintElement
 {
-    double sp0; // scalar projection of d onto c0 in the undeformed configuration
-    int propIndex; // 0: use StructProp::k1, 1: use StructProp::k2, 2: use StructProp::k3
+	double sp0; // scalar projection of d onto c0 in the undeformed configuration
+	int propIndex; // 0: use StructProp::k1, 1: use StructProp::k2, 2: use StructProp::k3
 
-  public:
-    NonlinearTranslationalSpring(int*, int, int=0, int=0, int=1);
-    void setProp(StructProp *p, bool _myProp) override;
-    void buildFrame(CoordSet&);
-    void update(GeomState *refState, GeomState& gState, CoordSet& cs, double);
+public:
+	NonlinearTranslationalSpring(int*, int, int=0, int=0, int=1);
+	void setProp(StructProp *p, bool _myProp) override;
+	void buildFrame(CoordSet&) override;
+	void update(GeomState *refState, GeomState& gState, CoordSet& cs, double) override;
 
-    bool isSpring() { return true; }
-    bool hasRot() const override { return true; }
+	bool isSpring() const override { return true; }
+	bool hasRot() const override { return true; }
 };
 
 #endif

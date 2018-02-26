@@ -7,66 +7,66 @@ class Node;
 class NodeState;
 
 class Shell3Corotator : public Corotator {
- protected:
-   int n1, n2, n3;
-   double origK[18][18];
-   int fitAlg;
- public:
-   Shell3Corotator();
-   Shell3Corotator(int, int, int, FullSquareMatrix &, int fitAlgShell);
+protected:
+	int n1, n2, n3;
+	double origK[18][18];
+	int fitAlg;
+public:
+	Shell3Corotator();
+	Shell3Corotator(int, int, int, FullSquareMatrix &, int fitAlgShell);
 
-   void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *, double dt, double t);
+	void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *, double dt, double t) override;
 
-   void getDExternalForceDu(GeomState &geomState, CoordSet &cs,
-                                     FullSquareMatrix &elK, double *locF);
+	void getDExternalForceDu(GeomState &geomState, CoordSet &cs,
+							 FullSquareMatrix &elK, double *locF) override;
 
-   void getInternalForce(GeomState &, CoordSet &, FullSquareMatrix &, double *, double, double);
+	void getInternalForce(GeomState &, CoordSet &, FullSquareMatrix &, double *, double, double) override;
 
-   void getExternalForce(GeomState &,CoordSet &, double*);
-   
-   void formGeometricStiffness(GeomState &, CoordSet &, 
-                               FullSquareMatrix &, double *);
+	void getExternalForce(GeomState &,CoordSet &, double*) override;
 
-   double * getOriginalStiffness() { return (double *)origK; } 
+	void formGeometricStiffness(GeomState &, CoordSet &,
+								FullSquareMatrix &, double *) override;
 
-   void extractDefDisp(Node &nd1, Node &nd2, Node &nd3, NodeState &ns1,
-                       NodeState &ns2, NodeState &ns3,
-                       double xl0[3][3], double xln[3][3],
-                       double t0[3][3], double t0n[3][3], double vld[18]);
-  
-   void getGlobalDisp(GeomState& , CoordSet&, Vector& );
+	double * getOriginalStiffness() override { return (double *)origK; }
 
-   void formCorrectGeometricStiffness(double rotvar[3][3][3],
-                          double xln[3][3], double pmat[18][18], 
-                          double gmat[3][18], double f[18],
-                          double stiffGeo1[18][18], 
-                          double stiffGeo2[18][18], double fe[18],
-			  double t0n[3][3]);
-   
-   void spinAxialAndMoment(double f[], double fnm[][3]);
+	void extractDefDisp(Node &nd1, Node &nd2, Node &nd3, NodeState &ns1,
+						NodeState &ns2, NodeState &ns3,
+						double xl0[3][3], double xln[3][3],
+						double t0[3][3], double t0n[3][3], double vld[18]);
 
-   void spinAxial(double f[], double fn[][3]);
-     
-   void formRotationGradientMatrix(double xdij[3][3], 
-        double ydij[3][3], double xln[3][3], double gmat[3][18]); 
+	void getGlobalDisp(GeomState& , CoordSet&, Vector& ) override;
 
-   void gradDefDisp(double xl0[][3], double xln[][3], 
-                    double pmat[18][18], double gmat[3][18]);
+	void formCorrectGeometricStiffness(double rotvar[3][3][3],
+									   double xln[3][3], double pmat[18][18],
+									   double gmat[3][18], double f[18],
+									   double stiffGeo1[18][18],
+									   double stiffGeo2[18][18], double fe[18],
+									   double t0n[3][3]);
 
-   void localCoord(double x0[3][3], double xn[3][3],
-                   double t0[3][3], double t0n[3][3], double xl0[3][3], 
-                   double xln[3][3]);
+	void spinAxialAndMoment(double f[], double fnm[][3]);
 
-   void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
-                            int &nlflag);
-   void extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld);
+	void spinAxial(double f[], double fn[][3]);
 
-   void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
-                               double *vlr);
+	void formRotationGradientMatrix(double xdij[3][3],
+									double ydij[3][3], double xln[3][3], double gmat[3][18]);
 
-   double getElementEnergy(GeomState &, CoordSet &);
-   
-   void reBuildorigK(FullSquareMatrix &);
+	void gradDefDisp(double xl0[][3], double xln[][3],
+					 double pmat[18][18], double gmat[3][18]);
+
+	void localCoord(double x0[3][3], double xn[3][3],
+					double t0[3][3], double t0n[3][3], double xl0[3][3],
+					double xln[3][3]);
+
+	void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
+							 int &nlflag) override;
+	void extractDeformationsDisplacementSensitivity(GeomState &geomState, CoordSet &cs, double *dvld) override;
+
+	void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
+								double *vlr) override;
+
+	double getElementEnergy(GeomState &, CoordSet &) override;
+
+	void reBuildorigK(FullSquareMatrix &) override;
 
 };
 

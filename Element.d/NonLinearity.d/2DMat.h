@@ -18,13 +18,13 @@ class ElaLinIsoMat2D : public NLMaterial
 
      void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
-     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
+     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp) override;
 
      void getElasticity(Tensor *tm) const override {};
 
-     void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {};
+     void updateStates(Tensor &en, Tensor &enp, double *state, double temp) override {};
 
-     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
+     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp) override;
      
      void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                     double *staten, double *statenp, double temp,
@@ -36,13 +36,13 @@ class ElaLinIsoMat2D : public NLMaterial
 
      void initStates(double *) override {};
 
-     GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();
+     GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator() override;
 
      double getDensity() override { return rho; }
 
      double getThickness() const override { return t; }
 
-     double getReferenceTemperature() { return Tref; }
+     double getReferenceTemperature() override { return Tref; }
 };
 
 // same equation as ElaLinIsoMat2D but with different Green-Lagrange strain evaluator

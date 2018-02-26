@@ -15,7 +15,7 @@ class LinearTranslationalSpring : public ConstantDistanceConstraint
     LinearTranslationalSpring(int*, int=0);
     void setProp(StructProp *p, bool _myProp) override;
 
-    bool isSpring() { return true; }
+    bool isSpring() const override { return true; }
 };
 
 #endif

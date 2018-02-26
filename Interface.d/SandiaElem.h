@@ -10,8 +10,8 @@ class SandiaElem : public Element
   SandiaElem(int numberOfNodes, int* nodeNumbers, unsigned short int* dofFlags);
   ~SandiaElem() { if(nds) delete [] nds; }
   void renum(int *renumberingTable);
-  FullSquareMatrix stiffness(const CoordSet&, double *, int = 1) const;
-  FullSquareMatrix massMatrix(const CoordSet&, double *, int = 1) const;
+  FullSquareMatrix stiffness(const CoordSet&, double *, int = 1) const override;
+  FullSquareMatrix massMatrix(const CoordSet&, double *, int = 1) const override;
   void markDofs(DofSetArray &dsa);
   int* dofs(DofSetArray &dsa, int *p=0);
    int numDofs() const override;

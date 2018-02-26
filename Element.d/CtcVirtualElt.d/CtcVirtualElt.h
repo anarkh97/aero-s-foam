@@ -24,8 +24,8 @@ public:
 	int getTopNumber() override;
 
 
-	FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg=1) const;
-        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+	FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg=1) const override;
+        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
 };
 
 #endif

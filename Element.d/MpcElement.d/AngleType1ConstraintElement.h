@@ -14,16 +14,16 @@ protected:
 
 public:
 	AngleType1ConstraintElement(int*, int, int, double = M_PI/2, int = 0, int = 1);
-	~AngleType1ConstraintElement();
-	void buildFrame(CoordSet&);
-	void setFrame(EFrame *);
-	double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
-	double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+	~AngleType1ConstraintElement() override;
+	void buildFrame(CoordSet&) override;
+	void setFrame(EFrame *) override;
+	double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
+	double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
 
 protected:
 	void getConstants(const CoordSet &,
 	                  Eigen::Array<double,7,1>& sconst, Eigen::Array<int,1,1>&,
-	                  const GeomState *gs = nullptr) const;
+	                  const GeomState *gs = nullptr) const override;
 };
 
 #endif

@@ -20,136 +20,136 @@ template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;
 
 class FaceQuad8: public FaceElement {
-  private:
-        int Nodes[8];
-        static double RefCoords[8][2]; // coords of the nodes in the ref./parametric domain
+private:
+	int Nodes[8];
+	static double RefCoords[8][2]; // coords of the nodes in the ref./parametric domain
 
-  public:
-        enum { NumberOfNodes=8 };
+public:
+	enum { NumberOfNodes=8 };
 
-        // Constructors
-        // ~~~~~~~~~~~~
-        FaceQuad8(int *);
-        FaceElement* clone() override;
+	// Constructors
+	// ~~~~~~~~~~~~
+	explicit FaceQuad8(int *);
+	FaceElement* clone() override;
 
-        // Setup & update methods
-        // ~~~~~~~~~~~~~~~~~~~~~~
-        // -> implementation of pure virtual methods
-        void Renumber(std::map<int,int>& OldToNewNodeIds);
+	// Setup & update methods
+	// ~~~~~~~~~~~~~~~~~~~~~~
+	// -> implementation of pure virtual methods
+	void Renumber(std::map<int,int>& OldToNewNodeIds) override;
 
-        // Get methods
-        // ~~~~~~~~~~~
-        // -> local methods
-        int  nQuad4Nodes();
-        int  GetQuad4Node(int);
-        void GetQuad4Nodes(int*, int* renumTable=0);
-        void GetQuad4Nodes(int*, std::map<int,int>& renumTable);
+	// Get methods
+	// ~~~~~~~~~~~
+	// -> local methods
+	int  nQuad4Nodes();
+	int  GetQuad4Node(int);
+	void GetQuad4Nodes(int*, int* renumTable=0);
+	void GetQuad4Nodes(int*, std::map<int,int>& renumTable);
 
-        // -> implementation of pure virtual methods
-        int  nNodes() const override;
-        void GetNodes(int*, int* renumTable) const override;
-        void GetNodes(int*, std::map<int,int>& renumTable) const override;
-        int  GetNode(int) const override;
-        int  GetNodeIndex(int) const override;
+	// -> implementation of pure virtual methods
+	int  nNodes() const override;
+	void GetNodes(int*, int* renumTable) const override;
+	void GetNodes(int*, std::map<int,int>& renumTable) const override;
+	int  GetNode(int) const override;
+	int  GetNodeIndex(int) const override;
 
-        int GetFaceElemType() override;
+	int GetFaceElemType() override;
 #ifdef USE_ACME
-        ContactSearch::ContactFace_Type GetACMEFaceElemType();
+	ContactSearch::ContactFace_Type GetACMEFaceElemType();
 #else
-        int GetACMEFaceElemType();
+	int GetACMEFaceElemType() override;
 #endif
-        // -> pure virtual method for dealing with quadratic face element
-        //    (see FaceElement.h for more details)
-        int  nVertices() override;
-        int  GetVertex(int) override;
-        void GetVertices(int*, int* renumTable) override;
-        void GetVertices(int*, std::map<int,int>& renumTable) override;
+	// -> pure virtual method for dealing with quadratic face element
+	//    (see FaceElement.h for more details)
+	int  nVertices() override;
+	int  GetVertex(int) override;
+	void GetVertices(int*, int* renumTable) override;
+	void GetVertices(int*, std::map<int,int>& renumTable) override;
 
 #ifdef USE_ACME
-        ContactSearch::ContactFace_Type GetACMEFFIFaceElemType();
+	ContactSearch::ContactFace_Type GetACMEFFIFaceElemType();
 #else
-        int GetACMEFFIFaceElemType();
+	int GetACMEFFIFaceElemType() override;
 #endif
-        // Mapping & shape fct methods        
-        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        // -> local methods 
-        template<typename Scalar>
-          void   GetShapeFctVal(Scalar*, Scalar*);
-        template<typename Scalar>
-          void   GetdShapeFct(Scalar* dShapex, Scalar* dShapey, Scalar* m);
-        template<typename Scalar>
-          void   Getd2ShapeFct(Scalar *d2Shapex, Scalar *d2Shapey, Scalar *d2Shapexy, Scalar *m);
-        template<typename Scalar>
-          void   Getd3ShapeFct(Scalar *d3Shapex, Scalar *d3Shapey, Scalar *d2Shapex2y, Scalar *d2Shapexy2, Scalar *m);
-        template<typename Scalar, typename CoordSetT>
-          void   ComputedMdxAnddMdy(Scalar* dMdx, Scalar* dMdy, Scalar* m, CoordSetT& cs);
-        template<typename Scalar, typename CoordSetT>
-          void   Computed2Mdx2d2Mdy2Andd2Mdxdy(Scalar *d2Mdx2, Scalar *d2Mdy2, Scalar *d2Mdxdy, Scalar *m, CoordSetT &cs);
-        template<typename Scalar, typename CoordSetT>
-          void   Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(Scalar *d3Mdx3, Scalar *d3Mdy3, Scalar *d3Mdx2dy, Scalar *d3Mdxdy2, Scalar *m, CoordSetT &cs);
-        template<typename Scalar, typename CoordSetT>
-          Scalar GetJacobian(Scalar*, CoordSetT&);
-        template<typename Scalar, typename CoordSetT>
-          Scalar GetShapeFctAndJacobian(Scalar* Shape, Scalar* m, CoordSetT& cs);
-        template<typename Scalar, typename CoordSetT>
-          void   LocalToGlobalCoord(Scalar* M, Scalar* m, CoordSetT& cs);
-        template<typename Scalar, typename CoordSetT>
-          void   GetIsoParamMappingNormalJacobianProduct(Scalar* JNormal, Scalar* m, CoordSetT& cs);
-        template<typename Scalar, typename CoordSetT>
-          Scalar GetIsoParamMappingNormalAndJacobian(Scalar* Normal, Scalar* m, CoordSetT& cs);
-        template<typename Scalar, typename CoordSetT>
-          void GetdJNormal(Scalar dJNormal[][3], Scalar* m, CoordSetT& cs);
-        template<typename Scalar, typename CoordSetT>
-          void Getd2JNormal(Scalar d2JNormal[][3], Scalar* m, CoordSetT& cs);
-        template<typename Scalar, typename CoordSetT>
-          void ComputedJNormaldxAnddJNormaldy(Scalar *dJNormaldx, Scalar *dJNormaldy, Scalar *m, CoordSetT &cs);
-        template<typename Scalar, typename CoordSetT>
-          void Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(Scalar *d2JNormaldx2, Scalar *d2JNormaldy2, Scalar *d2JNormaldxdy, Scalar *m, CoordSetT &cs);
-        template<typename Scalar, typename CoordSetT>
-          void ComputeddJNormaldxAndddJNormaldy(Scalar ddJNormaldx[][3], Scalar ddJNormaldy[][3], Scalar* m, CoordSetT& cs);
-        template<typename Scalar, typename CoordSetT>
-          void GetUnitNormal(Scalar UnitNormal[3], Scalar* m, CoordSetT& cs);
+	// Mapping & shape fct methods
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// -> local methods
+	template<typename Scalar>
+	void   GetShapeFctVal(Scalar*, Scalar*);
+	template<typename Scalar>
+	void   GetdShapeFct(Scalar* dShapex, Scalar* dShapey, Scalar* m);
+	template<typename Scalar>
+	void   Getd2ShapeFct(Scalar *d2Shapex, Scalar *d2Shapey, Scalar *d2Shapexy, Scalar *m);
+	template<typename Scalar>
+	void   Getd3ShapeFct(Scalar *d3Shapex, Scalar *d3Shapey, Scalar *d2Shapex2y, Scalar *d2Shapexy2, Scalar *m);
+	template<typename Scalar, typename CoordSetT>
+	void   ComputedMdxAnddMdy(Scalar* dMdx, Scalar* dMdy, Scalar* m, CoordSetT& cs);
+	template<typename Scalar, typename CoordSetT>
+	void   Computed2Mdx2d2Mdy2Andd2Mdxdy(Scalar *d2Mdx2, Scalar *d2Mdy2, Scalar *d2Mdxdy, Scalar *m, CoordSetT &cs);
+	template<typename Scalar, typename CoordSetT>
+	void   Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(Scalar *d3Mdx3, Scalar *d3Mdy3, Scalar *d3Mdx2dy, Scalar *d3Mdxdy2, Scalar *m, CoordSetT &cs);
+	template<typename Scalar, typename CoordSetT>
+	Scalar GetJacobian(Scalar*, CoordSetT&);
+	template<typename Scalar, typename CoordSetT>
+	Scalar GetShapeFctAndJacobian(Scalar* Shape, Scalar* m, CoordSetT& cs);
+	template<typename Scalar, typename CoordSetT>
+	void   LocalToGlobalCoord(Scalar* M, Scalar* m, CoordSetT& cs);
+	template<typename Scalar, typename CoordSetT>
+	void   GetIsoParamMappingNormalJacobianProduct(Scalar* JNormal, Scalar* m, CoordSetT& cs);
+	template<typename Scalar, typename CoordSetT>
+	Scalar GetIsoParamMappingNormalAndJacobian(Scalar* Normal, Scalar* m, CoordSetT& cs);
+	template<typename Scalar, typename CoordSetT>
+	void GetdJNormal(Scalar dJNormal[][3], Scalar* m, CoordSetT& cs);
+	template<typename Scalar, typename CoordSetT>
+	void Getd2JNormal(Scalar d2JNormal[][3], Scalar* m, CoordSetT& cs);
+	template<typename Scalar, typename CoordSetT>
+	void ComputedJNormaldxAnddJNormaldy(Scalar *dJNormaldx, Scalar *dJNormaldy, Scalar *m, CoordSetT &cs);
+	template<typename Scalar, typename CoordSetT>
+	void Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(Scalar *d2JNormaldx2, Scalar *d2JNormaldy2, Scalar *d2JNormaldxdy, Scalar *m, CoordSetT &cs);
+	template<typename Scalar, typename CoordSetT>
+	void ComputeddJNormaldxAndddJNormaldy(Scalar ddJNormaldx[][3], Scalar ddJNormaldy[][3], Scalar* m, CoordSetT& cs);
+	template<typename Scalar, typename CoordSetT>
+	void GetUnitNormal(Scalar UnitNormal[3], Scalar* m, CoordSetT& cs);
 
-        // -> implementation of pure virtual fcts
-        void   LocalToGlobalCoord(double*, double*, CoordSet&);
-        void   GetShapeFctVal(double*, double*);
-        double GetJacobian(double*, CoordSet&);
-        double GetIsoParamMappingNormalAndJacobian(double*, double*, CoordSet&);
-        void   GetIsoParamMappingNormalJacobianProduct(double*, double*, CoordSet&);
+	// -> implementation of pure virtual fcts
+	void   LocalToGlobalCoord(double*, double*, CoordSet&) override;
+	void   GetShapeFctVal(double*, double*) override;
+	double GetJacobian(double*, CoordSet&) override;
+	double GetIsoParamMappingNormalAndJacobian(double*, double*, CoordSet&) override;
+	void   GetIsoParamMappingNormalJacobianProduct(double*, double*, CoordSet&) override;
 
-        // -> implementation of virtual fcts
-        double* ViewRefCoords();
-        void GetdShapeFct(double* dShapex, double* dShapey, double* m);
-        void Getd2ShapeFct(double *d2Shapex, double *d2Shapey, double *d2Shapexy, double *m);
-        void Getd3ShapeFct(double *d3Shapex, double *d3Shapey, double *d2Shapex2y, double *d2Shapexy2, double *m);
-        void ComputedMdxAnddMdy(double* dMdx, double* dMdy, double* m, CoordSet& cs);
-        void Computed2Mdx2d2Mdy2Andd2Mdxdy(double *d2Mdx2, double *d2Mdy2, double *d2Mdxdy, double *m, CoordSet &cs);
-        void Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(double *d3Mdx3, double *d3Mdy3, double *d3Mdx2dy, double *d3Mdxdy2, double *m, CoordSet &cs);
-        void GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs);
-        void Getd2JNormal(double d2JNormal[][3], double* m, CoordSet& cs);
-        void ComputedJNormaldxAnddJNormaldy(double *dJNormaldx, double *dJNormaldy, double *m, CoordSet &cs);
-        void Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(double *d2JNormaldx2, double *d2JNormaldy2, double *d2JNormaldxdy, double *m, CoordSet &cs);
-        void ComputeddJNormaldxAndddJNormaldy(double ddJNormaldx[][3], double ddJNormaldy[][3], double* m, CoordSet& cs);
-        void GetUnitNormal(double UnitNormal[3], double* m, CoordSet& cs);
+	// -> implementation of virtual fcts
+	double* ViewRefCoords() override;
+	void GetdShapeFct(double* dShapex, double* dShapey, double* m) override;
+	void Getd2ShapeFct(double *d2Shapex, double *d2Shapey, double *d2Shapexy, double *m) override;
+	void Getd3ShapeFct(double *d3Shapex, double *d3Shapey, double *d2Shapex2y, double *d2Shapexy2, double *m) override;
+	void ComputedMdxAnddMdy(double* dMdx, double* dMdy, double* m, CoordSet& cs) override;
+	void Computed2Mdx2d2Mdy2Andd2Mdxdy(double *d2Mdx2, double *d2Mdy2, double *d2Mdxdy, double *m, CoordSet &cs) override;
+	void Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(double *d3Mdx3, double *d3Mdy3, double *d3Mdx2dy, double *d3Mdxdy2, double *m, CoordSet &cs) override;
+	void GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs) override;
+	void Getd2JNormal(double d2JNormal[][3], double* m, CoordSet& cs) override;
+	void ComputedJNormaldxAnddJNormaldy(double *dJNormaldx, double *dJNormaldy, double *m, CoordSet &cs) override;
+	void Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(double *d2JNormaldx2, double *d2JNormaldy2, double *d2JNormaldxdy, double *m, CoordSet &cs) override;
+	void ComputeddJNormaldxAndddJNormaldy(double ddJNormaldx[][3], double ddJNormaldy[][3], double* m, CoordSet& cs) override;
+	void GetUnitNormal(double UnitNormal[3], double* m, CoordSet& cs) override;
 
-        // Miscelleaneous methods
-        // ~~~~~~~~~~~~~~~~~~~~~~
-        // -> implementation of virtual fcts
-        //double ComputeArea(CoordSet&, const int ngp=3);
+	// Miscelleaneous methods
+	// ~~~~~~~~~~~~~~~~~~~~~~
+	// -> implementation of virtual fcts
+	//double ComputeArea(CoordSet&, const int ngp=3);
 
-        // Mass matrix methods
-        // ~~~~~~~~~~~~~~~~~~~
-        // -> implementation of pure virtual fcts
-        FullM ScalarMass(CoordSet&, double rho=1.0, int ngp=3);
-        void  IntegrateShapeFcts(double*, CoordSet&, double rho=1.0, int ngp=3);
+	// Mass matrix methods
+	// ~~~~~~~~~~~~~~~~~~~
+	// -> implementation of pure virtual fcts
+	FullM ScalarMass(CoordSet&, double rho, int ng) override;
+	void  IntegrateShapeFcts(double*, CoordSet& cs, double rho, int ngp) override;
 
-        // Print, display methods
-        // ~~~~~~~~~~~~~~~~~~~~~~
-        // -> local fcts
-        void printNodes();
+	// Print, display methods
+	// ~~~~~~~~~~~~~~~~~~~~~~
+	// -> local fcts
+	void printNodes() const;
 
-        // -> implementation of pure virtual fcts
-        void print();
+	// -> implementation of pure virtual fcts
+	void print() const override;
 
 };
 
@@ -348,16 +348,16 @@ FaceQuad8::LocalToGlobalCoord(Scalar *M, Scalar *m, CoordSetT &cs)
 
   Scalar X[8], Y[8], Z[8];
   for(int i=0; i<8; ++i) {
-    X[i] = cs[Nodes[i]]->x;
-    Y[i] = cs[Nodes[i]]->y;
-    Z[i] = cs[Nodes[i]]->z;
+	X[i] = cs[Nodes[i]]->x;
+	Y[i] = cs[Nodes[i]]->y;
+	Z[i] = cs[Nodes[i]]->z;
   }
 
   M[0] = 0.0; M[1] = 0.0; M[2] = 0.0;
   for(int i=0; i<8; i+=4) {
-    M[0] += Shape[i]*X[i] + Shape[i+1]*X[i+1] + Shape[i+2]*X[i+2] + Shape[i+3]*X[i+3];
-    M[1] += Shape[i]*Y[i] + Shape[i+1]*Y[i+1] + Shape[i+2]*Y[i+2] + Shape[i+3]*Y[i+3];
-    M[2] += Shape[i]*Z[i] + Shape[i+1]*Z[i+1] + Shape[i+2]*Z[i+2] + Shape[i+3]*Z[i+3];
+	M[0] += Shape[i]*X[i] + Shape[i+1]*X[i+1] + Shape[i+2]*X[i+2] + Shape[i+3]*X[i+3];
+	M[1] += Shape[i]*Y[i] + Shape[i+1]*Y[i+1] + Shape[i+2]*Y[i+2] + Shape[i+3]*Y[i+3];
+	M[2] += Shape[i]*Z[i] + Shape[i+1]*Z[i+1] + Shape[i+2]*Z[i+2] + Shape[i+3]*Z[i+3];
   }
 }
 
@@ -380,21 +380,21 @@ FaceQuad8::ComputedMdxAnddMdy(Scalar *dMdx, Scalar *dMdy, Scalar *m, CoordSetT &
   // Compute ∂M/∂ξ and ∂M/∂η
   Scalar X[8], Y[8], Z[8];
   for(int i=0; i<8; ++i) {
-    X[i] = cs[Nodes[i]]->x;
-    Y[i] = cs[Nodes[i]]->y;
-    Z[i] = cs[Nodes[i]]->z;
+	X[i] = cs[Nodes[i]]->x;
+	Y[i] = cs[Nodes[i]]->y;
+	Z[i] = cs[Nodes[i]]->z;
   }
 
   dMdx[0] = dMdx[1] = dMdx[2] = 0.0;
   dMdy[0] = dMdy[1] = dMdy[2] = 0.0;
   for(int i=0; i<8; i+=4) {
-    dMdx[0] += dShapex[i]*X[i] + dShapex[i+1]*X[i+1] + dShapex[i+2]*X[i+2] + dShapex[i+3]*X[i+3];
-    dMdx[1] += dShapex[i]*Y[i] + dShapex[i+1]*Y[i+1] + dShapex[i+2]*Y[i+2] + dShapex[i+3]*Y[i+3];
-    dMdx[2] += dShapex[i]*Z[i] + dShapex[i+1]*Z[i+1] + dShapex[i+2]*Z[i+2] + dShapex[i+3]*Z[i+3];
+	dMdx[0] += dShapex[i]*X[i] + dShapex[i+1]*X[i+1] + dShapex[i+2]*X[i+2] + dShapex[i+3]*X[i+3];
+	dMdx[1] += dShapex[i]*Y[i] + dShapex[i+1]*Y[i+1] + dShapex[i+2]*Y[i+2] + dShapex[i+3]*Y[i+3];
+	dMdx[2] += dShapex[i]*Z[i] + dShapex[i+1]*Z[i+1] + dShapex[i+2]*Z[i+2] + dShapex[i+3]*Z[i+3];
 
-    dMdy[0] += dShapey[i]*X[i] + dShapey[i+1]*X[i+1] + dShapey[i+2]*X[i+2] + dShapey[i+3]*X[i+3];
-    dMdy[1] += dShapey[i]*Y[i] + dShapey[i+1]*Y[i+1] + dShapey[i+2]*Y[i+2] + dShapey[i+3]*Y[i+3];
-    dMdy[2] += dShapey[i]*Z[i] + dShapey[i+1]*Z[i+1] + dShapey[i+2]*Z[i+2] + dShapey[i+3]*Z[i+3];
+	dMdy[0] += dShapey[i]*X[i] + dShapey[i+1]*X[i+1] + dShapey[i+2]*X[i+2] + dShapey[i+3]*X[i+3];
+	dMdy[1] += dShapey[i]*Y[i] + dShapey[i+1]*Y[i+1] + dShapey[i+2]*Y[i+2] + dShapey[i+3]*Y[i+3];
+	dMdy[2] += dShapey[i]*Z[i] + dShapey[i+1]*Z[i+1] + dShapey[i+2]*Z[i+2] + dShapey[i+3]*Z[i+3];
   }
 }
 
@@ -418,26 +418,26 @@ FaceQuad8::Computed2Mdx2d2Mdy2Andd2Mdxdy(Scalar *d2Mdx2, Scalar *d2Mdy2, Scalar 
   // Compute ∂²M/∂ξ², ∂²M/∂η² and ∂²M/∂ξ∂η
   Scalar X[8], Y[8], Z[8];
   for(int i=0; i<8; ++i) {
-    X[i] = cs[Nodes[i]]->x;
-    Y[i] = cs[Nodes[i]]->y;
-    Z[i] = cs[Nodes[i]]->z;
+	X[i] = cs[Nodes[i]]->x;
+	Y[i] = cs[Nodes[i]]->y;
+	Z[i] = cs[Nodes[i]]->z;
   }
 
   d2Mdx2[0] = d2Mdx2[1] = d2Mdx2[2] = 0.0;
   d2Mdy2[0] = d2Mdy2[1] = d2Mdy2[2] = 0.0;
   d2Mdxdy[0] = d2Mdxdy[1] = d2Mdxdy[2] = 0.0;
   for(int i=0; i<8; i+=4) {
-    d2Mdx2[0] += d2Shapex[i]*X[i] + d2Shapex[i+1]*X[i+1] + d2Shapex[i+2]*X[i+2] + d2Shapex[i+3]*X[i+3];
-    d2Mdx2[1] += d2Shapex[i]*Y[i] + d2Shapex[i+1]*Y[i+1] + d2Shapex[i+2]*Y[i+2] + d2Shapex[i+3]*Y[i+3];
-    d2Mdx2[2] += d2Shapex[i]*Z[i] + d2Shapex[i+1]*Z[i+1] + d2Shapex[i+2]*Z[i+2] + d2Shapex[i+3]*Z[i+3];
+	d2Mdx2[0] += d2Shapex[i]*X[i] + d2Shapex[i+1]*X[i+1] + d2Shapex[i+2]*X[i+2] + d2Shapex[i+3]*X[i+3];
+	d2Mdx2[1] += d2Shapex[i]*Y[i] + d2Shapex[i+1]*Y[i+1] + d2Shapex[i+2]*Y[i+2] + d2Shapex[i+3]*Y[i+3];
+	d2Mdx2[2] += d2Shapex[i]*Z[i] + d2Shapex[i+1]*Z[i+1] + d2Shapex[i+2]*Z[i+2] + d2Shapex[i+3]*Z[i+3];
 
-    d2Mdy2[0] += d2Shapey[i]*X[i] + d2Shapey[i+1]*X[i+1] + d2Shapey[i+2]*X[i+2] + d2Shapey[i+3]*X[i+3];
-    d2Mdy2[1] += d2Shapey[i]*Y[i] + d2Shapey[i+1]*Y[i+1] + d2Shapey[i+2]*Y[i+2] + d2Shapey[i+3]*Y[i+3];
-    d2Mdy2[2] += d2Shapey[i]*Z[i] + d2Shapey[i+1]*Z[i+1] + d2Shapey[i+2]*Z[i+2] + d2Shapey[i+3]*Z[i+3];
+	d2Mdy2[0] += d2Shapey[i]*X[i] + d2Shapey[i+1]*X[i+1] + d2Shapey[i+2]*X[i+2] + d2Shapey[i+3]*X[i+3];
+	d2Mdy2[1] += d2Shapey[i]*Y[i] + d2Shapey[i+1]*Y[i+1] + d2Shapey[i+2]*Y[i+2] + d2Shapey[i+3]*Y[i+3];
+	d2Mdy2[2] += d2Shapey[i]*Z[i] + d2Shapey[i+1]*Z[i+1] + d2Shapey[i+2]*Z[i+2] + d2Shapey[i+3]*Z[i+3];
 
-    d2Mdxdy[0] += d2Shapexy[i]*X[i] + d2Shapexy[i+1]*X[i+1] + d2Shapexy[i+2]*X[i+2] + d2Shapexy[i+3]*X[i+3];
-    d2Mdxdy[1] += d2Shapexy[i]*Y[i] + d2Shapexy[i+1]*Y[i+1] + d2Shapexy[i+2]*Y[i+2] + d2Shapexy[i+3]*Y[i+3];
-    d2Mdxdy[2] += d2Shapexy[i]*Z[i] + d2Shapexy[i+1]*Z[i+1] + d2Shapexy[i+2]*Z[i+2] + d2Shapexy[i+3]*Z[i+3];
+	d2Mdxdy[0] += d2Shapexy[i]*X[i] + d2Shapexy[i+1]*X[i+1] + d2Shapexy[i+2]*X[i+2] + d2Shapexy[i+3]*X[i+3];
+	d2Mdxdy[1] += d2Shapexy[i]*Y[i] + d2Shapexy[i+1]*Y[i+1] + d2Shapexy[i+2]*Y[i+2] + d2Shapexy[i+3]*Y[i+3];
+	d2Mdxdy[2] += d2Shapexy[i]*Z[i] + d2Shapexy[i+1]*Z[i+1] + d2Shapexy[i+2]*Z[i+2] + d2Shapexy[i+3]*Z[i+3];
   }
 }
 
@@ -462,9 +462,9 @@ FaceQuad8::Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(Scalar *d3Mdx3, Scalar *d3Mdy3
   // Compute ∂³M/∂ξ³, ∂³M/∂η³, ∂³M/∂ξ²∂η and ∂³M/∂ξ∂η²
   Scalar X[8], Y[8], Z[8];
   for(int i=0; i<8; ++i) {
-    X[i] = cs[Nodes[i]]->x;
-    Y[i] = cs[Nodes[i]]->y;
-    Z[i] = cs[Nodes[i]]->z;
+	X[i] = cs[Nodes[i]]->x;
+	Y[i] = cs[Nodes[i]]->y;
+	Z[i] = cs[Nodes[i]]->z;
   }
 
   d3Mdx3[0] = d3Mdx3[1] = d3Mdx3[2] = 0.0;
@@ -473,21 +473,21 @@ FaceQuad8::Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(Scalar *d3Mdx3, Scalar *d3Mdy3
   d3Mdxdy2[0] = d3Mdxdy2[1] = d3Mdxdy2[2] = 0.0;
   for(int i=0; i<8; i+=4) {
 /* all zero
-    d3Mdx3[0] += d3Shapex[i]*X[i] + d3Shapex[i+1]*X[i+1] + d3Shapex[i+2]*X[i+2] + d3Shapex[i+3]*X[i+3];
-    d3Mdx3[1] += d3Shapex[i]*Y[i] + d3Shapex[i+1]*Y[i+1] + d3Shapex[i+2]*Y[i+2] + d3Shapex[i+3]*Y[i+3];
-    d3Mdx3[2] += d3Shapex[i]*Z[i] + d3Shapex[i+1]*Z[i+1] + d3Shapex[i+2]*Z[i+2] + d3Shapex[i+3]*Z[i+3];
+	d3Mdx3[0] += d3Shapex[i]*X[i] + d3Shapex[i+1]*X[i+1] + d3Shapex[i+2]*X[i+2] + d3Shapex[i+3]*X[i+3];
+	d3Mdx3[1] += d3Shapex[i]*Y[i] + d3Shapex[i+1]*Y[i+1] + d3Shapex[i+2]*Y[i+2] + d3Shapex[i+3]*Y[i+3];
+	d3Mdx3[2] += d3Shapex[i]*Z[i] + d3Shapex[i+1]*Z[i+1] + d3Shapex[i+2]*Z[i+2] + d3Shapex[i+3]*Z[i+3];
 
-    d3Mdy3[0] += d3Shapey[i]*X[i] + d3Shapey[i+1]*X[i+1] + d3Shapey[i+2]*X[i+2] + d3Shapey[i+3]*X[i+3];
-    d3Mdy3[1] += d3Shapey[i]*Y[i] + d3Shapey[i+1]*Y[i+1] + d3Shapey[i+2]*Y[i+2] + d3Shapey[i+3]*Y[i+3];
-    d3Mdy3[2] += d3Shapey[i]*Z[i] + d3Shapey[i+1]*Z[i+1] + d3Shapey[i+2]*Z[i+2] + d3Shapey[i+3]*Z[i+3];
+	d3Mdy3[0] += d3Shapey[i]*X[i] + d3Shapey[i+1]*X[i+1] + d3Shapey[i+2]*X[i+2] + d3Shapey[i+3]*X[i+3];
+	d3Mdy3[1] += d3Shapey[i]*Y[i] + d3Shapey[i+1]*Y[i+1] + d3Shapey[i+2]*Y[i+2] + d3Shapey[i+3]*Y[i+3];
+	d3Mdy3[2] += d3Shapey[i]*Z[i] + d3Shapey[i+1]*Z[i+1] + d3Shapey[i+2]*Z[i+2] + d3Shapey[i+3]*Z[i+3];
 */
-    d3Mdx2dy[0] += d3Shapex2y[i]*X[i] + d3Shapex2y[i+1]*X[i+1] + d3Shapex2y[i+2]*X[i+2] + d3Shapex2y[i+3]*X[i+3];
-    d3Mdx2dy[1] += d3Shapex2y[i]*Y[i] + d3Shapex2y[i+1]*Y[i+1] + d3Shapex2y[i+2]*Y[i+2] + d3Shapex2y[i+3]*Y[i+3];
-    d3Mdx2dy[2] += d3Shapex2y[i]*Z[i] + d3Shapex2y[i+1]*Z[i+1] + d3Shapex2y[i+2]*Z[i+2] + d3Shapex2y[i+3]*Z[i+3];
+	d3Mdx2dy[0] += d3Shapex2y[i]*X[i] + d3Shapex2y[i+1]*X[i+1] + d3Shapex2y[i+2]*X[i+2] + d3Shapex2y[i+3]*X[i+3];
+	d3Mdx2dy[1] += d3Shapex2y[i]*Y[i] + d3Shapex2y[i+1]*Y[i+1] + d3Shapex2y[i+2]*Y[i+2] + d3Shapex2y[i+3]*Y[i+3];
+	d3Mdx2dy[2] += d3Shapex2y[i]*Z[i] + d3Shapex2y[i+1]*Z[i+1] + d3Shapex2y[i+2]*Z[i+2] + d3Shapex2y[i+3]*Z[i+3];
 
-    d3Mdxdy2[0] += d3Shapexy2[i]*X[i] + d3Shapexy2[i+1]*X[i+1] + d3Shapexy2[i+2]*X[i+2] + d3Shapexy2[i+3]*X[i+3];
-    d3Mdxdy2[1] += d3Shapexy2[i]*Y[i] + d3Shapexy2[i+1]*Y[i+1] + d3Shapexy2[i+2]*Y[i+2] + d3Shapexy2[i+3]*Y[i+3];
-    d3Mdxdy2[2] += d3Shapexy2[i]*Z[i] + d3Shapexy2[i+1]*Z[i+1] + d3Shapexy2[i+2]*Z[i+2] + d3Shapexy2[i+3]*Z[i+3];
+	d3Mdxdy2[0] += d3Shapexy2[i]*X[i] + d3Shapexy2[i+1]*X[i+1] + d3Shapexy2[i+2]*X[i+2] + d3Shapexy2[i+3]*X[i+3];
+	d3Mdxdy2[1] += d3Shapexy2[i]*Y[i] + d3Shapexy2[i+1]*Y[i+1] + d3Shapexy2[i+2]*Y[i+2] + d3Shapexy2[i+3]*Y[i+3];
+	d3Mdxdy2[2] += d3Shapexy2[i]*Z[i] + d3Shapexy2[i+1]*Z[i+1] + d3Shapexy2[i+2]*Z[i+2] + d3Shapexy2[i+3]*Z[i+3];
   }
 }
 
@@ -606,25 +606,25 @@ FaceQuad8::Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(Scalar *d2JNormaldx2,
 
   // Compute ∂²n/∂ξ², ∂²n/∂η² and ∂²n/∂ξ∂η
   d2JNormaldx2[0] = d2Mdx2[1]*d2Mdxdy[2] + d2Mdx2[1]*d2Mdxdy[2] - (d2Mdx2[2]*d2Mdxdy[1] + d2Mdx2[2]*d2Mdxdy[1])
-                  + d3Mdx3[1]*dMdy[2] + dMdx[1]*d3Mdx2dy[2] - (d3Mdx3[2]*dMdy[1] + dMdx[2]*d3Mdx2dy[1]);
+					+ d3Mdx3[1]*dMdy[2] + dMdx[1]*d3Mdx2dy[2] - (d3Mdx3[2]*dMdy[1] + dMdx[2]*d3Mdx2dy[1]);
   d2JNormaldx2[1] = d2Mdx2[2]*d2Mdxdy[0] + d2Mdx2[2]*d2Mdxdy[0] - (d2Mdx2[0]*d2Mdxdy[2] + d2Mdx2[0]*d2Mdxdy[2])
-                  + d3Mdx3[2]*dMdy[0] + dMdx[2]*d3Mdx2dy[0] - (d3Mdx3[0]*dMdy[2] + dMdx[0]*d3Mdx2dy[2]);
+					+ d3Mdx3[2]*dMdy[0] + dMdx[2]*d3Mdx2dy[0] - (d3Mdx3[0]*dMdy[2] + dMdx[0]*d3Mdx2dy[2]);
   d2JNormaldx2[2] = d2Mdx2[0]*d2Mdxdy[1] + d2Mdx2[0]*d2Mdxdy[1] - (d2Mdx2[1]*d2Mdxdy[0] + d2Mdx2[1]*d2Mdxdy[0])
-                  + d3Mdx3[0]*dMdy[1] + dMdx[0]*d3Mdx2dy[1] - (d3Mdx3[1]*dMdy[0] + dMdx[1]*d3Mdx2dy[0]);
+					+ d3Mdx3[0]*dMdy[1] + dMdx[0]*d3Mdx2dy[1] - (d3Mdx3[1]*dMdy[0] + dMdx[1]*d3Mdx2dy[0]);
 
   d2JNormaldy2[0] = d2Mdxdy[1]*d2Mdy2[2] + d2Mdxdy[1]*d2Mdy2[2] - (d2Mdxdy[2]*d2Mdy2[1] + d2Mdxdy[2]*d2Mdy2[1])
-                  + d3Mdxdy2[1]*dMdy[2] + dMdx[1]*d3Mdy3[2] - (d3Mdxdy2[2]*dMdy[1] + dMdx[2]*d3Mdy3[1]);
+					+ d3Mdxdy2[1]*dMdy[2] + dMdx[1]*d3Mdy3[2] - (d3Mdxdy2[2]*dMdy[1] + dMdx[2]*d3Mdy3[1]);
   d2JNormaldy2[1] = d2Mdxdy[2]*d2Mdy2[0] + d2Mdxdy[2]*d2Mdy2[0] - (d2Mdxdy[0]*d2Mdy2[2] + d2Mdxdy[0]*d2Mdy2[2])
-                  + d3Mdxdy2[2]*dMdy[0] + dMdx[2]*d3Mdy3[0] - (d3Mdxdy2[0]*dMdy[2] + dMdx[0]*d3Mdy3[2]);
+					+ d3Mdxdy2[2]*dMdy[0] + dMdx[2]*d3Mdy3[0] - (d3Mdxdy2[0]*dMdy[2] + dMdx[0]*d3Mdy3[2]);
   d2JNormaldy2[2] = d2Mdxdy[0]*d2Mdy2[1] + d2Mdxdy[0]*d2Mdy2[1] - (d2Mdxdy[1]*d2Mdy2[0] + d2Mdxdy[1]*d2Mdy2[0])
-                  + d3Mdxdy2[0]*dMdy[1] + dMdx[0]*d3Mdy3[1] - (d3Mdxdy2[1]*dMdy[0] + dMdx[1]*d3Mdy3[0]);
+					+ d3Mdxdy2[0]*dMdy[1] + dMdx[0]*d3Mdy3[1] - (d3Mdxdy2[1]*dMdy[0] + dMdx[1]*d3Mdy3[0]);
 
   d2JNormaldxdy[0] = d2Mdx2[1]*d2Mdy2[2] + d2Mdxdy[1]*d2Mdxdy[2] - (d2Mdx2[2]*d2Mdy2[1] + d2Mdxdy[2]*d2Mdxdy[1])
-                   + d3Mdx2dy[1]*dMdy[2] + dMdx[1]*d3Mdxdy2[2] - (d3Mdx2dy[2]*dMdy[1] + dMdx[2]*d3Mdxdy2[1]);
+					 + d3Mdx2dy[1]*dMdy[2] + dMdx[1]*d3Mdxdy2[2] - (d3Mdx2dy[2]*dMdy[1] + dMdx[2]*d3Mdxdy2[1]);
   d2JNormaldxdy[1] = d2Mdx2[2]*d2Mdy2[0] + d2Mdxdy[2]*d2Mdxdy[0] - (d2Mdx2[0]*d2Mdy2[2] + d2Mdxdy[0]*d2Mdxdy[2])
-                   + d3Mdx2dy[2]*dMdy[0] + dMdx[2]*d3Mdxdy2[0] - (d3Mdx2dy[0]*dMdy[2] + dMdx[0]*d3Mdxdy2[2]);
+					 + d3Mdx2dy[2]*dMdy[0] + dMdx[2]*d3Mdxdy2[0] - (d3Mdx2dy[0]*dMdy[2] + dMdx[0]*d3Mdxdy2[2]);
   d2JNormaldxdy[2] = d2Mdx2[0]*d2Mdy2[1] + d2Mdxdy[0]*d2Mdxdy[1] - (d2Mdx2[1]*d2Mdy2[0] + d2Mdxdy[1]*d2Mdxdy[0])
-                   + d3Mdx2dy[0]*dMdy[1] + dMdx[0]*d3Mdxdy2[1] - (d3Mdx2dy[1]*dMdy[0] + dMdx[1]*d3Mdxdy2[0]);
+					 + d3Mdx2dy[0]*dMdy[1] + dMdx[0]*d3Mdxdy2[1] - (d3Mdx2dy[1]*dMdy[0] + dMdx[1]*d3Mdxdy2[0]);
 }
 
 template<typename Scalar, typename CoordSetT>
@@ -644,7 +644,7 @@ FaceQuad8::GetIsoParamMappingNormalAndJacobian(Scalar *Normal, Scalar *m, CoordS
   Scalar NormN = sqrt(Normal[0]*Normal[0]+Normal[1]*Normal[1]+Normal[2]*Normal[2]);
 
   if(NormN != 0.0) {
-    Normal[0] /= NormN; Normal[1] /= NormN; Normal[2] /= NormN;
+	Normal[0] /= NormN; Normal[1] /= NormN; Normal[2] /= NormN;
   }
   return(NormN);
 }
@@ -677,17 +677,17 @@ FaceQuad8::GetdJNormal(Scalar dJNormal[][3], Scalar* m, CoordSetT& cs)
 
   // Compute dJNormal
   for(int i = 0; i < 8; ++i) {
-    dJNormal[3*i  ][0] = 0;
-    dJNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
-    dJNormal[3*i  ][2] = dShapex[i]*dMdy[1] - dMdx[1]*dShapey[i];
+	dJNormal[3*i  ][0] = 0;
+	dJNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
+	dJNormal[3*i  ][2] = dShapex[i]*dMdy[1] - dMdx[1]*dShapey[i];
 
-    dJNormal[3*i+1][0] = dShapex[i]*dMdy[2] - dMdx[2]*dShapey[i];
-    dJNormal[3*i+1][1] = 0;
-    dJNormal[3*i+1][2] = dMdx[0]*dShapey[i] - dShapex[i]*dMdy[0];
+	dJNormal[3*i+1][0] = dShapex[i]*dMdy[2] - dMdx[2]*dShapey[i];
+	dJNormal[3*i+1][1] = 0;
+	dJNormal[3*i+1][2] = dMdx[0]*dShapey[i] - dShapex[i]*dMdy[0];
 
-    dJNormal[3*i+2][0] = dMdx[1]*dShapey[i] - dShapex[i]*dMdy[1];
-    dJNormal[3*i+2][1] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
-    dJNormal[3*i+2][2] = 0;
+	dJNormal[3*i+2][0] = dMdx[1]*dShapey[i] - dShapex[i]*dMdy[1];
+	dJNormal[3*i+2][1] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
+	dJNormal[3*i+2][2] = 0;
   }
 }
 
@@ -715,7 +715,7 @@ FaceQuad8::ComputeddJNormaldxAndddJNormaldy(Scalar ddJNormaldx[][3], Scalar ddJN
   // Compute shape functions' derivatives w.r.t. the local coordinates
   Scalar dShapex[8], dShapey[8];
   GetdShapeFct(dShapex, dShapey, m);
-  
+
   // Compute shape functions' 2nd derivatives w.r.t. the local coordinates
   Scalar d2Shapex[8], d2Shapey[8], d2Shapexy[8];
   Getd2ShapeFct(d2Shapex, d2Shapey, d2Shapexy, m);
@@ -730,27 +730,27 @@ FaceQuad8::ComputeddJNormaldxAndddJNormaldy(Scalar ddJNormaldx[][3], Scalar ddJN
 
   // Compute ddJNormaldx and ddJNormaldy
   for(int i = 0; i < 8; ++i) {
-    ddJNormaldx[3*i  ][0] = 0;
-    ddJNormaldx[3*i  ][1] = (d2Mdx2[2]*dShapey[i] + dMdx[2]*d2Shapexy[i]) - (d2Shapex[i]*dMdy[2] + dShapex[i]*d2Mdxdy[2]);
-    ddJNormaldx[3*i  ][2] = (d2Shapex[i]*dMdy[1] + dShapex[i]*d2Mdxdy[1]) - (d2Mdx2[1]*dShapey[i] + dMdx[1]*d2Shapexy[i]);
-    ddJNormaldx[3*i+1][0] = (d2Shapex[i]*dMdy[2] + dShapex[i]*d2Mdxdy[2]) - (d2Mdx2[2]*dShapey[i] + dMdx[2]*d2Shapexy[i]);
-    ddJNormaldx[3*i+1][1] = 0;
-    ddJNormaldx[3*i+1][2] = (d2Mdx2[0]*dShapey[i] + dMdx[0]*d2Shapexy[i]) - (d2Shapex[i]*dMdy[0] + dShapex[i]*d2Mdxdy[0]);
-    ddJNormaldx[3*i+2][0] = (d2Mdx2[1]*dShapey[i] + dMdx[1]*d2Shapexy[i]) - (d2Shapex[i]*dMdy[1] + dShapex[i]*d2Mdxdy[1]);
-    ddJNormaldx[3*i+2][1] = (d2Shapex[i]*dMdy[0] + dShapex[i]*d2Mdxdy[0]) - (d2Mdx2[0]*dShapey[i] + dMdx[0]*d2Shapexy[i]);
-    ddJNormaldx[3*i+2][2] = 0;
+	ddJNormaldx[3*i  ][0] = 0;
+	ddJNormaldx[3*i  ][1] = (d2Mdx2[2]*dShapey[i] + dMdx[2]*d2Shapexy[i]) - (d2Shapex[i]*dMdy[2] + dShapex[i]*d2Mdxdy[2]);
+	ddJNormaldx[3*i  ][2] = (d2Shapex[i]*dMdy[1] + dShapex[i]*d2Mdxdy[1]) - (d2Mdx2[1]*dShapey[i] + dMdx[1]*d2Shapexy[i]);
+	ddJNormaldx[3*i+1][0] = (d2Shapex[i]*dMdy[2] + dShapex[i]*d2Mdxdy[2]) - (d2Mdx2[2]*dShapey[i] + dMdx[2]*d2Shapexy[i]);
+	ddJNormaldx[3*i+1][1] = 0;
+	ddJNormaldx[3*i+1][2] = (d2Mdx2[0]*dShapey[i] + dMdx[0]*d2Shapexy[i]) - (d2Shapex[i]*dMdy[0] + dShapex[i]*d2Mdxdy[0]);
+	ddJNormaldx[3*i+2][0] = (d2Mdx2[1]*dShapey[i] + dMdx[1]*d2Shapexy[i]) - (d2Shapex[i]*dMdy[1] + dShapex[i]*d2Mdxdy[1]);
+	ddJNormaldx[3*i+2][1] = (d2Shapex[i]*dMdy[0] + dShapex[i]*d2Mdxdy[0]) - (d2Mdx2[0]*dShapey[i] + dMdx[0]*d2Shapexy[i]);
+	ddJNormaldx[3*i+2][2] = 0;
   }
 
   for(int i = 0; i < 8; ++i) {
-    ddJNormaldy[3*i  ][0] = 0;
-    ddJNormaldy[3*i  ][1] = (d2Mdxdy[2]*dShapey[i] + dMdx[2]*d2Shapey[i]) - (d2Shapexy[i]*dMdy[2] + dShapex[i]*d2Mdy2[2]);
-    ddJNormaldy[3*i  ][2] = (d2Shapexy[i]*dMdy[1] + dShapex[i]*d2Mdy2[1]) - (d2Mdxdy[1]*dShapey[i] + dMdx[1]*d2Shapey[i]);
-    ddJNormaldy[3*i+1][0] = (d2Shapexy[i]*dMdy[2] + dShapex[i]*d2Mdy2[2]) - (d2Mdxdy[2]*dShapey[i] + dMdx[2]*d2Shapey[i]);
-    ddJNormaldy[3*i+1][1] = 0;
-    ddJNormaldy[3*i+1][2] = (d2Mdxdy[0]*dShapey[i] + dMdx[0]*d2Shapey[i]) - (d2Shapexy[i]*dMdy[0] + dShapex[i]*d2Mdy2[0]);
-    ddJNormaldy[3*i+2][0] = (d2Mdxdy[1]*dShapey[i] + dMdx[1]*d2Shapey[i]) - (d2Shapexy[i]*dMdy[1] + dShapex[i]*d2Mdy2[1]);
-    ddJNormaldy[3*i+2][1] = (d2Shapexy[i]*dMdy[0] + dShapex[i]*d2Mdy2[0]) - (d2Mdxdy[0]*dShapey[i] + dMdx[0]*d2Shapey[i]);
-    ddJNormaldy[3*i+2][2] = 0;
+	ddJNormaldy[3*i  ][0] = 0;
+	ddJNormaldy[3*i  ][1] = (d2Mdxdy[2]*dShapey[i] + dMdx[2]*d2Shapey[i]) - (d2Shapexy[i]*dMdy[2] + dShapex[i]*d2Mdy2[2]);
+	ddJNormaldy[3*i  ][2] = (d2Shapexy[i]*dMdy[1] + dShapex[i]*d2Mdy2[1]) - (d2Mdxdy[1]*dShapey[i] + dMdx[1]*d2Shapey[i]);
+	ddJNormaldy[3*i+1][0] = (d2Shapexy[i]*dMdy[2] + dShapex[i]*d2Mdy2[2]) - (d2Mdxdy[2]*dShapey[i] + dMdx[2]*d2Shapey[i]);
+	ddJNormaldy[3*i+1][1] = 0;
+	ddJNormaldy[3*i+1][2] = (d2Mdxdy[0]*dShapey[i] + dMdx[0]*d2Shapey[i]) - (d2Shapexy[i]*dMdy[0] + dShapex[i]*d2Mdy2[0]);
+	ddJNormaldy[3*i+2][0] = (d2Mdxdy[1]*dShapey[i] + dMdx[1]*d2Shapey[i]) - (d2Shapexy[i]*dMdy[1] + dShapex[i]*d2Mdy2[1]);
+	ddJNormaldy[3*i+2][1] = (d2Shapexy[i]*dMdy[0] + dShapex[i]*d2Mdy2[0]) - (d2Mdxdy[0]*dShapey[i] + dMdx[0]*d2Shapey[i]);
+	ddJNormaldy[3*i+2][2] = 0;
   }
 }
 
@@ -787,43 +787,43 @@ FaceQuad8::Getd2JNormal(Scalar H[][3], Scalar* m, CoordSetT& cs)
 
   // Compute d2JNormal
   for(int i = 0; i < 8; ++ i) {
-    for(int j = 0; j < 8; ++j) {
-      H[24*(3*j  )+3*i  ][0] = 0;
-      H[24*(3*j  )+3*i  ][1] = 0;
-      H[24*(3*j  )+3*i  ][2] = 0;
+	for(int j = 0; j < 8; ++j) {
+	  H[24*(3*j  )+3*i  ][0] = 0;
+	  H[24*(3*j  )+3*i  ][1] = 0;
+	  H[24*(3*j  )+3*i  ][2] = 0;
 
-      H[24*(3*j  )+3*i+1][0] = 0;
-      H[24*(3*j  )+3*i+1][1] = 0;
-      H[24*(3*j  )+3*i+1][2] = dShapex[j]*dShapey[i] - dShapex[i]*dShapey[j];
+	  H[24*(3*j  )+3*i+1][0] = 0;
+	  H[24*(3*j  )+3*i+1][1] = 0;
+	  H[24*(3*j  )+3*i+1][2] = dShapex[j]*dShapey[i] - dShapex[i]*dShapey[j];
 
-      H[24*(3*j  )+3*i+2][0] = 0;
-      H[24*(3*j  )+3*i+2][1] = dShapex[i]*dShapey[j] - dShapex[j]*dShapey[i];
-      H[24*(3*j  )+3*i+2][2] = 0;
+	  H[24*(3*j  )+3*i+2][0] = 0;
+	  H[24*(3*j  )+3*i+2][1] = dShapex[i]*dShapey[j] - dShapex[j]*dShapey[i];
+	  H[24*(3*j  )+3*i+2][2] = 0;
 
-      H[24*(3*j+1)+3*i  ][0] = 0;
-      H[24*(3*j+1)+3*i  ][1] = 0;
-      H[24*(3*j+1)+3*i  ][2] = dShapex[i]*dShapey[j] - dShapex[j]*dShapey[i];
+	  H[24*(3*j+1)+3*i  ][0] = 0;
+	  H[24*(3*j+1)+3*i  ][1] = 0;
+	  H[24*(3*j+1)+3*i  ][2] = dShapex[i]*dShapey[j] - dShapex[j]*dShapey[i];
 
-      H[24*(3*j+1)+3*i+1][0] = 0;
-      H[24*(3*j+1)+3*i+1][1] = 0;
-      H[24*(3*j+1)+3*i+1][2] = 0;
+	  H[24*(3*j+1)+3*i+1][0] = 0;
+	  H[24*(3*j+1)+3*i+1][1] = 0;
+	  H[24*(3*j+1)+3*i+1][2] = 0;
 
-      H[24*(3*j+1)+3*i+2][0] = dShapex[j]*dShapey[i] - dShapex[i]*dShapey[j];
-      H[24*(3*j+1)+3*i+2][1] = 0;
-      H[24*(3*j+1)+3*i+2][2] = 0;
+	  H[24*(3*j+1)+3*i+2][0] = dShapex[j]*dShapey[i] - dShapex[i]*dShapey[j];
+	  H[24*(3*j+1)+3*i+2][1] = 0;
+	  H[24*(3*j+1)+3*i+2][2] = 0;
 
-      H[24*(3*j+2)+3*i  ][0] = 0;
-      H[24*(3*j+2)+3*i  ][1] = dShapex[j]*dShapey[i] - dShapex[i]*dShapey[j];
-      H[24*(3*j+2)+3*i  ][2] = 0;
+	  H[24*(3*j+2)+3*i  ][0] = 0;
+	  H[24*(3*j+2)+3*i  ][1] = dShapex[j]*dShapey[i] - dShapex[i]*dShapey[j];
+	  H[24*(3*j+2)+3*i  ][2] = 0;
 
-      H[24*(3*j+2)+3*i+1][0] = dShapex[i]*dShapey[j] - dShapex[j]*dShapey[i];
-      H[24*(3*j+2)+3*i+1][1] = 0;
-      H[24*(3*j+2)+3*i+1][2] = 0;
+	  H[24*(3*j+2)+3*i+1][0] = dShapex[i]*dShapey[j] - dShapex[j]*dShapey[i];
+	  H[24*(3*j+2)+3*i+1][1] = 0;
+	  H[24*(3*j+2)+3*i+1][2] = 0;
 
-      H[24*(3*j+2)+3*i+2][0] = 0;
-      H[24*(3*j+2)+3*i+2][1] = 0;
-      H[24*(3*j+2)+3*i+2][2] = 0;
-    }
+	  H[24*(3*j+2)+3*i+2][0] = 0;
+	  H[24*(3*j+2)+3*i+2][1] = 0;
+	  H[24*(3*j+2)+3*i+2][2] = 0;
+	}
   }
 }
 
@@ -839,7 +839,7 @@ FaceQuad8::GetUnitNormal(Scalar Normal[3], Scalar *m, CoordSetT &cs)
   Scalar J = sqrt(Normal[0]*Normal[0]+Normal[1]*Normal[1]+Normal[2]*Normal[2]);
 
   if(J != 0.0) {
-    Normal[0] /= J; Normal[1] /= J; Normal[2] /= J;
+	Normal[0] /= J; Normal[1] /= J; Normal[2] /= J;
   }
 }
 

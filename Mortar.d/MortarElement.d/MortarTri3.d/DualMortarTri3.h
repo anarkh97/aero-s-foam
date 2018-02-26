@@ -36,9 +36,9 @@ class DualMortarTri3: public MortarElement {
         // Get methods
         // ~~~~~~~~~~~
         // -> implementation of virtual methods
-        int nNodes();
-        int nMortarShapeFct();
-        bool GetDualFlag() { return true; }
+        int nNodes() override;
+        int nMortarShapeFct() override;
+        bool GetDualFlag() override { return true; }
 
         // Shape fct methods
         // ~~~~~~~~~~~~~~~~~
@@ -48,7 +48,7 @@ class DualMortarTri3: public MortarElement {
           void GetShapeFctVal(Scalar* Shape, Scalar* m);
 
         // -> implementation of virtual methods
-        void GetShapeFctVal(double* Shape, double* m);
+        void GetShapeFctVal(double* Shape, double* m) override;
 };
 
 template<typename Scalar>

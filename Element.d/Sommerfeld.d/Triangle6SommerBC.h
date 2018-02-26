@@ -46,8 +46,8 @@ public:
 	void ellipsoidBT2(CoordSet &cs, double a, double b, double k, ComplexD *d) override;
 
 	void markDofs(DofSetArray &) const override;
-//        FullSquareMatrix  stiffness(const CoordSet&, double *d, int flg = 1) const;
-//        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+//        FullSquareMatrix  stiffness(const CoordSet&, double *d, int flg = 1) const override;
+//        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
 //        int* nodes(int * = 0) const override;
 
 //        bool isSommerElement() { return true; }

@@ -6,15 +6,15 @@
 
 class DistanceConstraintElement : public ConstraintFunctionElement<Simo::DistanceConstraintFunction>
 {
-  public:
-    DistanceConstraintElement(int* _nn, double f0, int type = 0); 
-    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
-    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+public:
+	DistanceConstraintElement(int* _nn, double f0, int type = 0);
+	double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
+	double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
 
-  protected:
-    double f0;
-    void getConstants(const CoordSet & cs, Eigen::Array<double,4,1>& sconst, Eigen::Array<int,0,1>&,
-                      const GeomState* = nullptr) const;
+protected:
+	double f0;
+	void getConstants(const CoordSet & cs, Eigen::Array<double,4,1>& sconst, Eigen::Array<int,0,1>&,
+					  const GeomState* = nullptr) const override;
 };
 
 #endif

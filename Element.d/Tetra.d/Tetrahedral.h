@@ -5,84 +5,84 @@
 #include <Element.d/Tetra.d/TetraElementTemplate.hpp>
 
 class Tetrahedral: public Element,
-                   public TetraElementTemplate<double>
+				   public TetraElementTemplate<double>
 {
-    int nn[4];
-    double *cCoefs;
-    double *cFrame;
-    NLMaterial *mat;
-    void computeDjDx(double x[4], double y[4], double z[4], double J, double djdx[12]);
+	int nn[4];
+	double *cCoefs;
+	double *cFrame;
+	NLMaterial *mat;
+	void computeDjDx(double x[4], double y[4], double z[4], double J, double djdx[12]);
 
-  public:
-    Tetrahedral(int*);
-    ~Tetrahedral();
+public:
+	explicit Tetrahedral(int*);
+	~Tetrahedral() override;
 
-    Element *clone() override;
+	Element *clone() override;
 
-    void renum(int *) override;
-    void renum(EleRenumMap&) override;
+	void renum(int *) override;
+	void renum(EleRenumMap&) override;
 
-    FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const;
-    void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
-    FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
-    void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
-    double getMass(const CoordSet& cs) const override;
-    void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega);
+	FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg) const override;
+	void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs) override;
+	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
+	void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration) override;
+	double getMass(const CoordSet& cs) const override;
+	void aRubberStiffnessDerivs(CoordSet&, complex<double> *d, int n, double omega) override;
 
-    void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
-    void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
-                                                   GenFullM<double> &dGfdx, int gravflg, GeomState *geomState);
-    void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs=0);
+	void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs) override;
+	void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+												   GenFullM<double> &dGfdx, int gravflg, GeomState *geomState) override;
+	void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs) override;
 
-    void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-                     int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+	void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+					 int surface, double *ndTemps, double ylayer, double zlayer, int avgnum) override;
 
-    void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight,
-                                               CoordSet &cs, Vector &elDisp, int strInd,
-                                               int surface, double* ndTemps=0,
-                                               int avgnum=1, double ylayer=0, double zlayer=0);
+	void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight,
+											   CoordSet &cs, Vector &elDisp, int strInd,
+											   int surface, double* ndTemps,
+											   int avgnum, double ylayer, double zlayer) override;
 
-    void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *,
-                                            CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                            double *ndTemps, int avgnum, double ylayer, double zlayer);
+	void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, GenFullM<double> *,
+											CoordSet &cs, Vector &elDisp, int strInd, int surface,
+											double *ndTemps, int avgnum, double ylayer, double zlayer) override;
 
-    void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-                      int surface=0, double *ndTemps=0);
+	void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+					  int surface, double *ndTemps) override;
 
-    void markDofs(DofSetArray &) const override;
-    int* dofs(DofSetArray &, int *p) const override;
-     int numDofs() const override;
+	void markDofs(DofSetArray &) const override;
+	int* dofs(DofSetArray &, int *p) const override;
+	int numDofs() const override;
 
-    int numNodes() const override;
-    int* nodes(int * = 0) const override;
+	int numNodes() const override;
+	int* nodes(int *) const override;
 
-    int getTopNumber() override;
+	int getTopNumber() override;
 
-    PrioInfo examine(int sub, MultiFront *) override;
-    int nDecFaces() const override { return 4; }
-    int getDecFace(int iFace, int *fn);
+	PrioInfo examine(int sub, MultiFront *) override;
+	int nDecFaces() const override { return 4; }
+	int getDecFace(int iFace, int *fn) override;
 
-    int getFace(int iFace, int *fn) { return getDecFace(iFace,fn); }
+	int getFace(int iFace, int *fn) override { return getDecFace(iFace,fn); }
 
-    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame) override
-      { cCoefs = coefs; cFrame = frame; }
+	void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame) override
+	{ cCoefs = coefs; cFrame = frame; }
 
-   double* setCompositeData2(int, int, double*, double*, CoordSet&, double) override
-      { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
-                "              for Tetrahedral el.\n"); return (double *) 0;
-      }
-    void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
+	double* setCompositeData2(int, int, double*, double*, CoordSet&, double) override
+	{ fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
+				  "              for Tetrahedral el.\n"); return (double *) 0;
+	}
+	void getCFrame(CoordSet &cs, double cFrame[3][3]) const override;
 
-    void getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-                          int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+	void getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+						  int surface, double *ndTemps, double ylayer, double zlayer, int avgnum);
 
-    void getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
-                           Vector &elDisp, int strInd, int surface=0, double *ndTemps=0);
+	void getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
+						   Vector &elDisp, int strInd, int surface, double *ndTemps);
 
-    void setMaterial(NLMaterial *) override;
-    int numStates();
-    void initStates(double *st);
-    Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);
+	void setMaterial(NLMaterial *) override;
+	int numStates() override;
+	void initStates(double *st) override;
+	Corotator *getCorotator(CoordSet &cs, double *kel, int, int) override;
 };
 
 #endif

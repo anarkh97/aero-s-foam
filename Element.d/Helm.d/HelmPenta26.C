@@ -230,7 +230,7 @@ HelmPenta26::acousticm(CoordSet &cs, double *d)
   double dK[676], dM[676];
 
   FullSquareMatrix K = stiffness(cs, dK);
-  FullSquareMatrix M = massMatrix(cs, dM);
+  FullSquareMatrix M = massMatrix(cs, dM, 1);
 
   double kappa = prop ->kappaHelm;
   double kk = kappa*kappa;
@@ -304,7 +304,7 @@ HelmPenta26::markDofs(DofSetArray &dsa) const
 int
 HelmPenta26::getTopNumber() { return(194); } 
 int
-HelmPenta26::numTopNodes() { return(26); } 
+HelmPenta26::numTopNodes() const { return(26); }
 
 void
 HelmPenta26::addFaces(PolygonSet *pset)

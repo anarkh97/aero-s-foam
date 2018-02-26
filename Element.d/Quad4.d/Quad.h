@@ -15,9 +15,9 @@ public:
 	void renum(int *) override;
         void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg = 1) const;
-        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
-        double           getMass(const CoordSet&) const;
+        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg = 1) const override;
+        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
+        double           getMass(const CoordSet&) const override;
 
         virtual void     getVonMises (Vector &stress, Vector &weight, 
                                       CoordSet &cs, Vector &elDisp,
@@ -27,7 +27,7 @@ public:
 
 
 	void markDofs(DofSetArray &) const override;
-        int* dofs(DofSetArray &, int *p=0) const override;
+        int* dofs(DofSetArray &, int *p) const override;
          int numDofs() const override;
 
         int numNodes() const override;

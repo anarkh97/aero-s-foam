@@ -23,24 +23,24 @@ public:
 
 	int dim() const override { return 2; }
 
-	int *dofs(DofSetArray &, int *p = 0) const override;
+	int *dofs(DofSetArray &, int *p) const override;
 
-	virtual IsoParamTriLineSommer *clone() override;
+	IsoParamTriLineSommer *clone() override;
 
-	int *wetDofs(DofSetArray &, int *p = 0) const override;
+	int *wetDofs(DofSetArray &, int *p) const override;
 
 	void neumVector(CoordSet &, ComplexVector &,
-	                double, double, double, double, int pflag = 0);
+	                double, double, double, double, int pflag) override;
 
 	void wetInterfaceVector(CoordSet &, ComplexVector &,
-	                        double, double, double, double, int, int);
+	                        double, double, double, double, int, int) override;
 
 	FullSquareMatrix sommerMatrix(CoordSet &, double *) const override;
 
 	GenStackFSFullMatrix<double> wetInterfaceMatrix(CoordSet &cs,
-	                                                double *d);
+	                                                double *d) override;
 
-	void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
+	void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd) override;
 
 	FullSquareMatrixC sommer2Matrix(CoordSet &, complex<double> *);
 

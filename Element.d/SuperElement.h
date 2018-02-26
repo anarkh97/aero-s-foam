@@ -114,7 +114,7 @@ public:
 	int getCompositeLayer() override;
 	int dim() const override ;
 	void addFaces(PolygonSet *pset) override;
-	int numInternalNodes() override;
+	int numInternalNodes() const override;
 	void setInternalNodes(int *in) override;
 	bool isSafe() const override;
 	bool isRotMidSideNode(int iNode) override;

@@ -33,13 +33,13 @@ class ElaLinIsoMat : public NLMaterial
 
     void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
-    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
+    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp) override;
 
     void getElasticity(Tensor *tm) const override {};
 
-    void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {};
+    void updateStates(Tensor &en, Tensor &enp, double *state, double temp) override {};
 
-    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
+    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp) override;
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double temp,
@@ -49,29 +49,29 @@ class ElaLinIsoMat : public NLMaterial
                    double *staten, double *statenp, double temp,
                    Tensor *cache, double dt=0) const override;
 
-    void initStates(double *){};
+    void initStates(double *) override {};
 
     double getDensity() override { return rho; }
 
-    double getReferenceTemperature() { return Tref; }
+    double getReferenceTemperature() override { return Tref; }
 
     StrainEvaluator * getStrainEvaluator() const override;
 
-    double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
+    double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp) override;
 
     void print(std::ostream &out) const override {
       out << "Linear " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }
 
-    NLMaterial * clone() const;
+    NLMaterial * clone() const override;
 
-    void setTangentMaterial(double C[6][6]);
+    void setTangentMaterial(double C[6][6]) override;
 
-    void setThermalExpansionCoef(double alphas[6]);
+    void setThermalExpansionCoef(double alphas[6]) override;
 
-    void setTDProps(MFTTData *_ymtt, MFTTData *_ctett) { ymtt = _ymtt, ctett = _ctett; }
+    void setTDProps(MFTTData *_ymtt, MFTTData *_ctett) override { ymtt = _ymtt, ctett = _ctett; }
 
-    void getMaterialConstants(std::vector<double> &c);
+    void getMaterialConstants(std::vector<double> &c) override;
 };
 
 // same equation as ElaLinIsoMat but with different Green-Lagrange strain evaluator
@@ -79,8 +79,8 @@ class ElaLinIsoMat : public NLMaterial
 class StVenantKirchhoffMat : public ElaLinIsoMat
 {
   public:
-    StVenantKirchhoffMat(StructProp *p) : ElaLinIsoMat(p) {}
-    StVenantKirchhoffMat(double rho) : ElaLinIsoMat(rho) {}
+	explicit StVenantKirchhoffMat(StructProp *p) : ElaLinIsoMat(p) {}
+	explicit StVenantKirchhoffMat(double rho) : ElaLinIsoMat(rho) {}
     StVenantKirchhoffMat(double rho, double E, double nu) : ElaLinIsoMat(rho, E, nu) {}
     StVenantKirchhoffMat(double rho, double E, double nu, double Tref, double alpha) : ElaLinIsoMat(rho, E, nu, Tref, alpha) {}
     StVenantKirchhoffMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
@@ -89,14 +89,14 @@ class StVenantKirchhoffMat : public ElaLinIsoMat
     void print(std::ostream &out) const override {
       out << "StVenantKirchhoff " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }
-    NLMaterial * clone() const;
+    NLMaterial * clone() const override;
 };
 
 class HenckyMat : public ElaLinIsoMat
 {
   public:
-    HenckyMat(StructProp *p) : ElaLinIsoMat(p) {}
-    HenckyMat(double rho) : ElaLinIsoMat(rho) {}
+	explicit HenckyMat(StructProp *p) : ElaLinIsoMat(p) {}
+	explicit HenckyMat(double rho) : ElaLinIsoMat(rho) {}
     HenckyMat(double rho, double E, double nu) : ElaLinIsoMat(rho, E, nu) {}
     HenckyMat(double rho, double E, double nu, double Tref, double alpha) : ElaLinIsoMat(rho, E, nu, Tref, alpha) {}
     HenckyMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
@@ -105,7 +105,7 @@ class HenckyMat : public ElaLinIsoMat
     void print(std::ostream &out) const override {
       out << "HenckyElastic " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }
-    NLMaterial * clone() const;
+    NLMaterial * clone() const override;
 };
 
 #endif

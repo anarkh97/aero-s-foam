@@ -14,27 +14,27 @@ public:
 	Element *clone() override;
 
 	void renum(int *) override;
-        void renum(EleRenumMap&) override;
+	void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
-        FullSquareMatrix acousticm(CoordSet&, double *d);
-        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
+	FullSquareMatrix acousticm(CoordSet&, double *d) override;
+	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
 
-        double           getMass(const CoordSet&) const;
+	double           getMass(const CoordSet&) const override;
 
 	void markDofs(DofSetArray &) const override;
-        int* dofs(DofSetArray &, int *p=0) const override;
-         int numDofs() const override;
+	int* dofs(DofSetArray &, int *p) const override;
+	int numDofs() const override;
 
-        int             numNodes() const override;
-        int * nodes(int *) const override;
+	int             numNodes() const override;
+	int * nodes(int *) const override;
 
-	void            addFaces(PolygonSet *pset);
+	void addFaces(PolygonSet *pset) override;
 
-        void computedxdxi(CoordSet &cs, int nint, double (*derivatives)[6][2],
-                          Matrix22 *dxdxi, double *det);
-        void getNormalDeriv(CoordSet&,ComplexD *uel, int ns, int *s, ComplexD*,
-                            double kappa, double *waveDir);
+	void computedxdxi(CoordSet &cs, int nint, double (*derivatives)[6][2],
+					  Matrix22 *dxdxi, double *det);
+	void getNormalDeriv(CoordSet&,ComplexD *uel, int ns, int *s, ComplexD*,
+						double kappa, double *waveDir) override;
 	int getTopNumber() override {return 138;}
 };
 #endif

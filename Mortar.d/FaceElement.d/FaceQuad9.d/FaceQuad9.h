@@ -35,7 +35,7 @@ class FaceQuad9: public FaceElement {
         // Setup & update methods
         // ~~~~~~~~~~~~~~~~~~~~~~
         // -> implementation of pure virtual methods
-        void Renumber(std::map<int,int>& OldToNewNodeIds);
+        void Renumber(std::map<int,int>& OldToNewNodeIds) override;
 
         // Get methods
         // ~~~~~~~~~~~
@@ -49,26 +49,26 @@ class FaceQuad9: public FaceElement {
         int  nNodes() const override;
         void GetNodes(int*, int* renumTable) const override;
         void GetNodes(int*, std::map<int,int>& renumTable) const override;
-        int GetNode(int) const const override;
-        int GetNodeIndex(int) const const override;
+        int GetNode(int) const override;
+        int GetNodeIndex(int) const override;
 
-        int GetFaceElemType();
+        int GetFaceElemType() override;
 #ifdef USE_ACME
         ContactSearch::ContactFace_Type GetACMEFaceElemType();
 #else
-        int GetACMEFaceElemType();
+        int GetACMEFaceElemType() override;
 #endif
         // -> pure virtual method for dealing with quadratic face element
         //    (see FaceElement.h for more details)
-        int  nVertices();
-        int  GetVertex(int);
-        void GetVertices(int*, int* renumTable);
-        void GetVertices(int*, std::map<int,int>& renumTable);
+        int  nVertices() override;
+        int  GetVertex(int) override;
+        void GetVertices(int*, int* renumTable) override;
+        void GetVertices(int*, std::map<int,int>& renumTable) override;
 
 #ifdef USE_ACME
         ContactSearch::ContactFace_Type GetACMEFFIFaceElemType();
 #else
-        int GetACMEFFIFaceElemType();
+        int GetACMEFFIFaceElemType() override;
 #endif
         // Mapping & shape fct methods        
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -111,26 +111,26 @@ class FaceQuad9: public FaceElement {
           void GetUnitNormal(Scalar UnitNormal[3], Scalar* m, CoordSetT& cs);
 
         // -> implementation of pure virtual fcts
-        void   LocalToGlobalCoord(double*, double*, CoordSet&);
-        void   GetShapeFctVal(double*, double*);
-        double GetJacobian(double*, CoordSet&);
-        double GetIsoParamMappingNormalAndJacobian(double*, double*, CoordSet&);
-        void   GetIsoParamMappingNormalJacobianProduct(double*, double*, CoordSet&);
+        void   LocalToGlobalCoord(double*, double*, CoordSet&) override;
+        void   GetShapeFctVal(double*, double*) override;
+        double GetJacobian(double*, CoordSet&) override;
+        double GetIsoParamMappingNormalAndJacobian(double*, double*, CoordSet&) override;
+        void   GetIsoParamMappingNormalJacobianProduct(double*, double*, CoordSet&) override;
 
         // -> implementation of virtual fcts
-        double* ViewRefCoords();
-        void GetdShapeFct(double* dShapex, double* dShapey, double* m);
-        void Getd2ShapeFct(double *d2Shapex, double *d2Shapey, double *d2Shapexy, double *m);
-        void Getd3ShapeFct(double *d3Shapex, double *d3Shapey, double *d2Shapex2y, double *d2Shapexy2, double *m);
-        void ComputedMdxAnddMdy(double* dMdx, double* dMdy, double* m, CoordSet& cs);
-        void Computed2Mdx2d2Mdy2Andd2Mdxdy(double *d2Mdx2, double *d2Mdy2, double *d2Mdxdy, double *m, CoordSet &cs);
-        void Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(double *d3Mdx3, double *d3Mdy3, double *d3Mdx2dy, double *d3Mdxdy2, double *m, CoordSet &cs);
-        void GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs);
-        void Getd2JNormal(double d2JNormal[][3], double* m, CoordSet& cs);
-        void ComputedJNormaldxAnddJNormaldy(double *dJNormaldx, double *dJNormaldy, double *m, CoordSet &cs);
-        void Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(double *d2JNormaldx2, double *d2JNormaldy2, double *d2JNormaldxdy, double *m, CoordSet &cs);
-        void ComputeddJNormaldxAndddJNormaldy(double ddJNormaldx[][3], double ddJNormaldy[][3], double* m, CoordSet& cs);
-        void GetUnitNormal(double UnitNormal[3], double* m, CoordSet& cs);
+        double* ViewRefCoords() override;
+        void GetdShapeFct(double* dShapex, double* dShapey, double* m) override;
+        void Getd2ShapeFct(double *d2Shapex, double *d2Shapey, double *d2Shapexy, double *m) override;
+        void Getd3ShapeFct(double *d3Shapex, double *d3Shapey, double *d2Shapex2y, double *d2Shapexy2, double *m) override;
+        void ComputedMdxAnddMdy(double* dMdx, double* dMdy, double* m, CoordSet& cs) override;
+        void Computed2Mdx2d2Mdy2Andd2Mdxdy(double *d2Mdx2, double *d2Mdy2, double *d2Mdxdy, double *m, CoordSet &cs) override;
+        void Computed3Mdx3d3Mdy3d3Mdx2dyAndd3Mdxdy2(double *d3Mdx3, double *d3Mdy3, double *d3Mdx2dy, double *d3Mdxdy2, double *m, CoordSet &cs) override;
+        void GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs) override;
+        void Getd2JNormal(double d2JNormal[][3], double* m, CoordSet& cs) override;
+        void ComputedJNormaldxAnddJNormaldy(double *dJNormaldx, double *dJNormaldy, double *m, CoordSet &cs) override;
+        void Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(double *d2JNormaldx2, double *d2JNormaldy2, double *d2JNormaldxdy, double *m, CoordSet &cs) override;
+        void ComputeddJNormaldxAndddJNormaldy(double ddJNormaldx[][3], double ddJNormaldy[][3], double* m, CoordSet& cs) override;
+        void GetUnitNormal(double UnitNormal[3], double* m, CoordSet& cs) override;
 
         // Miscelleaneous methods
         // ~~~~~~~~~~~~~~~~~~~~~~
@@ -140,16 +140,16 @@ class FaceQuad9: public FaceElement {
         // Mass matrix methods
         // ~~~~~~~~~~~~~~~~~~~
         // -> implementation of pure virtual fcts
-        FullM ScalarMass(CoordSet&, double rho=1.0, int ngp=3);
-        void  IntegrateShapeFcts(double*, CoordSet&, double rho=1.0, int ngp=3);
+        FullM ScalarMass(CoordSet&, double rho, int ng) override;
+        void  IntegrateShapeFcts(double*, CoordSet& cs, double rho, int ngp) override;
 
         // Print, display methods
         // ~~~~~~~~~~~~~~~~~~~~~~
         // -> local fcts
-        void printNodes();
+        void printNodes() const;
 
         // -> implementation of pure virtual fcts
-        void print();
+        void print() const override;
 
 };
 

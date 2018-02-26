@@ -176,7 +176,7 @@ HelmPenta::acousticm(CoordSet &cs, double *d)
   double dK[36], dM[36];
 
   FullSquareMatrix K = stiffness(cs, dK);
-  FullSquareMatrix M = massMatrix(cs, dM);
+  FullSquareMatrix M = massMatrix(cs, dM, 1);
 
   double kappa = prop ->kappaHelm;
   double kk = kappa*kappa;

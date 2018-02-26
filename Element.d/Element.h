@@ -531,7 +531,7 @@ public:
 	virtual Corotator *getCorotator(CoordSet &, double *, int = 2, int = 2);
 
 	virtual int getTopNumber();
-	virtual int  numTopNodes() { return numNodes() - numInternalNodes(); }   // this is the number of nodes printed in the top file
+	virtual int numTopNodes() const { return numNodes() - numInternalNodes(); }   // this is the number of nodes printed in the top file
 	// can make it different to numNodes for elements that aren't
 	// supported by xpost eg RigidSolid6Dof
 	virtual void computePressureForce(CoordSet& cs,Vector& elPressureForce,
@@ -550,7 +550,7 @@ public:
 
 	virtual void setMaterial(NLMaterial *);
 
-	virtual int numInternalNodes() { return 0; }
+	virtual int numInternalNodes() const { return 0; }
 
 	virtual void setInternalNodes(int *) {}
 
@@ -565,7 +565,7 @@ public:
 	// be a germination center for a subdomain (bars are not)
 	virtual bool isStart() { return true; }
 
-	virtual bool isSpring() { return false; }
+	virtual bool isSpring() const { return false; }
 
 	virtual bool isMass() { return false; }
 

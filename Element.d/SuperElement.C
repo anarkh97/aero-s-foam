@@ -132,7 +132,7 @@ SuperElement::setMaterial(NLMaterial *m)
 }
 
 int
-SuperElement::numInternalNodes()
+SuperElement::numInternalNodes() const
 {
   // nInternalNodes has already been set in makeAllDOFs
   return nInternalNodes;

@@ -16,7 +16,7 @@ public:
 	void getLocalDerivatives(Tensor *localDerivatives, double xi[3]);
 	void getValues(Tensor *val, double xi[3]) {}
 	Tensor *getValInstance() { return 0; }
-	double interpolateScalar(double *_q, double _xi[3]);
+	double interpolateScalar(double *_q, double _xi[3]) override;
 };
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>

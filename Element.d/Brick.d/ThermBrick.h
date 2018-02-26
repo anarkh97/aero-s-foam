@@ -7,7 +7,7 @@ class ThermBrick: public Element {
 
 	int nn[8];
 public:
-	ThermBrick(int*);
+	explicit ThermBrick(int*);
 
 	Element *clone() override;
 
@@ -15,12 +15,12 @@ public:
 	void renum(EleRenumMap&) override;
 
 	FullSquareMatrix stiffness(const CoordSet& cs, double *d, int flg) const override;
-	FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg=1) const override;
-	double           getMass(const CoordSet& cs) const;
+	FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg) const override;
+	double getMass(const CoordSet& cs) const override;
 
 
 	void markDofs(DofSetArray &) const override;
-	int* dofs(DofSetArray &, int *p=0) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
 
 	int numNodes() const override;
@@ -28,7 +28,7 @@ public:
 	int getTopNumber() override;
 	PrioInfo examine(int sub, MultiFront *) override;
 
-	Corotator *	getCorotator(CoordSet &cs, double* kel, int, int);
+	Corotator *	getCorotator(CoordSet &cs, double* kel, int, int) override;
 
 };
 #endif

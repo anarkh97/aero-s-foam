@@ -14,12 +14,12 @@ public:
     ForceFunctionElement(int, DofSet*, int*);
     ForceFunctionElement(int, DofSet*, DofSet*, int*);
 
-    FullSquareMatrix stiffness(const CoordSet&, double*, int = 1) const;
-    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
-    void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
-    void getInternalForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
+    FullSquareMatrix stiffness(const CoordSet&, double*, int = 1) const override;
+    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
+    void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
+    void getInternalForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double) override;
     void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState *gs = 0, int cflg = 0, double t = 0.0);
+                              GeomState *gs = 0, int cflg = 0, double t = 0.0) override;
 private:
     void getJacobian(const GeomState *refState, const GeomState &c1, const CoordSet& c0, FullM& B, double t) const;
 

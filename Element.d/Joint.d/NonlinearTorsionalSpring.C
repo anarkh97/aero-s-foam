@@ -39,7 +39,7 @@ NonlinearTorsionalSpring::update(GeomState *refState, GeomState& gState, CoordSe
 {
   // internal states
   if(numStates() > 0) {
-    updateStates((GeomState *) NULL, gState, cs);
+    updateStates((GeomState *) NULL, gState, cs, 0.0);
     axis1 = (quadrant == 0 || quadrant == 2) ? m_axis1 : m_axis2, axis2 = m_axis2;
   }
 

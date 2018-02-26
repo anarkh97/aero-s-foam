@@ -3,25 +3,25 @@
 
 #include <Element.d/SuperElement.h>
 
-class FourNodeShell : public SuperElement 
+class FourNodeShell : public SuperElement
 {
-  public:
-    FourNodeShell(int *nodenums);
+public:
+	explicit FourNodeShell(int *nodenums);
 
-    Element* clone() override;
-    int getTopNumber() override;
-    bool isShell() const override { return true; }
+	Element* clone() override;
+	int getTopNumber() override;
+	bool isShell() const override { return true; }
 
-    int nDecFaces() const override { return 1;}
-    int getDecFace(int iFace, int *fn) { for(int i=0; i<4; i++) fn[i] = nn[i]; return 4; }
+	int nDecFaces() const override { return 1;}
+	int getDecFace(int iFace, int *fn) override { for(int i=0; i<4; i++) fn[i] = nn[i]; return 4; }
 
-    int getFace(int iFace, int *fn) { return getDecFace(iFace,fn); }
+	int getFace(int iFace, int *fn) override { return getDecFace(iFace,fn); }
 
-    // aero functions
-    void computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs=0);
-    void getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF, double *res, GeomState *gs=0);
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront *mf) override;
+	// aero functions
+	void computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs) override;
+	void getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF, double *res, GeomState *gs) override;
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront *mf) override;
 
 };
 

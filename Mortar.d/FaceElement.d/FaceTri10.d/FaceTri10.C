@@ -336,7 +336,7 @@ FaceTri10::IntegrateShapeFcts(double* ShapeIntg, CoordSet& cs, double rho, int n
 // LOCAL METHODS
 // -------------
 void
-FaceTri10::printNodes()
+FaceTri10::printNodes() const
 {
   filePrint(stderr,"   # Tri10 face el., nodes = %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d\n",
             Nodes[0],Nodes[1],Nodes[2],Nodes[3],Nodes[4],Nodes[5],Nodes[6],Nodes[7],Nodes[8],Nodes[9]);
@@ -346,7 +346,7 @@ FaceTri10::printNodes()
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------
 void
-FaceTri10::print()
+FaceTri10::print() const
 {
   printNodes();
 }

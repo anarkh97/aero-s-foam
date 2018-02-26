@@ -14,7 +14,7 @@ class FollowerMomentElement : public ForceFunctionElement<Simo::FollowerMomentFo
     FollowerMomentElement(int* _nn);
     ~FollowerMomentElement();
 
-    void setFrame(EFrame *);
+    void setFrame(EFrame *) override;
     bool hasRot() const override { return true; }
 
   protected:

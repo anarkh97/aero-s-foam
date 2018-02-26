@@ -12,111 +12,111 @@ class Tensor;
 template<typename Material>
 class MaterialWrapper : public NLMaterial
 {
-  protected:
-    Material *mat;
-    double lambda;
-    double mu;
-    int yssrtid;
-    double posdefifyTol;
+protected:
+	Material *mat;
+	double lambda;
+	double mu;
+	int yssrtid;
+	double posdefifyTol;
 
-  public:
-    MaterialWrapper(Material*);
-    MaterialWrapper(double*);
-    ~MaterialWrapper() { delete mat; }
+public:
+	MaterialWrapper(Material*);
+	MaterialWrapper(double*);
+	~MaterialWrapper() { delete mat; }
 
-    int getNumStates() const;
+	int getNumStates() const override;
 
-    void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
+	void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
-    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
+	void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp) override;
 
-    void getElasticity(Tensor *tm) const override {}
+	void getElasticity(Tensor *tm) const override {}
 
-    void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {}
+	void updateStates(Tensor &en, Tensor &enp, double *state, double temp) override {}
 
-    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
-     
-    void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const override;
+	void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp) override;
 
-    void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const override;
+	void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
+	               double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const override;
 
-    void initStates(double *);
+	void integrate(Tensor *stress, Tensor &en, Tensor &enp,
+	               double *staten, double *statenp, double temp, Tensor *cache, double dt=0) const override;
 
-    double getDensity();
+	void initStates(double *) override;
 
-    StrainEvaluator * getStrainEvaluator() const override;
+	double getDensity() override;
 
-    double getEquivPlasticStrain(double *statenp);
+	StrainEvaluator * getStrainEvaluator() const override;
 
-    double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
+	double getEquivPlasticStrain(double *statenp) override;
 
-    double getPosdefifyTol() { return posdefifyTol; }
+	double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp) override;
 
-    Material* getMaterial() { return mat; }
+	double getPosdefifyTol() override { return posdefifyTol; }
 
-    void print(std::ostream &out) const;
+	Material* getMaterial() { return mat; }
 
-    void setSDProps(MFTTData *ysst);
-    void setSRDProps(MFTTData *yssrt);
+	void print(std::ostream &out) const override;
 
-    void getMaterialConstants(std::vector<double> &c);
+	void setSDProps(MFTTData *ysst) override;
+	void setSRDProps(MFTTData *yssrt) override;
+
+	void getMaterialConstants(std::vector<double> &c) override;
 };
 
 template<>
 inline
 MaterialWrapper<IsotropicLinearElastic>::MaterialWrapper(double *params)
 {
-  double rho    = params[0];
-  double E      = params[1];
-  double nu     = params[2];
-  lambda = E*nu/((1.+nu)*(1.-2.*nu));
-  mu     = E/(2.*(1.+nu));
-  mat = new IsotropicLinearElastic(lambda,mu,rho);
-  posdefifyTol = -1;
+	double rho    = params[0];
+	double E      = params[1];
+	double nu     = params[2];
+	lambda = E*nu/((1.+nu)*(1.-2.*nu));
+	mu     = E/(2.*(1.+nu));
+	mat = new IsotropicLinearElastic(lambda,mu,rho);
+	posdefifyTol = -1;
 }
 
 template<>
 inline
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::MaterialWrapper(double *params)
 {
-  double rho    = params[0];
-  double E      = params[1];
-  double nu     = params[2];
-  double sigmaY = params[3];
-  double K      = params[4];
-  double H      = params[5];
-  double Tol    = params[6];
-  double epsF   = (params[7] <= 0) ? std::numeric_limits<double>::infinity() : params[7];
-  yssrtid   = int(params[8]);
-  lambda = E*nu/((1.+nu)*(1.-2.*nu));
-  mu     = E/(2.*(1.+nu));
-  mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H,Tol,epsF);
-  posdefifyTol = -1;
+	double rho    = params[0];
+	double E      = params[1];
+	double nu     = params[2];
+	double sigmaY = params[3];
+	double K      = params[4];
+	double H      = params[5];
+	double Tol    = params[6];
+	double epsF   = (params[7] <= 0) ? std::numeric_limits<double>::infinity() : params[7];
+	yssrtid   = int(params[8]);
+	lambda = E*nu/((1.+nu)*(1.-2.*nu));
+	mu     = E/(2.*(1.+nu));
+	mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H,Tol,epsF);
+	posdefifyTol = -1;
 }
 
 template<>
 inline
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::MaterialWrapper(double *params)
 {
-  double rho    = params[0];
-  double E      = params[1];
-  double nu     = params[2];
-  double sigmaY = params[3];
-  double K      = params[4];
-  double H      = params[5];
-  double Tol    = params[6];
-  double epsF   = (params[7] <= 0) ? std::numeric_limits<double>::infinity() : params[7];
-  yssrtid   = int(params[8]);
-  lambda = E*nu/((1.+nu)*(1.-2.*nu));
-  mu     = E/(2.*(1.+nu));
-  mat = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda,mu,sigmaY,K,H,Tol,epsF);
-  posdefifyTol = -1;
+	double rho    = params[0];
+	double E      = params[1];
+	double nu     = params[2];
+	double sigmaY = params[3];
+	double K      = params[4];
+	double H      = params[5];
+	double Tol    = params[6];
+	double epsF   = (params[7] <= 0) ? std::numeric_limits<double>::infinity() : params[7];
+	yssrtid   = int(params[8]);
+	lambda = E*nu/((1.+nu)*(1.-2.*nu));
+	mu     = E/(2.*(1.+nu));
+	mat = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda,mu,sigmaY,K,H,Tol,epsF);
+	posdefifyTol = -1;
 }
 
 #ifdef _TEMPLATE_FIX_
-  #include <Element.d/NonLinearity.d/MaterialWrapper.C>
+#include <Element.d/NonLinearity.d/MaterialWrapper.C>
 #endif
 
 #endif

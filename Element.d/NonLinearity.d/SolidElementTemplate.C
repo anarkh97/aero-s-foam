@@ -88,7 +88,7 @@ extern DeformationGradient deformationGradient;
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 StrainEvaluator *
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getStrainEvaluator() const const
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::getStrainEvaluator() const
 {
   return material->getStrainEvaluator();
 }

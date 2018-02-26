@@ -8,10 +8,10 @@ class WeldedJoint : public SuperElement
     EFrame *elemframe;
     bool myframe;
   public:
-    WeldedJoint(int*);
-    ~WeldedJoint();
-    void setFrame(EFrame *_elemframe);
-    void buildFrame(CoordSet&);
+	explicit WeldedJoint(int*);
+    ~WeldedJoint() override;
+    void setFrame(EFrame *_elemframe) override;
+    void buildFrame(CoordSet&) override;
     int getTopNumber() override;
     bool hasRot() const override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;

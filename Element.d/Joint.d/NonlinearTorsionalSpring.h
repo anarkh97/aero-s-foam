@@ -20,13 +20,13 @@ class NonlinearTorsionalSpring : public AngleType1ConstraintElement
   public:
     NonlinearTorsionalSpring(int*, int, int, int=0, int=0, int=1);
     void setProp(StructProp *p, bool _myProp) override;
-    void update(GeomState *refState, GeomState& gState, CoordSet& cs, double t);
+    void update(GeomState *refState, GeomState& gState, CoordSet& cs, double t) override;
 
-    int numStates();
-    void initStates(double *);
-    void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt = 0);
+    int numStates() override;
+    void initStates(double *) override;
+    void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt) override;
 
-    bool isSpring() { return true; }
+    bool isSpring() const override { return true; }
     bool hasRot() const override { return true; }
 };
 

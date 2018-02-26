@@ -17,27 +17,27 @@ public:
 	void renum(EleRenumMap&) override;
 
 	FullSquareMatrix  stiffness(const CoordSet&, double *d, int flg=1) const override;
-	FullSquareMatrix  acousticm(CoordSet&, double *d);
+	FullSquareMatrix  acousticm(CoordSet&, double *d) override;
 	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const override;
 	double getMass(const CoordSet& cs) const override;
 
 
 	void markDofs(DofSetArray &) const override;
-	int* dofs(DofSetArray &, int *p=0) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
 
 	int numNodes() const override;
 	int * nodes(int *) const override;
 
-	void            addFaces(PolygonSet *pset);
+	void addFaces(PolygonSet *pset) override;
 
 	int getTopNumber() override;
 
-	virtual double helmCoef() { return coef; }
+	double helmCoef() override { return coef; }
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
 	int nDecFaces() const override { return 6;}
-	int getDecFace(int iFace, int *fn);
+	int getDecFace(int iFace, int *fn) override;
 };
 #endif
 

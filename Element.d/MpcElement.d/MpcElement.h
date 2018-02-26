@@ -38,7 +38,7 @@ public:
 	int numNodes() const override;
 	int* nodes(int*) const override;
 
-	int numInternalNodes() override;
+	int numInternalNodes() const override;
 	void setInternalNodes(int*) override;
 
 	 int numDofs() const override;

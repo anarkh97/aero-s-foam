@@ -96,7 +96,7 @@ RigidSolid::getTopNumber()
 }
 
 int 
-RigidSolid::numTopNodes() 
+RigidSolid::numTopNodes() const
 { 
   switch(nnodes) {
     case 4 : return 4; // 4-node tetra

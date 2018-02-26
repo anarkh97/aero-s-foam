@@ -5,14 +5,14 @@
 
 class RigidSolid : public SuperElement
 {
-  public:
-    RigidSolid(int, int*);
-    void buildFrame(CoordSet& cs);
-    int getTopNumber() override;
-    int numTopNodes() override;
-    bool isRigidElement() const override { return true; }
-    bool isSafe() const override;
-    PrioInfo examine(int sub, MultiFront*) override;
+public:
+	explicit RigidSolid(int, int*);
+	void buildFrame(CoordSet& cs) override;
+	int getTopNumber() override;
+	int numTopNodes() const override;
+	bool isRigidElement() const override { return true; }
+	bool isSafe() const override;
+	PrioInfo examine(int sub, MultiFront*) override;
 };
 
 #endif

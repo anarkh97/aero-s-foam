@@ -25,7 +25,7 @@ public:
 
 	void renum(int *) override;
 
-	void renum(EleRenumMap &);
+	void renum(EleRenumMap &) override;
 
 	int numNodes() const override;
 
@@ -45,11 +45,11 @@ public:
 	int findAndSetEle(CoordSet &cs, Elemset &eset, Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
 	                  int it) override;
 
-	PressureBCond *getPressure() { return pbc; }
+	PressureBCond *getPressure() override { return pbc; }
 
-	void neumVector(CoordSet &, Vector &, int pflag = 0, GeomState * = 0, double t = 0);
+	void neumVector(CoordSet &, Vector &, int pflag = 0, GeomState * = 0, double t = 0) override;
 
-	void neumVectorJacobian(CoordSet &, FullSquareMatrix &, int pflag = 0, GeomState * = 0, double t = 0);
+	void neumVectorJacobian(CoordSet &, FullSquareMatrix &, int pflag = 0, GeomState * = 0, double t = 0) override;
 
 	FullSquareMatrix sommerMatrix(CoordSet &, double *) const override;
 };

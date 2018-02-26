@@ -10,11 +10,11 @@ class PointPointDistanceConstraintElement : public ConstraintFunctionElement<Sim
 
 public:
 	PointPointDistanceConstraintElement(int* _nn);
-	void setFrame(EFrame *);
+	void setFrame(EFrame *) override;
 
 protected:
 	void getConstants(const CoordSet & cs, Eigen::Array<double,11,1>& sconst, Eigen::Array<int,1,1>& iconst,
-	                  const GeomState* = NULL) const;
+	                  const GeomState* = NULL) const override;
 };
 
 #endif

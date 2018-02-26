@@ -10,22 +10,22 @@ public:
 	ConnectedTri(int*);
 
 	void renum(int *) override;
-        void renum(EleRenumMap&) override;
+	void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
-        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
+	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
 
 	void markDofs(DofSetArray &) const override;
-        int* dofs(DofSetArray &, int *p=0) const override;
-         int numDofs() const override;
+	int* dofs(DofSetArray &, int *p) const override;
+	int numDofs() const override;
 
-        int numNodes() const override;
-        int * nodes(int *) const override;
+	int numNodes() const override;
+	int * nodes(int *) const override;
 
-        void             computeDisp(CoordSet&, State &, const InterpPoint &,
-                                     double*, GeomState *gs);
-	void		 getFlLoad(CoordSet &, const InterpPoint &,
-                                   double *flF, double *resF, GeomState *gs=0);
+	void computeDisp(CoordSet&, State &, const InterpPoint &,
+	                     double*, GeomState *gs) override;
+	void getFlLoad(CoordSet &, const InterpPoint &,
+	                       double *flF, double *resF, GeomState *gs) override;
 	PrioInfo examine(int sub, MultiFront *) override;
 	int getTopNumber() override;
 

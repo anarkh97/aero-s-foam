@@ -39,10 +39,10 @@ public:
 	int  numDofs() const override { return ndofs; }
 	int  numNodes() const override { return nnodes; }
 	int* nodes(int *) const override;
-	int  numInternalNodes() override { return 0; }
+	int  numInternalNodes() const override { return 0; }
 
 	int  getTopNumber() override { return 502; }
-	int  numTopNodes() override { return nnodes; }
+	int numTopNodes() const override { return nnodes; }
 
 	PrioInfo examine(int sub, MultiFront *mf) override;
 // JLchange    bool isSafe() const override { return false; }

@@ -8,28 +8,28 @@ using std::complex;
 
 class LEIsoParamTri: public Element {
 
-        int order;
+	int order;
 	int *nn;
-        LEIsoParamTri(const LEIsoParamTri& e);
+	LEIsoParamTri(const LEIsoParamTri& e);
 
 public:
 	LEIsoParamTri(int,int*);
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
-        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
-        double getMass(const CoordSet&) const;
-        double getMassThicknessSensitivity(CoordSet&);
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg) const override;
+	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg) const override;
+	double  getMass(const CoordSet& cs) const override;
+	double getMassThicknessSensitivity(CoordSet&) override;
 
-        Element *clone() override;
-        void renum(int *) override;
-        void renum(EleRenumMap&) override;
-        void markDofs(DofSetArray &) const override;
+	Element *clone() override;
+	void renum(int *) override;
+	void renum(EleRenumMap&) override;
+	void markDofs(DofSetArray &) const override;
 //	int getTopNumber() override {return 195;}
-        int numTopNodes() {return (order*(order+1))/2;}
-        int* dofs(DofSetArray &, int *p) const override;
-        int numDofs() const override { return (order*(order+1)); }
-        int numNodes() const override;
-        int* nodes(int * = 0) const override;
+	int numTopNodes() const override {return (order*(order+1))/2;}
+	int* dofs(DofSetArray &, int *p) const override;
+	int numDofs() const override { return (order*(order+1)); }
+	int numNodes() const override;
+	int* nodes(int *) const override;
 
 //        PrioInfo examine(int sub, MultiFront *mf) override;
 

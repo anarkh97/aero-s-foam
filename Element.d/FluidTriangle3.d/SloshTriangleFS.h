@@ -18,17 +18,17 @@ public:
         FullSquareMatrix stiffness(const CoordSet& cs, double *d, int flg = 1) const override;
         FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg=1) const override;
         double getArea(const CoordSet&) const;
-        bool isSloshingElement() { return true; }
+        bool isSloshingElement() override { return true; }
 
         void markDofs(DofSetArray &) const override;
-        int* dofs(DofSetArray &, int *p=0) const override;
+        int* dofs(DofSetArray &, int *p) const override;
          int numDofs() const override;
 
         int numNodes() const override;
         int * nodes(int *) const override;
         int getTopNumber() override;
 
-        PrioInfo examine(int sub, MultiFront *) {
+        PrioInfo examine(int sub, MultiFront *) override {
           fprintf(stderr,"SloshTriangleFS.h: PrioInfo examine is commented in Dec.d/ElemFSCheck.C");
           return *(new PrioInfo);
         };

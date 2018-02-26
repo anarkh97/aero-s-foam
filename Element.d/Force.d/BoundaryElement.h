@@ -9,48 +9,48 @@ class DofSet;
 
 class BoundaryElement : public Element, public Corotator
 {
-  protected:
-    int nNodes;               // number of nodes
-    int *nn;                  // node numbers
-    std::vector<BCond> terms;
-    int nterms;
+protected:
+	int nNodes;               // number of nodes
+	int *nn;                  // node numbers
+	std::vector<BCond> terms;
+	int nterms;
 
-    void addTerms(DofSet);
-    void addTerms(DofSet*);
-    void addTerms(DofSet*, DofSet*);
+	void addTerms(DofSet);
+	void addTerms(DofSet*);
+	void addTerms(DofSet*, DofSet*);
 
-    std::vector<int> inputs;
-    std::vector<int> outputs;
+	std::vector<int> inputs;
+	std::vector<int> outputs;
 
-  public:
-    BoundaryElement(int, DofSet, int*);
-    BoundaryElement(int, DofSet*, int*);
-    BoundaryElement(int, DofSet*, DofSet*, int*);
-   ~BoundaryElement();
+public:
+	BoundaryElement(int, DofSet, int*);
+	BoundaryElement(int, DofSet*, int*);
+	BoundaryElement(int, DofSet*, DofSet*, int*);
+	~BoundaryElement() override;
 
-    void renum(int*);
-    void renum(EleRenumMap&) override;
+	void renum(int*) override;
+	void renum(EleRenumMap&) override;
 
-    int numNodes() const override;
-    int *nodes(int *) const override;
+	int numNodes() const override;
+	int *nodes(int *) const override;
 
-     int numDofs() const override;
-    int* dofs(DofSetArray&, int* = 0) const override;
-    void markDofs(DofSetArray&) const override;
+	int numDofs() const override;
+	int* dofs(DofSetArray&, int*) const override;
+	void markDofs(DofSetArray&) const override;
 
-    Corotator* getCorotator(CoordSet&, double*, int, int);
-    double getElementEnergy(GeomState&, CoordSet&) { return 0; }
+	Corotator* getCorotator(CoordSet&, double*, int, int) override;
+	double getElementEnergy(GeomState&, CoordSet&) override { return 0; }
 
-    bool isSafe() const override { return false; }
+	bool isSafe() const override { return false; }
 
-    int getTopNumber() override { return 101; }
+	int getTopNumber() override { return 101; }
 
-    void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
-                             int &nlflag) { nlflag = 2; }
+	void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
+							 int &nlflag) override { nlflag = 2; }
 
-    void getNLVonMises(Vector&, Vector& weight,
-                       GeomState &, CoordSet &, int);
+	void getNLVonMises(Vector&, Vector& weight,
+					   GeomState &, CoordSet &, int);
 
-    void getGravityForce(CoordSet&, double*, Vector&, int, GeomState* =0);
+	void getGravityForce(CoordSet&, double*, Vector&, int, GeomState*) override;
 };
 #endif

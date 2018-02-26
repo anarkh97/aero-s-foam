@@ -7,30 +7,30 @@ class ThermTriangle: public Element {
 
 	int nn[3];
 public:
-	ThermTriangle(int*);
+	explicit ThermTriangle(int*);
 
 	Element *clone() override;
 
 	void renum(int *) override;
-        void renum(EleRenumMap&) override;
+	void renum(EleRenumMap&) override;
 
-        FullSquareMatrix  stiffness(const CoordSet& cs, double *d, int flg = 1) const;
-        FullSquareMatrix  massMatrix(const CoordSet& cs, double *mel, int cmflg=1) const;
-        double            getMass(const CoordSet&) const;
+	FullSquareMatrix  stiffness(const CoordSet& cs, double *d, int flg) const override;
+	FullSquareMatrix  massMatrix(const CoordSet& cs, double *mel, int cmflg) const override;
+	double  getMass(const CoordSet& cs) const override;
 
 
 	void markDofs(DofSetArray &) const override;
-        int* dofs(DofSetArray &, int *p=0) const override;
-         int numDofs() const override;
+	int* dofs(DofSetArray &, int *p) const override;
+	int numDofs() const override;
 
-        int             numNodes() const override;
-        int * nodes(int *) const override;
+	int numNodes() const override;
+	int* nodes(int *) const override;
 	int getTopNumber() override;
 
-        void computeTemp(CoordSet&cs, State &state, double gp[2], double*res);
-        void getFlFlux(double gp[2], double *flF, double *resF);
+	void computeTemp(CoordSet&cs, State &state, double gp[2], double*res) override;
+	void getFlFlux(double gp[2], double *flF, double *resF) override;
 	PrioInfo examine(int sub, MultiFront *) override;
-        Corotator * getCorotator(CoordSet &, double*, int, int) { return 0; }
+	Corotator * getCorotator(CoordSet &, double*, int, int) override { return 0; }
 };
 #endif
 

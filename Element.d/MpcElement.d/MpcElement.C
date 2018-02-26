@@ -145,7 +145,7 @@ MpcElement::getMPCs()
 }
 
 int
-MpcElement::numInternalNodes()
+MpcElement::numInternalNodes() const
 {
 	// method of multipliers and augmented lagrangian have an internal node to store the lagrange multiplier
 	return (prop->lagrangeMult) ? 1 : 0;

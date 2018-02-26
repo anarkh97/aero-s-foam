@@ -15,13 +15,13 @@ public:
 	void renum(int *) override;
 	void renum(EleRenumMap&) override;
 
-	FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const;
-	FullSquareMatrix acousticm(CoordSet&, double *kel);
-	FullSquareMatrix massMatrix(const CoordSet&,double *mel, int cmflg=1) const;
-	double           getMass(const CoordSet& cs) const;
+	FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const override;
+	FullSquareMatrix acousticm(CoordSet&, double *kel) override;
+	FullSquareMatrix massMatrix(const CoordSet&,double *mel, int cmflg=1) const override;
+	double getMass(const CoordSet& cs) const override;
 
 	void markDofs(DofSetArray &) const override;
-	int* dofs(DofSetArray &, int *p=0) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
 
 	int             numNodes() const override;
@@ -29,11 +29,11 @@ public:
 	int getTopNumber() override;
 	PrioInfo examine(int sub, MultiFront *) override;
 	int nDecFaces() const override { return 4;}
-	int getDecFace(int iFace, int *fn);
+	int getDecFace(int iFace, int *fn) override;
 
-	void            addFaces(PolygonSet *pset);
+	void addFaces(PolygonSet *pset) override;
 
-	virtual double helmCoef() { return coef; }
+	double helmCoef() override { return coef; }
 
 private:
 

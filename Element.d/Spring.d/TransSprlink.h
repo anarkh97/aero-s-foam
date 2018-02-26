@@ -29,7 +29,7 @@ class TransSprlink : virtual public Element
 
     int getTopNumber() override;
     bool isSafe() const override { return false; }
-    bool isSpring() override { return true; }
+    bool isSpring() const override { return true; }
     PrioInfo examine(int sub, MultiFront*) override;
 };
 

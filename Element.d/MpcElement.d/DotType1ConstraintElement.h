@@ -14,14 +14,14 @@ class DotType1ConstraintElement : public ConstraintFunctionElement<Simo::DotType
   public:
     DotType1ConstraintElement(int*, int, int, double=0); 
     ~DotType1ConstraintElement();
-    void buildFrame(CoordSet&);
-    void setFrame(EFrame *);
-    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
-    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+    void buildFrame(CoordSet&) override;
+    void setFrame(EFrame *) override;
+    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
+    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
 
   protected:
     void getConstants(const CoordSet &, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&,
-                      const GeomState *gs = NULL) const;
+                      const GeomState *gs = NULL) const override;
 };
 
 #endif

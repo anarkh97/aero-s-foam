@@ -8,7 +8,7 @@ class HelmQuadGls: public HelmElement, public Element {
 	int nn[4];
 	mutable double coef; // TODO Get rid of this variable.
 public:
-	HelmQuadGls(int*);
+	explicit HelmQuadGls(int*);
 
 	Element *clone() override;
 
@@ -20,7 +20,7 @@ public:
 	FullSquareMatrix massMatrix(const CoordSet& cs,double *d, int cmflg) const override;
 
 	void markDofs(DofSetArray &) const override;
-	int* dofs(DofSetArray &, int *p=0) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
 
 	int numNodes() const override;
@@ -29,9 +29,9 @@ public:
 
 	PrioInfo examine(int sub, MultiFront *) override;
 
-	void            addFaces(PolygonSet *pset);
+	void addFaces(PolygonSet *pset) override;
 
-	virtual double helmCoef() { return coef; }
+	double helmCoef() override { return coef; }
 };
 #endif
 

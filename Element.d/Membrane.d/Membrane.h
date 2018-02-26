@@ -16,25 +16,25 @@ public:
         void renum(EleRenumMap&) override;
 
         FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
-        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
         double getMass(const CoordSet& cs) const override;
         void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg,
-                             GeomState *gs);
+                             GeomState *gs) override;
         void getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
                          Vector& elDisp, int strInd, int surface=0,
-                         double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+                         double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0) override;
         void getAllStress(FullM& stress, Vector& weight, CoordSet& cs,
                           Vector& elDisp, int strInd, int surface=0,
-                          double *ndTemps=0);
+                          double *ndTemps=0) override;
 
         void markDofs(DofSetArray &) const override;
         int* dofs(DofSetArray &, int *p) const override;
          int numDofs() const override;
 
-        int numNodes() const;
-        int* nodes(int * = 0) const;
+        int numNodes() const override;
+        int* nodes(int *) const override;
         int getTopNumber() override;
-        Corotator* getCorotator(CoordSet &cs, double *kel, int fitAlg, int);
+        Corotator* getCorotator(CoordSet &cs, double *kel, int fitAlg, int) override;
 
         // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *) override;

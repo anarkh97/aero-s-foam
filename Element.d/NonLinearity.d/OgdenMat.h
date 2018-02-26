@@ -20,13 +20,13 @@ class OgdenMat : public NLMaterial
 
     void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
 
-    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
+    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp) override;
 
     void getElasticity(Tensor *tm) const override {};
 
-    void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {};
+    void updateStates(Tensor &en, Tensor &enp, double *state, double temp) override {};
 
-    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
+    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp) override;
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double temp,
@@ -42,13 +42,13 @@ class OgdenMat : public NLMaterial
 
     StrainEvaluator * getStrainEvaluator() const override;
 
-    double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
+    double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp) override;
 
-    void print(std::ostream &out) const;
+    void print(std::ostream &out) const override;
 
-    NLMaterial * clone() const;
+    NLMaterial * clone() const override;
 
-    void getMaterialConstants(std::vector<double> &c);
+    void getMaterialConstants(std::vector<double> &c) override;
 };
 
 #endif

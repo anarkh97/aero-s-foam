@@ -354,7 +354,7 @@ FaceTri6::IntegrateShapeFcts(double* ShapeIntg, CoordSet& cs, double rho, int ng
 // LOCAL METHODS
 // -------------
 void
-FaceTri6::printNodes()
+FaceTri6::printNodes() const
 {
   filePrint(stderr,"   # Tri6 face el., nodes = %6d %6d %6d %6d %6d %6d\n",Nodes[0],Nodes[1],Nodes[2],
                                                                            Nodes[3],Nodes[4],Nodes[5]);
@@ -364,7 +364,7 @@ FaceTri6::printNodes()
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------
 void
-FaceTri6::print()
+FaceTri6::print() const
 {
   printNodes();
 }

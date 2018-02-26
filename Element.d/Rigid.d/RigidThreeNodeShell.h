@@ -5,30 +5,30 @@
 
 class RigidThreeNodeShell : public SuperElement
 {
-    PressureBCond *pbc;
+	PressureBCond *pbc;
 
-  public:
-    RigidThreeNodeShell(int*);
-    int getTopNumber() override { return 108; }
-    bool isRigidElement() const override { return true; }
-    bool hasRot() const override { return true; }
-    PrioInfo examine(int sub, MultiFront *mf) override;
+public:
+	explicit RigidThreeNodeShell(int*);
+	int getTopNumber() override { return 108; }
+	bool isRigidElement() const override { return true; }
+	bool hasRot() const override { return true; }
+	PrioInfo examine(int sub, MultiFront *mf) override;
 
-    int getMassType() const override { return 0; }
-    FullSquareMatrix massMatrix(const CoordSet&, double* mel, int cmflg = 1) const;
-    double           getMass(const CoordSet& cs) const;
-    void             getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
-                                     GeomState *gs);
+	int getMassType() const override { return 0; }
+	FullSquareMatrix massMatrix(const CoordSet&, double* mel, int cmflg) const override;
+	double getMass(const CoordSet& cs) const override;
+	void             getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
+									 GeomState *gs) override;
 
-    void             computeDisp(CoordSet&, State &, const InterpPoint &,
-                                 double*, GeomState *gs);
-    void             getFlLoad(CoordSet &, const InterpPoint &,
-                               double *flF, double *resF, GeomState *gs=0);
+	void             computeDisp(CoordSet&, State &, const InterpPoint &,
+								 double*, GeomState *gs) override;
+	void             getFlLoad(CoordSet &, const InterpPoint &,
+							   double *flF, double *resF, GeomState *gs) override;
 
-    void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
-    PressureBCond* getPressure() { return pbc; }
-    void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState *gs = 0, int cflg = 0, double t = 0);
+	void setPressure(PressureBCond *_pbc) override { pbc = _pbc; }
+	PressureBCond* getPressure() override { return pbc; }
+	void computePressureForce(CoordSet&, Vector& elPressureForce,
+							  GeomState *gs, int cflg, double t) override;
 };
 
 #endif

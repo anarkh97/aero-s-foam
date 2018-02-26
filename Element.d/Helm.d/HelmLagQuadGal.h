@@ -15,7 +15,7 @@ public:
 
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg) const override;
 	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg) const override;
-	FullSquareMatrix acousticm(CoordSet&, double *d)override;
+	FullSquareMatrix acousticm(CoordSet&, double *d) override;
 	void wErrors(CoordSet&,
 	             double *l2e, double *h1e, double *l2, double *h1,
 	             ComplexD *u, double kappa, double *waveDir) override;

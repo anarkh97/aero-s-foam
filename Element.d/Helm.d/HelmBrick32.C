@@ -177,8 +177,8 @@ HelmBrick32::acousticm(CoordSet &cs, double *d)
 {
   double dK[1024], dM[1024];
 
-  FullSquareMatrix K = stiffness(cs, dK);
-  FullSquareMatrix M = massMatrix(cs, dM);
+  FullSquareMatrix K = stiffness(cs, dK, 1);
+  FullSquareMatrix M = massMatrix(cs, dM, 1);
 
   double kappa = prop ->kappaHelm;
   double kk = kappa*kappa;
@@ -253,7 +253,7 @@ HelmBrick32::markDofs(DofSetArray &dsa) const
 int
 HelmBrick32::getTopNumber() { return(193); } 
 int
-HelmBrick32::numTopNodes() { return(32); } 
+HelmBrick32::numTopNodes() const { return(32); }
 
 void
 HelmBrick32::addFaces(PolygonSet *pset)

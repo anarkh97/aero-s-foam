@@ -12,10 +12,10 @@ class MatLaw : public NLMaterial
   public:
     MatLaw(double _rho, double _E, double _nu, double _Tref, double _alpha);
     int getNumStates() const override { return 0; }
-    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
+    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp) override;
     void getElasticity(Tensor *tm) const override {}
     void getStress(Tensor *stress, Tensor &strain, double*, double temp) override;
-    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
+    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp) override;
     void updateStates(Tensor& en, Tensor& enp, double *state, double temp) {}
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double temp) const override;

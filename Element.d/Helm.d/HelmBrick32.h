@@ -14,31 +14,31 @@ class HelmBrick32: public HelmElement, public Element {
 
 	int nn[32];
 public:
-	HelmBrick32(int*);
+	explicit HelmBrick32(int*);
 
-        Element *clone() override;
+	Element *clone() override;
 
 	void renum(int *) override;
-        void renum(EleRenumMap&) override;
+	void renum(EleRenumMap&) override;
 
-	FullSquareMatrix  stiffness(const CoordSet&, double *d, int flg = 1) const;
-	FullSquareMatrix  acousticm(CoordSet&, double *d);
-        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
-	double           getMass(const CoordSet& cs) const;
+	FullSquareMatrix  stiffness(const CoordSet&, double *d, int flg) const override;
+	FullSquareMatrix  acousticm(CoordSet&, double *d) override;
+	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
+	double getMass(const CoordSet& cs) const override;
 
 	void markDofs(DofSetArray &) const override;
-        int* dofs(DofSetArray &, int *p=0) const override;
-         int numDofs() const override;
+	int* dofs(DofSetArray &, int *p) const override;
+	int numDofs() const override;
 
-        int             numNodes() const override;
-        int * nodes(int *) const override;
+	int numNodes() const override;
+	int * nodes(int *) const override;
 
-	void            addFaces(PolygonSet *pset);
+	void addFaces(PolygonSet *pset) override;
 
-        int getTopNumber() override;
-        int numTopNodes() override;
+	int getTopNumber() override;
+	int numTopNodes() const override;
 
-        PrioInfo examine(int sub, MultiFront *mf) override;
+	PrioInfo examine(int sub, MultiFront *mf) override;
 };
 #endif
 

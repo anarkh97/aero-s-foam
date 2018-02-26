@@ -84,12 +84,12 @@ public:
         for(int i=0;i<nFaces();i++) if (bc[i]==3) return false&&condensedF;
         return true&&condensedF;
     }
-    virtual bool storeMatricesFlag() { return storeMatricesF; }
-// virtual bool storeMatricesFlag() { return false; }
-    int nPolynomialDofs() const  { return 0; }
-    virtual int nEnrichmentDofs() const override { return ndir; }
+    bool storeMatricesFlag() override { return storeMatricesF; }
+// bool storeMatricesFlag() override { return false; }
+    int nPolynomialDofs() const  override { return 0; }
+    int nEnrichmentDofs() const override { return ndir; }
     virtual int *faceCornerI(int fi)=0;
-    virtual int *faceCorners(int fi) {
+    int *faceCorners(int fi) override {
         int *ix = faceCornerI(fi);
         int nf = nFaceCorners(fi);
         for(int i=0;i<nf;i++) {
@@ -105,16 +105,15 @@ public:
     virtual int isFlatAndStraight(double *xyz,int faceindex)=0;
 
 #ifndef SANDIA
-    virtual int polyDofType() const override { return DofSet::Helm; }
+    int polyDofType() const override { return DofSet::Helm; }
 #endif
-    virtual int polyDofsPerNode() const override { return 1; }
+    int polyDofsPerNode() const override { return 1; }
 
     virtual void getRef(double *xyz,double *xy);
-    virtual void createM(complex<double>*);
-    virtual void interfMatrix(int fi, DEMElement*,complex<double>*);
-    virtual void createRHS(complex<double>*);
-    virtual void createSol(double *xyz, complex<double>*,
-                           complex<double>*);
+    void createM(complex<double>*)  override;
+    void interfMatrix(int fi, DEMElement*,complex<double>*) override;
+    void createRHS(complex<double>*) override;
+    void createSol(double *xyz, complex<double>*, complex<double>*) override;
 };
 
 class HexDGMElement3d: public DGMHelm3d {
@@ -123,12 +122,12 @@ public:
     int nGeomNodes() const override { return o*o*o; }
     int nFaces() const override { return 6; }
     int nFaceCorners(int fi) const override { return 4; }
-    virtual int *faceCornerI(int fi);
-    virtual void externalNormal(double *xyz, int faceindex, double *n);
-    virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
-    virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f);
-    virtual void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f);
-    virtual int isFlatAndStraight(double *xyz,int faceindex);
+    int *faceCornerI(int fi) override;
+    void externalNormal(double *xyz, int faceindex, double *n) override;
+    void volumeInt3d(double *xyz, IntegFunctionV3d &f) override;
+    void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f) override;
+    void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f) override;
+    int isFlatAndStraight(double *xyz,int faceindex) override;
 };
 
 
@@ -138,12 +137,12 @@ public:
     int nGeomNodes() const override { return (o*(o+1)*(o+2))/6; }
     int nFaces() const override { return 4; }
     int nFaceCorners(int fi) const override { return 3; }
-    virtual int *faceCornerI(int fi);
-    virtual void externalNormal(double *xyz, int faceindex, double *n);
-    virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
-    virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f);
-    virtual void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f);
-    virtual int isFlatAndStraight(double *xyz,int faceindex);
+    int *faceCornerI(int fi) override;
+    void externalNormal(double *xyz, int faceindex, double *n) override;
+    void volumeInt3d(double *xyz, IntegFunctionV3d &f) override;
+    void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f) override;
+    void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f) override;
+    int isFlatAndStraight(double *xyz,int faceindex) override;
 };
 
 
@@ -153,12 +152,12 @@ public:
     int nGeomNodes() const override { return o*(o*(o+1))/2; }
     int nFaces() const override { return 5; }
     int nFaceCorners(int fi) const override { return (fi<3)?3:4; }
-    virtual int *faceCornerI(int fi);
-    virtual void externalNormal(double *xyz, int faceindex, double *n);
-    virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
-    virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f);
-    virtual void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f);
-    virtual int isFlatAndStraight(double *xyz,int faceindex);
+    int *faceCornerI(int fi) override;
+    void externalNormal(double *xyz, int faceindex, double *n) override;
+    void volumeInt3d(double *xyz, IntegFunctionV3d &f) override;
+    void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f) override;
+    void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f) override;
+    int isFlatAndStraight(double *xyz,int faceindex) override;
 };
 
 
@@ -168,19 +167,19 @@ public:
     int nGeomNodes() const override { return 5; }
     int nFaces() const override { return 5; }
     int nFaceCorners(int fi) const override { return (fi<2)?4:3; }
-    virtual int *faceCornerI(int fi);
-    virtual void externalNormal(double *xyz, int faceindex, double *n);
-    virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
-    virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f);
-    virtual void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f);
-    virtual int isFlatAndStraight(double *xyz,int faceindex);
+    int *faceCornerI(int fi) override;
+    void externalNormal(double *xyz, int faceindex, double *n) override;
+    void volumeInt3d(double *xyz, IntegFunctionV3d &f) override;
+    void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f) override;
+    void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f) override;
+    int isFlatAndStraight(double *xyz,int faceindex) override;
 };
 
 
 class DGMHelm3d_6: public HexDGMElement3d {
 public:
     DGMHelm3d_6(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 51; }
 };
 
@@ -188,7 +187,7 @@ public:
 class DGMHelm3d_6t: public TetraDGMElement3d {
 public:
     DGMHelm3d_6t(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 51; }
 };
 
@@ -196,77 +195,77 @@ public:
 class DGMHelm3d_6p: public PrismDGMElement3d {
 public:
     DGMHelm3d_6p(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 51; }
 };
 
 class DGMHelm3d_6pd: public PyramidDGMElement3d {
 public:
     DGMHelm3d_6pd(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 51; }
 };
 
 class DGMHelm3d_26: public HexDGMElement3d {
 public:
     DGMHelm3d_26(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 52; }
 };
 
 class DGMHelm3d_26t: public TetraDGMElement3d {
 public:
     DGMHelm3d_26t(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 52; }
 };
 
 class DGMHelm3d_26p: public PrismDGMElement3d {
 public:
     DGMHelm3d_26p(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 52; }
 };
 
 class DGMHelm3d_26pd: public PyramidDGMElement3d {
 public:
     DGMHelm3d_26pd(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 52; }
 };
 
 class DGMHelm3d_56: public HexDGMElement3d {
 public:
     DGMHelm3d_56(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 53; }
 };
 
 class DGMHelm3d_56t: public TetraDGMElement3d {
 public:
     DGMHelm3d_56t(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 53; }
 };
 
 class DGMHelm3d_56p: public PrismDGMElement3d {
 public:
     DGMHelm3d_56p(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 53; }
 };
 
 class DGMHelm3d_56pd: public PyramidDGMElement3d {
 public:
     DGMHelm3d_56pd(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 53; }
 };
 
 class DGMHelm3d_98: public HexDGMElement3d {
 public:
     DGMHelm3d_98(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 54; }
 };
 
@@ -276,39 +275,39 @@ public:
     DEMHelm3d(int _o, int* nodenums);
     int defaultLMType() const override { return 51; }
     bool dgmFlag() const override { return false; }
-    int nPolynomialDofs() const  { return o*o*o; }
+    int nPolynomialDofs() const  override { return o*o*o; }
 
-    virtual void createM(complex<double>*);
-    virtual void interfMatrix(int fi, DEMElement*,complex<double>*);
-    virtual void createRHS(complex<double>*);
+    void createM(complex<double>*)  override;
+    void interfMatrix(int fi, DEMElement*,complex<double>*) override;
+    void createRHS(complex<double>*) override;
 };
 
 
 class DEMHelm3d_6: public DEMHelm3d {
 public:
     DEMHelm3d_6(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 51; }
 };
 
 class DEMHelm3d_26: public DEMHelm3d {
 public:
     DEMHelm3d_26(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 52; }
 };
 
 class DEMHelm3d_56: public DEMHelm3d {
 public:
     DEMHelm3d_56(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 53; }
 };
 
 class DEMHelm3d_98: public DEMHelm3d {
 public:
     DEMHelm3d_98(int _o, int* nodenums);
-    virtual void dir(int,complex<double>*);
+    void dir(int,complex<double>*) override;
     int defaultLMType() const override { return 54; }
 };
 

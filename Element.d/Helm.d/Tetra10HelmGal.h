@@ -14,29 +14,29 @@ class Tetra10HelmGal: public HelmElement, public Element {
 	static double tetra10_vertex_derivatives[10][10][3];
 
 public:
-	Tetra10HelmGal(int*);
+	explicit Tetra10HelmGal(int*);
 
 	Element *clone() override;
 
 	void renum(int *) override;
 	void renum(EleRenumMap&) override;
 
-	FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg) const;
-	FullSquareMatrix acousticm(CoordSet&, double *kel);
-	void getNormalDeriv(CoordSet&,ComplexD *uel, int ns, int *s, ComplexD*);
+	FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg) const override;
+	FullSquareMatrix acousticm(CoordSet&, double *kel) override;
+	void getNormalDeriv(CoordSet&,ComplexD *uel, int ns, int *s, ComplexD*) override;
 	void getNormalDeriv(CoordSet&,ComplexD *uel, int ns, int *s, ComplexD*,
-	                    double kappa, double *waveDir);
-	FullSquareMatrix massMatrix(const CoordSet&,double *mel,int cmflg=1) const;
+	                    double kappa, double *waveDir) override;
+	FullSquareMatrix massMatrix(const CoordSet&,double *mel,int cmflg) const override;
 	double getMass(const CoordSet& cs) const override;
 
 	void markDofs(DofSetArray &) const override;
-	int* dofs(DofSetArray &, int *p=0) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
 
 	int             numNodes() const override;
 	int * nodes(int *) const override;
 
-	void addFaces(PolygonSet *pset);
+	void addFaces(PolygonSet *pset) override;
 private:
 	void computedxdxi(const CoordSet &cs, int nint, double (*derivatives)[10][3], Matrix33 *dxdxi, double *det) const;
 	PrioInfo examine(int sub, MultiFront *) override;

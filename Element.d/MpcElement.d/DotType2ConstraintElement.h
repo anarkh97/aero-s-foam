@@ -14,17 +14,17 @@ protected:
 
 public:
 	DotType2ConstraintElement(int*, int, int = 0, int = 1);
-	~DotType2ConstraintElement();
-	void setFrame(EFrame *);
-	void buildFrame(CoordSet&);
+	~DotType2ConstraintElement() override;
+	void setFrame(EFrame *) override;
+	void buildFrame(CoordSet&) override;
 	static const DofSet NODALDOFS[2];
 	void setConstantTerm(double _d0) { d0 = _d0; }
-	double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
-	double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+	double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
+	double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double) override;
 
 protected:
 	void getConstants(const CoordSet & cs,
-	                  Eigen::Array<double,7,1>& sconst, Eigen::Array<int,1,1>&, const GeomState *gs = nullptr) const;
+	                  Eigen::Array<double,7,1>& sconst, Eigen::Array<int,1,1>&, const GeomState *gs) const override;
 };
 
 #endif

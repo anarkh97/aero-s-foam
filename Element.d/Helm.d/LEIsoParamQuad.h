@@ -17,15 +17,15 @@ public:
 
         FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
         FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
-        double getMass(const CoordSet&) const;
-        double getMassThicknessSensitivity(CoordSet&);
+        double  getMass(const CoordSet& cs) const override;
+        double getMassThicknessSensitivity(CoordSet&) override;
 
         Element *clone() override;
         void renum(int *) override;
         void renum(EleRenumMap&) override;
         void markDofs(DofSetArray &) const override;
 //	int getTopNumber() override {return 195;}
-        int numTopNodes() {return order*order;}
+        int numTopNodes() const override {return order*order;}
         int* dofs(DofSetArray &, int *p) const override;
         int numDofs() const override { return 2*order*order; }
         int numNodes() const override;

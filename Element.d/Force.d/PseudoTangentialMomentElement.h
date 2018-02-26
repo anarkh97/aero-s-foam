@@ -8,18 +8,18 @@ class PseudoTangentialMomentElement : public PotentialFunctionElement<Simo::Pseu
 {
     double (*C0)[3]; // initial frame (axes stored row-wise)
 
-  public:
+public:
     static const DofSet NODALDOFS[1];
-    PseudoTangentialMomentElement(int* _nn); 
+    PseudoTangentialMomentElement(int* _nn);
     ~PseudoTangentialMomentElement();
 
-    void setFrame(EFrame *);
+    void setFrame(EFrame *) override;
     bool hasRot() const override { return true; }
 
-  protected:
+protected:
     void getConstants(const CoordSet& cs, Eigen::Array<double,16,1>& sconst, Eigen::Array<int,0,1>&,
                       const GeomState* = nullptr,
-                      double = 0) const;
+                      double = 0) const override;
 };
 
 #endif

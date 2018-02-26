@@ -53,8 +53,8 @@ public:
 
     void setProp(StructProp *p, bool _myProp) override;
     void setMaterial(NLMaterial *) override;
-    void setPressure(PressureBCond *_pbc);
-    PressureBCond* getPressure();
+    void setPressure(PressureBCond *_pbc) override;
+    PressureBCond* getPressure() override;
     Element *clone() override;
 
     void renum(int *) override;
@@ -66,13 +66,13 @@ public:
     double getMassThicknessSensitivity(CoordSet& cs) override;
 
     void getGravityForce(CoordSet&, double* gravity, Vector&, int gravflg,
-                         GeomState *gs);
+                         GeomState *gs) override;
     void getGravityForceThicknessSensitivity(CoordSet&, double* gravity, Vector&, int gravflg,
-                                             GeomState *gs);
+                                             GeomState *gs) override;
     void getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
-                     Vector& elDisp,  int strInd, int surface = 0,
-                     double *ndTemps = 0, double ylayer = 0.0,
-                     double zlayer = 0.0, int avgnum = 0);
+                     Vector& elDisp,  int strInd, int surface,
+                     double *ndTemps, double ylayer,
+                     double zlayer, int avgnum) override;
 
     void markDofs(DofSetArray&) const override;
     int* dofs(DofSetArray&, int* p) const override;
@@ -89,14 +89,14 @@ public:
     void computeDisp(CoordSet&, State&, const InterpPoint&, double*,
                      GeomState*) override;
     void getFlLoad(CoordSet&, const InterpPoint&, double*, double *,
-                   GeomState* = 0) override;
+                   GeomState*) override;
 
     int getTopNumber() override;
     void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState* gs = 0, int cflg = 0, double t = 0) override;
+                              GeomState* gs, int cflg, double t) override;
 
     void getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce,
-                         int glfag, GeomState* gs = 0);
+                         int glfag, GeomState* gs) override;
 
     bool isShell() const override { return true; }
 
@@ -107,7 +107,7 @@ public:
     PrioInfo examine(int sub, MultiFront* mf) override;
 
     void writeHistory(int fn) const override;
-    void readHistory(int fn);
+    void readHistory(int fn) override;
 
     double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs,
                                     GeomState *gs, double stable_tol, int stable_maxit) override;

@@ -14,9 +14,9 @@ public:
 	void renum(int *) override;
         void renum(EleRenumMap&) override;
 
-	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg = 1) const;
-	FullSquareMatrix acousticm(CoordSet&, double *d);
-        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg=1) const;
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg = 1) const override;
+	FullSquareMatrix acousticm(CoordSet&, double *d) override;
+        FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;
 	double getMass(const CoordSet& cs) const override;
 
 	void markDofs(DofSetArray &) const override;
@@ -32,7 +32,7 @@ public:
 
         PrioInfo examine(int sub, MultiFront *mf) override;
         int nDecFaces() const override { return 6;}
-        int getDecFace(int iFace, int *fn);
+        int getDecFace(int iFace, int *fn) override;
 };
 #endif
 

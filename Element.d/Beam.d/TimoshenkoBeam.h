@@ -35,27 +35,27 @@ public:
 
 	void buildFrame(CoordSet &) override;
 
-	FullSquareMatrix stiffness(const CoordSet &cs, double *kel, int flg) const;
+	FullSquareMatrix stiffness(const CoordSet &cs, double *kel, int flg) const override;
 
-	FullSquareMatrix massMatrix(const CoordSet &cs, double *mel, int cmflg) const;
+	FullSquareMatrix massMatrix(const CoordSet &cs, double *mel, int cmflg) const override;
 
-	void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
+	void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs) override;
 
-	double getMass(const CoordSet &cs) const;
+	double  getMass(const CoordSet& cs) const override;
 
 	void getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx);
 
-	double weight(CoordSet &cs, double *gravityAcceleration);
+	double weight(CoordSet &cs, double *gravityAcceleration) override;
 
-	void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet &cs, double *gravityAcceleration);
+	void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet &cs, double *gravityAcceleration) override;
 
-	void getGravityForce(CoordSet &, double *gravity, Vector &, int gravflg, GeomState *gs);
+	void getGravityForce(CoordSet &, double *gravity, Vector &, int gravflg, GeomState *gs) override;
 
 	void getGravityForceNodalCoordinateSensitivity(CoordSet &cs, double *gravityAcceleration,
-	                                               GenFullM<double> &dGfdx, int gravflg, GeomState *geomState);
+	                                               GenFullM<double> &dGfdx, int gravflg, GeomState *geomState) override;
 
 	void getIntrnForce(Vector &elForce, CoordSet &cs,
-	                   double *elDisp, int forceIndex, double *ndTemps);
+	                   double *elDisp, int forceIndex, double *ndTemps) override;
 
 	void markDofs(DofSetArray &) const override;
 
@@ -67,22 +67,22 @@ public:
 
 	int *nodes(int *) const override;
 
-	Corotator *getCorotator(CoordSet &, double *, int, int);
+	Corotator *getCorotator(CoordSet &, double *, int, int) override;
 
 	int getTopNumber() override;
 
-	void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
+	void setPressure(PressureBCond *_pbc) override { pbc = _pbc; }
 
-	PressureBCond *getPressure() { return pbc; }
+	PressureBCond *getPressure() override { return pbc; }
 
 	void computePressureForce(CoordSet &, Vector &elPressureForce,
-	                          GeomState *gs, int cflg, double t);
+	                          GeomState *gs, int cflg, double t) override;
 
-	void getThermalForce(CoordSet &, Vector &, Vector &, int, GeomState *geomState);
+	void getThermalForce(CoordSet &, Vector &, Vector &, int, GeomState *geomState) override;
 
 	void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp,
 	                 int strInd, int surface, double *ndTemps,
-	                 double ylayer, double zlayer, int avgnum);
+	                 double ylayer, double zlayer, int avgnum) override;
 
 #ifdef USE_EIGEN3
 
@@ -100,7 +100,7 @@ public:
 	void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp,
 	                                           int strInd, int surface,
 	                                           double *ndTemps, int avgnum, double ylayer,
-	                                           double zlayer);
+	                                           double zlayer) override;
 
 #endif
 

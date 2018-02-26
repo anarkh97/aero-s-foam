@@ -395,7 +395,7 @@ FaceQuad4::IntegrateShapeFcts(double* ShapeIntg, CoordSet& cs, double rho, int n
 // LOCAL METHODS
 // -------------
 void
-FaceQuad4::printNodes()
+FaceQuad4::printNodes() const
 {
   filePrint(stderr,"   # Quad4 face el., nodes = %6d %6d %6d %6d\n",Nodes[0],Nodes[1],Nodes[2],Nodes[3]);
 }
@@ -404,7 +404,7 @@ FaceQuad4::printNodes()
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------
 void
-FaceQuad4::print()
+FaceQuad4::print() const
 {
   printNodes();
 }

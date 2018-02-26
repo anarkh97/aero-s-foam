@@ -15,11 +15,11 @@ public:
 	void renum(int *) override;
 	void renum(EleRenumMap&) override;
 
-	FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const;
-	FullSquareMatrix massMatrix(const CoordSet&,double *mel, int cmflg=1) const;
-	double           getMass(const CoordSet& cs) const;
+	FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const override;
+	FullSquareMatrix massMatrix(const CoordSet&,double *mel, int cmflg=1) const override;
+	double getMass(const CoordSet& cs) const override;
 	void markDofs(DofSetArray &) const override;
-	int* dofs(DofSetArray &, int *p=0) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
 
 	int numNodes() const override;

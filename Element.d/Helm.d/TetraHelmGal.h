@@ -27,7 +27,7 @@ public:
 	double getMass(const CoordSet& cs) const override;
 
 	void markDofs(DofSetArray &) const override;
-	int* dofs(DofSetArray &, int *p=0) const override;
+	int* dofs(DofSetArray &, int *p) const override;
 	int numDofs() const override;
 
 	int numNodes() const override;

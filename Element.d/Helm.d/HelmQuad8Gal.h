@@ -7,26 +7,26 @@ class HelmQuad8Gal: public HelmElement, public Element {
 
 	int nn[8];
 public:
-	HelmQuad8Gal(int*);
+	explicit HelmQuad8Gal(int*);
 
 	Element *clone() override;
 
 	void renum(int *) override;
-        void renum(EleRenumMap&) override;
+	void renum(EleRenumMap&) override;
 
-        FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;
-        FullSquareMatrix acousticm(CoordSet&, double *d);
-        FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg=1) const override;
-        double           getMass(const CoordSet&) const;
+	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg) const override;
+	FullSquareMatrix acousticm(CoordSet&, double *d) override;
+	FullSquareMatrix massMatrix(const CoordSet&,double *d, int cmflg) const override;
+	double getMass(const CoordSet&) const override;
 
 	void markDofs(DofSetArray &) const override;
-        int* dofs(DofSetArray &, int *p=0) const override;
-         int numDofs() const override;
+	int* dofs(DofSetArray &, int *p) const override;
+	int numDofs() const override;
 
-        int numNodes() const override;
-        int * nodes(int *) const override;
+	int numNodes() const override;
+	int * nodes(int *) const override;
 	int getTopNumber() override { return(132); }
-	void		addFaces(PolygonSet *pset);
+	void addFaces(PolygonSet *pset) override;
 
 };
 #endif

@@ -53,10 +53,10 @@ public:
 		// needs to be initialized
 		ndofs = 0;
 	}
-	virtual void init();
-	virtual int nDofs() const { return ndofs; }
+	void init() override;
+	int nDofs() const override { return ndofs; }
 	int type() const override { return 5; }
-	virtual complex<double> ldir(int,double[2]);
+	complex<double> ldir(int,double[2]) override;
 };
 
 
@@ -74,14 +74,14 @@ public:
 		return true;
 	}
 // bool condensedFlag() const override  { return false; }
-	virtual bool storeMatricesFlag() { return true; }
-// virtual bool storeMatricesFlag() { return false; }
-	int nPolynomialDofs() const  { return 0; }
-	virtual int nEnrichmentDofs() const override { return ndir; }
+	bool storeMatricesFlag() override { return true; }
+// bool storeMatricesFlag() override { return false; }
+	int nPolynomialDofs() const override { return 0; }
+	int nEnrichmentDofs() const override { return ndir; }
 	int nGeomNodes() const override { return (o>0)?o*o:((-o)*(-o+1))/2; }
 	int nFaces() const override { return (o>0)?4:3; }
 	int nFaceCorners(int fi) const override { return 2; }
-	virtual int *faceCorners(int fi) {
+	int *faceCorners(int fi) override {
 		int *fc = new int[2];
 		if (o>0) {
 			if (fi==1) { fc[0] = nn[0]; fc[1] = nn[o-1]; }
@@ -96,57 +96,57 @@ public:
 			return fc;
 		}
 	}
-	virtual int polyDofType() const override { return DofSet::Helm; }
-	virtual int polyDofsPerNode() const override { return 1; }
+	int polyDofType() const override { return DofSet::Helm; }
+	int polyDofsPerNode() const override { return 1; }
 
 	virtual void getRef(double *xyz,double *xy);
-	virtual void createM(complex<double>*);
-	virtual void interfMatrix(int fi, DEMElement*,complex<double>*);
-	virtual void createRHS(complex<double>*);
+	void createM(complex<double>*) override;
+	void interfMatrix(int fi, DEMElement*,complex<double>*) override;
+	void createRHS(complex<double>*) override;
 	void createSol(double *xyz, complex<double>*,
-	               complex<double>*) override;
+				   complex<double>*) override;
 };
 
 
 class DGMHelm2d_4: public DGMHelm2d {
 public:
 	DGMHelm2d_4(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 1; }
 };
 
 class DGMHelm2d_4t: public DGMHelm2d {
 public:
 	DGMHelm2d_4t(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 1; }
 };
 
 class DGMHelm2d_8: public DGMHelm2d {
 public:
 	DGMHelm2d_8(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 2; }
 };
 
 class DGMHelm2d_8t: public DGMHelm2d {
 public:
 	DGMHelm2d_8t(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 2; }
 };
 
 class DGMHelm2d_16: public DGMHelm2d {
 public:
 	DGMHelm2d_16(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 3; }
 };
 
 class DGMHelm2d_32: public DGMHelm2d {
 public:
 	DGMHelm2d_32(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 4; }
 };
 
@@ -161,7 +161,7 @@ public:
 class DGMHelm2d_Eva2_8: public DGMHelm2d_Eva {
 public:
 	DGMHelm2d_Eva2_8(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 5; }
 };
 
@@ -170,53 +170,53 @@ class DEMHelm2d: public DGMHelm2d {
 public:
 	DEMHelm2d(int _o, int* nodenums);
 	bool dgmFlag() const override { return false; }
-	int nPolynomialDofs() const  { return (o>0)?o*o:((-o)*(-o+1))/2; }
+	int nPolynomialDofs() const  override { return (o>0)?o*o:((-o)*(-o+1))/2; }
 
-	virtual void createM(complex<double>*);
-	virtual void interfMatrix(int fi, DEMElement*,complex<double>*);
-	virtual void createRHS(complex<double>*);
+	void createM(complex<double>*) override;
+	void interfMatrix(int fi, DEMElement*,complex<double>*) override;
+	void createRHS(complex<double>*) override;
 };
 
 
 class DEMHelm2d_4: public DEMHelm2d {
 public:
 	DEMHelm2d_4(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 1; }
 };
 
 class DEMHelm2d_4t: public DEMHelm2d {
 public:
 	DEMHelm2d_4t(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 1; }
 };
 
 class DEMHelm2d_8: public DEMHelm2d {
 public:
 	DEMHelm2d_8(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 2; }
 };
 
 class DEMHelm2d_8t: public DEMHelm2d {
 public:
 	DEMHelm2d_8t(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 2; }
 };
 
 class DEMHelm2d_16: public DEMHelm2d {
 public:
 	DEMHelm2d_16(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 3; }
 };
 
 class DEMHelm2d_32: public DEMHelm2d {
 public:
 	DEMHelm2d_32(int _o, int* nodenums);
-	virtual complex<double> dir(int);
+	complex<double> dir(int) override;
 	int defaultLMType() const override { return 4; }
 };
 

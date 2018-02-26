@@ -483,7 +483,7 @@ Penta15::getTopNumber()
 }
 
 int
-Penta15::numTopNodes()
+Penta15::numTopNodes() const
 {
   return 6;
 }

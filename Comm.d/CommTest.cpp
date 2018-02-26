@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
 		auto results = requests.waitAll();
 	}
 	const auto &timerData =  AutoTimer<"nonBlocking"_hash>::getData();
-	for(int i = 0; i < 32; ++i) {
+	for(int i = 0; i < 4; ++i) {
 		if(recData[0][i] != i*lowerProc)
 			std::cerr << "Incorrect receive from lower" << std::endl;
 		if(recData[1][i] != i*higherProc)

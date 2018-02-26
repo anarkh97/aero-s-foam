@@ -159,6 +159,11 @@ public:
 	void print();
 };
 
+/** \brief Set of DOFs that appear with the nodes of a problem, associating a unique number to each.
+ * \details The DofSetArray keeps track of all the DOFs that are present in each node.
+ * The construction does not follow a RAII principle. Instead there is a construction phase and then
+ * a use phase.
+ */
 class DofSetArray : public EqNumberer {
 protected:
 	DofSet *dofs = nullptr;
@@ -243,6 +248,9 @@ class BCond;
 
 class ComplexBCond;
 
+/** \brief DOF set where some DOFs have been constrained --i.e. removed from the active set.
+ *
+ */
 class ConstrainedDSA : public DofSetArray {
 public:
 	ConstrainedDSA(DofSetArray &, int, BCond *, int = 0, ComplexBCond * = 0);

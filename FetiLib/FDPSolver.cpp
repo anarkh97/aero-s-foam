@@ -2,9 +2,11 @@
 // Created by Michel Lesoinne on 10/31/17.
 //
 
+#include <mpi.h>
 #include <Driver.d/SComm.h>
 #include <set>
 #include <Comm.d/BaseCommunicator.h>
+#include <Comm.d/MPICompatTraits.h>
 #include "FDPSolver.h"
 
 namespace FetiLib {
@@ -53,7 +55,7 @@ buildSharedDataInfo(const std::set<gl_node_t> &glNodes, const BaseCommunicator &
 	gl_node_t largestNode = (it == glNodes.end()) ? 0 : *it;
 	gl_node_t numGlNodes = communicator.globalMax(largestNode+1);
 
-
+    throw "Unfinished.";
 }
 
 //SComm buildSComm() {

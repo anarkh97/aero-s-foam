@@ -58,8 +58,6 @@ template <class Scalar> class GenMpcSparse;
 class BaseSub : virtual public Domain , virtual public FetiBaseSub
 {
 protected:
-	int subNumber;
-	int localSubNumber; // relevant when running in distributed
 
 	GlobalToLocalMap glToLocalElem;
 	int *glNums = nullptr;
@@ -131,8 +129,6 @@ public:
 	int getGlobalNMax()         { return globalNMax; }
 	int* makeBMaps(const DofSetArray *dofsetarray=0);
 	int* makeIMaps(const DofSetArray *dofsetarray=0);
-	int subNum() const override  { return subNumber; }
-	int localSubNum() const override { return localSubNumber; }
 	int getNumUncon() const override { return numUncon(); }
 	int localLen() const override { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
 	int localRLen() const override { return cc_dsa->size(); }

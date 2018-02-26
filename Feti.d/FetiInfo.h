@@ -127,75 +127,79 @@
 class SolverCntl;
 extern SolverCntl default_cntl;
 
-class FetiInfo {
-
-  public:
-
-    // Constructor
-    FetiInfo();
+struct FetiInfo {
 
     // Data members
-    int    maxit;
-    double tol;
-    double absolute_tol;
-    double stagnation_tol;
-    double absolute_stagnation_tol;
-    double grbm_tol;
-    double crbm_tol;
-    double cct_tol;
-    int    uproj;
-    int    maxortho;
-    int    noCoarse;
-    int    nonLocalQ;
-    int    nQ;
-    int    primalFlag; // whether to output primal residual
-    int    printMatLab;
+    int    maxit = 1000; //!< \brief Maximum number of FETI iterations.
+    double tol = 1.0E-6; //!< \brief Relative tolerance.
+    double absolute_tol = 0.0; //!< \brief Absolute tolerance.
+    double stagnation_tol = 1.0E-6; //!< \brief Relative stagnation tolerance.
+    double absolute_stagnation_tol; //!< \brief Absolute stagnation tolerance.
+    double grbm_tol = 1.0E-6;
+    double crbm_tol = 1.0E-12;
+    double cct_tol = 1.0E-16;
+    int    uproj = 1;
+    int    maxortho = maxit; // \brief Maximum number of reorthogonalization directions.
+    int    noCoarse = 0;
+    int    nonLocalQ = 0;
+    int    nQ = 0;
+    int    primalFlag = 0; // whether to output primal residual
+    bool    printMatLab = false;
 
-    int    printNumber;
+    int    printNumber = 10;
 
     // Nonlinear Data members
-    int    nPrec;
-    int    nTang;
-    int    nlPrecFlg;
-    int    numLoadSteps;
+    int    nPrec = 1;
+    int    nTang = 1;
+    int    nlPrecFlg = 0;
+    int    numLoadSteps = 0;
 
-    enum Preconditioner { noPrec=0, lumped, dirichlet, identity } precno;
-    enum PreconditionerType { nonshifted, shifted } prectype;
-    enum MpcPreconditioner { noMpcPrec=0, diagCCt, globalCCt, blockDiagCCt, subBlockDiagCCt, superBlockDiagCCt, autoSelectCCt } mpc_precno;
-    enum MpcBlock { subBlock, topoBlock, mortarBlock } mpc_block;
-    int mpcflag;
+    enum Preconditioner { noPrec=0, lumped, dirichlet, identity } precno = dirichlet;
+    enum PreconditionerType { nonshifted, shifted } prectype = nonshifted;
+	enum MpcPreconditioner { noMpcPrec=0, diagCCt, globalCCt, blockDiagCCt,
+		subBlockDiagCCt, superBlockDiagCCt, autoSelectCCt } mpc_precno = globalCCt;
+    enum MpcBlock { subBlock, topoBlock, mortarBlock } mpc_block = topoBlock;
+    int mpcflag = 1;
     enum Solvertype { skyline, sparse, blocksky, llt, ldlt, cholmod,
                       umfpack, superlu, spooles, mumps, diagonal, dbsgal, eisgal, goldfarb, splu, ssqr, spqr };
-    SolverCntl *local_cntl, *coarse_cntl, *auxcoarse_cntl, *cct_cntl, *kii_cntl;
-    enum Scaling { noscaling=0, kscaling=1, tscaling=2 } scaling, mpc_scaling, fsi_scaling;
-    enum Version { feti1, feti2, feti3, fetidp } version;
-    bool rescalef; // if this is true then reassemble and apply scaling to f for every system, not just the first
-                   // effects the convergence criteria for nonlinear and dynamics since relative primal error will be 
-                   // defined using norm of rescaled f which is typically much smaller than the norm of the unscaled f
-    enum Feti2Version { fullCoarse, sparseCoarse } feti2version;
-    enum Type { linear, nonlinear, eigen } type;
+    SolverCntl *local_cntl = &default_cntl;
+    SolverCntl *coarse_cntl = &default_cntl;
+    SolverCntl *auxcoarse_cntl = &default_cntl;
+    SolverCntl *cct_cntl = &default_cntl;
+    SolverCntl *kii_cntl = &default_cntl;
+    enum Scaling { noscaling=0, kscaling=1, tscaling=2 };
+    Scaling scaling = Scaling::tscaling,
+		    mpc_scaling = Scaling::tscaling,
+		    fsi_scaling = Scaling::tscaling;
+    enum Version { feti1, feti2, feti3, fetidp } version = Version::fetidp;
+    /** \details if this is true then reassemble and apply scaling to f for every system, not just the first
+     * affects the convergence criteria for nonlinear and dynamics since relative primal error will be
+     * defined using norm of rescaled f which is typically much smaller than the norm of the unscaled f */
+    bool rescalef = true;
+	enum Feti2Version { fullCoarse, sparseCoarse } feti2version = sparseCoarse;
+    enum Type { linear, nonlinear, eigen } type = linear;
     enum CornerType { allCorners6, allCorners3, noEndCorners6,
-                      noEndCorners3, interface3, interface6, ThreeD, noCorners } corners;
-    enum AugmentType { none, Gs, Edges, WeightedEdges } augment;
-    enum AugmentImplementation { Constraint, Primal } augmentimpl; // JAT 08012013
+                      noEndCorners3, interface3, interface6, ThreeD, noCorners } corners = noEndCorners3;
+    enum AugmentType { none, Gs, Edges, WeightedEdges } augment = Edges;
+    enum AugmentImplementation { Constraint, Primal } augmentimpl = Constraint;
     int isEdgeAugmentationOn() const {
       return (((augment == Edges) || (augment == WeightedEdges)) && ((nGs > 0) || (numdir > 0))) ? 1 : 0; 
     }
     enum RbmType { translation, rotation, all,
                    averageTran, averageRot, averageAll, None,
-                   pressure, temperature } rbmType;
-    double nullSpaceFilterTol;
+                   pressure, temperature } rbmType = all;
+    double nullSpaceFilterTol = 0.0;
 
     // FETI-H
-    double tolcgm;
-    int numcgm; // number of coarse grid modes
-    double numcgm2;
-    int spaceDimension;
-    int krylovtype;
-    int lumpedinterface; // 0 - default (consistent) 1 - lumped
-    int saveMemCoarse;
+    double tolcgm = 1e-3;
+    int numcgm = 0; // number of coarse grid modes
+    double numcgm2 = 0.0;
+    int spaceDimension = 3;
+    int krylovtype = 8;
+    int lumpedinterface = 0; // 0 - default (consistent) 1 - lumped
+    int saveMemCoarse = 0;
 
-    int nGs;
+    int nGs = 6;
 
     int maxiter()      { return maxit;       }
     int maxorth()      { return maxortho;    }
@@ -203,136 +207,46 @@ class FetiInfo {
     double tolerance() { return tol;         }
     int numPrint()     { return printNumber; }
 
-    enum OuterloopType { CG, GMRES, GCR, CGAL }  outerloop; 
-    enum WaveType      { solid, shell, fluid, any } waveType; 
-    enum WaveMethod    { averageK, averageMat, uniform } waveMethod;  // note: only use uniform if domain is homogeneous 
-                                                                      // and entirely solid or shell or fluid
-    int numdir;
-    double orthotol, orthotol2; 
-    bool dph_flag;
-    int contactPrintFlag;
+    enum OuterloopType { CG, GMRES, GCR, CGAL }  outerloop = CG;
+    enum WaveType      { solid, shell, fluid, any } waveType = any;
+    /** \details  note: only use uniform if domain is homogeneous
+     * and entirely solid or shell or fluid */
+    enum WaveMethod    { averageK, averageMat, uniform } waveMethod = averageMat;
+    int numdir = 0;
+    double orthotol = 1.0E-2;
+    double orthotol2 = 0.0;
+    bool dph_flag = false;
+    int contactPrintFlag = 0;
 
-    int rebuildcct;
-    int rebuildSbb;
-    bool geometric_gap;
-    int mpcBlkOverlap; //0=no interaction, 1=1st order interactions, 2=1st & 2nd order interactions, etc.
-    double gamma;
-    bool bmpc, cmpc;
-    double linesearch_tau;
-    int linesearch_maxit;
-    bool c_normalize;
+    bool rebuildcct = true;
+    bool rebuildSbb = false; // Unused??
+    bool geometric_gap = false;
+    int mpcBlkOverlap = 0; //0=no interaction, 1=1st order interactions, 2=1st & 2nd order interactions, etc.
+    double gamma = 1.0;
+    bool bmpc = false;
+    bool cmpc = false;
+    double linesearch_tau = 2.0/3.0;
+    int linesearch_maxit = 100;
+    bool c_normalize = false;
 
-    bool useMRHS;
-    bool gmresResidual; //HB: to force computing the "primal residual" at each GMRES iteration;
-    bool wetcorners;
-    bool splitLocalFsi;
-    int pickAnyCorner;
-    bool pick_unsafe_corners; // if this is true (default) unsafe nodes will be selected as corners
+    bool useMRHS = true;
+    bool gmresResidual = false; //HB: to force computing the "primal residual" at each GMRES iteration;
+    bool wetcorners = false;
+    bool splitLocalFsi = true;
+    bool pickAnyCorner = true;
+    bool pick_unsafe_corners = true; // if this is true (default) unsafe nodes will be selected as corners
                               // should only be set to false if pivoting is enabled for local solver
 
-    bool fsi_element, mpc_element; // true means add to element set & decompose
-    int fsi_corner;
-    bool complex_hermitian;
-    double dual_proj_tol, primal_proj_tol;
-    double dual_plan_tol, primal_plan_tol;
-    int dual_plan_maxit, primal_plan_maxit;
+    bool fsi_element = false;
+    bool mpc_element = false; // true means add to element set & decompose
+    int fsi_corner = 2;
+    bool complex_hermitian = false;
+    double dual_proj_tol = 0.0;
+    double primal_proj_tol = 0.0;
+    double dual_plan_tol = 0.0;
+    double primal_plan_tol = 0.0;
+    int dual_plan_maxit = 20;
+    int primal_plan_maxit = 20;
 };
-
-inline
-FetiInfo::FetiInfo()
-{
-  maxit      = 1000;       // default max number of iterations
-  tol        = 1.0E-6;     // default global tolerance
-  absolute_tol = 0.0; 
-  stagnation_tol = 1.0e-6;
-  absolute_stagnation_tol = 0.0;
-  grbm_tol = 1.0E-06;      // default global rigid body mode rel. tolerance
-  crbm_tol = 1.0E-12;      // default global corner rigid body mode tolerance
-  maxortho   = maxit;      // default max number of reortho vectors
-                           // if it finds zero, set maxortho = maxit
-  primalFlag  = 0;         // default do not output primal residual
-  noCoarse    = 0;         // default use coarse problem
-  precno      = dirichlet; // default use dirichlet preconditioner
-  prectype    = nonshifted;// default use nonshifted preconditioner (only the sitffness part) //HB
-
-  nonLocalQ   = 0;         // default basic projector
-  nQ          = 0;
-  scaling     = tscaling;  // default use t scaling
-  rescalef    = true;      // reassemble and apply scaling to f for every system, not just the first
-  mpc_scaling = tscaling;  // default use t scaling
-  fsi_scaling = tscaling;
-  version     = feti1;     // default use FETI1
-  feti2version= sparseCoarse; // default use New FETI2
-  printNumber = 10;        // default print error at every FETI iteration
-  corners    = noEndCorners3; // default clamp all corner dofs
-  augment    = Edges;      // default Kcc augmentation
-  nGs        = 6;
-  rbmType    = all;
-  gmresResidual = false;   // to force computing the "primal residual" at each GMRES iteration
-  pickAnyCorner = 1;
-
-  // Nonlinear information
-  nTang        = 1;        // default always rebuild tangent
-  nPrec        = 1;        // default always rebuild preconditioner
-  nlPrecFlg    = 0;        // default Krylov preconditioner off
-  type         = linear;   // default linear FETI problem
-  numLoadSteps = 0;        // default 0 load step
-
-  // defaults for FETI-H
-  lumpedinterface = 0;
-  numcgm       = 0;
-  spaceDimension = 3;
-  tolcgm = 1e-3;
-  krylovtype = 8;
-  saveMemCoarse = 0;
-
-  outerloop    = CG;           // default CG solver 
-  waveType     = any;      // default wave for solid/shell/fluid problem 
-  waveMethod   = averageMat;  // k_p and k_s calculated using average material properties
-  numdir       = 0;        // default number of wave directions added in Q matrix
-  orthotol     = 1.0E-02;  // default relative tolerance value in orthogonalizing Q matrix
-  orthotol2    = 0.0;      // default absolute value in orthogonalizing Q matrix
-  dph_flag     = false;
-
-  // DPC information
-  uproj        = 1;   	   // default project the displacements wrt global RBMs
-  contactPrintFlag = 0;
-  gamma = 1.0;
-  linesearch_tau = 0.6667; 
-  linesearch_maxit = 100;
-  cmpc = bmpc = false;
-  c_normalize = false;
-  
-  // MPC information
-  mpc_precno   = globalCCt;  // default mpc preconditioner for Rixen method
-  mpc_block    = topoBlock;
-  mpcflag      = 1;
-  cct_tol      = 1.0e-16;
-  mpcBlkOverlap= 0;         // zero/minimal overlap in mortar block CCt preconditionner
-  rebuildcct   = 1; 
-  rebuildSbb   = 0; 
-  geometric_gap = false;
-
-  // coupled dph 
-  useMRHS = true;
-  wetcorners   = false;
-  fsi_scaling  = tscaling;
-  splitLocalFsi= true;
-
-  gmresResidual= false;     // to force computing the "primal residual" at each GMRES iteration
-  printMatLab = 0;  
-
-  mpc_element = fsi_element = false;
-  pick_unsafe_corners = true;
-  fsi_corner = 2;
-  complex_hermitian = false;
-  nullSpaceFilterTol = 0.0;
-  dual_proj_tol = primal_proj_tol = 0.0;
-  dual_plan_tol = primal_plan_tol = 0.0;
-  dual_plan_maxit = primal_plan_maxit = 20;
-
-  local_cntl = coarse_cntl = auxcoarse_cntl = kii_cntl = cct_cntl = &default_cntl;
-}
-
 
 #endif

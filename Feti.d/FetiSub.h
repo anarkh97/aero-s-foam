@@ -54,7 +54,7 @@ public:
 	/** \brief Obtain the size of the half interface for which this subdomain is the master. */
 	int halfInterfLen() const;
 	/** \brief Obtain the index of this subdomain in the global system. */
-	virtual int subNum() const = 0;
+	int subNum() const { return subNumber; }
 	/** \brief Set the communication size in the pattern.
 	 * TODO abstract FSCommPattern to isolate the scalar type.
 	 *
@@ -74,12 +74,13 @@ public:
 	// Pure virtual defined in FetiSub<Scalar>.
 	virtual void setGCommSize(FSCommStructure *pat) const = 0;
 
-	virtual int localSubNum() const = 0;
+	int localSubNum() const { return localSubNumber; }
 	virtual int localLen() const = 0;
 	virtual int localRLen() const = 0;
 
+	/** \brief Obtain the global node numbers. */
 	virtual const int *getGlNodes() const = 0;
-
+	/** \brief Obtain the number of unconstrained degrees of freedom (includes R and C DOFs). */
 	virtual int getNumUncon() const = 0;
 
 	/** \brief Make the subdomain determine its master flag, i.e. whether it is the primary holder of a variable. */
@@ -182,6 +183,8 @@ public:
 	void sendMatProps(FSCommPattern<double> *matPat);
 	void collectMatProps(FSCommPattern<double> *matPat);
 protected:
+	int subNumber;
+	int localSubNumber; // relevant when running in distributed
 	bool isCoupled = false; // TODO Ensure this is set or derived from some other info.
 	int boundLen = 0;
 	int internalLen = 0;
@@ -199,7 +202,7 @@ protected:
 	std::vector<int> edgeDofSizeTmp;   // XXXX
 	std::vector<int> edgeDofSize;      //<! \brief Number of edge DOF per neighbor.
 	std::vector<int> cornerEqNums; //<! \brief unique equation numbers for subdomain corner dofs
-	std::unique_ptr<ConstrainedDSA> cc_dsa;
+	std::unique_ptr<ConstrainedDSA> cc_dsa; //!< DOFSet for non-corner free DOFs.
 	std::vector<int> ccToC; //!< Mapping from cc_dsa to c_dsa. All indices are >= 0
 	std::vector<int> cToCC; //!< Mapping from c_dsa to cc_dsa. Indices for corner DOFs are < 0.
 	bool isMixedSub = false;

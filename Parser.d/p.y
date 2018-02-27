@@ -4277,9 +4277,6 @@ Solver:
 	  $$->fetiInfo.nlPrecFlg = $3; }
         | Solver NUMCGM Integer NewLine
         { $$->fetiInfo.numcgm = $3; }
-        | Solver NUMCGM Integer Float NewLine
-        { $$->fetiInfo.numcgm = $3;
-          $$->fetiInfo.numcgm2 = $4; }
         | Solver TOLCGM Float NewLine
         { $$->fetiInfo.tolcgm = $3; }
         | Solver SPACEDIMENSION Integer NewLine

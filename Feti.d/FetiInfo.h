@@ -189,7 +189,6 @@ class FetiInfo {
     // FETI-H
     double tolcgm;
     int numcgm; // number of coarse grid modes
-    double numcgm2;
     int spaceDimension;
     int krylovtype;
     int lumpedinterface; // 0 - default (consistent) 1 - lumped
@@ -213,7 +212,6 @@ class FetiInfo {
     int contactPrintFlag;
 
     int rebuildcct;
-    int rebuildSbb;
     bool geometric_gap;
     int mpcBlkOverlap; //0=no interaction, 1=1st order interactions, 2=1st & 2nd order interactions, etc.
     double gamma;
@@ -266,6 +264,7 @@ FetiInfo::FetiInfo()
   printNumber = 10;        // default print error at every FETI iteration
   corners    = noEndCorners3; // default clamp all corner dofs
   augment    = Edges;      // default Kcc augmentation
+  augmentimpl = Constraint;
   nGs        = 6;
   rbmType    = all;
   gmresResidual = false;   // to force computing the "primal residual" at each GMRES iteration
@@ -310,7 +309,6 @@ FetiInfo::FetiInfo()
   cct_tol      = 1.0e-16;
   mpcBlkOverlap= 0;         // zero/minimal overlap in mortar block CCt preconditionner
   rebuildcct   = 1; 
-  rebuildSbb   = 0; 
   geometric_gap = false;
 
   // coupled dph 

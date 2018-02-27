@@ -13,10 +13,18 @@ namespace FetiLib {
 //}
 
 void test() {
-	ContreteSub<double> cs;
+	ConcreteSub<double> cs;
 }
 
 const FetiInfo &ConcreteBaseSub::getFetiInfo() const {
 	return fetiInfo;
 }
+
+ConcreteBaseSub::ConcreteBaseSub() {
+	subNumber =
+	localSubNumber = 0;
+
+}
+
+
 }

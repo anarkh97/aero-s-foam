@@ -127,8 +127,6 @@ public:
 	int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }
 	int localToGlobalElem(int i) { return glElems[i]; }
 	int getGlobalNMax()         { return globalNMax; }
-	int* makeBMaps(const DofSetArray *dofsetarray=0);
-	int* makeIMaps(const DofSetArray *dofsetarray=0);
 	int getNumUncon() const override { return numUncon(); }
 	int localLen() const override { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
 	int localRLen() const override { return cc_dsa->size(); }
@@ -241,8 +239,6 @@ public:
 	GenSparseMatrix<Scalar>   *MPCsparse;
 	Corotator           	    **corotators;
 
-	int *glBoundMap;
-	int *glInternalMap;
 	Scalar *bcx_scalar;
 
 public:
@@ -283,8 +279,6 @@ public:
 	void getSRMult(const Scalar *lvec, const Scalar *lbvec, int nRBM, const double *locRBMs, Scalar *alpha) const;
 	void sendDeltaF(const Scalar *deltaF, FSCommPattern<Scalar> *vPat);
 	double collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
-	void makeKbbMpc() override;
-	void makeKbb(DofSetArray *dofsetarray=0) override;
 	void multFi(GenSolver<Scalar> *s, Scalar *, Scalar *);
 	void assembleLocalComplexEls(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *smat = 0);
 	void mergePrimalError(Scalar* error, Scalar* primal);

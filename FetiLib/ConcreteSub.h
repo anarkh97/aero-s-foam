@@ -11,6 +11,7 @@ namespace FetiLib {
 
 class ConcreteBaseSub : virtual public FetiBaseSub {
 public:
+	ConcreteBaseSub();
 	const FetiInfo &getFetiInfo() const override;
 
 	int localLen() const override;
@@ -34,10 +35,8 @@ private:
 };
 
 template <typename Scalar>
-class ContreteSub : public ConcreteBaseSub, public FetiSub<Scalar> {
+class ConcreteSub : public ConcreteBaseSub, public FetiSub<Scalar> {
 public:
-	void makeKbbMpc() override;
-	void makeKbb(DofSetArray *dofsetarray=0) override;
 };
 
 }

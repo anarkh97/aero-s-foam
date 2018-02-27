@@ -192,6 +192,10 @@ protected:
 	std::vector<int> allBoundDofs;
 	std::vector<int> boundMap;
 	std::vector<int> internalMap;
+
+	std::vector<int> glBoundMap;
+	std::vector<int> glInternalMap;
+
 	/// \brief Corner nodes in local numbering.
 	std::vector<int> cornerNodes;
 	std::vector<bool> isCornerNode;   //<! \brief True for node which is a corner node; false otherwise.
@@ -236,6 +240,9 @@ protected:
 
 	mutable int *mpcStatus;
 	mutable bool *mpcStatus1, *mpcStatus2;
+
+	std::vector<int> makeBMaps(const DofSetArray *dofsetarray=0);
+	std::vector<int> makeIMaps(const DofSetArray *dofsetarray=0);
 public:
 	void setGroup(Connectivity *subToGroup) { this->group = (*subToGroup)[subNum()][0]; }
 	void setNumGroupRBM(int *ngrbmGr);
@@ -327,6 +334,7 @@ public:
 template <typename Scalar>
 class FetiSub : virtual public FetiBaseSub {
 public:
+	FetiSub() = default;
 	double densProjCoefficient(int dof) { return 1.0; } // Defined as virtual in SubDomain, but never defined otherwise.
 	void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const;
 	void getQtKQ(GenSolver<Scalar> *s);
@@ -418,8 +426,8 @@ public:
 	// (R_g^T*R_g) matrix assembly
 	void assembleRtR(GenFullM<Scalar> &RtRu);
 
-	virtual void makeKbbMpc() = 0;
-	virtual void makeKbb(DofSetArray *dofsetarray=0) = 0;
+	void makeKbbMpc();
+	void makeKbb(DofSetArray *dofsetarray=0);
 	void rebuildKbb();
 
 	// new B operators

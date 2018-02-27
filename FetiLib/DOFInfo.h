@@ -10,6 +10,7 @@
 namespace FetiLib {
 
 using gl_node_t = int;
+using lc_node_t = int;
 
 enum class DOFType {
 	XDisp,
@@ -20,8 +21,8 @@ enum class DOFType {
 	ZRot
 };
 
-/** \brief DOFInfo gives for wach dof the global node number to which the DOF belongs and the type it is. */
-using DOFInfo = std::vector<std::pair<gl_node_t, DOFType>>;
+/** \brief DOFInfo gives forthe local node number to which the DOF belongs and the type of DOF it is. */
+using DOFInfo = std::vector<std::pair<lc_node_t, DOFType>>;
 
 }
 

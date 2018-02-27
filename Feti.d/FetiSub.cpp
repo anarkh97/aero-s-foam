@@ -5108,5 +5108,72 @@ FetiSub<Scalar>::fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *
 	}
 }
 
+template<typename Scalar>
+void FetiSub<Scalar>::makeKbb(DofSetArray *dofsetarray) {
+	auto nodeToNode = getNodeToNode();
+	const auto &dsa = getDsa();
+	glBoundMap = makeBMaps(dofsetarray);
+	glInternalMap = makeIMaps(dofsetarray);
+
+	this->Kbb = std::make_unique<GenDBSparseMatrix<Scalar>>(nodeToNode, dsa, glBoundMap);
+	memPrec += this->Kbb->size();
+	// KHP: 3-26-98 Modified this code to always construct Kib
+
+	if (internalLen > 0) {
+#ifdef HB_COUPLED_PRECOND
+		if(solInfo().isCoupled & isMixedSub & this->neighbKww!=0)
+       Kib = new GenCuCSparse<Scalar>(precNodeToNode, dsa, glBoundMap, glInternalMap);
+    else
+#endif
+		Kib = std::make_unique<GenCuCSparse<Scalar>>(nodeToNode, dsa, glBoundMap, glInternalMap.data());
+		memPrec += Kib->size();
+		Kib->zeroAll();
+	} else Kib = 0;
+
+	if ((getFetiInfo().precno == FetiInfo::dirichlet) && (internalLen > 0)) {
+#ifdef HB_COUPLED_PRECOND
+		if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
+      KiiSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(precNodeToNode, dsa, glInternalMap, *sinfo.solvercntl->fetiInfo.kii_cntl, KiiSparse.get());
+    else
+#endif
+		auto solverAndMat = GenSolverFactory<Scalar>::getFactory()->createSolver(nodeToNode, dsa,
+		                                                                         glInternalMap.data(),
+		                                                                         *getFetiInfo().kii_cntl);
+
+		KiiSolver = std::move(solverAndMat.solver);
+		KiiSparse = std::move(solverAndMat.sparseMatrix);
+
+		KiiSolver->setPrintNullity(false);
+		// Find approximate preconditioner size
+		memPrec += KiiSolver->size();
+	} else {
+		KiiSparse.reset(nullptr);
+		KiiSolver = 0;
+	}
+}
+
+template<typename Scalar>
+void FetiSub<Scalar>::makeKbbMpc() {
+	const auto &c_dsa = get_c_dsa();
+	// make the mpc dofs be boundary dofs
+	std::vector<int> weight_mpc(c_dsa->size(), 0);
+	for (int i = 0; i < cc_dsa->size(); ++i) weight_mpc[ccToC[i]] = dofWeight(i);
+
+	for (int i = 0; i < numMPC; i++) {
+		const auto &m = mpc[i];
+		//XXXX if(mpc[i]->active) continue;
+		for (int k = 0; k < m->nterms; k++) {
+			int cdof = (m->terms)[k].cdof;
+			if (cdof >= 0) weight_mpc[cdof] = 2; // > 1 hence will be in boundary (see makeBmaps and makeImaps)
+		}
+	}
+
+	// construct the mapping and the matrices
+	std::swap(getWeights(), weight_mpc);
+	makeKbb(c_dsa);
+	// recover
+	std::swap(getWeights(), weight_mpc);
+}
+
 template class FetiSub<double>;
 template class FetiSub<std::complex<double>>;

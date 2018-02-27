@@ -8,6 +8,8 @@
 #include <Comm.d/BaseCommunicator.h>
 #include <Comm.d/MPICompatTraits.h>
 #include "FDPSolver.h"
+#include <Feti.d/Feti.h>
+#include "ConcreteSub.h"
 
 namespace FetiLib {
 
@@ -33,6 +35,27 @@ private:
 	gl_node_t quotient;
 	gl_node_t remainder;
 };
+
+/** \brief Function creating useful connectivities from a matrix structure
+ *
+ */
+template <typename T>
+Connectivity getConnectivities(const Subdomain<T> &subdomain) {
+
+}
+
+/**
+ * \details makeSubs needs to equip ConcreteSub with:
+ * nodeToNode connectivity.
+ *
+ * @tparam T
+ * @param subdomains
+ * @return
+ */
+template <typename T>
+std::vector<std::unique_ptr<ConcreteSub<T>>> makeSubs(const std::vector<Subdomain<T>> &subdomains) {
+
+}
 
 namespace tpl {
 
@@ -75,6 +98,7 @@ class FetiDP : public DPSImpl {
 	FetiDP(std::vector<Subdomain<T>> subdomains, Com communicator);
 private:
 	std::vector<Subdomain<T>> subdomains;
+	std::unique_ptr<GenFetiDPSolver<T>> fetiSolver;
 };
 
 template<typename T>

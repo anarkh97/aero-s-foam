@@ -334,20 +334,20 @@ GenFullM<Scalar>::operator*=(const Scalar c)
    v[i] *= c;
 }
 
-template<class Scalar> 
-GenFullM<Scalar> 
-GenFullM<Scalar>::operator+(const GenFullM<Scalar> &m) const
-{
-  GenFullM<Scalar> res(nrow+m.nrow,ncolumn);
-  int i,j;
-  for(i=0; i<nrow; ++i) 
-    for(j=0; j<ncolumn; ++j)
-      res[i][j] = (*this)[i][j];
-  for(i=nrow; i<m.nrow; ++i)
-    for(j=0; j<ncolumn; ++j)
-      res[i+nrow][j] + m[i][j];  
-  return res;
-}
+//template<class Scalar>
+//GenFullM<Scalar>
+//GenFullM<Scalar>::operator+(const GenFullM<Scalar> &m) const
+//{
+//  GenFullM<Scalar> res(nrow+m.nrow,ncolumn);
+//  int i,j;
+//  for(i=0; i<nrow; ++i)
+//    for(j=0; j<ncolumn; ++j)
+//      res[i][j] = (*this)[i][j];
+//  for(i=nrow; i<m.nrow; ++i)
+//    for(j=0; j<ncolumn; ++j)
+//      res[i+nrow][j] + m[i][j];
+//  return res;
+//}
 
 template<class Scalar> 
 GenFullM<Scalar>

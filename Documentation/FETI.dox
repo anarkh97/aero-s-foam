@@ -1,0 +1,28 @@
+/** \page feti_alg The FETI-DP Algorithm.
+\section feti_intro Introduction.
+\section Finite Element Tearing and Interconnecting.
+FETI-DP is used to solve problems of the type:
+\f[
+K u = f
+\f]
+let
+\f[
+u^{(s)} = R^{(s)} u
+\f]
+\f[
+\begin{pmatrix}
+K^{(1)} & \hdots & 0 & \hdots & B^{(1)} \\
+\vdots & \ddots & 0 & & \vdots \\
+0 &  & K^{(s)} & & B^{(s)}} \\
+\vdots & &  &\ddots & \vdots \\
+{B^{(1)}}^T & \hdots & {B^{(s)}}^T & \hdots & 0
+\end{pmatrix}
+\begin{pmatrix}
+u^{(1)} \\
+\vdots \\
+u^{(s)} \\
+\vdots \\
+\lambda
+\end{pmatrix}
+\f]
+*/

@@ -219,7 +219,7 @@ GenDBSparseMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
 }
 
 template<class Scalar>
-GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *dsa, int *rCN)
+GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *dsa, const int *rCN)
 : SparseData(dsa,cn,rCN)
 {
   // ... Allocate memory for unonz & initialize to zero

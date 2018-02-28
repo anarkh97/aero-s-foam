@@ -36,6 +36,8 @@ private:
 	gl_node_t remainder;
 };
 
+
+
 /** \brief Function creating useful connectivities from a matrix structure
  *
  */

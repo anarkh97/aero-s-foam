@@ -9,6 +9,16 @@ class Connectivity;
 class SComm
 {
 public:
+	/** \brief Constructor.
+	 *
+	 * @param numNeighb
+	 * @param subNums
+	 * @param remoteId
+	 * @param sharedNodes
+	 */
+	SComm(int numNeighb, int *subNums, int *remoteId, Connectivity *sharedNodes);
+	~SComm();
+
 	int locSubNum = -1;     //!< when running in distributed mode
 	int *glSubToLocal = nullptr; //!< mapping for distributed mode
 
@@ -24,8 +34,6 @@ public:
 	Connectivity *sharedDOFs = nullptr;  //<! DOFs # shared (all of types 0, 1 and 2)
 	Connectivity *sharedDOFsPlus = nullptr; //<! also includes corner dofs
 
-	SComm(int numNeighb, int *subNums, int *remoteId, Connectivity *);
-	~SComm();
 
 	void setExchangeData(int iSub, void *data);
 	void *getExchangeData(int iSub);

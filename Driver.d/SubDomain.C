@@ -1845,8 +1845,6 @@ void
 GenSubDomain<Scalar>::initialize() {
 	MPCsparse = 0;
 	corotators = 0;
-	glInternalMap = 0;
-	glBoundMap = 0;
 	mpcForces = 0;
 	M = 0;
 	Muc = 0;
@@ -1882,12 +1880,6 @@ GenSubDomain<Scalar>::~GenSubDomain() {
 
 	if (MPCsparse) {
 		delete MPCsparse;
-	}
-	if (glInternalMap) {
-		delete[] glInternalMap;
-	}
-	if (glBoundMap) {
-		delete[] glBoundMap;
 	}
 	if (mpcForces) {
 		delete[] mpcForces;

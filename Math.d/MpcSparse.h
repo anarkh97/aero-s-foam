@@ -30,7 +30,7 @@ class GenMpcSparse : public GenSparseMatrix<Scalar>
     void add(const double *const *kel, const int *dofs, int kndof);
     void add(const FullSquareMatrix &mel, const int *dofs);
     void add(const FullM&, int, int);
-    void add(const GenAssembledFullM<Scalar> &, const int*);
+    void add(const GenAssembledFullM<Scalar> &, const int*) override;
 
     void addBoeing(int, const int *, const int *, const double *, const int *, Scalar multiplier);
 
@@ -43,7 +43,7 @@ class GenMpcSparse : public GenSparseMatrix<Scalar>
     void multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const override;
     void multSubtract(const Scalar *rhs, Scalar *result) const override;
 
-    void zeroAll();
+    void zeroAll() override;
     int  dim() const override { return 0; }
     int  neqs() const override { return 0; }
     int  numRow() const override { return NumRow; }

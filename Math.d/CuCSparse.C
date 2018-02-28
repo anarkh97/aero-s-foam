@@ -88,7 +88,7 @@ SparseData(con,dsa,c_dsa)
 
 template<class Scalar>
 GenCuCSparse<Scalar>::GenCuCSparse(Connectivity *con, DofSetArray *dsa,
-                                   int *glBoundMap, int *glInternalMap)
+                                   const int *glBoundMap, const int *glInternalMap)
 : SparseData(con,dsa,glBoundMap,glInternalMap)
 {
  // Allocate Kuc and initialize it to zero.

@@ -53,7 +53,7 @@ class GenSparseMatrix {
         virtual void addImaginary(const FullSquareMatrix &, const int *dofs);
         virtual void add(const FullSquareMatrixC &, const int *dofs);
         virtual void add(const GenFullM<Scalar> &knd, int fRow, int fCol);
-        virtual void add(const GenAssembledFullM<Scalar> &kel, const int *dofs);
+        virtual void add(const GenAssembledFullM<Scalar> &kel, const int *dofs) ;
         virtual void addDiscreteMass(int dof, Scalar mass);
         virtual void add(int row_dof, int col_dof, Scalar s);
 

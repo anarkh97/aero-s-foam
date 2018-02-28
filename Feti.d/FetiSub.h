@@ -529,10 +529,11 @@ public:
 
 	/// \brief Solver for the remainder DOFs.
 	std::unique_ptr<GenSolver<Scalar>> Krr;
-	/// \brief Sparse view of the solver. Typically used to fill the matrix before calling factor.
-	GenSparseMatrix<Scalar>   *KrrSparse = nullptr; //!< Alias to Krr.
-	std::unique_ptr<GenSparseMatrix<Scalar>> KiiSparse;
+	/// \brief Sparse view alias of the Krr solver. \details Typically used to fill the matrix before calling factor.
+	GenSparseMatrix<Scalar>   *KrrSparse = nullptr;
+	/// \brief Solver the internal DOFs used in the Dirichlet Preconditionner. Alias to the sparse matrix.
 	GenSolver<Scalar>         *KiiSolver = nullptr;
+	std::unique_ptr<GenSparseMatrix<Scalar>> KiiSparse;
 	std::unique_ptr<GenCuCSparse<Scalar> >     Kib;
 	std::unique_ptr<GenAssembledFullM<Scalar>> Kcc;
 	std::unique_ptr<GenCuCSparse<Scalar>>      Krc;

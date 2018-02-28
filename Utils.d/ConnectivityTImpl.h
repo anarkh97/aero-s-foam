@@ -3,84 +3,81 @@
 #include <Utils.d/BinFileHandler.h>
 
 template<typename IndexType, typename DataType>
-ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType *_pointer, DataType *_target, bool _removeable, float *_weight) 
+ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType *_pointer, DataType *_target,
+                                                 bool _removeable, float *_weight) 
+	: size(_size), 
+	  pointer{_pointer, _pointer+_size}, 
+	  target{_target,_target+_pointer[_size]}, 
+	  weight{_weight, _weight+_pointer[_size]}
 {
- size      = _size;
- pointer   = _pointer;
- target    = _target;
- numtarget = pointer[size];
- removeable = _removeable;
- weight    = _weight;
+	if(_removeable) {
+		delete [] _pointer;
+		delete [] _target;
+		delete [] _weight;
+	}
+		
 }
 
 template<typename IndexType, typename DataType>
 ConnectivityT<IndexType,DataType>::ConnectivityT(BinFileHandler& f, bool oldSower)
 {
-  if(!oldSower) {
-    f.read(&size,1);
-    pointer = new IndexType[size];
-    --size;
-    f.read(pointer,size+1);
-    f.read(&numtarget,1);
-    target = new DataType[numtarget];
-    f.read(target,numtarget);
-    removeable = true;
-    weight    = 0;
-  }
-  else {
-    //cerr << " *** WARNING: using OLD_SOWER ::ConnectivityT(BinFileHandler& f) \n";
-    removeable = true;
-    f.read(&size, 1);
-    f.read(&numtarget, 1);
-    pointer = new IndexType[size+1];
-    target = new DataType[numtarget];
-    weight = 0;
-    f.read(pointer, size+1);
-    f.read(target, numtarget);
-  }
+	if(!oldSower) {
+		f.read(&size,1);
+		pointer.resize(size);
+		--size;
+		f.read(pointer.data(),size+1);
+		f.read(&numtarget,1);
+		target.resize(numtarget);
+		f.read(target.data(),numtarget);
+	}
+	else {
+		//cerr << " *** WARNING: using OLD_SOWER ::ConnectivityT(BinFileHandler& f) \n";
+		f.read(&size, 1);
+		f.read(&numtarget, 1);
+		pointer.resize(size+1);
+		target.resize(numtarget);
+		f.read(pointer.data(), size+1);
+		f.read(target.data(), numtarget);
+	}
 }
 
 template<typename IndexType, typename DataType>
 size_t ConnectivityT<IndexType,DataType>::write(BinFileHandler& f)
 {
-  IndexType _size = size+1;
-  f.write(&_size,1);
-  f.write(pointer,_size);
-  f.write(&numtarget,1);
-  f.write(target,numtarget);
-  return 0;
+	IndexType _size = size+1;
+	f.write(&_size,1);
+	f.write(pointer.data(),_size);
+	f.write(&numtarget,1);
+	f.write(target.data(),numtarget);
+	return 0;
 }
 
 template<typename IndexType, typename DataType>
 ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType *_count)
 {
- removeable = true;
- size    = _size;
- pointer = new IndexType[size+1];
- pointer[0] = 0;
- IndexType i;
- for(i=0; i < _size; ++i)
-    pointer[i+1] = pointer[i] + _count[i];
- numtarget = pointer[size];
- target = new DataType[numtarget];
- weight = 0;
+	size    = _size;
+	pointer.resize(size+1);
+	pointer[0] = 0;
+	IndexType i;
+	for(i=0; i < _size; ++i)
+		pointer[i+1] = pointer[i] + _count[i];
+	numtarget = pointer[size];
+	target.resize(numtarget);
 }
 
 template<typename IndexType, typename DataType>
 ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType count)
 {
- removeable = true;
- size    = _size;
- pointer = new IndexType[size+1];
- pointer[0] = 0;
- IndexType i;
- for(i=0; i < _size; ++i)
-    pointer[i+1] = pointer[i] + count;
- numtarget = pointer[size];
- target = new DataType[numtarget];
- for(IndexType i=0; i < numtarget; ++i)
-    target[i] = i;
- weight = 0;
+	size    = _size;
+	pointer = new IndexType[size+1];
+	pointer[0] = 0;
+	IndexType i;
+	for(i=0; i < _size; ++i)
+		pointer[i+1] = pointer[i] + count;
+	numtarget = pointer[size];
+	target.resize(numtarget);
+	for(IndexType i=0; i < numtarget; ++i)
+		target[i] = i;
 }
 
 /*ConnectivityT::ConnectivityT(BinFileHandler &file)
@@ -98,33 +95,25 @@ ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType coun
 }*/
 
 template<typename IndexType, typename DataType>
-ConnectivityT<IndexType,DataType>::~ConnectivityT()
-{
- if(removeable && pointer) { delete [] pointer; pointer = 0; }
- if(removeable && target)  { delete [] target;  target  = 0; }
- if(weight) { delete [] weight; weight = 0; }
-}
-
-template<typename IndexType, typename DataType>
 IndexType
 ConnectivityT<IndexType,DataType>::offset(IndexType i, DataType j)
 {
- IndexType ii;
- for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
-  if(target[ii] == j) return ii;
+	IndexType ii;
+	for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
+		if(target[ii] == j) return ii;
 
- return -1; // We didn't find a connection between i and j
+	return -1; // We didn't find a connection between i and j
 }
 
 template<typename IndexType, typename DataType>
 IndexType
 ConnectivityT<IndexType,DataType>::cOffset(IndexType i, DataType j)
 {
- IndexType ii;
- for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
-  if(target[ii] == j) return (ii - pointer[i]);
+	IndexType ii;
+	for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
+		if(target[ii] == j) return (ii - pointer[i]);
 
- return -1; // We didn't find a connection between i and j
+	return -1; // We didn't find a connection between i and j
 }
 
 #if 0

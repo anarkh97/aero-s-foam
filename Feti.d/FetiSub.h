@@ -75,8 +75,8 @@ public:
 	virtual void setGCommSize(FSCommStructure *pat) const = 0;
 
 	int localSubNum() const { return localSubNumber; }
-	virtual int localLen() const = 0;
-	virtual int localRLen() const = 0;
+	int localLen() const { return (cc_dsa) ? cc_dsa->size() : get_c_dsa()->size(); }
+	int localRLen() const { return cc_dsa->size(); }
 
 	/** \brief Obtain the global node numbers. */
 	virtual const int *getGlNodes() const = 0;
@@ -122,13 +122,7 @@ public:
 	const std::vector<int> &getWeights() const { return weight; }
 	std::vector<int> &getWeights() { return weight; }
 	int dofWeight(int i) const { return weight[i]; }
-	/* missing:
-	 * splitInterf
-	 * setMpcNeighbCommSize
-	 * setGCommSize
-	 * assembleTrbmE
-	 * assembleE
-	 */
+
 	std::vector<DofSet> cornerDofs;
 	DofSet *edgeDofs;      // JAT 112113
 
@@ -335,6 +329,9 @@ template <typename Scalar>
 class FetiSub : virtual public FetiBaseSub {
 public:
 	FetiSub() = default;
+
+	void gatherDOFList(FSCommPattern<int> *pat);
+
 	double densProjCoefficient(int dof) { return 1.0; } // Defined as virtual in SubDomain, but never defined otherwise.
 	void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const;
 	void getQtKQ(GenSolver<Scalar> *s);

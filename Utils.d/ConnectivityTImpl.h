@@ -2,8 +2,8 @@
 #include <cstdio>
 #include <Utils.d/BinFileHandler.h>
 
-template<typename IndexType, typename DataType>
-ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType *_pointer, DataType *_target,
+template<typename IndexType, typename DataType, typename Map>
+ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType *_pointer, DataType *_target,
                                                  bool _removeable, float *_weight) 
 	: size(_size), 
 	  pointer{_pointer, _pointer+_size}, 
@@ -18,8 +18,8 @@ ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType *_po
 		
 }
 
-template<typename IndexType, typename DataType>
-ConnectivityT<IndexType,DataType>::ConnectivityT(BinFileHandler& f, bool oldSower)
+template<typename IndexType, typename DataType, typename Map>
+ConnectivityT<IndexType,DataType,Map>::ConnectivityT(BinFileHandler& f, bool oldSower)
 {
 	if(!oldSower) {
 		f.read(&size,1);
@@ -41,8 +41,8 @@ ConnectivityT<IndexType,DataType>::ConnectivityT(BinFileHandler& f, bool oldSowe
 	}
 }
 
-template<typename IndexType, typename DataType>
-size_t ConnectivityT<IndexType,DataType>::write(BinFileHandler& f)
+template<typename IndexType, typename DataType, typename Map>
+size_t ConnectivityT<IndexType,DataType,Map>::write(BinFileHandler& f)
 {
 	IndexType _size = size+1;
 	f.write(&_size,1);
@@ -52,8 +52,8 @@ size_t ConnectivityT<IndexType,DataType>::write(BinFileHandler& f)
 	return 0;
 }
 
-template<typename IndexType, typename DataType>
-ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType *_count)
+template<typename IndexType, typename DataType, typename Map>
+ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType *_count)
 {
 	size    = _size;
 	pointer.resize(size+1);
@@ -65,8 +65,8 @@ ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType *_co
 	target.resize(numtarget);
 }
 
-template<typename IndexType, typename DataType>
-ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType count)
+template<typename IndexType, typename DataType, typename Map>
+ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType count)
 {
 	size    = _size;
 	pointer = new IndexType[size+1];
@@ -94,23 +94,21 @@ ConnectivityT<IndexType,DataType>::ConnectivityT(IndexType _size, IndexType coun
   file.read(target, numtarget);
 }*/
 
-template<typename IndexType, typename DataType>
+template<typename IndexType, typename DataType, typename Map>
 IndexType
-ConnectivityT<IndexType,DataType>::offset(IndexType i, DataType j)
+ConnectivityT<IndexType,DataType,Map>::offset(IndexType i, DataType j)
 {
-	IndexType ii;
-	for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
+	for(auto ii = pointer[i]; ii < pointer[i+1]; ++ii)
 		if(target[ii] == j) return ii;
 
 	return -1; // We didn't find a connection between i and j
 }
 
-template<typename IndexType, typename DataType>
+template<typename IndexType, typename DataType, typename Map>
 IndexType
-ConnectivityT<IndexType,DataType>::cOffset(IndexType i, DataType j)
+ConnectivityT<IndexType,DataType,Map>::cOffset(IndexType i, DataType j)
 {
-	IndexType ii;
-	for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
+	for(auto ii = pointer[i]; ii < pointer[i+1]; ++ii)
 		if(target[ii] == j) return (ii - pointer[i]);
 
 	return -1; // We didn't find a connection between i and j

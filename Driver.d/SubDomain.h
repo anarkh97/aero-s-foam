@@ -128,8 +128,6 @@ public:
 	int localToGlobalElem(int i) { return glElems[i]; }
 	int getGlobalNMax()         { return globalNMax; }
 	int getNumUncon() const override { return numUncon(); }
-	int localLen() const override { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
-	int localRLen() const override { return cc_dsa->size(); }
 	void putNumMPC(int *ptr) { ptr[subNumber] = numMPC; }
 	void putLocalToGlobalMPC(int *ptr, int *tg) { for(int i=0; i<numMPC; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC[i]; }
 	void putNumMPC_primal(int *ptr) { ptr[subNumber] = numMPC_primal; }
@@ -266,10 +264,12 @@ public:
 	void extractAndSendInterf(const Scalar *subvec, FSCommPattern<Scalar> *pat) const;
 	void assembleInterf(Scalar *subvec, FSCommPattern<Scalar> *pat) const;
 	void assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat) const;
+	/** \brief Renumber the element nodes to local numbers. */
 	void renumberElements();
 	void renumberElementsGlobal();
 	void renumberSharedNodes();
 	void renumberDirichlet();
+	/** \brief Renumber nodes in boundary condition data to use local numbers. */
 	void renumberBCsEtc();
 	void renumberControlLaw();
 	void renumberMPCs();
@@ -320,7 +320,7 @@ public:
 	                     Connectivity *subToEdge);
 	void deleteKcc();
 	void multQt(int glMPCnum, const Scalar *x, Scalar *result) const;
-	void gatherDOFList(FSCommPattern<int> *pat);
+
 	void gatherDOFListPlus(FSCommPattern<int> *pat);
 
 	friend class GenDistrDomain<Scalar>;

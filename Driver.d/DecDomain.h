@@ -63,13 +63,13 @@ class GenDecDomain
   GenDistrVector<Scalar> *weight;
   Scalar *globalStress;
   Scalar *globalWeight;
- 
-  int *glSubToLocal;            // local numbering of subdomains
-  int *localSubToGl;            // local to global map
-  int globalNumSub;             // total number of subdomains on all cpus
-  int numSub;                   // local number of subdomains
 
-  FSCommunicator *communicator; // PJSA
+	int *glSubToLocal;            //<! \brief Local numbering of subdomains
+	int *localSubToGl;            //<! \brief Local to global map
+	int globalNumSub;             //<! \brief Lotal number of subdomains on all cpus
+	int numSub;                   //<! \brief Local number of subdomains
+
+	FSCommunicator *communicator; //<! Communicator for all the structural processes.
   FSCommPattern<Scalar> *wiPat;
 
   int numCPU, myCPU;            // number of CPUs, my CPU number
@@ -110,7 +110,7 @@ class GenDecDomain
   int *getGlSubToLocal() { return glSubToLocal; }
   GenParallelSolver<Scalar> * getFetiSolver(GenDomainGroupTask<Scalar> &);
   void buildOps(GenMDDynamMat<Scalar>&, double, double, double, Rbm **rbm = 0, FullSquareMatrix **kelArray = 0,
-                bool make_feti = true, FullSquareMatrix **melArray = 0, FullSquareMatrix **celArray = 0, bool factor = true);
+				bool make_feti = true, FullSquareMatrix **melArray = 0, FullSquareMatrix **celArray = 0, bool factor = true);
   DiagParallelSolver<Scalar> *getDiagSolver(int nSub, GenSubDomain<Scalar> **, GenSolver<Scalar> **);
   void rebuildOps(GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix** = 0, FullSquareMatrix** = 0, FullSquareMatrix** = 0);
   void subRebuildOps(int iSub, GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix**, FullSquareMatrix**, FullSquareMatrix**);
@@ -122,20 +122,20 @@ class GenDecDomain
   Connectivity *getMpcToSub_primal() { return mpcToSub_primal; }
   virtual void preProcess();
   virtual void postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f, double eigV = 0.0,
-                              GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
-                              SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
+							  GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
+							  SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0);
   virtual void postProcessing(DistrGeomState *u, GenDistrVector<Scalar> &, Corotator ***, double x = 0,
-                              SysState<GenDistrVector<Scalar> > *distState = 0, GenDistrVector<Scalar> *aeroF = 0,
-                              DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0,
-                              GenMDDynamMat<Scalar> *dynOps = 0, GenDistrVector<Scalar> *resF = 0);
+							  SysState<GenDistrVector<Scalar> > *distState = 0, GenDistrVector<Scalar> *aeroF = 0,
+							  DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0,
+							  GenMDDynamMat<Scalar> *dynOps = 0, GenDistrVector<Scalar> *resF = 0);
   DistrInfo &solVecInfo() { return *internalInfo; } // unconstrained dofs
   const DistrInfo &masterSolVecInfo() const;
   DistrInfo &sysVecInfo() { return *internalInfo2; } // all dofs
   DistrInfo &ndVecInfo(); // all nodes
   // user defined control functions
   void extractControlData(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &,
-                          GenDistrVector<Scalar> &,
-                          Scalar *, Scalar *, Scalar *);
+						  GenDistrVector<Scalar> &,
+						  Scalar *, Scalar *, Scalar *);
   void addUserForce(GenDistrVector<Scalar> &, Scalar*);
   void addCtrl(GenDistrVector<Scalar> &, Scalar*);
   // Non linear functions
@@ -156,8 +156,8 @@ class GenDecDomain
   double computeStabilityTimeStep(GenMDDynamMat<Scalar>&);
   void extractSubDomainMPCs(int iSub);
   void reProcessMPCs();
-    void setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState, GenFetiSolver<Scalar> *fetisolver, double _lambda);
-    void setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState, FetiBaseClass<Scalar> *fetisolver, double _lambda);
+	void setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState, GenFetiSolver<Scalar> *fetisolver, double _lambda);
+	void setConstraintGap(DistrGeomState *geomState, DistrGeomState *refState, FetiBaseClass<Scalar> *fetisolver, double _lambda);
   FSCommPattern<Scalar> * getWiCommPattern();
   GenAssembler<Scalar> * getSolVecAssembler();
   void exchangeInterfaceGeomState(DistrGeomState *geomState);
@@ -165,6 +165,10 @@ class GenDecDomain
   FSCommunicator * getCommunicator() { return communicator; }
 
  protected:
+	/** \brief Build the basic subdomain data.
+	 * \details Read the elements renumber their nodes with local numbers and form the unconstrained DSA.
+	 * If there is FSI, build additional connectivities.
+	 */
   void makeSubDomains();
   void renumberElements(int iSub);
   void createElemToNode();
@@ -216,11 +220,11 @@ class GenDecDomain
  public:
   virtual void getStressStrain(GenDistrVector<Scalar>&, int, int, double, int printFlag=0);
   void getEnergies(GenDistrVector<Scalar> &disp, GenDistrVector<Scalar> &extF, int fileNumber, double time,
-                   SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
-                   GenDistrVector<Scalar> *aeroF);
+				   SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
+				   GenDistrVector<Scalar> *aeroF);
   void getEnergies_b(DistrGeomState *geomState, GenDistrVector<Scalar> &extF, Corotator ***allCorot, int fileNumber,
-                   double time, SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
-                   GenDistrVector<Scalar> *aeroF);
+				   double time, SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
+				   GenDistrVector<Scalar> *aeroF);
   void getDissipatedEnergy(DistrGeomState *geomState, Corotator ***allCorot, int fileNumber, double time);
   MultiDomainRbm<Scalar>* constructRbm(bool printFlag = true);
  private:
@@ -232,44 +236,44 @@ class GenDecDomain
   void getPrincipalStress(DistrGeomState *u, Corotator ***, int, int, double, DistrGeomState *refState);
   void getElementPrincipalStress(DistrGeomState *u, Corotator ***, int, int, double, DistrGeomState *refState);
   void computeSubdElemForce(int iSub, Scalar *globForce,
-                            GenDistrVector<Scalar> *u, int fileNumber, int Findex);
+							GenDistrVector<Scalar> *u, int fileNumber, int Findex);
   void computeSubdStress(int, GenDistrVector<Scalar>*, GenDistrVector<Scalar>*,
-                         GenDistrVector<Scalar>*, int, int) const;
+						 GenDistrVector<Scalar>*, int, int) const;
   void computeSubdElemStress(int, Scalar *, GenDistrVector<Scalar> *, int, int) const;
   void computeSubdStress_NL(int iSub, GenDistrVector<Scalar> *globStress,
-                         GenDistrVector<Scalar> *globWeight, DistrGeomState *u,
-                         Corotator ***allCorot, int *, int *Findex, DistrGeomState *refState) const;
+						 GenDistrVector<Scalar> *globWeight, DistrGeomState *u,
+						 Corotator ***allCorot, int *, int *Findex, DistrGeomState *refState) const;
   void getElementStressStrain(DistrGeomState *gs, Corotator ***allCorot,
-                              int fileNumber, int Findex, double time, DistrGeomState *refState) const;
+							  int fileNumber, int Findex, double time, DistrGeomState *refState) const;
   void computeSubdElemStress_NL(int iSub, Scalar *glElemStress,
-                             DistrGeomState *u, Corotator ***allCorot,
-                             int fileNumber, int Findex, DistrGeomState *refState) const;
+							 DistrGeomState *u, Corotator ***allCorot,
+							 int fileNumber, int Findex, DistrGeomState *refState) const;
   void outputPrimal(GenDistrVector<Scalar>& primal, int iter);
   void getPrimalVector(int fileNumber, Scalar (*xyz)[11], int numNodes,
-                       int ndof, double time);//DofSet::max_known_nonL_dof
+					   int ndof, double time);//DofSet::max_known_nonL_dof
   void getPrimalScalar(int fileNumber, Scalar (*xyz)[11], int numNodes,
-                       int dof, double time);//DofSet::max_known_nonL_dof
+					   int dof, double time);//DofSet::max_known_nonL_dof
   void getAeroForceScalar(int fileNumber, Scalar (*mergedAeroF)[6],
-                          int numNodes, int dof, double time);
+						  int numNodes, int dof, double time);
   void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u);
   void scaleInvSubDisp(int iSub, GenDistrVector<Scalar> &u);
   void scaleSubDisp_2(int iSub, GenDistrVector<Scalar> &u, double alpha) const;
   void subGetEnergies(int iSub, GenDistrVector<Scalar> &disp, GenDistrVector<Scalar> &extF, double time,
-                      SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
-                      GenDistrVector<Scalar> *aeroF, double *subW);
+					  SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
+					  GenDistrVector<Scalar> *aeroF, double *subW);
   void subGetEnergies_b(int iSub, DistrGeomState *geomState, GenDistrVector<Scalar> &extF,
-                      Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
-                      GenMDDynamMat<Scalar> *dynOps, GenDistrVector<Scalar> *aeroF, double *subW);
+					  Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
+					  GenMDDynamMat<Scalar> *dynOps, GenDistrVector<Scalar> *aeroF, double *subW);
   void subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, double *subD);
 
   // Helmholtz Fluid functions
   void distribBC(int iSub, GenSubDomain<Scalar> **sd, Domain *domain,
-     int *somToSub, int *scaToSub, int *neumToSub, int (*wetToSub)[2],
-     int *sBoundFlag);
+	 int *somToSub, int *scaToSub, int *neumToSub, int (*wetToSub)[2],
+	 int *sBoundFlag);
   void buildLocalFFP(int iSub, GenDistrVector<Scalar> *u,
-                     Scalar **ffp, int *numSample, double (*dir)[3], bool direction);
+					 Scalar **ffp, int *numSample, double (*dir)[3], bool direction);
   void getWError(int iSub, GenDistrVector<Scalar> *u,
-                 double *l2err, double *h1err, double *l2, double *h1);
+				 double *l2err, double *h1err, double *l2, double *h1);
   // coupled_dph functions
   void preProcessFSIs();
   void distributeWetInterfaceNodes();

@@ -32,6 +32,7 @@
 extern Connectivity *procMpcToMpc;
 
 #include <Driver.d/SubDomainFactory.h>
+#include "Feti.d/FetiSub.h"
 
 template<class Scalar>
 GenDecDomain<Scalar>::GenDecDomain(Domain *d, Communicator *structCom, bool _soweredInput)
@@ -2616,7 +2617,7 @@ GenDecDomain<Scalar>::getSharedDOFs()
 
   paralApplyToAll(numSub, subDomain, &GenSubDomain<Scalar>::sendDOFList, nodeIntPat);
   nodeIntPat->exchange();
-  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::gatherDOFList, nodeIntPat);
+  paralApply(numSub, subDomain, &FetiSub<Scalar>::gatherDOFList, nodeIntPat);
   paralApply(numSub, subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, nodeIntPat);
 
   delete nodeIntPat;
@@ -3894,6 +3895,11 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      if(myCPU == 0) std::cerr << " ... Diagonal Solver is Selected    ... \n";
      res.dynMat = getDiagSolver(numSub, dgt.sd, dgt.dynMats);
    } break;
+	 case 4 : {
+		 // Using FetiLib.
+
+	 }
+	 break;
  }
 }
 

@@ -1,6 +1,7 @@
 //
 // Created by Michel Lesoinne on 12/6/17.
 //
+#include <Solvers.d/Rbm.h>
 #include <Driver.d/SubDomain.h>
 #include <Solvers.d/SolverFactory.h>
 #include <Element.d/Element.h>
@@ -5173,6 +5174,107 @@ void FetiSub<Scalar>::makeKbbMpc() {
 	makeKbb(c_dsa);
 	// recover
 	std::swap(getWeights(), weight_mpc);
+}
+
+// TODO Move this to FetiBaseSub by separating the wweight part.
+template<class Scalar>
+void
+FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
+	int iSub, iNode, i;
+	Connectivity &sharedNodes = *(FetiBaseSub::scomm->sharedNodes); // contains both dry boundary nodes and wet interface nodes
+	FetiBaseSub::boundaryDOFs.resize(FetiBaseSub::scomm->numNeighb);
+	int nbdofs = 0, nwdofs = 0;
+	int nbneighb = 0, nwneighb = 0;
+	bool isbneighb, iswneighb;
+	bool isCoupled = isCoupled;
+	for (iSub = 0; iSub < FetiBaseSub::scomm->numNeighb; ++iSub) {
+		FSSubRecInfo<int> rInfo = pat->recData(FetiBaseSub::scomm->subNums[iSub], FetiBaseSub::subNumber);
+		FetiBaseSub::boundaryDOFs[iSub].resize(sharedNodes.num(iSub));
+		isbneighb = false;
+		iswneighb = false;
+		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
+			FetiBaseSub::boundaryDOFs[iSub][iNode] = DofSet(rInfo.data[iNode]); // temporarily store neighb c_dsa in boundaryDOFs
+			// or w dofs if neighb is self
+			if (isCoupled && (FetiBaseSub::isWetInterfaceNode(sharedNodes[iSub][iNode]))) { // wet interface node
+				DofSet shared_wdofs =
+					FetiBaseSub::boundaryDOFs[iSub][iNode] & FetiBaseSub::wetInterfaceDofs[FetiBaseSub::wetInterfaceNodeMap[sharedNodes[iSub][iNode]]];
+				int wcount = shared_wdofs.count();
+				if (wcount > 0) {
+					nwdofs += wcount;
+					iswneighb = true;
+				}
+			}
+			DofSet shared_rdofs = FetiBaseSub::boundaryDOFs[iSub][iNode] & (*FetiBaseSub::getCCDSA())[sharedNodes[iSub][iNode]];
+			int bcount = shared_rdofs.count();
+			nbdofs += bcount;
+			isbneighb = true;  // make every "sharedNode" neighbor a "std sharedDOF neighb" also (simplifies augmentation)
+		}
+		if (iswneighb) nwneighb++;
+		if (isbneighb) nbneighb++;
+	}
+
+	int *boundDofs = new int[nbdofs];
+	int *boundDofPointer = new int[nbneighb + 1];
+	boundDofPointer[0] = 0;
+	int *boundNeighbs = new int[nbneighb];
+	int *wetDofs = new int[nwdofs];
+	int *wetDofPointer = new int[nwneighb + 1];
+	wetDofPointer[0] = 0;
+	int *wetNeighbs = new int[nwneighb];
+	nbdofs = 0;
+	nwdofs = 0;
+	nbneighb = 0;
+	nwneighb = 0;
+	const auto &dsa = getDsa();
+	for (iSub = 0; iSub < FetiBaseSub::scomm->numNeighb; ++iSub) {
+		isbneighb = false;
+		iswneighb = false;
+		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
+			if (isCoupled && (FetiBaseSub::isWetInterfaceNode(sharedNodes[iSub][iNode]))) { // wet interface node
+				DofSet shared_wdofs =
+					FetiBaseSub::boundaryDOFs[iSub][iNode] & FetiBaseSub::wetInterfaceDofs[FetiBaseSub::wetInterfaceNodeMap[sharedNodes[iSub][iNode]]];
+				int dofs[7]; //, cdofs[7];
+				dsa->number(sharedNodes[iSub][iNode], shared_wdofs, dofs);
+				int wcount = shared_wdofs.count();
+				if (wcount > 0) {
+					for (int i = 0; i < wcount; ++i)
+						wetDofs[nwdofs++] = FetiBaseSub::wetInterfaceMap[dofs[i]]; // WHAT ABOUT CONSTRAINTS ???
+					iswneighb = true;
+				}
+			}
+			FetiBaseSub::boundaryDOFs[iSub][iNode] &= (*FetiBaseSub::getCCDSA())[sharedNodes[iSub][iNode]]; // ~> shared_rdofs
+			int bcount = FetiBaseSub::getCCDSA()->number(sharedNodes[iSub][iNode],
+			                                             FetiBaseSub::boundaryDOFs[iSub][iNode], boundDofs + nbdofs);
+			nbdofs += bcount;
+			isbneighb = true; // make every "sharedNode" neighbor a "std sharedDOF neighb" also (simplifies augmentation)
+		}
+		if (iswneighb) {
+			wetNeighbs[nwneighb++] = FetiBaseSub::scomm->subNums[iSub];
+			wetDofPointer[nwneighb] = nwdofs;
+		}
+		if (isbneighb) {
+			boundNeighbs[nbneighb++] = FetiBaseSub::scomm->subNums[iSub];
+			boundDofPointer[nbneighb] = nbdofs;
+		}
+	}
+
+	Connectivity *stdSharedDOFs = new Connectivity(nbneighb, boundDofPointer, boundDofs);
+	if (!getFetiInfo().bmpc) FetiBaseSub::scomm->setTypeSpecificList(SComm::std, boundNeighbs, stdSharedDOFs);
+	Connectivity *wetSharedDOFs = new Connectivity(nwneighb, wetDofPointer, wetDofs);
+	FetiBaseSub::scomm->setTypeSpecificList(SComm::wet, wetNeighbs, wetSharedDOFs);
+
+	int ndof = FetiBaseSub::localLen();
+	auto &weight = getWeights();
+	weight.resize(ndof);
+	for (int i = 0; i < ndof; ++i) weight[i] = 1;
+	for (int i = 0; i < stdSharedDOFs->numConnect(); ++i)
+		weight[(*stdSharedDOFs)[0][i]] += 1;
+	if (FetiBaseSub::numWIdof) {
+		this->wweight.resize(FetiBaseSub::numWIdof);
+		for (i = 0; i < FetiBaseSub::numWIdof; ++i) this->wweight[i] = 0.0;
+		for (i = 0; i < FetiBaseSub::scomm->lenT(SComm::wet); ++i)
+			this->wweight[FetiBaseSub::scomm->boundDofT(SComm::wet, i)] += 1.0;
+	}
 }
 
 template class FetiSub<double>;

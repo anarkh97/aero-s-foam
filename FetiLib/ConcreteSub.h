@@ -6,6 +6,7 @@
 #define FEM_CONCRETESUB_H
 
 #include <Feti.d/FetiSub.h>
+#include "Subdomain.h"
 
 namespace FetiLib {
 
@@ -13,9 +14,6 @@ class ConcreteBaseSub : virtual public FetiBaseSub {
 public:
 	ConcreteBaseSub();
 	const FetiInfo &getFetiInfo() const override;
-
-	int localLen() const override;
-	int localRLen() const override;
 
 	const int *getGlNodes() const override;
 
@@ -32,11 +30,13 @@ public:
 
 private:
 	FetiInfo fetiInfo;
+	CoordSet coordinates;
 };
 
 template <typename Scalar>
 class ConcreteSub : public ConcreteBaseSub, public FetiSub<Scalar> {
 public:
+	ConcreteSub(Subdomain subdomain);
 };
 
 }

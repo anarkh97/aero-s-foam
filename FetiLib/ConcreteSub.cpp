@@ -26,5 +26,17 @@ ConcreteBaseSub::ConcreteBaseSub() {
 
 }
 
+void ConcreteBaseSub::computeWaveNumbers() {
+
+}
+
+void ConcreteBaseSub::averageMatProps() {
+
+}
+
+const CoordSet &ConcreteBaseSub::getNodeSet() const {
+	return coordinates;
+}
+
 
 }

@@ -117,6 +117,9 @@ public:
 	int * getTarget() {return target.data(); }
 	const int * getTarget() const {return target.data(); }
 	const int * getPointer() const {return pointer.data(); }
+
+	template <typename RangeT>
+	static Connectivity fromLinkRange(const RangeT &range);
 	Connectivity() { size = 0; numtarget = 0; }
 	/** \brief Constructor for any object that is equipped with the methods of a set.
 	 *
@@ -656,5 +659,25 @@ Connectivity::Connectivity(const SetAccess<A> &sa)
 	for(i=0; i < size; ++i) {
 		sa.nodes(i, target.data()+pointer[i]);
 	}
+}
+
+template<typename RangeT>
+Connectivity Connectivity::fromLinkRange(const RangeT &range) {
+	auto map = [] (int n) { return n; };
+	decltype(map(range.begin()->first)) maxIdx{0};
+	for(auto &p : range) {
+		auto idx = map(p.first);
+		maxIdx = std::max(maxIdx, idx);
+	}
+	auto size = maxIdx+1;
+	std::vector<int> pointers(size+1, 0);
+	for(auto &p : range)
+		++pointers[map(p.first)];
+	for(size_t i = 0; i < size; ++i)
+		pointers[i+1]+=pointers[i];
+	std::vector<int> targets;
+	for(auto &p : range)
+		targets[--pointers[map(p.first)]] = p.second;
+	return Connectivity(size, std::move(pointers), std::move(targets));
 }
 #endif

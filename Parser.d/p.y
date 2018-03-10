@@ -3324,6 +3324,8 @@ Parameters:
         PARAMETERS NewLine
         | Parameters ACMECNTL Integer NewLine
         { domain->solInfo().dist_acme = $3; }
+        | Parameters NOSECONDARY NewLine
+        { domain->solInfo().no_secondary = true; }
         | Parameters FFIDEBUG Integer NewLine
         { domain->solInfo().ffi_debug = bool($3); }
         | Parameters MORTARSCALING Float NewLine

@@ -586,7 +586,7 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
 
  subTotal[3] = buildRhsTot.time + matrixTimer.formRhs;
 
- subTotal[4] = solutionTime - (assembleTot.time + constructTot.time);
+ subTotal[4] = solutionTime - (assembleTot.time + constructTot.time) + tdenforceTime;
 
  subTotal[5] = output;
 

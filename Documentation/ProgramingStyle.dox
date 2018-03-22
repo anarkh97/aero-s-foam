@@ -35,6 +35,7 @@ regarding memory allocation and de-allocation.
   - Namespaces and Class names start with a capital.
   - Variables start with a lowercase.
   - Composite words capitalize the first letter of each of the combined words
-  - Indentation is by 4 spaces (not using tabs)
+  - Indentation is by tabs using \em smart-tabs in IDEs to keep alignment, yet allow each programmer
+  to use a different visual indentation.
   - Namespaces are not indented.
 */

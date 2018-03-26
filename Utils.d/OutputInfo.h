@@ -50,7 +50,8 @@ struct OutputInfo {
           AGstShap, AGstThic, 
           DissipatedEnergy, DeletedElements, DualStateVar,
           Constraintvector, Constraintviolation, RomResidual, RomResidual6,
-          RomExtForce, RomExtForce6, ModalMass, ModalStiffness, ModalDamping, ModalDynamicMatrix, ModalMatrices };
+          RomExtForce, RomExtForce6, ModalMass, ModalStiffness, ModalDamping, ModalDynamicMatrix, ModalMatrices,
+          RotationVector, AngularVelocity, AngularAcceleration };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
@@ -146,6 +147,7 @@ struct OutputInfo {
        case EigenPair:
        case Displacement:
        case Reactions:
+       case RotationVector:
          dim = 3;
          break;
   
@@ -165,6 +167,8 @@ struct OutputInfo {
 
        case Velocity:
        case Acceleration:
+       case AngularVelocity:
+       case AngularAcceleration:
          dim = 3;
          break;
  
@@ -244,10 +248,13 @@ struct OutputInfo {
  bool isRotation() {
    switch(type) {
      case Disp6DOF: 
+     case RotationVector:
      case RotationMatrix:
      case Quaternion:
      case Velocity6:
+     case AngularVelocity:
      case Accel6:
+     case AngularAcceleration:
      case RotX:
      case RotY:
      case RotZ:

@@ -1137,6 +1137,12 @@ TRAIL [a-zA-Z]*
 
 "romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
 
+"rovector"|"ROVECTOR"              { yylval.ival = OutputInfo::RotationVector; return STRESSID; }
+
+"angveloc"|"ANGVELOC"              { yylval.ival = OutputInfo::AngularVelocity; return STRESSID; }
+
+"angaccel"|"ANGACCEL"              { yylval.ival = OutputInfo::AngularAcceleration; return STRESSID; }
+
 "quaterni"|"QUATERNI"              { yylval.ival = OutputInfo::Quaternion;   return STRESSID; }
 
 "modaldsp"|"MODALDSP"|"sromdisp"|"SROMDISP" { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }

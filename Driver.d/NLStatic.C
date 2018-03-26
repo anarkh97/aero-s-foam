@@ -1248,6 +1248,24 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       delete [] data;
     } 
       break;
+    case OutputInfo::RotationVector:  {
+      double (*data)[3] = new double[nPrintNodes][3];
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
+                    oinfo[iInfo].rotvecouttype, &data[nodeI][0]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
+        }
+        else {
+          std::fill_n(&data[nodeI][0], 3, 0.0);
+        }
+      }
+      geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    }
+      break;
     case OutputInfo::RotationMatrix:  {
       double (*data)[9] = new double[nPrintNodes][9];
       for (i = 0, realNode = -1; i < nNodes; ++i) {
@@ -1343,7 +1361,25 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       }
       geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
       delete [] data;
-    } 
+    }
+      break;
+    case OutputInfo::AngularVelocity: {
+      double (*data)[3] = new double[nPrintNodes][3];
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          tran_veloc((*geomState)[iNode].R, (*geomState)[iNode].theta, &(*geomState)[iNode].v[3], angularintype,
+                     oinfo[iInfo].angularouttype, rescalein, oinfo[iInfo].rescaling, &data[nodeI][0]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
+        }
+        else {
+          std::fill_n(&data[nodeI][0], 3, 0.0);
+        }
+      }
+      geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    }
       break;
     case OutputInfo::Acceleration:  {
       double (*data)[3] = new double[nPrintNodes][3];
@@ -1380,6 +1416,24 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
       delete [] data;
     } 
+      break;
+    case OutputInfo::AngularAcceleration:  {
+      double (*data)[3] = new double[nPrintNodes][3];
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          tran_accel((*geomState)[iNode].R, (*geomState)[iNode].theta, &(*geomState)[iNode].v[3], &(*geomState)[iNode].a[3],
+                     angularintype, oinfo[iInfo].angularouttype, rescalein, oinfo[iInfo].rescaling, &data[nodeI][0]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
+        }
+        else {
+          std::fill_n(&data[nodeI][0], 3, 0.0);
+        }
+      }
+      geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    }
       break;
     case OutputInfo::DispX:  {
       double *data = new double[nPrintNodes];

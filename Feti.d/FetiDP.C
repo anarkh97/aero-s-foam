@@ -1056,7 +1056,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
      this->times.memoryGtGsky -= memoryUsed();
      int sparse_ngrbms = (geometricRbms) ? ngrbms : 0; // TODO pass Rbm object, not just ngrbms
 #ifdef DISTRIBUTED
-     if(this->subToSub->csize() == this->numCPUs && fetiInfo->type != FetiInfo::nonlinear &&
+     if(this->glNumSub == this->numCPUs && fetiInfo->type != FetiInfo::nonlinear &&
         !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep && 
         (fetiInfo->coarse_cntl->type == 0 && (fetiInfo->coarse_cntl->subtype == 0 || fetiInfo->coarse_cntl->subtype == 1)))
        KccSolver = GenSolverFactory<Scalar>::getFactory()->createDistSolver(coarseConnectivity, cornerEqs, *fetiInfo->coarse_cntl,

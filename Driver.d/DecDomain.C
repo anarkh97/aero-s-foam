@@ -491,6 +491,9 @@ void
 GenDecDomain<Scalar>::makeSubToSubEtc()
 {
   if(soweredInput) {
+#ifdef SUBTOSUBINFILE
+    subToSub = geoSource->getSubToSub();
+#endif
 #ifdef OLD_CLUSTER
     subToNode = geoSource->getSubToNode();
     subToNode->sortTargets();
@@ -498,7 +501,6 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
     mt.memoryNodeToSub -= memoryUsed();
     nodeToSub = subToNode->reverse();
     mt.memoryNodeToSub += memoryUsed();
-
 #endif
 #ifdef SOWER_DISTR
 #ifdef OLD_CLUSTER
@@ -632,7 +634,7 @@ GenDecDomain<Scalar>::getCPUMap()
 #ifdef DISTRIBUTED
   char *mapName = geoSource->getCpuMapFile(); 
   FILE *f = fopen(mapName,"r");
-  numCPU = geoSource->getCPUMap(f, 0, globalNumSub);
+  numCPU = geoSource->getCPUMap(f, 0, globalNumSub, structCom->numCPUs());
   cpuToCPU = geoSource->getCpuTOCPU();
   if(f) fclose(f);
 #else

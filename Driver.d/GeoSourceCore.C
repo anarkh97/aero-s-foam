@@ -3247,20 +3247,17 @@ void GeoSource::readMatchInfo(BinFileHandler &matchFile,
 
 //-------------------------------------------------------------------
 
-int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub)
+int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numCPU)
 {
   int numSub = glNumSub;
   if(subToSub)
     numSub = subToSub->csize();
   int totSub = numSub;
-  int numCPU;
-  int *connect = new int[totSub];
 
   if(!cpuToSub) {
 #ifdef DISTRIBUTED
     if(f == 0) { // Trivial map
 
-      numCPU = structCom->numCPUs();
 #ifdef USE_SCOTCH
       if(subToSub) {
 	if(verboseFlag) filePrint(stderr, " ... Making CPU Map using SCOTCH, numCPU = %d ...\n", numCPU);
@@ -3269,30 +3266,31 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub)
 	delete graph;
       } else
 #endif
-	{
-     if(verboseFlag) filePrint(stderr, " ... Making Trivial CPU Map, numCPU = %d ... \n", numCPU);
-     int *cx  = new int[numCPU+1];
-     if(subToCPU) delete [] subToCPU;
-     subToCPU = new int[totSub];
+      {
+        if(verboseFlag) filePrint(stderr, " ... Making Trivial CPU Map, numCPU = %d ... \n", numCPU);
+        int *cx  = new int[numCPU+1];
+        int *connect = new int[totSub];
+        if(subToCPU) delete [] subToCPU;
+        subToCPU = new int[totSub];
 
-     int curSub = 0;
-     int icpu;
-     int nSubPerCPU = totSub/numCPU;
-     int remain = totSub%numCPU;
-     for (icpu = 0; icpu < numCPU; ++icpu) {
-       cx[icpu] = curSub;
-       int iSub;
-       int subForCPU = (icpu < remain) ? nSubPerCPU+1 : nSubPerCPU;
-       for(iSub = 0; iSub < subForCPU; ++iSub) {
-         connect[curSub] = curSub;
-         subToCPU[curSub] = icpu;
-         curSub++;
-       }
-     }
-     cx[numCPU] = curSub;
-     if(cpuToSub) delete cpuToSub;
-     cpuToSub = new Connectivity(numCPU,cx,connect);
-	}
+        int curSub = 0;
+        int icpu;
+        int nSubPerCPU = totSub/numCPU;
+        int remain = totSub%numCPU;
+        for (icpu = 0; icpu < numCPU; ++icpu) {
+          cx[icpu] = curSub;
+          int iSub;
+          int subForCPU = (icpu < remain) ? nSubPerCPU+1 : nSubPerCPU;
+          for(iSub = 0; iSub < subForCPU; ++iSub) {
+            connect[curSub] = curSub;
+            subToCPU[curSub] = icpu;
+            curSub++;
+          }
+        }
+        cx[numCPU] = curSub;
+        if(cpuToSub) delete cpuToSub;
+        cpuToSub = new Connectivity(numCPU, cx, connect);
+      }
     } else {
 #endif
       cpuToSub = new Connectivity(f,totSub);
@@ -4430,7 +4428,7 @@ GeoSource::setExitAfterDec(bool exit)
  * @see class Sower Driver.d/Sower.h
 */
 //#define SOWER_DEBUG
-void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
+void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCpu)
 {
   if(subToElem == 0)
     getTextDecomp(true); //the option true or false is for sowering or not
@@ -4647,6 +4645,13 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
 #endif
   sower.write();
 
+  FILE *f = fopen(mapName,"r");
+  if(!f) {
+    getCPUMap(f, (Connectivity *)NULL, subToElem->csize(), nCpu);
+    f = fopen(mapName, "w");
+    cpuToSub->write(f);
+    fclose(f);
+  }
 }
 #endif
 
@@ -4728,11 +4733,11 @@ void GeoSource::getBinaryDecomp()
 #endif
 #ifdef OLD_CLUSTER
     subToElem = new Connectivity(fp);
-    if(!binaryOutput) {delete subToElem; subToElem = 0;} // JAT 021915
+    //if(!binaryOutput) {delete subToElem; subToElem = 0;} // JAT 021915
     subToNode = new Connectivity(fp);
 #ifdef SOWER_DEBUG
-    cerr << "*** subToElem, from decomposition binary file: \n"; subToElem->print();
-    cerr << "*** subToNode, from decomposition binary file: \n"; subToNode->print();
+    std::cerr << "*** subToElem, from decomposition binary file: \n"; subToElem->print();
+    std::cerr << "*** subToNode, from decomposition binary file: \n"; subToNode->print();
 #endif
 #else
     ConnectivityT<int,int> *csubToSub2 = new ConnectivityT<int,int>(fp);
@@ -4779,13 +4784,14 @@ void GeoSource::readGlobalBinaryData()
     int numSub;
 #ifdef SUBTOSUBINFILE
     subToSub = new Connectivity(fp2);
-    int numSub = subToSub->csize();
+    numSub = subToSub->csize();
 #else
     fp2.read(&numSub, 1);
 #endif
 #ifdef SOWER_DEBUG
-    std::cerr << "*** subToClus, from connectivity binary file: \n"; subToClus->print();
-    std::cerr << "*** subToSub, from connectivity binary file: \n"; subToSub->print();
+    std::cerr << "*** subToClus, from connectivity binary file: \n";
+    for(int i=0; i<clusToSub->getNumTarget(); ++i) std::cerr << subToClus[i] << " "; std::cerr << std::endl;
+    if(subToSub) { std::cerr << "*** subToSub, from connectivity binary file: \n"; subToSub->print(); }
 #endif
 
     // build global to cluster subdomain map

@@ -967,7 +967,7 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
        localvec[k] -= s*Ave[i][k];
    }
 #else
-   Scalar v[nAve];
+   Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar)*nAve);
    Tgemv('T', numEquations, nAve, 1.0, Eve[0], numEquations, localvec, 1, 0.0, v, 1);
    Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, localvec, 1);
 #endif
@@ -992,7 +992,7 @@ GenSubDomain<Scalar>::fetiBaseOp(Scalar *uc, GenSolver<Scalar> *s, Scalar *local
        localvec[k] -= s*Ave[i][k];
    }
 #else
-   Scalar v[nAve];
+   Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar)*nAve);
    Tgemv('T', numEquations, nAve, 1.0, Ave[0], numEquations, localvec, 1, 0.0, v, 1);
    Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, localvec, 1);
 #endif
@@ -2947,7 +2947,7 @@ GenSubDomain<Scalar>::multKcc()
 	   KrrKrc[j][k] -= s*Ave[i][k];
        }
 #else
-     Scalar v[nAve];
+     Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar)*nAve);
      for(j=0; j<nRHS; j++) {
        Tgemv('T', numEquations, nAve, 1.0, Eve[0], numEquations, KrrKrc[j], 1, 0.0, v, 1);
        Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, KrrKrc[j], 1);
@@ -3182,7 +3182,7 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda)
        force[k] -= s*Ave[i][k];
    }
 #else
-   Scalar v[nAve];
+   Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar)*nAve);
    Tgemv('T', numEquations, nAve, 1.0, Eve[0], numEquations, force, 1, 0.0, v, 1);
    Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, force, 1);
 #endif
@@ -3206,7 +3206,7 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda)
        force[k] -= s*Ave[i][k];
    }
 #else
-   Scalar v[nAve];
+   Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar)*nAve);
    Tgemv('T', numEquations, nAve, 1.0, Ave[0], numEquations, force, 1, 0.0, v, 1);
    Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, force, 1);
 #endif
@@ -3304,7 +3304,7 @@ GenSubDomain<Scalar>::getFc(Scalar *f, Scalar *Fc)
     int i, iNode, numEquations = Krr->neqs();
     int rDofs[DofSet::max_known_dof];
     int oDofs[DofSet::max_known_dof];
-    Scalar fr[numEquations];
+    Scalar *fr = new Scalar[numEquations];
     for(iNode = 0; iNode < numnodes; ++iNode) {
       DofSet thisDofSet = (*cc_dsa)[iNode];
       int nd = thisDofSet.count();
@@ -3324,6 +3324,7 @@ GenSubDomain<Scalar>::getFc(Scalar *f, Scalar *Fc)
         s += Ave[i][k]*fr[k];
       Fc[nCor+i] = s;
     }
+    delete [] fr;
   }
 }
 
@@ -3378,7 +3379,7 @@ GenSubDomain<Scalar>::getFr(Scalar *f, Scalar *fr)
         fr[k] -= s*Ave[i][k];
     }
 #else
-   Scalar v[nAve];
+   Scalar *v = (Scalar *) dbg_alloca(sizeof(Scalar)*nAve);
    Tgemv('T', numEquations, nAve, 1.0, Ave[0], numEquations, fr, 1, 0.0, v, 1);
    Tgemv('N', numEquations, nAve, -1.0, Ave[0], numEquations, v, 1, 1.0, fr, 1);
 #endif

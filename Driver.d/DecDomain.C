@@ -501,7 +501,6 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
     mt.memoryNodeToSub -= memoryUsed();
     nodeToSub = subToNode->reverse();
     mt.memoryNodeToSub += memoryUsed();
-
 #endif
 #ifdef SOWER_DISTR
 #ifdef OLD_CLUSTER

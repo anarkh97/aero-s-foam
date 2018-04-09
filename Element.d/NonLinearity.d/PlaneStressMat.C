@@ -172,19 +172,19 @@ PlaneStressMat<BaseMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, 
   if(staten) Ez = Eigen::Map<Eigen::Vector3d>(staten+BaseMaterial::getNumStates());
   else Ez.setZero();
 
-  const int maxit = 10;
-  const double tol = 1e-10;
+  const int maxit = 5;
+  const double tol = 1e-5, tolabs = 1e-10;
 
   for(int i=0; i<maxit; ++i) {
-    E << Em[0], Em[2], Ez[1], Em[1], Ez[2], Ez[0];
+    E << Em[0], Em[2], 0.5*Ez[1], Em[1], 0.5*Ez[2], Ez[0];
     BaseMaterial::integrate(&stress3d, &tm3d, en3d, enp3d, staten, statenp, temp, cache3d, dt);
     Sz << S[5], S[2], S[4];
     if(i==0) SzNorm0 = Sz.norm();
-    else if(Sz.norm() < tol*SzNorm0) break;
+    else if(Sz.norm() < std::max(tolabs, tol*SzNorm0)) break;
     Czz << tm3d[5][5], tm3d[5][2], tm3d[5][4],
            tm3d[2][5], tm3d[2][2], tm3d[2][4],
            tm3d[4][5], tm3d[4][2], tm3d[4][4];
-    Ez -= Czz.inverse()*Sz;
+    Ez -= Czz.fullPivLu().solve(Sz);
   }
 
   Sm << t*S[0], t*S[3], t*S[1];
@@ -238,19 +238,19 @@ PlaneStressMat<BaseMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
   if(staten) Ez = Eigen::Map<Eigen::Vector3d>(staten+BaseMaterial::getNumStates());
   else Ez.setZero();
 
-  const int maxit = 10;
-  const double tol = 1e-10;
+  const int maxit = 5;
+  const double tol = 1e-5, tolabs = 1e-10;
 
   for(int i=0; i<maxit; ++i) {
-    E << Em[0], Em[2], Ez[1], Em[1], Ez[2], Ez[0];
+    E << Em[0], Em[2], 0.5*Ez[1], Em[1], 0.5*Ez[2], Ez[0];
     BaseMaterial::integrate(&stress3d, &tm3d, en3d, enp3d, staten, statenp, temp, cache3d, dt);
     Sz << S[5], S[2], S[4];
     if(i==0) SzNorm0 = Sz.norm();
-    else if(Sz.norm() < tol*SzNorm0) break;
+    else if(Sz.norm() < std::max(tolabs, tol*SzNorm0)) break;
     Czz << tm3d[5][5], tm3d[5][2], tm3d[5][4],
            tm3d[2][5], tm3d[2][2], tm3d[2][4],
            tm3d[4][5], tm3d[4][2], tm3d[4][4];
-    Ez -= Czz.inverse()*Sz;
+    Ez -= Czz.fullPivLu().solve(Sz);
   }
 
   Sm << t*S[0], t*S[3], t*S[1];

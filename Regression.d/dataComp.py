@@ -143,11 +143,11 @@ def dComp(params):
   nloc = -1
   gloc = -1
   i = 0 
-  pattern = re.compile("\-r")
-  runLocal = re.compile("\-l")
-  sendMail = re.compile("\-s")
-  newPlots = re.compile("\-n")
-  genBase = re.compile("\-g")
+  pattern = re.compile("^\-r")
+  runLocal = re.compile("^\-l")
+  sendMail = re.compile("^\-s")
+  newPlots = re.compile("^\-n")
+  genBase = re.compile("^\-g")
 
   for s in params:
     if(pattern.match(s)):

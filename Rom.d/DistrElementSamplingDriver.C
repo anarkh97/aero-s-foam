@@ -258,7 +258,14 @@ DistrElementSamplingDriver::solve()
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
   int myID = (structCom) ? structCom->myID() : 0;
   solver_ = new ParallelSparseNonNegativeLeastSquaresSolver(decDomain->getNumSub(), subSolvers);
-  solver_->problemSizeIs(podVectorCount*snapshotCount, domain->numElements());
+
+  if(domain->solInfo().stackedElementSampling){
+    filePrint(stderr," ... ALLOCATING EXTRA MEMORY FOR STACKED TRAINING ...\n");
+    solver_->problemSizeIs(2*podVectorCount*snapshotCount, domain->numElements());
+  } else {
+    solver_->problemSizeIs(podVectorCount*snapshotCount, domain->numElements());
+  }
+
 #ifdef PRINT_ESTIMERS
   double t2 = getTime();
 #endif
@@ -321,7 +328,10 @@ DistrElementSamplingDriver::solve()
     }
 
     subDrivers[i]->preProcess();
-    subDrivers[i]->solver().problemSizeIs(podVectorCount*snapshotCount, subDrivers[i]->elementCount());
+    if(domain->solInfo().stackedElementSampling)
+      subDrivers[i]->solver().problemSizeIs(2*podVectorCount*snapshotCount, subDrivers[i]->elementCount());
+    else
+      subDrivers[i]->solver().problemSizeIs(podVectorCount*snapshotCount, subDrivers[i]->elementCount());
 
     for(int j=0; j<subDrivers[i]->solver().equationCount(); ++j) subDrivers[i]->solver().rhsBuffer()[j] = 0.0;
     subDrivers[i]->assembleTrainingData(subPodBasis, podVectorCount, subDisplac, subVeloc, subAccel,
@@ -332,11 +342,15 @@ DistrElementSamplingDriver::solve()
     if(subNdscfgCoords) delete [] subNdscfgCoords;
     if(subNdscfgMassOrthogonalBases) delete [] subNdscfgMassOrthogonalBases;
 
-    StackVector trainingTarget(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
+    StackVector *trainingTarget;
+    if(domain->solInfo().stackedElementSampling)
+      trainingTarget = new StackVector(subDrivers[i]->solver().rhsBuffer(), 2*podVectorCount*snapshotCount);
+    else
+      trainingTarget = new StackVector(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
 #if defined(_OPENMP)
     #pragma omp critical
 #endif
-    glTrainingTarget += trainingTarget;
+    glTrainingTarget += *trainingTarget;
   }
   delete displac;
   if(veloc) delete veloc;

@@ -27,6 +27,7 @@
  extern std::string connectivity_;
  extern bool randomShuffle;
  extern bool allowMechanisms;
+ extern bool useScotch;
 %}
 
 %union
@@ -110,7 +111,7 @@
 %token STATS STRESSID SUBSPACE SURFACE STR_THERM_OPTION SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT SENSITIVITYID
 %token TABLE TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOLSEN TOPFILE TOPOLOGY TRBM TRBMlc THERMOE THERMOH RATIOTOLSEN
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL CENTER POSELEM HOTSTART HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL NUMROMCPUS THICKNESSGROUPLIST
-%token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
+%token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING USESCOTCH
 %token VERBOSE VERSION WETCORNERS YMTT YSST YSSRT
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
@@ -713,6 +714,8 @@ Decompose :
          {decInit->fsgl = true; }
        | Decompose ALLOWMECHANISMS NewLine
          {allowMechanisms = true; }
+       | Decompose USESCOTCH NewLine
+         {useScotch = true; }
        ;
 WeightList :
        WEIGHTLIST NewLine
@@ -3321,6 +3324,8 @@ Parameters:
         PARAMETERS NewLine
         | Parameters ACMECNTL Integer NewLine
         { domain->solInfo().dist_acme = $3; }
+        | Parameters NOSECONDARY NewLine
+        { domain->solInfo().no_secondary = true; }
         | Parameters FFIDEBUG Integer NewLine
         { domain->solInfo().ffi_debug = bool($3); }
         | Parameters MORTARSCALING Float NewLine
@@ -4274,9 +4279,6 @@ Solver:
 	  $$->fetiInfo.nlPrecFlg = $3; }
         | Solver NUMCGM Integer NewLine
         { $$->fetiInfo.numcgm = $3; }
-        | Solver NUMCGM Integer Float NewLine
-        { $$->fetiInfo.numcgm = $3;
-          $$->fetiInfo.numcgm2 = $4; }
         | Solver TOLCGM Float NewLine
         { $$->fetiInfo.tolcgm = $3; }
         | Solver SPACEDIMENSION Integer NewLine

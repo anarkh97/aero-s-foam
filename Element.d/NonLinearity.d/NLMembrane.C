@@ -1,13 +1,23 @@
 #include <Element.d/NonLinearity.d/NLMembrane.h>
-#include <Utils.d/dofset.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
-#include <Parser.d/AuxDefs.h>
+#include <Element.d/State.h>
 #include <Element.d/Utils.d/SolidElemUtils.h>
+#include <Hetero.d/InterpPoint.h>
 #include <Math.d/matrix.h>
 #include <Math.d/TTensor.h>
+#include <Parser.d/AuxDefs.h>
 #include <Corotational.d/utilities.h>
 #include <Corotational.d/GeomState.h>
+#include <Corotational.d/PhantomCorotator.h>
+#include <Corotational.d/MatNLCorotator.h>
+#include <Utils.d/dofset.h>
 #include <Utils.d/SolverInfo.h>
+#include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
+#include <Element.d/FelippaShell.d/NoBendingTriangle.hpp>
+#include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
 #include <cmath>
 
 extern SolverInfo &solInfo;
@@ -329,7 +339,7 @@ TriMembraneShapeFunct::interpolateScalar(double *q, double xi[3])
 static TriMembraneShapeFunct shpFct;
 
 NLMembrane::NLMembrane(int *nd)
- : material(NULL), cFrame(NULL), cCoefs(NULL)
+ : material(NULL), linearMaterial(NULL), useDefaultMaterial(false), cFrame(NULL), cCoefs(NULL)
 {
   for(int i = 0; i < 3; ++i)
     n[i] = nd[i];
@@ -339,6 +349,7 @@ NLMembrane::NLMembrane(int *nd)
 NLMembrane::~NLMembrane()
 {
   if(material && (useDefaultMaterial || cCoefs)) delete material;
+  if(linearMaterial) delete linearMaterial;
 }
 
 int
@@ -425,6 +436,12 @@ NLMembrane::getMaterial()
   return material;
 }
 
+NLMaterial *
+NLMembrane::getLinearMaterial()
+{
+  return linearMaterial;
+}
+
 GenShapeFunction< TwoDTensorTypes<9> > *
 NLMembrane::getShapeFunction()
 {
@@ -441,11 +458,36 @@ void
 NLMembrane::setProp(StructProp *p, bool _myProp)
 {
   Element::setProp(p, _myProp);
-  if(!material && prop) {
-    material = new ElaLinIsoMat2D(prop);
-    material->setTDProps(prop->ymtt, prop->ctett);
-    useDefaultMaterial = true;
-  }
+}
+
+void
+NLMembrane::rotateConstitutiveMatrix2(CoordSet &cs, double C[6][6], double alpha[6])
+{
+#ifdef USE_EIGEN3
+  int elm = glNum+1;
+  Node &nd1 = cs.getNode(n[0]);
+  Node &nd2 = cs.getNode(n[1]);
+  Node &nd3 = cs.getNode(n[2]);
+  double x[3], y[3], z[3];
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+  Eigen::Matrix3d eframe;
+  double xlp[3], ylp[3], zlp[3];
+  double area;
+
+  typedef ShellElementTemplate<double,EffMembraneTriangle,NoBendingTriangle> Impl;
+  Impl::andescrd(elm, x, y, z, eframe.data(), xlp, ylp, zlp, area);
+  Eigen::Matrix3d Tinv = ShellMaterial<double>::andesinvt(eframe.data(), cFrame, 0.);
+
+  // transform constitutive matrix to element frame
+  rotateConstitutiveMatrix(cCoefs, Tinv.data(), C);
+  // transform coefficients of thermal expansion to element frame
+  rotateVector(cCoefs+36, Tinv.data(), alpha);
+#else
+  std::cerr << " *** ERROR: Rotate constitutive matrix for NLMembrane element requires AERO-S configured with Eigen library. Exiting...\n";
+  exit(-1);
+#endif
 }
 
 void
@@ -453,20 +495,6 @@ NLMembrane::setCompositeData(int, int, double *, double *coefs, double *frame)
 {
   cCoefs = coefs;
   cFrame = frame;
-  if(material) { // anisotropic material
-    if(useDefaultMaterial) { // switch from LinearPlaneStress to PlaneStressLinear (which supports COEF)
-      delete material;
-      material = new PlaneStressMat<ElaLinIsoMat>(prop->rho, prop->E, prop->nu, prop->eh);
-      material->setTDProps(prop->ymtt, prop->ctett);
-    }
-    double C[6][6], alpha[6];
-    // transform local constitutive matrix to global frame
-    rotateConstitutiveMatrix(cCoefs, cFrame, C);
-    material->setTangentMaterial(C);
-    // transform local coefficients of thermal expansion to global frame
-    rotateVector(cCoefs+36, cFrame, alpha);
-    material->setThermalExpansionCoef(alpha);
-  }
 }
 
 double *
@@ -528,33 +556,10 @@ NLMembrane::setCompositeData2(int type, int nlays, double *lData,
 }
 
 void
-NLMembrane::getCFrame(CoordSet &cs, double cFrame[3][3]) const
-{
-  if(NLMembrane::cFrame) {
-    fprintf(stderr," *** WARNING: NLMembrane::getCFrame is not implemented\n");
-  }
-  else {
-    cFrame[0][0] = cFrame[1][1] = cFrame[2][2] = 1.;
-    cFrame[0][1] = cFrame[0][2] = cFrame[1][0] = cFrame[1][2] = cFrame[2][0] = cFrame[2][1] = 0.;
-  }
-}
-
-void
 NLMembrane::setMaterial(NLMaterial *m)
 {
-  if(material) delete material;
-  useDefaultMaterial = false;
   if(cCoefs) { // anisotropic material
     material = m->clone();
-    if(material) {
-      double C[6][6], alpha[6];
-      // transform local constitutive matrix to global frame
-      rotateConstitutiveMatrix(cCoefs, cFrame, C);
-      material->setTangentMaterial(C);
-      // transform local coefficients of thermal expansion to global frame
-      rotateVector(cCoefs+36, cFrame, alpha);
-      material->setThermalExpansionCoef(alpha);
-    }
   }
   else {
     material = m;
@@ -569,9 +574,14 @@ NLMembrane::computePressureForce(CoordSet& cs, Vector& force,
   double gs[9];
   for(int i = 0; i < 3; ++i) { 
     nodes[i] = *cs[n[i]];
-    gs[3*i  ] = (*geomState)[n[i]].x;
-    gs[3*i+1] = (*geomState)[n[i]].y;
-    gs[3*i+2] = (*geomState)[n[i]].z;
+    if(geomState) {
+      gs[3*i  ] = (*geomState)[n[i]].x;
+      gs[3*i+1] = (*geomState)[n[i]].y;
+      gs[3*i+2] = (*geomState)[n[i]].z;
+    }
+    else {
+      gs[3*i] = gs[3*i+1] = gs[3*i+2] = 0;
+    }
   }
 
   double d[2][3] = { { nodes[1].x+gs[3]-nodes[0].x-gs[0], 
@@ -610,30 +620,26 @@ NLMembrane::computePressureForce(CoordSet& cs, Vector& force,
   }
 }
 
-#include <Corotational.d/PhantomCorotator.h>
-#include <Corotational.d/MatNLCorotator.h>
 Corotator*
-NLMembrane::getCorotator(CoordSet &, double *, int , int)
+NLMembrane::getCorotator(CoordSet &cs, double *, int , int)
 {
   if(prop == NULL) return new PhantomCorotator();
   else {
-    if(useDefaultMaterial) {
-      delete material;
-      if(cCoefs) {
+    if(!material) { // if no nonlinear material has been assigned, construct a default one
+      useDefaultMaterial = true;
+      if(cCoefs)
         material = new PlaneStressMat<StVenantKirchhoffMat>(prop->rho, prop->E, prop->nu, prop->eh);
-        double C[6][6], alpha[6];
-        // transform local constitutive matrix to global frame
-        rotateConstitutiveMatrix(cCoefs, cFrame, C);
-        material->setTangentMaterial(C);
-        // transform local coefficients of thermal expansion to global frame
-        rotateVector(cCoefs+36, cFrame, alpha);
-        material->setThermalExpansionCoef(alpha);
-      }
-      else {
+      else
         material = new StVenantKirchhoffMat2D(prop);
-      }
-      material->setTDProps(prop->ymtt, prop->ctett);
     }
+    if(cCoefs) {
+      double C[6][6], alpha[6];
+      // transform constitutive matrix and coefficients of thermal expansion to element frame
+      rotateConstitutiveMatrix2(cs, C, alpha);
+      material->setTangentMaterial(C);
+      material->setThermalExpansionCoef(alpha);
+    }
+    material->setTDProps(prop->ymtt, prop->ctett);
     return new MatNLCorotator(this, false);
   }
 }
@@ -647,13 +653,23 @@ NLMembrane::stiffness(CoordSet& cs, double *k, int flg)
     return ret;
   }
   else {
+    if(!linearMaterial) {
+      if(cCoefs)
+        linearMaterial = new PlaneStressMat<ElaLinIsoMat>(prop->rho, prop->E, prop->nu, prop->eh);
+      else
+        linearMaterial = new ElaLinIsoMat2D(prop);
+    }
+    if(cCoefs) {
+      double C[6][6], alpha[6];
+      // transform constitutive matrix and coefficients of thermal expansion to element frame
+      rotateConstitutiveMatrix2(cs, C, alpha);
+      linearMaterial->setTangentMaterial(C);
+      linearMaterial->setThermalExpansionCoef(alpha);
+    }
+    linearMaterial->setTDProps(prop->ymtt, prop->ctett);
     return GenGaussIntgElement<TwoDTensorTypes<9> >::stiffness(cs,k,flg);
   }
 }
-
-#ifdef USE_EIGEN3
-#include <Eigen/Core>
-#endif
 
 FullSquareMatrix
 NLMembrane::massMatrix(CoordSet &cs, double *mel, int cmflg)
@@ -727,35 +743,6 @@ NLMembrane::getMass(CoordSet& cs)
   return mass;
 }
 
-void
-NLMembrane::getGravityForce(CoordSet& cs, double *gravityAcceleration,
-                            Vector& gravityForce, int gravflg, GeomState *geomState)
-{
-  // TODO
-  gravityForce.zero();
-}
-
-void
-NLMembrane::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
-                        Vector& elDisp, int strInd, int, double *ndTemps,
-                        double ylayer, double zlayer, int avgnum)
-{
-  // TODO
-  stress.zero();
-  weight.zero();
-}
-
-void
-NLMembrane::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
-                         Vector& elDisp, int strInd, int, double *ndTemps)
-{
-  // TODO
-  stress.zero();
-  weight.zero();
-}
-
-#include <Element.d/State.h>
-#include <Hetero.d/InterpPoint.h>
 void
 NLMembrane::computeDisp(CoordSet &cs, State &state, const InterpPoint &ip,
                         double *res, GeomState *gs)

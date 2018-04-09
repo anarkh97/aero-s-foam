@@ -74,7 +74,7 @@ class TriMembraneShapeFunct : public GenShapeFunction< TwoDTensorTypes<9> >
 class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
 {
     int n[3];
-    NLMaterial *material;
+    NLMaterial *material, *linearMaterial;
     double *cCoefs;
     double *cFrame;
     bool useDefaultMaterial;
@@ -86,6 +86,8 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     GenShapeFunction< TwoDTensorTypes<9> > *getShapeFunction();
     GenStrainEvaluator<TwoDTensorTypes<9> > *getGenStrainEvaluator();
     NLMaterial *getMaterial();
+    NLMaterial *getLinearMaterial();
+    void rotateConstitutiveMatrix2(CoordSet &cs, double C[6][6], double alpha[6]);
 
   public:
     NLMembrane(int *nd);
@@ -103,7 +105,6 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     void setProp(StructProp *p, bool _myProp = false);
     void setCompositeData(int, int, double *, double *coefs, double *frame);
     double* setCompositeData2(int, int, double *, double *coefs, CoordSet &cs, double theta);
-    void getCFrame(CoordSet &cs, double cFrame[3][3]) const;
     void setMaterial(NLMaterial *);
     void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
     PressureBCond* getPressure() { return pbc; }
@@ -120,12 +121,6 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
 #endif
     FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
     double getMass(CoordSet&);
-    void getGravityForce(CoordSet& cs, double *gravityAcceleration,
-                         Vector& gravityForce, int gravflg, GeomState *geomState);
-    void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-                     int surface=0, double *ndTemps=0, double ylayer=0, double zlayer=0, int avgnum=0);
-    void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-                      int surface=0, double *ndTemps=0);
 
     void computeDisp(CoordSet &cs, State &state, const InterpPoint &, double *res, GeomState *gs);
     void getFlLoad(CoordSet &, const InterpPoint &,  double *flF, double *resF, GeomState *gs=0);

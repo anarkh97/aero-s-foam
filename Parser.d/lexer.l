@@ -169,6 +169,8 @@ TRAIL [a-zA-Z]*
 
 "allowmechanisms"|"ALLOWMECHANISMS" { return ALLOWMECHANISMS; }
 
+"use_scotch"|"USE_SCOTCH"          { return USESCOTCH; }
+
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
 
 "global"|"GLOBAL"                  { return GLOBAL; }
@@ -1134,6 +1136,12 @@ TRAIL [a-zA-Z]*
 "gdisplac"|"GDISPLAC"              { yylval.ival = OutputInfo::Displacement; return STRESSID; }
 
 "romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
+
+"rovector"|"ROVECTOR"              { yylval.ival = OutputInfo::RotationVector; return STRESSID; }
+
+"angveloc"|"ANGVELOC"              { yylval.ival = OutputInfo::AngularVelocity; return STRESSID; }
+
+"angaccel"|"ANGACCEL"              { yylval.ival = OutputInfo::AngularAcceleration; return STRESSID; }
 
 "quaterni"|"QUATERNI"              { yylval.ival = OutputInfo::Quaternion;   return STRESSID; }
 

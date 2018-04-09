@@ -45,38 +45,15 @@ ConstraintSamplingDriver::ConstraintSamplingDriver(Domain *domain) :
 void
 ConstraintSamplingDriver::solve() {
 
+  // preprocess data structures
   SingleDomainDynamic::preProcess();
   if(domain->solInfo().newmarkBeta == 0) {
     domain->assembleNodalInertiaTensors(melArray);
   }
 
-  converter6 = new VecNodeDof6Conversion(*domain->getCDSA());
-  converter1 = new VecNodeDof1Conversion(domain->getNumCTC());
-
-  readInBasis(dualBasis, BasisId::DUALSTATE, BasisId::POD, false); // Lagrange multiplier ROB is read from dualbasis specified under DEIM
-  setSolverFlags(); // set flags from input file
-  // build ECSW problem for active constraints
-  { 
-    VecBasis displac;
-    readInBasis(displac, BasisId::STATE, BasisId::SNAPSHOTS, true, 0);
-    buildConstraintArray(dualBasis, displac);
-  }
+  // read in dual and primal snapshots
   
-  // solve ECSW and get solution
-  int nnz = NNZRows(dualBasis);
-  solver_.solve();
-  std::vector<double> solution(nnz);
-  std::vector<double> expandedSolution(dualBasis.vectorSize());
-  std::copy(solver_.solutionBuffer(), solver_.solutionBuffer() + nnz, solution.begin());
-  expandSolution(solution,expandedSolution);
-  writeWeightedDualBasis(solution,expandedSolution); // output full basis and row reduced basis
-  
-  std::cout << " ... Primal Solution ... " << std::endl;
-  for ( int ele = 0; ele < solution.size(); ele++)
-     std::cout << solution[ele] << " ";
-  std::cout << std::endl;
-  
-  writeSampledMesh(expandedSolution); // only output part of reduced mesh that contains contact specification
+  //writeSampledMesh(expandedSolution); // only output part of reduced mesh that contains contact specification
 
 }
 

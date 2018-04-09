@@ -206,6 +206,18 @@ size_t Connectivity::write(BinFileHandler& f)
   return 0;
 }
 
+size_t Connectivity::write(FILE *f)
+{
+  fprintf(f, "%d\n", csize());
+  for(int i = 0; i < csize(); ++i) {
+    fprintf(f, " %d\n", num(i));
+    for(int j = 0; j < num(i); ++j) {
+      fprintf(f, "%d\n", operator[](i)[j]+1);
+    }
+  }
+  return 0;
+}
+
 size_t Connectivity::writeg(BinFileHandler& f)
 {
   int _size = size+1;

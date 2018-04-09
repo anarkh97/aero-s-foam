@@ -371,7 +371,7 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
   if(glNums) { delete [] glNums; glNums = 0; } // not used
 #ifdef SOWER_DEBUG
   if(id6list) {
-    for(list<BCond *>::iterator it = id6list->begin(); it != id6list->end(); ++it) {
+    for(std::list<BCond *>::iterator it = id6list->begin(); it != id6list->end(); ++it) {
       std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
     }
   }

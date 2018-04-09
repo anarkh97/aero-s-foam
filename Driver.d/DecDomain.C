@@ -491,6 +491,9 @@ void
 GenDecDomain<Scalar>::makeSubToSubEtc()
 {
   if(soweredInput) {
+#ifdef SUBTOSUBINFILE
+    subToSub = geoSource->getSubToSub();
+#endif
 #ifdef OLD_CLUSTER
     subToNode = geoSource->getSubToNode();
     subToNode->sortTargets();
@@ -632,7 +635,7 @@ GenDecDomain<Scalar>::getCPUMap()
 #ifdef DISTRIBUTED
   char *mapName = geoSource->getCpuMapFile(); 
   FILE *f = fopen(mapName,"r");
-  numCPU = geoSource->getCPUMap(f, 0, globalNumSub);
+  numCPU = geoSource->getCPUMap(f, 0, globalNumSub, structCom->numCPUs());
   cpuToCPU = geoSource->getCpuTOCPU();
   if(f) fclose(f);
 #else
@@ -691,14 +694,14 @@ GenDecDomain<Scalar>::preProcess()
  }
  //soweredInput = geoSource->binaryInput;
 
-// if(!subToElem) {
+ if(!subToElem) {
    if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");
 #ifndef OLD_CLUSTER
    if(soweredInput) geoSource->getBinaryDecomp(); else
 #endif
    subToElem = geoSource->getDecomposition();
    //subToElem->sortTargets(); // JAT 021915 // PJSA 11-16-2006
-// }
+ }
 
  makeSubToSubEtc();
 
@@ -4429,6 +4432,7 @@ GenDecDomain<Scalar>::clean()
   if(nodeVecInfo) { vecInfoStore.push_back(nodeVecInfo); nodeVecInfo = 0; }
   if(eleVecInfo) { vecInfoStore.push_back(eleVecInfo); eleVecInfo = 0; }
   if(bcVecInfo) { vecInfoStore.push_back(bcVecInfo); bcVecInfo = 0; }
+  subToElem = 0;
 }
 
 template<class Scalar>

@@ -121,6 +121,7 @@ bool trivialFlag=false;
 bool randomShuffle=false;
 bool fsglFlag=false;
 bool allowMechanisms=false;
+bool useScotch=false;
 
 int verboseFlag = 0;
 int contactPrintFlag = 0;
@@ -268,6 +269,7 @@ int main(int argc, char** argv)
  int numProcessors = 1;
  int topFlag    = -1;
  int numClusters = 1;
+ int numCpus = 1;
 
  bool callDec = false;
  bool exitAfterDec = false;
@@ -315,6 +317,7 @@ int main(int argc, char** argv)
    {"deter", 0, 0, 1005},
    {"trivial", 0, 0, 1007},
    {"allow-mechanisms", 0, 0, 1008},
+   {"use-scotch", 0, 0, 1009},
    {"use-weight-from", 1, 0, 1004},
    {"threads-number", 1, 0, 'n'},
    {"decomposition-filename", 1, 0, 'd'},
@@ -339,6 +342,7 @@ int main(int argc, char** argv)
    {"sower", 0, 0, 1010},
    {"prefix", 1, 0, 1011},
    {"nclus", 1, 0, 1012},
+   {"ncpu", 1, 0, 1013},
    {"debug", 0, 0, 1006},
    {"quiet", 0, 0, 'q'},
    {0, 0, 0, 0}
@@ -347,7 +351,7 @@ int main(int argc, char** argv)
 
  filePrint(stderr,"\n --------- R U N  PARAMETERS ----------\n");
  FILE * weightFile;
- while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:q",long_options, &option_index)) != -1)
+ while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:q", long_options, &option_index)) != -1)
       switch (c) {
       case 1000 :  // call dec from FEM
 	callDec = true;
@@ -421,6 +425,9 @@ int main(int argc, char** argv)
       case 1008 :
         allowMechanisms = true;
         break;
+      case 1009 :
+        useScotch = true;
+        break;
       case 1010 :
 	callSower = true;
 	domain->setSowering(true);
@@ -435,6 +442,10 @@ int main(int argc, char** argv)
       case 1012 :
         numClusters = atoi(optarg);
         if(numClusters <= 0) numClusters = 1;
+        break;
+      case 1013 :
+        numCpus = atoi(optarg);
+        if(numCpus <= 0) numCpus = 1;
         break;
       case 'w':
 	weightOutFlag = true;
@@ -806,7 +817,7 @@ int main(int argc, char** argv)
 
  if(callSower) {
    filePrint(stderr," ... Writing Distributed Binary Input Files ... \n");
-   geoSource->writeDistributedInputFiles(numClusters, domain); //add domain as argument for surfaces
+   geoSource->writeDistributedInputFiles(numClusters, domain, numCpus); //add domain as argument for surfaces
    if(exitAfterSower) {
      filePrint(stderr," ... Exiting after Sower run        ...\n");
      filePrint(stderr," --------------------------------------\n");
@@ -1610,6 +1621,7 @@ writeOptionsToScreen()
 	        "                                 data is generated\n");
 
  fprintf(stderr," --nclus [number]              = specified number of clusters\n");
+ fprintf(stderr," --ncpu [number]               = specified number of CPUs used to generate CPUMAP file\n");
 
  fprintf(stderr,"************************************************************************************\n");
  exit(-1);

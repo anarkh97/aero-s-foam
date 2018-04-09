@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include "DistrPodProjectionNonLinDynamic.h"
 
 #include "DistrBasisFile.h"
@@ -909,3 +910,4 @@ DistrPodProjectionNonLinDynamic::projectLocalBases(int i, int j, DistrVector &q)
 }
 
 } /* end namespace Rom */
+#endif

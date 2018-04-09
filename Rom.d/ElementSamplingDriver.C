@@ -441,6 +441,10 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
               //std::cerr << "scaling position coordinates by " << domain->solInfo().xScaleFactor << " " << domain->solInfo().yScaleFactor
               //          << " " << domain->solInfo().zScaleFactor << std::endl;
               geomState_->transformCoords(xScaleFactor, yScaleFactor, zScaleFactor);
+              if(domain_->solInfo().getNLInfo().linearelastic) {
+                kelArray_[iElem].copy(domain_->getElementSet()[iElem]->stiffness(domain_->getNodes(),  kelArray_[iElem].data()));
+                melArray_[iElem].copy(domain_->getElementSet()[iElem]->massMatrix(domain_->getNodes(), melArray_[iElem].data(), geoSource->getMRatio()));
+              }
             }
             else if(ndfile) { // if using arbitrarily deformed mesh, do this block
               geomState_->setNewCoords(ndscfgCoords[kParam-1][0]);

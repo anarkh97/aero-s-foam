@@ -60,7 +60,6 @@ class BaseSub : virtual public Domain , virtual public FetiBaseSub
 protected:
 
 	GlobalToLocalMap glToLocalElem;
-	int *glNums = nullptr;
 	int *glElems = nullptr;
 	int glNumNodes;
 	double *bcx = nullptr;
@@ -107,8 +106,6 @@ public:
 	int getNumNodalOutput() const { return numNodalOutput; }
 #endif
 	int getBC(BCond *, int, int *, BCond *&);
-	void setGlNodes(int *globalNodeNums) { glNums = globalNodeNums; }
-	const int *getGlNodes() const override { return glNums; }
 	int *getGlElems() const    { return glElems; }
 	int *getGlMPCs()  const     { return localToGlobalMPC; }
 	int glToPackElem(int e) const { return (geoSource->glToPackElem(e) > globalEMax) ? -1 : glToLocalElem[geoSource->glToPackElem(e)]; }
@@ -332,8 +329,6 @@ public:
 	void setMpcSparseMatrix();
 	void constructKrc();
 	void initSrc();
-	void clean_up();
-
 	// MPC and contact functions
 	void extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc);
 	void extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &lmpc);

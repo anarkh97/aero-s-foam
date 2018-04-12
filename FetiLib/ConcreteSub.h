@@ -12,10 +12,9 @@ namespace FetiLib {
 
 class ConcreteBaseSub : virtual public FetiBaseSub {
 public:
-	ConcreteBaseSub();
+	ConcreteBaseSub(global_subdomain_index globSubIndex, local_subdomain_index locSubIndex,
+		                const SubImpl &subdomain, SComm *sComm);
 	const FetiInfo &getFetiInfo() const override;
-
-	const int *getGlNodes() const override;
 
 	int getNumUncon() const override;
 	const CoordSet& getNodeSet() const override;
@@ -36,7 +35,9 @@ private:
 template <typename Scalar>
 class ConcreteSub : public ConcreteBaseSub, public FetiSub<Scalar> {
 public:
-	ConcreteSub(Subdomain subdomain);
+	ConcreteSub(global_subdomain_index globSubIndex,
+	            local_subdomain_index locSubIndex,
+	            const Subdomain<Scalar> &subdomain);
 };
 
 }

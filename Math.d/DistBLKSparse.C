@@ -63,15 +63,15 @@ GenDistBLKSparse<Scalar>::factor()
    GenBLKSparseMatrix<Scalar>::reSolve(rows[i]);
 
  // Delete the Memory to store GtG in Sparse
- delete [] this->lnz;      this->lnz      = 0;
- delete [] this->lindx;    this->lindx    = 0;
- delete [] this->xlindx;   this->xlindx   = 0;
- delete [] this->snode;    this->snode    = 0;  
- delete [] this->xsuper;   this->xsuper   = 0;
- delete [] this->xlnz;     this->xlnz     = 0;
- delete [] this->perm;     this->perm     = 0; 
- delete [] this->invp;     this->invp     = 0;
- delete [] this->invsuper; this->invsuper = 0;
+ delete [] this->lnz;      this->lnz      = nullptr;
+ delete [] this->lindx;    this->lindx    = nullptr;
+ delete [] this->xlindx;   this->xlindx   = nullptr;
+ delete [] this->snode;    this->snode    = nullptr;
+ delete [] this->xsuper;   this->xsuper   = nullptr;
+ delete [] this->xlnz;     this->xlnz     = nullptr;
+ delete [] this->perm;     this->perm     = nullptr;
+ delete [] this->invp;     this->invp     = nullptr;
+ delete [] this->invsuper; this->invsuper = nullptr;
 }
 
 template<class Scalar>

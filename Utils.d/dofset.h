@@ -108,11 +108,11 @@ public:
 
 	int list() const { return flags; }
 
-	DofSet operator&(DofSet d) const { return DofSet(flags & d.flags); }
+	DofSet operator&(DofSet d) const { return {flags & d.flags}; }
 
-	DofSet operator|(DofSet d) const { return DofSet(flags | d.flags); }
+	DofSet operator|(DofSet d) const { return {flags | d.flags}; }
 
-	DofSet operator^(DofSet d) const { return DofSet(flags ^ d.flags); }
+	DofSet operator^(DofSet d) const { return {flags ^ d.flags}; }
 
 	DofSet &operator&=(const DofSet &d) {
 		flags &= d.flags;
@@ -127,7 +127,7 @@ class Element;
 
 class EqNumberer {
 protected:
-	int numnodes;    // total number of nodes
+	int numnodes{};    // total number of nodes
 	int *node_offset = nullptr;    // Where the nodes are
 	int *node_num_dofs = nullptr; // Number of dofs associated with a node
 	int *renummap = nullptr;        // Renumbering mapping of the nodes
@@ -172,7 +172,7 @@ protected:
 	int *dofType = nullptr; // 0 = translational, 1 = rotational
 	bool myDofs = false;
 
-	DofSetArray() {}
+	DofSetArray() = default;
 
 protected:
 	void makeOffset();
@@ -185,9 +185,9 @@ public:
 
 	DofSetArray(int nnodes, int *renumtable = 0, int myMap = 0);
 
-	DofSetArray(Element *ele);
+	explicit DofSetArray(Element *ele);
 
-	virtual ~DofSetArray();
+	~DofSetArray() override;
 
 	// locate a dof for a given node
 	int locate(int node, int dof) const;
@@ -253,7 +253,9 @@ class ComplexBCond;
  */
 class ConstrainedDSA : public DofSetArray {
 public:
-	ConstrainedDSA(DofSetArray &, int, BCond *, int = 0, ComplexBCond * = 0);
+	ConstrainedDSA(const DofSetArray &dsa,
+	               int nBC, const BCond *boundaryCond,
+	               int nComplexBC = 0, const ComplexBCond *complexBC = nullptr);
 
 	ConstrainedDSA(DofSetArray &, DofSetArray &, int, BCond *, int);
 
@@ -266,17 +268,16 @@ public:
 
 	ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcond,
 	               int numCornerNodes, const std::vector<int> &cornerNodes, const std::vector<DofSet> &cornerDofs,
-	               int ncbc = 0, ComplexBCond *cbcond = 0, int numWetInterfaceNodes = 0,
-	               int *wetInterfaceNodes = 0, DofSet *wetInterfaceDofs = 0);
+	               int ncbc = 0, ComplexBCond *cbcond = nullptr, int numWetInterfaceNodes = 0,
+	               int *wetInterfaceNodes = nullptr, DofSet *wetInterfaceDofs = nullptr);
 
-	ConstrainedDSA(DofSetArray &dsa, int n, int *sing = 0);  // PJSA: 1-23-01
+	ConstrainedDSA(DofSetArray &dsa, int n, int *sing = nullptr);  // PJSA: 1-23-01
 	ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa, int n, int *sing = 0);
 
 	ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa);
 
-	virtual ~ConstrainedDSA() { /* nothing to delete */ };
+	~ConstrainedDSA() override = default;
 
-	int getInvRCNmax() { return invrowcolmax; }  // PJSA: 11-12-02
 private:
 	int invrowcolmax;
 };
@@ -290,7 +291,7 @@ class SimpleNumberer : public EqNumberer {
 public:
 	SimpleNumberer(int nnodes, int *renumb = 0, int myMap = 0);
 
-	virtual ~SimpleNumberer() { /* nothing to delete */ };
+	~SimpleNumberer() override = default;
 
 	void setWeight(int, int);
 

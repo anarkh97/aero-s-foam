@@ -23,8 +23,8 @@ struct SharedDataInfo {
  * is less than the remainder of the division.
  */
 class Segmenter {
-	Segmenter(gl_node_t nNodes, int nProc) : quotient(nNodes/nProc), remainder(nNodes%nProc) {}
-	int getProc(gl_node_t node) {
+	Segmenter(global_node_index nNodes, int nProc) : quotient(nNodes/nProc), remainder(nNodes%nProc) {}
+	int getProc(global_node_index node) {
 		auto pr = node/quotient;
 		auto r = node % quotient;
 		if(r < pr && r < remainder)
@@ -32,8 +32,8 @@ class Segmenter {
 		return pr;
 	}
 private:
-	gl_node_t quotient;
-	gl_node_t remainder;
+	global_node_index quotient;
+	global_node_index remainder;
 };
 
 /*
@@ -85,19 +85,19 @@ namespace tpl {
  * @param dofInfo An array of pair of global node number, DofType for all the DOFs in this CPU.
  * @return The set of all global node numbers that appear in dofInfo.
  */
-std::set<gl_node_t> globalNodeSet(const DOFInfo &dofInfo) {
+std::set<global_node_index> globalNodeSet(const DOFInfo &dofInfo) {
 	// Could be done in one line, using transform iterators.
-	std::set<gl_node_t> nodes;
+	std::set<global_node_index> nodes;
 	for(const auto &info : dofInfo)
 		nodes.insert(info.first);
 	return nodes;
 }
 
 SharedDataInfo
-buildSharedDataInfo(const std::set<gl_node_t> &glNodes, const BaseCommunicator &communicator) {
+buildSharedDataInfo(const std::set<global_node_index> &glNodes, const BaseCommunicator &communicator) {
 	auto it = std::max_element(glNodes.begin(), glNodes.end());
-	gl_node_t largestNode = (it == glNodes.end()) ? 0 : *it;
-	gl_node_t numGlNodes = communicator.globalMax(largestNode+1);
+	global_node_index largestNode = (it == glNodes.end()) ? 0 : *it;
+	global_node_index numGlNodes = communicator.globalMax(largestNode+1);
 
     throw "Unfinished.";
 }
@@ -106,11 +106,31 @@ buildSharedDataInfo(const std::set<gl_node_t> &glNodes, const BaseCommunicator &
 //	return SComm{0};
 //}
 
+class OptionSet {
+public:
+	void addOption(const char *name, double v) {
+		doubleOptions.insert({std::string{name}, v});
+	}
+
+	double getDouble(const std::string name, double defaultValue) {
+		auto it = doubleOptions.find(name);
+		return it == doubleOptions.end() ? defaultValue : it->second;
+	}
+
+private:
+	std::map<std::string, double> doubleOptions;
+};
+
 /** \brief The base class of FetiDP(H) implementation */
 class DPSImpl {
 public:
 	DPSImpl(Com communicator) : communicator(CommunicatorHandle(communicator)) {}
+
+	void setOption(const char *optionName, double v) { options.addOption(optionName, v); }
+
+protected:
 	const BaseCommunicator communicator;
+	OptionSet options;
 };
 
 /** \brief Implementation class for the FetiDPSolver. */
@@ -126,12 +146,16 @@ template<typename T>
 FetiDP<T>::FetiDP(std::vector<Subdomain<T>> subdomains, Com communicator) :
 		DPSImpl(communicator),
 		subdomains(std::move(subdomains)){
-
 }
 
 template<typename T>
 DPSolver<T>::DPSolver(std::vector<Subdomain<T>> subdomains, Com communicator) {
 
+}
+
+template<typename T>
+void DPSolver<T>::setOption(const char *optionName, double v) {
+	pImpl->setOption(optionName, v);
 }
 
 template class DPSolver<double>;

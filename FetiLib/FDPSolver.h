@@ -46,13 +46,20 @@ class DPSolver {
 	 */
 	DPSolver(std::vector<Subdomain<T>> subdomains, Com communicator = default_com());
 
-	bool solve(Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>> rhs,
-	           Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>> solution);
+	/// \brief Set the relative tolerance of the solver.
+	void setTolerance(double epsilon) { setOption("tolerance", epsilon); }
+	/// \brief Set the wave number for a Helmholtz problem.
+	void setWaveNumber(double k) { setOption("wave_number", k); }
+
+	bool solve(VectorReference<const T> rhs, VectorReference<T> solution);
 private:
 	/** \brief Pointer to the opaque implementation of the solver.
 	 * \details The pointer is wrapped to enforce const correctness.
 	 */
 	const_enforcing_unique_ptr<DPSImpl> pImpl;
+
+	/// \brief Generic way of setting an option.
+	void setOption(const char *optionName, double v);
 };
 
 }
@@ -60,6 +67,6 @@ private:
 using FDPSolver = tpl::DPSolver<double>;
 using FDPHSolver = tpl::DPSolver<std::complex<double>>;
 
-}
+} // Namespace FetiLib
 
 #endif //FEM_FDPSOLVER_H

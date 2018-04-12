@@ -103,12 +103,7 @@ SComm::setTypeSpecificList(DofType type, int *_subNums, Connectivity *_sharedDOF
 int *
 SComm::mergeTypeSpecificLists()
 {
-  // build combined list of all types 0, 1 and 2 shared dofs: 
-  // also make **TypeMap and *boundDofFlag (returned)
-  // update **neighb and *remoteId 
-  // resize **exchangeData but i don't think it is necessary to add "virtual nodes"
-  // to sharedNodes list. however, check in code where sharedNodes is used and convert to "std"
-  // NumNeighb and SubNums etc.
+
   if(TypeMap) { for(int i=0; i<numDofType; ++i) { if(TypeMap[i]) delete [] TypeMap[i]; } delete [] TypeMap; }
 
   int i,j,k,l;

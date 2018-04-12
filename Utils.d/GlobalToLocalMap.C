@@ -15,7 +15,7 @@ GlobalToLocalMap::~GlobalToLocalMap() {
 }
 
 void
-GlobalToLocalMap::initialize(int localSize, int *localToGlobalArray) {
+GlobalToLocalMap::initialize(int localSize, const int *localToGlobalArray) {
 	if (~globalToLocalArray.empty()) globalToLocalArray.clear();
 	for (int i = 0; i < localSize; ++i) {
 		if (localToGlobalArray[i] < 0) continue; //HB: skip <0 values (for instance, -1 used as flag)

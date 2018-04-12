@@ -11,10 +11,10 @@ class SComm
 public:
 	/** \brief Constructor.
 	 *
-	 * @param numNeighb
-	 * @param subNums
-	 * @param remoteId
-	 * @param sharedNodes
+	 * @param numNeighb Number of neighboring subdomains.
+	 * @param subNums Indices of the neighboring subdomains
+	 * @param remoteId ID in each neigbor for this subdomain.
+	 * @param sharedNodes Nodes shared with each neighbor.
 	 */
 	SComm(int numNeighb, int *subNums, int *remoteId, Connectivity *sharedNodes);
 	~SComm();
@@ -63,15 +63,19 @@ private:
 
 public:
 	void setNumDofType(int _numDofType) { numDofType = _numDofType; }
-	// function to make type-specific lists from *sharedDOFs combined list using boundDofFlag
-	//void makeTypeSpecificLists(int *boundDofFlag);
 	void print(DofType t);
 	Connectivity *getTypeSpecificList(DofType type) { return SharedDOFs[type]; }
 
-	// function to set any one individual type-specific list
-	// if this function is used to set the individual types then mergeTypeSpecificLists() must be called
+	/** \brief Set any one individual type-specific list.
+	 * \details If this function is used to set the individual types then mergeTypeSpecificLists() must be called */
 	void setTypeSpecificList(DofType type, int *_subNums, Connectivity *_sharedDOFs);
 	void deleteTypeSpecificList(DofType type);
+	/** build combined list of all types 0, 1 and 2 shared dofs:
+	 * also make **TypeMap and *boundDofFlag (returned)
+	 * update **neighb and *remoteId
+	 * resize **exchangeData but i don't think it is necessary to add "virtual nodes"
+	 * to sharedNodes list. however, check in code where sharedNodes is used and convert to "std"
+	 * NumNeighb and SubNums etc. */
 	int* mergeTypeSpecificLists();
 	void setTypeMap(DofType t, int *map);
 

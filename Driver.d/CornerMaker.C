@@ -132,29 +132,6 @@ SubCornerHandler::~SubCornerHandler()
 void
 SubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
 {
-/*
-  // mark fsi mixed nodes (nodes attached to fsi element which have both fluid and structure dofs present in this subdomain)
-  int *fsiNodeType = new int[nnodes]; for(int i=0; i<nnodes; ++i) fsiNodeType[i] = 0;
-  for(int iEle = 0; iEle < numEle; ++iEle) {
-    if(eles[iEle]->isFsiElement()) {
-      int nnd = eles[iEle]->numNodes();
-      int *nodes = new int[nnd];
-      eles[iEle]->nodes(nodes);
-      for(int iNode = 0; iNode < nnd; ++iNode) {
-        int n = nodes[iNode];
-        // fsiNodeType: 0 --> not on wet interface, 1 --> on wet interface and fluid only, 2 --> on wet interface and structure only
-        // 3 --> on wet interface and mixed
-        if(dsa[n].contains(DofSet::XYZdisp) && dsa[n].contains(DofSet::Helm)) fsiNodeType[n] = 3;
-        else if(dsa[n].contains(DofSet::XYZdisp)) fsiNodeType[n] = 2;
-        else if(dsa[n].contains(DofSet::Helm)) fsiNodeType[n] = 1;
-        else cerr << "oops a daisy\n";
-      }
-    }
-  }
-  bool *fluidSafe = new bool[nnodes];
-  bool *structSafe = new bool[nnodes];
-  for(int i=0; i<nnodes; ++i) fluidSafe[i] = structSafe[i] = false;
-*/
   glSafe = new bool[nnodes];
   for(int iNode = 0; iNode < nnodes; ++iNode) glSafe[iNode] = false;
   // mark the safe nodes by setting glSafe to true if node is touched by at least one safe element
@@ -165,32 +142,11 @@ SubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
       eles[iEle]->nodes(nodes);
       for(int iNode = 0; iNode < nnd; ++iNode) {
         int n = nodes[iNode];
-        /*if(fsiNodeType[n] == 3) {
-          if(eles[iEle]->isFluidElement()) fluidSafe[n] = true;
-          else structSafe[n] = true;
-        }
-        else*/
         glSafe[n] = true;
       }
       delete [] nodes;
     }
   }
-/*
-  // note: if a node is mixed & belonging to an fsi element then it needs to be touched by both fluid & structure
-  // elements in order to be safe
-  for(int i=0; i<nnodes; ++i) 
-    if(fsiNodeType[i] == 3) glSafe[i] = (structSafe[i] && fluidSafe[i]);
-
-  // brute force option 1: make all shared fsi nodes corners
-  if(solInfo.getFetiInfo().fsi_corner == 1) {
-    for(int iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
-      for(int iNode = 0; iNode < sharedNodes.num(iNeighb); ++iNode) {
-        int n = sharedNodes[iNeighb][iNode];
-        if(fsiNodeType[n] > 0) glSafe[n] = false;
-      }
-    }
-  }
-*/
   // Dispatch the nodes that are not safe 
   for(int iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
     FSSubRecInfo<int> rInfo = cpat->getSendBuffer(glSubNum, neighbSubs[iNeighb]);
@@ -198,11 +154,6 @@ SubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
       rInfo.data[iNode] = int(glSafe[sharedNodes[iNeighb][iNode]]);
     }
   }
-/*
-  delete [] fsiNodeType;
-  delete [] fluidSafe;
-  delete [] structSafe;
-*/
 }
 
 void

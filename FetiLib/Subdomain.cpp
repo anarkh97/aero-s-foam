@@ -25,6 +25,16 @@ Connectivity dofToDof(const FetiLib::SparseMatrix<S> &matrix) {
 
 namespace FetiLib {
 
+template<typename S>
+Subdomain<S>::Subdomain(global_subdomain_index subdomainIndex, DOFInfo dofInfo,
+                        VectorReference<const global_node_index> globalNodeIndices,
+                        VectorReference<const std::array<double, 3>> X, const SparseMatrix<S> &K,
+                        const SharedNodes &sharedNodes) {
 
+}
+
+template<typename S>
+Subdomain<S>::~Subdomain() {
+}
 
 }

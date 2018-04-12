@@ -7,9 +7,14 @@
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include "DOFInfo.h"
+#include <FetiLib/DOFInfo.h>
+#include <FetiLib/SharedNodes.h>
+#include <FetiLib/Types.h>
 
 namespace FetiLib {
+
+/** \brief Base class for actual implementations */
+class SubImpl;
 
 template <typename S>
 using SparseMatrix = Eigen::SparseMatrix<S>;
@@ -17,34 +22,30 @@ using SparseMatrix = Eigen::SparseMatrix<S>;
 template <typename S>
 class Subdomain {
 public:
-	/** \brief Subdomain data to form the FETI solver.
+
+	/** \brief Constructor.
 	 *
-	 * @param dofInfo
-	 * @param X
-	 * @param K The subdomain matrix.
+	 * @param subdomainIndex Global subdomain index.
+	 * @param dofInfo Information relative to the DOFs.
+	 * @param globalNodeIndices Local to global index mapping of the nodes involved in this subdomain.
+	 * @param X Coordinates of the nodes.
+	 * @param K System matrix for this subdomain.
+	 * @param sharedNodes Data relative to the shared nodes.
 	 */
-	Subdomain(DOFInfo dofInfo, Eigen::Matrix<double,3,Eigen::Dynamic> X, SparseMatrix<S> K);
-	const DOFInfo &getDOFInfo() { return dofInfo; }
+	Subdomain(global_subdomain_index subdomainIndex,
+	          DOFInfo dofInfo,
+	          VectorReference<const global_node_index> globalNodeIndices, VectorReference<const std::array<double,3>> X,
+	          const SparseMatrix<S> &K,
+	          const SharedNodes &sharedNodes
+	);
 
-	const Eigen::Matrix<double, 3, -1> &getX() const {
-		return X;
-	}
+	~Subdomain();
 
-	const Eigen::SparseMatrix<S> &getK() const {
-		return K;
-	}
 private:
-	DOFInfo dofInfo;
-	Eigen::Matrix<double,3,Eigen::Dynamic> X;
-	Eigen::SparseMatrix<S> K;
-};
+	std::unique_ptr<SubImpl> subImpl;
 
-template<typename S>
-Subdomain<S>::Subdomain(DOFInfo dofInfo, Eigen::Matrix<double, 3, Eigen::Dynamic> X, SparseMatrix<S> K)
-: dofInfo(std::move(dofInfo)), X(std::move(X)), K(std::move(K))
-{
-	K.makeCompressed();
-}
+	friend SubImpl &getter(const Subdomain &s);
+};
 
 }
 

@@ -35,7 +35,7 @@ class GlobalToLocalMap : public CommunicatableObject
     GlobalToLocalMap(int localSize, int *localToGlobalArray);
     ~GlobalToLocalMap();
 
-    void initialize(int localSize, int *localToGlobalArray);
+    void initialize(int localSize, const int *localToGlobalArray);
     /** \brief Obtain the localnumber or -1 if it was not found. */
     int operator[](int glNum) const;
     /** \brief Obtain the localnumber or throw if it was not found. */

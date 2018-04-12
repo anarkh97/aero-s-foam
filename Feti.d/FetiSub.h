@@ -79,7 +79,7 @@ public:
 	int localRLen() const { return cc_dsa->size(); }
 
 	/** \brief Obtain the global node numbers. */
-	virtual const int *getGlNodes() const = 0;
+	const int *getGlNodes() const { return glNums; }
 	/** \brief Obtain the number of unconstrained degrees of freedom (includes R and C DOFs). */
 	virtual int getNumUncon() const = 0;
 
@@ -125,6 +125,7 @@ public:
 
 	std::vector<DofSet> cornerDofs;
 	DofSet *edgeDofs;      // JAT 112113
+	const int *glNums = nullptr;
 
 	SComm *scomm = nullptr;
 
@@ -306,7 +307,8 @@ protected:
 
 	double prev_cscale_factor;
 
-	double k_f = 0.0, k_p = 0.0, k_s = 0.0, k_s2 = 0.0;  // wave numbers for FETI-DPH for this subdomain
+	/// \brief wave numbers for FETI-DPH for this subdomain only in SALINAS.
+	double k_f = 0.0, k_p = 0.0, k_s = 0.0, k_s2 = 0.0;
 	double *neighbK_p = nullptr, *neighbK_s = nullptr, *neighbK_s2 = nullptr, *neighbK_f = nullptr;  // neighbors' wave numbers
 	double Ymod, Prat = 0.0, Dens = 0.0, Thih = 0.0, Sspe = 0.0;  // Young's modulus, Poisson ration, density, thickness, speed of sound
 	double *neighbYmod = nullptr, *neighbPrat = nullptr, *neighbDens = nullptr, *neighbThih = nullptr, *neighbSspe = nullptr;  // neighbor's values

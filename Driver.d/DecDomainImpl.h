@@ -286,10 +286,11 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   for(iSub=0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) {
       typename ConnectivityType2::IndexType nd = (*subToNode)[iSub][iNode];
-      bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[nd] != -1)) ? true : false;
+      bool isWetInterfaceNode = coupled_dph && (wetInterfaceNodeMap[nd] != -1);
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];
-        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
+        bool neighbWithSelf =
+            (subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0);
         if((subJ > iSub) || neighbWithSelf) {
           if(flag[NESubMap[subJ]] != iSub) { // attribute location for this sub
             flag[NESubMap[subJ]] = iSub;
@@ -313,7 +314,7 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   }
 
   // allocate memory for interface node lists
-  Connectivity **interfNode = new Connectivity *[numNESub];
+  std::vector<Connectivity *> interfNode(numNESub, nullptr);
   for(iSub=0; iSub < subToNode->csize(); ++iSub)
     if(subToNode->num(iSub))
       interfNode[NESubMap[iSub]] = new Connectivity(nConnect[NESubMap[iSub]], nodeCount[NESubMap[iSub]]);
@@ -388,7 +389,6 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   delete [] remoteID;
   delete [] connectedDomain;
   delete [] nConnect;
-  delete [] interfNode;
 
   stopTimerMemory(mt.makeConnectivity, mt.memoryConnect);
 }

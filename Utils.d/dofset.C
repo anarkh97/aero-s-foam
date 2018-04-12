@@ -385,7 +385,7 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int ns, int *sing)
 }
 
 
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd, int ncbc, ComplexBCond *cbcd)
+ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, int nbc, const BCond *bcd, int ncbc, const ComplexBCond *cbcd)
 {
   int i, inode;
   numnodes = dsa.numnodes;

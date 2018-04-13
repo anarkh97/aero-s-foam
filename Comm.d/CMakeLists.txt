@@ -4,6 +4,8 @@ ADD_LIBRARY(Comm BaseCommunicator.cpp BaseCommunicator.h OpaqueHandle.cpp Opaque
 #SET(INC_DIR ..)
 #
 #INCLUDE_DIRECTORIES( ${INC_DIR} . )
+TARGET_LINK_LIBRARIES(Comm ${MPI_LIBRARIES})
+TARGET_INCLUDE_DIRECTORIES(Comm PUBLIC ${MPI_INCLUDE_PATH})
 
 TARGET_SOURCES(Comm
         PRIVATE CommunicatorCore.C
@@ -12,5 +14,5 @@ TARGET_SOURCES(Comm
 
 ADD_EXECUTABLE(comm_test CommTest.cpp)
 #TARGET_SOURCES(comm_test PUBLIC )
-
-TARGET_LINK_LIBRARIES(comm_test Comm ${MPI_LIBRARIES})
+MESSAGE("MPI Libraries: ${MPI_LIBRARIES}")
+TARGET_LINK_LIBRARIES(comm_test Comm )

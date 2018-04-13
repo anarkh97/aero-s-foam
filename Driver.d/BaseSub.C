@@ -142,12 +142,12 @@ BaseSub::makeCDSA()
   }
 }
 
-SubCornerHandler *
+FetiSubCornerHandler *
 BaseSub::getCornerHandler()
 {
   bool noCorners = (solInfo().solvercntl->fetiInfo.corners == FetiInfo::noCorners) ? true : false; // PJSA 4-26-06
   bool noKcw    = false;  //HB: for testing only ...
-  SubCornerHandler *newCH;
+  FetiSubCornerHandler *newCH;
 
   // for coupled_dph remove wet interface nodes & virtual dual mpc nodes from sharedNodes list
   // so they won't be used by corner selection algorithm
@@ -177,11 +177,11 @@ BaseSub::getCornerHandler()
       }
     }
     drySharedNodes = new Connectivity(sharedNodes.csize(), ptr, target);
-    newCH = new SubCornerHandler(subNumber, numnodes, nodes, numele, packedEset,
+    newCH = new FetiSubCornerHandler(subNumber, numnodes, nodes, numele, packedEset,
                                  *nodeToNode, *dsa, *drySharedNodes, scomm->subNums, c_dsa, this);
   }
   else {
-    newCH = new SubCornerHandler(subNumber, numnodes, nodes, numele, packedEset,
+    newCH = new FetiSubCornerHandler(subNumber, numnodes, nodes, numele, packedEset,
                                  *nodeToNode, *dsa, *scomm->sharedNodes, scomm->subNums, c_dsa, this);
   }
 

@@ -60,7 +60,7 @@ static double checkArea(int np, int *pt, double pxyz[][3], int dim =3)
 }
 
 
-FetSubCornerHandler::FetSubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes,
+FetiSubCornerHandler::FetiSubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes,
                                          int _numEle, Elemset &_eles, Connectivity &_nToN,
                                          DofSetArray &_dsa, Connectivity &_sharedNodes,
                                          int *_neighbSubs, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre) :
@@ -122,14 +122,14 @@ FetSubCornerHandler::FetSubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_
 #endif
 }
 
-FetSubCornerHandler::~FetSubCornerHandler()
+FetiSubCornerHandler::~FetiSubCornerHandler()
 {
 	if(deg) delete [] deg;
 	if(crnList) delete [] crnList;
 }
 
 void
-FetSubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
+FetiSubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
 {
 	glSafe.assign(nnodes, false);
 	// mark the safe nodes by setting glSafe to true if node is touched by at least one safe element
@@ -155,7 +155,7 @@ FetSubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
 }
 
 void
-FetSubCornerHandler::markSafeNodes(FSCommPattern<int> *cpat)
+FetiSubCornerHandler::markSafeNodes(FSCommPattern<int> *cpat)
 {
 	// if node is unsafe in at least one subdomain, mark it as unsafe in all subdomains
 	for(int iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
@@ -181,7 +181,7 @@ FetSubCornerHandler::markSafeNodes(FSCommPattern<int> *cpat)
 }
 
 void
-FetSubCornerHandler::markMultiDegNodes()
+FetiSubCornerHandler::markMultiDegNodes()
 {
 	for(int iNode = 0; iNode < nnodes; ++iNode) deg[iNode] = weight[iNode] = 0;
 
@@ -224,7 +224,7 @@ FetSubCornerHandler::markMultiDegNodes()
 }
 
 void
-FetSubCornerHandler::dispatchRotCorners(FSCommPattern<int> *cpat)
+FetiSubCornerHandler::dispatchRotCorners(FSCommPattern<int> *cpat)
 {
 	for(int iNode = 0; iNode < nnodes; ++iNode) { weight[iNode] = 0; deg[iNode] = -1; }
 
@@ -257,7 +257,7 @@ FetSubCornerHandler::dispatchRotCorners(FSCommPattern<int> *cpat)
 }
 
 void
-FetSubCornerHandler::markRotCorners(FSCommPattern<int> *cpat)
+FetiSubCornerHandler::markRotCorners(FSCommPattern<int> *cpat)
 {
 	for(int iNode = 0; iNode < nnodes; ++iNode) deg[iNode] = -1;
 
@@ -282,7 +282,7 @@ FetSubCornerHandler::markRotCorners(FSCommPattern<int> *cpat)
 }
 
 void
-FetSubCornerHandler::pickAnyCorners()
+FetiSubCornerHandler::pickAnyCorners()
 {
 #ifdef DEBUG_CORNER
 	cerr << "glSubNum = " << glSubNum << " in pickAnyCorner\n";
@@ -364,7 +364,7 @@ FetSubCornerHandler::pickAnyCorners()
 // to all the corners (including candidate corners) of this subdomain.
 // only safe corners can be marked
 void
-FetSubCornerHandler::countAndMarkCornerCand(int *mync, int *totnc)
+FetiSubCornerHandler::countAndMarkCornerCand(int *mync, int *totnc)
 {
 	bool gotEnough = false;
 	for(int iNode = 0; iNode < nnodes; ++iNode) deg[iNode] = weight[iNode] = 0;
@@ -457,7 +457,7 @@ FetSubCornerHandler::countAndMarkCornerCand(int *mync, int *totnc)
 }
 
 void
-FetSubCornerHandler::getCornerXYZ(int *allFCNum, double (*xyz)[3],
+FetiSubCornerHandler::getCornerXYZ(int *allFCNum, double (*xyz)[3],
                                char *essential, int *cTsP, int *cTsT)
 {
 	int iNeighb, iNode;
@@ -521,7 +521,7 @@ FetSubCornerHandler::getCornerXYZ(int *allFCNum, double (*xyz)[3],
 }
 
 bool
-FetSubCornerHandler::addPotCornerPoints(int numShared, int *allNodes,
+FetiSubCornerHandler::addPotCornerPoints(int numShared, int *allNodes,
                                         std::vector<bool>::const_iterator safe)
 {
 	if(numShared < dim) {
@@ -584,7 +584,7 @@ FetSubCornerHandler::addPotCornerPoints(int numShared, int *allNodes,
 }
 
 bool
-FetSubCornerHandler::checkForColinearCrossPoints(int numCornerPoints, int *localCornerPoints)
+FetiSubCornerHandler::checkForColinearCrossPoints(int numCornerPoints, int *localCornerPoints)
 {
 	// If we are 3D we need 3 points, 2D, two, 1d, 1... hence:
 	if(numCornerPoints < dim) {
@@ -648,7 +648,7 @@ FetSubCornerHandler::checkForColinearCrossPoints(int numCornerPoints, int *local
 }
 
 void
-FetSubCornerHandler::countContact(int * cntNum, char *crnMrk)
+FetiSubCornerHandler::countContact(int * cntNum, char *crnMrk)
 {
 	int iNode, iNeighb;
 	int cnt = 0;
@@ -686,7 +686,7 @@ FetSubCornerHandler::countContact(int * cntNum, char *crnMrk)
 }
 
 void
-FetSubCornerHandler::dispatchNumbering(FSCommPattern<int> *pat, char *crnMrk,
+FetiSubCornerHandler::dispatchNumbering(FSCommPattern<int> *pat, char *crnMrk,
                                     int *allOrigFC, int *allNewFC, int, int *cntOff)
 {
 	// Dispatching corner numbering and add the contact numbers
@@ -762,7 +762,7 @@ FetSubCornerHandler::dispatchNumbering(FSCommPattern<int> *pat, char *crnMrk,
 }
 
 void
-FetSubCornerHandler::dispatchInitialNumbering(FSCommPattern<int> *pat, int *firstC)
+FetiSubCornerHandler::dispatchInitialNumbering(FSCommPattern<int> *pat, int *firstC)
 {
 	int myFirstC = firstC[glSubNum];
 	int iNode, iNeighb;
@@ -776,7 +776,7 @@ FetSubCornerHandler::dispatchInitialNumbering(FSCommPattern<int> *pat, int *firs
 }
 
 void
-FetSubCornerHandler::recInitialNumbering(FSCommPattern<int> *pat, int *numRotCrn)
+FetiSubCornerHandler::recInitialNumbering(FSCommPattern<int> *pat, int *numRotCrn)
 {
 	int iNeighb, iNode;
 	numRotCrn[glSubNum] = 0;
@@ -797,7 +797,7 @@ FetSubCornerHandler::recInitialNumbering(FSCommPattern<int> *pat, int *numRotCrn
 }
 
 void
-FetSubCornerHandler::recNumbering(FSCommPattern<int> *pat, int *fMaster)
+FetiSubCornerHandler::recNumbering(FSCommPattern<int> *pat, int *fMaster)
 {
 	int iNeighb, iNode;
 	for(iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
@@ -848,7 +848,7 @@ FetSubCornerHandler::recNumbering(FSCommPattern<int> *pat, int *fMaster)
 }
 
 void
-FetSubCornerHandler::listRotCorners(int *fN, int *crnNum)
+FetiSubCornerHandler::listRotCorners(int *fN, int *crnNum)
 {
 	int *myNum = crnNum+fN[glSubNum];
 	int iNode, iCrn = 0;
@@ -861,7 +861,7 @@ FetSubCornerHandler::listRotCorners(int *fN, int *crnNum)
 }
 
 void
-FetSubCornerHandler::resendNumbers(FSCommPattern<int> *pat)
+FetiSubCornerHandler::resendNumbers(FSCommPattern<int> *pat)
 {
 	int iNeighb, iNode;
 	for(iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
@@ -872,7 +872,7 @@ FetSubCornerHandler::resendNumbers(FSCommPattern<int> *pat)
 }
 
 void
-FetSubCornerHandler::checkNumbers(FSCommPattern<int> *pat)
+FetiSubCornerHandler::checkNumbers(FSCommPattern<int> *pat)
 {
 	int iNeighb, iNode;
 	for(iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
@@ -885,13 +885,13 @@ FetSubCornerHandler::checkNumbers(FSCommPattern<int> *pat)
 }
 
 void
-FetSubCornerHandler::markDims(int *_dims)
+FetiSubCornerHandler::markDims(int *_dims)
 {
 	for(int i=0; i<4; ++i)
 		if(dims[i]) _dims[i] = 1;
 }
 
-CornerSelector::CornerSelector(int _glNumSub, int _nSub, FetSubCornerHandler **_cornerHandler,
+CornerSelector::CornerSelector(int _glNumSub, int _nSub, FetiSubCornerHandler **_cornerHandler,
                          FSCommPattern<int> *_cpat, FSCommunicator *_communicator)
 {
 	glNumSub = _glNumSub;
@@ -901,7 +901,7 @@ CornerSelector::CornerSelector(int _glNumSub, int _nSub, FetSubCornerHandler **_
 	cpat = _cpat;
 
 	for(int i=0; i<4; ++i) dims[i] = 0;
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::markDims, dims);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::markDims, dims);
 #ifdef DISTRIBUTED
 	communicator->globalMax(4, dims);
 #endif
@@ -932,17 +932,17 @@ CornerSelector::makeCorners()
 
 	// First locate ``unsafe'' nodes. These nodes must be corner
 	// nodes (to eliminate subdomain ZEMs) but do not work in tying two subdomains together
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::dispatchSafeNodes, cpat);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::dispatchSafeNodes, cpat);
 	cpat->exchange();
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::markSafeNodes, cpat);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::markSafeNodes, cpat);
 
 	// Take care of the multi degreed nodes that could upset the coarse problem
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::markMultiDegNodes);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::markMultiDegNodes);
 
 	// Take care of the corners for 4th order problems
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::dispatchRotCorners, cpat);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::dispatchRotCorners, cpat);
 	cpat->exchange();
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::markRotCorners, cpat);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::markRotCorners, cpat);
 
 	// Build the list of potential corner and mark those already certainly chosen
 	// Phase 1, count how many corners each sub has and to how many subdomains these corners connect
@@ -953,7 +953,7 @@ CornerSelector::makeCorners()
 	// countAndMarkCornerCand internaly marks corner candidates and returns the numbers of corners
 	// for which this subdomain is master and the total number of corners connectivities
 	// weight[inode] contains the local numbering of corner candidates for which this sub is a master
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::countAndMarkCornerCand, cPerSub, nTot);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::countAndMarkCornerCand, cPerSub, nTot);
 	communicator->globalSum(glNumSub, cPerSub);
 	communicator->globalSum(glNumSub, nTot);
 
@@ -994,7 +994,7 @@ CornerSelector::makeCorners()
 	// getCornerXYZ collects the coordinates of the corner candidates and in addition lets the
 	// caller know which ones are already essential corners and finally fills the corner to sub
 	// connectivity data and count the number of corner with rot dofs
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::getCornerXYZ,
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::getCornerXYZ,
 	           cPerSub, xyz, essential, cPtr, cTg);
 	communicator->globalMax(totNC, cPtr);
 	communicator->globalSum(3*tot, (double *) xyz);
@@ -1014,9 +1014,9 @@ CornerSelector::makeCorners()
 
 	// exchange initial global numbering of the corner candidates (because we need
 	// it to build the "rotational corner" connectivity
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::dispatchInitialNumbering, cpat, cPerSub);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::dispatchInitialNumbering, cpat, cPerSub);
 	cpat->exchange();
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::recInitialNumbering, cpat, essentPtr);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::recInitialNumbering, cpat, essentPtr);
 	communicator->globalSum(glNumSub, essentPtr);
 
 	int cNum = 0;
@@ -1030,7 +1030,7 @@ CornerSelector::makeCorners()
 	int *essentTg = new int[cNum];
 	for(i = 0; i < cNum; ++i) essentTg[i] = 0;
 
-	paralApply(nSub, cornerHandler,&FetSubCornerHandler::listRotCorners, essentPtr, essentTg);
+	paralApply(nSub, cornerHandler,&FetiSubCornerHandler::listRotCorners, essentPtr, essentTg);
 	communicator->globalSum(cNum, essentTg);
 
 	Connectivity subToRotCrn(glNumSub, essentPtr, essentTg);
@@ -1055,7 +1055,7 @@ CornerSelector::makeCorners()
 	for(iSub = 0; iSub < glNumSub; ++iSub)
 		numCnt[iSub] = 0;
 
-	paralApply(nSub, cornerHandler,&FetSubCornerHandler::countContact,
+	paralApply(nSub, cornerHandler,&FetiSubCornerHandler::countContact,
 	           numCnt, essential);
 	communicator->globalSum(glNumSub, numCnt);
 
@@ -1076,16 +1076,16 @@ CornerSelector::makeCorners()
 #ifdef DEBUG_CORNER
 	fprintf(stderr, "Found %d essential safe+unsafe corners\n", cntCount);
 #endif
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::dispatchNumbering,
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::dispatchNumbering,
 	           cpat, essential, cPerSub, newCPerSub, cCount, numCnt);
 	cpat->exchange();
 
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::recNumbering,
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::recNumbering,
 	           cpat, newCPerSub);
 
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::resendNumbers, cpat);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::resendNumbers, cpat);
 	cpat->exchange();
-	paralApply(nSub, cornerHandler, &FetSubCornerHandler::checkNumbers, cpat);
+	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::checkNumbers, cpat);
 
 	delete [] essential;
 	delete [] numCnt;

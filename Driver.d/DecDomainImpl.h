@@ -2636,26 +2636,26 @@ GenDecDomain<Scalar>::makeCorners()
   for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(&cpat);
   cpat.finalize();
  
-  SubCornerHandler **cornerHandler = new SubCornerHandler * [numSub]; // deleted by cornerMaker
+  FetiSubCornerHandler **cornerHandler = new FetiSubCornerHandler * [numSub]; // deleted by cornerMaker
   execParal(numSub, this, &GenDecDomain<Scalar>::makeCornerHandler, cornerHandler);
   CornerMaker cornerMaker(globalNumSub, numSub, cornerHandler, &cpat, communicator);
   cornerMaker.makeCorners();
   grToSub = cornerMaker.getGrToSub();
   execParal(numSub, this, &GenDecDomain<Scalar>::setLocalCorners, cornerHandler);
-  
+
   paralApply(numSub, subDomain, &BaseSub::makeCCDSA);
 }
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::makeCornerHandler(int iSub, SubCornerHandler **cornerHandler)
+GenDecDomain<Scalar>::makeCornerHandler(int iSub, FetiSubCornerHandler **cornerHandler)
 {
   cornerHandler[iSub] = subDomain[iSub]->getCornerHandler();
 }
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::setLocalCorners(int iSub, SubCornerHandler **cornerHandler)
+GenDecDomain<Scalar>::setLocalCorners(int iSub, FetiSubCornerHandler **cornerHandler)
 {
   subDomain[iSub]->setCorners(cornerHandler[iSub]->getNumCorners(), cornerHandler[iSub]->getCorners());
 }

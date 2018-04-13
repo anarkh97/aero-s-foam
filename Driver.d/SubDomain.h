@@ -48,7 +48,7 @@ template <class Scalar> class GenAssembledFullM;
 typedef GenAssembledFullM<double> AssembledFullM;
 template <class Scalar> class GenSparseSet;
 typedef GenSparseSet<double> SparseSet;
-class SubCornerHandler;
+class FetiSubCornerHandler;
 template <class Type> class FSCommPattern;
 class DistrComplexVector;
 template <class Scalar> class GenSparseMatrix;
@@ -157,7 +157,7 @@ public:
 	// for timing file
 	double getSharedDofCount();
 	int getTotalDofCount();
-	SubCornerHandler *getCornerHandler();
+	FetiSubCornerHandler *getCornerHandler();
 
 	void initHelm(Domain &dom);
 

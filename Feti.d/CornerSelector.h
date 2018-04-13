@@ -9,7 +9,7 @@
 #include <vector>
 #include "FetiSub.h"
 
-class FetSubCornerHandler;
+class FetiSubCornerHandler;
 class Connectivity;
 class FSCommunicator;
 class Elemset;
@@ -25,7 +25,7 @@ class CornerSelector
 	int nSub;
 	Connectivity *grToSub;
 	int *glSubGroup;
-	FetSubCornerHandler **cornerHandler;
+	FetiSubCornerHandler **cornerHandler;
 	FSCommPattern<int> *cpat;
 	FSCommunicator *communicator;
 	int dim;
@@ -35,7 +35,7 @@ class CornerSelector
 	                   Connectivity &cNConnect, Connectivity &subToRotCrn,
 	                   int *glCrnGroup);
 public:
-	CornerSelector(int nGlobSub, int nLocSub, FetSubCornerHandler **,
+	CornerSelector(int nGlobSub, int nLocSub, FetiSubCornerHandler **,
 	            FSCommPattern<int> *, FSCommunicator *);
 	~CornerSelector();
 	int makeCorners();
@@ -43,8 +43,38 @@ public:
 };
 
 // This class is the algorithmic class to select corner nodes
-class FetSubCornerHandler
+class FetiSubCornerHandler
 {
+
+public:
+	FetiSubCornerHandler(int sub, int nn, CoordSet &n, int nele, Elemset &ele,
+	                    Connectivity &nTn, DofSetArray &d,
+	                    Connectivity &sh, int *nsb, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
+	~FetiSubCornerHandler();
+	void markMultiDegNodes();
+	void dispatchSafeNodes(FSCommPattern<int> *);
+	void markSafeNodes(FSCommPattern<int> *);
+	void dispatchRotCorners(FSCommPattern<int> *);
+	void markRotCorners(FSCommPattern<int> *);
+	void pickAnyCorners();
+	void countAndMarkCornerCand(int *mync, int *totnc);
+	void getCornerXYZ(int *, double (*)[3], char *essential, int *cTsP, int *cTsT);
+	void dispatchNumbering(FSCommPattern<int> *pat, char *crnMrk,
+	                       int *allOrigFC, int *allNewFC, int, int *cntOff);
+	void dispatchInitialNumbering(FSCommPattern<int> *pat, int *firstC);
+	void recNumbering(FSCommPattern<int> *, int *fM);
+	void recInitialNumbering(FSCommPattern<int> *pat, int *numRotCrn);
+	void listRotCorners(int *fN, int *crnNum);
+	void countContact(int *, char *crnMrk);
+	void markDims(int *_dims);
+
+	void resendNumbers(FSCommPattern<int> *pat);
+	void checkNumbers(FSCommPattern<int> *pat);
+
+	int *getCorners() { return crnList; }
+	int getNumCorners() { return totNC; }
+
+protected:
 	int glSubNum;
 	int nnodes, numEle;
 	int *deg;
@@ -73,33 +103,6 @@ class FetSubCornerHandler
 	                        bit_iterator isSafe);
 	bool mixed; // true if subdomain has active fluid and structure dofs
 	FetiBaseSub *subPre;
-public:
-	FetSubCornerHandler(int sub, int nn, CoordSet &n, int nele, Elemset &ele,
-	                    Connectivity &nTn, DofSetArray &d,
-	                    Connectivity &sh, int *nsb, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
-	~FetSubCornerHandler();
-	void markMultiDegNodes();
-	void dispatchSafeNodes(FSCommPattern<int> *);
-	void markSafeNodes(FSCommPattern<int> *);
-	void dispatchRotCorners(FSCommPattern<int> *);
-	void markRotCorners(FSCommPattern<int> *);
-	void pickAnyCorners();
-	void countAndMarkCornerCand(int *mync, int *totnc);
-	void getCornerXYZ(int *, double (*)[3], char *essential, int *cTsP, int *cTsT);
-	void dispatchNumbering(FSCommPattern<int> *pat, char *crnMrk,
-	                       int *allOrigFC, int *allNewFC, int, int *cntOff);
-	void dispatchInitialNumbering(FSCommPattern<int> *pat, int *firstC);
-	void recNumbering(FSCommPattern<int> *, int *fM);
-	void recInitialNumbering(FSCommPattern<int> *pat, int *numRotCrn);
-	void listRotCorners(int *fN, int *crnNum);
-	void countContact(int *, char *crnMrk);
-	void markDims(int *_dims);
-
-	void resendNumbers(FSCommPattern<int> *pat);
-	void checkNumbers(FSCommPattern<int> *pat);
-
-	int *getCorners() { return crnList; }
-	int getNumCorners() { return totNC; }
 };
 
 #endif //FEM_CORNERSELECTOR_H

@@ -1,9 +1,15 @@
-#ifndef _CORNER_MAKER_H_
-#define _CORNER_MAKER_H_
+//
+// Created by Michel Lesoinne on 4/12/18.
+//
+
+#ifndef FEM_CORNERSELECTOR_H
+#define FEM_CORNERSELECTOR_H
+
 
 #include <vector>
+#include "FetiSub.h"
 
-class SubCornerHandler;
+class FetSubCornerHandler;
 class Connectivity;
 class FSCommunicator;
 class Elemset;
@@ -13,13 +19,13 @@ class ConstrainedDSA;
 class BaseSub;
 template <class Type> class FSCommPattern;
 
-class CornerMaker
+class CornerSelector
 {
 	int glNumSub;
 	int nSub;
 	Connectivity *grToSub;
 	int *glSubGroup;
-	SubCornerHandler **cornerHandler;
+	FetSubCornerHandler **cornerHandler;
 	FSCommPattern<int> *cpat;
 	FSCommunicator *communicator;
 	int dim;
@@ -29,15 +35,15 @@ class CornerMaker
 	                   Connectivity &cNConnect, Connectivity &subToRotCrn,
 	                   int *glCrnGroup);
 public:
-	CornerMaker(int nGlobSub, int nLocSub, SubCornerHandler **,
+	CornerSelector(int nGlobSub, int nLocSub, FetSubCornerHandler **,
 	            FSCommPattern<int> *, FSCommunicator *);
-	~CornerMaker();
+	~CornerSelector();
 	int makeCorners();
 	Connectivity *getGrToSub() { return grToSub; }
 };
 
 // This class is the algorithmic class to select corner nodes
-class SubCornerHandler
+class FetSubCornerHandler
 {
 	int glSubNum;
 	int nnodes, numEle;
@@ -55,22 +61,23 @@ class SubCornerHandler
 	CoordSet &nodes;
 	Elemset &eles;
 	DofSetArray &dsa;
-	bool *isRotMidSideNode;
+	std::vector<bool> isRotMidSideNode;
 	int dim;
 	int dims[4];
 	bool allSafe;
 	int nTC; // Total number of corner candidates for this sub
 	bool checkForColinearCrossPoints(int numCornerPoints,
 	                                 int *localCornerPoints);
-	using cbit_iterator = std::vector<bool>::const_iterator;
-	bool addPotCornerPoints(int numShared, int *allNodes, cbit_iterator isSafe);
+	using bit_iterator = std::vector<bool>::const_iterator;
+	bool addPotCornerPoints(int numShared, int *allNodes,
+	                        bit_iterator isSafe);
 	bool mixed; // true if subdomain has active fluid and structure dofs
-	BaseSub *subPre;
+	FetiBaseSub *subPre;
 public:
-	SubCornerHandler(int sub, int nn, CoordSet &n, int nele, Elemset &ele,
-	                 Connectivity &nTn, DofSetArray &d,
-	                 Connectivity &sh, int *nsb, ConstrainedDSA *c_dsa, BaseSub *_subPre);
-	~SubCornerHandler();
+	FetSubCornerHandler(int sub, int nn, CoordSet &n, int nele, Elemset &ele,
+	                    Connectivity &nTn, DofSetArray &d,
+	                    Connectivity &sh, int *nsb, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
+	~FetSubCornerHandler();
 	void markMultiDegNodes();
 	void dispatchSafeNodes(FSCommPattern<int> *);
 	void markSafeNodes(FSCommPattern<int> *);
@@ -95,4 +102,4 @@ public:
 	int getNumCorners() { return totNC; }
 };
 
-#endif
+#endif //FEM_CORNERSELECTOR_H

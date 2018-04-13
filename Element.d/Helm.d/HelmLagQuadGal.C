@@ -32,7 +32,7 @@ Element * HelmLagQuadGal::clone() {
 }
 
 
-void HelmLagQuadGal::renum(int *table) {
+void HelmLagQuadGal::renum(const int *table) {
  int i;
  for(i=0;i<order*order;i++) nn[i] = table[nn[i]];
 }

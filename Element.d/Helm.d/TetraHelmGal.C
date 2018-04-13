@@ -29,7 +29,7 @@ Element * TetraHelmGal::clone() {
 }
 
 
-void TetraHelmGal::renum(int *table) {
+void TetraHelmGal::renum(const int *table) {
     nn[0] = table[nn[0]];
     nn[1] = table[nn[1]];
     nn[2] = table[nn[2]];

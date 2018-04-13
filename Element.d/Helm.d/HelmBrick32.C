@@ -47,7 +47,7 @@ HelmBrick32::clone()
 }
 
 void
-HelmBrick32::renum(int *table)
+HelmBrick32::renum(const int *table)
 {
   for(int i=0; i<32; i++) { nn[i] = table[nn[i]]; }
 }

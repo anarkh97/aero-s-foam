@@ -152,7 +152,7 @@ SuperElement::setInternalNodes(int *in)
 }
 
 void
-SuperElement::renum(int *table)
+SuperElement::renum(const int *table)
 {
   for(int i = 0; i < numNodes(); ++i) nn[i] = table[nn[i]];
   for(int i = 0; i < nSubElems; ++i) subElems[i]->renum(table);

@@ -25,7 +25,7 @@ RotnSprlink::clone()
 }
 
 void
-RotnSprlink::renum(int *table)
+RotnSprlink::renum(const int *table)
 {
   nn[0] = table[nn[0]];
   nn[1] = table[nn[1]];

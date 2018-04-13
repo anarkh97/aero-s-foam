@@ -81,7 +81,7 @@ Penta26::clone()
 }
 
 void
-Penta26::renum(int *table)
+Penta26::renum(const int *table)
 {
  for(int i=0; i<26; i++)
    nn[i] = table[nn[i]];

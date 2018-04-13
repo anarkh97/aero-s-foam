@@ -37,7 +37,7 @@ Element * LEIsoParamQuad::clone() {
 }
 
 
-void LEIsoParamQuad::renum(int *table) {
+void LEIsoParamQuad::renum(const int *table) {
  int i;
  int ordersq = order*order;
  for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];

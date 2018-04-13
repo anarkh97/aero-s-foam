@@ -20,7 +20,7 @@ HelmTri3Gls::clone()
 }
 
 void
-HelmTri3Gls::renum(int *table)
+HelmTri3Gls::renum(const int *table)
 {
   nn[0] = table[nn[0]];
   nn[1] = table[nn[1]];

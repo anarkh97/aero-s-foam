@@ -202,10 +202,10 @@ public:
 	Connectivity *nodeToSub;
 	void setnodeToSubConnectivity(Connectivity *nTsubConn) { nodeToSub = nTsubConn; }
 	void markWetInterface(int nWI, int *wiNum);
-	bool onWetInterface(int iNode) { return wetInterfaceMark[iNode]; }
+	bool onWetInterface(int iNode) const override { return wetInterfaceMark[iNode]; }
 	bool onWetInterfaceFluid(int iNode) { return wetInterfaceFluidMark[iNode]; }
 	bool onWetInterfaceStructure(int iNode) { return wetInterfaceStructureMark[iNode]; }
-	bool isWetInterfaceCorner(int iNode) { return wetInterfaceCornerMark[iNode]; }
+	bool isWetInterfaceCorner(int iNode) const override { return wetInterfaceCornerMark[iNode]; }
 	void setWetInterface(int nWI, int *wiNum);
 	void makeDSA();
 	void makeCDSA();

@@ -50,7 +50,7 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 void
 PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
-::renum(int *table) {
+::renum(const int *table) {
 	for (int i = 0; i < numNodes(); ++i)
 		if (nn[i] > -1)
 			nn[i] = table[nn[i]];

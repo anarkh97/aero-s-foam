@@ -23,7 +23,7 @@ public:
 
 	~PressureElement();
 
-	void renum(int *) override;
+	void renum(const int *) override;
 
 	void renum(EleRenumMap &) override;
 

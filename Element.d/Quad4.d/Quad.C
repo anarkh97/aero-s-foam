@@ -32,7 +32,7 @@ Quad::clone()
 }
 
 void
-Quad::renum(int *table)
+Quad::renum(const int *table)
 {
   int i;
   for(i=0; i<numnod; ++i)

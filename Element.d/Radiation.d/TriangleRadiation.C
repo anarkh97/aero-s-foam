@@ -29,7 +29,7 @@ TriangleRadiation::clone()
 }
 
 void
-TriangleRadiation::renum(int *table)
+TriangleRadiation::renum(const int *table)
 {
   nn[0] = table[nn[0]];
   nn[1] = table[nn[1]];

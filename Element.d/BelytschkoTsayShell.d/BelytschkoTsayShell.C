@@ -259,7 +259,7 @@ BelytschkoTsayShell::clone()
 }
 
 void
-BelytschkoTsayShell::renum(int *table)
+BelytschkoTsayShell::renum(const int *table)
 {
   for(int i = 0; i < nnode; ++i)
     nn[i] = table[nn[i]];

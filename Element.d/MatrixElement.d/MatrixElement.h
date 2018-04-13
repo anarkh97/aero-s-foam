@@ -26,7 +26,7 @@ public:
 	void setStiffness(GenAssembledFullM<double> *k);
 	void setStiffness(GenAssembledFullM<complex<double> > *k);
 
-	void renum(int *table) override;
+	void renum(const int *table) override;
 	void renum(EleRenumMap& m) override;
 	void markDofs(DofSetArray &) const override;
 	int* dofs(DofSetArray &, int *p) const override;

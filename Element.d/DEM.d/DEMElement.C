@@ -55,7 +55,7 @@ DEMInterfaceElement::DEMInterfaceElement(DEMElement *_deme, DEMElement *_deme2, 
 // --------------------------------------------------------------------------
 // Element functions
 
-void DEMElement::renum(int *table) {
+void DEMElement::renum(const int *table) {
  fprintf(stderr,"DEMElement::renum is not implemented.\n");
 }
 
@@ -65,7 +65,7 @@ void DEMElement::renum(EleRenumMap& table) {
 }
 
 
-void DEMInterfaceElement::renum(int *table) {
+void DEMInterfaceElement::renum(const int *table) {
  fprintf(stderr,"DEMInterfaceElement::renum is not implemented.\n");
 }
 

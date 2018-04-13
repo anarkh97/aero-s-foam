@@ -11,7 +11,7 @@ public:
 
 	Element *clone() override;
 
-	void renum(int *) override;
+	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg = 1) const override;

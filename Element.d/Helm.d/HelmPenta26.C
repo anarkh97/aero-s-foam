@@ -46,7 +46,7 @@ HelmPenta26::clone()
 }
 
 void
-HelmPenta26::renum(int *table)
+HelmPenta26::renum(const int *table)
 {
   for(int i=0; i<26; i++) { nn[i] = table[nn[i]]; }
 }

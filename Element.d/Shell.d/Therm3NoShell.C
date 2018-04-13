@@ -32,7 +32,7 @@ Therm3NoShell::clone()
 }
 
 void
-Therm3NoShell::renum(int *table)
+Therm3NoShell::renum(const int *table)
 {
 	nn[0] = table[nn[0]];
 	nn[1] = table[nn[1]];

@@ -20,7 +20,7 @@ public:
         double  getMass(const CoordSet& cs) const override;
 
 	Element *clone() override;
-	void renum(int *) override;
+	void renum(const int *) override;
         void renum(EleRenumMap&) override;
 	void markDofs(DofSetArray &) const override;
 	int getTopNumber() override {return 163;}

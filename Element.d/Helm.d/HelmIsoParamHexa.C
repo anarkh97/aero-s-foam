@@ -41,7 +41,7 @@ Element * HelmIsoParamHexa::clone() {
 }
 
 
-void HelmIsoParamHexa::renum(int *table) {
+void HelmIsoParamHexa::renum(const int *table) {
  int i;
  int orderc = order*order*order;
  for(i=0;i<orderc;i++) nn[i] = table[nn[i]];

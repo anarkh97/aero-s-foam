@@ -38,7 +38,7 @@ Element * HelmIsoParamQuad::clone() {
 }
 
 
-void HelmIsoParamQuad::renum(int *table) {
+void HelmIsoParamQuad::renum(const int *table) {
  int i;
  int ordersq = order*order;
  for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];

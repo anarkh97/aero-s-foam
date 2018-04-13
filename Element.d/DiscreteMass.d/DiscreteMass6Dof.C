@@ -35,7 +35,7 @@ DiscreteMass6Dof::setFrame(EFrame *elemframe)
 }
 
 void
-DiscreteMass6Dof::renum(int* table)
+DiscreteMass6Dof::renum(const int *table)
 {
   if(nn[0] > -1) nn[0] = table[nn[0]];
 }

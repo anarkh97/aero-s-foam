@@ -19,7 +19,7 @@ public:
 	~DiscreteMass6Dof() override;
 
 	void setFrame(EFrame *elemframe) override;
-	void renum(int*) override;
+	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 	int numNodes() const override { return 1; }
 	int *nodes(int *) const override;

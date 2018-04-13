@@ -9,7 +9,7 @@ class ConnectedTri : public Element {
 public:
 	ConnectedTri(int*);
 
-	void renum(int *) override;
+	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 
 	FullSquareMatrix stiffness(const CoordSet&, double *d, int flg=1) const override;

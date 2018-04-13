@@ -29,7 +29,7 @@ HelmBrickGLS::clone()
 }
 
 void
-HelmBrickGLS::renum(int *table)
+HelmBrickGLS::renum(const int *table)
 {
         nn[0] = table[nn[0]];
         nn[1] = table[nn[1]];

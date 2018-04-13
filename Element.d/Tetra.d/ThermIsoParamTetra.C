@@ -47,7 +47,7 @@ Element * ThermIsoParamTetra::clone() {
 }
 
 
-void ThermIsoParamTetra::renum(int *table) {
+void ThermIsoParamTetra::renum(const int *table) {
  int i;
  IsoParamUtilsTetra ipu(order);
  int orderc = ipu.getorderc();

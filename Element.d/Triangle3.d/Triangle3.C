@@ -25,7 +25,7 @@ Triangle3::clone()
 }
 
 void
-Triangle3::renum(int *table)
+Triangle3::renum(const int *table)
 {
   nn[0] = table[nn[0]];
   nn[1] = table[nn[1]];

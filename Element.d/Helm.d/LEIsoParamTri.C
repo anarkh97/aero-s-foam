@@ -47,7 +47,7 @@ Element * LEIsoParamTri::clone() {
 }
 
 
-void LEIsoParamTri::renum(int *table) {
+void LEIsoParamTri::renum(const int *table) {
  int i;
  int ordersq = (order*(order+1))/2;
  for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];

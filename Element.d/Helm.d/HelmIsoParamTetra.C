@@ -51,7 +51,7 @@ Element * HelmIsoParamTetra::clone() {
 }
 
 
-void HelmIsoParamTetra::renum(int *table) {
+void HelmIsoParamTetra::renum(const int *table) {
  int i;
  IsoParamUtilsTetra ipu(order);
  int orderc = ipu.getorderc();

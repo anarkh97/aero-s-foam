@@ -20,7 +20,7 @@ HelmTri3Gal::clone()
 }
 
 void
-HelmTri3Gal::renum(int *table)
+HelmTri3Gal::renum(const int *table)
 {
   nn[0] = table[nn[0]];
   nn[1] = table[nn[1]];

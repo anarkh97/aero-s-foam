@@ -81,7 +81,7 @@ Brick20::clone()
 }
 
 void
-Brick20::renum(int *table)
+Brick20::renum(const int *table)
 {
   for(int i=0; i<20; ++i)
     nn[i] = table[nn[i]];

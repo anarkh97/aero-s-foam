@@ -44,7 +44,7 @@ public:
           numN = static_cast<int>(p - nn);
         }
         ~DecGluedElement() override { delete[] nn; }
-        void renum(int *) override {
+        void renum(const int *) override {
           fprintf(stderr,"DecGluedElement::renum not implemented\n");
         }
         void renum(EleRenumMap&) override {

@@ -112,6 +112,10 @@ public:
 
 	virtual Connectivity *getNodeToNode() const = 0;
 
+	// TODO Remove this from here. Only temporary to help refactor of CornerMaker into CornerSelector
+	virtual bool onWetInterface(int iNode) const { return false; }
+	virtual bool isWetInterfaceCorner(int iNode) const { return false; }
+
 	const std::vector<int> &getCornerNodes() const { return glCornerNodes; }
 	std::vector<int> &getCornerNodes() { return glCornerNodes; }
 	void markCornerDofs(int *glCornerDofs) const;

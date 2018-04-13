@@ -34,7 +34,7 @@ FsiElement::FsiElement(LMPCons* _fsi)
 }
 
 void
-FsiElement::renum(int *table)
+FsiElement::renum(const int *table)
 {
   int i;
   renumTable = new int[fsi->nterms+1];

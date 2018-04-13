@@ -34,7 +34,7 @@ regarding memory allocation and de-allocation.
   The following code presentation conventions have been adopted:
   - Namespaces and Class names start with a capital.
   - Variables start with a lowercase.
-  - Composite words capitalize the first letter of each of the combined words
+  - Composite words capitalize the first letter of each of the combined words (Camel case).
   - Indentation is by tabs using \em smart-tabs in IDEs to keep alignment, yet allow each programmer
   to use a different visual indentation.
   - Namespaces are not indented.

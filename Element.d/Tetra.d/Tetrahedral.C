@@ -65,7 +65,7 @@ Tetrahedral::clone()
 }
 
 void
-Tetrahedral::renum(int *table)
+Tetrahedral::renum(const int *table)
 {
   nn[0] = table[nn[0]];
   nn[1] = table[nn[1]];

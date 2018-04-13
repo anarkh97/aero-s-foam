@@ -391,7 +391,7 @@ public:
 	StructProp * getProperty() { return prop; }
 
 	virtual Element *clone() { return nullptr; }
-	virtual void renum(int *)=0;
+	virtual void renum(const int *)=0;
 	virtual void renum(EleRenumMap& m)=0;
 
 	virtual void setProp(StructProp *p, bool _myProp = false) {

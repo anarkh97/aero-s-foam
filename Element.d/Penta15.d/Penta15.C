@@ -63,7 +63,7 @@ Penta15::clone()
 }
 
 void
-Penta15::renum(int *table)
+Penta15::renum(const int *table)
 {
   for(int i=0; i<15; i++)
     nn[i] = table[nn[i]];

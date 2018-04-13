@@ -22,7 +22,7 @@ public:
 
 	TimoshenkoBeam *clone() override;
 
-	void renum(int *) override;
+	void renum(const int *) override;
 
 	void renum(EleRenumMap &) override;
 

@@ -133,7 +133,7 @@ SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::numDofs() 
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 void
-SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::renum(int *table)
+SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::renum(const int *table)
 {
   for(int i = 0; i < NumberOfNodes; ++i)
     n[i] = table[n[i]];

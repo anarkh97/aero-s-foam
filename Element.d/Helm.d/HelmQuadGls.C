@@ -28,7 +28,7 @@ HelmQuadGls::clone()
 }
 
 void
-HelmQuadGls::renum(int *table)
+HelmQuadGls::renum(const int *table)
 {
 	nn[0] = table[nn[0]];
 	nn[1] = table[nn[1]];

@@ -78,7 +78,7 @@ Brick32::clone()
 }
 
 void
-Brick32::renum(int *table)
+Brick32::renum(const int *table)
 {
   for(int i=0; i<32; i++)
     nn[i] = table[nn[i]];

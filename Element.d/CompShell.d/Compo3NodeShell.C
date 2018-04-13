@@ -72,7 +72,7 @@ Compo3NodeShell::clone()
 }
 
 void
-Compo3NodeShell::renum(int *table)
+Compo3NodeShell::renum(const int *table)
 {
   if(table[nn[0]] < 0 || table[nn[1]] < 0 || table[nn[2]] < 0)  {
     fprintf(stderr,"no mapping for these nodes %d %d %d \n",nn[0],nn[1],nn[2]);

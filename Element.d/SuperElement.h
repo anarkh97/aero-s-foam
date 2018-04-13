@@ -42,7 +42,7 @@ public:
 	void setPressure(PressureBCond *) override;
 	PressureBCond* getPressure() override;
 
-	void renum(int *table) override;
+	void renum(const int *table) override;
 	void renum(EleRenumMap&) override;
 	void setGlNum(int gn, int sn = 0) override;
 

@@ -22,7 +22,7 @@ LinSpring::clone()
 }
 
 void
-LinSpring::renum(int *table)
+LinSpring::renum(const int *table)
 {
   nn[0] = table[nn[0]];
 }

@@ -26,7 +26,7 @@ TriangleBulk::clone()
 }
 
 void
-TriangleBulk::renum(int *table)
+TriangleBulk::renum(const int *table)
 {
   nn[0] = table[nn[0]];
   nn[1] = table[nn[1]];

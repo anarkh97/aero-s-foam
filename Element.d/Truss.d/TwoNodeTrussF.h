@@ -12,7 +12,7 @@ class TwoNodeTrussF : public virtual Element {
 public:
 	explicit TwoNodeTrussF(int*);
 	Element *clone() override;
-	void renum(int *) override;
+	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 	FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg) const override;
 	FullSquareMatrix massMatrix(const CoordSet&, double *mel, int cmflg) const override;

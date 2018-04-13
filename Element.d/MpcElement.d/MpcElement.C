@@ -165,7 +165,7 @@ MpcElement::numNodes() const
 }
 
 void
-MpcElement::renum(int* table)
+MpcElement::renum(const int *table)
 {
 	for(int i = 0; i < numNodes(); ++i)
 		if(nn[i] > -1)

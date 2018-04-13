@@ -23,7 +23,7 @@ BarSloshFS::clone()
 }
 
 void
-BarSloshFS::renum(int *table)
+BarSloshFS::renum(const int *table)
 {
 	nn[0] = table[nn[0]];
 	nn[1] = table[nn[1]];

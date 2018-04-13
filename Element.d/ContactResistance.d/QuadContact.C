@@ -22,7 +22,7 @@ QuadContact::clone()
 }
 
 void
-QuadContact::renum(int *table)
+QuadContact::renum(const int *table)
 {
         nn[0] = table[nn[0]];
         nn[1] = table[nn[1]];

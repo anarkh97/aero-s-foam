@@ -20,7 +20,7 @@ public:
 
 	Element *clone() override;
 
-	void renum(int *) override;
+	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 
 	void setFrame(EFrame *ef) override { elemframe = ef; }

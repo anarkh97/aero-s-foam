@@ -27,7 +27,7 @@ public:
 
 	LMPCons* cons() { return fsi; }
 
-	void renum(int *table) override;
+	void renum(const int *table) override;
 	void renum(EleRenumMap&) override;
 
 	FullSquareMatrix stiffness(const CoordSet&, double *kel, int flg=1) const override;

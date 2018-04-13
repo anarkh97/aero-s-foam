@@ -12,7 +12,7 @@ class TwoNodeTruss : public virtual Element,
 public:
 	explicit TwoNodeTruss(int*);
 	Element *clone() override;
-	void renum(int *) override;
+	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 	FullSquareMatrix stiffness(const CoordSet&,double *kel, int flg) const override;
 	void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs) override;

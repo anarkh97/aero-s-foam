@@ -94,7 +94,7 @@ public:
 	std::vector<double> getPreLoad() override { return preload; }
 	int numNodes() const override { return 3; }
 	int numDofs() const override { return 9; }
-	void renum(int *) override;
+	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 	void markDofs(DofSetArray &) const override;
 	int* dofs(DofSetArray &, int *p) const override;

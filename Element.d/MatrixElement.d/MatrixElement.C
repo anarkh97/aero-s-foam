@@ -64,7 +64,7 @@ MatrixElement::imagStiffness(CoordSet &cs, double *d, int flg)
 }
 
 void 
-MatrixElement::renum(int *table)
+MatrixElement::renum(const int *table)
 {
   // renumber the nodes
   for(int i=0; i<nnodes; ++i) nn[i] = table[nn[i]];

@@ -24,7 +24,7 @@ public:
 	                        double **gw, double **N) override;
 
 	Element *clone() override;
-	void renum(int *) override;
+	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 	void markDofs(DofSetArray &) const override;
 	int* dofs(DofSetArray &, int *p) const override;

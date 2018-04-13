@@ -27,7 +27,7 @@ CtcVirtualElt::clone()
 }
 
 void
-CtcVirtualElt::renum(int *table)
+CtcVirtualElt::renum(const int *table)
 {
 	nn[0] = table[nn[0]];
 	nn[1] = table[nn[1]];

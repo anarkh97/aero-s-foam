@@ -170,7 +170,7 @@ public:
 	                           complex<double>(*nodalSol)[8]);
 	complex<double> *forceVector;
 // Element functions 
-	void renum(int *) override;
+	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 	int numDofs() const override {
 		return ( (dgmFlag())?0:nPolynomialDofs() ) +
@@ -225,7 +225,7 @@ class DEMInterfaceElement: public Element, public DEMCoreInterfaceElement {
 public:
 	DEMInterfaceElement(DEMElement *_deme, DEMElement *_deme2, int _fi);
 
-	void renum(int *) override;
+	void renum(const int *) override;
 
 	void renum(EleRenumMap&) override;
 

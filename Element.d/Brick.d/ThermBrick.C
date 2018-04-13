@@ -30,7 +30,7 @@ ThermBrick::clone()
 }
 
 void
-ThermBrick::renum(int *table)
+ThermBrick::renum(const int *table)
 {
         nn[0] = table[nn[0]];
         nn[1] = table[nn[1]];

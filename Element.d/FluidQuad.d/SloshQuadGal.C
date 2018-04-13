@@ -30,7 +30,7 @@ SloshQuadGal::clone()
 }
 
 void
-SloshQuadGal::renum(int *table)
+SloshQuadGal::renum(const int *table)
 {
   nn[0] = table[nn[0]];
   nn[1] = table[nn[1]];

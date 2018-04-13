@@ -49,7 +49,7 @@ TwoNodeTruss::clone()
 }
 
 void
-TwoNodeTruss::renum(int *table)
+TwoNodeTruss::renum(const int *table)
 {
 	nn[0] = table[nn[0]];
 	nn[1] = table[nn[1]];

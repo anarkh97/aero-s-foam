@@ -12,7 +12,7 @@ bool SommerElement::first = true; //HB
 #include <Utils.d/DistHelper.h>
 
 void
-SommerElement::renum(int *table) {
+SommerElement::renum(const int *table) {
 	int i;
 	int *nn = getNodes();
 

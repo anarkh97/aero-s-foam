@@ -41,7 +41,7 @@ Element * ThermIsoParamHexa::clone() {
 }
 
 
-void ThermIsoParamHexa::renum(int *table) {
+void ThermIsoParamHexa::renum(const int *table) {
  int i;
  int orderc = order*order*order;
  for(i=0;i<orderc;i++) nn[i] = table[nn[i]];

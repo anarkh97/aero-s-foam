@@ -376,7 +376,7 @@ NLMembrane::getGaussPointAndWeight(int n, double *point, double &weight) const
 }
 
 void
-NLMembrane::renum(int *table)
+NLMembrane::renum(const int *table)
 {
   n[0] = table[n[0]];
   n[1] = table[n[1]];

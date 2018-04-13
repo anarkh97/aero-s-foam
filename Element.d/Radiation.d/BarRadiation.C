@@ -24,7 +24,7 @@ BarRadiation::clone()
 }
 
 void
-BarRadiation::renum(int *table)
+BarRadiation::renum(const int *table)
 {
 	nn[0] = table[nn[0]];
 	nn[1] = table[nn[1]];

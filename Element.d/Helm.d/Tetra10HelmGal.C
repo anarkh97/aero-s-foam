@@ -21,7 +21,7 @@ Element * Tetra10HelmGal::clone() {
 }
 
 
-void Tetra10HelmGal::renum(int *table) {
+void Tetra10HelmGal::renum(const int *table) {
 
 	int i;
 	for(i=0;i<10;i++) nn[i] = table[nn[i]];

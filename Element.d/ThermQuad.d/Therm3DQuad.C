@@ -31,7 +31,7 @@ Therm3DQuad::clone()
 }
 
 void
-Therm3DQuad::renum(int *table)
+Therm3DQuad::renum(const int *table)
 {
   nn[0] = table[nn[0]];
   nn[1] = table[nn[1]];

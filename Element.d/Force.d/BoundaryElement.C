@@ -115,7 +115,7 @@ BoundaryElement::numNodes() const
 }
 
 void
-BoundaryElement::renum(int* table)
+BoundaryElement::renum(const int *table)
 {
   for(int i = 0; i < numNodes(); ++i)
     if(nn[i] > -1)

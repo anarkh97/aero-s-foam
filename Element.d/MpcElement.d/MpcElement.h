@@ -32,7 +32,7 @@ public:
 	int getNumMPCs() override;
 	LMPCons** getMPCs() override;
 
-	void renum(int*) override;
+	void renum(const int *) override;
 	void renum(EleRenumMap&) override;
 
 	int numNodes() const override;

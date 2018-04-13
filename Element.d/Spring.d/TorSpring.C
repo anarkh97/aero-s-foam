@@ -22,7 +22,7 @@ TorSpring::clone()
 }
 
 void
-TorSpring::renum(int *table)
+TorSpring::renum(const int *table)
 {
   nn[0] = table[nn[0]];
 }

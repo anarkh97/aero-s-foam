@@ -20,7 +20,7 @@ Therm2NodeBar::clone()
 }
 
 void
-Therm2NodeBar::renum(int *table)
+Therm2NodeBar::renum(const int *table)
 {
 	nn[0] = table[nn[0]];
 	nn[1] = table[nn[1]];

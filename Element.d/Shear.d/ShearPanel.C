@@ -49,7 +49,7 @@ ShearPanel::clone()
 }
 
 void
-ShearPanel::renum(int *table)
+ShearPanel::renum(const int *table)
 {
   nn[0] = table[nn[0]];
   nn[1] = table[nn[1]];

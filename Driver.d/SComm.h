@@ -20,7 +20,6 @@ public:
 	~SComm();
 
 	int locSubNum = -1;     //!< when running in distributed mode
-	int *glSubToLocal = nullptr; //!< mapping for distributed mode
 
 	int *remoteId = nullptr;     //!< id of this subdomain in the corresponding neighbor
 	int numNeighb = 0;     //!< Number of neighbors with shared nodes
@@ -40,8 +39,6 @@ public:
 	void setEdgeNeighb(int _numEdgeNeighb, bool *_isEdgeNeighb);
 
 	int neighborIndex(int i) const { return subNums[i]; }
-
-	bool isLocal(int iSub);  // PJSA 6-3-04
 
 	// new lists for different types of interface dofs
 	// type 0: regular lagrange multipliers

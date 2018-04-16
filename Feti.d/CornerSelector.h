@@ -12,7 +12,6 @@
 class FetiSubCornerHandler;
 class Connectivity;
 class FSCommunicator;
-class Elemset;
 class CoordSet;
 class DofSetArray;
 class ConstrainedDSA;
@@ -25,7 +24,7 @@ class CornerSelector
 	int nSub;
 	Connectivity *grToSub;
 	int *glSubGroup;
-	FetiSubCornerHandler **cornerHandler;
+	std::vector<FetiSubCornerHandler*> cornerHandler;
 	FSCommPattern<int> *cpat;
 	FSCommunicator *communicator;
 	int dim;
@@ -35,11 +34,12 @@ class CornerSelector
 	                   Connectivity &cNConnect, Connectivity &subToRotCrn,
 	                   int *glCrnGroup);
 public:
-	CornerSelector(int nGlobSub, int nLocSub, FetiSubCornerHandler **,
-	            FSCommPattern<int> *, FSCommunicator *);
+	CornerSelector(int nGlobSub, int nLocSub, std::vector<FetiSubCornerHandler *> handlers,
+	               FSCommPattern<int> *commPattern, FSCommunicator *communicator);
 	~CornerSelector();
 	int makeCorners();
 	Connectivity *getGrToSub() { return grToSub; }
+	auto &handlers() { return cornerHandler; }
 };
 
 // This class is the algorithmic class to select corner nodes
@@ -47,9 +47,8 @@ class FetiSubCornerHandler
 {
 
 public:
-	FetiSubCornerHandler(int sub, int nn, CoordSet &n, int nele, Elemset &ele,
-	                    Connectivity &nTn, DofSetArray &d,
-	                    Connectivity &sh, int *nsb, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
+	FetiSubCornerHandler(int sub, int nn, CoordSet &n, Connectivity &nTn, DofSetArray &d, Connectivity &sh, int *nsb,
+		                     ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
 	~FetiSubCornerHandler();
 	void markMultiDegNodes();
 	void dispatchSafeNodes(FSCommPattern<int> *);
@@ -76,7 +75,7 @@ public:
 
 protected:
 	int glSubNum;
-	int nnodes, numEle;
+	int nnodes;
 	int *deg;
 	int *crnList;
 	int totNC;
@@ -89,7 +88,6 @@ protected:
 	Connectivity &nToN;
 	int *neighbSubs;
 	CoordSet &nodes;
-	Elemset &eles;
 	DofSetArray &dsa;
 	std::vector<bool> isRotMidSideNode;
 	int dim;

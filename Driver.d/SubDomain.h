@@ -293,7 +293,6 @@ public:
 	void mergeDistributedForces(Scalar (*mergedF)[6], Scalar *subF);
 	void mergeDistributedReactions(Scalar (*mergedF)[11], Scalar *subF);
 	void mergeElemProps(double* props, double* weights, int propType);
-	void sendExpDOFList(FSCommPattern<int> *pat);
 	template<class Scalar1> void dispatchNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
 	template<class Scalar1> void addNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
 	void dispatchInterfaceGeomState(FSCommPattern<double> *geomStatePat, GeomState *geomState);

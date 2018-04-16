@@ -147,10 +147,28 @@ FetiDP<T>::FetiDP(std::vector<Subdomain<T>> subdomains, Com communicator) :
 		DPSImpl(communicator),
 		subdomains(std::move(subdomains)){
 }
+namespace {
 
+template <typename T>
+std::unique_ptr<FetiSub<T>> makeFetiSub(int localSubIndex, const Subdomain<T> &subData) {
+	auto sub = std::make_unique<FetiSub<T>>();
+	SComm *sc = nullptr;
+//	SComm *sc = new SComm(nConnect[NESubMap[subI]], connectedDomain[NESubMap[subI]],
+//	                      remoteID[NESubMap[subI]], interfNode[NESubMap[subI]]);
+	sc->locSubNum = localSubIndex;
+	sub->setSComm(sc);
+
+	return std::move(sub);
+}
+
+}
 template<typename T>
 DPSolver<T>::DPSolver(std::vector<Subdomain<T>> subdomains, Com communicator) {
-
+	if(subdomains.size() > 1)
+		throw "Multiple subs/CPU not yet supported.";
+	// Build the FetiSubs
+	for(int iSub = 0; iSub < subdomains.size(); ++iSub)
+		std::unique_ptr<FetiSub<T>> fetiSub{ makeFetiSub(0, subdomains[0]) };
 }
 
 template<typename T>

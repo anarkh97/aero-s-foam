@@ -176,13 +176,15 @@ BaseSub::getCornerHandler()
         }
       }
     }
-    drySharedNodes = new Connectivity(sharedNodes.csize(), ptr, target);
-    newCH = new FetiSubCornerHandler(subNumber, numnodes, nodes, numele, packedEset,
-                                 *nodeToNode, *dsa, *drySharedNodes, scomm->subNums, c_dsa, this);
+      drySharedNodes = new Connectivity(sharedNodes.csize(), ptr, target);
+      newCH = new SubCornerHandler(subNumber, numnodes, nodes, packedEset, *nodeToNode, *dsa, *drySharedNodes,
+                                   scomm->subNums,
+                                   c_dsa, this);
   }
   else {
-    newCH = new FetiSubCornerHandler(subNumber, numnodes, nodes, numele, packedEset,
-                                 *nodeToNode, *dsa, *scomm->sharedNodes, scomm->subNums, c_dsa, this);
+      newCH = new SubCornerHandler(subNumber, numnodes, nodes, packedEset, *nodeToNode, *dsa, *scomm->sharedNodes,
+                                   scomm->subNums,
+                                   c_dsa, this);
   }
 
   return newCH;

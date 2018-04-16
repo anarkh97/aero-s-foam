@@ -373,17 +373,11 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
       filePrint(stderr, "reference to empty subdomain 2\n");
       exit(1);
     }
-    GenSubDomain<Scalar> **subds = new GenSubDomain<Scalar> * [nConnect[NESubMap[subI]]];
-    for(jSub = 0; jSub < nConnect[NESubMap[subI]]; ++jSub) {
-       int subJ = glSubToLocal[connectedDomain[NESubMap[subI]][jSub]];
-       subds[jSub] = (subJ >= 0) ? subDomain[subJ] : NULL;
-    }
+
     SComm *sc = new SComm(nConnect[NESubMap[subI]], connectedDomain[NESubMap[subI]],
                           remoteID[NESubMap[subI]], interfNode[NESubMap[subI]]);
     sc->locSubNum = iSub;
-    sc->glSubToLocal = glSubToLocal;
     subDomain[iSub]->setSComm(sc);
-    delete [] subds;
   }
 
   delete [] remoteID;
@@ -2636,12 +2630,12 @@ GenDecDomain<Scalar>::makeCorners()
   for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(&cpat);
   cpat.finalize();
  
-  FetiSubCornerHandler **cornerHandler = new FetiSubCornerHandler * [numSub]; // deleted by cornerMaker
-  execParal(numSub, this, &GenDecDomain<Scalar>::makeCornerHandler, cornerHandler);
-  CornerMaker cornerMaker(globalNumSub, numSub, cornerHandler, &cpat, communicator);
-  cornerMaker.makeCorners();
-  grToSub = cornerMaker.getGrToSub();
-  execParal(numSub, this, &GenDecDomain<Scalar>::setLocalCorners, cornerHandler);
+  std::vector<FetiSubCornerHandler *>cornerHandler(numSub); // deleted by cornerSelector
+  execParal(numSub, this, &GenDecDomain<Scalar>::makeCornerHandler, cornerHandler.data());
+  CornerSelector cornerSelector(globalNumSub, numSub, std::move(cornerHandler), &cpat, communicator);
+  cornerSelector.makeCorners();
+  grToSub = cornerSelector.getGrToSub();
+  execParal(numSub, this, &GenDecDomain<Scalar>::setLocalCorners, cornerSelector.handlers().data());
 
   paralApply(numSub, subDomain, &BaseSub::makeCCDSA);
 }

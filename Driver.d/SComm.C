@@ -66,19 +66,6 @@ SComm::setExchangeData(int iSub, void *data)
 #endif
 }
 
-bool
-SComm::isLocal(int iSub)
-{
-  // PJSA 6-3-04: can use this function to determine how & when to delete exchange data memory
-  // see sendExpDOFList and gatherDOFList for example
-#ifdef DISTRIBUTED
-  if(glSubToLocal != 0 && (glSubToLocal[subNums[iSub]] < 0))
-    return false;
-  else
-#endif
-    return true;
-}
-
 void 
 SComm::setTypeSpecificList(DofType type, int *_subNums, Connectivity *_sharedDOFs)
 {

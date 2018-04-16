@@ -4,15 +4,8 @@
 
 #include "CornerSelector.h"
 
-#include <Driver.d/SubDomain.h>
-#include <Utils.d/SolverInfo.h>
-
-#if defined(WINDOWS) || defined(MACOSX)
+#include <Feti.d/FetiSub.h>
 #include <cfloat>
-#else
-#include <climits>
-#endif
-#include <float.h>
 #include <algorithm>
 
 //#define DEBUG_CORNER
@@ -60,18 +53,17 @@ static double checkArea(int np, int *pt, double pxyz[][3], int dim =3)
 }
 
 
-FetiSubCornerHandler::FetiSubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes,
-                                         int _numEle, Elemset &_eles, Connectivity &_nToN,
-                                         DofSetArray &_dsa, Connectivity &_sharedNodes,
-                                         int *_neighbSubs, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre) :
+FetiSubCornerHandler::FetiSubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes, Connectivity &_nToN, DofSetArray &_dsa,
+                                           Connectivity &_sharedNodes, int *_neighbSubs, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre)
+		:
 		nnodes(_nnodes),
 		isCorner(_nnodes, false),
+		glSafe(_nnodes, true),
 		sharedNodes(_sharedNodes), nToN(_nToN), neighbSubs(_neighbSubs),
-		nodes(_nodes), eles(_eles), dsa(_dsa),  isRotMidSideNode(_nnodes, false)
+		nodes(_nodes), dsa(_dsa),  isRotMidSideNode(_nnodes, false), dim(3)
 {
 	glSubNum = _glSubNum;
 	nnodes = _nnodes;
-	numEle = _numEle;
 	subPre = _subPre;
 	deg = new int[2*nnodes];
 	weight = deg + nnodes;
@@ -80,20 +72,9 @@ FetiSubCornerHandler::FetiSubCornerHandler(int _glSubNum, int _nnodes, CoordSet 
 
 	crnList = 0;
 
-	// PJSA: find midside nodes
-	int geom_dim = 0;
-	int i,j;
-	for(i=0; i<numEle; ++i) {
-		int *nodes = eles[i]->nodes();
-		for(j=0; j<eles[i]->numNodes(); ++j)
-			if(eles[i]->isRotMidSideNode(j)) isRotMidSideNode[nodes[j]] = true;
-		delete [] nodes;  // Element::nodes() should always return a copy to be deleted by caller
-		if(eles[i]->dim() > geom_dim) geom_dim = eles[i]->dim();
-	}
-
 	// dimension
 	DofSet dofs = DofSet();
-	for(i=0; i<dsa.numNodes(); ++i) dofs.mark(dsa[i].list());
+	for(int i=0; i<dsa.numNodes(); ++i) dofs.mark(dsa[i].list());
 	dims[0] = (dofs.contains(DofSet::Xdisp)) ? 1 : 0;
 	dims[1] = (dofs.contains(DofSet::Ydisp)) ? 1 : 0;
 	dims[2] = (dofs.contains(DofSet::Zdisp)) ? 1 : 0;
@@ -101,13 +82,11 @@ FetiSubCornerHandler::FetiSubCornerHandler(int _glSubNum, int _nnodes, CoordSet 
 	int sdim = dims[0]+dims[1]+dims[2]; // structure
 	int fdim = dims[3]; // fluid
 	mixed = (fdim && sdim);
-	//dim = (mixed || (fdim==0)) ? sdim : fdim; // use the structure dimension for a mixed subdomain XXXX
-	dim = geom_dim; // XXXX DEBUG: otherwise number of bodies isn't correct
 
 	// active dimensions
 	int cdims[4];
 	DofSet cdofs = DofSet();
-	for(i=0; i<c_dsa->numNodes(); ++i) cdofs.mark((*c_dsa)[i].list());
+	for(int i=0; i<c_dsa->numNodes(); ++i) cdofs.mark((*c_dsa)[i].list());
 	cdims[0] = (cdofs.contains(DofSet::Xdisp)) ? 1 : 0;
 	cdims[1] = (cdofs.contains(DofSet::Ydisp)) ? 1 : 0;
 	cdims[2] = (cdofs.contains(DofSet::Zdisp)) ? 1 : 0;
@@ -131,20 +110,6 @@ FetiSubCornerHandler::~FetiSubCornerHandler()
 void
 FetiSubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
 {
-	glSafe.assign(nnodes, false);
-	// mark the safe nodes by setting glSafe to true if node is touched by at least one safe element
-	for(int iEle = 0; iEle < numEle; ++iEle) {
-		if((eles[iEle]->isSafe() && !eles[iEle]->isPhantomElement()) || allSafe) {
-			int nnd = eles[iEle]->numNodes();
-			int *nodes = new int[nnd];
-			eles[iEle]->nodes(nodes);
-			for(int iNode = 0; iNode < nnd; ++iNode) {
-				int n = nodes[iNode];
-				glSafe[n] = true;
-			}
-			delete [] nodes;
-		}
-	}
 	// Dispatch the nodes that are not safe
 	for(int iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
 		FSSubRecInfo<int> rInfo = cpat->getSendBuffer(glSubNum, neighbSubs[iNeighb]);
@@ -891,17 +856,17 @@ FetiSubCornerHandler::markDims(int *_dims)
 		if(dims[i]) _dims[i] = 1;
 }
 
-CornerSelector::CornerSelector(int _glNumSub, int _nSub, FetiSubCornerHandler **_cornerHandler,
-                         FSCommPattern<int> *_cpat, FSCommunicator *_communicator)
+CornerSelector::CornerSelector(int _glNumSub, int _nSub, std::vector<FetiSubCornerHandler *> _cornerHandler,
+                               FSCommPattern<int> *_cpat, FSCommunicator *_communicator) :
+		cornerHandler(std::move(_cornerHandler))
 {
 	glNumSub = _glNumSub;
 	nSub = _nSub;
 	communicator = _communicator;
-	cornerHandler = _cornerHandler;
 	cpat = _cpat;
 
 	for(int i=0; i<4; ++i) dims[i] = 0;
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::markDims, dims);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::markDims, dims);
 #ifdef DISTRIBUTED
 	communicator->globalMax(4, dims);
 #endif
@@ -916,11 +881,6 @@ CornerSelector::CornerSelector(int _glNumSub, int _nSub, FetiSubCornerHandler **
 
 CornerSelector::~CornerSelector()
 {
-	if(cornerHandler) {
-		for(int i=0; i<nSub; ++i)
-			if(cornerHandler[i]) { delete cornerHandler[i]; cornerHandler[i] = 0; }
-		delete [] cornerHandler; cornerHandler = 0;
-	}
 	delete [] glSubGroup;
 	// don't delete grToSub (GenDecDomain)
 }
@@ -932,17 +892,17 @@ CornerSelector::makeCorners()
 
 	// First locate ``unsafe'' nodes. These nodes must be corner
 	// nodes (to eliminate subdomain ZEMs) but do not work in tying two subdomains together
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::dispatchSafeNodes, cpat);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::dispatchSafeNodes, cpat);
 	cpat->exchange();
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::markSafeNodes, cpat);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::markSafeNodes, cpat);
 
 	// Take care of the multi degreed nodes that could upset the coarse problem
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::markMultiDegNodes);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::markMultiDegNodes);
 
 	// Take care of the corners for 4th order problems
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::dispatchRotCorners, cpat);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::dispatchRotCorners, cpat);
 	cpat->exchange();
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::markRotCorners, cpat);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::markRotCorners, cpat);
 
 	// Build the list of potential corner and mark those already certainly chosen
 	// Phase 1, count how many corners each sub has and to how many subdomains these corners connect
@@ -953,7 +913,7 @@ CornerSelector::makeCorners()
 	// countAndMarkCornerCand internaly marks corner candidates and returns the numbers of corners
 	// for which this subdomain is master and the total number of corners connectivities
 	// weight[inode] contains the local numbering of corner candidates for which this sub is a master
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::countAndMarkCornerCand, cPerSub, nTot);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::countAndMarkCornerCand, cPerSub, nTot);
 	communicator->globalSum(glNumSub, cPerSub);
 	communicator->globalSum(glNumSub, nTot);
 
@@ -994,7 +954,7 @@ CornerSelector::makeCorners()
 	// getCornerXYZ collects the coordinates of the corner candidates and in addition lets the
 	// caller know which ones are already essential corners and finally fills the corner to sub
 	// connectivity data and count the number of corner with rot dofs
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::getCornerXYZ,
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::getCornerXYZ,
 	           cPerSub, xyz, essential, cPtr, cTg);
 	communicator->globalMax(totNC, cPtr);
 	communicator->globalSum(3*tot, (double *) xyz);
@@ -1014,9 +974,9 @@ CornerSelector::makeCorners()
 
 	// exchange initial global numbering of the corner candidates (because we need
 	// it to build the "rotational corner" connectivity
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::dispatchInitialNumbering, cpat, cPerSub);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::dispatchInitialNumbering, cpat, cPerSub);
 	cpat->exchange();
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::recInitialNumbering, cpat, essentPtr);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::recInitialNumbering, cpat, essentPtr);
 	communicator->globalSum(glNumSub, essentPtr);
 
 	int cNum = 0;
@@ -1030,7 +990,7 @@ CornerSelector::makeCorners()
 	int *essentTg = new int[cNum];
 	for(i = 0; i < cNum; ++i) essentTg[i] = 0;
 
-	paralApply(nSub, cornerHandler,&FetiSubCornerHandler::listRotCorners, essentPtr, essentTg);
+	paralApply(nSub, cornerHandler.data(),&FetiSubCornerHandler::listRotCorners, essentPtr, essentTg);
 	communicator->globalSum(cNum, essentTg);
 
 	Connectivity subToRotCrn(glNumSub, essentPtr, essentTg);
@@ -1055,7 +1015,7 @@ CornerSelector::makeCorners()
 	for(iSub = 0; iSub < glNumSub; ++iSub)
 		numCnt[iSub] = 0;
 
-	paralApply(nSub, cornerHandler,&FetiSubCornerHandler::countContact,
+	paralApply(nSub, cornerHandler.data(),&FetiSubCornerHandler::countContact,
 	           numCnt, essential);
 	communicator->globalSum(glNumSub, numCnt);
 
@@ -1076,16 +1036,16 @@ CornerSelector::makeCorners()
 #ifdef DEBUG_CORNER
 	fprintf(stderr, "Found %d essential safe+unsafe corners\n", cntCount);
 #endif
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::dispatchNumbering,
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::dispatchNumbering,
 	           cpat, essential, cPerSub, newCPerSub, cCount, numCnt);
 	cpat->exchange();
 
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::recNumbering,
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::recNumbering,
 	           cpat, newCPerSub);
 
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::resendNumbers, cpat);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::resendNumbers, cpat);
 	cpat->exchange();
-	paralApply(nSub, cornerHandler, &FetiSubCornerHandler::checkNumbers, cpat);
+	paralApply(nSub, cornerHandler.data(), &FetiSubCornerHandler::checkNumbers, cpat);
 
 	delete [] essential;
 	delete [] numCnt;

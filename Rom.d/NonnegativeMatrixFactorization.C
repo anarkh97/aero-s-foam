@@ -2,6 +2,7 @@
 
 #include <Utils.d/linkfc.h>
 
+#include <math.h>
 #include <iostream>
 #include <vector>
 #include <cstdio>
@@ -33,7 +34,9 @@ NonnegativeMatrixFactorization::NonnegativeMatrixFactorization(int maxBasisDimen
   nmfcAlpha(0.0),
   nmfcBeta(0.0),
   nmfcGamma(0.0)
-{}
+{
+  bFile = fopen("LambdaBasisFile.m","w+");
+}
 
 void
 NonnegativeMatrixFactorization::matrixSizeIs(int rows, int cols) {
@@ -108,19 +111,20 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
   const int &k = basisDimension_;
   std::cerr << "Factoring data into " << k << " nonnegative columns " << std::endl;
   Eigen::MatrixXd A(m,n);
-  int npi = 0;
+  FILE * pFile;
+  pFile = fopen("LambdaSnapFile.m","w+");
+  fprintf(pFile,"A = [\n");
   for(int i=0; i<m; ++i){
     for(int j=0; j<n; ++j){
       double elem = X(rows[i],cols[j]);
-      if(elem > 0)
-        npi += 1;
-      A(i,j) = abs(elem); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
+      double ebuf = elem*elem;
+      A(i,j) = sqrt (ebuf); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
+      fprintf(pFile," %7.6e",A(i,j));
     }
+    fprintf(pFile,"\n");
   }
-  if(npi > 0)
-    std::cout << "Warning: there are " << npi << " negative elements in the data set." << std::endl;
-  
-
+  fprintf(pFile,"];");
+  fclose(pFile); 
   Eigen::MatrixXd W(m,k), H(k,n);
 
   double res, index;
@@ -129,6 +133,7 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
     default: case 1 : { // NMF ROB
       Eigen::MatrixXd W_min(W);
       double res_min;
+      double nrmA = A.norm();
       for (int iRandom=0; iRandom<numRandInit_; ++iRandom) {
         // Initialization
         if (basisDimensionRestart>0) { 
@@ -145,14 +150,27 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
         for(int i=0; i<maxIter_; ++i) {
           H = solveNNLS_MRHS(W, A);
           W.transpose() = solveNNLS_MRHS(H.transpose(),A.transpose());
-          Err = A-W*H;
+          Eigen::MatrixXd Z = W*H; 
+          Err = A-Z;
           index = findColumnWithLargestMagnitude(Err);
-          res = Err.norm()/A.norm();
+          res = Err.norm()/nrmA;
+
+          double maskErr = 0.0;
+          // enforce equality of non-zero components
+          for(int col = 0; col < n; ++col){
+            for(int row = 0; row < m; ++row) {
+              if(A(row,col) > 1e-16){
+                maskErr += pow(A(row,col) - Z(row,col),2.0);
+              }
+            }
+          }
+
           double inc = (W-W_copy).norm();
-          std::cout << "iteration = " << i+1 << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << ", solution incr. = " << inc << std::endl;
+          fprintf(stderr,"\r Iteration: %d, increment: %1.4e, Norm(P(W*H - X))/norm(X): %1.4e, rel. residual %1.4e, Stopping tolerance: %1.4e", i+1, inc, sqrt(maskErr)/nrmA, res, tol_);
           if(inc < tol_) break;
           W_copy = W;
         }
+        fprintf(stderr,"\n");
         if (numRandInit_>1) {
           if (iRandom==0) {
             res_min = res;
@@ -206,10 +224,13 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
       Eigen::MatrixXd rhs2; rhs2.resize(k,n); rhs2.setZero();
       Eigen::MatrixXd lhs;  lhs.resize(k,k);  lhs.setZero();
 
+      Eigen::MatrixXd W_copy(W);
+
       double nrmX = A.norm();
       //begin nonnegative matrix completion
-      for (int i = 0; i < maxIter_; ++i) {
- 
+      for (int i = 0; i <= maxIter_; ++i) {
+
+        W_copy = W;  
         // fist update W
         rhs1 = Z*H.transpose() + alpha*U - Lambda;
         lhs  = H*H.transpose() + alpha*Eigen::MatrixXd::Identity(k,k);
@@ -259,26 +280,35 @@ NonnegativeMatrixFactorization::solve(int basisDimensionRestart) {
         Lambda += gamma*alpha*(W - U);
         Pi     += gamma*beta*(H - V);
 
-        fprintf(stderr,"\r Iteration: %d, Norm(P(W*H - X))/norm(X) %3.2e, Stopping tolerance: %3.2e", i, sqrt(stpcrt)/nrmX, tol_);
+        double inc = (W-W_copy).norm();
+        fprintf(stderr,"\r Iteration: %d, increment: %1.4e, Norm(P(W*H - X))/norm(X) %1.4e, Stopping tolerance: %1.4e", i, inc, sqrt(stpcrt)/nrmX, tol_);
 
-        if((sqrt(stpcrt) < tol_*nrmX) || (i > maxIter_)){
+        if((sqrt(stpcrt) < tol_*nrmX) || (i > maxIter_) || (inc < tol_)){
+          W = U; 
           if(sqrt(stpcrt) <tol_*nrmX)
-            fprintf(stderr,"Stopping criteria reached\n");
+            fprintf(stderr,"\nStopping criteria reached\n");
           if(i > maxIter_)
-            fprintf(stderr,"Maximum iteration exceeded\n");
+            fprintf(stderr,"\nMaximum iteration exceeded\n");
           break;
         }
 
       }
-      fprintf(stderr,"\n"); 
+      fprintf(stderr,"\n");
+      W = U;  
     } break;
   }
 
+  fprintf(bFile,"W%d = [\n",k);
   // copy W into buffer
   ROB.setZero();
-  for(int i=0; i<m; ++i)
-    for(int j=0; j<k; ++j)
+  for(int i=0; i<m; ++i){
+    for(int j=0; j<k; ++j){
       ROB(rows[i],j) = W(i,j);
+      fprintf(bFile," %7.6e", W(i,j));
+    }
+    fprintf(bFile,"\n");
+  }
+  fprintf(bFile,"];\n");
 #endif
 }
 

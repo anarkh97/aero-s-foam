@@ -39,10 +39,13 @@ public:
   void solve(int basisDimensionSmall);
 
   NonnegativeMatrixFactorization(int basisDimension, int method);
+  ~NonnegativeMatrixFactorization() { fclose(bFile); }
 
 private:
   int rowCount_, colCount_, maxBasisDimension_, basisDimension_, numRandInit_, method_, maxIter_;
   double tol_, nmfcAlpha, nmfcBeta, nmfcGamma;
+
+  FILE *bFile; 
 
   SimpleBuffer<double> matrixBuffer_;
   SimpleBuffer<double> robBuffer_;

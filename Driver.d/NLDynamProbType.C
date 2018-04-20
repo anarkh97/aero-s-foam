@@ -357,7 +357,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
         if(feasible || i+1 == solInfo.num_penalty_its) filePrint(stderr,"\n");
       }
 
-      // update lagrange multipliers and/or penalty parameters 
+      // update lagrange multipliers and/or penalty parameters, geomState.mu is cleared here 
       if((!feasible && i+1 < solInfo.num_penalty_its) || (solInfo.lm_update_flag == 1)) {
          probDesc->updateParameters(geomState);
       }

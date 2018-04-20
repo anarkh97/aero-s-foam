@@ -33,6 +33,7 @@ struct DistrSnapshotNonLinDynamicDetail : private DistrSnapshotNonLinDynamic {
     virtual void velocSnapshotAdd(const DistrVector &);
     virtual void accelSnapshotAdd(const DistrVector &);
     virtual void dsvarSnapshotAdd(const DistrGeomState &);
+    virtual void muvarSnapshotAdd(const DistrGeomState &);
     virtual void postProcess();
 
     int nodeCount() const { return geoSource->getNumGlobNodes(); }
@@ -50,18 +51,21 @@ struct DistrSnapshotNonLinDynamicDetail : private DistrSnapshotNonLinDynamic {
 
     DistrNodeDof6Buffer snapBuffer_;
     DistrNodeDof1Buffer *dualSnapBuffer_;
+    DistrNodeDof1Buffer *muSnapBuffer_;
     
     FileNameInfo fileInfo_;
     DistrBasisOutputFile *stateSnapFile_;
     DistrBasisOutputFile *velocSnapFile_;
     DistrBasisOutputFile *accelSnapFile_;
     DistrBasisOutputFile *dsvarSnapFile_;
+    DistrBasisOutputFile *muvarSnapFile_;
     
     double timeStamp_;
     int stateSkip_;
     int velocSkip_;
     int accelSkip_;
     int dsvarSkip_;
+    int muvarSkip_;
     int mpcOffset_;
   };
 
@@ -85,11 +89,13 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::RawImpl(DecDomain *decDomain) :
   velocSnapFile_(NULL),
   accelSnapFile_(NULL),
   dsvarSnapFile_(NULL),
+  muvarSnapFile_(NULL),
   timeStamp_(decDomain->getDomain()->solInfo().initialTime),
   stateSkip_(0),
   velocSkip_(0),
   accelSkip_(0),
-  dsvarSkip_(0)
+  dsvarSkip_(0),
+  muvarSkip_(0)
 {
   if(decDomain->getDomain()->solInfo().statevectPodRom){
 
@@ -130,6 +136,14 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::RawImpl(DecDomain *decDomain) :
 
     dsvarSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::SNAPSHOTS), decDomain->getDomain()->getNumCTC(),
                      dualSnapBuffer_->globalNodeIndexBegin(), dualSnapBuffer_->globalNodeIndexEnd(), structCom, 
+                     (geoSource->getCheckFileInfo()->lastRestartFile != 0), 1);
+  }
+  if(decDomain->getDomain()->solInfo().muvPodRom){
+
+    muSnapBuffer_  = new DistrNodeDof1Buffer(masterMapping_.masterNodeBegin(), masterMapping_.masterNodeEnd());
+
+    muvarSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::MUSTATE, BasisId::SNAPSHOTS), nodeCount(),
+                     muSnapBuffer_->globalNodeIndexBegin(), muSnapBuffer_->globalNodeIndexEnd(), structCom,
                      (geoSource->getCheckFileInfo()->lastRestartFile != 0), 1);
   }
 }
@@ -214,6 +228,32 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::accelSnapshotAdd(const DistrVector &a
 }
 
 void
+DistrSnapshotNonLinDynamicDetail::RawImpl::muvarSnapshotAdd(const DistrGeomState &snap) {
+  ++muvarSkip_;
+  if(muvarSnapFile_ && (muvarSkip_ >= decDomain_->getDomain()->solInfo().skipMuStateVar)) {
+    const int subDomCount = snap.getNumSub();
+    muSnapBuffer_->zero(); // zero out snapshot buffer
+    for (int iSub = 0; iSub < subDomCount; ++iSub) { // loop over each subdomain in this mpi process
+      SubDomain *sd = decDomain_->getSubDomain(iSub);
+      // loop through each multiplier in this subdomain
+      for(std::map<std::pair<int,int>, double>::iterator it = snap.mu[iSub].begin(); it != snap.mu[iSub].end(); it++) { 
+        std::pair<int,int> id = it->first; // get lmpc id and slave node pair
+        double lagrangeMultiplier = it->second; // get lagrangemultiplier
+        int slaveNodeGId = id.second;
+        //fprintf(stderr,"slave node: %d, mu: %3.2e\n",slaveNodeGId, lagrangeMultiplier);
+        const int pnId = sd->globalToLocal(slaveNodeGId); // see if its in this subdomain
+        if(pnId > 0 && lagrangeMultiplier < -1e-16){
+          if((*muSnapBuffer_)[slaveNodeGId] != NULL) // see if this process owns that node
+            (*muSnapBuffer_)[slaveNodeGId][0] = lagrangeMultiplier; // write to buffer
+        }
+      }
+    }
+  }
+  muvarSnapFile_->stateAdd(*muSnapBuffer_, timeStamp_);
+  muvarSkip_ = 0;
+}
+
+void
 DistrSnapshotNonLinDynamicDetail::RawImpl::dsvarSnapshotAdd(const DistrGeomState &snap) {
   ++dsvarSkip_;
   if(dsvarSnapFile_ && (dsvarSkip_ >= decDomain_->getDomain()->solInfo().skipDualStateVar)) {
@@ -258,30 +298,6 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::dsvarSnapshotAdd(const DistrGeomState
     dsvarSnapFile_->stateAdd(*dualSnapBuffer_, timeStamp_);
     dsvarSkip_ = 0;
   }
-  const int subDomCount = snap.getNumSub();
-  int numMu = 0; 
-  for (int iSub = 0; iSub < subDomCount; ++iSub) {
-    numMu += snap.mu[iSub].size();
-  }
-  //int numProc = structCom->numCPUs();
-/*  int myID    = structCom->myID();
-  //numMu = structCom->globalSum(numMu);
-  for (int iSub = 0; iSub < subDomCount; ++iSub) {// loop through each subDomain
-    if(snap.mu[iSub].size() > 0) {                // check if subDomain is empty
-      //for(int proc = 0; proc < numProc; ++proc){  // loop through each process
-        //if(proc == myID){ // serial write to file
-          if(myID == 0 && iSub == 0) { 
-            fprintf(muSnapFile,"   %1.8e %d \n", timeStamp_, numMu);  // master proc writes time stamp
-            for(std::map<std::pair<int,int>, double>::iterator it = snap.mu[iSub].begin(); it != snap.mu[iSub].end(); ++it){ // loop through multipliers
-//              fprintf(stderr," %d %d %d %1.8e \n", myID, it->first.first, it->first.second, it->second);
-                fprintf(muSnapFile," %d %d %1.8e \n", it->first.first, it->first.second, it->second);
-            }
-          }
-        //}
-        //structCom->sync();
-     // } 
-    }
-  }*/
 }
 
 DistrSnapshotNonLinDynamic::DistrSnapshotNonLinDynamic(Domain *domain) :

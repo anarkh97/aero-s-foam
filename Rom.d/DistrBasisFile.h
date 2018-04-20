@@ -103,6 +103,7 @@ public:
   explicit DistrBasisInputFileTemplate(const std::string &fileName);
   
   const DistrNodeDofBuffer<DOFS_PER_NODE> &currentStateBuffer(DistrNodeDofBuffer<DOFS_PER_NODE> &target);
+  void currentStateBuffer(std::map<int,double> &target);
   using BasisBinaryInputFile::currentStateBuffer; // Do not hide inherited member function
 
 private:

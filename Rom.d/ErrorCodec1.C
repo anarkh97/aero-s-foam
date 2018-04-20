@@ -80,7 +80,7 @@ int main (int argc, char *argv[]) {
          std::cerr << "break #1 time1 = " << time1 << ", tFinal = " << tFinal << std::endl;
          break;
        }
-       std::cerr << " time stamp " << tcounter << " = " << time1 << std::endl;
+       printf("\r time stamp %d = %f",tcounter,time1);
        tcounter++;
      }
 

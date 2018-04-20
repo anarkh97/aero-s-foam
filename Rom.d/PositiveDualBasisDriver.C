@@ -39,13 +39,10 @@ void readIntoSolver(NonnegativeMatrixFactorization &solver, VecNodeDof1Conversio
       if(skip == skipTime) {
         double *buffer = solver.matrixCol(colCounter);
         input >> buffer;
-        for(int asdf = 0; asdf < input.vectorSize(); asdf++)
-//          std::cout << "buffer[" << asdf << "] = " << buffer[asdf] << std::endl;
         assert(input);
         colCounter++;
         skip = 1;
-      } 
-      else {
+      } else {
         SimpleBuffer<double> dummyVec;
         dummyVec.sizeIs(input.vectorSize());  
         double *dummyBuffer = dummyVec.array();
@@ -62,9 +59,10 @@ void readIntoSolver(NonnegativeMatrixFactorization &solver, VecNodeDof1Conversio
 
 void
 PositiveDualBasisDriver::solve() {
+  // process model geometry
   SingleDomainDynamic::preProcess();
-  VecNodeDof1Conversion converter(domain->getNumCTC());
-  FileNameInfo fileInfo;
+
+  // initialize solver
   NonnegativeMatrixFactorization solver(domain->solInfo().maxSizePodRom, domain->solInfo().use_nmf);
   solver.maxIterIs(domain->solInfo().nmfMaxIter);
   solver.toleranceIs(domain->solInfo().nmfTol);
@@ -76,53 +74,67 @@ PositiveDualBasisDriver::solve() {
   std::vector<BasisId::Type> workload;
   workload.push_back(BasisId::DUALSTATE);
 
-  int vectorSize = 0; // size of vectors
-  int sizeSnap = 0; // number of state snapshots
-  int skipTime = domain->solInfo().skipPodRom;
-  if(domain->solInfo().dsvPodRomFile.empty() && domain->solInfo().robfi.empty()) {
+  // check that some data has been provided
+  if(domain->solInfo().dsvPodRomFile.empty() && domain->solInfo().muvPodRomFile.empty()  && domain->solInfo().robfi.empty()) {
     std::cerr << "*** ERROR: no files provided\n";
     exit(-1);
   }
- 
-  for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
-    BasisId::Type type = *it;
-    // Loop over snapshots
-    for(int i = 0; i < domain->solInfo().dsvPodRomFile.size(); i++) {
-      std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
-      BasisInputStream<1> input(fileName, converter);
-      vectorSize = input.vectorSize();
-      sizeSnap += input.size()/skipTime;
-    }
+
+
+  int vectorSize = 0; // size of vectors
+  int sizeSnap = 0; // number of state snapshots
+  int skipTime = domain->solInfo().skipPodRom;
+
+  // see how many vectors will be read in and initialize converter structure
+  FileNameInfo fileInfo;
+  VecNodeDof1Conversion *converter; 
+  BasisId::Type type; 
+  int numFiles = 0;
+  if(domain->solInfo().dsvPodRomFile.size() > 0){ // for snapshots collected from LMPCs or Constraint function elements
+    type = BasisId::DUALSTATE;
+    numFiles = domain->solInfo().dsvPodRomFile.size(); 
+    converter = new VecNodeDof1Conversion(domain->getNumCTC());
+  } else if(domain->solInfo().muvPodRomFile.size() > 0) { // for snapshots collected from FETI-Mortar method
+    type = BasisId::MUSTATE;
+    numFiles = domain->solInfo().muvPodRomFile.size();
+    converter = new VecNodeDof1Conversion(*(domain->getDSA()));
   }
+  for(int i = 0; i < numFiles; i++) {
+    std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
+    BasisInputStream<1> input(fileName, *converter);
+    vectorSize = input.vectorSize();
+    sizeSnap += input.size()/skipTime;
+  }
+
+  // set basis dimension and allocate space in the solver
   int maxBasisDimension = domain->solInfo().maxSizePodRom + (domain->solInfo().nmfDelROBDim)*(domain->solInfo().nmfNumROBDim-1);
   solver.matrixSizeIs(vectorSize, sizeSnap);
   solver.robSizeIs(vectorSize, maxBasisDimension);
 
-  for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
-    BasisId::Type type = *it;
-    int colCounter = 0;
-    readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().dsvPodRomFile.size(), vectorSize, type, colCounter, skipTime); // read in snapshots
+  // read the snapshots in to the solver buffer
+  int colCounter = 0;
+  readIntoSolver(solver, *converter, BasisId::SNAPSHOTS, numFiles, vectorSize, type, colCounter, skipTime); 
 
-    for (int iBasis=0; iBasis < domain->solInfo().nmfNumROBDim; ++iBasis) {
-      int orthoBasisDim = domain->solInfo().maxSizePodRom + iBasis*domain->solInfo().nmfDelROBDim;
-      filePrint(stderr, " ... Computation of a positive basis of size %d ...\n", orthoBasisDim);
-      solver.basisDimensionIs(orthoBasisDim);
-      if (iBasis==0)
-        solver.solve(0);
-      else
-        solver.solve(orthoBasisDim-domain->solInfo().nmfDelROBDim);
+  // solve for incrementally larger daul bases 
+  for (int iBasis=0; iBasis < domain->solInfo().nmfNumROBDim; ++iBasis) {
+    int orthoBasisDim = domain->solInfo().maxSizePodRom + iBasis*domain->solInfo().nmfDelROBDim;
+    filePrint(stderr, " ... Computation of a positive basis of size %d ...\n", orthoBasisDim);
+    solver.basisDimensionIs(orthoBasisDim);
+    if (iBasis==0)
+      solver.solve(0);
+    else
+      solver.solve(orthoBasisDim-domain->solInfo().nmfDelROBDim);
 
-      std::string fileName = BasisFileId(fileInfo, type, BasisId::POD);
-      std::ostringstream ss;
-      ss << orthoBasisDim;
-      fileName.append(ss.str()); 
-      BasisOutputStream<1> output(fileName, converter, false); 
-      filePrint(stderr, " ... Writing positive basis to file %s ...\n", fileName.c_str());
-      for (int iVec = 0; iVec < orthoBasisDim; ++iVec) { 
-        output << std::make_pair(1.0, solver.robCol(iVec));
-      }
-    }  
-  }
+    std::string fileName = BasisFileId(fileInfo, type, BasisId::POD);
+    std::ostringstream ss;
+    ss << orthoBasisDim;
+    fileName.append(ss.str()); 
+    BasisOutputStream<1> output(fileName, *converter, false); 
+    filePrint(stderr, " ... Writing positive basis to file %s ...\n", fileName.c_str());
+    for (int iVec = 0; iVec < orthoBasisDim; ++iVec) { 
+      output << std::make_pair(1.0, solver.robCol(iVec));
+    }
+  }  
 }
 
 void

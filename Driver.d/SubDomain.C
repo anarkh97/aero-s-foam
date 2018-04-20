@@ -5772,10 +5772,10 @@ GenSubDomain<Scalar>::extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
 {
   // PASS 1 count number of local mpcs
   numMPC = 0;
-  for(int iMPC = 0; iMPC < glNumMPC; ++iMPC) {
-    if(lmpc[iMPC]->isPrimalMPC()) continue;
-    for(int i = 0; i < lmpc[iMPC]->nterms; ++i) {
-      if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) {
+  for(int iMPC = 0; iMPC < glNumMPC; ++iMPC) { // loop over global number of MPCs
+    if(lmpc[iMPC]->isPrimalMPC()) continue;    // skip if its a primal MPC
+    for(int i = 0; i < lmpc[iMPC]->nterms; ++i) { // loop over terms in mpc
+      if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) { // if the node for this term is in this subDomain, add to list
         numMPC++;
         break;
       }
@@ -6326,6 +6326,85 @@ GenSubDomain<Scalar>::constraintProduct(int num_vect, const double* R[], Scalar*
     }
   }
 }
+
+
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::dualConstraintProjection(std::vector<std::map<int,double> > &W, 
+                                               Rom::DistrVecBasis &CtW, 
+                                               Eigen::Matrix<double,Eigen::Dynamic,1> &WtRhs,
+                                               int startCol, int blockCols){
+
+  for(int k = 0; k < blockCols; ++k){ // loop through each dual vector
+    bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
+    for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+    // get subvector for target and dual vector  k
+    std::map<int,double> &basisVec = W[startCol+k];
+    StackVector target(CtW[k].subData(localSubNumber), CtW[k].subLen(localSubNumber)); target.zero();
+    for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) { // loop over all MPCs
+      int i = scomm->mpcNb(l);
+      if(!mpcFlag[i]) continue;
+      if(mpc[i]->getSource() == mpc::ContactSurfaces) { // check if contact constraint
+        // get slave node from mpc and extract corresponding row from dual basis
+        std::map<int, double>::iterator it1 = basisVec.find(mpc[i]->id.second); // get correct row of dual basis
+        // if, the node is in this vector, get multiplier slot associated with this slave node, othewise skip to next one
+        if(it1 == basisVec.end()){ continue;}
+        double rowVal = it1->second;
+        //fprintf(stderr,"slave Node: %d, rowVal %3.2e, rhs: %3.2e\n",mpc[i]->id.second, rowVal, mpc[i]->rhs);
+        int sNode = mpc[i]->id.second; //global node id
+        const int pnId = globalToLocal(sNode);
+        if(pnId > 0) {
+          WtRhs(k) += mpc[i]->rhs*rowVal;
+        }
+        for(int j = 0; j < mpc[i]->nterms; ++j) { // number of nterms associated with this multiplier
+          int dof = c_dsa->locate(mpc[i]->terms[j].nnum, (1 << mpc[i]->terms[j].dofnum));
+          //fprintf(stderr,"mpc[%d]->terms[%d].nnum: %d, .dofnum: %d , dof: %d\n",i,j,mpc[i]->terms[j].nnum, mpc[i]->terms[j].dofnum,dof);
+          if(dof < 0) continue;
+          target[dof] += mpc[i]->terms[j].coef*rowVal;
+        }
+      }
+      mpcFlag[i] = false;
+    }
+  }
+}
+
+/*template<class Scalar>
+void
+GenSubDomain<Scalar>::dualConstraintProjection(Rom::DistrVecBasis &W, 
+                                               Rom::DistrVecBasis &CtW, 
+                                               Eigen::Matrix<double,Eigen::Dynamic,1> &WtRhs){
+
+  for(int k = 0; k < W.numVec(); ++k){ // loop through each dual vector
+    bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
+    for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+    // get subvector for target and dual vector  k
+    StackVector muVect(W[k].subData(localSubNumber), W[k].subLen(localSubNumber));
+    StackVector target(CtW[k].subData(localSubNumber), CtW[k].subLen(localSubNumber)); target.zero();
+    for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) { // loop over all MPCs
+      int i = scomm->mpcNb(l);
+      if(!mpcFlag[i]) continue;
+      if(mpc[i]->getSource() == mpc::ContactSurfaces) { // check if contact constraint
+        // get slave node from mpc and extract corresponding row from dual basis
+        int sNode = mpc[i]->id.second; //global node id
+        const int pnId = globalToLocal(sNode); 
+        if(pnId > 0) { // make sure slave node belongs in this domain
+          // get multiplier slot associated with this slave node
+          double muVal = muVect[c_dsa->locate(pnId,DofSet::Xdisp)];
+//          fprintf(stderr,"slave Node: %d, muVal %3.2e, rhs: %3.2e\n",sNode, muVal, mpc[i]->rhs);
+          WtRhs(k) += mpc[i]->rhs*muVal;
+          for(int j = 0; j < mpc[i]->nterms; ++j) { // number of nterms associated with this multiplier
+            int dof = c_dsa->locate(mpc[i]->terms[j].nnum, (1 << mpc[i]->terms[j].dofnum));
+//            fprintf(stderr,"mpc[%d]->terms[%d].nnum: %d, .dofnum: %d , dof: %d\n",i,j,mpc[i]->terms[j].nnum, mpc[i]->terms[j].dofnum,dof);
+            if(dof < 0) continue;
+            target[dof] += mpc[i]->terms[j].coef*muVal;
+          }
+        }
+      }
+      mpcFlag[i] = false;
+    }
+  }
+}*/
 
 template<class Scalar>
 void

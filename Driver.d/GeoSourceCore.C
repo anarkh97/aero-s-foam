@@ -1505,6 +1505,16 @@ void GeoSource::setUpData(int topFlag)
         domain->solInfo().dsvPodRomFile.push_back(oinfo[iOut].filename);
         oinfo[iOut].PodRomfile = true;
         break;
+      case OutputInfo::MuStateVar :
+        if(verboseFlag) filePrint(stderr, " ... Saving Lagrange Multiplier snapshots every %d time steps to %s ...\n",
+                                  oinfo[iOut].interval, oinfo[iOut].filename);
+        domain->solInfo().activatePodRom = true;
+        domain->solInfo().snapshotsPodRom = true;
+        domain->solInfo().muvPodRom = true;
+        domain->solInfo().skipMuStateVar = oinfo[iOut].interval;
+        domain->solInfo().muvPodRomFile.push_back(oinfo[iOut].filename);
+        oinfo[iOut].PodRomfile = true;
+        break;
       case OutputInfo::Forcevector :
         if(verboseFlag) filePrint(stderr, " ... Saving force snapshots every %d time steps to %s ...\n",
                                   oinfo[iOut].interval, oinfo[iOut].filename);
@@ -4197,8 +4207,8 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    Connectivity *subToElem = graph->SCOTCH_graphPart(numSubdomains);
    optDec = new Decomposition(numSubdomains, subToElem->getPointer(), subToElem->getTarget());
    subToElem->setRemoveable(0);
-   delete subToElem;
-   delete graph;
+   delete subToElem; 
+   delete graph; 
    delete elemToElem;
    delete nodeToElem;
 

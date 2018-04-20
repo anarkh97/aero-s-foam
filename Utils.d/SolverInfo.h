@@ -364,6 +364,7 @@ struct SolverInfo {
    std::vector<std::string> velocPodRomFile;
    std::vector<std::string> accelPodRomFile;
    std::vector<std::string> dsvPodRomFile;
+   std::vector<std::string> muvPodRomFile;
    const char * isvPodRomFile;
 //   const char * dsvPodRomFile;
    const char * forcePodRomFile;
@@ -378,6 +379,7 @@ struct SolverInfo {
    bool accelvectPodRom;
    bool isvPodRom;
    bool dsvPodRom;
+   bool muvPodRom;
    bool forcevectPodRom;
    bool residvectPodRom;
    bool jacobvectPodRom;
@@ -462,6 +464,7 @@ struct SolverInfo {
    int  skipAccel;
    int  skipInternalStateVar;
    int  skipDualStateVar;
+   int  skipMuStateVar;
    int  skipForce;
    int  skipResidual;
    int  skipJacobian;
@@ -718,6 +721,7 @@ struct SolverInfo {
                   accelvectPodRom    = false;
                   isvPodRom          = false;
                   dsvPodRom          = false;
+                  muvPodRom          = false;
                   forcevectPodRom    = false;
                   residvectPodRom    = false;
                   jacobvectPodRom    = false;
@@ -798,6 +802,7 @@ struct SolverInfo {
                   skipAccel          = 1;
                   skipInternalStateVar = 1;
                   skipDualStateVar   = 1;
+                  skipMuStateVar     = 1;
                   skipForce          = 1;
                   skipResidual       = 1;
                   skipJacobian       = 1;

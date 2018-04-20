@@ -85,6 +85,11 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int pod
   else {
     meshOut << "0 inorm \"" << basisfile << ".orthonormalized\" " << podVectorCount << "\n";
   }
+  if (!domain->solInfo().readInDualROB.empty()) {
+    std::string dualBasisfile = getMeshFilename(fileInfo).c_str();
+    dualBasisfile.append(".compressed.dualbasis");
+    meshOut << "1 noneg \"" << dualBasisfile << "\" " << domain->solInfo().localDualBasisSize[0] << "\n";
+  }
   meshOut << "*\n";
   meshOut << mesh;
 }
@@ -436,6 +441,10 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
               //std::cerr << "scaling position coordinates by " << domain->solInfo().xScaleFactor << " " << domain->solInfo().yScaleFactor
               //          << " " << domain->solInfo().zScaleFactor << std::endl;
               geomState_->transformCoords(xScaleFactor, yScaleFactor, zScaleFactor);
+              if(domain_->solInfo().getNLInfo().linearelastic) {
+                kelArray_[iElem].copy(domain_->getElementSet()[iElem]->stiffness(domain_->getNodes(),  kelArray_[iElem].data()));
+                melArray_[iElem].copy(domain_->getElementSet()[iElem]->massMatrix(domain_->getNodes(), melArray_[iElem].data(), geoSource->getMRatio()));
+              }
             }
             else if(ndfile) { // if using arbitrarily deformed mesh, do this block
               geomState_->setNewCoords(ndscfgCoords[kParam-1][0]);
@@ -600,13 +609,13 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
     } 
     postProcessLocal(solution, packedToInput, j, sampleElemIds, weights[j]);
   }
-  addContactElems(sampleElemIds, weights, sampleElemIds);
+  addContactElems(sampleElemIds, weights);
   postProcessGlobal(sampleElemIds, weights);
 }
 
 template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights, std::vector<int> &packedToInput) {
+ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<int> &sampleElemIds, std::vector<std::map<int, double> > &weights) {
 
   // Add elements attached to Contact surfaces, needed for assigning mass to nodes in surface
   int numMC = domain->GetnMortarConds();
@@ -635,8 +644,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<in
             // loop through elements attached to node
             for(int j = 0; j < nodeToElem->num(glNode); ++j) {
               const int elemRank = (*nodeToElem)[glNode][j];
-              //const int elemRank = packedToInput[k];
-              //fprintf(stderr,"for node %d, element has rank = %d\n",glNode, elemRank);
               // check if element already in weighted set, if not, add to weights and reduced ElemIds; 
               if(std::find(sampleElemIds.begin(), sampleElemIds.end(), elemRank) == sampleElemIds.end()){
                 sampleElemIds.push_back(elemRank);
@@ -934,7 +941,66 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcessGlobal(std::vector<
       filePrint(stderr, "... No Filename given for Precomputation of reduced Constraints ...\n");
     }
 
-  } 
+  } else {
+
+    if(!domain->solInfo().readInDualROB.empty()) {
+      // first get size of dual basis files
+      std::vector<int> locDualBasisVec;
+      VecNodeDof1Conversion vecNodeDof1Conversion(*domain_->getCDSA());
+      for(int j = 0; j < domain->solInfo().readInDualROB.size(); ++j){
+        std::string fileName = BasisFileId(fileInfo, BasisId::DUALSTATE, BasisId::POD,j);
+        BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
+
+        locDualBasisVec.push_back(dualProjectionBasisInput.size());
+
+        filePrint(stderr, " ... Dual Basis %d size %d ...\n", j, locDualBasisVec[j]);
+      }
+
+      // next read them in
+      VecBasis dualProjectionBasis_;
+      for(int j = 0 ; j < domain->solInfo().readInDualROB.size(); j++) {
+        std::string fileName = BasisFileId(fileInfo, BasisId::DUALSTATE, BasisId::POD,j);
+        BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
+        const int dualProjectionSubspaceSize = locDualBasisVec[j] ?
+                                               std::min(locDualBasisVec[j], dualProjectionBasisInput.size()) :
+                                               dualProjectionBasisInput.size();
+
+        readVectors(dualProjectionBasisInput, dualProjectionBasis_,
+                  std::accumulate(locDualBasisVec.begin(), locDualBasisVec.end(), 0),
+                  dualProjectionSubspaceSize,
+                  std::accumulate(locDualBasisVec.begin(), locDualBasisVec.begin()+j, 0));
+      }
+
+      // then set up new compressed file to write them to
+      DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
+      int num_bc = reducedMesh.dirichletBConds().size();
+      BCond *bc = (num_bc > 0) ? const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]) : NULL;
+      ConstrainedDSA reduced_cdsa(reduced_dsa, num_bc, bc);
+      dualProjectionBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain_->getCDSA(), &reduced_cdsa);
+      {
+        VecNodeDof1Conversion converter(reduced_cdsa);
+        for(int j=0; j<domain_->solInfo().readInDualROB.size(); ++j) {
+          std::string filename = getMeshFilename(fileInfo).c_str();
+          filename.append(".compressed.dualbasis");
+          if(domain_->solInfo().readInDualROB.size() != 1) {
+            std::ostringstream ss;
+            ss << j+1;
+            filename.append(ss.str());
+          }
+          filePrint(stderr," ... Writing dual compressed basis to file %s ...\n", filename.c_str());
+          BasisOutputStream<1> output(filename, converter, false);
+ 
+          int startCol = (domain_->solInfo().readInDualROB.size() == 1) ? 0 :
+                        std::accumulate(domain_->solInfo().localBasisSize.begin(), domain_->solInfo().localBasisSize.begin()+j, 0);
+          int blockCols = (domain_->solInfo().readInDualROB.size() == 1) ? dualProjectionBasis_.vectorCount() : domain_->solInfo().localBasisSize[j];
+          for (int iVec = startCol; iVec < startCol+blockCols; ++iVec) {
+            output << dualProjectionBasis_.compressedBasis().col(iVec);
+          }
+        }
+      }
+
+    }
+  }
 #endif
 
   // output the reduced initial conditions

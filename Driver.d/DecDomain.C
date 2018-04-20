@@ -443,7 +443,7 @@ GenDecDomain<Scalar>::preProcessMPCs()
     if(nodeToSub) domain->checkLMPCs(nodeToSub);
     // select which mpcs are to be included in the coarse problem
     domain->setPrimalLMPCs(numDualMpc, numPrimalMpc);
-    // distribute mpcs
+    // distribute mpcs, put them in the mpc container in SubDomain
     execParal(numSub, this, &GenDecDomain<Scalar>::extractSubDomainMPCs);
     makeMpcToSub(); // new version works for distributed data
     // renumber local mpcs
@@ -1252,6 +1252,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::Accelvector:
         case OutputInfo::InternalStateVar:
         case OutputInfo::DualStateVar:
+        case OutputInfo::MuStateVar:
         case OutputInfo::Forcevector:
         case OutputInfo::Constraintvector:
         case OutputInfo::Constraintviolation:
@@ -2393,6 +2394,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
      case OutputInfo::Accelvector:
      case OutputInfo::InternalStateVar:
      case OutputInfo::DualStateVar:
+     case OutputInfo::MuStateVar:
      case OutputInfo::Forcevector:
      case OutputInfo::Constraintvector:
      case OutputInfo::Constraintviolation:

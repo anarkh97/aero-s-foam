@@ -40,6 +40,7 @@ public:
   // Local bases
   void setLocalBasis(int startCol, int blockCols);
   void setLocalDualBasis(int startCol, int blockCols);
+  void getLocalDualBasisInfo(int &startCol, int &blockCols) { startCol = startDualCol_; blockCols = dualBlockCols_; }
 
   // Full-order matrix assembly
   virtual void zeroAll();
@@ -54,6 +55,7 @@ public:
   // Constraint assembly
   void activateContact() { contact_ = true; }
   void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef);
+  void addMPCs(Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &ContributionMat, Eigen::Matrix<Scalar,Eigen::Dynamic,1> &WtRhs, double Kcoef);
   void addModalLMPCs(double Kcoef, int Wcols,std::vector<double>::const_iterator it, std::vector<double>::const_iterator it_end);
   void updateLMPCs(GenVecType<Scalar> &q);
 
@@ -70,6 +72,7 @@ public:
   GenVecBasis<Scalar,GenVecType> &dualProjectionBasis() { return *dualProjectionBasis_; }
   void projectionBasisIs(GenVecBasis<Scalar,GenVecType> &); // Passed objects must be kept alive by owner
   void dualProjectionBasisIs(GenVecBasis<Scalar,GenVecType> &);
+  void dualProjectionBasisIs(std::vector<std::map<int,double> > &);
   void storeReducedMass(Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &);
   void EmpiricalSolver(); 
   void addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &, double = 1.0); 

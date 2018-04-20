@@ -271,7 +271,7 @@ Domain::computeStructureMass(bool printFlag, int groupId)
     delete [] nodeNumbers;
 
     if(printFlag) {
-      filePrint(stderr," Fluid Mass = %f\n",fluidmas);
+      filePrint(stderr," Fluid Mass = %e\n",fluidmas);
       filePrint(stderr," --------------------------------------\n");
     }
 
@@ -302,39 +302,63 @@ Domain::computeStructureMass(bool printFlag, int groupId)
           xc += current->diMass*node.x;
           Iyy += current->diMass*(node.z*node.z);
           Izz += current->diMass*(node.y*node.y);
-          Ixy -= current->diMass*(node.x*node.y);
-          Ixz -= current->diMass*(node.x*node.z);
+          Ixy -= 0.5*current->diMass*(node.x*node.y);
+          Iyx -= 0.5*current->diMass*(node.y*node.x);
+          Ixz -= 0.5*current->diMass*(node.x*node.z);
+          Izx -= 0.5*current->diMass*(node.z*node.x);
         } break;
         case 1: {
           My += current->diMass;
           yc += current->diMass*node.y;
           Ixx += current->diMass*(node.z*node.z);
           Izz += current->diMass*(node.x*node.x);
-          Iyx -= current->diMass*(node.x*node.y);
-          Iyz -= current->diMass*(node.y*node.z);
+          Iyx -= 0.5*current->diMass*(node.x*node.y);
+          Ixy -= 0.5*current->diMass*(node.y*node.x);
+          Iyz -= 0.5*current->diMass*(node.y*node.z);
+          Izy -= 0.5*current->diMass*(node.z*node.y);
         } break;
         case 2: {
           Mz += current->diMass;
           zc += current->diMass*node.z;
           Ixx += current->diMass*(node.y*node.y);
           Iyy += current->diMass*(node.x*node.x);
-          Izx -= current->diMass*(node.x*node.z);
-          Izy -= current->diMass*(node.y*node.z);
+          Izx -= 0.5*current->diMass*(node.x*node.z);
+          Ixz -= 0.5*current->diMass*(node.z*node.x);
+          Izy -= 0.5*current->diMass*(node.y*node.z);
+          Iyz -= 0.5*current->diMass*(node.z*node.y);
         } break;
         case 3: {
-          if(current->jdof == -1 || current->jdof == 3) Ixx += current->diMass;
-          else if(current->jdof == 4) Ixy += current->diMass;
-          else if(current->jdof == 5) Ixz += current->diMass;
+          if (current->jdof == -1 || current->jdof == 3) {
+            Ixx += current->diMass;
+          } else if (current->jdof == 4) {
+            Ixy += current->diMass;
+            Iyx += current->diMass;
+          } else if (current->jdof == 5) {
+            Ixz += current->diMass;
+            Izx += current->diMass;
+          }
         } break;
         case 4: {
-          if(current->jdof == -1 || current->jdof == 4) Iyy += current->diMass;
-          else if(current->jdof == 3) Ixy += current->diMass;
-          else if(current->jdof == 5) Iyz += current->diMass;
+          if (current->jdof == -1 || current->jdof == 4) {
+            Iyy += current->diMass;
+          } else if (current->jdof == 3) {
+            Ixy += current->diMass;
+            Iyx += current->diMass;
+          } else if (current->jdof == 5) {
+            Iyz += current->diMass;
+            Izy += current->diMass;
+          }
         } break;
         case 5: {
-          if(current->jdof == -1 || current->jdof == 5) Izz += current->diMass;
-          else if(current->jdof == 3) Ixz += current->diMass;
-          else if(current->jdof == 4) Iyz += current->diMass;
+          if (current->jdof == -1 || current->jdof == 5) {
+            Izz += current->diMass;
+          } else if (current->jdof == 3) {
+            Ixz += current->diMass;
+            Izx += current->diMass;
+          } else if (current->jdof == 4) {
+            Iyz += current->diMass;
+            Izy += current->diMass;
+          }
         } break;
       }
     //}
@@ -352,20 +376,19 @@ Domain::computeStructureMass(bool printFlag, int groupId)
   if(Mz != 0.0) zc /= Mz;
   // change moments of inertia to centroidal axes using parallel axes theorem: I_z = I_cm + m*d^2
   Ixx -= (My*(yc*yc)+Mz*(zc*zc));
-  Iyy -= (Mz*(xc*xc)+Mz*(zc*zc));
+  Iyy -= (Mx*(xc*xc)+Mz*(zc*zc));
   Izz -= (Mx*(xc*xc)+My*(yc*yc));
-
   Ixy += Mx*xc*yc;
-  Iyx += My*xc*yc;
+  Iyx += My*yc*xc;
   Ixz += Mx*xc*zc;
-  Izx += Mz*xc*zc;
+  Izx += Mz*zc*xc;
   Iyz += My*yc*zc;
-  Izy += Mz*yc*zc;
+  Izy += Mz*zc*yc;
 
   if(printFlag) {
     if(Mx != My || Mx != Mz || My != Mz) {
       filePrint(stderr," Directional Mass\n");
-      filePrint(stderr," Mx = %f My = %f Mz = %f\n",Mx,My,Mz);
+      filePrint(stderr," Mx = %e My = %e Mz = %e\n",Mx,My,Mz);
       filePrint(stderr," --------------------------------------\n");
     }
 
@@ -377,14 +400,15 @@ Domain::computeStructureMass(bool printFlag, int groupId)
     filePrint(stderr," Ixy = %e Iyz = %e Ixz = %e\n",Ixy,Iyz,Ixz);
     filePrint(stderr," --------------------------------------\n");
 
-    if (Iyx != Ixy || Ixz != Izx || Iyz != Izy)  {
-      filePrint(stderr," WARNING: Non-Symmetric Products of Inertia (Check DiMASS) \n");
+    double tol = 100*std::numeric_limits<double>::epsilon();
+    if(std::abs(Iyx-Ixy) > tol || std::abs(Ixz-Izx) > tol || std::abs(Iyz-Izy) > tol)  {
+      filePrint(stderr," Warning: Non-Symmetric Products of Inertia\n");
       filePrint(stderr," Iyx = %e Izy = %e Izx = %e\n",Iyx,Izy,Izx);
       filePrint(stderr," --------------------------------------\n");
     }
 
     filePrint(stderr," Center of Gravity\n");
-    filePrint(stderr," x = %f y = %f z = %f\n",xc,yc,zc);
+    filePrint(stderr," x = %e y = %e z = %e\n",xc,yc,zc);
     filePrint(stderr," --------------------------------------\n");
   }
 
@@ -414,20 +438,23 @@ Domain::computeStructureMass(bool printFlag, int groupId)
   }
 
   if(printFlag) {
-    filePrint(stderr," Node %d is closest to the Center of Gravity\n",nodeMarker+1);
+    filePrint(stderr," Node %d is closest to the center of gravity.\n",nodeMarker+1);
     Node *thisNode = nodes[nodeMarker];
     if(thisNode) {
       filePrint(stderr," Node %d has coordinates: %e %e %e \n",
                 nodeMarker + 1, thisNode->x, thisNode->y, thisNode->z);
-      filePrint(stderr," It is %e from the center of gravity\n",minDistance);
+      filePrint(stderr," It is %e from the center of gravity.\n",minDistance);
       filePrint(stderr," --------------------------------------\n");
     }
   }
 
   // Compute Geometric center of gravity of structure
-  double xmax = 0.0;
-  double ymax = 0.0;
-  double zmax = 0.0;
+  double xmax = -std::numeric_limits<double>::max();
+  double ymax = -std::numeric_limits<double>::max();
+  double zmax = -std::numeric_limits<double>::max();
+  double xmin = std::numeric_limits<double>::max();
+  double ymin = std::numeric_limits<double>::max();
+  double zmin = std::numeric_limits<double>::max();
 
   int nComponents = renumb.numComp + renumbFluid.numComp;
 
@@ -447,6 +474,9 @@ Domain::computeStructureMass(bool printFlag, int groupId)
       if(nd.x > xmax) xmax = nd.x;
       if(nd.y > ymax) ymax = nd.y;
       if(nd.z > zmax) zmax = nd.z;
+      if(nd.x < xmin) xmin = nd.x;
+      if(nd.y < ymin) ymin = nd.y;
+      if(nd.z < zmin) zmin = nd.z;
     }
 
     double xg = xc/realNodeCnt;
@@ -455,7 +485,7 @@ Domain::computeStructureMass(bool printFlag, int groupId)
 
     if(printFlag) {
       filePrint(stderr," Component %d: Centroid\n", n+1);
-      filePrint(stderr," x = %f y = %f z = %f\n",xg,yg,zg);
+      filePrint(stderr," x = %e y = %e z = %e\n",xg,yg,zg);
     }
   }
   for(int n=0; n<renumbFluid.numComp; ++n) {
@@ -473,6 +503,9 @@ Domain::computeStructureMass(bool printFlag, int groupId)
       if(nd.x > xmax) xmax = nd.x;
       if(nd.y > ymax) ymax = nd.y;
       if(nd.z > zmax) zmax = nd.z;
+      if(nd.x < xmin) xmin = nd.x;
+      if(nd.y < ymin) ymin = nd.y;
+      if(nd.z < zmin) zmin = nd.z;
     }
   
     double xg = xc/realNodeCnt;
@@ -481,16 +514,15 @@ Domain::computeStructureMass(bool printFlag, int groupId)
     
     if(printFlag) {
       filePrint(stderr," Component %d (Fluid): Centroid\n", renumb.numComp+n+1);
-      filePrint(stderr," x = %f y = %f z = %f\n",xg,yg,zg);
+      filePrint(stderr," x = %e y = %e z = %e\n",xg,yg,zg);
     }
   }
  
   if(printFlag) {
     filePrint(stderr," --------------------------------------\n");
-
-    filePrint(stderr," Maximum x dimension = %f\n",xmax);
-    filePrint(stderr," Maximum y dimension = %f\n",ymax);
-    filePrint(stderr," Maximum z dimension = %f\n",zmax);
+    filePrint(stderr," Minimum and maximum x dimension = %e and %e\n",xmin,xmax);
+    filePrint(stderr," Minimum and maximum y dimension = %e and %e\n",ymin,ymax);
+    filePrint(stderr," Minimum and maximum z dimension = %e and %e\n",zmin,zmax);
     filePrint(stderr," --------------------------------------\n");
   }}
 
@@ -676,7 +708,6 @@ Domain::computeFluidMass()
     filePrint(stderr," x = %f y = %f z = %f\n",xg,yg,zg);
   }
   filePrint(stderr," --------------------------------------\n");
-
   filePrint(stderr," Maximum x dimension = %f\n",xmax);
   filePrint(stderr," Maximum y dimension = %f\n",ymax);
   filePrint(stderr," Maximum z dimension = %f\n",zmax);

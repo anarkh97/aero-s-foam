@@ -170,22 +170,22 @@ ReqHandle _i_receive(void *buf, int count, TypeHandle datatype, RankHandle sourc
 }
 
 com_details::CommFunctions getFunctionPointers() {
-	com_details::CommFunctions result;
-	result.commSize = [](const CommunicatorHandle &handle) {
+	com_details::CommFunctions commFunctions{};
+	commFunctions.commSize = [](const CommunicatorHandle &handle) {
 		int size;
 		int result = MPI_Comm_size(handle, &size);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
 		return size;
 	};
-	result.remoteSize = [](const CommunicatorHandle &handle) {
+	commFunctions.remoteSize = [](const CommunicatorHandle &handle) {
 		int size;
 		int result = MPI_Comm_remote_size(handle, &size);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
 		return size;
 	};
-	result.allReduce = [](const void *sendbuf, void *recvbuf, int count, TypeHandle datatype, OpHandle op,
+	commFunctions.allReduce = [](const void *sendbuf, void *recvbuf, int count, TypeHandle datatype, OpHandle op,
 	                      const CommunicatorHandle &comm, void(*cpData)(const void *, void *, int)) {
 		int result = MPI_Allreduce(sendbuf, recvbuf, count,
 		                           datatype,
@@ -194,25 +194,34 @@ com_details::CommFunctions getFunctionPointers() {
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
 	};
-	result.barrier = [](const CommunicatorHandle &comm) {
+	commFunctions.exScan = [](const void *sendbuf, void *recvbuf, int count, TypeHandle datatype, OpHandle op,
+	                   const CommunicatorHandle &comm) {
+		int result = MPI_Exscan(sendbuf, recvbuf, count,
+		                        datatype,
+		                        op,
+		                        comm);
+		if (result != MPI_SUCCESS)
+			throw mpi_except(result);
+	};
+	commFunctions.barrier = [](const CommunicatorHandle &comm) {
 		int result = MPI_Barrier(comm);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
 	};
-	result.rank = [](const CommunicatorHandle &handle) {
+	commFunctions.rank = [](const CommunicatorHandle &handle) {
 		int rank;
 		int result = MPI_Comm_rank(handle, &rank);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
 		return rank;
 	};
-	result.blockingSend = [](const void *sendbuf, int count, TypeHandle datatype, int dest, int tag,
+	commFunctions.blockingSend = [](const void *sendbuf, int count, TypeHandle datatype, int dest, int tag,
 	                         const CommunicatorHandle &comm) {
 		int result = MPI_Send(sendbuf, count, datatype, dest, tag, comm);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
 	};
-	result.blockingRec = [](void *buffer, int len, TypeHandle datatype, int tag,
+	commFunctions.blockingRec = [](void *buffer, int len, TypeHandle datatype, int tag,
 	                        const CommunicatorHandle &comm) {
 		RecDetails rInfo;
 		MPI_Status status;
@@ -222,26 +231,26 @@ com_details::CommFunctions getFunctionPointers() {
 		rInfo.source = status.MPI_SOURCE;
 		return rInfo;
 	};
-	result.allGather = &_allGather;
-	result.createWindow = &_createWindow;
-	result.destroyWindow = &_destroyWindow;
-	result.fence = &_fence;
-	result.lock = &_lock;
-	result.unlock = &_unlock;
-	result.lockAll = &_lockAll;
-	result.unlockAll = &_unlockAll;
-	result.flushRemote = &_flushRemote;
-	result.flushLocal = &_flushLocal;
-	result.flushRemoteAll = &_flushRemoteAll;
-	result.flushLocalAll = &_flushLocalAll;
-	result.fetchAndOp = &_fetchAndOp;
-	result.accumulate = &_accumulate;
-	result.get = &_get;
-	result.put = &_put;
-	result.i_send = &_i_send;
-	result.i_receive = &_i_receive;
+	commFunctions.allGather = &_allGather;
+	commFunctions.createWindow = &_createWindow;
+	commFunctions.destroyWindow = &_destroyWindow;
+	commFunctions.fence = &_fence;
+	commFunctions.lock = &_lock;
+	commFunctions.unlock = &_unlock;
+	commFunctions.lockAll = &_lockAll;
+	commFunctions.unlockAll = &_unlockAll;
+	commFunctions.flushRemote = &_flushRemote;
+	commFunctions.flushLocal = &_flushLocal;
+	commFunctions.flushRemoteAll = &_flushRemoteAll;
+	commFunctions.flushLocalAll = &_flushLocalAll;
+	commFunctions.fetchAndOp = &_fetchAndOp;
+	commFunctions.accumulate = &_accumulate;
+	commFunctions.get = &_get;
+	commFunctions.put = &_put;
+	commFunctions.i_send = &_i_send;
+	commFunctions.i_receive = &_i_receive;
 
-	return result;
+	return commFunctions;
 }
 
 com_details::CommFunctions BaseCommunicator::functions = getFunctionPointers();
@@ -342,14 +351,20 @@ com_details::CommFunctions BaseCommunicator::functions{
 
 namespace com_details {
 
-template <typename T>
-TypeHandle CommTypeTrait<T>::typeHandle() {
-	return 0;
+template <>
+TypeHandle CommTypeTrait<int>::typeHandle() {
+	return MPI_INT;
 }
 
-template struct CommTypeTrait<int>;
-template struct CommTypeTrait<double>;
-template struct CommTypeTrait<std::complex<double>>;
+template <>
+TypeHandle CommTypeTrait<double>::typeHandle() {
+	return MPI_DOUBLE;
+}
+
+//
+//template struct CommTypeTrait<int>;
+//template struct CommTypeTrait<double>;
+//template struct CommTypeTrait<std::complex<double>>;
 
 }
 #endif

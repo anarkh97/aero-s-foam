@@ -27,17 +27,20 @@ struct VersionInfo {
 namespace com_details {
 
 struct CommFunctions {
-	int (*commSize)(const CommunicatorHandle &handle);
-	int (*remoteSize)(const CommunicatorHandle &handle);
+	int (*commSize)(const CommunicatorHandle &handle) = nullptr;
+	int (*remoteSize)(const CommunicatorHandle &handle){};
 	void (*allReduce)(const void *sendbuf, void *recvbuf, int count,
 	                  TypeHandle datatype, OpHandle op,
 	                  const CommunicatorHandle &comm,
-	                  void(*cpData)(const void *, void *, int));
-	void (*barrier)(const CommunicatorHandle &);
-	int (*rank)(const CommunicatorHandle &);
+	                  void(*cpData)(const void *, void *, int)){};
+	void (*exScan)(const void *sendbuf, void *recvbuf, int count,
+	               TypeHandle datatype, OpHandle op,
+	               const CommunicatorHandle &comm){};
+	void (*barrier)(const CommunicatorHandle &){};
+	int (*rank)(const CommunicatorHandle &){};
 	void (*blockingSend)(const void *sendbuf, int count, TypeHandle datatype,
 	                     int dest, int tag,
-	                     const CommunicatorHandle &);
+	                     const CommunicatorHandle &){};
 	/** \brief Receive from any source
 	 *
 	 * @param buffer
@@ -47,11 +50,11 @@ struct CommFunctions {
 	 * @return The information about the length received and the origin of the data.
 	 */
 	RecDetails (*blockingRec)(void *buffer, int len, TypeHandle datatype,
-	                    int tag,
-	                    const CommunicatorHandle &);
+	                          int tag,
+	                          const CommunicatorHandle &){};
 	void (*allGather)(const void *send_data, int send_count,
 	                  void *recv_data, int recv_count, TypeHandle datatype,
-	                  const CommunicatorHandle &);
+	                  const CommunicatorHandle &){};
 	/** \brief Create a Window.
 	 *
 	 * @param data
@@ -59,31 +62,31 @@ struct CommFunctions {
 	 * @param disp_unit
 	 * @return
 	 */
-	WinHandle (*createWindow)(void *data, int size, int disp_unit, const CommunicatorHandle &);
-	void (*destroyWindow)(WinHandle handle);
+	WinHandle (*createWindow)(void *data, int size, int disp_unit, const CommunicatorHandle &){};
+	void (*destroyWindow)(WinHandle handle){};
 
-	void (*fence)(bool openOrClose, WinHandle handle);
+	void (*fence)(bool openOrClose, WinHandle handle){};
 
-	void (*lock)(bool isShared, int remoteRank, WinHandle handle);
-	void (*unlock)(int remoteRank, WinHandle handle);
-	void (*flushRemote)(int remoteRank, WinHandle handle);
-	void (*flushLocal)(int remoteRank, WinHandle handle);
-	void (*lockAll)(WinHandle handle);
-	void (*unlockAll)(WinHandle handle);
-	void (*flushRemoteAll)(WinHandle handle);
-	void (*flushLocalAll)(WinHandle handle);
+	void (*lock)(bool isShared, int remoteRank, WinHandle handle){};
+	void (*unlock)(int remoteRank, WinHandle handle){};
+	void (*flushRemote)(int remoteRank, WinHandle handle){};
+	void (*flushLocal)(int remoteRank, WinHandle handle){};
+	void (*lockAll)(WinHandle handle){};
+	void (*unlockAll)(WinHandle handle){};
+	void (*flushRemoteAll)(WinHandle handle){};
+	void (*flushLocalAll)(WinHandle handle){};
 	void (*fetchAndOp)(WinHandle handle, OpHandle op, const void *sourceData, TypeHandle datatype,
-	                   void *resData, int remoteRank, int remoteOffset);
+	                   void *resData, int remoteRank, int remoteOffset){};
 	void (*accumulate)(WinHandle handle, OpHandle op, const void *operand, int count, TypeHandle datatype,
-	                   int remoteRank, int remoteOffset);
+	                   int remoteRank, int remoteOffset){};
 	void (*put)(WinHandle handle, const void *sourceData, int count, TypeHandle datatype,
-	                   int remoteRank, int remoteOffset);
+	            int remoteRank, int remoteOffset){};
 	void (*get)(WinHandle handle, void *resultData, int count, TypeHandle datatype,
-	            int remoteRank, int remoteOffset);
+	            int remoteRank, int remoteOffset){};
 	ReqHandle (*i_send)(const void *buf, int count, TypeHandle datatype, RankHandle dest, int tag,
-	                      const CommunicatorHandle &comm);
+	                    const CommunicatorHandle &comm){};
 	ReqHandle (*i_receive)(void *buf, int count, TypeHandle datatype, RankHandle origin, int tag,
-	                        const CommunicatorHandle &comm);
+	                       const CommunicatorHandle &comm){};
 };
 
 struct Constants {
@@ -253,11 +256,17 @@ public:
 	void allReduce(const T *sendbuf, T *recvbuf, int count,
 	               OpHandle op) const {
 		(*functions.allReduce)(sendbuf, recvbuf, count, CommTypeTrait<T>::typeHandle(), op, handle,
-		[](const void *from, void *to, int count) {
-			const T*f = reinterpret_cast<const T *>(from);
-			T*t = reinterpret_cast<T *>(to);
-			std::copy(f, f+count, t);
-		});
+		                       [](const void *from, void *to, int count) {
+			                       const T*f = reinterpret_cast<const T *>(from);
+			                       T*t = reinterpret_cast<T *>(to);
+			                       std::copy(f, f+count, t);
+		                       });
+	}
+
+	template <typename T>
+	void exScan(const T *sendbuf, T *recvbuf, int count,
+	            OpHandle op) const {
+		(*functions.exScan)(sendbuf, recvbuf, count, CommTypeTrait<T>::typeHandle(), op, handle);
 	}
 
 	template <typename T>
@@ -304,6 +313,9 @@ public:
 	Type globalMax(Type) const;
 	template <class Type>
 	Type globalMin(Type) const;
+	/** \brief Exclusive scan. */
+	template <typename Type>
+	Type exScan(Type) const;
 
 private:
 	CommunicatorHandle handle;
@@ -334,6 +346,14 @@ T BaseCommunicator::globalMin(T t) const {
 	return res;
 }
 
+
+template<typename Type>
+Type BaseCommunicator::exScan(Type t) const {
+	Type res;
+	exScan(&t, &res, 1, SumHandle);
+	return res;
+}
+
 inline
 void Window::open() const {
 	(*BaseCommunicator::functions.fence)(true, winHandle);
@@ -344,8 +364,8 @@ void Window::close() const {
 	(*BaseCommunicator::functions.fence)(false, winHandle);
 }
 
-inline Window::Window(Window &&w) : winHandle(w.winHandle) {
-	w.winHandle = com_details::Constants::nullWindow;
+inline Window::Window(Window &&wnd) : winHandle(wnd.winHandle) {
+wnd.winHandle = com_details::Constants::nullWindow;
 }
 
 inline Window::~Window() {
@@ -402,22 +422,28 @@ void Window::fetchAndOp(OpHandle op, const T *operand, T *remoteOperandResult, i
 template<typename T>
 void Window::accumulate(OpHandle op, const T *operand, int count,
                         int remoteRank, int remoteOffset) const {
-	(*BaseCommunicator::functions.accumulate)(winHandle, op, operand, count, CommTypeTrait<T>::typeHandle(),
+	(*BaseCommunicator::functions.accumulate)(winHandle, op, operand,
+	                                          count*CommTypeTrait<T>::count(*operand),
+	                                          CommTypeTrait<T>::typeHandle(),
 	                                          remoteRank, remoteOffset);
 }
 
 template<typename T>
 void Window::put(const T *source, int count,
-                        int remoteRank, int remoteOffset) const {
-	(*BaseCommunicator::functions.put)(winHandle, source, count, CommTypeTrait<T>::typeHandle(),
-	                                          remoteRank, remoteOffset);
+                 int remoteRank, int remoteOffset) const {
+	(*BaseCommunicator::functions.put)(winHandle, source,
+	                                   count*CommTypeTrait<T>::count(*source),
+	                                   CommTypeTrait<T>::typeHandle(),
+	                                   remoteRank, remoteOffset);
 }
 
 template<typename T>
 void Window::get(T *operand, int count,
                  int remoteRank, int remoteOffset) const {
-	(*BaseCommunicator::functions.get)(winHandle, operand, count, CommTypeTrait<T>::typeHandle(),
-	                                          remoteRank, remoteOffset);
+	(*BaseCommunicator::functions.get)(winHandle,
+	                                   operand, count*CommTypeTrait<T>::count(*operand),
+	                                   CommTypeTrait<T>::typeHandle(),
+	                                   remoteRank, remoteOffset);
 }
 
 #endif //FEM_OPAQUECOMMUNICATOR_H

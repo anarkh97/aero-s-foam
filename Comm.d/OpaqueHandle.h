@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <type_traits>
+#include <complex>
 
 namespace com_details {
 struct HandleHelper;
@@ -31,7 +32,7 @@ struct CommTypeCompatibility {
 	static const bool isCompatible = false;
 };
 
-/** \brief Opaque handle for any implementation specific MPI handle. */
+/** \brief Opaque handle for any implementation specific MPI communicator handle. */
 class OpaqueHandle {
 public:
 	template <typename T>
@@ -47,6 +48,10 @@ private:
 	friend struct com_details::HandleHelper;
 };
 
+/** \brief Opaque handle for any implementation specific MPI handle.
+ *
+ * @tparam ht The type of handled contained.
+ */
 template <HandleType ht>
 struct OpaqueTypedHandle {
 	template <typename T, typename X = typename std::enable_if<CommTypeCompatibility<T, ht>::isCompatible, void>::type>
@@ -90,6 +95,33 @@ CommunicatorHandle getWorldComm();
 template <typename T>
 struct CommTypeTrait {
 	static TypeHandle typeHandle();
+	static int count(const T &) { return 1; }
+	static constexpr bool isFixedSize() { return true; }
+};
+
+template <typename T>
+struct CommTypeTrait<std::pair<T, T>> {
+	static TypeHandle typeHandle() {
+		static_assert(CommTypeTrait<T>::isFixedSize(),
+		              "Communication operations cannot handle pairs of variable size objects.");
+		return CommTypeTrait<T>::typeHandle();
+	}
+	static int count(const T &) { return 2; }
+	static constexpr bool isFixedSize() { return CommTypeTrait<T>::isFixedSize(); }
+};
+
+template <typename T>
+struct CommTypeTrait<std::vector<T>> {
+	static TypeHandle typeHandle() { return CommTypeTrait<T>::typeHandle(); }
+	static int count(const T &v) { return v.size(); }
+	static constexpr bool isFixedSize() { return false; }
+};
+
+template <typename T>
+struct CommTypeTrait<std::complex<T>> {
+	static TypeHandle typeHandle() { return CommTypeTrait<T>::typeHandle(); }
+	static int count(const T &v) { return 2; }
+	static constexpr bool isFixedSize() { return true; }
 };
 
 #endif //FEM_OPAQUEHANDLE_H

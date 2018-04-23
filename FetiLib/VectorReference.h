@@ -26,6 +26,9 @@ public:
 	Scalar *data() const { return _data; }
 	/// \brief Size of the vector data.
 	size_t size() const { return length; }
+
+	const Scalar *begin() const { return _data; }
+	const Scalar *end() const { return _data+length; }
 private:
 	Scalar *_data;
 	size_t length;

@@ -10,14 +10,13 @@
 #include <FetiLib/DOFInfo.h>
 #include <FetiLib/SharedNodes.h>
 #include <FetiLib/Types.h>
+#include "SparseMatrix.h"
 
 namespace FetiLib {
 
 /** \brief Base class for actual implementations */
 class SubImpl;
 
-template <typename S>
-using SparseMatrix = Eigen::SparseMatrix<S>;
 
 template <typename S>
 class Subdomain {

@@ -2,7 +2,7 @@
 
 #include <Utils.d/linkfc.h>
 
-#include <math.h>
+#include <cmath>
 #include <iostream>
 #include <vector>
 #include <cstdio>

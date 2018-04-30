@@ -1024,7 +1024,8 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
    fprintf(cinfo->checkfileptr,"Elements surface_%d using %s\n",
            SurfEntities[iSurf]->GetId(), cinfo->nodeSetName);
    FaceElemSet &faceElemSet = SurfEntities[iSurf]->GetFaceElemSet();
-   for(iele=0; iele<faceElemSet.last(); ++iele) {
+   int nFaceEls = faceElemSet.last();
+   for(iele=0; iele<nFaceEls; ++iele) {
      int nVertices = faceElemSet[iele]->nVertices();
      int eletype;
      if(nVertices == 3) eletype = 104;

@@ -3948,7 +3948,8 @@ void Domain::setNewProperties(int s)
   map<int, Attrib> &attr = geoSource->getAttributes();
   if(s==0) {
 //   elems_copy.setMyData(true);
-   for(int j=0; j<packedEset.last(); ++j) elems_fullcopy.elemadd(j,packedEset[j]);
+   int nEls = packedEset.last();
+   for(int j=0; j<nEls; ++j) elems_fullcopy.elemadd(j,packedEset[j]);
    for(map<int, Group >::iterator it = geoSource->group.begin(); it != geoSource->group.end(); ++it) {   // loop over all of the groups
      for(int i = 0; i < int(it->second.attributes.size()); ++i) { // loop over attributes
         int iattr = it->second.attributes[i];

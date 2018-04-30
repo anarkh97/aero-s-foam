@@ -20,17 +20,6 @@
 #include <Utils.d/BinFileHandler.h>
 #endif
 
-// Last returns the true last defined element
-int 
-FaceElemSet::last()
-{
- int last = size();
- while(--last >= 0)
-    if(elem[last] != 0) break;
-
- return last+1;
-}
-
 void 
 FaceElemSet::list()
 {
@@ -127,7 +116,8 @@ std::map<int,locoord> FaceElemSet::computeNodeLocalCoords(int* fnId, int size)
   std::map<int,locoord> exy;  //Node Id -> (iElem, (x,y))
   std::map<int,locoord>::iterator it;
 
-  for(int iel=0; iel<last(); iel++) {
+  int nEls = last();
+  for(int iel=0; iel<nEls; iel++) {
     double* coords = elem[iel]->ViewRefCoords();
     for(int k=0; k<elem[iel]->nNodes(); k++) {
       int gId = elem[iel]->GetNode(k);

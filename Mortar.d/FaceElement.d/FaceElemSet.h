@@ -61,4 +61,16 @@ class FaceElemSet {
 #endif
 };
 
+// Last returns the true last defined element
+inline int
+FaceElemSet::last()
+{
+ int last = size();
+ while(--last >= 0)
+    if(elem[last] != 0) break;
+
+ return last+1;
+}
+
+
 #endif

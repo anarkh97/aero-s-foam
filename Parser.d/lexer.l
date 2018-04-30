@@ -1590,6 +1590,7 @@ TRAIL [a-zA-Z]*
 "POINTPLANE"|"pointplane"|"PointPlane" { yylval.ival = BCond::PointPlaneDistance; return CSTYPE; }
 
 "NO_SECONDARY"|"no_secondary"      { return NOSECONDARY; }
+"SHELL_SIMPLE_LOFTING"|"shell_simple_lofting" { return SHELLSIMPLELOFTING; }
 
 "TDEN"[a-zA-Z]*|"tden"[a-zA-Z]*    { return TDENFORCE; }
 

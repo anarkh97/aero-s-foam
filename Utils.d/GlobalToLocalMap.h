@@ -62,4 +62,15 @@ class GlobalToLocalMap : public CommunicatableObject
       void unpack(FSCommPattern<Scalar> *pat, int remoteID, int localID);
 };
 
+inline int
+GlobalToLocalMap::operator[](int glNum)
+{
+  if((glNum < min) || (glNum > max)) return -1;
+  else {
+    std::map<int,int>::iterator I = globalToLocalArray.find(glNum);
+    if(I!=globalToLocalArray.end()) return (*I).second;
+    else return -1;
+  }
+}
+
 #endif

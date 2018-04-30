@@ -3046,7 +3046,8 @@ BaseSub::makeGlobalToLocalElemMap()
 {
  globalEMax = 0;
  int i;
- for(i = 0; i < packedEset.last(); ++i)
+ int nEls = packedEset.last();
+ for(i = 0; i < nEls; ++i)
    if(glElems[i] > globalEMax) globalEMax = glElems[i];
  globalEMax += 1;
 

@@ -212,6 +212,7 @@ struct SolverInfo {
    double qsBeta;       // relaxation parameter for computing alphaR in case of
                         // thermal quasistatic
    bool no_secondary;
+   bool shell_simple_lofting;
    // Eigenvalue Problem parameters
    enum {SubSpace, LobPcg, Arpack};
 
@@ -574,6 +575,7 @@ struct SolverInfo {
                   qsBeta = 1.0;
                   delta = 0.0;
                   no_secondary = false;
+                  shell_simple_lofting = false;
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
                                   

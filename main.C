@@ -837,7 +837,7 @@ int main(int argc, char** argv)
              times.memorySetUp/oneMegaByte);
      domain->makeTopFile(topFlag);
    }
-   exit(-1);
+   exit(0);
  }
 
  if(domain->solInfo().noninpc || domain->solInfo().inpc) domain->initSfem();

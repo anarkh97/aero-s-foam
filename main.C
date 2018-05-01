@@ -732,8 +732,8 @@ int main(int argc, char** argv)
    // HB for checking Mortar & generating LMPCs from Mortar tied conditions
    if(topFlag < 0) {
      domain->SetUpSurfaces(&(geoSource->GetNodes()));
+     domain->ProcessSurfaceBCs(topFlag);
      if(!callSower) {
-       domain->ProcessSurfaceBCs(topFlag);
        domain->SetMortarPairing();
        if(!domain->tdenforceFlag()) {
          if(domain->solInfo().isNonLin()) { // for nonlinear statics and dynamics just process the tied surfaces here

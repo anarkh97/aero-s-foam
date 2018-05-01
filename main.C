@@ -837,6 +837,7 @@ int main(int argc, char** argv)
              times.memorySetUp/oneMegaByte);
      domain->makeTopFile(topFlag);
    }
+   closeComm();
    exit(0);
  }
 

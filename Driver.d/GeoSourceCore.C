@@ -1362,6 +1362,18 @@ void GeoSource::setUpData(int topFlag)
       matIter->second->setSRDProps((*yssrt->second)[i]);
   }
   delete yssrt;
+  std::pair<int, ResizeArray<MFTTData*>* > *ss1dt = domain->getSS1DT();
+  for(int i = 0; i < ss1dt->first; ++i) {
+    for(map<int, NLMaterial *>::iterator matIter = materials.begin(); matIter != materials.end(); ++matIter)
+      matIter->second->setS1DProps((*ss1dt->second)[i]);
+  }
+  delete ss1dt;
+  std::pair<int, ResizeArray<SS2DTData*>* > *ss2dt = domain->getSS2DT();
+  for(int i = 0; i < ss2dt->first; ++i) {
+    for(map<int, NLMaterial *>::iterator matIter = materials.begin(); matIter != materials.end(); ++matIter)
+      matIter->second->setS2DProps((*ss2dt->second)[i]);
+  }
+  delete ss2dt;
   map<int,int>::iterator uIter = matUsage.begin();
   while(uIter != matUsage.end()) {
     int elemNum = uIter->first;

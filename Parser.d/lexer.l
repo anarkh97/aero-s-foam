@@ -890,6 +890,10 @@ TRAIL [a-zA-Z]*
 
 "TETT"|"tett"                      { return TETT; }
 
+"SS1DT"|"ss1dt"                    { return SS1DT; }
+
+"SS2DT"|"ss2dt"                    { return SS2DT; }
+
 "YSST"|"ysst"                      { return YSST; }
 
 "YSSRT"|"yssrt"                    { return YSSRT; }
@@ -1509,6 +1513,8 @@ TRAIL [a-zA-Z]*
 "PlaneStressViscoNeoHookean"[a-zA-Z]*                   { return PLANESTRESSVISCONEOHOOKEAN; }
 
 "PlaneStressViscoMooneyRivlin"[a-zA-Z]*                 { return PLANESTRESSVISCOMOONEYRIVLIN; }
+
+"fabricmap"|"FABRICMAP"|"FabricMap"                     { return FABRICMAP; }
 
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
 

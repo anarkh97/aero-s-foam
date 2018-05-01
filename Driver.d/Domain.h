@@ -24,6 +24,7 @@
 
 class MortarHandler;
 class MFTTData;
+class SS2DTData;
 class ControlInterface;
 class ControlInfo;
 class DofSetArray;
@@ -373,11 +374,15 @@ class Domain : public HData {
      ResizeArray<GenMFTTData<Eigen::Vector4d> *> rubdaft;      // RT: Rubber damping versus frequency table
 #endif
      int numRUBDAFT;                       // number of RUBDAF tables
-     ResizeArray<MFTTData *> ctett;        // Coefficient of thermal expansion vs. temperatur table
+     ResizeArray<MFTTData *> ctett;        // Coefficient of thermal expansion vs. temperature table
      int numCTETT;                         // number of CTE Temp tables
-     ResizeArray<MFTTData *> ysst;         // Yield stress vs. effective plastic strain temperature table
+     ResizeArray<MFTTData *> ss1dt;        // Stress vs. strain 1-dimensional table
+     int numSS1DT;                         // number of SS 1-dimensional tables
+     ResizeArray<SS2DTData *> ss2dt;       // Stress vs. strain 2-dimensional table
+     int numSS2DT;                         // number of SS 2-dimensional tables
+     ResizeArray<MFTTData *> ysst;         // Yield stress vs. effective plastic strain table
      int numYSST;                          // number of YSS tables
-     ResizeArray<MFTTData *> yssrt;        // Yield stress scale factor vs. effective plastic strain rate temperature table
+     ResizeArray<MFTTData *> yssrt;        // Yield stress scale factor vs. effective plastic strain rate table
      int numYSSRT;                         // number of YSSRT tables
      FlExchanger *flExchanger;  // Fluid Exchanger
      FILE *outFile;
@@ -735,9 +740,13 @@ class Domain : public HData {
      std::pair<int, ResizeArray<MFTTData*>* >* getYMTT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYMTT,&ymtt); };
      std::pair<int, ResizeArray<MFTTData*>* >* getYSST() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYSST,&ysst); };
      std::pair<int, ResizeArray<MFTTData*>* >* getYSSRT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYSSRT,&yssrt); };
+     std::pair<int, ResizeArray<MFTTData*>* >* getSS1DT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numSS1DT,&ss1dt); };
+     std::pair<int, ResizeArray<SS2DTData*>* >* getSS2DT() { return new std::pair<int, ResizeArray<SS2DTData*>* >(numSS2DT,&ss2dt); };
      void printCTETT();
      int  addYSST(MFTTData *);
      int  addYSSRT(MFTTData *);
+     int  addSS1DT(MFTTData *);
+     int  addSS2DT(SS2DTData *);
      void computeTDProps();
 
      ShapeSensitivityData getShapeSensitivityData() { return shapeSenData; }

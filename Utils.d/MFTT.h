@@ -1,6 +1,10 @@
 #ifndef _MFTT_H_
 #define _MFTT_H_
 
+#include <vector>
+
+struct DoubleList;
+
 // Mechanical Force Time Table data
 // also used for young's modulus vs temperature table, etc.
 class MFTTData {
@@ -51,6 +55,20 @@ class GenMFTTData {
      int getNumPoints() { return np; }
      double getT(int i) { return time[i]; }
      DataType getV(int i) { return value[i]; }
+};
+
+class SS2DTData {
+ public:
+     int id;
+     std::vector<double> x, y;
+     std::vector<std::vector<double> > value;
+   public:
+     SS2DTData(int, DoubleList&);
+     void add(double, DoubleList&);
+     double getValAlt(double x, double y);
+     void getValAndSlopeAlt(double x, double y, double *v, double *sx, double *sy);
+     int getID() { return id; }
+     int getNumPoints() { return x.size(); }
 };
 
 #ifdef _TEMPLATE_FIX_

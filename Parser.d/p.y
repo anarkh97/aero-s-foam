@@ -47,6 +47,7 @@
 #ifdef USE_EIGEN3
  GenMFTTData<Eigen::Vector4d> *rubdaft;
 #endif
+ SS2DTData *ss2dt;
  ComplexBCList *cxbclist;
  ComplexBCond cxbcval;
  FrameData frame;
@@ -86,7 +87,7 @@
 %token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL DOCLUSTERING DOROWCLUSTERING ANGLE DUALBASIS DUALRB KMEANS CRANDOM
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
-%token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLAGMN FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID FREEPLAY
+%token FABMAT FABRICMAP FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLAGMN FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID FREEPLAY
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FREQSWEEPAW FSGL FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
@@ -112,7 +113,7 @@
 %token TABLE TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOLSEN TOPFILE TOPOLOGY TRBM TRBMlc THERMOE THERMOH RATIOTOLSEN
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL CENTER POSELEM HOTSTART HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL NUMROMCPUS THICKNESSGROUPLIST
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING USESCOTCH
-%token VERBOSE VERSION WETCORNERS YMTT YSST YSSRT
+%token VERBOSE VERSION WETCORNERS YMTT SS1DT SS2DT YSST YSSRT
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
@@ -164,7 +165,8 @@
 %type <nval>     Node
 %type <lmpcons>  MPCList ComplexMPCList MPCHeader
 %type <strval>   FNAME 
-%type <ymtt>     YMTTList YSSTList YSSRTList
+%type <ymtt>     YMTTList SS1DTList YSSTList YSSRTList
+%type <ss2dt>    SS2DTList
 %type <ctett>    TETTList
 %type <sdetaft>  SDETAFList
 %type <rubdaft>  RUBDAFList
@@ -259,6 +261,8 @@ Component:
         | LoadCase
         | YMTTable
         | TETTable
+        | SS1DTable
+        | SS2DTable
         | YSSTable
         | YSSRTable
         | SDETAFTable
@@ -2155,6 +2159,30 @@ TETTList:
         { $$->add($2, $3); }
         | TETTList CURVE Integer NewLine Float Float NewLine
         { $$ = new MFTTData($3); $$->add($5, $6); domain->addCTETT($$);}
+        ;
+SS1DTable:
+        SS1DT NewLine
+        | SS1DT NewLine SS1DTList
+        ;
+SS1DTList:
+        CURVE Integer NewLine Float Float NewLine
+        { $$ = new MFTTData($2); $$->add($4, $5); domain->addSS1DT($$);}
+        | SS1DTList Float Float NewLine
+        { $$->add($2, $3); }
+        | SS1DTList CURVE Integer NewLine Float Float NewLine
+        { $$ = new MFTTData($3); $$->add($5, $6); domain->addSS1DT($$);}
+        ;
+SS2DTable:
+        SS2DT NewLine
+        | SS2DT NewLine SS2DTList
+        ;
+SS2DTList:
+        CURVE Integer NewLine FloatList NewLine Float FloatList NewLine
+        { $$ = new SS2DTData($2, $4); $$->add($6, $7); domain->addSS2DT($$); }
+        | SS2DTList Float FloatList NewLine
+        { $$->add($2, $3); }
+        | SS2DTList CURVE Integer NewLine FloatList NewLine Float FloatList NewLine
+        { $$ = new SS2DTData($3, $5); $$->add($7, $8); domain->addSS2DT($$); }
         ;
 YSSTable:
         YSST NewLine
@@ -4978,6 +5006,16 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new StVenantKirchhoffMat2D($4, $5, $6, $7, $8, $9));
+         }
+        | MatSpec Integer FABRICMAP Float Integer Integer Integer Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new FabricMat($4, $5, $6, $7, $8, 0, 0));
+         }
+        | MatSpec Integer FABRICMAP Float Integer Integer Integer Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new FabricMat($4, $5, $6, $7, $8, $9, $10));
          }
         | MatSpec Integer PLANESTRESSLINEAR Float Float Float Float NewLine
          {

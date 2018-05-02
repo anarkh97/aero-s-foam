@@ -461,7 +461,7 @@ NLMembrane::setProp(StructProp *p, bool _myProp)
 }
 
 void
-NLMembrane::rotateConstitutiveMatrix2(CoordSet &cs, double C[6][6], double alpha[6])
+NLMembrane::rotateCFrame(CoordSet &cs, double *_T)
 {
 #ifdef USE_EIGEN3
   int elm = glNum+1;
@@ -478,21 +478,37 @@ NLMembrane::rotateConstitutiveMatrix2(CoordSet &cs, double C[6][6], double alpha
 
   typedef ShellElementTemplate<double,EffMembraneTriangle,NoBendingTriangle> Impl;
   Impl::andescrd(elm, x, y, z, eframe.data(), xlp, ylp, zlp, area);
-  Eigen::Matrix3d Tinv = ShellMaterial<double>::andesinvt(eframe.data(), cFrame, 0.);
-
-  // transform constitutive matrix to element frame
-  rotateConstitutiveMatrix(cCoefs, Tinv.data(), C);
-  // transform coefficients of thermal expansion to element frame
-  rotateVector(cCoefs+36, Tinv.data(), alpha);
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> T(_T);
+  T = ShellMaterial<double>::andesinvt(eframe.data(), cFrame, 0.).transpose();
 #else
-  std::cerr << " *** ERROR: Rotate constitutive matrix for NLMembrane element requires AERO-S configured with Eigen library. Exiting...\n";
+  std::cerr << " *** ERROR: NLMembrane::rotateCFrame requires AERO-S to be configured with the Eigen library. Exiting...\n";
   exit(-1);
 #endif
 }
 
 void
-NLMembrane::setCompositeData(int, int, double *, double *coefs, double *frame)
+NLMembrane::rotateConstitutiveMatrix2(CoordSet &cs, double C[6][6], double alpha[6])
 {
+#ifdef ROTATE_CCOEFS
+  double T[9];
+  rotateCFrame(cs, T);
+#else
+  double T[9] = { 1,0,0,0,1,0,0,0,1 };
+#endif
+
+  // transform constitutive matrix to element frame
+  rotateConstitutiveMatrix(cCoefs, T, C);
+  // transform coefficients of thermal expansion to element frame
+  rotateVector(cCoefs+36, T, alpha);
+}
+
+void
+NLMembrane::setCompositeData(int type, int, double *, double *coefs, double *frame)
+{
+  if(type != 1) {
+    std::cerr << " *** ERROR: only COEF-type composite is supported for NLMembrane element. Exiting...\n";
+    exit(-1);
+  }
   cCoefs = coefs;
   cFrame = frame;
 }
@@ -503,6 +519,11 @@ NLMembrane::setCompositeData2(int type, int nlays, double *lData,
 {
   // cframe is not pre-defined but calculated from nodal coordinates and angle theta
   // theta is the angle in degrees between node1-node2 and the material x axis
+
+  if(type != 1) {
+    std::cerr << " *** ERROR: only COEF-type composite is supported for NLMembrane element. Exiting...\n";
+    exit(-1);
+  }
 
   // compute cFrame
   cFrame = new double[9];
@@ -640,6 +661,14 @@ NLMembrane::getCorotator(CoordSet &cs, double *, int , int)
       material->setThermalExpansionCoef(alpha);
     }
     material->setTDProps(prop->ymtt, prop->ctett);
+#ifdef ROTATE_CCOEFS
+    if(cFrame && !cCoefs) {
+#else
+    if(cFrame) {
+#endif
+      this->tframe = new double[9];
+      rotateCFrame(cs, this->tframe);
+    }
     return new MatNLCorotator(this, false);
   }
 }

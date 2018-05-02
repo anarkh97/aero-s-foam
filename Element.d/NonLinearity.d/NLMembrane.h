@@ -87,6 +87,7 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     GenStrainEvaluator<TwoDTensorTypes<9> > *getGenStrainEvaluator();
     NLMaterial *getMaterial();
     NLMaterial *getLinearMaterial();
+    void rotateCFrame(CoordSet &cs, double *T);
     void rotateConstitutiveMatrix2(CoordSet &cs, double C[6][6], double alpha[6]);
 
   public:

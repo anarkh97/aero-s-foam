@@ -2177,11 +2177,11 @@ SS2DTable:
         | SS2DT NewLine SS2DTList
         ;
 SS2DTList:
-        CURVE Integer NewLine FloatList NewLine Float FloatList NewLine
+        SURF Integer NewLine FloatList NewLine Float FloatList NewLine
         { $$ = new SS2DTData($2, $4); $$->add($6, $7); domain->addSS2DT($$); }
         | SS2DTList Float FloatList NewLine
         { $$->add($2, $3); }
-        | SS2DTList CURVE Integer NewLine FloatList NewLine Float FloatList NewLine
+        | SS2DTList SURF Integer NewLine FloatList NewLine Float FloatList NewLine
         { $$ = new SS2DTData($3, $5); $$->add($7, $8); domain->addSS2DT($$); }
         ;
 YSSTable:

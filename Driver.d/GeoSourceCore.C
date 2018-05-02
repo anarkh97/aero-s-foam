@@ -1330,6 +1330,9 @@ void GeoSource::setUpData(int topFlag)
         }
       }
     }
+    else if(attrib_i.cmp_frm > -1) { // cframe
+      ele->setCompositeData(1, 0, 0, 0, cframes[attrib_i.cmp_frm]);
+    }
   }
   if(structure_element_count > 0) {
     global_average_E /= double(structure_element_count);

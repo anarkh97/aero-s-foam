@@ -147,8 +147,15 @@ GeoSource::distributeOutputNodesX(GenSubDomain<Scalar> *tmpSub, Connectivity *no
   int *locOutIndex = 0;
 
   for(iNode = 0; iNode < numNodalOutput; iNode++)  {
-    if((*nodeToSub)[outputNodes[iNode]][0] == tmpSub->subNum())  {
-      numLocOutNodes++;
+    if(nodeToSub) {
+      if((*nodeToSub)[outputNodes[iNode]][0] == tmpSub->subNum()) {
+        numLocOutNodes++;
+      }
+    }
+    else if(nodeToSub_sparse && nodeToSub_sparse->num(outputNodes[iNode]) > 0) {
+      if((*nodeToSub_sparse)[outputNodes[iNode]][0] == tmpSub->subNum()) {
+        numLocOutNodes++;
+      }
     }
   }
 
@@ -158,12 +165,20 @@ GeoSource::distributeOutputNodesX(GenSubDomain<Scalar> *tmpSub, Connectivity *no
     locOutIndex = new int[numLocOutNodes];
     // populate arrays
     int count = 0;
-    for (iNode = 0; iNode < numNodalOutput; iNode++)  {
-      if((*nodeToSub)[outputNodes[iNode]][0] == tmpSub->subNum())  {
-        locOutputNodes[count] = tmpSub->globalToLocal(outputNodes[iNode]);
-        // locOutputNodes[count] = outputNodes[iNode];
-        locOutIndex[count] = outNodeIndex[iNode];
-        count++;
+    for(iNode = 0; iNode < numNodalOutput; iNode++)  {
+      if(nodeToSub) {
+        if((*nodeToSub)[outputNodes[iNode]][0] == tmpSub->subNum()) {
+          locOutputNodes[count] = tmpSub->globalToLocal(outputNodes[iNode]);
+          locOutIndex[count] = outNodeIndex[iNode];
+          count++;
+        }
+      }
+      else if(nodeToSub_sparse && nodeToSub_sparse->num(outputNodes[iNode]) > 0) {
+        if((*nodeToSub_sparse)[outputNodes[iNode]][0] == tmpSub->subNum()) {
+          locOutputNodes[count] = tmpSub->globalToLocal(outputNodes[iNode]);
+          locOutIndex[count] = outNodeIndex[iNode];
+          count++;
+        }
       }
     }
   }

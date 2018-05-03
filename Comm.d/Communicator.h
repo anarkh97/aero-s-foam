@@ -15,6 +15,7 @@ class Connectivity;
 #define MPI_NO_CPPBIND
 #endif
 #include <mpi.h>
+#include <Comm.d/MPICompatTraits.h>
 #else
 typedef int MPI_Comm;
 typedef int MPI_Request;

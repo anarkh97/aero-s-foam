@@ -1,3 +1,6 @@
+/** \file main.C
+ * \brief The driver file.
+ */
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
@@ -55,10 +58,7 @@
 #include <Rom.d/DistrExplicitLumpedPodProjectionNonLinDynamic.h>
 #include <Rom.d/DistrExplicitDEIMPodProjectionNonLinDynamic.h>
 #include <Rom.d/DistrExplicitUDEIMPodProjectionNonLinDynamic.h>
-#ifdef DISTRIBUTED
-#undef DISTRIBUTED
-#endif
-#ifdef DISTRIBUTED
+#ifdef USE_PITA
 #include <Pita.d/Old.d/PitaNonLinDynam.h>
 #include <Pita.d/Old.d/NLDistrTimeDecompSolver.h>
 #include <Pita.d/PitaNonLinDynam.h>
@@ -1239,7 +1239,7 @@ int main(int argc, char** argv)
 		}
 		else {
 		  if (domain->solInfo().activatePita) {
-#ifdef DISTRIBUTED
+#ifdef USE_PITA
 			 SingleDomainDynamic dynamProb(domain);
 			 Pita::LinearDriver::Ptr driver;
 			 if (!domain->solInfo().pitaTimeReversible) {
@@ -1319,7 +1319,7 @@ int main(int argc, char** argv)
 	   break;
 	 case SolverInfo::NonLinDynam: {
 		 if(domain->solInfo().activatePita) {
-#ifdef DISTRIBUTED
+#ifdef USE_PITA
 		   if (domain->solInfo().pitaTimeReversible) {
 			 filePrint(stderr, " ... Time-reversible nonlinear PITA ...\n");
 			 Pita::PitaNonLinDynamic pitaProblem(domain);

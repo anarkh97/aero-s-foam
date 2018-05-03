@@ -50,9 +50,10 @@ FetiBaseSub::setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const
 void
 FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 {
+	std::cout << "Step 1" << std::endl;
 	// PJSA: 12-13-02  masterFlag to be used in dot product and orthogonalization
 	// allows for mpcs or wet interface dofs connecting 1 or > 2 subs
-	if(masterFlag) delete [] masterFlag;
+	delete [] masterFlag;
 	masterFlag = new bool[totalInterfSize];
 	int rank, iSub, i, j;
 
@@ -61,6 +62,7 @@ FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 
 	bool *wiFlag = (bool *) dbg_alloca(sizeof(bool)*numWIdof);
 	for(i=0; i<numWIdof; ++i) { wiFlag[i] = true; }
+	std::cout << "Step 2" << std::endl;
 
 	if(numWIdof && wiMaster.size() == 0) { // build wiMaster
 		wiMaster.resize(numWIdof);  // wiMaster[i] is true if this subdomain is the master of the wet interface dof i
@@ -72,11 +74,13 @@ FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 					wiMaster[scomm->wetDofNb(i, j)] = false;
 		}
 	}
+	std::cout << "Step 3" << std::endl;
 
 	if(numMPC && !mpcMaster) { // PJSA moved here from SubDomain::scatterHalfInterf
 		mpcMaster = new bool[numMPC];  // only allocate & init 1st time, dual mpcs only
 		for(i=0; i<numMPC; ++i) mpcMaster[i] = false;
 	}
+	std::cout << "Step 4" << std::endl;
 
 	int nbdofs = 0;
 	masterFlagCount = 0;
@@ -85,6 +89,8 @@ FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 		int count = 0;
 		for(j=0; j<scomm->lenT(SComm::all,iSub); ++j) {
 			int bdof = scomm->boundDofT(SComm::all,iSub,j);
+			if(boundDofFlag[nbdofs] != 0)
+				std::cout << "Strange: " << boundDofFlag[nbdofs] << std::endl;
 			switch(boundDofFlag[nbdofs]) {
 				case 0: {
 					if((count % 2) == rank) {
@@ -123,6 +129,8 @@ FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 			}
 		}
 	}
+	std::cout << "Step 5" << std::endl;
+
 }
 
 int

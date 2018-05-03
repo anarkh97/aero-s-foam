@@ -15,22 +15,27 @@ TypeHandle IntHandle{MPI_INT};
 
 template <>
 TypeHandle CommTypeTrait<double>::typeHandle() {
-	return MPI_DOUBLE;
+	return TypeHandle{MPI_DOUBLE};
+}
+
+template <>
+TypeHandle CommTypeTrait<char>::typeHandle() {
+	return TypeHandle{MPI_CHAR};
 }
 
 template <>
 TypeHandle CommTypeTrait<int>::typeHandle() {
-	return MPI_INT;
+	return TypeHandle{MPI_INT};
 }
 
 template <>
 TypeHandle CommTypeTrait<long>::typeHandle() {
-	return MPI_LONG;
+	return TypeHandle{MPI_LONG};
 }
 
 template <>
 TypeHandle CommTypeTrait<std::complex<double>>::typeHandle() {
-	return MPI_COMPLEX;
+	return TypeHandle{MPI_COMPLEX};
 }
 
 RankHandle RankHandle::Any{-1};

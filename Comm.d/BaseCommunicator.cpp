@@ -18,10 +18,6 @@ public:
 using WH = OpaqueTypedHandle<HandleType::Window>;
 using CH = OpaqueTypedHandle<HandleType::Communicator>;
 
-CH make_handle(MPI_Comm com) { return CH{com}; }
-
-WH make_handle(MPI_Win win) { return WH(win); }
-
 void testWin(MPI_Win win) {
 }
 
@@ -47,7 +43,7 @@ WinHandle _createWindow(void *data, int size, int disp_unit, const CommunicatorH
 	int err_code = MPI_Win_create(data, size, disp_unit, MPI_INFO_NULL, comm, &winHandle);
 	if (err_code != MPI_SUCCESS)
 		throw mpi_except(err_code);
-	return {winHandle};
+	return WinHandle{winHandle};
 };
 
 void _fence(bool openOrClose, WinHandle handle) {
@@ -154,7 +150,7 @@ ReqHandle _i_send(const void *buf, int count, TypeHandle datatype, RankHandle de
 	check(
 		MPI_Isend(buf, count, datatype, dest.rank, tag, comm, &request)
 	);
-	return { request, datatype };
+	return { OpaqueTypedHandle<HandleType::Request>{request}, datatype };
 }
 
 ReqHandle _i_receive(void *buf, int count, TypeHandle datatype, RankHandle source, int tag,
@@ -164,7 +160,7 @@ ReqHandle _i_receive(void *buf, int count, TypeHandle datatype, RankHandle sourc
 	             check(
 			MPI_Irecv(buf, count, datatype, origin, tag, comm, &request)
 	);
-	return { request, datatype };
+	return { OpaqueTypedHandle<HandleType::Request>{request}, datatype };
 }
 
 }
@@ -258,7 +254,7 @@ com_details::CommFunctions BaseCommunicator::functions = getFunctionPointers();
 Window BaseCommunicator::window(void *d, int nBytes, int disp_unit) const {
 	MPI_Win win;
 	MPI_Win_create(d, nBytes, disp_unit, MPI_INFO_NULL, handle, &win);
-	return Window(win);
+	return Window(WinHandle{win});
 }
 
 template<>

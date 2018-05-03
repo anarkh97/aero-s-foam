@@ -911,7 +911,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			}
 
 #ifdef USE_MPI
-			Communicator *structCom = new Communicator(this->fetiCom->getComm());
+			Communicator *structCom = new Communicator(CommunicatorHandle{this->fetiCom->getComm()});
 #else
 			Communicator *structCom = NULL;
 #endif

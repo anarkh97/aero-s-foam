@@ -55,7 +55,7 @@ private:
 template <HandleType ht>
 struct OpaqueTypedHandle {
 	template <typename T, typename X = typename std::enable_if<CommTypeCompatibility<T, ht>::isCompatible, void>::type>
-	OpaqueTypedHandle(const T h){
+	explicit OpaqueTypedHandle(const T h){
 		static_assert(sizeof(T) <= ls, "OpaqueHandle cannot store such a large object.");
 		unsigned char *place = reinterpret_cast<unsigned char *>(&handle);
 		T *res = new (place) T(h);
@@ -106,7 +106,7 @@ struct CommTypeTrait<std::pair<T, T>> {
 		              "Communication operations cannot handle pairs of variable size objects.");
 		return CommTypeTrait<T>::typeHandle();
 	}
-	static int count(const T &) { return 2; }
+	static int count(const std::pair<T, T> &) { return 2; }
 	static constexpr bool isFixedSize() { return CommTypeTrait<T>::isFixedSize(); }
 };
 

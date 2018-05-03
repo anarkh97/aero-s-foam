@@ -5,6 +5,8 @@ enable_language(Fortran)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake" "/usr/local/include/eigen3/cmake/")
 
+set(WITH_MUMPS true CACHE BOOL "Whether to use mumps or not")
+
 # Conan approach
 if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     message("Using conan for most libraries (in build directory -- prefered method")

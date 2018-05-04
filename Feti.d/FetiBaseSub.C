@@ -89,8 +89,6 @@ FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 		int count = 0;
 		for(j=0; j<scomm->lenT(SComm::all,iSub); ++j) {
 			int bdof = scomm->boundDofT(SComm::all,iSub,j);
-			if(boundDofFlag[nbdofs] != 0)
-				std::cout << "Strange: " << boundDofFlag[nbdofs] << std::endl;
 			switch(boundDofFlag[nbdofs]) {
 				case 0: {
 					if((count % 2) == rank) {

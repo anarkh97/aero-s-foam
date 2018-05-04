@@ -5,6 +5,7 @@
 #ifndef FEM_SUBDOMAIN_H
 #define FEM_SUBDOMAIN_H
 
+#include <memory>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <FetiLib/DOFInfo.h>

@@ -6,6 +6,7 @@
 #define FEM_OPAQUEHANDLE_H
 
 #include <memory>
+#include <vector>
 #include <type_traits>
 #include <complex>
 

@@ -4215,11 +4215,25 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  else if(useScotch) {
 #ifdef USE_SCOTCH
    if(verboseFlag) filePrint(stderr, " ... Decomposing mesh using SCOTCH  ...\n");
-   Connectivity elemToNode(&elemSet);
+
+   Elemset packedEset;
+   std::map<int, int> pckToGlElems;
+   int numele = elemSet.last(), nElem = 0;
+   for(int iEle = 0; iEle < numele; ++iEle) {
+     Element *ele = elemSet[iEle];
+     if(ele) {
+       packedEset.elemadd(nElem, ele);
+       pckToGlElems[nElem] = iEle;
+       nElem++;
+     }
+   }
+
+   Connectivity elemToNode(&packedEset);
    Connectivity *nodeToElem = elemToNode.reverse();
    Connectivity *elemToElem = elemToNode.transcon(nodeToElem);
    Connectivity *graph = elemToElem->modifyAlt(); // scotch doesn't allow loops
    Connectivity *subToElem = graph->SCOTCH_graphPart(numSubdomains);
+   subToElem->renumberTargets(pckToGlElems);
    optDec = new Decomposition(numSubdomains, subToElem->getPointer(), subToElem->getTarget());
    subToElem->setRemoveable(0);
    delete subToElem; 

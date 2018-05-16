@@ -50,19 +50,14 @@ FetiBaseSub::setMpcNeighbCommSize(FSCommPattern<int> *pt, int size) const
 void
 FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 {
-	std::cout << "Step 1" << std::endl;
 	// PJSA: 12-13-02  masterFlag to be used in dot product and orthogonalization
 	// allows for mpcs or wet interface dofs connecting 1 or > 2 subs
-	delete [] masterFlag;
-	masterFlag = new bool[totalInterfSize];
-	int rank, iSub, i, j;
+	masterFlag.resize(totalInterfSize);
+	int  i, j;
 
-	bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
-	for(i=0; i<numMPC; ++i) mpcFlag[i] = true;
+	std::vector<bool> mpcFlag(numMPC, true);
 
-	bool *wiFlag = (bool *) dbg_alloca(sizeof(bool)*numWIdof);
-	for(i=0; i<numWIdof; ++i) { wiFlag[i] = true; }
-	std::cout << "Step 2" << std::endl;
+	std::vector<bool> wiFlag(numWIdof, true);
 
 	if(numWIdof && wiMaster.size() == 0) { // build wiMaster
 		wiMaster.resize(numWIdof);  // wiMaster[i] is true if this subdomain is the master of the wet interface dof i
@@ -74,21 +69,23 @@ FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 					wiMaster[scomm->wetDofNb(i, j)] = false;
 		}
 	}
-	std::cout << "Step 3" << std::endl;
 
 	if(numMPC && !mpcMaster) { // PJSA moved here from SubDomain::scatterHalfInterf
 		mpcMaster = new bool[numMPC];  // only allocate & init 1st time, dual mpcs only
 		for(i=0; i<numMPC; ++i) mpcMaster[i] = false;
 	}
-	std::cout << "Step 4" << std::endl;
+//	std::cout << "Step 4 " << numMPC << " " << numWIdof << " " << masterFlag.size() << " " << boundDofFlag.size() << std::endl;
 
 	int nbdofs = 0;
 	masterFlagCount = 0;
-	for(iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
-		if(scomm->neighbT(SComm::all,iSub) < subNum()) rank = 0; else rank = 1;
+	for(int iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
+		int rank = (scomm->neighbT(SComm::all,iSub) < subNum()) ? 0 : 1;
 		int count = 0;
 		for(j=0; j<scomm->lenT(SComm::all,iSub); ++j) {
-			int bdof = scomm->boundDofT(SComm::all,iSub,j);
+			// The following should never happen. It is only there to get around a
+			// strange bug of clang++ on Mac OS...
+			if(boundDofFlag[nbdofs] > 2)
+				std::cout << "Strange: " << boundDofFlag[nbdofs] << std::endl;
 			switch(boundDofFlag[nbdofs]) {
 				case 0: {
 					if((count % 2) == rank) {
@@ -99,6 +96,7 @@ FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 					count++;
 				} break;
 				case 1: { // wet interface
+					int bdof = scomm->boundDofT(SComm::all,iSub,j);
 					int windex = -1 - bdof;
 					if(wiMaster[windex]) {
 						if(wiFlag[windex]) { // only need one master for each WI dof
@@ -111,6 +109,7 @@ FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 					else masterFlag[nbdofs++] = false;
 				} break;
 				case 2: { // mpc
+					int bdof = scomm->boundDofT(SComm::all,iSub,j);
 					int locMpcNb = -1 - bdof;
 					int glMpcNb = localToGlobalMPC[locMpcNb];
 					if(subNum() == mpcToSub[glMpcNb][0]) {
@@ -127,7 +126,7 @@ FetiBaseSub::computeMasterFlag(const Connectivity &mpcToSub)
 			}
 		}
 	}
-	std::cout << "Step 5" << std::endl;
+//	std::cout << "Step 5" << std::endl;
 
 }
 

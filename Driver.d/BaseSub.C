@@ -1150,9 +1150,7 @@ BaseSub::~BaseSub()
   if(crnPerNeighb) { delete [] crnPerNeighb; crnPerNeighb = 0; }
   if(cornerMap) { delete [] cornerMap; cornerMap = 0; }
 
-  if(masterFlag) { delete [] masterFlag; masterFlag = 0; }
   if(dualToBoundary) { delete [] dualToBoundary; dualToBoundary = 0; }
-  if(boundDofFlag) { delete [] boundDofFlag; boundDofFlag = 0; }
   if(neighbNumGRBMs) { delete [] neighbNumGRBMs; neighbNumGRBMs = 0; }
   if(bcx) { delete [] bcx; bcx = 0; }
   if(bcxC) { delete [] bcxC; bcxC = 0; }
@@ -1662,7 +1660,6 @@ void
 BaseSub::mergeInterfaces()
 {
 	// mpc list should already have been set before now
-	if(boundDofFlag) delete [] boundDofFlag;
 	boundDofFlag = scomm->mergeTypeSpecificLists(); // merge types 0, 1 and 2 (std, wet and mpc)
 	auto abd = scomm->allBoundDofs();
 	totalInterfSize = scomm->totalInterfSize();

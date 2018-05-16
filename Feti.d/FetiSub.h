@@ -107,8 +107,7 @@ public:
 	virtual double getShiftVal() const = 0;
 
 	void computeInternalMasterFlag();
-	bool* getMasterFlag() { return masterFlag; }
-	const bool* getMasterFlag() const { return masterFlag; }
+	const std::vector<bool> &getMasterFlag() const { return masterFlag; }
 
 	virtual Connectivity *getNodeToNode() const = 0;
 
@@ -218,11 +217,11 @@ protected:
 	Connectivity *localMpcToGlobalMpc = nullptr;
 	bool *faceIsSafe = nullptr;
 	int *localToGroupMPC = nullptr;
-	int *boundDofFlag = nullptr;  // boundDofFlag[i] = 0 -> perfect interface dof  (not contact or mpc)
+	std::vector<int> boundDofFlag;  // boundDofFlag[i] = 0 -> perfect interface dof  (not contact or mpc)
 	// boundDofFlag[i] = 1 -> node-to-node contact interface dof
 	// boundDofFlag[i] = 2 -> mpc dof, only used for rixen method, domain->mpcflag = 1
 	// note: boundDofFlag[i] > 2 can be used for future extensions, eg mortar contact
-	bool *masterFlag = nullptr; // masterFlag[i] = true if this sub is the "master" of allBoundDofs[i]
+	std::vector<bool> masterFlag; // masterFlag[i] = true if this sub is the "master" of allBoundDofs[i]
 	bool *internalMasterFlag = nullptr;
 	int masterFlagCount = 0;
 	bool *mpcMaster = nullptr;  // mpcMaster[i] = true if this subd contains masterdof for mpc i

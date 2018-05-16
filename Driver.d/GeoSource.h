@@ -194,8 +194,8 @@ class GeoSource {
   ElemPreloadContainer eleprl;
 
   // Connectivities
-  Connectivity *clusToSub;
-  int *subToClus;
+  std::unique_ptr<Connectivity> clusToSub;
+  std::vector<int> subToClus;
   Connectivity *subToSub;
   Connectivity *subToNode;
   Connectivity *subToElem;
@@ -264,7 +264,7 @@ class GeoSource {
   int numDampedModes;   // number of modes that have damping
   BCond *modalDamping;  // the value of damping for those modes with damping reuses BCond class
 
-  Decomposition *optDec, *optDecCopy;
+  Decomposition *optDec = nullptr, *optDecCopy = nullptr;
 
   std::map<int, Group> group;
   std::map<int, std::set<int> > nodeGroup;
@@ -273,11 +273,11 @@ class GeoSource {
   std::map<int, AttributeToElement> atoe;
 
   int numSurfaceDirichlet;
-  BCond *surface_dbc;
+  BCond *surface_dbc = nullptr;
   int numSurfaceNeuman;
-  BCond *surface_nbc;
+  BCond *surface_nbc = nullptr;
   int numSurfacePressure;
-  PressureBCond *surface_pres;
+  PressureBCond *surface_pres = nullptr;
   int numSurfaceConstraint;
   BCond *surface_cfe;
 
@@ -447,8 +447,8 @@ public:
   //int  getPhantomFlag()  { return phantomFlag; }
   //int  glToPack(int i) { return glToPck[i]; }
   int  glToPackElem(int i) const;
-  Connectivity *getClusToSub()  { return clusToSub; }
-  int *getSubToClus()  { return subToClus; }
+  const Connectivity &getClusToSub() const { return *clusToSub; }
+  int *getSubToClus()  { return subToClus.data(); }
   Connectivity *getSubToSub()  { return subToSub; }
   Connectivity *getSubToElem()  { return subToElem; }
   void setSubToElem(Connectivity *ste) { subToElem = ste; }

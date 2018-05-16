@@ -73,7 +73,7 @@ public:
 	 * resize **exchangeData but i don't think it is necessary to add "virtual nodes"
 	 * to sharedNodes list. however, check in code where sharedNodes is used and convert to "std"
 	 * NumNeighb and SubNums etc. */
-	int* mergeTypeSpecificLists();
+	std::vector<int> mergeTypeSpecificLists();
 	void setTypeMap(DofType t, int *map);
 
 	// functions to access any of the type-specific lists

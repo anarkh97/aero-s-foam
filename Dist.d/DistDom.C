@@ -1288,7 +1288,7 @@ template<class Scalar>
 void
 GenDistrDomain<Scalar>::createOutputOffsets() 
 {
-  Connectivity *clusToSub = geoSource->getClusToSub();
+  const Connectivity &clusToSub = geoSource->getClusToSub();
   int *subToClus = geoSource->getSubToClus();
   nodeOffsets = new int[this->numSub];
   elemNodeOffsets = new int[this->numSub];
@@ -1303,10 +1303,10 @@ GenDistrDomain<Scalar>::createOutputOffsets()
   int **clElemOffsets = new int *[numClusters]; 
 
   for(iCluster = 0; iCluster < numClusters; iCluster++) {
-    clNodeOffsets[iCluster] = new int[clusToSub->num(iCluster)];
-    clElemNodeOffsets[iCluster] = new int[clusToSub->num(iCluster)];
-    clElemOffsets[iCluster] = new int[clusToSub->num(iCluster)];
-    for(int j=0; j<clusToSub->num(iCluster); ++j) { // initialize to zero so global sum will work
+    clNodeOffsets[iCluster] = new int[clusToSub.num(iCluster)];
+    clElemNodeOffsets[iCluster] = new int[clusToSub.num(iCluster)];
+    clElemOffsets[iCluster] = new int[clusToSub.num(iCluster)];
+    for(int j=0; j<clusToSub.num(iCluster); ++j) { // initialize to zero so global sum will work
       clNodeOffsets[iCluster][j] = 0;
       clElemNodeOffsets[iCluster][j] = 0;
       clElemOffsets[iCluster][j] = 0;
@@ -1317,8 +1317,8 @@ GenDistrDomain<Scalar>::createOutputOffsets()
   for(iSub = 0; iSub < this->numSub; iSub++) {
     int glSub = this->subDomain[iSub]->subNum();
     int clusNum = subToClus[glSub];
-    for(int jSub = 0; jSub < clusToSub->num(clusNum); jSub++)
-      if(glSub == (*clusToSub)[clusNum][jSub]) {
+    for(int jSub = 0; jSub < clusToSub.num(clusNum); jSub++)
+      if(glSub == clusToSub[clusNum][jSub]) {
         clNodeOffsets[clusNum][jSub] = numFlags[iSub];
         clElemNodeOffsets[clusNum][jSub] = this->subDomain[iSub]->countElemNodes();
         clElemOffsets[clusNum][jSub] = this->subDomain[iSub]->numElements();
@@ -1327,16 +1327,16 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 
   // sum up all offsets in all mpi processes
   for(iCluster = 0; iCluster < numClusters; iCluster++) {
-    this->communicator->globalSum(clusToSub->num(iCluster), clNodeOffsets[iCluster]);
-    this->communicator->globalSum(clusToSub->num(iCluster), clElemNodeOffsets[iCluster]);
-    this->communicator->globalSum(clusToSub->num(iCluster), clElemOffsets[iCluster]);
+    this->communicator->globalSum(clusToSub.num(iCluster), clNodeOffsets[iCluster]);
+    this->communicator->globalSum(clusToSub.num(iCluster), clElemNodeOffsets[iCluster]);
+    this->communicator->globalSum(clusToSub.num(iCluster), clElemOffsets[iCluster]);
   }
 
   for(iCluster = 0; iCluster < numClusters; iCluster++) {
     int nOffset = 0;
     int enOffset = 0;
     int eOffset = 0;
-    for(iSub = 0; iSub < clusToSub->num(iCluster); iSub++) {
+    for(iSub = 0; iSub < clusToSub.num(iCluster); iSub++) {
       int tmpNOff = clNodeOffsets[iCluster][iSub];
       int tmpENOff = clElemNodeOffsets[iCluster][iSub];
       int tmpEOff = clElemOffsets[iCluster][iSub];
@@ -1352,8 +1352,8 @@ GenDistrDomain<Scalar>::createOutputOffsets()
   for(iSub = 0; iSub < this->numSub; iSub++) {
     int glSub = this->subDomain[iSub]->subNum();
     int clusNum = subToClus[glSub];
-    for(int jSub = 0; jSub < clusToSub->num(clusNum); jSub++)
-      if(glSub == (*clusToSub)[clusNum][jSub]) {
+    for(int jSub = 0; jSub < clusToSub.num(clusNum); jSub++)
+      if(glSub == clusToSub[clusNum][jSub]) {
         nodeOffsets[iSub] = clNodeOffsets[clusNum][jSub];
         elemNodeOffsets[iSub] = clElemNodeOffsets[clusNum][jSub];
         elemOffsets[iSub] = clElemOffsets[clusNum][jSub];
@@ -1366,7 +1366,7 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 
   // create clusToCpu connectivity, used to decide which process should initially open each output file
   Connectivity *subToCpu = this->cpuToSub->reverse();
-  clusToCpu = clusToSub->transcon(subToCpu);
+  clusToCpu = clusToSub.transcon(subToCpu);
   delete subToCpu;
 }
 

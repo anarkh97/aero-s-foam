@@ -156,7 +156,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, std::vector<F
 	bool *interfaceMasterFlag = new bool[tInterfLen];
 	this->interface.computeOffsets();
 	for(iSub = 0; iSub < this->nsub; ++iSub) {
-		const bool *subMasterFlag = this->subdomains[iSub]->getMasterFlag();
+		auto &subMasterFlag = this->subdomains[iSub]->getMasterFlag();
 		int subOffset = this->interface.subOffset[iSub];
 		int j;
 		for(j=0; j<this->interface.domLen[iSub]; ++j)
@@ -3061,7 +3061,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
  bool *interfaceMasterFlag = new bool[tInterfLen];
  this->interface.recomputeOffsets();
  for(iSub = 0; iSub < this->nsub; ++iSub) {
-   const bool *subMasterFlag = this->subdomains[iSub]->getMasterFlag();
+   auto &subMasterFlag = this->subdomains[iSub]->getMasterFlag();
    int subOffset = this->interface.subOffset[iSub];
    int j;
    for(j=0; j<this->interface.domLen[iSub]; ++j)

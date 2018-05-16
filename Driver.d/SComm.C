@@ -75,7 +75,7 @@ SComm::setTypeSpecificList(DofType type, int *_subNums, Connectivity *_sharedDOF
     SharedDOFs = new Connectivity * [numDofType];
     for(int i=0; i<numDofType; ++i) { 
       NumNeighb[i] = 0;
-      SubNums[i] = 0;
+      SubNums[i] = nullptr;
       // SharedDOFs[i] = 0;
       SharedDOFs[i] = new Connectivity();
     }
@@ -87,7 +87,7 @@ SComm::setTypeSpecificList(DofType type, int *_subNums, Connectivity *_sharedDOF
   SharedDOFs[type] = _sharedDOFs;
 }
 
-int *
+std::vector<int>
 SComm::mergeTypeSpecificLists()
 {
 
@@ -114,7 +114,7 @@ SComm::mergeTypeSpecificLists()
   //int allNumNeighb = allSharedDOFs->csize();
 
   // step 3. make boundDofFlag and TypeMaps
-  int *boundDofFlag = new int[allSharedDOFs->numConnect()];
+  std::vector<int> boundDofFlag(allSharedDOFs->numConnect());
   int count = 0;
   for(i = 0; i < allSharedDOFs->csize(); ++i) {
     int neighb = allSubNums[i];

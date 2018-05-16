@@ -190,7 +190,6 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   binaryOutput = false;
 #endif
 */
-  subToClus = 0;
   clusToSub = 0;
 
   mratio = 1.0; // consistent mass matrix
@@ -217,8 +216,6 @@ GeoSource::~GeoSource()
   if(outputNodes) delete [] outputNodes;
   if(outNodeIndex) delete [] outNodeIndex;
   if(headLen) delete [] headLen;
-  if(subToClus) delete subToClus;
-  if(clusToSub) delete clusToSub;
   if(unsortedSubToElem) delete unsortedSubToElem;
   if(subToCPU) delete [] subToCPU;
   // claw is deleted by domain
@@ -2557,7 +2554,7 @@ void GeoSource::getTextDecomp(bool sowering)
   stopTimerMemory(mt.readDecomp, mt.memoryDecomp);
 #ifdef DISTRIBUTED
   if(!binaryInput) {
-    subToClus = new int[numSub];
+    subToClus.resize(numSub);
     for(int i = 0; i < numSub; i++)
       subToClus[i] = 0;
     numClusters = 1;
@@ -2567,7 +2564,7 @@ void GeoSource::getTextDecomp(bool sowering)
       target[i] = 0;
     ptr[0] = 0;
     ptr[1] = numSub;
-    clusToSub = new Connectivity(1,ptr,target);
+    clusToSub = std::make_unique<Connectivity>(1,ptr,target);
     numClusNodes = nGlobNodes;
     numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
   }
@@ -4372,8 +4369,7 @@ GeoSource::modifyDecomposition(int maxEleCopy)
              maxEle, optDec->nsub);
 
  if(subToElem) { delete subToElem; subToElem = 0; }
- if(subToClus) { delete subToClus; subToClus = 0; }
- if(clusToSub) { delete clusToSub; clusToSub = 0; }
+ clusToSub.reset();
  if(unsortedSubToElem) { delete unsortedSubToElem; unsortedSubToElem = 0; }
 }
 
@@ -4635,7 +4631,7 @@ GeoSource::getDecomposition()
     subToElem->renumberTargets(glToPckElems);  // required if gaps in element numbering
 
 #ifdef DISTRIBUTED
-    subToClus = new int[numSub];
+    subToClus.resize(numSub);
     for(int i = 0; i < numSub; i++)
       subToClus[i] = 0;
     numClusters = 1;
@@ -4645,7 +4641,7 @@ GeoSource::getDecomposition()
       target[i] = 0;
     ptr[0] = 0;
     ptr[1] = numSub;
-    clusToSub = new Connectivity(1,ptr,target);
+    clusToSub = std::make_unique<Connectivity>(1,ptr,target);
     numClusNodes = nGlobNodes;
     numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
 #endif
@@ -4722,11 +4718,11 @@ void GeoSource::getBinaryDecomp()
 #ifndef SALINAS
 void GeoSource::readGlobalBinaryData()
 {
-  if(!subToSub || !subToClus) {
+  if(!subToSub || subToClus.size() == 0) {
     BinFileHandler fp2(connectivity_.c_str(), "rb");
-    clusToSub = new Connectivity(fp2);
+    std::make_unique<Connectivity>(fp2);
     numClusters = clusToSub->csize();
-    subToClus = new int[clusToSub->getNumTarget()];
+    subToClus.resize(clusToSub->getNumTarget());
     for(int k = 0; k < clusToSub->csize(); k++)
       for(int i = 0; i < clusToSub->num(k); i++)
         subToClus[(*clusToSub)[k][i]] = k;

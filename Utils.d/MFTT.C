@@ -199,9 +199,10 @@ MFTTData::getValAndSlopeAlt2(double t, double *v, double *s)
  else { *v = 0.0; *s = 0.0; }
 }
 
-SS2DTData::SS2DTData(int _id, DoubleList& _y)
+SS2DTData::SS2DTData(int _id, DoubleList& _y, bool _engineeringFlag)
 {
   id = _id;
+  engineeringFlag = _engineeringFlag;
   for(int j = 0; j < _y.nval; ++j) y.push_back(_y.v[j]);
   // TODO: check if y is sorted
 }

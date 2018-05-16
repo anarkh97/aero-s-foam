@@ -1484,7 +1484,7 @@ IOObject::oType Sower::read(BinFileHandler& file, int subNum, int*& localToGloba
 	IOObject::readData(obj, this, localIndex, file);
         localToGlobalMap[localIndex] = globObjID;  // PJSA
         localIndex++;
-	if(globObjID == (*it)->endNum) break;
+	if(globObjID == (*it)->endNum) break; // TODO: reconsider this due to gaps in the element numbering
       }
     }
   TypeTag offsetagul = IOObject::dataType; // linker bug work around

@@ -894,6 +894,8 @@ TRAIL [a-zA-Z]*
 
 "SS2DT"|"ss2dt"                    { return SS2DT; }
 
+"ENGI"[a-zA-Z]*|"engi"[a-zA-Z]*    { return ENGINEERING; }
+
 "YSST"|"ysst"                      { return YSST; }
 
 "YSSRT"|"yssrt"                    { return YSSRT; }

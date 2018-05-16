@@ -2,9 +2,6 @@
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Math.d/TTensor.h>
 
-//note: if the following macro is defined then the tabulated x and y stress and strains must be engineering quantities
-#define ENGINEERING_STRESS_STRAIN
-
 //reference:
 // Thomas Borrvall, Curtis Ehle, and Troy Stratton, "A Fabric Material Model with Stress Map Functionality in LS-DYNA"
 // 10th European LS-DYNA Conference 2015, Würzburg, Germany
@@ -48,15 +45,29 @@ FabricMat::getStress(Tensor *_stress, Tensor &_strain, double* state, double tem
   strain[0] -= e0;
   strain[1] -= e0;
 
-#ifndef ENGINEERING_STRESS_STRAIN
-  (*stress)[0] = (pxx_map) ? t*pxx_map->getValAlt(strain[0], strain[1]) : 0;
-  (*stress)[1] = (pyy_map) ? t*pyy_map->getValAlt(strain[1], strain[0]) : 0;
-#else
-  double ex = sqrt(1+2*strain[0]) - 1,
+  double ex = sqrt(1+2*strain[0]) - 1, 
          ey = sqrt(1+2*strain[1]) - 1; // engineering strains
-  (*stress)[0] = (pxx_map) ? t*pxx_map->getValAlt(ex, ey)/(1+ex) : 0;
-  (*stress)[1] = (pyy_map) ? t*pyy_map->getValAlt(ey, ex)/(1+ey) : 0;
-#endif
+
+  if(pxx_map) {
+    if(!pxx_map->engineeringFlag)
+      (*stress)[0] = t*pxx_map->getValAlt(strain[0], strain[1]);
+    else
+      (*stress)[0] = t*pxx_map->getValAlt(ex, ey)/(1+ex);
+  }
+  else {
+    (*stress)[0] = 0;
+  }
+
+  if(pyy_map) {
+    if(!pyy_map->engineeringFlag)
+      (*stress)[1] = t*pyy_map->getValAlt(strain[1], strain[0]);
+    else
+      (*stress)[1] = t*pyy_map->getValAlt(ey, ex)/(1+ey);
+  }
+  else {
+    (*stress)[1] = 0;
+  }
+
   (*stress)[2] = (sxy_map) ? t*sxy_map->getValAlt(strain[2]) : 0;
 }
 
@@ -89,19 +100,20 @@ FabricMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
          ey = sqrt(1+2*enp[1]) - 1; // engineering strains
 
   if(pxx_map) {
-#ifndef ENGINEERING_STRESS_STRAIN
-    double S, dSdE[2];
-    pxx_map->getValAndSlopeAlt(enp[0], enp[1], &S, &(dSdE[0]), &(dSdE[1]));
-    (*stress)[0] = t*S;
-    (*tm)[0][0] = t*dSdE[0];
-    (*tm)[0][1] = t*dSdE[1];
-#else
-    double P, dPde[2];
-    pxx_map->getValAndSlopeAlt(ex, ey, &P, &(dPde[0]), &(dPde[1]));
-    (*stress)[0] = t*P/(1+ex);
-    (*tm)[0][0] = t*1/sqrt(1+2*enp[0])*(dPde[0] - (*stress)[0])/(1+ex);
-    (*tm)[0][1] = t*1/sqrt(1+2*enp[1])*dPde[1]/(1+ex);
-#endif
+    if(!pxx_map->engineeringFlag) {
+      double S, dSdE[2];
+      pxx_map->getValAndSlopeAlt(enp[0], enp[1], &S, &(dSdE[0]), &(dSdE[1]));
+      (*stress)[0] = t*S;
+      (*tm)[0][0] = t*dSdE[0];
+      (*tm)[0][1] = t*dSdE[1];
+    }
+    else {
+      double P, dPde[2];
+      pxx_map->getValAndSlopeAlt(ex, ey, &P, &(dPde[0]), &(dPde[1]));
+      (*stress)[0] = t*P/(1+ex);
+      (*tm)[0][0] = t*1/sqrt(1+2*enp[0])*(dPde[0] - (*stress)[0])/(1+ex);
+      (*tm)[0][1] = t*1/sqrt(1+2*enp[1])*dPde[1]/(1+ex);
+    }
   }
   else {
     (*stress)[0] = 0;
@@ -110,19 +122,20 @@ FabricMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
   }
 
   if(pyy_map) {  
-#ifndef ENGINEERING_STRESS_STRAIN
-    double S, dSdE[2];
-    pyy_map->getValAndSlopeAlt(enp[1], enp[0], &S, &(dSdE[1]), &(dSdE[0]));
-    (*stress)[1] = t*S;
-    (*tm)[1][0] = t*dSdE[0];
-    (*tm)[1][1] = t*dSdE[1];
-#else
-    double P, dPde[2];
-    pyy_map->getValAndSlopeAlt(ey, ex, &P, &(dPde[1]), &(dPde[0]));
-    (*stress)[1] = t*P/(1+ey);
-    (*tm)[1][0] = t*1/sqrt(1+2*enp[0])*dPde[0]/(1+ey);
-    (*tm)[1][1] = t*1/sqrt(1+2*enp[1])*(dPde[1]-(*stress)[1])/(1+ey);
-#endif
+    if(!pyy_map->engineeringFlag) {
+      double S, dSdE[2];
+      pyy_map->getValAndSlopeAlt(enp[1], enp[0], &S, &(dSdE[1]), &(dSdE[0]));
+      (*stress)[1] = t*S;
+      (*tm)[1][0] = t*dSdE[0];
+      (*tm)[1][1] = t*dSdE[1];
+    }
+    else {
+      double P, dPde[2];
+      pyy_map->getValAndSlopeAlt(ey, ex, &P, &(dPde[1]), &(dPde[0]));
+      (*stress)[1] = t*P/(1+ey);
+      (*tm)[1][0] = t*1/sqrt(1+2*enp[0])*dPde[0]/(1+ey);
+      (*tm)[1][1] = t*1/sqrt(1+2*enp[1])*(dPde[1]-(*stress)[1])/(1+ey);
+    }
   }
   else {
     (*stress)[1] = 0;
@@ -155,15 +168,29 @@ FabricMat::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
   enp[0] -= e0;
   enp[1] -= e0;
 
-#ifndef ENGINEERING_STRESS_STRAIN
-  (*stress)[0] = (pxx_map) ? t*pxx_map->getValAlt(enp[0], enp[1]) : 0;
-  (*stress)[1] = (pyy_map) ? t*pyy_map->getValAlt(enp[1], enp[0]) : 0;
-#else
   double ex = sqrt(1+2*enp[0]) - 1,
          ey = sqrt(1+2*enp[1]) - 1; // engineering strains
-  (*stress)[0] = (pxx_map) ? t*pxx_map->getValAlt(ex, ey)/(1+ex) : 0;
-  (*stress)[1] = (pyy_map) ? t*pyy_map->getValAlt(ey, ex)/(1+ey) : 0;
-#endif
+
+  if(pxx_map) {
+    if(!pxx_map->engineeringFlag)
+      (*stress)[0] = t*pxx_map->getValAlt(enp[0], enp[1]);
+    else
+      (*stress)[0] = t*pxx_map->getValAlt(ex, ey)/(1+ex);
+  }
+  else {
+    (*stress)[0] = 0;
+  }
+
+  if(pyy_map) {
+    if(!pyy_map->engineeringFlag)
+      (*stress)[1] = t*pyy_map->getValAlt(enp[1], enp[0]);
+    else
+      (*stress)[1] = t*pyy_map->getValAlt(ey, ex)/(1+ey);
+  }
+  else {
+    (*stress)[1] = 0;
+  }
+
   (*stress)[2] = (sxy_map) ? t*sxy_map->getValAlt(enp[2]) : 0;
 }
 

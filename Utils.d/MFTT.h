@@ -60,10 +60,11 @@ class GenMFTTData {
 class SS2DTData {
  public:
      int id;
+     bool engineeringFlag;
      std::vector<double> x, y;
      std::vector<std::vector<double> > value;
    public:
-     SS2DTData(int, DoubleList&);
+     SS2DTData(int, DoubleList&, bool);
      void add(double, DoubleList&);
      double getValAlt(double x, double y);
      void getValAndSlopeAlt(double x, double y, double *v, double *sx, double *sy);

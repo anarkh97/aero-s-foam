@@ -167,7 +167,7 @@ TRAIL [a-zA-Z]*
 
 "trivial"|"TRIVIAL"                { return TRIVIAL; }
 
-"allowmechanisms"|"ALLOWMECHANISMS" { return ALLOWMECHANISMS; }
+"allow_mechanisms"|"ALLOW_MECHANISMS" { return ALLOWMECHANISMS; }
 
 "use_scotch"|"USE_SCOTCH"          { return USESCOTCH; }
 

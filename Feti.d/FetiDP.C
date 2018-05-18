@@ -361,7 +361,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	Connectivity *coarseToSub = 0;
 	Connectivity *subToCoarse = 0;
 	Connectivity *coarseConnectivity = 0;
-	if(fetiInfo->coarse_cntl->type == 2) {
+	if(isFeti(fetiInfo->coarse_cntl->type)) {
 		if(this->glNumMpc_primal > 0) {
 			filePrint(stderr, " *** ERROR: Mpc not supported with multi-level solver *** \n");
 			exit(-1);
@@ -403,7 +403,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	// STEP 3. make the coarse problem equation numberer
 	int renumFlag = (fetiInfo->coarse_cntl->subtype == FetiInfo::skyline || fetiInfo->coarse_cntl->subtype == FetiInfo::blocksky) ? domain->solInfo().renum : 0;
 	if(cornerEqs) delete cornerEqs;
-	if(fetiInfo->coarse_cntl->type == 2) {
+	if(isFeti(fetiInfo->coarse_cntl->type)) {
 		cornerEqs = 0;
 	} else {
 		compStruct renumber = coarseConnectivity->renumByComponent(renumFlag);
@@ -421,7 +421,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
 	if(coarseToSub && coarseToSub != cornerToSub) delete coarseToSub;
 	if(subToCoarse && subToCoarse != subToCorner) delete subToCoarse;
-	if(fetiInfo->coarse_cntl->type != 2) delete subToCorner;
+	if(!isFeti(fetiInfo->coarse_cntl->type)) delete subToCorner;
 
 	int *glCornerDofs = new int[glNumCorners];
 	for(int i = 0; i < glNumCorners; ++i) glCornerDofs[i] = 0;
@@ -429,7 +429,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #ifdef DISTRIBUTED
 	this->fetiCom->globalMpiOp(glNumCorners, glCornerDofs, MPI_BOR); // MPI_BOR is an mpi bitwise or
 #endif
-	if(fetiInfo->coarse_cntl->type != 2) {
+	if(!isFeti(fetiInfo->coarse_cntl->type)) {
 		for(int i = 0; i < glNumCorners; ++i) cornerEqs->mark(i, glCornerDofs[i]);
 		delete [] glCornerDofs;
 
@@ -449,7 +449,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #ifdef DISTRIBUTED
 		this->fetiCom->globalSum(this->glNumSub,numRBMPerSub);
 #endif
-		if(fetiInfo->coarse_cntl->type != 2) {
+		if(!isFeti(fetiInfo->coarse_cntl->type)) {
 			for(int iSub=0; iSub<this->glNumSub; ++iSub) {
 				cornerEqs->setWeight(augOffset+iSub, numRBMPerSub[iSub]);
 				this->times.numRBMs += numRBMPerSub[iSub];
@@ -480,7 +480,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #ifdef DISTRIBUTED
 		this->fetiCom->globalSum(this->edgeToSub->csize(), edgeWeights);
 #endif
-		if(fetiInfo->coarse_cntl->type != 2) {
+		if(!isFeti(fetiInfo->coarse_cntl->type)) {
 			for(int iEdge=0; iEdge<this->edgeToSub->csize(); ++iEdge) {
 				cornerEqs->setWeight(augOffset+iEdge, edgeWeights[iEdge]);
 				this->times.numEdges += edgeWeights[iEdge];
@@ -489,7 +489,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		delete [] edgeWeights;
 	}
 
-	if(fetiInfo->coarse_cntl->type != 2) {
+	if(!isFeti(fetiInfo->coarse_cntl->type)) {
 		cornerEqs->finish();
 		this->times.numCRNs = cornerEqs->size();
 	} else
@@ -775,7 +775,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		// build coarse solver
 
 		// EXPERIMENTAL CODE to use feti dp for the coarse problem
-		if(fetiInfo->coarse_cntl->type == 2) {
+		if(fetiInfo->coarse_cntl->type == SolverSelection::Feti) {
 			//cerr << "using FETI-DP solver for coarse problem\n";
 			Domain *coarseDomain = new Domain();
 			coarseDomain->solInfo().solvercntl = fetiInfo->coarse_cntl;
@@ -978,7 +978,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #ifdef DISTRIBUTED
 			if(this->subToSub->csize() == this->numCPUs && fetiInfo->type != FetiInfo::nonlinear &&
 			   !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep &&
-			   (fetiInfo->coarse_cntl->type == 0 && (fetiInfo->coarse_cntl->subtype == 0 || fetiInfo->coarse_cntl->subtype == 1)))
+			   (fetiInfo->coarse_cntl->type == SolverSelection::Direct && (fetiInfo->coarse_cntl->subtype == 0 || fetiInfo->coarse_cntl->subtype == 1)))
 				KccSolver = GenSolverFactory<Scalar>::getFactory()->createDistSolver(coarseConnectivity, cornerEqs, *fetiInfo->coarse_cntl,
 				                                                                     KccSparse, this->fetiCom);
 			else

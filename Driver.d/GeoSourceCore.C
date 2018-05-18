@@ -4199,7 +4199,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  MultiFront mf(&baseSet, &nodes, bool(domain->getNumFSI()), fsglFlag);
 
  // Decompose and optimize the structure into subdomains
- if ( domain->solInfo().isCoupled && (domain->solInfo().solvercntl->type != 2 || 
+ if ( domain->solInfo().isCoupled && (!isFeti(domain->solInfo().solvercntl->type)||
       (!domain->solInfo().isMatching && domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0) ) )
    optDec = mf.decompose(numSubdomains, bool(domain->getNumFSI()));
  else

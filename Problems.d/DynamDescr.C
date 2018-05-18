@@ -817,9 +817,9 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 
  // to compute a^0 = M^{-1}(f_ext^0-f_int^0-Cu^0)
  if(getTimeIntegration() != 1 && (domain->solInfo().newmarkBeta != 0.0 && domain->solInfo().iacc_switch)
-    && domain->solInfo().solvercntl->type == 0) { // not required for explicit
+    && domain->solInfo().solvercntl->type == SolverSelection::Direct) { // not required for explicit
    SparseMatrix *spp; Solver *prec; // XXX
-   SolverCntl *m_cntl = (domain->solInfo().solvercntl->type == 0) ? domain->solInfo().solvercntl : &default_cntl;
+   SolverCntl *m_cntl = (domain->solInfo().solvercntl->type == SolverSelection::Direct) ? domain->solInfo().solvercntl : &default_cntl;
    dMat->Msolver = GenSolverFactory<double>::getFactory()->createSolver(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), 
                                                                         *m_cntl, allOps.Msolver, (Rbm*) NULL, spp, prec);
  }

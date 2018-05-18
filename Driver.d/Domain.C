@@ -1346,7 +1346,7 @@ Domain::setUpData(int topFlag)
   numele = geoSource->getElems(packedEset);
   numele = packedEset.last();
 
-  if(sinfo.solvercntl->type == 0) {
+  if(sinfo.solvercntl->type == SolverSelection::Direct) {
     if(numLMPC && domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc) {
       if(elemToNode == 0) elemToNode = new Connectivity(packedEset.asSet());
       if(nodeToElem == 0) nodeToElem = elemToNode->reverse();
@@ -1750,7 +1750,8 @@ Domain::getRenumbering()
  // get number of nodes (actually, this is the maximum node number when there are gaps in the node numbering)
  numnodes = nodeToNode->csize();
 
- if(solInfo().solvercntl->type == 0 || solInfo().solvercntl->type == 1) makeNodeToNode_sommer(); // single domain solvers
+ if(solInfo().solvercntl->type == SolverSelection::Direct || solInfo().solvercntl->type == SolverSelection::Iterative)
+     makeNodeToNode_sommer(); // single domain solvers
 
  // delete any previously allocated memory
  if(renumb.order) { delete [] renumb.order; renumb.order=0; }
@@ -1785,12 +1786,14 @@ Domain::getRenumbering()
      nodecount++;
    }
 
- if(domain->solInfo().rbmflg == 1 && renumb.numComp > 1 && sinfo.solvercntl->type == 0 && sinfo.solvercntl->subtype == 1) {
+ if(domain->solInfo().rbmflg == 1 && renumb.numComp > 1
+    && sinfo.solvercntl->type == SolverSelection::Direct && sinfo.solvercntl->subtype == 1) {
    filePrint(stderr, "\x1B[31m *** WARNING: GRBM with sparse solver is not \n"
                           "     supported for multi-component models.  \x1B[0m\n");
  }
 
- if(renumb_nompc.order && renumb_nompc.numComp > 1 && sinfo.solvercntl->type == 0 && (sinfo.solvercntl->subtype == 0 || sinfo.solvercntl->subtype == 1)) {
+ if(renumb_nompc.order && renumb_nompc.numComp > 1
+    && sinfo.solvercntl->type == SolverSelection::Direct && (sinfo.solvercntl->subtype == 0 || sinfo.solvercntl->subtype == 1)) {
    // altering the ordering for skyline or sparse with LMPCs due to requirements of GRBM
    DofSetArray *dsa = new DofSetArray(numnodes, packedEset, renumb.renum);
    ConstrainedDSA *c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc);

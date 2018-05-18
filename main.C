@@ -769,11 +769,11 @@ int main(int argc, char** argv)
    geoSource->transformLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  }
 
- if(domain->solInfo().solvercntl->type != 2 && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && domain->solInfo().readInDualROB.empty()
+ if(!isFeti(domain->solInfo().solvercntl->type) && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && domain->solInfo().readInDualROB.empty()
 	&& !domain->solInfo().samplingPodRom)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
- if((domain->solInfo().solvercntl->type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
+ if((!isFeti(domain->solInfo().solvercntl->type) || (!domain->solInfo().isMatching && (domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
    geoSource->addFsiElements(domain->getNumFSI(), domain->getFSI());
 
  if(!geoSource->binaryInput) {
@@ -844,13 +844,15 @@ int main(int argc, char** argv)
    if(domain->solInfo().inertiaLumping == 2) { // block-diagonal lumping
 	 domain->solInfo().solvercntl->subtype = 1;
 	 domain->solInfo().getFetiInfo().local_cntl->subtype = FetiInfo::sparse;
-	 if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 2; // XXX type 3 could be upgraded to work for this case,
+	 if(parallel_proc || domain_decomp)
+	 	domain->solInfo().solvercntl->type = SolverSelection::Feti; // XXX type 3 could be upgraded to work for this case,
 																				//     rather than using feti
    }
    else {
 	 domain->solInfo().solvercntl->subtype = 10;
 	 domain->solInfo().getFetiInfo().local_cntl->subtype = FetiInfo::diagonal;
-	 if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 3;
+	 if(parallel_proc || domain_decomp)
+	 	domain->solInfo().solvercntl->type = SolverSelection::BlockDiag;
    }
 
    geoSource->setMRatio(0.0);
@@ -886,7 +888,9 @@ int main(int argc, char** argv)
    }
    else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
  }
- if(domain->solInfo().solvercntl->type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline
+ if(domain->solInfo().solvercntl->type == SolverSelection::Direct
+    && domain->solInfo().probType != SolverInfo::None
+    && domain->solInfo().probType != SolverInfo::PodRomOffline
 	&& domain->solInfo().modal_id.empty())
    filePrint(stderr, solverTypeMessage[domain->solInfo().solvercntl->subtype]);
 
@@ -894,9 +898,10 @@ int main(int argc, char** argv)
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
  //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested
  //   type == 0 && subtype == 9 (MUMPS) is a Domain Decomposition method only if a decomposition is provided or requested
- if(domain->solInfo().solvercntl->type == 2 || domain->solInfo().solvercntl->type == 3
-	|| (domain->solInfo().solvercntl->type == 1 && domain->solInfo().solvercntl->iterType == 1 && domain_decomp)
-	|| (domain->solInfo().solvercntl->type == 0 && domain->solInfo().solvercntl->subtype == 9 && domain_decomp)
+ if(isFeti(domain->solInfo().solvercntl->type)
+    || domain->solInfo().solvercntl->type == SolverSelection::BlockDiag
+    || (domain->solInfo().solvercntl->type == SolverSelection::Iterative && domain->solInfo().solvercntl->iterType == 1 && domain_decomp)
+	|| (domain->solInfo().solvercntl->type == SolverSelection::Direct && domain->solInfo().solvercntl->subtype == 9 && domain_decomp)
 	|| (!domain->solInfo().modal_id.empty() && domain_decomp)
 	|| (domain->solInfo().svdPodRom && domain_decomp)
 	|| (domain->solInfo().samplingPodRom && domain_decomp)) {

@@ -275,7 +275,7 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
  GenSolver<complex<double> > *K;
 
 // Create global matrix
- if (d->solInfo().solvercntl->type==0) {
+ if (d->solInfo().solvercntl->type==SolverSelection::Direct) {
    switch( d->solInfo().solvercntl->subtype ) {
      default:
      case 8: 

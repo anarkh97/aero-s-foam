@@ -138,6 +138,7 @@
 %token NUMTHICKNESSGROUP STRESSNODELIST DISPNODELIST RELAXATIONSEN 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 %token NPMAX BSSPLH PGSPLH
+%token LIB
 
 %type <bclist>   BCDataList IDisp6 TBCDataList PBCDataList AtdDirScatterer AtdNeuScatterer IDisp6Pita IVel6Pita
 %type <bclist>   DirichletBC NeumanBC TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
@@ -3730,56 +3731,56 @@ CasesList:
 SolverMethod:
 	DIRECT NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 0;
+          $$->type = SolverSelection::Direct;
           $$->subtype = 0; }
 	| DIRECT Integer NewLine
 	{ $$ = new SolverCntl(default_cntl);
-          $$->type = 0;
+          $$->type = SolverSelection::Direct;
           $$->subtype = $2; }
 	| SOLVERTYPE NewLine
 	{ $$ = new SolverCntl(default_cntl);
-          $$->type = 0;
+          $$->type = SolverSelection::Direct;
           $$->subtype = $1; }
         | SOLVERTYPE PIVOT NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 0;
+          $$->type = SolverSelection::Direct;
           $$->subtype = $1;
           $$->pivot = true; }
         | SOLVERTYPE SCALED NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 0;
+          $$->type = SolverSelection::Direct;
           $$->subtype = $1;
           $$->scaled = true; }
         | SOLVERTYPE UNSYMMETRIC NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 0;
+          $$->type = SolverSelection::Direct;
           $$->subtype = $1;
           $$->unsymmetric = true; }
         | ITERTYPE NewLine
         { $$ = new SolverCntl(default_cntl); 
-          $$->type = 1;
+          $$->type = SolverSelection::Iterative;
           $$->iterType = $1; }
         | ITERTYPE Integer NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 1;
+          $$->type = SolverSelection::Iterative;
           $$->iterType = $1;
           $$->precond = $2; }
         | ITERTYPE Integer Float NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 1;
+          $$->type = SolverSelection::Iterative;
           $$->iterType = $1;
           $$->precond = $2;
           $$->tol=$3; }   
         | ITERTYPE Integer Float Integer NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 1;
+          $$->type = SolverSelection::Iterative;
           $$->iterType = $1;
           $$->precond = $2;
           $$->tol = $3;
           $$->maxit = $4; }
         | ITERTYPE Integer Float Integer Integer NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 1;
+          $$->type = SolverSelection::Iterative;
           $$->iterType = $1;
           $$->precond = $2;
           $$->tol = $3;
@@ -3787,7 +3788,7 @@ SolverMethod:
           $$->iterSubtype = $5; }
         | ITERTYPE Integer Float Integer Integer Integer NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 1;
+          $$->type = SolverSelection::Iterative;
           $$->iterType = $1;
           $$->precond = $2;
           $$->tol = $3;
@@ -3796,42 +3797,47 @@ SolverMethod:
           $$->maxvecsize = $6; }
         | FETI NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2; }
+          $$->type = SolverSelection::Feti; }
         | FETI Integer NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+          $$->type = SolverSelection::Feti;
           $$->fetiInfo.version = (FetiInfo::Version) ($2-1); }
         | FETI Integer Float NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+          $$->type = SolverSelection::Feti;
           $$->fetiInfo.maxit = $2;
           $$->fetiInfo.tol = $3;
           $$->fetiInfo.maxortho = $2; }
         | FETI Integer Float Integer NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+          $$->type = SolverSelection::Feti;
           $$->fetiInfo.maxit = $2;
           $$->fetiInfo.tol = $3;
           $$->fetiInfo.maxortho = $4; }
         | FETI Integer FETI2TYPE NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+          $$->type = SolverSelection::Feti;
           $$->fetiInfo.version = (FetiInfo::Version) ($2-1);
           $$->fetiInfo.feti2version = (FetiInfo::Feti2Version) $3; }
-	| FETI DP NewLine
-	{ $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+	    | FETI DP NewLine
+	    { $$ = new SolverCntl(default_cntl);
+          $$->type = SolverSelection::Feti;
+          $$->fetiInfo.corners = FetiInfo::allCorners6;
+          $$->fetiInfo.version = FetiInfo::fetidp; }
+	    | FETI LIB NewLine
+	    { $$ = new SolverCntl(default_cntl);
+          $$->type = SolverSelection::FetiLib;
           $$->fetiInfo.corners = FetiInfo::allCorners6;
           $$->fetiInfo.version = FetiInfo::fetidp; }
         | FETI DPH NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+          $$->type = SolverSelection::Feti;
           $$->fetiInfo.corners = FetiInfo::allCorners6;
           $$->fetiInfo.version = FetiInfo::fetidp;
           $$->fetiInfo.dph_flag = true; }
         | HFETI NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+          $$->type = SolverSelection::Feti;
           $$->fetiInfo.scaling = FetiInfo::tscaling;
           $$->fetiInfo.corners = FetiInfo::allCorners3;
           $$->fetiInfo.version = FetiInfo::fetidp;
@@ -3841,7 +3847,7 @@ SolverMethod:
           $$->fetiInfo.nGs = 0; }
         | HFETI Integer Float NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+          $$->type = SolverSelection::Feti;
           $$->fetiInfo.maxit = $2;
           $$->fetiInfo.tol = $3;
           $$->fetiInfo.krylovtype = 1;
@@ -3854,7 +3860,7 @@ SolverMethod:
           $$->fetiInfo.nGs = 0; }
         | HFETI Integer Float Integer NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+          $$->type = SolverSelection::Feti;
           $$->fetiInfo.maxit = $2;
           $$->fetiInfo.tol = $3;
           $$->fetiInfo.numcgm = $4;
@@ -3868,7 +3874,7 @@ SolverMethod:
           $$->fetiInfo.nGs = 0; }
         | HFETI Integer Float Integer Float NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+          $$->type = SolverSelection::Feti;
           $$->fetiInfo.maxit = $2;
           $$->fetiInfo.tol = $3;
           $$->fetiInfo.numcgm = $4;
@@ -3884,7 +3890,7 @@ SolverMethod:
           $$->fetiInfo.nGs = 0; }
         | HFETI Integer Float Integer Float Integer NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 2;
+          $$->type = SolverSelection::Feti;
           $$->fetiInfo.maxit = $2;
           $$->fetiInfo.tol = $3;
           $$->fetiInfo.numcgm = $4;
@@ -3900,7 +3906,7 @@ SolverMethod:
           $$->fetiInfo.nGs = 0; }
         | BLOCKDIAG NewLine
         { $$ = new SolverCntl(default_cntl);
-          $$->type = 3; }
+          $$->type = SolverSelection::BlockDiag; }
         | SOLVERHANDLE Integer NewLine
         { $$ = &domain->solInfo().solvercntls[$2]; }
         ;
@@ -3981,7 +3987,7 @@ Solver:
         { $$->fetiInfo.precno = FetiInfo::lumped; }
         | Solver PRECNO Integer NewLine
         { $$->precond = $3;
-          if($$->type == 2 && (($3 < 0) || ($3 > 3))) { 
+          if(isFeti($$->type) && (($3 < 0) || ($3 > 3))) {
             $3 = 1;
             fprintf(stderr," *** WARNING: Incorrect Preconditioner selected, using lumped\n");
           }

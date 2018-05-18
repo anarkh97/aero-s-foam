@@ -665,7 +665,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
  filePrint(f,"\nTOTAL SIMULATION (1+2+3+4+5+6)         time: %14.5f s %14.3f Mb\n",total/1000.0, totalMemSimulation*byteToMb);
 
  // Output FETI solver information
- if(sInfo.solvercntl->type == 2) {
+ if(sInfo.solvercntl->type == SolverSelection::Feti) {
    filePrint(f,"\n***********************************************************"
              "********************\n");
    if(domain->numContactPairs > 0)

@@ -453,6 +453,8 @@ TRAIL [a-zA-Z]*
 
 "DPH"|"dph"                        { return DPH; }
 
+"LIB"|"lib"                        { return LIB; }
+
 "noco"[a-zA-Z]*|"NOCO"[a-zA-Z]*    { return NOCOARSE; }
 
 "proj"[a-zA-Z]*|"PROJ"[a-zA-Z]*    { return PROJ; }

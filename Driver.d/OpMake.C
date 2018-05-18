@@ -90,7 +90,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  GenSubDomain<Scalar> *subCast = dynamic_cast<GenSubDomain<Scalar>*>(this);
  if(!subCast && (sinfo.ATDARBFlag >= 0.0 || sinfo.ATDROBalpha != 0.0)) checkSommerTypeBC(this);
- bool mdds_flag = (mat && subCast && sinfo.solvercntl->type == 0 && sinfo.solvercntl->subtype != 13); // multidomain direct solver, dont use for ROM
+ bool mdds_flag = (mat && subCast && sinfo.solvercntl->type == SolverSelection::Direct && sinfo.solvercntl->subtype != 13); // multidomain direct solver, dont use for ROM
 
  bool zeroRot = (sinfo.zeroRot && sinfo.isNonLin() && sinfo.isDynam() && sinfo.newmarkBeta != 0);
  int *dofType = (zeroRot) ? dsa->makeDofTypeArray() : 0;
@@ -954,7 +954,7 @@ Domain::buildPreSensitivities(AllSensitivities<Scalar> &allSens, Scalar *bcx)
   switch(sinfo.solvercntl->type) {
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
-    case 0:
+    case SolverSelection::Direct:
       makePreSensitivities(allSens, bcx);
       break;
   }
@@ -970,7 +970,7 @@ Domain::buildPostSensitivities(GenSolver<Scalar> *sysSolver,
   switch(sinfo.solvercntl->type) {
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
-    case 0:
+    case SolverSelection::Direct:
       makePostSensitivities(sysSolver, spm, allSens, sol, bcx, K, isDynam, refState, geomState, allCorot, isNonLin);
       break;
   }
@@ -984,7 +984,7 @@ Domain::buildNLPostSensitivities(GenSolver<Scalar> *sysSolver, AllSensitivities<
   switch(sinfo.solvercntl->type) {
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
-    case 0:
+    case SolverSelection::Direct:
       makeNLPostSensitivities(sysSolver, allSens, refState, geomState, allCorot, isDynam);
       break;
   }
@@ -1021,12 +1021,12 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    if(sinfo.noninpc && i>0) break;
    switch(sinfo.solvercntl->type) {
     default:
-      fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
-    case 0:
+      fprintf(stderr," *** WARNING: Solver not Specified %d  ***\n", sinfo.solvercntl->type);
+    case SolverSelection::Direct:
       makeStaticOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
                                      systemSolver, allOps.spm, rbm, kelArray, melArray, celArray); // also used for eigen
       break;
-    case 1:
+    case SolverSelection::Iterative:
       makeDynamicOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
                                       systemSolver, allOps.spm, rbm, kelArray, melArray, celArray);
       break;
@@ -2454,7 +2454,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
    double *v = (double *) dbg_alloca(maxNumDOFs*maxNumDOFs*sizeof(double));
    double *vbt = (double *) dbg_alloca(maxNumDOFs*maxNumDOFs*sizeof(double));
  GenSubDomain<Scalar> *subCast = dynamic_cast<GenSubDomain<Scalar>*>(this);
- bool mdds_flag = (K && subCast && sinfo.solvercntl->type == 0); // multidomain direct solver
+ bool mdds_flag = (K && subCast && sinfo.solvercntl->type == SolverSelection::Direct); // multidomain direct solver
   
    // This loops adds the contribution of the terms emanating
    // from the non-reflecting boundary conditions

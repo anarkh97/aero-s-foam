@@ -414,40 +414,41 @@ void
 GenDecDomain<Scalar>::preProcessMPCs()
 {
 #ifdef SOWER_SURFS
-  if(soweredInput) {
-    //HB compute mortar LMPCs
-    domain->SetMortarPairing();
-    domain->SetUpSurfaces(); //domain->SetUpSurfaces(geoSource->sower_nodes);
-    if(domain->solInfo().newmarkBeta != 0.0) { // not for explicit dynamics
-      domain->ComputeMortarLMPC();
-      domain->computeMatchingWetInterfaceLMPC();
-      domain->CreateMortarToMPC();
-    }
+	if(soweredInput) {
+		//HB compute mortar LMPCs
+		domain->SetMortarPairing();
+		domain->SetUpSurfaces(); //domain->SetUpSurfaces(geoSource->sower_nodes);
+		if(domain->solInfo().newmarkBeta != 0.0) { // not for explicit dynamics
+			domain->ComputeMortarLMPC();
+			domain->computeMatchingWetInterfaceLMPC();
+			domain->CreateMortarToMPC();
+		}
 #ifdef MORTAR_DEBUG
-    domain->PrintSurfaceEntities();
+		domain->PrintSurfaceEntities();
     domain->PrintMortarConds();
 #endif
-  }
+	}
 #endif
-  if(domain->solInfo().solvercntl->fetiInfo.bmpc || (domain->solInfo().solvercntl->type != 2 && 
-    (domain->solInfo().filterFlags || domain->solInfo().rbmflg))) addBMPCs();
-  if(domain->getNumLMPC() > 0) {
-    if(verboseFlag) filePrint(stderr, " ... Applying the MPCs              ...\n");
-    // check for mpcs involving bad nodes and constrained DOFs
-    if(nodeToSub) domain->checkLMPCs(nodeToSub);
-    // select which mpcs are to be included in the coarse problem
-    domain->setPrimalLMPCs(numDualMpc, numPrimalMpc);
-    // distribute mpcs
-    execParal(numSub, this, &GenDecDomain<Scalar>::extractSubDomainMPCs);
-    makeMpcToSub(); // new version works for distributed data
-    // renumber local mpcs
-    paralApplyToAll(numSub, subDomain, &GenSubDomain<Scalar>::renumberMPCs);
-    // locate and store dsa, c_dsa and cc_dsa numbering for future reference
-    paralApply(numSub, subDomain, &GenSubDomain<Scalar>::locateMpcDofs);
-    // make mpcToMpc connectivity
-    makeMpcToMpc(); // this should be in the Feti-DP constructor
-  }
-  else domain->solInfo().getFetiInfo().mpcflag = 0;
+	if(domain->solInfo().solvercntl->fetiInfo.bmpc ||
+	   (!isFeti(domain->solInfo().solvercntl->type) &&
+	    (domain->solInfo().filterFlags || domain->solInfo().rbmflg))) addBMPCs();
+	if(domain->getNumLMPC() > 0) {
+		if(verboseFlag) filePrint(stderr, " ... Applying the MPCs              ...\n");
+		// check for mpcs involving bad nodes and constrained DOFs
+		if(nodeToSub) domain->checkLMPCs(nodeToSub);
+		// select which mpcs are to be included in the coarse problem
+		domain->setPrimalLMPCs(numDualMpc, numPrimalMpc);
+		// distribute mpcs
+		execParal(numSub, this, &GenDecDomain<Scalar>::extractSubDomainMPCs);
+		makeMpcToSub(); // new version works for distributed data
+		// renumber local mpcs
+		paralApplyToAll(numSub, subDomain, &GenSubDomain<Scalar>::renumberMPCs);
+		// locate and store dsa, c_dsa and cc_dsa numbering for future reference
+		paralApply(numSub, subDomain, &GenSubDomain<Scalar>::locateMpcDofs);
+		// make mpcToMpc connectivity
+		makeMpcToMpc(); // this should be in the Feti-DP constructor
+	}
+	else domain->solInfo().getFetiInfo().mpcflag = 0;
 }
 
 template<class Scalar>
@@ -484,9 +485,9 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::makeSubToSubEtc()
 {
-  if(soweredInput) {
+	if(soweredInput) {
 #ifdef OLD_CLUSTER
-    subToNode = geoSource->getSubToNode();
+		subToNode = geoSource->getSubToNode();
     subToNode->sortTargets();
 
     mt.memoryNodeToSub -= memoryUsed();
@@ -496,50 +497,52 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
 #endif
 #ifdef SOWER_DISTR
 #ifdef OLD_CLUSTER
-    geoSource->setNumNodes(communicator->globalMax(nodeToSub->csize()));
+		geoSource->setNumNodes(communicator->globalMax(nodeToSub->csize()));
 #else
-    geoSource->setNumNodes(communicator->globalMax(geoSource->nodeToSub_sparse->csize())); 
+		geoSource->setNumNodes(communicator->globalMax(geoSource->nodeToSub_sparse->csize()));
 #endif
 #else
-    geoSource->setNumNodes(nodeToSub->csize());
+		geoSource->setNumNodes(nodeToSub->csize());
 #endif
-  }
-  else {
-    mt.memoryElemToNode -= memoryUsed();
-    if(!elemToNode) elemToNode = new Connectivity(domain->packedEset.asSet());
-    mt.memoryElemToNode += memoryUsed();
+	}
+	else {
+		mt.memoryElemToNode -= memoryUsed();
+		if(!elemToNode) elemToNode = new Connectivity(domain->packedEset.asSet());
+		mt.memoryElemToNode += memoryUsed();
 
-    mt.memorySubToNode -= memoryUsed();
-    subToNode = subToElem->transcon(elemToNode);
-    if(!domain->GetnContactSurfacePairs()) subToNode->sortTargets();
-    mt.memorySubToNode += memoryUsed();
+		mt.memorySubToNode -= memoryUsed();
+		subToNode = subToElem->transcon(elemToNode);
+		if(!domain->GetnContactSurfacePairs()) subToNode->sortTargets();
+		mt.memorySubToNode += memoryUsed();
 
-    mt.memoryNodeToSub -= memoryUsed();
-    nodeToSub = subToNode->reverse();
-    mt.memoryNodeToSub += memoryUsed();
-    domain->setNumNodes(nodeToSub->csize());
+		mt.memoryNodeToSub -= memoryUsed();
+		nodeToSub = subToNode->reverse();
+		mt.memoryNodeToSub += memoryUsed();
+		domain->setNumNodes(nodeToSub->csize());
 
-    mt.memorySubToNode -= memoryUsed();
-    subToSub = subToNode->transcon(nodeToSub);
-    mt.memorySubToNode += memoryUsed();
+		mt.memorySubToNode -= memoryUsed();
+		subToSub = subToNode->transcon(nodeToSub);
+		mt.memorySubToNode += memoryUsed();
 
 #ifdef USE_MPI
-    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().solvercntl->type == 0 || domain->solInfo().aeroFlag > -1 || geoSource->binaryOutput == 0) {
+		if(domain->numSSN() || domain->solInfo().isCoupled
+		   || domain->solInfo().solvercntl->type == SolverSelection::Direct
+		   || domain->solInfo().aeroFlag > -1 || geoSource->binaryOutput == 0) {
 #else
-    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().solvercntl->type == 0 || domain->solInfo().aeroFlag > -1) {
-#endif 
-      // sommerfeld, scatter, wet, distributed neum PJSA 6/28/2010 multidomain mumps PJSA 12/01/2010 non-binary output for mpi
-      mt.memoryNodeToElem -= memoryUsed();
-      if(!domain->nodeToElem) domain->nodeToElem = elemToNode->reverse();
-      mt.memoryNodeToElem += memoryUsed();
+			if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().solvercntl->type == 0 || domain->solInfo().aeroFlag > -1) {
+#endif
+			// sommerfeld, scatter, wet, distributed neum PJSA 6/28/2010 multidomain mumps PJSA 12/01/2010 non-binary output for mpi
+			mt.memoryNodeToElem -= memoryUsed();
+			if(!domain->nodeToElem) domain->nodeToElem = elemToNode->reverse();
+			mt.memoryNodeToElem += memoryUsed();
 
-      mt.memoryElemToSub -= memoryUsed();
-      elemToSub = subToElem->reverse();
-      mt.memoryElemToSub += memoryUsed();
-      if(domain->numSSN() > 0) domain->checkSommerTypeBC(domain, elemToNode, domain->nodeToElem); // flip normals if necessary
-    }
-    if(geoSource->getGlob()) geoSource->computeClusterInfo(localSubToGl[0], subToNode);
-  }
+			mt.memoryElemToSub -= memoryUsed();
+			elemToSub = subToElem->reverse();
+			mt.memoryElemToSub += memoryUsed();
+			if(domain->numSSN() > 0) domain->checkSommerTypeBC(domain, elemToNode, domain->nodeToElem); // flip normals if necessary
+		}
+		if(geoSource->getGlob()) geoSource->computeClusterInfo(localSubToGl[0], subToNode);
+	}
 }
 
 template<class Scalar>
@@ -675,7 +678,7 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::preProcess()
 {
- if(domain->solInfo().solvercntl->type == 0) { // Makes global renumbering, connectivities and dofsets
+ if(domain->solInfo().solvercntl->type == SolverSelection::Direct) { // Makes global renumbering, connectivities and dofsets
    domain->preProcessing();
 
    int numdof = domain->numdof();
@@ -758,7 +761,7 @@ GenDecDomain<Scalar>::preProcess()
  domain->setNumDofs(toto.sqNorm()+domain->nDirichlet()+domain->nCDirichlet());
 
  // free up some memory
- if(domain->solInfo().solvercntl->type != 0 && domain->solInfo().aeroFlag < 0) {
+ if(domain->solInfo().solvercntl->type != SolverSelection::Direct && domain->solInfo().aeroFlag < 0) {
    delete elemToSub; elemToSub = 0;
    //if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
  }
@@ -2623,7 +2626,8 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::makeCorners()
 {
-  if(!(domain->solInfo().solvercntl->type == 2 && domain->solInfo().solvercntl->fetiInfo.version == FetiInfo::fetidp)) return;
+  if(!( isFeti(domain->solInfo().solvercntl->type)
+       && domain->solInfo().solvercntl->fetiInfo.version == FetiInfo::fetidp)) return;
   if(verboseFlag) filePrint(stderr, " ... Selecting the Corners          ...\n");
 
   FSCommPattern<int> cpat(communicator, cpuToSub, myCPU, FSCommPattern<int>::CopyOnSend);
@@ -3505,7 +3509,7 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
 template<class Scalar>
 void GenDecDomain<Scalar>::addFsiElements()
 {
- if ( domain->solInfo().isCoupled && domain->solInfo().solvercntl->type == 2 &&
+ if ( domain->solInfo().isCoupled && isFeti(domain->solInfo().solvercntl->type) &&
       domain->solInfo().isMatching && domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0 ) {
    // JLchange: replace addSubFsiElem() such that fsi elements are added only to structure elements. 
    for (int i=0; i< domain->getNumFSI(); ++i) {
@@ -3706,7 +3710,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
                                 domain->numSommer, domain->solInfo().getFetiInfo().local_cntl->subtype,
                                 communicator, melArray, celArray, mt);
 
- if(domain->solInfo().solvercntl->type == 0) {
+ if(domain->solInfo().solvercntl->type == SolverSelection::Direct) {
    switch(domain->solInfo().solvercntl->subtype) {
 #ifdef USE_MUMPS
      case 9 : {
@@ -3746,7 +3750,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runForWB, make_feti);
 
  GenAssembler<Scalar> * assembler = 0;
- if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1 || domain->solInfo().solvercntl->type == 1) {
+ if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1 || domain->solInfo().solvercntl->type == SolverSelection::Iterative) {
    assembler = getSolVecAssembler(); 
  }
 // RT0212
@@ -3836,7 +3840,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  }
 // RT end
  switch(domain->solInfo().solvercntl->type) {
-   case 0 : { // direct
+   case SolverSelection::Direct : {
      if(domain->solInfo().solvercntl->subtype == 13) { // if ROM, dont need dgt.dynMats, keep dgt.spMats for V^T*K*V, factor after pod basis has been buffered
        if(!(res.spMat  = new GenSubDOp<Scalar>(numSub, dgt.spMats)))
          throw std::runtime_error("subdomain matrices did not bind");
@@ -3859,7 +3863,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      }
      if(factor) res.dynMat->refactor();
    } break;
-   case 1 : { // iterative
+   case SolverSelection::Iterative : {
      switch(domain->solInfo().solvercntl->iterType) {
        case 1: {
          if(myCPU == 0) std::cerr << " ... GMRES Solver is Selected       ... \n";
@@ -3879,19 +3883,21 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
          exit(-1);
      }
    } break;
-   case 2 : { // feti
+   case SolverSelection::Feti : {
      if(myCPU == 0) std::cerr << " ... FETI-DP Solver is Selected     ... \n";
      res.dynMat = getFetiSolver(dgt);
      delete [] dgt.dynMats;
      delete [] dgt.spMats;
    } break;
-   case 3 : { // block diag
+   case SolverSelection::BlockDiag : {
      if(myCPU == 0) std::cerr << " ... Diagonal Solver is Selected    ... \n";
      res.dynMat = getDiagSolver(numSub, dgt.sd, dgt.dynMats);
    } break;
-	 case 4 : {
-		 // Using FetiLib.
-
+	 case SolverSelection::FetiLib : {
+		 if(myCPU == 0) std::cerr << " ... FetiLib Solver is Selected     ... \n";
+		 res.dynMat = getFetiSolver(dgt);
+		 delete [] dgt.dynMats;
+		 delete [] dgt.spMats;
 	 }
 	 break;
  }
@@ -3906,7 +3912,7 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 
  execParal(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
- if(domain->solInfo().solvercntl->type == 0 && res.dynMat) {
+ if(domain->solInfo().solvercntl->type == SolverSelection::Direct && res.dynMat) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);
    if(!verboseFlag) dynmat->setPrintNullity(false);
    dynmat->unify(communicator);
@@ -3939,7 +3945,7 @@ GenDecDomain<double>::rebuildOps(GenMDDynamMat<double> &res, double coeM, double
 
    execParal(numSub, this, &GenDecDomain<double>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
-   if(domain->solInfo().solvercntl->type == 0 && res.dynMat) {
+   if(domain->solInfo().solvercntl->type == SolverSelection::Direct && res.dynMat) {
      GenSolver<double> *dynmat = dynamic_cast<GenSolver<double>*>(res.dynMat);
      if(!verboseFlag) dynmat->setPrintNullity(false);
      dynmat->unify(communicator);
@@ -4009,7 +4015,7 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
 
   allOps.zero();
 
-  if(domain->solInfo().solvercntl->type == 0) {
+  if(domain->solInfo().solvercntl->type == SolverSelection::Direct) {
     if(domain->solInfo().solvercntl->subtype == 13) { // if performing reduced order model, point to subdomain matrices and pass these to makeSparseOps
 #ifdef USE_EIGEN3
       GenSparseMatrix<Scalar> *spmat = 
@@ -4028,7 +4034,7 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
                                                      (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
     }
   }
-  else if(domain->solInfo().solvercntl->type == 3) {
+  else if(domain->solInfo().solvercntl->type == SolverSelection::BlockDiag) {
     GenSparseMatrix<Scalar> *spmat = (res.dynMat) ? dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat) : NULL;
     if(spmat) spmat->zeroAll();
     subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,

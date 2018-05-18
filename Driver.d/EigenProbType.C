@@ -88,79 +88,80 @@ extern ModeData modeData;
 template <class EigOps, class VecType, class VecSet, 
 	  class PostProcessor, class ProblemDescriptor>
 void
-EigenSolver< EigOps, VecType, VecSet, 
-	     PostProcessor, ProblemDescriptor>
-  ::setUp()
+EigenSolver< EigOps, VecType, VecSet,
+		PostProcessor, ProblemDescriptor>
+::setUp()
 {
- // ... Construct connectivities, renumbering and dofset array
- probDesc->preProcess();
+	// ... Construct connectivities, renumbering and dofset array
+	probDesc->preProcess();
 
- // ... Get the eigen post processor
- postProcessor = probDesc->getPostProcessor();
+	// ... Get the eigen post processor
+	postProcessor = probDesc->getPostProcessor();
 
- // ... Get number of eigenvalues and eigenvectors 
- numEig = probDesc->getNumEigen();
- 
- // ... Build matrices A and B
- eM = new EigOps; 
+	// ... Get number of eigenvalues and eigenvectors
+	numEig = probDesc->getNumEigen();
 
- // build, factor matrix in buildEigOps
- probDesc->buildEigOps( *eM );
- if(solInfo.printMatLabExit) return;
+	// ... Build matrices A and B
+	eM = new EigOps;
 
- // ... get the number of rigid body modes
- // if GRBM is not specified, or if a shift is specified, or if the solver is skyline/sparse/feti then get rbms from solver
- if(domain->solInfo().rbmflg == 0 || geoSource->shiftVal() != 0.0 || domain->solInfo().solvercntl->type == 2 ||
-    (domain->solInfo().solvercntl->type != 2 && (domain->solInfo().solvercntl->subtype == 0 || domain->solInfo().solvercntl->subtype == 1))) {
-   nrmod = eM->dynMat->numRBM();
- }
- // otherwise, use the geometric modes
- else {
-   nrmod = eM->rigidBodyModes->numRBM();
- }
+	// build, factor matrix in buildEigOps
+	probDesc->buildEigOps( *eM );
+	if(solInfo.printMatLabExit) return;
 
- if(solInfo.test_ulrich) nrmod = 0;
+	// ... get the number of rigid body modes
+	// if GRBM is not specified, or if a shift is specified, or if the solver is skyline/sparse/feti then get rbms from solver
+	if(domain->solInfo().rbmflg == 0 || geoSource->shiftVal() != 0.0 || isFeti(domain->solInfo().solvercntl->type) ||
+	   (!isFeti(domain->solInfo().solvercntl->type) &&
+	    (domain->solInfo().solvercntl->subtype == 0 || domain->solInfo().solvercntl->subtype == 1))) {
+		nrmod = eM->dynMat->numRBM();
+	}
+		// otherwise, use the geometric modes
+	else {
+		nrmod = eM->rigidBodyModes->numRBM();
+	}
 
- totalEig = numEig+nrmod;
- // ... this could be an issue for small problems
- //     so confirm that this->totalEig is NOT bigger than problem size
- if(totalEig > probDesc->solVecSize()) totalEig = probDesc->solVecSize();
+	if(solInfo.test_ulrich) nrmod = 0;
 
- int nsmax;
- double tolEig, tolJac;
- bool explicitK;
- this->probDesc->getSubSpaceInfo(origSubSize, nsmax, tolEig, tolJac, explicitK);
+	totalEig = numEig+nrmod;
+	// ... this could be an issue for small problems
+	//     so confirm that this->totalEig is NOT bigger than problem size
+	if(totalEig > probDesc->solVecSize()) totalEig = probDesc->solVecSize();
 
- // The following code is used to output only rigid body
- // modes from a given structure. Selected by setting
- // the subspace size equal to zero in the input file.
- // The number output is selected by the number of eigen values
- // also in the input file.
- if(origSubSize == 0) {
-   // Print those rigid body modes to the output file
-   filePrint(stderr," ... Output Rigid Body Modes and exit ...\n");
-   VecSet RBMs(nrmod, probDesc->solVecInfo());
-   // if GRBM is not specified, or if a shift is specified, or if the solver is skyline/sparse/feti then get rbms from solver
-   if(domain->solInfo().rbmflg == 0 || geoSource->shiftVal() != 0.0 || domain->solInfo().solvercntl->type == 2 ||
-      (domain->solInfo().solvercntl->type != 2 && (domain->solInfo().solvercntl->subtype == 0 || domain->solInfo().solvercntl->subtype == 1))) {
-     eM->dynMat->getRBMs(RBMs); 
-   }
-   // otherwise, use the geometric modes
-   else {
-     eM->rigidBodyModes->getRBMs(RBMs);
-   }
-   Vector eValues(nrmod, 0.0);
-   postProcessor->eigenOutput(eValues, RBMs); 
-   return;
- }
+	int nsmax;
+	double tolEig, tolJac;
+	bool explicitK;
+	this->probDesc->getSubSpaceInfo(origSubSize, nsmax, tolEig, tolJac, explicitK);
 
- // ... Construct vector and vectorset for eigenvalues and eigenvectors
- if (!solInfo.doEigSweep) {
-   eigVal = new Vector(totalEig);
-   eigVec = new VecSet(totalEig, probDesc->solVecInfo());
+	// The following code is used to output only rigid body
+	// modes from a given structure. Selected by setting
+	// the subspace size equal to zero in the input file.
+	// The number output is selected by the number of eigen values
+	// also in the input file.
+	if(origSubSize == 0) {
+		// Print those rigid body modes to the output file
+		filePrint(stderr," ... Output Rigid Body Modes and exit ...\n");
+		VecSet RBMs(nrmod, probDesc->solVecInfo());
+		// if GRBM is not specified, or if a shift is specified, or if the solver is skyline/sparse/feti then get rbms from solver
+		if(domain->solInfo().rbmflg == 0 || geoSource->shiftVal() != 0.0 || isFeti(domain->solInfo().solvercntl->type) ||
+		   (!isFeti(domain->solInfo().solvercntl->type) && (domain->solInfo().solvercntl->subtype == 0 || domain->solInfo().solvercntl->subtype == 1))) {
+			eM->dynMat->getRBMs(RBMs);
+		}
+			// otherwise, use the geometric modes
+		else {
+			eM->rigidBodyModes->getRBMs(RBMs);
+		}
+		Vector eValues(nrmod, 0.0);
+		postProcessor->eigenOutput(eValues, RBMs);
+		return;
+	}
 
-   eigVal->zero();
- }
+	// ... Construct vector and vectorset for eigenvalues and eigenvectors
+	if (!solInfo.doEigSweep) {
+		eigVal = new Vector(totalEig);
+		eigVec = new VecSet(totalEig, probDesc->solVecInfo());
+
+		eigVal->zero();
+	}
 
 /*
  int eigSolverType = probDesc->getEigenSolverType();
@@ -312,8 +313,8 @@ LOBPCGSolver< EigOps, VecType, VecSet,
   // ... Store the rbms in the first this->nrmod vectors of VecSet Z
   if (this->nrmod) {
     // if GRBM is not specified, or if a shift is specified, or if the solver is skyline/sparse/feti then get rbms from solver
-    if(domain->solInfo().rbmflg == 0 || geoSource->shiftVal() != 0.0 || domain->solInfo().solvercntl->type == 2 ||
-       (domain->solInfo().solvercntl->type != 2 && (domain->solInfo().solvercntl->subtype == 0 || domain->solInfo().solvercntl->subtype == 1))) {
+    if(domain->solInfo().rbmflg == 0 || geoSource->shiftVal() != 0.0 || isFeti(domain->solInfo().solvercntl->type) ||
+       (!isFeti(domain->solInfo().solvercntl->type) && (domain->solInfo().solvercntl->subtype == 0 || domain->solInfo().solvercntl->subtype == 1))) {
       this->eM->dynMat->getRBMs(*Z);
     }
     // otherwise, use the geometric modes
@@ -758,8 +759,9 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  // ... Store the rbms in the first this->nrmod vectors of VecSet Z
  if (this->nrmod) {
    // if GRBM is not specified, or if a shift is specified, or if the solver is skyline/sparse/feti then get rbms from solver
-   if(domain->solInfo().rbmflg == 0 || geoSource->shiftVal() != 0.0 || domain->solInfo().solvercntl->type == 2 ||
-      (domain->solInfo().solvercntl->type != 2 && (domain->solInfo().solvercntl->subtype == 0 || domain->solInfo().solvercntl->subtype == 1))) {
+   if(domain->solInfo().rbmflg == 0 || geoSource->shiftVal() != 0.0 ||
+      isFeti(domain->solInfo().solvercntl->type) ||
+      ((domain->solInfo().solvercntl->subtype == 0 || domain->solInfo().solvercntl->subtype == 1))) {
      this->eM->dynMat->getRBMs(*Z);
    }
    // otherwise, use the geometric modes

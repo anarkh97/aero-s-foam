@@ -70,7 +70,7 @@ GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
  if(domain->solInfo().filterFlags || domain->solInfo().modeFilterFlag)
    trProject(rhs);
 
- if(domain->solInfo().solvercntl->type == 1) allOps.spMat->getAssembler()->assemble(rhs); // XXXX
+ if(domain->solInfo().solvercntl->type == SolverSelection::Iterative) allOps.spMat->getAssembler()->assemble(rhs); // XXXX
  times->formRhs += getTime();
 }
 

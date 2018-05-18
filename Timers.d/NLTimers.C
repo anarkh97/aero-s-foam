@@ -129,7 +129,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
 
  double totalMatricesProcess = timers.assemble + timers.constructMatrices;
  double coarseTime   = timers.coarse1 + timers.coarse2;
- double localSolutionTime = (sInfo.solvercntl->type == 0) ? solveTime : timers.solve + timers.factor + coarseTime 
+ double localSolutionTime = (sInfo.solvercntl->type == SolverSelection::Direct) ? solveTime : timers.solve + timers.factor + coarseTime
                                                             + timers.pfactor + timers.pfactor2 
                                                             - totalMatricesProcess;
  double solutionTimeMin = localSolutionTime;
@@ -264,7 +264,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  fprintf(f,"***********************************************************"
            "********************\n\n");
 
- if(sInfo.solvercntl->type == 0) {
+ if(sInfo.solvercntl->type == SolverSelection::Direct) {
    fprintf(f,"1. Mumps Sparse\n\n");
  }
  else {
@@ -402,7 +402,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  if (f != 0) {
  fprintf(f,"\n5. Total Solver                        time: %14.5f s %14.3f Mb\n",
          solutionTimeMax/1000.0, totalSolverMemory*byteToMb);
- if(sInfo.solvercntl->type == 2) {
+ if(sInfo.solvercntl->type == SolverSelection::Feti) {
    fprintf(f,"         Factor Subdomain Matrices     time: %14.5f s %14.3f Mb\n\n",
            timers.factor/1000.0, totalMemFactor*byteToMb);
    fprintf(f,"         Total Building  Coarse Pbs.   time: %14.5f s %14.3f\n",
@@ -494,7 +494,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  }
 
  // Output FETI solver information
- if(sInfo.solvercntl->type == 2) {
+ if(sInfo.solvercntl->type == SolverSelection::Feti) {
 
    fprintf(f,"\n***********************************************************"
              "********************\n");
@@ -525,7 +525,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
 
  if((domain->probType() == SolverInfo::NonLinStatic ||
      domain->probType() == SolverInfo::NonLinDynam  ||
-     domain->probType() == SolverInfo::ArcLength) && sInfo.solvercntl->type == 2) {
+     domain->probType() == SolverInfo::ArcLength) && sInfo.solvercntl->type == SolverSelection::Feti) {
 
    fprintf(f,"\n***********************************************************"
              "********************\n");
@@ -692,7 +692,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  filePrint(f,"5. Total Solver                       : %12.4f %12.4f %12.4f\n\n",
          solutionTimeMin/1000.0, solutionTimeAvg/1000.0, solutionTimeMax/1000.0);
 
- if(sInfo.solvercntl->type == 2) {
+ if(sInfo.solvercntl->type == SolverSelection::Feti) {
    filePrint(f,"         Factor Subdomain Matrices    : %12.4f %12.4f %12.4f\n\n",
              factorTimeMin/1000.0,factorTimeAvg/1000.0,factorTimeMax/1000.0);
 
@@ -833,7 +833,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  filePrint(f,"5. Total Solver                       : %12.4f %12.4f %12.4f\n\n",
          tot5Min*byteToMb, tot5Avg*byteToMb, tot5Max*byteToMb);
 
- if(sInfo.solvercntl->type == 2) {
+ if(sInfo.solvercntl->type == SolverSelection::Feti) {
    filePrint(f,"         Factor Subdomain Matrices    : %12.4f %12.4f %12.4f\n\n",
              factorMemoryMin*byteToMb, factorMemoryAvg*byteToMb,
              factorMemoryMax*byteToMb);

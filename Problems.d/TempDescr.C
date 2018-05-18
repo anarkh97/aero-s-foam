@@ -286,7 +286,7 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
    }
    else {
      SparseMatrix *spp; Solver *prec; // XXX
-     SolverCntl *m_cntl = (domain->solInfo().solvercntl->type == 0) ? domain->solInfo().solvercntl : &default_cntl;
+     SolverCntl *m_cntl = (domain->solInfo().solvercntl->type == SolverSelection::Direct) ? domain->solInfo().solvercntl : &default_cntl;
      dMat.Msolver = GenSolverFactory<double>::getFactory()->createSolver(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(),
                                                                          *m_cntl, allOps.Msolver, (Rbm*) NULL, spp, prec);
    }

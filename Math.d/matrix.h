@@ -61,14 +61,14 @@ class GenFullM {
    void  operator =  (const GenFullM<Scalar> &);
    void  operator =  (const Scalar c);
    void  operator *=  (const Scalar c);
-   GenFullM<Scalar>  operator *(GenFullM<Scalar>&);   // product A*B
-   GenFullM<Scalar>  operator *=(GenFullM<Scalar>&);   // product A=A*B
-   GenFullM<Scalar>  operator ^=(GenFullM<Scalar>&);   // product A=B*A
-   GenVector<Scalar> operator *(GenVector<Scalar>&); // product A*x
-   GenFullM<Scalar>  operator ^(GenFullM<Scalar>&);   // product A^T*B
-   GenVector<Scalar> operator ^(GenVector<Scalar>&); // product A^T*x
-   GenFullM<Scalar>  operator %(GenFullM<Scalar>&);   // product A*B^T
-   GenFullM<Scalar>  operator +(GenFullM<Scalar>&);   // A+B = [A B]^T
+   GenFullM<Scalar>  operator *(const GenFullM<Scalar>&) const;   // product A*B
+   GenFullM<Scalar>  operator *=(const GenFullM<Scalar>&);   // product A=A*B
+   GenFullM<Scalar>  operator ^=(const GenFullM<Scalar>&);   // product A=B*A
+   GenVector<Scalar> operator *(const GenVector<Scalar>&) const; // product A*x
+   GenFullM<Scalar>  operator ^(const GenFullM<Scalar>&) const;   // product A^T*B
+   GenVector<Scalar> operator ^(const GenVector<Scalar>&) const; // product A^T*x
+   GenFullM<Scalar>  operator %(const GenFullM<Scalar>&) const;   // product A*B^T
+   GenFullM<Scalar>  operator +(const GenFullM<Scalar>&) const;   // A+B = [A B]^T
    GenFullM<Scalar>  operator +=(const GenFullM<Scalar>&);   
    GenFullM<Scalar>  operator -=(const GenFullM<Scalar>&);
 

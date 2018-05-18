@@ -1,3 +1,16 @@
+#include <complex>
+
+template <typename S>
+class GenDistrVector;
+
+class FSCommunicator;
+
+#include <Utils.d/Connectivity.h>
+#include <Driver.d/SubDomain.h>
+#include <Solvers.d/Solver.h>
+#include <Math.d/SparseMatrix.h>
+#include<Feti.d/CCtSolver.d/BlockCCt.h>
+
 template<class Scalar>
 BlockCCtSolver<Scalar>::BlockCCtSolver(Connectivity *_blockToMpc, Connectivity *mpcToMpc, Connectivity *mpcToSub, 
                                        Connectivity *_mpcToCpu, int _numSubsWithMpcs, GenSubDomain<Scalar> **_subsWithMpcs,
@@ -17,7 +30,7 @@ BlockCCtSolver<Scalar>::BlockCCtSolver(Connectivity *_blockToMpc, Connectivity *
   numCPUs = this->fetiCom->size();
                                     
   // Step 1. make mpcToMpc connectivity for each block
-  blockMpcToMpc = new Connectivity * [nMpcBlocks];
+  blockMpcToMpc.resize(nMpcBlocks);
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::createBlockMpcToMpcConnectivity, mpcToMpc);
                                     
   // Step 2. renumber each block mpcToMpc connectivity, and if possible split blocks into smaller blocks
@@ -43,9 +56,8 @@ BlockCCtSolver<Scalar>::BlockCCtSolver(Connectivity *_blockToMpc, Connectivity *
       delete blockToMpc;
       blockToMpc = new Connectivity(blockCount, pointer->data(), target->data());
       execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::deleteBlockMpcToMpcConnectivity);
-      delete [] blockMpcToMpc;
       nMpcBlocks = blockCount;
-      blockMpcToMpc = new Connectivity * [nMpcBlocks];
+      blockMpcToMpc.resize(nMpcBlocks);
       execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::createBlockMpcToMpcConnectivity, mpcToMpc);
     }
   }
@@ -65,13 +77,13 @@ BlockCCtSolver<Scalar>::BlockCCtSolver(Connectivity *_blockToMpc, Connectivity *
                                     
   // Step 5. construct block solvers
   filePrint(stderr, " ... Making %3d MPC Blocks         ... \n", nMpcBlocks);
-  blockCCtsolver = new GenSolver<Scalar> * [nMpcBlocks];
-  blockCCtsparse = new GenSparseMatrix<Scalar> * [nMpcBlocks];
-  blockMpcEqNums = new SimpleNumberer *[nMpcBlocks];
+  blockCCtsolver.resize(nMpcBlocks);
+  blockCCtsparse.resize(nMpcBlocks);
+  blockMpcEqNums.resize(nMpcBlocks);
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::createBlockCCtsolver);
 
   // Step 6. allocate memory for mpcv (residual vectors for each block represented on myCPU)
-  mpcv = new GenVector<Scalar>*[nMpcBlocks];
+  mpcv.resize(nMpcBlocks);
 #ifdef DISTRIBUTED
   for(int i=0; i<nMpcBlocks; ++i) {
     if(((*blockToCpu)[i][0] == myCPU) || (blockToMpcCpu->offset(i, myCPU) != -1))
@@ -91,11 +103,6 @@ BlockCCtSolver<Scalar>::~BlockCCtSolver()
 {
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::deleteBlockMpcToMpcConnectivity);
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::deleteBlockCCtsolver);
-  delete [] blockCCtsparse;
-  delete [] blockCCtsolver;
-  delete [] blockMpcToMpc;
-  delete [] blockMpcEqNums;
-  delete [] mpcv;
   delete blockToMpc;
   delete mpcToBlock;
   delete blockToSub;
@@ -210,8 +217,7 @@ BlockCCtSolver<Scalar>::distributeMpcBlocks()
   blockToMpcCpu = blockToMpc->transcon(this->mpcToCpu);
   // make a new blockToCpu (distribute blocks among cpus as evenly as possible )
   // 1st attempt, assumes all blocks are same size (can be improved, taking into account block size for better load balancing)
-  int *numBlocksOnCpu = new int[numCPUs];
-  for(i = 0; i < numCPUs; ++i) numBlocksOnCpu[i] = 0;
+  std::vector<int> numBlocksOnCpu{numCPUs, 0};
   int *blockCpu = new int[nMpcBlocks]; for(i=0; i<nMpcBlocks; ++i) blockCpu[i] = -1; // -1 means no cpu assigned to this block
   int minBlocksOnCpu = nMpcBlocks / numCPUs;
   int remainder = nMpcBlocks % numCPUs;
@@ -272,7 +278,6 @@ BlockCCtSolver<Scalar>::distributeMpcBlocks()
   for(i = 0; i <= nMpcBlocks; ++i) pointer[i] = i;
   blockToCpu = new Connectivity(nMpcBlocks, pointer, blockCpu);
   cpuToBlock = blockToCpu->reverse();
-  delete [] numBlocksOnCpu;
 }
 
 template<class Scalar>
@@ -600,6 +605,8 @@ void
 BlockCCtSolver<Scalar>::insertBlockMpcResidual(int iSub, GenDistrVector<Scalar> &v)
 {
   Scalar *subv = v.subData(this->subsWithMpcs[iSub]->localSubNum());
-  this->subsWithMpcs[iSub]->insertBlockMpcResidual(subv, mpcv, mpcToBlock, blockMpcEqNums);
+  this->subsWithMpcs[iSub]->insertBlockMpcResidual(subv, mpcv.data(), mpcToBlock, blockMpcEqNums.data());
 }
 
+template class BlockCCtSolver<double>;
+template class BlockCCtSolver<std::complex<double>>;

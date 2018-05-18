@@ -52,7 +52,7 @@ ModeData modeDataMode;
 
 //----------------------------------------------------------------------------------
 
-Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
+Domain::Domain(Domain &d, int nele, const int *eles, int nnodes, const int *nnums)
   : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
 #ifdef USE_EIGEN3
     rubdaft(0),

@@ -1,6 +1,6 @@
 #ifndef _BLOCKCCT_H_
 #define _BLOCKCCT_H_
-
+#include <vector>
 #include <Feti.d/CCtSolver.d/CCtSolver.h>
 
 template<class Scalar>
@@ -21,18 +21,18 @@ class BlockCCtSolver : public CCtSolver<Scalar>
     int nMpcBlocks;         // total nb of blocks
     int nMpcBlocksOnMyCPU;  // nb of blocks stored & solved on myCPU
     int *subMap;            // map from global subdomain index to subsWithMpcs index
-    GenSolver<Scalar> **blockCCtsolver;// array[nMpcBlocks] of pointer on the BlockCCtsolver of myCPU
-    GenSparseMatrix<Scalar> **blockCCtsparse;
-    SimpleNumberer **blockMpcEqNums;
+    std::vector<GenSolver<Scalar> *> blockCCtsolver;// array[nMpcBlocks] of pointer on the BlockCCtsolver of myCPU
+    std::vector<GenSparseMatrix<Scalar> *> blockCCtsparse;
+    std::vector<SimpleNumberer *> blockMpcEqNums;
     Connectivity *blockToMpc;
     Connectivity *blockToSub;
     Connectivity *mpcToBlock;
-    Connectivity **blockMpcToMpc;
+    std::vector<Connectivity *> blockMpcToMpc;
     Connectivity *blockToMpcCpu;   //HB: for each block, give the CPUs that have a 
                                    //    lmpc CCt contribution to it
     Connectivity *blockToCpu;
     Connectivity *cpuToBlock;
-    GenVector<Scalar> **mpcv;
+    std::vector<GenVector<Scalar> *> mpcv;
     FSCommPattern<Scalar> *blockCCtPat;
     FSCommPattern<Scalar> *mpcvPat1, *mpcvPat2;
     int myCPU, numCPUs;
@@ -59,9 +59,5 @@ class BlockCCtSolver : public CCtSolver<Scalar>
     void insertBlockMpcResidual(int i, GenDistrVector<Scalar> &v);
     void zeroBlockCCtsolver(int i);
 };
-
-#ifdef _TEMPLATE_FIX_
-  #include<Feti.d/CCtSolver.d/BlockCCt.C>
-#endif
 
 #endif

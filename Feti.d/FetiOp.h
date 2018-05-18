@@ -48,7 +48,8 @@ class GenFetiOp : public TaskDescr
               int, int, FSCommPattern<Scalar> *, Rbm * =0);
     virtual ~GenFetiOp();
     void setSysMatrix(GenSolver<Scalar> *k, GenSparseMatrix<Scalar> *ks) { K = k; KasSparse = ks; }
-    void run();
+    void run() override;
+    void runFor(int) override { throw "Illegal operation called on GenFetiOp"; }
     void clean_up();
 
     void localSolve();

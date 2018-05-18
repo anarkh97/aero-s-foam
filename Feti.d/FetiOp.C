@@ -38,7 +38,7 @@ GenFetiOp<Scalar>::init()
 {
   sd = 0; solver = 0; K = 0; KasSparse = 0; rbm = 0; alphaOffset = 0;
   betaOffset = 0; locRBMs = 0; locInterfRBMs = 0; neighbNumRBMs = 0;
-  neighbRBMs = 0; BClocal = 0; control = 0; interfBuff = 0; vPat = 0;
+  neighbRBMs = 0; BClocal = 0; control = nullptr; interfBuff = 0; vPat = 0;
 }
 
 template<class Scalar>

@@ -40,11 +40,12 @@ class GCROp : public GenOrthoOp<Scalar>
     GCROp(GenGCROrthoSet<Scalar> *, int, int);
     ~GCROp();
 
-    void addVec();
-    void dot();
-    void mult();
-    void multAdd();
-    void run();
+    void addVec() override;
+    void dot() override;
+    void mult() override;
+    void multAdd() override;
+    void run() override;
+    void runFor(int) override { throw "Illegal operation called on GCROp"; }
 
     void Fdot();
     void Fdot_mod();

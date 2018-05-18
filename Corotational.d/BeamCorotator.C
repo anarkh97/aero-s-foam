@@ -6,20 +6,6 @@
 #include <Corotational.d/utilities.h>
 #include <Utils.d/linkfc.h>
 
-// Define FORTRAN routines as external functions
-
-extern "C" {
-
-  void _FORTRAN(dgemm)(const char &, const char &, const int &,const int &,
-                const int &, const double &, double *, const int &,
-                double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                const double &, double *, const int &,
-                double *, const int &, const double &, double *, const int &);
-}
-
-
 BeamCorotator::BeamCorotator(int _n1, int _n2, double z[3], 
                              FullSquareMatrix &_origK,
                              int fitAlgBeam)

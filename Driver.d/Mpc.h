@@ -274,13 +274,13 @@ class SetAccess<LMPCons>
     //SetAccess(int n, ResizeArray<LMPCons *>&l, std::map<std::pair<int,int>, int> &d)
     SetAccess(int n, LMPCons **l, std::map<std::pair<int,int>, int> &d)
       : numLMPC(n), lmpc(l), dofID(d) {}
-    int size() {
+    int size() const {
       return numLMPC;
     }
-    int numNodes(int i) {
+    int numNodes(int i) const {
       return lmpc[i]->nterms;
     }
-    void getNodes(int i, int *nd) {
+    void getNodes(int i, int *nd) const {
       for(int j = 0; j < lmpc[i]->nterms; ++j)
         nd[j] = dofID[std::pair<int,int>(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum)];
     }

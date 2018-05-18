@@ -321,7 +321,7 @@ Connectivity::~Connectivity()
 }
 
 int
-Connectivity::offset(int i, int j)
+Connectivity::offset(int i, int j) const
 {
  int ii;
  for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
@@ -331,7 +331,7 @@ Connectivity::offset(int i, int j)
 }
 
 int
-Connectivity::cOffset(int i, int j)
+Connectivity::cOffset(int i, int j) const
 {
  int ii;
  for(ii = pointer[i]; ii < pointer[i+1]; ++ii)
@@ -439,7 +439,7 @@ Connectivity::transconOne( Connectivity* tc)
 }
 
 int
-Connectivity::num(int nd, int *mask)
+Connectivity::num(int nd, int *mask) const
 {
  int res=0;
  int jstrt = pointer[nd];
@@ -1021,7 +1021,7 @@ Connectivity::combine(Connectivity *con2, int *&cmap, int *cmap2)
 }
 
 int
-Connectivity::numNonZeroP()
+Connectivity::numNonZeroP() const
 {
  int count = 0;
  int i;

@@ -25,8 +25,8 @@ extern "C" {
                        const int &);
 
   void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                       const double &, double *, const int &,
-                       double *, const int &, const double &, double *, const int &);
+                       const double &, const double *, const int &,
+                       const double *, const int &, const double &, double *, const int &);
 
   void _FORTRAN(zgemv)(const char &, const int &,const int &,
                        const complex<double> &, complex<double> *, const int &,
@@ -74,8 +74,8 @@ inline void Tgemm(const char &a, const char &b, const int &c,const int &d,
 #ifndef _TGEMV__
 #define _TGEMV__
 inline void Tgemv(const char &a, const int &b, const int &c,
-                  const double &d, double *e, const int &f,
-                  double *g, const int &h, const double &i, double *j, const int &k)
+                  const double &d, const double *e, const int &f,
+                  const double *g, const int &h, const double &i, double *j, const int &k)
 {
  _FORTRAN(dgemv)(a,b,c,d,e,f,g,h,i,j,k);
 }

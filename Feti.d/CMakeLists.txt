@@ -1,9 +1,10 @@
 ADD_LIBRARY(Feti
-CoarseSetCore.C
-DistrVectorCore.C
-FetiCore.C
-FetiOpCore.C
-NLFetiCore.C)
+        CoarseSetCore.C
+        DistrVectorCore.C
+        FetiCore.C
+        FetiOpCore.C
+        NLFetiCore.C
+        CCtSolver.d/BlockCCt.C)
 
 SET(INC_DIR ..)
 

@@ -31,26 +31,6 @@ extern int isFeti3;
 extern Domain * domain;
 extern int salinasFlag;
 
-extern "C" {
-  void _FORTRAN(dgemm)(const char &, const char &, const int &,const int &,
-                       const int &, const double &, double *, const int &,
-                       double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(zgemm)(const char &, const char &, const int &,const int &,
-                       const int &, const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *,
-                       const int &);
-
-  void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                       const double &, double *, const int &,
-                       double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(zgemv)(const char &, const int &,const int &,
-                       const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *,
-                       const int &);
-}
-
 template<class Scalar>
 GenSubDomain<Scalar>::GenSubDomain(int sn, int lsn) :
   Domain(), // virtual base first
@@ -1600,13 +1580,13 @@ GenSubDomain<Scalar>::expandRBM(Scalar *localR, VectorSet &globalR)
 
 template<>
 void
-GenSubDomain<DComplex>::getSRMult(DComplex *lvec, DComplex *interfvec, int nRBM,
-                                  double *locRBMs, DComplex *alpha);
+GenSubDomain<DComplex>::getSRMult(const DComplex *lvec, const DComplex *interfvec, int nRBM,
+                                  const double *locRBMs, DComplex *alpha) const;
 
 template<>
 void
-GenSubDomain<double>::getSRMult(double *lvec, double *interfvec, int nRBM,
-                                double *locRBMs, double *alpha);
+GenSubDomain<double>::getSRMult(const double *lvec, const double *interfvec, int nRBM,
+                                const double *locRBMs, double *alpha) const;
 
 template<class Scalar>
 void
@@ -1841,7 +1821,7 @@ GenSubDomain<Scalar>::multKbbCoupled(Scalar *u, Scalar *Pu, Scalar *deltaF, bool
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multDiagKbb(Scalar *u, Scalar *Pu)
+GenSubDomain<Scalar>::multDiagKbb(Scalar *u, Scalar *Pu) const
 {
  // KHP: 02-02-99
  // boundMap    = from boundary number to subdomain number
@@ -1874,7 +1854,7 @@ GenSubDomain<Scalar>::multDiagKbb(Scalar *u, Scalar *Pu)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multMFi(GenSolver<Scalar> *s, Scalar *u, Scalar *Fiu, int nRHS)
+GenSubDomain<Scalar>::multMFi(GenSolver<Scalar> *s, Scalar *u, Scalar *Fiu, int nRHS) const
 {
  // multMFi is never called in DP. Otherwise it will crash in contact
  int iRHS, iDof;
@@ -3996,15 +3976,11 @@ GenSubDomain<Scalar>::getQtKQ(GenSolver<Scalar> *s)
  if(numMPC == 0) return;
 
  int numDOFs = localLen();
- locKpQ = new Scalar[numMPC*numDOFs];
- int i;
- for(i = 0; i < numMPC*numDOFs; ++i)
-   locKpQ[i] = 0.0;
+  std::vector<Scalar> locKpQ(numMPC*numDOFs, 0.0);
 
  // loop over mpc structure and fill coefficients
- int iMPC;
- for(iMPC = 0; iMPC < numMPC; ++iMPC) {
-   for(i = 0; i < mpc[iMPC]->nterms; ++i) {
+ for(int iMPC = 0; iMPC < numMPC; ++iMPC) {
+   for(int i = 0; i < mpc[iMPC]->nterms; ++i) {
      int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
                             (1 << mpc[iMPC]->terms[i].dofnum));
      if(dof >= 0) {
@@ -4013,26 +3989,24 @@ GenSubDomain<Scalar>::getQtKQ(GenSolver<Scalar> *s)
    }
  }
 
- for(iMPC = 0; iMPC < numMPC; ++iMPC)
-   if(s) s->reSolve(locKpQ + iMPC*numDOFs);
+ for(int iMPC = 0; iMPC < numMPC; ++iMPC)
+   if(s) s->reSolve(locKpQ.data() + iMPC*numDOFs);
 
  QtKpBt = new Scalar [numMPC*totalInterfSize];
 
- for(i = 0; i < numMPC*totalInterfSize; ++i)
+ for(int i = 0; i < numMPC*totalInterfSize; ++i)
    QtKpBt[i] = 0.0;
 
- int j;
- for(i = 0; i < numMPC; ++i)
-   for(j=0; j<totalInterfSize; ++j)
+ for(int i = 0; i < numMPC; ++i)
+   for(int j=0; j<totalInterfSize; ++j)
      QtKpBt[j+i*totalInterfSize] = locKpQ[allBoundDofs[j]+i*numDOFs];
 
  qtkq = new GenFullM<Scalar>(numMPC,numMPC);
  qtkq->zero();
 
- int jMPC;
- for(iMPC = 0; iMPC < numMPC; ++iMPC)
-   for(jMPC = 0; jMPC < numMPC; ++jMPC)
-     for(i=0; i<mpc[iMPC]->nterms; ++i) {
+ for(int iMPC = 0; iMPC < numMPC; ++iMPC)
+   for(int jMPC = 0; jMPC < numMPC; ++jMPC)
+     for(int i=0; i<mpc[iMPC]->nterms; ++i) {
        int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
                                 (1 << mpc[iMPC]->terms[i].dofnum));
        if(dof < 0) continue;
@@ -4040,7 +4014,6 @@ GenSubDomain<Scalar>::getQtKQ(GenSolver<Scalar> *s)
        (*qtkq)[iMPC][jMPC] += mpc[iMPC]->terms[i].coef * locKpQ[dof+jMPC*numDOFs];
      }
 
- delete [] locKpQ; locKpQ = 0;
 }
 
 template<class Scalar>
@@ -4689,7 +4662,7 @@ GenSubDomain<Scalar>::initialize()
   Src = 0; Krr = 0; KrrSparse = 0; BKrrKrc = 0; Kcc = 0; Krc = 0;
   Grc = 0; rbms = 0; interfaceRBMs = 0; qtkq = 0; KiiSparse = 0;
   KiiSolver = 0; Kib = 0; MPCsparse = 0; Kbb = 0; corotators = 0;
-  fcstar = 0; QtKpBt = 0; locKpQ = 0; glInternalMap = 0; glBoundMap = 0;
+  fcstar = 0; QtKpBt = 0; glInternalMap = 0; glBoundMap = 0;
   mpcForces = 0; mpc = 0; mpc_primal = 0; localCCtsolver = 0; localCCtsparse = 0; diagCCt = 0;
   Kww = 0; Kcw = 0, Krw = 0; neighbKww = 0; localw = 0; localw_copy = 0; Kcw_mpc = 0;
   deltaFwi = 0; M = 0; Muc = 0;
@@ -4731,7 +4704,6 @@ GenSubDomain<Scalar>::~GenSubDomain()
   }
   if(interfaceRBMs) { delete [] interfaceRBMs; interfaceRBMs = 0; }
   if(Grc) { delete Grc; Grc = 0; }
-  if(locKpQ) { delete [] locKpQ; locKpQ = 0; }
   if(QtKpBt) { delete [] QtKpBt; QtKpBt = 0; }
   if(qtkq) { delete qtkq; qtkq = 0; }
   if(Krc) { delete Krc; Krc = 0; }
@@ -5753,14 +5725,14 @@ GenSubDomain<Scalar>::collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat)
 
 template<class Scalar>
 Scalar
-GenSubDomain<Scalar>::getMpcRhs(int glMPCnum)
+GenSubDomain<Scalar>::getMpcRhs(int glMPCnum) const
 {
   return mpc[globalToLocalMPC[glMPCnum]]->rhs;
 }
 
 template<class Scalar>
 Scalar
-GenSubDomain<Scalar>::getMpcRhs_primal(int glMPCnum)
+GenSubDomain<Scalar>::getMpcRhs_primal(int glMPCnum) const
 {
   return mpc_primal[globalToLocalMPC_primal[glMPCnum]]->rhs;
 }

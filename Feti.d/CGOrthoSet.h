@@ -50,11 +50,12 @@ class CGOrthoOp : public GenOrthoOp<Scalar>
     CGOrthoOp(GenCGOrthoSet<Scalar> *, int, int);
     ~CGOrthoOp();
 
-    void addVec();
-    void dot();
-    void mult();
-    void multAdd();
-    void run();
+    void addVec() override;
+    void dot() override;
+    void mult() override;
+    void multAdd() override;
+    void run() override;
+    void runFor(int) override { throw "Illegal operation called on CGOrthoOp"; }
 
     void addVecFric();
     void FdotSingleDir();

@@ -19,8 +19,8 @@
 extern "C" {
   // BLAS level three real Matrix-VectorProduct
   void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                const double &, double *, const int &,
-                double *, const int &, const double &, double *, const int &);
+                const double &, const double *, const int &,
+                const double *, const int &, const double &, double *, const int &);
 
   void _FORTRAN(zgemv)(const char &, const int &,const int &,
                        const complex<double> &, complex<double> *, const int &,
@@ -342,7 +342,7 @@ GenFullM<Scalar>::operator*=(const Scalar c)
 
 template<class Scalar> 
 GenFullM<Scalar> 
-GenFullM<Scalar>::operator+(GenFullM<Scalar> &m)
+GenFullM<Scalar>::operator+(const GenFullM<Scalar> &m) const
 {
   GenFullM<Scalar> res(nrow+m.nrow,ncolumn);
   int i,j;
@@ -357,7 +357,7 @@ GenFullM<Scalar>::operator+(GenFullM<Scalar> &m)
 
 template<class Scalar> 
 GenFullM<Scalar>
-GenFullM<Scalar>::operator*(GenFullM<Scalar> &m)
+GenFullM<Scalar>::operator*(const GenFullM<Scalar> &m) const
 {
  if(ncolumn != m.nrow) {
    std::cerr << " *** ERROR in GenFullM<Scalar>::operator*(GenFullM<Scalar> &m), ncolumn != m.nrow \n";
@@ -376,7 +376,7 @@ GenFullM<Scalar>::operator*(GenFullM<Scalar> &m)
 
 template<class Scalar> 
 GenFullM<Scalar>
-GenFullM<Scalar>::operator*=(GenFullM<Scalar> &m)
+GenFullM<Scalar>::operator*=(const GenFullM<Scalar> &m)
 {
  if(ncolumn != m.nrow) {
    std::cerr << " *** ERROR in GenFullM<Scalar>::operator*=(GenFullM<Scalar> &m), ncolumn != m.nrow \n";
@@ -401,7 +401,7 @@ GenFullM<Scalar>::operator*=(GenFullM<Scalar> &m)
 
 template<class Scalar> 
 GenFullM<Scalar>
-GenFullM<Scalar>::operator^=(GenFullM<Scalar> &m)
+GenFullM<Scalar>::operator^=(const GenFullM<Scalar> &m)
 {
  if(nrow != m.nrow) {
    std::cerr << " *** ERROR in GenFullM<Scalar>::operator^=(GenFullM<Scalar> &m), nrow != m.nrow \n";
@@ -426,7 +426,7 @@ GenFullM<Scalar>::operator^=(GenFullM<Scalar> &m)
 
 template<class Scalar> 
 GenVector<Scalar>
-GenFullM<Scalar>::operator*(GenVector<Scalar> &x)
+GenFullM<Scalar>::operator*(const GenVector<Scalar> &x) const
 {
   if(ncolumn != x.size()) return GenVector<Scalar>(1) ; //error
   GenVector<Scalar> res(nrow);
@@ -441,7 +441,7 @@ GenFullM<Scalar>::operator*(GenVector<Scalar> &x)
 
 template<class Scalar> 
 GenVector<Scalar>
-GenFullM<Scalar>::operator^(GenVector<Scalar> &x)
+GenFullM<Scalar>::operator^(const GenVector<Scalar> &x) const
 {
   if(nrow != x.size()) return GenVector<Scalar>(1) ; //error
   GenVector<Scalar> res(ncolumn,0.0);
@@ -502,7 +502,7 @@ GenFullM<Scalar>::trMult(Scalar *x, Scalar *y, Scalar alpha, Scalar beta)
 
 template<class Scalar> 
 GenFullM<Scalar>
-GenFullM<Scalar>::operator%(GenFullM<Scalar> &m)
+GenFullM<Scalar>::operator%(const GenFullM<Scalar> &m) const
 {
  if(ncolumn != m.ncolumn) return FullM(1,1) ; //error
  GenFullM<Scalar> res(nrow,m.nrow) ;
@@ -518,7 +518,7 @@ GenFullM<Scalar>::operator%(GenFullM<Scalar> &m)
 
 template<class Scalar> 
 GenFullM<Scalar>
-GenFullM<Scalar>::operator^(GenFullM<Scalar> &m)
+GenFullM<Scalar>::operator^(const GenFullM<Scalar> &m) const
 {
  if(nrow != m.nrow) return FullM(1,1) ; //error
 

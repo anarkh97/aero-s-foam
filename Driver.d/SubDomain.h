@@ -55,7 +55,6 @@ typedef GenSparseMatrix<double> SparseMatrix;
 template <class Scalar> class GenMpcSparse;
 
 class BaseSub : virtual public Domain 
-//class BaseSub : public Domain
 {
  protected:
   SComm *scomm;
@@ -96,7 +95,7 @@ class BaseSub : virtual public Domain
   int globalNMax;  // highest global node number of all the nodes in this subdomain
   int globalEMax;  // highest global element number of all the elements in this subdomain
   int totalInterfSize;
-  int *allBoundDofs;
+  const int *allBoundDofs;
   Rbm *rigidBodyModes;
   Rbm *rigidBodyModesG;
 
@@ -185,11 +184,11 @@ class BaseSub : virtual public Domain
   int getGlobalNMax()         { return globalNMax; }
   int* makeBMaps(DofSetArray *dofsetarray=0);
   int* makeIMaps(DofSetArray *dofsetarray=0);
-  int subNum()                { return subNumber; }
-  int localSubNum()           { return localSubNumber; }
-  int localLen()              { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
+  int subNum() const           { return subNumber; }
+  int localSubNum() const      { return localSubNumber; }
+  int localLen() const         { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
   ConstrainedDSA * getCCDSA()  { return (cc_dsa) ? cc_dsa : c_dsa; }
-  int localRLen()             { return cc_dsa->size(); }
+  int localRLen() const        { return cc_dsa->size(); }
   void sendNumNeighbGrbm(FSCommPattern<int> *pat);
   void recvNumNeighbGrbm(FSCommPattern<int> *pat);
   void deleteLocalRBMs() { if(rigidBodyModes) delete rigidBodyModesG; rigidBodyModesG = 0; }
@@ -290,12 +289,12 @@ class BaseSub : virtual public Domain
      { return scomm->getExchangeData(neighbID); }
   void *getExchangePointer(int neighbID) // Communication mechanism
      { return scomm->exchangeData[neighbID]; }
-  int numNeighbors() { return scomm->numNeighb;}
-  int numEdgeNeighbors() { return scomm->numEdgeNeighb; }
-  bool isEdgeNeighbor(int neighb) { return scomm->isEdgeNeighb[neighb]; }
+  int numNeighbors() const { return scomm->numNeighb;}
+  int numEdgeNeighbors() const { return scomm->numEdgeNeighb; }
+  bool isEdgeNeighbor(int neighb) const { return scomm->isEdgeNeighb[neighb]; }
   void setPairsNbTotal(int pairsNbTotal);
-  int interfLen(); // Total length for the local interface
-  int halfInterfLen(); // Length of the "half interface"
+  int interfLen() const; //<! \brief Total length for the local interface
+  int halfInterfLen() const; //<! \brief Length of the "half interface"
   void computeMasterFlag(Connectivity *mpcToSub);
   bool* getMasterFlag() { return masterFlag; }
   const bool* getInternalMasterFlag();
@@ -456,7 +455,6 @@ class GenSubDomain : public BaseSub
   Corotator           	    **corotators;
   Scalar 		    *fcstar;
   Scalar                    *QtKpBt;
-  Scalar                    *locKpQ;
 
   Scalar                    **Ave, **Eve; // 070213 JAT
 
@@ -535,7 +533,7 @@ class GenSubDomain : public BaseSub
   void collectNode(Scalar (*subvec)[11], FSCommPattern<Scalar> *pat);
 
   void expandRBM(Scalar *localR, VectorSet &globalR);
-  void getSRMult(Scalar *lvec, Scalar *lbvec, int nRBM, double *locRBMs, Scalar *alpha);
+  void getSRMult(const Scalar *lvec, const Scalar *lbvec, int nRBM, const double *locRBMs, Scalar *alpha) const;
   void sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
   void receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
   void sendDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
@@ -546,9 +544,9 @@ class GenSubDomain : public BaseSub
   void factorKii();
   void factorKrr();
   void multKbb(Scalar *, Scalar *, Scalar * = 0, Scalar * = 0, bool errorFlag = true);
-  void multDiagKbb(Scalar *, Scalar *);
+  void multDiagKbb(Scalar *, Scalar *) const;
   void multFi(GenSolver<Scalar> *s, Scalar *, Scalar *);
-  void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS);
+  void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS) const;
   void assembleLocalComplexEls(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *smat = 0);
   void mergePrimalError(Scalar* error, Scalar* primal);
   void mergeStress(Scalar *stress, Scalar *weight,
@@ -654,8 +652,8 @@ class GenSubDomain : public BaseSub
   void applyDmassSplitting();
   void applyForceSplitting();
   void applyMpcSplitting();
-  Scalar getMpcRhs(int iMPC);
-  Scalar getMpcRhs_primal(int iMPC);
+  Scalar getMpcRhs(int iMPC) const;
+  Scalar getMpcRhs_primal(int iMPC) const;
   void constraintProduct(int num_vect, const double* R[], Scalar** V, int trans);
   void addConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
   void addCConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &fc, double s);

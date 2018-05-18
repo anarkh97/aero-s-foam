@@ -115,11 +115,7 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     void makeGtG();
     void makeDistGtG(int *glSubToLocal);
     void assembleDistGtQGs(int i, int *);
-#ifdef BOOL_NOT_DEFINED
-    int isLowestLocalNeighbor(int subI, int subJ);
-#else
     bool isLowestLocalNeighbor(int subI, int subJ);
-#endif
     void addNonLocalGtQG(int subI, int subJ);
     void addNonLocalGContrib(int subI, int subJ);
     void addNonLocalCContrib(int subI, int subJ);
@@ -305,7 +301,7 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     void Ksolve(int iSub, GenStackDistVector<Scalar> &R);
 
     int halfOffset(int iSub)      { return fetiOps[iSub]->halfOffset; }
-    int numNeighbor(int iSub); // { return sd[iSub]->getSComm()->numNeighb; }
+    int numNeighbor(int iSub);
     Scalar *interfaceBuffer(int iSub) { return fetiOps[iSub]->interfBuff; }
     virtual void clean_up();
     double getFNormSq(GenDistrVector<Scalar> &f);

@@ -44,11 +44,12 @@ class GMRESOp : public GenOrthoOp<Scalar>
     GMRESOp(GenGMRESOrthoSet<Scalar> *, int, int);
     ~GMRESOp();
 
-    void addVec();
-    void dot();
-    void mult();
-    void multAdd();
-    void run();
+    void addVec() override;
+    void dot() override;
+    void mult() override;
+    void multAdd() override;
+    void run() override;
+    void runFor(int) override { throw "Illegal operation called on GMRESOp"; }
 
     void reInit();
     void addVecAndNorm();

@@ -56,7 +56,8 @@ class GMRESCOp : public TaskDescr {
 
     GMRESCOp(GMRESC*, int, int);
     void reInit();
-    void run();
+    void run() override;
+	void runFor(int) override { throw "Illegal operation called on GMRESCOp"; }
     void addVec();
     void addVecAndNorm();
     void dot();

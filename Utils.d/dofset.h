@@ -119,7 +119,7 @@ class EqNumberer {
     virtual ~EqNumberer();
 
     // Return the total number of degrees of freedom
-    int size() { return (node_offset) ? node_offset[numnodes] : 0; }
+    int size() const { return (node_offset) ? node_offset[numnodes] : 0; }
 
     // Return the number of nodes
     int numNodes() const { return numnodes; }

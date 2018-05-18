@@ -75,7 +75,8 @@ class GenVecOp : public TaskDescr
      void assign_divide(int);
      void assign_special(int);
      void swap(int);
-     void runFor(int);
+     void run() override;
+     void runFor(int) override;
      void negate(int);
      void compute_partial(int subNum);
      void partial_dot(int subNum);
@@ -567,6 +568,13 @@ void
 GenVecOp<Scalar>::alloc(int threadNum)
 {
  v1->thV[threadNum] = new Scalar[v1->threadLen(threadNum)];
+}
+
+template<class Scalar>
+void
+GenVecOp<Scalar>::run()
+{
+    throw "Unhandled case";
 }
 
 template<class Scalar>

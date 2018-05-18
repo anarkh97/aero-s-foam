@@ -459,7 +459,7 @@ class Domain : public HData {
                             Vector *reactions = 0, SparseMatrix *M = 0, SparseMatrix *C = 0);
 
      Domain(int iniSize = 16);
-     Domain(Domain &, int nele, int *ele, int nnodes, int *nodes);
+     Domain(Domain &, int nele, const int *ele, int nnodes, const int *nodes);
      Domain(Domain &, Elemset *elems, CoordSet *nodes);  // PJSA: for new sower
      virtual ~Domain();
 

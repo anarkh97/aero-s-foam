@@ -35,14 +35,15 @@ GlobalToLocalMap::initialize(int localSize, int *localToGlobalArray)
 }
 
 int
-GlobalToLocalMap::operator[](int glNum)
+GlobalToLocalMap::operator[](int glNum) const
 {
-  if((glNum < min) || (glNum > max)) return -1;
-  else {
-    std::map<int,int>::iterator I = globalToLocalArray.find(glNum);
-    if(I!=globalToLocalArray.end()) return (*I).second;
-    else return -1;
-  }
+	if((glNum < min) || (glNum > max)) return -1;
+	else {
+		auto I = globalToLocalArray.find(glNum);
+		if(I!=globalToLocalArray.end())
+			return I->second;
+		else return -1;
+	}
 }
 
 void

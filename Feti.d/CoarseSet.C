@@ -10,26 +10,6 @@
 #include <Math.d/SymFullMatrix.h>
 #include <Solvers.d/Rbm.h>
 
-extern "C" {
-
-  void _FORTRAN(dgemm)(const char &, const char &, const int &,const int &,
-                       const int &, const double &, double *, const int &,
-                       double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(zgemm)(const char &, const char &, const int &,const int &,
-                       const int &, const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *,
-                       const int &);
-
-  void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                       const double &, double *, const int &,
-                       double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(zgemv)(const char &, const int &,const int &,
-                       const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *, const int &);
-}
-
 #ifndef _TGEMM__
 #define _TGEMM__
 inline void Tgemm(const char &a, const char &b, const int &c,const int &d,

@@ -43,23 +43,25 @@ getJacobi(DComplex *kappa, DComplex *mu, GenFullSquareMatrix<DComplex> &xx,
 
 template<>
 void
-GenSubDomain<DComplex>::getSRMult(DComplex *lvec, DComplex *interfvec, int nRBM, double *locRBMs, DComplex *alpha)
+GenSubDomain<DComplex>::getSRMult(const DComplex *lvec, const DComplex *interfvec,
+                                  int nRBM, const double *locRBMs, DComplex *alpha) const
 {
   fprintf(stderr, " *** WARNING: GenSubDomain<DComplex>::getSRMult(...) not implemented \n");
 }
 
 template<>
 void
-GenSubDomain<double>::getSRMult(double *lvec, double *interfvec, int nRBM, double *locRBMs, double *alpha)
+GenSubDomain<double>::getSRMult(const double *lvec, const double *interfvec,
+                                int nRBM, const double *locRBMs,
+                                double *alpha) const
 {
  double *localvec = (double *) dbg_alloca(sizeof(double)*localLen());
 
  // Add the interface vector (interfvec) contribution to localvec
- int iDof;
- for(iDof = 0; iDof <localLen(); ++iDof)
+ for(int iDof = 0; iDof <localLen(); ++iDof)
    localvec[iDof] = lvec[iDof];
 
- for(iDof = 0; iDof < scomm->lenT(SComm::std); ++iDof)
+ for(int iDof = 0; iDof < scomm->lenT(SComm::std); ++iDof)
    localvec[scomm->boundDofT(SComm::std,iDof)] += interfvec[iDof];
 
  Tgemv('T',localLen(), nRBM, -1.0, locRBMs,
@@ -88,7 +90,7 @@ GenSubDomain<double>::precondGrbm()
  if(nGrbm == 0)
    return;
 
- int *boundDofs = scomm->boundDofsT(SComm::std);
+ auto boundDofs = scomm->boundDofsT(SComm::std);
  int iRBM, iDof;
  int iLen = scomm->lenT(SComm::std);
  int locLen = localRLen();

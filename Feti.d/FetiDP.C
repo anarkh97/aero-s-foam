@@ -2425,7 +2425,7 @@ GenFetiDPSolver<Scalar>::assembleGtG(int iGroup)
       this->sd[i]->assembleGtGsolver(GtGsparse);
   }
 #else
-  int *grsubs = (*groupToSub)[iGroup];
+  auto grsubs = (*groupToSub)[iGroup];
   for(i = 0; i < groupToSub->num(iGroup); ++i) {
     int iSub = grsubs[i];
     this->sd[iSub]->assembleGtGsolver(GtGsparse);
@@ -2866,7 +2866,7 @@ GenFetiDPSolver<Scalar>::subTrMultG(int iGroup, GenDistrVector<Scalar> &x, GenVe
       this->sd[i]->trMultG(x.subData(this->sd[i]->localSubNum()), y, alpha); 
   }
 #else
-  int *grsubs = (*groupToSub)[iGroup];
+  auto grsubs = (*groupToSub)[iGroup];
   for(int i = 0; i < groupToSub->num(iGroup); ++i) {
     int iSub = grsubs[i];
     this->sd[iSub]->trMultG(x.subData(this->sd[iSub]->localSubNum()), y, alpha); 

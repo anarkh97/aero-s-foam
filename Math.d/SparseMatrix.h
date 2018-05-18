@@ -112,17 +112,17 @@ class SparseData {
  public: 
     SparseData();
     // Constructors for data structures of type CuCSparse and CuCComplexSparse
-    SparseData(Connectivity *con, DofSetArray *dsa, int *bc);
+    SparseData(Connectivity *con, DofSetArray *dsa, const int *bc);
     SparseData(Connectivity *con, DofSetArray *dsa, DofSetArray *c_dsa);
-    SparseData(Connectivity *con, DofSetArray *dsa, int *glbmap, int *glimap);
+    SparseData(Connectivity *con, DofSetArray *dsa, const int *glbmap, const int *glimap);
 
     // Constructors for data structures of type DBSparseMatrix 
     // and ComplexDBSparseMatrix and Spooles/Mumps
     SparseData(DofSetArray *dsa, DofSetArray *c_dsa, Connectivity *con,
        	       int expand = 0, int make_colu = 0, bool unsym = false);
-    SparseData(EqNumberer *dsa, Connectivity *con, int* rcn, int expand = 0, int make_colu = 0);
+    SparseData(EqNumberer *dsa, Connectivity *con, const int* rcn, int expand = 0, int make_colu = 0);
 
-    SparseData(DofSetArray *_dsa, int *glInternalMap,
+    SparseData(DofSetArray *_dsa, const int *glInternalMap,
                Connectivity *cn, int expand);
 
     // This constructor is for the Esmond sparse solver (BLKSparseMatrix)
@@ -133,11 +133,11 @@ class SparseData {
 
     // KHP: for storing mpcs
     SparseData(LMPCons **mpc, int numColumns, DofSetArray *cdsa);
-    SparseData(int num, int *xyzCount, int *xyzList);
+    SparseData(int num, const int *xyzCount, int *xyzList);
 
     // for storing G for use in FETI-DP
     SparseData(int numInterface,
-               int *glbmap, int numModes, int ldm);
+               const int *glbmap, int numModes, int ldm);
 
     virtual ~SparseData();
     void clean_up();

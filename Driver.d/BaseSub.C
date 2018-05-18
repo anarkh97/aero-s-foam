@@ -15,15 +15,6 @@ extern int verboseFlag;
 extern int isFeti3;
 extern Domain * domain;
 
-extern "C" {
-  void _FORTRAN(dgemm)(const char &, const char &, const int &,const int &,
-                 const int &, const double &, double *, const int &,
-                 double *, const int &, const double &, double *, const int &);
-  void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                const double &, double *, const int &,
-                double *, const int &, const double &, double *, const int &);
-}
-
 using std::list;
 
 BaseSub::BaseSub() 
@@ -235,7 +226,7 @@ BaseSub::makeCCDSA()
 }
 
 int
-BaseSub::interfLen()
+BaseSub::interfLen() const
 {
   // Total length for the local interface
   return totalInterfSize;
@@ -461,7 +452,7 @@ BaseSub::makeIMaps(DofSetArray *dof_set_array)
 }
 
 int
-BaseSub::halfInterfLen()
+BaseSub::halfInterfLen() const
 {
   return masterFlagCount;
 }
@@ -552,7 +543,7 @@ BaseSub::getC(int &crnDofSize, FSCommPattern<int> *sPat)
   for(i = 0; i < numDOFs; ++i)
     cornerNum[i] = dofCorner[i] = -1;
 
-  int *subNums = scomm->neighbsT(SComm::std);
+  const int *subNums = scomm->neighbsT(SComm::std);
   int offset = 0;
   int cDof;
   for(i=0; i< numnodes; i++)  {

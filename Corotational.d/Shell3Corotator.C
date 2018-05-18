@@ -19,14 +19,6 @@
 
 extern "C" {
 
-  void _FORTRAN(dgemm)(const char &, const char &, const int &,const int &,
-                const int &, const double &, double *, const int &,
-                double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                const double &, double *, const int &,
-                double *, const int &, const double &, double *, const int &);
-
   void _FORTRAN(trirotation)(double *, double *);
   
   void _FORTRAN(gxtrirotation)(double *, double *, double *, double *);                            

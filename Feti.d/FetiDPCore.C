@@ -8,7 +8,7 @@ GenFetiDPSolver<Scalar>::addRstar_gT(int iGroup, GenDistrVector<Scalar> &u, GenV
       this->sd[i]->addRstar_gT(u.subData(this->sd[i]->localSubNum()), beta);
   }
 #else
-  int *grsubs = (*groupToSub)[iGroup];
+  auto grsubs = (*groupToSub)[iGroup];
   for(int i = 0; i < groupToSub->num(iGroup); ++i) {
     int iSub = grsubs[i];
     this->sd[iSub]->addRstar_gT(u.subData(this->sd[iSub]->localSubNum()), beta);
@@ -168,7 +168,7 @@ GenFetiDPSolver<Scalar>::assembleE(int iGroup, GenVector<Scalar> &e, GenDistrVec
       this->sd[i]->assembleE(e, f.subData(this->sd[i]->localSubNum()));
   }
 #else
-  int *grsubs = (*groupToSub)[iGroup];
+  auto grsubs = (*groupToSub)[iGroup];
   for(int i = 0; i < groupToSub->num(iGroup); ++i) {
     int iSub = grsubs[i];
     this->sd[iSub]->assembleE(e, f.subData(this->sd[iSub]->localSubNum()));

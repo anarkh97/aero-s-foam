@@ -4,22 +4,6 @@
 // BLAS level three real Matrix Product
 
 extern "C" {
-
-  void _FORTRAN(dgemm)(const char &, const char &, const int &,const int &,
-                       const int &, const double &, double *, const int &,
-                       double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(zgemm)(const char &, const char &, const int &,const int &,
-                       const int &, const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *, const int &);
-
-  void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                       const double &, double *, const int &,
-                       double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(zgemv)(const char &, const int &,const int &,
-                       const complex<double> &, complex<double> *, const int &,
-                       complex<double> *, const int &, const complex<double> &, complex<double> *, const int &);
   void _FORTRAN(dsisl)(double *, const int &, const int &, int *, double *);
   void _FORTRAN(dsifa)(double *, const int &, const int &, int *, int &);
 }

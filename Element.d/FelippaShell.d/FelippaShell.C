@@ -646,14 +646,6 @@ FelippaShell::getCorotator(CoordSet& cs, double* kel, int _fitAlg, int)
 
 extern "C" {
 
-  void _FORTRAN(dgemm)(const char &, const char &, const int &,const int &,
-                const int &, const double &, double *, const int &,
-                double *, const int &, const double &, double *, const int &);
-
-  void _FORTRAN(dgemv)(const char &, const int &,const int &,
-                const double &, double *, const int &,
-                double *, const int &, const double &, double *, const int &);
-
   void _FORTRAN(trirotation)(double *, double *);
 
 }

@@ -451,6 +451,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::blockJacobi(E
 
   return x;
 #endif
+  throw "Unimplemented blockJacobi was called.";
 }
 
 

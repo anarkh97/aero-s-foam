@@ -243,7 +243,7 @@ HData::makeKss(Domain* dom)
      if(!dom->isFluidElement(eleNum)) continue; // PJSA fix for coupled ... check with Radek
      if(!eleflag[eleNum]) {
        eleflag[eleNum] = 1;
-       int *dofs = (*dom->allDOFs)[eleNum];
+       auto dofs = (*dom->allDOFs)[eleNum];
        int iDof;
        for(iDof=0;iDof<(dom->packedEset[eleNum])->numDofs();iDof++) {
          flag[dofs[iDof]] = 1;
@@ -2257,7 +2257,7 @@ HData::wError(Domain *dom, double *l2err, double *h1err, double *l2, double *h1,
 
  int iele;
  for(iele=0; iele < dom->numele; ++iele) {
-   int *dofs = (*dom->allDOFs)[iele];
+   auto dofs = (*dom->allDOFs)[iele];
    HelmElement *he = dynamic_cast<HelmElement*>(dom->packedEset[iele]);
    if (he == 0)
      fprintf(stderr,"HData::wErrorreceived non-Helmholtz element.\n");

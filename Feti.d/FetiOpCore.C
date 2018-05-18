@@ -70,8 +70,8 @@ GenFetiOp<double>::sendInterfRBM(FSCommPattern<double> *rbmPat)
      if(idof >= 0) mask[idof] = 0;
    }
    
-   int *weight = sd->weight;
-   int *allBoundDofs = (*sd->scomm->sharedDOFs)[0];
+   auto weight = sd->weight;
+   auto allBoundDofs = (*sd->scomm->sharedDOFs)[0];
    thisSet.locQGs = new double[numRBM*sd->interfLen()];
    int interfaceLen = sd->interfLen();
    int i,j;

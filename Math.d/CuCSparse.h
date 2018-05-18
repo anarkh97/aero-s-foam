@@ -20,7 +20,7 @@ class GenCuCSparse : public SparseData, public GenSparseMatrix<Scalar> {
     GenCuCSparse(Connectivity *con, DofSetArray *dsa, int *glbmap, int *glimap);
 
     GenCuCSparse(LMPCons **mpc, int numMPC, DofSetArray *c_dsa);
-    GenCuCSparse(int numInterface, int *glbmap, int numRBM, Scalar *rbms, int lda = -1);
+    GenCuCSparse(int numInterface, const int *glbmap, int numRBM, Scalar *rbms, int lda = -1);
     GenCuCSparse(int, int, int *, int *, Scalar*);
     virtual ~GenCuCSparse();
 

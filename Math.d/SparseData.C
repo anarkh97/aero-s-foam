@@ -39,7 +39,7 @@ SparseData::initialize()
    myMem_rowu     = 1;
 }
 
-SparseData::SparseData(Connectivity *con, DofSetArray *dsa, int *bc)
+SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *bc)
 {
  initialize();
  int i, j, k, l;
@@ -208,7 +208,7 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa,
 
 }
 
-SparseData::SparseData(Connectivity *con, DofSetArray *dsa, int *glBoundMap, int *glInternalMap)
+SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *glBoundMap, const int *glInternalMap)
 {
  initialize();
  int i,j,k,l,iDof;
@@ -216,8 +216,8 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa, int *glBoundMap, int
  // Get the global length
  neq = dsa->size();
  myMem = 0;
- constrndNum = glBoundMap;
- unconstrNum = glInternalMap;
+ constrndNum = const_cast<int *>(glBoundMap); // TODO Fix this so we don't cont cast.
+ unconstrNum = const_cast<int *>(glInternalMap);
  // Get the number of nodes
  int numNodes = dsa->numNodes();
  if(con->csize() < numNodes) numNodes = con->csize();
@@ -292,7 +292,7 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa, int *glBoundMap, int
 
 // used for Mumps & Spooles (1st constructor)
 // Constructor for DBSparseMatrix data structures
-SparseData::SparseData(EqNumberer *_dsa, Connectivity *cn, int* rCN, int expand, int make_colu)
+SparseData::SparseData(EqNumberer *_dsa, Connectivity *cn, const int* rCN, int expand, int make_colu)
 {
   initialize();
   int i, j, k, thisNode;
@@ -532,7 +532,7 @@ SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
 }
 
 
-SparseData::SparseData(DofSetArray *_dsa, int *glInternalMap,
+SparseData::SparseData(DofSetArray *_dsa, const int *glInternalMap,
                        Connectivity *cn, int expand)
 {
   initialize();
@@ -556,7 +556,7 @@ SparseData::SparseData(DofSetArray *_dsa, int *glInternalMap,
   int* dofToN = new int[neq]; //HB
 
   myMem=0;
-  unconstrNum = glInternalMap;
+  unconstrNum = const_cast<int *>(glInternalMap); // TODO remove the const cast.
 
   for(i=0; i < numNodes; ++i) {
     int fdof = _dsa->firstdof(i);
@@ -887,7 +887,7 @@ SparseData::SparseData(LMPCons **mpc, int numMPC, DofSetArray *c_dsa)
 }
 
 
-SparseData::SparseData(int num, int *xyzCount, int *xyzList)
+SparseData::SparseData(int num, const int *xyzCount, int *xyzList)
 {
   initialize();
   numConstrained = num;
@@ -905,7 +905,7 @@ SparseData::SparseData(int num, int *xyzCount, int *xyzList)
 //KHP:to store local G as a rectangular sparse matrix
 
 SparseData::SparseData(int numInterface,
-                       int *glbmap, int numModes, int ldm)
+                       const int *glbmap, int numModes, int ldm)
 {
   initialize();
   numConstrained = numModes;

@@ -81,19 +81,19 @@ class SComm
   void setTypeMap(DofType t, int *map);
 
   // functions to access any of the type-specific lists
-  int numT(DofType type) { return SharedDOFs[type]->csize(); }
-  int neighbT(DofType type, int iNeighb) { return SubNums[type][iNeighb]; }
-  int mapT(DofType type, int iDof) { return TypeMap[type][iDof]; }
-  int mapT(DofType type, int iNeighb, int jDof) { return TypeMap[type][SharedDOFs[type]->offset(iNeighb)+jDof]; }
-  int lenT(DofType type) { return SharedDOFs[type]->numConnect(); }
-  int lenT(DofType type, int iNeighb) { return SharedDOFs[type]->num(iNeighb); }
-  int boundDofT(DofType type, int iDof) { return (*SharedDOFs[type])[0][iDof]; }
-  int boundDofT(DofType type, int iNeighb, int jDof) { return (*SharedDOFs[type])[iNeighb][jDof]; }
-  int offsetT(DofType type, int iNeighb) { return SharedDOFs[type]->offset(iNeighb); }
-  int offsetT(DofType type, int iNeighb, int jDof) { return SharedDOFs[type]->offset(iNeighb)+jDof; }
-  int* boundDofsT(DofType type) { return (*SharedDOFs[type])[0]; }
-  int* boundDofsT(DofType type, int iNeighb) { return (*SharedDOFs[type])[iNeighb]; }
-  int* neighbsT(DofType type) { return SubNums[type]; }
+  int numT(DofType type) const { return SharedDOFs[type]->csize(); }
+  int neighbT(DofType type, int iNeighb) const { return SubNums[type][iNeighb]; }
+  int mapT(DofType type, int iDof) const { return TypeMap[type][iDof]; }
+  int mapT(DofType type, int iNeighb, int jDof) const { return TypeMap[type][SharedDOFs[type]->offset(iNeighb)+jDof]; }
+  int lenT(DofType type) const { return SharedDOFs[type]->numConnect(); }
+  int lenT(DofType type, int iNeighb) const { return SharedDOFs[type]->num(iNeighb); }
+  int boundDofT(DofType type, int iDof) const { return (*SharedDOFs[type])[0][iDof]; }
+  int boundDofT(DofType type, int iNeighb, int jDof) const { return (*SharedDOFs[type])[iNeighb][jDof]; }
+  int offsetT(DofType type, int iNeighb) const { return SharedDOFs[type]->offset(iNeighb); }
+  int offsetT(DofType type, int iNeighb, int jDof) const { return SharedDOFs[type]->offset(iNeighb)+jDof; }
+  const int* boundDofsT(DofType type) const { return (*SharedDOFs[type])[0]; }
+  const int* boundDofsT(DofType type, int iNeighb) const { return (*SharedDOFs[type])[iNeighb]; }
+  const int* neighbsT(DofType type) const { return SubNums[type]; }
 
   // standard (boundary) dofs helper functions
   int stdDofNb(int i) { return boundDofT(std,i); }
@@ -108,9 +108,9 @@ class SComm
   int wetDofNb(int i, int j) { return boundDofT(wet,i,j); }
 
   // all helper function
-  int *allBoundDofs() {  return (SharedDOFs[all]->numConnect() > 0) ? (*SharedDOFs[all])[0] : 0; }
-  int *allBoundDofs(int i) { return (*SharedDOFs[all])[i]; }
-  int totalInterfSize() { return SharedDOFs[all]->numConnect(); }
+  const int *allBoundDofs() const {  return (SharedDOFs[all]->numConnect() > 0) ? (*SharedDOFs[all])[0] : 0; }
+  const int *allBoundDofs(int i) const { return (*SharedDOFs[all])[i]; }
+  int totalInterfSize() const { return SharedDOFs[all]->numConnect(); }
 };
 
 template<class Scalar>

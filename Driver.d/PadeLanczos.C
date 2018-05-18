@@ -1530,727 +1530,741 @@ StaticSolver< Scalar, OpSolver, VecType,
               PostProcessor, ProblemDescriptor, ComplexVecType >
   ::adaptWindowSweep()
 {
-// Adaptive window (of size 2 frequencies) sweep 
-// with multiple right hand sides done locally or frequency-globally
- double time = 0.0;
- double rhstime = 0.0;
- double rhsctime1 = 0.0;
- double rhsctime2 = 0.0;
- double solutiontime = 0.0;
- double solvertime = 0.0;
- double outputtime = 0.0;
- double transitiontime= 0.0;
- double onefspacetime = 0.0;
- double fsweeptime = 0.0;
- double frsweeptime = 0.0;
- double Arsweeptime = 0.0;
- double ressweeptime = 0.0;
- double froneftime = 0.0;
- double Aroneftime = 0.0;
- double resoneftime = 0.0;
- int solvecount = 0;
- int rebuildscount = 0;
+    // Adaptive window (of size 2 frequencies) sweep
+    // with multiple right hand sides done locally or frequency-globally
+    double time = 0.0;
+    double rhstime = 0.0;
+    double rhsctime1 = 0.0;
+    double rhsctime2 = 0.0;
+    double solutiontime = 0.0;
+    double solvertime = 0.0;
+    double outputtime = 0.0;
+    double transitiontime= 0.0;
+    double onefspacetime = 0.0;
+    double fsweeptime = 0.0;
+    double frsweeptime = 0.0;
+    double Arsweeptime = 0.0;
+    double ressweeptime = 0.0;
+    double froneftime = 0.0;
+    double Aroneftime = 0.0;
+    double resoneftime = 0.0;
+    int solvecount = 0;
+    int rebuildscount = 0;
 
- 
- domain->isCoarseGridSolve = false;
 
- time -= getTime();
+    domain->isCoarseGridSolve = false;
 
- double w1 = domain->solInfo().getSweepParams()->adaptSweep.w1;
- double w2 = domain->solInfo().getSweepParams()->adaptSweep.w2;
- int numS = domain->solInfo().getSweepParams()->adaptSweep.numS;
- double dw = (w2-w1)/numS;
+    time -= getTime();
 
- int nDir = 1;
- bool isScattering = false;
- if (domain->numWaveDirections>=1 && domain->solInfo().loadcases.size()==0) {
-   nDir = domain->numWaveDirections;
-   isScattering = true;
-   filePrint(stderr,"Solving %d scattering cases\n",nDir);
- }
- std::list<int> loadcases_backup;
- if (domain->solInfo().loadcases.size()>=1) {
-   nDir = domain->solInfo().loadcases.size();
-   loadcases_backup = domain->solInfo().loadcases;
-   filePrint(stderr,"Solving %d loadcases\n",nDir);
- }
- if (nDir==0) nDir = 1;
- int maxLocalV = domain->solInfo().getSweepParams()->adaptSweep.minRHS;
- int dgpFlag = domain->solInfo().getSweepParams()->adaptSweep.dgp_flag;
- double tol = domain->solInfo().getSweepParams()->adaptSweep.atol;
- int localP = domain->solInfo().getSweepParams()->adaptSweep.maxP;
- // tolerance factor when looking for next coarse
- double ctolf = domain->solInfo().getSweepParams()->adaptSweep.ctolf;
- // tolerance factor when looking within one frequency
- double tol1f = domain->solInfo().getSweepParams()->adaptSweep.tol1f;
- if (ctolf==0.0) ctolf = 1e2;
- if (tol1f==0.0) tol1f = 1e-2; 
+    double w1 = domain->solInfo().getSweepParams()->adaptSweep.w1;
+    double w2 = domain->solInfo().getSweepParams()->adaptSweep.w2;
+    int numS = domain->solInfo().getSweepParams()->adaptSweep.numS;
+    double dw = (w2-w1)/numS;
 
- if (localP)
-   filePrint(stderr,"Adaptive window sweep - local variant\n");
- else 
-   filePrint(stderr,"Adaptive window sweep\n");
- if (dgpFlag==1)
-   filePrint(stderr,"DGP with %d local derivatives\n",maxLocalV);
- else if (dgpFlag==2)
-   filePrint(stderr,"DGP with %d local WCAWE vectors\n",maxLocalV);
- else 
-   filePrint(stderr,"KGP with %d local vectors\n",maxLocalV);
- filePrint(stderr,"Parameter values: tol=%e ctolf=%e tol1f=%e\n",
-           tol,ctolf,tol1f);
+    int nDir = 1;
+    bool isScattering = false;
+    if (domain->numWaveDirections>=1 && domain->solInfo().loadcases.size()==0) {
+        nDir = domain->numWaveDirections;
+        isScattering = true;
+        filePrint(stderr,"Solving %d scattering cases\n",nDir);
+    }
+    std::list<int> loadcases_backup;
+    if (domain->solInfo().loadcases.size()>=1) {
+        nDir = domain->solInfo().loadcases.size();
+        loadcases_backup = domain->solInfo().loadcases;
+        filePrint(stderr,"Solving %d loadcases\n",nDir);
+    }
+    if (nDir==0) nDir = 1;
+    int maxLocalV = domain->solInfo().getSweepParams()->adaptSweep.minRHS;
+    int dgpFlag = domain->solInfo().getSweepParams()->adaptSweep.dgp_flag;
+    double tol = domain->solInfo().getSweepParams()->adaptSweep.atol;
+    int localP = domain->solInfo().getSweepParams()->adaptSweep.maxP;
+    // tolerance factor when looking for next coarse
+    double ctolf = domain->solInfo().getSweepParams()->adaptSweep.ctolf;
+    // tolerance factor when looking within one frequency
+    double tol1f = domain->solInfo().getSweepParams()->adaptSweep.tol1f;
+    if (ctolf==0.0) ctolf = 1e2;
+    if (tol1f==0.0) tol1f = 1e-2;
 
- // Temp storage for DGP and WCAWE
- VecType **temp_u=0;
- Scalar *UU = 0;
- if (dgpFlag) {
-   UU = new Scalar[maxLocalV*maxLocalV];
-   temp_u = new VecType * [maxLocalV+1];
-   for(int i = 0; i < maxLocalV+1; ++i)
-     temp_u[i] = new VecType(probDesc->solVecInfo());
-   for(int i = 0; i < maxLocalV*maxLocalV; ++i) UU[i] = 0.0;
- }
+    if (localP)
+        filePrint(stderr,"Adaptive window sweep - local variant\n");
+    else
+        filePrint(stderr,"Adaptive window sweep\n");
+    if (dgpFlag==1)
+        filePrint(stderr,"DGP with %d local derivatives\n",maxLocalV);
+    else if (dgpFlag==2)
+        filePrint(stderr,"DGP with %d local WCAWE vectors\n",maxLocalV);
+    else
+        filePrint(stderr,"KGP with %d local vectors\n",maxLocalV);
+    filePrint(stderr,"Parameter values: tol=%e ctolf=%e tol1f=%e\n",
+              tol,ctolf,tol1f);
 
- // Temp vectors
- VecType *f = new VecType(probDesc->solVecInfo());
- VecType *a = new VecType(probDesc->solVecInfo());
- VecType *fkgp = new VecType(probDesc->solVecInfo());
- VecType *akgp = new VecType(probDesc->solVecInfo());
- VecType *b = new VecType(probDesc->solVecInfo());
- VecType *c = new VecType(probDesc->solVecInfo());
- VecType *sol = new VecType(probDesc->solVecInfo());
+    // Temp storage for DGP and WCAWE
+    VecType **temp_u=0;
+    Scalar *UU = 0;
+    if (dgpFlag) {
+        UU = new Scalar[maxLocalV*maxLocalV];
+        temp_u = new VecType * [maxLocalV+1];
+        for(int i = 0; i < maxLocalV+1; ++i)
+            temp_u[i] = new VecType(probDesc->solVecInfo());
+        for(int i = 0; i < maxLocalV*maxLocalV; ++i) UU[i] = 0.0;
+    }
 
- // Subspaces, 2 frequencies at a time
- const int nF = 2;
- FWindowSData<Scalar,VecType,ProblemDescriptor> **localFWSSpace = 
-   new FWindowSData<Scalar,VecType,ProblemDescriptor> *[nF*nDir];
- for(int i=0;i<nF*nDir;i++) {
-   localFWSSpace[i] = 0;
- }
+    // Temp vectors
+    VecType *f = new VecType(probDesc->solVecInfo());
+    VecType *a = new VecType(probDesc->solVecInfo());
+    VecType *fkgp = new VecType(probDesc->solVecInfo());
+    VecType *akgp = new VecType(probDesc->solVecInfo());
+    VecType *b = new VecType(probDesc->solVecInfo());
+    VecType *c = new VecType(probDesc->solVecInfo());
+    VecType *sol = new VecType(probDesc->solVecInfo());
+
+    // Subspaces, 2 frequencies at a time
+    const int nF = 2;
+    FWindowSData<Scalar,VecType,ProblemDescriptor> **localFWSSpace =
+        new FWindowSData<Scalar,VecType,ProblemDescriptor> *[nF*nDir];
+    for(int i=0;i<nF*nDir;i++) {
+        localFWSSpace[i] = 0;
+    }
 
 // vector of residuals, reduced matrix and vector, reduced matrices
- std::vector<double> res(nDir);   
- std::vector<Scalar> fr(nF*nDir*maxLocalV);
- std::vector<Scalar> Ar(nF*nDir*maxLocalV*nF*nDir*maxLocalV);
- std::map<std::pair<int,int>,Scalar> Kr; 
- std::map<std::pair<int,int>,Scalar> Mr; 
- std::map<std::pair<int,int>,Scalar> Cr; 
+    std::vector<double> res(nDir);
+    std::vector<Scalar> fr(nF*nDir*maxLocalV);
+    std::vector<Scalar> Ar(nF*nDir*maxLocalV*nF*nDir*maxLocalV);
+    std::map<std::pair<int,int>,Scalar> Kr;
+    std::map<std::pair<int,int>,Scalar> Mr;
+    std::map<std::pair<int,int>,Scalar> Cr;
 
- int imode = 0;
- int icoarsew[nF];
- icoarsew[0] = -1;
- icoarsew[1] = 0;
- bool doneF = false;
- while (!doneF) {
-   double w = w1 + icoarsew[1]*dw;
-   // Scaling factor for coupled
-   double alpha = 1.0; // ((w1+w2)/2.0)/w;
-   if (icoarsew[0]!=-1) alpha = w/(w1 + icoarsew[0]*dw);
-   // Setup solver for new frequency
-   geoSource->setOmega(w);
-   solvertime -= getTime();
-   if (w>w1) {
-     rebuildSolver(w);
-     rebuildscount++;
-   }
-   solvertime += getTime();
+    int imode = 0;
+    int icoarsew[nF];
+    icoarsew[0] = -1;
+    icoarsew[1] = 0;
+    bool doneF = false;
+    while (!doneF) {
+        double w = w1 + icoarsew[1]*dw;
+        // Scaling factor for coupled
+        double alpha = 1.0; // ((w1+w2)/2.0)/w;
+        if (icoarsew[0]!=-1) alpha = w/(w1 + icoarsew[0]*dw);
+        // Setup solver for new frequency
+        geoSource->setOmega(w);
+        solvertime -= getTime();
+        if (w>w1) {
+            rebuildSolver(w);
+            rebuildscount++;
+        }
+        solvertime += getTime();
 
-   if (verboseFlag)
-     filePrint(stderr, "icoarsew[0]=%d icoarsew[1]=%d alpha=%e isCoupled=%d\n",
-               icoarsew[0],icoarsew[1],alpha,int(domain->solInfo().isCoupled));
+        if (verboseFlag)
+            filePrint(stderr, "icoarsew[0]=%d icoarsew[1]=%d alpha=%e isCoupled=%d\n",
+                      icoarsew[0],icoarsew[1],alpha,int(domain->solInfo().isCoupled));
 
-   // Erase old frequency spaces and
-   // move new frequency spaces to old frequency spaces and update with
-   // current scaling
-   transitiontime -= getTime();
-   for(int iDir=0;iDir<nDir;iDir++)  {
-     if (localFWSSpace[iDir]!=0) delete localFWSSpace[iDir];
-     localFWSSpace[iDir] = 0;
-     if (localFWSSpace[nDir+iDir]!=0) {
-       localFWSSpace[iDir] = localFWSSpace[nDir+iDir];
-       localFWSSpace[nDir+iDir] = 0;
-       // Update u's to current scaling and recompute Ku,Mu,Cu
-       for(int i=0;i<localFWSSpace[iDir]->n;i++) {
-         *(localFWSSpace[iDir]->u[i]) = *(localFWSSpace[iDir]->v[i]);
-         *(localFWSSpace[iDir]->ups[i]) = *(localFWSSpace[iDir]->v[i]);
-         if(domain->solInfo().isCoupled) 
-           scaleDisp(*(localFWSSpace[iDir]->u[i]),alpha);
-         allOps->K->mult(*(localFWSSpace[iDir]->u[i]),
-                         *(localFWSSpace[iDir]->Ku[i]));
-         allOps->M->mult(*(localFWSSpace[iDir]->u[i]),
-                         *(localFWSSpace[iDir]->Mu[i]));
-         if (allOps->C_deriv) if (allOps->C_deriv[0])
-           allOps->C_deriv[0]->mult(*(localFWSSpace[iDir]->u[i]),
-                                    *(localFWSSpace[iDir]->Cu[i]));
-       }
-     }
-   }
-   for(int iDir=0;iDir<nDir;iDir++)  {
-     if (localFWSSpace[iDir]!=0) {
-       // Recompute reduced matrices
-       for(int i=0;i<localFWSSpace[iDir]->n;i++) {
-         // Compute new reduced matrix entries
-         int jDirL = (localP)?iDir:0;
-         int jDirU = (localP)?iDir+1:nDir;
-         for(int jDir=jDirL;jDir<jDirU;jDir++) {
-           if (localFWSSpace[jDir]!=0)
-             for(int j=0;j<localFWSSpace[jDir]->n;j++) {
-                std::pair<int,int> rowcol
-                 (localFWSSpace[jDir]->imode+j,localFWSSpace[iDir]->imode+i); 
-                Kr[rowcol] = *(localFWSSpace[iDir]->Ku[i]) *
-                             *(localFWSSpace[jDir]->u[j]);
-                Mr[rowcol] = *(localFWSSpace[iDir]->Mu[i]) *
-                             *(localFWSSpace[jDir]->u[j]);
-                Cr[rowcol] = *(localFWSSpace[iDir]->Cu[i]) *
-                             *(localFWSSpace[jDir]->u[j]);
-                if (iDir!=jDir) {
-                  std::pair<int,int> rowcolt
-                    (localFWSSpace[iDir]->imode+i,
-                     localFWSSpace[jDir]->imode+j); 
-                  Kr[rowcolt] = *(localFWSSpace[jDir]->Ku[j]) *
-                                *(localFWSSpace[iDir]->u[i]);
-                  Mr[rowcolt] = *(localFWSSpace[jDir]->Mu[j]) *
-                                *(localFWSSpace[iDir]->u[i]);
-                  Cr[rowcolt] = *(localFWSSpace[jDir]->Cu[j]) *
-                                *(localFWSSpace[iDir]->u[i]);
+        // Erase old frequency spaces and
+        // move new frequency spaces to old frequency spaces and update with
+        // current scaling
+        transitiontime -= getTime();
+        for(int iDir=0;iDir<nDir;iDir++)  {
+            if (localFWSSpace[iDir]!=0) delete localFWSSpace[iDir];
+            localFWSSpace[iDir] = 0;
+            if (localFWSSpace[nDir+iDir]!=0) {
+                localFWSSpace[iDir] = localFWSSpace[nDir+iDir];
+                localFWSSpace[nDir+iDir] = 0;
+                // Update u's to current scaling and recompute Ku,Mu,Cu
+                for(int i=0;i<localFWSSpace[iDir]->n;i++) {
+                    *(localFWSSpace[iDir]->u[i]) = *(localFWSSpace[iDir]->v[i]);
+                    *(localFWSSpace[iDir]->ups[i]) = *(localFWSSpace[iDir]->v[i]);
+                    if(domain->solInfo().isCoupled)
+                        scaleDisp(*(localFWSSpace[iDir]->u[i]),alpha);
+                    allOps->K->mult(*(localFWSSpace[iDir]->u[i]),
+                                    *(localFWSSpace[iDir]->Ku[i]));
+                    allOps->M->mult(*(localFWSSpace[iDir]->u[i]),
+                                    *(localFWSSpace[iDir]->Mu[i]));
+                    if (allOps->C_deriv) if (allOps->C_deriv[0])
+                            allOps->C_deriv[0]->mult(*(localFWSSpace[iDir]->u[i]),
+                                                     *(localFWSSpace[iDir]->Cu[i]));
                 }
-             } 
-         }
-       }
-     }
-   }
-   transitiontime += getTime();
-
-   // Count reduced variables and number them
-   int nr = 0;
-   for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0) {
-     localFWSSpace[jDir]->irow = nr;
-     nr += localFWSSpace[jDir]->n;
-   }
- 
-   if (localP) 
-     for(int jDir=0;jDir<nDir;jDir++) if (localFWSSpace[jDir]!=0)
-          localFWSSpace[jDir]->irow = 0;
-
-
-   std::valarray<int> isDone(0,nDir);
-   int newDir;
-   if (icoarsew[0]==-1) 
-     newDir = localP?0:nDir/2;
-   else {
-    newDir = localP?0:std::max_element(res.begin(),res.end()) - res.begin();
-   }
-   
-
-   onefspacetime -= getTime();
-   if (!isScattering) if (domain->solInfo().loadcases.size()>0)
-     domain->solInfo().loadcases = loadcases_backup;
-   while (isDone.sum()<nDir) {
-     if (verboseFlag)
-       filePrint(stderr,
-         "nr=%d newDir=%d isDone.sum()=%d \n",nr,newDir,isDone.sum());
-
-   // Build spaces at new frequency
-     if (newDir!=-1) {
-       if (isScattering)
-         probDesc->setIWaveDir(newDir);
-       else {
-         if (newDir>0) domain->solInfo().loadcases.pop_front();
-       }
-       localFWSSpace[nDir+newDir] = 
-         new FWindowSData<Scalar,VecType,ProblemDescriptor>
-             (maxLocalV,imode,probDesc); 
-       VecType **u = localFWSSpace[nDir+newDir]->u;
-       VecType **v = localFWSSpace[nDir+newDir]->v;
-  
-       // Build one space 
-       int localDim = 0;
-       for(int i=0;i<maxLocalV;i++) {
-         if (i == 0) { 
-           rhsctime1 -= getTime();
-           probDesc->getRHS(*f);
-           rhsctime1 += getTime();
-           if (dgpFlag==1) temp_u[0]->zero();
-           if (dgpFlag==0) *fkgp = *f;
-         } 
-         else if (dgpFlag==1) {
-           // DGP
-           f->zero();
-           rhsctime1 -= getTime();
-           probDesc->getFreqSweepRHS(f, temp_u, i);
-           rhsctime1 += getTime();
-         } else if (dgpFlag==2) {
-           // WCAWE
-           int ii = i+1;
-           std::vector<Scalar> pb(ii-1); 
-           std::vector<Scalar> invU(i*i,0.0);
-           for (int k=0; k<i; k++) invU[k+k*i] = 1.0;
-           std::vector<Scalar> matrixU(i*i);
-           for(int k=0;k<i;k++) for(int l=0;l<i;l++)
-             matrixU[k+i*l] = UU[k+l*maxLocalV];
-           std::vector<int> ipiv(i);
-           int info = 0;
-           Tgesv(i, i, &matrixU[0], i, &ipiv[0], &invU[0], i, info);
-
-           for(int j=1;j<ii;j++) {
-             int iimj = ii-j;
-             std::vector<Scalar> e(iimj,0);
-             e[iimj-1] = 1.0;
-             for(int k=j;k>=1;k--) {
-                std::vector<Scalar> ee(iimj,0);
-                char transa = 'N';
-                Tgemv(transa, iimj, iimj, 1.0 , &invU[k-1+(k-1)*i], i,
-                      &e[0], 1, 0.0, &ee[0], 1);
-                for(int kk=0;kk<iimj;kk++) e[kk] = ee[kk];
-              }
-              pb[j-1] = e[0];
-           } 
-        
-           // Identical as above except j and k start from 2
-           std::vector<Scalar> pU(ii*ii,0); 
-           for(int j=2;j<ii;j++) {
-             int iimj = ii-j;
-             std::vector<Scalar> e(iimj,0);
-             e[iimj-1] = 1.0;
-             for(int k=j;k>=2;k--) {
-                std::vector<Scalar> ee(iimj,0);
-                char transa = 'N';
-                Tgemv(transa, iimj, iimj, 1.0 , &invU[k-1+(k-1)*i], i,
-                      &e[0], 1, 0.0, &ee[0], 1);
-                for(int kk=0;kk<iimj;kk++) e[kk] = ee[kk];
-              }
-              for(int k=0;k<iimj;k++) 
-               pU[k+(j-1)*ii] = e[k];  
-           } 
-           rhsctime1 -= getTime();
-           probDesc->getWCAWEFreqSweepRHS(f,
-                   temp_u, &pU[0], &pb[0], maxLocalV, i);
-           rhsctime1 += getTime();
-         } else {
-           // KGP
-           allOps->M->mult(*u[i-1], *f);
-           if (dgpFlag==0) allOps->M->mult(*v[i-1], *fkgp);
-         }
-         if (verboseFlag)
-           filePrint(stderr," ... Solving RHS   #%3d               ...\n",i);
-         rhstime -= getTime();
-         allOps->sysSolver->solve(*f, *a);
-         solvecount++;
-         if (dgpFlag==0) {
-           allOps->sysSolver->solve(*fkgp, *akgp);
-           solvecount++;
-         }
-         rhstime += getTime();
-         if (dgpFlag) {
-           if (domain->solInfo().solvercntl->type == 2) {
-             if (verboseFlag)
-               filePrint(stderr,"Forcing continuity %d.\n",i);
-             forceContinuity(*a);
-           }
-         }
-    
-         if (dgpFlag==1)  *temp_u[i+1] = *a;
-         else if (dgpFlag==2) {
-           // WCAWE orthogonalize
-           Scalar nrm0 = *a * *a;
-           for(int j=0;j<i;j++) {
-              Scalar dotp = *a *  *temp_u[j];
-              UU[j+i*maxLocalV] = dotp;
-              (*a).linAdd(-dotp,*temp_u[j]);
-           }
-           UU[i*maxLocalV+i] = sqrt(ScalarTypes::Real(*a * *a));
-           *a *= 1.0/UU[i*maxLocalV+i];
-           *temp_u[i] = *a;
-           double normRedW = 
-             ScalarTypes::Real(UU[i*maxLocalV+i])/sqrt(ScalarTypes::Real(nrm0));
-//           if (verboseFlag)
-//             filePrint(stderr,"norm reduction - WCAWE: %e\n",normRedW);
-           if (normRedW<1e-17/tol) { break; }
-         }
-
-         localFWSSpace[nDir+newDir]->n = i; 
-    
-         *b = *a;
-         // Global space orthogonalize with previous coupled scaling
-         if(domain->solInfo().isCoupled) scaleDisp(*a,1.0/alpha);
-         Scalar nrm0 = *a * *a;
-         int ngs = 2;
-         for(int m=0;m<ngs;m++) { 
-            for(int jDir=0;jDir<nF*nDir;jDir++) 
-             if (localFWSSpace[jDir]!=0)
-              if (!localP || jDir==newDir || jDir==newDir+nDir)
-               for(int j=0;j<localFWSSpace[jDir]->n;j++) 
-                 {
-                   Scalar dotp = *a *  *(localFWSSpace[jDir]->ups[j]);
-                   (*a).linAdd(-dotp,*(localFWSSpace[jDir]->ups[j]));
-                 }
-         }
-         Scalar nrm = *a * *a;
-         double normRedG = 
-             sqrt(ScalarTypes::Real(nrm))/sqrt(ScalarTypes::Real(nrm0));
-//         if (verboseFlag)
-//           filePrint(stderr,"norm reduction - global space: %e\n",normRedG);
-         *a *= 1.0/sqrt(ScalarTypes::Real(nrm));
-         *(localFWSSpace[nDir+newDir]->ups[i]) = *a;
-         if(domain->solInfo().isCoupled) scaleDisp(*a,alpha);
-         *u[i] = *a;
-         // Local frequency space orthogonalize with current coupled scaling
-         if (dgpFlag==0) *a = *akgp;
-         else *a = *b;
-         nrm0 = *a * *a;
-         for(int m=0;m<ngs;m++) { 
-            for(int jDir=nDir;jDir<nF*nDir;jDir++) 
-             if (localFWSSpace[jDir]!=0)
-              if (!localP || jDir==newDir+nDir)
-               for(int j=0;j<localFWSSpace[jDir]->n;j++) 
-                 {
-                   Scalar dotp = *a *  *(localFWSSpace[jDir]->v[j]);
-                   (*a).linAdd(-dotp,*(localFWSSpace[jDir]->v[j]));
-                 }
-         }
-         nrm = *a * *a;
-         *a *= 1.0/sqrt(ScalarTypes::Real(nrm));
-         *v[i] = *a;
-         double normRedL =
-           sqrt(ScalarTypes::Real(nrm))/sqrt(ScalarTypes::Real(nrm0));
-//         if (verboseFlag)
-//           filePrint(stderr,"norm reduction - local space: %e\n",normRedL);
-         if (normRedG<1e-20/tol) break;
-         localDim++;
-       }
-
-       localFWSSpace[nDir+newDir]->n = localDim; 
-       // Update matrices
-       for(int i=0;i<localFWSSpace[nDir+newDir]->n;i++) {
-         allOps->K->mult(*(u[i]), *(localFWSSpace[nDir+newDir]->Ku[i]));
-         allOps->M->mult(*(u[i]), *(localFWSSpace[nDir+newDir]->Mu[i]));
-         if (allOps->C_deriv) if (allOps->C_deriv[0])
-          allOps->C_deriv[0]->mult(*(u[i]), *(localFWSSpace[nDir+newDir]->Cu[i]));
-       }
-  
-       for(int i=0;i<localFWSSpace[nDir+newDir]->n;i++) {
-         // Compute new reduced matrix entries
-         for(int jDir=0;jDir<nF*nDir;jDir++) {
-           if (localFWSSpace[jDir]!=0)
-            if (!localP || jDir==newDir || jDir==newDir+nDir)
-             for(int j=0;j<localFWSSpace[jDir]->n;j++) {
-                std::pair<int,int> rowcol
-               (localFWSSpace[jDir]->imode+j,localFWSSpace[nDir+newDir]->imode+i); 
-                Kr[rowcol] = *(localFWSSpace[nDir+newDir]->Ku[i]) *
-                             *(localFWSSpace[jDir]->u[j]);
-                Mr[rowcol] = *(localFWSSpace[nDir+newDir]->Mu[i]) *
-                             *(localFWSSpace[jDir]->u[j]);
-                Cr[rowcol] = *(localFWSSpace[nDir+newDir]->Cu[i]) *
-                             *(localFWSSpace[jDir]->u[j]);
-                if (newDir+nDir!=jDir) {
-                  std::pair<int,int> rowcolt
-                    (localFWSSpace[nDir+newDir]->imode+i,
-                     localFWSSpace[jDir]->imode+j); 
-                  Kr[rowcolt] = *(localFWSSpace[jDir]->Ku[j]) *
-                                *(localFWSSpace[nDir+newDir]->u[i]);
-                  Mr[rowcolt] = *(localFWSSpace[jDir]->Mu[j]) *
-                                *(localFWSSpace[nDir+newDir]->u[i]);
-                  Cr[rowcolt] = *(localFWSSpace[jDir]->Cu[j]) *
-                                *(localFWSSpace[nDir+newDir]->u[i]);
+            }
+        }
+        for(int iDir=0;iDir<nDir;iDir++)  {
+            if (localFWSSpace[iDir]!=0) {
+                // Recompute reduced matrices
+                for(int i=0;i<localFWSSpace[iDir]->n;i++) {
+                    // Compute new reduced matrix entries
+                    int jDirL = (localP)?iDir:0;
+                    int jDirU = (localP)?iDir+1:nDir;
+                    for(int jDir=jDirL;jDir<jDirU;jDir++) {
+                        if (localFWSSpace[jDir]!=0)
+                            for(int j=0;j<localFWSSpace[jDir]->n;j++) {
+                                std::pair<int,int> rowcol
+                                    (localFWSSpace[jDir]->imode+j,localFWSSpace[iDir]->imode+i);
+                                Kr[rowcol] = *(localFWSSpace[iDir]->Ku[i]) *
+                                             *(localFWSSpace[jDir]->u[j]);
+                                Mr[rowcol] = *(localFWSSpace[iDir]->Mu[i]) *
+                                             *(localFWSSpace[jDir]->u[j]);
+                                Cr[rowcol] = *(localFWSSpace[iDir]->Cu[i]) *
+                                             *(localFWSSpace[jDir]->u[j]);
+                                if (iDir!=jDir) {
+                                    std::pair<int,int> rowcolt
+                                        (localFWSSpace[iDir]->imode+i,
+                                         localFWSSpace[jDir]->imode+j);
+                                    Kr[rowcolt] = *(localFWSSpace[jDir]->Ku[j]) *
+                                                  *(localFWSSpace[iDir]->u[i]);
+                                    Mr[rowcolt] = *(localFWSSpace[jDir]->Mu[j]) *
+                                                  *(localFWSSpace[iDir]->u[i]);
+                                    Cr[rowcolt] = *(localFWSSpace[jDir]->Cu[j]) *
+                                                  *(localFWSSpace[iDir]->u[i]);
+                                }
+                            }
+                    }
                 }
-             } 
-         }
-       }
-  
-       imode += localFWSSpace[nDir+newDir]->n;
-       if (!localP) {
-         localFWSSpace[nDir+newDir]->irow = nr;
-         nr += localFWSSpace[nDir+newDir]->n;
-       } else {
-         if (localFWSSpace[newDir]!=0)
-            localFWSSpace[nDir+newDir]->irow = localFWSSpace[newDir]->n;
-         else 
-            localFWSSpace[nDir+newDir]->irow = 0;
-       }
-       isDone[newDir] = 1;
-     }
+            }
+        }
+        transitiontime += getTime();
 
-     if (!localP) {
-       // Sample residuals at midpoints of "done" 
-       std::valarray<int> iPick(0,nDir);
-       int nPick = 0;
-       int iLeft,iRight;
-       for(iLeft=0;iLeft<nDir; iLeft++) if (isDone[iLeft]==1) break;
-       if (iLeft/3!=iLeft) iPick[nPick++] = iLeft/3;
-       bool last = false;
-       while (!last) {
-         for(iRight=iLeft+1;iRight<nDir; iRight++) if (isDone[iRight]==1) break;
-         if (iRight==nDir) {
-           if ((iLeft+2*(nDir))/3!=iLeft && (iLeft+2*(nDir))/3<nDir)
-             iPick[nPick++] = (iLeft+2*(nDir))/3;
-           last = true;
-         } else {
-           if ((iLeft+iRight)/2!=iLeft) iPick[nPick++] = (iLeft+iRight)/2;
-         }
-         iLeft = iRight;
-       }
-       if (verboseFlag) {
-         filePrint(stderr,"iDir= ");
-         for(int ii=0;ii<nPick;ii++)
-           filePrint(stderr," %d",iPick[ii]);
-         filePrint(stderr,"\n");
-       }
-       // Evaluate residual at picked rhs's
-       for(int iDir=0;iDir<nDir;iDir++) res[iDir] = 0;
-       for(int ii=0;ii<nPick;ii++) {
-         int iDir = iPick[ii]; 
-         if (isScattering)
-           probDesc->setIWaveDir(iDir);
-         else 
-           filePrint(stderr,
-             "Error: multiple loadcases should be called with local only.\n");
-         rhsctime1 -= getTime();
-         probDesc->getRHS(*f);
-         rhsctime1 += getTime();
-         // Compute reduced vector
-         froneftime -= getTime();
-         for(int ir=0;ir<nr;ir++) fr[ir] = 0;
-         for(int jDir=0;jDir<nF*nDir;jDir++)
-           if (localFWSSpace[jDir]!=0)
-             for(int j=0;j<localFWSSpace[jDir]->n;j++) 
-                fr[localFWSSpace[jDir]->irow+j] =
-                  *f * *(localFWSSpace[jDir]->u[j]);
-         froneftime += getTime();
-         // Compute reduced matrix
-         Aroneftime -= getTime();
-         for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
-         for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0)
-           for(int j=0;j<localFWSSpace[jDir]->n;j++)  {
-             for(int kDir=0;kDir<nF*nDir;kDir++) if (localFWSSpace[kDir]!=0)
-               for(int k=0;k<localFWSSpace[kDir]->n;k++)  {
-                 std::pair<int,int> rowcol
-                   (localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k); 
-                 Ar[localFWSSpace[jDir]->irow+j+
-                   nr*(localFWSSpace[kDir]->irow+k)] = 
-                   Kr[rowcol] - w*w*Mr[rowcol];
-                 ScalarTypes::addComplex(Ar[localFWSSpace[jDir]->irow+j+
-                   nr*(localFWSSpace[kDir]->irow+k)], w *Cr[rowcol]);
-               }
-             }
-         Aroneftime += getTime();
-  
-         // Solve the reduced linear system
-         std::vector<int> ipiv(nr);
-         int lwork = 3 * (nr);
-         std::vector<Scalar> work(lwork);
-         int info = 0;
-         Tgesv(nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
-         // Evaluate the residual
-         resoneftime -= getTime();
-         (*a).zero();
-         for(int jDir=0;jDir<nF*nDir;jDir++)
-           if (localFWSSpace[jDir]!=0)
-             for(int j=0;j<localFWSSpace[jDir]->n;j++) {
-                int ir = localFWSSpace[jDir]->irow+j;
-                (*a).linAdd(fr[ir],*(localFWSSpace[jDir]->Ku[j]),
-                            -w*w*fr[ir],*(localFWSSpace[jDir]->Mu[j]));
-                Scalar dc = 0.0;
-                ScalarTypes::addComplex(dc,w*fr[ir]);
-                if (allOps->C_deriv) if (allOps->C_deriv[0])
-                  (*a).linAdd(dc,*(localFWSSpace[jDir]->Cu[j]));
-             }
-         (*a).linAdd(-1.0,*f);
-         forceAssemble(*a);
-         forceAssemble(*f);
-         Scalar nrma = *a * *a;
-         Scalar nrmf = *f * *f;
-         resoneftime += getTime();
-         res[iDir] = sqrt(ScalarTypes::Real(nrma)/ScalarTypes::Real(nrmf));
-         if (verboseFlag)
-           filePrint(stderr,"iDir=%d res=%e\n",iDir,res[iDir]);
-         if (res[iDir]<tol*tol1f) isDone[iDir] = 1;
-       }
-       double maxres = -1.0;
-       for(int iDir=0;iDir<nDir;iDir++) if (res[iDir]>maxres) {
-         maxres = res[iDir];
-         newDir = iDir; 
-         if (res[iDir]<tol*tol1f) newDir = -1;
-       } 
-       if (verboseFlag)
-         filePrint(stderr,"maxres=%e newDir=%d\n",maxres,newDir);
-     } else {
-       newDir++;
-     }
-   } 
-   onefspacetime += getTime();
+        // Count reduced variables and number them
+        int nr = 0;
+        for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0) {
+                localFWSSpace[jDir]->irow = nr;
+                nr += localFWSSpace[jDir]->n;
+            }
+
+        if (localP)
+            for(int jDir=0;jDir<nDir;jDir++) if (localFWSSpace[jDir]!=0)
+                    localFWSSpace[jDir]->irow = 0;
 
 
-   fsweeptime -= getTime();
-   // Compute and output ROM solution and residual
-   //  for interval icoarsew[0], icoarsew[1] 
-   //  and find new frequency above icoarsew[1]
-   int iwr = (icoarsew[0]>=0)?icoarsew[0]-1:0;
-   int deltaiwr;
-   int liwr=-1, uiwr=-1;
-   bool tolMet;
-   bool seekMode = false;
-   while (1) {
-     // Find the increment to the next frequency
-     if (verboseFlag) filePrint(stderr,"icoarsew[0]=%d icoarsew[1]=%d liwr=%d uiwr=%d deltaiwr=%d\n",icoarsew[0],icoarsew[1],liwr, uiwr,deltaiwr);
-     //   If done numS, we are done
-     if (iwr==numS && !seekMode) {  doneF = true; break; }
-     //   If the first first time
-     if (icoarsew[0]<0 && liwr==-1) {
-       seekMode = true;
-       deltaiwr = numS;
-       liwr = 0;
-       if (verboseFlag) filePrint(stderr,
-           "init liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
-     }
-     // If generating solutions
-     else if (iwr<icoarsew[1]) {
-       deltaiwr = 1;
-       if (verboseFlag) filePrint(stderr,
-         "solution liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
-     }
-     //   If just did the upper frequency, switch to seek mode
-     else if (iwr == icoarsew[1]) {
-        seekMode = true;
-        deltaiwr = icoarsew[1]-icoarsew[0];
-        if (iwr+deltaiwr>numS) deltaiwr = numS-iwr;
-        liwr = icoarsew[1];
-        if (verboseFlag) filePrint(stderr,
-          "start seek liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
-     }
-     // Seek mode
-     else {
-       if (tolMet) {
-         liwr = iwr;
-         if (uiwr!=-1) deltaiwr = (uiwr-liwr)/2;
-         if (iwr+deltaiwr>numS) deltaiwr = numS-iwr;
-         if (verboseFlag) filePrint(stderr,
-           "tolmet liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
-       }
-       else {
-         uiwr = iwr;
-         deltaiwr = -(uiwr-liwr)/2;
-         if (verboseFlag) filePrint(stderr,
-           "tolnotmet liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
-       }
-       if (deltaiwr==0) {
-         iwr = liwr;
-         icoarsew[0] = icoarsew[1];
-         icoarsew[1] = iwr;
-         if (verboseFlag) filePrint(stderr,
-            "stop liwr=%d uiwr=%d deltaiwr=%d\n",liwr, uiwr,deltaiwr);
-         break;
-       }
-     }
+        std::valarray<int> isDone(0,nDir);
+        int newDir;
+        if (icoarsew[0]==-1)
+            newDir = localP?0:nDir/2;
+        else {
+            newDir = localP?0:std::max_element(res.begin(),res.end()) - res.begin();
+        }
 
-     iwr = iwr + deltaiwr;
-        
-     double wr = w1 + iwr*dw;
-     if (verboseFlag)
-       filePrint(stderr,"Computing residual at iwr= %d wr/2/pi=%e\n",iwr,wr/2.0/M_PI);
+
+        onefspacetime -= getTime();
+        if (!isScattering) if (domain->solInfo().loadcases.size()>0)
+                domain->solInfo().loadcases = loadcases_backup;
+        while (isDone.sum()<nDir) {
+            if (verboseFlag)
+                filePrint(stderr,
+                          "nr=%d newDir=%d isDone.sum()=%d \n",nr,newDir,isDone.sum());
+
+            // Build spaces at new frequency
+            if (newDir!=-1) {
+                if (isScattering)
+                    probDesc->setIWaveDir(newDir);
+                else {
+                    if (newDir>0) domain->solInfo().loadcases.pop_front();
+                }
+                localFWSSpace[nDir+newDir] =
+                    new FWindowSData<Scalar,VecType,ProblemDescriptor>
+                        (maxLocalV,imode,probDesc);
+                VecType **u = localFWSSpace[nDir+newDir]->u;
+                VecType **v = localFWSSpace[nDir+newDir]->v;
+
+                // Build one space
+                int localDim = 0;
+                for(int i=0;i<maxLocalV;i++) {
+                    if (i == 0) {
+                        rhsctime1 -= getTime();
+                        probDesc->getRHS(*f);
+                        rhsctime1 += getTime();
+                        if (dgpFlag==1) temp_u[0]->zero();
+                        if (dgpFlag==0) *fkgp = *f;
+                    }
+                    else if (dgpFlag==1) {
+                        // DGP
+                        f->zero();
+                        rhsctime1 -= getTime();
+                        probDesc->getFreqSweepRHS(f, temp_u, i);
+                        rhsctime1 += getTime();
+                    } else if (dgpFlag==2) {
+                        // WCAWE
+                        int ii = i+1;
+                        std::vector<Scalar> pb(ii-1);
+                        std::vector<Scalar> invU(i*i,0.0);
+                        for (int k=0; k<i; k++) invU[k+k*i] = 1.0;
+                        std::vector<Scalar> matrixU(i*i);
+                        for(int k=0;k<i;k++) for(int l=0;l<i;l++)
+                                matrixU[k+i*l] = UU[k+l*maxLocalV];
+                        std::vector<int> ipiv(i);
+                        int info = 0;
+                        Tgesv(i, i, &matrixU[0], i, &ipiv[0], &invU[0], i, info);
+
+                        for(int j=1;j<ii;j++) {
+                            int iimj = ii-j;
+                            std::vector<Scalar> e(iimj,0);
+                            e[iimj-1] = 1.0;
+                            for(int k=j;k>=1;k--) {
+                                std::vector<Scalar> ee(iimj,0);
+                                char transa = 'N';
+                                Tgemv(transa, iimj, iimj, 1.0 , &invU[k-1+(k-1)*i], i,
+                                      &e[0], 1, 0.0, &ee[0], 1);
+                                for(int kk=0;kk<iimj;kk++) e[kk] = ee[kk];
+                            }
+                            pb[j-1] = e[0];
+                        }
+
+                        // Identical as above except j and k start from 2
+                        std::vector<Scalar> pU(ii*ii,0);
+                        for(int j=2;j<ii;j++) {
+                            int iimj = ii-j;
+                            std::vector<Scalar> e(iimj,0);
+                            e[iimj-1] = 1.0;
+                            for(int k=j;k>=2;k--) {
+                                std::vector<Scalar> ee(iimj,0);
+                                char transa = 'N';
+                                Tgemv(transa, iimj, iimj, 1.0 , &invU[k-1+(k-1)*i], i,
+                                      &e[0], 1, 0.0, &ee[0], 1);
+                                for(int kk=0;kk<iimj;kk++) e[kk] = ee[kk];
+                            }
+                            for(int k=0;k<iimj;k++)
+                                pU[k+(j-1)*ii] = e[k];
+                        }
+                        rhsctime1 -= getTime();
+                        probDesc->getWCAWEFreqSweepRHS(f,
+                                                       temp_u, &pU[0], &pb[0], maxLocalV, i);
+                        rhsctime1 += getTime();
+                    } else {
+                        // KGP
+                        allOps->M->mult(*u[i-1], *f);
+                        if (dgpFlag==0) allOps->M->mult(*v[i-1], *fkgp);
+                    }
+                    if (verboseFlag)
+                        filePrint(stderr," ... Solving RHS   #%3d               ...\n",i);
+                    rhstime -= getTime();
+                    allOps->sysSolver->solve(*f, *a);
+                    solvecount++;
+                    if (dgpFlag==0) {
+                        allOps->sysSolver->solve(*fkgp, *akgp);
+                        solvecount++;
+                    }
+                    rhstime += getTime();
+                    if (dgpFlag) {
+                        if (domain->solInfo().solvercntl->type == 2) {
+                            if (verboseFlag)
+                                filePrint(stderr,"Forcing continuity %d.\n",i);
+                            forceContinuity(*a);
+                        }
+                    }
+
+                    if (dgpFlag==1)  *temp_u[i+1] = *a;
+                    else if (dgpFlag==2) {
+                        // WCAWE orthogonalize
+                        Scalar nrm0 = *a * *a;
+                        for(int j=0;j<i;j++) {
+                            Scalar dotp = *a *  *temp_u[j];
+                            UU[j+i*maxLocalV] = dotp;
+                            (*a).linAdd(-dotp,*temp_u[j]);
+                        }
+                        UU[i*maxLocalV+i] = sqrt(ScalarTypes::Real(*a * *a));
+                        *a *= 1.0/UU[i*maxLocalV+i];
+                        *temp_u[i] = *a;
+                        double normRedW =
+                            ScalarTypes::Real(UU[i*maxLocalV+i])/sqrt(ScalarTypes::Real(nrm0));
+                        if (normRedW<1e-17/tol) { break; }
+                    }
+
+                    localFWSSpace[nDir+newDir]->n = i;
+
+                    *b = *a;
+                    // Global space orthogonalize with previous coupled scaling
+                    if(domain->solInfo().isCoupled) scaleDisp(*a,1.0/alpha);
+                    Scalar nrm0 = *a * *a;
+                    int ngs = 2;
+                    for(int m=0;m<ngs;m++) {
+                        for(int jDir=0;jDir<nF*nDir;jDir++)
+                            if (localFWSSpace[jDir]!=0)
+                                if (!localP || jDir==newDir || jDir==newDir+nDir)
+                                    for(int j=0;j<localFWSSpace[jDir]->n;j++)
+                                    {
+                                        Scalar dotp = *a *  *(localFWSSpace[jDir]->ups[j]);
+                                        (*a).linAdd(-dotp,*(localFWSSpace[jDir]->ups[j]));
+                                    }
+                    }
+                    Scalar nrm = *a * *a;
+                    double normRedG =
+                        sqrt(ScalarTypes::Real(nrm))/sqrt(ScalarTypes::Real(nrm0));
+                    *a *= 1.0/sqrt(ScalarTypes::Real(nrm));
+                    *(localFWSSpace[nDir+newDir]->ups[i]) = *a;
+                    if(domain->solInfo().isCoupled) scaleDisp(*a,alpha);
+                    *u[i] = *a;
+                    // Local frequency space orthogonalize with current coupled scaling
+                    if (dgpFlag==0) *a = *akgp;
+                    else *a = *b;
+                    nrm0 = *a * *a;
+                    for(int m=0;m<ngs;m++) {
+                        for(int jDir=nDir;jDir<nF*nDir;jDir++)
+                            if (localFWSSpace[jDir]!=0)
+                                if (!localP || jDir==newDir+nDir)
+                                    for(int j=0;j<localFWSSpace[jDir]->n;j++)
+                                    {
+                                        Scalar dotp = *a *  *(localFWSSpace[jDir]->v[j]);
+                                        (*a).linAdd(-dotp,*(localFWSSpace[jDir]->v[j]));
+                                    }
+                    }
+                    nrm = *a * *a;
+                    *a *= 1.0/sqrt(ScalarTypes::Real(nrm));
+                    *v[i] = *a;
+                    double normRedL =
+                        sqrt(ScalarTypes::Real(nrm))/sqrt(ScalarTypes::Real(nrm0));
+                    if (normRedG<1e-20/tol) break;
+                    localDim++;
+                }
+
+                localFWSSpace[nDir+newDir]->n = localDim;
+                // Update matrices
+                for(int i=0;i<localFWSSpace[nDir+newDir]->n;i++) {
+                    allOps->K->mult(*(u[i]), *(localFWSSpace[nDir+newDir]->Ku[i]));
+                    allOps->M->mult(*(u[i]), *(localFWSSpace[nDir+newDir]->Mu[i]));
+                    if (allOps->C_deriv) if (allOps->C_deriv[0])
+                            allOps->C_deriv[0]->mult(*(u[i]), *(localFWSSpace[nDir+newDir]->Cu[i]));
+                }
+
+                for(int i=0;i<localFWSSpace[nDir+newDir]->n;i++) {
+                    // Compute new reduced matrix entries
+                    for(int jDir=0;jDir<nF*nDir;jDir++) {
+                        if (localFWSSpace[jDir]!=0)
+                            if (!localP || jDir==newDir || jDir==newDir+nDir)
+                                for(int j=0;j<localFWSSpace[jDir]->n;j++) {
+                                    std::pair<int,int> rowcol
+                                        (localFWSSpace[jDir]->imode+j,localFWSSpace[nDir+newDir]->imode+i);
+                                    Kr[rowcol] = *(localFWSSpace[nDir+newDir]->Ku[i]) *
+                                                 *(localFWSSpace[jDir]->u[j]);
+                                    Mr[rowcol] = *(localFWSSpace[nDir+newDir]->Mu[i]) *
+                                                 *(localFWSSpace[jDir]->u[j]);
+                                    Cr[rowcol] = *(localFWSSpace[nDir+newDir]->Cu[i]) *
+                                                 *(localFWSSpace[jDir]->u[j]);
+                                    if (newDir+nDir!=jDir) {
+                                        std::pair<int,int> rowcolt
+                                            (localFWSSpace[nDir+newDir]->imode+i,
+                                             localFWSSpace[jDir]->imode+j);
+                                        Kr[rowcolt] = *(localFWSSpace[jDir]->Ku[j]) *
+                                                      *(localFWSSpace[nDir+newDir]->u[i]);
+                                        Mr[rowcolt] = *(localFWSSpace[jDir]->Mu[j]) *
+                                                      *(localFWSSpace[nDir+newDir]->u[i]);
+                                        Cr[rowcolt] = *(localFWSSpace[jDir]->Cu[j]) *
+                                                      *(localFWSSpace[nDir+newDir]->u[i]);
+                                    }
+                                }
+                    }
+                }
+
+                imode += localFWSSpace[nDir+newDir]->n;
+                if (!localP) {
+                    localFWSSpace[nDir+newDir]->irow = nr;
+                    nr += localFWSSpace[nDir+newDir]->n;
+                } else {
+                    if (localFWSSpace[newDir]!=0)
+                        localFWSSpace[nDir+newDir]->irow = localFWSSpace[newDir]->n;
+                    else
+                        localFWSSpace[nDir+newDir]->irow = 0;
+                }
+                isDone[newDir] = 1;
+            }
+
+            if (!localP) {
+                // Sample residuals at midpoints of "done"
+                std::valarray<int> iPick(0,nDir);
+                int nPick = 0;
+                int iLeft,iRight;
+                for(iLeft=0;iLeft<nDir; iLeft++) if (isDone[iLeft]==1) break;
+                if (iLeft/3!=iLeft) iPick[nPick++] = iLeft/3;
+                bool last = false;
+                while (!last) {
+                    for(iRight=iLeft+1;iRight<nDir; iRight++) if (isDone[iRight]==1) break;
+                    if (iRight==nDir) {
+                        if ((iLeft+2*(nDir))/3!=iLeft && (iLeft+2*(nDir))/3<nDir)
+                            iPick[nPick++] = (iLeft+2*(nDir))/3;
+                        last = true;
+                    } else {
+                        if ((iLeft+iRight)/2!=iLeft) iPick[nPick++] = (iLeft+iRight)/2;
+                    }
+                    iLeft = iRight;
+                }
+                if (verboseFlag) {
+                    filePrint(stderr,"iDir= ");
+                    for(int ii=0;ii<nPick;ii++)
+                        filePrint(stderr," %d",iPick[ii]);
+                    filePrint(stderr,"\n");
+                }
+                // Evaluate residual at picked rhs's
+                for(int iDir=0;iDir<nDir;iDir++) res[iDir] = 0;
+                for(int ii=0;ii<nPick;ii++) {
+                    int iDir = iPick[ii];
+                    if (isScattering)
+                        probDesc->setIWaveDir(iDir);
+                    else
+                        filePrint(stderr,
+                                  "Error: multiple loadcases should be called with local only.\n");
+                    rhsctime1 -= getTime();
+                    probDesc->getRHS(*f);
+                    rhsctime1 += getTime();
+                    // Compute reduced vector
+                    froneftime -= getTime();
+                    for(int ir=0;ir<nr;ir++) fr[ir] = 0;
+                    for(int jDir=0;jDir<nF*nDir;jDir++)
+                        if (localFWSSpace[jDir]!=0)
+                            for(int j=0;j<localFWSSpace[jDir]->n;j++)
+                                fr[localFWSSpace[jDir]->irow+j] =
+                                    *f * *(localFWSSpace[jDir]->u[j]);
+                    froneftime += getTime();
+                    // Compute reduced matrix
+                    Aroneftime -= getTime();
+                    for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
+                    for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0)
+                            for(int j=0;j<localFWSSpace[jDir]->n;j++)  {
+                                for(int kDir=0;kDir<nF*nDir;kDir++) if (localFWSSpace[kDir]!=0)
+                                        for(int k=0;k<localFWSSpace[kDir]->n;k++)  {
+                                            std::pair<int,int> rowcol
+                                                (localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k);
+                                            Ar[localFWSSpace[jDir]->irow+j+
+                                               nr*(localFWSSpace[kDir]->irow+k)] =
+                                                Kr[rowcol] - w*w*Mr[rowcol];
+                                            ScalarTypes::addComplex(Ar[localFWSSpace[jDir]->irow+j+
+                                                                       nr*(localFWSSpace[kDir]->irow+k)], w *Cr[rowcol]);
+                                        }
+                            }
+                    Aroneftime += getTime();
+
+                    // Solve the reduced linear system
+                    std::vector<int> ipiv(nr);
+                    int lwork = 3 * (nr);
+                    std::vector<Scalar> work(lwork);
+                    int info = 0;
+                    Tgesv(nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
+                    // Evaluate the residual
+                    resoneftime -= getTime();
+                    (*a).zero();
+                    for(int jDir=0;jDir<nF*nDir;jDir++)
+                        if (localFWSSpace[jDir]!=0)
+                            for(int j=0;j<localFWSSpace[jDir]->n;j++) {
+                                int ir = localFWSSpace[jDir]->irow+j;
+                                (*a).linAdd(fr[ir],*(localFWSSpace[jDir]->Ku[j]),
+                                            -w*w*fr[ir],*(localFWSSpace[jDir]->Mu[j]));
+                                Scalar dc = 0.0;
+                                ScalarTypes::addComplex(dc,w*fr[ir]);
+                                if (allOps->C_deriv) if (allOps->C_deriv[0])
+                                        (*a).linAdd(dc,*(localFWSSpace[jDir]->Cu[j]));
+                            }
+                    (*a).linAdd(-1.0,*f);
+                    forceAssemble(*a);
+                    forceAssemble(*f);
+                    Scalar nrma = *a * *a;
+                    Scalar nrmf = *f * *f;
+                    resoneftime += getTime();
+                    res[iDir] = sqrt(ScalarTypes::Real(nrma)/ScalarTypes::Real(nrmf));
+                    if (verboseFlag)
+                        filePrint(stderr,"iDir=%d res=%e\n",iDir,res[iDir]);
+                    if (res[iDir]<tol*tol1f) isDone[iDir] = 1;
+                }
+                double maxres = -1.0;
+                for(int iDir=0;iDir<nDir;iDir++) if (res[iDir]>maxres) {
+                        maxres = res[iDir];
+                        newDir = iDir;
+                        if (res[iDir]<tol*tol1f) newDir = -1;
+                    }
+                if (verboseFlag)
+                    filePrint(stderr,"maxres=%e newDir=%d\n",maxres,newDir);
+            } else {
+                newDir++;
+            }
+        }
+        onefspacetime += getTime();
+
+
+        fsweeptime -= getTime();
+        // Compute and output ROM solution and residual
+        //  for interval icoarsew[0], icoarsew[1]
+        //  and find new frequency above icoarsew[1]
+        int iwr = (icoarsew[0]>=0)?icoarsew[0]-1:0;
+        int deltaiwr;
+        int liwr=-1, uiwr=-1;
+        bool tolMet;
+        bool seekMode = false;
+        while (1) {
+            // Find the increment to the next frequency
+            if (verboseFlag)
+                filePrint(stderr, "icoarsew[0]=%d icoarsew[1]=%d liwr=%d uiwr=%d deltaiwr=%d\n", icoarsew[0], icoarsew[1],
+                          liwr, uiwr, deltaiwr);
+            //   If done numS, we are done
+            if (iwr == numS && !seekMode) {
+                doneF = true;
+                break;
+            }
+            //   If the first first time
+            if (icoarsew[0] < 0 && liwr == -1) {
+                seekMode = true;
+                deltaiwr = numS;
+                liwr = 0;
+                if (verboseFlag)
+                    filePrint(stderr,
+                              "init liwr=%d uiwr=%d deltaiwr=%d\n", liwr, uiwr, deltaiwr);
+            }
+                // If generating solutions
+            else if (iwr < icoarsew[1]) {
+                deltaiwr = 1;
+                if (verboseFlag)
+                    filePrint(stderr,
+                              "solution liwr=%d uiwr=%d deltaiwr=%d\n", liwr, uiwr, deltaiwr);
+            }
+                //   If just did the upper frequency, switch to seek mode
+            else if (iwr == icoarsew[1]) {
+                seekMode = true;
+                deltaiwr = icoarsew[1] - icoarsew[0];
+                if (iwr + deltaiwr > numS) deltaiwr = numS - iwr;
+                liwr = icoarsew[1];
+                if (verboseFlag)
+                    filePrint(stderr,
+                              "start seek liwr=%d uiwr=%d deltaiwr=%d\n", liwr, uiwr, deltaiwr);
+            }
+                // Seek mode
+            else {
+                if (tolMet) {
+                    liwr = iwr;
+                    if (uiwr != -1) deltaiwr = (uiwr - liwr) / 2;
+                    if (iwr + deltaiwr > numS) deltaiwr = numS - iwr;
+                    if (verboseFlag)
+                        filePrint(stderr,
+                                  "tolmet liwr=%d uiwr=%d deltaiwr=%d\n", liwr, uiwr, deltaiwr);
+                } else {
+                    uiwr = iwr;
+                    deltaiwr = -(uiwr - liwr) / 2;
+                    if (verboseFlag)
+                        filePrint(stderr,
+                                  "tolnotmet liwr=%d uiwr=%d deltaiwr=%d\n", liwr, uiwr, deltaiwr);
+                }
+                if (deltaiwr == 0) {
+                    iwr = liwr;
+                    icoarsew[0] = icoarsew[1];
+                    icoarsew[1] = iwr;
+                    if (verboseFlag)
+                        filePrint(stderr,
+                                  "stop liwr=%d uiwr=%d deltaiwr=%d\n", liwr, uiwr, deltaiwr);
+                    break;
+                }
+            }
+
+            iwr = iwr + deltaiwr;
+
+            double wr = w1 + iwr * dw;
+            if (verboseFlag)
+                filePrint(stderr, "Computing residual at iwr= %d wr/2/pi=%e\n", iwr, wr / 2.0 / M_PI);
 // RT uncommenting following line  12/8
-     geoSource->setOmega(wr);
-     std::vector<int> ipiv(nr);
-     if (!localP) {
-       // Compute reduced matrix
-       Arsweeptime -= getTime();
-       for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
-       for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0)
-         for(int j=0;j<localFWSSpace[jDir]->n;j++)  {
-           for(int kDir=0;kDir<nF*nDir;kDir++) if (localFWSSpace[kDir]!=0)
-             for(int k=0;k<localFWSSpace[kDir]->n;k++)  {
-               std::pair<int,int> rowcol
-                 (localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k); 
-  //                 auto Kr_iter = Kr.find(rowcol);
-               if (Kr.find(rowcol)==Kr.end()) fprintf(stderr,
-                           "rowcol %d %d not found\n",
-                    localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k);
-               Ar[localFWSSpace[jDir]->irow+j+
-                 nr*(localFWSSpace[kDir]->irow+k)] = 
-                 Kr[rowcol] - wr*wr*Mr[rowcol];
-               ScalarTypes::addComplex(Ar[localFWSSpace[jDir]->irow+j+
-                 nr*(localFWSSpace[kDir]->irow+k)], wr *Cr[rowcol]);
-             }
-         }
-       int info = 0;
-       Tgetrf(nr, nr, &Ar[0], nr, &ipiv[0], info);
-       Arsweeptime += getTime();
-     }
-     if (!isScattering) if (domain->solInfo().loadcases.size()>0)
-        domain->solInfo().loadcases = loadcases_backup;
-     for(int iDir=0;iDir<nDir;iDir++) {
-       // Get RHS
-       if (isScattering)
-         probDesc->setIWaveDir(iDir);
-       else {
-         if (iDir>0) domain->solInfo().loadcases.pop_front();
-       }
-       rhsctime2 -= getTime();
-       probDesc->getRHS(*f, wr,wr-(w1+icoarsew[1]*dw));
-       rhsctime2 += getTime();
-       // Compute reduced vector
-       if (localP) {
-          nr = 0;
-          if (localFWSSpace[iDir]!=0) nr += localFWSSpace[iDir]->n;
-          if (localFWSSpace[iDir+nDir]!=0) nr += localFWSSpace[iDir+nDir]->n;
-       }
-       frsweeptime -= getTime();
-       for(int ir=0;ir<nr;ir++) fr[ir] = 0;
-       for(int jDir=0;jDir<nF*nDir;jDir++)
-         if (localFWSSpace[jDir]!=0)
-          if (!localP || jDir==iDir || jDir==iDir+nDir)
-           for(int j=0;j<localFWSSpace[jDir]->n;j++) {
-              fr[localFWSSpace[jDir]->irow+j] =
-                 *f * *(localFWSSpace[jDir]->u[j]);
-           }
-       frsweeptime += getTime();
-       if (localP) { 
-         Arsweeptime -= getTime();
-         for(int ir=0;ir<nr*nr;ir++) Ar[ir] = 0;
-         for(int jDir=0;jDir<nF*nDir;jDir++) if (localFWSSpace[jDir]!=0)
-          if (jDir==iDir || jDir==iDir+nDir)
-           for(int j=0;j<localFWSSpace[jDir]->n;j++)  {
-             for(int kDir=0;kDir<nF*nDir;kDir++) if (localFWSSpace[kDir]!=0)
-              if (kDir==iDir || kDir==iDir+nDir)
-               for(int k=0;k<localFWSSpace[kDir]->n;k++)  {
-                 std::pair<int,int> rowcol
-                   (localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k); 
-    //                 auto Kr_iter = Kr.find(rowcol);
-                 if (Kr.find(rowcol)==Kr.end()) fprintf(stderr,
-                             "rowcol %d %d not found\n",
-                      localFWSSpace[jDir]->imode+j,localFWSSpace[kDir]->imode+k);
-                 Ar[localFWSSpace[jDir]->irow+j+
-                   nr*(localFWSSpace[kDir]->irow+k)] = 
-                   Kr[rowcol] - wr*wr*Mr[rowcol];
-                 ScalarTypes::addComplex(Ar[localFWSSpace[jDir]->irow+j+
-                   nr*(localFWSSpace[kDir]->irow+k)], wr *Cr[rowcol]);
-               }
-           }
-         Arsweeptime += getTime();
-         // Factor and solve the reduced linear system
-         std::vector<int> ipiv(nr);
-         int info = 0;
-         Tgesv(nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
-       } else {
-         // Solve the reduced linear system
-         int info = 0;
-         char trans = 'N';
-         Tgetrs(trans, nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
-       }
+            geoSource->setOmega(wr);
+            std::vector<int> ipiv(nr);
+            if (!localP) {
+                // Compute reduced matrix
+                Arsweeptime -= getTime();
+                for (int ir = 0; ir < nr * nr; ir++) Ar[ir] = 0;
+                for (int jDir = 0; jDir < nF * nDir; jDir++)
+                    if (localFWSSpace[jDir] != 0)
+                        for (int j = 0; j < localFWSSpace[jDir]->n; j++) {
+                            for (int kDir = 0; kDir < nF * nDir; kDir++)
+                                if (localFWSSpace[kDir] != 0)
+                                    for (int k = 0; k < localFWSSpace[kDir]->n; k++) {
+                                        std::pair<int, int> rowcol
+                                            (localFWSSpace[jDir]->imode + j, localFWSSpace[kDir]->imode + k);
+                                        //                 auto Kr_iter = Kr.find(rowcol);
+                                        if (Kr.find(rowcol) == Kr.end())
+                                            fprintf(stderr,
+                                                    "rowcol %d %d not found\n",
+                                                    localFWSSpace[jDir]->imode + j, localFWSSpace[kDir]->imode + k);
+                                        Ar[localFWSSpace[jDir]->irow + j +
+                                           nr * (localFWSSpace[kDir]->irow + k)] =
+                                            Kr[rowcol] - wr * wr * Mr[rowcol];
+                                        ScalarTypes::addComplex(Ar[localFWSSpace[jDir]->irow + j +
+                                                                   nr * (localFWSSpace[kDir]->irow + k)], wr * Cr[rowcol]);
+                                    }
+                        }
+                int info = 0;
+                Tgetrf(nr, nr, &Ar[0], nr, &ipiv[0], info);
+                Arsweeptime += getTime();
+            }
+            if (!isScattering)
+                if (domain->solInfo().loadcases.size() > 0)
+                    domain->solInfo().loadcases = loadcases_backup;
+            for (int iDir = 0; iDir < nDir; iDir++) {
+                // Get RHS
+                if (isScattering)
+                    probDesc->setIWaveDir(iDir);
+                else {
+                    if (iDir > 0) domain->solInfo().loadcases.pop_front();
+                }
+                rhsctime2 -= getTime();
+                probDesc->getRHS(*f, wr, wr - (w1 + icoarsew[1] * dw));
+                rhsctime2 += getTime();
+                // Compute reduced vector
+                if (localP) {
+                    nr = 0;
+                    if (localFWSSpace[iDir] != 0) nr += localFWSSpace[iDir]->n;
+                    if (localFWSSpace[iDir + nDir] != 0) nr += localFWSSpace[iDir + nDir]->n;
+                }
+                frsweeptime -= getTime();
+                for (int ir = 0; ir < nr; ir++) fr[ir] = 0;
+                for (int jDir = 0; jDir < nF * nDir; jDir++)
+                    if (localFWSSpace[jDir] != 0)
+                        if (!localP || jDir == iDir || jDir == iDir + nDir)
+                            for (int j = 0; j < localFWSSpace[jDir]->n; j++) {
+                                fr[localFWSSpace[jDir]->irow + j] =
+                                    *f * *(localFWSSpace[jDir]->u[j]);
+                            }
+                frsweeptime += getTime();
+                if (localP) {
+                    Arsweeptime -= getTime();
+                    for (int ir = 0; ir < nr * nr; ir++) Ar[ir] = 0;
+                    for (int jDir = 0; jDir < nF * nDir; jDir++)
+                        if (localFWSSpace[jDir] != 0)
+                            if (jDir == iDir || jDir == iDir + nDir)
+                                for (int j = 0; j < localFWSSpace[jDir]->n; j++) {
+                                    for (int kDir = 0; kDir < nF * nDir; kDir++)
+                                        if (localFWSSpace[kDir] != 0)
+                                            if (kDir == iDir || kDir == iDir + nDir)
+                                                for (int k = 0; k < localFWSSpace[kDir]->n; k++) {
+                                                    std::pair<int, int> rowcol
+                                                        (localFWSSpace[jDir]->imode + j, localFWSSpace[kDir]->imode + k);
+                                                    //                 auto Kr_iter = Kr.find(rowcol);
+                                                    if (Kr.find(rowcol) == Kr.end())
+                                                        fprintf(stderr,
+                                                                "rowcol %d %d not found\n",
+                                                                localFWSSpace[jDir]->imode + j,
+                                                                localFWSSpace[kDir]->imode + k);
+                                                    Ar[localFWSSpace[jDir]->irow + j +
+                                                       nr * (localFWSSpace[kDir]->irow + k)] =
+                                                        Kr[rowcol] - wr * wr * Mr[rowcol];
+                                                    ScalarTypes::addComplex(Ar[localFWSSpace[jDir]->irow + j +
+                                                                               nr * (localFWSSpace[kDir]->irow + k)],
+                                                                            wr * Cr[rowcol]);
+                                                }
+                                }
+                    Arsweeptime += getTime();
+                    // Factor and solve the reduced linear system
+                    std::vector<int> ipiv(nr);
+                    int info = 0;
+                    Tgesv(nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
+                } else {
+                    // Solve the reduced linear system
+                    int info = 0;
+                    char trans = 'N';
+                    Tgetrs(trans, nr, 1, &Ar[0], nr, &ipiv[0], &fr[0], nr, info);
+                }
 
-       // Evaluate the residual
-       ressweeptime -= getTime();
-       (*a).zero();
-       for(int jDir=0;jDir<nF*nDir;jDir++)
-         if (localFWSSpace[jDir]!=0)
-          if (!localP || jDir==iDir || jDir==iDir+nDir)
-           for(int j=0;j<localFWSSpace[jDir]->n;j++) {
-              int ir = localFWSSpace[jDir]->irow+j;
-              (*a).linAdd(fr[ir],*(localFWSSpace[jDir]->Ku[j]),
-                          -wr*wr*fr[ir],*(localFWSSpace[jDir]->Mu[j]));
-              Scalar dc = 0.0;
-              ScalarTypes::addComplex(dc,wr*fr[ir]);
-              if (allOps->C_deriv) if (allOps->C_deriv[0])
-                (*a).linAdd(dc,*(localFWSSpace[jDir]->Cu[j]));
-           }
+                // Evaluate the residual
+                ressweeptime -= getTime();
+                (*a).zero();
+                for (int jDir = 0; jDir < nF * nDir; jDir++)
+                    if (localFWSSpace[jDir] != 0)
+                        if (!localP || jDir == iDir || jDir == iDir + nDir)
+                            for (int j = 0; j < localFWSSpace[jDir]->n; j++) {
+                                int ir = localFWSSpace[jDir]->irow + j;
+                                (*a).linAdd(fr[ir], *(localFWSSpace[jDir]->Ku[j]),
+                                            -wr * wr * fr[ir], *(localFWSSpace[jDir]->Mu[j]));
+                                Scalar dc = 0.0;
+                                ScalarTypes::addComplex(dc, wr * fr[ir]);
+                                if (allOps->C_deriv)
+                                    if (allOps->C_deriv[0])
+                                        (*a).linAdd(dc, *(localFWSSpace[jDir]->Cu[j]));
+                            }
 /* 
        allOps->K->mult(*sol, *a);
        allOps->M->mult(*sol, *b);
@@ -2261,102 +2275,104 @@ StaticSolver< Scalar, OpSolver, VecType,
        for(int k=0;k<sol->size();k++) 
            ScalarTypes::addComplex((*a)[k], wr * (*c)[k]);
 */
-       (*a).linAdd(-1.0,*f);
-       forceAssemble(*a);
-       forceAssemble(*f);
-       Scalar nrma = *a * *a;
-       Scalar nrmf = *f * *f;
-       ressweeptime += getTime();
-       res[iDir] = sqrt(ScalarTypes::Real(nrma)/ScalarTypes::Real(nrmf));
-       if (iwr<icoarsew[1] || (iwr==numS && icoarsew[1]==numS)) {
-         solutiontime -= getTime();
-         if (verboseFlag) filePrint(stderr,"fresidual %d: %e %d %d\n",
-                   iDir,res[iDir],iwr,icoarsew[1]);
-         // Compute the approximant vector
-         (*sol).zero();
-         for(int jDir=0;jDir<nF*nDir;jDir++)
-           if (localFWSSpace[jDir]!=0)
-            if (!localP || jDir==iDir || jDir==iDir+nDir)
-             for(int j=0;j<localFWSSpace[jDir]->n;j++) 
-                (*sol).linAdd(fr[localFWSSpace[jDir]->irow+j],
-                              *(localFWSSpace[jDir]->u[j]));
-         if(domain->solInfo().isCoupled) scaleDisp(*sol);
-         solutiontime += getTime();
-         // Output the solution making sure the right frequency appears
-         domain->frequencies->push_front(wr);
-         if(domain->solInfo().isAcousticHelm()) {  
-           SPropContainer& sProps = geoSource->getStructProps();
-           for(int iProp=0;iProp<geoSource->getNumProps();iProp++) {
-             if(sProps[iProp].kappaHelm!=0.0 ||
-                sProps[iProp].kappaHelmImag!=0.0) {
-               complex<double> k1 = wr/sProps[iProp].soundSpeed;
-               sProps[iProp].kappaHelm = real(k1);
-               sProps[iProp].kappaHelmImag = imag(k1);
-             } 
-           }
-         }
-         outputtime -= getTime();
-         postProcessor->staticOutput(*sol, *rhs,(iwr==numS)&&(iDir==nDir-1));
-         outputtime += getTime();
-         domain->frequencies->pop_front();
-       } else
-         if (verboseFlag) filePrint(stderr,"residual %d: %e %d %d\n",
-                   iDir,res[iDir],iwr,icoarsew[1]);
-     }
-     double mres = *std::max_element(res.begin(),res.end());
-      if (iwr<icoarsew[1]) 
-       if (verboseFlag)
-         filePrint(stderr,"max fresidual: %e at %e \n",mres,wr/2.0/M_PI);
-     else
-       if (verboseFlag)
-         filePrint(stderr,"max residual: %e at %e \n",mres,wr/2.0/M_PI);
-     tolMet = mres<tol*ctolf;
-   }
-   fsweeptime += getTime();
- }
+                (*a).linAdd(-1.0, *f);
+                forceAssemble(*a);
+                forceAssemble(*f);
+                Scalar nrma = *a * *a;
+                Scalar nrmf = *f * *f;
+                ressweeptime += getTime();
+                res[iDir] = sqrt(ScalarTypes::Real(nrma) / ScalarTypes::Real(nrmf));
+                if (iwr < icoarsew[1] || (iwr == numS && icoarsew[1] == numS)) {
+                    solutiontime -= getTime();
+                    if (verboseFlag)
+                        filePrint(stderr, "fresidual %d: %e %d %d\n",
+                                  iDir, res[iDir], iwr, icoarsew[1]);
+                    // Compute the approximant vector
+                    (*sol).zero();
+                    for (int jDir = 0; jDir < nF * nDir; jDir++)
+                        if (localFWSSpace[jDir] != 0)
+                            if (!localP || jDir == iDir || jDir == iDir + nDir)
+                                for (int j = 0; j < localFWSSpace[jDir]->n; j++)
+                                    (*sol).linAdd(fr[localFWSSpace[jDir]->irow + j],
+                                                  *(localFWSSpace[jDir]->u[j]));
+                    if (domain->solInfo().isCoupled) scaleDisp(*sol);
+                    solutiontime += getTime();
+                    // Output the solution making sure the right frequency appears
+                    domain->frequencies->push_front(wr);
+                    if (domain->solInfo().isAcousticHelm()) {
+                        SPropContainer &sProps = geoSource->getStructProps();
+                        for (int iProp = 0; iProp < geoSource->getNumProps(); iProp++) {
+                            if (sProps[iProp].kappaHelm != 0.0 ||
+                                sProps[iProp].kappaHelmImag != 0.0) {
+                                complex<double> k1 = wr / sProps[iProp].soundSpeed;
+                                sProps[iProp].kappaHelm = real(k1);
+                                sProps[iProp].kappaHelmImag = imag(k1);
+                            }
+                        }
+                    }
+                    outputtime -= getTime();
+                    postProcessor->staticOutput(*sol, *rhs, (iwr == numS) && (iDir == nDir - 1));
+                    outputtime += getTime();
+                    domain->frequencies->pop_front();
+                } else if (verboseFlag)
+                    filePrint(stderr, "residual %d: %e %d %d\n",
+                              iDir, res[iDir], iwr, icoarsew[1]);
+            }
+            double mres = *std::max_element(res.begin(), res.end());
+            if (iwr < icoarsew[1]) {
+                if (verboseFlag)
+                    filePrint(stderr, "max fresidual: %e at %e \n", mres, wr / 2.0 / M_PI);
+            } else {
+                if (verboseFlag)
+                    filePrint(stderr, "max residual: %e at %e \n", mres, wr / 2.0 / M_PI);
+            }
+            tolMet = mres<tol*ctolf;
+        }
+        fsweeptime += getTime();
+    }
 
- time += getTime();
- if (verboseFlag) {
-   filePrint(stderr,"Total time: %e\n",time/1e3);
-   filePrint(stderr,"----\n");
-   filePrint(stderr,"Transition time: %e\n",transitiontime/1e3);
-   filePrint(stderr,"----\n");
-   filePrint(stderr,"One frequency space construction time: %e\n",
-             onefspacetime/1e3);
-   filePrint(stderr,"solver time: %e in %d solves\n",
-             solvertime/1e3,rebuildscount);
-   filePrint(stderr,"rhs solve time: %e count: %d\n",rhstime/1e3,solvecount);
-   filePrint(stderr,"fr time in one f: %e\n",froneftime/1e3);
-   filePrint(stderr,"Ar time in one f: %e\n",Aroneftime/1e3);
-   filePrint(stderr,"Residual computation time in one f: %e\n",resoneftime/1e3);
-   filePrint(stderr,"RHS construction time in one f: %e\n",rhsctime1/1e3);
-   filePrint(stderr,"----\n");
-   filePrint(stderr,"Frequency sweep time: %e\n",fsweeptime/1e3);
-   filePrint(stderr,"fr time in sweep: %e\n",frsweeptime/1e3);
-   filePrint(stderr,"Ar time in sweep: %e\n",Arsweeptime/1e3);
-   filePrint(stderr,"residual computation time in sweep: %e\n",ressweeptime/1e3);
-   filePrint(stderr,"rhs construction time in sweep: %e\n",rhsctime2/1e3);
-   filePrint(stderr,"solution construction time in sweep: %e\n",solutiontime/1e3);
-   filePrint(stderr,"output time in sweep: %e\n",outputtime/1e3);
- }
+    time += getTime();
+    if (verboseFlag) {
+        filePrint(stderr,"Total time: %e\n",time/1e3);
+        filePrint(stderr,"----\n");
+        filePrint(stderr,"Transition time: %e\n",transitiontime/1e3);
+        filePrint(stderr,"----\n");
+        filePrint(stderr,"One frequency space construction time: %e\n",
+                  onefspacetime/1e3);
+        filePrint(stderr,"solver time: %e in %d solves\n",
+                  solvertime/1e3,rebuildscount);
+        filePrint(stderr,"rhs solve time: %e count: %d\n",rhstime/1e3,solvecount);
+        filePrint(stderr,"fr time in one f: %e\n",froneftime/1e3);
+        filePrint(stderr,"Ar time in one f: %e\n",Aroneftime/1e3);
+        filePrint(stderr,"Residual computation time in one f: %e\n",resoneftime/1e3);
+        filePrint(stderr,"RHS construction time in one f: %e\n",rhsctime1/1e3);
+        filePrint(stderr,"----\n");
+        filePrint(stderr,"Frequency sweep time: %e\n",fsweeptime/1e3);
+        filePrint(stderr,"fr time in sweep: %e\n",frsweeptime/1e3);
+        filePrint(stderr,"Ar time in sweep: %e\n",Arsweeptime/1e3);
+        filePrint(stderr,"residual computation time in sweep: %e\n",ressweeptime/1e3);
+        filePrint(stderr,"rhs construction time in sweep: %e\n",rhsctime2/1e3);
+        filePrint(stderr,"solution construction time in sweep: %e\n",solutiontime/1e3);
+        filePrint(stderr,"output time in sweep: %e\n",outputtime/1e3);
+    }
 
- if (dgpFlag) {
-   delete[] UU;
-   for(int i=0;i<maxLocalV+1;i++) delete temp_u[i];
-   delete[] temp_u;
- }
- delete f;
- delete fkgp;
- delete c;
- delete b;
- delete a;
- delete akgp;
- delete sol;
+    if (dgpFlag) {
+        delete[] UU;
+        for(int i=0;i<maxLocalV+1;i++) delete temp_u[i];
+        delete[] temp_u;
+    }
+    delete f;
+    delete fkgp;
+    delete c;
+    delete b;
+    delete a;
+    delete akgp;
+    delete sol;
 
- for(int i=0;i<nF*nDir;i++) {
-    if (localFWSSpace[i]!=0) delete localFWSSpace[i];
- }
- delete[] localFWSSpace;
+    for(int i=0;i<nF*nDir;i++) {
+        if (localFWSSpace[i]!=0) delete localFWSSpace[i];
+    }
+    delete[] localFWSSpace;
 
 }
 

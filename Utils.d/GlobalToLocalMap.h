@@ -49,7 +49,7 @@ class GlobalToLocalMap : public CommunicatableObject
     ~GlobalToLocalMap();
 
     void initialize(int localSize, int *localToGlobalArray); 
-    int operator[](int glNum);
+    int operator[](int glNum) const;
     void print(bool skip=false);
     int size();
     int numKeys(); 

@@ -16,15 +16,15 @@ class ThreadLock {
 };
 
 /***************************************************************************
- * TaskDescr is a purely generic class definition. It should be subclassed
- * to specific task objects that cointer sufficient data to refer to the
+ * TaskDescr is a purely abstract class. It should be subclassed
+ * to specific task objects that contain sufficient data to refer to the
  * work to be done, and overload the run() routine to perform the work
  ***************************************************************************/
 
 class TaskDescr {
    public:
 	virtual void run() {};
-	virtual void runFor(int) {};
+	virtual void runFor(int) = 0;
 };
 
 class ThreadManager;

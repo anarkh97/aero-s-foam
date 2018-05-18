@@ -117,7 +117,7 @@ GenCuCSparse<Scalar>::GenCuCSparse(LMPCons **mpc, int numMPC, DofSetArray *c_dsa
 }
 
 template<class Scalar>
-GenCuCSparse<Scalar>::GenCuCSparse(int numInterface, int *allBoundDofs,
+GenCuCSparse<Scalar>::GenCuCSparse(int numInterface, const int *allBoundDofs,
                                    int numModes, Scalar *modes, int ldm)
  : SparseData(numInterface, allBoundDofs, numModes, ldm)
 {

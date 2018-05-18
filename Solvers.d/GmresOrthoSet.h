@@ -67,7 +67,8 @@ class GmresOp : public TaskDescr
     void dot();
     void mult();
     void multAdd();
-    void run();
+    void run() override;
+    void runFor(int) override { throw "Illegal operation called on GmresOp"; }
 
     void reset();
     void addVecAndNorm();

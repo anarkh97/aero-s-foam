@@ -378,7 +378,7 @@ MultiDomainRbm<Scalar>::assembleGtG(int iGroup, int *groups, Connectivity *group
       sd[i]->assembleGtGsolver(GtGsparse);
   }
 #else
-  int *grsubs = (*groupToSub)[iGroup];
+  auto grsubs = (*groupToSub)[iGroup];
   for(int i = 0; i < groupToSub->num(iGroup); ++i) {
     int iSub = grsubs[i];
     sd[iSub]->assembleGtGsolver(GtGsparse);

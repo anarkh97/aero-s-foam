@@ -1479,6 +1479,7 @@ class Domain : public HData {
      void trMultC(const Vector&, Vector&);
 
      ControlLawInfo* getClaw() { return  claw;}
+     void setClaw(ControlLawInfo* _claw) { claw = _claw; }
 
      virtual double densProjCoeff(int dof) { return 1.0; }
      virtual void densProjectStiffness(GenFullSquareMatrix<double>& kel, int num) { /* do nothing */ }

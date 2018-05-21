@@ -564,6 +564,17 @@ GenDecDomain<Scalar>::makeSubDomains()
 #endif
     for(int iSub = 0; iSub < this->numSub; iSub++)
       subDomain[iSub] = geoSource->template readDistributedInputFiles<Scalar>(iSub, localSubToGl[iSub]);
+
+    ControlLawInfo *claw = geoSource->getControlLaw();
+    if(claw) {
+#ifdef DISTRIBUTED
+      claw->numActuator = communicator->globalSum(claw->numActuator);
+      claw->numSensor = communicator->globalSum(claw->numSensor);
+      claw->numUserForce = communicator->globalSum(claw->numUserForce);
+      claw->numUserDisp = communicator->globalSum(claw->numUserDisp);
+#endif
+      domain->setClaw(claw);
+    }
 #ifdef SOWER_SURFS
     geoSource->readDistributedSurfs(localSubToGl[0]); //pass dummy sub number
 #endif

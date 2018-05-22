@@ -1246,6 +1246,10 @@ void GeoSource::setUpData(int topFlag)
     }
     if(attrib_i.attr < -1) { // phantom elements
       phantomFlag = 1;
+      if(ele->isConstraintElement()) {
+        filePrint(stderr, " *** ERROR: Phantom attribute was found for rigid element %d\n", attrib_i.nele+1);
+        exit(-1);
+      }
       ele->setProp(0);
     }
     else {

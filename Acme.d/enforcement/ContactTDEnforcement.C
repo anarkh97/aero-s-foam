@@ -1276,7 +1276,7 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
   for(iteration=0 ; iteration<num_iterations ; ++iteration ){
     mult = mult + 1.0;
 
-    if (contactPrintFlag && contact_processor_number(communicator)==0) {
+    if (contactPrintFlag > 1 && contact_processor_number(communicator)==0) {
       std::cout << "  Iteration "<<iteration<<"\n";
     }
 
@@ -1550,13 +1550,13 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
       if (iteration == 0) {
         initial_global_inc_force_norm = global_inc_force_norm;
 
-        if (contactPrintFlag && contact_processor_number(communicator)==0) {
+        if (contactPrintFlag > 1 && contact_processor_number(communicator)==0) {
           std::cout << "    alt convergence tol = "<<convergence_tolerance*initial_global_inc_force_norm<<"\n";
         }
 
       }
 
-      if (contactPrintFlag && contact_processor_number(communicator)==0) {
+      if (contactPrintFlag > 1 && contact_processor_number(communicator)==0) {
         std::cout << "    convergence norm    = "<<global_inc_force_norm<<"\n";
       }
 

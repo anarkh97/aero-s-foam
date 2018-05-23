@@ -6,6 +6,8 @@
 
 #include <limits>
 
+extern int contactPrintFlag;
+
 //-------------------------------------------------------------------------------------------
 template<class VecType>
 SysState<VecType> & SysState<VecType>::operator=(const SysState<VecType> &v2)
@@ -1639,7 +1641,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
           tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})
           probDesc->getContactForce(d_n, tmp1, tmp2, t_n+2*dt_n_h, dt_n_h, dt_old);
           double tmp2norm = tmp2.norm();
-          if(tmp2norm > 0) filePrint(stderr, "\n TDEnforcement: it = %d, ctc force = %e", j, tmp2.norm());
+          if(contactPrintFlag && tmp2norm > 0) filePrint(stderr, "\n TDEnforcement: it = %d, ctc force = %e", j, tmp2.norm());
           if(tmp2norm < domain->solInfo().tdenforceTolAbs) break;
           dynOps.dynMat->reSolve(tmp2);
           a_n += tmp2;

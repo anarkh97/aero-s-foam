@@ -45,11 +45,15 @@
 #define SMALL 1.0e-6
 #undef  CONVERGENCE_TOL
 #define CONVERGENCE_TOL 1.0e-10
+#undef  FAIL_TOL
+#define FAIL_TOL 0.01
 
 // Internal flags 
 // LOCAL_PRINT_FLAG = 0 turns off all internal debugging prints
 #undef  LOCAL_PRINT_FLAG 
 #define LOCAL_PRINT_FLAG 0
+
+extern int contactPrintFlag;
 
 #if LOCAL_PRINT_FLAG
 #include "ContactParOStream.h"
@@ -334,6 +338,11 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
   // set to a value that won't trigger an exit on the 1st iteration
   int iteration;
   for( iteration=0 ; iteration<num_iterations ; ++iteration ){
+
+    if (contactPrintFlag > 1 && contact_processor_number(communicator)==0) {
+      std::cout << "  Iteration "<<iteration<<"\n";
+    }
+
     // Initialize for iteration
     INC_FORCE.Zero_Scratch();
 #if LOCAL_PRINT_FLAG > 9
@@ -895,13 +904,23 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
       }
       global_inc_force_norm
 	= std::sqrt(contact_global_sum(inc_force_norm, communicator));
-      if (iteration == 0)
+      if (iteration == 0) {
 	initial_global_inc_force_norm = global_inc_force_norm;
+
+        if (contactPrintFlag > 1 && contact_processor_number(communicator)==0) {
+          std::cout << "    alt convergence tol = "<<convergence_tolerance*initial_global_inc_force_norm<<"\n";
+        }
+      }
 #if LOCAL_PRINT_FLAG > 0
       postream << iteration << " >> convg. norm.: "
 	       << global_inc_force_norm << "\n";
       postream.flush();
 #endif
+
+      if (contactPrintFlag > 1 && contact_processor_number(communicator)==0) {
+        std::cout << "    convergence norm    = "<<global_inc_force_norm<<"\n";
+      }
+
       if( global_inc_force_norm
           < convergence_tolerance*initial_global_inc_force_norm
 	  || global_inc_force_norm < convergence_tolerance ) break;
@@ -919,6 +938,16 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
   postream.flush();
 #endif
   } // end of iteration loop
+
+  if(iteration == num_iterations && num_iterations > 1 && global_inc_force_norm > std::max(initial_global_inc_force_norm,FAIL_TOL)) {
+    if(contact_processor_number(communicator)==0)
+      std::cerr << "\rerror: contact enforcement failed (inc. force = " << global_inc_force_norm
+                << ", target = " << std::max(convergence_tolerance*initial_global_inc_force_norm, convergence_tolerance) << ")\n";
+    if(global_inc_force_norm > initial_global_inc_force_norm) {
+      // Set final updated position to the current predicted positiion
+      NEW_POSITION.Duplicate_Scratch(PREDICTED_POS);
+    }
+  }
 
   Compute_Extra_Ghosting_Length();
 

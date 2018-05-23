@@ -213,14 +213,14 @@ struct SolverInfo {
                         // thermal quasistatic
    bool no_secondary;
    bool shell_simple_lofting;
-   bool multiple_interactions;
+   bool no_multiple_interactions;
    double sharp_non_sharp_angle;
    bool normal_smoothing;
    double normal_smoothing_distance;
    int resolution_method;
-   bool aug_dynamic_search;
+   bool old_dynamic_search;
    bool partition_gap;
-   bool set_penalty_scale;
+   bool default_penalty;
    bool global_search_cull;
    bool no_warped_volume;
    bool auto_tol;
@@ -591,14 +591,14 @@ struct SolverInfo {
                   delta = 0.0;
                   no_secondary = false;
                   shell_simple_lofting = false;
-                  multiple_interactions = true;
+                  no_multiple_interactions = false;
                   sharp_non_sharp_angle = 30;
                   normal_smoothing = true;
                   normal_smoothing_distance = 0.5;
                   resolution_method = 1;
-                  aug_dynamic_search = true;
+                  old_dynamic_search = false;
                   partition_gap = false;
-                  set_penalty_scale = true;
+                  default_penalty = false;
                   global_search_cull = false;
                   no_warped_volume = false;
                   auto_tol = false;

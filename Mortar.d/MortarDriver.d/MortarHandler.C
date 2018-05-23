@@ -2300,7 +2300,7 @@ MortarHandler::set_search_options()
   }
 
   // Activate multiple interations
-  if(domain->solInfo().multiple_interactions) {
+  if(!domain->solInfo().no_multiple_interactions) {
     data[0] = domain->solInfo().sharp_non_sharp_angle; // default is 30.
     error = search_obj->Set_Search_Option(ContactSearch::MULTIPLE_INTERACTIONS,
                                           ContactSearch::ACTIVE,
@@ -2671,7 +2671,7 @@ MortarHandler::build_td_enforcement()
   int number_iterations;
   if(((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty > 0) ||
      (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty > 0)) &&
-     domain->solInfo().set_penalty_scale) {
+     !domain->solInfo().default_penalty) {
     number_iterations = 1;
   }
   else {
@@ -3124,7 +3124,7 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, Vector &f)
 #ifdef USE_ACME
   ContactSearch::ContactErrorCode error;
 
-  if(domain->solInfo().set_penalty_scale) {
+  if(!domain->solInfo().default_penalty) {
   // override the default ACME penalty parameter with the value set in the AERO-S input file
   if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty != 0) ||
      (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty != 0)) {
@@ -3168,7 +3168,7 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, DistrVector &f
   ContactSearch::ContactErrorCode error;
 
   // override the ACME default penalty parameter with the value set in the AERO-S input file
-  if(domain->solInfo().set_penalty_scale) {
+  if(!domain->solInfo().default_penalty) {
   if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty != 0) ||
      (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty != 0)) {
     double dt2 = 1.0/(0.5*(dt+dt_old)*dt);

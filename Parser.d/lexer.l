@@ -1599,12 +1599,14 @@ TRAIL [a-zA-Z]*
 
 "NO_SECONDARY"|"no_secondary"      { return NOSECONDARY; }
 "SHELL_SIMPLE_LOFTING"|"shell_simple_lofting" { return SHELLSIMPLELOFTING; }
-"MULTIPLE_INTERACTIONS"|"multiple_interactions" { return MULTIPLEINTERACTIONS; }
-"NORMAL_SMOOTHING"|"normal_smoothing" { return NORMALSMOOTHING; }
-"AUG_DYNAMIC_SEARCH"|"aug_dynamic_search" { return AUGDYNAMICSEARCH; }
+"NO_MULTIPLE_INTERACTIONS"|"no_multiple_interactions" { return NOMULTIPLEINTERACTIONS; }
+"NO_NORMAL_SMOOTHING"|"no_normal_smoothing" { return NONORMALSMOOTHING; }
+"NORMAL_SMOOTHING_DISTANCE"|"normal_smoothing_distance" { return NORMALSMOOTHINGDISTANCE; }
+"RESOLUTION_METHOD"|"resolution_method" { return RESOLUTIONMETHOD; }
+"OLD_DYNAMIC_SEARCH"|"old_dynamic_search" { return OLDDYNAMICSEARCH; }
 "SHARP_NON_SHARP_ANGLE"|"sharp_non_sharp_angle" { return SHARPNONSHARPANGLE; }
 "PARTITION_GAP"|"partition_gap" { return PARTITIONGAP; }
-"SET_PENALTY_SCALE"|"set_penalty_scale" { return SETPENALTYSCALE; }
+"DEFAULT_PENALTY"|"default_penalty" { return DEFAULTPENALTY; }
 "GLOBAL_SEARCH_CULL"|"global_search_cull" { return GLOBALSEARCHCULL; }
 "NO_WARPED_VOLUME"|"no_warped_volume" { return NOWARPEDVOLUME; }
 "AUTO_TOL"|"auto_tol" { return AUTOTOL; }

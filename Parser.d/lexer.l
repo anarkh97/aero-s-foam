@@ -1599,6 +1599,17 @@ TRAIL [a-zA-Z]*
 
 "NO_SECONDARY"|"no_secondary"      { return NOSECONDARY; }
 "SHELL_SIMPLE_LOFTING"|"shell_simple_lofting" { return SHELLSIMPLELOFTING; }
+"MULTIPLE_INTERACTIONS"|"multiple_interactions" { return MULTIPLEINTERACTIONS; }
+"NORMAL_SMOOTHING"|"normal_smoothing" { return NORMALSMOOTHING; }
+"AUG_DYNAMIC_SEARCH"|"aug_dynamic_search" { return AUGDYNAMICSEARCH; }
+"SHARP_NON_SHARP_ANGLE"|"sharp_non_sharp_angle" { return SHARPNONSHARPANGLE; }
+"PARTITION_GAP"|"partition_gap" { return PARTITIONGAP; }
+"SET_PENALTY_SCALE"|"set_penalty_scale" { return SETPENALTYSCALE; }
+"GLOBAL_SEARCH_CULL"|"global_search_cull" { return GLOBALSEARCHCULL; }
+"NO_WARPED_VOLUME"|"no_warped_volume" { return NOWARPEDVOLUME; }
+"AUTO_TOL"|"auto_tol" { return AUTOTOL; }
+"AGRESSIVE_TOLERANCES"|"agressive_tolerances" { return AGRESSIVETOLERANCES; }
+"SKIP_PHYISCAL_FACES"|"skip_physical_faces" { return SKIPPHYSICALFACES; }
 
 "TDEN"[a-zA-Z]*|"tden"[a-zA-Z]*    { return TDENFORCE; }
 

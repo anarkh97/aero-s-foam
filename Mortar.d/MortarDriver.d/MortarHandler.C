@@ -2222,7 +2222,7 @@ MortarHandler::set_node_constraints(int numSub, SubDomain **sd)
         locnode = it->second;
       }
       else if((it = master_entity->find(glnode)) != master_entity->end()) {
-        locnode = it->second + nSlaveNodes;
+        locnode = it->second + nSlaveNodes; // XXX this may not be correct for DIST_ACME > 0
         //cerr << " *** WARNING: ContactSearch::Set_Node_Block_Kinematic_Constraints doesn't seem to work when constrained nodes are on master surface.\n"
         //     << " ***          Try switching master and slave under TIEDSURFACES/CONTACTSURFACES\n";
       }
@@ -2300,29 +2300,34 @@ MortarHandler::set_search_options()
   }
 
   // Activate multiple interations
-  data[0] = 30.;
-  error = search_obj->Set_Search_Option(ContactSearch::MULTIPLE_INTERACTIONS,
-                                        ContactSearch::ACTIVE,
-                                        &data[0]);
-  if(error) {
-    std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;
-    for(int i=1; i<=search_obj->Number_of_Errors(); ++i)
-      std::cerr << search_obj->Error_Message(i) << std::endl;
-    exit(error);
+  if(domain->solInfo().multiple_interactions) {
+    data[0] = domain->solInfo().sharp_non_sharp_angle; // default is 30.
+    error = search_obj->Set_Search_Option(ContactSearch::MULTIPLE_INTERACTIONS,
+                                          ContactSearch::ACTIVE,
+                                          &data[0]);
+    if(error) {
+      std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;
+      for(int i=1; i<=search_obj->Number_of_Errors(); ++i)
+        std::cerr << search_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
   }
 
   // Activate normal smoothing
-  data[1] = 0.5;
-  data[2] = ContactSearch::USE_EDGE_BASED_NORMAL;  // ContactSearch::USE_NODE_NORMAL
-  error = search_obj->Set_Search_Option(ContactSearch::NORMAL_SMOOTHING,
-                                        ContactSearch::ACTIVE,
-                                        &data[0]);
+  if(domain->solInfo().normal_smoothing) {
+    data[0] = domain->solInfo().sharp_non_sharp_angle; // default is 30;
+    data[1] = domain->solInfo().normal_smoothing_distance; // default is 0.5
+    data[2] = (domain->solInfo().resolution_method == 0) ? ContactSearch::USE_NODE_NORMAL : ContactSearch::USE_EDGE_BASED_NORMAL; // default is 1
+    error = search_obj->Set_Search_Option(ContactSearch::NORMAL_SMOOTHING,
+                                          ContactSearch::ACTIVE,
+                                          &data[0]);
 
-  if(error) {
-    std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;   
-    for(int i=1; i<=search_obj->Number_of_Errors(); ++i) 
-      std::cerr << search_obj->Error_Message(i) << std::endl;
-    exit(error);
+    if(error) {
+      std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;   
+      for(int i=1; i<=search_obj->Number_of_Errors(); ++i) 
+        std::cerr << search_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
   }
 
   // Activate simple lofting
@@ -2330,6 +2335,88 @@ MortarHandler::set_search_options()
     error = search_obj->Set_Search_Option(ContactSearch::SHELL_SIMPLE_LOFTING,
                                           ContactSearch::ACTIVE,
                                           (double *)0);
+    if(error) {
+      std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;
+      for(int i=1; i<=search_obj->Number_of_Errors(); ++i)
+        std::cerr << search_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
+  }
+
+  // Activate gap partitioning
+  if(domain->solInfo().partition_gap) {
+    error = search_obj->Set_Search_Option(ContactSearch::PARTITION_GAP,
+                                          ContactSearch::ACTIVE,
+                                          (double *)0);
+    if(error) {
+      std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;
+      for(int i=1; i<=search_obj->Number_of_Errors(); ++i)
+        std::cerr << search_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
+  }
+
+  // Activate global search cull
+  if(domain->solInfo().global_search_cull) {
+    data[0] = ContactSearch::SLAVE_CULL;
+    error = search_obj->Set_Search_Option(ContactSearch::GLOBAL_SEARCH_CULL,
+                                          ContactSearch::ACTIVE,
+                                          &data[0]);
+    if(error) {
+      std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;
+      for(int i=1; i<=search_obj->Number_of_Errors(); ++i)
+        std::cerr << search_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
+  }
+
+  // Activate no warped volume
+  if(domain->solInfo().no_warped_volume) {
+    error = search_obj->Set_Search_Option(ContactSearch::NO_WARPED_VOLUME,
+                                          ContactSearch::ACTIVE,
+                                          (double *)0);
+    if(error) {
+      std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;
+      for(int i=1; i<=search_obj->Number_of_Errors(); ++i)
+        std::cerr << search_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
+  }
+
+  // Activate auto tol
+  if(domain->solInfo().auto_tol) {
+    error = search_obj->Set_Search_Option(ContactSearch::AUTO_TOL,
+                                          ContactSearch::ACTIVE,
+                                          (double*)0);
+    if(error) {
+      std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;
+      for(int i=1; i<=search_obj->Number_of_Errors(); ++i)
+        std::cerr << search_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
+  }
+
+  // Activate aggressive tolerances
+  if(domain->solInfo().agressive_tolerances) {
+    data[0] = 0.1;
+    data[1] = 0.1;
+    error = search_obj->Set_Search_Option(ContactSearch::AGGRESSIVE_TOLERANCES,
+                                          ContactSearch::INACTIVE,
+                                          &data[0]);
+    if(error) {
+      std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;
+      for(int i=1; i<=search_obj->Number_of_Errors(); ++i)
+        std::cerr << search_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
+  }
+
+  // Activate skip physical faces
+  if(domain->solInfo().skip_physical_faces) {
+    data[0] = ContactSearch::PF_FACE_BASED;
+    error = search_obj->Set_Search_Option(ContactSearch::SKIP_PHYSICAL_FACES,
+                                          ContactSearch::INACTIVE,
+                                          &data[0]);
     if(error) {
       std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;
       for(int i=1; i<=search_obj->Number_of_Errors(); ++i)
@@ -2582,8 +2669,9 @@ MortarHandler::build_td_enforcement()
   contact_obj->Add_Enforcement_Model(type, ID, integer_data, real_data);
   
   int number_iterations;
-  if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty > 0) ||
-     (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty > 0)) {
+  if(((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty > 0) ||
+     (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty > 0)) &&
+     domain->solInfo().set_penalty_scale) {
     number_iterations = 1;
   }
   else {
@@ -2690,7 +2778,7 @@ MortarHandler::make_nodal_mass(SparseMatrix *M, ConstrainedDSA *c_dsa, SparseMat
     }
     if(count > 0) mass[inode] += m/double(count);
   }
-  for(int i=0;  i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // TODO: need Mcc for for constrained nodes' mass
+  for(int i=0; i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // TODO: need Mcc for for constrained nodes' mass
 }
 
 void
@@ -3036,6 +3124,7 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, Vector &f)
 #ifdef USE_ACME
   ContactSearch::ContactErrorCode error;
 
+  if(domain->solInfo().set_penalty_scale) {
   // override the default ACME penalty parameter with the value set in the AERO-S input file
   if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty != 0) ||
      (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty != 0)) {
@@ -3050,7 +3139,7 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, Vector &f)
         std::cerr << contact_obj->Error_Message(i) << std::endl;
       exit(error);
     }
-  }
+  }}
 
   int nACMENodes  = nMasterNodes + nSlaveNodes; // !! Assume NO COMMON nodes !!
   double *force = new double[nACMENodes*3]; // force vectors
@@ -3079,6 +3168,7 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, DistrVector &f
   ContactSearch::ContactErrorCode error;
 
   // override the ACME default penalty parameter with the value set in the AERO-S input file
+  if(domain->solInfo().set_penalty_scale) {
   if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty != 0) ||
      (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty != 0)) {
     double dt2 = 1.0/(0.5*(dt+dt_old)*dt);
@@ -3092,7 +3182,7 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, DistrVector &f
         std::cerr << contact_obj->Error_Message(i) << std::endl;
       exit(error);
     }
-  }
+  }}
 
   int nACMENodes = nMasterNodes + nSlaveNodes; 
   double *force = new double[nACMENodes*3]; 

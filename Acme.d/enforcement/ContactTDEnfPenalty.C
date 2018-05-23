@@ -324,11 +324,9 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
     for(int j=0 ; j<NDIM ; ++j){ f_tot[j] = 0.0;}
   }
   
-  // NOTE : these are not used
-  //int num_nodes = topology->Number_of_Nodes();
-  //ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
-
 #ifdef CONTACT_TD_FACE_FACE_ENF
+  int num_nodes = topology->Number_of_Nodes();
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   int num_faces = topology->Number_of_Faces();
   ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(topology->FaceList()->EntityList());
 #endif
@@ -361,7 +359,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
       int num_face_face_interactions = face->Number_FaceFace_Interactions();
       global_num_face_face_interactions += face->Number_FaceFace_Interactions();
       for(int j = 0; j < num_face_face_interactions; ++j) {
-        ContactFaceFaceInteraction *ffi = face->Get_FaceFace_Interaction(j);
+        ContactFaceFaceInteraction<Real> *ffi = face->Get_FaceFace_Interaction(j);
         ContactFace<Real> *master_face = ffi->MasterFace();
         ContactFace<Real> *slave_face  = ffi->SlaveFace();
         POSTCONDITION(face==slave_face);
@@ -445,7 +443,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
       ContactFace<Real> *face = Faces[i];
       int num_face_face_interactions = face->Number_FaceFace_Interactions();
       for(int j = 0; j < num_face_face_interactions; ++j) {
-        ContactFaceFaceInteraction *ffi = face->Get_FaceFace_Interaction(j);
+        ContactFaceFaceInteraction<Real> *ffi = face->Get_FaceFace_Interaction(j);
         ContactFace<Real> *master_face = ffi->MasterFace();
         ContactFace<Real> *slave_face  = ffi->SlaveFace();
 	seginfo[27*n  ] = slave_face->temp_tag;
@@ -490,7 +488,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
       // defined face-face overlaps and process each independantly
       //
       for(int j = 0; j < num_face_face_interactions; ++j) {
-        ContactFaceFaceInteraction *ffi = face->Get_FaceFace_Interaction(j);
+        ContactFaceFaceInteraction<Real> *ffi = face->Get_FaceFace_Interaction(j);
 	//
 	//  Extract pointers to the two faces involved in the interaction.  Save basic information such as the
 	//  number of nodes in each face and the number of vertexes in the overlapping polygon.
@@ -588,7 +586,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
         Real sub_tri_side_a[3];
         Real sub_tri_side_b[3];
         for(int ivert = 0; ivert < num_vertex; ++ivert) {
-          ContactFaceFaceVertex *vertex = ffi->Get_Vertex(ivert);
+          ContactFaceFaceVertex<Real> *vertex = ffi->Get_Vertex(ivert);
 	  //
 	  // load local coordinates for ecah interaction vertex for both
           // the slave and master faces

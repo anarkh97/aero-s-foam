@@ -213,6 +213,19 @@ struct SolverInfo {
                         // thermal quasistatic
    bool no_secondary;
    bool shell_simple_lofting;
+   bool multiple_interactions;
+   double sharp_non_sharp_angle;
+   bool normal_smoothing;
+   double normal_smoothing_distance;
+   int resolution_method;
+   bool aug_dynamic_search;
+   bool partition_gap;
+   bool set_penalty_scale;
+   bool global_search_cull;
+   bool no_warped_volume;
+   bool auto_tol;
+   bool agressive_tolerances;
+   bool skip_physical_faces;
    // Eigenvalue Problem parameters
    enum {SubSpace, LobPcg, Arpack};
 
@@ -322,6 +335,8 @@ struct SolverInfo {
    double andes_betam;
    int nlmembrane_pressure_type; // 0 (default): area computed using current configuration, 1: area computed using undeformed configuration
    bool tdenforceFlag;
+   int tdenforceMaxItr;
+   double tdenforceTolAbs;
 
    bool lagrangeMult;
    double penalty;
@@ -576,6 +591,19 @@ struct SolverInfo {
                   delta = 0.0;
                   no_secondary = false;
                   shell_simple_lofting = false;
+                  multiple_interactions = true;
+                  sharp_non_sharp_angle = 30;
+                  normal_smoothing = true;
+                  normal_smoothing_distance = 0.5;
+                  resolution_method = 1;
+                  aug_dynamic_search = true;
+                  partition_gap = false;
+                  set_penalty_scale = true;
+                  global_search_cull = false;
+                  no_warped_volume = false;
+                  auto_tol = false;
+                  agressive_tolerances = false;
+                  skip_physical_faces = false;
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
                                   
@@ -686,6 +714,8 @@ struct SolverInfo {
                   andes_betam = .32;
                   nlmembrane_pressure_type = 0;
                   tdenforceFlag = true;
+                  tdenforceMaxItr = 1;
+                  tdenforceTolAbs = 1e-10;
 
                   lagrangeMult = true;
                   penalty = 0;

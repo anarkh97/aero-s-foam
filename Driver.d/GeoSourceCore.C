@@ -1243,6 +1243,10 @@ void GeoSource::setUpData(int topFlag)
 	}
 	if(attrib_i.attr < -1) { // phantom elements
 	  phantomFlag = 1;
+      if(ele->isConstraintElement()) {
+        filePrint(stderr, " *** ERROR: Phantom attribute was found for rigid element %d\n", attrib_i.nele+1);
+        exit(-1);
+      }
 	  ele->setProp(0);
 	}
 	else {
@@ -4784,6 +4788,7 @@ void GeoSource::getBinaryDecomp()
 	for(int j=0; j<csubToSub2->csize(); ++j) glToLocSub2.insert(std::pair<int,int>((*csubToSub2)[j][0], j));
 	std::map<GlobalInt,int> glToLocNode;
 	for(int j=0; j<cnodeToNode->csize(); ++j) glToLocNode.insert(std::pair<GlobalInt,int>((*cnodeToNode)[j][0], j));
+    numClusNodes = cnodeToNode->csize();
 
 	SparsePairType1 *subnode = new SparsePairType1(glToLocSub2,csubToNode);
 	subToNode_sparse = new SparseConnectivityType1(subnode);

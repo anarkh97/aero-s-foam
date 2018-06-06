@@ -468,7 +468,7 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
     }
   }
 #endif
-  if (claw) claw->makeGlobalClaw(subd->getClaw());//Warning, claw for Geosource is "empty"
+  if (claw) claw->makeGlobalClaw(subd->getClaw());
 
   // complex dirichlet
 #ifdef SOWER_DEBUG

@@ -19,6 +19,6 @@ RigidSpring::RigidSpring(int* _nn)
 int
 RigidSpring::getTopNumber()
 {
-  return 102;
+  return 101;
 }
 #endif

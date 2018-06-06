@@ -193,7 +193,6 @@ struct FetiInfo {
     // FETI-H
     double tolcgm = 1e-3;
     int numcgm = 0; // number of coarse grid modes
-    double numcgm2 = 0.0;
     int spaceDimension = 3;
     int krylovtype = 8;
     int lumpedinterface = 0; // 0 - default (consistent) 1 - lumped
@@ -219,7 +218,6 @@ struct FetiInfo {
     int contactPrintFlag = 0;
 
     bool rebuildcct = true;
-    bool rebuildSbb = false; // Unused??
     bool geometric_gap = false;
     int mpcBlkOverlap = 0; //0=no interaction, 1=1st order interactions, 2=1st & 2nd order interactions, etc.
     double gamma = 1.0;

@@ -74,7 +74,7 @@ public:
 class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
 {
 	int n[3];
-	NLMaterial *material;
+    NLMaterial *material, *linearMaterial;
 	double *cCoefs;
 	double *cFrame;
 	bool useDefaultMaterial;
@@ -86,6 +86,9 @@ protected:
 	GenShapeFunction< TwoDTensorTypes<9> > *getShapeFunction() const override;
 	GenStrainEvaluator<TwoDTensorTypes<9> > *getGenStrainEvaluator() const override;
 	const NLMaterial *getMaterial() const override;
+    NLMaterial *getLinearMaterial() const override;
+    void rotateCFrame(const CoordSet &cs, double *T) const;
+    void rotateConstitutiveMatrix2(const CoordSet &cs, double C[6][6], double alpha[6]);
 
 public:
 	explicit NLMembrane(int *nd);
@@ -103,7 +106,6 @@ public:
 	void setProp(StructProp *p, bool _myProp) override;
 	void setCompositeData(int, int, double *, double *coefs, double *frame) override;
 	double* setCompositeData2(int, int, double *, double *coefs, CoordSet &cs, double theta) override;
-	void getCFrame(CoordSet &cs, double cFrame[3][3]) const override;
 	void setMaterial(NLMaterial *) override;
 	void setPressure(PressureBCond *_pbc) override { pbc = _pbc; }
 	PressureBCond* getPressure() override { return pbc; }
@@ -120,12 +122,6 @@ public:
 #endif
 	FullSquareMatrix massMatrix(const CoordSet& cs, double *mel, int cmflg) const override;
 	double getMass(const CoordSet&) const override;
-	void getGravityForce(CoordSet& cs, double *gravityAcceleration,
-						 Vector& gravityForce, int gravflg, GeomState *geomState) override;
-	void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-					 int surface, double *ndTemps, double ylayer, double zlayer, int avgnum) override;
-	void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-					  int surface, double *ndTemps) override;
 
 	void computeDisp(CoordSet &cs, State &state, const InterpPoint &, double *res, GeomState *gs) override;
 	void getFlLoad(CoordSet &, const InterpPoint &,  double *flF, double *resF, GeomState *gs) override;

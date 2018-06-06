@@ -66,65 +66,64 @@ DistrPodProjectionNonLinDynamic::preProcess() {
     throw std::runtime_error("Solver must be EiGalerkinProjectionSolver");
   }
 
-    if(projectionBasis_.data() != NULL) {
-      resetFromClean = true;
+
+  if(projectionBasis_.data() != NULL) {
+    resetFromClean = true;
+  }
+  // read in primal and dual bases
+  {
+    std::vector<int> locBasisVec;
+    for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob) {
+      FileNameInfo fileInfo;
+      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
+      fileName.append(".massorthonormalized");
+      DistrBasisInputFile BasisFile(fileName);
+      int locSize = domain->solInfo().localBasisSize[rob] ?
+                    std::min(domain->solInfo().localBasisSize[rob], BasisFile.stateCount()) :
+                    BasisFile.stateCount();
+      locBasisVec.push_back(locSize);
+      if(verboseFlag && domain->solInfo().readInROBorModes.size()>1 && !resetFromClean) 
+        filePrint(stderr, " ... Local Basis %d size %-3d ...\n",rob,locBasisVec[rob]);
     }
-    // read in primal and dual bases
-    {
-      std::vector<int> locBasisVec;
-      for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob) {
-        FileNameInfo fileInfo;
-        std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
-        fileName.append(".massorthonormalized");
-        DistrBasisInputFile BasisFile(fileName);
-        int locSize = domain->solInfo().localBasisSize[rob] ?
-                      std::min(domain->solInfo().localBasisSize[rob], BasisFile.stateCount()) :
-                      BasisFile.stateCount();
-        locBasisVec.push_back(locSize);
-        if(verboseFlag && domain->solInfo().readInROBorModes.size()>1 && !resetFromClean) 
-          filePrint(stderr, " ... Local Basis %d size %-3d ...\n",rob,locBasisVec[rob]);
-      }
 
-      //initialize helper objects for reading in distributed basis vectors
-      const int projectionSubspaceSize = std::accumulate(locBasisVec.begin(),locBasisVec.end(),0);
-      if(!resetFromClean) filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
-      projectionBasis_.dimensionIs(projectionSubspaceSize, MDNLDynamic::solVecInfo());
+    //initialize helper objects for reading in distributed basis vectors
+    const int projectionSubspaceSize = std::accumulate(locBasisVec.begin(),locBasisVec.end(),0);
+    if(!resetFromClean) filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
+    projectionBasis_.dimensionIs(projectionSubspaceSize, MDNLDynamic::solVecInfo());
 
-      DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
+    DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
 
-      typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
+    typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
 
-      DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
-                                       SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
-      DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
+    DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
+                                     SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
+    DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
   
 
-      // this loop reads in vectors and stores them in a single Distributed Basis structure
-      DistrVecBasis::iterator it = projectionBasis_.begin();
-      for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob){
-        FileNameInfo fileInfo;
-        std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
-        fileName.append(".massorthonormalized");
-        DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
+    // this loop reads in vectors and stores them in a single Distributed Basis structure
+    DistrVecBasis::iterator it = projectionBasis_.begin();
+    for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob){
+      FileNameInfo fileInfo;
+      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD,rob);
+      fileName.append(".massorthonormalized");
+      DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
 
-        if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
-        for (int currentVec = 0; currentVec<locBasisVec[rob]; ++currentVec) {
-          assert(BasisFile.validCurrentState());
+      if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
+      for (int currentVec = 0; currentVec<locBasisVec[rob]; ++currentVec) {
+        assert(BasisFile.validCurrentState());
 
-          BasisFile.currentStateBuffer(buffer);
-          converter.vector(buffer, *it);
-          it++;  
-          BasisFile.currentStateIndexInc();
-        }
+        BasisFile.currentStateBuffer(buffer);
+        converter.vector(buffer, *it); 
+        it++;  
+        BasisFile.currentStateIndexInc();
       }
-    
-
+    }
+   
     solver_->projectionBasisIs(projectionBasis_);
 
     if(!domain->solInfo().readInDualROB.empty()) { 
       // this loop reads in dual vectors and stores them in a single data structure if not using modal LMPCs 
       // check size of each local basis and allocate memory
-      GenVecBasis<double,GenDistrVector> dualProjectionBasis_;      
       std::vector<int> dualLocBasisVec;
       for(int rob=0; rob<domain->solInfo().readInROBorModes.size(); ++rob) {
         FileNameInfo fileInfo;
@@ -134,57 +133,31 @@ DistrPodProjectionNonLinDynamic::preProcess() {
                       std::min(domain->solInfo().localDualBasisSize[rob], BasisFile.stateCount()) :
                       BasisFile.stateCount();
         dualLocBasisVec.push_back(locSize);
-        if(verboseFlag && domain->solInfo().readInDualROB.size()>1) 
+        if(verboseFlag && domain->solInfo().readInDualROB.size()>1 && !resetFromClean) 
           filePrint(stderr, " ... Local Dual Basis %d size %-3d ...\n",rob,dualLocBasisVec[rob]);
       }
 
       //initialize helper objects for reading in distributed basis vectors
       const int dualProjectionSubspaceSize = std::accumulate(dualLocBasisVec.begin(),dualLocBasisVec.end(),0);
-      filePrint(stderr, " ... Dual Proj. Subspace Dimension = %-3d ...\n", dualProjectionSubspaceSize);
-      dualProjectionBasis_.dimensionIs(dualProjectionSubspaceSize, decDomain->masterSolVecInfo());
-
-      DistrVecNodeDof1Conversion converter1(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
-      DistrNodeDof1Buffer        buffer1(masterMapping.localNodeBegin(), masterMapping.localNodeEnd()); 
+      if(!resetFromClean) filePrint(stderr, " ... Dual Proj. Subspace Dimension = %-3d ...\n", dualProjectionSubspaceSize);
+      dualMapVectors_.resize(dualProjectionSubspaceSize); 
       
-      DistrVecBasis::iterator dualit = dualProjectionBasis_.begin();
+      std::vector<std::map<int,double> >::iterator dualMapIt = dualMapVectors_.begin();
       for(int rob=0; rob<domain->solInfo().readInDualROB.size(); ++rob){
         FileNameInfo fileInfo;
         std::string fileName = BasisFileId(fileInfo, BasisId::DUALSTATE, BasisId::POD,rob);
-        DistrBasisInputFileTemplate<1> BasisFile(fileName); //read in mass-normalized basis
+        DistrBasisInputFileTemplate<1> BasisFile(fileName); //read in dual variable basis
         if(verboseFlag) filePrint(stderr, " ... Reading dual basis from file %s ...\n", fileName.c_str());
         for (int currentVec = 0; currentVec<dualLocBasisVec[rob]; ++currentVec) {
           assert(BasisFile.validCurrentState());
 
-          BasisFile.currentStateBuffer(buffer1);
-          converter1.vector(buffer1, *dualit);
-          dualit++;
-
+          BasisFile.currentStateBuffer(*dualMapIt);
+          dualMapIt++;
+ 
           BasisFile.currentStateIndexInc();
         }
       }
-
-      if(geoSource->getNumConstraintElementsIeq() > 0 && !domain->solInfo().modalLMPC) {
-        solver_->dualProjectionBasisIs(dualProjectionBasis_);
-        double dt = domain->solInfo().getTimeStep(), beta = domain->solInfo().newmarkBeta;
-        double Kcoef = dt*dt*beta;
-        Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
-        ResizeArray<LMPCons *> lmpc(0); 
-        int numLMPC = 0;
-        for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
-          Element *ele = eset[i];
-          const int iPackElem = domain->glToPackElem(i);
-          if(iPackElem >= 0) {
-            int n = ele->getNumMPCs();
-            LMPCons **l = ele->getMPCs();
-            for(int j = 0; j < n; ++j) {
-               lmpc[numLMPC++] = l[j];
-            }
-            delete [] l;
-          }
-        }
-        solver_->addLMPCs(numLMPC, lmpc.data(), Kcoef);
-        for(int i=0; i<numLMPC; ++i) delete lmpc[i];
-      }
+      solver_->dualProjectionBasisIs(dualMapVectors_);
     } 
 
     if(domain->solInfo().modalLMPC) {
@@ -560,33 +533,51 @@ DistrPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geomState
     residual += r;
   }
 
+  int glNumMPCs = 0; 
+  for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
+        glNumMPCs += decDomain->getSubDomain(iSub)->numMPCs();
+  }
+  
+  if(structCom)
+    glNumMPCs = structCom->globalSum(glNumMPCs);
+
 #ifdef USE_EIGEN3
-  if(geoSource->getNumConstraintElementsIeq() || domain->solInfo().modalLMPC) {
+  if((!domain->solInfo().readInDualROB.empty() && glNumMPCs > 0) || domain->solInfo().modalLMPC) {
     solver_->activateContact();
-    if(geoSource->getLmpcFlag() || domain->solInfo().modalLMPC) { // linear
+    if(domain->solInfo().modalLMPC) { // linear
       solver_->updateLMPCs(geomState.q);
-    }
-   else { // nonlinear, or mixed
-      Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
-      ResizeArray<LMPCons *> lmpc(0);
-      int numLMPC = 0;
-      for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
-        Element *ele = eset[i];
-        const int iPackElem = domain->glToPackElem(i);
-        if(iPackElem >= 0) {
-          //static_cast<MpcElement*>(ele)->update(refState_Big, *geomState_Big, domain->getNodes(), t);
-          int n = ele->getNumMPCs();
-          LMPCons **l = ele->getMPCs();
-          for(int j = 0; j < n; ++j) {
-            lmpc[numLMPC++] = l[j];
-          }
-          delete [] l;
-        }
+    } else { // nonlinear, or mixed
+     
+      // get primal and dual bases
+      const GenVecBasis<double,GenDistrVector> &projectionBasis = solver_->projectionBasis(); 
+      int startDualCol = 0; int blockDualCols = 0; 
+      solver_->getLocalDualBasisInfo(startDualCol, blockDualCols); 
+
+      // allocate space for projection of constraints and their rhs onto dual basis
+      DistrVecBasis CtW(blockDualCols, decDomain->masterSolVecInfo());
+      Eigen::Matrix<double,Eigen::Dynamic,1> WtRhs(blockDualCols); WtRhs.setZero();
+      // get MPCs from each subDomain
+      for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
+        //decDomain->getSubDomain(iSub)->dualConstraintProjection( dualBasis, CtW, WtRhs); 
+        decDomain->getSubDomain(iSub)->dualConstraintProjection(dualMapVectors_, CtW, WtRhs, startDualCol, blockDualCols);
+      } 
+    
+      // unify reduced constraint matrix and right hand side
+      if(structCom)
+        structCom->globalSum(WtRhs.size(), WtRhs.data());
+ 
+      // project constraints and rhs onto primal basis
+      Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> WtCV(blockDualCols,projectionBasis.numVec()); 
+      for(int i = 0; i < blockDualCols; ++i) {
+        Eigen::Matrix<double,Eigen::Dynamic,1> buffer(projectionBasis_.numVec()); buffer.setZero();
+        projectionBasis_.sparseVecReduce(CtW[i],buffer.data()); // force through specialized tempalate function
+        WtCV.row(i).array() = buffer.array();
       }
+
+      // send to solver
       double dt = domain->solInfo().getTimeStep(), beta = domain->solInfo().newmarkBeta;
       double Kcoef = dt*dt*beta;
-      solver_->addLMPCs(numLMPC, lmpc.data(), Kcoef);
-      for(int i=0; i<numLMPC; ++i) delete lmpc[i];
+      solver_->addMPCs(WtCV, WtRhs, Kcoef); 
     }
   }
 #endif
@@ -785,10 +776,6 @@ DistrPodProjectionNonLinDynamic::initLocalBasis(DistrVector &q0){
       blockCols = domain->solInfo().localDualBasisSize[localBasisId];
       startCol = std::accumulate(domain->solInfo().localDualBasisSize.begin(), domain->solInfo().localDualBasisSize.begin()+localBasisId, 0);
       getSolver()->setLocalDualBasis(startCol,blockCols);
-      if(!domain->solInfo().modalLMPC){ //if using modal LMPCs, skip this since W is never explicitly read in
-        GenVecBasis<double,GenDistrVector> &dualProjectionBasis = solver_->dualProjectionBasis();
-        dualProjectionBasis.localBasisIs(startCol, blockCols);
-      }
     }
   }
 #else
@@ -833,10 +820,6 @@ DistrPodProjectionNonLinDynamic::setLocalBasis(DistrModalGeomState *refState, Di
         blockCols = domain->solInfo().localDualBasisSize[j];
         startCol = std::accumulate(domain->solInfo().localDualBasisSize.begin(), domain->solInfo().localDualBasisSize.begin()+j, 0);
         getSolver()->setLocalDualBasis(startCol, blockCols);
-        if(!domain->solInfo().modalLMPC){// we don't have W if using modal LMPCs
-          GenVecBasis<double,GenDistrVector> &dualProjectionBasis = solver_->dualProjectionBasis();
-          dualProjectionBasis.localBasisIs(startCol, blockCols);
-        }
       }
       if(VtV.size() == 0) {
         reduceDisp(vel_Big, vel);

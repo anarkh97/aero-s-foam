@@ -213,6 +213,7 @@ public:
    double qsBeta;       // relaxation parameter for computing alphaR in case of
                         // thermal quasistatic
    bool no_secondary;
+   bool shell_simple_lofting;
    // Eigenvalue Problem parameters
    enum {SubSpace, LobPcg, Arpack};
 
@@ -267,6 +268,7 @@ public:
    int condNumMaxit;
 
    int massFlag;
+   std::string massFile;
 	int filterFlags = 0;
 	/// \brief Filter selection parameter.  0 = Q=M for statics/quasistatics, 1 = Q=I for statics/quasistatics.
 	int filterQ = 1;
@@ -349,7 +351,7 @@ public:
    int numSnap;
    std::vector<std::string> snapfiPodRom;
    std::vector<std::string> robfi;
-   std::vector<double> snapshotWeights;
+   bool flagss, flagrs;
    std::vector<std::string> readInROBorModes;
    std::vector<std::string> readInDualROB; 
    std::map<std::pair<int,int>,std::string> readInLocalBasesAuxi;
@@ -365,6 +367,7 @@ public:
    std::vector<std::string> velocPodRomFile;
    std::vector<std::string> accelPodRomFile;
    std::vector<std::string> dsvPodRomFile;
+   std::vector<std::string> muvPodRomFile;
    const char * isvPodRomFile;
 //   const char * dsvPodRomFile;
    const char * forcePodRomFile;
@@ -379,6 +382,7 @@ public:
    bool accelvectPodRom;
    bool isvPodRom;
    bool dsvPodRom;
+   bool muvPodRom;
    bool forcevectPodRom;
    bool residvectPodRom;
    bool jacobvectPodRom;
@@ -463,6 +467,7 @@ public:
    int  skipAccel;
    int  skipInternalStateVar;
    int  skipDualStateVar;
+   int  skipMuStateVar;
    int  skipForce;
    int  skipResidual;
    int  skipJacobian;
@@ -529,6 +534,7 @@ public:
                   qsBeta = 1.0;
                   delta = 0.0;
                   no_secondary = false;
+                  shell_simple_lofting = false;
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
                                   
@@ -657,6 +663,8 @@ public:
                   constraint_hess_eps = 0;
 
                   numSnap            = 1;
+                  flagss             = false;
+                  flagrs             = true;
                   readInShapeSen     = "";
                   SVDoutput          = "pod.rob";
                   reducedMeshFile    = "";
@@ -674,6 +682,7 @@ public:
                   accelvectPodRom    = false;
                   isvPodRom          = false;
                   dsvPodRom          = false;
+                  muvPodRom          = false;
                   forcevectPodRom    = false;
                   residvectPodRom    = false;
                   jacobvectPodRom    = false;
@@ -754,6 +763,7 @@ public:
                   skipAccel          = 1;
                   skipInternalStateVar = 1;
                   skipDualStateVar   = 1;
+                  skipMuStateVar     = 1;
                   skipForce          = 1;
                   skipResidual       = 1;
                   skipJacobian       = 1;

@@ -57,7 +57,7 @@ Domain::Domain(Domain &d, int nele, const int *eles, int nnodes, const int *nnum
 #ifdef USE_EIGEN3
     rubdaft(0),
 #endif
-    ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
+    ss1dt(0), ss2dt(0), ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -93,7 +93,7 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 #ifdef USE_EIGEN3
     rubdaft(0),
 #endif
-    ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
+    ss1dt(0), ss2dt(0), ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -125,7 +125,7 @@ Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(ini
 #ifdef USE_EIGEN3
    rubdaft(0,iniSize),
 #endif
-   ysst(0,iniSize), yssrt(0,iniSize),
+   ss1dt(0, iniSize), ss2dt(0, iniSize), ysst(0,iniSize), yssrt(0,iniSize),
    SurfEntities(0,iniSize), MortarConds(0,iniSize)
 {
  initialize();
@@ -1237,6 +1237,40 @@ void Domain::printCTETT()
 }
 
 int
+Domain::addSS1DT(MFTTData *_ss1dt)
+{
+ //--- Verify if ss1dt was already defined
+ int i = 0;
+ while(i < numSS1DT && ss1dt[i]->getID() != _ss1dt->getID()) i++;
+
+ // if SS1DT not previously defined create new
+ if(i == numSS1DT) ss1dt[numSS1DT++] = _ss1dt;
+
+ // if SS1DT already defined print warning message
+ else
+   filePrint(stderr," *** WARNING: SS1DT %d has already been defined \n", _ss1dt->getID());
+
+ return 0;
+}
+
+int
+Domain::addSS2DT(SS2DTData *_ss2dt)
+{
+ //--- Verify if ss2dt was already defined
+ int i = 0;
+ while(i < numSS2DT && ss2dt[i]->getID() != _ss2dt->getID()) i++;
+
+ // if SS2DT not previously defined create new
+ if(i == numSS2DT) ss2dt[numSS2DT++] = _ss2dt;
+
+ // if SS2DT already defined print warning message
+ else
+   filePrint(stderr," *** WARNING: SS2DT %d has already been defined \n", _ss2dt->getID());
+
+ return 0;
+}
+
+int
 Domain::addYSST(MFTTData *_ysst)
 {
  //--- Verify if ysst was already defined
@@ -1829,7 +1863,7 @@ Domain::getRenumbering()
          }
        }
 #else
-       if(count > sinfo.sparse_defblk) break;
+       if(count > sinfo.solvercntl->sparse_defblk) break;
 #endif
      }
      min_defblk += count;
@@ -3292,7 +3326,7 @@ Domain::initialize()
  numComplexDirichlet = 0; numComplexNeuman = 0; numNeumanModal = 0;
  firstDiMass = 0; numIDis6 = 0; gravityAcceleration = 0;
  allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0; com = 0;
- numLMPC = 0; numYMTT = 0; numCTETT = 0; numSDETAFT = 0; numRUBDAFT = 0; numYSST = 0; numYSSRT = 0; MidPoint = 0; temprcvd = 0;
+ numLMPC = 0; numYMTT = 0; numCTETT = 0; numSDETAFT = 0; numRUBDAFT = 0; numSS1DT = 0; numSS2DT = 0; numYSST = 0; numYSSRT = 0; MidPoint = 0; temprcvd = 0;
  heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; nbcModal = 0;
  iDis = 0; iDisModal = 0; iVel = 0; iVelModal = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
  nodeToNode = 0; dsa = 0; c_dsa = 0; cdbc = 0; cnbc = 0;
@@ -3950,7 +3984,8 @@ void Domain::setNewProperties(int s)
   map<int, Attrib> &attr = geoSource->getAttributes();
   if(s==0) {
 //   elems_copy.setMyData(true);
-   for(int j=0; j<packedEset.last(); ++j) elems_fullcopy.elemadd(j,packedEset[j]);
+   int nEls = packedEset.last();
+   for(int j=0; j<nEls; ++j) elems_fullcopy.elemadd(j,packedEset[j]);
    for(map<int, Group >::iterator it = geoSource->group.begin(); it != geoSource->group.end(); ++it) {   // loop over all of the groups
      for(int i = 0; i < int(it->second.attributes.size()); ++i) { // loop over attributes
         int iattr = it->second.attributes[i];

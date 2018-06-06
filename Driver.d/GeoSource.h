@@ -305,7 +305,7 @@ public:
     void distributeBCs(GenSubDomain<Scalar> *&, int *, int *gl2clNodeMap = 0);
   int getBC(BCond *, int, int *, BCond *&, int *gl2clNodeMap = 0);
   void augmentBC(int, BCond *, BCond *&, int &);
-  int getCPUMap(FILE *f, Connectivity *, int glNumSub = 0);
+  int getCPUMap(FILE *f, Connectivity *, int glNumSub, int nCpu);
   void createSingleCpuToSub(int numSub);
   int getSubCtrl(BCond *, int, BCond *&, int *, int *, int *&); //bin geo
   int getSubCtrl(BCond *, int, BCond *&, int, int *&); // text geo input
@@ -600,7 +600,7 @@ public:
   void readGlobalBinaryData();
   void computeClusterInfo(int glSub, Connectivity *subToNode = NULL);
 
-  void writeDistributedInputFiles(int nCluster, Domain*);
+  void writeDistributedInputFiles(int nCluster, Domain*, int nCpu);
 #ifdef SOWER_SURFS
   void readDistributedSurfs(int subNum);
 #endif
@@ -675,6 +675,7 @@ public:
   void setAttributeGroup(int a, int g);
   void setNodeGroup(int nn, int id);
   std::set<int> & getNodeGroup(int id) { return nodeGroup[id]; }
+  std::map<int, std::set<int> > & getNodeGroups() { return nodeGroup; }
   void setSurfaceGroup(int sn, int id);
 
   // Sfem stuff

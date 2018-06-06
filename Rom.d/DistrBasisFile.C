@@ -56,6 +56,7 @@ DistrBasisInputFileTemplate<DOFS_PER_NODE>::currentStateBuffer(DistrNodeDofBuffe
   
   typedef typename DistrNodeDofBuffer<DOFS_PER_NODE>::NodeItConst NodeIt;
   const NodeIt it_end = target.globalNodeIndexEnd();
+
   for (NodeIt it = target.globalNodeIndexBegin(); it != it_end; ++it) {
     const int iNode = *it; // Id of the node requested by the local buffer
 
@@ -70,6 +71,19 @@ DistrBasisInputFileTemplate<DOFS_PER_NODE>::currentStateBuffer(DistrNodeDofBuffe
   }
 
   return target;
+}
+
+template<int DOFS_PER_NODE>
+void
+DistrBasisInputFileTemplate<DOFS_PER_NODE>::currentStateBuffer(std::map<int,double> &target) {
+  BasisBinaryInputFile::currentStateBuffer(fileBuffer_);
+
+  for(NodeIdIterator it = binFile_.itemIdBegin(); it != binFile_.itemIdEnd(); ++it){
+    double *muVal = fileBuffer_[*it];
+    if(*muVal > 1e-16 || *muVal < -1e-16){
+      target.insert(std::make_pair(*it,*muVal));
+    }
+  }
 }
 
 template
@@ -97,5 +111,9 @@ DistrBasisInputFileTemplate<1>::DistrBasisInputFileTemplate(const std::string &f
 template
 const DistrNodeDofBuffer<1> &
 DistrBasisInputFileTemplate<1>::currentStateBuffer(DistrNodeDofBuffer<1> &target);
+
+template
+void
+DistrBasisInputFileTemplate<1>::currentStateBuffer(std::map<int,double> &target);
 
 } /* end namespace Rom */

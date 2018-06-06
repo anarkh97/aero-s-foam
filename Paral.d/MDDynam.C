@@ -908,7 +908,6 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
         delete [] ext;
         sd->updateStates((*geomState)[i],*((*geomState)[i]),allCorot[i],sd->solInfo().initialTime);
       }
-      geomState->setVelocityAndAcceleration(state.getVeloc(), state.getAccel());
     }
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
     domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;

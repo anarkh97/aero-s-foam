@@ -71,33 +71,51 @@ DistrLumpedPodProjectionNonLinDynamic::getStiffAndForce(DistrModalGeomState& geo
     residual += r;
   }
 
+  int glNumMPCs = 0;
+  for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
+        glNumMPCs += decDomain->getSubDomain(iSub)->numMPCs();
+  }
+
+  if(structCom)
+    glNumMPCs = structCom->globalSum(glNumMPCs);
+
 #ifdef USE_EIGEN3
-  if(geoSource->getNumConstraintElementsIeq() || domain->solInfo().modalLMPC) {
+  if((!domain->solInfo().readInDualROB.empty() && glNumMPCs > 0) || domain->solInfo().modalLMPC) {
     solver_->activateContact();
-    if(geoSource->getLmpcFlag() || domain->solInfo().modalLMPC) { // linear
+    if(domain->solInfo().modalLMPC) { // linear
       solver_->updateLMPCs(geomState.q);
     }
-   else { // nonlinear, or mixed
-      Elemset &eset = geoSource->getPackedEsetConstraintElementIeq();
-      ResizeArray<LMPCons *> lmpc(0);
-      int numLMPC = 0;
-      for(int i=0; i<geoSource->getNumConstraintElementsIeq(); ++i) {
-        Element *ele = eset[i];
-        const int iPackElem = domain->glToPackElem(i);
-        if(iPackElem >= 0) {
-          //static_cast<MpcElement*>(ele)->update(refState_Big, *geomState_Big, domain->getNodes(), t);
-          int n = ele->getNumMPCs();
-          LMPCons **l = ele->getMPCs();
-          for(int j = 0; j < n; ++j) {
-            lmpc[numLMPC++] = l[j];
-          }
-          delete [] l;
-        }
+    else { // nonlinear, or mixed
+
+      // get primal and dual bases
+      const GenVecBasis<double,GenDistrVector> &projectionBasis = solver_->projectionBasis();
+      int startDualCol = 0; int blockDualCols = 0;
+      solver_->getLocalDualBasisInfo(startDualCol, blockDualCols);
+
+      // allocate space for projection of constraints and their rhs onto dual basis
+      DistrVecBasis CtW(blockDualCols, decDomain->masterSolVecInfo());
+      Eigen::Matrix<double,Eigen::Dynamic,1> WtRhs(blockDualCols); WtRhs.setZero();
+      // get MPCs from each subDomain
+      for(int iSub = 0; iSub < decDomain->getNumSub(); ++iSub) {
+        //decDomain->getSubDomain(iSub)->dualConstraintProjection( dualBasis, CtW, WtRhs); 
+        decDomain->getSubDomain(iSub)->dualConstraintProjection(dualMapVectors_, CtW, WtRhs, startDualCol, blockDualCols);
       }
+      // unify reduced constraint matrix and right hand side
+      if(structCom)
+        structCom->globalSum(WtRhs.size(), WtRhs.data());
+
+      // project constraints and rhs onto primal basis
+      Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> WtCV(blockDualCols,projectionBasis.numVec());
+      for(int i = 0; i < blockDualCols; ++i) {
+        Eigen::Matrix<double,Eigen::Dynamic,1> buffer(projectionBasis_.numVec()); buffer.setZero();
+        projectionBasis_.sparseVecReduce(CtW[i],buffer.data()); // force through specialized tempalate function
+        WtCV.row(i).array() = buffer.array();
+      }
+
+      // send to solver
       double dt = domain->solInfo().getTimeStep(), beta = domain->solInfo().newmarkBeta;
       double Kcoef = dt*dt*beta;
-      solver_->addLMPCs(numLMPC, lmpc.data(), Kcoef);
-      for(int i=0; i<numLMPC; ++i) delete lmpc[i];
+      solver_->addMPCs(WtCV, WtRhs, Kcoef);
     }
   }
 #endif

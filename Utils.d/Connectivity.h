@@ -151,6 +151,7 @@ public:
 	size_t write(BinFileHandler& f);
 	size_t writeg(BinFileHandler& f);
 	size_t read(FILE* f);
+        size_t write(FILE* f);
 
 	void countlink(int from, int to); //DEC
 	void addlink(int from, int to); //DEC

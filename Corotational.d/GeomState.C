@@ -1963,15 +1963,46 @@ GeomState::getRotations(double *rotations)
 {
  int i;
  for(i=0; i<numnodes; ++i) {
-   rotations[9*i+0] = ns[i].R[0][0];
-   rotations[9*i+1] = ns[i].R[0][1];
-   rotations[9*i+2] = ns[i].R[0][2];
-   rotations[9*i+3] = ns[i].R[1][0];
-   rotations[9*i+4] = ns[i].R[1][1];
-   rotations[9*i+5] = ns[i].R[1][2];
-   rotations[9*i+6] = ns[i].R[2][0];
-   rotations[9*i+7] = ns[i].R[2][1];
-   rotations[9*i+8] = ns[i].R[2][2];
+   rotations[12*i+0] = ns[i].R[0][0];
+   rotations[12*i+1] = ns[i].R[0][1];
+   rotations[12*i+2] = ns[i].R[0][2];
+   rotations[12*i+3] = ns[i].R[1][0];
+   rotations[12*i+4] = ns[i].R[1][1];
+   rotations[12*i+5] = ns[i].R[1][2];
+   rotations[12*i+6] = ns[i].R[2][0];
+   rotations[12*i+7] = ns[i].R[2][1];
+   rotations[12*i+8] = ns[i].R[2][2];
+   rotations[12*i+9] = ns[i].theta[0];
+   rotations[12*i+10] = ns[i].theta[1];
+   rotations[12*i+11] = ns[i].theta[2];
+ }
+}
+
+void
+GeomState::getVelocities(double *velocities)
+{
+ int i;
+ for(i=0; i<numnodes; ++i) {
+   velocities[6*i+0] = ns[i].v[0];
+   velocities[6*i+1] = ns[i].v[1];
+   velocities[6*i+2] = ns[i].v[2];
+   velocities[6*i+3] = ns[i].v[3];
+   velocities[6*i+4] = ns[i].v[4];
+   velocities[6*i+5] = ns[i].v[5];
+ }
+}
+
+void
+GeomState::getAccelerations(double *accelerations)
+{
+ int i;
+ for(i=0; i<numnodes; ++i) {
+   accelerations[6*i+0] = ns[i].a[0];
+   accelerations[6*i+1] = ns[i].a[1];
+   accelerations[6*i+2] = ns[i].a[2];
+   accelerations[6*i+3] = ns[i].a[3];
+   accelerations[6*i+4] = ns[i].a[4];
+   accelerations[6*i+5] = ns[i].a[5];
  }
 }
 
@@ -2001,15 +2032,46 @@ GeomState::setRotations(double *rotations)
 {
  int i;
  for(i=0; i<numnodes; ++i) {
-   ns[i].R[0][0] = rotations[9*i+0];
-   ns[i].R[0][1] = rotations[9*i+1];
-   ns[i].R[0][2] = rotations[9*i+2];
-   ns[i].R[1][0] = rotations[9*i+3];
-   ns[i].R[1][1] = rotations[9*i+4];
-   ns[i].R[1][2] = rotations[9*i+5];
-   ns[i].R[2][0] = rotations[9*i+6];
-   ns[i].R[2][1] = rotations[9*i+7];
-   ns[i].R[2][2] = rotations[9*i+8];
+   ns[i].R[0][0] = rotations[12*i+0];
+   ns[i].R[0][1] = rotations[12*i+1];
+   ns[i].R[0][2] = rotations[12*i+2];
+   ns[i].R[1][0] = rotations[12*i+3];
+   ns[i].R[1][1] = rotations[12*i+4];
+   ns[i].R[1][2] = rotations[12*i+5];
+   ns[i].R[2][0] = rotations[12*i+6];
+   ns[i].R[2][1] = rotations[12*i+7];
+   ns[i].R[2][2] = rotations[12*i+8];
+   ns[i].theta[0] = rotations[12*i+9];
+   ns[i].theta[1] = rotations[12*i+10];
+   ns[i].theta[2] = rotations[12*i+11];
+ }
+}
+
+void
+GeomState::setVelocities(double *velocities)
+{
+ int i;
+ for(i=0; i<numnodes; ++i) {
+   ns[i].v[0] = velocities[6*i+0];
+   ns[i].v[1] = velocities[6*i+1];
+   ns[i].v[2] = velocities[6*i+2];
+   ns[i].v[3] = velocities[6*i+3];
+   ns[i].v[4] = velocities[6*i+4];
+   ns[i].v[5] = velocities[6*i+5];
+ }
+}
+
+void
+GeomState::setAccelerations(double *accelerations)
+{
+ int i;
+ for(i=0; i<numnodes; ++i) {
+   ns[i].a[0] = accelerations[6*i+0];
+   ns[i].a[1] = accelerations[6*i+1];
+   ns[i].a[2] = accelerations[6*i+2];
+   ns[i].a[3] = accelerations[6*i+3];
+   ns[i].a[4] = accelerations[6*i+4];
+   ns[i].a[5] = accelerations[6*i+5];
  }
 }
 

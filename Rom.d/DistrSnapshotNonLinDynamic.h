@@ -25,6 +25,8 @@ public:
   // Helper class to be used as template parameter in NLDynamSolver 
   class Updater;
 
+  void updateParameters(DistrGeomState *geomState) { impl_->muvarSnapshotAdd(*geomState); MDNLDynamic::updateParameters(geomState); }
+
 protected:
   // Interface to implementation
   class Impl {
@@ -35,6 +37,7 @@ protected:
     virtual void velocSnapshotAdd(const DistrVector &) = 0;
     virtual void accelSnapshotAdd(const DistrVector &) = 0;
     virtual void dsvarSnapshotAdd(const DistrGeomState &) = 0;
+    virtual void muvarSnapshotAdd(const DistrGeomState &) = 0;
     virtual void postProcess() = 0;
     
     virtual ~Impl() {}

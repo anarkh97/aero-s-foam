@@ -17,6 +17,7 @@ public:
 
   size_t size() const { return nodeCount_; }
   void sizeIs(size_t nodeCount) { buffer_.sizeIs(DOFS_PER_NODE * nodeCount); nodeCount_ = nodeCount; }
+  void zero() { for(int i = 0; i < buffer_.size(); ++i) buffer_[i] = 0.0; }; 
 
   int dofsPerNode() const { return DOFS_PER_NODE; }
 

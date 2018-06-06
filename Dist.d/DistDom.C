@@ -685,6 +685,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Accelvector:
       case OutputInfo::InternalStateVar:
       case OutputInfo::DualStateVar:
+      case OutputInfo::MuStateVar:
       case OutputInfo::Forcevector:
       case OutputInfo::Constraintvector:
       case OutputInfo::Constraintviolation:
@@ -1930,6 +1931,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Accelvector:
       case OutputInfo::InternalStateVar:
       case OutputInfo::DualStateVar:
+      case OutputInfo::MuStateVar: 
       case OutputInfo::Forcevector:
       case OutputInfo::Constraintvector:
       case OutputInfo::Constraintviolation:

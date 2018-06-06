@@ -169,9 +169,22 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::addToReducedM
 
 template <typename Scalar, template<typename> class GenVecType, class BaseSolver>
 void
+GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::addMPCs(Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &ContributionMat, Eigen::Matrix<Scalar,Eigen::Dynamic,1> &WtRhs, double Kcoef)
+{
+  if(!selfadjoint_) { std::cerr << "Error: unsymmetric solver is not supported for contact ROM with Lagrange Multipliers\n"; exit(-1); }
+
+  reducedConstraintMatrix_ = Kcoef*ContributionMat; 
+  reducedConstraintRhs0_ = reducedConstraintRhs_ = Kcoef*WtRhs; 
+}
+
+template <typename Scalar, template<typename> class GenVecType, class BaseSolver>
+void
 GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef)
 {
-  if(numLMPC > 0 && !selfadjoint_) { std::cerr << "Error: unsymmetric solver is not supported for contact ROM\n"; exit(-1); }
+  if(numLMPC > 0 && !selfadjoint_) { std::cerr << "Error: unsymmetric solver is not supported for contact ROM with Lagrange Multipliers\n"; exit(-1); }
+
+  // loop through mpcs and multiply by dual basis
+  // take (C^T*W) \in R^(N x m) and multiply by V^T 
 
   std::vector<Eigen::Triplet<Scalar> > tripletList;
 
@@ -289,6 +302,20 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::dualProjectio
 
   // local basis: dual solver uses all columns unless setLocalDualBasis is called
   startDualCol_  = 0; 
+  dualBlockCols_ = dualBasisSize_;
+}
+
+template <typename Scalar, template<typename> class GenVecType, class BaseSolver>
+void
+GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::dualProjectionBasisIs(std::vector<std::map<int, double> > &dualReducedBasis)
+{
+  //dualProjectionBasis_ = &dualReducedBasis;
+  dualBasisSize_       = dualReducedBasis.size();
+  reducedConstraintMatrix_.setZero(dualBasisSize_, basisSize_);
+  reducedConstraintForce_.setZero(basisSize_);
+
+  // local basis: dual solver uses all columns unless setLocalDualBasis is called
+  startDualCol_  = 0;
   dualBlockCols_ = dualBasisSize_;
 }
 
@@ -463,6 +490,17 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::reSolve(GenVe
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data()+startCol_, blockCols_);
 
   //std::cout << "rhs = \n" << x.transpose() << std::endl; 
+
+  // llt_  : precomputed cholesky decomposition
+  // c1_   : estimate for condition number of dynamic stiffness matrix
+  // g0    : residual  
+  // CE    : Equality constraints
+  // ce0   : rhs for equality constraints
+  // CI    : Inequality constraints
+  // ci0   : rhs for inequality constraints
+  // _x    : primal solution
+  // Lambda: multipliers associated with equality constraints
+  // Mu    : multipliers associated with inequality constraints
 
   //double dummyTime = -1.0*getTime();
   if(dualBlockCols_ > 0 && contact_) {

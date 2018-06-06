@@ -121,6 +121,7 @@ bool trivialFlag=false;
 bool randomShuffle=false;
 bool fsglFlag=false;
 bool allowMechanisms=false;
+bool useScotch=false;
 
 int verboseFlag = 0;
 int contactPrintFlag = 0;
@@ -268,6 +269,7 @@ int main(int argc, char** argv)
  int numProcessors = 1;
  int topFlag    = -1;
  int numClusters = 1;
+ int numCpus = 1;
 
  bool callDec = false;
  bool exitAfterDec = false;
@@ -315,6 +317,7 @@ int main(int argc, char** argv)
    {"deter", 0, nullptr, 1005},
    {"trivial", 0, nullptr, 1007},
    {"allow-mechanisms", 0, nullptr, 1008},
+   {"use-scotch", 0, 0, 1009},
    {"use-weight-from", 1, nullptr, 1004},
    {"threads-number", 1, nullptr, 'n'},
    {"decomposition-filename", 1, nullptr, 'd'},
@@ -341,13 +344,14 @@ int main(int argc, char** argv)
    {"nclus", 1, nullptr, 1012},
    {"debug", 0, nullptr, 1006},
    {"quiet", 0, nullptr, 'q'},
+   {"ncpu", 1, 0, 1013},
    {0, 0, nullptr, 0}
  };
  // end getopt_long
 
  filePrint(stderr,"\n --------- R U N  PARAMETERS ----------\n");
  FILE * weightFile;
- while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:q",long_options, &option_index)) != -1)
+ while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:q", long_options, &option_index)) != -1)
 	  switch (c) {
 	  case 1000 :  // call dec from FEM
 	callDec = true;
@@ -421,6 +425,9 @@ int main(int argc, char** argv)
 	  case 1008 :
 		allowMechanisms = true;
 		break;
+      case 1009 :
+        useScotch = true;
+        break;
 	  case 1010 :
 	callSower = true;
 	domain->setSowering(true);
@@ -436,6 +443,10 @@ int main(int argc, char** argv)
 		numClusters = atoi(optarg);
 		if(numClusters <= 0) numClusters = 1;
 		break;
+      case 1013 :
+        numCpus = atoi(optarg);
+        if(numCpus <= 0) numCpus = 1;
+        break;
 	  case 'w':
 	weightOutFlag = true;
 		break;
@@ -721,8 +732,8 @@ int main(int argc, char** argv)
    // HB for checking Mortar & generating LMPCs from Mortar tied conditions
    if(topFlag < 0) {
 	 domain->SetUpSurfaces(&(geoSource->GetNodes()));
-	 if(!callSower) {
-	   domain->ProcessSurfaceBCs(topFlag);
+     domain->ProcessSurfaceBCs(topFlag);
+     if(!callSower) {
 	   domain->SetMortarPairing();
 	   if(!domain->tdenforceFlag()) {
 		 if(domain->solInfo().isNonLin()) { // for nonlinear statics and dynamics just process the tied surfaces here
@@ -806,7 +817,7 @@ int main(int argc, char** argv)
 
  if(callSower) {
    filePrint(stderr," ... Writing Distributed Binary Input Files ... \n");
-   geoSource->writeDistributedInputFiles(numClusters, domain); //add domain as argument for surfaces
+   geoSource->writeDistributedInputFiles(numClusters, domain, numCpus); //add domain as argument for surfaces
    if(exitAfterSower) {
 	 filePrint(stderr," ... Exiting after Sower run        ...\n");
 	 filePrint(stderr," --------------------------------------\n");
@@ -826,7 +837,8 @@ int main(int argc, char** argv)
 			 times.memorySetUp/oneMegaByte);
 	 domain->makeTopFile(topFlag);
    }
-   exit(-1);
+   closeComm();
+   exit(0);
  }
 
  if(domain->solInfo().noninpc || domain->solInfo().inpc) domain->initSfem();
@@ -841,6 +853,12 @@ int main(int argc, char** argv)
 #endif
  // 3. choose lumped mass (also pressure and gravity) and diagonal or block-diagonal "solver" for explicit dynamics
  if(domain->solInfo().newmarkBeta == 0 || (domain->solInfo().svdPodRom && geoSource->getMRatio() == 0)) {
+   if((parallel_proc || domain_decomp)
+      && (domain->solInfo().solvercntl->type != SolverSelection::Feti)
+      && (domain->solInfo().solvercntl->type != SolverSelection::BlockDiag))
+   {
+     domain->solInfo().solvercntl = new SolverCntl(default_cntl);
+   }
    if(domain->solInfo().inertiaLumping == 2) { // block-diagonal lumping
 	 domain->solInfo().solvercntl->subtype = 1;
 	 domain->solInfo().getFetiInfo().local_cntl->subtype = FetiInfo::sparse;
@@ -1600,6 +1618,7 @@ writeOptionsToScreen()
 			"                                 data is generated\n");
 
  fprintf(stderr," --nclus [number]              = specified number of clusters\n");
+ fprintf(stderr," --ncpu [number]               = specified number of CPUs used to generate CPUMAP file\n");
 
  fprintf(stderr,"************************************************************************************\n");
  exit(-1);

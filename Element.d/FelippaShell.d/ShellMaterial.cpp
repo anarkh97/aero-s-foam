@@ -144,23 +144,23 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
 // .....ERROR-MESSAGE IF THE REFERENCE ORIENTATION IS BUGGY 
       case 700:
         throw std::runtime_error("\n"
-          "*** FATAL ERROR in ShellMaterial::andesinvt ***"
-          "*** The reference orientation vector        ***"
-          "*** is parallel to the two in-plane         ***"
-          "*** and orthogonal local frames!            ***"
-          "*** STOP ALL TREATMENTS RIGHT HERE          ***");
+          "*** FATAL ERROR in ShellMaterial::andesinvt ***\n"
+          "*** The reference orientation vector        ***\n"
+          "*** is parallel to the two in-plane         ***\n"
+          "*** and orthogonal local frames!            ***\n"
+          "*** STOP ALL TREATMENTS RIGHT HERE          ***\n");
         break;
 
 // .....ERROR-MESSAGE IF THE ORIENTATION ANGLE IS OUT-OF-BOUNDS 
       case 800:
         throw std::runtime_error("\n"
-          "*** FATAL ERROR in ShellMaterial::andesinvt ***"
-          "*** The angle from the local [x]            ***"
-          "*** axis of the triangular coordinate       ***"
-          "*** system to the reference direction       ***"
-          "*** is out-of-bounds: it must be            ***"
-          "*** within the range 0-2pi radians          ***"
-          "*** STOP ALL TREATMENTS RIGHT HERE          ***");
+          "*** FATAL ERROR in ShellMaterial::andesinvt ***\n"
+          "*** The angle from the local [x]            ***\n"
+          "*** axis of the triangular coordinate       ***\n"
+          "*** system to the reference direction       ***\n"
+          "*** is out-of-bounds: it must be            ***\n"
+          "*** within the range 0-2pi radians          ***\n"
+          "*** STOP ALL TREATMENTS RIGHT HERE          ***\n");
         break;
     }
   }

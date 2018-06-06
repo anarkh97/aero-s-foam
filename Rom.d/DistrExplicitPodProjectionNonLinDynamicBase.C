@@ -437,7 +437,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
     typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
     DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
                                     SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
-    DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
+    DistrNodeDof6Buffer buffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
 
     // this loop reads in vectors and stores them in a single Distributed Basis structure
     DistrVecBasis::iterator it = normalizedBasis_.begin(); 

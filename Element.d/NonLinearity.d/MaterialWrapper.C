@@ -566,7 +566,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::print(std::ostream &ou
   double H = mat->GetKinematicHardeningModulus();
   double Tol = mat->GetTolerance();
   double epsF = mat->GetEquivalentPlasticStrainAtFailure();
-  out << "IsotropicLinearElasticJ2PlasticMaterial " << rho << " " << " " << E << " " << nu << " " << sigmaY << " " << K << " " << H
+  out << "IsotropicLinearElasticJ2Plastic " << rho << " " << " " << E << " " << nu << " " << sigmaY << " " << K << " " << H
       << " " << Tol << " " << epsF << " " << yssrtid;
 }
 
@@ -582,7 +582,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::print(std::
   double H = mat->GetKinematicHardeningModulus();
   double Tol = mat->GetTolerance();
   double epsF = mat->GetEquivalentPlasticStrainAtFailure();
-  out << "IsotropicLinearElasticJ2PlasticPlaneStressMaterial " << rho << " " << E << " " << nu << " " << sigmaY << " " << K << " " << H
+  out << "IsotropicLinearElasticJ2PlasticPlaneStress " << rho << " " << E << " " << nu << " " << sigmaY << " " << K << " " << H
       << " " << Tol << " " << epsF << " " << yssrtid;
 }
 

@@ -186,6 +186,34 @@ GenVecBasis<double, GenDistrVector>::sparseVecReduce(GenDistrVector<double> &x, 
 }
 
 template <>
+double &
+GenVecBasis<double, GenDistrVector>::sparseVecReduce(GenDistrVector<double> &x, double *_result) const {
+#ifdef USE_EIGEN3
+  if(_result) {
+    Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
+    Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result, blockCols_);
+    Eigen::SparseVector<double> sparsef(FullCoordinates.rows());
+    result.setZero();
+
+    for(int i = 0; i < FullCoordinates.rows(); i++)
+      if(FullCoordinates(i) != 0)
+        sparsef.insert(i) = FullCoordinates(i);
+
+    result = basis_.block(0,startCol_,basis_.rows(),blockCols_).transpose()*sparsef;
+    //each process gets a copy of reduced coordinates
+    if(structCom)
+      structCom->globalSum(result.size(), result.data());
+  }
+  else if(structCom) {
+    Eigen::Matrix<double,Eigen::Dynamic, 1> result(blockCols_);
+    result.setZero();
+    structCom->globalSum(result.size(), result.data());
+  }
+#endif
+  return *_result;
+}
+
+template <>
 GenDistrVector<double> &
 GenVecBasis<double, GenDistrVector>::reduce(GenDistrVector<double> &x, GenDistrVector<double> &_result, bool useCompressedBasis) const {
 #ifdef USE_EIGEN3

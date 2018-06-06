@@ -217,7 +217,7 @@ SARule::SARule() {
 }
 
 MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFlag)
- : nw(0), nSubPerNode(0), boundIndex(0), boundNode(0), elemPerSub(0), subWeight(0), arInfo(0), nodeMask(0)
+ : nw(0), nSubPerNode(0), boundIndex(0), boundNode(0), elemPerSub(0), subWeight(0), arInfo(0), nodeMask(0), tag(0)
 #ifdef NOTMPL
  , prio(eset->size())
 #endif

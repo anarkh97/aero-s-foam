@@ -84,10 +84,14 @@ class GeomState {
 
      void getPositions(double *positions);
      void getRotations(double *rotations);
+     void getVelocities(double *velocities);
+     void getAccelerations(double *accelerations);
      void getElemStates(double *elemStates) const;
 
      void setPositions(double *positions);
      void setRotations(double *rotations);
+     void setVelocities(double *velocities);
+     void setAccelerations(double *accelerations);
      void setNodalTemperatures(double *ndTemps);
      void setElemStates(double *elemStates);
 

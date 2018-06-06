@@ -2000,6 +2000,48 @@ GenSubDomain<Scalar>::constraintProduct(int num_vect, const double *R[], Scalar 
 	}
 }
 
+
+
+template<>
+void
+GenSubDomain<double>::dualConstraintProjection(std::vector<std::map<int,double> > &W,
+                                               Rom::DistrVecBasis &CtW,
+                                               Eigen::Matrix<double,Eigen::Dynamic,1> &WtRhs,
+                                               int startCol, int blockCols){
+
+	for(int k = 0; k < blockCols; ++k){ // loop through each dual vector
+		bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
+		for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+		// get subvector for target and dual vector  k
+		std::map<int,double> &basisVec = W[startCol+k];
+		StackVector target(CtW[k].subData(localSubNumber), CtW[k].subLen(localSubNumber)); target.zero();
+		for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) { // loop over all MPCs
+			int i = scomm->mpcNb(l);
+			if(!mpcFlag[i]) continue;
+			if(this->mpc[i]->getSource() == mpc::ContactSurfaces) { // check if contact constraint
+				// get slave node from mpc and extract corresponding row from dual basis
+				std::map<int, double>::iterator it1 = basisVec.find(this->mpc[i]->id.second); // get correct row of dual basis
+				// if, the node is in this vector, get multiplier slot associated with this slave node, othewise skip to next one
+				if(it1 == basisVec.end()){ continue;}
+				double rowVal = it1->second;
+				//fprintf(stderr,"slave Node: %d, rowVal %3.2e, rhs: %3.2e\n",mpc[i]->id.second, rowVal, mpc[i]->rhs);
+				int sNode = this->mpc[i]->id.second; //global node id
+				const int pnId = globalToLocal(sNode);
+				if(pnId > 0) {
+					WtRhs(k) += this->mpc[i]->rhs*rowVal;
+				}
+				for(int j = 0; j < this->mpc[i]->nterms; ++j) { // number of nterms associated with this multiplier
+					int dof = c_dsa->locate(this->mpc[i]->terms[j].nnum, (1 << this->mpc[i]->terms[j].dofnum));
+					//fprintf(stderr,"mpc[%d]->terms[%d].nnum: %d, .dofnum: %d , dof: %d\n",i,j,mpc[i]->terms[j].nnum, mpc[i]->terms[j].dofnum,dof);
+					if(dof < 0) continue;
+					target[dof] += this->mpc[i]->terms[j].coef*rowVal;
+				}
+			}
+			mpcFlag[i] = false;
+		}
+	}
+}
+
 template<class Scalar>
 void
 GenSubDomain<Scalar>::addConstraintForces(std::map<std::pair<int, int>, double> &mu, std::vector<double> &lambda,

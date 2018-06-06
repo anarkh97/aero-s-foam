@@ -2,7 +2,7 @@
 module load intel/13sp1up1 openmpi/1.7.4/intel13sp1up1
 export CMAKE_INCLUDE_PATH=$CMAKE_INCLUDE_PATH:/home/pavery/Codes/eigen:/home/pavery/intel/13sp1up1/openmpi-1.7.4-1/SPOOLES:/home/pavery/intel/13sp1up1/openmpi-1.7.4-1/MUMPS_4.10.0/include:/home/pavery/Codes/trilinos-11.8.1-Source/packages/sacado/src:/home/pavery/intel/13sp1up1/openmpi-1.7.4-1/trilinos-11.8.1-Obj_cmake/include:/home/pavery/Codes/trilinos-11.8.1-Source/packages/zoltan/src
 export CMAKE_LIBRARY_PATH=$CMAKE_LIBRARY_PATH:/home/pavery/intel/13sp1up1/openmpi-1.7.4-1/ARPACK:/home/pavery/intel/13sp1up1/openmpi-1.7.4-1/SPOOLES:/home/pavery/intel/13sp1up1/openmpi-1.7.4-1/SPOOLES/MT/src:/home/pavery/intel/13sp1up1/openmpi-1.7.4-1/MUMPS_4.10.0/lib:/home/pavery/intel/13sp1up1/openmpi-1.7.4-1/trilinos-11.8.1-Obj_cmake/lib
-/home/pavery/cmake-3.1.0-Linux-x86_64/bin/cmake \
+/home/pavery/bin/cmake \
 -DAERO:BOOL=on \
 -DCMAKE_C_COMPILER:FILEPATH=/opt/intel/composer_xe_2013_sp1.1.106/bin/intel64/icc \
 -DCMAKE_CXX_COMPILER:FILEPATH=/opt/intel/composer_xe_2013_sp1.1.106/bin/intel64/icpc \

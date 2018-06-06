@@ -260,7 +260,14 @@ DistrElementSamplingDriver::solve()
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
   int myID = (structCom) ? structCom->myID() : 0;
   solver_ = new ParallelSparseNonNegativeLeastSquaresSolver(decDomain->getNumSub(), subSolvers);
-  solver_->problemSizeIs(podVectorCount*snapshotCount, domain->numElements());
+
+  if(domain->solInfo().stackedElementSampling){
+    filePrint(stderr," ... ALLOCATING EXTRA MEMORY FOR STACKED TRAINING ...\n");
+    solver_->problemSizeIs(2*podVectorCount*snapshotCount, domain->numElements());
+  } else {
+    solver_->problemSizeIs(podVectorCount*snapshotCount, domain->numElements());
+  }
+
 #ifdef PRINT_ESTIMERS
   double t2 = getTime();
 #endif
@@ -323,7 +330,10 @@ DistrElementSamplingDriver::solve()
     }
 
     subDrivers[i]->preProcess();
-    subDrivers[i]->solver().problemSizeIs(podVectorCount*snapshotCount, subDrivers[i]->elementCount());
+    if(domain->solInfo().stackedElementSampling)
+      subDrivers[i]->solver().problemSizeIs(2*podVectorCount*snapshotCount, subDrivers[i]->elementCount());
+    else
+      subDrivers[i]->solver().problemSizeIs(podVectorCount*snapshotCount, subDrivers[i]->elementCount());
 
     for(int j=0; j<subDrivers[i]->solver().equationCount(); ++j) subDrivers[i]->solver().rhsBuffer()[j] = 0.0;
     subDrivers[i]->assembleTrainingData(subPodBasis, podVectorCount, subDisplac, subVeloc, subAccel,
@@ -334,11 +344,15 @@ DistrElementSamplingDriver::solve()
     if(subNdscfgCoords) delete [] subNdscfgCoords;
     if(subNdscfgMassOrthogonalBases) delete [] subNdscfgMassOrthogonalBases;
 
-    StackVector trainingTarget(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
+    StackVector *trainingTarget;
+    if(domain->solInfo().stackedElementSampling)
+      trainingTarget = new StackVector(subDrivers[i]->solver().rhsBuffer(), 2*podVectorCount*snapshotCount);
+    else
+      trainingTarget = new StackVector(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
 #if defined(_OPENMP)
     #pragma omp critical
 #endif
-    glTrainingTarget += trainingTarget;
+    glTrainingTarget += *trainingTarget;
   }
   delete displac;
   if(veloc) delete veloc;
@@ -368,7 +382,7 @@ DistrElementSamplingDriver::solve()
   std::vector<int> gelemIds(domain->numElements());
   
   // Gather weights and IDs from all processors
-  int numLocalElems = lweights.size();
+  int numLocalElems = lweights.size(); 
   if(structCom) {
     int recvcnts[numCPUs];
     int displacements[numCPUs];
@@ -438,6 +452,7 @@ DistrElementSamplingDriver::solve()
   }
 
   if(myID == 0) {
+
     // Weights output file generation
     outputFullWeights(gweights, gelemIds);
 
@@ -450,6 +465,8 @@ DistrElementSamplingDriver::solve()
         weightsMap.insert(std::pair<int,double>(gelemIds[i], gweights[i]));
       }
     }
+
+    addContactElems(reducedelemIds, weightsMap);
 
     const FileNameInfo fileInfo;
     for(int i = 0; i < decDomain->getNumSub(); i++) {
@@ -533,6 +550,50 @@ DistrElementSamplingDriver::solve()
     }
 #endif
   }
+}
+
+void
+DistrElementSamplingDriver::addContactElems(std::vector<int> &sampleElemIds, std::map<int, double> &weights){
+  // Add elements attached to Contact surfaces, needed for assigning mass to nodes in surface 
+  int numMC = domain->GetnMortarConds();
+  if(numMC > 0) { 
+    std::set<int> activeSurfs;
+    //First: loop over Mortar Constraints to identify active surfaces
+    for(int mc = 0; mc<numMC; ++mc){
+      if(domain->GetMortarCond(mc)->GetInteractionType() == MortarHandler::CTC){
+        activeSurfs.insert(domain->GetMortarCond(mc)->GetMasterEntityId());
+        activeSurfs.insert(domain->GetMortarCond(mc)->GetSlaveEntityId());
+      }
+    }
+  
+    Elemset &inputElemSet = *(geoSource->getElemSet());
+    std::auto_ptr<Connectivity> elemToNode(new Connectivity(SetAccess<Elemset>(inputElemSet)));
+    Connectivity *nodeToElem = elemToNode->reverse();
+
+    //Second: loop over list of surfaces to extract elements attached to surface nodes 
+    for(std::set<int>::iterator it = activeSurfs.begin(); it != activeSurfs.end(); ++it){
+      for(int surf = 0; surf < domain->getNumSurfs(); ++surf) { // loop through surfaces and check for matching ID
+        if(*it == domain->GetSurfaceEntity(surf)->GetId()) {
+          int nNodes = domain->GetSurfaceEntity(surf)->GetnNodes();
+          // loop through nodes of surface
+          for(int nn = 0; nn < nNodes; ++nn) {
+            int glNode = domain->GetSurfaceEntity(surf)->GetGlNodeId(nn);
+            // loop through elements attached to node
+            for(int j = 0; j < nodeToElem->num(glNode); ++j) {
+              const int elemRank = (*nodeToElem)[glNode][j];
+              // check if element already in weighted set, if not, add to weights and reduced ElemIds; 
+              if(std::find(sampleElemIds.begin(), sampleElemIds.end(), elemRank) == sampleElemIds.end()){
+                sampleElemIds.push_back(elemRank);
+                // now add zero weight to each local weight map
+                weights.insert(std::make_pair(elemRank, 0.0));
+              }
+            } 
+          }   
+        }     
+      }
+    }
+  }
+  std::sort(sampleElemIds.begin(), sampleElemIds.end());
 }
 
 void

@@ -1250,6 +1250,24 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       delete [] data;
     } 
       break;
+    case OutputInfo::RotationVector:  {
+      double (*data)[3] = new double[nPrintNodes][3];
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
+                    oinfo[iInfo].rotvecouttype, &data[nodeI][0]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
+        }
+        else {
+          std::fill_n(&data[nodeI][0], 3, 0.0);
+        }
+      }
+      geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    }
+      break;
     case OutputInfo::RotationMatrix:  {
       double (*data)[9] = new double[nPrintNodes][9];
       for (i = 0, realNode = -1; i < nNodes; ++i) {
@@ -1345,7 +1363,25 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       }
       geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
       delete [] data;
-    } 
+    }
+      break;
+    case OutputInfo::AngularVelocity: {
+      double (*data)[3] = new double[nPrintNodes][3];
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          tran_veloc((*geomState)[iNode].R, (*geomState)[iNode].theta, &(*geomState)[iNode].v[3], angularintype,
+                     oinfo[iInfo].angularouttype, rescalein, oinfo[iInfo].rescaling, &data[nodeI][0]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
+        }
+        else {
+          std::fill_n(&data[nodeI][0], 3, 0.0);
+        }
+      }
+      geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    }
       break;
     case OutputInfo::Acceleration:  {
       double (*data)[3] = new double[nPrintNodes][3];
@@ -1382,6 +1418,24 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
       delete [] data;
     } 
+      break;
+    case OutputInfo::AngularAcceleration:  {
+      double (*data)[3] = new double[nPrintNodes][3];
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          tran_accel((*geomState)[iNode].R, (*geomState)[iNode].theta, &(*geomState)[iNode].v[3], &(*geomState)[iNode].a[3],
+                     angularintype, oinfo[iInfo].angularouttype, rescalein, oinfo[iInfo].rescaling, &data[nodeI][0]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
+        }
+        else {
+          std::fill_n(&data[nodeI][0], 3, 0.0);
+        }
+      }
+      geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    }
       break;
     case OutputInfo::DispX:  {
       double *data = new double[nPrintNodes];
@@ -1896,6 +1950,8 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
      case OutputInfo::InternalStateVar:
         break;
      case OutputInfo::DualStateVar:
+        break;
+     case OutputInfo::MuStateVar:
         break;
      case OutputInfo::Residual:
         break;
@@ -2610,6 +2666,10 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n, Vector &a_n,
    } else
    fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
+     int numElemStates = geomState->getTotalNumElemStates();
+     double *buffer = new double[std::max(numElemStates, 12*numnodes)];
+     geomState->setVelocityAndAcceleration(v_n, a_n);
+
      int writeSize;
      writeSize = write(fn, &timeIndex, sizeof(int));
      if(writeSize != sizeof(int))
@@ -2619,32 +2679,26 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n, Vector &a_n,
      if(writeSize != sizeof(double))
        fprintf(stderr," *** ERROR: Writing restart file time\n");
 
-      writeSize = write(fn, v_n.data(), v_n.size()*sizeof(double));
-      if(int(writeSize) != int(v_n.size()*sizeof(double)))
-        fprintf(stderr," *** ERROR: Writing restart file velocity\n");
+     geomState->getVelocities(buffer);
+     writeSize = write(fn, buffer, numnodes*6*sizeof(double));
+     if(int(writeSize) != int(numnodes*6*sizeof(double)))
+       fprintf(stderr," *** ERROR: Writing restart file velocity\n");
 
-     double *positions = new double[3*numnodes];
-     geomState->getPositions(positions);
-     writeSize = write(fn, positions,numnodes*3*sizeof(double));
+     geomState->getPositions(buffer);
+     writeSize = write(fn, buffer, numnodes*3*sizeof(double));
      if(int(writeSize) != int(numnodes*3*sizeof(double)))
-       fprintf(stderr," *** ERROR: Writing restart file geometry_state\n");
-     delete [] positions;
+       fprintf(stderr," *** ERROR: Writing restart file position\n");
 
-     double *rotations = new double[9*numnodes];
-     geomState->getRotations(rotations);
-     writeSize = write(fn, rotations,numnodes*9*sizeof(double));
-     if(int(writeSize) != int(numnodes*9*sizeof(double)))
-       fprintf(stderr," *** ERROR: Writing restart file geometry_state\n");
-     delete [] rotations;
+     geomState->getRotations(buffer);
+     writeSize = write(fn, buffer, numnodes*12*sizeof(double));
+     if(int(writeSize) != int(numnodes*12*sizeof(double)))
+       fprintf(stderr," *** ERROR: Writing restart file rotation\n");
 
      // new method of storing the element states in the GeomState object
-     int numElemStates = geomState->getTotalNumElemStates();
-     double *elemStates = new double[numElemStates];
-     geomState->getElemStates(elemStates);
-     writeSize = write(fn, elemStates, numElemStates*sizeof(double));
+     geomState->getElemStates(buffer);
+     writeSize = write(fn, buffer, numElemStates*sizeof(double));
      if(int(writeSize) != int(numElemStates*sizeof(double)))
-       fprintf(stderr," *** ERROR: Writing restart file geometry_state\n");
-     delete [] elemStates;
+       fprintf(stderr," *** ERROR: Writing restart file element state\n");
 
      // PJSA 9-17-2010 (note: this idea of the element storing the internal states is deprecated
      // and will eventually be removed
@@ -2652,12 +2706,13 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n, Vector &a_n,
      for(int i = 0; i < numEle; ++i)
        packedEset[i]->writeHistory(fn);
 
-      // write accelerations
-      writeSize = write(fn, a_n.data(), a_n.size()*sizeof(double));
-      if(int(writeSize) != int(a_n.size()*sizeof(double)))
-        fprintf(stderr," *** ERROR: Writing restart file acceleration\n");
+     // write accelerations
+     geomState->getAccelerations(buffer);
+     writeSize = write(fn, buffer, numnodes*6*sizeof(double));
+     if(int(writeSize) != int(numnodes*6*sizeof(double)))
+       fprintf(stderr," *** ERROR: Writing restart file acceleration\n");
 
-     // TODO write rotation vector
+     delete [] buffer;
 
      close(fn);
    } else {
@@ -2679,95 +2734,146 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
      char *lastRestartFile = new char[strlen(cinfo->lastRestartFile)+strlen(ext)+1];
      strcpy(lastRestartFile, cinfo->lastRestartFile);
      strcat(lastRestartFile, ext);
-     fn = open(lastRestartFile, O_RDONLY );
+     fn = open(lastRestartFile, O_RDONLY);
      delete [] lastRestartFile;
    } else
-   fn = open(cinfo->lastRestartFile,O_RDONLY );
+   fn = open(cinfo->lastRestartFile, O_RDONLY);
    if(fn >= 0) {
+     int numElemStates = geomState.getTotalNumElemStates();
+     double *buffer = new double[std::max(numElemStates, 12*numnodes)];
+
      int restartTIndex;
      double restartT;
      int readSize = read(fn, &restartTIndex, sizeof(int));
      if(readSize != sizeof(int))
-       fprintf(stderr," *** ERROR: Inconsistent restart file 1\n");
+       fprintf(stderr," *** ERROR: Reading restart file time index\n");
      sinfo.initialTimeIndex = restartTIndex;
 
      readSize = read(fn, &restartT, sizeof(double));
      if(readSize != sizeof(double))
-       fprintf(stderr," *** ERROR: Inconsistent restart file 2\n");
+       fprintf(stderr," *** ERROR: Reading restart file time\n");
      sinfo.initialTime = restartT;
 
-     v_n.zero();
-     readSize = read(fn, v_n.data(), sizeof(double)*v_n.size());
-     if(int(readSize) != int(sizeof(double)*v_n.size()))
-       fprintf(stderr," *** ERROR: Inconsistent restart file 2.5\n");
+     readSize = read(fn, buffer, numnodes*6*sizeof(double));
+     if(int(readSize) != int(numnodes*6*sizeof(double)))
+       fprintf(stderr," *** ERROR: Reading restart file velocity\n");
+     geomState.setVelocities(buffer);
 
-     double *positions = new double[3*numnodes];
-     readSize = read(fn, positions, numnodes*3*sizeof(double));
+     readSize = read(fn, buffer, numnodes*3*sizeof(double));
      if(int(readSize) != int(numnodes*3*sizeof(double)))
-       fprintf(stderr," *** ERROR: Inconsistent restart file 3\n");
-     geomState.setPositions(positions);
-     delete [] positions;
+       fprintf(stderr," *** ERROR: Reading restart file position\n");
+     geomState.setPositions(buffer);
 
-     double *rotations = new double[9*numnodes];
-     readSize = read(fn, rotations, numnodes*9*sizeof(double));
-     if(int(readSize) != int(numnodes*9*sizeof(double)))
-       fprintf(stderr," *** ERROR: Inconsistent restart file 4\n");
-     geomState.setRotations(rotations);
-     delete [] rotations;
+     readSize = read(fn, buffer, numnodes*12*sizeof(double));
+     if(int(readSize) != int(numnodes*12*sizeof(double)))
+       fprintf(stderr," *** ERROR: Reading restart file rotation\n");
+     geomState.setRotations(buffer);
 
      // new method of storing the element states in the GeomState object
-     int numElemStates = geomState.getTotalNumElemStates();
-     double *elemStates = new double[numElemStates];
-     readSize = read(fn, elemStates, numElemStates*sizeof(double));
+     readSize = read(fn, buffer, numElemStates*sizeof(double));
      if(int(readSize) != int(numElemStates*sizeof(double)))
-       fprintf(stderr," *** ERROR: Inconsistent restart file 5\n");
-     geomState.setElemStates(elemStates);
-     delete [] elemStates;
+       fprintf(stderr," *** ERROR: Reading restart file element state\n");
+     geomState.setElemStates(buffer);
 
      // old method of storing the element states in the Element objects (e.g. bt shell)
      int numEle = packedEset.last();
      for(int i = 0; i < numEle; ++i) 
        packedEset[i]->readHistory(fn);
 
-     a_n.zero();
-     readSize = read(fn, a_n.data(), sizeof(double)*a_n.size());
-/* this could happen if the restart file was written with an older version of AERO-S
-     if(int(readSize) != int(sizeof(double)*a_n.size()))
-       fprintf(stderr," *** ERROR: Inconsistent restart file 6\n");
-*/
-     // TODO rotation vector
+     readSize = read(fn, buffer, numnodes*6*sizeof(double));
+     if(int(readSize) != int(numnodes*6*sizeof(double)))
+       fprintf(stderr," *** ERROR: Reading restart file acceleration\n");
+     geomState.setAccelerations(buffer);
 
+     delete [] buffer;
      close(fn);
 
      d_n.zero();
+     v_n.zero();
+     a_n.zero();
      v_p.zero();
      for(int i = 0; i < numNodes(); ++i) {
 
-       int xloc  = c_dsa->locate(i, DofSet::Xdisp );
-       int xloc1 =   dsa->locate(i, DofSet::Xdisp );
+       int xloc  = c_dsa->locate(i, DofSet::Xdisp);
+       int xloc1 =   dsa->locate(i, DofSet::Xdisp);
 
-       if(xloc >= 0)
-         d_n[xloc]  = ( (geomState)[i].x - nodes[i]->x);
-       else if (xloc1 >= 0)
-         bcx[xloc1] = ( (geomState)[i].x - nodes[i]->x);
+       if(xloc >= 0) {
+         d_n[xloc] = geomState[i].x - nodes[i]->x;
+         v_n[xloc] = geomState[i].v[0];
+         a_n[xloc] = geomState[i].a[0];
+       }
+       else if(xloc1 >= 0) {
+         bcx[xloc1] = geomState[i].x - nodes[i]->x;
+         vcx[xloc1] = geomState[i].v[0];
+       }
 
-       int yloc  = c_dsa->locate(i, DofSet::Ydisp );
-       int yloc1 =   dsa->locate(i, DofSet::Ydisp );
+       int yloc  = c_dsa->locate(i, DofSet::Ydisp);
+       int yloc1 =   dsa->locate(i, DofSet::Ydisp);
 
-       if(yloc >= 0)
-         d_n[yloc]  = ( (geomState)[i].y - nodes[i]->y);
-       else if (yloc1 >= 0)
-         bcx[yloc1] = ( (geomState)[i].y - nodes[i]->y);
+       if(yloc >= 0) {
+         d_n[yloc] = geomState[i].y - nodes[i]->y;
+         v_n[yloc] = geomState[i].v[1];
+         a_n[yloc] = geomState[i].a[1];
+       }
+       else if(yloc1 >= 0) {
+         bcx[yloc1] = geomState[i].y - nodes[i]->y;
+         vcx[yloc1] = geomState[i].v[1];
+       }
 
        int zloc  = c_dsa->locate(i, DofSet::Zdisp);
        int zloc1 =   dsa->locate(i, DofSet::Zdisp);
 
-       if(zloc >= 0)
-         d_n[zloc]  = ( (geomState)[i].z - nodes[i]->z);
-       else if (zloc1 >= 0)
-         bcx[zloc1] = ( (geomState)[i].z - nodes[i]->z);
+       if(zloc >= 0) {
+         d_n[zloc] = geomState[i].z - nodes[i]->z;
+         v_n[zloc] = geomState[i].v[2];
+         a_n[zloc] = geomState[i].a[2];
+       }
+       else if(zloc1 >= 0) {
+         bcx[zloc1] = geomState[i].z - nodes[i]->z;
+         vcx[zloc1] = geomState[i].v[2];
+       }
+
+       int xrot  = c_dsa->locate(i, DofSet::Xrot);
+       int xrot1 =   dsa->locate(i, DofSet::Xrot);
+
+       if(xrot >= 0) {
+         d_n[xrot] = geomState[i].theta[0];
+         v_n[xrot] = geomState[i].v[3];
+         a_n[xrot] = geomState[i].a[3];
+       }
+       else if(xrot1 >= 0) {
+         bcx[xrot1] = geomState[i].theta[0];
+         vcx[xrot1] = geomState[i].v[3];
+       }
+
+       int yrot  = c_dsa->locate(i, DofSet::Yrot);
+       int yrot1 =   dsa->locate(i, DofSet::Yrot);
+
+       if(yrot >= 0) {
+         d_n[yrot] = geomState[i].theta[1];
+         v_n[yrot] = geomState[i].v[4];
+         a_n[yrot] = geomState[i].a[4];
+       }
+       else if(yrot1 >= 0) {
+         bcx[yrot1] = geomState[i].theta[1];
+         vcx[yrot1] = geomState[i].v[4];
+       }
+
+       int zrot  = c_dsa->locate(i, DofSet::Zrot);
+       int zrot1 =   dsa->locate(i, DofSet::Zrot);
+
+       if(zrot >= 0) {
+         d_n[zrot] = geomState[i].theta[2];
+         v_n[zrot] = geomState[i].v[5];
+         a_n[zrot] = geomState[i].a[5];
+       }
+       else if(zrot1 >= 0) {
+         bcx[zrot1] = geomState[i].theta[2];
+         vcx[zrot1] = geomState[i].v[5];
+       }
      }
-   } else {
+   }
+   else {
      perror(" *** ERROR: Restart file could not be opened: ");
    }
  }

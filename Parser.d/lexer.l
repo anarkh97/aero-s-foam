@@ -167,7 +167,9 @@ TRAIL [a-zA-Z]*
 
 "trivial"|"TRIVIAL"                { return TRIVIAL; }
 
-"allowmechanisms"|"ALLOWMECHANISMS" { return ALLOWMECHANISMS; }
+"allow_mechanisms"|"ALLOW_MECHANISMS" { return ALLOWMECHANISMS; }
+
+"use_scotch"|"USE_SCOTCH"          { return USESCOTCH; }
 
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
 
@@ -878,6 +880,12 @@ TRAIL [a-zA-Z]*
 
 "TETT"|"tett"                      { return TETT; }
 
+"SS1DT"|"ss1dt"                    { return SS1DT; }
+
+"SS2DT"|"ss2dt"                    { return SS2DT; }
+
+"ENGI"[a-zA-Z]*|"engi"[a-zA-Z]*    { return ENGINEERING; }
+
 "YSST"|"ysst"                      { return YSST; }
 
 "YSSRT"|"yssrt"                    { return YSSRT; }
@@ -1125,6 +1133,12 @@ TRAIL [a-zA-Z]*
 
 "romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
 
+"rovector"|"ROVECTOR"              { yylval.ival = OutputInfo::RotationVector; return STRESSID; }
+
+"angveloc"|"ANGVELOC"              { yylval.ival = OutputInfo::AngularVelocity; return STRESSID; }
+
+"angaccel"|"ANGACCEL"              { yylval.ival = OutputInfo::AngularAcceleration; return STRESSID; }
+
 "quaterni"|"QUATERNI"              { yylval.ival = OutputInfo::Quaternion;   return STRESSID; }
 
 "modaldsp"|"MODALDSP"|"sromdisp"|"SROMDISP" { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
@@ -1164,6 +1178,8 @@ TRAIL [a-zA-Z]*
 "isvarvct"|"ISVARVCT"              { yylval.ival = OutputInfo::InternalStateVar; return STRESSID; }
 
 "dsvarvct"|"DSVARVCT"              { yylval.ival = OutputInfo::DualStateVar; return STRESSID; }
+
+"muvarvct"|"MUVARVCT"              { yylval.ival = OutputInfo::MuStateVar; return STRESSID; }
 
 "robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
 "clusterf"|"CLUSTERF"              { yylval.ival = OutputInfo::RobData;      return STRESSID; }
@@ -1490,6 +1506,8 @@ TRAIL [a-zA-Z]*
 
 "PlaneStressViscoMooneyRivlin"[a-zA-Z]*                 { return PLANESTRESSVISCOMOONEYRIVLIN; }
 
+"fabricmap"|"FABRICMAP"|"FabricMap"                     { return FABRICMAP; }
+
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
 
 "tule"[a-zA-Z]*|"TULE"[a-zA-Z]*|"Tule"[a-zA-Z]*         { return TULERBUTCHER; }
@@ -1570,6 +1588,7 @@ TRAIL [a-zA-Z]*
 "POINTPLANE"|"pointplane"|"PointPlane" { yylval.ival = BCond::PointPlaneDistance; return CSTYPE; }
 
 "NO_SECONDARY"|"no_secondary"      { return NOSECONDARY; }
+"SHELL_SIMPLE_LOFTING"|"shell_simple_lofting" { return SHELLSIMPLELOFTING; }
 
 "TDEN"[a-zA-Z]*|"tden"[a-zA-Z]*    { return TDENFORCE; }
 
@@ -1651,6 +1670,7 @@ TRAIL [a-zA-Z]*
 "VELSNAPFI"|"VelSnapFi"|"velsnapfi"       { return VELSNAPFI; }
 "ACCSNAPFI"|"AccSnapFi"|"accsnapfi"       { return ACCSNAPFI; }
 "DSVSNAPFI"|"DsvSnapFi"|"dsvsnapfi"       { return DSVSNAPFI; }
+"MUVSNAPFI"|"MuvSnapFi"|"muvsnapfi"       { return MUVSNAPFI; }
 
 "ROBFI"|"RobFi"|"robfi"		          { return ROBFI; }
 

@@ -3,6 +3,7 @@
 
 #include <Element.d/Element.h>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/FabricMat.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 
 #include <Parser.d/DecInit.h>

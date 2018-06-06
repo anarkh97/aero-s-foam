@@ -13,6 +13,7 @@ extern std::string clusterData_;
 extern std::string subdomains_;
 extern std::string decomposition_;
 extern std::string connectivity_;
+//#define OLD_CLUSTER
 //#define SUBTOSUBINFILE
 //#define SOWER_DEBUG 
 
@@ -466,7 +467,7 @@ std::cerr << "Sower.h, readData, ElemsetIO" << std::endl;
       preload.reserve(preload_size);
       s->read(&(preload[0]), preload_size, file);
       PressureBCond *pbc = new PressureBCond;
-      pbc->setData(pressure, -1, 0, false); // XXX add support for cases
+      pbc->setData(-1, pressure, 0, false); // XXX add support for cases
       (*obj)[localIndex]->setPressure(pbc);
       (*obj)[localIndex]->setPreLoad(preload);
     }
@@ -1483,7 +1484,7 @@ IOObject::oType Sower::read(BinFileHandler& file, int subNum, int*& localToGloba
 	IOObject::readData(obj, this, localIndex, file);
         localToGlobalMap[localIndex] = globObjID;  // PJSA
         localIndex++;
-	if(globObjID == (*it)->endNum) break;
+	if(globObjID == (*it)->endNum) break; // TODO: reconsider this due to gaps in the element numbering
       }
     }
   TypeTag offsetagul = IOObject::dataType; // linker bug work around

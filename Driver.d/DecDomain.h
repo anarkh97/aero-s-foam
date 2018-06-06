@@ -83,6 +83,7 @@ class GenDecDomain
   int outEigCount;
 
   bool soweredInput;
+  bool coarseLevel;
 
   int sizeSfemStress;
   bool firstOutput; 

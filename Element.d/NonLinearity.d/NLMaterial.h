@@ -11,6 +11,7 @@ class Tensor_d0s2_Ss12;
 template <typename Tensor> class GenStrainEvaluator;
 template <int n> class TwoDTensorTypes;
 class MFTTData;
+class SS2DTData;
 
 class NLMaterial
 {
@@ -87,9 +88,11 @@ class NLMaterial
        std::cerr << "material law does not implement setThermalExpansionCoef function\n";
      }
 
-     virtual void setTDProps(MFTTData *ymtt, MFTTData *ctett) {};
+     virtual void setTDProps(MFTTData *ymtt, MFTTData *ctett) {}
      virtual void setSDProps(MFTTData *ysst) {}
      virtual void setSRDProps(MFTTData *yssrt) {}
+     virtual void setS1DProps(MFTTData *ss1dt) {}
+     virtual void setS2DProps(SS2DTData *ss2dt) {}
 
      virtual void getMaterialConstants(std::vector<double> &c) {
        std::cerr << "material law does not implement getMaterialConstants function\n";

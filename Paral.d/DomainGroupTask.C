@@ -272,7 +272,8 @@ GenDomainGroupTask<Scalar>::runForWB(int isub, bool make_feti)
 				//((GenFetiDPSolver<Scalar> *) Krr)->initL(cc_dsa);
 			}
 		}
-		else if(domain->solInfo().solvercntl->type == SolverSelection::Iterative) {
+    else if(domain->solInfo().solvercntl->type == SolverSelection::Iterative||
+            (domain->solInfo().solvercntl->type == SolverSelection::Direct && domain->solInfo().solvercntl->subtype == 13)) {
 			dynMats[isub] = 0;
 			switch(domain->solInfo().solvercntl->iterSubtype) {
 				case 2 :

@@ -15,6 +15,7 @@ template <class TT> class GenStrainEvaluator;
 class GaussIntgElement : public MatNLElement
 {
 protected:
+    double *tframe;
 	virtual int getNumGaussPoints() const = 0;
 	virtual void getGaussPointAndWeight(int, double *, double &) const = 0;
 	virtual void getLocalNodalCoords(int, double *) = 0;
@@ -23,6 +24,8 @@ protected:
 	virtual NLMaterial *getMaterial() const = 0;
 
 public:
+    GaussIntgElement() : tframe(NULL) {}
+    virtual ~GaussIntgElement() { if(tframe) delete [] tframe; }
 	void getStiffAndForce(Node *nodes, double *disp,
 						  double *state, FullSquareMatrix &kTan,
 						  double *force) override;
@@ -65,14 +68,18 @@ template <class TensorTypes>
 class GenGaussIntgElement : public MatNLElement
 {
 protected:
+    double *tframe;
 	std::vector<double> preload;
 	virtual int getNumGaussPoints() const = 0;
 	virtual void getGaussPointAndWeight(int, double *, double &) const = 0;
 	virtual GenShapeFunction<TensorTypes> *getShapeFunction() const = 0;
 	virtual GenStrainEvaluator<TensorTypes> *getGenStrainEvaluator() const = 0;
 	virtual const NLMaterial *getMaterial() const = 0;
+    virtual NLMaterial *getLinearMaterial() const = 0;
 
 public:
+    GenGaussIntgElement() : tframe(NULL) {}
+    virtual ~GenGaussIntgElement() { if(tframe) delete [] tframe; }
 	void getStiffAndForce(Node *nodes, double *disp,
 						  double *state, FullSquareMatrix &kTan,
 						  double *force) override;
@@ -123,11 +130,11 @@ GenGaussIntgElement<TensorTypes>::stiffness(const CoordSet& cs, double *k, int) 
 
 	GenShapeFunction<TensorTypes> *shapeF = getShapeFunction();
 
-	// Obtain the strain function. It can be linear or non-linear
-	GenStrainEvaluator<TensorTypes> *strainEvaluator = getGenStrainEvaluator();
-
 	// Obtain the material model
-	auto *material = getMaterial();
+  NLMaterial *material = getLinearMaterial();
+
+  // Obtain the linear strain function
+  GenStrainEvaluator<TensorTypes> *strainEvaluator = material->getGenStrainEvaluator();
 
 	// Obtain the storage for gradU ( 3xndim )
 	typename TensorTypes::GradUTensor gradU;
@@ -386,6 +393,52 @@ GaussIntgElement::updateStates(Node *nodes, double *state, double *un,double *un
 }
 */
 
+inline void
+transformGlobalToLocal(Stress2D &enp, double *tframe)
+{
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> T(tframe);
+  Eigen::Matrix3d Enp;
+  Enp << enp[0], enp[2], 0,
+         enp[2], enp[1], 0,
+              0,      0, 0;
+  Enp = T*Enp*T.transpose();
+  enp[0] = Enp(0,0);
+  enp[1] = Enp(1,1);
+  enp[2] = Enp(0,1);
+#else
+  std::cerr << " *** ERROR: transformGlobalToLocal in GaussIntgElem.h requires AERO-S to be configured with the Eigen library. Exiting...\n";
+  exit(-1);
+#endif
+}
+
+inline void
+transformLocalToGlobal(Stress2D &s, double *tframe)
+{
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> T(tframe);
+  Eigen::Matrix3d S;
+  S << s[0], s[2], 0,
+       s[2], s[1], 0,
+          0,    0, 0;
+  S = T.transpose()*S*T;
+  s[0] = S(0,0);
+  s[1] = S(1,1);
+  s[2] = S(0,1);
+#else
+  std::cerr << " *** ERROR: transformLocalToGlobal in GaussIntgElem.h requires AERO-S to be configured with the Eigen library. Exiting...\n";
+  exit(-1);
+#endif
+}
+
+inline void
+transformLocalToGlobal(SymTensor<Stress2D,2> &Dnp, double *tframe)
+{
+  for(int i = 0; i < 3; ++i) {
+    transformLocalToGlobal(Dnp[i], tframe);
+  }
+}
+
 template <class TensorType>
 void
 GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *staten,
@@ -443,27 +496,25 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
 
 		getGaussPointAndWeight(i, point, weight);
 
-		/*shapeF->getGradU(gradUn, nodes, point, dispVecn);
-		shapeF->getGradU(gradUnp, nodes, point, dispVecnp);
-
-		strainEvaluator->getE(en, gradUn);
-		strainEvaluator->getE(enp, gradUnp);*/
-
 		//shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
 		shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
 
 		//strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
 		strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
 
-		//material->updateStates(en, enp, state + nstatepgp*i);
-		//material->getStress(&s, e, 0);
-		//material->getStressAndTangentMaterial(&s, &D, enp, 0);
-
 		// compute temperature at integration point
 		tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
+    //if(tframe) transformGlobalToLocal(en, tframe);
+    if(tframe) transformGlobalToLocal(enp, tframe);
+
 		material->integrate(&s, &Dnp, en, enp,
 							staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0);
+
+    if(tframe){
+      transformLocalToGlobal(s, tframe);
+      transformLocalToGlobal(Dnp, tframe);
+    }
 
 		for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
 		// force per unit length (ie. prestress multiplied by thickness)
@@ -536,27 +587,22 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
 
 		getGaussPointAndWeight(i, point, weight);
 
-		/*shapeF->getGradU(gradUn, nodes, point, dispVecn);
-		shapeF->getGradU(gradUnp, nodes, point, dispVecnp);
-
-		strainEvaluator->getE(en, gradUn);
-		strainEvaluator->getE(enp, gradUnp);*/
-
 		//shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
 		shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
 
 		//strainEvaluator->getEandB(en, Bn, gradUn, dgradUdqkn);
 		strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp);
 
-		//material->updateStates(en, enp, state + nstatepgp*i);
-		//material->getStress(&s, e, 0);
-		//material->getStressAndTangentMaterial(&s, &D, enp, 0);
-
 		// compute temperature at integration point
 		tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
+    //if(tframe) transformGlobalToLocal(en, tframe);
+    if(tframe) transformGlobalToLocal(enp, tframe);
+
 		material->integrate(&s, en, enp,
 							staten + nstatepgp*i,statenp + nstatepgp*i, tempnp, 0);
+
+    if(tframe) transformLocalToGlobal(s, tframe);
 
 		for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
 		// force per unit length (ie. prestress multiplied by thickness)
@@ -773,28 +819,22 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
 
 		getGaussPointAndWeight(i, point, weight);
 
-		/*shapeF->getGradU(gradUn, nodes, point, dispVecn);
-		shapeF->getGradU(gradUnp, nodes, point, dispVecnp);
-
-		strainEvaluator->getE(en, gradUn);
-		strainEvaluator->getE(enp, gradUnp);*/
-
 		//shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
 		shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
 
 		//strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
 		strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
 
-		//material->updateStates(en, enp, state + nstatepgp*i);
-		//material->getStress(&s, e, 0);
-		//material->getStressAndTangentMaterial(&s, &D, enp, 0);
-
 		// compute temperature at integration point
 		tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
+    //if(tframe) transformGlobalToLocal(en, tframe);
+    if(tframe) transformGlobalToLocal(enp, tframe);
 
 		material->integrate(&s, &Dnp, en, enp,
 							staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0); // XXX note should call getStress followed by transform
 		// to ensure that outputted measure is consistent (PK2)
+    if(tframe) transformLocalToGlobal(s, tframe);
 
 		for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
 		// force per unit length (ie. prestress multiplied by thickness)
@@ -877,28 +917,22 @@ GenGaussIntgElement<TensorType>::getVonMisesStress(Node *nodes, double *dispn, d
 
 		getGaussPointAndWeight(i, point, weight);
 
-		/*shapeF->getGradU(gradUn, nodes, point, dispVecn);
-		shapeF->getGradU(gradUnp, nodes, point, dispVecnp);
-
-		strainEvaluator->getE(en, gradUn);
-		strainEvaluator->getE(enp, gradUnp);*/
-
 		//shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
 		shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
 
 		//strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
 		strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
 
-		//material->updateStates(en, enp, state + nstatepgp*i);
-		//material->getStress(&s, e, 0);
-		//material->getStressAndTangentMaterial(&s, &D, enp, 0);
-
 		// compute temperature at integration point
 		tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
+    //if(tframe) transformGlobalToLocal(en, tframe);
+    if(tframe) transformGlobalToLocal(enp, tframe);
 
 		material->integrate(&s, &Dnp, en, enp,
 							staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0); // XXX note should call getStress followed by transform
 		// to ensure that outputted measure is consistent (PK2)
+    if(tframe) transformLocalToGlobal(s, tframe);
 
 		for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
 		// force per unit length (ie. prestress multiplied by thickness)

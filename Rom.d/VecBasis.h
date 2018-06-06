@@ -75,6 +75,7 @@ public:
   VecType & reduceAll(VecType &, VecType &) const;
   VecType & compressedVecReduce(VecType &, VecType &) const;
   VecType & sparseVecReduce(VecType &, VecType &) const;
+  Scalar  & sparseVecReduce(VecType &, Scalar *) const;
   VecType & expand2(VecType &, VecType &) const;
   VecType & addLocalPart(VecType &, VecType &) const;
   

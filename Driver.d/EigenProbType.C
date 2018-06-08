@@ -1294,8 +1294,8 @@ SymArpackSolver< EigOps, VecType, VecSet,
     // ... Store the rbms in the first this->nrmod vectors of VecSet Z
     if(this->nrmod) {
       // if GRBM is not specified, or if a shift is specified, or if the solver is skyline/sparse/feti then get rbms from solver
-      if(domain->solInfo().rbmflg == 0 || geoSource->shiftVal() != 0.0 || domain->solInfo().solvercntl->type == 2 ||
-         (domain->solInfo().solvercntl->type != 2 && (domain->solInfo().solvercntl->subtype == 0 || domain->solInfo().solvercntl->subtype == 1))) {
+      if(domain->solInfo().rbmflg == 0 || geoSource->shiftVal() != 0.0 || domain->solInfo().solvercntl->type == SolverSelection::Feti ||
+         (domain->solInfo().solvercntl->type != SolverSelection::Feti && (domain->solInfo().solvercntl->subtype == 0 || domain->solInfo().solvercntl->subtype == 1))) {
         this->eM->dynMat->getRBMs(*Z);
       }
       // otherwise, just use the geometric modes

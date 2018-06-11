@@ -45,11 +45,15 @@
 #define SMALL 1.0e-6
 #undef  CONVERGENCE_TOL
 #define CONVERGENCE_TOL 1.0e-10
+#undef  FAIL_TOL
+#define FAIL_TOL 0.01
 
 // Internal flags 
 // LOCAL_PRINT_FLAG = 0 turns off all internal debugging prints
 #undef  LOCAL_PRINT_FLAG 
 #define LOCAL_PRINT_FLAG 0
+
+extern int contactPrintFlag;
 
 #if LOCAL_PRINT_FLAG
 #include "ContactParOStream.h"
@@ -324,11 +328,9 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
     for(int j=0 ; j<NDIM ; ++j){ f_tot[j] = 0.0;}
   }
   
-  // NOTE : these are not used
-  //int num_nodes = topology->Number_of_Nodes();
-  //ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
-
 #ifdef CONTACT_TD_FACE_FACE_ENF
+  int num_nodes = topology->Number_of_Nodes();
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   int num_faces = topology->Number_of_Faces();
   ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(topology->FaceList()->EntityList());
 #endif
@@ -336,6 +338,11 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
   // set to a value that won't trigger an exit on the 1st iteration
   int iteration;
   for( iteration=0 ; iteration<num_iterations ; ++iteration ){
+
+    if (contactPrintFlag > 1 && contact_processor_number(communicator)==0) {
+      std::cout << "  Iteration "<<iteration<<"\n";
+    }
+
     // Initialize for iteration
     INC_FORCE.Zero_Scratch();
 #if LOCAL_PRINT_FLAG > 9
@@ -361,7 +368,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
       int num_face_face_interactions = face->Number_FaceFace_Interactions();
       global_num_face_face_interactions += face->Number_FaceFace_Interactions();
       for(int j = 0; j < num_face_face_interactions; ++j) {
-        ContactFaceFaceInteraction *ffi = face->Get_FaceFace_Interaction(j);
+        ContactFaceFaceInteraction<Real> *ffi = face->Get_FaceFace_Interaction(j);
         ContactFace<Real> *master_face = ffi->MasterFace();
         ContactFace<Real> *slave_face  = ffi->SlaveFace();
         POSTCONDITION(face==slave_face);
@@ -445,7 +452,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
       ContactFace<Real> *face = Faces[i];
       int num_face_face_interactions = face->Number_FaceFace_Interactions();
       for(int j = 0; j < num_face_face_interactions; ++j) {
-        ContactFaceFaceInteraction *ffi = face->Get_FaceFace_Interaction(j);
+        ContactFaceFaceInteraction<Real> *ffi = face->Get_FaceFace_Interaction(j);
         ContactFace<Real> *master_face = ffi->MasterFace();
         ContactFace<Real> *slave_face  = ffi->SlaveFace();
 	seginfo[27*n  ] = slave_face->temp_tag;
@@ -490,7 +497,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
       // defined face-face overlaps and process each independantly
       //
       for(int j = 0; j < num_face_face_interactions; ++j) {
-        ContactFaceFaceInteraction *ffi = face->Get_FaceFace_Interaction(j);
+        ContactFaceFaceInteraction<Real> *ffi = face->Get_FaceFace_Interaction(j);
 	//
 	//  Extract pointers to the two faces involved in the interaction.  Save basic information such as the
 	//  number of nodes in each face and the number of vertexes in the overlapping polygon.
@@ -588,7 +595,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
         Real sub_tri_side_a[3];
         Real sub_tri_side_b[3];
         for(int ivert = 0; ivert < num_vertex; ++ivert) {
-          ContactFaceFaceVertex *vertex = ffi->Get_Vertex(ivert);
+          ContactFaceFaceVertex<Real> *vertex = ffi->Get_Vertex(ivert);
 	  //
 	  // load local coordinates for ecah interaction vertex for both
           // the slave and master faces
@@ -897,13 +904,23 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
       }
       global_inc_force_norm
 	= std::sqrt(contact_global_sum(inc_force_norm, communicator));
-      if (iteration == 0)
+      if (iteration == 0) {
 	initial_global_inc_force_norm = global_inc_force_norm;
+
+        if (contactPrintFlag > 1 && contact_processor_number(communicator)==0) {
+          std::cout << "    alt convergence tol = "<<convergence_tolerance*initial_global_inc_force_norm<<"\n";
+        }
+      }
 #if LOCAL_PRINT_FLAG > 0
       postream << iteration << " >> convg. norm.: "
 	       << global_inc_force_norm << "\n";
       postream.flush();
 #endif
+
+      if (contactPrintFlag > 1 && contact_processor_number(communicator)==0) {
+        std::cout << "    convergence norm    = "<<global_inc_force_norm<<"\n";
+      }
+
       if( global_inc_force_norm
           < convergence_tolerance*initial_global_inc_force_norm
 	  || global_inc_force_norm < convergence_tolerance ) break;
@@ -921,6 +938,16 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
   postream.flush();
 #endif
   } // end of iteration loop
+
+  if(iteration == num_iterations && num_iterations > 1 && global_inc_force_norm > std::max(initial_global_inc_force_norm,FAIL_TOL)) {
+    if(contact_processor_number(communicator)==0)
+      std::cerr << "\rerror: contact enforcement failed (inc. force = " << global_inc_force_norm
+                << ", target = " << std::max(convergence_tolerance*initial_global_inc_force_norm, convergence_tolerance) << ")\n";
+    if(global_inc_force_norm > initial_global_inc_force_norm) {
+      // Set final updated position to the current predicted positiion
+      NEW_POSITION.Duplicate_Scratch(PREDICTED_POS);
+    }
+  }
 
   Compute_Extra_Ghosting_Length();
 

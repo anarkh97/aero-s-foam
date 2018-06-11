@@ -2971,7 +2971,7 @@ void Domain::PerformDynamicContactSearch(double dt_old, double dt)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
-    int search_algorithm = 4; // augmented dynamic 2-configuration
+    int search_algorithm = (sinfo.old_dynamic_search) ? 3 : 4;
     double dt_old = dt;
     CurrentMortarCond->perform_search(search_algorithm, dt_old, dt);
   }

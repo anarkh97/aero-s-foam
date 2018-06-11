@@ -246,7 +246,7 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
         if((subJ > iSub) || neighbWithSelf) {
           // only deal with connection to highered numbered subdomains, guarantees symmetry of lists
 	  if(!subToNode->num(subJ)) {
-	    filePrint(stderr, "reference to empty subdomain 1\n");
+	    fprintf(stderr, "reference to empty subdomain 1\n");
 	    exit(1);
 	  }
           if(flag[NESubMap[subJ]] != iSub) {
@@ -369,7 +369,7 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   for(iSub = 0; iSub < numSub; ++iSub) {
     int subI = (localSubToGl) ? localSubToGl[iSub] : iSub;
     if(!subToNode->num(subI)) {
-      filePrint(stderr, "reference to empty subdomain 2\n");
+      fprintf(stderr, "reference to empty subdomain 2\n");
       exit(1);
     }
     GenSubDomain<Scalar> **subds = new GenSubDomain<Scalar> * [nConnect[NESubMap[subI]]];

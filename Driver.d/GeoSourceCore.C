@@ -4477,8 +4477,26 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
     getTextDecomp(true); //the option true or false is for sowering or not
                          // if sowering there is no reordering
 
+  FILE *f = fopen(mapName,"r");
+  if(!f) {
+    getCPUMap(f, (Connectivity *)NULL, subToElem->csize(), nCpu);
+    f = fopen(mapName, "w");
+    cpuToSub->write(f);
+    fclose(f);
+  }
+#ifndef OLD_CLUSTER
+  else {
+    filePrint(stderr, " ... Reading CPU Map from file %s ... \n", mapName);
+    cpuToSub = new Connectivity(f, subToElem->csize());
+    if(cpuToSub->csize() != nCpu) {
+      filePrint(stderr, "ERROR: specified CPU Map file %s has incorrect number of CPUs\n", mapName);
+      exit(-1);
+    }
+  }
+#endif
+
   // TOPOLOGY (also element data PRESSURE and PRELOAD)
-  Sower sower(subToElem, domain->getElementSet(), nCluster, domain->viewSurfEntities()); //HB
+  Sower sower(subToElem, domain->getElementSet(), nCluster, domain->viewSurfEntities(), cpuToSub); //HB
   /* the sower object creates the cluster to element connectivity and from it will
      create cluster to data connectivities for each data added subsequently.
      Thus It will finally know which cluster needs what */
@@ -4687,14 +4705,6 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
   sower.printDebug();
 #endif
   sower.write();
-
-  FILE *f = fopen(mapName,"r");
-  if(!f) {
-    getCPUMap(f, (Connectivity *)NULL, subToElem->csize(), nCpu);
-    f = fopen(mapName, "w");
-    cpuToSub->write(f);
-    fclose(f);
-  }
 }
 #endif
 
@@ -4769,6 +4779,14 @@ void GeoSource::getBinaryDecomp()
     }
 
     int firstSubInCPU = (*cpuToSub)[myID][0]; // JAT 080315
+#ifndef OLD_CLUSTER
+    for(int i = 0; i < cpuToSub->num(myID); ++i) {
+      if(subToClus[(*cpuToSub)[myID][i]] != subToClus[firstSubInCPU]) {
+        fprintf(stderr, " *** ERROR: Subdomains mapped to CPU %d are not in the same cluster\n", myID);
+        exit(-1);
+      }
+    }
+#endif
     oss << decomposition_ << subToClus[firstSubInCPU]+1;
     BinFileHandler fp(oss.str().c_str(), "rb");
 #else

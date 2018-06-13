@@ -34,11 +34,10 @@ BrittleFractureTB<BaseMaterial>::getStress(Tensor *stress, Tensor &strain, doubl
   double tol = std::numeric_limits<double>::epsilon();
   const int i = BaseMaterial::getNumStates();
 
-  if(state[i] < Kf + tol) {
+  if(!state || (state[i] < Kf + tol)) {
     BaseMaterial::getStress(stress, strain, state, temp);
   }
   else {
-    //Tensor_d0s2_Ss12 *stress = static_cast<Tensor_d0s2_Ss12 *>(_stress);
     stress->setZero();
   }
 }
@@ -51,9 +50,10 @@ BrittleFractureTB<BaseMaterial>::integrate(Tensor *_stress, Tensor *tm, Tensor &
   double tol = std::numeric_limits<double>::epsilon();
   const int i = BaseMaterial::getNumStates();
 
-  if(staten[i] <  Kf + tol) {
+  if(!staten || staten[i] <  Kf + tol) {
     // compute elastic response
     BaseMaterial::integrate(_stress, tm, en, enp, staten, statenp, temp, cache, dt);
+    if(!staten) return;
 
     // check failure criteria
     Tensor_d0s2_Ss12 *stress = static_cast<Tensor_d0s2_Ss12 *>(_stress);
@@ -93,9 +93,10 @@ BrittleFractureTB<BaseMaterial>::integrate(Tensor *_stress, Tensor &en, Tensor &
   double tol = std::numeric_limits<double>::epsilon();
   const int i = BaseMaterial::getNumStates();
 
-  if(staten[i] <  Kf + tol) {
+  if(!staten || staten[i] <  Kf + tol) {
     // compute elastic response
     BaseMaterial::integrate(_stress, en, enp, staten, statenp, temp, cache, dt);
+    if(!staten) return;
 
     // check failure criteria
     Tensor_d0s2_Ss12 *stress = static_cast<Tensor_d0s2_Ss12 *>(_stress);
@@ -131,7 +132,8 @@ BrittleFractureTB<BaseMaterial>::getDamage(double *statenp)
 {
   double tol = std::numeric_limits<double>::epsilon();
   const int i = BaseMaterial::getNumStates();
-  return (statenp[i] >= Kf + tol) ? 1.0 : 0.0;
+
+  return (statenp && statenp[i] >= Kf + tol) ? 1.0 : 0.0;
 }
 
 template<typename BaseMaterial>

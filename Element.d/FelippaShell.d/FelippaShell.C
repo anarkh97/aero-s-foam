@@ -981,9 +981,10 @@ FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &
 }
 
 bool
-FelippaShell::checkElementDeletion(GeomState &)
+FelippaShell::checkElementDeletion(GeomState &geomState)
 {
-  return (prop && type == 4 && gpmat->CheckFailure());
+  double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
+  return (prop && type == 4 && gpmat->CheckFailure(state));
 }
 
 void

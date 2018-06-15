@@ -444,7 +444,7 @@ void
 GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *staten,
 										   double *dispnp, double *statenp,
 										   FullSquareMatrix &kTan,
-										   double *force, double, double *temps)
+                                           double *force, double dt, double *temps)
 {
 	int ndofs = numDofs();
 	GenShapeFunction<TensorType> *shapeF = getShapeFunction();
@@ -509,7 +509,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     if(tframe) transformGlobalToLocal(enp, tframe);
 
 		material->integrate(&s, &Dnp, en, enp,
-							staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0, dt);
 
     if(tframe){
       transformLocalToGlobal(s, tframe);
@@ -544,7 +544,7 @@ template <class TensorType>
 void
 GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *staten,
 										   double *dispnp, double *statenp,
-										   double *force, double, double *temps)
+                                           double *force, double dt, double *temps)
 {
 	int ndofs = numDofs();
 	GenShapeFunction<TensorType> *shapeF = getShapeFunction();
@@ -600,7 +600,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     if(tframe) transformGlobalToLocal(enp, tframe);
 
 		material->integrate(&s, en, enp,
-							staten + nstatepgp*i,statenp + nstatepgp*i, tempnp, 0);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0, dt);
 
     if(tframe) transformLocalToGlobal(s, tframe);
 

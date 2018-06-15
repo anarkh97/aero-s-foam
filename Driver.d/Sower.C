@@ -1,6 +1,7 @@
 #include <Driver.d/Sower.h>
 #include <Driver.d/GeoSource.h>
 #include <Utils.d/BinFileHandler.h>
+#include <Utils.d/DistHelper.h>
 #include <algorithm>
 
 #ifdef SOWER_SURFS
@@ -13,7 +14,7 @@ extern GeoSource * geoSource;
 //#define SOWER_DEBUG
 //#define SOWER_DEBUG_SURFS
 
-Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<SurfaceEntity*>* Surfs)
+Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<SurfaceEntity*>* Surfs, Connectivity *cpuToSub)
 {
 //Warning, subToElem is packed and eset is not ...
   subToClus = 0;
@@ -48,12 +49,8 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   std::cerr << " ** nodes to subdomain connectivity : " << std::endl;
   nToS->print();
 #endif   
-  // number of elements in a subdomain as weight
   int nSub = subToElem->csize();
   typedef long long superlong;
-  long long * sizes = new superlong[nSub];
-  for(int i = 0; i<nSub ; i++)
-    sizes[i] = subToElem->num(i);
   
   // read clusToSub from file if possible   JAT 021215
   const char *clusName = "CLUSMAP";
@@ -91,7 +88,51 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
     }
     clusToSub = new Connectivity(nClus, clusp, subs);
   } else
-    clusToSub = greedy(sTos,nToS,sToN,sizes,nSub,nClus); 
+#ifdef OLD_CLUSTER
+  {
+    // number of elements in a subdomain as weight
+    long long * sizes = new superlong[nSub];
+    for(int i = 0; i < nSub ; i++) {
+      sizes[i] = subToElem->num(i);
+    }
+    clusToSub = greedy(sTos, nToS, sToN, sizes, nSub, nClus); 
+    delete [] sizes;
+  }
+#else
+  {
+    // for new clustering method, all the subdomains on a cpu must be in the same cluster
+    if(nClus == 1) {
+      clusToSub = new Connectivity(nClus, 1);
+    }
+    else {
+      int nCpu = cpuToSub->csize();
+      if(nCpu == nClus) {
+        clusToSub = cpuToSub->copy();
+      }
+      else {
+        if(nClus > nCpu) {
+          filePrint(stderr, "ERROR: number of clusters greater than number of CPUs is not supported\n");
+          exit(-1);
+        }
+        Connectivity *subToCpu = cpuToSub->reverse();
+        Connectivity *cpuToCpu = cpuToSub->transcon(subToCpu);
+        long long * sizes = new superlong[nCpu];
+        for(int i = 0; i < nCpu; i++) {
+          sizes[i] = 0;
+          for(int j = 0; j < cpuToSub->num(i); ++j) {
+            sizes[i] += subToElem->num((*cpuToSub)[i][j]);
+          }
+        }
+        Connectivity *clusToCpu = greedy(cpuToCpu, subToCpu, cpuToSub, sizes, nCpu, nClus);
+        delete [] sizes;
+        delete cpuToCpu;
+        delete subToCpu;
+        clusToSub = clusToCpu->transcon(cpuToSub);
+        delete clusToCpu;
+      }
+    }
+  }
+#endif
   //addParentToChildData<Elemset*,Connectivity*>(ELEMENTS,CLUSTER,0,&eset,clusToSub);
 
 #ifdef SOWER_DEBUG
@@ -175,7 +216,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   //delete clusToElem;
   delete clusToNode;
   delete clusToSub2;
-  std::cerr << "elapsed time = " << (getTime()-t1)/1000 << std::endl;
+  //std::cerr << "elapsed time = " << (getTime()-t1)/1000 << std::endl;
 #endif
 #else
   writeSubFile(file);

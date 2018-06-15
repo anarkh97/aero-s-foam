@@ -228,7 +228,7 @@ class Sower
     This constructor will create the cluster to elements connectivity from which we will
     compute all the others
    */
-  Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<SurfaceEntity*>* Surfs=0); //HB
+  Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<SurfaceEntity*>* Surfs, Connectivity *cpuToSub); //HB
   Sower() { clusToSub = subToClus = 0; tocRead = true; }  // PJSA: constructor for reading
   ~Sower();
 

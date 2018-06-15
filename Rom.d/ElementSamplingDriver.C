@@ -604,7 +604,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
         for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(j),
                                                           it_end = geoSource->elementLumpingWeightEnd(j);
                 it != it_end; ++it) {
-                solution[it->first] = it->second;
+                solution[domain_->glToPackElem(it->first)] = it->second;
         }
     } 
     postProcessLocal(solution, packedToInput, j, sampleElemIds, weights[j]);

@@ -16,7 +16,7 @@ std::ostream &
 operator<<(std::ostream &out, const Attrib &source) {
   out << source.nele + 1 << " "
       << source.attr + 1;
-  if(source.cmp_attr != -1 && source.cmp_frm != -1) {
+  if(source.cmp_attr > -1 && source.cmp_frm > -1) {
     out << " " << source.cmp_attr + 1 << " " << source.cmp_frm + 1;
   }
   return out;

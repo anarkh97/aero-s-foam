@@ -2548,7 +2548,7 @@ void GeoSource::getTextDecomp(bool sowering)
     cx[isub] = curEle;
     if(curEle + nele > numElem()) {
       fprintf(stderr," *** ERROR: This decomposition contains more elements "
-                     "than the Original mesh:\n");
+                     "than the original mesh:\n");
       fprintf(stderr," *** %d vs %d\n", curEle + nele, nElem);
       exit(1);
     }

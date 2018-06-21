@@ -4633,7 +4633,8 @@ NLInfo:
             domain->solInfo().probType = SolverInfo::NonLinDynam;
           }
           domain->solInfo().solvercntl->fetiInfo.type = FetiInfo::nonlinear;
-          domain->solInfo().getNLInfo().setDefaults(); /* just in case PIECEWISE is used under statics */ }
+          domain->solInfo().getNLInfo().setDefaults(); /* just in case PIECEWISE is used under statics */
+          domain->solInfo().nlFlag = 1; /* can be used for decomposition when a different treatment is required, e.g. contact */ }
         | NLInfo NEWTON NewLine
         {}
         | NLInfo ARCLENGTH NewLine

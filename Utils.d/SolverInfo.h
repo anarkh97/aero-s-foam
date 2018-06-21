@@ -101,6 +101,7 @@ struct SolverInfo {
    SensitivityMethod sensitivityMethod;
    int probType;
    int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...
+   int nlFlag; // set to 1 if NONLINEAR keyword is present in input file
 
    float ATDARBFlag;
    float ATDDNBVal;
@@ -537,6 +538,7 @@ struct SolverInfo {
    SolverInfo() { filterFlags = 0;
                   filterQ = 1;
                   soltyp = -1;
+                  nlFlag = 0;
                   renum = 0;
                   probType = SolverInfo::None;
                   alphaDamp = 0.0;

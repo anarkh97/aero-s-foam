@@ -102,7 +102,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   {
     // for new clustering method, all the subdomains on a cpu must be in the same cluster
     if(nClus == 1) {
-      clusToSub = new Connectivity(nClus, 1);
+      clusToSub = new Connectivity(nClus, nSub);
     }
     else {
       int nCpu = cpuToSub->csize();

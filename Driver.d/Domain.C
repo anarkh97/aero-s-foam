@@ -3350,7 +3350,7 @@ Domain::initialize()
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;
  g_dsa = 0;
- numSensitivity = 0; senInfo = 0;
+ numSensitivity = 0; senInfo = 0; aggregatedStress = 0; aggregatedStressDenom = 0;
  runSAwAnalysis = false;   
  aggregatedFlag = false;
  aggregatedFileNumber = 0;
@@ -3429,6 +3429,7 @@ Domain::~Domain()
  if(g_dsa) delete g_dsa;
  if(senInfo) delete [] senInfo;
  if(aggregatedStress) delete aggregatedStress;
+ if(aggregatedStressDenom) delete aggregatedStressDenom;
  if(thgreleFlag) delete [] thgreleFlag;
  if(thpaIndex) delete [] thpaIndex;
 }

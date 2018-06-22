@@ -673,7 +673,7 @@ void
 MDNLDynamic::preProcess()
 {
   // Structure used to store timers
-  times = new StaticTimers;
+  if(!times) times = new StaticTimers;
 
   times->memoryPreProcess -= threadManager->memoryUsed();
 

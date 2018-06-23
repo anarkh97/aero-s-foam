@@ -3402,7 +3402,12 @@ Domain::~Domain()
  if(p_stress) { delete p_stress; p_stress = 0; }
  if(p_elstress) { delete p_elstress; p_elstress = 0; }
  if(stressAllElems) { delete stressAllElems; stressAllElems = 0; }
- if(claw) { delete claw; claw = 0; }
+ if(claw) {
+   if(claw->actuator) { delete [] claw->actuator; claw->actuator = 0; }
+   if(claw->userForce) { delete [] claw->userForce; claw->userForce = 0; }
+   if(claw->userDisp) { delete [] claw->userDisp; claw->userDisp = 0; }
+   delete claw; claw = 0;
+ }
  if(com) { delete com; com = 0; }
  if(firstDiMass) { delete firstDiMass; firstDiMass = 0; }
  if(previousExtForce) { delete previousExtForce; previousExtForce = 0; }

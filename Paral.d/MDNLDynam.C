@@ -273,6 +273,7 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   numSystems = 0;
   secondRes = 0.0;
   claw = 0; 
+  clawDofs = 0;
   userSupFunc = 0;
   aeroForce = 0;
   kelArray = 0;
@@ -348,6 +349,10 @@ MDNLDynamic::clean()
     usrDefVels = 0;
   }
   if(reactions) { delete reactions; reactions = 0; }
+  if(clawDofs) {
+    for(int i=0; i<decDomain->getNumSub(); ++i) if(clawDofs[i]) delete [] clawDofs[i];
+    delete [] clawDofs;
+  }
 }
 
 void

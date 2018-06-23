@@ -1810,6 +1810,11 @@ BaseSub::initialize()
   edgeDofSizeTmp = 0; isMixedSub = false;
   internalMasterFlag = 0;
   isCornerNode = 0;
+  claw = 0;
+  locToGlSensorMap = 0;
+  locToGlActuatorMap = 0;
+  locToGlUserDispMap = 0;
+  locToGlUserForceMap = 0;
 //  glToLocalElem = 0;
   //comm = 0;
 }
@@ -1903,6 +1908,16 @@ BaseSub::~BaseSub()
   if(outputNodes) delete [] outputNodes;
   if(outIndex) delete [] outIndex;
 #endif
+  if(claw) {
+    if(claw->actuator) { delete [] claw->actuator; claw->actuator = 0; }
+    if(claw->userForce) { delete [] claw->userForce; claw->userForce = 0; }
+    if(claw->userDisp) { delete [] claw->userDisp; claw->userDisp = 0; }
+    delete claw; claw = 0;
+  }
+  if(locToGlSensorMap) { delete [] locToGlSensorMap; locToGlSensorMap = 0; }
+  if(locToGlActuatorMap) { delete [] locToGlActuatorMap; locToGlActuatorMap = 0; }
+  if(locToGlUserDispMap) { delete [] locToGlUserDispMap; locToGlUserDispMap = 0; }
+  if(locToGlUserForceMap) { delete [] locToGlUserForceMap; locToGlUserForceMap = 0; }
 }
 
 void

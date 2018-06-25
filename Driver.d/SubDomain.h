@@ -235,7 +235,7 @@ protected:
 
 public:
 
-	GenSparseMatrix<Scalar>   *MPCsparse;
+	std::shared_ptr<GenSparseMatrix<Scalar>>   MPCsparse;
 	Corotator           	    **corotators;
 
 	Scalar *bcx_scalar;
@@ -285,7 +285,7 @@ public:
 	void mergePrimalError(Scalar* error, Scalar* primal);
 	void mergeStress(Scalar *stress, Scalar *weight,
 	                 Scalar *globStress, Scalar *globWeight, int glNumNodes);
-	void mergeElemStress(Scalar *loc, Scalar *glob, Connectivity *);
+	void mergeElemStress(Scalar *loc, Scalar *glob, const Connectivity *glElemToNode);
 	void mergeDisp(Scalar (*xyz)[11], GeomState* locGS, Scalar (*xyz_loc)[11] = NULL);
 	void mergeAllDisp(Scalar (*xyz)[11], Scalar *d, Scalar (*xyz_loc)[11] = NULL);
 	void mergeAllVeloc(Scalar (*xyz)[11], Scalar *v, Scalar (*xyz_loc)[11] = NULL);

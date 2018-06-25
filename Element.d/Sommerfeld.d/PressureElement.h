@@ -42,7 +42,8 @@ public:
 
 	void markDofs(DofSetArray &) const override;
 
-	int findAndSetEle(CoordSet &cs, Elemset &eset, Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
+	int findAndSetEle(const CoordSet &cs, Elemset &eset, const Connectivity *nodeToEle, int *eleTouch, int *eleCount,
+	                  int myNum,
 	                  int it) override;
 
 	PressureBCond *getPressure() override { return pbc; }

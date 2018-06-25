@@ -20,7 +20,7 @@ MultiDomainRbm<Scalar>::computeRbms()
   int i, nGroups, nGroups1;
   int *groups = 0, *ngrbmGr = 0;
   Connectivity *groupToSub, *subToGroup;
-  Connectivity *bodyToSub = decDomain->getGroupToSub();
+  auto bodyToSub = decDomain->getGroupToSub();
   if(!bodyToSub) {
     int nsubGl = decDomain->getGlobalNumSub();
     int *pointer = new int[nsubGl+1];

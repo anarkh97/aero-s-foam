@@ -249,7 +249,8 @@ PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
 template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 int
 PressureElement<FaceElementType, QuadratureRule, ConstantDegree, VariableDegree>
-::findAndSetEle(CoordSet &cs, Elemset &eset, Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum,
+::findAndSetEle(const CoordSet &cs, Elemset &eset, const Connectivity *nodeToElem, int *eleTouch, int *eleCount,
+                int myNum,
                 int it) {
 	// overriding SommerElement::findAndSetEle because the normal should not be reversed
 	this->iEle = findEle(nodeToElem, eleTouch, eleCount, myNum, &eset, it);

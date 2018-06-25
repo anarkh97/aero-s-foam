@@ -2,7 +2,9 @@
 // Created by Michel Lesoinne on 2/5/18.
 //
 
+#ifdef USE_MPI
 #include <mpi.h>
+#endif
 #include <stdexcept>
 #include "BaseCommunicator.h"
 #include "MPICompatTraits.h"
@@ -14,19 +16,15 @@ public:
 	explicit mpi_except(int error_code) : std::runtime_error("MPI Error") {}
 };
 
+class not_implemented_except : public std::runtime_error {
+public:
+	explicit not_implemented_except(const char *reason) : std::runtime_error(reason) {}
+};
 
-using WH = OpaqueTypedHandle<HandleType::Window>;
+	using WH = OpaqueTypedHandle<HandleType::Window>;
 using CH = OpaqueTypedHandle<HandleType::Communicator>;
 
-void testWin(MPI_Win win) {
-}
 
-MPI_Win testWH(const WH &wh) {
-	testWin(wh);
-	return wh;
-}
-
-#ifdef USE_MPI
 
 
 namespace {
@@ -34,133 +32,225 @@ namespace {
 void _allGather(const void *send_data, int send_count,
                 void *recv_data, int recv_count, TypeHandle datatype,
                 const CommunicatorHandle &comm) {
+#ifdef USE_MPI
 	MPI_Allgather(send_data, send_count, datatype,
 	              recv_data, recv_count, datatype, comm);
+#else
+	for (int i = 0; i < send_count; ++i)
+		recv_data[i] = send_data[i];
+#endif
 };
 
 WinHandle _createWindow(void *data, int size, int disp_unit, const CommunicatorHandle &comm) {
+#ifdef USE_MPI
 	MPI_Win winHandle;
 	int err_code = MPI_Win_create(data, size, disp_unit, MPI_INFO_NULL, comm, &winHandle);
 	if (err_code != MPI_SUCCESS)
 		throw mpi_except(err_code);
 	return WinHandle{winHandle};
+#else
+	return WinHandle{WinDetails{data,size,disp_unit}};
+#endif
 };
 
 void _fence(bool openOrClose, WinHandle handle) {
+#ifdef USE_MPI
 	int err_code = MPI_Win_fence(openOrClose ? MPI_MODE_NOPUT | MPI_MODE_NOPRECEDE : MPI_MODE_NOSUCCEED,
 	                             handle);
 	if (err_code != MPI_SUCCESS)
 		throw mpi_except(err_code);
+#else
+	// Nothing to do
+#endif
 }
 
 void _destroyWindow(WinHandle handle) {
+#ifdef USE_MPI
 	MPI_Win mpiHandle = handle;
 	if (mpiHandle != MPI_WIN_NULL) {
 		int err_code = MPI_Win_free(&mpiHandle);
 		if (err_code != MPI_SUCCESS)
 			throw mpi_except(err_code);
 	}
-
+#else
+	// Nothing to do
+#endif
 }
 
+#ifdef USE_MPI
+static
 void check(int err_code) {
 	if (err_code != MPI_SUCCESS)
 		throw mpi_except(err_code);
 }
+#endif
 
 void _lock(bool isShared, int remoteRank, WinHandle handle) {
+#ifdef USE_MPI
 	check(
 			MPI_Win_lock(isShared ? MPI_LOCK_SHARED : MPI_LOCK_EXCLUSIVE,  remoteRank, 0, handle)
 	);
+#else
+	// Nothing to do
+#endif
 }
 
 void _unlock(int remoteRank, WinHandle handle) {
+#ifdef USE_MPI
 	check(
 			MPI_Win_unlock(remoteRank, handle)
 	);
+#else
+	// Nothing to do
+#endif
 }
 
 void _lockAll(WinHandle handle) {
+#ifdef USE_MPI
 	check(
 			MPI_Win_lock_all(0,  handle)
 	);
+#else
+	// Nothing to do
+#endif
 }
 
 void _unlockAll(WinHandle handle) {
+#ifdef USE_MPI
 	check(
 			MPI_Win_unlock_all(handle)
 	);
+#else
+	// Nothing to do
+#endif
 }
 
 void _flushRemote(int remoteRank, WinHandle handle) {
+#ifdef USE_MPI
 	check(
 			MPI_Win_flush(remoteRank, handle)
 	);
+#else
+	// Nothing to do
+#endif
 }
 
 void _flushLocal(int remoteRank, WinHandle handle) {
+#ifdef USE_MMPI
 	check(
 			MPI_Win_flush_local(remoteRank, handle)
 	);
+#else
+	// Nothing to do
+#endif
 }
 
 void _flushRemoteAll(WinHandle handle) {
+#ifdef USE_MPI
 	check(
 			MPI_Win_flush_all(handle)
 	);
+#else
+	// Nothing to do
+#endif
 }
 
 void _flushLocalAll(WinHandle handle) {
+#ifdef USE_MPI
 	check(
 			MPI_Win_flush_local_all(handle)
 	);
+#else
+	// Nothing to do
+#endif
 }
 
 void _fetchAndOp(WinHandle handle, OpHandle op, const void *sourceData, TypeHandle dataType,
                    void *resData, int remoteRank, int remoteOffset) {
+#ifdef USE_MPI
 	check(
 			MPI_Fetch_and_op(sourceData, resData, dataType, remoteRank, remoteOffset, op, handle)
 	);
+#else
+	// Get the Window data details
+
+	// Fetch the data from the window and put it in resData
+
+	// Perform the operation on the window with the source data.
+	throw not_implemented_except("Fetch and Op not implemented without MPI.");
+#endif
 }
 
 void _accumulate(WinHandle handle, OpHandle op, const void *operand, int count, TypeHandle dataType,
                    int remoteRank, int remoteOffset) {
+#ifdef USE_MPI
 	check(
 			MPI_Accumulate(operand, count, dataType, remoteRank, remoteOffset, count, dataType, op, handle)
 	);
+#else
+	// Get the Window data details
+	// Perform the operation on the window with the source data.
+	if(count > 0)
+		throw not_implemented_except("Accumulate not implemented without MPI.");
+#endif
 }
 
 void _put(WinHandle handle, const void *sourceData, int count, TypeHandle datatype,
           int remoteRank, int remoteOffset) {
+#ifdef USE_MPI
 	check(
 			MPI_Put(sourceData, count, datatype, remoteRank, remoteOffset, count, datatype, handle)
 	);
+#else
+	// Get the Window data details
+	// Perform the operation on the window with the source data.
+	if(count > 0)
+		throw not_implemented_except("Put not implemented without MPI.");
+#endif
 }
 
 void _get(WinHandle handle, void *destData, int count, TypeHandle datatype,
           int remoteRank, int remoteOffset) {
+#ifdef USE_MPI
 	check(
 			MPI_Get(destData, count, datatype, remoteRank, remoteOffset, count, datatype, handle)
 	);
+#else
+	// Get the Window data details
+	// Perform the operation on the window with the source data.
+	if(count > 0)
+		throw not_implemented_except("Get not implemented without MPI.");
+#endif
 }
 
 ReqHandle _i_send(const void *buf, int count, TypeHandle datatype, RankHandle dest, int tag,
              const CommunicatorHandle &comm) {
+#ifdef USE_MPI
 	MPI_Request request;
 	check(
 		MPI_Isend(buf, count, datatype, dest.rank, tag, comm, &request)
 	);
 	return { OpaqueTypedHandle<HandleType::Request>{request}, datatype };
+#else
+	// Get the Window data details
+	// Perform the operation on the window with the source data.
+	if(count > 0)
+		throw not_implemented_except("i_send not implemented without MPI.");
+	return { OpaqueTypedHandle<HandleType::Request>{0}, datatype };
+#endif
 }
 
 ReqHandle _i_receive(void *buf, int count, TypeHandle datatype, RankHandle source, int tag,
                       const CommunicatorHandle &comm) {
+#ifdef USE_MPI
 	MPI_Request request;
 	int origin = source.rank  == RankHandle::Any.rank ? MPI_ANY_SOURCE : source.rank;
 	             check(
 			MPI_Irecv(buf, count, datatype, origin, tag, comm, &request)
 	);
 	return { OpaqueTypedHandle<HandleType::Request>{request}, datatype };
+#else
+#endif
 }
 
 }
@@ -325,43 +415,43 @@ namespace com_details {
 WinHandle Constants::nullWindow{MPI_WIN_NULL};
 
 }
-#else
-
-com_details::CommFunctions BaseCommunicator::functions{
-	.commSize = [](const OpaqueHandle &handle) {
-		return 1;
-	},
-	.remoteSize = [](const OpaqueHandle &handle) {
-		return 0;
-	},
-	.allReduce = [](const void *sendbuf, void *recvbuf, int count, TypeHandle datatype, OpHandle op,
-		                CommunicatorHandle comm, void(*cpData)(const void *, void *, int)) {
-		(*cpData)(sendbuf, recvbuf, count);
-	},
-	.barrier = [](const CommunicatorHandle &comm) {
-	},
-	.rank = [](const OpaqueHandle &handle) {
-		return 0;
-	}
-};
-
-namespace com_details {
-
-template <>
-TypeHandle CommTypeTrait<int>::typeHandle() {
-	return MPI_INT;
-}
-
-template <>
-TypeHandle CommTypeTrait<double>::typeHandle() {
-	return MPI_DOUBLE;
-}
-
+//#else
 //
-//template struct CommTypeTrait<int>;
-//template struct CommTypeTrait<double>;
-//template struct CommTypeTrait<std::complex<double>>;
-
-}
-#endif
+//com_details::CommFunctions BaseCommunicator::functions{
+//	.commSize = [](const OpaqueHandle &handle) {
+//		return 1;
+//	},
+//	.remoteSize = [](const OpaqueHandle &handle) {
+//		return 0;
+//	},
+//	.allReduce = [](const void *sendbuf, void *recvbuf, int count, TypeHandle datatype, OpHandle op,
+//		                CommunicatorHandle comm, void(*cpData)(const void *, void *, int)) {
+//		(*cpData)(sendbuf, recvbuf, count);
+//	},
+//	.barrier = [](const CommunicatorHandle &comm) {
+//	},
+//	.rank = [](const OpaqueHandle &handle) {
+//		return 0;
+//	}
+//};
+//
+//namespace com_details {
+//
+//template <>
+//TypeHandle CommTypeTrait<int>::typeHandle() {
+//	return MPI_INT;
+//}
+//
+//template <>
+//TypeHandle CommTypeTrait<double>::typeHandle() {
+//	return MPI_DOUBLE;
+//}
+//
+////
+////template struct CommTypeTrait<int>;
+////template struct CommTypeTrait<double>;
+////template struct CommTypeTrait<std::complex<double>>;
+//
+//}
+//#endif
 

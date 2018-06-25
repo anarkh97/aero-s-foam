@@ -194,6 +194,7 @@ IF(UNIX)
 		ENDIF(NOT WITH_SPOOLES EQUAL 0)
 
 		find_package(Eigen3 3.3 REQUIRED NO_MODULES)
+		set(WITH_EIGEN3_EXTRA 0)
 		#    include_directories(${EIGEN3_INCLUDE_DIR})
 		add_definitions(-DUSE_EIGEN3 -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>
 				-DEIGEN_DONT_PARALLELIZE)

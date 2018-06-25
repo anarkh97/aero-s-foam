@@ -45,7 +45,7 @@ class GenDecDomain
   Connectivity *subToSub;
   Connectivity *mpcToSub_primal;
   Connectivity *subToElem;
-  Connectivity *elemToNode;
+  const Connectivity *elemToNode;
   Connectivity *nodeToSub, *nodeToSub_copy;
   Connectivity *cpuToSub;
   Connectivity *elemToSub;
@@ -100,12 +100,12 @@ class GenDecDomain
 
   GenSubDomain<Scalar>** getAllSubDomains() { return subDomain; }
   GenSubDomain<Scalar>* getSubDomain(int isub) { return subDomain[isub]; }
-  void setElemToNode(Connectivity *_elemToNode) { elemToNode = _elemToNode; }
+  void setElemToNode(const Connectivity *_elemToNode) { elemToNode = _elemToNode; }
   void setSubToElem(Connectivity *_subToElem) { subToElem = _subToElem; }
   void setCPUMap(Connectivity *);
   Connectivity * getSubToSub() { return subToSub; }
   Connectivity * getElemToSub() { return elemToSub; }
-  Connectivity * getElemToNode() { return elemToNode; }
+  const Connectivity * getElemToNode() { return elemToNode; }
   Connectivity * getNodeToSub() { return nodeToSub; }
   Connectivity * getGroupToSub() { return grToSub; }
   int *getGlSubToLocal() { return glSubToLocal; }

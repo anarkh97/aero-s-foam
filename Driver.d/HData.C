@@ -2280,15 +2280,15 @@ HData::wError(Domain *dom, double *l2err, double *h1err, double *l2, double *h1,
 
 
 void
-HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_nodeToElem)
+HData::checkSommerTypeBC(Domain *dom, const Connectivity *_elemToNode, const Connectivity *_nodeToElem)
 {
  if(sommerChecked) return;
  int totEle = dom->numElements();
  int *eleTouch = new int[totEle];
  int *eleCount = new int[totEle];
 
- Connectivity *packedElemToNode = (_elemToNode) ? _elemToNode : new Connectivity(dom->packedEset.asSet());
- Connectivity *nodeToPackedElem = (_nodeToElem) ? _nodeToElem : packedElemToNode->reverse();
+ auto *packedElemToNode = (_elemToNode) ? _elemToNode : new Connectivity(dom->packedEset.asSet());
+ auto *nodeToPackedElem = (_nodeToElem) ? _nodeToElem : packedElemToNode->reverse();
 // int pos = 0, neg = 0;
  int i;
  for (i=0;i<totEle;i++) eleTouch[i] = -1;

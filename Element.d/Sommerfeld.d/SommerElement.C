@@ -59,8 +59,8 @@ void SommerElement::flipNormal() {
 
 
 void
-SommerElement::findBothEle(Connectivity *nodeToElem, int *eleTouch,
-                           int *eleCount, int myNum, Elemset *eset, int *ie) {
+SommerElement::findBothEle(const Connectivity *nodeToElem, int *eleTouch,
+                           int *eleCount, int myNum, const Elemset *eset, int *ie) {
 	ie[0] = ie[1] = -1;
 	int i, iele;
 	int nNodes = numNodes();
@@ -93,8 +93,8 @@ SommerElement::findBothEle(Connectivity *nodeToElem, int *eleTouch,
 
 
 int
-SommerElement::findAndSetBothEle(CoordSet &cs, Elemset &eset,
-                                 Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum) {
+SommerElement::findAndSetBothEle(const CoordSet &cs, Elemset &eset,
+                                 const Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum) {
 	int ie[2];
 	findBothEle(nodeToElem, eleTouch, eleCount, myNum, &eset, ie);
 
@@ -156,7 +156,7 @@ SommerElement::findAndSetBothEle(CoordSet &cs, Elemset &eset,
 
 
 int
-SommerElement::findEle(Connectivity *nodeToElem, int *eleTouch,
+SommerElement::findEle(const Connectivity *nodeToElem, int *eleTouch,
                        int *eleCount, int myNum, Elemset *eset, int it) {
 	int i, iele;
 	int nNodes = numNodes();
@@ -196,8 +196,8 @@ SommerElement::findEle(Connectivity *nodeToElem, int *eleTouch,
 }
 
 int
-SommerElement::findAndSetEle(CoordSet &cs, Elemset &eset,
-                             Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum, int it) {
+SommerElement::findAndSetEle(const CoordSet &cs, Elemset &eset,
+                             const Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum, int it) {
 	iEle = findEle(nodeToElem, eleTouch, eleCount, myNum, &eset, it);
 	if (iEle == -1) {
 		fprintf(stderr, "SommerElement::findAndSetEle could not find the"

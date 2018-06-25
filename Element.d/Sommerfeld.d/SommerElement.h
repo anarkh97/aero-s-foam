@@ -70,18 +70,18 @@ public:
 
 	virtual void center(CoordSet &cs, double *c);
 
-	virtual void findBothEle(Connectivity *nodeToElem, int *eleTouch,
-	                         int *eleCount, int myNum, Elemset *eset, int *ie);
+	virtual void findBothEle(const Connectivity *nodeToElem, int *eleTouch,
+	                         int *eleCount, int myNum, const Elemset *eset, int *ie);
 
-	virtual int findAndSetBothEle(CoordSet &cs, Elemset &eset,
-	                              Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum);
+	virtual int findAndSetBothEle(const CoordSet &cs, Elemset &eset,
+	                              const Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum);
 
-	virtual int findEle(Connectivity *nodeToEle, int *eleTouch,
+	virtual int findEle(const Connectivity *nodeToEle, int *eleTouch,
 	                    int *eleCount, int myNum, Elemset *eset = 0,
 	                    int it = 0);
 
-	virtual int findAndSetEle(CoordSet &cs, Elemset &eset,
-	                          Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
+	virtual int findAndSetEle(const CoordSet &cs, Elemset &eset,
+	                          const Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
 	                          int it = 0);
 
 	virtual FullSquareMatrix sommerMatrix(CoordSet &) const;

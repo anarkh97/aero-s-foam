@@ -2059,11 +2059,12 @@ FetiSub<Scalar>::multKcc() {
 				for (j = 0; j < numEquations; ++j)
 					this->Ave[i][j] *= s;
 			}
-			for (i = 0; i < nAve; ++i) {
-				for (j = 0; j < numEquations; ++j)
-					this->Eve[i][j] = this->Ave[i][j];
-				this->Krr->reSolve(nAve, this->Eve[i]);
-			}
+			this->Eve = this->Ave;
+			this->Krr->reSolve(nAve, this->Eve[0]);
+//			for (i = 0; i < nAve; ++i) {
+//				for (j = 0; j < numEquations; ++j)
+//					this->Eve[i][j] = this->Ave[i][j];
+//			}
 			pAKA = AKA.data();
 
 			Tgemm('T', 'N', nAve, nAve, numEquations, 1.0, this->Eve[0], numEquations,
@@ -2119,9 +2120,9 @@ FetiSub<Scalar>::multKcc() {
 			this->Grc = std::make_unique<GenCuCSparse<Scalar>>(nAve, numEquations, KACount, KAList, KACoefs);
 
 			if (this->Src->num() == 2)
-				this->Src->setSparseMatrix(1, this->Grc.get());
+				this->Src->setSparseMatrix(1, this->Grc);
 			else if (this->Src->num() == 1 && nCor == 0)
-				this->Src->setSparseMatrix(0, this->Grc.get());
+				this->Src->setSparseMatrix(0, this->Grc);
 			else {
 				fprintf(stderr, "unsupported number of blocks in Src\n");
 				exit(1);
@@ -2138,7 +2139,7 @@ FetiSub<Scalar>::multKcc() {
 			Scalar vt[nAve];
 			VectorView<Scalar> v{vt, nAve};
 			for (j = 0; j < nRHS; j++) {
-				v = this->Eve * VectorView<Scalar>{KrrKrc[j], numEquations};
+				v = this->Eve.transpose() * VectorView<Scalar>{KrrKrc[j], numEquations};
 				VectorView<Scalar>{KrrKrc[j], numEquations} -= this->Ave * v;
 			}
 		}
@@ -3315,7 +3316,7 @@ FetiSub<Scalar>::makeAverageEdgeVectors() {
 	this->Grc = std::make_unique<GenCuCSparse<Scalar>>(numR * nE, cc_dsa->size(),
 	                                                   xyzCount, xyzList, xyzCoefs);
 	// Src->setSparseMatrices(1, Grc);
-	this->Src->addSparseMatrix(this->Grc.get());
+	this->Src->addSparseMatrix(this->Grc);
 	delete[] xyzCount;
 }
 
@@ -4083,7 +4084,7 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 		delete[] xyzList;
 		delete[] xyzCoefs;
 	} else {
-		this->Grc = std::make_unique<GenCuCSparse<Scalar>>(total, cc_dsa->size(), xyzCount.data(), xyzList, xyzCoefs);
+		this->Grc = std::make_shared<GenCuCSparse<Scalar>>(total, cc_dsa->size(), xyzCount.data(), xyzList, xyzCoefs);
 		delete[] HelmList;
 		delete[] HelmCoefs;
 		delete[] TempList;
@@ -4093,9 +4094,9 @@ FetiSub<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 	int ii = (isFluidSub || isThermalSub) ? 1 : 0;
 	if (edgeQindex[ii] == -1)
 		edgeQindex[ii] = this->Src->addSparseMatrix(
-				this->Grc.get());  // store index for possible rebuild (multiple LHS freq sweep)
+				this->Grc);  // store index for possible rebuild (multiple LHS freq sweep)
 	else
-		this->Src->setSparseMatrix(edgeQindex[ii], this->Grc.get());
+		this->Src->setSparseMatrix(edgeQindex[ii], this->Grc);
 
 	for (i = 0; i < scomm->numNeighb; ++i) edgeDofSize[i] += edgeDofSizeTmp[i];
 
@@ -4182,7 +4183,7 @@ FetiSub<Scalar>::sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat) {
 	// Sub-Domain based augmented preconditioner for DP
 	this->Grc = std::make_unique<GenCuCSparse<Scalar>>(scomm->lenT(SComm::std), scomm->boundDofsT(SComm::std), nGrbm,
 	                                                   interfaceRBMs.data());
-	this->Src->addSparseMatrix(this->Grc.get());
+	this->Src->addSparseMatrix(this->Grc);
 
 	sendInterfRBMs(nGrbm, interfaceRBMs.data(), rbmPat);
 }
@@ -4196,8 +4197,8 @@ FetiSub<Scalar>::receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat) {
 		Scalar *neighbGs = new Scalar[leadingDimGs * neighbNumGRBMs[iNeighb]];
 		recvInterfRBMs(iNeighb, neighbNumGRBMs[iNeighb], neighbGs, rbmPat);
 		// TODO FIX THIS LEAK! Src does not own the pointers. In other cases they are owned by FetiSub.
-		GenCuCSparse<Scalar> *Grc = new GenCuCSparse<Scalar>(leadingDimGs, scomm->boundDofsT(SComm::std, iNeighb),
-		                                                     neighbNumGRBMs[iNeighb], neighbGs, leadingDimGs);
+		auto Grc = std::make_shared<GenCuCSparse<Scalar>>(leadingDimGs, scomm->boundDofsT(SComm::std, iNeighb),
+		                                                  neighbNumGRBMs[iNeighb], neighbGs, leadingDimGs);
 		Grc->negate();
 		this->Src->addSparseMatrix(Grc);
 	}

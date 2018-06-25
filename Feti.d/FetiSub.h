@@ -323,8 +323,11 @@ protected:
 template <typename Scalar>
 class _AVMatrix : public Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> {
 public:
+	using MatrixType = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
+
 	_AVMatrix() = default;
 
+	using MatrixType::operator=;
 	const Scalar *operator[](int i) const { return &(*this)(0, i); }
 	Scalar *operator[](int i) { return &(*this)(0, i); }
 };
@@ -538,8 +541,8 @@ public:
 	std::unique_ptr<GenSparseMatrix<Scalar>> KiiSparse;
 	std::unique_ptr<GenCuCSparse<Scalar> >     Kib;
 	std::unique_ptr<GenAssembledFullM<Scalar>> Kcc;
-	std::unique_ptr<GenCuCSparse<Scalar>>      Krc;
-	std::unique_ptr<GenCuCSparse<Scalar>>      Grc;
+	std::shared_ptr<GenCuCSparse<Scalar>>      Krc;
+	std::shared_ptr<GenCuCSparse<Scalar>>      Grc;
 	_AVMatrix<Scalar> Ave;
 	_AVMatrix<Scalar> Eve;
 

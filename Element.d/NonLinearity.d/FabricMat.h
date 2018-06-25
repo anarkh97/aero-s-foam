@@ -39,7 +39,7 @@ public:
 
 	void initStates(double *) override {};
 
-	GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();
+	GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator() override;
 
 	double getDensity() override { return rho; }
 

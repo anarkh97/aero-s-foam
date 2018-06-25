@@ -400,7 +400,7 @@ GenSubDomain<Scalar>::mergeStress(Scalar *locStress, Scalar *locWeight,
 }
 
 template<class Scalar>
-void GenSubDomain<Scalar>::mergeElemStress(Scalar *locStress, Scalar *globStress, Connectivity *glElemToNode) {
+void GenSubDomain<Scalar>::mergeElemStress(Scalar *locStress, Scalar *globStress, const Connectivity *glElemToNode) {
 	const auto &glOffset = glElemToNode->ptr();
 	const auto &locOffset = elemToNode->ptr();
 	for (int iElem = 0; iElem < numele; iElem++) {
@@ -755,7 +755,7 @@ GenSubDomain<Scalar>::constructKrc() {
 	this->Src = std::make_unique<GenSparseSet<Scalar>>();
 	if (numCRNdof) {
 		this->Krc = std::make_unique<GenCuCSparse<Scalar>>(nodeToNode, dsa, cornerMap, cc_dsa->getUnconstrNum());
-		this->Src->addSparseMatrix(this->Krc.get());
+		this->Src->addSparseMatrix(this->Krc);
 	}
 	setMpcSparseMatrix();
 }
@@ -1472,7 +1472,7 @@ GenSubDomain<Scalar>::setMpcSparseMatrix() {
 
 	// should always be the second term added to Src
 	if (numMPC_primal > 0) {
-		MPCsparse = new GenMpcSparse<Scalar>(numMPC_primal, mpc_primal, cc_dsa.get());
+		MPCsparse = std::make_shared<GenMpcSparse<Scalar>>(numMPC_primal, mpc_primal, cc_dsa.get());
 		this->Src->addSparseMatrix(MPCsparse);
 
 		// to take into account wet interface / mpc interaction
@@ -1682,9 +1682,6 @@ GenSubDomain<Scalar>::initialize() {
 template<class Scalar>
 GenSubDomain<Scalar>::~GenSubDomain() {
 
-	if (MPCsparse) {
-		delete MPCsparse;
-	}
 	if (mpcForces) {
 		delete[] mpcForces;
 	}

@@ -55,7 +55,7 @@ public :
 	Connectivity* reverse(float *w = 0) const;
 	Connectivity* altReverse(float *w = 0);
 	template <class B, class AB>
-	Connectivity* transcon(BaseConnectivity<B,AB>* tc) const;
+	Connectivity* transcon(const BaseConnectivity<B, AB> *tc) const;
 	template <class B, class AB>
 	Connectivity transcon(const BaseConnectivity<B,AB>& tc) const;
 
@@ -350,7 +350,7 @@ BaseConnectivity<A,Accessor>::reverse(float * w) const
 // an Implicit Connectivity!!!
 template<typename A, class Accessor>
 template<class B, class AB>
-Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc) const
+Connectivity* BaseConnectivity<A,Accessor>::transcon(const BaseConnectivity<B, AB> *tc) const
 {
 	int i,j,k;
 

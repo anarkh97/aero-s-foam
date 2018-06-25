@@ -13,14 +13,14 @@ GenSparseSet<Scalar>::~GenSparseSet()
 
 template<class Scalar> 
 GenSparseSet<Scalar>::GenSparseSet(int num)
- : sm(0, num)
+ : sm(nullptr, num)
 {
  numSM = 0;
 }
 
 template<class Scalar>
 int
-GenSparseSet<Scalar>::addSparseMatrix(GenSparseMatrix<Scalar> *_sm) 
+GenSparseSet<Scalar>::addSparseMatrix(std::shared_ptr<GenSparseMatrix<Scalar>> _sm)
 { 
  sm[numSM++] = _sm;
  return numSM-1;
@@ -28,9 +28,8 @@ GenSparseSet<Scalar>::addSparseMatrix(GenSparseMatrix<Scalar> *_sm)
 
 template<class Scalar> 
 void
-GenSparseSet<Scalar>::setSparseMatrix(int i, GenSparseMatrix<Scalar> *_sm)
+GenSparseSet<Scalar>::setSparseMatrix(int i, std::shared_ptr<GenSparseMatrix<Scalar>>_sm)
 {
- if(sm[i]) delete sm[i];
  sm[i] = _sm;
  if(i > numSM) numSM = i+1; // this shouldn't happen
 }

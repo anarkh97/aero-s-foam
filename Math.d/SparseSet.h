@@ -12,7 +12,7 @@ typedef GenFullM<DComplex> FullMC;
 template<class Scalar>
 class GenSparseSet 
 {
-   ResizeArray<GenSparseMatrix<Scalar> *> sm;
+   ResizeArray<std::shared_ptr<GenSparseMatrix<Scalar>> > sm;
    int numSM;
  public:
    GenSparseSet(int n=1);
@@ -21,8 +21,8 @@ class GenSparseSet
    int numCol();
    long size() { return 0;}
    int num() { return numSM; }
-   void setSparseMatrix(int i, GenSparseMatrix<Scalar> *_sm);
-   int addSparseMatrix(GenSparseMatrix<Scalar> *_sm);
+   void setSparseMatrix(int i, std::shared_ptr<GenSparseMatrix<Scalar>> _sm);
+   int addSparseMatrix(std::shared_ptr<GenSparseMatrix<Scalar>> _sm);
  
    void mult(Scalar *rhs, Scalar *result);
    void multAdd(Scalar *rhs, Scalar *result);

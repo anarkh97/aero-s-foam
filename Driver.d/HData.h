@@ -108,7 +108,7 @@ class HData
      void addWet(SommerElement *ele);
      void addSBoundNodes();
      void addSBoundNode(int);
-     void checkSommerTypeBC(Domain *domain, Connectivity *_elemToNode = 0, Connectivity *_nodeToElem = 0);
+     void checkSommerTypeBC(Domain *domain, const Connectivity *_elemToNode = 0, const Connectivity *_nodeToElem = 0);
      int  nCDirichlet() const { return numComplexDirichlet; }
      int  numSommerfeld() const { return numSommer; }
      int  numSSN() const { return numSommer + numScatter + numNeum + numWet; }

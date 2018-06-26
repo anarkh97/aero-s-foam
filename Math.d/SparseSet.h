@@ -1,6 +1,7 @@
 #ifndef _SPARSE_SET_
 #define _SPARSE_SET_
 
+#include <memory>
 #include <Utils.d/MyComplex.h>
 #include <Utils.d/resize_array.h>
 

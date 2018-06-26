@@ -62,7 +62,7 @@ public :
 	template <class B, class AB>
 	Connectivity* altTranscon(const BaseConnectivity<B,AB>& tc) const;
 	template <class B, class AB>
-	Connectivity* transcon(BaseConnectivity<B,AB>* tc, int *, int);
+	Connectivity* transcon(const BaseConnectivity<B, AB> *tc, int *ownedBy, int me);
 
 	/* following functions are used to make transcon accept a BaseConnectivity as argument */
 //    int *operator[](int i) {return(Accessor::getData(static_cast<A*>(this),i));}
@@ -464,7 +464,7 @@ Connectivity BaseConnectivity<A,Accessor>::transcon(const BaseConnectivity<B,AB>
 
 template<typename A, class Accessor>
 template<class B, class AB>
-Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc, int *ownedby, int me)
+Connectivity* BaseConnectivity<A,Accessor>::transcon(const BaseConnectivity<B, AB> *tc, int *ownedby, int me)
 {
 	int i,j,k;
 

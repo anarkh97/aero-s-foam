@@ -333,14 +333,14 @@ protected:
 	int numIVelModal;
 	BCond *iVelModal;
 
-	DofSetArray *dsa;		// Dof set array
-	DofSetArray *dsaFluid;	// Dof set array for fluid
-	ConstrainedDSA *c_dsa;	// Constrained dof set array
-	ConstrainedDSA *c_dsaFluid;// Constrained dof set array for fluid
-	ConstrainedDSA *MpcDSA;
-	ConstrainedDSA *g_dsa;
-	Connectivity *allDOFs;     // all dof arrays for each node
-	Connectivity *allDOFsFluid;     // all dof arrays for each node
+	DofSetArray *dsa = nullptr;		// Dof set array
+	DofSetArray *dsaFluid = nullptr;	// Dof set array for fluid
+	ConstrainedDSA *c_dsa = nullptr;	// Constrained dof set array
+	ConstrainedDSA *c_dsaFluid = nullptr;// Constrained dof set array for fluid
+	ConstrainedDSA *MpcDSA = nullptr;
+	ConstrainedDSA *g_dsa = nullptr;
+	Connectivity *allDOFs = nullptr;     // all dof arrays for each node
+	Connectivity *allDOFsFluid = nullptr;     // all dof arrays for each node
 	int maxNumDOFs; 		// maximum number of dofs an element has
 	int maxNumDOFsFluid; 	// maximum number of dofs a fluid element has
 	int maxNumNodes;           // maximum number of nodes an element has

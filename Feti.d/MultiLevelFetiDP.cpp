@@ -42,7 +42,9 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 				if(this->subdomains[i]->isEdgeNeighbor(iNeighb) &&
 				   this->subdomains[i]->edgeDofs[iNeighb].count())
 					n++;
-		std::vector<int> elem(n);
+//		std::vector<int> elem(n);
+		// TODO Fix this leak!!!!
+		int *elem = new int[n];
 		for(n = 0; n < nc; n++)
 			elem[n] = (*subToCorner)[s][n];
 		if (fetiInfo->augmentimpl == FetiInfo::Primal) {
@@ -57,7 +59,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 		}
 //        coarseDomain->addElem(s, 0, subToCorner->num(s), (*subToCorner)[s]); // 0 is a "matrix" element
 		pointer[s] = n;
-		coarseDomain->addElem(s,0,n,elem.data());
+		coarseDomain->addElem(s,0,n,elem);//.data());
 	}
 
 	if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
@@ -197,9 +199,11 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 	decCoarseDomain->buildOps(ops, 0.0, 0.0, 1.0);
 	coarseInfo = &(decCoarseDomain->solVecInfo());
 	KccParallelSolver = ops.dynMat;
+	std::vector<FetiBaseSub *> baseSubs(decCoarseDomain->getAllSubDomains(),
+	                                    decCoarseDomain->getAllSubDomains()+decCoarseDomain->getNumSub());
 	paralApply(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::makeKccDofsExp2,
 	           decCoarseDomain->getNumSub(),
-	           reinterpret_cast<FetiBaseSub **>(decCoarseDomain->getAllSubDomains()),
+	           baseSubs.data(),
 	           augOffset, this->subToEdge); // JAT 101816
 }
 

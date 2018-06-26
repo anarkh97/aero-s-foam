@@ -481,6 +481,14 @@ GenDecDomain<Scalar>::extractSubDomainMPCs(int iSub)
   if(numPrimalMpc) subDomain[iSub]->extractMPCs_primal(domain->numLMPC, domain->lmpc);
 }
 
+/** \brief Build connectivity data for the DecDomain.
+ * \details Builds:
+ *  - elemToNode
+ *  - subToNode
+ *  - nodeToSub
+ *  - subToSub
+ * @tparam Scalar
+ */
 template<class Scalar>
 void
 GenDecDomain<Scalar>::makeSubToSubEtc()

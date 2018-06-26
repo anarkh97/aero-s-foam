@@ -6,9 +6,14 @@
 #define FEM_DECOMPOSEDSYSTEM_H
 
 
+#include "FetiSub.h"
+
 class DecomposedSystem {
 public:
 	void preprocess();
+
+private:
+	std::vector<FetiBaseSub *> subdomains;
 };
 
 

@@ -46,7 +46,8 @@ class GenDecDomain
   Connectivity *mpcToSub_primal;
   Connectivity *subToElem;
   const Connectivity *elemToNode;
-  Connectivity *nodeToSub, *nodeToSub_copy;
+  Connectivity *nodeToSub = nullptr;
+  Connectivity *nodeToSub_copy = nullptr;
   Connectivity *cpuToSub;
   Connectivity *elemToSub;
   GenSubDomain<Scalar> **subDomain;

@@ -1793,7 +1793,7 @@ Domain::getRenumbering()
  if(renumb.xcomp) { delete [] renumb.xcomp; renumb.xcomp=0; }
 
  // renumber the nodes
- if((!GetnContactSurfacePairs() || !sinfo.isNonLin() || tdenforceFlag()) && !sinfo.printMatLab) {
+ if((!domain->GetnContactSurfacePairs() || !sinfo.isNonLin() || tdenforceFlag()) && !sinfo.printMatLab) {
    renumb = nodeToNode->renumByComponent(sinfo.renum);
  }
  else {
@@ -3353,7 +3353,7 @@ Domain::initialize()
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;
  g_dsa = 0;
- numSensitivity = 0; senInfo = 0;
+ numSensitivity = 0; senInfo = 0; aggregatedStress = 0; aggregatedStressDenom = 0;
  runSAwAnalysis = false;   
  aggregatedFlag = false;
  aggregatedFileNumber = 0;
@@ -3405,7 +3405,12 @@ Domain::~Domain()
  if(p_stress) { delete p_stress; p_stress = 0; }
  if(p_elstress) { delete p_elstress; p_elstress = 0; }
  if(stressAllElems) { delete stressAllElems; stressAllElems = 0; }
- if(claw) { delete claw; claw = 0; }
+ if(claw) {
+   if(claw->actuator) { delete [] claw->actuator; claw->actuator = 0; }
+   if(claw->userForce) { delete [] claw->userForce; claw->userForce = 0; }
+   if(claw->userDisp) { delete [] claw->userDisp; claw->userDisp = 0; }
+   delete claw; claw = 0;
+ }
  if(com) { delete com; com = 0; }
  if(firstDiMass) { delete firstDiMass; firstDiMass = 0; }
  if(previousExtForce) { delete previousExtForce; previousExtForce = 0; }
@@ -3432,6 +3437,7 @@ Domain::~Domain()
  if(g_dsa) delete g_dsa;
  if(senInfo) delete [] senInfo;
  if(aggregatedStress) delete aggregatedStress;
+ if(aggregatedStressDenom) delete aggregatedStressDenom;
  if(thgreleFlag) delete [] thgreleFlag;
  if(thpaIndex) delete [] thpaIndex;
 }

@@ -157,7 +157,7 @@ copy_eframes(const Elemset & elemSet, EFrameDataOutputIterator result) {
 void
 copy_cframes(const std::vector<Attrib> &attributes, std::map<int,FrameData> &cframes) {
   for(std::vector<Attrib>::const_iterator it = attributes.begin(); it != attributes.end(); ++it) {
-    if(it->cmp_frm != -1) {
+    if(it->cmp_frm > -1) {
       if(cframes.find(it->cmp_frm) == cframes.end()) {
         FrameData frame;
         frame.num = it->cmp_frm;
@@ -171,7 +171,7 @@ copy_cframes(const std::vector<Attrib> &attributes, std::map<int,FrameData> &cfr
 void
 copy_coef(const std::vector<Attrib> &attributes, std::map<int,CoefData> &coefdata) {
   for(std::vector<Attrib>::const_iterator it = attributes.begin(); it != attributes.end(); ++it) {
-    if(it->cmp_attr != -1) {
+    if(it->cmp_attr > -1) {
       if(geoSource->getCoefData(it->cmp_attr) == NULL) {
         std::cerr << " *** WARNING: only COEF-type composites are copied to reduced mesh file\n";
       }

@@ -349,7 +349,7 @@ protected:
 	Connectivity *elemToNodeFluid, *nodeToElemFluid, *nodeToNodeFluid;
 	Connectivity *nodeToNode_sommer; // for higher order sommerfeld
 	SolverInfo sinfo;		// solver information structure
-	ControlLawInfo *claw;      // contains user defined routine information
+	ControlLawInfo *claw = nullptr;      // contains user defined routine information
 	DMassData *firstDiMass;	// Discrete Mass
 	ShapeSensitivityData shapeSenData;
 	int nDimass;               // number of DMASS

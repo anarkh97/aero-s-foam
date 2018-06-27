@@ -1334,6 +1334,9 @@ void GeoSource::setUpData(int topFlag)
 	else if(attrib_i.cmp_frm > -1) { // cframe
 	  ele->setCompositeData(1, 0, 0, 0, cframes[attrib_i.cmp_frm]);
 	}
+    else if(attrib_i.cmp_frm == -2) { // ctheta
+      ele->setCompositeData2(1, 0, 0, 0, nodes, attrib_i.cmp_theta);
+    }
   }
   if(structure_element_count > 0) {
 	global_average_E /= double(structure_element_count);
@@ -2542,7 +2545,7 @@ void GeoSource::getTextDecomp(bool sowering)
 	cx[isub] = curEle;
 	if(curEle + nele > numElem()) {
 	  fprintf(stderr," *** ERROR: This decomposition contains more elements "
-					 "than the Original mesh:\n");
+                     "than the original mesh:\n");
 	  fprintf(stderr," *** %d vs %d\n", curEle + nele, nElem);
 	  exit(1);
 	}

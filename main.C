@@ -736,7 +736,7 @@ int main(int argc, char** argv)
      if(!callSower) {
 	   domain->SetMortarPairing();
 	   if(!domain->tdenforceFlag()) {
-		 if(domain->solInfo().isNonLin()) { // for nonlinear statics and dynamics just process the tied surfaces here
+         if(domain->solInfo().nlFlag == 1) { // for nonlinear statics and dynamics just process the tied surfaces here
 		   domain->InitializeStaticContactSearch(MortarHandler::TIED);
 		   domain->PerformStaticContactSearch(MortarHandler::TIED);
 		   domain->ExpComputeMortarLMPC(MortarHandler::TIED); // TODO thermal and acoustic (see below)

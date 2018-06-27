@@ -3510,13 +3510,13 @@ Attributes:
           domain->solInfo().reduceFollower = true; }
         /* define attribute and hyper reduction coefficient for composite element with reference angle  */
         | Attributes Integer Integer Integer THETA Float NewLine
-        { geoSource->setAttrib($2-1,$3-1,$4-1,-1,$6); }
+        { geoSource->setAttrib($2-1,$3-1,$4-1,-2,$6); }
         | Attributes Integer Integer Integer THETA Float HRC Float NewLine
-        { geoSource->setAttrib($2-1,$3-1,$4-1,-1,$6);
+        { geoSource->setAttrib($2-1,$3-1,$4-1,-2,$6);
           geoSource->setElementLumpingWeight($2-1,$8);
           domain->solInfo().elemLumpPodRom = true; }
         | Attributes Integer Integer Integer THETA Float HRC Float EXTFOL NewLine
-        { geoSource->setAttrib($2-1,$3-1,$4-1,-1,$6); 
+        { geoSource->setAttrib($2-1,$3-1,$4-1,-2,$6); 
           geoSource->setElementLumpingWeight($2-1,$8);
           domain->solInfo().elemLumpPodRom = true;
           domain->solInfo().reduceFollower = true; }
@@ -3539,7 +3539,7 @@ Attributes:
         | Attributes Integer Integer Integer Integer THETA Float NewLine
         { int i;
           for(i=$2; i<$3+1; ++i)
-            geoSource->setAttrib(i-1, $4-1, $5-1, -1, $7);
+            geoSource->setAttrib(i-1, $4-1, $5-1, -2, $7);
         }
         ;
 Ellump:
@@ -4569,7 +4569,8 @@ NLInfo:
             domain->solInfo().probType = SolverInfo::NonLinDynam;
           }
           domain->solInfo().solvercntl->fetiInfo.type = FetiInfo::nonlinear;
-          domain->solInfo().getNLInfo().setDefaults(); /* just in case PIECEWISE is used under statics */ }
+          domain->solInfo().getNLInfo().setDefaults(); /* just in case PIECEWISE is used under statics */
+          domain->solInfo().nlFlag = 1; /* can be used for decomposition when a different treatment is required, e.g. contact */ }
         | NLInfo NEWTON NewLine
         {}
         | NLInfo ARCLENGTH NewLine

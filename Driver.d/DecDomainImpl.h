@@ -367,18 +367,30 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   delete [] nodeCount;
   delete [] wetInterfaceNodeMap;
 
+  bool *localNESub = new bool[numNESub];
+  for(int i = 0; i < numNESub; ++i) localNESub[i] = false;
+
   for(iSub = 0; iSub < numSub; ++iSub) {
     int subI = (localSubToGl) ? localSubToGl[iSub] : iSub;
     if(!subToNode->num(subI)) {
       fprintf(stderr, "reference to empty subdomain 2\n");
       exit(1);
     }
-
+    localNESub[NESubMap[subI]] = true;
     SComm *sc = new SComm(nConnect[NESubMap[subI]], connectedDomain[NESubMap[subI]],
                           remoteID[NESubMap[subI]], interfNode[NESubMap[subI]]);
     sc->locSubNum = iSub;
     subDomain[iSub]->setSComm(sc);
   }
+
+  for(int i = 0; i < numNESub; ++i) {
+    if(!localNESub[i]) {
+      delete [] connectedDomain[i];
+      delete [] remoteID[i];
+      delete interfNode[i];
+    }
+  }
+  delete [] localNESub;
 
   delete [] remoteID;
   delete [] connectedDomain;
@@ -3734,7 +3746,8 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 #ifdef USE_MUMPS
      case 9 : {
        GenMumpsSolver<Scalar> *msmat;
-       if(domain->solInfo().solvercntl->mumps_icntl[18] == 3) {
+       std::map<int,int>::iterator it = domain->solInfo().solvercntl->mumps_icntl.find(18);
+       if(it != domain->solInfo().solvercntl->mumps_icntl.end() && it->second == 3) {
          Connectivity *subToCpu = cpuToSub->reverse();
          Connectivity *elemToCpu = elemToSub->transcon(subToCpu);
          Connectivity *nodeToNodeLocal = domain->getNodeToElem()->transcon(elemToNode, elemToCpu->getTarget(), communicator->cpuNum());

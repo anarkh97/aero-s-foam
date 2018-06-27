@@ -103,6 +103,7 @@ public:
 	int probType = SolverInfo::None;
 	/// \brief Type of system to solve. From CONTROL statement: 1 = statics, 2 = heat conduction, etc...
 	int soltyp = -1;
+   int nlFlag; // set to 1 if NONLINEAR keyword is present in input file
 
    float ATDARBFlag;
    float ATDDNBVal;
@@ -537,6 +538,7 @@ public:
 
    // Constructor
    SolverInfo() {
+                  nlFlag = 0;
 
                   steadyFlag = 0;
                   steadyMin = 1;

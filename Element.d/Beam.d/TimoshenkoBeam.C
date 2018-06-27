@@ -892,10 +892,10 @@ TimoshenkoBeam::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 				tmpStr1[0] = elForce[0][0] / cA - elForce[2][0] * Y / IZ + elForce[1][0] * Z / IY;
 				tmpStr2[0] = elForce[0][1] / cA - elForce[2][1] * Y / IZ + elForce[1][0] * Z / IY;
 
-				_FORTRAN(transform)((double *) *elemframe[0], (double *) *elemframe[1], (double *) *elemframe[2],
+         _FORTRAN(transform)((double*)(*elemframe)[0], (double*)(*elemframe)[1], (double*)(*elemframe)[2],
 				                    xg[0], xg[1], xg[2], tmpStr1);
 
-				_FORTRAN(transform)((double *) *elemframe[0], (double *) *elemframe[1], (double *) *elemframe[2],
+         _FORTRAN(transform)((double*)(*elemframe)[0], (double*)(*elemframe)[1], (double*)(*elemframe)[2],
 				                    xg[0], xg[1], xg[2], tmpStr2);
 
 				stress[0] = tmpStr1[strInd];
@@ -927,10 +927,10 @@ TimoshenkoBeam::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 				tmpStr1[0] = elForce[0][0] / EA - elForce[2][0] * Y / EIZ + elForce[1][0] * Z / EIY + localThS;
 				tmpStr2[0] = elForce[0][1] / EA - elForce[2][1] * Y / EIZ + elForce[1][1] * Z / EIY + localThS;
 
-				_FORTRAN(transform)((double *) *elemframe[0], (double *) *elemframe[1], (double *) *elemframe[2],
+         _FORTRAN(transform)((double*)(*elemframe)[0], (double*)(*elemframe)[1], (double*)(*elemframe)[2],
 				                    xg[0], xg[1], xg[2], tmpStr1);
 
-				_FORTRAN(transform)((double *) *elemframe[0], (double *) *elemframe[1], (double *) *elemframe[2],
+         _FORTRAN(transform)((double*)(*elemframe)[0], (double*)(*elemframe)[1], (double*)(*elemframe)[2],
 				                    xg[0], xg[1], xg[2], tmpStr2);
 
 				stress[0] = tmpStr1[strInd - 7];

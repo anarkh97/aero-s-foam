@@ -153,7 +153,7 @@ outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds, 
       Attrib &a = elemAttrib[elemIds[i]]->second;
       weightOut << elemIds[i]+1 << " " << a.attr+1 << " ";
       if(a.cmp_attr >= 0) {
-        if(a.cmp_frm >= -0) weightOut << a.cmp_attr+1 << " " << a.cmp_frm+1 << " ";
+        if(a.cmp_frm >= 0) weightOut << a.cmp_attr+1 << " " << a.cmp_frm+1 << " ";
         else  weightOut << a.cmp_attr+1 << " THETA " << a.cmp_theta << " ";
       }
     }

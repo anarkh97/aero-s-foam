@@ -1201,6 +1201,16 @@ BaseSub::~BaseSub()
   if(outputNodes) delete [] outputNodes;
   if(outIndex) delete [] outIndex;
 #endif
+  if(claw) {
+    if(claw->actuator) { delete [] claw->actuator; claw->actuator = 0; }
+    if(claw->userForce) { delete [] claw->userForce; claw->userForce = 0; }
+    if(claw->userDisp) { delete [] claw->userDisp; claw->userDisp = 0; }
+    delete claw; claw = 0;
+  }
+  if(locToGlSensorMap) { delete [] locToGlSensorMap; locToGlSensorMap = 0; }
+  if(locToGlActuatorMap) { delete [] locToGlActuatorMap; locToGlActuatorMap = 0; }
+  if(locToGlUserDispMap) { delete [] locToGlUserDispMap; locToGlUserDispMap = 0; }
+  if(locToGlUserForceMap) { delete [] locToGlUserForceMap; locToGlUserForceMap = 0; }
 }
 
 void

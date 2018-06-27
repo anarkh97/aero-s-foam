@@ -32,3 +32,6 @@ filePrint(FILE *file, const char *format, ...)
  }
 }
 
+bool imPrinting() {
+	return !structCom || structCom->myID() == 0;
+}

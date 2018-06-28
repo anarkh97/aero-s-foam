@@ -149,7 +149,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 #else
 	Communicator *structCom = NULL;
 #endif
-	GenDecDomain<Scalar> *decCoarseDomain = new GenDecDomain<Scalar>(coarseDomain, structCom, false);
+	GenDecDomain<Scalar> *decCoarseDomain = new GenDecDomain<Scalar>(coarseDomain, structCom, false, true);
 
 	const Connectivity *elemToNode; // JAT 220216
 	if (fetiInfo->augmentimpl == FetiInfo::Primal) { // JAT 041114

@@ -35,8 +35,8 @@ extern Connectivity *procMpcToMpc;
 #include "Feti.d/FetiSub.h"
 
 template<class Scalar>
-GenDecDomain<Scalar>::GenDecDomain(Domain *d, Communicator *structCom, bool _soweredInput)
- : mt(d->getTimers()), soweredInput(_soweredInput)
+GenDecDomain<Scalar>::GenDecDomain(Domain *d, Communicator *structCom, bool soweredInput, bool coarseLevel)
+ : mt(d->getTimers()), soweredInput(soweredInput), coarseLevel(coarseLevel)
 {
   domain = d;
   initialize(); 
@@ -780,11 +780,14 @@ GenDecDomain<Scalar>::preProcess()
  makeNodeInfo();
 
 #ifdef DISTRIBUTED
- geoSource->setNumNodalOutput();
- if(geoSource->getNumNodalOutput()) {
-   for(int i=0; i<numSub; ++i)
-     geoSource->distributeOutputNodesX(subDomain[i], (nodeToSub_copy) ? nodeToSub_copy : nodeToSub); // make sure each node always gets
-                                                                                                     // assigned to the same subdomain.
+ if( ! coarseLevel ) {
+	 geoSource->setNumNodalOutput();
+	 if (geoSource->getNumNodalOutput()) {
+		 for (int i = 0; i < numSub; ++i)
+			 geoSource->distributeOutputNodesX(subDomain[i], (nodeToSub_copy) ? nodeToSub_copy
+			                                                                  : nodeToSub); // make sure each node always gets
+		 // assigned to the same subdomain.
+	 }
  }
 #endif
 

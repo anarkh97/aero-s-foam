@@ -93,7 +93,7 @@ class GenDecDomain
   GenBasicAssembler<Scalar> *ba2;
 
  public:
-  GenDecDomain(Domain *d, Communicator * = structCom, bool = geoSource->binaryInput);
+  GenDecDomain(Domain *d, Communicator * = structCom, bool = geoSource->binaryInput, bool = false);
   virtual ~GenDecDomain();
 
   virtual void clean();

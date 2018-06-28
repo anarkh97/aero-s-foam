@@ -77,9 +77,6 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numOutInfo = 0;
   outLimit = -1;
   numNodalOutput = 0;
-  outputNodes = 0;
-  outNodeIndex = 0;
-  headLen = 0;
   curCluster = -1;
 
   nElem = 0;
@@ -214,9 +211,6 @@ GeoSource::~GeoSource()
   /* not fully implemented */
   if(cpuToSub) delete cpuToSub;
   if(cinfo) delete cinfo;
-  if(outputNodes) delete [] outputNodes;
-  if(outNodeIndex) delete [] outNodeIndex;
-  if(headLen) delete [] headLen;
   if(unsortedSubToElem) delete unsortedSubToElem;
   if(subToCPU) delete [] subToCPU;
   // claw is deleted by domain
@@ -2623,8 +2617,8 @@ void GeoSource::setNumNodalOutput()
 	if(oinfo[iInfo].nodeNumber != -1)
 	  numNodalOutput++;
   if(numNodalOutput)  {
-	outputNodes = new int[numNodalOutput];
-	outNodeIndex = new int[numNodalOutput];
+	outputNodes.resize(numNodalOutput);
+	outNodeIndex.resize(numNodalOutput);
 	int count = 0;
 	for(int iInfo = 0; iInfo < numOutInfo; iInfo++)
 	  if(oinfo[iInfo].nodeNumber != -1)  {
@@ -3969,16 +3963,14 @@ void GeoSource::computeAndCacheHeaderLength(int fileNum)
 }
 
 int GeoSource::getHeaderDescriptionAndLength(char *headDescrip, int fileNumber) {
-  getHeaderDescription(headDescrip, fileNumber);
-  const int len = std::strlen(headDescrip);
+	getHeaderDescription(headDescrip, fileNumber);
+	const int len = std::strlen(headDescrip);
 
-  // Cache header length
-  if (!headLen) {
-	headLen = new int[numOutInfo];
-  }
-  headLen[fileNumber] = len;
-  
-  return len;
+	// Cache header length
+	headLen.resize(numOutInfo);
+	headLen[fileNumber] = len;
+
+	return len;
 }
 
 ControlInterface* GeoSource::getUserSuppliedFunction()

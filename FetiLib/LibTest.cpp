@@ -2,7 +2,9 @@
 // Created by Michel Lesoinne on 4/16/18.
 //
 #include <Comm.d/BaseCommunicator.h>
+#ifdef USE_MPI
 #include <mpi.h>
+#endif
 #include <map>
 #include <cmath>
 #include <vector>
@@ -112,6 +114,7 @@ void addSubsFor(int tg, std::vector<int> &subs, std::vector<int> &processors) {
 
 
 int main(int argc, char *argv[]) {
+#ifdef USE_MPI
 	MPI_Init(&argc,&argv);
 	BaseCommunicator baseCommunicator{MPI_COMM_WORLD};
 
@@ -139,4 +142,9 @@ int main(int argc, char *argv[]) {
 	if(procsWithSubs != targetProcessors)
 		std::cerr << "Non match" << std::endl;
 	MPI_Finalize();
+	return procsWithSubs == targetProcessors;
+#else
+	std::cout << "Test is not operational when MPI is disabled." << std::endl;
+	return 0;
+#endif
 }

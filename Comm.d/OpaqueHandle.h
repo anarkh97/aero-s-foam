@@ -56,16 +56,16 @@ private:
 template <HandleType ht>
 struct OpaqueTypedHandle {
 	template <typename T, typename X = typename std::enable_if<CommTypeCompatibility<T, ht>::isCompatible, void>::type>
-	explicit OpaqueTypedHandle(const T h){
-		static_assert(sizeof(T) <= ls, "OpaqueHandle cannot store such a large object.");
+	explicit OpaqueTypedHandle(const T &h){
+		static_assert(sizeof(T) < ls, "OpaqueHandle cannot store such a large object.");
 		unsigned char *place = reinterpret_cast<unsigned char *>(&handle);
 		T *res = new (place) T(h);
 	}
 	template <typename T, typename X = typename std::enable_if<CommTypeCompatibility<T, ht>::isCompatible, void>::type>
 	operator T() const;
 private:
-	static const size_t ls = sizeof(void *);
-	static const size_t la = alignof(void *);
+	static const size_t ls = 64;//sizeof(void *);
+	static const size_t la = 64; //alignof(void *);
 	std::aligned_storage_t<ls, la> handle;
 	friend struct com_details::HandleHelper;
 };

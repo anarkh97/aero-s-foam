@@ -25,6 +25,7 @@ inline auto default_com() { return -1; }
 
 #include <FetiLib/DOFInfo.h>
 #include "Subdomain.h"
+#include <Comm.d/OpaqueHandle.h>
 
 namespace FetiLib {
 
@@ -44,7 +45,8 @@ class DPSolver {
 	 * @param subdomains
 	 * @param communicator
 	 */
-	DPSolver(std::vector<Subdomain<T>> subdomains, Com communicator = default_com());
+	DPSolver(std::vector<Subdomain<T>> subdomains,
+			 CommunicatorHandle communicator = getWorldComm());
 
 	/// \brief Set the relative tolerance of the solver.
 	void setTolerance(double epsilon) { setOption("tolerance", epsilon); }

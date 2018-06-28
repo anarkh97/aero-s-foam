@@ -6,6 +6,8 @@
 #define FEM_MPICOMPATTRAITS_H
 
 #ifdef USE_MPI
+
+#include <mpi.h>
 template <>
 struct CommTypeCompatibility<MPI_Win, HandleType::Window> {
 	static const bool isCompatible = true;
@@ -36,6 +38,7 @@ struct WinDetails {
 	int size;
 	int disp_unit;
 };
+
 template <>
 struct CommTypeCompatibility<WinDetails, HandleType::Window> {
 	static const bool isCompatible = true;
@@ -47,7 +50,7 @@ struct CommTypeCompatibility<int, HandleType::Communicator> {
 };
 
 template <>
-struct CommTypeCompatibility<int , HandleType::Type> {
+struct CommTypeCompatibility<size_t , HandleType::Type> {
 	static const bool isCompatible = true;
 };
 

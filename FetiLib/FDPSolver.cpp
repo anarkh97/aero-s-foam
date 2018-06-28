@@ -2,7 +2,6 @@
 // Created by Michel Lesoinne on 10/31/17.
 //
 
-#include <mpi.h>
 #include <Driver.d/SComm.h>
 #include <set>
 #include <Comm.d/BaseCommunicator.h>
@@ -310,7 +309,7 @@ std::vector<int> FetiLib::tpl::ProcFinder::processWithGlobalSubs(const std::vect
 
 
 template<typename T>
-DPSolver<T>::DPSolver(std::vector<Subdomain<T>> subdomains, Com communicator) {
+DPSolver<T>::DPSolver(std::vector<Subdomain<T>> subdomains, CommunicatorHandle communicator) {
 	if(subdomains.size() > 1)
 		throw "Multiple subs/CPU not yet supported.";
 

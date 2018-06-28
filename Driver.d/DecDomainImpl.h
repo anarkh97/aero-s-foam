@@ -549,7 +549,9 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
 		   || domain->solInfo().solvercntl->type == SolverSelection::Direct
 		   || domain->solInfo().aeroFlag > -1 || geoSource->binaryOutput == 0) {
 #else
-			if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().solvercntl->type == 0 || domain->solInfo().aeroFlag > -1) {
+		  // TODO Find out why this would be different from the MPI case.
+			if(domain->numSSN() || domain->solInfo().isCoupled
+			|| domain->solInfo().solvercntl->type == SolverSelection::Direct || domain->solInfo().aeroFlag > -1) {
 #endif
 			// sommerfeld, scatter, wet, distributed neum PJSA 6/28/2010 multidomain mumps PJSA 12/01/2010 non-binary output for mpi
 			mt.memoryNodeToElem -= memoryUsed();

@@ -225,8 +225,10 @@ void Communicator::split(int color, int maxcolor, Communicator** c)
 #endif
 }
 
+
 Communicator::Communicator(MPI_Comm c1, FILE *fp)
-		: pendReq(nullReq), reqStatus(nullStat), opaqueCommunicator(c1)
+		: pendReq(nullReq), reqStatus(nullStat),
+          opaqueCommunicator(CommunicatorHandle{c1})
 {
 	comm = c1;
 	nPendReq = 0;

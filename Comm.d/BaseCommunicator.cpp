@@ -36,8 +36,8 @@ void _allGather(const void *send_data, int send_count,
 	MPI_Allgather(send_data, send_count, datatype,
 	              recv_data, recv_count, datatype, comm);
 #else
-	for (int i = 0; i < send_count; ++i)
-		recv_data[i] = send_data[i];
+	size_t sz = datatype;
+	memcpy(recv_data, send_data, send_count*sz);
 #endif
 };
 
@@ -49,6 +49,7 @@ WinHandle _createWindow(void *data, int size, int disp_unit, const CommunicatorH
 		throw mpi_except(err_code);
 	return WinHandle{winHandle};
 #else
+	static_assert(CommTypeCompatibility<WinDetails, HandleType::Window>::isCompatible, "Not compatible");
 	return WinHandle{WinDetails{data,size,disp_unit}};
 #endif
 };
@@ -250,6 +251,7 @@ ReqHandle _i_receive(void *buf, int count, TypeHandle datatype, RankHandle sourc
 	);
 	return { OpaqueTypedHandle<HandleType::Request>{request}, datatype };
 #else
+	return ReqHandle{ OpaqueTypedHandle<HandleType::Request>{0}, datatype };
 #endif
 }
 
@@ -258,57 +260,87 @@ ReqHandle _i_receive(void *buf, int count, TypeHandle datatype, RankHandle sourc
 com_details::CommFunctions getFunctionPointers() {
 	com_details::CommFunctions commFunctions{};
 	commFunctions.commSize = [](const CommunicatorHandle &handle) {
+#ifdef USE_MPI
 		int size;
 		int result = MPI_Comm_size(handle, &size);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
 		return size;
+#else
+		return 1;
+#endif
 	};
 	commFunctions.remoteSize = [](const CommunicatorHandle &handle) {
+#ifdef USE_MPI
 		int size;
 		int result = MPI_Comm_remote_size(handle, &size);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
 		return size;
+#else
+		return 0;
+#endif
 	};
 	commFunctions.allReduce = [](const void *sendbuf, void *recvbuf, int count, TypeHandle datatype, OpHandle op,
 	                      const CommunicatorHandle &comm, void(*cpData)(const void *, void *, int)) {
+#ifdef USE_MPI
 		int result = MPI_Allreduce(sendbuf, recvbuf, count,
 		                           datatype,
 		                           op,
 		                           comm);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
+#else
+		size_t sz = datatype;
+		memcpy(recvbuf, sendbuf, count*sz);
+#endif
 	};
 	commFunctions.exScan = [](const void *sendbuf, void *recvbuf, int count, TypeHandle datatype, OpHandle op,
 	                   const CommunicatorHandle &comm) {
+#ifdef USE_MPI
 		int result = MPI_Exscan(sendbuf, recvbuf, count,
 		                        datatype,
 		                        op,
 		                        comm);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
+#else
+		size_t sz = datatype;
+		memcpy(recvbuf, sendbuf, count*sz);
+#endif
 	};
 	commFunctions.barrier = [](const CommunicatorHandle &comm) {
+#ifdef USE_MPI
 		int result = MPI_Barrier(comm);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
+#endif // No barrier in a non mpi run.
 	};
 	commFunctions.rank = [](const CommunicatorHandle &handle) {
+#ifdef USE_MPI
 		int rank;
 		int result = MPI_Comm_rank(handle, &rank);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
 		return rank;
+#else
+		return 0;
+#endif
 	};
 	commFunctions.blockingSend = [](const void *sendbuf, int count, TypeHandle datatype, int dest, int tag,
 	                         const CommunicatorHandle &comm) {
+#ifdef USE_MPI
 		int result = MPI_Send(sendbuf, count, datatype, dest, tag, comm);
 		if (result != MPI_SUCCESS)
 			throw mpi_except(result);
+#else
+		if(count > 0)
+			throw not_implemented_except("i_send not implemented without MPI.");
+#endif
 	};
 	commFunctions.blockingRec = [](void *buffer, int len, TypeHandle datatype, int tag,
 	                        const CommunicatorHandle &comm) {
+#ifdef USE_MPI
 		RecDetails rInfo;
 		MPI_Status status;
 		MPI_Recv(buffer, len,
@@ -316,6 +348,10 @@ com_details::CommFunctions getFunctionPointers() {
 		MPI_Get_count(&status, datatype, &rInfo.length);
 		rInfo.source = status.MPI_SOURCE;
 		return rInfo;
+#else
+		RecDetails rInfo{0,0};
+		return rInfo;
+#endif
 	};
 	commFunctions.allGather = &_allGather;
 	commFunctions.createWindow = &_createWindow;
@@ -340,7 +376,7 @@ com_details::CommFunctions getFunctionPointers() {
 }
 
 com_details::CommFunctions BaseCommunicator::functions = getFunctionPointers();
-
+#ifdef USE_MPI
 Window BaseCommunicator::window(void *d, int nBytes, int disp_unit) const {
 	MPI_Win win;
 	MPI_Win_create(d, nBytes, disp_unit, MPI_INFO_NULL, handle, &win);
@@ -415,6 +451,12 @@ namespace com_details {
 WinHandle Constants::nullWindow{MPI_WIN_NULL};
 
 }
+
+#else
+CommunicatorHandle getWorldComm() {
+    return CommunicatorHandle{0};
+}
+#endif
 //#else
 //
 //com_details::CommFunctions BaseCommunicator::functions{

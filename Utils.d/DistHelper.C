@@ -33,5 +33,9 @@ filePrint(FILE *file, const char *format, ...)
 }
 
 bool imPrinting() {
+#ifdef DISTRIBUTED
 	return !structCom || structCom->myID() == 0;
+#else
+	return true;
+#endif
 }

@@ -28,17 +28,24 @@ closeComm()
 
 FSCommunicator::FSCommunicator() : communicator(getWorldComm())
 {
+#ifdef USE_MPI
     comm = MPI_COMM_WORLD;
     numCPU = communicator.numCPUs();
     thisCPU = communicator.myID();
+#else
+    numCPU = 1;
+    thisCPU = 0;
+#endif
 }
 
+#ifdef USE_MPI
 FSCommunicator::FSCommunicator(Communicator *c) : communicator(*c)
 {
     comm = *c->getCommunicator();
     numCPU = communicator.numCPUs();
     thisCPU = communicator.myID();
 }
+#endif
 
 void
 FSCommunicator::exchange(int tag, int numNeighb, int *cpus,

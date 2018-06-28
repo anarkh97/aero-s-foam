@@ -493,7 +493,7 @@ Domain::aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p, double* bcx)
    else
      flExchanger = new FlExchanger(nodes, packedEset, c_dsa );
 
-   char *matchFile = geoSource->getMatchFileName();
+   const char *matchFile = geoSource->getMatchFileName();
    if (matchFile == 0)
      matchFile = (char*) "MATCHER";
 

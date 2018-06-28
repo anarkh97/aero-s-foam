@@ -8,7 +8,7 @@ class FilteredFile {
     char buffer[200];
     char *epos;
   public:
-    FilteredFile(char *filename);
+    FilteredFile(const char *filename);
     int findToken(const char *token);
     char *getLine();
     char *getLineAfterToken();

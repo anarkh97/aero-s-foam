@@ -7,7 +7,7 @@
 using std::strlen;
 using std::strstr;
 
-FilteredFile::FilteredFile(char *filename)
+FilteredFile::FilteredFile(const char *filename)
 {
   file = fopen(filename,"r");
   if (file == 0) {

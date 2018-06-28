@@ -994,7 +994,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo_aero);
     }
 
-    char *matchFile = geoSource->getMatchFileName();
+    const char *matchFile = geoSource->getMatchFileName();
     if(matchFile == 0)
       matchFile = (char*) "MATCHER";
 
@@ -1142,7 +1142,7 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo_aero);
     }
 
-    char *matchFile = geoSource->getMatchFileName();
+    const char *matchFile = geoSource->getMatchFileName();
     if(matchFile == 0)
       matchFile = (char*) "MATCHER";
 

@@ -565,7 +565,7 @@ FlExchanger::sendEmbeddedWetSurface()
 }
 
 void
-FlExchanger::read(int myNode, char *inputFileName)
+FlExchanger::read(int myNode, const char *inputFileName)
 {
   // This function will either (a) read the matcher file or (b) query the embedded surface directly,
   // and then do some pre-processing to initialize various data structures.

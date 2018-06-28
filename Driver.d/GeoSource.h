@@ -106,11 +106,11 @@ class GeoSource {
   bool exitAfterDec; // if true no need to save Subdomain info for FEM in memory
 
   // input file names
-  char *conName;
-  char *geoName;
-  char *decName;
-  char *mapName;
-  char *matchName;
+  const char *conName;
+  const char *geoName;
+  const char *decName;
+  const char *mapName;
+  const char *matchName;
 
   // output file info
   ControlInfo *cinfo;    // contains nodeset, elemset & timer file name
@@ -323,7 +323,7 @@ public:
   void setMatch(char *file) { matchName = file; }
   void setCpuMap(char *file) { mapName = file; }
   void setGlob(char *file) { conName = file; }
-  char *getGlob() { return conName; }
+  const char *getGlob() const { return conName; }
   void setExitAfterDec(bool exit);
   void setNumLocSub(int);
   void deleteMatchArrays(int);
@@ -431,8 +431,8 @@ public:
   void  setNumGlobNodes(int n) { nGlobNodes = n; }
   int  getElems(Elemset &, int = 0, int * = 0);
   int  getNumClusters() { return numClusters; }
-  char *getCpuMapFile()  { return mapName; }
-  char *getMatchFileName()  { return matchName; }
+  const char *getCpuMapFile() const { return mapName; }
+  const char *getMatchFileName() const { return matchName; }
   int  numElem() { return nElem; }
   int  numMpcElem() { return nMpcElem; }
   int  numContactSurfaceElem() { return contactSurfElems.size(); }

@@ -665,7 +665,7 @@ GenDecDomain<Scalar>::getCPUMap()
 {
   mt.memoryCPUMAP -= memoryUsed();
 #ifdef DISTRIBUTED
-  char *mapName = geoSource->getCpuMapFile(); 
+  const char *mapName = geoSource->getCpuMapFile();
   FILE *f = fopen(mapName,"r");
   numCPU = geoSource->getCPUMap(f, 0, globalNumSub, structCom->numCPUs());
   cpuToCPU = geoSource->getCpuTOCPU();

@@ -71,7 +71,7 @@ class FlExchanger {
      FlExchanger(CoordSet&, Elemset&, SurfaceEntity*, DofSetArray *, OutputInfo *oinfo, bool wCracking);
      FlExchanger(CoordSet&, Elemset&, DofSetArray *, OutputInfo *oinfo = 0);
      ~FlExchanger();
-     void read(int mynode, char *filename);
+     void read(int mynode, const char *filename);
      void negotiate();
      void thermoread(int &buffLen);
 

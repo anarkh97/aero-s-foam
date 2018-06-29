@@ -1654,7 +1654,7 @@ FetiSub<Scalar>::mergeUr(Scalar *ur, Scalar *uc, Scalar *u, Scalar *lambda) {
 		int nAve = Ave.cols();
 		for(int i = 0; i < ccToC.size(); ++i)
 			for(int j = 0; j < nAve; ++j)
-				u[ccToC[i]] = Ave[j][i]*uc[cornerEqNums[nCor+j]];
+				u[ccToC[i]] += Ave[j][i]*uc[cornerEqNums[nCor+j]];
 	}
 
 	// extract uw

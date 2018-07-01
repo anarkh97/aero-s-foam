@@ -19,23 +19,6 @@ bool isFeti(SolverSelection selection) {
 struct SolverCntl {
 public:
 	SolverCntl() {
-		subtype = 1; // By default we use direct sparse solver
-		trbm = 1.0E-16;   // default zero pivot tolerance
-		trbm2 = 1.0E-16;  // default zero pivot tolerance
-		sparse_renum = 0;
-		sparse_maxsup = 100;
-		sparse_defblk = 30;
-		pivot = false;
-		unsymmetric = false;
-		scaled = false;
-		spooles_scale = 0;
-		spooles_tau = 100.;
-		spooles_seed = 532196;
-		spooles_maxsize = 64;
-		spooles_maxdomainsize = 24;
-		spooles_maxzeros = 0.04;
-		spooles_msglvl = 0;
-		spooles_renum = 0;
 		mumps_icntl[3] = 0; // supress diagnostic output
 		mumps_mineq = 0; // 053014 JAT
 		mumps_stride = 1; // 040715 JAT
@@ -53,20 +36,24 @@ public:
 		ilu_droptol = 1e-11;
 	}
 	SolverSelection type = SolverSelection::Direct;  //!< Selected solver type
-	int subtype;  // subtype ... 9 is mumps  10 is diag
-	double trbm;         // algebraic rbm tolerance
-	double trbm2;        // algebraic rbm tolerance used for sparse/skyline when GRBM is activated
-	int sparse_renum;  // renumbering scheme for BLKSparseMatrix: 0 = esmond MMD (default), 1 = metis ND
-	int sparse_maxsup, sparse_defblk;
-	bool pivot;  // true if pivoting is to be used in spooles/mumps solvers
-	bool unsymmetric;
-	bool scaled; // true if scaling is to be used in skyline solver
-	int spooles_scale; // true if scaling is to be used in spooles solver
-	double spooles_tau;  // used when pivoting is enabled, all entries in L and U have magnitude
-	// less than or equal to tau, default is 100.
-	double spooles_maxzeros; // see Solvers.d/Spooles.C for description
-	int spooles_maxsize, spooles_maxdomainsize, spooles_seed, spooles_msglvl; // see Solvers.d/Spooles.C for description
-	int spooles_renum; // renumbering scheme for spooles: 0 = best of ND and MS, 1 = MMD, 2 = MS, 3 = ND
+	int subtype = 1;  //!< Solver subtype 1 is direct sparse ... 9 is mumps  10 is diag
+	double trbm = 1e-16;         //!< algebraic rbm tolerance
+	double trbm2 = 1e-16;        //!< algebraic rbm tolerance used for sparse/skyline when GRBM is activated
+	int sparse_renum = 0;  //!< renumbering scheme for BLKSparseMatrix: 0 = esmond MMD (default), 1 = metis ND
+	int sparse_maxsup = 100;
+	int sparse_defblk = 30;
+	bool pivot = false;  //!< true if pivoting is to be used in spooles/mumps solvers
+	bool unsymmetric = false;
+	bool scaled = false; // true if scaling is to be used in skyline solver
+	int spooles_scale = 0; // true if scaling is to be used in spooles solver
+	/// \brief Used when pivoting is enabled, all entries in L and U have magnitude less or equal to tau.
+	double spooles_tau = 100;
+	int    spooles_seed = 532196; //!< see Solvers.d/Spooles.C for description
+	int    spooles_maxsize = 64;  //!< see Solvers.d/Spooles.C for description
+	int    spooles_maxdomainsize = 24;  //!< see Solvers.d/Spooles.C for description
+	double spooles_maxzeros = 0.04;  //!< see Solvers.d/Spooles.C for description
+	int    spooles_msglvl = 0;  //!< see Solvers.d/Spooles.C for description
+	int    spooles_renum = 0;  //!< see Solvers.d/Spooles.C for description
 	std::map<int, int> mumps_icntl;
 	std::map<int, double> mumps_cntl;
 	int mumps_mineq; // 053014 JAT
@@ -77,7 +64,7 @@ public:
 	int iterSubtype; // matrix storage
 	int precond;  // preconditioner 0 = none, 1 = jacobi
 	int maxit;    // maximum number of iterations
-	double tol;   // tolerance for convergence
+	double tol;   //!< \brief Tolerance for convergence
 	int maxvecsize;  // for pcg # of krylov vectors to store default = 0
 	FetiInfo fetiInfo;
 	bool printMatLab;

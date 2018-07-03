@@ -172,38 +172,38 @@ GenSolver<Scalar> *
 GenSolverFactory<Scalar>::createSolver(Connectivity *con, DofSetArray *dsa, ConstrainedDSA *cdsa, SolverCntl& cntl, GenSparseMatrix<Scalar> *&sparse, 
                                        Rbm *rbm, GenSparseMatrix<Scalar> *&spp, GenSolver<Scalar> *&prec, FSCommunicator *com, std::string name) const
 {
-  //std::cerr << "3. creating solver: type = " << cntl.type << ", subtype = " << cntl.subtype << ", name = " << name << std::endl;
-  GenSolver<Scalar> *solver = 0;
-  switch(cntl.type) {
-    case SolverSelection::Direct : { // direct solver
-      switch(cntl.subtype) {
-        default:
-        case 0: {
-          GenSkyMatrix<Scalar> *s = new GenSkyMatrix<Scalar>(con, cdsa, cntl.trbm, rbm);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
-        case 1: {
-          GenBLKSparseMatrix<Scalar> *s = new GenBLKSparseMatrix<Scalar>(con, dsa, cdsa, cntl.trbm, cntl, rbm);
-          s->zeroAll();
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+	//std::cerr << "3. creating solver: type = " << cntl.type << ", subtype = " << cntl.subtype << ", name = " << name << std::endl;
+	GenSolver<Scalar> *solver = nullptr;
+	switch(cntl.type) {
+		case SolverSelection::Direct : { // direct solver
+			switch(cntl.subtype) {
+				default:
+				case 0: {
+					GenSkyMatrix<Scalar> *s = new GenSkyMatrix<Scalar>(con, cdsa, cntl.trbm, rbm);
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
+				case 1: {
+					GenBLKSparseMatrix<Scalar> *s = new GenBLKSparseMatrix<Scalar>(con, dsa, cdsa, cntl.trbm, cntl, rbm);
+					s->zeroAll();
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
 #ifdef USE_EIGEN3
-        case 3: {
-          GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(con, dsa, cdsa, true);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
-        case 4: {
-          GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(con, dsa, cdsa, true);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 3: {
+					GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *s =
+						new GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(con, dsa, cdsa, true);
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
+				case 4: {
+					GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *s =
+						new GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(con, dsa, cdsa, true);
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
 #ifdef EIGEN_CHOLMOD_SUPPORT
-        case 5: {
+				case 5: {
           GenEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *s =
             new GenEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(con, dsa, cdsa, true);
           solver = (GenSolver<Scalar> *) s;
@@ -211,163 +211,164 @@ GenSolverFactory<Scalar>::createSolver(Connectivity *con, DofSetArray *dsa, Cons
         } break;
 #endif
 #ifdef EIGEN_UMFPACK_SUPPORT
-        case 6: {
-          GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >(con, dsa, cdsa, false);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 6: {
+				    GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > > *s =
+				      new GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >(con, dsa, cdsa, false);
+				    solver = (GenSolver<Scalar> *) s;
+				    sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
 #endif
 #ifdef EIGEN_SUPERLU_SUPPORT
-        case 7: {
-          GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > >(con, dsa, cdsa, false);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 7: {
+				    GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > > *s =
+				      new GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > >(con, dsa, cdsa, false);
+				    solver = (GenSolver<Scalar> *) s;
+				    sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
 #endif
 #endif
 #ifdef USE_SPOOLES
-        case 8: {
-          GenSpoolesSolver<Scalar> *s = new GenSpoolesSolver<Scalar>(con, dsa, cdsa, cntl);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 8: {
+                    GenSpoolesSolver<Scalar> *s = new GenSpoolesSolver<Scalar>(con, dsa, cdsa, cntl);
+                    solver = (GenSolver<Scalar> *) s;
+                    sparse = (GenSparseMatrix<Scalar> *) s;
+                } break;
 #endif
 #ifdef USE_MUMPS
-        case 9: {
-          GenMumpsSolver<Scalar> *s = new GenMumpsSolver<Scalar>(con, dsa, cdsa, cntl, com);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        }
-        break;
+				case 9: {
+                    GenMumpsSolver<Scalar> *s = new GenMumpsSolver<Scalar>(con, dsa, cdsa, cntl, com);
+                    solver = (GenSolver<Scalar> *) s;
+                    sparse = (GenSparseMatrix<Scalar> *) s;
+                }
+                break;
 #endif
-        case 10: {
-          GenDiagMatrix<Scalar> *s = new GenDiagMatrix<Scalar>(cdsa);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
-        case 12: {
-          Rom::GenGalerkinProjectionSolver<Scalar> *s = new Rom::GenGalerkinProjectionSolver<Scalar>(con, dsa, cdsa, cntl.pivot);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-          sparse->zeroAll();
-        } break;
+				case 10: {
+					GenDiagMatrix<Scalar> *s = new GenDiagMatrix<Scalar>(cdsa);
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
+				case 12: {
+					Rom::GenGalerkinProjectionSolver<Scalar> *s = new Rom::GenGalerkinProjectionSolver<Scalar>(con, dsa, cdsa, cntl.pivot);
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+					sparse->zeroAll();
+				} break;
 #ifdef USE_EIGEN3
-        case 13: {
-          Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *s = new Rom::GenEiSparseGalerkinProjectionSolver<Scalar>(con, dsa, cdsa);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-          sparse->zeroAll();
-        } break;
-        case 14: {
-          typedef Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> SolverClass;
-          typename WrapEiSparseMat<Scalar,SolverClass>::CtorData baseArg(con, dsa, new ConstrainedDSA(*dsa, *cdsa));
-          GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar,SolverClass>, Scalar> * s = new GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar,SolverClass>, Scalar>
-            (baseArg, cdsa, cntl.goldfarb_tol);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 13: {
+					Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *s = new Rom::GenEiSparseGalerkinProjectionSolver<Scalar>(con, dsa, cdsa);
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+					sparse->zeroAll();
+				} break;
+				case 14: {
+					typedef Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> SolverClass;
+					typename WrapEiSparseMat<Scalar,SolverClass>::CtorData baseArg(con, dsa, new ConstrainedDSA(*dsa, *cdsa));
+					GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar,SolverClass>, Scalar> * s = new GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar,SolverClass>, Scalar>
+						(baseArg, cdsa, cntl.goldfarb_tol);
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
 #ifdef EIGEN_SPARSELU_SUPPORT
-        case 15: {
-          GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(con, dsa, cdsa, false);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 15: {
+					GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > > *s =
+					  new GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(con, dsa, cdsa, false);
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
 #endif
 #ifdef EIGEN_SPQR_SUPPORT
-        case 16: {
-          GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >(con, dsa, cdsa, false);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 16: {
+					GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > > *s =
+					  new GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >(con, dsa, cdsa, false);
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
 #endif
-        case 17: {
-          GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > > *s =
-            new GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(con, dsa, cdsa, false);
-          solver = (GenSolver<Scalar> *) s;
-          sparse = (GenSparseMatrix<Scalar> *) s;
-        } break;
+				case 17: {
+					GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > > *s =
+						new GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(con, dsa, cdsa, false);
+					solver = (GenSolver<Scalar> *) s;
+					sparse = (GenSparseMatrix<Scalar> *) s;
+				} break;
 #endif
-      }
+			}
 
-    } break;
+		} break;
 
-    case SolverSelection::Iterative : {
+		case SolverSelection::Iterative : {
 
-      switch(cntl.iterSubtype) {
-        case 2: {
-          filePrint(stderr," ... Node Based Sparse Matrix       ...\n");
-          sparse = new GenNBSparseMatrix<Scalar>(con, cdsa);
-        } break;
-        default:
-        case 3: {
-          filePrint(stderr," ... Dof Based Sparse Matrix        ...\n");
-          sparse = new GenDBSparseMatrix<Scalar>(con, dsa, cdsa);
-        } break;
+			switch(cntl.iterSubtype) {
+				case 2: {
+					filePrint(stderr," ... Node Based Sparse Matrix       ...\n");
+					sparse = new GenNBSparseMatrix<Scalar>(con, cdsa);
+				} break;
+				default:
+				case 3: {
+					filePrint(stderr," ... Dof Based Sparse Matrix        ...\n");
+					sparse = new GenDBSparseMatrix<Scalar>(con, dsa, cdsa);
+				} break;
 #ifdef USE_EIGEN3
-        case 4: {
-          filePrint(stderr," ... Eigen 3 Sparse Matrix          ...\n");
-          sparse = new GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(con, dsa, cdsa, !cntl.unsymmetric);
-        } break;
+				case 4: {
+					filePrint(stderr," ... Eigen 3 Sparse Matrix          ...\n");
+					sparse = new GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(con, dsa, cdsa, !cntl.unsymmetric);
+				} break;
 #endif
-      }
+			}
 
-      switch(cntl.precond) {
-        case 1: {
-          filePrint(stderr," ... Diagonal Preconditioner        ...\n");
-          GenDiagMatrix<Scalar> *diag = new GenDiagMatrix<Scalar>(cdsa);
-          prec = (GenSolver<Scalar> *) diag;
-          spp = (GenSparseMatrix<Scalar> *) diag;
-        } break;
+			switch(cntl.precond) {
+				case 1: {
+					filePrint(stderr," ... Diagonal Preconditioner        ...\n");
+					GenDiagMatrix<Scalar> *diag = new GenDiagMatrix<Scalar>(cdsa);
+					prec = (GenSolver<Scalar> *) diag;
+					spp = (GenSparseMatrix<Scalar> *) diag;
+				} break;
 #if defined(USE_EIGEN3) && defined(EIGEN_SUPERLU_SUPPORT) && defined(EIGEN_SUPERLU_HAS_ILU)
-        case 4: {
-          filePrint(stderr," ... Incomplete LU Preconditioner   ...\n");
-          GenEiSparseMatrix<Scalar,Eigen::SuperILU<Eigen::SparseMatrix<Scalar> > > *ilu =
-            new GenEiSparseMatrix<Scalar,Eigen::SuperILU<Eigen::SparseMatrix<Scalar> > >(con, dsa, cdsa, false);
-          ilu->getEigenSolver().options().ILU_DropTol = cntl.ilu_droptol;
-          prec = (GenSolver<Scalar> *) ilu;
-          spp = (GenSparseMatrix<Scalar> *) ilu;
-        } break;
+				case 4: {
+					filePrint(stderr," ... Incomplete LU Preconditioner   ...\n");
+					GenEiSparseMatrix<Scalar,Eigen::SuperILU<Eigen::SparseMatrix<Scalar> > > *ilu =
+					  new GenEiSparseMatrix<Scalar,Eigen::SuperILU<Eigen::SparseMatrix<Scalar> > >(con, dsa, cdsa, false);
+					ilu->getEigenSolver().options().ILU_DropTol = cntl.ilu_droptol;
+					prec = (GenSolver<Scalar> *) ilu;
+					spp = (GenSparseMatrix<Scalar> *) ilu;
+				} break;
 #endif
-      }
+			}
 
-      switch(cntl.iterType) {
-        default:
-        case 0: {
-          filePrint(stderr," ... CG Solver is Selected          ...\n");
-          solver =  new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-                    (sparse, cntl.precond, cntl.maxit, cntl.tol, cntl.maxvecsize, cntl.verbose);
-        } break;
-        case 1 : {
-          filePrint(stderr," ... GMRES Solver is Selected       ...\n");
-          GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> > *gmresSolver
-            = new GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
-             (cntl.maxit, cntl.tol, sparse, &GenSparseMatrix<Scalar>::matvec, prec, &GenSolver<Scalar>::apply, NULL,
-              &GenSolver<Scalar>::solve, (FSCommunicator *) NULL);
-          if(cntl.maxvecsize > 0) gmresSolver->maxortho = cntl.maxvecsize;
-          gmresSolver->verbose = cntl.verbose;
-          gmresSolver->printNumber = cntl.fetiInfo.printNumber;
-          solver = gmresSolver;
-        } break;
-        case 4: {
-          filePrint(stderr," ... Bi-CG Solver is Selected       ...\n");
-          solver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
-                   (cntl.maxit, cntl.tol, sparse, prec);
-        } break;
-        case 5: {
-          filePrint(stderr," ... CR Solver is Selected          ...\n");
-          solver = new GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
-                   (cntl.maxit, cntl.tol, sparse, prec);
-        } break;
-      }
+			switch(cntl.iterType) {
+				default:
+				case 0: {
+					filePrint(stderr," ... CG Solver is Selected          ...\n");
+					solver =  new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
+						(sparse, cntl.precond, cntl.maxit, cntl.tol, cntl.maxvecsize, cntl.verbose);
+				} break;
+				case 1 : {
+					filePrint(stderr," ... GMRES Solver is Selected       ...\n");
+					GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> > *gmresSolver
+						= new GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
+							(cntl.maxit, cntl.tol, sparse, &GenSparseMatrix<Scalar>::matvec, prec, &GenSolver<Scalar>::apply, NULL,
+							 &GenSolver<Scalar>::solve, (FSCommunicator *) NULL);
+					if(cntl.maxvecsize > 0) gmresSolver->maxortho = cntl.maxvecsize;
+					gmresSolver->verbose = cntl.verbose;
+					gmresSolver->printNumber = cntl.fetiInfo.printNumber;
+					solver = gmresSolver;
+				} break;
+				case 4: {
+					filePrint(stderr," ... Bi-CG Solver is Selected       ...\n");
+					solver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
+						(cntl.maxit, cntl.tol, sparse, prec);
+				} break;
+				case 5: {
+					filePrint(stderr," ... CR Solver is Selected          ...\n");
+					solver = new GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
+						(cntl.maxit, cntl.tol, sparse, prec);
+				} break;
+			}
 
-    } break;
-
-  }
-  return solver;
+		} break;
+		default:
+			throw std::runtime_error("Selected solver is not available.");
+	}
+	return solver;
 }
 
 template<class Scalar>
@@ -464,7 +465,8 @@ GenSolverFactory<Scalar>::createSolver(Connectivity *con, DofSetArray *dsa, int 
 #endif
 			}
 		} break;
-
+		default:
+			throw std::runtime_error("Selected solver is not available.");
 	}
 	return { solver, std::move(sparse) };
 }

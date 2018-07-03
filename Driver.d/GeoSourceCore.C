@@ -4826,59 +4826,59 @@ void GeoSource::getBinaryDecomp()
 #ifndef SALINAS
 void GeoSource::readGlobalBinaryData()
 {
-  if(!subToSub || subToClus.size() == 0) {
-	BinFileHandler fp2(connectivity_.c_str(), "rb");
-	std::make_unique<Connectivity>(fp2);
-	numClusters = clusToSub->csize();
-	subToClus.resize(clusToSub->getNumTarget());
-	for(int k = 0; k < clusToSub->csize(); k++)
-	  for(int i = 0; i < clusToSub->num(k); i++)
-		subToClus[(*clusToSub)[k][i]] = k;
-	int numSub;
+	if(!subToSub || subToClus.size() == 0) {
+		BinFileHandler fp2(connectivity_.c_str(), "rb");
+		clusToSub =std::make_unique<Connectivity>(fp2);
+		numClusters = clusToSub->csize();
+		subToClus.resize(clusToSub->getNumTarget());
+		for(int k = 0; k < clusToSub->csize(); k++)
+			for(int i = 0; i < clusToSub->num(k); i++)
+				subToClus[(*clusToSub)[k][i]] = k;
+		int numSub;
 #ifdef SUBTOSUBINFILE
-	subToSub = new Connectivity(fp2);
+		subToSub = new Connectivity(fp2);
 	numSub = subToSub->csize();
 #else
-	fp2.read(&numSub, 1);
+		fp2.read(&numSub, 1);
 #endif
 #ifdef SOWER_DEBUG
-	std::cerr << "*** subToClus, from connectivity binary file: \n";
-	for(int i=0; i<clusToSub->getNumTarget(); ++i) std::cerr << subToClus[i] << " "; std::cerr << std::endl;
-	if(subToSub) { std::cerr << "*** subToSub, from connectivity binary file: \n"; subToSub->print(); }
+		std::cerr << "*** subToClus, from connectivity binary file: \n";
+		for(int i=0; i<clusToSub->getNumTarget(); ++i) std::cerr << subToClus[i] << " "; std::cerr << std::endl;
+		if(subToSub) { std::cerr << "*** subToSub, from connectivity binary file: \n"; subToSub->print(); }
 #endif
 
-	// build global to cluster subdomain map
-	gl2ClSubMap = new int[numSub];
-	for(int iClus = 0; iClus < numClusters; iClus++)  {
-	  int clusNum = 0;
-	  for(int iSub = 0; iSub < clusToSub->num(iClus); iSub++)
-		gl2ClSubMap[ (*clusToSub)[iClus][iSub] ] = clusNum++;
-	}
+		// build global to cluster subdomain map
+		gl2ClSubMap = new int[numSub];
+		for(int iClus = 0; iClus < numClusters; iClus++)  {
+			int clusNum = 0;
+			for(int iSub = 0; iSub < clusToSub->num(iClus); iSub++)
+				gl2ClSubMap[ (*clusToSub)[iClus][iSub] ] = clusNum++;
+		}
 
-	fp2.read(&nGlobNodes, 1);
-	domain->setNumNodes(nGlobNodes);
-	int nGlobElems;
-	fp2.read(&nGlobElems, 1);
-	domain->setNumElements(nGlobElems);
+		fp2.read(&nGlobNodes, 1);
+		domain->setNumNodes(nGlobNodes);
+		int nGlobElems;
+		fp2.read(&nGlobElems, 1);
+		domain->setNumElements(nGlobElems);
 #ifdef SOWER_DEBUG
-	std::cerr << "*** global number of nodes = " << nGlobNodes << std::endl;
-	std::cerr << "*** global number of elements = " << nGlobElems << std::endl;
+		std::cerr << "*** global number of nodes = " << nGlobNodes << std::endl;
+		std::cerr << "*** global number of elements = " << nGlobElems << std::endl;
 #endif
-	if(numClusters == 1) {
-	  numClusNodes = nGlobNodes;
-	  numClusElems = nGlobElems;
-	}
-	/*else {
-	  filePrint(stdout," *** ERROR: only one cluster is supported \n");
-	  exit(-1);
-	}*/
+		if(numClusters == 1) {
+			numClusNodes = nGlobNodes;
+			numClusElems = nGlobElems;
+		}
+		/*else {
+		  filePrint(stdout," *** ERROR: only one cluster is supported \n");
+		  exit(-1);
+		}*/
 
 #ifdef SOWER_SURFS
-	int nGlobSurfs;
-	fp2.read(&nGlobSurfs,1);
-	domain->setNumSurfs(nGlobSurfs);
+		int nGlobSurfs;
+		fp2.read(&nGlobSurfs,1);
+		domain->setNumSurfs(nGlobSurfs);
 #ifdef SOWER_DEBUG
-	std::cerr << "*** global number of surfaces = " << nGlobSurfs << std::endl;
+		std::cerr << "*** global number of surfaces = " << nGlobSurfs << std::endl;
 #endif
 /*
 	if(nGlobSurfs > 0) {
@@ -4893,7 +4893,7 @@ void GeoSource::readGlobalBinaryData()
 	}
 */
 #endif
-  }
+	}
 }
 #endif
 

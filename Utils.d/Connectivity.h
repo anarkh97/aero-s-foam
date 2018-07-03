@@ -106,21 +106,20 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
 {
 protected:
 	int size;           // size of pointer
-	int numtarget;      // size of target, number of Connections
 	std::vector<int> pointer;       // pointer to target
 	std::vector<int> target;        // value of the connectivity
 	std::vector<float> weight;      // weights of pointer (or 0)
 
 public:
 	typedef int IndexType;
-	int getNumTarget() const {return numtarget; }
+	int getNumTarget() const {return target.size(); }
 	int * getTarget() {return target.data(); }
 	const int * getTarget() const {return target.data(); }
 	const int * getPointer() const {return pointer.data(); }
 
 	template <typename RangeT>
 	static Connectivity fromLinkRange(const RangeT &range);
-	Connectivity() { size = 0; numtarget = 0; }
+	Connectivity() { size = 0; }
 	/** \brief Constructor for any object that is equipped with the methods of a set.
 	 *
 	 * @tparam A A type sastisfying the notion of a set.
@@ -182,7 +181,7 @@ public:
 	void findPseudoDiam(int *n1, int *n2, int *mask=0);
 	int  rootLS(int root, int *xls, int *ls, int &w, int *mask=0);
 
-	long long memsize() {return ((long long)size + numtarget + 1)*sizeof(int);}
+	long long memsize() {return ((long long)size + getNumTarget() + 1)*sizeof(int);}
 
 	// Create a rooted level structure
 	int *renumSloan(int *mask, int &firstNum, int *ren = 0);
@@ -238,10 +237,10 @@ inline int *
 Connectivity::operator[](int i) { return target.data() +pointer[i] ; }
 
 inline int
-Connectivity::numConnect() const { return numtarget; }
+Connectivity::numConnect() const { return getNumTarget(); }
 
 inline bool
-Connectivity::isDiagonal() const { return (numtarget == size) ? true : false; }
+Connectivity::isDiagonal() const { return (getNumTarget() == size) ? true : false; }
 
 class CountedConnectivity: public Connectivity {
 	int *cnt;
@@ -651,7 +650,6 @@ Connectivity::Connectivity(const SetAccess<A> &sa)
 		pp += sa.numNodes(i);
 	}
 	pointer[size] = pp;
-	numtarget = pp;
 
 	// Create the target array
 	target.resize(pp);

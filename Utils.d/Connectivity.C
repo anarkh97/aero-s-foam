@@ -24,7 +24,6 @@ Connectivity::Connectivity(int _size, int *_pointer, int *_target, int _removeab
 	  target(_target, _target+_pointer[_size])
 {
 	size      = _size;
-	numtarget = pointer[size];
 	if(_removeable) {
 		delete[] _pointer;
 		delete[] _target;
@@ -80,7 +79,6 @@ Connectivity::Connectivity(const Elemset &els, Connectivity *nodeToElem)
 	}
 
 	pointer[size] = pp;
-	numtarget = pp;
 
 	// Create the target array
 	target.resize(pp);
@@ -109,7 +107,6 @@ Connectivity::Connectivity(Elemset*els, int numSom, SommerElement **som)
 	pointer.resize(numSom+1);
 	for (i = 0 ; i < numSom+1 ; i++)
 		pointer[i] = i;
-	numtarget = numSom;
 
 	target.resize(numSom);
 
@@ -149,12 +146,14 @@ Connectivity::Connectivity(BinFileHandler& f, bool oldSower)
 		pointer.resize(size);
 		--size;
 		f.read(pointer.data(),size+1);
+		int numtarget;
 		f.read(&numtarget,1);
 		target.resize(numtarget);
 		f.read(target.data(),numtarget);
 	}
 	else {
 		//cerr << " *** WARNING: using OLD_SOWER ::Connectivity(BinFileHandler& f) \n";
+		int numtarget;
 		f.read(&size, 1);
 		f.read(&numtarget, 1);
 		pointer.resize(size+1);
@@ -169,6 +168,7 @@ size_t Connectivity::write(BinFileHandler& f)
 	int _size = size+1;
 	f.write(&_size,1);
 	f.write(pointer.data(),_size);
+	int numtarget = getNumTarget();
 	f.write(&numtarget,1);
 	f.write(target.data(),numtarget);
 	return 0;
@@ -191,6 +191,7 @@ size_t Connectivity::writeg(BinFileHandler& f)
 	int _size = size+1;
 	f.write(&_size,1);
 	f.write(pointer.data(),_size);
+	int numtarget = getNumTarget();
 	f.write(&numtarget,1);
 	GlobalInt *gtarget = new GlobalInt[numtarget];
 	for(int i = 0; i < numtarget; i++)
@@ -208,8 +209,7 @@ Connectivity::Connectivity(int _size, int *_count)
 	int i;
 	for(i=0; i < _size; ++i)
 		pointer[i+1] = pointer[i] + _count[i];
-	numtarget = pointer[size];
-	target.resize(numtarget);
+	target.resize(pointer[size], -1);
 }
 
 Connectivity::Connectivity(int _size, int count)
@@ -219,10 +219,10 @@ Connectivity::Connectivity(int _size, int count)
 	pointer[0] = 0;
 	for(int i=0; i < _size; ++i)
 		pointer[i+1] = pointer[i] + count;
-	numtarget = pointer[size];
-	target.resize(numtarget);
+	int numtarget = pointer[size];
+	target.reserve(numtarget);
 	for(int i=0; i < numtarget; ++i)
-		target[i] = i;
+		target.push_back(i);
 }
 
 Connectivity::~Connectivity() {}
@@ -257,11 +257,10 @@ Connectivity::transconOne( Connectivity* tc)
 	int i,j,k;
 
 	// First find the biggest target so we can size arrays correctly
-	int tgmax=-1;
+	int tgmax=0;
 
-	for(i =0; i < tc->numtarget; ++i)
-		if(tc->target[i] > tgmax) tgmax=tc->target[i];
-	tgmax++; // Important adjustment
+	if(tc->target.size() != 0)
+		tgmax = 1 + *std::max_element(tc->target.begin(), tc->target.end());
 
 	// Now we can size the array that flags if a target has been visited
 	int *flags = (int *) dbg_alloca(sizeof(int)*tgmax);
@@ -338,7 +337,6 @@ Connectivity::transconOne( Connectivity* tc)
 
 	Connectivity *res = new Connectivity();
 	res->size      = size;
-	res->numtarget = np[size];
 	res->pointer   = std::move(np);
 	res->target    = std::move(ntg);
 	return res;
@@ -362,7 +360,7 @@ Connectivity::findPseudoDiam(int *s, int *e, int *mask)
 {
 	int i,k,nw;
 	// Select the node with the lowest connectivity
-	int cmin = numtarget+1;
+	int cmin = getNumTarget()+1;
 	int cmax = 0;
 	for(i = 0; i < size; ++i) {
 		if(mask[i]) {
@@ -374,8 +372,8 @@ Connectivity::findPseudoDiam(int *s, int *e, int *mask)
 		}
 	}
 
-	int *ls  =  new int[numtarget];
-	int *xls =  new int[numtarget+1];
+	int *ls  =  new int[getNumTarget()];
+	int *xls =  new int[getNumTarget()+1];
 
 	// Created rooted level structure
 	int w;
@@ -638,8 +636,8 @@ Connectivity::renumSloan(int *mask, int &nextNum, int *renum)
 
 	findPseudoDiam( &s_node, &e_node, mask);
 
-	int *ls  = new int[numtarget];
-	int *xls = new int[numtarget+1];
+	int *ls  = new int[getNumTarget()];
+	int *xls = new int[getNumTarget()+1];
 
 	int w;
 	int h = rootLS(e_node, xls,ls,w,mask);
@@ -919,7 +917,6 @@ Connectivity::combine(Connectivity *con2, int *&cmap, int *cmap2)
 	size      = size1+count;
 	pointer   = cp;
 	target    = ct;
-	numtarget = cp[size1+count];
 }
 
 int
@@ -1036,7 +1033,7 @@ Connectivity::modify()
 	count = 0;
 	for(i = 0; i < size; ++i)
 		if(num(i) == 0) count++;
-	int *ntrg = new int[numtarget+count];
+	int *ntrg = new int[getNumTarget()+count];
 	int *nptr = new int[size+1];
 	count = 0;
 	for(i = 0; i < size; ++i) {
@@ -1082,7 +1079,7 @@ Connectivity::modifyAlt()
 	for(i = 0; i < size; ++i)
 		for(j = 0; j < num(i); ++j)
 			if((*this)[i][j] == i) count++;
-	int *ntrg = new int[numtarget-count];
+	int *ntrg = new int[getNumTarget()-count];
 	int *nptr = new int[size+1];
 	count = 0;
 	for(i = 0; i < size; ++i) {
@@ -1103,7 +1100,7 @@ Connectivity::combineAll(int addSize, int* cmap)
 	//count = 0;
 	//for(i = 0; i < size; ++i)
 	//if(num(i) == 0) count++;
-	int *ntrg = new int[numtarget+(addSize)*(addSize)];
+	int *ntrg = new int[getNumTarget()+(addSize)*(addSize)];
 	int *nptr = new int[size+1];
 
 	count = 0;
@@ -1152,10 +1149,10 @@ Connectivity::sortTargets()
 
 void Connectivity::renumberTargets(int *map)  {
 
-	for (int i = 0; i < numtarget; i++)  {
-		if (map[target[i]] < 0)
-			fprintf(stderr, "target(i) is neg: %d\n", target[i]);
-		target[i] = map[target[i]];
+	for(auto &tg : target) {
+		if(map[tg] < 0)
+			fprintf(stderr, "target(i) is neg: %d\n", tg);
+		tg = map[tg];
 	}
 }
 
@@ -1163,10 +1160,11 @@ void Connectivity::renumberTargets(int *map)  {
 
 void Connectivity::renumberTargets(std::map<int, int> &map)  {
 
-	for (int i = 0; i < numtarget; i++)  {
-		if (map.find(target[i]) == map.end())
-			fprintf(stderr, "target(i) does not exist: %d\n", target[i]);
-		target[i] = map[target[i]];
+	for (auto &tg :target)  {
+		auto it = map.find(tg);
+		if (it == map.end())
+			fprintf(stderr, "target(i) does not exist: %d\n", tg);
+		tg = it->second;
 	}
 }
 
@@ -1216,8 +1214,7 @@ Connectivity::end_count()
 {
 	for(int i=0; i < size; ++i)
 		pointer[i+1] += pointer[i];
-	numtarget = pointer[size];
-	target.resize(numtarget);
+	target.resize(pointer[size]);
 }
 
 void
@@ -1253,7 +1250,6 @@ Connectivity::Connectivity(int ns)
 	int i;
 	for(i=0; i < size+1; ++i)
 		pointer[i] = 0;
-	numtarget = 0;
 }
 
 //----------------------------------------------------------------------
@@ -1386,7 +1382,6 @@ Connectivity::Connectivity(SommerElement  **els, int numSommer, int max)
 		pp += (nn > max) ? max : nn;
 	}
 	pointer[size] = pp;
-	numtarget = pp;
 
 	// Create the target array
 	target.resize(pp);
@@ -1403,9 +1398,8 @@ Connectivity::Connectivity(SommerElement  **els, int numSommer, int max)
 }
 
 
-Connectivity::Connectivity(FILE *f, int n)
+Connectivity::Connectivity(FILE *f, int numtarget)
 {
-	numtarget = n;
 	target.reserve(numtarget);
 
 	int r1 = fscanf(f,"%d",&size);
@@ -1416,7 +1410,7 @@ Connectivity::Connectivity(FILE *f, int n)
 		int m;
 		int r2 = fscanf(f,"%d",&m);
 		pointer.push_back(target.size());
-		if(n != 0 && target.size() + m > numtarget) {
+		if(numtarget != 0 && target.size() + m > numtarget) {
 			fprintf(stderr," *** ERROR: Connectivity has too many connections\n");
 			exit(1);
 		}
@@ -1430,7 +1424,7 @@ Connectivity::Connectivity(FILE *f, int n)
 }
 
 Connectivity::Connectivity(int _size, std::vector<int> _pointer, std::vector<int> _target,
-                           std::vector<float> _weight) : size(_size), numtarget(_target.size()),
+                           std::vector<float> _weight) : size(_size),
                                                          pointer(std::move(_pointer)),
                                                          target(std::move(_target)), weight(std::move(_weight)){
 

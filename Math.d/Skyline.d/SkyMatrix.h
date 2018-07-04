@@ -123,7 +123,7 @@ protected:
    GenVector<Scalar>* getNullSpace();   // retrieve ZERO ENERGY MODES
    void getNullSpace(Scalar *rbm) override;      // retrieve ZERO ENERGY MODES
 
-   int  numRBM() const { return nzem; } // retrieve the number of rigid body modes
+   int  numRBM() const override { return nzem; } // retrieve the number of rigid body modes
    void getRBMs(double *) override;         // retrieve the rigid body modes
    void getRBMs(Vector* vs) override;       // retrieve the rigid body modes
    void getRBMs(VectorSet& vs) override;    // retrieve the rigid body modes

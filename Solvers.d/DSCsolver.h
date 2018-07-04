@@ -56,7 +56,7 @@ class DSCsolver :
    double getSolutionTime() override { return solveTime; }
 
    // Functions that need to be written
-   int numRBM() override { return -1; }
+   int numRBM() const override { return -1; }
 
    // Functions not needed
    double    diag(int) const override { return 1.0; }

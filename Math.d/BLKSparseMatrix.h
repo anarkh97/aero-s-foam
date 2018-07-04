@@ -124,7 +124,7 @@ protected:
    void    getRBMs(double *) override;
    void    getRBMs(Vector *) override;
    void    getRBMs(VectorSet &) override;
-   int     numRBM() override;
+   int     numRBM() const override;
 
    void    addDiscreteMass(int dof, Scalar mass) override;
    void    addImaginary(const FullSquareMatrix &kel, const int *dofs) override;

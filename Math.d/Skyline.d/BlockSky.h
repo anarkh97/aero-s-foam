@@ -90,7 +90,7 @@ class GenBlockSky : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>
      void zeroAll() override;
      void clean_up() override;
      int dim() const override { return neq;  }
-     int numRBM() override { return nzem; }
+     int numRBM() const  override { return nzem; }
      int* getSingularities() { return sing; }
    private:
      void initialize();

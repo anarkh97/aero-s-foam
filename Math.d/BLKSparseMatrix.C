@@ -1407,7 +1407,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 
 template<class Scalar>
 int
-GenBLKSparseMatrix<Scalar>::numRBM()
+GenBLKSparseMatrix<Scalar>::numRBM() const
 {
   return numrbm; // return the total number of zems (both geometric and otherwise) same as SkyMatrix
 }

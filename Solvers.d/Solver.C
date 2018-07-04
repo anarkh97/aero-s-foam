@@ -126,12 +126,13 @@ GenSolver<Scalar>::dim() const
  fprintf(stderr,"Selected Solver does not support dim() function\n");
  return 0;
 }
-
+#include <typeinfo>
 template<class Scalar> 
 int
-GenSolver<Scalar>::numRBM()
+GenSolver<Scalar>::numRBM() const
 {
- fprintf(stderr,"Selected Solver does not support numRBM() function\n");
+    std::cerr << "Solver " << typeid(*this).name() << " does not support numRBM() function" << std::endl;
+// fprintf(stderr,"Selected Solver does not support numRBM() function\n");
  return 0;
 }
 

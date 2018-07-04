@@ -35,9 +35,7 @@ class GenSolver {
     virtual ~GenSolver() = 0;
 
     // Rbm functions
-    virtual int numRBM();
-
-    int numRBM() const { return const_cast<GenSolver *>(this)->numRBM(); }// TODO Make base const.
+    virtual int numRBM() const;
 
     // Functions to return the rigid body modes
     virtual void getRBMs(double *rbms);

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdio>
 #include <Utils.d/BinFileHandler.h>
+#include "ConnectivityT.h"
 
 template<typename IndexType, typename DataType, typename Map>
 ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType *_pointer, DataType *_target,
@@ -26,6 +27,7 @@ ConnectivityT<IndexType,DataType,Map>::ConnectivityT(BinFileHandler& f, bool old
 		pointer.resize(size);
 		--size;
 		f.read(pointer.data(),size+1);
+		IndexType numtarget = pointer.back();
 		f.read(&numtarget,1);
 		target.resize(numtarget);
 		f.read(target.data(),numtarget);
@@ -33,6 +35,7 @@ ConnectivityT<IndexType,DataType,Map>::ConnectivityT(BinFileHandler& f, bool old
 	else {
 		//cerr << " *** WARNING: using OLD_SOWER ::ConnectivityT(BinFileHandler& f) \n";
 		f.read(&size, 1);
+		IndexType numtarget;
 		f.read(&numtarget, 1);
 		pointer.resize(size+1);
 		target.resize(numtarget);
@@ -47,6 +50,7 @@ size_t ConnectivityT<IndexType,DataType,Map>::write(BinFileHandler& f)
 	IndexType _size = size+1;
 	f.write(&_size,1);
 	f.write(pointer.data(),_size);
+	IndexType numtarget = getNumTarget();
 	f.write(&numtarget,1);
 	f.write(target.data(),numtarget);
 	return 0;
@@ -61,8 +65,7 @@ ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType 
 	IndexType i;
 	for(i=0; i < _size; ++i)
 		pointer[i+1] = pointer[i] + _count[i];
-	numtarget = pointer[size];
-	target.resize(numtarget);
+	target.resize(pointer[size]);
 }
 
 template<typename IndexType, typename DataType, typename Map>
@@ -74,9 +77,8 @@ ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType 
 	IndexType i;
 	for(i=0; i < _size; ++i)
 		pointer[i+1] = pointer[i] + count;
-	numtarget = pointer[size];
-	target.resize(numtarget);
-	for(IndexType i=0; i < numtarget; ++i)
+	target.resize(pointer[size]);
+	for(IndexType i=0; i < pointer[size]; ++i)
 		target[i] = i;
 }
 

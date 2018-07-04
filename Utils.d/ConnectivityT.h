@@ -120,11 +120,11 @@ public:
 	typedef _IndexType IndexType;
 	typedef _DataType  DataType;
 
-	auto getNumTarget() { return numtarget; }
+	auto getNumTarget() { return pointer.size(); }
 	auto &getTarget()   { return target; }
 	auto &getPointer() { return pointer; }
 
-	ConnectivityT() { size = 0; numtarget = 0;}
+	ConnectivityT() { size = 0; }
 	template <class A> ConnectivityT(SetAccessT<A> &sa);
 	ConnectivityT(IndexType _size, IndexType *_pointer, DataType *_target, bool _removeable = true, float *_weight = 0);
 	ConnectivityT(IndexType _size, IndexType *count);
@@ -192,7 +192,6 @@ public:
 #endif
 protected:
 	IndexType size;           // size of pointer
-	IndexType numtarget;      // size of target, number of Connections
 	std::vector<IndexType> pointer;       // pointer to target
 	std::vector<DataType> target;        // value of the connectivity
 	std::vector<float> weight;      // weights of pointer (or 0)
@@ -219,11 +218,11 @@ ConnectivityT<IndexType,DataType,Map>::operator[](IndexType i) { return target.d
 
 template<typename IndexType, typename DataType, typename Map>
 IndexType
-ConnectivityT<IndexType,DataType,Map>::numConnect() { return numtarget; }
+ConnectivityT<IndexType,DataType,Map>::numConnect() { return getNumTarget(); }
 
 template<typename IndexType, typename DataType, typename Map>
 bool
-ConnectivityT<IndexType,DataType,Map>::isDiagonal() { return (numtarget == size) ? true : false; }
+ConnectivityT<IndexType,DataType,Map>::isDiagonal() { return (getNumTarget() == size) ? true : false; }
 
 /*
 class CountedConnectivityT: public ConnectivityT {
@@ -598,7 +597,6 @@ ConnectivityT<IndexType,DataType,Map>::ConnectivityT(SetAccessT<A> &sa)
 		pp += sa.numNodes(i);
 	}
 	pointer[size] = pp;
-	numtarget = pp;
 
 	// Create the target array
 	target = new DataType[pp];

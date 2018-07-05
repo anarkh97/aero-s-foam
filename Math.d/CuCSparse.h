@@ -42,6 +42,7 @@ class GenCuCSparse : public SparseData, public GenSparseMatrix<Scalar> {
     void mult(const Scalar *rhs, Scalar *result) const override;
 
     void multIdentity(Scalar **result) const override;
+    /// \copydoc
     void multIdentity(Scalar *result) const override;
     void multIdentity(Scalar **v, int start, int stop) const override;
 

@@ -445,7 +445,8 @@ public:
 	/** \brief Compute \f$ f_r = K_{rc} u_c \f$. */
 	void multKrc(Scalar *fr, const Scalar *uc) const;
 
-	void multKcc();
+	/** \brief Form the \f$ K_{cc}^\star \f$ contribution for the subdomain. */
+	void formKccStar();
 	void multKbb(const Scalar *u, Scalar *Pu, Scalar *delta_u = 0, Scalar * delta_f= 0, bool errorFlag = true);
 	void multKbbMpc(const Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
 	void multKbbCoupled(const Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag = true);
@@ -569,6 +570,7 @@ public:
 	// MPC related data
 	mutable std::vector<std::unique_ptr<SubLMPCons<Scalar>>> mpc; // multiple point constraints
 	std::vector<std::unique_ptr<SubLMPCons<Scalar>>> mpc_primal;
+	/// \brief Augmentation matrix.
 	std::unique_ptr<GenSparseSet<Scalar>> Src;
 	Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> BKrrKrc;
 	std::unique_ptr<GenDBSparseMatrix<Scalar>> Kbb;    //!< Boundary to boundary stiffness matrix.

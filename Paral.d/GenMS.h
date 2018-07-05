@@ -104,4 +104,43 @@ GenMultiSparse<Scalar>::addDiscreteMass(int dof, Scalar mass)
 
 //-----------------------------------------------------------------
 
+#include <Math.d/DBSparseMatrix.h>
+template <typename Scalar>
+class SolverWrapper : public GenSparseMatrix<Scalar> {
+public:
+
+	SolverWrapper(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, GenSparseMatrix<Scalar> *wrapped) :
+		multMatrix(nToN, dsa, c_dsa), wrapped(wrapped) {}
+
+	void add(const FullSquareMatrix & kel, const int *dofs) override {
+		multMatrix.add(kel, dofs);
+		wrapped->add(kel, dofs);
+	}
+	void add(const FullSquareMatrixC & kel, const int *dofs) override {
+		multMatrix.add(kel, dofs);
+		wrapped->add(kel, dofs);
+	}
+	void addImaginary(const FullSquareMatrix & kel, const int *dofs) override {
+		multMatrix.addImaginary(kel, dofs);
+		wrapped->addImaginary(kel, dofs);
+	}
+	void addDiscreteMass(int dof, Scalar mass) override {
+		multMatrix.addDiscreteMass(dof, mass);
+		wrapped->addDiscreteMass(dof, mass);
+	}
+	void mult(const Scalar *rhs, Scalar *result) const override {
+		multMatrix.mult(rhs, result);
+	}
+	Scalar diag(int i) const override { return multMatrix.diag(i); }
+	Scalar &diag(int i) override { return multMatrix.diag(i); }
+	int dim() const override { return multMatrix.dim() ; }
+	int neqs() const override { return multMatrix.neqs() ; }
+	void zeroAll() override {
+		multMatrix.zeroAll();
+		wrapped->zeroAll();
+	}
+private:
+	GenDBSparseMatrix<Scalar> multMatrix;
+    GenSparseMatrix<Scalar> *wrapped;
+};
 #endif

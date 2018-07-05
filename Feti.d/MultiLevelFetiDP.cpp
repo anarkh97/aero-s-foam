@@ -64,7 +64,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 
 	if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
 	t5 -= getTime();
-	paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::multKcc); // create the local Kcc^*
+	paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::formKccStar); // create the local Kcc^*
 	t5 += getTime();
 	Elemset& elems = coarseDomain->getElementSet();
 	for(int i = 0; i < this->nsub; ++i) {

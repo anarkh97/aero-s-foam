@@ -250,6 +250,9 @@ GenDomainGroupTask<Scalar>::runForWB(int isub, bool make_feti)
 				dynMats[isub] = GenSolverFactory<Scalar>::getFactory()
 					->createSolver(sd[isub]->getNodeToNode(), sd[isub]->getDSA(), sd[isub]->getCCDSA(),
 					               local_cntl, spMats[isub], (Rbm*) NULL, spp[isub], sps[isub]);
+				// Wrap the sparse matrix.
+				spMats[isub] = new SolverWrapper<Scalar>(sd[isub]->getNodeToNode(), sd[isub]->getDSA(), sd[isub]->getCCDSA(),
+					spMats[isub]);
 			}
 			else if(isFeti(local_cntl.type)) { // local solver is feti
 				std::cerr << "using FETI-DP solver for local problem\n";
@@ -259,8 +262,9 @@ GenDomainGroupTask<Scalar>::runForWB(int isub, bool make_feti)
 						corner_dbc[3*i+j].setData(sd[isub]->getLocalCornerNodes()[i], j, 0.0);
 				sd[isub]->setDirichlet(3*sd[isub]->numCorners(), corner_dbc);
 #ifdef USE_MPI
-				GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub],
-            new Communicator(CommunicatorHandle{MPI_COMM_SELF}));
+				GenDecDomain<Scalar> *decSubDomain =
+					new GenDecDomain<Scalar>(sd[isub],
+					                         new Communicator(CommunicatorHandle{MPI_COMM_SELF}));
 #else
 				GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], NULL);
 #endif

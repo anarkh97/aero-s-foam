@@ -783,7 +783,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			this->times.memoryGtGsky -= memoryUsed();
 			int sparse_ngrbms = (geometricRbms) ? ngrbms : 0; // TODO pass Rbm object, not just ngrbms
 #ifdef DISTRIBUTED
-     if(this->glNumSub == this->numCPUs && fetiInfo->type != FetiInfo::nonlinear &&
+			if(this->glNumSub == this->numCPUs && fetiInfo->type != FetiInfo::nonlinear &&
 			   !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep &&
 			   (fetiInfo->coarse_cntl->type == SolverSelection::Direct && (fetiInfo->coarse_cntl->subtype == 0 || fetiInfo->coarse_cntl->subtype == 1)))
 				KccSolver = GenSolverFactory<Scalar>::getFactory()->createDistSolver(coarseConnectivity, cornerEqs, *fetiInfo->coarse_cntl,
@@ -798,7 +798,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			// assemble the coarse problem: Kcc^* -> Kcc - Krc^T Krr^-1 Krc
 			if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
 			t5 -= getTime();
-			paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::multKcc); // create the local Kcc^*
+			paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::formKccStar); // create the local Kcc^*
 			t5 += getTime();
 
 			t0 -= getTime();

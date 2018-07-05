@@ -1990,7 +1990,7 @@ FetiSub<Scalar>::multFcB(Scalar *p) {
 
 template<class Scalar>
 void
-FetiSub<Scalar>::multKcc() {
+FetiSub<Scalar>::formKccStar() {
 	auto &BKrrKrc = this->BKrrKrc;
 	auto &Krw = this->Krw;
 	auto &localw = this->localw;
@@ -2061,14 +2061,8 @@ FetiSub<Scalar>::multKcc() {
 			}
 			this->Eve = this->Ave;
 			this->Krr->reSolve(nAve, this->Eve[0]);
-//			for (i = 0; i < nAve; ++i) {
-//				for (j = 0; j < numEquations; ++j)
-//					this->Eve[i][j] = this->Ave[i][j];
-//			}
-			pAKA = AKA.data();
-
-			Tgemm('T', 'N', nAve, nAve, numEquations, 1.0, this->Eve[0], numEquations,
-			      this->Ave[0], numEquations, 0.0, pAKA, nAve);
+			Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>> AKAM{AKA.data(), nAve, nAve};
+			AKAM.noalias() = this->Eve.transpose() * this->Ave;
 
 			AKA.factor();
 			for (j = 0; j < numEquations; ++j) {

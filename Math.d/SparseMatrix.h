@@ -72,7 +72,11 @@ class GenSparseMatrix {
         virtual void multSub(const Scalar *, Scalar *) const;
         virtual void multSub(int, const Scalar **, Scalar **) const;
         virtual void multDiag(const Scalar *, Scalar *) const;
-        virtual void multIdentity(Scalar *) const;
+        /** \brief Compute \f$ R = R + M\f$.
+         *
+         * @param R Pointer to result matrix to modify in dense row-wise matrix storage.
+         */
+        virtual void multIdentity(Scalar *R) const;
         virtual void multIdentity(Scalar **) const;
         virtual void multIdentity(Scalar **v, int start, int stop) const;
         virtual void squareRootMult(Scalar * result);

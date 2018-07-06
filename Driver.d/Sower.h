@@ -248,21 +248,21 @@ class Sower
       subToClus = new Connectivity(f);
     }
 
-  BinFileHandler* openBinaryFile(int sub)
-    {
-      if(!subToClus) {
-        BinFileHandler fp(subdomains_.c_str(), "r");
-        readSubFile(fp);
-      }
-      // opening cluster file
-      char filename[FILENAME_LENGTH];
-      char clusterNumStr[10] = {'\0'};
-      if((*subToClus)[sub])
-	sprintf(clusterNumStr, "%u", (*subToClus)[sub][0]+1); // phil modify here to add support for more than one file per cluster (michel)
-      strcpy(filename, clusterData_.c_str());
-      strcat(filename, clusterNumStr);
-      return(new BinFileHandler(filename, "r"));
-    }
+	std::unique_ptr<BinFileHandler> openBinaryFile(int sub)
+	{
+		if(!subToClus) {
+			BinFileHandler fp(subdomains_.c_str(), "r");
+			readSubFile(fp);
+		}
+		// opening cluster file
+		char filename[FILENAME_LENGTH];
+		char clusterNumStr[10] = {'\0'};
+		if((*subToClus)[sub])
+			sprintf(clusterNumStr, "%u", (*subToClus)[sub][0]+1); // phil modify here to add support for more than one file per cluster (michel)
+		strcpy(filename, clusterData_.c_str());
+		strcat(filename, clusterNumStr);
+		return std::make_unique<BinFileHandler>(filename, "r");
+	}
 
   /*
    * addChildToParentData
@@ -1445,7 +1445,7 @@ template<typename IOObject>
 typename 
 IOObject::oType Sower::read(int subNum, int*& localToGlobal, bool rereadToc)
 {
-  BinFileHandler * file = openBinaryFile(subNum);
+  auto file = openBinaryFile(subNum);
   read<IOObject>(*file, subNum, localToGlobal, rereadToc);
 }
 

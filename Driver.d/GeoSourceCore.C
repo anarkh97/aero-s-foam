@@ -5067,7 +5067,7 @@ void GeoSource::getARubberLambdaMu(double omega, complex<double> *lambda,
 void GeoSource::readDistributedSurfs(int subNum)
 {
   Sower sower;
-  BinFileHandler *f = sower.openBinaryFile(subNum);
+  auto f = sower.openBinaryFile(subNum);
   //filePrint(stderr," ... Read surfaces data\n");
   for(int isurf=0; isurf<domain->getNumSurfs(); isurf++) {
 	//filePrint(stderr," ... Read data of surface %d\n",isurf);

@@ -16,7 +16,10 @@ ADD_LIBRARY(Util
 		SolverInfo.C
 		GlobalToLocalMap.C
 		Conwep.d/BlastLoading.C
-		Scotch.C AutoTimer.h)
+		Scotch.C
+		AutoTimer.h
+		BinFileHandler.h
+		)
 # TODO Find out how to make the .h public without trouble for the users of Util in other directories.
 TARGET_SOURCES(Util PRIVATE ConnectivityT.h ConnectivityTImpl.h)
 TARGET_LINK_LIBRARIES(Util Eigen3::Eigen)

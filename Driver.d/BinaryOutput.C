@@ -67,7 +67,7 @@ GeoSource::writeArrayToBinFile(const double *data, int dataSize, int subId, int 
 {
   const int clusterId = subToClus[subId];
   const char *appendFlag = "ws+";
-  BinFileHandler *binFile = openBinaryOutputFile(fileId, clusterId, iterRank, appendFlag);
+  auto binFile = openBinaryOutputFile(fileId, clusterId, iterRank, appendFlag);
   
   const int firstSubInCluster = (*clusToSub)[clusterId][0];
   const bool doSerialPart = (firstSubInCluster == subId);
@@ -88,7 +88,7 @@ void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
       // Determine which cluster subdomain is in
       const int clusterId = subToClus[glSub];
       const char *truncateFlag = "w";
-      BinFileHandler *binFile = openBinaryOutputFile(fileId, clusterId, iter, truncateFlag);
+      auto binFile = openBinaryOutputFile(fileId, clusterId, iter, truncateFlag);
 
       // Write header information
       outputHeader(*binFile, oinfo[fileId].dim, fileId);
@@ -121,7 +121,7 @@ void GeoSource::outputRange(int fileId, int *globalIndex, int nData, int glSub, 
    if (binaryOutput) {
     const int clusterId = subToClus[glSub];
     const char *appendFlag = "ws+";
-    BinFileHandler *file = openBinaryOutputFile(fileId, clusterId, iter, appendFlag);
+    auto file = openBinaryOutputFile(fileId, clusterId, iter, appendFlag);
 
     const int dataType = oinfo[fileId].dataType;
     if (dataType != 1 && dataType != 2) {

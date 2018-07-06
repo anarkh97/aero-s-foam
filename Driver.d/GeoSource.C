@@ -199,7 +199,7 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 #endif
   Sower sower;
  
-  BinFileHandler *f = sower.openBinaryFile(subNum);
+  auto f = sower.openBinaryFile(subNum);
 
   // nodes
 #ifdef SOWER_DEBUG

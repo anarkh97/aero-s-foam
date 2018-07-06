@@ -75,6 +75,8 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    // GenSolver factor
    void factor() override;
 
+    int numRBM() const override { return 0; }
+
    // GenSolver solve
    void solve(const Scalar *rhs, Scalar *solution) override;
    void solve(const GenVector<Scalar> &rhs, GenVector<Scalar> &solution ) override;

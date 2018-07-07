@@ -1,6 +1,7 @@
 #ifndef _SPARSEMATRIX_H_
 #define _SPARSEMATRIX_H_
 
+#include <gsl/span>
 #include <Utils.d/dofset.h>
 
 #include <Math.d/matrix.h>
@@ -36,7 +37,7 @@ class GenSparseMatrix {
         GenSolver<Scalar>* meansolver;
         int *firstdof;
         Scalar* scalarfactors;
-   public:       
+public:
         virtual void zeroAll() = 0;
         virtual int dim() const = 0;
         virtual double norm() const;
@@ -49,6 +50,27 @@ class GenSparseMatrix {
         virtual void invertDiag();
         virtual void printSparse(const std::string& filename);
 
+	/** \brief Assemble an element's contribution into the matrix.
+	 *
+	 * @param kel Elemental matrix.
+	 * @param dofs DOFs of the elemental matrix.
+	 */
+	// TODO Make this the real add virtual method
+	void add(const FullSquareMatrix &kel, gsl::span<const int> dofs) {
+		add(kel, dofs.data());
+	}
+	void add(const FullSquareMatrix &kel, const gsl::span<int> &dofs) {
+		add(kel, dofs.data());
+	}
+	void add(const FullSquareMatrixC &kel, gsl::span<const int> dofs) {
+		add(kel, dofs.data());
+	}
+	void add(const GenAssembledFullM<Scalar> &kel, gsl::span<const int> dofs) {
+		add(kel, dofs.data());
+	}
+    void addImaginary(const FullSquareMatrix &kel, gsl::span<const int> dofs) {
+        add(kel, dofs.data());
+    }
         virtual void add(const FullSquareMatrix &, const int *dofs) = 0;
         virtual void addImaginary(const FullSquareMatrix &, const int *dofs);
         virtual void add(const FullSquareMatrixC &, const int *dofs);

@@ -194,11 +194,11 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
     std::ostringstream oss;
     oss << decomposition_ << i+1;
     BinFileHandler file2(oss.str().c_str(), "w");
-    Connectivity *cnodeToNode = new Connectivity(clusToNode->num(i),allptr,(*clusToNode)[i],0);
+    Connectivity *cnodeToNode = new Connectivity(clusToNode->num(i),allptr,(*clusToNode)[i].data(),0);
     Connectivity *cnodeToSub = cnodeToNode->transcon(nToS);
     Connectivity *subToCnode = cnodeToSub->reverse();
     Connectivity *subToNode_i = subToCnode->transcon(cnodeToNode);
-    Connectivity *csubToSub2 = new Connectivity(clusToSub2->num(i),allptr,(*clusToSub2)[i],0);
+    Connectivity *csubToSub2 = new Connectivity(clusToSub2->num(i),allptr,(*clusToSub2)[i].data(),0);
     Connectivity *csubToNode = csubToSub2->transcon(subToNode_i);
     csubToNode->sortTargets();
     csubToSub2->write(file2);
@@ -552,7 +552,7 @@ DataStruct::write(int clusNumber, Connectivity* clusToSub, int numSubdomains,
   // the oject ids will be in an optimum order to be written
   objToSub->sortTargets();
   ObjectOrdering order(objToSub,subIsInClus);
-  std::sort((*clusterToData)[clusNumber-1], (*clusterToData)[clusNumber-1] + clusterToData->num(clusNumber-1), order);
+  std::sort((*clusterToData)[clusNumber-1].begin(), (*clusterToData)[clusNumber].end(), order);
   // now let's write each object using its objectID
   std::list<int> currentSubs; // list of subdomains currently been written -- for use with rangeset
   int k;
@@ -560,7 +560,7 @@ DataStruct::write(int clusNumber, Connectivity* clusToSub, int numSubdomains,
     int curObjID = (*clusterToData)[clusNumber-1][k];
     // range set
     std::list<int> nextCurrentSubs;
-    int * listOfSubsObjIsIn = (*objToSub)[curObjID];
+    auto listOfSubsObjIsIn = (*objToSub)[curObjID];
     int numOfSubsObjIsIn = objToSub->num(curObjID);
       
     for(int i = 0 ; i < numOfSubsObjIsIn; ++i) {

@@ -3814,175 +3814,175 @@ SolverMethod:
 	{ $$ = new SolverCntl(default_cntl);
           $$->type = SolverSelection::Direct;
           $$->subtype = $1; }
-        | SOLVERTYPE PIVOT NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Direct;
-          $$->subtype = $1;
-          $$->pivot = true; }
-        | SOLVERTYPE SCALED NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Direct;
-          $$->subtype = $1;
-          $$->scaled = true; }
-        | SOLVERTYPE UNSYMMETRIC NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Direct;
-          $$->subtype = $1;
-          $$->unsymmetric = true; }
-        | ITERTYPE NewLine
-        { $$ = new SolverCntl(default_cntl); 
-          $$->type = SolverSelection::Iterative;
-          $$->iterType = $1; }
-        | ITERTYPE Integer NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Iterative;
-          $$->iterType = $1;
-          $$->precond = $2; }
-        | ITERTYPE Integer Float NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Iterative;
-          $$->iterType = $1;
-          $$->precond = $2;
-          $$->tol=$3; }   
-        | ITERTYPE Integer Float Integer NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Iterative;
-          $$->iterType = $1;
-          $$->precond = $2;
-          $$->tol = $3;
-          $$->maxit = $4; }
-        | ITERTYPE Integer Float Integer Integer NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Iterative;
-          $$->iterType = $1;
-          $$->precond = $2;
-          $$->tol = $3;
-          $$->maxit = $4;
-          $$->iterSubtype = $5; }
-        | ITERTYPE Integer Float Integer Integer Integer NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Iterative;
-          $$->iterType = $1;
-          $$->precond = $2;
-          $$->tol = $3;
-          $$->maxit = $4;
-          $$->iterSubtype = $5;
-          $$->maxvecsize = $6; }
-        | FETI NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti; }
-        | FETI Integer NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.version = (FetiInfo::Version) ($2-1); }
-        | FETI Integer Float NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.maxit = $2;
-          $$->fetiInfo.tol = $3;
-          $$->fetiInfo.maxortho = $2; }
-        | FETI Integer Float Integer NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.maxit = $2;
-          $$->fetiInfo.tol = $3;
-          $$->fetiInfo.maxortho = $4; }
-        | FETI Integer FETI2TYPE NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.version = (FetiInfo::Version) ($2-1);
-          $$->fetiInfo.feti2version = (FetiInfo::Feti2Version) $3; }
-	    | FETI DP NewLine
-	    { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.corners = FetiInfo::allCorners6;
-          $$->fetiInfo.version = FetiInfo::fetidp; }
-	    | FETI LIB NewLine
-	    { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::FetiLib;
-          $$->fetiInfo.corners = FetiInfo::allCorners6;
-          $$->fetiInfo.version = FetiInfo::fetidp; }
-        | FETI DPH NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.corners = FetiInfo::allCorners6;
-          $$->fetiInfo.version = FetiInfo::fetidp;
-          $$->fetiInfo.dph_flag = true; }
-        | HFETI NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.scaling = FetiInfo::tscaling;
-          $$->fetiInfo.corners = FetiInfo::allCorners3;
-          $$->fetiInfo.version = FetiInfo::fetidp;
-          $$->fetiInfo.dph_flag = true;
-          $$->fetiInfo.augment = FetiInfo::Edges;
-          $$->fetiInfo.rbmType = FetiInfo::None;
-          $$->fetiInfo.nGs = 0; }
-        | HFETI Integer Float NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.maxit = $2;
-          $$->fetiInfo.tol = $3;
-          $$->fetiInfo.krylovtype = 1;
-          $$->fetiInfo.scaling = FetiInfo::tscaling;
-          $$->fetiInfo.corners = FetiInfo::allCorners6;
-          $$->fetiInfo.version = FetiInfo::fetidp;
-          $$->fetiInfo.dph_flag = true;
-          $$->fetiInfo.augment = FetiInfo::Edges;
-          $$->fetiInfo.rbmType = FetiInfo::None;
-          $$->fetiInfo.nGs = 0; }
-        | HFETI Integer Float Integer NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.maxit = $2;
-          $$->fetiInfo.tol = $3;
-          $$->fetiInfo.numcgm = $4;
-          $$->fetiInfo.krylovtype = 1;
-          $$->fetiInfo.scaling = FetiInfo::tscaling;
-          $$->fetiInfo.corners = FetiInfo::allCorners6;
-          $$->fetiInfo.version = FetiInfo::fetidp;
-          $$->fetiInfo.dph_flag = true;
-          $$->fetiInfo.augment = FetiInfo::Edges;
-          $$->fetiInfo.rbmType = FetiInfo::None;
-          $$->fetiInfo.nGs = 0; }
-        | HFETI Integer Float Integer Float NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.maxit = $2;
-          $$->fetiInfo.tol = $3;
-          $$->fetiInfo.numcgm = $4;
-          $$->fetiInfo.tolcgm = $5;
-          $$->fetiInfo.spaceDimension = 2;
-          $$->fetiInfo.krylovtype = 1;
-          $$->fetiInfo.scaling = FetiInfo::tscaling;
-          $$->fetiInfo.corners = FetiInfo::allCorners6;
-          $$->fetiInfo.version = FetiInfo::fetidp;
-          $$->fetiInfo.dph_flag = true;
-          $$->fetiInfo.augment = FetiInfo::Edges;
-          $$->fetiInfo.rbmType = FetiInfo::None;
-          $$->fetiInfo.nGs = 0; }
-        | HFETI Integer Float Integer Float Integer NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::Feti;
-          $$->fetiInfo.maxit = $2;
-          $$->fetiInfo.tol = $3;
-          $$->fetiInfo.numcgm = $4;
-          $$->fetiInfo.tolcgm = $5;
-          $$->fetiInfo.spaceDimension = $6;
-          $$->fetiInfo.krylovtype = 1;
-          $$->fetiInfo.scaling = FetiInfo::tscaling;
-          $$->fetiInfo.corners = FetiInfo::allCorners6;
-          $$->fetiInfo.version = FetiInfo::fetidp;
-          $$->fetiInfo.dph_flag = true;
-          $$->fetiInfo.augment = FetiInfo::Edges;
-          $$->fetiInfo.rbmType = FetiInfo::None;
-          $$->fetiInfo.nGs = 0; }
-        | BLOCKDIAG NewLine
-        { $$ = new SolverCntl(default_cntl);
-          $$->type = SolverSelection::BlockDiag; }
-        | SOLVERHANDLE Integer NewLine
-        { $$ = &domain->solInfo().solvercntls[$2]; }
-        ;
+    | SOLVERTYPE PIVOT NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Direct;
+      $$->subtype = $1;
+      $$->pivot = true; }
+    | SOLVERTYPE SCALED NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Direct;
+      $$->subtype = $1;
+      $$->scaled = true; }
+    | SOLVERTYPE UNSYMMETRIC NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Direct;
+      $$->subtype = $1;
+      $$->unsymmetric = true; }
+    | ITERTYPE NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Iterative;
+      $$->iterType = $1; }
+    | ITERTYPE Integer NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Iterative;
+      $$->iterType = $1;
+      $$->precond = $2; }
+    | ITERTYPE Integer Float NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Iterative;
+      $$->iterType = $1;
+      $$->precond = $2;
+      $$->tol=$3; }
+    | ITERTYPE Integer Float Integer NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Iterative;
+      $$->iterType = $1;
+      $$->precond = $2;
+      $$->tol = $3;
+      $$->maxit = $4; }
+    | ITERTYPE Integer Float Integer Integer NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Iterative;
+      $$->iterType = $1;
+      $$->precond = $2;
+      $$->tol = $3;
+      $$->maxit = $4;
+      $$->iterSubtype = $5; }
+    | ITERTYPE Integer Float Integer Integer Integer NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Iterative;
+      $$->iterType = $1;
+      $$->precond = $2;
+      $$->tol = $3;
+      $$->maxit = $4;
+      $$->iterSubtype = $5;
+      $$->maxvecsize = $6; }
+    | FETI NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti; }
+    | FETI Integer NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.version = (FetiInfo::Version) ($2-1); }
+    | FETI Integer Float NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.maxit = $2;
+      $$->fetiInfo.tol = $3;
+      $$->fetiInfo.maxortho = $2; }
+    | FETI Integer Float Integer NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.maxit = $2;
+      $$->fetiInfo.tol = $3;
+      $$->fetiInfo.maxortho = $4; }
+    | FETI Integer FETI2TYPE NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.version = (FetiInfo::Version) ($2-1);
+      $$->fetiInfo.feti2version = (FetiInfo::Feti2Version) $3; }
+	| FETI DP NewLine
+	{ $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.corners = FetiInfo::allCorners6;
+      $$->fetiInfo.version = FetiInfo::fetidp; }
+	| FETI LIB NewLine
+	{ $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::FetiLib;
+      $$->fetiInfo.corners = FetiInfo::allCorners6;
+      $$->fetiInfo.version = FetiInfo::fetidp; }
+    | FETI DPH NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.corners = FetiInfo::allCorners6;
+      $$->fetiInfo.version = FetiInfo::fetidp;
+      $$->fetiInfo.dph_flag = true; }
+    | HFETI NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.scaling = FetiInfo::tscaling;
+      $$->fetiInfo.corners = FetiInfo::allCorners3;
+      $$->fetiInfo.version = FetiInfo::fetidp;
+      $$->fetiInfo.dph_flag = true;
+      $$->fetiInfo.augment = FetiInfo::Edges;
+      $$->fetiInfo.rbmType = FetiInfo::None;
+      $$->fetiInfo.nGs = 0; }
+    | HFETI Integer Float NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.maxit = $2;
+      $$->fetiInfo.tol = $3;
+      $$->fetiInfo.krylovtype = 1;
+      $$->fetiInfo.scaling = FetiInfo::tscaling;
+      $$->fetiInfo.corners = FetiInfo::allCorners6;
+      $$->fetiInfo.version = FetiInfo::fetidp;
+      $$->fetiInfo.dph_flag = true;
+      $$->fetiInfo.augment = FetiInfo::Edges;
+      $$->fetiInfo.rbmType = FetiInfo::None;
+      $$->fetiInfo.nGs = 0; }
+    | HFETI Integer Float Integer NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.maxit = $2;
+      $$->fetiInfo.tol = $3;
+      $$->fetiInfo.numcgm = $4;
+      $$->fetiInfo.krylovtype = 1;
+      $$->fetiInfo.scaling = FetiInfo::tscaling;
+      $$->fetiInfo.corners = FetiInfo::allCorners6;
+      $$->fetiInfo.version = FetiInfo::fetidp;
+      $$->fetiInfo.dph_flag = true;
+      $$->fetiInfo.augment = FetiInfo::Edges;
+      $$->fetiInfo.rbmType = FetiInfo::None;
+      $$->fetiInfo.nGs = 0; }
+    | HFETI Integer Float Integer Float NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.maxit = $2;
+      $$->fetiInfo.tol = $3;
+      $$->fetiInfo.numcgm = $4;
+      $$->fetiInfo.tolcgm = $5;
+      $$->fetiInfo.spaceDimension = 2;
+      $$->fetiInfo.krylovtype = 1;
+      $$->fetiInfo.scaling = FetiInfo::tscaling;
+      $$->fetiInfo.corners = FetiInfo::allCorners6;
+      $$->fetiInfo.version = FetiInfo::fetidp;
+      $$->fetiInfo.dph_flag = true;
+      $$->fetiInfo.augment = FetiInfo::Edges;
+      $$->fetiInfo.rbmType = FetiInfo::None;
+      $$->fetiInfo.nGs = 0; }
+    | HFETI Integer Float Integer Float Integer NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::Feti;
+      $$->fetiInfo.maxit = $2;
+      $$->fetiInfo.tol = $3;
+      $$->fetiInfo.numcgm = $4;
+      $$->fetiInfo.tolcgm = $5;
+      $$->fetiInfo.spaceDimension = $6;
+      $$->fetiInfo.krylovtype = 1;
+      $$->fetiInfo.scaling = FetiInfo::tscaling;
+      $$->fetiInfo.corners = FetiInfo::allCorners6;
+      $$->fetiInfo.version = FetiInfo::fetidp;
+      $$->fetiInfo.dph_flag = true;
+      $$->fetiInfo.augment = FetiInfo::Edges;
+      $$->fetiInfo.rbmType = FetiInfo::None;
+      $$->fetiInfo.nGs = 0; }
+    | BLOCKDIAG NewLine
+    { $$ = new SolverCntl(default_cntl);
+      $$->type = SolverSelection::BlockDiag; }
+    | SOLVERHANDLE Integer NewLine
+    { $$ = &domain->solInfo().solvercntls[$2]; }
+    ;
 Solvercntl:
         SOLVERCNTL Integer NewLine Solver
         { $$ = &domain->solInfo().solvercntls[$2];

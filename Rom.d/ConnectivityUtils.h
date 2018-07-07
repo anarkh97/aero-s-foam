@@ -22,8 +22,8 @@ neighborhood(const Connectivity &connectivity,
     assert(key < conn_fix.csize()); 
     found.insert(key);
 
-    const int *begin = conn_fix[key];
-    found.insert(begin, begin + conn_fix.num(key));
+    auto span = conn_fix[key];
+    found.insert(span.begin(), span.end());
   }
 
   return std::copy(found.begin(), found.end(), result);
@@ -39,10 +39,10 @@ connections(const Connectivity &connectivity,
 
   for (InputIterator it = first; it != last; ++it) {
     const int key = *it;
-    assert(key < conn_fix.csize()); 
+    assert(key < conn_fix.csize());
 
-    const int *begin = conn_fix[key];
-    found.insert(begin, begin + conn_fix.num(key));
+    auto span = conn_fix[key];
+    found.insert(span.begin(), span.end());
   }
 
   return std::copy(found.begin(), found.end(), result);

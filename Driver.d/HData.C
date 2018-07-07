@@ -79,9 +79,6 @@ HData::HData() : sommer(0), scatter(0), neum(0), wet(0), sBoundNodes(0)
   somNodeToElem = 0;
   somNodeToNode = 0;
 
-  Kss = 0;
-  nffp = 0;
-
 //  fluidDensity = 1.0;
   fluidCelerity = 1.0;
 
@@ -224,7 +221,6 @@ HData::addSBoundNodes()
 void
 HData::makeKss(Domain* dom)
 {
- Kss = 0;
  int cLen = dom->dsa->size();
  int iDof;
 
@@ -257,7 +253,7 @@ HData::makeKss(Domain* dom)
  for(iDof = 0; iDof < cLen; ++iDof) {
    sBoundMap[iDof] = flag[iDof] ? sBoundLen++:-1;
  }
- Kss = new DBSparseMatrix(dom->nodeToNode, dom->dsa, sBoundMap);
+ Kss = std::make_unique<DBSparseMatrix>(dom->nodeToNode, dom->dsa, sBoundMap);
 
  delete[] flag;
  delete[] eleflag;
@@ -2263,7 +2259,7 @@ HData::wError(Domain *dom, double *l2err, double *h1err, double *l2, double *h1,
      FullSquareMatrix kel = he->acousticm(dom->nodes,v);
      int numEleDofs = dom->packedEset[iele]->numDofs();
      dom->packedEset[iele]->nodes(heNodes);
-     dom->packedEset[iele]->dofs(*dom->dsa,dofs);
+     dom->packedEset[iele]->dofs(*dom->dsa,dofs.data());
      int i;
      for(i=0;i<numEleDofs;i++) {
        int hLoc  = dom->c_dsa->locate(heNodes[i], DofSet::Helm);
@@ -2504,6 +2500,5 @@ HData::~HData()
   if(somElemToNode) delete somElemToNode;
   if(somNodeToElem) delete somNodeToElem;
   if(somNodeToNode) delete somNodeToNode;
-  if(Kss) delete Kss;
   if(subScaToSca) delete [] subScaToSca;
 }

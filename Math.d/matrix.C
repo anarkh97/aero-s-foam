@@ -754,7 +754,7 @@ GenAssembledFullM<double>::add(const FullSquareMatrixC &kel, const int *dofs);
 
 template<class Scalar> 
 void
-GenAssembledFullM<Scalar>::add(const FullSquareMatrix &mat, const int *dofs)
+GenAssembledFullM<Scalar>::add(const FullSquareMatrix &mat, gsl::span<const int> dofs)
 {
  int kndof = mat.dim();
  int i,j,ri,cj;

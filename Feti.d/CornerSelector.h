@@ -97,8 +97,7 @@ protected:
 	bool checkForColinearCrossPoints(int numCornerPoints,
 	                                 int *localCornerPoints);
 	using bit_iterator = std::vector<bool>::const_iterator;
-	bool addPotCornerPoints(int numShared, int *allNodes,
-	                        bit_iterator isSafe);
+	bool addPotCornerPoints(gsl::span<const int> allNodes, std::vector<bool>::const_iterator isSafe);
 	bool mixed; // true if subdomain has active fluid and structure dofs
 	FetiBaseSub *subPre;
 };

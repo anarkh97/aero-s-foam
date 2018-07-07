@@ -25,7 +25,7 @@ BaseSub::BaseSub()
 }
 
 BaseSub::BaseSub(Domain &dom, int sn, Connectivity &con, Connectivity &nds, int gn) 
- : Domain(dom, con.num(gn), con[gn], nds.num(gn), nds[gn])
+ : Domain(dom, con.num(gn), con[gn].data(), nds.num(gn), nds[gn].data())
 {
   subNumber = gn;
   localSubNumber = sn;
@@ -33,8 +33,8 @@ BaseSub::BaseSub(Domain &dom, int sn, Connectivity &con, Connectivity &nds, int 
   initHelm(dom);
 
   glNumNodes = dom.numNode();
-  glElems = con[subNumber];
-  glNums = nds[subNumber];
+  glElems = con[subNumber].data();
+  glNums = nds[subNumber].data();
   makeGlobalToLocalNodeMap(); 
   makeGlobalToLocalElemMap(); 
 }
@@ -436,7 +436,7 @@ BaseSub::addCornerPoints(int *glCornerList)
   if(numShared == 0) return;
 
   // pick the first node on the interface (first node)
-  int *allNodes = sharedNodes[0];
+  auto allNodes = sharedNodes[0];
   int n1 = allNodes[0];
   glCornerList[glNums[n1]] = 1;
   double maxDist = 0.0, dist;

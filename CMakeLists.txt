@@ -423,7 +423,7 @@ IF(AEROS_NO_AD EQUAL 1)
 	add_definitions(-DAEROS_NO_AD)
 endif(AEROS_NO_AD EQUAL 1)
 
-INCLUDE_DIRECTORIES( ${INC_DIR} )
+INCLUDE_DIRECTORIES( ${INC_DIR} Extermal.d/include)
 
 add_subdirectory(Element.d)
 add_subdirectory(Feti.d)

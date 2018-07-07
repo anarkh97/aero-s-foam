@@ -45,7 +45,7 @@ GenSubDomain<Scalar>::GenSubDomain(int sn, int lsn) :
 
 template<class Scalar>
 GenSubDomain<Scalar>::GenSubDomain(Domain &dom, int sn, Connectivity &con, Connectivity &nds, int gn) :
-	Domain(dom, con.num(gn), con[gn], nds.num(gn), nds[gn]),  // virtual base first
+	Domain(dom, con.num(gn), con[gn].data(), nds.num(gn), nds[gn].data()),  // virtual base first
 	BaseSub(dom, sn, con, nds, gn) {
 	initialize();
 }
@@ -501,8 +501,8 @@ GenSubDomain<Scalar>::gatherDOFListPlus(FSCommPattern<int> *pat) {
 
 	weightPlus.resize(c_dsa->size());
 	for (int i = 0; i < c_dsa->size(); ++i) weightPlus[i] = 1;
-	for (int i = 0; i < sharedDOFsPlus->numConnect(); ++i)
-		weightPlus[(*sharedDOFsPlus)[0][i]] += 1;
+	for (auto n : sharedDOFsPlus->allTargets())
+		weightPlus[n] += 1;
 
 	for (int i = 0; i < scomm->numNeighb; ++i) delete[] boundaryDOFs[i];
 	delete[] boundaryDOFs;
@@ -1303,10 +1303,10 @@ GenSubDomain<Scalar>::reBuildKbb(FullSquareMatrix *kel) {
 	int iele;
 	for (iele = 0; iele < numele; ++iele) {
 		if (this->Kcc) this->Kcc->add(kel[iele], (*allDOFs)[iele]);
-		if (this->Krc) this->Krc->add(kel[iele], (*allDOFs)[iele]);
-		if (this->Kbb) this->Kbb->add(kel[iele], (*allDOFs)[iele]);
-		if (this->Kib) this->Kib->add(kel[iele], (*allDOFs)[iele]);
-		if (this->KiiSparse) this->KiiSparse->add(kel[iele], (*allDOFs)[iele]);
+		if (this->Krc) this->Krc->add(kel[iele], (*allDOFs)[iele].data());
+		if (this->Kbb) this->Kbb->add(kel[iele], (*allDOFs)[iele].data());
+		if (this->Kib) this->Kib->add(kel[iele], (*allDOFs)[iele].data());
+		if (this->KiiSparse) this->KiiSparse->add(kel[iele], (*allDOFs)[iele].data());
 	}
 
 	// Factor Kii if necessary (used for dirichlet preconditioner)

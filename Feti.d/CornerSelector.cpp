@@ -377,7 +377,7 @@ FetiSubCornerHandler::countAndMarkCornerCand(int *mync, int *totnc)
 		}
 		bool needsMoreCrossPoints = checkForColinearCrossPoints(numC, currentC);
 		if(needsMoreCrossPoints) {
-			if(addPotCornerPoints(sharedNodes.num(iNeighb), sharedNodes[iNeighb], lSafe))
+			if(addPotCornerPoints(sharedNodes[iNeighb], lSafe))
 				gotEnough = true;
 		}
 		else gotEnough = true;
@@ -486,10 +486,10 @@ FetiSubCornerHandler::getCornerXYZ(int *allFCNum, double (*xyz)[3],
 }
 
 bool
-FetiSubCornerHandler::addPotCornerPoints(int numShared, int *allNodes,
-                                        std::vector<bool>::const_iterator safe)
+FetiSubCornerHandler::addPotCornerPoints(gsl::span<const int> allNodes, std::vector<bool>::const_iterator safe)
 {
-	if(numShared < dim) {
+	int numShared = allNodes.size();
+	if(allNodes.size() < dim) {
 		for(int i = 0; i < numShared; ++i)
 			if(safe[i]) deg[allNodes[i]] = 3;
 		return false;

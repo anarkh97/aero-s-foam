@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <iostream>
+#include <Extermal.d/include/gsl/span>
 
 class Elemset;
 class EqNumberer;
@@ -23,6 +24,13 @@ struct compStruct {
 		if(renum) { delete [] renum; renum=0;} }
 };
 
+inline
+const int *__getPtr(const int *p) { return p; }
+
+template <typename T>
+const T *__getPtr(const gsl::span<T> &s) { return s.data(); }
+template <typename T>
+T *__getPtr(gsl::span<T> &s) { return s.data(); }
 /*
  * Access class used by BaseConnectivity functions in order to free Connectivity from its link to element set
 */
@@ -32,7 +40,7 @@ public :
 	static int getNum(const A* oc, int i)
 	{return oc->num(i); }
 	static const int * getData(const A* oc, int i)
-	{return (*oc)[i];}
+	{return __getPtr( (*oc)[i] );}
 	static int getNumTarget(const A *oc)
 	{return oc->getNumTarget();}
 	/*static int * getTarget(A* oc)
@@ -66,7 +74,10 @@ public :
 
 	/* following functions are used to make transcon accept a BaseConnectivity as argument */
 //    int *operator[](int i) {return(Accessor::getData(static_cast<A*>(this),i));}
-	const int *operator[](int i) const {return(Accessor::getData(static_cast<const A*>(this),i));}
+//	const int *operator[](int i) const {return(Accessor::getData(static_cast<const A*>(this),i));}
+    gsl::span<const int> operator[](int i) const {
+    	return { Accessor::getData(static_cast<const A*>(this),i), Accessor::getNum(static_cast<const A*>(this), i) };
+    }
 	int csize() const {return(Accessor::getSize(static_cast<const A*>(this)));}
 	int num(int i) const {return(Accessor::getNum(static_cast<const A*>(this),i));}
 	int getNumTarget() const {return(Accessor::getNumTarget(static_cast<const A*>(this)));}
@@ -160,11 +171,13 @@ public:
 
 	virtual ~Connectivity();
 	virtual void end_count(); //dec
-	const int *operator[](int i) const;
-	int *operator[](int i);
+	gsl::span<const int> operator[](int i) const;
+	gsl::span<int> operator[](int i);
 	/// \brief Obtain the number of source nodes.
 	int csize() const;
 	int numConnect() const; // Total number of connections
+	/// \brief Get all targets.
+	auto &allTargets() const { return target; }
 	int num(int) const;
 	int num(int, int*) const;
 	int offset(int i)  const { return pointer[i]; } // Begining of ith part
@@ -230,11 +243,11 @@ Connectivity::csize() const { return size; }
 inline int
 Connectivity::num(int n) const { return (n < size) ? pointer[n+1] - pointer[n] : 0; }
 
-inline const int *
-Connectivity::operator[](int i) const { return target.data() +pointer[i] ; }
+inline gsl::span<const int>
+Connectivity::operator[](int i) const { return { target.data() +pointer[i], num(i) }; }
 
-inline int *
-Connectivity::operator[](int i) { return target.data() +pointer[i] ; }
+inline gsl::span<int>
+Connectivity::operator[](int i) { return { target.data() +pointer[i], num(i) }; }
 
 inline int
 Connectivity::numConnect() const { return getNumTarget(); }

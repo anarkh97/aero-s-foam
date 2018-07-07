@@ -5262,8 +5262,8 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 	auto &weight = getWeights();
 	weight.resize(ndof);
 	for (int i = 0; i < ndof; ++i) weight[i] = 1;
-	for (int i = 0; i < stdSharedDOFs->numConnect(); ++i)
-		weight[(*stdSharedDOFs)[0][i]] += 1;
+	for (auto n : stdSharedDOFs->allTargets())
+		weight[n] += 1;
 	if (FetiBaseSub::numWIdof) {
 		this->wweight.resize(FetiBaseSub::numWIdof);
 		for (i = 0; i < FetiBaseSub::numWIdof; ++i) this->wweight[i] = 0.0;

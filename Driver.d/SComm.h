@@ -83,12 +83,12 @@ public:
 	int mapT(DofType type, int iNeighb, int jDof) const { return TypeMap[type][SharedDOFs[type]->offset(iNeighb)+jDof]; }
 	int lenT(DofType type) const { return SharedDOFs[type]->numConnect(); }
 	int lenT(DofType type, int iNeighb) const { return SharedDOFs[type]->num(iNeighb); }
-	int boundDofT(DofType type, int iDof) const { return (*SharedDOFs[type])[0][iDof]; }
+	int boundDofT(DofType type, int iDof) const { return (*SharedDOFs[type]).allTargets()[iDof]; }
 	int boundDofT(DofType type, int iNeighb, int jDof) const { return (*SharedDOFs[type])[iNeighb][jDof]; }
 	int offsetT(DofType type, int iNeighb) const { return SharedDOFs[type]->offset(iNeighb); }
 	int offsetT(DofType type, int iNeighb, int jDof) const { return SharedDOFs[type]->offset(iNeighb)+jDof; }
-	const int* boundDofsT(DofType type) const { return (*SharedDOFs[type])[0]; }
-	const int* boundDofsT(DofType type, int iNeighb) const { return (*SharedDOFs[type])[iNeighb]; }
+	const int* boundDofsT(DofType type) const { return (*SharedDOFs[type])[0].data(); }
+	const int* boundDofsT(DofType type, int iNeighb) const { return (*SharedDOFs[type])[iNeighb].data(); }
 	const int* neighbsT(DofType type) const { return SubNums[type]; }
 
 	// standard (boundary) dofs helper functions
@@ -103,9 +103,9 @@ public:
 	int wetDofNb(int i) const { return boundDofT(wet,i); }
 	int wetDofNb(int i, int j) const { return boundDofT(wet,i,j); }
 
-	// all helper function
-	const int *allBoundDofs() const {  return (SharedDOFs[all]->numConnect() > 0) ? (*SharedDOFs[all])[0] : 0; }
-	const int *allBoundDofs(int i) const { return (*SharedDOFs[all])[i]; }
+	// TODO make these return spans.
+	const int *allBoundDofs() const {  return (SharedDOFs[all]->numConnect() > 0) ? (*SharedDOFs[all])[0].data() : nullptr; }
+	const int *allBoundDofs(int i) const { return (*SharedDOFs[all])[i].data(); }
 	int totalInterfSize() const { return SharedDOFs[all]->numConnect(); }
 };
 

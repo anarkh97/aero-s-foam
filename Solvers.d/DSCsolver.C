@@ -57,7 +57,7 @@ DSCsolver::DSCsolver(Connectivity *cn, EqNumberer *eqNums, int s_number)
  // These things come from the connectivity
  tglobal_ns   = numNodes; // Number of "nodes"
  ta_index     = const_cast<int *>(cn->ptr().data());  // TODO This is horrible! Global variable?
- ta_struc     = (*cn)[0];
+ ta_struc     = (*cn)[0].data();
 
  // This comes from the eqNums
  treplication = eqNums->allWeights();

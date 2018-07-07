@@ -3368,7 +3368,7 @@ Domain::computeNLStaticWRTthicknessSensitivity(int sindex,
            int DofsPerElement = packedEset[iele]->numDofs();
            GenVector<double> dFintdThick(DofsPerElement,0.0);
            (*allCorot[iele]).getInternalForceThicknessSensitivity(refState, *geomState, nodes, dFintdThick, 0, 0);
-           int *dofs = (*allDOFs)[iele];
+           auto dofs = (*allDOFs)[iele];
            int *unconstrNum = c_dsa->getUnconstrNum();
            int *constrndNum = c_dsa->getConstrndNum();
            for(int k = 0; k < DofsPerElement; ++k) {
@@ -3672,7 +3672,7 @@ Domain::computeNLStressVMWRTdisplacementSensitivity(int sindex,
          int *unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
-           int *dofs = (*allDOFs)[iele];
+           auto dofs = (*allDOFs)[iele];
            stressWeight(node,0) += weight[k];
            for(int j = 0; j < DofsPerElement; ++j) {
              int dofj = unconstrNum[dofs[j]];
@@ -3873,7 +3873,7 @@ Domain::computeAggregatedNLStressVMWRTdisplacementSensitivity(int sindex,
          int *unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
-           int *dofs = (*allDOFs)[iele];
+           auto dofs = (*allDOFs)[iele];
            for(int j = 0; j < DofsPerElement; ++j) {
              int dofj = unconstrNum[dofs[j]];
              if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs

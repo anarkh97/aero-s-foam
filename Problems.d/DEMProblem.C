@@ -334,7 +334,7 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
      FullSquareMatrixC kel(deme->numDofs(), karray);
      if (deme->polyDofType()!=DofSet::Helm)
        kel *= (coupledScaling*coupledScaling);
-     int *dofs = (*allDOFs)[iele];
+     auto dofs = (*allDOFs)[iele];
 
      MK->add(kel,dofs);
    }
@@ -348,7 +348,7 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
      di->systemMatrix(iarray);
      FullSquareMatrixC kel(di->numDofs(), iarray);
      kel *= coupledScaling;
-     int *dofs = (*allDOFs)[iele];
+     auto dofs = (*allDOFs)[iele];
      MK->add(kel,dofs);
      delete[] iarray;
    }
@@ -379,7 +379,7 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
      int ndofs = deme->numDofs();
 //     deme->systemRHS(d->getNodes(), local);
      deme->systemRHS(local);
-     int *dofs = (*allDOFs)[iele];
+     auto dofs = (*allDOFs)[iele];
 
      if (deme->polyDofType()==DofSet::Helm)
        for(int idof=0;idof<ndofs;idof++)  rhs[dofs[idof]] += local[idof];
@@ -409,7 +409,7 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
  for(int iele=0; iele < d->numElements(); ++iele) {
    DEMElement *deme = dynamic_cast<DEMElement*>(d->getElementSet()[iele]);
    if (deme) {
-     int *dofs = (*allDOFs)[iele];
+     auto dofs = (*allDOFs)[iele];
      for(int idof=0;idof<deme->numDofs();idof++)
        localSol[idof] = sol[dofs[idof]];
 

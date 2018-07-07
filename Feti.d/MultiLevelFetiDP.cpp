@@ -1,13 +1,66 @@
 //
 // Created by Michel Lesoinne on 6/25/18.
 //
-
+#include <sstream>
+#include <gsl/span>
 #include <Paral.d/MDDynam.h>
 #include <Element.d/MatrixElement.d/MatrixElement.h>
 #include "Feti.h"
 #include <Driver.d/DecDomain.h>
+#include <FetiLib/Subdomain.h>
+
 
 extern double t5;
+
+using gl_num_t = int;
+std::vector<gl_num_t> subSuperNodes(const FetiBaseSub &sub,
+                                    gsl::span<gl_num_t> corners,
+                                    gl_num_t augOffset,
+                                    gsl::span<gl_num_t> subdomainEdgeIndices,
+                                    bool withEdgeAugmentation) {
+	std::vector<gl_num_t> nodes {corners.begin(), corners.end()};
+
+	int iEdgeN = 0;
+	for(int iNeighb = 0; iNeighb < sub.numNeighbors(); ++iNeighb) {
+		if(sub.isEdgeNeighbor(iNeighb)) {
+			if(sub.edgeDofs[iNeighb].count() != 0)
+				nodes.push_back( augOffset + subdomainEdgeIndices[iEdgeN] );
+			iEdgeN++;
+		}
+	}
+	return nodes;
+}
+
+template <typename Scalar>
+void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity *subToCorner) {
+	int numSub = subToCorner->csize();
+
+	// Get the decomposition of subdomains into super-subdomains.
+	Connectivity *decCoarse = this->cpuToSub;
+	std::stringstream fn;
+	fn << "decomposition." << numSub << std::endl;
+	FILE *f;
+	if ((f = fopen(fn.str().c_str(),"r")) != NULL) {
+		if(verboseFlag)
+			filePrint(stderr, " ... Reading Decomposition from file %s ...\n", fn.str().c_str());
+		decCoarse = new Connectivity(f,numSub);
+		fclose(f);
+	}
+
+	Connectivity *elemToSubCoarse = decCoarse->reverse();
+	Connectivity *CPUMapCoarse = this->cpuToSub->transcon(elemToSubCoarse);
+	delete elemToSubCoarse;
+
+	// Build the supersubdomains.
+	std::vector<FetiLib::Subdomain<Scalar>> coarseSubdomains;
+
+	for(int iSub = 0; iSub < this->nsub; ++iSub) {
+		auto &sub = *(this->subdomains[iSub]);
+		auto s = sub.subNum();
+		auto edges = (*(this->subToEdge))[s];
+//		std::vector<gl_num_t> coarsenodes = subSuperNodes(sub, )
+	}
+}
 
 template <typename Scalar>
 void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) {

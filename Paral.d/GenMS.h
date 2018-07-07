@@ -57,7 +57,7 @@ GenMultiSparse<Scalar>::add(const FullSquareMatrix & kel, const int *dofs)
 {
  if(K)     K->add(kel, dofs);
  if(Krc) Krc->add(kel, dofs);
- if(Kcc) Kcc->add(kel, dofs);
+ if(Kcc) Kcc->add(kel, { dofs, kel.numRow() });
  if(Kbb) Kbb->add(kel, dofs);
  if(Kib) Kib->add(kel, dofs);
  if(Kii) Kii->add(kel, dofs);

@@ -688,7 +688,7 @@ SparseData::SparseData(EqNumberer *eqn, Connectivity *cn, double trbm)
  
  for(i = 0; i < numNodes; ++i)
    // sort((*cn)[i], (*cn)[i+1]);
-   std::sort((*cn)[i], (*cn)[i+1]);  // PJSA: for sgi intel
+   std::sort((*cn)[i].begin(), (*cn)[i].end());  // PJSA: for sgi intel
 
  for(i = 0; i < numNodes; ++i) {
     nodeCWeight[i] = 0;

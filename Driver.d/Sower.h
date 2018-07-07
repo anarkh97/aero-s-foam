@@ -257,7 +257,7 @@ class Sower
 		// opening cluster file
 		char filename[FILENAME_LENGTH];
 		char clusterNumStr[10] = {'\0'};
-		if((*subToClus)[sub])
+		if((*subToClus)[sub].size() > 0)
 			sprintf(clusterNumStr, "%u", (*subToClus)[sub][0]+1); // phil modify here to add support for more than one file per cluster (michel)
 		strcpy(filename, clusterData_.c_str());
 		strcat(filename, clusterNumStr);

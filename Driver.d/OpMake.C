@@ -320,7 +320,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]); // note: Kuc is [K-omega2*M]_{uc} for IMPE (TODO check eigen)
      if(isShifted && ops.Kcc) ops.Kcc->add(kel,(*allDOFs)[iele]);
      if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
-     if(Kss) Kss->add(kel,(*allDOFs)[iele]); // for farfield output (TODO: check with Radek)
+     if(Kss) Kss->add(kel,(*allDOFs)[iele].data()); // for farfield output (TODO: check with Radek)
      if(isShifted && isDamped && isStructureElement(iele)) {
        if(mdds_flag) {
 #if defined(_OPENMP)
@@ -758,7 +758,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    for(iele = 0; iele < geoSource->numElemFluid(); ++iele) {
      //element matrix already premultiplied by fluid density
      kel = (*(geoSource->getPackedEsetFluid()))[iele]->stiffness(nodes,karray);
-     Mff->add(kel,(*allDOFsFluid)[iele]);
+     Mff->add(kel,(*allDOFsFluid)[iele].data());
    }
    fprintf(stderr," ... Factoring Fluid Mass Matrix ...\n");
    //double trbmtemp = sinfo.solvercntl->trbm;

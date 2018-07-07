@@ -171,10 +171,10 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
      if(domain->solInfo().arpack_mode == 4) {
        // this is an unnecessary recalculation of Element::stiffness but it will do for now
        FullSquareMatrix kel  = domain->getElementSet()[iele]->stiffness(domain->getNodes(), karray);
-       dMat.M->add(kel,(*domain->getAllDOFs())[iele]);
+       dMat.M->add(kel,(*domain->getAllDOFs())[iele].data());
      }
      else
-       dMat.M->add(geomKelArray[iele],(*allDOFs)[iele]);
+       dMat.M->add(geomKelArray[iele],(*allDOFs)[iele].data());
    }
  }
  else if(domain->solInfo().arpack_mode == 4) { // we may also want to use mode for for eigen (non-buckling)
@@ -187,7 +187,7 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
    for(iele=0; iele<domain->numElements(); ++iele) {
      // this is an unnecessary recalculation of Element::stiffness but it will do for now
      FullSquareMatrix kel  = domain->getElementSet()[iele]->stiffness(domain->getNodes(), karray);
-     dMat.M->add(kel,(*domain->getAllDOFs())[iele]);
+     dMat.M->add(kel,(*domain->getAllDOFs())[iele].data());
    }
  }
 }

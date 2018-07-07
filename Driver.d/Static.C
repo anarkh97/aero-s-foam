@@ -3022,7 +3022,8 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
 
 
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
-       GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *stifWRTthic = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTthickSparse[iparam]);
+       GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *stifWRTthic
+           = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTthickSparse[iparam]);
        int groupIndex = thicknessGroups[iparam];
        for(int aindex = 0; aindex < group[groupIndex].attributes.size(); ++aindex) {
          for(int eindex =0; eindex < atoe[group[groupIndex].attributes[aindex]].elems.size(); ++eindex) {
@@ -3031,8 +3032,8 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
            int DofsPerElement = packedEset[iele]->numDofs();
            FullSquareMatrix dStiffnessdThick(DofsPerElement);
            packedEset[iele]->getStiffnessThicknessSensitivity(nodes, dStiffnessdThick,1);
-           int *dofs = (*allDOFs)[iele];
-           stifWRTthic->add(dStiffnessdThick, dofs);
+           auto dofs = (*allDOFs)[iele];
+           allSens.stiffnessWRTthickSparse[iparam]->add(dStiffnessdThick, dofs);
            int *unconstrNum = c_dsa->getUnconstrNum();
            int *constrndNum = c_dsa->getConstrndNum();
            for(int k = 0; k < DofsPerElement; ++k) {
@@ -3074,7 +3075,7 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
        for(int i=0; i<3*nnodes; ++i) { dStiffnessdCoord[i].setSize(DofsPerElement); dStiffnessdCoord[i].zero(); }
        packedEset[iele]->getStiffnessNodalCoordinateSensitivity(dStiffnessdCoord, nodes);
        // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-       int *dofs = (*allDOFs)[iele];
+       auto dofs = (*allDOFs)[iele];
        int *unconstrNum = c_dsa->getUnconstrNum();
        int *constrndNum = c_dsa->getConstrndNum();
        for(int isen = 0; isen < numShapeVars; ++isen) { 
@@ -3734,7 +3735,7 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
          int *unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
-           int *dofs = (*allDOFs)[iele];
+           auto dofs = (*allDOFs)[iele];
            stressWeight(node,0) += weight[k];
            for(int j = 0; j < DofsPerElement; ++j) {
              int dofj = unconstrNum[dofs[j]];
@@ -3796,7 +3797,7 @@ Domain::computeAggregatedStressVMWRTdisplacementSensitivity(int sindex,
          int *unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
-           int *dofs = (*allDOFs)[iele];
+           auto dofs = (*allDOFs)[iele];
            stressWeight(node,0) += elweight[k];
            for(int j = 0; j < DofsPerElement; ++j) {
              int dofj = unconstrNum[dofs[j]];

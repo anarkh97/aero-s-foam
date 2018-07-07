@@ -355,6 +355,7 @@ public:
 	void KrrReSolve(int iSub, GenDistrVector<Scalar> &ur);
 	void makeKcc();
 	void makeMultiLevelDP(const Connectivity *subToCorner);
+	void makeMultiLevelDPNew(const Connectivity *subToCorner);
 	void assembleFcStar(GenVector<Scalar> &FcStar) const;
 	void mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Scalar> &uc, GenDistrVector<Scalar> &u,
 	                   GenDistrVector<Scalar> &lambda) const;

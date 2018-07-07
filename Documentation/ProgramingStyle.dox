@@ -38,4 +38,10 @@ regarding memory allocation and de-allocation.
   - Indentation is by tabs using \em smart-tabs in IDEs to keep alignment, yet allow each programmer
   to use a different visual indentation.
   - Namespaces are not indented.
+
+  \section commandments The Ten Commandments
+
+  - Do not use owning raw pointers in classes: Use unique_ptr or shared_ptr. Raw pointers should be only non-owning
+  generally short lived objects.
+  - Do not use raw pointers for arrays. Use vector, or gsl::span depending on whether it is owned or a reference.
 */

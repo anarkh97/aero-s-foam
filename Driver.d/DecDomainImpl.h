@@ -697,7 +697,7 @@ GenDecDomain<Scalar>::makeSubDMaps()
       glSubToLocal[iSub] = -1;
     for(int iSub = 0; iSub < numSub; ++iSub) 
       glSubToLocal[ (*cpuToSub)[myCPU][iSub] ] = iSub;
-    localSubToGl = (*cpuToSub)[myCPU];
+    localSubToGl = (*cpuToSub)[myCPU].data();
   }
   else { // shared memory, all subds on single cpu
     for(int i=0; i<globalNumSub; ++i) glSubToLocal[i] = i;
@@ -2876,7 +2876,7 @@ void GenDecDomain<Scalar>::distributeBCs()
         exit(0);
       }
       else {
-        subI = glSubToLocal[*(*elemToSub)[iele]];
+        subI = glSubToLocal[(*elemToSub)[iele][0]];
         if(subI >= 0) somToSub[iSommEle] = subI;
       }
     }
@@ -2900,7 +2900,7 @@ void GenDecDomain<Scalar>::distributeBCs()
         exit(0);
       }
       else {
-        subI = glSubToLocal[*(*elemToSub)[iele]];
+        subI = glSubToLocal[(*elemToSub)[iele][0]];
         if(subI >= 0) scaToSub[iScatter] = subI;
       }
     }
@@ -2919,9 +2919,9 @@ void GenDecDomain<Scalar>::distributeBCs()
        exit(0);
      }
      else {
-       int subI = glSubToLocal[*(*elemToSub)[iele[0]]];
+       int subI = glSubToLocal[(*elemToSub)[iele[0]][0]];
        if(subI >= 0) wetToSub[iWetEle][0] = subI;
-       int subI2 = glSubToLocal[*(*elemToSub)[iele[1]]];
+       int subI2 = glSubToLocal[(*elemToSub)[iele[1]][0]];
        if(subI2 >= 0) wetToSub[iWetEle][1] = subI2;
      }
    }
@@ -2938,7 +2938,7 @@ void GenDecDomain<Scalar>::distributeBCs()
         exit(0);
       }
       else {
-        subI = glSubToLocal[*(*elemToSub)[iele]];
+        subI = glSubToLocal[(*elemToSub)[iele][0]];
         if(subI >= 0) neumToSub[iNeum] = subI;
       }
     }

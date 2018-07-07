@@ -2,6 +2,7 @@
 #define _MATRIX_H_
 
 #include <cstdio>
+#include <gsl/span>
 #include <Utils.d/MyComplex.h>
 
 // FullM = Full Matrix class
@@ -19,126 +20,126 @@ typedef GenFullSquareMatrix<DComplex> FullSquareMatrixC;
 
 template<class Scalar>
 class GenFullM {
- protected:
-   int nrow;	// number of rows
-   int ncolumn; // number of columns
-   Scalar *v;   // pointer to matrix data
-   int *iprow;
-   int *ipcol;
-   int ndef;
+protected:
+    int nrow;	// number of rows
+    int ncolumn; // number of columns
+    Scalar *v;   // pointer to matrix data
+    int *iprow;
+    int *ipcol;
+    int ndef;
 
-   void subAddProd(int i, int nThreads, GenFullM<Scalar> *A, GenFullM<Scalar> *B, 
-                   Scalar coefC, Scalar coefAB);
-   void subAddUTProd(int i, int nThreads, GenFullM<Scalar> *A, GenFullM<Scalar> *B, 
-                     Scalar coefC, Scalar coefAB);
-   void subAddTTProd(int i, int nThreads, GenFullM<Scalar> *A, GenFullM<Scalar> *B, 
-                     Scalar coefC, Scalar coefAB);
-   void subZero(int i, int nThreads);
+    void subAddProd(int i, int nThreads, GenFullM<Scalar> *A, GenFullM<Scalar> *B,
+                    Scalar coefC, Scalar coefAB);
+    void subAddUTProd(int i, int nThreads, GenFullM<Scalar> *A, GenFullM<Scalar> *B,
+                      Scalar coefC, Scalar coefAB);
+    void subAddTTProd(int i, int nThreads, GenFullM<Scalar> *A, GenFullM<Scalar> *B,
+                      Scalar coefC, Scalar coefAB);
+    void subZero(int i, int nThreads);
 
- public:
+public:
 
-   // constructors
-   GenFullM();               // Creates an empty matrix
-   explicit GenFullM(int nr);         // Creates an NxN matrix
-   GenFullM(int nr, int nc); // Creates an NxM matrix
-   GenFullM(int nr, int nc, Scalar init_val); // Creates an NxM matrix initialized a[i][j] = init_val
-   GenFullM(const GenFullM<Scalar> &m, int nr, int sr, int nc, int sc);
-   GenFullM(const GenFullM<Scalar> &m);
-   GenFullM(const GenFullM<Scalar> &m, int nr, int *rows, int nc, int *cols); 
-   GenFullM(const GenFullM<Scalar> &m, int nr, int *rows, int nc, int sc); 
-   GenFullM(const GenFullM<Scalar> &m, int nr, int sr, int nc, int *cols);
-   GenFullM(const GenFullM<Scalar> &m, double scale_factor);
-   GenFullM(Scalar *data, int nr, int nc, int flag = 0);
+    // constructors
+    GenFullM();               // Creates an empty matrix
+    explicit GenFullM(int nr);         // Creates an NxN matrix
+    GenFullM(int nr, int nc); // Creates an NxM matrix
+    GenFullM(int nr, int nc, Scalar init_val); // Creates an NxM matrix initialized a[i][j] = init_val
+    GenFullM(const GenFullM<Scalar> &m, int nr, int sr, int nc, int sc);
+    GenFullM(const GenFullM<Scalar> &m);
+    GenFullM(const GenFullM<Scalar> &m, int nr, int *rows, int nc, int *cols);
+    GenFullM(const GenFullM<Scalar> &m, int nr, int *rows, int nc, int sc);
+    GenFullM(const GenFullM<Scalar> &m, int nr, int sr, int nc, int *cols);
+    GenFullM(const GenFullM<Scalar> &m, double scale_factor);
+    GenFullM(Scalar *data, int nr, int nc, int flag = 0);
 
-   // destructor
-   ~GenFullM();  
+    // destructor
+    ~GenFullM();
 
-   void copy(Scalar *array);
-   void setNewSize(int nr, int nc, Scalar d=0.0);
-   void setNewSize(int nr, Scalar d=0.0);
+    void copy(Scalar *array);
+    void setNewSize(int nr, int nc, Scalar d=0.0);
+    void setNewSize(int nr, Scalar d=0.0);
 
-   // OPERATORS
-   void  operator =  (const GenFullM<Scalar> &);
-   void  operator =  (const Scalar c);
-   void  operator *=  (const Scalar c);
-   GenFullM<Scalar>  operator *(const GenFullM<Scalar>&) const;   // product A*B
-   GenFullM<Scalar>  operator *=(const GenFullM<Scalar>&);   // product A=A*B
-   GenFullM<Scalar>  operator ^=(const GenFullM<Scalar>&);   // product A=B*A
-   GenVector<Scalar> operator *(const GenVector<Scalar>&) const; // product A*x
-   GenFullM<Scalar>  operator ^(const GenFullM<Scalar>&) const;   // product A^T*B
-   GenVector<Scalar> operator ^(const GenVector<Scalar>&) const; // product A^T*x
-   GenFullM<Scalar>  operator %(const GenFullM<Scalar>&) const;   // product A*B^T
-   GenFullM<Scalar>  operator +(const GenFullM<Scalar>&) const;   // A+B = [A B]^T
-   GenFullM<Scalar>  operator +=(const GenFullM<Scalar>&);   
-   GenFullM<Scalar>  operator -=(const GenFullM<Scalar>&);
+    // OPERATORS
+    void  operator =  (const GenFullM<Scalar> &);
+    void  operator =  (const Scalar c);
+    void  operator *=  (const Scalar c);
+    GenFullM<Scalar>  operator *(const GenFullM<Scalar>&) const;   // product A*B
+    GenFullM<Scalar>  operator *=(const GenFullM<Scalar>&);   // product A=A*B
+    GenFullM<Scalar>  operator ^=(const GenFullM<Scalar>&);   // product A=B*A
+    GenVector<Scalar> operator *(const GenVector<Scalar>&) const; // product A*x
+    GenFullM<Scalar>  operator ^(const GenFullM<Scalar>&) const;   // product A^T*B
+    GenVector<Scalar> operator ^(const GenVector<Scalar>&) const; // product A^T*x
+    GenFullM<Scalar>  operator %(const GenFullM<Scalar>&) const;   // product A*B^T
+    GenFullM<Scalar>  operator +(const GenFullM<Scalar>&) const;   // A+B = [A B]^T
+    GenFullM<Scalar>  operator +=(const GenFullM<Scalar>&);
+    GenFullM<Scalar>  operator -=(const GenFullM<Scalar>&);
 
-   void  mult(  Scalar *x, Scalar *y, Scalar alpha=1.0, Scalar beta=0.0);
-   void  trMult(Scalar *x, Scalar *y, Scalar alpha=1.0, Scalar beta=0.0);
+    void  mult(  Scalar *x, Scalar *y, Scalar alpha=1.0, Scalar beta=0.0);
+    void  trMult(Scalar *x, Scalar *y, Scalar alpha=1.0, Scalar beta=0.0);
 
-   GenFullM<Scalar> invert();
-   GenFullM<Scalar> Invert(double tol=1.0e-6); // invert using gaussian elimination with full pivoting
-   GenFullM<Scalar> transpose();
+    GenFullM<Scalar> invert();
+    GenFullM<Scalar> Invert(double tol=1.0e-6); // invert using gaussian elimination with full pivoting
+    GenFullM<Scalar> transpose();
 
-   int dim() const { return nrow;    }
-   int numRow() const { return nrow;    }
-   int numCol() const { return ncolumn; }
-   int getNdef() { return ndef; }
+    int dim() const { return nrow;    }
+    int numRow() const { return nrow;    }
+    int numCol() const { return ncolumn; }
+    int getNdef() { return ndef; }
 
-   Scalar *operator[](int i) const;
-   Scalar* data() const { return v; }
-   Scalar* getData() { return v; }
-   Scalar* Column(int i) const;
+    Scalar *operator[](int i) const;
+    Scalar* data() const { return v; }
+    Scalar* getData() { return v; }
+    Scalar* Column(int i) const;
 
-   Scalar & operator() (int row, int col) { return (*this)[row][col]; }
-   const Scalar operator() (int row, int col) const { return (*this)[row][col]; }
+    Scalar & operator() (int row, int col) { return (*this)[row][col]; }
+    const Scalar operator() (int row, int col) const { return (*this)[row][col]; }
 
-   double max();
-   double min();
-   double maxAbs();
-   void symmetrize_from_uptriag(); // Symmetrize by   lower diagonal terms = upper diag terms  
-   void print(const char *msg = "", const char *msg2="", FILE* f=stderr);
-   void Print();
-   void factor();
-   void Factor(double tol=1.0e-6, bool print_ndef = true);
-   void reSolve(Scalar *d);
-   void ReSolve(Scalar *d); // resolve using factorization by gaussian elimination with full pivoting
-   void zero();
-   void clean_up();
-   void add(const GenFullM<Scalar>&, int, int);
-   void add(GenVector<Scalar>&, int, int);
-   void add(const GenFullM<Scalar>&, int *);
-   void addrows(GenFullM<Scalar>&, int *);
-   void subtract(GenFullM<Scalar>&, int, int);
-   void negate();
+    double max();
+    double min();
+    double maxAbs();
+    void symmetrize_from_uptriag(); // Symmetrize by   lower diagonal terms = upper diag terms
+    void print(const char *msg = "", const char *msg2="", FILE* f=stderr);
+    void Print();
+    void factor();
+    void Factor(double tol=1.0e-6, bool print_ndef = true);
+    void reSolve(Scalar *d);
+    void ReSolve(Scalar *d); // resolve using factorization by gaussian elimination with full pivoting
+    void zero();
+    void clean_up();
+    void add(const GenFullM<Scalar>&, int, int);
+    void add(GenVector<Scalar>&, int, int);
+    void add(const GenFullM<Scalar>&, int *);
+    void addrows(GenFullM<Scalar>&, int *);
+    void subtract(GenFullM<Scalar>&, int, int);
+    void negate();
 
-   void paralAddProd(GenFullM<Scalar> &A, GenFullM<Scalar> &B, Scalar coefC, Scalar coefAB);
-   void paralAddUTProd(GenFullM<Scalar> &A, GenFullM<Scalar> &B, Scalar coefC, Scalar coefAB);
-   void paralAddTTProd(GenFullM<Scalar> &A, GenFullM<Scalar> &B, Scalar coefC, Scalar coefAB);
-   void paralZero();
-   void transposeAssign(GenFullM<Scalar>&);
-   void transposeMult(GenFullM<Scalar>&, GenFullM<Scalar> &);
-   void transposeMultD(GenFullM<Scalar> &, GenVector<Scalar> &, GenFullM<Scalar> &);
+    void paralAddProd(GenFullM<Scalar> &A, GenFullM<Scalar> &B, Scalar coefC, Scalar coefAB);
+    void paralAddUTProd(GenFullM<Scalar> &A, GenFullM<Scalar> &B, Scalar coefC, Scalar coefAB);
+    void paralAddTTProd(GenFullM<Scalar> &A, GenFullM<Scalar> &B, Scalar coefC, Scalar coefAB);
+    void paralZero();
+    void transposeAssign(GenFullM<Scalar>&);
+    void transposeMult(GenFullM<Scalar>&, GenFullM<Scalar> &);
+    void transposeMultD(GenFullM<Scalar> &, GenVector<Scalar> &, GenFullM<Scalar> &);
 
-   Scalar diag(int i) { return (*this)[i][i]; }
+    Scalar diag(int i) { return (*this)[i][i]; }
 };
 
-template<class Scalar> 
+template<class Scalar>
 inline
 Scalar *
 GenFullM<Scalar>::operator[](int i) const
- { return v+i*ncolumn; }
+{ return v+i*ncolumn; }
 
 template<class Scalar>
 class GenStackFullM : public GenFullM<Scalar> {
- public:
-   GenStackFullM(int nr, Scalar *data);
-   GenStackFullM(Scalar *data, int nr);
-   GenStackFullM(int nr, int nc, Scalar *data);
-   GenStackFullM(Scalar *data, int nr, int nc);
-   ~GenStackFullM() { this->v=0; }
+public:
+    GenStackFullM(int nr, Scalar *data);
+    GenStackFullM(Scalar *data, int nr);
+    GenStackFullM(int nr, int nc, Scalar *data);
+    GenStackFullM(Scalar *data, int nr, int nc);
+    ~GenStackFullM() { this->v=0; }
 };
 
-template<class Scalar> 
+template<class Scalar>
 inline
 GenStackFullM<Scalar>::GenStackFullM(int nr,Scalar *data)
 {
@@ -147,7 +148,7 @@ GenStackFullM<Scalar>::GenStackFullM(int nr,Scalar *data)
  this->v       = data;
 }
 
-template<class Scalar> 
+template<class Scalar>
 inline
 GenStackFullM<Scalar>::GenStackFullM(Scalar *data,int nr)
 {
@@ -156,7 +157,7 @@ GenStackFullM<Scalar>::GenStackFullM(Scalar *data,int nr)
  this->v       = data;
 }
 
-template<class Scalar> 
+template<class Scalar>
 inline
 GenStackFullM<Scalar>::GenStackFullM(int nr, int nc, Scalar *data)
 {
@@ -165,7 +166,7 @@ GenStackFullM<Scalar>::GenStackFullM(int nr, int nc, Scalar *data)
  this->v       = data;
 }
 
-template<class Scalar> 
+template<class Scalar>
 inline
 GenStackFullM<Scalar>::GenStackFullM(Scalar *data, int nr, int nc)
 {
@@ -175,25 +176,33 @@ GenStackFullM<Scalar>::GenStackFullM(Scalar *data, int nr, int nc)
 }
 
 
-template<class Scalar> 
-class GenAssembledFullM : public GenFullM<Scalar> 
+template<class Scalar>
+class GenAssembledFullM : public GenFullM<Scalar>
 {
-   int *rowMap;
-   int *colMap;
- public:
-   GenAssembledFullM(int nr, int *rMap);
-   GenAssembledFullM(int nr, int *rMap, int nc, int *cMap);
-   ~GenAssembledFullM() { clean_up(); };
-   void add(const FullSquareMatrix &kel, const int *dofs);
-   void add(const FullSquareMatrixC &kel, const int *dofs);
-   void addImaginary(const FullSquareMatrix &kel, const int *dofs);
-   void add(Scalar **matrix);
-   void addDiscreteMass(int dof, Scalar dmass);
-   void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
-   void clean_up();
+	int *rowMap;
+	int *colMap;
+public:
+	GenAssembledFullM(int nr, int *rMap);
+	GenAssembledFullM(int nr, int *rMap, int nc, int *cMap);
+	~GenAssembledFullM() { clean_up(); };
+	/** \brief Add an elemental contribution.
+	 *
+	 * @param kel Elemental matrix.
+	 * @param dofs Dofs of the elemental matrix.
+	 */
+	void add(const FullSquareMatrix &kel, gsl::span<const int> dofs);
+	void add(const FullSquareMatrixC &kel, gsl::span<const int> dofs) {
+		add(kel, dofs.data());
+	}
+	void add(const FullSquareMatrixC &kel, const int *dofs);
+	void addImaginary(const FullSquareMatrix &kel, const int *dofs);
+	void add(Scalar **matrix);
+	void addDiscreteMass(int dof, Scalar dmass);
+	void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
+	void clean_up();
 };
 
-template<class Scalar> 
+template<class Scalar>
 inline
 GenAssembledFullM<Scalar>::GenAssembledFullM(int nr, int *rMap)
 {
@@ -205,7 +214,7 @@ GenAssembledFullM<Scalar>::GenAssembledFullM(int nr, int *rMap)
  this->zero();
 }
 
-template<class Scalar> 
+template<class Scalar>
 inline
 GenAssembledFullM<Scalar>::GenAssembledFullM(int nr, int *rMap, int nc, int *cMap)
 {
@@ -217,7 +226,7 @@ GenAssembledFullM<Scalar>::GenAssembledFullM(int nr, int *rMap, int nc, int *cMa
  this->zero();
 }
 
-template<class Scalar> 
+template<class Scalar>
 inline
 void
 GenAssembledFullM<Scalar>::clean_up()

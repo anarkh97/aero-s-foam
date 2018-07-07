@@ -79,7 +79,7 @@ class HData
      ComplexD *dudnScatter;
      CuCComplexSparse *KucC;
      DBComplexSparseMatrix *KccC;
-     DBSparseMatrix *Kss;
+     std::unique_ptr<DBSparseMatrix> Kss;
      BLKSparseMatrix *Mff;
      //SkyMatrix *Mff;
      int *sBoundMap;

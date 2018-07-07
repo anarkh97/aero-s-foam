@@ -13,6 +13,16 @@
 extern double t5;
 
 using gl_num_t = int;
+
+/** \brief Get a vector with the 'nodes' of the subdomain created super-element
+ *
+ * @param sub The subdomain for which the nodes are sought.
+ * @param corners Corner nodes of the subdomain.
+ * @param augOffset
+ * @param subdomainEdgeIndices
+ * @param withEdgeAugmentation
+ * @return
+ */
 std::vector<gl_num_t> subSuperNodes(const FetiBaseSub &sub,
                                     gsl::span<gl_num_t> corners,
                                     gl_num_t augOffset,
@@ -20,12 +30,14 @@ std::vector<gl_num_t> subSuperNodes(const FetiBaseSub &sub,
                                     bool withEdgeAugmentation) {
 	std::vector<gl_num_t> nodes {corners.begin(), corners.end()};
 
-	int iEdgeN = 0;
-	for(int iNeighb = 0; iNeighb < sub.numNeighbors(); ++iNeighb) {
-		if(sub.isEdgeNeighbor(iNeighb)) {
-			if(sub.edgeDofs[iNeighb].count() != 0)
-				nodes.push_back( augOffset + subdomainEdgeIndices[iEdgeN] );
-			iEdgeN++;
+	if(withEdgeAugmentation) {
+		int iEdgeN = 0;
+		for (int iNeighb = 0; iNeighb < sub.numNeighbors(); ++iNeighb) {
+			if (sub.isEdgeNeighbor(iNeighb)) {
+				if (sub.edgeDofs[iNeighb].count() != 0)
+					nodes.push_back(augOffset + subdomainEdgeIndices[iEdgeN]);
+				iEdgeN++;
+			}
 		}
 	}
 	return nodes;
@@ -58,7 +70,8 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity *subToCorne
 		auto &sub = *(this->subdomains[iSub]);
 		auto s = sub.subNum();
 		auto edges = (*(this->subToEdge))[s];
-//		std::vector<gl_num_t> coarsenodes = subSuperNodes(sub, )
+		std::vector<gl_num_t> coarsenodes = subSuperNodes(sub, (*subToCorner)[s], augOffset, edges,
+			fetiInfo->augmentimpl == FetiInfo::Primal);
 	}
 }
 

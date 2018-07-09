@@ -32,7 +32,6 @@ FetiBaseSub::markCornerDofs(int *glCornerDofs) const
 		glCornerDofs[glCornerNodes[i]] |= cornerDofs[i].list();
 }
 
-//template<class Scalar>
 void
 FetiBaseSub::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
                                   Connectivity *subToEdge, int mpcOffset) {
@@ -1987,6 +1986,10 @@ FetiSub<Scalar>::multFcB(Scalar *p) {
 	}
 }
 
+template <typename S>
+using DynMat = Eigen::Matrix<S, Eigen::Dynamic, Eigen::Dynamic>;
+template <typename S>
+using DynVec = Eigen::Matrix<S, Eigen::Dynamic, 1>;
 
 template<class Scalar>
 void
@@ -2039,74 +2042,59 @@ FetiSub<Scalar>::formKccStar() {
 		nCor = this->Krc ? this->Krc->numCol() : 0;
 		nAve = this->Src->numCol() - nCor;
 		if (nAve) {
-			int i, j, k, nz;
-			Scalar *pKve = new Scalar[nAve * numEquations];
-			Scalar *pv = new Scalar[nAve];
-			GenFullM<Scalar> AKA(nAve);
-			Scalar s, *pAKA;
-			Scalar **Kve = new Scalar *[nAve];
+			_AVMatrix<Scalar> Kave;
+			Kave.resize(numEquations, nAve);
+			DynVec<Scalar> pv(nAve);
+
+			DynMat<Scalar> AKA(nAve, nAve);
+			Scalar s;
 			this->Ave.resize(numEquations, nAve);
-			for (i = 0; i < nAve; ++i) {
-				Kve[i] = pKve + i * numEquations;
-			}
-			for (i = 0; i < nAve; ++i) {
-				s = 0.0;
-				for (j = 0; j < numEquations; ++j) {
+			for (int i = 0; i < nAve; ++i) {
+				for (int j = 0; j < numEquations; ++j)
 					this->Ave[i][j] = KrrKrc[nCor + i][j];
-					s += this->Ave[i][j] * this->Ave[i][j];
-				}
-				s = 1.0 / sqrt(s);
-				for (j = 0; j < numEquations; ++j)
-					this->Ave[i][j] *= s;
+				this->Ave.col(i).normalize();
 			}
 			this->Eve = this->Ave;
 			this->Krr->reSolve(nAve, this->Eve[0]);
-			Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>> AKAM{AKA.data(), nAve, nAve};
-			AKAM.noalias() = this->Eve.transpose() * this->Ave;
+			AKA.noalias() = this->Eve.transpose() * this->Ave;
 
-			AKA.factor();
-			for (j = 0; j < numEquations; ++j) {
-				for (i = 0; i < nAve; ++i)
-					pv[i] = this->Eve[i][j];
-				AKA.reSolve(pv);
-				for (i = 0; i < nAve; ++i)
-					this->Eve[i][j] = pv[i];
-			}
+			// This does in-place solve.
+			this->Eve.transpose() = AKA.ldlt().solve(this->Eve.transpose());
 
-			for (i = 0; i < nAve; ++i)
-				for (j = 0; j < nCor; ++j) {
+			for (int i = 0; i < nAve; ++i)
+				for (int j = 0; j < nCor; ++j) {
 					s = 0.0;
-					for (k = 0; k < numEquations; ++k)
+					for (int k = 0; k < numEquations; ++k)
 						s += KrrKrc[j][k] * this->Ave[i][k];
 					(*this->Kcc)[nCor + i][j] = s;
 					(*this->Kcc)[j][nCor + i] = s;
 				}
-			for (i = 0; i < nAve; ++i) {
-				this->KrrSparse->mult(this->Ave[i], Kve[i]);
-				for (j = 0; j < nAve; ++j) {
+			for (int i = 0; i < nAve; ++i) {
+				this->KrrSparse->mult(this->Ave[i], Kave.col(i).data());
+				for (int j = 0; j < nAve; ++j) {
 					s = 0.0;
-					for (k = 0; k < numEquations; ++k)
-						s += Kve[i][k] * this->Ave[j][k];
+					for (int k = 0; k < numEquations; ++k)
+						s += Kave[i][k] * this->Ave[j][k];
 					(*this->Kcc)[nCor + i][nCor + j] = s;
 				}
 			}
 
-			nz = 0;
-			for (i = 0; i < nAve; ++i)
-				for (k = 0; k < numEquations; ++k)
-					if (std::abs(Kve[i][k]) > 0.0) nz++;
+			int nz = 0;
+			for (int i = 0; i < nAve; ++i)
+				for (int k = 0; k < numEquations; ++k)
+					if (std::abs(Kave[i][k]) > 0.0) nz++;
 
 			int *KACount = new int[nAve];
 			int *KAList = new int[nz];
 			Scalar *KACoefs = new Scalar[nz];
 			nz = 0;
-			for (i = 0; i < nAve; ++i) {
+			for (int i = 0; i < nAve; ++i) {
 				KACount[i] = 0;
-				for (k = 0; k < numEquations; ++k)
-					if (std::abs(Kve[i][k]) > 0.0) {
+				for (int k = 0; k < numEquations; ++k)
+					if (std::abs(Kave[i][k]) > 0.0) {
 						KACount[i]++;
 						KAList[nz] = k;
-						KACoefs[nz] = Kve[i][k];
+						KACoefs[nz] = Kave[i][k];
 						nz++;
 					}
 			}
@@ -2124,15 +2112,15 @@ FetiSub<Scalar>::formKccStar() {
 
 			delete[] KACount;
 
-			for (i = 0; i < nRHS; ++i)
-				for (j = 0; j < numEquations; ++j)
+			for (int i = 0; i < nRHS; ++i)
+				for (int j = 0; j < numEquations; ++j)
 					KrrKrc[i][j] = 0.0;
 
 			this->Src->multIdentity(KrrKrc);
 
 			Scalar vt[nAve];
 			VectorView<Scalar> v{vt, nAve};
-			for (j = 0; j < nRHS; j++) {
+			for (int j = 0; j < nRHS; j++) {
 				v = this->Eve.transpose() * VectorView<Scalar>{KrrKrc[j], numEquations};
 				VectorView<Scalar>{KrrKrc[j], numEquations} -= this->Ave * v;
 			}

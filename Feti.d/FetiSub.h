@@ -44,7 +44,7 @@ class DofSet;
 class FetiInfo;
 
 
-/** \brief Pure Interface of what a the notion of Subdomain provides for FETI solver. */
+/** \brief Pure Interface of what the notion of Subdomain provides for FETI solver. */
 class FetiBaseSub {
 public:
 	/// \brief Obtain the solver settings. TODO Get rid of this. Why should the subdomain data know all the solver details?
@@ -151,8 +151,11 @@ public:
 	// Multiple Point Constraint (MPC) functions
 	int getNumMpc() const       { return numMPC; }
 
+	/// \brief Obtain the DofSetArray constructed with all the DOFs of the subdomain.
 	virtual DofSetArray *getDsa() const = 0;
+	/// \brief Obtain the DofSetArray after constrained DOFs have been removed.
 	virtual ConstrainedDSA *get_c_dsa() const = 0;
+	/// \brief Obtain the DofSetArray after constrained and corner DOFs have been removed.
 	ConstrainedDSA *getCCDSA() const;
 
 	/// \copydoc

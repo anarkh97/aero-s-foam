@@ -347,6 +347,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	if(verboseFlag) filePrint(stderr," ... Number of Subdomains    %5d  ...\n", this->glNumSub);
 
 	// STEP 1. count number of corner nodes and make subToCorner connectivity
+	// A global subdomain to corner connectivity. Does not include primal augmentation.
 	Connectivity *subToCorner = 0;
 	if(!cornerToSub) {
 		subToCorner = makeCornerToSub();
@@ -772,6 +773,11 @@ GenFetiDPSolver<Scalar>::makeKcc()
 //  if(cornerEqs->size() > 0) {
 	if(1) {
 
+		// assemble the coarse problem: Kcc^* -> Kcc - Krc^T Krr^-1 Krc
+		if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
+		t5 -= getTime();
+		paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::formKccStar); // create the local Kcc^*
+		t5 += getTime();
 
 		// EXPERIMENTAL CODE to use feti dp for the coarse problem
 		if(fetiInfo->coarse_cntl->type == SolverSelection::Feti) {
@@ -795,11 +801,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
 			this->times.memoryGtGsky += memoryUsed();
 
-			// assemble the coarse problem: Kcc^* -> Kcc - Krc^T Krr^-1 Krc
-			if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
-			t5 -= getTime();
-			paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::formKccStar); // create the local Kcc^*
-			t5 += getTime();
 
 			t0 -= getTime();
 			paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::makeKccDofs, cornerEqs, augOffset, this->subToEdge, mpcOffset);

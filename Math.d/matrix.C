@@ -578,7 +578,8 @@ template<class Scalar>
 void
 GenFullM<Scalar>::factor()
 {
- if(nrow != ncolumn) return; // Error actually
+	if(nrow != ncolumn)
+		throw std::invalid_argument("Trying to factor a non square matrix.");
  int i,j,k;
  for(i=0; i<nrow; ++i) {
    Scalar invD = (*this)[i][i] = 1.0/(*this)[i][i];

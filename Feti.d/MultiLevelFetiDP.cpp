@@ -14,6 +14,21 @@ extern double t5;
 
 using gl_num_t = int;
 
+
+namespace {
+struct SuperElement {
+	std::vector<gl_num_t> nodes;
+
+};
+
+
+Eigen::Map<const Eigen::Vector3d> v(const Node &node) {
+	return Eigen::Map<const Eigen::Vector3d>(&node.x, 3, 1);
+}
+
+
+}
+
 /** \brief Get a vector with the 'nodes' of the subdomain created super-element
  *
  * @param sub The subdomain for which the nodes are sought.
@@ -24,9 +39,9 @@ using gl_num_t = int;
  * @return
  */
 std::vector<gl_num_t> subSuperNodes(const FetiBaseSub &sub,
-                                    gsl::span<gl_num_t> corners,
+                                    gsl::span<const gl_num_t> corners,
                                     gl_num_t augOffset,
-                                    gsl::span<gl_num_t> subdomainEdgeIndices,
+                                    gsl::span<const gl_num_t> subdomainEdgeIndices,
                                     bool withEdgeAugmentation) {
 	std::vector<gl_num_t> nodes {corners.begin(), corners.end()};
 
@@ -65,12 +80,12 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity *subToCorne
 
 	// Build the supersubdomains.
 	std::vector<FetiLib::Subdomain<Scalar>> coarseSubdomains;
-
+    // Create a super-element for each subdomain and put it in the coarseSubdomains arrray.
 	for(int iSub = 0; iSub < this->nsub; ++iSub) {
 		auto &sub = *(this->subdomains[iSub]);
-		auto s = sub.subNum();
-		auto edges = (*(this->subToEdge))[s];
-		std::vector<gl_num_t> coarsenodes = subSuperNodes(sub, (*subToCorner)[s], augOffset, edges,
+		auto globalSubIndex = sub.subNum();
+		auto edges = (*(this->subToEdge))[globalSubIndex];
+		std::vector<gl_num_t> coarsenodes = subSuperNodes(sub, (*subToCorner)[globalSubIndex], augOffset, edges,
 			fetiInfo->augmentimpl == FetiInfo::Primal);
 	}
 }
@@ -83,6 +98,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 	int numSub = subToCorner->csize();
 	coarseDomain->setNumElements(subToCorner->csize());
 
+	// Get the decomposition of subdomains into super-subdomains.
 	Connectivity *decCoarse = this->cpuToSub;
 	char fn[65];
 	FILE *f;
@@ -99,39 +115,25 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 
 	std::vector<int> pointer(this->glNumSub+1, 0);
 
+	// Create a super-element for each subdomain and put it in the coarseDomain.
+
+	// Phase one only works to get node numbers.
 	for(int i = 0; i < this->nsub; ++i) {
-		int s = this->subdomains[i]->subNum();
-		int nc = subToCorner->num(s);
-		int n = nc;
-		if (fetiInfo->augmentimpl == FetiInfo::Primal)
-			for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb)
-				if(this->subdomains[i]->isEdgeNeighbor(iNeighb) &&
-				   this->subdomains[i]->edgeDofs[iNeighb].count())
-					n++;
-//		std::vector<int> elem(n);
+		int globalSubIndex = this->subdomains[i]->subNum();
+		auto &sub = *(this->subdomains[i]);
+		auto edges = (*(this->subToEdge))[globalSubIndex];
+		std::vector<gl_num_t> coarsenodes = subSuperNodes(sub, (*subToCorner)[globalSubIndex], augOffset, edges,
+		                                                  fetiInfo->augmentimpl == FetiInfo::Primal);
+		int n = coarsenodes.size();
 		// TODO Fix this leak!!!!
 		int *elem = new int[n];
-		for(n = 0; n < nc; n++)
-			elem[n] = (*subToCorner)[s][n];
-		if (fetiInfo->augmentimpl == FetiInfo::Primal) {
-			int iEdgeN = 0;
-			for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb) {
-				if(this->subdomains[i]->isEdgeNeighbor(iNeighb)) {
-					if(this->subdomains[i]->edgeDofs[iNeighb].count())
-						elem[n++] = augOffset + (*(this->subToEdge))[s][iEdgeN];
-					iEdgeN++;
-				}
-			}
-		}
-//        coarseDomain->addElem(s, 0, subToCorner->num(s), (*subToCorner)[s]); // 0 is a "matrix" element
-		pointer[s] = n;
-		coarseDomain->addElem(s,0,n,elem);//.data());
+		for(int i = 0; i < n; ++i)
+			elem[i] = coarsenodes[i];
+		coarseDomain->addElem(globalSubIndex,0,n,elem);//.data());
+		pointer[globalSubIndex] = n;
 	}
 
-	if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
-	t5 -= getTime();
-	paralApplyToAll(this->nsub, this->subdomains.data(), &FetiSub<Scalar>::formKccStar); // create the local Kcc^*
-	t5 += getTime();
+	// Set the dofs and stiffness of each super-element.
 	Elemset& elems = coarseDomain->getElementSet();
 	for(int i = 0; i < this->nsub; ++i) {
 		int s = this->subdomains[i]->subNum();
@@ -150,9 +152,11 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 		((MatrixElement*)elems[s])->setStiffness(this->subdomains[i]->Kcc.get());
 	}
 
+	// Create the nodeset.
 	CoordSet& nodes = coarseDomain->getNodes();
-	double xyz[3];
+	// Add the edge nodes.
 	for(int i = 0; i < this->nsub; i++) {
+		Eigen::Vector3d xyz;
 		int s = this->subdomains[i]->subNum();
 		int numCorner = this->subdomains[i]->numCorners();
 		const auto &localCornerNodes = this->subdomains[i]->getLocalCornerNodes();
@@ -161,7 +165,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 			int cornerNum = (*subToCorner)[s][iCorner];
 			if (!nodes[cornerNum]) {
 				xyz[0] = node->x; xyz[1] = node->y; xyz[2] = node->z;
-				nodes.nodeadd(cornerNum, xyz);
+				nodes.nodeadd(cornerNum, xyz.data());
 			}
 		}
 		if (fetiInfo->augmentimpl == FetiInfo::Primal) { // 020314 JAT
@@ -172,44 +176,20 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 				if(this->subdomains[i]->isEdgeNeighbor(iNeighb)) {
 					edgeNum = augOffset + (*(this->subToEdge))[s][iEdgeN++];
 					if (!nodes[edgeNum]) {
-						xyz[0] = xyz[1] = xyz[2] = 0.0;
-						for(int iNode = 0; iNode < sharedNodes.num(iNeighb); iNode++) {
-							xyz[0] += subnodes[sharedNodes[iNeighb][iNode]]->x;
-							xyz[1] += subnodes[sharedNodes[iNeighb][iNode]]->y;
-							xyz[2] += subnodes[sharedNodes[iNeighb][iNode]]->z;
-						}
-						xyz[0] /= sharedNodes.num(iNeighb);
-						xyz[1] /= sharedNodes.num(iNeighb);
-						xyz[2] /= sharedNodes.num(iNeighb);
-						nodes.nodeadd(edgeNum, xyz);
+						xyz.setZero();
+						for(auto node : sharedNodes[iNeighb])
+							xyz += v(*subnodes[node]);
+						xyz /= sharedNodes.num(iNeighb);
+						nodes.nodeadd(edgeNum, xyz.data());
 					}
 				}
 			}
 		}
 	}
-	/*
-	double xyz[3] = { 0.0, 0.0, 0.0 };
-	for(int i = 0; i < cornerToSub->csize(); ++i) {
-	  nodes.nodeadd(i, xyz);
-	}
-	*/
+
+
 	coarseDomain->setNumNodes(cornerToSub->csize());
-
-	// The following loop set the node coordinates... They are needed for the corner maker
-	// note that the coordinates of any nodes which are not represented on this mpi process are not correct (zero)
-	// however, they shouldn't be needed in any case
-	for(int iSub = 0; iSub < this->nsub; ++iSub) {
-		int numCorner = this->subdomains[iSub]->numCorners();
-		const auto &localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
-		for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
-			const Node *node = this->subdomains[iSub]->getNodeSet()[localCornerNodes[iCorner]];
-			int cornerNum = (*subToCorner)[this->subdomains[iSub]->subNum()][iCorner];
-			nodes[cornerNum]->x = node->x;
-			nodes[cornerNum]->y = node->y;
-			nodes[cornerNum]->z = node->z;
-		}
-	}
-
+	
 #ifdef USE_MPI
 	Communicator *structCom = new Communicator(CommunicatorHandle{this->fetiCom->getComm()});
 #else

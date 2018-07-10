@@ -11,6 +11,10 @@ GlobalToLocalMap::GlobalToLocalMap(int localSize, int *localToGlobalArray) {
 	initialize(localSize, localToGlobalArray);
 }
 
+GlobalToLocalMap::GlobalToLocalMap(gsl::span<const int> localToGlobalArray) {
+	initialize(localToGlobalArray.size(), localToGlobalArray.data());
+}
+
 GlobalToLocalMap::~GlobalToLocalMap() {
 }
 

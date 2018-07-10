@@ -685,10 +685,11 @@ SparseData::SparseData(EqNumberer *eqn, Connectivity *cn, double trbm)
 
  int numNodes = cn->csize();
  int *nodeCWeight = (int *) dbg_alloca(sizeof(int)*numNodes);
- 
- for(i = 0; i < numNodes; ++i)
-   // sort((*cn)[i], (*cn)[i+1]);
-   std::sort((*cn)[i].begin(), (*cn)[i].end());  // PJSA: for sgi intel
+
+	for(i = 0; i < numNodes; ++i) {
+		auto cni = (*cn)[i];
+		std::sort(cni.begin(), cni.end());  // PJSA: for sgi intel
+	}
 
  for(i = 0; i < numNodes; ++i) {
     nodeCWeight[i] = 0;

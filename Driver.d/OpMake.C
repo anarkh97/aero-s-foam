@@ -2466,7 +2466,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
      int *dofs_mdds = dofs;
 	   if(mdds_flag) {
 		   // TODO Get rid of this horror!!! Why do we go to global????
-		   int *glnums = const_cast<int *>(subCast->getGlNodes());
+		   auto glnums = const_cast<int *>(subCast->getGlNodes().data());
 		   sommer[i]->renum(glnums);
 		   dofs_mdds = sommer[i]->dofs(*domain->getDSA());
 

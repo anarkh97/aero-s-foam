@@ -552,7 +552,8 @@ DataStruct::write(int clusNumber, Connectivity* clusToSub, int numSubdomains,
   // the oject ids will be in an optimum order to be written
   objToSub->sortTargets();
   ObjectOrdering order(objToSub,subIsInClus);
-  std::sort((*clusterToData)[clusNumber-1].begin(), (*clusterToData)[clusNumber].end(), order);
+  auto ctd = (*clusterToData)[clusNumber-1];
+  std::sort(ctd.begin(), ctd.end(), order);
   // now let's write each object using its objectID
   std::list<int> currentSubs; // list of subdomains currently been written -- for use with rangeset
   int k;

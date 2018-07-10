@@ -41,20 +41,19 @@ template <typename SubDomFwdIt>
 DistrMasterMapping::DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast, bool internalNodes) {
   for (SubDomFwdIt subDomIt = subDomFirst; subDomIt != subDomLast; ++subDomIt) {
     SubDomain &sd = *subDomIt;
-    const int * const globalBegin = sd.getGlNodes();
-    const int * const globalEnd = globalBegin + sd.numNodes();
+    auto &globalNodes = sd.getGlNodes();
 
-    localNodes_.insert(localNodes_.end(), globalBegin, globalEnd);
+    localNodes_.insert(localNodes_.end(), globalNodes.begin(), globalNodes.end());
 
     std::vector<bool> masterNodes;
     if(internalNodes) internal_node_flags(sd, std::back_inserter(masterNodes));
     else master_node_flags(sd, std::back_inserter(masterNodes));
-    subMapping_.push_back(MasterMapping(globalBegin, globalEnd, masterNodes.begin()));
+    subMapping_.push_back(MasterMapping(globalNodes.begin(), globalNodes.end(), masterNodes.begin()));
 
     std::vector<bool>::const_iterator flagIt = masterNodes.begin();
-    for (const int *globalIt = globalBegin; globalIt != globalEnd; ++globalIt) {
+    for (auto nd : globalNodes) {
       if (*flagIt++) {
-        masterNodes_.push_back(*globalIt);
+        masterNodes_.push_back(nd);
       }
     }
   }

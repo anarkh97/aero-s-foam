@@ -9,6 +9,8 @@
 //#define MAP_MIN_MEMORY
 #ifdef MAP_MIN_MEMORY
 #include <map>
+#include <Extermal.d/include/gsl/span>
+
 #endif
 
 template<class Scalar> class FSCommPattern;
@@ -33,6 +35,7 @@ class GlobalToLocalMap : public CommunicatableObject
   public:  
     GlobalToLocalMap();
     GlobalToLocalMap(int localSize, int *localToGlobalArray);
+    GlobalToLocalMap(gsl::span<const int> localToGlobalArray);
     ~GlobalToLocalMap();
 
     void initialize(int localSize, const int *localToGlobalArray);

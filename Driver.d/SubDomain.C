@@ -815,10 +815,10 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::renumberElementsGlobal() {
 	for (int i = 0; i < numele; ++i)
-		packedEset[i]->renum(glNums);
+		packedEset[i]->renum(glNums.data());
 
 	for (int i = 0; i < numNeum; ++i) {
-		neum[i]->renum(glNums);
+		neum[i]->renum(glNums.data());
 	}
 }
 

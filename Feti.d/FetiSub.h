@@ -79,7 +79,7 @@ public:
 	int localRLen() const { return cc_dsa->size(); }
 
 	/** \brief Obtain the global node numbers. */
-	const int *getGlNodes() const { return glNums; }
+	auto &getGlNodes() const { return glNums; }
 	/** \brief Obtain the number of unconstrained degrees of freedom (includes R and C DOFs). */
 	virtual int getNumUncon() const = 0;
 
@@ -128,7 +128,7 @@ public:
 
 	std::vector<DofSet> cornerDofs;
 	DofSet *edgeDofs;      // JAT 112113
-	const int *glNums = nullptr;
+	std::vector<const int> glNums;
 
 	SComm *scomm = nullptr;
 

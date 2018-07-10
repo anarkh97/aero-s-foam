@@ -16,9 +16,10 @@ using gl_num_t = int;
 
 
 namespace {
+template <typename Scalar>
 struct SuperElement {
 	std::vector<gl_num_t> nodes;
-
+	GenAssembledFullM<Scalar> *Kel;
 };
 
 
@@ -80,6 +81,9 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity *subToCorne
 
 	// Build the supersubdomains.
 	std::vector<FetiLib::Subdomain<Scalar>> coarseSubdomains;
+
+	std::vector<SuperElement<Scalar>> superElements;
+	superElements.reserve(this->subdomains.size());
     // Create a super-element for each subdomain and put it in the coarseSubdomains arrray.
 	for(int iSub = 0; iSub < this->nsub; ++iSub) {
 		auto &sub = *(this->subdomains[iSub]);
@@ -87,7 +91,22 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity *subToCorne
 		auto edges = (*(this->subToEdge))[globalSubIndex];
 		std::vector<gl_num_t> coarsenodes = subSuperNodes(sub, (*subToCorner)[globalSubIndex], augOffset, edges,
 			fetiInfo->augmentimpl == FetiInfo::Primal);
+
+		std::vector<DofSet> dofs;
+		dofs.reserve(coarsenodes.size());
+		for(auto &ds : this->subdomains[iSub]->cornerDofs)
+			dofs.push_back(ds);
+		if (fetiInfo->augmentimpl == FetiInfo::Primal) {
+			for(int iNeighb = 0; iNeighb < this->subdomains[iSub]->numNeighbors(); ++iNeighb)
+				if (this->subdomains[iSub]->isEdgeNeighbor(iNeighb) &&
+				    this->subdomains[iSub]->edgeDofs[iNeighb].count())
+					dofs.push_back( this->subdomains[iSub]->edgeDofs[iNeighb] );
+		}
+		auto Kel = this->subdomains[iSub]->Kcc.get();
+		superElements.emplace_back({std::move(coarsenodes), Kel});
 	}
+
+	// Now form the set of nodes.
 }
 
 template <typename Scalar>
@@ -161,6 +180,8 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 		int numCorner = this->subdomains[i]->numCorners();
 		const auto &localCornerNodes = this->subdomains[i]->getLocalCornerNodes();
 		for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
+			auto lcn = localCornerNodes[iCorner];
+//			auto gcn = this->subdomains[i]->
 			const Node *node = this->subdomains[i]->getNodeSet()[localCornerNodes[iCorner]];
 			int cornerNum = (*subToCorner)[s][iCorner];
 			if (!nodes[cornerNum]) {
@@ -189,7 +210,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 
 
 	coarseDomain->setNumNodes(cornerToSub->csize());
-	
+
 #ifdef USE_MPI
 	Communicator *structCom = new Communicator(CommunicatorHandle{this->fetiCom->getComm()});
 #else

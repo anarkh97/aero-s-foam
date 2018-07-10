@@ -63,7 +63,7 @@ ConcreteBaseSub::ConcreteBaseSub(global_subdomain_index globSubIndex, local_subd
 {
 	subNumber = globSubIndex;
 	localSubNumber = locSubIndex;
-	glNums = subdomain.glNodes.data();
+	glNums = subdomain.glNodes;
 	scomm = sComm;
 //	glNumNodes = dom.numNode(); ??? TODO Do we need this?
 	glToLocalNode.initialize(subdomain.glNodes.size(),subdomain.glNodes.data());

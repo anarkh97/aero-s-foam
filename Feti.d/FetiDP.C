@@ -880,7 +880,7 @@ Connectivity *GenFetiDPSolver<Scalar>::makeCornerToSub() {
 	for(int iSub=0; iSub < this->nsub; ++iSub) {
 			int numCorner = this->subdomains[iSub]->numCorners();
 			const auto &localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
-			const int *glN = this->subdomains[iSub]->getGlNodes();
+			auto glN = this->subdomains[iSub]->getGlNodes();
 			for(int iCorner=0; iCorner<numCorner; ++iCorner)
 				glCornerNodes[pointer[this->subdomains[iSub]->subNum()] + iCorner] = glN[localCornerNodes[iCorner]];
 		}
@@ -905,7 +905,7 @@ Connectivity *GenFetiDPSolver<Scalar>::makeCornerToSub() {
 			int numCorner    = this->subdomains[iSub]->numCorners();
 			auto &cornerNodes = this->subdomains[iSub]->getCornerNodes();
 			const auto &localCornerNodes = this->subdomains[iSub]->getLocalCornerNodes();
-			const int *glN = this->subdomains[iSub]->getGlNodes();
+			auto glN = this->subdomains[iSub]->getGlNodes();
 			for(int iCorner=0; iCorner<numCorner; ++iCorner) {
 				cornerNodes[iCorner] = glCornerMap[glN[localCornerNodes[iCorner]]];
 				target[iCorner+pointer[this->subdomains[iSub]->subNum()]] = cornerNodes[iCorner];

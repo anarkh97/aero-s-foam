@@ -35,7 +35,7 @@ BaseSub::BaseSub(Domain &dom, int sn, Connectivity &con, Connectivity &nds, int 
   glNumNodes = dom.numNode();
   glElems = con[subNumber].data();
   auto subNodes = nds[subNumber];
-  glNums = std::vector<const int>{subNodes.begin(), subNodes.end() };
+  glNums = vec_const_int{subNodes.begin(), subNodes.end() };
   makeGlobalToLocalNodeMap(); 
   makeGlobalToLocalElemMap(); 
 }
@@ -49,7 +49,7 @@ BaseSub::BaseSub(Domain &dom, int sn, int nNodes, int *nds, int nElems, int *ele
   initHelm(dom);
 
   glNumNodes = nNodes;
-  glNums = std::vector<const int>{nds, nds+nNodes};
+  glNums = vec_const_int{nds, nds+nNodes};
   glElems = elems;
   makeGlobalToLocalNodeMap(); 
   makeGlobalToLocalElemMap(); 
@@ -64,7 +64,7 @@ BaseSub::BaseSub(Domain &dom, int sn, CoordSet* _nodes, Elemset* _elems, int *gl
   initHelm(dom);
 
   glNumNodes = _nodes->size();
-  glNums = std::vector<const int>{glNodeNums, glNodeNums+_nodes->size()};
+  glNums = vec_const_int{glNodeNums, glNodeNums+_nodes->size()};
   glElems = glElemNums;
   makeGlobalToLocalNodeMap(); 
   makeGlobalToLocalElemMap(); 

@@ -264,6 +264,14 @@ class Sower
 		return std::make_unique<BinFileHandler>(filename, "r");
 	}
 
+    int clusterIndex(int glSub) {
+        if(!subToClus) {
+            BinFileHandler fp(subdomains_.c_str(), "r");
+            readSubFile(fp);
+        }
+        return (*subToClus)[glSub][0];
+    }
+
   /*
    * addChildToParentData
    * adds data 'data' to the Sower object given a child to parent connectivity from which the cluster 

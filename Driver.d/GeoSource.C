@@ -201,9 +201,15 @@ GeoSource::readDistributedInputFiles(gsl::span<const int> subs)
 	Sower sower;
 	std::vector<GenSubDomain<Scalar> *> result;
 	result.reserve(subs.size());
+	std::unique_ptr<BinFileHandler> f;
+	int lastCluster = -1;
 	for(auto subNum: subs) {
 		int localSubNum = result.size();
-		auto f = sower.openBinaryFile(subNum);
+		if(!f || lastCluster != sower.clusterIndex(subNum)) {
+			f = sower.openBinaryFile(subNum);
+			lastCluster = sower.clusterIndex(subNum);
+		} else
+			f->seek(0); // Reset the file to the beginning.
 
 		// nodes
 #ifdef SOWER_DEBUG

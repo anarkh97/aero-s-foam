@@ -320,8 +320,6 @@ class Sower
    * fem element for use with geoSource & friends */
   template<typename IOObject>
     typename IOObject::oType read(BinFileHandler& file, int subNum, int*& localToGlobal, bool rereadToc=false);
-  template<typename IOObject>
-    typename IOObject::oType read(int subNum, int*& localToGlobal, bool rereadToc);
 
   /* returns the rangeSet for a particlar datatype and subdomain -- bufferised so we read rangesets once */
   RangeSet * getRangeSet(TypeTag datatype, int subdomain, BinFileHandler &file)
@@ -1439,14 +1437,6 @@ Sower::addChildToParentData(TypeTag thisType, TypeTag parentType, int ndata,
       return;
     }
     std::cerr << " *** ERROR : cannot find appropriate cluster to parent connectivity" << std::endl;
-}
-
-template<typename IOObject>
-typename 
-IOObject::oType Sower::read(int subNum, int*& localToGlobal, bool rereadToc)
-{
-  auto file = openBinaryFile(subNum);
-  read<IOObject>(*file, subNum, localToGlobal, rereadToc);
 }
 
 /*

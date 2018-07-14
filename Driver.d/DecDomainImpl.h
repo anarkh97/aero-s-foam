@@ -61,7 +61,6 @@ GenDecDomain<Scalar>::initialize()
   mpcToSub_primal = 0;
   mpcToMpc   = 0;
   cpuToSub   = 0;
-  subDomain  = 0;
   primalFile = 0;
   stress     = 0;
   weight     = 0;
@@ -73,7 +72,6 @@ GenDecDomain<Scalar>::initialize()
   numWetInterfaceNodes = 0;
   outFreqCount = 0;
   outEigCount = 0;
-  localSubToGl = 0; 
   glSubToLocal = 0;
   communicator = 0;
   cpuToCPU = 0; 
@@ -96,44 +94,41 @@ GenDecDomain<Scalar>::initialize()
 template<class Scalar>
 GenDecDomain<Scalar>::~GenDecDomain()
 {
-  if(elemToNode) { delete elemToNode; elemToNode = 0; }
-  if(subToNode) { delete subToNode; subToNode = 0; }
-  if(nodeToSub) { delete nodeToSub; nodeToSub = 0; }
-  if(nodeToSub_copy) { delete nodeToSub_copy; nodeToSub_copy = 0; }
-  if(subToSub) { delete subToSub; subToSub = 0; }
-  if(mpcToSub_primal) { delete mpcToSub_primal; mpcToSub_primal = 0; }
-  if(mpcToMpc) { delete mpcToMpc; mpcToMpc = 0; }
-  if(subDomain) {
-    for(int i=0; i<numSub; ++i)
-      if(subDomain[i]) { delete subDomain[i]; subDomain[i] = 0; }
-     delete [] subDomain; subDomain = 0;
-  }  
-  if(primalFile) { delete primalFile; primalFile = 0; }
-  if(stress) { delete stress; stress = 0; }
-  if(weight) { delete weight; weight = 0; }
-  if(globalStress) { delete [] globalStress; globalStress = 0;}
-  if(globalWeight) {delete [] globalWeight; globalWeight = 0;}
-  if(grToSub) { delete grToSub; grToSub = 0; }
+	if(elemToNode) { delete elemToNode; elemToNode = 0; }
+	if(subToNode) { delete subToNode; subToNode = 0; }
+	if(nodeToSub) { delete nodeToSub; nodeToSub = 0; }
+	if(nodeToSub_copy) { delete nodeToSub_copy; nodeToSub_copy = 0; }
+	if(subToSub) { delete subToSub; subToSub = 0; }
+	if(mpcToSub_primal) { delete mpcToSub_primal; mpcToSub_primal = 0; }
+	if(mpcToMpc) { delete mpcToMpc; mpcToMpc = 0; }
+	for(auto sub :subDomain)
+		delete sub;
 
-  if(elemToSub) { delete elemToSub; elemToSub = 0; }
-  if(wetInterfaceNodes) { delete [] wetInterfaceNodes; }
-  if(!cpuToSub && localSubToGl) { delete [] localSubToGl; localSubToGl = 0; }
-  if(communicator) { delete communicator; communicator = 0; }
-  if(cpuToCPU) { delete cpuToCPU; cpuToCPU = 0; }
-  if(glSubToLocal) { delete [] glSubToLocal; glSubToLocal = 0; }
-  if(mpcToCpu) { delete mpcToCpu; mpcToCpu = 0; }
-  if(subToElem) { delete subToElem; subToElem = 0; }
-  if(internalInfo) delete internalInfo;
-  if(internalInfo2) delete internalInfo2;
-  if(nodeInfo) delete nodeInfo;
-  if(nodeVecInfo) delete nodeVecInfo;
-  if(eleVecInfo) delete eleVecInfo;
-  if(bcVecInfo) delete bcVecInfo;
-  if(masterSolVecInfo_) delete masterSolVecInfo_;
-  if(ba) delete ba;
-  if(ba2) delete ba2;
-  for(std::vector<DistrInfo*>::iterator it = vecInfoStore.begin(); it != vecInfoStore.end(); ++it) delete *it;
-  geoSource->deleteMatchArrays(numSub);
+	if(primalFile) { delete primalFile; primalFile = 0; }
+	if(stress) { delete stress; stress = 0; }
+	if(weight) { delete weight; weight = 0; }
+	if(globalStress) { delete [] globalStress; globalStress = 0;}
+	if(globalWeight) {delete [] globalWeight; globalWeight = 0;}
+	if(grToSub) { delete grToSub; grToSub = 0; }
+
+	if(elemToSub) { delete elemToSub; elemToSub = 0; }
+	if(wetInterfaceNodes) { delete [] wetInterfaceNodes; }
+	if(communicator) { delete communicator; communicator = 0; }
+	if(cpuToCPU) { delete cpuToCPU; cpuToCPU = 0; }
+	if(glSubToLocal) { delete [] glSubToLocal; glSubToLocal = 0; }
+	if(mpcToCpu) { delete mpcToCpu; mpcToCpu = 0; }
+	if(subToElem) { delete subToElem; subToElem = 0; }
+	if(internalInfo) delete internalInfo;
+	if(internalInfo2) delete internalInfo2;
+	if(nodeInfo) delete nodeInfo;
+	if(nodeVecInfo) delete nodeVecInfo;
+	if(eleVecInfo) delete eleVecInfo;
+	if(bcVecInfo) delete bcVecInfo;
+	if(masterSolVecInfo_) delete masterSolVecInfo_;
+	if(ba) delete ba;
+	if(ba2) delete ba2;
+	for(std::vector<DistrInfo*>::iterator it = vecInfoStore.begin(); it != vecInfoStore.end(); ++it) delete *it;
+	geoSource->deleteMatchArrays(numSub);
 }
 
 template<class Scalar>
@@ -165,7 +160,7 @@ void GenDecDomain<Scalar>::addBMPCs()
   int *pstatus = new int[2*nbmpc];
   int *nstatus = pstatus+nbmpc;
   for(int i=0; i<nbmpc; ++i) pstatus[i] = nstatus[i] = 0;
-  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::bmpcQualify, &bmpcs, pstatus, nstatus);
+  paralApply(subDomain, &GenSubDomain<Scalar>::bmpcQualify, &bmpcs, pstatus, nstatus);
 #ifdef DISTRIBUTED
   communicator->globalSum(2*nbmpc, pstatus);
 #endif
@@ -371,7 +366,7 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   for(int i = 0; i < numNESub; ++i) localNESub[i] = false;
 
   for(iSub = 0; iSub < numSub; ++iSub) {
-    int subI = (localSubToGl) ? localSubToGl[iSub] : iSub;
+    int subI = (localSubToGl.size() > 0) ? localSubToGl[iSub] : iSub;
     if(!subToNode->num(subI)) {
       fprintf(stderr, "reference to empty subdomain 2\n");
       exit(1);
@@ -407,18 +402,18 @@ GenDecDomain<Scalar>::preProcessBCsEtc()
     distributeBCs();
     distributeControlLawData();
     distributeDiscreteMass();
-    paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberBCsEtc); 
-    paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberControlLaw); 
+    paralApply(subDomain, &GenSubDomain<Scalar>::renumberBCsEtc); 
+    paralApply(subDomain, &GenSubDomain<Scalar>::renumberControlLaw); 
   }
   else {
     if (geoSource->binaryInputControlLeft) {
       distributeControlLawData();
-      paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberControlLaw);
+      paralApply(subDomain, &GenSubDomain<Scalar>::renumberControlLaw);
     }
   }
 
-  paralApply(numSub, subDomain, &BaseSub::makeCDSA); 
-  paralApply(numSub, subDomain, &Domain::makeNodeToNode_sommer);
+  paralApply(subDomain, &BaseSub::makeCDSA); 
+  paralApply(subDomain, &Domain::makeNodeToNode_sommer);
 }
 
 template<class Scalar>
@@ -456,7 +451,7 @@ GenDecDomain<Scalar>::preProcessMPCs()
 		// renumber local mpcs
 		paralApplyToAll(numSub, subDomain, &GenSubDomain<Scalar>::renumberMPCs);
 		// locate and store dsa, c_dsa and cc_dsa numbering for future reference
-		paralApply(numSub, subDomain, &GenSubDomain<Scalar>::locateMpcDofs);
+		paralApply(subDomain, &GenSubDomain<Scalar>::locateMpcDofs);
 		// make mpcToMpc connectivity
 		makeMpcToMpc(); // this should be in the Feti-DP constructor
 	}
@@ -467,7 +462,7 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::deleteMPCs()
 {
-  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::deleteMPCs);
+  paralApply(subDomain, &GenSubDomain<Scalar>::deleteMPCs);
   mpcToSub_dual.reset(nullptr);
   if(mpcToMpc) { delete mpcToMpc; mpcToMpc = 0; }
   if(mpcToCpu) { delete mpcToCpu; mpcToCpu = 0; }
@@ -481,8 +476,8 @@ GenDecDomain<Scalar>::reProcessMPCs()
   deleteMPCs();
   preProcessMPCs();
   getSharedMPCs();
-  paralApply(numSub, subDomain, &BaseSub::mergeInterfaces);
-  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::applyMpcSplitting);
+  paralApply(subDomain, &BaseSub::mergeInterfaces);
+  paralApply(subDomain, &GenSubDomain<Scalar>::applyMpcSplitting);
 }
 
 template<class Scalar>
@@ -572,15 +567,14 @@ void
 GenDecDomain<Scalar>::makeSubDomains() 
 {
   makeSubDMaps();
-  subDomain = new GenSubDomain<Scalar> *[numSub];
+  subDomain.resize(numSub);
 
   startTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
   if(soweredInput) {
 #ifdef OLD_CLUSTER
     geoSource->computeClusterInfo(localSubToGl[0]);
 #endif
-    for(int iSub = 0; iSub < this->numSub; iSub++)
-      subDomain[iSub] = geoSource->template readDistributedInputFiles<Scalar>(iSub, localSubToGl[iSub]);
+    subDomain = geoSource->template readDistributedInputFiles<Scalar>(localSubToGl);
 
     ControlLawInfo *claw = geoSource->getControlLaw();
     if(claw) {
@@ -602,10 +596,10 @@ GenDecDomain<Scalar>::makeSubDomains()
       for(int iSub = 0; iSub < numSub; ++iSub) subDomain[iSub]->setnodeToSubConnectivity(nodeToSub);
       addFsiElements();
     }
-    paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberElements); 
+    paralApply(subDomain, &GenSubDomain<Scalar>::renumberElements);
   }
 
-  paralApply(numSub, subDomain, &BaseSub::makeDSA); 
+  paralApply(subDomain, &BaseSub::makeDSA);
   stopTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
 }
 
@@ -639,13 +633,13 @@ GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 		dynMats.reserve(numSub);
 		for(int i = 0; i < numSub; ++i)
 			dynMats.emplace_back(dgt.dynMats[i]);
-		return new GenFetiDPSolver<Scalar>(numSub, globalNumSub, {subDomain, subDomain+numSub},
+		return new GenFetiDPSolver<Scalar>(numSub, globalNumSub, {subDomain.begin(), subDomain.end()},
 		                                   subToSub, finfo, communicator, glSubToLocal,
 		                                   mpcToSub_dual.get(), mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
 		                                   std::move(dynMats), dgt.spMats, dgt.rbms, rbmFlag, geometricRbms, verboseFlag);
 	}
 	else {
-		return new GenFetiSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator,
+		return new GenFetiSolver<Scalar>(numSub, subDomain.data(), subToSub, finfo, communicator,
 		                                 glSubToLocal, mpcToSub_dual.get(), cpuToSub,
 		                                 dgt.dynMats, dgt.spMats, dgt.rbms, verboseFlag);
 	}
@@ -695,14 +689,16 @@ GenDecDomain<Scalar>::makeSubDMaps()
     numSub = cpuToSub->num(myCPU);
     for(int iSub = 0; iSub < globalNumSub; ++iSub)
       glSubToLocal[iSub] = -1;
+    auto glSubIndices = (*cpuToSub)[myCPU];
     for(int iSub = 0; iSub < numSub; ++iSub) 
-      glSubToLocal[ (*cpuToSub)[myCPU][iSub] ] = iSub;
-    localSubToGl = (*cpuToSub)[myCPU].data();
+      glSubToLocal[ glSubIndices[iSub] ] = iSub;
+
+    localSubToGl = { glSubIndices.begin(), glSubIndices.end() };
   }
   else { // shared memory, all subds on single cpu
     for(int i=0; i<globalNumSub; ++i) glSubToLocal[i] = i;
     numSub = globalNumSub;
-    localSubToGl = new int[numSub];
+    localSubToGl.resize(numSub);
     for(int i=0; i<numSub; ++i) localSubToGl[i] = i;
   }
 }
@@ -771,10 +767,10 @@ GenDecDomain<Scalar>::preProcess()
 
  getSharedMPCs();
 
- paralApply(numSub, subDomain, &BaseSub::mergeInterfaces);
- paralApply(numSub, subDomain, &GenSubDomain<Scalar>::applySplitting);
+ paralApply(subDomain, &BaseSub::mergeInterfaces);
+ paralApply(subDomain, &GenSubDomain<Scalar>::applySplitting);
 
- //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::initSrc);
+ //paralApply(subDomain, &GenSubDomain<Scalar>::initSrc);
  makeInternalInfo();
 
  makeNodeInfo();
@@ -2650,8 +2646,8 @@ GenDecDomain<Scalar>::getSharedDOFs()
 
   paralApplyToAll(numSub, subDomain, &GenSubDomain<Scalar>::sendDOFList, nodeIntPat);
   nodeIntPat->exchange();
-  paralApply(numSub, subDomain, &FetiSub<Scalar>::gatherDOFList, nodeIntPat);
-  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, nodeIntPat);
+  paralApply(subDomain, &FetiSub<Scalar>::gatherDOFList, nodeIntPat);
+  paralApply(subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, nodeIntPat);
 
   delete nodeIntPat;
   
@@ -2677,7 +2673,7 @@ GenDecDomain<Scalar>::makeCorners()
   grToSub = cornerSelector.getGrToSub();
   execParal(numSub, this, &GenDecDomain<Scalar>::setLocalCorners, cornerSelector.handlers().data());
 
-  paralApply(numSub, subDomain, &BaseSub::makeCCDSA);
+  paralApply(subDomain, &BaseSub::makeCCDSA);
 }
 
 template<class Scalar>
@@ -3027,8 +3023,8 @@ void GenDecDomain<Scalar>::distributeBCs()
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::distribBC(int iSub, GenSubDomain<Scalar> **sd, Domain *domain,
-  int *somToSub, int *scaToSub, int *neumToSub, int (*wetToSub)[2], int *sBoundFlag)
+GenDecDomain<Scalar>::distribBC(int iSub, gsl::span<GenSubDomain<Scalar> *> sd, Domain *domain,
+                                int *somToSub, int *scaToSub, int *neumToSub, int (*wetToSub)[2], int *sBoundFlag)
 {
  int iS;
  for(iS=0;iS<domain->numSommer;iS++) {
@@ -3333,7 +3329,7 @@ GenDecDomain<Scalar>::getSharedMPCs()
 	if(numDualMpc) {
 		Connectivity *subToMpc = mpcToSub_dual->altReverse(); // reverse without reordering
 		Connectivity *subToSub_mpc = subToMpc->altTranscon(*mpcToSub_dual); // remove connection with self unless pure internal
-		paralApply(numSub, subDomain, &BaseSub::makeMpcInterface, subToMpc, *mpcToSub_dual, subToSub_mpc);
+		paralApply(subDomain, &BaseSub::makeMpcInterface, subToMpc, *mpcToSub_dual, subToSub_mpc);
 		delete subToMpc;
 		delete subToSub_mpc;
 	}
@@ -3668,7 +3664,7 @@ void GenDecDomain<Scalar>::getSharedFSIs()
     Connectivity *fsiToSub = domain->getFsiToNode()->transcon(nodeToSub);
     Connectivity *subToFsi = fsiToSub->altReverse(); // reverse without reordering
     Connectivity *subToSub_fsi = subToFsi->transcon(fsiToSub);
-    paralApply(numSub, subDomain, &BaseSub::makeFsiInterface, subToFsi, fsiToSub, subToSub_fsi);
+    paralApply(subDomain, &BaseSub::makeFsiInterface, subToFsi, fsiToSub, subToSub_fsi);
     delete fsiToSub;
     delete subToFsi;
     delete subToSub_fsi;
@@ -3682,7 +3678,7 @@ GenDecDomain<Scalar>::makeMpcToSub()
   if(numDualMpc) {
     int *pointer = new int[globalNumSub+1];
     for(int i =0; i < globalNumSub; ++i) pointer[i] = 0;
-    paralApply(numSub, subDomain, &BaseSub::putNumMPC, pointer);
+    paralApply(subDomain, &BaseSub::putNumMPC, pointer);
 #ifdef DISTRIBUTED
     communicator->globalSum(globalNumSub, pointer);
 #endif
@@ -3697,7 +3693,7 @@ GenDecDomain<Scalar>::makeMpcToSub()
 
     int *target = new int[total];
     for(int i = 0; i < total; ++i) target[i] = 0;
-    paralApply(numSub, subDomain, &BaseSub::putLocalToGlobalMPC, pointer, target);
+    paralApply(subDomain, &BaseSub::putLocalToGlobalMPC, pointer, target);
 #ifdef DISTRIBUTED
     communicator->globalSum(total, target);
 #endif
@@ -3708,7 +3704,7 @@ GenDecDomain<Scalar>::makeMpcToSub()
   if(numPrimalMpc) {
     int *pointer = new int[globalNumSub+1];
     for(int i =0; i < globalNumSub; ++i) pointer[i] = 0;
-    paralApply(numSub, subDomain, &BaseSub::putNumMPC_primal, pointer);
+    paralApply(subDomain, &BaseSub::putNumMPC_primal, pointer);
 #ifdef DISTRIBUTED
     communicator->globalSum(globalNumSub, pointer);
 #endif
@@ -3723,7 +3719,7 @@ GenDecDomain<Scalar>::makeMpcToSub()
 
     int *target = new int[total];
     for(int i = 0; i < total; ++i) target[i] = 0;
-    paralApply(numSub, subDomain, &BaseSub::putLocalToGlobalMPC_primal, pointer, target);
+    paralApply(subDomain, &BaseSub::putLocalToGlobalMPC_primal, pointer, target);
 #ifdef DISTRIBUTED
     communicator->globalSum(total, target);
 #endif
@@ -3741,7 +3737,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
                                Rbm **rbms, FullSquareMatrix **kelArray, bool make_feti,
                                FullSquareMatrix **melArray, FullSquareMatrix **celArray, bool factor)
 {
- GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
+ GenDomainGroupTask<Scalar> dgt(numSub, subDomain.data(), coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
                                 domain->numSommer, domain->solInfo().getFetiInfo().local_cntl->subtype,
                                 communicator, melArray, celArray, mt);
@@ -3796,7 +3792,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
                                                           FSCommPattern<Scalar>::CopyOnSend);
    for(int i=0; i<numSub; ++i) subDomain[i]->setDofPlusCommSize(pat);
    pat->finalize();
-   ba2 = new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
+   ba2 = new GenBasicAssembler<Scalar>(numSub, subDomain.data(), pat);
 }
 // RT0212
 
@@ -4124,21 +4120,21 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::setNewProperties(int i)
 {
-  paralApply(numSub, subDomain, &Domain::setNewProperties, i);
+  paralApply(subDomain, &Domain::setNewProperties, i);
 }
 
 template<class Scalar>
 void
 GenDecDomain<Scalar>::assignRandMat()
 {
-  paralApply(numSub, subDomain, &Domain::assignRandMat);
+  paralApply(subDomain, &Domain::assignRandMat);
 }
 
 template<class Scalar>
 void
 GenDecDomain<Scalar>::retrieveElemset()
 {
-  paralApply(numSub, subDomain, &Domain::retrieveElemset);
+  paralApply(subDomain, &Domain::retrieveElemset);
 }
 
 //------------------------------------------------------------------------------
@@ -4293,7 +4289,7 @@ GenDecDomain<Scalar>::solVecAssemblerNew() {
   }
   pat->finalize();
 
-  return new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
+  return new GenBasicAssembler<Scalar>(numSub, subDomain.data(), pat);
 }
 
 template<class Scalar>
@@ -4490,11 +4486,9 @@ GenDecDomain<Scalar>::clean()
 {
   // this function should be used before re-calling preProcess() to prevent memory leaks
   if(ba2) delete ba2;
-  if(subDomain) {
-    for(int i=0; i<numSub; ++i)
-      if(subDomain[i]) { delete subDomain[i]; subDomain[i] = 0; }
-     delete [] subDomain; subDomain = 0;
-  }
+  for(auto sub : subDomain)
+  	delete sub;
+  subDomain.clear();
   if(elemToNode) { delete elemToNode; elemToNode = 0; }
   if(subToNode) { delete subToNode; subToNode = 0; }
   if(nodeToSub) {

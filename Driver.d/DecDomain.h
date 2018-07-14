@@ -50,7 +50,7 @@ class GenDecDomain
   Connectivity *nodeToSub_copy = nullptr;
   Connectivity *cpuToSub;
   Connectivity *elemToSub;
-  GenSubDomain<Scalar> **subDomain;
+  std::vector<GenSubDomain<Scalar> *> subDomain;
   DistrInfo *internalInfo, *internalInfo2;
   DistrInfo *masterSolVecInfo_;
   DistrInfo *nodeInfo;
@@ -66,7 +66,7 @@ class GenDecDomain
   Scalar *globalWeight;
 
 	int *glSubToLocal;            //<! \brief Local numbering of subdomains
-	int *localSubToGl;            //<! \brief Local to global map
+	std::vector<int> localSubToGl;            //<! \brief Local to global map
 	int globalNumSub;             //<! \brief Lotal number of subdomains on all cpus
 	int numSub;                   //<! \brief Local number of subdomains
 
@@ -99,7 +99,7 @@ class GenDecDomain
   virtual void clean();
   Domain *getDomain() { return domain; }
 
-  GenSubDomain<Scalar>** getAllSubDomains() { return subDomain; }
+  auto getAllSubDomains() { return subDomain.data(); }
   GenSubDomain<Scalar>* getSubDomain(int isub) { return subDomain[isub]; }
   void setElemToNode(const Connectivity *_elemToNode) { elemToNode = _elemToNode; }
   void setSubToElem(Connectivity *_subToElem) { subToElem = _subToElem; }
@@ -269,9 +269,9 @@ class GenDecDomain
   void subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, double *subD);
 
   // Helmholtz Fluid functions
-  void distribBC(int iSub, GenSubDomain<Scalar> **sd, Domain *domain,
-	 int *somToSub, int *scaToSub, int *neumToSub, int (*wetToSub)[2],
-	 int *sBoundFlag);
+  void distribBC(int iSub, gsl::span<GenSubDomain<Scalar> *> sd, Domain *domain,
+                 int *somToSub, int *scaToSub, int *neumToSub, int (*wetToSub)[2],
+                 int *sBoundFlag);
   void buildLocalFFP(int iSub, GenDistrVector<Scalar> *u,
 					 Scalar **ffp, int *numSample, double (*dir)[3], bool direction);
   void getWError(int iSub, GenDistrVector<Scalar> *u,

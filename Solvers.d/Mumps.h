@@ -8,6 +8,7 @@
 #include "zmumps_c.h" // complex double precision
 #endif
 
+#include <gsl/span>
 #include <Solvers.d/Solver.h>
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/MultiDomainSolver.h>
@@ -66,11 +67,13 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    bool mumpsCPU; // JAT 052214
    Communicator *groupcomm; // JAT 072616
 
- public:
-   GenMumpsSolver(Connectivity *nToN, EqNumberer *dsa, SolverCntl& _scntl, int *map=0, FSCommunicator *_mpicomm = 0);
-   GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl, FSCommunicator *_mpicomm = 0);
-   GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, int nsub, GenSubDomain<Scalar> **sd,
-                  SolverCntl& _scntl, FSCommunicator *_mpicomm = 0);
+public:
+	GenMumpsSolver(Connectivity *nToN, EqNumberer *dsa, SolverCntl& _scntl, int *map=0, FSCommunicator *_mpicomm = 0);
+	GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl,
+	               FSCommunicator *_mpicomm = 0);
+	GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, int nsub,
+	               gsl::span<GenSubDomain<Scalar> *> sd,
+	               SolverCntl& _scntl, FSCommunicator *_mpicomm = 0);
 
    virtual ~GenMumpsSolver();
 

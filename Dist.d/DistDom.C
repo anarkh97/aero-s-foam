@@ -875,13 +875,13 @@ GenDistrDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, double time,
       }
     }
 
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, nodePat, &stress);
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, nodePat, &stress);
     nodePat->exchange();
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, nodePat, &stress);
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, nodePat, &stress);
 
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, nodePat, &weight);
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, nodePat, &weight);
     nodePat->exchange();
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, nodePat, &weight);
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, nodePat, &weight);
 
     // Divide stress by weight
     for (iSub = 0; iSub < this->numSub; ++iSub)  {
@@ -1149,14 +1149,14 @@ GenDistrDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, double tim
                 Findex, stress[str_loop]->subData(iSub), weight.subData(iSub));
     }
 
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>,
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>,
                this->nodePat, stress[str_loop]);
     this->nodePat->exchange();
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, stress[str_loop]);
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, stress[str_loop]);
 
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &weight);
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &weight);
     this->nodePat->exchange();
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, &weight);
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, &weight);
 
     // Divide stress by weight
     for(iSub = 0; iSub < this->numSub; ++iSub)  {
@@ -1991,13 +1991,13 @@ GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCoro
     }
   }
 
-  paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &stress);
+  paralApply(this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &stress);
   this->nodePat->exchange();
-  paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, &stress);
+  paralApply(this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, &stress);
 
-  paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &weight);
+  paralApply(this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &weight);
   this->nodePat->exchange();
-  paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, &weight);
+  paralApply(this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, &weight);
 
   // Divide stress by weight
   for (iSub = 0; iSub < this->numSub; ++iSub)  {
@@ -2115,14 +2115,14 @@ GenDistrDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allC
                 Findex, stress[str_loop]->subData(iSub), weight.subData(iSub), subRefState);
     }
 
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>,
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>,
                this->nodePat, stress[str_loop]);
     this->nodePat->exchange();
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, stress[str_loop]);
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, stress[str_loop]);
 
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &weight);
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &weight);
     this->nodePat->exchange();
-    paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, &weight);
+    paralApply(this->subDomain, &GenSubDomain<Scalar>::template addNodalData<Scalar>, this->nodePat, &weight);
 
     // Divide stress by weight
     for(iSub = 0; iSub < this->numSub; ++iSub)  {
@@ -2230,14 +2230,14 @@ void GenDistrDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double tim
   for(int iSub = 0; iSub < this->numSub; ++iSub) 
     { this->getSubDomain(iSub)->mergeElemProps(props.subData(iSub), weight.subData(iSub), iAttr); }
   
-  paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<double>,
+  paralApply(this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<double>,
 	     this->nodePat, &props);
   this->nodePat->exchange();
-  paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template addNodalData<double>, this->nodePat, &props);
+  paralApply(this->subDomain, &GenSubDomain<Scalar>::template addNodalData<double>, this->nodePat, &props);
   
-  paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<double>, this->nodePat, &weight);
+  paralApply(this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<double>, this->nodePat, &weight);
   this->nodePat->exchange();
-  paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template addNodalData<double>, this->nodePat, &weight);
+  paralApply(this->subDomain, &GenSubDomain<Scalar>::template addNodalData<double>, this->nodePat, &weight);
   
   // average
   for(int iSub = 0; iSub < this->numSub; ++iSub)  

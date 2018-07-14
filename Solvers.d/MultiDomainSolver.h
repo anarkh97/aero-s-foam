@@ -17,7 +17,8 @@ class MultiDomainSolver : public GenParallelSolver<Scalar>
     FSCommunicator *com;
   public:
     MultiDomainSolver() {}
-    MultiDomainSolver(int _neq, int _nsub, GenSubDomain<Scalar> **_sd, FSCommunicator *_com) : neq(_neq), nsub(_nsub), sd(_sd), com(_com) {}
+    MultiDomainSolver(int _neq, int _nsub,
+                      GenSubDomain<Scalar> **_sd, FSCommunicator *_com) : neq(_neq), nsub(_nsub), sd(_sd), com(_com) {}
     void reSolve(GenDistrVector<Scalar> &);
     void solve(const GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
     virtual void solve(const Scalar *rhs, Scalar *solution) = 0;

@@ -23,7 +23,8 @@ extern long totMemMumps;
 #define RINFO(I)        rinfo[(I)-1]
 
 template<class Scalar>
-GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, SolverCntl& _scntl, int *map, FSCommunicator *_mpicomm)
+GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, SolverCntl& _scntl, int *map,
+                                       FSCommunicator *_mpicomm)
  : SparseData(_dsa,nToN,map,0,1), scntl(_scntl)
 {
 #ifndef USE_MUMPS
@@ -39,7 +40,8 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, Sol
 }
 
 template<class Scalar>
-GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl, FSCommunicator *_mpicomm)
+GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, SolverCntl& _scntl,
+                                       FSCommunicator *_mpicomm)
  : SparseData(_dsa,c_dsa,nToN,0,1,_scntl.unsymmetric), scntl(_scntl)
 {
 #ifndef USE_MUMPS
@@ -57,8 +59,9 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, Co
 
 template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, int nsub,
-                                       GenSubDomain<Scalar> **sd, SolverCntl& _scntl, FSCommunicator *_mpicomm)
- : SparseData(_dsa,c_dsa,nToN,0,1,_scntl.unsymmetric), MultiDomainSolver<Scalar>(numUncon, nsub, sd, _mpicomm), scntl(_scntl)
+                                       gsl::span<GenSubDomain<Scalar> *> sd, SolverCntl& _scntl,
+                                       FSCommunicator *_mpicomm)
+ : SparseData(_dsa,c_dsa,nToN,0,1,_scntl.unsymmetric), MultiDomainSolver<Scalar>(numUncon, nsub, sd.data(), _mpicomm), scntl(_scntl)
 {
 #ifndef USE_MUMPS
   std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";

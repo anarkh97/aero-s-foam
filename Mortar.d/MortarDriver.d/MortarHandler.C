@@ -3238,7 +3238,7 @@ MortarHandler::get_plot_variable(int plot_var, double *all_data)
 }
 
 void
-MortarHandler::get_plot_variable(int plot_var, double **plot_data, int numSub, SubDomain **sd)
+MortarHandler::get_plot_variable(int plot_var, double **plot_data, int numSub, gsl::span<SubDomain *> sd)
 {
 #ifdef USE_ACME
   if(!data) { data = new double[nMasterNodes + nSlaveNodes]; return; } // first output there is no td enforcement 

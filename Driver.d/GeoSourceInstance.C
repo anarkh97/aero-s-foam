@@ -18,9 +18,9 @@ void GeoSource::distributeOutputNodesX<complex<double> >(GenSubDomain<complex<do
 #endif
 
 template
-GenSubDomain<double> * GeoSource::readDistributedInputFiles<double>(int, int);
+std::vector<GenSubDomain<double> *> GeoSource::readDistributedInputFiles<double>(gsl::span<const int>);
 template
-GenSubDomain<complex<double> > * GeoSource::readDistributedInputFiles<complex<double> >(int, int);
+std::vector<GenSubDomain<complex<double> > *> GeoSource::readDistributedInputFiles<complex<double> >(gsl::span<const int>);
 
 #ifdef USE_EIGEN3
 template

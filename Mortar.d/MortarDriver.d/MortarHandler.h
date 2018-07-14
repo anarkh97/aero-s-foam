@@ -375,8 +375,8 @@ class MortarHandler {
         void get_plot_variable(int plot_var, double *all_data); // plot_var: 1 = CONFACE, 2 = NORMAL_FORCE_MAG, 3 = NORMAL_TRACTION_MAG, 4 = TANGENTIAL_FORCE_MAG, 5 = TANGENTIAL_TRACTION_MAG,
                                                                 // 6 = CDIRNORX, 7 = CDIRNORY, 8 = CDIRNORZ, 9 = CDIRTANX, 10 = CDIRTANY, 11 = CDIRTANZ, 12 = SLIP_MAG, 13 = NODAL_DISSIPATION,
                                                                 // 14 = CONTACT_AREA, 15 = GAP_CUR, 16 = GAP_OLD
-        void get_plot_variable(int plot_var, double **plot_data, int numSub, SubDomain **sd);
-        void get_plot_variable(int plot_var, double **plot_data, int numSub, GenSubDomain<complex<double> > **sd) { }
+        void get_plot_variable(int plot_var, double **plot_data, int numSub, gsl::span<SubDomain *> sd);
+        void get_plot_variable(int plot_var, double **plot_data, int numSub, gsl::span<GenSubDomain<complex<double> > *>sd) { }
         void get_global_variable(int var, double &value); // var: 1 = FORCE_X, 2 = FORCE_Y, 3 = FORCE_Z, 4 = FORCE_NORM, 5 = DISSIPATION, 6 = CONSTRAINT_NORM, 7 = INC_FORCE_NORM
         int get_num_nodes() { return nMasterNodes + nSlaveNodes; }
         int * get_node_global_ids() { return node_global_ids; }

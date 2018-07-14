@@ -604,8 +604,14 @@ public:
 #ifdef SOWER_SURFS
 	void readDistributedSurfs(int subNum);
 #endif
+	/** \brief Read aand build a list of subdomains.
+	 *
+	 * @tparam Scalar Scalar type for the subdomain
+	 * @param glSubIndices List of global indices of the subdomains to construct
+	 * @return A vector of pointers to the constructed subdoains.
+	 */
 	template<class Scalar>
-	GenSubDomain<Scalar> * readDistributedInputFiles(int localSubNum, int subNum);
+	std::vector<GenSubDomain<Scalar> *> readDistributedInputFiles(gsl::span<const int> glSubIndices);
 
 	// Output functions, implemented in Driver.d/BinaryOutput.C and Driver.d/BinaryOutputInclude.C
 	void writeNodeScalarToFile(double *data, int numData, int glSub, int offset, int fileNumber, int iter,

@@ -191,412 +191,468 @@ GeoSource::distributeOutputNodesX(GenSubDomain<Scalar> *tmpSub, Connectivity *no
 #include <Driver.d/Sower.h>
 
 template<class Scalar>
-GenSubDomain<Scalar> *
-GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
+std::vector<GenSubDomain<Scalar> *>
+GeoSource::readDistributedInputFiles(gsl::span<const int> subs)
 {
-#ifdef SOWER_DEBUG
-  std::cerr<< "READING distributed input for subDomain " << subNum << std::endl;
-#endif
-  Sower sower;
- 
-  auto f = sower.openBinaryFile(subNum);
 
-  // nodes
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Nodes" << std::endl;
+	std::cerr<< "READING distributed input for subDomain " << subNum << std::endl;
 #endif
-  int *glNodeNums = 0;  // PJSA: this is the localToGlobal node numbering map, allocated in Sower::read
-  CoordSet* cs = sower.template read<NodesIO>(*f, subNum, glNodeNums, true);
+	Sower sower;
+	std::vector<GenSubDomain<Scalar> *> result;
+	result.reserve(subs.size());
+	for(auto subNum: subs) {
+		int localSubNum = result.size();
+		auto f = sower.openBinaryFile(subNum);
+
+		// nodes
 #ifdef SOWER_DEBUG
-  if(cs) {
-    for(int i = 0; i < cs->size(); i++)
-      if((*cs)[i] != 0)
-        std::cerr << "local " << i << ", global " << glNodeNums[i] << ", coords: " 
-                  << (*cs)[i]->x << "," << (*cs)[i]->y << "," << (*cs)[i]->z << std::endl;
-  }
+		std::cerr << std::endl << "--Reading Nodes" << std::endl;
+#endif
+		int *glNodeNums = 0;  // PJSA: this is the localToGlobal node numbering map, allocated in Sower::read
+		CoordSet *cs = sower.template read<NodesIO>(*f, subNum, glNodeNums, true);
+#ifdef SOWER_DEBUG
+		if(cs) {
+		for(int i = 0; i < cs->size(); i++)
+		  if((*cs)[i] != 0)
+			std::cerr << "local " << i << ", global " << glNodeNums[i] << ", coords: "
+					  << (*cs)[i]->x << "," << (*cs)[i]->y << "," << (*cs)[i]->z << std::endl;
+	  }
 #endif
 #ifdef SOWER_SURFS
-  CoordSet &nodes = domain->getNodes();
-  for(int i = 0; i < cs->size(); i++) if((*cs)[i] != 0) nodes.nodeadd(glNodeNums[i], *(*cs)[i]);
+		CoordSet &nodes = domain->getNodes();
+		for (int i = 0; i < cs->size(); i++) if ((*cs)[i] != 0) nodes.nodeadd(glNodeNums[i], *(*cs)[i]);
 #endif
 
-  // elements
+		// elements
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Elements" << std::endl;
+		std::cerr << std::endl << "--Reading Elements" << std::endl;
 #endif
-  int *glElemNums = 0; // PJSA: this is the localToGlobal element numbering map, allocated in Sower::read
-  Elemset *ese = sower.template read<ElemsetIO>(*f, subNum, glElemNums);
+		int *glElemNums = 0; // PJSA: this is the localToGlobal element numbering map, allocated in Sower::read
+		Elemset *ese = sower.template read<ElemsetIO>(*f, subNum, glElemNums);
 #ifdef SOWER_DEBUG
-  if(ese) ese->list();
+		if(ese) ese->list();
 #endif
-  // pressure flag
-  prsflg = 1; 
+		// pressure flag
+		prsflg = 1;
 
-  // materials
+		// materials
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Materials" << std::endl;
+		std::cerr << std::endl << "--Reading Materials" << std::endl;
 #endif
-  int *glNums = 0;
-  std::pair<int, std::map<int,StructProp>* > *rat0 = sower.template read<MatIO>(*f, subNum, glNums);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
+		int *glNums = 0;
+		std::pair<int, std::map<int, StructProp> *> *rat0 = sower.template read<MatIO>(*f, subNum, glNums);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
 #ifdef SOWER_DEBUG
-  if(rat0) {
-    for(int l=0; l < rat0->first; ++l) {
-      std::map<int,StructProp> *tm = rat0->second;
-      std::cerr << l << ":" <<(*tm)[l].E << ","
-           << (*tm)[l].A
-           << "," << (*tm)[l].nu
-           << "," << (*tm)[l].rho
-           << "," << (*tm)[l].eh
-           << "," << (*tm)[l].Ixx
-           << "," << (*tm)[l].Iyy
-           << "," << (*tm)[l].Izz
-           << "," << (*tm)[l].c
-           << "," << (*tm)[l].k
-           << "," << (*tm)[l].Q
-           << "," << (*tm)[l].W
-           << "," << (*tm)[l].P
-           << "," << (*tm)[l].Ta
-           << "," << (*tm)[l].ymin
-           << "," << (*tm)[l].ymax
-           << "," << (*tm)[l].zmin
-           << "," << (*tm)[l].zmax
-           << (*tm)[l].kappaHelm << std::endl;
-      }
-  }
-#endif
-
-  // attributes
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Attributes" << std::endl;
-#endif
-  std::pair<int, std::map<int,Attrib>* > *rat = sower.template read<AttribIO>(*f, subNum, glNums);
-  // composites
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Composites" << std::endl;
-#endif
-  /*std::pair<int,std::map<int,CoefData*>* > *rcd =*/ sower.template read<CompositeCIO>(*f, subNum, glNums);
-  /*std::pair<int,std::map<int,LayInfo*>* > *rli =*/ sower.template read<CompositeLIO>(*f, subNum, glNums);
-  /*std::pair<int,std::map<int,double*>* > *rcf =*/ sower.template read<CFramesIO>(*f, subNum, glNums);
-
-  if(rat) {
-    for(int iAttr=0; iAttr<rat->first; ++iAttr) {
-      int locElemNum = (*rat->second)[iAttr].nele;
-      int att = (*rat->second)[iAttr].attr;
-      StructProp *prop = &(*rat0->second)[att];
-      (*ese)[locElemNum]->setProp(prop);
-      int cmp_att = (*rat->second)[iAttr].cmp_attr;
-      if(cmp_att > -1) { }
-      // PJSA: warning need special treatment for composite and phantom elements here  
-    }
-  }
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
-
-  GenSubDomainFactory<Scalar>* pFactory;
-  pFactory = GenSubDomainFactory< Scalar >::getFactory();
-  GenSubDomain<Scalar> *subd = pFactory->
-    createSubDomain(*domain, localSubNum, cs, ese, glNodeNums, glElemNums, subNum);
-  // don't delete glNodeNums and glElemNums, they now belong to the SubDomain object
-
-  // neuman bounday conditions
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Neuman Boundary Conditions (forces)" << std::endl;
-#endif
-  std::list<BCond *> *fo = sower.template read<BCDataIO<FORCES_TYPE> >(*f, subNum, glNums);
-  if(fo) subd->setNeumanBC(fo);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
-#ifdef SOWER_DEBUG
-  if(fo) {
-    for(std::list<BCond *>::iterator it = fo->begin(); it != fo->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
-    }
-  }
+		if(rat0) {
+		for(int l=0; l < rat0->first; ++l) {
+		  std::map<int,StructProp> *tm = rat0->second;
+		  std::cerr << l << ":" <<(*tm)[l].E << ","
+			   << (*tm)[l].A
+			   << "," << (*tm)[l].nu
+			   << "," << (*tm)[l].rho
+			   << "," << (*tm)[l].eh
+			   << "," << (*tm)[l].Ixx
+			   << "," << (*tm)[l].Iyy
+			   << "," << (*tm)[l].Izz
+			   << "," << (*tm)[l].c
+			   << "," << (*tm)[l].k
+			   << "," << (*tm)[l].Q
+			   << "," << (*tm)[l].W
+			   << "," << (*tm)[l].P
+			   << "," << (*tm)[l].Ta
+			   << "," << (*tm)[l].ymin
+			   << "," << (*tm)[l].ymax
+			   << "," << (*tm)[l].zmin
+			   << "," << (*tm)[l].zmax
+			   << (*tm)[l].kappaHelm << std::endl;
+		  }
+	  }
 #endif
 
-  //boffset
+		// attributes
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Beam offsets" << std::endl;
+		std::cerr << std::endl << "--Reading Attributes" << std::endl;
 #endif
-  std::vector<OffsetData> *offsets2 = sower.template read<BoffsetIO>(*f, subNum, glNums);
-  if(offsets2) {
-    for(std::vector<OffsetData>::iterator it = (*offsets2).begin() ; it!= (*offsets2).end() ;++it)
-      {
-        offsets.push_back(*it);
-      }
-  }
+		std::pair<int, std::map<int, Attrib> *> *rat = sower.template read<AttribIO>(*f, subNum, glNums);
+		// composites
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading Composites" << std::endl;
+#endif
+		/*std::pair<int,std::map<int,CoefData*>* > *rcd =*/ sower.template read<CompositeCIO>(*f, subNum, glNums);
+		/*std::pair<int,std::map<int,LayInfo*>* > *rli =*/ sower.template read<CompositeLIO>(*f, subNum, glNums);
+		/*std::pair<int,std::map<int,double*>* > *rcf =*/ sower.template read<CFramesIO>(*f, subNum, glNums);
 
-  //eframes
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Eframes" << std::endl;
-#endif
-  std::vector<EFrameData> *efd2 = sower.template read<EFrameIO>(*f,subNum,glNums);
-  if(efd2) {
-    for(std::vector<EFrameData>::iterator it = (*efd2).begin();it!= (*efd2).end();++it)
-      {
-        double fr[9];
-        fr[0] = (*it).frame[0][0];
-        fr[1] = (*it).frame[0][1];
-        fr[2] = (*it).frame[0][2];
-        fr[3] = (*it).frame[1][0];
-        fr[4] = (*it).frame[1][1];
-        fr[5] = (*it).frame[1][2];
-        fr[6] = (*it).frame[2][0];
-        fr[7] = (*it).frame[2][1];
-        fr[8] = (*it).frame[2][2];
-        geoSource->setFrame((*it).elnum, fr);
-      }
-  }
+		if (rat) {
+			for (int iAttr = 0; iAttr < rat->first; ++iAttr) {
+				int locElemNum = (*rat->second)[iAttr].nele;
+				int att = (*rat->second)[iAttr].attr;
+				StructProp *prop = &(*rat0->second)[att];
+				(*ese)[locElemNum]->setProp(prop);
+				int cmp_att = (*rat->second)[iAttr].cmp_attr;
+				if (cmp_att > -1) {}
+				// PJSA: warning need special treatment for composite and phantom elements here
+			}
+		}
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
 
-  // dirichlet boundary conditions
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Dirichlet Boundary=disp" << std::endl;
-#endif
-  std::list<BCond *> *fo2 = sower.template read<BCDataIO<DISPLACEMENTS_TYPE> >(*f, subNum, glNums);
-  if(fo2) subd->setDirichletBC(fo2);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
-#ifdef SOWER_DEBUG
-  if(fo2) {
-    for(std::list<BCond *>::iterator it = fo2->begin(); it != fo2->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
-    }
-  }
-#endif
+		GenSubDomainFactory<Scalar> *pFactory;
+		pFactory = GenSubDomainFactory<Scalar>::getFactory();
+		GenSubDomain<Scalar> *subd = pFactory->
+				createSubDomain(*domain, localSubNum, cs, ese, glNodeNums, glElemNums, subNum);
+		// don't delete glNodeNums and glElemNums, they now belong to the SubDomain object
 
-  // initial displacements
+		// neuman bounday conditions
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Initial Displacement" << std::endl;
+		std::cerr << std::endl << "--Reading Neuman Boundary Conditions (forces)" << std::endl;
 #endif
-  std::list<BCond *> *idlist = sower.template read<BCDataIO<IDISP_TYPE> >(*f, subNum, glNums);
-  if(idlist) subd->setInitialDisplacement(idlist);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
+		std::list<BCond *> *fo = sower.template read<BCDataIO<FORCES_TYPE> >(*f, subNum, glNums);
+		if (fo) subd->setNeumanBC(fo);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
 #ifdef SOWER_DEBUG
-  if(idlist) {
-    for(std::list<BCond *>::iterator it = idlist->begin(); it != idlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
-    }
-  }
+		if(fo) {
+		for(std::list<BCond *>::iterator it = fo->begin(); it != fo->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
+		}
+	  }
 #endif
 
-  // initial displacements (6 column)
+		//boffset
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Initial Displacement 6" << std::endl;
+		std::cerr << std::endl << "--Reading Beam offsets" << std::endl;
 #endif
-  std::list<BCond *> *id6list = sower.template read<BCDataIO<IDISP6_TYPE> >(*f, subNum, glNums);
-  if(id6list) subd->setInitialDisplacement6(id6list);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
+		std::vector<OffsetData> *offsets2 = sower.template read<BoffsetIO>(*f, subNum, glNums);
+		if (offsets2) {
+			for (std::vector<OffsetData>::iterator it = (*offsets2).begin(); it != (*offsets2).end(); ++it) {
+				offsets.push_back(*it);
+			}
+		}
+
+		//eframes
 #ifdef SOWER_DEBUG
-  if(id6list) {
-    for(std::list<BCond *>::iterator it = id6list->begin(); it != id6list->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
-    }
-  }
+		std::cerr << std::endl << "--Reading Eframes" << std::endl;
+#endif
+		std::vector<EFrameData> *efd2 = sower.template read<EFrameIO>(*f, subNum, glNums);
+		if (efd2) {
+			for (std::vector<EFrameData>::iterator it = (*efd2).begin(); it != (*efd2).end(); ++it) {
+				double fr[9];
+				fr[0] = (*it).frame[0][0];
+				fr[1] = (*it).frame[0][1];
+				fr[2] = (*it).frame[0][2];
+				fr[3] = (*it).frame[1][0];
+				fr[4] = (*it).frame[1][1];
+				fr[5] = (*it).frame[1][2];
+				fr[6] = (*it).frame[2][0];
+				fr[7] = (*it).frame[2][1];
+				fr[8] = (*it).frame[2][2];
+				geoSource->setFrame((*it).elnum, fr);
+			}
+		}
+
+		// dirichlet boundary conditions
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading Dirichlet Boundary=disp" << std::endl;
+#endif
+		std::list<BCond *> *fo2 = sower.template read<BCDataIO<DISPLACEMENTS_TYPE> >(*f, subNum, glNums);
+		if (fo2) subd->setDirichletBC(fo2);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
+#ifdef SOWER_DEBUG
+		if(fo2) {
+		for(std::list<BCond *>::iterator it = fo2->begin(); it != fo2->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
+		}
+	  }
 #endif
 
-  // initial velocities
+		// initial displacements
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Initial Velocity" << std::endl;
+		std::cerr << std::endl << "--Reading Initial Displacement" << std::endl;
 #endif
-  std::list<BCond *> *ivlist = sower.template read<BCDataIO<IVEL_TYPE> >(*f, subNum, glNums);
-  if(ivlist) subd->setInitialVelocity(ivlist);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
+		std::list<BCond *> *idlist = sower.template read<BCDataIO<IDISP_TYPE> >(*f, subNum, glNums);
+		if (idlist) subd->setInitialDisplacement(idlist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
 #ifdef SOWER_DEBUG
-  if(ivlist) {
-    for(std::list<BCond *>::iterator it = ivlist->begin(); it != ivlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
-    }
-  }
-#endif
-
-  if(claw) subd->setClaw(claw->fileName, claw->routineName);
-
-  // claw->sensors
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Sensors (claw)" << std::endl;
-#endif
-  std::list<BCond *> *sensorlist = sower.template read<BCDataIO<SENSOR_TYPE> >(*f, subNum, glNums);
-  if(sensorlist) subd->setSensor(sensorlist);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
-#ifdef SOWER_DEBUG
-  if(sensorlist) {
-    for(std::list<BCond *>::iterator it = sensorlist->begin(); it != sensorlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
-    }
-  }
+		if(idlist) {
+		for(std::list<BCond *>::iterator it = idlist->begin(); it != idlist->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
+		}
+	  }
 #endif
 
-  // claw->actuator
+		// initial displacements (6 column)
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Actuator (claw)" << std::endl;
+		std::cerr << std::endl << "--Reading Initial Displacement 6" << std::endl;
 #endif
-  std::list<BCond *> *actuatorlist = sower.template read<BCDataIO<ACTUATOR_TYPE> >(*f, subNum, glNums);
-  if(actuatorlist) subd->setActuator(actuatorlist);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
+		std::list<BCond *> *id6list = sower.template read<BCDataIO<IDISP6_TYPE> >(*f, subNum, glNums);
+		if (id6list) subd->setInitialDisplacement6(id6list);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
 #ifdef SOWER_DEBUG
-  if(actuatorlist) {
-    for(std::list<BCond *>::iterator it = actuatorlist->begin(); it != actuatorlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
-    }
-  }
-#endif
-                                                                                                 
-  // claw->userDisp
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Usdd (claw)" << std::endl;
-#endif
-  std::list<BCond *> *usddlist = sower.template read<BCDataIO<USDD_TYPE> >(*f, subNum, glNums);
-  if(usddlist) subd->setUsdd(usddlist); 
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
-#ifdef SOWER_DEBUG
-  if(usddlist) {
-    for(std::list<BCond *>::iterator it = usddlist->begin(); it != usddlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
-    }
-  }
-#endif
-  
-  // claw->userForce
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Usdf (claw)" << std::endl;
-#endif
-  std::list<BCond *> *usdflist = sower.template read<BCDataIO<USDF_TYPE> >(*f, subNum, glNums);
-  if(usdflist) subd->setUsdf(usdflist);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
-#ifdef SOWER_DEBUG
-  if(usdflist) {
-    for(std::list<BCond *>::iterator it = usdflist->begin(); it != usdflist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
-    }
-  }
-#endif
-  if (claw) claw->makeGlobalClaw(subd->getClaw());
-
-  // complex dirichlet
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Complex Dirichlet" << std::endl;
-#endif
-  std::list<ComplexBCond *> *cdlist = sower.template read<ComplexBCDataIO<HDIR_TYPE> >(*f, subNum, glNums);
-  if(cdlist) subd->setComplexDirichletBC(cdlist);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
-#ifdef SOWER_DEBUG
-  if(cdlist) {
-    for(std::list<ComplexBCond *>::iterator it = cdlist->begin(); it != cdlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->reval 
-                << "," << (*it)->imval << std::endl;
-    }
-  }
+		if(id6list) {
+		for(std::list<BCond *>::iterator it = id6list->begin(); it != id6list->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
+		}
+	  }
 #endif
 
-  // complex neuman
+		// initial velocities
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Complex Neuman" << std::endl;
+		std::cerr << std::endl << "--Reading Initial Velocity" << std::endl;
 #endif
-  std::list<ComplexBCond *> *cnlist = sower.template read<ComplexBCDataIO<HNEU_TYPE> >(*f, subNum, glNums);
-  if(cnlist) subd->setComplexNeumanBC(cnlist);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
+		std::list<BCond *> *ivlist = sower.template read<BCDataIO<IVEL_TYPE> >(*f, subNum, glNums);
+		if (ivlist) subd->setInitialVelocity(ivlist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
 #ifdef SOWER_DEBUG
-  if(cnlist) {
-    for(std::list<ComplexBCond *>::iterator it = cnlist->begin(); it != cnlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->reval 
-                << "," << (*it)->imval << std::endl;
-    }
-  }
-#endif
-
-  //ATDDNB & HDNB
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading DNB (ATDDNB or HDNB)" << std::endl;
-#endif
-  std::list<SommerElement *> *dnblist = sower.template read<SommerDataIO<DNB_TYPE> >(*f, subNum, glNums);
-  if(dnblist) subd->setDnb(dnblist);
-  if(glNums) { delete[] glNums; glNums = 0; } //not used
-#ifdef SOWER_DEBUG
-  if(dnblist) {
-    int i, numN = 0;
-    for(std::list<SommerElement *>::iterator it = dnblist->begin(); it != dnblist->end(); ++it) {
-      //get type and list of nodes
-      numN = (*it)->numNodes();
-      std::cerr << " node: ";
-      for (i = 0 ; i < numN-1 ; i++)
-        std::cerr << (*it)->getNode(i) << ", ";
-      std::cerr << (*it)->getNode(numN-1) << std::endl;
-    }
-  }
+		if(ivlist) {
+		for(std::list<BCond *>::iterator it = ivlist->begin(); it != ivlist->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
+		}
+	  }
 #endif
 
-  //LMPC
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading LMPC" << std::endl;
-#endif
-  std::pair<int,ResizeArray<LMPCons*>* > *mpc = sower.template read<LMPCIO >(*f, subNum, glNums);
-  if(mpc) {
-    for(int i=0; i<mpc->first; ++i) domain->addLMPC((*mpc->second)[i]);
-  }
-  if(glNums) { delete[] glNums; glNums = 0; }
-#ifdef SOWER_DEBUG
-  if(mpc) {
-    std::cerr << "numLMPC = " << mpc->first << std::endl;
-    for(int i=0; i<mpc->first; ++i) {
-      (*mpc->second)[i]->print();
-    }
-  }
-#endif
-  
-  //TETT
-#ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading TETT" << std::endl;
-#endif
-  /*std::pair<int, ResizeArray<MFTTData*>* >* tett =*/ sower.template read<MFTTDataIO<TETT_TYPE> >(*f, subNum, glNums);
+		if (claw) subd->setClaw(claw->fileName, claw->routineName);
 
-  //YMTT
+		// claw->sensors
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading YMTT" << std::endl;
+		std::cerr << std::endl << "--Reading Sensors (claw)" << std::endl;
 #endif
-  /*std::pair<int, ResizeArray<MFTTData*>* >* ymtt =*/ sower.template read<MFTTDataIO<YMTT_TYPE> >(*f, subNum, glNums);
-
-  //ATDROB & HSCB
+		std::list<BCond *> *sensorlist = sower.template read<BCDataIO<SENSOR_TYPE> >(*f, subNum, glNums);
+		if (sensorlist) subd->setSensor(sensorlist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading Scatter (ATDROB & HSCB)" << std::endl;
-#endif
-  std::list<SommerElement *> *scatlist = sower.template read<SommerDataIO<SCAT_TYPE> >(*f, subNum, glNums);
-  if(scatlist) subd->setScat(scatlist);
-  if(glNums) {delete[] glNums; glNums = 0; } //not used
-#ifdef SOWER_DEBUG
-  if(scatlist) {
-    int i, numN = 0;
-    for(std::list<SommerElement *>::iterator it = scatlist->begin(); it != scatlist->end(); ++it) {
-      //get type and list of nodes
-      numN = (*it)->numNodes();
-      std::cerr << " node: ";
-      for (i = 0 ; i < numN-1 ; i++)
-        std::cerr << (*it)->getNode(i) << ", ";
-      std::cerr << (*it)->getNode(numN-1) << std::endl;
-    }
-  }
+		if(sensorlist) {
+		for(std::list<BCond *>::iterator it = sensorlist->begin(); it != sensorlist->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
+		}
+	  }
 #endif
 
-  //ATDARB & HARB
+		// claw->actuator
 #ifdef SOWER_DEBUG
-  std::cerr << std::endl << "--Reading ARB (ATDARB & HARB)" << std::endl;
+		std::cerr << std::endl << "--Reading Actuator (claw)" << std::endl;
 #endif
-  std::list<SommerElement *> *arblist = sower.template read<SommerDataIO<ARB_TYPE> >(*f, subNum, glNums);
-  if(arblist)  subd->setArb(arblist);
-  if(glNums) {delete[] glNums; glNums = 0; } //not used
+		std::list<BCond *> *actuatorlist = sower.template read<BCDataIO<ACTUATOR_TYPE> >(*f, subNum, glNums);
+		if (actuatorlist) subd->setActuator(actuatorlist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
 #ifdef SOWER_DEBUG
-  if(arblist) {
-    int i, numN = 0;
-    for(std::list<SommerElement *>::iterator it = arblist->begin(); it != arblist->end(); ++it) {
-      //get type and list of nodes
-      numN = (*it)->numNodes();
-      std::cerr << " node: ";
-      for (i = 0 ; i < numN-1 ; i++)
-        std::cerr << (*it)->getNode(i) << ", ";
-      std::cerr << (*it)->getNode(numN-1) << std::endl;
-    }
-  }
+		if(actuatorlist) {
+		for(std::list<BCond *>::iterator it = actuatorlist->begin(); it != actuatorlist->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
+		}
+	  }
 #endif
 
-  cleanUp();
-  return subd;
+		// claw->userDisp
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading Usdd (claw)" << std::endl;
+#endif
+		std::list<BCond *> *usddlist = sower.template read<BCDataIO<USDD_TYPE> >(*f, subNum, glNums);
+		if (usddlist) subd->setUsdd(usddlist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
+#ifdef SOWER_DEBUG
+		if(usddlist) {
+		for(std::list<BCond *>::iterator it = usddlist->begin(); it != usddlist->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
+		}
+	  }
+#endif
+
+		// claw->userForce
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading Usdf (claw)" << std::endl;
+#endif
+		std::list<BCond *> *usdflist = sower.template read<BCDataIO<USDF_TYPE> >(*f, subNum, glNums);
+		if (usdflist) subd->setUsdf(usdflist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
+#ifdef SOWER_DEBUG
+		if(usdflist) {
+		for(std::list<BCond *>::iterator it = usdflist->begin(); it != usdflist->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << std::endl;
+		}
+	  }
+#endif
+		if (claw) claw->makeGlobalClaw(subd->getClaw());
+
+		// complex dirichlet
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading Complex Dirichlet" << std::endl;
+#endif
+		std::list<ComplexBCond *> *cdlist = sower.template read<ComplexBCDataIO<HDIR_TYPE> >(*f, subNum, glNums);
+		if (cdlist) subd->setComplexDirichletBC(cdlist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
+#ifdef SOWER_DEBUG
+		if(cdlist) {
+		for(std::list<ComplexBCond *>::iterator it = cdlist->begin(); it != cdlist->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->reval
+					<< "," << (*it)->imval << std::endl;
+		}
+	  }
+#endif
+
+		// complex neuman
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading Complex Neuman" << std::endl;
+#endif
+		std::list<ComplexBCond *> *cnlist = sower.template read<ComplexBCDataIO<HNEU_TYPE> >(*f, subNum, glNums);
+		if (cnlist) subd->setComplexNeumanBC(cnlist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} // not used
+#ifdef SOWER_DEBUG
+		if(cnlist) {
+		for(std::list<ComplexBCond *>::iterator it = cnlist->begin(); it != cnlist->end(); ++it) {
+		  std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->reval
+					<< "," << (*it)->imval << std::endl;
+		}
+	  }
+#endif
+
+		//ATDDNB & HDNB
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading DNB (ATDDNB or HDNB)" << std::endl;
+#endif
+		std::list<SommerElement *> *dnblist = sower.template read<SommerDataIO<DNB_TYPE> >(*f, subNum, glNums);
+		if (dnblist) subd->setDnb(dnblist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} //not used
+#ifdef SOWER_DEBUG
+		if(dnblist) {
+		int i, numN = 0;
+		for(std::list<SommerElement *>::iterator it = dnblist->begin(); it != dnblist->end(); ++it) {
+		  //get type and list of nodes
+		  numN = (*it)->numNodes();
+		  std::cerr << " node: ";
+		  for (i = 0 ; i < numN-1 ; i++)
+			std::cerr << (*it)->getNode(i) << ", ";
+		  std::cerr << (*it)->getNode(numN-1) << std::endl;
+		}
+	  }
+#endif
+
+		//LMPC
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading LMPC" << std::endl;
+#endif
+		std::pair<int, ResizeArray<LMPCons *> *> *mpc = sower.template read<LMPCIO>(*f, subNum, glNums);
+		if (mpc) {
+			for (int i = 0; i < mpc->first; ++i) domain->addLMPC((*mpc->second)[i]);
+		}
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		}
+#ifdef SOWER_DEBUG
+		if(mpc) {
+		std::cerr << "numLMPC = " << mpc->first << std::endl;
+		for(int i=0; i<mpc->first; ++i) {
+		  (*mpc->second)[i]->print();
+		}
+	  }
+#endif
+
+		//TETT
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading TETT" << std::endl;
+#endif
+		/*std::pair<int, ResizeArray<MFTTData*>* >* tett =*/ sower.template read<MFTTDataIO<TETT_TYPE> >(*f, subNum,
+		                                                                                                 glNums);
+
+		//YMTT
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading YMTT" << std::endl;
+#endif
+		/*std::pair<int, ResizeArray<MFTTData*>* >* ymtt =*/ sower.template read<MFTTDataIO<YMTT_TYPE> >(*f, subNum,
+		                                                                                                 glNums);
+
+		//ATDROB & HSCB
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading Scatter (ATDROB & HSCB)" << std::endl;
+#endif
+		std::list<SommerElement *> *scatlist = sower.template read<SommerDataIO<SCAT_TYPE> >(*f, subNum, glNums);
+		if (scatlist) subd->setScat(scatlist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} //not used
+#ifdef SOWER_DEBUG
+		if(scatlist) {
+		int i, numN = 0;
+		for(std::list<SommerElement *>::iterator it = scatlist->begin(); it != scatlist->end(); ++it) {
+		  //get type and list of nodes
+		  numN = (*it)->numNodes();
+		  std::cerr << " node: ";
+		  for (i = 0 ; i < numN-1 ; i++)
+			std::cerr << (*it)->getNode(i) << ", ";
+		  std::cerr << (*it)->getNode(numN-1) << std::endl;
+		}
+	  }
+#endif
+
+		//ATDARB & HARB
+#ifdef SOWER_DEBUG
+		std::cerr << std::endl << "--Reading ARB (ATDARB & HARB)" << std::endl;
+#endif
+		std::list<SommerElement *> *arblist = sower.template read<SommerDataIO<ARB_TYPE> >(*f, subNum, glNums);
+		if (arblist) subd->setArb(arblist);
+		if (glNums) {
+			delete[] glNums;
+			glNums = 0;
+		} //not used
+#ifdef SOWER_DEBUG
+		if(arblist) {
+		int i, numN = 0;
+		for(std::list<SommerElement *>::iterator it = arblist->begin(); it != arblist->end(); ++it) {
+		  //get type and list of nodes
+		  numN = (*it)->numNodes();
+		  std::cerr << " node: ";
+		  for (i = 0 ; i < numN-1 ; i++)
+			std::cerr << (*it)->getNode(i) << ", ";
+		  std::cerr << (*it)->getNode(numN-1) << std::endl;
+		}
+	  }
+#endif
+		result.push_back(subd);
+	}
+	cleanUp();
+	return result;
 }
 #else
 template<class Scalar>

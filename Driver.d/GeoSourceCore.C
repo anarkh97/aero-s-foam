@@ -30,6 +30,7 @@
 #include <limits>
 #include <algorithm>
 #include <iterator>
+#include <string>
 #include <Sfem.d/Sfem.h>
 #ifdef USE_EIGEN3
 #include <Math.d/rref.h>
@@ -3656,19 +3657,21 @@ void GeoSource::closeOutputFileImpl(int fileIndex)
 void GeoSource::outputHeader(int fileNumber)
 {
   // only one node is requested for output,
+  const int& averageFlg = oinfo[fileNumber].averageFlg;
+  std::string s = (averageFlg == -1 || averageFlg == 0) ? "element" : "node";
   if(oinfo[fileNumber].nodeNumber != -1) {
     if(domain->isComplex()) {
       switch(oinfo[fileNumber].complexouttype) {
         case(OutputInfo::realimag) :
-          fprintf(oinfo[fileNumber].filptr, "# node %d (real and imaginary parts)\n", oinfo[fileNumber].nodeNumber+1);
+          fprintf(oinfo[fileNumber].filptr, "# %s %d (real and imaginary parts)\n", s.c_str(), oinfo[fileNumber].nodeNumber+1);
           break;
         case(OutputInfo::modulusphase) :
-          fprintf(oinfo[fileNumber].filptr, "# node %d (complex modulus and phase)\n", oinfo[fileNumber].nodeNumber+1);
+          fprintf(oinfo[fileNumber].filptr, "# %s %d (complex modulus and phase)\n", s.c_str(), oinfo[fileNumber].nodeNumber+1);
           break;
       }
     }
     else
-      fprintf(oinfo[fileNumber].filptr, "# node %d\n", oinfo[fileNumber].nodeNumber+1);
+      fprintf(oinfo[fileNumber].filptr, "# %s %d\n", s.c_str(), oinfo[fileNumber].nodeNumber+1);
     return;
   }
 

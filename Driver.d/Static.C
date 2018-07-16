@@ -1666,6 +1666,10 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
         }
       }
 
+      // Only include specified element in case of single element output
+      if ((avgnum == -1 || avgnum == 0) && (oinfo[fileNumber].nodeNumber != -1) &&
+          (oinfo[fileNumber].nodeNumber != packedEset[iele]->getGlNum())) continue;
+
       elDisp->zero();
       elstress->zero();
       elweight->zero();
@@ -1733,16 +1737,20 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     } // end of (printFlag != 2)
 
     // PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
-    if(avgnum == 0) {
+    if(avgnum == 0 || avgnum == -1) {
       int offset[2];
       offset[0] = 0;
       offset[1] = packedEset[iele]->numTopNodes(); //HB 06-25-05: avoid the internal nodes for MpcElement
 
       if(stressIndex != 31) {
         if(printFlag == 0) {
-          if(iele == 0)
-            geoSource->outputElemStress(fileNumber, (double *) 0, 0, offset, time); // print time
-          geoSource->outputElemStress(fileNumber, elstress->data(), 1, offset); // print stresses
+          if(oinfo[fileNumber].nodeNumber == -1) {
+            if(iele == 0) geoSource->outputElemStress(fileNumber, (double *) 0, 0, offset, time); // print time
+            geoSource->outputElemStress(fileNumber, elstress->data(), 1, offset); // print stresses
+          }
+          else {
+            geoSource->outputElemStress(fileNumber, elstress->data(), 1, offset, time); // print time and stresses
+          }
         }
         if(printFlag == 1) {
           for(k = 0; k < NodesPerElement; ++k) {

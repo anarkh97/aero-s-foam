@@ -2140,8 +2140,12 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   int p = oinfo[fileNumber].precision;
 
   // ... WRITE CURRENT TIME VALUE
-  if(avgnum == 0 || avgnum == -1)
-    fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
+  if(avgnum == 0 || avgnum == -1) {
+    if(oinfo[fileNumber].nodeNumber == -1)
+      fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
+    else
+      fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,time);
+  }
 
   // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
   if(stress == 0)
@@ -2189,6 +2193,8 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   int flag;
   for(iele = 0; iele < numElements(); ++iele) {
     if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
+    if ((avgnum == 0 || avgnum == -1) && (oinfo[fileNumber].nodeNumber != -1) &&
+        (oinfo[fileNumber].nodeNumber != packedEset[iele]->getGlNum())) continue;
 
     int NodesPerElement = packedEset[iele]->numNodes();
 

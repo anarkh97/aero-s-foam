@@ -123,11 +123,11 @@ ROMPostProcessingDriver::preProcess()
   VECsize = normalizedBasis_.size();
 
   //initialize containers for full coordinates 
-  fullDispBuffer  = new GenVector<double>(NonLinDynamic::solVecInfo());
-  fullVelBuffer   = new GenVector<double>(NonLinDynamic::solVecInfo());
-  fullAccBuffer   = new GenVector<double>(NonLinDynamic::solVecInfo());
-  fullVel2Buffer  = new GenVector<double>(NonLinDynamic::solVecInfo());
-  fullDummyBuffer = new GenVector<double>(NonLinDynamic::solVecInfo());
+  fullDispBuffer  = new GenVector<double>(NonLinDynamic::solVecInfo()); fullDispBuffer->zero();
+  fullVelBuffer   = new GenVector<double>(NonLinDynamic::solVecInfo()); fullVelBuffer->zero();
+  fullAccBuffer   = new GenVector<double>(NonLinDynamic::solVecInfo()); fullAccBuffer->zero();
+  fullVel2Buffer  = new GenVector<double>(NonLinDynamic::solVecInfo()); fullVel2Buffer->zero();
+  fullDummyBuffer = new GenVector<double>(NonLinDynamic::solVecInfo()); fullDummyBuffer->zero();
 
   //initialize system state vector container for use in multi domain dynamic post processor
   curState = new SysState<GenVector<double> >( *fullDispBuffer, *fullVelBuffer, *fullAccBuffer, *fullVel2Buffer);

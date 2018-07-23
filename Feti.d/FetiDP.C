@@ -851,21 +851,23 @@ GenFetiDPSolver<Scalar>::makeKcc()
 	stopTimerMemory(this->times.coarse1, this->times.memoryGtG);
 }
 
-/** \details Depends only on non 'Scalar' related members:
+/** \details The corners are given global unique numbers from 0 to glNumCorners-1.
+ *
+ * Depends only on non 'Scalar' related members:
  * glNumSub, subdomains, fetiCom,
  *
- * Also builds blNumCorners.
+ * Also builds glNumCorners.
  * @tparam Scalar
  * @return
  */
 template <typename Scalar>
 Connectivity *GenFetiDPSolver<Scalar>::makeCornerToSub() {
-	int *pointer = new int[this->glNumSub + 1];
+	std::vector<int> pointer(this->glNumSub + 1);
 	for(int i=0; i < this->glNumSub + 1; ++i) pointer[i] = 0;
 	for(int iSub=0; iSub < this->nsub; ++iSub)
 			pointer[this->subdomains[iSub]->subNum()] = this->subdomains[iSub]->numCorners();
 #ifdef DISTRIBUTED
-	this->fetiCom->globalSum(this->glNumSub, pointer);
+	this->fetiCom->globalSum(this->glNumSub, pointer.data());
 #endif
 	int total = 0;
 	for(int iSub=0; iSub < this->glNumSub; ++iSub) {
@@ -899,7 +901,7 @@ Connectivity *GenFetiDPSolver<Scalar>::makeCornerToSub() {
 	delete [] glCornerNodes;
 	if(verboseFlag) filePrint(stderr, " ... Total Number of Corners %5d  ...\n", glNumCorners);
 
-	int *target = new int[total];
+	std::vector<int> target(total);
 	for(int i=0; i<total; ++i) target[i] = 0;
 	for(int iSub=0; iSub < this->nsub; ++iSub) {
 			int numCorner    = this->subdomains[iSub]->numCorners();
@@ -912,10 +914,10 @@ Connectivity *GenFetiDPSolver<Scalar>::makeCornerToSub() {
 			}
 		}
 #ifdef DISTRIBUTED
-	this->fetiCom->globalSum(total, target);
+	this->fetiCom->globalSum(total, target.data());
 #endif
 
-	auto subToCorner = new Connectivity(this->glNumSub, pointer, target);
+	auto subToCorner = new Connectivity(this->glNumSub, std::move(pointer), std::move(target));
 	this->cornerToSub = subToCorner->reverse();
 	return subToCorner;
 }

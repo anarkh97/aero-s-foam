@@ -29,13 +29,13 @@ class SparseConnectivityAccessorT {
     }
 };
 
-#include <Utils.d/GlobalInt.h>
+#include <Types.h>
 
-typedef std::pair<std::map<int,int>,ConnectivityT<int,GlobalInt>*> SparsePairType1;
-typedef ImplicitConnectivityT<SparsePairType1*, SparseConnectivityAccessorT<int,GlobalInt> > SparseConnectivityType1;
+typedef std::pair<std::map<int,int>,ConnectivityT<int,gl_num_t>*> SparsePairType1;
+typedef ImplicitConnectivityT<SparsePairType1*, SparseConnectivityAccessorT<int,gl_num_t> > SparseConnectivityType1;
 
-typedef std::pair<std::map<GlobalInt,int>,ConnectivityT<int,int>*> SparsePairType2;
-typedef ImplicitConnectivityT<SparsePairType2*, SparseConnectivityAccessorT<GlobalInt,int> > SparseConnectivityType2;
+typedef std::pair<std::map<gl_num_t,int>,ConnectivityT<int,int>*> SparsePairType2;
+typedef ImplicitConnectivityT<SparsePairType2*, SparseConnectivityAccessorT<gl_num_t,int> > SparseConnectivityType2;
 
 template <typename _IndexType, typename _DataType>
 struct base_traits<SparseConnectivityAccessorT<_IndexType,_DataType> > {

@@ -483,7 +483,7 @@ IF(CREATE_DSO)
 endif(CREATE_DSO)
 
 IF(NOT CREATE_DSO)
-	add_executable(femexecutable  main.C HgIdentity.C)
+	add_executable(femexecutable  main.C HgIdentity.C Types.h)
 
 	SET_TARGET_PROPERTIES(femexecutable
 			PROPERTIES

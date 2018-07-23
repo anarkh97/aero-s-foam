@@ -124,6 +124,7 @@ public:
 	std::vector<int> &getCornerNodes() { return glCornerNodes; }
 	void markCornerDofs(int *glCornerDofs) const;
 	void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
+	void makeKccDofsExp2(int nsub, FetiBaseSub **sd, int augOffset, Connectivity *subToEdge);
 
 	int numEdgeDofs(int i) const { return edgeDofSize[i]; }
 
@@ -131,11 +132,7 @@ public:
 	std::vector<int> &getWeights() { return weight; }
 	int dofWeight(int i) const { return weight[i]; }
 
-	std::vector<DofSet> cornerDofs;
-	DofSet *edgeDofs;      // JAT 112113
-	vec_const_int glNums;
 
-	SComm *scomm = nullptr;
 
 	const auto &getCornerEqNums() const { return cornerEqNums; }
 	int getGroup() const { return group; }
@@ -188,9 +185,19 @@ public:
 	virtual void averageMatProps() = 0;
 	void sendMatProps(FSCommPattern<double> *matPat);
 	void collectMatProps(FSCommPattern<double> *matPat);
+
+public:
+	std::vector<DofSet> cornerDofs;
+	DofSet *edgeDofs;      // JAT 112113
+
 protected:
 	int subNumber;
 	int localSubNumber; // relevant when running in distributed
+
+	/// \brief Vector of global indices for local nodes.
+	vec_const_int glNums;
+
+	SComm *scomm = nullptr;
 	bool isCoupled = false; // TODO Ensure this is set or derived from some other info.
 	int boundLen = 0;
 	int internalLen = 0;
@@ -258,6 +265,8 @@ public:
 	GlobalToLocalMap &getGlobalToLocalNode() { return glToLocalNode; }
 
 	int group = 0;
+	/// @name MPC Data
+	///@g{
 	// Multiple Point Constraint (MPC) Data
 	int numMPC = 0;             // number of local Multi-Point Constraints
 	int *localToGlobalMPC = nullptr;  // local to global MPC numbering
@@ -267,6 +276,7 @@ public:
 	int numMPC_primal = 0;
 	int *localToGlobalMPC_primal = nullptr;
 	GlobalToLocalMap globalToLocalMPC_primal;
+	///@}
 
 	int *cornerMap = nullptr;
 
@@ -311,7 +321,7 @@ protected:
 
 	GlobalToLocalMap *neighbGlToLocalWImap = nullptr;
 
-	GlobalToLocalMap glToLocalNode; // This seems to be for coarse problem only.
+	GlobalToLocalMap glToLocalNode; //!< This seems to be for coarse problem only.
 
 	/// \brief store indices for possible rebuild (multiple LHS freq sweep)
 	int edgeQindex[2] = {-1, -1};
@@ -535,9 +545,6 @@ public:
 	void precondGrbm();
 
 	void makeZstarAndR(double *centroid);  // makes Zstar and R
-
-	void makeKccDofsExp2(int nsub, FetiBaseSub **sd, int augOffset,
-	                     Connectivity *subToEdge);
 
 	const std::vector<Scalar> &getfc() const { return fcstar; }
 

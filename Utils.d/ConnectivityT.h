@@ -249,22 +249,22 @@ public:
 	typedef typename base_traits<Accessor>::DataType  DataType;
 private:
 	A a;
-	IndexType cacheVal, cacheSize;
-	DataType *cacheTg;
-	IndexType cacheNumVal, cacheNumIdx;
+	mutable IndexType cacheVal, cacheSize;
+	mutable DataType *cacheTg;
+	mutable IndexType cacheNumVal, cacheNumIdx;
 public:
 	ImplicitConnectivityT(A _a) : a(_a) { cacheSize = 0; cacheTg = 0;
 		cacheVal=-1; cacheNumIdx = -1; }
 	~ImplicitConnectivityT() { if(cacheTg) delete [] cacheTg; }
-	IndexType csize() { return Accessor::getSize(*a); }
-	IndexType num(IndexType i) {
+	IndexType csize() const { return Accessor::getSize(*a); }
+	IndexType num(IndexType i) const {
 		if(cacheNumIdx != i) {
 			cacheNumVal = Accessor::getNum(*a,i);
 			cacheNumIdx = i;
 		}
 		return cacheNumVal;
 	}
-	DataType *getNewCacheVal(IndexType j) {
+	DataType *getNewCacheVal(IndexType j)const {
 		IndexType n = num(j);
 		if(n > cacheSize) {
 			IndexType newSize = std::max(n, 3*cacheSize/2);
@@ -275,13 +275,13 @@ public:
 		cacheVal = j;
 		return(Accessor::getData(*a,j,cacheTg));
 	}
-	DataType *operator[](IndexType i) {
+	DataType *operator[](IndexType i) const {
 		if(cacheVal == i)
 			return cacheTg;
 		else
 			return getNewCacheVal(i);
 	}
-	IndexType getNumTarget() {
+	IndexType getNumTarget() const {
 		IndexType n = csize();
 		IndexType res = 0;
 		for(IndexType i = 0; i < n; ++i)

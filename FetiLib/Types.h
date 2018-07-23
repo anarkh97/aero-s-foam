@@ -2,8 +2,8 @@
 // Created by Michel Lesoinne on 3/28/18.
 //
 
-#ifndef FEM_TYPES_H
-#define FEM_TYPES_H
+#ifndef FETILIB_TYPES_H
+#define FETILIB_TYPES_H
 
 namespace FetiLib {
 
@@ -20,4 +20,4 @@ using local_subdomain_index = int;
 
 } // namespace FetiLib
 
-#endif //FEM_TYPES_H
+#endif //FETILIB_TYPES_H

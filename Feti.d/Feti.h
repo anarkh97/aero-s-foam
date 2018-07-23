@@ -499,7 +499,7 @@ public:
 	void zeroG();
 	void deleteG();
 
-	/** \brief Build the corner to subdomain connectivity into the member variable and return subToCorner. */
+	/** \brief Build the sub to corner connectivity into the member variable and return corner to subdomain. */
 	Connectivity *makeCornerToSub();
 };
 

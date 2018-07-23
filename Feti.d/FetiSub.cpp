@@ -2935,9 +2935,8 @@ FetiSub<Scalar>::sendMpcStatus(FSCommPattern<int> *mpcPat, int flag) {
 }
 
 
-template<class Scalar>
 void
-FetiSub<Scalar>::makeKccDofsExp2(int nsub, FetiBaseSub **sd,
+FetiBaseSub::makeKccDofsExp2(int nsub, FetiBaseSub **sd,
                                  int augOffset, Connectivity *subToEdge) {
 	int numC = numCoarseDofs();
 	cornerEqNums.resize(numC);
@@ -2952,7 +2951,8 @@ FetiSub<Scalar>::makeKccDofsExp2(int nsub, FetiBaseSub **sd,
 			if (nodeMap[glCornerNodes[i]] > -1) {
 				int count = cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(),
 				                              cornerEqNums.data() + offset);
-				for (int k = 0; k < count; ++k) cornerEqNums[offset + k] += offset2;
+				for (int k = 0; k < count; ++k)
+					cornerEqNums[offset + k] += offset2;
 				offset += count;
 				break;
 			}

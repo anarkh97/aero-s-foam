@@ -4793,14 +4793,14 @@ void GeoSource::getBinaryDecomp()
 #endif
 #else
 	ConnectivityT<int,int> *csubToSub2 = new ConnectivityT<int,int>(fp);
-	ConnectivityT<int,GlobalInt> *csubToNode = new ConnectivityT<int,GlobalInt>(fp);
-	ConnectivityT<int,GlobalInt> *cnodeToNode = new ConnectivityT<int,GlobalInt>(fp);
+	ConnectivityT<int,gl_node_idx> *csubToNode = new ConnectivityT<int,gl_node_idx>(fp);
+	ConnectivityT<int,gl_node_idx> *cnodeToNode = new ConnectivityT<int,gl_node_idx>(fp);
 	ConnectivityT<int,int> *cnodeToSub = new ConnectivityT<int,int>(fp);
 
 	std::map<int,int> glToLocSub2;
 	for(int j=0; j<csubToSub2->csize(); ++j) glToLocSub2.insert(std::pair<int,int>((*csubToSub2)[j][0], j));
-	std::map<GlobalInt,int> glToLocNode;
-	for(int j=0; j<cnodeToNode->csize(); ++j) glToLocNode.insert(std::pair<GlobalInt,int>((*cnodeToNode)[j][0], j));
+	std::map<gl_node_idx,int> glToLocNode;
+	for(int j=0; j<cnodeToNode->csize(); ++j) glToLocNode.insert(std::pair<gl_node_idx,int>((*cnodeToNode)[j][0], j));
     numClusNodes = cnodeToNode->csize();
 
 	SparsePairType1 *subnode = new SparsePairType1(glToLocSub2,csubToNode);

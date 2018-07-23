@@ -194,7 +194,7 @@ void GenDecDomain<Scalar>::addBMPCs()
 
 template<class Scalar>
 template<class ConnectivityType1, class ConnectivityType2>
-void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, ConnectivityType2 *subToNode)
+void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, const ConnectivityType2 *subToNode) const
 {
   // Start timer
   startTimerMemory(mt.makeConnectivity, mt.memoryConnect);

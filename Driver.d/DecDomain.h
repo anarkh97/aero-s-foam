@@ -174,8 +174,15 @@ class GenDecDomain
   void makeSubDomains();
   void renumberElements(int iSub);
   void createElemToNode();
+  /** \brief Build the SComm for each subdomain, based on the input connectivities.
+   *
+   * @tparam ConnectivityType1
+   * @tparam ConnectivityType2
+   * @param nodeToSub
+   * @param subToNode
+   */
   template<class ConnectivityType1, class ConnectivityType2>
-  void getSharedNodes(ConnectivityType1 *, ConnectivityType2 *);
+  void getSharedNodes(const ConnectivityType1 *nodeToSub, const ConnectivityType2 *subToNode) const;
   void addBMPCs();
   void makeSubToSubEtc();
   void preProcessBCsEtc();

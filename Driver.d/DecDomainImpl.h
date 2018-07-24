@@ -219,14 +219,8 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
   // create each subdomain's interface lists
   int iSub, jSub, subJ, iNode;
   int totConnect;
-  int *nConnect = new int[numNESub];
-  int *flag = new int[numNESub];
-  for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
-    if(subToNode->num(iSub)) {
-      flag[NESubMap[iSub]] = -1;
-      nConnect[NESubMap[iSub]] = 0;
-    }
-  }
+  std::vector<int> nConnect(numNESub, 0);
+  std::vector<int> flag(numNESub, -1);
 
   // Count connectivity
   totConnect = 0;
@@ -275,8 +269,8 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
     }
   }
 
-  int *whichLocal  = new int[numNESub];
-  int *whichRemote = new int[numNESub];
+	std::vector<int> whichLocal(numNESub);
+	std::vector<int> whichRemote(numNESub);
 
   for(iSub=0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) {
@@ -354,16 +348,13 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
       }
     }
   }
-  delete [] flag;
-  delete [] whichLocal;
-  delete [] whichRemote;
+
   for(iSub = 0; iSub < numNESub; ++iSub)
     delete [] nodeCount[iSub];
   delete [] nodeCount;
   delete [] wetInterfaceNodeMap;
 
-  bool *localNESub = new bool[numNESub];
-  for(int i = 0; i < numNESub; ++i) localNESub[i] = false;
+  std::vector<bool> localNESub(numNESub, false);
 
   for(iSub = 0; iSub < numSub; ++iSub) {
     int subI = (localSubToGl.size() > 0) ? localSubToGl[iSub] : iSub;
@@ -385,11 +376,9 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
       delete interfNode[i];
     }
   }
-  delete [] localNESub;
 
   delete [] remoteID;
   delete [] connectedDomain;
-  delete [] nConnect;
 
   stopTimerMemory(mt.makeConnectivity, mt.memoryConnect);
 }

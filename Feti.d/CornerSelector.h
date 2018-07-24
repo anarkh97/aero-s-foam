@@ -47,8 +47,9 @@ class FetiSubCornerHandler
 {
 
 public:
-	FetiSubCornerHandler(int sub, int nn, CoordSet &n, Connectivity &nTn, DofSetArray &d, Connectivity &sh, int *nsb,
-		                     ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
+	FetiSubCornerHandler(int sub, int nn, CoordSet &n, Connectivity &nTn, DofSetArray &d, Connectivity &sh,
+	                     const std::vector<int> &nsb,
+	                     ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
 	~FetiSubCornerHandler();
 	void markMultiDegNodes();
 	void dispatchSafeNodes(FSCommPattern<int> *);
@@ -86,7 +87,7 @@ protected:
 	int nNeighb;
 	Connectivity &sharedNodes;
 	Connectivity &nToN;
-	int *neighbSubs;
+	const std::vector<int> &neighbSubs;
 	CoordSet &nodes;
 	DofSetArray &dsa;
 	std::vector<bool> isRotMidSideNode;

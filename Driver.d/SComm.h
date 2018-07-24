@@ -1,6 +1,7 @@
 #ifndef _SCOMM_H_
 #define _SCOMM_H_
 
+#include <Types.h>
 #include <Utils.d/Connectivity.h>
 
 class Connectivity;
@@ -13,18 +14,19 @@ public:
 	 *
 	 * @param numNeighb Number of neighboring subdomains.
 	 * @param subNums Indices of the neighboring subdomains
-	 * @param remoteId ID in each neigbor for this subdomain.
+	 * @param remoteId ID in each neighbor for this subdomain.
 	 * @param sharedNodes Nodes shared with each neighbor.
 	 */
-	SComm(int numNeighb, int *subNums, int *remoteId, Connectivity *sharedNodes);
+	SComm(int numNeighb, std::vector<gl_sub_idx> subNums, std::vector<lc_sub_idx> remoteId,
+	      std::unique_ptr<Connectivity> sharedNodes);
 	~SComm();
 
 	int locSubNum = -1;     //!< when running in distributed mode
 
-	int *remoteId = nullptr;     //!< id of this subdomain in the corresponding neighbor
+	std::vector<lc_sub_idx >remoteId;     //!< id of this subdomain in the corresponding neighbor
 	int numNeighb = 0;     //!< Number of neighbors with shared nodes
-	int *subNums = nullptr;      //!< identification numbers of neighbors with shared nodes
-	Connectivity *sharedNodes = nullptr; //!< nodes shared with the neighbors (wet and dry but no virtual)
+	std::vector<gl_sub_idx > subNums;      //!< identification numbers of neighbors with shared nodes
+	std::unique_ptr<Connectivity> sharedNodes; //!< nodes shared with the neighbors (wet and dry but no virtual)
 	std::vector<void *> exchangeData;
 
 	int numEdgeNeighb = 0; //!< number of neighbors that have at least one non-virtual node on the interface

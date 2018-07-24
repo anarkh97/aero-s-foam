@@ -65,10 +65,11 @@ class GenDecDomain
   Scalar *globalStress;
   Scalar *globalWeight;
 
-	int *glSubToLocal;            //<! \brief Local numbering of subdomains
-	std::vector<int> localSubToGl;            //<! \brief Local to global map
-	int globalNumSub;             //<! \brief Lotal number of subdomains on all cpus
-	int numSub;                   //<! \brief Local number of subdomains
+    // TODO Switch to a std::map
+	lc_sub_idx *glSubToLocal;            //<! \brief Local numbering of global subdomains.
+	std::vector<gl_sub_idx> localSubToGl;            //<! \brief Local to global subdomain index map.
+	int globalNumSub;             //<! \brief Global number of subdomains on all cpus.
+	int numSub;                   //<! \brief Local number of subdomains on this process.
 
 	FSCommunicator *communicator; //<! Communicator for all the structural processes.
   FSCommPattern<Scalar> *wiPat;

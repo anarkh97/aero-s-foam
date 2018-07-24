@@ -3,13 +3,14 @@
 
 #include <vector>
 #include <Feti.d/CornerSelector.h>
+#include <Types.h>
 
 class Elemset;
 
 class SubCornerHandler : public FetiSubCornerHandler {
 public:
 	SubCornerHandler(int sub, int nn, CoordSet &n, Elemset &ele, Connectivity &nTn, DofSetArray &d,
-		                 Connectivity &sh, int *nsb, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
+	                 Connectivity &sh, const std::vector<lc_node_idx> &nsb, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
 };
 
 #endif

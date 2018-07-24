@@ -21,7 +21,7 @@ class GenCoarseSet {
    Scalar *locGs;
    Scalar *locQGs;	// for Feti Static, locQGs = locGs
    int numNeighb;
-   int *neighbs;
+   const int *neighbs;
    int *neighbNumRBMs;
    Scalar **neighbQGs;
    int *subOffset; // indicates the size of interface to each subdomains

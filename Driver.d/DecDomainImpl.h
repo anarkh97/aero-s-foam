@@ -227,11 +227,12 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) { // loop over the nodes
       typename ConnectivityType2::IndexType thisNode = (*subToNode)[iSub][iNode];
-      bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[thisNode] != -1)) ? true : false;
+      bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[thisNode] != -1));
       for(jSub = 0; jSub < nodeToSub->num(thisNode); ++jSub) {
         // loop over the subdomains connected to this node
         subJ = (*nodeToSub)[thisNode][jSub];
-        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
+        bool neighbWithSelf =
+		        (subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0);
         if((subJ > iSub) || neighbWithSelf) {
           // only deal with connection to highered numbered subdomains, guarantees symmetry of lists
 	  if(!subToNode->num(subJ)) {
@@ -253,16 +254,16 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
   }
 
   int **nodeCount = new int*[numNESub];
-  int **connectedDomain = new int*[numNESub];
-  int **remoteID = new int*[numNESub];
+	std::vector<std::vector<gl_sub_idx>> connectedDomain(numNESub);
+	std::vector<std::vector<lc_sub_idx>> remoteID(numNESub);
 
   // Allocate memory for list of connected subdomains
   // (de-allocated in ~SComm)
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
     if(subToNode->num(iSub)) {
       int size = nConnect[NESubMap[iSub]];
-      connectedDomain[NESubMap[iSub]] = new int[size];
-      remoteID[NESubMap[iSub]] = new int[size];
+      connectedDomain[NESubMap[iSub]].resize(size);
+      remoteID[NESubMap[iSub]].resize(size);
       nodeCount[NESubMap[iSub]] = new int[size];
       flag[NESubMap[iSub]] = -1;
       nConnect[NESubMap[iSub]] = 0;
@@ -303,10 +304,10 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
   }
 
   // allocate memory for interface node lists
-  std::vector<Connectivity *> interfNode(numNESub, nullptr);
+  std::vector<std::unique_ptr<Connectivity>> interfNode(numNESub);
   for(iSub=0; iSub < subToNode->csize(); ++iSub)
     if(subToNode->num(iSub))
-      interfNode[NESubMap[iSub]] = new Connectivity(nConnect[NESubMap[iSub]], nodeCount[NESubMap[iSub]]);
+      interfNode[NESubMap[iSub]] = std::make_unique<Connectivity>(nConnect[NESubMap[iSub]], nodeCount[NESubMap[iSub]]);
 
   // fill the lists
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
@@ -319,10 +320,11 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) {
       typename ConnectivityType2::IndexType nd = (*subToNode)[iSub][iNode];
-      bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[nd] != -1)) ? true : false;
+      bool isWetInterfaceNode = coupled_dph && (wetInterfaceNodeMap[nd] != -1);
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];
-        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
+        bool neighbWithSelf =
+		        (subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0);
         if((subJ > iSub) || neighbWithSelf) {
           if(flag[NESubMap[subJ]] != iSub) { // attribute location for this sub
             flag[NESubMap[subJ]] = iSub;
@@ -357,28 +359,17 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
   std::vector<bool> localNESub(numNESub, false);
 
   for(iSub = 0; iSub < numSub; ++iSub) {
-    int subI = (localSubToGl.size() > 0) ? localSubToGl[iSub] : iSub;
+	  gl_sub_idx subI = (localSubToGl.size() > 0) ? localSubToGl[iSub] : iSub;
     if(!subToNode->num(subI)) {
       fprintf(stderr, "reference to empty subdomain 2\n");
       exit(1);
     }
     localNESub[NESubMap[subI]] = true;
-    SComm *sc = new SComm(nConnect[NESubMap[subI]], connectedDomain[NESubMap[subI]],
-                          remoteID[NESubMap[subI]], interfNode[NESubMap[subI]]);
+    SComm *sc = new SComm(nConnect[NESubMap[subI]], std::move(connectedDomain[NESubMap[subI]]),
+                          std::move(remoteID[NESubMap[subI]]), std::move(interfNode[NESubMap[subI]]));
     sc->locSubNum = iSub;
     subDomain[iSub]->setSComm(sc);
   }
-
-  for(int i = 0; i < numNESub; ++i) {
-    if(!localNESub[i]) {
-      delete [] connectedDomain[i];
-      delete [] remoteID[i];
-      delete interfNode[i];
-    }
-  }
-
-  delete [] remoteID;
-  delete [] connectedDomain;
 
   stopTimerMemory(mt.makeConnectivity, mt.memoryConnect);
 }

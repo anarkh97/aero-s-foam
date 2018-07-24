@@ -2,7 +2,8 @@
 #include <Element.d/Element.h>
 
 SubCornerHandler::SubCornerHandler(int sub, int nn, CoordSet &n, Elemset &eles, Connectivity &nTn, DofSetArray &d,
-                                   Connectivity &sh, int *nsb, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre)
+                                   Connectivity &sh, const std::vector<lc_node_idx> &nsb, ConstrainedDSA *c_dsa,
+                                   FetiBaseSub *_subPre)
 		: FetiSubCornerHandler(sub, nn, n, nTn, d, sh, nsb, c_dsa,
 		                       _subPre) {
 	for(int i=0; i<eles.last(); ++i) {

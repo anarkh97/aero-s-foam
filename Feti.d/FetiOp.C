@@ -328,7 +328,7 @@ GenFetiOp<Scalar>::makeCoarseSet()
  SComm *scom    = sd->getSComm();
  cset.myNum     = sd->subNum();
  cset.numNeighb = scom->numNeighb;
- cset.neighbs   = scom->subNums;
+ cset.neighbs   = scom->subNums.data();
  cset.subOffset = new int[cset.numNeighb+1];
  cset.sd        = sd;
  cset.numBCs    = 0;

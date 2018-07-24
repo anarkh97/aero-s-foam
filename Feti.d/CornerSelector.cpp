@@ -53,8 +53,10 @@ static double checkArea(int np, int *pt, double pxyz[][3], int dim =3)
 }
 
 
-FetiSubCornerHandler::FetiSubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes, Connectivity &_nToN, DofSetArray &_dsa,
-                                           Connectivity &_sharedNodes, int *_neighbSubs, ConstrainedDSA *c_dsa, FetiBaseSub *_subPre)
+FetiSubCornerHandler::FetiSubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes, Connectivity &_nToN,
+                                           DofSetArray &_dsa,
+                                           Connectivity &_sharedNodes, const std::vector<int> &_neighbSubs,
+                                           ConstrainedDSA *c_dsa, FetiBaseSub *_subPre)
 		:
 		nnodes(_nnodes),
 		isCorner(_nnodes, false),

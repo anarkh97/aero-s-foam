@@ -34,7 +34,7 @@ master_node_flags(const SubDomain &subDom, BoolOutIt result) {
   const int nodeCount = sd.numNode();
   std::vector<bool> work(nodeCount, true); // vector<bool> specialization acceptable here
 
-  Connectivity *sharedNodes = sd.getSComm()->sharedNodes;
+  auto &sharedNodes = sd.getSComm()->sharedNodes;
   
   const int neighborCount = sd.getSComm()->numNeighb;
   for (int iNeighbor = 0; iNeighbor < neighborCount; ++iNeighbor) {

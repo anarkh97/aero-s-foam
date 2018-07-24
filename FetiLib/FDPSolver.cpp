@@ -37,27 +37,6 @@ private:
 	global_node_index remainder;
 };
 
-/*
- getSharedNodes(nodeToSub, subToNode);
-
- makeCorners();// Corners for FETI-DP
-
- getSharedDOFs();
- preProcessMPCs();//Multi-Point Constraint
-
- getSharedFSIs();
-
- getSharedMPCs();
-
- paralApply(numSub, subDomain, &BaseSub::mergeInterfaces);
- paralApply(numSub, subDomain, &GenSubDomain<Scalar>::applySplitting);
-
- //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::initSrc);
- makeInternalInfo();
-
- makeNodeInfo();
- */
-
 /** \brief Function creating useful connectivities from a matrix structure
  *
  */

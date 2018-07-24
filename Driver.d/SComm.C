@@ -1,13 +1,10 @@
 #include <iostream>
 #include <Driver.d/SComm.h>
 
-SComm::SComm(int nN, int *subIds, int *ids, Connectivity *con) : exchangeData(nN, nullptr)
+SComm::SComm(int nN, std::vector<gl_sub_idx> subIds, std::vector<lc_sub_idx> ids, std::unique_ptr<Connectivity> con) :
+        subNums(std::move(subIds)), remoteId(std::move(ids)), exchangeData(nN, nullptr), sharedNodes{std::move(con)}
 {
 	numNeighb = nN;
-	subNums = subIds;
-	remoteId = ids;
-	sharedNodes = con;
-	for(int i=0; i<numNeighb; ++i) exchangeData[i] = 0;  // PJSA
 
 	// type specific lists
 	numDofType = 8;
@@ -16,9 +13,6 @@ SComm::SComm(int nN, int *subIds, int *ids, Connectivity *con) : exchangeData(nN
 SComm::~SComm()
 {
   //if(sharedDOFs) { delete sharedDOFs; sharedDOFs=0; }
-  if(sharedNodes) { delete sharedNodes; sharedNodes = 0; }
-  if(subNums/* && !salinasFlag*/) { delete [] subNums; subNums = 0; }
-  if(remoteId) { delete [] remoteId; remoteId = 0; }
   if(isEdgeNeighb) { delete [] isEdgeNeighb; isEdgeNeighb = 0; }
   // don't delete glSubToLocal (DistDom)
   if(NumNeighb) { delete [] NumNeighb; NumNeighb = 0; }

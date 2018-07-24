@@ -1260,19 +1260,18 @@ GenDistrDomain<Scalar>::createMasterFlag()
   int *subToClus = geoSource->getSubToClus();
   for(iSub = 0; iSub < this->numSub; iSub++) {
     // get connected subdomain information
-    int *connDoms = this->subDomain[iSub]->getSComm()->subNums;
-    int numConns = this->subDomain[iSub]->getSComm()->numNeighb;
+    auto &connDoms = this->subDomain[iSub]->getSComm()->subNums;
 
     int thisGlSub = this->subDomain[iSub]->subNum();
     int thisCluster = subToClus ? subToClus[thisGlSub] : 0;
 
     // loop over connected subdomains in this cluster
-    for(int jSub = 0; jSub < numConns; jSub++) {
+    for(int jSub = 0; jSub < connDoms.size(); jSub++) {
       // set master flag if connected subdomain global number is smaller
       if(connDoms[jSub] < thisGlSub && (subToClus == 0 || subToClus[connDoms[jSub]] == thisCluster)) {
 
         // get shared nodes
-        Connectivity *sharedNodes = this->subDomain[iSub]->getSComm()->sharedNodes;
+        auto &sharedNodes = this->subDomain[iSub]->getSComm()->sharedNodes;
         for(int iNode = 0; iNode < sharedNodes->num(jSub); iNode++) {
           int shNode = (*sharedNodes)[jSub][iNode];
           if(masterFlag[iSub][shNode] >= 0) {

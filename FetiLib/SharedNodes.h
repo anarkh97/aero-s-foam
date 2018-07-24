@@ -12,9 +12,14 @@ namespace FetiLib {
 /// Information about the nodes that are shared with other subdomains.
 class SharedNodes {
 public:
-/// Create the shared node information.
-	SharedNodes(int numNeighbors,
-	            VectorReference<const global_subdomain_index> neighbors, VectorReference<const size_t> neighborStart,
+	/** \brief Create the shared node information.
+	 *
+	 * @param neighbors List of neighboring subdomain global indices.
+	 * @param neighborStart Pointer into the sharedNodeIndices for each neighbor.
+	 * @param sharedNodeIndices Array of shared nodes for each neighbor in globally consistent order.
+	 */
+	SharedNodes(VectorReference<const global_subdomain_index> neighbors,
+	            VectorReference<const size_t> neighborStart,
 	            VectorReference<const local_node_index> sharedNodeIndices);
 
 };

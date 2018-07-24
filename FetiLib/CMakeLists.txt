@@ -5,8 +5,14 @@ ADD_LIBRARY(FDPSolver ConcreteSub.cpp ConcreteSub.h SparseMatrix.cpp SharedNodes
 
 TARGET_SOURCES(FDPSolver
 		PRIVATE FDPSolver.cpp Subdomain.cpp Details/DOFManip.h
-		PUBLIC FDPSolver.h DOFInfo.h Subdomain.h
-		VectorReference.h SparseMatrix.h Types.h SharedNodes.h
+		PUBLIC
+		"${CMAKE_CURRENT_LIST_DIR}/FDPSolver.h"
+		"${CMAKE_CURRENT_LIST_DIR}/DOFInfo.h"
+		"${CMAKE_CURRENT_LIST_DIR}/Subdomain.h"
+		"${CMAKE_CURRENT_LIST_DIR}/VectorReference.h"
+		"${CMAKE_CURRENT_LIST_DIR}/SparseMatrix.h"
+		"${CMAKE_CURRENT_LIST_DIR}/Types.h"
+		"${CMAKE_CURRENT_LIST_DIR}/SharedNodes.h"
 		)
 TARGET_LINK_LIBRARIES(FDPSolver Eigen3::Eigen)
 

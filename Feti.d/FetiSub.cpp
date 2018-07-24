@@ -122,7 +122,7 @@ void FetiBaseSub::setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blo
 		localMpcToBlockMpc = new Connectivity(numMPC, pointer, target);
 
 		// HB & PJSA: for assembleBlockCCtsolver & extractBlockMpcResidual
-		blockToLocalMpc = localMpcToBlock->reverse();
+		blockToLocalMpc = localMpcToBlock->alloc_reverse();
 
 		if(localMpcToBlock->isDiagonal()) { // <=> a local lmpc belong to only ONE block
 			blockToBlockMpc = blockToLocalMpc->transcon(localMpcToBlockMpc);
@@ -154,7 +154,7 @@ void FetiBaseSub::setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blo
 		}
 		point[size] = count;
 		Connectivity *boundDofToMpc = new Connectivity(size, point, targ->data(false));
-		mpcToBoundDof = boundDofToMpc->reverse();
+		mpcToBoundDof = boundDofToMpc->alloc_reverse();
 		delete boundDofToMpc;
 		delete targ;
 	}
@@ -587,7 +587,7 @@ FetiSub<Scalar>::makeLocalMpcToMpc() {
 	makeLocalMpcToDof();
 
 	// step 2: make localMpcToMpc connectivity
-	Connectivity *dofToMpc = mpcToDof->reverse();
+	Connectivity *dofToMpc = mpcToDof->alloc_reverse();
 	localMpcToMpc = mpcToDof->transcon(dofToMpc);
 	delete dofToMpc;
 }

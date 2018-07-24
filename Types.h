@@ -6,6 +6,8 @@
 #define FEM_TYPES_H
 #define USE_INT32
 
+#include <cstdint>
+
 #ifdef USE_INT32
 using gl_num_t = int32_t;
 #else

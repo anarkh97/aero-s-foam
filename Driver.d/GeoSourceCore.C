@@ -686,7 +686,7 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
 	// Obtain the MPC to DOF connectivity
 	SetAccess<LMPCons> lmpcAccess(numLMPC, lmpc.data(), dofID);
 	Connectivity lmpcToDof(lmpcAccess);
-	Connectivity *dofToLMPC = lmpcToDof.reverse();
+	Connectivity *dofToLMPC = lmpcToDof.alloc_reverse();
 	//std::cerr << "Number of DOFs in MPCS: " << dofToLMPC->csize() << std::endl;
 	Connectivity *lmpcToLmpc = lmpcToDof.transcon(dofToLMPC);
 	compStruct renumb = lmpcToLmpc->renumByComponent(1);
@@ -795,7 +795,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   // Obtain the MPC to DOF connectivity
   SetAccess<LMPCons> lmpcAccess(numLMPC, lmpc.data(), dofID);
   Connectivity lmpcToDof(lmpcAccess);
-  Connectivity *dofToLMPC = lmpcToDof.reverse();
+  Connectivity *dofToLMPC = lmpcToDof.alloc_reverse();
 
   std::vector<int> *term2col = new std::vector<int>[numLMPC];
   std::vector<pair<int,int> > col2pair(dofToLMPC->csize());
@@ -1961,7 +1961,7 @@ int GeoSource::getSubCtrl(BCond *glCtrlData, int numGlData,
   int i, iSub;
 
   // Form NodeToSub connectivity
-  Connectivity *nodeToSub = subToNode->reverse();
+  Connectivity *nodeToSub = subToNode->alloc_reverse();
 
   // count number of data in this subdomain
   int numLocCtrlData = 0;
@@ -2584,7 +2584,7 @@ void GeoSource::getTextDecomp(bool sowering)
 	if(conName) {
 	  BinFileHandler connectivityFile(conName, "rb");
 	  clusToSub = std::make_unique<Connectivity>(connectivityFile, true);
-	  Connectivity *subToClusConnect = clusToSub->reverse();
+	  Connectivity *subToClusConnect = clusToSub->alloc_reverse();
 	  subToClus.resize(numSub);
 	  for(int i = 0; i < numSub; i++) subToClus[i] = (*subToClusConnect)[i][0];
 	  delete subToClusConnect;
@@ -3328,7 +3328,7 @@ int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub, int glNumSub, int numC
 #endif
   }
 
-  Connectivity *subDomainToCPU = cpuToSub->reverse();
+  Connectivity *subDomainToCPU = cpuToSub->alloc_reverse();
   if(cpuToCPU) delete cpuToCPU;
   cpuToCPU = cpuToSub->transcon(subDomainToCPU);
   delete subDomainToCPU;
@@ -4720,7 +4720,7 @@ GeoSource::getDecomposition()
 	if(conName) {
 	  BinFileHandler connectivityFile(conName, "rb");
 	  clusToSub = std::make_unique<Connectivity>(connectivityFile, true);
-	  Connectivity *subToClusConnect = clusToSub->reverse();
+	  Connectivity *subToClusConnect = clusToSub->alloc_reverse();
 	  subToClus.resize(numSub);
 	  for(int i = 0; i < numSub; i++) subToClus[i] = (*subToClusConnect)[i][0];
 	  delete subToClusConnect;

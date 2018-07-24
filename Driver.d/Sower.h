@@ -69,21 +69,26 @@ class Sower;
 
 class DataStruct
 {
-  Connectivity* subToData; /* cluster to data connectivity */
-  Connectivity* clusterToData;
-  //TypeTag parentType;
- public:
-  DataStruct(Connectivity* subToData) { this->subToData = subToData; clusterToData = 0; }
-  Connectivity* getClusterToData(Connectivity * clusToSub) { 
-    if(!clusterToData) clusterToData = clusToSub->transcon(subToData); // PJSA
-    return clusterToData;
-    //return(clusToSub->transcon(subToData)); 
-  }
-  Connectivity* getSubToData(void) { return(subToData); }
-  virtual size_t writeObjectData(int index, BinFileHandler& file, int curObjID) { return 0; };
-  size_t write(int clusNumber, Connectivity* clusToSub, int numSubdomains, 
-               BinFileHandler& file, INT64BIT& curRangeSetLocation);
-  virtual bool isVariableSize() { return false; };
+	Connectivity subToData; /* cluster to data connectivity */
+	Connectivity clusterToData;
+	//TypeTag parentType;
+public:
+	DataStruct(Connectivity subToData) : subToData(std::move(subToData))
+	{ }
+	const Connectivity& getClusterToData(Connectivity * clusToSub) {
+		if(clusterToData.csize() == 0)
+			clusterToData = clusToSub->transcon(subToData); // PJSA
+		return clusterToData;
+		//return(clusToSub->transcon(subToData));
+	}
+	const Connectivity &getSubToData(void) { return(subToData); }
+
+	virtual size_t writeObjectData(int index, BinFileHandler& file, int curObjID) { return 0; };
+
+	size_t write(int clusNumber, Connectivity* clusToSub, int numSubdomains,
+	             BinFileHandler& file, INT64BIT& curRangeSetLocation);
+
+	virtual bool isVariableSize() { return false; };
 };
 
 template<typename DataType, typename IOObject>
@@ -92,7 +97,7 @@ class GenDataStruct : public DataStruct
  private:
   DataType data;
  public:
-  GenDataStruct(DataType d, Connectivity* ctd) : DataStruct(ctd), data(d)
+  GenDataStruct(DataType d, Connectivity ctd) : DataStruct(ctd), data(d)
     { }
   size_t writeObjectData(int index, BinFileHandler& file,  int curObjID)
     { return(IOObject::write(data,index,file,curObjID)); }
@@ -235,7 +240,7 @@ class Sower
   /*** WRITING ***/
   void writeSubFile(BinFileHandler& f)
     {
-      Connectivity * _subToClus = clusToSub->reverse();
+      Connectivity * _subToClus = clusToSub->alloc_reverse();
       _subToClus->write(f);
       delete _subToClus;
     }
@@ -1420,7 +1425,7 @@ Sower::addParentToChildData(TypeTag thisType, TypeTag parentType, int ndata,
   if(it != entries.end()) { // found cluster to parent connectivity
     // construct cluster to child with parent to child connectivity
     entries[thisType] = new GenDataStruct<DataType,IOObject>
-                        (data, (*it).second->getSubToData()->transcon(parentToChild));
+                        (data, (*it).second->getSubToData().transcon(*parentToChild));
     return;
   }
   std::cerr << " *** ERROR : cannot find appropriate cluster to parent connectivity" << std::endl;
@@ -1434,11 +1439,10 @@ Sower::addChildToParentData(TypeTag thisType, TypeTag parentType, int ndata,
   std::map<TypeTag,DataStruct*>::iterator it = entries.find(parentType);
     if(it != entries.end()) { // found cluster to parent connectivity
       // construct cluster to child with parent to child connectivity
-      Connectivity* reChildToParent = childToParent->reverse();
+      Connectivity reChildToParent = childToParent->reverse();
       //Connectivity* reChildToParent2 = reChildToParent->reverse();
       entries[thisType] = new GenDataStruct<DataType, IOObject>
-                         (data, (*it).second->getSubToData()->transcon(reChildToParent));
-      delete reChildToParent;
+                         (data, (*it).second->getSubToData().transcon(reChildToParent));
       return;
     }
     std::cerr << " *** ERROR : cannot find appropriate cluster to parent connectivity" << std::endl;

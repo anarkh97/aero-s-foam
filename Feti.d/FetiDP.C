@@ -102,7 +102,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, std::vector<F
 	this->myCPU = this->fetiCom->cpuNum();
 	this->numCPUs = this->fetiCom->size();
 	bodyToSub = _bodyToSub;
-	subToBody = bodyToSub->reverse();
+	subToBody = bodyToSub->alloc_reverse();
 
 	// Define FETI tolerance and maximum number of iterations
 	double fetiTolerance = fetiInfo->tol;
@@ -353,7 +353,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		subToCorner = makeCornerToSub();
 	}
 	else {
-		subToCorner = cornerToSub->reverse();
+		subToCorner = cornerToSub->alloc_reverse();
 	}
 	// filePrint(stderr,"subToCorner %d kb\n",(int)(subToCorner->memsize()/1024));
 	// filePrint(stderr,"cornerToSub %d kb\n",(int)(cornerToSub->memsize()/1024));
@@ -375,19 +375,19 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		coarseToSub = cornerToSub;
 		mpcOffset = coarseToSub->csize();
 		if(this->glNumMpc_primal > 0) {
-			coarseToSub = coarseToSub->merge(this->mpcToSub_primal);
+			coarseToSub = coarseToSub->alloc_merge(this->mpcToSub_primal);
 		}
 		augOffset = coarseToSub->csize();
 		switch(fetiInfo->augment) {
 			case FetiInfo::Gs: {
-				Connectivity *augcoarseToSub = coarseToSub->merge(this->subToSub);
+				Connectivity *augcoarseToSub = coarseToSub->alloc_merge(this->subToSub);
 				if(coarseToSub != cornerToSub) delete coarseToSub;
 				coarseToSub = augcoarseToSub;
 			} break;
 			case FetiInfo::WeightedEdges:
 			case FetiInfo::Edges: {
 				if(!this->edgeToSub) makeEdgeConnectivity();
-				Connectivity *augcoarseToSub = coarseToSub->merge(this->edgeToSub);
+				Connectivity *augcoarseToSub = coarseToSub->alloc_merge(this->edgeToSub);
 				if(coarseToSub != cornerToSub) delete coarseToSub;
 				coarseToSub = augcoarseToSub;
 				// filePrint(stderr,"coarseToSub %d kb\n",(int)(coarseToSub->memsize()/1024));
@@ -395,7 +395,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			default:
 				break;
 		}
-		subToCoarse = (coarseToSub != cornerToSub) ? coarseToSub->reverse() : subToCorner;
+		subToCoarse = (coarseToSub != cornerToSub) ? coarseToSub->alloc_reverse() : subToCorner;
 		// filePrint(stderr,"subToCoarse %d kb\n",(int)(subToCoarse->memsize()/1024));
 		coarseConnectivity = coarseToSub->transcon(subToCoarse);
 		// filePrint(stderr,"coarseConnectivity %d kb\n",(int)(coarseConnectivity->memsize()/1024));
@@ -512,9 +512,9 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
 		// Find out which bodies are connected together by mpcs
 		// a collection of inter-connected bodies is referred to as a group
-		Connectivity *subToMpc = this->mpcToSub_primal->reverse();
+		Connectivity *subToMpc = this->mpcToSub_primal->alloc_reverse();
 		Connectivity bodyToMpc = bodyToSub->transcon(*subToMpc);
-		Connectivity *mpcToBody = bodyToMpc.reverse();
+		Connectivity *mpcToBody = bodyToMpc.alloc_reverse();
 		Connectivity bodyToBodyTmp = bodyToMpc.transcon(*mpcToBody);
 		Connectivity bodyToBody = bodyToBodyTmp.withSelfConnection();
 		compStruct renumber = bodyToBody.renumByComponent(1);  // 1 = sloan renumbering
@@ -533,7 +533,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 			}
 			groupToBody = new Connectivity(nGroups, pointer, renumber.order);
 			groupToSub = groupToBody->transcon(bodyToSub);
-			subToGroup = groupToSub->reverse();
+			subToGroup = groupToSub->alloc_reverse();
 		}
 		if(renumber.xcomp) delete [] renumber.xcomp;
 		if(renumber.renum) delete [] renumber.renum;
@@ -618,7 +618,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
 		Connectivity *groupToMpc = 0;
 		if(this->glNumMpc_primal > 0) {
-			Connectivity *subToMpc = this->mpcToSub_primal->reverse();
+			Connectivity *subToMpc = this->mpcToSub_primal->alloc_reverse();
 			groupToMpc = groupToSub->transcon(subToMpc);
 			paralApply(this->nsub, this->subdomains.data(), &FetiBaseSub::makeLocalToGroupMPC, groupToMpc);
 			delete subToMpc;
@@ -918,7 +918,7 @@ Connectivity *GenFetiDPSolver<Scalar>::makeCornerToSub() {
 #endif
 
 	auto subToCorner = new Connectivity(this->glNumSub, std::move(pointer), std::move(target));
-	this->cornerToSub = subToCorner->reverse();
+	this->cornerToSub = subToCorner->alloc_reverse();
 	return subToCorner;
 }
 
@@ -1927,7 +1927,7 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
 #endif
   this->subToEdge = new Connectivity(this->glNumSub, cxx, connect);
   // create the edge to subdomain connectivity
-  this->edgeToSub = this->subToEdge->reverse();
+  this->edgeToSub = this->subToEdge->alloc_reverse();
 }
 
 template<class Scalar>
@@ -2299,7 +2299,7 @@ GenFetiDPSolver<Scalar>::getBlockToMpc()
    case (FetiInfo::subBlock) :
      { 
        //HB: WARNING: HARD CODED FOR SHARED MEMORY !!!
-       Connectivity *subToMpc = this->mpcToSub->reverse();
+       Connectivity *subToMpc = this->mpcToSub->alloc_reverse();
        int nMpcBlocks = 0; 
        int ntarget = 0;
        for(int s=0;s<subToMpc->csize();s++){
@@ -2337,7 +2337,7 @@ GenFetiDPSolver<Scalar>::getBlockToMpc()
          for(int i=0; i<numOtherMpcs; ++i) target[i] = i;
          Connectivity *otherToMpc = new Connectivity(1, pointer, target);
          if(numMortarMpcs == 0) blockToMpc = otherToMpc;
-         else blockToMpc = otherToMpc->merge(domain->GetMortarToMPC());
+         else blockToMpc = otherToMpc->alloc_merge(domain->GetMortarToMPC());
        }
        else blockToMpc = domain->GetMortarToMPC()->copy();
      } 
@@ -3087,13 +3087,13 @@ GenFetiDPSolver<Scalar>::makeGtG()
 	// 3. build coarse connectivity and equation numberer
 	if(this->mpcToSub) {
 		Connectivity *mpcToBody = this->mpcToSub->transcon(subToGroup); // PJSA 6-15-06
-		Connectivity *bodyToMpc = mpcToBody->reverse();
+		Connectivity *bodyToMpc = mpcToBody->alloc_reverse();
 		Connectivity *bodyToBody_mpc = bodyToMpc->transcon(mpcToBody);
 		coarseConnectGtG = bodyToBody_mpc->modify();
 		delete mpcToBody; delete bodyToMpc; delete bodyToBody_mpc;
 	}
 	else {
-		Connectivity *bodyToSub = subToBody->reverse();
+		Connectivity *bodyToSub = subToBody->alloc_reverse();
 		coarseConnectGtG = bodyToSub->transcon(subToBody);
 		delete bodyToSub;
 	}

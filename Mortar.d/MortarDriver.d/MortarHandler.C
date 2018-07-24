@@ -920,13 +920,13 @@ MortarHandler::CreateFFIPolygon()
     IndexActiveSlaveFacesToActiveSlaveElemSetMap[IndexActiveSlaveFaces[i]] = i;
   }  
   Connectivity ActiveSlaveElemToNode(SetAccess<FaceElemSet>{ActiveSlaveElemSet});
-  ActiveSlaveNodeToElem = ActiveSlaveElemToNode.reverse();
+  ActiveSlaveNodeToElem = ActiveSlaveElemToNode.alloc_reverse();
 
   for(int i=0; i<int(IndexActiveMasterFaces.size()); ++i) {
     ActiveMasterElemSet.elemadd(i, (*MasterElemSet)[IndexActiveMasterFaces[i]]); 
   }
   Connectivity ActiveMasterElemToNode(SetAccess<FaceElemSet>{ActiveMasterElemSet});
-  ActiveMasterNodeToElem = ActiveMasterElemToNode.reverse();
+  ActiveMasterNodeToElem = ActiveMasterElemToNode.alloc_reverse();
 
   ActiveSlaveNodes.clear();
   ActiveSlaveNodes.reserve(128);
@@ -3031,7 +3031,7 @@ MortarHandler::make_kinematic_partitioning(int numSub, SubDomain **sd)
   for(int s = 0; s < numSub; ++s) {
     Elemset &packedEset =  sd[s]->getElementSet();
     Connectivity elemToNode(packedEset.asSet());
-    Connectivity *nodeToElem = elemToNode.reverse();
+    Connectivity *nodeToElem = elemToNode.alloc_reverse();
     int inode = 0;
     for(int i = 0; i<PtrSlaveEntity->GetnVertices(); ++i, ++inode) {
       int glNode = PtrSlaveEntity->GetGlVertexId(i);

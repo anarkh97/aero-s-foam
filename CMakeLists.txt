@@ -452,7 +452,8 @@ add_subdirectory(FetiLib)
 
 SET(ALLLIBS Parser
 		Driver Elem Feti solver Corotational Mortar Rom Math
-		Dec Threads linpa Sfem paral Problems solver Corotational Driver Hetero Timers Comm Material Util getopt)
+		Dec Threads linpa Sfem paral Problems solver Corotational Driver Hetero Timers Comm Material Util
+		FDPSolver getopt)
 
 IF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
 	add_subdirectory(Acme.d)

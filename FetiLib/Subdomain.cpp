@@ -2,6 +2,8 @@
 // Created by Michel Lesoinne on 2/1/18.
 //
 
+#include <complex>
+
 #include <Utils.d/Connectivity.h>
 #include "Subdomain.h"
 #include "DOFInfo.h"
@@ -41,4 +43,6 @@ Subdomain<S>::~Subdomain() {
 
 
 template class Subdomain<double>;
-}
+template class Subdomain<std::complex<double>>;
+
+} // namespace FetiLib

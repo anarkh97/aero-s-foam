@@ -34,7 +34,8 @@ public:
 	 */
 	Subdomain(global_subdomain_index subdomainIndex,
 	          DOFInfo dofInfo,
-	          VectorReference<const global_node_index> globalNodeIndices, VectorReference<const std::array<double,3>> X,
+	          VectorReference<const global_node_index> globalNodeIndices,
+	          VectorReference<const std::array<double,3>> X,
 	          const SparseMatrix<S> &K,
 	          const SharedNodes &sharedNodes
 	);

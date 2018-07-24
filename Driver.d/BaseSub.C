@@ -307,7 +307,7 @@ BaseSub::getC(int &crnDofSize, FSCommPattern<int> *sPat)
     fprintf(stderr, " ... Sub %3d has %2d Corner Modes %d   ... \n",
             subNumber+1,numCRN,numCRNdof);
 
-  Connectivity *dofToNeighb = scomm->getTypeSpecificList(SComm::std)->reverse();
+  Connectivity *dofToNeighb = scomm->getTypeSpecificList(SComm::std)->alloc_reverse();
 
   int numDOFs = c_dsa->size();
 

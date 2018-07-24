@@ -24,7 +24,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   std::cerr << " ** subdomain to elements connectivity : " << std::endl;
   subToElem->print();
 #endif
-  Connectivity* eTos = subToElem->reverse();
+  Connectivity* eTos = subToElem->alloc_reverse();
 #ifdef SOWER_DEBUG
   std::cerr << " ** elements to subdomains connectivity : " << std::endl;
   eTos->print();
@@ -44,7 +44,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   std::cerr << " ** subdomains to nodes connectivity : " << std::endl;
   sToN->print();
 #endif     
-  Connectivity* nToS = sToN->reverse();
+  Connectivity* nToS = sToN->alloc_reverse();
 #ifdef SOWER_DEBUG
   std::cerr << " ** nodes to subdomain connectivity : " << std::endl;
   nToS->print();
@@ -104,7 +104,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
           filePrint(stderr, "ERROR: number of clusters greater than number of CPUs is not supported\n");
           exit(-1);
         }
-        Connectivity *subToCpu = cpuToSub->reverse();
+        Connectivity *subToCpu = cpuToSub->alloc_reverse();
         Connectivity *cpuToCpu = cpuToSub->transcon(subToCpu);
         long long * sizes = new superlong[nCpu];
         for(int i = 0; i < nCpu; i++) {
@@ -130,7 +130,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
 #endif   
   // PJSA: write clusToSub file
   BinFileHandler file(subdomains_.c_str(), "w");
-  subToClus = clusToSub->reverse();
+  subToClus = clusToSub->alloc_reverse();
   subToClus->write(file);
   // PJSA: write subToElem & subToNode files for each cluster
   // new method: write enough to reconstruct implict (sparse) connectivities
@@ -146,7 +146,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
     BinFileHandler file2(oss.str().c_str(), "w");
     Connectivity *cnodeToNode = new Connectivity(clusToNode->num(i),allptr,(*clusToNode)[i].data(),0);
     Connectivity *cnodeToSub = cnodeToNode->transcon(nToS);
-    Connectivity *subToCnode = cnodeToSub->reverse();
+    Connectivity *subToCnode = cnodeToSub->alloc_reverse();
     Connectivity *subToNode_i = subToCnode->transcon(cnodeToNode);
     Connectivity *csubToSub2 = new Connectivity(clusToSub2->num(i),allptr,(*clusToSub2)[i].data(),0);
     Connectivity *csubToNode = csubToSub2->transcon(subToNode_i);
@@ -184,7 +184,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   file3.write(&nGlobElems,1);
 
   nCluster = clusToSub->csize(); /* true number of cluster */
-  entries[ELEMENTS_TYPE] = new GenDataStruct<Elemset*,ElemsetIO>(&eset,/*clusToSub->transcon(*/subToElem/*)*/);
+  entries[ELEMENTS_TYPE] = new GenDataStruct<Elemset*,ElemsetIO>(&eset,/*clusToSub->transcon(*/*subToElem/*)*/);
 
   numSubdomains = subToElem->csize();
   
@@ -221,9 +221,9 @@ void Sower::printDebug()
   for(std::map<TypeTag,DataStruct*>::iterator it = entries.begin(); it != entries.end(); it++)
     {
       std::cerr << std::endl << " Cluster to " << (*it).first << " connectivity : " << std::endl;
-      (*it).second->getClusterToData(clusToSub)->print();
+      (*it).second->getClusterToData(clusToSub).print();
       std::cerr << std::endl << " SubDomain to " << (*it).first << " connectivity : " << std::endl;
-      (*it).second->getSubToData()->print();
+      (*it).second->getSubToData().print();
     }
 }
 
@@ -417,7 +417,7 @@ void Sower::write()
       int dataTypesNumber = 0;
       std::map<TypeTag,DataStruct*>::iterator it = entries.begin();
       for(; it!=entries.end(); it++) {
-	if((*it).second->getClusterToData(clusToSub)->num(currentClusNum-1) > 0) {
+	if((*it).second->getClusterToData(clusToSub).num(currentClusNum-1) > 0) {
 	  dataTypesNumber++;
         }
       }
@@ -437,7 +437,7 @@ void Sower::write()
       for(; it!=entries.end(); it++)
 	{
 	  // oh no ! this datatype is not in this cluster
-	  if((*it).second->getClusterToData(clusToSub)->num(currentClusNum-1) <= 0)
+	  if((*it).second->getClusterToData(clusToSub).num(currentClusNum-1) <= 0)
 	    continue; 
 	  // updating toc with entry for this datatype
 	  file.seek(tocCurrentOffset);
@@ -480,8 +480,8 @@ DataStruct::write(int clusNumber, Connectivity* clusToSub, int numSubdomains,
 {
   std::map<int, RangeSet*> rangeSet;  // where is each subdomain's data written ?
 
-  if(!clusterToData) clusterToData = clusToSub->transcon(subToData);
-  Connectivity * objToSub = subToData->reverse();
+  if(clusterToData.csize() == 0) clusterToData = clusToSub->transcon(subToData);
+  Connectivity * objToSub = subToData.alloc_reverse();
   bool * subIsInClus = new bool[numSubdomains];
   for(int i=0; i<numSubdomains; i++)
     subIsInClus[i] = false;
@@ -494,13 +494,13 @@ DataStruct::write(int clusNumber, Connectivity* clusToSub, int numSubdomains,
   // the oject ids will be in an optimum order to be written
   objToSub->sortTargets();
   ObjectOrdering order(objToSub,subIsInClus);
-  auto ctd = (*clusterToData)[clusNumber-1];
+  auto ctd = clusterToData[clusNumber-1];
   std::sort(ctd.begin(), ctd.end(), order);
   // now let's write each object using its objectID
   std::list<int> currentSubs; // list of subdomains currently been written -- for use with rangeset
   int k;
-  for(k = 0; k < clusterToData->num(clusNumber-1); k++) {
-    int curObjID = (*clusterToData)[clusNumber-1][k];
+  for(k = 0; k < clusterToData.num(clusNumber-1); k++) {
+    int curObjID = clusterToData[clusNumber-1][k];
     // range set
     std::list<int> nextCurrentSubs;
     auto listOfSubsObjIsIn = (*objToSub)[curObjID];
@@ -522,7 +522,7 @@ DataStruct::write(int clusNumber, Connectivity* clusToSub, int numSubdomains,
     }
     // all subdomains that are still in currentSubs have disapeared ! time to end them
     for(std::list<int>::iterator it = currentSubs.begin(); it != currentSubs.end(); ++it) {
-      rangeSet[(*it)]->end((*clusterToData)[clusNumber-1][k-1]);
+      rangeSet[(*it)]->end(clusterToData[clusNumber-1][k-1]);
     } // can never be called for k = 0
     currentSubs.clear();
     currentSubs.merge(nextCurrentSubs);
@@ -530,11 +530,11 @@ DataStruct::write(int clusNumber, Connectivity* clusToSub, int numSubdomains,
       
     // actual writing of data
     //file.write(&curObjID, 1);
-    writeObjectData((*clusterToData)[clusNumber-1][k],file,curObjID);
+    writeObjectData(clusterToData[clusNumber-1][k],file,curObjID);
   }
   // all subdomains that are still in currentSubs have disapeared ! time to end them
   for(std::list<int>::iterator it = currentSubs.begin(); it != currentSubs.end(); ++it)
-    rangeSet[(*it)]->end((*clusterToData)[clusNumber-1][k-1]);
+    rangeSet[(*it)]->end(clusterToData[clusNumber-1][k-1]);
   curRangeSetLocation = file.tell();
   file.seek(file.tell() + sizeof(int));
   // writing range set for this datatype

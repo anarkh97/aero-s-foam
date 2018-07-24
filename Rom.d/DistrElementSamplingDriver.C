@@ -568,7 +568,7 @@ DistrElementSamplingDriver::addContactElems(std::vector<int> &sampleElemIds, std
   
     Elemset &inputElemSet = *(geoSource->getElemSet());
     std::auto_ptr<Connectivity> elemToNode(new Connectivity(SetAccess<Elemset>(inputElemSet)));
-    Connectivity *nodeToElem = elemToNode->reverse();
+    Connectivity *nodeToElem = elemToNode->alloc_reverse();
 
     //Second: loop over list of surfaces to extract elements attached to surface nodes 
     for(std::set<int>::iterator it = activeSurfs.begin(); it != activeSurfs.end(); ++it){

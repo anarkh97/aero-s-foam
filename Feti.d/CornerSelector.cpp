@@ -1066,8 +1066,8 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
                            Connectivity &cNConnect, Connectivity &subToRotCrn,
                            int *glCrnGroup)
 {
-	Connectivity *subToCrn = cNConnect.reverse();
-	Connectivity *rotCrnToSub = subToRotCrn.reverse();
+	Connectivity *subToCrn = cNConnect.alloc_reverse();
+	Connectivity *rotCrnToSub = subToRotCrn.alloc_reverse();
 	// fprintf(stderr, "We have %d rot corners\n", rotCrnToSub->csize());
 	Connectivity *rotSubToSub = subToRotCrn.transcon(rotCrnToSub);
 	grToSub = rotSubToSub->collapse();
@@ -1081,7 +1081,7 @@ CornerSelector::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
 		int iGr;
 		// fprintf(stderr, "Group has size %d\n", grToSub->csize());
 		Connectivity *grToCrn = grToSub->transcon(subToCrn);
-		Connectivity *crnToGr = grToCrn->reverse();
+		Connectivity *crnToGr = grToCrn->alloc_reverse();
 		// Eliminate the corners that are not corners anymore
 		//grToCrn = grToCrn->trim(crnToGr);
 		grToCrn->sortTargets();

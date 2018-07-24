@@ -629,7 +629,7 @@ Domain::makeFsiToNode()
  pointer[i]=numtarget;
  if (count!=pointer[i]) filePrint(stderr,"*** ERROR in Domain::makeFsiToNode");  // Check
  fsiToNode = new Connectivity(size,pointer,target);
- nodeToFsi = fsiToNode->reverse();
+ nodeToFsi = fsiToNode->alloc_reverse();
 }
 
 void Domain::getInterestingDofs(DofSet &ret, int glNode)
@@ -1383,9 +1383,9 @@ Domain::setUpData(int topFlag)
   if(sinfo.solvercntl->type == SolverSelection::Direct) {
     if(numLMPC && domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc) {
       if(elemToNode == 0) elemToNode = new Connectivity(packedEset.asSet());
-      if(nodeToElem == 0) nodeToElem = elemToNode->reverse();
+      if(nodeToElem == 0) nodeToElem = elemToNode->alloc_reverse();
       Connectivity *elemToNode_tmp = new Connectivity(packedEset, nodeToElem);
-      Connectivity *nodeToElem_tmp = elemToNode_tmp->reverse();
+      Connectivity *nodeToElem_tmp = elemToNode_tmp->alloc_reverse();
       Connectivity *nodeToNode_tmp = nodeToElem_tmp->transcon(elemToNode_tmp);
       renumb_nompc = nodeToNode_tmp->renumByComponent(0);
       int numnodes_tmp = nodeToNode_tmp->csize();
@@ -1753,7 +1753,7 @@ Domain::prepDirectMPC()
 
   Connectivity renumToNode(ndMax, ptr, tg);
   Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
-  Connectivity *renumToElem = elemToRenum->reverse();
+  Connectivity *renumToElem = elemToRenum->alloc_reverse();
   Connectivity *nodeToNodeDirect = renumToElem->transcon(elemToRenum);
   delete renumToElem;
   delete elemToRenum;
@@ -1766,7 +1766,7 @@ Domain::getRenumbering()
 {
  // create node to element connectivity from element to node connectivity
  if(nodeToElem) delete nodeToElem;
- nodeToElem = elemToNode->reverse();
+ nodeToElem = elemToNode->alloc_reverse();
 
  // create node to node connectivity
  if(nodeToNode) delete nodeToNode;
@@ -1888,7 +1888,7 @@ Domain::getRenumberingFluid()
 {
  // create node to element connectivity from element to node connectivity
  if(nodeToElemFluid) delete nodeToElemFluid;
- nodeToElemFluid = elemToNodeFluid->reverse();
+ nodeToElemFluid = elemToNodeFluid->alloc_reverse();
 
  // create node to node connectivity
  if(nodeToNodeFluid) delete nodeToNodeFluid;
@@ -1931,14 +1931,14 @@ Domain::makeNodeToNode_sommer()
 {
  if(solInfo().doFreqSweep && (numSommer > 0)) {
    Connectivity *sommerToNode = makeSommerToNode();
-   Connectivity *nodeToSommer = sommerToNode->reverse();
+   Connectivity *nodeToSommer = sommerToNode->alloc_reverse();
    nodeToNode_sommer = nodeToSommer->transcon(sommerToNode);
    delete nodeToSommer; delete sommerToNode;
  }
 
  if( (solInfo().newmarkBeta==0.0)&&(solInfo().isAcoustic()) ) {
    Connectivity *sommerToNode = makeSommerToNode();
-   Connectivity *nodeToSommer = sommerToNode->reverse();
+   Connectivity *nodeToSommer = sommerToNode->alloc_reverse();
    //Watch nodeToNode_sommer may not be of the right size !
    int numnodes = nodeToNode->csize();
    Connectivity *temp0=new Connectivity(numnodes);
@@ -2505,7 +2505,7 @@ Domain::getNodeToNode() {
  if(elemToNode == 0)
    elemToNode = new Connectivity(packedEset.asSet());
  if(nodeToElem == 0)
-   nodeToElem = elemToNode->reverse();
+   nodeToElem = elemToNode->alloc_reverse();
  nodeToNode = nodeToElem->transcon(elemToNode);
  return nodeToNode;
 }
@@ -2897,7 +2897,7 @@ void Domain::UpdateSurfaceTopology(int numSub, SubDomain **sd)
     nodeToFaceElem = new Connectivity * [nSurfEntity];
     for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
       Connectivity faceElemToNode(SetAccess<FaceElemSet>{*SurfEntities[iSurf]->GetPtrFaceElemSet()});
-      nodeToFaceElem[iSurf] = faceElemToNode.reverse();
+      nodeToFaceElem[iSurf] = faceElemToNode.alloc_reverse();
     }
   }
 
@@ -3761,7 +3761,7 @@ void Domain::computeMatchingWetInterfaceLMPC() {
  //fprintf(stderr," ... wet[0] is %d ...\n", wet[0]);
 
  Connectivity wetElemToNode(SetAccess<ResizeArray<SommerElement *> >{wet, numWet});
- Connectivity *nodeToWetElem = wetElemToNode.reverse();
+ Connectivity *nodeToWetElem = wetElemToNode.alloc_reverse();
 
  Connectivity nodeToNode = nodeToWetElem->transcon(wetElemToNode);
 

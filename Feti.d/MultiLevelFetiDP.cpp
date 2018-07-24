@@ -12,6 +12,8 @@
 
 extern double t5;
 
+using std::vector;
+using std::unique_ptr;
 
 namespace {
 template <typename Scalar>
@@ -22,16 +24,32 @@ struct SuperElement {
 };
 
 
+/// \brief Make a vector out of a node.
 Eigen::Map<const Eigen::Vector3d> v(const Node &node) {
 	return Eigen::Map<const Eigen::Vector3d>(&node.x, 3, 1);
 }
 
+void formSharedLists(const std::vector<gl_sub_idx> &localSubGlobalIndices, const Connectivity &subToNode)
+{
+
+}
+
+template <typename Scalar>
+vector<unique_ptr<FetiLib::Subdomain<Scalar>>>
+formSubdomains(const std::vector<gl_sub_idx> &localSubGlobalIndices, std::vector<SuperElement<Scalar>> &,
+               const Connectivity *subToNode) {
+	vector<unique_ptr<FetiLib::Subdomain<Scalar>>> subdomains;
+
+
+
+	return subdomains;
+}
 
 }
 
 /*
  * Solver building does:
- getSharedNodes(nodeToSub, subToNode);
+ buildSharedNodeComm(nodeToSub, subToNode);
 
  makeCorners();// Corners for FETI-DP
 
@@ -97,7 +115,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity *subToCorne
 		fclose(f);
 	}
 
-	Connectivity *elemToSubCoarse = decCoarse->reverse();
+	Connectivity *elemToSubCoarse = decCoarse->alloc_reverse();
 	Connectivity *CPUMapCoarse = this->cpuToSub->transcon(elemToSubCoarse);
 	delete elemToSubCoarse;
 
@@ -106,6 +124,8 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity *subToCorne
 
 	std::vector<SuperElement<Scalar>> superElements;
 	superElements.reserve(this->subdomains.size());
+	std::vector<gl_sub_idx> localSubGlobalIndices;
+	localSubGlobalIndices.reserve(this->subdomains.size());
     // Create a super-element for each subdomain and put it in the coarseSubdomains arrray.
 	for(int iSub = 0; iSub < this->nsub; ++iSub) {
 		// Get the node numbers.
@@ -131,6 +151,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity *subToCorne
 			std::cerr << "BAD SIZE!\n";
 		// Build the super-element
 		superElements.push_back({std::move(coarsenodes), std::move(dofs), Kel});
+		localSubGlobalIndices.push_back( globalSubIndex );
 	}
 
 	// Now form the set of nodes.
@@ -168,6 +189,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity *subToCorne
 
 
 
+	formSubdomains(localSubGlobalIndices, superElements, subToCorner);
 
 //	std::vector<FetiBaseSub *> baseSubs(decCoarseDomain->getAllSubDomains(),
 //	                                    decCoarseDomain->getAllSubDomains()+decCoarseDomain->getNumSub());
@@ -198,7 +220,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 		fclose(f);
 	}
 
-	Connectivity *elemToSubCoarse = decCoarse->reverse();
+	Connectivity *elemToSubCoarse = decCoarse->alloc_reverse();
 	Connectivity *CPUMapCoarse = this->cpuToSub->transcon(elemToSubCoarse);
 	delete elemToSubCoarse;
 

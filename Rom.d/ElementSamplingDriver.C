@@ -631,7 +631,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<in
 
     Elemset &inputElemSet = *(geoSource->getElemSet());
     std::unique_ptr<Connectivity> elemToNode(new Connectivity(inputElemSet.asSet()));
-    Connectivity *nodeToElem = elemToNode->reverse();
+    Connectivity nodeToElem = elemToNode->reverse();
 
     //Second: loop over list of surfaces to extract elements attached to surface nodes 
     for(std::set<int>::iterator it = activeSurfs.begin(); it != activeSurfs.end(); ++it){
@@ -642,8 +642,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::addContactElems(std::vector<in
           for(int nn = 0; nn < nNodes; ++nn) {
             int glNode = domain->GetSurfaceEntity(surf)->GetGlNodeId(nn);
             // loop through elements attached to node
-            for(int j = 0; j < nodeToElem->num(glNode); ++j) {
-              const int elemRank = (*nodeToElem)[glNode][j];
+            for(int j = 0; j < nodeToElem.num(glNode); ++j) {
+              const int elemRank = nodeToElem[glNode][j];
               // check if element already in weighted set, if not, add to weights and reduced ElemIds; 
               if(std::find(sampleElemIds.begin(), sampleElemIds.end(), elemRank) == sampleElemIds.end()){
                 sampleElemIds.push_back(elemRank);

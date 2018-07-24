@@ -211,7 +211,7 @@ DecOpti::faceComponents(Elemset *es)
   }
 
  Connectivity eToF(numEle,pc,fconnect);
- Connectivity *fToE = eToF.reverse();
+ Connectivity *fToE = eToF.alloc_reverse();
  Connectivity *eFe = eToF.transcon(fToE);
 
  //int exactNumEle = eToN->numNonZeroP();

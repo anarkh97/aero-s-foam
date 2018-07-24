@@ -112,7 +112,7 @@ Connectivity::Connectivity(Elemset*els, int numSom, SommerElement **som)
 
 	int nE = els->last();
 	Connectivity *eToN = new Connectivity(els->asSet());
-	Connectivity *nToE = eToN->reverse();
+	Connectivity *nToE = eToN->alloc_reverse();
 	int *eleCount = new int[nE];
 	int nno, no, el, nei;
 
@@ -729,7 +729,7 @@ Connectivity::renumSloan(int *mask, int &nextNum, int *renum)
 }
 
 void
-Connectivity::print(FILE *f, int node)
+Connectivity::print(FILE *f, int node) const
 {
 	if(node == -1) {
 		int i;
@@ -759,7 +759,7 @@ Connectivity::print(FILE *f, int node)
 
 
 int
-Connectivity::findMaxDist(int *renum)
+Connectivity::findMaxDist(int *renum) const
 {
 	int count = numNonZeroP();
 	int i;
@@ -784,7 +784,7 @@ Connectivity::findMaxDist(int *renum)
 }
 
 int
-Connectivity::findProfileSize(EqNumberer *eqn, int unroll)
+Connectivity::findProfileSize(EqNumberer *eqn, int unroll) const
 {
 	int i;
 	int profileSize = 0;
@@ -819,7 +819,7 @@ Connectivity::findProfileSize(EqNumberer *eqn, int unroll)
 }
 
 Connectivity*
-Connectivity::merge(Connectivity *con2)
+Connectivity::alloc_merge(Connectivity *con2) const
 {
 	int size1 = csize();
 	int size2 = con2->csize();

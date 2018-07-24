@@ -35,7 +35,7 @@ SuperBlockCCtSolver<Scalar>::SuperBlockCCtSolver(Connectivity *_blockToMpc, Conn
   if(sub_flag) makeSubBlocks(); // attempt further decomposition of every block into sub blocks
   if(super_flag) makeSuperBlocks(); // combine blocks into super blocks for optimal load sharing between cpus
   else { // one block per super block 
-    mpcToBlock = blockToMpc->reverse();
+    mpcToBlock = blockToMpc->alloc_reverse();
     int *newptr = new int[2]; newptr[0] = 0; newptr[1] = newptr[0]+nMpcBlocks;
     int *newtarget = new int[nMpcBlocks];
     for(int i=0;i<nMpcBlocks;i++) { newtarget[i] = i; }
@@ -376,7 +376,7 @@ SuperBlockCCtSolver<Scalar>::makeSuperBlocks()
   if(mpcToBlock) { delete mpcToBlock; mpcToBlock = 0; }
   nMpcBlocks = NewsuperBlockToBlock->csize();
   blockToMpc = superBlockToMpc;
-  mpcToBlock = blockToMpc->reverse();
+  mpcToBlock = blockToMpc->alloc_reverse();
 /*
   for(iMPIsuperBlk=0;iMPIsuperBlk<MPITosuperBlock->csize();iMPIsuperBlk++){
     filePrint(stderr,"  # MPI superblock %d contains %d (super) blocks\n",iMPIsuperBlk,MPITosuperBlock->num(iMPIsuperBlk));
@@ -401,7 +401,7 @@ SuperBlockCCtSolver<Scalar>::createSuperBlockCCt(Connectivity *mpcToSub)
   //         make the list of "extended" Mpc Block of this CPU
   // ------------------------------------------------------------
   cpuToBlock = MPITosuperBlock;
-  blockToCpu = cpuToBlock->reverse();
+  blockToCpu = cpuToBlock->alloc_reverse();
   // nMpcBlocksOnMyCPU always exist even in shared mode <=> 1 MPI
   nMpcBlocksOnMyCPU = cpuToBlock->num(myCPU);
 #ifdef DISTRIBUTED
@@ -537,7 +537,7 @@ SuperBlockCCtSolver<Scalar>::makeBlockCCtCommPattern()
    int *pointer = new int[size+1];
    for(i=0; i<=size; ++i) pointer[i] = i;
    Connectivity *idToCpu = new Connectivity(size, pointer, target);
-   Connectivity *cpuToId = idToCpu->reverse();
+   Connectivity *cpuToId = idToCpu->alloc_reverse();
    delete idToCpu;
    // blockCCtPat is used to send partially assembled CCt blocks to master CPU for final assembly and factoring
    blockCCtPat = new FSCommPattern<Scalar>(this->fetiCom, cpuToId, myCPU, FSCommPattern<Scalar>::CopyOnSend,

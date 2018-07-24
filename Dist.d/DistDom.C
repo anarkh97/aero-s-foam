@@ -1365,9 +1365,8 @@ GenDistrDomain<Scalar>::createOutputOffsets()
   if(clElemOffsets) { for(int i=0; i<numClusters; i++) delete [] clElemOffsets[i]; delete [] clElemOffsets; }
 
   // create clusToCpu connectivity, used to decide which process should initially open each output file
-  Connectivity *subToCpu = this->cpuToSub->reverse();
-  clusToCpu = clusToSub.transcon(subToCpu);
-  delete subToCpu;
+  Connectivity subToCpu = this->cpuToSub->reverse();
+  clusToCpu = clusToSub.transcon(&subToCpu);
 }
 
 // ---------------------------------------------------------------

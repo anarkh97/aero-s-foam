@@ -2252,7 +2252,7 @@ template<class Scalar>
 Connectivity *
 GenFetiSolver<Scalar>::getCoarseToSubConnect()
 {
-	return subToSub->merge(subToSub->merge(mpcToSub));
+	return subToSub->alloc_merge(subToSub->alloc_merge(mpcToSub));
 }
 
 template<class Scalar>
@@ -2271,7 +2271,7 @@ GenFetiSolver<Scalar>::makeSingleCoarse()
 	int glNumMpc = (mpcToSub) ? mpcToSub->csize() : 0;
 
 	Connectivity *coarseToSub = getCoarseToSubConnect();
-	Connectivity *subToCoarse = coarseToSub->reverse();
+	Connectivity *subToCoarse = coarseToSub->alloc_reverse();
 
 	// GtFG is driving the renumbering both for the GtG system and the GtG
 	// off diagonal terms which are then inserted to interlay with GtFG

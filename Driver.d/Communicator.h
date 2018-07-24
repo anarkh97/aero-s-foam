@@ -243,7 +243,7 @@ FSCommPattern<T>::FSCommPattern(FSCommunicator *_communicator, Connectivity *cpu
 	sym = _sym;
 	numChannels = 0;
 	numCPUs = communicator->size();
-	subToCPU = cpuToSub->reverse();
+	subToCPU = cpuToSub->alloc_reverse();
 	reverseChannel = 0;
 	neighbCPUs = 0;
 	channelToCPU = 0;

@@ -228,7 +228,7 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFla
  fsGlued_eset = 0;
  nds = cs;
  eToN = new Connectivity(eset->asSet());
- nToE = eToN->reverse();
+ nToE = eToN->alloc_reverse();
  numEle = elems->size();
  if(verboseFlag) filePrint(stderr, " ... Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());
 
@@ -310,7 +310,7 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFla
    delete eToN;
    eToN = new Connectivity(elems->asSet());
    delete nToE;
-   nToE = eToN->reverse();
+   nToE = eToN->alloc_reverse();
    numEle = elems->last();
 //   if(verboseFlag) filePrint(stderr, " ... Glued Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());
 
@@ -399,7 +399,7 @@ MultiFront::redoConnect()
  delete nToE;
  delete eToN;
  eToN = new Connectivity(elems->asSet());
- nToE = eToN->reverse();
+ nToE = eToN->alloc_reverse();
  numEle = elems->size();
  if(verboseFlag) filePrint(stderr, " ... Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());
  delete [] flag;
@@ -1803,7 +1803,7 @@ MultiFront::memEstimate(Decomposition *dec, int dofsPerNode, double memory[5],
 	  ptr[iEle+1] = tgIndex;
 	}
       Connectivity eToN(dec->num(iSub), ptr, target);
-      Connectivity *nToE = eToN.reverse();
+      Connectivity *nToE = eToN.alloc_reverse();
       Connectivity *nToN = nToE->transcon(&eToN);
     // Find Kbb cost:
       for(iNode = 0; iNode <ndRenum; ++iNode)

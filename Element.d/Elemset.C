@@ -173,7 +173,7 @@ Elemset::collapseRigid6(std::set<int> &blockedNodes)
 #ifdef USE_EIGEN3
   SetAccess<std::pair<Elemset, DofSet> > sa(*this, DofSet(DofSet::DispAndRot));
   Connectivity eToN(sa);
-  Connectivity *nToE = eToN.reverse();
+  Connectivity *nToE = eToN.alloc_reverse();
   Connectivity *nToNRigid = nToE->transcon(&eToN);
 
   Element **newSet = new Element *[last()];

@@ -492,7 +492,7 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
 		mt.memorySubToNode += memoryUsed();
 
 		mt.memoryNodeToSub -= memoryUsed();
-		nodeToSub = subToNode->reverse();
+		nodeToSub = subToNode->alloc_reverse();
 		mt.memoryNodeToSub += memoryUsed();
 		domain->setNumNodes(nodeToSub->csize());
 
@@ -511,11 +511,11 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
 #endif
 			// sommerfeld, scatter, wet, distributed neum PJSA 6/28/2010 multidomain mumps PJSA 12/01/2010 non-binary output for mpi
 			mt.memoryNodeToElem -= memoryUsed();
-			if(!domain->nodeToElem) domain->nodeToElem = elemToNode->reverse();
+			if(!domain->nodeToElem) domain->nodeToElem = elemToNode->alloc_reverse();
 			mt.memoryNodeToElem += memoryUsed();
 
 			mt.memoryElemToSub -= memoryUsed();
-			elemToSub = subToElem->reverse();
+			elemToSub = subToElem->alloc_reverse();
 			mt.memoryElemToSub += memoryUsed();
 			if(domain->numSSN() > 0) domain->checkSommerTypeBC(domain, elemToNode, domain->nodeToElem); // flip normals if necessary
 		}
@@ -3429,7 +3429,7 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
     tmpMpcToMpc[i] = new Connectivity(size[i], pointer+startp, target+startt, 0);
   }
   // now each processor has the _procMpcToMpc connectivities for all other processors
-  Connectivity *subToCpu = cpuToSub->reverse();
+  Connectivity *subToCpu = cpuToSub->alloc_reverse();
   mpcToCpu = mpcToSub_dual->transcon(subToCpu);
   delete subToCpu; subToCpu = 0;
   int csize = mpcToCpu->csize();
@@ -3649,7 +3649,7 @@ GenDecDomain<Scalar>::makeMpcToSub()
 #endif
 
     auto subToMpc = std::make_unique<Connectivity>(globalNumSub, pointer, target);
-    mpcToSub_dual.reset(subToMpc->reverse());
+    mpcToSub_dual.reset(subToMpc->alloc_reverse());
   }
   if(numPrimalMpc) {
     int *pointer = new int[globalNumSub+1];
@@ -3676,7 +3676,7 @@ GenDecDomain<Scalar>::makeMpcToSub()
 
     Connectivity *subToMpc = new Connectivity(globalNumSub, pointer, target);
     if(mpcToSub_primal) delete mpcToSub_primal;
-    mpcToSub_primal = subToMpc->reverse();
+    mpcToSub_primal = subToMpc->alloc_reverse();
     delete subToMpc;
   }
 }

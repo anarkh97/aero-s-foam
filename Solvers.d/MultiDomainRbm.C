@@ -29,7 +29,7 @@ MultiDomainRbm<Scalar>::computeRbms()
     pointer[nsubGl] = nsubGl;
     bodyToSub = new Connectivity(nsubGl, pointer, target);
   }
-  Connectivity *subToBody = bodyToSub->reverse();
+  Connectivity *subToBody = bodyToSub->alloc_reverse();
   int nsub = decDomain->getNumSub();
   GenSubDomain<Scalar> **sd = decDomain->getAllSubDomains();
   FSCommunicator *com = decDomain->getCommunicator();
@@ -48,9 +48,9 @@ MultiDomainRbm<Scalar>::computeRbms()
 
     // Find out which bodies are connected together by mpcs 
     // a collection of inter-connected bodies is referred to as a group
-    Connectivity *subToMpc = mpcToSub_primal->reverse();
+    Connectivity *subToMpc = mpcToSub_primal->alloc_reverse();
     Connectivity *bodyToMpc = bodyToSub->transcon(subToMpc);
-    Connectivity *mpcToBody = bodyToMpc->reverse();
+    Connectivity *mpcToBody = bodyToMpc->alloc_reverse();
     Connectivity *bodyToBodyTmp = bodyToMpc->transcon(mpcToBody);
     Connectivity *bodyToBody = bodyToBodyTmp->modify();
     compStruct renumber = bodyToBody->renumByComponent(1);  // 1 = sloan renumbering
@@ -69,7 +69,7 @@ MultiDomainRbm<Scalar>::computeRbms()
       }
       groupToBody = new Connectivity(nGroups, pointer, renumber.order);
       groupToSub = groupToBody->transcon(bodyToSub);
-      subToGroup = groupToSub->reverse();
+      subToGroup = groupToSub->alloc_reverse();
     }
     if(renumber.xcomp) delete [] renumber.xcomp;
     if(renumber.renum) delete [] renumber.renum;
@@ -150,7 +150,7 @@ MultiDomainRbm<Scalar>::computeRbms()
  
   Connectivity *groupToMpc = 0;
   if(glNumMpc_primal > 0) {
-    Connectivity *subToMpc = mpcToSub_primal->reverse();
+    Connectivity *subToMpc = mpcToSub_primal->alloc_reverse();
     groupToMpc = groupToSub->transcon(subToMpc);
     paralApply(nsub, sd, &BaseSub::makeLocalToGroupMPC, groupToMpc);
     delete subToMpc;
@@ -313,7 +313,7 @@ MultiDomainRbm<Scalar>::computeRbms()
     const Connectivity &mpcToSub = decDomain->getMpcToSub();
     if(mpcToSub.csize() > 0) {
       Connectivity *mpcToBody = mpcToSub.transcon(subToGroup);
-      Connectivity *bodyToMpc = mpcToBody->reverse();
+      Connectivity *bodyToMpc = mpcToBody->alloc_reverse();
       Connectivity *bodyToBody_mpc = bodyToMpc->transcon(mpcToBody);
       coarseConnectGtG = bodyToBody_mpc->modify();
       delete mpcToBody; delete bodyToMpc; delete bodyToBody_mpc;

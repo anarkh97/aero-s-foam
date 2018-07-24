@@ -60,7 +60,7 @@ template<typename A, class Accessor = DirectAccess<A> >
 class BaseConnectivity
 {
 public :
-	Connectivity* reverse(float *w = 0) const;
+	Connectivity reverse(float *w = 0) const;
 	Connectivity* altReverse(float *w = 0);
 	template <class B, class AB>
 	Connectivity* transcon(const BaseConnectivity<B, AB> *tc) const;
@@ -128,8 +128,17 @@ public:
 	const int * getTarget() const {return target.data(); }
 	const int * getPointer() const {return pointer.data(); }
 
+	/** \brief Factory static method.
+	 *
+	 * @tparam RangeT A type on which one can iterate to obtain
+	 * pair like objects of source, target named first, second.
+	 * @param range Range object.
+	 * @return
+	 */
 	template <typename RangeT>
 	static Connectivity fromLinkRange(const RangeT &range);
+
+
 	Connectivity() { size = 0; }
 	/** \brief Constructor for any object that is equipped with the methods of a set.
 	 *
@@ -158,6 +167,8 @@ public:
 	Connectivity(const Elemset &els, Connectivity *nodeToElem);
 	Connectivity(const Connectivity&) = default;
 	Connectivity(Connectivity &&) = default;
+	Connectivity &operator=(Connectivity &&) = default;
+	Connectivity &operator=(const Connectivity &) = default;
 	size_t write(BinFileHandler& f);
 	size_t writeg(BinFileHandler& f);
 	size_t read(FILE* f);
@@ -186,8 +197,9 @@ public:
 	bool locate(int i,int j) const
 	{ for(int k=pointer[i]; k<pointer[i+1]; ++k) if(target[k] == j) return true; return false; }
 	// this call to ::reverse makes HB's mortar lib compile... investigate please.
-	Connectivity* reverse(float *w = 0) const
-	{ return(BaseConnectivity<Connectivity>::reverse(w)); } // creates t->s from s->t
+	Connectivity* alloc_reverse(float *w = 0) const
+	{ return new Connectivity{BaseConnectivity<Connectivity>::reverse(w)}; } // creates t->s from s->t
+
 	Connectivity* transconOne(Connectivity*);
 	int getTargetValue(int i) { return target[i]; }
 
@@ -200,13 +212,13 @@ public:
 	int *renumSloan(int *mask, int &firstNum, int *ren = 0);
 	int *renumRCM(int *mask, int &firstNum, int *ren = 0);
 	compStruct renumByComponent(int);
-	void print(FILE * = stderr, int node=-1);
-	int findMaxDist(int *);
-	int findProfileSize(EqNumberer *eqNumber, int unroll=1);
+	void print(FILE * = stderr, int node=-1) const;
+	int findMaxDist(int *) const;
+	int findProfileSize(EqNumberer *eqNumber, int unroll=1) const;
 	const std::vector<int> &ptr() const { return pointer; }
 	auto &tgt() { return target; }
 	auto &tgt() const { return target; }
-	Connectivity *merge(Connectivity *cn);
+	Connectivity *alloc_merge(Connectivity *cn) const;
 	// Create a copy of this connectivity without...
 	Connectivity *collapse();
 	Connectivity *subSection(bool *);
@@ -318,7 +330,7 @@ public:
 
 // reverse() return a new connectivity that is the reverse of the present one
 template<typename A, class Accessor>
-Connectivity *
+Connectivity
 BaseConnectivity<A,Accessor>::reverse(float * w) const
 {
 	// The reverse connectivity has the same size as the original
@@ -355,7 +367,7 @@ BaseConnectivity<A,Accessor>::reverse(float * w) const
 			res_target[--res_pointer[tg[j]]] = i;
 	}
 
-	return new Connectivity(res_size, res_pointer, res_target, 1, w);
+	return Connectivity(res_size, res_pointer, res_target, 1, w);
 }
 
 // Important NOTE: transcon cannot be called with the tc == this if tc is

@@ -486,7 +486,7 @@ HData::makeSommerConnectivities()
     SommerElement ** sElems = &(sommer[0]); // sbc.yieldPointer();
 //    somElemToNode = new Connectivity(sElems, numSommer,3);
     somElemToNode = new Connectivity(sElems, numSommer, 4);//4 to be used with bricks - JF
-    somNodeToElem = somElemToNode->reverse();
+    somNodeToElem = somElemToNode->alloc_reverse();
     somNodeToNode = somNodeToElem->transcon(somElemToNode);
   }
 }
@@ -780,7 +780,7 @@ HData::getCurvatures3Daccurate( Domain *dom )
   SommerElement ** sElems = &(sommer[0]); // sbc.yieldPointer();
 //  somElemToNode = new Connectivity(sElems, numSommer,3);
   somElemToNode = new Connectivity(sElems, numSommer,4);//4 if we want to use bricks - JF
-  somNodeToElem = somElemToNode->reverse();
+  somNodeToElem = somElemToNode->alloc_reverse();
   somNodeToNode = somNodeToElem->transcon(somElemToNode);
 
   int numNodesSommer = 0;
@@ -2284,7 +2284,7 @@ HData::checkSommerTypeBC(Domain *dom, const Connectivity *_elemToNode, const Con
  int *eleCount = new int[totEle];
 
  auto *packedElemToNode = (_elemToNode) ? _elemToNode : new Connectivity(dom->packedEset.asSet());
- auto *nodeToPackedElem = (_nodeToElem) ? _nodeToElem : packedElemToNode->reverse();
+ auto *nodeToPackedElem = (_nodeToElem) ? _nodeToElem : packedElemToNode->alloc_reverse();
 // int pos = 0, neg = 0;
  int i;
  for (i=0;i<totEle;i++) eleTouch[i] = -1;

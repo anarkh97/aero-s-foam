@@ -59,7 +59,7 @@ public:
 	/** \brief Obtain the size of the half interface for which this subdomain is the master. */
 	int halfInterfLen() const;
 	/** \brief Obtain the index of this subdomain in the global system. */
-	int subNum() const { return subNumber; }
+	gl_sub_idx subNum() const { return subNumber; }
 	/** \brief Set the communication size in the pattern.
 	 * TODO abstract FSCommPattern to isolate the scalar type.
 	 *
@@ -79,7 +79,7 @@ public:
 	// Pure virtual defined in FetiSub<Scalar>.
 	virtual void setGCommSize(FSCommStructure *pat) const = 0;
 
-	int localSubNum() const { return localSubNumber; }
+	lc_sub_idx localSubNum() const { return localSubNumber; }
 	int localLen() const { return (cc_dsa) ? cc_dsa->size() : get_c_dsa()->size(); }
 	int localRLen() const { return cc_dsa->size(); }
 

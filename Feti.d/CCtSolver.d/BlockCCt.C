@@ -66,7 +66,7 @@ BlockCCtSolver<Scalar>::BlockCCtSolver(Connectivity *_blockToMpc, Connectivity *
   }
 
   // Step 3. make blockToSub and localMpcToBlock connectivities
-  mpcToBlock = blockToMpc->reverse();
+  mpcToBlock = blockToMpc->alloc_reverse();
   blockToSub = blockToMpc->transcon(mpcToSub);
   paralApply(this->subsWithMpcs, &FetiBaseSub::setLocalMpcToBlock, mpcToBlock, blockToMpc);
                                     
@@ -280,7 +280,7 @@ BlockCCtSolver<Scalar>::distributeMpcBlocks()
   int *pointer = new int[nMpcBlocks + 1];
   for(i = 0; i <= nMpcBlocks; ++i) pointer[i] = i;
   blockToCpu = new Connectivity(nMpcBlocks, pointer, blockCpu);
-  cpuToBlock = blockToCpu->reverse();
+  cpuToBlock = blockToCpu->alloc_reverse();
 }
 
 template<class Scalar>
@@ -350,7 +350,7 @@ BlockCCtSolver<Scalar>::makeBlockCCtCommPattern()
    int *pointer = new int[size+1];
    for(i=0; i<=size; ++i) pointer[i] = i;
    Connectivity *idToCpu = new Connectivity(size, pointer, target);
-   Connectivity *cpuToId = idToCpu->reverse();
+   Connectivity *cpuToId = idToCpu->alloc_reverse();
    delete idToCpu;
    // blockCCtPat is used to send partially assembled CCt blocks to master CPU for final assembly and factoring
    blockCCtPat = new FSCommPattern<Scalar>(this->fetiCom, cpuToId, myCPU, FSCommPattern<Scalar>::CopyOnSend,

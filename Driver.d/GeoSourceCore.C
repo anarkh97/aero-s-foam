@@ -4475,7 +4475,6 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
     cpuToSub->write(f);
     fclose(f);
   }
-#ifndef OLD_CLUSTER
   else {
     filePrint(stderr, " ... Reading CPU Map from file %s ... \n", mapName);
     cpuToSub = new Connectivity(f, subToElem->csize());
@@ -4484,7 +4483,6 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
       exit(-1);
     }
   }
-#endif
 
   // TOPOLOGY (also element data PRESSURE and PRELOAD)
   Sower sower(subToElem, domain->getElementSet(), nCluster, domain->viewSurfEntities(), cpuToSub); //HB
@@ -4752,7 +4750,6 @@ GeoSource::getDecomposition()
 void GeoSource::getBinaryDecomp()
 {
   if(!subToElem) {
-#ifdef SOWER_DISTR
 	int myID = structCom->myID();
 	std::ostringstream oss;
 
@@ -4770,28 +4767,15 @@ void GeoSource::getBinaryDecomp()
 	}
 
 	int firstSubInCPU = (*cpuToSub)[myID][0]; // JAT 080315
-#ifndef OLD_CLUSTER
     for(int i = 0; i < cpuToSub->num(myID); ++i) {
       if(subToClus[(*cpuToSub)[myID][i]] != subToClus[firstSubInCPU]) {
         fprintf(stderr, " *** ERROR: Subdomains mapped to CPU %d are not in the same cluster\n", myID);
         exit(-1);
       }
     }
-#endif
 	oss << decomposition_ << subToClus[firstSubInCPU]+1;
 	BinFileHandler fp(oss.str().c_str(), "rb");
-#else
-	BinFileHandler fp(decomposition_.c_str(), "rb");
-#endif
-#ifdef OLD_CLUSTER
-	subToElem = new Connectivity(fp);
-	//if(!binaryOutput) {delete subToElem; subToElem = 0;} // JAT 021915
-	subToNode = new Connectivity(fp);
-#ifdef SOWER_DEBUG
-	std::cerr << "*** subToElem, from decomposition binary file: \n"; subToElem->print();
-	std::cerr << "*** subToNode, from decomposition binary file: \n"; subToNode->print();
-#endif
-#else
+
 	ConnectivityT<int,int> csubToSub2(fp);
 	ConnectivityT<int,gl_node_idx> *csubToNode = new ConnectivityT<int,gl_node_idx>(fp);
 	ConnectivityT<int,gl_node_idx> cnodeToNode(fp);
@@ -4819,11 +4803,9 @@ void GeoSource::getBinaryDecomp()
 	  }
 	}
 #endif
-#endif
   }
 }
 
-#ifndef SALINAS
 void GeoSource::readGlobalBinaryData()
 {
 	if(!subToSub || subToClus.size() == 0) {
@@ -4895,7 +4877,6 @@ void GeoSource::readGlobalBinaryData()
 #endif
 	}
 }
-#endif
 
 void GeoSource::computeClusterInfo(int glSub, Connectivity *_subToNode)
 {

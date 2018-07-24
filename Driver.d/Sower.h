@@ -13,7 +13,6 @@ extern std::string clusterData_;
 extern std::string subdomains_;
 extern std::string decomposition_;
 extern std::string connectivity_;
-//#define OLD_CLUSTER
 //#define SUBTOSUBINFILE
 //#define SOWER_DEBUG 
 
@@ -41,8 +40,6 @@ extern std::string connectivity_;
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 template <class Type> class ResizeArray;
 #endif
-
-#define SOWER_DISTR
 
 /* TypeTag defines tags for each category of data NODES, ELEMENTS ... */
 enum TypeTag{END_TYPE=0, NODES_TYPE=1, ELEMENTS_TYPE=2, ATTRIBUTES_TYPE=3, FORCES_TYPE=4,

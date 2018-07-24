@@ -194,7 +194,7 @@ void GenDecDomain<Scalar>::addBMPCs()
 
 template<class Scalar>
 template<class ConnectivityType1, class ConnectivityType2>
-void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, const ConnectivityType2 *subToNode) const
+void GenDecDomain<Scalar>::buildSharedNodeComm(const ConnectivityType1 *nodeToSub, const ConnectivityType2 *subToNode) const
 {
   // Start timer
   startTimerMemory(mt.makeConnectivity, mt.memoryConnect);
@@ -207,12 +207,11 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
 
   // PJSA 9-1-04 for coupled_dph all the wet interface nodes need to be included in the sharedNodes list in SComm
   bool coupled_dph = false;
-  int *wetInterfaceNodeMap = 0;
+  std::vector<int> wetInterfaceNodeMap;
   if(domain->solInfo().isCoupled) {
     coupled_dph = true;
     //wetInterfaceNodes = domain->getAllWetInterfaceNodes(numWetInterfaceNodes);
-    wetInterfaceNodeMap = new int[nodeToSub->csize()];
-    for(int i=0; i<nodeToSub->csize(); ++i) wetInterfaceNodeMap[i] = -1;
+    wetInterfaceNodeMap.assign(nodeToSub->csize(), -1);
     for(int i=0; i<numWetInterfaceNodes; ++i) wetInterfaceNodeMap[wetInterfaceNodes[i]] = i;
   }
 
@@ -354,7 +353,6 @@ void GenDecDomain<Scalar>::getSharedNodes(const ConnectivityType1 *nodeToSub, co
   for(iSub = 0; iSub < numNESub; ++iSub)
     delete [] nodeCount[iSub];
   delete [] nodeCount;
-  delete [] wetInterfaceNodeMap;
 
   std::vector<bool> localNESub(numNESub, false);
 
@@ -481,24 +479,7 @@ void
 GenDecDomain<Scalar>::makeSubToSubEtc()
 {
 	if(soweredInput) {
-#ifdef OLD_CLUSTER
-		subToNode = geoSource->getSubToNode();
-    subToNode->sortTargets();
-
-    mt.memoryNodeToSub -= memoryUsed();
-    nodeToSub = subToNode->reverse();
-    mt.memoryNodeToSub += memoryUsed();
-
-#endif
-#ifdef SOWER_DISTR
-#ifdef OLD_CLUSTER
-		geoSource->setNumNodes(communicator->globalMax(nodeToSub->csize()));
-#else
 		geoSource->setNumNodes(communicator->globalMax(geoSource->nodeToSub_sparse->csize()));
-#endif
-#else
-		geoSource->setNumNodes(nodeToSub->csize());
-#endif
 	}
 	else {
 		mt.memoryElemToNode -= memoryUsed();
@@ -551,9 +532,6 @@ GenDecDomain<Scalar>::makeSubDomains()
 
   startTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
   if(soweredInput) {
-#ifdef OLD_CLUSTER
-    geoSource->computeClusterInfo(localSubToGl[0]);
-#endif
     subDomain = geoSource->template readDistributedInputFiles<Scalar>(localSubToGl);
 
     ControlLawInfo *claw = geoSource->getControlLaw();
@@ -704,24 +682,17 @@ GenDecDomain<Scalar>::preProcess()
 
  if(!subToElem) {
    if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");
-#ifndef OLD_CLUSTER
    if(soweredInput) geoSource->getBinaryDecomp(); else
-#endif
    subToElem = geoSource->getDecomposition();
    //subToElem->sortTargets(); // JAT 021915 // PJSA 11-16-2006
  }
 
  makeSubToSubEtc();
 
- if(subToSub) globalNumSub = subToSub->csize(); // JAT 021915 // JAT 021916
-#ifdef SOWER_DISTR
- if(soweredInput)
-#ifdef OLD_CLUSTER
-   globalNumSub = communicator->globalMax(globalNumSub);
-#else
-   globalNumSub = communicator->globalMax(geoSource->subToNode_sparse->csize());
-#endif
-#endif
+	if(subToSub) globalNumSub = subToSub->csize(); // JAT 021915 // JAT 021916
+
+	if(soweredInput)
+		globalNumSub = communicator->globalMax(geoSource->subToNode_sparse->csize());
 
  if(!cpuToSub) getCPUMap();
 
@@ -732,10 +703,9 @@ GenDecDomain<Scalar>::preProcess()
 
  preProcessFSIs();// FLuid-Structure Interaction
 
-#ifndef OLD_CLUSTER
- if(soweredInput) getSharedNodes(geoSource->nodeToSub_sparse, geoSource->subToNode_sparse); else
-#endif
- getSharedNodes(nodeToSub, subToNode);
+ if(soweredInput) buildSharedNodeComm(geoSource->nodeToSub_sparse, geoSource->subToNode_sparse); else
+
+	 buildSharedNodeComm(nodeToSub, subToNode);
 
  makeCorners();// Corners for FETI-DP
 

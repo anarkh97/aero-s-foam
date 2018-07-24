@@ -88,17 +88,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
     }
     clusToSub = new Connectivity(nClus, clusp, subs);
   } else
-#ifdef OLD_CLUSTER
-  {
-    // number of elements in a subdomain as weight
-    long long * sizes = new superlong[nSub];
-    for(int i = 0; i < nSub ; i++) {
-      sizes[i] = subToElem->num(i);
-    }
-    clusToSub = greedy(sTos, nToS, sToN, sizes, nSub, nClus); 
-    delete [] sizes;
-  }
-#else
+
   {
     // for new clustering method, all the subdomains on a cpu must be in the same cluster
     if(nClus == 1) {
@@ -132,7 +122,6 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
       }
     }
   }
-#endif
   //addParentToChildData<Elemset*,Connectivity*>(ELEMENTS,CLUSTER,0,&eset,clusToSub);
 
 #ifdef SOWER_DEBUG
@@ -141,48 +130,9 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
 #endif   
   // PJSA: write clusToSub file
   BinFileHandler file(subdomains_.c_str(), "w");
-#ifdef SOWER_DISTR
   subToClus = clusToSub->reverse();
   subToClus->write(file);
   // PJSA: write subToElem & subToNode files for each cluster
-#ifdef OLD_CLUSTER
-  Connectivity *elemToClus = eTos->transcon(subToClus);
-  Connectivity *nodeToClus = nToS->transcon(subToClus);
-  bool *selectElem = new bool[elemToClus->csize()];
-  bool *selectNode = new bool[nodeToClus->csize()];
-  for(int i=0; i<nClus; ++i) {
-    std::ostringstream oss;
-    oss << decomposition_ << i+1;
-    BinFileHandler file2(oss.str().c_str(), "w");
-
-    for(int j=0; j<elemToClus->csize(); ++j) {
-      selectElem[j] = false;
-      for(int k=0; k<elemToClus->num(j); ++k)
-        if((*elemToClus)[j][k] == i) { selectElem[j] = true; break; }
-    }
-    Connectivity *elemToSub_i = eTos->subSection(selectElem);
-    Connectivity *subToElem_i = elemToSub_i->reverse();
-    subToElem_i->write(file2);
-    delete elemToSub_i;
-    delete subToElem_i;
-
-    for(int j=0; j<nodeToClus->csize(); ++j) {
-      selectNode[j] = false;
-      for(int k=0; k<nodeToClus->num(j); ++k)
-        if((*nodeToClus)[j][k] == i) { selectNode[j] = true; break; }
-    }
-    Connectivity *nodeToSub_i = nToS->subSection(selectNode);
-    Connectivity *subToNode_i = nodeToSub_i->reverse();
-    subToNode_i->write(file2);
-    delete nodeToSub_i;
-    delete subToNode_i;
-  }
-  delete subToClus;
-  delete elemToClus;
-  delete nodeToClus;
-  delete [] selectElem;
-  delete [] selectNode;
-#else
   // new method: write enough to reconstruct implict (sparse) connectivities
   double t1 = getTime();
   int csize = std::max(eTos->csize(),nToS->csize());
@@ -217,14 +167,6 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   delete clusToNode;
   delete clusToSub2;
   //std::cerr << "elapsed time = " << (getTime()-t1)/1000 << std::endl;
-#endif
-#else
-  writeSubFile(file);
-  // PJSA: write subToElem & subToNode file (temporary fix, replace with distributed decomposition)
-  BinFileHandler file2(decomposition_.c_str(), "w");
-  subToElem->write(file2);
-  sToN->write(file2);
-#endif
 
   // PJSA: write connectivity file
   BinFileHandler file3(connectivity_.c_str(), "w");

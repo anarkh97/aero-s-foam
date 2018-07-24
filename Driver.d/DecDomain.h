@@ -183,7 +183,7 @@ class GenDecDomain
    * @param subToNode
    */
   template<class ConnectivityType1, class ConnectivityType2>
-  void getSharedNodes(const ConnectivityType1 *nodeToSub, const ConnectivityType2 *subToNode) const;
+  void buildSharedNodeComm(const ConnectivityType1 *nodeToSub, const ConnectivityType2 *subToNode) const;
   void addBMPCs();
   void makeSubToSubEtc();
   void preProcessBCsEtc();

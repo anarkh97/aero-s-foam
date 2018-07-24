@@ -23,7 +23,7 @@ public:
 
 	int locSubNum = -1;     //!< when running in distributed mode
 
-	std::vector<lc_sub_idx >remoteId;     //!< id of this subdomain in the corresponding neighbor
+	std::vector<lc_sub_idx> remoteId;     //!< id of this subdomain in the corresponding neighbor
 	int numNeighb = 0;     //!< Number of neighbors with shared nodes
 	std::vector<gl_sub_idx > subNums;      //!< identification numbers of neighbors with shared nodes
 	std::unique_ptr<Connectivity> sharedNodes; //!< nodes shared with the neighbors (wet and dry but no virtual)

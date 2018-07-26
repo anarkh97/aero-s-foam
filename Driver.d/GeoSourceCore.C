@@ -4781,9 +4781,9 @@ void GeoSource::getBinaryDecomp()
 	ConnectivityT<int,gl_node_idx> cnodeToNode(fp);
 	ConnectivityT<int,int> *cnodeToSub = new ConnectivityT<int,int>(fp);
 
-	std::map<int,int> glToLocSub2;
+	std::map<gl_sub_idx, lc_sub_idx> glToLocSub2;
 	for(int j=0; j<csubToSub2.csize(); ++j) glToLocSub2.insert(std::pair<int,int>(csubToSub2[j][0], j));
-	std::map<gl_node_idx,int> glToLocNode;
+	std::map<gl_node_idx, lc_node_idx> glToLocNode;
 	for(int j=0; j<cnodeToNode.csize(); ++j) glToLocNode.insert(std::pair<gl_node_idx,int>(cnodeToNode[j][0], j));
     numClusNodes = cnodeToNode.csize();
 

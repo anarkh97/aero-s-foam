@@ -17,7 +17,53 @@
 #define MIN_MEMORY
 
 #ifdef USE_METIS
-extern "C" void METIS_NodeND(int *n, int * xadj, int *adj, int *numflag, int *options, int *perm, int* iperm);
+//extern "C" void METIS_NodeND(int *n, int * xadj, int *adj, int *numflag, int *options, int *perm, int* iperm);
+#include <metis.h>
+
+int callMetis(idx_t *nvtxs, idx_t *xadj, idx_t *adjncy, idx_t *vwgt,
+              idx_t *options, idx_t *perm, idx_t *iperm)
+{
+    return METIS_NodeND(nvtxs, xadj, adjncy, vwgt, options, perm, iperm);
+}
+
+template <typename T>
+int callMetis(T *n, T *xadj, T *adj, T *weights, idx_t *options, T *perm,
+    T *iperm)
+{
+    idx_t m = *n;
+    std::vector<idx_t> mxadj(xadj, xadj + *n + 1);
+    std::vector<idx_t> madj (adj, adj+xadj[*n + 1]);
+    std::vector<idx_t> mweights = weights != nullptr
+                                  ? std::vector<idx_t>(weights, weights + *n)
+                                  : std::vector<idx_t>() ;
+    std::vector<idx_t> mperm(*n);
+    std::vector<idx_t> miperm(*n);
+    auto status = METIS_NodeND(&m, mxadj.data(), madj.data(), weights ? mweights.data() : nullptr,
+        options, mperm.data(), miperm.data());
+    for(T i = 0; i < *n; ++i) {
+        perm[i] = mperm[i];
+        iperm[i] = miperm[i];
+    }
+    return status;
+}
+
+template <typename T>
+int callMetis(T *n, T *xadj, T *adj, nullptr_t weights, idx_t *options, T *perm,
+              T *iperm)
+{
+    idx_t m = *n;
+    std::vector<idx_t> mxadj(xadj, xadj + *n +1);
+    std::vector<idx_t> madj (adj, adj+xadj[*n]);
+    std::vector<idx_t> mperm(*n);
+    std::vector<idx_t> miperm(*n);
+    auto status = METIS_NodeND(&m, mxadj.data(), madj.data(), nullptr,
+                               options, mperm.data(), miperm.data());
+    for(T i = 0; i < *n; ++i) {
+        perm[i] = mperm[i];
+        iperm[i] = miperm[i];
+    }
+    return status;
+}
 #endif
 
 extern "C" {
@@ -1278,13 +1324,24 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 
   // iwsiz = 4 * numUncon;  // iwsiz should be the dimension of iwork (not changed)
 #ifdef USE_METIS  
-  if(scntl.sparse_renum == 1) {
-    int metis_options[8];
-    for(i = 0; i < 8; i++) metis_options[i] = 0;
-    int numflag = 1;
+    if(scntl.sparse_renum == 1) {
+        std::vector<idx_t> metis_options(METIS_NOPTIONS, 0);
+	    METIS_SetDefaultOptions(metis_options.data());
+        metis_options[METIS_OPTION_NUMBERING] = 1;
+        metis_options[METIS_OPTION_CTYPE] = METIS_CTYPE_SHEM;
+        metis_options[METIS_OPTION_IPTYPE] = METIS_IPTYPE_EDGE;
+        metis_options[METIS_OPTION_RTYPE] = METIS_RTYPE_SEP2SIDED;
+        metis_options[METIS_OPTION_COMPRESS] = 1;
+        metis_options[METIS_OPTION_CCORDER ] = 1;
+        metis_options[METIS_OPTION_PFACTOR] = 200;
+        metis_options[METIS_OPTION_NSEPS] = 2;
 
-    METIS_NodeND(&numUncon, xlindx, lindx, &numflag, metis_options, perm, invp);
-  }
+        int res = callMetis(&numUncon, xlindx, lindx, nullptr, metis_options.data(), perm, invp);
+        if(res != METIS_OK) {
+            std::cerr << "Metis failed result: " << res << std::endl;
+            exit(1);
+        }
+    }
   else {
 #endif
     _FORTRAN(ordmmd2)(numUncon, xlindx, lindx, invp, perm,

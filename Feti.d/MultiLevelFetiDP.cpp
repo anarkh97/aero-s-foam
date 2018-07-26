@@ -36,7 +36,7 @@ Eigen::Map<const Eigen::Vector3d> v(const Node &node) {
  * @param subIdx The subdomain for which the result is sought.
  * @param nodes The global node numbers of this subdomain.
  * @param nodeToSub The connectivity from global node to global subdomain.
- * @return
+ * @return A pair with the array of global neighboring subdomains and a connectivity with the shared nodes.
  */
 std::pair<std::vector<gl_sub_idx>, Connectivity>
 subSharedNodes(gl_sub_idx subIdx, gsl::span<const gl_node_idx> nodes, const Connectivity &nodeToSub)

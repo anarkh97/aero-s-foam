@@ -1,6 +1,7 @@
 #ifndef _SCOMM_H_
 #define _SCOMM_H_
 
+#include <memory>
 #include <Types.h>
 #include <Utils.d/Connectivity.h>
 

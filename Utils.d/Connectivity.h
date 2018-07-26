@@ -69,6 +69,7 @@ public :
 
 	template <class B, class AB>
 	Connectivity* altTranscon(const BaseConnectivity<B,AB>& tc) const;
+	/// \brief Transitive connectivity but only where owned[ tc[i][j] ] == me.
 	template <class B, class AB>
 	Connectivity* transcon(const BaseConnectivity<B, AB> *tc, int *ownedBy, int me);
 

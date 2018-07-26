@@ -415,9 +415,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #if defined(USE_MUMPS) && defined(DISTRIBUTED)
 	if(fetiInfo->coarse_cntl->subtype == FetiInfo::mumps && fetiInfo->coarse_cntl->mumps_icntl[18] == 3) { // matrix is distributed, use local graph for matrix structure
    delete coarseConnectivity;
-   Connectivity *subToCPU = this->cpuToSub->reverse();
-   coarseConnectivity = coarseToSub->transcon(subToCoarse, subToCPU->getTarget(), this->myCPU);
-   delete subToCPU;
+   auto subToCPU = this->cpuToSub->reverse();
+   coarseConnectivity = coarseToSub->transcon(subToCoarse, subToCPU.getTarget(), this->myCPU);
  }
 #endif
 	if(coarseToSub && coarseToSub != cornerToSub) delete coarseToSub;

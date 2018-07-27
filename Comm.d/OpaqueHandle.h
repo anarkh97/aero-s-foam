@@ -64,8 +64,8 @@ struct OpaqueTypedHandle {
 	template <typename T, typename X = typename std::enable_if<CommTypeCompatibility<T, ht>::isCompatible, void>::type>
 	operator T() const;
 private:
-	static const size_t ls = 64;//sizeof(void *);
-	static const size_t la = 64; //alignof(void *);
+	static const size_t ls = 32;//sizeof(void *);
+	static const size_t la = alignof(void *);
 	std::aligned_storage_t<ls, la> handle;
 	friend struct com_details::HandleHelper;
 };

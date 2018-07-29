@@ -99,7 +99,7 @@ public:
 	/// \brief Count the number dofs marked in this node.
 	int count() const;
 
-	int number(DofSet, int *); // This routine complements the previous
+	int number(DofSet, int *) const; // This routine complements the previous
 	// one, numbering all the DOFs in the first argument
 
 	// Locates a dof in the current set. Only works for single dofs
@@ -128,18 +128,17 @@ class Element;
 class EqNumberer {
 protected:
 	int numnodes{};    // total number of nodes
-	int *node_offset = nullptr;    // Where the nodes are
-	int *node_num_dofs = nullptr; // Number of dofs associated with a node
-	int *renummap = nullptr;        // Renumbering mapping of the nodes
-	int myMap = 0;
+	std::vector<int> node_offset;    // Where the nodes are
+	std::vector<int> node_num_dofs; // Number of dofs associated with a node
+	std::vector<int> renummap;        // Renumbering mapping of the nodes
 
 public:
 	EqNumberer() {}
 
-	virtual ~EqNumberer();
+	virtual ~EqNumberer() {}
 
 	// Return the total number of degrees of freedom
-	int size() const { return (node_offset) ? node_offset[numnodes] : 0; }
+	int size() const { return (node_offset.size() != 0) ? node_offset[numnodes] : 0; }
 
 	// Return the number of nodes
 	int numNodes() const { return numnodes; }
@@ -150,11 +149,11 @@ public:
 	// Return the weight of a node (its number of dofs)
 	int weight(int n) const { return node_num_dofs[n]; }
 
-	int *allWeights() { return node_num_dofs; }
+	int *allWeights() { return node_num_dofs.data(); }
 
-	int *allOffsets() { return node_offset; }
+	int *allOffsets() { return node_offset.data(); }
 
-	int *renumPtr() { return renummap; }
+	int *renumPtr() { return renummap.data(); }
 
 	void print();
 };
@@ -166,11 +165,10 @@ public:
  */
 class DofSetArray : public EqNumberer {
 protected:
-	DofSet *dofs = nullptr;
-	int *rowcolnum = nullptr;
-	int *invrowcol = nullptr;
-	int *dofType = nullptr; // 0 = translational, 1 = rotational
-	bool myDofs = false;
+	std::vector<DofSet> dofs;
+	std::vector<int> rowcolnum;
+	std::vector<int> invrowcol;
+	std::vector<int> dofType; // 0 = translational, 1 = rotational
 
 	DofSetArray() = default;
 
@@ -185,6 +183,8 @@ public:
 
 	DofSetArray(int nnodes, int *renumtable = 0, int myMap = 0);
 
+	DofSetArray(DofSetArray &&dofSetArray) = default;
+
 	explicit DofSetArray(Element *ele);
 
 	~DofSetArray() override;
@@ -194,8 +194,11 @@ public:
 
 	int number(int node, DofSet, int *) const;
 
-	// Mark dofs for a node
+	/// Mark dofs for a node
 	void mark(int node, int dof);
+
+	/** \brief Mark DOFs used at a node. */
+	void mark(int node, DofSet ds) { mark(node, ds.list()); }
 
 	void mark(const int *node, int numNode, int dof);
 
@@ -208,13 +211,11 @@ public:
 
 	int invRCN(int dof) const { return invrowcol[dof]; }
 
-	int *getUnconstrNum() const { return rowcolnum; }
+	auto &getUnconstrNum() const { return rowcolnum; }
 
-	int *getConstrndNum() const { return invrowcol; }
+	auto &getConstrndNum() const { return invrowcol; }
 
 	int *makeDofTypeArray(); // creates and returns dofType array
-	// 0 = translational, 1 = rotational
-	int *getDofTypeArray() { return dofType; }
 
 	void setWeight(int n, int w);
 
@@ -276,6 +277,8 @@ public:
 
 	ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa);
 
+	ConstrainedDSA(ConstrainedDSA &&) = default;
+
 	~ConstrainedDSA() override = default;
 
 private:
@@ -289,7 +292,7 @@ private:
 
 class SimpleNumberer : public EqNumberer {
 public:
-	SimpleNumberer(int nnodes, int *renumb = 0, int myMap = 0);
+	SimpleNumberer(int nnodes, int *renumb = nullptr, int myMap = 0);
 
 	~SimpleNumberer() override = default;
 

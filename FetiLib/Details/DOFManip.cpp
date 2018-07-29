@@ -46,7 +46,7 @@ std::pair<DofSetArray, ConstrainedDSA> buildNodalDOFInfo(const DOFInfo &dofInfo)
 		dofSetArray[info.first] |= allDofs;
 	}
 	ConstrainedDSA constrainedDSA(cdsaBase, 0);
-	return {dofSetArray, constrainedDSA};
+	return { std::move(dofSetArray), std::move(constrainedDSA) };
 }
 
 } // namespace Details

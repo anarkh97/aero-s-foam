@@ -125,15 +125,14 @@ class LMPCons;
 
 class SparseData {
  protected:
-  int *unconstrNum;
-  int *constrndNum;
-  int *xunonz;
-  int *rowu;
-  int *colu;
+  std::vector<int> unconstrNum;
+  std::vector<int> constrndNum;
+  std::vector<int> xunonz;
+  std::vector<int> rowu;
+  std::vector<int> colu;
   int numConstrained;
   int numUncon;
   int neq;
-  int myMem;
   int myMem_rowu;
  public: 
     SparseData();
@@ -152,7 +151,7 @@ class SparseData {
                Connectivity *cn, int expand);
 
     // This constructor is for the Esmond sparse solver (BLKSparseMatrix)
-    SparseData(Connectivity *cn, EqNumberer *eqn, double trbm, int expand=1);
+    SparseData(Connectivity *cn, const EqNumberer *eqn, double trbm, int expand = 1);
 
     // MLX This constructor is for the Padma sparse solver
     SparseData(EqNumberer *eqn, Connectivity *cn, double trbm);

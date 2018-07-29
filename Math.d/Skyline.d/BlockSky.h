@@ -40,7 +40,7 @@ class GenBlockSky : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>
      int *lastCol;
      int *dlp; // diagonal location pointer (non-FORTRAN style)
      int myRCN;
-     int *rowColNum;
+     const int *rowColNum;
      int maxBlockSize; // maximum area of a block
      Scalar *invDiag;
      int *perm;

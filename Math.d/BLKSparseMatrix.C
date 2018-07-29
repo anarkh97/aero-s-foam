@@ -950,7 +950,7 @@ GenBLKSparseMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
    lxend    = xlindx[csuper+1]-1;
    for(j = Kai[i]; j < Kai[i+1]; ++j) {
      if(map[Kaj[j-1]-1] == -1) continue;
-     int rowj = (unconstrNum) ? unconstrNum[map[Kaj[j-1]-1]] : map[Kaj[j-1]-1];
+     int rowj = (unconstrNum.size() != 0) ? unconstrNum[map[Kaj[j-1]-1]] : map[Kaj[j-1]-1];
      if(rowj < 0) continue;
      int irow   = invp[rowj] - 1;
      if(irow >= fstcol) {
@@ -1006,7 +1006,7 @@ GenBLKSparseMatrix<Scalar>::addone(Scalar d, int dofi, int dofj)
  // WARNING: this adds both [i,j] and [j,i]
  if((dofi < 0) || (dofj < 0)) return;
  int k, irow, rowi, colj, offset, p1,position,csuper,fstcol,lxbeg,lxend;
- if(unconstrNum) {
+ if ( unconstrNum.size() != 0 ) {
    if((rowi = unconstrNum[dofi]) == -1 || (colj = unconstrNum[dofj]) == -1) return;
  }
  else { rowi = dofi; colj = dofj; }
@@ -1063,7 +1063,7 @@ GenBLKSparseMatrix<Scalar>::getone(int dofi, int dofj)
  Scalar d; // return value
 
  int k, irow, rowi, colj, offset, p1,position,csuper,fstcol,lxbeg,lxend;
- if(unconstrNum) {
+ if(unconstrNum.size() != 0) {
    if((rowi = unconstrNum[dofi]) == -1 || (colj = unconstrNum[dofj]) == -1) return 0.0;
  }
  else { rowi = dofi; colj = dofj; }
@@ -1184,8 +1184,10 @@ GenBLKSparseMatrix<Scalar>::addDiscreteMass(int dof, Scalar mass)
 {
  if(dof < 0) return;
  int cdof;
- if(unconstrNum) cdof = unconstrNum[dof]; // dof is now in unconstrained numbering
- else cdof = dof;
+ if(unconstrNum.size() != 0)
+ 	cdof = unconstrNum[dof]; // dof is now in unconstrained numbering
+ else
+ 	cdof = dof;
  if(cdof < 0) return;
 
  int k,colj, offset, p1,position,csuper,fstcol,lxbeg,lxend;
@@ -1298,8 +1300,8 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   for (i=0; i<numUncon+1; i++)
      xadj[i] = xunonz[i] - i ;
 
-  delete [] xunonz; xunonz = 0;
-  delete [] rowu;   rowu   = 0;
+	xunonz.clear(); xunonz.shrink_to_fit();
+	rowu.clear();   rowu.shrink_to_fit();
 
 //-------------------------------------------
 // Copy matrix structure from (XADJ,ADJ) to

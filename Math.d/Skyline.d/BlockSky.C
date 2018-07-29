@@ -198,7 +198,7 @@ GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, DofSetArray *eqnums,
  dlp = new int[neq];
  perm = new int[neq];
  // get unconstrained numbering
- rowColNum = eqnums->getUnconstrNum();
+ rowColNum = eqnums->getUnconstrNum().data();
 
  int i, j;
  nBlocks = nodeToNode->csize();
@@ -307,11 +307,12 @@ GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, DofSetArray *dsa, dou
 
   neq  = 0;
   myRCN = 1;
-  rowColNum = new int[neq];
+  int *build_rowColNum = new int[neq];
   for(i = 0; i < neq; ++i) {
-    rowColNum[i] = rCN[i];
-    if(rowColNum[i] >= 0) neq++;
+      build_rowColNum[i] = rCN[i];
+    if(build_rowColNum[i] >= 0) neq++;
   }
+  rowColNum = build_rowColNum;
 
 // Build the dofTON in unconstrained numbering
   int *dofToN = new int[neq]; 

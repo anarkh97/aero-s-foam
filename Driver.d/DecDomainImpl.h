@@ -318,7 +318,7 @@ void GenDecDomain<Scalar>::buildSharedNodeComm(const ConnectivityType1 *nodeToSu
 
   for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
     for(iNode = 0; iNode < subToNode->num(iSub); ++iNode) {
-      typename ConnectivityType2::IndexType nd = (*subToNode)[iSub][iNode];
+      auto nd = (*subToNode)[iSub][iNode];
       bool isWetInterfaceNode = coupled_dph && (wetInterfaceNodeMap[nd] != -1);
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];

@@ -403,9 +403,10 @@ GenSkyMatrix<Scalar>::GenSkyMatrix(int n, double tolerance) :
 
   skyA = new Scalar[ dlp[numUncon-1] ];
 
-  int i;
-  for(i=0; i<numUncon; ++i)
-   rowColNum[i] = i;
+  auto build_rcn = new int[numUncon];
+  for(int i=0; i<numUncon; ++i)
+      build_rcn[i] = i;
+  rowColNum = build_rcn;
 
   zeroAll();
   isTRBM = 1;

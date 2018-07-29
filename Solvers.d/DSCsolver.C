@@ -62,7 +62,7 @@ DSCsolver::DSCsolver(Connectivity *cn, EqNumberer *eqNums, int s_number)
  // This comes from the eqNums
  treplication = eqNums->allWeights();
 
- ta_nonz_index = xunonz; 
+ ta_nonz_index = xunonz.data();
  ta_nonz       =  unonz; 
 #endif
 }

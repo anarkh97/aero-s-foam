@@ -112,7 +112,6 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa
 {
   init();
   neq = c_dsa->size();
-  myMem = 0; // this means don't delete unconstrNum
   unconstrNum = c_dsa->getUnconstrNum();
 
   //int nNodes = nToN->csize();
@@ -193,7 +192,7 @@ GenSpoolesSolver<Scalar>::add(int dofi, int dofj, Scalar d)
   // WARNING: this adds only [i,j] with  j >= i (i.e. upper part)
   if((dofi < 0) || (dofj < 0)) return;
   int m, mstart, mstop, rowi, colj;
-  if(unconstrNum) {
+  if(unconstrNum.size() != 0) {
     if((rowi = unconstrNum[dofi]) == -1 || (colj = unconstrNum[dofj]) == -1) return;
   }
   else { rowi = dofi; colj = dofj; }
@@ -296,9 +295,12 @@ GenSpoolesSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
 {
   if(dof < 0) return;
   int cdof;
-  if(unconstrNum) cdof = unconstrNum[dof]; // dof is now in unconstrained numbering
-  else cdof = dof;
-  if(cdof < 0) return;
+  if(unconstrNum.size() != 0)
+  	cdof = unconstrNum[dof]; // dof is now in unconstrained numbering
+  else
+  	cdof = dof;
+  if(cdof < 0)
+  	return;
 
   int mstart = xunonz[cdof];
   int mstop  = xunonz[cdof+1];

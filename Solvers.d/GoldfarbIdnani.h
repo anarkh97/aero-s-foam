@@ -11,7 +11,7 @@ template<class BaseSolver, class Scalar>
 class GoldfarbIdnaniQpSolver : public BaseSolver
 {
   int n, p, m;
-  int *unconstrNum; // mapping from dsa to c_dsa unconstrained numbering
+  const int *unconstrNum; // mapping from dsa to c_dsa unconstrained numbering
   int *doftype;
   int *dofmap;
 
@@ -29,7 +29,7 @@ public:
   GoldfarbIdnaniQpSolver(BaseArgs &ba, ConstrainedDSA *cdsa, double _tol)
    : BaseSolver(ba) {
     tol = _tol;
-    unconstrNum = cdsa->getUnconstrNum();
+    unconstrNum = cdsa->getUnconstrNum().data();
     n = 0; p = 0; m = 0;
     doftype = new int[cdsa->size()];
     dofmap = new int[cdsa->size()];

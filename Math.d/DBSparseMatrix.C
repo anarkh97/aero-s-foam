@@ -29,19 +29,16 @@ _FORTRAN(cspsmvp)(a,b,c,d,e,f);
 template<class Scalar>
 GenDBSparseMatrix<Scalar>::~GenDBSparseMatrix()
 {
-  if(unonz) { delete [] unonz; unonz=0; }
-  if(scale) { delete [] scale; scale=0; }
 }
 
 template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::clean_up()
 {
- if(unonz) {
-   delete [] unonz;
-   unonz=0;
- }
- if(scale) { delete [] scale; scale=0; }
+ unonz.clear();
+ unonz.shrink_to_fit();
+ scale.clear();
+ scale.shrink_to_fit();
 }
 
 template<class Scalar>
@@ -223,13 +220,12 @@ GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *dsa,
 : SparseData(dsa,cn,rCN)
 {
   // ... Allocate memory for unonz & initialize to zero
-  unonz = new Scalar[xunonz[numUncon]];
+  unonz.resize(xunonz[numUncon]);
 
   // ... INITIALIZE THE VECTOR CONTAINING THE SPARSE MATRIX TO ZERO
   zeroAll();
 
   isScaled=0;
-  scale=0;
 }
 
 template<class Scalar>
@@ -237,12 +233,11 @@ GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *_dsa
   SparseData(_dsa,c_dsa,cn)
 {
   // ... Allocate memory for matrix value vector unonz
-  unonz = new Scalar[xunonz[numUncon]];
+  unonz.resize(xunonz[numUncon]);
   // ... INITIALIZE THE VECTOR CONTAINING THE SPARSE MATRIX TO ZERO
   zeroAll();
 
   isScaled=0;
-  scale=0;
 }
 
 template<class Scalar>
@@ -250,13 +245,12 @@ GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, EqNumberer *eqNum
  : SparseData(cn, eqNums,1.0E-6,0)
 {
   // ... Allocate memory for matrix value vector unonz
-  unonz = new Scalar[xunonz[numUncon]];
+  unonz.resize(xunonz[numUncon]);
 
   // ... INITIALIZE THE VECTOR CONTAINING THE SPARSE MATRIX TO ZERO
   zeroAll();
 
   isScaled=0;
-  scale=0;
 }
 
 template<class Scalar>
@@ -271,14 +265,14 @@ void
 GenDBSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) const
 {
  int nn = numUncon;
- Tcspsmvp(nn, unonz, xunonz, rowu, rhs, result);
+ Tcspsmvp(nn, unonz.data(), xunonz.data(), rowu.data(), rhs, result);
 }
 
 template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result) const
 {
-  Tcspsmvp(numUncon, unonz, xunonz, rowu, rhs.data(), result);
+  Tcspsmvp(numUncon, unonz.data(), xunonz.data(), rowu.data(), rhs.data(), result);
 }
 
 template<class Scalar>
@@ -302,7 +296,7 @@ GenDBSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result) const
 {
  int nn = numUncon;
  Scalar *tmp = (Scalar *) dbg_alloca(sizeof(Scalar)*nn);
- Tcspsmvp(nn, unonz, xunonz, rowu, rhs, tmp);
+ Tcspsmvp(nn, unonz.data(), xunonz.data(), rowu.data(), rhs, tmp);
  for(int i=0; i<nn; ++i) result[i] += tmp[i];
 }
 
@@ -311,7 +305,7 @@ template<class Scalar>
 void
 GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result) const
 {
- Tcspsmvp(numUncon, unonz, xunonz, rowu, rhs.data(), result.data());
+ Tcspsmvp(numUncon, unonz.data(), xunonz.data(), rowu.data(), rhs.data(), result.data());
 }
 
 template<class Scalar>
@@ -458,7 +452,7 @@ void
 GenDBSparseMatrix<Scalar>::unify(FSCommunicator *communicator)
 {
 #ifdef DISTRIBUTED
- communicator->globalSum(xunonz[numUncon], unonz);
+ communicator->globalSum(xunonz[numUncon], unonz.data());
 #endif
 }
 
@@ -469,7 +463,7 @@ GenDBSparseMatrix<Scalar>::symmetricScaling()
  if(dim() == 0) return;
  isScaled=1;
 
- scale = new Scalar[numUncon];
+ scale.resize(numUncon);
  int i,m;
  for(i=0; i<numUncon; ++i)
    scale[i] = Scalar(1.0)/ScalarTypes::sqrt(diag(i));

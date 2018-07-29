@@ -819,7 +819,7 @@ Connectivity::findProfileSize(EqNumberer *eqn, int unroll) const
 }
 
 Connectivity*
-Connectivity::alloc_merge(Connectivity *con2) const
+Connectivity::alloc_append(Connectivity *con2) const
 {
 	int size1 = csize();
 	int size2 = con2->csize();

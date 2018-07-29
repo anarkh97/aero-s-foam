@@ -18,24 +18,24 @@ class CoordSet;
 
 class SkyData {
  protected:
-   int *lacol;          // last active column (lacol)
-   int *pivot;          // stores pivot information for the solver
-   int *seqid;          // stores pivot information for geometric sky solver
-   int *dlp;            // diagonal location pointer
+   int *lacol;          //<! \brief last active column (lacol)
+   int *pivot;          //<! \brief stores pivot information for the solver
+   int *seqid;          //<! \brief stores pivot information for geometric sky solver
+   int *dlp;            //<! \brief diagonal location pointer
 
-                        // in some instances, rowColNum is allocated
-                        // from a SkyData constructor and other times,
-                        // it is allocated in the ConstrainedDSA class.
-   int myRCN;           // 0=not allocated, 1=allocated memory
-   int *rowColNum;      // unconstrained row/col numbers
+                        //<! \brief in some instances, rowColNum is allocated
+                        //<! \brief from a SkyData constructor and other times,
+                        //<! \brief it is allocated in the ConstrainedDSA class.
+   int myRCN;           //<! \brief 0=not allocated, 1=allocated memory
+   const int *rowColNum;//<! \brief unconstrained row/col numbers
 
-   int neq;             // # of equations
-   int numUncon;        // # unconstrained dofs
-   double TOLERANCE;    // Tolerance value for factoring
+   int neq;             //<! \brief # of equations
+   int numUncon;        //<! \brief # unconstrained dofs
+   double TOLERANCE;    //<! \brief Tolerance value for factoring
 
-   int nzem;            // # zero energy modes
-   Rbm *rbm;            // stores rigid body mode information
-   int isTRBM;          // whether we are TRBM or GRBM
+   int nzem;            //<! \brief # zero energy modes
+   Rbm *rbm;            //<! \brief stores rigid body mode information
+   int isTRBM;          //<! \brief whether we are TRBM or GRBM
 
    int myRbm;
 

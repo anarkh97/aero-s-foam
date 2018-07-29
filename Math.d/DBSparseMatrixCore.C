@@ -89,7 +89,7 @@ void
 GenDBSparseMatrix<double>::multcomplex(const DComplex *rhs, DComplex *result) const
 {
  int nn = numUncon;
-  _FORTRAN(cdspsmvp)(nn, unonz, xunonz, rowu, rhs, result );
+  _FORTRAN(cdspsmvp)(nn, unonz.data(), xunonz.data(), rowu.data(), rhs, result );
 }
 
 template<>

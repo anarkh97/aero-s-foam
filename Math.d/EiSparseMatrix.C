@@ -12,11 +12,11 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSe
   selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]-1),
   unonz(new Scalar[nnz]),
-  M(numUncon, numUncon, nnz, xunonz, rowu, unonz),
+  M(numUncon, numUncon, nnz, xunonz.data(), rowu.data(), unonz),
   M_copy(NULL)
 {
   for(int k=0; k < numUncon; k++)
-    std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
+	std::sort(rowu.begin() + xunonz[k]-1, rowu.begin() + xunonz[k+1]-1);
  
   for(int i=0; i<numUncon+1; ++i) xunonz[i]--;
   for(int i=0; i<nnz; ++i) rowu[i]--;
@@ -29,11 +29,11 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSe
   selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]-1),
   unonz(new Scalar[nnz]),
-  M(numUncon, numUncon, nnz, xunonz, rowu, unonz),
+  M(numUncon, numUncon, nnz, xunonz.data(), rowu.data(), unonz),
   M_copy(NULL)
 {
   for(int k=0; k < numUncon; k++)
-    std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
+	std::sort(rowu.begin() + xunonz[k]-1, rowu.begin() + xunonz[k+1]-1);
 
   for(int i=0; i<numUncon+1; ++i) xunonz[i]--;
   for(int i=0; i<nnz; ++i) rowu[i]--;
@@ -46,11 +46,11 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, EqNum
   selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]-1),
   unonz(new Scalar[nnz]),
-  M(numUncon, numUncon, nnz, xunonz, rowu, unonz),
+  M(numUncon, numUncon, nnz, xunonz.data(), rowu.data(), unonz),
   M_copy(NULL)
 {
   for(int k=0; k < numUncon; k++)
-    std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
+	std::sort(rowu.data() + xunonz[k]-1, rowu.data() + xunonz[k+1]-1);
 
   for(int i=0; i<numUncon+1; ++i) xunonz[i]--;
   for(int i=0; i<nnz; ++i) rowu[i]--;
@@ -58,10 +58,10 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, EqNum
 }
 
 template<typename Scalar, typename SolverClass>
-GenEiSparseMatrix<Scalar,SolverClass>::~GenEiSparseMatrix() 
+GenEiSparseMatrix<Scalar,SolverClass>::~GenEiSparseMatrix()
 {
-  if(unonz) { delete [] unonz; unonz=0; }
-  if(M_copy) delete M_copy;
+	delete [] unonz;
+	delete M_copy;
 }
 
 template<typename Scalar, typename SolverClass> 
@@ -93,17 +93,17 @@ GenEiSparseMatrix<Scalar,SolverClass>::add(const FullSquareMatrix &kel, const in
 {
   int k,l;
   for(int i = 0; i < kel.dim(); ++i) {
-    if(dofs[i] < 0 || (k = unconstrNum[dofs[i]]) < 0) continue; // Skip undefined/constrained dofs
-    for(int j = 0; j < kel.dim(); ++j) {
-      if(selfadjoint && dofs[i] > dofs[j]) continue; // Work with upper symmetric half
-      if(dofs[j] < 0 || (l = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
-      for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
-        if(rowu[m] == k) {
-          unonz[m] += kel[i][j];
-          break;
-        }
-      }
-    }
+	if(dofs[i] < 0 || (k = unconstrNum[dofs[i]]) < 0) continue; // Skip undefined/constrained dofs
+	for(int j = 0; j < kel.dim(); ++j) {
+	  if(selfadjoint && dofs[i] > dofs[j]) continue; // Work with upper symmetric half
+	  if(dofs[j] < 0 || (l = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
+	  for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
+		if(rowu[m] == k) {
+		  unonz[m] += kel[i][j];
+		  break;
+		}
+	  }
+	}
   }
 }
 
@@ -112,10 +112,10 @@ void
 GenEiSparseMatrix<Scalar,SolverClass>::addCoef(int k, int l, Scalar val)
 {
   for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
-    if(rowu[m] == k) {
-      unonz[m] += val;
-      break;
-    }
+	if(rowu[m] == k) {
+	  unonz[m] += val;
+	  break;
+	}
   }
 }
 
@@ -126,19 +126,19 @@ GenEiSparseMatrix<Scalar,SolverClass>::add(const GenAssembledFullM<Scalar> &kel,
   // this function is used to assemble Kcc and requires dofs to be in constrained numbering
   int i, j, m, mstart, mstop, ri, rj;
   for(i = 0; i < kel.numRow(); ++i) {       // Loop over rows.
-    if((ri = dofs[i]) == -1) continue;      // Skip constrained dofs
-    for(j = 0; j < kel.numCol(); ++j) {     // Loop over columns.
-      if((rj = dofs[j]) == -1) continue;    // Skip constrained dofs
-      if(rj < ri) continue;
-      mstart = xunonz[rj];
-      mstop  = xunonz[rj+1];
-      for(m = mstart; m < mstop; ++m) {
-        if(rowu[m] == ri) {
-          unonz[m] += kel[i][j];
-          break;
-        }
-      }
-    }
+	if((ri = dofs[i]) == -1) continue;      // Skip constrained dofs
+	for(j = 0; j < kel.numCol(); ++j) {     // Loop over columns.
+	  if((rj = dofs[j]) == -1) continue;    // Skip constrained dofs
+	  if(rj < ri) continue;
+	  mstart = xunonz[rj];
+	  mstop  = xunonz[rj+1];
+	  for(m = mstart; m < mstop; ++m) {
+		if(rowu[m] == ri) {
+		  unonz[m] += kel[i][j];
+		  break;
+		}
+	  }
+	}
   }
 }
 
@@ -148,17 +148,17 @@ GenEiSparseMatrix<Scalar,SolverClass>::addImaginary(const FullSquareMatrix &kel,
 {
   int k,l;
   for(int i = 0; i < kel.dim(); ++i) {
-    if(dofs[i] < 0 || (k = unconstrNum[dofs[i]]) < 0) continue; // Skip undefined/constrained dofs
-    for(int j = 0; j < kel.dim(); ++j) {
-      if(selfadjoint && dofs[i] > dofs[j]) continue; // Work with upper symmetric half
-      if(dofs[j] < 0 || (l = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
-      for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
-        if(rowu[m] == k) {
-          ScalarTypes::addComplex(unonz[m], complex<double>(0,kel[i][j]));
-          break;
-        }
-      }
-    }
+	if(dofs[i] < 0 || (k = unconstrNum[dofs[i]]) < 0) continue; // Skip undefined/constrained dofs
+	for(int j = 0; j < kel.dim(); ++j) {
+	  if(selfadjoint && dofs[i] > dofs[j]) continue; // Work with upper symmetric half
+	  if(dofs[j] < 0 || (l = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
+	  for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
+		if(rowu[m] == k) {
+		  ScalarTypes::addComplex(unonz[m], complex<double>(0,kel[i][j]));
+		  break;
+		}
+	  }
+	}
   }
 }
 
@@ -168,17 +168,17 @@ GenEiSparseMatrix<Scalar,SolverClass>::add(const FullSquareMatrixC &kel, const i
 {
   int k,l;
   for(int i = 0; i < kel.dim(); ++i) {
-    if(dofs[i] < 0 || (k = unconstrNum[dofs[i]]) < 0) continue; // Skip undefined/constrained dofs
-    for(int j = 0; j < kel.dim(); ++j) {
-      if(selfadjoint && dofs[i] > dofs[j]) continue; // Work with upper symmetric half
-      if(dofs[j] < 0 || (l = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
-      for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
-        if(rowu[m] == k) {
-          ScalarTypes::addComplex(unonz[m], kel[i][j]);
-          break;
-        }
-      }
-    }
+	if(dofs[i] < 0 || (k = unconstrNum[dofs[i]]) < 0) continue; // Skip undefined/constrained dofs
+	for(int j = 0; j < kel.dim(); ++j) {
+	  if(selfadjoint && dofs[i] > dofs[j]) continue; // Work with upper symmetric half
+	  if(dofs[j] < 0 || (l = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
+	  for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
+		if(rowu[m] == k) {
+		  ScalarTypes::addComplex(unonz[m], kel[i][j]);
+		  break;
+		}
+	  }
+	}
   }
 }
 
@@ -196,9 +196,9 @@ GenEiSparseMatrix<Scalar,SolverClass>::mult(const Scalar *_rhs, Scalar *_result)
   Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > result(_result,numUncon,1);
   if(selfadjoint)
-    result = M.template selfadjointView<Eigen::Upper>()*rhs;
+	result = M.template selfadjointView<Eigen::Upper>()*rhs;
   else
-    result = M*rhs;
+	result = M*rhs;
 }
 
 template<typename Scalar, typename SolverClass>
@@ -207,9 +207,9 @@ GenEiSparseMatrix<Scalar,SolverClass>::mult(const GenVector<Scalar> &_rhs, Scala
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), result(_result,numUncon,1);
   if(selfadjoint)
-    result = M.template selfadjointView<Eigen::Upper>()*rhs;
+	result = M.template selfadjointView<Eigen::Upper>()*rhs;
   else
-    result = M*rhs;
+	result = M*rhs;
 }
 
 template<typename Scalar, typename SolverClass>
@@ -218,9 +218,9 @@ GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const GenVector<Scalar> &_r
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), result(_result.data(),numUncon,1);
   if(selfadjoint)
-    result = M.template selfadjointView<Eigen::Upper>()*rhs;
+	result = M.template selfadjointView<Eigen::Upper>()*rhs;
   else
-    result = M.adjoint()*rhs;
+	result = M.adjoint()*rhs;
 }
 
 template<typename Scalar, typename SolverClass>
@@ -230,9 +230,9 @@ GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const Scalar *_rhs, Scalar 
   Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > result(_result,numUncon,1);
   if(selfadjoint)
-    result = M.template selfadjointView<Eigen::Upper>()*rhs;
+	result = M.template selfadjointView<Eigen::Upper>()*rhs;
   else
-    result = M.adjoint()*rhs;
+	result = M.adjoint()*rhs;
 }
 
 template<typename Scalar, typename SolverClass>
@@ -242,9 +242,9 @@ GenEiSparseMatrix<Scalar,SolverClass>::multAdd(const Scalar *_rhs, Scalar *_resu
   Eigen::Map< const Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > result(_result,numUncon,1);
   if(selfadjoint)
-    result += M.template selfadjointView<Eigen::Upper>()*rhs;
+	result += M.template selfadjointView<Eigen::Upper>()*rhs;
   else
-    result += M*rhs;
+	result += M*rhs;
 }
 
 template<typename Scalar, typename SolverClass> 
@@ -253,9 +253,9 @@ GenEiSparseMatrix<Scalar,SolverClass>::mult(const GenVector<Scalar> &_rhs, GenVe
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), result(_result.data(),numUncon,1);
   if(selfadjoint)
-    result = M.template selfadjointView<Eigen::Upper>()*rhs;
+	result = M.template selfadjointView<Eigen::Upper>()*rhs;
   else
-    result = M*rhs;
+	result = M*rhs;
 }
 
 template<typename Scalar, typename SolverClass> 

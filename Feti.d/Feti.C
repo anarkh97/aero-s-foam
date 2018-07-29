@@ -2252,7 +2252,7 @@ template<class Scalar>
 Connectivity *
 GenFetiSolver<Scalar>::getCoarseToSubConnect()
 {
-	return subToSub->alloc_merge(subToSub->alloc_merge(mpcToSub));
+	return subToSub->alloc_append(subToSub->alloc_append(mpcToSub));
 }
 
 template<class Scalar>

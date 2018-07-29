@@ -3034,8 +3034,8 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
            packedEset[iele]->getStiffnessThicknessSensitivity(nodes, dStiffnessdThick,1);
            auto dofs = (*allDOFs)[iele];
            allSens.stiffnessWRTthickSparse[iparam]->add(dStiffnessdThick, dofs);
-           int *unconstrNum = c_dsa->getUnconstrNum();
-           int *constrndNum = c_dsa->getConstrndNum();
+           const auto &unconstrNum = c_dsa->getUnconstrNum();
+           const auto &constrndNum = c_dsa->getConstrndNum();
            for(int k = 0; k < DofsPerElement; ++k) {
              int dofk = unconstrNum[dofs[k]];
              if(dofs[k] < 0 || dofk < 0) continue;  // Skip undefined/constrained dofs
@@ -3076,8 +3076,8 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
        packedEset[iele]->getStiffnessNodalCoordinateSensitivity(dStiffnessdCoord, nodes);
        // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
        auto dofs = (*allDOFs)[iele];
-       int *unconstrNum = c_dsa->getUnconstrNum();
-       int *constrndNum = c_dsa->getConstrndNum();
+       const auto &unconstrNum = c_dsa->getUnconstrNum();
+       const auto &constrndNum = c_dsa->getConstrndNum();
        for(int isen = 0; isen < numShapeVars; ++isen) { 
          GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *stifWRTsha = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTshapeSparse[isen]);
          for(int i = 0; i < nnodes; ++i) {
@@ -3732,7 +3732,7 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
 //       transformElementSensitivityInv(&dStressdDisp,iele); //TODO: watch out index of dStressdDisp when implementing
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-         int *unconstrNum = c_dsa->getUnconstrNum();
+         const auto &unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
            auto dofs = (*allDOFs)[iele];
@@ -3794,7 +3794,7 @@ Domain::computeAggregatedStressVMWRTdisplacementSensitivity(int sindex,
 //       transformElementSensitivityInv(&dStressdDisp,iele); //TODO: watch out index of dStressdDisp when implementing
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-         int *unconstrNum = c_dsa->getUnconstrNum();
+         const auto &unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
            auto dofs = (*allDOFs)[iele];
@@ -3862,7 +3862,7 @@ Domain::computeStressVMWRTShapeVariableDirectSensitivity(int sindex,
 //       transformElementSensitivityInv(&dStressdCoord,iele); //TODO: watch out index of dStressdCoord when implementing
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-         int *unconstrNum = c_dsa->getUnconstrNum();
+         const auto &unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
            stressWeight(node1,0) += weight[k];
@@ -3929,7 +3929,7 @@ Domain::computeAggregatedStressVMWRTShapeVariableSensitivity(int sindex,
 //       transformElementSensitivityInv(&dStressdCoord,iele); //TODO: watch out index of dStressdCoord when implementing
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-         int *unconstrNum = c_dsa->getUnconstrNum();
+         const auto &unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
            stressWeight(node1,0) += weight[k];
@@ -4008,7 +4008,7 @@ Domain::computeStressVMWRTShapeVariableAdjointSensitivity(int sindex,
 //       transformElementSensitivityInv(&dStressdCoord,iele); //TODO: watch out index of dStressdCoord when implementing
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-         int *unconstrNum = c_dsa->getUnconstrNum();
+         const auto &unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
            int inode;

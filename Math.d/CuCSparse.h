@@ -23,6 +23,14 @@ class GenCuCSparse : public SparseData, public GenSparseMatrix<Scalar> {
 		: GenCuCSparse(con, dsa, glbmap.data(), glimap)
 	{
 	}
+	GenCuCSparse(Connectivity *con, DofSetArray *dsa, const std::vector<int> &glbmap, const std::vector<int> &glimap)
+		: GenCuCSparse(con, dsa, glbmap.data(), glimap.data())
+	{
+	}
+	GenCuCSparse(Connectivity *con, DofSetArray *dsa, const int *glbmap, const std::vector<int> &glimap)
+		: GenCuCSparse(con, dsa, glbmap, glimap.data())
+	{
+	}
 
     GenCuCSparse(LMPCons **mpc, int numMPC, DofSetArray *c_dsa);
     GenCuCSparse(int numInterface, const int *glbmap, int numRBM, Scalar *rbms, int lda = -1);

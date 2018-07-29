@@ -64,7 +64,7 @@ SkyData::SkyData(Connectivity *cn, DofSetArray *c_dsa, double trbm,
   if( cn->csize() < numNodes ) numNodes = cn->csize();
 
   // ... GET THE UNCONSTRAINED NUMBER ARRAY
-  rowColNum = c_dsa->getUnconstrNum();
+  rowColNum = c_dsa->getUnconstrNum().data();
 
   if(numUncon==0) return;
 
@@ -150,8 +150,9 @@ SkyData::SkyData(Connectivity *cn, EqNumberer *_dsa, double trbm, int *bc)
 
 // Count & renumber unconstrained dofs & mark constrained dofs
   myRCN = 1;
-  rowColNum = new int[neq];
-  makeUnconstrainedNum(neq, bc, rowColNum, numUncon);
+  auto build_rowColNum = new int[neq];
+  makeUnconstrainedNum(neq, bc, build_rowColNum, numUncon);
+  rowColNum = build_rowColNum;
 
 // Build the dofTON in unconstrained numbering
   int *dofToN = (int *) dbg_alloca(sizeof(int)*numUncon);
@@ -225,9 +226,11 @@ SkyData::SkyData(Connectivity *cn, EqNumberer *eqn, double trbm)
   int maxdist = 0;
   numUncon = eqn->size();
   myRCN = 1;
-  rowColNum = new int[numUncon];
-  for(i=0; i<numUncon; ++i) 
-    rowColNum[i] = i; 
+  auto build_rowColNum = new int[numUncon];
+  for(i=0; i<numUncon; ++i)
+	  build_rowColNum[i] = i;
+
+  rowColNum = build_rowColNum;
   if(numUncon==0) return;
 
   // Allocate memory for diagonal location pointer
@@ -279,13 +282,14 @@ SkyData::SkyData(EqNumberer *_dsa, Connectivity *cn, double trbm, int *rCN )
   if(cn->csize() < numNodes) numNodes = cn->csize();
 
 // Count & renumber unconstrained dofs & mark constrained dofs
-  numUncon  = 0;
-  myRCN = 1;
-  rowColNum = new int[neq];
-  for(i = 0; i < neq; ++i) {
-    rowColNum[i] = rCN[i];
-    if(rowColNum[i] >= 0) numUncon++;
-  }
+	numUncon  = 0;
+	myRCN = 1;
+	auto build_rowColNum = new int[neq];
+	for(i = 0; i < neq; ++i) {
+		build_rowColNum[i] = rCN[i];
+		if(build_rowColNum[i] >= 0) numUncon++;
+	}
+	rowColNum = build_rowColNum;
 
 // Build the dofTON in unconstrained numbering
   int *dofToN = (int *) dbg_alloca(sizeof(int)*numUncon);

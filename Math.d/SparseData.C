@@ -12,11 +12,16 @@ SparseData::~SparseData()
 void
 SparseData::clean_up()
 {
-  if(unconstrNum && myMem) { delete [] unconstrNum; unconstrNum=0; }
-  if(constrndNum && myMem) { delete [] constrndNum; constrndNum=0; }
-  if(xunonz)               { delete [] xunonz;      xunonz=0; }
-  if(rowu && myMem_rowu)   { delete [] rowu;        rowu=0; }
-  if(colu)		   { delete [] colu;	    colu=0; }	
+    unconstrNum.clear();
+    unconstrNum.shrink_to_fit();
+    constrndNum.clear();
+    constrndNum.shrink_to_fit();
+	xunonz.clear();
+	xunonz.shrink_to_fit();
+	rowu.clear();
+	rowu.shrink_to_fit();
+	colu.clear();
+	colu.shrink_to_fit();
 }
 
 SparseData::SparseData()
@@ -27,15 +32,9 @@ SparseData::SparseData()
 void
 SparseData::initialize()
 {
-   unconstrNum    = 0;
-   constrndNum    = 0;
-   xunonz         = 0;
-   rowu           = 0;
-   colu		  = 0;
    numConstrained = 0;
    numUncon       = 0;
    neq            = 0;
-   myMem          = 0;
    myMem_rowu     = 1;
 }
 
@@ -49,9 +48,8 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *bc)
  if(con->csize() < numNodes) numNodes = con->csize();
 
  // We build a temporary dof to Node table.
- myMem = 1;
- unconstrNum = new int[neq];
- constrndNum = new int[neq];
+ unconstrNum.resize(neq);
+ constrndNum.resize(neq);
 
  int cn = 0, un = 0;
  for(i=0; i<neq; ++i) {
@@ -82,7 +80,7 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *bc)
  }
 
  // Allocate memory for xunonz
- xunonz = new int[numConstrained+1];
+ xunonz.resize(numConstrained+1);
  
  for(i=0; i<numNodes; ++i) {
    if(numFixed[i] == 0) continue;
@@ -108,7 +106,7 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *bc)
 
 // Allocate memory for rowu i.e. row #s
 
- rowu = new int[count];
+ rowu.resize(count);
 
  for(i=0; i<numNodes; ++i) {
    if(numFixed[i] == 0) continue;
@@ -143,7 +141,6 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa,
  if(con->csize() < numNodes) numNodes = con->csize();
 
  numUncon       = c_dsa->size();  // number of unconstrained dof
- myMem = 0;
  unconstrNum = c_dsa->getUnconstrNum();
  if(numUncon == 0) return;
  numConstrained = neq - numUncon; // number of constrained dof
@@ -163,7 +160,7 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa,
  }
 
 // Allocate memory for xunonz.
- xunonz = new int[numConstrained+1];
+ xunonz.resize(numConstrained+1);
 
  for(i=0; i<numNodes; ++i) {
    if(numFixed[i] == 0) continue;
@@ -185,7 +182,7 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa,
  }
  xunonz[numConstrained] = count;
 
- rowu = new int[count];
+ rowu.resize(count);
 
  for(i=0; i<numNodes; ++i) {
    if(numFixed[i] == 0) continue;
@@ -215,9 +212,8 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *glBoundMa
 
  // Get the global length
  neq = dsa->size();
- myMem = 0;
- constrndNum = const_cast<int *>(glBoundMap); // TODO Fix this so we don't cont cast.
- unconstrNum = const_cast<int *>(glInternalMap);
+ constrndNum.assign(glBoundMap, glBoundMap + neq);
+ unconstrNum .assign(glInternalMap, glInternalMap + neq);
  // Get the number of nodes
  int numNodes = dsa->numNodes();
  if(con->csize() < numNodes) numNodes = con->csize();
@@ -231,7 +227,7 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *glBoundMa
  }
 
 // Allocate memory for xunonz
- xunonz  = new int[boundaryLen+1];
+ xunonz.resize(boundaryLen+1);
  numConstrained = boundaryLen;
  numUncon       = internalLen; //HB
  int *numBound    = (int * ) dbg_alloca(sizeof(int)*numNodes);
@@ -268,7 +264,7 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *glBoundMa
  }
  xunonz[boundaryLen] = count;
 
- rowu = new int[count];
+ rowu.resize(count);
  for(i=0; i<numNodes; ++i) {
    if(numBound[i] == 0) continue;
    int iFirstDof = dsa->firstdof(i);
@@ -307,8 +303,7 @@ SparseData::SparseData(EqNumberer *_dsa, Connectivity *cn, const int* rCN, int e
   int *nodeWeight = (int *) dbg_alloca(sizeof(int)*numNodes);
 
   numUncon  = 0;
-  myMem = 1;
-  unconstrNum = new int[neq];
+  unconstrNum.resize(neq);
   for(i = 0; i < neq; ++i) {
     unconstrNum[i] = (rCN) ? rCN[i] : i;
     if(unconstrNum[i] >= 0) numUncon++;
@@ -340,7 +335,7 @@ SparseData::SparseData(EqNumberer *_dsa, Connectivity *cn, const int* rCN, int e
   }
 
   // We assume that any Dof that has been used has a diagonal term.
-  xunonz = new int[numUncon+1];
+  xunonz.resize(numUncon+1);
   xunonz[0] = 1;
 
   for(i=0; i<neq; ++i) {
@@ -360,7 +355,7 @@ SparseData::SparseData(EqNumberer *_dsa, Connectivity *cn, const int* rCN, int e
   }
 
 // Allocate memory for rowu (row numbers)
-  rowu  = new int[xunonz[numUncon]];
+  rowu.resize(xunonz[numUncon]);
   for(i=0; i<neq; ++i) {
      int m = unconstrNum[i];
      if(m == -1) continue;
@@ -380,7 +375,7 @@ SparseData::SparseData(EqNumberer *_dsa, Connectivity *cn, const int* rCN, int e
    Construct colu : column numbers for each element - used for Mumps
    same size as rowu. use xunonz index to get column number.*/
   if(make_colu) { 
-     colu  = new int[xunonz[numUncon]];
+     colu.resize(xunonz[numUncon]);
      k     = 0;
      for (i = 0; i < numUncon; i++) {
         // number of off-diagonal elements, will repeat column index numOffDiag times in colu
@@ -414,12 +409,11 @@ SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
       dofToN[j+fdof] = i;
   }
   
-  myMem = 0;
   unconstrNum = c_dsa->getUnconstrNum();
 
   // We assume that any Dof that has been used has a diagonal term.
   // Allocate memory for the diagonal location pointers
-  xunonz = new int[numUncon+1];
+  xunonz.resize(numUncon+1);
 
   // Set the diagonal location pointers
   xunonz[0] = 1;
@@ -446,7 +440,7 @@ SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
   }
 
   // Allocate memory for rowu (row numbers)
-  rowu  = new int[xunonz[numUncon]];
+  rowu.resize(xunonz[numUncon]);
 
   // Set the row numbers
   for(i=0; i<neq; ++i) {
@@ -471,11 +465,11 @@ SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
     if(!unsym) rowu[xunonz[m]-1+numFound++] = m + 1; // This is for the diagonal terms.
   }
   
-  if(dofToN) delete [] dofToN; //HB
+  delete [] dofToN; //HB
 
   if(expand && numUncon > 0) { // PJSA
     int k,j;
-    int *new_xunonz = new int[numUncon+1];
+    std::vector<int> new_xunonz(numUncon+1);
     int* counter = new int[numUncon+1]; //HB
     for(k=0; k < numUncon+1; k++) {
       new_xunonz[k] = xunonz[k];
@@ -495,7 +489,7 @@ SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
     for(k=0; k < numUncon; k++)
        counter[k] = 0;
 
-    int *new_rowu  = new int[new_xunonz[numUncon]];
+    std::vector<int> new_rowu(new_xunonz[numUncon]);
 
 //  map the other side to rowu and unonz
     for(k=0; k < numUncon; k++) {
@@ -509,8 +503,8 @@ SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
        }
     }
    
-    delete [] rowu;   rowu   = new_rowu;
-    delete [] xunonz; xunonz = new_xunonz;
+    rowu   = std::move(new_rowu);
+    xunonz = std::move(new_xunonz);
     delete [] counter; //HB
   }
 
@@ -519,7 +513,7 @@ SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
    Construct colu : column numbers for each element - used for Mumps
    same size as rowu. use xunonz index to get column number.*/
   if(make_colu) {
-     colu  = new int[xunonz[numUncon]];
+     colu.resize(xunonz[numUncon]);
      k     = 0;
      for (i = 0; i < numUncon; i++) {
         // number of off-diagonal elements, will repeat column index numOffDiag times in colu
@@ -555,8 +549,7 @@ SparseData::SparseData(DofSetArray *_dsa, const int *glInternalMap,
 // We build a temporary dof to Node table.
   int* dofToN = new int[neq]; //HB
 
-  myMem=0;
-  unconstrNum = const_cast<int *>(glInternalMap); // TODO remove the const cast.
+  unconstrNum.assign(glInternalMap, glInternalMap+neq); // TODO remove the const cast.
 
   for(i=0; i < numNodes; ++i) {
     int fdof = _dsa->firstdof(i);
@@ -584,7 +577,7 @@ SparseData::SparseData(DofSetArray *_dsa, const int *glInternalMap,
 
   // We assume that any Dof that has been used has a diagonal term.
   // Allocate memory for the diagonal location pointers
-  xunonz = new int[numUncon+1];
+  xunonz.resize(numUncon+1);
 
   // Set the diagonal location pointers
   xunonz[0] = 1;
@@ -605,7 +598,7 @@ SparseData::SparseData(DofSetArray *_dsa, const int *glInternalMap,
   }
 
   // Allocate memory for rowu (row numbers)
-  rowu  = new int[xunonz[numUncon]];
+  rowu.resize(xunonz[numUncon]);
 
   // Set the row numbers
   for(i=0; i<neq; ++i) {
@@ -627,8 +620,8 @@ SparseData::SparseData(DofSetArray *_dsa, const int *glInternalMap,
 
   if(expand) {
     int k,j;
-    int *new_xunonz = new int[numUncon+1];
-    int* counter = new int[numUncon+1]; //HB
+    std::vector<int> new_xunonz(numUncon+1);
+    std::vector<int> counter(numUncon+1); //HB
 
     for(k=0; k < numUncon+1; k++) {
       new_xunonz[k] = xunonz[k];
@@ -652,7 +645,7 @@ SparseData::SparseData(DofSetArray *_dsa, const int *glInternalMap,
     for(k=0; k < numUncon; k++)
       counter[k] = 0;
 
-    int *new_rowu  = new int[new_xunonz[numUncon]];
+    std::vector<int> new_rowu(new_xunonz[numUncon]);
 
     // map the other side to rowu and unonz
     for (k=0; k < numUncon; k++) {
@@ -666,9 +659,8 @@ SparseData::SparseData(DofSetArray *_dsa, const int *glInternalMap,
        }
     }
 
-    delete [] rowu;   rowu   = new_rowu;
-    delete []xunonz; xunonz = new_xunonz;
-    delete [] counter;
+    rowu   = std::move(new_rowu);
+    xunonz = std::move(new_xunonz);
   }
 
 }
@@ -698,7 +690,7 @@ SparseData::SparseData(EqNumberer *eqn, Connectivity *cn, double trbm)
  }
 
  // Allocate the column pointer 
- xunonz = new int[neq+1];
+ xunonz.resize(neq+1);
  
  for(i = 0; i < numNodes; ++i) {
    int fDof = eqn->firstdof(i);
@@ -715,7 +707,7 @@ SparseData::SparseData(EqNumberer *eqn, Connectivity *cn, double trbm)
  } 
  xunonz[neq] = count;
  
- rowu = new int[count];
+ rowu.resize(count);
 
  for(i = 0; i < numNodes; ++i) {
    int fDof = eqn->firstdof(i);
@@ -734,7 +726,7 @@ SparseData::SparseData(EqNumberer *eqn, Connectivity *cn, double trbm)
 
 // ----- EXPERIMENTAL -----------------------------------------------
 
-SparseData::SparseData(Connectivity *cn, EqNumberer *eqn, double trbm,
+SparseData::SparseData(Connectivity *cn, const EqNumberer *eqn, double trbm,
                        int expand)
 {
   initialize();
@@ -744,9 +736,8 @@ SparseData::SparseData(Connectivity *cn, EqNumberer *eqn, double trbm,
   numUncon = eqn->size();
 
   // Addition from UH 3-19-00
-  myMem = 1;
-  unconstrNum = new int[neq];
-  constrndNum = new int[neq];
+  unconstrNum.resize(neq);
+  constrndNum.resize(neq);
 
   int un = 0;
   for(i=0; i<neq; ++i) {
@@ -770,7 +761,7 @@ SparseData::SparseData(Connectivity *cn, EqNumberer *eqn, double trbm,
 
   // We assume that any Dof that has been used has a diagonal term.
   // Allocate memory for the diagonal location pointers
-  xunonz = new int[neq+1];
+  xunonz.resize(neq+1);
 
   // Set the diagonal location pointers
   xunonz[0] = 1;
@@ -790,7 +781,7 @@ SparseData::SparseData(Connectivity *cn, EqNumberer *eqn, double trbm,
   }
 
   // Allocate memory for rowu (row numbers)
-  rowu  = new int[xunonz[neq]];
+  rowu.resize(xunonz[neq]);
 
   // Set the row numbers
   for(i=0; i<neq; ++i) {
@@ -807,12 +798,12 @@ SparseData::SparseData(Connectivity *cn, EqNumberer *eqn, double trbm,
      }
      rowu[xunonz[i]-1+numFound++] = i + 1; // This is for the diagonal terms.
   }
-  if(dofToN) delete [] dofToN;
+  delete [] dofToN;
 
   if(expand) {
     int k,j;
-    int *new_xunonz = new int[numUncon+1];
-    int* counter = new int[numUncon+1]; //HB
+    std::vector<int> new_xunonz(numUncon+1);
+    std::vector<int> counter(numUncon+1); //HB
 
     for(k=0; k < numUncon+1; k++)  {
       new_xunonz[k] = xunonz[k];
@@ -836,7 +827,7 @@ SparseData::SparseData(Connectivity *cn, EqNumberer *eqn, double trbm,
     for(k=0; k < numUncon; k++)
        counter[k] = 0;
 
-    int *new_rowu  = new int[new_xunonz[numUncon]];
+    std::vector<int> new_rowu(new_xunonz[numUncon]);
 
     // map the other side to rowu and unonz
     for(k=0; k < numUncon; k++) {
@@ -851,9 +842,8 @@ SparseData::SparseData(Connectivity *cn, EqNumberer *eqn, double trbm,
        }
     }
 
-    delete [] rowu;   rowu   = new_rowu;
-    delete [] xunonz; xunonz = new_xunonz;
-    delete [] counter;
+    rowu   = std::move(new_rowu);
+    xunonz = std::move(new_xunonz);
   }
 
   dbg_alloca(0);
@@ -866,7 +856,7 @@ SparseData::SparseData(LMPCons **mpc, int numMPC, DofSetArray *c_dsa)
   initialize();
   numConstrained = numMPC;
   numUncon = c_dsa->size();
-  xunonz = new int[numConstrained+1];
+  xunonz.resize(numConstrained+1);
 
   int i;
   xunonz[0] = 0;
@@ -874,7 +864,7 @@ SparseData::SparseData(LMPCons **mpc, int numMPC, DofSetArray *c_dsa)
     xunonz[i] = xunonz[i-1] + mpc[i-1]->nterms;
   }
 
-  rowu = new int[xunonz[numConstrained]];
+  rowu.resize(xunonz[numConstrained]);
 
   int mstart, mstop, m;
   for(i=0; i<numConstrained; ++i) {
@@ -892,7 +882,7 @@ SparseData::SparseData(int num, const int *xyzCount, int *xyzList)
 {
   initialize();
   numConstrained = num;
-  xunonz = new int[numConstrained+1];
+  xunonz.resize(numConstrained+1);
 
   xunonz[0] = 0;
   int i;
@@ -900,7 +890,7 @@ SparseData::SparseData(int num, const int *xyzCount, int *xyzList)
     xunonz[i+1] = xunonz[i] + xyzCount[i];
 
   myMem_rowu = 1;
-  rowu = xyzList;
+  rowu.assign(xyzList, xyzList+xunonz[num]);
 }
 
 //KHP:to store local G as a rectangular sparse matrix
@@ -910,14 +900,14 @@ SparseData::SparseData(int numInterface,
 {
   initialize();
   numConstrained = numModes;
-  xunonz = new int[numConstrained+1];
+  xunonz.resize(numConstrained+1);
   int i;
   xunonz[0] = 0;
   for(i=1; i<numConstrained+1; ++i) {
     xunonz[i] = xunonz[i-1] + numInterface;
   }
   int count = numInterface*numConstrained;
-  rowu      = new int[count];
+  rowu.resize(count);
 
   int mstart, mstop, m;
   for(i=0; i<numConstrained; ++i) {

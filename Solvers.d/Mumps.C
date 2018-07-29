@@ -49,7 +49,6 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, Co
   exit(-1);
 #endif
   neq = numUncon;
-  myMem = 0;
   nNonZero = xunonz[numUncon]-1;
   unonz	= new Scalar[nNonZero];
   for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
@@ -68,7 +67,6 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, Co
   exit(-1);
 #endif
   neq = numUncon;
-  myMem = 0;
   nNonZero = xunonz[numUncon]-1;
   unonz = new Scalar[nNonZero];
   for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
@@ -315,9 +313,12 @@ GenMumpsSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
 {
   if(dof < 0) return;
   int cdof;
-  if(unconstrNum) cdof = unconstrNum[dof];
-  else cdof = dof;
-  if(cdof < 0) return;
+  if(unconstrNum.size() != 0)
+    cdof = unconstrNum[dof];
+  else
+    cdof = dof;
+  if(cdof < 0)
+    return;
 
   int mstart = xunonz[cdof];
   int mstop  = xunonz[cdof+1];
@@ -340,25 +341,23 @@ GenMumpsSolver<Scalar>::unify(FSCommunicator *_communicator)
     if(groupcomm->myID() == 0) {
       int groupSize = groupcomm->numCPUs();
       int n;
-      int *rowuNew = new int[nNonZeroNew];
-      int *coluNew = new int[nNonZeroNew];
+      std::vector<int> rowuNew(nNonZeroNew);
+      std::vector<int> coluNew(nNonZeroNew);
       Scalar *unonzNew = new Scalar[nNonZeroNew];
       for(n = 0; n < nNonZero; n++) {
 	rowuNew[n] = rowu[n];
 	coluNew[n] = colu[n];
 	unonzNew[n] = unonz[n];
       }
-      delete [] rowu;
       rowu = rowuNew;
-      delete [] colu;
       colu = coluNew;
       delete [] unonz;
       unonz = unonzNew;
       nNonZero = nNonZeroNew;
       for(int k = 1; k < groupSize; k++) {
 	RecInfo rInfo;
-	rInfo = groupcomm->recFrom(k, 0, rowu+n, nNonZero-n+1);
-	rInfo = groupcomm->recFrom(k, 0, colu+n, nNonZero-n+1);
+	rInfo = groupcomm->recFrom(k, 0, rowu.data()+n, nNonZero-n+1);
+	rInfo = groupcomm->recFrom(k, 0, colu.data()+n, nNonZero-n+1);
 	rInfo = groupcomm->recFrom(k, 0, unonz+n, nNonZero-n+1);
 	n += rInfo.len;
       }
@@ -368,14 +367,14 @@ GenMumpsSolver<Scalar>::unify(FSCommunicator *_communicator)
 	exit(1);
       }
     } else {
-      groupcomm->sendTo(0, 0, rowu, nNonZero);
-      groupcomm->sendTo(0, 0, colu, nNonZero);
+      groupcomm->sendTo(0, 0, rowu.data(), nNonZero);
+      groupcomm->sendTo(0, 0, colu.data(), nNonZero);
       groupcomm->sendTo(0, 0, unonz, nNonZero);
       groupcomm->sync();
-      delete [] rowu;
-      rowu = 0;
-      delete [] colu;
-      colu = 0;
+      rowu.clear();
+      rowu.shrink_to_fit();
+      colu.clear();
+      colu.shrink_to_fit();
       delete [] unonz;
       unonz = 0;
     }
@@ -399,15 +398,15 @@ GenMumpsSolver<Scalar>::factor()
     mumpsId.id.n = neq;
     if(mumpsId.id.ICNTL(18) == 0) { // centralized matrix input
       mumpsId.id.nz  = nNonZero;
-      mumpsId.id.irn = rowu;
-      mumpsId.id.jcn = colu;
+      mumpsId.id.irn = rowu.data();
+      mumpsId.id.jcn = colu.data();
       copyToMumpsLHS(mumpsId.id.a, unonz, nNonZero);
     }
   }
   if(mumpsId.id.ICNTL(18) == 3) { // distributed matrix input
     mumpsId.id.nz_loc  = nNonZero;
-    mumpsId.id.irn_loc = rowu;
-    mumpsId.id.jcn_loc = colu;
+    mumpsId.id.irn_loc = rowu.data();
+    mumpsId.id.jcn_loc = colu.data();
     copyToMumpsLHS(mumpsId.id.a_loc, unonz, nNonZero);
   }
   mumpsId.id.job = 4; // 4: analysis and factorization, 1: analysis only, 2: factorization only

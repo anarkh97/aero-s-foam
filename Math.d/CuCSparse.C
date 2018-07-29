@@ -468,7 +468,7 @@ template<class Scalar>
 long
 GenCuCSparse<Scalar>::size() const
 {
-  return ((xunonz) ? xunonz[numConstrained] : 0) ;
+  return ((xunonz.size()) ? xunonz[numConstrained] : 0) ;
 }
 
 template<class Scalar>
@@ -493,7 +493,7 @@ GenCuCSparse<Scalar>::add(int dofi, int dofj, Scalar s)
 {
  if((dofi < 0) || (dofj < 0)) return;
  int m, rowi, colj;
- if(unconstrNum) {
+ if(unconstrNum.size() != 0) {
    if((rowi = unconstrNum[dofi]) == -1 || (colj = unconstrNum[dofj]) == -1) return;
  }
  else { rowi = dofi; colj = dofj; }

@@ -219,7 +219,9 @@ public:
 	const std::vector<int> &ptr() const { return pointer; }
 	auto &tgt() { return target; }
 	auto &tgt() const { return target; }
-	Connectivity *alloc_merge(Connectivity *cn) const;
+	/** \brief Create a connectivity that appends a given connectivity at the end of this one.
+	 * \details The number of sources is the sum of both. */
+	Connectivity *alloc_append(Connectivity *cn) const;
 	// Create a copy of this connectivity without...
 	Connectivity *collapse();
 	Connectivity *subSection(bool *);
@@ -701,6 +703,7 @@ Connectivity Connectivity::fromLinkRange(const RangeT &range) {
 	for(size_t i = 0; i < size; ++i)
 		pointers[i+1]+=pointers[i];
 	std::vector<int> targets;
+	targets.resize(pointers[size]);
 	for(auto &p : range)
 		targets[--pointers[map(p.first)]] = p.second;
 	return Connectivity(size, std::move(pointers), std::move(targets));

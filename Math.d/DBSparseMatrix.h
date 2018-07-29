@@ -1,6 +1,7 @@
 #ifndef DB_SPARSEMATRIX_H_
 #define DB_SPARSEMATRIX_H_
 
+#include <vector>
 #include <cstdio>
 #include <iostream>
 #include <Utils.d/MyComplex.h>
@@ -11,10 +12,10 @@ class FSCommunicator;
 
 template<class Scalar>
 class GenDBSparseMatrix : public SparseData, public GenSparseMatrix<Scalar> {
-	Scalar *unonz;
+	std::vector<Scalar> unonz;
 	int     isScaled;
-	Scalar *scale;
-	int *firstdof;
+	std::vector<Scalar> scale;
+	std::vector<int> firstdof;
 public:
 	// Constructor
 	GenDBSparseMatrix(Connectivity *, DofSetArray *, ConstrainedDSA *c_dsa);
@@ -56,7 +57,6 @@ public:
 	void print() override;
 	void print1(int dof,FILE *fid);
 	void invertDiag() override;
-	void deleteMemory() {delete [] unonz; unonz=0; }
 	void unify(FSCommunicator *communicator);
 	void clean_up() override;
 	int  begin(int i)  { return xunonz[i]; }
@@ -65,7 +65,7 @@ public:
 	void applyScaling(Scalar *v);
 	GenFullM<Scalar> *getFullMatrix() override;
 	int*   getFirstDof() override
-	{ std::cerr << "int*  GenDBSparseMatrix::getFirstDof() called" << std::endl; firstdof = new int[1]; firstdof[0]=0; return firstdof; }
+	{ std::cerr << "int*  GenDBSparseMatrix::getFirstDof() called" << std::endl; firstdof.resize(1); firstdof[0]=0; return firstdof.data(); }
 	int getBlockSize() override
 	{std::cerr << "dim() = " << dim() << std::endl; return dim();}
 };

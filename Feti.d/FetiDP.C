@@ -375,19 +375,19 @@ GenFetiDPSolver<Scalar>::makeKcc()
 		coarseToSub = cornerToSub;
 		mpcOffset = coarseToSub->csize();
 		if(this->glNumMpc_primal > 0) {
-			coarseToSub = coarseToSub->alloc_merge(this->mpcToSub_primal);
+			coarseToSub = coarseToSub->alloc_append(this->mpcToSub_primal);
 		}
 		augOffset = coarseToSub->csize();
 		switch(fetiInfo->augment) {
 			case FetiInfo::Gs: {
-				Connectivity *augcoarseToSub = coarseToSub->alloc_merge(this->subToSub);
+				Connectivity *augcoarseToSub = coarseToSub->alloc_append(this->subToSub);
 				if(coarseToSub != cornerToSub) delete coarseToSub;
 				coarseToSub = augcoarseToSub;
 			} break;
 			case FetiInfo::WeightedEdges:
 			case FetiInfo::Edges: {
 				if(!this->edgeToSub) makeEdgeConnectivity();
-				Connectivity *augcoarseToSub = coarseToSub->alloc_merge(this->edgeToSub);
+				Connectivity *augcoarseToSub = coarseToSub->alloc_append(this->edgeToSub);
 				if(coarseToSub != cornerToSub) delete coarseToSub;
 				coarseToSub = augcoarseToSub;
 				// filePrint(stderr,"coarseToSub %d kb\n",(int)(coarseToSub->memsize()/1024));
@@ -2336,7 +2336,7 @@ GenFetiDPSolver<Scalar>::getBlockToMpc()
          for(int i=0; i<numOtherMpcs; ++i) target[i] = i;
          Connectivity *otherToMpc = new Connectivity(1, pointer, target);
          if(numMortarMpcs == 0) blockToMpc = otherToMpc;
-         else blockToMpc = otherToMpc->alloc_merge(domain->GetMortarToMPC());
+         else blockToMpc = otherToMpc->alloc_append(domain->GetMortarToMPC());
        }
        else blockToMpc = domain->GetMortarToMPC()->copy();
      } 

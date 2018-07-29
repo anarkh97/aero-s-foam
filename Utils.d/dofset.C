@@ -2,6 +2,8 @@
 #include <iostream>
 #include <Utils.d/dofset.h>
 #include <Element.d/Element.h>
+#include "dofset.h"
+
 
 // PJSA: note changed lagrange dofs to start at 1 (instead of 6) for rigid element corotators
 
@@ -75,7 +77,7 @@ DofSet::locate(int dof) const
 }
 
 int
-DofSet::number(DofSet r, int *list)
+DofSet::number(DofSet r, int *list) const
 {
  int count = 0;
  int cdof = flags;
@@ -96,32 +98,26 @@ DofSet::number(DofSet r, int *list)
 DofSetArray::DofSetArray(int nnode, int *dofsPerNode, int *renumtable)
 {
  numnodes = nnode;
- dofs = new DofSet[numnodes];
- myDofs = true;
- node_num_dofs = new int[numnodes];
- int inode;
- for(inode=0; inode < nnode; ++inode)
+ dofs.resize(numnodes);
+ node_num_dofs.resize(numnodes);
+ for(int inode=0; inode < nnode; ++inode)
    {
 	dofs[inode].mark(DofSet::XYZdisp);
 	if(dofsPerNode[inode] == 6)
 		dofs[inode].mark(DofSet::XYZrot);
 		   
    }
- renummap = renumtable;
- rowcolnum = 0;
- invrowcol= 0;
- dofType = 0;
+   if (renumtable != nullptr)
+       renummap.assign(renumtable, renumtable + nnode);
+
  makeOffset();
 }
 
 DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
 {
- rowcolnum=invrowcol=dofType=0;
- myMap = _myMap;
  numnodes = nnode;
- dofs = new DofSet[numnodes];
- myDofs = true;
- node_num_dofs = new int[numnodes];
+ dofs.resize(numnodes);
+ node_num_dofs.resize(numnodes);
  int nele = eles.size();
  int iele;
  for(iele=0; iele < nele; ++iele) {
@@ -129,18 +125,19 @@ DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
    if(c_ele)
      c_ele->markDofs(*this);
  }
- renummap = renumtable;
+ if(renumtable != nullptr)
+     renummap.assign(renumtable, renumtable+nnode);
+ if(_myMap)
+ 	delete [] renumtable;
  makeOffset();
 }
 
 DofSetArray::DofSetArray(Element *ele)
 {
  // make a DofSetArray for one element, using the element's local node numbering
- myMap = 0;
  numnodes = ele->numNodes();
- dofs = new DofSet[numnodes];
- myDofs = true;
- node_num_dofs = new int[numnodes];
+ dofs.resize(numnodes);
+ node_num_dofs.resize(numnodes);
 
  int *orig_nn = ele->nodes();
  int *new_nn = new int[numnodes];
@@ -151,59 +148,39 @@ DofSetArray::DofSetArray(Element *ele)
  delete [] orig_nn;
  delete [] new_nn;
 
- renummap = 0;
  makeOffset();
 }
 
 void
 DofSetArray::clean_up()
 {
- if(myDofs && dofs) {
-   delete [] dofs;
-   dofs=0;
- }
- if(node_num_dofs) {
-   delete [] node_num_dofs;
-   node_num_dofs = 0;
- }
- if(rowcolnum) {
-   delete [] rowcolnum;
-   rowcolnum=0;
- }
- if(invrowcol) {
-   delete [] invrowcol;
-   invrowcol=0;
- }
+	dofs.clear();
+	node_num_dofs.clear();
+	rowcolnum.clear();
+	invrowcol.clear();
 }
 
 DofSetArray::DofSetArray(int nnode, int *renumtable, int _myMap)
 {
- rowcolnum=invrowcol=dofType=0;
- myMap = _myMap;
  numnodes = nnode;
- dofs = new DofSet[numnodes];
- myDofs = true;
- node_num_dofs = new int[numnodes];
+ dofs.resize(numnodes);
+ node_num_dofs.resize(numnodes);
  int i;
  for(i=0; i<numnodes; ++i)
    node_num_dofs[i] = 0;
- renummap = renumtable;
+ if(renumtable != nullptr)
+     renummap.assign(renumtable, renumtable+nnode);
 }
 
 int *
 DofSetArray::makeDofTypeArray()
 {
- if(dofType) return dofType;
+ if(dofType.size()) return dofType.data();
 
- dofType = new int[size()];
- 
- // mark the translational degrees of freedom to 0
- int i;
- for(i=0; i<size(); ++i)
-   dofType[i] = 0;
+ dofType.assign(size(), 0);
 
  // mark the rotational degrees of freedom as 1
- for(i = 0; i < numnodes; ++i) {
+ for(int i = 0; i < numnodes; ++i) {
    int xr = locate(i, DofSet::Xrot);
    if(xr >= 0) dofType[xr] = 1;
    int yr = locate(i, DofSet::Yrot);
@@ -212,13 +189,13 @@ DofSetArray::makeDofTypeArray()
    if(zr >= 0) dofType[zr] = 1;
  }
 
- return dofType;
+ return dofType.data();
 }
 
 void
 DofSetArray::makeOffset()
 {
- int *remapedoffset = new int[numnodes+1];
+ std::vector<int> remapedoffset(numnodes+1);
 
  int inode;
  for(inode = 0; inode < numnodes; ++inode)
@@ -226,7 +203,7 @@ DofSetArray::makeOffset()
 
  for(inode = 0; inode < numnodes; ++inode)
   {
-   int node = (renummap) ? renummap[inode] : inode;
+   int node = (renummap.size()) ? renummap[inode] : inode;
    if(node >= 0) {
       node_num_dofs[inode] = dofs[inode].count();
       remapedoffset[node]  = node_num_dofs[inode];
@@ -241,20 +218,17 @@ DofSetArray::makeOffset()
     offset += tmp;
  }
 
- if(node_offset) delete [] node_offset;
- if(renummap) {
-   node_offset = new int[numnodes+1];
+ node_offset.clear();
+ if(renummap.size()) {
+   node_offset.resize(numnodes+1);
    for(inode = 0; inode < numnodes; ++inode)
     {
      int jnode = renummap[inode];
      node_offset[inode] = (jnode >=0 && node_num_dofs[inode] > 0) ? 
                                            remapedoffset[jnode] : -1;
     }
-#ifndef DEBUG_OPENMP
-   delete [] remapedoffset;
-#endif
  } else 
-   node_offset = remapedoffset;
+   node_offset = std::move(remapedoffset);
  node_offset[numnodes] = offset;
 }
 
@@ -263,9 +237,9 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa, int ns, i
   int i, inode;
   numnodes = dsa.numnodes;
 
-  dofs          = new DofSet[numnodes];
-  node_num_dofs = new    int[numnodes];
-  node_offset   = new    int[numnodes+1];
+  dofs         .resize(numnodes);
+  node_num_dofs.resize(numnodes);
+  node_offset  .resize(numnodes+1);
 
   renummap = dsa.renummap;
   for(i = 0; i < numnodes; ++i) 
@@ -277,8 +251,8 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa, int ns, i
     else node_num_dofs[inode] = 0;  // these are set in makeModifiedOffset()
 
   int ndof  = dsa.size();
-  rowcolnum = new int[ndof];
-  invrowcol = new int[ndof];
+  rowcolnum.resize(ndof);
+  invrowcol.resize(ndof);
 
   // 1. initialize rowcolnum to the same constraints as in cdsa
   for(i=0; i<ndof; ++i)
@@ -327,9 +301,9 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int ns, int *sing)
   int i, inode;
   numnodes = dsa.numnodes;
 
-  dofs          = new DofSet[numnodes];
-  node_num_dofs = new    int[numnodes];
-  node_offset   = new    int[numnodes+1];
+  dofs          .resize(numnodes);
+  node_num_dofs .resize(numnodes);
+  node_offset   .resize(numnodes+1);
 
   renummap = dsa.renummap;
   for(i = 0; i < numnodes; ++i) 
@@ -341,8 +315,8 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int ns, int *sing)
     else node_num_dofs[inode] = 0;  // these are set in makeModifiedOffset()
 
   int ndof  = dsa.size();
-  rowcolnum = new int[ndof];
-  invrowcol = new int[ndof];
+  rowcolnum.resize(ndof);
+  invrowcol.resize(ndof);
 
   // 1. initialize rowcolnum to zero
   for(i=0; i<ndof; ++i)
@@ -390,9 +364,9 @@ ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, int nbc, const BCond *bcd
   int i, inode;
   numnodes = dsa.numnodes;
 
-  dofs          = new DofSet[numnodes];
-  node_num_dofs = new    int[numnodes];
-  node_offset   = new    int[numnodes+1];
+  dofs         .resize(numnodes);
+  node_num_dofs.resize(numnodes);
+  node_offset  .resize(numnodes+1);
 
   renummap = dsa.renummap;
 
@@ -417,8 +391,8 @@ ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, int nbc, const BCond *bcd
   makeOffset();
 
   int ndof  = dsa.size();
-  rowcolnum = new int[ndof];
-  invrowcol = new int[ndof];
+  rowcolnum.resize(ndof);
+  invrowcol.resize(ndof);
 
   // 1. initialize rowcolnum to zero
   for(i=0; i<ndof; ++i)
@@ -459,9 +433,9 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, DofSetArray &c_dsa, int nbc, BC
   numnodes = dsa.numnodes;
 
   // The dofs are created equal to zero (no dof marked)
-  dofs          = new DofSet[numnodes];
-  node_num_dofs = new    int[numnodes];
-  node_offset   = new    int[numnodes+1];
+	dofs         .resize(numnodes);
+	node_num_dofs.resize(numnodes);
+	node_offset  .resize(numnodes+1);
 
   renummap = dsa.renummap;
 
@@ -498,9 +472,9 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd, int *bc)
   int i, inode;
   numnodes = dsa.numnodes;
 
-  dofs          = new DofSet[numnodes];
-  node_num_dofs = new    int[numnodes];
-  node_offset   = new    int[numnodes+1];
+	dofs         .resize(numnodes);
+	node_num_dofs.resize(numnodes);
+	node_offset  .resize(numnodes+1);
 
   renummap = dsa.renummap;
 
@@ -517,8 +491,8 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd, int *bc)
 
   makeOffset();
 
-  rowcolnum = new int[dsa.size()];
-  invrowcol = new int[dsa.size()];
+  rowcolnum.resize(dsa.size());
+  invrowcol.resize(dsa.size());
 
   int cnt = 0, cnt2 = 0;
 
@@ -550,9 +524,9 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcond,
 
   numnodes = dsa.numnodes;
 
-  dofs          = new DofSet[numnodes  ];
-  node_num_dofs = new    int[numnodes  ];
-  node_offset   = new    int[numnodes+1];
+	dofs         .resize(numnodes);
+	node_num_dofs.resize(numnodes);
+	node_offset  .resize(numnodes+1);
 
   renummap = dsa.renummap;
 
@@ -587,8 +561,8 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcond,
   makeOffset();
 
   int ndof  = dsa.size();
-  rowcolnum = new int[ndof];
-  invrowcol = new int[ndof];
+	rowcolnum.resize(ndof);
+	invrowcol.resize(ndof);
 
   // 1. initialize rowcolnum to zero
   for(i=0; i<ndof; ++i)
@@ -636,7 +610,7 @@ DofSetArray::getWeight(int node) const
 void
 DofSetArray::makeModifiedOffset()
 {
- int *remapedoffset = new int[numnodes+1];
+ std::vector<int> remapedoffset(numnodes+1);
 
  int inode;
  for(inode = 0; inode < numnodes; ++inode)
@@ -644,7 +618,7 @@ DofSetArray::makeModifiedOffset()
 
  for(inode = 0; inode < numnodes; ++inode)
   {
-   int node = (renummap) ? renummap[inode] : inode;
+   int node = (renummap.size() != 0) ? renummap[inode] : inode;
    if(node >= 0) {
       if(node_num_dofs[inode] == 0)
         node_num_dofs[inode] = dofs[inode].count();
@@ -660,18 +634,16 @@ DofSetArray::makeModifiedOffset()
     offset += tmp;
  }
 
- if(node_offset) delete [] node_offset;
- if(renummap) {
-   node_offset = new int[numnodes+1];
+ if(renummap.size() != 0) {
+   node_offset.resize(numnodes+1);
    for(inode = 0; inode < numnodes; ++inode)
     {
      int jnode = renummap[inode];
      node_offset[inode] = (jnode >=0 && node_num_dofs[inode] > 0) ?
                                            remapedoffset[jnode] : -1;
     }
-   delete [] remapedoffset;
  } else
-   node_offset = remapedoffset;
+   node_offset = std::move(remapedoffset);
  node_offset[numnodes] = offset;
 }
 
@@ -682,9 +654,9 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, ComplexBCond *bcd,
 
   numnodes = dsa.numnodes;
 
-  dofs          = new DofSet[numnodes  ];
-  node_num_dofs = new    int[numnodes  ];
-  node_offset   = new    int[numnodes+1];
+	dofs         .resize(numnodes);
+	node_num_dofs.resize(numnodes);
+	node_offset  .resize(numnodes+1);
 
   renummap = dsa.renummap;
 
@@ -702,8 +674,8 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, ComplexBCond *bcd,
 
   makeOffset();
 
-  rowcolnum = new int[dsa.size()];
-  invrowcol = new int[dsa.size()];
+	rowcolnum.resize(dsa.size());
+	invrowcol.resize(dsa.size());
 
   int cnt  = 0;
   int cnt2 = 0;
@@ -735,9 +707,9 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, BCond *bcond, int nbc,
 
   numnodes = dsa.numnodes;
 
-  dofs          = new DofSet[numnodes  ];
-  node_num_dofs = new    int[numnodes  ];
-  node_offset   = new    int[numnodes+1];
+	dofs         .resize(numnodes);
+	node_num_dofs.resize(numnodes);
+	node_offset  .resize(numnodes+1);
 
   renummap = dsa.renummap;
 
@@ -763,8 +735,8 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, BCond *bcond, int nbc,
 
   int ndof = dsa.size();
 
-  rowcolnum = new int[ndof];
-  invrowcol = new int[ndof];
+	rowcolnum.resize(dsa.size());
+	invrowcol.resize(dsa.size());
 
   int cnt  = 0;
   int cnt2 = 0;
@@ -789,9 +761,9 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa)
   int i, inode;
   numnodes = dsa.numnodes;
 
-  dofs          = new DofSet[numnodes];
-  node_num_dofs = new    int[numnodes];
-  node_offset   = new    int[numnodes+1];
+	dofs         .resize(numnodes);
+	node_num_dofs.resize(numnodes);
+	node_offset  .resize(numnodes+1);
 
   renummap = dsa.renummap;
 
@@ -807,8 +779,8 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa)
   makeOffset();
 
   int ndof  = dsa.size();
-  rowcolnum = new int[ndof];
-  invrowcol = new int[ndof];
+  rowcolnum.resize(ndof);
+  invrowcol.resize(ndof);
 
   // 1. initialize rowcolnum to zero
   for(i=0; i<ndof; ++i)
@@ -878,19 +850,19 @@ DofSetArray::number(int node, DofSet ds, int *p) const
 
 DofSetArray::~DofSetArray()
 {
- if(myDofs && dofs) { delete [] dofs; dofs = 0; }
- if(rowcolnum) { delete [] rowcolnum; rowcolnum = 0; }
- if(invrowcol) { delete [] invrowcol; invrowcol = 0; }
- if(dofType) { delete [] dofType; dofType = 0; }
 }
 
 SimpleNumberer::SimpleNumberer(int nnodes, int *renum, int _myMap)
 {
- numnodes = nnodes;
- node_offset = new int[numnodes+1];
- node_num_dofs = new int[numnodes];
- renummap = renum;
- myMap = _myMap;
+	numnodes = nnodes;
+	node_offset.resize(numnodes+1);
+	node_num_dofs.resize(numnodes);
+	if(renum != nullptr)
+        renummap.assign(renum, renum+nnodes);
+
+	if(_myMap) {
+		delete []renum;
+	}
 }
 
 void
@@ -902,38 +874,37 @@ SimpleNumberer::setWeight(int node, int w)
 void
 SimpleNumberer::makeOffset()
 {
- int *remapedoffset = new int[numnodes+1];
+	std::vector<int> remapedoffset(numnodes+1);
 
- int inode;
- for(inode = 0; inode < numnodes; ++inode)
-    remapedoffset[inode] = 0;
+	int inode;
+	for(inode = 0; inode < numnodes; ++inode)
+		remapedoffset[inode] = 0;
 
- for(inode = 0; inode < numnodes; ++inode) {
-   int node = (renummap) ? renummap[inode] : inode;
-   if(node >= 0)
-      remapedoffset[node] = node_num_dofs[inode];
- }
+	for(inode = 0; inode < numnodes; ++inode) {
+		int node = (renummap.size()) ? renummap[inode] : inode;
+		if(node >= 0)
+			remapedoffset[node] = node_num_dofs[inode];
+	}
 
- int offset = 0;
- for(inode = 0; inode < numnodes; ++inode) {
-    int tmp = remapedoffset[inode];
-    remapedoffset[inode] = offset;
-    offset += tmp;
- }
+	int offset = 0;
+	for(inode = 0; inode < numnodes; ++inode) {
+		int tmp = remapedoffset[inode];
+		remapedoffset[inode] = offset;
+		offset += tmp;
+	}
 
- if(node_offset) delete [] node_offset;
- if(renummap) {
-   node_offset = new int[numnodes+1];
-   for(inode = 0; inode < numnodes; ++inode) {
-     int jnode = renummap[inode];
-     node_offset[inode] = (jnode >=0 && node_num_dofs[inode] > 0) ?
-                          remapedoffset[jnode] : -1;
-   }
-   delete [] remapedoffset;
- } 
- else
-   node_offset = remapedoffset;
- node_offset[numnodes] = offset;
+	node_offset.clear();
+	if(renummap.size()) {
+		node_offset.resize(numnodes+1);
+		for(inode = 0; inode < numnodes; ++inode) {
+			int jnode = renummap[inode];
+			node_offset[inode] = (jnode >=0 && node_num_dofs[inode] > 0) ?
+			                     remapedoffset[jnode] : -1;
+		}
+	}
+	else
+		node_offset = remapedoffset;
+	node_offset[numnodes] = offset;
 }
 
 void
@@ -948,10 +919,4 @@ EqNumberer::print()
    fprintf(stderr,"node_offset[%d] = %d\n",i+1,node_offset[i]);
 }
 
-EqNumberer::~EqNumberer()
-{
-  if(node_offset) { delete [] node_offset; node_offset = 0; }
-  if(node_num_dofs) { delete [] node_num_dofs; node_num_dofs = 0; }
-  if(renummap && myMap) { delete [] renummap; renummap = 0; }
-}
 

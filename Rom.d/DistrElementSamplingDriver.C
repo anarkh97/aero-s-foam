@@ -567,20 +567,20 @@ DistrElementSamplingDriver::addContactElems(std::vector<int> &sampleElemIds, std
     }
   
     Elemset &inputElemSet = *(geoSource->getElemSet());
-    std::auto_ptr<Connectivity> elemToNode(new Connectivity(SetAccess<Elemset>(inputElemSet)));
-    Connectivity *nodeToElem = elemToNode->alloc_reverse();
+    Connectivity elemToNode{ SetAccess<Elemset>{inputElemSet} };
+    Connectivity nodeToElem = elemToNode.reverse();
 
     //Second: loop over list of surfaces to extract elements attached to surface nodes 
-    for(std::set<int>::iterator it = activeSurfs.begin(); it != activeSurfs.end(); ++it){
+    for(const auto surfPtr : activeSurfs) {
       for(int surf = 0; surf < domain->getNumSurfs(); ++surf) { // loop through surfaces and check for matching ID
-        if(*it == domain->GetSurfaceEntity(surf)->GetId()) {
+        if(surfPtr == domain->GetSurfaceEntity(surf)->GetId()) {
           int nNodes = domain->GetSurfaceEntity(surf)->GetnNodes();
           // loop through nodes of surface
           for(int nn = 0; nn < nNodes; ++nn) {
             int glNode = domain->GetSurfaceEntity(surf)->GetGlNodeId(nn);
             // loop through elements attached to node
-            for(int j = 0; j < nodeToElem->num(glNode); ++j) {
-              const int elemRank = (*nodeToElem)[glNode][j];
+            for(int j = 0; j < nodeToElem.num(glNode); ++j) {
+              const int elemRank = nodeToElem[glNode][j];
               // check if element already in weighted set, if not, add to weights and reduced ElemIds; 
               if(std::find(sampleElemIds.begin(), sampleElemIds.end(), elemRank) == sampleElemIds.end()){
                 sampleElemIds.push_back(elemRank);

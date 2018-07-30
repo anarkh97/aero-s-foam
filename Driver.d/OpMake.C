@@ -1021,7 +1021,7 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    if(sinfo.noninpc && i>0) break;
    switch(sinfo.solvercntl->type) {
     default:
-      fprintf(stderr," *** WARNING: Solver not Specified %d  ***\n", sinfo.solvercntl->type);
+      fprintf(stderr," *** WARNING: Solver not Specified %d  ***\n", static_cast<int>(sinfo.solvercntl->type));
     case SolverSelection::Direct:
       makeStaticOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
                                      systemSolver, allOps.spm, rbm, kelArray, melArray, celArray); // also used for eigen

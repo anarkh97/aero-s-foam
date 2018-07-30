@@ -18,6 +18,10 @@ namespace FetiLib {
 /** \brief Base class for actual implementations */
 class SubImpl;
 
+template <typename S> class Subdomain;
+
+template <typename S> SubImpl &getter(const Subdomain<S> &s);
+
 
 template <typename S>
 class Subdomain {
@@ -45,7 +49,7 @@ public:
 private:
 	std::unique_ptr<SubImpl> subImpl;
 
-	friend SubImpl &getter(const Subdomain &s);
+	friend SubImpl &getter<>(const Subdomain<S> &s);
 };
 
 }

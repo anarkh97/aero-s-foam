@@ -15,8 +15,9 @@
 namespace Rom {
 
 template <typename Scalar, template<typename> class GenVecType, class BaseSolver>
-GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::GenEiSparseGalerkinProjectionSolver(Connectivity *cn,
-                                                   DofSetArray *dsa, ConstrainedDSA *c_dsa, bool selfadjoint, double tol):
+GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::GenEiSparseGalerkinProjectionSolver(
+    const Connectivity *cn,
+    const DofSetArray *dsa, const ConstrainedDSA *c_dsa, bool selfadjoint, double tol):
   GenEiSparseMatrix<Scalar>(cn, dsa, c_dsa, selfadjoint), 
   spMat(NULL),
   K(NULL),
@@ -43,10 +44,11 @@ GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::GenEiSparseGa
 }
 
 template <typename Scalar, template<typename> class GenVecType, class BaseSolver>
-GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::GenEiSparseGalerkinProjectionSolver(Connectivity *cn,
-                                                           DofSetArray *dsa, ConstrainedDSA *c_dsa, int numSub_,
-                                                           GenSparseMatrix<Scalar> **spMat_, bool selfadjoint, double tol, 
-                                                           int grpSize_):
+GenEiSparseGalerkinProjectionSolver<Scalar,GenVecType,BaseSolver>::GenEiSparseGalerkinProjectionSolver(
+	const Connectivity *cn,
+	const DofSetArray *dsa, const ConstrainedDSA *c_dsa, int numSub_,
+	GenSparseMatrix<Scalar> **spMat_, bool selfadjoint, double tol,
+	int grpSize_):
   GenEiSparseMatrix<Scalar>(cn, dsa, c_dsa, selfadjoint),
   spMat(spMat_),
   cdsa_(c_dsa),

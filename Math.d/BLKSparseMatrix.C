@@ -378,9 +378,9 @@ GenBLKSparseMatrix<Scalar>::init()
 }
 
 template<class Scalar>
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa,
-                                               DofSetArray *c_dsa, double _tol,
-                                               SolverCntl& _scntl, Rbm *_rbm) :
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(const Connectivity *cn, const DofSetArray *_dsa,
+                                               const DofSetArray *c_dsa, double _tol,
+                                               const SolverCntl &_scntl, Rbm *_rbm) :
  SparseData(_dsa,c_dsa,cn,1), scntl(_scntl)
 {
   init();
@@ -1234,8 +1234,8 @@ GenBLKSparseMatrix<Scalar>::getRBMs(VectorSet &rigidBodyModes)
 // Constructor Kii, FETI Subdomain preconditioner solver
 
 template<class Scalar> 
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa, 
-                                               int *glInternalMap, double _tol, SolverCntl& _scntl) :
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(const Connectivity *cn, const DofSetArray *_dsa,
+                                               int *glInternalMap, double _tol, const SolverCntl &_scntl) :
   SparseData(_dsa, glInternalMap, cn, 1), scntl(_scntl)
 {
   init();
@@ -1246,7 +1246,8 @@ GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_d
 // Constructor for GtG Solver (First level coarse problem solver in FETI)
 
 template<class Scalar>
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, EqNumberer *_dsa, double _tol, SolverCntl& _scntl, int _ngrbm)
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(const Connectivity *cn, const EqNumberer *_dsa, double _tol,
+                                               const SolverCntl &_scntl, int _ngrbm)
   : SparseData(cn,_dsa,_tol), scntl(_scntl)
 {
   init();

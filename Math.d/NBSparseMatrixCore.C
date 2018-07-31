@@ -100,7 +100,7 @@ template \
 void \
 GenNBSparseMatrix<Scalar>::add(const FullSquareMatrix&, const int*); \
 template \
-GenNBSparseMatrix<Scalar>::GenNBSparseMatrix(Connectivity*, ConstrainedDSA*); \
+GenNBSparseMatrix<Scalar>::GenNBSparseMatrix(const Connectivity*, const ConstrainedDSA*); \
 template \
 GenNBSparseMatrix<Scalar>::~GenNBSparseMatrix(); \
 template \

@@ -1,2 +1,2 @@
-void makeUnconstrainedNum( int numdofs, int *bc, int *rowColNum, int &numUncon);
+void makeUnconstrainedNum( int numdofs, const int *bc, int *rowColNum, int &numUncon);
 

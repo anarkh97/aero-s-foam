@@ -23,7 +23,8 @@
 
 template<class Scalar>
 GenSolver<Scalar> *
-GenSolverFactory<Scalar>::createSolver(Connectivity *con, EqNumberer *eqnum, SolverCntl& cntl, GenSparseMatrix<Scalar> *&sparse,
+GenSolverFactory<Scalar>::createSolver(const Connectivity *con, const EqNumberer *eqnum, const SolverCntl &cntl,
+                                       GenSparseMatrix<Scalar> *&sparse,
                                        int ngrbm, FSCommunicator *com, std::string name) const
 {
 	//std::cerr << "1. creating solver: type = " << cntl.type << ", subtype = " << cntl.subtype << ", name = " << name << std::endl;
@@ -138,7 +139,8 @@ GenSolverFactory<Scalar>::createSolver(Connectivity *con, EqNumberer *eqnum, Sol
 
 template<class Scalar>
 GenSolver<Scalar> *
-GenSolverFactory<Scalar>::createDistSolver(Connectivity *con, EqNumberer *eqnum, SolverCntl& cntl, GenSparseMatrix<Scalar> *&sparse, 
+GenSolverFactory<Scalar>::createDistSolver(const Connectivity *con, const EqNumberer *eqnum, const SolverCntl &cntl,
+                                           GenSparseMatrix<Scalar> *&sparse,
                                            FSCommunicator *com, std::string name) const
 {
   //std::cerr << "2. creating solver: type = " << cntl.type << ", subtype = " << cntl.subtype << ", name = " << name << std::endl;
@@ -169,8 +171,10 @@ GenSolverFactory<Scalar>::createDistSolver(Connectivity *con, EqNumberer *eqnum,
 
 template<class Scalar>
 GenSolver<Scalar> *
-GenSolverFactory<Scalar>::createSolver(Connectivity *con, DofSetArray *dsa, ConstrainedDSA *cdsa, SolverCntl& cntl, GenSparseMatrix<Scalar> *&sparse, 
-                                       Rbm *rbm, GenSparseMatrix<Scalar> *&spp, GenSolver<Scalar> *&prec, FSCommunicator *com, std::string name) const
+GenSolverFactory<Scalar>::createSolver(const Connectivity *con, const DofSetArray *dsa, const ConstrainedDSA *cdsa,
+                                       const SolverCntl &cntl, GenSparseMatrix<Scalar> *&sparse,
+                                       Rbm *rbm, GenSparseMatrix<Scalar> *&spp, GenSolver<Scalar> *&prec,
+                                       FSCommunicator *com, std::string name) const
 {
 	//std::cerr << "3. creating solver: type = " << cntl.type << ", subtype = " << cntl.subtype << ", name = " << name << std::endl;
 	GenSolver<Scalar> *solver = nullptr;
@@ -373,7 +377,8 @@ GenSolverFactory<Scalar>::createSolver(Connectivity *con, DofSetArray *dsa, Cons
 
 template<class Scalar>
 SolverAndMatrix<Scalar>
-GenSolverFactory<Scalar>::createSolver(Connectivity *con, DofSetArray *dsa, int *rCN, SolverCntl& cntl,
+GenSolverFactory<Scalar>::createSolver(const Connectivity *con, const DofSetArray *dsa, int *rCN,
+                                       const SolverCntl &cntl,
                                        std::string name) const
 {
 	//std::cerr << "4. creating solver: type = " << cntl.type << ", subtype = " << cntl.subtype << ", name = " << name << std::endl;

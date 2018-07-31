@@ -59,7 +59,7 @@ GenCuCSparse<Scalar>::print()
 }
 
 template<class Scalar>
-GenCuCSparse<Scalar>::GenCuCSparse(Connectivity *con, DofSetArray *dsa, int *bc) :
+GenCuCSparse<Scalar>::GenCuCSparse(const Connectivity *con, const DofSetArray *dsa, const int *bc) :
 SparseData(con,dsa,bc)
 {
  // Allocate Kuc
@@ -72,7 +72,7 @@ SparseData(con,dsa,bc)
 }
 
 template<class Scalar>
-GenCuCSparse<Scalar>::GenCuCSparse(Connectivity *con, DofSetArray *dsa, DofSetArray *c_dsa) :
+GenCuCSparse<Scalar>::GenCuCSparse(const Connectivity *con, const DofSetArray *dsa, const DofSetArray *c_dsa) :
 SparseData(con,dsa,c_dsa)
 {
  // Allocate Kuc
@@ -87,7 +87,7 @@ SparseData(con,dsa,c_dsa)
 }
 
 template<class Scalar>
-GenCuCSparse<Scalar>::GenCuCSparse(Connectivity *con, DofSetArray *dsa,
+GenCuCSparse<Scalar>::GenCuCSparse(const Connectivity *con, const DofSetArray *dsa,
                                    const int *glBoundMap, const int *glInternalMap)
 : SparseData(con,dsa,glBoundMap,glInternalMap)
 {
@@ -101,7 +101,7 @@ GenCuCSparse<Scalar>::GenCuCSparse(Connectivity *con, DofSetArray *dsa,
 }
 
 template<class Scalar>
-GenCuCSparse<Scalar>::GenCuCSparse(LMPCons **mpc, int numMPC, DofSetArray *c_dsa) :
+GenCuCSparse<Scalar>::GenCuCSparse(LMPCons **mpc, int numMPC, const DofSetArray *c_dsa) :
   SparseData(mpc, numMPC, c_dsa)
 {
   Kuc = new Scalar[xunonz[numConstrained]];

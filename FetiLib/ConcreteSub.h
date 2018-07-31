@@ -22,8 +22,8 @@ public:
 
 	Connectivity *getNodeToNode() const override;
 
-	DofSetArray *getDsa() const override; //!< Why do we need this?
-	ConstrainedDSA *get_c_dsa() const override;
+	const DofSetArray * getDsa() const override; //!< Why do we need this?
+	const ConstrainedDSA * get_c_dsa() const override;
 	void computeWaveNumbers() override;
 	void averageMatProps() override;
 

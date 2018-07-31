@@ -16,16 +16,16 @@ template <class Scalar> class GenFullSquareMatrix;
 template<class Scalar>
 class GenNBSparseMatrix : public GenSparseMatrix<Scalar>
 {
-   Connectivity *con;           // Node to node connectivity
+   const Connectivity *con;     //!< \brief Node to node connectivity.
    GenFullM<Scalar> *allM;
-   int *firstDof;               // Array of the first DOF number for a node
-   ConstrainedDSA *dsa;
+   int *firstDof;               //!< \brief Array of the first DOF number for a node.
+   const ConstrainedDSA *dsa;
    int *dofToNode;
    int numnodes;
    int *bc;
 
  public:
-   GenNBSparseMatrix(Connectivity *con, ConstrainedDSA *c_dsa);
+   GenNBSparseMatrix(const Connectivity *con, const ConstrainedDSA *c_dsa);
    virtual ~GenNBSparseMatrix();   
  
    void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result ) const override; // Matrix-Vector multiply

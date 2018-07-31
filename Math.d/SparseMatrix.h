@@ -137,28 +137,29 @@ class SparseData {
  public: 
     SparseData();
     // Constructors for data structures of type CuCSparse and CuCComplexSparse
-    SparseData(Connectivity *con, DofSetArray *dsa, const int *bc);
-    SparseData(Connectivity *con, DofSetArray *dsa, DofSetArray *c_dsa);
-    SparseData(Connectivity *con, DofSetArray *dsa, const int *glbmap, const int *glimap);
+    SparseData(const Connectivity *con, const DofSetArray *dsa, const int *bc);
+    SparseData(const Connectivity *con, const DofSetArray *dsa, const DofSetArray *c_dsa);
+    SparseData(const Connectivity *con, const DofSetArray *dsa, const int *glbmap, const int *glimap);
 
     // Constructors for data structures of type DBSparseMatrix 
     // and ComplexDBSparseMatrix and Spooles/Mumps
-    SparseData(DofSetArray *dsa, DofSetArray *c_dsa, Connectivity *con,
-       	       int expand = 0, int make_colu = 0, bool unsym = false);
-    SparseData(EqNumberer *dsa, Connectivity *con, const int* rcn, int expand = 0, int make_colu = 0);
+    SparseData(const DofSetArray *dsa, const DofSetArray *c_dsa, const Connectivity *con,
+               int expand = 0, int make_colu = 0, bool unsym = false);
+    SparseData(const EqNumberer *dsa, const Connectivity *con, const int *rcn, int expand = 0, int make_colu = 0);
 
-    SparseData(DofSetArray *_dsa, const int *glInternalMap,
-               Connectivity *cn, int expand);
+    SparseData(const DofSetArray *_dsa, const int *glInternalMap,
+               const Connectivity *cn, int expand);
 
     // This constructor is for the Esmond sparse solver (BLKSparseMatrix)
-    SparseData(Connectivity *cn, const EqNumberer *eqn, double trbm, int expand = 1);
+    SparseData(const Connectivity *cn, const EqNumberer *eqn, double trbm, int expand = 1);
 
     // MLX This constructor is for the Padma sparse solver
-    SparseData(EqNumberer *eqn, Connectivity *cn, double trbm);
+    SparseData(const EqNumberer *eqn, const Connectivity *cn, double trbm);
 
-    // KHP: for storing mpcs
-    SparseData(LMPCons **mpc, int numColumns, DofSetArray *cdsa);
-    SparseData(int num, const int *xyzCount, int *xyzList);
+    // KHP: for storing mpcs.
+    // ML: Can we make the LMPConst const? Can't implicitely cast LMPCons ** to const LMPConst **
+    SparseData(LMPCons **mpc, int numColumns, const DofSetArray *cdsa);
+    SparseData(int num, const int *xyzCount, const int *xyzList);
 
     // for storing G for use in FETI-DP
     SparseData(int numInterface,

@@ -232,7 +232,7 @@ DofSetArray::makeOffset()
  node_offset[numnodes] = offset;
 }
 
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa, int ns, int *sing)
+ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, const ConstrainedDSA &cdsa, int ns, const int *sing)
 {
   int i, inode;
   numnodes = dsa.numnodes;
@@ -296,7 +296,7 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa, int ns, i
 }
 
 
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int ns, int *sing)
+ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, int ns, const int *sing)
 {
   int i, inode;
   numnodes = dsa.numnodes;
@@ -427,7 +427,7 @@ ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, int nbc, const BCond *bcd
 
 //new constructor for the updating taking in account both bound cond :Dirichlet and measured dof
 
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, DofSetArray &c_dsa, int nbc, BCond *bcd, int info)
+ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, const DofSetArray &c_dsa, int nbc, const BCond *bcd, int info)
 {
   int i, inode;
   numnodes = dsa.numnodes;
@@ -467,7 +467,7 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, DofSetArray &c_dsa, int nbc, BC
   makeOffset();
 }
 
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd, int *bc)
+ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, int nbc, const BCond *bcd, const int *bc)
 {
   int i, inode;
   numnodes = dsa.numnodes;
@@ -514,11 +514,11 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd, int *bc)
 }
 
 // New constructor for Experimental version of FETI
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcond,
+ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, int nbc, const BCond *bcond,
                                int numCornerNodes, const std::vector<int> &cornerNodes,
                                const std::vector<DofSet> &cornerDofs,
-                               int ncbc, ComplexBCond *cbcond, int numWetInterfaceNodes,
-                               int *wetInterfaceNodes, DofSet *wetInterfaceDofs)
+                               int ncbc, const ComplexBCond *cbcond, int numWetInterfaceNodes,
+                               const int *wetInterfaceNodes, const DofSet *wetInterfaceDofs)
 {
   int i, inode;
 
@@ -647,8 +647,8 @@ DofSetArray::makeModifiedOffset()
  node_offset[numnodes] = offset;
 }
 
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, ComplexBCond *bcd, 
-			       int *bc)
+ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, int nbc, const ComplexBCond *bcd,
+			       const int *bc)
 {
   int i, inode;
 
@@ -693,8 +693,8 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, ComplexBCond *bcd,
   invrowcolmax = cnt2;
 }
 
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, BCond *bcond, int nbc,
-			       ComplexBCond *cbcond, int ncbc, int *bc)
+ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, const BCond *bcond, int nbc,
+			       const ComplexBCond *cbcond, int ncbc, const int *bc)
 {
   // bcond   = boundary condition
   // nbc     = number boundary conditions
@@ -754,7 +754,7 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, BCond *bcond, int nbc,
   invrowcolmax = cnt2;
 }
 
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa)
+ConstrainedDSA::ConstrainedDSA(const DofSetArray &dsa, const ConstrainedDSA &cdsa)
 {
   // make a ConstrainedDSA from another ConstrainedDSA and in addition
   // constrained all of the Lagrange multiplier dofs

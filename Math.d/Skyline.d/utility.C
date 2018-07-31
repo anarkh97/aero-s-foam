@@ -2,7 +2,7 @@
 const int BCFIXED = 2;
 
 void
-makeUnconstrainedNum( int numdofs, int *bc, int *unconstrainedNum, int &numUncon )
+makeUnconstrainedNum( int numdofs, const int *bc, int *unconstrainedNum, int &numUncon )
 {
   numUncon  = 0;
   int i;

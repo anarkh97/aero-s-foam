@@ -45,7 +45,7 @@ SkyData::~SkyData()
    if(myRbm && rbm) { delete rbm; rbm=0; }
 }
 
-SkyData::SkyData(Connectivity *cn, DofSetArray *c_dsa, double trbm, 
+SkyData::SkyData(const Connectivity *cn, const DofSetArray *c_dsa, double trbm,
                  Rbm *rigid)
 {
   initialize();
@@ -137,7 +137,7 @@ SkyData::SkyData(Connectivity *cn, DofSetArray *c_dsa, double trbm,
   }
 }
 
-SkyData::SkyData(Connectivity *cn, EqNumberer *_dsa, double trbm, int *bc)
+SkyData::SkyData(const Connectivity *cn, const EqNumberer *_dsa, double trbm, const int *bc)
 {
   initialize();
 
@@ -212,7 +212,7 @@ SkyData::SkyData(Connectivity *cn, EqNumberer *_dsa, double trbm, int *bc)
    pivot = new int[numUncon];
 }
 
-SkyData::SkyData(Connectivity *cn, EqNumberer *eqn, double trbm)
+SkyData::SkyData(const Connectivity *cn, const EqNumberer *eqn, double trbm)
 {
   initialize();
 
@@ -270,7 +270,7 @@ SkyData::SkyData(Connectivity *cn, EqNumberer *eqn, double trbm)
   pivot = new int[numUncon];
 }
 
-SkyData::SkyData(EqNumberer *_dsa, Connectivity *cn, double trbm, int *rCN )
+SkyData::SkyData(const EqNumberer *_dsa, const Connectivity *cn, double trbm, const int *rCN )
 {
   initialize();
 

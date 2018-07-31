@@ -10,10 +10,10 @@ class GenDiagMatrix : public GenSparseMatrix<Scalar>, public GenSolver<Scalar>
 {
      int neq;
      Scalar *v;
-     DofSetArray *dsa;
+     const DofSetArray *dsa;
 
    public:
-     GenDiagMatrix(DofSetArray *_dsa);
+     GenDiagMatrix(const DofSetArray *_dsa);
      virtual ~GenDiagMatrix();
 
      void   add(const FullSquareMatrix &, const int *) override;

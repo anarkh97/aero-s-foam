@@ -38,7 +38,7 @@ SparseData::initialize()
    myMem_rowu     = 1;
 }
 
-SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *bc)
+SparseData::SparseData(const Connectivity *con, const DofSetArray *dsa, const int *bc)
 {
  initialize();
  int i, j, k, l;
@@ -129,8 +129,8 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *bc)
 
 }
 
-SparseData::SparseData(Connectivity *con, DofSetArray *dsa, 
-                       DofSetArray *c_dsa)
+SparseData::SparseData(const Connectivity *con, const DofSetArray *dsa,
+                       const DofSetArray *c_dsa)
 {
  initialize();
  int i, j, k, l;
@@ -205,7 +205,7 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa,
 
 }
 
-SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *glBoundMap, const int *glInternalMap)
+SparseData::SparseData(const Connectivity *con, const DofSetArray *dsa, const int *glBoundMap, const int *glInternalMap)
 {
  initialize();
  int i,j,k,l,iDof;
@@ -288,7 +288,7 @@ SparseData::SparseData(Connectivity *con, DofSetArray *dsa, const int *glBoundMa
 
 // used for Mumps & Spooles (1st constructor)
 // Constructor for DBSparseMatrix data structures
-SparseData::SparseData(EqNumberer *_dsa, Connectivity *cn, const int* rCN, int expand, int make_colu)
+SparseData::SparseData(const EqNumberer *_dsa, const Connectivity *cn, const int *rCN, int expand, int make_colu)
 {
   initialize();
   int i, j, k, thisNode;
@@ -389,8 +389,8 @@ SparseData::SparseData(EqNumberer *_dsa, Connectivity *cn, const int* rCN, int e
 }
 
 // used by 2nd Mumps constructor (with make_colu = 1) and 2nd Spooles constructor
-SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
-                       Connectivity *cn, int expand, int make_colu, bool unsym)
+SparseData::SparseData(const DofSetArray *_dsa, const DofSetArray *c_dsa,
+                       const Connectivity *cn, int expand, int make_colu, bool unsym)
 {
   initialize();
   int i, j, k, thisNode;
@@ -526,8 +526,8 @@ SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
 }
 
 
-SparseData::SparseData(DofSetArray *_dsa, const int *glInternalMap,
-                       Connectivity *cn, int expand)
+SparseData::SparseData(const DofSetArray *_dsa, const int *glInternalMap,
+                       const Connectivity *cn, int expand)
 {
   initialize();
   int i, j, k, thisNode;
@@ -668,20 +668,18 @@ SparseData::SparseData(DofSetArray *_dsa, const int *glInternalMap,
 //#include <algo.h>
 #include <algorithm> // PJSA: for sgi intel
 
-SparseData::SparseData(EqNumberer *eqn, Connectivity *cn, double trbm)
+SparseData::SparseData(const EqNumberer *eqn, const Connectivity *icn, double trbm)
 {
  initialize();
  int i, j, k, l;
+	Connectivity ccn{*icn};
+	ccn.sortTargets(); // PJSA: for sgi intel ML: Do we still need this?
+	Connectivity *cn = &ccn;
 
  numUncon = neq  = eqn->size(); // Total number of equations
 
  int numNodes = cn->csize();
  int *nodeCWeight = (int *) dbg_alloca(sizeof(int)*numNodes);
-
-	for(i = 0; i < numNodes; ++i) {
-		auto cni = (*cn)[i];
-		std::sort(cni.begin(), cni.end());  // PJSA: for sgi intel
-	}
 
  for(i = 0; i < numNodes; ++i) {
     nodeCWeight[i] = 0;
@@ -726,7 +724,7 @@ SparseData::SparseData(EqNumberer *eqn, Connectivity *cn, double trbm)
 
 // ----- EXPERIMENTAL -----------------------------------------------
 
-SparseData::SparseData(Connectivity *cn, const EqNumberer *eqn, double trbm,
+SparseData::SparseData(const Connectivity *cn, const EqNumberer *eqn, double trbm,
                        int expand)
 {
   initialize();
@@ -851,7 +849,7 @@ SparseData::SparseData(Connectivity *cn, const EqNumberer *eqn, double trbm,
 }
 
 
-SparseData::SparseData(LMPCons **mpc, int numMPC, DofSetArray *c_dsa)
+SparseData::SparseData(LMPCons **mpc, int numMPC, const DofSetArray *c_dsa)
 {
   initialize();
   numConstrained = numMPC;
@@ -878,7 +876,7 @@ SparseData::SparseData(LMPCons **mpc, int numMPC, DofSetArray *c_dsa)
 }
 
 
-SparseData::SparseData(int num, const int *xyzCount, int *xyzList)
+SparseData::SparseData(int num, const int *xyzCount, const int *xyzList)
 {
   initialize();
   numConstrained = num;

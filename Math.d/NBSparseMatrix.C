@@ -67,7 +67,7 @@ GenNBSparseMatrix<Scalar>::add(const FullSquareMatrix &kel, const int *dofs)
 }
 
 template<class Scalar>
-GenNBSparseMatrix<Scalar>::GenNBSparseMatrix(Connectivity *_cn, ConstrainedDSA *c_dsa)
+GenNBSparseMatrix<Scalar>::GenNBSparseMatrix(const Connectivity *_cn, const ConstrainedDSA *c_dsa)
 {
   con = _cn;
   dsa = c_dsa;

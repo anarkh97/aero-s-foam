@@ -20,7 +20,7 @@
 #include <Driver.d/HData.h>
 
 
-ConstrainedDSA *FetiBaseSub::getCCDSA() const {
+const ConstrainedDSA * FetiBaseSub::getCCDSA() const {
 	return cc_dsa ? cc_dsa.get() : get_c_dsa();
 }
 
@@ -2947,7 +2947,7 @@ FetiBaseSub::makeKccDofsExp2(int nsub, FetiBaseSub **sd,
 		int offset2 = 0;
 		for (int j = 0; j < nsub; ++j) {
 			auto &nodeMap = sd[j]->getGlobalToLocalNode();
-			ConstrainedDSA *cornerEqs = sd[j]->get_c_dsa();
+			auto cornerEqs = sd[j]->get_c_dsa();
 			if (nodeMap[glCornerNodes[i]] > -1) {
 				int count = cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(),
 				                              cornerEqNums.data() + offset);
@@ -2968,7 +2968,7 @@ FetiBaseSub::makeKccDofsExp2(int nsub, FetiBaseSub **sd,
 				int offset2 = 0;
 				for (int iSub = 0; iSub < nsub; ++iSub) {
 					GlobalToLocalMap &nodeMap = sd[iSub]->getGlobalToLocalNode();
-					ConstrainedDSA *cornerEqs = sd[iSub]->get_c_dsa();
+					auto cornerEqs = sd[iSub]->get_c_dsa();
 					if (nodeMap[k] > -1) {
 						int fDof = cornerEqs->firstdof(nodeMap[k]);
 						int count = edgeDofSize[iNeighb];
@@ -5093,7 +5093,7 @@ FetiSub<Scalar>::fSend(const Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *
 }
 
 template<typename Scalar>
-void FetiSub<Scalar>::makeKbb(DofSetArray *dofsetarray) {
+void FetiSub<Scalar>::makeKbb(const DofSetArray *dofsetarray) {
 	auto nodeToNode = getNodeToNode();
 	const auto &dsa = getDsa();
 	glBoundMap = makeBMaps(dofsetarray);

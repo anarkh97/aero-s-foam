@@ -12,7 +12,7 @@ class GenDistSky : public GenSkyMatrix<Scalar>
   Scalar *nlines;
 
  public:
-   GenDistSky(Connectivity *cn, EqNumberer *dsa, double trbm, 
+   GenDistSky(const Connectivity *cn, const EqNumberer *dsa, double trbm,
               int fRow, int numRows);
    virtual ~GenDistSky();
 

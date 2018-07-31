@@ -26,15 +26,20 @@ class GenSolverFactory
   virtual ~GenSolverFactory() {}
 
   // used for feti coarse solvers: sequential or parallel direct solver only
-  virtual GenSolver<Scalar>* createSolver(Connectivity *con, EqNumberer *eqnum, SolverCntl&, GenSparseMatrix<Scalar> *&sparse, int ngrbm = 0,
+  virtual GenSolver<Scalar>* createSolver(const Connectivity *con, const EqNumberer *eqnum, const SolverCntl &cntl,
+                                          GenSparseMatrix<Scalar> *&sparse, int ngrbm = 0,
                                           FSCommunicator *com = 0, std::string name = "") const;
-  virtual GenSolver<Scalar>* createDistSolver(Connectivity *con, EqNumberer *eqnum, SolverCntl&, GenSparseMatrix<Scalar> *&sparse, 
+  virtual GenSolver<Scalar>* createDistSolver(const Connectivity *con, const EqNumberer *eqnum, const SolverCntl &cntl,
+                                              GenSparseMatrix<Scalar> *&sparse,
                                               FSCommunicator *com = 0, std::string name = "") const;
   // used for global solvers and feti local solvers: direct or iterative solver
-  virtual GenSolver<Scalar>* createSolver(Connectivity *con, DofSetArray *dsa, ConstrainedDSA *cdsa, SolverCntl&, GenSparseMatrix<Scalar> *&sparse, Rbm *rbm,
-                                          GenSparseMatrix<Scalar> *&spp, GenSolver<Scalar> *&prec, FSCommunicator *com = 0, std::string name = "") const;
+  virtual GenSolver<Scalar>* createSolver(const Connectivity *con, const DofSetArray *dsa, const ConstrainedDSA *cdsa,
+                                          const SolverCntl &cntl, GenSparseMatrix<Scalar> *&sparse, Rbm *rbm,
+                                          GenSparseMatrix<Scalar> *&spp, GenSolver<Scalar> *&prec,
+                                          FSCommunicator *com = 0, std::string name = "") const;
 	// used for feti Kii solver: sequential direct solver only
-	virtual SolverAndMatrix<Scalar> createSolver(Connectivity *con, DofSetArray *dsa, int *map, SolverCntl&,
+	virtual SolverAndMatrix<Scalar> createSolver(const Connectivity *con, const DofSetArray *dsa, int *map,
+	                                             const SolverCntl &cntl,
 	                                             std::string name = "") const;
 
   static GenSolverFactory* getFactory();

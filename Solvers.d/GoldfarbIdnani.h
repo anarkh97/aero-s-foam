@@ -26,7 +26,7 @@ class GoldfarbIdnaniQpSolver : public BaseSolver
 
 public:
   template<class BaseArgs>
-  GoldfarbIdnaniQpSolver(BaseArgs &ba, ConstrainedDSA *cdsa, double _tol)
+  GoldfarbIdnaniQpSolver(BaseArgs &ba, const ConstrainedDSA *cdsa, double _tol)
    : BaseSolver(ba) {
     tol = _tol;
     unconstrNum = cdsa->getUnconstrNum().data();

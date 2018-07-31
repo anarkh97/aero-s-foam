@@ -154,11 +154,11 @@ public:
 	int getNumMpc() const       { return numMPC; }
 
 	/// \brief Obtain the DofSetArray constructed with all the DOFs of the subdomain.
-	virtual DofSetArray *getDsa() const = 0;
+	virtual const DofSetArray * getDsa() const = 0;
 	/// \brief Obtain the DofSetArray after constrained DOFs have been removed.
-	virtual ConstrainedDSA *get_c_dsa() const = 0;
+	virtual const ConstrainedDSA * get_c_dsa() const = 0;
 	/// \brief Obtain the DofSetArray after constrained and corner DOFs have been removed.
-	ConstrainedDSA *getCCDSA() const;
+	const ConstrainedDSA * getCCDSA() const;
 
 	/// \copydoc
 	int getLocalMPCIndex(int globalMpcIndex) const;
@@ -450,7 +450,7 @@ public:
 	void assembleRtR(GenFullM<Scalar> &RtRu);
 
 	void makeKbbMpc();
-	void makeKbb(DofSetArray *dofsetarray=0);
+	void makeKbb(const DofSetArray *dofsetarray = 0);
 	void rebuildKbb();
 
 	// new B operators

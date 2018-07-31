@@ -89,7 +89,7 @@ GenBlockSky<Scalar>::initialize()
 // Constructor for Coarse Problems
 //
 template<class Scalar>
-GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, EqNumberer *eqnums,
+GenBlockSky<Scalar>::GenBlockSky(const Connectivity *nodeToNode, const EqNumberer *eqnums,
                                  double _t)
 {
  initialize();
@@ -103,7 +103,7 @@ GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, EqNumberer *eqnums,
  nBlocks = nodeToNode->csize();
 
  // get inverse renumbering
- int *invRenum = eqnums->renumPtr();
+ auto invRenum = eqnums->renumPtr();
  int *renum = new int[nBlocks];
  int *blNum = new int[nBlocks];
 
@@ -189,7 +189,7 @@ GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, EqNumberer *eqnums,
 // Constructor for local problems
 //
 template<class Scalar>
-GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, DofSetArray *eqnums,
+GenBlockSky<Scalar>::GenBlockSky(const Connectivity *nodeToNode, const DofSetArray *eqnums,
  double _t)
 {
  initialize(); 
@@ -204,7 +204,7 @@ GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, DofSetArray *eqnums,
  nBlocks = nodeToNode->csize();
 
  // get inverse renumbering
- int *invRenum = eqnums->renumPtr();
+ auto invRenum = eqnums->renumPtr();
  int *renum = new int[nBlocks];
  int *blNum = new int[nBlocks];
 
@@ -291,7 +291,7 @@ GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, DofSetArray *eqnums,
 // constructor for Dirichlet preconditioner
 //
 template<class Scalar>
-GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, DofSetArray *dsa, double _t, 
+GenBlockSky<Scalar>::GenBlockSky(const Connectivity *nodeToNode, const DofSetArray *dsa, double _t,
                                  int *rCN)
 {
   initialize();

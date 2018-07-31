@@ -260,7 +260,7 @@ GenSkyMatrix<Scalar>::allMult(Scalar x)
 }
 
 template<class Scalar>
-GenSkyMatrix<Scalar>::GenSkyMatrix(Connectivity *cn, DofSetArray *c_dsa,
+GenSkyMatrix<Scalar>::GenSkyMatrix(const Connectivity *cn, const DofSetArray *c_dsa,
                                    double trbm, Rbm *rigid) :
 SkyData(cn,c_dsa,trbm,rigid)
 {
@@ -283,8 +283,8 @@ SkyData(cn,c_dsa,trbm,rigid)
 }
 
 template<class Scalar>
-GenSkyMatrix<Scalar>::GenSkyMatrix(Connectivity *cn, EqNumberer *_dsa,
-                                   double trbm, int *bc) :
+GenSkyMatrix<Scalar>::GenSkyMatrix(const Connectivity *cn, const EqNumberer *_dsa,
+                                   double trbm, const int *bc) :
 SkyData(cn,_dsa,trbm,bc)
 {
   constructTime = -getTime();
@@ -305,7 +305,7 @@ SkyData(cn,_dsa,trbm,bc)
 }
 
 template<class Scalar>
-GenSkyMatrix<Scalar>::GenSkyMatrix(Connectivity *cn, EqNumberer *_dsa,
+GenSkyMatrix<Scalar>::GenSkyMatrix(const Connectivity *cn, const EqNumberer *_dsa,
                                    double trbm, int _isScaled) :
 SkyData(cn,_dsa,trbm)
 {
@@ -327,8 +327,8 @@ SkyData(cn,_dsa,trbm)
 }
 
 template<class Scalar>
-GenSkyMatrix<Scalar>::GenSkyMatrix(Connectivity *cn, EqNumberer *_dsa,
-                                   double trbm, int *rCN, int) :
+GenSkyMatrix<Scalar>::GenSkyMatrix(const Connectivity *cn, const EqNumberer *_dsa,
+                                   double trbm, const int *rCN, int) :
 SkyData( _dsa, cn, trbm, rCN )
 {
   constructTime = -getTime();
@@ -379,8 +379,8 @@ SkyData(mat->numRow(), tolerance)
 }
 
 template<class Scalar>
-GenSkyMatrix<Scalar>::GenSkyMatrix(Connectivity *cn, EqNumberer *,
-                                   ConstrainedDSA *c_dsa, double trbm) :
+GenSkyMatrix<Scalar>::GenSkyMatrix(const Connectivity *cn, const EqNumberer *,
+                                   const ConstrainedDSA *c_dsa, double trbm) :
   SkyData(cn, c_dsa, trbm)
 {
   // ALLOCATE MEMORY FOR SKYA

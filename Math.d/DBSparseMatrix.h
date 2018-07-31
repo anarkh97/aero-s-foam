@@ -18,11 +18,11 @@ class GenDBSparseMatrix : public SparseData, public GenSparseMatrix<Scalar> {
 	std::vector<int> firstdof;
 public:
 	// Constructor
-	GenDBSparseMatrix(Connectivity *, DofSetArray *, ConstrainedDSA *c_dsa);
-	GenDBSparseMatrix(Connectivity *, DofSetArray *, const int* rcn);
-	GenDBSparseMatrix(Connectivity *c, DofSetArray *dsa, const std::vector<int> &rcn)
+	GenDBSparseMatrix(const Connectivity *, const DofSetArray *, const ConstrainedDSA *c_dsa);
+	GenDBSparseMatrix(const Connectivity *, const DofSetArray *, const int* rcn);
+	GenDBSparseMatrix(const Connectivity *c, const DofSetArray *dsa, const std::vector<int> &rcn)
 		: GenDBSparseMatrix(c, dsa, rcn.data()) {}
-	GenDBSparseMatrix(Connectivity *, EqNumberer *);
+	GenDBSparseMatrix(const Connectivity *, const EqNumberer *);
 	virtual ~GenDBSparseMatrix();
 
 	void mult(const GenVector<Scalar> &, GenVector<Scalar> & ) const override; //matrix-vector multiply

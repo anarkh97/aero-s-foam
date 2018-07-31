@@ -142,8 +142,8 @@ public:
 	bool checkForColinearCrossPoints(int numCornerPoints, int *localCornerPoints);
 	void addCornerPoints(int *glCornerList);
 
-	DofSetArray *getDsa() const override { return dsa; }
-	ConstrainedDSA *get_c_dsa() const override { return c_dsa; }
+	const DofSetArray * getDsa() const override { return dsa; }
+	const ConstrainedDSA * get_c_dsa() const override { return c_dsa; }
 	double getShiftVal() const override { return geoSource->shiftVal(); }
 public:
 

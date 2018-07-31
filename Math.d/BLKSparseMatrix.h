@@ -26,7 +26,7 @@ class GenBLKSparseMatrix :
         public SparseData, public GenSparseMatrix<Scalar>, public GenSolver<Scalar>
 {
 protected:
-   SolverCntl& scntl;
+   const SolverCntl& scntl;
 
    Scalar *unonz;
 
@@ -72,13 +72,14 @@ protected:
  public:
 
    // Stiffness matrix
-   GenBLKSparseMatrix(Connectivity *, DofSetArray *, DofSetArray *,
-                      double tolerance, SolverCntl& _scntl, Rbm *rbm = 0);
+   GenBLKSparseMatrix(const Connectivity *, const DofSetArray *, const DofSetArray *,
+                      double tolerance, const SolverCntl &_scntl, Rbm *rbm = 0);
    // Kii
-   GenBLKSparseMatrix(Connectivity *, DofSetArray *, int *dofmap,
-                      double tolerance, SolverCntl& _scntl);
+   GenBLKSparseMatrix(const Connectivity *, const DofSetArray *, int *dofmap,
+                      double tolerance, const SolverCntl &_scntl);
    // GtG, Kcc
-   GenBLKSparseMatrix(Connectivity *, EqNumberer *, double tolerance, SolverCntl& _scntl, int ngrbm = 0);
+   GenBLKSparseMatrix(const Connectivity *, const EqNumberer *, double tolerance, const SolverCntl &_scntl,
+                      int ngrbm = 0);
 
    virtual ~GenBLKSparseMatrix();
 

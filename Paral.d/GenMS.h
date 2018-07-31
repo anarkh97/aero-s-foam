@@ -109,7 +109,7 @@ template <typename Scalar>
 class SolverWrapper : public GenSparseMatrix<Scalar> {
 public:
 
-	SolverWrapper(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, GenSparseMatrix<Scalar> *wrapped) :
+	SolverWrapper(const Connectivity *nToN, const DofSetArray *dsa, const ConstrainedDSA *c_dsa, GenSparseMatrix<Scalar> *wrapped) :
 		multMatrix(nToN, dsa, c_dsa), wrapped(wrapped) {}
 
 	void add(const FullSquareMatrix & kel, const int *dofs) override {

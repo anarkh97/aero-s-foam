@@ -7,7 +7,7 @@
 #include <Timers.d/GetTime.h>
 
 template<typename Scalar, typename SolverClass>
-GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa, int *rCN, bool _selfadjoint)
+GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(const Connectivity *cn, const DofSetArray *dsa, const int *rCN, bool _selfadjoint)
 : SparseData(dsa,rCN,cn,int(!_selfadjoint)),
   selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]-1),
@@ -24,7 +24,8 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSe
 }
 
 template<typename Scalar, typename SolverClass>
-GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa, DofSetArray *c_dsa, bool _selfadjoint)
+GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(const Connectivity *cn, const DofSetArray *dsa,
+                                                         const DofSetArray *c_dsa, bool _selfadjoint)
 : SparseData(dsa,c_dsa,cn,int(!_selfadjoint)),
   selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]-1),
@@ -41,7 +42,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSe
 }
 
 template<typename Scalar, typename SolverClass>
-GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, EqNumberer *eqNums, bool _selfadjoint)
+GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(const Connectivity *cn, const EqNumberer *eqNums, bool _selfadjoint)
 : SparseData(eqNums,cn,(int*)NULL,0,1),
   selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]-1),

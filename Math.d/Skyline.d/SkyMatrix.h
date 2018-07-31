@@ -41,10 +41,10 @@ class SkyData {
 
  public:
    SkyData();
-   SkyData(Connectivity *cn, EqNumberer *dsa, double trbm, int *bc);
-   SkyData(Connectivity *cn, EqNumberer *dsa, double trbm);
-   SkyData(Connectivity *cn, DofSetArray *c_dsa, double trbm, Rbm *rigid=0);
-   SkyData(EqNumberer *_dsa, Connectivity *cn, double trbm, int *rCN);
+   SkyData(const Connectivity *cn, const EqNumberer *dsa, double trbm, const int *bc);
+   SkyData(const Connectivity *cn, const EqNumberer *dsa, double trbm);
+   SkyData(const Connectivity *cn, const DofSetArray *c_dsa, double trbm, Rbm *rigid=0);
+   SkyData(const EqNumberer *_dsa, const Connectivity *cn, double trbm, const int *rCN);
    SkyData(int n, double tolerance = 1.0E-4);
    virtual ~SkyData();
  private:
@@ -68,12 +68,12 @@ protected:
  public:
    // Constructors
    GenSkyMatrix() = default;
-   GenSkyMatrix(Connectivity *cn, EqNumberer *dsa, double trbm, int *bc);
-   GenSkyMatrix(Connectivity *cn, EqNumberer *dsa, double trbm, int isScaled=0);
-   GenSkyMatrix(Connectivity *cn, DofSetArray *, double trbm, Rbm *rigid=0);
-   GenSkyMatrix(Connectivity *cn, EqNumberer *dsa, double trbm, int *rCN, int dummy);
+   GenSkyMatrix(const Connectivity *cn, const EqNumberer *dsa, double trbm, const int *bc);
+   GenSkyMatrix(const Connectivity *cn, const EqNumberer *dsa, double trbm, int isScaled = 0);
+   GenSkyMatrix(const Connectivity *cn, const DofSetArray *, double trbm, Rbm *rigid = 0);
+   GenSkyMatrix(const Connectivity *cn, const EqNumberer *dsa, double trbm, const int *rCN, int dummy);
    GenSkyMatrix(GenFullM<Scalar> *mat, double tolerance = 1.0E-4);
-   GenSkyMatrix(Connectivity *, EqNumberer *, ConstrainedDSA *, double trbm);
+   GenSkyMatrix(const Connectivity *, const EqNumberer *, const ConstrainedDSA *, double trbm);
    GenSkyMatrix(int, double);
    // Destructor
    virtual ~GenSkyMatrix();

@@ -216,7 +216,7 @@ GenDBSparseMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
 }
 
 template<class Scalar>
-GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *dsa, const int *rCN)
+GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(const Connectivity *cn, const DofSetArray *dsa, const int *rCN)
 : SparseData(dsa,cn,rCN)
 {
   // ... Allocate memory for unonz & initialize to zero
@@ -229,7 +229,7 @@ GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *dsa,
 }
 
 template<class Scalar>
-GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *_dsa, ConstrainedDSA *c_dsa) :
+GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(const Connectivity *cn, const DofSetArray *_dsa, const ConstrainedDSA *c_dsa) :
   SparseData(_dsa,c_dsa,cn)
 {
   // ... Allocate memory for matrix value vector unonz
@@ -241,7 +241,7 @@ GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, DofSetArray *_dsa
 }
 
 template<class Scalar>
-GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(Connectivity *cn, EqNumberer *eqNums)
+GenDBSparseMatrix<Scalar>::GenDBSparseMatrix(const Connectivity *cn, const EqNumberer *eqNums)
  : SparseData(cn, eqNums,1.0E-6,0)
 {
   // ... Allocate memory for matrix value vector unonz

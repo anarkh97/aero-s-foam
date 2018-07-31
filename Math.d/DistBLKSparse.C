@@ -24,8 +24,8 @@ inline void Tgemv(const char &a, const int &b, const int &c,
 #endif
 
 template<class Scalar>
-GenDistBLKSparse<Scalar>::GenDistBLKSparse(Connectivity *cn, EqNumberer *dsa, 
-                                           double trbm, SolverCntl &scntl, int fRow, int nRow) :
+GenDistBLKSparse<Scalar>::GenDistBLKSparse(const Connectivity *cn, const EqNumberer *dsa,
+                                           double trbm, const SolverCntl &scntl, int fRow, int nRow) :
  GenBLKSparseMatrix<Scalar>(cn, dsa, trbm, scntl)
 {
  firstRow = fRow;

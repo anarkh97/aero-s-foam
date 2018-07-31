@@ -2,7 +2,7 @@
 #include <iostream>
 
 template<class Scalar>
-GenDiagMatrix<Scalar>::GenDiagMatrix(DofSetArray *_dsa)
+GenDiagMatrix<Scalar>::GenDiagMatrix(const DofSetArray *_dsa)
 {
   dsa = _dsa;
   neq = dsa->size();

@@ -57,9 +57,9 @@ class GenBlockSky : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>
                     Scalar *ltmp, Scalar *invDiag, Scalar *origDiag);
      #endif
    public:
-     GenBlockSky(Connectivity *nodeToNode, EqNumberer *eqnums, double tol);
-     GenBlockSky(Connectivity *nodeToNode, DofSetArray *eqnums, double tol);
-     GenBlockSky(Connectivity *nodeToNode, DofSetArray *dsa, double tol, 
+     GenBlockSky(const Connectivity *nodeToNode, const EqNumberer *eqnums, double tol);
+     GenBlockSky(const Connectivity *nodeToNode, const DofSetArray *eqnums, double tol);
+     GenBlockSky(const Connectivity *nodeToNode, const DofSetArray *dsa, double tol,
               int *glInternalMap);
      virtual ~GenBlockSky();
      void factor() override;

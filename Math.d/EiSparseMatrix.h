@@ -38,9 +38,9 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    Eigen::SparseMatrix<Scalar> *M_copy;
 
  public:
-   GenEiSparseMatrix(Connectivity *, DofSetArray *, DofSetArray *, bool=true);
-   GenEiSparseMatrix(Connectivity *, DofSetArray *, int *, bool=true);
-   GenEiSparseMatrix(Connectivity *, EqNumberer *, bool=true);
+   GenEiSparseMatrix(const Connectivity *, const DofSetArray *, const DofSetArray *, bool= true);
+   GenEiSparseMatrix(const Connectivity *, const DofSetArray *, const int *, bool=true);
+   GenEiSparseMatrix(const Connectivity *, const EqNumberer *, bool=true);
    virtual ~GenEiSparseMatrix();
 
    Eigen::MappedSparseMatrix<Scalar, Eigen::ColMajor, int>& getEigenSparse() { return M; }
@@ -101,11 +101,11 @@ class WrapEiSparseMat : public GenEiSparseMatrix<Scalar, SolverClass>
 {
   public:
     struct CtorData {
-      Connectivity *cn;
-      DofSetArray *dsa;
-      DofSetArray *cdsa;
+      const Connectivity *cn;
+      const DofSetArray *dsa;
+      const DofSetArray *cdsa;
       bool flg;
-      CtorData(Connectivity *c, DofSetArray *d, DofSetArray *dc, bool f=true) {
+      CtorData(const Connectivity *c, const DofSetArray *d, const DofSetArray *dc, bool f=true) {
         cn = c;
         dsa = d;
         cdsa = dc;

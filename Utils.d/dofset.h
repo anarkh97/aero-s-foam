@@ -153,6 +153,8 @@ public:
 
 	int *allOffsets() { return node_offset.data(); }
 
+	const int *renumPtr() const { return renummap.data(); }
+	// MLX Get rid of this one.
 	int *renumPtr() { return renummap.data(); }
 
 	void print();
@@ -258,24 +260,25 @@ public:
 	               int nBC, const BCond *boundaryCond,
 	               int nComplexBC = 0, const ComplexBCond *complexBC = nullptr);
 
-	ConstrainedDSA(DofSetArray &, DofSetArray &, int, BCond *, int);
+	ConstrainedDSA(const DofSetArray &dsa, const DofSetArray &c_dsa, int nbc, const BCond *bcd, int info);
 
-	ConstrainedDSA(DofSetArray &, int, BCond *, int *bc);
+	ConstrainedDSA(const DofSetArray &dsa, int nbc, const BCond *bcd, const int *bc);
 
-	ConstrainedDSA(DofSetArray &, int, ComplexBCond *, int *bc);
+	ConstrainedDSA(const DofSetArray &dsa, int nbc, const ComplexBCond *bcd,
+	               const int *bc);
 
-	ConstrainedDSA(DofSetArray &dsa, BCond *bcdata, int nbc,
-	               ComplexBCond *bcd, int nbcd, int *bc);
+	ConstrainedDSA(const DofSetArray &dsa, const BCond *bcdata, int nbc,
+	               const ComplexBCond *bcd, int nbcd, const int *bc);
 
-	ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcond,
+	ConstrainedDSA(const DofSetArray &dsa, int nbc, const BCond *bcond,
 	               int numCornerNodes, const std::vector<int> &cornerNodes, const std::vector<DofSet> &cornerDofs,
-	               int ncbc = 0, ComplexBCond *cbcond = nullptr, int numWetInterfaceNodes = 0,
-	               int *wetInterfaceNodes = nullptr, DofSet *wetInterfaceDofs = nullptr);
+	               int ncbc = 0, const ComplexBCond *cbcond = nullptr, int numWetInterfaceNodes = 0,
+	               const int *wetInterfaceNodes = nullptr, const DofSet *wetInterfaceDofs = nullptr);
 
-	ConstrainedDSA(DofSetArray &dsa, int n, int *sing = nullptr);  // PJSA: 1-23-01
-	ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa, int n, int *sing = 0);
+	ConstrainedDSA(const DofSetArray &dsa, int n, const int *sing = nullptr);  // PJSA: 1-23-01
+	ConstrainedDSA(const DofSetArray &dsa, const ConstrainedDSA &cdsa, int n, const int *sing = 0);
 
-	ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa);
+	ConstrainedDSA(const DofSetArray &dsa, const ConstrainedDSA &cdsa);
 
 	ConstrainedDSA(ConstrainedDSA &&) = default;
 

@@ -20,9 +20,9 @@ class GenEiSparseGalerkinProjectionSolver : public BaseSolver, public GenEiSpars
   typedef const Eigen::Block<const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor>, 
                              Eigen::Dynamic, Eigen::Dynamic, false> LocalBasisType;
 public:
-  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, 
+  GenEiSparseGalerkinProjectionSolver(const Connectivity *cn, const DofSetArray *dsa, const ConstrainedDSA *c_dsa,
                                       bool = true, double tol = 1e-6);
-  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, 
+  GenEiSparseGalerkinProjectionSolver(const Connectivity *cn, const DofSetArray *dsa, const ConstrainedDSA *c_dsa,
                                       int numSub_, GenSparseMatrix<Scalar>**, bool = true, 
                                       double tol = 1e-6, int grpSize_ = 1);
 
@@ -95,7 +95,7 @@ public:
   GenSparseMatrix<Scalar> * getSpMat(int i) { return spMat[i]; }
 
 private:
-  ConstrainedDSA *cdsa_;
+  const ConstrainedDSA *cdsa_;
   GenSparseMatrix<Scalar> **spMat;
   GenSubDOp<Scalar> *K;
   int  numSub; 

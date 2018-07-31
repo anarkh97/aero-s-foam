@@ -64,7 +64,7 @@ typedef GenPodProjectionSolver<double, GenDistrVector> DistrPodProjectionSolver;
 template <typename Scalar>
 class GenDBSparsePodProjectionSolver : public GenPodProjectionSolver<Scalar>, public GenSolver<Scalar>, public GenDBSparseMatrix<Scalar> {
 public:
-  GenDBSparsePodProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa);
+  GenDBSparsePodProjectionSolver(const Connectivity *cn, const DofSetArray *dsa, const ConstrainedDSA *c_dsa);
 
   // Pure virtual function implementations
   virtual long size() const;
@@ -147,9 +147,9 @@ private:
 };
 
 template <typename Scalar>
-GenDBSparsePodProjectionSolver<Scalar>::GenDBSparsePodProjectionSolver(Connectivity *cn,
-                                                   DofSetArray *dsa,
-                                                   ConstrainedDSA *c_dsa):
+GenDBSparsePodProjectionSolver<Scalar>::GenDBSparsePodProjectionSolver(const Connectivity *cn,
+                                                   const DofSetArray *dsa,
+                                                   const ConstrainedDSA *c_dsa):
   GenDBSparseMatrix<Scalar>(cn, dsa, c_dsa),
   basisSize_(0),
   projectionBasis_(NULL),

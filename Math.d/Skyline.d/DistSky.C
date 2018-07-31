@@ -14,7 +14,7 @@ GenDistSky<Scalar>::~GenDistSky()
 }
 
 template<class Scalar>
-GenDistSky<Scalar>::GenDistSky(Connectivity *cn, EqNumberer *dsa, 
+GenDistSky<Scalar>::GenDistSky(const Connectivity *cn, const EqNumberer *dsa,
                                double trbm, int fRow, int nRow) :
  GenSkyMatrix<Scalar>(cn, dsa, trbm)
 {

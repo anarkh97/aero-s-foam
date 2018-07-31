@@ -15,7 +15,8 @@ namespace Rom {
 template <typename Scalar>
 class GenGalerkinProjectionSolver : public GenDBSparsePodProjectionSolver<Scalar> {
 public:
-  GenGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, bool pivotFlag=false);
+  GenGalerkinProjectionSolver(const Connectivity *cn, const DofSetArray *dsa, const ConstrainedDSA *c_dsa,
+      bool pivotFlag=false);
   ~GenGalerkinProjectionSolver();
 private:
   GenFullSquareMatrix<Scalar> reducedMatrix_;
@@ -34,9 +35,9 @@ private:
 };
 
 template <typename Scalar>
-GenGalerkinProjectionSolver<Scalar>::GenGalerkinProjectionSolver(Connectivity *cn,
-                                                                 DofSetArray *dsa,
-                                                                 ConstrainedDSA *c_dsa,
+GenGalerkinProjectionSolver<Scalar>::GenGalerkinProjectionSolver(const Connectivity *cn,
+                                                                 const DofSetArray *dsa,
+                                                                 const ConstrainedDSA *c_dsa,
                                                                  bool pivotFlag):
   GenDBSparsePodProjectionSolver<Scalar>(cn, dsa, c_dsa),
   reducedMatrix_(),

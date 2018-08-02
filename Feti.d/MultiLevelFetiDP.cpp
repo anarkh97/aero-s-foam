@@ -29,19 +29,23 @@ namespace MultiLevel {
 template <typename Scalar>
 class MLSub : public FetiBaseSub, virtual public FetiSub<Scalar> {
 public:
+	MLSub(FetiInfo fetiInfo, CoordSet coordinates, DofSetArray dsa) : fetiInfo(std::move(fetiInfo)),
+	                                                                  coordinates(coordinates),
+	                                                                  dsa(std::move(dsa)) {}
+
 	const FetiInfo &getFetiInfo() const override { return fetiInfo; }
 
 	int getNumUncon() const override { return dsa.size(); }
 	const CoordSet& getNodeSet() const override { return coordinates; }
 	double getShiftVal() const override {
-		std::cout << "Warning, calling getShitVal" << std::endl;
+		std::cout << "Warning, calling getShiftVal" << std::endl;
 		return 0.0;
 	}
 
 	Connectivity *getNodeToNode() const override;
 
-	DofSetArray *getDsa() const override { return const_cast<DofSetArray *>(&dsa); }; //!< Why do we need this?
-	ConstrainedDSA *get_c_dsa() const override { return nullptr; /*return &dsa;*/ };
+	const DofSetArray * getDsa() const override { return &dsa; }; //!< Why do we need this?
+	const ConstrainedDSA * get_c_dsa() const override { return nullptr; /*return &dsa;*/ };
 	void computeWaveNumbers() override {};
 	void averageMatProps() override {};
 
@@ -340,7 +344,8 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 		superElements.push_back({std::move(coarsenodes), std::move(dofs), Kel});
 	}
 
-	// Set of connections from subdomain to all coarse nodes.
+	// Set of connections from subdomain to all coarse nodes. Note however that we only know about
+	// subdomains that are in this CPU or touch a subdomain on this CPU.
 	std::vector<std::pair<gl_sub_idx, gl_node_idx>> glSubToAllCoarse;
 	// Now form the set of nodes.
 	std::map<gl_num_t, Eigen::Vector3d> nodes;
@@ -385,20 +390,12 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 	}
 
 	Connectivity subToAllCoarseNodes = Connectivity::fromLinkRange(glSubToAllCoarse);
-	this->fetiCom->sync();
-	std::cout << "Full " << subToAllCoarseNodes.numConnect() << " vs " << subToCorner.numConnect() << std::endl;
-	this->fetiCom->sync();
+//	this->fetiCom->sync();
+//	std::cout << "Full " << subToAllCoarseNodes.numConnect() << " vs " << subToCorner.numConnect() << std::endl;
+//	this->fetiCom->sync();
 
-	int minNd = 1000000000;
-	int maxNd = -minNd;
-	for(const auto &se : superElements) {
-		for(auto nd : se.nodes) {
-			minNd = std::min(nd, minNd);
-			maxNd = std::max(nd, maxNd);
-		}
-	}
-
-	formSubdomains(cpuToCoarse[this->myCPU], *decCoarse, superElements, subToAllCoarseNodes, nodes, this->glSubToLoc);
+	auto subs = formSubdomains(cpuToCoarse[this->myCPU], *decCoarse,
+	                           superElements, subToAllCoarseNodes, nodes, this->glSubToLoc);
 
 //	std::vector<FetiBaseSub *> baseSubs(decCoarseDomain->getAllSubDomains(),
 //	                                    decCoarseDomain->getAllSubDomains()+decCoarseDomain->getNumSub());
@@ -410,7 +407,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 
 template <typename Scalar>
 void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) {
-//	makeMultiLevelDPNew(*subToCorner);
+	makeMultiLevelDPNew(*subToCorner);
 
 	Domain *coarseDomain = new Domain();
 	coarseDomain->solInfo().solvercntl = fetiInfo->coarse_cntl;

@@ -4670,6 +4670,12 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
   sower.addChildToParentData<SommerDataIO<ARB_TYPE> >(ARB_TYPE, ELEMENTS_TYPE, 0, &arbPair, arbToE);
   delete arbToE;
 
+  // HWIBO
+  SommerPair wetPair = std::make_pair(domain->numWet,(domain->wet).yield());
+  Connectivity *wetToE = new Connectivity(&domain->getElementSet(), wetPair.first, wetPair.second);
+  sower.addChildToParentData<SommerDataIO<WET_TYPE> >(WET_TYPE, ELEMENTS_TYPE, 0, &wetPair, wetToE);
+  delete wetToE;
+
   if (claw) {
     // distribute control law data -> have to do that for all 4 categories...
     for (int i = 0 ; i < claw->numSensor ; i++) {

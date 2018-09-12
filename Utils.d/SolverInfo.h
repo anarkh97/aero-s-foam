@@ -338,6 +338,7 @@ struct SolverInfo {
    bool tdenforceFlag;
    int tdenforceMaxItr;
    double tdenforceTolAbs;
+   double tdenforceInitia;
 
    bool lagrangeMult;
    double penalty;
@@ -718,6 +719,7 @@ struct SolverInfo {
                   tdenforceFlag = true;
                   tdenforceMaxItr = 1;
                   tdenforceTolAbs = 1e-10;
+                  tdenforceInitia = 0;
 
                   lagrangeMult = true;
                   penalty = 0;

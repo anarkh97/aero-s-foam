@@ -609,6 +609,7 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
 {
   times->tdenforceTime -= getTime();
   ctc_f.zero();
+  if(t_n_p < domain->solInfo().tdenforceInitia) return;
   if(domain->tdenforceFlag()) {
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaceTopology(decDomain->getNumSub(), decDomain->getAllSubDomains()); // remove deleted elements

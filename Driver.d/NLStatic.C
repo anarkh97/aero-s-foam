@@ -91,9 +91,9 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
   if(elemAdj.empty()) makeElementAdjacencyLists();
   if(time != domain->solInfo().initialTime) newDeletedElements.clear();
 
+  if(matrixTimers) matrixTimers->formTime -= getTime();
   for(int iele = 0; iele < numele; ++iele) {
 
-    if(matrixTimers) matrixTimers->formTime -= getTime();
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
@@ -131,10 +131,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
     // Transform internal force vector to nodal frame
     transformVector(elementForce, iele); 
-    if(matrixTimers) matrixTimers->formTime += getTime();
 
     // Assemble element force into residual vector
-    if(matrixTimers) matrixTimers->assemble -= getTime();
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0)
@@ -145,8 +143,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
           (*reactions)[cDofNum] += elementForce[idof];
       }
     }
-    if(matrixTimers) matrixTimers->assemble += getTime();
   }
+  if(matrixTimers) matrixTimers->formTime += getTime();
 
   // XXX consider adding the element fictitious forces inside the loop
   if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic && !solInfo().quasistatic)

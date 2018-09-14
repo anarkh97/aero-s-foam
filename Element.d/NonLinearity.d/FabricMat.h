@@ -7,15 +7,20 @@ class StructProp;
 
 class FabricMat : public NLMaterial
 {
+   public:
+     enum StrainMeasure { INFINTESIMAL = 0, GREEN_LAGRANGE = 1 };
+
    protected:
      int pxx_map_id, pyy_map_id, sxy_map_id;
      double rho, t, Tref, alpha;
+     enum StrainMeasure strain_measure;
      SS2DTData *pxx_map, *pyy_map;
      MFTTData *sxy_map;
 
    public:
      FabricMat(StructProp *p);
-     FabricMat(double _rho, int _pxx_map_id, int _pyy_map_id, int _sxy_map_id, double _t, double _Tref, double _alpha);
+     FabricMat(double _rho, int _pxx_map_id, int _pyy_map_id, int _sxy_map_id, double _t, double _Tref, double _alpha,
+               StrainMeasure _strain_measure);
 
      int getNumStates() { return 0; }
 

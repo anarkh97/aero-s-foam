@@ -12,13 +12,14 @@ FabricMat::FabricMat(StructProp *p)
   rho = p->rho;
   Tref = p->Ta;
   alpha = p->W;
+  strain_measure = GREEN_LAGRANGE;
 }
 
 FabricMat::FabricMat(double _rho, int _pxx_map_id, int _pyy_map_id, int _sxy_map_id,
-                     double _t, double _Tref, double _alpha)
+                     double _t, double _Tref, double _alpha, StrainMeasure _strain_measure)
 {
   rho = _rho; pxx_map_id = _pxx_map_id; pyy_map_id = _pyy_map_id; sxy_map_id = _sxy_map_id;
-  t = _t; Tref = _Tref; alpha = _alpha; pxx_map = pyy_map = 0; sxy_map = 0;
+  t = _t; Tref = _Tref; alpha = _alpha; strain_measure = _strain_measure; pxx_map = pyy_map = 0; sxy_map = 0;
 }
 
 void
@@ -194,11 +195,15 @@ FabricMat::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
   (*stress)[2] = (sxy_map) ? t*sxy_map->getValAlt(enp[2]) : 0;
 }
 
+extern LinearStrain2D<9> linStrain2D;
 extern GLStrain2D<9> glStrain2D;
 
 GenStrainEvaluator<TwoDTensorTypes<9> > *
 FabricMat::getGenStrainEvaluator()
 {
-  return &glStrain2D;
+  switch(strain_measure) {
+    case INFINTESIMAL: return &linStrain2D;
+    case GREEN_LAGRANGE: return &glStrain2D;
+  }
 }
 

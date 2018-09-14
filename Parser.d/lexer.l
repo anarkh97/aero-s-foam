@@ -1518,6 +1518,8 @@ TRAIL [a-zA-Z]*
 
 "fabricmap"|"FABRICMAP"|"FabricMap"                     { return FABRICMAP; }
 
+"shellfabricmap"|"SHELLFABRICMAP"|"ShellFabricMap"      { return SHELLFABRICMAP; }
+
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
 
 "tule"[a-zA-Z]*|"TULE"[a-zA-Z]*|"Tule"[a-zA-Z]*         { return TULERBUTCHER; }

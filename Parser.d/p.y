@@ -5762,7 +5762,7 @@ FloatList:
 	{ $$.nval = 0; }
 	| FloatList Float
 	{ 
-          if($1.nval == 32) {
+          if($1.nval == 64) {
              fprintf(stderr, "You'd better invent another material model!\n");
 	     exit(-1);
           }

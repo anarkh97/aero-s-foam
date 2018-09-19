@@ -83,12 +83,12 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
   protected:
     int getNumGaussPoints();
     void getGaussPointAndWeight(int i, double *point, double &weight);
+    void getLocalNodalCoords(int, double *);
     GenShapeFunction< TwoDTensorTypes<9> > *getShapeFunction();
     GenStrainEvaluator<TwoDTensorTypes<9> > *getGenStrainEvaluator();
     NLMaterial *getMaterial();
     NLMaterial *getLinearMaterial();
-    void rotateCFrame(CoordSet &cs, double *T);
-    void rotateConstitutiveMatrix2(CoordSet &cs, double C[6][6], double alpha[6]);
+    void rotateCFrame(CoordSet &cs, double *T, double *Tinv);
 
   public:
     NLMembrane(int *nd);
@@ -104,6 +104,7 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     int* nodes(int * = 0);
     void updateStates(Node *nodes, double *states, double *un, double *unp) {}
     void setProp(StructProp *p, bool _myProp = false);
+    void buildFrame(CoordSet &cs);
     void setCompositeData(int, int, double *, double *coefs, double *frame);
     double* setCompositeData2(int, int, double *, double *coefs, CoordSet &cs, double theta);
     void setMaterial(NLMaterial *);

@@ -69,17 +69,22 @@ class GenGaussIntgElement : public MatNLElement
 {
   protected:
     double *tframe;
+    double *tframe_inv;
+    double *eframe;
     std::vector<double> preload;
     virtual int getNumGaussPoints() = 0;
     virtual void getGaussPointAndWeight(int, double *, double &) = 0;
+    virtual void getLocalNodalCoords(int, double *) = 0;
     virtual GenShapeFunction<TensorTypes> *getShapeFunction() = 0;
     virtual GenStrainEvaluator<TensorTypes> *getGenStrainEvaluator() = 0;
     virtual NLMaterial *getMaterial() = 0;
     virtual NLMaterial *getLinearMaterial() = 0;
 
    public:
-    GenGaussIntgElement() : tframe(NULL) {}
-    virtual ~GenGaussIntgElement() { if(tframe) delete [] tframe; }
+    GenGaussIntgElement() : tframe(NULL), tframe_inv(NULL), eframe(NULL) {}
+    virtual ~GenGaussIntgElement() { if(tframe) delete [] tframe;
+                                     if(tframe_inv) delete [] tframe_inv;
+                                     if(eframe) delete [] eframe; }
     void getStiffAndForce(Node *nodes, double *disp,
                           double *state, FullSquareMatrix &kTan,
                           double *force);
@@ -169,9 +174,16 @@ GenGaussIntgElement<TensorTypes>::stiffness(CoordSet& cs, double *k, int)
 
     strainEvaluator->getEBandDB(e, B, DB, gradU, dgradUdqk);
 
+    if(tframe) transformEtoC(e, tframe);
+
     material->integrate(&s, &D, e, e, 0, 0, 0, 0);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j];
+
+    if(tframe) {
+      transformCtoE(s, tframe_inv);
+      transformCtoE(D, tframe, tframe_inv);
+    }
 
     temp1 = dblContractTransp(D,B);
     temp2 =   B||temp1;
@@ -394,49 +406,71 @@ GaussIntgElement::updateStates(Node *nodes, double *state, double *un,double *un
 */
 
 inline void
-transformGlobalToLocal(Stress2D &enp, double *tframe)
+transformEtoC(Stress2D &enp, double *tframe)
 {
+  // transform stress or strain from element frame (EFRAME) to material frame (CFRAME)
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> T(tframe);
-  Eigen::Matrix3d Enp;
-  Enp << enp[0], enp[2], 0,
-         enp[2], enp[1], 0,
-              0,      0, 0;
-  Enp = T*Enp*T.transpose();
-  enp[0] = Enp(0,0);
-  enp[1] = Enp(1,1);
-  enp[2] = Enp(0,1);
+  Eigen::Vector3d v;
+  v << enp[0], enp[1], enp[2];
+  v = T*v;
+  enp[0] = v[0];
+  enp[1] = v[1];
+  enp[2] = v[2];
 #else
-  std::cerr << " *** ERROR: transformGlobalToLocal in GaussIntgElem.h requires AERO-S to be configured with the Eigen library. Exiting...\n";
+  std::cerr << " *** ERROR: transformEtoC in GaussIntgElem.h requires AERO-S to be configured with the Eigen library. Exiting...\n";
   exit(-1);
 #endif
 }
 
 inline void
-transformLocalToGlobal(Stress2D &s, double *tframe)
+transformCtoE(Stress2D &s, double *tframe_inv)
 {
+  // transform stress or strain from material frame (CFRAME) to element frame (EFRAME)
 #ifdef USE_EIGEN3
-  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> T(tframe);
-  Eigen::Matrix3d S;
-  S << s[0], s[2], 0,
-       s[2], s[1], 0,
-          0,    0, 0;
-  S = T.transpose()*S*T;
-  s[0] = S(0,0);
-  s[1] = S(1,1);
-  s[2] = S(0,1);
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> Tinv(tframe_inv);
+  Eigen::Vector3d v;
+  v << s[0], s[1], s[2];
+  v = Tinv*v;
+  s[0] = v[0];
+  s[1] = v[1];
+  s[2] = v[2];
 #else
-  std::cerr << " *** ERROR: transformLocalToGlobal in GaussIntgElem.h requires AERO-S to be configured with the Eigen library. Exiting...\n";
+  std::cerr << " *** ERROR: transformCtoE in GaussIntgElem.h requires AERO-S to be configured with the Eigen library. Exiting...\n";
   exit(-1);
 #endif
 }
 
 inline void
-transformLocalToGlobal(SymTensor<Stress2D,2> &Dnp, double *tframe)
+transformCtoE(SymTensor<Stress2D,2> &Dnp, double *tframe, double *tframe_inv)
 {
-  for(int i = 0; i < 3; ++i) {
-    transformLocalToGlobal(Dnp[i], tframe);
-  }
+  // transform constitutive tangent from material frame (CFRAME) to element frame (EFRAME)
+  Eigen::Matrix3d D;
+  D << Dnp[0][0], Dnp[0][1], 2*Dnp[0][2],
+       Dnp[1][0], Dnp[1][1], 2*Dnp[1][2],
+       Dnp[2][0], Dnp[2][1], 2*Dnp[2][2];
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>> T(tframe), Tinv(tframe_inv);
+  D = Tinv*D*T;
+  D.col(2) /= 2.;
+  for(int i = 0; i < 3; ++i) for(int j = 0; j < 3; ++j) Dnp[i][j] = D(i,j);
+}
+
+inline void
+transformEtoG(Stress2D &s, double *eframe, double *data)
+{
+  // transform stress or strain from element frame (EFRAME) to global frame
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix3d> E(eframe);
+  Eigen::Matrix3d Se;
+  Se << s[0], s[2], 0,
+        s[2], s[1], 0,
+           0,    0, 0;
+  Eigen::Map< Eigen::Matrix<double,3,3,Eigen::RowMajor> > Sg(data, 3, 3);
+  Sg = E*Se*E.transpose();
+#else
+  std::cerr << " *** ERROR: transformEtoG in GaussIntgElem.h requires AERO-S to be configured with the Eigen library. Exiting...\n";
+  exit(-1);
+#endif
 }
 
 template <class TensorType>
@@ -505,19 +539,18 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     // compute temperature at integration point
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
-    //if(tframe) transformGlobalToLocal(en, tframe);
-    if(tframe) transformGlobalToLocal(enp, tframe);
+    //if(tframe) transformEtoC(en, tframe);
+    if(tframe) transformEtoC(enp, tframe);
 
     material->integrate(&s, &Dnp, en, enp,
                         staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0, dt);
 
-    if(tframe){
-      transformLocalToGlobal(s, tframe);
-      transformLocalToGlobal(Dnp, tframe);
-    }
-
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
+    if(tframe) {
+      transformCtoE(s, tframe_inv);
+      transformCtoE(Dnp, tframe, tframe_inv);
+    }
 
     temp0 = s || Bnp;
     temp0 = (weight*jacnp)*temp0;
@@ -596,16 +629,15 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     // compute temperature at integration point
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
-    //if(tframe) transformGlobalToLocal(en, tframe);
-    if(tframe) transformGlobalToLocal(enp, tframe);
+    //if(tframe) transformEtoC(en, tframe);
+    if(tframe) transformEtoC(enp, tframe);
 
     material->integrate(&s, en, enp,
                         staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0, dt);
 
-    if(tframe) transformLocalToGlobal(s, tframe);
-
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
+    if(tframe) transformCtoE(s, tframe_inv);
 
     temp0 = s || Bnp;
     temp0 = (weight*jacnp)*temp0;
@@ -684,10 +716,10 @@ GenGaussIntgElement<TensorType>::getStrainTens(Node *nodes, double *dispnp, doub
     strainEvaluator->getE(enp, gradUnp);
 
     if(avgnum == -1) {
-      copyTens(&enp, result[i]);
+      transformEtoG(enp, eframe, result[i]);
     }
     else {
-      copyTens(&enp, gpstrain[i]);
+      transformEtoG(enp, eframe, gpstrain[i]);
     }
   }
 
@@ -740,6 +772,8 @@ GenGaussIntgElement<TensorType>::getVonMisesStrain(Node *nodes, double *dispnp, 
     shapeF->getGradU(gradUnp, nodes, point, dispVecnp);
 
     strainEvaluator->getE(enp, gradUnp);
+
+    // note: it is not necessary to transform the strain from element to global frame because the von Mises strain is frame invariant
 
 #ifdef USE_EIGEN3
     Eigen::Matrix3d M;
@@ -828,23 +862,22 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
     // compute temperature at integration point
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
-    //if(tframe) transformGlobalToLocal(en, tframe);
-    if(tframe) transformGlobalToLocal(enp, tframe);
+    //if(tframe) transformEtoC(en, tframe);
+    if(tframe) transformEtoC(enp, tframe);
 
     material->integrate(&s, &Dnp, en, enp,
-                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0); // XXX note should call getStress followed by transform
-                                                                                 // to ensure that outputted measure is consistent (PK2)
-    if(tframe) transformLocalToGlobal(s, tframe);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
+    if(tframe) transformCtoE(s, tframe_inv);
 
     if(avgnum == -1) {
-      copyTens(&s, result[i]);
+      transformEtoG(s, eframe, result[i]);
       if(t > 0) for(int j=0; j<9; ++j) result[i][j] /= t;
     }
     else {
-      copyTens(&s, gpstress[i]);
+      transformEtoG(s, eframe, gpstress[i]);
       if(t > 0) for(int j=0; j<9; ++j) gpstress[i][j] /= t;
     }
   }
@@ -926,16 +959,16 @@ GenGaussIntgElement<TensorType>::getVonMisesStress(Node *nodes, double *dispn, d
     // compute temperature at integration point
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
-    //if(tframe) transformGlobalToLocal(en, tframe);
-    if(tframe) transformGlobalToLocal(enp, tframe);
+    //if(tframe) transformEtoC(en, tframe);
+    if(tframe) transformEtoC(enp, tframe);
 
     material->integrate(&s, &Dnp, en, enp,
-                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0); // XXX note should call getStress followed by transform
-                                                                                 // to ensure that outputted measure is consistent (PK2)
-    if(tframe) transformLocalToGlobal(s, tframe);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, 0);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
+
+    // note: it is not necessary to transform the stress from material to global frame because the von Mises stress is frame invariant
 
 #ifdef USE_EIGEN3
     Eigen::Matrix3d M;

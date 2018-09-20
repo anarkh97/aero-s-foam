@@ -1,5 +1,7 @@
 #include <cstdio>
 #include <Math.d/DBSparseMatrix.C>
+#include "DBSparseMatrix.h"
+
 
 template<>
 void

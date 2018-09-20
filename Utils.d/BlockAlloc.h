@@ -4,20 +4,21 @@
 #include <cstdlib>
 #include <cstddef>
 #include <new>
+#include <vector>
+#include <memory>
 #include <sys/types.h>
 #include <Utils.d/resize_array.h>
 
 class BlockAlloc {
-    char *block;
-    int index;
-    int blLen;
-    ResizeArray<char *> allBlocks;
-    int nblock;
-  public:
-    BlockAlloc(int l = 4096, int initnb = 16) :
-        allBlocks(0, initnb) { blLen = l; block = (char *)0; nblock = 0;}
-    ~BlockAlloc();
-    void *getMem(size_t nb);
+	int index = 0;
+	int blLen;
+	std::vector<std::unique_ptr<char>> allBlocks;
+public:
+	BlockAlloc(int l = 4096, int initnb = 16) : blLen(l)
+	{ }
+	BlockAlloc(BlockAlloc &&) = default;
+	~BlockAlloc() = default;
+	void *getMem(size_t nb);
 };
 
 void * operator new(size_t nbyte, BlockAlloc &block);
@@ -54,15 +55,15 @@ class block_allocator
   // NB: __n is permitted to be 0.  The C++ standard says nothing
   // about what the return value is when __n == 0.
   pointer allocate(size_type n, const void* = 0)
-    {
-      if(n > this->max_size())
+	{
+	  if(n > this->max_size())
 	{ throw std::bad_alloc(); }
-      
-      pointer ret = static_cast<T*>(global_ba.getMem(n*sizeof(T)));
-      if (!ret)
+
+	  pointer ret = static_cast<T*>(global_ba.getMem(n*sizeof(T)));
+	  if (!ret)
 	throw std::bad_alloc();
-      return ret;
-    }
+	  return ret;
+	}
   
   // do nothing
   void deallocate(pointer p, size_type) {}

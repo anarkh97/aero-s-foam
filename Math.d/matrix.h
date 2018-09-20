@@ -18,14 +18,16 @@ template <class Scalar> class GenFullSquareMatrix;
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
 typedef GenFullSquareMatrix<DComplex> FullSquareMatrixC;
 
+// TODO Separate the storage aspect and the ?GECP factorization aspects.
+// TODO Merge storage with storage of GenFullSquareMatrix
 template<class Scalar>
 class GenFullM {
 protected:
     int nrow;	// number of rows
     int ncolumn; // number of columns
     Scalar *v;   // pointer to matrix data
-    int *iprow;
-    int *ipcol;
+    int *iprow; //!< Row pivoting indices from ?gecp routine
+    int *ipcol; //!< Column pivoting indices from ?gecp routine
     int ndef;
 
     void subAddProd(int i, int nThreads, GenFullM<Scalar> *A, GenFullM<Scalar> *B,

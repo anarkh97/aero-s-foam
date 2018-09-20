@@ -277,7 +277,7 @@ class Node {
 public:
 	// Constructors
 	Node() {}
-	Node(double *xyz, int _cp=0, int _cd=0) { x = xyz[0]; y = xyz[1]; z = xyz[2]; cp = _cp, cd = _cd; }
+	Node(const double *xyz, int _cp=0, int _cd=0) { x = xyz[0]; y = xyz[1]; z = xyz[2]; cp = _cp, cd = _cd; }
 	Node(const Node &node) = default;
 	~Node() {};
 	double distance2(const Node& node) const
@@ -306,13 +306,14 @@ public:
 class CoordSet {
 	int nmax;
 	int last;
-	Node **nodes;
+	std::vector<Node *> nodes;
 	BlockAlloc ba;
 
 public:
 	// Constructors
 	CoordSet(int = 256);
-	CoordSet(const CoordSet&);
+	CoordSet(const CoordSet&) = delete;
+	CoordSet(CoordSet &&) = default;
 
 	// Destructor
 	~CoordSet();
@@ -329,7 +330,7 @@ public:
 	 * @param cp Frame index.
 	 * @param cd Frame index
 	 */
-	void  nodeadd(int n, double*xyz, int cp=0, int cd=0);
+	void  nodeadd(int n, const double *xyz, int cp = 0, int cd = 0);
 	/// \brief Inset a new node.
 	void  nodeadd(int n, Node &node);
 	Node &getNode(int n);

@@ -48,7 +48,7 @@ int callMetis(T *n, T *xadj, T *adj, T *weights, idx_t *options, T *perm,
 }
 
 template <typename T>
-int callMetis(T *n, T *xadj, T *adj, nullptr_t weights, idx_t *options, T *perm,
+int callMetis(T *n, T *xadj, T *adj, std::nullptr_t weights, idx_t *options, T *perm,
               T *iperm)
 {
     idx_t m = *n;

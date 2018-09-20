@@ -44,6 +44,7 @@ public:
 	void add(const FullSquareMatrixC &, const int *dofs) override;
 	void addImaginary(const FullSquareMatrix &, const int *dofs) override;
 	void add(const GenFullM<Scalar> &knd, int fRow, int fCol) override;
+	void add(const GenFullM<Scalar> &knd, gsl::span<const int> dofs);
 	void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
 	void addDiscreteMass(int dof, Scalar diMass) override;
 	void add(int, int, Scalar) override;

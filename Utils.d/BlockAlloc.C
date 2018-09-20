@@ -7,24 +7,16 @@ void *
 BlockAlloc::getMem(size_t nbyte)
 {
   if(int(nbyte) > blLen) return new char[nbyte];
-  if(block == 0 || (index+int(nbyte)) > blLen) {
-     block = new char[blLen];
-     allBlocks[nblock++] = block;
+  if(allBlocks.size() == 0 || (index+int(nbyte)) > blLen) {
+     allBlocks.push_back(std::unique_ptr<char>(new char[blLen]) );
      index = 0;
   }
   if(nbyte & 0x7) {
     nbyte = (nbyte+8)-(nbyte & 0x7);
   }
-  void *p = block+index;
+  void *p = allBlocks.back().get()+index;
   index += nbyte;
   return p;
-}
-
-BlockAlloc::~BlockAlloc()
-{
- int iBlock;
- for(iBlock = 0; iBlock < nblock; ++iBlock)
-   delete [] allBlocks[iBlock]; 
 }
 
 void * operator new(size_t nbyte, BlockAlloc &block)

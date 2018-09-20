@@ -52,6 +52,7 @@ using vec_const_int = std::vector<const int>;
 /** \brief Pure Interface of what the notion of Subdomain provides for FETI solver. */
 class FetiBaseSub {
 public:
+	virtual ~FetiBaseSub() = default;
 	/// \brief Obtain the solver settings. TODO Get rid of this. Why should the subdomain data know all the solver details?
 	virtual const FetiInfo &getFetiInfo() const = 0;
 	/** \brief Obtain the size of the interface of this subdomain. */
@@ -114,7 +115,7 @@ public:
 	void computeInternalMasterFlag();
 	const std::vector<bool> &getMasterFlag() const { return masterFlag; }
 
-	virtual Connectivity *getNodeToNode() const = 0;
+	virtual const Connectivity *getNodeToNode() const = 0;
 
 	// TODO Remove this from here. Only temporary to help refactor of CornerMaker into CornerSelector
 	virtual bool onWetInterface(int iNode) const { return false; }

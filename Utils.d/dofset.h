@@ -62,7 +62,7 @@ public:
 	 * @param dofs DOFs whose presence should be checked.
 	 * @return Whether any of the dofs are present.
 	 */
-	bool contains(int dofs) {
+	bool contains(int dofs) const {
 		return (flags & dofs) != 0;
 	}
 
@@ -74,7 +74,7 @@ public:
       else return true;
     }
 */
-	bool containsAllDisp(int dim) {
+	bool containsAllDisp(int dim) const {
 		switch (dim) {
 			case 1 :
 				return contains(Xdisp);
@@ -92,7 +92,7 @@ public:
 		}
 	}
 
-	bool containsAnyRot() {
+	bool containsAnyRot() const {
 		return contains(Xrot | Yrot | Zrot);
 	}
 
@@ -117,8 +117,8 @@ public:
 	DofSet &operator&=(const DofSet &d) {
 		flags &= d.flags;
 		return *this;
-	} //HB
-	void print(char *msg = 0); //HB
+	}
+	void print(char *msg = 0) const;
 };
 
 class Elemset;

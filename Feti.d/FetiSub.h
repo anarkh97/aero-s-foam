@@ -192,8 +192,8 @@ public:
 	DofSet *edgeDofs;      // JAT 112113
 
 protected:
-	int subNumber;
-	int localSubNumber; // relevant when running in distributed
+	gl_sub_idx subNumber;
+	lc_sub_idx localSubNumber; // relevant when running in distributed
 
 	/// \brief Vector of global indices for local nodes.
 	vec_const_int glNums;

@@ -34,7 +34,7 @@ int DofSet::nonL_dof = (1 << 0) + (1 << 1) + (1 << 2) + (1 << 3) + (1 << 4) + (1
 DofSet DofSet::nullDofset(-1);
 
 void
-DofSet::print(char* msg)
+DofSet::print(char* msg) const
 {
   if(msg) std::cerr<<" --- DofSet "<<msg<<" contains "<<count()<<" dofs: ";
   else    std::cerr<<" --- DofSet contains "<<count()<<" dofs: ";

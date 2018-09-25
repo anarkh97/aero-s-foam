@@ -53,10 +53,11 @@ static double checkArea(int np, int *pt, double pxyz[][3], int dim =3)
 }
 
 
-FetiSubCornerHandler::FetiSubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes, Connectivity &_nToN,
-                                           DofSetArray &_dsa,
-                                           Connectivity &_sharedNodes, const std::vector<int> &_neighbSubs,
-                                           ConstrainedDSA *c_dsa, FetiBaseSub *_subPre)
+FetiSubCornerHandler::FetiSubCornerHandler(gl_sub_idx _glSubNum, int _nnodes, const CoordSet &_nodes,
+                                           const Connectivity &_nToN,
+                                           const DofSetArray &_dsa,
+                                           const Connectivity &_sharedNodes, const std::vector<gl_sub_idx> &_neighbSubs,
+                                           const ConstrainedDSA *c_dsa, FetiBaseSub *_subPre)
 		:
 		nnodes(_nnodes),
 		isCorner(_nnodes, false),
@@ -103,6 +104,21 @@ FetiSubCornerHandler::FetiSubCornerHandler(int _glSubNum, int _nnodes, CoordSet 
 #endif
 }
 
+
+FetiSubCornerHandler::FetiSubCornerHandler(FetiBaseSub *sub) :
+	FetiSubCornerHandler(sub->subNum(),
+	                     sub->cornerDofs.size(),
+	                     sub->getNodeSet(),
+	                     *sub->getNodeToNode(),
+	                     *sub->getDsa(),
+	                     *sub->getSComm()->sharedNodes,
+	                     sub->getSComm()->subNums,
+	                     sub->get_c_dsa(),
+	                     sub)
+{
+
+}
+
 FetiSubCornerHandler::~FetiSubCornerHandler()
 {
 	if(deg) delete [] deg;
@@ -128,7 +144,8 @@ FetiSubCornerHandler::markSafeNodes(FSCommPattern<int> *cpat)
 	for(int iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
 		FSSubRecInfo<int> ri = cpat->recData(neighbSubs[iNeighb], glSubNum);
 		for(int iNode = 0; iNode < sharedNodes.num(iNeighb); ++iNode) {
-			if(ri.data[iNode] == 0) glSafe[sharedNodes[iNeighb][iNode]] = false; // node is unsafe in neighboring subdomain
+			if(ri.data[iNode] == 0)
+				glSafe[sharedNodes[iNeighb][iNode]] = false; // node is unsafe in neighboring subdomain
 		}
 	}
 

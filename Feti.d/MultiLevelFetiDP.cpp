@@ -18,6 +18,7 @@
 #include <Driver.d/DecDomain.h>
 #include <FetiLib/Subdomain.h>
 #include <Types.h>
+#include "CornerSelector.h"
 
 extern double t5;
 
@@ -37,8 +38,11 @@ public:
 		: fetiInfo(std::move(fetiInfo)),
 		  coordinates(std::move(coordinates)),
 		  dsa(std::move(dsa)),
+		  cdsa(this->dsa, 0, (const BCond *)nullptr),
 		  sysMat(std::move(sysMat)),
-		  nodeToNode(nodeToNode){}
+		  nodeToNode(nodeToNode){
+
+	}
 
 	const FetiInfo &getFetiInfo() const override { return fetiInfo; }
 
@@ -52,7 +56,7 @@ public:
 	const Connectivity *getNodeToNode() const override { return &nodeToNode; }
 
 	const DofSetArray * getDsa() const override { return &dsa; }; //!< Why do we need this?
-	const ConstrainedDSA * get_c_dsa() const override { return nullptr; /*return &dsa;*/ };
+	const ConstrainedDSA * get_c_dsa() const override { return &cdsa; /*return &dsa;*/ };
 	void computeWaveNumbers() override {};
 	void averageMatProps() override {};
 
@@ -60,6 +64,7 @@ private:
 	FetiInfo fetiInfo;
 	CoordSet coordinates;
 	DofSetArray dsa;
+	ConstrainedDSA cdsa;
 	GenDBSparseMatrix<Scalar> sysMat;
 	Connectivity nodeToNode;
 };
@@ -68,6 +73,10 @@ private:
 
 namespace { // Anonymous workspace
 
+/** \brief Representation of the basic data of a subdomain as a super-element.
+ *
+ * @tparam Scalar The scalar type for the element matrix (double or complex).
+ */
 template<typename Scalar>
 struct SuperElement {
 	// We start with global numbers but it would be good to have
@@ -77,8 +86,12 @@ struct SuperElement {
 	GenAssembledFullM<Scalar> *Kel;
 };
 
-}
+} // End anonymous workspace.
 
+/** \brief Helper class for building connectivities  of SuperElements to local nodes (local to the MPI process).
+ *
+ * @tparam S The scalar type for the element matrix (double or complex).
+ */
 template <typename S>
 class SetAccess<SuperElement<S>> {
 public:
@@ -88,8 +101,8 @@ public:
 	                                                          glToLoc(glToLoc) {}
 
 	auto size() const { return elemIdx.size(); }
-	auto numNodes(int i) const { return ele(i).nodes.size(); }
-	void nodes(int i, int *nd) const {
+	auto numNodes(lc_sub_idx i) const { return ele(i).nodes.size(); }
+	void nodes(lc_sub_idx i, int *nd) const {
 		for(int j = 0; j < numNodes(i); ++j) {
 			const auto &el = ele(i);
 			auto n = el.nodes[j];
@@ -101,7 +114,7 @@ private:
 	const std::vector<SuperElement<S>> &elems;
 	const std::map<gl_node_idx, lc_node_idx> glToLoc;
 
-	const SuperElement<S> &ele(int i) const { return elems[elemIdx[i]]; }
+	const SuperElement<S> &ele(lc_sub_idx i) const { return elems[elemIdx[i]]; }
 };
 
 namespace {
@@ -242,7 +255,7 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
 		int nn = static_cast<int>(neighbors.size());
 		auto sComm = std::make_unique<SComm>(nn, std::move(neighbors), std::vector<lc_sub_idx>{},
 		                         std::make_unique<Connectivity>(std::move(subToLocNodes)));
-		// Now form the matrix
+		// Form the meta subdomain's matrix
 		auto dsaAndK = formMatrix(superElems, glToLocNodes, metaDec[glSub], glSubToLoc);
 
 		// Form the vector of nodes.
@@ -266,6 +279,7 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
 			                                            std::move(std::get<2>(dsaAndK))
 			)
 		);
+		superSubs.back()->setSComm(sComm.release());
 	}
 
 	return superSubs;
@@ -324,6 +338,19 @@ std::vector<gl_num_t> subSuperNodes(const FetiBaseSub &sub,
 		}
 	}
 	return nodes;
+}
+
+template <typename T>
+void
+selectCorners(std::vector<std::unique_ptr<T>> &subs) {
+	vector<unique_ptr<FetiSubCornerHandler>> cornerHandlers;
+	for(auto &sub: subs) {
+		auto &dsa = *sub->getDsa();
+		auto &c_dsa = *sub->get_c_dsa();
+		cornerHandlers.emplace_back(
+			new FetiSubCornerHandler(sub.get())
+			);
+	}
 }
 
 /** \brief Build an upper level FetiDP Solver.
@@ -440,6 +467,8 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 	<< cpuToCoarse.numConnect() << " targets." << std::endl;
 	auto subs = formSubdomains(cpuToCoarse[this->myCPU], *decCoarse,
 	                           superElements, subToAllCoarseNodes, nodes, this->glSubToLoc);
+
+	selectCorners(subs);
 
 //	std::vector<FetiBaseSub *> baseSubs(decCoarseDomain->getAllSubDomains(),
 //	                                    decCoarseDomain->getAllSubDomains()+decCoarseDomain->getNumSub());

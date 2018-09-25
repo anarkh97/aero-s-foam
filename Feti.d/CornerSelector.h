@@ -47,9 +47,23 @@ class FetiSubCornerHandler
 {
 
 public:
-	FetiSubCornerHandler(int sub, int nn, CoordSet &n, Connectivity &nTn, DofSetArray &d, Connectivity &sh,
-	                     const std::vector<int> &nsb,
-	                     ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
+	/**
+	 *
+	 * @param sub Global number of this subdomain.
+	 * @param nn
+	 * @param n Coordinates of the subdomain's nodes.
+	 * @param nTn Node to node connectivity.
+	 * @param d Unconstrained set of DOFs for the subdomain.
+	 * @param sh Shared nodes
+	 * @param nsb Neighboring subdomains
+	 * @param c_dsa
+	 * @param _subPre
+	 */
+	FetiSubCornerHandler(gl_sub_idx sub, int nn, const CoordSet &n, const Connectivity &nTn, const DofSetArray &d,
+	                     const Connectivity &sh,
+	                     const std::vector<gl_sub_idx> &nsb,
+	                     const ConstrainedDSA *c_dsa, FetiBaseSub *_subPre);
+	FetiSubCornerHandler(FetiBaseSub *sub);
 	~FetiSubCornerHandler();
 	void markMultiDegNodes();
 	void dispatchSafeNodes(FSCommPattern<int> *);
@@ -85,11 +99,11 @@ protected:
 	std::vector<bool> isSafe;
 	std::vector<bool> glSafe;
 	int nNeighb;
-	Connectivity &sharedNodes;
-	Connectivity &nToN;
+	const Connectivity &sharedNodes;
+	const Connectivity &nToN;
 	const std::vector<int> &neighbSubs;
-	CoordSet &nodes;
-	DofSetArray &dsa;
+	const CoordSet &nodes;
+	const DofSetArray &dsa;
 	std::vector<bool> isRotMidSideNode;
 	int dim;
 	int dims[4];

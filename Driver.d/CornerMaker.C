@@ -1,7 +1,7 @@
 #include <Driver.d/CornerMaker.h>
 #include <Element.d/Element.h>
 
-SubCornerHandler::SubCornerHandler(int sub, int nn, CoordSet &n, Elemset &eles, Connectivity &nTn, DofSetArray &d,
+SubCornerHandler::SubCornerHandler(gl_sub_idx sub, int nn, CoordSet &n, Elemset &eles, Connectivity &nTn, DofSetArray &d,
                                    Connectivity &sh, const std::vector<lc_node_idx> &nsb, ConstrainedDSA *c_dsa,
                                    FetiBaseSub *_subPre)
 		: FetiSubCornerHandler(sub, nn, n, nTn, d, sh, nsb, c_dsa,

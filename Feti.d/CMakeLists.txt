@@ -22,7 +22,15 @@ ADD_LIBRARY(Feti
         CCtSolver.d/GlobalCCt.C
         CCtSolver.d/SuperBlockCCt.h
         CCtSolver.d/SuperBlockCCt.C
-        FetiSub.h FETISolver.cpp FETISolver.h FetiSub.cpp Operators.cpp Operators.h FetiBaseSub.C FetiBaseClass.cpp FetiBaseClass.h CornerSelector.cpp CornerSelector.h MultiLevelFetiDP.cpp DecomposedSystem.cpp DecomposedSystem.h)
+        FetiSub.h
+		FETISolver.cpp FETISolver.h
+		FetiSub.cpp
+		Operators.cpp Operators.h
+		FetiBaseSub.C
+		FetiBaseClass.cpp FetiBaseClass.h
+		CornerSelector.cpp CornerSelector.h
+		MultiLevelFetiDP.cpp
+		DecomposedSystem.cpp DecomposedSystem.h)
 
 TARGET_LINK_LIBRARIES(Feti Eigen3::Eigen)
 

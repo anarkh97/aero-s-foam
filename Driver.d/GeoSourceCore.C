@@ -45,6 +45,8 @@ BCond null_bcond;
 CoefData null_coef;
 OutputInfo emptyInfo;
 extern ModeData modeData;
+extern bool callDec;
+extern bool exitAfterDec;
 extern bool estFlag;
 extern bool weightOutFlag;
 extern bool trivialFlag;
@@ -1256,7 +1258,7 @@ void GeoSource::setUpData(int topFlag)
     else {
       SPropContainer::iterator it = sProps.find(attrib_i.attr);
       if(it == sProps.end()) {
-        if(topFlag != 2 && topFlag != 7) 
+        if(topFlag != 2 && topFlag != 7 && !(callDec && exitAfterDec)) 
           filePrint(stderr, " *** WARNING: The material for element %d does not exist\n", attrib_i.nele+1);
       }
       else {

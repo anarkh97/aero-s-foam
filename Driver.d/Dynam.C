@@ -966,7 +966,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       filePrint(stderr, " *** ERROR: Requested AERO Algorithm is not available with implicit time-integrator. Aborting...\n");
       exit(-1);
     }
-    if(sinfo.aeroFlag != 20 && sinfo.newmarkBeta == 0) {
+    if(!(sinfo.aeroFlag == 20 || sinfo.aeroFlag == 1) && sinfo.newmarkBeta == 0) {
       filePrint(stderr, " *** ERROR: Requested AERO Algorithm is not available with explicit time-integrator. Aborting...\n");
       exit(-1);
     }
@@ -1114,7 +1114,7 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       filePrint(stderr, " *** ERROR: Requested AERO Algorithm is not available with implicit time-integrator. Aborting...\n");
       exit(-1);
     }
-    if(sinfo.aeroFlag != 20 && sinfo.newmarkBeta == 0) {
+    if(!(sinfo.aeroFlag == 20 || sinfo.aeroFlag == 1) && sinfo.newmarkBeta == 0) {
       filePrint(stderr, " *** ERROR: Requested AERO Algorithm is not available with explicit time-integrator. Aborting...\n");
       exit(-1);
     }

@@ -113,6 +113,8 @@ ThreadManager *threadManager = 0;
 extern int yyparse(void);
 extern FILE* yyin;
 
+bool callDec=false;
+bool exitAfterDec=false;
 bool estFlag=false;
 bool weightOutFlag=false;
 bool nosa=false;
@@ -271,8 +273,6 @@ int main(int argc, char** argv)
  int numClusters = 1;
  int numCpus = 1;
 
- bool callDec = false;
- bool exitAfterDec = false;
  bool callSower = false;
  bool exitAfterSower = false;
  // Process command line arguments

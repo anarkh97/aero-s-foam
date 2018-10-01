@@ -199,7 +199,7 @@ PlaneStressMat<BaseMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, 
   Czm << tm3d[5][0], tm3d[5][3], tm3d[5][1],
          tm3d[2][0], tm3d[2][3], tm3d[2][1],
          tm3d[4][0], tm3d[4][3], tm3d[4][1];
-  Eigen::Matrix3d Cpsc = Cmm - Cmz*Czz.inverse()*Czm;
+  Eigen::Matrix3d Cpsc = Cmm - Cmz*Czz.fullPivLu().solve(Czm);
   for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) (*tm)[i][j] = t*Cpsc(i,j);
 
   if(statenp) Eigen::Map<Eigen::Vector3d>(statenp+BaseMaterial::getNumStates()) = Ez;

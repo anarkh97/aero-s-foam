@@ -190,6 +190,7 @@ class GenDecDomain
   void makeMpcToMpc();
   void makeGlobalMpcToMpc(Connectivity *procMpcToMpc);
   void makeMpcToSub();
+  Connectivity * makeFsiToSub();
   void buildFFP(GenDistrVector<Scalar> &u, FILE *fffp, bool direction);
   void makeCornerHandler(int iSub, SubCornerHandler **cornerHandler);
   void setLocalCorners(int iSub, SubCornerHandler **cornerHandler);

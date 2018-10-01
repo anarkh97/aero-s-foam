@@ -1498,17 +1498,6 @@ GenSubDomain<Scalar>::constructKcw()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::addSingleFsi(LMPCons *localFsi)
-{
-#ifndef SALINAS
-  int nEle = packedEset.last();
-  packedEset.fsielemadd(nEle, localFsi);
-  numele = packedEset.last();
-#endif
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::extractInterfRBMs(int numRBM, Scalar *locRBMs, Scalar *locInterfRBMs)
 {
   int iDof, iRBM;

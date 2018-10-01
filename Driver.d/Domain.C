@@ -3595,6 +3595,27 @@ Domain::getFrequencyOrWavenumber()
 }
 
 void
+Domain::computeAverageProps(int &structure_element_count, int &fluid_element_count, double &global_average_E,
+                            double &global_average_nu, double &global_average_rhof)
+{
+  int nEle = packedEset.last();
+  for(int i = 0; i < nEle; ++i) {
+    Element *ele = packedEset[i];
+    StructProp *prop = ele->getProperty();
+    if(prop != NULL && !ele->isConstraintElement()) {
+      if(! dynamic_cast<HelmElement *>(ele)) { // not a fluid element
+        global_average_E += prop->E;
+        global_average_nu += prop->nu;
+        structure_element_count++;
+      } else {
+        global_average_rhof += prop->rho;
+        fluid_element_count++;
+      }
+    }
+  }
+}
+
+void
 Domain::computeCoupledScaleFactors()
 {
   // use global average properties to compute Lame constants & coupled scaling factor
@@ -3774,6 +3795,8 @@ void Domain::computeMatchingWetInterfaceLMPC() {
 
 // double *marray = (double *) alloca(sizeof(double)*maxElNodes*maxElNodes*3);
 
+ BaseSub *subCast = dynamic_cast<BaseSub*>(this);
+
  int iNode = 0;
  for (iNode=0; iNode<nodeToWetElem->csize(); iNode++) {
    //fprintf(stderr," ... iNode = %d, nodeToWetElem->num(iNode) is %d ...\n", iNode, nodeToWetElem->num(iNode));
@@ -3782,8 +3805,13 @@ void Domain::computeMatchingWetInterfaceLMPC() {
      int iEle;
      for(iEle = 0; iEle < nodeToWetElem->num(iNode); iEle++) {
        int jEle = (*nodeToWetElem)[iNode][iEle];
-//       wet[jEle]->wetInterfaceMatrix(geoSource->GetNodes(),marray);
-       wet[jEle]->wetInterfaceLMPC(geoSource->GetNodes(),wetFSI,iNode);
+       if(subCast) {
+         wet[jEle]->wetInterfaceLMPC(nodes,wetFSI,iNode);
+       }
+       else {
+         // wet[jEle]->wetInterfaceMatrix(geoSource->GetNodes(),marray);
+         wet[jEle]->wetInterfaceLMPC(geoSource->GetNodes(),wetFSI,iNode);
+       }
      }
      fsi[numFSI++] = wetFSI;
      //wetFSI->print();

@@ -123,6 +123,8 @@ class BaseSub : virtual public Domain
   int *localToGlobalMPC_primal;
   GlobalToLocalMap globalToLocalMPC_primal;
 
+  int *localToGlobalFSI;  // local to global FSI numbering
+
   int *cornerMap;
   int *cornerEqNums; // unique equation numbers for subdomain corner dofs
   int *localCornerList;
@@ -201,6 +203,8 @@ class BaseSub : virtual public Domain
   void putLocalToGlobalMPC(int *ptr, int *tg) { for(int i=0; i<numMPC; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC[i]; }
   void putNumMPC_primal(int *ptr) { ptr[subNumber] = numMPC_primal; }
   void putLocalToGlobalMPC_primal(int *ptr, int *tg) { for(int i=0; i<numMPC_primal; ++i) tg[ptr[subNumber]+i] = localToGlobalMPC_primal[i]; }
+  void putNumFSI(int *ptr) { ptr[subNumber] = numFSI; }
+  void putLocalToGlobalFSI(int *ptr, int *tg) { for(int i=0; i<numFSI; ++i) tg[ptr[subNumber]+i] = localToGlobalFSI[i]; }
 
   // Multiple Point Constraint (MPC) functions
   int getNumMpc() const       { return numMPC; }
@@ -260,6 +264,8 @@ class BaseSub : virtual public Domain
   int *mpclast;
 
  public:
+  void addFsiElements();
+  void addSingleFsi(LMPCons *localFsi);
   void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
   void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
   void setGlCrnGroup(int *_gcg) { glCrnGroup = _gcg; }
@@ -362,6 +368,7 @@ class BaseSub : virtual public Domain
   void setDnb(std::list<SommerElement *> *_list);
   void setScat(std::list<SommerElement *> *_list);
   void setArb(std::list<SommerElement *> *_list);
+  void setWet(std::list<SommerElement *> *_list);
 //  void updateKappa() { kappa = domain->getWaveNumber(); }
 //  void updateKappaAndScalings() { kappa = domain->getWaveNumber();
 //                       coupledScaling = domain->coupledScaling;
@@ -396,13 +403,15 @@ class BaseSub : virtual public Domain
   double prev_cscale_factor;
  public:
   Connectivity *nodeToSub;
+  SparseConnectivityType2 *nodeToSub_sparse;
   void setnodeToSubConnectivity(Connectivity *nTsubConn) { nodeToSub = nTsubConn; }
-  void markWetInterface(int nWI, int *wiNum); 
+  void setnodeToSubConnectivity(SparseConnectivityType2 *nTsubConn) { nodeToSub_sparse = nTsubConn; }
+  void markWetInterface(int nWI, int *wiNum, bool soweredInput); 
   bool onWetInterface(int iNode) { return wetInterfaceMark[iNode]; } 
   bool onWetInterfaceFluid(int iNode) { return wetInterfaceFluidMark[iNode]; } 
   bool onWetInterfaceStructure(int iNode) { return wetInterfaceStructureMark[iNode]; } 
   bool isWetInterfaceCorner(int iNode) { return wetInterfaceCornerMark[iNode]; } 
-  void setWetInterface(int nWI, int *wiNum);
+  void setWetInterface(int nWI, int *wiNum, bool soweredInput);
   void setWIoneCommSize(FSCommPattern<int> *pat);
   void sendNumWIdof(FSCommPattern<int> *sPat);
   void recvNumWIdof(FSCommPattern<int> *sPat);
@@ -747,7 +756,6 @@ class GenSubDomain : public BaseSub
 #endif
   
  public:
-  void addSingleFsi(LMPCons *localFsi); 
   void constructKrw();
   void constructKww();
   void constructKcw();

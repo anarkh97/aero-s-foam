@@ -215,10 +215,19 @@ void GenDecDomain<Scalar>::getSharedNodes(ConnectivityType1 *nodeToSub, Connecti
   int *wetInterfaceNodeMap = 0;
   if(domain->solInfo().isCoupled) {
     coupled_dph = true;
-    //wetInterfaceNodes = domain->getAllWetInterfaceNodes(numWetInterfaceNodes);
     wetInterfaceNodeMap = new int[nodeToSub->csize()];
     for(int i=0; i<nodeToSub->csize(); ++i) wetInterfaceNodeMap[i] = -1;
-    for(int i=0; i<numWetInterfaceNodes; ++i) wetInterfaceNodeMap[wetInterfaceNodes[i]] = i;
+    if(!soweredInput) {
+      for(int i=0; i<numWetInterfaceNodes; ++i) wetInterfaceNodeMap[wetInterfaceNodes[i]] = i;
+    }
+    else {
+      for(int iSub = 0; iSub < numSub; ++iSub) {
+        int numWetInterfaceNodes;
+        int *wetInterfaceNodes = subDomain[iSub]->getAllWetInterfaceNodes(numWetInterfaceNodes);
+        for(int i=0; i<numWetInterfaceNodes; ++i) wetInterfaceNodeMap[subDomain[iSub]->localToGlobal(wetInterfaceNodes[i])] = i;
+        delete [] wetInterfaceNodes;
+      }
+    }
   }
 
   // create each subdomain's interface lists
@@ -439,7 +448,6 @@ GenDecDomain<Scalar>::preProcessMPCs()
     domain->SetUpSurfaces(); //domain->SetUpSurfaces(geoSource->sower_nodes);
     if(domain->solInfo().newmarkBeta != 0.0) { // not for explicit dynamics
       domain->ComputeMortarLMPC();
-      domain->computeMatchingWetInterfaceLMPC();
       domain->CreateMortarToMPC();
     }
 #ifdef MORTAR_DEBUG
@@ -575,8 +583,31 @@ GenDecDomain<Scalar>::makeSubDomains()
 #ifdef OLD_CLUSTER
     geoSource->computeClusterInfo(localSubToGl[0]);
 #endif
-    for(int iSub = 0; iSub < this->numSub; iSub++)
+    int numWet = 0;
+    for(int iSub = 0; iSub < this->numSub; iSub++) {
       subDomain[iSub] = geoSource->template readDistributedInputFiles<Scalar>(iSub, localSubToGl[iSub]);
+      numWet += subDomain[iSub]->getNumWet();
+    }
+    numWet = communicator->globalSum(numWet);
+    if(numWet > 0) {
+      domain->solInfo().isCoupled = true;
+      domain->solInfo().isMatching = true;
+      int structure_element_count = 0;
+      int fluid_element_count = 0;
+      double global_average_E = 0.0;
+      double global_average_nu = 0.0;
+      double global_average_rhof = 0.0;
+      for(int iSub = 0; iSub < numSub; ++iSub) {
+        subDomain[iSub]->solInfo().isCoupled = true;
+        subDomain[iSub]->solInfo().isMatching = true;
+        subDomain[iSub]->computeAverageProps(structure_element_count, fluid_element_count, global_average_E, global_average_nu, global_average_rhof);
+      }
+      structure_element_count = communicator->globalSum(structure_element_count);
+      fluid_element_count = communicator->globalSum(fluid_element_count);
+      geoSource->global_average_E = communicator->globalSum(global_average_E)/structure_element_count;
+      geoSource->global_average_nu = communicator->globalSum(global_average_nu)/structure_element_count;
+      geoSource->global_average_rhof = communicator->globalSum(global_average_rhof)/fluid_element_count;
+    }
 
     ControlLawInfo *claw = geoSource->getControlLaw();
     if(claw) {
@@ -591,6 +622,11 @@ GenDecDomain<Scalar>::makeSubDomains()
 #ifdef SOWER_SURFS
     geoSource->readDistributedSurfs(localSubToGl[0]); //pass dummy sub number
 #endif
+    if(numWet > 0) {
+      paralApply(numSub, subDomain, &BaseSub::computeMatchingWetInterfaceLMPC);
+      for(int iSub = 0; iSub < numSub; ++iSub) subDomain[iSub]->setnodeToSubConnectivity(geoSource->nodeToSub_sparse);
+      paralApply(numSub, subDomain, &BaseSub::addFsiElements);
+    }
   }
   else {
     execParal(numSub, this, &GenDecDomain<Scalar>::constructSubDomains);
@@ -3592,8 +3628,9 @@ void GenDecDomain<Scalar>::preProcessFSIs()
   if(!domain->solInfo().isCoupled) return;
   if(verboseFlag) filePrint(stderr, " ... Applying the Fluid-Structure Interactions");
   domain->computeCoupledScaleFactors();
-  domain->makeFsiToNode();
-  wetInterfaceNodes = domain->getAllWetInterfaceNodes(numWetInterfaceNodes);
+  if(soweredInput) paralApplyToAll(numSub, subDomain, &BaseSub::makeFsiToNode);
+  else domain->makeFsiToNode();
+  if(!soweredInput) wetInterfaceNodes = domain->getAllWetInterfaceNodes(numWetInterfaceNodes);
   distributeWetInterfaceNodes();
   if(verboseFlag) filePrint(stderr, " ...\n");
 }
@@ -3603,28 +3640,38 @@ void GenDecDomain<Scalar>::distributeWetInterfaceNodes()
 {
   int i, iSub, subI;
   int *nWetInterfaceNodesPerSub = new int[numSub];
-  for (iSub = 0; iSub < numSub; ++iSub)  {
-    nWetInterfaceNodesPerSub[iSub] = 0;
-  }
-  for(i = 0; i < numWetInterfaceNodes; ++i) {
-    int node = wetInterfaceNodes[i];
-    for(iSub = 0; iSub < nodeToSub->num(node); ++iSub){
-      if((subI = glSubToLocal[(*nodeToSub)[node][iSub]]) > -1) 
-        nWetInterfaceNodesPerSub[subI]++;
+  if(!soweredInput) {
+    for (iSub = 0; iSub < numSub; ++iSub)  {
+      nWetInterfaceNodesPerSub[iSub] = 0;
+    }
+    for(i = 0; i < numWetInterfaceNodes; ++i) {
+      int node = wetInterfaceNodes[i];
+      for(iSub = 0; iSub < nodeToSub->num(node); ++iSub){
+        if((subI = glSubToLocal[(*nodeToSub)[node][iSub]]) > -1) 
+          nWetInterfaceNodesPerSub[subI]++;
+      }
     }
   }
 
   int **subWetInterfaceNodes = new int *[numSub];
-  for(iSub = 0; iSub < numSub; ++iSub) {
-    subWetInterfaceNodes[iSub] = new int[nWetInterfaceNodesPerSub[iSub]];
-    nWetInterfaceNodesPerSub[iSub] = 0;
+  if(soweredInput) {
+    for(iSub = 0; iSub < numSub; ++iSub) {
+      subWetInterfaceNodes[iSub] = subDomain[iSub]->getAllWetInterfaceNodes(nWetInterfaceNodesPerSub[iSub]);
+      for(int i = 0; i < nWetInterfaceNodesPerSub[iSub]; ++i) subWetInterfaceNodes[iSub][i] = subDomain[iSub]->localToGlobal(subWetInterfaceNodes[iSub][i]);
+    }
   }
-  for(i = 0; i < numWetInterfaceNodes; ++i) {
-    int node = wetInterfaceNodes[i];
-    for(iSub = 0; iSub < nodeToSub->num(node); ++iSub) {
-      if((subI = glSubToLocal[(*nodeToSub)[node][iSub]]) < 0) continue;
-      subWetInterfaceNodes[subI][ nWetInterfaceNodesPerSub[subI] ] = node;  // global number
-      nWetInterfaceNodesPerSub[subI]++;
+  else {
+    for(iSub = 0; iSub < numSub; ++iSub) {
+      subWetInterfaceNodes[iSub] = new int[nWetInterfaceNodesPerSub[iSub]];
+      nWetInterfaceNodesPerSub[iSub] = 0;
+    }
+    for(i = 0; i < numWetInterfaceNodes; ++i) {
+      int node = wetInterfaceNodes[i];
+      for(iSub = 0; iSub < nodeToSub->num(node); ++iSub) {
+        if((subI = glSubToLocal[(*nodeToSub)[node][iSub]]) < 0) continue;
+        subWetInterfaceNodes[subI][ nWetInterfaceNodesPerSub[subI] ] = node;  // global number
+        nWetInterfaceNodesPerSub[subI]++;
+      }
     }
   }
 
@@ -3642,20 +3689,55 @@ void GenDecDomain<Scalar>::distributeWetInterfaceNodes()
 template<class Scalar>
 void GenDecDomain<Scalar>::markSubWetInterface(int iSub, int *nWetInterfaceNodesPerSub, int **subWetInterfaceNodes)
 {
-  subDomain[iSub]->markWetInterface(nWetInterfaceNodesPerSub[iSub], subWetInterfaceNodes[iSub]);
+  subDomain[iSub]->markWetInterface(nWetInterfaceNodesPerSub[iSub], subWetInterfaceNodes[iSub], soweredInput);
 }
 
 template<class Scalar>
 void GenDecDomain<Scalar>::setSubWetInterface(int iSub, int *nWetInterfaceNodesPerSub, int **subWetInterfaceNodes)
 {
-  subDomain[iSub]->setWetInterface(nWetInterfaceNodesPerSub[iSub], subWetInterfaceNodes[iSub]);
+  subDomain[iSub]->setWetInterface(nWetInterfaceNodesPerSub[iSub], subWetInterfaceNodes[iSub], soweredInput);
+}
+
+template<class Scalar>
+Connectivity *
+GenDecDomain<Scalar>::makeFsiToSub()
+{
+  Connectivity *fsiToSub;
+  if(domain->solInfo().isCoupled) {
+    int *pointer = new int[globalNumSub+1];
+    for(int i =0; i < globalNumSub; ++i) pointer[i] = 0;
+    paralApply(numSub, subDomain, &BaseSub::putNumFSI, pointer);
+#ifdef DISTRIBUTED
+    communicator->globalSum(globalNumSub, pointer);
+#endif
+
+    int total = 0;
+    for(int i = 0; i < globalNumSub; ++i) {
+      int tmp = pointer[i];
+      pointer[i] = total;
+      total += tmp;
+    }
+    pointer[globalNumSub] = total;
+
+    int *target = new int[total];
+    for(int i = 0; i < total; ++i) target[i] = 0;
+    paralApply(numSub, subDomain, &BaseSub::putLocalToGlobalFSI, pointer, target);
+#ifdef DISTRIBUTED
+    communicator->globalSum(total, target);
+#endif
+
+    Connectivity *subToFsi = new Connectivity(globalNumSub, pointer, target);
+    fsiToSub = subToFsi->reverse();
+    delete subToFsi;
+  }
+  return fsiToSub;
 }
 
 template<class Scalar>
 void GenDecDomain<Scalar>::getSharedFSIs()
 {
   if(domain->solInfo().isCoupled) {
-    Connectivity *fsiToSub = domain->getFsiToNode()->transcon(nodeToSub);
+    Connectivity *fsiToSub = soweredInput ? makeFsiToSub() : domain->getFsiToNode()->transcon(nodeToSub);
     Connectivity *subToFsi = fsiToSub->altReverse(); // reverse without reordering
     Connectivity *subToSub_fsi = subToFsi->transcon(fsiToSub);
     paralApply(numSub, subDomain, &BaseSub::makeFsiInterface, subToFsi, fsiToSub, subToSub_fsi);

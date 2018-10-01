@@ -600,7 +600,7 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
   std::cerr << std::endl << "--Reading HWIBO" << std::endl;
 #endif
   std::list<SommerElement *> *wetlist = sower.template read<SommerDataIO<WET_TYPE> >(*f, subNum, glNums);
-  if(wetlist)  subd->setArb(wetlist);
+  if(wetlist)  subd->setWet(wetlist);
   if(glNums) {delete[] glNums; glNums = 0; } //not used
 #ifdef SOWER_DEBUG
   if(wetlist) {

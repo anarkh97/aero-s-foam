@@ -931,7 +931,7 @@ class MatIO
 #endif
       if(index < sProps->first) {
 	StructProp sp = (*(sProps->second))[index];
-	double d[28];
+	double d[28+8];
 	d[0] = sp.E;
 	d[1] = sp.A;
 	d[2] = sp.nu;
@@ -962,8 +962,17 @@ class MatIO
         d[26] = double(sp.F_Nf);
         d[27] = double(sp.Seed);
         // end new
+        d[28] = double(sp.fp.PMLtype);
+        d[29] = sp.fp.gamma;
+        d[30] = sp.fp.Rx;
+        d[31] = sp.fp.Ry;
+        d[32] = sp.fp.Rz;
+        d[33] = sp.fp.Sx;
+        d[34] = sp.fp.Sy;
+        d[35] = sp.fp.Sz;
+ 
 	file.write(&curObjID, 1);
-	file.write(d, 28);
+	file.write(d, 28+8);
       }
       else {
         std::cerr << "out of range" << std::endl;
@@ -986,8 +995,8 @@ class MatIO
 std::cerr << "Sower.h, readData, MatIO" << std::endl;
 #endif
       StructProp sp;
-      double d[28];
-      s->read(d, 28, file);
+      double d[28+8];
+      s->read(d, 28+8, file);
       
       obj->first++;
 
@@ -1021,6 +1030,14 @@ std::cerr << "Sower.h, readData, MatIO" << std::endl;
       sp.F_Nf = int(d[26]);
       sp.Seed = int(d[27]);
       // end new
+      sp.fp.PMLtype = int(d[28]);
+      sp.fp.gamma = d[29];
+      sp.fp.Rx = d[30];
+      sp.fp.Ry = d[31];
+      sp.fp.Rz = d[32];
+      sp.fp.Sx = d[33];
+      sp.fp.Sy = d[34];
+      sp.fp.Sz = d[35];
       (*(obj->second))[localIndex]=sp; 
     }
 };

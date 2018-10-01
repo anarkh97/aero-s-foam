@@ -462,7 +462,7 @@ void Sower::write()
     {
       // opening cluster file
       char filename[FILENAME_LENGTH];
-      char clusterNumStr[10] = {'\0'};
+      char clusterNumStr[11] = {'\0'};
       sprintf(clusterNumStr, "%u", currentClusNum);
       strcpy(filename, clusterData_.c_str());
       strcat(filename, clusterNumStr);

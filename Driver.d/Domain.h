@@ -1471,6 +1471,8 @@ class Domain : public HData {
      void addWetInterface(int fluidSurfaceID, int structureSurfaceID, double normal_tol = 0.1, double tangential_tol = 0.001);
      int* getAllWetInterfaceNodes(int &count);
      double getFrequencyOrWavenumber();
+     void computeAverageProps(int &structure_element_count, int &fluid_element_count, double &global_average_E,
+                              double &global_average_nu, double &global_average_rhof);
      void computeCoupledScaleFactors();
      void getInterestingDofs(DofSet &ret, int glNode);
 

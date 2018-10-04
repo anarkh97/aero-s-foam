@@ -132,15 +132,15 @@ struct OutputInfo {
      else if(numColumns == 6 && (type == RomResidual)) type = RomResidual6;
      else if(numColumns == 6 && (type == RomExtForce)) type = RomExtForce6;
 
-     if (averageFlg == 1 || averageFlg == 3)
+     if (averageFlg == 1 || averageFlg == 2 || averageFlg == 3)
        dataType = 1;
      else if (averageFlg == 0)
        dataType = 2;
  
      if (type == InXForce || type == InYForce ||
-       type == InZForce || type == AXMoment ||
-       type == AYMoment || type == AZMoment)
-     dataType = 2;
+         type == InZForce || type == AXMoment ||
+         type == AYMoment || type == AZMoment)
+       dataType = 2;
 
      switch(type) {
 

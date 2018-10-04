@@ -1,25 +1,26 @@
-#ifndef _FABRICMAT_H_
-#define _FABRICMAT_H_
+#ifndef _FABRICMAP_H_
+#define _FABRICMAP_H_
 
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 
 class StructProp;
 
-class FabricMat : public NLMaterial
+class FabricMap : public NLMaterial
 {
    public:
      enum StrainMeasure { INFINTESIMAL = 0, GREEN_LAGRANGE = 1 };
 
    protected:
-     int x_ymst_id, y_ymst_id;
-     double rho, Gxy, nuxy, nuyx, t, Tref, alpha;
+     int pxx_map_id, pyy_map_id, sxy_map_id;
+     double rho, t, Tref, alpha;
      enum StrainMeasure strain_measure;
-     MFTTData *x_ymst, *y_ymst;
+     SS2DTData *pxx_map, *pyy_map;
+     MFTTData *sxy_map;
 
    public:
-     FabricMat(StructProp *p);
-     FabricMat(double _rho, int _x_ymst_id, int _y_ymst_id, double _Gxy, double _nuxy, double _nyx, double _t,
-               double _Tref, double _alpha, StrainMeasure _strain_measure);
+     FabricMap(StructProp *p);
+     FabricMap(double _rho, int _pxx_map_id, int _pyy_map_id, int _sxy_map_id, double _t, double _Tref, double _alpha,
+               StrainMeasure _strain_measure);
 
      int getNumStates() { return 0; }
 
@@ -51,7 +52,8 @@ class FabricMat : public NLMaterial
 
      double getReferenceTemperature() { return Tref; }
 
-     void setEDProps(MFTTData *ymst);
+     void setS1DProps(MFTTData *ss1dt);
+     void setS2DProps(SS2DTData *ss2dt);
 };
 
 #endif

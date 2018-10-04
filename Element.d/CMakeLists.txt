@@ -245,6 +245,7 @@ Function.d/Constraint.d/PointVariPointDistanceConstraintFunction.C
 Function.d/Constraint.d/exp-map.C
 NonLinearity.d/2DMat.C
 NonLinearity.d/FabricMat.C
+NonLinearity.d/FabricMap.C
 NonLinearity.d/ShapeFunction.C
 NonLinearity.d/ElaLinIsoMat.C
 NonLinearity.d/OgdenMat.C

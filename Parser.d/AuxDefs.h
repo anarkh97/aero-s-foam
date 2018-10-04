@@ -6,6 +6,7 @@
 #include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
+#include <Element.d/NonLinearity.d/FabricMap.h>
 #include <Element.d/NonLinearity.d/FabricMat.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>

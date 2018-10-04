@@ -384,6 +384,8 @@ class Domain : public HData {
      int numYSST;                          // number of YSS tables
      ResizeArray<MFTTData *> yssrt;        // Yield stress scale factor vs. effective plastic strain rate table
      int numYSSRT;                         // number of YSSRT tables
+     ResizeArray<MFTTData *> ymst;         // Young's modulus vs. strain table
+     int numYMST;                          // number of YMS tables
      FlExchanger *flExchanger;  // Fluid Exchanger
      FILE *outFile;
 
@@ -742,11 +744,13 @@ class Domain : public HData {
      std::pair<int, ResizeArray<MFTTData*>* >* getYSSRT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYSSRT,&yssrt); };
      std::pair<int, ResizeArray<MFTTData*>* >* getSS1DT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numSS1DT,&ss1dt); };
      std::pair<int, ResizeArray<SS2DTData*>* >* getSS2DT() { return new std::pair<int, ResizeArray<SS2DTData*>* >(numSS2DT,&ss2dt); };
+     std::pair<int, ResizeArray<MFTTData*>* >* getYMST() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYMST,&ymst); };
      void printCTETT();
      int  addYSST(MFTTData *);
      int  addYSSRT(MFTTData *);
      int  addSS1DT(MFTTData *);
      int  addSS2DT(SS2DTData *);
+     int  addYMST(MFTTData *);
      void computeTDProps();
 
      ShapeSensitivityData getShapeSensitivityData() { return shapeSenData; }

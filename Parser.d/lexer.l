@@ -900,6 +900,8 @@ TRAIL [a-zA-Z]*
 
 "YSSRT"|"yssrt"                    { return YSSRT; }
 
+"YMST"|"ymst"                      { return YMST; }
+
 "REOR"[a-zA-Z]*|"reor"[a-zA-Z]*    { return REORTHO; }
 
 "scal"[a-zA-Z]*|"SCAL"[a-zA-Z]*    { return SCALING; }
@@ -1519,6 +1521,10 @@ TRAIL [a-zA-Z]*
 "fabricmap"|"FABRICMAP"|"FabricMap"                     { return FABRICMAP; }
 
 "shellfabricmap"|"SHELLFABRICMAP"|"ShellFabricMap"      { return SHELLFABRICMAP; }
+
+"fabricmat"|"FABRICMAT"|"FabricMat"                     { return FABRICMAT; }
+
+"shellfabricmat"|"SHELLFABRICMAT"|"ShellFabricMat"      { return SHELLFABRICMAT; }
 
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
 

@@ -2394,6 +2394,71 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::computeElementForce(GeomState *gs, Corotator **allCorot,
+                                          int fileNumber, int forceIndex, Scalar *elemForce)
+{
+  if(elemToNode==0) elemToNode = new Connectivity(&packedEset);
+  if(elDisp == 0) elDisp = new Vector(maxNumDOFs, 0.0);
+  double *nodalTemperatures = getNodalTemperatures();
+  int *nodeNumbers = new int[maxNumNodes];
+  Vector elemNodeTemps(maxNumNodes, 0.0);
+  Vector elForce(maxNumNodes, 0.0);
+
+  int iele,k,flag;
+  for(iele=0; iele<numele; ++iele) {
+
+    packedEset[iele]->nodes(nodeNumbers);
+    int NodesPerElement = packedEset[iele]->numNodes();
+
+    allCorot[iele]->extractDeformations(*gs, nodes, elDisp->data(), flag);
+
+    if(packedEset[iele]->getProperty()) {
+      for(int iNode=0; iNode<NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
+    }
+
+    // transform displacements from DOF_FRM to basic coordinates
+    transformVectorInv(*elDisp, iele);
+
+    if(geoSource->getOutputInfo()[fileNumber].oframe == OutputInfo::Local) {
+      Vector fx(NodesPerElement,0.0), fy(NodesPerElement,0.0), fz(NodesPerElement,0.0);
+      if(forceIndex == INX || forceIndex == INY || forceIndex == INZ) {
+        packedEset[iele]->getIntrnForce(fx,nodes,elDisp->data(),INX,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fy,nodes,elDisp->data(),INY,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fz,nodes,elDisp->data(),INZ,elemNodeTemps.data());
+      }
+      else {
+        packedEset[iele]->getIntrnForce(fx,nodes,elDisp->data(),AXM,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fy,nodes,elDisp->data(),AYM,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fz,nodes,elDisp->data(),AZM,elemNodeTemps.data());
+      }
+      Vector f(3*NodesPerElement);
+      for(int iNode=0; iNode<NodesPerElement; iNode++) {
+        double data[3] = { fx[iNode], fy[iNode], fz[iNode] };
+        transformVector(data, nodeNumbers[iNode], false);
+        switch(forceIndex) {
+          case INX: case AXM: elstress[iNode] = data[0]; break;
+          case INY: case AYM: elstress[iNode] = data[1]; break;
+          case INZ: case AZM: elstress[iNode] = data[2]; break;
+        }
+      }
+    }
+    else {
+      packedEset[iele]->getIntrnForce(elForce, nodes, elDisp->data(), forceIndex, elemNodeTemps.data());
+    }
+
+    for(k = 0; k < packedEset[iele]->numNodes(); ++k)
+      elemForce[elemToNode->offset(iele) + k] = elForce[k];
+  }
+  delete [] nodeNumbers;
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
                                           int fileNumber, int stressIndex, Scalar *glStress, Scalar *glWeight,
                                           GeomState *refState)

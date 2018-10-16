@@ -2627,12 +2627,13 @@ Domain::getElementForces(GeomState &geomState, Corotator **allCorot,
 // ... CALCULATE INTERNAL FORCE VALUE FOR EACH ELEMENT
 
     elemNodeTemps.zero();
-    if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
-    for(int iNode = 0; iNode < packedEset[iele]->numNodes(); ++iNode) {
-      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-      else
-        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+    if(packedEset[iele]->getProperty()) {
+      for(int iNode = 0; iNode < packedEset[iele]->numNodes(); ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
     }
 
     packedEset[iele]->getIntrnForce(*elstress,nodes,elDisp->data(),forceIndex,elemNodeTemps.data());
@@ -2646,6 +2647,8 @@ Domain::getElementForces(GeomState &geomState, Corotator **allCorot,
 
 // ... PRINT THE ELEMENT FORCES TO A FILE
    geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
+
+   delete [] nodeNumbers;
 }
 
 // Nonlinear restart file

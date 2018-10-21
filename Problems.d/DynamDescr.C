@@ -511,7 +511,7 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
 {
   times->tdenforceTime -= getTime();
   ctc_f.zero();
-  if(t_n_p < domain->solInfo().tdenforceInitia) return;
+  if(t_n_p < domain->solInfo().tdenforceInitia || t_n_p > domain->solInfo().tdenforceFinal) return;
   if(domain->tdenforceFlag()) {
 
     times->updateSurfsTime -= getTime();

@@ -1201,6 +1201,12 @@ DynamInfo:
           domain->solInfo().tdenforceMaxItr = $4;
           domain->solInfo().tdenforceTolAbs = $5;
           domain->solInfo().tdenforceInitia = $6; }
+        | DynamInfo TDENFORCE SWITCH Integer Float Float Float NewLine
+        { domain->solInfo().tdenforceFlag = $3;
+          domain->solInfo().tdenforceMaxItr = $4;
+          domain->solInfo().tdenforceTolAbs = $5;
+          domain->solInfo().tdenforceInitia = $6;
+          domain->solInfo().tdenforceFinal = $7; }
         | DynamInfo CHECKTOKEN NewLine
         { domain->solInfo().check_energy_balance = true; }
         | DynamInfo CHECKTOKEN Float Float NewLine

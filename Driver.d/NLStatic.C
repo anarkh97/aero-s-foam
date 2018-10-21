@@ -2752,12 +2752,18 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
      int readSize = read(fn, &restartTIndex, sizeof(int));
      if(readSize != sizeof(int))
        fprintf(stderr," *** ERROR: Reading restart file time index\n");
-     sinfo.initialTimeIndex = restartTIndex;
+     if(strcmp(cinfo->FlagRST,"new") == 0)
+       sinfo.initialTimeIndex = 0;
+     else
+       sinfo.initialTimeIndex = restartTIndex;
 
      readSize = read(fn, &restartT, sizeof(double));
      if(readSize != sizeof(double))
        fprintf(stderr," *** ERROR: Reading restart file time\n");
-     sinfo.initialTime = restartT;
+     if(strcmp(cinfo->FlagRST,"new") == 0)
+       sinfo.initialTime = 0;
+     else
+       sinfo.initialTime = restartT;
 
      readSize = read(fn, buffer, numnodes*6*sizeof(double));
      if(int(readSize) != int(numnodes*6*sizeof(double)))

@@ -1066,7 +1066,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
         flExchanger->sendNoStructure();
       }
 
-      if(!(geoSource->getCheckFileInfo()->lastRestartFile && (sinfo.aeroFlag == 20 ||
+      if(!(geoSource->getCheckFileInfo()->hotRestart() && (sinfo.aeroFlag == 20 ||
           (sinfo.isNonLin() && sinfo.isDynam() && sinfo.newmarkBeta != 0)))) {
         flExchanger->sendDisplacements(curState);
         if(verboseFlag) filePrint(stderr, " ... [E] Sent initial displacements ...\n");
@@ -1210,7 +1210,7 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
         flExchanger->sendNoStructure();
       }
 
-      if(!(geoSource->getCheckFileInfo()->lastRestartFile && (sinfo.aeroFlag == 20 ||
+      if(!(geoSource->getCheckFileInfo()->hotRestart() && (sinfo.aeroFlag == 20 ||
           (sinfo.isNonLin() && sinfo.isDynam() && sinfo.newmarkBeta != 0)))) {
         flExchanger->sendDisplacements(curState);
         if(verboseFlag) filePrint(stderr, " ... [E] Sent initial displacements ...\n");

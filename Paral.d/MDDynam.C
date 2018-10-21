@@ -609,7 +609,7 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
 {
   times->tdenforceTime -= getTime();
   ctc_f.zero();
-  if(t_n_p < domain->solInfo().tdenforceInitia || t_n_p > domain->solInfo().tdenforceFinal) return;
+  if(t_n_p < domain->solInfo().tdenforceInitia || t_n_p >= domain->solInfo().tdenforceFinal) return;
   if(domain->tdenforceFlag()) {
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaceTopology(decDomain->getNumSub(), decDomain->getAllSubDomains()); // remove deleted elements
@@ -773,7 +773,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 
   // add aeroelastic forces from fluid dynamics code
   if(sinfo.aeroFlag >= 0 && tIndex >= 0 &&
-     !(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20 && !sinfo.dyna3d_compat && tIndex == sinfo.initialTimeIndex)) {
+     !(geoSource->getCheckFileInfo()->hotRestart() && sinfo.aeroFlag == 20 && !sinfo.dyna3d_compat && tIndex == sinfo.initialTimeIndex)) {
 
     domain->getTimers().receiveFluidTime -= getTime();
     aeroForce->zero();
@@ -1471,7 +1471,7 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     }
 
     // send initial displacements
-    if(!(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20)) {
+    if(!(geoSource->getCheckFileInfo()->hotRestart() && sinfo.aeroFlag == 20)) {
       distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
       if(verboseFlag) filePrint(stderr, " ... [E] Sent initial displacements ...\n");
     }

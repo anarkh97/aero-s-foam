@@ -132,7 +132,7 @@ NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
     domain->readRestartFile(d_n, v_n, a_n, v_p, bcx, vcx, geomState);
 
     int aeroFlag = domain->solInfo().aeroFlag;
-    if(aeroFlag >= 0) {
+    if(aeroFlag >= 0 && geoSource->getCheckFileInfo()->hotRestart()) {
       double time = domain->solInfo().initialTime;
       double dt = domain->solInfo().getTimeStep();
       double t_aero = (aeroFlag == 6) ? time+dt/2 : time+dt;

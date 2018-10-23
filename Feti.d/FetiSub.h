@@ -263,6 +263,8 @@ public:
 	void getNumGroupRBM(int *ngrbmGr);
 	void makeLocalToGroupMPC(Connectivity *groupToMPC);
 
+	void setNodeCommSize(FSCommStructure *, int d = 1) const;
+
 	GlobalToLocalMap &getGlobalToLocalNode() { return glToLocalNode; }
 
 	int group = 0;

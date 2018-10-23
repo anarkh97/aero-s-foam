@@ -468,7 +468,6 @@ private:
 	void normalizeC();
 	void subTrMultC(int iSub, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f);
 	void subMultC(int iSub, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu) const;
-	double computeFNorm();
 	void project(GenDistrVector<Scalar> &z, GenDistrVector<Scalar> &y, int eflag = 0) const;
 	double tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w) const;
 	void multG(const GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, double beta) const;

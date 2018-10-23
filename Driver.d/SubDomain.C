@@ -2436,7 +2436,7 @@ GenSubDomain<Scalar>::multMCoupled1(Scalar *localrhs, GenStackVector<Scalar> **u
 			if (subNumber != scomm->neighbT(SComm::fsi, i)) {
 				FSSubRecInfo<Scalar> sInfo = wiPat->getSendBuffer(subNumber, scomm->neighbT(SComm::fsi, i));
 				for (j = 0; j < numNeighbWIdof[i]; ++j) sInfo.data[j] = 0.0;
-				this->neighbKww->multAdd(localw.data(), sInfo.data, glToLocalWImap, neighbGlToLocalWImap[i], true);
+				this->neighbKww->multAdd(localw.data(), sInfo.data.data(), glToLocalWImap, neighbGlToLocalWImap[i], true);
 			} else {
 				this->neighbKww->multAdd(localw.data(), this->localw_copy.data(), glToLocalWImap, true);
 			}

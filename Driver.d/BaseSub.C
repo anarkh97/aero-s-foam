@@ -1065,13 +1065,6 @@ int BaseSub::getBC(BCond *bc, int numBC, int *cl2LocNodeMap, BCond *&subBC)   {
 }
 
 void
-BaseSub::setNodeCommSize(FSCommStructure *pt, int d) const
-{
-  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
-    pt->setLen(subNumber, scomm->subNums[iSub], scomm->sharedNodes->num(iSub)*d);
-}
-
-void
 BaseSub::setDofPlusCommSize(FSCommStructure *pt) const
 {
   for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)

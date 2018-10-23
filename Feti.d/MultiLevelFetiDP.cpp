@@ -30,7 +30,8 @@ namespace MultiLevel {
 template <typename Scalar>
 class MLSub : virtual public FetiSub<Scalar> {
 public:
-	MLSub(FetiInfo fetiInfo,
+	MLSub(gl_sub_idx glSub,
+	      FetiInfo fetiInfo,
 	      CoordSet coordinates,
 	      Connectivity nodeToNode,
 	      DofSetArray dsa,
@@ -40,8 +41,9 @@ public:
 		  dsa(std::move(dsa)),
 		  cdsa(this->dsa, 0, (const BCond *)nullptr),
 		  sysMat(std::move(sysMat)),
-		  nodeToNode(nodeToNode){
-
+		  nodeToNode(nodeToNode)
+		  {
+		this->subNumber = glSub;
 	}
 
 	const FetiInfo &getFetiInfo() const override { return fetiInfo; }
@@ -112,7 +114,7 @@ public:
 private:
 	gsl::span<const gl_sub_idx> elemIdx;
 	const std::vector<SuperElement<S>> &elems;
-	const std::map<gl_node_idx, lc_node_idx> glToLoc;
+	const std::map<gl_node_idx, lc_node_idx> &glToLoc;
 
 	const SuperElement<S> &ele(lc_sub_idx i) const { return elems[elemIdx[i]]; }
 };
@@ -125,6 +127,7 @@ formMatrix(const std::vector<SuperElement<S>> &allElements, const std::map<gl_no
            gsl::span<const gl_sub_idx> elems, const int *glSubToLoc)
 {
 	DofSetArray dsa(glToLocNodes.size());
+	std::cout << "I have been passed " << glToLocNodes.size() << "  nodes." << std::endl;
 
 	for (auto elNum : elems) {
 		lc_sub_idx subIdx = glSubToLoc[elNum];
@@ -138,13 +141,16 @@ formMatrix(const std::vector<SuperElement<S>> &allElements, const std::map<gl_no
 				for(auto nd: glToLocNodes)
 					std::cerr << " ( " << nd.first << " : " << nd.second << ")";
 				std::cerr << std::endl;
-				exit(-100);
+				throw std::logic_error("Could not find node");
 			}
 			dsa.mark(glToLocNodes.at(element.nodes[i]), element.dofs[i]);
 		}
 	}
 	dsa.finish();
 	Connectivity eToN( SetAccess<SuperElement<S>> { elems, allElements, glToLocNodes } );
+	auto &atg = eToN.allTargets();
+	auto maxIt = std::max_element(atg.begin(), atg.end());
+	std::cout << "Max target of eToN is " << *maxIt << std::endl;
 
 	auto nToE = eToN.reverse();
 	auto nToN = nToE.transcon(eToN);
@@ -184,12 +190,12 @@ using SubRenumAndNeighb = std::tuple<
 	Connectivity
 >;
 
-/** \brief Form the list of neighbor subdomains and the set of nodes shared with each.
+/** \brief Form the list of neighbor subdomains and the set of nodes shared with each one.
  *
  * @param subIdx The subdomain for which the result is sought.
  * @param nodes The global node numbers of this subdomain.
  * @param nodeToSub The connectivity from global node to global subdomain.
- * @return A triplet with the array of global neighboring subdomains a global to local map of shared nodes,
+ * @return A triplet with the array of global neighboring subdomains a global to local map of the nodes in the subdomain,
  * and a connectivity with the shared nodes.
  */
 SubRenumAndNeighb
@@ -199,7 +205,7 @@ subSharedNodes(gl_sub_idx subIdx, gsl::span<const gl_node_idx> nodes, const Conn
 	std::vector<std::pair<gl_sub_idx, gl_node_idx>> sharedNodes;
 	std::map<gl_node_idx, lc_node_idx> glToLocNode;
 	for(auto node : nodes) {
-		if (nodeToSub.num(node) > 1) // If the node has more than this subdomain.
+		if (nodeToSub.num(node) > 1) // If the node is in at least one other subdomain.
 			for (auto sub : nodeToSub[node])
 				if (sub != subIdx) // Only account for other subs.
 					sharedNodes.emplace_back(sub, node);
@@ -209,17 +215,21 @@ subSharedNodes(gl_sub_idx subIdx, gsl::span<const gl_node_idx> nodes, const Conn
 	// compute them.
 	std::sort(sharedNodes.begin(), sharedNodes.end());
 
-	// Map global numbers to local numbers.
+	// Map global node numbers to local numbers.
 	std::vector<std::pair<lc_sub_idx, lc_node_idx>> locShared;
 	locShared.reserve(sharedNodes.size());
 
 	std::vector<gl_sub_idx> globalNeighbors;
-	for(const auto &subAndNode : locShared) {
+	for(const auto &subAndNode : sharedNodes) {
+		// Check if this is a new global neighboring subdomain number.
 		if(globalNeighbors.size() == 0 || subAndNode.first != globalNeighbors.back())
 			globalNeighbors.push_back(subAndNode.first);
-		locShared.emplace_back(globalNeighbors.size()-1, glToLocNode[subAndNode.second]);
+		locShared.emplace_back(globalNeighbors.size()-1, glToLocNode.at(subAndNode.second));
 	}
 
+	// Sanity check. A subdomain should not have itself amongst its neighbors. TODO REMOVE
+	if(std::find(globalNeighbors.begin(), globalNeighbors.end(), subIdx) != globalNeighbors.end())
+		throw "Bad apple";
 	return { std::move(globalNeighbors), std::move(glToLocNode), Connectivity::fromLinkRange(locShared) };
 };
 
@@ -251,6 +261,11 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
 		std::vector<gl_sub_idx> neighbors;
 		std::map<gl_node_idx , lc_node_idx > glToLocNodes;
 		Connectivity subToLocNodes;
+
+		auto glSubNodes = metaSubToNode[glSub];
+		std::set<gl_node_idx> glNodes { glSubNodes.begin(), glSubNodes.end() };
+		std::cout << "metaSubToNodes has " << glSubNodes.size() << " for " << glSub << std::endl;
+
 		std::tie(neighbors, glToLocNodes, subToLocNodes) = subSharedNodes(glSub, metaSubToNode[glSub], nodeToMetaSub);
 		int nn = static_cast<int>(neighbors.size());
 		auto sComm = std::make_unique<SComm>(nn, std::move(neighbors), std::vector<lc_sub_idx>{},
@@ -264,15 +279,21 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
 		for(auto globLoc : glToLocNodes) {
 			if(nodes.find(globLoc.first) == nodes.end()) {
 				std::cout << "Could not find " << globLoc.first << std::endl;
-				exit(-1);
+				throw std::logic_error("Could not find node");
 			}
 
 			subNodes.col(globLoc.second) = nodes.at(globLoc.first);
 			coordSet.nodeadd(globLoc.second, nodes.at(globLoc.first).data());
 		}
 		FetiInfo fetiInfo; // TODO get something set here.
+		auto &sn = *sComm->sharedNodes;
+		int nMax = -1;
+		for( auto n : sn.allTargets())
+			nMax = std::max(n, nMax);
+		std::cout << "Node max for " << glSub << " is " << nMax <<" or size of list " << glToLocNodes.size() << std::endl;
 		superSubs.push_back(
-			std::make_unique<MultiLevel::MLSub<Scalar>>(fetiInfo,
+			std::make_unique<MultiLevel::MLSub<Scalar>>(glSub,
+			                                            fetiInfo,
 			                                            std::move(coordSet),
 			                                            std::move(std::get<0>(dsaAndK)),
 			                                            std::move(std::get<1>(dsaAndK)),
@@ -336,21 +357,39 @@ std::vector<gl_num_t> subSuperNodes(const FetiBaseSub &sub,
 				iEdgeN++;
 			}
 		}
+		// MLX
+		if(subdomainEdgeIndices.size() != iEdgeN)
+			throw "Inconsistent number of eddges.";
 	}
 	return nodes;
 }
 
 template <typename T>
 void
-selectCorners(std::vector<std::unique_ptr<T>> &subs) {
+selectCorners(std::vector<std::unique_ptr<T>> &subs, FSCommunicator *communicator, const Connectivity *cpuToSub,
+              gl_sub_idx glNumSub) {
 	vector<unique_ptr<FetiSubCornerHandler>> cornerHandlers;
+	cornerHandlers.reserve(subs.size());
+	vector<FetiSubCornerHandler *> fsh;
+	fsh.reserve(subs.size());
 	for(auto &sub: subs) {
 		auto &dsa = *sub->getDsa();
 		auto &c_dsa = *sub->get_c_dsa();
+		std::cout << "Sub " << sub->subNum() << " says it has " << sub->getNodeToNode()->csize() << " nodes." << std::endl;
 		cornerHandlers.emplace_back(
 			new FetiSubCornerHandler(sub.get())
 			);
+		fsh.emplace_back(cornerHandlers.back().get());
 	}
+	// CornerSelector(int nGlobSub, int nLocSub, std::vector<FetiSubCornerHandler *> handlers,
+	//	               FSCommPattern<int> *commPattern, FSCommunicator *communicator);
+	FSCommPattern<int> cpat(communicator, cpuToSub, communicator->cpuNum(), FSCommPattern<int>::CopyOnSend);
+	for(int i=0; i<subs.size(); ++i)
+		subs[i]->setNodeCommSize(&cpat);
+	cpat.finalize();
+	CornerSelector cornerSelector(glNumSub, subs.size(), std::move(fsh), &cpat, communicator);
+	int res = cornerSelector.makeCorners();
+	std::cout << "Result of corner selection is " << res << std::endl;
 }
 
 /** \brief Build an upper level FetiDP Solver.
@@ -359,7 +398,7 @@ selectCorners(std::vector<std::unique_ptr<T>> &subs) {
  * occuring fact.
  *
  * @tparam Scalar
- * @param subToCorner
+ * @param subToCorner (global-)subdomain to global corner nodes. Not including edge-representing nodes.
  */
 template <typename Scalar>
 void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorner) {
@@ -459,6 +498,30 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 	}
 
 	Connectivity subToAllCoarseNodes = Connectivity::fromLinkRange(glSubToAllCoarse);
+
+	//=======================DEBUG CHECK CONSISTENCY OF glSubToAllCoarse and superElements ======================
+	for(int iSub = 0; iSub < this->nsub; ++iSub) {
+		// Get the node numbers.
+		auto &sub = *(this->subdomains[iSub]);
+		auto globalSubIndex = sub.subNum();
+		// allCorners comes from subToAllCoarseNodes <- glSubToAllCoarse <- loop over: [ sub; neighbors ] symmetrized
+		auto allCorners = subToAllCoarseNodes[ globalSubIndex ];
+		// cornerNodes comes from nodes of superElements[iSub] <- subSuperNodes : loop over neightbors, no symmetry
+		const auto &cornerNodes = superElements[iSub].nodes;
+		if(allCorners.size() != cornerNodes.size()) {
+			std::cout << iSub << " has incorrect set of nodes: " << allCorners.size() << " vs " << cornerNodes.size() << std::endl;
+			static int count = 0;
+			if (count++ < 3) {
+				for (auto n: allCorners)
+					std::cout << " " << n;
+				std::cout << std::endl;
+				for (auto n: cornerNodes)
+					std::cout << " " << n;
+				std::cout << std::endl;
+			}
+		}
+	}
+	//======================= END OF DEBUG CHECK CONSISTENCY OF glSubToAllCoarse and superElements ==============
 //	this->fetiCom->sync();
 //	std::cout << "Full " << subToAllCoarseNodes.numConnect() << " vs " << subToCorner.numConnect() << std::endl;
 //	this->fetiCom->sync();
@@ -467,7 +530,7 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 	auto subs = formSubdomains(cpuToCoarse[this->myCPU], *decCoarse,
 	                           superElements, subToAllCoarseNodes, nodes, this->glSubToLoc);
 
-	selectCorners(subs);
+	selectCorners(subs, this->fetiCom, this->cpuToSub, this->glNumSub);
 
 //	std::vector<FetiBaseSub *> baseSubs(decCoarseDomain->getAllSubDomains(),
 //	                                    decCoarseDomain->getAllSubDomains()+decCoarseDomain->getNumSub());
@@ -512,11 +575,11 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDP(const Connectivity *subToCorner) 
 		auto edges = (*(this->subToEdge))[globalSubIndex];
 		std::vector<gl_num_t> coarsenodes = subSuperNodes(sub, (*subToCorner)[globalSubIndex], augOffset, edges,
 		                                                  fetiInfo->augmentimpl == FetiInfo::Primal);
-		int n = coarsenodes.size();
+		int n = static_cast<int> ( coarsenodes.size() );
 		// TODO Fix this leak!!!!
 		int *elem = new int[n];
-		for(int i = 0; i < n; ++i)
-			elem[i] = coarsenodes[i];
+		for(int j = 0; j < n; ++j)
+			elem[j] = coarsenodes[j];
 		coarseDomain->addElem(globalSubIndex,0,n,elem);//.data());
 		pointer[globalSubIndex] = n;
 	}

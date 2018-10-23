@@ -155,7 +155,6 @@ public:
 	const bool* getInternalMasterFlag();
 
 public:
-	void setNodeCommSize(FSCommStructure *, int d = 1) const ;
 	void setDofPlusCommSize(FSCommStructure *) const;
 
 	// for timing file

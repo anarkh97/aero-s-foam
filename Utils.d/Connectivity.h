@@ -60,8 +60,8 @@ template<typename A, class Accessor = DirectAccess<A> >
 class BaseConnectivity
 {
 public :
-	Connectivity reverse(float *w = 0) const;
-	Connectivity* altReverse(float *w = 0);
+	Connectivity reverse() const;
+	Connectivity* altReverse(float *w = nullptr);
 	template <class B, class AB>
 	Connectivity* transcon(const BaseConnectivity<B, AB> *tc) const;
 	template <class B, class AB>
@@ -131,6 +131,9 @@ public:
 
 	/** \brief Factory static method.
 	 *
+	 * \details The targets are kept in the order in which they are given in the data.
+	 * Such property is important for building consistent communication lists.
+	 *
 	 * @tparam RangeT A type on which one can iterate to obtain
 	 * pair like objects of source, target named first, second.
 	 * @param range Range object.
@@ -197,9 +200,9 @@ public:
 	int cOffset(int i,int j) const; // returns offset(i,j) - pointer[i]
 	bool locate(int i,int j) const
 	{ for(int k=pointer[i]; k<pointer[i+1]; ++k) if(target[k] == j) return true; return false; }
-	// this call to ::reverse makes HB's mortar lib compile... investigate please.
-	Connectivity* alloc_reverse(float *w = 0) const
-	{ return new Connectivity{BaseConnectivity<Connectivity>::reverse(w)}; } // creates t->s from s->t
+
+	Connectivity* alloc_reverse() const
+	{ return new Connectivity{BaseConnectivity<Connectivity>::reverse()}; } // creates t->s from s->t
 
 	Connectivity* transconOne(Connectivity*);
 	int getTargetValue(int i) { return target[i]; }
@@ -334,12 +337,12 @@ public:
 // reverse() return a new connectivity that is the reverse of the present one
 template<typename A, class Accessor>
 Connectivity
-BaseConnectivity<A,Accessor>::reverse(float * w) const
+BaseConnectivity<A,Accessor>::reverse() const
 {
 	// The reverse connectivity has the same size as the original
 	int size = csize(); //Accessor::getSize(static_cast<A*>(this));
 	int numTarget = getNumTarget(); //Accessor::getNumTarget(static_cast<A*>(this));
-	int *res_target = new int[numTarget];
+	std::vector<int> res_target(numTarget);
 
 	// Find the max of target
 	int maxtarg = -1; // PJSA
@@ -350,7 +353,7 @@ BaseConnectivity<A,Accessor>::reverse(float * w) const
 		for(int j = 0; j < nTg; ++j) maxtarg = std::max(tg[j],maxtarg);
 	}
 	int res_size = maxtarg+1;
-	int *res_pointer = new int[res_size+1];
+	std::vector<int> res_pointer(res_size+1);
 	for(i = 0; i <= res_size; ++i) res_pointer[i] = 0;
 
 	// Now do a first pass to fill in res_pointer
@@ -370,7 +373,8 @@ BaseConnectivity<A,Accessor>::reverse(float * w) const
 			res_target[--res_pointer[tg[j]]] = i;
 	}
 
-	return Connectivity(res_size, res_pointer, res_target, 1, w);
+
+	return Connectivity(res_size, std::move(res_pointer), std::move(res_target));
 }
 
 // Important NOTE: transcon cannot be called with the tc == this if tc is

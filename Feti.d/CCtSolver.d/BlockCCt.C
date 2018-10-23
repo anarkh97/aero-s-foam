@@ -425,7 +425,7 @@ BlockCCtSolver<Scalar>::recBlockCCtsolver(int iBlock)
         int recId = iBlock + blockToMpcCpu->numConnect();
         int sendId = blockToMpcCpu->offset(iBlock,iCPU);
         FSSubRecInfo<Scalar> rInfo = blockCCtPat->recData(sendId, recId);
-        blockCCtsolver[iBlock]->add(rInfo.data);
+        blockCCtsolver[iBlock]->add(rInfo.data.data());
       }
     }
   }

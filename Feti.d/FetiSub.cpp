@@ -453,6 +453,13 @@ FetiBaseSub::recvNumNeighbGrbm(FSCommPattern<int> *pat)
 	}
 }
 
+void
+FetiBaseSub::setNodeCommSize(FSCommStructure *pt, int d) const
+{
+	for(int iSub = 0; iSub < scomm->numNeighb; ++iSub)
+		pt->setLen(subNumber, scomm->subNums[iSub], scomm->sharedNodes->num(iSub)*d);
+}
+
 void FetiBaseSub::makeLocalToGroupMPC(Connectivity *groupToMPC)
 {
 	// PJSA: new version for multi-body mpc compatability
@@ -883,7 +890,7 @@ FetiSub<Scalar>::receiveG(FSCommPattern<Scalar> *rbmPat)
 		FSSubRecInfo<Scalar> rInfo = rbmPat->recData(scomm->neighbT(SComm::mpc, i), subNum());
 		int nRow = G[i]->numRow();  // number of potential contact dofs on interface with neighb
 		int nCol = neighbNumGroupGrbm[i];  //number of rbms for neighb's group
-		neighbG[i] = std::make_unique<GenFullM<Scalar>>(rInfo.data, nRow, nCol);
+		neighbG[i] = std::make_unique<GenFullM<Scalar>>(rInfo.data.data(), nRow, nCol);
 	}
 }
 
@@ -1865,7 +1872,7 @@ FetiSub<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, cons
 				if (subNum() != scomm->neighbT(SComm::fsi, i)) {
 					FSSubRecInfo<Scalar> sInfo = wiPat->getSendBuffer(subNum(), scomm->neighbT(SComm::fsi, i));
 					for (j = 0; j < numNeighbWIdof[i]; ++j) sInfo.data[j] = 0.0;
-					neighbKww->multAdd(localw.data(), sInfo.data, glToLocalWImap, neighbGlToLocalWImap[i]);
+					neighbKww->multAdd(localw.data(), sInfo.data.data(), glToLocalWImap, neighbGlToLocalWImap[i]);
 				} else {
 					neighbKww->multAdd(localw.data(), localw_copy.data(), glToLocalWImap);
 				}
@@ -5213,6 +5220,7 @@ FetiSub<Scalar>::gatherDOFList(FSCommPattern<int> *pat) {
 		isbneighb = false;
 		iswneighb = false;
 		for (iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
+			// XXXXX THere is uninitialized data involved here!!! TODO FIX
 			if (isCoupled && (FetiBaseSub::isWetInterfaceNode(sharedNodes[iSub][iNode]))) { // wet interface node
 				DofSet shared_wdofs =
 					FetiBaseSub::boundaryDOFs[iSub][iNode] & FetiBaseSub::wetInterfaceDofs[FetiBaseSub::wetInterfaceNodeMap[sharedNodes[iSub][iNode]]];

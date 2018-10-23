@@ -107,7 +107,7 @@ FetiSubCornerHandler::FetiSubCornerHandler(gl_sub_idx _glSubNum, int _nnodes, co
 
 FetiSubCornerHandler::FetiSubCornerHandler(FetiBaseSub *sub) :
 	FetiSubCornerHandler(sub->subNum(),
-	                     sub->cornerDofs.size(),
+	                     sub->getNodeToNode()->csize(),
 	                     sub->getNodeSet(),
 	                     *sub->getNodeToNode(),
 	                     *sub->getDsa(),
@@ -132,7 +132,8 @@ FetiSubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
 	for(int iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
 		FSSubRecInfo<int> rInfo = cpat->getSendBuffer(glSubNum, neighbSubs[iNeighb]);
 		for(int iNode = 0; iNode < sharedNodes.num(iNeighb); ++iNode) {
-			rInfo.data[iNode] = int(glSafe[sharedNodes[iNeighb][iNode]]);
+			lc_node_idx node = sharedNodes[iNeighb][iNode];
+			rInfo.data[iNode] = int(glSafe[node]);
 		}
 	}
 }
@@ -407,8 +408,15 @@ FetiSubCornerHandler::countAndMarkCornerCand(int *mync, int *totnc)
 	for(int iNode = 0; iNode < nnodes; ++iNode) weight[iNode] = 1;
 	for(int iNeighb = 0; iNeighb < nNeighb; ++iNeighb) {
 		if(neighbSubs[iNeighb] < glSubNum)
-			for(int iNode = 0; iNode < sharedNodes.num(iNeighb); ++iNode)
+			for(int iNode = 0; iNode < sharedNodes.num(iNeighb); ++iNode) {
+				if(sharedNodes[iNeighb][iNode] >= nnodes) {
+					std::cerr << "Shared node is out of bounds: " << sharedNodes[iNeighb][iNode] <<
+					" vs " << nnodes << std::endl;
+					throw  "Bad index";
+				}
+
 				weight[sharedNodes[iNeighb][iNode]] = 0;
+			}
 	}
 
 	if(gotEnough == false && solInfo.getFetiInfo().pickAnyCorner) { // pick dim corners

@@ -3,7 +3,7 @@
 #include <Utils.d/NodeSpaceArray.h>
 #include <Utils.d/MyComplex.h>
 #include <iostream>
-
+#include <gsl/span>
 class GeomState;
 class CoordSet;
 class SingleInfo;
@@ -158,6 +158,7 @@ class GenVector {
    void diff(GenVector<Scalar> &v1, GenVector<Scalar> &v2);
    void add(GenVector<Scalar>&, int);
    void add(Scalar *v);
+   void add(gsl::span<Scalar> v);
    void add(GenVector<Scalar>&, int*);
    void subtract(GenVector<Scalar>&, int);
    void zeroAll();
@@ -173,6 +174,7 @@ class GenVector {
    void setData(Scalar *v, int l, bool m) { len = l; d = v; myMemory = m; }
    void setData(const GenVector<Scalar> &v1); 
    void insertData(Scalar *v);
+   void insertData(gsl::span<Scalar> v);
    Scalar* getData() { return d; }
    void reset(int newlen, Scalar initialValue = 0.0);
    void resize(int newlen); // no-op if the sizes match, otherwise data is lost

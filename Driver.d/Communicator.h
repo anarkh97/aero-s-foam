@@ -132,7 +132,7 @@ public:
 template <class T>
 class FSSubRecInfo {
 public:
-	T *data = nullptr;
+	gsl::span<T> data;
 	int len = 0;
 	int leadDim = 0;
 	int nvec = 0;
@@ -212,7 +212,7 @@ protected:
 	T **crossRecvBuffer;
 
 public:
-	FSCommPattern(FSCommunicator *communicator, Connectivity *cpuToSub, int myCPU = 0, Mode = Share, Symmetry = Sym);
+	FSCommPattern(FSCommunicator *communicator, const Connectivity *cpuToSub, int myCPU = 0, Mode = Share, Symmetry = Sym);
 	// FSCommPattern() {};
 	~FSCommPattern();
 	void finalize(); // complete the internal setup
@@ -235,7 +235,7 @@ protected:
 
 
 template <class T>
-FSCommPattern<T>::FSCommPattern(FSCommunicator *_communicator, Connectivity *cpuToSub, int _myCPU, Mode _mode, Symmetry _sym)
+FSCommPattern<T>::FSCommPattern(FSCommunicator *_communicator, const Connectivity *cpuToSub, int _myCPU, Mode _mode, Symmetry _sym)
 {
 	communicator = _communicator;
 	myCPU = _myCPU;
@@ -406,14 +406,14 @@ FSCommPattern<T>::finalize()
 			for(j = 0; j < sendConnect->num(i); ++j) {
 				int channel = (*sendConnect)[i][j];
 				int msgLen = sRecInfo[channel].len*sRecInfo[channel].nvec;
-				sRecInfo[channel].data = crBuff;
+				sRecInfo[channel].data = {crBuff, msgLen};
 				crBuff += msgLen;
 			}
 			crossRecvBuffer[i] = crBuff;
 			for(j = 0; j < recvConnect->num(i); ++j) {
 				int channel = (*recvConnect)[i][j];
 				int msgLen = sRecInfo[channel].len*sRecInfo[channel].nvec;
-				sRecInfo[channel].data = crBuff;
+				sRecInfo[channel].data = {crBuff, msgLen};
 				crBuff += msgLen;
 			}
 		}
@@ -429,7 +429,7 @@ FSCommPattern<T>::finalize()
 	T *cBuf = localDBuffer;
 	for(i = 0; i < numChannels; ++i)
 		if(numCPUs == 1 || channelToCPU[i] < 0) {
-			sRecInfo[i].data = cBuf;
+			sRecInfo[i].data = {cBuf, sRecInfo[i].len * sRecInfo[i].nvec};
 			cBuf += sRecInfo[i].len * sRecInfo[i].nvec;
 		}
 }
@@ -450,7 +450,7 @@ FSCommPattern<T>::recData(int glFrom, int glTo)
 {
 	int cpuID = (*subToCPU)[glFrom][0];
 	if(cpuID == myCPU) cpuID = -1;
-	int channel = channelMap.find(Triplet(glFrom, glTo, cpuID))->second;
+	int channel = channelMap.at(Triplet(glFrom, glTo, cpuID));
 	FSSubRecInfo<T> ret = sRecInfo[channel];
 	if(mode != Share) ret.leadDim = ret.len;
 	return ret;
@@ -465,7 +465,7 @@ FSCommPattern<T>::sendData(int glFrom, int glTo, T *data)
 	int channel = channelMap.find(Triplet(glFrom, glTo, cpuID))->second;
 
 	if((mode == Share) && ((numCPUs == 1) || (channelToCPU[channel] < 0))) {
-		sRecInfo[channel].data = data;
+		sRecInfo[channel].data = {data, sRecInfo[channel].len};
 		return;
 	}
 	// For CopyOnSend, or non-local communication copy the data into the right buffer
@@ -485,7 +485,7 @@ FSCommPattern<T>::getSendBuffer(int glFrom, int glTo)
 	int channel = channelMap.find(Triplet(glFrom, glTo, cpuID))->second;
 	FSSubRecInfo<T> chObj = sRecInfo[channel];
 	if(mode == Share) // Check if we have a send buffer. If not, return NULL
-		chObj.data = NULL;
+		chObj.data = gsl::span<T>{};
 	return chObj;
 }
 

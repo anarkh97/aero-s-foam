@@ -702,6 +702,16 @@ GenVector<Scalar>::add(Scalar *v)
 
 template<class Scalar>
 void
+GenVector<Scalar>::add(gsl::span<Scalar> v)
+{
+    int irow;
+    for(irow = 0; irow < len; ++irow) {
+        d[irow] += v[irow];
+    }
+}
+
+template<class Scalar>
+void
 GenVector<Scalar>::add(GenVector<Scalar> &vec, int *rows)
 {
  int size = vec.size();
@@ -722,6 +732,14 @@ GenVector<Scalar>::insertData(Scalar *v)
   }
 }
 
+template<class Scalar>
+void
+GenVector<Scalar>::insertData(gsl::span<Scalar> v)
+{
+    for(int irow = 0; irow < len; ++irow) {
+        d[irow] = v[irow];
+    }
+}
 
 
 template<class Scalar>

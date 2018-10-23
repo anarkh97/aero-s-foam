@@ -436,7 +436,8 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 			Connectivity &sharedNodes = *(this->subdomains[i]->getSComm()->sharedNodes);
 			int iEdgeN = 0;
 			for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb) {
-				if(this->subdomains[i]->isEdgeNeighbor(iNeighb)) {
+				if(this->subdomains[i]->isEdgeNeighbor(iNeighb)
+				   && this->subdomains[i]->edgeDofs[iNeighb].count() != 0) {
 					int edgeNum = augOffset + (*(this->subToEdge))[s][iEdgeN++];
 					if (nodes.find(edgeNum) == nodes.end()) {
 						xyz.setZero();
@@ -444,10 +445,8 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 							xyz += v(*subnodes[node]);
 						xyz /= sharedNodes.num(iNeighb);
 						nodes.insert({ edgeNum, xyz });
-
-						glSubToAllCoarse.emplace_back( s, edgeNum );
-						glSubToAllCoarse.emplace_back( this->subdomains[i]->getSComm()->subNums[iNeighb], edgeNum );
 					}
+					glSubToAllCoarse.emplace_back( s, edgeNum );
 				}
 			}
 		}

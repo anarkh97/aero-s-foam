@@ -141,7 +141,11 @@ formMatrix(const std::vector<SuperElement<S>> &allElements, const std::map<gl_no
 				for(auto nd: glToLocNodes)
 					std::cerr << " ( " << nd.first << " : " << nd.second << ")";
 				std::cerr << std::endl;
-				throw std::logic_error("Could not find node");
+				std::cerr << "I was working on global " << elNum << " which is local " << subIdx << std::endl;
+				for(auto gN : element.nodes)
+					std:: cerr << " " << gN;
+				std::cerr << std::endl;
+				throw std::logic_error("Could not find node in formMatrix");
 			}
 			dsa.mark(glToLocNodes.at(element.nodes[i]), element.dofs[i]);
 		}
@@ -266,7 +270,19 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
 		std::set<gl_node_idx> glNodes { glSubNodes.begin(), glSubNodes.end() };
 		std::cout << "metaSubToNodes has " << glSubNodes.size() << " for " << glSub << std::endl;
 
-		std::tie(neighbors, glToLocNodes, subToLocNodes) = subSharedNodes(glSub, metaSubToNode[glSub], nodeToMetaSub);
+		std::cout << "Original subs and nodes:" << std::endl;
+		for(auto sub : metaDec[glSub]) {
+			std::cout << sub << " has nodes:";
+			for(auto nd: subToNode[sub])
+				std::cout << " " << nd;
+			std::cout << " or";
+			for(auto nd: superElems[sub].nodes)
+				std::cout << " " << nd;
+			std::cout <<std::endl;
+		}
+
+		std::tie(neighbors, glToLocNodes, subToLocNodes) =
+			subSharedNodes(glSub, metaSubToNode[glSub], nodeToMetaSub);
 		int nn = static_cast<int>(neighbors.size());
 		auto sComm = std::make_unique<SComm>(nn, std::move(neighbors), std::vector<lc_sub_idx>{},
 		                         std::make_unique<Connectivity>(std::move(subToLocNodes)));
@@ -432,6 +448,14 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 		auto &sub = *(this->subdomains[iSub]);
 		auto globalSubIndex = sub.subNum();
 		auto edges = (*(this->subToEdge))[globalSubIndex];
+		if(globalSubIndex == 0) {
+			int iNeighb = 0;
+			std::cout << "sub " << globalSubIndex << " has edges:";
+			for(auto gn : edges)
+				std::cout << " " << gn <<"(" << sub.isEdgeNeighbor(iNeighb++)<<")";
+			std::cout << std::endl;
+		}
+
 		std::vector<gl_num_t> coarsenodes = subSuperNodes(sub, subToCorner[globalSubIndex], augOffset, edges,
 			fetiInfo->augmentimpl == FetiInfo::Primal);
 		// Get the DOFs
@@ -461,31 +485,41 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 
 	for(int i = 0; i < this->nsub; i++) {
 		Eigen::Vector3d xyz;
-		int s = this->subdomains[i]->subNum();
+		gl_sub_idx glSub = this->subdomains[i]->subNum();
 		int numCorner = this->subdomains[i]->numCorners();
 		const auto &localCornerNodes = this->subdomains[i]->getLocalCornerNodes();
 		for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
 			auto lcn = localCornerNodes[iCorner];
 			const Node *node = this->subdomains[i]->getNodeSet()[localCornerNodes[iCorner]];
-			int cornerNum = subToCorner[s][iCorner];
+			int cornerNum = subToCorner[glSub][iCorner];
 			nodes.insert({cornerNum, v(*node)});
 		}
 		if (fetiInfo->augmentimpl == FetiInfo::Primal) {
+			if(glSub == 0) {
+				int iNeighb = 0;
+				auto &sub = *this->subdomains[i];
+				std::cout << "Now sub " << glSub << " has edges:";
+				for(auto gn : (*(this->subToEdge))[glSub])
+					std::cout << " " << gn << " (" << sub.isEdgeNeighbor(iNeighb++)<<")";
+				std::cout << std::endl;
+			}
 			const CoordSet &subnodes = this->subdomains[i]->getNodeSet();
 			Connectivity &sharedNodes = *(this->subdomains[i]->getSComm()->sharedNodes);
 			int iEdgeN = 0;
 			for(int iNeighb = 0; iNeighb < this->subdomains[i]->numNeighbors(); ++iNeighb) {
-				if(this->subdomains[i]->isEdgeNeighbor(iNeighb)
-				   && this->subdomains[i]->edgeDofs[iNeighb].count() != 0) {
-					int edgeNum = augOffset + (*(this->subToEdge))[s][iEdgeN++];
-					if (nodes.find(edgeNum) == nodes.end()) {
-						xyz.setZero();
-						for(auto node : sharedNodes[iNeighb])
-							xyz += v(*subnodes[node]);
-						xyz /= sharedNodes.num(iNeighb);
-						nodes.insert({ edgeNum, xyz });
+				if(this->subdomains[i]->isEdgeNeighbor(iNeighb)) {
+					if (this->subdomains[i]->edgeDofs[iNeighb].count() != 0) {
+						int edgeNum = augOffset + (*(this->subToEdge))[glSub][iEdgeN];
+						if (nodes.find(edgeNum) == nodes.end()) {
+							xyz.setZero();
+							for (auto node : sharedNodes[iNeighb])
+								xyz += v(*subnodes[node]);
+							xyz /= sharedNodes.num(iNeighb);
+							nodes.insert({edgeNum, xyz});
+						}
+						glSubToAllCoarse.emplace_back(glSub, edgeNum);
 					}
-					glSubToAllCoarse.emplace_back( s, edgeNum );
+					++iEdgeN;
 				}
 			}
 		}
@@ -508,14 +542,16 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 		auto allCorners = subToAllCoarseNodes[ globalSubIndex ];
 		// cornerNodes comes from nodes of superElements[iSub] <- subSuperNodes : loop over neightbors, no symmetry
 		const auto &cornerNodes = superElements[iSub].nodes;
-		if(allCorners.size() != cornerNodes.size()) {
-			std::cout << iSub << " has incorrect set of nodes: " << allCorners.size() << " vs " << cornerNodes.size() << std::endl;
+		std::set<gl_node_idx> ac(allCorners.begin(), allCorners.end());
+		std::set<gl_node_idx> cn(cornerNodes.begin(), cornerNodes.end());
+		if(ac != cn) {
+			std::cout << iSub << " has incorrect set of nodes: " << ac.size() << " vs " << cn.size() << std::endl;
 			static int count = 0;
 			if (count++ < 3) {
-				for (auto n: allCorners)
+				for (auto n: ac)
 					std::cout << " " << n;
 				std::cout << std::endl;
-				for (auto n: cornerNodes)
+				for (auto n: cn)
 					std::cout << " " << n;
 				std::cout << std::endl;
 			}

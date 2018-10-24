@@ -127,7 +127,6 @@ formMatrix(const std::vector<SuperElement<S>> &allElements, const std::map<gl_no
            gsl::span<const gl_sub_idx> elems, const int *glSubToLoc)
 {
 	DofSetArray dsa(glToLocNodes.size());
-	std::cout << "I have been passed " << glToLocNodes.size() << "  nodes." << std::endl;
 
 	for (auto elNum : elems) {
 		lc_sub_idx subIdx = glSubToLoc[elNum];
@@ -152,9 +151,6 @@ formMatrix(const std::vector<SuperElement<S>> &allElements, const std::map<gl_no
 	}
 	dsa.finish();
 	Connectivity eToN( SetAccess<SuperElement<S>> { elems, allElements, glToLocNodes } );
-	auto &atg = eToN.allTargets();
-	auto maxIt = std::max_element(atg.begin(), atg.end());
-	std::cout << "Max target of eToN is " << *maxIt << std::endl;
 
 	auto nToE = eToN.reverse();
 	auto nToN = nToE.transcon(eToN);
@@ -266,21 +262,6 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
 		std::map<gl_node_idx , lc_node_idx > glToLocNodes;
 		Connectivity subToLocNodes;
 
-		auto glSubNodes = metaSubToNode[glSub];
-		std::set<gl_node_idx> glNodes { glSubNodes.begin(), glSubNodes.end() };
-		std::cout << "metaSubToNodes has " << glSubNodes.size() << " for " << glSub << std::endl;
-
-		std::cout << "Original subs and nodes:" << std::endl;
-		for(auto sub : metaDec[glSub]) {
-			std::cout << sub << " has nodes:";
-			for(auto nd: subToNode[sub])
-				std::cout << " " << nd;
-			std::cout << " or";
-			for(auto nd: superElems[sub].nodes)
-				std::cout << " " << nd;
-			std::cout <<std::endl;
-		}
-
 		std::tie(neighbors, glToLocNodes, subToLocNodes) =
 			subSharedNodes(glSub, metaSubToNode[glSub], nodeToMetaSub);
 		int nn = static_cast<int>(neighbors.size());
@@ -302,11 +283,6 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
 			coordSet.nodeadd(globLoc.second, nodes.at(globLoc.first).data());
 		}
 		FetiInfo fetiInfo; // TODO get something set here.
-		auto &sn = *sComm->sharedNodes;
-		int nMax = -1;
-		for( auto n : sn.allTargets())
-			nMax = std::max(n, nMax);
-		std::cout << "Node max for " << glSub << " is " << nMax <<" or size of list " << glToLocNodes.size() << std::endl;
 		superSubs.push_back(
 			std::make_unique<MultiLevel::MLSub<Scalar>>(glSub,
 			                                            fetiInfo,
@@ -391,7 +367,6 @@ selectCorners(std::vector<std::unique_ptr<T>> &subs, FSCommunicator *communicato
 	for(auto &sub: subs) {
 		auto &dsa = *sub->getDsa();
 		auto &c_dsa = *sub->get_c_dsa();
-		std::cout << "Sub " << sub->subNum() << " says it has " << sub->getNodeToNode()->csize() << " nodes." << std::endl;
 		cornerHandlers.emplace_back(
 			new FetiSubCornerHandler(sub.get())
 			);
@@ -448,13 +423,6 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 		auto &sub = *(this->subdomains[iSub]);
 		auto globalSubIndex = sub.subNum();
 		auto edges = (*(this->subToEdge))[globalSubIndex];
-		if(globalSubIndex == 0) {
-			int iNeighb = 0;
-			std::cout << "sub " << globalSubIndex << " has edges:";
-			for(auto gn : edges)
-				std::cout << " " << gn <<"(" << sub.isEdgeNeighbor(iNeighb++)<<")";
-			std::cout << std::endl;
-		}
 
 		std::vector<gl_num_t> coarsenodes = subSuperNodes(sub, subToCorner[globalSubIndex], augOffset, edges,
 			fetiInfo->augmentimpl == FetiInfo::Primal);
@@ -495,14 +463,6 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 			nodes.insert({cornerNum, v(*node)});
 		}
 		if (fetiInfo->augmentimpl == FetiInfo::Primal) {
-			if(glSub == 0) {
-				int iNeighb = 0;
-				auto &sub = *this->subdomains[i];
-				std::cout << "Now sub " << glSub << " has edges:";
-				for(auto gn : (*(this->subToEdge))[glSub])
-					std::cout << " " << gn << " (" << sub.isEdgeNeighbor(iNeighb++)<<")";
-				std::cout << std::endl;
-			}
 			const CoordSet &subnodes = this->subdomains[i]->getNodeSet();
 			Connectivity &sharedNodes = *(this->subdomains[i]->getSComm()->sharedNodes);
 			int iEdgeN = 0;
@@ -533,31 +493,6 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 
 	Connectivity subToAllCoarseNodes = Connectivity::fromLinkRange(glSubToAllCoarse);
 
-	//=======================DEBUG CHECK CONSISTENCY OF glSubToAllCoarse and superElements ======================
-	for(int iSub = 0; iSub < this->nsub; ++iSub) {
-		// Get the node numbers.
-		auto &sub = *(this->subdomains[iSub]);
-		auto globalSubIndex = sub.subNum();
-		// allCorners comes from subToAllCoarseNodes <- glSubToAllCoarse <- loop over: [ sub; neighbors ] symmetrized
-		auto allCorners = subToAllCoarseNodes[ globalSubIndex ];
-		// cornerNodes comes from nodes of superElements[iSub] <- subSuperNodes : loop over neightbors, no symmetry
-		const auto &cornerNodes = superElements[iSub].nodes;
-		std::set<gl_node_idx> ac(allCorners.begin(), allCorners.end());
-		std::set<gl_node_idx> cn(cornerNodes.begin(), cornerNodes.end());
-		if(ac != cn) {
-			std::cout << iSub << " has incorrect set of nodes: " << ac.size() << " vs " << cn.size() << std::endl;
-			static int count = 0;
-			if (count++ < 3) {
-				for (auto n: ac)
-					std::cout << " " << n;
-				std::cout << std::endl;
-				for (auto n: cn)
-					std::cout << " " << n;
-				std::cout << std::endl;
-			}
-		}
-	}
-	//======================= END OF DEBUG CHECK CONSISTENCY OF glSubToAllCoarse and superElements ==============
 //	this->fetiCom->sync();
 //	std::cout << "Full " << subToAllCoarseNodes.numConnect() << " vs " << subToCorner.numConnect() << std::endl;
 //	this->fetiCom->sync();

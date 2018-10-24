@@ -232,8 +232,9 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, int _glNumSub, GenSubDomain<
  if(domain->solInfo().isCoupled) 
    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::scaleAndSplitKww);
 
- if(fetiInfo->augment == FetiInfo::WeightedEdges)
+ if(fetiInfo->augment == FetiInfo::WeightedEdges) {
    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // W*Q
+ }
 
  // MPCs 
  mpcPrecon = false; 

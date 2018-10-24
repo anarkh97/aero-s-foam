@@ -28,6 +28,7 @@ IsoParamTriSommer::IsoParamTriSommer(int o, int *nodenums, Element *_el, int ety
  for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
  setElementType(etype);
  el = _el;
+ sFlag = false;
  soundSpeed = 0.0;
 }
 
@@ -38,6 +39,7 @@ IsoParamTriSommer* IsoParamTriSommer::clone() {
  IsoParamTriSommer *se = new IsoParamTriSommer(ordersq,nn,el);
  se->el2 = el2;
  se->dom = dom;
+ se->sFlag = sFlag;
  se->soundSpeed = soundSpeed;
  return se;
 }
@@ -382,12 +384,22 @@ void IsoParamTriSommer::wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd)
    return;
  }
 
+ if (!sFlag)
  for(i=0;i<ordersq;i++) {
    LMPCTerm lmpct1(nn[i],0, -d[i*ordersq+j] );
    lmpc->addterm(&lmpct1);
    LMPCTerm lmpct2(nn[i],1, -d[ordersq*ordersq+ i*ordersq+j] );
    lmpc->addterm(&lmpct2);
    LMPCTerm lmpct3(nn[i],2, -d[2*ordersq*ordersq+ i*ordersq+j] );
+   lmpc->addterm(&lmpct3);
+ }
+ else
+ for(i=0;i<ordersq;i++) {
+   LMPCTerm lmpct1(nn[i],0, 0.0);
+   lmpc->addterm(&lmpct1);
+   LMPCTerm lmpct2(nn[i],1, 0.0);
+   lmpc->addterm(&lmpct2);
+   LMPCTerm lmpct3(nn[i],2, 0.0);
    lmpc->addterm(&lmpct3);
  }
 }

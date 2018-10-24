@@ -102,6 +102,7 @@ BaseSub::initHelm(Domain &dom)
   curvatureConst2 = dom.curvatureConst2;
   numFFPDirections = dom.numFFPDirections;
 
+
   if(dom.solInfo().isCoupled) { // check if subdomain is mixed fluid & structure
     int nFluid = 0, nStruct = 0;
     for(int i=0; i<numele; ++i) {

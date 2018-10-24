@@ -600,7 +600,15 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
   std::cerr << std::endl << "--Reading HWIBO" << std::endl;
 #endif
   std::list<SommerElement *> *wetlist = sower.template read<SommerDataIO<WET_TYPE> >(*f, subNum, glNums);
-  if(wetlist)  subd->setWet(wetlist);
+  if(wetlist)  {
+    subd->setWet(wetlist);
+    domain->solInfo().isCoupled = true;
+    domain->solInfo().isMatching = true;
+    // RT - this is a duplicate call but it is needed because the above flags
+    // are not set on the first call - alternative is to move initHelm out of
+    // the BaseSub constructor
+    subd->initHelm(*domain);
+  }
   if(glNums) {delete[] glNums; glNums = 0; } //not used
 #ifdef SOWER_DEBUG
   if(wetlist) {

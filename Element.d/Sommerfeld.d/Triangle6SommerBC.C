@@ -26,6 +26,9 @@ Triangle6SommerBC::Triangle6SommerBC(int n1, int n2, int n3, int n4, int n5, int
   nn[4] = n5; 
   nn[5] = n6;
   setElementType(etype);
+ sFlag = false;
+ soundSpeed = 0.0;
+
 }
 
 
@@ -34,6 +37,7 @@ Triangle6SommerBC* Triangle6SommerBC::clone() {
                                                nn[3],nn[4],nn[5],el);
  se->el2 = el2;
  se->dom = dom;
+ se->sFlag = sFlag;
  return se;
 }
 

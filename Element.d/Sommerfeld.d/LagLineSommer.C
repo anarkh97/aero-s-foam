@@ -15,6 +15,8 @@ LagLineSommer::LagLineSommer(int o, int *nodenums, Element *_el) {
  int i;
  for(i=0;i<order;i++) nn[i] = nodenums[i];
  el = _el;
+ sFlag = false;
+ soundSpeed = 0.0;
 }
 
 
@@ -22,6 +24,8 @@ LagLineSommer* LagLineSommer::clone() {
  LagLineSommer *se = new LagLineSommer(order,nn,el);
  se->el2 = el2;
  se->dom = dom;
+ se->sFlag = sFlag;
+ se->soundSpeed = soundSpeed;
  return se;
 }
 

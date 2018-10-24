@@ -28,6 +28,7 @@ public:
 	Element *el2;
         Domain *dom;
         complex<double> soundSpeed; // for wet scattering rhs
+        bool sFlag;
         SommerElement(Element* _el=0, Domain* _dom=0) { el = _el; dom = _dom; 
                                                         el2 = 0; iEle = -1; } //HB
         virtual int numNodes()=0;

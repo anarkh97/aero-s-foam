@@ -4679,8 +4679,13 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain, int nCp
   delete arbToE;
 
   // HWIBO
-  SommerPair wetPair = std::make_pair(domain->numWet,(domain->wet).yield());
-  Connectivity *wetToE = new Connectivity(&domain->getElementSet(), wetPair.first, wetPair.second);
+  // RT: Duplicate the wet elements so they can be sent to both sides
+  ResizeArray<SommerElement *> wet2(0);
+  for(int i=0;i<domain->numWet;i++) wet2[i] = domain->wet[i];
+  for(int i=0;i<domain->numWet;i++) wet2[i+domain->numWet] = domain->wet[i]->clone();
+ 
+  SommerPair wetPair = std::make_pair(2*domain->numWet,wet2.yield());
+  Connectivity *wetToE = new Connectivity(&domain->getElementSet(), domain->numWet, wetPair.second,true);
   sower.addChildToParentData<SommerDataIO<WET_TYPE> >(WET_TYPE, ELEMENTS_TYPE, 0, &wetPair, wetToE);
   delete wetToE;
 

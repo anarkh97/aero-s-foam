@@ -3836,6 +3836,7 @@ void Domain::computeMatchingWetInterfaceLMPC() {
    }
  }
 
+// fprintf(stderr," ... In computeMatchingWetInterfaceLMPC(Domain.C), numWet is %d, numFSI is %d ...\n", numWet,numFSI);
  //fprintf(stderr," ... numFSI is %d ...\n", numFSI);
 
  tWI += getTime();

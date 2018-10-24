@@ -856,10 +856,14 @@ class SommerDataIO
       if(index < data->first) {
 	SommerElement* so = (data->second)[index];
         int elType = so->getElementType();//not sure it works....
+        int sFlag = so->sFlag;
+        complex<double> ss = so->soundSpeed;
         int numN = so->numNodes();
         int* nodes = so->getNodes();
 	file.write(&curObjID, 1);
         file.write(&elType, 1);
+        file.write(&sFlag, 1);
+        file.write(&ss, 1);
         file.write(&numN, 1);
         file.write(nodes, numN);
       }
@@ -883,7 +887,11 @@ std::cerr << "Sower.h, readData, SommerDataIO" << std::endl;
 #endif
       int etype;
       int nNodes;
+      int sflag;
+      complex<double> ss;
       s->read(&etype,1,file);
+      s->read(&sflag,1,file);
+      s->read(&ss,1,file);
       s->read(&nNodes,1,file);
       int* n = new int[nNodes];
       s->readNum(NODES_TYPE, n, nNodes, file);
@@ -893,24 +901,38 @@ std::cerr << "Sower.h, readData, SommerDataIO" << std::endl;
       {
         case 1:
           ele = new LineSommerBC(n[0], n[1]);
+          ele->sFlag = sflag;
+          ele->soundSpeed = ss;
           break;
         case 2:
           ele = new Line2SommerBC(n[0], n[1], n[2]);
+          ele->sFlag = sflag;
+          ele->soundSpeed = ss;
           break;
         case 3:
           ele = new TriangleSommerBC(n[0], n[1], n[2]);
+          ele->sFlag = sflag;
+          ele->soundSpeed = ss;
           break;
         case 4:
           ele = new QuadSommerBC(n[0], n[1], n[2], n[3]);
+          ele->sFlag = sflag;
+          ele->soundSpeed = ss;
           break;
         case 6:
           ele = new Triangle6SommerBC(n[0], n[1], n[2], n[3], n[4], n[5]);
+          ele->sFlag = sflag;
+          ele->soundSpeed = ss;
           break;
         case 10:
           ele = new IsoParamQuadSommer(nNodes,n);
+          ele->sFlag = sflag;
+          ele->soundSpeed = ss;
           break;
         case 11:
           ele = new IsoParamTriSommer(nNodes,n);
+          ele->sFlag = sflag;
+          ele->soundSpeed = ss;
           break;
         default:
           fprintf(stderr,"  Sower.h: etype = %d not implemented (yet ?)\n",etype);
@@ -931,7 +953,7 @@ class MatIO
 #endif
       if(index < sProps->first) {
 	StructProp sp = (*(sProps->second))[index];
-	double d[28+8];
+	double d[28+10];
 	d[0] = sp.E;
 	d[1] = sp.A;
 	d[2] = sp.nu;
@@ -970,9 +992,11 @@ class MatIO
         d[33] = sp.fp.Sx;
         d[34] = sp.fp.Sy;
         d[35] = sp.fp.Sz;
+        d[36] = real(sp.soundSpeed);
+        d[37] = imag(sp.soundSpeed);
  
 	file.write(&curObjID, 1);
-	file.write(d, 28+8);
+	file.write(d, 28+10);
       }
       else {
         std::cerr << "out of range" << std::endl;
@@ -995,8 +1019,8 @@ class MatIO
 std::cerr << "Sower.h, readData, MatIO" << std::endl;
 #endif
       StructProp sp;
-      double d[28+8];
-      s->read(d, 28+8, file);
+      double d[28+10];
+      s->read(d, 28+10, file);
       
       obj->first++;
 
@@ -1038,6 +1062,7 @@ std::cerr << "Sower.h, readData, MatIO" << std::endl;
       sp.fp.Sx = d[33];
       sp.fp.Sy = d[34];
       sp.fp.Sz = d[35];
+      sp.soundSpeed = complex<double>(d[36],d[37]);
       (*(obj->second))[localIndex]=sp; 
     }
 };

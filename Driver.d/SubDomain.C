@@ -5033,7 +5033,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub, bool isThermalSub,
 
     // compute the wave numbers for EdgeWs augmentation
     double k_pSolid = 0.0, k_sSolid = 0.0, k_pShell = 0.0, k_sShell = 0.0, k_pFluid = 0.0;
-    //if(!isFluidSub && (numDirec > 0)) {
+    //if(!isFluidSub && (numDirec > 0)) {}
     if(numDirec > 0) { // support for multiple fluids
       if(solInfo().solvercntl->fetiInfo.waveMethod == FetiInfo::uniform) {
         k_pSolid = k_pShell = k_p;

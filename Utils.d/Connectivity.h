@@ -119,7 +119,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         Connectivity() { size = 0; numtarget = 0; pointer = 0; target = 0; weight = 0; removeable = 1; }
         template <class A> Connectivity(SetAccess<A> &sa);
         Connectivity(Elemset *);
-        Connectivity(Elemset *, int, SommerElement**);
+        Connectivity(Elemset *, int, SommerElement**, bool wetFlag = false);
         Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
         Connectivity(int _size, int *count);
         Connectivity(int _size, int count);

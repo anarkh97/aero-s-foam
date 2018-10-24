@@ -11,6 +11,9 @@ Line2SommerBC::Line2SommerBC(int n1, int n2, int n3, Element *_el, int etype)
 	nn[2] = n3;
         el = _el;
         setElementType(etype);
+ sFlag = false;
+ soundSpeed = 0.0;
+
 }
 
 
@@ -18,6 +21,8 @@ Line2SommerBC* Line2SommerBC::clone() {
  Line2SommerBC *se = new Line2SommerBC(nn[0],nn[1],nn[2],el);
  se->el2 = el2;
  se->dom = dom;
+ se->sFlag = sFlag;
+ se->soundSpeed = soundSpeed;
  return se;
 }
 
@@ -165,10 +170,18 @@ void Line2SommerBC::wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd)
    return;
  }
 
+ if (!sFlag)
  for(i=0;i<3;i++) {
    LMPCTerm lmpct1(nn[i],0, -d[i*3+j] );
    lmpc->addterm(&lmpct1);
    LMPCTerm lmpct2(nn[i],1, -d[9+ i*3+j] );
+   lmpc->addterm(&lmpct2);
+ }
+ else
+ for(i=0;i<3;i++) {
+   LMPCTerm lmpct1(nn[i],0, 0.0);
+   lmpc->addterm(&lmpct1);
+   LMPCTerm lmpct2(nn[i],1, 0.0);
    lmpc->addterm(&lmpct2);
  }
 }

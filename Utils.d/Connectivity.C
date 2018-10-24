@@ -126,46 +126,89 @@ Connectivity::Connectivity(Elemset *els, Connectivity *nodeToElem)
  }
 }
 
-Connectivity::Connectivity(Elemset*els, int numSom, SommerElement **som)
+Connectivity::Connectivity(Elemset*els, int numSom, SommerElement **som,
+                           bool wetFlag)
 {
   removeable=1;
   int i, j, k;
   weight = (float*) 0;
 
-  size = numSom;
+  size = wetFlag ? 2*numSom : numSom;
 
-  pointer = new int[numSom+1];
-  for (i = 0 ; i < numSom+1 ; i++)
+  pointer = new int[size+1];
+  for (i = 0 ; i < size+1 ; i++)
     pointer[i] = i;
-  numtarget = numSom;
 
-  target = new int[numSom];
+  numtarget = size;
+  target = new int[numtarget];
 
   int nE = els->last();
   Connectivity *eToN = new Connectivity(els);
   Connectivity *nToE = eToN->reverse();
   int *eleCount = new int[nE];
-  int nno, no, el, nei;
 
   for (i = 0 ; i < numSom ; i++) {
-    el = -1;
+    int el = -1;
+    int el2 = -1;
     for (j = 0 ; j < nE ; j++) eleCount[j] = 0;
-    //find the adjascent neighbour: el
-    nno = som[i]->numNodes();
+    //find the adjacent neighbour: el
+    int nno = som[i]->numNodes();
     for (j = 0 ; j < nno ; j++) {
-      no = som[i]->getNode(j);
+      int no = som[i]->getNode(j);
       for (k = 0 ; k < nToE->num(no) ; k++) {
-        nei = (*nToE)[no][k];
+        int nei = (*nToE)[no][k];
         eleCount[nei]++;
         if (eleCount[nei]==nno) {
-          el = nei;
-          continue;
+          if (el == -1) {
+            el = nei;
+          }
+          else if (el2 == -1) {
+            el2 = nei;
+            continue;
+          }
         }
       }
-      if (el) continue;
+      if (el>=0 && el2>=0) continue;
     }
-    if (el==-1) fprintf(stderr,"Connectivity.C, No adjascent element\n");
-    target[i] = el;
+    if (!wetFlag) {
+      if (el==-1) {
+           fprintf(stderr,
+          "Connectivity.C: No adjacent element to the Sommerfeld element.\n");
+           exit(-1);
+      }
+      target[i] = el;
+    }
+    else {
+      if (el==-1 || el2 == -1)  {
+        fprintf(stderr,
+       "Connectivity.C: No adjacent elements to the wet Sommerfeld element.\n");
+        exit(-1);
+      }
+      if ((*els)[el]->isFluidElement()) {
+        target[i] = el;
+        target[i+numSom] = el2;
+      // RT: Set soundSpeed in the wet elements
+        som[i]->soundSpeed  = (*els)[el]->getProperty()->soundSpeed;
+        som[i+numSom]->soundSpeed  = som[i]->soundSpeed;
+      // RT: Set structure adjacent flag
+        som[i]->sFlag = false;
+        som[i+numSom]->sFlag = true;
+      }
+      else if ((*els)[el2]->isFluidElement()) {  // el2 is a fluid Element
+        target[i] = el2;
+        target[i+numSom] = el;
+      // RT: Set soundSpeed in the wet elements
+        som[i]->soundSpeed  = (*els)[el2]->getProperty()->soundSpeed;
+        som[i+numSom]->soundSpeed  = som[i]->soundSpeed;
+      // RT: Set structure adjacent flag
+        som[i]->sFlag = false;
+        som[i+numSom]->sFlag = true;
+      }
+      else {
+        fprintf(stderr,
+       "Connectivity.C: No adjacent fluid element to the wet Sommerfeld element.\n");
+      }
+    }
   }
   delete [] eleCount; eleCount = NULL;
 }

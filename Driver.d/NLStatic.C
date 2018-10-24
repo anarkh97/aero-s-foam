@@ -2627,12 +2627,13 @@ Domain::getElementForces(GeomState &geomState, Corotator **allCorot,
 // ... CALCULATE INTERNAL FORCE VALUE FOR EACH ELEMENT
 
     elemNodeTemps.zero();
-    if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
-    for(int iNode = 0; iNode < packedEset[iele]->numNodes(); ++iNode) {
-      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-      else
-        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+    if(packedEset[iele]->getProperty()) {
+      for(int iNode = 0; iNode < packedEset[iele]->numNodes(); ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
     }
 
     packedEset[iele]->getIntrnForce(*elstress,nodes,elDisp->data(),forceIndex,elemNodeTemps.data());
@@ -2646,6 +2647,8 @@ Domain::getElementForces(GeomState &geomState, Corotator **allCorot,
 
 // ... PRINT THE ELEMENT FORCES TO A FILE
    geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
+
+   delete [] nodeNumbers;
 }
 
 // Nonlinear restart file
@@ -2749,12 +2752,18 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
      int readSize = read(fn, &restartTIndex, sizeof(int));
      if(readSize != sizeof(int))
        fprintf(stderr," *** ERROR: Reading restart file time index\n");
-     sinfo.initialTimeIndex = restartTIndex;
+     if(strcmp(cinfo->FlagRST,"new") == 0)
+       sinfo.initialTimeIndex = 0;
+     else
+       sinfo.initialTimeIndex = restartTIndex;
 
      readSize = read(fn, &restartT, sizeof(double));
      if(readSize != sizeof(double))
        fprintf(stderr," *** ERROR: Reading restart file time\n");
-     sinfo.initialTime = restartT;
+     if(strcmp(cinfo->FlagRST,"new") == 0)
+       sinfo.initialTime = 0;
+     else
+       sinfo.initialTime = restartT;
 
      readSize = read(fn, buffer, numnodes*6*sizeof(double));
      if(int(readSize) != int(numnodes*6*sizeof(double)))

@@ -1488,7 +1488,11 @@ TRAIL [a-zA-Z]*
 
 "linearplanestress"|"LINEARPLANESTRESS"|"LinearPlaneStress" { return LINPLSTRESS; }
 
+"viscolinearplanestress"|"VISCOLINEARPLANESTRESS"|"ViscoLinearPlaneStress" { return VISCOLINPLSTRESS; }
+
 "hyperelasticplanestress"|"HYPERELASTICPLANESTRESS"|"HyperElasticPlaneStress" { return SVKPLSTRESS; }
+
+"viscohyperelasticplanestress"|"VISCOHYPERELASTICPLANESTRESS"|"ViscoHyperElasticPlaneStress" { return VISCOSVKPLSTRESS; }
 
 "linear"|"LINEAR"|"Linear"|"linearelastic"|"LINEARELASTIC"|"LinearElastic" { return LINEARELASTIC; }
 
@@ -1525,6 +1529,14 @@ TRAIL [a-zA-Z]*
 "fabricmat"|"FABRICMAT"|"FabricMat"                     { return FABRICMAT; }
 
 "shellfabricmat"|"SHELLFABRICMAT"|"ShellFabricMat"      { return SHELLFABRICMAT; }
+
+"viscofabricmap"|"VISCOFABRICMAP"|"ViscoFabricMap"                     { return VISCOFABRICMAP; }
+
+"shellviscofabricmap"|"SHELLVISCOFABRICMAP"|"ShellViscoFabricMap"      { return SHELLVISCOFABRICMAP; }
+
+"viscofabricmat"|"VISCOFABRICMAT"|"ViscoFabricMat"                     { return VISCOFABRICMAT; }
+
+"shellviscofabricmat"|"SHELLVISCOFABRICMAT"|"ShellViscoFabricMat"      { return SHELLVISCOFABRICMAT; }
 
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
 

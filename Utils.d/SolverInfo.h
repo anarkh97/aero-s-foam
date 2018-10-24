@@ -339,6 +339,7 @@ struct SolverInfo {
    int tdenforceMaxItr;
    double tdenforceTolAbs;
    double tdenforceInitia;
+   double tdenforceFinal;
 
    bool lagrangeMult;
    double penalty;
@@ -720,6 +721,7 @@ struct SolverInfo {
                   tdenforceMaxItr = 1;
                   tdenforceTolAbs = 1e-10;
                   tdenforceInitia = 0;
+                  tdenforceFinal = std::numeric_limits<double>::max();
 
                   lagrangeMult = true;
                   penalty = 0;

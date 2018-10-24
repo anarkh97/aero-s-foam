@@ -590,6 +590,8 @@ class GenSubDomain : public BaseSub
   void dispatchGeomStateData(FSCommPattern<double> *, GeomState *);
   void collectGeomStateData(FSCommPattern<double> *, GeomState *);
   void computeElementForce(int, Scalar *u, int Findex, Scalar *force);
+  void computeElementForce(GeomState *gs, Corotator **allCorot,
+                           int, int Findex, Scalar *force);
   void computeStressStrain(int, Scalar *u, int Findex,
                            Scalar *stress, Scalar *weight = 0);
   void computeStressStrain(GeomState *gs, Corotator **allCorot,

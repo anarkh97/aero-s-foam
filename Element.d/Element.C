@@ -294,8 +294,8 @@ Element::computeSloshDispAll(Vector &fluidDispSlosh, CoordSet&, Vector &)
 void
 Element::getIntrnForce(Vector &elForce, CoordSet&, double *, int,double *)
 {
-  if(!isConstraintElement() && !isSpring())
-    fprintf(stderr," *** WARNING: Internal force not implemented for element type %d\n", elementType);
+  //if(!isConstraintElement() && !isSpring())
+  //  fprintf(stderr," *** WARNING: Internal force not implemented for element type %d\n", elementType);
   elForce.zero();
 }
 

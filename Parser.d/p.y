@@ -117,7 +117,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC VISCOLINEARELASTIC VISCOSTVENANTKIRCHHOFF NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF TULERBUTCHER LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC VISCOLINEARELASTIC VISCOSTVENANTKIRCHHOFF NEOHOOKEAN VISCONEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN VISCOMOONEYRIVLIN HENCKY OGDEN SIMOELASTIC SIMOPLASTIC LOGSTRAINPLASTIC SVKPLSTRESS VISCOLINPLSTRESS VISCOSVKPLSTRESS VISCOFABRICMAP SHELLVISCOFABRICMAP VISCOFABRICMAT SHELLVISCOFABRICMAT
 %token PARTITIONGAP PLANESTRESSLINEAR PLANESTRESSSTVENANTKIRCHHOFF PLANESTRESSNEOHOOKEAN PLANESTRESSMOONEYRIVLIN PLANESTRESSBILINEARPLASTIC PLANESTRESSFINITESTRAINPLASTIC PLANESTRESSVISCOLINEARELASTIC PLANESTRESSVISCOSTVENANTKIRCHHOFF PLANESTRESSVISCONEOHOOKEAN PLANESTRESSVISCOMOONEYRIVLIN
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP ROBCSOLVE RANDOMSAMPLE OUTPUTMEMORY OUTPUTWEIGHT SOLVER SPNNLSSOLVERTYPE MAXSIZE CLUSTERSOLVER CLUSTERSOLVERTYPE
@@ -1201,6 +1201,12 @@ DynamInfo:
           domain->solInfo().tdenforceMaxItr = $4;
           domain->solInfo().tdenforceTolAbs = $5;
           domain->solInfo().tdenforceInitia = $6; }
+        | DynamInfo TDENFORCE SWITCH Integer Float Float Float NewLine
+        { domain->solInfo().tdenforceFlag = $3;
+          domain->solInfo().tdenforceMaxItr = $4;
+          domain->solInfo().tdenforceTolAbs = $5;
+          domain->solInfo().tdenforceInitia = $6;
+          domain->solInfo().tdenforceFinal = $7; }
         | DynamInfo CHECKTOKEN NewLine
         { domain->solInfo().check_energy_balance = true; }
         | DynamInfo CHECKTOKEN Float Float NewLine
@@ -5305,6 +5311,114 @@ MatSpec:
               new BrittleFractureTB<PronyViscoElastic<ElaLinIsoMat> >($4, $5, $6, $7, $8, ginf, $9, $10, $11, $12, $13, $14, $16, $17, $18));
             domain->solInfo().elementDeletion = true;
           }
+        | MatSpec Integer VISCOLINPLSTRESS Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $13;
+           double gtwo   = $11;
+           double gone   = $9;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<ElaLinIsoMat2D>($4, $5, $6, $7, 0, 0, ginf, $8, $9, $10, $11, $12, $13));
+         }
+        | MatSpec Integer VISCOLINPLSTRESS Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $15;
+           double gtwo   = $13;
+           double gone   = $11;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<ElaLinIsoMat2D>($4, $5, $6, $7, $8, $9, ginf, $10, $11, $12, $13, $14, $15));
+         }
+        | MatSpec Integer VISCOSVKPLSTRESS Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $13;
+           double gtwo   = $11;
+           double gone   = $9;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<StVenantKirchhoffMat2D>($4, $5, $6, $7, 0, 0, ginf, $8, $9, $10, $11, $12, $13));
+         }
+        | MatSpec Integer VISCOSVKPLSTRESS Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $15;
+           double gtwo   = $13;
+           double gone   = $11;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<StVenantKirchhoffMat2D>($4, $5, $6, $7, $8, $9, ginf, $10, $11, $12, $13, $14, $15));
+         }
+        | MatSpec Integer VISCOFABRICMAP Float Integer Integer Integer Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $14;
+           double gtwo   = $12;
+           double gone   = $10;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<FabricMap>($4, $5, $6, $7, $8, 0, 0, FabricMap::GREEN_LAGRANGE, ginf, $9, $10, $11, $12, $13, $14));
+         }
+        | MatSpec Integer VISCOFABRICMAP Float Integer Integer Integer Float Float Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $16;
+           double gtwo   = $14;
+           double gone   = $12;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<FabricMap>($4, $5, $6, $7, $8, $9, $10, FabricMap::GREEN_LAGRANGE, ginf, $11, $12, $13, $14, $15, $16));
+         }
+        | MatSpec Integer SHELLVISCOFABRICMAP Float Integer Integer Integer Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $14;
+           double gtwo   = $12;
+           double gone   = $10;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<FabricMap>($4, $5, $6, $7, $8, 0, 0, FabricMap::INFINTESIMAL, ginf, $9, $10, $11, $12, $13, $14));
+         }
+        | MatSpec Integer SHELLVISCOFABRICMAP Float Integer Integer Integer Float Float Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $14;
+           double gtwo   = $12;
+           double gone   = $10;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<FabricMap>($4, $5, $6, $7, $8, $9, $10, FabricMap::INFINTESIMAL, ginf, $11, $12, $13, $14, $15, $16));
+         }
+        | MatSpec Integer VISCOFABRICMAT Float Integer Integer Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $14;
+           double gtwo   = $12;
+           double gone   = $10;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<FabricMat>($4, $5, $6, $7, $8, $9, $10, 0, 0, FabricMat::GREEN_LAGRANGE, ginf, $9, $10, $11, $12, $13, $14));
+         }
+        | MatSpec Integer VISCOFABRICMAT Float Integer Integer Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $14;
+           double gtwo   = $12;
+           double gone   = $10;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<FabricMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, FabricMat::GREEN_LAGRANGE, ginf, $11, $12, $13, $14, $15, $16));
+         }
+        | MatSpec Integer SHELLVISCOFABRICMAT Float Integer Integer Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $14;
+           double gtwo   = $12;
+           double gone   = $10;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<FabricMat>($4, $5, $6, $7, $8, $9, $10, 0, 0, FabricMat::INFINTESIMAL, ginf, $9, $10, $11, $12, $13, $14));
+         }
+        | MatSpec Integer SHELLVISCOFABRICMAT Float Integer Integer Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           double gthree = $14;
+           double gtwo   = $12;
+           double gone   = $10;
+           double ginf   = 1.0 - (gone + gtwo + gthree); // use convention that prony series sums to 1
+           geoSource->addMaterial($2-1,
+             new PronyViscoElastic<FabricMat>($4, $5, $6, $7, $8, $9, $10, $11, $12, FabricMat::INFINTESIMAL, ginf, $11, $12, $13, $14, $15, $16));
+         }
         | MatSpec Integer PLANESTRESSVISCOLINEARELASTIC Float Float Float Float Float Float Float Float Float Float NewLine
           {
             double gthree = $13;

@@ -22,39 +22,38 @@ class PointVariPlaneSegmentDistanceConstraintFunction2 : public ScalarValuedFunc
     bool negate;
 
   private: 
-    Scalar distanceToSegment(Eigen::Matrix<Scalar,3,1> x0, Eigen::Matrix<Scalar,3,1> x1, Eigen::Matrix<Scalar,3,1> x2, Eigen::Matrix<Scalar,3,1> x3){
+    template<typename T>
+    T distanceToSegment(Eigen::Matrix<T,3,1> x0, Eigen::Matrix<T,3,1> x1, Eigen::Matrix<T,3,1> x2, Eigen::Matrix<T,3,1> x3) {
 
-      Eigen::Matrix<Scalar,3,1> n = (x2-x1).cross(x3-x1).normalized();
+      Eigen::Matrix<T,3,1> n = (x2-x1).cross(x3-x1).normalized();
 
-      Scalar d0;
-      Scalar d0_p = n.dot(x0-x1); // initial distance
-      Scalar d0_21 = n.cross(x2-x1).normalized().dot(x0-x1);
-      Scalar d0_13 = n.cross(x1-x3).normalized().dot(x0-x3);
-      Scalar d0_32 = n.cross(x3-x2).normalized().dot(x0-x2);
+      T d0;
+      T d0_p = n.dot(x0-x1); // initial distance
+      T d0_21 = n.cross(x2-x1).normalized().dot(x0-x1);
+      T d0_13 = n.cross(x1-x3).normalized().dot(x0-x3);
+      T d0_32 = n.cross(x3-x2).normalized().dot(x0-x2);
 
-      if(d0_21 > Scalar(0.0) && d0_13 < Scalar(0.0) && d0_32 < Scalar(0.0)) { // closest to node 3
+      if(d0_21 > T(0.0) && d0_13 < T(0.0) && d0_32 < T(0.0)) { // closest to node 3
         d0 = sqrt((x0-x3).dot(x0-x3)) - thickness;
       }
-      else if(d0_13 > Scalar(0.0) && d0_21 < Scalar(0.0) && d0_32 < Scalar(0.0)) { // closest to node 2
+      else if(d0_13 > T(0.0) && d0_21 < T(0.0) && d0_32 < T(0.0)) { // closest to node 2
         d0 = sqrt((x0-x2).dot(x0-x2)) - thickness;
       }
-      else if(d0_32 > Scalar(0.0) && d0_21 < Scalar(0.0) && d0_13 < Scalar(0.0)) { // closest to node 1
+      else if(d0_32 > T(0.0) && d0_21 < T(0.0) && d0_13 < T(0.0)) { // closest to node 1
         d0 = sqrt((x0-x1).dot(x0-x1)) - thickness;
       }
       else { // closest to edge or face
-        if(d0_21 > Scalar(0.0))
-          d0_21 = Scalar(0.0);
-        if(d0_13 > Scalar(0.0))
-          d0_13 = Scalar(0.0);
-        if(d0_32 > Scalar(0.0))
-          d0_32 = Scalar(0.0);
+        if(d0_21 > T(0.0))
+          d0_21 = T(0.0);
+        if(d0_13 > T(0.0))
+          d0_13 = T(0.0);
+        if(d0_32 > T(0.0))
+          d0_32 = T(0.0);
 
         d0 = sqrt(d0_p * d0_p + d0_21 * d0_21 + d0_13 * d0_13 + d0_32 * d0_32) - thickness;
       }
 
-
       return d0;
-
     }
 
   public:

@@ -236,7 +236,12 @@ IF(UNIX)
         set(SACADO_FOUND TRUE)
         MESSAGE("-- A library with SACADO API found. ")
         add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
-        include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
+        include_directories(${SACADO_INCLUDE_PATH})
+        FIND_PATH(SACADO_MPL_INCLUDE_PATH NAMES Sacado_mpl_vector.hpp
+                  PATHS ${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
+        if(SACADO_MPL_INCLUDE_PATH AND (NOT (SACADO_INCLUDE_PATH EQUAL SACADO_MPL_INCLUDE_PATH)))
+          include_directories(${SACADO_MPL_INCLUDE_PATH})
+        endif(SACADO_MPL_INCLUDE_PATH AND (NOT (SACADO_INCLUDE_PATH EQUAL SACADO_MPL_INCLUDE_PATH)))
         if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
           if (GCC_VERSION VERSION_GREATER 5.0 OR GCC_VERSION VERSION_EQUAL 5.0)
             MESSAGE("Note: Sacado source code may need to be changed if Aero-S does not build "

@@ -6,8 +6,8 @@
 template<typename IndexType, typename DataType, typename Map>
 ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType *_pointer, DataType *_target,
                                                  bool _removeable, float *_weight) 
-	: size(_size), 
-	  pointer{_pointer, _pointer+_size}, 
+	:
+	  pointer{_pointer, _pointer+_size+1},
 	  target{_target,_target+_pointer[_size]}, 
 	  weight{_weight, _weight+_pointer[_size]}
 {
@@ -22,32 +22,20 @@ ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType 
 template<typename IndexType, typename DataType, typename Map>
 ConnectivityT<IndexType,DataType,Map>::ConnectivityT(BinFileHandler& f, bool oldSower)
 {
-	if(!oldSower) {
-		f.read(&size,1);
-		pointer.resize(size);
-		--size;
-		f.read(pointer.data(),size+1);
-		IndexType numtarget = pointer.back();
-		f.read(&numtarget,1);
-		target.resize(numtarget);
-		f.read(target.data(),numtarget);
-	}
-	else {
-		//cerr << " *** WARNING: using OLD_SOWER ::ConnectivityT(BinFileHandler& f) \n";
-		f.read(&size, 1);
-		IndexType numtarget;
-		f.read(&numtarget, 1);
-		pointer.resize(size+1);
-		target.resize(numtarget);
-		f.read(pointer.data(), size+1);
-		f.read(target.data(), numtarget);
-	}
+	IndexType size;
+	f.read(&size,1);
+	pointer.resize(size);
+	f.read(pointer.data(),size);
+	IndexType numtarget = pointer.back();
+	f.read(&numtarget,1);
+	target.resize(numtarget);
+	f.read(target.data(),numtarget);
 }
 
 template<typename IndexType, typename DataType, typename Map>
 size_t ConnectivityT<IndexType,DataType,Map>::write(BinFileHandler& f)
 {
-	IndexType _size = size+1;
+	IndexType _size = pointer.size();
 	f.write(&_size,1);
 	f.write(pointer.data(),_size);
 	IndexType numtarget = getNumTarget();
@@ -56,31 +44,31 @@ size_t ConnectivityT<IndexType,DataType,Map>::write(BinFileHandler& f)
 	return 0;
 }
 
-template<typename IndexType, typename DataType, typename Map>
-ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType *_count)
-{
-	size    = _size;
-	pointer.resize(size+1);
-	pointer[0] = 0;
-	IndexType i;
-	for(i=0; i < _size; ++i)
-		pointer[i+1] = pointer[i] + _count[i];
-	target.resize(pointer[size]);
-}
-
-template<typename IndexType, typename DataType, typename Map>
-ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType count)
-{
-	size    = _size;
-	pointer = new IndexType[size+1];
-	pointer[0] = 0;
-	IndexType i;
-	for(i=0; i < _size; ++i)
-		pointer[i+1] = pointer[i] + count;
-	target.resize(pointer[size]);
-	for(IndexType i=0; i < pointer[size]; ++i)
-		target[i] = i;
-}
+//template<typename IndexType, typename DataType, typename Map>
+//ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType *_count)
+//{
+//	size    = _size;
+//	pointer.resize(size+1);
+//	pointer[0] = 0;
+//	IndexType i;
+//	for(i=0; i < _size; ++i)
+//		pointer[i+1] = pointer[i] + _count[i];
+//	target.resize(pointer[size]);
+//}
+//
+//template<typename IndexType, typename DataType, typename Map>
+//ConnectivityT<IndexType,DataType,Map>::ConnectivityT(IndexType _size, IndexType count)
+//{
+//	size    = _size;
+//	pointer = new IndexType[size+1];
+//	pointer[0] = 0;
+//	IndexType i;
+//	for(i=0; i < _size; ++i)
+//		pointer[i+1] = pointer[i] + count;
+//	target.resize(pointer[size]);
+//	for(IndexType i=0; i < pointer[size]; ++i)
+//		target[i] = i;
+//}
 
 /*ConnectivityT::ConnectivityT(BinFileHandler &file)
 {

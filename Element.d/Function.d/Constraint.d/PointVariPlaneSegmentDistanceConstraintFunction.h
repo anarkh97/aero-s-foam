@@ -21,6 +21,9 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
     double thickness;
     bool negate;
 
+    static double toDouble(double x) {return x;}
+    template <typename T>
+    static double toDouble(const T &t) { return t.value(); }
   private:
     Scalar distanceToSegment(Eigen::Matrix<Scalar,3,1> x0, Eigen::Matrix<Scalar,3,1> x1, Eigen::Matrix<Scalar,3,1> x2, Eigen::Matrix<Scalar,3,1> x3){
 
@@ -136,32 +139,36 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
 
     }
 
-    public:
+public:
     PointVariPlaneSegmentDistanceConstraintFunction(const Eigen::Array<double,17,1>& sconst, const Eigen::Array<int,1,1>& iconst)
     {
-      z0 = sconst.template segment<3>(0);
-      z1 = sconst.template segment<3>(3);
-      z2 = sconst.template segment<3>(6);
-      z3 = sconst.template segment<3>(9);
-      A = sconst[12];
-      omega = sconst[13];
-      phase = sconst[14];
-      B = sconst[15];
-      C = sconst[16];
-      negate = bool(iconst[0]);
+        z0 = sconst.template segment<3>(0);
+        z1 = sconst.template segment<3>(3);
+        z2 = sconst.template segment<3>(6);
+        z3 = sconst.template segment<3>(9);
+        A = sconst[12];
+        omega = sconst[13];
+        phase = sconst[14];
+        B = sconst[15];
+        C = sconst[16];
+        negate = bool(iconst[0]);
 
-      double dummy = (z1-z3).norm();
-      thickness = (z1-z2).norm();
-      if (dummy > thickness)
-          thickness = dummy;
-    
-      dummy = (z2-z3).norm();
-      if(dummy > thickness)
-        thickness = dummy;
+        double dummy = (z1-z3).norm();
+        thickness = (z1-z2).norm();
+        if (dummy > thickness)
+            thickness = dummy;
 
-      thickness *= 0.01;
+        dummy = (z2-z3).norm();
+        if(dummy > thickness)
+            thickness = dummy;
 
-      Scalar(dist) = distanceToSegment(z0.template cast<Scalar>(),z1.template cast<Scalar>(),z2.template cast<Scalar>(),z3.template cast<Scalar>());
+        thickness *= 0.01;
+
+        dist = toDouble(
+            distanceToSegment(z0.template cast<Scalar>(),
+                              z1.template cast<Scalar>(),
+                              z2.template cast<Scalar>(),
+                              z3.template cast<Scalar>()) );
     }
 
     Scalar operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar t)

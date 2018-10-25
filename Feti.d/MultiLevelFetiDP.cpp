@@ -309,11 +309,11 @@ formSubdomains(const gsl::span<gl_sub_idx> &cpuMetasubIndices, const Connectivit
 
  getSharedDOFs();
 
- preProcessMPCs();//Multi-Point Constraint
+ preProcessMPCs();//Multi-Point Constraint   N/A right now
 
- getSharedFSIs();
+ getSharedFSIs();  // N/A right now
 
- getSharedMPCs();
+ getSharedMPCs(); // N/A right now
   paralApply(subDomain, &BaseSub::mergeInterfaces);
  paralApply(subDomain, &GenSubDomain<Scalar>::applySplitting);
 
@@ -493,9 +493,6 @@ void GenFetiDPSolver<Scalar>::makeMultiLevelDPNew(const Connectivity &subToCorne
 
 	Connectivity subToAllCoarseNodes = Connectivity::fromLinkRange(glSubToAllCoarse);
 
-//	this->fetiCom->sync();
-//	std::cout << "Full " << subToAllCoarseNodes.numConnect() << " vs " << subToCorner.numConnect() << std::endl;
-//	this->fetiCom->sync();
 	std::cout << "cpuToCoarse has " << cpuToCoarse.csize() << " sources and "
 	<< cpuToCoarse.numConnect() << " targets." << std::endl;
 	auto subs = formSubdomains(cpuToCoarse[this->myCPU], *decCoarse,

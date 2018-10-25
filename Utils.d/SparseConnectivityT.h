@@ -12,14 +12,15 @@ class SparseConnectivityAccessorT {
       return (it != o.first.end()) ? o.second->num(it->second) : 0; }
   static IndexType getSize(const std::pair<std::map<IndexType,int>,ConnectivityT<int,DataType>*> &o)
     { return o.first.rbegin()->first+1; }
-  static DataType *getData(std::pair<std::map<IndexType,int>,ConnectivityT<int,DataType>*> &o, IndexType i, DataType *nd)
+  static gsl::span<const DataType> getData(std::pair<std::map<IndexType,int>,ConnectivityT<int,DataType>*> &o,
+      IndexType i, gsl::span<DataType> nd)
     {
       typename std::map<IndexType,int>::const_iterator it = o.first.find(i);
       if(it == o.first.end()) {
-        return (nd) ? nd : NULL;
+        return (nd.data()) ? nd : gsl::span<const DataType>{};
       }
       else {
-        if(nd) {
+        if(nd.data()) {
           for(int j=0; j<o.second->num(it->second); ++j)
             nd[j] = (*o.second)[it->second][j];
           return nd;

@@ -1,0 +1,21 @@
+/**
+\page cleanup Cleanup Goals and TODOs
+\section cleanup_goals Goals
+\subsection cg_easy Easy Goals
+Though most of the following goals are not difficult, they may be tedious because they impact many place and may
+involve cascading between files. Examples of such cascading effects are the const-correctness changes.
+  - Make the code const-correct.
+  - Change the type of indices currently being 'int' into meaningful aliases. It clarifies the meaning of many
+    variables.
+\subsection cg_medium Goals of Medium Difficulty
+  - Replace all raw pointers having ownership meaning with smart pointers or vectors.
+  - Replace all raw pointers to arrays in arguments with gsl::span.
+  - Replace basic mathematical vectors with Eigen based versions
+\subsection cg_hard Hard Goals
+  - Break down overgrown classes into clean conceptual objects/abstractions.
+    - Domain
+    - SubDomain
+  - Separate abstractions into interface base classes:
+    - Solvers have matrix assembly mixed in other matrices have an incompatible assembly hierarchy
+      creating duplication of code.
+*/

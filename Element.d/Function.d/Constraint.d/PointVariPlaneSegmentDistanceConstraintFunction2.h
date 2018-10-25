@@ -57,32 +57,39 @@ class PointVariPlaneSegmentDistanceConstraintFunction2 : public ScalarValuedFunc
 
     }
 
+    static double toDouble(double x) {return x;}
+    template <typename T>
+    static double toDouble(const T &t) { return t.value(); }
   public:
     PointVariPlaneSegmentDistanceConstraintFunction2(const Eigen::Array<double,17,1>& sconst, const Eigen::Array<int,1,1>& iconst)
     {
-      x0 = sconst.template segment<3>(0);
-      x1 = sconst.template segment<3>(3);
-      x2 = sconst.template segment<3>(6);
-      x3 = sconst.template segment<3>(9);
-      A = sconst[12];
-      omega = sconst[13];
-      phase = sconst[14];
-      B = sconst[15];
-      C = sconst[16];
-      negate = bool(iconst[0]);
+        x0 = sconst.template segment<3>(0);
+        x1 = sconst.template segment<3>(3);
+        x2 = sconst.template segment<3>(6);
+        x3 = sconst.template segment<3>(9);
+        A = sconst[12];
+        omega = sconst[13];
+        phase = sconst[14];
+        B = sconst[15];
+        C = sconst[16];
+        negate = bool(iconst[0]);
 
-      double dummy = (x1-x3).norm();
-      thickness = (x1-x2).norm();
-      if (dummy > thickness)
-          thickness = dummy;
+        double dummy = (x1-x3).norm();
+        thickness = (x1-x2).norm();
+        if (dummy > thickness)
+            thickness = dummy;
 
-      dummy = (x2-x3).norm();
-      if(dummy > thickness)
-        thickness = dummy;
+        dummy = (x2-x3).norm();
+        if(dummy > thickness)
+            thickness = dummy;
 
-      thickness *= 0.01;
+        thickness *= 0.01;
 
-      Scalar(dist) = distanceToSegment(x0.template cast<Scalar>(),x1.template cast<Scalar>(),x2.template cast<Scalar>(),x3.template cast<Scalar>());
+        // TODO Find out if this is the intent. Original code does Scarar(dist) = ... which I am sure does nothing useful
+        dist = toDouble(distanceToSegment(x0.template cast<Scalar>(),
+                                 x1.template cast<Scalar>(),
+                                 x2.template cast<Scalar>(),
+                                 x3.template cast<Scalar>()) );
 
     }
 

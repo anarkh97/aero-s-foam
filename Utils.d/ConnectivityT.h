@@ -1,9 +1,13 @@
 #ifndef _CONNECTIVITYT_H_
 #define _CONNECTIVITYT_H_
 
+#include <memory>
 #include <cstdio>
+#include <vector>
 #include <map>
 #include <iostream>
+#include <gsl/gsl>
+
 using std::map;
 
 class BinFileHandler;
@@ -12,14 +16,15 @@ class BinFileHandler;
 template<typename IndexType>
 struct compStructT {
 	IndexType numComp; // number of components
-	IndexType *xcomp;  // pointer to renum for the beginning of each component
-	IndexType *order;  // order of the nodes
-	IndexType *renum;  // renumbering
-	compStructT() { numComp=0; xcomp=0; order=0; renum=0; }
+	std::vector<IndexType> xcomp;  // pointer to renum for the beginning of each component
+	std::vector<IndexType> order;  // order of the nodes
+	std::vector<IndexType> renum;  // renumbering
+	compStructT() = default;
 	void clearMemory() {
-		if(xcomp) { delete [] xcomp; xcomp=0;}
-		if(order) { delete [] order; order=0;}
-		if(renum) { delete [] renum; renum=0;}
+		for(auto &v : { xcomp, order, renum}) {
+			v.clear();
+			v.shrink_to_fit();
+		}
 	}
 };
 
@@ -82,11 +87,14 @@ public :
 */
 
 	/* following functions are used to make transcon accept a BaseConnectivityT as argument */
-	DataType *operator[](IndexType i) {return(Accessor::getData(static_cast<A*>(this),i));}
-	IndexType csize() {return(Accessor::getSize(static_cast<A*>(this)));}
-	IndexType num(IndexType i){return(Accessor::getNum(static_cast<A*>(this),i));}
-	IndexType getNumTarget(){return(Accessor::getNumTarget(static_cast<A*>(this)));}
-	void print()
+	gsl::span<const DataType> operator[](IndexType i) const
+	    {
+		return { Accessor::getData(static_cast<A*>(this),i), num(i) };
+	    }
+	IndexType csize() const {return(Accessor::getSize(static_cast<A*>(this)));}
+	IndexType num(IndexType i) const {return(Accessor::getNum(static_cast<A*>(this),i));}
+	IndexType getNumTarget() const {return(Accessor::getNumTarget(static_cast<A*>(this)));}
+	void print() const
 	{
 		for(IndexType i = 0; i < csize(); ++i )
 		{
@@ -120,11 +128,11 @@ public:
 	typedef _IndexType IndexType;
 	typedef _DataType  DataType;
 
-	auto getNumTarget() { return pointer.size(); }
+	auto getNumTarget() const { return target.size(); }
 	auto &getTarget()   { return target; }
 	auto &getPointer() { return pointer; }
 
-	ConnectivityT() { size = 0; }
+	ConnectivityT() = default;
 	template <class A> ConnectivityT(SetAccessT<A> &sa);
 	ConnectivityT(IndexType _size, IndexType *_pointer, DataType *_target, bool _removeable = true, float *_weight = 0);
 	ConnectivityT(IndexType _size, IndexType *count);
@@ -140,7 +148,7 @@ public:
 	void addlink(IndexType from, IndexType to); //DEC
 
 	virtual ~ConnectivityT() = default;
-	DataType *operator[](IndexType i);
+	gsl::span<const DataType> operator[](IndexType i) const;
 	IndexType csize();
 	IndexType numConnect(); // Total number of connections
 	IndexType num(IndexType);
@@ -191,7 +199,6 @@ public:
 		ConnectivityT * SCOTCH_graphPart(IndexType partnbr);*/
 #endif
 protected:
-	IndexType size;           // size of pointer
 	std::vector<IndexType> pointer;       // pointer to target
 	std::vector<DataType> target;        // value of the connectivity
 	std::vector<float> weight;      // weights of pointer (or 0)
@@ -206,23 +213,26 @@ struct base_traits<ConnectivityT<_IndexType,_DataType> > {
 
 template<typename IndexType, typename DataType, typename Map>
 IndexType
-ConnectivityT<IndexType,DataType,Map>::csize() { return size; }
+ConnectivityT<IndexType,DataType,Map>::csize() { return pointer.size()-1; }
 
 template<typename IndexType, typename DataType, typename Map>
 IndexType
-ConnectivityT<IndexType,DataType,Map>::num(IndexType n) { return (n < size) ? pointer[n+1] - pointer[n] : 0; }
+ConnectivityT<IndexType,DataType,Map>::num(IndexType n) { return (n < csize()) ? pointer[n+1] - pointer[n] : 0; }
 
 template<typename IndexType, typename DataType, typename Map>
-DataType *
-ConnectivityT<IndexType,DataType,Map>::operator[](IndexType i) { return target.data() + pointer[i]; }
+gsl::span<const DataType>
+ConnectivityT<IndexType,DataType,Map>::operator[](IndexType i) const
+{
+    return { target.data() + pointer[i] , target.data()+pointer[i+1] };
+}
 
 template<typename IndexType, typename DataType, typename Map>
 IndexType
 ConnectivityT<IndexType,DataType,Map>::numConnect() { return getNumTarget(); }
 
-template<typename IndexType, typename DataType, typename Map>
-bool
-ConnectivityT<IndexType,DataType,Map>::isDiagonal() { return (getNumTarget() == size) ? true : false; }
+//template<typename IndexType, typename DataType, typename Map>
+//bool
+//ConnectivityT<IndexType,DataType,Map>::isDiagonal() { return (getNumTarget() == size) ? true : false; }
 
 /*
 class CountedConnectivityT: public ConnectivityT {
@@ -236,7 +246,7 @@ class CountedConnectivityT: public ConnectivityT {
 };
 */
 
-/** \breif  ImplicitConnectivity allows to use a type of data represented by class A
+/** \brief  ImplicitConnectivity allows to use a type of data represented by class A
  * as a Connectivity without constructing the real ConnectivityT, but through clever use
  * of an appropriate Accessor.
  */
@@ -249,12 +259,11 @@ public:
 	typedef typename base_traits<Accessor>::DataType  DataType;
 private:
 	A a;
-	mutable IndexType cacheVal, cacheSize;
-	mutable DataType *cacheTg;
+	mutable IndexType cacheVal;
+	mutable std::vector<DataType> cacheTg;
 	mutable IndexType cacheNumVal, cacheNumIdx;
 public:
-	ImplicitConnectivityT(A _a) : a(_a) { cacheSize = 0; cacheTg = 0;
-		cacheVal=-1; cacheNumIdx = -1; }
+	ImplicitConnectivityT(A _a) : a(_a) { cacheVal=-1; cacheNumIdx = -1; }
 	~ImplicitConnectivityT() { if(cacheTg) delete [] cacheTg; }
 	IndexType csize() const { return Accessor::getSize(*a); }
 	IndexType num(IndexType i) const {
@@ -264,18 +273,13 @@ public:
 		}
 		return cacheNumVal;
 	}
-	DataType *getNewCacheVal(IndexType j)const {
+	gsl::span<const DataType> getNewCacheVal(IndexType j)const {
 		IndexType n = num(j);
-		if(n > cacheSize) {
-			IndexType newSize = std::max(n, 3*cacheSize/2);
-			if(cacheTg) delete [] cacheTg;
-			cacheTg = new DataType[newSize];
-			cacheSize = newSize;
-		}
+		cacheTg.resize(n);
 		cacheVal = j;
 		return(Accessor::getData(*a,j,cacheTg));
 	}
-	DataType *operator[](IndexType i) const {
+	gsl::span<const DataType> operator[](IndexType i) const {
 		if(cacheVal == i)
 			return cacheTg;
 		else
@@ -585,24 +589,22 @@ template<typename IndexType, typename DataType, typename Map>
 template <class A>
 ConnectivityT<IndexType,DataType,Map>::ConnectivityT(SetAccessT<A> &sa)
 {
-	IndexType i;
-
-	size = sa.size();
+	auto size = sa.size();
 
 	// Find out the number of targets we will have
-	pointer = new IndexType[size+1] ;
+	pointer.reserve(size+1) ;
 	IndexType pp = 0;
-	for(i=0; i < size; ++i) {
-		pointer[i] = pp;
+	for(IndexType i=0; i < size; ++i) {
+		pointer.push_back(pp);
 		pp += sa.numNodes(i);
 	}
 	pointer[size] = pp;
 
 	// Create the target array
-	target = new DataType[pp];
+	target.resize(pp);
 
 	// Fill it in
-	for(i=0; i < size; ++i) {
+	for(IndexType i=0; i < size; ++i) {
 		sa.getNodes(i, target+pointer[i]);
 	}
 }

@@ -35,7 +35,7 @@ class DiagParallelSolver : public GenParallelSolver<Scalar>
     void reSolve(GenDistrVector<Scalar> &);
     void squareRootMult(GenDistrVector<Scalar> &);
     void inverseSquareRootMult(GenDistrVector<Scalar> &);
-    double getSolutionTime() { return times.solve; }
+    double getSolutionTime() const override { return times.solve; }
     void solve(const GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
     Timings& getTimers() { return times; }
 };

@@ -225,7 +225,7 @@ public:
 	void reBuildErrorEstimator(GenFullSquareMatrix<Scalar> **kel);
 	void subdomainReBuild(int isub, FullSquareMatrix **kel, DistrGeomState *gs);
 	int nlPreCondition(const GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &Pr) const;
-	double getSolutionTime() override { return times.solve; }
+	double getSolutionTime() const override { return times.solve; }
 	void reSendInterfaceRBM(int iSub);
 	void reGetNeighbQGs(int iSub);
 	void reMakeLocalFcoarse();

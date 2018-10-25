@@ -21,7 +21,6 @@ class GenBCGSolver : public GenSolver<Scalar> {
    int neqs() const override { return A->neqs(); }
    void solve(const AnyVector &, AnyVector &) override;
    void reSolve(AnyVector &rhs) override { AnyVector rhs_copy(rhs); solve(rhs_copy, rhs); }
-   double getSolutionTime() override { return solveTime; }
    long size() const override { return 0; }
    void factor() override {}
 };

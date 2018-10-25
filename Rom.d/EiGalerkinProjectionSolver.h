@@ -46,7 +46,7 @@ public:
   virtual void zeroAll();
 
   // member function for GenParallelSolver inheritance (sp?)
-  double getSolutionTime() { return solveTime; }
+  double getSolutionTime() const { return solveTime; }
   Timings& getTimers() { return times; }
 
   // Reduced-order matrix assembly

@@ -55,7 +55,6 @@ protected:
    int *perm;
    int *invp;
 
-   mutable double solveTime;
    double tol;
    
    Rbm *rbm;   // pointer to rigid body modes
@@ -129,7 +128,6 @@ protected:
 
    void    addDiscreteMass(int dof, Scalar mass) override;
    void    addImaginary(const FullSquareMatrix &kel, const int *dofs) override;
-   double getSolutionTime() override { return solveTime; }
 
    void mult(const Scalar *rhs, Scalar *result) const override;
    void getNullSpace(Scalar *ns) override;

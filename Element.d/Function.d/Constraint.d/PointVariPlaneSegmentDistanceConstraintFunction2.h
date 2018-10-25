@@ -85,11 +85,7 @@ class PointVariPlaneSegmentDistanceConstraintFunction2 : public ScalarValuedFunc
 
         thickness *= 0.01;
 
-        // TODO Find out if this is the intent. Original code does Scarar(dist) = ... which I am sure does nothing useful
-        dist = toDouble(distanceToSegment(x0.template cast<Scalar>(),
-                                 x1.template cast<Scalar>(),
-                                 x2.template cast<Scalar>(),
-                                 x3.template cast<Scalar>()) );
+        dist = toDouble( distanceToSegment(x0, x1, x2, x3) );
 
     }
 

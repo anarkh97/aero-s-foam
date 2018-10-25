@@ -112,7 +112,7 @@ public:
    void zeroAll();
 
    // for parallel solver
-   double getSolutionTime() { return GenSolver<Scalar>::getSolutionTime(); }
+   double getSolutionTime() const override { return ((GenSolver<Scalar> *)this)->getSolutionTime(); }
    Timings& getTimers() { return times; }
    void refactor() { factor(); }
    

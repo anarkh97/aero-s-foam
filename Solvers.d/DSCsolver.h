@@ -23,7 +23,6 @@ class DSCsolver :
    int scheme_number;
    int numNodes;
 
-   double solveTime;
    double tol;
 
 #ifdef DISTRIBUTED
@@ -53,7 +52,6 @@ class DSCsolver :
 
    int     dim()  const override { return numUncon;  }
    int     neqs() const override { return numUncon;  }
-   double getSolutionTime() override { return solveTime; }
 
    // Functions that need to be written
    int numRBM() const override { return -1; }

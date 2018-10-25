@@ -20,7 +20,6 @@ protected:
    void solve(const AnyVector&, AnyVector&) override;
    void reSolve(AnyVector &rhs) override { AnyVector rhs_copy(rhs); solve(rhs_copy, rhs); }
    int neqs() const override { return A->neqs(); }
-   double getSolutionTime() override { return solveTime; }
    long size() const override { return 0; }
    void factor() override {}
 };

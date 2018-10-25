@@ -94,7 +94,7 @@ class GenSolver {
     virtual void parallelFactor();
 
     // function to return solution time
-    virtual double getSolutionTime() { return solveTime; }
+    virtual double getSolutionTime() final { return solveTime; }
     Timings& getTimers() { return times; }
 
     // function to return memory used

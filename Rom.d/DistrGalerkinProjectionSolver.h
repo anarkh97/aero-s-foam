@@ -23,12 +23,12 @@ public:
   virtual void solve(const GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
   virtual void reSolve(GenDistrVector<Scalar> &);
  
-  virtual int numRBM() { return 0; }
-  virtual void getRBMs(Scalar *) {}
-  virtual void getRBMs(GenDistrVectorSet<Scalar> &) {}
+  int numRBM() override { return 0; }
+  void getRBMs(Scalar *) override {}
+  void getRBMs(GenDistrVectorSet<Scalar> &) override {}
   
-  virtual Timings &getTimers() { return timers_; }
-  virtual double getSolutionTime() { return 0.0; }
+  Timings &getTimers() override { return timers_; }
+  double getSolutionTime() const override { return 0.0; }
 
   // Reduced basis parameters
   typedef GenVecBasis<Scalar, GenDistrVector> BasisType;

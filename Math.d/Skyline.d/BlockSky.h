@@ -83,7 +83,6 @@ class GenBlockSky : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>
 
      void print(FILE * = stderr);
      int neqs() const override { return neq; }
-     double getSolutionTime() override { return 0.0; }
      long size() const override { return dlp[neq-1]; }
      Scalar diag(int i) const override { return skyA[dlp[i]]; }  // Jing Li's problem
      Scalar &diag(int i) override { return skyA[dlp[i]]; }  // Jing Li's problem

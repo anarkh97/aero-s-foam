@@ -556,7 +556,7 @@ template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::solve(const Scalar *rhs, Scalar *solution)
 {
- solveTime -= getTime();
+ this->solveTime -= getTime();
 
  Scalar *temp = new Scalar[numUncon];
 
@@ -580,7 +580,7 @@ GenBLKSparseMatrix<Scalar>::solve(const Scalar *rhs, Scalar *solution)
 
  delete [] temp;
 
- solveTime += getTime();
+ this->solveTime += getTime();
 }
 
 template<class Scalar>
@@ -596,7 +596,7 @@ GenBLKSparseMatrix<Scalar>::reSolve(Scalar *rhs)
 {
  if(numUncon==0) return;
 
- solveTime -= getTime();
+ this->solveTime -= getTime();
 
  Scalar *temp     = new Scalar[numUncon+1];
  Scalar *solution = new Scalar[numUncon];
@@ -609,7 +609,7 @@ GenBLKSparseMatrix<Scalar>::reSolve(Scalar *rhs)
  delete [] temp;
  delete [] solution;
 
- solveTime += getTime();
+ this->solveTime += getTime();
 }
 
 template<class Scalar>
@@ -629,7 +629,7 @@ GenBLKSparseMatrix<Scalar>::reSolve(int nRHS, Scalar **RHS)
 }
 #else
  if(numUncon==0) return;
- solveTime -= getTime();
+ this->solveTime -= getTime();
  Scalar *s = new Scalar[numUncon*nRHS];
  Scalar *t = new Scalar[numUncon*nRHS];
  Scalar *a = new Scalar[numUncon*nRHS];
@@ -644,7 +644,7 @@ GenBLKSparseMatrix<Scalar>::reSolve(int nRHS, Scalar **RHS)
    for(int i=0; i<numUncon; ++i) RHS[j][i] = s[i+j*numUncon];
 
  delete [] s; delete [] t; delete [] a;
- solveTime += getTime();
+ this->solveTime += getTime();
 #endif
 }
 
@@ -654,9 +654,9 @@ void
 GenBLKSparseMatrix<double>::reSolve(int nRHS, double **RHS)
 {
  if(numUncon==0) return;
- solveTime -= getTime();
+ this->solveTime -= getTime();
  for(int n=0; n<nRHS; ++n) reSolve(RHS[n]);
- solveTime += getTime();
+ this->solveTime += getTime();
 }
 
 
@@ -664,7 +664,7 @@ template<>
 void
 GenBLKSparseMatrix<DComplex>::reSolve(int nRHS, DComplex **RHS) {
 
- solveTime -= getTime();
+ this->solveTime -= getTime();
 
  int i = 0;
  int multiple = 4;
@@ -749,7 +749,7 @@ GenBLKSparseMatrix<DComplex>::reSolve(int nRHS, DComplex **RHS) {
 
 // delete [] t1;
 
- solveTime += getTime();
+ this->solveTime += getTime();
 
 }
 */
@@ -762,7 +762,7 @@ GenBLKSparseMatrix<Scalar>::reSolve(int nRHS, GenVector<Scalar> *RHS)
  for(int n=0; n<nRHS; ++n) reSolve(RHS[n].data());
 #else
  if(numUncon==0) return;
- solveTime -= getTime();
+ this->solveTime -= getTime();
  Scalar *s = new Scalar[numUncon*nRHS];
  Scalar *t = new Scalar[numUncon*nRHS];
  Scalar *a = new Scalar[numUncon*nRHS];
@@ -777,7 +777,7 @@ GenBLKSparseMatrix<Scalar>::reSolve(int nRHS, GenVector<Scalar> *RHS)
    for(int i=0; i<numUncon; ++i) RHS[j][i] = s[i+j*numUncon];
 
  delete [] s; delete [] t; delete [] a;
- solveTime += getTime();
+ this->solveTime += getTime();
 #endif
 }
 
@@ -1233,7 +1233,7 @@ GenBLKSparseMatrix<Scalar>::getRBMs(VectorSet &rigidBodyModes)
 
 // Constructor Kii, FETI Subdomain preconditioner solver
 
-template<class Scalar> 
+template<class Scalar>
 GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(const Connectivity *cn, const DofSetArray *_dsa,
                                                int *glInternalMap, double _tol, const SolverCntl &_scntl) :
   SparseData(_dsa, glInternalMap, cn, 1), scntl(_scntl)
@@ -1261,7 +1261,7 @@ void
 GenBLKSparseMatrix<Scalar>::allocateMemory()
 {
   using std::min;
-  solveTime = 0.0;
+  this->solveTime = 0.0;
   if(numUncon == 0) return;
 
   double t1 = -getTime();
@@ -1326,7 +1326,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 // -------------------------------------------------------
 
   // iwsiz = 4 * numUncon;  // iwsiz should be the dimension of iwork (not changed)
-#ifdef USE_METIS  
+#ifdef USE_METIS
     if(scntl.sparse_renum == 1) {
         std::vector<idx_t> metis_options(METIS_NOPTIONS, 0);
 	    METIS_SetDefaultOptions(metis_options.data());
@@ -1476,7 +1476,7 @@ template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::reSolve(GenFullM<Scalar> *mat)
 {
- solveTime -= getTime();
+ this->solveTime -= getTime();
 
  int nRHS = mat->numCol();
  int length = mat->numRow();
@@ -1496,6 +1496,6 @@ GenBLKSparseMatrix<Scalar>::reSolve(GenFullM<Scalar> *mat)
 
  delete [] s; delete [] t; delete [] a;
 
- solveTime += getTime();
+ this->solveTime += getTime();
 }
 

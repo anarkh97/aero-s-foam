@@ -176,7 +176,7 @@ public:
 
 	void reSolve(GenDistrVector<Scalar> &) override;
 	Timings& getTimers() override { return times; }
-	double getSolutionTime() override { return times.solve; }
+	double getSolutionTime() const override { return times.solve; }
 protected:
 	std::vector<FetiSub<Scalar> *> subdomains;
 	int nsub = 0, glNumSub = 0;

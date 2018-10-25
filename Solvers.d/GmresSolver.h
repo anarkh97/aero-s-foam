@@ -48,7 +48,7 @@ class GmresSolver : public GenSolver<Scalar>, public MultiDomainSolver<Scalar>
     void factor() override { }
 
     Timings& getTimers() override { return GenSolver<Scalar>::getTimers(); }
-    double getSolutionTime() override { return GenSolver<Scalar>::getSolutionTime(); }
+    double getSolutionTime() const override { return ((GenSolver<Scalar> *)this)->getSolutionTime(); }
     void solve(const Scalar *rhs, Scalar *solution) override {
       std::cerr << "GmresSolver::solve(Scalar *rhs, Scalar *solution) is not implemented\n"; }
 };

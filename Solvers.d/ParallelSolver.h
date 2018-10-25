@@ -1,6 +1,8 @@
 #ifndef DIST_PARALLEL_SOLVER
 #define DIST_PARALLEL_SOLVER
 
+#include <iostream>
+
 template<class Scalar> class GenDistrVector;
 
 template<class Scalar> class GenDistrVectorSet;
@@ -12,7 +14,7 @@ class GenParallelSolver {
     virtual ~GenParallelSolver() = 0;
 
     virtual void reSolve(GenDistrVector<Scalar> &) = 0;
-    virtual double getSolutionTime() = 0; // TODO Make const
+    virtual double getSolutionTime() const = 0;
     virtual void solve(const GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &) = 0;
     virtual void squareRootMult(GenDistrVector<Scalar> &) {
       std::cerr << "GenParallelSolver::squareRootMult(GenDistrVector<Scalar> &) is not implemented\n"; }
@@ -41,9 +43,7 @@ class GenParallelSolver {
 
 template <class Scalar>
 inline
-GenParallelSolver<Scalar>::~GenParallelSolver() {
-  // Empty pure virtual destructor must be defined
-}
+GenParallelSolver<Scalar>::~GenParallelSolver() = default;
 
 #include <iostream>
 

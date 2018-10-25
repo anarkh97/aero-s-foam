@@ -135,9 +135,6 @@ protected:
    int  neqs()const override { return numUncon; }
    void allMult(Scalar x); // multiply the whole skyline matrix by x
 
-   // Timing functions
-   double getSolutionTime() override { return solveTime; }
-
    void printMemory();
    void printConstructTime();
    void print1(int dof);

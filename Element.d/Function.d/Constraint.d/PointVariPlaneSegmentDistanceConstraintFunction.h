@@ -161,7 +161,7 @@ class PointVariPlaneSegmentDistanceConstraintFunction : public ScalarValuedFunct
 
       thickness *= 0.01;
 
-      Scalar(dist) = distanceToSegment(z0.template cast<Scalar>(),z1.template cast<Scalar>(),z2.template cast<Scalar>(),z3.template cast<Scalar>());
+      dist = distanceToSegment(z0,z1,z2,z3);
     }
 
     Scalar operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar t)

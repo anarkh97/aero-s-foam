@@ -1574,45 +1574,6 @@ const char* OutputMessage[] = {
 };
 #endif
 
-void
-Domain::resProcessing(Vector &totRes, int index, double t)
-{
-  int iNode;
-  int i;
-  int numOutInfo = geoSource->getNumOutInfo();
-  OutputInfo *oinfo = geoSource->getOutputInfo();
-  for (i = 0; i < numOutInfo; ++i)  {
-
-    if (oinfo[i].interval == 1) {
-      fprintf(stderr,"%s",OutputMessage[oinfo[i].type]);
-      switch(oinfo[i].type)  {
-
-        default:
-          break;
-        case OutputInfo::Reactions:
-          double (*xyz)[3] = new double[numnodes][3];
-          for(iNode=0; iNode<numnodes; ++iNode) {
-
-            if(nodes[iNode] == 0) continue;
-            DofSet dof[] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp };
-            int k;
-            for(k = 0; k < 3; ++k) {
-              int loc =   dsa->locate( iNode, dof[k].list());
-
-              double v;
-              if(loc >= 0)       v = totRes[loc];
-              else               v = 0.0;
-              xyz[iNode][k] = v;
-            }
-          }
-          geoSource->outputNodeVectors(i, xyz, numnodes, t);
-          delete [] xyz;
-          break;
-      }
-    }
-  }
-}
-
 Connectivity
 Domain::makeSommerToNode()
 {
@@ -2516,59 +2477,6 @@ Domain::makeCDSA(int nbc, BCond *bcs) {
   return c_dsa;
 }
 
-void Domain::getNormal2D(int node1, int node2, double &nx, double &ny) {
-
- int nconele = nodeToElem->num(node1);
-
- int icon;
-
- double r=0;
- double z=0;
-
- for(icon=0; icon<nconele; ++icon) {
-   int iele = (*nodeToElem)[node1][icon];
-   int NodesPerElement = elemToNode->num(iele);
-   int k;
-   int test=0;
-
-   r=0;
-   z=0;
-
-   for (k=0; k<NodesPerElement; k++) {
-     if ((*elemToNode)[iele][k]==node2)
-        test = 1;
-
-     Node nd = nodes.getNode((*elemToNode)[iele][k]);
-
-     r += nd.x/NodesPerElement;
-     z += nd.y/NodesPerElement;
-   }
-
-   if (test==1)
-      break;
- }
- Node nd = nodes.getNode(node1);
-
- double x1 = nd.x;
- double y1 = nd.y;
-
- nd = nodes.getNode(node2);
-
- double x2 = nd.x;
- double y2 = nd.y;
-
- nx = -(y2-y1);
- ny = x2-x1;
-
- double dot= nx*(r-0.5*(x2+x1))+ny*(z-0.5*(y1+y2));
-
- if (dot>=0) {
-    nx = -nx;
-    ny = -ny;
- }
-
-}
-
 void Domain::computeTDProps()
 {
   if((numYMTT > 0) || (numCTETT > 0)) {
@@ -2871,14 +2779,6 @@ void Domain::InitializeDynamicContactSearch(int numSub, SubDomain **sd)
     CurrentMortarCond->set_search_options();
     if(numSub == 0 && !sd) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
     else CurrentMortarCond->set_node_constraints(numSub, sd);
-  }
-}
-
-void Domain::RemoveGap(Vector &g)
-{
-  for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
-    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
-    CurrentMortarCond->remove_gap(g);
   }
 }
 

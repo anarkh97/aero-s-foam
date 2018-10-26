@@ -22,4 +22,15 @@ involve cascading between files. Examples of such cascading effects are the cons
   - Separate abstractions into interface base classes:
     - Solvers have matrix assembly mixed in other matrices have an incompatible assembly hierarchy
       creating duplication of code.
+\subsubsection cg_domain Reorganizing the Domain
+The Domain class has been the class that handles everything to solve a problem without a decomposition.
+Unfortunately, it has grown into the tote bag into everything has been thrown in without any regard to organization.
+It has no less than 186 data members.
+It mixes:
+   - Problem description data:
+        - Geometric data.
+        - Material data.
+        - Boundary condition data.
+   - Solution timings
+
 */

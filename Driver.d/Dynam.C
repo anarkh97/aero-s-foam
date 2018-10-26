@@ -1388,20 +1388,6 @@ double Domain::getKineticEnergy( Vector& vel, SparseMatrix * gMass )
 
 //------------------------------------------------------------------------------
 
-
-double Domain::getDampingEnergy( Vector& vel, SparseMatrix * gDamp )
-{
-  double energy=0.0;
-  
-  Vector tmpVec(c_dsa->size());
-    
-  gDamp->mult(vel,tmpVec);
-
-  energy = 0.5 * (vel * tmpVec);
-  
-  return energy;
-}
-
 void
 Domain::updateUsddInDbc(double* userDefineDisp, int* map)
 {

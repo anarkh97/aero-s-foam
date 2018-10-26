@@ -522,16 +522,12 @@ public:
 		numTotalDispDofs += 6; }
 	std::vector<int> *getStressNodes() { return &stressNodes; }
 	std::vector<DispNode> *getDispNodes() { return &dispNodes; }
-	std::vector<int> &getThicknessGroups() { return thicknessGroups; }
 
 	void setIncludeStressNodes();
 	bool checkIsInStressNodes(int,int &);
 	void createKelArray(FullSquareMatrix *& kel);
 	void createKelArray(FullSquareMatrix *& kel,FullSquareMatrix *& mel);
 	void createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, FullSquareMatrix *&cArray);
-	void reBuild(int iteration, FullSquareMatrix *kel);
-	void getElasticStiff(FullSquareMatrix *kel);
-	void getElementMass(FullSquareMatrix *kel);
 	void getElementForces( GeomState &geomState, Corotator **allCorot,
 	                       int fileNumber, int forceIndex, double time);
 	void getStressStrain(GeomState &geomState, Corotator **allCorot,
@@ -1016,8 +1012,6 @@ public:
 	                    int ndflag = 0, int index = 0, double time = 0, double eigV = 0.0,
 	                    GenSparseMatrix<Scalar> *kuc = NULL, GenSparseMatrix<Scalar> *kcc = NULL);
 
-	void resProcessing(Vector &, int index=0, double t=0);
-
 	// sensitivity post-processing function
 	template<class Scalar>
 	void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens, GenVector<Scalar> *sol = 0, Scalar *bcx=0,
@@ -1044,9 +1038,6 @@ public:
 	                        Vector *reactions = 0, SparseMatrix *M = 0, SparseMatrix *C = 0);
 
 	// Dynamic functions and thermal functions
-	void aeroSolve();
-	void aeroheatSolve();
-	void thermoeSolve();
 	void getHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
 	                 double time=0);
 	void getHeatFlux(ComplexVector &tsol, DComplex *bcx, int fileNumber, int hgIndex, double time=0)
@@ -1136,8 +1127,6 @@ public:
 	void getElementForces(ComplexVector &sol, DComplex *bcx, int fileNumber,
 	                      int forceIndex, double time = 0) { std::cerr << "Domain::getElementForces is not implemented for complex\n"; }
 	void getElementAttr(int fileNumber, int typ, double time=0.0);
-	void getElasticForces(Vector &dsp, double *bcx, Vector &ext_f, double eta,
-	                      FullSquareMatrix *kelArray=0);
 	void getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
 	                FullSquareMatrix *kelArray=0);
 	void getWeightedKtimesU(const std::map<int, double> &weights,
@@ -1152,14 +1141,7 @@ public:
 	void getSloshDispAll(ComplexVector &tsol, complex<double> *bcx, int fileNumber, double time) { std::cerr << "getSloshDispAll(complex) not implemented\n"; }
 	void getSloshDisp(Vector &tsol, double *bcx, int fileNumber, int hgIndex, double time);
 	void getSloshDisp(ComplexVector &tsol, complex<double> *bcx, int fileNumber, int hgIndex, double time) { std::cerr << "getSloshDisp(complex) not implemented\n"; }
-	double getStrainEnergy(Vector &sol, double *bcx, SparseMatrix *gStiff=0,
-	                       FullSquareMatrix *kelArray=0);
-	double getNodalStressStrain(Vector &sol ,double *bcx,
-	                            int inode, int stressIndex, int surface);
-	double getNodalDisp(Vector &sol ,double *bcx,
-	                    int node, int dispTyp);
 	double getKineticEnergy(Vector &sol, SparseMatrix *gMass);
-	double getDampingEnergy(Vector &sol, SparseMatrix *gDamp);
 
 	template<class Scalar>
 	void scaleDisp(Scalar *u);
@@ -1321,7 +1303,6 @@ public:
 
 	template<class Scalar> friend class GenDecDomain;
 	template<class Scalar> friend class GenDistrDomain;
-	template<class Scalar> friend class GenSandiaDomain;
 	friend class HData;
 
 	// for output of tensor data
@@ -1347,7 +1328,6 @@ public:
 	Connectivity *getNodeToElem() { return nodeToElem; }
 	Connectivity* getNodeToNode_sommer() { return nodeToNode_sommer;}
 	ConstrainedDSA *makeCDSA(int nbc, BCond *bcs);
-	void getNormal2D(int node1, int node2, double &nx, double &ny);
 	Elemset* getEset() { return &packedEset; }
 	void setNumnodes(int n) { numnodes = n; }
 
@@ -1365,7 +1345,6 @@ public:
 	int addNodalCTC(int n1, int n2, double nx, double ny, double nz,
 	                double normalGap = 0.0, int _mode = -1, int lagrangeMult = -1, double penalty = 0.0);
 	int getNumCTC();
-	void addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], double gap_vector[3], int itype);
 	void addDirichletLMPCs(int _numDirichlet, BCond *_dbc);
 	void deleteAllLMPCs();
 	void deleteSomeLMPCs(mpc::ConstraintSource s);
@@ -1405,7 +1384,6 @@ public:
 	void MakeNodalMass(SubDOp *M, SubDomain **sd);
 
 	void InitializeDynamicContactSearch(int numSub = 0, SubDomain **sd = 0);
-	void RemoveGap(Vector &g);
 	void PerformDynamicContactSearch(double dt_old, double dt);
 	void AddContactForces(double dt_old, double dt, Vector &f);
 	void AddContactForces(double dt_old, double dt, DistrVector &f);
@@ -1431,7 +1409,6 @@ public:
 	SurfaceEntity* GetSurfaceEntity(int i) { return SurfEntities[i]; }
 	void setNumSurfs(int nSurfs) { nSurfEntity = nSurfs; }
 	int getNumSurfs() { return(nSurfEntity); }
-	int getMaxContactSurfElems() { return maxContactSurfElems; }
 
 #ifdef HB_ACME_FFI_DEBUG
 	void WriteFFITopFile(FILE* file);
